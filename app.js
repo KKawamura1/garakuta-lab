@@ -614,7 +614,11 @@ function makeRunDiagnostics() {
 }
 
 function diagnosticsFor(report) {
-  return report.diagnostics || report.stats?.diagnostics || null;
+  const stored = report.diagnostics || report.stats?.diagnostics;
+  if (stored) return stored;
+  const isCurrentRun = report.runId === state.telemetry?.runId;
+  const hasFinishedBattle = state.telemetry?.events?.some(event => event.type === "battle_ended");
+  return isCurrentRun && hasFinishedBattle ? makeRunDiagnostics() : null;
 }
 
 function metricPills(part) {
@@ -842,6 +846,13 @@ function showRunEnd(won) {
   }
   if (!state.lastReport) state.lastReport = makeRunReport(won);
   const report = state.lastReport;
+  if (!report.diagnostics) {
+    const restoredDiagnostics = diagnosticsFor(report);
+    if (restoredDiagnostics) {
+      report.diagnostics = restoredDiagnostics;
+      report.stats = { ...report.stats, diagnostics: restoredDiagnostics };
+    }
+  }
   $("#runEndTitle").textContent = report.title;
   $("#runEndSummary").textContent = report.summary;
   $("#runFacts").innerHTML = factsHtml(report);
