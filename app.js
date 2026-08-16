@@ -102,8 +102,8 @@ const ENEMIES = [
   { name: "廃都の中枢", face: "◈", hp: 94, atk: 10, armor: 2, rage: 1, trait: "装甲2・攻撃上昇。寄せ集めの最終試験。" }
 ];
 
-const GAME_VERSION = "observe-0.1";
-const TELEMETRY_SCHEMA = 1;
+const GAME_VERSION = "observe-0.2";
+const TELEMETRY_SCHEMA = 2;
 const SAVE_KEY = "garakuta-lab-save";
 const REPORTS_KEY = "garakuta-lab-run-reports";
 const SYNC_QUEUE_KEY = "garakuta-lab-sync-queue";
@@ -588,6 +588,7 @@ function payloadForReport(report) {
     schemaVersion: TELEMETRY_SCHEMA,
     gameVersion: GAME_VERSION,
     runId: report.runId || report.id,
+    telemetryRunId: state.telemetry.runId,
     deviceId: getDeviceId(),
     startedAt: state.stats.startedAt,
     endedAt: report.endedAt,
@@ -617,8 +618,7 @@ function writeSyncQueue(queue) {
   updateSyncStatus(queue.length ? "pending" : "synced", queue.length);
 }
 
-function queueReport(report) {
-  const payload = payloadForReport(report);
+function queuePayload(payload) {
   const queue = readSyncQueue();
   const next = [...queue.filter(item => item.runId !== payload.runId), payload];
   writeSyncQueue(next);
@@ -662,20 +662,25 @@ async function syncPendingRuns() {
 }
 
 function scheduleSync(report, delay = 900) {
+  // Capture the finished run now. `state` is replaced as soon as a new run begins.
+  const payload = payloadForReport(report);
   clearTimeout(syncTimer);
   syncTimer = setTimeout(() => {
-    archiveReport(report);
-    queueReport(report);
+    archivePayload(payload);
+    queuePayload(payload);
     syncPendingRuns();
   }, delay);
 }
 
-function archiveReport(report) {
+function archivePayload(archived) {
   let history = [];
   try { history = JSON.parse(localStorage.getItem(REPORTS_KEY)) || []; } catch (_) {}
-  const archived = payloadForReport(report);
-  history = [archived, ...history.filter(item => item.runId !== report.runId)].slice(0, MAX_LOCAL_REPORTS);
+  history = [archived, ...history.filter(item => item.runId !== archived.runId)].slice(0, MAX_LOCAL_REPORTS);
   localStorage.setItem(REPORTS_KEY, JSON.stringify(history));
+}
+
+function archiveReport(report) {
+  archivePayload(payloadForReport(report));
 }
 
 function saveReportAnswers(message = "回答をこの端末へ保存しました。") {
