@@ -107,7 +107,7 @@ const TELEMETRY_SCHEMA = 1;
 const SAVE_KEY = "garakuta-lab-save";
 const REPORTS_KEY = "garakuta-lab-run-reports";
 const SYNC_QUEUE_KEY = "garakuta-lab-sync-queue";
-const MAX_LOCAL_REPORTS = 12;
+const MAX_LOCAL_REPORTS = 5;
 
 const $ = selector => document.querySelector(selector);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -662,9 +662,12 @@ async function syncPendingRuns() {
 }
 
 function scheduleSync(report, delay = 900) {
-  queueReport(report);
   clearTimeout(syncTimer);
-  syncTimer = setTimeout(syncPendingRuns, delay);
+  syncTimer = setTimeout(() => {
+    archiveReport(report);
+    queueReport(report);
+    syncPendingRuns();
+  }, delay);
 }
 
 function archiveReport(report) {
@@ -679,7 +682,6 @@ function saveReportAnswers(message = "回答をこの端末へ保存しました
   if (!state.lastReport) return;
   state.lastReport.answers = collectAnswers();
   saveState();
-  archiveReport(state.lastReport);
   $("#reportStatus").textContent = message;
   scheduleSync(state.lastReport);
 }
