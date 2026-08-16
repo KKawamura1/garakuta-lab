@@ -228,6 +228,28 @@ button:disabled { opacity: .42; }
 .report-part strong { display: block; font-size: 10px; }
 .report-part small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
 .report-part.empty { opacity: .46; }
+.run-diagnostics { margin-top: 13px; padding-top: 1px; border-top: 1px solid #343b33; }
+.diagnostic-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.diagnostic-summary div { padding: 7px 3px; border-radius: 8px; background: #101310; text-align: center; }
+.diagnostic-summary strong { display: block; color: var(--accent); font: 900 13px/1.2 ui-monospace, monospace; }
+.diagnostic-summary small { color: var(--muted); font-size: 7px; }
+.run-diagnostics h4 { margin: 11px 0 6px; color: #d6d0bc; font-size: 9px; }
+.diagnostic-parts { display: grid; gap: 5px; }
+.diagnostic-part { padding: 7px; border: 1px solid #343b33; border-radius: 9px; background: #131613; }
+.diagnostic-part-name { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 5px; }
+.diagnostic-part-name > span { color: #6f766b; font: 800 8px ui-monospace, monospace; }
+.diagnostic-part-name strong { font-size: 9px; }
+.diagnostic-part-name small { color: var(--muted); font-size: 7px; }
+.metric-pills { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0 27px; }
+.metric-pills span { display: flex; align-items: baseline; gap: 3px; padding: 3px 5px; border-radius: 6px; background: #242a23; }
+.metric-pills small { color: var(--muted); font-size: 7px; }
+.metric-pills strong { color: var(--good); font: 800 9px ui-monospace, monospace; }
+.missed-rewards { margin-top: 9px; border-radius: 8px; background: #111411; }
+.missed-rewards summary { padding: 8px; color: var(--accent); font-size: 9px; cursor: pointer; }
+.missed-rewards ol { display: grid; gap: 5px; margin: 0; padding: 0 8px 8px 27px; }
+.missed-rewards li { color: #d6d0bc; font-size: 8px; }
+.missed-rewards li span { display: block; margin-top: 1px; color: var(--muted); }
+.diagnostic-note, .diagnostic-empty { margin: 8px 0 0; color: var(--muted); font-size: 8px; line-height: 1.5; }
 
 .playtest-form { display: grid; gap: 10px; margin-top: 13px; }
 .playtest-form > label, .survey-pair label { color: #d6d0bc; font-size: 10px; font-weight: 800; }
@@ -271,6 +293,7 @@ button:disabled { opacity: .42; }
 .screenshot-signals div { padding: 7px 3px; border-radius: 8px; background: #101310; text-align: center; }
 .screenshot-signals strong { display: block; color: var(--accent); font-size: 11px; }
 .screenshot-signals small { color: var(--muted); font-size: 7px; }
+.screenshot-diagnostic { margin: -4px 0 10px; padding: 7px; border-radius: 8px; background: #101310; color: var(--good); font: 8px/1.4 ui-monospace, monospace; text-align: center; }
 .screenshot-tip { color: var(--muted); font-size: 9px; text-align: center; }
 
 .hit-flash { animation: hit .25s ease; }
