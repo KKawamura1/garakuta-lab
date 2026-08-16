@@ -188,6 +188,7 @@ button:disabled { opacity: .42; }
   width: 100%; margin-top: 10px; padding: 9px; border: 1px dashed #65583d; border-radius: 9px;
   background: #211f18; color: var(--accent); font-size: 10px; font-weight: 800;
 }
+.experiment-link { color: var(--accent); font-size: 9px; letter-spacing: .08em; }
 .reaction-modal { width: min(calc(100% - 28px), 430px); }
 .reaction-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
 .reaction-choices button {
