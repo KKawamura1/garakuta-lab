@@ -25,7 +25,7 @@ function validOrigin(request) {
 function validPayload(payload) {
   return payload &&
     typeof payload.runId === "string" && payload.runId.length >= 8 && payload.runId.length <= 80 &&
-    payload.telemetryRunId === payload.runId &&
+    (payload.schemaVersion < 2 || payload.telemetryRunId === payload.runId) &&
     typeof payload.deviceId === "string" && payload.deviceId.length >= 8 && payload.deviceId.length <= 80 &&
     Number.isInteger(payload.schemaVersion) &&
     typeof payload.gameVersion === "string" && payload.gameVersion.length <= 40 &&
