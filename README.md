@@ -21,6 +21,8 @@ iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した�
 - サーバー処理なし
 - セーブは端末内の`localStorage`
 - Service Workerによるオフライン対応
+- ラン終了時のプレイテスト回答・最終構成を端末内に保存
+- ランレポートのコピーとスクリーンショット用表示
 - Apple Developer ProgramおよびApp Store配布は不要
 
 ## 公開方法

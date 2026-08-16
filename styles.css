@@ -174,6 +174,65 @@ button:disabled { opacity: .42; }
 .help-modal ol { padding-left: 21px; color: #d5cfba; font-size: 11px; line-height: 1.7; }
 .note { padding: 10px; border-radius: 9px; background: #222920; color: var(--good); font-size: 10px; line-height: 1.5; }
 
+.end-modal { padding-bottom: 20px; }
+.run-result-card {
+  padding: 12px; border: 1px solid #4b5148; border-radius: 13px;
+  background: linear-gradient(145deg, #232822, #171a17);
+}
+.run-result-card h3 { margin: 12px 0 7px; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+.run-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.run-fact { padding: 8px 5px; border-radius: 9px; background: #111411; text-align: center; }
+.run-fact strong { display: block; color: var(--accent); font: 900 15px/1.2 ui-monospace, monospace; }
+.run-fact small { color: var(--muted); font-size: 8px; }
+.report-build { display: grid; gap: 5px; }
+.report-part {
+  display: grid; grid-template-columns: 23px 30px minmax(0,1fr); align-items: center; gap: 7px;
+  min-height: 38px; padding: 5px 8px; border-radius: 9px; border: 1px solid #343b33; background: #131613;
+}
+.report-part .order { color: #6f766b; font: 800 9px ui-monospace, monospace; }
+.report-part .part-icon { margin: 0; font-size: 18px; text-align: center; }
+.report-part strong { display: block; font-size: 10px; }
+.report-part small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
+.report-part.empty { opacity: .46; }
+
+.playtest-form { display: grid; gap: 10px; margin-top: 13px; }
+.playtest-form > label, .survey-pair label { color: #d6d0bc; font-size: 10px; font-weight: 800; }
+.playtest-form textarea, .playtest-form select {
+  width: 100%; margin-top: 5px; border: 1px solid #41483f; border-radius: 9px;
+  background: #111411; color: var(--ink); padding: 9px; font: 11px/1.45 -apple-system, sans-serif;
+}
+.playtest-form textarea { resize: vertical; min-height: 58px; }
+.survey-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.replay-score { margin: 0; padding: 9px; border: 1px solid #41483f; border-radius: 10px; }
+.replay-score legend { padding: 0 5px; color: #d6d0bc; font-size: 10px; font-weight: 800; }
+.replay-score > div { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.replay-score label { position: relative; }
+.replay-score input { position: absolute; opacity: 0; }
+.replay-score span {
+  display: grid; place-items: center; height: 38px; border: 1px solid #41483f; border-radius: 9px;
+  background: #141714; color: var(--muted); font: 800 12px ui-monospace, monospace;
+}
+.replay-score input:checked + span { border-color: var(--accent); background: #3a2f1c; color: var(--ink); }
+.report-status { margin: 10px 0 8px; color: var(--good); font-size: 9px; text-align: center; }
+.report-actions { display: grid; grid-template-columns: 1.25fr 1fr; gap: 7px; }
+.report-actions .primary-button, .report-actions .quiet-button { min-height: 44px; }
+.end-modal > #newRunButton { margin-top: 8px; background: #30362f; color: var(--ink); box-shadow: none; }
+
+.screenshot-modal { background: #111411; }
+.screenshot-card {
+  padding: 15px; border: 2px solid var(--accent); border-radius: 16px;
+  background: radial-gradient(circle at 90% 0, rgba(227,111,61,.18), transparent 14rem), #191d19;
+}
+.screenshot-card h2 { margin: 2px 0 4px; font-size: 20px; }
+.screenshot-card .report-date { margin: 0 0 12px; color: var(--muted); font: 8px ui-monospace, monospace; }
+.screenshot-card .run-facts { margin-bottom: 11px; }
+.screenshot-card .report-build { margin: 7px 0 12px; }
+.screenshot-signals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.screenshot-signals div { padding: 7px 3px; border-radius: 8px; background: #101310; text-align: center; }
+.screenshot-signals strong { display: block; color: var(--accent); font-size: 11px; }
+.screenshot-signals small { color: var(--muted); font-size: 7px; }
+.screenshot-tip { color: var(--muted); font-size: 9px; text-align: center; }
+
 .hit-flash { animation: hit .25s ease; }
 .hidden { display: none !important; }
 
@@ -184,6 +243,7 @@ button:disabled { opacity: .42; }
   .inventory-grid { gap: 6px; }
   .part-card { padding: 8px; }
   .resource-row { margin-left: 0; }
+  .survey-pair { grid-template-columns: 1fr; }
 }
 
 @media (display-mode: standalone) {

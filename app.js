@@ -122,19 +122,34 @@ function weightedType(exclude = []) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+function newRunStats() {
+  return {
+    startedAt: new Date().toISOString(), battles: 0, victories: 0,
+    rewards: [], skippedRewards: 0, scrappedParts: [], repairs: 0
+  };
+}
+
 function newState() {
   const types = [];
   while (types.length < 8) types.push(weightedType(types));
   return {
-    version: 1, wave: 0, hp: 30, maxHp: 30, scrap: 1,
-    inventory: types.map(makePart), slots: [null, null, null, null, null], completed: false
+    version: 2, wave: 0, hp: 30, maxHp: 30, scrap: 1,
+    inventory: types.map(makePart), slots: [null, null, null, null, null], completed: false,
+    stats: newRunStats(), lastReport: null
   };
 }
 
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem("garakuta-lab-save"));
-    if (saved?.version === 1) return saved;
+    if (saved?.version === 1 || saved?.version === 2) {
+      return {
+        ...saved,
+        version: 2,
+        stats: { ...newRunStats(), ...(saved.stats || {}) },
+        lastReport: saved.lastReport || null
+      };
+    }
   } catch (_) {}
   return newState();
 }
@@ -216,6 +231,7 @@ function renderInspector() {
   $("#scrapSelected").addEventListener("click", () => {
     state.inventory.splice(selectedInventory, 1);
     state.scrap += 1;
+    state.stats.scrappedParts.push(p.name);
     selectedInventory = null;
     saveState(); render();
     setLog(`${p.name}を分解し、修復材を1得た。`);
@@ -291,6 +307,8 @@ async function startBattle() {
     hp: state.hp, power: 0, heat: 0, shield: 0, enemyHp: enemyBase.hp,
     enemy: { ...enemyBase }, uses: {}, last: null, cycle: 0
   };
+  state.stats.battles += 1;
+  saveState();
   render(); updateBattleUI();
   $("#enemyName").textContent = battle.enemy.name;
   $("#enemyFace").textContent = battle.enemy.face;
@@ -342,13 +360,12 @@ async function startBattle() {
 
 async function winBattle() {
   setLog(`${battle.enemy.name}を撃破。機械の残りHPは${state.hp}。`);
+  state.stats.victories += 1;
   state.hp = Math.min(state.maxHp, state.hp + 3);
   if (state.wave >= ENEMIES.length - 1) {
     state.completed = true;
     saveState(); render();
-    $("#runEndTitle").textContent = "廃都の中枢を停止した";
-    $("#runEndSummary").textContent = `拾い物だけの機械が、全${ENEMIES.length}戦を生き延びました。最後のHP：${state.hp}。`;
-    $("#runEndDialog").showModal();
+    showRunEnd(true);
     return;
   }
   state.wave += 1;
@@ -359,9 +376,7 @@ async function winBattle() {
 
 function loseBattle() {
   saveState(); render();
-  $("#runEndTitle").textContent = "機械は停止した";
-  $("#runEndSummary").textContent = `${state.wave + 1}戦目で停止。欲しい部品が来なかったからではなく、今ある部品の別の並べ方を試せるでしょうか。`;
-  $("#runEndDialog").showModal();
+  showRunEnd(false);
 }
 
 function showRewards() {
@@ -376,6 +391,7 @@ function showRewards() {
     button.innerHTML = `<span class="part-icon">${p.icon}</span><strong>${p.name}</strong><p>${p.desc}</p><span class="part-tags">${p.tags.map(t => `<i>${t}</i>`).join("")}</span>`;
     button.addEventListener("click", () => {
       state.inventory.push(makePart(type));
+      state.stats.rewards.push(p.name);
       saveState();
       $("#rewardDialog").close();
       render();
@@ -386,13 +402,154 @@ function showRewards() {
   $("#rewardDialog").showModal();
 }
 
+function makeRunReport(won) {
+  const title = won ? "廃都の中枢を停止した" : "機械は停止した";
+  const summary = won
+    ? `拾い物だけの機械が、全${ENEMIES.length}戦を生き延びました。最後のHP：${state.hp}。`
+    : `${state.wave + 1}戦目で停止。今ある部品の別の並べ方を試せるでしょうか。`;
+  return {
+    id: uid(), endedAt: new Date().toISOString(), won, title, summary,
+    reached: won ? ENEMIES.length : state.wave + 1,
+    defeated: state.stats.victories,
+    hp: state.hp,
+    build: state.slots.map(instance => {
+      const part = getPart(instance);
+      return part ? { name: part.name, icon: part.icon, short: part.short } : null;
+    }),
+    stats: JSON.parse(JSON.stringify(state.stats)),
+    answers: {}
+  };
+}
+
+function buildRows(report) {
+  return report.build.map((part, index) => part
+    ? `<div class="report-part"><span class="order">0${index + 1}</span><span class="part-icon">${part.icon}</span><span><strong>${part.name}</strong><small>${part.short}</small></span></div>`
+    : `<div class="report-part empty"><span class="order">0${index + 1}</span><span class="part-icon">＋</span><span><strong>空き</strong><small>部品なし</small></span></div>`
+  ).join("");
+}
+
+function factsHtml(report) {
+  return `<div class="run-fact"><strong>${report.reached}/${ENEMIES.length}</strong><small>到達戦</small></div>
+    <div class="run-fact"><strong>${report.hp}</strong><small>最終HP</small></div>
+    <div class="run-fact"><strong>${report.stats.rewards.length}</strong><small>拾った部品</small></div>`;
+}
+
+function fillReportForm(answers = {}) {
+  const form = $("#playtestForm");
+  ["bestMoment", "friction", "hardChoice", "wishlist", "pivot", "randomnessNote"].forEach(name => {
+    form.elements[name].value = answers[name] || "";
+  });
+  form.querySelectorAll('[name="replay"]').forEach(input => {
+    input.checked = input.value === String(answers.replay || "");
+  });
+}
+
+function collectAnswers() {
+  const data = new FormData($("#playtestForm"));
+  return {
+    bestMoment: String(data.get("bestMoment") || "").trim(),
+    friction: String(data.get("friction") || "").trim(),
+    hardChoice: String(data.get("hardChoice") || "").trim(),
+    wishlist: String(data.get("wishlist") || ""),
+    pivot: String(data.get("pivot") || ""),
+    randomnessNote: String(data.get("randomnessNote") || "").trim(),
+    replay: String(data.get("replay") || "")
+  };
+}
+
+function archiveReport(report) {
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem("garakuta-lab-run-reports")) || []; } catch (_) {}
+  history = [report, ...history.filter(item => item.id !== report.id)].slice(0, 20);
+  localStorage.setItem("garakuta-lab-run-reports", JSON.stringify(history));
+}
+
+function saveReportAnswers(message = "回答をこの端末へ保存しました。") {
+  if (!state.lastReport) return;
+  state.lastReport.answers = collectAnswers();
+  saveState();
+  archiveReport(state.lastReport);
+  $("#reportStatus").textContent = message;
+}
+
+function showRunEnd(won) {
+  if (!state.lastReport) state.lastReport = makeRunReport(won);
+  const report = state.lastReport;
+  $("#runEndTitle").textContent = report.title;
+  $("#runEndSummary").textContent = report.summary;
+  $("#runFacts").innerHTML = factsHtml(report);
+  $("#finalBuild").innerHTML = buildRows(report);
+  fillReportForm(report.answers);
+  saveState();
+  if (!$("#runEndDialog").open) $("#runEndDialog").showModal();
+}
+
+function reportText(report) {
+  const answers = report.answers || {};
+  const build = report.build.map((part, index) => `${index + 1}. ${part ? `${part.icon} ${part.name}` : "空き"}`).join("\n");
+  return [
+    "ガラクタ・ラボ プレイテスト",
+    `結果: ${report.title}`,
+    `到達: ${report.reached}/${ENEMIES.length}戦 / 撃破${report.defeated} / 最終HP ${report.hp}`,
+    `最終駆動列:\n${build}`,
+    `拾った部品: ${report.stats.rewards.join("、") || "なし"}`,
+    `報酬全分解: ${report.stats.skippedRewards}回 / 修理: ${report.stats.repairs}回`,
+    `一番気持ちよかった瞬間:\n${answers.bestMoment || "未回答"}`,
+    `面倒・退屈・理不尽だった瞬間:\n${answers.friction || "未回答"}`,
+    `本気で迷った選択:\n${answers.hardChoice || "未回答"}`,
+    `欲しい部品待ち: ${answers.wishlist || "未回答"}`,
+    `偶然の部品で方針転換: ${answers.pivot || "未回答"}`,
+    `補足: ${answers.randomnessNote || "なし"}`,
+    `もう一度遊びたい度: ${answers.replay || "未回答"}/5`
+  ].join("\n\n");
+}
+
+async function copyReport() {
+  saveReportAnswers("コピーを準備しています…");
+  const text = reportText(state.lastReport);
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (_) {
+    const area = document.createElement("textarea");
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand("copy");
+    area.remove();
+  }
+  $("#reportStatus").textContent = "コピーしました。このチャットへ貼り付けてください。";
+}
+
+function showScreenshotReport() {
+  saveReportAnswers();
+  const report = state.lastReport;
+  const signals = report.answers || {};
+  $("#screenshotCard").innerHTML = `<p class="eyebrow">GARAKUTA LAB / RUN REPORT</p>
+    <h2>${report.title}</h2>
+    <p class="report-date">${new Date(report.endedAt).toLocaleString("ja-JP")}</p>
+    <div class="run-facts">${factsHtml(report)}</div>
+    <div class="report-build">${buildRows(report)}</div>
+    <div class="screenshot-signals">
+      <div><strong>${signals.wishlist || "–"}</strong><small>欲しい物待ち</small></div>
+      <div><strong>${signals.pivot || "–"}</strong><small>方針転換</small></div>
+      <div><strong>${signals.replay || "–"}/5</strong><small>もう一度</small></div>
+    </div>`;
+  $("#runEndDialog").close();
+  $("#screenshotDialog").showModal();
+}
+
 function newRun() {
+  if (state.lastReport) {
+    saveReportAnswers();
+    archiveReport(state.lastReport);
+  }
   state = newState();
   selectedInventory = null;
   selectedSlot = null;
   battle = null;
   saveState();
   $("#runEndDialog").close();
+  if ($("#screenshotDialog").open) $("#screenshotDialog").close();
   render();
   setLog("新しいガラクタが届いた。完成図はない。");
 }
@@ -407,13 +564,22 @@ function registerEvents() {
     if (state.scrap < 1 || state.hp >= state.maxHp) return;
     state.scrap -= 1;
     state.hp = Math.min(state.maxHp, state.hp + 5);
+    state.stats.repairs += 1;
     saveState(); render(); setLog("修復材を使い、HPを5回復した。");
   });
   $("#helpButton").addEventListener("click", () => $("#helpDialog").showModal());
   $("#closeHelp").addEventListener("click", () => $("#helpDialog").close());
   $("#skipReward").addEventListener("click", () => {
-    state.scrap += 2; saveState(); $("#rewardDialog").close(); render();
+    state.scrap += 2; state.stats.skippedRewards += 1; saveState(); $("#rewardDialog").close(); render();
     setLog("候補をすべて分解し、修復材を2得た。");
+  });
+  $("#playtestForm").addEventListener("input", () => saveReportAnswers());
+  $("#playtestForm").addEventListener("change", () => saveReportAnswers());
+  $("#copyReportButton").addEventListener("click", copyReport);
+  $("#screenshotButton").addEventListener("click", showScreenshotReport);
+  $("#closeScreenshot").addEventListener("click", () => {
+    $("#screenshotDialog").close();
+    $("#runEndDialog").showModal();
   });
   $("#newRunButton").addEventListener("click", newRun);
 }
@@ -421,10 +587,8 @@ function registerEvents() {
 state = loadState();
 registerEvents();
 render();
-if (state.completed || state.hp <= 0) {
-  $("#runEndTitle").textContent = state.completed ? "廃都の中枢を停止した" : "機械は停止した";
-  $("#runEndSummary").textContent = `前回のラン：${state.wave + 1}戦目、HP ${state.hp}。`;
-  $("#runEndDialog").showModal();
+if (state.completed || state.hp <= 0 || state.lastReport) {
+  showRunEnd(state.completed);
 }
 
 if ("serviceWorker" in navigator) {

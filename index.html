@@ -107,11 +107,67 @@
 
     <dialog id="runEndDialog" class="modal end-modal">
       <div class="modal-head">
-        <p class="eyebrow">RUN OVER</p>
+        <p class="eyebrow">PLAYTEST REPORT</p>
         <h2 id="runEndTitle">機械は停止した</h2>
         <p id="runEndSummary"></p>
       </div>
+      <section class="run-result-card">
+        <div id="runFacts" class="run-facts"></div>
+        <h3>最終駆動列</h3>
+        <div id="finalBuild" class="report-build"></div>
+      </section>
+      <form id="playtestForm" class="playtest-form">
+        <label>一番気持ちよかった瞬間
+          <textarea name="bestMoment" rows="2" placeholder="例：熱を溜めて一気に8ダメージ出た"></textarea>
+        </label>
+        <label>面倒・退屈・理不尽だった瞬間
+          <textarea name="friction" rows="2" placeholder="何もなければ「なし」でOK"></textarea>
+        </label>
+        <label>本気で迷った選択
+          <textarea name="hardChoice" rows="2" placeholder="報酬、部品の順番、分解など"></textarea>
+        </label>
+        <div class="survey-pair">
+          <label>欲しい部品待ちは？
+            <select name="wishlist">
+              <option value="">未回答</option>
+              <option value="なかった">なかった</option>
+              <option value="あった">あった</option>
+            </select>
+          </label>
+          <label>偶然の部品で方針転換は？
+            <select name="pivot">
+              <option value="">未回答</option>
+              <option value="なかった">なかった</option>
+              <option value="あった">あった</option>
+            </select>
+          </label>
+        </div>
+        <label>補足
+          <textarea name="randomnessNote" rows="2" placeholder="欲しかった部品／方針を変えた部品など"></textarea>
+        </label>
+        <fieldset class="replay-score">
+          <legend>すぐもう一度遊びたい度</legend>
+          <div>
+            <label><input type="radio" name="replay" value="1"><span>1</span></label>
+            <label><input type="radio" name="replay" value="2"><span>2</span></label>
+            <label><input type="radio" name="replay" value="3"><span>3</span></label>
+            <label><input type="radio" name="replay" value="4"><span>4</span></label>
+            <label><input type="radio" name="replay" value="5"><span>5</span></label>
+          </div>
+        </fieldset>
+      </form>
+      <p id="reportStatus" class="report-status" aria-live="polite">回答はこの端末だけに保存されます。</p>
+      <div class="report-actions">
+        <button id="copyReportButton" class="primary-button" type="button">回答をコピー</button>
+        <button id="screenshotButton" class="quiet-button" type="button">スクショ用に表示</button>
+      </div>
       <button id="newRunButton" class="primary-button">新しいガラクタで始める</button>
+    </dialog>
+
+    <dialog id="screenshotDialog" class="modal screenshot-modal">
+      <article id="screenshotCard" class="screenshot-card"></article>
+      <p class="screenshot-tip">iPhoneのサイドボタン＋音量を上げるボタンで保存</p>
+      <button id="closeScreenshot" class="primary-button">回答画面へ戻る</button>
     </dialog>
 
     <script src="app.js" defer></script>
