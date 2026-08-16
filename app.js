@@ -102,8 +102,8 @@ const ENEMIES = [
   { name: "廃都の中枢", face: "◈", hp: 94, atk: 10, armor: 2, rage: 1, trait: "装甲2・攻撃上昇。寄せ集めの最終試験。" }
 ];
 
-const GAME_VERSION = "observe-0.2";
-const TELEMETRY_SCHEMA = 2;
+const GAME_VERSION = "observe-0.3";
+const TELEMETRY_SCHEMA = 3;
 const SAVE_KEY = "garakuta-lab-save";
 const REPORTS_KEY = "garakuta-lab-run-reports";
 const SYNC_QUEUE_KEY = "garakuta-lab-sync-queue";
@@ -121,6 +121,7 @@ let inBattle = false;
 let battle = null;
 let currentPhase = "build";
 let syncTimer = null;
+let activeSyncTimer = null;
 
 function makePart(type) { return { id: uid(), type }; }
 
@@ -492,6 +493,7 @@ function showRewards() {
   while (types.length < 3) types.push(weightedType(types));
   recordEvent("reward_offered", { types, parts: types.map(type => PARTS[type].name) });
   saveState();
+  scheduleActiveSync();
   const box = $("#rewardChoices");
   box.innerHTML = "";
   types.forEach(type => {
@@ -506,6 +508,7 @@ function showRewards() {
       currentPhase = "build";
       recordEvent("reward_chosen", { part: partRef(instance), offeredTypes: types });
       saveState();
+      scheduleActiveSync();
       $("#rewardDialog").close();
       render();
       setLog(`${p.name}を拾った。今の機械へどう混ぜる？`);
@@ -609,6 +612,25 @@ function payloadForReport(report) {
   };
 }
 
+function makeProgressReport() {
+  return {
+    id: state.telemetry.runId,
+    runId: state.telemetry.runId,
+    endedAt: null,
+    won: false,
+    title: "進行中",
+    reached: state.wave + 1,
+    defeated: state.stats.victories,
+    hp: state.hp,
+    build: state.slots.map(instance => {
+      const part = getPart(instance);
+      return part ? { name: part.name, icon: part.icon, short: part.short } : null;
+    }),
+    stats: JSON.parse(JSON.stringify(state.stats)),
+    answers: {}
+  };
+}
+
 function readSyncQueue() {
   try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)) || []; } catch (_) { return []; }
 }
@@ -667,6 +689,15 @@ function scheduleSync(report, delay = 900) {
   clearTimeout(syncTimer);
   syncTimer = setTimeout(() => {
     archivePayload(payload);
+    queuePayload(payload);
+    syncPendingRuns();
+  }, delay);
+}
+
+function scheduleActiveSync(delay = 300) {
+  const payload = payloadForReport(makeProgressReport());
+  clearTimeout(activeSyncTimer);
+  activeSyncTimer = setTimeout(() => {
     queuePayload(payload);
     syncPendingRuns();
   }, delay);
@@ -788,6 +819,7 @@ function markReaction(button) {
   }
   $("#reactionDialog").close();
   setLog(`「${label}」を${phaseName()}の記録へ残した。`);
+  if (!state.lastReport) scheduleActiveSync(100);
 }
 
 function newRun() {
@@ -856,10 +888,15 @@ if (!state.telemetry.events.length) {
 }
 registerEvents();
 render();
+$("#versionStatus").textContent = "OBS 0.3";
 updateSyncStatus(readSyncQueue().length ? "pending" : "synced");
 syncPendingRuns();
 if (state.completed || state.hp <= 0 || state.lastReport) {
   showRunEnd(state.completed);
+} else {
+  recordEvent("client_ready", { gameVersion: GAME_VERSION, schemaVersion: TELEMETRY_SCHEMA });
+  saveState();
+  scheduleActiveSync(200);
 }
 
 if ("serviceWorker" in navigator) {

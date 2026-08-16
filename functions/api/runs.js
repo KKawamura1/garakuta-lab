@@ -58,12 +58,22 @@ export async function onRequestPost(context) {
       outcome_json, build_json, stats_json, answers_json, client_json, events_json
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(run_id) DO UPDATE SET
-      saved_at=excluded.saved_at, ended_at=excluded.ended_at, won=excluded.won,
-      reached=excluded.reached, final_hp=excluded.final_hp, replay_score=excluded.replay_score,
-      event_count=excluded.event_count, moment_count=excluded.moment_count,
-      outcome_json=excluded.outcome_json, build_json=excluded.build_json,
-      stats_json=excluded.stats_json, answers_json=excluded.answers_json,
-      client_json=excluded.client_json, events_json=excluded.events_json
+      saved_at=excluded.saved_at,
+      ended_at=COALESCE(excluded.ended_at, runs.ended_at),
+      schema_version=MAX(runs.schema_version, excluded.schema_version),
+      game_version=excluded.game_version,
+      won=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.won ELSE runs.won END,
+      reached=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.reached ELSE runs.reached END,
+      final_hp=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.final_hp ELSE runs.final_hp END,
+      replay_score=excluded.replay_score,
+      event_count=MAX(runs.event_count, excluded.event_count),
+      moment_count=MAX(runs.moment_count, excluded.moment_count),
+      outcome_json=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.outcome_json ELSE runs.outcome_json END,
+      build_json=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.build_json ELSE runs.build_json END,
+      stats_json=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.stats_json ELSE runs.stats_json END,
+      answers_json=excluded.answers_json,
+      client_json=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.client_json ELSE runs.client_json END,
+      events_json=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.events_json ELSE runs.events_json END
   `).bind(
     payload.runId, payload.deviceId, payload.schemaVersion, payload.gameVersion,
     payload.startedAt || null, payload.endedAt || null, savedAt,
@@ -74,8 +84,18 @@ export async function onRequestPost(context) {
     JSON.stringify(payload.client || {}), JSON.stringify(payload.events)
   );
 
-  const statements = [
-    upsert,
+  let existing;
+  try {
+    existing = await context.env.PLAYTEST_DB.prepare(
+      "SELECT event_count, moment_count FROM runs WHERE run_id = ?"
+    ).bind(payload.runId).first();
+  } catch (error) {
+    console.error(JSON.stringify({ event: "playtest_preflight_failed", runId: payload.runId, message: String(error) }));
+    return json({ ok: false, error: "save_failed" }, 500);
+  }
+
+  const replaceMoments = !existing || payload.moments.length >= existing.moment_count;
+  const momentStatements = replaceMoments ? [
     context.env.PLAYTEST_DB.prepare("DELETE FROM moments WHERE run_id = ?").bind(payload.runId),
     ...payload.moments.map(moment => context.env.PLAYTEST_DB.prepare(`
       INSERT INTO moments (run_id, event_seq, happened_at, elapsed_ms, kind, label, phase, note)
@@ -85,7 +105,9 @@ export async function onRequestPost(context) {
       String(moment.kind || "").slice(0, 40), String(moment.label || "").slice(0, 40),
       String(moment.phase || "").slice(0, 40), String(moment.note || "").slice(0, 160)
     ))
-  ];
+  ] : [];
+
+  const statements = [upsert, ...momentStatements];
 
   try {
     await context.env.PLAYTEST_DB.batch(statements);
