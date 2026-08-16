@@ -71,7 +71,7 @@ const PARTS = {
   },
   mine: {
     name: "時限ボルト", icon: "◉", short: "2回ごとに爆発", tags: ["攻撃", "蓄積"],
-    desc: "普段は2ダメージ。2回目の作動では追加で9ダメージ。単独で完結する。",
+    desc: "奇数回は2ダメージ、偶数回は11ダメージ。爆発後はまた2ダメージに戻る。",
     run: s => {
       const count = (s.uses[s.instanceId] || 0) + 1;
       s.uses[s.instanceId] = count;
@@ -87,7 +87,7 @@ const PARTS = {
   },
   unstable: {
     name: "違法砲身", icon: "‼", short: "雑に強い不安定砲", tags: ["攻撃", "熱", "レア"],
-    desc: "5〜11ダメージを与え、熱＋2。引いた瞬間から強いが、機械を熱くする。",
+    desc: "5〜11ダメージを与え、熱＋2。現在、熱そのものによるペナルティはない。",
     rare: true,
     run: () => ({ damage: 5 + Math.floor(Math.random() * 7), heat: 2, text: "違法砲身が轟音とともに暴れた" })
   }
@@ -102,6 +102,13 @@ const ENEMIES = [
   { name: "廃都の中枢", face: "◈", hp: 94, atk: 10, armor: 2, rage: 1, trait: "装甲2・攻撃上昇。寄せ集めの最終試験。" }
 ];
 
+const GAME_VERSION = "observe-0.1";
+const TELEMETRY_SCHEMA = 1;
+const SAVE_KEY = "garakuta-lab-save";
+const REPORTS_KEY = "garakuta-lab-run-reports";
+const SYNC_QUEUE_KEY = "garakuta-lab-sync-queue";
+const MAX_LOCAL_REPORTS = 12;
+
 const $ = selector => document.querySelector(selector);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -112,6 +119,8 @@ let selectedInventory = null;
 let selectedSlot = null;
 let inBattle = false;
 let battle = null;
+let currentPhase = "build";
+let syncTimer = null;
 
 function makePart(type) { return { id: uid(), type }; }
 
@@ -129,25 +138,38 @@ function newRunStats() {
   };
 }
 
+function newTelemetry() {
+  return {
+    schemaVersion: TELEMETRY_SCHEMA,
+    gameVersion: GAME_VERSION,
+    runId: crypto.randomUUID ? crypto.randomUUID() : uid(),
+    sequence: 0,
+    events: [],
+    moments: [],
+    syncState: "local"
+  };
+}
+
 function newState() {
   const types = [];
   while (types.length < 8) types.push(weightedType(types));
   return {
-    version: 2, wave: 0, hp: 30, maxHp: 30, scrap: 1,
+    version: 3, wave: 0, hp: 30, maxHp: 30, scrap: 1,
     inventory: types.map(makePart), slots: [null, null, null, null, null], completed: false,
-    stats: newRunStats(), lastReport: null
+    stats: newRunStats(), lastReport: null, telemetry: newTelemetry()
   };
 }
 
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem("garakuta-lab-save"));
-    if (saved?.version === 1 || saved?.version === 2) {
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if ([1, 2, 3].includes(saved?.version)) {
       return {
         ...saved,
-        version: 2,
+        version: 3,
         stats: { ...newRunStats(), ...(saved.stats || {}) },
-        lastReport: saved.lastReport || null
+        lastReport: saved.lastReport || null,
+        telemetry: saved.telemetry || newTelemetry()
       };
     }
   } catch (_) {}
@@ -155,7 +177,56 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem("garakuta-lab-save", JSON.stringify(state));
+  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+}
+
+function partRef(instance) {
+  if (!instance) return null;
+  return { id: instance.id, type: instance.type, name: getPart(instance)?.name || instance.type };
+}
+
+function snapshot(extra = {}) {
+  return {
+    phase: currentPhase,
+    wave: state.wave,
+    hp: state.hp,
+    maxHp: state.maxHp,
+    scrap: state.scrap,
+    inventory: state.inventory.map(partRef),
+    slots: state.slots.map(partRef),
+    battle: battle ? {
+      cycle: battle.cycle,
+      hp: battle.hp,
+      power: battle.power,
+      heat: battle.heat,
+      shield: battle.shield,
+      enemy: battle.enemy.name,
+      enemyHp: battle.enemyHp,
+      uses: { ...battle.uses }
+    } : null,
+    ...extra
+  };
+}
+
+function recordEvent(type, detail = {}, includeSnapshot = true) {
+  if (!state.telemetry) state.telemetry = newTelemetry();
+  const event = {
+    seq: ++state.telemetry.sequence,
+    at: new Date().toISOString(),
+    elapsedMs: Date.now() - new Date(state.stats.startedAt).getTime(),
+    type,
+    detail
+  };
+  if (includeSnapshot) event.state = snapshot();
+  state.telemetry.events.push(event);
+  return event;
+}
+
+function phaseName() {
+  if (currentPhase === "battle") return "戦闘中";
+  if (currentPhase === "reward") return "報酬選択";
+  if (currentPhase === "end") return "ラン終了";
+  return "構築中";
 }
 
 function getPart(instance) { return instance ? PARTS[instance.type] : null; }
@@ -183,6 +254,7 @@ function render() {
     $("#shieldText").textContent = "0";
     $("#enemyName").textContent = enemy.name;
     $("#enemyFace").textContent = enemy.face;
+    $("#enemyStats").textContent = `攻撃 ${enemy.atk} / 装甲 ${enemy.armor || 0}`;
     $("#enemyTrait").textContent = `特徴：${enemy.trait}`;
     $("#enemyHpText").textContent = `${enemy.hp} / ${enemy.hp}`;
     $("#enemyHpBar").style.width = "100%";
@@ -209,30 +281,41 @@ function render() {
   if (!state.inventory.length) inventory.innerHTML = `<p class="build-hint">予備部品はありません。</p>`;
 
   $("#slotControls").classList.toggle("hidden", selectedSlot === null || inBattle);
-  $("#selectedInspector").classList.toggle("hidden", selectedInventory === null || inBattle);
+  $("#selectedInspector").classList.toggle("hidden", (selectedInventory === null && selectedSlot === null) || inBattle);
   $("#battleButton").disabled = inBattle || state.slots.every(x => !x);
   $("#battleButton").textContent = inBattle ? "作動中…" : "このガラクタで戦う";
+  renderInspector();
 }
 
 function selectInventory(index) {
   if (inBattle) return;
   selectedInventory = selectedInventory === index ? null : index;
   selectedSlot = null;
+  recordEvent("part_inspected", { part: selectedInventory === null ? null : partRef(state.inventory[selectedInventory]) }, false);
   render();
-  renderInspector();
 }
 
 function renderInspector() {
   const box = $("#selectedInspector");
-  if (selectedInventory === null) return;
+  if (selectedInventory === null) {
+    const instance = selectedSlot === null ? null : state.slots[selectedSlot];
+    if (!instance) {
+      box.innerHTML = "";
+      return;
+    }
+    const p = getPart(instance);
+    box.innerHTML = `<strong>${p.icon} ${p.name}</strong><p>${p.desc}</p><div class="part-tags">${p.tags.map(t => `<i>${t}</i>`).join("")}</div>`;
+    return;
+  }
   const instance = state.inventory[selectedInventory];
   const p = getPart(instance);
   box.innerHTML = `<strong>${p.icon} ${p.name}</strong><p>装着先を上の駆動列から選んでください。不要なら分解して、修復材にできます。</p><div class="inspector-actions"><button id="scrapSelected">分解して ◆1</button><button id="cancelSelected">選択解除</button></div>`;
   $("#scrapSelected").addEventListener("click", () => {
-    state.inventory.splice(selectedInventory, 1);
+    const removed = state.inventory.splice(selectedInventory, 1)[0];
     state.scrap += 1;
     state.stats.scrappedParts.push(p.name);
     selectedInventory = null;
+    recordEvent("part_scrapped", { part: partRef(removed), scrapGained: 1 });
     saveState(); render();
     setLog(`${p.name}を分解し、修復材を1得た。`);
   });
@@ -249,6 +332,7 @@ function clickSlot(index) {
     const name = getPart(incoming).name;
     selectedInventory = null;
     selectedSlot = index;
+    recordEvent("slot_changed", { slot: index, incoming: partRef(incoming), outgoing: partRef(outgoing) });
     saveState(); render();
     setLog(`${name}をスロット${index + 1}へ装着。`);
     return;
@@ -259,16 +343,19 @@ function clickSlot(index) {
 
 function moveSlot(direction) {
   if (selectedSlot === null) return;
+  const from = selectedSlot;
   if (direction === "remove") {
     const removed = state.slots[selectedSlot];
     if (removed) state.inventory.push(removed);
     state.slots[selectedSlot] = null;
     selectedSlot = null;
+    recordEvent("slot_removed", { slot: from, part: partRef(removed) });
   } else {
     const target = selectedSlot + (direction === "left" ? -1 : 1);
     if (target < 0 || target >= state.slots.length) return;
     [state.slots[selectedSlot], state.slots[target]] = [state.slots[target], state.slots[selectedSlot]];
     selectedSlot = target;
+    recordEvent("slots_swapped", { from, to: target });
   }
   saveState(); render();
 }
@@ -307,11 +394,17 @@ async function startBattle() {
     hp: state.hp, power: 0, heat: 0, shield: 0, enemyHp: enemyBase.hp,
     enemy: { ...enemyBase }, uses: {}, last: null, cycle: 0
   };
+  currentPhase = "battle";
   state.stats.battles += 1;
+  recordEvent("battle_started", {
+    enemy: { name: battle.enemy.name, hp: battle.enemy.hp, atk: battle.enemy.atk, armor: battle.enemy.armor || 0 },
+    build: state.slots.map(partRef)
+  });
   saveState();
   render(); updateBattleUI();
   $("#enemyName").textContent = battle.enemy.name;
   $("#enemyFace").textContent = battle.enemy.face;
+  $("#enemyStats").textContent = `攻撃 ${battle.enemy.atk} / 装甲 ${battle.enemy.armor || 0}`;
   $("#enemyTrait").textContent = `特徴：${battle.enemy.trait}`;
   setLog("駆動開始。左から順に部品が作動する。");
   await sleep(500);
@@ -325,10 +418,15 @@ async function startBattle() {
       const slotEl = document.querySelector(`[data-slot="${i}"]`);
       slotEl?.classList.add("active");
       const context = { ...battle, instanceId: instance.id };
+      const before = snapshot().battle;
       const delta = p.run(context);
       battle.uses = context.uses;
       const actual = applyDelta(delta);
       battle.last = { ...delta, damage: actual };
+      recordEvent("part_resolved", {
+        cycle: battle.cycle, slot: i, part: partRef(instance), before,
+        delta: { ...delta }, actualDamage: actual
+      });
       setLog(`巡回${battle.cycle} / ${p.name}：${delta.text}${actual ? `（${actual}ダメージ）` : ""}`);
       updateBattleUI();
       if (actual) $("#enemyFace").classList.add("hit-flash");
@@ -345,6 +443,10 @@ async function startBattle() {
     attack -= blocked;
     battle.hp -= attack;
     battle.heat += battle.enemy.heat || 0;
+    recordEvent("enemy_attacked", {
+      cycle: battle.cycle, enemy: battle.enemy.name, baseAttack: battle.enemy.atk,
+      blocked, hpDamage: attack, heatAdded: battle.enemy.heat || 0
+    });
     setLog(`${battle.enemy.name}の反撃：装甲で${blocked}防ぎ、HPへ${attack}ダメージ。`);
     updateBattleUI();
     $(".machine-face").classList.add("hit-flash");
@@ -354,6 +456,10 @@ async function startBattle() {
 
   state.hp = Math.max(0, Math.ceil(battle.hp));
   inBattle = false;
+  recordEvent("battle_ended", {
+    won: battle.enemyHp <= 0, cycles: battle.cycle, finalHp: state.hp,
+    enemyHp: Math.max(0, battle.enemyHp), power: battle.power, heat: battle.heat, shield: battle.shield
+  });
   if (battle.enemyHp <= 0) await winBattle();
   else loseBattle();
 }
@@ -369,6 +475,7 @@ async function winBattle() {
     return;
   }
   state.wave += 1;
+  currentPhase = "build";
   saveState(); render();
   await sleep(650);
   showRewards();
@@ -380,8 +487,11 @@ function loseBattle() {
 }
 
 function showRewards() {
+  currentPhase = "reward";
   const types = [];
   while (types.length < 3) types.push(weightedType(types));
+  recordEvent("reward_offered", { types, parts: types.map(type => PARTS[type].name) });
+  saveState();
   const box = $("#rewardChoices");
   box.innerHTML = "";
   types.forEach(type => {
@@ -390,8 +500,11 @@ function showRewards() {
     button.className = "reward-card";
     button.innerHTML = `<span class="part-icon">${p.icon}</span><strong>${p.name}</strong><p>${p.desc}</p><span class="part-tags">${p.tags.map(t => `<i>${t}</i>`).join("")}</span>`;
     button.addEventListener("click", () => {
-      state.inventory.push(makePart(type));
+      const instance = makePart(type);
+      state.inventory.push(instance);
       state.stats.rewards.push(p.name);
+      currentPhase = "build";
+      recordEvent("reward_chosen", { part: partRef(instance), offeredTypes: types });
       saveState();
       $("#rewardDialog").close();
       render();
@@ -408,7 +521,9 @@ function makeRunReport(won) {
     ? `拾い物だけの機械が、全${ENEMIES.length}戦を生き延びました。最後のHP：${state.hp}。`
     : `${state.wave + 1}戦目で停止。今ある部品の別の並べ方を試せるでしょうか。`;
   return {
-    id: uid(), endedAt: new Date().toISOString(), won, title, summary,
+    id: state.telemetry.runId, runId: state.telemetry.runId,
+    gameVersion: GAME_VERSION, schemaVersion: TELEMETRY_SCHEMA,
+    endedAt: new Date().toISOString(), won, title, summary,
     reached: won ? ENEMIES.length : state.wave + 1,
     defeated: state.stats.victories,
     hp: state.hp,
@@ -436,8 +551,9 @@ function factsHtml(report) {
 
 function fillReportForm(answers = {}) {
   const form = $("#playtestForm");
-  ["bestMoment", "friction", "hardChoice", "wishlist", "pivot", "randomnessNote"].forEach(name => {
-    form.elements[name].value = answers[name] || "";
+  ["bestMoment", "friction", "hardChoice", "wishlist", "pivot", "randomnessNote", "comment"].forEach(name => {
+    const field = form.elements[name];
+    if (field) field.value = answers[name] || "";
   });
   form.querySelectorAll('[name="replay"]').forEach(input => {
     input.checked = input.value === String(answers.replay || "");
@@ -453,15 +569,110 @@ function collectAnswers() {
     wishlist: String(data.get("wishlist") || ""),
     pivot: String(data.get("pivot") || ""),
     randomnessNote: String(data.get("randomnessNote") || "").trim(),
+    comment: String(data.get("comment") || "").trim(),
     replay: String(data.get("replay") || "")
   };
 }
 
+function getDeviceId() {
+  let id = localStorage.getItem("garakuta-lab-device-id");
+  if (!id) {
+    id = crypto.randomUUID ? crypto.randomUUID() : uid();
+    localStorage.setItem("garakuta-lab-device-id", id);
+  }
+  return id;
+}
+
+function payloadForReport(report) {
+  return {
+    schemaVersion: TELEMETRY_SCHEMA,
+    gameVersion: GAME_VERSION,
+    runId: report.runId || report.id,
+    deviceId: getDeviceId(),
+    startedAt: state.stats.startedAt,
+    endedAt: report.endedAt,
+    outcome: {
+      won: report.won, title: report.title, reached: report.reached,
+      defeated: report.defeated, hp: report.hp
+    },
+    build: report.build,
+    stats: report.stats,
+    answers: report.answers || {},
+    moments: state.telemetry.moments || [],
+    events: state.telemetry.events || [],
+    client: {
+      language: navigator.language,
+      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      standalone: window.matchMedia("(display-mode: standalone)").matches
+    }
+  };
+}
+
+function readSyncQueue() {
+  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY)) || []; } catch (_) { return []; }
+}
+
+function writeSyncQueue(queue) {
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue.slice(-12)));
+  updateSyncStatus(queue.length ? "pending" : "synced", queue.length);
+}
+
+function queueReport(report) {
+  const payload = payloadForReport(report);
+  const queue = readSyncQueue();
+  const next = [...queue.filter(item => item.runId !== payload.runId), payload];
+  writeSyncQueue(next);
+}
+
+function updateSyncStatus(status, count = readSyncQueue().length) {
+  const element = $("#syncStatus");
+  if (!element) return;
+  element.className = `sync-status ${status}`;
+  if (status === "synced") element.textContent = "クラウド保存済み";
+  else if (status === "syncing") element.textContent = "保存中…";
+  else element.textContent = `端末保存・未同期${count}`;
+  if ($("#reportStatus") && currentPhase === "end") {
+    $("#reportStatus").textContent = status === "synced"
+      ? "プレイ記録と回答をクラウドへ保存しました。"
+      : status === "syncing" ? "プレイ記録を保存しています…" : "端末へ保存済み。オンライン時に自動送信します。";
+  }
+}
+
+async function syncPendingRuns() {
+  const queue = readSyncQueue();
+  if (!queue.length || !navigator.onLine) {
+    updateSyncStatus(queue.length ? "pending" : "synced", queue.length);
+    return;
+  }
+  updateSyncStatus("syncing", queue.length);
+  const remaining = [];
+  for (const payload of queue) {
+    try {
+      const response = await fetch("/api/runs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error(`save failed: ${response.status}`);
+    } catch (_) {
+      remaining.push(payload);
+    }
+  }
+  writeSyncQueue(remaining);
+}
+
+function scheduleSync(report, delay = 900) {
+  queueReport(report);
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncPendingRuns, delay);
+}
+
 function archiveReport(report) {
   let history = [];
-  try { history = JSON.parse(localStorage.getItem("garakuta-lab-run-reports")) || []; } catch (_) {}
-  history = [report, ...history.filter(item => item.id !== report.id)].slice(0, 20);
-  localStorage.setItem("garakuta-lab-run-reports", JSON.stringify(history));
+  try { history = JSON.parse(localStorage.getItem(REPORTS_KEY)) || []; } catch (_) {}
+  const archived = payloadForReport(report);
+  history = [archived, ...history.filter(item => item.runId !== report.runId)].slice(0, MAX_LOCAL_REPORTS);
+  localStorage.setItem(REPORTS_KEY, JSON.stringify(history));
 }
 
 function saveReportAnswers(message = "回答をこの端末へ保存しました。") {
@@ -470,17 +681,29 @@ function saveReportAnswers(message = "回答をこの端末へ保存しました
   saveState();
   archiveReport(state.lastReport);
   $("#reportStatus").textContent = message;
+  scheduleSync(state.lastReport);
 }
 
 function showRunEnd(won) {
+  currentPhase = "end";
+  if (!state.telemetry.endedAt) {
+    state.telemetry.endedAt = new Date().toISOString();
+    recordEvent("run_ended", { won, reached: won ? ENEMIES.length : state.wave + 1, hp: state.hp });
+  }
   if (!state.lastReport) state.lastReport = makeRunReport(won);
   const report = state.lastReport;
   $("#runEndTitle").textContent = report.title;
   $("#runEndSummary").textContent = report.summary;
   $("#runFacts").innerHTML = factsHtml(report);
   $("#finalBuild").innerHTML = buildRows(report);
+  const moments = state.telemetry.moments || [];
+  $("#momentSummary").textContent = moments.length
+    ? `途中で記録した感情：${moments.map(moment => moment.label).join("・")}`
+    : "途中の感情記録はありません。";
   fillReportForm(report.answers);
   saveState();
+  archiveReport(report);
+  scheduleSync(report, 50);
   if (!$("#runEndDialog").open) $("#runEndDialog").showModal();
 }
 
@@ -500,7 +723,9 @@ function reportText(report) {
     `欲しい部品待ち: ${answers.wishlist || "未回答"}`,
     `偶然の部品で方針転換: ${answers.pivot || "未回答"}`,
     `補足: ${answers.randomnessNote || "なし"}`,
-    `もう一度遊びたい度: ${answers.replay || "未回答"}/5`
+    `もう一度遊びたい度: ${answers.replay || "未回答"}/5`,
+    `コメント: ${answers.comment || "なし"}`,
+    `途中の感情: ${(state.telemetry.moments || []).map(moment => `${moment.label}${moment.note ? `（${moment.note}）` : ""}`).join("、") || "なし"}`
   ].join("\n\n");
 }
 
@@ -538,15 +763,37 @@ function showScreenshotReport() {
   $("#screenshotDialog").showModal();
 }
 
+function openReactionDialog() {
+  $("#reactionNote").value = "";
+  if (!$("#reactionDialog").open) $("#reactionDialog").showModal();
+}
+
+function markReaction(button) {
+  const kind = button.dataset.reaction;
+  const label = button.dataset.label;
+  const note = $("#reactionNote").value.trim();
+  const event = recordEvent("emotion_marked", { kind, label, note, phase: currentPhase, phaseLabel: phaseName() });
+  state.telemetry.moments.push({ seq: event.seq, at: event.at, elapsedMs: event.elapsedMs, kind, label, note, phase: currentPhase });
+  saveState();
+  if (state.lastReport) {
+    archiveReport(state.lastReport);
+    scheduleSync(state.lastReport, 120);
+  }
+  $("#reactionDialog").close();
+  setLog(`「${label}」を${phaseName()}の記録へ残した。`);
+}
+
 function newRun() {
   if (state.lastReport) {
     saveReportAnswers();
     archiveReport(state.lastReport);
   }
   state = newState();
+  currentPhase = "build";
   selectedInventory = null;
   selectedSlot = null;
   battle = null;
+  recordEvent("run_started", { initialInventory: state.inventory.map(partRef), source: "new_run" });
   saveState();
   $("#runEndDialog").close();
   if ($("#screenshotDialog").open) $("#screenshotDialog").close();
@@ -565,12 +812,15 @@ function registerEvents() {
     state.scrap -= 1;
     state.hp = Math.min(state.maxHp, state.hp + 5);
     state.stats.repairs += 1;
+    recordEvent("repaired", { scrapSpent: 1, hpGained: 5 });
     saveState(); render(); setLog("修復材を使い、HPを5回復した。");
   });
   $("#helpButton").addEventListener("click", () => $("#helpDialog").showModal());
   $("#closeHelp").addEventListener("click", () => $("#helpDialog").close());
   $("#skipReward").addEventListener("click", () => {
-    state.scrap += 2; state.stats.skippedRewards += 1; saveState(); $("#rewardDialog").close(); render();
+    state.scrap += 2; state.stats.skippedRewards += 1; currentPhase = "build";
+    recordEvent("reward_scrapped", { scrapGained: 2 });
+    saveState(); $("#rewardDialog").close(); render();
     setLog("候補をすべて分解し、修復材を2得た。");
   });
   $("#playtestForm").addEventListener("input", () => saveReportAnswers());
@@ -582,11 +832,25 @@ function registerEvents() {
     $("#runEndDialog").showModal();
   });
   $("#newRunButton").addEventListener("click", newRun);
+  $("#reactionButton").addEventListener("click", openReactionDialog);
+  document.querySelectorAll("[data-open-reaction]").forEach(button => button.addEventListener("click", openReactionDialog));
+  $("#closeReaction").addEventListener("click", () => $("#reactionDialog").close());
+  $("#reactionChoices").addEventListener("click", event => {
+    const button = event.target.closest("[data-reaction]");
+    if (button) markReaction(button);
+  });
+  window.addEventListener("online", syncPendingRuns);
 }
 
 state = loadState();
+if (!state.telemetry.events.length) {
+  recordEvent("run_started", { initialInventory: state.inventory.map(partRef), source: "loaded_or_migrated" });
+  saveState();
+}
 registerEvents();
 render();
+updateSyncStatus(readSyncQueue().length ? "pending" : "synced");
+syncPendingRuns();
 if (state.completed || state.hp <= 0 || state.lastReport) {
   showRunEnd(state.completed);
 }

@@ -18,13 +18,16 @@ iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した�
 ## 仕様
 
 - HTML / CSS / JavaScriptのみ
-- サーバー処理なし
+- Pages Function + D1へプレイ記録を自動保存（失敗時は端末内キューから再送）
 - セーブは端末内の`localStorage`
 - Service Workerによるオフライン対応
 - ラン終了時のプレイテスト回答・最終構成を端末内に保存
 - ランレポートのコピーとスクリーンショット用表示
+- プレイ中の感情マーカーと、各選択・戦闘処理を含むイベントログ
 - Apple Developer ProgramおよびApp Store配布は不要
 
 ## 公開方法
 
 HTTPSで配信できる静的ホスティングへ、このフォルダをそのまま置きます。公開後、iPhoneのSafariで開き、「共有」→「ホーム画面に追加」→「Webアプリとして開く」を選びます。
+
+Cloudflare PagesではD1データベースを`PLAYTEST_DB`という名前でbindingし、`migrations/0001_playtest_observations.sql`を適用します。`functions/api/runs.js`が同一オリジンからの記録を受け取ります。

@@ -19,7 +19,7 @@
           <p class="eyebrow">SALVAGE RUN / <span id="waveLabel">01</span></p>
           <h1>ガラクタ・ラボ</h1>
         </div>
-        <button id="helpButton" class="icon-button" aria-label="遊び方">?</button>
+        <div class="top-actions"><span id="syncStatus" class="sync-status">端末保存</span><button id="helpButton" class="icon-button" aria-label="遊び方">?</button></div>
       </header>
 
       <section class="status-panel" aria-label="戦闘状況">
@@ -43,6 +43,7 @@
           <div class="combatant-info">
             <div class="name-row"><strong id="enemyName">スクラップ・ラット</strong><span id="enemyHpText">20 / 20</span></div>
             <div class="bar enemy-hp-bar"><i id="enemyHpBar"></i></div>
+            <small id="enemyStats">攻撃 3 / 装甲 0</small>
             <small id="enemyTrait">特徴：標準型</small>
           </div>
         </div>
@@ -80,6 +81,32 @@
       </section>
     </main>
 
+    <button id="reactionButton" class="reaction-button" type="button" aria-haspopup="dialog">
+      <span>●</span> 今の気持ち
+    </button>
+
+    <dialog id="reactionDialog" class="modal reaction-modal">
+      <div class="modal-head">
+        <p class="eyebrow">MOMENT MARKER</p>
+        <h2>今、何が起きた？</h2>
+        <p>一タップで記録します。詳しく書かなくても大丈夫です。</p>
+      </div>
+      <div id="reactionChoices" class="reaction-choices">
+        <button type="button" data-reaction="hit" data-label="きた！"><span>⚡</span><strong>きた！</strong><small>引き・遭遇が嬉しい</small></button>
+        <button type="button" data-reaction="insight" data-label="ひらめいた"><span>✦</span><strong>ひらめいた</strong><small>使い方や組合せを発見</small></button>
+        <button type="button" data-reaction="choice" data-label="迷う"><span>◇</span><strong>迷う</strong><small>どちらも捨てがたい</small></button>
+        <button type="button" data-reaction="payoff" data-label="うまくいった"><span>◎</span><strong>うまくいった</strong><small>考えが結果に出た</small></button>
+        <button type="button" data-reaction="friction" data-label="つらい"><span>▲</span><strong>つらい</strong><small>退屈・理不尽・待ち</small></button>
+        <button type="button" data-reaction="unclear" data-label="わからない"><span>?</span><strong>わからない</strong><small>挙動や意味が不明</small></button>
+      </div>
+      <label class="reaction-note">ひとこと（任意）
+        <input id="reactionNote" type="text" maxlength="160" placeholder="例：違法砲身を引いた" />
+      </label>
+      <div class="reaction-actions">
+        <button id="closeReaction" class="quiet-button" type="button">閉じる</button>
+      </div>
+    </dialog>
+
     <dialog id="rewardDialog" class="modal reward-modal">
       <div class="modal-head">
         <p class="eyebrow">SALVAGE FOUND</p>
@@ -87,6 +114,7 @@
         <p>完成図はありません。今ある機械で使い道を考えてください。</p>
       </div>
       <div id="rewardChoices" class="reward-choices"></div>
+      <button class="moment-link" type="button" data-open-reaction>● 今の気持ちを記録</button>
       <button id="skipReward" class="quiet-button full">全部分解して ◆2</button>
     </dialog>
 
@@ -155,8 +183,12 @@
             <label><input type="radio" name="replay" value="5"><span>5</span></label>
           </div>
         </fieldset>
+        <label>フリーコメント
+          <textarea name="comment" rows="2" placeholder="UI、説明、思いついたことなど何でも"></textarea>
+        </label>
       </form>
-      <p id="reportStatus" class="report-status" aria-live="polite">回答はこの端末だけに保存されます。</p>
+      <p id="momentSummary" class="moment-summary"></p>
+      <p id="reportStatus" class="report-status" aria-live="polite">プレイ記録を保存しています…</p>
       <div class="report-actions">
         <button id="copyReportButton" class="primary-button" type="button">回答をコピー</button>
         <button id="screenshotButton" class="quiet-button" type="button">スクショ用に表示</button>
