@@ -1,4 +1,4 @@
-const CACHE = "garakuta-lab-observe-v6";
+const CACHE = "garakuta-lab-observe-v7";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icons/icon-180.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", event => {
