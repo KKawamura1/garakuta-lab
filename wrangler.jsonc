@@ -1,0 +1,15 @@
+{
+  "$schema": "../cf-deploy-tools/node_modules/wrangler/config-schema.json",
+  "name": "garakuta-lab",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": ".",
+  "d1_databases": [
+    {
+      "binding": "PLAYTEST_DB",
+      "database_name": "garakuta-playtests",
+      "database_id": "e7fe8933-8525-4e3e-bee2-aee8443fc0e2",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

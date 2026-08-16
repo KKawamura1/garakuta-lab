@@ -2,3 +2,5 @@
 .wrangler/
 node_modules/
 *.zip
+worker-configuration.d.ts
+.dev.vars*
