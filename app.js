@@ -11,8 +11,11 @@ const PARTS = {
   },
   turbine: {
     name: "廃熱タービン", icon: "✺", short: "熱を発電へ", tags: ["熱", "電力", "冷却"],
-    desc: "熱を1冷まし、電力を2得る。熱が4以上なら、さらに電力＋1。",
-    run: s => ({ power: 2 + (s.heat >= 4 ? 1 : 0), cool: 1, text: "廃熱でタービンが回った" })
+    desc: "熱を最大3冷まし、電力を「2＋冷ました量」得る。熱が多いほど勢いよく回る。",
+    run: s => {
+      const cooled = Math.min(3, s.heat);
+      return { power: 2 + cooled, cool: cooled, text: `熱${cooled}でタービンが回った` };
+    }
   },
   ram: {
     name: "電磁ラム", icon: "➤", short: "電力を打撃へ", tags: ["攻撃", "電力"],
@@ -29,10 +32,10 @@ const PARTS = {
   },
   vent: {
     name: "破裂ベント", icon: "≋", short: "冷却量で攻撃", tags: ["攻撃", "熱", "冷却"],
-    desc: "熱を最大4冷まし、冷ました量＋2ダメージ。熱がなくても2ダメージ。",
+    desc: "熱を最大4冷まし、2＋（冷ました量×2）ダメージ。熱がなくても2ダメージ。",
     run: s => {
       const cooled = Math.min(4, s.heat);
-      return { damage: 2 + cooled, cool: cooled, text: `熱${cooled}を敵へ噴きつけた` };
+      return { damage: 2 + cooled * 2, cool: cooled, text: `熱${cooled}を敵へ噴きつけた` };
     }
   },
   pulse: {
@@ -63,10 +66,10 @@ const PARTS = {
   },
   prism: {
     name: "装甲プリズム", icon: "◇", short: "装甲を攻撃へ", tags: ["攻撃", "防御"],
-    desc: "2ダメージ。装甲があれば最大3消費し、その2倍を追加する。",
+    desc: "2ダメージ。装甲があれば最大3消費し、その3倍を追加する。防御を捨てるぶん威力は高い。",
     run: s => {
       const used = Math.min(3, s.shield);
-      return { damage: 2 + used * 2, shield: -used, text: `装甲${used}を光弾へ変えた` };
+      return { damage: 2 + used * 3, shield: -used, text: `装甲${used}を光弾へ変えた` };
     }
   },
   mine: {
@@ -102,7 +105,7 @@ const ENEMIES = [
   { name: "廃都の中枢", face: "◈", hp: 94, atk: 10, armor: 2, rage: 1, trait: "装甲2・攻撃上昇。寄せ集めの最終試験。" }
 ];
 
-const GAME_VERSION = "observe-0.3";
+const GAME_VERSION = "observe-0.4";
 const TELEMETRY_SCHEMA = 3;
 const SAVE_KEY = "garakuta-lab-save";
 const REPORTS_KEY = "garakuta-lab-run-reports";
@@ -523,6 +526,9 @@ function makeRunReport(won) {
   const summary = won
     ? `拾い物だけの機械が、全${ENEMIES.length}戦を生き延びました。最後のHP：${state.hp}。`
     : `${state.wave + 1}戦目で停止。今ある部品の別の並べ方を試せるでしょうか。`;
+  const diagnostics = makeRunDiagnostics();
+  const stats = JSON.parse(JSON.stringify(state.stats));
+  stats.diagnostics = diagnostics;
   return {
     id: state.telemetry.runId, runId: state.telemetry.runId,
     gameVersion: GAME_VERSION, schemaVersion: TELEMETRY_SCHEMA,
@@ -534,9 +540,115 @@ function makeRunReport(won) {
       const part = getPart(instance);
       return part ? { name: part.name, icon: part.icon, short: part.short } : null;
     }),
-    stats: JSON.parse(JSON.stringify(state.stats)),
+    stats,
+    diagnostics,
     answers: {}
   };
+}
+
+function makeRunDiagnostics() {
+  const events = state.telemetry?.events || [];
+  const lastBattleStart = [...events].reverse().find(event => event.type === "battle_started");
+  const lastBattleEnd = [...events].reverse().find(event => event.type === "battle_ended");
+  const startSeq = lastBattleStart?.seq || 0;
+  const endSeq = lastBattleEnd?.seq || Number.MAX_SAFE_INTEGER;
+  const totals = new Map();
+
+  events.forEach(event => {
+    if (event.type !== "part_resolved" || event.seq <= startSeq || event.seq >= endSeq) return;
+    const part = event.detail?.part;
+    if (!part?.id) return;
+    const delta = event.detail?.delta || {};
+    const total = totals.get(part.id) || {
+      id: part.id, type: part.type, name: part.name, activations: 0,
+      damage: 0, powerMade: 0, powerSpent: 0, heatMade: 0,
+      heatCooled: 0, shield: 0, healing: 0
+    };
+    total.activations += 1;
+    total.damage += Math.max(0, Number(event.detail.actualDamage || 0));
+    total.powerMade += Math.max(0, Number(delta.power || 0));
+    total.powerSpent += Math.max(0, -Number(delta.power || 0));
+    total.heatMade += Math.max(0, Number(delta.heat || 0));
+    total.heatCooled += Math.max(0, Number(delta.cool || 0));
+    total.shield += Math.max(0, Number(delta.shield || 0));
+    total.healing += Math.max(0, Number(delta.heal || 0));
+    totals.set(part.id, total);
+  });
+
+  const rewards = [];
+  let pendingReward = null;
+  events.forEach(event => {
+    if (event.type === "reward_offered") {
+      pendingReward = { offered: [...(event.detail?.parts || [])], chosen: null, scrapped: false };
+      rewards.push(pendingReward);
+    } else if (event.type === "reward_chosen" && pendingReward) {
+      pendingReward.chosen = event.detail?.part?.name || null;
+      pendingReward = null;
+    } else if (event.type === "reward_scrapped" && pendingReward) {
+      pendingReward.scrapped = true;
+      pendingReward = null;
+    }
+  });
+
+  const finalParts = (lastBattleStart?.detail?.build || state.slots.map(partRef)).filter(Boolean);
+  return {
+    enemy: lastBattleStart?.detail?.enemy?.name || "不明",
+    battle: lastBattleEnd ? {
+      won: Boolean(lastBattleEnd.detail?.won),
+      cycles: Number(lastBattleEnd.detail?.cycles || 0),
+      playerHp: Number(lastBattleEnd.detail?.finalHp || 0),
+      enemyHp: Number(lastBattleEnd.detail?.enemyHp || 0),
+      power: Number(lastBattleEnd.detail?.power || 0),
+      heat: Number(lastBattleEnd.detail?.heat || 0),
+      shield: Number(lastBattleEnd.detail?.shield || 0)
+    } : null,
+    parts: finalParts.map(part => ({
+      ...part,
+      ...(totals.get(part.id) || {
+        activations: 0, damage: 0, powerMade: 0, powerSpent: 0,
+        heatMade: 0, heatCooled: 0, shield: 0, healing: 0
+      })
+    })),
+    rewards
+  };
+}
+
+function diagnosticsFor(report) {
+  return report.diagnostics || report.stats?.diagnostics || null;
+}
+
+function metricPills(part) {
+  const metrics = [
+    ["攻撃", part.damage], ["発電", part.powerMade], ["電力消費", part.powerSpent],
+    ["発熱", part.heatMade], ["冷却", part.heatCooled], ["装甲", part.shield], ["回復", part.healing]
+  ].filter(([, value]) => value > 0);
+  return metrics.length
+    ? metrics.map(([label, value]) => `<span><small>${label}</small><strong>${value}</strong></span>`).join("")
+    : `<span><small>作動</small><strong>${part.activations || 0}</strong></span>`;
+}
+
+function diagnosticsHtml(report) {
+  const diagnostics = diagnosticsFor(report);
+  if (!diagnostics?.battle) return `<p class="diagnostic-empty">診断データはありません。</p>`;
+  const battle = diagnostics.battle;
+  const rewardRows = diagnostics.rewards.map((reward, index) => {
+    const missed = reward.offered.filter(name => name !== reward.chosen);
+    const action = reward.chosen ? `${reward.chosen}を取得` : "すべて分解";
+    return `<li><strong>${index + 1}. ${action}</strong><span>見送り：${missed.join("・") || "なし"}</span></li>`;
+  }).join("");
+  return `<div class="diagnostic-summary">
+      <div><strong>${battle.enemyHp}</strong><small>敵の残HP</small></div>
+      <div><strong>${battle.playerHp}</strong><small>決着時HP</small></div>
+      <div><strong>${battle.power}</strong><small>余った電力</small></div>
+      <div><strong>${battle.heat}</strong><small>余った熱</small></div>
+    </div>
+    <h4>最終戦での部品の働き</h4>
+    <div class="diagnostic-parts">${diagnostics.parts.map((part, index) => `<div class="diagnostic-part">
+      <div class="diagnostic-part-name"><span>${String(index + 1).padStart(2, "0")}</span><strong>${PARTS[part.type]?.icon || "·"} ${part.name}</strong><small>${part.activations || 0}回作動</small></div>
+      <div class="metric-pills">${metricPills(part)}</div>
+    </div>`).join("")}</div>
+    <details class="missed-rewards"><summary>見送った報酬を振り返る</summary><ol>${rewardRows || "<li>報酬なし</li>"}</ol></details>
+    <p class="diagnostic-note">数字は答えではなく手がかりです。余った資源や働かなかった部品から、別の並べ方を探せます。</p>`;
 }
 
 function buildRows(report) {
@@ -548,7 +660,7 @@ function buildRows(report) {
 
 function factsHtml(report) {
   return `<div class="run-fact"><strong>${report.reached}/${ENEMIES.length}</strong><small>到達戦</small></div>
-    <div class="run-fact"><strong>${report.hp}</strong><small>最終HP</small></div>
+    <div class="run-fact"><strong>${report.hp}</strong><small>結果HP</small></div>
     <div class="run-fact"><strong>${report.stats.rewards.length}</strong><small>拾った部品</small></div>`;
 }
 
@@ -734,6 +846,7 @@ function showRunEnd(won) {
   $("#runEndSummary").textContent = report.summary;
   $("#runFacts").innerHTML = factsHtml(report);
   $("#finalBuild").innerHTML = buildRows(report);
+  $("#runDiagnostics").innerHTML = diagnosticsHtml(report);
   const moments = state.telemetry.moments || [];
   $("#momentSummary").textContent = moments.length
     ? `途中で記録した感情：${moments.map(moment => moment.label).join("・")}`
@@ -747,12 +860,30 @@ function showRunEnd(won) {
 
 function reportText(report) {
   const answers = report.answers || {};
+  const diagnostics = diagnosticsFor(report);
   const build = report.build.map((part, index) => `${index + 1}. ${part ? `${part.icon} ${part.name}` : "空き"}`).join("\n");
+  const battleHint = diagnostics?.battle
+    ? `敵残HP ${diagnostics.battle.enemyHp} / 決着時HP ${diagnostics.battle.playerHp} / 余り電力 ${diagnostics.battle.power} / 余り熱 ${diagnostics.battle.heat}`
+    : "記録なし";
+  const partResults = diagnostics?.parts?.map((part, index) => {
+    const values = [
+      ["攻撃", part.damage], ["発電", part.powerMade], ["消費", part.powerSpent],
+      ["発熱", part.heatMade], ["冷却", part.heatCooled], ["装甲", part.shield], ["回復", part.healing]
+    ].filter(([, value]) => value > 0).map(([label, value]) => `${label}${value}`).join(" / ");
+    return `${index + 1}. ${part.name}: ${values || `作動${part.activations || 0}`}`;
+  }).join("\n") || "記録なし";
+  const missedRewards = diagnostics?.rewards?.map((reward, index) => {
+    const missed = reward.offered.filter(name => name !== reward.chosen);
+    return `${index + 1}. ${reward.chosen ? `${reward.chosen}取得` : "全分解"} / 見送り ${missed.join("・") || "なし"}`;
+  }).join("\n") || "記録なし";
   return [
     "ガラクタ・ラボ プレイテスト",
     `結果: ${report.title}`,
     `到達: ${report.reached}/${ENEMIES.length}戦 / 撃破${report.defeated} / 最終HP ${report.hp}`,
     `最終駆動列:\n${build}`,
+    `最終戦の手がかり: ${battleHint}`,
+    `最終戦の部品実績:\n${partResults}`,
+    `報酬履歴:\n${missedRewards}`,
     `拾った部品: ${report.stats.rewards.join("、") || "なし"}`,
     `報酬全分解: ${report.stats.skippedRewards}回 / 修理: ${report.stats.repairs}回`,
     `一番気持ちよかった瞬間:\n${answers.bestMoment || "未回答"}`,
@@ -787,11 +918,14 @@ function showScreenshotReport() {
   saveReportAnswers();
   const report = state.lastReport;
   const signals = report.answers || {};
+  const diagnostics = diagnosticsFor(report);
+  const battle = diagnostics?.battle;
   $("#screenshotCard").innerHTML = `<p class="eyebrow">GARAKUTA LAB / RUN REPORT</p>
     <h2>${report.title}</h2>
     <p class="report-date">${new Date(report.endedAt).toLocaleString("ja-JP")}</p>
     <div class="run-facts">${factsHtml(report)}</div>
     <div class="report-build">${buildRows(report)}</div>
+    ${battle ? `<p class="screenshot-diagnostic">敵残HP ${battle.enemyHp}　決着時HP ${battle.playerHp}　余り⚡${battle.power}　余り♨${battle.heat}</p>` : ""}
     <div class="screenshot-signals">
       <div><strong>${signals.wishlist || "–"}</strong><small>欲しい物待ち</small></div>
       <div><strong>${signals.pivot || "–"}</strong><small>方針転換</small></div>
@@ -888,7 +1022,7 @@ if (!state.telemetry.events.length) {
 }
 registerEvents();
 render();
-$("#versionStatus").textContent = "OBS 0.3";
+$("#versionStatus").textContent = "OBS 0.4";
 updateSyncStatus(readSyncQueue().length ? "pending" : "synced");
 syncPendingRuns();
 if (state.completed || state.hp <= 0 || state.lastReport) {
