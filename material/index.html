@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#181916">
+  <title>溶接獣 — 素材実験B</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">GARAKUTA EXPERIMENT B</p>
+        <h1>溶接獣</h1>
+        <p class="subtitle">拾った素材を、何として使うか。</p>
+      </div>
+      <div class="top-meta">
+        <span>MAT 0.1</span>
+        <span id="syncStatus">端末保存</span>
+        <a href="../">旧実験</a>
+      </div>
+    </header>
+
+    <section class="status-strip" aria-label="進行状況">
+      <div><small>戦区</small><strong id="waveText">1 / 6</strong></div>
+      <div class="hp-cell"><small>耐久</small><strong id="hpText">30 / 30</strong><i><b id="hpBar"></b></i></div>
+      <div><small>素材</small><strong id="materialCount">3</strong></div>
+    </section>
+
+    <section class="enemy-panel">
+      <div class="enemy-mark" id="enemyMark">●</div>
+      <div class="enemy-copy">
+        <p class="eyebrow">NEXT TARGET</p>
+        <h2 id="enemyName">偵察ダニ</h2>
+        <p id="enemyStats">耐久 20 / 攻撃 3</p>
+        <p class="enemy-trait" id="enemyTrait"></p>
+      </div>
+    </section>
+
+    <section class="forecast-panel">
+      <div class="section-title">
+        <div><p class="eyebrow">ONE CYCLE FORECAST</p><h2>次の一巡</h2></div>
+        <button id="helpButton" class="quiet-button" type="button">遊び方</button>
+      </div>
+      <div class="forecast-grid">
+        <div><span>⚡</span><strong id="forecastPower">0</strong><small>炉の出力</small></div>
+        <div><span>➤</span><strong id="forecastDamage">2</strong><small>砲撃</small></div>
+        <div><span>⬡</span><strong id="forecastShield">1</strong><small>外殻</small></div>
+      </div>
+      <p id="forecastNote" class="forecast-note"></p>
+    </section>
+
+    <section class="workshop">
+      <div class="section-title">
+        <div><p class="eyebrow">WELDING BAYS</p><h2>溶接配置</h2></div>
+        <p>素材をタップ → 取付先を選択</p>
+      </div>
+      <div id="bays" class="bays"></div>
+      <div id="selectionTray" class="selection-tray hidden">
+        <p><strong id="selectedMaterialName"></strong>をどこへ溶接する？</p>
+        <div>
+          <button type="button" data-move="turret">➤ 砲塔</button>
+          <button type="button" data-move="hull">⬡ 外殻</button>
+          <button type="button" data-move="reactor">⚡ 炉</button>
+        </div>
+        <button id="cancelSelection" class="text-button" type="button">やめる</button>
+      </div>
+    </section>
+
+    <section class="action-panel">
+      <p id="combatLog">素材はいつでも付け替えられる。配置を決めて駆動しよう。</p>
+      <button id="battleButton" class="primary-button" type="button">この溶接獣で戦う</button>
+      <button id="reactionButton" class="reaction-button" type="button">● 今の気持ちを記録</button>
+    </section>
+  </main>
+
+  <dialog id="helpDialog">
+    <form method="dialog" class="dialog-card">
+      <p class="eyebrow">HOW TO PLAY</p>
+      <h2>素材は部品ではない</h2>
+      <ol>
+        <li>同じ素材でも、砲塔・外殻・炉で効果が変わります。</li>
+        <li>配置後、戦闘は自動で進みます。外殻は毎巡回使い切りです。</li>
+        <li>勝つとランダム素材を1個拾います。捨てたり選び直したりはできません。</li>
+        <li>素材は戦闘前なら何度でも付け替えられます。</li>
+      </ol>
+      <p>「欲しい物を待つ」より、「来た物をどう読むか」が面白いかを見る実験です。</p>
+      <button class="primary-button" value="close">閉じる</button>
+    </form>
+  </dialog>
+
+  <dialog id="reactionDialog">
+    <form id="reactionForm" method="dialog" class="dialog-card">
+      <p class="eyebrow">LIVE NOTE</p>
+      <h2>今、何が起きた？</h2>
+      <div class="reaction-kinds">
+        <label><input type="radio" name="kind" value="hit" required><span>きた！</span></label>
+        <label><input type="radio" name="kind" value="choice"><span>迷う</span></label>
+        <label><input type="radio" name="kind" value="insight"><span>ひらめいた</span></label>
+        <label><input type="radio" name="kind" value="payoff"><span>うまくいった</span></label>
+        <label><input type="radio" name="kind" value="dull"><span>退屈</span></label>
+        <label><input type="radio" name="kind" value="unfair"><span>理不尽</span></label>
+      </div>
+      <textarea name="note" rows="3" maxlength="160" placeholder="何にそう感じた？（任意）"></textarea>
+      <div class="dialog-actions"><button value="cancel" formnovalidate>やめる</button><button id="saveReaction" class="primary-button" value="default">記録</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="rewardDialog">
+    <div class="dialog-card reward-card">
+      <p class="eyebrow">SALVAGE FOUND</p>
+      <h2>素材を拾った</h2>
+      <div id="rewardMaterial"></div>
+      <p>この素材は必ず持ち帰る。次の戦闘までに使い道を決めよう。</p>
+      <button id="takeReward" class="primary-button" type="button">作業台へ運ぶ</button>
+    </div>
+  </dialog>
+
+  <dialog id="endDialog">
+    <div class="dialog-card end-card">
+      <p class="eyebrow">EXPERIMENT COMPLETE</p>
+      <h2 id="endTitle">溶接獣は停止した</h2>
+      <p id="endSummary"></p>
+      <div id="finalBuild" class="final-build"></div>
+      <form id="playtestForm">
+        <label>一番気持ちよかった瞬間<textarea name="bestMoment" rows="2"></textarea></label>
+        <label>面倒・退屈・理不尽だった瞬間<textarea name="friction" rows="2"></textarea></label>
+        <label>素材の「取付先」で本気で迷った場面<textarea name="hardChoice" rows="2"></textarea></label>
+        <fieldset><legend>欲しい素材待ちになった？</legend><label><input type="radio" name="wishlist" value="あった">あった</label><label><input type="radio" name="wishlist" value="なかった">なかった</label></fieldset>
+        <fieldset><legend>新素材で配置を大きく変えた？</legend><label><input type="radio" name="pivot" value="あった">あった</label><label><input type="radio" name="pivot" value="なかった">なかった</label></fieldset>
+        <label>旧版との違い・ランダム性について<textarea name="randomnessNote" rows="3"></textarea></label>
+        <fieldset><legend>もう一度遊びたい度</legend><div class="score-row"><label><input type="radio" name="replay" value="1">1</label><label><input type="radio" name="replay" value="2">2</label><label><input type="radio" name="replay" value="3">3</label><label><input type="radio" name="replay" value="4">4</label><label><input type="radio" name="replay" value="5">5</label></div></fieldset>
+        <label>自由コメント<textarea name="comment" rows="3"></textarea></label>
+        <button id="submitReport" class="primary-button" type="submit">回答を保存</button>
+      </form>
+      <p id="saveMessage"></p>
+      <button id="newRunButton" class="quiet-button" type="button">新しい素材で再実験</button>
+    </div>
+  </dialog>
+
+  <script src="./app.js"></script>
+</body>
+</html>
