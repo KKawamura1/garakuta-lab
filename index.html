@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#181b18" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ガラクタ・ラボ" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>ガラクタ・ラボ</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">SALVAGE RUN / <span id="waveLabel">01</span></p>
+          <h1>ガラクタ・ラボ</h1>
+        </div>
+        <button id="helpButton" class="icon-button" aria-label="遊び方">?</button>
+      </header>
+
+      <section class="status-panel" aria-label="戦闘状況">
+        <div class="combatant player-panel">
+          <div class="portrait machine-face">⌁</div>
+          <div class="combatant-info">
+            <div class="name-row"><strong>即席マシン</strong><span id="hpText">30 / 30</span></div>
+            <div class="bar hp-bar"><i id="hpBar"></i></div>
+          </div>
+        </div>
+
+        <div class="resource-row">
+          <div class="resource power"><span>⚡</span><strong id="powerText">0</strong><small>電力</small></div>
+          <div class="resource heat"><span>♨</span><strong id="heatText">0</strong><small>熱</small></div>
+          <div class="resource shield"><span>⬡</span><strong id="shieldText">0</strong><small>装甲</small></div>
+          <div class="resource scrap"><span>◆</span><strong id="scrapText">0</strong><small>修復材</small></div>
+        </div>
+
+        <div class="combatant enemy-panel">
+          <div class="portrait enemy-face" id="enemyFace">●</div>
+          <div class="combatant-info">
+            <div class="name-row"><strong id="enemyName">スクラップ・ラット</strong><span id="enemyHpText">20 / 20</span></div>
+            <div class="bar enemy-hp-bar"><i id="enemyHpBar"></i></div>
+            <small id="enemyTrait">特徴：標準型</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="machine-section">
+        <div class="section-heading">
+          <div><span>01</span><h2>駆動列</h2></div>
+          <small>左から順に自動作動</small>
+        </div>
+        <div id="machineSlots" class="machine-slots" aria-label="機械のスロット"></div>
+        <div id="slotControls" class="slot-controls hidden">
+          <button data-action="left">← 左へ</button>
+          <button data-action="right">右へ →</button>
+          <button data-action="remove">取り外す</button>
+        </div>
+        <p id="buildHint" class="build-hint">下の部品を選び、空きスロットをタップして装着</p>
+      </section>
+
+      <section class="inventory-section">
+        <div class="section-heading">
+          <div><span>02</span><h2>拾った部品</h2></div>
+          <div class="compact-actions">
+            <button id="repairButton" class="quiet-button">◆1で修理 +5</button>
+          </div>
+        </div>
+        <div id="inventory" class="inventory-grid" aria-label="所持部品"></div>
+      </section>
+
+      <section id="selectedInspector" class="inspector hidden" aria-live="polite"></section>
+
+      <section class="action-dock">
+        <div id="combatLog" class="combat-log">部品を5個まで装着できます。</div>
+        <button id="battleButton" class="primary-button">このガラクタで戦う</button>
+      </section>
+    </main>
+
+    <dialog id="rewardDialog" class="modal reward-modal">
+      <div class="modal-head">
+        <p class="eyebrow">SALVAGE FOUND</p>
+        <h2>どれを拾う？</h2>
+        <p>完成図はありません。今ある機械で使い道を考えてください。</p>
+      </div>
+      <div id="rewardChoices" class="reward-choices"></div>
+      <button id="skipReward" class="quiet-button full">全部分解して ◆2</button>
+    </dialog>
+
+    <dialog id="helpDialog" class="modal help-modal">
+      <div class="modal-head">
+        <p class="eyebrow">HOW TO PLAY</p>
+        <h2>拾った物で、変な機械を作る</h2>
+      </div>
+      <ol>
+        <li>部品を選び、駆動列のスロットへ装着します。</li>
+        <li>戦うと、左から順に部品が作動します。</li>
+        <li>勝利後、ランダムな部品を1個だけ拾えます。</li>
+        <li>欲しい部品を待たず、来た物の置き方を変えてください。</li>
+      </ol>
+      <p class="note">部品はすべて単独でも動きます。特定の組合せが必須になるレシピはありません。</p>
+      <button id="closeHelp" class="primary-button">わかった</button>
+    </dialog>
+
+    <dialog id="runEndDialog" class="modal end-modal">
+      <div class="modal-head">
+        <p class="eyebrow">RUN OVER</p>
+        <h2 id="runEndTitle">機械は停止した</h2>
+        <p id="runEndSummary"></p>
+      </div>
+      <button id="newRunButton" class="primary-button">新しいガラクタで始める</button>
+    </dialog>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

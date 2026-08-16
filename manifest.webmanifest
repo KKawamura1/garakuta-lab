@@ -1,0 +1,15 @@
+{
+  "name": "ガラクタ・ラボ",
+  "short_name": "ガラクタ",
+  "description": "拾った部品だけで即席マシンを組む、短編オートバトル試作",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101310",
+  "theme_color": "#181b18",
+  "icons": [
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
