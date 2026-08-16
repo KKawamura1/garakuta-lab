@@ -1,7 +1,8 @@
-const GAME_VERSION = "material-0.1";
-const SAVE_KEY = "garakuta-material-save";
+const GAME_VERSION = "material-0.2";
+const SAVE_KEY = "garakuta-material-save-v2";
 const MAX_HP = 30;
 const BAY_CAPACITY = 3;
+const ACTIVE_CAPACITY = 5;
 
 const MATERIALS = {
   spring: { name: "歪みバネ", icon: "〽", color: "#d5f05a", rare: false },
@@ -14,18 +15,18 @@ const MATERIALS = {
 
 const BAY_META = {
   turret: { name: "砲塔", icon: "➤", hint: "敵を壊す。炉や外殻の状態でも性能が変わる。" },
-  hull: { name: "外殻", icon: "⬡", hint: "反撃を受ける一巡分の装甲。余剰は貯まらない。" },
+  hull: { name: "外殻", icon: "⬡", hint: "一戦分だけの有限装甲。使い切っても素材は戦闘後に戻る。" },
   reactor: { name: "炉", icon: "⚡", hint: "毎巡回の出力を作り、砲塔と外殻を増幅する。" },
-  bench: { name: "作業台", icon: "＋", hint: "未接続。いずれかの部位へ溶接しないと戦えない。" }
+  bench: { name: "作業台", icon: "＋", hint: "今回は休ませる素材。失われず、次の戦闘前に再接続できる。" }
 };
 
 const ENEMIES = [
-  { name: "偵察ダニ", mark: "●", hp: 20, atk: 3, rage: 0, trait: "まずは素材の三つの使い道を試す相手。" },
-  { name: "採掘モグラ", mark: "▼", hp: 34, atk: 5, rage: 0, trait: "素直に硬い。攻撃と外殻の配分を問う。" },
-  { name: "鋲打ちムカデ", mark: "≋", hp: 50, atk: 7, rage: 0, trait: "一定攻撃。炉の増幅が働いているかを見る。" },
-  { name: "赤熱カラス", mark: "▲", hp: 70, atk: 8, rage: 1, trait: "反撃が毎巡回＋1。長引かせるか、急ぐか。" },
-  { name: "圧砕ゴリラ", mark: "◆", hp: 96, atk: 10, rage: 1, trait: "高耐久・上昇攻撃。半端な配置を壊す。" },
-  { name: "廃棄場の王", mark: "◈", hp: 128, atk: 12, rage: 2, trait: "反撃が毎巡回＋2。今回できた獣の最終試験。" }
+  { name: "偵察ダニ", mark: "●", hp: 18, atk: 3, rage: 0, trait: "まずは素材の三つの使い道を試す相手。" },
+  { name: "採掘モグラ", mark: "▼", hp: 30, atk: 4, rage: 0, trait: "素直に硬い。攻撃と有限装甲の配分を問う。" },
+  { name: "鋲打ちムカデ", mark: "≋", hp: 42, atk: 6, rage: 0, trait: "一定攻撃。装甲を何巡で使い切るかを見る。" },
+  { name: "赤熱カラス", mark: "▲", hp: 56, atk: 7, rage: 1, trait: "反撃が毎巡回＋1。長引かせるか、急ぐか。" },
+  { name: "圧砕ゴリラ", mark: "◆", hp: 72, atk: 9, rage: 1, trait: "有限装甲を削り切る。火力との両立が必要。" },
+  { name: "廃棄場の王", mark: "◈", hp: 84, atk: 10, rage: 1, trait: "反撃が毎巡回＋1。今回の5素材で耐え切れるか。" }
 ];
 
 const $ = selector => document.querySelector(selector);
@@ -104,37 +105,41 @@ function count(bay, type = null) {
   return mats(bay, type).length;
 }
 
+function activeCount() {
+  return state.materials.length - count("bench");
+}
+
 function effectText(type, bay) {
   if (bay === "bench") return "まだ働かない";
   const effects = {
     spring: {
       turret: "3攻撃。偶数巡回はさらに＋3",
-      hull: "3装甲。奇数巡回はさらに＋3",
+      hull: "一戦で6装甲",
       reactor: "出力＋2"
     },
     lens: {
       turret: "2＋出力×2攻撃（上限10）",
-      hull: "2＋出力×2装甲（上限10）",
+      hull: "一戦で2＋出力×2装甲（上限10）",
       reactor: "出力＋1。同じレンズが他部位にあると最大＋2"
     },
     magnet: {
       turret: "2＋外殻の素材数×2攻撃",
-      hull: "2＋砲塔の素材数×2装甲",
+      hull: "一戦で2＋砲塔の素材数×2装甲",
       reactor: "1＋外殻の素材数だけ出力"
     },
     blade: {
       turret: "7攻撃",
-      hull: "6装甲",
+      hull: "一戦で6装甲",
       reactor: "出力＋3"
     },
     resin: {
       turret: "4攻撃し、耐久を1修復",
-      hull: "4装甲を得て、耐久を1修復",
+      hull: "一戦で4装甲を得て、毎巡耐久を1修復",
       reactor: "出力＋1、耐久を1修復"
     },
     core: {
       turret: "砲塔の合計攻撃を1.5倍",
-      hull: "外殻の合計装甲を1.5倍",
+      hull: "一戦分の合計装甲を1.5倍",
       reactor: "炉の合計出力を1.5倍"
     }
   };
@@ -159,8 +164,8 @@ function forecast(cycle = 1) {
   damage += count("turret", "lens") * Math.min(10, 2 + power * 2);
   damage = Math.ceil(damage * Math.pow(1.5, count("turret", "core")));
 
-  let shield = 1;
-  shield += count("hull", "spring") * (3 + (cycle % 2 === 1 ? 3 : 0));
+  let shield = 0;
+  shield += count("hull", "spring") * 6;
   shield += count("hull", "blade") * 6;
   shield += count("hull", "resin") * 4;
   shield += count("hull", "magnet") * (2 + Math.min(3, count("turret")) * 2);
@@ -215,9 +220,9 @@ function render() {
   $("#forecastPower").textContent = f.power;
   $("#forecastDamage").textContent = f.damage;
   $("#forecastShield").textContent = f.shield;
-  $("#forecastNote").textContent = `初回予測。修復 ${f.healing} / 砲塔${count("turret")}・外殻${count("hull")}・炉${count("reactor")}。偶奇効果と敵の攻撃上昇で巡回ごとに変わる。`;
-  $("#battleButton").disabled = inBattle || count("bench") > 0 || state.completed;
-  $("#battleButton").textContent = inBattle ? "駆動中…" : count("bench") ? "未接続の素材がある" : "この溶接獣で戦う";
+  $("#forecastNote").textContent = `有限装甲 ${f.shield} は一戦の合計。素材は戦闘後に戻る。稼働 ${activeCount()}/${ACTIVE_CAPACITY} / 修復 ${f.healing} / 砲塔${count("turret")}・外殻${count("hull")}・炉${count("reactor")}。`;
+  $("#battleButton").disabled = inBattle || state.completed;
+  $("#battleButton").textContent = inBattle ? "駆動中…" : "この溶接獣で戦う";
   renderBays();
   renderSelection();
 }
@@ -238,7 +243,10 @@ function renderSelection() {
   $("#selectedMaterialName").textContent = `${def.icon} ${def.name}`;
   tray.querySelectorAll("[data-move]").forEach(button => {
     const bay = button.dataset.move;
-    button.disabled = material.bay === bay || count(bay) >= BAY_CAPACITY;
+    const fillsActiveSlot = material.bay === "bench" && bay !== "bench";
+    button.disabled = material.bay === bay
+      || (bay !== "bench" && count(bay) >= BAY_CAPACITY)
+      || (fillsActiveSlot && activeCount() >= ACTIVE_CAPACITY);
     const oldText = button.textContent.split("：")[0];
     button.textContent = `${oldText}：${effectText(material.type, bay)}`;
   });
@@ -246,7 +254,10 @@ function renderSelection() {
 
 function moveSelected(to) {
   const material = state.materials.find(m => m.id === selectedId);
-  if (!material || material.bay === to || count(to) >= BAY_CAPACITY) return;
+  const fillsActiveSlot = material?.bay === "bench" && to !== "bench";
+  if (!material || material.bay === to) return;
+  if (to !== "bench" && count(to) >= BAY_CAPACITY) return;
+  if (fillsActiveSlot && activeCount() >= ACTIVE_CAPACITY) return;
   const from = material.bay;
   const before = forecast(1);
   material.bay = to;
@@ -260,7 +271,7 @@ function moveSelected(to) {
 }
 
 async function startBattle() {
-  if (inBattle || count("bench") || state.completed) return;
+  if (inBattle || state.completed) return;
   inBattle = true;
   selectedId = null;
   state.stats.battles += 1;
@@ -270,10 +281,25 @@ async function startBattle() {
   const enemy = currentEnemy();
   let enemyHp = enemy.hp;
   let hp = state.hp;
+  let hpWithoutArmor = state.hp;
+  let survivesWithoutArmor = true;
+  const initialForecast = forecast(1);
+  const armorCapacity = initialForecast.shield;
+  let armorRemaining = armorCapacity;
+  let armorSpent = 0;
   const cycles = [];
-  record("battle_started", { enemy, movesBefore, build: state.materials });
+  record("armor_committed", {
+    capacity: armorCapacity,
+    materials: mats("hull").map(({ id, type }) => ({ id, type }))
+  });
+  record("battle_started", {
+    enemy,
+    movesBefore,
+    build: state.materials.map(({ id, type, bay }) => ({ id, type, bay })),
+    armorCapacity
+  });
   render();
-  $("#combatLog").textContent = `${enemy.name}へ接近。炉→砲塔→外殻の順で一巡する。`;
+  $("#combatLog").textContent = `${enemy.name}へ接近。有限装甲${armorCapacity}を抱えて駆動する。`;
   await sleep(450);
 
   let cycle = 0;
@@ -281,26 +307,40 @@ async function startBattle() {
     cycle += 1;
     const f = forecast(cycle);
     hp = Math.min(MAX_HP, hp + f.healing);
+    if (survivesWithoutArmor) hpWithoutArmor = Math.min(MAX_HP, hpWithoutArmor + f.healing);
     enemyHp -= f.damage;
     $("#combatLog").textContent = `巡回${cycle}：炉${f.power} → 砲撃${f.damage}。敵残り${Math.max(0, enemyHp)}。`;
     $("#forecastPower").textContent = f.power;
     $("#forecastDamage").textContent = f.damage;
-    $("#forecastShield").textContent = f.shield;
+    $("#forecastShield").textContent = armorRemaining;
     await sleep(480);
     let attack = 0;
     let blocked = 0;
     let hpDamage = 0;
+    const armorBefore = armorRemaining;
     if (enemyHp > 0) {
       attack = enemy.atk + enemy.rage * (cycle - 1);
-      blocked = Math.min(attack, f.shield);
+      blocked = Math.min(attack, armorRemaining);
+      armorRemaining -= blocked;
+      armorSpent += blocked;
       hpDamage = attack - blocked;
       hp -= hpDamage;
-      $("#combatLog").textContent = `${enemy.name}の反撃${attack}。外殻${blocked}、耐久へ${hpDamage}。余剰外殻は廃棄。`;
+      if (survivesWithoutArmor) {
+        hpWithoutArmor -= attack;
+        if (hpWithoutArmor <= 0) survivesWithoutArmor = false;
+      }
+      $("#combatLog").textContent = `${enemy.name}の反撃${attack}。装甲で${blocked}、耐久へ${hpDamage}。装甲残り${armorRemaining}。`;
+      $("#forecastShield").textContent = armorRemaining;
       $("#hpText").textContent = `${Math.max(0, hp)} / ${MAX_HP}`;
       $("#hpBar").style.width = `${clamp(hp / MAX_HP * 100, 0, 100)}%`;
       await sleep(520);
     }
-    const result = { cycle, ...f, attack, blocked, hpDamage, hp: Math.max(0, hp), enemyHp: Math.max(0, enemyHp) };
+    const result = {
+      cycle, power: f.power, damage: f.damage, healing: f.healing,
+      armorCapacity, armorBefore, blocked, armorRemaining,
+      attack, hpDamage, hp: Math.max(0, hp), enemyHp: Math.max(0, enemyHp),
+      hpWithoutArmor: Math.max(0, hpWithoutArmor)
+    };
     cycles.push(result);
     record("cycle_resolved", result);
   }
@@ -308,7 +348,11 @@ async function startBattle() {
   state.hp = Math.max(0, hp);
   inBattle = false;
   const won = enemyHp <= 0;
-  const battleResult = { enemy: enemy.name, won, cycles, finalHp: state.hp, enemyHp: Math.max(0, enemyHp) };
+  const battleResult = {
+    enemy: enemy.name, won, cycles, finalHp: state.hp, enemyHp: Math.max(0, enemyHp),
+    armorCapacity, armorSpent, armorRemaining,
+    survivesWithoutArmor
+  };
   state.stats.battleResults.push(battleResult);
   record("battle_ended", battleResult);
   if (!won) {
@@ -397,6 +441,8 @@ function collectAnswers() {
     bestMoment: String(data.get("bestMoment") || "").trim(),
     friction: String(data.get("friction") || "").trim(),
     hardChoice: String(data.get("hardChoice") || "").trim(),
+    armorFeeling: String(data.get("armorFeeling") || ""),
+    localExperiment: String(data.get("localExperiment") || ""),
     wishlist: String(data.get("wishlist") || ""),
     pivot: String(data.get("pivot") || ""),
     randomnessNote: String(data.get("randomnessNote") || "").trim(),
