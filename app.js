@@ -27,10 +27,10 @@ const PARTS = {
   },
   plating: {
     name: "即席装甲機", icon: "⬡", short: "電力で装甲追加", tags: ["防御", "電力"],
-    desc: "装甲を3得る。電力が2以上あれば2消費し、さらに装甲＋3。",
+    desc: "装甲を3得る。電力が2以上あれば2消費し、さらに装甲＋2。",
     run: s => {
       const powered = s.power >= 2;
-      return { shield: 3 + (powered ? 3 : 0), power: powered ? -2 : 0, text: "鉄板を前面へ溶接した" };
+      return { shield: 3 + (powered ? 2 : 0), power: powered ? -2 : 0, text: "鉄板を前面へ溶接した" };
     }
   },
   vent: {
@@ -108,7 +108,7 @@ const ENEMIES = [
   { name: "廃都の中枢", face: "◈", hp: 94, atk: 10, armor: 2, rage: 1, trait: "装甲2・攻撃上昇。寄せ集めの最終試験。" }
 ];
 
-const GAME_VERSION = "observe-0.5";
+const GAME_VERSION = "observe-0.6";
 const TELEMETRY_SCHEMA = 3;
 const SAVE_KEY = "garakuta-lab-save";
 const REPORTS_KEY = "garakuta-lab-run-reports";
