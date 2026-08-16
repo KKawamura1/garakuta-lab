@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#181916">
-  <title>溶接獣 — 素材実験B</title>
+  <title>溶接獣 — 有限装甲実験</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
         <p class="subtitle">拾った素材を、何として使うか。</p>
       </div>
       <div class="top-meta">
-        <span>MAT 0.1</span>
+        <span>MAT 0.2</span>
         <span id="syncStatus">端末保存</span>
         <a href="../">旧実験</a>
       </div>
@@ -40,13 +40,13 @@
 
     <section class="forecast-panel">
       <div class="section-title">
-        <div><p class="eyebrow">ONE CYCLE FORECAST</p><h2>次の一巡</h2></div>
+        <div><p class="eyebrow">BATTLE FORECAST</p><h2>次の戦闘</h2></div>
         <button id="helpButton" class="quiet-button" type="button">遊び方</button>
       </div>
       <div class="forecast-grid">
         <div><span>⚡</span><strong id="forecastPower">0</strong><small>炉の出力</small></div>
         <div><span>➤</span><strong id="forecastDamage">2</strong><small>砲撃</small></div>
-        <div><span>⬡</span><strong id="forecastShield">1</strong><small>外殻</small></div>
+        <div><span>⬡</span><strong id="forecastShield">0</strong><small>一戦の有限装甲</small></div>
       </div>
       <p id="forecastNote" class="forecast-note"></p>
     </section>
@@ -63,6 +63,7 @@
           <button type="button" data-move="turret">➤ 砲塔</button>
           <button type="button" data-move="hull">⬡ 外殻</button>
           <button type="button" data-move="reactor">⚡ 炉</button>
+          <button type="button" data-move="bench">＋ 作業台</button>
         </div>
         <button id="cancelSelection" class="text-button" type="button">やめる</button>
       </div>
@@ -81,9 +82,10 @@
       <h2>素材は部品ではない</h2>
       <ol>
         <li>同じ素材でも、砲塔・外殻・炉で効果が変わります。</li>
-        <li>配置後、戦闘は自動で進みます。外殻は毎巡回使い切りです。</li>
+        <li>配置後、戦闘は自動で進みます。外殻は一戦全体で使い切る有限装甲です。</li>
         <li>勝つとランダム素材を1個拾います。捨てたり選び直したりはできません。</li>
-        <li>素材は戦闘前なら何度でも付け替えられます。</li>
+        <li>同時に動かせる素材は5個まで。余りは失わず作業台に置けます。</li>
+        <li>外殻が壊れても素材は戦闘後に戻ります。戦闘前なら何度でも付け替えられます。</li>
       </ol>
       <p>「欲しい物を待つ」より、「来た物をどう読むか」が面白いかを見る実験です。</p>
       <button class="primary-button" value="close">閉じる</button>
@@ -127,6 +129,8 @@
         <label>一番気持ちよかった瞬間<textarea name="bestMoment" rows="2"></textarea></label>
         <label>面倒・退屈・理不尽だった瞬間<textarea name="friction" rows="2"></textarea></label>
         <label>素材の「取付先」で本気で迷った場面<textarea name="hardChoice" rows="2"></textarea></label>
+        <fieldset><legend>有限装甲の配分はどう感じた？</legend><label><input type="radio" name="armorFeeling" value="少なすぎた">少なすぎた</label><label><input type="radio" name="armorFeeling" value="ちょうどよかった">ちょうど</label><label><input type="radio" name="armorFeeling" value="多すぎた">多すぎた</label><label><input type="radio" name="armorFeeling" value="わからない">わからない</label></fieldset>
+        <fieldset><legend>遠い将来を考えず、一戦ごとに試せた？</legend><label><input type="radio" name="localExperiment" value="試せた">試せた</label><label><input type="radio" name="localExperiment" value="先を考えてしまった">先を考えた</label><label><input type="radio" name="localExperiment" value="わからない">わからない</label></fieldset>
         <fieldset><legend>欲しい素材待ちになった？</legend><label><input type="radio" name="wishlist" value="あった">あった</label><label><input type="radio" name="wishlist" value="なかった">なかった</label></fieldset>
         <fieldset><legend>新素材で配置を大きく変えた？</legend><label><input type="radio" name="pivot" value="あった">あった</label><label><input type="radio" name="pivot" value="なかった">なかった</label></fieldset>
         <label>旧版との違い・ランダム性について<textarea name="randomnessNote" rows="3"></textarea></label>
