@@ -59,7 +59,7 @@ h2 { margin-bottom: 8px; font-size: 18px; }
 .material-chip.rare { background: linear-gradient(135deg,#373022,#252922); border-color: #d8af5b; }
 .selection-tray { position: sticky; bottom: 8px; margin-top: 10px; border: 1px solid var(--acid); background: #22251c; padding: 10px; z-index: 3; }
 .selection-tray p { margin-bottom: 8px; font-size: 11px; }
-.selection-tray > div { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; }
+.selection-tray > div { display: grid; grid-template-columns: repeat(2,1fr); gap: 5px; }
 .selection-tray button { min-height: 40px; }
 .hidden { display: none !important; }
 .primary-button, .quiet-button, .reaction-button, .selection-tray button, .dialog-actions button { border: 1px solid var(--line); color: var(--ink); background: var(--panel2); padding: 11px; }
