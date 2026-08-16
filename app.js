@@ -1036,7 +1036,7 @@ if (!state.telemetry.events.length) {
 }
 registerEvents();
 render();
-$("#versionStatus").textContent = "OBS 0.5";
+$("#versionStatus").textContent = GAME_VERSION.replace(/^observe-/i, "OBS ").toUpperCase();
 updateSyncStatus(readSyncQueue().length ? "pending" : "synced");
 syncPendingRuns();
 if (state.completed || state.hp <= 0 || state.lastReport) {
