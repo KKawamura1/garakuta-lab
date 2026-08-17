@@ -4,7 +4,7 @@ iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した�
 
 プレイ版: https://garakuta-lab.pages.dev/
 
-大胆変更版「溶接獣 / MAT 0.2 有限装甲実験」: https://garakuta-lab.pages.dev/material/
+大胆変更版「溶接獣 / MAT 0.3 選べる漂着物実験」: https://garakuta-lab.pages.dev/material/
 
 ## 開発方針
 
