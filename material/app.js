@@ -1,5 +1,5 @@
-const GAME_VERSION = "material-0.2";
-const SAVE_KEY = "garakuta-material-save-v2";
+const GAME_VERSION = "material-0.3";
+const SAVE_KEY = "garakuta-material-save-v3";
 const MAX_HP = 30;
 const BAY_CAPACITY = 3;
 const ACTIVE_CAPACITY = 5;
@@ -61,7 +61,7 @@ function freshState() {
     wave: 0, hp: MAX_HP, completed: false, won: false,
     pendingReward: null,
     materials: initial, events: [], moments: [], answers: {}, seq: 0,
-    stats: { victories: 0, battles: 0, moves: 0, bigRebuilds: 0, rewards: [], battleResults: [] },
+    stats: { victories: 0, battles: 0, moves: 0, bigRebuilds: 0, rewards: [], rewardChoices: [], battleResults: [] },
     lastBattleMoveCount: 0
   };
 }
@@ -180,6 +180,13 @@ function currentEnemy() {
   return ENEMIES[Math.min(state.wave, ENEMIES.length - 1)];
 }
 
+function summarizeBattle(result) {
+  if (!result) return "";
+  const shots = result.cycles.reduce((sum, cycle) => sum + cycle.damage, 0);
+  const incoming = result.cycles.reduce((sum, cycle) => sum + cycle.attack, 0);
+  return `${result.enemy}：${result.won ? "勝利" : "敗北"} / ${result.cycles.length}巡 / 砲撃合計${shots} / 反撃${incoming} / 装甲消費${result.armorSpent}/${result.armorCapacity} / 耐久${result.finalHp}`;
+}
+
 function renderMaterial(material) {
   const def = MATERIALS[material.type];
   const button = document.createElement("button");
@@ -212,7 +219,7 @@ function render() {
   $("#waveText").textContent = `${state.wave + 1} / ${ENEMIES.length}`;
   $("#hpText").textContent = `${state.hp} / ${MAX_HP}`;
   $("#hpBar").style.width = `${clamp(state.hp / MAX_HP * 100, 0, 100)}%`;
-  $("#materialCount").textContent = state.materials.length;
+  $("#materialCount").textContent = `${activeCount()} / ${ACTIVE_CAPACITY}`;
   $("#enemyMark").textContent = enemy.mark;
   $("#enemyName").textContent = enemy.name;
   $("#enemyStats").textContent = `耐久 ${enemy.hp} / 攻撃 ${enemy.atk}${enemy.rage ? `（毎巡回＋${enemy.rage}）` : ""}`;
@@ -221,6 +228,9 @@ function render() {
   $("#forecastDamage").textContent = f.damage;
   $("#forecastShield").textContent = f.shield;
   $("#forecastNote").textContent = `有限装甲 ${f.shield} は一戦の合計。素材は戦闘後に戻る。稼働 ${activeCount()}/${ACTIVE_CAPACITY} / 修復 ${f.healing} / 砲塔${count("turret")}・外殻${count("hull")}・炉${count("reactor")}。`;
+  const lastBattle = state.stats.battleResults.at(-1);
+  $("#lastBattleSummary").textContent = summarizeBattle(lastBattle);
+  $("#lastBattleSummary").classList.toggle("hidden", !lastBattle);
   $("#battleButton").disabled = inBattle || state.completed;
   $("#battleButton").textContent = inBattle ? "駆動中…" : "この溶接獣で戦う";
   renderBays();
@@ -355,6 +365,7 @@ async function startBattle() {
   };
   state.stats.battleResults.push(battleResult);
   record("battle_ended", battleResult);
+  render();
   if (!won) {
     finishRun(false);
     return;
@@ -365,29 +376,61 @@ async function startBattle() {
     finishRun(true);
     return;
   }
-  const type = randomType();
-  state.pendingReward = makeMaterial(type, "bench");
-  state.stats.rewards.push(type);
-  record("material_found", { type, name: MATERIALS[type].name });
+  const first = randomType();
+  const second = randomType([first]);
+  state.pendingReward = {
+    offeredAt: new Date().toISOString(),
+    candidates: [makeMaterial(first, "bench"), makeMaterial(second, "bench")]
+  };
+  record("materials_offered", { types: [first, second], nextEnemy: ENEMIES[state.wave + 1].name });
   showReward(state.pendingReward);
   scheduleSync();
 }
 
-function showReward(material) {
-  const def = MATERIALS[material.type];
-  $("#rewardMaterial").innerHTML = `<div class="reward-material ${def.rare ? "rare" : ""}"><span>${def.icon}</span><strong>${def.name}</strong><small>砲塔・外殻・炉で別の働き</small></div>`;
-  $("#rewardDialog").showModal();
+function showReward(offer) {
+  const nextEnemy = ENEMIES[state.wave + 1];
+  $("#rewardBattleSummary").textContent = summarizeBattle(state.stats.battleResults.at(-1));
+  $("#rewardNextEnemy").textContent = `次戦：${nextEnemy.name} / 耐久${nextEnemy.hp} / 攻撃${nextEnemy.atk}${nextEnemy.rage ? `（毎巡回＋${nextEnemy.rage}）` : ""}`;
+  const root = $("#rewardChoices");
+  root.innerHTML = "";
+  offer.candidates.forEach(material => {
+    const def = MATERIALS[material.type];
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.rewardId = material.id;
+    button.className = `reward-material ${def.rare ? "rare" : ""}`;
+    button.innerHTML = `<span>${def.icon}</span><strong>${def.name}</strong><small>➤ ${effectText(material.type, "turret")}</small><small>⬡ ${effectText(material.type, "hull")}</small><small>⚡ ${effectText(material.type, "reactor")}</small><b>こちらを回収</b>`;
+    root.appendChild(button);
+  });
+  if (!$("#rewardDialog").open) $("#rewardDialog").showModal();
 }
 
-function takeReward() {
-  if (!state.pendingReward) return;
-  state.materials.push(state.pendingReward);
-  const type = state.pendingReward.type;
-  record("material_taken", { type });
+function chooseReward(id) {
+  const offer = state.pendingReward;
+  if (!offer) return;
+  const chosen = offer.candidates.find(material => material.id === id);
+  if (!chosen) return;
+  const rejected = offer.candidates.find(material => material.id !== id);
+  const decisionMs = Math.max(0, Date.now() - new Date(offer.offeredAt).getTime());
+  state.materials.push(chosen);
+  state.stats.rewards.push(chosen.type);
+  state.stats.rewardChoices.push({
+    wave: state.wave + 1,
+    offered: offer.candidates.map(material => material.type),
+    chosen: chosen.type,
+    rejected: rejected?.type || null,
+    decisionMs
+  });
+  record("material_chosen", {
+    offered: offer.candidates.map(material => material.type),
+    chosen: chosen.type,
+    rejected: rejected?.type || null,
+    decisionMs
+  });
   state.pendingReward = null;
   state.wave += 1;
   $("#rewardDialog").close();
-  $("#combatLog").textContent = `${MATERIALS[type].name}を作業台へ置いた。使い道を決めよう。`;
+  $("#combatLog").textContent = `${MATERIALS[chosen.type].name}を選び、作業台へ置いた。使い道を決めよう。`;
   render();
   scheduleSync();
 }
@@ -441,6 +484,8 @@ function collectAnswers() {
     bestMoment: String(data.get("bestMoment") || "").trim(),
     friction: String(data.get("friction") || "").trim(),
     hardChoice: String(data.get("hardChoice") || "").trim(),
+    rewardChoice: String(data.get("rewardChoice") || "").trim(),
+    dropAgency: String(data.get("dropAgency") || ""),
     armorFeeling: String(data.get("armorFeeling") || ""),
     localExperiment: String(data.get("localExperiment") || ""),
     wishlist: String(data.get("wishlist") || ""),
@@ -513,7 +558,14 @@ $("#helpButton").addEventListener("click", () => $("#helpDialog").showModal());
 $("#battleButton").addEventListener("click", startBattle);
 $("#reactionButton").addEventListener("click", () => $("#reactionDialog").showModal());
 $("#reactionForm").addEventListener("submit", saveReaction);
-$("#takeReward").addEventListener("click", takeReward);
+$("#cancelReaction").addEventListener("click", () => {
+  $("#reactionForm").reset();
+  $("#reactionDialog").close();
+});
+$("#rewardChoices").addEventListener("click", event => {
+  const button = event.target.closest("[data-reward-id]");
+  if (button) chooseReward(button.dataset.rewardId);
+});
 $("#playtestForm").addEventListener("submit", submitReport);
 $("#newRunButton").addEventListener("click", newRun);
 $("#cancelSelection").addEventListener("click", () => { selectedId = null; render(); });
