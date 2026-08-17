@@ -46,7 +46,7 @@ jobs:
             *) echo "Unsupported run limit" >&2; exit 2 ;;
           esac
 
-          runs_sql="SELECT run_id, schema_version, game_version, started_at, ended_at, saved_at, won, reached, final_hp, replay_score, event_count, moment_count, outcome_json, build_json, stats_json, answers_json, events_json FROM runs ORDER BY saved_at DESC LIMIT ${RUN_LIMIT};"
+          runs_sql="SELECT run_id, schema_version, game_version, started_at, ended_at, saved_at, won, reached, final_hp, replay_score, event_count, moment_count, outcome_json, build_json, stats_json, answers_json, events_json FROM runs WHERE ended_at IS NOT NULL ORDER BY saved_at DESC LIMIT ${RUN_LIMIT};"
 
           npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
             --remote --json --command "$runs_sql" \
@@ -84,4 +84,3 @@ jobs:
           path: playtest-export/
           retention-days: 30
           if-no-files-found: error
-
