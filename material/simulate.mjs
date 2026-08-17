@@ -130,14 +130,33 @@ function runOne() {
   }
   let hp = MAX_HP;
   const battles = [];
+  const rewardChoices = [];
   for (let wave = 0; wave < ENEMIES.length; wave += 1) {
     const chosen = bestBattle(hp, ENEMIES[wave], types);
     battles.push(chosen);
-    if (!chosen.result.won) return { won: false, reached: wave + 1, battles };
+    if (!chosen.result.won) return { won: false, reached: wave + 1, battles, rewardChoices };
     hp = Math.min(MAX_HP, chosen.result.hp + 2);
-    if (wave < ENEMIES.length - 1) types.push(randomType());
+    if (wave < ENEMIES.length - 1) {
+      const first = randomType();
+      const second = randomType([first]);
+      const firstTest = bestBattle(hp, ENEMIES[wave + 1], [...types, first]);
+      const secondTest = bestBattle(hp, ENEMIES[wave + 1], [...types, second]);
+      const picked = firstTest.score >= secondTest.score ? first : second;
+      rewardChoices.push({ offered: [first, second], picked, scores: [firstTest.score, secondTest.score] });
+      types.push(picked);
+    }
   }
-  return { won: true, reached: 6, battles };
+  return { won: true, reached: 6, battles, rewardChoices };
+}
+
+const exactTypesArg = process.argv.find(arg => arg.startsWith("--types="));
+if (exactTypesArg) {
+  const types = exactTypesArg.slice("--types=".length).split(",").filter(Boolean);
+  const hpArg = Number((process.argv.find(arg => arg.startsWith("--hp=")) || "--hp=30").slice(5));
+  const waveArg = Number((process.argv.find(arg => arg.startsWith("--wave=")) || "--wave=6").slice(7));
+  const chosen = bestBattle(hpArg, ENEMIES[waveArg - 1], types);
+  console.log(JSON.stringify({ hp: hpArg, wave: waveArg, types, chosen }, null, 2));
+  process.exit(0);
 }
 
 const RUNS = Number(process.argv[2] || 500);
@@ -149,7 +168,9 @@ const totals = {
   battles: 0,
   armorNecessary: 0,
   armorUnused: 0,
-  closeChoices: 0
+  closeChoices: 0,
+  rewardChoices: 0,
+  closeRewardChoices: 0
 };
 
 for (let i = 0; i < RUNS; i += 1) {
@@ -163,6 +184,10 @@ for (let i = 0; i < RUNS; i += 1) {
   }
   totals.wins += Number(run.won);
   totals.reached[run.reached] += 1;
+  for (const choice of run.rewardChoices || []) {
+    totals.rewardChoices += 1;
+    totals.closeRewardChoices += Number(Math.abs(choice.scores[0] - choice.scores[1]) < 1000);
+  }
   for (const chosen of run.battles) {
     totals.battles += 1;
     totals.hullCounts[chosen.build.filter(m => m.bay === "hull").length] += 1;
@@ -178,5 +203,6 @@ console.log(JSON.stringify({
   hullShare: totals.hullCounts.map(n => n / totals.battles),
   unusedArmorShare: totals.armorUnused / totals.battles,
   closeChoiceShare: totals.closeChoices / totals.battles,
+  closeRewardChoiceShare: totals.closeRewardChoices / totals.rewardChoices,
   cachedMaterialSets: placementCache.size
 }, null, 2));
