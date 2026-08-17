@@ -158,6 +158,16 @@ button:disabled { opacity: .42; }
   width: min(100%, 520px); flex-direction: column; gap: 8px; padding: 10px 14px var(--safe-bottom);
   background: linear-gradient(transparent, rgba(16,19,16,.96) 22%, var(--bg) 52%);
 }
+.prediction-strip {
+  width: 100%; display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 4px; align-items: center;
+  padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: rgba(19,23,19,.96);
+}
+.prediction-strip span { padding: 0 3px; color: var(--muted); font-size: 8px; font-weight: 700; }
+.prediction-strip button {
+  min-width: 0; padding: 6px 2px; border: 1px solid #3c443b; border-radius: 7px;
+  color: #c7c4b3; background: #1d221d; font-size: 8px; font-weight: 800;
+}
+.prediction-strip button.selected { color: #16130d; border-color: var(--accent); background: var(--accent); }
 .reaction-button {
   position: fixed; z-index: 7; right: max(14px, calc((100vw - 520px) / 2 + 14px)); bottom: 126px;
   min-height: 38px; padding: 8px 12px; border: 1px solid #65583d; border-radius: 99px;
@@ -254,7 +264,7 @@ button:disabled { opacity: .42; }
 
 .playtest-form { display: grid; gap: 10px; margin-top: 13px; }
 .playtest-form > label, .survey-pair label { color: #d6d0bc; font-size: 10px; font-weight: 800; }
-.playtest-form textarea, .playtest-form select {
+.playtest-form textarea, .playtest-form select, .playtest-form > label > input {
   width: 100%; margin-top: 5px; border: 1px solid #41483f; border-radius: 9px;
   background: #111411; color: var(--ink); padding: 9px; font: 11px/1.45 -apple-system, sans-serif;
 }
