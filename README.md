@@ -2,6 +2,8 @@
 
 iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した、静的PWAのゲームデザイン試作です。
 
+現在のトップ版は **ARC 0.1**。最初に最も面白かったOBS 0.1を既知の状態で再試験し、面白さが初見の新鮮さだけか、期待・再評価・方針転換の構造として再現するかを調べます。ルールと数値はOBS 0.1へ戻し、任意の戦闘前予測と終了時の物語・再試行動機だけを追加しています。
+
 プレイ版: https://garakuta-lab.pages.dev/
 
 大胆変更版「溶接獣 / MAT 0.3 選べる漂着物実験」: https://garakuta-lab.pages.dev/material/
@@ -38,6 +40,8 @@ iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した�
 同名部品でもランごとに違う使い道が生まれるかを見る。現段階では認知負荷と報酬評価への影響が未検証のため実装しない。
 
 試作から得た抽象的な学び、実験履歴、次に比較する大胆な別案は [`DESIGN_LEARNINGS.md`](./DESIGN_LEARNINGS.md) に記録する。
+
+感情の落差仮説の既存ログ分析と構造代理評価は [`analysis/EMOTIONAL_ARC_HYPOTHESIS.md`](./analysis/EMOTIONAL_ARC_HYPOTHESIS.md) に記録する。
 
 ## 公開方法
 
