@@ -159,6 +159,51 @@ if (exactTypesArg) {
   process.exit(0);
 }
 
+const offersArg = process.argv.find(arg => arg.startsWith("--offers="));
+if (offersArg) {
+  const initialArg = process.argv.find(arg => arg.startsWith("--initial="));
+  const initialTypes = (initialArg || "--initial=spring,blade,core").slice("--initial=".length).split(",").filter(Boolean);
+  const offers = offersArg.slice("--offers=".length).split(";").map(pair => pair.split(","));
+  const paths = [];
+
+  function explore(wave, hp, types, choices, battles) {
+    const chosen = bestBattle(hp, ENEMIES[wave], types);
+    const nextBattles = [...battles, { wave: wave + 1, hpStart: hp, ...chosen.result, build: chosen.build }];
+    if (!chosen.result.won) {
+      paths.push({ won: false, reached: wave + 1, finalHp: chosen.result.hp, enemyHp: chosen.result.enemyHp, choices, battles: nextBattles });
+      return;
+    }
+    const nextHp = Math.min(MAX_HP, chosen.result.hp + 2);
+    if (wave === ENEMIES.length - 1) {
+      paths.push({ won: true, reached: 6, finalHp: nextHp, choices, battles: nextBattles });
+      return;
+    }
+    for (const type of offers[wave]) explore(wave + 1, nextHp, [...types, type], [...choices, type], nextBattles);
+  }
+
+  explore(0, MAX_HP, initialTypes, [], []);
+  paths.sort((a, b) => Number(b.won) - Number(a.won) || b.finalHp - a.finalHp || (a.enemyHp || 0) - (b.enemyHp || 0));
+  const output = {
+    initialTypes,
+    offers,
+    pathCount: paths.length,
+    winningPaths: paths.filter(path => path.won).length,
+    paths
+  };
+  if (process.argv.includes("--summary")) {
+    output.paths = paths.map(path => ({
+      won: path.won,
+      reached: path.reached,
+      finalHp: path.finalHp,
+      enemyHp: path.enemyHp,
+      choices: path.choices,
+      battleHp: path.battles.map(battleResult => ({ wave: battleResult.wave, hpStart: battleResult.hpStart, hp: battleResult.hp, enemyHp: battleResult.enemyHp }))
+    }));
+  }
+  console.log(JSON.stringify(output, null, 2));
+  process.exit(0);
+}
+
 const RUNS = Number(process.argv[2] || 500);
 const DEBUG = process.argv.includes("--debug");
 const totals = {
