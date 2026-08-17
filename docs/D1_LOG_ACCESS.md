@@ -1,6 +1,6 @@
 # D1プレイログ取得
 
-GitHub Actionsの固定ワークフローから、`garakuta-playtests`の最新ランを読み取り専用で取得する。
+GitHub Actionsの固定ワークフローから、`garakuta-playtests`の最新の完了ランを読み取り専用で取得する。
 一度設定すれば、取得のたびにコードを変更する必要はない。
 
 ## 初回設定
