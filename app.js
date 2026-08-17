@@ -11,11 +11,8 @@ const PARTS = {
   },
   turbine: {
     name: "廃熱タービン", icon: "✺", short: "熱を発電へ", tags: ["熱", "電力", "冷却"],
-    desc: "熱を最大3冷まし、電力を「2＋冷ました量」得る。熱が多いほど勢いよく回る。",
-    run: s => {
-      const cooled = Math.min(3, s.heat);
-      return { power: 2 + cooled, cool: cooled, text: `熱${cooled}でタービンが回った` };
-    }
+    desc: "熱を1冷まし、電力を2得る。熱が4以上なら、さらに電力＋1。",
+    run: s => ({ power: 2 + (s.heat >= 4 ? 1 : 0), cool: 1, text: "廃熱でタービンが回った" })
   },
   ram: {
     name: "電磁ラム", icon: "➤", short: "電力を打撃へ", tags: ["攻撃", "電力"],
@@ -27,18 +24,15 @@ const PARTS = {
   },
   plating: {
     name: "即席装甲機", icon: "⬡", short: "電力で装甲追加", tags: ["防御", "電力"],
-    desc: "装甲を3得る。電力が2以上あれば2消費し、さらに装甲＋2。",
-    run: s => {
-      const powered = s.power >= 2;
-      return { shield: 3 + (powered ? 2 : 0), power: powered ? -2 : 0, text: "鉄板を前面へ溶接した" };
-    }
+    desc: "装甲を3得る。電力があれば1消費し、さらに装甲＋3。",
+    run: s => ({ shield: 3 + (s.power > 0 ? 3 : 0), power: s.power > 0 ? -1 : 0, text: "鉄板を前面へ溶接した" })
   },
   vent: {
     name: "破裂ベント", icon: "≋", short: "冷却量で攻撃", tags: ["攻撃", "熱", "冷却"],
-    desc: "熱を最大4冷まし、2＋（冷ました量×2）ダメージ。熱がなくても2ダメージ。",
+    desc: "熱を最大4冷まし、冷ました量＋2ダメージ。熱がなくても2ダメージ。",
     run: s => {
       const cooled = Math.min(4, s.heat);
-      return { damage: 2 + cooled * 2, cool: cooled, text: `熱${cooled}を敵へ噴きつけた` };
+      return { damage: 2 + cooled, cool: cooled, text: `熱${cooled}を敵へ噴きつけた` };
     }
   },
   pulse: {
@@ -69,10 +63,10 @@ const PARTS = {
   },
   prism: {
     name: "装甲プリズム", icon: "◇", short: "装甲を攻撃へ", tags: ["攻撃", "防御"],
-    desc: "2ダメージ。装甲があれば最大3消費し、その3倍を追加する。防御を捨てるぶん威力は高い。",
+    desc: "2ダメージ。装甲があれば最大3消費し、その2倍を追加する。",
     run: s => {
       const used = Math.min(3, s.shield);
-      return { damage: 2 + used * 3, shield: -used, text: `装甲${used}を光弾へ変えた` };
+      return { damage: 2 + used * 2, shield: -used, text: `装甲${used}を光弾へ変えた` };
     }
   },
   mine: {
@@ -108,8 +102,8 @@ const ENEMIES = [
   { name: "廃都の中枢", face: "◈", hp: 94, atk: 10, armor: 2, rage: 1, trait: "装甲2・攻撃上昇。寄せ集めの最終試験。" }
 ];
 
-const GAME_VERSION = "observe-0.6";
-const TELEMETRY_SCHEMA = 3;
+const GAME_VERSION = "arc-0.1";
+const TELEMETRY_SCHEMA = 4;
 const SAVE_KEY = "garakuta-lab-save";
 const REPORTS_KEY = "garakuta-lab-run-reports";
 const SYNC_QUEUE_KEY = "garakuta-lab-sync-queue";
@@ -126,6 +120,7 @@ let selectedSlot = null;
 let inBattle = false;
 let battle = null;
 let currentPhase = "build";
+let pendingPrediction = null;
 let syncTimer = null;
 let activeSyncTimer = null;
 
@@ -291,6 +286,10 @@ function render() {
   $("#selectedInspector").classList.toggle("hidden", (selectedInventory === null && selectedSlot === null) || inBattle);
   $("#battleButton").disabled = inBattle || state.slots.every(x => !x);
   $("#battleButton").textContent = inBattle ? "作動中…" : "このガラクタで戦う";
+  document.querySelectorAll("[data-prediction]").forEach(button => {
+    button.classList.toggle("selected", button.dataset.prediction === pendingPrediction);
+    button.disabled = inBattle;
+  });
   renderInspector();
 }
 
@@ -391,21 +390,34 @@ function applyDelta(delta) {
   return actualDamage;
 }
 
+function predictionLevel(prediction) {
+  return ({ "負けそう": 0, "ギリギリ": 1, "勝てそう": 2, "圧勝": 3 })[prediction];
+}
+
+function actualOutcomeLevel(won, hp) {
+  if (!won) return 0;
+  if (hp <= 10) return 1;
+  if (hp < 24) return 2;
+  return 3;
+}
+
 async function startBattle() {
   if (inBattle || state.slots.every(x => !x)) return;
   inBattle = true;
   selectedInventory = null;
   selectedSlot = null;
   const enemyBase = ENEMIES[Math.min(state.wave, ENEMIES.length - 1)];
+  const prediction = pendingPrediction;
+  pendingPrediction = null;
   battle = {
     hp: state.hp, power: 0, heat: 0, shield: 0, enemyHp: enemyBase.hp,
-    enemy: { ...enemyBase }, uses: {}, last: null, cycle: 0
+    enemy: { ...enemyBase }, uses: {}, last: null, cycle: 0, prediction
   };
   currentPhase = "battle";
   state.stats.battles += 1;
   recordEvent("battle_started", {
     enemy: { name: battle.enemy.name, hp: battle.enemy.hp, atk: battle.enemy.atk, armor: battle.enemy.armor || 0 },
-    build: state.slots.map(partRef)
+    build: state.slots.map(partRef), prediction
   });
   saveState();
   render(); updateBattleUI();
@@ -465,8 +477,19 @@ async function startBattle() {
   inBattle = false;
   recordEvent("battle_ended", {
     won: battle.enemyHp <= 0, cycles: battle.cycle, finalHp: state.hp,
-    enemyHp: Math.max(0, battle.enemyHp), power: battle.power, heat: battle.heat, shield: battle.shield
+    enemyHp: Math.max(0, battle.enemyHp), power: battle.power, heat: battle.heat, shield: battle.shield,
+    prediction: battle.prediction
   });
+  if (battle.prediction) {
+    const expectedLevel = predictionLevel(battle.prediction);
+    const actualLevel = actualOutcomeLevel(battle.enemyHp <= 0, state.hp);
+    recordEvent("prediction_resolved", {
+      prediction: battle.prediction,
+      expectedLevel,
+      actualLevel,
+      surprise: actualLevel > expectedLevel ? "better" : actualLevel < expectedLevel ? "worse" : "expected"
+    });
+  }
   if (battle.enemyHp <= 0) await winBattle();
   else loseBattle();
 }
@@ -673,7 +696,7 @@ function factsHtml(report) {
 
 function fillReportForm(answers = {}) {
   const form = $("#playtestForm");
-  ["bestMoment", "friction", "hardChoice", "wishlist", "pivot", "randomnessNote", "comment"].forEach(name => {
+  ["bestMoment", "friction", "hardChoice", "wishlist", "pivot", "randomnessNote", "runStory", "replayReason", "comment"].forEach(name => {
     const field = form.elements[name];
     if (field) field.value = answers[name] || "";
   });
@@ -691,6 +714,8 @@ function collectAnswers() {
     wishlist: String(data.get("wishlist") || ""),
     pivot: String(data.get("pivot") || ""),
     randomnessNote: String(data.get("randomnessNote") || "").trim(),
+    runStory: String(data.get("runStory") || "").trim(),
+    replayReason: String(data.get("replayReason") || ""),
     comment: String(data.get("comment") || "").trim(),
     replay: String(data.get("replay") || "")
   };
@@ -906,7 +931,9 @@ function reportText(report) {
     `欲しい部品待ち: ${answers.wishlist || "未回答"}`,
     `偶然の部品で方針転換: ${answers.pivot || "未回答"}`,
     `補足: ${answers.randomnessNote || "なし"}`,
+    `このランを一言で: ${answers.runStory || "未回答"}`,
     `もう一度遊びたい度: ${answers.replay || "未回答"}/5`,
+    `次に見たいもの: ${answers.replayReason || "未回答"}`,
     `コメント: ${answers.comment || "なし"}`,
     `途中の感情: ${(state.telemetry.moments || []).map(moment => `${moment.label}${moment.note ? `（${moment.note}）` : ""}`).join("、") || "なし"}`
   ].join("\n\n");
@@ -980,6 +1007,7 @@ function newRun() {
   selectedInventory = null;
   selectedSlot = null;
   battle = null;
+  pendingPrediction = null;
   recordEvent("run_started", { initialInventory: state.inventory.map(partRef), source: "new_run" });
   saveState();
   $("#runEndDialog").close();
@@ -990,6 +1018,12 @@ function newRun() {
 
 function registerEvents() {
   $("#battleButton").addEventListener("click", startBattle);
+  document.querySelectorAll("[data-prediction]").forEach(button => button.addEventListener("click", () => {
+    pendingPrediction = pendingPrediction === button.dataset.prediction ? null : button.dataset.prediction;
+    recordEvent("battle_prediction_selected", { prediction: pendingPrediction, wave: state.wave + 1 });
+    saveState();
+    render();
+  }));
   $("#slotControls").addEventListener("click", e => {
     const action = e.target.dataset.action;
     if (action) moveSlot(action);
@@ -1036,7 +1070,7 @@ if (!state.telemetry.events.length) {
 }
 registerEvents();
 render();
-$("#versionStatus").textContent = GAME_VERSION.replace(/^observe-/i, "OBS ").toUpperCase();
+$("#versionStatus").textContent = GAME_VERSION.toUpperCase();
 updateSyncStatus(readSyncQueue().length ? "pending" : "synced");
 syncPendingRuns();
 if (state.completed || state.hp <= 0 || state.lastReport) {
