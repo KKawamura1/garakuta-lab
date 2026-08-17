@@ -77,6 +77,13 @@
 
       <section class="action-dock">
         <div id="combatLog" class="combat-log">部品を5個まで装着できます。</div>
+        <div id="battlePrediction" class="prediction-strip" aria-label="戦闘結果の予想">
+          <span>いま戦うと？</span>
+          <button type="button" data-prediction="負けそう">負けそう</button>
+          <button type="button" data-prediction="ギリギリ">ギリ</button>
+          <button type="button" data-prediction="勝てそう">勝てそう</button>
+          <button type="button" data-prediction="圧勝">圧勝</button>
+        </div>
         <button id="battleButton" class="primary-button">このガラクタで戦う</button>
       </section>
     </main>
@@ -177,6 +184,9 @@
         <label>補足
           <textarea name="randomnessNote" rows="2" placeholder="欲しかった部品／方針を変えた部品など"></textarea>
         </label>
+        <label>このランを一言でいうと？
+          <input name="runStory" type="text" maxlength="120" placeholder="例：装甲不足を熱暴走で押し切った機械">
+        </label>
         <fieldset class="replay-score">
           <legend>すぐもう一度遊びたい度</legend>
           <div>
@@ -187,6 +197,16 @@
             <label><input type="radio" name="replay" value="5"><span>5</span></label>
           </div>
         </fieldset>
+        <label>もう一度遊ぶなら、次に見たいもの
+          <select name="replayReason">
+            <option value="">未回答</option>
+            <option value="別の引き">別の引き</option>
+            <option value="別の使い方">同じ材料の別の使い方</option>
+            <option value="勝ち直したい">今の敗北を勝ち直したい</option>
+            <option value="神ラン">もっと壊れた神ラン</option>
+            <option value="もう十分">もう十分</option>
+          </select>
+        </label>
         <label>フリーコメント
           <textarea name="comment" rows="2" placeholder="UI、説明、思いついたことなど何でも"></textarea>
         </label>
