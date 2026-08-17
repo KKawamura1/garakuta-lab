@@ -45,6 +45,7 @@ h2 { margin-bottom: 8px; font-size: 18px; }
 .forecast-grid strong { display: block; font-size: 24px; margin: 4px 0; color: var(--acid); }
 .forecast-grid small { color: var(--muted); font-size: 8px; }
 .forecast-note { margin: 10px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.battle-summary { margin: 10px 0 0; padding: 8px; border-left: 2px solid var(--teal); background: #191a17; color: var(--muted); font-size: 9px; line-height: 1.5; }
 .bays { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
 .bay { min-height: 180px; border: 1px solid var(--line); background: #191a17; padding: 8px; }
 .bay.bench { grid-column: 1 / -1; min-height: 0; border-color: var(--acid); }
@@ -80,10 +81,14 @@ dialog::backdrop { background: rgba(0,0,0,.78); }
 .reaction-kinds input:checked + span { border-color: var(--acid); color: var(--acid); }
 textarea { width: 100%; resize: vertical; border: 1px solid var(--line); background: #171815; color: var(--ink); padding: 9px; }
 .dialog-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 7px; margin-top: 10px; }
-.reward-material { border: 1px solid var(--acid); padding: 18px; text-align: center; margin: 14px 0; background: #1a1c17; }
-.reward-material span { display: block; font-size: 32px; }
-.reward-material strong { display: block; font-size: 18px; margin: 7px; }
-.reward-material small { color: var(--muted); }
+.next-enemy { padding: 8px; border: 1px solid var(--rust); color: var(--rust) !important; }
+.reward-choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+.reward-material { min-width: 0; border: 1px solid var(--acid); padding: 12px 7px; text-align: left; color: var(--ink); background: #1a1c17; }
+.reward-material span { display: block; font-size: 30px; text-align: center; }
+.reward-material strong { display: block; font-size: 15px; margin: 6px 0 9px; text-align: center; }
+.reward-material small { display: block; color: var(--muted); font-size: 8px; line-height: 1.4; margin-top: 5px; }
+.reward-material b { display: block; margin-top: 10px; padding: 7px 3px; background: var(--acid); color: #171912; font-size: 9px; text-align: center; }
+.reward-material.rare { border-color: #d8af5b; background: linear-gradient(135deg,#373022,#252922); }
 .final-build { display: grid; gap: 6px; margin: 12px 0 18px; }
 .final-build div { border: 1px solid var(--line); padding: 8px; font-size: 10px; }
 #playtestForm > label { display: block; margin: 12px 0; font-size: 11px; }
