@@ -1,0 +1,87 @@
+name: Export D1 playtests
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Number of latest runs to export
+        required: true
+        default: "3"
+        type: choice
+        options:
+          - "3"
+          - "5"
+          - "10"
+          - "20"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export latest playtests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Export runs and moments from D1
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RUN_LIMIT: ${{ inputs.limit }}
+        run: |
+          set -euo pipefail
+          mkdir -p playtest-export
+
+          case "$RUN_LIMIT" in
+            3|5|10|20) ;;
+            *) echo "Unsupported run limit" >&2; exit 2 ;;
+          esac
+
+          runs_sql="SELECT run_id, schema_version, game_version, started_at, ended_at, saved_at, won, reached, final_hp, replay_score, event_count, moment_count, outcome_json, build_json, stats_json, answers_json, events_json FROM runs ORDER BY saved_at DESC LIMIT ${RUN_LIMIT};"
+
+          npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
+            --remote --json --command "$runs_sql" \
+            > playtest-export/runs.json
+
+          run_ids="$(jq -r '.[0].results | map("\u0027" + (.run_id | gsub("\u0027"; "\u0027\u0027")) + "\u0027") | join(",")' playtest-export/runs.json)"
+
+          if [[ -n "$run_ids" ]]; then
+            moments_sql="SELECT run_id, event_seq, happened_at, elapsed_ms, kind, label, phase, note FROM moments WHERE run_id IN (${run_ids}) ORDER BY run_id, event_seq;"
+            npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
+              --remote --json --command "$moments_sql" \
+              > playtest-export/moments.json
+          else
+            printf '[{"results":[],"success":true}]\n' > playtest-export/moments.json
+          fi
+
+          jq '.[0].results' playtest-export/runs.json > playtest-export/runs-readable.json
+          jq '.[0].results' playtest-export/moments.json > playtest-export/moments-readable.json
+
+          exported="$(jq 'length' playtest-export/runs-readable.json)"
+          {
+            echo "## D1 playtest export"
+            echo
+            echo "Exported **${exported}** latest run(s)."
+            echo
+            echo "| Saved at | Version | Result | Reached | HP | Replay | Run ID |"
+            echo "|---|---|---:|---:|---:|---:|---|"
+            jq -r '.[] | "| \(.saved_at) | \(.game_version) | \(if .won == 1 then "win" else "loss" end) | \(.reached) | \(.final_hp) | \(.replay_score) | `\(.run_id)` |"' playtest-export/runs-readable.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload JSON export
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-playtests-${{ github.run_number }}
+          path: playtest-export/
+          retention-days: 30
+          if-no-files-found: error
+
