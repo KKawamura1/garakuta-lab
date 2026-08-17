@@ -13,7 +13,7 @@ const MODULES = {
 };
 
 const ENEMIES = [
-  { name: "偵察ダニ", mark: "●", hp: 17, atk: 3, rage: 0, trait: "順番を一度動かせば違いが見える相手。" },
+  { name: "偵察ダニ", mark: "●", hp: 16, atk: 3, rage: 0, trait: "順番を一度動かせば違いが見える相手。" },
   { name: "採掘モグラ", mark: "▼", hp: 28, atk: 4, rage: 0, trait: "電力を砲と盾のどちらへ先に渡すか。" },
   { name: "鋲打ちムカデ", mark: "≋", hp: 39, atk: 6, rage: 0, trait: "毎巡同じ反撃。列の安定性を試す。" },
   { name: "赤熱カラス", mark: "▲", hp: 53, atk: 7, rage: 1, trait: "反撃が毎巡＋1。長期戦は危険。" },
