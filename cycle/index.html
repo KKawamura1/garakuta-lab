@@ -11,7 +11,7 @@
   <main class="shell">
     <header class="masthead">
       <div><p class="eyebrow">GARAKUTA EXPERIMENT C</p><h1>ガラクタ・ライン</h1><p class="subtitle">拾った機構を、どの順で駆動するか。</p></div>
-      <div class="top-meta"><span>CYCLE 0.1</span><span id="syncStatus">端末保存</span><a href="../material/">素材実験</a></div>
+      <div class="top-meta"><span>CYCLE 0.2</span><span id="syncStatus">端末保存</span><a href="../material/">素材実験</a></div>
     </header>
 
     <section class="status-strip" aria-label="進行状況">
@@ -47,7 +47,7 @@
     <section class="action-panel"><p id="combatLog">順番を変えると、その場で電力の流れが変わる。</p><button id="battleButton" class="primary-button" type="button">この順で駆動する</button><button id="reactionButton" class="reaction-button" type="button">● 今の気持ちを記録</button></section>
   </main>
 
-  <dialog id="helpDialog"><form method="dialog" class="dialog-card"><p class="eyebrow">HOW TO PLAY</p><h2>電力は左から右へ流れる</h2><ol><li>5個までの機構を一列に並べ、戦闘は自動で進みます。</li><li>発電機は電力を作り、後ろの砲や盾が最大2電力を使います。</li><li>蓄電器が列にあれば、余った電力を最大3だけ次巡へ持ち越します。</li><li>反響器は直前の機構の効果を半分だけ繰り返します。</li><li>勝つと異なる2機構から1個を選びます。全機構は単体でも働きます。</li></ol><p>正解部品を待つのではなく、来た機構の順番をその戦闘で読み替えられるかを見る実験です。</p><button class="primary-button" value="close">閉じる</button></form></dialog>
+  <dialog id="helpDialog"><form method="dialog" class="dialog-card"><p class="eyebrow">HOW TO PLAY</p><h2>電力は左から右へ流れる</h2><ol><li>5個までの機構を一列に並べ、戦闘は自動で進みます。</li><li>発電機は3攻撃しながら電力を作り、後ろの砲や盾が最大2電力を使います。</li><li>蓄電器は3装甲と電力1を作り、余った電力を最大3だけ次巡へ持ち越します。</li><li>反響器は直前の機構の効果を半分だけ繰り返します。</li><li>勝つと異なる2機構から1個を選びます。全機構は単体でも働きます。</li></ol><p>正解部品を待つのではなく、来た機構の順番をその戦闘で読み替えられるかを見る実験です。</p><button class="primary-button" value="close">閉じる</button></form></dialog>
 
   <dialog id="reactionDialog"><form id="reactionForm" method="dialog" class="dialog-card"><p class="eyebrow">LIVE NOTE</p><h2>今、何が起きた？</h2><div class="reaction-kinds"><label><input type="radio" name="kind" value="hit" required><span>きた！</span></label><label><input type="radio" name="kind" value="choice"><span>迷う</span></label><label><input type="radio" name="kind" value="insight"><span>ひらめいた</span></label><label><input type="radio" name="kind" value="payoff"><span>うまくいった</span></label><label><input type="radio" name="kind" value="dull"><span>退屈</span></label><label><input type="radio" name="kind" value="unfair"><span>理不尽</span></label></div><textarea name="note" rows="3" maxlength="160" placeholder="何にそう感じた？（任意）"></textarea><div class="dialog-actions"><button id="cancelReaction" type="button">やめる</button><button class="primary-button" value="default">記録</button></div></form></dialog>
 

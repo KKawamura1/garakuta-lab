@@ -104,7 +104,13 @@ assert.equal(vm.runInContext("benchModules().length", context), 1);
 
 vm.runInContext("selectedId = benchModules()[0].id; moveSelected('active')", context);
 assert.equal(vm.runInContext("activeModules().length", context), 4);
-assert.equal(vm.runInContext("payload().gameVersion", context), "cycle-0.1");
+assert.equal(vm.runInContext("payload().gameVersion", context), "cycle-0.2");
+assert.equal(vm.runInContext("state.rewardPlan.length", context), 5);
+assert(vm.runInContext("state.stats.generation.valid", context));
+assert(vm.runInContext("state.stats.generation.winningPaths >= 8", context));
 assert(vm.runInContext("state.events.some(event => event.type === 'battle_ended')", context));
 
-console.log("cycle smoke: initialization, reorder, battle, reward, activation, telemetry OK");
+const generatedPlans = vm.runInContext("Array.from({ length: 20 }, () => createValidatedRunPlan().generation)", context);
+assert(generatedPlans.every(result => result.valid && result.winningPaths >= 8 && result.hiddenTraps === 0));
+
+console.log("cycle smoke: initialization, validated generation, reorder, battle, reward, activation, telemetry OK");

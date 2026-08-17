@@ -1,13 +1,13 @@
-const GAME_VERSION = "cycle-0.1";
-const SAVE_KEY = "garakuta-cycle-save-v1";
+const GAME_VERSION = "cycle-0.2";
+const SAVE_KEY = "garakuta-cycle-save-v2";
 const MAX_HP = 30;
 const ACTIVE_CAPACITY = 5;
 
 const MODULES = {
-  generator: { name: "脈動発電機", icon: "⚡", color: "#d5f05a", text: "電力＋2", rare: false },
+  generator: { name: "脈動発電機", icon: "⚡", color: "#d5f05a", text: "電力＋2、3攻撃", rare: false },
   gun: { name: "電弧砲", icon: "➤", color: "#ee875d", text: "4攻撃。最大2電力を使い、1ごとに＋2", rare: false },
   shield: { name: "偏向盾", icon: "⬡", color: "#72c8b8", text: "3装甲。最大2電力を使い、1ごとに＋2", rare: false },
-  battery: { name: "継ぎ接ぎ蓄電器", icon: "▣", color: "#89aaf0", text: "電力＋1。余剰を最大3だけ次巡へ", rare: false },
+  battery: { name: "継ぎ接ぎ蓄電器", icon: "▣", color: "#89aaf0", text: "電力＋1、3装甲。余剰を最大3だけ次巡へ", rare: false },
   echo: { name: "反響器", icon: "◎", color: "#dc8fb3", text: "直前の効果を半分繰り返す（攻撃は最低1）", rare: false },
   leech: { name: "吸命管", icon: "✚", color: "#f2c661", text: "3攻撃、耐久を1修復", rare: true }
 };
@@ -39,18 +39,133 @@ function makeModule(type, active = false) {
   return { id: uid(), type, active };
 }
 
-function freshState() {
-  const used = [];
-  const modules = Array.from({ length: 3 }, () => {
-    const type = randomType(used);
-    used.push(type);
-    return makeModule(type, true);
+function generateCandidatePlan() {
+  const initial = [];
+  while (initial.length < 3) initial.push(randomType(initial));
+  const offers = Array.from({ length: 5 }, () => {
+    const first = randomType();
+    return [first, randomType([first])];
   });
+  return { initial, offers };
+}
+
+function uniqueTypeBuilds(items) {
+  const target = Math.min(ACTIVE_CAPACITY, items.length);
+  const counts = new Map();
+  items.forEach(type => counts.set(type, (counts.get(type) || 0) + 1));
+  const builds = [];
+  const current = [];
+  function visit() {
+    if (current.length === target) {
+      builds.push([...current]);
+      return;
+    }
+    for (const [type, count] of counts) {
+      if (!count) continue;
+      counts.set(type, count - 1);
+      current.push(type);
+      visit();
+      current.pop();
+      counts.set(type, count);
+    }
+  }
+  visit();
+  return builds;
+}
+
+function typeBattle(types, hpStart, enemy) {
+  let hp = hpStart;
+  let enemyHp = enemy.hp;
+  let carried = 0;
+  let cycles = 0;
+  const modules = types.map(type => ({ type }));
+  while (hp > 0 && enemyHp > 0 && cycles < 8) {
+    cycles += 1;
+    const forecast = cycleForecast(modules, carried);
+    carried = forecast.carry;
+    hp = Math.min(MAX_HP, hp + forecast.healing);
+    enemyHp -= forecast.damage;
+    if (enemyHp > 0) {
+      const attack = enemy.atk + enemy.rage * (cycles - 1);
+      hp -= attack - Math.min(attack, forecast.armor);
+    }
+  }
+  return { won: enemyHp <= 0, hp: Math.max(0, hp), enemyHp: Math.max(0, enemyHp), cycles };
+}
+
+function typeResultScore(result) {
+  return result.won ? 1_000_000 + result.hp * 1_000 - result.cycles : -result.enemyHp * 1_000 + result.hp;
+}
+
+function validateRunPlan(plan) {
+  const cache = new Map();
+  function best(items, hp, wave) {
+    const key = `${wave}|${hp}|${[...items].sort().join(",")}`;
+    if (!cache.has(key)) {
+      const choices = uniqueTypeBuilds(items).map(build => ({ build, result: typeBattle(build, hp, ENEMIES[wave]) }));
+      choices.sort((a, b) => typeResultScore(b.result) - typeResultScore(a.result));
+      cache.set(key, choices[0]);
+    }
+    return cache.get(key);
+  }
+  const paths = [];
+  for (let mask = 0; mask < 32; mask += 1) {
+    const items = [...plan.initial];
+    const decisions = [];
+    let hp = MAX_HP;
+    let won = false;
+    for (let wave = 0; wave < ENEMIES.length; wave += 1) {
+      const selected = best(items, hp, wave);
+      if (!selected.result.won) break;
+      hp = Math.min(MAX_HP, selected.result.hp + 2);
+      if (wave === ENEMIES.length - 1) {
+        won = true;
+        break;
+      }
+      const pair = plan.offers[wave];
+      const immediate = pair.map(candidate => best([...items, candidate], hp, wave + 1).result);
+      decisions.push({ depth: wave, prefix: mask & (2 ** wave - 1), immediate });
+      items.push(pair[(mask >> wave) & 1]);
+    }
+    paths.push({ mask, won, decisions });
+  }
+  const winningPaths = paths.filter(path => path.won).length;
+  const nodes = new Map();
+  paths.forEach(path => path.decisions.forEach(decision => {
+    const key = `${decision.depth}:${decision.prefix}`;
+    if (!nodes.has(key)) nodes.set(key, decision);
+  }));
+  let hiddenTraps = 0;
+  for (const decision of nodes.values()) {
+    const members = paths.filter(path => (path.mask & (2 ** decision.depth - 1)) === decision.prefix);
+    const live = [0, 1].map(branch => members.some(path => ((path.mask >> decision.depth) & 1) === branch && path.won));
+    if (live[0] === live[1]) continue;
+    const [a, b] = decision.immediate;
+    const looksSame = a.won === b.won && (a.won ? Math.abs(a.hp - b.hp) <= 2 : Math.abs(a.enemyHp - b.enemyHp) <= 3);
+    if (looksSame) hiddenTraps += 1;
+  }
+  return { valid: winningPaths >= 8 && hiddenTraps === 0, winningPaths, hiddenTraps };
+}
+
+function createValidatedRunPlan() {
+  let last;
+  for (let attempt = 1; attempt <= 50; attempt += 1) {
+    const plan = generateCandidatePlan();
+    const validation = validateRunPlan(plan);
+    last = { ...plan, generation: { attempts: attempt, ...validation } };
+    if (validation.valid) return last;
+  }
+  return last;
+}
+
+function freshState() {
+  const plan = createValidatedRunPlan();
+  const modules = plan.initial.map(type => makeModule(type, true));
   return {
     runId: uid(), startedAt: new Date().toISOString(), endedAt: null,
     wave: 0, hp: MAX_HP, completed: false, won: false, pendingReward: null,
-    modules, events: [], moments: [], answers: {}, seq: 0,
-    stats: { victories: 0, battles: 0, moves: 0, rewards: [], rewardChoices: [], battleResults: [] }
+    modules, rewardPlan: plan.offers, events: [], moments: [], answers: {}, seq: 0,
+    stats: { victories: 0, battles: 0, moves: 0, rewards: [], rewardChoices: [], battleResults: [], generation: plan.generation }
   };
 }
 
@@ -76,7 +191,10 @@ function cycleForecast(modules = activeModules(), carried = 0, withSteps = false
   for (const module of modules) {
     const effect = { energy: 0, damage: 0, armor: 0, healing: 0 };
     const before = energy;
-    if (module.type === "generator") effect.energy = 2;
+    if (module.type === "generator") {
+      effect.energy = 2;
+      effect.damage = 3;
+    }
     if (module.type === "gun") {
       const spent = Math.min(2, energy);
       energy -= spent;
@@ -87,7 +205,10 @@ function cycleForecast(modules = activeModules(), carried = 0, withSteps = false
       energy -= spent;
       effect.armor = 3 + spent * 2;
     }
-    if (module.type === "battery") effect.energy = 1;
+    if (module.type === "battery") {
+      effect.energy = 1;
+      effect.armor = 3;
+    }
     if (module.type === "echo") {
       effect.energy = Math.floor(previous.energy / 2);
       effect.damage = Math.max(1, Math.floor(previous.damage / 2));
@@ -300,8 +421,9 @@ async function startBattle() {
   state.stats.victories += 1;
   state.hp = Math.min(MAX_HP, state.hp + 2);
   if (state.wave >= ENEMIES.length - 1) return finishRun(true);
-  const first = randomType();
-  const second = randomType([first]);
+  const planned = state.rewardPlan?.[state.wave];
+  const first = planned?.[0] || randomType();
+  const second = planned?.[1] || randomType([first]);
   state.pendingReward = { offeredAt: new Date().toISOString(), candidates: [makeModule(first), makeModule(second)] };
   record("modules_offered", { types: [first, second], nextEnemy: ENEMIES[state.wave + 1].name });
   showReward();
@@ -429,7 +551,12 @@ function newRun() {
   state = freshState();
   selectedId = null;
   inBattle = false;
-  record("run_started", { version: GAME_VERSION, initial: state.modules });
+  record("run_started", {
+    version: GAME_VERSION,
+    initial: state.modules.map(({ id, type, active }) => ({ id, type, active })),
+    rewardPlan: state.rewardPlan,
+    generation: state.stats.generation,
+  });
   $("#endDialog").close();
   $("#saveMessage").textContent = "";
   $("#playtestForm").reset();
@@ -450,7 +577,12 @@ document.querySelectorAll("[data-move]").forEach(button => button.addEventListen
 addEventListener("online", syncNow);
 
 state = loadState();
-if (!state.events.length) record("run_started", { version: GAME_VERSION, initial: state.modules });
+if (!state.events.length) record("run_started", {
+  version: GAME_VERSION,
+  initial: state.modules.map(({ id, type, active }) => ({ id, type, active })),
+  rewardPlan: state.rewardPlan,
+  generation: state.stats.generation,
+});
 render();
 if (state.completed) showEnd();
 else if (state.pendingReward) showReward();
