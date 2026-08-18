@@ -2,6 +2,7 @@ import { createRun } from "../core/run.mjs";
 import { renderObservation } from "../core/render.mjs";
 import { describeRun } from "../core/metrics.mjs";
 import { PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS } from "../core/arc.mjs";
+import { sendRun, uuid } from "./sync.js";
 
 const SAVE_KEY = "garakuta-agent-view-session";
 const $ = selector => document.querySelector(selector);
@@ -20,6 +21,7 @@ function load() {
 
 function fresh() {
   return {
+    runId: uuid(),
     seed: Math.floor(Math.random() * 100000),
     playerId: "human-agent-view",
     startedAt: new Date().toISOString(),
@@ -43,7 +45,7 @@ function act(action) {
   if (!result.ok) {
     message = `✗ ${result.error}`;
   } else {
-    session.actions.push(action);
+    session.actions.push({ ...action, at: new Date().toISOString() });
     message = `✓ ${action.type}`;
     persist();
   }
@@ -74,7 +76,10 @@ function draw() {
 
   if (observation.done) {
     if (session.survey) {
-      controls.appendChild(el("p", { className: "msg", textContent: "アンケートは記録済みです。「新しいラン」で次へ。" }));
+      controls.appendChild(row(
+        el("button", { className: "primary", textContent: "サーバーへ送る", onclick: () => { message = "送信中…"; draw(); push(); } }),
+        el("span", { className: "msg", textContent: message || "アンケートは記録済みです。" })
+      ));
       return;
     }
     controls.appendChild(surveyForm());
@@ -131,6 +136,13 @@ function draw() {
   controls.appendChild(el("p", { className: "msg", textContent: message }));
 }
 
+async function push() {
+  if (!session.runId) { session.runId = uuid(); persist(); }
+  const result = await sendRun(session);
+  message = result.ok ? "サーバーへ記録しました。" : `送信できませんでした（${result.error}）。「記録を取り出す」のJSONを渡してください。`;
+  draw();
+}
+
 function markRow() {
   const kind = select(MARKER_KINDS);
   const note = el("input", { type: "text", placeholder: "ひとこと（任意）" });
@@ -160,11 +172,13 @@ function surveyForm() {
           pivot: pivot.value, runStory: runStory.value
         };
         session.survey = survey;
+        session.endedAt = new Date().toISOString();
         session.trace = run.finish(survey);
         session.metrics = describeRun(session.trace);
         persist();
-        message = "記録しました。下の「記録を取り出す」からJSONをコピーできます。";
+        message = "記録しました。送信します…";
         draw();
+        push();
       }
     }))
   ]);
