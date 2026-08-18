@@ -1,0 +1,1606 @@
+{
+  "seed": 404,
+  "playerId": "agent-d",
+  "startedAt": "2026-08-18T12:32:53.649Z",
+  "actions": [
+    {
+      "type": "place",
+      "partId": "p6",
+      "slot": 1
+    },
+    {
+      "type": "place",
+      "partId": "p3",
+      "slot": 2
+    },
+    {
+      "type": "place",
+      "partId": "p4",
+      "slot": 3
+    },
+    {
+      "type": "place",
+      "partId": "p5",
+      "slot": 4
+    },
+    {
+      "type": "place",
+      "partId": "p1",
+      "slot": 5
+    },
+    {
+      "type": "battle",
+      "prediction": "勝てそう",
+      "worry": "装甲",
+      "worryText": "火力は足りるはず（1巡目13ダメージ、2巡目に時限ボルト11で押し切れる計算）。不安なのは反撃の回数。ルール文の「部品が作動した後、敵が反撃する」が巡回ごとに1回なのか、部品5個それぞれの後なのかが分からない。後者なら毎巡15ダメージ食らって装甲6では2巡で溶ける。"
+    },
+    {
+      "type": "mark",
+      "kind": "insight",
+      "note": "反撃は巡回ごとに1回だと分かった。だから戦闘は2〜3巡で終わり、即席装甲機の装甲は余る（今回9余った）。余った装甲は装甲プリズムで攻撃に変換できる。装甲は防御資源というより貯めて撃つ弾だ。"
+    },
+    {
+      "type": "skipAll",
+      "reason": "3候補とも熱系か地味な回復で、電力・装甲で回している今の駆動列に入る余地がない。枠は5つとも埋まっていて、予備部品もすでに3個余っている。腐る4個目より、確実に10HP分になる修復材◆2を取る。"
+    },
+    {
+      "type": "remove",
+      "slot": 5
+    },
+    {
+      "type": "place",
+      "partId": "p8",
+      "slot": 5
+    },
+    {
+      "type": "battle",
+      "prediction": "勝てそう",
+      "worry": "火力",
+      "worryText": "時限ボルトを装甲プリズムに替えて1巡目の火力を13→19に上げた。敵HP34なら2巡で落ちる計算。不安は火力で、即席装甲機が作る装甲6のうち3をプリズムが食うので、実は攻撃と防御が同じ資源を取り合っている。想定より1巡延びると装甲が薄いまま攻撃5を2回受ける。"
+    },
+    {
+      "type": "mark",
+      "kind": "choice",
+      "note": "即席装甲機2個目とプリズム2個目、どちらも捨てがたい。装甲機を増やせば装甲12で硬くなるが火力が落ち、プリズムを増やせば毎巡25ダメージ出るが装甲が0になる。同じ「装甲」という資源を防具として持つか弾として撃つかの選択で、これは面白い。"
+    },
+    {
+      "type": "take",
+      "choice": 3,
+      "reason": "次の敵は装甲2。小さい攻撃は軽減されるので火花ノズルの2ダメージは1にされて実質死に部品になる。しかも火花ノズルの発電1は電磁ラムの消費上限3に対して余っていて意味がなかった。そこを装甲プリズム2個目に替えれば、即席装甲機が作る装甲6を丸ごと弾に変えて毎巡25ダメージ出る。",
+      "update": "revalued_existing",
+      "updateText": "火花ノズルの評価が下がった。発電が電磁ラムの上限に吸収されて無駄だったのと、敵装甲で2ダメージが1に潰されるのが理由。逆に即席装甲機の評価が上がった。あれは防具ではなくプリズム用の弾薬工場だ。"
+    },
+    {
+      "type": "remove",
+      "slot": 1
+    },
+    {
+      "type": "place",
+      "partId": "pe",
+      "slot": 1
+    },
+    {
+      "type": "remove",
+      "slot": 1
+    },
+    {
+      "type": "place",
+      "partId": "p1",
+      "slot": 1
+    },
+    {
+      "type": "battle",
+      "prediction": "勝てそう",
+      "worry": "速度",
+      "worryText": "敵HP43は今までの倍近い。プリズムを1個に減らして装甲3を残す守りの形にしたので、毎巡の実効ダメージは14前後、時限ボルトが爆ぜる2巡目に22。3巡で落ちる読みだが、敵装甲2が全部の攻撃を削るので計算より1巡遅れる可能性が怖い。長引くほど反撃を余計に食う。"
+    },
+    {
+      "type": "mark",
+      "kind": "payoff",
+      "note": "読み通り3巡・被害4。時限ボルトを1枠目に置いて2巡目の11ダメージを狙い、プリズムを1個に減らして装甲3を毎巡残す、という設計がそのまま数字で出た。気持ちいい反面、もう戦闘結果が頭の中で完全に計算できてしまっていて、結果画面を見る前から分かっている。"
+    },
+    {
+      "type": "mark",
+      "kind": "unclear",
+      "note": "違法砲身の説明に「現在、熱そのものによるペナルティはない」と書いてある。つまり熱は今のところ何の意味もない資源で、暴走炉・熱感知パルス・破裂ベントの3部品は互いにしか噛み合わない孤立した枝だということ。3資源のうち1つが空回りしているように見える。"
+    },
+    {
+      "type": "take",
+      "choice": 1,
+      "reason": "違法砲身は5〜11ダメージで、代償の熱にペナルティがないと明記されている。つまり実質デメリットなしの大型攻撃。時限ボルトは3巡で合計11しか出せなかったので、そこと入れ替えれば毎巡6前後（敵装甲2込み）が上乗せされる。",
+      "update": "confirmed",
+      "updateText": "毎巡の実効ダメージを積み上げて巡回数を減らす、という方針が正しいと確認できた。前戦は読み通り3巡・被害4で終わったので、あとは同じ形の火力だけ上げればいい。"
+    },
+    {
+      "type": "remove",
+      "slot": 1
+    },
+    {
+      "type": "place",
+      "partId": "pf",
+      "slot": 1
+    },
+    {
+      "type": "battle",
+      "prediction": "勝てそう",
+      "worry": "火力",
+      "worryText": "敵HP56。今の形は毎巡25前後なので3巡で落ちる読みだが、違法砲身が5〜11の振れ幅で、下振れが続くと4巡目に入る。1巡延びるごとに攻撃7を追加で食う。敵装甲0なので火力は素通りするのが救い。熱を増やしてくる敵だが熱にペナルティがない以上ただの演出のはずで、そこは怖くない。"
+    },
+    {
+      "type": "mark",
+      "kind": "friction",
+      "note": "3戦目以降、報酬画面がほぼ作業になっている。駆動列5枠が完成形（砲身・電池・装甲機・ラム・プリズム）で固まっていて、候補3つがそれより弱いかどうかを見るだけ。今回も小型再生機・即席装甲機2個目・吸着ドリルはどれも今の枠の8ダメージ級と置き換えられない。選ぶ楽しさより「また外れか」という確認作業になっている。"
+    },
+    {
+      "type": "skipAll",
+      "reason": "候補3つとも今の駆動列の最弱部品（電磁ラム9ダメージ）より弱く、枠を明け渡せない。HPが21/30まで削れていて残り2戦の方が怖いので、確実に10HP分になる修復材◆2を選ぶ。"
+    },
+    {
+      "type": "scrapPart",
+      "partId": "p2"
+    },
+    {
+      "type": "scrapPart",
+      "partId": "p7"
+    },
+    {
+      "type": "scrapPart",
+      "partId": "p6"
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "battle",
+      "prediction": "ギリギリ",
+      "worry": "装甲",
+      "worryText": "敵HP72に対して毎巡の実効は22前後（敵装甲1で各攻撃が1ずつ削れる）。どう組み替えても4巡かかる。その間に敵の攻撃は7→9→11と伸びるのに、こちらの装甲はプリズムが3食った残りの3で固定。差し引き4+6+8で18持っていかれる読みで、HP29から11前後まで落ちて最終戦に行くことになる。プリズムを外して装甲を6残す案も考えたが、火力が落ちて巡回が延びると余計に殴られるので諦めた。"
+    },
+    {
+      "type": "mark",
+      "kind": "insight",
+      "note": "最終戦の相手（HP94/攻撃10/攻撃上昇）を見て、このランをずっと支えてきた装甲プリズムを外すことに決めた。攻撃が10→12→14→16と伸びる相手だと、装甲3を弾に変えて6ダメージ稼ぐより、装甲6をそのまま盾に残す方が1巡あたり6HP得する。第2戦で「装甲は防具ではなく弾だ」と気付いたのに、最終戦でその逆に戻る。同じ部品の評価が真逆にひっくり返ったのがこのランで一番面白かった。"
+    },
+    {
+      "type": "take",
+      "choice": 3,
+      "reason": "違法砲身2本目。装甲プリズムと入れ替える。プリズムは敵装甲2込みで6ダメージだが、その代わり即席装甲機が作った装甲6のうち3を食う。砲身なら同じ6ダメージ前後を出しつつ装甲6を丸ごと盾に残せる。攻撃が10→12→14→16と上がる相手なので、装甲を3余分に残すことは毎巡3HP、5巡で12〜15HPの差になる。",
+      "update": "new_plan",
+      "updateText": "方針そのものを変えた。第2戦からずっと「装甲は貯めて撃つ弾」で組んできたが、最終戦だけは「装甲は装甲のまま持つ」に戻す。相手の攻撃が巡回ごとに上がるので、火力を6積むより盾を3残す方が期待値が高いと判断した。プリズムを抜くのは自分の型を捨てることなので抵抗があったが、計算すると今の型のままだと4巡目の反撃で死ぬ。"
+    },
+    {
+      "type": "remove",
+      "slot": 5
+    },
+    {
+      "type": "place",
+      "partId": "pn",
+      "slot": 5
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "battle",
+      "prediction": "ギリギリ",
+      "worry": "火力",
+      "worryText": "敵HP94、装甲2で全部の攻撃が2ずつ削られる。砲身2本＋電磁ラムで実効19前後、5巡で丁度倒しきる計算。装甲6を毎巡残す形にしたので反撃は4+6+8+10=28、HP30から2残って勝てる、という綱渡り。怖いのは砲身が5〜11の乱数2本で、両方下振れすると1巡足りずに6巡目に入る。そうなると攻撃18を追加で食って確実に死ぬ。プリズムを捨てた判断が正しかったかどうかがここで出る。"
+    }
+  ],
+  "survey": {},
+  "trace": {
+    "seed": 404,
+    "ruleset": "arc-0.1",
+    "playerId": "agent-d",
+    "won": true,
+    "reached": 6,
+    "finalHp": 11,
+    "battles": [
+      {
+        "battleNumber": 1,
+        "enemy": "スクラップ・ラット",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 30,
+        "hpLost": 0,
+        "enemyHpLeft": 0,
+        "leftoverPower": 2,
+        "leftoverHeat": 0,
+        "leftoverShield": 9,
+        "timedOut": false,
+        "prediction": "勝てそう",
+        "surprise": "better",
+        "contributions": [
+          {
+            "name": "火花ノズル",
+            "activations": 2,
+            "damage": 4,
+            "shield": 0,
+            "powerMade": 2,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 2,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 8,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 2,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 6,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 1,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 2,
+        "enemy": "切断ドローン",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 28,
+        "hpLost": 2,
+        "enemyHpLeft": 0,
+        "leftoverPower": 2,
+        "leftoverHeat": 0,
+        "leftoverShield": 3,
+        "timedOut": false,
+        "prediction": "勝てそう",
+        "surprise": "better",
+        "contributions": [
+          {
+            "name": "火花ノズル",
+            "activations": 2,
+            "damage": 4,
+            "shield": 0,
+            "powerMade": 2,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 2,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 8,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 2,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 6,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 2,
+            "damage": 16,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 3,
+        "enemy": "鋳鉄クラブ",
+        "won": true,
+        "cycles": 3,
+        "hpBefore": 30,
+        "hpAfter": 26,
+        "hpLost": 4,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 0,
+        "leftoverShield": 6,
+        "timedOut": false,
+        "prediction": "勝てそう",
+        "surprise": "better",
+        "contributions": [
+          {
+            "name": "時限ボルト",
+            "activations": 3,
+            "damage": 11,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 3,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 12,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 3,
+            "damage": 0,
+            "shield": 18,
+            "powerMade": 0,
+            "powerSpent": 3,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 3,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 9,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 2,
+            "damage": 12,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 4,
+        "enemy": "焼却監視機",
+        "won": true,
+        "cycles": 3,
+        "hpBefore": 29,
+        "hpAfter": 21,
+        "hpLost": 8,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 8,
+        "leftoverShield": 0,
+        "timedOut": false,
+        "prediction": "勝てそう",
+        "surprise": "expected",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 26,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 2,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 8,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 2,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 6,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 2,
+            "damage": 16,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 5,
+        "enemy": "暴走ジャガー",
+        "won": true,
+        "cycles": 4,
+        "hpBefore": 29,
+        "hpAfter": 11,
+        "hpLost": 18,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 8,
+        "leftoverShield": 0,
+        "timedOut": false,
+        "prediction": "ギリギリ",
+        "surprise": "better",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 29,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 3,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 12,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 3,
+            "damage": 0,
+            "shield": 18,
+            "powerMade": 0,
+            "powerSpent": 3,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 3,
+            "damage": 24,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 9,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 3,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 6,
+        "enemy": "廃都の中枢",
+        "won": true,
+        "cycles": 5,
+        "hpBefore": 30,
+        "hpAfter": 8,
+        "hpLost": 22,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 18,
+        "leftoverShield": 6,
+        "timedOut": false,
+        "prediction": "ギリギリ",
+        "surprise": "expected",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 5,
+            "damage": 32,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 10,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 5,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 20,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 5,
+            "damage": 0,
+            "shield": 30,
+            "powerMade": 0,
+            "powerSpent": 5,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 5,
+            "damage": 35,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 15,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 31,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "offered": [
+          "熱感知パルス",
+          "小型再生機",
+          "破裂ベント"
+        ],
+        "chosen": null,
+        "update": "none"
+      },
+      {
+        "offered": [
+          "即席装甲機",
+          "熱感知パルス",
+          "装甲プリズム"
+        ],
+        "chosen": "装甲プリズム",
+        "update": "revalued_existing"
+      },
+      {
+        "offered": [
+          "違法砲身",
+          "破裂ベント",
+          "暴走炉"
+        ],
+        "chosen": "違法砲身",
+        "update": "confirmed"
+      },
+      {
+        "offered": [
+          "小型再生機",
+          "即席装甲機",
+          "吸着ドリル"
+        ],
+        "chosen": null,
+        "update": "none"
+      },
+      {
+        "offered": [
+          "装甲プリズム",
+          "過充電池",
+          "違法砲身"
+        ],
+        "chosen": "違法砲身",
+        "update": "new_plan"
+      }
+    ],
+    "events": [
+      {
+        "seq": 1,
+        "type": "run_started",
+        "wave": 1,
+        "phase": "build",
+        "initial": [
+          "時限ボルト",
+          "暴走炉",
+          "過充電池",
+          "即席装甲機",
+          "電磁ラム",
+          "火花ノズル",
+          "熱感知パルス",
+          "装甲プリズム"
+        ]
+      },
+      {
+        "seq": 2,
+        "type": "battle_predicted",
+        "wave": 1,
+        "phase": "build",
+        "enemy": "スクラップ・ラット",
+        "prediction": "勝てそう",
+        "worry": "装甲",
+        "worryText": "火力は足りるはず（1巡目13ダメージ、2巡目に時限ボルト11で押し切れる計算）。不安なのは反撃の回数。ルール文の「部品が作動した後、敵が反撃する」が巡回ごとに1回なのか、部品5個それぞれの後なのかが分からない。後者なら毎巡15ダメージ食らって装甲6では2巡で溶ける。",
+        "build": [
+          "火花ノズル",
+          "過充電池",
+          "即席装甲機",
+          "電磁ラム",
+          "時限ボルト"
+        ],
+        "buildSignature": "p6,p3,p4,p5,p1",
+        "editsSincePrevious": 5
+      },
+      {
+        "seq": 3,
+        "type": "battle_ended",
+        "wave": 1,
+        "phase": "build",
+        "enemy": "スクラップ・ラット",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 30,
+        "enemyHpLeft": 0,
+        "prediction": "勝てそう",
+        "expectedLevel": 2,
+        "actualLevel": 3,
+        "surprise": "better",
+        "buildSignature": "p6,p3,p4,p5,p1",
+        "worry": "装甲",
+        "contributions": [
+          {
+            "name": "火花ノズル",
+            "activations": 2,
+            "damage": 4,
+            "shield": 0,
+            "powerMade": 2,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 2,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 8,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 2,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 6,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 1,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 4,
+        "type": "reward_offered",
+        "wave": 2,
+        "phase": "reward",
+        "offered": [
+          "熱感知パルス",
+          "小型再生機",
+          "破裂ベント"
+        ]
+      },
+      {
+        "seq": 5,
+        "type": "emotion_marked",
+        "wave": 2,
+        "phase": "reward",
+        "kind": "insight",
+        "note": "反撃は巡回ごとに1回だと分かった。だから戦闘は2〜3巡で終わり、即席装甲機の装甲は余る（今回9余った）。余った装甲は装甲プリズムで攻撃に変換できる。装甲は防御資源というより貯めて撃つ弾だ。"
+      },
+      {
+        "seq": 6,
+        "type": "reward_scrapped",
+        "wave": 2,
+        "phase": "reward",
+        "offered": [
+          "熱感知パルス",
+          "小型再生機",
+          "破裂ベント"
+        ],
+        "reason": "3候補とも熱系か地味な回復で、電力・装甲で回している今の駆動列に入る余地がない。枠は5つとも埋まっていて、予備部品もすでに3個余っている。腐る4個目より、確実に10HP分になる修復材◆2を取る。"
+      },
+      {
+        "seq": 7,
+        "type": "battle_predicted",
+        "wave": 2,
+        "phase": "build",
+        "enemy": "切断ドローン",
+        "prediction": "勝てそう",
+        "worry": "火力",
+        "worryText": "時限ボルトを装甲プリズムに替えて1巡目の火力を13→19に上げた。敵HP34なら2巡で落ちる計算。不安は火力で、即席装甲機が作る装甲6のうち3をプリズムが食うので、実は攻撃と防御が同じ資源を取り合っている。想定より1巡延びると装甲が薄いまま攻撃5を2回受ける。",
+        "build": [
+          "火花ノズル",
+          "過充電池",
+          "即席装甲機",
+          "電磁ラム",
+          "装甲プリズム"
+        ],
+        "buildSignature": "p6,p3,p4,p5,p8",
+        "editsSincePrevious": 2
+      },
+      {
+        "seq": 8,
+        "type": "battle_ended",
+        "wave": 2,
+        "phase": "build",
+        "enemy": "切断ドローン",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 28,
+        "enemyHpLeft": 0,
+        "prediction": "勝てそう",
+        "expectedLevel": 2,
+        "actualLevel": 3,
+        "surprise": "better",
+        "buildSignature": "p6,p3,p4,p5,p8",
+        "worry": "火力",
+        "contributions": [
+          {
+            "name": "火花ノズル",
+            "activations": 2,
+            "damage": 4,
+            "shield": 0,
+            "powerMade": 2,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 2,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 8,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 2,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 6,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 2,
+            "damage": 16,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 9,
+        "type": "reward_offered",
+        "wave": 3,
+        "phase": "reward",
+        "offered": [
+          "即席装甲機",
+          "熱感知パルス",
+          "装甲プリズム"
+        ]
+      },
+      {
+        "seq": 10,
+        "type": "emotion_marked",
+        "wave": 3,
+        "phase": "reward",
+        "kind": "choice",
+        "note": "即席装甲機2個目とプリズム2個目、どちらも捨てがたい。装甲機を増やせば装甲12で硬くなるが火力が落ち、プリズムを増やせば毎巡25ダメージ出るが装甲が0になる。同じ「装甲」という資源を防具として持つか弾として撃つかの選択で、これは面白い。"
+      },
+      {
+        "seq": 11,
+        "type": "reward_chosen",
+        "wave": 3,
+        "phase": "reward",
+        "offered": [
+          "即席装甲機",
+          "熱感知パルス",
+          "装甲プリズム"
+        ],
+        "chosen": "装甲プリズム",
+        "passed": [
+          "即席装甲機",
+          "熱感知パルス"
+        ],
+        "reason": "次の敵は装甲2。小さい攻撃は軽減されるので火花ノズルの2ダメージは1にされて実質死に部品になる。しかも火花ノズルの発電1は電磁ラムの消費上限3に対して余っていて意味がなかった。そこを装甲プリズム2個目に替えれば、即席装甲機が作る装甲6を丸ごと弾に変えて毎巡25ダメージ出る。",
+        "update": "revalued_existing",
+        "updateText": "火花ノズルの評価が下がった。発電が電磁ラムの上限に吸収されて無駄だったのと、敵装甲で2ダメージが1に潰されるのが理由。逆に即席装甲機の評価が上がった。あれは防具ではなくプリズム用の弾薬工場だ。"
+      },
+      {
+        "seq": 12,
+        "type": "battle_predicted",
+        "wave": 3,
+        "phase": "build",
+        "enemy": "鋳鉄クラブ",
+        "prediction": "勝てそう",
+        "worry": "速度",
+        "worryText": "敵HP43は今までの倍近い。プリズムを1個に減らして装甲3を残す守りの形にしたので、毎巡の実効ダメージは14前後、時限ボルトが爆ぜる2巡目に22。3巡で落ちる読みだが、敵装甲2が全部の攻撃を削るので計算より1巡遅れる可能性が怖い。長引くほど反撃を余計に食う。",
+        "build": [
+          "時限ボルト",
+          "過充電池",
+          "即席装甲機",
+          "電磁ラム",
+          "装甲プリズム"
+        ],
+        "buildSignature": "p1,p3,p4,p5,p8",
+        "editsSincePrevious": 4
+      },
+      {
+        "seq": 13,
+        "type": "battle_ended",
+        "wave": 3,
+        "phase": "build",
+        "enemy": "鋳鉄クラブ",
+        "won": true,
+        "cycles": 3,
+        "hpBefore": 30,
+        "hpAfter": 26,
+        "enemyHpLeft": 0,
+        "prediction": "勝てそう",
+        "expectedLevel": 2,
+        "actualLevel": 3,
+        "surprise": "better",
+        "buildSignature": "p1,p3,p4,p5,p8",
+        "worry": "速度",
+        "contributions": [
+          {
+            "name": "時限ボルト",
+            "activations": 3,
+            "damage": 11,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 3,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 12,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 3,
+            "damage": 0,
+            "shield": 18,
+            "powerMade": 0,
+            "powerSpent": 3,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 3,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 9,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 2,
+            "damage": 12,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 14,
+        "type": "reward_offered",
+        "wave": 4,
+        "phase": "reward",
+        "offered": [
+          "違法砲身",
+          "破裂ベント",
+          "暴走炉"
+        ]
+      },
+      {
+        "seq": 15,
+        "type": "emotion_marked",
+        "wave": 4,
+        "phase": "reward",
+        "kind": "payoff",
+        "note": "読み通り3巡・被害4。時限ボルトを1枠目に置いて2巡目の11ダメージを狙い、プリズムを1個に減らして装甲3を毎巡残す、という設計がそのまま数字で出た。気持ちいい反面、もう戦闘結果が頭の中で完全に計算できてしまっていて、結果画面を見る前から分かっている。"
+      },
+      {
+        "seq": 16,
+        "type": "emotion_marked",
+        "wave": 4,
+        "phase": "reward",
+        "kind": "unclear",
+        "note": "違法砲身の説明に「現在、熱そのものによるペナルティはない」と書いてある。つまり熱は今のところ何の意味もない資源で、暴走炉・熱感知パルス・破裂ベントの3部品は互いにしか噛み合わない孤立した枝だということ。3資源のうち1つが空回りしているように見える。"
+      },
+      {
+        "seq": 17,
+        "type": "reward_chosen",
+        "wave": 4,
+        "phase": "reward",
+        "offered": [
+          "違法砲身",
+          "破裂ベント",
+          "暴走炉"
+        ],
+        "chosen": "違法砲身",
+        "passed": [
+          "破裂ベント",
+          "暴走炉"
+        ],
+        "reason": "違法砲身は5〜11ダメージで、代償の熱にペナルティがないと明記されている。つまり実質デメリットなしの大型攻撃。時限ボルトは3巡で合計11しか出せなかったので、そこと入れ替えれば毎巡6前後（敵装甲2込み）が上乗せされる。",
+        "update": "confirmed",
+        "updateText": "毎巡の実効ダメージを積み上げて巡回数を減らす、という方針が正しいと確認できた。前戦は読み通り3巡・被害4で終わったので、あとは同じ形の火力だけ上げればいい。"
+      },
+      {
+        "seq": 18,
+        "type": "battle_predicted",
+        "wave": 4,
+        "phase": "build",
+        "enemy": "焼却監視機",
+        "prediction": "勝てそう",
+        "worry": "火力",
+        "worryText": "敵HP56。今の形は毎巡25前後なので3巡で落ちる読みだが、違法砲身が5〜11の振れ幅で、下振れが続くと4巡目に入る。1巡延びるごとに攻撃7を追加で食う。敵装甲0なので火力は素通りするのが救い。熱を増やしてくる敵だが熱にペナルティがない以上ただの演出のはずで、そこは怖くない。",
+        "build": [
+          "違法砲身",
+          "過充電池",
+          "即席装甲機",
+          "電磁ラム",
+          "装甲プリズム"
+        ],
+        "buildSignature": "pf,p3,p4,p5,p8",
+        "editsSincePrevious": 2
+      },
+      {
+        "seq": 19,
+        "type": "battle_ended",
+        "wave": 4,
+        "phase": "build",
+        "enemy": "焼却監視機",
+        "won": true,
+        "cycles": 3,
+        "hpBefore": 29,
+        "hpAfter": 21,
+        "enemyHpLeft": 0,
+        "prediction": "勝てそう",
+        "expectedLevel": 2,
+        "actualLevel": 2,
+        "surprise": "expected",
+        "buildSignature": "pf,p3,p4,p5,p8",
+        "worry": "火力",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 26,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 2,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 8,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 2,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 6,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 2,
+            "damage": 16,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 20,
+        "type": "reward_offered",
+        "wave": 5,
+        "phase": "reward",
+        "offered": [
+          "小型再生機",
+          "即席装甲機",
+          "吸着ドリル"
+        ]
+      },
+      {
+        "seq": 21,
+        "type": "emotion_marked",
+        "wave": 5,
+        "phase": "reward",
+        "kind": "friction",
+        "note": "3戦目以降、報酬画面がほぼ作業になっている。駆動列5枠が完成形（砲身・電池・装甲機・ラム・プリズム）で固まっていて、候補3つがそれより弱いかどうかを見るだけ。今回も小型再生機・即席装甲機2個目・吸着ドリルはどれも今の枠の8ダメージ級と置き換えられない。選ぶ楽しさより「また外れか」という確認作業になっている。"
+      },
+      {
+        "seq": 22,
+        "type": "reward_scrapped",
+        "wave": 5,
+        "phase": "reward",
+        "offered": [
+          "小型再生機",
+          "即席装甲機",
+          "吸着ドリル"
+        ],
+        "reason": "候補3つとも今の駆動列の最弱部品（電磁ラム9ダメージ）より弱く、枠を明け渡せない。HPが21/30まで削れていて残り2戦の方が怖いので、確実に10HP分になる修復材◆2を選ぶ。"
+      },
+      {
+        "seq": 23,
+        "type": "part_scrapped",
+        "wave": 5,
+        "phase": "build",
+        "part": "暴走炉"
+      },
+      {
+        "seq": 24,
+        "type": "part_scrapped",
+        "wave": 5,
+        "phase": "build",
+        "part": "熱感知パルス"
+      },
+      {
+        "seq": 25,
+        "type": "part_scrapped",
+        "wave": 5,
+        "phase": "build",
+        "part": "火花ノズル"
+      },
+      {
+        "seq": 26,
+        "type": "repaired",
+        "wave": 5,
+        "phase": "build",
+        "hp": 29
+      },
+      {
+        "seq": 27,
+        "type": "battle_predicted",
+        "wave": 5,
+        "phase": "build",
+        "enemy": "暴走ジャガー",
+        "prediction": "ギリギリ",
+        "worry": "装甲",
+        "worryText": "敵HP72に対して毎巡の実効は22前後（敵装甲1で各攻撃が1ずつ削れる）。どう組み替えても4巡かかる。その間に敵の攻撃は7→9→11と伸びるのに、こちらの装甲はプリズムが3食った残りの3で固定。差し引き4+6+8で18持っていかれる読みで、HP29から11前後まで落ちて最終戦に行くことになる。プリズムを外して装甲を6残す案も考えたが、火力が落ちて巡回が延びると余計に殴られるので諦めた。",
+        "build": [
+          "違法砲身",
+          "過充電池",
+          "即席装甲機",
+          "電磁ラム",
+          "装甲プリズム"
+        ],
+        "buildSignature": "pf,p3,p4,p5,p8",
+        "editsSincePrevious": 0
+      },
+      {
+        "seq": 28,
+        "type": "battle_ended",
+        "wave": 5,
+        "phase": "build",
+        "enemy": "暴走ジャガー",
+        "won": true,
+        "cycles": 4,
+        "hpBefore": 29,
+        "hpAfter": 11,
+        "enemyHpLeft": 0,
+        "prediction": "ギリギリ",
+        "expectedLevel": 1,
+        "actualLevel": 2,
+        "surprise": "better",
+        "buildSignature": "pf,p3,p4,p5,p8",
+        "worry": "装甲",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 29,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 3,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 12,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 3,
+            "damage": 0,
+            "shield": 18,
+            "powerMade": 0,
+            "powerSpent": 3,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 3,
+            "damage": 24,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 9,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "装甲プリズム",
+            "activations": 3,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 29,
+        "type": "reward_offered",
+        "wave": 6,
+        "phase": "reward",
+        "offered": [
+          "装甲プリズム",
+          "過充電池",
+          "違法砲身"
+        ]
+      },
+      {
+        "seq": 30,
+        "type": "emotion_marked",
+        "wave": 6,
+        "phase": "reward",
+        "kind": "insight",
+        "note": "最終戦の相手（HP94/攻撃10/攻撃上昇）を見て、このランをずっと支えてきた装甲プリズムを外すことに決めた。攻撃が10→12→14→16と伸びる相手だと、装甲3を弾に変えて6ダメージ稼ぐより、装甲6をそのまま盾に残す方が1巡あたり6HP得する。第2戦で「装甲は防具ではなく弾だ」と気付いたのに、最終戦でその逆に戻る。同じ部品の評価が真逆にひっくり返ったのがこのランで一番面白かった。"
+      },
+      {
+        "seq": 31,
+        "type": "reward_chosen",
+        "wave": 6,
+        "phase": "reward",
+        "offered": [
+          "装甲プリズム",
+          "過充電池",
+          "違法砲身"
+        ],
+        "chosen": "違法砲身",
+        "passed": [
+          "装甲プリズム",
+          "過充電池"
+        ],
+        "reason": "違法砲身2本目。装甲プリズムと入れ替える。プリズムは敵装甲2込みで6ダメージだが、その代わり即席装甲機が作った装甲6のうち3を食う。砲身なら同じ6ダメージ前後を出しつつ装甲6を丸ごと盾に残せる。攻撃が10→12→14→16と上がる相手なので、装甲を3余分に残すことは毎巡3HP、5巡で12〜15HPの差になる。",
+        "update": "new_plan",
+        "updateText": "方針そのものを変えた。第2戦からずっと「装甲は貯めて撃つ弾」で組んできたが、最終戦だけは「装甲は装甲のまま持つ」に戻す。相手の攻撃が巡回ごとに上がるので、火力を6積むより盾を3残す方が期待値が高いと判断した。プリズムを抜くのは自分の型を捨てることなので抵抗があったが、計算すると今の型のままだと4巡目の反撃で死ぬ。"
+      },
+      {
+        "seq": 32,
+        "type": "repaired",
+        "wave": 6,
+        "phase": "build",
+        "hp": 19
+      },
+      {
+        "seq": 33,
+        "type": "repaired",
+        "wave": 6,
+        "phase": "build",
+        "hp": 24
+      },
+      {
+        "seq": 34,
+        "type": "repaired",
+        "wave": 6,
+        "phase": "build",
+        "hp": 29
+      },
+      {
+        "seq": 35,
+        "type": "repaired",
+        "wave": 6,
+        "phase": "build",
+        "hp": 30
+      },
+      {
+        "seq": 36,
+        "type": "battle_predicted",
+        "wave": 6,
+        "phase": "build",
+        "enemy": "廃都の中枢",
+        "prediction": "ギリギリ",
+        "worry": "火力",
+        "worryText": "敵HP94、装甲2で全部の攻撃が2ずつ削られる。砲身2本＋電磁ラムで実効19前後、5巡で丁度倒しきる計算。装甲6を毎巡残す形にしたので反撃は4+6+8+10=28、HP30から2残って勝てる、という綱渡り。怖いのは砲身が5〜11の乱数2本で、両方下振れすると1巡足りずに6巡目に入る。そうなると攻撃18を追加で食って確実に死ぬ。プリズムを捨てた判断が正しかったかどうかがここで出る。",
+        "build": [
+          "違法砲身",
+          "過充電池",
+          "即席装甲機",
+          "電磁ラム",
+          "違法砲身"
+        ],
+        "buildSignature": "pf,p3,p4,p5,pn",
+        "editsSincePrevious": 2
+      },
+      {
+        "seq": 37,
+        "type": "battle_ended",
+        "wave": 6,
+        "phase": "build",
+        "enemy": "廃都の中枢",
+        "won": true,
+        "cycles": 5,
+        "hpBefore": 30,
+        "hpAfter": 8,
+        "enemyHpLeft": 0,
+        "prediction": "ギリギリ",
+        "expectedLevel": 1,
+        "actualLevel": 1,
+        "surprise": "expected",
+        "buildSignature": "pf,p3,p4,p5,pn",
+        "worry": "火力",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 5,
+            "damage": 32,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 10,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "過充電池",
+            "activations": 5,
+            "damage": 0,
+            "shield": 0,
+            "powerMade": 20,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 5,
+            "damage": 0,
+            "shield": 30,
+            "powerMade": 0,
+            "powerSpent": 5,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "電磁ラム",
+            "activations": 5,
+            "damage": 35,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 15,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 31,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 38,
+        "type": "run_ended",
+        "wave": 6,
+        "phase": "end",
+        "won": true,
+        "reached": 6
+      },
+      {
+        "seq": 39,
+        "type": "survey",
+        "wave": 6,
+        "phase": "end",
+        "replay": 0,
+        "bestMoment": "",
+        "pivot": "",
+        "runStory": "",
+        "friction": "",
+        "wishlist": ""
+      }
+    ]
+  },
+  "metrics": {
+    "seed": 404,
+    "playerId": "agent-d",
+    "won": true,
+    "reached": 6,
+    "finalHp": 11,
+    "battles": 6,
+    "surprise": {
+      "better": 4,
+      "expected": 2,
+      "worse": 0
+    },
+    "deadTime": 0,
+    "pivotRate": 0,
+    "reinterpretationRate": 0.8,
+    "gateConcentration": 0.305,
+    "gateRanking": [
+      {
+        "name": "電磁ラム",
+        "share": 0.305
+      },
+      {
+        "name": "違法砲身",
+        "share": 0.268
+      },
+      {
+        "name": "即席装甲機",
+        "share": 0.232
+      }
+    ],
+    "worryConcentration": 0.5,
+    "problemChainRate": 1,
+    "worryCounts": {
+      "装甲": 2,
+      "火力": 3,
+      "速度": 1
+    },
+    "updateCounts": {
+      "revalued_existing": 1,
+      "confirmed": 1,
+      "new_plan": 1
+    },
+    "tensionCurve": [
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "tenseBattleRate": 0.333,
+    "markerCounts": {
+      "insight": 2,
+      "choice": 1,
+      "payoff": 1,
+      "unclear": 1,
+      "friction": 1
+    },
+    "markerTotal": 6,
+    "rewardsTaken": 3,
+    "rewardsSkipped": 2,
+    "rewardCount": 5,
+    "warnings": [
+      {
+        "code": "no_pivot",
+        "detail": "稼働列が一度も大きく変わらなかった"
+      }
+    ]
+  }
+}

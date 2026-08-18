@@ -1,0 +1,321 @@
+{
+  "agents": [
+    {
+      "file": "agent-a.json",
+      "seed": 101,
+      "player": "agent-a",
+      "won": false,
+      "reached": 6,
+      "finalHp": 0,
+      "replay": 3,
+      "pivotAnswer": "あった",
+      "bestMoment": "第3戦の報酬で2本目の時限ボルトを見た瞬間。敵に装甲2がついて小さい打点が全部1に潰されるのを見た直後だったので、「打点の数ではなく1発の大きさで組む」に方針を切り替える理由と手段が同時に来た。2本のボルトのカウンタが揃って偶数巡に11+11の山ができるはず、という読みが次の戦闘のログでちょうど10+10（装甲1で-1ずつ）と出たのが一番手応えがあった。",
+      "deadTime": 0,
+      "pivotRate": 0.2,
+      "reinterpretationRate": 0.8,
+      "problemChainRate": 0.8,
+      "worryConcentration": 0.5,
+      "gateConcentration": 0.466,
+      "topGate": "違法砲身",
+      "tenseBattleRate": 0.5,
+      "surprise": {
+        "better": 4,
+        "expected": 2,
+        "worse": 0
+      },
+      "markers": {
+        "insight": 2,
+        "friction": 2
+      },
+      "updates": {
+        "revalued_existing": 2,
+        "new_plan": 1,
+        "confirmed": 1
+      },
+      "warnings": []
+    },
+    {
+      "file": "agent-b.json",
+      "seed": 202,
+      "player": "agent-b",
+      "won": true,
+      "reached": 6,
+      "finalHp": 11,
+      "replay": 3,
+      "pivotAnswer": "あった",
+      "bestMoment": "第6戦の構築。3戦目からずっと「装甲は無駄、巡回数を減らすのが全て」で通してきたのに、攻撃力が毎巡回上がる最終ボス相手だとその方針では絶対に間に合わないと気づき、平均5ダメージの時限ボルトを外して、ずっと見下していた即席装甲機を戻した瞬間。自分の結論を自分で否定する判断だったのが良かった。結果も5巡回・装甲吸収24・残りHP8とほぼ読み通りで、予想が当たったこと自体が報酬になった。",
+      "deadTime": 0,
+      "pivotRate": 0,
+      "reinterpretationRate": 1,
+      "problemChainRate": 0.4,
+      "worryConcentration": 0.667,
+      "gateConcentration": 0.391,
+      "topGate": "違法砲身",
+      "tenseBattleRate": 0.5,
+      "surprise": {
+        "better": 4,
+        "expected": 2,
+        "worse": 0
+      },
+      "markers": {
+        "insight": 3,
+        "friction": 1,
+        "payoff": 1,
+        "unclear": 1,
+        "choice": 1
+      },
+      "updates": {
+        "revalued_existing": 4,
+        "new_plan": 1
+      },
+      "warnings": [
+        "single_worry",
+        "no_pivot"
+      ]
+    },
+    {
+      "file": "agent-c.json",
+      "seed": 303,
+      "player": "agent-c",
+      "won": false,
+      "reached": 6,
+      "finalHp": 0,
+      "replay": null,
+      "pivotAnswer": null,
+      "bestMoment": null,
+      "deadTime": 0,
+      "pivotRate": 0.4,
+      "reinterpretationRate": 1,
+      "problemChainRate": 0.8,
+      "worryConcentration": 0.5,
+      "gateConcentration": 0.432,
+      "topGate": "電磁ラム",
+      "tenseBattleRate": 0.667,
+      "surprise": {
+        "better": 4,
+        "expected": 2,
+        "worse": 0
+      },
+      "markers": {
+        "insight": 2,
+        "choice": 1,
+        "payoff": 1,
+        "friction": 1
+      },
+      "updates": {
+        "revalued_existing": 1,
+        "confirmed": 2,
+        "new_plan": 2
+      },
+      "warnings": []
+    },
+    {
+      "file": "agent-d.json",
+      "seed": 404,
+      "player": "agent-d",
+      "won": true,
+      "reached": 6,
+      "finalHp": 11,
+      "replay": null,
+      "pivotAnswer": null,
+      "bestMoment": null,
+      "deadTime": 0,
+      "pivotRate": 0,
+      "reinterpretationRate": 0.8,
+      "problemChainRate": 1,
+      "worryConcentration": 0.5,
+      "gateConcentration": 0.305,
+      "topGate": "電磁ラム",
+      "tenseBattleRate": 0.333,
+      "surprise": {
+        "better": 4,
+        "expected": 2,
+        "worse": 0
+      },
+      "markers": {
+        "insight": 2,
+        "choice": 1,
+        "payoff": 1,
+        "unclear": 1,
+        "friction": 1
+      },
+      "updates": {
+        "revalued_existing": 1,
+        "confirmed": 1,
+        "new_plan": 1
+      },
+      "warnings": [
+        "no_pivot"
+      ]
+    }
+  ],
+  "summaries": {
+    "agent": {
+      "runs": 4,
+      "winRate": 0.5,
+      "meanReached": 6,
+      "meanDeadTime": 0,
+      "meanPivotRate": 0.15,
+      "meanReinterpretationRate": 0.9,
+      "meanGateConcentration": 0.398,
+      "meanProblemChainRate": 0.75,
+      "meanWorryConcentration": 0.542,
+      "meanTenseBattleRate": 0.5,
+      "warningRates": {
+        "single_worry": 0.25,
+        "no_pivot": 0.5
+      }
+    },
+    "naiveMatched": {
+      "runs": 4,
+      "winRate": 0,
+      "meanReached": 4.25,
+      "meanDeadTime": 0,
+      "meanPivotRate": 0,
+      "meanReinterpretationRate": 0,
+      "meanGateConcentration": 0.354,
+      "meanProblemChainRate": 0,
+      "meanWorryConcentration": 1,
+      "meanTenseBattleRate": 0,
+      "warningRates": {
+        "single_worry": 1,
+        "no_problem_chain": 1,
+        "no_pivot": 1,
+        "no_reinterpretation": 1,
+        "no_tension": 1
+      }
+    },
+    "localMatched": {
+      "runs": 4,
+      "winRate": 1,
+      "meanReached": 6,
+      "meanDeadTime": 1.75,
+      "meanPivotRate": 0.35,
+      "meanReinterpretationRate": 0.85,
+      "meanGateConcentration": 0.399,
+      "meanProblemChainRate": 0.3,
+      "meanWorryConcentration": 0.833,
+      "meanTenseBattleRate": 0.042,
+      "warningRates": {
+        "single_worry": 1,
+        "no_tension": 0.75,
+        "no_problem_chain": 0.5,
+        "dead_time": 0.25
+      }
+    },
+    "naiveWide": {
+      "runs": 200,
+      "winRate": 0,
+      "meanReached": 4.53,
+      "meanDeadTime": 0,
+      "meanPivotRate": 0,
+      "meanReinterpretationRate": 0,
+      "meanGateConcentration": 0.441,
+      "meanProblemChainRate": 0,
+      "meanWorryConcentration": 1,
+      "meanTenseBattleRate": 0,
+      "warningRates": {
+        "single_worry": 0.995,
+        "no_problem_chain": 0.995,
+        "no_pivot": 0.995,
+        "no_reinterpretation": 0.995,
+        "no_tension": 0.995,
+        "single_gate": 0.21
+      }
+    },
+    "localWide": {
+      "runs": 200,
+      "winRate": 0.435,
+      "meanReached": 5.9,
+      "meanDeadTime": 0.115,
+      "meanPivotRate": 0.326,
+      "meanReinterpretationRate": 0.793,
+      "meanGateConcentration": 0.423,
+      "meanProblemChainRate": 0.488,
+      "meanWorryConcentration": 0.592,
+      "meanTenseBattleRate": 0.138,
+      "warningRates": {
+        "single_worry": 0.5,
+        "no_problem_chain": 0.185,
+        "no_tension": 0.28,
+        "single_gate": 0.205,
+        "no_pivot": 0.04,
+        "dead_time": 0.01
+      }
+    }
+  },
+  "preRegistered": {
+    "P1_win_does_not_predict_interest": {
+      "criterion": "勝敗と認識指標の相関が、勝ちを一律に良しとしない（|r| が小さい、または向きが逆）",
+      "agentPanelN": 4,
+      "correlationsAgent": {
+        "problemChainRate": -0.229,
+        "reinterpretationRate": 0,
+        "pivotRate": -0.905,
+        "tenseBattleRate": -0.707,
+        "deadTime": null
+      },
+      "correlationsLocalWide": {
+        "problemChainRate": -0.144,
+        "reinterpretationRate": -0.142,
+        "pivotRate": -0.164,
+        "tenseBattleRate": -0.656,
+        "deadTime": 0.221
+      },
+      "note": "エージェント標本は小さい。判定は local の広い標本を主、エージェントを従とする。"
+    },
+    "P2_dead_time_detected": {
+      "criterion": "無傷で圧勝予測が続いて終わるランに dead_time 警告が立つ",
+      "agentFlagRate": 0,
+      "localWideFlagRate": 0.01,
+      "flawlessAgentRuns": []
+    },
+    "P3_single_gate_detected": {
+      "criterion": "single_gate または single_worry が過半のランで立ち、出力集中の首位が防御系に偏る",
+      "agentEitherFlagRate": 0.25,
+      "localWideEitherFlagRate": 0.67,
+      "topGateCountsAgent": {
+        "違法砲身": 2,
+        "電磁ラム": 2
+      },
+      "topGateCountsLocalWide": {
+        "即席装甲機": 75,
+        "電磁ラム": 8,
+        "違法砲身": 66,
+        "吸着ドリル": 35,
+        "時限ボルト": 13,
+        "暴走炉": 1,
+        "過充電池": 1,
+        "熱感知パルス": 1
+      },
+      "topWorryAgent": {
+        "速度": 2,
+        "火力": 2
+      }
+    },
+    "P4_agent_above_naive": {
+      "criterion": "エージェントの problemChainRate と reinterpretationRate が naive を明確に上回る",
+      "agent": {
+        "problemChainRate": 0.75,
+        "reinterpretationRate": 0.9,
+        "pivotRate": 0.15,
+        "tenseBattleRate": 0.5,
+        "winRate": 0.5
+      },
+      "naiveMatched": {
+        "problemChainRate": 0,
+        "reinterpretationRate": 0,
+        "pivotRate": 0,
+        "tenseBattleRate": 0,
+        "winRate": 0
+      },
+      "localMatched": {
+        "problemChainRate": 0.3,
+        "reinterpretationRate": 0.85,
+        "pivotRate": 0.35,
+        "tenseBattleRate": 0.042,
+        "winRate": 1
+      }
+    }
+  }
+}

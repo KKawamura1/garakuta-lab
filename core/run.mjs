@@ -289,6 +289,7 @@ export function createRun({ seed, playerId = "unknown" }) {
       replay: Number(survey.replay || 0),
       bestMoment: String(survey.bestMoment || "").slice(0, 300),
       pivot: String(survey.pivot || ""),
+      settledAt: String(survey.settledAt || ""),
       runStory: String(survey.runStory || "").slice(0, 500),
       friction: String(survey.friction || "").slice(0, 300),
       wishlist: String(survey.wishlist || "")

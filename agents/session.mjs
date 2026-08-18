@@ -99,6 +99,10 @@ function render(observation, extra = "") {
       lines.push(`    ${padEnd(c.name, 14)}${c.activations}回作動  ${parts}`);
     });
     lines.push(`    余り 電力${b.leftoverPower} 熱${b.leftoverHeat} 装甲${b.leftoverShield}`);
+    if (b.log?.length) {
+      lines.push("  巡回ログ（人間版の戦闘表示と同じ範囲）");
+      b.log.forEach(entry => lines.push(`    ${entry}`));
+    }
   }
 
   if (o.done) {
@@ -107,12 +111,11 @@ function render(observation, extra = "") {
     lines.push("  finish コマンドでアンケートを送って終了してください。");
   } else {
     lines.push("");
-    lines.push(`可能な行動: ${o.legalActions.map(a => a.type).join(" / ")}`);
-    if (o.phase === "build") {
-      lines.push(`  battle には prediction（負けそう|ギリギリ|勝てそう|圧勝）と worry（装甲|火力|電力|熱|速度|選択肢|なし）と worryText が必須。`);
-    } else {
-      lines.push(`  take には choice と reason と update（confirmed|revalued_existing|new_plan|none）と updateText が必須。`);
-    }
+    lines.push("可能な行動（引数名は完全一致が必要）");
+    o.legalActions.forEach(action => {
+      const args = Object.entries(action.args || {}).map(([key, value]) => `${key}=${value}`).join(", ");
+      lines.push(`  {"type":"${action.type}"${args ? `, ${args}` : ""}}${action.note ? `  ← ${action.note}` : ""}`);
+    });
   }
   if (extra) lines.push("", extra);
   return lines.join("\n");
@@ -173,13 +176,22 @@ if (command === "finish") {
   if (args.json) {
     try { survey = JSON.parse(args.json); } catch (_) { console.error("--json= が不正なJSONです"); process.exit(2); }
   }
+  const replay = Number(survey.replay);
+  if (!Number.isInteger(replay) || replay < 1 || replay > 5) {
+    console.error("finish には --json='{\"replay\":1〜5, ...}' が必要です。replay が読めないまま記録すると欠測になります。");
+    process.exit(2);
+  }
+  if (!String(survey.settledAt || "").trim()) {
+    console.error("finish には settledAt（勝敗が実質決まったと感じた戦闘番号、なければ \"なし\"）が必要です。");
+    process.exit(2);
+  }
   const trace = run.finish(survey);
   session.survey = survey;
   session.trace = trace;
   session.metrics = describeRun(trace);
   save(args.session, session);
   console.log(`記録しました: ${args.session}`);
-  console.log(JSON.stringify(session.metrics, null, 2));
+  if (args.showMetrics) console.log(JSON.stringify(session.metrics, null, 2));
   process.exit(0);
 }
 
