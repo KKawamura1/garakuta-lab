@@ -1,0 +1,42 @@
+{
+  "seed": 29254,
+  "playerId": "human-agent-view",
+  "startedAt": "2026-08-18T13:27:00.826Z",
+  "runId": "080828cf-e976-43fc-90a7-61fc4310832c",
+  "actions": [
+    { "type": "place", "partId": "p5", "slot": "1" },
+    { "type": "place", "partId": "p3", "slot": "2" },
+    { "type": "place", "partId": "p4", "slot": "3" },
+    { "type": "place", "partId": "p7", "slot": "4" },
+    { "type": "place", "partId": "p2", "slot": "5" },
+    { "type": "battle", "prediction": "圧勝", "worry": "火力", "worryText": "" },
+    { "type": "skipAll", "reason": "" },
+    { "type": "battle", "prediction": "圧勝", "worry": "火力", "worryText": "" },
+    { "type": "take", "choice": 2, "reason": "", "update": "confirmed", "updateText": "" },
+    { "type": "swap", "slotA": "1", "slotB": "4" },
+    { "type": "remove", "slot": "2" },
+    { "type": "remove", "slot": "4" },
+    { "type": "place", "partId": "pd", "slot": "2" },
+    { "type": "place", "partId": "p5", "slot": "4" },
+    { "type": "battle", "prediction": "勝てそう", "worry": "火力", "worryText": "装甲はないが火力はそこそこあるため" },
+    { "type": "skipAll", "reason": "" },
+    { "type": "place", "partId": "p3", "slot": "5" },
+    { "type": "battle", "prediction": "勝てそう", "worry": "装甲", "worryText": "" },
+    { "type": "take", "choice": 3, "reason": "", "update": "confirmed", "updateText": "" },
+    { "type": "scrapPart", "partId": "p1" },
+    { "type": "scrapPart", "partId": "p6" },
+    { "type": "scrapPart", "partId": "p8" },
+    { "type": "repair" }, { "type": "repair" }, { "type": "repair" },
+    { "type": "place", "partId": "p2", "slot": "1" },
+    { "type": "place", "partId": "pk", "slot": "2" },
+    { "type": "battle", "prediction": "負けそう", "worry": "装甲", "worryText": "" },
+    { "type": "take", "choice": 1, "reason": "", "update": "confirmed", "updateText": "" },
+    { "type": "place", "partId": "pl", "slot": "5" },
+    { "type": "repair" }, { "type": "repair" }, { "type": "repair" }, { "type": "repair" },
+    { "type": "battle", "prediction": "負けそう", "worry": "装甲", "worryText": "" }
+  ],
+  "survey": {
+    "replay": 1, "settledAt": "なし", "bestMoment": "", "friction": "",
+    "pivot": "あった", "runStory": "装甲引けなかった回"
+  }
+}

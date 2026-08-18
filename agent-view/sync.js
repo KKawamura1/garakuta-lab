@@ -40,6 +40,12 @@ export function buildPayload(session) {
 
   const lastBattle = [...events].reverse().find(event => event.type === "battle_predicted");
 
+  // 終わったランを ended_at なしで入れると、エクスポートの
+  // WHERE ended_at IS NOT NULL に弾かれ、保存されているのに取り出せなくなる。
+  // 古い版で終えたセッションには endedAt が無いので、必ず何かで埋める。
+  const lastAt = [...(session.actions || [])].reverse().map(action => action.at).find(Boolean);
+  const endedAt = session.endedAt || lastAt || new Date().toISOString();
+
   return {
     runId: session.runId,
     telemetryRunId: session.runId,
@@ -47,7 +53,7 @@ export function buildPayload(session) {
     schemaVersion: SCHEMA_VERSION,
     gameVersion: GAME_VERSION,
     startedAt,
-    endedAt: session.endedAt || null,
+    endedAt,
     outcome: { won: Boolean(trace.won), reached: trace.reached, hp: trace.finalHp },
     build: lastBattle?.build || [],
     stats: { ...(session.metrics || {}), seed: session.seed, actionCount: session.actions.length },

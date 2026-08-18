@@ -93,6 +93,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # 保存はされたが ended_at が無く、上のSELECTから漏れた行を見つけるための点検。
+          npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
+            --remote --json --command "SELECT game_version, COUNT(*) AS runs, SUM(CASE WHEN ended_at IS NULL THEN 1 ELSE 0 END) AS missing_ended_at FROM runs GROUP BY game_version ORDER BY runs DESC;" \
+            | jq -c '.[0].results' > playtest-export/versions.json
+          echo "----- BEGIN VERSION TALLY -----"
+          cat playtest-export/versions.json
+          echo "----- END VERSION TALLY -----"
           echo "----- BEGIN RUNS EXPORT -----"
           jq -c '.' playtest-export/runs-readable.json
           echo "----- END RUNS EXPORT -----"

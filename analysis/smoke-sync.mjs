@@ -66,6 +66,12 @@ assert.equal(payload.client.seed, 4242, "seed を残さないと再生できな�
 assert.equal(payload.stats.seed, 4242);
 assert.notEqual(payload.gameVersion, "arc-0.1", "本編と同じ game_version にすると集計で混ざる");
 
+assert.ok(payload.endedAt, "終わったランは必ず endedAt を持つ（無いとエクスポートに出ない）");
+
+// 古い版で終えたセッション（endedAt を持たない）でも埋まること。
+const legacy = buildPayload({ ...session, endedAt: undefined });
+assert.ok(legacy.endedAt, "endedAt が無いセッションでも補完される");
+
 const size = Buffer.byteLength(JSON.stringify(payload));
 assert.ok(size < 750000, `本文は750KB未満（実測 ${size}）`);
 
