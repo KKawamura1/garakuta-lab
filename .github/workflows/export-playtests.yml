@@ -13,6 +13,14 @@ on:
           - "5"
           - "10"
           - "20"
+      echo_to_log:
+        description: Also print the export into the job log (the log is public)
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 permissions:
   contents: read
@@ -76,6 +84,21 @@ jobs:
             echo "|---|---|---:|---:|---:|---:|---|"
             jq -r '.[] | "| \(.saved_at) | \(.game_version) | \(if .won == 1 then "win" else "loss" end) | \(.reached) | \(.final_hp) | \(.replay_score) | `\(.run_id)` |"' playtest-export/runs-readable.json
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # アーティファクトはBlobストレージにあり、環境によっては取得できない。
+      # その場合でもジョブログからなら読めるので、明示的に選んだときだけ書き出す。
+      # 出力にdevice_idやトークンは含まれない（runs_sqlが選択していない）。
+      - name: Echo export into the job log
+        if: inputs.echo_to_log == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "----- BEGIN RUNS EXPORT -----"
+          jq -c '.' playtest-export/runs-readable.json
+          echo "----- END RUNS EXPORT -----"
+          echo "----- BEGIN MOMENTS EXPORT -----"
+          jq -c '.' playtest-export/moments-readable.json
+          echo "----- END MOMENTS EXPORT -----"
 
       - name: Upload JSON export
         uses: actions/upload-artifact@v4

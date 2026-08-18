@@ -33,6 +33,17 @@ Cloudflare Dashboardの **Manage Account → Account API Tokens → Create Token
 3. 取得する最新ラン数（3 / 5 / 10 / 20）を選ぶ。
 4. 完了したrunを開き、下部のArtifactsから `d1-playtests-…` をダウンロードする。
 
+実行時の入力は2つある。
+
+| 入力 | 意味 |
+|---|---|
+| `limit` | 取得する最新ラン数 |
+| `echo_to_log` | `true` にすると、同じ内容をジョブログにも書き出す |
+
+`echo_to_log` は、アーティファクト（Blobストレージ）へ到達できない環境から中身を読むための逃げ道である。
+**このリポジトリは公開なので、ジョブログも公開される。** 書き出されるのは`runs_sql`が選択した列だけで、
+`device_id`とトークンは含まれないが、アンケートの自由記述はそのまま出る。既定は`false`。
+
 ActionsのSummaryにはラン一覧が表示される。成果物には次のJSONが入る。
 
 - `runs-readable.json`: 構成、回答、統計、全イベントを含むラン本体
