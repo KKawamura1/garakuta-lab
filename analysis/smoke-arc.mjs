@@ -23,6 +23,11 @@ assert.match(source, /熱を1冷まし、電力を2得る/);
 assert.match(source, /さらに装甲＋3/);
 assert.match(source, /damage: 2 \+ cooled,/);
 assert.match(source, /damage: 2 \+ used \* 2,/);
-assert.match(serviceWorker, /garakuta-lab-arc-v1/);
+assert.match(serviceWorker, /garakuta-lab-arc-v\d+/);
+
+// 存在しないパスへ index.html を返すと、相対パスのCSS/JSだけが404になり
+// 「読み込めていないのに動いて見える」壊れ方をする。ルート文書だけに限定する。
+assert.match(serviceWorker, /isRootDocument/);
+assert.ok(!/cached \|\| caches\.match\("\.\/index\.html"\)/.test(serviceWorker), "無条件のindex.html退避を持たない");
 
 console.log("arc smoke: OBS 0.1 rules, prediction telemetry, end survey, cache version OK");
