@@ -19,10 +19,19 @@ function load() {
   return fresh();
 }
 
-function fresh() {
+// 「新しいラン」は入力欄だけを見る。URLのseedは最初の1ランを決めるだけで、
+// それ以降まで固定すると無作為のランを始められなくなる。
+function requestedSeed() {
+  const raw = String($("#seedInput")?.value ?? "").trim();
+  if (!raw) return null;
+  const seed = Number(raw);
+  return Number.isInteger(seed) && seed >= 0 ? seed : null;
+}
+
+function fresh(seed = null) {
   return {
     runId: uuid(),
-    seed: Math.floor(Math.random() * 100000),
+    seed: seed === null ? Math.floor(Math.random() * 100000) : seed,
     playerId: "human-agent-view",
     startedAt: new Date().toISOString(),
     actions: [], survey: null
@@ -186,8 +195,10 @@ function surveyForm() {
 }
 
 $("#newRun").addEventListener("click", () => {
-  if (!confirm("今のランを捨てて新しく始めますか？")) return;
-  session = fresh();
+  const seed = requestedSeed();
+  const label = seed === null ? "無作為のシード" : `シード ${seed}`;
+  if (!confirm(`今のランを捨てて、${label}で新しく始めますか？`)) return;
+  session = fresh(seed);
   run = rebuild();
   message = "";
   persist();
@@ -204,6 +215,16 @@ $("#copyJson").addEventListener("click", async () => {
   }
   draw();
 });
+
+const urlSeed = new URLSearchParams(location.search).get("seed");
+if (urlSeed !== null) {
+  const seed = Number(urlSeed.trim());
+  if (Number.isInteger(seed) && seed >= 0 && session.seed !== seed && !session.actions.length) {
+    session = fresh(seed);
+    run = rebuild();
+  }
+}
+if ($("#seedInput")) $("#seedInput").value = String(session.seed);
 
 persist();
 draw();
