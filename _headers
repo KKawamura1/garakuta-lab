@@ -1,0 +1,7 @@
+# core/ は .mjs のESモジュールだけを置く。MIMEが text/javascript でないと
+# ブラウザがimportを拒否し、ページが無言で止まるため明示する。
+/core/*
+  Content-Type: text/javascript; charset=utf-8
+
+/agent-view/*
+  Cache-Control: no-cache
