@@ -1,8 +1,10 @@
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
 import { createRun } from "../core/run.mjs";
 import { PARTS, ENEMIES, simulateBattle } from "../core/arc.mjs";
 import { makeRng } from "../core/rng.mjs";
 import { describeRun } from "../core/metrics.mjs";
+import { renderObservation } from "../core/render.mjs";
 import { naivePolicy, localSearchPolicy } from "../agents/policies.mjs";
 
 assert.equal(Object.keys(PARTS).length, 14, "ARC 0.1 は14部品");
@@ -73,4 +75,26 @@ assert.ok(naive.warnings.some(w => w.code === "no_pivot"), "素朴方針は方�
 assert.ok(naive.warnings.some(w => w.code === "no_problem_chain"), "素朴方針は問題の連鎖なしとして警告される");
 assert.ok(metrics.pivotRate >= naive.pivotRate, "局所探索は素朴方針以上に構成を動かす");
 
-console.log("core smoke: ルール移植・決定性・観測範囲・行動検証・指標 OK");
+// 人間用ヘッドとエージェント用CLIが同じ文字列を見ていること
+const viewRun = createRun({ seed: 4242, playerId: "smoke" });
+const viewStart = viewRun.observe();
+viewRun.act({ type: "place", partId: viewStart.inventory[0].id, slot: 1 });
+viewRun.act({ type: "place", partId: viewStart.inventory[1].id, slot: 2 });
+const shared = renderObservation(viewRun.observe());
+
+const replayed = createRun({ seed: 4242, playerId: "smoke" });
+const replayStart = replayed.observe();
+replayed.act({ type: "place", partId: replayStart.inventory[0].id, slot: 1 });
+replayed.act({ type: "place", partId: replayStart.inventory[1].id, slot: 2 });
+assert.equal(renderObservation(replayed.observe()), shared, "同じ行動列は同じ画面になる");
+
+const cliSource = readFileSync(new URL("../agents/session.mjs", import.meta.url), "utf8");
+const playSource = readFileSync(new URL("../agents/play.mjs", import.meta.url), "utf8");
+const webSource = readFileSync(new URL("../agent-view/app.js", import.meta.url), "utf8");
+[["session.mjs", cliSource], ["play.mjs", playSource], ["agent-view/app.js", webSource]].forEach(([name, source]) => {
+  assert.ok(/renderObservation/.test(source), `${name} は共有レンダラを使う`);
+  assert.ok(!/function render\(observation/.test(source), `${name} は独自のレンダラを持たない`);
+});
+assert.ok(!/simulateBattle|PARTS\[/.test(webSource), "人間用ヘッドはルール実装を複製しない");
+
+console.log("core smoke: ルール移植・決定性・観測範囲・行動検証・指標・表示共有 OK");

@@ -56,13 +56,15 @@ export function naivePolicy() {
   };
 }
 
-export function localSearchPolicy({ rounds = 3 } = {}) {
+export function localSearchPolicy({ rounds = 3, ban = [] } = {}) {
+  const allowed = part => part && !ban.includes(part.type);
   return {
-    id: "local",
+    id: ban.length ? `local-ban:${ban.join("+")}` : "local",
     build(observation) {
       const enemy = fullEnemy(observation);
       let { slots, bench } = instances(observation);
       const actions = [];
+      bench = bench.filter(allowed);
 
       for (let round = 0; round < rounds; round += 1) {
         let best = { value: score(slots, observation, enemy).value, action: null, slots };
@@ -105,7 +107,8 @@ export function localSearchPolicy({ rounds = 3 } = {}) {
       const enemy = ENEMIES[observation.battleNumber - 1] || ENEMIES[ENEMIES.length - 1];
       const { slots } = instances(observation);
       let best = { value: -Infinity, choice: 1 };
-      observation.offer.forEach(item => {
+      const offers = observation.offer.filter(item => allowed(item.part));
+      (offers.length ? offers : observation.offer).forEach(item => {
         const candidate = { id: item.part.id, type: item.part.type };
         let bestForOffer = -Infinity;
         for (let slot = 0; slot < SLOT_COUNT; slot += 1) {

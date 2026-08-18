@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>ガラクタ・ラボ / 同一視点モード</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="head">
+      <div>
+        <strong>同一視点モード</strong>
+        <small>AIエージェントが見ているものと同じ画面で遊ぶ</small>
+      </div>
+      <div class="head-actions">
+        <button id="newRun" type="button">新しいラン</button>
+        <a class="back" href="../">本編へ</a>
+      </div>
+    </header>
+
+    <p class="note">
+      表示は <code>core/render.mjs</code> をエージェント用CLIと共有しています。ここに出ていない情報は、エージェントも見ていません。
+    </p>
+
+    <pre id="view" aria-live="polite">読込中…</pre>
+
+    <section id="controls" class="controls"></section>
+
+    <details class="export">
+      <summary>このランの記録を取り出す</summary>
+      <p>JSONを <code>analysis/agent-runs/</code> へ置くと、エージェントのランと同じ集計にかけられます。</p>
+      <button id="copyJson" type="button">JSONをコピー</button>
+      <textarea id="json" readonly rows="6"></textarea>
+    </details>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

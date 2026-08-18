@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
+import { renderObservation as render } from "../core/render.mjs";
 
 const RULES = `【ガラクタ・ラボ / ARC 0.1 遊び方】
 - 拾った部品で機械を組み、6戦を勝ち抜く。操作は構築のみで、戦闘は自動。
@@ -47,78 +48,6 @@ function rebuild(session) {
   const run = createRun({ seed: session.seed, playerId: session.playerId });
   session.actions.forEach(action => run.act(action));
   return run;
-}
-
-function padEnd(text, width) {
-  let size = 0;
-  for (const char of text) size += /[　-ヿ一-鿿＀-￯]/.test(char) ? 2 : 1;
-  return text + " ".repeat(Math.max(1, width - size));
-}
-
-function renderPart(part, prefix = "") {
-  return `${prefix}${padEnd(`${part.icon} ${part.name}`, 18)}${padEnd(part.short, 14)}${part.desc}`;
-}
-
-function render(observation, extra = "") {
-  const o = observation;
-  const lines = [];
-  lines.push(`[${o.ruleset} / seed ${o.seed}] 第${o.battleNumber}戦 / 全${o.totalBattles}戦   HP ${o.hp}/${o.maxHp}   修復材 ◆${o.scrap}   段階:${o.phase}`);
-  if (o.upcomingEnemy) {
-    const e = o.upcomingEnemy;
-    lines.push(`次の敵：${e.name}  HP${e.hp} 攻撃${e.atk} 装甲${e.armor}`);
-    lines.push(`  特徴：${e.trait}`);
-  }
-  lines.push("");
-  lines.push("駆動列（枠1から順に作動）");
-  o.slots.forEach(slot => {
-    lines.push(slot.part ? `  ${slot.slot} ${renderPart(slot.part)}` : `  ${slot.slot} （空き）`);
-  });
-  lines.push("");
-  lines.push(`予備部品（${o.inventory.length}個）`);
-  if (!o.inventory.length) lines.push("  なし");
-  o.inventory.forEach(part => lines.push(`  [${part.id}] ${renderPart(part)}`));
-
-  if (o.offer) {
-    lines.push("");
-    lines.push("■ 報酬候補（1個だけ取得、または全部見送り）");
-    o.offer.forEach(item => lines.push(`  ${item.choice}. ${renderPart(item.part)}`));
-  }
-
-  if (o.lastBattle) {
-    const b = o.lastBattle;
-    lines.push("");
-    lines.push(`直前の戦闘：${b.enemy} に${b.won ? "勝利" : "敗北"}（${b.cycles}巡 / HP ${b.hpBefore}→${b.hpAfter} / 敵残HP ${b.enemyHpLeft}）`);
-    lines.push(`  予想「${b.prediction}」→ 実際は ${({ better: "予想より良い", expected: "予想どおり", worse: "予想より悪い" })[b.surprise]}`);
-    b.contributions.forEach(c => {
-      const parts = [
-        c.damage ? `攻撃${c.damage}` : "", c.shield ? `装甲${c.shield}` : "",
-        c.powerMade ? `発電${c.powerMade}` : "", c.powerSpent ? `電力消費${c.powerSpent}` : "",
-        c.heatMade ? `発熱${c.heatMade}` : "", c.heatCooled ? `冷却${c.heatCooled}` : "",
-        c.healing ? `回復${c.healing}` : ""
-      ].filter(Boolean).join(" ");
-      lines.push(`    ${padEnd(c.name, 14)}${c.activations}回作動  ${parts}`);
-    });
-    lines.push(`    余り 電力${b.leftoverPower} 熱${b.leftoverHeat} 装甲${b.leftoverShield}`);
-    if (b.log?.length) {
-      lines.push("  巡回ログ（人間版の戦闘表示と同じ範囲）");
-      b.log.forEach(entry => lines.push(`    ${entry}`));
-    }
-  }
-
-  if (o.done) {
-    lines.push("");
-    lines.push(o.won ? "■ ラン終了：全6戦を突破した。" : `■ ラン終了：第${o.battleNumber}戦で停止した。`);
-    lines.push("  finish コマンドでアンケートを送って終了してください。");
-  } else {
-    lines.push("");
-    lines.push("可能な行動（引数名は完全一致が必要）");
-    o.legalActions.forEach(action => {
-      const args = Object.entries(action.args || {}).map(([key, value]) => `${key}=${value}`).join(", ");
-      lines.push(`  {"type":"${action.type}"${args ? `, ${args}` : ""}}${action.note ? `  ← ${action.note}` : ""}`);
-    });
-  }
-  if (extra) lines.push("", extra);
-  return lines.join("\n");
 }
 
 const args = parseArgs(process.argv.slice(2));
