@@ -182,22 +182,40 @@ function markRow() {
   );
 }
 
+// 選択式が既定値を持つと、触らなかったことが回答として記録されてしまう。
+// 先頭に空の選択肢を置き、選ぶまで送らせない。
+function choice(label, options) {
+  const node = el("select");
+  node.appendChild(el("option", { value: "", textContent: label }));
+  options.forEach(option => node.appendChild(el("option", { value: String(option), textContent: String(option) })));
+  return node;
+}
+
 function surveyForm() {
-  const replay = select([1, 2, 3, 4, 5]);
-  const settledAt = el("input", { type: "text", placeholder: "勝敗が実質決まった戦闘番号（なければ なし）" });
+  const replay = choice("未選択", [1, 2, 3, 4, 5]);
+  const settledAt = el("input", { type: "text", placeholder: "勝敗が実質決まった戦闘番号。無ければ「なし」と入力" });
   const bestMoment = el("input", { type: "text", placeholder: "一番良かった瞬間" });
   const friction = el("input", { type: "text", placeholder: "退屈・理不尽だったところ" });
-  const pivot = select(["あった", "なかった"]);
+  const pivot = choice("未選択", ["あった", "なかった"]);
   const runStory = el("input", { type: "text", placeholder: "このランを一言で" });
+  const warn = el("p", { className: "msg", id: "surveyWarn" });
   const wrap = el("div", { className: "controls" }, [
     row(el("label", { textContent: "もう一度遊びたいか" }), replay, el("label", { textContent: "方針転換" }), pivot),
-    row(settledAt), row(bestMoment), row(friction), row(runStory),
+    row(settledAt), row(bestMoment), row(friction), row(runStory), row(warn),
     row(el("button", {
       className: "primary",
       textContent: "記録する",
       onclick: () => {
+        const missing = [];
+        if (!replay.value) missing.push("もう一度遊びたいか");
+        if (!pivot.value) missing.push("方針転換");
+        if (!settledAt.value.trim()) missing.push("決着点（無ければ「なし」と入力）");
+        if (missing.length) {
+          warn.textContent = `未回答: ${missing.join(" / ")}。空欄のまま記録すると、答えなかったことが答えとして残ります。`;
+          return;
+        }
         const survey = {
-          replay: Number(replay.value), settledAt: settledAt.value || "なし",
+          replay: Number(replay.value), settledAt: settledAt.value.trim(),
           bestMoment: bestMoment.value, friction: friction.value,
           pivot: pivot.value, runStory: runStory.value
         };

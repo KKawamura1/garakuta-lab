@@ -1,1 +1,1207 @@
-{"seed":14,"playerId":"human(seed14)","survey":{"replay":1,"settledAt":"3かな？　装甲2個目を引いたとき","bestMoment":"","friction":"勝ち確定してつまらない","pivot":"あった","runStory":"いつものパターンに持ち込めた回"},"trace":{"seed":14,"ruleset":"arc-0.1","playerId":"human(seed14)","won":true,"reached":6,"finalHp":30,"battles":[{"battleNumber":1,"enemy":"スクラップ・ラット","won":true,"cycles":2,"hpBefore":30,"hpAfter":30,"hpLost":0,"enemyHpLeft":0,"prediction":"圧勝","surprise":"expected","contributions":[{"name":"時限ボルト","activations":2,"damage":13,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":2,"damage":5,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":4,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":1,"damage":2,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"火花ノズル","activations":1,"damage":2,"shield":0,"powerMade":1,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":1,"damage":0,"shield":6,"powerMade":0,"powerSpent":1,"heatMade":0,"heatCooled":0,"healing":0}]},{"battleNumber":2,"enemy":"切断ドローン","won":true,"cycles":2,"hpBefore":30,"hpAfter":30,"hpLost":0,"enemyHpLeft":0,"prediction":"圧勝","surprise":"expected","contributions":[{"name":"違法砲身","activations":2,"damage":18,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":4,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":2,"damage":8,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":4,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":2,"damage":10,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":2,"healing":0},{"name":"火花ノズル","activations":1,"damage":2,"shield":0,"powerMade":1,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":1,"damage":0,"shield":6,"powerMade":0,"powerSpent":1,"heatMade":0,"heatCooled":0,"healing":0}]},{"battleNumber":3,"enemy":"鋳鉄クラブ","won":true,"cycles":4,"hpBefore":30,"hpAfter":30,"hpLost":0,"enemyHpLeft":0,"prediction":"圧勝","surprise":"expected","contributions":[{"name":"違法砲身","activations":4,"damage":20,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":8,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":3,"damage":8,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":6,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":3,"damage":13,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":4,"healing":0},{"name":"火花ノズル","activations":3,"damage":3,"shield":0,"powerMade":3,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":3,"damage":0,"shield":18,"powerMade":0,"powerSpent":3,"heatMade":0,"heatCooled":0,"healing":0}]},{"battleNumber":4,"enemy":"焼却監視機","won":true,"cycles":3,"hpBefore":30,"hpAfter":28,"hpLost":2,"enemyHpLeft":0,"prediction":"負けそう","surprise":"better","contributions":[{"name":"違法砲身","activations":3,"damage":24,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":6,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":3,"damage":14,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":6,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":3,"damage":18,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":4,"healing":0},{"name":"火花ノズル","activations":2,"damage":4,"shield":0,"powerMade":2,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":2,"damage":0,"shield":12,"powerMade":0,"powerSpent":2,"heatMade":0,"heatCooled":0,"healing":0}]},{"battleNumber":5,"enemy":"暴走ジャガー","won":true,"cycles":6,"hpBefore":30,"hpAfter":30,"hpLost":0,"enemyHpLeft":0,"prediction":"圧勝","surprise":"expected","contributions":[{"name":"違法砲身","activations":6,"damage":37,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":12,"heatCooled":0,"healing":0},{"name":"違法砲身","activations":6,"damage":40,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":12,"heatCooled":0,"healing":0},{"name":"過充電池","activations":5,"damage":0,"shield":6,"powerMade":20,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":5,"damage":0,"shield":30,"powerMade":0,"powerSpent":5,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":5,"damage":0,"shield":30,"powerMade":0,"powerSpent":5,"heatMade":0,"heatCooled":0,"healing":0}]},{"battleNumber":6,"enemy":"廃都の中枢","won":true,"cycles":8,"hpBefore":30,"hpAfter":30,"hpLost":0,"enemyHpLeft":0,"prediction":"圧勝","surprise":"expected","contributions":[{"name":"違法砲身","activations":8,"damage":49,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":16,"heatCooled":0,"healing":0},{"name":"違法砲身","activations":7,"damage":46,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":14,"heatCooled":0,"healing":0},{"name":"過充電池","activations":7,"damage":0,"shield":10,"powerMade":28,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":7,"damage":0,"shield":42,"powerMade":0,"powerSpent":7,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":7,"damage":0,"shield":42,"powerMade":0,"powerSpent":7,"heatMade":0,"heatCooled":0,"healing":0}]}],"rewards":[],"events":[{"seq":1,"type":"run_started","wave":1,"phase":"build","initial":["破裂ベント","即席装甲機","熱感知パルス","火花ノズル","時限ボルト","暴走炉","廃熱タービン","残響コイル"]},{"seq":2,"type":"emotion_marked","wave":1,"phase":"build","kind":"hit","note":"装甲あり、火力なし"},{"seq":3,"type":"battle_predicted","wave":1,"phase":"build","enemy":"スクラップ・ラット","prediction":"圧勝","worry":"なし","worryText":"","build":["時限ボルト","暴走炉","熱感知パルス","火花ノズル","即席装甲機"],"buildSignature":"p5,p6,p3,p4,p2","editsSincePrevious":6},{"seq":4,"type":"battle_ended","wave":1,"phase":"build","enemy":"スクラップ・ラット","won":true,"cycles":2,"hpBefore":30,"hpAfter":30,"enemyHpLeft":0,"prediction":"圧勝","expectedLevel":3,"actualLevel":3,"surprise":"expected","buildSignature":"p5,p6,p3,p4,p2","worry":"なし","contributions":[{"name":"時限ボルト","activations":2,"damage":13,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":2,"damage":5,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":4,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":1,"damage":2,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"火花ノズル","activations":1,"damage":2,"shield":0,"powerMade":1,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":1,"damage":0,"shield":6,"powerMade":0,"powerSpent":1,"heatMade":0,"heatCooled":0,"healing":0}]},{"seq":5,"type":"reward_offered","wave":2,"phase":"reward","offered":["吸着ドリル","違法砲身","小型再生機"]},{"seq":6,"type":"reward_chosen","wave":2,"phase":"reward","offered":["吸着ドリル","違法砲身","小型再生機"],"chosen":"違法砲身","passed":["吸着ドリル","小型再生機"],"reason":"","update":"confirmed","updateText":""},{"seq":7,"type":"battle_predicted","wave":2,"phase":"build","enemy":"切断ドローン","prediction":"圧勝","worry":"なし","worryText":"","build":["違法砲身","暴走炉","熱感知パルス","火花ノズル","即席装甲機"],"buildSignature":"pa,p6,p3,p4,p2","editsSincePrevious":1},{"seq":8,"type":"battle_ended","wave":2,"phase":"build","enemy":"切断ドローン","won":true,"cycles":2,"hpBefore":30,"hpAfter":30,"enemyHpLeft":0,"prediction":"圧勝","expectedLevel":3,"actualLevel":3,"surprise":"expected","buildSignature":"pa,p6,p3,p4,p2","worry":"なし","contributions":[{"name":"違法砲身","activations":2,"damage":18,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":4,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":2,"damage":8,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":4,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":2,"damage":10,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":2,"healing":0},{"name":"火花ノズル","activations":1,"damage":2,"shield":0,"powerMade":1,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":1,"damage":0,"shield":6,"powerMade":0,"powerSpent":1,"heatMade":0,"heatCooled":0,"healing":0}]},{"seq":9,"type":"reward_offered","wave":3,"phase":"reward","offered":["時限ボルト","廃熱タービン","違法砲身"]},{"seq":10,"type":"reward_chosen","wave":3,"phase":"reward","offered":["時限ボルト","廃熱タービン","違法砲身"],"chosen":"違法砲身","passed":["時限ボルト","廃熱タービン"],"reason":"","update":"confirmed","updateText":""},{"seq":11,"type":"battle_predicted","wave":3,"phase":"build","enemy":"鋳鉄クラブ","prediction":"圧勝","worry":"なし","worryText":"装甲がもう一枚、発電機が1つあれば完成だが、現時点でも概ね勝ってそう","build":["違法砲身","暴走炉","熱感知パルス","火花ノズル","即席装甲機"],"buildSignature":"pa,p6,p3,p4,p2","editsSincePrevious":0},{"seq":12,"type":"battle_ended","wave":3,"phase":"build","enemy":"鋳鉄クラブ","won":true,"cycles":4,"hpBefore":30,"hpAfter":30,"enemyHpLeft":0,"prediction":"圧勝","expectedLevel":3,"actualLevel":3,"surprise":"expected","buildSignature":"pa,p6,p3,p4,p2","worry":"なし","contributions":[{"name":"違法砲身","activations":4,"damage":20,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":8,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":3,"damage":8,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":6,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":3,"damage":13,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":4,"healing":0},{"name":"火花ノズル","activations":3,"damage":3,"shield":0,"powerMade":3,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":3,"damage":0,"shield":18,"powerMade":0,"powerSpent":3,"heatMade":0,"heatCooled":0,"healing":0}]},{"seq":13,"type":"reward_offered","wave":4,"phase":"reward","offered":["違法砲身","装甲プリズム","過充電池"]},{"seq":14,"type":"reward_chosen","wave":4,"phase":"reward","offered":["違法砲身","装甲プリズム","過充電池"],"chosen":"過充電池","passed":["違法砲身","装甲プリズム"],"reason":"","update":"confirmed","updateText":""},{"seq":15,"type":"battle_predicted","wave":4,"phase":"build","enemy":"焼却監視機","prediction":"負けそう","worry":"装甲","worryText":"","build":["違法砲身","暴走炉","熱感知パルス","火花ノズル","即席装甲機"],"buildSignature":"pa,p6,p3,p4,p2","editsSincePrevious":0},{"seq":16,"type":"battle_ended","wave":4,"phase":"build","enemy":"焼却監視機","won":true,"cycles":3,"hpBefore":30,"hpAfter":28,"enemyHpLeft":0,"prediction":"負けそう","expectedLevel":0,"actualLevel":3,"surprise":"better","buildSignature":"pa,p6,p3,p4,p2","worry":"装甲","contributions":[{"name":"違法砲身","activations":3,"damage":24,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":6,"heatCooled":0,"healing":0},{"name":"暴走炉","activations":3,"damage":14,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":6,"heatCooled":0,"healing":0},{"name":"熱感知パルス","activations":3,"damage":18,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":0,"heatCooled":4,"healing":0},{"name":"火花ノズル","activations":2,"damage":4,"shield":0,"powerMade":2,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":2,"damage":0,"shield":12,"powerMade":0,"powerSpent":2,"heatMade":0,"heatCooled":0,"healing":0}]},{"seq":17,"type":"reward_offered","wave":5,"phase":"reward","offered":["違法砲身","装甲プリズム","即席装甲機"]},{"seq":18,"type":"reward_chosen","wave":5,"phase":"reward","offered":["違法砲身","装甲プリズム","即席装甲機"],"chosen":"即席装甲機","passed":["違法砲身","装甲プリズム"],"reason":"","update":"confirmed","updateText":""},{"seq":19,"type":"emotion_marked","wave":5,"phase":"build","kind":"hit","note":"さっきの負けそうはタップミス。もう勝ち確定"},{"seq":20,"type":"battle_predicted","wave":5,"phase":"build","enemy":"暴走ジャガー","prediction":"圧勝","worry":"なし","worryText":"","build":["違法砲身","違法砲身","過充電池","即席装甲機","即席装甲機"],"buildSignature":"pa,pe,ph,pk,p2","editsSincePrevious":3},{"seq":21,"type":"battle_ended","wave":5,"phase":"build","enemy":"暴走ジャガー","won":true,"cycles":6,"hpBefore":30,"hpAfter":30,"enemyHpLeft":0,"prediction":"圧勝","expectedLevel":3,"actualLevel":3,"surprise":"expected","buildSignature":"pa,pe,ph,pk,p2","worry":"なし","contributions":[{"name":"違法砲身","activations":6,"damage":37,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":12,"heatCooled":0,"healing":0},{"name":"違法砲身","activations":6,"damage":40,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":12,"heatCooled":0,"healing":0},{"name":"過充電池","activations":5,"damage":0,"shield":6,"powerMade":20,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":5,"damage":0,"shield":30,"powerMade":0,"powerSpent":5,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":5,"damage":0,"shield":30,"powerMade":0,"powerSpent":5,"heatMade":0,"heatCooled":0,"healing":0}]},{"seq":22,"type":"reward_offered","wave":6,"phase":"reward","offered":["過充電池","小型再生機","即席装甲機"]},{"seq":23,"type":"reward_scrapped","wave":6,"phase":"reward","offered":["過充電池","小型再生機","即席装甲機"],"reason":"もう勝ちなので"},{"seq":24,"type":"battle_predicted","wave":6,"phase":"build","enemy":"廃都の中枢","prediction":"圧勝","worry":"なし","worryText":"","build":["違法砲身","違法砲身","過充電池","即席装甲機","即席装甲機"],"buildSignature":"pa,pe,ph,pk,p2","editsSincePrevious":0},{"seq":25,"type":"battle_ended","wave":6,"phase":"build","enemy":"廃都の中枢","won":true,"cycles":8,"hpBefore":30,"hpAfter":30,"enemyHpLeft":0,"prediction":"圧勝","expectedLevel":3,"actualLevel":3,"surprise":"expected","buildSignature":"pa,pe,ph,pk,p2","worry":"なし","contributions":[{"name":"違法砲身","activations":8,"damage":49,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":16,"heatCooled":0,"healing":0},{"name":"違法砲身","activations":7,"damage":46,"shield":0,"powerMade":0,"powerSpent":0,"heatMade":14,"heatCooled":0,"healing":0},{"name":"過充電池","activations":7,"damage":0,"shield":10,"powerMade":28,"powerSpent":0,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":7,"damage":0,"shield":42,"powerMade":0,"powerSpent":7,"heatMade":0,"heatCooled":0,"healing":0},{"name":"即席装甲機","activations":7,"damage":0,"shield":42,"powerMade":0,"powerSpent":7,"heatMade":0,"heatCooled":0,"healing":0}]},{"seq":26,"type":"run_ended","wave":6,"phase":"end","won":true,"reached":6},{"seq":27,"type":"survey","wave":6,"phase":"end","replay":1,"bestMoment":"","pivot":"あった","settledAt":"3かな？　装甲2個目を引いたとき","runStory":"いつものパターンに持ち込めた回","friction":"勝ち確定してつまらない","wishlist":""}]}}
+{
+ "seed": 14,
+ "playerId": "human(seed14)",
+ "survey": {
+  "replay": 1,
+  "settledAt": "3かな？　装甲2個目を引いたとき",
+  "bestMoment": "",
+  "friction": "勝ち確定してつまらない",
+  "pivot": "あった",
+  "runStory": "いつものパターンに持ち込めた回"
+ },
+ "trace": {
+  "seed": 14,
+  "ruleset": "arc-0.1",
+  "playerId": "human(seed14)",
+  "won": true,
+  "reached": 6,
+  "finalHp": 30,
+  "battles": [
+   {
+    "battleNumber": 1,
+    "enemy": "スクラップ・ラット",
+    "won": true,
+    "cycles": 2,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "contributions": [
+     {
+      "name": "時限ボルト",
+      "activations": 2,
+      "damage": 13,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 2,
+      "damage": 5,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 4,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "powerMade": 1,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 1,
+      "damage": 0,
+      "shield": 6,
+      "powerMade": 0,
+      "powerSpent": 1,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 2,
+    "enemy": "切断ドローン",
+    "won": true,
+    "cycles": 2,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 2,
+      "damage": 18,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 4,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 2,
+      "damage": 8,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 4,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 2,
+      "damage": 10,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 2,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "powerMade": 1,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 1,
+      "damage": 0,
+      "shield": 6,
+      "powerMade": 0,
+      "powerSpent": 1,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 3,
+    "enemy": "鋳鉄クラブ",
+    "won": true,
+    "cycles": 4,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 4,
+      "damage": 20,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 8,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 3,
+      "damage": 8,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 6,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 3,
+      "damage": 13,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 4,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 3,
+      "damage": 3,
+      "shield": 0,
+      "powerMade": 3,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 3,
+      "damage": 0,
+      "shield": 18,
+      "powerMade": 0,
+      "powerSpent": 3,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 4,
+    "enemy": "焼却監視機",
+    "won": true,
+    "cycles": 3,
+    "hpBefore": 30,
+    "hpAfter": 28,
+    "hpLost": 2,
+    "enemyHpLeft": 0,
+    "prediction": "負けそう",
+    "surprise": "better",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 3,
+      "damage": 24,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 6,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 3,
+      "damage": 14,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 6,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 3,
+      "damage": 18,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 4,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 2,
+      "damage": 4,
+      "shield": 0,
+      "powerMade": 2,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 2,
+      "damage": 0,
+      "shield": 12,
+      "powerMade": 0,
+      "powerSpent": 2,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 5,
+    "enemy": "暴走ジャガー",
+    "won": true,
+    "cycles": 6,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 6,
+      "damage": 37,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 12,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "違法砲身",
+      "activations": 6,
+      "damage": 40,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 12,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "過充電池",
+      "activations": 5,
+      "damage": 0,
+      "shield": 6,
+      "powerMade": 20,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 5,
+      "damage": 0,
+      "shield": 30,
+      "powerMade": 0,
+      "powerSpent": 5,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 5,
+      "damage": 0,
+      "shield": 30,
+      "powerMade": 0,
+      "powerSpent": 5,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 6,
+    "enemy": "廃都の中枢",
+    "won": true,
+    "cycles": 8,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 8,
+      "damage": 49,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 16,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "違法砲身",
+      "activations": 7,
+      "damage": 46,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 14,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "過充電池",
+      "activations": 7,
+      "damage": 0,
+      "shield": 10,
+      "powerMade": 28,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 7,
+      "damage": 0,
+      "shield": 42,
+      "powerMade": 0,
+      "powerSpent": 7,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 7,
+      "damage": 0,
+      "shield": 42,
+      "powerMade": 0,
+      "powerSpent": 7,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   }
+  ],
+  "rewards": [],
+  "events": [
+   {
+    "seq": 1,
+    "type": "run_started",
+    "wave": 1,
+    "phase": "build",
+    "initial": [
+     "破裂ベント",
+     "即席装甲機",
+     "熱感知パルス",
+     "火花ノズル",
+     "時限ボルト",
+     "暴走炉",
+     "廃熱タービン",
+     "残響コイル"
+    ]
+   },
+   {
+    "seq": 2,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "hit",
+    "note": "装甲あり、火力なし"
+   },
+   {
+    "seq": 3,
+    "type": "battle_predicted",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "スクラップ・ラット",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "時限ボルト",
+     "暴走炉",
+     "熱感知パルス",
+     "火花ノズル",
+     "即席装甲機"
+    ],
+    "buildSignature": "p5,p6,p3,p4,p2",
+    "editsSincePrevious": 6
+   },
+   {
+    "seq": 4,
+    "type": "battle_ended",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "スクラップ・ラット",
+    "won": true,
+    "cycles": 2,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p5,p6,p3,p4,p2",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "時限ボルト",
+      "activations": 2,
+      "damage": 13,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 2,
+      "damage": 5,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 4,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "powerMade": 1,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 1,
+      "damage": 0,
+      "shield": 6,
+      "powerMade": 0,
+      "powerSpent": 1,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 5,
+    "type": "reward_offered",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "吸着ドリル",
+     "違法砲身",
+     "小型再生機"
+    ]
+   },
+   {
+    "seq": 6,
+    "type": "reward_chosen",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "吸着ドリル",
+     "違法砲身",
+     "小型再生機"
+    ],
+    "chosen": "違法砲身",
+    "passed": [
+     "吸着ドリル",
+     "小型再生機"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 7,
+    "type": "battle_predicted",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "切断ドローン",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "違法砲身",
+     "暴走炉",
+     "熱感知パルス",
+     "火花ノズル",
+     "即席装甲機"
+    ],
+    "buildSignature": "pa,p6,p3,p4,p2",
+    "editsSincePrevious": 1
+   },
+   {
+    "seq": 8,
+    "type": "battle_ended",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "切断ドローン",
+    "won": true,
+    "cycles": 2,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "pa,p6,p3,p4,p2",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 2,
+      "damage": 18,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 4,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 2,
+      "damage": 8,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 4,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 2,
+      "damage": 10,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 2,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "powerMade": 1,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 1,
+      "damage": 0,
+      "shield": 6,
+      "powerMade": 0,
+      "powerSpent": 1,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 9,
+    "type": "reward_offered",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "時限ボルト",
+     "廃熱タービン",
+     "違法砲身"
+    ]
+   },
+   {
+    "seq": 10,
+    "type": "reward_chosen",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "時限ボルト",
+     "廃熱タービン",
+     "違法砲身"
+    ],
+    "chosen": "違法砲身",
+    "passed": [
+     "時限ボルト",
+     "廃熱タービン"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 11,
+    "type": "battle_predicted",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "鋳鉄クラブ",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "装甲がもう一枚、発電機が1つあれば完成だが、現時点でも概ね勝ってそう",
+    "build": [
+     "違法砲身",
+     "暴走炉",
+     "熱感知パルス",
+     "火花ノズル",
+     "即席装甲機"
+    ],
+    "buildSignature": "pa,p6,p3,p4,p2",
+    "editsSincePrevious": 0
+   },
+   {
+    "seq": 12,
+    "type": "battle_ended",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "鋳鉄クラブ",
+    "won": true,
+    "cycles": 4,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "pa,p6,p3,p4,p2",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 4,
+      "damage": 20,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 8,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 3,
+      "damage": 8,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 6,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 3,
+      "damage": 13,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 4,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 3,
+      "damage": 3,
+      "shield": 0,
+      "powerMade": 3,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 3,
+      "damage": 0,
+      "shield": 18,
+      "powerMade": 0,
+      "powerSpent": 3,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 13,
+    "type": "reward_offered",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "違法砲身",
+     "装甲プリズム",
+     "過充電池"
+    ]
+   },
+   {
+    "seq": 14,
+    "type": "reward_chosen",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "違法砲身",
+     "装甲プリズム",
+     "過充電池"
+    ],
+    "chosen": "過充電池",
+    "passed": [
+     "違法砲身",
+     "装甲プリズム"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 15,
+    "type": "battle_predicted",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "焼却監視機",
+    "prediction": "負けそう",
+    "worry": "装甲",
+    "worryText": "",
+    "build": [
+     "違法砲身",
+     "暴走炉",
+     "熱感知パルス",
+     "火花ノズル",
+     "即席装甲機"
+    ],
+    "buildSignature": "pa,p6,p3,p4,p2",
+    "editsSincePrevious": 0
+   },
+   {
+    "seq": 16,
+    "type": "battle_ended",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "焼却監視機",
+    "won": true,
+    "cycles": 3,
+    "hpBefore": 30,
+    "hpAfter": 28,
+    "enemyHpLeft": 0,
+    "prediction": "負けそう",
+    "expectedLevel": 0,
+    "actualLevel": 3,
+    "surprise": "better",
+    "buildSignature": "pa,p6,p3,p4,p2",
+    "worry": "装甲",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 3,
+      "damage": 24,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 6,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "暴走炉",
+      "activations": 3,
+      "damage": 14,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 6,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "熱感知パルス",
+      "activations": 3,
+      "damage": 18,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 4,
+      "healing": 0
+     },
+     {
+      "name": "火花ノズル",
+      "activations": 2,
+      "damage": 4,
+      "shield": 0,
+      "powerMade": 2,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 2,
+      "damage": 0,
+      "shield": 12,
+      "powerMade": 0,
+      "powerSpent": 2,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 17,
+    "type": "reward_offered",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "違法砲身",
+     "装甲プリズム",
+     "即席装甲機"
+    ]
+   },
+   {
+    "seq": 18,
+    "type": "reward_chosen",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "違法砲身",
+     "装甲プリズム",
+     "即席装甲機"
+    ],
+    "chosen": "即席装甲機",
+    "passed": [
+     "違法砲身",
+     "装甲プリズム"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 19,
+    "type": "emotion_marked",
+    "wave": 5,
+    "phase": "build",
+    "kind": "hit",
+    "note": "さっきの負けそうはタップミス。もう勝ち確定"
+   },
+   {
+    "seq": 20,
+    "type": "battle_predicted",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "暴走ジャガー",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "違法砲身",
+     "違法砲身",
+     "過充電池",
+     "即席装甲機",
+     "即席装甲機"
+    ],
+    "buildSignature": "pa,pe,ph,pk,p2",
+    "editsSincePrevious": 3
+   },
+   {
+    "seq": 21,
+    "type": "battle_ended",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "暴走ジャガー",
+    "won": true,
+    "cycles": 6,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "pa,pe,ph,pk,p2",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 6,
+      "damage": 37,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 12,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "違法砲身",
+      "activations": 6,
+      "damage": 40,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 12,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "過充電池",
+      "activations": 5,
+      "damage": 0,
+      "shield": 6,
+      "powerMade": 20,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 5,
+      "damage": 0,
+      "shield": 30,
+      "powerMade": 0,
+      "powerSpent": 5,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 5,
+      "damage": 0,
+      "shield": 30,
+      "powerMade": 0,
+      "powerSpent": 5,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 22,
+    "type": "reward_offered",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "過充電池",
+     "小型再生機",
+     "即席装甲機"
+    ]
+   },
+   {
+    "seq": 23,
+    "type": "reward_scrapped",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "過充電池",
+     "小型再生機",
+     "即席装甲機"
+    ],
+    "reason": "もう勝ちなので"
+   },
+   {
+    "seq": 24,
+    "type": "battle_predicted",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "廃都の中枢",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "違法砲身",
+     "違法砲身",
+     "過充電池",
+     "即席装甲機",
+     "即席装甲機"
+    ],
+    "buildSignature": "pa,pe,ph,pk,p2",
+    "editsSincePrevious": 0
+   },
+   {
+    "seq": 25,
+    "type": "battle_ended",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "廃都の中枢",
+    "won": true,
+    "cycles": 8,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "pa,pe,ph,pk,p2",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "違法砲身",
+      "activations": 8,
+      "damage": 49,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 16,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "違法砲身",
+      "activations": 7,
+      "damage": 46,
+      "shield": 0,
+      "powerMade": 0,
+      "powerSpent": 0,
+      "heatMade": 14,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "過充電池",
+      "activations": 7,
+      "damage": 0,
+      "shield": 10,
+      "powerMade": 28,
+      "powerSpent": 0,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 7,
+      "damage": 0,
+      "shield": 42,
+      "powerMade": 0,
+      "powerSpent": 7,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     },
+     {
+      "name": "即席装甲機",
+      "activations": 7,
+      "damage": 0,
+      "shield": 42,
+      "powerMade": 0,
+      "powerSpent": 7,
+      "heatMade": 0,
+      "heatCooled": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 26,
+    "type": "run_ended",
+    "wave": 6,
+    "phase": "end",
+    "won": true,
+    "reached": 6
+   },
+   {
+    "seq": 27,
+    "type": "survey",
+    "wave": 6,
+    "phase": "end",
+    "replay": 1,
+    "bestMoment": "",
+    "pivot": "あった",
+    "settledAt": "3かな？　装甲2個目を引いたとき",
+    "runStory": "いつものパターンに持ち込めた回",
+    "friction": "勝ち確定してつまらない",
+    "wishlist": ""
+   }
+  ]
+ },
+ "surveyReliability": {
+  "correctedReplay": 1,
+  "note": "replayは記録値1。本人の事後申告も1/5で一致。pivotとsettledAtの選択式は既定値の可能性があるが、settledAtは自由記述が入力されており信頼できる。",
+  "cause": "同一視点モードのアンケートで選択式が既定値を持ち、未回答と回答を区別していなかった（2026-08-19に修正）",
+  "unreliableFields": [
+   "pivot"
+  ]
+ }
+}
