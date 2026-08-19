@@ -5,6 +5,8 @@ import { PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS } from "../co
 import { sendRun, uuid } from "./sync.js";
 
 const SAVE_KEY = "garakuta-agent-view-session";
+const ARCHIVE_KEY = "garakuta-agent-view-finished";
+const MAX_ARCHIVE = 12;
 const $ = selector => document.querySelector(selector);
 
 let session = load();
@@ -44,9 +46,28 @@ function rebuild() {
   return next;
 }
 
+// 終わったランは別枠へ残す。ここを持たないと「新しいラン」で前回が消え、
+// 送信に失敗していた場合に手元から完全に失われる。
+function readArchive() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ARCHIVE_KEY));
+    return Array.isArray(saved) ? saved : [];
+  } catch (_) { return []; }
+}
+
+function archiveCurrent() {
+  if (!session.trace) return;
+  const archive = readArchive().filter(item => item.runId !== session.runId);
+  archive.push(JSON.parse(JSON.stringify(session)));
+  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive.slice(-MAX_ARCHIVE)));
+}
+
 function persist() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(session));
-  $("#json").value = JSON.stringify(session, null, 2);
+  const finished = readArchive().filter(item => item.runId !== session.runId);
+  $("#json").value = JSON.stringify([...finished, session], null, 2);
+  const label = $("#archiveCount");
+  if (label) label.textContent = finished.length ? `保存済みの完了ラン ${finished.length}件を含みます。` : "";
 }
 
 function act(action) {
@@ -184,6 +205,7 @@ function surveyForm() {
         session.endedAt = new Date().toISOString();
         session.trace = run.finish(survey);
         session.metrics = describeRun(session.trace);
+        archiveCurrent();
         persist();
         message = "記録しました。送信します…";
         draw();
@@ -198,6 +220,7 @@ $("#newRun").addEventListener("click", () => {
   const seed = requestedSeed();
   const label = seed === null ? "無作為のシード" : `シード ${seed}`;
   if (!confirm(`今のランを捨てて、${label}で新しく始めますか？`)) return;
+  archiveCurrent();
   session = fresh(seed);
   run = rebuild();
   message = "";

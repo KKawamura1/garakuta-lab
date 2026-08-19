@@ -85,29 +85,37 @@ jobs:
             jq -r '.[] | "| \(.saved_at) | \(.game_version) | \(if .won == 1 then "win" else "loss" end) | \(.reached) | \(.final_hp) | \(.replay_score) | `\(.run_id)` |"' playtest-export/runs-readable.json
           } >> "$GITHUB_STEP_SUMMARY"
 
+          # 保存はされたが ended_at が無く、上のSELECTから漏れた行を見つけるための点検。
+          # 認証情報を持つこのステップで実行する。失敗しても本体は落とさない。
+          npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
+            --remote --json --command "SELECT game_version, COUNT(*) AS runs, SUM(CASE WHEN ended_at IS NULL THEN 1 ELSE 0 END) AS missing_ended_at FROM runs GROUP BY game_version ORDER BY runs DESC;" \
+            > playtest-export/versions-raw.json || echo '[]' > playtest-export/versions-raw.json
+          jq -c 'if type == "array" then .[0].results else . end' playtest-export/versions-raw.json \
+            > playtest-export/versions.json || echo '[]' > playtest-export/versions.json
+
       # アーティファクトはBlobストレージにあり、環境によっては取得できない。
       # その場合でもジョブログからなら読めるので、明示的に選んだときだけ書き出す。
       # 出力にdevice_idやトークンは含まれない（runs_sqlが選択していない）。
+      # 点検用の出力。ここが失敗しても成果物のアップロードは必ず行う。
+      # 1ランを1行にするので、ログを末尾から必要な行数だけ読める。
       - name: Echo export into the job log
         if: inputs.echo_to_log == 'true'
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          # 保存はされたが ended_at が無く、上のSELECTから漏れた行を見つけるための点検。
-          npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
-            --remote --json --command "SELECT game_version, COUNT(*) AS runs, SUM(CASE WHEN ended_at IS NULL THEN 1 ELSE 0 END) AS missing_ended_at FROM runs GROUP BY game_version ORDER BY runs DESC;" \
-            | jq -c '.[0].results' > playtest-export/versions.json
+          set -uo pipefail
           echo "----- BEGIN VERSION TALLY -----"
-          cat playtest-export/versions.json
+          cat playtest-export/versions.json || true
           echo "----- END VERSION TALLY -----"
-          echo "----- BEGIN RUNS EXPORT -----"
-          jq -c '.' playtest-export/runs-readable.json
-          echo "----- END RUNS EXPORT -----"
           echo "----- BEGIN MOMENTS EXPORT -----"
-          jq -c '.' playtest-export/moments-readable.json
+          jq -c '.[]' playtest-export/moments-readable.json || true
           echo "----- END MOMENTS EXPORT -----"
+          echo "----- BEGIN RUNS EXPORT (1ラン1行) -----"
+          jq -c '.[]' playtest-export/runs-readable.json || true
+          echo "----- END RUNS EXPORT -----"
 
       - name: Upload JSON export
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: d1-playtests-${{ github.run_number }}

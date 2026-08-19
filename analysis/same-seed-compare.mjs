@@ -22,7 +22,12 @@ function loadSessions(paths) {
       readdirSync(path).filter(n => n.endsWith(".json")).forEach(n => files.push(join(path, n)));
     } else files.push(path);
   });
-  return files.map(file => ({ file, data: JSON.parse(readFileSync(file, "utf8")) }));
+  // 1ファイルに1セッションでも、完了ランをまとめた配列でも受け取れる。
+  return files.flatMap(file => {
+    const parsed = JSON.parse(readFileSync(file, "utf8"));
+    const list = Array.isArray(parsed) ? parsed : [parsed];
+    return list.map((data, i) => ({ file: list.length > 1 ? `${file}#${i + 1}` : file, data }));
+  });
 }
 
 // 行動列だけを持つセッション（人間側の貼り付け）でも、再生して trace を作る。
