@@ -9,7 +9,8 @@ export function padEnd(text, width) {
 }
 
 export function renderPart(part, prefix = "") {
-  return `${prefix}${padEnd(`${part.icon} ${part.name}`, 18)}${padEnd(part.short, 14)}${part.desc}`;
+  const cost = part.cost === undefined ? "" : `帯${part.cost} `;
+  return `${prefix}${padEnd(`${part.icon} ${part.name}`, 18)}${padEnd(cost + part.short, 16)}${part.desc}`;
 }
 
 export function renderObservation(observation, extra = "") {
@@ -18,11 +19,13 @@ export function renderObservation(observation, extra = "") {
   lines.push(`[${o.ruleset} / seed ${o.seed}] 第${o.battleNumber}戦 / 全${o.totalBattles}戦   HP ${o.hp}/${o.maxHp}   修復材 ◆${o.scrap}   段階:${o.phase}`);
   if (o.upcomingEnemy) {
     const e = o.upcomingEnemy;
-    lines.push(`次の敵：${e.name}  HP${e.hp} 攻撃${e.atk} 装甲${e.armor}`);
+    const shown = Object.entries(e).filter(([k, v]) => !["name", "trait"].includes(k) && v !== null && v !== undefined)
+      .map(([k, v]) => `${({ hp: "HP", atk: "攻撃", armor: "装甲", soak: "減衰", cap: "命中上限", strikes: "反撃回数", window: "制限巡回", goal: "目的" })[k] || k}${v}`).join(" ");
+    lines.push(`次の敵：${e.name}  ${shown}`);
     lines.push(`  特徴：${e.trait}`);
   }
   lines.push("");
-  lines.push("駆動列（枠1から順に作動）");
+  lines.push(`${o.slotLabel || "駆動列"}（${o.slotHint || "枠1から順に作動"}）`);
   o.slots.forEach(slot => {
     lines.push(slot.part ? `  ${slot.slot} ${renderPart(slot.part)}` : `  ${slot.slot} （空き）`);
   });
@@ -51,7 +54,9 @@ export function renderObservation(observation, extra = "") {
       ].filter(Boolean).join(" ");
       lines.push(`    ${padEnd(c.name, 14)}${c.activations}回作動  ${parts}`);
     });
-    lines.push(`    余り 電力${b.leftoverPower} 熱${b.leftoverHeat} 装甲${b.leftoverShield}`);
+    if (b.leftoverPower !== undefined && b.leftoverHeat !== undefined) {
+      lines.push(`    余り 電力${b.leftoverPower} 熱${b.leftoverHeat} 装甲${b.leftoverShield}`);
+    }
     if (b.log?.length) {
       lines.push("  巡回ログ（人間版の戦闘表示と同じ範囲）");
       b.log.forEach(entry => lines.push(`    ${entry}`));

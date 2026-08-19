@@ -1,4 +1,4 @@
-import { predictionLevel } from "./arc.mjs";
+import { ARC } from "./arc.mjs";
 
 const PIVOT_THRESHOLD = 0.4;
 
@@ -70,7 +70,8 @@ export function describeRun(trace) {
   const updates = events.filter(e => e.type === "reward_chosen").map(e => e.update);
   const updateCounts = updates.reduce((acc, update) => acc.set(update, (acc.get(update) || 0) + 1), new Map());
 
-  const tension = predicted.map(e => predictionLevel(e.prediction));
+  const levelOf = trace.predictionLevel || ARC.predictionLevel;
+  const tension = predicted.map(e => levelOf(e.prediction));
   const tenseBattles = tension.filter(level => level <= 1).length;
 
   const markerCounts = markers.reduce((acc, m) => acc.set(m.kind, (acc.get(m.kind) || 0) + 1), new Map());

@@ -213,3 +213,25 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng }) {
     log
   };
 }
+
+// ルールセットを1つの束にして渡せるようにする。
+// 別ルールの試作は、同じ形の束を輸出すれば同じ実行機・同じ集計器に載る。
+export const ARC = {
+  id: RULESET_ID,
+  title: "ガラクタ・ラボ / ARC 0.1",
+  PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
+  SLOT_COUNT, START_PARTS, RARE_RATE, MAX_CYCLES,
+  MAX_HP: 30, REPAIR_HP: 5, WIN_HEAL: 3, REWARD_CHOICES: 3,
+  slotLabel: "駆動列",
+  slotHint: "枠1から順に作動",
+  simulateBattle, predictionLevel, outcomeLevel,
+  rules: `【ガラクタ・ラボ / ARC 0.1 遊び方】
+- 拾った部品で機械を組み、6戦を勝ち抜く。操作は構築のみで、戦闘は自動。
+- 駆動列は5枠。戦闘では毎巡回、枠1から枠5へ順に部品が作動する。
+- 部品が作動した後、敵が反撃する。装甲が反撃を肩代わりし、余りはHPへ通る。装甲は巡回をまたいで残る。
+- 資源は電力・熱・装甲の3種。戦闘開始時はすべて0で、戦闘が終わると消える。
+- 部品はすべて単独でも動く。特定の組合せが必須になるレシピはない。
+- 勝利するとHPが3回復し、ランダムな3候補から1個だけ拾える。全部見送ると修復材◆2になる。
+- 予備部品を分解すると◆1。◆1を使うとHPが5回復する。
+- 敵の装甲は各攻撃のダメージを減らす（最低1は通る）。12巡回で決着しなければ引き分け扱いで敗北。`
+};

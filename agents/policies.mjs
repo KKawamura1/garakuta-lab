@@ -1,4 +1,4 @@
-import { ENEMIES, PARTS, simulateBattle, SLOT_COUNT } from "../core/arc.mjs";
+import { ARC } from "../core/arc.mjs";
 import { makeRng } from "../core/rng.mjs";
 
 const evalRng = () => makeRng(20260818);
@@ -9,15 +9,17 @@ function instances(observation) {
   return { slots, bench };
 }
 
-function score(slots, observation, enemy) {
-  const result = simulateBattle({
-    slots, hp: observation.hp, maxHp: observation.maxHp, enemy, rng: evalRng()
-  });
-  return { value: (result.won ? 1000 : 0) + result.hp * 10 - result.enemyHp, result };
+function makeScore(ruleset) {
+  return function score(slots, observation, enemy) {
+    const result = ruleset.simulateBattle({
+      slots, hp: observation.hp, maxHp: observation.maxHp, enemy, rng: evalRng()
+    });
+    return { value: (result.won ? 1000 : 0) + result.hp * 10 - result.enemyHp, result };
+  };
 }
 
-function fullEnemy(observation) {
-  return ENEMIES[observation.battleNumber - 1] || ENEMIES[ENEMIES.length - 1];
+function makeFullEnemy(ruleset) {
+  return observation => ruleset.ENEMIES[observation.battleNumber - 1] || ruleset.ENEMIES[ruleset.ENEMIES.length - 1];
 }
 
 function predictionFor(result, hp) {
@@ -36,7 +38,8 @@ function worryFor(result, slots) {
   return "なし";
 }
 
-export function naivePolicy() {
+export function naivePolicy({ ruleset = ARC } = {}) {
+  const { SLOT_COUNT } = ruleset;
   return {
     id: "naive",
     build(observation) {
@@ -56,8 +59,11 @@ export function naivePolicy() {
   };
 }
 
-export function localSearchPolicy({ rounds = 3, ban = [] } = {}) {
+export function localSearchPolicy({ rounds = 3, ban = [], ruleset = ARC } = {}) {
+  const { ENEMIES, simulateBattle, SLOT_COUNT } = ruleset;
   const allowed = part => part && !ban.includes(part.type);
+  const score = makeScore(ruleset);
+  const fullEnemy = makeFullEnemy(ruleset);
   return {
     id: ban.length ? `local-ban:${ban.join("+")}` : "local",
     build(observation) {
@@ -104,7 +110,7 @@ export function localSearchPolicy({ rounds = 3, ban = [] } = {}) {
       };
     },
     reward(observation) {
-      const enemy = ENEMIES[observation.battleNumber - 1] || ENEMIES[ENEMIES.length - 1];
+      const enemy = fullEnemy(observation);
       const { slots } = instances(observation);
       let best = { value: -Infinity, choice: 1 };
       const offers = observation.offer.filter(item => allowed(item.part));

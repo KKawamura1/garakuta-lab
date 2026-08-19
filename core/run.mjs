@@ -1,15 +1,14 @@
 import { makeRng } from "./rng.mjs";
-import {
-  PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
-  SLOT_COUNT, START_PARTS, RARE_RATE, RULESET_ID,
-  simulateBattle, predictionLevel, outcomeLevel
-} from "./arc.mjs";
+import { ARC } from "./arc.mjs";
 
-const MAX_HP = 30;
-const REPAIR_HP = 5;
-const WIN_HEAL = 3;
+export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
+  const {
+    PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
+    SLOT_COUNT, START_PARTS, RARE_RATE,
+    MAX_HP, REPAIR_HP, WIN_HEAL, REWARD_CHOICES,
+    simulateBattle, predictionLevel, outcomeLevel
+  } = ruleset;
 
-export function createRun({ seed, playerId = "unknown" }) {
   const rng = makeRng(seed);
   let counter = 0;
   const makeId = () => `p${(counter += 1).toString(36)}`;
@@ -25,7 +24,7 @@ export function createRun({ seed, playerId = "unknown" }) {
   const makePart = type => ({ id: makeId(), type, acquiredWave: state?.wave ?? 0 });
 
   const state = {
-    seed, playerId, ruleset: RULESET_ID,
+    seed, playerId, ruleset: ruleset.id,
     phase: "build", wave: 0, hp: MAX_HP, maxHp: MAX_HP, scrap: 1,
     inventory: [], slots: Array(SLOT_COUNT).fill(null),
     offer: null, done: false, won: false,
@@ -48,6 +47,7 @@ export function createRun({ seed, playerId = "unknown" }) {
     id: instance.id, type: instance.type, name: PARTS[instance.type].name,
     icon: PARTS[instance.type].icon, short: PARTS[instance.type].short,
     desc: PARTS[instance.type].desc, tags: PARTS[instance.type].tags,
+    cost: PARTS[instance.type].cost,
     rare: Boolean(PARTS[instance.type].rare), acquiredWave: instance.acquiredWave + 1
   });
 
@@ -55,6 +55,7 @@ export function createRun({ seed, playerId = "unknown" }) {
 
   const enemyView = () => {
     const enemy = currentEnemy();
+    if (ruleset.enemyView) return ruleset.enemyView(enemy);
     return { name: enemy.name, hp: enemy.hp, atk: enemy.atk, armor: enemy.armor || 0, trait: enemy.trait };
   };
 
@@ -66,7 +67,9 @@ export function createRun({ seed, playerId = "unknown" }) {
 
   function observe() {
     const base = {
-      ruleset: state.ruleset, seed: state.seed, phase: state.phase,
+      ruleset: state.ruleset, title: ruleset.title,
+      slotLabel: ruleset.slotLabel, slotHint: ruleset.slotHint,
+      seed: state.seed, phase: state.phase,
       battleNumber: state.wave + 1, totalBattles: ENEMIES.length,
       hp: state.hp, maxHp: state.maxHp, scrap: state.scrap,
       slots: state.slots.map((instance, i) => ({ slot: i + 1, part: view(instance) })),
@@ -84,7 +87,7 @@ export function createRun({ seed, playerId = "unknown" }) {
     if (state.done) return [];
     if (state.phase === "reward") {
       return [
-        { type: "take", args: { choice: "1..3", reason: "string", update: `one of ${UPDATE_KINDS.join("|")}`, updateText: "string" } },
+        { type: "take", args: { choice: `1..${REWARD_CHOICES}`, reason: "string", update: `one of ${UPDATE_KINDS.join("|")}`, updateText: "string" } },
         { type: "skipAll", args: { reason: "string" } },
         { type: "mark", args: { kind: MARKER_KINDS.join("|"), note: "string" } }
       ];
@@ -195,6 +198,7 @@ export function createRun({ seed, playerId = "unknown" }) {
       cycles: result.cycles, hpBefore, hpAfter: state.hp, hpLost: hpBefore - state.hp,
       enemyHpLeft: result.enemyHp, leftoverPower: result.power, leftoverHeat: result.heat,
       leftoverShield: result.shield, timedOut: result.timedOut,
+      resources: result.resources,
       prediction: action.prediction, surprise,
       contributions: result.contributions.map(c => ({
         name: c.name, activations: c.activations, damage: c.damage,
@@ -235,7 +239,7 @@ export function createRun({ seed, playerId = "unknown" }) {
     state.wave += 1;
     state.phase = "reward";
     const types = [];
-    while (types.length < 3) {
+    while (types.length < REWARD_CHOICES) {
       const next = weightedType(types);
       if (!types.includes(next)) types.push(next);
     }
@@ -249,7 +253,7 @@ export function createRun({ seed, playerId = "unknown" }) {
     const offered = state.offer.map(p => PARTS[p.type].name);
     if (type === "take") {
       const index = Number(action.choice) - 1;
-      if (!(index >= 0 && index < state.offer.length)) return fail("choice must be 1..3");
+      if (!(index >= 0 && index < state.offer.length)) return fail(`choice must be 1..${state.offer.length}`);
       if (!UPDATE_KINDS.includes(action.update)) return fail(`update must be one of ${UPDATE_KINDS.join("|")}`);
       const instance = state.offer[index];
       instance.acquiredWave = state.wave;
@@ -278,10 +282,20 @@ export function createRun({ seed, playerId = "unknown" }) {
     return fail(`unknown action "${type}" in reward phase`);
   }
 
+  // 資源名はルールセットごとに違うので、after に入っている物だけを並べる。
+  const RESOURCE_LABELS = { power: "電", heat: "熱", shield: "装", bus: "帯", hp: null, enemyHp: null };
+
   function condenseLog(log) {
-    return log.map(entry => (entry.type === "enemy"
-      ? `巡${entry.cycle} 敵:${entry.part} ${entry.text}（残HP ${entry.after.hp}）`
-      : `巡${entry.cycle} 枠${entry.slot + 1} ${entry.part}：${entry.text}${entry.damage ? `（${entry.damage}ダメージ）` : ""} → 敵HP${entry.after.enemyHp} 電${entry.after.power} 熱${entry.after.heat} 装${entry.after.shield}`));
+    return log.map(entry => {
+      if (entry.type === "enemy") return `巡${entry.cycle} 敵:${entry.part} ${entry.text}（残HP ${entry.after.hp}）`;
+      const where = entry.slot === null ? "" : ` 枠${entry.slot + 1}`;
+      const cost = entry.cost === undefined ? "" : `(帯${entry.cost})`;
+      const state = Object.entries(entry.after)
+        .filter(([key, value]) => RESOURCE_LABELS[key] && value !== undefined)
+        .map(([key, value]) => `${RESOURCE_LABELS[key]}${value}`).join(" ");
+      const hit = entry.damage ? `（${entry.damage}ダメージ）` : "";
+      return `巡${entry.cycle}${where} ${entry.part}${cost}：${entry.text}${hit} → 敵HP${entry.after.enemyHp}${state ? " " + state : ""}`;
+    });
   }
 
   function finish(survey = {}) {

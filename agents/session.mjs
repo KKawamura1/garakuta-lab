@@ -2,6 +2,10 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
+import { ARC } from "../core/arc.mjs";
+import { BUS } from "../core/bus.mjs";
+
+const RULESETS = { arc: ARC, bus: BUS };
 import { renderObservation as render } from "../core/render.mjs";
 
 const RULES = `【ガラクタ・ラボ / ARC 0.1 遊び方】
@@ -17,8 +21,9 @@ const RULES = `【ガラクタ・ラボ / ARC 0.1 遊び方】
 
 function usage() {
   console.log(`使い方:
-  node agents/session.mjs rules
-  node agents/session.mjs start --session=<path> --seed=<n> [--player=<id>]
+  node agents/session.mjs rules  [--ruleset=arc|bus]
+  node agents/session.mjs brief  [--ruleset=arc|bus]   ← 全部品・全敵・全数値を先に見せる
+  node agents/session.mjs start --session=<path> --seed=<n> [--player=<id>] [--ruleset=arc|bus]
   node agents/session.mjs show --session=<path>
   node agents/session.mjs act --session=<path> --json='{"type":"place","partId":"p1","slot":1}'
   node agents/session.mjs finish --session=<path> --json='{"replay":3,"bestMoment":"...","pivot":"あった","runStory":"..."}'
@@ -45,7 +50,8 @@ function save(path, session) {
 }
 
 function rebuild(session) {
-  const run = createRun({ seed: session.seed, playerId: session.playerId });
+  const ruleset = RULESETS[String(session.ruleset || "arc").toLowerCase()] || ARC;
+  const run = createRun({ seed: session.seed, playerId: session.playerId, ruleset });
   session.actions.forEach(action => run.act(action));
   return run;
 }
@@ -53,8 +59,42 @@ function rebuild(session) {
 const args = parseArgs(process.argv.slice(2));
 const command = args._[0];
 
+function rulesetOf(name) {
+  const ruleset = RULESETS[String(name || "arc").toLowerCase()];
+  if (!ruleset) { console.error(`未知のルールセット: ${name}（${Object.keys(RULESETS).join(", ")}）`); process.exit(2); }
+  return ruleset;
+}
+
 if (command === "rules") {
-  console.log(RULES);
+  console.log(rulesetOf(args.ruleset).rules);
+  process.exit(0);
+}
+
+// 完全情報の事前提示。初見ではなく「一通り知っている人」の条件を作るために使う。
+// 通常のプレイ中は将来の敵も未取得の部品も見えないので、これは明示的に別条件である。
+if (command === "brief") {
+  const ruleset = rulesetOf(args.ruleset);
+  console.log(ruleset.rules);
+  console.log("");
+  console.log("■ 全部品（このランで出うるものすべて）");
+  Object.values(ruleset.PARTS).forEach(part => {
+    const cost = part.cost === undefined ? "" : `帯${part.cost} `;
+    console.log(`  ${part.icon} ${part.name}${part.rare ? "（レア）" : ""}  ${cost}${part.short}`);
+    console.log(`      ${part.desc}`);
+  });
+  console.log("");
+  console.log("■ 全6戦の敵（出現順）");
+  ruleset.ENEMIES.forEach((enemy, i) => {
+    const view = ruleset.enemyView ? ruleset.enemyView(enemy) : { hp: enemy.hp, atk: enemy.atk, armor: enemy.armor || 0 };
+    const shown = Object.entries(view).filter(([k, v]) => !["name", "trait"].includes(k) && v !== null && v !== undefined)
+      .map(([k, v]) => `${k}=${v}`).join(" ");
+    console.log(`  ${i + 1}. ${enemy.name}  ${shown}`);
+    console.log(`      ${enemy.trait}`);
+  });
+  console.log("");
+  console.log(`■ 数値: 初期HP ${ruleset.MAX_HP} / 稼働枠 ${ruleset.SLOT_COUNT} / 初期部品 ${ruleset.START_PARTS}個 / 報酬 ${ruleset.REWARD_CHOICES}候補から1個`);
+  console.log(`  勝利でHP+${ruleset.WIN_HEAL} / 修復材1でHP+${ruleset.REPAIR_HP} / レア出現率 ${Math.round(ruleset.RARE_RATE * 100)}%`);
+  console.log(`  報酬候補と初期部品は毎回ランダムに抽選される。どの部品が来るかは事前には分からない。`);
   process.exit(0);
 }
 
@@ -66,10 +106,10 @@ if (!command || !args.session) {
 if (command === "start") {
   const seed = Number(args.seed);
   if (!Number.isFinite(seed)) { console.error("--seed=<number> が必要です"); process.exit(2); }
-  const session = { seed, playerId: args.player || "agent", startedAt: new Date().toISOString(), actions: [], survey: null };
+  const session = { seed, playerId: args.player || "agent", ruleset: String(args.ruleset || "arc").toLowerCase(), startedAt: new Date().toISOString(), actions: [], survey: null };
   save(args.session, session);
   const run = rebuild(session);
-  console.log(RULES);
+  console.log(rulesetOf(session.ruleset).rules);
   console.log("");
   console.log(render(run.observe()));
   process.exit(0);
