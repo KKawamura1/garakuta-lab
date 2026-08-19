@@ -1,0 +1,1593 @@
+{
+  "seed": 14,
+  "playerId": "brief-14-a",
+  "ruleset": "arc",
+  "startedAt": "2026-08-19T04:12:57.845Z",
+  "actions": [
+    {
+      "type": "mark",
+      "kind": "insight",
+      "note": "初期部品に電磁ラム・過充電池が無く、代わりに熱系が3つ来た。事前に立てた電力ルートは捨てて熱ルートに切り替える。暴走炉は熱を毎巡回+2する唯一の手段なので、熱を冷ます破裂ベント・廃熱タービンとは同居できない、という排他関係が見えたのが大きい。"
+    },
+    {
+      "type": "place",
+      "partId": "p6",
+      "slot": 1
+    },
+    {
+      "type": "place",
+      "partId": "p3",
+      "slot": 2
+    },
+    {
+      "type": "place",
+      "partId": "p8",
+      "slot": 3
+    },
+    {
+      "type": "place",
+      "partId": "p5",
+      "slot": 4
+    },
+    {
+      "type": "place",
+      "partId": "p2",
+      "slot": 5
+    },
+    {
+      "type": "battle",
+      "prediction": "勝てそう",
+      "worry": "熱",
+      "worryText": "熱が巡回をまたいで残るかどうかに構成全体を賭けている。もし戦闘中でも熱がリセットされる、あるいは暴走炉の+2が思ったほど積み上がらないなら、熱感知パルスは一生2ダメージのゴミで、私は2枠を無駄にしていることになる。HP22の相手には勝てるだろうが、そこが確認したい。"
+    },
+    {
+      "type": "mark",
+      "kind": "insight",
+      "note": "暴走炉の damage が熱2で2、熱4で3。1〜6と書いてあるが伸びが緩い。つまり暴走炉は攻撃部品ではなく熱ポンプとして評価すべき部品。この読み替えができるかどうかで構成が変わる。"
+    },
+    {
+      "type": "take",
+      "choice": 2,
+      "reason": "単発ダメージ期待値8で全部品中最高、しかも副次効果の熱+2が私の熱エンジンにそのまま乗る。暴走炉と併せて毎巡回+4なら熱5の点火が3巡回目から2巡回目に前倒しになり、熱感知パルスの8ダメージが実戦で間に合うようになる。吸着ドリルも強いが、装甲2の敵に対して3ダメージは1になるので終盤の価値が低い。",
+      "update": "revalued_existing",
+      "updateText": "違法砲身を単なる大砲ではなく第二の熱源として評価し直した。同時に暴走炉の評価を『攻撃』から『熱ポンプ』へ下げた。熱源が2つになったので、暴走炉は将来もっと良い部品が来たら外す候補になる。"
+    },
+    {
+      "type": "remove",
+      "slot": 3
+    },
+    {
+      "type": "place",
+      "partId": "pa",
+      "slot": 3
+    },
+    {
+      "type": "swap",
+      "slotA": 2,
+      "slotB": 3
+    },
+    {
+      "type": "battle",
+      "prediction": "勝てそう",
+      "worry": "速度",
+      "worryText": "熱4では熱感知パルスの条件（熱5以上）に1だけ届かない。点火が2巡回目からになるので、初動が遅い。攻撃5のドローン相手に3巡回かかると15ダメージ、装甲3で毎巡回3防いでも6は通る。それ自体は許容範囲だが、この初動の遅さが暴走ジャガー戦でそのまま致命傷になるのが怖い。"
+    },
+    {
+      "type": "mark",
+      "kind": "payoff",
+      "note": "熱源2つ→2巡回目に熱感知パルスが8ダメージで点火。組んだ順番（熱源を前の枠、パルスを後ろの枠）が意図通りに効いた瞬間で、ここは気持ちよかった。"
+    },
+    {
+      "type": "take",
+      "choice": 3,
+      "reason": "違法砲身2本目。枠あたり期待値8は全部品最高で、装甲2の敵に対しても6が通る。加えて熱源が3つ（暴走炉+砲身2本）になると1巡回目のパルス到達熱が6になり、点火が1巡回目に前倒しされる。時限ボルト2本目は期待値6.5だが装甲2の敵に対して奇数回の2ダメージが1になるため実効値が落ちる。",
+      "update": "confirmed",
+      "updateText": "『単発の大きい一撃が装甲2の敵に強い』という事前予想はそのまま当たっている。加えて、この構成では火力部品が同時に熱源でもあるため攻撃と点火が二重取りになる、という当初想定になかった上積みがある。"
+    },
+    {
+      "type": "remove",
+      "slot": 5
+    },
+    {
+      "type": "place",
+      "partId": "pe",
+      "slot": 5
+    },
+    {
+      "type": "swap",
+      "slotA": 3,
+      "slotB": 5
+    },
+    {
+      "type": "scrapPart",
+      "partId": "p1"
+    },
+    {
+      "type": "battle",
+      "prediction": "圧勝",
+      "worry": "装甲",
+      "worryText": "敵の装甲2で、暴走炉の2ダメージと時限ボルトの奇数回2ダメージがほぼ無効化される。5枠のうち2枠が実質1ダメージしか出さない巡回があるということで、装甲持ちに対する私の構成の穴はそこ。ただ違法砲身2本とパルスで毎巡回18は通るはずなのでHP43は落とせると思う。"
+    },
+    {
+      "type": "take",
+      "choice": 1,
+      "reason": "違法砲身3本目。装甲2のクラブ戦で暴走炉が1ダメージ、時限ボルト奇数回が1ダメージしか通らなかったのを見て、装甲持ちに対する枠の価値差がはっきりした。砲身は装甲2でも4〜7通る。さらに砲身3本で熱+6になるため暴走炉の熱源としての役割も代替でき、最弱枠をまるごと入れ替えられる。過充電池と装甲プリズムは装甲を作る部品と2枠セットで初めて機能するが、その2枠で火力を捨てると攻撃力上昇型の敵に押し切られる。",
+      "update": "revalued_existing",
+      "updateText": "暴走炉を『必須の点火装置』から『砲身が3本揃った時点で不要になる部品』に評価変更。熱源が冗長化したことで、構成の中で唯一残っていた低火力枠を切れるようになった。"
+    },
+    {
+      "type": "remove",
+      "slot": 1
+    },
+    {
+      "type": "place",
+      "partId": "pf",
+      "slot": 1
+    },
+    {
+      "type": "scrapPart",
+      "partId": "p6"
+    },
+    {
+      "type": "scrapPart",
+      "partId": "p4"
+    },
+    {
+      "type": "battle",
+      "prediction": "圧勝",
+      "worry": "選択肢",
+      "worryText": "この敵自体は怖くない。熱を足してくるのは私にとって完全な追い風で、装甲0なので砲身3本がフルに通る。不安なのはむしろ、構成がもう違法砲身3本で完成してしまって、残り2回の報酬で選ぶことが実質なくなっていること。そして最終戦は94HP・装甲2・攻撃10上昇、こちらはHP上限30。3巡回で倒しきれなければ負けるのに、その3巡回に届く手が今の手札に見えていない。"
+    },
+    {
+      "type": "skipAll",
+      "reason": "3候補すべてが既に分解済みか、現在の5枠のどれよりも枠あたり期待値が低い部品。廃熱タービンと火花ノズルは即席装甲機に電力を渡して装甲6にする使い道があるが、それには2枠必要で、空いているのは1枠しかない。ならば装甲機を単独で入れて装甲3を取るほうが良い。修復材2のほうが最終戦前のHP補充として価値がある。"
+    },
+    {
+      "type": "mark",
+      "kind": "friction",
+      "note": "報酬3候補が全部すでに切り捨てた部品で、選ぶという行為が発生しなかった。構成が違法砲身3本に収束した時点で、残りの報酬画面は実質『見送る』を押すだけの作業になっている。ここは退屈だった。"
+    },
+    {
+      "type": "remove",
+      "slot": 4
+    },
+    {
+      "type": "place",
+      "partId": "p2",
+      "slot": 4
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "battle",
+      "prediction": "勝てそう",
+      "worry": "速度",
+      "worryText": "HP72を3巡回で削り切れれば敵の攻撃は7と9の2回しか飛んでこないが、違法砲身は5〜11の振れ幅があるので低く転ぶと4巡回目に入る。そうなると11ダメージが追加で来る。しかも敵の装甲1で毎巡回5ダメージ分が削られるのが地味に効く。時限ボルトを抜いて瞬間火力を下げたのが裏目に出て1巡回延びる、というのが一番ありそうな負け筋。"
+    },
+    {
+      "type": "mark",
+      "kind": "insight",
+      "note": "最終戦は防御を足すほど死ぬ構造になっている。敵の攻撃が毎巡回+2で上がるので、装甲を1枠増やして討伐を1巡回遅らせると、増えた装甲より増えた被弾のほうが大きい。つまり装甲の価値は『何巡回で殺せるか』に完全に従属していて、独立した防御という選択肢が実は存在しない。"
+    },
+    {
+      "type": "skipAll",
+      "reason": "3候補のどれを入れても、砲身かパルス（実効6ダメージ/巡回）を1枠抜くことになる。そうすると討伐が4巡回から6巡回に伸び、受ける攻撃が3回から5回に増える。攻撃力が毎巡回+2で上がる相手に対しては、増える装甲より増える被弾のほうが大きく、必ず負ける計算になる。今の構成が4巡回で94を削り切れるかどうかの一点賭けで、それが最も勝率が高い。"
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "repair"
+    },
+    {
+      "type": "battle",
+      "prediction": "ギリギリ",
+      "worry": "火力",
+      "worryText": "94HPを4巡回で削り切れれば勝ち、5巡回かかれば確実に負ける、という一点賭け。必要なのは平均23.5ダメージ/巡回で、私の期待値は24。ほぼ五分。違法砲身が5〜11の振れ幅を持っているので、3本のうち何本かが低く転ぶだけで1巡回延びて死ぬ。防御を厚くする選択肢は計算上すべて負けだったので、火力を信じるしかないところが不安。"
+    }
+  ],
+  "survey": {
+    "replay": 3,
+    "settledAt": "4",
+    "bestMoment": "第3戦の直前、違法砲身2本目を取った瞬間。熱源が2つになったことで熱感知パルスの点火が1巡回目に前倒しされ、実際に鋳鉄クラブ戦の巡1枠5で8ダメージが出た。事前に頭の中で組んだ『熱源を前の枠に、パルスを後ろの枠に』という並び順の意図が、そのままログの数字として返ってきた。あと最終戦の4巡回目、最後の枠で敵HP2が0になった決着も良かった。",
+    "friction": "第5戦と第6戦の報酬画面。候補3つが全部、自分がすでに分解した部品か、今の5枠のどれよりも明確に弱い部品で、選ぶという行為が発生せず見送りを押すだけだった。構成が違法砲身3本に収束した第4戦以降、ビルドの判断が実質なくなっている。もうひとつ、暴走炉の説明が『現在の熱に応じて1〜6ダメージ』とあるのに、熱6でも4ダメージ、熱10でも実測でそのあたりまでしか出ず、上限6にどう届くのかが最後まで分からなかった。",
+    "pivot": "あった",
+    "runStory": "briefを読んだ時点では電磁ラム＋過充電池の電力ルートを本命に据えていたが、初期8部品に電力系がひとつも来ず、代わりに暴走炉・熱感知パルス・破裂ベント・廃熱タービンという熱系が固まって来たので開幕で捨てた。第1戦で熱が巡回をまたいで残ることを確認し、熱を溜めて熱感知パルスの8ダメージを毎巡回撃つエンジンに方針転換。第2戦の報酬で違法砲身を引いたのが分岐点で、これが火力と熱源を兼ねていたため点火が1巡回早まり、さらに3本目を引いた時点で暴走炉が熱源として不要になり最弱枠を丸ごと捨てられた。第5戦の前に、装甲2の敵に対して時限ボルトの奇数回2ダメージが1しか通らないのを見て、ボルトを即席装甲機に入れ替えたのが最後の判断。最終戦は防御を1枠増やすと討伐が2巡回伸びて攻撃上昇に追い抜かれる計算だったので、火力のまま4巡回討伐に賭けて、4巡回目の最後の枠で削り切った。",
+    "summary": "熱エンジンから違法砲身3本の単発火力構成へ寄せて全6戦突破。HP6残り。"
+  },
+  "trace": {
+    "seed": 14,
+    "ruleset": "arc-0.1",
+    "playerId": "brief-14-a",
+    "won": true,
+    "reached": 6,
+    "finalHp": 9,
+    "battles": [
+      {
+        "battleNumber": 1,
+        "enemy": "スクラップ・ラット",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 30,
+        "hpLost": 0,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 4,
+        "leftoverShield": 0,
+        "timedOut": false,
+        "prediction": "勝てそう",
+        "surprise": "better",
+        "contributions": [
+          {
+            "name": "暴走炉",
+            "activations": 2,
+            "damage": 5,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 4,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "残響コイル",
+            "activations": 2,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 2,
+            "damage": 13,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 1,
+            "damage": 0,
+            "shield": 3,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 2,
+        "enemy": "切断ドローン",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 28,
+        "hpLost": 2,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 6,
+        "leftoverShield": 0,
+        "timedOut": false,
+        "prediction": "勝てそう",
+        "surprise": "better",
+        "contributions": [
+          {
+            "name": "暴走炉",
+            "activations": 2,
+            "damage": 6,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 10,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 2,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 1,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 1,
+            "damage": 0,
+            "shield": 3,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 3,
+        "enemy": "鋳鉄クラブ",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 25,
+        "hpLost": 5,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 8,
+        "leftoverShield": 0,
+        "timedOut": false,
+        "prediction": "圧勝",
+        "surprise": "expected",
+        "contributions": [
+          {
+            "name": "暴走炉",
+            "activations": 2,
+            "damage": 3,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 11,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 9,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 2,
+            "damage": 10,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 12,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 4,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 4,
+        "enemy": "焼却監視機",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 28,
+        "hpAfter": 21,
+        "hpLost": 7,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 11,
+        "leftoverShield": 0,
+        "timedOut": false,
+        "prediction": "圧勝",
+        "surprise": "worse",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 12,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 15,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 19,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 1,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 1,
+            "damage": 8,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 2,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 5,
+        "enemy": "暴走ジャガー",
+        "won": true,
+        "cycles": 3,
+        "hpBefore": 30,
+        "hpAfter": 20,
+        "hpLost": 10,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 14,
+        "leftoverShield": 0,
+        "timedOut": false,
+        "prediction": "勝てそう",
+        "surprise": "expected",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 24,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 16,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 6,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 14,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 4,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "battleNumber": 6,
+        "enemy": "廃都の中枢",
+        "won": true,
+        "cycles": 4,
+        "hpBefore": 30,
+        "hpAfter": 6,
+        "hpLost": 24,
+        "enemyHpLeft": 0,
+        "leftoverPower": 0,
+        "leftoverHeat": 16,
+        "leftoverShield": 3,
+        "timedOut": false,
+        "prediction": "ギリギリ",
+        "surprise": "expected",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 22,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 31,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 4,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 4,
+            "damage": 24,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 8,
+            "healing": 0
+          }
+        ]
+      }
+    ],
+    "rewards": [
+      {
+        "offered": [
+          "吸着ドリル",
+          "違法砲身",
+          "小型再生機"
+        ],
+        "chosen": "違法砲身",
+        "update": "revalued_existing"
+      },
+      {
+        "offered": [
+          "時限ボルト",
+          "廃熱タービン",
+          "違法砲身"
+        ],
+        "chosen": "違法砲身",
+        "update": "confirmed"
+      },
+      {
+        "offered": [
+          "違法砲身",
+          "装甲プリズム",
+          "過充電池"
+        ],
+        "chosen": "違法砲身",
+        "update": "revalued_existing"
+      },
+      {
+        "offered": [
+          "廃熱タービン",
+          "暴走炉",
+          "火花ノズル"
+        ],
+        "chosen": null,
+        "update": "none"
+      },
+      {
+        "offered": [
+          "過充電池",
+          "小型再生機",
+          "即席装甲機"
+        ],
+        "chosen": null,
+        "update": "none"
+      }
+    ],
+    "events": [
+      {
+        "seq": 1,
+        "type": "run_started",
+        "wave": 1,
+        "phase": "build",
+        "initial": [
+          "破裂ベント",
+          "即席装甲機",
+          "熱感知パルス",
+          "火花ノズル",
+          "時限ボルト",
+          "暴走炉",
+          "廃熱タービン",
+          "残響コイル"
+        ]
+      },
+      {
+        "seq": 2,
+        "type": "emotion_marked",
+        "wave": 1,
+        "phase": "build",
+        "kind": "insight",
+        "note": "初期部品に電磁ラム・過充電池が無く、代わりに熱系が3つ来た。事前に立てた電力ルートは捨てて熱ルートに切り替える。暴走炉は熱を毎巡回+2する唯一の手段なので、熱を冷ます破裂ベント・廃熱タービンとは同居できない、という排他関係が見えたのが大きい。"
+      },
+      {
+        "seq": 3,
+        "type": "battle_predicted",
+        "wave": 1,
+        "phase": "build",
+        "enemy": "スクラップ・ラット",
+        "prediction": "勝てそう",
+        "worry": "熱",
+        "worryText": "熱が巡回をまたいで残るかどうかに構成全体を賭けている。もし戦闘中でも熱がリセットされる、あるいは暴走炉の+2が思ったほど積み上がらないなら、熱感知パルスは一生2ダメージのゴミで、私は2枠を無駄にしていることになる。HP22の相手には勝てるだろうが、そこが確認したい。",
+        "build": [
+          "暴走炉",
+          "熱感知パルス",
+          "残響コイル",
+          "時限ボルト",
+          "即席装甲機"
+        ],
+        "buildSignature": "p6,p3,p8,p5,p2",
+        "editsSincePrevious": 5
+      },
+      {
+        "seq": 4,
+        "type": "battle_ended",
+        "wave": 1,
+        "phase": "build",
+        "enemy": "スクラップ・ラット",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 30,
+        "enemyHpLeft": 0,
+        "prediction": "勝てそう",
+        "expectedLevel": 2,
+        "actualLevel": 3,
+        "surprise": "better",
+        "buildSignature": "p6,p3,p8,p5,p2",
+        "worry": "熱",
+        "contributions": [
+          {
+            "name": "暴走炉",
+            "activations": 2,
+            "damage": 5,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 4,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "残響コイル",
+            "activations": 2,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 2,
+            "damage": 13,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 1,
+            "damage": 0,
+            "shield": 3,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 5,
+        "type": "reward_offered",
+        "wave": 2,
+        "phase": "reward",
+        "offered": [
+          "吸着ドリル",
+          "違法砲身",
+          "小型再生機"
+        ]
+      },
+      {
+        "seq": 6,
+        "type": "emotion_marked",
+        "wave": 2,
+        "phase": "reward",
+        "kind": "insight",
+        "note": "暴走炉の damage が熱2で2、熱4で3。1〜6と書いてあるが伸びが緩い。つまり暴走炉は攻撃部品ではなく熱ポンプとして評価すべき部品。この読み替えができるかどうかで構成が変わる。"
+      },
+      {
+        "seq": 7,
+        "type": "reward_chosen",
+        "wave": 2,
+        "phase": "reward",
+        "offered": [
+          "吸着ドリル",
+          "違法砲身",
+          "小型再生機"
+        ],
+        "chosen": "違法砲身",
+        "passed": [
+          "吸着ドリル",
+          "小型再生機"
+        ],
+        "reason": "単発ダメージ期待値8で全部品中最高、しかも副次効果の熱+2が私の熱エンジンにそのまま乗る。暴走炉と併せて毎巡回+4なら熱5の点火が3巡回目から2巡回目に前倒しになり、熱感知パルスの8ダメージが実戦で間に合うようになる。吸着ドリルも強いが、装甲2の敵に対して3ダメージは1になるので終盤の価値が低い。",
+        "update": "revalued_existing",
+        "updateText": "違法砲身を単なる大砲ではなく第二の熱源として評価し直した。同時に暴走炉の評価を『攻撃』から『熱ポンプ』へ下げた。熱源が2つになったので、暴走炉は将来もっと良い部品が来たら外す候補になる。"
+      },
+      {
+        "seq": 8,
+        "type": "battle_predicted",
+        "wave": 2,
+        "phase": "build",
+        "enemy": "切断ドローン",
+        "prediction": "勝てそう",
+        "worry": "速度",
+        "worryText": "熱4では熱感知パルスの条件（熱5以上）に1だけ届かない。点火が2巡回目からになるので、初動が遅い。攻撃5のドローン相手に3巡回かかると15ダメージ、装甲3で毎巡回3防いでも6は通る。それ自体は許容範囲だが、この初動の遅さが暴走ジャガー戦でそのまま致命傷になるのが怖い。",
+        "build": [
+          "暴走炉",
+          "違法砲身",
+          "熱感知パルス",
+          "時限ボルト",
+          "即席装甲機"
+        ],
+        "buildSignature": "p6,pa,p3,p5,p2",
+        "editsSincePrevious": 3
+      },
+      {
+        "seq": 9,
+        "type": "battle_ended",
+        "wave": 2,
+        "phase": "build",
+        "enemy": "切断ドローン",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 28,
+        "enemyHpLeft": 0,
+        "prediction": "勝てそう",
+        "expectedLevel": 2,
+        "actualLevel": 3,
+        "surprise": "better",
+        "buildSignature": "p6,pa,p3,p5,p2",
+        "worry": "速度",
+        "contributions": [
+          {
+            "name": "暴走炉",
+            "activations": 2,
+            "damage": 6,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 18,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 10,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 2,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 1,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 1,
+            "damage": 0,
+            "shield": 3,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 10,
+        "type": "reward_offered",
+        "wave": 3,
+        "phase": "reward",
+        "offered": [
+          "時限ボルト",
+          "廃熱タービン",
+          "違法砲身"
+        ]
+      },
+      {
+        "seq": 11,
+        "type": "emotion_marked",
+        "wave": 3,
+        "phase": "reward",
+        "kind": "payoff",
+        "note": "熱源2つ→2巡回目に熱感知パルスが8ダメージで点火。組んだ順番（熱源を前の枠、パルスを後ろの枠）が意図通りに効いた瞬間で、ここは気持ちよかった。"
+      },
+      {
+        "seq": 12,
+        "type": "reward_chosen",
+        "wave": 3,
+        "phase": "reward",
+        "offered": [
+          "時限ボルト",
+          "廃熱タービン",
+          "違法砲身"
+        ],
+        "chosen": "違法砲身",
+        "passed": [
+          "時限ボルト",
+          "廃熱タービン"
+        ],
+        "reason": "違法砲身2本目。枠あたり期待値8は全部品最高で、装甲2の敵に対しても6が通る。加えて熱源が3つ（暴走炉+砲身2本）になると1巡回目のパルス到達熱が6になり、点火が1巡回目に前倒しされる。時限ボルト2本目は期待値6.5だが装甲2の敵に対して奇数回の2ダメージが1になるため実効値が落ちる。",
+        "update": "confirmed",
+        "updateText": "『単発の大きい一撃が装甲2の敵に強い』という事前予想はそのまま当たっている。加えて、この構成では火力部品が同時に熱源でもあるため攻撃と点火が二重取りになる、という当初想定になかった上積みがある。"
+      },
+      {
+        "seq": 13,
+        "type": "part_scrapped",
+        "wave": 3,
+        "phase": "build",
+        "part": "破裂ベント"
+      },
+      {
+        "seq": 14,
+        "type": "battle_predicted",
+        "wave": 3,
+        "phase": "build",
+        "enemy": "鋳鉄クラブ",
+        "prediction": "圧勝",
+        "worry": "装甲",
+        "worryText": "敵の装甲2で、暴走炉の2ダメージと時限ボルトの奇数回2ダメージがほぼ無効化される。5枠のうち2枠が実質1ダメージしか出さない巡回があるということで、装甲持ちに対する私の構成の穴はそこ。ただ違法砲身2本とパルスで毎巡回18は通るはずなのでHP43は落とせると思う。",
+        "build": [
+          "暴走炉",
+          "違法砲身",
+          "違法砲身",
+          "時限ボルト",
+          "熱感知パルス"
+        ],
+        "buildSignature": "p6,pa,pe,p5,p3",
+        "editsSincePrevious": 3
+      },
+      {
+        "seq": 15,
+        "type": "battle_ended",
+        "wave": 3,
+        "phase": "build",
+        "enemy": "鋳鉄クラブ",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 30,
+        "hpAfter": 25,
+        "enemyHpLeft": 0,
+        "prediction": "圧勝",
+        "expectedLevel": 3,
+        "actualLevel": 3,
+        "surprise": "expected",
+        "buildSignature": "p6,pa,pe,p5,p3",
+        "worry": "装甲",
+        "contributions": [
+          {
+            "name": "暴走炉",
+            "activations": 2,
+            "damage": 3,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 11,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 9,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 2,
+            "damage": 10,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 12,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 4,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 16,
+        "type": "reward_offered",
+        "wave": 4,
+        "phase": "reward",
+        "offered": [
+          "違法砲身",
+          "装甲プリズム",
+          "過充電池"
+        ]
+      },
+      {
+        "seq": 17,
+        "type": "reward_chosen",
+        "wave": 4,
+        "phase": "reward",
+        "offered": [
+          "違法砲身",
+          "装甲プリズム",
+          "過充電池"
+        ],
+        "chosen": "違法砲身",
+        "passed": [
+          "装甲プリズム",
+          "過充電池"
+        ],
+        "reason": "違法砲身3本目。装甲2のクラブ戦で暴走炉が1ダメージ、時限ボルト奇数回が1ダメージしか通らなかったのを見て、装甲持ちに対する枠の価値差がはっきりした。砲身は装甲2でも4〜7通る。さらに砲身3本で熱+6になるため暴走炉の熱源としての役割も代替でき、最弱枠をまるごと入れ替えられる。過充電池と装甲プリズムは装甲を作る部品と2枠セットで初めて機能するが、その2枠で火力を捨てると攻撃力上昇型の敵に押し切られる。",
+        "update": "revalued_existing",
+        "updateText": "暴走炉を『必須の点火装置』から『砲身が3本揃った時点で不要になる部品』に評価変更。熱源が冗長化したことで、構成の中で唯一残っていた低火力枠を切れるようになった。"
+      },
+      {
+        "seq": 18,
+        "type": "part_scrapped",
+        "wave": 4,
+        "phase": "build",
+        "part": "暴走炉"
+      },
+      {
+        "seq": 19,
+        "type": "part_scrapped",
+        "wave": 4,
+        "phase": "build",
+        "part": "火花ノズル"
+      },
+      {
+        "seq": 20,
+        "type": "battle_predicted",
+        "wave": 4,
+        "phase": "build",
+        "enemy": "焼却監視機",
+        "prediction": "圧勝",
+        "worry": "選択肢",
+        "worryText": "この敵自体は怖くない。熱を足してくるのは私にとって完全な追い風で、装甲0なので砲身3本がフルに通る。不安なのはむしろ、構成がもう違法砲身3本で完成してしまって、残り2回の報酬で選ぶことが実質なくなっていること。そして最終戦は94HP・装甲2・攻撃10上昇、こちらはHP上限30。3巡回で倒しきれなければ負けるのに、その3巡回に届く手が今の手札に見えていない。",
+        "build": [
+          "違法砲身",
+          "違法砲身",
+          "違法砲身",
+          "時限ボルト",
+          "熱感知パルス"
+        ],
+        "buildSignature": "pf,pa,pe,p5,p3",
+        "editsSincePrevious": 2
+      },
+      {
+        "seq": 21,
+        "type": "battle_ended",
+        "wave": 4,
+        "phase": "build",
+        "enemy": "焼却監視機",
+        "won": true,
+        "cycles": 2,
+        "hpBefore": 28,
+        "hpAfter": 21,
+        "enemyHpLeft": 0,
+        "prediction": "圧勝",
+        "expectedLevel": 3,
+        "actualLevel": 2,
+        "surprise": "worse",
+        "buildSignature": "pf,pa,pe,p5,p3",
+        "worry": "選択肢",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 12,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 15,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 2,
+            "damage": 19,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 4,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "時限ボルト",
+            "activations": 1,
+            "damage": 2,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 1,
+            "damage": 8,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 2,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 22,
+        "type": "reward_offered",
+        "wave": 5,
+        "phase": "reward",
+        "offered": [
+          "廃熱タービン",
+          "暴走炉",
+          "火花ノズル"
+        ]
+      },
+      {
+        "seq": 23,
+        "type": "reward_scrapped",
+        "wave": 5,
+        "phase": "reward",
+        "offered": [
+          "廃熱タービン",
+          "暴走炉",
+          "火花ノズル"
+        ],
+        "reason": "3候補すべてが既に分解済みか、現在の5枠のどれよりも枠あたり期待値が低い部品。廃熱タービンと火花ノズルは即席装甲機に電力を渡して装甲6にする使い道があるが、それには2枠必要で、空いているのは1枠しかない。ならば装甲機を単独で入れて装甲3を取るほうが良い。修復材2のほうが最終戦前のHP補充として価値がある。"
+      },
+      {
+        "seq": 24,
+        "type": "emotion_marked",
+        "wave": 5,
+        "phase": "build",
+        "kind": "friction",
+        "note": "報酬3候補が全部すでに切り捨てた部品で、選ぶという行為が発生しなかった。構成が違法砲身3本に収束した時点で、残りの報酬画面は実質『見送る』を押すだけの作業になっている。ここは退屈だった。"
+      },
+      {
+        "seq": 25,
+        "type": "repaired",
+        "wave": 5,
+        "phase": "build",
+        "hp": 29
+      },
+      {
+        "seq": 26,
+        "type": "repaired",
+        "wave": 5,
+        "phase": "build",
+        "hp": 30
+      },
+      {
+        "seq": 27,
+        "type": "battle_predicted",
+        "wave": 5,
+        "phase": "build",
+        "enemy": "暴走ジャガー",
+        "prediction": "勝てそう",
+        "worry": "速度",
+        "worryText": "HP72を3巡回で削り切れれば敵の攻撃は7と9の2回しか飛んでこないが、違法砲身は5〜11の振れ幅があるので低く転ぶと4巡回目に入る。そうなると11ダメージが追加で来る。しかも敵の装甲1で毎巡回5ダメージ分が削られるのが地味に効く。時限ボルトを抜いて瞬間火力を下げたのが裏目に出て1巡回延びる、というのが一番ありそうな負け筋。",
+        "build": [
+          "違法砲身",
+          "違法砲身",
+          "違法砲身",
+          "即席装甲機",
+          "熱感知パルス"
+        ],
+        "buildSignature": "pf,pa,pe,p2,p3",
+        "editsSincePrevious": 2
+      },
+      {
+        "seq": 28,
+        "type": "battle_ended",
+        "wave": 5,
+        "phase": "build",
+        "enemy": "暴走ジャガー",
+        "won": true,
+        "cycles": 3,
+        "hpBefore": 30,
+        "hpAfter": 20,
+        "enemyHpLeft": 0,
+        "prediction": "勝てそう",
+        "expectedLevel": 2,
+        "actualLevel": 2,
+        "surprise": "expected",
+        "buildSignature": "pf,pa,pe,p2,p3",
+        "worry": "速度",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 24,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 3,
+            "damage": 16,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 6,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 2,
+            "damage": 0,
+            "shield": 6,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 2,
+            "damage": 14,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 4,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 29,
+        "type": "reward_offered",
+        "wave": 6,
+        "phase": "reward",
+        "offered": [
+          "過充電池",
+          "小型再生機",
+          "即席装甲機"
+        ]
+      },
+      {
+        "seq": 30,
+        "type": "emotion_marked",
+        "wave": 6,
+        "phase": "reward",
+        "kind": "insight",
+        "note": "最終戦は防御を足すほど死ぬ構造になっている。敵の攻撃が毎巡回+2で上がるので、装甲を1枠増やして討伐を1巡回遅らせると、増えた装甲より増えた被弾のほうが大きい。つまり装甲の価値は『何巡回で殺せるか』に完全に従属していて、独立した防御という選択肢が実は存在しない。"
+      },
+      {
+        "seq": 31,
+        "type": "reward_scrapped",
+        "wave": 6,
+        "phase": "reward",
+        "offered": [
+          "過充電池",
+          "小型再生機",
+          "即席装甲機"
+        ],
+        "reason": "3候補のどれを入れても、砲身かパルス（実効6ダメージ/巡回）を1枠抜くことになる。そうすると討伐が4巡回から6巡回に伸び、受ける攻撃が3回から5回に増える。攻撃力が毎巡回+2で上がる相手に対しては、増える装甲より増える被弾のほうが大きく、必ず負ける計算になる。今の構成が4巡回で94を削り切れるかどうかの一点賭けで、それが最も勝率が高い。"
+      },
+      {
+        "seq": 32,
+        "type": "repaired",
+        "wave": 6,
+        "phase": "build",
+        "hp": 28
+      },
+      {
+        "seq": 33,
+        "type": "repaired",
+        "wave": 6,
+        "phase": "build",
+        "hp": 30
+      },
+      {
+        "seq": 34,
+        "type": "battle_predicted",
+        "wave": 6,
+        "phase": "build",
+        "enemy": "廃都の中枢",
+        "prediction": "ギリギリ",
+        "worry": "火力",
+        "worryText": "94HPを4巡回で削り切れれば勝ち、5巡回かかれば確実に負ける、という一点賭け。必要なのは平均23.5ダメージ/巡回で、私の期待値は24。ほぼ五分。違法砲身が5〜11の振れ幅を持っているので、3本のうち何本かが低く転ぶだけで1巡回延びて死ぬ。防御を厚くする選択肢は計算上すべて負けだったので、火力を信じるしかないところが不安。",
+        "build": [
+          "違法砲身",
+          "違法砲身",
+          "違法砲身",
+          "即席装甲機",
+          "熱感知パルス"
+        ],
+        "buildSignature": "pf,pa,pe,p2,p3",
+        "editsSincePrevious": 0
+      },
+      {
+        "seq": 35,
+        "type": "battle_ended",
+        "wave": 6,
+        "phase": "build",
+        "enemy": "廃都の中枢",
+        "won": true,
+        "cycles": 4,
+        "hpBefore": 30,
+        "hpAfter": 6,
+        "enemyHpLeft": 0,
+        "prediction": "ギリギリ",
+        "expectedLevel": 1,
+        "actualLevel": 1,
+        "surprise": "expected",
+        "buildSignature": "pf,pa,pe,p2,p3",
+        "worry": "火力",
+        "contributions": [
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 22,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 21,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "違法砲身",
+            "activations": 4,
+            "damage": 31,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 8,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "即席装甲機",
+            "activations": 4,
+            "damage": 0,
+            "shield": 12,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 0,
+            "healing": 0
+          },
+          {
+            "name": "熱感知パルス",
+            "activations": 4,
+            "damage": 24,
+            "shield": 0,
+            "powerMade": 0,
+            "powerSpent": 0,
+            "heatMade": 0,
+            "heatCooled": 8,
+            "healing": 0
+          }
+        ]
+      },
+      {
+        "seq": 36,
+        "type": "run_ended",
+        "wave": 6,
+        "phase": "end",
+        "won": true,
+        "reached": 6
+      },
+      {
+        "seq": 37,
+        "type": "survey",
+        "wave": 6,
+        "phase": "end",
+        "replay": 3,
+        "bestMoment": "第3戦の直前、違法砲身2本目を取った瞬間。熱源が2つになったことで熱感知パルスの点火が1巡回目に前倒しされ、実際に鋳鉄クラブ戦の巡1枠5で8ダメージが出た。事前に頭の中で組んだ『熱源を前の枠に、パルスを後ろの枠に』という並び順の意図が、そのままログの数字として返ってきた。あと最終戦の4巡回目、最後の枠で敵HP2が0になった決着も良かった。",
+        "pivot": "あった",
+        "settledAt": "4",
+        "runStory": "briefを読んだ時点では電磁ラム＋過充電池の電力ルートを本命に据えていたが、初期8部品に電力系がひとつも来ず、代わりに暴走炉・熱感知パルス・破裂ベント・廃熱タービンという熱系が固まって来たので開幕で捨てた。第1戦で熱が巡回をまたいで残ることを確認し、熱を溜めて熱感知パルスの8ダメージを毎巡回撃つエンジンに方針転換。第2戦の報酬で違法砲身を引いたのが分岐点で、これが火力と熱源を兼ねていたため点火が1巡回早まり、さらに3本目を引いた時点で暴走炉が熱源として不要になり最弱枠を丸ごと捨てられた。第5戦の前に、装甲2の敵に対して時限ボルトの奇数回2ダメージが1しか通らないのを見て、ボルトを即席装甲機に入れ替えたのが最後の判断。最終戦は防御を1枠増やすと討伐が2巡回伸びて攻撃上昇に追い抜かれる計算だったので、火力のまま4巡回討伐に賭けて、4巡回目の最後の枠で削り切った。",
+        "friction": "第5戦と第6戦の報酬画面。候補3つが全部、自分がすでに分解した部品か、今の5枠のどれよりも明確に弱い部品で、選ぶという行為が発生せず見送りを押すだけだった。構成が違法砲身3本に収束した第4戦以降、ビルドの判断が実質なくなっている。もうひとつ、暴走炉の説明が『現在の熱に応じて1〜6ダメージ』とあるのに、熱6でも4ダメージ、熱10でも実測でそのあたりまでしか出ず、上限6にどう届くのかが最後まで分からなかった。",
+        "wishlist": ""
+      }
+    ]
+  },
+  "metrics": {
+    "seed": 14,
+    "playerId": "brief-14-a",
+    "won": true,
+    "reached": 6,
+    "finalHp": 9,
+    "battles": 6,
+    "surprise": {
+      "better": 2,
+      "expected": 3,
+      "worse": 1
+    },
+    "deadTime": 0,
+    "pivotRate": 0.4,
+    "reinterpretationRate": 0.8,
+    "gateConcentration": 0.612,
+    "gateRanking": [
+      {
+        "name": "違法砲身",
+        "share": 0.612
+      },
+      {
+        "name": "熱感知パルス",
+        "share": 0.201
+      },
+      {
+        "name": "時限ボルト",
+        "share": 0.075
+      }
+    ],
+    "worryConcentration": 0.333,
+    "problemChainRate": 1,
+    "worryCounts": {
+      "熱": 1,
+      "速度": 2,
+      "装甲": 1,
+      "選択肢": 1,
+      "火力": 1
+    },
+    "updateCounts": {
+      "revalued_existing": 2,
+      "confirmed": 1
+    },
+    "tensionCurve": [
+      2,
+      2,
+      3,
+      3,
+      2,
+      1
+    ],
+    "tenseBattleRate": 0.167,
+    "markerCounts": {
+      "insight": 3,
+      "payoff": 1,
+      "friction": 1
+    },
+    "markerTotal": 5,
+    "rewardsTaken": 3,
+    "rewardsSkipped": 2,
+    "rewardCount": 5,
+    "warnings": [
+      {
+        "code": "single_gate",
+        "detail": "出力の61%が違法砲身に集中"
+      }
+    ]
+  }
+}
