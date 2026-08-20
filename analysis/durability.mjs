@@ -117,3 +117,31 @@ console.log("\n## 現行の警告の発火率（この面を既存の評価器�
 [...warningCounts.entries()].sort((a, b) => b[1] - a[1])
   .forEach(([code, count]) => console.log(`  ${code.padEnd(20)} ${pct(count / seeds).padStart(6)}`));
 if (!warningCounts.size) console.log("  （発火なし）");
+
+// ---- 合格判定（第5回で追加）----
+// 生成側の指標（勝ち筋ゼロ率・収束・死に部品）だけで合否を出していた運用の誤りを受けて、
+// 圧力の“位置”を合格条件に入れる。平均では隠れるので、戦闘別の分布で見る。
+
+const flawlessByIndex = battlesByIndex.map((total, index) => (zeroLossByIndex[index] || 0) / total);
+let longestRun = 0;
+let current = 0;
+flawlessByIndex.forEach(rate => {
+  current = rate > 0.8 ? current + 1 : 0;
+  longestRun = Math.max(longestRun, current);
+});
+const warnPerRun = [...warningCounts.values()].reduce((a, b) => a + b, 0) / seeds;
+const tensionRate = (warningCounts.get("no_tension") || 0) / seeds;
+const convergence = jaccardMean(finalBuilds);
+
+const checks = [
+  { name: "無料の中盤なし", ok: longestRun < 2, detail: `無傷率80%超の連続 ${longestRun}戦（許容 1戦まで）` },
+  { name: "緊張が生まれる", ok: tensionRate < 0.7, detail: `no_tension ${pct(tensionRate)}（許容 70%未満）` },
+  { name: "関門化なし", ok: rows.filter(r => r.rate >= 0.8).length === 0, detail: `採用率80%超 ${rows.filter(r => r.rate >= 0.8).length}件` },
+  { name: "収束しすぎない", ok: convergence < 0.45, detail: `Jaccard ${convergence.toFixed(3)}（許容 0.45未満）` }
+];
+
+console.log("\n## 合格判定");
+checks.forEach(c => console.log(`  ${c.ok ? "○" : "×"} ${c.name.padEnd(10)} ${c.detail}`));
+console.log(`  警告の平均発火数 ${warnPerRun.toFixed(2)}件/ラン（参考）`);
+console.log(`\n判定: ${checks.every(c => c.ok) ? "合格" : `不合格（${checks.filter(c => !c.ok).map(c => c.name).join("・")}）`}`);
+if (args.strict && !checks.every(c => c.ok)) process.exit(1);
