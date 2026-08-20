@@ -62,6 +62,21 @@ export function describeRun(trace) {
   }
   const reinterpretationRate = share(reinterpretations, Math.max(0, builds.length - 1));
 
+  // 位相を変える操作＝列に残ったまま枠が変わった部品。buildSignature（枠順の部品ID）から出る。
+  // PHASE では「どの枠に置くか」が作動する巡回そのものを決めるので、これが機構の使用回数になる。
+  const signatures = predicted.map(e => (e.buildSignature || "").split(","));
+  let phaseMoves = 0;
+  for (let i = 1; i < signatures.length; i += 1) {
+    const before = signatures[i - 1];
+    const after = signatures[i];
+    after.forEach((id, slot) => {
+      if (!id || id === "-") return;
+      const was = before.indexOf(id);
+      if (was >= 0 && was !== slot) phaseMoves += 1;
+    });
+  }
+  const phaseMoveRate = share(phaseMoves, Math.max(0, signatures.length - 1));
+
   const byType = new Map();
   let totalOutput = 0;
   ended.forEach(e => (e.contributions || []).forEach(c => {
@@ -101,6 +116,8 @@ export function describeRun(trace) {
     flawlessBattleRate,
     idleBattles,
     idleBattleRate,
+    phaseMoves,
+    phaseMoveRate,
     pivotRate,
     reinterpretationRate,
     gateConcentration,
@@ -147,6 +164,7 @@ export function summarize(runs) {
     meanDeadTime: mean("deadTime"),
     meanFlawlessBattleRate: mean("flawlessBattleRate"),
     meanIdleBattleRate: mean("idleBattleRate"),
+    meanPhaseMoves: mean("phaseMoves"),
     meanPivotRate: mean("pivotRate"),
     meanReinterpretationRate: mean("reinterpretationRate"),
     meanGateConcentration: mean("gateConcentration"),

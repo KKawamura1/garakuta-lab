@@ -29,12 +29,16 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     inventory: [], slots: Array(SLOT_COUNT).fill(null),
     offer: null, done: false, won: false,
     lastBattle: null, battles: [], rewards: [],
-    trace: [], seq: 0, edits: 0
+    trace: [], seq: 0, edits: newEdits()
   };
 
   const startTypes = [];
   while (startTypes.length < START_PARTS) startTypes.push(weightedType(startTypes));
   state.inventory = startTypes.map(makePart);
+
+  function newEdits() { return { place: 0, remove: 0, swap: 0, scrap: 0, repair: 0, total: 0 }; }
+
+  const bump = kind => { state.edits[kind] += 1; state.edits.total += 1; };
 
   const record = (type, detail = {}) => {
     state.seq += 1;
@@ -129,7 +133,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       const displaced = state.slots[slot];
       state.slots[slot] = instance;
       if (displaced) state.inventory.push(displaced);
-      state.edits += 1;
+      bump("place");
       return { ok: true, observation: observe() };
     }
     if (type === "remove") {
@@ -138,7 +142,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       if (!state.slots[slot]) return fail("slot is already empty");
       state.inventory.push(state.slots[slot]);
       state.slots[slot] = null;
-      state.edits += 1;
+      bump("remove");
       return { ok: true, observation: observe() };
     }
     if (type === "swap") {
@@ -146,7 +150,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       const b = Number(action.slotB) - 1;
       if (![a, b].every(n => n >= 0 && n < SLOT_COUNT)) return fail(`slots must be 1..${SLOT_COUNT}`);
       [state.slots[a], state.slots[b]] = [state.slots[b], state.slots[a]];
-      state.edits += 1;
+      bump("swap");
       return { ok: true, observation: observe() };
     }
     if (type === "scrapPart") {
@@ -154,6 +158,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       if (index < 0) return fail("no such part in inventory");
       const instance = state.inventory.splice(index, 1)[0];
       state.scrap += 1;
+      bump("scrap");
       record("part_scrapped", { part: PARTS[instance.type].name });
       return { ok: true, observation: observe() };
     }
@@ -162,6 +167,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       if (state.hp >= state.maxHp) return fail("hp is full");
       state.scrap -= 1;
       state.hp = Math.min(state.maxHp, state.hp + REPAIR_HP);
+      bump("repair");
       record("repaired", { hp: state.hp });
       return { ok: true, observation: observe() };
     }
@@ -180,9 +186,11 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       enemy: enemy.name, prediction: action.prediction,
       worry: action.worry, worryText: String(action.worryText || "").slice(0, 300),
       build: state.slots.map(s => (s ? PARTS[s.type].name : null)),
-      buildSignature: signature, editsSincePrevious: state.edits
+      buildSignature: signature,
+      editsSincePrevious: state.edits.total,
+      editBreakdown: { ...state.edits }
     });
-    state.edits = 0;
+    state.edits = newEdits();
 
     const result = simulateBattle({
       slots: state.slots, hp: state.hp, maxHp: state.maxHp, enemy, rng

@@ -65,6 +65,23 @@ const armored = simulateBattle({
 });
 assert.equal(armored.cycles, 4, "敵装甲が高くても最低1ダメージは通る");
 
+// 位相を変える操作が数えられること。ARCでは0、枠を動かせば増える。
+const phaseTrace = (() => {
+  const run = createRun({ seed: 21, playerId: "smoke" });
+  const inv = run.observe().inventory;
+  inv.slice(0, 5).forEach((p, i) => run.act({ type: "place", partId: p.id, slot: i + 1 }));
+  run.act({ type: "battle", prediction: "圧勝", worry: "なし", worryText: "" });
+  if (run.observe().phase === "reward") run.act({ type: "skipAll", reason: "s" });
+  run.act({ type: "swap", slotA: 1, slotB: 2 });
+  run.act({ type: "battle", prediction: "圧勝", worry: "なし", worryText: "" });
+  return run.trace();
+})();
+const phaseMetrics = describeRun(phaseTrace);
+assert.equal(phaseMetrics.phaseMoves, 2, "枠を入れ替えた2部品が位相移動として数えられる");
+const predicted = phaseTrace.events.filter(e => e.type === "battle_predicted");
+assert.equal(predicted[1].editBreakdown.swap, 1, "付け替えは種別ごとに記録される");
+assert.equal(predicted[0].editBreakdown.place, 5);
+
 const metrics = describeRun(first);
 ["deadTime", "pivotRate", "reinterpretationRate", "gateConcentration", "problemChainRate", "warnings"]
   .forEach(key => assert.ok(key in metrics, `指標 ${key} が計算される`));
