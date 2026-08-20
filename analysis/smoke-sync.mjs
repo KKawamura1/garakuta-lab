@@ -66,6 +66,13 @@ assert.equal(payload.client.seed, 4242, "seed を残さないと再生できな�
 assert.equal(payload.stats.seed, 4242);
 assert.notEqual(payload.gameVersion, "arc-0.1", "本編と同じ game_version にすると集計で混ざる");
 
+// 同じルールでも画面が違えば体験は別物になる。バージョン文字列で分かれていること。
+const played = buildPayload({ ...session, ruleset: "phase", head: "play" });
+const viewed = buildPayload({ ...session, ruleset: "phase", head: "agent-view" });
+assert.notEqual(played.gameVersion, viewed.gameVersion, "画面が違えば game_version も違う");
+assert.equal(played.client.head, "play");
+assert.equal(viewed.client.head, "agent-view");
+
 assert.ok(payload.endedAt, "終わったランは必ず endedAt を持つ（無いとエクスポートに出ない）");
 
 // 古い版で終えたセッション（endedAt を持たない）でも埋まること。

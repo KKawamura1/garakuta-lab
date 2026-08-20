@@ -51,6 +51,7 @@ function fresh(seed = null, ruleset = null) {
     ruleset: ruleset || params.get("ruleset") || "phase",
     seed: seed === null ? Math.floor(Math.random() * 100000) : seed,
     playerId: "human-play",
+    head: "play",
     startedAt: new Date().toISOString(),
     actions: [], survey: null
   };

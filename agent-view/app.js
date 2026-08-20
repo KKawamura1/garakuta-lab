@@ -42,6 +42,7 @@ function fresh(seed = null, ruleset = null) {
     ruleset: ruleset || new URLSearchParams(location.search).get("ruleset") || "arc",
     seed: seed === null ? Math.floor(Math.random() * 100000) : seed,
     playerId: "human-agent-view",
+    head: "agent-view",
     startedAt: new Date().toISOString(),
     actions: [], survey: null
   };

@@ -1,6 +1,9 @@
 const DEVICE_KEY = "garakuta-lab-device-id";
 const SCHEMA_VERSION = 4;
-const GAME_VERSION_BY_RULESET = { arc: "arc-0.1-agentview", bus: "bus-0.3-agentview", phase: "phase-0.1-agentview" };
+// 同じルールでも、遊んだ画面が違えば体験は別物になる（PHASEで実証された）。
+// ルールセットと画面の両方をバージョン文字列へ入れて、集計時に混ざらないようにする。
+const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1" };
+const HEADS = { "agent-view": "av", play: "play" };
 
 const MARKER_LABELS = {
   hit: "きた！", insight: "ひらめいた", choice: "迷う",
@@ -51,7 +54,7 @@ export function buildPayload(session) {
     telemetryRunId: session.runId,
     deviceId: deviceId(),
     schemaVersion: SCHEMA_VERSION,
-    gameVersion: GAME_VERSION_BY_RULESET[String(session.ruleset || "arc").toLowerCase()] || "unknown-agentview",
+    gameVersion: `${RULESET_VERSION[String(session.ruleset || "arc").toLowerCase()] || "unknown"}-${HEADS[session.head] || "av"}`,
     startedAt,
     endedAt,
     outcome: { won: Boolean(trace.won), reached: trace.reached, hp: trace.finalHp },
@@ -64,7 +67,7 @@ export function buildPayload(session) {
       standalone: matchMedia("(display-mode: standalone)").matches,
       seed: session.seed,
       ruleset: trace.ruleset,
-      head: "agent-view"
+      head: session.head || "agent-view"
     },
     events,
     moments
