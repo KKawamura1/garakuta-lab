@@ -144,3 +144,18 @@ input[type=text], select, textarea {
 .verdict.ok { border-color: #4d7a35; background: #1f2c1a; color: #a7d585; }
 .verdict.mid { border-color: #8a7530; background: #2b2718; color: #dcc47a; }
 .verdict.ng { border-color: #7a3a37; background: #2c1c1b; color: #e58b86; }
+
+/* 継電で倍率が乗ったマス。値そのものは実機の結果なので、印は倍率が効いたことだけを示す。 */
+.phase-grid .cell.relay { outline: 2px solid #c8a13a; outline-offset: -2px; }
+
+/* 12巡ぶんの列は狭い画面に入り切らない。横だけスクロールさせ、本文は動かさない。 */
+.grid-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.grid-scroll .phase-grid { min-width: 446px; }
+
+/* 系統。継電が繋がるかどうかは系統だけで決まるので、色で一目で分かるようにする。 */
+.tag.line-strike, .slot-label.line-strike { color: #e0a06a; }
+.tag.line-guard,  .slot-label.line-guard  { color: #7fb0d8; }
+.tag.line-service,.slot-label.line-service{ color: #8fc79a; }
+.phase-grid .slot-label.line-strike { border-left: 3px solid #e0a06a; }
+.phase-grid .slot-label.line-guard  { border-left: 3px solid #7fb0d8; }
+.phase-grid .slot-label.line-service{ border-left: 3px solid #8fc79a; }

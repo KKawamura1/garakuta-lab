@@ -2,7 +2,7 @@ const DEVICE_KEY = "garakuta-lab-device-id";
 const SCHEMA_VERSION = 4;
 // 同じルールでも、遊んだ画面が違えば体験は別物になる（PHASEで実証された）。
 // ルールセットと画面の両方をバージョン文字列へ入れて、集計時に混ざらないようにする。
-const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1" };
+const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1", relay: "relay-0.1" };
 const HEADS = { "agent-view": "av", play: "play" };
 
 const MARKER_LABELS = {

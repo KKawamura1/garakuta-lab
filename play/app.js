@@ -1,16 +1,19 @@
 import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
+import { RELAY } from "../core/relay.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
 import { projectCycles, markFor, firesOn } from "../core/project.mjs";
 import { makeRng } from "../core/rng.mjs";
 
-const RULESETS = { phase: PHASE, arc: ARC };
+const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
 const SAVE_KEY = "garakuta-play-session";
 const ARCHIVE_KEY = "garakuta-play-finished";
 const MAX_ARCHIVE = 12;
-const GRID_CYCLES = 8;
+// 表に出す巡回数。打切りまで全部出す——打切りが見えていなかったせいで、
+// 作者がHP満タンのまま時間切れで負けたことがある（第4回）。
+const gridCycles = rules => (rules.deterministic ? rules.MAX_CYCLES : 8);
 
 // 探索の手応え。勝てる並びが何通りあるかを、体験の側から測るための質問。
 const GRIPS = [
@@ -45,7 +48,7 @@ let pendingGrip = null;
 let playback = null;
 let message = "";
 
-function rulesetOf(name) { return RULESETS[String(name || "phase").toLowerCase()] || PHASE; }
+function rulesetOf(name) { return RULESETS[String(name || "relay").toLowerCase()] || RELAY; }
 
 function load() {
   try {
@@ -59,7 +62,7 @@ function fresh(seed = null, ruleset = null) {
   const params = new URLSearchParams(location.search);
   return {
     runId: uuid(),
-    ruleset: ruleset || params.get("ruleset") || "phase",
+    ruleset: ruleset || params.get("ruleset") || "relay",
     seed: seed === null ? Math.floor(Math.random() * 100000) : seed,
     playerId: "human-play",
     head: "play",
@@ -100,27 +103,120 @@ function isDefensive(part) {
 }
 
 
+
+// 系統は継電の条件そのものなので、部品を見た瞬間に分からなければならない。
+const LINE_LABEL = { strike: "撃", guard: "守", service: "整" };
+const lineBadge = part => (part && part.line
+  ? el("span", { className: `tag line-${part.line}`, textContent: LINE_LABEL[part.line] || part.line })
+  : null);
+
+// いまの並びで実際に起きることを、巡回ごとに引き出す。
+// 画面の判定（outcomePanel）と同じ計算を使うので、表と判定が食い違うことはない。
+function battleTrace(o, rules) {
+  const cycles = gridCycles(rules);
+  const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
+  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  if (!enemy || !slots.some(Boolean)) return null;
+  const result = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
+  const blank = () => Array.from({ length: cycles }, () => 0);
+  const out = {
+    cycles: result.cycles, bySlot: new Map(),
+    damage: blank(), shield: blank(), heal: blank(), reflect: blank(),
+    enemyHp: blank(), hp: blank()
+  };
+  result.log.forEach(entry => {
+    const c = entry.cycle;
+    if (c > cycles) return;
+    if (entry.slot !== null && entry.slot !== undefined) {
+      out.bySlot.set(`${entry.slot}:${c}`, entry);
+      out.damage[c - 1] += entry.damage || 0;
+      out.shield[c - 1] += entry.shieldGained || 0;
+      out.heal[c - 1] += entry.healed || 0;
+    } else if (entry.type === "reflect") {
+      out.reflect[c - 1] += entry.damage || 0;
+      out.damage[c - 1] += entry.damage || 0;
+    }
+    if (entry.after) {
+      out.enemyHp[c - 1] = entry.after.enemyHp;
+      out.hp[c - 1] = entry.after.hp;
+    }
+  });
+  // 決着後の巡回は空欄にする（起きないことを書かない）。
+  for (let c = result.cycles; c < cycles; c += 1) { out.enemyHp[c] = 0; out.hp[c] = 0; }
+  return out;
+}
+
 function phaseGrid(o) {
+  const rules = rulesetOf(session.ruleset);
+  const cycles = gridCycles(rules);
   const enemy = o.upcomingEnemy || {};
   const atkPeriod = enemy["攻撃周期"] || 1;
   const enemyHits = c => (c - 1) % atkPeriod === 0;
   const grid = el("div", { className: "phase-grid" });
-  grid.style.gridTemplateColumns = `86px repeat(${GRID_CYCLES}, 1fr)`;
+  grid.style.gridTemplateColumns = `86px repeat(${cycles}, 1fr)`;
 
   grid.append(el("div", { className: "cell cycle-label", textContent: "巡回" }));
-  for (let c = 1; c <= GRID_CYCLES; c += 1) {
+  for (let c = 1; c <= cycles; c += 1) {
     grid.append(el("div", { className: "cell cycle-label num", textContent: String(c) }));
   }
 
   grid.append(el("div", { className: "cell slot-label", textContent: "敵の攻撃" }));
-  for (let c = 1; c <= GRID_CYCLES; c += 1) {
+  for (let c = 1; c <= cycles; c += 1) {
     grid.append(el("div", {
       className: `cell${enemyHits(c) ? " hit" : ""}`,
       textContent: enemyHits(c) ? String(enemy.atk ?? "") : ""
     }));
   }
 
-  const projection = projectCycles(o.slots.map(x => (x.part ? { type: x.part.type } : null)), rulesetOf(session.ruleset), GRID_CYCLES);
+  // 決定的なルールセットでは、表も見積りではなく**実機のログ**から作る。
+  // 近似の投影を別に持つと、説明文と実装がずれるのと同じ形で静かに食い違う（一度やった）。
+  // ログから作れば、表に出ている数字は必ずその戦闘で実際に起きることである。
+  const trace = rules.deterministic ? battleTrace(o, rules) : null;
+
+  if (trace) {
+    const cellOf = (slot, cycle) => trace.bySlot.get(`${slot}:${cycle}`);
+    o.slots.forEach((slot, i) => {
+      const part = slot.part;
+      grid.append(el("button", {
+        className: `cell slot-label${selectedSlot === i ? " selected" : ""}${part && part.line ? ` line-${part.line}` : ""}`,
+        textContent: part ? `${i + 1} ${LINE_LABEL[part.line] || ""}${part.name}` : `${i + 1} 空き`,
+        onclick: () => tapSlot(i)
+      }));
+      for (let c = 1; c <= cycles; c += 1) {
+        const entry = cellOf(i, c);
+        const fires = part && firesOn(c, i, part.period || 1);
+        const value = entry ? (entry.damage || entry.shieldGained || entry.healed || 0) : 0;
+        const defensive = entry ? Boolean(entry.shieldGained) : (part && isDefensive(part));
+        grid.append(el("div", {
+          className: `cell${fires ? " fire" : ""}${defensive && fires ? " def" : ""}`
+            + `${entry && entry.gain > 1 ? " relay" : ""}`
+            + `${defensive && fires && enemyHits(c) ? " aligned" : ""}`,
+          textContent: entry ? String(value || "·") : (fires && c <= trace.cycles ? "·" : "")
+        }));
+      }
+    });
+
+    // 0 を「—」で潰さない行がある。撃破した巡回の敵HPは 0 であって、未発生ではない。
+    const row = (label, values, cls = "", zeroIsReal = false) => {
+      grid.append(el("div", { className: "cell slot-label", textContent: label }));
+      values.forEach((v, idx) => {
+        const past = idx + 1 > trace.cycles;
+        grid.append(el("div", {
+          className: `cell${v ? ` fire ${cls}` : ""}${cls === "def" && v && enemyHits(idx + 1) ? " aligned" : ""}`,
+          textContent: past ? "" : (v || zeroIsReal ? String(v) : "—")
+        }));
+      });
+    };
+    row("与ダメージ", trace.damage);
+    row("遮蔽", trace.shield, "def");
+    if (trace.reflect.some(Boolean)) row("反射", trace.reflect);
+    if (trace.heal.some(Boolean)) row("回復", trace.heal, "heal");
+    row("敵HP", trace.enemyHp, "", true);
+    row("自HP", trace.hp, "", true);
+    return grid;
+  }
+
+  const projection = projectCycles(o.slots.map(x => (x.part ? { type: x.part.type } : null)), rules, cycles);
   const perCycle = projection.map(r => ({ n: r.firing, dmg: r.dmg, shield: r.shield, heal: r.heal }));
 
   o.slots.forEach((slot, i) => {
@@ -131,7 +227,7 @@ function phaseGrid(o) {
       onclick: () => tapSlot(i)
     });
     grid.append(label);
-    for (let c = 1; c <= GRID_CYCLES; c += 1) {
+    for (let c = 1; c <= cycles; c += 1) {
       const fires = part && firesOn(c, i, part.period || 1);
       const aligned = fires && isDefensive(part) && enemyHits(c);
       grid.append(el("div", {
@@ -248,7 +344,7 @@ function buildScreen(o) {
 
   const grid2 = el("div", { className: "card" });
   grid2.append(el("h2", { textContent: "位相表 — どの枠がどの巡回に動くか" }));
-  grid2.append(phaseGrid(o));
+  grid2.append(el("div", { className: "grid-scroll" }, [phaseGrid(o)]));
   grid2.append(el("div", { className: "legend" }, [
     el("span", {}, [el("i", { style: "background:#3d5c33" }), document.createTextNode("攻撃系が作動")]),
     el("span", {}, [el("i", { style: "background:#2f5a55" }), document.createTextNode("防御系が作動")]),
@@ -283,6 +379,7 @@ function buildScreen(o) {
     const detail = el("div", { className: "detail" });
     detail.append(el("div", { className: "name" }, [
       document.createTextNode(`${p.icon} ${p.name}`),
+      lineBadge(p),
       el("span", { className: "tag", textContent: `周期${p.period ?? 1}` }),
       p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
     ]));
@@ -308,6 +405,7 @@ function buildScreen(o) {
         el("span", { className: "grow" }, [
           el("div", { className: "name" }, [
             document.createTextNode(p.name),
+            lineBadge(p),
             el("span", { className: "tag", textContent: `周期${p.period ?? 1}` }),
             p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
           ]),
@@ -414,9 +512,10 @@ function outcomePanel(o) {
 }
 
 function cyclesText(slotIndex, period) {
+  const cycles = gridCycles(rulesetOf(session.ruleset));
   if (period === 1) return "毎巡";
   const list = [];
-  for (let c = 1; c <= GRID_CYCLES && list.length < 3; c += 1) if (firesOn(c, slotIndex, period)) list.push(c);
+  for (let c = 1; c <= cycles && list.length < 3; c += 1) if (firesOn(c, slotIndex, period)) list.push(c);
   return `${list.join("・")}…巡目`;
 }
 
@@ -530,6 +629,7 @@ function rewardScreen(o) {
       el("span", { className: "grow" }, [
         el("div", { className: "name" }, [
           document.createTextNode(p.name),
+          lineBadge(p),
           el("span", { className: "tag", textContent: `周期${p.period ?? 1}` }),
           p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
         ]),

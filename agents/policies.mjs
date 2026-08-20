@@ -134,4 +134,110 @@ export function localSearchPolicy({ rounds = 3, ban = [], ruleset = ARC } = {}) 
   };
 }
 
-export const POLICIES = { naive: naivePolicy, local: localSearchPolicy };
+
+// 配置を探索する方策。
+//
+// 局所探索（1枠ずつ置き換えて改善する）は RELAY で1戦目から全滅した。
+// 継電は**枠の並び全体**で価値が決まるので、1手ずつの改善では谷を越えられない。
+// そして人間の側は、画面が並びの結果を即座に断定するので、実際に並びを試して探す。
+// **代理は人間と同じ道具を持つべきである。** よって並びをサンプルして最良を選ぶ。
+//
+// 「何通り試すか」は代理の地平であり、設計変数として明示する（学習#27）。
+// satisfice: 最初に勝てた並びで手を止める（人はふつう最適化せず、通る手を見つけたら進む）。
+// 最良を選ぶ代理は、勝てる並びのうち最もHPが残るものを引き当てるので、
+// **無傷率が跳ね上がって圧力の指標が消える。** 実測では4戦目の無傷率が 22% → 94% になった。
+// 圧力を測りたいなら、代理は最適化ではなく充足で止めなければならない。
+export function searchPolicy({ ruleset = ARC, tries = 4000, seed = 5, satisfice = false } = {}) {
+  const { SLOT_COUNT } = ruleset;
+  const score = makeScore(ruleset);
+  const fullEnemy = makeFullEnemy(ruleset);
+
+  // 相異なる型の並びを列挙し、多ければ一様にサンプルする。
+  const candidates = (bench, rng) => {
+    const byType = new Map();
+    bench.forEach(item => { if (!byType.has(item.type)) byType.set(item.type, []); byType.get(item.type).push(item); });
+    const kinds = [...byType.keys()];
+    const counts = new Map(kinds.map(k => [k, byType.get(k).length]));
+    const out = [];
+    const cur = [];
+    const walk = depth => {
+      if (out.length >= 200000) return;
+      if (depth === SLOT_COUNT) { out.push([...cur]); return; }
+      kinds.forEach(kind => {
+        if (!counts.get(kind)) return;
+        counts.set(kind, counts.get(kind) - 1);
+        cur.push(kind);
+        walk(depth + 1);
+        cur.pop();
+        counts.set(kind, counts.get(kind) + 1);
+      });
+    };
+    walk(0);
+    if (out.length <= tries) return out;
+    const picked = [];
+    for (let i = 0; i < tries; i += 1) picked.push(out[Math.floor(rng() * out.length)]);
+    return picked;
+  };
+
+  const bestOrder = (pool, observation, enemy) => {
+    const rng = makeRng(seed);
+    let best = { value: -Infinity, order: null };
+    const list = candidates(pool, rng);
+    for (const order of list) {
+      const slots = order.map((type, i) => ({ id: `t${i}`, type }));
+      const { value, result } = score(slots, observation, enemy);
+      if (value > best.value) best = { value, order };
+      if (satisfice && result.won) return best;
+    }
+    return best;
+  };
+
+  return {
+    id: `search:${tries}${satisfice ? ":satisfice" : ""}`,
+    build(observation) {
+      const enemy = fullEnemy(observation);
+      const { slots, bench } = instances(observation);
+      const pool = [...slots.filter(Boolean), ...bench];
+      if (pool.length < SLOT_COUNT) return [];
+      const best = bestOrder(pool, observation, enemy);
+      if (!best.order) return [];
+
+      // 目標の並びへ移す。いったん全部外してから順に置くのが最も単純で、
+      // 記録される操作の種類（remove/place）も実際の手順と一致する。
+      const actions = [];
+      slots.forEach((instance, i) => { if (instance) actions.push({ type: "remove", slot: i + 1 }); });
+      const available = new Map();
+      pool.forEach(item => { if (!available.has(item.type)) available.set(item.type, []); available.get(item.type).push(item); });
+      best.order.forEach((type, i) => {
+        const item = available.get(type).shift();
+        actions.push({ type: "place", partId: item.id, slot: i + 1 });
+      });
+      return actions;
+    },
+    battle(observation) {
+      const enemy = fullEnemy(observation);
+      const { slots } = instances(observation);
+      const { result } = score(slots, observation, enemy);
+      return {
+        type: "battle",
+        prediction: predictionFor(result, observation.hp),
+        worry: worryFor(result, slots, ruleset),
+        worryText: `並びを試した結果 敵残${result.enemyHp} / 自HP${result.hp}`
+      };
+    },
+    reward(observation) {
+      const enemy = fullEnemy(observation);
+      const { slots, bench } = instances(observation);
+      const pool = [...slots.filter(Boolean), ...bench];
+      let best = { value: -Infinity, choice: 1 };
+      observation.offer.forEach(item => {
+        const trial = [...pool, { id: item.part.id, type: item.part.type }];
+        const found = bestOrder(trial, observation, enemy);
+        if (found.value > best.value) best = { value: found.value, choice: item.choice };
+      });
+      return { type: "take", choice: best.choice, reason: "並びを探した結果いちばん良い", update: "confirmed", updateText: "" };
+    }
+  };
+}
+
+export const POLICIES = { naive: naivePolicy, local: localSearchPolicy, search: searchPolicy };

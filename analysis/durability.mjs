@@ -4,6 +4,7 @@ import { POLICIES } from "../agents/policies.mjs";
 import { ARC } from "../core/arc.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { BUS } from "../core/bus.mjs";
+import { RELAY } from "../core/relay.mjs";
 
 // 「飽き」を測る面。describeRun は1ラン内の構造しか見ないので、
 // ラン“をまたいだ”反復——毎回同じ部品が勝ち筋になる、毎回同じ位置で圧力が消える、
@@ -12,7 +13,7 @@ import { BUS } from "../core/bus.mjs";
 // 注意: 採用率は方策の癖でもある。localSearch は次の一戦の模擬結果で選ぶので、
 // 長期的な価値を持つ部品を過小評価しうる。人間の採用率と突き合わせて読むこと。
 
-const RULESETS = { arc: ARC, phase: PHASE, bus: BUS };
+const RULESETS = { arc: ARC, phase: PHASE, bus: BUS, relay: RELAY };
 
 const args = Object.fromEntries(process.argv.slice(2).map(item => {
   const match = /^--([^=]+)(?:=(.*))?$/.exec(item);
@@ -38,7 +39,7 @@ const runMetrics = [];
 
 for (let i = 0; i < seeds; i += 1) {
   const seed = from + i;
-  const policy = POLICIES[policyName]({ ruleset });
+  const policy = POLICIES[policyName]({ ruleset, tries: Number(args.tries || 40), satisfice: Boolean(args.satisfice) });
   const run = createRun({ seed, playerId: `policy:${policyName}`, ruleset });
   let guard = 0;
   while (!run.done && guard < 400) {

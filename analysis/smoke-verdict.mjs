@@ -1,18 +1,20 @@
 import { createRun } from "../core/run.mjs";
 import { PHASE } from "../core/phase.mjs";
+import { RELAY } from "../core/relay.mjs";
 import { makeRng } from "../core/rng.mjs";
-import { localSearchPolicy } from "../agents/policies.mjs";
+import { searchPolicy } from "../agents/policies.mjs";
 
 // 画面が出す「この並びの結果」は、実機が出す結果と一字一句同じでなければならない。
 // 見積りを本物に置き換えた以上、ここがずれたら嘘をつくことになる。
 // 画面と同じ入力（観測から組んだ並び・現在HP・戦闘番号の敵）で引いて、実機の結果と突き合わせる。
 
-const rules = PHASE;
 let checked = 0;
 let mismatches = 0;
 
-for (let seed = 1; seed <= 60; seed += 1) {
-  const policy = localSearchPolicy({ ruleset: rules });
+for (const rules of [PHASE, RELAY]) {
+
+for (let seed = 1; seed <= 40; seed += 1) {
+  const policy = searchPolicy({ ruleset: rules, tries: 60, satisfice: true });
   const run = createRun({ seed, playerId: "verdict-smoke", ruleset: rules });
   let guard = 0;
   while (!run.done && guard < 400) {
@@ -48,9 +50,10 @@ for (let seed = 1; seed <= 60; seed += 1) {
     }
   }
 }
+}
 
 if (mismatches) {
   console.error(`verdict smoke: ${checked}戦中 ${mismatches}戦で画面と実機が食い違った`);
   process.exit(1);
 }
-console.log(`verdict smoke: 画面の結果表示が実機と完全一致（${checked}戦） OK`);
+console.log(`verdict smoke: 画面の結果表示が実機と完全一致（PHASE と RELAY で ${checked}戦） OK`);

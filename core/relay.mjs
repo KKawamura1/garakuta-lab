@@ -199,7 +199,7 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng, parts = PARTS }) 
       record.damage += dealt;
       record.shield += gained;
       log.push({ cycle: battle.cycle, slot: i, part: part.name, type: instance.type, period: part.period,
-        line: LINES[part.line], relayed, text: delta.text, damage: dealt,
+        line: LINES[part.line], relayed, gain, text: delta.text, damage: dealt,
         shieldGained: gained, healed, selfDamage: delta.selfDamage || 0,
         after: { shield, enemyHp: Math.max(0, battle.enemyHp), hp: Math.max(0, battle.hp) } });
       if (battle.enemyHp <= 0) break;

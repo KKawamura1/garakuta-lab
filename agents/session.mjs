@@ -4,8 +4,10 @@ import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
 import { ARC } from "../core/arc.mjs";
 import { BUS } from "../core/bus.mjs";
+import { PHASE } from "../core/phase.mjs";
+import { RELAY } from "../core/relay.mjs";
 
-const RULESETS = { arc: ARC, bus: BUS };
+const RULESETS = { arc: ARC, bus: BUS, phase: PHASE, relay: RELAY };
 import { renderObservation as render } from "../core/render.mjs";
 
 const RULES = `【ガラクタ・ラボ / ARC 0.1 遊び方】
@@ -21,9 +23,9 @@ const RULES = `【ガラクタ・ラボ / ARC 0.1 遊び方】
 
 function usage() {
   console.log(`使い方:
-  node agents/session.mjs rules  [--ruleset=arc|bus]
-  node agents/session.mjs brief  [--ruleset=arc|bus]   ← 全部品・全敵・全数値を先に見せる
-  node agents/session.mjs start --session=<path> --seed=<n> [--player=<id>] [--ruleset=arc|bus]
+  node agents/session.mjs rules  [--ruleset=arc|bus|phase|relay]
+  node agents/session.mjs brief  [--ruleset=arc|bus|phase|relay]   ← 全部品・全敵・全数値を先に見せる
+  node agents/session.mjs start --session=<path> --seed=<n> [--player=<id>] [--ruleset=arc|bus|phase|relay]
   node agents/session.mjs show --session=<path>
   node agents/session.mjs act --session=<path> --json='{"type":"place","partId":"p1","slot":1}'
   node agents/session.mjs finish --session=<path> --json='{"replay":3,"bestMoment":"...","pivot":"あった","runStory":"..."}'
