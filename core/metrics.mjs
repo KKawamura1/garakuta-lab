@@ -24,13 +24,25 @@ export function describeRun(trace) {
   const surprise = { better: 0, expected: 0, worse: 0 };
   ended.forEach(e => { surprise[e.surprise] = (surprise[e.surprise] || 0) + 1; });
 
+  // 旧定義は「圧勝」と言い切る予測スタイルに依存していた。第3回で、慎重に予測する
+  // プレイヤーでは同じ惰性を検出できないことが分かったので、予測から切り離す。
+  // 無傷で勝った戦闘は、何を選んでも結果が変わらなかった戦闘である。
+  const hpLostOf = i => (battles[i] ? battles[i].hpLost : null);
+  const flawless = i => Boolean(ended[i].won) && hpLostOf(i) === 0;
+
   let deadTime = 0;
   for (let i = ended.length - 1; i >= 0; i -= 1) {
-    const battle = battles[i];
-    const decided = ended[i].prediction === "圧勝" && ended[i].surprise === "expected" && battle && battle.hpLost === 0;
-    if (!decided) break;
+    if (!flawless(i)) break;
     deadTime += 1;
   }
+
+  const flawlessBattles = ended.filter((_, i) => flawless(i)).length;
+  const flawlessBattleRate = share(flawlessBattles, ended.length);
+
+  // 構成に一切触れずに戦った戦闘。第3回で、退屈した人間だけが6戦中3戦、
+  // エージェントは0〜2戦だった。自己申告を必要としない「判断が発生しなかった区間」の近似。
+  const idleBattles = predicted.filter(e => (e.editsSincePrevious || 0) === 0).length;
+  const idleBattleRate = share(idleBattles, predicted.length);
 
   const builds = predicted.map(e => e.build || []);
   let pivots = 0;
@@ -85,6 +97,10 @@ export function describeRun(trace) {
     battles: ended.length,
     surprise,
     deadTime,
+    flawlessBattles,
+    flawlessBattleRate,
+    idleBattles,
+    idleBattleRate,
     pivotRate,
     reinterpretationRate,
     gateConcentration,
@@ -107,7 +123,9 @@ export function describeRun(trace) {
 
 export function warningsFor(m) {
   const warnings = [];
-  if (m.deadTime >= 2) warnings.push({ code: "dead_time", detail: `決着後に判断が結果を変えない戦闘が${m.deadTime}回続いた` });
+  if (m.deadTime >= 2) warnings.push({ code: "dead_time", detail: `末尾に無傷勝利が${m.deadTime}戦続いた（決着後の惰性）` });
+  if (m.flawlessBattleRate >= 0.5 && m.battles >= 3) warnings.push({ code: "no_pressure", detail: `${Math.round(m.flawlessBattleRate * 100)}%の戦闘を無傷で勝った（圧力が無い）` });
+  if (m.idleBattleRate >= 0.5 && m.battles >= 3) warnings.push({ code: "idle_build", detail: `${Math.round(m.idleBattleRate * 100)}%の戦闘を、構成に触れずに戦った（判断が発生していない）` });
   if (m.gateConcentration > 0.5) warnings.push({ code: "single_gate", detail: `出力の${Math.round(m.gateConcentration * 100)}%が${m.gateRanking[0]?.name}に集中` });
   if (m.worryConcentration >= 0.6 && m.battles >= 3) warnings.push({ code: "single_worry", detail: `不安の${Math.round(m.worryConcentration * 100)}%が一つの機能に集中` });
   if (m.problemChainRate < 0.34 && m.battles >= 3) warnings.push({ code: "no_problem_chain", detail: "問題が入れ替わらず同じ不足が続いた" });
@@ -127,6 +145,8 @@ export function summarize(runs) {
     winRate: mean("won"),
     meanReached: mean("reached"),
     meanDeadTime: mean("deadTime"),
+    meanFlawlessBattleRate: mean("flawlessBattleRate"),
+    meanIdleBattleRate: mean("idleBattleRate"),
     meanPivotRate: mean("pivotRate"),
     meanReinterpretationRate: mean("reinterpretationRate"),
     meanGateConcentration: mean("gateConcentration"),
