@@ -238,6 +238,10 @@ function enemyCard(o) {
     .map(([k, v]) => `${LABELS[k] || k} ${v}`);
   card.append(el("div", { className: "small", textContent: facts.join(" ・ ") }));
   card.append(el("div", { className: "small", style: "margin-top:4px", textContent: e.trait }));
+  card.append(el("div", {
+    className: "small", style: "margin-top:4px;color:#dd5b56",
+    textContent: `${rulesetOf(session.ruleset).MAX_CYCLES}巡までに削り切れなければ敗北（耐えるだけでは勝てない）`
+  }));
   return card;
 }
 
@@ -254,6 +258,7 @@ function buildScreen(o) {
     el("span", {}, [el("i", { style: "background:transparent;border:2px solid #9dcc73" }), document.createTextNode("防御が攻撃と噛み合っている")])
   ]));
   grid2.append(el("div", { className: "small", style: "margin-top:6px", textContent: "合計は素の値です。送気管の加算、敵の減衰・命中上限は含みません。" }));
+  grid2.append(killEstimate(o));
   out.push(grid2);
 
   const slotCard = el("div", { className: "card" });
@@ -343,6 +348,37 @@ function buildScreen(o) {
   return out;
 }
 
+// 12巡の打切りは、遅い構成を組んでいる人にこそ見えている必要がある。
+// 素の合計で敵HPへ何巡目に届くかを出し、制限を超えるなら赤で言う。
+function killEstimate(o) {
+  const rules = rulesetOf(session.ruleset);
+  const limit = rules.MAX_CYCLES;
+  const enemyHp = o.upcomingEnemy?.hp;
+  if (!enemyHp) return el("div", { className: "small", textContent: "" });
+  const parts = rules.PARTS;
+  let acc = 0;
+  let killCycle = null;
+  for (let c = 1; c <= limit; c += 1) {
+    o.slots.forEach((slot, i) => {
+      if (!slot.part) return;
+      if (!firesOn(c, i, slot.part.period || 1)) return;
+      try {
+        const d = parts[slot.part.type].run({ uses: {}, rng: () => 0.5, instanceId: "x" });
+        acc += (d.damage || 0) + (d.hits || []).reduce((a, b) => a + b, 0);
+      } catch (_) {}
+    });
+    if (killCycle === null && acc >= enemyHp) killCycle = c;
+  }
+  const ok = killCycle !== null;
+  return el("div", {
+    className: "small",
+    style: `margin-top:6px;color:${ok ? "#9dcc73" : "#dd5b56"}`,
+    textContent: ok
+      ? `目安：素の合計だと ${killCycle}巡目に敵HP${enemyHp}へ届く（打切りは${limit}巡）`
+      : `目安：素の合計では ${limit}巡かけても敵HP${enemyHp}に届かない（${acc}止まり）。耐えるだけでは負ける`
+  });
+}
+
 function cyclesText(slotIndex, period) {
   if (period === 1) return "毎巡";
   const list = [];
@@ -390,7 +426,7 @@ function battleScreen(o) {
   const b = playback.battle;
   const done = playback.shown >= playback.lines.length;
   const card = el("div", { className: "card" });
-  card.append(el("h2", { textContent: `第${b.battleNumber}戦 — ${b.enemy}` }));
+  card.append(el("h2", { textContent: `第${b.battleNumber}戦 — ${b.enemy}（${rulesetOf(session.ruleset).MAX_CYCLES}巡で打切り）` }));
   const log = el("div", { className: "log" });
   let cycle = null;
   playback.lines.slice(0, playback.shown).forEach(line => {
