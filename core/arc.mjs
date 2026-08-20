@@ -218,6 +218,10 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng }) {
 // 別ルールの試作は、同じ形の束を輸出すれば同じ実行機・同じ集計器に載る。
 export const ARC = {
   id: RULESET_ID,
+  // 常時頭に置く必要のある状態と規則。学習ログ#11（認知的な複雑さと戦略的な奥行きは別物）
+  // に対応する項が評価器に無かったため、宣言を必須にする。
+  conceptsToHold: ["HP", "電力", "熱", "装甲（巡回をまたいで蓄積）", "枠1から順に作動", "敵の装甲は各命中から減算"],
+  placementRule: "順序のみ（前の部品の結果が後ろへ影響する）",
   title: "ガラクタ・ラボ / ARC 0.1",
   PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
   SLOT_COUNT, START_PARTS, RARE_RATE, MAX_CYCLES,

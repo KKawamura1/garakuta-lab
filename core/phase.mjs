@@ -206,6 +206,8 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng, parts = PARTS }) 
 
 export const PHASE = {
   id: RULESET_ID,
+  conceptsToHold: ["HP", "遮蔽は巡回で消える", "部品ごとの作動周期", "枠で位相がずれる（剰余）", "敵の攻撃周期", "命中上限", "命中下限", "敵の毎巡回復"],
+  placementRule: "位相（枠を変えると作動する巡回そのものが変わる）",
   title: "位相機関 / PHASE 0.1",
   PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
   SLOT_COUNT, START_PARTS, RARE_RATE, MAX_CYCLES,

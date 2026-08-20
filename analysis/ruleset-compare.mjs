@@ -55,8 +55,22 @@ function evaluate(ruleset) {
   const builds = runs.map(r => [...r.finalBuild].sort().join("|"));
   const buildCounts = builds.reduce((map, b) => map.set(b, (map.get(b) || 0) + 1), new Map());
 
+  // 認知コスト。学習ログ#11に対応する項が無かったため追加する。
+  // 計算できるもの（規則行数・敵修飾子の種類・説明文量）と、設計者が宣言するもの（保持概念）を並べる。
+  const ruleLines = (ruleset.rules.match(/^- /gm) || []).length;
+  const basicKeys = new Set(["name", "face", "hp", "atk", "trait", "goal", "window"]);
+  const enemyMods = new Set();
+  ruleset.ENEMIES.forEach(e => Object.keys(e).forEach(k => { if (!basicKeys.has(k)) enemyMods.add(k); }));
+  const descChars = Math.round(Object.values(ruleset.PARTS)
+    .reduce((sum, p) => sum + p.desc.length, 0) / Object.keys(ruleset.PARTS).length);
+
   return {
     ルール: ruleset.title,
+    保持概念数: (ruleset.conceptsToHold || []).length,
+    規則行数: ruleLines,
+    敵修飾子の種類: enemyMods.size,
+    部品説明の平均字数: descChars,
+    配置が決めるもの: ruleset.placementRule || "—",
     勝率: Number((runs.filter(r => r.won).length / runs.length).toFixed(3)),
     素朴方針の勝率: Number((naive.filter(r => r.won).length / naive.length).toFixed(3)),
     "首位部品の最頻シェア": Number((ranked[0] ? ranked[0][1] / runs.length : 0).toFixed(3)),
@@ -75,7 +89,15 @@ function evaluate(ruleset) {
 }
 
 const rows = [ARC, BUS, PHASE].map(evaluate);
-console.table(rows.map(({ _ranked, _adoption, ...rest }) => rest));
+const complexityKeys = ["ルール", "保持概念数", "規則行数", "敵修飾子の種類", "部品説明の平均字数", "配置が決めるもの"];
+console.log("■ 認知コスト（低いほど軽い。指標が良くなっても、ここが重くなれば差引で悪化しうる）");
+console.table(rows.map(r => Object.fromEntries(complexityKeys.map(k => [k, r[k]]))));
+console.log("■ 構造");
+console.table(rows.map(({ _ranked, _adoption, ...rest }) => {
+  const out = { ...rest };
+  complexityKeys.filter(k => k !== "ルール").forEach(k => delete out[k]);
+  return out;
+}));
 rows.forEach(row => {
   console.log(`\n【${row.ルール}】首位部品: ${row._ranked.map(([n, c]) => `${n} ${c}`).join(" / ")}`);
   console.log(`  最終構成への採用率: ${row._adoption.map(([n, r]) => `${n} ${r}`).join(" / ")}`);

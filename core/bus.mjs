@@ -243,6 +243,8 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng }) {
 
 export const BUS = {
   id: RULESET_ID,
+  conceptsToHold: ["HP", "帯域（毎巡回リセット）", "部品ごとの帯域費", "遮蔽は巡回で消える", "枠1から順に帯域を取る", "敵ごとの勝利条件（撃破／耐久）", "制限巡回", "敵の減衰と命中上限"],
+  placementRule: "順序のみ（手前が帯域を先に取る）",
   title: "帯域機関 / BUS 0.3",
   PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
   SLOT_COUNT, START_PARTS, RARE_RATE, MAX_CYCLES,
