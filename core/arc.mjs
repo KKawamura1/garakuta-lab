@@ -225,6 +225,8 @@ export const ARC = {
   title: "ガラクタ・ラボ / ARC 0.1",
   PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
   SLOT_COUNT, START_PARTS, RARE_RATE, MAX_CYCLES,
+  // 違法砲身の乱数があるので結果は一意にならない。画面は幅で出す。
+  deterministic: false,
   MAX_HP: 30, REPAIR_HP: 5, WIN_HEAL: 3, REWARD_CHOICES: 3,
   slotLabel: "駆動列",
   slotHint: "枠1から順に作動",

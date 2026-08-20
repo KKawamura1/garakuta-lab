@@ -29,13 +29,18 @@ function predictionFor(result, hp) {
   return "圧勝";
 }
 
-function worryFor(result, slots) {
-  if (!result.won) return result.timedOut ? "火力" : "装甲";
-  if (result.hp <= 12) return "装甲";
-  if (result.cycles >= 6) return "火力";
-  if (result.power >= 6) return "電力";
-  if (result.heat >= 6) return "熱";
-  return "なし";
+// 不安の分類はルールセットごとに語彙が違う（ARCは「装甲」、PHASEは「遮蔽」）。
+// 以前はARCの語彙を決め打ちしていたため、PHASEで負けを予測した瞬間に行動が弾かれ、
+// そのランがそこで止まっていた。ルールセットの語彙に無い候補は捨てて選び直す。
+function worryFor(result, slots, ruleset = ARC) {
+  const allowed = ruleset.WORRY_CATEGORIES || [];
+  const first = (...candidates) => candidates.find(c => allowed.includes(c)) || allowed[allowed.length - 1];
+  if (!result.won) return result.timedOut ? first("火力") : first("装甲", "遮蔽", "耐久");
+  if (result.hp <= 12) return first("装甲", "遮蔽", "耐久");
+  if (result.cycles >= 6) return first("火力");
+  if (result.power >= 6) return first("電力");
+  if (result.heat >= 6) return first("熱");
+  return first("なし");
 }
 
 export function naivePolicy({ ruleset = ARC } = {}) {
@@ -105,7 +110,7 @@ export function localSearchPolicy({ rounds = 3, ban = [], ruleset = ARC } = {}) 
       return {
         type: "battle",
         prediction: predictionFor(result, observation.hp),
-        worry: worryFor(result, slots),
+        worry: worryFor(result, slots, ruleset),
         worryText: `模擬戦の結果 敵残${result.enemyHp} / 自HP${result.hp}`
       };
     },

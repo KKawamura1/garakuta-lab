@@ -222,6 +222,8 @@ export const PHASE = {
   title: "位相機関 / PHASE 0.1",
   PARTS, ENEMIES, PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS,
   SLOT_COUNT, START_PARTS, RARE_RATE, MAX_CYCLES,
+  // どの部品も rng を使わない。並びを決めれば結果は一意なので、画面は見積りではなく答えを出せる。
+  deterministic: true,
   MAX_HP: 30, REPAIR_HP: 5, WIN_HEAL: 3, REWARD_CHOICES: 3,
   slotLabel: "位相列",
   slotHint: "周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する",

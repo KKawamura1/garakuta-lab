@@ -3,13 +3,22 @@ import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
-import { projectCycles, projectKill, markFor, firesOn } from "../core/project.mjs";
+import { projectCycles, markFor, firesOn } from "../core/project.mjs";
+import { makeRng } from "../core/rng.mjs";
 
 const RULESETS = { phase: PHASE, arc: ARC };
 const SAVE_KEY = "garakuta-play-session";
 const ARCHIVE_KEY = "garakuta-play-finished";
 const MAX_ARCHIVE = 12;
 const GRID_CYCLES = 8;
+
+// 探索の手応え。勝てる並びが何通りあるかを、体験の側から測るための質問。
+const GRIPS = [
+  ["only", "これしかない"],
+  ["chose", "いくつか成立して選んだ"],
+  ["settled", "妥協した"],
+  ["more", "もっと良いのがありそう"]
+];
 
 const MARKERS = [
   ["hit", "きた！"], ["insight", "ひらめいた"], ["choice", "迷う"],
@@ -32,6 +41,7 @@ let selectedPartId = null;
 let selectedSlot = null;
 let pendingPrediction = null;
 let pendingWorry = "なし";
+let pendingGrip = null;
 let playback = null;
 let message = "";
 
@@ -246,7 +256,7 @@ function buildScreen(o) {
     el("span", {}, [el("i", { style: "background:transparent;border:2px solid #9dcc73" }), document.createTextNode("防御が攻撃と噛み合っている")])
   ]));
   grid2.append(el("div", { className: "small", style: "margin-top:6px", textContent: "合計には送気管の加算を含みます。敵の減衰・命中上限は含みません。" }));
-  grid2.append(killEstimate(o));
+  grid2.append(outcomePanel(o));
   out.push(grid2);
 
   const slotCard = el("div", { className: "card" });
@@ -316,27 +326,45 @@ function buildScreen(o) {
 
   if (o.lastBattle) out.push(lastBattleCard(o.lastBattle));
 
+  const rules = rulesetOf(session.ruleset);
   const go = el("div", { className: "card" });
-  go.append(el("h2", { textContent: "戦う前に — いまの見通しは？" }));
-  const picks = el("div", { className: "actions" });
-  rulesetOf(session.ruleset).PREDICTIONS.forEach(p => {
-    picks.append(el("button", {
-      className: `btn pick${pendingPrediction === p ? " on" : ""}`,
-      textContent: p,
-      onclick: () => { pendingPrediction = p; draw(); }
-    }));
-  });
-  go.append(picks);
+
+  // 結果が上に出ているのに勝敗を予想させるのは、答えの見えている問題を出すのと同じである。
+  // 決定的なルールセットでは予想を機械に任せ、代わりに**探索の手応え**を訊く。
+  // これが新しい圧力の指標になる：勝てる並びが少なければ「これしかない」が増えるはずである。
+  if (rules.deterministic) {
+    go.append(el("h2", { textContent: "戦う前に — この並びの手応えは？" }));
+    const picks = el("div", { className: "actions" });
+    GRIPS.forEach(([value, label]) => {
+      picks.append(el("button", {
+        className: `btn pick${pendingGrip === value ? " on" : ""}`,
+        textContent: label,
+        onclick: () => { pendingGrip = value; draw(); }
+      }));
+    });
+    go.append(picks);
+  } else {
+    go.append(el("h2", { textContent: "戦う前に — いまの見通しは？" }));
+    const picks = el("div", { className: "actions" });
+    rules.PREDICTIONS.forEach(p => {
+      picks.append(el("button", {
+        className: `btn pick${pendingPrediction === p ? " on" : ""}`,
+        textContent: p,
+        onclick: () => { pendingPrediction = p; draw(); }
+      }));
+    });
+    go.append(picks);
+  }
   go.append(el("label", { className: "field", textContent: "いちばん不安なこと" }));
   const worry = el("select");
-  rulesetOf(session.ruleset).WORRY_CATEGORIES.forEach(w => worry.append(el("option", { value: w, textContent: w, selected: w === pendingWorry })));
+  rules.WORRY_CATEGORIES.forEach(w => worry.append(el("option", { value: w, textContent: w, selected: w === pendingWorry })));
   worry.onchange = () => { pendingWorry = worry.value; };
   go.append(worry);
   go.append(el("div", { className: "actions", style: "margin-top:10px" }, [
     el("button", {
       className: "btn primary wide",
-      textContent: pendingPrediction ? "この配置で戦う" : "見通しを選んでください",
-      disabled: !pendingPrediction,
+      textContent: readyToFight(rules) ? "この配置で戦う" : (rules.deterministic ? "手応えを選んでください" : "見通しを選んでください"),
+      disabled: !readyToFight(rules),
       onclick: () => startBattle()
     }),
     el("button", { className: "btn", textContent: "気持ち", onclick: () => openMark() })
@@ -346,23 +374,43 @@ function buildScreen(o) {
   return out;
 }
 
-// 12巡の打切りは、遅い構成を組んでいる人にこそ見えている必要がある。
-// 素の合計で敵HPへ何巡目に届くかを出し、制限を超えるなら赤で言う。
-function killEstimate(o) {
+// 入れ替えのたびに結果を暗算するのは「ただの足し算で脳トレ」だと作者が報告した。
+// PHASE の戦闘は決定的（どの部品も乱数を使わない）で、敵の数値はすべて画面に出ている。
+// つまり正確な結果を出しても情報は増えない。**消えるのは暗算だけである。**
+// 面白さは「結果が読めるか」ではなく「勝てる並びを見つけられるか」の側へ移す。
+function outcomePanel(o) {
   const rules = rulesetOf(session.ruleset);
-  const limit = rules.MAX_CYCLES;
-  const enemyHp = o.upcomingEnemy?.hp;
-  if (!enemyHp) return el("div", { className: "small", textContent: "" });
-  const { cycle: killCycle, total: acc } = projectKill(
-    o.slots.map(x => (x.part ? { type: x.part.type } : null)), rules, enemyHp, limit);
-  const ok = killCycle !== null;
-  return el("div", {
-    className: "small",
-    style: `margin-top:6px;color:${ok ? "#9dcc73" : "#dd5b56"}`,
-    textContent: ok
-      ? `目安：素の合計だと ${killCycle}巡目に敵HP${enemyHp}へ届く（打切りは${limit}巡）`
-      : `目安：素の合計では ${limit}巡かけても敵HP${enemyHp}に届かない（${acc}止まり）。耐えるだけでは負ける`
-  });
+  const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
+  if (!enemy) return el("div", { className: "small", textContent: "" });
+  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  if (!slots.some(Boolean)) {
+    return el("div", { className: "verdict", textContent: "枠に部品を置くと、その並びの結果がここに出る" });
+  }
+
+  const runs = [];
+  const samples = rules.deterministic ? 1 : 24;
+  for (let i = 0; i < samples; i += 1) {
+    runs.push(rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1000 + i) }));
+  }
+  const wins = runs.filter(r => r.won);
+  const first = runs[0];
+
+  if (rules.deterministic) {
+    const lost = o.hp - first.hp;
+    const line = first.won
+      ? `勝てる — ${first.cycles}巡で撃破 ・ HP ${o.hp}→${first.hp}${lost > 0 ? `（${lost}失う）` : "（無傷）"}`
+      : first.timedOut
+        ? `負ける — ${rules.MAX_CYCLES}巡で打切り ・ 敵残 ${first.enemyHp}`
+        : `負ける — ${first.cycles}巡で力尽きる ・ 敵残 ${first.enemyHp}`;
+    return el("div", { className: `verdict ${first.won ? "ok" : "ng"}`, textContent: line });
+  }
+
+  const rate = wins.length / runs.length;
+  const hps = wins.map(r => r.hp).sort((a, b) => a - b);
+  const line = wins.length
+    ? `${samples}回中${wins.length}回 勝ち ・ 残HP ${hps[0]}〜${hps[hps.length - 1]}`
+    : `${samples}回とも 負け ・ 敵残 ${Math.min(...runs.map(r => r.enemyHp))}〜`;
+  return el("div", { className: `verdict ${rate >= 0.999 ? "ok" : rate > 0 ? "mid" : "ng"}`, textContent: line });
 }
 
 function cyclesText(slotIndex, period) {
@@ -385,13 +433,39 @@ function lastBattleCard(b) {
 
 /* ---------- 戦闘 ---------- */
 
+function readyToFight(rules) {
+  return rules.deterministic ? Boolean(pendingGrip) : Boolean(pendingPrediction);
+}
+
+// 画面に出しているのと同じ計算から、予測ラベルを引く。
+function machinePrediction(rules) {
+  const o = run.observe();
+  const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
+  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  const result = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
+  return rules.predictionLevel ? labelFor(rules, result, o.hp) : rules.PREDICTIONS[rules.PREDICTIONS.length - 1];
+}
+
+function labelFor(rules, result, hp) {
+  if (!result.won) return rules.PREDICTIONS[0];
+  if (result.hp <= 10) return rules.PREDICTIONS[1];
+  if (result.hp < hp * 0.8) return rules.PREDICTIONS[2];
+  return rules.PREDICTIONS[3];
+}
+
 function startBattle() {
+  const rules = rulesetOf(session.ruleset);
+  // 決定的なルールセットでは、予想は本人ではなく機械が出す（画面にすでに出ている答えと同じもの）。
+  // これで surprise は必ず「想定どおり」になる。それは劣化ではなく、
+  // 圧力の指標を「結果が読めないこと」から「正解が少ないこと」へ移した結果である（P9）。
+  const prediction = rules.deterministic ? machinePrediction(rules) : pendingPrediction;
   const result = act({
-    type: "battle", prediction: pendingPrediction, worry: pendingWorry,
-    worryText: ""
+    type: "battle", prediction, worry: pendingWorry,
+    worryText: pendingGrip ? `手応え:${pendingGrip}` : ""
   });
   if (!result.ok) return;
   pendingPrediction = null;
+  pendingGrip = null;
   pendingWorry = "なし";
   selectedPartId = null; selectedSlot = null;
   const lines = result.battle.log || [];
@@ -607,7 +681,7 @@ $("#newRun").addEventListener("click", () => {
   const seed = params.get("seed");
   session = fresh(seed !== null && seed !== "" ? Number(seed) : null, session.ruleset);
   run = rebuild();
-  selectedPartId = null; selectedSlot = null; pendingPrediction = null; playback = null; message = "";
+  selectedPartId = null; selectedSlot = null; pendingPrediction = null; pendingGrip = null; playback = null; message = "";
   persist(); draw();
 });
 $("#helpButton").addEventListener("click", () => {

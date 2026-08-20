@@ -43,16 +43,7 @@ export function projectCycles(slots, ruleset, cycles) {
   return out;
 }
 
-// 素の合計で敵HPへ何巡目に届くか。届かなければ null と到達量を返す。
-export function projectKill(slots, ruleset, enemyHp, limit) {
-  const rows = projectCycles(slots, ruleset, limit);
-  let acc = 0;
-  for (const row of rows) {
-    acc += row.dmg;
-    if (acc >= enemyHp) return { cycle: row.cycle, total: acc };
-  }
-  return { cycle: null, total: acc };
-}
+// projectKill（素の合計で何巡目に敵HPへ届くか）は削除した。画面は実機の結果を出すので近似は不要。
 
 export function markFor(part) {
   const nom = nominal(part);
