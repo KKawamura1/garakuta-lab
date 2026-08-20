@@ -6,7 +6,15 @@ iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した�
 
 プレイ版: https://garakuta-lab.pages.dev/
 
+新しい核「位相機関 / PHASE 0.1」: https://garakuta-lab.pages.dev/play/?ruleset=phase
+
+部品ごとの作動周期と、置いた枠で決まる位相を中心にした試作。防御が常に正しいのではなく、
+敵の攻撃巡回と位相が噛み合った時だけ正しい、という構造を検証する。設計の経緯は
+[`analysis/BUS_DESIGN_LOG.md`](./analysis/BUS_DESIGN_LOG.md) に記録した。
+
 大胆変更版「溶接獣 / MAT 0.3 選べる漂着物実験」: https://garakuta-lab.pages.dev/material/
+
+エージェントと同じ情報だけを見るデバッグ用の画面: https://garakuta-lab.pages.dev/agent-view/
 
 ## 開発方針
 
