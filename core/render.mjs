@@ -8,7 +8,18 @@ export function padEnd(text, width) {
   return text + " ".repeat(Math.max(1, width - size));
 }
 
-export function renderPart(part, prefix = "") {
+export // 周期を持つルールセットでは「この枠だと何巡目に動くか」が判断の中心になる。
+// 部品の説明だけでは読めないので、枠ごとに展開して見せる。
+function firingCycles(period, slotIndex, upTo = 9) {
+  if (!period) return null;
+  const cycles = [];
+  for (let cycle = 1; cycle <= upTo; cycle += 1) {
+    if ((cycle - 1) % period === slotIndex % period) cycles.push(cycle);
+  }
+  return period === 1 ? "毎巡" : `${cycles.join("・")}…巡目`;
+}
+
+function renderPart(part, prefix = "") {
   const cost = part.cost === undefined ? "" : `帯${part.cost} `;
   return `${prefix}${padEnd(`${part.icon} ${part.name}`, 18)}${padEnd(cost + part.short, 16)}${part.desc}`;
 }
@@ -27,7 +38,10 @@ export function renderObservation(observation, extra = "") {
   lines.push("");
   lines.push(`${o.slotLabel || "駆動列"}（${o.slotHint || "枠1から順に作動"}）`);
   o.slots.forEach(slot => {
-    lines.push(slot.part ? `  ${slot.slot} ${renderPart(slot.part)}` : `  ${slot.slot} （空き）`);
+    if (!slot.part) { lines.push(`  ${slot.slot} （空き）`); return; }
+    lines.push(`  ${slot.slot} ${renderPart(slot.part)}`);
+    const when = firingCycles(slot.part.period, slot.slot - 1);
+    if (when) lines.push(`      作動する巡回：${when}`);
   });
   lines.push("");
   lines.push(`予備部品（${o.inventory.length}個）`);

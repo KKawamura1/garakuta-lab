@@ -1,7 +1,12 @@
 import { createRun } from "../core/run.mjs";
 import { renderObservation } from "../core/render.mjs";
 import { describeRun } from "../core/metrics.mjs";
-import { PREDICTIONS, WORRY_CATEGORIES, UPDATE_KINDS, MARKER_KINDS } from "../core/arc.mjs";
+import { ARC } from "../core/arc.mjs";
+import { BUS } from "../core/bus.mjs";
+import { PHASE } from "../core/phase.mjs";
+
+const RULESETS = { arc: ARC, bus: BUS, phase: PHASE };
+const rulesetOf = name => RULESETS[String(name || "arc").toLowerCase()] || ARC;
 import { sendRun, uuid } from "./sync.js";
 
 const SAVE_KEY = "garakuta-agent-view-session";
@@ -30,9 +35,11 @@ function requestedSeed() {
   return Number.isInteger(seed) && seed >= 0 ? seed : null;
 }
 
-function fresh(seed = null) {
+// session はこの関数の呼び出し結果で初期化されるので、ここから session を見てはいけない。
+function fresh(seed = null, ruleset = null) {
   return {
     runId: uuid(),
+    ruleset: ruleset || new URLSearchParams(location.search).get("ruleset") || "arc",
     seed: seed === null ? Math.floor(Math.random() * 100000) : seed,
     playerId: "human-agent-view",
     startedAt: new Date().toISOString(),
@@ -41,7 +48,7 @@ function fresh(seed = null) {
 }
 
 function rebuild() {
-  const next = createRun({ seed: session.seed, playerId: session.playerId });
+  const next = createRun({ seed: session.seed, playerId: session.playerId, ruleset: rulesetOf(session.ruleset) });
   session.actions.forEach(action => next.act(action));
   return next;
 }
@@ -118,7 +125,7 @@ function draw() {
 
   if (observation.phase === "reward") {
     const reason = el("input", { type: "text", placeholder: "選んだ理由" });
-    const update = select(UPDATE_KINDS);
+    const update = select(rulesetOf(session.ruleset).UPDATE_KINDS);
     controls.appendChild(row(el("label", { textContent: "報酬" }), reason, update));
     const buttons = observation.offer.map(item => el("button", {
       className: "primary",
@@ -153,8 +160,9 @@ function draw() {
     el("button", { textContent: "修復◆1でHP+5", onclick: () => act({ type: "repair" }) })
   ));
 
-  const prediction = select(PREDICTIONS);
-  const worry = select(WORRY_CATEGORIES);
+  const rules = rulesetOf(session.ruleset);
+  const prediction = select(rules.PREDICTIONS);
+  const worry = select(rules.WORRY_CATEGORIES);
   const worryText = el("input", { type: "text", placeholder: "なぜそう思うか" });
   controls.appendChild(row(el("label", { textContent: "戦う前に" }), prediction, worry, worryText));
   controls.appendChild(row(el("button", {
@@ -174,7 +182,7 @@ async function push() {
 }
 
 function markRow() {
-  const kind = select(MARKER_KINDS);
+  const kind = select(rulesetOf(session.ruleset).MARKER_KINDS);
   const note = el("input", { type: "text", placeholder: "ひとこと（任意）" });
   return row(
     el("label", { textContent: "気持ち" }), kind, note,
@@ -239,7 +247,7 @@ $("#newRun").addEventListener("click", () => {
   const label = seed === null ? "無作為のシード" : `シード ${seed}`;
   if (!confirm(`今のランを捨てて、${label}で新しく始めますか？`)) return;
   archiveCurrent();
-  session = fresh(seed);
+  session = fresh(seed, session.ruleset);
   run = rebuild();
   message = "";
   persist();
@@ -257,14 +265,20 @@ $("#copyJson").addEventListener("click", async () => {
   draw();
 });
 
-const urlSeed = new URLSearchParams(location.search).get("seed");
-if (urlSeed !== null) {
+const params = new URLSearchParams(location.search);
+const urlRuleset = params.get("ruleset");
+const urlSeed = params.get("seed");
+if (urlRuleset && String(session.ruleset || "arc") !== urlRuleset.toLowerCase() && !session.actions.length) {
+  session = fresh(urlSeed !== null ? Number(urlSeed.trim()) : null, urlRuleset.toLowerCase());
+  run = rebuild();
+} else if (urlSeed !== null) {
   const seed = Number(urlSeed.trim());
   if (Number.isInteger(seed) && seed >= 0 && session.seed !== seed && !session.actions.length) {
     session = fresh(seed);
     run = rebuild();
   }
 }
+if ($("#rulesetLabel")) $("#rulesetLabel").textContent = rulesetOf(session.ruleset).title;
 if ($("#seedInput")) $("#seedInput").value = String(session.seed);
 
 persist();

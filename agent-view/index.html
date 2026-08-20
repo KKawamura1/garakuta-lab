@@ -11,6 +11,7 @@
       <div>
         <strong>同一視点モード</strong>
         <small>AIエージェントが見ているものと同じ画面で遊ぶ</small>
+        <small id="rulesetLabel"></small>
       </div>
       <div class="head-actions">
         <input id="seedInput" type="text" inputmode="numeric" placeholder="シード" size="8" aria-label="シード" />
@@ -21,7 +22,7 @@
 
     <p class="note">
       表示は <code>core/render.mjs</code> をエージェント用CLIと共有しています。ここに出ていない情報は、エージェントも見ていません。
-      シードを空欄にすると無作為に決まります。<code>?seed=12345</code> を付けて開くと、そのシードで始まります。
+      シードを空欄にすると無作為に決まります。<code>?seed=12345</code> でシード指定、<code>?ruleset=phase</code> で別ルールセットを開きます。
     </p>
 
     <pre id="view" aria-live="polite">読込中…</pre>

@@ -1,6 +1,6 @@
 const DEVICE_KEY = "garakuta-lab-device-id";
 const SCHEMA_VERSION = 4;
-const GAME_VERSION = "arc-0.1-agentview";
+const GAME_VERSION_BY_RULESET = { arc: "arc-0.1-agentview", bus: "bus-0.3-agentview", phase: "phase-0.1-agentview" };
 
 const MARKER_LABELS = {
   hit: "きた！", insight: "ひらめいた", choice: "迷う",
@@ -51,7 +51,7 @@ export function buildPayload(session) {
     telemetryRunId: session.runId,
     deviceId: deviceId(),
     schemaVersion: SCHEMA_VERSION,
-    gameVersion: GAME_VERSION,
+    gameVersion: GAME_VERSION_BY_RULESET[String(session.ruleset || "arc").toLowerCase()] || "unknown-agentview",
     startedAt,
     endedAt,
     outcome: { won: Boolean(trace.won), reached: trace.reached, hp: trace.finalHp },

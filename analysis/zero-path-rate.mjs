@@ -1,5 +1,10 @@
 import { createRun } from "../core/run.mjs";
 import { localSearchPolicy } from "../agents/policies.mjs";
+import { ARC } from "../core/arc.mjs";
+import { BUS } from "../core/bus.mjs";
+import { PHASE } from "../core/phase.mjs";
+
+const RULESETS = { arc: ARC, bus: BUS, phase: PHASE };
 
 // 学習ログ#18でCYCLE 0.1を棄却した基準「勝ち筋ゼロ率」を、現行トップのARC 0.1へ当てる。
 // 各シードについて報酬の選び方4^5=1024通りを全探索し、一つも勝てないシードの割合を出す。
@@ -10,10 +15,13 @@ const args = Object.fromEntries(process.argv.slice(2).map(item => {
 }));
 const seeds = Number(args.seeds || 20);
 const from = Number(args.from || 1);
+const ruleset = RULESETS[String(args.ruleset || "arc").toLowerCase()];
+if (!ruleset) { console.error(`未知のルールセット: ${args.ruleset}`); process.exit(2); }
+const CHOICES = [0, ...Array.from({ length: ruleset.REWARD_CHOICES }, (_, i) => i + 1)];
 
 function play(seed, decisions) {
-  const run = createRun({ seed, playerId: "probe" });
-  const policy = localSearchPolicy();
+  const run = createRun({ seed, playerId: "probe", ruleset });
+  const policy = localSearchPolicy({ ruleset });
   let rewardIndex = 0;
   let guard = 0;
   while (!run.done && guard < 400) {
@@ -42,7 +50,7 @@ function winningPaths(seed, anyWin = false) {
   while (stack.length) {
     const decisions = stack.pop();
     const result = play(seed, decisions);
-    if (result.pending) { [0, 1, 2, 3].forEach(d => stack.push([...decisions, d])); continue; }
+    if (result.pending) { CHOICES.forEach(d => stack.push([...decisions, d])); continue; }
     total += 1;
     if (result.trace.won) {
       wins += 1;
@@ -63,7 +71,8 @@ const zero = rows.filter(r => r.wins === 0);
 const rates = rows.filter(r => !r.truncated).map(r => r.rate).sort((a, b) => a - b);
 const pct = q => rates[Math.min(rates.length - 1, Math.floor(q * rates.length))];
 
-console.log(`ARC 0.1 / seed ${from}..${from + seeds - 1}（各1024経路を全探索、局所探索プレイヤー）`);
+const pathCount = CHOICES.length ** 5;
+console.log(`${ruleset.title} / seed ${from}..${from + seeds - 1}（各${pathCount}経路を全探索、局所探索プレイヤー）`);
 console.log(`  勝ち筋ゼロのシード: ${zero.length}/${rows.length}  = ${(zero.length / rows.length * 100).toFixed(1)}%`);
 if (!args.anyWin) console.log(`  勝利経路割合  中央値 ${(pct(0.5) * 100).toFixed(1)}%  下位10% ${(pct(0.1) * 100).toFixed(1)}%  上位10% ${(pct(0.9) * 100).toFixed(1)}%`);
 const n = rows.length;

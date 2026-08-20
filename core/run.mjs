@@ -48,6 +48,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     icon: PARTS[instance.type].icon, short: PARTS[instance.type].short,
     desc: PARTS[instance.type].desc, tags: PARTS[instance.type].tags,
     cost: PARTS[instance.type].cost,
+    period: PARTS[instance.type].period,
     rare: Boolean(PARTS[instance.type].rare), acquiredWave: instance.acquiredWave + 1
   });
 
