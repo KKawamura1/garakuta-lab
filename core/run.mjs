@@ -32,8 +32,22 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     trace: [], seq: 0, edits: newEdits()
   };
 
-  const startTypes = [];
-  while (startTypes.length < START_PARTS) startTypes.push(weightedType(startTypes));
+  // 初期手札の契約。ルールセットが startContract を持つなら、それを満たすまで引き直す。
+  //
+  // 必要になった理由：RELAY の生成条件を測ったとき、1〜2戦目だけ
+  // 「締めると勝てない手札が生まれ、緩めると全部の並びが勝つ」の二択になった。
+  // 敵の数値では解けない。原因は手札の偏り（撃が足りない引き）だったので、
+  // 難易度ではなく**引きの側**に条件を置く。詰みを作らずに締めるための唯一の手である。
+  const drawStart = () => {
+    const types = [];
+    while (types.length < START_PARTS) types.push(weightedType(types));
+    return types;
+  };
+  let startTypes = drawStart();
+  if (typeof ruleset.startContract === "function") {
+    let tries = 0;
+    while (!ruleset.startContract(startTypes) && tries < 200) { startTypes = drawStart(); tries += 1; }
+  }
   state.inventory = startTypes.map(makePart);
 
   function newEdits() { return { place: 0, remove: 0, swap: 0, scrap: 0, repair: 0, total: 0 }; }

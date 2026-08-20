@@ -1,0 +1,14 @@
+[
+  { "name": "標的機", "face": "○", "hp": 40, "atk": 7, "atkPeriod": 1, "cap": 99, "floor": 0,
+    "trait": "毎巡。継電の基本を確かめる相手。" },
+  { "name": "環甲", "face": "▤", "hp": 62, "atk": 8, "atkPeriod": 1, "cap": 14, "floor": 0,
+    "trait": "1回の命中は上限までしか通らない。大きい一撃ほど無駄が出る。" },
+  { "name": "大顎", "face": "▼", "hp": 78, "atk": 26, "atkPeriod": 3, "cap": 99, "floor": 0,
+    "trait": "3巡に1回の重い一撃。来る巡回に遮蔽を合わせられるか。" },
+  { "name": "鋼芯", "face": "◆", "hp": 88, "atk": 10, "atkPeriod": 2, "cap": 99, "floor": 10,
+    "trait": "下限未満の命中は1に潰される。小突きが通らない。" },
+  { "name": "双翼", "face": "≫", "hp": 100, "atk": 15, "atkPeriod": 2, "cap": 99, "floor": 0,
+    "trait": "2巡に1回。間隔が空くぶん一撃が重い。" },
+  { "name": "再生炉", "face": "◉", "hp": 120, "atk": 12, "atkPeriod": 1, "cap": 99, "floor": 0, "regen": 6,
+    "trait": "毎巡回復する。削る速さと耐える力の両方が要る。" }
+]
