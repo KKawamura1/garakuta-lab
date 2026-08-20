@@ -302,7 +302,17 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       const state = Object.entries(entry.after)
         .filter(([key, value]) => RESOURCE_LABELS[key] && value !== undefined)
         .map(([key, value]) => `${RESOURCE_LABELS[key]}${value}`).join(" ");
-      const hit = entry.damage ? `（${entry.damage}ダメージ）` : "";
+      // 数字が出ない効果（遮蔽・回復・加算）もログに出す。
+      // 出ていないと、効いたのかどうかをプレイヤーが確かめられない。
+      const bits = [
+        entry.damage ? `${entry.damage}ダメージ` : "",
+        entry.shieldGained ? `遮蔽+${entry.shieldGained}` : "",
+        entry.healed ? `回復+${entry.healed}` : "",
+        entry.selfDamage ? `自傷${entry.selfDamage}` : "",
+        entry.boostUsed ? `＋${entry.boostUsed}を受けた` : "",
+        entry.boostSet ? `次へ＋${entry.boostSet}` : ""
+      ].filter(Boolean).join(" / ");
+      const hit = bits ? `（${bits}）` : "";
       return `巡${entry.cycle}${where} ${entry.part}${cost}：${entry.text}${hit} → 敵HP${entry.after.enemyHp}${state ? " " + state : ""}`;
     });
   }

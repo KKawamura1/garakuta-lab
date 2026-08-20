@@ -3,6 +3,7 @@ import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
+import { projectCycles, projectKill, markFor, firesOn } from "../core/project.mjs";
 
 const RULESETS = { phase: PHASE, arc: ARC };
 const SAVE_KEY = "garakuta-play-session";
@@ -84,12 +85,10 @@ function act(action) {
 
 /* ---------- 位相表：剰余計算を絵にする ---------- */
 
-function firesOn(cycle, slotIndex, period) {
-  return (cycle - 1) % period === slotIndex % period;
-}
 function isDefensive(part) {
   return Boolean(part && part.tags && part.tags.includes("防御"));
 }
+
 
 function phaseGrid(o) {
   const enemy = o.upcomingEnemy || {};
@@ -111,25 +110,8 @@ function phaseGrid(o) {
     }));
   }
 
-  const parts = rulesetOf(session.ruleset).PARTS;
-  const nominal = type => {
-    try {
-      const d = parts[type].run({ uses: {}, rng: () => 0.5, instanceId: "x" });
-      const dmg = (d.damage || 0) + (d.hits || []).reduce((a, b) => a + b, 0);
-      return { dmg, shield: d.shield || 0 };
-    } catch (_) { return { dmg: 0, shield: 0 }; }
-  };
-  const perCycle = Array.from({ length: GRID_CYCLES }, () => ({ n: 0, dmg: 0, shield: 0 }));
-  o.slots.forEach((slot, i) => {
-    if (!slot.part) return;
-    const nom = nominal(slot.part.type);
-    for (let c = 1; c <= GRID_CYCLES; c += 1) {
-      if (!firesOn(c, i, slot.part.period || 1)) continue;
-      perCycle[c - 1].n += 1;
-      perCycle[c - 1].dmg += nom.dmg;
-      perCycle[c - 1].shield += nom.shield;
-    }
-  });
+  const projection = projectCycles(o.slots.map(x => (x.part ? { type: x.part.type } : null)), rulesetOf(session.ruleset), GRID_CYCLES);
+  const perCycle = projection.map(r => ({ n: r.firing, dmg: r.dmg, shield: r.shield, heal: r.heal }));
 
   o.slots.forEach((slot, i) => {
     const part = slot.part;
@@ -144,7 +126,7 @@ function phaseGrid(o) {
       const aligned = fires && isDefensive(part) && enemyHits(c);
       grid.append(el("div", {
         className: `cell${fires ? " fire" : ""}${fires && isDefensive(part) ? " def" : ""}${aligned ? " aligned" : ""}`,
-        textContent: fires ? "●" : ""
+        textContent: fires ? markFor(rulesetOf(session.ruleset).PARTS[part.type]) : ""
       }));
     }
   });
@@ -159,6 +141,12 @@ function phaseGrid(o) {
     className: `cell${x.shield ? " fire def" : ""}${x.shield && enemyHits(idx + 1) ? " aligned" : ""}`,
     textContent: x.shield ? String(x.shield) : "—"
   })));
+  if (perCycle.some(x => x.heal)) {
+    grid.append(el("div", { className: "cell slot-label", textContent: "素の回復" }));
+    perCycle.forEach(x => grid.append(el("div", {
+      className: `cell${x.heal ? " fire heal" : ""}`, textContent: x.heal ? String(x.heal) : "—"
+    })));
+  }
   return grid;
 }
 
@@ -257,7 +245,7 @@ function buildScreen(o) {
     el("span", {}, [el("i", { style: "background:#4a2422" }), document.createTextNode("敵の攻撃")]),
     el("span", {}, [el("i", { style: "background:transparent;border:2px solid #9dcc73" }), document.createTextNode("防御が攻撃と噛み合っている")])
   ]));
-  grid2.append(el("div", { className: "small", style: "margin-top:6px", textContent: "合計は素の値です。送気管の加算、敵の減衰・命中上限は含みません。" }));
+  grid2.append(el("div", { className: "small", style: "margin-top:6px", textContent: "合計には送気管の加算を含みます。敵の減衰・命中上限は含みません。" }));
   grid2.append(killEstimate(o));
   out.push(grid2);
 
@@ -281,6 +269,16 @@ function buildScreen(o) {
   });
   slotCard.append(slots);
   if (selectedSlot !== null && o.slots[selectedSlot].part) {
+    const p = o.slots[selectedSlot].part;
+    const detail = el("div", { className: "detail" });
+    detail.append(el("div", { className: "name" }, [
+      document.createTextNode(`${p.icon} ${p.name}`),
+      el("span", { className: "tag", textContent: `周期${p.period ?? 1}` }),
+      p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
+    ]));
+    detail.append(el("div", { className: "desc", textContent: p.desc }));
+    detail.append(el("div", { className: "small", textContent: `枠${selectedSlot + 1}では ${cyclesText(selectedSlot, p.period ?? 1)} に作動` }));
+    slotCard.append(detail);
     slotCard.append(el("div", { className: "actions", style: "margin-top:8px" }, [
       el("button", { className: "btn", textContent: "この枠を外す", onclick: () => { act({ type: "remove", slot: selectedSlot + 1 }); selectedSlot = null; draw(); } })
     ]));
@@ -355,20 +353,8 @@ function killEstimate(o) {
   const limit = rules.MAX_CYCLES;
   const enemyHp = o.upcomingEnemy?.hp;
   if (!enemyHp) return el("div", { className: "small", textContent: "" });
-  const parts = rules.PARTS;
-  let acc = 0;
-  let killCycle = null;
-  for (let c = 1; c <= limit; c += 1) {
-    o.slots.forEach((slot, i) => {
-      if (!slot.part) return;
-      if (!firesOn(c, i, slot.part.period || 1)) return;
-      try {
-        const d = parts[slot.part.type].run({ uses: {}, rng: () => 0.5, instanceId: "x" });
-        acc += (d.damage || 0) + (d.hits || []).reduce((a, b) => a + b, 0);
-      } catch (_) {}
-    });
-    if (killCycle === null && acc >= enemyHp) killCycle = c;
-  }
+  const { cycle: killCycle, total: acc } = projectKill(
+    o.slots.map(x => (x.part ? { type: x.part.type } : null)), rules, enemyHp, limit);
   const ok = killCycle !== null;
   return el("div", {
     className: "small",

@@ -82,6 +82,23 @@ const predicted = phaseTrace.events.filter(e => e.type === "battle_predicted");
 assert.equal(predicted[1].editBreakdown.swap, 1, "付け替えは種別ごとに記録される");
 assert.equal(predicted[0].editBreakdown.place, 5);
 
+// 画面に出す見積りが、実際の戦闘と一致すること。
+// ここがずれると「表示は正しいのに結果が違う」という、最も質の悪い壊れ方をする。
+const { projectCycles } = await import("../core/project.mjs");
+const { PHASE } = await import("../core/phase.mjs");
+{
+  const slots = ["feeder", "bank", "needle", "thin", "striker"].map((type, i) => ({ id: `s${i}`, type }));
+  const enemy = { name: "検証", hp: 100000, atk: 0, atkPeriod: 99, cap: 99, floor: 0 };
+  const result = PHASE.simulateBattle({ slots, hp: 300, maxHp: 300, enemy, rng: () => 0.5 });
+  const projected = projectCycles(slots, PHASE, result.cycles);
+  for (let c = 1; c <= result.cycles; c += 1) {
+    const actual = result.log.filter(e => e.cycle === c).reduce((sum, e) => sum + (e.damage || 0), 0);
+    assert.equal(projected[c - 1].dmg, actual, `巡${c}の見積り攻撃が実戦と一致する`);
+  }
+  const shieldActual = result.log.filter(e => e.cycle === 1).reduce((sum, e) => sum + (e.shieldGained || 0), 0);
+  assert.equal(projected[0].shield, shieldActual, "巡1の見積り遮蔽が実戦と一致する");
+}
+
 const metrics = describeRun(first);
 ["deadTime", "pivotRate", "reinterpretationRate", "gateConcentration", "problemChainRate", "warnings"]
   .forEach(key => assert.ok(key in metrics, `指標 ${key} が計算される`));

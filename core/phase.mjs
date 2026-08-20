@@ -34,8 +34,8 @@ export const PARTS = {
     run: () => ({ shield: 3, text: "薄板をかざした" })
   },
   feeder: {
-    name: "送気管", icon: "→", period: 1, short: "次を強める", tags: ["連携", "毎巡"],
-    desc: "毎巡回、この巡回でこの後に作動する最初の部品の効果を5増やす。",
+    name: "送気管", icon: "→", period: 1, short: "次を+5", tags: ["連携", "毎巡"],
+    desc: "毎巡回、この巡回で次に作動する部品の 攻撃・遮蔽・回復 をそれぞれ5増やす。多段は1発だけ。自傷には乗らない。",
     run: () => ({ boost: 5, text: "送気して次へ回した" })
   },
   striker: {
@@ -159,20 +159,31 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng, parts = PARTS }) 
       record.activations += 1;
       const delta = part.run({ ...battle, instanceId: instance.id, uses: battle.uses, rng });
 
+      // 加算は攻撃・遮蔽・回復のどれにも同じく乗り、いずれかを出した部品が消費する。
+      // 以前は攻撃にしか乗らず、回復だけの部品は消費もせずに次へ漏らしていた。
+      // 説明文と実装が食い違っていたので、説明文の側へ揃えた。多段は1発だけ、自傷には乗らない。
+      const usesBoost = Boolean(delta.damage || delta.hits || delta.shield || delta.heal);
       let dealt = 0;
       if (delta.damage) dealt += applyHit(delta.damage + boost);
       if (delta.hits) delta.hits.forEach((h, n) => { if (battle.enemyHp > 0) dealt += applyHit(h + (n === 0 ? boost : 0)); });
-      const gained = delta.shield ? delta.shield + (delta.damage || delta.hits ? 0 : boost) : 0;
+      const gained = delta.shield ? delta.shield + boost : 0;
       if (gained) shield += gained;
-      if (delta.damage || delta.hits || delta.shield) boost = 0;
-      if (delta.boost) boost = delta.boost;
-      if (delta.heal) { const before = battle.hp; battle.hp = Math.min(maxHp, battle.hp + delta.heal); record.healing += battle.hp - before; }
+      if (delta.heal) {
+        const before = battle.hp;
+        battle.hp = Math.min(maxHp, battle.hp + delta.heal + boost);
+        record.healing += battle.hp - before;
+      }
       if (delta.selfDamage) battle.hp -= delta.selfDamage;
+      const usedBoost = usesBoost ? boost : 0;
+      if (usesBoost) boost = 0;
+      if (delta.boost) boost = delta.boost;
 
       record.damage += dealt;
       record.shield += gained;
       log.push({ cycle: battle.cycle, slot: i, part: part.name, type: instance.type, period: part.period,
         text: delta.text, damage: dealt,
+        shieldGained: gained, healed: delta.heal ? record.healing : 0,
+        selfDamage: delta.selfDamage || 0, boostUsed: usedBoost, boostSet: delta.boost || 0,
         after: { shield, enemyHp: Math.max(0, battle.enemyHp), hp: Math.max(0, battle.hp) } });
       if (battle.enemyHp <= 0) break;
     }
