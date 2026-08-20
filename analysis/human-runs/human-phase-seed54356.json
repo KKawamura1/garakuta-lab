@@ -1,0 +1,1362 @@
+{
+ "seed": 54356,
+ "playerId": "human-play",
+ "head": "play",
+ "ruleset": "phase",
+ "survey": {
+  "replay": 3,
+  "pivot": "あった",
+  "settledAt": "6 結構ギリギリまでわからなかった？",
+  "bestMoment": "崩落砲引けたところ",
+  "friction": "途中の敵が弱い",
+  "runStory": "火力足りてよかったー"
+ },
+ "actionCount": 57,
+ "reportedStats": {
+  "seed": 54356,
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 15,
+  "battles": 6,
+  "surprise": {
+   "better": 0,
+   "expected": 6,
+   "worse": 0
+  },
+  "deadTime": 0,
+  "flawlessBattles": 4,
+  "flawlessBattleRate": 0.667,
+  "idleBattles": 0,
+  "idleBattleRate": 0,
+  "phaseMoves": 5,
+  "phaseMoveRate": 1,
+  "pivotRate": 0.6,
+  "reinterpretationRate": 1,
+  "gateConcentration": 0.334,
+  "gateRanking": [
+   {
+    "name": "大槌",
+    "share": 0.334
+   },
+   {
+    "name": "薄板",
+    "share": 0.27
+   },
+   {
+    "name": "連打腕",
+    "share": 0.105
+   }
+  ],
+  "worryConcentration": 1,
+  "problemChainRate": 0,
+  "worryCounts": {
+   "なし": 6
+  },
+  "updateCounts": {
+   "confirmed": 4,
+   "new_plan": 1
+  },
+  "tensionCurve": [
+   3,
+   3,
+   3,
+   3,
+   3,
+   2
+  ],
+  "tenseBattleRate": 0,
+  "markerCounts": {
+   "payoff": 1,
+   "insight": 2,
+   "hit": 1,
+   "friction": 6
+  },
+  "markerTotal": 10,
+  "rewardsTaken": 5,
+  "rewardsSkipped": 0,
+  "rewardCount": 5,
+  "warnings": [
+   {
+    "code": "no_pressure",
+    "detail": "67%の戦闘を無傷で勝った（圧力が無い）"
+   },
+   {
+    "code": "single_worry",
+    "detail": "不安の100%が一つの機能に集中"
+   },
+   {
+    "code": "no_problem_chain",
+    "detail": "問題が入れ替わらず同じ不足が続いた"
+   },
+   {
+    "code": "no_tension",
+    "detail": "一度も苦戦を予期しなかった"
+   }
+  ],
+  "actionCount": 57
+ },
+ "moments": [
+  {
+   "seq": 2,
+   "wave": 1,
+   "phase": "build",
+   "kind": "payoff",
+   "note": "とりあえず、送気管+薄板で攻撃8までは無効化できそう"
+  },
+  {
+   "seq": 3,
+   "wave": 1,
+   "phase": "build",
+   "kind": "insight",
+   "note": "これでしばらく安泰か"
+  },
+  {
+   "seq": 12,
+   "wave": 3,
+   "phase": "build",
+   "kind": "hit",
+   "note": "何ターン目に勝てるか教えてくれるのめっちゃ体験いいな"
+  },
+  {
+   "seq": 16,
+   "wave": 4,
+   "phase": "reward",
+   "kind": "friction",
+   "note": "火力も遮蔽もいまいち"
+  },
+  {
+   "seq": 18,
+   "wave": 4,
+   "phase": "build",
+   "kind": "friction",
+   "note": "うーん、吸気筒もう持ってたか。忘れてた"
+  },
+  {
+   "seq": 19,
+   "wave": 4,
+   "phase": "build",
+   "kind": "friction",
+   "note": "この敵弱すぎでは？毎回ノーコストで勝てる"
+  },
+  {
+   "seq": 23,
+   "wave": 5,
+   "phase": "reward",
+   "kind": "friction",
+   "note": "火力不足で負けでは？"
+  },
+  {
+   "seq": 25,
+   "wave": 5,
+   "phase": "build",
+   "kind": "friction",
+   "note": "こいつも弱すぎ"
+  },
+  {
+   "seq": 29,
+   "wave": 6,
+   "phase": "reward",
+   "kind": "friction",
+   "note": "崩落砲来たけど、それでも火力足りなそう？"
+  },
+  {
+   "seq": 31,
+   "wave": 6,
+   "phase": "build",
+   "kind": "insight",
+   "note": "ゆーても遮蔽8あれば10ターン耐えるから、いけるか"
+  }
+ ],
+ "trace": {
+  "seed": 54356,
+  "ruleset": "phase-0.1",
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 15,
+  "battles": [
+   {
+    "battleNumber": 1,
+    "enemy": "試運転機",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 3,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    },
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 1,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 1,
+      "damage": 0,
+      "shield": 8,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 1,
+      "damage": 9,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 1,
+      "damage": 18,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 1,
+      "damage": 9,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 2,
+    "enemy": "鎖甲",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 1,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 1
+    },
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 5,
+      "damage": 0,
+      "shield": 40,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 3,
+      "damage": 27,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 2,
+      "damage": 18,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 2,
+      "damage": 12,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 3,
+    "enemy": "重槌鬼",
+    "won": true,
+    "cycles": 7,
+    "hpBefore": 30,
+    "hpAfter": 28,
+    "hpLost": 2,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 3,
+     "remove": 0,
+     "swap": 7,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    },
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 7,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 7,
+      "damage": 0,
+      "shield": 56,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "障壁",
+      "activations": 3,
+      "damage": 0,
+      "shield": 39,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 4,
+      "damage": 30,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 4,
+    "enemy": "硬芯",
+    "won": true,
+    "cycles": 9,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 1,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 1
+    },
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 9,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 9,
+      "damage": 0,
+      "shield": 72,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 3,
+      "damage": 54,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "障壁",
+      "activations": 3,
+      "damage": 0,
+      "shield": 39,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 4,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 5,
+    "enemy": "双撃機",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 4,
+    "editBreakdown": {
+     "place": 2,
+     "remove": 1,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 4
+    },
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 46,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "厚板",
+      "activations": 2,
+      "damage": 0,
+      "shield": 24,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 41,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 2,
+      "damage": 18,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 6,
+    "enemy": "終端炉",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 30,
+    "hpAfter": 12,
+    "hpLost": 18,
+    "enemyHpLeft": 0,
+    "prediction": "勝てそう",
+    "surprise": "expected",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 5,
+     "remove": 5,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    },
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 2,
+      "damage": 56,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "送気管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 5,
+      "damage": 0,
+      "shield": 40,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   }
+  ],
+  "rewards": [
+   {
+    "wave": 2,
+    "offered": [
+     "撃鉄",
+     "大槌",
+     "連打腕"
+    ],
+    "chosen": "連打腕",
+    "passed": [
+     "撃鉄",
+     "大槌"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 3,
+    "offered": [
+     "厚板",
+     "針打機",
+     "薄板"
+    ],
+    "chosen": "厚板",
+    "passed": [
+     "針打機",
+     "薄板"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 4,
+    "offered": [
+     "連打腕",
+     "撃鉄",
+     "吸気筒"
+    ],
+    "chosen": "吸気筒",
+    "passed": [
+     "連打腕",
+     "撃鉄"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 5,
+    "offered": [
+     "大槌",
+     "撃鉄",
+     "障壁"
+    ],
+    "chosen": "大槌",
+    "passed": [
+     "撃鉄",
+     "障壁"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 6,
+    "offered": [
+     "吸気筒",
+     "大槌",
+     "崩落砲"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "吸気筒",
+     "大槌"
+    ],
+    "update": "new_plan"
+   }
+  ],
+  "events": [
+   {
+    "seq": 1,
+    "type": "run_started",
+    "wave": 1,
+    "phase": "build",
+    "initial": [
+     "薄板",
+     "連打腕",
+     "撃鉄",
+     "障壁",
+     "針打機",
+     "吸気筒",
+     "大槌",
+     "送気管"
+    ]
+   },
+   {
+    "seq": 2,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "payoff",
+    "note": "とりあえず、送気管+薄板で攻撃8までは無効化できそう"
+   },
+   {
+    "seq": 3,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "insight",
+    "note": "これでしばらく安泰か"
+   },
+   {
+    "seq": 4,
+    "type": "battle_predicted",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "試運転機",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "送気管",
+     "薄板",
+     "連打腕",
+     "大槌",
+     "撃鉄"
+    ],
+    "buildSignature": "p8,p1,p2,p7,p3",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 3,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    }
+   },
+   {
+    "seq": 5,
+    "type": "battle_ended",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "試運転機",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p8,p1,p2,p7,p3",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 1,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 1,
+      "damage": 0,
+      "shield": 8,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 1,
+      "damage": 9,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 1,
+      "damage": 18,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 1,
+      "damage": 9,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 6,
+    "type": "reward_offered",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "撃鉄",
+     "大槌",
+     "連打腕"
+    ]
+   },
+   {
+    "seq": 7,
+    "type": "reward_chosen",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "撃鉄",
+     "大槌",
+     "連打腕"
+    ],
+    "chosen": "連打腕",
+    "passed": [
+     "撃鉄",
+     "大槌"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 8,
+    "type": "battle_predicted",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "鎖甲",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "送気管",
+     "薄板",
+     "連打腕",
+     "連打腕",
+     "撃鉄"
+    ],
+    "buildSignature": "p8,p1,p2,pb,p3",
+    "editsSincePrevious": 1,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 1
+    }
+   },
+   {
+    "seq": 9,
+    "type": "battle_ended",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "鎖甲",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p8,p1,p2,pb,p3",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 5,
+      "damage": 0,
+      "shield": 40,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 3,
+      "damage": 27,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 2,
+      "damage": 18,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 2,
+      "damage": 12,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 10,
+    "type": "reward_offered",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "厚板",
+     "針打機",
+     "薄板"
+    ]
+   },
+   {
+    "seq": 11,
+    "type": "reward_chosen",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "厚板",
+     "針打機",
+     "薄板"
+    ],
+    "chosen": "厚板",
+    "passed": [
+     "針打機",
+     "薄板"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 12,
+    "type": "emotion_marked",
+    "wave": 3,
+    "phase": "build",
+    "kind": "hit",
+    "note": "何ターン目に勝てるか教えてくれるのめっちゃ体験いいな"
+   },
+   {
+    "seq": 13,
+    "type": "battle_predicted",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "重槌鬼",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "送気管",
+     "薄板",
+     "大槌",
+     "障壁",
+     "連打腕"
+    ],
+    "buildSignature": "p8,p1,p7,p4,pb",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 3,
+     "remove": 0,
+     "swap": 7,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    }
+   },
+   {
+    "seq": 14,
+    "type": "battle_ended",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "重槌鬼",
+    "won": true,
+    "cycles": 7,
+    "hpBefore": 30,
+    "hpAfter": 28,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p8,p1,p7,p4,pb",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 7,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 7,
+      "damage": 0,
+      "shield": 56,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "障壁",
+      "activations": 3,
+      "damage": 0,
+      "shield": 39,
+      "healing": 0
+     },
+     {
+      "name": "連打腕",
+      "activations": 4,
+      "damage": 30,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 15,
+    "type": "reward_offered",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "連打腕",
+     "撃鉄",
+     "吸気筒"
+    ]
+   },
+   {
+    "seq": 16,
+    "type": "emotion_marked",
+    "wave": 4,
+    "phase": "reward",
+    "kind": "friction",
+    "note": "火力も遮蔽もいまいち"
+   },
+   {
+    "seq": 17,
+    "type": "reward_chosen",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "連打腕",
+     "撃鉄",
+     "吸気筒"
+    ],
+    "chosen": "吸気筒",
+    "passed": [
+     "連打腕",
+     "撃鉄"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 18,
+    "type": "emotion_marked",
+    "wave": 4,
+    "phase": "build",
+    "kind": "friction",
+    "note": "うーん、吸気筒もう持ってたか。忘れてた"
+   },
+   {
+    "seq": 19,
+    "type": "emotion_marked",
+    "wave": 4,
+    "phase": "build",
+    "kind": "friction",
+    "note": "この敵弱すぎでは？毎回ノーコストで勝てる"
+   },
+   {
+    "seq": 20,
+    "type": "battle_predicted",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "硬芯",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "送気管",
+     "薄板",
+     "大槌",
+     "障壁",
+     "撃鉄"
+    ],
+    "buildSignature": "p8,p1,p7,p4,p3",
+    "editsSincePrevious": 1,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 1
+    }
+   },
+   {
+    "seq": 21,
+    "type": "battle_ended",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "硬芯",
+    "won": true,
+    "cycles": 9,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p8,p1,p7,p4,p3",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 9,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 9,
+      "damage": 0,
+      "shield": 72,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 3,
+      "damage": 54,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "障壁",
+      "activations": 3,
+      "damage": 0,
+      "shield": 39,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 4,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 22,
+    "type": "reward_offered",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "大槌",
+     "撃鉄",
+     "障壁"
+    ]
+   },
+   {
+    "seq": 23,
+    "type": "emotion_marked",
+    "wave": 5,
+    "phase": "reward",
+    "kind": "friction",
+    "note": "火力不足で負けでは？"
+   },
+   {
+    "seq": 24,
+    "type": "reward_chosen",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "大槌",
+     "撃鉄",
+     "障壁"
+    ],
+    "chosen": "大槌",
+    "passed": [
+     "撃鉄",
+     "障壁"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 25,
+    "type": "emotion_marked",
+    "wave": 5,
+    "phase": "build",
+    "kind": "friction",
+    "note": "こいつも弱すぎ"
+   },
+   {
+    "seq": 26,
+    "type": "battle_predicted",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双撃機",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "送気管",
+     "大槌",
+     "厚板",
+     "大槌",
+     "撃鉄"
+    ],
+    "buildSignature": "p8,pi,pc,p7,p3",
+    "editsSincePrevious": 4,
+    "editBreakdown": {
+     "place": 2,
+     "remove": 1,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 4
+    }
+   },
+   {
+    "seq": 27,
+    "type": "battle_ended",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双撃機",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p8,pi,pc,p7,p3",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "送気管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 46,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "厚板",
+      "activations": 2,
+      "damage": 0,
+      "shield": 24,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 41,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "撃鉄",
+      "activations": 2,
+      "damage": 18,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 28,
+    "type": "reward_offered",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "吸気筒",
+     "大槌",
+     "崩落砲"
+    ]
+   },
+   {
+    "seq": 29,
+    "type": "emotion_marked",
+    "wave": 6,
+    "phase": "reward",
+    "kind": "friction",
+    "note": "崩落砲来たけど、それでも火力足りなそう？"
+   },
+   {
+    "seq": 30,
+    "type": "reward_chosen",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "吸気筒",
+     "大槌",
+     "崩落砲"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "吸気筒",
+     "大槌"
+    ],
+    "reason": "",
+    "update": "new_plan",
+    "updateText": ""
+   },
+   {
+    "seq": 31,
+    "type": "emotion_marked",
+    "wave": 6,
+    "phase": "build",
+    "kind": "insight",
+    "note": "ゆーても遮蔽8あれば10ターン耐えるから、いけるか"
+   },
+   {
+    "seq": 32,
+    "type": "battle_predicted",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "終端炉",
+    "prediction": "勝てそう",
+    "worry": "なし",
+    "worryText": "",
+    "build": [
+     "崩落砲",
+     "送気管",
+     "薄板",
+     "大槌",
+     "大槌"
+    ],
+    "buildSignature": "pn,p8,p1,pi,p7",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 5,
+     "remove": 5,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    }
+   },
+   {
+    "seq": 33,
+    "type": "battle_ended",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "終端炉",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 30,
+    "hpAfter": 12,
+    "enemyHpLeft": 0,
+    "prediction": "勝てそう",
+    "expectedLevel": 2,
+    "actualLevel": 2,
+    "surprise": "expected",
+    "buildSignature": "pn,p8,p1,pi,p7",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 2,
+      "damage": 56,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "送気管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "薄板",
+      "activations": 5,
+      "damage": 0,
+      "shield": 40,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "大槌",
+      "activations": 2,
+      "damage": 36,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 34,
+    "type": "run_ended",
+    "wave": 6,
+    "phase": "end",
+    "won": true,
+    "reached": 6
+   },
+   {
+    "seq": 35,
+    "type": "survey",
+    "wave": 6,
+    "phase": "end",
+    "replay": 3,
+    "bestMoment": "崩落砲引けたところ",
+    "pivot": "あった",
+    "settledAt": "6 結構ギリギリまでわからなかった？",
+    "runStory": "火力足りてよかったー",
+    "friction": "途中の敵が弱い",
+    "wishlist": ""
+   }
+  ]
+ }
+}
