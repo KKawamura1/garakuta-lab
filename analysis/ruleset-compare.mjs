@@ -3,6 +3,7 @@ import { describeRun } from "../core/metrics.mjs";
 import { localSearchPolicy, naivePolicy } from "../agents/policies.mjs";
 import { ARC } from "../core/arc.mjs";
 import { BUS } from "../core/bus.mjs";
+import { PHASE } from "../core/phase.mjs";
 
 // 別ルールセットを同じ物差しで並べる。見たいのは勝率ではなく、
 // 「支配部品が固定されるか」「決着後の死に時間」「苦戦を予期する頻度」。
@@ -64,6 +65,8 @@ function evaluate(ruleset) {
     最多構成への集中: Number((Math.max(...buildCounts.values()) / runs.length).toFixed(3)),
     "採用率5%未満の部品": dead.length,
     死に時間: Number(mean("deadTime").toFixed(3)),
+    無傷勝利率: Number(mean("flawlessBattleRate").toFixed(3)),
+    惰性戦闘率: Number(mean("idleBattleRate").toFixed(3)),
     苦戦予期率: Number(mean("tenseBattleRate").toFixed(3)),
     問題の連鎖: Number(mean("problemChainRate").toFixed(3)),
     _ranked: ranked.slice(0, 4),
@@ -71,7 +74,7 @@ function evaluate(ruleset) {
   };
 }
 
-const rows = [ARC, BUS].map(evaluate);
+const rows = [ARC, BUS, PHASE].map(evaluate);
 console.table(rows.map(({ _ranked, _adoption, ...rest }) => rest));
 rows.forEach(row => {
   console.log(`\n【${row.ルール}】首位部品: ${row._ranked.map(([n, c]) => `${n} ${c}`).join(" / ")}`);
