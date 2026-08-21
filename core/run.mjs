@@ -370,7 +370,11 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
 
   function finish(survey = {}) {
     record("survey", {
+      // 面白さと継続は別物（作者の指摘）。1つに混ぜると、天井のせいで落ちた点を
+      // 「ゲームが面白くなくなった」と読み違える。
+      fun: Number(survey.fun || 0),
       replay: Number(survey.replay || 0),
+      gapReason: String(survey.gapReason || "").slice(0, 300),
       bestMoment: String(survey.bestMoment || "").slice(0, 300),
       pivot: String(survey.pivot || ""),
       settledAt: String(survey.settledAt || ""),

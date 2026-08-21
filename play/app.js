@@ -794,11 +794,24 @@ function endScreen(o) {
 
   const form = el("div", { className: "card" });
   form.append(el("h2", { textContent: "最後にいくつか" }));
+  // **面白さと継続は別物である。** 作者の指摘：
+  //   「ゲームとしての面白さはまだ残っていると思います。（略）
+  //     もうハイスコアが二度と得られないという張り合いのなさが継続しない最大の理由」
+  // これまで1つの数字に混ぜて測っていたので、天井のせいで落ちた点を
+  // 「ゲームが面白くなくなった」と読み違えていた。**2つに分ける。**
+  form.append(el("label", { className: "field", textContent: "このゲーム自体はまだ面白いか（1〜5）" }));
+  const fun = el("select");
+  fun.append(el("option", { value: "", textContent: "未選択" }));
+  [1, 2, 3, 4, 5].forEach(v => fun.append(el("option", { value: String(v), textContent: String(v) })));
+  form.append(fun);
   form.append(el("label", { className: "field", textContent: "もう一度遊びたいか（1〜5）" }));
   const replay = el("select");
   replay.append(el("option", { value: "", textContent: "未選択" }));
   [1, 2, 3, 4, 5].forEach(v => replay.append(el("option", { value: String(v), textContent: String(v) })));
   form.append(replay);
+  form.append(el("label", { className: "field", textContent: "面白さと継続が食い違うなら、その理由" }));
+  const gapReason = el("input", { type: "text", placeholder: "例：面白いが、記録がもう更新できない" });
+  form.append(gapReason);
   form.append(el("label", { className: "field", textContent: "方針転換はあったか" }));
   const pivot = el("select");
   pivot.append(el("option", { value: "", textContent: "未選択" }));
@@ -823,12 +836,14 @@ function endScreen(o) {
       className: "btn primary wide", textContent: "記録して送る",
       onclick: () => {
         const missing = [];
+        if (!fun.value) missing.push("まだ面白いか");
         if (!replay.value) missing.push("もう一度遊びたいか");
         if (!pivot.value) missing.push("方針転換");
         if (!settled.value.trim()) missing.push("決着点");
         if (missing.length) { warn.textContent = `未回答：${missing.join(" / ")}`; return; }
         const survey = {
-          replay: Number(replay.value), pivot: pivot.value, settledAt: settled.value.trim(),
+          fun: Number(fun.value), replay: Number(replay.value),
+          gapReason: gapReason.value, pivot: pivot.value, settledAt: settled.value.trim(),
           bestMoment: best.value, friction: friction.value, runStory: story.value
         };
         session.survey = survey;
