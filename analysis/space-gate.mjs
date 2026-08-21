@@ -59,16 +59,18 @@ function measure(types, enemy, hp) {
     list = picked;
   }
   let won = 0;
+  let flawless = 0;
   let lossHp = 0;
   let losses = 0;
   list.forEach(order => {
     const slots = order.map((type, i) => ({ id: `x${i}`, type }));
     const result = rules.simulateBattle({ slots, hp, maxHp: MAX_HP, enemy, rng: makeRng(1) });
-    if (result.won) won += 1;
+    if (result.won) { won += 1; if (result.hp >= hp) flawless += 1; }
     else { losses += 1; lossHp += hp - result.hp; }
   });
   return {
     sampled: list.length, full, winRate: won / list.length,
+    flawlessRate: flawless / list.length,
     lossPenalty: losses ? lossHp / losses : 0
   };
 }
@@ -135,6 +137,24 @@ const shuffle20 = 1 - (1 - t2median) ** 20;
 if (shuffle20 > 0.5) {
   console.log("  → 20回で過半数を超える。**思考は無作為に勝てない。**");
   console.log(`     20回を50%未満に抑えるには p < 3.4% が必要で、T1（詰みを作らない）と両立しない。`);
+}
+
+// 探索者にとっての到達率へ換算する。
+//
+// **同じ誤りを二度した。** 1回の試行あたりの希少さを、そのまま難易度として設計に使ってしまう誤りである。
+//   1度目：勝てる並び 13.7%/試行 → 20回試せば95%（#42）
+//   2度目：無傷の並び 1.8%/試行 → 天井のつもりが1ランで全踏破された（#47）
+// 作者の試行記録（seed 720）で実測した探索効率は**無作為の3〜27倍、中央値およそ7倍**。
+// 以後、設計は「1試行あたりの率」ではなく「この探索者が1戦で到達する率」で行う。
+const EFFICIENCY = 7;          // 実測値。telemetry が増えたら更新する。
+const TRIES = 10;              // 1戦あたりの試行回数の実測中央値（6戦で 8,1,12,6,3,6）。
+const reachable = p => 1 - (1 - Math.min(1, p * EFFICIENCY)) ** TRIES;
+console.log("\n## 探索者にとっての到達率（無作為の7倍の効率で10回試す、という実測の模型）");
+console.log(`  勝ち   1試行あたり ${pct(t2median)} → 1戦あたり ${pct(reachable(t2median))}`);
+const flawlessRate = mean(rows.map(r => r.flawlessRate || 0));
+console.log(`  無傷   1試行あたり ${pct(flawlessRate)} → 1戦あたり ${pct(reachable(flawlessRate))}`);
+if (reachable(flawlessRate) > 0.5) {
+  console.log("  → **最上位の等級が1戦で半数以上到達される。天井は1ランで尽きる。**");
 }
 
 console.log("\n## P10 生成条件");
