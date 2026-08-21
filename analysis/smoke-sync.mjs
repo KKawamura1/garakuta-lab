@@ -75,6 +75,13 @@ assert.equal(viewed.client.head, "agent-view");
 
 assert.ok(payload.endedAt, "終わったランは必ず endedAt を持つ（無いとエクスポートに出ない）");
 
+// 新しいルールセットを足したら、必ずバージョン表に載せる。
+// 載せ忘れると gameVersion が "unknown-play" になり、集計でどのゲームか分からなくなる
+// （実際に一度、位相のランが agentview のまま記録された）。
+const relay = buildPayload({ ...session, ruleset: "relay", head: "play" });
+assert.equal(relay.gameVersion, "relay-0.1-play", `relay の gameVersion が違う: ${relay.gameVersion}`);
+assert.ok(!/unknown/.test(relay.gameVersion), "未登録のルールセットは unknown になる");
+
 // 古い版で終えたセッション（endedAt を持たない）でも埋まること。
 const legacy = buildPayload({ ...session, endedAt: undefined });
 assert.ok(legacy.endedAt, "endedAt が無いセッションでも補完される");
