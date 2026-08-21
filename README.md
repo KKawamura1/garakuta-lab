@@ -6,11 +6,19 @@ iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した�
 
 プレイ版: https://garakuta-lab.pages.dev/
 
-新しい核「位相機関 / PHASE 0.1」: https://garakuta-lab.pages.dev/play/?ruleset=phase
+**いまの本命「継電機関 / RELAY 0.1」: https://garakuta-lab.pages.dev/play/**
 
-部品ごとの作動周期と、置いた枠で決まる位相を中心にした試作。防御が常に正しいのではなく、
-敵の攻撃巡回と位相が噛み合った時だけ正しい、という構造を検証する。設計の経緯は
-[`analysis/BUS_DESIGN_LOG.md`](./analysis/BUS_DESIGN_LOG.md) に記録した。
+位相（部品ごとの作動周期と、枠で決まる作動巡回）はPHASEから引き継ぎ、二つ足した。
+
+- **継電**：巡回の中で同じ系統（撃／守／整）がn個続いたとき、n個目の効果はn倍。
+- **反射**：巡回の終わりに残った遮蔽は、半分が敵へ返る。守は攻撃に合えば盾、外れれば矛になる。
+
+**原則は「読むのは機械、探すのは人」。** 画面はいまの並びで実際に何が起きるかを断定で出す
+（決定的なルールなので見積りではない）。暗算は要らない。代わりに**正解の並びが少ない**。
+勝てる並びの割合は全6戦で9.5〜18.3%（PHASE 0.1 は 100 / 87 / 59 / 79 / 84 / 8%）。
+生成の経緯は [`analysis/ROUND7_RELAY.md`](./analysis/ROUND7_RELAY.md)。
+
+前の核「位相機関 / PHASE 0.1」: https://garakuta-lab.pages.dev/play/?ruleset=phase
 
 大胆変更版「溶接獣 / MAT 0.3 選べる漂着物実験」: https://garakuta-lab.pages.dev/material/
 
