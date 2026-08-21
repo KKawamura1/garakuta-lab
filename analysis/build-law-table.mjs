@@ -251,7 +251,13 @@ function tuneEnemy(simulate, index) {
     if (enemy.regen) enemy.regen = Math.max(1, Math.round(enemy.regen * scale));
     return { enemy, atkScale, ...evaluateEnemy(simulate, enemy, index) };
   };
-  const isSafe = probe => !probe.suspects.some(s => !hasAnyWin(s.owned, simulate, probe.enemy));
+  // **登録した条件は「勝てる並びがある局面 ≥98%」という割合である。**
+  // ここでは「1局面でも詰みがあれば不可」という絶対条件を実装していた。
+  // 敵1体あたり20局面なら、1件の悪い引きで探索が止まる。登録より厳しい条件を課していたことになる。
+  // 実測すると本当の詰み率は0.8〜1.7%で、登録した閾値は最初から通っていた。
+  // 探索中は1件まで許し、最後に全体の割合で判定する（登録どおりの実装に直す）。
+  const deadCount = probe => probe.suspects.filter(s => !hasAnyWin(s.owned, simulate, probe.enemy)).length;
+  const isSafe = probe => deadCount(probe) <= 1;
 
   let lo = 0.5;
   let hi = 14;
@@ -282,14 +288,19 @@ function tuneEnemy(simulate, index) {
     atkScale = candidate;
     if (reachable(probe.flawlessMean) <= 0.45 && probe.winMedian <= 0.30) break;
   }
-  return { scale, atkScale, smin, smax, tight: smin <= smax, ...best };
+  return { scale, atkScale, smin, smax, tight: smin <= smax, dead: deadCount(best), seen: best.count + best.suspects.length, ...best };
 }
 
 function search(simulate) {
   const perEnemy = BASE.map((_, index) => tuneEnemy(simulate, index));
   if (perEnemy.some(e => e.conflict)) return { conflict: perEnemy.find(e => e.conflict).conflict };
   const mean = list => list.reduce((a, b) => a + b, 0) / list.length;
+  // T1 は全体の割合で見る（登録どおり）。
+  const deadTotal = perEnemy.reduce((a, e) => a + e.dead, 0);
+  const seenTotal = perEnemy.reduce((a, e) => a + e.seen, 0);
+  const safeRate = 1 - deadTotal / Math.max(1, seenTotal);
   return {
+    safeRate,
     scales: perEnemy.map(e => Number(e.scale.toFixed(2))),
     atkScales: perEnemy.map(e => e.atkScale),
     winMedian: mean(perEnemy.map(e => e.winMedian)),
@@ -305,8 +316,8 @@ pairs.forEach(pair => {
   const name = pair.map(id => LAWS[id].name).join("＋");
   const found = search(simulate);
   if (found.conflict) { rejected.push({ pair, name, why: found.conflict }); return; }
-  if (found.looseCount > 2) {
-    rejected.push({ pair, name, why: `${found.looseCount}体で締めると詰みになる` });
+  if (found.safeRate < 0.98) {
+    rejected.push({ pair, name, why: `詰みが多い（勝ち筋のある局面 ${(found.safeRate * 100).toFixed(1)}%、要98%）` });
     return;
   }
 
@@ -322,6 +333,7 @@ pairs.forEach(pair => {
   const topShape = [...top.entries()].sort((a, b) => b[1] - a[1])[0];
   table.push({
     laws: pair, name, scales: found.scales, atkScales: found.atkScales,
+    safeRate: Number(found.safeRate.toFixed(3)),
     winMedian: Number(found.winMedian.toFixed(3)),
     flawlessReach: Number(ceiling.toFixed(3)),
     decided: Number(found.decided.toFixed(3)),
