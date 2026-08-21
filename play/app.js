@@ -16,13 +16,27 @@ const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
 // つまり「出してよい問題か」の判定が、設計時の作業ではなく機械の一部になっている。
 const lawVariants = Array.isArray(LAW_TABLE) ? LAW_TABLE : [];
 
+function hashOf(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return Math.abs(h);
+}
+
+// 新しいランでは、**まだ記録の無い組を優先して引く。**
+//
+// これが P12 の核心である。第10回で継続が止まった理由は作者の言葉どおり
+// 「もう一回やっても、もうハイスコアが二度と得られない（最大でも1位タイにしかならない）」だった。
+// 記録が組ごとにあり、未挑戦の組から引くなら、**始める理由が毎回ある。**
+// 同じ種なら同じ組になる（再現できる）ことは保つ。
 function pickVariant(seed) {
   if (!lawVariants.length) return null;
-  // 種から決める。同じ種なら同じ法則になり、再現できる。
-  let h = 2166136261;
-  const text = `laws:${seed}`;
-  for (let i = 0; i < text.length; i += 1) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return lawVariants[Math.abs(h) % lawVariants.length];
+  // モジュール初期化中にも呼ばれるので、`bests` を参照せずその場で読む。
+  // 以前 agent-view で、初期化前の変数を読んで画面が落ちたのと同じ形を避ける。
+  const played = new Set(Object.keys(loadBests())
+    .map(key => key.split(":")[1]).filter(Boolean));
+  const fresh = lawVariants.filter(v => !played.has(v.laws.join("+")));
+  const pool = fresh.length ? fresh : lawVariants;
+  return pool[hashOf(`laws:${seed}`) % pool.length];
 }
 
 function lawRulesetFor(session) {

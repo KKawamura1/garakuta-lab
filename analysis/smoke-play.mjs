@@ -33,6 +33,11 @@ assert.match(app, /function holdingsCard\(/, "手持ちカードが要る");
 assert.match(app, /out\.push\(holdingsCard\(o\)\);/, "報酬画面に手持ちを出す");
 assert.match(app, /系統の内訳/, "系統の内訳を出す（継電の判断材料）");
 
+// 法則機関は、まだ記録の無い組を優先して引く。
+// これが「更新できる記録が尽きない」の実体であり、第10回で継続が止まった原因への対策である。
+assert.match(app, /function pickVariant\(/, "法則の組を引く仕組みが要る");
+assert.match(app, /const fresh = lawVariants\.filter\(v => !played\.has/, "未挑戦の組を優先する");
+
 // 勝ち方の水準はルールセット側の判定を使う。画面の言葉と記録の水準がずれないように。
 assert.match(app, /rules\.outcomeLevel\(result\.won, result\.hp, result\.cycles\)/, "巡回込みの判定を使う");
 
