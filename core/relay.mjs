@@ -113,10 +113,15 @@ export const UPDATE_KINDS = ["confirmed", "revalued_existing", "new_plan", "none
 export const MARKER_KINDS = ["hit", "insight", "choice", "payoff", "friction", "unclear"];
 
 export function predictionLevel(prediction) { return PREDICTIONS.indexOf(prediction); }
-export function outcomeLevel(won, hp) {
+
+// 残りHPだけで勝ち方を評価すると、RELAY では実態と合わない。
+// 難易度の軸を耐久から時間へ移したので、**打切り間際の勝ちは無傷でも薄氷**である。
+// 実測：作者の seed 23 第1戦は11巡・失点6で「圧勝」と表示されたが、
+// 本人のマーカーは「1戦目からギリギリ」だった。巡回も見る。
+export function outcomeLevel(won, hp, cycles = 0) {
   if (!won) return 0;
-  if (hp <= 10) return 1;
-  if (hp < 24) return 2;
+  if (hp <= 8 || cycles >= MAX_CYCLES - 1) return 1;
+  if (hp <= 20 || cycles >= Math.ceil(MAX_CYCLES * 0.65)) return 2;
   return 3;
 }
 

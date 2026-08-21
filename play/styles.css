@@ -159,3 +159,13 @@ input[type=text], select, textarea {
 .phase-grid .slot-label.line-strike { border-left: 3px solid #e0a06a; }
 .phase-grid .slot-label.line-guard  { border-left: 3px solid #7fb0d8; }
 .phase-grid .slot-label.line-service{ border-left: 3px solid #8fc79a; }
+
+/* 報酬画面の手持ち一覧。判断に必要な情報なので、折り返して全部見せる。 */
+.holding-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.holding {
+  font-size: 11px; padding: 3px 7px; border-radius: 5px;
+  background: var(--panel-2); border: 1px solid #3a3f46; color: var(--muted);
+}
+.holding.line-strike { border-color: #6b4a2c; color: #e0a06a; }
+.holding.line-guard  { border-color: #2f4a63; color: #7fb0d8; }
+.holding.line-service{ border-color: #35563c; color: #8fc79a; }

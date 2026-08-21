@@ -546,14 +546,9 @@ function machinePrediction(rules) {
   const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
   const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
   const result = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
-  return rules.predictionLevel ? labelFor(rules, result, o.hp) : rules.PREDICTIONS[rules.PREDICTIONS.length - 1];
-}
-
-function labelFor(rules, result, hp) {
-  if (!result.won) return rules.PREDICTIONS[0];
-  if (result.hp <= 10) return rules.PREDICTIONS[1];
-  if (result.hp < hp * 0.8) return rules.PREDICTIONS[2];
-  return rules.PREDICTIONS[3];
+  // ルールセット自身の判定を使う。画面の言葉と記録の水準がずれないようにする。
+  const level = rules.outcomeLevel(result.won, result.hp, result.cycles);
+  return rules.PREDICTIONS[Math.max(0, Math.min(rules.PREDICTIONS.length - 1, level))];
 }
 
 function startBattle() {
@@ -647,8 +642,42 @@ function rewardScreen(o) {
     el("button", { className: "btn", textContent: "気持ち", onclick: () => openMark() })
   ]));
   out.push(card);
+  out.push(holdingsCard(o));
   if (o.lastBattle) out.push(lastBattleCard(o.lastBattle));
   return out;
+}
+
+// 報酬を選ぶ画面に、いまの手持ちを出す。
+//
+// 作者が2回続けて同じことを書いた：「相変わらず今の手持ちが見えない。
+// 手持ちの部品とシナジーがある部品を優先的に選びたいのだけど。」
+// 継電は系統の並びで効くので、**何を持っているかが分からないと報酬を選べない。**
+// 記憶の問題ではなく、判断に必要な情報が画面に無いという欠陥である。
+function holdingsCard(o) {
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: "いまの手持ち" }));
+
+  const equipped = o.slots.map(s => s.part).filter(Boolean);
+  const bench = o.inventory;
+  const counts = { strike: 0, guard: 0, service: 0 };
+  [...equipped, ...bench].forEach(p => { if (p.line && counts[p.line] !== undefined) counts[p.line] += 1; });
+  const summary = Object.entries(counts).filter(([, n]) => n > 0)
+    .map(([line, n]) => `${LINE_LABEL[line]}${n}`).join(" ・ ");
+  card.append(el("div", { className: "small", textContent: `系統の内訳： ${summary || "なし"}` }));
+
+  const strip = (label, parts) => {
+    if (!parts.length) return;
+    card.append(el("div", { className: "small", style: "margin-top:8px", textContent: label }));
+    const row = el("div", { className: "holding-row" });
+    parts.forEach((p, i) => row.append(el("span", {
+      className: `holding line-${p.line || "none"}`,
+      textContent: `${label === "枠に入っている" ? `${i + 1}:` : ""}${LINE_LABEL[p.line] || ""}${p.name}(周期${p.period ?? 1})`
+    })));
+    card.append(row);
+  };
+  strip("枠に入っている", equipped);
+  strip("予備", bench);
+  return card;
 }
 
 function askUpdate(then) {

@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PHASE } from "../core/phase.mjs";
+import { RELAY } from "../core/relay.mjs";
 import { makeRng } from "../core/rng.mjs";
 
 // 「正解の組み合わせは何通りあるか」を数える。
@@ -13,7 +14,12 @@ import { makeRng } from "../core/rng.mjs";
 // PHASE 0.1 の戦闘は決定的（どの部品も rng を使わない）なので、列挙は近似ではなく正確。
 // 同じ型の部品は交換しても同じ機械になるので、型の並びで重複を除く。
 
-const { ENEMIES, PARTS, simulateBattle, SLOT_COUNT, MAX_HP } = PHASE;
+// どのルールセットの記録を測るかは、ファイル側の ruleset に従う。
+const RULESETS = { phase: PHASE, relay: RELAY };
+const wanted = (process.argv.find(a => a.startsWith("--ruleset=")) || "--ruleset=relay").slice(10);
+const rules = RULESETS[wanted];
+if (!rules) { console.error(`未知のルールセット: ${wanted}`); process.exit(2); }
+const { ENEMIES, PARTS, simulateBattle, SLOT_COUNT, MAX_HP } = rules;
 
 const args = Object.fromEntries(process.argv.slice(2).map(item => {
   const match = /^--([^=]+)(?:=(.*))?$/.exec(item);
@@ -64,7 +70,7 @@ const pct = v => `${(v * 100).toFixed(1)}%`.padStart(6);
 
 // --- 作者のトレースから、各戦闘時点の所持部品を復元して測る ---
 const dir = "analysis/human-runs";
-const files = readdirSync(dir).filter(n => /^human-phase-seed\d+\.json$/.test(n)).sort();
+const files = readdirSync(dir).filter(n => new RegExp(`^human-${wanted}-seed\\d+\\.json$`).test(n)).sort();
 const perBattle = [[], [], [], [], [], []];
 const all = [];
 
@@ -111,7 +117,7 @@ const median = list => {
 };
 const mean = list => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : null);
 
-console.log("\n## まとめ（作者4ラン）");
+console.log(`\n## まとめ（${wanted} / ${files.length}ラン）`);
 console.log("戦 | 勝てる並びの割合（平均）");
 perBattle.forEach((list, index) => {
   if (!list.length) return;

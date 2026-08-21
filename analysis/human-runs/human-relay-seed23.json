@@ -1,0 +1,1368 @@
+{
+ "seed": 23,
+ "playerId": "human-play",
+ "head": "play",
+ "ruleset": "relay",
+ "survey": {
+  "replay": 5,
+  "pivot": "あった",
+  "settledAt": "なし",
+  "bestMoment": "遮蔽が結構強そうだったが、なくても勝てたところ",
+  "friction": "最初なのでなし",
+  "runStory": "素直に面白かった。シンプルながら奥行きのあるルールで楽しめた回"
+ },
+ "actionCount": 74,
+ "reportedStats": {
+  "seed": 23,
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 7,
+  "battles": 6,
+  "surprise": {
+   "better": 0,
+   "expected": 4,
+   "worse": 2
+  },
+  "deadTime": 0,
+  "flawlessBattles": 0,
+  "flawlessBattleRate": 0,
+  "idleBattles": 0,
+  "idleBattleRate": 0,
+  "phaseMoves": 4,
+  "phaseMoveRate": 0.8,
+  "pivotRate": 0.8,
+  "reinterpretationRate": 0.8,
+  "gateConcentration": 0.592,
+  "gateRanking": [
+   {
+    "name": "過給器",
+    "share": 0.592
+   },
+   {
+    "name": "環流管",
+    "share": 0.093
+   },
+   {
+    "name": "貫錐",
+    "share": 0.089
+   }
+  ],
+  "worryConcentration": 0.5,
+  "problemChainRate": 0.6,
+  "worryCounts": {
+   "火力": 2,
+   "耐久": 1,
+   "なし": 3
+  },
+  "updateCounts": {
+   "confirmed": 3,
+   "revalued_existing": 1,
+   "new_plan": 1
+  },
+  "tensionCurve": [
+   3,
+   3,
+   3,
+   3,
+   3,
+   1
+  ],
+  "tenseBattleRate": 0.167,
+  "markerCounts": {
+   "insight": 1,
+   "choice": 4,
+   "unclear": 4,
+   "hit": 2
+  },
+  "markerTotal": 11,
+  "rewardsTaken": 5,
+  "rewardsSkipped": 0,
+  "rewardCount": 5,
+  "warnings": [
+   {
+    "code": "single_gate",
+    "detail": "出力の59%が過給器に集中"
+   }
+  ],
+  "actionCount": 74
+ },
+ "moments": [
+  {
+   "seq": 2,
+   "wave": 1,
+   "phase": "build",
+   "kind": "insight",
+   "note": "まだルールを読んだだけだが、ざっくり1️⃣1ターンキルと2️⃣耐久の2ルートがありそう。最初はOTKデッキを組んで、途中で耐久型に切り替えるのが王道か。"
+  },
+  {
+   "seq": 3,
+   "wave": 1,
+   "phase": "build",
+   "kind": "choice",
+   "note": "結構難しいぞ。面白い"
+  },
+  {
+   "seq": 4,
+   "wave": 1,
+   "phase": "build",
+   "kind": "choice",
+   "note": "いや全然OTKできないな"
+  },
+  {
+   "seq": 8,
+   "wave": 2,
+   "phase": "reward",
+   "kind": "choice",
+   "note": "1戦目からギリギリ"
+  },
+  {
+   "seq": 9,
+   "wave": 2,
+   "phase": "reward",
+   "kind": "unclear",
+   "note": "相変わらず今の手持ちが見えない。手持ちの部品とシナジーがある部品を優先的に選びたいのだけど。"
+  },
+  {
+   "seq": 11,
+   "wave": 2,
+   "phase": "build",
+   "kind": "choice",
+   "note": "いやーおもろいな。もっといい解あるのかな。火力足りないけど整流デッキだからどこかで回復できてなんとかならんかなあ"
+  },
+  {
+   "seq": 15,
+   "wave": 3,
+   "phase": "reward",
+   "kind": "unclear",
+   "note": "もっといいのあったのかなあ"
+  },
+  {
+   "seq": 17,
+   "wave": 3,
+   "phase": "build",
+   "kind": "unclear",
+   "note": "絶妙だなー"
+  },
+  {
+   "seq": 22,
+   "wave": 4,
+   "phase": "build",
+   "kind": "hit",
+   "note": "気持ちい〜"
+  },
+  {
+   "seq": 27,
+   "wave": 5,
+   "phase": "build",
+   "kind": "unclear",
+   "note": "結構これしかないと思うけどなあ"
+  },
+  {
+   "seq": 32,
+   "wave": 6,
+   "phase": "build",
+   "kind": "hit",
+   "note": "とりあえず勝ったからヨシ！"
+  }
+ ],
+ "trace": {
+  "seed": 23,
+  "ruleset": "relay-0.1",
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 7,
+  "battles": [
+   {
+    "battleNumber": 1,
+    "enemy": "標的機",
+    "won": true,
+    "cycles": 11,
+    "hpBefore": 30,
+    "hpAfter": 24,
+    "hpLost": 6,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 12,
+    "editBreakdown": {
+     "place": 6,
+     "remove": 0,
+     "swap": 6,
+     "scrap": 0,
+     "repair": 0,
+     "total": 12
+    },
+    "contributions": [
+     {
+      "name": "貫錐",
+      "activations": 6,
+      "damage": 66,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 11,
+      "damage": 68,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 6,
+      "damage": 288,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 25,
+      "healing": 25
+     },
+     {
+      "name": "整流器",
+      "activations": 10,
+      "damage": 0,
+      "shield": 0,
+      "healing": 38
+     }
+    ]
+   },
+   {
+    "battleNumber": 2,
+    "enemy": "環甲",
+    "won": true,
+    "cycles": 7,
+    "hpBefore": 27,
+    "hpAfter": 23,
+    "hpLost": 4,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "worse",
+    "editsSincePrevious": 5,
+    "editBreakdown": {
+     "place": 4,
+     "remove": 0,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 5
+    },
+    "contributions": [
+     {
+      "name": "過給器",
+      "activations": 4,
+      "damage": 56,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 7,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 4,
+      "damage": 112,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 3,
+      "damage": 0,
+      "shield": 15,
+      "healing": 15
+     },
+     {
+      "name": "環流管",
+      "activations": 3,
+      "damage": 0,
+      "shield": 15,
+      "healing": 15
+     }
+    ]
+   },
+   {
+    "battleNumber": 3,
+    "enemy": "大顎",
+    "won": true,
+    "cycles": 9,
+    "hpBefore": 26,
+    "hpAfter": 22,
+    "hpLost": 4,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "worse",
+    "editsSincePrevious": 12,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 5,
+     "scrap": 0,
+     "repair": 0,
+     "total": 12
+    },
+    "contributions": [
+     {
+      "name": "貫錐",
+      "activations": 5,
+      "damage": 55,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 8,
+      "damage": 48,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 4,
+      "damage": 192,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "偏向板",
+      "activations": 3,
+      "damage": 0,
+      "shield": 60,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 4,
+      "damage": 4,
+      "shield": 20,
+      "healing": 20
+     }
+    ]
+   },
+   {
+    "battleNumber": 4,
+    "enemy": "鋼芯",
+    "won": true,
+    "cycles": 11,
+    "hpBefore": 25,
+    "hpAfter": 30,
+    "hpLost": -5,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 4,
+    "editBreakdown": {
+     "place": 4,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 4
+    },
+    "contributions": [
+     {
+      "name": "貫錐",
+      "activations": 6,
+      "damage": 66,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 10,
+      "damage": 20,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 5,
+      "damage": 240,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 5,
+      "damage": 5,
+      "shield": 25,
+      "healing": 25
+     },
+     {
+      "name": "環流管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 25,
+      "healing": 25
+     }
+    ]
+   },
+   {
+    "battleNumber": 5,
+    "enemy": "双翼",
+    "won": true,
+    "cycles": 9,
+    "hpBefore": 30,
+    "hpAfter": 24,
+    "hpLost": 6,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 8,
+     "remove": 1,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    },
+    "contributions": [
+     {
+      "name": "過給器",
+      "activations": 5,
+      "damage": 80,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 8,
+      "damage": 72,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 4,
+      "damage": 192,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "整流器",
+      "activations": 8,
+      "damage": 0,
+      "shield": 0,
+      "healing": 24
+     },
+     {
+      "name": "環流管",
+      "activations": 4,
+      "damage": 0,
+      "shield": 40,
+      "healing": 26
+     }
+    ]
+   },
+   {
+    "battleNumber": 6,
+    "enemy": "再生炉",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 27,
+    "hpAfter": 4,
+    "hpLost": 23,
+    "enemyHpLeft": 0,
+    "prediction": "ギリギリ",
+    "surprise": "expected",
+    "editsSincePrevious": 9,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 2,
+     "scrap": 0,
+     "repair": 0,
+     "total": 9
+    },
+    "contributions": [
+     {
+      "name": "過給器",
+      "activations": 3,
+      "damage": 48,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 5,
+      "damage": 48,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 3,
+      "damage": 144,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "整流器",
+      "activations": 4,
+      "damage": 0,
+      "shield": 0,
+      "healing": 11
+     },
+     {
+      "name": "環流管",
+      "activations": 2,
+      "damage": 0,
+      "shield": 20,
+      "healing": 18
+     }
+    ]
+   }
+  ],
+  "rewards": [
+   {
+    "wave": 2,
+    "offered": [
+     "環流管",
+     "偏向板",
+     "連射"
+    ],
+    "chosen": "環流管",
+    "passed": [
+     "偏向板",
+     "連射"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 3,
+    "offered": [
+     "過給器",
+     "環流管",
+     "薄殻"
+    ],
+    "chosen": "環流管",
+    "passed": [
+     "過給器",
+     "薄殻"
+    ],
+    "update": "revalued_existing"
+   },
+   {
+    "wave": 4,
+    "offered": [
+     "整流器",
+     "貫錐",
+     "連射"
+    ],
+    "chosen": "連射",
+    "passed": [
+     "整流器",
+     "貫錐"
+    ],
+    "update": "new_plan"
+   },
+   {
+    "wave": 5,
+    "offered": [
+     "整流器",
+     "打鋲",
+     "過給器"
+    ],
+    "chosen": "過給器",
+    "passed": [
+     "整流器",
+     "打鋲"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 6,
+    "offered": [
+     "貫錐",
+     "打鋲",
+     "崩落砲"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "貫錐",
+     "打鋲"
+    ],
+    "update": "confirmed"
+   }
+  ],
+  "events": [
+   {
+    "seq": 1,
+    "type": "run_started",
+    "wave": 1,
+    "phase": "build",
+    "initial": [
+     "打鋲",
+     "厚殻",
+     "双撃",
+     "貫錐",
+     "整流器",
+     "偏向板",
+     "過給器",
+     "環流管"
+    ]
+   },
+   {
+    "seq": 2,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "insight",
+    "note": "まだルールを読んだだけだが、ざっくり1️⃣1ターンキルと2️⃣耐久の2ルートがありそう。最初はOTKデッキを組んで、途中で耐久型に切り替えるのが王道か。"
+   },
+   {
+    "seq": 3,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "choice",
+    "note": "結構難しいぞ。面白い"
+   },
+   {
+    "seq": 4,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "choice",
+    "note": "いや全然OTKできないな"
+   },
+   {
+    "seq": 5,
+    "type": "battle_predicted",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "標的機",
+    "prediction": "圧勝",
+    "worry": "火力",
+    "worryText": "手応え:more",
+    "build": [
+     "貫錐",
+     "打鋲",
+     "過給器",
+     "環流管",
+     "整流器"
+    ],
+    "buildSignature": "p4,p1,p7,p8,p5",
+    "editsSincePrevious": 12,
+    "editBreakdown": {
+     "place": 6,
+     "remove": 0,
+     "swap": 6,
+     "scrap": 0,
+     "repair": 0,
+     "total": 12
+    }
+   },
+   {
+    "seq": 6,
+    "type": "battle_ended",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "標的機",
+    "won": true,
+    "cycles": 11,
+    "hpBefore": 30,
+    "hpAfter": 24,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p4,p1,p7,p8,p5",
+    "worry": "火力",
+    "contributions": [
+     {
+      "name": "貫錐",
+      "activations": 6,
+      "damage": 66,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 11,
+      "damage": 68,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 6,
+      "damage": 288,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 25,
+      "healing": 25
+     },
+     {
+      "name": "整流器",
+      "activations": 10,
+      "damage": 0,
+      "shield": 0,
+      "healing": 38
+     }
+    ]
+   },
+   {
+    "seq": 7,
+    "type": "reward_offered",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "環流管",
+     "偏向板",
+     "連射"
+    ]
+   },
+   {
+    "seq": 8,
+    "type": "emotion_marked",
+    "wave": 2,
+    "phase": "reward",
+    "kind": "choice",
+    "note": "1戦目からギリギリ"
+   },
+   {
+    "seq": 9,
+    "type": "emotion_marked",
+    "wave": 2,
+    "phase": "reward",
+    "kind": "unclear",
+    "note": "相変わらず今の手持ちが見えない。手持ちの部品とシナジーがある部品を優先的に選びたいのだけど。"
+   },
+   {
+    "seq": 10,
+    "type": "reward_chosen",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "環流管",
+     "偏向板",
+     "連射"
+    ],
+    "chosen": "環流管",
+    "passed": [
+     "偏向板",
+     "連射"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 11,
+    "type": "emotion_marked",
+    "wave": 2,
+    "phase": "build",
+    "kind": "choice",
+    "note": "いやーおもろいな。もっといい解あるのかな。火力足りないけど整流デッキだからどこかで回復できてなんとかならんかなあ"
+   },
+   {
+    "seq": 12,
+    "type": "battle_predicted",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "環甲",
+    "prediction": "圧勝",
+    "worry": "耐久",
+    "worryText": "手応え:more",
+    "build": [
+     "過給器",
+     "打鋲",
+     "双撃",
+     "環流管",
+     "環流管"
+    ],
+    "buildSignature": "p7,p1,p3,p8,p9",
+    "editsSincePrevious": 5,
+    "editBreakdown": {
+     "place": 4,
+     "remove": 0,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 5
+    }
+   },
+   {
+    "seq": 13,
+    "type": "battle_ended",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "環甲",
+    "won": true,
+    "cycles": 7,
+    "hpBefore": 27,
+    "hpAfter": 23,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 2,
+    "surprise": "worse",
+    "buildSignature": "p7,p1,p3,p8,p9",
+    "worry": "耐久",
+    "contributions": [
+     {
+      "name": "過給器",
+      "activations": 4,
+      "damage": 56,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 7,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 4,
+      "damage": 112,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 3,
+      "damage": 0,
+      "shield": 15,
+      "healing": 15
+     },
+     {
+      "name": "環流管",
+      "activations": 3,
+      "damage": 0,
+      "shield": 15,
+      "healing": 15
+     }
+    ]
+   },
+   {
+    "seq": 14,
+    "type": "reward_offered",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "過給器",
+     "環流管",
+     "薄殻"
+    ]
+   },
+   {
+    "seq": 15,
+    "type": "emotion_marked",
+    "wave": 3,
+    "phase": "reward",
+    "kind": "unclear",
+    "note": "もっといいのあったのかなあ"
+   },
+   {
+    "seq": 16,
+    "type": "reward_chosen",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "過給器",
+     "環流管",
+     "薄殻"
+    ],
+    "chosen": "環流管",
+    "passed": [
+     "過給器",
+     "薄殻"
+    ],
+    "reason": "",
+    "update": "revalued_existing",
+    "updateText": ""
+   },
+   {
+    "seq": 17,
+    "type": "emotion_marked",
+    "wave": 3,
+    "phase": "build",
+    "kind": "unclear",
+    "note": "絶妙だなー"
+   },
+   {
+    "seq": 18,
+    "type": "battle_predicted",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "大顎",
+    "prediction": "圧勝",
+    "worry": "火力",
+    "worryText": "手応え:more",
+    "build": [
+     "貫錐",
+     "打鋲",
+     "過給器",
+     "偏向板",
+     "環流管"
+    ],
+    "buildSignature": "p4,p1,p7,p6,p9",
+    "editsSincePrevious": 12,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 5,
+     "scrap": 0,
+     "repair": 0,
+     "total": 12
+    }
+   },
+   {
+    "seq": 19,
+    "type": "battle_ended",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "大顎",
+    "won": true,
+    "cycles": 9,
+    "hpBefore": 26,
+    "hpAfter": 22,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 2,
+    "surprise": "worse",
+    "buildSignature": "p4,p1,p7,p6,p9",
+    "worry": "火力",
+    "contributions": [
+     {
+      "name": "貫錐",
+      "activations": 5,
+      "damage": 55,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 8,
+      "damage": 48,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 4,
+      "damage": 192,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "偏向板",
+      "activations": 3,
+      "damage": 0,
+      "shield": 60,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 4,
+      "damage": 4,
+      "shield": 20,
+      "healing": 20
+     }
+    ]
+   },
+   {
+    "seq": 20,
+    "type": "reward_offered",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "整流器",
+     "貫錐",
+     "連射"
+    ]
+   },
+   {
+    "seq": 21,
+    "type": "reward_chosen",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "整流器",
+     "貫錐",
+     "連射"
+    ],
+    "chosen": "連射",
+    "passed": [
+     "整流器",
+     "貫錐"
+    ],
+    "reason": "",
+    "update": "new_plan",
+    "updateText": ""
+   },
+   {
+    "seq": 22,
+    "type": "emotion_marked",
+    "wave": 4,
+    "phase": "build",
+    "kind": "hit",
+    "note": "気持ちい〜"
+   },
+   {
+    "seq": 23,
+    "type": "battle_predicted",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "鋼芯",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:chose",
+    "build": [
+     "貫錐",
+     "連射",
+     "過給器",
+     "環流管",
+     "環流管"
+    ],
+    "buildSignature": "p4,ph,p7,pd,p9",
+    "editsSincePrevious": 4,
+    "editBreakdown": {
+     "place": 4,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 4
+    }
+   },
+   {
+    "seq": 24,
+    "type": "battle_ended",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "鋼芯",
+    "won": true,
+    "cycles": 11,
+    "hpBefore": 25,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p4,ph,p7,pd,p9",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "貫錐",
+      "activations": 6,
+      "damage": 66,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 10,
+      "damage": 20,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 5,
+      "damage": 240,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "環流管",
+      "activations": 5,
+      "damage": 5,
+      "shield": 25,
+      "healing": 25
+     },
+     {
+      "name": "環流管",
+      "activations": 5,
+      "damage": 0,
+      "shield": 25,
+      "healing": 25
+     }
+    ]
+   },
+   {
+    "seq": 25,
+    "type": "reward_offered",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "整流器",
+     "打鋲",
+     "過給器"
+    ]
+   },
+   {
+    "seq": 26,
+    "type": "reward_chosen",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "整流器",
+     "打鋲",
+     "過給器"
+    ],
+    "chosen": "過給器",
+    "passed": [
+     "整流器",
+     "打鋲"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 27,
+    "type": "emotion_marked",
+    "wave": 5,
+    "phase": "build",
+    "kind": "unclear",
+    "note": "結構これしかないと思うけどなあ"
+   },
+   {
+    "seq": 28,
+    "type": "battle_predicted",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双翼",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:more",
+    "build": [
+     "過給器",
+     "連射",
+     "過給器",
+     "整流器",
+     "環流管"
+    ],
+    "buildSignature": "pk,ph,p7,p5,p9",
+    "editsSincePrevious": 10,
+    "editBreakdown": {
+     "place": 8,
+     "remove": 1,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 10
+    }
+   },
+   {
+    "seq": 29,
+    "type": "battle_ended",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双翼",
+    "won": true,
+    "cycles": 9,
+    "hpBefore": 30,
+    "hpAfter": 24,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "pk,ph,p7,p5,p9",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "過給器",
+      "activations": 5,
+      "damage": 80,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 8,
+      "damage": 72,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 4,
+      "damage": 192,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "整流器",
+      "activations": 8,
+      "damage": 0,
+      "shield": 0,
+      "healing": 24
+     },
+     {
+      "name": "環流管",
+      "activations": 4,
+      "damage": 0,
+      "shield": 40,
+      "healing": 26
+     }
+    ]
+   },
+   {
+    "seq": 30,
+    "type": "reward_offered",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "貫錐",
+     "打鋲",
+     "崩落砲"
+    ]
+   },
+   {
+    "seq": 31,
+    "type": "reward_chosen",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "貫錐",
+     "打鋲",
+     "崩落砲"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "貫錐",
+     "打鋲"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 32,
+    "type": "emotion_marked",
+    "wave": 6,
+    "phase": "build",
+    "kind": "hit",
+    "note": "とりあえず勝ったからヨシ！"
+   },
+   {
+    "seq": 33,
+    "type": "battle_predicted",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "再生炉",
+    "prediction": "ギリギリ",
+    "worry": "なし",
+    "worryText": "手応え:more",
+    "build": [
+     "過給器",
+     "連射",
+     "過給器",
+     "整流器",
+     "環流管"
+    ],
+    "buildSignature": "p7,ph,pk,p5,p9",
+    "editsSincePrevious": 9,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 2,
+     "scrap": 0,
+     "repair": 0,
+     "total": 9
+    }
+   },
+   {
+    "seq": 34,
+    "type": "battle_ended",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "再生炉",
+    "won": true,
+    "cycles": 5,
+    "hpBefore": 27,
+    "hpAfter": 4,
+    "enemyHpLeft": 0,
+    "prediction": "ギリギリ",
+    "expectedLevel": 1,
+    "actualLevel": 1,
+    "surprise": "expected",
+    "buildSignature": "p7,ph,pk,p5,p9",
+    "worry": "なし",
+    "contributions": [
+     {
+      "name": "過給器",
+      "activations": 3,
+      "damage": 48,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 5,
+      "damage": 48,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 3,
+      "damage": 144,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "整流器",
+      "activations": 4,
+      "damage": 0,
+      "shield": 0,
+      "healing": 11
+     },
+     {
+      "name": "環流管",
+      "activations": 2,
+      "damage": 0,
+      "shield": 20,
+      "healing": 18
+     }
+    ]
+   },
+   {
+    "seq": 35,
+    "type": "run_ended",
+    "wave": 6,
+    "phase": "end",
+    "won": true,
+    "reached": 6
+   },
+   {
+    "seq": 36,
+    "type": "survey",
+    "wave": 6,
+    "phase": "end",
+    "replay": 5,
+    "bestMoment": "遮蔽が結構強そうだったが、なくても勝てたところ",
+    "pivot": "あった",
+    "settledAt": "なし",
+    "runStory": "素直に面白かった。シンプルながら奥行きのあるルールで楽しめた回",
+    "friction": "最初なのでなし",
+    "wishlist": ""
+   }
+  ]
+ }
+}

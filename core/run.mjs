@@ -214,7 +214,9 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     const hpBefore = state.hp;
     state.hp = result.hp;
     const expected = predictionLevel(action.prediction);
-    const actual = outcomeLevel(result.won, state.hp);
+    // 巡回数も渡す。打切り間際の勝ちを「圧勝」と記録すると、
+    // 指標も画面も実態からずれる（RELAY の実測で判明）。
+    const actual = outcomeLevel(result.won, state.hp, result.cycles);
     const surprise = actual > expected ? "better" : actual < expected ? "worse" : "expected";
 
     const summary = {

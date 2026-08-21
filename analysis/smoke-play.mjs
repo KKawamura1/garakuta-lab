@@ -26,4 +26,14 @@ assert.match(app, /上のバージョン表示から切り替えられます/, "
 // 既定は現時点の本命。ここを変えたら README の案内も変える。
 assert.match(app, /params\.get\("ruleset"\) \|\| "relay"/, "新規セッションの既定は relay");
 
-console.log("play smoke: 版の表示・ゲーム切り替え・URLの食い違い通知 OK");
+// 報酬を選ぶ画面に手持ちが出ていること。
+// 作者が2ラン続けて「相変わらず今の手持ちが見えない」と書いた。継電は系統の並びで効くので、
+// 何を持っているかが見えないと報酬を選べない。記憶ではなく情報の欠落である。
+assert.match(app, /function holdingsCard\(/, "手持ちカードが要る");
+assert.match(app, /out\.push\(holdingsCard\(o\)\);/, "報酬画面に手持ちを出す");
+assert.match(app, /系統の内訳/, "系統の内訳を出す（継電の判断材料）");
+
+// 勝ち方の水準はルールセット側の判定を使う。画面の言葉と記録の水準がずれないように。
+assert.match(app, /rules\.outcomeLevel\(result\.won, result\.hp, result\.cycles\)/, "巡回込みの判定を使う");
+
+console.log("play smoke: 版の表示・ゲーム切り替え・URLの食い違い通知・手持ちの表示 OK");
