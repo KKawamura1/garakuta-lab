@@ -24,7 +24,9 @@ const cap = Number(args.cap || 300);
 const TARGET = 0.15;          // T2：勝てる並びの割合の中央値をここへ寄せる
 const MAX_HP = 30;
 const DUMMY_HP = 1e9;
-const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2];
+// 合格した6組はほぼ全部が上限の3.2を使っていた。**探索の端に張り付いているのは、
+// 範囲が足りていない印である。** 上を伸ばす（閾値ではなく探索範囲の話なので、後出しの緩和ではない）。
+const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2, 4.5, 6];
 const EFFICIENCY = 7;         // 実測の探索効率（無作為の何倍か）
 const TRIES = 10;             // 1戦あたりの試行回数の実測中央値
 const reachable = p => 1 - (1 - Math.min(1, p * EFFICIENCY)) ** TRIES;
