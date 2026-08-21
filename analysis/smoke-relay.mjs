@@ -71,4 +71,14 @@ ENEMIES.forEach(enemy => {
   if (!enemy.trait.includes(String(enemy.atk))) fail(`${enemy.name} の説明に攻撃力 ${enemy.atk} が出ていない`);
 });
 
+// 等級（P11）。閾値と語がずれると、画面の言葉と記録がずれる。
+{
+  const { gradeFor } = await import("../core/relay.mjs");
+  const cases = [[true, 0, "無傷"], [true, 5, "上々"], [true, 6, "及第"], [true, 14, "及第"], [true, 15, "辛勝"], [false, 30, "敗北"]];
+  cases.forEach(([won, lost, label]) => {
+    if (gradeFor(won, lost).label !== label) fail(`等級が違う: 勝${won} 失点${lost} → ${gradeFor(won, lost).label}（期待 ${label}）`);
+  });
+  if (gradeFor(false, 0).rank !== 0) fail("敗北の等級は0位でなければならない");
+}
+
 console.log("relay smoke: 段階倍率・自傷・反射・決定性・初期手札の契約・説明と数値の一致 OK");

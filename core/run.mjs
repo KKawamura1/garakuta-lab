@@ -29,7 +29,8 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     inventory: [], slots: Array(SLOT_COUNT).fill(null),
     offer: null, done: false, won: false,
     lastBattle: null, battles: [], rewards: [],
-    trace: [], seq: 0, edits: newEdits()
+    trace: [], seq: 0, edits: newEdits(),
+    previews: [], previewsAfterFirstWin: 0, sawWinningPreview: false
   };
 
   // 初期手札の契約。ルールセットが startContract を持つなら、それを満たすまで引き直す。
@@ -109,7 +110,8 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       return [
         { type: "take", args: { choice: `1..${REWARD_CHOICES}`, reason: "string", update: `one of ${UPDATE_KINDS.join("|")}`, updateText: "string" } },
         { type: "skipAll", args: { reason: "string" } },
-        { type: "mark", args: { kind: MARKER_KINDS.join("|"), note: "string" } }
+        { type: "mark", args: { kind: MARKER_KINDS.join("|"), note: "string" } },
+      { type: "preview", args: { signature: "string", won: "boolean", hp: "number", cycles: "number" }, note: "並びを1つ試した記録（画面が自動で送る）" }
       ];
     }
     return [
@@ -119,7 +121,8 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       { type: "scrapPart", args: { partId: "inventory part id" } },
       { type: "repair", args: {}, note: `修復材1で HP+${REPAIR_HP}` },
       { type: "battle", args: { prediction: PREDICTIONS.join("|"), worry: WORRY_CATEGORIES.join("|"), worryText: "string" } },
-      { type: "mark", args: { kind: MARKER_KINDS.join("|"), note: "string" } }
+      { type: "mark", args: { kind: MARKER_KINDS.join("|"), note: "string" } },
+      { type: "preview", args: { signature: "string", won: "boolean", hp: "number", cycles: "number" }, note: "並びを1つ試した記録（画面が自動で送る）" }
     ];
   }
 
@@ -139,6 +142,24 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
 
   function actBuild(action) {
     const type = action?.type;
+    // 画面が並びの結果を出すたびに呼ばれる。**探索そのものの記録である。**
+    //
+    // これまで観測できたのは各戦闘の最終的な並びだけで、そこへ至る試行は一度も見ていなかった。
+    // 「ガチャガチャやってれば大体勝てる」という報告を、こちらは数字で確かめられなかった。
+    // 勝てる並びを見つけた後もさらに試したかどうかが、志が効いているかの直接の証拠になる。
+    if (type === "preview") {
+      const signature = String(action.signature || "").slice(0, 80);
+      if (state.previews.length < 200 && signature) {
+        state.previews.push({
+          sig: signature, won: Boolean(action.won),
+          hp: Number(action.hp) || 0, cycles: Number(action.cycles) || 0
+        });
+        if (state.sawWinningPreview) state.previewsAfterFirstWin += 1;
+        if (action.won) state.sawWinningPreview = true;
+      }
+      return { ok: true, observation: observe() };
+    }
+
     if (type === "place") {
       const index = state.inventory.findIndex(p => p.id === action.partId);
       if (index < 0) return fail("no such part in inventory");
@@ -234,13 +255,26 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       log: condenseLog(result.log)
     };
 
+    // 等級は罰ではなく志（P11）。ルールセットが持っていれば記録する。
+    const grade = ruleset.gradeFor ? ruleset.gradeFor(result.won, hpBefore - state.hp) : null;
+    summary.grade = grade;
+    // その戦闘で試した並びの数。ここまで一度も観測できていなかった量である。
+    const previews = state.previews.length;
+
     record("battle_ended", {
       enemy: enemy.name, won: result.won, cycles: result.cycles,
       hpBefore, hpAfter: state.hp, enemyHpLeft: result.enemyHp,
       prediction: action.prediction, expectedLevel: expected, actualLevel: actual, surprise,
       buildSignature: signature, worry: action.worry,
+      grade: grade ? grade.label : null, gradeRank: grade ? grade.rank : null,
+      previewCount: previews,
+      previewsAfterFirstWin: state.previewsAfterFirstWin,
+      previewTrail: state.previews.slice(-40),
       contributions: summary.contributions
     });
+    state.previews = [];
+    state.previewsAfterFirstWin = 0;
+    state.sawWinningPreview = false;
 
     state.lastBattle = summary;
     state.battles.push(summary);

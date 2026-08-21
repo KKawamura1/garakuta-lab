@@ -125,6 +125,24 @@ export function outcomeLevel(won, hp, cycles = 0) {
   return 3;
 }
 
+// 等級。**罰ではなく志である。** 外しても勝ちは勝ちで、ランは続く。
+//
+// 作者の指摘：「積み上げのないゲームで決断を大きく咎めるのは楽しみを奪う」。
+// 実測でも、人間5ランはすべて勝ちで、このゲームは一度も咎めていなかった。
+// 一方、勝つだけなら20回の無作為な並べ替えで96%到達するのに、無傷は31%にとどまる。
+// **志を上げれば、罰を一切増やさずにガチャガチャを無力にできる。**
+export const GRADES = [
+  { rank: 4, label: "無傷", maxLost: 0 },
+  { rank: 3, label: "上々", maxLost: 5 },
+  { rank: 2, label: "及第", maxLost: 14 },
+  { rank: 1, label: "辛勝", maxLost: Infinity }
+];
+
+export function gradeFor(won, hpLost) {
+  if (!won) return { rank: 0, label: "敗北" };
+  return GRADES.find(g => hpLost <= g.maxLost);
+}
+
 export function firesOn(cycle, slotIndex, period) {
   return (cycle - 1) % period === slotIndex % period;
 }
@@ -277,7 +295,7 @@ export const RELAY = {
   MAX_HP: 30, REPAIR_HP: 5, WIN_HEAL: 3, REWARD_CHOICES: 3,
   slotLabel: "継電列",
   slotHint: "周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する。同系統が続くほど倍率が上がる",
-  simulateBattle, predictionLevel, outcomeLevel, firesOn, LINES,
+  simulateBattle, predictionLevel, outcomeLevel, firesOn, LINES, GRADES, gradeFor,
   // 初期手札の契約。撃3・守2を下限にする。これが無いと1〜2戦目で
   // 「締めると詰み、緩めると全部勝つ」の二択になり、T1とT2が両立しない（測定で判明）。
   startContract: types => {
@@ -299,5 +317,7 @@ export const RELAY = {
 - 【反射】巡回の終わりに使われず残った遮蔽は、その半分が敵へ返る。
   つまり守の部品は、敵の攻撃に合えば盾、外れれば矛になる。
 - 12巡で決着しなければ打切り＝負け。
-- 勝つと HP+3。戦闘後、3つの候補から1つ受け取る。`
+- 勝つと HP+3。戦闘後、3つの候補から1つ受け取る。
+- 【等級】戦闘ごとに、失ったHPで 無傷／上々／及第／辛勝 がつく。敵ごとに自己最高が残る。
+  **等級を外しても罰は無い。勝ちは勝ちで、ランはそのまま続く。**`
 };

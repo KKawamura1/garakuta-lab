@@ -59,7 +59,13 @@ export function buildPayload(session) {
     endedAt,
     outcome: { won: Boolean(trace.won), reached: trace.reached, hp: trace.finalHp },
     build: lastBattle?.build || [],
-    stats: { ...(session.metrics || {}), seed: session.seed, actionCount: session.actions.length },
+    stats: {
+      ...(session.metrics || {}), seed: session.seed, actionCount: session.actions.length,
+      // 試した並びの回数。これまで観測できていなかった「探索そのもの」の量（P11）。
+      previewCount: session.actions.filter(a => a && a.type === "preview").length,
+      // ランをまたいで残る値。何ラン目かを後から復元できるようにする。
+      bestsAtEnd: session.bests || null
+    },
     answers: session.survey || {},
     client: {
       language: navigator.language,

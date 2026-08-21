@@ -36,4 +36,16 @@ assert.match(app, /系統の内訳/, "系統の内訳を出す（継電の判断
 // 勝ち方の水準はルールセット側の判定を使う。画面の言葉と記録の水準がずれないように。
 assert.match(app, /rules\.outcomeLevel\(result\.won, result\.hp, result\.cycles\)/, "巡回込みの判定を使う");
 
-console.log("play smoke: 版の表示・ゲーム切り替え・URLの食い違い通知・手持ちの表示 OK");
+// 等級は罰ではなく志（P11）。外しても勝ちは勝ちで、ランは続く。
+assert.match(app, /function recordBest\(/, "自己最高を残す");
+assert.match(app, /localStorage\.setItem\(BEST_KEY/, "自己最高はランをまたいで残る");
+assert.match(app, /この敵の自己最高/, "敵カードに自己最高を出す（狙う的）");
+assert.ok(!/敗北.*罰|ペナルティ/.test(app), "等級に罰を紐づけない");
+
+// 探索そのものの記録。これまで最終的な並びしか観測できていなかった。
+assert.match(app, /function notePreview\(/, "試した並びを記録する");
+assert.match(app, /type: "preview"/, "preview 行動として記録する");
+assert.match(app, /session\.actions\.push\(\{ \.\.\.action, at: new Date\(\)\.toISOString\(\) \}\);/,
+  "再生で消えないよう actions に入れる");
+
+console.log("play smoke: 版の表示・ゲーム切り替え・食い違い通知・手持ち・等級と試行の記録 OK");

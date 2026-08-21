@@ -169,3 +169,10 @@ input[type=text], select, textarea {
 .holding.line-strike { border-color: #6b4a2c; color: #e0a06a; }
 .holding.line-guard  { border-color: #2f4a63; color: #7fb0d8; }
 .holding.line-service{ border-color: #35563c; color: #8fc79a; }
+
+/* 等級。罰ではなく志なので、外しても赤くしない。 */
+.grade-line { margin-top: 4px; font-size: 12px; font-weight: 600; opacity: .95; }
+.grade-line.rank-4 { color: #a7d585; }
+.grade-line.rank-3 { color: #cfd88a; }
+.grade-line.rank-2 { color: #c9c2a0; }
+.grade-line.rank-1 { color: #b9a98a; }

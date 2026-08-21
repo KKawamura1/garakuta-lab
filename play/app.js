@@ -10,6 +10,7 @@ import { makeRng } from "../core/rng.mjs";
 const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
 const SAVE_KEY = "garakuta-play-session";
 const ARCHIVE_KEY = "garakuta-play-finished";
+const BEST_KEY = "garakuta-play-bests";
 const MAX_ARCHIVE = 12;
 // 表に出す巡回数。打切りまで全部出す——打切りが見えていなかったせいで、
 // 作者がHP満タンのまま時間切れで負けたことがある（第4回）。
@@ -45,8 +46,30 @@ let selectedSlot = null;
 let pendingPrediction = null;
 let pendingWorry = "なし";
 let pendingGrip = null;
+let lastBestBeaten = false;
 let playback = null;
 let message = "";
+
+// 敵ごとの自己最高。**ランをまたいで残る唯一の値である。**
+// 作者の言う形（A）＝「1ランは短く、失敗すると最初からになるが、何かしら永続する値が溜まる」の最小形。
+// 外しても罰は無い。勝ちは勝ちで、ランはそのまま続く。
+function loadBests() {
+  try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch { return {}; }
+}
+function saveBests(bests) {
+  try { localStorage.setItem(BEST_KEY, JSON.stringify(bests)); } catch { /* 保存できなくても遊べる */ }
+}
+let bests = loadBests();
+const bestKeyFor = (rulesetName, enemyName) => `${String(rulesetName).toLowerCase()}:${enemyName}`;
+
+function recordBest(rulesetName, enemyName, grade, cycles) {
+  if (!grade || !grade.rank) return false;
+  const key = bestKeyFor(rulesetName, enemyName);
+  const prior = bests[key];
+  const better = !prior || grade.rank > prior.rank || (grade.rank === prior.rank && cycles < prior.cycles);
+  if (better) { bests[key] = { rank: grade.rank, label: grade.label, cycles }; saveBests(bests); }
+  return better;
+}
 
 function rulesetOf(name) { return RULESETS[String(name || "relay").toLowerCase()] || RELAY; }
 
@@ -86,7 +109,11 @@ function archiveCurrent() {
   archive.push(JSON.parse(JSON.stringify(session)));
   localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive.slice(-MAX_ARCHIVE)));
 }
-function persist() { localStorage.setItem(SAVE_KEY, JSON.stringify(session)); }
+function persist() {
+  // 自己最高もセッションに載せる。エクスポートで「何ラン目の状態か」を復元できるようにするため。
+  session.bests = bests;
+  localStorage.setItem(SAVE_KEY, JSON.stringify(session));
+}
 
 function act(action) {
   const result = run.act(action);
@@ -340,6 +367,15 @@ function enemyCard(o) {
     className: "small", style: "margin-top:4px;color:#dd5b56",
     textContent: `${rulesetOf(session.ruleset).MAX_CYCLES}巡までに削り切れなければ敗北（耐えるだけでは勝てない）`
   }));
+  // この敵の自己最高。ランをまたいで残る唯一の値であり、狙う的になる。
+  // 届かなくても罰は無い（勝てばランは続く）ので、ここは赤くしない。
+  const best = bests[bestKeyFor(session.ruleset, e.name)];
+  card.append(el("div", {
+    className: `small grade-line ${best ? `rank-${best.rank}` : ""}`, style: "margin-top:6px",
+    textContent: best
+      ? `この敵の自己最高： ${best.label}（${best.cycles}巡）`
+      : "この敵の自己最高： まだ無い"
+  }));
   return card;
 }
 
@@ -499,12 +535,29 @@ function outcomePanel(o) {
 
   if (rules.deterministic) {
     const lost = o.hp - first.hp;
-    const line = first.won
-      ? `勝てる — ${first.cycles}巡で撃破 ・ HP ${o.hp}→${first.hp}${lost > 0 ? `（${lost}失う）` : "（無傷）"}`
-      : first.timedOut
-        ? `負ける — ${rules.MAX_CYCLES}巡で打切り ・ 敵残 ${first.enemyHp}`
-        : `負ける — ${first.cycles}巡で力尽きる ・ 敵残 ${first.enemyHp}`;
-    return el("div", { className: `verdict ${first.won ? "ok" : "ng"}`, textContent: line });
+    const grade = rules.gradeFor ? rules.gradeFor(first.won, lost) : null;
+    // 試した並びを記録する。**探索そのものを観測するための唯一の手段である。**
+    // 同じ並びを繰り返し描画しても二重に数えない。
+    notePreview(slots, first);
+    const box = el("div", { className: `verdict ${first.won ? "ok" : "ng"}` });
+    box.append(el("div", {
+      textContent: first.won
+        ? `勝てる — ${first.cycles}巡で撃破 ・ HP ${o.hp}→${first.hp}${lost > 0 ? `（${lost}失う）` : "（無傷）"}`
+        : first.timedOut
+          ? `負ける — ${rules.MAX_CYCLES}巡で打切り ・ 敵残 ${first.enemyHp}`
+          : `負ける — ${first.cycles}巡で力尽きる ・ 敵残 ${first.enemyHp}`
+    }));
+    if (grade && grade.rank) {
+      const best = bests[bestKeyFor(session.ruleset, enemy.name)];
+      const beats = !best || grade.rank > best.rank || (grade.rank === best.rank && first.cycles < best.cycles);
+      box.append(el("div", {
+        className: `grade-line rank-${grade.rank}`,
+        textContent: `等級 ${grade.label}`
+          + (best ? ` ・ この敵の自己最高 ${best.label}（${best.cycles}巡）` : " ・ 自己最高はまだ無い")
+          + (beats ? "  ← 更新できる" : "")
+      }));
+    }
+    return box;
   }
 
   const rate = wins.length / runs.length;
@@ -513,6 +566,21 @@ function outcomePanel(o) {
     ? `${samples}回中${wins.length}回 勝ち ・ 残HP ${hps[0]}〜${hps[hps.length - 1]}`
     : `${samples}回とも 負け ・ 敵残 ${Math.min(...runs.map(r => r.enemyHp))}〜`;
   return el("div", { className: `verdict ${rate >= 0.999 ? "ok" : rate > 0 ? "mid" : "ng"}`, textContent: line });
+}
+
+// 試した並びの記録。画面は同じ並びを何度も描き直すので、直前と同じなら数えない。
+let lastPreviewSignature = null;
+function notePreview(slots, result) {
+  const signature = slots.map(s => (s ? s.type : "-")).join(",");
+  if (signature === lastPreviewSignature) return;
+  lastPreviewSignature = signature;
+  // act() を通す。session.actions に入れないと、再読み込み時の再生で試行の記録が消える。
+  // ただし描画中に呼ばれるので、失敗しても draw() を呼び直さない（無限ループになる）。
+  const action = { type: "preview", signature, won: result.won, hp: result.hp, cycles: result.cycles };
+  const outcome = run.act(action);
+  if (!outcome.ok) return;
+  session.actions.push({ ...action, at: new Date().toISOString() });
+  persist();
 }
 
 function cyclesText(slotIndex, period) {
@@ -562,6 +630,12 @@ function startBattle() {
     worryText: pendingGrip ? `手応え:${pendingGrip}` : ""
   });
   if (!result.ok) return;
+  // 自己最高の更新。**更新できなくても何も失わない。** 罰ではなく志なので。
+  const battle = result.battle;
+  if (battle && battle.grade) {
+    lastBestBeaten = recordBest(session.ruleset, battle.enemy, battle.grade, battle.cycles);
+  }
+  lastPreviewSignature = null;
   pendingPrediction = null;
   pendingGrip = null;
   pendingWorry = "なし";
@@ -599,7 +673,9 @@ function battleScreen(o) {
   } else {
     actions.append(el("button", {
       className: "btn primary wide",
-      textContent: b.won ? `勝利（残HP ${b.hpAfter}）— 次へ` : "敗北 — 結果を見る",
+      textContent: b.won
+        ? `${b.grade ? `${b.grade.label}` : "勝利"}（残HP ${b.hpAfter}）${lastBestBeaten ? " ・ 自己最高を更新" : ""} — 次へ`
+        : "敗北 — 結果を見る",
       onclick: () => { playback = null; draw(); }
     }));
     actions.append(el("button", { className: "btn", textContent: "気持ち", onclick: () => openMark() }));
