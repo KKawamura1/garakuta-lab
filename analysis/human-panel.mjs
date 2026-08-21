@@ -1,6 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describeRun } from "../core/metrics.mjs";
+import { RELAY } from "../core/relay.mjs";
+import { PHASE } from "../core/phase.mjs";
+import { ARC } from "../core/arc.mjs";
+
+const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
 
 // 人間のランを横に並べる。1ラン内の指標（describeRun）だけでは「飽き」は見えない。
 // ラン“をまたいだ”反復——同じ構成に収束する、同じ部品が山場になる、同じ位置で圧力が消える——
@@ -52,6 +57,30 @@ const finals = runs.map(({ data, trace }) => {
 });
 finals.forEach(f => console.log(`${String(f.seed).padStart(6)} | 最終構成 ${f.build.join(" ")}`));
 
+// 部品名の重なりだけを見ていると、収束を見落とす。
+// 実測：RELAY 5ランの部品Jaccardは0.277（ARCの0.486より低い）なのに、
+// 作者は「結局そこそこの火力3つと遮蔽1回復1の組になるんだよね」と書いた。
+// 収束していたのは**部品ではなく系統の構成と周期の並び**だった。
+function shapeOf(build, rules) {
+  const types = build.map(name => {
+    const found = Object.entries(rules.PARTS).find(([, part]) => part.name === name);
+    return found ? found[0] : null;
+  });
+  const lines = types.map(t => (t ? rules.PARTS[t].line : "?"));
+  const periods = types.map(t => (t ? rules.PARTS[t].period : 0));
+  const label = { strike: "撃", guard: "守", service: "整" };
+  const composition = ["strike", "guard", "service"]
+    .map(line => `${label[line]}${lines.filter(x => x === line).length}`).join("");
+  return { composition, periods: periods.join(","), lines: lines.map(l => label[l] || "?").join("") };
+}
+
+function modeShare(values) {
+  const counts = new Map();
+  values.forEach(v => counts.set(v, (counts.get(v) || 0) + 1));
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  return { value: top[0], share: top[1] / values.length };
+}
+
 function jaccard(a, b) {
   const A = new Set(a);
   const B = new Set(b);
@@ -65,6 +94,21 @@ if (finals.length > 1) {
   }
   const mean = pairs.reduce((a, b) => a + b, 0) / pairs.length;
   console.log(`\n最終構成の重なり（Jaccard 平均）: ${mean.toFixed(3)}  ${pairs.map(p => p.toFixed(2)).join(" ")}`);
+}
+
+// 系統構成と周期の並びの収束。作者の「いつもの」を数字にする面。
+const shapes = runs.map(({ data, trace }) => {
+  const rules = RULESETS[(data.ruleset || "").toLowerCase()] || null;
+  const last = [...trace.events].reverse().find(e => e.type === "battle_predicted");
+  return rules && last ? { seed: data.seed, ...shapeOf(last.build, rules) } : null;
+}).filter(Boolean);
+if (shapes.length > 1) {
+  console.log("\n最終構成の「かたち」");
+  shapes.forEach(s => console.log(`${String(s.seed).padStart(6)} | 系統 ${s.composition} (${s.lines}) | 周期 ${s.periods}`));
+  const comp = modeShare(shapes.map(s => s.composition));
+  const per = modeShare(shapes.map(s => s.periods));
+  console.log(`\n最頻の系統構成: ${comp.value}  ${pct(comp.share)}のランで一致`);
+  console.log(`最頻の周期の並び: ${per.value}  ${pct(per.share)}のランで一致`);
 }
 
 const takes = new Map();

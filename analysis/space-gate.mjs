@@ -120,6 +120,23 @@ const checks = [
   { name: "T3 順序が効く", ok: t3 >= 0.95, detail: `0%でも100%でもない局面 ${pct(t3)}（≥95%）` },
   { name: "T5 外した代償", ok: t5 >= 3, detail: `外した時の失点 ${mean(rows.map(r => r.lossPenalty)).toFixed(1)} ＝ 勝利回復の${t5.toFixed(1)}倍（≥3倍）` }
 ];
+// 「ガチャガチャやってれば大体勝てる」を数字にする。
+//
+// 画面が並びの結果を即座に断定する以上、並べ替えを試す費用はゼロである。
+// すると勝てる並びの割合 p だけで、無作為な試行 k 回の成功率 1-(1-p)^k が決まる。
+// **正解の少なさは、探索の難しさを意味しない。** 作者の実測 p=13.7% では、
+// 20回ガチャガチャすれば95%勝てる。これは第7回に「探索が効いている」と読んだ数字と同じものである。
+console.log("\n## 無作為な並べ替えで勝てる確率（試す費用がゼロなので、これが探索の下限難易度）");
+[5, 10, 20, 40].forEach(k => {
+  const rate = 1 - (1 - t2median) ** k;
+  console.log(`  ${String(k).padStart(2)}回試す: ${pct(rate)}`);
+});
+const shuffle20 = 1 - (1 - t2median) ** 20;
+if (shuffle20 > 0.5) {
+  console.log("  → 20回で過半数を超える。**思考は無作為に勝てない。**");
+  console.log(`     20回を50%未満に抑えるには p < 3.4% が必要で、T1（詰みを作らない）と両立しない。`);
+}
+
 console.log("\n## P10 生成条件");
 checks.forEach(c => console.log(`  ${c.ok ? "○" : "×"} ${c.name}  ${c.detail}`));
 console.log(`\n判定: ${checks.every(c => c.ok) ? "合格" : `不合格（${checks.filter(c => !c.ok).map(c => c.name).join("・")}）`}`);
