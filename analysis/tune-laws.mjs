@@ -230,7 +230,13 @@ pairs.forEach(pair => {
 });
 
 table.sort((a, b) => a.name.localeCompare(b.name));
-writeFileSync("core/law-table.json", `${JSON.stringify(table, null, 1)}\n`);
+// .mjs で書き出す。JSON モジュール（import ... with { type: "json" }）は
+// 端末によっては解釈できず、画面が丸ごと出なくなる（作者の iPhone で実際に起きた）。
+writeFileSync("core/law-table.mjs",
+  `// 出してよい法則の組の表。**analysis/tune-laws.mjs が生成する。手で編集しない。**\n`
+  + `//\n// 生成条件（T1 詰みを作らない／T2 締まっている／T3 順序が効く）と、\n`
+  + `// 天井の条件（最上位の等級が1戦で半数以上に到達されない）を通った組だけが載っている。\n\n`
+  + `export const LAW_TABLE = ${JSON.stringify(table, null, 1)};\n\nexport default LAW_TABLE;\n`);
 
 console.log(`# ${pairs.length}組を検証 → 合格 ${table.length}組 / 不合格 ${rejected.length}組\n`);
 table.forEach(row => console.log(

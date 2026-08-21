@@ -3,7 +3,7 @@ import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
 import { makeLawRuleset } from "../core/laws.mjs";
-import LAW_TABLE from "../core/law-table.json" with { type: "json" };
+import { LAW_TABLE } from "../core/law-table.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
 import { projectCycles, markFor, firesOn } from "../core/project.mjs";
@@ -12,7 +12,7 @@ import { makeRng } from "../core/rng.mjs";
 const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
 
 // 法則機関は「ルールセット」が固定でない。**毎ラン、事前検証を通った法則の組を引く。**
-// 引ける組は core/law-table.json にあり、生成条件（T1〜T3）と天井の条件を通ったものだけが載っている。
+// 引ける組は core/law-table.mjs にあり、生成条件（T1〜T3）と天井の条件を通ったものだけが載っている。
 // つまり「出してよい問題か」の判定が、設計時の作業ではなく機械の一部になっている。
 const lawVariants = Array.isArray(LAW_TABLE) ? LAW_TABLE : [];
 

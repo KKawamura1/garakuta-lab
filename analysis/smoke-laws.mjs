@@ -5,6 +5,15 @@ import { makeRng } from "../core/rng.mjs";
 
 const fail = message => { console.error(`laws smoke: ${message}`); process.exit(1); };
 
+// 0. 遊ぶ画面が、端末によって解釈できない構文を使っていないこと。
+//    `import ... with { type: "json" }` を使ったせいで、作者の iPhone で**画面が丸ごと出なかった**。
+//    ここの Chromium では動いたので、検証を通り抜けた。**動かせない端末があるなら、構文で守る。**
+{
+  const head = readFileSync("play/app.js", "utf8");
+  if (/\bwith\s*\{\s*type\s*:/.test(head)) fail("play/app.js が import 属性を使っている（古い端末で落ちる）");
+  if (/\?\./.test(head) === false && false) fail("unreachable");
+}
+
 // 1. 法則は1行で書けること（読む重さの上限。「読むのは機械、探すのは人」）。
 Object.entries(LAWS).forEach(([id, law]) => {
   if (!law.name || !law.desc) fail(`${id} に名前か説明が無い`);
@@ -56,8 +65,8 @@ LAW_IDS.forEach(id => {
 });
 
 // 4. 表に載っている組は、実在する法則で、敵の倍率がそろっていること。
-const table = JSON.parse(readFileSync("core/law-table.json", "utf8"));
-if (!Array.isArray(table)) fail("law-table.json が配列でない");
+const { LAW_TABLE: table } = await import("../core/law-table.mjs");
+if (!Array.isArray(table)) fail("law-table.mjs が配列を出していない");
 // 表が空でも壊れてはいない（出してよい組がまだ無い、という状態）。
 // ただしその場合、法則機関は遊べる状態ではないので、画面の選択肢にも出さない。
 table.forEach(row => {
