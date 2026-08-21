@@ -113,8 +113,11 @@ function recordBest(rulesetName, enemyName, grade, cycles) {
   return better;
 }
 
+// 既定は法則機関。ただし通った組が無いときは遊べないので RELAY に落とす。
+function defaultRuleset() { return lawVariants.length ? "laws" : "relay"; }
+
 function rulesetOf(name) {
-  const key = String(name || "relay").toLowerCase();
+  const key = String(name || defaultRuleset()).toLowerCase();
   if (key === "laws") return lawRulesetFor(session);
   return RULESETS[key] || RELAY;
 }
@@ -131,7 +134,7 @@ function fresh(seed = null, ruleset = null) {
   const params = new URLSearchParams(location.search);
   return {
     runId: uuid(),
-    ruleset: ruleset || params.get("ruleset") || "relay",
+    ruleset: ruleset || params.get("ruleset") || defaultRuleset(),
     seed: seed === null ? Math.floor(Math.random() * 100000) : seed,
     playerId: "human-play",
     head: "play",

@@ -1,6 +1,76 @@
 [
  {
   "laws": [
+   "counter",
+   "monotony"
+  ],
+  "name": "反継電＋単調",
+  "scales": [
+   0.35,
+   0.28,
+   0.28,
+   0.36,
+   0.23,
+   0.27
+  ],
+  "atkScales": [
+   3.2,
+   3.2,
+   2.2,
+   3.2,
+   3.2,
+   3.2
+  ],
+  "enemyHp": [
+   132,
+   59,
+   81,
+   120,
+   77,
+   53
+  ],
+  "safeRate": 1,
+  "winMedian": 0.147,
+  "decided": 1,
+  "flawlessReach": 0.401
+ },
+ {
+  "laws": [
+   "relay",
+   "monotony"
+  ],
+  "name": "継電＋単調",
+  "scales": [
+   0.24,
+   0.24,
+   0.2,
+   0.37,
+   0.2,
+   0.52
+  ],
+  "atkScales": [
+   3.2,
+   3.2,
+   2.2,
+   2.2,
+   3.2,
+   1
+  ],
+  "enemyHp": [
+   90,
+   51,
+   58,
+   122,
+   66,
+   101
+  ],
+  "safeRate": 1,
+  "winMedian": 0.135,
+  "decided": 1,
+  "flawlessReach": 0.104
+ },
+ {
+  "laws": [
    "relay",
    "reflect"
   ],
@@ -37,6 +107,41 @@
  {
   "laws": [
    "relay",
+   "wear"
+  ],
+  "name": "継電＋消耗",
+  "scales": [
+   0.31,
+   0.34,
+   0.41,
+   0.31,
+   0.47,
+   0.42
+  ],
+  "atkScales": [
+   3.2,
+   2.2,
+   1.5,
+   3.2,
+   1.5,
+   2.2
+  ],
+  "enemyHp": [
+   117,
+   73,
+   119,
+   103,
+   156,
+   82
+  ],
+  "safeRate": 1,
+  "winMedian": 0.146,
+  "decided": 1,
+  "flawlessReach": 0.058
+ },
+ {
+  "laws": [
+   "relay",
    "fade"
   ],
   "name": "継電＋減衰",
@@ -68,5 +173,40 @@
   "winMedian": 0.144,
   "decided": 1,
   "flawlessReach": 0.071
+ },
+ {
+  "laws": [
+   "relay",
+   "overload"
+  ],
+  "name": "継電＋過負荷",
+  "scales": [
+   0.26,
+   0.33,
+   0.2,
+   0.29,
+   0.2,
+   0.33
+  ],
+  "atkScales": [
+   3.2,
+   2.2,
+   2.2,
+   3.2,
+   3.2,
+   2.2
+  ],
+  "enemyHp": [
+   100,
+   71,
+   58,
+   96,
+   66,
+   63
+  ],
+  "safeRate": 1,
+  "winMedian": 0.14,
+  "decided": 1,
+  "flawlessReach": 0.119
  }
 ]
