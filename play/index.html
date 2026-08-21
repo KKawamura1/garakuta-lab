@@ -5,16 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>位相機関</title>
+    <title>ガラクタ・ラボ</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <header class="top">
       <div>
-        <div class="title" id="title">位相機関</div>
+        <div class="title" id="title">—</div>
         <div class="wave" id="wave">—</div>
       </div>
       <div class="spacer"></div>
+      <button class="chip" id="gameButton" type="button">—</button>
       <button class="chip" id="helpButton" type="button">遊び方</button>
       <button class="chip" id="newRun" type="button">新しいラン</button>
     </header>
@@ -25,6 +26,13 @@
       <h2>遊び方</h2>
       <div id="helpBody" class="small"></div>
       <div class="actions" style="margin-top:12px"><button class="btn wide" id="closeHelp" type="button">閉じる</button></div>
+    </dialog>
+
+    <dialog id="gameDialog">
+      <h2>どのゲームを遊ぶ</h2>
+      <div class="small">選ぶと、いまのランを記録に残してから新しく始めます。</div>
+      <div id="gameChoices" style="margin-top:10px"></div>
+      <div class="actions" style="margin-top:12px"><button class="btn wide" id="closeGame" type="button">やめる</button></div>
     </dialog>
 
     <dialog id="markDialog">

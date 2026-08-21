@@ -6,7 +6,10 @@ iPhoneのSafariからホーム画面へ追加して遊ぶことを想定した�
 
 プレイ版: https://garakuta-lab.pages.dev/
 
-**いまの本命「継電機関 / RELAY 0.1」: https://garakuta-lab.pages.dev/play/**
+**いまの本命「継電機関 / RELAY 0.1」: https://garakuta-lab.pages.dev/play/?ruleset=relay**
+
+前に遊んだランが端末に残っていると、URLで種だけ指定しても**前のゲームのまま続く**。
+画面右上のチップに版（`relay-0.1` など）が出るので、違っていたらそこから切り替える。
 
 位相（部品ごとの作動周期と、枠で決まる作動巡回）はPHASEから引き継ぎ、二つ足した。
 

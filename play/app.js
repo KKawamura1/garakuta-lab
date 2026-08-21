@@ -286,7 +286,11 @@ function tapPart(id) {
 function draw() {
   const o = run.observe();
   const rules = rulesetOf(session.ruleset);
+  // 版を画面に出す。出していなかったせいで、保存済みセッションが古いルールのままなのに
+  // 「更新されていない」ようにしか見えない状態を作った（作者の報告で判明）。
   $("#title").textContent = rules.title.split(" / ")[0];
+  $("#gameButton").textContent = rules.id;
+  document.title = `${rules.title.split(" / ")[0]}（${rules.id}）`;
   $("#wave").textContent = o.done
     ? (o.won ? "全6戦を突破" : `第${o.battleNumber}戦で停止`)
     : `第${o.battleNumber}戦 / 全${o.totalBattles}戦 ・ seed ${o.seed}`;
@@ -784,6 +788,30 @@ $("#newRun").addEventListener("click", () => {
   selectedPartId = null; selectedSlot = null; pendingPrediction = null; pendingGrip = null; playback = null; message = "";
   persist(); draw();
 });
+// ゲームの切り替え。URL の ?ruleset= は「まだ何も操作していないセッション」にしか効かず、
+// 保存済みセッションのルールが残り続ける。作者はこれで、新しいゲームを開いたつもりで
+// 前のゲームを遊んでいた。画面から切り替えられるようにする。
+$("#gameButton").addEventListener("click", () => {
+  const list = $("#gameChoices");
+  list.replaceChildren(...Object.entries(RULESETS).map(([key, rules]) => el("button", {
+    className: `btn wide${key === String(session.ruleset).toLowerCase() ? " primary" : ""}`,
+    style: "margin-bottom:8px; text-align:left",
+    textContent: `${rules.title}${key === String(session.ruleset).toLowerCase() ? "（いま遊んでいる）" : ""}`,
+    onclick: () => {
+      $("#gameDialog").close();
+      if (key === String(session.ruleset).toLowerCase()) return;
+      if (!confirm(`${rules.title} を新しく始めますか？（いまのランは記録に残します）`)) return;
+      archiveCurrent();
+      session = fresh(null, key);
+      run = rebuild();
+      selectedPartId = null; selectedSlot = null; pendingPrediction = null; pendingGrip = null; playback = null; message = "";
+      persist(); draw();
+    }
+  })));
+  $("#gameDialog").showModal();
+});
+$("#closeGame").addEventListener("click", () => $("#gameDialog").close());
+
 $("#helpButton").addEventListener("click", () => {
   $("#helpBody").replaceChildren(...rulesetOf(session.ruleset).rules.split("\n").map(line => el("div", { textContent: line })));
   $("#helpDialog").showModal();
@@ -794,6 +822,14 @@ $("#closeMark").addEventListener("click", () => $("#markDialog").close());
 const params = new URLSearchParams(location.search);
 const urlSeed = params.get("seed");
 const urlRuleset = params.get("ruleset");
+
+// 進行中のランがあるときは URL でルールを乗っ取らない（リロードでランが消える）。
+// ただし黙って無視すると、別のゲームを開いたつもりのまま前のゲームを遊ぶことになる。
+if (session.actions.length && urlRuleset && urlRuleset.toLowerCase() !== String(session.ruleset).toLowerCase()) {
+  message = `URLは ${urlRuleset.toLowerCase()} を指していますが、いま遊んでいるのは ${session.ruleset} です。`
+    + "上のバージョン表示から切り替えられます（いまのランは記録に残ります）。";
+}
+
 if (!session.actions.length) {
   const wantSeed = urlSeed !== null && urlSeed !== "" ? Number(urlSeed) : null;
   const wantRuleset = urlRuleset ? urlRuleset.toLowerCase() : session.ruleset;
