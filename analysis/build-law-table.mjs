@@ -59,6 +59,22 @@ function hasAnyWin(types, simulate, enemy) {
   return found;
 }
 
+// 本当に全通り勝てるのか。負けが1つ見つかれば打ち切る。
+function allWin(types, simulate, enemy) {
+  const probe = makeRng(8181);
+  for (let i = 0; i < 600; i += 1) {
+    const pool = [...types];
+    const pick = [];
+    for (let k = 0; k < SLOT_COUNT; k += 1) pick.push(pool.splice(Math.floor(probe() * pool.length), 1)[0]);
+    const result = simulate({
+      slots: pick.map((type, n) => ({ id: `q${n}`, type })),
+      hp: SAFE_HP, maxHp: MAX_HP, enemy, rng: makeRng(1)
+    });
+    if (!result.won) return false;
+  }
+  return true;
+}
+
 function arrangements(types, rng) {
   const counts = new Map();
   types.forEach(t => counts.set(t, (counts.get(t) || 0) + 1));
@@ -244,7 +260,7 @@ function tuneEnemy(simulate, index) {
   // 攻撃力で天井を遠ざける。小さい方から試し、条件を満たした最初の値を採る。
   let best = at(scale);
   let atkScale = 1;
-  for (const candidate of [1, 1.3, 1.6, 2, 2.5, 3.2, 4]) {
+  for (const candidate of [1, 1.3, 1.6, 2, 2.5, 3.2, 4, 5, 6.5]) {
     const probe = at(scale, candidate);
     const safe = !probe.suspects.some(sp => !hasAnyWin(sp.owned, simulate, probe.enemy));
     if (!safe) break;
