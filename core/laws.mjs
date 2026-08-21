@@ -242,15 +242,33 @@ export function makeSimulate(lawIds) {
 
 // 敵ごとに別の倍率をかける。**一様な倍率では生成条件が通らない**ことが実測で分かっている
 // （全45組が「締めると詰み」になった。RELAY 0.1 の実効比も 9.6/3.4/3.7/3.7/3.3/1.6 と一様ではない）。
+// 敵の説明文は数値から作る。
+//
+// RELAY で一度やった失敗の再発防止である：敵を調律したのに説明文だけ古いまま残り、
+// 「毎巡7」と書いてある敵が22殴ってくる状態になっていた。
+// 法則機関では組ごとに数値が変わるので、**手で書いた説明文は必ずずれる。**
+function traitFor(enemy) {
+  const bits = [];
+  bits.push(enemy.atkPeriod > 1 ? `${enemy.atkPeriod}巡に1回、${enemy.atk}の一撃。` : `毎巡${enemy.atk}。`);
+  if (enemy.cap < 99) bits.push(`1回の命中は${enemy.cap}までしか通らない。大きい一撃ほど無駄が出る。`);
+  if (enemy.floor) bits.push(`${enemy.floor}未満の命中は1に潰される。小突きが通らない。`);
+  if (enemy.regen) bits.push(`さらに毎巡${enemy.regen}回復する。削る速さと耐える力の両方が要る。`);
+  if (enemy.atk >= 30) bits.push("素のHPでは受け切れない。来る巡回に遮蔽を合わせるしかない。");
+  return bits.join("");
+}
+
 export function scaleEnemies(scales, atkScales) {
   const list = Array.isArray(scales) ? scales : BASE_ENEMIES.map(() => scales);
   const atks = Array.isArray(atkScales) ? atkScales : BASE_ENEMIES.map(() => atkScales ?? 1);
-  return BASE_ENEMIES.map((enemy, i) => ({
-    ...enemy,
-    hp: Math.max(20, Math.round(enemy.hp * (list[i] ?? 1))),
-    atk: Math.max(1, Math.round(enemy.atk * (atks[i] ?? 1))),
-    regen: enemy.regen ? Math.max(1, Math.round(enemy.regen * (list[i] ?? 1))) : enemy.regen
-  }));
+  return BASE_ENEMIES.map((enemy, i) => {
+    const scaled = {
+      ...enemy,
+      hp: Math.max(20, Math.round(enemy.hp * (list[i] ?? 1))),
+      atk: Math.max(1, Math.round(enemy.atk * (atks[i] ?? 1))),
+      regen: enemy.regen ? Math.max(1, Math.round(enemy.regen * (list[i] ?? 1))) : enemy.regen
+    };
+    return { ...scaled, trait: traitFor(scaled) };
+  });
 }
 
 export const BASE = BASE_ENEMIES;
