@@ -115,9 +115,9 @@ const SETS = reachableSets(skeleton, { runs: setRuns });
 // 落ちていたのは設計ではなく標本数だった。分解能の足りない判定は、数字を出さずに止める。
 {
   const perEnemy = setRuns;
-  const needed = Math.ceil(1 / (1 - 0.90));
+  const needed = Math.ceil(1 / (1 - 0.95));
   if (perEnemy < needed) {
-    console.error(`標本不足：敵1体あたり${perEnemy}局面では「順序が効く90%以上」を判定できない（最低${needed}必要）。--sets を上げること。`);
+    console.error(`標本不足：敵1体あたり${perEnemy}局面では「順序が効く95%以上」を判定できない（最低${needed}必要）。--sets を上げること。`);
     process.exit(2);
   }
 }
@@ -324,7 +324,7 @@ pairs.forEach(pair => {
   const ceiling = reachable(found.flawlessMean);
   const reasons = [];
   if (found.winMedian > 0.30) reasons.push(`緩すぎる（勝てる並び ${(found.winMedian * 100).toFixed(0)}%）`);
-  if (found.decided < 0.90) reasons.push(`順序が効かない（${(found.decided * 100).toFixed(0)}%）`);
+  if (found.decided < 0.95) reasons.push(`順序が効かない（${(found.decided * 100).toFixed(0)}%、要95%）`);
   if (ceiling > 0.50) reasons.push(`天井が近い（無傷の到達率 ${(ceiling * 100).toFixed(0)}%）`);
   if (reasons.length) { rejected.push({ pair, name, why: reasons.join(" / ") }); return; }
 
