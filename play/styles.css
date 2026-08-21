@@ -176,3 +176,11 @@ input[type=text], select, textarea {
 .grade-line.rank-3 { color: #cfd88a; }
 .grade-line.rank-2 { color: #c9c2a0; }
 .grade-line.rank-1 { color: #b9a98a; }
+
+/* このランの法則。読まずには遊べないので、目立たせるが読ませすぎない（1行ずつ）。 */
+.law { margin-top: 6px; font-size: 12px; line-height: 1.5; }
+.law-name {
+  display: inline-block; margin-right: 6px; padding: 1px 7px; border-radius: 5px;
+  background: #2a2f36; border: 1px solid #4a5260; color: #d6c68a; font-weight: 700;
+}
+.law-desc { color: var(--muted); }

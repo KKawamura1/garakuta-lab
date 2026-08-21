@@ -2,12 +2,34 @@ import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
+import { makeLawRuleset } from "../core/laws.mjs";
+import LAW_TABLE from "../core/law-table.json" with { type: "json" };
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
 import { projectCycles, markFor, firesOn } from "../core/project.mjs";
 import { makeRng } from "../core/rng.mjs";
 
 const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
+
+// 法則機関は「ルールセット」が固定でない。**毎ラン、事前検証を通った法則の組を引く。**
+// 引ける組は core/law-table.json にあり、生成条件（T1〜T3）と天井の条件を通ったものだけが載っている。
+// つまり「出してよい問題か」の判定が、設計時の作業ではなく機械の一部になっている。
+const lawVariants = Array.isArray(LAW_TABLE) ? LAW_TABLE : [];
+
+function pickVariant(seed) {
+  if (!lawVariants.length) return null;
+  // 種から決める。同じ種なら同じ法則になり、再現できる。
+  let h = 2166136261;
+  const text = `laws:${seed}`;
+  for (let i = 0; i < text.length; i += 1) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return lawVariants[Math.abs(h) % lawVariants.length];
+}
+
+function lawRulesetFor(session) {
+  const variant = session.variant && lawVariants.find(v => v.laws.join("+") === session.variant)
+    || pickVariant(session.seed);
+  return variant ? makeLawRuleset(variant.laws, variant.scales, variant.atkScales) : RELAY;
+}
 const SAVE_KEY = "garakuta-play-session";
 const ARCHIVE_KEY = "garakuta-play-finished";
 const BEST_KEY = "garakuta-play-bests";
@@ -60,7 +82,13 @@ function saveBests(bests) {
   try { localStorage.setItem(BEST_KEY, JSON.stringify(bests)); } catch { /* 保存できなくても遊べる */ }
 }
 let bests = loadBests();
-const bestKeyFor = (rulesetName, enemyName) => `${String(rulesetName).toLowerCase()}:${enemyName}`;
+// 記録の鍵に**法則の組**を入れる。組が変われば記録は未設定に戻るので、
+// 「もうハイスコアが二度と得られない」（第10回で継続が止まった理由）が起きない。
+const bestKeyFor = (rulesetName, enemyName) => {
+  const rules = rulesetOf(rulesetName);
+  const variant = rules.variantId ? `:${rules.variantId}` : "";
+  return `${String(rulesetName).toLowerCase()}${variant}:${enemyName}`;
+};
 
 function recordBest(rulesetName, enemyName, grade, cycles) {
   if (!grade || !grade.rank) return false;
@@ -71,7 +99,11 @@ function recordBest(rulesetName, enemyName, grade, cycles) {
   return better;
 }
 
-function rulesetOf(name) { return RULESETS[String(name || "relay").toLowerCase()] || RELAY; }
+function rulesetOf(name) {
+  const key = String(name || "relay").toLowerCase();
+  if (key === "laws") return lawRulesetFor(session);
+  return RULESETS[key] || RELAY;
+}
 
 function load() {
   try {
@@ -379,8 +411,25 @@ function enemyCard(o) {
   return card;
 }
 
+// このランの法則。読まずには遊べないので、構築画面の先頭に出す。
+function lawsCard() {
+  const rules = rulesetOf(session.ruleset);
+  if (!rules.laws || !rules.laws.length) return null;
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: "このランの法則" }));
+  rules.laws.forEach(law => {
+    card.append(el("div", { className: "law" }, [
+      el("span", { className: "law-name", textContent: law.name }),
+      el("span", { className: "law-desc", textContent: law.desc })
+    ]));
+  });
+  card.append(el("div", { className: "small", style: "margin-top:6px",
+    textContent: "法則はランごとに変わる。組が変われば、最適な並びも狙える記録も別物になる。" }));
+  return card;
+}
+
 function buildScreen(o) {
-  const out = [statusCard(o), enemyCard(o)];
+  const out = [statusCard(o), lawsCard(), enemyCard(o)].filter(Boolean);
 
   const grid2 = el("div", { className: "card" });
   grid2.append(el("h2", { textContent: "位相表 — どの枠がどの巡回に動くか" }));
@@ -913,7 +962,9 @@ $("#newRun").addEventListener("click", () => {
 // 前のゲームを遊んでいた。画面から切り替えられるようにする。
 $("#gameButton").addEventListener("click", () => {
   const list = $("#gameChoices");
-  list.replaceChildren(...Object.entries(RULESETS).map(([key, rules]) => el("button", {
+  const entries = [...Object.entries(RULESETS)];
+  if (lawVariants.length) entries.unshift(["laws", { title: `法則機関 / LAWS 0.1（${lawVariants.length}通りの法則の組）` }]);
+  list.replaceChildren(...entries.map(([key, rules]) => el("button", {
     className: `btn wide${key === String(session.ruleset).toLowerCase() ? " primary" : ""}`,
     style: "margin-bottom:8px; text-align:left",
     textContent: `${rules.title}${key === String(session.ruleset).toLowerCase() ? "（いま遊んでいる）" : ""}`,
