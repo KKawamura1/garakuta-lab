@@ -12,12 +12,12 @@ import assert from "node:assert/strict";
 // 数字が両方の文書に現れるなら、突き合わせを機械にやらせる。
 
 const protocol = readFileSync("agents/PROTOCOL.md", "utf8");
-const gate = readFileSync("analysis/build-law-table.mjs", "utf8");
+const gate = readFileSync("analysis/tune-laws.mjs", "utf8");
 
 const checks = [
-  { what: "T1 詰みを作らない", registered: /勝てる並びが1つ以上存在する\*\*割合が (\d+)% 以上/, code: /found\.safeRate < 0\.(\d+)/ },
-  { what: "T2 締まっている（上限）", registered: /全戦闘で (\d+)% を超えない/, code: /found\.winMedian > 0\.(\d+)/ },
-  { what: "T3 順序が効く", registered: /勝敗が変わる戦闘が \*\*(\d+)% 以上\*\*/, code: /found\.decided < 0\.(\d+)\)/ }
+  { what: "T1 詰みを作らない", registered: /勝てる並びが1つ以上存在する\*\*割合が (\d+)% 以上/, code: /const T1_SAFE = 0\.(\d+)/ },
+  { what: "T2 締まっている（上限）", registered: /全戦闘で (\d+)% を超えない/, code: /const T2_MAX = 0\.(\d+)/ },
+  { what: "T3 順序が効く", registered: /勝敗が変わる戦闘が \*\*(\d+)% 以上\*\*/, code: /const T3_DECIDED = 0\.(\d+)/ }
 ];
 
 checks.forEach(({ what, registered, code }) => {
@@ -30,8 +30,19 @@ checks.forEach(({ what, registered, code }) => {
   assert.equal(got, want, `${what}: 登録は${want}%だが実装は${got}%`);
 });
 
+// T2 の登録文は「中央値が5〜15%」と「全戦闘で30%を超えない」の二本立てである。
+// 上限だけを実装していた時期があるので、帯の側も突き合わせる。
+{
+  const band = protocol.match(/勝てる並びの割合の中央値が \*\*(\d+)〜(\d+)%\*\*/);
+  assert.ok(band, "T2 の帯の登録文が読み取れない");
+  const code = gate.match(/const T2_BAND = \[0\.(\d+), 0\.(\d+)\]/);
+  assert.ok(code, "T2 の帯の実装が読み取れない");
+  assert.equal(Number(code[1]), Number(band[1]), "T2 の帯の下限が登録と違う");
+  assert.equal(Number(code[2]), Number(band[2]), "T2 の帯の上限が登録と違う");
+}
+
 // 天井の条件（P12-b）も同じ扱いにする。
 assert.match(protocol, /最上位等級の1戦あたり到達率が50%未満/, "P12-b の登録文が無い");
-assert.match(gate, /ceiling > 0\.50/, "P12-b の実装が登録と違う");
+assert.match(gate, /const CEILING = 0\.50/, "P12-b の実装が登録と違う");
 
-console.log(`gate smoke: 事前登録の閾値と実装が一致（${checks.length + 1}件） OK`);
+console.log(`gate smoke: 事前登録の閾値と実装が一致（${checks.length + 3}件） OK`);
