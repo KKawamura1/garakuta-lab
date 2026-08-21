@@ -108,6 +108,20 @@ const skeleton = { PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
   } };
 const SETS = reachableSets(skeleton, { runs: setRuns });
 
+// 標本が閾値を判定できるかを先に確かめる。
+//
+// 敵1体あたり5局面で「順序が効くのは90%以上」を判定しようとしていた。
+// 5個中1個外れれば80%なので、**この標本では条件を満たしようがない。**
+// 落ちていたのは設計ではなく標本数だった。分解能の足りない判定は、数字を出さずに止める。
+{
+  const perEnemy = setRuns;
+  const needed = Math.ceil(1 / (1 - 0.90));
+  if (perEnemy < needed) {
+    console.error(`標本不足：敵1体あたり${perEnemy}局面では「順序が効く90%以上」を判定できない（最低${needed}必要）。--sets を上げること。`);
+    process.exit(2);
+  }
+}
+
 function evaluate(simulate, enemies) {
   const winRates = [];
   const flawlessRates = [];
