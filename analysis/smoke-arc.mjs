@@ -23,7 +23,9 @@ assert.match(source, /熱を1冷まし、電力を2得る/);
 assert.match(source, /さらに装甲＋3/);
 assert.match(source, /damage: 2 \+ cooled,/);
 assert.match(source, /damage: 2 \+ used \* 2,/);
-assert.match(serviceWorker, /garakuta-lab-arc-v\d+/);
+// キャッシュ名から arc を外した（この場所は複数のルールセットを載せるようになった）。
+// 見るべきは版が上がっていることだけなので、番号の有無だけを確かめる。
+assert.match(serviceWorker, /garakuta-lab-v\d+/);
 
 // 存在しないパスへ index.html を返すと、相対パスのCSS/JSだけが404になり
 // 「読み込めていないのに動いて見える」壊れ方をする。ルート文書だけに限定する。
