@@ -239,6 +239,15 @@ function load() {
   return saved || fresh();
 }
 
+// その対を、これまでに何組**終えた**か。控えの中で stage 1（2本目）を終えた数を数える。
+function trialPairsDone(trialId) {
+  try {
+    const archive = JSON.parse(localStorage.getItem(ARCHIVE_KEY)) || [];
+    if (!Array.isArray(archive)) return 0;
+    return archive.filter(x => x.trial?.id === trialId && x.trial?.stage === 1 && x.survey?.better).length;
+  } catch (_) { return 0; }
+}
+
 function fresh(seed = null, ruleset = null, trial = null) {
   const params = new URLSearchParams(location.search);
   const trialId = trial ? trial.id : params.get("trial");
@@ -246,8 +255,11 @@ function fresh(seed = null, ruleset = null, trial = null) {
   const chosenSeed = seed === null ? Math.floor(Math.random() * 100000) : seed;
   if (trialId && TRIALS[trialId]) {
     // 1本目は種で順序を決める。2本目は1本目から引き継ぐ。
-    const state = trial || { id: trialId, trialId: uuid(), stage: 0,
-      order: sideOrder(trialId, chosenSeed), seed: chosenSeed };
+    // **その対を何組目に遊ぶかで、出す順を厳密に交互にする。**
+    // 種任せだと偏る（実際に3組とも同じ順序になった）。控えから数える。
+    const done = trialPairsDone(trialId);
+    const state = trial || { id: trialId, trialId: uuid(), stage: 0, pairIndex: done,
+      order: sideOrder(trialId, done), seed: chosenSeed };
     return {
       runId: uuid(), ruleset: "laws", seed: chosenSeed, playerId: "human-play", head: "play",
       startedAt: new Date().toISOString(), actions: [], survey: null,
