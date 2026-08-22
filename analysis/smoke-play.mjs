@@ -111,4 +111,22 @@ assert.match(app, /session\.actions\.push\(\{ \.\.\.action, at: new Date\(\)\.to
   }
 }
 
+// **どの対を検証しているかを、遊ぶ側に見せない。**
+//
+// リンクで ?trial=t2 と指定していたので、作者にどの仮説を試しているか分かってしまい、
+// 目隠しが壊れていた。1本のリンク（?study）にして、機械が割り振る。
+{
+  const head = readFileSync("play/app.js", "utf8");
+  if (!/pickTrial/.test(head)) { console.error("play smoke: 対を機械が割り振っていない"); process.exit(1); }
+  if (!/params\.has\("study"\)/.test(head)) { console.error("play smoke: ?study の入口が無い"); process.exit(1); }
+  // 割り振りは、遊んだ組数の少ない対から。偏ると n が伸びない対ができる。
+  const trial = readFileSync("core/trial.mjs", "utf8");
+  if (!/Math\.min\(\.\.\.ids\.map/.test(trial)) {
+    console.error("play smoke: 割り振りが「組数の少ない対から」になっていない");
+    process.exit(1);
+  }
+  // 終わった組を続けないこと（続けると同じ対ばかり貯まる）。
+  if (!/unfinished/.test(head)) { console.error("play smoke: 終わった組を続けない分岐が無い"); process.exit(1); }
+}
+
 console.log("play smoke: 版の表示・ゲーム切り替え・食い違い通知・手持ち・等級と試行の記録 OK");

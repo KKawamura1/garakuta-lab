@@ -4,7 +4,7 @@ import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
 import { makeLawRuleset } from "../core/laws.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
-import { TRIALS, sideSpec, sideOrder } from "../core/trial.mjs";
+import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
 import { BUILD } from "../core/build.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
@@ -222,7 +222,14 @@ function load() {
   // 実験の取り違えは、記録を汚すだけでなく**作者の時間を丸ごと無駄にする。**
   //
   // 同じ対を指しているときは何もしない（ラン途中のリロードで進行を壊さないため）。
-  const wanted = new URLSearchParams(location.search).get("trial");
+  // ?study で来たときは、遊びかけの対があればそれを続ける（毎回引き直すと組が完成しない）。
+  const params = new URLSearchParams(location.search);
+  const studyMode = params.has("study") && !TRIALS[params.get("trial")];
+  // **終わった組はもう続けない。**続けると同じ対ばかり貯まって、割り振りの意味が消える。
+  const unfinished = saved?.trial && !(saved.trial.stage === 1 && saved.survey?.better);
+  const wanted = studyMode
+    ? (unfinished ? saved.trial.id : wantedTrial())
+    : params.get("trial");
   if (wanted && TRIALS[wanted] && saved && saved.trial?.id !== wanted) {
     // 捨てる前に控えを取る。**遊んだものは、途中でも残す。**
     try {
@@ -240,17 +247,35 @@ function load() {
 }
 
 // その対を、これまでに何組**終えた**か。控えの中で stage 1（2本目）を終えた数を数える。
-function trialPairsDone(trialId) {
+function trialPairsDone(trialId) { return donePerTrial()[trialId] || 0; }
+
+function donePerTrial() {
+  const out = {};
   try {
     const archive = JSON.parse(localStorage.getItem(ARCHIVE_KEY)) || [];
-    if (!Array.isArray(archive)) return 0;
-    return archive.filter(x => x.trial?.id === trialId && x.trial?.stage === 1 && x.survey?.better).length;
-  } catch (_) { return 0; }
+    if (Array.isArray(archive)) {
+      archive.forEach(x => {
+        if (x.trial?.stage === 1 && x.survey?.better) out[x.trial.id] = (out[x.trial.id] || 0) + 1;
+      });
+    }
+  } catch (_) {}
+  return out;
+}
+
+// URL から対を決める。
+//   ?study        … **機械が割り振る**（作者はこれを使う。何を検証中か分からない）
+//   ?trial=<id>   … 名指し（私の検証用。目隠しが壊れるので作者には渡さない）
+function wantedTrial() {
+  const params = new URLSearchParams(location.search);
+  const named = params.get("trial");
+  if (named && TRIALS[named]) return named;
+  if (params.has("study") || named === "" || named === "1") return pickTrial(donePerTrial());
+  return null;
 }
 
 function fresh(seed = null, ruleset = null, trial = null) {
   const params = new URLSearchParams(location.search);
-  const trialId = trial ? trial.id : params.get("trial");
+  const trialId = trial ? trial.id : wantedTrial();
   const name = ruleset || params.get("ruleset") || defaultRuleset();
   const chosenSeed = seed === null ? Math.floor(Math.random() * 100000) : seed;
   if (trialId && TRIALS[trialId]) {
@@ -1069,10 +1094,25 @@ function trialEnd(o) {
   if (session.survey && session.survey.better) {
     const done = el("div", { className: "card" });
     done.append(el("div", { className: "small", textContent: message || "記録しました。" }));
-    done.append(el("div", { className: "actions", style: "margin-top:10px" }, [
-      el("button", { className: "btn wide", textContent: "サーバーへ再送", onclick: () => push() }),
-      el("button", { className: "btn", textContent: "JSONをコピー", onclick: () => copyJson() })
-    ]));
+    const acts = [];
+    // **次の組へ、一押しで行けるようにする。**どの対になるかはこちらで決めるので、
+    // 遊ぶ側は何を検証中か知らないまま続けられる。
+    if (new URLSearchParams(location.search).has("study")) {
+      acts.push(el("button", {
+        className: "btn primary wide", textContent: "次の組へ",
+        onclick: () => {
+          archiveCurrent();
+          session = fresh();
+          run = rebuild();
+          selectedPartId = null; selectedSlot = null; pendingPrediction = null;
+          pendingGrip = null; playback = null; message = "";
+          persist(); draw();
+        }
+      }));
+    }
+    acts.push(el("button", { className: "btn wide", textContent: "サーバーへ再送", onclick: () => push() }));
+    acts.push(el("button", { className: "btn", textContent: "JSONをコピー", onclick: () => copyJson() }));
+    done.append(el("div", { className: "actions", style: "margin-top:10px" }, acts));
     out.push(done);
     return out;
   }
