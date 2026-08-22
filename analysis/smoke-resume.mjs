@@ -34,41 +34,59 @@ assert.match(app, /navigator\.clipboard\.writeText/, "写せるようにする")
 assert.match(app, /function ambiguityCard\(/, "並んだら訊く画面が要る");
 assert.match(app, /winners\.length === 1 \? winners\[0\]\.variant : null/, "並んだら推定しない");
 assert.match(app, /searchParams\.get\("laws"\)|get\("laws"\)/, "法則を指定して直せる口が要る");
+// **その口が実際に開くこと。** `?laws=relay+balance` は URLSearchParams が `+` を空白へ
+// 復号するので、`+` しか受けない実装だと一致せず黙って無視される。説明文どおりに貼って
+// 効かないなら、出口が無いのと同じである（事故の直後に人が使う唯一の手段なので、形だけの
+// 存在確認では足りない）。区切りを緩めて受けていることを検査する。
+assert.match(app, /split\(\/\[\+,\\s\]\+\/\)/, "?laws= が空白区切り（+ の復号形）を受けていない");
 
 // 突き止めの仕組みが実際に効くか、実際に遊んだ形のセッションで確かめる。
 //
 // 手がかりは二つある。**本物の法則なら、記録された操作は全部通る**（弱い法則で再生すると
 // 戦闘に負けてランが終わり、以後の操作が弾かれる）。試行の結果の一致は、それでも並ぶ候補を分ける。
 if (LAW_TABLE.length >= 2) {
-  const specOf = v => makeLawRuleset(v.laws, v.scales, v.atkScales);
+  const specOf = v => makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales);
   const target = LAW_TABLE[1];
   const rules = specOf(target);
 
   // 「勝てる並びを探して戦う」を数戦ぶん、行動列として作る。
   // 素朴に並べると1戦目で負けて記録が短くなるので、並びを探す方策に遊ばせる。
-  const actions = [];
-  const policy = searchPolicy({ ruleset: rules, tries: 400, satisfice: true });
-  const run = createRun({ seed: 4242, playerId: "resume", ruleset: rules });
-  let guard = 0;
-  while (!run.done && guard < 200) {
-    guard += 1;
-    const o = run.observe();
-    if (o.phase === "reward") {
-      const take = policy.reward(o);
-      actions.push(take); run.act(take);
-      continue;
+  //
+  // **単一の種に頼らないこと。** 生成条件を締めたら、方策が1戦目で落ちる種を引いて
+  // この検査だけが落ちた。ここが確かめたいのは突き止めの仕組みであって難易度ではないので、
+  // 十分な長さの記録が採れる種を探す。**採れなければ、そのとき初めて失敗とする。**
+  const playFrom = seed => {
+    const actions = [];
+    const policy = searchPolicy({ ruleset: rules, tries: 400, satisfice: true });
+    const run = createRun({ seed, playerId: "resume", ruleset: rules });
+    let guard = 0;
+    while (!run.done && guard < 200) {
+      guard += 1;
+      const o = run.observe();
+      if (o.phase === "reward") {
+        const take = policy.reward(o);
+        actions.push(take); run.act(take);
+        continue;
+      }
+      policy.build(o).forEach(a => { if (run.act(a).ok) actions.push(a); });
+      const battle = policy.battle(run.observe());
+      actions.push(battle);
+      if (!run.act(battle).ok) break;
     }
-    policy.build(o).forEach(a => { if (run.act(a).ok) actions.push(a); });
-    const battle = policy.battle(run.observe());
-    actions.push(battle);
-    if (!run.act(battle).ok) break;
+    return { actions, seed };
+  };
+  let played = null;
+  for (let i = 0; i < 40 && !played; i += 1) {
+    const attempt = playFrom(4242 + i);
+    if (attempt.actions.length > 10) played = attempt;
   }
-  assert.ok(actions.length > 10, "行動列が短すぎる");
+  assert.ok(played, "40種のどれでも行動列が10手に届かない（方策が1戦目で落ちている）");
+  const { actions, seed: playedSeed } = played;
 
   // 各候補で再生して、何手まで通るかを見る。
   const scores = LAW_TABLE.map(candidate => {
     const alt = specOf(candidate);
-    const probe = createRun({ seed: 4242, playerId: "resume", ruleset: alt });
+    const probe = createRun({ seed: playedSeed, playerId: "resume", ruleset: alt });
     let accepted = 0;
     for (const action of actions) { if (!probe.act(action).ok) break; accepted += 1; }
     return { id: candidate.laws.join("+"), accepted };

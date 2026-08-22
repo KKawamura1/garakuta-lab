@@ -63,28 +63,28 @@ export const LAWS = {
     name: "反射", desc: "巡回の終わりに残った遮蔽は、半分が敵へ返る。",
     endOfCycle: ({ leftover, applyHit }) => (leftover > 1 ? applyHit(Math.floor(leftover / 2)) : 0)
   },
-  fade: {
-    name: "減衰", desc: "巡回が1つ進むごとに、すべての効果が1割ずつ弱くなる。",
-    gain: ctx => Math.max(0.2, 1 - (ctx.cycle - 1) * 0.1)
-  },
-
-  // ここから下は**力を差し引く法則**である。
+  // ここから下は**取引の法則**である。下がる条件と、狙えば上がる条件を必ず両方持つ。
   //
-  // 調律の実測で、45組中の不合格の大半が「天井が近い（無傷の到達率が高い）」で落ちた。
-  // 原因は法則の集合の偏りだった——力を足す法則が8つ、差し引く法則が2つしかなかった。
-  // 力を足す法則だけを組み合わせると、勝てる並びはたいてい無傷でも勝ってしまう。
-  // **閾値ではなく、材料の側が足りていなかった。**
+  // 最初は「同系統が続くと半分」のような**下がるだけの法則**を4つ置いていた。
+  // 天井（無傷の到達率）を下げるために足したもので、遊ぶ側の理由が無かった。
+  // 作者の指摘：「その分プラスの効果がないと、単に**ハズレルール**と感じてしまいます」。
+  // **評価器の都合が設計に漏れた形**なので、全部「下がるが、条件を作れば上がる」へ組み替えた。
+  // `analysis/smoke-laws.mjs` が、どの法則にも倍率1を超える条件があることを検査する。
   overload: {
-    name: "過負荷", desc: "同じ巡回に4つ以上作動したら、その巡回の効果は半分。",
-    gain: ctx => (ctx.firingCount >= 4 ? 0.5 : 1)
+    name: "過負荷", desc: "同じ巡回に3つ作動なら2倍。4つ以上なら半分。",
+    gain: ctx => (ctx.firingCount === 3 ? 2 : ctx.firingCount >= 4 ? 0.5 : 1)
   },
   wear: {
-    name: "消耗", desc: "同じ枠が作動するたび、その枠の効果が1割5分ずつ落ちる。",
-    gain: ctx => Math.max(0.3, 1 - (ctx.activationsSoFar - 1) * 0.15)
+    name: "消耗", desc: "同じ枠は作動するたび1割5分落ちる。1巡休むと2倍で復帰する。",
+    gain: ctx => (ctx.restedLastCycle ? 2 : Math.max(0.3, 1 - (ctx.activationsSoFar - 1) * 0.15))
   },
   monotony: {
-    name: "単調", desc: "巡回の中で同じ系統が続くと、2つ目以降の効果は半分。",
-    gain: ctx => (ctx.chain > 1 ? 0.5 : 1)
+    name: "単調", desc: "同じ系統の2つ目は半分。3つ目以降は3倍。",
+    gain: ctx => (ctx.chain === 2 ? 0.5 : ctx.chain >= 3 ? 3 : 1)
+  },
+  fade: {
+    name: "減衰", desc: "1巡目は3倍。以後1巡ごとに1割ずつ弱くなる。",
+    gain: ctx => (ctx.cycle === 1 ? 3 : Math.max(0.2, 1 - (ctx.cycle - 1) * 0.1))
   },
   bias: {
     name: "偏食", desc: "撃の効果は2倍、守と整の効果は半分。",
@@ -257,14 +257,25 @@ function traitFor(enemy) {
   return bits.join("");
 }
 
-export function scaleEnemies(scales, atkScales) {
+// 命中上限（cap）と命中下限（floor）も振る。
+//
+// これは範囲の追加であって、閾値の緩和ではない。理由：**上限と下限は「1回の命中の大きさ」への
+// 条件だが、法則はまさにその大きさを掛け算で動かす。** 継電（×n）や単調（×3）の下では
+// 環甲の上限14は RELAY のときより遥かに強く効き、逆に鋼芯の下限10はほとんど効かない。
+// 素の値のままだと、環甲だけがどの組でも帯（T2）に入らず、**91組すべてがそこで落ちた。**
+// 敵の性格を組ごとに保つには、性格を決めている数値も一緒に振るしかない。
+export function scaleEnemies(scales, atkScales, modScales) {
   const list = Array.isArray(scales) ? scales : BASE_ENEMIES.map(() => scales);
   const atks = Array.isArray(atkScales) ? atkScales : BASE_ENEMIES.map(() => atkScales ?? 1);
+  const mods = Array.isArray(modScales) ? modScales : BASE_ENEMIES.map(() => modScales ?? 1);
   return BASE_ENEMIES.map((enemy, i) => {
+    const mod = mods[i] ?? 1;
     const scaled = {
       ...enemy,
       hp: Math.max(20, Math.round(enemy.hp * (list[i] ?? 1))),
       atk: Math.max(1, Math.round(enemy.atk * (atks[i] ?? 1))),
+      cap: enemy.cap < 99 ? Math.max(2, Math.round(enemy.cap * mod)) : enemy.cap,
+      floor: enemy.floor ? Math.max(2, Math.round(enemy.floor * mod)) : enemy.floor,
       regen: enemy.regen ? Math.max(1, Math.round(enemy.regen * (list[i] ?? 1))) : enemy.regen
     };
     return { ...scaled, trait: traitFor(scaled) };
@@ -300,9 +311,9 @@ export function gradeFor(won, hpLost) {
 
 // 法則の組から、遊べるルールセットを組み立てる。
 // 敵の強さ（scale）は事前検証で決めた値をそのまま使う。ここで調整はしない。
-export function makeLawRuleset(lawIds, scales, atkScales) {
+export function makeLawRuleset(lawIds, scales, atkScales, modScales) {
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
-  const enemies = scaleEnemies(scales, atkScales);
+  const enemies = scaleEnemies(scales, atkScales, modScales);
   return {
     id: `laws-0.1:${lawIds.join("+")}`,
     variantId: lawIds.join("+"),

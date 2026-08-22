@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createRun } from "../core/run.mjs";
-import { LAWS, LAW_IDS, makeSimulate, makeLawRuleset, PARTS, BASE, SLOT_COUNT } from "../core/laws.mjs";
+import { LAWS, LAW_IDS, makeSimulate, makeLawRuleset, PARTS, LINES, BASE, SLOT_COUNT } from "../core/laws.mjs";
 import { makeRng } from "../core/rng.mjs";
 
 const fail = message => { console.error(`laws smoke: ${message}`); process.exit(1); };
@@ -55,6 +55,43 @@ for (let i = 0; i < LAW_IDS.length; i += 1) {
   }
 }
 
+// 2.5 **ハズレ法則の禁止。** 倍率を返す法則は、どこかに「1を超える条件」を必ず持つこと。
+// 最初は「同系統が続くと半分」のような下がるだけの法則を4つ置いていた。天井（無傷の到達率）を
+// 下げるために足したもので、遊ぶ側の理由が無かった。作者の指摘：
+// 「その分プラスの効果がないと、単に**ハズレルール**と感じてしまいます」。
+// **評価器の都合が設計へ漏れた形**なので、機械で塞ぐ。下がること自体は禁じない（取引は成立する）。
+// 塞ぐのは「下がるだけ」の方である。
+{
+  const grid = [];
+  const LINE_IDS = Object.keys(LINES);
+  [1, 2, 3, 4].forEach(chain =>
+    [0, 1, 2, 3].forEach(position =>
+      [1, 2, 3, 4, 5].forEach(firingCount =>
+        [true, false].forEach(restedLastCycle =>
+          [1, 2, 3, 6].forEach(activationsSoFar =>
+            [1, 2, 3].forEach(linesPresent =>
+              [1, 2, 5, 12].forEach(cycle =>
+                LINE_IDS.forEach(line => LINE_IDS.forEach(prevLine => {
+                  grid.push({ part: PARTS.rivet, line, prevLine, chain, position, cycle,
+                    firingCount, linesPresent, restedLastCycle, activationsSoFar, slotIndex: position });
+                })))))))));
+
+  LAW_IDS.forEach(id => {
+    const law = LAWS[id];
+    if (!law.gain) return;   // 周期や巡回末の法則（倍速・反射）は倍率を返さない。上げ幅は形で持つ。
+    const values = grid.map(ctx => law.gain(ctx));
+    const best = Math.max(...values);
+    const worst = Math.min(...values);
+    if (!(best > 1)) fail(`法則「${law.name}」は倍率が1を超える条件を持たない（最大${best}）。`
+      + "下がるだけの法則は**ハズレ法則**なので置かない。狙えば上がる条件を必ず添えること");
+    // 上げ幅が「まぐれ」でないこと。全体の1割以上の状況で1を超えるなら、狙って作れる条件だとみなす。
+    const upFraction = values.filter(v => v > 1).length / values.length;
+    if (upFraction < 0.02) fail(`法則「${law.name}」の上振れが狭すぎる（${(upFraction * 100).toFixed(1)}%）`);
+    // 下がる条件が無いこと自体は禁じない（継電・先陣などは純粋な上げである）。
+    void worst;
+  });
+}
+
 const slots = shape(BUILDS[0]);
 
 // 3. 決定的であること。画面が結果を断定できる前提そのもの。
@@ -79,7 +116,7 @@ table.forEach(row => {
 
 // 5. 表の組は実際に遊べること。
 table.slice(0, 5).forEach(row => {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
   const run = createRun({ seed: 3, playerId: "smoke", ruleset: rules });
   const observation = run.observe();
   if (observation.slots.length !== SLOT_COUNT) fail(`${row.name} の枠数が違う`);
@@ -98,7 +135,7 @@ table.slice(0, 5).forEach(row => {
 // 敵の説明文と数値が一致していること。
 // RELAY で一度、調律後に説明文だけ古いまま残した。組ごとに数値が変わる法則機関では必ず起きる。
 table.slice(0, 5).forEach(row => {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
   rules.ENEMIES.forEach(enemy => {
     if (!enemy.trait.includes(String(enemy.atk))) fail(`${row.name} の ${enemy.name}：説明に攻撃力 ${enemy.atk} が無い`);
     if (enemy.cap < 99 && !enemy.trait.includes(String(enemy.cap))) fail(`${row.name} の ${enemy.name}：説明に命中上限が無い`);

@@ -26,7 +26,13 @@ const MAX_HP = 30;
 const DUMMY_HP = 1e9;
 // 合格した6組はほぼ全部が上限の3.2を使っていた。**探索の端に張り付いているのは、
 // 範囲が足りていない印である。** 上を伸ばす（閾値ではなく探索範囲の話なので、後出しの緩和ではない）。
-const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2, 4.5, 6];
+const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2];
+// 命中上限・下限の倍率。**法則が1回の命中の大きさを掛け算で動かすので、それへの条件も一緒に振る。**
+// 素の値だけだと環甲（上限14）がどの組でも帯に入らず、91組すべてがそこで落ちた。
+const MOD_CANDIDATES = [1, 1.6, 2.5];
+// 上を 4.5・6 まで伸ばしていたのをやめた。**攻撃力を上げるほど「勝ち＝完全防御」になり、
+// 勝利と無傷が同じものへ収束する**（実測：攻×6の環甲は勝率9.3%なのに無傷が8.9%）。
+// 天井を下げたいのに、上げる方向の手だった。閾値ではなく探索範囲の話である。
 const EFFICIENCY = 7;         // 実測の探索効率（無作為の何倍か）
 const TRIES = 10;             // 1戦あたりの試行回数の実測中央値
 const reachable = p => 1 - (1 - Math.min(1, p * EFFICIENCY)) ** TRIES;
@@ -80,44 +86,39 @@ function arrangementsOf(types, rng) {
 }
 
 // 一度の戦闘から、あらゆる敵HPに対する答えを引き出せる形にする。
-// 返り値：killHp[c] = c巡目までに届いた累計ダメージ、aliveHp[c] = c巡目終了時の自HP。
+//
+// **敵が死んだ瞬間で切る。** 前の版は「その巡回の終わりのHP」を返しており、
+// 実機では起きないはずの**その巡回の敵の攻撃を、勝った側にも数えていた**。
+// そのぶん無傷が過小に見え、天井の条件が甘く測られ、攻撃力を上げ足りないまま出荷した。
+// 実際、作者の4ランは全部 HP30 の完全勝利で「どうせ勝ち」と書かれた。
+//
+// 出来事を順番に並べ、累計ダメージが敵HPを超えた**その出来事の時点**のHPを返す。
 function capacity(simulate, order, enemyTemplate) {
   const enemy = { ...enemyTemplate, hp: DUMMY_HP };
   const result = simulate({
     slots: order.map((type, i) => ({ id: `x${i}`, type })),
     hp: SAFE_HP, maxHp: MAX_HP, enemy, rng: makeRng(1)
   });
-  const dealt = [];
-  const hp = [];
-  let lastHp = SAFE_HP;
+  const events = [];
   result.log.forEach(entry => {
     if (!entry.after) return;
-    const c = entry.cycle;
-    dealt[c] = DUMMY_HP - entry.after.enemyHp;
-    hp[c] = entry.after.hp;
-    lastHp = entry.after.hp;
+    events.push({
+      cycle: entry.cycle,
+      dealt: DUMMY_HP - entry.after.enemyHp,
+      hp: entry.after.hp
+    });
   });
-  // 何も起きなかった巡回を埋める。
-  for (let c = 1; c <= 12; c += 1) {
-    if (dealt[c] === undefined) dealt[c] = c > 1 ? dealt[c - 1] : 0;
-    if (hp[c] === undefined) hp[c] = c > 1 ? hp[c - 1] : SAFE_HP;
-  }
-  void lastHp;
-  return { dealt, hp };
+  return events;
 }
 
-// 敵HP h に対する結果を、記録から読み出す。
-function outcomeAt(cap0, h) {
-  for (let c = 1; c <= 12; c += 1) {
-    // その巡回に届いたなら、直前の巡回を生き延びていれば勝ち。
-    if (cap0.dealt[c] >= h) {
-      const aliveBefore = c === 1 ? true : cap0.hp[c - 1] > 0;
-      if (!aliveBefore) return { won: false, hp: 0, cycles: c };
-      return { won: true, hp: Math.max(0, cap0.hp[c]), cycles: c };
-    }
-    if (cap0.hp[c] <= 0) return { won: false, hp: 0, cycles: c };
+// 敵HP h に対する結果を、出来事の列から読み出す。
+function outcomeAt(events, h) {
+  for (const e of events) {
+    if (e.dealt >= h) return { won: true, hp: Math.max(0, e.hp), cycles: e.cycle };
+    if (e.hp <= 0) return { won: false, hp: 0, cycles: e.cycle };
   }
-  return { won: false, hp: Math.max(0, cap0.hp[12]), cycles: 12 };
+  const last = events[events.length - 1];
+  return { won: false, hp: last ? Math.max(0, last.hp) : SAFE_HP, cycles: last ? last.cycle : 0 };
 }
 
 function measureEnemy(caps, hpScale, base) {
@@ -155,30 +156,52 @@ function tuneEnemy(simulate, index) {
 
   // **攻撃力の候補は全部試して、条件をいくつ満たすかで選ぶ。**
   // 早く抜けると、後の候補の方が良かった場合を取り逃す（前の版はそれで帯を外していた）。
-  for (const atkScale of ATK_CANDIDATES) {
-    const template = { ...base, atk: Math.max(1, Math.round(base.atk * atkScale)) };
+  // 修飾を持たない敵では倍率を振っても何も変わらないので、候補を1つに畳む（無駄な再計算を避ける）。
+  const modList = (base.cap < 99 || base.floor) ? MOD_CANDIDATES : [1];
+  for (const atkScale of ATK_CANDIDATES) for (const modScale of modList) {
+    const template = {
+      ...base,
+      atk: Math.max(1, Math.round(base.atk * atkScale)),
+      cap: base.cap < 99 ? Math.max(2, Math.round(base.cap * modScale)) : base.cap,
+      floor: base.floor ? Math.max(2, Math.round(base.floor * modScale)) : base.floor
+    };
     const caps = situations.map(s => {
       const rng = makeRng(s.run * 977 + index);
       return arrangementsOf(s.owned, rng).map(order => capacity(simulate, order, template));
     });
 
-    let lo = 0.2;
-    let hi = 40;
-    for (let step = 0; step < 20; step += 1) {
-      const mid = (lo + hi) / 2;
-      if (measureEnemy(caps, mid, base).safeRate >= T1_SAFE) lo = mid; else hi = mid;
-    }
-    const smax = lo;
-    lo = 0.2; hi = 40;
-    for (let step = 0; step < 20; step += 1) {
-      const mid = (lo + hi) / 2;
-      if (measureEnemy(caps, mid, base).winMedian > T2_BAND[1]) lo = mid; else hi = mid;
-    }
-    const smin = hi;
+    const bisect = (test) => {
+      let lo = 0.2, hi = 40;
+      for (let step = 0; step < 20; step += 1) {
+        const mid = (lo + hi) / 2;
+        if (test(measureEnemy(caps, mid, base))) lo = mid; else hi = mid;
+      }
+      return { lo, hi };
+    };
+    // T1：詰みを作らない上限。倍率を上げるほど詰みが増えるので、通る側が下。
+    const smax = bisect(m => m.safeRate >= T1_SAFE).lo;
+    // T2：勝てる並びの割合は倍率とともに減る。帯の**両端**を取る。
+    const smin = bisect(m => m.winMedian > T2_BAND[1]).hi;   // ここから上が「15%以下」
+    const sfloor = bisect(m => m.winMedian >= T2_BAND[0]).lo; // ここまでが「5%以上」
 
-    // 帯の中に収まる倍率を探す。詰みを作らない範囲で、いちばん締まるところ。
-    const scale = Math.min(smin, smax);
-    const found = { ...measureEnemy(caps, scale, base), atkScale, scale, smin, smax };
+    // **帯の中を走査して、天井がいちばん低いところを採る。**
+    //
+    // 前の版は `Math.min(smin, smax)`、つまり**帯の緩い端**をそのまま使っていた。
+    // 帯の中では倍率を上げるほど無傷が減るので、これは天井をわざわざ最悪にする選び方である。
+    // 学び#33・#52 で二度書いた「緩い端を選んで合格にする」を、三度目に踏んでいた。
+    // 閾値は一つも動かしていない。**帯の中のどこを選ぶかという探索の話である。**
+    const top = Math.min(smax, Math.max(smin, sfloor));
+    let best = null;
+    for (let step = 0; step <= 12; step += 1) {
+      const scale = smin + ((top - smin) * step) / 12;
+      if (scale <= 0) continue;
+      const m = measureEnemy(caps, scale, base);
+      if (m.safeRate < T1_SAFE) break;              // ここから上は詰みが出る
+      if (m.winMedian < T2_BAND[0]) break;          // ここから上は締めすぎ
+      if (!best || m.flawlessMean < best.flawlessMean) best = { ...m, scale };
+    }
+    if (!best) best = { ...measureEnemy(caps, Math.min(smin, smax), base), scale: Math.min(smin, smax) };
+    const found = { ...best, atkScale, modScale, smin, smax, sfloor };
     found.score =
       (found.safeRate >= T1_SAFE ? 8 : 0)
       + (found.winMedian <= T2_BAND[1] && found.winMedian >= T2_BAND[0] ? 4 : 0)
@@ -195,39 +218,91 @@ for (let i = 0; i < LAW_IDS.length; i += 1) {
   for (let j = i + 1; j < LAW_IDS.length; j += 1) pairs.push([LAW_IDS[i], LAW_IDS[j]]);
 }
 
+// --only=relay+bias,... で組を絞り、--verbose で敵ごとの内訳を出す（診断用。判定は変えない）。
+const only = args.only ? String(args.only).split(",").map(x => x.split("+")) : null;
+const verbose = Boolean(args.verbose);
+if (only) {
+  const want = new Set(only.map(p => [...p].sort().join("+")));
+  pairs.length = pairs.filter(p => want.has([...p].sort().join("+"))).length
+    && pairs.splice(0, pairs.length, ...pairs.filter(p => want.has([...p].sort().join("+")))).length ? pairs.length : 0;
+}
+
 const table = [];
 const rejected = [];
-pairs.forEach(pair => {
+// 進み具合を標準エラーへ出す。数分〜十数分かかるので、**黙って走る道具は壊れているのと見分けが付かない。**
+const started = Date.now();
+pairs.forEach((pair, n) => {
   const simulate = makeSimulate(pair);
   const name = pair.map(id => LAWS[id].name).join("＋");
+  const elapsed = (Date.now() - started) / 1000;
+  const eta = n ? ((elapsed / n) * (pairs.length - n)).toFixed(0) : "?";
+  process.stderr.write(`[${String(n + 1).padStart(3)}/${pairs.length}] ${name}　残り約${eta}秒\n`);
   const perEnemy = BASE.map((_, index) => tuneEnemy(simulate, index));
+  if (verbose) {
+    console.log(`\n## ${name}`);
+    console.log("  敵            敵HP  攻×  修×  詰みなし  勝てる並び  順序  無傷の並び  天井(換算)");
+    perEnemy.forEach((e, i) => console.log(
+      `  ${BASE[i].name.padEnd(6)} ${String(e.hp).padStart(8)} ${String(e.atkScale).padStart(4)} ${String(e.modScale ?? 1).padStart(4)}`
+      + `  ${(e.safeRate * 100).toFixed(1).padStart(7)}%  ${(e.winMedian * 100).toFixed(1).padStart(8)}%`
+      + `  ${(e.decidedRate * 100).toFixed(0).padStart(3)}%  ${(e.flawlessMean * 100).toFixed(2).padStart(8)}%`
+      + `  ${(reachable(e.flawlessMean) * 100).toFixed(0).padStart(8)}%`));
+  }
 
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const safeRate = mean(perEnemy.map(e => e.safeRate));
   const decided = mean(perEnemy.map(e => e.decidedRate));
   const winMedian = mean(perEnemy.map(e => e.winMedian));
-  const ceiling = reachable(mean(perEnemy.map(e => e.flawlessMean)));
+  // P12-b の登録文は「最上位等級の**1戦あたり**到達率が50%未満」。戦闘ごとの条件である。
+  // 実装は6戦の平均に対して見ていたので、**天井の低い戦闘が高い戦闘を隠していた**
+  // （T2の上限・T1・T3に続いて4件目の、登録と実装の食い違い）。
+  // reachable は単調増加なので、この直しは必ず**厳しく**なる。緩める方向の直しではない。
+  const ceilings = perEnemy.map(e => reachable(e.flawlessMean));
+  const ceiling = Math.max(...ceilings);
 
   const reasons = [];
   if (safeRate < T1_SAFE) reasons.push(`詰みが多い（${(safeRate * 100).toFixed(1)}%、要${T1_SAFE * 100}%）`);
-  if (winMedian > T2_MAX) reasons.push(`どこかの戦闘が緩すぎる（${(winMedian * 100).toFixed(0)}%）`);
-  else if (winMedian > T2_BAND[1]) reasons.push(`締まりが足りない（中央値 ${(winMedian * 100).toFixed(0)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
+  // 登録文は「中央値が 5〜15%。**全戦闘で** 30% を超えない」。上限は戦闘ごとの条件である。
+  // 実装は中央値の平均に対して見ていたので、緩い戦闘が他に紛れて通っていた（#51と同じ型）。
+  const loosest = Math.max(...perEnemy.map(e => e.winMedian));
+  if (loosest > T2_MAX) reasons.push(`緩すぎる戦闘がある（${(loosest * 100).toFixed(0)}%、要${T2_MAX * 100}%以下）`);
+  if (winMedian > T2_BAND[1]) reasons.push(`締まりが足りない（中央値 ${(winMedian * 100).toFixed(0)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   else if (winMedian < T2_BAND[0]) reasons.push(`締めすぎ（中央値 ${(winMedian * 100).toFixed(1)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   if (decided < T3_DECIDED) reasons.push(`順序が効かない（${(decided * 100).toFixed(0)}%、要${T3_DECIDED * 100}%）`);
-  if (ceiling > CEILING) reasons.push(`天井が近い（${(ceiling * 100).toFixed(0)}%、要${CEILING * 100}%以下）`);
+  if (ceiling > CEILING) reasons.push(
+    `天井が近い戦闘がある（${(ceiling * 100).toFixed(0)}%、要${CEILING * 100}%以下）`);
   if (reasons.length) { rejected.push({ name, why: reasons.join(" / ") }); return; }
 
   table.push({
     laws: pair, name,
     scales: perEnemy.map(e => Number(e.scale.toFixed(2))),
     atkScales: perEnemy.map(e => e.atkScale),
+    modScales: perEnemy.map(e => e.modScale ?? 1),
     enemyHp: perEnemy.map(e => e.hp),
     safeRate: Number(safeRate.toFixed(3)),
     winMedian: Number(winMedian.toFixed(3)),
     decided: Number(decided.toFixed(3)),
-    flawlessReach: Number(ceiling.toFixed(3))
+    flawlessReach: Number(ceiling.toFixed(3)),
+    ceilings: ceilings.map(c => Number(c.toFixed(3)))
   });
 });
+
+// **一つの法則が表を占領しないようにする。**
+//
+// 最初の表は14組中9組が継電を含んでいた。継電は倍率を大きく上げるので、
+// 他の法則と組んでも生成条件を通しやすい。結果、毎ラン継電が引かれ、作者は
+// 「全然継電以外のルール来ないし、楽勝だし、もういいや」と書いた。**多様性が偽物だった。**
+// 品質の良い順に採り、どの法則も規定数を超えないところで打ち切る。
+const PER_LAW_CAP = Number(args.percap || 3);
+const quality = row => row.flawlessReach + Math.abs(row.winMedian - 0.10);
+const balanced = [];
+const used = new Map();
+[...table].sort((a, b) => quality(a) - quality(b)).forEach(row => {
+  if (row.laws.some(id => (used.get(id) || 0) >= PER_LAW_CAP)) return;
+  row.laws.forEach(id => used.set(id, (used.get(id) || 0) + 1));
+  balanced.push(row);
+});
+table.length = 0;
+table.push(...balanced);
 
 table.sort((a, b) => a.name.localeCompare(b.name));
 // .mjs で書き出す。JSON モジュール（import ... with { type: "json" }）は
@@ -238,7 +313,7 @@ writeFileSync("core/law-table.mjs",
   + `// 天井の条件（最上位の等級が1戦で半数以上に到達されない）を通った組だけが載っている。\n\n`
   + `export const LAW_TABLE = ${JSON.stringify(table, null, 1)};\n\nexport default LAW_TABLE;\n`);
 
-console.log(`# ${pairs.length}組を検証 → 合格 ${table.length}組 / 不合格 ${rejected.length}組\n`);
+console.log(`# ${pairs.length}組を検証 → 合格 ${table.length}組（1法則あたり最大${PER_LAW_CAP}組）/ 不合格 ${rejected.length}組\n`);
 table.forEach(row => console.log(
   `  ${row.name.padEnd(11)} 敵HP[${row.enemyHp.join(",")}] 攻×[${row.atkScales.join(",")}]`
   + `  詰みなし ${(row.safeRate * 100).toFixed(1)}%  勝てる並び ${(row.winMedian * 100).toFixed(0)}%`
