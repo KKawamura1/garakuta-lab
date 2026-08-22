@@ -45,6 +45,7 @@
 | 着手中のまま turn を返していないか | `.claude/stop-check-unfinished.sh` |
 | 登録文とコードの閾値が一致しているか | `analysis/smoke-gate.mjs` |
 | 下がるだけの法則が無いか／表が正直か | `analysis/smoke-laws.mjs` |
+| **規則が変わったのに版が据え置きでないか** | `analysis/smoke-version.mjs` |
 | リロードで進行が壊れないか | `analysis/smoke-resume.mjs` |
 
 **散文に書いたルールは落ちる。** 瞬間に発火するルールは機械へ移すこと。
