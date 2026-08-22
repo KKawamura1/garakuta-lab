@@ -102,6 +102,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       battles: state.battles.map(b => ({
         battleNumber: b.battleNumber, enemy: b.enemy, won: b.won, cycles: b.cycles,
         hpBefore: b.hpBefore, hpLost: b.hpLost, owned: b.owned,
+        overdriveSelf: b.overdriveSelf || 0, overdriveCycles: b.overdriveCycles || 0,
         grade: b.grade ? b.grade.label : null, gradeRank: b.grade ? b.grade.rank : null
       })),
       done: state.done, won: state.won
@@ -253,6 +254,12 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       // 「この持ち物で、もっと良い等級が取れたか」を後から全列挙で答えるのに要る。
       owned: [...state.slots.filter(Boolean).map(s => s.type), ...state.inventory.map(s => s.type)],
       cycles: result.cycles, hpBefore, hpAfter: state.hp, hpLost: hpBefore - state.hp,
+      // **失点の内訳。**代償の版では「敵に殴られた」と「自分で出しすぎた」を分けないと、
+      // 予測（暴走はほとんどの勝ち筋で鳴る）を記録から確かめられない。
+      // 暴走を持たない版では 0 のまま。
+      overdriveSelf: (result.log || []).filter(e => e.part === "暴走")
+        .reduce((n, e) => n + (e.hpDamage || 0), 0),
+      overdriveCycles: (result.log || []).filter(e => e.part === "暴走").length,
       enemyHpLeft: result.enemyHp, leftoverPower: result.power, leftoverHeat: result.heat,
       leftoverShield: result.shield, timedOut: result.timedOut,
       resources: result.resources,

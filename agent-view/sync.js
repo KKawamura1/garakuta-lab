@@ -87,7 +87,11 @@ export function buildPayload(session) {
     answers: {
       ...(session.survey || {}),
       ...(session.identified ? { identified: session.identified } : {}),
-      ...(session.guesses ? { guesses: session.guesses } : {})
+      ...(session.guesses ? { guesses: session.guesses } : {}),
+      // **飛ばした回数。**送っていなければ、遊んでもらっても
+      // 「1ランに1回くらい飛ぶ」という登録済みの予測を記録から確かめられない。
+      ...(session.streak ? { streak: session.streak } : {}),
+      ...(session.skipLog && session.skipLog.length ? { skips: session.skipLog } : {})
     },
     client: {
       language: navigator.language,
