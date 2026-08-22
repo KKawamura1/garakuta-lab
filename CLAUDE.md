@@ -42,7 +42,7 @@
 | 見るもの | どこ |
 |---|---|
 | 未コミット・未 push | stop hook |
-| 着手中のまま turn を返していないか | `.claude/stop-check-unfinished.sh` |
+| **やりかけがあるのに起床を予約していないか** | `.claude/stop-check-unfinished.sh` |
 | **作業ツリーが巻き戻っていないか** | `.claude/stop-check-tree.sh` |
 | 登録文とコードの閾値が一致しているか | `analysis/smoke-gate.mjs` |
 | 下がるだけの法則が無いか／表が正直か | `analysis/smoke-laws.mjs` |

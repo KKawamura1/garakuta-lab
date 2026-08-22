@@ -96,7 +96,7 @@ function inferVariant(saved) {
 function trialRulesetFor(session) {
   const spec = sideSpec(session.trial.id, session.trial.side);
   return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales, spec.cycleCaps,
-    { phaseless: spec.phaseless, enemyCount: spec.enemyCount });
+    { phaseless: spec.phaseless, gradeBy: spec.gradeBy, enemyCount: spec.enemyCount });
 }
 
 function lawRulesetFor(session) {
@@ -810,7 +810,7 @@ function outcomePanel(o) {
 
   if (rules.deterministic) {
     const lost = o.hp - first.hp;
-    const grade = rules.gradeFor ? rules.gradeFor(first.won, lost) : null;
+    const grade = rules.gradeFor ? rules.gradeFor(first.won, lost, first.cycles) : null;
     // 試した並びを記録する。**探索そのものを観測するための唯一の手段である。**
     // 同じ並びを繰り返し描画しても二重に数えない。
     notePreview(slots, first);

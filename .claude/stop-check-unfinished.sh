@@ -17,6 +17,23 @@ dir="$HOME/.claude/tasks/$session"
 [[ -d "$dir" ]] || exit 0
 
 running=$(grep -l '"status": *"in_progress"' "$dir"/*.json 2>/dev/null | wc -l)
+pending=$(grep -l '"status": *"pending"' "$dir"/*.json 2>/dev/null | wc -l)
+[[ $((running + pending)) -eq 0 ]] && exit 0
+
+# **未来の起床予約があるなら通す。**
+#
+# 5回、「このあと〇〇をやります」と言って turn を返し、予約せずに止まった。
+# タスクに積んであっても、**積んであるだけでは復帰しない。**復帰の手段は send_later だけである。
+# 予約したら発火時刻を .claude/next-wakeup に書く決まりにして、ここで読む。
+# 書き忘れたら止まる側に倒れるので、**安全な向きに壊れる。**
+marker="${CLAUDE_PROJECT_DIR:-.}/.claude/next-wakeup"
+if [[ -f "$marker" ]]; then
+  at=$(head -1 "$marker" | tr -d '[:space:]')
+  when=$(date -u -d "$at" +%s 2>/dev/null || echo 0)
+  [[ "$when" -gt "$(date -u +%s)" ]] && exit 0
+fi
+
+# 積んであるだけ（着手中が無い）なら通す。backlog で毎回止めると雑音になる。
 [[ "$running" -eq 0 ]] && exit 0
 
 subjects=$(grep -h -A1 '"id"' "$dir"/*.json 2>/dev/null | true)
@@ -31,7 +48,8 @@ ${names}
 次のどれかにしてください。
   1. 終わらせる
   2. 背景で走らせる（Bash の run_in_background）— 終了時に起こされます
-  3. send_later で起床を予約する — 予約しなければ、この作業は二度と再開しません
+  3. send_later で予約し、発火時刻を .claude/next-wakeup に書く
+     — 予約しなければ、この作業は二度と再開しません
   4. 本当に作者の返事待ちなら、TaskUpdate で pending に戻す
 MSG
 exit 2

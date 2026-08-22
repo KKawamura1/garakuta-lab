@@ -21,7 +21,10 @@ const RUNS = 8;   // 検査なので粗く。傾向が逆転したら気づけ�
 const EXPECT = {
   t3: { separate: "T3", label: "順序が効く", minGap: 0.25, match: ["T1", "selectionLoose"] },
   t2: { separate: "overall", label: "勝てる並び", minGap: 0.25, match: ["T1"] },
-  ceiling: { separate: "ceiling", label: "天井", minGap: 0.40, match: ["T1", "overall"] }
+  ceiling: { separate: "ceiling", label: "天井", minGap: 0.40, match: ["T1", "overall"] },
+  // 速度の対は、盤面は同じで**等級の付け方だけ**が違う。だから測る量は全部揃うのが正しい。
+  // 離れているべきは「何を最上位と呼ぶか」なので、数値では分離を検査しない。
+  speed: { separate: null, label: "等級の基準", match: ["T1", "overall", "ceiling"] }
 };
 
 for (const trial of Object.values(TRIALS)) {
@@ -56,8 +59,15 @@ for (const trial of Object.values(TRIALS)) {
   const [a, b] = measured;
 
   // 操作したかった差が、実際に離れていること。
-  const gap = Math.abs(a.m[want.separate] - b.m[want.separate]);
-  if (gap < want.minGap) {
+  if (want.separate === null) {
+    // 等級の基準が実際に違うこと。**同じなら対になっていない。**
+    const grades = specs.map(({ spec }) => makeLawRuleset(spec.laws, spec.scales, spec.atkScales,
+      spec.modScales, spec.cycleCaps, { phaseless: spec.phaseless, gradeBy: spec.gradeBy,
+        enemyCount: spec.enemyCount }).gradeBy);
+    if (grades[0] === grades[1]) fail(`${trial.id}：等級の基準が両側とも ${grades[0]} で同じ`);
+  }
+  const gap = want.separate === null ? Infinity : Math.abs(a.m[want.separate] - b.m[want.separate]);
+  if (gap < (want.minGap ?? 0)) {
     fail(`${trial.id}：${want.label}の差が小さすぎる`
       + `（${(a.m[want.separate] * 100).toFixed(0)}% 対 ${(b.m[want.separate] * 100).toFixed(0)}%）。対になっていない`);
   }
@@ -84,7 +94,8 @@ for (const trial of Object.values(TRIALS)) {
   if (orders[0] === orders[1]) fail(`${trial.id}：1組目と2組目で出す順が入れ替わらない`);
   if (orders[0] !== orders[2] || orders[1] !== orders[3]) fail(`${trial.id}：出す順が交互になっていない`);
 
-  console.log(`trial smoke: ${trial.id} の対が成立（${want.label} `
-    + `${(a.m[want.separate] * 100).toFixed(0)}% 対 ${(b.m[want.separate] * 100).toFixed(0)}%、`
+  const sep = want.separate === null ? "（盤面は同じ）"
+    : `${(a.m[want.separate] * 100).toFixed(0)}% 対 ${(b.m[want.separate] * 100).toFixed(0)}%`;
+  console.log(`trial smoke: ${trial.id} の対が成立（${want.label} ${sep}、`
     + `詰みなし ${(a.m.T1 * 100).toFixed(0)}%/${(b.m.T1 * 100).toFixed(0)}%） OK`);
 }
