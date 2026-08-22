@@ -46,7 +46,12 @@ try {
   console.log("版:", line(/(laws|cost|relay|phase|arc)-[\d.]+[^\n]*/));
   console.log("予告:", line(/(勝てる|負ける)[^\n]*/));
   console.log("暴走:", line(/暴走[^\n]*/));
-  console.log("置けた枠:", await page.locator(".slot .chip, .slot .part").count());
+  // 埋まっている枠＝`.slot` のうち `.empty` が付いていないもの。
+  // 以前は `.slot .chip` を数えていて、そんな要素は無いので**常に0**だった。
+  // 数え方が間違っている検査は、通っても落ちても何も言っていない。
+  const total = await page.locator(".slot").count();
+  const empty = await page.locator(".slot.empty").count();
+  console.log("埋まった枠:", `${total - empty}/${total}`);
   console.log("エラー:", errs.length ? errs.slice(0, 4) : "なし");
   await browser.close();
   if (errs.length) process.exitCode = 1;
