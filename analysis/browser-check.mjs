@@ -9,6 +9,7 @@
 
 import { chromium } from "/opt/node22/lib/node_modules/playwright/index.mjs";
 import { spawn } from "node:child_process";
+import { LAWS } from "../core/laws.mjs";
 
 const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const PORT = 8931;
@@ -70,6 +71,20 @@ try {
       await btn.first().click();
       await page.waitForTimeout(300);
       console.log("候補の数:", await page.locator("#gameChoices button").count());
+      // **当てたら本当に開くのか。**開く口があることと、開くことは別である
+      // （連勝の版では「押す口はあるが一度も起きない」が実際に起きた）。
+      const saved = JSON.parse(await page.evaluate(() => localStorage.getItem("garakuta-play-session")) || "{}");
+      const ids = String(saved.variant || "").split("+").filter(Boolean);
+      const name = ids.length ? LAWS[ids[0]].name : null;
+      if (name) {
+        await page.locator("#gameChoices button").filter({ hasText: name }).first()
+          .click({ timeout: 4000 }).catch(() => {});
+        await page.waitForTimeout(400);
+        const body = await page.locator("body").innerText();
+        console.log("当てた法則:", name,
+          body.includes(`当たり。${name}`) ? "→ 当たりと出た" : "→ **当たりと出ない**");
+        console.log("名前が開いた:", body.includes(LAWS[ids[0]].desc) ? "はい" : "**いいえ（説明が出ていない）**");
+      }
     } else {
       console.log("候補の数: **当てる口が無い**");
     }
@@ -80,6 +95,9 @@ try {
     const labels = await page.locator(".phase-grid .slot-label").allInnerTexts();
     console.log("位相表の行:", labels.join(" / ") || "(行なし)");
     console.log("暴走の行:", labels.includes("暴走") ? "出ている" : "**出ていない**");
+    // 規則そのものが読めるか。**データに在ることと、画面に出ることは別。**
+    const body = await page.locator("body").innerText();
+    console.log("暴走の説明:", /1巡に\d+%/.test(body) ? "法則の札に出ている" : "**出ていない**");
   }
   // 連勝の版：戦って、飛ばしが起きるか。**固まらないことも見る。**
   if (query.includes("skip")) {
