@@ -28,6 +28,13 @@ assert.ok(!/pickVariant\(session\.seed\)\s*;/.test(app), "毎回選び直して�
 assert.match(app, /生の記録を出す/, "生の記録を取り出す口が要る");
 assert.match(app, /navigator\.clipboard\.writeText/, "写せるようにする");
 
+// 推定が並んだときに黙って決めないこと。
+// 2候補が同じだけ辻褄を合わせることがあり、先に見つけた方を採ると
+// 「進行は戻ったのに法則だけ別物」という直しにくい状態になる（実際に起きた）。
+assert.match(app, /function ambiguityCard\(/, "並んだら訊く画面が要る");
+assert.match(app, /winners\.length === 1 \? winners\[0\]\.variant : null/, "並んだら推定しない");
+assert.match(app, /searchParams\.get\("laws"\)|get\("laws"\)/, "法則を指定して直せる口が要る");
+
 // 突き止めの仕組みが実際に効くか、実際に遊んだ形のセッションで確かめる。
 //
 // 手がかりは二つある。**本物の法則なら、記録された操作は全部通る**（弱い法則で再生すると

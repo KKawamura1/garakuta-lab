@@ -44,10 +44,12 @@ function pickVariant(seed, played) {
 //
 // 記録済みの試行（preview）には、**元の法則で計算した結果**が入っている。
 // 候補の法則で同じ並びを引き直し、結果が一致する組を探せば、元の組が分かる。
+let ambiguousVariants = [];
+
 function inferVariant(saved) {
   const actions = saved.actions || [];
   if (!actions.length || !lawVariants.length) return null;
-  let best = null;
+  const scored = [];
   lawVariants.forEach(variant => {
     const rules = makeLawRuleset(variant.laws, variant.scales, variant.atkScales);
     const probe = createRun({ seed: saved.seed, playerId: saved.playerId, ruleset: rules });
@@ -71,15 +73,29 @@ function inferVariant(saved) {
     }
     // **本物の法則なら、記録された操作は全部通る。** 途中で弾かれるのは別の法則である証拠。
     // 試行の結果の一致は、それでも並ぶ候補を分けるための second key。
-    const rate = checked ? matched / checked : 0;
-    if (!best || accepted > best.accepted || (accepted === best.accepted && rate > best.rate)) {
-      best = { variant, accepted, rate };
-    }
+    scored.push({ variant, accepted, rate: checked ? matched / checked : 0 });
   });
-  return best && best.accepted === actions.length ? best.variant : null;
+  // **並んだら選ばない。** 2つの候補が同じだけ辻褄を合わせることがあり（作者の記録で実際に起きた）、
+  // 先に見つけた方を採ると、進行は戻るのに法則だけ別物になる。
+  const full = scored.filter(x => x.accepted === actions.length);
+  if (!full.length) return null;
+  const top = Math.max(...full.map(x => x.rate));
+  const winners = full.filter(x => x.rate >= top - 1e-9);
+  ambiguousVariants = winners.length > 1 ? winners.map(x => x.variant) : [];
+  return winners.length === 1 ? winners[0].variant : null;
 }
 
 function lawRulesetFor(session) {
+  // 復旧用の指定。?laws=relay+balance のように渡すと、**進行を保ったまま法則だけ差し替える。**
+  // 推定が2候補で並んだとき、人が知っている答えを入れるための口である。
+  const forced = new URLSearchParams(location.search).get("laws");
+  if (forced) {
+    const hit = lawVariants.find(v => v.laws.join("+") === forced);
+    if (hit && session.variant !== forced) {
+      session.variant = forced;
+      session.variantSpec = { laws: hit.laws, scales: hit.scales, atkScales: hit.atkScales };
+    }
+  }
   // 決めた法則はセッションに焼き付ける。**表が変わっても、進行中のランは同じ規則で再生される。**
   const spec = session.variantSpec;
   if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales);
@@ -513,8 +529,36 @@ function lawsCard() {
   return card;
 }
 
+// 推定が並んだときは、黙って決めずに訊く。
+// 進行は正しく戻っているのに法則だけ別物、という直しにくい状態を作らないため。
+function ambiguityCard() {
+  if (ambiguousVariants.length < 2) return null;
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: "どちらの法則で遊んでいましたか" }));
+  card.append(el("div", { className: "small",
+    textContent: "再読み込みで法則を突き止めましたが、記録からは次のどれかまでしか絞れませんでした。"
+      + "進行はそのままで、法則だけ差し替えます。" }));
+  ambiguousVariants.forEach(variant => {
+    const id = variant.laws.join("+");
+    card.append(el("button", {
+      className: `btn wide${session.variant === id ? " primary" : ""}`,
+      style: "margin-top:8px; text-align:left",
+      textContent: `${variant.name}${session.variant === id ? "（いま選ばれている）" : ""}`,
+      onclick: () => {
+        session.variant = id;
+        session.variantSpec = { laws: variant.laws, scales: variant.scales, atkScales: variant.atkScales };
+        ambiguousVariants = [];
+        run = rebuild();
+        persist();
+        draw();
+      }
+    }));
+  });
+  return card;
+}
+
 function buildScreen(o) {
-  const out = [statusCard(o), lawsCard(), enemyCard(o)].filter(Boolean);
+  const out = [statusCard(o), ambiguityCard(), lawsCard(), enemyCard(o)].filter(Boolean);
 
   const grid2 = el("div", { className: "card" });
   grid2.append(el("h2", { textContent: "位相表 — どの枠がどの巡回に動くか" }));
