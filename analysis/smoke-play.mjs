@@ -38,7 +38,13 @@ assert.match(app, /系統の内訳/, "系統の内訳を出す（継電の判断
 // 法則機関は、まだ記録の無い組を優先して引く。
 // これが「更新できる記録が尽きない」の実体であり、第10回で継続が止まった原因への対策である。
 assert.match(app, /function pickVariant\(/, "法則の組を引く仕組みが要る");
-assert.match(app, /const fresh = lawVariants\.filter\(v => !played\.has/, "未挑戦の組を優先する");
+// **変数名ではなく、意味を見る。**以前は `lawVariants` という名前ごと書いてあったので、
+// 引く表を版ごとに切り替えられるようにした（代償の版は別の表を使う）だけで落ちた。
+// 検査が形を見ていると、形が変わっただけで黙るか、無関係に落ちる。
+assert.match(app, /filter\(v => !played\.has\(v\.laws\.join/, "未挑戦の組を優先する");
+// 版ごとに引く表が分かれていること。素の表を代償の版で使うと、実測で16組中15組が壊れる。
+assert.match(app, /function variantsOf\(/, "版ごとに引く表を分ける");
+assert.match(app, /COST_TABLE/, "代償の版の表を読み込む");
 
 // 勝ち方の水準はルールセット側の判定を使う。画面の言葉と記録の水準がずれないように。
 assert.match(app, /rules\.outcomeLevel\(result\.won, result\.hp, result\.cycles\)/, "巡回込みの判定を使う");

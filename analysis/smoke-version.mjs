@@ -10,6 +10,7 @@
 import { readFileSync } from "node:fs";
 import { fingerprint } from "./rules-fingerprint.mjs";
 import { RULES_VERSION, RULES_FINGERPRINT } from "../core/rules-version.mjs";
+import { makeLawRuleset, BASE } from "../core/laws.mjs";
 
 const now = fingerprint();
 if (now !== RULES_FINGERPRINT) {
@@ -29,7 +30,21 @@ if (now !== RULES_FINGERPRINT) {
 const sync = readFileSync("agent-view/sync.js", "utf8");
 const laws = readFileSync("core/laws.mjs", "utf8");
 const inSync = (sync.match(/laws: "(laws-[\d.]+)"/) || [])[1];
-const inLaws = (laws.match(/id: `(laws-[\d.]+):/) || [])[1];
+// **id は実物から読む。**以前はソースの文字列を正規表現で抜いていたが、
+// 版を条件分岐にした（暴走ありなら cost-0.1）とたんに読めなくなった。
+// **検査が形を見ていると、形が変わっただけで黙る。**組み立てた結果を見ればそうならない。
+const FLAT = BASE.map(() => 1);
+const CAPS = BASE.map(e => Math.max(4, Math.round(e.hp / 3)));
+const idOf = options => makeLawRuleset(["relay", "vanguard"], FLAT, FLAT, FLAT, CAPS, options).id.split(":")[0];
+const inLaws = idOf({});
+
+// 代償の版も、通報の版と揃っていること。
+const costId = idOf({ overdrive: { frac: 0.5, rate: 1 } });
+const costInSync = (sync.match(/cost: "(cost-[\d.]+)"/) || [])[1];
+if (costId !== costInSync) {
+  console.error(`version smoke: 代償の版が laws.mjs で ${costId}、sync.js で ${costInSync}`);
+  process.exit(1);
+}
 if (inSync !== RULES_VERSION) {
   console.error(`version smoke: sync.js の版が ${inSync}、rules-version.mjs は ${RULES_VERSION}`);
   process.exit(1);

@@ -71,9 +71,9 @@ function permutationsOf(multiset, cap) {
   return out;
 }
 
-export function measure({ laws, scales, atkScales, modScales, cycleCaps, phaseless = false }, runs = 20) {
-  const rules = makeLawRuleset(laws, scales, atkScales, modScales, cycleCaps, { phaseless });
-  const sim = makeSimulate(laws, { phaseless });
+export function measure({ laws, scales, atkScales, modScales, cycleCaps, phaseless = false, overdrive = null }, runs = 20) {
+  const rules = makeLawRuleset(laws, scales, atkScales, modScales, cycleCaps, { phaseless, overdrive });
+  const sim = makeSimulate(laws, { phaseless, overdrive });
   const sets = reachableSets({ PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
     startContract: t => t.filter(x => PARTS[x].line === "strike").length >= 3
       && t.filter(x => PARTS[x].line === "guard").length >= 2

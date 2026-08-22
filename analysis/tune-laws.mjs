@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { cpus } from "node:os";
 import { fileURLToPath } from "node:url";
-import { makeSimulate, scaleEnemies, BASE, LAW_IDS, LAWS, PARTS, SLOT_COUNT } from "../core/laws.mjs";
+import { makeSimulate, scaleEnemies, BASE, LAW_IDS, LAWS, PARTS, SLOT_COUNT, OVERDRIVE } from "../core/laws.mjs";
 import { reachableSets, SAFE_HP } from "./sets.mjs";
 import { makeRng } from "../core/rng.mjs";
 
@@ -23,6 +23,19 @@ const args = Object.fromEntries(process.argv.slice(2).map(item => {
   return m ? [m[1], m[2] === undefined ? true : m[2]] : [item, true];
 }));
 const setRuns = Number(args.sets || 20);
+// **代償の版の表を作るための入口。** `--cost` を付けると暴走ありで調律し、
+// core/cost-table.mjs へ書き出す。
+//
+// 表を使い回せないことは実測で分かった：laws-0.3 の表をそのまま暴走ありで測ると、
+// **16組中15組が壊れる**（詰みなしが47〜94%まで落ちる）。
+// 敵の数値は「ぎりぎり勝てる」ところに置いてあるので、代償を足せば当然そこから落ちる。
+// **版が違えば表も違う。**
+const COST = Boolean(args.cost);
+const OVER = COST ? OVERDRIVE : null;
+const OUT_PATH = COST ? "core/cost-table.mjs" : "core/law-table.mjs";
+const OUT_NAME = COST ? "COST_TABLE" : "LAW_TABLE";
+// 代償があると言えるための下限。0 のすぐ下ではなく、測り直しの揺れの外に置く。
+const COST_RHO = -0.05;
 const cap = Number(args.cap || 300);
 const TARGET = 0.15;          // T2：勝てる並びの割合の中央値をここへ寄せる
 const MAX_HP = 30;
@@ -332,7 +345,7 @@ if (workers > 1 && !slice) {
 // 進み具合を標準エラーへ出す。数分〜十数分かかるので、**黙って走る道具は壊れているのと見分けが付かない。**
 const started = Date.now();
 (workers > 1 ? [] : pairs).forEach((pair, n) => {
-  const simulate = makeSimulate(pair);
+  const simulate = makeSimulate(pair, { overdrive: OVER });
   const name = pair.map(id => LAWS[id].name).join("＋");
   const elapsed = (Date.now() - started) / 1000;
   const eta = n ? ((elapsed / n) * (pairs.length - n)).toFixed(0) : "?";
@@ -430,13 +443,34 @@ table.length = 0;
 table.push(...balanced);
 
 table.sort((a, b) => a.name.localeCompare(b.name));
+
+// **代償の版では、代償があることを生成条件にする。**
+//
+// 調律だけを通した16組のうち、速さと安全さの相関が実際に負だったのは13組で、
+// 残り3組は 0 前後だった（均衡＋反射は +0.12）。
+// **その3組を引いたランには、この版の主張そのものが無い。**
+// 遊ぶ側は「代償のある版」を遊んだつもりで、代償の無い盤面を見ることになる。
+// T1〜T3 と同じ資格で、ここで落とす。
+if (COST && !slice) {
+  const { tradeoff } = await import("./tradeoff.mjs");
+  const kept = [];
+  for (const row of table) {
+    const rho = tradeoff({ laws: row.laws, scales: row.scales, atkScales: row.atkScales,
+      modScales: row.modScales, cycleCaps: row.cycleCaps, overdrive: OVER }, 6).rho;
+    if (rho <= COST_RHO) { kept.push({ ...row, rho: Number(rho.toFixed(3)) }); continue; }
+    rejected.push({ name: row.name, reasons: [`代償が薄い（相関 ${rho.toFixed(2)}、要 ${COST_RHO} 以下）`] });
+  }
+  table.length = 0;
+  table.push(...kept);
+}
 // .mjs で書き出す。JSON モジュール（import ... with { type: "json" }）は
 // 端末によっては解釈できず、画面が丸ごと出なくなる（作者の iPhone で実際に起きた）。
-writeFileSync("core/law-table.mjs",
+writeFileSync(OUT_PATH,
   `// 出してよい法則の組の表。**analysis/tune-laws.mjs が生成する。手で編集しない。**\n`
   + `//\n// 生成条件（T1 詰みを作らない／T2 締まっている／T3 順序が効く）と、\n`
   + `// 天井の条件（最上位の等級が1戦で半数以上に到達されない）を通った組だけが載っている。\n\n`
-  + `export const LAW_TABLE = ${JSON.stringify(table, null, 1)};\n\nexport default LAW_TABLE;\n`);
+  + (COST ? `// **暴走あり（代償の版）の表。** 素の表とは別物である。\n\n` : "")
+  + `export const ${OUT_NAME} = ${JSON.stringify(table, null, 1)};\n\nexport default ${OUT_NAME};\n`);
 
 console.log(`# ${pairs.length}組を検証 → 合格 ${table.length}組（1法則あたり最大${PER_LAW_CAP}組）/ 不合格 ${rejected.length}組\n`);
 table.forEach(row => console.log(

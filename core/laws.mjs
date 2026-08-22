@@ -126,7 +126,17 @@ export function firesOnFlat(cycle, slotIndex, period) {
   return (cycle - 1) % period === 0;
 }
 
-export function makeSimulate(lawIds, { phaseless = false } = {}) {
+// **暴走**（`overdrive`）。速さが安全を買えなくする仕掛け。
+//
+// いまの骨格では、敵は巡回の終わりに殴り、**とどめの巡回では殴ってこない**（学び#54）。
+// つまり「受ける攻撃の回数 ＝ 生き延びた巡回の数」で、**速く倒すことがそのまま防御**である。
+// 実測でも、並びの速さ順位と安全さ順位の相関は**どの法則の組でも正のまま**だった
+// （`analysis/TRADEOFF.md`。敵を強くしても相関は動かず、無傷が珍しくなるだけ）。
+//
+// 暴走は、**1巡に出した力が閾値を超えたら、超過分の一部を自分が受ける。**
+// 遮蔽で受け止められるので、遮蔽が「敵の一撃」と「自分の暴走」に**取り合いになる。**
+// **とどめの巡回でも起こる。**ここを免除すると、速く倒すことがまた無料になり、代償が消える。
+export function makeSimulate(lawIds, { phaseless = false, overdrive = null } = {}) {
   const fires = phaseless ? firesOnFlat : firesOn;
   const laws = lawIds.map(id => LAWS[id]).filter(Boolean);
   const orderLaw = laws.find(l => l.order)?.order || null;
@@ -154,6 +164,10 @@ export function makeSimulate(lawIds, { phaseless = false } = {}) {
     // 2巡以上かかった4戦の無傷は0%である。
     // 周期も位相ずれも12巡の打切りも、1巡で終わる戦闘では何の意味も持たない。
     let dealtThisCycle = 0;
+    // 暴走の閾値は敵ごと。**1巡に通せる上限に対する割合**で決めるので、
+    // 敵が大きくなっても「出しすぎ」の意味が変わらない。
+    const overdriveThreshold = overdrive
+      ? Math.max(1, Math.round((enemy.cycleCap || enemy.hp) * overdrive.frac)) : 0;
     const applyHit = raw => {
       let value = Math.min(Math.round(raw), enemy.cap ?? 99);
       if ((enemy.floor || 0) > 0 && Math.round(raw) < enemy.floor) value = 1;
@@ -234,6 +248,23 @@ export function makeSimulate(lawIds, { phaseless = false } = {}) {
         if (battle.enemyHp <= 0) break;
       }
       firedLastCycle = firedThisCycle;
+
+      // **暴走は、敵の生死より先に判定する。**
+      // ここを `enemyHp <= 0` の後ろに置くと、1巡で倒し切った並びだけが代償を免れ、
+      // 「速ければ無料」がそのまま戻ってくる。それでは何も変わらない。
+      if (overdrive && dealtThisCycle > overdriveThreshold) {
+        const excess = dealtThisCycle - overdriveThreshold;
+        const raw = Math.max(1, Math.ceil(excess * overdrive.rate));
+        const absorbed = Math.min(shield, raw);
+        shield -= absorbed;
+        const through = raw - absorbed;
+        battle.hp -= through;
+        log.push({ cycle: battle.cycle, slot: null, part: "暴走", type: "law",
+          text: `暴走：${dealtThisCycle}出して${overdriveThreshold}超過、遮蔽で${absorbed}受け止め、HPへ${through}`,
+          blocked: absorbed, hpDamage: through,
+          after: { shield, enemyHp: Math.max(0, battle.enemyHp), hp: Math.max(0, battle.hp) } });
+      }
+
       if (battle.enemyHp <= 0) break;
 
       let blocked = 0;
@@ -377,16 +408,22 @@ export function speedGradeFor(won, hpLost, cycles) {
 
 // 法則の組から、遊べるルールセットを組み立てる。
 // 敵の強さ（scale）は事前検証で決めた値をそのまま使う。ここで調整はしない。
+// 出荷する暴走の設定。**画面と検査が同じものを見るように、ここ1か所に置く。**
+// 「1巡上限の半分を超えたら、超えた分がそのまま返る」＝暗算できる形。
+// 実測：相関 +0.30 → −0.26、詰みなし100%（`analysis/TRADEOFF.md`）。
+export const OVERDRIVE = { frac: 0.5, rate: 1.0 };
+
 export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, options = {}) {
   const phaseless = Boolean(options.phaseless);
   const bySpeed = options.gradeBy === "speed";
+  const overdrive = options.overdrive || null;
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
   // 戦闘数を減らせるようにする。**対で比べるときは1本を短くしないと、作者の時間が倍要る。**
   // 3戦なら、いままで1ラン遊んでいた時間で対が1つ回る。
   const all = scaleEnemies(scales, atkScales, modScales, cycleCaps);
   const enemies = options.enemyCount ? all.slice(0, options.enemyCount) : all;
   return {
-    id: `laws-0.3:${lawIds.join("+")}`,
+    id: `${overdrive ? "cost-0.1" : "laws-0.3"}:${lawIds.join("+")}`,
     variantId: lawIds.join("+"),
     laws,
     title: `法則機関 / ${laws.map(l => l.name).join("＋")}`,
@@ -398,11 +435,14 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
     deterministic: true,
     MAX_HP: 30, REPAIR_HP: 5, WIN_HEAL: 3, REWARD_CHOICES: 3,
     slotLabel: "位相列",
+    // 暴走があるなら、握っておくものが1つ増える。**隠すと理不尽になる。**
+    ...(overdrive ? { overdriveHint: `1巡に${Math.round(overdrive.frac * 100)}%（1巡上限に対して）を超えて出すと、超過分の${Math.round(overdrive.rate * 100)}%が自分へ返る。遮蔽で受け止められる` } : {}),
     slotHint: phaseless
       ? "周期Pの部品は、どの枠にあっても 1, 1+P, 1+2P … 巡目に作動する（枠の位置は作動巡回に影響しない）"
       : "周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する",
     phaseless,
-    simulateBattle: makeSimulate(lawIds, { phaseless }),
+    simulateBattle: makeSimulate(lawIds, { phaseless, overdrive }),
+    overdrive,
     // 位相表が実際の作動巡回を描けるように、法則が変えた周期を外へ出す。
     periodOf: part => lawIds.map(id => LAWS[id]).filter(l => l && l.period)
       .reduce((p, law) => law.period(p), part.period),
