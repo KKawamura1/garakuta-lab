@@ -7,5 +7,8 @@
 // 履歴：
 //   laws-0.1 … 最初の法則機関。1巡決着で無傷が取れてしまう穴があった
 //   laws-0.2 … 敵に1巡上限、偏食を削除、天井を通さずに出す
-export const RULES_VERSION = "laws-0.2";
-export const RULES_FINGERPRINT = "e3ebc78d0c83";
+//   laws-0.3 … 初期手札の契約に「整1枚」を足した。均衡が3割の局面で達成不能だったため
+//              （作者の報告：「ルールが均衡なのに均衡を達成する手段がない」）。
+//              表も作り直し。通る組が10→16に増え、天井まで通る組が初めて出た
+export const RULES_VERSION = "laws-0.3";
+export const RULES_FINGERPRINT = "6f827e5ffb59";

@@ -92,7 +92,8 @@ const rsets = reachableSets({ PARTS: RPARTS, START_PARTS, RARE_RATE, ENEMIES: RE
     && t.filter(x => RPARTS[x].line === "guard").length >= 2 }, { runs: 10 });
 const sets = reachableSets({ PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
   startContract: t => t.filter(x => PARTS[x].line === "strike").length >= 3
-    && t.filter(x => PARTS[x].line === "guard").length >= 2 }, { runs: 10 });
+    && t.filter(x => PARTS[x].line === "guard").length >= 2
+    && t.filter(x => PARTS[x].line === "service").length >= 1 }, { runs: 10 });
 
 console.log("勝てる並びに現れる系統構成の幅（5%以上を占める構成の数）\n");
 const out = [];

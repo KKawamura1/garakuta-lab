@@ -92,6 +92,36 @@ for (let i = 0; i < LAW_IDS.length; i += 1) {
   });
 }
 
+// **法則の条件が、実際に達成できること。**
+//
+// 均衡は「撃・守・整の3系統がそろっているなら2倍」だが、初期手札の契約は撃3・守2しか
+// 保証しない。**整が1枚も来ない局面が34%あり、そこでは達成する手段が無い。**
+// 作者の報告（2026-08-22）：「ルールが均衡なのに均衡を達成する手段がない…つまらなかった」。
+//
+// 上振れが**文面上**存在すること（上の 2.5）と、**その場で実際に届くこと**は別の量である。
+// 到達しうる持ち物を並べて、上振れを引ける局面がどれだけあるかを見る。
+{
+  const { reachableSets } = await import("./sets.mjs");
+  const sets = reachableSets({ PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
+    startContract: t => t.filter(x => PARTS[x].line === "strike").length >= 3
+      && t.filter(x => PARTS[x].line === "guard").length >= 2
+      && t.filter(x => PARTS[x].line === "service").length >= 1 }, { runs: 30 });
+  const linesOf = owned => new Set(owned.map(t => PARTS[t].line)).size;
+  // いまの法則で「持ち物の側の条件」を要求するのは均衡だけ（3系統そろうこと）。
+  // 条件を持ち物に課す法則を足したら、ここに検査を足すこと。
+  const reachableFor = {
+    balance: owned => linesOf(owned) >= 3
+  };
+  Object.entries(reachableFor).forEach(([id, ok]) => {
+    if (!LAWS[id]) return;
+    const hit = sets.filter(s => ok(s.owned)).length / sets.length;
+    if (hit < 0.9) {
+      fail(`法則「${LAWS[id].name}」は${((1 - hit) * 100).toFixed(0)}%の局面で条件を達成できない。`
+        + "**達成する手段が無い法則は、遊ぶ側から見れば効果が無いのと同じ**（作者の報告 2026-08-22）");
+    }
+  });
+}
+
 const slots = shape(BUILDS[0]);
 
 // 3. 決定的であること。画面が結果を断定できる前提そのもの。

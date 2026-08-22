@@ -982,6 +982,22 @@ function finishTrialRun(o, survey) {
   session.metrics = describeRun(session.trace);
   archiveCurrent();
   persist();
+  // **1本目も必ず送る。** 送っていなかったせいで、対の片側だけがサーバーへ届き、
+  // 2組遊んでもらったのに手元に残ったのは2本だけだった（2026-08-22）。
+  // 比べる相手が無ければ、対にした意味が消える。
+  // `session` はこの直後に差し替わるので、いまの中身を捕まえて送る。
+  const snapshot = JSON.parse(JSON.stringify(session));
+  sendRun(snapshot).catch(() => {});
+}
+
+// 2本目は push() が状態表示つきで送るので、ここでは送らない（二重送信を避ける）。
+function finishTrialRunNoSend(o, survey) {
+  session.survey = survey;
+  session.endedAt = new Date().toISOString();
+  session.trace = run.finish(survey);
+  session.metrics = describeRun(session.trace);
+  archiveCurrent();
+  persist();
 }
 
 function trialEnd(o) {
@@ -1067,7 +1083,7 @@ function trialEnd(o) {
         // **どちらが A でどちらが B かは、記録の側だけが知っている。**
         const order = session.trial.order;
         const sideOf = n => (n === "same" ? "same" : order[Number(n) - 1]);
-        finishTrialRun(o, {
+        finishTrialRunNoSend(o, {
           trialId: session.trial.trialId, trial: session.trial.id, trialStage: 1,
           order: order.join(">"), side: session.trial.side,
           better: better.value, betterSide: sideOf(better.value),

@@ -66,7 +66,7 @@ const skeleton = {
   PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
   startContract: types => {
     const count = line => types.filter(t => PARTS[t].line === line).length;
-    return count("strike") >= 3 && count("guard") >= 2;
+    return count("strike") >= 3 && count("guard") >= 2 && count("service") >= 1;
   }
 };
 const SETS = reachableSets(skeleton, { runs: setRuns });

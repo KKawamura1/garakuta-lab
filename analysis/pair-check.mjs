@@ -76,7 +76,8 @@ export function measure({ laws, scales, atkScales, modScales, cycleCaps, phasele
   const sim = makeSimulate(laws, { phaseless });
   const sets = reachableSets({ PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
     startContract: t => t.filter(x => PARTS[x].line === "strike").length >= 3
-      && t.filter(x => PARTS[x].line === "guard").length >= 2 }, { runs });
+      && t.filter(x => PARTS[x].line === "guard").length >= 2
+      && t.filter(x => PARTS[x].line === "service").length >= 1 }, { runs });
 
   const per = rules.ENEMIES.map((enemy, index) => {
     let sel = 0, selWinnable = 0;          // 選択のゆるさ

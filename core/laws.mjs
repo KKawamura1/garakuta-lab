@@ -1,4 +1,4 @@
-// LAWS 0.2「法則機関」— 1つの良い問題ではなく、問題を生む機械。
+// LAWS 0.3「法則機関」— 1つの良い問題ではなく、問題を生む機械。
 //
 // 【0.1 からの変更】規則が実質変わったので版を上げた。**版を据え置くと記録が混ざる。**
 //   - 敵に「1巡に通る合計の上限」を入れた。0.1 では24戦中20戦が1巡で決着しており、
@@ -362,7 +362,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   const all = scaleEnemies(scales, atkScales, modScales, cycleCaps);
   const enemies = options.enemyCount ? all.slice(0, options.enemyCount) : all;
   return {
-    id: `laws-0.2:${lawIds.join("+")}`,
+    id: `laws-0.3:${lawIds.join("+")}`,
     variantId: lawIds.join("+"),
     laws,
     title: `法則機関 / ${laws.map(l => l.name).join("＋")}`,
@@ -385,7 +385,11 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
     predictionLevel, outcomeLevel, firesOn: phaseless ? firesOnFlat : firesOn, LINES, GRADES, gradeFor,
     startContract: types => {
       const count = line => types.filter(t => PARTS[t].line === line).length;
-      return count("strike") >= 3 && count("guard") >= 2;
+      // **整も1枚は保証する。** 均衡は「撃・守・整がそろっているなら2倍」だが、
+      // 契約が撃3・守2しか保証していなかったので、**整が1枚も来ない局面が3割あり、
+      // そこでは達成する手段が無かった**（作者の報告：「ルールが均衡なのに達成する手段がない」）。
+      // 契約はもともと生成条件を両立させるために置いてある。条件を足したなら契約も直す。
+      return count("strike") >= 3 && count("guard") >= 2 && count("service") >= 1;
     },
     enemyView: enemy => ({
       name: enemy.name, hp: enemy.hp, atk: enemy.atk,

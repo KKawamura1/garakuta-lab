@@ -8,10 +8,15 @@
 // それでは仮説の検証にならない。破る条件以外は、両方とも同じ水準に揃える
 // （`analysis/match-pair.mjs` で敵の数値を寄せ、`analysis/smoke-trial.mjs` が機械で見張る）。
 
-import { LAW_TABLE } from "./law-table.mjs";
+import { BASE } from "./laws.mjs";
 
-const base = LAW_TABLE[0];
+// **対の敵の数値は、表から取らない。**
+// 最初は `LAW_TABLE[0]` を土台にしていたが、調律し直すたびに表の中身が変わり、
+// **実験そのものが黙って動いた**（2026-08-22、表を作り直したら対の詰みなし率が100%→83%へ）。
+// 実験は、他の作業に揺さぶられてはいけない。素の敵の数値だけを土台にする。
 const BATTLES = 3;
+const FLAT = BASE.map(() => 1);
+const CYCLE_CAPS = BASE.map(e => Math.max(4, Math.round(e.hp / 3)));
 
 export const TRIALS = {
   // T3「並び順が効く」。**企画の出発点そのものなのに、一度も破って試していない。**
@@ -23,13 +28,25 @@ export const TRIALS = {
   //   詰みなし   100% 対 100%   ← 揃えた
   //   選択に勝目  50% 対  57%   ← 揃えた
   //   順序が効く  50% 対   1%   ← これが操作したかった差
+  // T3「並び順が効く」。**企画の出発点そのものなのに、一度も破って試していない。**
+  //
+  // 【第1版の失敗（2026-08-22）】位相と法則を**同時に**変えていた
+  // （A=位相あり＋継電＋先陣／B=位相なし＋共鳴＋均衡）。2組とも A が選ばれたが、
+  // 作者の理由は「①ルールが均衡なのに均衡を達成する手段がない ②2ターン目の強攻撃を耐える手段が無い」で、
+  // **操作した変数（並び順）とは別の理由**だった。どちらが効いたか言えないので、対として無効。
+  // （均衡は実測で**34%の局面で達成不能**だった。初期手札の契約が撃3・守2しか保証せず、
+  //   整が1枚も来ないことがあるため。）
+  //
+  // 【第2版】**法則は両側とも同じ（蓄積＋過負荷）。位相の有無だけが違う。**
+  // 揃えた量：詰みなし 100%/100%、選択に勝目 81%/81%
+  // 離した量：順序が効く 38%/1%
   t3: {
     id: "t3",
     question: "並び順が効くことは、面白さの条件か",
     battles: BATTLES,
     sides: [
-      { key: "order-matters", laws: ["relay", "vanguard"], phaseless: false, hpScale: 1 },
-      { key: "order-free", laws: ["resonance", "balance"], phaseless: true, hpScale: 0.6 }
+      { key: "order-matters", laws: ["buildup", "overload"], phaseless: false, hpScale: 1 },
+      { key: "order-free", laws: ["buildup", "overload"], phaseless: true, hpScale: 0.55 }
     ]
   }
 };
@@ -39,10 +56,10 @@ export function sideSpec(trialId, sideKey) {
   const side = trial.sides.find(s => s.key === sideKey);
   return {
     laws: side.laws,
-    scales: base.scales.map(v => v * side.hpScale),
-    atkScales: base.atkScales,
-    modScales: base.modScales,
-    cycleCaps: base.cycleCaps,
+    scales: FLAT.map(v => v * side.hpScale),
+    atkScales: FLAT,
+    modScales: FLAT,
+    cycleCaps: CYCLE_CAPS,
     phaseless: side.phaseless,
     enemyCount: trial.battles
   };
