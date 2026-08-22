@@ -117,7 +117,11 @@ mcp__github__actions_run_trigger: export-playtests.yml / limit=10 / echo_to_log=
 
 ### 手順（この順で。1つ終わるたびに push する）
 
-- [ ] **代償 cost-0.1**：`core/laws.mjs` に「暴走」を足す
+- [x] **代償 cost-0.1 — 済。公開した（main 18a9278、sw v26）。**
+      相関 +0.30 → **−0.26**、詰みなし100%。表は `--cost` で調律し直して13組。
+      代償があること自体を生成条件にした。詳細は `analysis/COST_0_1.md`
+- [x] **検査 — 済。**`analysis/smoke-cost.mjs`（相関が正に戻ったら落ちる）
+- [ ] （済）**代償 cost-0.1**：`core/laws.mjs` に「暴走」を足す
       （1巡の与ダメージが閾値を超えたら、超過分の一部を自分が受ける。遮蔽で受け止められる）。
       **速く倒すと自分が削れる**ので、速さが安全を買えなくなる。
       `analysis/tradeoff.mjs` の相関が**負**になるまで閾値と割合を振る。
@@ -125,7 +129,7 @@ mcp__github__actions_run_trigger: export-playtests.yml / limit=10 / echo_to_log=
 - [ ] **検査**：相関が正に戻ったら落ちる検査を足す（`analysis/smoke-cost.mjs`）。
       天井（珍しさ）と代償（選択）を取り違えないため、**両方の数字を出すこと**（`analysis/TRADEOFF.md`）
 - [ ] **公開**：`node analysis/stamp.mjs` → `sw.js` の `CACHE` を上げる → main へ
-- [ ] **次の試作**：同定（型2）。法則の名前と説明を伏せ、挙動から当てさせる版。
+- [ ] **いまここ → 次の試作**：同定（型2）。法則の名前と説明を伏せ、挙動から当てさせる版。
       サーベイで「繰り返しに強い型」は同定と噛み合わせの2つだった（`analysis/KNOWLEDGE_SURVEY.md`）
 
 ### 気をつけること
