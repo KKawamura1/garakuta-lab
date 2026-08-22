@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { strict as assert } from "node:assert";
 import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
@@ -78,9 +79,20 @@ assert.ok(payload.endedAt, "終わったランは必ず endedAt を持つ（無�
 // 新しいルールセットを足したら、必ずバージョン表に載せる。
 // 載せ忘れると gameVersion が "unknown-play" になり、集計でどのゲームか分からなくなる
 // （実際に一度、位相のランが agentview のまま記録された）。
-const relay = buildPayload({ ...session, ruleset: "relay", head: "play" });
-assert.equal(relay.gameVersion, "relay-0.1-play", `relay の gameVersion が違う: ${relay.gameVersion}`);
-assert.ok(!/unknown/.test(relay.gameVersion), "未登録のルールセットは unknown になる");
+// **遊ぶ画面が出せるルールセットを全部照合する。** 1つでも版表に無ければ unknown になり、
+// どのゲームの記録か分からなくなる（法則機関の最初の4ランがそうなった）。
+const head = readFileSync("play/app.js", "utf8");
+const served = new Set(["laws"]);
+const match = head.match(/const RULESETS = \{([^}]*)\}/);
+if (match) match[1].split(",").forEach(part => {
+  const key = part.split(":")[0].trim();
+  if (key) served.add(key);
+});
+served.forEach(name => {
+  const payload = buildPayload({ ...session, ruleset: name, head: "play" });
+  assert.ok(!/unknown/.test(payload.gameVersion),
+    `${name} が版表に無い（gameVersion=${payload.gameVersion}）。agent-view/sync.js の RULESET_VERSION へ足すこと`);
+});
 
 // 古い版で終えたセッション（endedAt を持たない）でも埋まること。
 const legacy = buildPayload({ ...session, endedAt: undefined });
