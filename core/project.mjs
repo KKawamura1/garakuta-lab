@@ -6,9 +6,17 @@
 // 含むもの：作動周期と枠による位相、加算部品（次に作動する部品へ渡る）。
 // 含まないもの：敵の減衰・命中上限・回復、自傷、HP上限による回復の頭打ち。
 
+// 既定の作動判定（位相あり）。**ルールセットが別のものを持っているなら、そちらが優先される。**
+//
+// 位相を外した版（T3のRecallテスト用）では規則が違うのに、画面はこの関数を直接呼んでいた。
+// そのため数字は実機どおり1・3・5巡なのに、**枠の色だけが位相ありの規則で塗られていた**
+// （作者の報告、2026-08-22。枠4の周期2の部品が1巡目に作動しているのに色は2巡目に付いていた）。
+// **表示が規則と別の計算を持つと、静かにずれる。** 規則は一箇所からしか来ないようにする。
 export function firesOn(cycle, slotIndex, period) {
   return (cycle - 1) % period === slotIndex % period;
 }
+
+export const firesOfRuleset = ruleset => (ruleset && ruleset.firesOn) || firesOn;
 
 function nominal(part, rng = () => 0.5) {
   const delta = part.run({ uses: {}, rng, instanceId: "projection" });
@@ -22,6 +30,7 @@ function nominal(part, rng = () => 0.5) {
 
 // slots: [{ type } | null]
 export function projectCycles(slots, ruleset, cycles) {
+  const fires = firesOfRuleset(ruleset);
   const out = [];
   for (let cycle = 1; cycle <= cycles; cycle += 1) {
     const row = { cycle, firing: 0, dmg: 0, shield: 0, heal: 0 };
@@ -29,7 +38,7 @@ export function projectCycles(slots, ruleset, cycles) {
     slots.forEach((slot, index) => {
       if (!slot) return;
       const part = ruleset.PARTS[slot.type];
-      if (!part || !firesOn(cycle, index, part.period || 1)) return;
+      if (!part || !fires(cycle, index, part.period || 1)) return;
       const nom = nominal(part);
       row.firing += 1;
       if (nom.dmg) row.dmg += nom.dmg + boost;

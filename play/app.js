@@ -8,7 +8,7 @@ import { TRIALS, sideSpec, sideOrder } from "../core/trial.mjs";
 import { BUILD } from "../core/build.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
-import { projectCycles, markFor, firesOn } from "../core/project.mjs";
+import { projectCycles, markFor, firesOfRuleset } from "../core/project.mjs";
 import { makeRng } from "../core/rng.mjs";
 
 const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
@@ -367,7 +367,7 @@ function phaseGrid(o) {
         const entry = cellOf(i, c);
         // 法則で作動周期が変わることがある（倍速）。基本の周期で描くと、表と実機がずれる。
         const period = part ? (rules.periodOf ? rules.periodOf(part) : part.period || 1) : 1;
-        const fires = part && firesOn(c, i, period);
+        const fires = part && firesOfRuleset(rules)(c, i, period);
         const value = entry ? (entry.damage || entry.shieldGained || entry.healed || 0) : 0;
         const defensive = entry ? Boolean(entry.shieldGained) : (part && isDefensive(part));
         const gain = entry && entry.gain !== undefined && entry.gain !== 1 ? entry.gain : null;
@@ -420,7 +420,7 @@ function phaseGrid(o) {
     });
     grid.append(label);
     for (let c = 1; c <= cycles; c += 1) {
-      const fires = part && firesOn(c, i, part.period || 1);
+      const fires = part && firesOfRuleset(rules)(c, i, part.period || 1);
       const aligned = fires && isDefensive(part) && enemyHits(c);
       grid.append(el("div", {
         className: `cell${fires ? " fire" : ""}${fires && isDefensive(part) ? " def" : ""}${aligned ? " aligned" : ""}`,
@@ -799,10 +799,12 @@ function notePreview(slots, result) {
 }
 
 function cyclesText(slotIndex, period) {
-  const cycles = gridCycles(rulesetOf(session.ruleset));
+  const rules = rulesetOf(session.ruleset);
+  const cycles = gridCycles(rules);
+  const fires = firesOfRuleset(rules);
   if (period === 1) return "毎巡";
   const list = [];
-  for (let c = 1; c <= cycles && list.length < 3; c += 1) if (firesOn(c, slotIndex, period)) list.push(c);
+  for (let c = 1; c <= cycles && list.length < 3; c += 1) if (fires(c, slotIndex, period)) list.push(c);
   return `${list.join("・")}…巡目`;
 }
 
