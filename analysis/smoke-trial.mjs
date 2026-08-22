@@ -20,7 +20,8 @@ const RUNS = 8;   // 検査なので粗く。傾向が逆転したら気づけ�
 // 対ごとに、何を揃えて何を離すかは違う。**それも一緒に書いておく。**
 const EXPECT = {
   t3: { separate: "T3", label: "順序が効く", minGap: 0.25, match: ["T1", "selectionLoose"] },
-  t2: { separate: "overall", label: "勝てる並び", minGap: 0.25, match: ["T1"] }
+  t2: { separate: "overall", label: "勝てる並び", minGap: 0.25, match: ["T1"] },
+  ceiling: { separate: "ceiling", label: "天井", minGap: 0.40, match: ["T1", "overall"] }
 };
 
 for (const trial of Object.values(TRIALS)) {
