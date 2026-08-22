@@ -306,7 +306,7 @@ function runWorkers(extra, list, label) {
 // 誤差は必ず「落としすぎ」の側に出る。線を遠くに置くのはそのためである。
 const SCREEN_DROP = 0.95;
 let toEvaluate = pairs;
-if (args.screen && !slice) {
+if (args.screen && !slice && !args.noceiling) {
   // **局面数（sets）は削らない。** 削ると「T3を判定できる標本数か」の番人（学び#52の規則2）に
   // 引っかかって子が落ちる。番人が正しいので、こちらが削る対象を変える。
   // 篩が見るのは天井だけで、天井は並びの側の量なので、**並びの本数（cap）だけを削る。**
@@ -369,7 +369,15 @@ const started = Date.now();
   if (winMedian > T2_BAND[1]) reasons.push(`締まりが足りない（中央値 ${(winMedian * 100).toFixed(0)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   else if (winMedian < T2_BAND[0]) reasons.push(`締めすぎ（中央値 ${(winMedian * 100).toFixed(1)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   if (decided < T3_DECIDED) reasons.push(`順序が効かない（${(decided * 100).toFixed(0)}%、要${T3_DECIDED * 100}%）`);
-  if (ceiling > CEILING) reasons.push(
+  // --noceiling：天井（P12-b）を**測るが落とさない**。
+  //
+  // 2026-08-22、作者の判断で今回だけ P10 の決定ルール（生成条件を満たさない版は人間テストへ送らない）
+  // を破る。理由は、天井の条件が T1 と同時に満たせないことが判明したためである。
+  // 参照点 RELAY 0.1（作者評価5・企画の記録）でも天井は71%で、
+  // HPを上げて天井を通すと詰みなし率が83%へ落ちて T1（98%）を割る。
+  // **参照点が通らない関門は、関門の側が壊れている**（学び#52）。
+  // 数字で決められないので、遊んで決める。**天井の値は表に残し、隠さない。**
+  if (ceiling > CEILING && !args.noceiling) reasons.push(
     `天井が近い戦闘がある（${(ceiling * 100).toFixed(0)}%、要${CEILING * 100}%以下）`);
   if (reasons.length) {
     // 数字も残す。**粗い篩が「落として安全か」を判断するのに要る**（理由の文字列では足りない）。
@@ -390,7 +398,8 @@ const started = Date.now();
     winMedian: Number(winMedian.toFixed(3)),
     decided: Number(decided.toFixed(3)),
     flawlessReach: Number(ceiling.toFixed(3)),
-    ceilings: ceilings.map(c => Number(c.toFixed(3)))
+    ceilings: ceilings.map(c => Number(c.toFixed(3))),
+    ceilingPassed: ceiling <= CEILING
   });
 });
 
