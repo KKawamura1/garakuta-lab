@@ -1024,6 +1024,7 @@ function startBattle() {
   }
   // 手で戦ったら連鎖は切れる。**連鎖は「触らずに勝てた回数」である。**
   session.streak = 0;
+  session.lastSkips = [];
   lastPreviewSignature = null;
   pendingPrediction = null;
   pendingGrip = null;
@@ -1055,6 +1056,19 @@ function startBattle() {
 //
 // **失ったHPはそのまま適用する。**飛ばすのは操作であって、結果ではない。
 // 隠して得をさせると、それは時間の節約ではなく難度の低下になる。
+// 飛ばせるあいだ飛ばす。**上限を置く。**
+// `trySkip` が「成功したのに戦闘が進まない」状態になったら無限ループになり、
+// 作者のブラウザが固まる。全戦闘数より多く回る道理が無い。
+function runSkips() {
+  const rules = rulesetOf(session.ruleset);
+  if (!rules.skipWins) return;
+  session.lastSkips = [];
+  let skipped = 0;
+  const limit = rules.ENEMIES.length + 1;
+  while (skipped < limit && trySkip()) skipped += 1;
+  if (skipped) persist();
+}
+
 function trySkip() {
   const rules = rulesetOf(session.ruleset);
   if (!rules.skipWins) return false;
@@ -1072,6 +1086,12 @@ function trySkip() {
   if (!res.ok) return false;
   if (res.battle && res.battle.grade) recordBest(session.ruleset, res.battle.enemy, res.battle.grade, res.battle.cycles);
   session.streak = (session.streak || 0) + 1;
+  // **何が起きたかを残す。**飛ばした戦闘は見ていないので、
+  // 結果を出さないと「知らないうちに報酬画面に居る」だけになる。
+  session.lastSkips = [...(session.lastSkips || []), {
+    enemy: res.battle.enemy, cycles: res.battle.cycles,
+    hpAfter: res.battle.hpAfter, grade: res.battle.grade ? res.battle.grade.label : ""
+  }];
   return true;
 }
 
@@ -1105,20 +1125,7 @@ function battleScreen(o) {
       textContent: b.won
         ? `${b.grade ? `${b.grade.label}` : "勝利"}（残HP ${b.hpAfter}）${lastBestBeaten ? " ・ 自己最高を更新" : ""} — 次へ`
         : "敗北 — 結果を見る",
-      onclick: () => {
-        playback = null;
-        // **飛ばせるあいだ飛ばす。**連鎖したぶんだけ「N strike!」が伸びる。
-        // **上限を置く。**`trySkip` が「成功したのに戦闘が進まない」状態になったら、
-        // ここは無限ループになり、作者のブラウザが固まる。全戦闘数より多く回る道理が無い。
-        let skipped = 0;
-        const limit = rulesetOf(session.ruleset).ENEMIES.length + 1;
-        while (skipped < limit && trySkip()) skipped += 1;
-        if (skipped) {
-          message = `${session.streak} strike!　${skipped}戦そのまま抜けた（浮いたぶんが報酬。ゲーム内の見返りは無い）`;
-          persist();
-        }
-        draw();
-      }
+      onclick: () => { playback = null; draw(); }
     }));
     actions.append(el("button", { className: "btn", textContent: "気持ち", onclick: () => openMark() }));
   }
@@ -1126,10 +1133,28 @@ function battleScreen(o) {
   return [card];
 }
 
+// **飛ばしたことは、画面に出さないと伝わらない。**
+//
+// `message` は構築画面の「戦う前に」の札にしか出ないので、
+// 飛ばした直後（報酬画面）では**見えないまま消えていた。**
+// 遊ぶ側からは「知らないうちに次の報酬画面に居る」だけになる。作者の言う爽快さの逆である。
+function skipCard() {
+  const skips = session.lastSkips || [];
+  if (!skips.length) return null;
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: `${session.streak} strike!` }));
+  card.append(el("div", { className: "small",
+    textContent: `触らずに勝てたので${skips.length}戦飛ばした。浮いた時間が報酬で、ゲーム内の見返りは無い。` }));
+  skips.forEach(x => card.append(el("div", {
+    textContent: `${x.enemy} — ${x.grade || "勝利"}・${x.cycles}巡・残HP ${x.hpAfter}`
+  })));
+  return card;
+}
+
 /* ---------- 報酬 ---------- */
 
 function rewardScreen(o) {
-  const out = [statusCard(o)];
+  const out = [statusCard(o), skipCard()].filter(Boolean);
   const card = el("div", { className: "card" });
   card.append(el("h2", { textContent: "拾い物 — 1つだけ持って帰れる" }));
   const list = el("div", { className: "parts" });
@@ -1139,6 +1164,14 @@ function rewardScreen(o) {
       className: "part",
       onclick: () => askUpdate(choice => {
         act({ type: "take", choice: item.choice, reason: "", update: choice, updateText: "" });
+        // **飛ばすのは、報酬を取って構築へ戻ってからである。**
+        //
+        // 最初は戦闘画面を閉じた直後に呼んでいたが、そこはまだ報酬の段階で、
+        // 戦闘の操作は受け付けられない（`core/run.mjs` が phase="reward" にする）。
+        // `trySkip` は黙って false を返し、**飛ばしは一度も起きなかった。**
+        // ブラウザで勝てる並びを組んで通すまで気づかなかった。
+        // 報酬は飛ばさない。取る／取らないは遊ぶ側の決定で、時間の節約とは別のものである。
+        runSkips();
         draw();
       })
     }, [
