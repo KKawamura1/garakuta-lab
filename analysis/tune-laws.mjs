@@ -252,7 +252,12 @@ pairs.forEach((pair, n) => {
   const safeRate = mean(perEnemy.map(e => e.safeRate));
   const decided = mean(perEnemy.map(e => e.decidedRate));
   const winMedian = mean(perEnemy.map(e => e.winMedian));
-  const ceiling = reachable(mean(perEnemy.map(e => e.flawlessMean)));
+  // P12-b の登録文は「最上位等級の**1戦あたり**到達率が50%未満」。戦闘ごとの条件である。
+  // 実装は6戦の平均に対して見ていたので、**天井の低い戦闘が高い戦闘を隠していた**
+  // （T2の上限・T1・T3に続いて4件目の、登録と実装の食い違い）。
+  // reachable は単調増加なので、この直しは必ず**厳しく**なる。緩める方向の直しではない。
+  const ceilings = perEnemy.map(e => reachable(e.flawlessMean));
+  const ceiling = Math.max(...ceilings);
 
   const reasons = [];
   if (safeRate < T1_SAFE) reasons.push(`詰みが多い（${(safeRate * 100).toFixed(1)}%、要${T1_SAFE * 100}%）`);
@@ -263,7 +268,8 @@ pairs.forEach((pair, n) => {
   if (winMedian > T2_BAND[1]) reasons.push(`締まりが足りない（中央値 ${(winMedian * 100).toFixed(0)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   else if (winMedian < T2_BAND[0]) reasons.push(`締めすぎ（中央値 ${(winMedian * 100).toFixed(1)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   if (decided < T3_DECIDED) reasons.push(`順序が効かない（${(decided * 100).toFixed(0)}%、要${T3_DECIDED * 100}%）`);
-  if (ceiling > CEILING) reasons.push(`天井が近い（${(ceiling * 100).toFixed(0)}%、要${CEILING * 100}%以下）`);
+  if (ceiling > CEILING) reasons.push(
+    `天井が近い戦闘がある（${(ceiling * 100).toFixed(0)}%、要${CEILING * 100}%以下）`);
   if (reasons.length) { rejected.push({ name, why: reasons.join(" / ") }); return; }
 
   table.push({
@@ -275,7 +281,8 @@ pairs.forEach((pair, n) => {
     safeRate: Number(safeRate.toFixed(3)),
     winMedian: Number(winMedian.toFixed(3)),
     decided: Number(decided.toFixed(3)),
-    flawlessReach: Number(ceiling.toFixed(3))
+    flawlessReach: Number(ceiling.toFixed(3)),
+    ceilings: ceilings.map(c => Number(c.toFixed(3)))
   });
 });
 
@@ -285,7 +292,7 @@ pairs.forEach((pair, n) => {
 // 他の法則と組んでも生成条件を通しやすい。結果、毎ラン継電が引かれ、作者は
 // 「全然継電以外のルール来ないし、楽勝だし、もういいや」と書いた。**多様性が偽物だった。**
 // 品質の良い順に採り、どの法則も規定数を超えないところで打ち切る。
-const PER_LAW_CAP = 3;
+const PER_LAW_CAP = Number(args.percap || 3);
 const quality = row => row.flawlessReach + Math.abs(row.winMedian - 0.10);
 const balanced = [];
 const used = new Map();
