@@ -224,6 +224,7 @@ function rulesetOf(name) {
   if (key === "laws") return lawRulesetFor(session);
   if (key === "cost") return lawRulesetFor(session, { overdrive: OVERDRIVE });
   if (key === "ident") return lawRulesetFor(session, { hidden: true });
+  if (key === "skip") return lawRulesetFor(session, { skipWins: true });
   return RULESETS[key] || RELAY;
 }
 
@@ -991,6 +992,8 @@ function startBattle() {
   if (battle && battle.grade) {
     lastBestBeaten = recordBest(session.ruleset, battle.enemy, battle.grade, battle.cycles);
   }
+  // 手で戦ったら連鎖は切れる。**連鎖は「触らずに勝てた回数」である。**
+  session.streak = 0;
   lastPreviewSignature = null;
   pendingPrediction = null;
   pendingGrip = null;
@@ -1000,6 +1003,46 @@ function startBattle() {
   playback = { battle: result.battle, lines, shown: 0 };
   draw();
   tick();
+}
+
+// **連勝を褒めて、戦闘を飛ばす**（作者の提案、`agents/HYPOTHESIS_TESTING.md` 0.5）。
+//
+// 「同じ構成でそのまま次も勝てる」は、これまで**つまらなさの代名詞**だった。
+// 作者の着想は、それを潰すのではなく**褒める**こと。
+//   「ゲーム的に明示的な報酬を与えるのではなく、単に戦闘をスキップするだけにして、
+//     時間の節約という報酬を与えるといいかもしれません」
+//
+// だから**ゲーム内の報酬は無い。**浮くのは時間だけである。
+//
+// 条件は「そのままで**勝てる**」（無傷までは求めない）。無傷を条件にすると滅多に起きない。
+//
+// **頻度は実測した：20%**（`analysis/smoke-skip.mjs`、勝てる並びで抜けた30局面のうち6）。
+// 6戦のランで1回起きるかどうかで、**2連鎖は4%。**
+// 最初に別の測定（`carryover-wins.mjs` の45%）から「2連鎖20%・3連鎖9%」と書いたが、
+// **あちらは「無傷の並びを持ち越したとき」の数字で、ここの条件とは母集団が違った。**
+// 実際に出す条件で測り直したのが上の20%である。
+// つまり **「N strike!」はほぼ 1 strike! にしかならない。**そこは承知で出す。
+//
+// **失ったHPはそのまま適用する。**飛ばすのは操作であって、結果ではない。
+// 隠して得をさせると、それは時間の節約ではなく難度の低下になる。
+function trySkip() {
+  const rules = rulesetOf(session.ruleset);
+  if (!rules.skipWins) return false;
+  const o = run.observe();
+  if (o.finished) return false;
+  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  if (!slots.some(Boolean)) return false;
+  const enemy = rules.ENEMIES[o.battleNumber - 1];
+  if (!enemy) return false;
+  const r = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
+  if (!r.won) return false;
+  // **同じ操作を、機械が代わりに押す。**記録に残る操作は本物のままなので、再生も壊れない。
+  const res = run.act({ type: "battle", prediction: machinePrediction(rules),
+    worry: "なし", worryText: "手応え:skip" });
+  if (!res.ok) return false;
+  if (res.battle && res.battle.grade) recordBest(session.ruleset, res.battle.enemy, res.battle.grade, res.battle.cycles);
+  session.streak = (session.streak || 0) + 1;
+  return true;
 }
 
 function tick() {
@@ -1032,7 +1075,20 @@ function battleScreen(o) {
       textContent: b.won
         ? `${b.grade ? `${b.grade.label}` : "勝利"}（残HP ${b.hpAfter}）${lastBestBeaten ? " ・ 自己最高を更新" : ""} — 次へ`
         : "敗北 — 結果を見る",
-      onclick: () => { playback = null; draw(); }
+      onclick: () => {
+        playback = null;
+        // **飛ばせるあいだ飛ばす。**連鎖したぶんだけ「N strike!」が伸びる。
+        // **上限を置く。**`trySkip` が「成功したのに戦闘が進まない」状態になったら、
+        // ここは無限ループになり、作者のブラウザが固まる。全戦闘数より多く回る道理が無い。
+        let skipped = 0;
+        const limit = rulesetOf(session.ruleset).ENEMIES.length + 1;
+        while (skipped < limit && trySkip()) skipped += 1;
+        if (skipped) {
+          message = `${session.streak} strike!　${skipped}戦そのまま抜けた（浮いたぶんが報酬。ゲーム内の見返りは無い）`;
+          persist();
+        }
+        draw();
+      }
     }));
     actions.append(el("button", { className: "btn", textContent: "気持ち", onclick: () => openMark() }));
   }
@@ -1539,6 +1595,7 @@ $("#gameButton").addEventListener("click", () => {
   const list = $("#gameChoices");
   const entries = [...Object.entries(RULESETS)];
   if (lawVariants.length) {
+    entries.unshift(["skip", { title: "連勝機関 / SKIP 0.1（そのまま勝てる戦闘は飛ばす）" }]);
     entries.unshift(["ident", { title: `同定機関 / IDENT 0.1（${lawVariants.length}通り・法則が伏せてある）` }]);
     entries.unshift(["cost", { title: `代償機関 / COST 0.1（${costVariants.length}通り・速く倒すと自分が削れる）` }]);
     entries.unshift(["laws", { title: `法則機関 / LAWS 0.3（${lawVariants.length}通りの法則の組）` }]);
