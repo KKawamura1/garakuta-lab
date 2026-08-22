@@ -406,6 +406,9 @@ function battleTrace(o, rules) {
   const out = {
     cycles: result.cycles, bySlot: new Map(),
     damage: blank(), shield: blank(), heal: blank(), reflect: blank(),
+    // **暴走を巡回ごとに拾う。**代償の版で決めるのは「この巡回にどれだけ出すか」なので、
+    // 押したあとの一行ではなく、並べている表に出ていないといけない。
+    overdrive: blank(),
     enemyHp: blank(), hp: blank()
   };
   result.log.forEach(entry => {
@@ -416,6 +419,8 @@ function battleTrace(o, rules) {
       out.damage[c - 1] += entry.damage || 0;
       out.shield[c - 1] += entry.shieldGained || 0;
       out.heal[c - 1] += entry.healed || 0;
+    } else if (entry.part === "暴走") {
+      out.overdrive[c - 1] += (entry.hpDamage || 0) + (entry.blocked || 0);
     } else if (entry.type === "reflect") {
       out.reflect[c - 1] += entry.damage || 0;
       out.damage[c - 1] += entry.damage || 0;
@@ -503,6 +508,7 @@ function phaseGrid(o) {
       });
     };
     row("与ダメージ", trace.damage);
+    if (rules.overdrive) row("暴走", trace.overdrive);
     row("遮蔽", trace.shield, "def");
     if (trace.reflect.some(Boolean)) row("反射", trace.reflect);
     if (trace.heal.some(Boolean)) row("回復", trace.heal, "heal");
@@ -548,6 +554,7 @@ function phaseGrid(o) {
       className: `cell${x.heal ? " fire heal" : ""}`, textContent: x.heal ? String(x.heal) : "—"
     })));
   }
+
   return grid;
 }
 

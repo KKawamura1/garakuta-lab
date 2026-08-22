@@ -48,6 +48,8 @@ assert.match(app, /COST_TABLE/, "代償の版の表を読み込む");
 // **?ruleset= が保存済みセッションに負けないこと。**
 // 対（?trial=）で同じ事故が起きている：URLで指したのに前のゲームが続き、
 // 作者は3組ぶん、遊んだつもりのないものを遊んだ。版でも同じ形の穴が空いていた。
+// 暴走は、決める場所（位相表）に出ていること。押したあとに知らせても遅い。
+assert.match(app, /row\("暴走", trace\.overdrive\)/, "位相表に暴走の行を出す（実機のログから）");
 assert.match(app, /const wantedRuleset = params\.get\("ruleset"\)/, "URLの版を見る");
 assert.match(app, /String\(saved\.ruleset\)\.toLowerCase\(\) !== wantedRuleset\.toLowerCase\(\)/,
   "保存済みと違う版を指されたら、指された方を始める");
