@@ -1,4 +1,7 @@
 import { writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { cpus } from "node:os";
+import { fileURLToPath } from "node:url";
 import { makeSimulate, scaleEnemies, BASE, LAW_IDS, LAWS, PARTS, SLOT_COUNT } from "../core/laws.mjs";
 import { reachableSets, SAFE_HP } from "./sets.mjs";
 import { makeRng } from "../core/rng.mjs";
@@ -227,17 +230,94 @@ if (only) {
     && pairs.splice(0, pairs.length, ...pairs.filter(p => want.has([...p].sort().join("+")))).length ? pairs.length : 0;
 }
 
+// **並列に走らせる。** この環境は4コアで、組ごとの評価は完全に独立している。
+// 直列だと91組で13分かかり、その間ずっと1コアしか動いていなかった。
+// `--slice=i/n` を受けた子は自分の担当だけを評価して JSON を吐き、親が束ねる。
+const slice = args.slice ? String(args.slice).split("/").map(Number) : null;
+if (slice) {
+  const [index, total] = slice;
+  const mine = pairs.filter((_, i) => i % total === index);
+  pairs.length = 0;
+  pairs.push(...mine);
+}
+
 const table = [];
 const rejected = [];
+
+// 親は自分では測らず、子を起こして束ねるだけ。`--workers=1` で直列（旧来の挙動）に戻せる。
+const workers = slice ? 1 : Number(args.workers || Math.min(4, cpus().length));
+const self = fileURLToPath(import.meta.url);
+const passthrough = process.argv.slice(2).filter(a => !/^--(workers|slice|emit|sets|cap|only|screen|percap)=/.test(a));
+
+function runWorkers(extra, list, label) {
+  const started = Date.now();
+  let finished = 0;
+  const only = list ? [`--only=${list.map(p => p.join("+")).join(",")}`] : [];
+  return Promise.all(Array.from({ length: workers }, (_, i) => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath,
+      [self, ...passthrough, ...extra, ...only, `--slice=${i}/${workers}`, "--emit=json"],
+      { stdio: ["ignore", "pipe", "inherit"] });
+    let out = "";
+    child.stdout.on("data", d => { out += d; });
+    child.on("error", reject);
+    child.on("close", code => {
+      if (code !== 0) return reject(new Error(`子${i}が異常終了しました（${code}）`));
+      finished += 1;
+      if (finished === workers) {
+        process.stderr.write(`${label}：並列${workers}で${((Date.now() - started) / 1000).toFixed(0)}秒\n`);
+      }
+      try { resolve(JSON.parse(out)); } catch (e) { reject(new Error(`子${i}の出力が読めません: ${e.message}`)); }
+    });
+  })));
+}
+
+// **粗い篩。** 落とす権限だけを持ち、通す権限は持たない。
+//
+// 86組が落ちるのに全組へ最大精度をかけていた。粗く測って**明らかに届かないものだけ**を外す。
+// 外す線（天井90%）は本来の条件（50%）から遠く取ってある。標本が粗いぶん誤差で動くので、
+// **間違えるなら厳しすぎる側に倒れるようにする**（＝残しすぎる方向）。
+// 合否はこのあとの本番だけが決める。**速い方に合否を決めさせると、分母のすり替えになる。**
+// 実測（2026-08-22、本番の4組を参照点に）：
+//   並び60本  … 真値44%の組が98%と出た。**上振れする＝落としてはいけないものを落とす。** 使えない。
+//   並び120本 … 真値 44/26/40/38% に対し 47/36/40/19%。追随する。
+// よって篩は120本で走らせ、線は0.95に置く（本番の条件は0.50、篩で見た合格組の最大は47%）。
+// **粗くすると天井は高く出る**（帯の端が荒れて、探索が悪い方に落ちる）ので、
+// 誤差は必ず「落としすぎ」の側に出る。線を遠くに置くのはそのためである。
+const SCREEN_DROP = 0.95;
+let toEvaluate = pairs;
+if (args.screen && !slice) {
+  // **局面数（sets）は削らない。** 削ると「T3を判定できる標本数か」の番人（学び#52の規則2）に
+  // 引っかかって子が落ちる。番人が正しいので、こちらが削る対象を変える。
+  // 篩が見るのは天井だけで、天井は並びの側の量なので、**並びの本数（cap）だけを削る。**
+  // **敵も減らす。** 天井は戦闘ごとの最大なので、**一部の戦闘だけ見て超えていれば、
+  // それだけで落とす根拠になる。** 見なかった戦闘は最大値を下げる側にしか効かないので、
+  // 敵を省くことで「落としてはいけないものを落とす」ことは起きない。
+  // 並び120本 × 敵3体で、本番の約2割の費用になる。
+  const rough = await runWorkers([`--sets=${setRuns}`, `--cap=${args.screencap || 120}`,
+    `--enemies=${args.screenenemies || 3}`, "--percap=99"], null, "粗い篩");
+  const all = rough.flatMap(part => [...part.table, ...part.rejected]);
+  const drop = new Set(all.filter(r => (r.flawlessReach ?? 0) > SCREEN_DROP).map(r => r.name));
+  toEvaluate = pairs.filter(p => !drop.has(p.map(id => LAWS[id].name).join("＋")));
+  process.stderr.write(`  ${pairs.length}組中${drop.size}組を篩で落とし、${toEvaluate.length}組を本番へ\n`);
+}
+
+if (workers > 1 && !slice) {
+  const parts = await runWorkers([`--sets=${setRuns}`, `--cap=${cap}`], toEvaluate, "本番");
+  parts.forEach(part => { table.push(...part.table); rejected.push(...part.rejected); });
+  const checked = parts.reduce((n, part) => n + part.checked, 0);
+  if (checked !== toEvaluate.length) throw new Error(`${toEvaluate.length}組のうち${checked}組しか評価されていません`);
+}
+
 // 進み具合を標準エラーへ出す。数分〜十数分かかるので、**黙って走る道具は壊れているのと見分けが付かない。**
 const started = Date.now();
-pairs.forEach((pair, n) => {
+(workers > 1 ? [] : pairs).forEach((pair, n) => {
   const simulate = makeSimulate(pair);
   const name = pair.map(id => LAWS[id].name).join("＋");
   const elapsed = (Date.now() - started) / 1000;
   const eta = n ? ((elapsed / n) * (pairs.length - n)).toFixed(0) : "?";
   process.stderr.write(`[${String(n + 1).padStart(3)}/${pairs.length}] ${name}　残り約${eta}秒\n`);
-  const perEnemy = BASE.map((_, index) => tuneEnemy(simulate, index));
+  const perEnemy = (args.enemies ? BASE.slice(0, Number(args.enemies)) : BASE)
+    .map((_, index) => tuneEnemy(simulate, index));
   if (verbose) {
     console.log(`\n## ${name}`);
     console.log("  敵            敵HP  攻×  修×  詰みなし  勝てる並び  順序  無傷の並び  天井(換算)");
@@ -270,7 +350,13 @@ pairs.forEach((pair, n) => {
   if (decided < T3_DECIDED) reasons.push(`順序が効かない（${(decided * 100).toFixed(0)}%、要${T3_DECIDED * 100}%）`);
   if (ceiling > CEILING) reasons.push(
     `天井が近い戦闘がある（${(ceiling * 100).toFixed(0)}%、要${CEILING * 100}%以下）`);
-  if (reasons.length) { rejected.push({ name, why: reasons.join(" / ") }); return; }
+  if (reasons.length) {
+    // 数字も残す。**粗い篩が「落として安全か」を判断するのに要る**（理由の文字列では足りない）。
+    rejected.push({ name, laws: pair, why: reasons.join(" / "),
+      safeRate: Number(safeRate.toFixed(3)), winMedian: Number(winMedian.toFixed(3)),
+      decided: Number(decided.toFixed(3)), flawlessReach: Number(ceiling.toFixed(3)) });
+    return;
+  }
 
   table.push({
     laws: pair, name,
@@ -292,6 +378,14 @@ pairs.forEach((pair, n) => {
 // 他の法則と組んでも生成条件を通しやすい。結果、毎ラン継電が引かれ、作者は
 // 「全然継電以外のルール来ないし、楽勝だし、もういいや」と書いた。**多様性が偽物だった。**
 // 品質の良い順に採り、どの法則も規定数を超えないところで打ち切る。
+if (args.enemies && Number(args.enemies) !== BASE.length && !args.emit) {
+  throw new Error("敵を減らした状態では表を書けない（--emit=json の篩でだけ使う）");
+}
+if (args.emit === "json") {
+  process.stdout.write(JSON.stringify({ table, rejected, checked: pairs.length }));
+  process.exit(0);
+}
+
 const PER_LAW_CAP = Number(args.percap || 3);
 const quality = row => row.flawlessReach + Math.abs(row.winMedian - 0.10);
 const balanced = [];
