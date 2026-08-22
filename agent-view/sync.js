@@ -57,7 +57,10 @@ export function buildPayload(session) {
     telemetryRunId: session.runId,
     deviceId: deviceId(),
     schemaVersion: SCHEMA_VERSION,
-    gameVersion: `${RULESET_VERSION[String(session.ruleset || "arc").toLowerCase()] || "unknown"}-${HEADS[session.head] || "av"}`,
+    // 対の試行は**普通のランと混ぜてはいけない**（3戦しかなく、片方はわざと条件を破っている）。
+    // 版の文字列で分離できるようにする。laws-0.1:t3-play のようになる。
+    gameVersion: `${RULESET_VERSION[String(session.ruleset || "arc").toLowerCase()] || "unknown"}`
+      + `${session.trial ? `:${session.trial.id}` : ""}-${HEADS[session.head] || "av"}`,
     startedAt,
     endedAt,
     outcome: { won: Boolean(trace.won), reached: trace.reached, hp: trace.finalHp },
@@ -67,7 +70,12 @@ export function buildPayload(session) {
       // 試した並びの回数。これまで観測できていなかった「探索そのもの」の量（P11）。
       previewCount: session.actions.filter(a => a && a.type === "preview").length,
       // ランをまたいで残る値。何ラン目かを後から復元できるようにする。
-      bestsAtEnd: session.bests || null
+      bestsAtEnd: session.bests || null,
+      // 対のどちら側だったか。**答えの「1本目/2本目」を側へ翻訳するのに要る。**
+      trial: session.trial
+        ? { id: session.trial.id, trialId: session.trial.trialId, stage: session.trial.stage,
+            side: session.trial.side, order: (session.trial.order || []).join(">") }
+        : null
     },
     answers: session.survey || {},
     client: {

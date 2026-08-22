@@ -4,6 +4,7 @@ import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
 import { makeLawRuleset } from "../core/laws.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
+import { TRIALS, sideSpec, sideOrder } from "../core/trial.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
 import { projectCycles, markFor, firesOn } from "../core/project.mjs";
@@ -83,6 +84,18 @@ function inferVariant(saved) {
   const winners = full.filter(x => x.rate >= top - 1e-9);
   ambiguousVariants = winners.length > 1 ? winners.map(x => x.variant) : [];
   return winners.length === 1 ? winners[0].variant : null;
+}
+
+// 対の試行。**2本続けて遊んで、どちらが良かったかを選んでもらう。**
+//
+// なぜ対か：絶対評価（1〜5）は遊んだ回数とともに単調に下がることが分かっている
+// （RELAY 5→4→3→3→2→1）。**版をまたぐ絶対比較は順序効果と交絡している。**
+// 同じ日に続けて2本遊べば、減衰していく量でも差は見える。
+// どちらがどちらかは伏せる。出す順序は種で入れ替える。
+function trialRulesetFor(session) {
+  const spec = sideSpec(session.trial.id, session.trial.side);
+  return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales, spec.cycleCaps,
+    { phaseless: spec.phaseless, enemyCount: spec.enemyCount });
 }
 
 function lawRulesetFor(session) {
@@ -188,6 +201,7 @@ function recordBest(rulesetName, enemyName, grade, cycles) {
 function defaultRuleset() { return lawVariants.length ? "laws" : "relay"; }
 
 function rulesetOf(name) {
+  if (session && session.trial) return trialRulesetFor(session);
   const key = String(name || defaultRuleset()).toLowerCase();
   if (key === "laws") return lawRulesetFor(session);
   return RULESETS[key] || RELAY;
@@ -201,10 +215,21 @@ function load() {
   return fresh();
 }
 
-function fresh(seed = null, ruleset = null) {
+function fresh(seed = null, ruleset = null, trial = null) {
   const params = new URLSearchParams(location.search);
+  const trialId = trial ? trial.id : params.get("trial");
   const name = ruleset || params.get("ruleset") || defaultRuleset();
   const chosenSeed = seed === null ? Math.floor(Math.random() * 100000) : seed;
+  if (trialId && TRIALS[trialId]) {
+    // 1本目は種で順序を決める。2本目は1本目から引き継ぐ。
+    const state = trial || { id: trialId, trialId: uuid(), stage: 0,
+      order: sideOrder(trialId, chosenSeed), seed: chosenSeed };
+    return {
+      runId: uuid(), ruleset: "laws", seed: chosenSeed, playerId: "human-play", head: "play",
+      startedAt: new Date().toISOString(), actions: [], survey: null,
+      trial: { ...state, side: state.order[state.stage] }
+    };
+  }
   // **未挑戦の組を選ぶのは、ランを始めるこの瞬間だけ。**
   // 以後は焼き付けた組を使う。ラン中に記録が増えても選び直さない。
   const played = new Set(Object.keys(loadBests()).map(key => key.split(":")[1]).filter(Boolean));
@@ -940,6 +965,117 @@ function holdingsCard(o) {
   return card;
 }
 
+/* ---------- 対の試行の終わり ---------- */
+
+function finishTrialRun(o, survey) {
+  session.survey = survey;
+  session.endedAt = new Date().toISOString();
+  session.trace = run.finish(survey);
+  session.metrics = describeRun(session.trace);
+  archiveCurrent();
+  persist();
+}
+
+function trialEnd(o) {
+  const out = [];
+  const stage = session.trial.stage;
+
+  // 1本目：感想は訊かない。**訊くと2本目に持ち越されて、比較が汚れる。**
+  if (stage === 0) {
+    const card = el("div", { className: "card" });
+    card.append(el("h2", { textContent: "1本目 終わり" }));
+    card.append(el("div", { textContent: "続けてもう1本あります。遊び終わってから、二つを比べて答えてもらいます。" }));
+    card.append(el("div", { className: "small", style: "margin-top:8px",
+      textContent: "※ 二つは規則が少し違います。どこが違うかは、先に言わないでおきます。" }));
+    card.append(el("div", { className: "actions", style: "margin-top:12px" }, [
+      el("button", {
+        className: "btn primary wide", textContent: "2本目へ",
+        onclick: () => {
+          if (!session.survey) finishTrialRun(o, { trialStage: 0, side: session.trial.side });
+          const next = { ...session.trial, stage: 1 };
+          delete next.side;
+          session = fresh(session.trial.seed + 1, null, next);
+          run = rebuild();
+          message = "";
+          persist();
+          draw();
+        }
+      })
+    ]));
+    out.push(card);
+    return out;
+  }
+
+  // 2本目：強制選択。**絶対評価は主要指標にしない**（遊んだ回数で単調に下がるため）。
+  if (session.survey && session.survey.better) {
+    const done = el("div", { className: "card" });
+    done.append(el("div", { className: "small", textContent: message || "記録しました。" }));
+    done.append(el("div", { className: "actions", style: "margin-top:10px" }, [
+      el("button", { className: "btn wide", textContent: "サーバーへ再送", onclick: () => push() }),
+      el("button", { className: "btn", textContent: "JSONをコピー", onclick: () => copyJson() })
+    ]));
+    out.push(done);
+    return out;
+  }
+
+  const form = el("div", { className: "card" });
+  form.append(el("h2", { textContent: "二つを比べて" }));
+  form.append(el("div", { className: "small",
+    textContent: "1本目と2本目のどちらか、を選んでください。「どちらとも言えない」も答えです。" }));
+  const pick = (label, name) => {
+    form.append(el("label", { className: "field", textContent: label }));
+    const sel = el("select");
+    sel.append(el("option", { value: "", textContent: "未選択" }));
+    [["1", "1本目"], ["2", "2本目"], ["same", "どちらとも言えない"]]
+      .forEach(([v, t]) => sel.append(el("option", { value: v, textContent: t })));
+    form.append(sel);
+    return sel;
+  };
+  const better = pick("どちらが面白かったか", "better");
+  const again = pick("どちらをもう一度やりたいか", "again");
+  form.append(el("label", { className: "field", textContent: "そう感じた理由" }));
+  const why = el("input", { type: "text", placeholder: "例：2本目は並べ替えても結果が変わらなかった" });
+  form.append(why);
+  form.append(el("label", { className: "field", textContent: "二つの違いに気づいたか（気づいたなら、何が違ったか）" }));
+  const noticed = el("input", { type: "text", placeholder: "気づかなければ「気づかなかった」" });
+  form.append(noticed);
+  form.append(el("label", { className: "field", textContent: "一番良かった瞬間（どちらの本かも書いてください）" }));
+  const best = el("input", { type: "text" });
+  form.append(best);
+  form.append(el("label", { className: "field", textContent: "退屈・面倒だったところ" }));
+  const friction = el("input", { type: "text" });
+  form.append(friction);
+  const warn = el("div", { className: "warn" });
+  form.append(warn);
+  form.append(el("div", { className: "actions", style: "margin-top:12px" }, [
+    el("button", {
+      className: "btn primary wide", textContent: "記録して送る",
+      onclick: () => {
+        const missing = [];
+        if (!better.value) missing.push("どちらが面白かったか");
+        if (!again.value) missing.push("どちらをもう一度やりたいか");
+        if (!why.value.trim()) missing.push("理由");
+        if (missing.length) { warn.textContent = `未回答：${missing.join(" / ")}`; return; }
+        // **どちらが A でどちらが B かは、記録の側だけが知っている。**
+        const order = session.trial.order;
+        const sideOf = n => (n === "same" ? "same" : order[Number(n) - 1]);
+        finishTrialRun(o, {
+          trialId: session.trial.trialId, trial: session.trial.id, trialStage: 1,
+          order: order.join(">"), side: session.trial.side,
+          better: better.value, betterSide: sideOf(better.value),
+          again: again.value, againSide: sideOf(again.value),
+          why: why.value, noticed: noticed.value, bestMoment: best.value, friction: friction.value
+        });
+        message = "送信中…";
+        draw();
+        push();
+      }
+    })
+  ]));
+  out.push(form);
+  return out;
+}
+
 function askUpdate(then) {
   const dialog = el("dialog", { className: "" });
   dialog.append(el("h2", { textContent: "これを取ると、いまの方針は？" }));
@@ -961,9 +1097,10 @@ function endScreen(o) {
   const out = [];
   const head = el("div", { className: "card" });
   head.append(el("h2", { textContent: "ラン終了" }));
-  head.append(el("div", { textContent: o.won ? "全6戦を突破した。" : `第${o.battleNumber}戦で停止した。` }));
+  head.append(el("div", { textContent: o.won ? `全${o.totalBattles}戦を突破した。` : `第${o.battleNumber}戦で停止した。` }));
   out.push(head);
   if (o.lastBattle) out.push(lastBattleCard(o.lastBattle));
+  if (session.trial) return [...out, ...trialEnd(o)];
 
   if (session.survey) {
     const done = el("div", { className: "card" });
