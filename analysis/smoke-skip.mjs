@@ -52,6 +52,38 @@ for (const v of LAW_TABLE.slice(0, 6)) {
 if (!checked) fail("勝てる並びを1つも見つけられず、条件を確かめられなかった");
 if (!carried) fail("そのままで次も勝てる局面が一つも無い。飛ばしは一度も起きない");
 
+// 3. **飛ばしたことが通報に載ること。**
+// 載っていなければ、遊んでもらっても「1ランに1回くらい飛ぶ」という登録済みの予測を
+// 記録から確かめられない。**測れない予測を登録しても、作者の時間を使うだけである。**
+{
+  // 通報の組み立てはブラウザの持ち物を触るので、最小限を用意する（smoke-sync と同じ形）。
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: k => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v))
+  };
+  Object.defineProperty(globalThis, "navigator", { value: { language: "ja-JP" }, configurable: true });
+  globalThis.innerWidth = 390; globalThis.innerHeight = 844;
+  globalThis.matchMedia = () => ({ matches: false });
+  const { buildPayload } = await import("../agent-view/sync.js");
+  // 通報の組み立てには進行の記録が要る。第1戦を1つ通した最小の形を作る。
+  const v0 = LAW_TABLE[0];
+  const rules0 = makeLawRuleset(v0.laws, v0.scales, v0.atkScales, v0.modScales, v0.cycleCaps, { skipWins: true });
+  const probe = createRun({ seed: 5, playerId: "p", ruleset: rules0 });
+  probe.observe().inventory.slice(0, SLOT_COUNT)
+    .forEach((part, i) => probe.act({ type: "place", partId: part.id, slot: i + 1 }));
+  probe.act({ type: "battle", prediction: "圧勝", worry: "なし", worryText: "手応え:only" });
+  const fake = { runId: "r1", seed: 5, playerId: "p", ruleset: "skip", head: "play",
+    startedAt: new Date(Date.now() - 6e4).toISOString(), endedAt: new Date().toISOString(),
+    actions: [], trace: probe.trace(),
+    streak: 2,
+    skipLog: [{ enemy: "標的機", cycles: 5, hpAfter: 28, grade: "無傷", battleNumber: 2 }] };
+  const payload = buildPayload(fake);
+  if (!payload.answers || payload.answers.streak !== 2) fail("連勝数が通報に載っていない");
+  if (!payload.answers.skips || payload.answers.skips.length !== 1) fail("飛ばした戦闘が通報に載っていない");
+  if (!/^skip-/.test(payload.gameVersion)) fail(`通報の版が ${payload.gameVersion}`);
+}
+
 const rate = carried / checked;
 if (rate > 0.9) fail(`そのまま勝てる局面が ${(rate * 100).toFixed(0)}% で、遊ぶところが残らない`);
 console.log(`skip smoke: そのままで次も勝てる局面は ${carried}/${checked}（${(rate * 100).toFixed(0)}%） OK`);

@@ -147,6 +147,20 @@ mcp__github__actions_run_trigger: export-playtests.yml / limit=10 / echo_to_log=
 `git fetch origin && git reset --hard origin/claude/repository-inventory-yvut4e` で戻す。
 **こまめに push すること。**押してあるものは失われない。
 
+## 今夜やったこと（2026-08-23 深夜）
+
+公開した版：**COST 0.1 / IDENT 0.1 / SKIP 0.1**（main、sw v34）。
+そのあと画面の側から見直して出した不具合：
+
+- SKIP の飛ばしが**一度も起きていなかった**（呼ぶ場所が報酬の段階だった）
+- 「N strike!」が**見えないまま消えていた**（message は構築画面にしか出ない）
+- COST の暴走の説明が**どこにも描画されていなかった**
+- IDENT が**見出しと遊び方に答えを出していた**
+- 落ちている検査を抱えたまま**一度公開した**（`./analysis/check-all.sh` を作った）
+
+**予測は `analysis/PREDICTIONS_2026-08-23.md` に登録済み。**
+作者が遊んだら、当たったか外れたかをそこに当てる。
+
 ## いま進行中のもの（更新すること）
 
 - **t2 の組が1つ進行中**（1本目＝緩い側、メモ「敵弱かったな」）。2本目の強制選択待ち。

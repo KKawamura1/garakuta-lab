@@ -1099,10 +1099,12 @@ function trySkip() {
   session.streak = (session.streak || 0) + 1;
   // **何が起きたかを残す。**飛ばした戦闘は見ていないので、
   // 結果を出さないと「知らないうちに報酬画面に居る」だけになる。
-  session.lastSkips = [...(session.lastSkips || []), {
-    enemy: res.battle.enemy, cycles: res.battle.cycles,
-    hpAfter: res.battle.hpAfter, grade: res.battle.grade ? res.battle.grade.label : ""
-  }];
+  const note = { enemy: res.battle.enemy, cycles: res.battle.cycles,
+    hpAfter: res.battle.hpAfter, grade: res.battle.grade ? res.battle.grade.label : "" };
+  session.lastSkips = [...(session.lastSkips || []), note];
+  // **画面用の控えは手で戦うと消える。**通報用にはランを通した累積を別に持つ。
+  // 消える方だけを送っていたら、飛ばしたことが記録に残らない。
+  session.skipLog = [...(session.skipLog || []), { ...note, battleNumber: res.battle.battleNumber }];
   return true;
 }
 
