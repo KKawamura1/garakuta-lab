@@ -680,6 +680,15 @@ function lawsCard() {
     ]));
   });
 
+  // **版が足した規則も、ここに出す。**遊び方の画面を開かないと読めないのでは、
+  // 並べている最中に効いてくる規則としては遅い。
+  if (rules.overdriveHint) {
+    card.append(el("div", { className: "law" }, [
+      el("span", { className: "law-name", textContent: "暴走" }),
+      el("span", { className: "law-desc", textContent: rules.overdriveHint })
+    ]));
+  }
+
   if (rules.hidden) {
     const unknown = rules.laws.filter(l => !named.has(l.id));
     if (unknown.length) {
