@@ -2,7 +2,7 @@ import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
-import { makeLawRuleset, LAWS as LAW_DEFS } from "../core/laws.mjs";
+import { makeLawRuleset, LAWS as LAW_DEFS, OVERDRIVE } from "../core/laws.mjs";
 import { bestPossible } from "../core/best-possible.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
 import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
@@ -13,6 +13,9 @@ import { projectCycles, markFor, firesOfRuleset } from "../core/project.mjs";
 import { makeRng } from "../core/rng.mjs";
 
 const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
+
+// **代償の版（cost-0.1）。** 法則も敵も laws-0.3 と同じで、暴走だけが足してある。
+// 設定そのもの（OVERDRIVE）は core/laws.mjs にある。**画面と検査で同じものを見る。**
 
 // 法則機関は「ルールセット」が固定でない。**毎ラン、事前検証を通った法則の組を引く。**
 // 引ける組は core/law-table.mjs にあり、生成条件（T1〜T3）と天井の条件を通ったものだけが載っている。
@@ -100,7 +103,7 @@ function trialRulesetFor(session) {
     { phaseless: spec.phaseless, gradeBy: spec.gradeBy, enemyCount: spec.enemyCount });
 }
 
-function lawRulesetFor(session) {
+function lawRulesetFor(session, options = {}) {
   // 復旧用の指定。?laws=relay+balance のように渡すと、**進行を保ったまま法則だけ差し替える。**
   // 推定が2候補で並んだとき、人が知っている答えを入れるための口である。
   //
@@ -119,13 +122,13 @@ function lawRulesetFor(session) {
   }
   // 決めた法則はセッションに焼き付ける。**表が変わっても、進行中のランは同じ規則で再生される。**
   const spec = session.variantSpec;
-  if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales, spec.cycleCaps);
+  if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales, spec.cycleCaps, options);
   const byId = session.variant && lawVariants.find(v => v.laws.join("+") === session.variant);
   const chosen = byId || inferVariant(session) || pickVariant(session.seed, new Set());
   if (!chosen) return RELAY;
   session.variant = chosen.laws.join("+");
   session.variantSpec = { laws: chosen.laws, scales: chosen.scales, atkScales: chosen.atkScales, modScales: chosen.modScales, cycleCaps: chosen.cycleCaps };
-  return makeLawRuleset(chosen.laws, chosen.scales, chosen.atkScales, chosen.modScales, chosen.cycleCaps);
+  return makeLawRuleset(chosen.laws, chosen.scales, chosen.atkScales, chosen.modScales, chosen.cycleCaps, options);
 }
 
 const SAVE_KEY = "garakuta-play-session";
@@ -207,6 +210,7 @@ function rulesetOf(name) {
   if (session && session.trial) return trialRulesetFor(session);
   const key = String(name || defaultRuleset()).toLowerCase();
   if (key === "laws") return lawRulesetFor(session);
+  if (key === "cost") return lawRulesetFor(session, { overdrive: OVERDRIVE });
   return RULESETS[key] || RELAY;
 }
 
@@ -824,6 +828,20 @@ function outcomePanel(o) {
           ? `負ける — ${rules.MAX_CYCLES}巡で打切り ・ 敵残 ${first.enemyHp}`
           : `負ける — ${first.cycles}巡で力尽きる ・ 敵残 ${first.enemyHp}`
     }));
+    // **暴走は、押す前に見えていなければならない。**
+    // 見えない代償は代償ではなく事故で、MAT 0.2 の「負けた理由が分からない」に戻る。
+    // 予告は実機の `simulateBattle` を回しているので、log からそのまま拾える。
+    if (rules.overdrive) {
+      const od = (first.log || []).filter(e => e.part === "暴走");
+      const selfHit = od.reduce((n, e) => n + (e.hpDamage || 0), 0);
+      const held = od.reduce((n, e) => n + (e.blocked || 0), 0);
+      box.append(el("div", {
+        className: "small",
+        textContent: od.length
+          ? `暴走 ${od.length}回 ・ 遮蔽で${held}受け止め、HPへ${selfHit}`
+          : "暴走なし（どの巡回も閾値を超えていない）"
+      }));
+    }
     if (grade && grade.rank) {
       const best = bests[bestKeyFor(session.ruleset, enemy.name)];
       const beats = !best || grade.rank > best.rank || (grade.rank === best.rank && first.cycles < best.cycles);
@@ -1461,7 +1479,10 @@ $("#newRun").addEventListener("click", () => {
 $("#gameButton").addEventListener("click", () => {
   const list = $("#gameChoices");
   const entries = [...Object.entries(RULESETS)];
-  if (lawVariants.length) entries.unshift(["laws", { title: `法則機関 / LAWS 0.1（${lawVariants.length}通りの法則の組）` }]);
+  if (lawVariants.length) {
+    entries.unshift(["cost", { title: "代償機関 / COST 0.1（速く倒すと自分が削れる）" }]);
+    entries.unshift(["laws", { title: `法則機関 / LAWS 0.3（${lawVariants.length}通りの法則の組）` }]);
+  }
   list.replaceChildren(...entries.map(([key, rules]) => el("button", {
     className: `btn wide${key === String(session.ruleset).toLowerCase() ? " primary" : ""}`,
     style: "margin-bottom:8px; text-align:left",

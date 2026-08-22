@@ -408,6 +408,11 @@ export function speedGradeFor(won, hpLost, cycles) {
 
 // 法則の組から、遊べるルールセットを組み立てる。
 // 敵の強さ（scale）は事前検証で決めた値をそのまま使う。ここで調整はしない。
+// 出荷する暴走の設定。**画面と検査が同じものを見るように、ここ1か所に置く。**
+// 「1巡上限の半分を超えたら、超えた分がそのまま返る」＝暗算できる形。
+// 実測：相関 +0.30 → −0.26、詰みなし100%（`analysis/TRADEOFF.md`）。
+export const OVERDRIVE = { frac: 0.5, rate: 1.0 };
+
 export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, options = {}) {
   const phaseless = Boolean(options.phaseless);
   const bySpeed = options.gradeBy === "speed";
