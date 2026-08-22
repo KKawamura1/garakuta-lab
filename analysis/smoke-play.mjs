@@ -92,4 +92,23 @@ assert.match(app, /session\.actions\.push\(\{ \.\.\.action, at: new Date\(\)\.to
   }
 }
 
+// **URL が指した対が、保存済みセッションに無視されないこと。**
+//
+// load() が保存済みをそのまま返していたので、t3 のセッションが残った状態で
+// ?trial=t2 を開くと t3 が続いた。作者は t2 を遊ぶつもりで3組とも t3 を遊んだ（2026-08-22）。
+// **実験の取り違えは、記録を汚すだけでなく、作者の時間を丸ごと無駄にする。**
+{
+  const head = readFileSync("play/app.js", "utf8");
+  if (!/saved\.trial\?\.id !== wanted/.test(head)) {
+    console.error("play smoke: ?trial= が保存済みセッションと食い違うときの分岐が無い");
+    process.exit(1);
+  }
+  // 捨てる前に控えを取っていること。
+  const load = head.slice(head.indexOf("function load()"), head.indexOf("function fresh("));
+  if (!/ARCHIVE_KEY/.test(load)) {
+    console.error("play smoke: 対を切り替えるとき、遊んだセッションを控えずに捨てている");
+    process.exit(1);
+  }
+}
+
 console.log("play smoke: 版の表示・ゲーム切り替え・食い違い通知・手持ち・等級と試行の記録 OK");

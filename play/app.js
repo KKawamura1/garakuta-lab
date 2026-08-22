@@ -209,11 +209,34 @@ function rulesetOf(name) {
 }
 
 function load() {
+  let saved = null;
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (saved?.seed !== undefined && Array.isArray(saved.actions)) return saved;
+    const raw = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (raw?.seed !== undefined && Array.isArray(raw.actions)) saved = raw;
   } catch (_) {}
-  return fresh();
+
+  // **URL が指した対と、保存されている対が違うなら、指された方を始める。**
+  //
+  // ここを見ていなかったせいで、t3 のセッションが残った状態で ?trial=t2 を開くと
+  // **t3 が続いていた。**作者は t2 を遊んだつもりで3組とも t3 を遊んでいる（2026-08-22）。
+  // 実験の取り違えは、記録を汚すだけでなく**作者の時間を丸ごと無駄にする。**
+  //
+  // 同じ対を指しているときは何もしない（ラン途中のリロードで進行を壊さないため）。
+  const wanted = new URLSearchParams(location.search).get("trial");
+  if (wanted && TRIALS[wanted] && saved && saved.trial?.id !== wanted) {
+    // 捨てる前に控えを取る。**遊んだものは、途中でも残す。**
+    try {
+      const archive = JSON.parse(localStorage.getItem(ARCHIVE_KEY)) || [];
+      if (Array.isArray(archive) && saved.actions.length) {
+        archive.push(saved);
+        localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive.slice(-MAX_ARCHIVE)));
+      }
+    } catch (_) {}
+    return fresh();
+  }
+  // 逆に、対を指していないのに対のセッションが残っているときは、そのまま続ける
+  // （対の2本目の途中でリロードしても壊れないように）。
+  return saved || fresh();
 }
 
 function fresh(seed = null, ruleset = null, trial = null) {

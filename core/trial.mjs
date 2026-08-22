@@ -65,6 +65,27 @@ export const TRIALS = {
       { key: "tight", laws: ["relay", "vanguard"], phaseless: false, hpScale: 1.5 },
       { key: "loose", laws: ["relay", "vanguard"], phaseless: false, hpScale: 0.9 }
     ]
+  },
+
+  // 天井（P12-b）「最上位等級の1戦あたり到達率が50%未満」。
+  //
+  // **これは今日半日、私を止めた条件である。**満たせないと分かってゲームの側を作り直し、
+  // 参照点 RELAY 0.1（作者評価5）でさえ71%だと分かって、ようやく関門の側を疑った。
+  // 「必要条件の仮説」の棚に置いていたが、**増強の仮説だった可能性が高い**（0節）。
+  //
+  // 天井は敵HPと強く結びついていて（HPが低いほど速く倒せて無傷になる）、
+  // 勝率を保ったまま天井だけ動かす点は**探した中で1組しか無かった。**
+  // 攻撃力とHPを同時に振り、勝てる並びを揃えて天井だけを離す。
+  //
+  // 実測：詰みなし 95%/96%、勝てる並び 19%/14%、**天井 89% 対 18%**
+  ceiling: {
+    id: "ceiling",
+    question: "最上位の等級が遠いことは、また遊びたくなる条件か",
+    battles: BATTLES,
+    sides: [
+      { key: "ceiling-near", laws: ["resonance", "fade"], phaseless: false, hpScale: 0.5, atkScale: 3.2 },
+      { key: "ceiling-far", laws: ["resonance", "fade"], phaseless: false, hpScale: 0.7, atkScale: 1.8 }
+    ]
   }
 };
 
@@ -74,7 +95,7 @@ export function sideSpec(trialId, sideKey) {
   return {
     laws: side.laws,
     scales: FLAT.map(v => v * side.hpScale),
-    atkScales: FLAT,
+    atkScales: FLAT.map(v => v * (side.atkScale ?? 1)),
     modScales: FLAT,
     cycleCaps: CYCLE_CAPS,
     phaseless: side.phaseless,
