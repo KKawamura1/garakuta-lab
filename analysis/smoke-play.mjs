@@ -57,6 +57,10 @@ assert.match(app, /row\("暴走", trace\.overdrive\)/, "位相表に暴走の行
 // 戦闘の操作が通らず、飛ばしは一度も起きない（ブラウザで通して分かった）。
 assert.match(app, /type: "take"[\s\S]{0,600}?runSkips\(\)/, "報酬を取ってから飛ばす");
 assert.match(app, /const wantedRuleset = params\.get\("ruleset"\)/, "URLの版を見る");
+// 対の途中に別の版のリンクを開いたら、**続ける理由を画面に出す。**
+// 黙って対を続けると、遊ぶ側は指した版を遊んでいるつもりで別のものを遊ぶ。
+assert.match(app, /function rulesetNoticeCard\(\)/, "対の途中に版を指されたことを知らせる");
+assert.match(app, /statusCard\(o\), rulesetNoticeCard\(\)/, "その札を構築画面に出す");
 assert.match(app, /String\(saved\.ruleset\)\.toLowerCase\(\) !== wantedRuleset\.toLowerCase\(\)/,
   "保存済みと違う版を指されたら、指された方を始める");
 

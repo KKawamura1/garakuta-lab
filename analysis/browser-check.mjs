@@ -104,6 +104,15 @@ try {
     const body = await page.locator("body").innerText();
     console.log("暴走の説明:", /1巡に\d+%/.test(body) ? "法則の札に出ている" : "**出ていない**");
   }
+  // 締めつけの版：**毎巡回復が見えているか。**
+  // 見えない回復は「なぜか削り切れない」になり、MAT 0.2 の「負けた理由が分からない」に戻る。
+  if (query.includes("squeeze")) {
+    const body = await page.locator("body").innerText();
+    console.log("回復の説明:", /毎巡/.test(body) ? "出ている" : "**出ていない**");
+    console.log("敵の札に回復:", /毎巡回復/.test(body) ? "出ている" : "**出ていない**");
+    const rows = await page.locator(".phase-grid .slot-label").allInnerTexts();
+    console.log("位相表の行:", rows.join(" / "));
+  }
   // 連勝の版：戦って、飛ばしが起きるか。**固まらないことも見る。**
   if (query.includes("skip")) {
     // 手応えを選ばないと戦えない（そういう作りにしてある）。先に1つ選ぶ。
