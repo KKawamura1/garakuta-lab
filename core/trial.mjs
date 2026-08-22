@@ -48,6 +48,23 @@ export const TRIALS = {
       { key: "order-matters", laws: ["buildup", "overload"], phaseless: false, hpScale: 1 },
       { key: "order-free", laws: ["buildup", "overload"], phaseless: true, hpScale: 0.55 }
     ]
+  },
+
+  // T2「勝てる並びの割合が5〜15%」。**ここは既に反証寄りの記録がある。**
+  //   PHASE 0.1 は勝てる並びが59〜100%（帯の遥か外）で、再プレイ 4,3,3,3。
+  //   一方 GATE v2 を通した CYCLE 0.2 は再プレイ 1,1（「何しても勝てそう」）。
+  //   ただしどちらも他の条件も違っていたので、ceteris paribus ではない。ここで揃えて試す。
+  //
+  // 法則も位相も両側で同じ（継電＋先陣）。**敵HPだけが違う。**
+  // 実測：勝てる並び 10%（帯の中）対 52%（帯の外・30%の上限も超える）／詰みなし 95%/100%
+  t2: {
+    id: "t2",
+    question: "正解が少ないことは、面白さの条件か",
+    battles: BATTLES,
+    sides: [
+      { key: "tight", laws: ["relay", "vanguard"], phaseless: false, hpScale: 1.5 },
+      { key: "loose", laws: ["relay", "vanguard"], phaseless: false, hpScale: 0.9 }
+    ]
   }
 };
 
