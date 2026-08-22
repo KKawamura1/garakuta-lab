@@ -349,7 +349,10 @@ export function gradeFor(won, hpLost) {
 export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, options = {}) {
   const phaseless = Boolean(options.phaseless);
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
-  const enemies = scaleEnemies(scales, atkScales, modScales, cycleCaps);
+  // 戦闘数を減らせるようにする。**対で比べるときは1本を短くしないと、作者の時間が倍要る。**
+  // 3戦なら、いままで1ラン遊んでいた時間で対が1つ回る。
+  const all = scaleEnemies(scales, atkScales, modScales, cycleCaps);
+  const enemies = options.enemyCount ? all.slice(0, options.enemyCount) : all;
   return {
     id: `laws-0.1:${lawIds.join("+")}`,
     variantId: lawIds.join("+"),
