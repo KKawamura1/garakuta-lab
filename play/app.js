@@ -261,6 +261,29 @@ function load() {
     } catch (_) {}
     return fresh();
   }
+  // **URL が別の版を指しているなら、その版を始める。**
+  //
+  // ここは対（`?trial=`）で一度やった事故と、まったく同じ形である。
+  // 保存済みセッションがあると `?ruleset=` は黙って無視され、
+  // **作者は新しいゲームを開いたつもりで前のゲームを遊ぶ。**
+  // 画面の切り替えを足したときに「URL は効かない」と注記して済ませたが、
+  // 注記は事故を防がない。今夜 `?ruleset=cost` `?ruleset=ident` `?ruleset=skip` を
+  // 渡すので、**渡す前に直す。**
+  //
+  // 同じ版を指しているときは何もしない（ラン途中のリロードで進行を壊さないため）。
+  const wantedRuleset = params.get("ruleset");
+  if (wantedRuleset && saved && !saved.trial
+      && String(saved.ruleset).toLowerCase() !== wantedRuleset.toLowerCase()) {
+    try {
+      const archive = JSON.parse(localStorage.getItem(ARCHIVE_KEY)) || [];
+      if (Array.isArray(archive) && saved.actions.length) {
+        archive.push(saved);
+        localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive.slice(-MAX_ARCHIVE)));
+      }
+    } catch (_) {}
+    return fresh(null, wantedRuleset);
+  }
+
   // 逆に、対を指していないのに対のセッションが残っているときは、そのまま続ける
   // （対の2本目の途中でリロードしても壊れないように）。
   return saved || fresh();
