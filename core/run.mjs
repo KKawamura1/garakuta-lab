@@ -101,7 +101,8 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       // ログや寄与は重いので落とし、画面に出す分だけにする。
       battles: state.battles.map(b => ({
         battleNumber: b.battleNumber, enemy: b.enemy, won: b.won, cycles: b.cycles,
-        hpLost: b.hpLost, grade: b.grade ? b.grade.label : null
+        hpBefore: b.hpBefore, hpLost: b.hpLost, owned: b.owned,
+        grade: b.grade ? b.grade.label : null, gradeRank: b.grade ? b.grade.rank : null
       })),
       done: state.done, won: state.won
     };
@@ -248,6 +249,9 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
 
     const summary = {
       battleNumber: state.wave + 1, enemy: enemy.name, won: result.won,
+      // **その戦闘の時点で持っていた部品**（枠の中と予備の全部）。
+      // 「この持ち物で、もっと良い等級が取れたか」を後から全列挙で答えるのに要る。
+      owned: [...state.slots.filter(Boolean).map(s => s.type), ...state.inventory.map(s => s.type)],
       cycles: result.cycles, hpBefore, hpAfter: state.hp, hpLost: hpBefore - state.hp,
       enemyHpLeft: result.enemyHp, leftoverPower: result.power, leftoverHeat: result.heat,
       leftoverShield: result.shield, timedOut: result.timedOut,

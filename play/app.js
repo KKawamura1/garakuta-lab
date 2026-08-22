@@ -3,6 +3,7 @@ import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
 import { makeLawRuleset, LAWS as LAW_DEFS } from "../core/laws.mjs";
+import { bestPossible } from "../core/best-possible.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
 import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
 import { BUILD } from "../core/build.mjs";
@@ -1119,6 +1120,52 @@ function recallCard(o) {
   return card;
 }
 
+// **答え合わせ。その持ち物で、もっと良い等級が取れたのか。**
+//
+// 作者の提案：「もっといい評価を取れたのか、取れなかったのか。…学びがあると飽きずに楽しめそう」。
+// 増強の仮説なので生成条件には入れない。出すのは
+//   (a) 取れたのか／取れなかったのか  (b) 最良の値
+// **並びそのものは出さない。**探索を奪ううえ、「そのまま勝ててしまう」摩擦に燃料を足す。
+//
+// **ラン終わりにだけ出す。**戦闘ごとに出すと、教わった型をその場で次戦へ持ち込めてしまう。
+function answerCard(o, rules) {
+  const battles = (o.battles || []).filter(b => Array.isArray(b.owned) && b.owned.length);
+  if (!battles.length) return null;
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: "答え合わせ" }));
+  card.append(el("div", { className: "small",
+    textContent: "その戦闘の持ち物で、どこまで行けたか。並べ方は全部試して調べています。" }));
+
+  let missed = 0;
+  battles.forEach(b => {
+    const enemy = rules.ENEMIES[b.battleNumber - 1];
+    if (!enemy) return;
+    const best = bestPossible(rules, b.owned, enemy, b.hpBefore ?? rules.MAX_HP, () => makeRng(1));
+    const line = el("div", { style: "margin-top:8px" });
+    const yours = b.won ? `${b.grade || "?"}・${b.cycles}巡` : "敗北";
+    if (best.rank < 0) {
+      line.append(el("div", { textContent: `第${b.battleNumber}戦 ${b.enemy}：あなた ${yours}` }));
+      line.append(el("div", { className: "small", textContent: "この持ち物では、どう並べても勝てなかった。" }));
+    } else {
+      const reached = b.won && (b.gradeRank ?? 0) >= best.rank;
+      if (!reached) missed += 1;
+      line.append(el("div", { textContent: `第${b.battleNumber}戦 ${b.enemy}：あなた ${yours}` }));
+      line.append(el("div", {
+        className: "small",
+        textContent: reached
+          ? `**最良に届いていた。**（この持ち物での上限は ${best.label}・最短${best.cycles}巡）`
+          : `もっと上があった：${best.label}・最短${best.cycles}巡`
+      }));
+    }
+    card.append(line);
+  });
+  card.append(el("div", { className: "small", style: "margin-top:10px",
+    textContent: missed === 0
+      ? "全部の戦闘で、その持ち物の上限に届いていました。"
+      : `${missed}戦で、まだ上がありました。` }));
+  return card;
+}
+
 function trialEnd(o) {
   const out = [];
   const stage = session.trial.stage;
@@ -1133,6 +1180,8 @@ function trialEnd(o) {
     card.append(el("div", { textContent: "続けてもう1本あります。遊び終わってから、二つを比べて答えてもらいます。" }));
     card.append(el("div", { className: "small", style: "margin-top:8px",
       textContent: "※ 二つは規則が少し違います。どこが違うかは、先に言わないでおきます。" }));
+    const ans1 = answerCard(o, rulesetOf(session.ruleset));
+    if (ans1) out.push(ans1);
     card.append(el("label", { className: "field",
       textContent: "1本目のひとこと（採点ではなく、あとで自分が思い出すためのメモ）" }));
     const memo = el("input", { type: "text", placeholder: "例：削り切れなくて粘った／並べ替えが効いた" });
@@ -1191,6 +1240,8 @@ function trialEnd(o) {
   // 忘れられたまま選ばせると、答えは2本目の印象だけで決まる。**対にした意味が消える。**
   // 出すのは**本人が作った事実だけ**（法則・戦闘ごとの等級と巡回・自分が付けたマーカー・1本目のメモ）。
   // こちらの解釈や、どちらが良かったかを匂わせるものは出さない。
+  const ans2 = answerCard(o, rulesetOf(session.ruleset));
+  if (ans2) out.push(ans2);
   out.push(recallCard(o));
 
   const form = el("div", { className: "card" });
