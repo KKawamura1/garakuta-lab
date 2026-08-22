@@ -13,6 +13,7 @@ import { createRun } from "../core/run.mjs";
 import { makeLawRuleset, SLOT_COUNT, PARTS } from "../core/laws.mjs";
 import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
 import { measure } from "./pair-check.mjs";
+import { interaction } from "./interaction.mjs";
 
 const fail = m => { console.error(`trial smoke: ${m}`); process.exit(1); };
 const RUNS = 8;   // 検査なので粗く。傾向が逆転したら気づける程度で足りる
@@ -21,6 +22,10 @@ const RUNS = 8;   // 検査なので粗く。傾向が逆転したら気づけ�
 const EXPECT = {
   t3: { separate: "T3", label: "順序が効く", minGap: 0.25, match: ["T1", "selectionLoose"] },
   t2: { separate: "overall", label: "勝てる並び", minGap: 0.25, match: ["T1"] },
+  // 閃きの対は、**測る場所が pair-check ではない**（噛み合わせは並びの勝率では出ない）。
+  // 順序が効くかも揃える：t3 で既に知覚されている差なので、ここが離れていると理由が言えない。
+  insight: { separate: "interlock", label: "噛み合わせ", minGap: 0.25,
+    match: ["T1", "selectionLoose", "permTight", "T3"] },
   ceiling: { separate: "ceiling", label: "天井", minGap: 0.40, match: ["T1", "overall"] },
   // 速度の対は、盤面は同じで**等級の付け方だけ**が違う。だから測る量は全部揃うのが正しい。
   // 離れているべきは「何を最上位と呼ぶか」なので、数値では分離を検査しない。
@@ -55,6 +60,8 @@ for (const trial of Object.values(TRIALS)) {
   const measured = specs.map(({ key, spec }) => {
     const m = measure(spec, RUNS);
     m.overall = m.selectionLoose * m.permTight;   // 登録文の「勝てる並びの割合」
+    // 噛み合わせは法則の組そのものの性質なので、必要な対だけ測る（重い）。
+    if (want.separate === "interlock") m.interlock = interaction(spec.laws[0], spec.laws[1], 3);
     return { key, m };
   });
   const [a, b] = measured;
