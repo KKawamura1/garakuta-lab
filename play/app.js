@@ -1153,7 +1153,7 @@ function answerCard(o, rules) {
       line.append(el("div", {
         className: "small",
         textContent: reached
-          ? `**最良に届いていた。**（この持ち物での上限は ${best.label}・最短${best.cycles}巡）`
+          ? `最良に届いていた。（この持ち物での上限は ${best.label}・最短${best.cycles}巡）`
           : `もっと上があった：${best.label}・最短${best.cycles}巡`
       }));
     }
