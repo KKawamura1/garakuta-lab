@@ -343,9 +343,15 @@ function wantedTrial() {
   return null;
 }
 
-function fresh(seed = null, ruleset = null, trial = null) {
+function fresh(seed = null, ruleset = null, trial = null, chosen = false) {
   const params = new URLSearchParams(location.search);
-  const trialId = trial ? trial.id : wantedTrial();
+  // **画面から選ばれた版は、URL の `?study` より強い。**
+  //
+  // ここが `wantedTrial()` を無条件に見ていたせいで、`?study` を開いていると
+  // **`fresh()` が何を渡されても対を返した。**画面から版を選んでも、
+  // 「新しいラン」を押しても、対（＝法則機関）が出続ける。
+  // 作者の報告：「UIから新しいゲームを選ぶ方法がありません」。そのとおりだった。
+  const trialId = trial ? trial.id : (chosen ? null : wantedTrial());
   const name = ruleset || params.get("ruleset") || defaultRuleset();
   const chosenSeed = seed === null ? Math.floor(Math.random() * 100000) : seed;
   if (trialId && TRIALS[trialId]) {
@@ -1711,8 +1717,13 @@ $("#newRun").addEventListener("click", () => {
 // 前のゲームを遊んでいた。画面から切り替えられるようにする。
 $("#gameButton").addEventListener("click", () => {
   const list = $("#gameChoices");
+  // **いま遊んでいるのが対なら、「法則機関」ではなく「対」が現在地である。**
+  // 対のセッションは ruleset に "laws" が入っているので、そのまま比べると
+  // 法則機関に「（いま遊んでいる）」が付き、選んでも何も起きなかった。
+  const current = session.trial ? "study" : String(session.ruleset).toLowerCase();
   const entries = [...Object.entries(RULESETS)];
   if (lawVariants.length) {
+    entries.unshift(["study", { title: "伏せた対を遊ぶ（どの問いを試しているかは伏せてあります）" }]);
     entries.unshift(["skip", { title: "連勝機関 / SKIP 0.1（そのまま勝てる戦闘は飛ばす）" }]);
     entries.unshift(["ident", { title: "同定機関 / IDENT 0.1（法則は伏せてあるが、位相表から一発で読める）" }]);
     entries.unshift(["squeeze", { title: `締付機関 / SQUEEZE 0.1（${squeezeVariants.length}通り・速くても遅くても削れる）` }]);
@@ -1725,10 +1736,21 @@ $("#gameButton").addEventListener("click", () => {
     textContent: `${rules.title}${key === String(session.ruleset).toLowerCase() ? "（いま遊んでいる）" : ""}`,
     onclick: () => {
       $("#gameDialog").close();
-      if (key === String(session.ruleset).toLowerCase()) return;
-      if (!confirm(`${rules.title} を新しく始めますか？（いまのランは記録に残します）`)) return;
+      if (key === current) return;
+      // 対の途中で乗り換えると、**遊び終えた1本目が比べる相手を失う。**それは言う。
+      const warn = session.trial
+        ? "遊びかけの対を捨てます（1本目が比べる相手を失います）。"
+        : "いまのランは記録に残します。";
+      if (!confirm(`${rules.title} を新しく始めますか？（${warn}）`)) return;
       archiveCurrent();
-      session = fresh(null, key);
+      // **URL も書き換える。**でないと再読み込みと「新しいラン」で ?study に引き戻される。
+      const url = new URL(location.href);
+      url.searchParams.delete("trial");
+      if (key === "study") { url.searchParams.delete("ruleset"); url.searchParams.set("study", ""); }
+      else { url.searchParams.delete("study"); url.searchParams.set("ruleset", key); }
+      history.replaceState(null, "", url);
+      pendingRulesetNotice = null;
+      session = key === "study" ? fresh() : fresh(null, key, null, true);
       run = rebuild();
       selectedPartId = null; selectedSlot = null; pendingPrediction = null; pendingGrip = null; playback = null; message = "";
       persist(); draw();
