@@ -67,4 +67,29 @@ assert.match(app, /session\.actions\.push\(\{ \.\.\.action, at: new Date\(\)\.to
   if (!/^[0-9a-f]{7,} \/ /.test(BUILD)) { console.error(`play smoke: build の印の形が違う（${BUILD}）`); process.exit(1); }
 }
 
+// **画面は、規則を自前で計算してはいけない。**
+//
+// 位相を外した版（T3のRecallテスト）で、数字は実機どおり1・3・5巡なのに
+// **枠の色だけが位相ありの規則で塗られていた**（作者の報告、2026-08-22）。
+// 画面が `core/project.mjs` の既定の `firesOn` を直接呼んでいて、
+// ルールセットが別の判定を持っていることを知らなかった。
+// **表示が規則と別の計算を持つと、静かにずれる。**（説明文と実装がずれるのと同じ形）
+{
+  const head = readFileSync("play/app.js", "utf8");
+  const proj = readFileSync("core/project.mjs", "utf8");
+  // 画面から既定の firesOn を直接呼んでいないこと。
+  const bare = head.match(/[^a-zA-Z]firesOn\s*\(/g) || [];
+  if (bare.length) {
+    console.error(`play smoke: 画面が既定の firesOn を直接呼んでいる（${bare.length}箇所）。`
+      + "ルールセットの判定（firesOfRuleset）を使うこと");
+    process.exit(1);
+  }
+  if (!/firesOfRuleset/.test(head)) { console.error("play smoke: 画面が規則から作動判定を取っていない"); process.exit(1); }
+  // 見積りの側も同じ。
+  if (!/const fires = firesOfRuleset\(ruleset\)/.test(proj)) {
+    console.error("play smoke: projectCycles が規則から作動判定を取っていない");
+    process.exit(1);
+  }
+}
+
 console.log("play smoke: 版の表示・ゲーム切り替え・食い違い通知・手持ち・等級と試行の記録 OK");
