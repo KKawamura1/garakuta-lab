@@ -86,6 +86,29 @@ export const TRIALS = {
       { key: "ceiling-near", laws: ["resonance", "fade"], phaseless: false, hpScale: 0.5, atkScale: 3.2 },
       { key: "ceiling-far", laws: ["resonance", "fade"], phaseless: false, hpScale: 0.7, atkScale: 1.8 }
     ]
+  },
+
+  // **最上位の等級が「無傷」か「速さ」か。**
+  //
+  // 登録されている最上位は無傷（失点0）だが、作者の感情マーカーは全部**撃破巡回**を指していた：
+  //   「巡数更新オウケーイ」「作戦勝ちで5ターン勝利！アツい」「さすがに理論値では？？」
+  //   最良の瞬間：「何巡で達成するかも保存されてると途中で気づいて、記録をもっと詰めたくなったところ」
+  // **何を最上位に置くかで、狙う対象が変わるのではないか。**
+  //
+  // これは「増強の仮説」であって必要条件ではない（0節）。生成条件には入れない。
+  // 要素分解のうち (a)等級の基準 と (b)自己最高の持ち方 をまとめて片側にしている。
+  // (c)「無傷を残すか消すか」は、この結果を見てから。
+  //
+  // 法則も敵も両側で同じ。**等級の付け方だけが違う。**
+  // 珍しさは実測で揃えた：無傷 50.1%／7巡以内 46.0%（勝てた並びに占める割合）。
+  speed: {
+    id: "speed",
+    question: "最上位の等級を「速さ」にすると、狙う気になるか",
+    battles: BATTLES,
+    sides: [
+      { key: "grade-damage", laws: ["buildup", "overload"], phaseless: false, hpScale: 1, gradeBy: "damage" },
+      { key: "grade-speed", laws: ["buildup", "overload"], phaseless: false, hpScale: 1, gradeBy: "speed" }
+    ]
   }
 };
 
@@ -99,6 +122,7 @@ export function sideSpec(trialId, sideKey) {
     modScales: FLAT,
     cycleCaps: CYCLE_CAPS,
     phaseless: side.phaseless,
+    gradeBy: side.gradeBy || "damage",
     enemyCount: trial.battles
   };
 }

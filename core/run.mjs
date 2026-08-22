@@ -256,7 +256,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     };
 
     // 等級は罰ではなく志（P11）。ルールセットが持っていれば記録する。
-    const grade = ruleset.gradeFor ? ruleset.gradeFor(result.won, hpBefore - state.hp) : null;
+    const grade = ruleset.gradeFor ? ruleset.gradeFor(result.won, hpBefore - state.hp, result.cycles) : null;
     summary.grade = grade;
     // その戦闘で試した並びの数。ここまで一度も観測できていなかった量である。
     const previews = state.previews.length;

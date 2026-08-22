@@ -347,15 +347,39 @@ export const GRADES = [
   { rank: 2, label: "及第", maxLost: 14 },
   { rank: 1, label: "辛勝", maxLost: Infinity }
 ];
+
+// **速さで付ける等級。**
+//
+// 作者の感情マーカーが、登録した最上位等級（無傷）ではなく**撃破巡回**を指していた：
+//   「巡数更新オウケーイ」「作戦勝ちで5ターン勝利！アツい」「さすがに理論値では？？」
+//   最良の瞬間は「何巡で達成するかも保存されてると途中で気づいて、記録をもっと詰めたくなった」。
+// **何を最上位に置くかで、狙う対象が変わるのではないか**を試すための等級である。
+//
+// 閾値は実測で決めた。同じ盤面で、勝てた並びのうち
+//   無傷 50.1% / 上々 69.7% / 及第 82.8%
+//   7巡以内 46.0% / 8巡以内 63.4% / 9巡以内 79.5%
+// **珍しさを揃えてある。**片側だけ最上位が簡単だと、比べているものが変わってしまう。
+export const SPEED_GRADES = [
+  { rank: 4, label: "電光", maxCycles: 7 },
+  { rank: 3, label: "迅速", maxCycles: 8 },
+  { rank: 2, label: "順当", maxCycles: 9 },
+  { rank: 1, label: "辛勝", maxCycles: Infinity }
+];
+
 export function gradeFor(won, hpLost) {
   if (!won) return { rank: 0, label: "敗北" };
   return GRADES.find(g => hpLost <= g.maxLost);
+}
+export function speedGradeFor(won, hpLost, cycles) {
+  if (!won) return { rank: 0, label: "敗北" };
+  return SPEED_GRADES.find(g => cycles <= g.maxCycles);
 }
 
 // 法則の組から、遊べるルールセットを組み立てる。
 // 敵の強さ（scale）は事前検証で決めた値をそのまま使う。ここで調整はしない。
 export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, options = {}) {
   const phaseless = Boolean(options.phaseless);
+  const bySpeed = options.gradeBy === "speed";
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
   // 戦闘数を減らせるようにする。**対で比べるときは1本を短くしないと、作者の時間が倍要る。**
   // 3戦なら、いままで1ラン遊んでいた時間で対が1つ回る。
@@ -382,7 +406,10 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
     // 位相表が実際の作動巡回を描けるように、法則が変えた周期を外へ出す。
     periodOf: part => lawIds.map(id => LAWS[id]).filter(l => l && l.period)
       .reduce((p, law) => law.period(p), part.period),
-    predictionLevel, outcomeLevel, firesOn: phaseless ? firesOnFlat : firesOn, LINES, GRADES, gradeFor,
+    predictionLevel, outcomeLevel, firesOn: phaseless ? firesOnFlat : firesOn, LINES,
+    gradeBy: bySpeed ? "speed" : "damage",
+    GRADES: bySpeed ? SPEED_GRADES : GRADES,
+    gradeFor: bySpeed ? speedGradeFor : gradeFor,
     startContract: types => {
       const count = line => types.filter(t => PARTS[t].line === line).length;
       // **整も1枚は保証する。** 均衡は「撃・守・整がそろっているなら2倍」だが、
@@ -406,7 +433,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
 - 遮蔽は巡回の終わりに消える。敵は自分の攻撃周期の巡回に殴る。12巡で決着しなければ敗北。
 - **敵には「1巡に通る合計の上限」がある。**一撃で倒し切ることはできないので、殴られる巡回が必ず来る。
 - 勝つと HP+3。戦闘後、3つの候補から1つ受け取る。
-- 等級（無傷／上々／及第／辛勝）がつく。**外しても罰は無い。**
+- 等級（${bySpeed ? "電光／迅速／順当／辛勝＝**何巡で倒したか**" : "無傷／上々／及第／辛勝＝**どれだけ削られずに勝ったか**"}）がつく。**外しても罰は無い。**
 
 【このランの法則】${laws.map(l => `\n- 【${l.name}】${l.desc}`).join("")}
 
