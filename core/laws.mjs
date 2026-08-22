@@ -432,6 +432,11 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   return {
     id: `${overdrive ? "cost-0.1" : hidden ? "ident-0.1" : skipWins ? "skip-0.1" : "laws-0.3"}:${lawIds.join("+")}`,
     hidden, skipWins,
+    // **画面に出してよい版の名前。**
+    // 見出しは `rules.id` をそのまま出していたので、伏せた版でも
+    // `ident-0.1:reflect+monotony` と**答えが書いてあった。**
+    // 記録や通報には法則入りの id を使い続ける（あとで突き合わせるのに要る）。
+    publicId: hidden ? `${hidden ? "ident-0.1" : ""}（法則は伏せてある）` : null,
     variantId: lawIds.join("+"),
     laws,
     title: `法則機関 / ${laws.map(l => l.name).join("＋")}`,
@@ -489,7 +494,9 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   外しても罰は無い。何度でも言える。` : ""}
 - 等級（${bySpeed ? "電光／迅速／順当／辛勝＝**何巡で倒したか**" : "無傷／上々／及第／辛勝＝**どれだけ削られずに勝ったか**"}）がつく。**外しても罰は無い。**
 
-【このランの法則】${laws.map(l => `\n- 【${l.name}】${l.desc}`).join("")}
+【このランの法則】${hidden
+  ? "\n- **伏せてある。**遊び方の画面にも書かない。並べて、結果から当てること。"
+  : laws.map(l => `\n- 【${l.name}】${l.desc}`).join("")}
 
 法則はランごとに変わる。**組が変われば、最適な並びも、狙える記録も別物になる。**`
   };
