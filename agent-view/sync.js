@@ -7,7 +7,7 @@ const SCHEMA_VERSION = 4;
 // 遊べるルールセットは必ずここに載せる。載せ忘れると game_version が "unknown-play" になり、
 // **どのゲームの記録か分からなくなる**（法則機関の最初の4ランで実際に起きた）。
 // analysis/smoke-sync.mjs が、遊ぶ画面が持つ全ルールセットを照合している。
-const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1", relay: "relay-0.1", laws: "laws-0.3", cost: "cost-0.1", ident: "ident-0.1", skip: "skip-0.1" };
+const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1", relay: "relay-0.1", laws: "laws-0.3", cost: "cost-0.1", ident: "ident-0.1", skip: "skip-0.1", squeeze: "squeeze-0.1" };
 const HEADS = { "agent-view": "av", play: "play" };
 
 const MARKER_LABELS = {

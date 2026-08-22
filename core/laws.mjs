@@ -334,7 +334,16 @@ function traitFor(enemy) {
 // 環甲の上限14は RELAY のときより遥かに強く効き、逆に鋼芯の下限10はほとんど効かない。
 // 素の値のままだと、環甲だけがどの組でも帯（T2）に入らず、**91組すべてがそこで落ちた。**
 // 敵の性格を組ごとに保つには、性格を決めている数値も一緒に振るしかない。
-export function scaleEnemies(scales, atkScales, modScales, cycleCaps) {
+// **締めつけ**（`squeeze`）。敵が毎巡回復するので、**遅く行くと削り切れない。**
+//
+// 暴走だけでは代償が請求されない場面がある。実測（`analysis/run-viability.mjs`）：
+// 失点が最小になる並びを選び続けると **48回中46回完走、平均残HP 30.0**——
+// つまり**遅く行けば無傷でいられる。**代償は速さを欲しがったときだけ請求されていた。
+//
+// Into the Breach の形（「全部は守れない」）にするには、**遅い方も塞ぐ**必要がある。
+// 毎巡回復は「速く削らないと勝てない」を作り、暴走は「速く削ると自分が削れる」を作る。
+// 両側から挟むと、**どちらかを諦める以外に道が無くなる。**
+export function scaleEnemies(scales, atkScales, modScales, cycleCaps, regenFrac = 0) {
   const list = Array.isArray(scales) ? scales : BASE_ENEMIES.map(() => scales);
   const atks = Array.isArray(atkScales) ? atkScales : BASE_ENEMIES.map(() => atkScales ?? 1);
   const mods = Array.isArray(modScales) ? modScales : BASE_ENEMIES.map(() => modScales ?? 1);
@@ -350,7 +359,9 @@ export function scaleEnemies(scales, atkScales, modScales, cycleCaps) {
       // 1/3 なら、どんな並びでも倒すのに最低4巡かかる。
       cycleCap: caps[i] ?? Math.max(4, Math.round(enemy.hp * (list[i] ?? 1) * CYCLE_CAP_RATIO)),
       floor: enemy.floor ? Math.max(2, Math.round(enemy.floor * mod)) : enemy.floor,
-      regen: enemy.regen ? Math.max(1, Math.round(enemy.regen * (list[i] ?? 1))) : enemy.regen
+      regen: regenFrac > 0
+        ? Math.max(1, Math.round(enemy.hp * (list[i] ?? 1) * regenFrac))
+        : (enemy.regen ? Math.max(1, Math.round(enemy.regen * (list[i] ?? 1))) : enemy.regen)
     };
     return { ...scaled, trait: traitFor(scaled) };
   });
@@ -424,13 +435,15 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   // **連勝機関**（作者の提案、0.5節）。同じ並びのまま次も勝てるなら戦闘を飛ばす。
   // 報酬は時間が浮くことだけで、ゲーム内の見返りは与えない。
   const skipWins = Boolean(options.skipWins);
+  const regenFrac = Number(options.regenFrac || 0);
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
   // 戦闘数を減らせるようにする。**対で比べるときは1本を短くしないと、作者の時間が倍要る。**
   // 3戦なら、いままで1ラン遊んでいた時間で対が1つ回る。
-  const all = scaleEnemies(scales, atkScales, modScales, cycleCaps);
+  const all = scaleEnemies(scales, atkScales, modScales, cycleCaps, regenFrac);
   const enemies = options.enemyCount ? all.slice(0, options.enemyCount) : all;
   return {
-    id: `${overdrive ? "cost-0.1" : hidden ? "ident-0.1" : skipWins ? "skip-0.1" : "laws-0.3"}:${lawIds.join("+")}`,
+    id: `${regenFrac > 0 && overdrive ? "squeeze-0.1"
+      : overdrive ? "cost-0.1" : hidden ? "ident-0.1" : skipWins ? "skip-0.1" : "laws-0.3"}:${lawIds.join("+")}`,
     hidden, skipWins,
     // **画面に出してよい版の名前。**
     // 見出しは `rules.id` をそのまま出していたので、伏せた版でも
@@ -449,6 +462,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
     MAX_HP: 30, REPAIR_HP: 5, WIN_HEAL: 3, REWARD_CHOICES: 3,
     slotLabel: "位相列",
     // 暴走があるなら、握っておくものが1つ増える。**隠すと理不尽になる。**
+    ...(regenFrac > 0 ? { regenHint: `敵は毎巡、最大HPの${(regenFrac * 100).toFixed(1)}%を回復する。遅いと削り切れない` } : {}),
     ...(overdrive ? { overdriveHint: `1巡に${Math.round(overdrive.frac * 100)}%（1巡上限に対して）を超えて出すと、超過分の${Math.round(overdrive.rate * 100)}%が自分へ返る。遮蔽で受け止められる` } : {}),
     slotHint: phaseless
       ? "周期Pの部品は、どの枠にあっても 1, 1+P, 1+2P … 巡目に作動する（枠の位置は作動巡回に影響しない）"
@@ -487,7 +501,9 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
 - **敵には「1巡に通る合計の上限」がある。**一撃で倒し切ることはできないので、殴られる巡回が必ず来る。
 - 勝つと HP+3。戦闘後、3つの候補から1つ受け取る。${overdrive ? `
 - **暴走：1巡に出した力が「その敵の1巡上限の半分」を超えると、超えた分がそのまま自分へ返る。**
-  遮蔽で受け止められる。とどめの巡回でも起こる。**速く倒すほど、自分が削れる。**` : ""}${skipWins ? `
+  遮蔽で受け止められる。とどめの巡回でも起こる。**速く倒すほど、自分が削れる。**` : ""}${regenFrac > 0 ? `
+- **敵は毎巡、最大HPの${(regenFrac * 100).toFixed(1)}%を回復する。遅いと削り切れない。**
+  速く出せば暴走で自分が削れ、遅く行けば敵が回復する。**どちらかを諦めることになる。**` : ""}${skipWins ? `
 - **触らずに次も勝てるなら、その戦闘は飛ばす（N strike!）。**
   ゲーム内の見返りは無く、浮くのは時間だけ。失ったHPはそのまま入る。` : ""}${hidden ? `
 - **このランの法則は伏せてある。**並べて、予告の数字が素の合計とどうずれるかを見て当てる。
