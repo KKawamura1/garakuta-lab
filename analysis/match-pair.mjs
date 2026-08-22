@@ -9,14 +9,17 @@
 // 動かしてはいけない量（順序が効くか）は、そのまま離れていること。
 
 import { measure } from "./pair-check.mjs";
-import { LAW_TABLE } from "../core/law-table.mjs";
+import { BASE } from "../core/laws.mjs";
 
-const base = LAW_TABLE[0];
-const A = { ...base, laws: ["relay", "vanguard"], phaseless: false };
+const FLAT = BASE.map(() => 1);
+const base = { scales: FLAT, atkScales: FLAT, modScales: FLAT,
+  cycleCaps: BASE.map(e => Math.max(4, Math.round(e.hp / 3))) };
+const LAWS_BOTH = ["buildup", "overload"];
+const A = { ...base, laws: LAWS_BOTH, phaseless: false };
 const RUNS = 12;
 
 const target = measure(A, RUNS);
-console.log("A（位相あり＋順序依存）");
+console.log("A（位相あり）— 法則は両側とも 蓄積＋過負荷");
 console.log(`  詰みなし ${(target.T1 * 100).toFixed(1)}%  選択に勝目 ${(target.selectionLoose * 100).toFixed(1)}%`
   + `  並びの当り ${(target.permTight * 100).toFixed(1)}%  順序が効く ${(target.T3 * 100).toFixed(1)}%`);
 
@@ -27,11 +30,11 @@ const distance = m =>
   + Math.abs(m.selectionLoose - target.selectionLoose)
   + Math.abs(m.permTight - target.permTight) * 0.5;
 
-console.log("\nB（位相なし＋順序非依存）の敵HPを振る");
+console.log("\nB（位相なし）の敵HPを振る");
 console.log("  倍率   詰みなし  選択に勝目  並びの当り  順序が効く   Aとの隔たり");
 let best = null;
-for (const k of [0.4, 0.5, 0.6, 0.7, 0.85, 1.0]) {
-  const B = { ...base, laws: ["resonance", "balance"], phaseless: true,
+for (const k of [0.35, 0.45, 0.55, 0.65, 0.8, 1.0]) {
+  const B = { ...base, laws: LAWS_BOTH, phaseless: true,
     scales: base.scales.map(s => s * k) };
   const m = measure(B, RUNS);
   const d = distance(m);

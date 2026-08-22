@@ -125,7 +125,8 @@ function measure(row, runs = 60) {
   const simulate = makeSimulate(row.laws);
   const sets = reachableSets({ PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
     startContract: t => t.filter(x => PARTS[x].line === "strike").length >= 3
-      && t.filter(x => PARTS[x].line === "guard").length >= 2 }, { runs });
+      && t.filter(x => PARTS[x].line === "guard").length >= 2
+      && t.filter(x => PARTS[x].line === "service").length >= 1 }, { runs });
   const perBattle = BASE.map(() => ({ flawless: 0, won: 0, n: 0 }));
   let runFlawlessRates = [];
   for (let r = 0; r < runs; r += 1) {
