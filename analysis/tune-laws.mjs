@@ -192,9 +192,14 @@ for (let i = 0; i < LAW_IDS.length; i += 1) {
 
 const table = [];
 const rejected = [];
-pairs.forEach(pair => {
+// 進み具合を標準エラーへ出す。数分〜十数分かかるので、**黙って走る道具は壊れているのと見分けが付かない。**
+const started = Date.now();
+pairs.forEach((pair, n) => {
   const simulate = makeSimulate(pair);
   const name = pair.map(id => LAWS[id].name).join("＋");
+  const elapsed = (Date.now() - started) / 1000;
+  const eta = n ? ((elapsed / n) * (pairs.length - n)).toFixed(0) : "?";
+  process.stderr.write(`[${String(n + 1).padStart(3)}/${pairs.length}] ${name}　残り約${eta}秒\n`);
   const perEnemy = BASE.map((_, index) => tuneEnemy(simulate, index));
 
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
