@@ -45,6 +45,12 @@ assert.match(app, /filter\(v => !played\.has\(v\.laws\.join/, "未挑戦の組�
 // 版ごとに引く表が分かれていること。素の表を代償の版で使うと、実測で16組中15組が壊れる。
 assert.match(app, /function variantsOf\(/, "版ごとに引く表を分ける");
 assert.match(app, /COST_TABLE/, "代償の版の表を読み込む");
+// **?ruleset= が保存済みセッションに負けないこと。**
+// 対（?trial=）で同じ事故が起きている：URLで指したのに前のゲームが続き、
+// 作者は3組ぶん、遊んだつもりのないものを遊んだ。版でも同じ形の穴が空いていた。
+assert.match(app, /const wantedRuleset = params\.get\("ruleset"\)/, "URLの版を見る");
+assert.match(app, /String\(saved\.ruleset\)\.toLowerCase\(\) !== wantedRuleset\.toLowerCase\(\)/,
+  "保存済みと違う版を指されたら、指された方を始める");
 
 // 勝ち方の水準はルールセット側の判定を使う。画面の言葉と記録の水準がずれないように。
 assert.match(app, /rules\.outcomeLevel\(result\.won, result\.hp, result\.cycles\)/, "巡回込みの判定を使う");

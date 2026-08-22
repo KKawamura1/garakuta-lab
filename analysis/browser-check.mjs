@@ -95,6 +95,15 @@ try {
       console.log("連勝表示: **戦うボタンが見つからない**");
     }
   }
+  // **版の取り違え。**保存済みセッションがあるときに ?ruleset= で別の版を指したら、
+  // 指した方が始まること。ここが効いていないと、作者は前のゲームを遊び続ける。
+  if (process.env.CHECK_SWITCH) {
+    await page.goto(`http://localhost:${PORT}/play/?ruleset=ident`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(500);
+    const after = await page.locator("body").innerText();
+    const id = (after.match(/[a-z]+-\d+\.\d+/) || ["—"])[0];
+    console.log("切り替え後の版:", id, id.startsWith("ident") ? "（指したとおり）" : "**指したのに変わっていない**");
+  }
   console.log("エラー:", errs.length ? errs.slice(0, 4) : "なし");
   await browser.close();
   if (errs.length) process.exitCode = 1;
