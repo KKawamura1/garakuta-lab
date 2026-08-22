@@ -52,7 +52,25 @@ if (m.selectionLoose < 0.20) fail(`選べる部品が少なすぎる（${(m.sele
   if (!/暴走/.test(rules.rules)) fail("遊び方の文面に暴走が書かれていない");
 }
 
-// 5. 版の名前が分かれていること。**同じ名前で中身が違うのが一番たちが悪い。**
+// 5. **暴走の自傷が、送られる記録に載ること。**
+// 端末の要約にだけ入れて通報に載せ忘れる、を防ぐ（実際に一度そうなっていた）。
+{
+  const { createRun } = await import("../core/run.mjs");
+  const rules = makeLawRuleset(LAWS_USED, FLAT, FLAT, FLAT, CAPS, { overdrive: OVERDRIVE });
+  const run = createRun({ seed: 9, playerId: "smoke", ruleset: rules });
+  run.observe().inventory.slice(0, SLOT_COUNT)
+    .forEach((part, i) => run.act({ type: "place", partId: part.id, slot: i + 1 }));
+  run.act({ type: "battle", prediction: "圧勝", worry: "なし", worryText: "手応え:only" });
+  // `trace()` は配列ではなくオブジェクトを返し、通報に載るのは `events` だけである
+  // （`battles` は載らない。だから戦闘の要約に入れても送られない）。
+  const ended = (run.trace().events || []).find(e => e.type === "battle_ended");
+  if (!ended) fail("battle_ended が記録に無い");
+  if (!("overdriveSelf" in ended) || !("overdriveCycles" in ended)) {
+    fail("暴走の自傷が battle_ended に載っていない。端末に残るだけで送られない");
+  }
+}
+
+// 6. 版の名前が分かれていること。**同じ名前で中身が違うのが一番たちが悪い。**
 {
   const plain = makeLawRuleset(LAWS_USED, FLAT, FLAT, FLAT, CAPS, {}).id.split(":")[0];
   const cost = makeLawRuleset(LAWS_USED, FLAT, FLAT, FLAT, CAPS, { overdrive: OVERDRIVE }).id.split(":")[0];
