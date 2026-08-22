@@ -355,10 +355,13 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
         .map(([key, value]) => `${RESOURCE_LABELS[key]}${value}`).join(" ");
       // 数字が出ない効果（遮蔽・回復・加算）もログに出す。
       // 出ていないと、効いたのかどうかをプレイヤーが確かめられない。
+      // 法則で倍率が乗ったなら、それをログに出す。
+      // **法則は毎ラン変わるので、読んで覚えるのではなく、動いているのを見て分かる必要がある。**
+      const boost = entry.gain && entry.gain !== 1 ? `×${entry.gain} ` : "";
       const bits = [
-        entry.damage ? `${entry.damage}ダメージ` : "",
-        entry.shieldGained ? `遮蔽+${entry.shieldGained}` : "",
-        entry.healed ? `回復+${entry.healed}` : "",
+        entry.damage ? `${boost}${entry.damage}ダメージ` : "",
+        entry.shieldGained ? `${boost}遮蔽+${entry.shieldGained}` : "",
+        entry.healed ? `${boost}回復+${entry.healed}` : "",
         entry.selfDamage ? `自傷${entry.selfDamage}` : "",
         entry.boostUsed ? `＋${entry.boostUsed}を受けた` : "",
         entry.boostSet ? `次へ＋${entry.boostSet}` : ""

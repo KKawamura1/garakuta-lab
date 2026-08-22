@@ -184,3 +184,10 @@ input[type=text], select, textarea {
   background: #2a2f36; border: 1px solid #4a5260; color: #d6c68a; font-weight: 700;
 }
 .law-desc { color: var(--muted); }
+
+/* 倍率。法則は毎ラン変わるので、数字の横に出して「効いている」ことを見て分からせる。 */
+.phase-grid .cell-value { line-height: 1; }
+.phase-grid .cell-gain { font-size: 9px; margin-left: 2px; opacity: .85; }
+.phase-grid .cell.relay .cell-gain { color: #e8c86a; }
+.phase-grid .cell.damped { outline: 2px dashed #6c7480; outline-offset: -2px; }
+.phase-grid .cell.damped .cell-gain { color: #9aa3ae; }
