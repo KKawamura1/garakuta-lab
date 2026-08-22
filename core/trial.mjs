@@ -78,8 +78,10 @@ export const TRIALS = {
   // 攻撃力とHPを同時に振り、勝てる並びを揃えて天井だけを離す。
   //
   // 実測：詰みなし 95%/96%、勝てる並び 19%/14%、**天井 89% 対 18%**
+  // **休止中。**`pickTrial` の対象から外してある（下の RETIRED を見よ）。
   ceiling: {
     id: "ceiling",
+    retired: true,
     question: "最上位の等級が遠いことは、また遊びたくなる条件か",
     battles: BATTLES,
     sides: [
@@ -140,8 +142,15 @@ export function sideSpec(trialId, sideKey) {
 // 選ぶ手間も押し付けていた。
 //
 // 組数の少ない対から出す（同数なら乱択）。**均等に貯まるので、どれかだけ n が伸びない。**
+// **休止した対は出さない。**
+//
+// 天井（P12-b）は2組とも「気づかなかった」で、選択も1対1に割れた。
+// 89%対18%（4.9倍）動かして知覚されないなら、**それが面白さを動かしているとは考えにくい。**
+// 参照点 RELAY 0.1（作者評価5）が落ちる条件でもあり、私はこれを満たそうとして半日を溶かした。
+// 作者は「差もわからないし飽きてきた」と書いている。
+// **気づかれない対にこれ以上その時間を使わせない。**
 export function pickTrial(doneByTrial = {}, rand = Math.random) {
-  const ids = Object.keys(TRIALS);
+  const ids = Object.keys(TRIALS).filter(id => !TRIALS[id].retired);
   const least = Math.min(...ids.map(id => doneByTrial[id] || 0));
   const pool = ids.filter(id => (doneByTrial[id] || 0) === least);
   return pool[Math.floor(rand() * pool.length)];

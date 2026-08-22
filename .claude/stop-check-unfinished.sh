@@ -33,23 +33,27 @@ if [[ -f "$marker" ]]; then
   [[ "$when" -gt "$(date -u +%s)" ]] && exit 0
 fi
 
-# 積んであるだけ（着手中が無い）なら通す。backlog で毎回止めると雑音になる。
-[[ "$running" -eq 0 ]] && exit 0
+# **積んであるだけでも止める。**
+#
+# 最初は「着手中だけ」を見ていた。すると「これから〇〇をやります」と言って
+# タスクを pending のまま turn を返すと素通りする。**実際にそれで止まった。**
+# 開いているタスクがあって予約が無いなら、その作業は進まない。例外を作らない。
+# 作者の返事待ちなら、長めの予約を取っておけばよい（空振りの起床は安い）。
 
 subjects=$(grep -h -A1 '"id"' "$dir"/*.json 2>/dev/null | true)
 names=$(for f in "$dir"/*.json; do
-  grep -q '"status": *"in_progress"' "$f" 2>/dev/null && \
+  grep -qE '"status": *"(in_progress|pending)"' "$f" 2>/dev/null && \
     sed -n 's/.*"subject": *"\([^"]*\)".*/  - \1/p' "$f"
 done)
 
 cat >&2 <<MSG
-着手中のまま終わろうとしている作業が ${running} 件あります：
+終わっていない作業が $((running + pending)) 件あるのに、起床を予約していません：
 ${names}
 次のどれかにしてください。
   1. 終わらせる
   2. 背景で走らせる（Bash の run_in_background）— 終了時に起こされます
   3. send_later で予約し、発火時刻を .claude/next-wakeup に書く
      — 予約しなければ、この作業は二度と再開しません
-  4. 本当に作者の返事待ちなら、TaskUpdate で pending に戻す
+  4. 作者の返事待ちなら、長めの予約を取る（空振りの起床は安い）
 MSG
 exit 2

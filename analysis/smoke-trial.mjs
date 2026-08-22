@@ -11,7 +11,7 @@
 
 import { createRun } from "../core/run.mjs";
 import { makeLawRuleset, SLOT_COUNT, PARTS } from "../core/laws.mjs";
-import { TRIALS, sideSpec, sideOrder } from "../core/trial.mjs";
+import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
 import { measure } from "./pair-check.mjs";
 
 const fail = m => { console.error(`trial smoke: ${m}`); process.exit(1); };
@@ -27,6 +27,7 @@ const EXPECT = {
   speed: { separate: null, label: "等級の基準", match: ["T1", "overall", "ceiling"] }
 };
 
+// 休止した対も、対としては成立している必要がある（再開できる状態で置いておく）。
 for (const trial of Object.values(TRIALS)) {
   const want = EXPECT[trial.id];
   if (!want) fail(`${trial.id} に「何を揃えて何を離すか」が書かれていない`);
@@ -98,4 +99,14 @@ for (const trial of Object.values(TRIALS)) {
     : `${(a.m[want.separate] * 100).toFixed(0)}% 対 ${(b.m[want.separate] * 100).toFixed(0)}%`;
   console.log(`trial smoke: ${trial.id} の対が成立（${want.label} ${sep}、`
     + `詰みなし ${(a.m.T1 * 100).toFixed(0)}%/${(b.m.T1 * 100).toFixed(0)}%） OK`);
+}
+
+// 休止した対が、割り振りに出てこないこと。
+{
+  const live = Object.values(TRIALS).filter(t => !t.retired).map(t => t.id);
+  const drawn = new Set();
+  for (let i = 0; i < 200; i += 1) drawn.add(pickTrial({}, () => Math.random()));
+  const leaked = [...drawn].filter(id => !live.includes(id));
+  if (leaked.length) fail(`休止した対が割り振られている：${leaked.join(",")}`);
+  if (drawn.size !== live.length) fail(`出るはずの対が出ていない（${drawn.size} / ${live.length}）`);
 }
