@@ -108,6 +108,21 @@ export function sideSpec(trialId, sideKey) {
 // 最初は種の偶奇で決めていたが、**3組とも同じ順序になった**（1/8で起こる）。
 // 順序効果を相殺するために伏せて入れ替えているのに、偶然に任せると相殺できない。
 // n が小さいほど偏る確率が高いので、**乱数ではなく数え上げで交互にする。**
+// **どの対を出すかは、遊ぶ側に選ばせない。**
+//
+// リンクで `?trial=t2` のように指定していたが、**それだと何を検証中か分かってしまう。**
+// 作者の指摘：「リンクで指定するのが若干イケてないですかね。私がなんの仮説検証を
+// しているのか分かっちゃいますし。…私は無心でプレイするだけでいいと嬉しい」。
+// 選ぶ手間も押し付けていた。
+//
+// 組数の少ない対から出す（同数なら乱択）。**均等に貯まるので、どれかだけ n が伸びない。**
+export function pickTrial(doneByTrial = {}, rand = Math.random) {
+  const ids = Object.keys(TRIALS);
+  const least = Math.min(...ids.map(id => doneByTrial[id] || 0));
+  const pool = ids.filter(id => (doneByTrial[id] || 0) === least);
+  return pool[Math.floor(rand() * pool.length)];
+}
+
 export function sideOrder(trialId, playedCount = 0) {
   const keys = TRIALS[trialId].sides.map(s => s.key);
   return playedCount % 2 === 0 ? keys : [...keys].reverse();
