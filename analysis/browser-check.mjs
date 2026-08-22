@@ -74,6 +74,13 @@ try {
       console.log("候補の数: **当てる口が無い**");
     }
   }
+  // 代償の版：**決める場所（位相表）に暴走の行が出ているか。**
+  // 予告の一行だけだと、押したあとにしか分からない。
+  if (query.includes("cost")) {
+    const labels = await page.locator(".phase-grid .slot-label").allInnerTexts();
+    console.log("位相表の行:", labels.join(" / ") || "(行なし)");
+    console.log("暴走の行:", labels.includes("暴走") ? "出ている" : "**出ていない**");
+  }
   // 連勝の版：戦って、飛ばしが起きるか。**固まらないことも見る。**
   if (query.includes("skip")) {
     // 手応えを選ばないと戦えない（そういう作りにしてある）。先に1つ選ぶ。

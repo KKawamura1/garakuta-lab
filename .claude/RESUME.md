@@ -131,7 +131,10 @@ mcp__github__actions_run_trigger: export-playtests.yml / limit=10 / echo_to_log=
 - [ ] **公開**：`node analysis/stamp.mjs` → `sw.js` の `CACHE` を上げる → main へ
 - [x] **同定 ident-0.1 — 済。公開した（main b7ea7bf、sw v27）。**
       12通り試すと候補が91→1.8。`analysis/IDENT_0_1.md`、検査は `smoke-ident.mjs`
-- [ ] **いまここ → 連勝を褒めて戦闘を飛ばす（作者の提案、`agents/HYPOTHESIS_TESTING.md` 0.5）。**
+- [x] **連勝 skip-0.1 — 済。公開した（main 8ded1e5）。**頻度20%、2連鎖4%。`analysis/SKIP_0_1.md`
+- [x] **`?ruleset=` が効かない穴を直した**（main 0c966ea）。?trial= と同じ形の事故だった
+- [x] **朝の報告：`analysis/MORNING_2026-08-23.md`**
+- [ ] （済）連勝を褒めて戦闘を飛ばす（作者の提案、`agents/HYPOTHESIS_TESTING.md` 0.5）。**
       作者自身が出した仮説なのに、分解しただけで一度も作っていない。
       同じ並びのまま次も勝てるなら戦闘を飛ばし、「N strike!」と出す。
       **ゲーム内の報酬は与えない**（報酬は時間の節約そのもの）。
