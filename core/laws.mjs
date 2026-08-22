@@ -107,7 +107,19 @@ function emptyContribution(instance, parts) {
 }
 
 // 法則の組を受け取って、その組で動く simulateBattle を作る。
-export function makeSimulate(lawIds) {
+// 位相を外した作動判定。**T3（並び順が効く）の Recall テスト用。**
+//
+// 位相こそが「並び順が効く」の本体である。周期Pの部品を枠iに置くと (巡回-1)%P === i%P の
+// 巡回に作動する、という規則が、同じ持ち物でも並べ方で結果を変えている。
+// 法則を順序非依存のもの（共鳴＝作動数、均衡＝系統が揃っているか）に替えるだけでは足りず、
+// **枠の意味そのものを消さないと T3 は破れない。**
+// こちらでは、周期Pの部品はどの枠にあっても同じ巡回（1, 1+P, 1+2P …）に作動する。
+export function firesOnFlat(cycle, slotIndex, period) {
+  return (cycle - 1) % period === 0;
+}
+
+export function makeSimulate(lawIds, { phaseless = false } = {}) {
+  const fires = phaseless ? firesOnFlat : firesOn;
   const laws = lawIds.map(id => LAWS[id]).filter(Boolean);
   const orderLaw = laws.find(l => l.order)?.order || null;
   const periodLaws = laws.filter(l => l.period);
@@ -156,7 +168,7 @@ export function makeSimulate(lawIds) {
       // その巡回に作動する枠を先に確定させる。「同じ巡回に何個作動するか」を条件にできるようにするため。
       let firing = [];
       for (let i = 0; i < slots.length; i += 1) {
-        if (slots[i] && firesOn(battle.cycle, i, periodOf(parts[slots[i].type]))) firing.push(i);
+        if (slots[i] && fires(battle.cycle, i, periodOf(parts[slots[i].type]))) firing.push(i);
       }
       const firingCount = firing.length;
       if (orderLaw) firing = orderLaw(firing);
@@ -334,7 +346,8 @@ export function gradeFor(won, hpLost) {
 
 // 法則の組から、遊べるルールセットを組み立てる。
 // 敵の強さ（scale）は事前検証で決めた値をそのまま使う。ここで調整はしない。
-export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps) {
+export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, options = {}) {
+  const phaseless = Boolean(options.phaseless);
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
   const enemies = scaleEnemies(scales, atkScales, modScales, cycleCaps);
   return {
@@ -350,12 +363,15 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps) 
     deterministic: true,
     MAX_HP: 30, REPAIR_HP: 5, WIN_HEAL: 3, REWARD_CHOICES: 3,
     slotLabel: "位相列",
-    slotHint: "周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する",
-    simulateBattle: makeSimulate(lawIds),
+    slotHint: phaseless
+      ? "周期Pの部品は、どの枠にあっても 1, 1+P, 1+2P … 巡目に作動する（枠の位置は作動巡回に影響しない）"
+      : "周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する",
+    phaseless,
+    simulateBattle: makeSimulate(lawIds, { phaseless }),
     // 位相表が実際の作動巡回を描けるように、法則が変えた周期を外へ出す。
     periodOf: part => lawIds.map(id => LAWS[id]).filter(l => l && l.period)
       .reduce((p, law) => law.period(p), part.period),
-    predictionLevel, outcomeLevel, firesOn, LINES, GRADES, gradeFor,
+    predictionLevel, outcomeLevel, firesOn: phaseless ? firesOnFlat : firesOn, LINES, GRADES, gradeFor,
     startContract: types => {
       const count = line => types.filter(t => PARTS[t].line === line).length;
       return count("strike") >= 3 && count("guard") >= 2;
@@ -368,7 +384,9 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps) 
     }),
     rules: `【法則機関 / LAWS 0.1 遊び方】
 - 部品で機関を組み、6戦を勝ち抜く。操作は構築のみで、戦闘は自動。
-- 枠は5つ。周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する（位相）。
+- 枠は5つ。${phaseless
+  ? "周期Pの部品は、どの枠にあっても 1, 1+P, 1+2P … 巡目に作動する。"
+  : "周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する（位相）。"}
 - 巡回の中では枠1から順に作動する。
 - 遮蔽は巡回の終わりに消える。敵は自分の攻撃周期の巡回に殴る。12巡で決着しなければ敗北。
 - **敵には「1巡に通る合計の上限」がある。**一撃で倒し切ることはできないので、殴られる巡回が必ず来る。
