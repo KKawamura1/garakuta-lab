@@ -149,7 +149,9 @@ mcp__github__actions_run_trigger: export-playtests.yml / limit=10 / echo_to_log=
 
 ## 今夜やったこと（2026-08-23 深夜）
 
-公開した版：**COST 0.1 / IDENT 0.1 / SKIP 0.1**（main、sw v34）。
+公開した版：**COST 0.1 / IDENT 0.1 / SKIP 0.1 / SQUEEZE 0.1**（main、sw v37）。
+IDENT は測り直したら一瞬で解ける（位相表が値を出すため）。作者の判断待ち。
+SQUEEZE は COST の抜け道（遅く行けば無傷）を毎巡回復で塞いだ版。
 そのあと画面の側から見直して出した不具合：
 
 - SKIP の飛ばしが**一度も起きていなかった**（呼ぶ場所が報酬の段階だった）
