@@ -54,4 +54,36 @@ if (inLaws !== RULES_VERSION) {
   process.exit(1);
 }
 
-console.log(`version smoke: ${RULES_VERSION}（指紋 ${now}）が3箇所で揃っている OK`);
+// **目に入る名前も、版ごとに変わること。**
+// title が全版「法則機関」に固定されていて、遊び方の見出しも同じで、
+// 変わっていたのは小さなIDだけだった。作者：「変わってるのか変わってないのかわからない」。
+{
+  const seen = new Map();
+  const cases = [
+    ["法則機関", {}], ["代償機関", { overdrive: { frac: 0.5, rate: 1 } }],
+    ["締付機関", { overdrive: { frac: 0.5, rate: 1 }, regenFrac: 0.03 }],
+    ["同定機関", { hidden: true }], ["連勝機関", { skipWins: true }]
+  ];
+  cases.forEach(([want, options]) => {
+    const r = makeLawRuleset(["relay", "vanguard"], FLAT, FLAT, FLAT, CAPS, options);
+    const head = r.title.split(" / ")[0];
+    if (head !== want) {
+      console.error(`version smoke: 見出しが「${head}」（要「${want}」）。版が変わったのに名前が変わらない`);
+      process.exit(1);
+    }
+    if (!r.rules.startsWith(`【${want} `)) {
+      console.error(`version smoke: 遊び方の見出しが版に合っていない（${r.rules.split("\n")[0]}）`);
+      process.exit(1);
+    }
+    if (seen.has(head)) { console.error(`version smoke: 見出しが重複（${head}）`); process.exit(1); }
+    seen.set(head, true);
+  });
+  // 伏せた版は、見出しにも法則を出さない。
+  const hid = makeLawRuleset(["relay", "vanguard"], FLAT, FLAT, FLAT, CAPS, { hidden: true });
+  if (/継電|先陣|relay|vanguard/.test(hid.title)) {
+    console.error(`version smoke: 伏せた版の見出しに法則が出ている（${hid.title}）`);
+    process.exit(1);
+  }
+}
+
+console.log(`version smoke: ${RULES_VERSION}（指紋 ${now}）が3箇所で揃っている / 版ごとに名前が違う OK`);
