@@ -55,4 +55,16 @@ assert.match(app, /type: "preview"/, "preview 行動として記録する");
 assert.match(app, /session\.actions\.push\(\{ \.\.\.action, at: new Date\(\)\.toISOString\(\) \}\);/,
   "再生で消えないよう actions に入れる");
 
+// build の印が画面に出ていること。
+// **規則の版だけでは「公開したものが届いたか」を作者が確かめられない**
+// （規則を変えない公開では版が動かないので、古いキャッシュと見分けがつかない）。
+{
+  const head = readFileSync("play/app.js", "utf8");
+  const html = readFileSync("play/index.html", "utf8");
+  if (!/BUILD/.test(head)) { console.error("play smoke: build の印が画面に出ていない"); process.exit(1); }
+  if (!/id="build"/.test(html)) { console.error("play smoke: build を出す場所が無い"); process.exit(1); }
+  const { BUILD } = await import("../core/build.mjs");
+  if (!/^[0-9a-f]{7,} \/ /.test(BUILD)) { console.error(`play smoke: build の印の形が違う（${BUILD}）`); process.exit(1); }
+}
+
 console.log("play smoke: 版の表示・ゲーム切り替え・食い違い通知・手持ち・等級と試行の記録 OK");
