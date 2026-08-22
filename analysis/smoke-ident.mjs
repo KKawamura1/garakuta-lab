@@ -43,4 +43,9 @@ for (const v of sample) {
   }
   left.push(r[TRIES]);
 }
+// **画面に出ている情報で測ると、一瞬で決まる**（`analysis/IDENT_0_1.md`）。
+// 検査としては落とさない——版が壊れているのではなく、**主張が成り立っていない**のであって、
+// 直し方（表を潰すか、畳むか）は作者の判断だからである。**毎回目に入るように印字する。**
 console.log(`ident smoke: ${TRIES}通り試すと候補は ${left.join("/")} 通りまで絞れる（91通り中） OK`);
+console.log("  ※ ただし位相表の値まで見ると**1通りで決まる**。いまの形では同定になっていない"
+  + "（`node analysis/identify.mjs --cells`）");
