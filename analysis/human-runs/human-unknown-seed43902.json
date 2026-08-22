@@ -1,0 +1,1474 @@
+{
+ "seed": 43902,
+ "playerId": "human-play",
+ "head": "play",
+ "ruleset": "unknown",
+ "survey": {
+  "fun": 1,
+  "replay": 2,
+  "gapReason": "全然継電以外のルール来ないし、楽勝だし、もういいや",
+  "pivot": "なかった",
+  "settledAt": "1",
+  "bestMoment": "",
+  "friction": "どうせ勝ち",
+  "runStory": "どうせ勝ち"
+ },
+ "actionCount": 35,
+ "reportedStats": {
+  "seed": 43902,
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 30,
+  "battles": 6,
+  "surprise": {
+   "better": 0,
+   "expected": 6,
+   "worse": 0
+  },
+  "deadTime": 6,
+  "flawlessBattles": 6,
+  "flawlessBattleRate": 1,
+  "idleBattles": 4,
+  "idleBattleRate": 0.667,
+  "phaseMoves": 0,
+  "phaseMoveRate": 0,
+  "pivotRate": 0,
+  "reinterpretationRate": 0,
+  "gateConcentration": 0.749,
+  "gateRanking": [
+   {
+    "name": "崩落砲",
+    "share": 0.749
+   },
+   {
+    "name": "貫錐",
+    "share": 0.15
+   },
+   {
+    "name": "連射",
+    "share": 0.068
+   }
+  ],
+  "worryConcentration": 1,
+  "problemChainRate": 0,
+  "worryCounts": {
+   "なし": 6
+  },
+  "updateCounts": {
+   "confirmed": 1
+  },
+  "tensionCurve": [
+   3,
+   3,
+   3,
+   3,
+   3,
+   3
+  ],
+  "tenseBattleRate": 0,
+  "markerCounts": {
+   "friction": 3,
+   "hit": 1,
+   "payoff": 1
+  },
+  "markerTotal": 5,
+  "rewardsTaken": 1,
+  "rewardsSkipped": 4,
+  "rewardCount": 5,
+  "warnings": [
+   {
+    "code": "dead_time",
+    "detail": "末尾に無傷勝利が6戦続いた（決着後の惰性）"
+   },
+   {
+    "code": "no_pressure",
+    "detail": "100%の戦闘を無傷で勝った（圧力が無い）"
+   },
+   {
+    "code": "idle_build",
+    "detail": "67%の戦闘を、構成に触れずに戦った（判断が発生していない）"
+   },
+   {
+    "code": "single_gate",
+    "detail": "出力の75%が崩落砲に集中"
+   },
+   {
+    "code": "single_worry",
+    "detail": "不安の100%が一つの機能に集中"
+   },
+   {
+    "code": "no_problem_chain",
+    "detail": "問題が入れ替わらず同じ不足が続いた"
+   },
+   {
+    "code": "no_pivot",
+    "detail": "稼働列が一度も大きく変わらなかった"
+   },
+   {
+    "code": "no_reinterpretation",
+    "detail": "既存部品の評価が一度も変わらなかった"
+   },
+   {
+    "code": "no_tension",
+    "detail": "一度も苦戦を予期しなかった"
+   }
+  ],
+  "actionCount": 35,
+  "previewCount": 12,
+  "bestsAtEnd": {
+   "relay:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 11
+   },
+   "relay:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 11
+   },
+   "relay:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 12
+   },
+   "relay:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 11
+   },
+   "relay:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 9
+   },
+   "relay:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 5
+   },
+   "laws:relay+balance:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+silence:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+reflect:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+balance:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+balance:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+balance:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:環甲": {
+    "rank": 3,
+    "label": "上々",
+    "cycles": 1
+   },
+   "laws:relay+wear:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   }
+  }
+ },
+ "moments": [
+  {
+   "seq": 2,
+   "wave": 1,
+   "phase": "build",
+   "kind": "friction",
+   "note": "まーーーた継電かい"
+  },
+  {
+   "seq": 3,
+   "wave": 1,
+   "phase": "build",
+   "kind": "friction",
+   "note": "！　継電と単調って、相性悪すぎやんけ"
+  },
+  {
+   "seq": 8,
+   "wave": 2,
+   "phase": "build",
+   "kind": "friction",
+   "note": "あ、またやっちゃった😅"
+  },
+  {
+   "seq": 9,
+   "wave": 2,
+   "phase": "build",
+   "kind": "hit",
+   "note": "と思ったけど圧倒的火力で破壊できた"
+  },
+  {
+   "seq": 13,
+   "wave": 3,
+   "phase": "reward",
+   "kind": "payoff",
+   "note": "もう正直何しても勝ちなんで"
+  }
+ ],
+ "trace": {
+  "seed": 43902,
+  "ruleset": "unknown",
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 30,
+  "battles": [
+   {
+    "battleNumber": 1,
+    "enemy": "標的機",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 6,
+    "editBreakdown": {
+     "place": 4,
+     "remove": 0,
+     "swap": 2,
+     "scrap": 0,
+     "repair": 0,
+     "total": 6
+    },
+    "contributions": [
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 11,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 10,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 80,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 2,
+    "enemy": "環甲",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 1,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 1
+    },
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 14,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 14,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 12,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 14,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 3,
+    "enemy": "大顎",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    },
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 4,
+    "enemy": "鋼芯",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    },
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 1,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 5,
+    "enemy": "双翼",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    },
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 6,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 6,
+    "enemy": "再生炉",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    },
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 12,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   }
+  ],
+  "rewards": [
+   {
+    "wave": 2,
+    "offered": [
+     "崩落砲",
+     "厚殻",
+     "打鋲"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "厚殻",
+     "打鋲"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 3,
+    "offered": [
+     "打鋲",
+     "連射",
+     "整流器"
+    ],
+    "chosen": null,
+    "passed": [],
+    "update": "none"
+   },
+   {
+    "wave": 4,
+    "offered": [
+     "偏向板",
+     "過給器",
+     "双撃"
+    ],
+    "chosen": null,
+    "passed": [],
+    "update": "none"
+   },
+   {
+    "wave": 5,
+    "offered": [
+     "環流管",
+     "崩落砲",
+     "偏向板"
+    ],
+    "chosen": null,
+    "passed": [],
+    "update": "none"
+   },
+   {
+    "wave": 6,
+    "offered": [
+     "崩落砲",
+     "厚殻",
+     "双撃"
+    ],
+    "chosen": null,
+    "passed": [],
+    "update": "none"
+   }
+  ],
+  "events": [
+   {
+    "seq": 1,
+    "type": "run_started",
+    "wave": 1,
+    "phase": "build",
+    "initial": [
+     "整流器",
+     "薄殻",
+     "打鋲",
+     "偏向板",
+     "貫錐",
+     "環流管",
+     "連射",
+     "崩落砲"
+    ]
+   },
+   {
+    "seq": 2,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "friction",
+    "note": "まーーーた継電かい"
+   },
+   {
+    "seq": 3,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "friction",
+    "note": "！　継電と単調って、相性悪すぎやんけ"
+   },
+   {
+    "seq": 4,
+    "type": "battle_predicted",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "標的機",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:only",
+    "build": [
+     null,
+     "打鋲",
+     "貫錐",
+     "連射",
+     "崩落砲"
+    ],
+    "buildSignature": "-,p3,p5,p7,p8",
+    "editsSincePrevious": 6,
+    "editBreakdown": {
+     "place": 4,
+     "remove": 0,
+     "swap": 2,
+     "scrap": 0,
+     "repair": 0,
+     "total": 6
+    }
+   },
+   {
+    "seq": 5,
+    "type": "battle_ended",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "標的機",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "-,p3,p5,p7,p8",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 6,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "collapse,-,-,-,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "collapse,flurry,-,-,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "collapse,flurry,-,rivet,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "collapse,rivet,-,flurry,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "collapse,rivet,auger,flurry,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "-,rivet,auger,flurry,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 11,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 10,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 80,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 6,
+    "type": "reward_offered",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "崩落砲",
+     "厚殻",
+     "打鋲"
+    ]
+   },
+   {
+    "seq": 7,
+    "type": "reward_chosen",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "崩落砲",
+     "厚殻",
+     "打鋲"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "厚殻",
+     "打鋲"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 8,
+    "type": "emotion_marked",
+    "wave": 2,
+    "phase": "build",
+    "kind": "friction",
+    "note": "あ、またやっちゃった😅"
+   },
+   {
+    "seq": 9,
+    "type": "emotion_marked",
+    "wave": 2,
+    "phase": "build",
+    "kind": "hit",
+    "note": "と思ったけど圧倒的火力で破壊できた"
+   },
+   {
+    "seq": 10,
+    "type": "battle_predicted",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "環甲",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:only",
+    "build": [
+     "崩落砲",
+     "打鋲",
+     "貫錐",
+     "連射",
+     "崩落砲"
+    ],
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "editsSincePrevious": 1,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 1
+    }
+   },
+   {
+    "seq": 11,
+    "type": "battle_ended",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "環甲",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 2,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "-,rivet,auger,flurry,collapse",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "collapse,rivet,auger,flurry,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 14,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 14,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 12,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 14,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 12,
+    "type": "reward_offered",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "打鋲",
+     "連射",
+     "整流器"
+    ]
+   },
+   {
+    "seq": 13,
+    "type": "emotion_marked",
+    "wave": 3,
+    "phase": "reward",
+    "kind": "payoff",
+    "note": "もう正直何しても勝ちなんで"
+   },
+   {
+    "seq": 14,
+    "type": "reward_scrapped",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "打鋲",
+     "連射",
+     "整流器"
+    ],
+    "reason": ""
+   },
+   {
+    "seq": 15,
+    "type": "battle_predicted",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "大顎",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:settled",
+    "build": [
+     "崩落砲",
+     "打鋲",
+     "貫錐",
+     "連射",
+     "崩落砲"
+    ],
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    }
+   },
+   {
+    "seq": 16,
+    "type": "battle_ended",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "大顎",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 1,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "collapse,rivet,auger,flurry,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 17,
+    "type": "reward_offered",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "偏向板",
+     "過給器",
+     "双撃"
+    ]
+   },
+   {
+    "seq": 18,
+    "type": "reward_scrapped",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "偏向板",
+     "過給器",
+     "双撃"
+    ],
+    "reason": ""
+   },
+   {
+    "seq": 19,
+    "type": "battle_predicted",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "鋼芯",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:settled",
+    "build": [
+     "崩落砲",
+     "打鋲",
+     "貫錐",
+     "連射",
+     "崩落砲"
+    ],
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    }
+   },
+   {
+    "seq": 20,
+    "type": "battle_ended",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "鋼芯",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 1,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "collapse,rivet,auger,flurry,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 1,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 2,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 21,
+    "type": "reward_offered",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "環流管",
+     "崩落砲",
+     "偏向板"
+    ]
+   },
+   {
+    "seq": 22,
+    "type": "reward_scrapped",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "環流管",
+     "崩落砲",
+     "偏向板"
+    ],
+    "reason": ""
+   },
+   {
+    "seq": 23,
+    "type": "battle_predicted",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双翼",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:settled",
+    "build": [
+     "崩落砲",
+     "打鋲",
+     "貫錐",
+     "連射",
+     "崩落砲"
+    ],
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    }
+   },
+   {
+    "seq": 24,
+    "type": "battle_ended",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双翼",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 1,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "collapse,rivet,auger,flurry,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 6,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 25,
+    "type": "reward_offered",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "崩落砲",
+     "厚殻",
+     "双撃"
+    ]
+   },
+   {
+    "seq": 26,
+    "type": "reward_scrapped",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "崩落砲",
+     "厚殻",
+     "双撃"
+    ],
+    "reason": ""
+   },
+   {
+    "seq": 27,
+    "type": "battle_predicted",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "再生炉",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:settled",
+    "build": [
+     "崩落砲",
+     "打鋲",
+     "貫錐",
+     "連射",
+     "崩落砲"
+    ],
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    }
+   },
+   {
+    "seq": 28,
+    "type": "battle_ended",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "再生炉",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p9,p3,p5,p7,p8",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 1,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "collapse,rivet,auger,flurry,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 40,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "貫錐",
+      "activations": 1,
+      "damage": 17,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 12,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 29,
+    "type": "run_ended",
+    "wave": 6,
+    "phase": "end",
+    "won": true,
+    "reached": 6
+   },
+   {
+    "seq": 30,
+    "type": "survey",
+    "wave": 6,
+    "phase": "end",
+    "fun": 1,
+    "replay": 2,
+    "gapReason": "全然継電以外のルール来ないし、楽勝だし、もういいや",
+    "bestMoment": "",
+    "pivot": "なかった",
+    "settledAt": "1",
+    "runStory": "どうせ勝ち",
+    "friction": "どうせ勝ち",
+    "wishlist": ""
+   }
+  ]
+ }
+}

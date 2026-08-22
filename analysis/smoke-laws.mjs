@@ -110,13 +110,23 @@ table.forEach(row => {
   row.laws.forEach(id => { if (!LAWS[id]) fail(`表に未知の法則 ${id} がある`); });
   if (!Array.isArray(row.scales) || row.scales.length !== BASE.length) fail(`${row.name} の敵HP倍率が足りない`);
   if (!Array.isArray(row.atkScales) || row.atkScales.length !== BASE.length) fail(`${row.name} の攻撃倍率が足りない`);
-  // 天井の条件（P12-b）。第10回はこれを見ずに出して、1ランで天井を失った。
-  if (row.flawlessReach > 0.5) fail(`${row.name} の天井が近い（${row.flawlessReach}）`);
+  // 天井（P12-b）。**2026-08-22 の作者判断で、今回だけ天井を通さない版を出している**
+  // （T1と同時に満たせないことが判明し、参照点 RELAY 0.1 でも71%だった。agents/PROTOCOL.md 参照）。
+  // なので「通っていること」ではなく「**通ったかどうかを表に正直に書いてあること**」を検査する。
+  // 隠して出すのと、承知の上で出すのは違う。機械で守れるのは後者である。
+  if (typeof row.ceilingPassed !== "boolean") fail(`${row.name} に天井の合否が記録されていない`);
+  if (row.ceilingPassed !== row.flawlessReach <= 0.5) fail(`${row.name} の天井の合否が値と食い違う`);
+  // 1巡決着が起きないこと。**これは今回の版の存在理由なので、緩められない。**
+  if (!Array.isArray(row.cycleCaps)) fail(`${row.name} に1巡上限が無い`);
+  row.enemyHp.forEach((hp, i) => {
+    const least = Math.ceil(hp / row.cycleCaps[i]);
+    if (least < 3) fail(`${row.name} の敵${i + 1}は最低${least}巡で倒せる（1巡決着を潰した意味が無い）`);
+  });
 });
 
 // 5. 表の組は実際に遊べること。
 table.slice(0, 5).forEach(row => {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales, row.cycleCaps);
   const run = createRun({ seed: 3, playerId: "smoke", ruleset: rules });
   const observation = run.observe();
   if (observation.slots.length !== SLOT_COUNT) fail(`${row.name} の枠数が違う`);
@@ -135,7 +145,7 @@ table.slice(0, 5).forEach(row => {
 // 敵の説明文と数値が一致していること。
 // RELAY で一度、調律後に説明文だけ古いまま残した。組ごとに数値が変わる法則機関では必ず起きる。
 table.slice(0, 5).forEach(row => {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales, row.cycleCaps);
   rules.ENEMIES.forEach(enemy => {
     if (!enemy.trait.includes(String(enemy.atk))) fail(`${row.name} の ${enemy.name}：説明に攻撃力 ${enemy.atk} が無い`);
     if (enemy.cap < 99 && !enemy.trait.includes(String(enemy.cap))) fail(`${row.name} の ${enemy.name}：説明に命中上限が無い`);

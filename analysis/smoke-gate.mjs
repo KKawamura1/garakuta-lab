@@ -45,4 +45,22 @@ checks.forEach(({ what, registered, code }) => {
 assert.match(protocol, /最上位等級の1戦あたり到達率が50%未満/, "P12-b の登録文が無い");
 assert.match(gate, /const CEILING = 0\.50/, "P12-b の実装が登録と違う");
 
+// 粗い篩は、**落とす権限だけ**を持つこと。
+//
+// 速い方に合否を決めさせると「分母をすり替えて数字を良くする」そのものになる。
+// 機械で守れるのは次の二つ：篩の線が本番の条件より十分に遠いこと、
+// そして篩が本番の後ではなく前に走ること（＝篩の結果が表へ直接入らないこと）。
+{
+  const tuner = gate;
+  const drop = Number((tuner.match(/const SCREEN_DROP = ([\d.]+)/) || [])[1]);
+  const ceiling = Number((tuner.match(/const CEILING = ([\d.]+)/) || [])[1]);
+  if (!drop || !ceiling) assert.fail("篩の線か天井の条件が読めない");
+  if (drop <= ceiling * 1.5) assert.fail(`篩の線（${drop}）が天井の条件（${ceiling}）に近すぎる`);
+  if (!/rough[\s\S]{0,400}flawlessReach/.test(tuner)) assert.fail("篩が天井以外で落としている");
+  // 篩の測定結果（rough）が表へ流れ込まないこと。表は本番の走行からしか作られない。
+  const roughLines = tuner.split("\n").filter(l => /\brough\b/.test(l));
+  if (!roughLines.length) assert.fail("篩の測定結果が見つからない");
+  if (roughLines.some(l => /table\.push|LAW_TABLE/.test(l))) assert.fail("篩の結果が表へ直接入っている");
+}
+
 console.log(`gate smoke: 事前登録の閾値と実装が一致（${checks.length + 3}件） OK`);

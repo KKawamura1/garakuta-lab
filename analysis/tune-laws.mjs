@@ -1,4 +1,7 @@
 import { writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { cpus } from "node:os";
+import { fileURLToPath } from "node:url";
 import { makeSimulate, scaleEnemies, BASE, LAW_IDS, LAWS, PARTS, SLOT_COUNT } from "../core/laws.mjs";
 import { reachableSets, SAFE_HP } from "./sets.mjs";
 import { makeRng } from "../core/rng.mjs";
@@ -26,10 +29,23 @@ const MAX_HP = 30;
 const DUMMY_HP = 1e9;
 // 合格した6組はほぼ全部が上限の3.2を使っていた。**探索の端に張り付いているのは、
 // 範囲が足りていない印である。** 上を伸ばす（閾値ではなく探索範囲の話なので、後出しの緩和ではない）。
-const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2];
+// 上を 4.5・6 まで戻した。**絞った理由が、1巡上限を入れたことで消えたからである。**
+// 絞ったときの理由は「攻撃力を上げるほど勝ち＝完全防御になり、勝利と無傷が同じ集合へ収束する」。
+// これは**速く殺して敵の行動前に終わらせる**道が開いていたときの話で、
+// 1巡に通る上限を入れて最低3巡かかるようにした今は、その回避路が無い。
+// 閾値ではなく探索範囲の話である。
+const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2, 4.5, 6];
 // 命中上限・下限の倍率。**法則が1回の命中の大きさを掛け算で動かすので、それへの条件も一緒に振る。**
 // 素の値だけだと環甲（上限14）がどの組でも帯に入らず、91組すべてがそこで落ちた。
 const MOD_CANDIDATES = [1, 1.6, 2.5];
+// 1巡に通る合計の上限。**素のHPに対する比で候補を持つ。**
+//
+// HPに連動させると、一度の戦闘から任意の敵HPを読み出す高速化（下の capacity）が壊れる。
+// 上限が変われば戦闘そのものが変わるので、HPと一緒には動かせない。
+// よって上限は独立した軸として探索し、**選ばれたHPが上限の3倍以上あること**を後で課す。
+// それで「どんな並びでも最低3巡かかる」が保証され、1巡決着が構造的に起きない。
+const CYCLECAP_CANDIDATES = [1 / 5, 1 / 3];
+const MIN_CYCLES = 3;
 // 上を 4.5・6 まで伸ばしていたのをやめた。**攻撃力を上げるほど「勝ち＝完全防御」になり、
 // 勝利と無傷が同じものへ収束する**（実測：攻×6の環甲は勝率9.3%なのに無傷が8.9%）。
 // 天井を下げたいのに、上げる方向の手だった。閾値ではなく探索範囲の話である。
@@ -158,13 +174,17 @@ function tuneEnemy(simulate, index) {
   // 早く抜けると、後の候補の方が良かった場合を取り逃す（前の版はそれで帯を外していた）。
   // 修飾を持たない敵では倍率を振っても何も変わらないので、候補を1つに畳む（無駄な再計算を避ける）。
   const modList = (base.cap < 99 || base.floor) ? MOD_CANDIDATES : [1];
-  for (const atkScale of ATK_CANDIDATES) for (const modScale of modList) {
+  for (const atkScale of ATK_CANDIDATES) for (const modScale of modList)
+  for (const capFrac of CYCLECAP_CANDIDATES) {
+    const cycleCap = Math.max(4, Math.round(base.hp * capFrac));
     const template = {
-      ...base,
+      ...base, cycleCap,
       atk: Math.max(1, Math.round(base.atk * atkScale)),
       cap: base.cap < 99 ? Math.max(2, Math.round(base.cap * modScale)) : base.cap,
       floor: base.floor ? Math.max(2, Math.round(base.floor * modScale)) : base.floor
     };
+    // 最低巡回数が確保できないHPは、そもそも探索範囲から外す。
+    const floorScale = (MIN_CYCLES * cycleCap) / base.hp;
     const caps = situations.map(s => {
       const rng = makeRng(s.run * 977 + index);
       return arrangementsOf(s.owned, rng).map(order => capacity(simulate, order, template));
@@ -191,17 +211,21 @@ function tuneEnemy(simulate, index) {
     // 学び#33・#52 で二度書いた「緩い端を選んで合格にする」を、三度目に踏んでいた。
     // 閾値は一つも動かしていない。**帯の中のどこを選ぶかという探索の話である。**
     const top = Math.min(smax, Math.max(smin, sfloor));
+    const low = Math.max(smin, floorScale);   // 1巡上限の3倍のHPを下回らない
     let best = null;
     for (let step = 0; step <= 12; step += 1) {
-      const scale = smin + ((top - smin) * step) / 12;
-      if (scale <= 0) continue;
+      const scale = low + ((top - low) * step) / 12;
+      if (scale <= 0 || scale < floorScale) continue;
       const m = measureEnemy(caps, scale, base);
       if (m.safeRate < T1_SAFE) break;              // ここから上は詰みが出る
       if (m.winMedian < T2_BAND[0]) break;          // ここから上は締めすぎ
       if (!best || m.flawlessMean < best.flawlessMean) best = { ...m, scale };
     }
-    if (!best) best = { ...measureEnemy(caps, Math.min(smin, smax), base), scale: Math.min(smin, smax) };
-    const found = { ...best, atkScale, modScale, smin, smax, sfloor };
+    if (!best) {
+      const fallback = Math.max(floorScale, Math.min(smin, smax));
+      best = { ...measureEnemy(caps, fallback, base), scale: fallback };
+    }
+    const found = { ...best, atkScale, modScale, cycleCap, smin, smax, sfloor };
     found.score =
       (found.safeRate >= T1_SAFE ? 8 : 0)
       + (found.winMedian <= T2_BAND[1] && found.winMedian >= T2_BAND[0] ? 4 : 0)
@@ -227,17 +251,94 @@ if (only) {
     && pairs.splice(0, pairs.length, ...pairs.filter(p => want.has([...p].sort().join("+")))).length ? pairs.length : 0;
 }
 
+// **並列に走らせる。** この環境は4コアで、組ごとの評価は完全に独立している。
+// 直列だと91組で13分かかり、その間ずっと1コアしか動いていなかった。
+// `--slice=i/n` を受けた子は自分の担当だけを評価して JSON を吐き、親が束ねる。
+const slice = args.slice ? String(args.slice).split("/").map(Number) : null;
+if (slice) {
+  const [index, total] = slice;
+  const mine = pairs.filter((_, i) => i % total === index);
+  pairs.length = 0;
+  pairs.push(...mine);
+}
+
 const table = [];
 const rejected = [];
+
+// 親は自分では測らず、子を起こして束ねるだけ。`--workers=1` で直列（旧来の挙動）に戻せる。
+const workers = slice ? 1 : Number(args.workers || Math.min(4, cpus().length));
+const self = fileURLToPath(import.meta.url);
+const passthrough = process.argv.slice(2).filter(a => !/^--(workers|slice|emit|sets|cap|only|screen|percap)=/.test(a));
+
+function runWorkers(extra, list, label) {
+  const started = Date.now();
+  let finished = 0;
+  const only = list ? [`--only=${list.map(p => p.join("+")).join(",")}`] : [];
+  return Promise.all(Array.from({ length: workers }, (_, i) => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath,
+      [self, ...passthrough, ...extra, ...only, `--slice=${i}/${workers}`, "--emit=json"],
+      { stdio: ["ignore", "pipe", "inherit"] });
+    let out = "";
+    child.stdout.on("data", d => { out += d; });
+    child.on("error", reject);
+    child.on("close", code => {
+      if (code !== 0) return reject(new Error(`子${i}が異常終了しました（${code}）`));
+      finished += 1;
+      if (finished === workers) {
+        process.stderr.write(`${label}：並列${workers}で${((Date.now() - started) / 1000).toFixed(0)}秒\n`);
+      }
+      try { resolve(JSON.parse(out)); } catch (e) { reject(new Error(`子${i}の出力が読めません: ${e.message}`)); }
+    });
+  })));
+}
+
+// **粗い篩。** 落とす権限だけを持ち、通す権限は持たない。
+//
+// 86組が落ちるのに全組へ最大精度をかけていた。粗く測って**明らかに届かないものだけ**を外す。
+// 外す線（天井90%）は本来の条件（50%）から遠く取ってある。標本が粗いぶん誤差で動くので、
+// **間違えるなら厳しすぎる側に倒れるようにする**（＝残しすぎる方向）。
+// 合否はこのあとの本番だけが決める。**速い方に合否を決めさせると、分母のすり替えになる。**
+// 実測（2026-08-22、本番の4組を参照点に）：
+//   並び60本  … 真値44%の組が98%と出た。**上振れする＝落としてはいけないものを落とす。** 使えない。
+//   並び120本 … 真値 44/26/40/38% に対し 47/36/40/19%。追随する。
+// よって篩は120本で走らせ、線は0.95に置く（本番の条件は0.50、篩で見た合格組の最大は47%）。
+// **粗くすると天井は高く出る**（帯の端が荒れて、探索が悪い方に落ちる）ので、
+// 誤差は必ず「落としすぎ」の側に出る。線を遠くに置くのはそのためである。
+const SCREEN_DROP = 0.95;
+let toEvaluate = pairs;
+if (args.screen && !slice && !args.noceiling) {
+  // **局面数（sets）は削らない。** 削ると「T3を判定できる標本数か」の番人（学び#52の規則2）に
+  // 引っかかって子が落ちる。番人が正しいので、こちらが削る対象を変える。
+  // 篩が見るのは天井だけで、天井は並びの側の量なので、**並びの本数（cap）だけを削る。**
+  // **敵も減らす。** 天井は戦闘ごとの最大なので、**一部の戦闘だけ見て超えていれば、
+  // それだけで落とす根拠になる。** 見なかった戦闘は最大値を下げる側にしか効かないので、
+  // 敵を省くことで「落としてはいけないものを落とす」ことは起きない。
+  // 並び120本 × 敵3体で、本番の約2割の費用になる。
+  const rough = await runWorkers([`--sets=${setRuns}`, `--cap=${args.screencap || 120}`,
+    `--enemies=${args.screenenemies || 3}`, "--percap=99"], null, "粗い篩");
+  const all = rough.flatMap(part => [...part.table, ...part.rejected]);
+  const drop = new Set(all.filter(r => (r.flawlessReach ?? 0) > SCREEN_DROP).map(r => r.name));
+  toEvaluate = pairs.filter(p => !drop.has(p.map(id => LAWS[id].name).join("＋")));
+  process.stderr.write(`  ${pairs.length}組中${drop.size}組を篩で落とし、${toEvaluate.length}組を本番へ\n`);
+}
+
+if (workers > 1 && !slice) {
+  const parts = await runWorkers([`--sets=${setRuns}`, `--cap=${cap}`], toEvaluate, "本番");
+  parts.forEach(part => { table.push(...part.table); rejected.push(...part.rejected); });
+  const checked = parts.reduce((n, part) => n + part.checked, 0);
+  if (checked !== toEvaluate.length) throw new Error(`${toEvaluate.length}組のうち${checked}組しか評価されていません`);
+}
+
 // 進み具合を標準エラーへ出す。数分〜十数分かかるので、**黙って走る道具は壊れているのと見分けが付かない。**
 const started = Date.now();
-pairs.forEach((pair, n) => {
+(workers > 1 ? [] : pairs).forEach((pair, n) => {
   const simulate = makeSimulate(pair);
   const name = pair.map(id => LAWS[id].name).join("＋");
   const elapsed = (Date.now() - started) / 1000;
   const eta = n ? ((elapsed / n) * (pairs.length - n)).toFixed(0) : "?";
   process.stderr.write(`[${String(n + 1).padStart(3)}/${pairs.length}] ${name}　残り約${eta}秒\n`);
-  const perEnemy = BASE.map((_, index) => tuneEnemy(simulate, index));
+  const perEnemy = (args.enemies ? BASE.slice(0, Number(args.enemies)) : BASE)
+    .map((_, index) => tuneEnemy(simulate, index));
   if (verbose) {
     console.log(`\n## ${name}`);
     console.log("  敵            敵HP  攻×  修×  詰みなし  勝てる並び  順序  無傷の並び  天井(換算)");
@@ -268,21 +369,37 @@ pairs.forEach((pair, n) => {
   if (winMedian > T2_BAND[1]) reasons.push(`締まりが足りない（中央値 ${(winMedian * 100).toFixed(0)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   else if (winMedian < T2_BAND[0]) reasons.push(`締めすぎ（中央値 ${(winMedian * 100).toFixed(1)}%、要${T2_BAND[0] * 100}〜${T2_BAND[1] * 100}%）`);
   if (decided < T3_DECIDED) reasons.push(`順序が効かない（${(decided * 100).toFixed(0)}%、要${T3_DECIDED * 100}%）`);
-  if (ceiling > CEILING) reasons.push(
+  // --noceiling：天井（P12-b）を**測るが落とさない**。
+  //
+  // 2026-08-22、作者の判断で今回だけ P10 の決定ルール（生成条件を満たさない版は人間テストへ送らない）
+  // を破る。理由は、天井の条件が T1 と同時に満たせないことが判明したためである。
+  // 参照点 RELAY 0.1（作者評価5・企画の記録）でも天井は71%で、
+  // HPを上げて天井を通すと詰みなし率が83%へ落ちて T1（98%）を割る。
+  // **参照点が通らない関門は、関門の側が壊れている**（学び#52）。
+  // 数字で決められないので、遊んで決める。**天井の値は表に残し、隠さない。**
+  if (ceiling > CEILING && !args.noceiling) reasons.push(
     `天井が近い戦闘がある（${(ceiling * 100).toFixed(0)}%、要${CEILING * 100}%以下）`);
-  if (reasons.length) { rejected.push({ name, why: reasons.join(" / ") }); return; }
+  if (reasons.length) {
+    // 数字も残す。**粗い篩が「落として安全か」を判断するのに要る**（理由の文字列では足りない）。
+    rejected.push({ name, laws: pair, why: reasons.join(" / "),
+      safeRate: Number(safeRate.toFixed(3)), winMedian: Number(winMedian.toFixed(3)),
+      decided: Number(decided.toFixed(3)), flawlessReach: Number(ceiling.toFixed(3)) });
+    return;
+  }
 
   table.push({
     laws: pair, name,
     scales: perEnemy.map(e => Number(e.scale.toFixed(2))),
     atkScales: perEnemy.map(e => e.atkScale),
     modScales: perEnemy.map(e => e.modScale ?? 1),
+    cycleCaps: perEnemy.map(e => e.cycleCap),
     enemyHp: perEnemy.map(e => e.hp),
     safeRate: Number(safeRate.toFixed(3)),
     winMedian: Number(winMedian.toFixed(3)),
     decided: Number(decided.toFixed(3)),
     flawlessReach: Number(ceiling.toFixed(3)),
-    ceilings: ceilings.map(c => Number(c.toFixed(3)))
+    ceilings: ceilings.map(c => Number(c.toFixed(3))),
+    ceilingPassed: ceiling <= CEILING
   });
 });
 
@@ -292,6 +409,14 @@ pairs.forEach((pair, n) => {
 // 他の法則と組んでも生成条件を通しやすい。結果、毎ラン継電が引かれ、作者は
 // 「全然継電以外のルール来ないし、楽勝だし、もういいや」と書いた。**多様性が偽物だった。**
 // 品質の良い順に採り、どの法則も規定数を超えないところで打ち切る。
+if (args.enemies && Number(args.enemies) !== BASE.length && !args.emit) {
+  throw new Error("敵を減らした状態では表を書けない（--emit=json の篩でだけ使う）");
+}
+if (args.emit === "json") {
+  process.stdout.write(JSON.stringify({ table, rejected, checked: pairs.length }));
+  process.exit(0);
+}
+
 const PER_LAW_CAP = Number(args.percap || 3);
 const quality = row => row.flawlessReach + Math.abs(row.winMedian - 0.10);
 const balanced = [];

@@ -1,0 +1,1753 @@
+{
+ "seed": 19916,
+ "playerId": "human-play",
+ "head": "play",
+ "ruleset": "laws",
+ "survey": {
+  "fun": 3,
+  "replay": 3,
+  "gapReason": "そろそろOTKできないルールが見たい",
+  "pivot": "なかった",
+  "settledAt": "3 崩落獲得",
+  "bestMoment": "無傷解が見つからず試行錯誤していた時",
+  "friction": "勝ち確定した時",
+  "runStory": "やっぱり偏食はつまらない"
+ },
+ "actionCount": 96,
+ "reportedStats": {
+  "seed": 19916,
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 30,
+  "battles": 6,
+  "surprise": {
+   "better": 0,
+   "expected": 6,
+   "worse": 0
+  },
+  "deadTime": 3,
+  "flawlessBattles": 4,
+  "flawlessBattleRate": 0.667,
+  "idleBattles": 2,
+  "idleBattleRate": 0.333,
+  "phaseMoves": 5,
+  "phaseMoveRate": 1,
+  "pivotRate": 0.6,
+  "reinterpretationRate": 0.6,
+  "gateConcentration": 0.482,
+  "gateRanking": [
+   {
+    "name": "重鎚",
+    "share": 0.482
+   },
+   {
+    "name": "双撃",
+    "share": 0.334
+   },
+   {
+    "name": "崩落砲",
+    "share": 0.068
+   }
+  ],
+  "worryConcentration": 1,
+  "problemChainRate": 0,
+  "worryCounts": {
+   "なし": 6
+  },
+  "updateCounts": {
+   "confirmed": 3
+  },
+  "tensionCurve": [
+   3,
+   3,
+   3,
+   3,
+   3,
+   3
+  ],
+  "tenseBattleRate": 0,
+  "markerCounts": {
+   "friction": 2,
+   "unclear": 1,
+   "hit": 1
+  },
+  "markerTotal": 4,
+  "rewardsTaken": 3,
+  "rewardsSkipped": 2,
+  "rewardCount": 5,
+  "warnings": [
+   {
+    "code": "dead_time",
+    "detail": "末尾に無傷勝利が3戦続いた（決着後の惰性）"
+   },
+   {
+    "code": "no_pressure",
+    "detail": "67%の戦闘を無傷で勝った（圧力が無い）"
+   },
+   {
+    "code": "single_worry",
+    "detail": "不安の100%が一つの機能に集中"
+   },
+   {
+    "code": "no_problem_chain",
+    "detail": "問題が入れ替わらず同じ不足が続いた"
+   },
+   {
+    "code": "no_tension",
+    "detail": "一度も苦戦を予期しなかった"
+   }
+  ],
+  "actionCount": 96,
+  "previewCount": 43,
+  "bestsAtEnd": {
+   "relay:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 11
+   },
+   "relay:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 11
+   },
+   "relay:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 12
+   },
+   "relay:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 11
+   },
+   "relay:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 9
+   },
+   "relay:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 5
+   },
+   "laws:relay+balance:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+silence:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+reflect:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+balance:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+balance:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+balance:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+buildup:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:環甲": {
+    "rank": 3,
+    "label": "上々",
+    "cycles": 1
+   },
+   "laws:relay+wear:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+wear:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:relay+monotony:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:buildup+fade:標的機": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 8
+   },
+   "laws:buildup+fade:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:buildup+fade:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 7
+   },
+   "laws:buildup+fade:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:buildup+fade:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:buildup+fade:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:resonance+bias:標的機": {
+    "rank": 1,
+    "label": "辛勝",
+    "cycles": 3
+   },
+   "laws:resonance+bias:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:resonance+bias:大顎": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:resonance+bias:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:resonance+bias:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:resonance+bias:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:monotony+bias:標的機": {
+    "rank": 3,
+    "label": "上々",
+    "cycles": 2
+   },
+   "laws:monotony+bias:環甲": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:monotony+bias:大顎": {
+    "rank": 3,
+    "label": "上々",
+    "cycles": 1
+   },
+   "laws:monotony+bias:鋼芯": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:monotony+bias:双翼": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   },
+   "laws:monotony+bias:再生炉": {
+    "rank": 4,
+    "label": "無傷",
+    "cycles": 1
+   }
+  }
+ },
+ "moments": [
+  {
+   "seq": 2,
+   "wave": 1,
+   "phase": "build",
+   "kind": "friction",
+   "note": "また偏食かよーーー"
+  },
+  {
+   "seq": 3,
+   "wave": 1,
+   "phase": "build",
+   "kind": "unclear",
+   "note": "-0解みつからず、、、"
+  },
+  {
+   "seq": 12,
+   "wave": 3,
+   "phase": "build",
+   "kind": "friction",
+   "note": "うーん、無傷ルートが見つからない"
+  },
+  {
+   "seq": 17,
+   "wave": 4,
+   "phase": "build",
+   "kind": "hit",
+   "note": "崩落砲ナイス。もう負けなし"
+  }
+ ],
+ "trace": {
+  "seed": 19916,
+  "ruleset": "laws-0.1",
+  "playerId": "human-play",
+  "won": true,
+  "reached": 6,
+  "finalHp": 30,
+  "battles": [
+   {
+    "battleNumber": 1,
+    "enemy": "標的機",
+    "won": true,
+    "cycles": 2,
+    "hpBefore": 30,
+    "hpAfter": 25,
+    "hpLost": 5,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 22,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 15,
+     "scrap": 0,
+     "repair": 0,
+     "total": 22
+    },
+    "contributions": [
+     {
+      "name": "偏向板",
+      "activations": 1,
+      "damage": 0,
+      "shield": 10,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 2,
+      "damage": 16,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 6,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 2,
+    "enemy": "環甲",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 28,
+    "hpAfter": 28,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 9,
+    "editBreakdown": {
+     "place": 2,
+     "remove": 1,
+     "swap": 6,
+     "scrap": 0,
+     "repair": 0,
+     "total": 9
+    },
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 35,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 6,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 24,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 70,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 3,
+    "enemy": "大顎",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 26,
+    "hpLost": 4,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 5,
+    "editBreakdown": {
+     "place": 2,
+     "remove": 0,
+     "swap": 3,
+     "scrap": 0,
+     "repair": 0,
+     "total": 5
+    },
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 1,
+      "damage": 96,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 4,
+    "enemy": "鋼芯",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 29,
+    "hpAfter": 29,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 2,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 2
+    },
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 1,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 5,
+    "enemy": "双翼",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    },
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "battleNumber": 6,
+    "enemy": "再生炉",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "hpLost": 0,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "surprise": "expected",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    },
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   }
+  ],
+  "rewards": [
+   {
+    "wave": 2,
+    "offered": [
+     "偏向板",
+     "過給器",
+     "整流器"
+    ],
+    "chosen": "過給器",
+    "passed": [
+     "偏向板",
+     "整流器"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 3,
+    "offered": [
+     "整流器",
+     "過給器",
+     "重鎚"
+    ],
+    "chosen": "重鎚",
+    "passed": [
+     "整流器",
+     "過給器"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 4,
+    "offered": [
+     "崩落砲",
+     "過給器",
+     "薄殻"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "過給器",
+     "薄殻"
+    ],
+    "update": "confirmed"
+   },
+   {
+    "wave": 5,
+    "offered": [
+     "連射",
+     "厚殻",
+     "過給器"
+    ],
+    "chosen": null,
+    "passed": [],
+    "update": "none"
+   },
+   {
+    "wave": 6,
+    "offered": [
+     "重鎚",
+     "打鋲",
+     "薄殻"
+    ],
+    "chosen": null,
+    "passed": [],
+    "update": "none"
+   }
+  ],
+  "events": [
+   {
+    "seq": 1,
+    "type": "run_started",
+    "wave": 1,
+    "phase": "build",
+    "initial": [
+     "重鎚",
+     "双撃",
+     "環流管",
+     "打鋲",
+     "連射",
+     "偏向板",
+     "薄殻",
+     "整流器"
+    ]
+   },
+   {
+    "seq": 2,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "friction",
+    "note": "また偏食かよーーー"
+   },
+   {
+    "seq": 3,
+    "type": "emotion_marked",
+    "wave": 1,
+    "phase": "build",
+    "kind": "unclear",
+    "note": "-0解みつからず、、、"
+   },
+   {
+    "seq": 4,
+    "type": "battle_predicted",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "標的機",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:more",
+    "build": [
+     "偏向板",
+     "打鋲",
+     "連射",
+     "重鎚",
+     "双撃"
+    ],
+    "buildSignature": "p6,p4,p5,p1,p2",
+    "editsSincePrevious": 22,
+    "editBreakdown": {
+     "place": 7,
+     "remove": 0,
+     "swap": 15,
+     "scrap": 0,
+     "repair": 0,
+     "total": 22
+    }
+   },
+   {
+    "seq": 5,
+    "type": "battle_ended",
+    "wave": 1,
+    "phase": "build",
+    "enemy": "標的機",
+    "won": true,
+    "cycles": 2,
+    "hpBefore": 30,
+    "hpAfter": 25,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p6,p4,p5,p1,p2",
+    "worry": "なし",
+    "grade": "上々",
+    "gradeRank": 3,
+    "previewCount": 22,
+    "previewsAfterFirstWin": 17,
+    "previewTrail": [
+     {
+      "sig": "twin,-,-,-,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "twin,rivet,-,-,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "twin,rivet,-,hammer,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "twin,rivet,flurry,hammer,-",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "twin,rivet,flurry,hammer,deflect",
+      "won": true,
+      "hp": 10,
+      "cycles": 3
+     },
+     {
+      "sig": "twin,rivet,deflect,hammer,flurry",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,rivet,twin,hammer,flurry",
+      "won": true,
+      "hp": 10,
+      "cycles": 3
+     },
+     {
+      "sig": "loop,rivet,twin,hammer,flurry",
+      "won": true,
+      "hp": 6,
+      "cycles": 3
+     },
+     {
+      "sig": "hammer,rivet,twin,loop,flurry",
+      "won": true,
+      "hp": 6,
+      "cycles": 3
+     },
+     {
+      "sig": "twin,rivet,hammer,loop,flurry",
+      "won": true,
+      "hp": 6,
+      "cycles": 3
+     },
+     {
+      "sig": "flurry,rivet,hammer,loop,twin",
+      "won": true,
+      "hp": 6,
+      "cycles": 3
+     },
+     {
+      "sig": "flurry,rivet,loop,hammer,twin",
+      "won": false,
+      "hp": 0,
+      "cycles": 3
+     },
+     {
+      "sig": "flurry,rivet,twin,hammer,loop",
+      "won": true,
+      "hp": 18,
+      "cycles": 2
+     },
+     {
+      "sig": "rivet,flurry,twin,hammer,loop",
+      "won": true,
+      "hp": 18,
+      "cycles": 2
+     },
+     {
+      "sig": "rivet,flurry,loop,hammer,twin",
+      "won": false,
+      "hp": 0,
+      "cycles": 3
+     },
+     {
+      "sig": "rivet,flurry,twin,hammer,loop",
+      "won": true,
+      "hp": 18,
+      "cycles": 2
+     },
+     {
+      "sig": "rivet,flurry,twin,hammer,deflect",
+      "won": true,
+      "hp": 15,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,flurry,twin,hammer,rivet",
+      "won": true,
+      "hp": 10,
+      "cycles": 3
+     },
+     {
+      "sig": "deflect,flurry,rivet,hammer,twin",
+      "won": true,
+      "hp": 25,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,flurry,rivet,twin,hammer",
+      "won": true,
+      "hp": 25,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,flurry,rivet,hammer,twin",
+      "won": true,
+      "hp": 25,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,rivet,flurry,hammer,twin",
+      "won": true,
+      "hp": 25,
+      "cycles": 2
+     }
+    ],
+    "contributions": [
+     {
+      "name": "偏向板",
+      "activations": 1,
+      "damage": 0,
+      "shield": 10,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 2,
+      "damage": 16,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 6,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 6,
+    "type": "reward_offered",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "偏向板",
+     "過給器",
+     "整流器"
+    ]
+   },
+   {
+    "seq": 7,
+    "type": "reward_chosen",
+    "wave": 2,
+    "phase": "reward",
+    "offered": [
+     "偏向板",
+     "過給器",
+     "整流器"
+    ],
+    "chosen": "過給器",
+    "passed": [
+     "偏向板",
+     "整流器"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 8,
+    "type": "battle_predicted",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "環甲",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:only",
+    "build": [
+     "重鎚",
+     "連射",
+     "打鋲",
+     null,
+     "双撃"
+    ],
+    "buildSignature": "p1,p5,p4,-,p2",
+    "editsSincePrevious": 9,
+    "editBreakdown": {
+     "place": 2,
+     "remove": 1,
+     "swap": 6,
+     "scrap": 0,
+     "repair": 0,
+     "total": 9
+    }
+   },
+   {
+    "seq": 9,
+    "type": "battle_ended",
+    "wave": 2,
+    "phase": "build",
+    "enemy": "環甲",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 28,
+    "hpAfter": 28,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p1,p5,p4,-,p2",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 10,
+    "previewsAfterFirstWin": 9,
+    "previewTrail": [
+     {
+      "sig": "deflect,rivet,flurry,hammer,twin",
+      "won": true,
+      "hp": 20,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,surge,flurry,hammer,twin",
+      "won": true,
+      "hp": 16,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,rivet,flurry,hammer,twin",
+      "won": true,
+      "hp": 20,
+      "cycles": 2
+     },
+     {
+      "sig": "deflect,hammer,flurry,rivet,twin",
+      "won": true,
+      "hp": 20,
+      "cycles": 2
+     },
+     {
+      "sig": "hammer,deflect,flurry,rivet,twin",
+      "won": true,
+      "hp": 28,
+      "cycles": 1
+     },
+     {
+      "sig": "hammer,-,flurry,rivet,twin",
+      "won": true,
+      "hp": 28,
+      "cycles": 1
+     },
+     {
+      "sig": "hammer,flurry,-,rivet,twin",
+      "won": true,
+      "hp": 28,
+      "cycles": 1
+     },
+     {
+      "sig": "hammer,flurry,rivet,-,twin",
+      "won": true,
+      "hp": 28,
+      "cycles": 1
+     },
+     {
+      "sig": "twin,flurry,rivet,-,hammer",
+      "won": false,
+      "hp": 0,
+      "cycles": 2
+     },
+     {
+      "sig": "hammer,flurry,rivet,-,twin",
+      "won": true,
+      "hp": 28,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 35,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "連射",
+      "activations": 1,
+      "damage": 6,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 24,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 70,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 10,
+    "type": "reward_offered",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "整流器",
+     "過給器",
+     "重鎚"
+    ]
+   },
+   {
+    "seq": 11,
+    "type": "reward_chosen",
+    "wave": 3,
+    "phase": "reward",
+    "offered": [
+     "整流器",
+     "過給器",
+     "重鎚"
+    ],
+    "chosen": "重鎚",
+    "passed": [
+     "整流器",
+     "過給器"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 12,
+    "type": "emotion_marked",
+    "wave": 3,
+    "phase": "build",
+    "kind": "friction",
+    "note": "うーん、無傷ルートが見つからない"
+   },
+   {
+    "seq": 13,
+    "type": "battle_predicted",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "大顎",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:more",
+    "build": [
+     "重鎚",
+     "打鋲",
+     "過給器",
+     "重鎚",
+     "双撃"
+    ],
+    "buildSignature": "p1,p4,pa,pe,p2",
+    "editsSincePrevious": 5,
+    "editBreakdown": {
+     "place": 2,
+     "remove": 0,
+     "swap": 3,
+     "scrap": 0,
+     "repair": 0,
+     "total": 5
+    }
+   },
+   {
+    "seq": 14,
+    "type": "battle_ended",
+    "wave": 3,
+    "phase": "build",
+    "enemy": "大顎",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 26,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p1,p4,pa,pe,p2",
+    "worry": "なし",
+    "grade": "上々",
+    "gradeRank": 3,
+    "previewCount": 6,
+    "previewsAfterFirstWin": 5,
+    "previewTrail": [
+     {
+      "sig": "hammer,flurry,rivet,-,twin",
+      "won": true,
+      "hp": 4,
+      "cycles": 4
+     },
+     {
+      "sig": "hammer,flurry,rivet,hammer,twin",
+      "won": true,
+      "hp": 4,
+      "cycles": 3
+     },
+     {
+      "sig": "rivet,flurry,hammer,hammer,twin",
+      "won": true,
+      "hp": 4,
+      "cycles": 3
+     },
+     {
+      "sig": "hammer,flurry,rivet,hammer,twin",
+      "won": true,
+      "hp": 4,
+      "cycles": 3
+     },
+     {
+      "sig": "hammer,rivet,flurry,hammer,twin",
+      "won": true,
+      "hp": 4,
+      "cycles": 3
+     },
+     {
+      "sig": "hammer,rivet,surge,hammer,twin",
+      "won": true,
+      "hp": 26,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "過給器",
+      "activations": 1,
+      "damage": 96,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 15,
+    "type": "reward_offered",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "崩落砲",
+     "過給器",
+     "薄殻"
+    ]
+   },
+   {
+    "seq": 16,
+    "type": "reward_chosen",
+    "wave": 4,
+    "phase": "reward",
+    "offered": [
+     "崩落砲",
+     "過給器",
+     "薄殻"
+    ],
+    "chosen": "崩落砲",
+    "passed": [
+     "過給器",
+     "薄殻"
+    ],
+    "reason": "",
+    "update": "confirmed",
+    "updateText": ""
+   },
+   {
+    "seq": 17,
+    "type": "emotion_marked",
+    "wave": 4,
+    "phase": "build",
+    "kind": "hit",
+    "note": "崩落砲ナイス。もう負けなし"
+   },
+   {
+    "seq": 18,
+    "type": "battle_predicted",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "鋼芯",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:only",
+    "build": [
+     "重鎚",
+     "打鋲",
+     "双撃",
+     "重鎚",
+     "崩落砲"
+    ],
+    "buildSignature": "p1,p4,p2,pe,pf",
+    "editsSincePrevious": 2,
+    "editBreakdown": {
+     "place": 1,
+     "remove": 0,
+     "swap": 1,
+     "scrap": 0,
+     "repair": 0,
+     "total": 2
+    }
+   },
+   {
+    "seq": 19,
+    "type": "battle_ended",
+    "wave": 4,
+    "phase": "build",
+    "enemy": "鋼芯",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 29,
+    "hpAfter": 29,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p1,p4,p2,pe,pf",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 3,
+    "previewsAfterFirstWin": 2,
+    "previewTrail": [
+     {
+      "sig": "hammer,rivet,surge,hammer,twin",
+      "won": true,
+      "hp": 25,
+      "cycles": 1
+     },
+     {
+      "sig": "hammer,rivet,collapse,hammer,twin",
+      "won": true,
+      "hp": 29,
+      "cycles": 1
+     },
+     {
+      "sig": "hammer,rivet,twin,hammer,collapse",
+      "won": true,
+      "hp": 29,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 1,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 20,
+    "type": "reward_offered",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "連射",
+     "厚殻",
+     "過給器"
+    ]
+   },
+   {
+    "seq": 21,
+    "type": "reward_scrapped",
+    "wave": 5,
+    "phase": "reward",
+    "offered": [
+     "連射",
+     "厚殻",
+     "過給器"
+    ],
+    "reason": ""
+   },
+   {
+    "seq": 22,
+    "type": "battle_predicted",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双翼",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:only",
+    "build": [
+     "重鎚",
+     "打鋲",
+     "双撃",
+     "重鎚",
+     "崩落砲"
+    ],
+    "buildSignature": "p1,p4,p2,pe,pf",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    }
+   },
+   {
+    "seq": 23,
+    "type": "battle_ended",
+    "wave": 5,
+    "phase": "build",
+    "enemy": "双翼",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p1,p4,p2,pe,pf",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 1,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "hammer,rivet,twin,hammer,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "崩落砲",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 24,
+    "type": "reward_offered",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "重鎚",
+     "打鋲",
+     "薄殻"
+    ]
+   },
+   {
+    "seq": 25,
+    "type": "reward_scrapped",
+    "wave": 6,
+    "phase": "reward",
+    "offered": [
+     "重鎚",
+     "打鋲",
+     "薄殻"
+    ],
+    "reason": ""
+   },
+   {
+    "seq": 26,
+    "type": "battle_predicted",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "再生炉",
+    "prediction": "圧勝",
+    "worry": "なし",
+    "worryText": "手応え:settled",
+    "build": [
+     "重鎚",
+     "打鋲",
+     "双撃",
+     "重鎚",
+     "崩落砲"
+    ],
+    "buildSignature": "p1,p4,p2,pe,pf",
+    "editsSincePrevious": 0,
+    "editBreakdown": {
+     "place": 0,
+     "remove": 0,
+     "swap": 0,
+     "scrap": 0,
+     "repair": 0,
+     "total": 0
+    }
+   },
+   {
+    "seq": 27,
+    "type": "battle_ended",
+    "wave": 6,
+    "phase": "build",
+    "enemy": "再生炉",
+    "won": true,
+    "cycles": 1,
+    "hpBefore": 30,
+    "hpAfter": 30,
+    "enemyHpLeft": 0,
+    "prediction": "圧勝",
+    "expectedLevel": 3,
+    "actualLevel": 3,
+    "surprise": "expected",
+    "buildSignature": "p1,p4,p2,pe,pf",
+    "worry": "なし",
+    "grade": "無傷",
+    "gradeRank": 4,
+    "previewCount": 1,
+    "previewsAfterFirstWin": 0,
+    "previewTrail": [
+     {
+      "sig": "hammer,rivet,twin,hammer,collapse",
+      "won": true,
+      "hp": 30,
+      "cycles": 1
+     }
+    ],
+    "contributions": [
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 44,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "打鋲",
+      "activations": 1,
+      "damage": 4,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "双撃",
+      "activations": 1,
+      "damage": 84,
+      "shield": 0,
+      "healing": 0
+     },
+     {
+      "name": "重鎚",
+      "activations": 1,
+      "damage": 99,
+      "shield": 0,
+      "healing": 0
+     }
+    ]
+   },
+   {
+    "seq": 28,
+    "type": "run_ended",
+    "wave": 6,
+    "phase": "end",
+    "won": true,
+    "reached": 6
+   },
+   {
+    "seq": 29,
+    "type": "survey",
+    "wave": 6,
+    "phase": "end",
+    "fun": 3,
+    "replay": 3,
+    "gapReason": "そろそろOTKできないルールが見たい",
+    "bestMoment": "無傷解が見つからず試行錯誤していた時",
+    "pivot": "なかった",
+    "settledAt": "3 崩落獲得",
+    "runStory": "やっぱり偏食はつまらない",
+    "friction": "勝ち確定した時",
+    "wishlist": ""
+   }
+  ]
+ }
+}
