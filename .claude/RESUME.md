@@ -129,8 +129,13 @@ mcp__github__actions_run_trigger: export-playtests.yml / limit=10 / echo_to_log=
 - [ ] **検査**：相関が正に戻ったら落ちる検査を足す（`analysis/smoke-cost.mjs`）。
       天井（珍しさ）と代償（選択）を取り違えないため、**両方の数字を出すこと**（`analysis/TRADEOFF.md`）
 - [ ] **公開**：`node analysis/stamp.mjs` → `sw.js` の `CACHE` を上げる → main へ
-- [ ] **いまここ → 次の試作**：同定（型2）。法則の名前と説明を伏せ、挙動から当てさせる版。
-      サーベイで「繰り返しに強い型」は同定と噛み合わせの2つだった（`analysis/KNOWLEDGE_SURVEY.md`）
+- [x] **同定 ident-0.1 — 済。公開した（main b7ea7bf、sw v27）。**
+      12通り試すと候補が91→1.8。`analysis/IDENT_0_1.md`、検査は `smoke-ident.mjs`
+- [ ] **いまここ → 連勝を褒めて戦闘を飛ばす（作者の提案、`agents/HYPOTHESIS_TESTING.md` 0.5）。**
+      作者自身が出した仮説なのに、分解しただけで一度も作っていない。
+      同じ並びのまま次も勝てるなら戦闘を飛ばし、「N strike!」と出す。
+      **ゲーム内の報酬は与えない**（報酬は時間の節約そのもの）。
+      実測：同じ並びを持ち越すと45%で勝つ（`analysis/carryover-wins.mjs`）
 
 ### 気をつけること
 
