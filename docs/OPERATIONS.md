@@ -74,9 +74,13 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 4. `main` へ merge して push
 5. **作者へ「上の隅が xxxxxxx になっていれば新しい版です」と印を伝える**
 
-**規則を実質変えたら、版も上げる**（`agent-view/sync.js` の `RULESET_VERSION` と
-`core/laws.mjs` の `id`）。据え置くと記録が混ざる。0.1 のまま 1巡上限を入れて出してしまい、
-作者から「バージョンは0.1のままですが」と指摘された。
+**版を上げ忘れる件は機械に移した。** `analysis/smoke-version.mjs` が、規則の**挙動**から
+指紋を取り、前回の指紋と違うのに版が据え置きなら落ちる（コメントを直しただけでは鳴らない）。
+落ちたら `core/rules-version.mjs` を書き換え、`agent-view/sync.js` と `core/laws.mjs` の
+版も揃える。**表（敵の数値）を差し替えたときも鳴る** — 難易度が変われば別のゲームなので。
+
+指紋は記録そのものにも載る（`stats.rulesFingerprint`）。**万一すり抜けても、
+前後の記録は分けられる。**
 
 `main` へ push すると Cloudflare Pages が公開する。**遊べる状態でないものは main に出さない。**
 公開前に `for f in analysis/smoke-*.mjs; do node $f; done` を全部通す。

@@ -109,6 +109,10 @@ assert.ok(size < 750000, `本文は750KB未満（実測 ${size}）`);
     console.error("sync smoke: 対の試行が game_version で分離されていない");
     process.exit(1);
   }
+  if (!/rulesFingerprint: FINGERPRINT/.test(sync)) {
+    console.error("sync smoke: 規則の指紋が記録に載っていない（版を上げ忘れたとき記録が混ざる）");
+    process.exit(1);
+  }
   if (!/trial: session\.trial/.test(sync)) {
     console.error("sync smoke: どちらの側だったかが記録に載っていない");
     process.exit(1);

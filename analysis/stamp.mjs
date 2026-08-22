@@ -11,12 +11,19 @@
 
 import { writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { fingerprint } from "./rules-fingerprint.mjs";
+import { RULES_VERSION } from "../core/rules-version.mjs";
 
 const sha = execSync("git rev-parse --short HEAD").toString().trim();
 const when = new Date().toISOString().slice(0, 16).replace("T", " ");
+// 規則の指紋も焼き込む。**版を上げ忘れても、記録は必ず分かれる。**
+// smoke-version は公開時にしか鳴らないので、すり抜けた場合の受け皿がここ。
+const fp = fingerprint();
 writeFileSync("core/build.mjs",
   `// **analysis/stamp.mjs が生成する。手で編集しない。**\n`
-  + `// 公開のたびに変わるので、作者が「新しい版が届いたか」を目で確かめられる。\n`
+  + `// BUILD は公開のたびに変わる（作者が「新しい版が届いたか」を目で確かめるため）。\n`
+  + `// FINGERPRINT は遊ぶ側から見た規則が変わったときだけ変わる（記録を分けるため）。\n`
   + `export const BUILD = ${JSON.stringify(`${sha} / ${when}Z`)};\n`
+  + `export const FINGERPRINT = ${JSON.stringify(fp)};\n`
   + `export default BUILD;\n`);
-console.log(`build 印: ${sha} / ${when}Z`);
+console.log(`build 印: ${sha} / ${when}Z ／ 規則の指紋: ${fp}（${RULES_VERSION}）`);

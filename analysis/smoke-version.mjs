@@ -1,0 +1,42 @@
+// **規則が変わったのに版が据え置きになっていないか。**
+//
+// 版の文字列は記録を分離するために置いてある。据え置くと、
+// 別のゲームになった前後の記録が同じ入れ物に混ざり、後から分けられない。
+// 2026-08-22、1巡上限・偏食削除・天井を外す、を入れても laws-0.1 のままだった。
+// 作者の指摘：「いま0.1→0.2という事実が、これまで何度もこれを見落としていたことを物語っています」。
+//
+// **散文に書いても落ちる**（今日それを実測した）ので機械に置く。
+
+import { readFileSync } from "node:fs";
+import { fingerprint } from "./rules-fingerprint.mjs";
+import { RULES_VERSION, RULES_FINGERPRINT } from "../core/rules-version.mjs";
+
+const now = fingerprint();
+if (now !== RULES_FINGERPRINT) {
+  console.error(`version smoke: **規則が変わっている**（指紋 ${RULES_FINGERPRINT} → ${now}）のに`
+    + ` 版は ${RULES_VERSION} のままです。
+
+  遊ぶ側から見て何かが変わりました。記録を分けられるように、版を上げてください。
+    1. core/rules-version.mjs の RULES_VERSION を上げ、RULES_FINGERPRINT を ${now} にする
+    2. 何を変えたのかを、そのファイルの履歴に1行足す
+    3. agent-view/sync.js の RULESET_VERSION.laws と core/laws.mjs の id を揃える
+
+  変えたつもりが無いなら、それは意図しない変更なので、先に何が変わったかを調べること。`);
+  process.exit(1);
+}
+
+// 版の文字列が3箇所で揃っていること。ずれると記録の分離が壊れる。
+const sync = readFileSync("agent-view/sync.js", "utf8");
+const laws = readFileSync("core/laws.mjs", "utf8");
+const inSync = (sync.match(/laws: "(laws-[\d.]+)"/) || [])[1];
+const inLaws = (laws.match(/id: `(laws-[\d.]+):/) || [])[1];
+if (inSync !== RULES_VERSION) {
+  console.error(`version smoke: sync.js の版が ${inSync}、rules-version.mjs は ${RULES_VERSION}`);
+  process.exit(1);
+}
+if (inLaws !== RULES_VERSION) {
+  console.error(`version smoke: laws.mjs の版が ${inLaws}、rules-version.mjs は ${RULES_VERSION}`);
+  process.exit(1);
+}
+
+console.log(`version smoke: ${RULES_VERSION}（指紋 ${now}）が3箇所で揃っている OK`);

@@ -1,3 +1,5 @@
+import { FINGERPRINT } from "../core/build.mjs";
+
 const DEVICE_KEY = "garakuta-lab-device-id";
 const SCHEMA_VERSION = 4;
 // 同じルールでも、遊んだ画面が違えば体験は別物になる（PHASEで実証された）。
@@ -71,6 +73,9 @@ export function buildPayload(session) {
       previewCount: session.actions.filter(a => a && a.type === "preview").length,
       // ランをまたいで残る値。何ラン目かを後から復元できるようにする。
       bestsAtEnd: session.bests || null,
+      // 規則の指紋。**版を上げ忘れても、これで前後の記録を分けられる。**
+      // 版の文字列は人が書くので落ちる（実際に laws-0.1 のまま出した）。指紋は挙動から出る。
+      rulesFingerprint: FINGERPRINT,
       // 対のどちら側だったか。**答えの「1本目/2本目」を側へ翻訳するのに要る。**
       trial: session.trial
         ? { id: session.trial.id, trialId: session.trial.trialId, stage: session.trial.stage,
