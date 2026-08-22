@@ -14,6 +14,7 @@ import { createRun } from "../core/run.mjs";
 import { makeLawRuleset, OVERDRIVE, SLOT_COUNT } from "../core/laws.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
 import { COST_TABLE } from "../core/cost-table.mjs";
+import { SQUEEZE_TABLE } from "../core/squeeze-table.mjs";
 import { allArrangements } from "../core/best-possible.mjs";
 import { makeRng } from "../core/rng.mjs";
 
@@ -65,7 +66,7 @@ function report(label, table, over) {
   const rows = [];
   for (const v of table.slice(0, 6)) {
     const rules = makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales, v.cycleCaps,
-      over ? { overdrive: over } : {});
+      over ? { overdrive: over, ...(v.regenFrac ? { regenFrac: v.regenFrac } : {}) } : {});
     SEEDS.forEach(seed => rows.push(playRun(rules, seed)));
   }
   const cleared = rows.filter(r => r.won).length;
@@ -81,3 +82,4 @@ function report(label, table, over) {
 console.log("最善手で通したとき、1ランを終えられるか\n");
 report("laws-0.3", LAW_TABLE, null);
 report("COST 0.1", COST_TABLE, OVERDRIVE);
+report("SQUEEZE", SQUEEZE_TABLE, OVERDRIVE);

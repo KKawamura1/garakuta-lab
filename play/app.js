@@ -6,6 +6,7 @@ import { makeLawRuleset, LAWS as LAW_DEFS, OVERDRIVE } from "../core/laws.mjs";
 import { bestPossible } from "../core/best-possible.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
 import { COST_TABLE } from "../core/cost-table.mjs";
+import { SQUEEZE_TABLE } from "../core/squeeze-table.mjs";
 import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
 import { BUILD } from "../core/build.mjs";
 import { ARC } from "../core/arc.mjs";
@@ -27,10 +28,14 @@ const lawVariants = Array.isArray(LAW_TABLE) ? LAW_TABLE : [];
 // 敵の数値は「ぎりぎり勝てる」ところに置いてあるので、代償を足せばそこから落ちる。
 // 代償の版には、暴走ありで調律し直した表を使う（`analysis/tune-laws.mjs --cost`）。
 const costVariants = Array.isArray(COST_TABLE) ? COST_TABLE : [];
+// 締めつけの版は、組ごとに毎巡回復の割合が違う（`regenFrac`）。**表に入っている。**
+const squeezeVariants = Array.isArray(SQUEEZE_TABLE) ? SQUEEZE_TABLE : [];
 // いま引くべき表。**セッションの版で決める。**
 function variantsOf(session) {
   // 同定の版は laws-0.3 と同じ盤面（伏せているだけ）なので、素の表を使う。
-  return String(session && session.ruleset).toLowerCase() === "cost" ? costVariants : lawVariants;
+  const key = String(session && session.ruleset).toLowerCase();
+  if (key === "squeeze") return squeezeVariants;
+  return key === "cost" ? costVariants : lawVariants;
 }
 
 function hashOf(text) {
@@ -134,13 +139,19 @@ function lawRulesetFor(session, options = {}) {
   }
   // 決めた法則はセッションに焼き付ける。**表が変わっても、進行中のランは同じ規則で再生される。**
   const spec = session.variantSpec;
-  if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales, spec.cycleCaps, options);
+  // **毎巡回復は組ごとに違う。**セッションに焼き付けた spec から取る
+  // （表を作り直しても、進行中のランは同じ規則で再生される）。
+  const withRegen = o => (spec && spec.regenFrac ? { ...o, regenFrac: spec.regenFrac } : o);
+  if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales, spec.cycleCaps, withRegen(options));
   const byId = session.variant && table.find(v => v.laws.join("+") === session.variant);
   const chosen = byId || inferVariant(session, table) || pickVariant(session.seed, new Set(), table);
   if (!chosen) return RELAY;
   session.variant = chosen.laws.join("+");
-  session.variantSpec = { laws: chosen.laws, scales: chosen.scales, atkScales: chosen.atkScales, modScales: chosen.modScales, cycleCaps: chosen.cycleCaps };
-  return makeLawRuleset(chosen.laws, chosen.scales, chosen.atkScales, chosen.modScales, chosen.cycleCaps, options);
+  session.variantSpec = { laws: chosen.laws, scales: chosen.scales, atkScales: chosen.atkScales,
+    modScales: chosen.modScales, cycleCaps: chosen.cycleCaps,
+    ...(chosen.regenFrac ? { regenFrac: chosen.regenFrac } : {}) };
+  return makeLawRuleset(chosen.laws, chosen.scales, chosen.atkScales, chosen.modScales, chosen.cycleCaps,
+    chosen.regenFrac ? { ...options, regenFrac: chosen.regenFrac } : options);
 }
 
 const SAVE_KEY = "garakuta-play-session";
@@ -225,6 +236,7 @@ function rulesetOf(name) {
   if (key === "cost") return lawRulesetFor(session, { overdrive: OVERDRIVE });
   if (key === "ident") return lawRulesetFor(session, { hidden: true });
   if (key === "skip") return lawRulesetFor(session, { skipWins: true });
+  if (key === "squeeze") return lawRulesetFor(session, { overdrive: OVERDRIVE });
   return RULESETS[key] || RELAY;
 }
 
@@ -1673,6 +1685,7 @@ $("#gameButton").addEventListener("click", () => {
   if (lawVariants.length) {
     entries.unshift(["skip", { title: "連勝機関 / SKIP 0.1（そのまま勝てる戦闘は飛ばす）" }]);
     entries.unshift(["ident", { title: "同定機関 / IDENT 0.1（法則は伏せてあるが、位相表から一発で読める）" }]);
+    entries.unshift(["squeeze", { title: `締付機関 / SQUEEZE 0.1（${squeezeVariants.length}通り・速くても遅くても削れる）` }]);
     entries.unshift(["cost", { title: `代償機関 / COST 0.1（${costVariants.length}通り・速く倒すと自分が削れる）` }]);
     entries.unshift(["laws", { title: `法則機関 / LAWS 0.3（${lawVariants.length}通りの法則の組）` }]);
   }
