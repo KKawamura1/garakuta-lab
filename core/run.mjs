@@ -284,6 +284,12 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       prediction: action.prediction, expectedLevel: expected, actualLevel: actual, surprise,
       buildSignature: signature, worry: action.worry,
       grade: grade ? grade.label : null, gradeRank: grade ? grade.rank : null,
+      // **失点の内訳を、送られる記録に載せる。**
+      // 戦闘の要約（summary）にだけ入れていたが、要約は端末に残るだけで
+      // **通報には入らない。**「代償の版で暴走がどれだけ鳴ったか」は
+      // 登録した予測そのものなので、載っていなければ確かめようがない。
+      overdriveSelf: summary.overdriveSelf || 0,
+      overdriveCycles: summary.overdriveCycles || 0,
       previewCount: previews,
       previewsAfterFirstWin: state.previewsAfterFirstWin,
       previewTrail: state.previews.slice(-40),
