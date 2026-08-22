@@ -103,8 +103,12 @@ export function sideSpec(trialId, sideKey) {
   };
 }
 
-// どちらを先に出すかは種で決める。**順序効果を相殺するため、伏せて入れ替える。**
-export function sideOrder(trialId, seed) {
+// どちらを先に出すかは、**その対を何組目に遊ぶかで厳密に交互にする。**
+//
+// 最初は種の偶奇で決めていたが、**3組とも同じ順序になった**（1/8で起こる）。
+// 順序効果を相殺するために伏せて入れ替えているのに、偶然に任せると相殺できない。
+// n が小さいほど偏る確率が高いので、**乱数ではなく数え上げで交互にする。**
+export function sideOrder(trialId, playedCount = 0) {
   const keys = TRIALS[trialId].sides.map(s => s.key);
-  return seed % 2 === 0 ? keys : [...keys].reverse();
+  return playedCount % 2 === 0 ? keys : [...keys].reverse();
 }

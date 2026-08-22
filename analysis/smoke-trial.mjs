@@ -79,9 +79,10 @@ for (const trial of Object.values(TRIALS)) {
   });
 
   // 出す順序が種で入れ替わること（順序効果の相殺）。
-  if (sideOrder(trial.id, 2).join(">") === sideOrder(trial.id, 3).join(">")) {
-    fail(`${trial.id}：種を変えても出す順序が入れ替わらない`);
-  }
+  // **組数で厳密に交互になること。**種任せだと偏る（3組とも同じ順序になった実績がある）。
+  const orders = [0, 1, 2, 3].map(n => sideOrder(trial.id, n).join(">"));
+  if (orders[0] === orders[1]) fail(`${trial.id}：1組目と2組目で出す順が入れ替わらない`);
+  if (orders[0] !== orders[2] || orders[1] !== orders[3]) fail(`${trial.id}：出す順が交互になっていない`);
 
   console.log(`trial smoke: ${trial.id} の対が成立（${want.label} `
     + `${(a.m[want.separate] * 100).toFixed(0)}% 対 ${(b.m[want.separate] * 100).toFixed(0)}%、`
