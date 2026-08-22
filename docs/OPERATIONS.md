@@ -66,6 +66,18 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 
 ## 公開
 
+**手順（この順で）**
+
+1. `node analysis/stamp.mjs` — build の印を打ち直す。**これを忘れると作者が新旧を見分けられない。**
+2. `for f in analysis/smoke-*.mjs; do node $f; done` を全部通す
+3. service worker のキャッシュ名を上げる（`sw.js` の `CACHE`）
+4. `main` へ merge して push
+5. **作者へ「上の隅が xxxxxxx になっていれば新しい版です」と印を伝える**
+
+**規則を実質変えたら、版も上げる**（`agent-view/sync.js` の `RULESET_VERSION` と
+`core/laws.mjs` の `id`）。据え置くと記録が混ざる。0.1 のまま 1巡上限を入れて出してしまい、
+作者から「バージョンは0.1のままですが」と指摘された。
+
 `main` へ push すると Cloudflare Pages が公開する。**遊べる状態でないものは main に出さない。**
 公開前に `for f in analysis/smoke-*.mjs; do node $f; done` を全部通す。
 **この環境からは公開先を取得できない**（egress ブロック）ので、公開の確認は作者に頼る。

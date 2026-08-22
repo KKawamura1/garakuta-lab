@@ -5,6 +5,7 @@ import { RELAY } from "../core/relay.mjs";
 import { makeLawRuleset } from "../core/laws.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
 import { TRIALS, sideSpec, sideOrder } from "../core/trial.mjs";
+import { BUILD } from "../core/build.mjs";
 import { ARC } from "../core/arc.mjs";
 import { sendRun, uuid } from "../agent-view/sync.js";
 import { projectCycles, markFor, firesOn } from "../core/project.mjs";
@@ -480,10 +481,15 @@ function draw() {
   // 版を画面に出す。出していなかったせいで、保存済みセッションが古いルールのままなのに
   // 「更新されていない」ようにしか見えない状態を作った（作者の報告で判明）。
   $("#title").textContent = rules.title.split(" / ")[0];
+  // **規則の版と build の印は別物である。**
+  // 規則の版（laws-0.2）は規則を変えたときだけ動くので、
+  // 「さっき公開したものが届いているか」の確認には使えない。
+  // build の印は公開のたびに変わるので、そちらで見分ける。
   $("#gameButton").textContent = rules.id;
+  $("#build").textContent = BUILD;
   document.title = `${rules.title.split(" / ")[0]}（${rules.id}）`;
   $("#wave").textContent = o.done
-    ? (o.won ? "全6戦を突破" : `第${o.battleNumber}戦で停止`)
+    ? (o.won ? `全${o.totalBattles}戦を突破` : `第${o.battleNumber}戦で停止`)
     : `第${o.battleNumber}戦 / 全${o.totalBattles}戦 ・ seed ${o.seed}`;
   const screen = $("#screen");
   screen.replaceChildren();

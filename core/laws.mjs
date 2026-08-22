@@ -1,4 +1,12 @@
-// LAWS 0.1「法則機関」— 1つの良い問題ではなく、問題を生む機械。
+// LAWS 0.2「法則機関」— 1つの良い問題ではなく、問題を生む機械。
+//
+// 【0.1 からの変更】規則が実質変わったので版を上げた。**版を据え置くと記録が混ざる。**
+//   - 敵に「1巡に通る合計の上限」を入れた。0.1 では24戦中20戦が1巡で決着しており、
+//     敵は巡回の終わりに殴るので**1巡で倒せば一度も攻撃されない**（1巡決着の85%が無傷、
+//     2巡以上は0%）。周期も位相ずれも12巡の打切りも、第2戦以降まるごと迂回されていた。
+//   - 偏食（撃×2、守整×0.5）を削除した。部品選択の法則であり、
+//     企画の出発点「部品選択はゆるめに」に反していた。作者の4ラン全部で否定された。
+//   - 天井（P12-b）を通さないまま出している（作者の判断。agents/PROTOCOL.md の逸脱記録）。
 //
 // 【なぜこの形か】RELAY 0.1 は初回の再プレイ度5（企画の記録）を取ったが、6ランで1まで落ちた。
 //   作者の診断：「ゲームとしての面白さはまだ残っている。もう一回やっても、もうハイスコアが
@@ -354,7 +362,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   const all = scaleEnemies(scales, atkScales, modScales, cycleCaps);
   const enemies = options.enemyCount ? all.slice(0, options.enemyCount) : all;
   return {
-    id: `laws-0.1:${lawIds.join("+")}`,
+    id: `laws-0.2:${lawIds.join("+")}`,
     variantId: lawIds.join("+"),
     laws,
     title: `法則機関 / ${laws.map(l => l.name).join("＋")}`,
