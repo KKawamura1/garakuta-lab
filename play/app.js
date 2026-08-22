@@ -28,22 +28,69 @@ function hashOf(text) {
 // 「もう一回やっても、もうハイスコアが二度と得られない（最大でも1位タイにしかならない）」だった。
 // 記録が組ごとにあり、未挑戦の組から引くなら、**始める理由が毎回ある。**
 // 同じ種なら同じ組になる（再現できる）ことは保つ。
-function pickVariant(seed) {
+function pickVariant(seed, played) {
   if (!lawVariants.length) return null;
-  // モジュール初期化中にも呼ばれるので、`bests` を参照せずその場で読む。
-  // 以前 agent-view で、初期化前の変数を読んで画面が落ちたのと同じ形を避ける。
-  const played = new Set(Object.keys(loadBests())
-    .map(key => key.split(":")[1]).filter(Boolean));
   const fresh = lawVariants.filter(v => !played.has(v.laws.join("+")));
   const pool = fresh.length ? fresh : lawVariants;
   return pool[hashOf(`laws:${seed}`) % pool.length];
 }
 
-function lawRulesetFor(session) {
-  const variant = session.variant && lawVariants.find(v => v.laws.join("+") === session.variant)
-    || pickVariant(session.seed);
-  return variant ? makeLawRuleset(variant.laws, variant.scales, variant.atkScales) : RELAY;
+// 進行中のランが、どの法則で始まったかを突き止める。
+//
+// **事故の再発防止である。** 未挑戦の組を優先する仕組みを入れたとき、
+// セッションに「どの組で始めたか」を書いていなかった。すると再読み込みのたびに
+// `pickVariant` が走り、ラン中に記録が増えて「未挑戦の組」が変わるので、
+// **別の法則で再生されてランが壊れた**（作者の進行中のランが第1戦で終了した）。
+//
+// 記録済みの試行（preview）には、**元の法則で計算した結果**が入っている。
+// 候補の法則で同じ並びを引き直し、結果が一致する組を探せば、元の組が分かる。
+function inferVariant(saved) {
+  const actions = saved.actions || [];
+  if (!actions.length || !lawVariants.length) return null;
+  let best = null;
+  lawVariants.forEach(variant => {
+    const rules = makeLawRuleset(variant.laws, variant.scales, variant.atkScales);
+    const probe = createRun({ seed: saved.seed, playerId: saved.playerId, ruleset: rules });
+    let accepted = 0;
+    let matched = 0;
+    let checked = 0;
+    for (const action of actions) {
+      if (action.type === "preview" && action.signature) {
+        const o = probe.observe();
+        const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
+        const slots = String(action.signature).split(",")
+          .map((type, i) => (type === "-" ? null : { id: `r${i}`, type }));
+        if (enemy && slots.some(Boolean)) {
+          const r = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
+          checked += 1;
+          if (r.won === Boolean(action.won) && r.hp === action.hp && r.cycles === action.cycles) matched += 1;
+        }
+      }
+      if (!probe.act(action).ok) break;
+      accepted += 1;
+    }
+    // **本物の法則なら、記録された操作は全部通る。** 途中で弾かれるのは別の法則である証拠。
+    // 試行の結果の一致は、それでも並ぶ候補を分けるための second key。
+    const rate = checked ? matched / checked : 0;
+    if (!best || accepted > best.accepted || (accepted === best.accepted && rate > best.rate)) {
+      best = { variant, accepted, rate };
+    }
+  });
+  return best && best.accepted === actions.length ? best.variant : null;
 }
+
+function lawRulesetFor(session) {
+  // 決めた法則はセッションに焼き付ける。**表が変わっても、進行中のランは同じ規則で再生される。**
+  const spec = session.variantSpec;
+  if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales);
+  const byId = session.variant && lawVariants.find(v => v.laws.join("+") === session.variant);
+  const chosen = byId || inferVariant(session) || pickVariant(session.seed, new Set());
+  if (!chosen) return RELAY;
+  session.variant = chosen.laws.join("+");
+  session.variantSpec = { laws: chosen.laws, scales: chosen.scales, atkScales: chosen.atkScales };
+  return makeLawRuleset(chosen.laws, chosen.scales, chosen.atkScales);
+}
+
 const SAVE_KEY = "garakuta-play-session";
 const ARCHIVE_KEY = "garakuta-play-finished";
 const BEST_KEY = "garakuta-play-bests";
@@ -77,6 +124,8 @@ const el = (tag, props = {}, kids = []) => {
 
 let session = load();
 let run = rebuild();
+// 法則を突き止めた／選んだ結果をすぐ書き戻す。書かないと次の再読み込みでまた選び直しになる。
+try { persist(); } catch (_) { /* 保存できなくても遊べる */ }
 let selectedPartId = null;
 let selectedSlot = null;
 let pendingPrediction = null;
@@ -132,10 +181,18 @@ function load() {
 
 function fresh(seed = null, ruleset = null) {
   const params = new URLSearchParams(location.search);
+  const name = ruleset || params.get("ruleset") || defaultRuleset();
+  const chosenSeed = seed === null ? Math.floor(Math.random() * 100000) : seed;
+  // **未挑戦の組を選ぶのは、ランを始めるこの瞬間だけ。**
+  // 以後は焼き付けた組を使う。ラン中に記録が増えても選び直さない。
+  const played = new Set(Object.keys(loadBests()).map(key => key.split(":")[1]).filter(Boolean));
+  const variant = name === "laws" ? pickVariant(chosenSeed, played) : null;
   return {
     runId: uuid(),
-    ruleset: ruleset || params.get("ruleset") || defaultRuleset(),
-    seed: seed === null ? Math.floor(Math.random() * 100000) : seed,
+    ruleset: name,
+    variant: variant ? variant.laws.join("+") : undefined,
+    variantSpec: variant ? { laws: variant.laws, scales: variant.scales, atkScales: variant.atkScales } : undefined,
+    seed: chosenSeed,
     playerId: "human-play",
     head: "play",
     startedAt: new Date().toISOString(),
@@ -1012,7 +1069,34 @@ $("#gameButton").addEventListener("click", () => {
 $("#closeGame").addEventListener("click", () => $("#gameDialog").close());
 
 $("#helpButton").addEventListener("click", () => {
-  $("#helpBody").replaceChildren(...rulesetOf(session.ruleset).rules.split("\n").map(line => el("div", { textContent: line })));
+  const body = $("#helpBody");
+  body.replaceChildren(...rulesetOf(session.ruleset).rules.split("\n").map(line => el("div", { textContent: line })));
+
+  // **どんな状態でも生の記録を取り出せる口。**
+  // 進行中のランが再読み込みで壊れたとき、感情マーカーごと失われかけた。
+  // 遊べなくなっても、記録だけは necessarily 取り出せるようにしておく。
+  body.append(el("div", { className: "small", style: "margin-top:14px;opacity:.8",
+    textContent: "うまく動かないときは、下から生の記録を取り出せます（行動と気持ちの記録が全部入っています）。" }));
+  const out = el("textarea", { readOnly: true, rows: 4, style: "width:100%;margin-top:6px;font-size:10px" });
+  const status = el("div", { className: "small", style: "margin-top:4px" });
+  body.append(el("div", { className: "actions", style: "margin-top:6px" }, [
+    el("button", {
+      className: "btn", textContent: "生の記録を出す",
+      onclick: () => {
+        const raw = JSON.stringify({ ...session, bests: loadBests() });
+        out.value = raw;
+        out.select();
+        try {
+          navigator.clipboard.writeText(raw);
+          status.textContent = `写しました（${raw.length}文字／行動${(session.actions || []).length}件）`;
+        } catch (_) {
+          status.textContent = "下の枠を長押しして選び、コピーしてください。";
+        }
+      }
+    })
+  ]));
+  body.append(out);
+  body.append(status);
   $("#helpDialog").showModal();
 });
 $("#closeHelp").addEventListener("click", () => $("#helpDialog").close());
