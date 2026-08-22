@@ -436,23 +436,31 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   // 報酬は時間が浮くことだけで、ゲーム内の見返りは与えない。
   const skipWins = Boolean(options.skipWins);
   const regenFrac = Number(options.regenFrac || 0);
+  // **版の名札と版のIDは、同じ1か所から作る。**別々に書くと片方だけ直して食い違う。
+  const versionTag = regenFrac > 0 && overdrive ? "squeeze-0.1"
+    : overdrive ? "cost-0.1" : hidden ? "ident-0.1" : skipWins ? "skip-0.1" : "laws-0.3";
+  const versionName = regenFrac > 0 && overdrive ? "締付機関"
+    : overdrive ? "代償機関" : hidden ? "同定機関" : skipWins ? "連勝機関" : "法則機関";
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
   // 戦闘数を減らせるようにする。**対で比べるときは1本を短くしないと、作者の時間が倍要る。**
   // 3戦なら、いままで1ラン遊んでいた時間で対が1つ回る。
   const all = scaleEnemies(scales, atkScales, modScales, cycleCaps, regenFrac);
   const enemies = options.enemyCount ? all.slice(0, options.enemyCount) : all;
   return {
-    id: `${regenFrac > 0 && overdrive ? "squeeze-0.1"
-      : overdrive ? "cost-0.1" : hidden ? "ident-0.1" : skipWins ? "skip-0.1" : "laws-0.3"}:${lawIds.join("+")}`,
+    id: `${versionTag}:${lawIds.join("+")}`,
     hidden, skipWins,
     // **画面に出してよい版の名前。**
     // 見出しは `rules.id` をそのまま出していたので、伏せた版でも
     // `ident-0.1:reflect+monotony` と**答えが書いてあった。**
     // 記録や通報には法則入りの id を使い続ける（あとで突き合わせるのに要る）。
-    publicId: hidden ? `${hidden ? "ident-0.1" : ""}（法則は伏せてある）` : null,
+    publicId: hidden ? `${versionTag}（法則は伏せてある）` : null,
     variantId: lawIds.join("+"),
     laws,
-    title: `法則機関 / ${laws.map(l => l.name).join("＋")}`,
+    // **版の名前は、版ごとに変える。**
+    // ここが「法則機関」に固定されていたので、見出しも遊び方も全部の版で同じ文言になり、
+    // 作者の報告どおり「変わってるのか変わってないのか分からない」状態だった。
+    // 小さなIDだけが変わっていて、目に入る大きな文字は一つも変わっていなかった。
+    title: `${versionName} / ${hidden ? "？？？" : laws.map(l => l.name).join("＋")}`,
     conceptsToHold: ["HP", "遮蔽は巡回の終わりに消える", "部品ごとの作動周期", "枠で位相がずれる（剰余）",
       ...laws.map(l => l.name), "敵の攻撃周期", "敵の修飾は1体1つ"],
     placementRule: "位相（作動巡回）と、法則が見る並びの関係",
@@ -491,7 +499,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
       命中下限: enemy.floor || null, 毎巡上限: enemy.cycleCap || null,
       毎巡回復: enemy.regen || null, trait: enemy.trait
     }),
-    rules: `【法則機関 / LAWS 0.1 遊び方】
+    rules: `【${versionName} ${versionTag} 遊び方】
 - 部品で機関を組み、6戦を勝ち抜く。操作は構築のみで、戦闘は自動。
 - 枠は5つ。${phaseless
   ? "周期Pの部品は、どの枠にあっても 1, 1+P, 1+2P … 巡目に作動する。"
