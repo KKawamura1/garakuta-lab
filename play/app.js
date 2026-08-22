@@ -29,6 +29,7 @@ const lawVariants = Array.isArray(LAW_TABLE) ? LAW_TABLE : [];
 const costVariants = Array.isArray(COST_TABLE) ? COST_TABLE : [];
 // いま引くべき表。**セッションの版で決める。**
 function variantsOf(session) {
+  // 同定の版は laws-0.3 と同じ盤面（伏せているだけ）なので、素の表を使う。
   return String(session && session.ruleset).toLowerCase() === "cost" ? costVariants : lawVariants;
 }
 
@@ -222,6 +223,7 @@ function rulesetOf(name) {
   const key = String(name || defaultRuleset()).toLowerCase();
   if (key === "laws") return lawRulesetFor(session);
   if (key === "cost") return lawRulesetFor(session, { overdrive: OVERDRIVE });
+  if (key === "ident") return lawRulesetFor(session, { hidden: true });
   return RULESETS[key] || RELAY;
 }
 
@@ -631,16 +633,62 @@ function lawsCard() {
   const rules = rulesetOf(session.ruleset);
   if (!rules.laws || !rules.laws.length) return null;
   const card = el("div", { className: "card" });
-  card.append(el("h2", { textContent: "このランの法則" }));
+  const named = new Set(session.identified || []);
+  card.append(el("h2", { textContent: rules.hidden ? "このランの法則（不明）" : "このランの法則" }));
+
   rules.laws.forEach(law => {
+    // **同定の版では、当てるまで名前も説明も出さない。**
+    // 手がかりは伏せていない：位相表は作動巡回を描くし、予告は実機の結果を出す。
+    // 素の値と実際の差を読めば、どの法則が効いているかは**分かる。**
+    // 分からないのではなく、**まだ確かめていない**という状態にしてある。
+    const known = !rules.hidden || named.has(law.id);
     card.append(el("div", { className: "law" }, [
-      el("span", { className: "law-name", textContent: law.name }),
-      el("span", { className: "law-desc", textContent: law.desc })
+      el("span", { className: "law-name", textContent: known ? law.name : "？？？" }),
+      el("span", { className: "law-desc",
+        textContent: known ? law.desc : "並べて、予告の数字が素の合計とどうずれるかを見る" })
     ]));
   });
-  card.append(el("div", { className: "small", style: "margin-top:6px",
-    textContent: "法則はランごとに変わる。組が変われば、最適な並びも狙える記録も別物になる。" }));
+
+  if (rules.hidden) {
+    const unknown = rules.laws.filter(l => !named.has(l.id));
+    if (unknown.length) {
+      const row = el("div", { className: "actions", style: "margin-top:10px" });
+      row.append(el("button", {
+        className: "btn wide", textContent: "法則を当てる",
+        onclick: () => openGuess(rules, unknown)
+      }));
+      card.append(row);
+      card.append(el("div", { className: "small", style: "margin-top:6px",
+        textContent: "外しても罰は無い。何度でも言える。" }));
+    } else {
+      card.append(el("div", { className: "small", style: "margin-top:6px",
+        textContent: "2つとも当てた。" }));
+    }
+  } else {
+    card.append(el("div", { className: "small", style: "margin-top:6px",
+      textContent: "法則はランごとに変わる。組が変われば、最適な並びも狙える記録も別物になる。" }));
+  }
   return card;
+}
+
+// 当てる画面。**13件から選ぶ。**当てずっぽうでも 2/13 なので、
+// 手がかりを読む方が早い。外しても罰は無い（等級と同じで、罰ではなく志）。
+function openGuess(rules, unknown) {
+  const ids = Object.keys(LAW_DEFS);
+  const list = $("#gameChoices");
+  list.replaceChildren(...ids.map(id => el("button", {
+    className: "btn wide", style: "margin-bottom:6px; text-align:left",
+    textContent: `${LAW_DEFS[id].name} — ${LAW_DEFS[id].desc}`,
+    onclick: () => {
+      const hit = unknown.find(l => l.id === id);
+      session.identified = [...(session.identified || []), ...(hit ? [id] : [])];
+      session.guesses = (session.guesses || 0) + 1;
+      message = hit ? `当たり。${LAW_DEFS[id].name}だった。` : "違う。もう一度どうぞ。";
+      $("#gameDialog").close();
+      persist(); draw();
+    }
+  })));
+  $("#gameDialog").showModal();
 }
 
 // 推定が並んだときは、黙って決めずに訊く。
@@ -1491,6 +1539,7 @@ $("#gameButton").addEventListener("click", () => {
   const list = $("#gameChoices");
   const entries = [...Object.entries(RULESETS)];
   if (lawVariants.length) {
+    entries.unshift(["ident", { title: `同定機関 / IDENT 0.1（${lawVariants.length}通り・法則が伏せてある）` }]);
     entries.unshift(["cost", { title: `代償機関 / COST 0.1（${costVariants.length}通り・速く倒すと自分が削れる）` }]);
     entries.unshift(["laws", { title: `法則機関 / LAWS 0.3（${lawVariants.length}通りの法則の組）` }]);
   }

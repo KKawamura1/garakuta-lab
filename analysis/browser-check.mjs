@@ -43,7 +43,7 @@ try {
 
   const text = await page.locator("body").innerText();
   const line = re => (text.match(re) || ["—"])[0];
-  console.log("版:", line(/(laws|cost|relay|phase|arc)-[\d.]+[^\n]*/));
+  console.log("版:", line(/[a-z]+-\d+\.\d+[^\n]*/));
   console.log("予告:", line(/(勝てる|負ける)[^\n]*/));
   console.log("暴走:", line(/暴走[^\n]*/));
   // 埋まっている枠＝`.slot` のうち `.empty` が付いていないもの。
@@ -52,6 +52,18 @@ try {
   const total = await page.locator(".slot").count();
   const empty = await page.locator(".slot.empty").count();
   console.log("埋まった枠:", `${total - empty}/${total}`);
+  // 同定の版だけの確認：伏せてあるか、当てる口があるか、13件から選べるか。
+  if (query.includes("ident")) {
+    console.log("伏せ字:", text.includes("？？？") ? "出ている" : "**出ていない**");
+    const btn = page.getByRole("button", { name: "法則を当てる" });
+    if (await btn.count()) {
+      await btn.first().click();
+      await page.waitForTimeout(300);
+      console.log("候補の数:", await page.locator("#gameChoices button").count());
+    } else {
+      console.log("候補の数: **当てる口が無い**");
+    }
+  }
   console.log("エラー:", errs.length ? errs.slice(0, 4) : "なし");
   await browser.close();
   if (errs.length) process.exitCode = 1;

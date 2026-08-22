@@ -417,13 +417,18 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   const phaseless = Boolean(options.phaseless);
   const bySpeed = options.gradeBy === "speed";
   const overdrive = options.overdrive || null;
+  // **同定の版**（型2、`analysis/KNOWLEDGE_SURVEY.md`）。法則の名前と説明を伏せる。
+  // NetHack の「赤い薬が何かは毎回違う」と同じで、**覚えるのは事実ではなく確かめ方**になる。
+  // 尽きる未知（初見だけ）ではなく、**毎ラン引き直される未知**である。
+  const hidden = Boolean(options.hidden);
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
   // 戦闘数を減らせるようにする。**対で比べるときは1本を短くしないと、作者の時間が倍要る。**
   // 3戦なら、いままで1ラン遊んでいた時間で対が1つ回る。
   const all = scaleEnemies(scales, atkScales, modScales, cycleCaps);
   const enemies = options.enemyCount ? all.slice(0, options.enemyCount) : all;
   return {
-    id: `${overdrive ? "cost-0.1" : "laws-0.3"}:${lawIds.join("+")}`,
+    id: `${overdrive ? "cost-0.1" : hidden ? "ident-0.1" : "laws-0.3"}:${lawIds.join("+")}`,
+    hidden,
     variantId: lawIds.join("+"),
     laws,
     title: `法則機関 / ${laws.map(l => l.name).join("＋")}`,
