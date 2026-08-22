@@ -5,6 +5,7 @@ import { RELAY } from "../core/relay.mjs";
 import { makeLawRuleset, LAWS as LAW_DEFS, OVERDRIVE } from "../core/laws.mjs";
 import { bestPossible } from "../core/best-possible.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
+import { COST_TABLE } from "../core/cost-table.mjs";
 import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
 import { BUILD } from "../core/build.mjs";
 import { ARC } from "../core/arc.mjs";
@@ -21,6 +22,15 @@ const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
 // 引ける組は core/law-table.mjs にあり、生成条件（T1〜T3）と天井の条件を通ったものだけが載っている。
 // つまり「出してよい問題か」の判定が、設計時の作業ではなく機械の一部になっている。
 const lawVariants = Array.isArray(LAW_TABLE) ? LAW_TABLE : [];
+// **版が違えば表も違う。**
+// laws-0.3 の表をそのまま暴走ありで測ったら、16組中15組が壊れた（詰みなしが47〜94%へ）。
+// 敵の数値は「ぎりぎり勝てる」ところに置いてあるので、代償を足せばそこから落ちる。
+// 代償の版には、暴走ありで調律し直した表を使う（`analysis/tune-laws.mjs --cost`）。
+const costVariants = Array.isArray(COST_TABLE) ? COST_TABLE : [];
+// いま引くべき表。**セッションの版で決める。**
+function variantsOf(session) {
+  return String(session && session.ruleset).toLowerCase() === "cost" ? costVariants : lawVariants;
+}
 
 function hashOf(text) {
   let h = 2166136261;
@@ -34,10 +44,10 @@ function hashOf(text) {
 // 「もう一回やっても、もうハイスコアが二度と得られない（最大でも1位タイにしかならない）」だった。
 // 記録が組ごとにあり、未挑戦の組から引くなら、**始める理由が毎回ある。**
 // 同じ種なら同じ組になる（再現できる）ことは保つ。
-function pickVariant(seed, played) {
-  if (!lawVariants.length) return null;
-  const fresh = lawVariants.filter(v => !played.has(v.laws.join("+")));
-  const pool = fresh.length ? fresh : lawVariants;
+function pickVariant(seed, played, table = lawVariants) {
+  if (!table.length) return null;
+  const fresh = table.filter(v => !played.has(v.laws.join("+")));
+  const pool = fresh.length ? fresh : table;
   return pool[hashOf(`laws:${seed}`) % pool.length];
 }
 
@@ -52,11 +62,11 @@ function pickVariant(seed, played) {
 // 候補の法則で同じ並びを引き直し、結果が一致する組を探せば、元の組が分かる。
 let ambiguousVariants = [];
 
-function inferVariant(saved) {
+function inferVariant(saved, table = lawVariants) {
   const actions = saved.actions || [];
-  if (!actions.length || !lawVariants.length) return null;
+  if (!actions.length || !table.length) return null;
   const scored = [];
-  lawVariants.forEach(variant => {
+  table.forEach(variant => {
     const rules = makeLawRuleset(variant.laws, variant.scales, variant.atkScales, variant.modScales, variant.cycleCaps);
     const probe = createRun({ seed: saved.seed, playerId: saved.playerId, ruleset: rules });
     let accepted = 0;
@@ -104,6 +114,7 @@ function trialRulesetFor(session) {
 }
 
 function lawRulesetFor(session, options = {}) {
+  const table = variantsOf(session);
   // 復旧用の指定。?laws=relay+balance のように渡すと、**進行を保ったまま法則だけ差し替える。**
   // 推定が2候補で並んだとき、人が知っている答えを入れるための口である。
   //
@@ -114,7 +125,7 @@ function lawRulesetFor(session, options = {}) {
   const key = ids => [...ids].sort().join("+");
   const forced = raw ? key(raw.split(/[+,\s]+/).filter(Boolean)) : null;
   if (forced) {
-    const hit = lawVariants.find(v => key(v.laws) === forced);
+    const hit = table.find(v => key(v.laws) === forced);
     if (hit && session.variant !== hit.laws.join("+")) {
       session.variant = hit.laws.join("+");
       session.variantSpec = { laws: hit.laws, scales: hit.scales, atkScales: hit.atkScales, modScales: hit.modScales, cycleCaps: hit.cycleCaps };
@@ -123,8 +134,8 @@ function lawRulesetFor(session, options = {}) {
   // 決めた法則はセッションに焼き付ける。**表が変わっても、進行中のランは同じ規則で再生される。**
   const spec = session.variantSpec;
   if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales, spec.cycleCaps, options);
-  const byId = session.variant && lawVariants.find(v => v.laws.join("+") === session.variant);
-  const chosen = byId || inferVariant(session) || pickVariant(session.seed, new Set());
+  const byId = session.variant && table.find(v => v.laws.join("+") === session.variant);
+  const chosen = byId || inferVariant(session, table) || pickVariant(session.seed, new Set(), table);
   if (!chosen) return RELAY;
   session.variant = chosen.laws.join("+");
   session.variantSpec = { laws: chosen.laws, scales: chosen.scales, atkScales: chosen.atkScales, modScales: chosen.modScales, cycleCaps: chosen.cycleCaps };
@@ -1480,7 +1491,7 @@ $("#gameButton").addEventListener("click", () => {
   const list = $("#gameChoices");
   const entries = [...Object.entries(RULESETS)];
   if (lawVariants.length) {
-    entries.unshift(["cost", { title: "代償機関 / COST 0.1（速く倒すと自分が削れる）" }]);
+    entries.unshift(["cost", { title: `代償機関 / COST 0.1（${costVariants.length}通り・速く倒すと自分が削れる）` }]);
     entries.unshift(["laws", { title: `法則機関 / LAWS 0.3（${lawVariants.length}通りの法則の組）` }]);
   }
   list.replaceChildren(...entries.map(([key, rules]) => el("button", {
