@@ -186,6 +186,10 @@ const el = (tag, props = {}, kids = []) => {
   return node;
 };
 
+// URL で版を指されたのに、対の途中なので続けている——という状態。画面に出す。
+// **`load()` より前に宣言する。**あとに置くと load() の中から触れず、
+// 「初期化前に参照した」で画面が丸ごと出なくなる。
+let pendingRulesetNotice = null;
 let session = load();
 let run = rebuild();
 // 法則を突き止めた／選んだ結果をすぐ書き戻す。書かないと次の再読み込みでまた選び直しになる。
@@ -284,6 +288,17 @@ function load() {
   //
   // 同じ版を指しているときは何もしない（ラン途中のリロードで進行を壊さないため）。
   const wantedRuleset = params.get("ruleset");
+  // **対の途中に別の版のリンクを開いたら、黙って対を続けない。**
+  //
+  // 対が進行中のときは `?ruleset=` を無視する作りになっている。理由はある——
+  // 1本目を遊び終えた対を捨てると、その1本が丸ごと無駄になるからである。
+  // だが**黙って無視するのは、これまで何度もやった事故そのもの**で、
+  // 遊ぶ側は指した版を遊んでいるつもりで別のものを遊ぶことになる。
+  //
+  // 続けるのは正しい。**言わないのが間違い。**画面に理由を出す。
+  if (wantedRuleset && saved && saved.trial) {
+    pendingRulesetNotice = wantedRuleset;
+  }
   if (wantedRuleset && saved && !saved.trial
       && String(saved.ruleset).toLowerCase() !== wantedRuleset.toLowerCase()) {
     try {
@@ -745,6 +760,21 @@ function openGuess(rules, unknown) {
   $("#gameDialog").showModal();
 }
 
+// 対の途中に別の版を指されたことを知らせる札。
+// **黙って別のものを遊ばせない。**続ける理由（1本目を無駄にしない）も一緒に書く。
+function rulesetNoticeCard() {
+  if (!pendingRulesetNotice || !session.trial) return null;
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: "いまは対の途中です" }));
+  card.append(el("div", {
+    textContent: `${pendingRulesetNotice} を開きましたが、伏せた対の2本目が途中なので、そちらを続けます。`
+  }));
+  card.append(el("div", { className: "small", style: "margin-top:6px",
+    textContent: "ここで乗り換えると、遊び終えた1本目が比べる相手を失って無駄になります。"
+      + "この対を終えてから、もう一度リンクを開いてください。" }));
+  return card;
+}
+
 // 推定が並んだときは、黙って決めずに訊く。
 // 進行は正しく戻っているのに法則だけ別物、という直しにくい状態を作らないため。
 function ambiguityCard() {
@@ -774,7 +804,7 @@ function ambiguityCard() {
 }
 
 function buildScreen(o) {
-  const out = [statusCard(o), ambiguityCard(), lawsCard(), enemyCard(o)].filter(Boolean);
+  const out = [statusCard(o), rulesetNoticeCard(), ambiguityCard(), lawsCard(), enemyCard(o)].filter(Boolean);
 
   const grid2 = el("div", { className: "card" });
   grid2.append(el("h2", { textContent: "位相表 — どの枠がどの巡回に動くか" }));
