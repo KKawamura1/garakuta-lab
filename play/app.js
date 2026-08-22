@@ -2,7 +2,7 @@ import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
-import { makeLawRuleset } from "../core/laws.mjs";
+import { makeLawRuleset, LAWS as LAW_DEFS } from "../core/laws.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
 import { TRIALS, sideSpec, sideOrder, pickTrial } from "../core/trial.mjs";
 import { BUILD } from "../core/build.mjs";
@@ -131,6 +131,7 @@ const SAVE_KEY = "garakuta-play-session";
 const ARCHIVE_KEY = "garakuta-play-finished";
 const BEST_KEY = "garakuta-play-bests";
 const MAX_ARCHIVE = 12;
+const LAWS_BY_ID = Object.fromEntries(Object.entries(LAW_DEFS).map(([id, l]) => [id, l.name]));
 // 表に出す巡回数。打切りまで全部出す——打切りが見えていなかったせいで、
 // 作者がHP満タンのまま時間切れで負けたことがある（第4回）。
 const gridCycles = rules => (rules.deterministic ? rules.MAX_CYCLES : 8);
@@ -1060,22 +1061,89 @@ function finishTrialRunNoSend(o, survey) {
   persist();
 }
 
+// 両方の本を、**本人が作った事実だけ**で並べ直す。
+//
+// 作者：「2ラン連続でしかも結構重いゲームをやってると、1ラン目の感想をわすれます……」
+// 忘れられたまま選ばせると、答えは2本目の印象だけで決まり、**対にした意味が消える。**
+// 出すのは戦闘の結果・自分が付けたマーカー・1本目のメモだけ。
+// こちらの解釈も、どちらが良かったかを匂わせるものも出さない。
+function battleLines(battles) {
+  // 等級は、控え（trace）では {rank,label} の形、いまのラン（observe）では文字列で来る。
+  // 片方だけを想定すると [object Object] が出る。負けたときは等級を出さない（「敗北・敗北」になる）。
+  const gradeOf = g => (g && typeof g === "object" ? g.label : g) || null;
+  return (battles || []).map(b => {
+    const grade = b.won ? gradeOf(b.grade) : null;
+    return `第${b.battleNumber}戦 ${b.enemy}：`
+      + (b.won ? `${b.cycles}巡で撃破` : "敗北")
+      + (b.hpLost ? `・${b.hpLost}失う` : b.won ? "・無傷" : "")
+      + (grade ? `・${grade}` : "");
+  });
+}
+
+function markerLines(actions) {
+  return (actions || []).filter(a => a && a.type === "mark" && a.note)
+    .map(a => `${(MARKERS.find(m => m[0] === a.kind) || [])[1] || a.kind}：${a.note}`);
+}
+
+function recallCard(o) {
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: "この2本で起きたこと" }));
+  card.append(el("div", { className: "small",
+    textContent: "思い出すための控えです。どちらが良かったかは書いてありません。" }));
+
+  const first = readArchive()
+    .filter(x => x.trial?.trialId === session.trial.trialId && x.trial?.stage === 0)
+    .slice(-1)[0];
+
+  const box = (label, lawNames, lines, memo, marks) => {
+    const b = el("div", { className: "card", style: "margin-top:10px;padding:10px" });
+    b.append(el("div", { style: "font-weight:600", textContent: label }));
+    if (lawNames) b.append(el("div", { className: "small", textContent: lawNames }));
+    lines.forEach(t => b.append(el("div", { className: "small", textContent: t })));
+    if (memo) b.append(el("div", { style: "margin-top:6px", textContent: `メモ：${memo}` }));
+    marks.forEach(t => b.append(el("div", { className: "small", textContent: t })));
+    return b;
+  };
+
+  const lawsOf = spec => {
+    if (!spec?.laws) return null;
+    return spec.laws.map(id => (LAWS_BY_ID[id] || id)).join("＋");
+  };
+
+  card.append(box("1本目",
+    lawsOf(first?.variantSpec) || (first ? lawsOf(sideSpec(session.trial.id, session.trial.order[0])) : null),
+    battleLines(first?.trace?.battles), first?.survey?.memo, markerLines(first?.actions)));
+  card.append(box("2本目",
+    rulesetOf(session.ruleset).laws.map(l => l.name).join("＋"),
+    battleLines(o.battles), null, markerLines(session.actions)));
+  return card;
+}
+
 function trialEnd(o) {
   const out = [];
   const stage = session.trial.stage;
 
-  // 1本目：感想は訊かない。**訊くと2本目に持ち越されて、比較が汚れる。**
+  // 1本目：**点数は訊かない。**（付けさせると、2本目でそれを守ろうとして比較が汚れる）
+  // ただし**あとで思い出すための1行**は書いてもらう。作者の指摘：
+  //   「2ラン連続でしかも結構重いゲームをやってると、1ラン目の感想をわすれます……」
+  // 忘れられたら対比較の前提が崩れる。**忘れる方が、引きずられるより悪い。**
   if (stage === 0) {
     const card = el("div", { className: "card" });
     card.append(el("h2", { textContent: "1本目 終わり" }));
     card.append(el("div", { textContent: "続けてもう1本あります。遊び終わってから、二つを比べて答えてもらいます。" }));
     card.append(el("div", { className: "small", style: "margin-top:8px",
       textContent: "※ 二つは規則が少し違います。どこが違うかは、先に言わないでおきます。" }));
+    card.append(el("label", { className: "field",
+      textContent: "1本目のひとこと（採点ではなく、あとで自分が思い出すためのメモ）" }));
+    const memo = el("input", { type: "text", placeholder: "例：削り切れなくて粘った／並べ替えが効いた" });
+    card.append(memo);
     card.append(el("div", { className: "actions", style: "margin-top:12px" }, [
       el("button", {
         className: "btn primary wide", textContent: "2本目へ",
         onclick: () => {
-          if (!session.survey) finishTrialRun(o, { trialStage: 0, side: session.trial.side });
+          if (!session.survey) {
+            finishTrialRun(o, { trialStage: 0, side: session.trial.side, memo: memo.value.trim() });
+          }
           const next = { ...session.trial, stage: 1 };
           delete next.side;
           session = fresh(session.trial.seed + 1, null, next);
@@ -1116,6 +1184,14 @@ function trialEnd(o) {
     out.push(done);
     return out;
   }
+
+  // **思い出す手がかりを、先に並べる。**
+  //
+  // 作者：「2ラン連続でしかも結構重いゲームをやってると、1ラン目の感想をわすれます……」
+  // 忘れられたまま選ばせると、答えは2本目の印象だけで決まる。**対にした意味が消える。**
+  // 出すのは**本人が作った事実だけ**（法則・戦闘ごとの等級と巡回・自分が付けたマーカー・1本目のメモ）。
+  // こちらの解釈や、どちらが良かったかを匂わせるものは出さない。
+  out.push(recallCard(o));
 
   const form = el("div", { className: "card" });
   form.append(el("h2", { textContent: "二つを比べて" }));

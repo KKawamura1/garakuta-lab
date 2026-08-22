@@ -97,6 +97,12 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       inventory: state.inventory.map(view),
       upcomingEnemy: state.done ? null : enemyView(),
       lastBattle: state.lastBattle,
+      // これまでの戦闘の要約。**対比較で「1本目に何が起きたか」を思い出すのに要る。**
+      // ログや寄与は重いので落とし、画面に出す分だけにする。
+      battles: state.battles.map(b => ({
+        battleNumber: b.battleNumber, enemy: b.enemy, won: b.won, cycles: b.cycles,
+        hpLost: b.hpLost, grade: b.grade ? b.grade.label : null
+      })),
       done: state.done, won: state.won
     };
     if (state.phase === "reward") base.offer = state.offer.map((instance, i) => ({ choice: i + 1, part: view(instance) }));
