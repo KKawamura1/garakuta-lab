@@ -121,7 +121,7 @@ export function playRun(simulate, enemies, ownedByBattle, seed, parts = PARTS, t
 
 // 表の各組について、持ち込み探索での無傷率を測る。
 function measure(row, runs = 60) {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales, row.cycleCaps);
   const simulate = makeSimulate(row.laws);
   const sets = reachableSets({ PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
     startContract: t => t.filter(x => PARTS[x].line === "strike").length >= 3

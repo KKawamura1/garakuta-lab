@@ -63,6 +63,15 @@ export const LAWS = {
     name: "反射", desc: "巡回の終わりに残った遮蔽は、半分が敵へ返る。",
     endOfCycle: ({ leftover, applyHit }) => (leftover > 1 ? applyHit(Math.floor(leftover / 2)) : 0)
   },
+  // 【削除した法則：偏食（撃×2、守と整×0.5）】
+  // 作者の4ラン全部で否定された。「火力以外の手段が否定されてつまらなかった」
+  // 「偏食はクソゲーとわかったラン」「このルール、火力しか使えねえ。やるかやられるかだ」。
+  //
+  // **これは部品選択の法則だった。** この企画の出発点は
+  // 「並びはきつめに、**部品選択はゆるめに**」であり、ゆるめる側を締めていた。
+  // 上振れ（撃×2）を持つので「ハズレ法則の禁止」は素通りする。**上振れがあることと、
+  // 選択肢が残ることは別の量である。** 倍率が部品の素性だけで決まる法則は、ここには置かない。
+  //
   // ここから下は**取引の法則**である。下がる条件と、狙えば上がる条件を必ず両方持つ。
   //
   // 最初は「同系統が続くと半分」のような**下がるだけの法則**を4つ置いていた。
@@ -85,10 +94,6 @@ export const LAWS = {
   fade: {
     name: "減衰", desc: "1巡目は3倍。以後1巡ごとに1割ずつ弱くなる。",
     gain: ctx => (ctx.cycle === 1 ? 3 : Math.max(0.2, 1 - (ctx.cycle - 1) * 0.1))
-  },
-  bias: {
-    name: "偏食", desc: "撃の効果は2倍、守と整の効果は半分。",
-    gain: ctx => (ctx.line === "strike" ? 2 : 0.5)
   }
 };
 
@@ -121,10 +126,20 @@ export function makeSimulate(lawIds) {
       if (!contributions.has(instance.id)) contributions.set(instance.id, emptyContribution(instance, parts));
       return contributions.get(instance.id);
     };
+    // 1巡に通る合計ダメージの上限。**これが無いと、位相の仕組みが丸ごと迂回される。**
+    //
+    // 実測（作者の4ラン）：24戦中20戦が1巡で決着し、そのうち85%が無傷だった。
+    // 敵は巡回の終わりに殴るので、**1巡で倒せば敵は一度も攻撃しない。**
+    // つまり無傷は防御で取られていたのではなく、敵の行動前に殺すことで取られていた。
+    // 2巡以上かかった4戦の無傷は0%である。
+    // 周期も位相ずれも12巡の打切りも、1巡で終わる戦闘では何の意味も持たない。
+    let dealtThisCycle = 0;
     const applyHit = raw => {
       let value = Math.min(Math.round(raw), enemy.cap ?? 99);
       if ((enemy.floor || 0) > 0 && Math.round(raw) < enemy.floor) value = 1;
       value = Math.max(1, value);
+      if (enemy.cycleCap) value = Math.max(0, Math.min(value, enemy.cycleCap - dealtThisCycle));
+      dealtThisCycle += value;
       battle.enemyHp -= value;
       return value;
     };
@@ -133,6 +148,7 @@ export function makeSimulate(lawIds) {
 
     while (battle.hp > 0 && battle.enemyHp > 0 && battle.cycle < MAX_CYCLES) {
       battle.cycle += 1;
+      dealtThisCycle = 0;
       let shield = 0;
       let previousLine = null;
       let chain = 0;
@@ -247,8 +263,11 @@ export function makeSimulate(lawIds) {
 // RELAY で一度やった失敗の再発防止である：敵を調律したのに説明文だけ古いまま残り、
 // 「毎巡7」と書いてある敵が22殴ってくる状態になっていた。
 // 法則機関では組ごとに数値が変わるので、**手で書いた説明文は必ずずれる。**
+export const CYCLE_CAP_RATIO = 1 / 3;
+
 function traitFor(enemy) {
   const bits = [];
+  if (enemy.cycleCap) bits.push(`1巡に通るのは合計${enemy.cycleCap}まで。最低${Math.ceil(enemy.hp / enemy.cycleCap)}巡かかる。`);
   bits.push(enemy.atkPeriod > 1 ? `${enemy.atkPeriod}巡に1回、${enemy.atk}の一撃。` : `毎巡${enemy.atk}。`);
   if (enemy.cap < 99) bits.push(`1回の命中は${enemy.cap}までしか通らない。大きい一撃ほど無駄が出る。`);
   if (enemy.floor) bits.push(`${enemy.floor}未満の命中は1に潰される。小突きが通らない。`);
@@ -264,10 +283,11 @@ function traitFor(enemy) {
 // 環甲の上限14は RELAY のときより遥かに強く効き、逆に鋼芯の下限10はほとんど効かない。
 // 素の値のままだと、環甲だけがどの組でも帯（T2）に入らず、**91組すべてがそこで落ちた。**
 // 敵の性格を組ごとに保つには、性格を決めている数値も一緒に振るしかない。
-export function scaleEnemies(scales, atkScales, modScales) {
+export function scaleEnemies(scales, atkScales, modScales, cycleCaps) {
   const list = Array.isArray(scales) ? scales : BASE_ENEMIES.map(() => scales);
   const atks = Array.isArray(atkScales) ? atkScales : BASE_ENEMIES.map(() => atkScales ?? 1);
   const mods = Array.isArray(modScales) ? modScales : BASE_ENEMIES.map(() => modScales ?? 1);
+  const caps = Array.isArray(cycleCaps) ? cycleCaps : BASE_ENEMIES.map(() => cycleCaps);
   return BASE_ENEMIES.map((enemy, i) => {
     const mod = mods[i] ?? 1;
     const scaled = {
@@ -275,6 +295,9 @@ export function scaleEnemies(scales, atkScales, modScales) {
       hp: Math.max(20, Math.round(enemy.hp * (list[i] ?? 1))),
       atk: Math.max(1, Math.round(enemy.atk * (atks[i] ?? 1))),
       cap: enemy.cap < 99 ? Math.max(2, Math.round(enemy.cap * mod)) : enemy.cap,
+      // 1巡に通る合計の上限。**HPに対する比で持つので、敵を調律しても最低巡回数が変わらない。**
+      // 1/3 なら、どんな並びでも倒すのに最低4巡かかる。
+      cycleCap: caps[i] ?? Math.max(4, Math.round(enemy.hp * (list[i] ?? 1) * CYCLE_CAP_RATIO)),
       floor: enemy.floor ? Math.max(2, Math.round(enemy.floor * mod)) : enemy.floor,
       regen: enemy.regen ? Math.max(1, Math.round(enemy.regen * (list[i] ?? 1))) : enemy.regen
     };
@@ -311,9 +334,9 @@ export function gradeFor(won, hpLost) {
 
 // 法則の組から、遊べるルールセットを組み立てる。
 // 敵の強さ（scale）は事前検証で決めた値をそのまま使う。ここで調整はしない。
-export function makeLawRuleset(lawIds, scales, atkScales, modScales) {
+export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps) {
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
-  const enemies = scaleEnemies(scales, atkScales, modScales);
+  const enemies = scaleEnemies(scales, atkScales, modScales, cycleCaps);
   return {
     id: `laws-0.1:${lawIds.join("+")}`,
     variantId: lawIds.join("+"),
@@ -340,13 +363,15 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales) {
     enemyView: enemy => ({
       name: enemy.name, hp: enemy.hp, atk: enemy.atk,
       攻撃周期: enemy.atkPeriod, 命中上限: enemy.cap >= 99 ? null : enemy.cap,
-      命中下限: enemy.floor || null, 毎巡回復: enemy.regen || null, trait: enemy.trait
+      命中下限: enemy.floor || null, 毎巡上限: enemy.cycleCap || null,
+      毎巡回復: enemy.regen || null, trait: enemy.trait
     }),
     rules: `【法則機関 / LAWS 0.1 遊び方】
 - 部品で機関を組み、6戦を勝ち抜く。操作は構築のみで、戦闘は自動。
 - 枠は5つ。周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡回に作動する（位相）。
 - 巡回の中では枠1から順に作動する。
 - 遮蔽は巡回の終わりに消える。敵は自分の攻撃周期の巡回に殴る。12巡で決着しなければ敗北。
+- **敵には「1巡に通る合計の上限」がある。**一撃で倒し切ることはできないので、殴られる巡回が必ず来る。
 - 勝つと HP+3。戦闘後、3つの候補から1つ受け取る。
 - 等級（無傷／上々／及第／辛勝）がつく。**外しても罰は無い。**
 

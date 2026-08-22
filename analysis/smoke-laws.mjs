@@ -116,7 +116,7 @@ table.forEach(row => {
 
 // 5. 表の組は実際に遊べること。
 table.slice(0, 5).forEach(row => {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales, row.cycleCaps);
   const run = createRun({ seed: 3, playerId: "smoke", ruleset: rules });
   const observation = run.observe();
   if (observation.slots.length !== SLOT_COUNT) fail(`${row.name} の枠数が違う`);
@@ -135,7 +135,7 @@ table.slice(0, 5).forEach(row => {
 // 敵の説明文と数値が一致していること。
 // RELAY で一度、調律後に説明文だけ古いまま残した。組ごとに数値が変わる法則機関では必ず起きる。
 table.slice(0, 5).forEach(row => {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales, row.cycleCaps);
   rules.ENEMIES.forEach(enemy => {
     if (!enemy.trait.includes(String(enemy.atk))) fail(`${row.name} の ${enemy.name}：説明に攻撃力 ${enemy.atk} が無い`);
     if (enemy.cap < 99 && !enemy.trait.includes(String(enemy.cap))) fail(`${row.name} の ${enemy.name}：説明に命中上限が無い`);

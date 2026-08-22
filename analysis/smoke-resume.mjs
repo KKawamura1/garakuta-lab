@@ -45,7 +45,7 @@ assert.match(app, /split\(\/\[\+,\\s\]\+\/\)/, "?laws= が空白区切り（+ �
 // 手がかりは二つある。**本物の法則なら、記録された操作は全部通る**（弱い法則で再生すると
 // 戦闘に負けてランが終わり、以後の操作が弾かれる）。試行の結果の一致は、それでも並ぶ候補を分ける。
 if (LAW_TABLE.length >= 2) {
-  const specOf = v => makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales);
+  const specOf = v => makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales, v.cycleCaps);
   const target = LAW_TABLE[1];
   const rules = specOf(target);
 

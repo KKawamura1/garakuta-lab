@@ -29,10 +29,23 @@ const MAX_HP = 30;
 const DUMMY_HP = 1e9;
 // 合格した6組はほぼ全部が上限の3.2を使っていた。**探索の端に張り付いているのは、
 // 範囲が足りていない印である。** 上を伸ばす（閾値ではなく探索範囲の話なので、後出しの緩和ではない）。
-const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2];
+// 上を 4.5・6 まで戻した。**絞った理由が、1巡上限を入れたことで消えたからである。**
+// 絞ったときの理由は「攻撃力を上げるほど勝ち＝完全防御になり、勝利と無傷が同じ集合へ収束する」。
+// これは**速く殺して敵の行動前に終わらせる**道が開いていたときの話で、
+// 1巡に通る上限を入れて最低3巡かかるようにした今は、その回避路が無い。
+// 閾値ではなく探索範囲の話である。
+const ATK_CANDIDATES = [1, 1.5, 2.2, 3.2, 4.5, 6];
 // 命中上限・下限の倍率。**法則が1回の命中の大きさを掛け算で動かすので、それへの条件も一緒に振る。**
 // 素の値だけだと環甲（上限14）がどの組でも帯に入らず、91組すべてがそこで落ちた。
 const MOD_CANDIDATES = [1, 1.6, 2.5];
+// 1巡に通る合計の上限。**素のHPに対する比で候補を持つ。**
+//
+// HPに連動させると、一度の戦闘から任意の敵HPを読み出す高速化（下の capacity）が壊れる。
+// 上限が変われば戦闘そのものが変わるので、HPと一緒には動かせない。
+// よって上限は独立した軸として探索し、**選ばれたHPが上限の3倍以上あること**を後で課す。
+// それで「どんな並びでも最低3巡かかる」が保証され、1巡決着が構造的に起きない。
+const CYCLECAP_CANDIDATES = [1 / 5, 1 / 3];
+const MIN_CYCLES = 3;
 // 上を 4.5・6 まで伸ばしていたのをやめた。**攻撃力を上げるほど「勝ち＝完全防御」になり、
 // 勝利と無傷が同じものへ収束する**（実測：攻×6の環甲は勝率9.3%なのに無傷が8.9%）。
 // 天井を下げたいのに、上げる方向の手だった。閾値ではなく探索範囲の話である。
@@ -161,13 +174,17 @@ function tuneEnemy(simulate, index) {
   // 早く抜けると、後の候補の方が良かった場合を取り逃す（前の版はそれで帯を外していた）。
   // 修飾を持たない敵では倍率を振っても何も変わらないので、候補を1つに畳む（無駄な再計算を避ける）。
   const modList = (base.cap < 99 || base.floor) ? MOD_CANDIDATES : [1];
-  for (const atkScale of ATK_CANDIDATES) for (const modScale of modList) {
+  for (const atkScale of ATK_CANDIDATES) for (const modScale of modList)
+  for (const capFrac of CYCLECAP_CANDIDATES) {
+    const cycleCap = Math.max(4, Math.round(base.hp * capFrac));
     const template = {
-      ...base,
+      ...base, cycleCap,
       atk: Math.max(1, Math.round(base.atk * atkScale)),
       cap: base.cap < 99 ? Math.max(2, Math.round(base.cap * modScale)) : base.cap,
       floor: base.floor ? Math.max(2, Math.round(base.floor * modScale)) : base.floor
     };
+    // 最低巡回数が確保できないHPは、そもそも探索範囲から外す。
+    const floorScale = (MIN_CYCLES * cycleCap) / base.hp;
     const caps = situations.map(s => {
       const rng = makeRng(s.run * 977 + index);
       return arrangementsOf(s.owned, rng).map(order => capacity(simulate, order, template));
@@ -194,17 +211,21 @@ function tuneEnemy(simulate, index) {
     // 学び#33・#52 で二度書いた「緩い端を選んで合格にする」を、三度目に踏んでいた。
     // 閾値は一つも動かしていない。**帯の中のどこを選ぶかという探索の話である。**
     const top = Math.min(smax, Math.max(smin, sfloor));
+    const low = Math.max(smin, floorScale);   // 1巡上限の3倍のHPを下回らない
     let best = null;
     for (let step = 0; step <= 12; step += 1) {
-      const scale = smin + ((top - smin) * step) / 12;
-      if (scale <= 0) continue;
+      const scale = low + ((top - low) * step) / 12;
+      if (scale <= 0 || scale < floorScale) continue;
       const m = measureEnemy(caps, scale, base);
       if (m.safeRate < T1_SAFE) break;              // ここから上は詰みが出る
       if (m.winMedian < T2_BAND[0]) break;          // ここから上は締めすぎ
       if (!best || m.flawlessMean < best.flawlessMean) best = { ...m, scale };
     }
-    if (!best) best = { ...measureEnemy(caps, Math.min(smin, smax), base), scale: Math.min(smin, smax) };
-    const found = { ...best, atkScale, modScale, smin, smax, sfloor };
+    if (!best) {
+      const fallback = Math.max(floorScale, Math.min(smin, smax));
+      best = { ...measureEnemy(caps, fallback, base), scale: fallback };
+    }
+    const found = { ...best, atkScale, modScale, cycleCap, smin, smax, sfloor };
     found.score =
       (found.safeRate >= T1_SAFE ? 8 : 0)
       + (found.winMedian <= T2_BAND[1] && found.winMedian >= T2_BAND[0] ? 4 : 0)
@@ -363,6 +384,7 @@ const started = Date.now();
     scales: perEnemy.map(e => Number(e.scale.toFixed(2))),
     atkScales: perEnemy.map(e => e.atkScale),
     modScales: perEnemy.map(e => e.modScale ?? 1),
+    cycleCaps: perEnemy.map(e => e.cycleCap),
     enemyHp: perEnemy.map(e => e.hp),
     safeRate: Number(safeRate.toFixed(3)),
     winMedian: Number(winMedian.toFixed(3)),

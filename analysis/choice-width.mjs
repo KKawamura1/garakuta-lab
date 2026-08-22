@@ -99,7 +99,7 @@ const out = [];
 out.push(report("RELAY 0.1（評価5）", rsim, RPARTS, RENEMIES, rsets));
 console.log("");
 LAW_TABLE.forEach(row => {
-  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales);
+  const rules = makeLawRuleset(row.laws, row.scales, row.atkScales, row.modScales, row.cycleCaps);
   out.push(report(row.name, makeSimulate(row.laws), PARTS, rules.ENEMIES, sets));
 });
 console.log("");
