@@ -108,7 +108,7 @@ mcp__github__actions_run_trigger: export-playtests.yml / limit=10 / echo_to_log=
    （進行中の t2・閃きの対が土台ごと変わると無効になるため）。
    **いまの版が、そのまま「代償が無い側」になる**ので Recall テストの対がそのまま組める。
 2. **基準を満たせば公開してよい。** 基準は2つとも満たすこと：
-   - `for f in analysis/smoke-*.mjs; do node $f; done` が**全通過**
+   - **`./analysis/check-all.sh`** が通ること（落ちたら終了コード1。印字だけ見て公開しない）
    - **`analysis/tradeoff.mjs` の相関が実際に負に振れている**（振れていなければ公開しない）
 3. **順番は 代償 → 検査 → 他の試作。**
    作者：「多数のバージョンが main に並列で存在していても、私が順に試すだけなので OK です。

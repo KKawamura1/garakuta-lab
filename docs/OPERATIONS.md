@@ -137,7 +137,12 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 前後の記録は分けられる。**
 
 `main` へ push すると Cloudflare Pages が公開する。**遊べる状態でないものは main に出さない。**
-公開前に `for f in analysis/smoke-*.mjs; do node $f; done` を全部通す。
+公開前に **`./analysis/check-all.sh`** を通す（一つでも落ちたら 1 で終わる）。
+
+**`for f in ...; do node $f; done` で済ませない。**
+2026-08-23、その形で走らせて "FAIL smoke-play" と印字されているのに、
+**そのまま公開した。**印字は人が読む前提で、後ろの `set -e` は反応しない。
+公開してよいかの判断は、印字ではなく**終了コード**に持たせる。
 **この環境からは公開先を取得できない**（egress ブロック）ので、公開の確認は作者に頼る。
 
 ブラウザ確認は Chromium（`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`）で 390×844。
