@@ -101,4 +101,18 @@ assert.ok(legacy.endedAt, "endedAt が無いセッションでも補完される
 const size = Buffer.byteLength(JSON.stringify(payload));
 assert.ok(size < 750000, `本文は750KB未満（実測 ${size}）`);
 
+// 対の試行が、普通のランと版の文字列で分離できること。
+// **3戦しかなく、片方はわざと条件を破っているので、混ざると集計が壊れる。**
+{
+  const sync = readFileSync("agent-view/sync.js", "utf8");
+  if (!/session\.trial \? `:\$\{session\.trial\.id\}`/.test(sync)) {
+    console.error("sync smoke: 対の試行が game_version で分離されていない");
+    process.exit(1);
+  }
+  if (!/trial: session\.trial/.test(sync)) {
+    console.error("sync smoke: どちらの側だったかが記録に載っていない");
+    process.exit(1);
+  }
+}
+
 console.log(`sync smoke: 送信ペイロードがAPIの検証条件を満たす（${payload.events.length}イベント / ${size}バイト） OK`);
