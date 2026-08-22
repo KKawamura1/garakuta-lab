@@ -34,6 +34,11 @@ assert.match(app, /navigator\.clipboard\.writeText/, "写せるようにする")
 assert.match(app, /function ambiguityCard\(/, "並んだら訊く画面が要る");
 assert.match(app, /winners\.length === 1 \? winners\[0\]\.variant : null/, "並んだら推定しない");
 assert.match(app, /searchParams\.get\("laws"\)|get\("laws"\)/, "法則を指定して直せる口が要る");
+// **その口が実際に開くこと。** `?laws=relay+balance` は URLSearchParams が `+` を空白へ
+// 復号するので、`+` しか受けない実装だと一致せず黙って無視される。説明文どおりに貼って
+// 効かないなら、出口が無いのと同じである（事故の直後に人が使う唯一の手段なので、形だけの
+// 存在確認では足りない）。区切りを緩めて受けていることを検査する。
+assert.match(app, /split\(\/\[\+,\\s\]\+\/\)/, "?laws= が空白区切り（+ の復号形）を受けていない");
 
 // 突き止めの仕組みが実際に効くか、実際に遊んだ形のセッションで確かめる。
 //

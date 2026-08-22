@@ -88,11 +88,17 @@ function inferVariant(saved) {
 function lawRulesetFor(session) {
   // 復旧用の指定。?laws=relay+balance のように渡すと、**進行を保ったまま法則だけ差し替える。**
   // 推定が2候補で並んだとき、人が知っている答えを入れるための口である。
-  const forced = new URLSearchParams(location.search).get("laws");
+  //
+  // **区切りは何でも受ける。** URLSearchParams は `+` を空白として復号するので、
+  // 上に書いてある `?laws=relay+balance` をそのまま貼ると `"relay balance"` になり、
+  // どの組にも一致せず**黙って何も起きない**。事故のために置いた出口が、事故の形で壊れていた。
+  const raw = new URLSearchParams(location.search).get("laws");
+  const key = ids => [...ids].sort().join("+");
+  const forced = raw ? key(raw.split(/[+,\s]+/).filter(Boolean)) : null;
   if (forced) {
-    const hit = lawVariants.find(v => v.laws.join("+") === forced);
-    if (hit && session.variant !== forced) {
-      session.variant = forced;
+    const hit = lawVariants.find(v => key(v.laws) === forced);
+    if (hit && session.variant !== hit.laws.join("+")) {
+      session.variant = hit.laws.join("+");
       session.variantSpec = { laws: hit.laws, scales: hit.scales, atkScales: hit.atkScales, modScales: hit.modScales };
     }
   }
