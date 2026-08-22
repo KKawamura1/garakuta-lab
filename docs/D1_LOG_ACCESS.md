@@ -28,6 +28,10 @@ Cloudflare Dashboardの **Manage Account → Account API Tokens → Create Token
 
 ## 毎回の取得
 
+**Claude 側から起動できる。** 作者が Actions の画面を開く必要はない。
+手順は [`EXPORT.md`](./EXPORT.md) にある。以下は人が手で取る場合の手順。
+
+
 1. GitHubで **Actions → Export D1 playtests** を開く。
 2. **Run workflow** を押す。
 3. 取得する最新ラン数（3 / 5 / 10 / 20）を選ぶ。
