@@ -11,7 +11,10 @@ const app = readFileSync("play/app.js", "utf8");
 
 assert.match(html, /id="gameButton"/, "版を出すチップが要る");
 assert.match(html, /id="gameDialog"/, "画面からゲームを切り替えられる必要がある");
-assert.match(app, /\$\("#gameButton"\)\.textContent = rules\.id/, "チップにはルールセットの版を出す");
+// 伏せた版では法則を含まない名前を出す。**見出しに `rules.id` をそのまま出していたら、
+// `ident-0.1:reflect+monotony` と答えが書いてあった。**
+assert.match(app, /\$\("#gameButton"\)\.textContent = rules\.publicId \|\| rules\.id/,
+  "チップには版を出す（伏せた版では法則を含まない名前）");
 assert.match(app, /document\.title = /, "タブ名も版に追随させる");
 
 // URL の ?ruleset= は進行中のランを乗っ取らない。ただし黙って無視もしない。
