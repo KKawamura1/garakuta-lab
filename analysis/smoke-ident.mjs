@@ -9,6 +9,7 @@
 
 import { identifiability } from "./identify.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
+import { makeLawRuleset, LAWS } from "../core/laws.mjs";
 
 const fail = m => { console.error(`ident smoke: ${m}`); process.exit(1); };
 const TRIES = 12;
@@ -17,6 +18,20 @@ const LIMIT = 8;      // 12通り試して、残る候補がこれ以下であ�
 // 表の先頭から3組。全部やると遅い割に、傾向は3組で分かる。
 const sample = LAW_TABLE.slice(0, 3);
 if (!sample.length) fail("表が空で、確かめようがない");
+
+// **伏せているつもりで、答えが書いてある場所が無いか。**
+// 見出しは `rules.id` をそのまま出していて、`ident-0.1:reflect+monotony` と読めた。
+// 遊び方の文面にも法則の名前と説明が並んでいた。両方とも伏せた意味を消す。
+{
+  const v = LAW_TABLE[0];
+  const r = makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales, v.cycleCaps, { hidden: true });
+  if (!r.publicId) fail("伏せた版に、画面へ出してよい名前（publicId）が無い");
+  v.laws.forEach(id => {
+    if (r.publicId.includes(id)) fail(`画面に出す名前に法則 ${id} が入っている`);
+    if (r.rules.includes(LAWS[id].name)) fail(`遊び方の文面に法則「${LAWS[id].name}」が書いてある`);
+    if (r.rules.includes(LAWS[id].desc)) fail(`遊び方の文面に法則の説明が書いてある`);
+  });
+}
 
 const left = [];
 for (const v of sample) {

@@ -66,6 +66,11 @@ try {
   // 同定の版だけの確認：伏せてあるか、当てる口があるか、13件から選べるか。
   if (query.includes("ident")) {
     console.log("伏せ字:", text.includes("？？？") ? "出ている" : "**出ていない**");
+    // **画面のどこにも答えが書いていないこと。**見出しの版名に法則が入っていた。
+    const saved0 = JSON.parse(await page.evaluate(() => localStorage.getItem("garakuta-play-session")) || "{}");
+    const leak = String(saved0.variant || "").split("+").filter(Boolean)
+      .filter(id => text.includes(id) || text.includes(LAWS[id].name));
+    console.log("答えの漏れ:", leak.length ? `**${leak.join(",")} が画面に出ている**` : "なし");
     const btn = page.getByRole("button", { name: "法則を当てる" });
     if (await btn.count()) {
       await btn.first().click();

@@ -595,9 +595,11 @@ function draw() {
   // 規則の版（laws-0.2）は規則を変えたときだけ動くので、
   // 「さっき公開したものが届いているか」の確認には使えない。
   // build の印は公開のたびに変わるので、そちらで見分ける。
-  $("#gameButton").textContent = rules.id;
+  // **伏せた版では、見出しに法則を出さない。**
+  // `rules.id` は `ident-0.1:reflect+monotony` の形で、**答えがそのまま書いてあった。**
+  $("#gameButton").textContent = rules.publicId || rules.id;
   $("#build").textContent = BUILD;
-  document.title = `${rules.title.split(" / ")[0]}（${rules.id}）`;
+  document.title = `${rules.title.split(" / ")[0]}（${rules.publicId || rules.id}）`;
   $("#wave").textContent = o.done
     ? (o.won ? `全${o.totalBattles}戦を突破` : `第${o.battleNumber}戦で停止`)
     : `第${o.battleNumber}戦 / 全${o.totalBattles}戦 ・ seed ${o.seed}`;
