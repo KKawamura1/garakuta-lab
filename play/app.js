@@ -51,7 +51,7 @@ function inferVariant(saved) {
   if (!actions.length || !lawVariants.length) return null;
   const scored = [];
   lawVariants.forEach(variant => {
-    const rules = makeLawRuleset(variant.laws, variant.scales, variant.atkScales);
+    const rules = makeLawRuleset(variant.laws, variant.scales, variant.atkScales, variant.modScales);
     const probe = createRun({ seed: saved.seed, playerId: saved.playerId, ruleset: rules });
     let accepted = 0;
     let matched = 0;
@@ -93,18 +93,18 @@ function lawRulesetFor(session) {
     const hit = lawVariants.find(v => v.laws.join("+") === forced);
     if (hit && session.variant !== forced) {
       session.variant = forced;
-      session.variantSpec = { laws: hit.laws, scales: hit.scales, atkScales: hit.atkScales };
+      session.variantSpec = { laws: hit.laws, scales: hit.scales, atkScales: hit.atkScales, modScales: hit.modScales };
     }
   }
   // 決めた法則はセッションに焼き付ける。**表が変わっても、進行中のランは同じ規則で再生される。**
   const spec = session.variantSpec;
-  if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales);
+  if (spec && spec.laws) return makeLawRuleset(spec.laws, spec.scales, spec.atkScales, spec.modScales);
   const byId = session.variant && lawVariants.find(v => v.laws.join("+") === session.variant);
   const chosen = byId || inferVariant(session) || pickVariant(session.seed, new Set());
   if (!chosen) return RELAY;
   session.variant = chosen.laws.join("+");
-  session.variantSpec = { laws: chosen.laws, scales: chosen.scales, atkScales: chosen.atkScales };
-  return makeLawRuleset(chosen.laws, chosen.scales, chosen.atkScales);
+  session.variantSpec = { laws: chosen.laws, scales: chosen.scales, atkScales: chosen.atkScales, modScales: chosen.modScales };
+  return makeLawRuleset(chosen.laws, chosen.scales, chosen.atkScales, chosen.modScales);
 }
 
 const SAVE_KEY = "garakuta-play-session";
@@ -207,7 +207,7 @@ function fresh(seed = null, ruleset = null) {
     runId: uuid(),
     ruleset: name,
     variant: variant ? variant.laws.join("+") : undefined,
-    variantSpec: variant ? { laws: variant.laws, scales: variant.scales, atkScales: variant.atkScales } : undefined,
+    variantSpec: variant ? { laws: variant.laws, scales: variant.scales, atkScales: variant.atkScales, modScales: variant.modScales } : undefined,
     seed: chosenSeed,
     playerId: "human-play",
     head: "play",
@@ -546,7 +546,7 @@ function ambiguityCard() {
       textContent: `${variant.name}${session.variant === id ? "（いま選ばれている）" : ""}`,
       onclick: () => {
         session.variant = id;
-        session.variantSpec = { laws: variant.laws, scales: variant.scales, atkScales: variant.atkScales };
+        session.variantSpec = { laws: variant.laws, scales: variant.scales, atkScales: variant.atkScales, modScales: variant.modScales };
         ambiguousVariants = [];
         run = rebuild();
         persist();

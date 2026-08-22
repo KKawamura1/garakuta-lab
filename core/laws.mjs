@@ -257,14 +257,25 @@ function traitFor(enemy) {
   return bits.join("");
 }
 
-export function scaleEnemies(scales, atkScales) {
+// 命中上限（cap）と命中下限（floor）も振る。
+//
+// これは範囲の追加であって、閾値の緩和ではない。理由：**上限と下限は「1回の命中の大きさ」への
+// 条件だが、法則はまさにその大きさを掛け算で動かす。** 継電（×n）や単調（×3）の下では
+// 環甲の上限14は RELAY のときより遥かに強く効き、逆に鋼芯の下限10はほとんど効かない。
+// 素の値のままだと、環甲だけがどの組でも帯（T2）に入らず、**91組すべてがそこで落ちた。**
+// 敵の性格を組ごとに保つには、性格を決めている数値も一緒に振るしかない。
+export function scaleEnemies(scales, atkScales, modScales) {
   const list = Array.isArray(scales) ? scales : BASE_ENEMIES.map(() => scales);
   const atks = Array.isArray(atkScales) ? atkScales : BASE_ENEMIES.map(() => atkScales ?? 1);
+  const mods = Array.isArray(modScales) ? modScales : BASE_ENEMIES.map(() => modScales ?? 1);
   return BASE_ENEMIES.map((enemy, i) => {
+    const mod = mods[i] ?? 1;
     const scaled = {
       ...enemy,
       hp: Math.max(20, Math.round(enemy.hp * (list[i] ?? 1))),
       atk: Math.max(1, Math.round(enemy.atk * (atks[i] ?? 1))),
+      cap: enemy.cap < 99 ? Math.max(2, Math.round(enemy.cap * mod)) : enemy.cap,
+      floor: enemy.floor ? Math.max(2, Math.round(enemy.floor * mod)) : enemy.floor,
       regen: enemy.regen ? Math.max(1, Math.round(enemy.regen * (list[i] ?? 1))) : enemy.regen
     };
     return { ...scaled, trait: traitFor(scaled) };
@@ -300,9 +311,9 @@ export function gradeFor(won, hpLost) {
 
 // 法則の組から、遊べるルールセットを組み立てる。
 // 敵の強さ（scale）は事前検証で決めた値をそのまま使う。ここで調整はしない。
-export function makeLawRuleset(lawIds, scales, atkScales) {
+export function makeLawRuleset(lawIds, scales, atkScales, modScales) {
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
-  const enemies = scaleEnemies(scales, atkScales);
+  const enemies = scaleEnemies(scales, atkScales, modScales);
   return {
     id: `laws-0.1:${lawIds.join("+")}`,
     variantId: lawIds.join("+"),
