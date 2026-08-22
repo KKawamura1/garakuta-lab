@@ -63,8 +63,8 @@ function spearman(xs, ys) {
   return dx && dy ? num / Math.sqrt(dx * dy) : null;
 }
 
-export function tradeoff({ laws, scales, atkScales, modScales, cycleCaps, phaseless = false }, runs = 10) {
-  const sim = makeSimulate(laws, { phaseless });
+export function tradeoff({ laws, scales, atkScales, modScales, cycleCaps, phaseless = false, overdrive = null }, runs = 10) {
+  const sim = makeSimulate(laws, { phaseless, overdrive });
   const enemies = scaleEnemies(scales, atkScales, modScales, cycleCaps);
   const sets = reachableSets({ PARTS, START_PARTS: 8, RARE_RATE: 0.12, ENEMIES: BASE,
     startContract: t => t.filter(x => PARTS[x].line === "strike").length >= 3
