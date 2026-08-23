@@ -28,8 +28,9 @@ assert.match(app, /上のバージョン表示から切り替えられます/, "
 
 // 既定は現時点の本命。ここを変えたら README の案内も変える。
 // 通った法則の組が無いときは遊べないので、その場合だけ RELAY に落ちること。
+// **本命は 2026-08-23 に連勝機関へ移した**（作者が5点を付けた唯一の版）。
 assert.match(app, /params\.get\("ruleset"\) \|\| defaultRuleset\(\)/, "新規セッションの既定は defaultRuleset");
-assert.match(app, /return lawVariants\.length \? "laws" : "relay";/, "表が空なら遊べる版に落ちる");
+assert.match(app, /return lawVariants\.length \? "skip" : "relay";/, "表が空なら遊べる版に落ちる");
 
 // 報酬を選ぶ画面に手持ちが出ていること。
 // 作者が2ラン続けて「相変わらず今の手持ちが見えない」と書いた。継電は系統の並びで効くので、

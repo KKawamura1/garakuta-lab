@@ -221,6 +221,32 @@ const bestKeyFor = (rulesetName, enemyName) => {
   return `${String(rulesetName).toLowerCase()}${variant}:${enemyName}`;
 };
 
+// **連勝の自己最高は、敵ごとではなく組ごとに持つ。**
+//
+// 敵ごとの等級は無傷で頭打ちになる（第10回で継続が止まった理由がそれだった）。
+// 連勝は6まであり、実測で「その持ち物で届く最長」は平均3.4戦、
+// 勝てる並びのうち2戦続くのは26%しか無い（`analysis/streak-space.mjs`）。
+// **上が詰まっていない永続値**は、いまこれしか無い。
+function streakKeyFor(rulesetName) {
+  const rules = rulesetOf(rulesetName);
+  const variant = rules.variantId ? `:${rules.variantId}` : "";
+  return `${String(rulesetName).toLowerCase()}${variant}:連勝`;
+}
+
+function bestStreakOf(rulesetName) {
+  const v = bests[streakKeyFor(rulesetName)];
+  return v && v.streak ? v.streak : 0;
+}
+
+function recordStreak(rulesetName, streak) {
+  if (!streak) return false;
+  const key = streakKeyFor(rulesetName);
+  if (bests[key] && bests[key].streak >= streak) return false;
+  bests[key] = { streak };
+  saveBests(bests);
+  return true;
+}
+
 function recordBest(rulesetName, enemyName, grade, cycles) {
   if (!grade || !grade.rank) return false;
   const key = bestKeyFor(rulesetName, enemyName);
@@ -231,7 +257,14 @@ function recordBest(rulesetName, enemyName, grade, cycles) {
 }
 
 // 既定は法則機関。ただし通った組が無いときは遊べないので RELAY に落とす。
-function defaultRuleset() { return lawVariants.length ? "laws" : "relay"; }
+// **既定は連勝機関にする**（2026-08-23）。
+//
+// 理由は記録である。作者が5点を付けた唯一のランがこれで、最良の瞬間も2ランとも strike だった。
+// 「久々に明確な方針の存在するゲームをプレイできた」。
+// 一方、繰り返し出ている不満は「そのまま勝ててしまう」「圧力が無い」——**同じ現象**である。
+// 違うのは、それが**目標だったかどうか**だけ。
+// 素の法則機関は比較の相手として残す（切り替えの一覧の隣にある）。
+function defaultRuleset() { return lawVariants.length ? "skip" : "relay"; }
 
 function rulesetOf(name) {
   if (session && session.trial) return trialRulesetFor(session);
@@ -634,9 +667,15 @@ function draw() {
   $("#build").textContent = BUILD;
   drawVitals(o, rules);
   document.title = `${rules.title.split(" / ")[0]}（${rules.publicId || rules.id}）`;
+  // **連勝の版では、連勝が得点である。**だから常に出す。
+  // 飛ばした直後の札にしか出していなかったので、伸ばしている最中は見えなかった。
+  // 見えない得点は狙えない。seed はここで見る必要が無いので譲る（⋯ の中にある）。
+  const streakBit = rules.skipWins
+    ? ` ・ 連勝 ${session.streak || 0}${bestStreakOf(session.ruleset) ? `（最高 ${bestStreakOf(session.ruleset)}）` : ""}`
+    : ` ・ seed ${o.seed}`;
   $("#wave").textContent = o.done
     ? (o.won ? `全${o.totalBattles}戦を突破` : `第${o.battleNumber}戦で停止`)
-    : `第${o.battleNumber}戦 / 全${o.totalBattles}戦 ・ seed ${o.seed}`;
+    : `第${o.battleNumber}戦 / 全${o.totalBattles}戦${streakBit}`;
   const screen = $("#screen");
   screen.replaceChildren();
 
@@ -1289,6 +1328,7 @@ function trySkip() {
   session.streak = (session.streak || 0) + 1;
   // 連鎖は手で戦うと切れる。**届いた最長は別に残す**（通報に載せるのはこちら）。
   session.bestStreak = Math.max(session.bestStreak || 0, session.streak);
+  recordStreak(session.ruleset, session.bestStreak);
   // **何が起きたかを残す。**飛ばした戦闘は見ていないので、
   // 結果を出さないと「知らないうちに報酬画面に居る」だけになる。
   const note = { enemy: res.battle.enemy, cycles: res.battle.cycles,
@@ -1362,6 +1402,15 @@ function rewardScreen(o) {
   const out = [statusCard(o), skipCard()].filter(Boolean);
   const card = el("div", { className: "card" });
   card.append(el("h2", { textContent: "拾い物 — 1つだけ持って帰れる" }));
+  // **この版の取引を、決める場所に書く。**
+  //
+  // 部品を拾うのは自由で、連勝も切れない。切れるのは**枠に入れたとき**である。
+  // つまり「強くなる」と「続ける」が正面からぶつかる。それがこの版の遊びなので、
+  // 選ぶ画面に書いていないと、遊ぶ側は取引が起きていることに気づけない。
+  if (rulesetOf(session.ruleset).skipWins) {
+    card.append(el("div", { className: "small",
+      textContent: "拾うだけなら連勝は切れない。切れるのは枠に入れて手で戦ったときである。" }));
+  }
   const list = el("div", { className: "parts" });
   o.offer.forEach(item => {
     const p = item.part;
@@ -1725,6 +1774,16 @@ function endScreen(o) {
   const head = el("div", { className: "card" });
   head.append(el("h2", { textContent: "ラン終了" }));
   head.append(el("div", { textContent: o.won ? `全${o.totalBattles}戦を突破した。` : `第${o.battleNumber}戦で停止した。` }));
+  // **連勝の版の成績は、勝敗ではなく最長連勝である。**
+  // 記録は組ごとに残り、上限は6。無傷のように頭打ちにならない。
+  if (rulesetOf(session.ruleset).skipWins) {
+    const reached = session.bestStreak || 0;
+    const record = bestStreakOf(session.ruleset);
+    head.append(el("h2", { textContent: `最長連勝 ${reached}` }));
+    head.append(el("div", { className: "small", textContent: reached
+      ? (reached >= record ? `自己最高を更新した（この組の記録 ${record}）。` : `この組の自己最高は ${record}。`)
+      : "一度も、触らずに次を勝てなかった。" }));
+  }
   out.push(head);
   if (o.lastBattle) out.push(lastBattleCard(o.lastBattle));
   if (session.trial) return [...out, ...trialEnd(o)];
@@ -1890,7 +1949,7 @@ $("#gameButton").addEventListener("click", () => {
     entries.unshift(["cost", { title: "代償機関 / COST 0.1（休止：面白さ2・2、学びが薄い）" }]);
     entries.unshift(["ident", { title: "同定機関 / IDENT 0.2（休止：面白さ1・2回で当たる）" }]);
     entries.unshift(["study", { title: "伏せた対を遊ぶ（どの問いを試しているかは伏せてあります）" }]);
-    entries.unshift(["skip", { title: "連勝機関 / SKIP 0.2（そのまま勝てる戦闘は飛ばす）" }]);
+    entries.unshift(["skip", { title: "連勝機関 / SKIP 0.3（連勝が得点。触らずに勝てた戦闘は飛ばす）" }]);
     entries.unshift(["laws", { title: `法則機関 / LAWS 0.4（${lawVariants.length}通りの法則の組）` }]);
   }
   list.replaceChildren(...entries.map(([key, rules]) => el("button", {

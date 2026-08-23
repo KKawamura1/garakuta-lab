@@ -135,13 +135,19 @@ try {
   // **画面の文字だけで判定しない。**セッションに残る連勝数が、飛ばしが起きた証拠である。
   const state = JSON.parse(await page.evaluate(() => localStorage.getItem("garakuta-play-session")) || "{}");
   console.log("記録された連勝数:", state.streak ?? 0);
-  const streak = (after.match(/\d+ strike![^\n]*/) || [null])[0];
   const wave = (after.match(/第\d+戦[^\n]*/) || ["—"])[0];
-  console.log("連勝表示:", streak || "**出ていない**");
+  // **「N strike!」の札は報酬画面を離れると消える。**そこを見て「出ていない」と言っていた。
+  // SKIP 0.3 で連勝は得点になったので、**帯に常時出ていること**が確認事項である。
+  const inBar = /連勝 \d+/.test(wave);
   console.log("いまの戦闘:", wave);
+  console.log("帯の連勝表示:", inBar ? "出ている" : "**出ていない**");
+  // 自己最高が組ごとに残っているか。ここが残らないと、狙う理由が1ランで消える。
+  const bests = JSON.parse(await page.evaluate(() => localStorage.getItem("garakuta-play-bests")) || "{}");
+  const keys = Object.keys(bests).filter(k => k.endsWith(":連勝"));
+  console.log("連勝の自己最高:", keys.length ? keys.map(k => `${k}=${bests[k].streak}`).join(" / ") : "**残っていない**");
   console.log("エラー:", errs.length ? errs.slice(0, 3) : "なし");
   await browser.close();
-  if (!(state.streak > 0) || errs.length) process.exitCode = 1;
+  if (!(state.streak > 0) || !inBar || !keys.length || errs.length) process.exitCode = 1;
 } finally {
   stop();
 }
