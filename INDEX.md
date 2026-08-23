@@ -78,9 +78,6 @@
 | [core/best-possible.mjs](./core/best-possible.mjs) | 手持ちから理論上の最良値を計算 |
 | [core/rng.mjs](./core/rng.mjs) | シードから再現できる乱数 |
 
-注意：`core/law-table.mjs` 冒頭の「天井まで通った組だけ」という説明は、
-現在の運用変更より古い可能性があります。実データの `ceilingPassed` と
-直近の判定文書を優先してください。
 
 ## UIと比較版
 
