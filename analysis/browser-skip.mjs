@@ -114,6 +114,23 @@ try {
     console.log("画面のボタン:", (await page.locator("button:visible").allInnerTexts()).map(t => t.replace(/\s+/g, " ").slice(0, 24)).slice(0, 12));
   }
 
+  // **連鎖したときに何が起きるかを追う。**飛ばしは報酬を取った直後に走るので、
+  // 続けて飛べば「報酬 → 報酬 → …」と続き、構築画面が一度も出ないことがある。
+  for (let round = 0; round < 5; round += 1) {
+    const t = await page.locator("body").innerText();
+    const wave = (t.match(/第\d+戦/) || ["—"])[0];
+    const streak = (t.match(/\d+ strike!/) || [null])[0];
+    const screen = /拾い物/.test(t) ? "報酬" : /戦う前に/.test(t) ? "構築" : /ラン終了/.test(t) ? "終了" : "その他";
+    const st = JSON.parse(await page.evaluate(() => localStorage.getItem("garakuta-play-session")) || "{}");
+    console.log(`   ${round}: ${screen} ${wave} 連勝=${st.streak ?? 0} 札=${streak || "なし"} 飛ばし記録=${(st.skipLog||[]).length}件`);
+    if (screen !== "報酬") break;
+    await page.locator(".parts .part").first().click({ timeout: 4000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const u = page.getByRole("button", { name: "方針どおり" });
+    if (await u.count()) await u.first().click({ timeout: 4000 }).catch(() => {});
+    await page.waitForTimeout(900);
+  }
+
   const after = await page.locator("body").innerText();
   // **画面の文字だけで判定しない。**セッションに残る連勝数が、飛ばしが起きた証拠である。
   const state = JSON.parse(await page.evaluate(() => localStorage.getItem("garakuta-play-session")) || "{}");

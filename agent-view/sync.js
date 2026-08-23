@@ -7,7 +7,7 @@ const SCHEMA_VERSION = 4;
 // 遊べるルールセットは必ずここに載せる。載せ忘れると game_version が "unknown-play" になり、
 // **どのゲームの記録か分からなくなる**（法則機関の最初の4ランで実際に起きた）。
 // analysis/smoke-sync.mjs が、遊ぶ画面が持つ全ルールセットを照合している。
-const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1", relay: "relay-0.1", laws: "laws-0.3", cost: "cost-0.1", ident: "ident-0.1", skip: "skip-0.1", squeeze: "squeeze-0.1" };
+const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1", relay: "relay-0.1", laws: "laws-0.4", cost: "cost-0.1", ident: "ident-0.2", skip: "skip-0.2", squeeze: "squeeze-0.1" };
 const HEADS = { "agent-view": "av", play: "play" };
 
 const MARKER_LABELS = {
@@ -90,7 +90,11 @@ export function buildPayload(session) {
       ...(session.guesses ? { guesses: session.guesses } : {}),
       // **飛ばした回数。**送っていなければ、遊んでもらっても
       // 「1ランに1回くらい飛ぶ」という登録済みの予測を記録から確かめられない。
+      // **最後の連鎖ではなく、そのランで届いた最長の連鎖を送る。**
+      // `streak` は手で戦うと 0 に戻るので、最終戦を手で戦ったランでは
+      // 3 strike! まで行っていても記録には何も残らなかった（実際に1ラン起きた）。
       ...(session.streak ? { streak: session.streak } : {}),
+      ...(session.bestStreak ? { bestStreak: session.bestStreak } : {}),
       ...(session.skipLog && session.skipLog.length ? { skips: session.skipLog } : {})
     },
     client: {

@@ -13,10 +13,10 @@ export const LAW_TABLE = [
   "scales": [
    1.26,
    2.53,
-   1.63,
+   1.86,
    1.33,
-   2.26,
-   1.75
+   2.3,
+   1.47
   ],
   "atkScales": [
    2.2,
@@ -45,22 +45,22 @@ export const LAW_TABLE = [
   "enemyHp": [
    482,
    536,
-   473,
+   536,
    436,
-   744,
-   336
+   756,
+   282
   ],
   "safeRate": 1,
-  "winMedian": 0.093,
+  "winMedian": 0.089,
   "decided": 1,
   "flawlessReach": 0.987,
   "ceilings": [
    0.987,
    0.905,
-   0.666,
+   0.357,
    0.882,
-   0.799,
-   0.879
+   0.766,
+   0.88
   ],
   "ceilingPassed": false
  },
@@ -72,11 +72,11 @@ export const LAW_TABLE = [
   "name": "共鳴＋反射",
   "scales": [
    1.09,
-   0.73,
+   0.72,
    1.52,
    0.76,
    1.55,
-   1.1
+   0.65
   ],
   "atkScales": [
    2.2,
@@ -84,11 +84,11 @@ export const LAW_TABLE = [
    1,
    3.2,
    1.5,
-   1.5
+   2.2
   ],
   "modScales": [
    1,
-   2.5,
+   1.6,
    1,
    1.6,
    1,
@@ -104,23 +104,23 @@ export const LAW_TABLE = [
   ],
   "enemyHp": [
    416,
-   154,
+   152,
    440,
    248,
    508,
-   210
+   125
   ],
   "safeRate": 1,
   "winMedian": 0.067,
   "decided": 1,
-  "flawlessReach": 0.856,
+  "flawlessReach": 0.82,
   "ceilings": [
    0.707,
-   0.856,
+   0.82,
    0.568,
    0.643,
    0.357,
-   0.568
+   0.41
   ],
   "ceilingPassed": false
  },
@@ -135,15 +135,15 @@ export const LAW_TABLE = [
    1,
    0.65,
    0.6,
-   0.78,
-   0.63
+   0.68,
+   0.71
   ],
   "atkScales": [
    1,
    1.5,
    1.5,
    2.2,
-   1,
+   1.5,
    1
   ],
   "modScales": [
@@ -167,11 +167,11 @@ export const LAW_TABLE = [
    213,
    187,
    198,
-   255,
-   122
+   224,
+   137
   ],
   "safeRate": 0.992,
-  "winMedian": 0.086,
+  "winMedian": 0.089,
   "decided": 0.992,
   "flawlessReach": 0.191,
   "ceilings": [
@@ -179,7 +179,7 @@ export const LAW_TABLE = [
    0,
    0.191,
    0.09,
-   0,
+   0.012,
    0
   ],
   "ceilingPassed": true
@@ -193,15 +193,15 @@ export const LAW_TABLE = [
   "scales": [
    1.08,
    1.62,
-   1.59,
-   1.4,
+   0.7,
+   1.42,
    1.77,
-   1.4
+   1.82
   ],
   "atkScales": [
    3.2,
    2.2,
-   1,
+   2.2,
    3.2,
    1,
    1
@@ -220,15 +220,15 @@ export const LAW_TABLE = [
    58,
    66,
    66,
-   38
+   64
   ],
   "enemyHp": [
    414,
    342,
-   459,
-   458,
+   202,
+   464,
    582,
-   268
+   348
   ],
   "safeRate": 1,
   "winMedian": 0.056,
@@ -237,10 +237,10 @@ export const LAW_TABLE = [
   "ceilings": [
    0.736,
    0.776,
-   0.715,
-   0.625,
+   0.657,
+   0.605,
    0.699,
-   0.74
+   0.722
   ],
   "ceilingPassed": false
  },
@@ -256,7 +256,7 @@ export const LAW_TABLE = [
    0.69,
    0.75,
    0.8,
-   0.59
+   0.68
   ],
   "atkScales": [
    1,
@@ -288,10 +288,10 @@ export const LAW_TABLE = [
    198,
    244,
    262,
-   114
+   131
   ],
   "safeRate": 1,
-  "winMedian": 0.071,
+  "winMedian": 0.076,
   "decided": 1,
   "flawlessReach": 0.691,
   "ceilings": [
@@ -300,7 +300,7 @@ export const LAW_TABLE = [
    0.691,
    0.465,
    0.41,
-   0.023
+   0.046
   ],
   "ceilingPassed": false
  },
@@ -313,10 +313,10 @@ export const LAW_TABLE = [
   "scales": [
    0.98,
    1.06,
-   1.15,
-   0.68,
+   1.14,
+   0.69,
    1.02,
-   1.34
+   1.02
   ],
   "atkScales": [
    1.5,
@@ -340,27 +340,27 @@ export const LAW_TABLE = [
    58,
    66,
    66,
-   64
+   38
   ],
   "enemyHp": [
    375,
    224,
-   332,
-   224,
+   329,
+   226,
    336,
-   256
+   196
   ],
   "safeRate": 1,
-  "winMedian": 0.053,
+  "winMedian": 0.055,
   "decided": 1,
   "flawlessReach": 0.687,
   "ceilings": [
    0.639,
    0.431,
-   0.445,
+   0.438,
    0.687,
    0.402,
-   0.452
+   0.395
   ],
   "ceilingPassed": false
  },
@@ -375,8 +375,8 @@ export const LAW_TABLE = [
    0.59,
    0.6,
    0.6,
-   0.64,
-   0.59
+   0.63,
+   0.65
   ],
   "atkScales": [
    1,
@@ -407,11 +407,11 @@ export const LAW_TABLE = [
    126,
    175,
    198,
-   210,
-   114
+   209,
+   125
   ],
   "safeRate": 0.983,
-  "winMedian": 0.077,
+  "winMedian": 0.084,
   "decided": 0.983,
   "flawlessReach": 0.22,
   "ceilings": [
@@ -433,10 +433,10 @@ export const LAW_TABLE = [
   "scales": [
    1.45,
    2.03,
-   2.58,
+   2.59,
    1.61,
    2.45,
-   1.27
+   1.33
   ],
   "atkScales": [
    3.2,
@@ -444,7 +444,7 @@ export const LAW_TABLE = [
    1,
    3.2,
    1.5,
-   2.2
+   1.5
   ],
   "modScales": [
    1,
@@ -465,10 +465,10 @@ export const LAW_TABLE = [
   "enemyHp": [
    555,
    429,
-   744,
+   748,
    528,
    806,
-   244
+   256
   ],
   "safeRate": 1,
   "winMedian": 0.052,
@@ -477,10 +477,10 @@ export const LAW_TABLE = [
   "ceilings": [
    0.77,
    0.796,
-   0.726,
+   0.67,
    0.699,
    0.465,
-   0.733
+   0.657
   ],
   "ceilingPassed": false
  },
@@ -496,7 +496,7 @@ export const LAW_TABLE = [
    1.33,
    1.22,
    1.41,
-   1.71
+   0.59
   ],
   "atkScales": [
    1.5,
@@ -504,7 +504,7 @@ export const LAW_TABLE = [
    1,
    1,
    1,
-   1
+   2.2
   ],
   "modScales": [
    1,
@@ -520,7 +520,7 @@ export const LAW_TABLE = [
    58,
    66,
    66,
-   64
+   38
   ],
   "enemyHp": [
    500,
@@ -528,10 +528,10 @@ export const LAW_TABLE = [
    384,
    399,
    462,
-   328
+   114
   ],
   "safeRate": 1,
-  "winMedian": 0.062,
+  "winMedian": 0.071,
   "decided": 1,
   "flawlessReach": 0.793,
   "ceilings": [
@@ -540,7 +540,7 @@ export const LAW_TABLE = [
    0.722,
    0.793,
    0.6,
-   0.54
+   0.459
   ],
   "ceilingPassed": false
  },
@@ -552,15 +552,15 @@ export const LAW_TABLE = [
   "name": "均衡＋減衰",
   "scales": [
    0.65,
-   1.02,
+   1.17,
    0.8,
    0.6,
    0.6,
-   0.65
+   0.75
   ],
   "atkScales": [
    1,
-   1.5,
+   1,
    1,
    2.2,
    2.2,
@@ -584,23 +584,23 @@ export const LAW_TABLE = [
   ],
   "enemyHp": [
    249,
-   216,
+   248,
    231,
    198,
    198,
-   124
+   144
   ],
   "safeRate": 0.992,
-  "winMedian": 0.083,
+  "winMedian": 0.082,
   "decided": 0.992,
   "flawlessReach": 0.438,
   "ceilings": [
    0.438,
-   0,
+   0.012,
    0.191,
    0.3,
    0.046,
-   0.012
+   0
   ],
   "ceilingPassed": true
  },
@@ -612,15 +612,15 @@ export const LAW_TABLE = [
   "name": "継電＋反射",
   "scales": [
    0.98,
-   0.73,
+   1.61,
    1.03,
-   0.87,
-   1.03,
-   0.76
+   0.96,
+   1.04,
+   0.85
   ],
   "atkScales": [
    1,
-   2.2,
+   1,
    1,
    1.5,
    1,
@@ -630,13 +630,13 @@ export const LAW_TABLE = [
    1,
    2.5,
    1,
-   1.6,
+   1,
    1,
    1
   ],
   "cycleCaps": [
    77,
-   42,
+   71,
    96,
    66,
    66,
@@ -644,11 +644,11 @@ export const LAW_TABLE = [
   ],
   "enemyHp": [
    375,
-   154,
-   297,
-   284,
    340,
-   146
+   297,
+   316,
+   342,
+   163
   ],
   "safeRate": 1,
   "winMedian": 0.063,
@@ -656,11 +656,11 @@ export const LAW_TABLE = [
   "flawlessReach": 0.662,
   "ceilings": [
    0.424,
-   0.191,
+   0.265,
    0.662,
-   0.424,
-   0.445,
-   0.247
+   0.395,
+   0.438,
+   0.274
   ],
   "ceilingPassed": false
  },
@@ -672,11 +672,11 @@ export const LAW_TABLE = [
   "name": "継電＋反継電",
   "scales": [
    1.19,
-   1.29,
-   1.54,
+   1.3,
+   1.3,
    0.75,
    1.59,
-   1.2
+   1.15
   ],
   "atkScales": [
    1.5,
@@ -697,30 +697,30 @@ export const LAW_TABLE = [
   "cycleCaps": [
    128,
    71,
-   96,
+   58,
    66,
    110,
    38
   ],
   "enemyHp": [
    456,
-   273,
-   444,
+   275,
+   375,
    246,
    522,
-   230
+   220
   ],
   "safeRate": 1,
-  "winMedian": 0.058,
+  "winMedian": 0.057,
   "decided": 1,
   "flawlessReach": 0.802,
   "ceilings": [
    0.76,
-   0.54,
-   0.643,
+   0.472,
+   0.595,
    0.802,
    0.417,
-   0.424
+   0.417
   ],
   "ceilingPassed": false
  },
@@ -732,11 +732,11 @@ export const LAW_TABLE = [
   "name": "継電＋過負荷",
   "scales": [
    0.83,
-   1.31,
+   1.34,
    0.98,
-   1.18,
-   1.11,
-   1.52
+   1.51,
+   1.13,
+   1.35
   ],
   "atkScales": [
    2.2,
@@ -750,7 +750,67 @@ export const LAW_TABLE = [
    1,
    2.5,
    1,
-   1.6,
+   1,
+   1,
+   1
+  ],
+  "cycleCaps": [
+   77,
+   42,
+   58,
+   109,
+   66,
+   64
+  ],
+  "enemyHp": [
+   318,
+   284,
+   282,
+   496,
+   372,
+   259
+  ],
+  "safeRate": 1,
+  "winMedian": 0.063,
+  "decided": 1,
+  "flawlessReach": 0.825,
+  "ceilings": [
+   0.438,
+   0.395,
+   0.825,
+   0.424,
+   0.417,
+   0.465
+  ],
+  "ceilingPassed": false
+ },
+ {
+  "laws": [
+   "overload",
+   "wear"
+  ],
+  "name": "過負荷＋消耗",
+  "scales": [
+   0.63,
+   0.6,
+   0.71,
+   0.88,
+   1.58,
+   1.42
+  ],
+  "atkScales": [
+   3.2,
+   3.2,
+   2.2,
+   3.2,
+   1,
+   1
+  ],
+  "modScales": [
+   1,
+   2.5,
+   1,
+   2.5,
    1,
    1
   ],
@@ -763,24 +823,24 @@ export const LAW_TABLE = [
    64
   ],
   "enemyHp": [
-   318,
-   278,
-   282,
-   388,
-   366,
-   292
+   242,
+   126,
+   206,
+   288,
+   518,
+   273
   ],
   "safeRate": 1,
-  "winMedian": 0.062,
+  "winMedian": 0.114,
   "decided": 1,
-  "flawlessReach": 0.822,
+  "flawlessReach": 0.922,
   "ceilings": [
-   0.438,
-   0.431,
-   0.822,
-   0.491,
-   0.431,
-   0.491
+   0.917,
+   0.782,
+   0.715,
+   0.912,
+   0.841,
+   0.922
   ],
   "ceilingPassed": false
  },
@@ -792,11 +852,11 @@ export const LAW_TABLE = [
   "name": "静粛＋先陣",
   "scales": [
    1.18,
-   1.42,
+   1.53,
    1.61,
    1.23,
    1.92,
-   2.32
+   1.85
   ],
   "atkScales": [
    2.2,
@@ -824,23 +884,23 @@ export const LAW_TABLE = [
   ],
   "enemyHp": [
    451,
-   301,
+   324,
    464,
    403,
    630,
-   444
+   355
   ],
   "safeRate": 1,
-  "winMedian": 0.114,
+  "winMedian": 0.113,
   "decided": 1,
   "flawlessReach": 0.996,
   "ceilings": [
    0.996,
-   0.957,
+   0.92,
    0.957,
    0.994,
    0.67,
-   0.74
+   0.753
   ],
   "ceilingPassed": false
  },
@@ -852,11 +912,11 @@ export const LAW_TABLE = [
   "name": "静粛＋蓄積",
   "scales": [
    2.26,
-   1.88,
+   1.9,
    1.85,
    2.88,
    2.27,
-   3.11
+   1.47
   ],
   "atkScales": [
    3.2,
@@ -880,15 +940,15 @@ export const LAW_TABLE = [
    58,
    109,
    66,
-   64
+   38
   ],
   "enemyHp": [
    864,
-   399,
+   403,
    533,
    945,
    746,
-   596
+   282
   ],
   "safeRate": 1,
   "winMedian": 0.117,
@@ -900,67 +960,7 @@ export const LAW_TABLE = [
    1,
    0.998,
    0.699,
-   0.82
-  ],
-  "ceilingPassed": false
- },
- {
-  "laws": [
-   "silence",
-   "overload"
-  ],
-  "name": "静粛＋過負荷",
-  "scales": [
-   0.73,
-   1.27,
-   0.76,
-   0.87,
-   1.75,
-   1.33
-  ],
-  "atkScales": [
-   3.2,
-   1.5,
-   2.2,
-   3.2,
-   1,
-   1
-  ],
-  "modScales": [
-   1,
-   1.6,
-   1,
-   2.5,
-   1,
-   1
-  ],
-  "cycleCaps": [
-   77,
-   42,
-   58,
-   66,
-   66,
-   38
-  ],
-  "enemyHp": [
-   281,
-   268,
-   220,
-   287,
-   576,
-   254
-  ],
-  "safeRate": 1,
-  "winMedian": 0.086,
-  "decided": 1,
-  "flawlessReach": 0.947,
-  "ceilings": [
-   0.932,
-   0.946,
-   0.726,
-   0.947,
-   0.666,
-   0.757
+   0.736
   ],
   "ceilingPassed": false
  }
