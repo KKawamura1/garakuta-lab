@@ -138,7 +138,7 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng, parts = PARTS }) 
       record.damage += dealt;
       record.shield += gained;
       log.push({
-        cycle: battle.cycle, slot: i, part: base.name, type: instance.type,
+        cycle: battle.cycle, slot: i, id: instance.id, part: base.name, type: instance.type,
         period, basePeriod: base.period, chip: chip || null, followed: Boolean(follows),
         line: LINES[base.line], relayed, gain, text: delta.text, damage: dealt,
         shieldGained: gained, healed, selfDamage: delta.selfDamage || 0,
