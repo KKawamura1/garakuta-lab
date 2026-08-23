@@ -1949,8 +1949,16 @@ $("#gameButton").addEventListener("click", () => {
     entries.unshift(["cost", { title: "代償機関 / COST 0.1（休止：面白さ2・2、学びが薄い）" }]);
     entries.unshift(["ident", { title: "同定機関 / IDENT 0.2（休止：面白さ1・2回で当たる）" }]);
     entries.unshift(["study", { title: "伏せた対を遊ぶ（どの問いを試しているかは伏せてあります）" }]);
+    // **別のページにあるゲームは、ここに出さないと存在しないのと同じである。**
+    //
+    // 「破れ」は公開してあるのに、どこからも辿れなかった。作者：
+    //   「もう一つまだ遊んでないゲームがあると伺った気がするのですが、見つけられていません。」
+    // 作って、検査を通して、公開して、**入口を作らなかった。**学び#58 と同じ形である
+    // （作った側は「出した」と思っていて、そこから画面までの経路を見ていない）。
+    entries.unshift(["puzzle", { title: "破れ / PUZZLE 0.1（別のゲーム。HPも報酬も戦闘も無い）",
+      href: "../puzzle/" }]);
+    entries.unshift(["laws", { title: `法則機関 / LAWS 0.4（${lawVariants.length}通りの法則の組・比較の相手）` }]);
     entries.unshift(["skip", { title: "連勝機関 / SKIP 0.3（連勝が得点。触らずに勝てた戦闘は飛ばす）" }]);
-    entries.unshift(["laws", { title: `法則機関 / LAWS 0.4（${lawVariants.length}通りの法則の組）` }]);
   }
   list.replaceChildren(...entries.map(([key, rules]) => el("button", {
     className: `btn wide${key === String(session.ruleset).toLowerCase() ? " primary" : ""}`,
@@ -1958,6 +1966,13 @@ $("#gameButton").addEventListener("click", () => {
     textContent: `${rules.title}${key === String(session.ruleset).toLowerCase() ? "（いま遊んでいる）" : ""}`,
     onclick: () => {
       $("#gameDialog").close();
+      // 別ページのゲームは、ランの持ち方が違うので切り替えではなく移動である。
+      if (rules.href) {
+        if (!confirm(`${rules.title} へ移動しますか？（いまのランは記録に残ります）`)) return;
+        archiveCurrent();
+        location.href = rules.href;
+        return;
+      }
       if (key === current) return;
       // 対の途中で乗り換えると、**遊び終えた1本目が比べる相手を失う。**それは言う。
       const warn = session.trial
