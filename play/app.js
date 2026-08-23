@@ -646,6 +646,36 @@ function draw() {
   screen.append(...buildScreen(o));
 }
 
+// いまの並びの結果を、**一つの計算から**言葉にする。
+//
+// 作者：「上のオーバーレイ部分に1行、いまの結果で何巡で・HPいくらで・
+//         負けるのか勝つのかの表示を出してもらえますか？ これ見ながらガチャガチャしたい」
+//
+// **帯と位相表の下で別々に計算しない。**同じ関数から文言を作る。
+// 別々に書くと、片方だけ直したときに黙って食い違う（一晩で何度もやった形）。
+function verdictOf(o, rules) {
+  const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
+  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  if (!enemy || !slots.some(Boolean)) return null;
+  const r = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
+  const lost = o.hp - r.hp;
+  return {
+    won: r.won, cycles: r.cycles, hp: r.hp, lost, enemyHp: r.enemyHp,
+    timedOut: r.timedOut, result: r,
+    long: r.won
+      ? `勝てる — ${r.cycles}巡で撃破 ・ HP ${o.hp}→${r.hp}${lost > 0 ? `（${lost}失う）` : "（無傷）"}`
+      : r.timedOut
+        ? `負ける — ${rules.MAX_CYCLES}巡で打切り ・ 敵残 ${r.enemyHp}`
+        : `負ける — ${r.cycles}巡で力尽きる ・ 敵残 ${r.enemyHp}`,
+    // 帯は幅が無いので短く。**見るのは「勝つか・何巡か・HPがどうなるか」の3つ。**
+    short: r.won
+      ? `勝てる ${r.cycles}巡 ・ HP ${o.hp}→${r.hp}${lost > 0 ? `（−${lost}）` : "（無傷）"}`
+      : r.timedOut
+        ? `負ける 打切り ・ 敵残 ${r.enemyHp}`
+        : `負ける ${r.cycles}巡 ・ 敵残 ${r.enemyHp}`
+  };
+}
+
 // 上の帯に、**遊んでいる最中に見たいもの**を描く。
 //
 // 作者：「自分が見たい情報は、敵のHPや攻撃／位相表／装備中の部品群／手持ちアイテムの4つ」。
@@ -678,6 +708,17 @@ function drawVitals(o, rules) {
     if (enemy["毎巡上限"]) bits.push(`上限${enemy["毎巡上限"]}`);
     if (enemy["毎巡回復"]) bits.push(`回復${enemy["毎巡回復"]}`);
     vitals.append(side(enemy.name, enemy.hp, enemy.hp, bits.join(" ・ "), "enemy", "foe"));
+  }
+
+  // **いまの並びの結果を1行で。**ガチャガチャしながら見る場所はここである。
+  const line = $("#verdictline");
+  line.replaceChildren();
+  if (o.phase === "build") {
+    const v = verdictOf(o, rules);
+    line.className = `verdictline${v ? (v.won ? " ok" : " ng") : ""}`;
+    line.textContent = v ? v.short : "枠に部品を置くと、ここに結果が出る";
+  } else {
+    line.className = "verdictline";
   }
 
   // 装備中の5枠。押すと下の枠と同じように選べる。
@@ -1037,13 +1078,8 @@ function outcomePanel(o) {
     // 同じ並びを繰り返し描画しても二重に数えない。
     notePreview(slots, first);
     const box = el("div", { className: `verdict ${first.won ? "ok" : "ng"}` });
-    box.append(el("div", {
-      textContent: first.won
-        ? `勝てる — ${first.cycles}巡で撃破 ・ HP ${o.hp}→${first.hp}${lost > 0 ? `（${lost}失う）` : "（無傷）"}`
-        : first.timedOut
-          ? `負ける — ${rules.MAX_CYCLES}巡で打切り ・ 敵残 ${first.enemyHp}`
-          : `負ける — ${first.cycles}巡で力尽きる ・ 敵残 ${first.enemyHp}`
-    }));
+    // **文言は帯と同じ関数から取る。**二重に書くと、片方だけ直したとき黙って食い違う。
+    box.append(el("div", { textContent: (verdictOf(o, rules) || {}).long || "" }));
     // **暴走は、押す前に見えていなければならない。**
     // 見えない代償は代償ではなく事故で、MAT 0.2 の「負けた理由が分からない」に戻る。
     // 予告は実機の `simulateBattle` を回しているので、log からそのまま拾える。
