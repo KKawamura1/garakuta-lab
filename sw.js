@@ -1,4 +1,4 @@
-const CACHE = "garakuta-lab-v43";
+const CACHE = "garakuta-lab-v44";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icons/icon-180.png", "./icons/icon-512.png"];
 const SCOPE = new URL("./", self.location).pathname;
 
