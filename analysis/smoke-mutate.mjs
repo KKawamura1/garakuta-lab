@@ -56,7 +56,7 @@ function arrangeWinning(run, apply) {
   chosen.forEach((part, i) => {
     const current = afterRemove.inventory.find(item => item.id === part.id);
     assert.ok(current, "選んだ部品が予備にある");
-    assert.equal(run.act({ type: "place", partId: current.id, slot: i + 1 }).ok, true);
+    apply({ type: "place", partId: current.id, slot: i + 1 });
   });
 }
 
