@@ -164,3 +164,20 @@ assert.match(app, /session\.actions\.push\(\{ \.\.\.action, at: new Date\(\)\.to
 }
 
 console.log("play smoke: 版の表示・ゲーム切り替え・食い違い通知・手持ち・等級と試行の記録 OK");
+
+// **公開してあるゲームには、画面からの入口があること。**
+//
+// 2026-08-23、「破れ」は作って検査を通して公開したのに、**どこからも辿れなかった。**
+// 作者：「もう一つまだ遊んでないゲームがあると伺った気がするのですが、見つけられていません。」
+// 学び#58（データに在ることと、画面に出ることは別）の、ページ単位の版である。
+// URL を知っている人にしか遊べないものは、公開していないのと同じ。
+{
+  const { readFileSync, existsSync } = await import("node:fs");
+  const root = readFileSync("index.html", "utf8");
+  const puzzle = readFileSync("puzzle/index.html", "utf8");
+  if (!existsSync("puzzle/app.js")) throw new Error("puzzle/ が無い");
+  assert.ok(app.includes('href: "../puzzle/"'), "遊び分けの一覧から破れへ行けない");
+  assert.ok(root.includes('href="./puzzle/"'), "入口のページから破れへ行けない");
+  assert.ok(root.includes('href="./play/"'), "入口のページから本命の版へ行けない");
+  assert.ok(puzzle.includes('href="../play/"'), "破れから戻る道が無い（行き止まり）");
+}
