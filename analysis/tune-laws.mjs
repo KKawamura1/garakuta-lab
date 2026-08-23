@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { cpus } from "node:os";
 import { fileURLToPath } from "node:url";
-import { makeSimulate, scaleEnemies, BASE, LAW_IDS, LAWS, PARTS, SLOT_COUNT, OVERDRIVE } from "../core/laws.mjs";
+import { makeSimulate, scaleEnemies, BASE, RUN_LAW_IDS, LAWS, PARTS, SLOT_COUNT, OVERDRIVE } from "../core/laws.mjs";
 import { reachableSets, SAFE_HP } from "./sets.mjs";
 import { makeRng } from "../core/rng.mjs";
 import { capacity, outcomeAt } from "./readout.mjs";
@@ -240,8 +240,10 @@ function tuneEnemy(simulate, index) {
 }
 
 const pairs = [];
-for (let i = 0; i < LAW_IDS.length; i += 1) {
-  for (let j = i + 1; j < LAW_IDS.length; j += 1) pairs.push([LAW_IDS[i], LAW_IDS[j]]);
+// **ランに出してよい法則からだけ組を作る**（`core/laws.mjs` の RUN_LAW_IDS）。
+// 破れの出題は別の口（`analysis/gen-puzzles.mjs`）で、そちらは全法則を使う。
+for (let i = 0; i < RUN_LAW_IDS.length; i += 1) {
+  for (let j = i + 1; j < RUN_LAW_IDS.length; j += 1) pairs.push([RUN_LAW_IDS[i], RUN_LAW_IDS[j]]);
 }
 
 // --only=relay+bias,... で組を絞り、--verbose で敵ごとの内訳を出す（診断用。判定は変えない）。

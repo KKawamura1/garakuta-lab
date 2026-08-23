@@ -1981,7 +1981,7 @@ $("#gameButton").addEventListener("click", () => {
     // unshift は先頭へ積むので、**出したい順の逆**に並べる。
     entries.unshift(["squeeze", { title: "締付機関 / SQUEEZE 0.1（休止：暴走を含むため）" }]);
     entries.unshift(["cost", { title: "代償機関 / COST 0.1（休止：面白さ2・2、学びが薄い）" }]);
-    entries.unshift(["ident", { title: "同定機関 / IDENT 0.2（休止：面白さ1・2回で当たる）" }]);
+    entries.unshift(["ident", { title: "同定機関 / IDENT 0.3（休止：面白さ1・2回で当たる）" }]);
     entries.unshift(["study", { title: "伏せた対を遊ぶ（どの問いを試しているかは伏せてあります）" }]);
     // **別のページにあるゲームは、ここに出さないと存在しないのと同じである。**
     //
@@ -1991,8 +1991,8 @@ $("#gameButton").addEventListener("click", () => {
     // （作った側は「出した」と思っていて、そこから画面までの経路を見ていない）。
     entries.unshift(["puzzle", { title: "破れ / PUZZLE 0.1（別のゲーム。HPも報酬も戦闘も無い）",
       href: "../puzzle/" }]);
-    entries.unshift(["laws", { title: `法則機関 / LAWS 0.4（${lawVariants.length}通りの法則の組・比較の相手）` }]);
-    entries.unshift(["skip", { title: "連勝機関 / SKIP 0.3（連勝が得点。触らずに勝てた戦闘は飛ばす）" }]);
+    entries.unshift(["laws", { title: `法則機関 / LAWS 0.5（${lawVariants.length}通りの法則の組・比較の相手）` }]);
+    entries.unshift(["skip", { title: "連勝機関 / SKIP 0.4（連勝が得点。触らずに勝てた戦闘は飛ばす）" }]);
   }
   list.replaceChildren(...entries.map(([key, rules]) => el("button", {
     className: `btn wide${key === String(session.ruleset).toLowerCase() ? " primary" : ""}`,

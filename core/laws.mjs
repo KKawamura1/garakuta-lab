@@ -107,6 +107,27 @@ export const LAWS = {
 
 export const LAW_IDS = Object.keys(LAWS);
 
+// **ランに出してよい法則は、法則の全部ではない。**
+//
+// 単調と減衰は「上がる条件」を持っているが、**遊びの中でその条件が満たせない**
+// （`analysis/law-upside.mjs`：減衰は効いている上がる側 1.1% ＜ 下がる 80.5%、
+// 単調は 7.2% ＜ 24.1%。他の9法則は 27〜78%）。
+// 作者が二度、独立に同じ形で報告している：
+//   減衰「減衰とダメージ上限のルール相性が悪く、理不尽に感じる」
+//   単調「周期2以上だと5つ並べても最大2.5個で3個に届かないので、単純なデメリットになっている」
+//
+// **ただし、悪いのは法則そのものではなく「6戦つきあわされること」である。**
+//
+// ランでは、引いた法則と最後までつきあう。下がるだけの法則を引いたランは、
+// 最初から最後までハズレになる（削除した偏食と同じ形）。だからランには出さない。
+//
+// 「破れ」（`puzzle/`）は違う。**出題は1問ずつ独立で、越えられることが機械で確かめてある。**
+// そこでは「下がるだけ」は理不尽ではなく、**解くべき制約**である。
+// 実際、減衰の1巡目3倍が上限に食われることに気づけるかどうかは、そのまま問題になる。
+//
+// **同じ法則でも、置く場所で意味が変わる。**だから消さずに、出す先を分ける。
+export const RUN_LAW_IDS = LAW_IDS.filter(id => !["monotony", "fade"].includes(id));
+
 function emptyContribution(instance, parts) {
   return {
     id: instance.id, type: instance.type, name: parts[instance.type].name,
@@ -438,7 +459,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   const regenFrac = Number(options.regenFrac || 0);
   // **版の名札と版のIDは、同じ1か所から作る。**別々に書くと片方だけ直して食い違う。
   const versionTag = regenFrac > 0 && overdrive ? "squeeze-0.1"
-    : overdrive ? "cost-0.1" : hidden ? "ident-0.2" : skipWins ? "skip-0.3" : "laws-0.4";
+    : overdrive ? "cost-0.1" : hidden ? "ident-0.3" : skipWins ? "skip-0.4" : "laws-0.5";
   const versionName = regenFrac > 0 && overdrive ? "締付機関"
     : overdrive ? "代償機関" : hidden ? "同定機関" : skipWins ? "連勝機関" : "法則機関";
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
