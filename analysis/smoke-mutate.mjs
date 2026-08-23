@@ -10,9 +10,10 @@ function model(part) {
 function sameSimulation() {
   const slots = [
     { id: "p1", type: "twin", chip: { id: "chip-1", type: "overclock" } },
-    { id: "p2", type: "twin" },
-    { id: "p3", type: "rivet", chip: { id: "chip-2", type: "pressure" } },
+    { id: "p2", type: "twin", chip: { id: "chip-2", type: "pressure" } },
+    { id: "p3", type: "rivet" },
     { id: "p4", type: "twin", chip: { id: "chip-3", type: "follow" } },
+    { id: "p5", type: "twin", chip: { id: "chip-4", type: "follow" } },
   ];
   const enemy = MUTATE.ENEMIES[0];
   const a = MUTATE.simulateBattle({ slots, hp: 30, maxHp: 30, enemy, rng: makeRng(1) });
@@ -21,10 +22,13 @@ function sameSimulation() {
   assert.ok(a.log.some(entry => entry.chip === "overclock" && entry.period < entry.basePeriod), "過速歯車で周期が短くなる");
   assert.ok(a.log.some(entry => entry.chip === "pressure" && entry.period > entry.basePeriod), "蓄圧筒で周期が長くなる");
   assert.ok(a.log.every(entry => !entry.followed || entry.chip === "follow"), "追従フラグは追従軸だけに付く");
-  const followCycles = new Map();
-  a.log.filter(entry => entry.followed).forEach(entry =>
-    followCycles.set(entry.cycle, (followCycles.get(entry.cycle) || 0) + 1));
-  assert.ok([...followCycles.values()].every(n => n <= 1), "追従軸は1巡1回で、連鎖が無限に増えない");
+  assert.ok(a.log.some(entry => entry.followed), "追従軸が追加作動する盤面がある");
+  const followUses = new Map();
+  a.log.filter(entry => entry.chip === "follow").forEach(entry => {
+    const key = `${entry.id}:${entry.cycle}`;
+    followUses.set(key, (followUses.get(key) || 0) + 1);
+  });
+  assert.ok([...followUses.values()].every(n => n <= 1), "追従軸は部品ごとに1巡1回で、無限連鎖しない");
 }
 
 function permutations(pool, size, prefix = [], used = new Set()) {
