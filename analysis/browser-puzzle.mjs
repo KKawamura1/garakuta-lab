@@ -55,6 +55,48 @@ try {
       await next.first().click(); await p.waitForTimeout(400);
     }
   }
+  // **遊び方・気持ち・感想の口があること。**
+  //
+  // 作者：「感想を書く欄や遊び方を見る欄はないんですか？」——無かった。
+  // 遊べるものを作って、**何が起きたかを持ち帰る道を作っていなかった。**
+  // 破れは本編の骨格を一つも引き継がずに作ったので、
+  // 引き継がなかったものの中に**要るもの**（規則の説明・感想・通報）が混ざっていた。
+  {
+    await p.locator("#menuButton").click(); await p.waitForTimeout(200);
+    for (const name of ["遊び方", "感想を書いて送る"]) {
+      const btn = p.locator("#menuDialog button").filter({ hasText: name });
+      if (!(await btn.count())) { console.log(`  NG   ⋯ に「${name}」が無い`); bad += 1; }
+    }
+    await p.locator("#howBtn").click(); await p.waitForTimeout(300);
+    const how = await p.locator("#howBody").innerText();
+    const hasRules = how.includes("位相") && how.includes("法則が2つ") && how.includes("勝ち負けはない");
+    console.log(`  ${hasRules ? "ok  " : "NG  "} 遊び方に規則が書いてある（${how.split("\n").length}行）`);
+    if (!hasRules) bad += 1;
+    await p.locator("#closeHow").click(); await p.waitForTimeout(200);
+
+    // 気持ちは**その場で残る**こと。押して、保存に入るまで見る。
+    await p.locator("#markButton").click(); await p.waitForTimeout(250);
+    await p.locator("#markNote").fill("噛み合わせに気づいた");
+    await p.locator("#markChoices button").filter({ hasText: "ひらめいた" }).first().click();
+    await p.waitForTimeout(250);
+    const saved = JSON.parse(await p.evaluate(() => localStorage.getItem("garakuta-puzzle")) || "{}");
+    const marks = (saved.marks || []).length;
+    console.log(`  ${marks ? "ok  " : "NG  "} 気持ちが記録に残る（${marks}件）`);
+    if (!marks) bad += 1;
+
+    // 感想は**未回答を弾く**こと。空のまま送れると、記録が空で埋まる。
+    await p.locator("#menuButton").click(); await p.waitForTimeout(200);
+    await p.locator("#surveyBtn").click(); await p.waitForTimeout(300);
+    const ask = p.locator("dialog.ask");
+    await ask.locator("button").filter({ hasText: "記録して送る" }).click();
+    await p.waitForTimeout(200);
+    const warn = await ask.locator(".warn").innerText();
+    console.log(`  ${warn.includes("未回答") ? "ok  " : "NG  "} 空の感想を弾く（「${warn}」）`);
+    if (!warn.includes("未回答")) bad += 1;
+    await ask.locator("button").filter({ hasText: "やめる" }).click();
+    await p.waitForTimeout(200);
+  }
+
   console.log("  例外:", errs.length ? errs.slice(0, 3) : "なし");
   if (errs.length) bad += 1;
   await b.close();

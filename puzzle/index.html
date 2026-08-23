@@ -15,15 +15,35 @@
       <span class="title" id="title">破れ</span>
       <span class="wave" id="wave">—</span>
       <span class="spacer"></span>
+      <button class="chip" id="markButton" type="button" aria-label="気持ち">気持ち</button>
       <button class="chip" id="menuButton" type="button">⋯</button>
     </div>
     <div class="goal" id="goal"></div>
   </header>
   <main id="screen"></main>
+  <!-- 遊び方。**規則を読む場所が無いと、初見は何を競っているのか分からない。** -->
+  <dialog id="howDialog">
+    <h2>遊び方</h2>
+    <div id="howBody" class="small"></div>
+    <div class="actions" style="margin-top:10px">
+      <button class="btn wide" id="closeHow" type="button">閉じる</button>
+    </div>
+  </dialog>
+  <!-- 気持ち。**設問の無いところに出た反応が、いちばん強い**（学び#57）。 -->
+  <dialog id="markDialog">
+    <h2>いまの気持ち</h2>
+    <input id="markNote" type="text" placeholder="ひとこと（任意）" />
+    <div id="markChoices" class="actions" style="display:grid; gap:8px; margin-top:10px"></div>
+    <div class="actions" style="margin-top:8px">
+      <button class="btn wide" id="closeMark" type="button">閉じる</button>
+    </div>
+  </dialog>
   <dialog id="menuDialog">
     <h2>破れ</h2>
     <div id="menuBody" class="small"></div>
     <div class="actions" style="display:grid; gap:8px; margin-top:10px">
+      <button class="btn wide primary" id="howBtn" type="button">遊び方</button>
+      <button class="btn wide primary" id="surveyBtn" type="button">感想を書いて送る</button>
       <!-- **戻り道が無いと、ここは行き止まりになる。** -->
       <a class="btn wide" href="../play/" style="text-align:center; text-decoration:none">機関の方へ戻る</a>
       <button class="btn wide" id="copyBtn" type="button">記録をコピー</button>

@@ -50,3 +50,26 @@ PUZZLES.forEach((p, i) => {
 const ratios = PUZZLES.map(p => p.ratio);
 console.log(`puzzle smoke: ${PUZZLES.length}問すべて、足し算では届かず最良で越える`
   + `（倍率 ${Math.min(...ratios)}〜${Math.max(...ratios)}、並び ${Math.min(...PUZZLES.map(p => p.space))}〜${Math.max(...PUZZLES.map(p => p.space))}通り） OK`);
+
+// **遊んだことが持ち帰れること。**
+//
+// 2026-08-23、作者：「感想を書く欄や遊び方を見る欄はないんですか？」——無かった。
+// 遊べるところまで作って、**記録がサーバーへ出る道を繋いでいなかった。**
+// `sendRun` は core/run.mjs のランしか通せないので、破れは通せないまま放置されていた。
+// 通す必要があるのは payload であって、ランの形ではない。
+{
+  const { readFileSync } = await import("node:fs");
+  const app = readFileSync("puzzle/app.js", "utf8");
+  const html = readFileSync("puzzle/index.html", "utf8");
+  const sync = readFileSync("agent-view/sync.js", "utf8");
+  if (!/export async function sendPayload/.test(sync)) fail("本編以外の形の記録を送る口が無い");
+  if (!/sendPayload\(payload\(survey\)\)/.test(app)) fail("感想がサーバーへ送られない");
+  if (!/gameVersion: "puzzle-0\.1-play"/.test(app)) fail("通報の版が付いていない（集計で分けられない）");
+  if (!/telemetryRunId: state\.runId/.test(app)) fail("schemaVersion 2 以上の必須項目が欠けている（弾かれる）");
+  if (!/const HOW = /.test(app)) fail("遊び方の本文が無い");
+  if (!/id="howDialog"/.test(html) || !/id="howBtn"/.test(html)) fail("遊び方を開く口が無い");
+  if (!/id="surveyBtn"/.test(html)) fail("感想を書く口が無い");
+  if (!/id="markButton"/.test(html)) fail("気持ちを残す口が無い");
+  // **途中でやめたときこそ聞きたい。**全問越えないと出ない作りにしていないこと。
+  if (!/途中でも構いません/.test(app)) fail("感想が全問クリア後にしか出ない形になっている");
+}
