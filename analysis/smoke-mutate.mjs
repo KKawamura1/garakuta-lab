@@ -79,6 +79,7 @@ function playThrough(seed) {
       assert.ok(target, "チップを付けられる部品がある");
       apply({ type: "attachChip", partId: target.id });
       if (!moved) {
+        apply({ type: "skipAll", reason: "smoke" });
         const after = run.observe();
         const source = [...after.slots.map(slot => slot.part), ...after.inventory].find(part => part?.chip);
         const destination = [...after.slots.map(slot => slot.part), ...after.inventory].find(part => part && !part.chip && part.id !== source.id);
