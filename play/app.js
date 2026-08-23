@@ -1235,7 +1235,11 @@ function trySkip() {
   const rules = rulesetOf(session.ruleset);
   if (!rules.skipWins) return false;
   const o = run.observe();
-  if (o.finished) return false;
+  // **`observe()` が返すのは `done` であって `finished` ではない。**
+  // `o.finished` は常に undefined で、この番人は一度も働いていなかった。
+  // 効果としてはランの終わりで `act` が弾かれて止まっていたが、
+  // **番人が黙っていることに気づかないまま出していた。**
+  if (o.done) return false;
   const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
   if (!slots.some(Boolean)) return false;
   const enemy = rules.ENEMIES[o.battleNumber - 1];
