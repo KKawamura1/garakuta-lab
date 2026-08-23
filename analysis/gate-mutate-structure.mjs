@@ -235,17 +235,20 @@ const targetRows = [];
 const laterRewardRows = [];
 const preRows = [];
 const postRows = [];
+const actualChipBySeed = new Map();
 let unreachable = 0;
 
 for (let seed = 1; seed <= SAMPLE_SEEDS; seed += 1) {
   const reached = reachPostReward(seed);
   if (!reached.reachable) unreachable += 1;
+  if (reached.reachable) actualChipBySeed.set(seed, reached.chipType);
   const parts = reached.parts;
   const pre = reached.pre;
   preRows.push(pre);
   const beforeRank = rankMap(pre.best, parts);
 
-  for (const chipType of CHIP_TYPES) {
+  const measuredChipTypes = process.env.MUTATE_GATE_SELECT_ONLY === "1" ? [reached.chipType] : CHIP_TYPES;
+  for (const chipType of measuredChipTypes) {
     const post = analyzeChip(parts, MUTATE.ENEMIES[0], chipType);
     postRows.push(post);
     distanceRows.push({ seed, chipType, distance: minPlacementDistance(pre, post) });
@@ -280,6 +283,14 @@ const preZero = preRows.filter(row => row.zero).length;
 const rankTable = aggregateRankChanges(rankRows);
 const forcedChanges = laterRewardRows.filter(row => row.forcedChange).length;
 const setChanges = laterRewardRows.filter(row => row.setChanged).length;
+const selected = [...actualChipBySeed.keys()].sort((a, b) => a - b).map(seed => {
+  const chipType = actualChipBySeed.get(seed);
+  const pre = preRows[seed - 1];
+  const distance = distanceRows.find(row => row.seed === seed && row.chipType === chipType)?.distance;
+  const rewards = laterRewardRows.filter(row => row.seed === seed && row.chipType === chipType);
+  return { seed, chipType, distance, preZero: pre.zero, preAllWin: pre.allWin,
+    forcedReward: rewards.some(row => row.forcedChange), rewards };
+}).find(row => !row.preZero && !row.preAllWin && row.distance >= 3 && row.forcedReward);
 
 console.log(`# EXP-01 構造ゲート測定結果\n`);
 console.log(`- 標本seed: 1..${SAMPLE_SEEDS}（初期手持ちは実際のMUTATE生成、startContractを通過した到達可能状態）`);
@@ -318,3 +329,12 @@ console.log(`\n## 解釈用の注記`);
 console.log(`- 最適解の同率を残したため、装着先分布と順位は「唯一の正解」ではなく、同じ最適スコアを持つ選択肢の広がりを表す。`);
 console.log(`- 勝てる構成ゼロ率と全配置勝利率は、配置だけと配置×装着先を分けて出力し、チップ導入で詰みや自動勝利が隠れないようにした。`);
 console.log(`- このスクリプトは閾値判定、敵HP調整、チップ内容調整を行わない。`);
+console.log(`\n## 機械的な人間テスト用seed選定`);
+console.log(`- 採用seed: ${selected ? selected.seed : "該当なし"}`);
+if (selected) console.log(`- 条件値: 第1チップ=${selected.chipType}、距離=${selected.distance}、勝てる構成ゼロ=${selected.preZero}、全配置勝利=${selected.preAllWin}、強制変更報酬=${selected.rewards.filter(row => row.forcedChange).map(row => row.offerType).join(",")}`);
+for (const seed of [...actualChipBySeed.keys()].sort((a, b) => a - b)) {
+  const chipType = actualChipBySeed.get(seed);
+  const d = distanceRows.filter(row => row.seed === seed).map(row => `${row.chipType}:${row.distance}`).join(" ");
+  console.log(`- seed ${seed} / 実取得 ${chipType} / 距離 ${d}`);
+}
+for (const row of laterRewardRows) console.log(`- seed ${row.seed} / 報酬 ${row.offerType} / forced=${row.forcedChange} / setChanged=${row.setChanged}`);
