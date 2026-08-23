@@ -25,8 +25,9 @@
 1. [README.md](./README.md) — 現在地と遊べる版
 2. [AGENTS.md](./AGENTS.md) — 作業判断と検証上の禁止事項
 3. [DESIGN_CHARTER.md](./DESIGN_CHARTER.md) — 最終目的と欲しい面白さ
-4. [analysis/EXPERIMENT_HISTORY.md](./analysis/EXPERIMENT_HISTORY.md) — OBSから直近までの時系列
-5. [.claude/RESUME.md](./.claude/RESUME.md) — 未決着・直近の観測・次の作業
+4. [docs/SOL_TERRA_WORKFLOW.md](./docs/SOL_TERRA_WORKFLOW.md) — Sol/Terra/作者の分業と実験サイクル
+5. [analysis/EXPERIMENT_HISTORY.md](./analysis/EXPERIMENT_HISTORY.md) — OBSから直近までの時系列
+6. [.claude/RESUME.md](./.claude/RESUME.md) — 未決着・直近の観測・次の作業
 
 ### 現在のゲーム実装を追う
 
@@ -129,6 +130,7 @@ COST、SQUEEZE、IDENTは画面内に残っていますが休止中です。
 
 | ファイル | 役割 |
 |---|---|
+| [docs/SOL_TERRA_WORKFLOW.md](./docs/SOL_TERRA_WORKFLOW.md) | Sol/Terra/作者の分業、実験票、結果パケット |
 | [docs/OPERATIONS.md](./docs/OPERATIONS.md) | 公開、検査、再開、調律の手順 |
 | [docs/EXPORT.md](./docs/EXPORT.md) | D1ログのexport |
 | [docs/D1_LOG_ACCESS.md](./docs/D1_LOG_ACCESS.md) | D1ログの読み方 |
