@@ -1652,6 +1652,18 @@ function endScreen(o) {
   if (o.lastBattle) out.push(lastBattleCard(o.lastBattle));
   if (session.trial) return [...out, ...trialEnd(o)];
 
+  // **答え合わせは、どの版でも出す。**
+  //
+  // 対の流れを作っている最中に足したので、`trialEnd()` の中にだけ配線してあり、
+  // 通常のランでは一度も出ていなかった（作者の指摘）。意図した区別ではない。
+  // これは記録上いちばん反応が出た機能で、聞いていないメモ欄に
+  // 「うわー、4巡解あったのか、悔しいぜ」と書かれている（学び#57）。
+  // **出す場所を絞る理由が無い。**
+  //
+  // 出すのはラン終わりだけ、という点は変えない。戦闘中に最良を出すと探索が消える。
+  const answers = answerCard(o, rulesetOf(session.ruleset));
+  if (answers) out.push(answers);
+
   if (session.survey) {
     const done = el("div", { className: "card" });
     done.append(el("div", { className: "small", textContent: message || "記録しました。" }));
