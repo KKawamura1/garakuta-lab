@@ -9,7 +9,7 @@ function model(part) {
 
 function sameSimulation() {
   const slots = [
-    { id: "p1", type: "rivet", chip: { id: "chip-1", type: "overclock" } },
+    { id: "p1", type: "twin", chip: { id: "chip-1", type: "overclock" } },
     { id: "p2", type: "twin" },
     { id: "p3", type: "rivet", chip: { id: "chip-2", type: "pressure" } },
     { id: "p4", type: "twin", chip: { id: "chip-3", type: "follow" } },
