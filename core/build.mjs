@@ -1,6 +1,6 @@
 // **analysis/stamp.mjs が生成する。手で編集しない。**
 // BUILD は公開のたびに変わる（作者が「新しい版が届いたか」を目で確かめるため）。
 // FINGERPRINT は遊ぶ側から見た規則が変わったときだけ変わる（記録を分けるため）。
-export const BUILD = "4f3ff74 / 2026-08-23 03:18Z";
+export const BUILD = "0f6d722 / 2026-08-23 03:31Z";
 export const FINGERPRINT = "7c321c2caa27";
 export default BUILD;

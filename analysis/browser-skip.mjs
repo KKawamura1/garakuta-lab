@@ -114,22 +114,42 @@ try {
     console.log("画面のボタン:", (await page.locator("button:visible").allInnerTexts()).map(t => t.replace(/\s+/g, " ").slice(0, 24)).slice(0, 12));
   }
 
-  // **連鎖したときに何が起きるかを追う。**飛ばしは報酬を取った直後に走るので、
-  // 続けて飛べば「報酬 → 報酬 → …」と続き、構築画面が一度も出ないことがある。
-  for (let round = 0; round < 5; round += 1) {
+  // **飛ばしは、押したときだけ起きる**（SKIP 0.3）。
+  //
+  // 以前は報酬を取った直後に自動で走っていた。そのため作者は第4戦と第5戦を
+  // 一度も構築画面を見ずに通過していて、**「拾い物を入れるか、連勝を伸ばすか」を
+  // 選べていなかった。**いまは構築画面に「飛ばす」の札が出る。ここではそれを押す。
+  let offered = 0;
+  for (let round = 0; round < 6; round += 1) {
     const t = await page.locator("body").innerText();
     const wave = (t.match(/第\d+戦/) || ["—"])[0];
-    const streak = (t.match(/\d+ strike!/) || [null])[0];
-    const screen = /拾い物/.test(t) ? "報酬" : /戦う前に/.test(t) ? "構築" : /ラン終了/.test(t) ? "終了" : "その他";
+    const screen = /拾い物/.test(t) ? "報酬" : /ラン終了/.test(t) ? "終了"
+      : (await page.locator(".slot").count()) ? "構築" : "その他";
     const st = JSON.parse(await page.evaluate(() => localStorage.getItem("garakuta-play-session")) || "{}");
-    console.log(`   ${round}: ${screen} ${wave} 連勝=${st.streak ?? 0} 札=${streak || "なし"} 飛ばし記録=${(st.skipLog||[]).length}件`);
-    if (screen !== "報酬") break;
-    await page.locator(".parts .part").first().click({ timeout: 4000 }).catch(() => {});
-    await page.waitForTimeout(250);
-    const u = page.getByRole("button", { name: "方針どおり" });
-    if (await u.count()) await u.first().click({ timeout: 4000 }).catch(() => {});
-    await page.waitForTimeout(900);
+    const offer = page.getByRole("button", { name: /飛ばす（\d+ strike）/ });
+    const hasOffer = (await offer.count()) > 0;
+    console.log(`   ${round}: ${screen} ${wave} 連勝=${st.streak ?? 0} `
+      + `申し出=${hasOffer ? "出ている" : "なし"} 飛ばし記録=${(st.skipLog || []).length}件`);
+    if (screen === "終了") break;
+    if (hasOffer) {
+      offered += 1;
+      await offer.first().click({ timeout: 4000 }).catch(() => {});
+      await page.waitForTimeout(700);
+      continue;
+    }
+    if (screen === "報酬") {
+      await page.locator(".parts .part").first().click({ timeout: 4000 }).catch(() => {});
+      await page.waitForTimeout(250);
+      const u = page.getByRole("button", { name: "方針どおり" });
+      if (await u.count()) await u.first().click({ timeout: 4000 }).catch(() => {});
+      await page.waitForTimeout(700);
+      continue;
+    }
+    break;
   }
+  console.log("飛ばしの申し出が出た回数:", offered);
+  // **申し出が出ずに終わったら、それは確かめられていない。**
+  if (!offered) { console.log("**飛ばしの札が一度も出なかった**"); errs.push("飛ばしの札が出ない"); }
 
   const after = await page.locator("body").innerText();
   // **画面の文字だけで判定しない。**セッションに残る連勝数が、飛ばしが起きた証拠である。
