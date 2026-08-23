@@ -106,3 +106,77 @@ seedごとの平均ユニーク最適装着先は、過速歯車2.25、蓄圧筒
 - 閾値による合否判定は未設定。
 - 敵HP、チップ倍率、報酬内容、標本seedを結果に合わせて変更していない。
 - 人間テストへ公開するかは、この測定結果を確認したSol/Luna側で判断する。
+
+
+## 人間テスト用seed選定
+
+seed 1〜32を昇順に走査し、各seedで実際に取得する第1チップだけを対象に、指定条件を機械判定した。
+
+### seed×チップ別の取得前後距離
+
+下表はseed 1〜8について、3チップすべてを全列挙した距離。選定走査ではseed 1〜32について実取得チップを追加測定した。
+
+| seed | 過速歯車 | 蓄圧筒 | 追従軸 | 実取得 |
+|---:|---:|---:|---:|---|
+| 1 | 0 | 2 | 0 | 追従軸 |
+| 2 | 1 | 1 | 0 | 追従軸 |
+| 3 | 5 | 5 | 4 | 過速歯車 |
+| 4 | 1 | 0 | 3 | 蓄圧筒 |
+| 5 | 0 | 0 | 0 | 追従軸 |
+| 6 | 0 | 0 | 2 | 過速歯車 |
+| 7 | 3 | 2 | 5 | 過速歯車 |
+| 8 | 1 | 1 | 0 | 追従軸 |
+
+選定走査での実取得チップ距離は、seed 9:蓄圧筒0、10:過速歯車4、11:過速歯車0、12:蓄圧筒0、13:蓄圧筒0、14:蓄圧筒3、15:過速歯車2、16:蓄圧筒1、17:過速歯車0、18:追従軸3、19:蓄圧筒3、20:蓄圧筒2、21:蓄圧筒0、22:過速歯車1、23:追従軸1、24:追従軸2、25:過速歯車2、26:蓄圧筒2、27:蓄圧筒0、28:追従軸1、29:過速歯車3、30:蓄圧筒2、31:追従軸3、32:過速歯車2。
+
+### seed×報酬別の装着先変更結果
+
+`forced` は旧最適装着先が新最適集合から完全に消えた場合、`setChanged` は最適集合が完全一致しない場合。
+
+- seed 1: deflect forced / twin forced / flurry forced
+- seed 2: loop — / collapse setChanged / flurry setChanged
+- seed 3: auger — / thin — / surge —
+- seed 4: deflect setChanged / loop setChanged / auger setChanged
+- seed 5: deflect setChanged / twin setChanged / collapse —
+- seed 6: twin setChanged / surge setChanged / thick —
+- seed 7: auger — / twin — / flurry —
+- seed 8: collapse setChanged / thin — / deflect —
+- seed 9: surge — / feed — / deflect setChanged
+- seed 10: rivet setChanged / deflect — / hammer —
+- seed 11: hammer — / thin — / thick setChanged
+- seed 12: loop setChanged / auger setChanged / hammer setChanged
+- seed 13: twin setChanged / auger setChanged / rivet setChanged
+- seed 14: rivet setChanged / thin — / deflect —
+- seed 15: thick forced / flurry — / collapse —
+- seed 16: feed setChanged / thick setChanged / surge setChanged
+- seed 17: thick forced / surge — / thin —
+- seed 18: feed — / flurry setChanged / auger setChanged
+- seed 19: twin setChanged / loop setChanged / feed setChanged
+- seed 20: rivet setChanged / surge setChanged / loop setChanged
+- seed 21: thin setChanged / auger setChanged / thick setChanged
+- seed 22: deflect — / thick — / collapse —
+- seed 23: thick — / deflect — / twin —
+- seed 24: hammer setChanged / rivet setChanged / feed —
+- seed 25: surge — / feed forced / deflect —
+- seed 26: thick setChanged / collapse setChanged / thin setChanged
+- seed 27: deflect — / thin forced / feed forced
+- seed 28: collapse setChanged / flurry setChanged / auger setChanged
+- seed 29: thin forced / twin setChanged / thick forced
+- seed 30: thin — / auger — / rivet forced
+- seed 31: feed setChanged / deflect — / thin —
+- seed 32: thick setChanged / auger — / flurry setChanged
+
+### 選定結果
+
+最初に条件を満たしたseedは **29**。
+
+- URL: `https://garakuta-lab.pages.dev/play/?ruleset=mutate&seed=29`
+- 第1チップ: 過速歯車
+- 勝てる構成ゼロ: false
+- 全配置勝利: false
+- 取得前後の最適配置距離: 3枠
+- 第1戦後の3報酬: 薄殻・双撃・厚殻
+- 旧最適装着先が完全に消える報酬: 薄殻、厚殻
+- seed 1〜28には、距離3枠以上かつ強制変更報酬ありのseedが存在しなかった。
+
+この選定は、チップの面白さや個別結果を見て選んだものではなく、seed昇順と指定条件だけで決定した。
