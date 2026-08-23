@@ -246,3 +246,7 @@ input[type=text], select, textarea {
   font-size: 11px; color: var(--muted); min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
+
+.chip-tag { border-color: #c8a13a; color: #e8c86a; }
+.part:disabled { opacity: .5; }
