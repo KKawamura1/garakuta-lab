@@ -24,5 +24,10 @@
   - [3_GATE_C_SOLUTION_THICKNESS.md](./exp-02/A1_TERRA_GATES/3_GATE_C_SOLUTION_THICKNESS.md)
   - [4_GATE_D_SELECTION.md](./exp-02/A1_TERRA_GATES/4_GATE_D_SELECTION.md)
   - [5_GATE_REPORT_AND_PAST_LOGS.md](./exp-02/A1_TERRA_GATES/5_GATE_REPORT_AND_PAST_LOGS.md)
+- [R2_SOL_DECISION.md](./exp-02/R2_SOL_DECISION.md) — A1と既存2プレイを踏まえた最終判定
 
-質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化している。ゲーム本体・ゲーム規則・デプロイは変更していない。
+## EXP-03 CONTROL
+
+- [R1_CONTROL.md](./exp-03/R1_CONTROL.md) — 戦闘中の部品選択を主動詞にする独立試作の依頼
+
+質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化する。
