@@ -235,6 +235,10 @@ input[type=text], select, textarea {
 /* 倍率。法則は毎ラン変わるので、数字の横に出して「効いている」ことを見て分からせる。 */
 .phase-grid .cell-value { line-height: 1; }
 .phase-grid .cell-gain { font-size: 9px; margin-left: 2px; opacity: .85; }
+.phase-grid .cell-follow {
+  display: block; font-size: 8px; line-height: 1; margin-top: 2px;
+  color: #f0c96a; font-weight: 700;
+}
 .phase-grid .cell.relay .cell-gain { color: #e8c86a; }
 .phase-grid .cell.damped { outline: 2px dashed #6c7480; outline-offset: -2px; }
 .phase-grid .cell.damped .cell-gain { color: #9aa3ae; }

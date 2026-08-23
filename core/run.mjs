@@ -343,6 +343,15 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       prediction: action.prediction, expectedLevel: expected, actualLevel: actual, surprise,
       buildSignature: signature, worry: action.worry,
       grade: grade ? grade.label : null, gradeRank: grade ? grade.rank : null,
+      // 追従軸は通常周期ではない追加作動なので、戦闘ログから独立して保存する。
+      // condensed log だけでは「発動したのに見えない」状態を再検証できない。
+      followedActivations: (result.log || [])
+        .filter(entry => entry.followed)
+        .map(entry => ({
+          cycle: entry.cycle, slot: entry.slot, part: entry.part,
+          damage: entry.damage || 0, shieldGained: entry.shieldGained || 0,
+          healed: entry.healed || 0
+        })),
       // **失点の内訳を、送られる記録に載せる。**
       // 戦闘の要約（summary）にだけ入れていたが、要約は端末に残るだけで
       // **通報には入らない。**「代償の版で暴走がどれだけ鳴ったか」は
@@ -463,7 +472,8 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
         entry.boostSet ? `次へ＋${entry.boostSet}` : ""
       ].filter(Boolean).join(" / ");
       const hit = bits ? `（${bits}）` : "";
-      return `巡${entry.cycle}${where} ${entry.part}${cost}：${entry.text}${hit} → 敵HP${entry.after.enemyHp}${state ? " " + state : ""}`;
+      const followed = entry.followed ? "【追従で追加作動】" : "";
+      return `巡${entry.cycle}${where} ${followed}${entry.part}${cost}：${entry.text}${hit} → 敵HP${entry.after.enemyHp}${state ? " " + state : ""}`;
     });
   }
 

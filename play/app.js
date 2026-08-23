@@ -559,21 +559,24 @@ function phaseGrid(o) {
         // 法則で作動周期が変わることがある（倍速）。基本の周期で描くと、表と実機がずれる。
         const period = periodOf(part);
         const fires = part && firesOfRuleset(rules)(c, i, period);
+        const followed = Boolean(entry?.followed);
+        const active = Boolean(fires || followed);
         const value = entry ? (entry.damage || entry.shieldGained || entry.healed || 0) : 0;
         const defensive = entry ? Boolean(entry.shieldGained) : (part && isDefensive(part));
         const gain = entry && entry.gain !== undefined && entry.gain !== 1 ? entry.gain : null;
         const cell = el("div", {
-          className: `cell${fires ? " fire" : ""}${defensive && fires ? " def" : ""}`
+          className: `cell${active ? " fire" : ""}${defensive && active ? " def" : ""}`
             + `${gain > 1 ? " relay" : ""}${gain && gain < 1 ? " damped" : ""}`
-            + `${defensive && fires && enemyHits(c) ? " aligned" : ""}`
+            + `${defensive && active && enemyHits(c) ? " aligned" : ""}`
         });
         if (entry) {
           cell.append(el("span", { className: "cell-value", textContent: String(value || "·") }));
           // 倍率を数字の横に出す。**法則は毎ラン変わるので、
           // 説明文を読んで覚えるより、効いているのを見て分かる方が速い。**
           if (gain) cell.append(el("span", { className: "cell-gain", textContent: `×${gain}` }));
+          if (followed) cell.append(el("span", { className: "cell-follow", textContent: "追従" }));
         } else {
-          cell.textContent = fires && c <= trace.cycles ? "·" : "";
+          cell.textContent = active && c <= trace.cycles ? "·" : "";
         }
         grid.append(cell);
       }

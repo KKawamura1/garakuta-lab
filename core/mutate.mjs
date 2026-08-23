@@ -41,13 +41,17 @@ function outputScale(chip) {
 
 function scaleDelta(delta, scale) {
   if (scale === 1) return delta;
+  // チップの出力は、倍率適用直後に四捨五入して整数化する。
+  // 以後の継電倍率・敵の上限/床判定も整数値を扱うため、
+  // 予告・実戦・表示・保存値の間で浮動小数点の食い違いを作らない。
+  const scaled = value => Math.round(value * scale);
   return {
     ...delta,
-    damage: delta.damage === undefined ? delta.damage : delta.damage * scale,
-    hits: delta.hits ? delta.hits.map(value => value * scale) : delta.hits,
-    shield: delta.shield === undefined ? delta.shield : delta.shield * scale,
-    heal: delta.heal === undefined ? delta.heal : delta.heal * scale,
-    boost: delta.boost === undefined ? delta.boost : delta.boost * scale,
+    damage: delta.damage === undefined ? delta.damage : scaled(delta.damage),
+    hits: delta.hits ? delta.hits.map(scaled) : delta.hits,
+    shield: delta.shield === undefined ? delta.shield : scaled(delta.shield),
+    heal: delta.heal === undefined ? delta.heal : scaled(delta.heal),
+    boost: delta.boost === undefined ? delta.boost : scaled(delta.boost),
   };
 }
 
@@ -200,8 +204,9 @@ export function simulateBattle({ slots, hp, maxHp, enemy, rng, parts = PARTS }) 
 }
 
 export const MUTATE = {
-  id: "mutate-0.1",
-  title: "変異機関 / MUTATE 0.1",
+  // 0.2: チップ倍率の整数丸めと、追従発動の可視化を反映。
+  id: "mutate-0.2",
+  title: "変異機関 / MUTATE 0.2",
   conceptsToHold: ["RELAYの周期・位相・継電", "チップで既存部品の意味が変わる", "チップは無料で移せる"],
   placementRule: RELAY.placementRule,
   PARTS, ENEMIES, PREDICTIONS: RELAY.PREDICTIONS, WORRY_CATEGORIES: RELAY.WORRY_CATEGORIES,

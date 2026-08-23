@@ -23,6 +23,16 @@ function sameSimulation() {
   assert.ok(a.log.some(entry => entry.chip === "pressure" && entry.period > entry.basePeriod), "蓄圧筒で周期が長くなる");
   assert.ok(a.log.every(entry => !entry.followed || entry.chip === "follow"), "追従フラグは追従軸だけに付く");
   assert.ok(a.log.some(entry => entry.followed), "追従軸が追加作動する盤面がある");
+  assert.ok(a.log
+    .filter(entry => entry.chip && entry.chip !== "follow")
+    .every(entry => [entry.damage, entry.shieldGained, entry.healed]
+      .filter(value => value !== undefined)
+      .every(value => Number.isInteger(value))), "倍率適用後の効果は整数に丸める");
+  assert.ok(a.log
+    .filter(entry => entry.followed)
+    .every(entry => Number.isInteger(entry.damage || 0)
+      && Number.isInteger(entry.shieldGained || 0)
+      && Number.isInteger(entry.healed || 0)), "追従による効果も整数である");
   const followUses = new Map();
   a.log.filter(entry => entry.chip === "follow").forEach(entry => {
     const key = `${entry.id}:${entry.cycle}`;
