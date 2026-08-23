@@ -55,6 +55,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 }
 .vitals .bar { height: 6px; margin-top: 3px; }
 
+/* いまの並びの結果。**ガチャガチャしながら見る一行。**
+   勝ち負けで色を変える（数字を読む前に、目の端で分かるように）。 */
+.verdictline {
+  margin-top: 5px; font-size: 12px; font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted);
+}
+.verdictline.ok { color: #9dcc73; }
+.verdictline.ng { color: #e08b7f; }
+
 /* 装備中の5枠を、記号だけの一列で。**位相表まで下げなくても何を積んでいるか分かる。** */
 .minislots { display: flex; gap: 4px; margin-top: 5px; }
 .minislots button {

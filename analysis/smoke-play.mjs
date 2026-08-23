@@ -63,6 +63,11 @@ assert.match(app, /const wantedRuleset = params\.get\("ruleset"\)/, "URLの版�
 // 対の流れに足したときに trialEnd() の中だけへ配線して、通常のランで出ていなかった。
 assert.match(app, /if \(session\.trial\) return \[\.\.\.out, \.\.\.trialEnd\(o\)\];[\s\S]{0,900}?const answers = answerCard\(o,/,
   "通常のランの終わりにも答え合わせを出す");
+// いまの並びの結果は、**帯と位相表の下で同じ関数から作る。**
+// 別々に書くと片方だけ直したとき黙って食い違う。
+assert.match(app, /function verdictOf\(o, rules\)/, "判定の文言を1か所で作る");
+assert.match(app, /line\.textContent = v \? v\.short/, "帯に結果の1行を出す");
+assert.match(app, /textContent: \(verdictOf\(o, rules\) \|\| \{\}\)\.long/, "位相表の下も同じ関数から作る");
 assert.match(app, /function rulesetNoticeCard\(\)/, "対の途中に版を指されたことを知らせる");
 assert.match(app, /statusCard\(o\), rulesetNoticeCard\(\)/, "その札を構築画面に出す");
 assert.match(app, /String\(saved\.ruleset\)\.toLowerCase\(\) !== wantedRuleset\.toLowerCase\(\)/,
