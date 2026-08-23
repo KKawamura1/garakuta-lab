@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>破れ</title>
+<link rel="icon" href="../icons/icon-180.png">
+<link rel="stylesheet" href="../play/styles.css" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="topline">
+      <span class="title" id="title">破れ</span>
+      <span class="wave" id="wave">—</span>
+      <span class="spacer"></span>
+      <button class="chip" id="menuButton" type="button">⋯</button>
+    </div>
+    <div class="goal" id="goal"></div>
+  </header>
+  <main id="screen"></main>
+  <dialog id="menuDialog">
+    <h2>破れ</h2>
+    <div id="menuBody" class="small"></div>
+    <div class="actions" style="display:grid; gap:8px; margin-top:10px">
+      <button class="btn wide" id="copyBtn" type="button">記録をコピー</button>
+      <button class="btn wide" id="resetBtn" type="button">最初から</button>
+      <button class="btn wide" id="closeMenu" type="button">閉じる</button>
+    </div>
+  </dialog>
+</div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
