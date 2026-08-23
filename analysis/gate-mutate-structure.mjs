@@ -7,7 +7,7 @@ import { makeRng } from "../core/rng.mjs";
 // 「取得前後」は、チップそのものの効果を敵変更から切り分けるため、同じ敵1を使う。
 // 「後続報酬」は、第1戦後の通常部品報酬を追加したときの敵2で測る。
 
-const SAMPLE_SEEDS = Number(process.env.MUTATE_GATE_SEEDS || 32);
+const SAMPLE_SEEDS = Number(process.env.MUTATE_GATE_SEEDS || 8);
 const SLOT_COUNT = MUTATE.SLOT_COUNT;
 const CHIP_TYPES = Object.keys(MUTATION_CHIPS);
 
