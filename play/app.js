@@ -1883,14 +1883,15 @@ $("#gameButton").addEventListener("click", () => {
   const current = session.trial ? "study" : String(session.ruleset).toLowerCase();
   const entries = [...Object.entries(RULESETS)];
   if (lawVariants.length) {
-    entries.unshift(["study", { title: "伏せた対を遊ぶ（どの問いを試しているかは伏せてあります）" }]);
     // **休止した版は下へ回し、休止と書く。**消しはしない（比べたくなることがある）。
     // 判定は事前登録の規則どおり（0.9）。作者の時間を、外れた版に使わせない。
+    // unshift は先頭へ積むので、**出したい順の逆**に並べる。
     entries.unshift(["squeeze", { title: "締付機関 / SQUEEZE 0.1（休止：暴走を含むため）" }]);
     entries.unshift(["cost", { title: "代償機関 / COST 0.1（休止：面白さ2・2、学びが薄い）" }]);
-    entries.unshift(["ident", { title: "同定機関 / IDENT 0.1（法則は伏せてあるが、位相表から一発で読める）" }]);
-    entries.unshift(["skip", { title: "連勝機関 / SKIP 0.1（そのまま勝てる戦闘は飛ばす）" }]);
-    entries.unshift(["laws", { title: `法則機関 / LAWS 0.3（${lawVariants.length}通りの法則の組）` }]);
+    entries.unshift(["ident", { title: "同定機関 / IDENT 0.2（休止：面白さ1・2回で当たる）" }]);
+    entries.unshift(["study", { title: "伏せた対を遊ぶ（どの問いを試しているかは伏せてあります）" }]);
+    entries.unshift(["skip", { title: "連勝機関 / SKIP 0.2（そのまま勝てる戦闘は飛ばす）" }]);
+    entries.unshift(["laws", { title: `法則機関 / LAWS 0.4（${lawVariants.length}通りの法則の組）` }]);
   }
   list.replaceChildren(...entries.map(([key, rules]) => el("button", {
     className: `btn wide${key === String(session.ruleset).toLowerCase() ? " primary" : ""}`,
