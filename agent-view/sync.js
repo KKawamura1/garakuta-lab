@@ -90,7 +90,11 @@ export function buildPayload(session) {
       ...(session.guesses ? { guesses: session.guesses } : {}),
       // **飛ばした回数。**送っていなければ、遊んでもらっても
       // 「1ランに1回くらい飛ぶ」という登録済みの予測を記録から確かめられない。
+      // **最後の連鎖ではなく、そのランで届いた最長の連鎖を送る。**
+      // `streak` は手で戦うと 0 に戻るので、最終戦を手で戦ったランでは
+      // 3 strike! まで行っていても記録には何も残らなかった（実際に1ラン起きた）。
       ...(session.streak ? { streak: session.streak } : {}),
+      ...(session.bestStreak ? { bestStreak: session.bestStreak } : {}),
       ...(session.skipLog && session.skipLog.length ? { skips: session.skipLog } : {})
     },
     client: {

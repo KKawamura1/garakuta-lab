@@ -76,10 +76,11 @@ if (!carried) fail("そのままで次も勝てる局面が一つも無い。飛
   const fake = { runId: "r1", seed: 5, playerId: "p", ruleset: "skip", head: "play",
     startedAt: new Date(Date.now() - 6e4).toISOString(), endedAt: new Date().toISOString(),
     actions: [], trace: probe.trace(),
-    streak: 2,
+    // **最後に手で戦って連鎖が切れたラン**を模す。届いた最長は 3 だが、いまは 0 である。
+    streak: 0, bestStreak: 3,
     skipLog: [{ enemy: "標的機", cycles: 5, hpAfter: 28, grade: "無傷", battleNumber: 2 }] };
   const payload = buildPayload(fake);
-  if (!payload.answers || payload.answers.streak !== 2) fail("連勝数が通報に載っていない");
+  if (!payload.answers || payload.answers.bestStreak !== 3) fail("届いた最長の連鎖が通報に載っていない");
   if (!payload.answers.skips || payload.answers.skips.length !== 1) fail("飛ばした戦闘が通報に載っていない");
   if (!/^skip-/.test(payload.gameVersion)) fail(`通報の版が ${payload.gameVersion}`);
 }
