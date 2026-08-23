@@ -18,6 +18,7 @@ import { makeSimulate, LAWS, PARTS, SLOT_COUNT } from "../core/laws.mjs";
 import { PUZZLES } from "../core/puzzle-table.mjs";
 import { makeRng } from "../core/rng.mjs";
 import { BUILD } from "../core/build.mjs";
+import { uuid, sendPayload, deviceIdForRun } from "../agent-view/sync.js";
 
 const KEY = "garakuta-puzzle";
 const $ = s => document.querySelector(s);
@@ -32,7 +33,12 @@ function load() {
     const raw = JSON.parse(localStorage.getItem(KEY));
     if (raw && typeof raw.index === "number") return raw;
   } catch (_) {}
-  return { index: 0, slots: [null, null, null, null, null], tries: {}, best: {}, cleared: {}, startedAt: new Date().toISOString() };
+  return fresh();
+}
+
+function fresh() {
+  return { runId: uuid(), index: 0, slots: [null, null, null, null, null],
+    tries: {}, best: {}, cleared: {}, marks: [], startedAt: new Date().toISOString() };
 }
 let state = load();
 let picked = null;                  // 手持ちの何番目を持っているか
@@ -96,6 +102,9 @@ function draw() {
       ]));
     } else {
       win.append(el("div", { style: "margin-top:10px", textContent: "全問越えました。" }));
+      win.append(el("div", { className: "actions", style: "margin-top:10px" }, [
+        el("button", { className: "btn primary wide", textContent: "感想を書いて送る", onclick: () => openSurvey() })
+      ]));
     }
     screen.append(win);
   }
@@ -188,5 +197,155 @@ $("#copyBtn").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText(JSON.stringify(state, null, 1)); alert("コピーしました。"); }
   catch (_) { alert("コピーできませんでした。"); }
 });
+
+/* ---------- 遊び方・気持ち・感想 ---------- */
+
+// **規則を読む場所が無かった。**作者：「遊び方を見る欄はないんですか？」
+// 本編は `rules` を持っているが、ここは本編の骨格を一つも引き継いでいないので、
+// 説明も別に要る。**引き継がなかったものの中に、要るものが混ざる。**
+const HOW = `【破れ PUZZLE 0.1 遊び方】
+- **勝ち負けはない。**HPも、報酬も、敵の攻撃も、戦闘もない。
+- 手持ちの8個から**5枠**に部品を置き、${PUZZLES[0].cycles}巡ぶんの合計ダメージで**目標を越える**。
+- 枠には位相がある。**周期Pの部品を枠iに置くと (巡回-1)%P === i%P の巡に作動する。**
+  同じ部品でも、置く枠で作動する巡が変わる。
+- 問題ごとに**法則が2つ**効いている。2つとも読まないと組めない。
+- 相手は**1発あたりの上限**を持つ。大きい一撃はそこで頭を打つ。
+- 部品を押してから枠を押すと置ける。枠を押すと外れる。
+- 越えたら次の問題へ進める。**戻れる**ので、越えたあとに詰め直してもよい。
+
+【この出題について】
+目標は機械が置いている。**法則を足し算で読んで組んだ並びの実測値と、
+全列挙の最大値のあいだ**に必ず入るように選んである。
+つまり「2つの法則が噛み合う置き方」に気づくまで、目標は越えられない。
+気づけば越えられることは、出題を作った時点で全問確かめてある。`;
+
+const MARKS = [
+  ["hit", "きた！"], ["insight", "ひらめいた"], ["choice", "迷う"],
+  ["payoff", "うまくいった"], ["friction", "つらい"], ["unclear", "わからない"]
+];
+
+function openMark() {
+  const box = $("#markChoices");
+  box.replaceChildren();
+  MARKS.forEach(([kind, label]) => {
+    box.append(el("button", {
+      className: "btn wide", textContent: label,
+      onclick: () => {
+        state.marks = [...(state.marks || []), {
+          kind, label, note: $("#markNote").value.trim().slice(0, 160),
+          puzzle: state.index + 1, at: new Date().toISOString(),
+          tries: state.tries[state.index] || 0
+        }];
+        $("#markNote").value = "";
+        save();
+        $("#markDialog").close();
+      }
+    }));
+  });
+  $("#markDialog").showModal();
+}
+
+// 通報は本編と同じ列構成で入れる（`game_version` で分けられる）。
+// **ここを繋いでいなかったので、遊んでもらっても記録は端末の中だけだった。**
+function payload(survey) {
+  const cleared = Object.keys(state.cleared).length;
+  const tries = Object.values(state.tries).reduce((n, x) => n + x, 0);
+  const events = PUZZLES.map((p, i) => ({
+    seq: i + 1, type: state.cleared[i] ? "puzzle_cleared" : "puzzle_open",
+    puzzle: i + 1, laws: p.laws, target: p.target, naive: p.naive,
+    best: state.best[i] || 0, tries: state.tries[i] || 0
+  }));
+  return {
+    runId: state.runId, telemetryRunId: state.runId, deviceId: deviceIdForRun(),
+    schemaVersion: 4, gameVersion: "puzzle-0.1-play",
+    startedAt: state.startedAt, endedAt: new Date().toISOString(),
+    outcome: { won: cleared >= PUZZLES.length, reached: cleared, hp: 0 },
+    build: state.slots.filter(Boolean).map(t => PARTS[t].name),
+    stats: {
+      puzzles: PUZZLES.length, cleared, tries,
+      perPuzzle: PUZZLES.map((p, i) => ({
+        puzzle: i + 1, laws: p.laws.join("+"), target: p.target, naive: p.naive,
+        best: state.best[i] || 0, tries: state.tries[i] || 0, cleared: Boolean(state.cleared[i])
+      })),
+      build: BUILD
+    },
+    answers: survey || {},
+    client: { language: navigator.language, viewport: `${innerWidth}x${innerHeight}` },
+    events,
+    moments: (state.marks || []).map((m, i) => ({
+      seq: i + 1, at: m.at, elapsedMs: 0, kind: m.kind, label: m.label,
+      phase: `${m.puzzle}問目`, note: m.note
+    }))
+  };
+}
+
+async function push(survey) {
+  const result = await sendPayload(payload(survey));
+  alert(result.ok ? "記録しました。ありがとうございます。"
+    : `送信できませんでした（${result.error}）。「記録をコピー」で渡してください。`);
+}
+
+// **途中でやめたときこそ聞きたい。**全問越えないと出ない形にはしない。
+function openSurvey() {
+  const dialog = el("dialog", { className: "ask" });
+  dialog.append(el("h2", { textContent: "感想（途中でも構いません）" }));
+  const pick = (label, options) => {
+    dialog.append(el("label", { className: "field", textContent: label }));
+    const sel = el("select");
+    sel.append(el("option", { value: "", textContent: "未選択" }));
+    options.forEach(v => sel.append(el("option", { value: String(v), textContent: String(v) })));
+    dialog.append(sel);
+    return sel;
+  };
+  const text = (label, placeholder = "") => {
+    dialog.append(el("label", { className: "field", textContent: label }));
+    const input = el("input", { type: "text", placeholder });
+    dialog.append(input);
+    return input;
+  };
+  // **本編と同じ2問**（面白さと継続は別物）にしておく。並べて比べられるようにするため。
+  const fun = pick("このゲーム自体は面白いか（1〜5）", [1, 2, 3, 4, 5]);
+  const replay = pick("もう一度遊びたいか（1〜5）", [1, 2, 3, 4, 5]);
+  const found = pick("噛み合わせに気づいた瞬間はあったか", ["あった", "なかった"]);
+  const foundWhat = text("あったなら、何に気づいたか", "例：単調の3つ目が3倍になるので、同系統を3枚並べる");
+  const best = text("一番良かった瞬間");
+  const friction = text("退屈・面倒だったところ");
+  const story = text("このゲームを一言で");
+  const warn = el("div", { className: "warn" });
+  dialog.append(warn);
+  dialog.append(el("div", { className: "actions", style: "display:grid; gap:8px; margin-top:12px" }, [
+    el("button", {
+      className: "btn primary wide", textContent: "記録して送る",
+      onclick: () => {
+        const missing = [];
+        if (!fun.value) missing.push("面白いか");
+        if (!replay.value) missing.push("もう一度遊びたいか");
+        if (!found.value) missing.push("気づいた瞬間");
+        if (missing.length) { warn.textContent = `未回答：${missing.join(" / ")}`; return; }
+        const survey = {
+          fun: Number(fun.value), replay: Number(replay.value),
+          insight: found.value, insightWhat: foundWhat.value,
+          bestMoment: best.value, friction: friction.value, runStory: story.value
+        };
+        state.survey = survey; save();
+        dialog.close(); dialog.remove();
+        push(survey);
+      }
+    }),
+    el("button", { className: "btn wide", textContent: "やめる", onclick: () => { dialog.close(); dialog.remove(); } })
+  ]));
+  document.body.append(dialog);
+  dialog.showModal();
+}
+
+$("#markButton").addEventListener("click", () => openMark());
+$("#howBtn").addEventListener("click", () => {
+  $("#menuDialog").close();
+  $("#howBody").replaceChildren(...HOW.split("\n").map(t => el("div", { textContent: t })));
+  $("#howDialog").showModal();
+});
+$("#closeHow").addEventListener("click", () => $("#howDialog").close());
+$("#surveyBtn").addEventListener("click", () => { $("#menuDialog").close(); openSurvey(); });
+$("#closeMark").addEventListener("click", () => $("#markDialog").close());
 
 draw();

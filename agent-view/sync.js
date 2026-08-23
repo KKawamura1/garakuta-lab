@@ -110,6 +110,24 @@ export function buildPayload(session) {
   };
 }
 
+// **本編の形をしていない記録も、同じ口から入れる。**
+//
+// 「破れ」（`puzzle/`）は core/run.mjs のランではないので `sendRun` を通せない。
+// そこで通せないままにしていたら、**遊んでもらっても何も残らない**ところだった。
+// 通すのは payload の組み立てであって、ランの形ではない。
+export function deviceIdForRun() { return deviceId(); }
+
+export async function sendPayload(payload) {
+  const response = await fetch("/api/runs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || !body.ok) return { ok: false, error: body.error || `HTTP ${response.status}` };
+  return { ok: true, runId: body.runId };
+}
+
 export async function sendRun(session) {
   if (!session.trace) return { ok: false, error: "ランが終わっていません" };
   const response = await fetch("/api/runs", {
