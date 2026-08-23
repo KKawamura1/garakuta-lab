@@ -59,6 +59,10 @@ assert.match(app, /type: "take"[\s\S]{0,600}?runSkips\(\)/, "報酬を取って�
 assert.match(app, /const wantedRuleset = params\.get\("ruleset"\)/, "URLの版を見る");
 // 対の途中に別の版のリンクを開いたら、**続ける理由を画面に出す。**
 // 黙って対を続けると、遊ぶ側は指した版を遊んでいるつもりで別のものを遊ぶ。
+// 答え合わせは、対だけでなく**どの版のラン終わりにも**出すこと。
+// 対の流れに足したときに trialEnd() の中だけへ配線して、通常のランで出ていなかった。
+assert.match(app, /if \(session\.trial\) return \[\.\.\.out, \.\.\.trialEnd\(o\)\];[\s\S]{0,900}?const answers = answerCard\(o,/,
+  "通常のランの終わりにも答え合わせを出す");
 assert.match(app, /function rulesetNoticeCard\(\)/, "対の途中に版を指されたことを知らせる");
 assert.match(app, /statusCard\(o\), rulesetNoticeCard\(\)/, "その札を構築画面に出す");
 assert.match(app, /String\(saved\.ruleset\)\.toLowerCase\(\) !== wantedRuleset\.toLowerCase\(\)/,
