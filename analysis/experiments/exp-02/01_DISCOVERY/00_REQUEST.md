@@ -4,11 +4,11 @@
 
 | 要求ID | 実験票での要求 | 回答 |
 |---|---|---|
-| EXP-02-R01-A | Gate A: 正しさ | [A01_GATE_A_CORRECTNESS.md](./A01_GATE_A_CORRECTNESS.md) |
-| EXP-02-R01-B | Gate B: 表示得点だけの固定探索への耐性 | [A02_GATE_B_SEARCH_RESISTANCE.md](./A02_GATE_B_SEARCH_RESISTANCE.md) |
-| EXP-02-R01-C | Gate C: 解の太さ | [A03_GATE_C_SOLUTION_THICKNESS.md](./A03_GATE_C_SOLUTION_THICKNESS.md) |
-| EXP-02-R01-D | Gate D: 出題選択 | [A04_GATE_D_SELECTION.md](./A04_GATE_D_SELECTION.md) |
-| EXP-02-R02 | 過去の「破れ」2ランをゲートと分離して記録 | [A05_PAST_HUMAN_LOGS.md](./A05_PAST_HUMAN_LOGS.md) |
+| EXP-02-R01-A | Gate A: 正しさ | [A01_GATE_A_CORRECTNESS.md](./01_GATE_A_CORRECTNESS.md) |
+| EXP-02-R01-B | Gate B: 表示得点だけの固定探索への耐性 | [A02_GATE_B_SEARCH_RESISTANCE.md](./02_GATE_B_SEARCH_RESISTANCE.md) |
+| EXP-02-R01-C | Gate C: 解の太さ | [A03_GATE_C_SOLUTION_THICKNESS.md](./03_GATE_C_SOLUTION_THICKNESS.md) |
+| EXP-02-R01-D | Gate D: 出題選択 | [A04_GATE_D_SELECTION.md](./04_GATE_D_SELECTION.md) |
+| EXP-02-R02 | 過去の「破れ」2ランをゲートと分離して記録 | [A05_PAST_HUMAN_LOGS.md](./05_GATE_REPORT_AND_PAST_LOGS.md) |
 
 
 状態：**事前登録済み・自動ゲート前**  
