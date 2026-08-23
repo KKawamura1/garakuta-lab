@@ -131,6 +131,7 @@ analysis/は単なる結果置き場ではなく、仮説ごとの登録文、�
 | [analysis/PREDICTIONS_2026-08-23.md](./analysis/PREDICTIONS_2026-08-23.md) | 次の実験で何が起きると予測しているか。 |
 | [analysis/BUGS_2026-08-23.md](./analysis/BUGS_2026-08-23.md) | 直近の不具合・観測された問題と対応状況。 |
 | [analysis/RETROSPECTIVE.md](./analysis/RETROSPECTIVE.md) | ここまでの大きな実験を振り返り、何が分かり、何がまだ分からないかをまとめる。 |
+| [analysis/EXPERIMENT_HISTORY.md](./analysis/EXPERIMENT_HISTORY.md) | 各実験を時系列に並べ、「試したこと・得たこと・次」を短くまとめた最新の経緯。 |
 | [analysis/EMOTIONAL_ARC_HYPOTHESIS.md](./analysis/EMOTIONAL_ARC_HYPOTHESIS.md) | 感情の落差・期待・発見・理解・圧倒の仮説。 |
 | [analysis/AGENT_PROXY_PILOT.md](./analysis/AGENT_PROXY_PILOT.md) | 人間の感情評価をエージェントで代替できるかを試したパイロットの設計・結果・限界。 |
 
