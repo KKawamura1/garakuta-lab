@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { makeSimulate, scaleEnemies, BASE, LAW_IDS, LAWS, PARTS, SLOT_COUNT, OVERDRIVE } from "../core/laws.mjs";
 import { reachableSets, SAFE_HP } from "./sets.mjs";
 import { makeRng } from "../core/rng.mjs";
+import { capacity, outcomeAt } from "./readout.mjs";
 
 // 法則の組ごとに敵の数値を決める調律器（作り直し）。
 //
@@ -39,7 +40,6 @@ const COST_RHO = -0.05;
 const cap = Number(args.cap || 300);
 const TARGET = 0.15;          // T2：勝てる並びの割合の中央値をここへ寄せる
 const MAX_HP = 30;
-const DUMMY_HP = 1e9;
 // 合格した6組はほぼ全部が上限の3.2を使っていた。**探索の端に張り付いているのは、
 // 範囲が足りていない印である。** 上を伸ばす（閾値ではなく探索範囲の話なので、後出しの緩和ではない）。
 // 上を 4.5・6 まで戻した。**絞った理由が、1巡上限を入れたことで消えたからである。**
@@ -122,36 +122,24 @@ function arrangementsOf(types, rng) {
 // 実際、作者の4ランは全部 HP30 の完全勝利で「どうせ勝ち」と書かれた。
 //
 // 出来事を順番に並べ、累計ダメージが敵HPを超えた**その出来事の時点**のHPを返す。
-function capacity(simulate, order, enemyTemplate) {
-  const enemy = { ...enemyTemplate, hp: DUMMY_HP };
-  const result = simulate({
-    slots: order.map((type, i) => ({ id: `x${i}`, type })),
-    hp: SAFE_HP, maxHp: MAX_HP, enemy, rng: makeRng(1)
-  });
-  const events = [];
-  result.log.forEach(entry => {
-    if (!entry.after) return;
-    events.push({
-      cycle: entry.cycle,
-      dealt: DUMMY_HP - entry.after.enemyHp,
-      hp: entry.after.hp
-    });
-  });
-  return events;
-}
-
-// 敵HP h に対する結果を、出来事の列から読み出す。
-function outcomeAt(events, h) {
-  for (const e of events) {
-    if (e.dealt >= h) return { won: true, hp: Math.max(0, e.hp), cycles: e.cycle };
-    if (e.hp <= 0) return { won: false, hp: 0, cycles: e.cycle };
-  }
-  const last = events[events.length - 1];
-  return { won: false, hp: last ? Math.max(0, last.hp) : SAFE_HP, cycles: last ? last.cycle : 0 };
-}
+//
+// **回復する敵は、素の回復量で測ってはいけない。**
+//
+// 出荷する敵は `scaleEnemies` でHP倍率を毎巡回復にも掛ける（再生炉：素10 → 倍率1.75で18）。
+// ところがここは `{ ...base }` をそのまま的にしていたので、**回復10のまま**測っていた。
+// 結果、先陣＋倍速の第6戦は「上限38×12巡 − 回復18×11 = 258 < HP336」、
+// つまり**どんな並びでも勝てない敵**を、詰みなし98%と判定して出荷していた。
+// 作者は実際にそれを引いた（2026-08-23、「最終戦、どうやっても勝てないようになっていましたね？？」）。
+// 全16650通りを列挙して確かめた勝ち数は 0 である。
+//
+// 読み替えそのものは `analysis/readout.mjs` へ出した。**器の中に埋めておくと、
+// 壊れても誰も気づかない。**本物の戦闘と突き合わせる検査を別に置く（`smoke-readout.mjs`）。
+// そこで、途中で自HPが0を通ると負けと読む**もう一つの取り違え**も見つかった。
 
 function measureEnemy(caps, hpScale, base) {
   const h = Math.max(20, Math.round(base.hp * hpScale));
+  // 出荷時と同じ式で回復を出す（`core/laws.mjs` の `scaleEnemies`）。
+  const regen = base.regen ? Math.max(1, Math.round(base.regen * hpScale)) : 0;
   const rates = [];
   const flawlessRates = [];
   let dead = 0;
@@ -161,7 +149,7 @@ function measureEnemy(caps, hpScale, base) {
     let flawless = 0;
     let all = true;
     list.forEach(c => {
-      const r = outcomeAt(c, h);
+      const r = outcomeAt(c, h, regen, SAFE_HP);
       if (r.won) { won += 1; if (r.hp >= SAFE_HP) flawless += 1; } else all = false;
     });
     rates.push(won / list.length);
@@ -200,7 +188,8 @@ function tuneEnemy(simulate, index) {
     const floorScale = (MIN_CYCLES * cycleCap) / base.hp;
     const caps = situations.map(s => {
       const rng = makeRng(s.run * 977 + index);
-      return arrangementsOf(s.owned, rng).map(order => capacity(simulate, order, template));
+      return arrangementsOf(s.owned, rng).map(order =>
+        capacity(simulate, order, template, { hp: SAFE_HP, maxHp: MAX_HP, seedRng: () => makeRng(1) }));
     });
 
     const bisect = (test) => {
@@ -463,6 +452,13 @@ if (COST && !slice) {
   table.length = 0;
   table.push(...kept);
 }
+// **`--only` は診断用なので、表を書かない。**
+// 1組だけ測って書き出すと、通らなかったときに**表が空になる。**
+// 実際に `--only=vanguard+haste` を1回走らせただけで16組が消えた。
+// 表は「全部の組を測った結果」であって、部分実行の結果ではない。
+if (only) {
+  console.log(`# 診断（--only）なので ${OUT_PATH} は書き換えない。`);
+} else
 // .mjs で書き出す。JSON モジュール（import ... with { type: "json" }）は
 // 端末によっては解釈できず、画面が丸ごと出なくなる（作者の iPhone で実際に起きた）。
 writeFileSync(OUT_PATH,

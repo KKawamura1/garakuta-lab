@@ -507,7 +507,7 @@ function phaseGrid(o) {
       for (let c = 1; c <= cycles; c += 1) {
         const entry = cellOf(i, c);
         // 法則で作動周期が変わることがある（倍速）。基本の周期で描くと、表と実機がずれる。
-        const period = part ? (rules.periodOf ? rules.periodOf(part) : part.period || 1) : 1;
+        const period = periodOf(part);
         const fires = part && firesOfRuleset(rules)(c, i, period);
         const value = entry ? (entry.damage || entry.shieldGained || entry.healed || 0) : 0;
         const defensive = entry ? Boolean(entry.shieldGained) : (part && isDefensive(part));
@@ -562,7 +562,7 @@ function phaseGrid(o) {
     });
     grid.append(label);
     for (let c = 1; c <= cycles; c += 1) {
-      const fires = part && firesOfRuleset(rules)(c, i, part.period || 1);
+      const fires = part && firesOfRuleset(rules)(c, i, periodOf(part));
       const aligned = fires && isDefensive(part) && enemyHits(c);
       grid.append(el("div", {
         className: `cell${fires ? " fire" : ""}${fires && isDefensive(part) ? " def" : ""}${aligned ? " aligned" : ""}`,
@@ -736,7 +736,7 @@ function drawVitals(o, rules) {
         // **記号だけだと何を積んでいるか読めない。**名前を短く添える
         // （作者の見たいものの一つが「装備中の部品群」なので、記号の一覧では足りない）。
         el("span", { className: "n", textContent: part ? `${part.icon}${part.name}` : "＋" }),
-        el("span", { className: "p", textContent: part ? `周${part.period ?? 1}` : `${i + 1}` })
+        el("span", { className: "p", textContent: part ? periodLabel(part, "周") : `${i + 1}` })
       ]));
     });
   }
@@ -944,7 +944,7 @@ function buildScreen(o) {
       el("span", { className: "icon", textContent: p ? p.icon : "＋" }),
       el("span", { className: "grow oneline" }, [
         el("span", { className: "name", textContent: p ? p.name : "空き" }),
-        el("span", { className: "meta", textContent: p ? `周${p.period ?? 1}・${cyclesText(i, p.period ?? 1)}` : "部品を選んでここをタップ" })
+        el("span", { className: "meta", textContent: p ? `${periodLabel(p, "周")}・${cyclesText(i, periodOf(p))}` : "部品を選んでここをタップ" })
       ])
     ]);
     slots.append(btn);
@@ -956,11 +956,11 @@ function buildScreen(o) {
     detail.append(el("div", { className: "name" }, [
       document.createTextNode(`${p.icon} ${p.name}`),
       lineBadge(p),
-      el("span", { className: "tag", textContent: `周期${p.period ?? 1}` }),
+      el("span", { className: "tag", textContent: periodLabel(p) }),
       p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
     ]));
-    detail.append(el("div", { className: "desc", textContent: p.desc }));
-    detail.append(el("div", { className: "small", textContent: `枠${selectedSlot + 1}では ${cyclesText(selectedSlot, p.period ?? 1)} に作動` }));
+    detail.append(el("div", { className: "desc", textContent: descOf(p) }));
+    detail.append(el("div", { className: "small", textContent: `枠${selectedSlot + 1}では ${cyclesText(selectedSlot, periodOf(p))} に作動` }));
     slotCard.append(detail);
     slotCard.append(el("div", { className: "actions", style: "margin-top:8px" }, [
       el("button", { className: "btn", textContent: "この枠を外す", onclick: () => { act({ type: "remove", slot: selectedSlot + 1 }); selectedSlot = null; draw(); } })
@@ -982,10 +982,10 @@ function buildScreen(o) {
           el("div", { className: "name" }, [
             document.createTextNode(p.name),
             lineBadge(p),
-            el("span", { className: "tag", textContent: `周期${p.period ?? 1}` }),
+            el("span", { className: "tag", textContent: periodLabel(p) }),
             p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
           ]),
-          el("div", { className: "desc", textContent: p.desc })
+          el("div", { className: "desc", textContent: descOf(p) })
         ])
       ]));
     });
@@ -1128,6 +1128,40 @@ function notePreview(slots, result) {
   if (!outcome.ok) return;
   session.actions.push({ ...action, at: new Date().toISOString() });
   persist();
+}
+
+// **法則が作動周期を変えることがある（倍速）。**
+//
+// 位相表だけは `rules.periodOf` を見ていたが、**札・枠の一行・部品の説明は素の周期のまま**だった。
+// 作者の報告（2026-08-23、第1戦の「気持ち」）：
+//   「倍速ルールの時、部品の説明が古いまま？（「枠4では1,5,…に作動する」のまま）」
+// 表と説明が食い違うと、遊ぶ側は**どちらが本当かを試して確かめる**しかなくなる。
+// 位相の版で、位相の説明が嘘をつくのは致命的なので、周期を出す口を一つにまとめる。
+function periodOf(part) {
+  if (!part) return 1;
+  const rules = rulesetOf(session.ruleset);
+  const base = part.period ?? 1;
+  return rules.periodOf ? rules.periodOf(part) : base;
+}
+
+// 「周期N」の札。**法則で変わっているときは、素の値も添える。**
+// 変わったことが分からないと、部品の説明（素の周期で書いてある）と噛み合わない。
+function periodLabel(part, prefix = "周期") {
+  const base = part && part.period !== undefined ? part.period : 1;
+  const eff = periodOf(part);
+  return eff === base ? `${prefix}${eff}` : `${prefix}${eff}（素${base}）`;
+}
+
+// 部品の説明は**素の周期で書いてある**（「2巡に1回、11ダメージ。」）。
+// 倍速のときはそこも書き換える。書き出しの形が想定と違ったら、後ろに一言足すだけにする
+// （説明を壊すより、二重に言う方がまし）。
+function descOf(part) {
+  const base = part.period ?? 1;
+  const eff = periodOf(part);
+  if (!part.desc || eff === base) return part.desc || "";
+  const head = eff === 1 ? "毎巡回" : `${eff}巡に1回`;
+  const rewritten = part.desc.replace(/^(毎巡回|\d+巡に1回)/, head);
+  return rewritten === part.desc ? `${part.desc}（この法則では${head}）` : rewritten;
 }
 
 function cyclesText(slotIndex, period) {
@@ -1348,10 +1382,10 @@ function rewardScreen(o) {
         el("div", { className: "name" }, [
           document.createTextNode(p.name),
           lineBadge(p),
-          el("span", { className: "tag", textContent: `周期${p.period ?? 1}` }),
+          el("span", { className: "tag", textContent: periodLabel(p) }),
           p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
         ]),
-        el("div", { className: "desc", textContent: p.desc })
+        el("div", { className: "desc", textContent: descOf(p) })
       ])
     ]));
   });
@@ -1390,7 +1424,7 @@ function holdingsCard(o) {
     const row = el("div", { className: "holding-row" });
     parts.forEach((p, i) => row.append(el("span", {
       className: `holding line-${p.line || "none"}`,
-      textContent: `${label === "枠に入っている" ? `${i + 1}:` : ""}${LINE_LABEL[p.line] || ""}${p.name}(周期${p.period ?? 1})`
+      textContent: `${label === "枠に入っている" ? `${i + 1}:` : ""}${LINE_LABEL[p.line] || ""}${p.name}(${periodLabel(p)})`
     })));
     card.append(row);
   };
