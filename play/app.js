@@ -632,6 +632,7 @@ function draw() {
   // `rules.id` は `ident-0.1:reflect+monotony` の形で、**答えがそのまま書いてあった。**
   $("#gameButton").textContent = rules.publicId || rules.id;
   $("#build").textContent = BUILD;
+  drawVitals(o, rules);
   document.title = `${rules.title.split(" / ")[0]}（${rules.publicId || rules.id}）`;
   $("#wave").textContent = o.done
     ? (o.won ? `全${o.totalBattles}戦を突破` : `第${o.battleNumber}戦で停止`)
@@ -645,17 +646,72 @@ function draw() {
   screen.append(...buildScreen(o));
 }
 
+// 上の帯に、**遊んでいる最中に見たいもの**を描く。
+//
+// 作者：「自分が見たい情報は、敵のHPや攻撃／位相表／装備中の部品群／手持ちアイテムの4つ」。
+// 位相表と手持ちは大きすぎて貼り付けられないので、**小さい2つを帯へ上げる。**
+// そのぶん「機体」の札と「次の敵」の数値は下から消せるので、巻き取る量も減る。
+function drawVitals(o, rules) {
+  const enemy = o.upcomingEnemy || {};
+  const vitals = $("#vitals");
+  vitals.replaceChildren();
+
+  const side = (label, now, max, extra, cls, which) => {
+    const box = el("div", { className: `side ${which}` });
+    box.append(el("div", { className: "name" }, [
+      el("b", { textContent: label }),
+      el("span", { className: "num grow", textContent: extra })
+    ]));
+    const bar = el("div", { className: `bar${cls ? ` ${cls}` : ""}` });
+    const fill = el("i");
+    fill.style.width = `${Math.max(0, Math.min(100, (now / (max || 1)) * 100))}%`;
+    bar.append(fill);
+    box.append(bar);
+    return box;
+  };
+
+  vitals.append(side("自機", o.hp, o.maxHp, `${o.hp}/${o.maxHp}`, "", "self"));
+  if (enemy.name) {
+    // 敵は「殴られる周期」と「1巡に通る上限」が判断に直結する。名前より数字を優先。
+    const bits = [`HP ${enemy.hp}`, `攻${enemy.atk}`];
+    if (enemy["攻撃周期"] > 1) bits.push(`${enemy["攻撃周期"]}巡毎`);
+    if (enemy["毎巡上限"]) bits.push(`上限${enemy["毎巡上限"]}`);
+    if (enemy["毎巡回復"]) bits.push(`回復${enemy["毎巡回復"]}`);
+    vitals.append(side(enemy.name, enemy.hp, enemy.hp, bits.join(" ・ "), "enemy", "foe"));
+  }
+
+  // 装備中の5枠。押すと下の枠と同じように選べる。
+  const mini = $("#minislots");
+  mini.replaceChildren();
+  if (o.phase === "build") {
+    o.slots.forEach((slot, i) => {
+      const part = slot.part;
+      mini.append(el("button", {
+        type: "button",
+        className: `${part ? "" : "empty"}${selectedSlot === i ? " on" : ""}`,
+        onclick: () => { tapSlot(i); },
+        title: part ? part.name : "空き"
+      }, [
+        // **記号だけだと何を積んでいるか読めない。**名前を短く添える
+        // （作者の見たいものの一つが「装備中の部品群」なので、記号の一覧では足りない）。
+        el("span", { className: "n", textContent: part ? `${part.icon}${part.name}` : "＋" }),
+        el("span", { className: "p", textContent: part ? `周${part.period ?? 1}` : `${i + 1}` })
+      ]));
+    });
+  }
+}
+
 function statusCard(o) {
+  // **HPは帯に出したので、ここでは繰り返さない。**
+  // 残すのは操作（修復）と、帯に置くほどではない持ち物（◆）だけ。
+  // 何もできることが無いなら札ごと出さない——巻き取る量がそのぶん減る。
+  if (!(o.scrap >= 1 && o.hp < o.maxHp)) return null;
   const card = el("div", { className: "card" });
   card.append(el("div", { className: "rowline" }, [
     el("strong", { textContent: "機体" }),
     el("span", { className: "grow small num", textContent: `HP ${o.hp} / ${o.maxHp}` }),
     el("span", { className: "chip", textContent: `◆${o.scrap}` })
   ]));
-  const bar = el("div", { className: "bar" });
-  bar.append(el("i", {}, []));
-  bar.firstChild.style.width = `${Math.max(0, Math.min(100, o.hp / o.maxHp * 100))}%`;
-  card.append(bar);
   if (o.scrap >= 1 && o.hp < o.maxHp) {
     card.append(el("div", { className: "actions", style: "margin-top:8px" }, [
       el("button", { className: "btn", textContent: `修復材1でHP+${rulesetOf(session.ruleset).REPAIR_HP}`, onclick: () => { act({ type: "repair" }); draw(); } })
@@ -668,10 +724,8 @@ function enemyCard(o) {
   const e = o.upcomingEnemy;
   const card = el("div", { className: "card" });
   card.append(el("h2", { textContent: "次の敵" }));
-  card.append(el("div", { className: "rowline" }, [
-    el("strong", { textContent: e.name }),
-    el("span", { className: "grow small num", textContent: `HP ${e.hp ?? "—"}` })
-  ]));
+  // **名前とHPと攻撃は帯に出ている。**ここで繰り返すと、その行のぶん巻き取りが増える。
+  // 残すのは、帯に入らない説明文（性質・打切り・自己最高）だけ。
   const LABELS = { atk: "攻撃", armor: "装甲", soak: "減衰", cap: "命中上限", strikes: "反撃回数" };
   const facts = Object.entries(e)
     .filter(([k, v]) => !["name", "trait", "hp"].includes(k) && v !== null && v !== undefined)
@@ -810,7 +864,15 @@ function ambiguityCard() {
 }
 
 function buildScreen(o) {
-  const out = [statusCard(o), rulesetNoticeCard(), ambiguityCard(), lawsCard(), enemyCard(o)].filter(Boolean);
+  // **操作に使う3つを上へ、参照用の札を下へ。**
+  //
+  // 作者：「1画面で操作が完結してプレイが速くなるかもしれません」。
+  // 遊ぶ手順は 手持ちを選ぶ → 枠に置く → 位相表で確かめる の繰り返しなのに、
+  // 前は 法則 → 敵の説明 → 位相表 → 枠 → 手持ち の順で、
+  // **位相表を見たあと手持ちへ行くのに、枠を跨いで下り、また上る**必要があった。
+  // 法則と敵の説明は「一度読めば足りる」ので、下へ回す。
+  const refs = [lawsCard(), enemyCard(o)].filter(Boolean);
+  const out = [statusCard(o), rulesetNoticeCard(), ambiguityCard()].filter(Boolean);
 
   const grid2 = el("div", { className: "card" });
   grid2.append(el("h2", { textContent: "位相表 — どの枠がどの巡回に動くか" }));
@@ -834,11 +896,14 @@ function buildScreen(o) {
       className: `slot${p ? "" : " empty"}${selectedSlot === i ? " selected" : ""}`,
       onclick: () => tapSlot(i)
     }, [
+      // **1行に畳む。**枠は帯からも位相表からも選べるようになったので、
+      // ここは「何が入っていて、いつ動くか」が読めれば足りる。
+      // 2行だと5枠で353px あり、位相表と手持ちのあいだを塞いでいた。
       el("span", { className: "idx", textContent: String(i + 1) }),
       el("span", { className: "icon", textContent: p ? p.icon : "＋" }),
-      el("span", { className: "grow" }, [
-        el("div", { className: "name", textContent: p ? p.name : "空き" }),
-        el("div", { className: "meta", textContent: p ? `周期${p.period ?? 1} ・ ${cyclesText(i, p.period ?? 1)}` : "部品を選んでここをタップ" })
+      el("span", { className: "grow oneline" }, [
+        el("span", { className: "name", textContent: p ? p.name : "空き" }),
+        el("span", { className: "meta", textContent: p ? `周${p.period ?? 1}・${cyclesText(i, p.period ?? 1)}` : "部品を選んでここをタップ" })
       ])
     ]);
     slots.append(btn);
@@ -939,6 +1004,8 @@ function buildScreen(o) {
   ]));
   go.append(el("div", { className: "msg", textContent: message }));
   out.push(go);
+  // 参照用は最後に。読むのは1回で、操作には使わない。
+  out.push(...refs);
   return out;
 }
 
@@ -1703,6 +1770,7 @@ function openMark() {
 /* ---------- 起動 ---------- */
 
 $("#newRun").addEventListener("click", () => {
+  $("#menuDialog").close();
   if (!confirm("いまのランを捨てて、新しく始めますか？")) return;
   archiveCurrent();
   const params = new URLSearchParams(location.search);
@@ -1715,7 +1783,10 @@ $("#newRun").addEventListener("click", () => {
 // ゲームの切り替え。URL の ?ruleset= は「まだ何も操作していないセッション」にしか効かず、
 // 保存済みセッションのルールが残り続ける。作者はこれで、新しいゲームを開いたつもりで
 // 前のゲームを遊んでいた。画面から切り替えられるようにする。
+$("#menuButton").addEventListener("click", () => $("#menuDialog").showModal());
+$("#closeMenu").addEventListener("click", () => $("#menuDialog").close());
 $("#gameButton").addEventListener("click", () => {
+  $("#menuDialog").close();
   const list = $("#gameChoices");
   // **いま遊んでいるのが対なら、「法則機関」ではなく「対」が現在地である。**
   // 対のセッションは ruleset に "laws" が入っているので、そのまま比べると
@@ -1761,6 +1832,7 @@ $("#gameButton").addEventListener("click", () => {
 $("#closeGame").addEventListener("click", () => $("#gameDialog").close());
 
 $("#helpButton").addEventListener("click", () => {
+  $("#menuDialog").close();
   const body = $("#helpBody");
   body.replaceChildren(...rulesetOf(session.ruleset).rules.split("\n").map(line => el("div", { textContent: line })));
 

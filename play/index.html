@@ -10,19 +10,33 @@
     <link rel="icon" href="../icons/icon-180.png">
 </head>
   <body>
+    <!-- 上に貼り付く帯。**常に見たいものだけを置く。**
+         作者の指摘：版名・seed・build・ボタン4つで161px（画面の19%）を占めていたが、
+         そこは「敵のHPと攻撃」「装備中の部品」を見たい場所だった。
+         版の切り替えや遊び方は、遊んでいる最中には要らないので「⋯」の中へ移した。 -->
     <header class="top">
-      <div>
-        <div class="title" id="title">—</div>
-        <div class="wave" id="wave">—</div>
+      <div class="topline">
+        <span class="title" id="title">—</span>
+        <span class="wave" id="wave">—</span>
+        <span class="spacer"></span>
+        <button class="chip" id="menuButton" type="button" aria-label="メニュー">⋯</button>
       </div>
-      <div class="spacer"></div>
-      <button class="chip" id="gameButton" type="button">—</button>
-      <span class="small" id="build" style="opacity:.6;font-size:11px"></span>
-      <button class="chip" id="helpButton" type="button">遊び方</button>
-      <button class="chip" id="newRun" type="button">新しいラン</button>
+      <div class="vitals" id="vitals"></div>
+      <div class="minislots" id="minislots"></div>
     </header>
 
     <main id="screen"></main>
+
+    <dialog id="menuDialog">
+      <h2>メニュー</h2>
+      <div class="actions" style="display:grid; gap:8px; margin-top:10px">
+        <button class="btn wide" id="gameButton" type="button">—</button>
+        <button class="btn wide" id="helpButton" type="button">遊び方</button>
+        <button class="btn wide" id="newRun" type="button">新しいラン</button>
+      </div>
+      <div class="small" style="margin-top:10px; opacity:.6" id="build"></div>
+      <div class="actions" style="margin-top:10px"><button class="btn wide" id="closeMenu" type="button">閉じる</button></div>
+    </dialog>
 
     <dialog id="helpDialog">
       <h2>遊び方</h2>

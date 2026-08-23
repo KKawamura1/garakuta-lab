@@ -24,14 +24,52 @@ body {
 h1, h2, h3 { margin: 0; font-weight: 600; }
 button { font: inherit; color: inherit; cursor: pointer; }
 
+/* 上に貼り付く帯。**遊んでいる最中に見たいものだけ。**
+   前は版名・seed・build・ボタン4つで161px あり、しかも 390px 幅では
+   ボタンが1文字ずつ縦に折れて、HPバーに被っていた。 */
 .top {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 0 8px; position: sticky; top: 0; z-index: 5;
-  background: linear-gradient(var(--bg) 78%, transparent);
+  position: sticky; top: 0; z-index: 5;
+  padding: 6px 0 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
 }
-.top .wave { font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); }
-.top .title { font-size: 15px; font-weight: 600; }
+.top .topline { display: flex; align-items: center; gap: 8px; }
+.top .wave { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.top .title { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .top .spacer { flex: 1; }
+/* 折り返さない。折り返した瞬間に帯が倍の高さになる。 */
+.top .chip { white-space: nowrap; flex: none; }
+
+/* 自機は「30/30」しか要らないので幅を固定し、**残りは全部敵へ渡す。**
+   等分にしたら敵の数字が入り切らず、名前が2行に折れて帯が高くなった。 */
+.vitals { display: flex; align-items: center; gap: 10px; margin-top: 5px; font-size: 12px; }
+.vitals .side { min-width: 0; }
+.vitals .side.self { flex: 0 0 92px; }
+.vitals .side.foe { flex: 1; }
+.vitals .name { display: flex; gap: 6px; align-items: baseline; min-width: 0; }
+.vitals .name b { font-size: 12px; font-weight: 600; white-space: nowrap; flex: none; }
+/* 数字は折り返さない。入らなければ端を省く（折り返すと帯が伸びる）。 */
+.vitals .num {
+  font-variant-numeric: tabular-nums; color: var(--muted); font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.vitals .bar { height: 6px; margin-top: 3px; }
+
+/* 装備中の5枠を、記号だけの一列で。**位相表まで下げなくても何を積んでいるか分かる。** */
+.minislots { display: flex; gap: 4px; margin-top: 5px; }
+.minislots button {
+  flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--panel);
+  border-radius: 8px; padding: 3px 2px; color: var(--fg);
+  display: grid; place-items: center; line-height: 1.15; overflow: hidden;
+}
+/* 名前は入らなければ端を省く。**折り返させない**——折り返すと帯が伸びる。 */
+.minislots .n {
+  font-size: 10px; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.minislots button.empty { opacity: .45; }
+.minislots button.on { border-color: var(--accent, #7aa2f7); }
+.minislots .p { font-size: 9px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .chip {
   border: 1px solid var(--line); background: var(--panel); border-radius: 999px;
   padding: 4px 10px; font-size: 12px; color: var(--muted);
@@ -191,3 +229,11 @@ input[type=text], select, textarea {
 .phase-grid .cell.relay .cell-gain { color: #e8c86a; }
 .phase-grid .cell.damped { outline: 2px dashed #6c7480; outline-offset: -2px; }
 .phase-grid .cell.damped .cell-gain { color: #9aa3ae; }
+
+/* 枠の1行表示。名前と作動巡回を横に並べ、入らなければ作動巡回の端を省く。 */
+.slot .oneline { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.slot .oneline .name { white-space: nowrap; flex: none; }
+.slot .oneline .meta {
+  font-size: 11px; color: var(--muted); min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
