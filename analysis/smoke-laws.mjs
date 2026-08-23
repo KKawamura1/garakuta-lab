@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createRun } from "../core/run.mjs";
-import { LAWS, LAW_IDS, makeSimulate, makeLawRuleset, PARTS, LINES, BASE, SLOT_COUNT } from "../core/laws.mjs";
+import { LAWS, LAW_IDS, RUN_LAW_IDS, makeSimulate, makeLawRuleset, PARTS, LINES, BASE, SLOT_COUNT } from "../core/laws.mjs";
 import { makeRng } from "../core/rng.mjs";
 
 const fail = message => { console.error(`laws smoke: ${message}`); process.exit(1); };
@@ -184,4 +184,72 @@ table.slice(0, 5).forEach(row => {
   });
 });
 
-console.log(`laws smoke: 法則${LAW_IDS.length}件が1行・有効・決定的・組が偽物でない、表の${table.length}組が遊べる OK`);
+
+// **「上がる条件が存在する」ことと、「その条件が満たせる」ことは別である。**
+//
+// 上の検査は、倍率を返す法則すべてに 1 を超える条件が**あること**を見ている。
+// それは通っていたのに、作者は二度、独立に同じ形の不満を出した：
+//
+//   減衰：「減衰とダメージ上限のルール相性が悪く、理不尽に感じる」
+//   単調：「周期2以上だと5つ並べても最大2.5個で3個に届かないので、単純なデメリットになっている」
+//
+// 13法則を同じ物差しにかけたら、この2つだけが下がる側の方が大きかった
+// （`analysis/law-upside.mjs`）。2つとも削除したうえで、**同じ穴が二度開かないように**
+// 物差しの方をここへ置く。**存在ではなく、実測の割合で見る。**
+//
+// 数え方：出荷している盤面で、**勝てる並び**の作動を数える。
+//   上がる … 倍率 > 1 の作動の割合
+//   下がる … 倍率 < 1 の作動の割合
+//   捨てられた … 上がった作動のうち、その巡が1巡上限に張り付いていた割合
+//                （張り付いた巡では倍率を上げても敵HPは1も減らない）
+// 効いている上がる側 = 上がる × (1 − 捨てられた)。**これが下がる側を下回ったら落とす。**
+{
+  const SAMPLE = 250;
+  const types = Object.keys(PARTS);
+  const bad = [];
+  // **ランに出す法則にだけ課す。**破れの出題では「下がるだけ」は解くべき制約であって、
+  // 理不尽ではない（1問ずつ独立で、越えられることが機械で確かめてある）。
+  RUN_LAW_IDS.filter(id => LAWS[id].gain).forEach(id => {
+    const boards = table.filter(v => v.laws.includes(id));
+    if (!boards.length) return;                 // 表に載っていない法則は測れない
+    const simulate = makeSimulate([id]);
+    let up = 0, down = 0, flat = 0, wasted = 0;
+    boards.forEach(v => {
+      const rules = makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales, v.cycleCaps);
+      const enemy = rules.ENEMIES[2];
+      const cap = enemy.cycleCap || enemy.hp;
+      const rng = makeRng(31 + id.length);
+      for (let n = 0; n < SAMPLE; n += 1) {
+        const order = Array.from({ length: SLOT_COUNT }, () => types[Math.floor(rng() * types.length)]);
+        const r = simulate({
+          slots: order.map((type, i) => ({ id: `x${i}`, type })),
+          hp: rules.MAX_HP, maxHp: rules.MAX_HP, enemy, rng: makeRng(1)
+        });
+        if (!r.won) continue;                   // 負ける並びは採用されない
+        const perCycle = new Map();
+        let prev = enemy.hp;
+        (r.log || []).forEach(e => {
+          if (!e.after) return;
+          perCycle.set(e.cycle, (perCycle.get(e.cycle) || 0) + Math.max(0, prev - e.after.enemyHp));
+          prev = e.after.enemyHp;
+        });
+        (r.log || []).forEach(e => {
+          if (e.gain === undefined) return;
+          if (e.gain > 1) { up += 1; if ((perCycle.get(e.cycle) || 0) >= cap) wasted += 1; }
+          else if (e.gain < 1) down += 1;
+          else flat += 1;
+        });
+      }
+    });
+    const acts = up + down + flat;
+    if (!acts) return;
+    const live = (up / acts) * (1 - (up ? wasted / up : 0));
+    const downRate = down / acts;
+    if (live < downRate) bad.push(`${LAWS[id].name}（効いている上がる側 ${(live * 100).toFixed(1)}% ＜ 下がる ${(downRate * 100).toFixed(1)}%）`);
+  });
+  if (bad.length) fail(`下がるだけになっている法則がある：${bad.join(" / ")}`
+    + `\n  上がる条件は在るが、遊びの中で満たせていない。直すか、外すこと（`
+    + `詳しくは node analysis/law-upside.mjs）`);
+}
+
+console.log(`laws smoke: 法則${LAW_IDS.length}件（ランに出すのは${RUN_LAW_IDS.length}件）が1行・有効・決定的・組が偽物でない、表の${table.length}組が遊べる OK`);

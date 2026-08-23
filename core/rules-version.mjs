@@ -14,5 +14,9 @@
 //              負けと数えていた穴を直し、表を作り直した。先陣＋倍速と静粛＋蓄積の第6戦は
 //              **どんな並びでも勝てない敵**だった（作者が実際に引いた）。
 //              同じ表で遊ぶ ident と skip も 0.2 へ上げる（難易度が変わるので記録を分ける）
-export const RULES_VERSION = "laws-0.4";
-export const RULES_FINGERPRINT = "7c321c2caa27";
+//   laws-0.5 … 単調と減衰を削除した。**上がる条件は在るが、遊びの中で満たせていなかった**
+//              （減衰：効いている上がる側 1.1% ＜ 下がる 80.5%／単調：7.2% ＜ 24.1%。
+//              他の9法則は27〜78%）。作者が二度、独立に同じ形で報告している。
+//              「条件が満たせるか」を `smoke-laws.mjs` の検査に足し、表を作り直した（16→12組）
+export const RULES_VERSION = "laws-0.5";
+export const RULES_FINGERPRINT = "4b3adaa0af5c";

@@ -16,7 +16,7 @@ const fail = m => { console.error(`readout smoke: ${m}`); process.exit(1); };
 const MAX_HP = 30;
 const HP = 30;
 const TYPES = Object.keys(PARTS);
-const PAIRS = [["vanguard", "haste"], ["silence", "buildup"], ["relay", "reflect"], ["resonance", "fade"]];
+const PAIRS = [["vanguard", "haste"], ["silence", "buildup"], ["relay", "reflect"], ["resonance", "overload"]];
 PAIRS.forEach(pair => pair.forEach(id => { if (!LAW_IDS.includes(id)) fail(`知らない法則 ${id}`); }));
 
 let compared = 0;
