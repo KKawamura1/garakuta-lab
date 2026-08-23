@@ -7,7 +7,7 @@ const SCHEMA_VERSION = 4;
 // 遊べるルールセットは必ずここに載せる。載せ忘れると game_version が "unknown-play" になり、
 // **どのゲームの記録か分からなくなる**（法則機関の最初の4ランで実際に起きた）。
 // analysis/smoke-sync.mjs が、遊ぶ画面が持つ全ルールセットを照合している。
-const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1", relay: "relay-0.1", laws: "laws-0.5", cost: "cost-0.1", ident: "ident-0.3", skip: "skip-0.4", squeeze: "squeeze-0.1" };
+const RULESET_VERSION = { arc: "arc-0.1", bus: "bus-0.3", phase: "phase-0.1", relay: "relay-0.1", laws: "laws-0.5", cost: "cost-0.1", ident: "ident-0.3", skip: "skip-0.4", squeeze: "squeeze-0.1", mutate: "mutate-0.1" };
 const HEADS = { "agent-view": "av", play: "play" };
 
 const MARKER_LABELS = {
@@ -66,7 +66,7 @@ export function buildPayload(session) {
     startedAt,
     endedAt,
     outcome: { won: Boolean(trace.won), reached: trace.reached, hp: trace.finalHp },
-    build: lastBattle?.build || [],
+    build: trace.finalBuild || lastBattle?.build || [],
     stats: {
       ...(session.metrics || {}), seed: session.seed, actionCount: session.actions.length,
       // 試した並びの回数。これまで観測できていなかった「探索そのもの」の量（P11）。
@@ -76,6 +76,8 @@ export function buildPayload(session) {
       // 規則の指紋。**版を上げ忘れても、これで前後の記録を分けられる。**
       // 版の文字列は人が書くので落ちる（実際に laws-0.1 のまま出した）。指紋は挙動から出る。
       rulesFingerprint: FINGERPRINT,
+      // MUTATEの取得・装着・移動履歴と、終了時のチップ装着先を残す。
+      chips: trace.chips || [],
       // 対のどちら側だったか。**答えの「1本目/2本目」を側へ翻訳するのに要る。**
       trial: session.trial
         ? { id: session.trial.id, trialId: session.trial.trialId, stage: session.trial.stage,
