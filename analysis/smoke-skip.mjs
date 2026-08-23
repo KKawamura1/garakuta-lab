@@ -85,6 +85,52 @@ if (!carried) fail("そのままで次も勝てる局面が一つも無い。飛
   if (!/^skip-/.test(payload.gameVersion)) fail(`通報の版が ${payload.gameVersion}`);
 }
 
+// **連勝が「得点」になっていること**（SKIP 0.3、2026-08-23）。
+//
+// 飛ばしは元々「おまけ」で、ゲーム内の見返りが無い代わりに時間が浮く、という形だった。
+// 記録がそれをひっくり返した：作者が5点を付けた唯一のランがこれで、
+// 最良の瞬間も2ランとも strike そのものだった。**おまけを主菜にする。**
+// ここでは、主菜になっていることを画面と規則の側から見る。
+{
+  const { readFileSync } = await import("node:fs");
+  const app = readFileSync("play/app.js", "utf8");
+  const v = LAW_TABLE[0];
+  const rules = makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales, v.cycleCaps, { skipWins: true });
+  if (!/この版の得点は「連勝」である/.test(rules.rules)) fail("遊び方に「連勝が得点」と書いていない");
+  if (!/枠に入れれば強くなるが、そこで連勝は終わる/.test(rules.rules)) fail("遊び方に取引（強くなる／続ける）が書いていない");
+  // 記録は**組ごと**。敵ごとの等級と違って上が詰まっていないことが、この値の存在理由である。
+  if (!/function streakKeyFor/.test(app)) fail("連勝の自己最高を残す口が無い");
+  if (!/\$\{variant\}:連勝/.test(app)) fail("連勝の記録が組ごとに分かれていない");
+  if (!/連勝 \$\{session\.streak \|\| 0\}/.test(app)) fail("帯に連勝が出ていない（見えない得点は狙えない）");
+  if (!/最長連勝 \$\{reached\}/.test(app)) fail("ラン終わりに最長連勝が出ていない");
+}
+
+// **連勝が、狙って取る目標の大きさであること。**
+//
+// 全部の並びが2戦続くなら目標にならないし、一つも続かないなら目標にならない。
+// 実測（`analysis/streak-space.mjs`）は「勝てる並びのうち2戦続くのは26%、
+// その持ち物で届く最長は平均3.4戦」。ここでは端（0%と100%）だけを弾く。
+{
+  const v = LAW_TABLE[0];
+  const rules = makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales, v.cycleCaps, { skipWins: true });
+  const run = createRun({ seed: 29, playerId: "smoke", ruleset: rules });
+  const owned = run.observe().inventory.map(p => p.type);
+  let wins = 0, chained = 0;
+  allArrangements(owned, SLOT_COUNT).forEach(order => {
+    const slots = order.map((type, i) => ({ id: `x${i}`, type }));
+    const a = rules.simulateBattle({ slots, hp: rules.MAX_HP, maxHp: rules.MAX_HP, enemy: rules.ENEMIES[0], rng: makeRng(1) });
+    if (!a.won) return;
+    wins += 1;
+    const b = rules.simulateBattle({ slots, hp: a.hp, maxHp: rules.MAX_HP, enemy: rules.ENEMIES[1], rng: makeRng(1) });
+    if (b.won) chained += 1;
+  });
+  if (!wins) fail("第1戦に勝てる並びが一つも無い");
+  const share = chained / wins;
+  if (share === 0) fail("2戦続く並びが一つも無い（連勝が目標にならない）");
+  if (share === 1) fail("勝てる並びが全部2戦続く（連勝が目標にならない）");
+  console.log(`skip smoke: 勝てる並び${wins}通りのうち2戦続くのは ${(share * 100).toFixed(0)}%`);
+}
+
 const rate = carried / checked;
 if (rate > 0.9) fail(`そのまま勝てる局面が ${(rate * 100).toFixed(0)}% で、遊ぶところが残らない`);
 console.log(`skip smoke: そのままで次も勝てる局面は ${carried}/${checked}（${(rate * 100).toFixed(0)}%） OK`);

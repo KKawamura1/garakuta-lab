@@ -438,7 +438,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   const regenFrac = Number(options.regenFrac || 0);
   // **版の名札と版のIDは、同じ1か所から作る。**別々に書くと片方だけ直して食い違う。
   const versionTag = regenFrac > 0 && overdrive ? "squeeze-0.1"
-    : overdrive ? "cost-0.1" : hidden ? "ident-0.2" : skipWins ? "skip-0.2" : "laws-0.4";
+    : overdrive ? "cost-0.1" : hidden ? "ident-0.2" : skipWins ? "skip-0.3" : "laws-0.4";
   const versionName = regenFrac > 0 && overdrive ? "締付機関"
     : overdrive ? "代償機関" : hidden ? "同定機関" : skipWins ? "連勝機関" : "法則機関";
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));
@@ -512,8 +512,10 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   遮蔽で受け止められる。とどめの巡回でも起こる。**速く倒すほど、自分が削れる。**` : ""}${regenFrac > 0 ? `
 - **敵は毎巡、最大HPの${(regenFrac * 100).toFixed(1)}%を回復する。遅いと削り切れない。**
   速く出せば暴走で自分が削れ、遅く行けば敵が回復する。**どちらかを諦めることになる。**` : ""}${skipWins ? `
-- **触らずに次も勝てるなら、その戦闘は飛ばす（N strike!）。**
-  ゲーム内の見返りは無く、浮くのは時間だけ。失ったHPはそのまま入る。` : ""}${hidden ? `
+- **この版の得点は「連勝」である。**触らずに次も勝てるなら、その戦闘は飛ばして連勝が1増える。
+  手で戦うと連勝は切れる。**拾い物を枠に入れれば強くなるが、そこで連勝は終わる。**
+- 連勝の自己最高は**法則の組ごとに**残る。上限は6（＝一つの並びで6戦を通す）。
+  等級と違って上が詰まっていない。失ったHPはそのまま入る。` : ""}${hidden ? `
 - **このランの法則は伏せてある。**並べて、予告の数字が素の合計とどうずれるかを見て当てる。
   外しても罰は無い。何度でも言える。` : ""}
 - 等級（${bySpeed ? "電光／迅速／順当／辛勝＝**何巡で倒したか**" : "無傷／上々／及第／辛勝＝**どれだけ削られずに勝ったか**"}）がつく。**外しても罰は無い。**
