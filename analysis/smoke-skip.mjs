@@ -97,7 +97,8 @@ if (!carried) fail("そのままで次も勝てる局面が一つも無い。飛
   const v = LAW_TABLE[0];
   const rules = makeLawRuleset(v.laws, v.scales, v.atkScales, v.modScales, v.cycleCaps, { skipWins: true });
   if (!/この版の得点は「連勝」である/.test(rules.rules)) fail("遊び方に「連勝が得点」と書いていない");
-  if (!/枠に入れれば強くなるが、そこで連勝は終わる/.test(rules.rules)) fail("遊び方に取引（強くなる／続ける）が書いていない");
+  if (!/伸ばすか、強くするか/.test(rules.rules)) fail("遊び方に取引（強くなる／続ける）が書いていない");
+  if (!/構築画面に「飛ばす」が出る/.test(rules.rules)) fail("遊び方に、飛ばすのが自分の決定だと書いていない");
   // 記録は**組ごと**。敵ごとの等級と違って上が詰まっていないことが、この値の存在理由である。
   if (!/function streakKeyFor/.test(app)) fail("連勝の自己最高を残す口が無い");
   if (!/\$\{variant\}:連勝/.test(app)) fail("連勝の記録が組ごとに分かれていない");

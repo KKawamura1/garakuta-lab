@@ -438,9 +438,19 @@ function persist() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(session));
 }
 
+// **「触らずに勝てた」の「触らず」を、機械が持つ。**
+//
+// これまで飛ばしは報酬を取った直後に自動で走っていたので、
+// 遊ぶ側は**拾い物を枠に入れるかどうかを一度も選べなかった。**
+// 「強くなる」と「続ける」がぶつかる、と遊び方に書いておきながら、
+// ぶつかる場所が画面に無かった（初ランの記録で判明：第4戦と第5戦は
+// 報酬を取った直後に自動で飛び、そのあいだ構築画面が一度も出ていない）。
+const TOUCHING = ["place", "remove", "swap", "scrapPart", "repair"];
+
 function act(action) {
   const result = run.act(action);
   if (!result.ok) { message = result.error; draw(); return result; }
+  if (TOUCHING.includes(action.type)) session.touched = true;
   session.actions.push({ ...action, at: new Date().toISOString() });
   persist();
   return result;
@@ -943,6 +953,30 @@ function ambiguityCard() {
   return card;
 }
 
+// **取引を、決める場所に出す。**
+//
+// 「触らずに勝てる」局面でだけ出る。押せば飛ばして連勝が1増え、
+// 押さずに組み替えれば、次に手で戦った時点で連勝は切れる。
+// **どちらを選んでもよい**ことが、この版の遊びである。
+// 自動で飛ばしていた頃は、選ぶ場所そのものが無かった。
+function skipOfferCard(o, rules) {
+  if (!rules.skipWins || o.phase !== "build" || o.done) return null;
+  if (session.touched) return null;             // 触ったなら「触らずに勝てた」ではない
+  const v = verdictOf(o, rules);
+  if (!v || !v.won) return null;
+  const card = el("div", { className: "card" });
+  const next = (session.streak || 0) + 1;
+  card.append(el("h2", { textContent: `触らずに勝てる — ${next} strike にできる` }));
+  card.append(el("div", { className: "small", textContent:
+    `${v.short}。飛ばせば連勝が ${session.streak || 0} → ${next} になる。`
+    + `拾い物を枠に入れて強くするなら、次に手で戦った時点で連勝は切れる。` }));
+  card.append(el("div", { className: "actions", style: "margin-top:10px" }, [
+    el("button", { className: "btn primary wide", textContent: `飛ばす（${next} strike）`,
+      onclick: () => { runSkips(); draw(); } })
+  ]));
+  return card;
+}
+
 function buildScreen(o) {
   // **操作に使う3つを上へ、参照用の札を下へ。**
   //
@@ -952,7 +986,8 @@ function buildScreen(o) {
   // **位相表を見たあと手持ちへ行くのに、枠を跨いで下り、また上る**必要があった。
   // 法則と敵の説明は「一度読めば足りる」ので、下へ回す。
   const refs = [lawsCard(), enemyCard(o)].filter(Boolean);
-  const out = [statusCard(o), rulesetNoticeCard(), ambiguityCard()].filter(Boolean);
+  const rules = rulesetOf(session.ruleset);
+  const out = [statusCard(o), rulesetNoticeCard(), ambiguityCard(), skipOfferCard(o, rules)].filter(Boolean);
 
   const grid2 = el("div", { className: "card" });
   grid2.append(el("h2", { textContent: "位相表 — どの枠がどの巡回に動くか" }));
@@ -1039,7 +1074,6 @@ function buildScreen(o) {
 
   if (o.lastBattle) out.push(lastBattleCard(o.lastBattle));
 
-  const rules = rulesetOf(session.ruleset);
   const go = el("div", { className: "card" });
 
   // 結果が上に出ているのに勝敗を予想させるのは、答えの見えている問題を出すのと同じである。
@@ -1260,6 +1294,8 @@ function startBattle() {
   // 手で戦ったら連鎖は切れる。**連鎖は「触らずに勝てた回数」である。**
   session.streak = 0;
   session.lastSkips = [];
+  // 手で戦い終えたら、そこからまた「触らずに」が始まる。
+  session.touched = false;
   lastPreviewSignature = null;
   pendingPrediction = null;
   pendingGrip = null;
@@ -1295,14 +1331,16 @@ function startBattle() {
 // 飛ばせるあいだ飛ばす。**上限を置く。**
 // `trySkip` が「成功したのに戦闘が進まない」状態になったら無限ループになり、
 // 作者のブラウザが固まる。全戦闘数より多く回る道理が無い。
+// **押すたびに1戦だけ飛ばす。**
+//
+// 以前は勝てるあいだ回し続けていたが、それだと連鎖の途中で降りられない。
+// 連勝が得点になった以上、**どこまで伸ばすかは毎回の決定**である
+// （伸ばすほど、拾い物を枠に入れる機会を捨てている）。
 function runSkips() {
   const rules = rulesetOf(session.ruleset);
   if (!rules.skipWins) return;
   session.lastSkips = [];
-  let skipped = 0;
-  const limit = rules.ENEMIES.length + 1;
-  while (skipped < limit && trySkip()) skipped += 1;
-  if (skipped) persist();
+  if (trySkip()) persist();
 }
 
 function trySkip() {
@@ -1337,6 +1375,7 @@ function trySkip() {
   // **画面用の控えは手で戦うと消える。**通報用にはランを通した累積を別に持つ。
   // 消える方だけを送っていたら、飛ばしたことが記録に残らない。
   session.skipLog = [...(session.skipLog || []), { ...note, battleNumber: res.battle.battleNumber }];
+  session.touched = false;
   return true;
 }
 
@@ -1409,7 +1448,8 @@ function rewardScreen(o) {
   // 選ぶ画面に書いていないと、遊ぶ側は取引が起きていることに気づけない。
   if (rulesetOf(session.ruleset).skipWins) {
     card.append(el("div", { className: "small",
-      textContent: "拾うだけなら連勝は切れない。切れるのは枠に入れて手で戦ったときである。" }));
+      textContent: "拾うだけなら連勝は切れない。次の構築画面で「飛ばす」を押せば連勝が伸び、"
+        + "枠に入れて手で戦えば切れる。" }));
   }
   const list = el("div", { className: "parts" });
   o.offer.forEach(item => {
@@ -1418,14 +1458,8 @@ function rewardScreen(o) {
       className: "part",
       onclick: () => askUpdate(choice => {
         act({ type: "take", choice: item.choice, reason: "", update: choice, updateText: "" });
-        // **飛ばすのは、報酬を取って構築へ戻ってからである。**
-        //
-        // 最初は戦闘画面を閉じた直後に呼んでいたが、そこはまだ報酬の段階で、
-        // 戦闘の操作は受け付けられない（`core/run.mjs` が phase="reward" にする）。
-        // `trySkip` は黙って false を返し、**飛ばしは一度も起きなかった。**
-        // ブラウザで勝てる並びを組んで通すまで気づかなかった。
-        // 報酬は飛ばさない。取る／取らないは遊ぶ側の決定で、時間の節約とは別のものである。
-        runSkips();
+        // **ここで自動的に飛ばさない。**構築画面へ戻して、遊ぶ側に決めさせる。
+        // 飛ばす口は構築画面の札にある（`skipOfferCard`）。
         draw();
       })
     }, [
