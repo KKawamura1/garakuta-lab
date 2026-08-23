@@ -4,11 +4,11 @@
 
 | 要求ID | 実験票での要求 | 回答 |
 |---|---|---|
-| EXP-01-R01 | 事前の機械確認・構造ゲート・人間テスト用seed選定 | [A01_STRUCTURE_GATE.md](./01_STRUCTURE_GATE.md) |
-| EXP-01-R02 | 最小実装・検査・プレイ結果と不具合確認 | [A02_HUMAN_TEST_RESULT.md](./02_HUMAN_TEST_RESULT.md) |
-| EXP-01-R03 | 選定seedの機械的な証明 | [A03_SEED29_CERTIFICATE.md](./03_SEED29_CERTIFICATE.md) |
-| EXP-01-R04 | Solによる判定 | [A04_SOL_DECISION.md](./04_SOL_DECISION.md) |
-| EXP-01-R05 | 判定後の既存ログ自動分析 | [A05_DECISION_ANALYSIS.md](./05_DECISION_ANALYSIS.md) |
+| EXP-01-R01 | 事前の機械確認・構造ゲート・人間テスト用seed選定 | [A01_STRUCTURE_GATE.md](./A2_TERRA_STRUCTURE_GATE/1_STRUCTURE_GATE.md) |
+| EXP-01-R02 | 最小実装・検査・プレイ結果と不具合確認 | [A02_HUMAN_TEST_RESULT.md](./A1_TERRA_IMPLEMENTATION/1_RESULT.md) |
+| EXP-01-R03 | 選定seedの機械的な証明 | [A03_SEED29_CERTIFICATE.md](./A2_TERRA_STRUCTURE_GATE/2_SEED29_CERTIFICATE.md) |
+| EXP-01-R04 | Solによる判定 | [A04_SOL_DECISION.md](./R3_MUTATION_DECISION.md) |
+| EXP-01-R05 | 判定後の既存ログ自動分析 | [A05_DECISION_ANALYSIS.md](./A3_TERRA_DECISION_ANALYSIS/1_DECISION_ANALYSIS.md) |
 
 
 状態：**事前登録済み・未実装**  
