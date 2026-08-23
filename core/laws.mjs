@@ -438,7 +438,7 @@ export function makeLawRuleset(lawIds, scales, atkScales, modScales, cycleCaps, 
   const regenFrac = Number(options.regenFrac || 0);
   // **版の名札と版のIDは、同じ1か所から作る。**別々に書くと片方だけ直して食い違う。
   const versionTag = regenFrac > 0 && overdrive ? "squeeze-0.1"
-    : overdrive ? "cost-0.1" : hidden ? "ident-0.1" : skipWins ? "skip-0.1" : "laws-0.3";
+    : overdrive ? "cost-0.1" : hidden ? "ident-0.2" : skipWins ? "skip-0.2" : "laws-0.4";
   const versionName = regenFrac > 0 && overdrive ? "締付機関"
     : overdrive ? "代償機関" : hidden ? "同定機関" : skipWins ? "連勝機関" : "法則機関";
   const laws = lawIds.map(id => ({ id, ...LAWS[id] }));

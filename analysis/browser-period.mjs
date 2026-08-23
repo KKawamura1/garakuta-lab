@@ -74,9 +74,12 @@ try {
   lines.forEach((text, i) => {
     const gridRow = grid.find(g => g.label.startsWith(String(i + 1)));
     if (!gridRow || !gridRow.fires.length) return;
+    // 「周2（素3）・2・4・6…巡目」から**作動巡回だけ**を取る。
+    // 素の周期の併記も数字なので、先に落とさないと1つずれる（最初これで誤検出した）。
+    const body = text.replace(/（素\d+）/, "").replace(/^周\d+・/, "");
     const said = text.includes("毎巡")
       ? gridRow.fires.slice(0, 3)
-      : (text.match(/(\d+)/g) || []).slice(1).map(Number);
+      : (body.match(/(\d+)/g) || []).map(Number);
     const want = gridRow.fires.slice(0, said.length);
     const ok = said.length && said.join(",") === want.join(",");
     if (!ok) bad += 1;
