@@ -195,7 +195,7 @@ JSONや画像・プレイログの大量ファイルは、対応する分析文�
 
 | 目的 | 読む順 |
 | --- | --- |
-| 現在の本命を遊ぶ | README → core/laws.mjs → core/law-table.json → play/ |
+| 現在の本命を遊ぶ | README → core/laws.mjs → core/law-table.mjs → play/ |
 | ルールを変更する | CLAUDE.md → DESIGN_CHARTER.md → core/rules-version.mjs → 対象ルール → analysisの登録文 → smoke |
 | エージェント実験を行う | agents/PROTOCOL.md → agents/HYPOTHESIS_TESTING.md → agents/play.mjs → analysis/agent-* |
 | 人間とエージェントを比較する | agent-view/ → core/render.mjs → analysis/ROUND2_HUMAN_VS_AGENT.md |
@@ -233,7 +233,7 @@ JSONや画像・プレイログの大量ファイルは、対応する分析文�
 4. research/ の2資料
 5. DESIGN_LEARNINGS.md（必要な節から）
 6. analysis/RETROSPECTIVE.md
-7. core/laws.mjs と core/law-table.json
+7. core/laws.mjs と core/law-table.mjs
 8. play/ と agent-view/
 
 ### 実装を変更する
