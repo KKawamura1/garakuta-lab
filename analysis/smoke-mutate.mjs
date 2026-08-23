@@ -39,7 +39,7 @@ function permutations(pool, size, prefix = [], used = new Set()) {
   return out;
 }
 
-function arrangeWinning(run) {
+function arrangeWinning(run, apply) {
   const before = run.observe();
   const owned = [...before.slots.map(slot => slot.part), ...before.inventory].filter(Boolean);
   const size = Math.min(5, owned.length);
@@ -51,7 +51,7 @@ function arrangeWinning(run) {
     return result.won;
   });
   assert.ok(chosen, `第${before.battleNumber}戦に勝てる並びがある`);
-  before.slots.forEach((slot, i) => { if (slot.part) assert.equal(run.act({ type: "remove", slot: i + 1 }).ok, true); });
+  before.slots.forEach((slot, i) => { if (slot.part) apply({ type: "remove", slot: i + 1 }); });
   const afterRemove = run.observe();
   chosen.forEach((part, i) => {
     const current = afterRemove.inventory.find(item => item.id === part.id);
@@ -90,7 +90,7 @@ function playThrough(seed) {
       continue;
     }
     if (o.phase === "reward") { apply({ type: "skipAll", reason: "smoke" }); continue; }
-    arrangeWinning(run);
+    arrangeWinning(run, apply);
     apply({ type: "battle", prediction: MUTATE.PREDICTIONS[0], worry: "なし" });
   }
   assert.ok(guard < 40, "4戦が無限ループしない");
