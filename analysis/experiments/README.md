@@ -41,5 +41,8 @@
   - [1_REPORT.md](./exp-03/A2_TERRA_HUMAN/1_REPORT.md)
 - [R2_SOL_CONTROL_0_1_DECISION.md](./exp-03/R2_SOL_CONTROL_0_1_DECISION.md) — CONTROL 0.1の判定
 - [R3_SOL_CONTROL_0_2.md](./exp-03/R3_SOL_CONTROL_0_2.md) — 直接ゲートと公開条件を指定したCONTROL 0.2再実験
+- [A3_LUNA_CONTROL_0_2/](./exp-03/A3_LUNA_CONTROL_0_2/) — R3へのLuna実装・ゲート不通過停止回答
+- [R4_SOL_CONTROL_0_2_GATE_AUDIT.md](./exp-03/R4_SOL_CONTROL_0_2_GATE_AUDIT.md) — Terra引継ぎ、ゲート監査修復、Gate C未定義動作への正式指示
+- [A4_TERRA_CONTROL_0_2_GATE_AUDIT/](./exp-03/A4_TERRA_CONTROL_0_2_GATE_AUDIT/) — R4へのTerra監査・修復・再探索回答
 
 質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化する。
