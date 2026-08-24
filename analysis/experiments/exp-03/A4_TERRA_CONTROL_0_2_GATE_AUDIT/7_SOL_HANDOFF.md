@@ -1,21 +1,7 @@
-# Sol handoff — CONTROL 0.2 gate audit
+# Sol handoff
 
-## 結論
+Conclusion: the resumed exact diagnostic run finished all seeds 1..10000 and found `E=0`, hence `all=0`.  No user-facing release action was taken.
 
-Lunaの「Gate E=0件なのでURLを出さず停止」は工程として正しかった。一方、ゲート実装はR3の意味的条件を満たしておらず、修復後の再探索が必要。
+The evaluator was made resumable and bounded in memory, but R5 acceptance is blocked by missing fixture/non-vacuity coverage, missing seed 1..10 naive-vs-cached equivalence, and non-semantic Gate F references.  Treat the attached counts as diagnostic, not a decision record for advancing CONTROL 0.2.
 
-初版監査・トレーサビリティは作成済み。運用記述はLunaからTerraへ置換済み。コード修復前にR3 Gate Cの固定方策の報酬選択規則の決定が必要なため停止した。
-
-## Solに必要な判断
-
-Gate Cの3戦固定方策について、報酬候補・交換先をどの規則で選ぶかをR3へ明記してください。
-
-推奨案は「各固定行動方策について、提示された報酬候補・交換先は3戦合計の辞書順最良を全列挙で選ぶ」。これは固定化する対象を戦闘内の行動だけに限定し、報酬選択の偶然でマクロ拒否が起きるのを防ぐ。ただしR3への追記を必要とするため、Terraが独断で採用していない。
-
-判断後、TerraはGate A-calc/B/C/D/E/Fの直接実装、fixtures、seed 1〜10000再探索、証拠保存までを再開する。
-
-## R4後の停止
-
-R4はGate Cの報酬選択を明確化した。Terraはその規則に従う試作を行い、10 seedで6.086秒を確認した。全10,000 seedの単純外挿は約101分であり、現在の計算構成では実行予算を超える可能性が高い。
-
-Sol判断が必要なのは、完全な意味的評価を保った長時間実行を許可するか、同値性を証明できる状態DP等の最適化を実装する追加作業を許可するか、実行予算とともに仕様を改訂するかである。R4の禁止に従い、証人探索の省略や閾値・範囲変更はしていない。
+Requested Sol decision: authorize implementation of the R5 preflight suite and a fresh exact rerun, or stop CONTROL 0.2 at this non-acceptance checkpoint.
