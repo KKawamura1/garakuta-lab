@@ -1,21 +1,32 @@
-# Test evidence
+# Test evidence — R6
 
-Executed:
+All checks below were run on the repaired branch after the preflight-first review.
 
-```sh
-node --check analysis/gate-control02.mjs
-```
+## Syntax and preflight
 
-Result: exit `0`.
+    node --check analysis/gate-control02.mjs
+    node --check analysis/control02-preflight.mjs
+    node analysis/control02-preflight.mjs
 
-Also executed:
+The two syntax checks exited 0. The executable preflight exited 0 and reported:
 
-```sh
-node -e 'const x=require("/tmp/control02-exact-final.json"); if(x.limit!==10000||!x.gateA.pass||x.counts.all!==0||x.counts.E!==0||x.top.length!==5) process.exit(1); console.log("result-schema-ok")'
-```
+    fixtures: A/B/C/D/E positive and negative = true
+    Gate E badExchangeDoesNotVacuouslyFail = true
+    Gate F positive = true
+    ignoreNextAttack positive = true
+    naive-vs-optimized passed = true
+    seeds compared = 10
+    mismatches = []
+    policyMismatches = []
 
-Result: `result-schema-ok`, exit `0`.
+## Search and result checks
 
-The full seed command in `4_SEED_RESULTS.md` also completed with exit `0`; its per-seed evaluation exercised Gate A--E and wrote checkpoints.
+    time env SEED_LIMIT=100 node analysis/gate-control02.mjs > /tmp/r6-benchmark-100.json
+    time env SEED_LIMIT=10000 CHECKPOINT=/tmp/r6-control02-checkpoint.json node analysis/gate-control02.mjs > /tmp/r6-control02-exact-final.json
 
-Not executed (mandatory R5 preflight): executable positive/negative fixtures, non-vacuity assertions, a retained naive enumerator, and DP-vs-naive seed 1..10 comparison.  Therefore this file deliberately does not label the gate suite as passed.
+Both search commands exited 0. The benchmark took 17.289 seconds; the exact run took 16 minutes 52.151 seconds and completed the checkpoint.
+
+A result-schema assertion also verified the final limit, preflight Gate A/F status, counts.all=0, counts.E=0, and five retained top candidates. It exited 0.
+
+No UI/E2E, persistent-event three-way agreement, deployment, D1, human play, or URL check was run. These are explicitly downstream of an all-gate pass and remain prohibited by the current result.
+
