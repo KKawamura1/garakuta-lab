@@ -21,7 +21,7 @@ const enemy = () => enemies[state.battle - 1];
 const result = () => simulateBattle({ parts: state.loadout, enemy: enemy(), actions: state.actions, hp: state.hp });
 const available = type => {
   const r = simulateBattle({ parts: state.loadout, enemy: enemy(), actions: [...state.actions, type], hp: state.hp });
-  return r.legal && !r.terminal;
+  return r.legal;
 };
 function event(type, extra = {}) { state.events.push({ seq: state.events.length + 1, type, at: new Date().toISOString(), battle: state.battle, ...extra }); }
 
