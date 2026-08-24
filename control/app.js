@@ -25,6 +25,7 @@ let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (_) { state = fresh(); }
 const enemies = generateEnemies(state.seed);
 let pendingReward = null;
+let pendingMark = null;
 const save = () => localStorage.setItem(KEY, JSON.stringify(state));
 const enemy = () => enemies[state.battle - 1];
 const result = () => simulateBattle({ parts: state.loadout, enemy: enemy(), actions: state.actions, hp: state.hp });
@@ -51,7 +52,7 @@ function render() {
     <div class="card"><h2>今回のログ</h2><div class="log">${(r.log || []).map(x => `<div>巡${x.turn} ${esc(names[x.action] || x.action)}：${x.damage ? `${x.damage}ダメージ` : x.energy ? `エネルギー+${x.energy}` : x.shield ? `遮蔽${x.shield}` : "作動"} → HP ${x.hpAfter} / 敵HP ${x.enemyHpAfter}</div>`).join("") || "まだ行動していません"}</div></div>
     <div class="card"><div class="mark"><button data-mark="insight">ひらめいた</button><button data-mark="choice">迷う</button><button data-mark="friction">つらい</button><button data-mark="payoff">うまくいった</button></div></div>`;
   screen.querySelectorAll("[data-act]").forEach(button => button.onclick = () => act(button.dataset.act));
-  screen.querySelectorAll("[data-mark]").forEach(button => button.onclick = () => mark(button.dataset.mark));
+  screen.querySelectorAll("[data-mark]").forEach(button => button.onclick = () => openMark(button.dataset.mark, button.textContent));
 }
 
 function act(type) {
@@ -87,13 +88,28 @@ function chooseReward(reward, old) {
   event("reward_chosen", { reward, replaced });
   pendingReward = null; state.battle += 1; state.actions = []; state.phase = "battle"; save(); render();
 }
-function mark(kind) { state.moments.push({ seq: state.moments.length + 1, kind, at: new Date().toISOString(), battle: state.battle }); event("emotion_marked", { kind }); save(); }
+function openMark(kind, label) {
+  pendingMark = { kind, label };
+  $("#markLabel").textContent = label;
+  $("#markNote").value = "";
+  $("#markDialog").showModal();
+}
+function mark(kind, label, note) {
+  state.moments.push({ seq: state.moments.length + 1, kind, label, note, at: new Date().toISOString(), battle: state.battle });
+  event("emotion_marked", { kind, label, note }); save();
+}
 
 function renderDone(screen, r) {
   const won = state.events.filter(x => x.type === "battle_won").length === 3;
   screen.innerHTML = `<div class="card"><h2>${won ? "3戦完走" : "ラン終了"}</h2><p>${won ? "全戦勝利しました。" : "このランはここで終了です。"}</p><p class="muted">seed ${state.seed} / 最終HP ${r.hp}</p><button class="primary" id="surveyOpen">感想を書く</button></div>`;
   $("#surveyOpen").onclick = () => $("#survey").showModal();
 }
+$("#markSave").onclick = () => {
+  if (!pendingMark) return;
+  mark(pendingMark.kind, pendingMark.label, $("#markNote").value.trim().slice(0, 160));
+  pendingMark = null;
+  $("#markDialog").close();
+};
 $("#send").onclick = async () => {
   const fun = $("#fun").value, replay = $("#replay").value;
   if (!fun || !replay) { $("#surveyError").textContent = "面白さと再プレイ意向を選んでください"; return; }
