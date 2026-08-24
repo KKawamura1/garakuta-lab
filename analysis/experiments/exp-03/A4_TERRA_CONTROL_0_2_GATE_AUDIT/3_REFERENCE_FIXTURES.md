@@ -1,14 +1,12 @@
-# 参照点・fixture計画
+# Reference fixtures
 
-状態: **未実行（停止）**
+No positive/negative fixture suite was added in this continuation.  This is an explicit R5 nonconformance, not a vacuous pass.
 
-R3 Gate Fは、5参照点を意味的なGate A〜Eへ実入力して棄却理由を出す必要がある。既存の生成範囲外による棄却は不十分と監査で判定した。
+The current evaluator contains five named reference descriptions in `gateF()` (`all-zero`, `all-one`, `attack-only`, `defend-safe`, `reward-irrelevant`), but they are not constructed game inputs and do not run through the semantic B--E gate implementations.  They must not be treated as fixtures or as proof that Gate F has passed.
 
-修正後に実施するfixtureは、各Gate条件ごとに次を揃える。
+Required next work before an acceptance rerun:
 
-- 条件を満たすpositive fixture
-- その条件だけを壊すnegative fixture
-- negativeが実際にFAILする検査
-- 証人が無い場合にPASSできないnonvacuous検査
-
-ただしGate Cの3戦固定方策の報酬選択規則が未定義であり、fixtureを含む実装を進めると独自仕様の追加になるため未実行で停止した。
+- create a positive fixture and a one-condition-broken negative fixture for every semantic condition;
+- assert that every negative fixture fails its intended condition;
+- assert witness presence so no evidence-free condition can pass;
+- retain a small naive enumerator and compare all comparable state values, witnesses, policies, and B--E decisions against cached evaluation for seeds 1..10.
