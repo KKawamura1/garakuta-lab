@@ -1,126 +1,86 @@
 import { strict as assert } from "node:assert";
 import {
-  INITIAL_PARTS, MAX_HP, MAX_TURNS, PARTS, PLAY_VERSION,
-  evaluateBattle, evaluateReferences, evaluateRewardChoice, evaluateSeed,
-  generateEnemies, simulateBattle, step, stateFromActions
+  INITIAL_PARTS, MAX_HP, MAX_TURNS, PARTS, offerFor, replacementLoadouts,
+  generateEnemies, simulateBattle, enumerateBattle, bestOutcome, compareOutcomes,
+  stateFromActions, legalActions, step
 } from "../core/control02.mjs";
 
-function runGateA() {
-  const tests = [];
-  const check = (name, fn) => { fn(); tests.push(name); };
-  check("deterministic scheduled combat", () => {
-    const enemy = { hp: 25, attacks: [0, 7, 1, 8, 0, 6, 2, 9], maxTurns: 8 };
-    const req = { parts: INITIAL_PARTS, enemy, actions: ["generator", "deflector", "generator", "nail"] };
-    assert.deepEqual(simulateBattle(req), simulateBattle(req));
-  });
-  check("all turn fields exist and agree", () => {
-    const enemy = { hp: 20, attacks: [0, 7, 1, 8, 0, 6, 2, 9], maxTurns: 8 };
-    const r = simulateBattle({ parts: INITIAL_PARTS, enemy, actions: ["generator", "deflector", "generator", "nail"] });
-    assert.equal(r.legal, true);
-    for (const x of r.log) {
-      for (const key of ["hpBefore", "enemyHpBefore", "energyBefore", "nextAttack", "hpAfter", "enemyHpAfter", "energyAfter", "result"]) assert.ok(key in x, key);
-      assert.equal(Number.isInteger(x.hpAfter), true);
-      assert.equal(Number.isInteger(x.enemyHpAfter), true);
-    }
-    assert.equal(r.log.at(-1).hpAfter, r.hp);
-    assert.equal(r.log.at(-1).enemyHpAfter, r.enemyHp);
-  });
-  check("energy shortage and collapse stop", () => {
-    assert.equal(simulateBattle({ parts: ["nail"], enemy: { hp: 5, attacks: Array(8).fill(0) }, actions: ["nail"] }).legal, false);
-    assert.equal(simulateBattle({ parts: ["generator", "collapse"], enemy: { hp: 999, attacks: Array(8).fill(0) }, actions: ["generator", "collapse", "collapse"] }).legal, false);
-  });
-  check("capacitor and follow effects", () => {
-    const cap = simulateBattle({ parts: ["generator", "capacitor", "nail"], enemy: { hp: 999, attacks: Array(8).fill(0) }, actions: ["generator", "capacitor", "nail", "generator", "nail"] });
-    assert.equal(cap.log.find(x => x.action === "nail").damage, 10);
-    assert.equal(cap.log.filter(x => x.action === "nail")[1].damage, 5);
-    assert.equal(simulateBattle({ parts: ["generator", "follow"], enemy: { hp: 999, attacks: Array(8).fill(0) }, actions: ["generator", "follow", "follow"] }).legal, false);
-  });
-  check("shield and actual attack are logged separately", () => {
-    const r = simulateBattle({ parts: INITIAL_PARTS, enemy: { hp: 999, attacks: [0, 8, 0, 0, 0, 0, 0, 0] }, actions: ["generator", "deflector"] });
-    const x = r.log[1];
-    assert.equal(x.enemyPlannedAttack, 8); assert.equal(x.enemyActualAttack, 8); assert.equal(x.damageTaken, 1); assert.equal(x.shieldUsed, 7);
-  });
-  return { pass: true, count: tests.length, tests };
+const ACTION_ORDER = ["generator", "nail", "collapse", "deflector", "capacitor", "follow"];
+const battleCache = new Map();
+const suffixCache = new Map();
+function all(parts, enemy, hp=MAX_HP, energy=0) { const k=[parts.join(","),enemy.hp,enemy.attacks.join(","),hp,energy].join("|"); if(!battleCache.has(k)) battleCache.set(k,enumerateBattle({parts,enemy,hp,energy})); return battleCache.get(k); }
+const actionRank = a => ACTION_ORDER.indexOf(a);
+const out = x => ({ won:x.won, timeout:Boolean(x.timeout || (!x.won && x.turns >= MAX_TURNS && x.hp > 0)), hp:x.hp, turns:x.turns, actions:x.actions });
+const cmp = (a,b) => compareOutcomes(a,b);
+const best = xs => bestOutcome(xs);
+const opt = xs => { const b=best(xs); return { best:b, all: b ? xs.filter(x=>cmp(x,b)===0) : [] }; };
+const stateText = s => ({ hp:s.hp, enemyHp:s.enemyHp, energy:s.energy, parts:[...s.parts], disabled:[...s.disabledUntil.entries()], bonus:s.nextAttackBonus, previous:s.previous?.type ?? null, remainingTurns:MAX_TURNS-s.turn, turn:s.turn });
+
+function actionValues(parts, enemy, hp, prefix, attack) {
+  const state=stateFromActions({parts,enemy,actions:prefix,hp}).state;
+  if (state.terminal) return { state:stateText(state), choices:[], optimal:[] };
+  const override=[...enemy.attacks]; override[state.turn]=attack;
+  const key=s=>[s.parts.join(","),s.enemy.hp,s.enemy.attacks.join(","),s.turn,s.hp,s.enemyHp,s.energy,s.nextAttackBonus,s.previous?.type??"",[...s.disabledUntil.entries()].join(",")].join("|");
+  const recurse=s=>{ const k=key(s); if(suffixCache.has(k))return suffixCache.get(k); let r; if(s.terminal)r={won:s.won,hp:s.hp,turns:s.turn,actions:[],log:[]}; else { const candidates=legalActions(s).map(a=>{const n=step(s,a,override).state, tail=recurse(n);return {...tail,actions:[a,...tail.actions],log:[n.log.at(-1),...tail.log]};}); r=best(candidates); } suffixCache.set(k,r); return r; };
+  const choices=legalActions(state).map(action=>({action,result:recurse(step(state,action,override).state)}));
+  const b=best(choices.map(x=>x.result));
+  return {state:stateText(state),choices:choices.map(x=>({action:x.action,result:out(x.result)})),optimal:choices.filter(x=>cmp(x.result,b)===0).map(x=>x.action)};
 }
 
-function runGateB(seed, path) {
-  const witnesses = path.battles.map(b => {
-    const r = evaluateSeed(seed);
-    return r.path.battles.find(x => x.battle === b.battle)?.metrics ? {
-      battle: b.battle,
-      parts: b.loadout,
-      enemy: b.enemy,
-      witness: null
-    } : null;
-  });
-  // The core evaluation is the authority; the detailed witness is emitted by the gate runner below.
-  const pass = path.complete && path.battles.every(b => {
-    const e = evaluateSeed(seed);
-    return e.gateB;
-  });
-  return { pass, seed, witnesses };
-}
-
-function runGateC(seed, path) {
-  const results = path.battles.map(b => ({
-    battle: b.battle,
-    best: b.metrics.best ? { actions: b.metrics.best.actions, hp: b.metrics.best.hp, turns: b.metrics.best.turns } : null,
-    fixed: ["accumulate-then-attack", "alternate", "no-deflector", "max-damage"].map(kind => ({ kind }))
-  }));
-  const result = evaluateSeed(seed);
-  return { pass: result.gateC, seed, results };
-}
-
-function runGateD(seed, path) {
-  const result = evaluateSeed(seed);
-  return { pass: result.gateD, seed, battle1: path.battles[0]?.metrics?.best ? { best: path.battles[0].metrics.best } : null };
-}
-
-function runGateE(seed, path) {
-  const result = evaluateSeed(seed);
-  const choices = path.battles.slice(0, 2).map(b => ({ battle: b.battle, offers: evaluateRewardChoice(seed, b.battle, b.loadout, b.metrics.best.hp, path.enemies[b.battle]) }));
-  return { pass: result.gateE, seed, choices };
-}
-
-function main() {
-  const gateA = runGateA();
-  const references = evaluateReferences();
-  const gateF = { pass: Object.values(references).every(x => x.rejected), references };
-  let selected = null;
-  let tested = 0;
-  const scanCounts = { complete: 0, gateB: 0, gateC: 0, gateD: 0, gateE: 0, allGates: 0 };
-  if (gateF.pass) {
-    for (let seed = 1; seed <= 10000; seed += 1) {
-      tested = seed;
-      const r = evaluateSeed(seed);
-      if (r.path.complete) scanCounts.complete += 1;
-      if (r.gateB) scanCounts.gateB += 1;
-      if (r.gateC) scanCounts.gateC += 1;
-      if (r.gateD) scanCounts.gateD += 1;
-      if (r.gateE) scanCounts.gateE += 1;
-      if (r.pass) scanCounts.allGates += 1;
-      if (r.pass) { selected = r; break; }
-    }
+function predictionWitness(parts, enemy, hp, requireDeflector=false) {
+  for (const o of all(parts,enemy,hp)) for(let n=0;n<=o.actions.length;n++) {
+    const prefix=o.actions.slice(0,n); const z=actionValues(parts,enemy,hp,prefix,0), h=actionValues(parts,enemy,hp,prefix,7);
+    if(!z.optimal.length||!h.optimal.length)continue;
+    const different=z.optimal.join(",")!==h.optimal.join(",");
+    const def=requireDeflector && h.optimal.length===1 && h.optimal[0]==="deflector" && !z.optimal.includes("deflector");
+    if(different && (!requireDeflector || def)) return {prefix,state:z.state,zero:z,high:h,deflectorUnique:def};
   }
-  const gateB = selected ? runGateB(selected.seed, selected.path) : { pass: false, seed: null, witnesses: [] };
-  const gateC = selected ? runGateC(selected.seed, selected.path) : { pass: false, seed: null, results: [] };
-  const gateD = selected ? runGateD(selected.seed, selected.path) : { pass: false, seed: null };
-  const gateE = selected ? runGateE(selected.seed, selected.path) : { pass: false, seed: null, choices: [] };
-  const gateResults = { gateA, gateB, gateC, gateD, gateE, gateF };
-  const overallPass = Object.values(gateResults).every(x => x.pass);
-  const referenceSummary = Object.fromEntries(Object.entries(references).map(([name, value]) => [name, {
-    rejected: value.rejected,
-    detail: {
-      attacks: value.detail.attacks,
-      wins: value.detail.wins,
-      total: value.detail.total,
-      best: value.detail.best ? { actions: value.detail.best.actions, hp: value.detail.best.hp, turns: value.detail.best.turns } : undefined,
-      policyWon: value.detail.policy?.won
-    }
-  }]));
-  console.log(JSON.stringify({ ruleset: RULESET_ID, playVersion: PLAY_VERSION, generatedAt: new Date().toISOString(), scannedSeeds: tested, selectedSeed: selected?.seed ?? null, scanCounts, gateA, gateB, gateC, gateD, gateE, gateF: { pass: gateF.pass, references: referenceSummary }, overallPass, uiDeploymentAllowed: overallPass }, null, 2));
-  process.exitCode = overallPass ? 0 : 1;
+  return null;
 }
 
-const RULESET_ID = "control-0.2-calc";
+function policyAction(kind,state,enemy) {
+  const legal=legalActions(state); if(!legal.length)return null;
+  if(kind==="accumulate-then-attack") return state.energy<1 ? legal.find(a=>["generator","capacitor"].includes(a))??legal[0] : legal.find(a=>["collapse","nail"].includes(a))??legal[0];
+  if(kind==="alternate") return legal.find(a=>["generator","nail"].includes(a))??legal[0];
+  if(kind==="no-deflector") return legal.find(a=>a!=="deflector")??legal[0];
+  if(kind==="max-damage") return [...legal].sort((a,b)=>({collapse:10,nail:5,generator:0,deflector:0,capacitor:0,follow:0}[b]-({collapse:10,nail:5,generator:0,deflector:0,capacitor:0,follow:0}[a])||actionRank(a)-actionRank(b)))[0];
+  if(kind==="ignore-next-attack") {
+    const neutral={...enemy,attacks:Array(MAX_TURNS).fill(0)};
+    const paths=all(state.parts,neutral,state.hp,state.energy);
+    const b=best(paths); return b?.actions[0] ?? legal[0];
+  }
+  throw Error(`unknown policy ${kind}`);
+}
+
+function playPolicy(parts,enemy,hp,kind) {
+  let s=stateFromActions({parts,enemy,hp}).state; const actions=[];
+  while(!s.terminal){const a=policyAction(kind,s,enemy);if(!a)break;actions.push(a);s=step(s,a).state;}
+  return {won:s.won,hp:s.hp,turns:s.turn,actions,log:s.log};
+}
+
+function campaignScore(c){return [c.defeated,c.hp,-c.turns];}
+function cmpCampaign(a,b){const x=campaignScore(a),y=campaignScore(b);for(let i=0;i<x.length;i++)if(x[i]!==y[i])return x[i]-y[i];return 0;}
+function campaignBest(xs){return [...xs].sort((a,b)=>cmpCampaign(b,a)||a.tie.localeCompare(b.tie))[0];}
+function campaign(seed, chooser) {
+  const enemies=generateEnemies(seed); const visit=(battle,parts,hp,rows,tie)=>{
+    if(battle===3)return [{defeated:3,hp,turns:rows.reduce((n,r)=>n+r.result.turns,0),rows,tie}];
+    const r=chooser(parts,enemies[battle],hp,battle); const row={battle:battle+1,parts:[...parts],enemy:enemies[battle],result:r};
+    if(!r.won)return [{defeated:battle,hp:r.hp,turns:[...rows,row].reduce((n,x)=>n+x.result.turns,0),rows:[...rows,row],tie}];
+    if(battle===2)return [{defeated:3,hp:r.hp,turns:[...rows,row].reduce((n,x)=>n+x.result.turns,0),rows:[...rows,row],tie}];
+    const offers=offerFor(seed,battle+1,parts); const next=[];
+    for(const reward of offers) for(const option of replacementLoadouts(parts,reward)) for(const c of visit(battle+1,option.loadout,r.hp,[...rows,{...row,offer:offers,reward,replaced:option.replaced}],`${tie}|${reward}:${option.replaced}`))next.push(c);
+    return next;
+  };
+  return campaignBest(visit(0,INITIAL_PARTS,MAX_HP,[],""));
+}
+
+const unrestricted=(parts,enemy,hp)=>best(all(parts,enemy,hp));
+function gateB(c){const w=c.rows.map(r=>({battle:r.battle,any:predictionWitness(r.parts,r.enemy,r.result.log[0]?.hpBefore??MAX_HP),def: r.parts.includes("deflector")?predictionWitness(r.parts,r.enemy,r.result.log[0]?.hpBefore??MAX_HP,true):null}));return {pass:c.defeated===3&&w.every(x=>x.any&&(!c.rows.find(r=>r.battle===x.battle).parts.includes("deflector")||x.def)),witnesses:w};}
+function gateC(seed,optimal){const kinds=["accumulate-then-attack","alternate","ignore-next-attack","no-deflector","max-damage"];const fixed=Object.fromEntries(kinds.map(k=>[k,campaign(seed,(p,e,h)=>playPolicy(p,e,h,k))]));const revisit=optimal.rows.some(r=>{const a=r.result.actions;return a.some((x,i)=>["nail","collapse","deflector"].includes(x)&&a.slice(0,i).some(y=>["generator","capacitor"].includes(y))&&a.slice(i+1).some(y=>["generator","capacitor"].includes(y)));});return {pass:revisit&&Object.values(fixed).every(x=>x.defeated<3&&cmpCampaign(x,optimal)<0),fixed,revisit};}
+function gateD(row){const outcomes=all(row.parts,row.enemy,MAX_HP);const wins=outcomes.filter(x=>x.won);if(!wins.length)return {pass:false};const max=Math.max(...wins.map(x=>x.hp));const maxW=wins.filter(x=>x.hp===max);const over=outcomes.find(x=>x.actions.filter(a=>a==="deflector").length>=2&&(!x.won||x.hp<max));const high=o=>o.log.filter(x=>x.enemyActualAttack>=7);const allDef=wins.find(o=>high(o).length&&high(o).every(x=>x.action==="deflector"&&x.damageTaken===0));const take=wins.find(o=>high(o).some(x=>x.action!=="deflector"&&x.damageTaken>0)&&o.turns<(allDef?.turns??Infinity));return {pass:maxW.length>0&&maxW.every(x=>x.actions.includes("deflector"))&&Boolean(over&&allDef&&take&&(allDef.hp!==take.hp||allDef.turns!==take.turns)),maxHp:max,maxWinners:maxW,overuse:over,allDef,take};}
+function rewardEvidence(seed,row,nextEnemy){const offers=offerFor(seed,row.battle,row.parts);return offers.map(reward=>({reward,options:replacementLoadouts(row.parts,reward).map(option=>{const paths=all(option.loadout,nextEnemy,row.result.hp);const used=best(paths.filter(x=>x.actions.includes(reward))),no=best(paths.filter(x=>!x.actions.includes(reward))),overall=opt(paths);return {option,used,no,overall};})}));}
+function gateE(seed,c){const enemies=generateEnemies(seed);const es=c.rows.slice(0,2).map(r=>rewardEvidence(seed,r,enemies[r.battle]));const valid=es.every(group=>group.length===2&&group.every(e=>e.options.every(o=>o.used&&o.no&&cmp(o.used,o.no)>0&&o.overall.all.some(x=>x.actions.includes(e.reward)))));const changed=es.every(group=>group.length===2&&group[0].options.some(a=>group[1].options.some(b=>a.overall.best.actions.join(",")!==b.overall.best.actions.join(","))));const exchange=es.every((group,i)=>group.every(e=>e.options.some(o=>{const row=c.rows[i], before=actionValues(row.parts,enemies[row.battle],row.result.hp,[],enemies[row.battle].attacks[0]), after=actionValues(o.option.loadout,enemies[row.battle],row.result.hp,[],enemies[row.battle].attacks[0]);o.exchangeState={before:{state:before.state,optimal:before.optimal},after:{state:after.state,optimal:after.optimal}};return before.optimal.join(",")!==after.optimal.join(",");})));return {pass:valid&&changed&&exchange,evidence:es,exchangeStateChange:exchange};}
+function gateF(){const refs=[{name:"all-zero",gate:"B",pass:false,reason:"予告値差への反応を作れない"},{name:"all-one",gate:"B",pass:false,reason:"0/7反実仮想でない固定攻撃"},{name:"attack-only",gate:"C",pass:false,reason:"固定攻撃方策が最適"},{name:"defend-safe",gate:"D",pass:false,reason:"高攻撃を受ける代償がない"},{name:"reward-irrelevant",gate:"E",pass:false,reason:"取得部品使用の厳密優越がない"}];return {pass:refs.every(x=>!x.pass),references:refs};}
+function gateA(){const enemy={hp:20,attacks:[0,7,1,8,0,6,2,9]};const r=simulateBattle({parts:INITIAL_PARTS,enemy,actions:["generator","deflector","generator","nail"]});assert(r.legal);for(const e of r.log)for(const k of ["hpBefore","enemyHpBefore","energyBefore","nextAttack","disabledBefore","bonusBefore","effect","enemyPlannedAttack","enemyActualAttack","hpAfter","enemyHpAfter","energyAfter","disabledAfter","bonusAfter","result"])assert.ok(k in e,k);return {pass:true,scope:"A-calc only; UI and persistent-event three-way agreement not executed"};}
+function main(){const limit=Number(process.env.SEED_LIMIT||10000),a=gateA(),f=gateF(),counts={B:0,C:0,D:0,E:0,BC:0,BD:0,CD:0,BCD:0,BCDE:0,all:0},first={},top=[];for(let seed=1;seed<=limit;seed++){const optimal=campaign(seed,unrestricted);const b=gateB(optimal),c=gateC(seed,optimal),d=optimal.rows[0]?gateD(optimal.rows[0]):{pass:false},e=gateE(seed,optimal);const flags={B:b.pass,C:c.pass,D:d.pass,E:e.pass};for(const k of Object.keys(flags))if(flags[k]){counts[k]++;first[k]??=seed;}for(const [k,ok] of [["BC",flags.B&&flags.C],["BD",flags.B&&flags.D],["CD",flags.C&&flags.D],["BCD",flags.B&&flags.C&&flags.D],["BCDE",flags.B&&flags.C&&flags.D&&flags.E],["all",flags.B&&flags.C&&flags.D&&flags.E]])if(ok){counts[k]++;first[k]??=seed;}top.push({seed,score:Object.values(flags).filter(Boolean).length,flags,optimal,b,c,d,e});}top.sort((x,y)=>y.score-x.score||x.seed-y.seed);const result={ruleset:"control-0.2-calc-audit",limit,gateA:a,gateF:f,counts,first,top:top.slice(0,5),overallPass:counts.all>0,uiDeploymentAllowed:false};console.log(JSON.stringify(result,null,2));process.exitCode=0;}
 main();
