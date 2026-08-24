@@ -11,6 +11,13 @@
     <header><h1>操機 / CONTROL 0.1</h1><span id="status"></span></header>
     <section id="screen"></section>
   </main>
+  <dialog id="markDialog"><form method="dialog">
+    <h2>いまの気持ち</h2>
+    <p id="markLabel" class="muted"></p>
+    <input id="markNote" type="text" maxlength="160" placeholder="ひとこと（任意）" />
+    <button id="markSave" type="button" class="primary">記録する</button>
+    <button value="cancel">閉じる</button>
+  </form></dialog>
   <dialog id="survey"><form method="dialog"><h2>感想（最大1ラン）</h2>
     <label>面白さ <select id="fun"><option value="">未選択</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
     <label>もう一度遊びたいか <select id="replay"><option value="">未選択</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
