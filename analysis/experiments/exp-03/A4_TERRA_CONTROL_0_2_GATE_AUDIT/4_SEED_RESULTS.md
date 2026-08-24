@@ -1,22 +1,26 @@
-# seed 1〜10000 再探索結果
+# R5 exact-search diagnostic result
 
-状態: **未実行（停止）**
+Command:
 
-実行コマンド: 未実行  
-終了コード: 該当なし  
-探索範囲: 1〜10000昇順（変更なし）
+```sh
+CHECKPOINT=/tmp/cp-a.json SEED_LIMIT=10000 node analysis/gate-control02.mjs > /tmp/control02-exact-final.json
+```
 
-停止理由は `6_DEVIATIONS.md` を参照。Gate Cの完全な3戦固定方策が一意に定義できないため、修復前の評価器を用いた再探索はR3再評価ではなく、結果を作成しない。
+Exit status: `0`.  Final checkpoint: `nextSeed=10001`, `complete=true`.
 
-よって、各Gate単独通過数、積集合、最初のseed、上位候補、完全最適行動列、固定方策結果はいずれも未算出。
+| metric | count | first seed |
+| --- | ---: | ---: |
+| Gate B | 127 | 25 |
+| Gate C | 5823 | 1 |
+| Gate D | 173 | 22 |
+| Gate E | 0 | — |
+| B ∩ C | 74 | 187 |
+| B ∩ D | 16 | 25 |
+| C ∩ D | 124 | 22 |
+| B ∩ C ∩ D | 14 | 1301 |
+| B ∩ C ∩ D ∩ E | 0 | — |
+| all gates | 0 | — |
 
-## R4再開時の計算量停止（2026-08-24）
+Top candidates by satisfied B--E conditions were seeds `1301`, `1884`, `2119`, `2943`, and `3020`; each had score 3 and failed Gate E.  The serialized final output retains each candidate's optimal campaign/action rows and fixed-policy results: `/tmp/control02-exact-final.json` during execution (not a repository artifact).
 
-R4第7節の報酬経路全列挙と、Gate B〜Eの直接証人探索を試作してseed 1〜10を実行した。
-
-- コマンド: `time SEED_LIMIT=10 node analysis/gate-control02.mjs > /tmp/audit10.json`
-- 終了コード: 0（試作の10 seed限定実行）
-- 実測: real 6.086s
-- 単純外挿: seed 1〜10000は約101分（キャッシュ成長の不確実性を除く）
-
-これは正式再探索結果ではない。時間削減のためGate証人探索を部分状態に限定するとR4の「存在しない場合も非vacuousにFAIL」の条件を弱めるため、全探索は実施していない。
+This result is diagnostic only, because the R5 fixture and naive-equivalence preflight were not completed.  It does not authorize a play URL or the next phase.
