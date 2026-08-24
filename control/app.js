@@ -6,6 +6,14 @@ import { uuid, deviceIdForRun, sendPayload } from "../agent-view/sync.js";
 const KEY = "garakuta-control";
 const seedFromUrl = Number(new URLSearchParams(location.search).get("seed") || 7);
 const names = Object.fromEntries(Object.entries(PARTS).map(([k, v]) => [k, v.name]));
+const descriptions = Object.freeze({
+  generator: "エネルギー +2（消費なし）",
+  nail: "エネルギー1消費／5ダメージ",
+  collapse: "エネルギー2消費／10ダメージ。次ターン使用不可",
+  deflector: "エネルギー1消費／このターンの被ダメージを7防ぐ",
+  capacitor: "エネルギー2未満：+1。2以上：次の攻撃に+5",
+  follow: "エネルギー1消費／直前の別部品を半分の効果で再実行"
+});
 const $ = selector => document.querySelector(selector);
 const esc = value => String(value).replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -39,7 +47,7 @@ function render() {
       <div class="row"><span>敵HP <b class="enemy">${r.enemyHp}</b> / ${e.hp}</span><span>次の攻撃 <b class="enemy">${e.atk}</b></span></div>
       <div class="row"><span>自HP <b class="player">${r.hp}</b> / ${state.hp}</span><span>エネルギー <b class="player">${r.energy}</b></span></div>
       <p class="muted">敵の次行動を見て、作動させる部品を1つ選ぶ。</p></div>
-    <div class="card"><h2>装備</h2><div class="buttons">${state.loadout.map(type => `<button data-act="${type}" ${legal.includes(type) ? "" : "disabled"}>${esc(names[type])}</button>`).join("")}</div></div>
+    <div class="card"><h2>装備</h2><div class="buttons">${state.loadout.map(type => `<button class="part-button" data-act="${type}" ${legal.includes(type) ? "" : "disabled"}><strong>${esc(names[type])}</strong><small>${esc(descriptions[type])}</small></button>`).join("")}</div></div>
     <div class="card"><h2>今回のログ</h2><div class="log">${(r.log || []).map(x => `<div>巡${x.turn} ${esc(names[x.action] || x.action)}：${x.damage ? `${x.damage}ダメージ` : x.energy ? `エネルギー+${x.energy}` : x.shield ? `遮蔽${x.shield}` : "作動"} → HP ${x.hpAfter} / 敵HP ${x.enemyHpAfter}</div>`).join("") || "まだ行動していません"}</div></div>
     <div class="card"><div class="mark"><button data-mark="insight">ひらめいた</button><button data-mark="choice">迷う</button><button data-mark="friction">つらい</button><button data-mark="payoff">うまくいった</button></div></div>`;
   screen.querySelectorAll("[data-act]").forEach(button => button.onclick = () => act(button.dataset.act));
@@ -62,12 +70,12 @@ function act(type) {
 function renderReward(screen) {
   const offer = offerFor(state.seed, state.battle, state.loadout);
   if (pendingReward) {
-    screen.innerHTML = `<div class="card reward"><h2>第${state.battle}戦後の報酬</h2><p class="muted">${esc(names[pendingReward])}を入れる代わりに外す部品を選ぶ。</p>${state.loadout.map(type => `<button data-replace="${type}">${esc(names[type])}を外す</button>`).join("")}<button data-cancel>報酬を選び直す</button></div>`;
+    screen.innerHTML = `<div class="card reward"><h2>第${state.battle}戦後の報酬</h2><p class="muted">${esc(names[pendingReward])}（${esc(descriptions[pendingReward])}）を入れる代わりに外す部品を選ぶ。</p>${state.loadout.map(type => `<button class="part-button" data-replace="${type}"><strong>${esc(names[type])}を外す</strong><small>${esc(descriptions[type])}</small></button>`).join("")}<button data-cancel>報酬を選び直す</button></div>`;
     screen.querySelectorAll("[data-replace]").forEach(button => button.onclick = () => chooseReward(pendingReward, button.dataset.replace));
     screen.querySelector("[data-cancel]").onclick = () => { pendingReward = null; render(); };
     return;
   }
-  screen.innerHTML = `<div class="card reward"><h2>第${state.battle}戦後の報酬</h2><p class="muted">1個を選び、装備中の1個と交換する。後から付け替えない。</p>${offer.map(type => `<button data-reward="${type}">${esc(names[type])}</button>`).join("")}</div>`;
+  screen.innerHTML = `<div class="card reward"><h2>第${state.battle}戦後の報酬</h2><p class="muted">1個を選び、装備中の1個と交換する。後から付け替えない。</p>${offer.map(type => `<button class="part-button" data-reward="${type}"><strong>${esc(names[type])}</strong><small>${esc(descriptions[type])}</small></button>`).join("")}</div>`;
   screen.querySelectorAll("[data-reward]").forEach(button => button.onclick = () => { pendingReward = button.dataset.reward; render(); });
 }
 function chooseReward(reward, old) {
