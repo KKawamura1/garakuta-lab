@@ -29,5 +29,11 @@
 ## EXP-03 CONTROL
 
 - [R1_CONTROL.md](./exp-03/R1_CONTROL.md) — 戦闘中の部品選択を主動詞にする独立試作の依頼
+- [A1_TERRA_GATES/](./exp-03/A1_TERRA_GATES/) — R1への計算実装・自動ゲート回答
+  - [README.md](./exp-03/A1_TERRA_GATES/README.md)
+  - [1_GATE_A.md](./exp-03/A1_TERRA_GATES/1_GATE_A.md)
+  - [2_GATE_B.md](./exp-03/A1_TERRA_GATES/2_GATE_B.md)
+  - [3_GATE_C.md](./exp-03/A1_TERRA_GATES/3_GATE_C.md)
+  - [4_GATE_D.md](./exp-03/A1_TERRA_GATES/4_GATE_D.md)
 
 質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化する。
