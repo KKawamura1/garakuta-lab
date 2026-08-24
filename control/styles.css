@@ -9,6 +9,7 @@ h1 { font-size:20px; margin:0 0 14px; } h2 { font-size:18px; margin:0 0 10px; }
 .buttons { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
 button, select, input { font:inherit; border-radius:10px; border:1px solid #526176; padding:10px; background:#293342; color:inherit; }
 button { cursor:pointer; } button:disabled { opacity:.38; cursor:not-allowed; } button.primary { background:#2667a8; border-color:#4ea2ed; }
+.part-button { display:grid; gap:4px; text-align:left; } .part-button small { color:#b9c5d3; font-size:12px; line-height:1.35; }
 .log { max-height:180px; overflow:auto; font-size:13px; line-height:1.5; color:#c9d1dc; }
 .reward { display:grid; gap:8px; } .slots { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
 .mark { display:flex; flex-wrap:wrap; gap:6px; } .mark button { padding:7px; font-size:13px; }
