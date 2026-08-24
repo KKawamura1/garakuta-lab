@@ -16,6 +16,7 @@
 2. [Gate B — 探索抵抗性](./2_GATE_B.md)
 3. [Gate C — 報酬の厚み](./3_GATE_C.md)
 4. [Gate D — 参照破壊検出とseed選定](./4_GATE_D.md)
+5. [UI・デプロイ結果](./5_UI_DEPLOY.md)
 
 uiDeploymentAllowed は各Gateの合否から計算する値に修正済みで、固定値ではない。
 generatedAt は実行ごとに変わるため、数値の正はこの結果票と実装の再実行で照合する。
