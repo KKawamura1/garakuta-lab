@@ -90,6 +90,7 @@
 | `/play/?ruleset=phase` | 周期と位相の前段 |
 | `/material/` | 多用途素材の別構造 |
 | `/puzzle/` | 問題を1問ずつ解く短い試作 |
+| `/control/?seed=7` | EXP-03「操機 / CONTROL 0.1」。戦闘中の部品選択を主動詞にする独立試作 |
 | `/agent-view/` | エージェントと同条件で見るデバッグ画面 |
 
 COST、SQUEEZE、IDENTは画面内に残っていますが休止中です。
