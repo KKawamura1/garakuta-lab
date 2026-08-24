@@ -45,6 +45,11 @@
 - [R4_SOL_CONTROL_0_2_GATE_AUDIT.md](./exp-03/R4_SOL_CONTROL_0_2_GATE_AUDIT.md) — Terra引継ぎ、ゲート監査修復、Gate C未定義動作への正式指示
 - [A4_TERRA_CONTROL_0_2_GATE_AUDIT/](./exp-03/A4_TERRA_CONTROL_0_2_GATE_AUDIT/) — R4へのTerra監査・修復・再探索回答
 - [R5_SOL_CONTROL_0_2_EXACT_SEARCH_BUDGET.md](./exp-03/R5_SOL_CONTROL_0_2_EXACT_SEARCH_BUDGET.md) — 完全性を維持した同値最適化と10,000 seed実行予算の判断
-- [R6_SOL_CONTROL_0_2_GATE_E_QUANTIFIER_FIX.md](./exp-03/R6_SOL_CONTROL_0_2_GATE_E_QUANTIFIER_FIX.md) — Gate Eの構造的不可能性を修正し、必須preflight後に最後の受入探索を行う指示
+- [R6_SOL_CONTROL_0_2_GATE_E_QUANTIFIER_FIX.md](./exp-03/R6_SOL_CONTROL_0_2_GATE_E_QUANTIFIER_FIX.md) — Gate Eを修正し、目的・不変条件・HOW委任型で最後の測定を行う指示
+- [A6_TERRA_CONTROL_0_2_GATE_E_QUANTIFIER_FIX/](./exp-03/A6_TERRA_CONTROL_0_2_GATE_E_QUANTIFIER_FIX/) — R6への反証レビュー・preflight・完全探索回答。Gate E 0件でCONTROL 0.2を凍結
+
+## EXP-04 GRAFT
+
+- [R1_GRAFT.md](./exp-04/R1_GRAFT.md) — 固定3行動へ不可逆な性質変異を接ぎ木する独立計算試作
 
 質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化する。
