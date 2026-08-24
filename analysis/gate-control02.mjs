@@ -119,6 +119,7 @@ function main() {
     }
   }]));
   console.log(JSON.stringify({ ruleset: RULESET_ID, playVersion: PLAY_VERSION, generatedAt: new Date().toISOString(), scannedSeeds: tested, selectedSeed: selected?.seed ?? null, scanCounts, gateA, gateB, gateC, gateD, gateE, gateF: { pass: gateF.pass, references: referenceSummary }, overallPass, uiDeploymentAllowed: overallPass }, null, 2));
+  process.exitCode = overallPass ? 0 : 1;
 }
 
 const RULESET_ID = "control-0.2-calc";
