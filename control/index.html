@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>操機 / CONTROL 0.1</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header><h1>操機 / CONTROL 0.1</h1><span id="status"></span></header>
+    <section id="screen"></section>
+  </main>
+  <dialog id="survey"><form method="dialog"><h2>感想（最大1ラン）</h2>
+    <label>面白さ <select id="fun"><option value="">未選択</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <label>もう一度遊びたいか <select id="replay"><option value="">未選択</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <label>気づき <input id="insight" placeholder="例：次の攻撃に合わせて守った" /></label>
+    <label>一番良かった瞬間 <input id="best" /></label>
+    <label>退屈・面倒だったところ <input id="friction" /></label>
+    <label>一言 <input id="story" /></label>
+    <p id="surveyError" class="error"></p><button id="send" type="button">記録して送る</button><button value="cancel">閉じる</button>
+  </form></dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
