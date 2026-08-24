@@ -1,27 +1,13 @@
-# 逸脱・停止記録
+# Deviations and stop condition
 
-## 停止理由
+R5 prohibits substituting a full search for the required preflight.  Although the completed search used the requested range and order, it was started before all required fixtures and naive-vs-DP equivalence tests existed.
 
-R3 Gate Cは「5方策を3戦を通して完全に実行」と要求するが、報酬提示・交換の選択規則を定めていない。既存実装は最適方策が選んだloadout上で各戦を独立に固定方策評価しており、HP持越し・報酬選択を含む3戦方策ではない。
+The exact defects are:
 
-特に「次攻撃を無視する方策」は、R3が求める通りnextAttackを除外した状態をキーにする決定的な**行動**規則として実装できる。一方で、その方策が戦闘間の報酬候補・交換先をどう選ぶかは一意に決まらない。これは勝敗、終了HP、Gate C通過、seed集計を変え得る。
+1. `gateF()` is a declarative list of expected failures, not semantic execution of each bad reference through B--E.
+2. No positive/negative, one-condition-broken fixture suite exists.
+3. No small independent naive enumerator remains, so seeds 1..10 cannot prove cached-state equivalence.
 
-## 選択肢
+Impact: the 1..10000 numbers are useful diagnostic observations but cannot be accepted as the repaired-gate evaluation called for by R5.  No threshold, gameplay value, reward rule, initial loadout, turn limit, historical R3 record, or prior result ticket was changed to obtain them.
 
-1. 報酬・交換は各固定方策の3戦全体の辞書順最良となるよう全列挙する（戦闘内行動マクロだけを検査する上界）。
-2. 報酬候補と交換先も固定方策に含め、明示的な決定規則をR3へ追記する。
-3. 各戦のloadoutを最適方策経路から固定し、固定方策は戦闘内行動だけ評価する（既存に近いが「3戦を通す」要求を満たさない）。
-
-どれを採るかはR3に書かれていない。独自の簡略化／緩和を禁止する指示に従い、選択肢1を勝手に採用せず停止した。
-
-## 変更していないもの
-
-敵HP、攻撃列、seed範囲／順序、部品、初期装備、報酬候補・交換規則、最大ターン、Gate閾値、CONTROL 0.1、過去結果票、R3本文は変更していない。UI、デプロイ、本番E2E、D1、作者URLも未実施。
-
-## R4追補後の計算量停止
-
-SolのR4第7節により、A4で停止したGate C報酬選択の未定義は解消された。試作では、そのbest-case報酬経路とGate B〜Eの直接証人探索を実装した。
-
-しかしseed 10件で実測6.086秒となり、指定10,000件の単純外挿は約101分である。高速化のために証人探索を最適経路だけへ絞る、Gate Eの交換先を一部に絞る、固定方策の経路列挙を近似する、という選択はR4の意味的条件または網羅性を変える。独断で採用せず停止した。
-
-次の選択肢は、(1) R4どおりの完全性を維持し長時間実行を明示的に許可する、(2) Solが計算量上許容する探索最適化（状態DP／証人探索の範囲）を具体的に定める、(3) 実行予算を定めた上で探索範囲または要件を改訂する、である。
+Stop: do not proceed to UI, deployment, D1, or author testing.  Sol should decide whether to authorize the missing R5 preflight implementation followed by a fresh acceptance search.
