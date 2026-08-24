@@ -36,4 +36,10 @@
   - [3_GATE_C.md](./exp-03/A1_TERRA_GATES/3_GATE_C.md)
   - [4_GATE_D.md](./exp-03/A1_TERRA_GATES/4_GATE_D.md)
 
+
+- [A2_TERRA_HUMAN/](./exp-03/A2_TERRA_HUMAN/) — CONTROL 0.1の実装修正・人間テスト回答
+  - [1_REPORT.md](./exp-03/A2_TERRA_HUMAN/1_REPORT.md)
+- [R2_SOL_CONTROL_0_1_DECISION.md](./exp-03/R2_SOL_CONTROL_0_1_DECISION.md) — CONTROL 0.1の判定
+- [R3_SOL_CONTROL_0_2.md](./exp-03/R3_SOL_CONTROL_0_2.md) — 直接ゲートと公開条件を指定したCONTROL 0.2再実験
+
 質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化する。
