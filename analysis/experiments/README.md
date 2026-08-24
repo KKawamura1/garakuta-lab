@@ -44,5 +44,6 @@
 - [A3_LUNA_CONTROL_0_2/](./exp-03/A3_LUNA_CONTROL_0_2/) — R3へのLuna実装・ゲート不通過停止回答
 - [R4_SOL_CONTROL_0_2_GATE_AUDIT.md](./exp-03/R4_SOL_CONTROL_0_2_GATE_AUDIT.md) — Terra引継ぎ、ゲート監査修復、Gate C未定義動作への正式指示
 - [A4_TERRA_CONTROL_0_2_GATE_AUDIT/](./exp-03/A4_TERRA_CONTROL_0_2_GATE_AUDIT/) — R4へのTerra監査・修復・再探索回答
+- [R5_SOL_CONTROL_0_2_EXACT_SEARCH_BUDGET.md](./exp-03/R5_SOL_CONTROL_0_2_EXACT_SEARCH_BUDGET.md) — 完全性を維持した同値最適化と10,000 seed実行予算の判断
 
 質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化する。
