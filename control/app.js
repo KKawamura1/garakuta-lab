@@ -16,6 +16,7 @@ function fresh() {
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch (_) { state = fresh(); }
 const enemies = generateEnemies(state.seed);
+let pendingReward = null;
 const save = () => localStorage.setItem(KEY, JSON.stringify(state));
 const enemy = () => enemies[state.battle - 1];
 const result = () => simulateBattle({ parts: state.loadout, enemy: enemy(), actions: state.actions, hp: state.hp });
@@ -60,18 +61,23 @@ function act(type) {
 
 function renderReward(screen) {
   const offer = offerFor(state.seed, state.battle, state.loadout);
+  if (pendingReward) {
+    screen.innerHTML = `<div class="card reward"><h2>第${state.battle}戦後の報酬</h2><p class="muted">${esc(names[pendingReward])}を入れる代わりに外す部品を選ぶ。</p>${state.loadout.map(type => `<button data-replace="${type}">${esc(names[type])}を外す</button>`).join("")}<button data-cancel>報酬を選び直す</button></div>`;
+    screen.querySelectorAll("[data-replace]").forEach(button => button.onclick = () => chooseReward(pendingReward, button.dataset.replace));
+    screen.querySelector("[data-cancel]").onclick = () => { pendingReward = null; render(); };
+    return;
+  }
   screen.innerHTML = `<div class="card reward"><h2>第${state.battle}戦後の報酬</h2><p class="muted">1個を選び、装備中の1個と交換する。後から付け替えない。</p>${offer.map(type => `<button data-reward="${type}">${esc(names[type])}</button>`).join("")}</div>`;
-  screen.querySelectorAll("[data-reward]").forEach(button => button.onclick = () => chooseReward(button.dataset.reward));
+  screen.querySelectorAll("[data-reward]").forEach(button => button.onclick = () => { pendingReward = button.dataset.reward; render(); });
 }
-function chooseReward(reward) {
+function chooseReward(reward, old) {
   const offer = offerFor(state.seed, state.battle, state.loadout);
-  if (!offer.includes(reward)) return;
-  const old = prompt(`${names[reward]}を入れる代わりに外す部品名を入力：${state.loadout.map(x => names[x]).join(" / ")}`);
-  const index = state.loadout.findIndex(type => names[type] === old);
+  if (!offer.includes(reward) || !state.loadout.includes(old)) return;
+  const index = state.loadout.indexOf(old);
   if (index < 0) return;
   const replaced = state.loadout[index]; state.loadout[index] = reward;
   event("reward_chosen", { reward, replaced });
-  state.battle += 1; state.actions = []; state.phase = "battle"; save(); render();
+  pendingReward = null; state.battle += 1; state.actions = []; state.phase = "battle"; save(); render();
 }
 function mark(kind) { state.moments.push({ seq: state.moments.length + 1, kind, at: new Date().toISOString(), battle: state.battle }); event("emotion_marked", { kind }); save(); }
 
