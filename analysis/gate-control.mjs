@@ -76,7 +76,7 @@ function runGateC(seed) {
     choices: evaluateRewardChoice(seed, b.battleIndex, b.loadout, b.metrics.best?.hp ?? b.hpStart, result.path.enemies[b.battleIndex]).map(choice => ({
       reward: choice.reward,
       viableLoadouts: choice.options.filter(x => x.metrics.best?.won).map(x => ({ loadout: x.loadout, hp: x.metrics.best.hp, actions: x.metrics.best.actions })),
-      selected: choice.best ? { loadout: choice.best.loadout, hp: choice.best.metrics.best.hp, actions: choice.best.metrics.best.actions } : null
+      selected: choice.best ? { loadout: choice.best.loadout, hp: choice.best.metrics.best.hp, actions: choice.best.actions } : null
     }))
   }));
   return { pass: result.gateC, seed, choices };
@@ -107,7 +107,7 @@ function main() {
     generatedAt: new Date().toISOString(),
     gateA, gateB, gateC, gateD,
     overallPass: gateA.pass && gateB.pass && gateC.pass && gateD.pass,
-    uiDeploymentAllowed: false
+    uiDeploymentAllowed: gateA.pass && gateB.pass && gateC.pass && gateD.pass
   };
   console.log(JSON.stringify(result, null, 2));
 }
