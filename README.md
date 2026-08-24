@@ -56,6 +56,7 @@ SKIP 0.4 は、この中核に「同じ並びのまま次も勝てるなら、�
 - **PHASE 0.1**: https://garakuta-lab.pages.dev/play/?ruleset=phase
 - **MAT 0.3「選べる漂着物」**: https://garakuta-lab.pages.dev/material/
 - **破れ / PUZZLE 0.1**: https://garakuta-lab.pages.dev/puzzle/
+- **操機 / CONTROL 0.1（EXP-03）**: https://garakuta-lab.pages.dev/control/?seed=7
 - **エージェントと同じ情報だけを見る画面**: https://garakuta-lab.pages.dev/agent-view/
 
 COST・SQUEEZE・IDENTは比較のため残していますが、直近の人間テストで休止判定です。
