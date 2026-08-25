@@ -252,6 +252,20 @@ function finishBattle(state, won, reason = null) {
   state.lastBattle = summary;
   state.endReason = won ? null : reason;
   if (!won || state.battleIndex >= ENEMIES.length - 1) {
+    // **負けたときも、ログに一行残す。**
+    //
+    // 突破したときだけ `log()` を呼んでいて、負けたときは何も書かずに
+    // 画面が結果表へ切り替わっていた。プレイヤーは1戦のあいだずっと
+    // 機関ログを読んでいるので、**最後の行が「敵の攻撃…」のまま止まる。**
+    // 2026-08-25、作者の記録：
+    //   「え、なんか負けた？もしかして時間制限がある？知らないけど」
+    // 制限巡数は画面に3か所出ていた（見出し・残り巡・次の一手の説明）。
+    // **出ていることと、負けた瞬間に言われることは別である。**
+    if (!won) {
+      log(state, reason === "turn_limit"
+        ? `${MAX_TURNS}巡を使い切った。第${state.battleIndex + 1}戦で機関は停止した`
+        : `機体HPが0になった。第${state.battleIndex + 1}戦で機関は停止した`, "enemy");
+    }
     state.done = true;
     state.phase = "done";
     return;

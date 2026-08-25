@@ -405,6 +405,8 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     // `offerReward()` の戻り値をそのまま返していて、要約が落ちていた。
     // 画面は `result.battle.log` を直接読むので、**勝つたびに例外が出ていた**
     // （`analysis/smoke-core.mjs` は落ちていた。ブラウザでも2件出る）。
+    // 入ったのは 2026-08-23 の `4bedc4c`（チップ対応）。4つ目の出口を足したとき、
+    // **既にあったこの出口の方**が `return offerReward();` に書き換わった。
     return { ...offerReward(), battle: summary };
   }
 

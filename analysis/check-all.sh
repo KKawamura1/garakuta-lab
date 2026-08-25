@@ -14,7 +14,7 @@ fail=0
 # （`.mjs` なら同じ間違いを捕まえる）。実際 2026-08-23、同じ関数の中に
 # `const rules` を二重に宣言したまま `--check` を通り、ブラウザで初めて落ちた。
 # **検査だと思っていたものが、検査ではなかった。**
-for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js; do
+for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/app.js control/app.js; do
   [ -f "$f" ] || continue
   if node --input-type=module --check < "$f" 2>/tmp/syntax.$$; then
     echo "ok   構文 $f"
