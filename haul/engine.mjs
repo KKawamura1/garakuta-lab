@@ -52,7 +52,7 @@ function normalizedSeed(seed) {
 }
 
 function hash(seed, salt = 0) {
-  let value = (normalizedSeed(seed) ^ ((salt + 1) * 0x9e3779b9)) >>> 0;
+  let value = (Math.imul(normalizedSeed(seed) + 1, 0x45d9f3b) + Math.imul(salt + 1, 0x9e3779b9)) >>> 0;
   value ^= value >>> 16;
   value = Math.imul(value, 0x7feb352d) >>> 0;
   value ^= value >>> 15;
