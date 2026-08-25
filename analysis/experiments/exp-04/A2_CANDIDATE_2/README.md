@@ -36,7 +36,7 @@ bash analysis/experiments/exp-04/A2_CANDIDATE_2/run-checks.sh
 
 - `BASE_SHA`: `ad66d21a8b74f80cfa8638ba22a1a3a144ddab80`
 - branch: `exp-04/candidate-2`
-- tested completion HEAD: `TO_BE_RECORDED_AFTER_COMMIT`
+- tested completion HEAD: `06a956d2737908376fdac0615c587b629ed0309f`
 
 最終記録用コミットを除く、コード・fixture・結果が一致した完了時HEADを上欄へ記録する。
 PRの最終headはGitHubのPRメタデータを正とする。
