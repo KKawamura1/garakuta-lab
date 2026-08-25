@@ -54,6 +54,7 @@ export function buildPayload(state, options = {}) {
     build: build(state),
     stats: {
       seed: state.seed,
+      name: state.name,
       nightCount: result.reached,
       light: result.light,
       bond: result.bond,
