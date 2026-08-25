@@ -398,7 +398,14 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       });
       return { ok: true, battle: summary, observation: observe() };
     }
-    return offerReward();
+    // **勝った戦闘の要約は、報酬へ進む道でも返す。**
+    //
+    // 出口が4つあり、3つは `battle: summary` を返すのに、いちばん通る道
+    // （勝ち・最終戦でない・チップ無し＝第1〜5戦の勝ち全部）だけが
+    // `offerReward()` の戻り値をそのまま返していて、要約が落ちていた。
+    // 画面は `result.battle.log` を直接読むので、**勝つたびに例外が出ていた**
+    // （`analysis/smoke-core.mjs` は落ちていた。ブラウザでも2件出る）。
+    return { ...offerReward(), battle: summary };
   }
 
   function offerReward() {
