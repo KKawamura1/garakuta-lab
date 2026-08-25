@@ -14,13 +14,13 @@ R1 に記載された実装担当や実行手順のうち、モデル比較に�
 
 作者だけが、候補記号と実際のモデル・推論強度の対応表を保持する。
 
-- Candidate Alpha
-- Candidate Beta
-- Candidate Gamma
+- Candidate 1
+- Candidate 2
+- Candidate 3
 
 想定する3条件は Luna high、Luna max、Terra mid だが、Sol には品質評価が確定するまで対応表を開示しない。
 
-各候補には、モデル名を除いて完全に同一の初回指示、同一の R1/R2、同一の開始コミットを与える。各候補は自分がどの候補記号かだけを知る。
+各候補には、モデル名を除いて完全に同一の初回指示、同一の R1/R2、同一の開始コミットを与える。各候補は自分がどの候補番号かだけを知る。
 
 ## 2. 比較範囲
 
@@ -50,15 +50,15 @@ R1 に記載された実装担当や実行手順のうち、モデル比較に�
 
 各候補は、作者が指定した同一の `BASE_SHA` から別ブランチを作る。
 
-- `exp-04/candidate-alpha`
-- `exp-04/candidate-beta`
-- `exp-04/candidate-gamma`
+- `exp-04/candidate-1`
+- `exp-04/candidate-2`
+- `exp-04/candidate-3`
 
 結果は候補ごとの新規フォルダに保存し、既存結果を上書きしない。
 
-- `analysis/experiments/exp-04/A1_CANDIDATE_ALPHA/`
-- `analysis/experiments/exp-04/A2_CANDIDATE_BETA/`
-- `analysis/experiments/exp-04/A3_CANDIDATE_GAMMA/`
+- `analysis/experiments/exp-04/A1_CANDIDATE_1/`
+- `analysis/experiments/exp-04/A2_CANDIDATE_2/`
+- `analysis/experiments/exp-04/A3_CANDIDATE_3/`
 
 各候補は次を守る。
 
@@ -175,7 +175,7 @@ Sol が採点、順位、確信度、採用可能性を確定した後、作者�
 ```text
 https://github.com/KKawamura1/garakuta-lab で作業してください。
 
-あなたは EXP-04 の匿名実装・検査候補 Candidate <ALPHA|BETA|GAMMA> です。サブエージェントは起動しないでください。
+あなたは EXP-04 の匿名実装・検査候補 Candidate <1|2|3> です。サブエージェントは起動しないでください。
 
 作者が指定した BASE_SHA から、R2 に指定された自分専用ブランチを作成してください。まず AGENTS.md、関連index、analysis/experiments/exp-04/R1_GRAFT.md、analysis/experiments/exp-04/R2_SOL_GRAFT_BLIND_MODEL_COMPARISON.md を読んでください。
 
