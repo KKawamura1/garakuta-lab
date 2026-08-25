@@ -18,6 +18,19 @@
 - 完了後に読むもの: ジョブログ、または `d1-playtests-<run_number>` アーティファクト
 - D1は公開APIから読み出さず、GitHub ActionsにCloudflareの読み取り専用Secretを持たせてexportする
 
+### 20件エクスポートの使い分け（2026-08-25追記）
+
+通常は、入力が3件の成功済み `Export latest playtests` ジョブを再実行する。ジョブ再実行は元のworkflow入力を引き継ぐため、3件の直近ログを素早く確認できる。
+
+過去のランをまとめて確認したい場合は、Actions画面で `limit=20` を指定して新しいrunを起動する。今回のECHO確認では [run #32861111454](https://github.com/KKawamura1/garakuta-lab/actions/runs/32861111454) を使用した。
+
+- run number: `36`
+- artifact: `d1-playtests-36`
+- artifact ID: `9568194328`
+- export結果: 20ラン、ECHO 4ラン、ECHO感情マーカー6件
+
+ChatGPTのGitHub連携からworkflow起動操作が表示されない場合でも、3件の通常再実行と、作者が必要時に起動した20件runのURL・artifactを組み合わせればよい。20件runは常用せず、標本の取りこぼし確認や複数版を横断して見る必要があるときだけ使う。
+
 ### workflow dispatchが使えないときの代替
 
 workflow YAMLに`workflow_dispatch`が存在していても、ChatGPTのGitHub連携に起動操作が表示されない場合がある。その場合は、既存の成功済みexportジョブを再実行する。
