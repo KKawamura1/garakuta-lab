@@ -57,6 +57,7 @@
 | `cycle/` | 周期・循環系の旧比較試作 |
 | `agent-view/` | 人間とエージェントへ同じ観測・操作空間を出す画面 |
 | `echo/` | 前回の自分の手順を残す再プレイ動機の独立試作 |
+| `haul/` | 意味のある目標と可視化された危険の独立試作 |
 | `agents/` | エージェント実験のプロトコル、方策、実行コード |
 | `analysis/` | 事前登録、関門、調律、プレイ判定、反証、回帰検査 |
 | `research/` | ランダム性・構築ゲームの先行調査 |
@@ -94,6 +95,7 @@
 | `/control/?seed=7` | EXP-03「操機 / CONTROL 0.1」。戦闘中の部品選択を主動詞にする独立試作 |
 | `/agent-view/` | エージェントと同条件で見るデバッグ画面 |
 | `/echo/?seed=12` | ECHO 0.1。前回の6手を書き換える短時間試作 |
+| `/haul/?seed=12` | HAUL 0.1。部品を持ち帰るために危険を押す短時間試作 |
 
 COST、SQUEEZE、IDENTは画面内に残っていますが休止中です。
 削除せず、比較点・反証記録として保持しています。
@@ -116,7 +118,8 @@ COST、SQUEEZE、IDENTは画面内に残っていますが休止中です。
 | [analysis/BUGS_2026-08-23.md](./analysis/BUGS_2026-08-23.md) | 不可能敵、周期表示など直近の欠陥 |
 | [analysis/EMOTIONAL_ARC_HYPOTHESIS.md](./analysis/EMOTIONAL_ARC_HYPOTHESIS.md) | 感情の落差・期待・発見の仮説 |
 | [analysis/AGENT_PROXY_PILOT.md](./analysis/AGENT_PROXY_PILOT.md) | エージェントを面白さ採点へ使う限界 |
-| [analysis/ECHO_0_1.md](./analysis/ECHO_0_1.md) | 前回の自分を書き換える再プレイ仮説 |
+| [analysis/ECHO_0_1.md](./analysis/ECHO_0_1.md) | 前回の自分を書き換える再プレイ仮説と反証 |
+| [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md) | 意味のある目標と危険を押す再プレイ仮説 |
 
 `analysis/agent-runs/`、JSON、画像は付属データです。Markdownの判定を読んでから、
 必要な標本だけ開いてください。
@@ -174,3 +177,5 @@ READMEやINDEXに固定した組数・版・「本命」を書いた場合は、
 - [analysis/graft-smoke.mjs](./analysis/graft-smoke.mjs) — 接ぎ木・保存・seed完走の回帰検査
 - [echo/README.md](./echo/README.md) — 前回の自分の手順を残す ECHO 0.1
 - [analysis/ECHO_0_1.md](./analysis/ECHO_0_1.md) — 再プレイ動機の事前登録と判定
+- [haul/README.md](./haul/README.md) — 持ち帰り限界 HAUL 0.1
+- [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md) — 目標と危険の事前登録

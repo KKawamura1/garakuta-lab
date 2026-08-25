@@ -59,17 +59,18 @@ SKIP 0.4 は、この中核に「同じ並びのまま次も勝てるなら、�
 - **操機 / CONTROL 0.1（EXP-03）**: https://garakuta-lab.pages.dev/control/?seed=7
 - **エージェントと同じ情報だけを見る画面**: https://garakuta-lab.pages.dev/agent-view/
 - **残響工房 / ECHO 0.1**: https://garakuta-lab.pages.dev/echo/?seed=12
+- **持ち帰り限界 / HAUL 0.1**: https://garakuta-lab.pages.dev/haul/?seed=12
 
 COST・SQUEEZE・IDENTは比較のため残していますが、直近の人間テストで休止判定です。
 画面内の「遊び分け」から切り替えられます。
 
 ## 現在の独立探索
 
-GRAFTで見えた「初見の発見」と「知った後の退屈」を、既存の中核へ戻す前に別構造で切り分けています。
-現在の試作は **残響工房 / ECHO 0.1** です。前回の自分の6手を次の走行へ残し、同じ手と違う手に別の反応を返します。
-得点更新ではなく、具体的な1手を書き換えたい気持ちが即時の再プレイを作るかを検証します。
+GRAFTとECHOで見えた「初見の発見は作れるが、得点や履歴だけでは知った後の再プレイが弱い」という結果を受け、別構造を短く試しています。
+ECHO 0.1は、前回との差分が発見と一時的な再試行案を生む一方、抽象的な部品数と固定ボーナスでは持続しなかったため不採択にしました。
+現在の試作は **持ち帰り限界 / HAUL 0.1** です。帰還艇を直すという意味のある目標と、危険・船体を見ながら安全策と深掘りを選ぶ構造を検証します。
 
-検証票は [analysis/ECHO_0_1.md](./analysis/ECHO_0_1.md)、実装と遊び方は [echo/README.md](./echo/README.md) です。
+検証票は [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md)、実装と遊び方は [haul/README.md](./haul/README.md) です。
 
 ## 実装と記録
 
