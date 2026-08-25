@@ -62,6 +62,7 @@ Solの文書は**目的・不変条件・委任するHOW**を分ける。Terra�
 | 下がるだけの法則が無いか／表が正直か | `analysis/smoke-laws.mjs` |
 | **規則が変わったのに版が据え置きでないか** | `analysis/smoke-version.mjs` |
 | リロードで進行が壊れないか | `analysis/smoke-resume.mjs` |
+| **検査が全部通っているか（push ごと）** | `.github/workflows/checks.yml` |
 
 **散文に書いたルールは落ちる。** 瞬間に発火するルールは機械へ移すこと。
 **そして、移したら鳴ることを確かめる。** リポジトリ側の hook はこの環境では呼ばれない
