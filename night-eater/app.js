@@ -204,9 +204,12 @@ function buildPanel() {
   const selectionText = selectedPart
     ? "「" + escapeHtml(part(selectedPart.id)?.name) + "」を選択中。下の身体へ取り付ける。"
     : "拾ったものを一つ選び、取り付ける場所を選ぶ。取り替えはいつでもできる。";
+  const pocketWarning = selectedPart?.source === "offer" && state.bag.length >= 2 && state.parts.every(Boolean)
+    ? "<p class='pocket-warning'>ポケットがいっぱい。この子の一部を取り替えるなら、先にポケットから一つ手放す。</p>"
+    : "";
   return "<section class='panel build-panel'>" +
     "<div class='panel-heading'><span class='eyebrow'>拾う / 取り付ける</span><h2>この子に何を教える？</h2></div>" +
-    "<p class='build-intro'>" + selectionText + "</p>" +
+    "<p class='build-intro'>" + selectionText + "</p>" + pocketWarning +
     "<div class='offer-grid'>" + state.offer.map(id => relicCard(id, "offer")).join("") + "</div>" +
     "<div class='body-slots'>" + SLOT_IDS.map((slot, index) => {
       const selected = selectedPart ? " 取り付け可能" : "";
