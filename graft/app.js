@@ -387,7 +387,7 @@ function surveyPanel() {
     saveState();
     syncTelemetry();
     render();
-  ]});
+  }]});
   return card("この試作について", [
     h("label", { class: "survey-label", text: "ゲーム自体は面白かった？（1〜5）" }), fun,
     h("label", { class: "survey-label", text: "また遊びたい？（1〜5）" }), replay,
@@ -405,7 +405,7 @@ function doneView() {
     graftSummary(),
     battleSummaryPanel(),
     surveyPanel(),
-    h("button", { class: "secondary-button", type: "button", text: "別のseedで再起動", on: newRun })
+    h("button", { class: "secondary-button", type: "button", text: "別のseedで再起動", on: ["click", newRun] })
   ];
 }
 
