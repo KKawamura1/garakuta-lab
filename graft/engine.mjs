@@ -102,6 +102,10 @@ function copy(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function randomSeed() {
+  return 10000 + ((Date.now() + Math.floor(Math.random() * 90000)) % 90000);
+}
+
 function hash(seed, salt = 0) {
   let x = (Number(seed) || 1) >>> 0;
   x = (x ^ ((salt + 1) * 0x9e3779b9)) >>> 0;
@@ -232,11 +236,12 @@ function attackNow(state) {
   state.shield = 0;
 }
 
-function finishBattle(state, won) {
+function finishBattle(state, won, reason = null) {
   const summary = {
     battle: state.battleIndex + 1,
     enemy: state.enemy.name,
     won,
+    reason: won ? null : reason,
     turns: state.turn,
     hpBefore: state.battleHpBefore,
     hpAfter: state.hp,
@@ -245,6 +250,7 @@ function finishBattle(state, won) {
   };
   state.history.push(summary);
   state.lastBattle = summary;
+  state.endReason = won ? null : reason;
   if (!won || state.battleIndex >= ENEMIES.length - 1) {
     state.done = true;
     state.phase = "done";
@@ -267,6 +273,7 @@ function resetBattle(state, nextIndex) {
   state.pendingEcho = null;
   state.handoff = null;
   state.lockedAction = null;
+  state.endReason = null;
   state.battleHpBefore = state.hp;
   state.phase = "battle";
   state.offer = null;
@@ -274,7 +281,10 @@ function resetBattle(state, nextIndex) {
 }
 
 export function createGame(seed = null) {
-  const actualSeed = Number.isFinite(Number(seed)) ? Number(seed) : (Date.now() % 100000);
+  const numericSeed = Number(seed);
+  const actualSeed = seed === null || seed === undefined || seed === ""
+    ? randomSeed()
+    : (Number.isFinite(numericSeed) ? numericSeed : randomSeed());
   const state = {
     version: VERSION,
     seed: actualSeed,
@@ -302,6 +312,7 @@ export function createGame(seed = null) {
     turnActions: [],
     history: [],
     lastBattle: null,
+    endReason: null,
     log: [{ turn: 0, text: "機関が起動した。次の攻撃を見て、行動を選ぶ", kind: "system" }]
   };
   return state;
@@ -371,14 +382,14 @@ export function playAction(input, actionId) {
 
   attackNow(state);
   if (state.hp <= 0) {
-    finishBattle(state, false);
+    finishBattle(state, false, "hp_zero");
     return { state, ok: true, battleEnded: true };
   }
 
   // 反動の休止は「次の1巡」だけ。別行動を選んだ時点で解除する。
   if (state.lockedAction && state.lockedAction !== actionId) state.lockedAction = null;
   if (state.turn >= MAX_TURNS) {
-    finishBattle(state, false);
+    finishBattle(state, false, "turn_limit");
     return { state, ok: true, battleEnded: true };
   }
   return { state, ok: true, battleEnded: false };
