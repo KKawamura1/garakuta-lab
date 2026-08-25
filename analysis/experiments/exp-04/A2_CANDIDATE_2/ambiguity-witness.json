@@ -1,0 +1,55 @@
+{
+  "diagnosticRange": {
+    "hp": "8..20 step 2",
+    "energy": "0..3",
+    "enemyHp": "8..30",
+    "enemyAttackPattern": "[low, high] repeated; low=0..8 step 2; high=8..18 step 2",
+    "grafts": "3 actions x 3 mutations",
+    "stopRule": "first judgment-changing witness",
+    "contextsChecked": 18692
+  },
+  "witness": {
+    "context": {
+      "hp": 8,
+      "energy": 3,
+      "enemyHp": 8,
+      "enemyAttacks": [2, 8, 2, 8, 2, 8],
+      "maxTurns": 6
+    },
+    "graft": {
+      "action": "defend",
+      "mutation": "echo"
+    },
+    "turnsFirst": {
+      "gateC": false,
+      "before": {
+        "turns": 2,
+        "hp": 6,
+        "energy": 1,
+        "optimalSequences": ["attack>attack"]
+      },
+      "after": {
+        "turns": 2,
+        "hp": 6,
+        "energy": 1,
+        "optimalSequences": ["attack>attack"]
+      }
+    },
+    "hpFirst": {
+      "gateC": true,
+      "before": {
+        "hp": 6,
+        "turns": 2,
+        "energy": 1,
+        "optimalSequences": ["attack>attack"]
+      },
+      "after": {
+        "hp": 7,
+        "turns": 6,
+        "energy": 0,
+        "optimalSequences": ["defend>defend>generate>defend>attack>attack"]
+      }
+    },
+    "independentOracle": "PASS"
+  }
+}
