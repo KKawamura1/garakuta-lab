@@ -160,3 +160,12 @@ node analysis/stamp.mjs
 6. README / このINDEX / 古いretrospective
 
 READMEやINDEXに固定した組数・版・「本命」を書いた場合は、ルール更新時に一緒に直します。
+
+
+## 独立試作（今回）
+
+既存の `/play/` を置き換えず、行動の意味と順序を検証する GRAFT 0.1 を追加した。
+
+- [graft/README.md](./graft/README.md) — スマホ向け試作の遊び方と起動方法
+- [analysis/GRAFT_0_1.md](./analysis/GRAFT_0_1.md) — 仮説、暫定ルール、人間テストの問い
+- [analysis/graft-smoke.mjs](./analysis/graft-smoke.mjs) — 接ぎ木・保存・seed完走の回帰検査
