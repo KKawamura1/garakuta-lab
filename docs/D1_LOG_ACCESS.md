@@ -3,6 +3,42 @@
 GitHub Actionsの固定ワークフローから、`garakuta-playtests`の最新の完了ランを読み取り専用で取得する。
 一度設定すれば、取得のたびにコードを変更する必要はない。
 
+## ChatGPT（OpenAI）/GitHub連携からの現行取得手順（2026-08-25追記）
+
+このセクションは、現在のChatGPT（OpenAI）からこのリポジトリを扱う場合の手順である。下にあるClaude向けの記述は削除せず、歴史的な手順として残す。ただし、GitHub連携で利用できる操作名や起動経路は異なる。
+
+### 通常経路
+
+1. `.github/workflows/export-playtests.yml` の **Export D1 playtests** を対象にする。
+2. `workflow_dispatch` が利用できる場合は、`main` に対して起動する。
+3. 入力は通常 `limit=10`（最新10ラン）と `echo_to_log=true`（ジョブログにも出力）を使う。選択できる `limit` は `3 / 5 / 10 / 20`。
+4. 完了を待ち、成功したジョブのログまたは `d1-playtests-<run_number>` アーティファクトを読む。
+
+`echo_to_log=true` は、アーティファクトを取得できない環境でも本文を読めるようにするための設定である。自由記述アンケートも公開ジョブログに含まれるため、必要な場合だけ使う。
+
+### workflow起動操作が連携に現れない場合
+
+ワークフロー自体には `workflow_dispatch` があるが、ChatGPTのGitHub連携に起動操作が公開されないことがある。その場合は、既存の成功済みexportジョブを再実行して現在のD1を読み直す。
+
+1. `github_fetch_workflow_run_jobs` で、既知のexport実行のジョブを確認する。
+2. `Export latest playtests` が `completed / success` であることを確認する。
+3. `github_rerun_workflow_job` でそのジョブを再実行する。
+4. `github_fetch_workflow_run_jobs` を数回呼び、`completed / success` になるまで待つ。
+5. `github_fetch_workflow_job_logs` でログを取得する。必要なら `github_fetch_workflow_run_artifacts` でアーティファクトを確認する。
+
+再実行は元のworkflow runの入力を引き継ぐ。したがって、元のrunが `limit=3` や `echo_to_log=false` なら、その設定を前提に結果を解釈する。十分な件数を出したい場合は、`limit` が10以上で、ログを読む場合は `echo_to_log=true` のrunを再実行する。
+
+2026-08-25には、run `32678395057` の成功済みジョブを再実行し、job `97690189718` のログから最新のGRAFT 3ランを確認できた。この経路はD1の読み取り専用exportであり、プレイデータを書き換えない。
+
+### GRAFTの確認条件
+
+- GRAFTの`gameVersion`は `graft-0.1-graft`。
+- スキーマバージョンは4。
+- `runs` のexportは `ended_at IS NOT NULL` の完了ランだけが対象。
+- GRAFTでは終了アンケート保存時に`endedAt`が設定されるため、最後まで遊んだ後にアンケートを保存する。
+- `events_json`に行動・接ぎ木・感情マーカー・アンケート送信・終了イベントが入り、`moments-readable.json`に感情マーカーが出る。
+- 公開APIは送信用で、D1の読み取りには使わない。読み取りはこのexport経路を使う。
+
 ## 初回設定
 
 ### 1. Cloudflare APIトークン
