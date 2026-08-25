@@ -14,7 +14,7 @@ fail=0
 # （`.mjs` なら同じ間違いを捕まえる）。実際 2026-08-23、同じ関数の中に
 # `const rules` を二重に宣言したまま `--check` を通り、ブラウザで初めて落ちた。
 # **検査だと思っていたものが、検査ではなかった。**
-for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js; do
+for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/app.js control/app.js; do
   [ -f "$f" ] || continue
   if node --input-type=module --check < "$f" 2>/tmp/syntax.$$; then
     echo "ok   構文 $f"
@@ -25,7 +25,10 @@ for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js; do
   fi
   rm -f /tmp/syntax.$$
 done
-for f in analysis/smoke-*.mjs; do
+# **`smoke-*` だけでなく `*smoke*` を拾う。**
+# `analysis/graft-smoke.mjs` は名前の向きが逆だったせいで、
+# 存在して・通るのに、束からずっと外れていた（2026-08-25 に気づいた）。
+for f in $(ls analysis/*smoke*.mjs | sort -u); do
   if out=$(node "$f" 2>&1); then
     echo "ok   $f"
   else
