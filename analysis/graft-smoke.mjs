@@ -10,6 +10,11 @@ import {
   serialize,
   deserialize
 } from "../graft/engine.mjs";
+import {
+  buildGraftPayload,
+  ensureTelemetry,
+  recordTelemetry
+} from "../graft/telemetry.mjs";
 
 function playSequence(state, sequence) {
   let next = state;
@@ -68,6 +73,24 @@ assert.equal(handoffStrike.handoff, null);
 
 // Save/load is part of the playable loop.
 assert.deepEqual(deserialize(serialize(handoffStrike)), handoffStrike);
+
+// The GRAFT prototype uses the existing /api/runs contract, with a separate game version.
+const telemetryState = createGame(12);
+ensureTelemetry(telemetryState, "2026-08-25T00:00:00.000Z");
+recordTelemetry(telemetryState, {
+  type: "emotion_marked",
+  phase: "battle",
+  kind: "spark",
+  note: "接ぎ木が効いた"
+}, "2026-08-25T00:00:01.000Z");
+const telemetryPayload = buildGraftPayload(telemetryState, { deviceId: "graft-smoke-device" });
+assert.equal(telemetryPayload.schemaVersion, 4);
+assert.equal(telemetryPayload.telemetryRunId, telemetryPayload.runId);
+assert.equal(telemetryPayload.gameVersion, "graft-0.1-graft");
+assert.equal(telemetryPayload.events.length, 1);
+assert.equal(telemetryPayload.moments.length, 1);
+assert.equal(telemetryPayload.moments[0].note, "接ぎ木が効いた");
+assert.equal(telemetryPayload.client.head, "graft");
 
 function findWin(seed) {
   const seen = new Set();
