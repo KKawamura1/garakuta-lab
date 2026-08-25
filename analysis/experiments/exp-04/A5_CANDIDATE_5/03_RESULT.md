@@ -4,7 +4,7 @@
 
 - BASE_SHA: `ad66d21a8b74f80cfa8638ba22a1a3a144ddab80`
 - ブランチ: `exp-04/candidate-5`
-- 終了時HEAD: PR作成時に確定
+- 終了時HEAD: `52863cfb133de62879b8b3b5dcb677223bcd1d78`（この結果コミット）
 - 探索: 未実施（反証レビューで停止）
 - UI / デプロイ / D1 / プレイURL / 人間評価: 未実施
 
