@@ -134,9 +134,10 @@ export function createGame(options = {}) {
   const legacy = options.legacy && partById(options.legacy.partId) ? { ...options.legacy } : null;
   const deck = shuffled(Number.isFinite(seed) ? seed : hash(seed));
   if (legacy) deck.unshift(legacy.partId);
+  const runId = randomRunId();
   const state = {
     gameVersion: GAME_VERSION,
-    runId: randomRunId(),
+    runId,
     seed: Number.isFinite(seed) ? seed : hash(seed),
     startedAt: new Date().toISOString(),
     endedAt: null,
@@ -159,7 +160,7 @@ export function createGame(options = {}) {
     lastOutcome: null,
     endReason: null,
     ending: null,
-    telemetry: { runId: randomRunId(), startedAt: new Date().toISOString(), events: [], sentAt: null, error: null },
+    telemetry: { runId, startedAt: new Date().toISOString(), events: [], sentAt: null, error: null },
     survey: null
   };
   return drawOffer(state);
