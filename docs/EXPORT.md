@@ -7,6 +7,31 @@
 初回設定（Cloudflare トークンの作り方）は [`D1_LOG_ACCESS.md`](./D1_LOG_ACCESS.md)。
 こちらは**毎回の取り出し**で、**作者が GitHub の画面を開く必要はない。**
 
+
+## ChatGPT（OpenAI）からの現行手順（2026-08-25追記）
+
+この文書の下にあるClaude向けの手順は削除せず、過去の実行環境の記録として残す。現在ChatGPTから確認する場合は、次のGitHub連携経路を優先する。
+
+- 対象workflow: `.github/workflows/export-playtests.yml` / **Export D1 playtests**
+- 通常の入力: `limit=10`、`echo_to_log=true`
+- `limit`の許可値: `3 / 5 / 10 / 20`
+- 完了後に読むもの: ジョブログ、または `d1-playtests-<run_number>` アーティファクト
+- D1は公開APIから読み出さず、GitHub ActionsにCloudflareの読み取り専用Secretを持たせてexportする
+
+### workflow dispatchが使えないときの代替
+
+workflow YAMLに`workflow_dispatch`が存在していても、ChatGPTのGitHub連携に起動操作が表示されない場合がある。その場合は、既存の成功済みexportジョブを再実行する。
+
+`github_fetch_workflow_run_jobs` → 成功済みの `Export latest playtests` を選択 → `github_rerun_workflow_job` → 完了を待つ → `github_fetch_workflow_job_logs` または `github_fetch_workflow_run_artifacts` で読む、という順序である。
+
+ジョブ再実行は元のworkflow入力を引き継ぐ。元のrunの`limit`が3なら最新3ラン、`echo_to_log`がfalseなら本文はログに出ないため、アーティファクトを読む。2026-08-25にはこの代替経路でrun `32678395057`を再実行し、job `97690189718`からGRAFTの3ランを取得した。
+
+### 完了ランだけを対象にする理由
+
+workflowのSQLは`WHERE ended_at IS NOT NULL`を使う。保存途中のランはD1に存在してもexport結果には出ない。GRAFTでは終了アンケートを保存して`endedAt`を設定してから、exportを実行する。
+
+GRAFTの識別子は`game_version=graft-0.1-graft`、スキーマは4である。行動・接ぎ木・感情マーカーは`events_json`と`moments-readable.json`から確認できる。
+
 ---
 
 ## 0. 全体像
