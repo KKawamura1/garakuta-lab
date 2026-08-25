@@ -1,0 +1,571 @@
+{
+  "schema": "exp-04-graft-search-v1",
+  "command": "node graft-search.mjs --first 0 --last 999 --output search-result.json",
+  "generator": {
+    "seedDomain": "0..999 (ascending)",
+    "stoppingRule": "Stop at the first all-gate pass. In ascending enumeration this proves minimum seed in the declared domain.",
+    "source": "graft-evaluator.mjs:generateSeed"
+  },
+  "elapsedMs": 329,
+  "fixtures": {
+    "command": "node graft-fixtures.mjs",
+    "passed": true
+  },
+  "aggregate": {
+    "evaluated": 4,
+    "gateB": 1,
+    "gateC": 1,
+    "gateD": 4,
+    "gateE": 1,
+    "gateF": 1,
+    "passed": 1
+  },
+  "selected": {
+    "seed": 3,
+    "run": {
+      "seed": 3,
+      "initialHp": 40,
+      "enemies": [
+        {
+          "hp": 13,
+          "attacks": [
+            7,
+            4,
+            0,
+            6,
+            4,
+            4
+          ]
+        },
+        {
+          "hp": 17,
+          "attacks": [
+            2,
+            7,
+            1,
+            0,
+            6,
+            4
+          ]
+        },
+        {
+          "hp": 17,
+          "attacks": [
+            7,
+            2,
+            7,
+            2,
+            6,
+            4
+          ]
+        },
+        {
+          "hp": 14,
+          "attacks": [
+            4,
+            0,
+            7,
+            7,
+            8,
+            6
+          ]
+        }
+      ],
+      "offers": [
+        [
+          "recoil",
+          "tinder"
+        ],
+        [
+          "recoil",
+          "echo"
+        ],
+        [
+          "echo",
+          "tinder"
+        ]
+      ]
+    },
+    "gateA": true,
+    "gateB": true,
+    "gateC": true,
+    "gateD": true,
+    "gateE": {
+      "pass": true,
+      "witnesses": {
+        "recoil": {
+          "attack": {
+            "offerIndex": 0,
+            "boundaryHp": 19,
+            "mutationsBefore": {
+              "generate": null,
+              "attack": null,
+              "defend": null
+            }
+          },
+          "generate": {
+            "offerIndex": 0,
+            "boundaryHp": 25,
+            "mutationsBefore": {
+              "generate": null,
+              "attack": null,
+              "defend": null
+            }
+          },
+          "defend": {
+            "offerIndex": 1,
+            "boundaryHp": 16,
+            "mutationsBefore": {
+              "generate": null,
+              "attack": "recoil",
+              "defend": null
+            }
+          }
+        },
+        "echo": {
+          "generate": {
+            "offerIndex": 1,
+            "boundaryHp": 16,
+            "mutationsBefore": {
+              "generate": null,
+              "attack": "recoil",
+              "defend": null
+            }
+          },
+          "defend": {
+            "offerIndex": 1,
+            "boundaryHp": 16,
+            "mutationsBefore": {
+              "generate": null,
+              "attack": "recoil",
+              "defend": null
+            }
+          },
+          "attack": {
+            "offerIndex": 1,
+            "boundaryHp": 14,
+            "mutationsBefore": {
+              "generate": "tinder",
+              "attack": null,
+              "defend": null
+            }
+          }
+        },
+        "tinder": {
+          "generate": {
+            "offerIndex": 0,
+            "boundaryHp": 23,
+            "mutationsBefore": {
+              "generate": null,
+              "attack": null,
+              "defend": null
+            }
+          },
+          "defend": {
+            "offerIndex": 0,
+            "boundaryHp": 25,
+            "mutationsBefore": {
+              "generate": null,
+              "attack": null,
+              "defend": null
+            }
+          }
+        }
+      },
+      "examined": [
+        {
+          "offerIndex": 0,
+          "count": 3
+        },
+        {
+          "offerIndex": 1,
+          "count": 11
+        },
+        {
+          "offerIndex": 2,
+          "count": 48
+        }
+      ]
+    },
+    "gateF": true,
+    "fixedPolicies": {
+      "charge-then-attack": false,
+      "strict-generate-attack": false,
+      "defense-priority": false,
+      "max-immediate-damage": false,
+      "ignore-next-attack": false
+    },
+    "spine": {
+      "fight": 0,
+      "battle": {
+        "hp": 23,
+        "energy": 1,
+        "sequence": [
+          "generate",
+          "generate",
+          "attack",
+          "attack",
+          "attack"
+        ],
+        "turns": 5
+      },
+      "offer": [
+        "recoil",
+        "tinder"
+      ],
+      "boundaryHp": 23,
+      "gate": {
+        "gateB": true,
+        "gateC": true,
+        "gateF": true,
+        "bWitnesses": {
+          "recoil": {
+            "action": "generate",
+            "battle": {
+              "hp": 7,
+              "energy": 4,
+              "sequence": [
+                "generate",
+                "attack",
+                "generate",
+                "attack",
+                "attack",
+                "attack"
+              ],
+              "turns": 6
+            }
+          },
+          "tinder": {
+            "action": "generate",
+            "battle": {
+              "hp": 7,
+              "energy": 3,
+              "sequence": [
+                "generate",
+                "generate",
+                "generate",
+                "attack",
+                "attack",
+                "attack"
+              ],
+              "turns": 6
+            }
+          }
+        },
+        "fWitnesses": {
+          "recoil": {
+            "action": "attack"
+          },
+          "tinder": {
+            "action": "generate"
+          }
+        },
+        "cWitnesses": [
+          {
+            "mutation": "recoil",
+            "action": "attack",
+            "before": {
+              "hp": 7,
+              "energy": 0,
+              "sequence": [
+                "generate",
+                "generate",
+                "attack",
+                "attack",
+                "attack",
+                "attack"
+              ],
+              "turns": 6
+            },
+            "after": {
+              "hp": 20,
+              "energy": 1,
+              "sequence": [
+                "generate",
+                "defend",
+                "attack",
+                "generate",
+                "attack"
+              ],
+              "turns": 5
+            }
+          },
+          {
+            "mutation": "tinder",
+            "action": "generate",
+            "before": {
+              "hp": 7,
+              "energy": 0,
+              "sequence": [
+                "generate",
+                "generate",
+                "attack",
+                "attack",
+                "attack",
+                "attack"
+              ],
+              "turns": 6
+            },
+            "after": {
+              "hp": 14,
+              "energy": 0,
+              "sequence": [
+                "generate",
+                "defend",
+                "generate",
+                "attack",
+                "attack",
+                "attack"
+              ],
+              "turns": 6
+            }
+          }
+        ]
+      },
+      "chosenForSpine": {
+        "mutation": "recoil",
+        "action": "attack"
+      },
+      "next": {
+        "fight": 1,
+        "battle": {
+          "hp": 14,
+          "energy": 0,
+          "sequence": [
+            "generate",
+            "generate",
+            "defend",
+            "attack",
+            "defend",
+            "attack"
+          ],
+          "turns": 6
+        },
+        "offer": [
+          "recoil",
+          "echo"
+        ],
+        "boundaryHp": 14,
+        "gate": {
+          "gateB": true,
+          "gateC": true,
+          "gateF": true,
+          "bWitnesses": {
+            "recoil": {
+              "action": "generate",
+              "battle": {
+                "hp": 3,
+                "energy": 5,
+                "sequence": [
+                  "generate",
+                  "attack",
+                  "defend",
+                  "generate",
+                  "attack"
+                ],
+                "turns": 5
+              }
+            },
+            "echo": {
+              "action": "generate",
+              "battle": {
+                "hp": 3,
+                "energy": 2,
+                "sequence": [
+                  "generate",
+                  "generate",
+                  "defend",
+                  "attack",
+                  "defend",
+                  "attack"
+                ],
+                "turns": 6
+              }
+            }
+          },
+          "fWitnesses": {
+            "recoil": {
+              "action": "generate"
+            },
+            "echo": {
+              "action": "generate"
+            }
+          },
+          "cWitnesses": [
+            {
+              "mutation": "recoil",
+              "action": "generate",
+              "before": {
+                "hp": 3,
+                "energy": 1,
+                "sequence": [
+                  "generate",
+                  "attack",
+                  "defend",
+                  "generate",
+                  "attack"
+                ],
+                "turns": 5
+              },
+              "after": {
+                "hp": 5,
+                "energy": 1,
+                "sequence": [
+                  "generate",
+                  "attack",
+                  "defend",
+                  "attack"
+                ],
+                "turns": 4
+              }
+            },
+            {
+              "mutation": "echo",
+              "action": "generate",
+              "before": {
+                "hp": 3,
+                "energy": 1,
+                "sequence": [
+                  "generate",
+                  "attack",
+                  "defend",
+                  "generate",
+                  "attack"
+                ],
+                "turns": 5
+              },
+              "after": {
+                "hp": 5,
+                "energy": 0,
+                "sequence": [
+                  "generate",
+                  "attack",
+                  "defend",
+                  "attack"
+                ],
+                "turns": 4
+              }
+            }
+          ]
+        },
+        "chosenForSpine": {
+          "mutation": "recoil",
+          "action": "generate"
+        },
+        "next": {
+          "fight": 2,
+          "battle": {
+            "hp": 5,
+            "energy": 1,
+            "sequence": [
+              "generate",
+              "attack",
+              "defend",
+              "attack"
+            ],
+            "turns": 4
+          },
+          "offer": [
+            "echo",
+            "tinder"
+          ],
+          "boundaryHp": 5,
+          "gate": {
+            "gateB": true,
+            "gateC": true,
+            "gateF": true,
+            "bWitnesses": {
+              "echo": {
+                "action": "defend",
+                "battle": {
+                  "hp": 1,
+                  "energy": 1,
+                  "sequence": [
+                    "generate",
+                    "attack",
+                    "defend",
+                    "attack"
+                  ],
+                  "turns": 4
+                }
+              },
+              "tinder": {
+                "action": "defend",
+                "battle": {
+                  "hp": 1,
+                  "energy": 1,
+                  "sequence": [
+                    "generate",
+                    "attack",
+                    "defend",
+                    "attack"
+                  ],
+                  "turns": 4
+                }
+              }
+            },
+            "fWitnesses": {
+              "echo": {
+                "action": "defend"
+              },
+              "tinder": {
+                "action": "defend"
+              }
+            },
+            "cWitnesses": [
+              {
+                "mutation": "tinder",
+                "action": "defend",
+                "before": {
+                  "hp": 1,
+                  "energy": 1,
+                  "sequence": [
+                    "generate",
+                    "attack",
+                    "defend",
+                    "attack"
+                  ],
+                  "turns": 4
+                },
+                "after": {
+                  "hp": 1,
+                  "energy": 2,
+                  "sequence": [
+                    "generate",
+                    "defend",
+                    "attack"
+                  ],
+                  "turns": 3
+                }
+              }
+            ]
+          },
+          "chosenForSpine": {
+            "mutation": "tinder",
+            "action": "defend"
+          },
+          "next": {
+            "fight": 3,
+            "battle": {
+              "hp": 1,
+              "energy": 1,
+              "sequence": [
+                "generate",
+                "attack",
+                "defend",
+                "attack"
+              ],
+              "turns": 4
+            },
+            "terminalHp": 1
+          }
+        }
+      }
+    },
+    "cache": {
+      "battles": 283,
+      "optimal": 40,
+      "completions": 282
+    }
+  }
+}
