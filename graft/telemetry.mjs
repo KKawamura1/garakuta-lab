@@ -46,6 +46,7 @@ function compactHistory(state) {
     battle: battle.battle,
     enemy: battle.enemy,
     won: battle.won,
+    reason: battle.reason || null,
     turns: battle.turns,
     hpBefore: battle.hpBefore,
     hpAfter: battle.hpAfter,
@@ -111,7 +112,8 @@ export function buildGraftPayload(state, options = {}) {
     outcome: {
       won: result.won,
       reached: state.history?.length || 0,
-      hp: state.hp
+      hp: state.hp,
+      reason: state.endReason || null
     },
     build: buildFor(state),
     stats: {
