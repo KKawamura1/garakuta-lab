@@ -4,6 +4,7 @@ import {
   MUTATIONS,
   VERSION,
   MAX_ENERGY,
+  MAX_TURNS,
   RESTORE_AFTER_BATTLE,
   createGame,
   actionInfo,
@@ -180,12 +181,12 @@ function statusHeader() {
   const wave = h("div", { class: "status-cell" }, [
     h("span", { class: "status-label", text: state.done ? "結果" : "進行" }),
     h("strong", { text: state.done ? "終了" : `${state.battleIndex + 1}/${ENEMIES.length}戦` }),
-    h("span", { class: "status-sub", text: state.done ? "" : `第${state.turn}巡` })
+    h("span", { class: "status-sub", text: state.done ? "" : `次 ${Math.min(MAX_TURNS, state.turn + 1)}/${MAX_TURNS}巡` })
   ]);
   status.append(hp, energy, wave);
   header.append(status);
   if (!state.done && state.phase === "battle") {
-    header.append(h("div", { class: "intent", text: `敵の次の攻撃　${currentIntent(state)}` }));
+    header.append(h("div", { class: "intent", text: `敵の次の攻撃　${currentIntent(state)}　・　残り${Math.max(0, MAX_TURNS - state.turn)}巡` }));
   }
   return header;
 }
@@ -232,7 +233,7 @@ function actionPanel() {
     return button;
   });
   return card("次の一手", [
-    h("p", { class: "hint", text: "攻撃を受けるか、力を蓄えるか、いま大きく動くか。全部はできない。" }),
+    h("p", { class: "hint", text: `攻撃を受けるか、力を蓄えるか、いま大きく動くか。全部はできない。1戦は${MAX_TURNS}巡で停止する。` }),
     h("div", { class: "action-grid" }, buttons)
   ], "action-panel");
 }
@@ -397,10 +398,18 @@ function surveyPanel() {
 
 function doneView() {
   const won = state.history.length === ENEMIES.length && state.history.every(x => x.won);
+  const lastBattle = state.lastBattle;
+  const reason = won ? null : lastBattle?.reason === "turn_limit"
+    || (!lastBattle?.reason && lastBattle?.turns >= MAX_TURNS && state.hp > 0)
+    ? `制限巡数の${MAX_TURNS}巡に達した`
+    : "機体HPが0になった";
   return [
     h("div", { class: `result-banner ${won ? "success" : "failure"}` }, [
-      h("strong", { text: won ? "機関は最後まで動いた" : "機関は停止した" }),
-      h("span", { text: `${state.history.length}/${ENEMIES.length}戦 ・ 最終HP ${state.hp}` })
+      h("div", { class: "result-copy" }, [
+        h("strong", { text: won ? "機関は最後まで動いた" : "機関は停止した" }),
+        h("span", { text: `${state.history.length}/${ENEMIES.length}戦 ・ 最終HP ${state.hp}` }),
+        reason ? h("small", { class: "result-reason", text: `停止理由：${reason}` }) : null
+      ])
     ]),
     graftSummary(),
     battleSummaryPanel(),
