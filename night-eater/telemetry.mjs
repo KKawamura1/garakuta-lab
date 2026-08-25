@@ -44,7 +44,7 @@ export function buildPayload(state, options = {}) {
   }));
   return {
     runId: state.runId,
-    telemetryRunId: trace.runId || state.runId,
+    telemetryRunId: state.runId,
     deviceId: options.deviceId || "night-eater-test-device",
     schemaVersion: SCHEMA_VERSION,
     gameVersion: GAME_VERSION,
