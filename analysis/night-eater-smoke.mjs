@@ -72,6 +72,7 @@ record(payloadState, { type: "emotion_marked", kind: "spark", phase: "result", n
 record(payloadState, { type: "survey_submitted", survey: { fun: 4, replay: 5, moment: "payload smoke", next: "" } });
 const payload = buildPayload(payloadState, { deviceId: "smoke-device" });
 assert.equal(payload.gameVersion, "night-eater-0.1");
+assert.equal(payload.telemetryRunId, payload.runId, "D1 requires one run id");
 assert.equal(payload.outcome.reason, payloadState.endReason);
 assert.equal(payload.events.length, payloadState.telemetry.events.length);
 assert.equal(payload.moments[0].kind, "spark");
