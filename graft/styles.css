@@ -104,6 +104,8 @@ button { color: inherit; cursor: pointer; }
 .target-copy strong { font-size: 13px; }
 .target-arrow { color: var(--brass); font-size: 20px; }
 .result-banner { display: flex; justify-content: space-between; gap: 8px; border-color: #6a4f32; background: #2a2218; }
+.result-copy { display: grid; gap: 2px; }
+.result-reason { color: var(--red); font-size: 12px; }
 .result-banner.success { border-color: #426744; background: #17251c; }.result-banner.failure { border-color: #6a3b38; background: #2a1b1b; }
 .result-banner strong { color: var(--brass); }.result-banner.success strong { color: var(--green); }.result-banner.failure strong { color: var(--red); }
 .summary-row, .graft-summary-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 7px 0; border-bottom: 1px solid #1d3031; }
