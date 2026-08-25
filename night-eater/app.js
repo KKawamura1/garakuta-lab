@@ -57,6 +57,7 @@ function saveLastRun() {
   if (!state) return;
   localStorage.setItem(LAST_RUN_KEY, JSON.stringify({
     ending: state.ending,
+    name: state.name,
     parts: state.parts,
     seed: state.seed,
     behavior: readBuild(state.parts).behavior,
@@ -76,8 +77,10 @@ function previousRun() {
 function startRun() {
   const previous = previousRun();
   const legacyPart = previous?.ending?.keepsakePartId || previous?.parts?.find(Boolean) || null;
+  const chosenName = document.querySelector("#child-name")?.value?.trim() || "";
   state = createGame({
     seed: urlSeed === null ? undefined : Number(urlSeed),
+    name: chosenName,
     legacy: legacyPart ? { partId: legacyPart, endingId: previous.ending.id } : null
   });
   selectedPart = null;
@@ -104,6 +107,14 @@ function escapeHtml(value) {
 
 function part(id) {
   return PART_BY_ID[id] || null;
+}
+
+function childName() {
+  return state?.name || "この子";
+}
+
+function named(text) {
+  return String(text || "").replaceAll("子", childName());
 }
 
 function partSummary(id, slot) {
@@ -158,7 +169,7 @@ function creatureMarkup(reading, phase) {
     "<div class='body'><div class='face'><i></i><i></i><b></b></div>" + parts + "</div>" +
     "<div class='foot foot-left'></div><div class='foot foot-right'></div>" +
     "</div>" +
-    "<div class='creature-caption'>この子は <strong>" + escapeHtml(reading.behavior) + "</strong></div>" +
+    "<div class='creature-caption'>" + escapeHtml(childName()) + "は <strong>" + escapeHtml(reading.behavior) + "</strong></div>" +
     "</div>";
 }
 
@@ -167,7 +178,7 @@ function headerMarkup() {
   return "<header class='topbar'>" +
     "<div><span class='eyebrow'>NIGHT-EATER 0.1</span><h1>夜を食べる子</h1></div>" +
     "<div class='top-meta'><button class='sound-toggle' data-action='sound' aria-label='音の切り替え'>" +
-    (soundEnabled ? "♪" : "♪̸") + "</button><span>夜 " + currentNight + " / " + MAX_NIGHTS + "</span><span>灯 " + state.light + " ・ 絆 " + state.bond + "</span></div>" +
+    (soundEnabled ? "♪" : "♪̸") + "</button><span>夜 " + currentNight + " / " + MAX_NIGHTS + "</span><span>" + escapeHtml(childName()) + " ・ 灯 " + state.light + " ・ 絆 " + state.bond + "</span></div>" +
     "</header>" + progressMarkup();
 }
 
@@ -176,7 +187,7 @@ function storyMarkup() {
   const previous = state.legacy && state.night === 0
     ? "<p class='legacy-line'>前の子の置き土産が、ポケットの底でまだ温かい。</p>" : "";
   return "<section class='story-card'>" +
-    "<div class='story-icon'>" + night.icon + "</div><div><span class='eyebrow'>NIGHT " + (state.night + 1) + " / " + escapeHtml(night.title) + "</span>" +
+    "<div class='story-icon'>" + night.icon + "</div><div><span class='eyebrow'>NIGHT " + (state.night + 1) + " / " + escapeHtml(night.title) + " ・ " + escapeHtml(childName()) + "の夜</span>" +
     "<h2>" + escapeHtml(night.question) + "</h2><p>" + escapeHtml(night.ask) + "</p>" + previous + "</div>" +
     "</section>";
 }
@@ -257,7 +268,7 @@ function aftermathPanel() {
   const buttonText = state.endReason || state.night >= MAX_NIGHTS - 1 ? "最後の場面へ" : "次の夜へ";
   return "<section class='panel aftermath-panel " + (outcome.success ? "success" : "failure") + "'>" +
     "<span class='eyebrow'>" + escapeHtml(night.title) + " / 見届けた結果</span><h2>" + title + "</h2>" +
-    "<p class='outcome-lead'>" + escapeHtml(outcome.text) + "</p><p>" + sub + "</p>" +
+    "<p class='outcome-lead'>" + escapeHtml(named(outcome.text)) + "</p><p>" + escapeHtml(named(sub)) + "</p>" +
     "<div class='outcome-stats'><span>灯 <b>" + state.light + "</b></span><span>絆 <b>" + state.bond + "</b></span><span>ひらめき <b>" + state.insight + "</b></span></div>" +
     "<button class='primary-button' data-action='continue'>" + buttonText + "</button></section>";
 }
@@ -266,7 +277,7 @@ function historyMarkup() {
   if (!state.history.length) return "";
   return "<section class='panel history-panel'><div class='panel-heading'><span class='eyebrow'>この子の記憶</span><h2>夜のあとに残ったもの</h2></div>" +
     "<ol>" + state.history.map(item => "<li class='" + (item.success ? "good" : "bad") + "'><span class='history-night'>" + (item.night + 1) + "</span><span><b>" +
-      escapeHtml(item.title) + " ・ " + escapeHtml(item.behavior) + "</b><small>" + escapeHtml(item.text) + "</small></span></li>").join("") + "</ol></section>";
+      escapeHtml(item.title) + " ・ " + escapeHtml(item.behavior) + "</b><small>" + escapeHtml(named(item.text)) + "</small></span></li>").join("") + "</ol></section>";
 }
 
 function markerPanel() {
@@ -283,9 +294,9 @@ function resultPanel() {
   const status = state.telemetry?.sentAt ? "<p class='send-ok'>プレイログを保存しました。</p>" :
     state.telemetry?.error ? "<p class='send-error'>保存待ち： " + escapeHtml(state.telemetry.error) + "</p>" : "";
   return "<section class='panel result-panel'><span class='eyebrow'>夜明け / " + escapeHtml(state.ending?.id || state.endReason) + "</span>" +
-    "<h2>" + escapeHtml(ending.title) + "</h2><p class='ending-text'>" + escapeHtml(ending.text) + "</p>" +
-    "<div class='final-creature'><span>" + escapeHtml(reading.behavior) + "</span><strong>" + state.parts.map(id => part(id)?.icon || "·").join(" ") + "</strong></div>" +
-    "<p class='result-seed'>この子のseed " + state.seed + " ・ " + (won ? "灯台へ届いた" : "灯りを失った") + "</p>" +
+    "<h2>" + escapeHtml(ending.title) + "</h2><p class='ending-text'>" + escapeHtml(named(ending.text)) + "</p>" +
+    "<div class='final-creature'><span>" + escapeHtml(childName()) + " ・ " + escapeHtml(reading.behavior) + "</span><strong>" + state.parts.map(id => part(id)?.icon || "·").join(" ") + "</strong></div>" +
+    "<p class='result-seed'>" + escapeHtml(childName()) + "のseed " + state.seed + " ・ " + (won ? "灯台へ届いた" : "灯りを失った") + "</p>" +
     historyMarkup() +
     "<form data-form='survey' class='survey-form'>" +
     "<label>面白さ <select name='fun' required><option value=''>選ぶ</option><option value='1'>1 — 退屈</option><option value='2'>2</option><option value='3'>3</option><option value='4'>4</option><option value='5'>5 — また遊びたい</option></select></label>" +
@@ -305,11 +316,12 @@ function footerMarkup() {
 function titleScreen() {
   const previous = previousRun();
   const carry = previous ? "<div class='carry-card'><span>前の子が残したもの</span><b>" +
-    escapeHtml(previous.ending.title) + "</b><p>「" + escapeHtml(part(previous.ending.keepsakePartId)?.name || "小さな記憶") + "」が、次の夜へ混ざる。</p></div>" : "";
+    escapeHtml(previous.name || "名前のない子") + " ・ " + escapeHtml(previous.ending.title) + "</b><p>「" + escapeHtml(part(previous.ending.keepsakePartId)?.name || "小さな記憶") + "」が、次の夜へ混ざる。</p></div>" : "";
   return "<main class='title-screen'><div class='title-art'><div class='title-moon'></div><div class='title-beast'>◌</div><span>✦</span><span>·</span><span>✧</span></div>" +
     "<span class='eyebrow'>NIGHT-EATER 0.1</span><h1>夜を食べる子</h1>" +
     "<p class='title-lead'>拾ったガラクタで、小さな子のふるまいを育てる。<br />最後の夜に、何を返すかを見届ける。</p>" +
-    carry + "<button class='primary-button title-start' data-action='new'>夜を始める</button>" +
+    carry + "<label class='name-field'>この子に名前をつける（任意）<input id='child-name' maxlength='10' placeholder='例：トワ' /></label>" +
+    "<button class='primary-button title-start' data-action='new'>夜を始める</button>" +
     "<p class='title-note'>6つの夜 / 10分ほど / 画面の中央で子が動きます</p></main>";
 }
 
