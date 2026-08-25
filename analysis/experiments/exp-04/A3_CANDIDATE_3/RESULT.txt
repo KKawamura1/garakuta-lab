@@ -1,0 +1,124 @@
+sample {
+  win: true,
+  lines: [
+    [ 'G', 'A', 'A' ],
+    [ 'G', 'A', 'A' ],
+    [ 'G', 'A', 'A' ],
+    [ 'G', 'A', 'A' ]
+  ]
+} {
+  A: true,
+  B: true,
+  C: true,
+  D: false,
+  E: true,
+  F: true,
+  policies: {
+    genAttack: false,
+    alternate: false,
+    defendFirst: true,
+    maxDamage: false,
+    blind: false
+  }
+}
+{
+  "run": {
+    "hp": 26,
+    "mutations": {},
+    "offers": [
+      [
+        "B",
+        "E"
+      ],
+      [
+        "B",
+        "C"
+      ],
+      [
+        "E",
+        "C"
+      ]
+    ],
+    "enemies": [
+      {
+        "hp": 8,
+        "attacks": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "hp": 9,
+        "attacks": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "hp": 10,
+        "attacks": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      {
+        "hp": 10,
+        "attacks": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      }
+    ]
+  },
+  "gates": {
+    "A": true,
+    "B": true,
+    "C": true,
+    "D": true,
+    "E": true,
+    "F": true,
+    "policies": {
+      "genAttack": true,
+      "alternate": true,
+      "defendFirst": true,
+      "maxDamage": true,
+      "blind": true
+    }
+  },
+  "example": {
+    "win": false,
+    "lines": [
+      [
+        "G",
+        "A",
+        "A"
+      ],
+      [
+        "G",
+        "A",
+        "A"
+      ],
+      [
+        "G",
+        "A",
+        "A"
+      ]
+    ]
+  }
+}
