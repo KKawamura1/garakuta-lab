@@ -74,6 +74,16 @@ assert.equal(handoffStrike.handoff, null);
 // Save/load is part of the playable loop.
 assert.deepEqual(deserialize(serialize(handoffStrike)), handoffStrike);
 
+// null is the player-facing random-seed path; explicit 0 remains a controlled seed.
+assert.notEqual(createGame(null).seed, 0);
+assert.equal(createGame(0).seed, 0);
+
+const turnLimit = playSequence(createGame(12), [
+  "guard", "charge", "guard", "charge", "guard", "charge", "guard", "charge"
+]);
+assert.equal(turnLimit.lastBattle.reason, "turn_limit");
+assert.ok(turnLimit.hp > 0);
+
 // The GRAFT prototype uses the existing /api/runs contract, with a separate game version.
 const telemetryState = createGame(12);
 ensureTelemetry(telemetryState, "2026-08-25T00:00:00.000Z");
