@@ -2,6 +2,7 @@ export const GAME_VERSION = "night-eater-0.1";
 export const MAX_NIGHTS = 6;
 export const SLOT_IDS = ["eye", "heart", "hand"];
 export const SLOT_NAMES = { eye: "目", heart: "胸", hand: "手" };
+const DEFAULT_NAMES = ["モグ", "トワ", "ネム", "ホシ", "ユラ", "コメ"];
 
 export const NIGHTS = [
   {
@@ -135,9 +136,11 @@ export function createGame(options = {}) {
   const deck = shuffled(Number.isFinite(seed) ? seed : hash(seed));
   if (legacy) deck.unshift(legacy.partId);
   const runId = randomRunId();
+  const name = String(options.name || "").trim().slice(0, 10) || DEFAULT_NAMES[hash(seed) % DEFAULT_NAMES.length];
   const state = {
     gameVersion: GAME_VERSION,
     runId,
+    name,
     seed: Number.isFinite(seed) ? seed : hash(seed),
     startedAt: new Date().toISOString(),
     endedAt: null,
@@ -429,6 +432,7 @@ export function summary(state) {
     gameVersion: GAME_VERSION,
     runId: state.runId,
     seed: state.seed,
+    name: state.name,
     won: state.endReason === "dawn",
     reached: state.history.length,
     reason: state.endReason,
