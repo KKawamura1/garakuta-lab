@@ -25,7 +25,10 @@ for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/ap
   fi
   rm -f /tmp/syntax.$$
 done
-for f in analysis/smoke-*.mjs; do
+# **`smoke-*` だけでなく `*smoke*` を拾う。**
+# `analysis/graft-smoke.mjs` は名前の向きが逆だったせいで、
+# 存在して・通るのに、束からずっと外れていた（2026-08-25 に気づいた）。
+for f in $(ls analysis/*smoke*.mjs | sort -u); do
   if out=$(node "$f" 2>&1); then
     echo "ok   $f"
   else
