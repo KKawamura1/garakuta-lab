@@ -179,3 +179,13 @@ READMEやINDEXに固定した組数・版・「本命」を書いた場合は、
 - [analysis/ECHO_0_1.md](./analysis/ECHO_0_1.md) — 再プレイ動機の事前登録と判定
 - [haul/README.md](./haul/README.md) — 持ち帰り限界 HAUL 0.1
 - [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md) — 目標と危険の事前登録
+
+## 新しい本気の縦切り（公開前）
+
+既存の小さな比較試作で「知った後の再プレイ」が弱かったため、体験全体を一度に試す独立作を開始した。
+
+- [night-eater/README.md](./night-eater/README.md) — 夜を食べる子 / NIGHT-EATER 0.1
+- [analysis/NIGHT_EATER_0_1.md](./analysis/NIGHT_EATER_0_1.md) — 開始時刻、魂、仮説、成功・失敗信号
+- [analysis/night-eater-smoke.mjs](./analysis/night-eater-smoke.mjs) — 6夜完走、seed再現、部品取付、payloadの回帰検査
+
+これはmainの既定版ではなく、ブラウザE2E・公開先D1保存・export照合を終えるまで人間テストURLを渡さない。

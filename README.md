@@ -86,3 +86,13 @@ HAUL 0.1では、部品7個という目標は読めましたが、余分に回�
 Cloudflare PagesではD1を `PLAYTEST_DB` としてbindingし、
 `migrations/0001_playtest_observations.sql` を適用します。
 `functions/api/runs.js` が同一オリジンから記録を受け取ります。
+
+## 本気の縦切り：NIGHT-EATER 0.1
+
+既存の数値・法則中心の比較をいったん横に置き、作者が拾ったガラクタで小さな相棒を育てる体験全体を試す独立作です。
+部品の取り付け先で相棒の見た目とふるまいが変わり、6夜の短い物語と終了ログへつながります。
+
+- [night-eater/README.md](./night-eater/README.md) — 遊び方とログ仕様
+- [analysis/NIGHT_EATER_0_1.md](./analysis/NIGHT_EATER_0_1.md) — 開始時刻、魂、仮説、失敗信号
+
+人間テスト公開条件とブラウザE2Eが未確認のため、現時点ではmainの既定版ではありません。
