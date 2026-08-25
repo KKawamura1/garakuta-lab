@@ -81,6 +81,7 @@ const first = createGame({ seed: 42 });
 const second = createGame({ seed: 42 });
 assert.deepEqual(first.offer, second.offer, "same seed must reproduce the offer");
 assert.deepEqual(first.parts, second.parts, "same seed must reproduce the initial body");
+assert.equal(createGame({ seed: 42, name: "ルカ" }).name, "ルカ", "player name is carried by the run");
 
 console.log("night-eater smoke passed");
 console.log(JSON.stringify({ simulatedSeeds: 300, distinctSignatures: signatures.size, relicSlots: RELICS.length * SLOT_IDS.length }));
