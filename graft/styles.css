@@ -111,6 +111,7 @@ button { color: inherit; cursor: pointer; }
 .summary-row.won strong { color: var(--green); }.summary-row.lost strong { color: var(--red); }
 .survey-label { display: block; margin-top: 9px; color: var(--muted); font-size: 12px; }
 .survey-warn { min-height: 18px; margin-top: 7px; color: var(--red); font-size: 12px; }
+.telemetry-status { margin: 8px 0 0; color: var(--green); font-size: 12px; }
 .primary-button, .secondary-button { width: 100%; margin-top: 10px; padding: 10px; }
 .primary-button { border: 1px solid var(--brass); border-radius: 8px; background: var(--brass); color: #1a180e; font-weight: 700; }
 .secondary-button { color: var(--ink); }

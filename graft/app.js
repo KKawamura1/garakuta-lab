@@ -15,6 +15,11 @@ import {
   summary,
   describeMutation
 } from "./engine.mjs";
+import {
+  ensureTelemetry,
+  recordTelemetry,
+  sendGraftTelemetry
+} from "./telemetry.mjs";
 
 const SAVE_KEY = "garakuta-graft-session";
 const RESULT_KEY = "garakuta-graft-results";
@@ -26,6 +31,8 @@ let state = loadState() || createGame(requestedSeed === null ? null : Number(req
 let selectedMutation = null;
 let markerOpen = false;
 let surveySaved = false;
+let telemetrySyncing = false;
+let telemetryDirty = false;
 
 const MARKERS = [
   ["spark", "閃き"],
@@ -34,6 +41,22 @@ const MARKERS = [
   ["worry", "不安"],
   ["bored", "退屈"]
 ];
+
+function prepareTelemetry(target) {
+  const existing = Boolean(target.telemetry?.runId);
+  ensureTelemetry(target);
+  if (!existing) {
+    recordTelemetry(target, {
+      type: "run_started",
+      phase: target.phase,
+      battle: target.battleIndex + 1,
+      seed: target.seed,
+      version: VERSION
+    });
+  }
+}
+
+prepareTelemetry(state);
 
 function h(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -66,6 +89,42 @@ function loadState() {
 
 function saveState() {
   try { localStorage.setItem(SAVE_KEY, serialize(state)); } catch (_) { /* 遊びは続ける */ }
+}
+
+function telemetryStatus() {
+  if (state.telemetry?.sentAt) return "D1に保存済み";
+  if (state.telemetry?.error) return `D1送信待ち（${state.telemetry.error}）`;
+  return "D1へ送信中";
+}
+
+function syncTelemetry() {
+  if (telemetrySyncing) {
+    telemetryDirty = true;
+    return;
+  }
+  telemetrySyncing = true;
+  const sendingState = state;
+  sendGraftTelemetry(sendingState)
+    .then(() => {
+      if (sendingState === state) {
+        saveState();
+        if (state.done) render();
+      }
+    })
+    .catch(error => {
+      sendingState.telemetry.error = error?.message || "送信に失敗しました";
+      if (sendingState === state) {
+        saveState();
+        if (state.done) render();
+      }
+    })
+    .finally(() => {
+      telemetrySyncing = false;
+      if (telemetryDirty) {
+        telemetryDirty = false;
+        syncTelemetry();
+      }
+    });
 }
 
 function formatMutation(id) {
@@ -193,9 +252,20 @@ function markerPanel() {
   MARKERS.forEach(([id, label]) => choices.append(h("button", {
     class: `marker marker-${id}`, type: "button", text: label,
     on: ["click", () => {
+      const noteValue = note.value.trim();
+      const phase = state.phase;
       state.moments ||= [];
-      state.moments.push({ turn: state.turn, battle: state.battleIndex + 1, kind: id, note: note.value.trim() });
+      state.moments.push({ turn: state.turn, battle: state.battleIndex + 1, kind: id, note: noteValue });
+      recordTelemetry(state, {
+        type: "emotion_marked",
+        phase,
+        battle: state.battleIndex + 1,
+        turn: state.turn,
+        kind: id,
+        note: noteValue
+      });
       saveState();
+      syncTelemetry();
       markerOpen = false;
       render();
     }]
@@ -283,7 +353,10 @@ function graftSummary() {
 
 function surveyPanel() {
   if (state.survey || surveySaved) {
-    return card("記録", [h("p", { class: "hint", text: "このランの感想を保存した。" })]);
+    return card("記録", [
+      h("p", { class: "hint", text: "このランの感想を保存した。" }),
+      h("p", { class: "telemetry-status", text: telemetryStatus() })
+    ]);
   }
   const fun = h("select", { class: "survey-control" }, [h("option", { value: "", text: "未選択" }), ...[1, 2, 3, 4, 5].map(v => h("option", { value: String(v), text: `${v}` }))]);
   const replay = h("select", { class: "survey-control" }, [h("option", { value: "", text: "未選択" }), ...[1, 2, 3, 4, 5].map(v => h("option", { value: String(v), text: `${v}` }))]);
@@ -293,10 +366,26 @@ function surveyPanel() {
   const warn = h("div", { class: "survey-warn" });
   const save = h("button", { class: "primary-button", type: "button", text: "感想を保存", on: ["click", () => {
     if (!fun.value || !replay.value) { warn.textContent = "面白さと、また遊びたい度を選んでください。"; return; }
-    state.survey = { fun: Number(fun.value), replay: Number(replay.value), bestMoment: best.value.trim(), friction: friction.value.trim(), story: story.value.trim(), savedAt: new Date().toISOString() };
+    const savedAt = new Date().toISOString();
+    state.survey = { fun: Number(fun.value), replay: Number(replay.value), bestMoment: best.value.trim(), friction: friction.value.trim(), story: story.value.trim(), savedAt };
+    state.endedAt = savedAt;
+    recordTelemetry(state, {
+      type: "survey_submitted",
+      phase: state.phase,
+      battle: state.battleIndex + 1,
+      turn: state.turn,
+      answers: state.survey
+    }, savedAt);
+    recordTelemetry(state, {
+      type: "run_finished",
+      phase: state.phase,
+      battle: state.history.length,
+      outcome: summary(state)
+    }, savedAt);
     surveySaved = true;
     try { localStorage.setItem(RESULT_KEY, JSON.stringify(state)); } catch (_) { /* ignore */ }
     saveState();
+    syncTelemetry();
     render();
   ]});
   return card("この試作について", [
@@ -321,31 +410,77 @@ function doneView() {
 }
 
 function doAction(actionId) {
+  const before = {
+    hp: state.hp,
+    energy: state.energy,
+    enemyHp: state.enemy.hp,
+    battle: state.battleIndex + 1,
+    turn: state.turn + 1
+  };
   const result = playAction(state, actionId);
   if (!result.ok) return;
   state = result.state;
+  recordTelemetry(state, {
+    type: "action_chosen",
+    phase: "battle",
+    actionId,
+    battle: before.battle,
+    turn: before.turn,
+    before,
+    after: {
+      hp: state.hp,
+      energy: state.energy,
+      enemyHp: state.enemy.hp,
+      phase: state.phase
+    }
+  });
+  if (result.battleEnded && state.lastBattle) {
+    recordTelemetry(state, {
+      type: "battle_finished",
+      phase: state.phase,
+      battle: state.lastBattle.battle,
+      summary: state.lastBattle
+    });
+  }
   saveState();
+  syncTelemetry();
   render();
 }
 
 function graft(mutationId, actionId) {
+  const offered = state.offer?.slice() || [];
+  const battle = state.battleIndex + 1;
   const result = chooseMutation(state, mutationId, actionId);
   if (!result.ok) return;
   state = result.state;
+  recordTelemetry(state, {
+    type: "mutation_chosen",
+    phase: "reward",
+    battle,
+    mutationId,
+    targetActionId: actionId,
+    offer: offered,
+    nextEnemy: state.enemy?.name || null
+  });
   selectedMutation = null;
   saveState();
+  syncTelemetry();
   render();
 }
 
 function newRun() {
+  syncTelemetry();
   const nextSeed = Math.floor(Math.random() * 90000) + 10000;
   state = createGame(nextSeed);
   state.moments = [];
   state.survey = null;
+  state.endedAt = null;
+  prepareTelemetry(state);
   selectedMutation = null;
   surveySaved = false;
   markerOpen = false;
   saveState();
+  syncTelemetry();
   render();
 }
 
@@ -358,4 +493,5 @@ function render() {
   app.append(main);
 }
 
+syncTelemetry();
 render();
