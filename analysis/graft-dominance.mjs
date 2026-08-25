@@ -5,10 +5,11 @@
 // 適当に押しても勝てるなら、その戦闘に決定は存在しない。
 //
 //   node analysis/graft-dominance.mjs [試行数]
+//
+// engine を引数に取るので、`graft-handoff-whatif.mjs` から
+// **改変版の engine を渡して同じ物差しで比べられる。**
 
-import { MUTATIONS, ACTIONS, ENEMIES, createGame, playAction, actionInfo } from "../graft/engine.mjs";
-
-const TRIALS = Number(process.argv[2] || 400);
+import * as defaultEngine from "../graft/engine.mjs";
 
 function rng(seed) {
   let a = seed >>> 0;
@@ -21,7 +22,8 @@ function rng(seed) {
 }
 
 // 1戦だけを、でたらめな方針で戦う。接ぎ木は最初から付いている状態にする。
-function randomBattle(seed, mutationId, actionId, enemyIndex) {
+function randomBattle(engine, seed, grafts, enemyIndex) {
+  const { ACTIONS, ENEMIES, createGame, playAction, actionInfo } = engine;
   const state = createGame(seed);
   // **敵は engine の作り方に合わせる。** ENEMIES の生データをそのまま入れると
   // `attackIndex` が無く、`attacks[undefined % n]` が NaN になって
@@ -29,7 +31,9 @@ function randomBattle(seed, mutationId, actionId, enemyIndex) {
   const source = ENEMIES[enemyIndex];
   state.enemy = { ...source, attacks: source.attacks.slice(), maxHp: source.hp, attackIndex: 0 };
   state.battleIndex = enemyIndex;
-  if (mutationId) state.actions[actionId] = { mutation: mutationId };
+  for (const [actionId, mutationId] of Object.entries(grafts)) {
+    if (mutationId) state.actions[actionId] = { mutation: mutationId };
+  }
   let s = state;
   const pick = rng(seed * 7919 + enemyIndex);
   let guard = 0;
@@ -44,44 +48,52 @@ function randomBattle(seed, mutationId, actionId, enemyIndex) {
   return s.lastBattle?.won === true;
 }
 
-const rows = [];
-const combos = [{ mutationId: null, actionId: "—" }];
-for (const m of MUTATIONS) for (const a of ACTIONS) combos.push({ mutationId: m.id, actionId: a.id });
-
-for (const combo of combos) {
-  const perEnemy = ENEMIES.map((enemy, ei) => {
+// `grafts` は 行動ID → 変異ID の対応。**複数の接ぎ木を同時に載せられる。**
+// 一つずつしか載せない測り方だと、変異どうしの噛み合わせは原理的に測れない。
+export function measureBuild(engine, grafts, trials) {
+  const perEnemy = engine.ENEMIES.map((enemy, ei) => {
     let won = 0;
-    for (let t = 0; t < TRIALS; t += 1) if (randomBattle(1000 + t, combo.mutationId, combo.actionId, ei)) won += 1;
-    return { enemy: enemy.name, rate: won / TRIALS };
+    for (let t = 0; t < trials; t += 1) if (randomBattle(engine, 1000 + t, grafts, ei)) won += 1;
+    return { enemy: enemy.name, rate: won / trials };
   });
-  const overall = perEnemy.reduce((s, e) => s + e.rate, 0) / perEnemy.length;
-  rows.push({ ...combo, overall, perEnemy });
+  return { grafts, overall: perEnemy.reduce((s, e) => s + e.rate, 0) / perEnemy.length, perEnemy };
 }
 
-const label = r => {
+export function measureAll(engine, trials) {
+  const { MUTATIONS, ACTIONS } = engine;
+  const combos = [{ mutationId: null, actionId: "—" }];
+  for (const m of MUTATIONS) for (const a of ACTIONS) combos.push({ mutationId: m.id, actionId: a.id });
+  return combos.map(combo => ({
+    ...combo,
+    ...measureBuild(engine, combo.mutationId ? { [combo.actionId]: combo.mutationId } : {}, trials)
+  }));
+}
+
+export function labelOf(engine, r) {
   if (!r.mutationId) return "接ぎ木なし";
-  const m = MUTATIONS.find(x => x.id === r.mutationId);
-  const a = ACTIONS.find(x => x.id === r.actionId);
+  const m = engine.MUTATIONS.find(x => x.id === r.mutationId);
+  const a = engine.ACTIONS.find(x => x.id === r.actionId);
   return `${m.name} → ${a.name}`;
-};
-
-rows.sort((x, y) => y.overall - x.overall);
-console.log(`でたらめな方針の勝率（1戦あたり、${TRIALS}試行 × 敵${ENEMIES.length}体）\n`);
-const width = Math.max(...rows.map(r => label(r).length));
-for (const r of rows) {
-  const bar = "█".repeat(Math.round(r.overall * 40));
-  console.log(`${label(r).padEnd(width)}  ${(r.overall * 100).toFixed(1).padStart(5)}%  ${bar}`);
 }
 
-const base = rows.find(r => !r.mutationId);
-console.log(`\n接ぎ木なしを基準にした差:`);
-for (const r of rows) {
-  if (!r.mutationId) continue;
-  const d = (r.overall - base.overall) * 100;
-  console.log(`  ${label(r).padEnd(width)}  ${d >= 0 ? "+" : ""}${d.toFixed(1)}pt`);
-}
-
-console.log(`\n敵ごとの内訳（上位3つ）:`);
-for (const r of rows.slice(0, 3)) {
-  console.log(`  ${label(r)}: ${r.perEnemy.map(e => `${e.enemy} ${(e.rate * 100).toFixed(0)}%`).join(" / ")}`);
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const trials = Number(process.argv[2] || 400);
+  const rows = measureAll(defaultEngine, trials).sort((x, y) => y.overall - x.overall);
+  const label = r => labelOf(defaultEngine, r);
+  console.log(`でたらめな方針の勝率（1戦あたり、${trials}試行 × 敵${defaultEngine.ENEMIES.length}体）\n`);
+  const width = Math.max(...rows.map(r => label(r).length));
+  for (const r of rows) {
+    console.log(`${label(r).padEnd(width)}  ${(r.overall * 100).toFixed(1).padStart(5)}%  ${"█".repeat(Math.round(r.overall * 40))}`);
+  }
+  const base = rows.find(r => !r.mutationId);
+  console.log(`\n接ぎ木なしを基準にした差:`);
+  for (const r of rows) {
+    if (!r.mutationId) continue;
+    const d = (r.overall - base.overall) * 100;
+    console.log(`  ${label(r).padEnd(width)}  ${d >= 0 ? "+" : ""}${d.toFixed(1)}pt`);
+  }
+  console.log(`\n敵ごとの内訳（上位3つ）:`);
+  for (const r of rows.slice(0, 3)) {
+    console.log(`  ${label(r)}: ${r.perEnemy.map(e => `${e.enemy} ${(e.rate * 100).toFixed(0)}%`).join(" / ")}`);
+  }
 }
