@@ -22,7 +22,9 @@ const STATE_KEY = "echo-state-v1";
 const GHOST_KEY = "echo-ghost-v1";
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
-const seed = Number.isFinite(Number(params.get("seed"))) ? Number(params.get("seed")) : 12;
+const rawSeed = params.get("seed");
+const parsedSeed = Number(rawSeed);
+const seed = rawSeed == null || rawSeed === "" || !Number.isFinite(parsedSeed) ? 12 : parsedSeed;
 
 const MARKERS = [
   ["spark", "閃き"],
