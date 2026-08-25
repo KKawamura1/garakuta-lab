@@ -2,6 +2,7 @@ import { createRun } from "../core/run.mjs";
 import { describeRun } from "../core/metrics.mjs";
 import { PHASE } from "../core/phase.mjs";
 import { RELAY } from "../core/relay.mjs";
+import { MUTATE } from "../core/mutate.mjs";
 import { makeLawRuleset, LAWS as LAW_DEFS, OVERDRIVE } from "../core/laws.mjs";
 import { bestPossible } from "../core/best-possible.mjs";
 import { LAW_TABLE } from "../core/law-table.mjs";
@@ -14,7 +15,7 @@ import { sendRun, uuid } from "../agent-view/sync.js";
 import { projectCycles, markFor, firesOfRuleset } from "../core/project.mjs";
 import { makeRng } from "../core/rng.mjs";
 
-const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC };
+const RULESETS = { relay: RELAY, phase: PHASE, arc: ARC, mutate: MUTATE };
 
 // **代償の版（cost-0.1）。** 法則も敵も laws-0.3 と同じで、暴走だけが足してある。
 // 設定そのもの（OVERDRIVE）は core/laws.mjs にある。**画面と検査で同じものを見る。**
@@ -469,13 +470,19 @@ const LINE_LABEL = { strike: "撃", guard: "守", service: "整" };
 const lineBadge = part => (part && part.line
   ? el("span", { className: `tag line-${part.line}`, textContent: LINE_LABEL[part.line] || part.line })
   : null);
+const chipBadge = part => (part && part.chip
+  ? el("span", { className: "tag chip-tag", textContent: part.chip.name || part.chip.type })
+  : null);
+function slotModel(part) {
+  return part ? { id: part.id, type: part.type, ...(part.chip ? { chip: { type: part.chip.type } } : {}) } : null;
+}
 
 // いまの並びで実際に起きることを、巡回ごとに引き出す。
 // 画面の判定（outcomePanel）と同じ計算を使うので、表と判定が食い違うことはない。
 function battleTrace(o, rules) {
   const cycles = gridCycles(rules);
   const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
-  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  const slots = o.slots.map(x => slotModel(x.part));
   if (!enemy || !slots.some(Boolean)) return null;
   const result = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
   const blank = () => Array.from({ length: cycles }, () => 0);
@@ -552,21 +559,24 @@ function phaseGrid(o) {
         // 法則で作動周期が変わることがある（倍速）。基本の周期で描くと、表と実機がずれる。
         const period = periodOf(part);
         const fires = part && firesOfRuleset(rules)(c, i, period);
+        const followed = Boolean(entry?.followed);
+        const active = Boolean(fires || followed);
         const value = entry ? (entry.damage || entry.shieldGained || entry.healed || 0) : 0;
         const defensive = entry ? Boolean(entry.shieldGained) : (part && isDefensive(part));
         const gain = entry && entry.gain !== undefined && entry.gain !== 1 ? entry.gain : null;
         const cell = el("div", {
-          className: `cell${fires ? " fire" : ""}${defensive && fires ? " def" : ""}`
+          className: `cell${active ? " fire" : ""}${defensive && active ? " def" : ""}`
             + `${gain > 1 ? " relay" : ""}${gain && gain < 1 ? " damped" : ""}`
-            + `${defensive && fires && enemyHits(c) ? " aligned" : ""}`
+            + `${defensive && active && enemyHits(c) ? " aligned" : ""}`
         });
         if (entry) {
           cell.append(el("span", { className: "cell-value", textContent: String(value || "·") }));
           // 倍率を数字の横に出す。**法則は毎ラン変わるので、
           // 説明文を読んで覚えるより、効いているのを見て分かる方が速い。**
           if (gain) cell.append(el("span", { className: "cell-gain", textContent: `×${gain}` }));
+          if (followed) cell.append(el("span", { className: "cell-follow", textContent: "追従" }));
         } else {
-          cell.textContent = fires && c <= trace.cycles ? "·" : "";
+          cell.textContent = active && c <= trace.cycles ? "·" : "";
         }
         grid.append(cell);
       }
@@ -691,6 +701,7 @@ function draw() {
 
   if (playback) { screen.append(...battleScreen(o)); return; }
   if (o.done) { screen.append(...endScreen(o)); return; }
+  if (o.phase === "chip") { screen.append(...chipScreen(o)); return; }
   if (o.phase === "reward") { screen.append(...rewardScreen(o)); return; }
   screen.append(...buildScreen(o));
 }
@@ -704,7 +715,7 @@ function draw() {
 // 別々に書くと、片方だけ直したときに黙って食い違う（一晩で何度もやった形）。
 function verdictOf(o, rules) {
   const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
-  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  const slots = o.slots.map(x => slotModel(x.part));
   if (!enemy || !slots.some(Boolean)) return null;
   const r = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
   const lost = o.hp - r.hp;
@@ -977,6 +988,59 @@ function skipOfferCard(o, rules) {
   return card;
 }
 
+function openChipMove(partId, o) {
+  const targets = [...o.slots.map(slot => slot.part), ...o.inventory]
+    .filter(part => part && part.id !== partId && !part.chip);
+  const list = $("#gameChoices");
+  list.replaceChildren(
+    el("div", { className: "small", textContent: "移動先を選ぶと、チップは元の部品から外れてこちらへ付きます。" }),
+    ...targets.map(target => el("button", {
+      className: "btn wide", style: "margin-top:8px; text-align:left",
+      textContent: `${target.icon} ${target.name}（${periodLabel(target)}）`,
+      onclick: () => {
+        $("#gameDialog").close();
+        act({ type: "moveChip", fromPartId: partId, toPartId: target.id });
+        draw();
+      }
+    }))
+  );
+  $("#gameDialog").showModal();
+}
+
+function chipScreen(o) {
+  const rules = rulesetOf(session.ruleset);
+  const chip = rules.chipTypes?.[o.chipOffer?.type];
+  const card = el("div", { className: "card" });
+  card.append(el("h2", { textContent: "変異チップを得た" }));
+  card.append(el("div", { className: "small", textContent: chip
+    ? `${chip.name}：${chip.description}`
+    : "チップの説明を読み込めませんでした。" }));
+  card.append(el("div", { className: "warn", textContent: "このチップは拒否・リロールできません。取り付け先だけを選びます。" }));
+  const parts = [...o.slots.map(slot => slot.part), ...o.inventory].filter(Boolean);
+  const list = el("div", { className: "parts", style: "margin-top:10px" });
+  parts.forEach(part => {
+    list.append(el("button", {
+      className: "part", disabled: Boolean(part.chip),
+      onclick: () => {
+        if (part.chip) return;
+        act({ type: "attachChip", partId: part.id });
+        draw();
+      }
+    }, [
+      el("span", { className: "icon", textContent: part.icon }),
+      el("span", { className: "grow" }, [
+        el("div", { className: "name" }, [document.createTextNode(part.name), lineBadge(part), chipBadge(part)]),
+        el("div", { className: "desc", textContent: part.chip ? `装着済み：${part.chip.name}` : descOf(part) })
+      ])
+    ]));
+  });
+  card.append(list);
+  card.append(el("div", { className: "actions", style: "margin-top:10px" }, [
+    el("button", { className: "btn", textContent: "気持ち", onclick: () => openMark() })
+  ]));
+  return [statusCard(o), card];
+}
+
 function buildScreen(o) {
   // **操作に使う3つを上へ、参照用の札を下へ。**
   //
@@ -1037,7 +1101,8 @@ function buildScreen(o) {
     detail.append(el("div", { className: "small", textContent: `枠${selectedSlot + 1}では ${cyclesText(selectedSlot, periodOf(p))} に作動` }));
     slotCard.append(detail);
     slotCard.append(el("div", { className: "actions", style: "margin-top:8px" }, [
-      el("button", { className: "btn", textContent: "この枠を外す", onclick: () => { act({ type: "remove", slot: selectedSlot + 1 }); selectedSlot = null; draw(); } })
+      el("button", { className: "btn", textContent: "この枠を外す", onclick: () => { act({ type: "remove", slot: selectedSlot + 1 }); selectedSlot = null; draw(); } }),
+      p.chip && rules.chipTypes ? el("button", { className: "btn", textContent: "チップを別の部品へ", onclick: () => openChipMove(p.id, o) }) : null
     ]));
   }
   out.push(slotCard);
@@ -1056,6 +1121,7 @@ function buildScreen(o) {
           el("div", { className: "name" }, [
             document.createTextNode(p.name),
             lineBadge(p),
+            chipBadge(p),
             el("span", { className: "tag", textContent: periodLabel(p) }),
             p.rare ? el("span", { className: "tag", textContent: "レア" }) : null
           ]),
@@ -1065,8 +1131,12 @@ function buildScreen(o) {
     });
     inv.append(list);
     if (selectedPartId) {
+      const selectedPart = o.inventory.find(part => part.id === selectedPartId);
       inv.append(el("div", { className: "actions", style: "margin-top:8px" }, [
-        el("button", { className: "btn", textContent: "分解して◆1", onclick: () => { act({ type: "scrapPart", partId: selectedPartId }); selectedPartId = null; draw(); } })
+        el("button", { className: "btn", textContent: "分解して◆1", onclick: () => { act({ type: "scrapPart", partId: selectedPartId }); selectedPartId = null; draw(); } }),
+        selectedPart?.chip && rules.chipTypes
+          ? el("button", { className: "btn", textContent: "チップを別の部品へ", onclick: () => openChipMove(selectedPart.id, o) })
+          : null
       ]));
     }
     out.push(inv);
@@ -1131,7 +1201,7 @@ function outcomePanel(o) {
   const rules = rulesetOf(session.ruleset);
   const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
   if (!enemy) return el("div", { className: "small", textContent: "" });
-  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  const slots = o.slots.map(x => slotModel(x.part));
   if (!slots.some(Boolean)) {
     return el("div", { className: "verdict", textContent: "枠に部品を置くと、その並びの結果がここに出る" });
   }
@@ -1191,7 +1261,7 @@ function outcomePanel(o) {
 // 試した並びの記録。画面は同じ並びを何度も描き直すので、直前と同じなら数えない。
 let lastPreviewSignature = null;
 function notePreview(slots, result) {
-  const signature = slots.map(s => (s ? s.type : "-")).join(",");
+  const signature = slots.map(s => (s ? `${s.type}${s.chip ? `@${s.chip.type}` : ""}` : "-")).join(",");
   if (signature === lastPreviewSignature) return;
   lastPreviewSignature = signature;
   // act() を通す。session.actions に入れないと、再読み込み時の再生で試行の記録が消える。
@@ -1214,7 +1284,8 @@ function periodOf(part) {
   if (!part) return 1;
   const rules = rulesetOf(session.ruleset);
   const base = part.period ?? 1;
-  return rules.periodOf ? rules.periodOf(part) : base;
+  if (part.effectivePeriod !== undefined) return part.effectivePeriod;
+  return rules.periodOf ? rules.periodOf(part, part.chip?.type) : base;
 }
 
 // 「周期N」の札。**法則で変わっているときは、素の値も添える。**
@@ -1231,10 +1302,14 @@ function periodLabel(part, prefix = "周期") {
 function descOf(part) {
   const base = part.period ?? 1;
   const eff = periodOf(part);
-  if (!part.desc || eff === base) return part.desc || "";
-  const head = eff === 1 ? "毎巡回" : `${eff}巡に1回`;
-  const rewritten = part.desc.replace(/^(毎巡回|\d+巡に1回)/, head);
-  return rewritten === part.desc ? `${part.desc}（この法則では${head}）` : rewritten;
+  const core = !part.desc ? "" : (eff === base
+    ? part.desc
+    : (() => {
+      const head = eff === 1 ? "毎巡回" : `${eff}巡に1回`;
+      const rewritten = part.desc.replace(/^(毎巡回|\d+巡に1回)/, head);
+      return rewritten === part.desc ? `${part.desc}（この法則では${head}）` : rewritten;
+    })());
+  return part.chip?.description ? `${core} 【${part.chip.name}】${part.chip.description}` : core;
 }
 
 function cyclesText(slotIndex, period) {
@@ -1268,7 +1343,7 @@ function readyToFight(rules) {
 function machinePrediction(rules) {
   const o = run.observe();
   const enemy = rules.ENEMIES[o.battleNumber - 1] || rules.ENEMIES[rules.ENEMIES.length - 1];
-  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  const slots = o.slots.map(x => slotModel(x.part));
   const result = rules.simulateBattle({ slots, hp: o.hp, maxHp: o.maxHp, enemy, rng: makeRng(1) });
   // ルールセット自身の判定を使う。画面の言葉と記録の水準がずれないようにする。
   const level = rules.outcomeLevel(result.won, result.hp, result.cycles);
@@ -1352,7 +1427,7 @@ function trySkip() {
   // 効果としてはランの終わりで `act` が弾かれて止まっていたが、
   // **番人が黙っていることに気づかないまま出していた。**
   if (o.done) return false;
-  const slots = o.slots.map(x => (x.part ? { id: x.part.id, type: x.part.type } : null));
+  const slots = o.slots.map(x => slotModel(x.part));
   if (!slots.some(Boolean)) return false;
   const enemy = rules.ENEMIES[o.battleNumber - 1];
   if (!enemy) return false;
@@ -1993,6 +2068,7 @@ $("#gameButton").addEventListener("click", () => {
       href: "../puzzle/" }]);
     entries.unshift(["laws", { title: `法則機関 / LAWS 0.5（${lawVariants.length}通りの法則の組・比較の相手）` }]);
     entries.unshift(["skip", { title: "連勝機関 / SKIP 0.4（連勝が得点。触らずに勝てた戦闘は飛ばす）" }]);
+    entries.unshift(["mutate", { title: "変異機関 / MUTATE 0.1（途中で部品の意味が変わる）" }]);
   }
   list.replaceChildren(...entries.map(([key, rules]) => el("button", {
     className: `btn wide${key === String(session.ruleset).toLowerCase() ? " primary" : ""}`,

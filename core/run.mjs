@@ -27,7 +27,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     seed, playerId, ruleset: ruleset.id,
     phase: "build", wave: 0, hp: MAX_HP, maxHp: MAX_HP, scrap: 1,
     inventory: [], slots: Array(SLOT_COUNT).fill(null),
-    offer: null, done: false, won: false,
+    offer: null, chipOffer: null, done: false, won: false,
     lastBattle: null, battles: [], rewards: [],
     trace: [], seq: 0, edits: newEdits(),
     previews: [], previewsAfterFirstWin: 0, sawWinningPreview: false
@@ -62,15 +62,20 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
 
   record("run_started", { initial: state.inventory.map(p => PARTS[p.type].name) });
 
-  const view = instance => instance && ({
-    id: instance.id, type: instance.type, name: PARTS[instance.type].name,
-    icon: PARTS[instance.type].icon, short: PARTS[instance.type].short,
-    desc: PARTS[instance.type].desc, tags: PARTS[instance.type].tags,
-    cost: PARTS[instance.type].cost,
-    period: PARTS[instance.type].period,
-    line: PARTS[instance.type].line,
-    rare: Boolean(PARTS[instance.type].rare), acquiredWave: instance.acquiredWave + 1
-  });
+  const view = instance => {
+    if (!instance) return null;
+    const extra = typeof ruleset.viewPart === "function" ? ruleset.viewPart(instance) : {};
+    return {
+      id: instance.id, type: instance.type, name: PARTS[instance.type].name,
+      icon: PARTS[instance.type].icon, short: PARTS[instance.type].short,
+      desc: PARTS[instance.type].desc, tags: PARTS[instance.type].tags,
+      cost: PARTS[instance.type].cost,
+      period: PARTS[instance.type].period,
+      line: PARTS[instance.type].line,
+      rare: Boolean(PARTS[instance.type].rare), acquiredWave: instance.acquiredWave + 1,
+      ...extra
+    };
+  };
 
   const currentEnemy = () => ENEMIES[Math.min(state.wave, ENEMIES.length - 1)];
 
@@ -96,6 +101,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       slots: state.slots.map((instance, i) => ({ slot: i + 1, part: view(instance) })),
       inventory: state.inventory.map(view),
       upcomingEnemy: state.done ? null : enemyView(),
+      chipOffer: state.phase === "chip" ? state.chipOffer : null,
       lastBattle: state.lastBattle,
       // これまでの戦闘の要約。**対比較で「1本目に何が起きたか」を思い出すのに要る。**
       // ログや寄与は重いので落とし、画面に出す分だけにする。
@@ -114,6 +120,12 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
 
   function legalActions() {
     if (state.done) return [];
+    if (state.phase === "chip") {
+      return [
+        { type: "attachChip", args: { partId: "owned part id" }, note: "変異チップを部品へ取り付ける" },
+        { type: "mark", args: { kind: MARKER_KINDS.join("|"), note: "string" } },
+      ];
+    }
     if (state.phase === "reward") {
       return [
         { type: "take", args: { choice: `1..${REWARD_CHOICES}`, reason: "string", update: `one of ${UPDATE_KINDS.join("|")}`, updateText: "string" } },
@@ -144,6 +156,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       return { ok: true, observation: observe() };
     }
 
+    if (state.phase === "chip") return actChip(action);
     if (state.phase === "reward") return actReward(action);
     return actBuild(action);
   }
@@ -155,8 +168,10 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     // これまで観測できたのは各戦闘の最終的な並びだけで、そこへ至る試行は一度も見ていなかった。
     // 「ガチャガチャやってれば大体勝てる」という報告を、こちらは数字で確かめられなかった。
     // 勝てる並びを見つけた後もさらに試したかどうかが、志が効いているかの直接の証拠になる。
+    if (type === "moveChip") return moveChip(action);
+
     if (type === "preview") {
-      const signature = String(action.signature || "").slice(0, 80);
+      const signature = String(action.signature || "").slice(0, 120);
       if (state.previews.length < 200 && signature) {
         state.previews.push({
           sig: signature, won: Boolean(action.won),
@@ -217,6 +232,50 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     }
     if (type === "battle") return runBattle(action);
     return fail(`unknown action "${type}" in build phase`);
+  }
+
+  function ownedPart(partId) {
+    return [...state.slots, ...state.inventory].find(part => part && part.id === partId) || null;
+  }
+
+  function chipLabel(type) {
+    return ruleset.chipTypes?.[type]?.name || type;
+  }
+
+  function actChip(action) {
+    if (!state.chipOffer || !ruleset.chipTypes) return fail("no chip is waiting");
+    const target = ownedPart(action.partId);
+    if (!target) return fail("no such part");
+    if (target.chip) return fail("that part already has a chip");
+    target.chip = { ...state.chipOffer };
+    record("chip_attached", {
+      chip: chipLabel(target.chip.type), chipType: target.chip.type,
+      target: PARTS[target.type].name, targetType: target.type, targetId: target.id,
+      battleNumber: state.wave
+    });
+    state.chipOffer = null;
+    state.phase = "reward";
+    return offerReward();
+  }
+
+  function moveChip(action) {
+    if (!ruleset.chipTypes) return fail("chips are not available");
+    const source = ownedPart(action.fromPartId);
+    const target = ownedPart(action.toPartId);
+    if (!source || !source.chip) return fail("source part has no chip");
+    if (!target) return fail("no such target part");
+    if (source.id === target.id) return fail("choose another part");
+    if (target.chip) return fail("target part already has a chip");
+    const chip = source.chip;
+    source.chip = null;
+    target.chip = chip;
+    record("chip_moved", {
+      chip: chipLabel(chip.type), chipType: chip.type,
+      from: PARTS[source.type].name, fromType: source.type, fromPartId: source.id,
+      to: PARTS[target.type].name, toType: target.type, toPartId: target.id,
+      battleNumber: state.wave + 1
+    });
+    return { ok: true, observation: observe() };
   }
 
   function runBattle(action) {
@@ -284,6 +343,15 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       prediction: action.prediction, expectedLevel: expected, actualLevel: actual, surprise,
       buildSignature: signature, worry: action.worry,
       grade: grade ? grade.label : null, gradeRank: grade ? grade.rank : null,
+      // 追従軸は通常周期ではない追加作動なので、戦闘ログから独立して保存する。
+      // condensed log だけでは「発動したのに見えない」状態を再検証できない。
+      followedActivations: (result.log || [])
+        .filter(entry => entry.followed)
+        .map(entry => ({
+          cycle: entry.cycle, slot: entry.slot, part: entry.part,
+          damage: entry.damage || 0, shieldGained: entry.shieldGained || 0,
+          healed: entry.healed || 0
+        })),
       // **失点の内訳を、送られる記録に載せる。**
       // 戦闘の要約（summary）にだけ入れていたが、要約は端末に残るだけで
       // **通報には入らない。**「代償の版で暴走がどれだけ鳴ったか」は
@@ -320,6 +388,20 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     }
 
     state.wave += 1;
+    if (Array.isArray(ruleset.chipAfterBattles) && ruleset.chipAfterBattles.includes(state.wave)) {
+      const type = ruleset.nextChip({ rng, wave: state.wave });
+      state.chipOffer = { id: `chip-${state.wave}`, type };
+      state.phase = "chip";
+      record("chip_offered", {
+        chip: ruleset.chipTypes?.[type]?.name || type, chipType: type,
+        battleNumber: state.wave
+      });
+      return { ok: true, battle: summary, observation: observe() };
+    }
+    return offerReward();
+  }
+
+  function offerReward() {
     state.phase = "reward";
     const types = [];
     while (types.length < REWARD_CHOICES) {
@@ -328,7 +410,7 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
     }
     state.offer = types.map(makePart);
     record("reward_offered", { offered: types.map(t => PARTS[t].name) });
-    return { ok: true, battle: summary, observation: observe() };
+    return { ok: true, observation: observe() };
   }
 
   function actReward(action) {
@@ -390,7 +472,8 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
         entry.boostSet ? `次へ＋${entry.boostSet}` : ""
       ].filter(Boolean).join(" / ");
       const hit = bits ? `（${bits}）` : "";
-      return `巡${entry.cycle}${where} ${entry.part}${cost}：${entry.text}${hit} → 敵HP${entry.after.enemyHp}${state ? " " + state : ""}`;
+      const followed = entry.followed ? "【追従で追加作動】" : "";
+      return `巡${entry.cycle}${where} ${followed}${entry.part}${cost}：${entry.text}${hit} → 敵HP${entry.after.enemyHp}${state ? " " + state : ""}`;
     });
   }
 
@@ -416,7 +499,14 @@ export function createRun({ seed, playerId = "unknown", ruleset = ARC }) {
       seed: state.seed, ruleset: state.ruleset, playerId: state.playerId,
       won: state.won, reached: state.wave + 1, finalHp: state.hp,
       battles: state.battles.map(b => ({ ...b, log: undefined })),
-      rewards: state.rewards, events: state.trace
+      rewards: state.rewards,
+      finalBuild: [...state.slots, ...state.inventory].filter(Boolean).map(instance => ({
+        id: instance.id, type: instance.type, name: PARTS[instance.type].name,
+        chip: instance.chip ? { ...instance.chip } : null
+      })),
+      chips: [...state.slots, ...state.inventory].filter(instance => instance?.chip)
+        .map(instance => ({ partId: instance.id, partType: instance.type, chip: { ...instance.chip } })),
+      events: state.trace
     };
   }
 

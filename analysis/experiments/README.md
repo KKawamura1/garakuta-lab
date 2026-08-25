@@ -1,0 +1,55 @@
+# 実験票とSol / Terraの対応表
+
+各実験では、Solの依頼を `R`、それに対するTerraの回答を `A` として、時系列に並べる。
+
+## EXP-01 MUTATION
+
+- [R1_MUTATION.md](./exp-01/R1_MUTATION.md) — 初回実験依頼
+- [A1_TERRA_IMPLEMENTATION/](./exp-01/A1_TERRA_IMPLEMENTATION/) — R1への実装・検査・人間テスト回答
+  - [1_RESULT.md](./exp-01/A1_TERRA_IMPLEMENTATION/1_RESULT.md)
+- [R2_STRUCTURE_GATE.md](./exp-01/R2_STRUCTURE_GATE.md) — 構造ゲート・seed選定の追加依頼
+- [A2_TERRA_STRUCTURE_GATE/](./exp-01/A2_TERRA_STRUCTURE_GATE/) — R2への測定回答
+  - [1_STRUCTURE_GATE.md](./exp-01/A2_TERRA_STRUCTURE_GATE/1_STRUCTURE_GATE.md)
+  - [2_SEED29_CERTIFICATE.md](./exp-01/A2_TERRA_STRUCTURE_GATE/2_SEED29_CERTIFICATE.md)
+- [R3_MUTATION_DECISION.md](./exp-01/R3_MUTATION_DECISION.md) — EXP-01判定後の自動分析依頼
+- [A3_TERRA_DECISION_ANALYSIS/](./exp-01/A3_TERRA_DECISION_ANALYSIS/) — R3への分析回答
+  - [1_DECISION_ANALYSIS.md](./exp-01/A3_TERRA_DECISION_ANALYSIS/1_DECISION_ANALYSIS.md)
+
+## EXP-02 DISCOVERY
+
+- [R1_DISCOVERY.md](./exp-02/R1_DISCOVERY.md) — 自動ゲート・人間テスト判断の依頼
+- [A1_TERRA_GATES/](./exp-02/A1_TERRA_GATES/) — R1へのゲート回答
+  - [1_GATE_A_CORRECTNESS.md](./exp-02/A1_TERRA_GATES/1_GATE_A_CORRECTNESS.md)
+  - [2_GATE_B_SEARCH_RESISTANCE.md](./exp-02/A1_TERRA_GATES/2_GATE_B_SEARCH_RESISTANCE.md)
+  - [3_GATE_C_SOLUTION_THICKNESS.md](./exp-02/A1_TERRA_GATES/3_GATE_C_SOLUTION_THICKNESS.md)
+  - [4_GATE_D_SELECTION.md](./exp-02/A1_TERRA_GATES/4_GATE_D_SELECTION.md)
+  - [5_GATE_REPORT_AND_PAST_LOGS.md](./exp-02/A1_TERRA_GATES/5_GATE_REPORT_AND_PAST_LOGS.md)
+- [R2_SOL_DECISION.md](./exp-02/R2_SOL_DECISION.md) — A1と既存2プレイを踏まえた最終判定
+
+## EXP-03 CONTROL
+
+- [R1_CONTROL.md](./exp-03/R1_CONTROL.md) — 戦闘中の部品選択を主動詞にする独立試作の依頼
+- [A1_TERRA_GATES/](./exp-03/A1_TERRA_GATES/) — R1への計算実装・自動ゲート回答
+  - [README.md](./exp-03/A1_TERRA_GATES/README.md)
+  - [1_GATE_A.md](./exp-03/A1_TERRA_GATES/1_GATE_A.md)
+  - [2_GATE_B.md](./exp-03/A1_TERRA_GATES/2_GATE_B.md)
+  - [3_GATE_C.md](./exp-03/A1_TERRA_GATES/3_GATE_C.md)
+  - [4_GATE_D.md](./exp-03/A1_TERRA_GATES/4_GATE_D.md)
+
+
+- [A2_TERRA_HUMAN/](./exp-03/A2_TERRA_HUMAN/) — CONTROL 0.1の実装修正・人間テスト回答
+  - [1_REPORT.md](./exp-03/A2_TERRA_HUMAN/1_REPORT.md)
+- [R2_SOL_CONTROL_0_1_DECISION.md](./exp-03/R2_SOL_CONTROL_0_1_DECISION.md) — CONTROL 0.1の判定
+- [R3_SOL_CONTROL_0_2.md](./exp-03/R3_SOL_CONTROL_0_2.md) — 直接ゲートと公開条件を指定したCONTROL 0.2再実験
+- [A3_LUNA_CONTROL_0_2/](./exp-03/A3_LUNA_CONTROL_0_2/) — R3へのLuna実装・ゲート不通過停止回答
+- [R4_SOL_CONTROL_0_2_GATE_AUDIT.md](./exp-03/R4_SOL_CONTROL_0_2_GATE_AUDIT.md) — Terra引継ぎ、ゲート監査修復、Gate C未定義動作への正式指示
+- [A4_TERRA_CONTROL_0_2_GATE_AUDIT/](./exp-03/A4_TERRA_CONTROL_0_2_GATE_AUDIT/) — R4へのTerra監査・修復・再探索回答
+- [R5_SOL_CONTROL_0_2_EXACT_SEARCH_BUDGET.md](./exp-03/R5_SOL_CONTROL_0_2_EXACT_SEARCH_BUDGET.md) — 完全性を維持した同値最適化と10,000 seed実行予算の判断
+- [R6_SOL_CONTROL_0_2_GATE_E_QUANTIFIER_FIX.md](./exp-03/R6_SOL_CONTROL_0_2_GATE_E_QUANTIFIER_FIX.md) — Gate Eを修正し、目的・不変条件・HOW委任型で最後の測定を行う指示
+- [A6_TERRA_CONTROL_0_2_GATE_E_QUANTIFIER_FIX/](./exp-03/A6_TERRA_CONTROL_0_2_GATE_E_QUANTIFIER_FIX/) — R6への反証レビュー・preflight・完全探索回答。Gate E 0件でCONTROL 0.2を凍結
+
+## EXP-04 GRAFT
+
+- [R1_GRAFT.md](./exp-04/R1_GRAFT.md) — 固定3行動へ不可逆な性質変異を接ぎ木する独立計算試作
+
+質問票の直後に回答フォルダを置き、回答が複数ファイルに分かれる場合は、そのフォルダ内で連番化する。

@@ -465,8 +465,8 @@ if (only) {
 // 端末によっては解釈できず、画面が丸ごと出なくなる（作者の iPhone で実際に起きた）。
 writeFileSync(OUT_PATH,
   `// 出してよい法則の組の表。**analysis/tune-laws.mjs が生成する。手で編集しない。**\n`
-  + `//\n// 生成条件（T1 詰みを作らない／T2 締まっている／T3 順序が効く）と、\n`
-  + `// 天井の条件（最上位の等級が1戦で半数以上に到達されない）を通った組だけが載っている。\n\n`
+  + `//\n// 生成条件（T1 詰みを作らない／T2 締まっている／T3 順序が効く）を通った組が載る。\n`
+  + `// 天井は測って ceilingPassed に残す。--noceiling で生成した表では合否に使わない。\n\n`
   + (COST ? `// **暴走あり（代償の版）の表。** 素の表とは別物である。\n\n` : "")
   + `export const ${OUT_NAME} = ${JSON.stringify(table, null, 1)};\n\nexport default ${OUT_NAME};\n`);
 
