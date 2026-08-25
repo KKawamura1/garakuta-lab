@@ -1,0 +1,342 @@
+{
+  "test": "EXP-04 Gate D preflight",
+  "fixture": {
+    "playerHp": 20,
+    "battles": [
+      {
+        "enemyHp": 20,
+        "attacks": [
+          2,
+          0,
+          0,
+          2,
+          0,
+          0
+        ]
+      },
+      {
+        "enemyHp": 20,
+        "attacks": [
+          2,
+          0,
+          0,
+          2,
+          0,
+          0
+        ]
+      },
+      {
+        "enemyHp": 20,
+        "attacks": [
+          2,
+          0,
+          0,
+          2,
+          0,
+          0
+        ]
+      },
+      {
+        "enemyHp": 20,
+        "attacks": [
+          2,
+          0,
+          0,
+          2,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "policies": {
+    "fixedWinningSequence": {
+      "readsNextAttack": false,
+      "actionRule": "emit the fixed action at the current turn index",
+      "sequence": [
+        "generate",
+        "attack",
+        "attack",
+        "generate",
+        "attack",
+        "attack"
+      ],
+      "outcome": {
+        "win": true,
+        "hp": 4,
+        "battleResults": [
+          {
+            "win": true,
+            "hp": 16,
+            "trace": [
+              {
+                "turn": 1,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 20
+              },
+              {
+                "turn": 2,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 18
+              },
+              {
+                "turn": 3,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 15,
+                "playerHpBefore": 18
+              },
+              {
+                "turn": 4,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 18
+              },
+              {
+                "turn": 5,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 16
+              },
+              {
+                "turn": 6,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 5,
+                "playerHpBefore": 16
+              }
+            ]
+          },
+          {
+            "win": true,
+            "hp": 12,
+            "trace": [
+              {
+                "turn": 1,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 16
+              },
+              {
+                "turn": 2,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 14
+              },
+              {
+                "turn": 3,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 15,
+                "playerHpBefore": 14
+              },
+              {
+                "turn": 4,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 14
+              },
+              {
+                "turn": 5,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 12
+              },
+              {
+                "turn": 6,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 5,
+                "playerHpBefore": 12
+              }
+            ]
+          },
+          {
+            "win": true,
+            "hp": 8,
+            "trace": [
+              {
+                "turn": 1,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 12
+              },
+              {
+                "turn": 2,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 10
+              },
+              {
+                "turn": 3,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 15,
+                "playerHpBefore": 10
+              },
+              {
+                "turn": 4,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 10
+              },
+              {
+                "turn": 5,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 8
+              },
+              {
+                "turn": 6,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 5,
+                "playerHpBefore": 8
+              }
+            ]
+          },
+          {
+            "win": true,
+            "hp": 4,
+            "trace": [
+              {
+                "turn": 1,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 8
+              },
+              {
+                "turn": 2,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 6
+              },
+              {
+                "turn": 3,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 15,
+                "playerHpBefore": 6
+              },
+              {
+                "turn": 4,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 6
+              },
+              {
+                "turn": 5,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 4
+              },
+              {
+                "turn": 6,
+                "action": "attack",
+                "energyBefore": 1,
+                "enemyHpBefore": 5,
+                "playerHpBefore": 4
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "alternatingSequence": {
+      "readsNextAttack": false,
+      "actionRule": "generate on odd turns and attack on even turns",
+      "sequence": [
+        "generate",
+        "attack",
+        "generate",
+        "attack",
+        "generate",
+        "attack"
+      ],
+      "outcome": {
+        "win": false,
+        "failedBattle": 1,
+        "hp": 16,
+        "battleResults": [
+          {
+            "win": false,
+            "reason": "turn-limit",
+            "hp": 16,
+            "trace": [
+              {
+                "turn": 1,
+                "action": "generate",
+                "energyBefore": 0,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 20
+              },
+              {
+                "turn": 2,
+                "action": "attack",
+                "energyBefore": 2,
+                "enemyHpBefore": 20,
+                "playerHpBefore": 18
+              },
+              {
+                "turn": 3,
+                "action": "generate",
+                "energyBefore": 1,
+                "enemyHpBefore": 15,
+                "playerHpBefore": 18
+              },
+              {
+                "turn": 4,
+                "action": "attack",
+                "energyBefore": 3,
+                "enemyHpBefore": 15,
+                "playerHpBefore": 18
+              },
+              {
+                "turn": 5,
+                "action": "generate",
+                "energyBefore": 2,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 16
+              },
+              {
+                "turn": 6,
+                "action": "attack",
+                "energyBefore": 4,
+                "enemyHpBefore": 10,
+                "playerHpBefore": 16
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "observations": [
+    "A no-nextAttack policy can complete the same finite fixture when it emits a fixed winning action sequence.",
+    "Another no-nextAttack policy fails on the same fixture.",
+    "Therefore the phrase 'no nextAttack policy can complete' has no determinate truth value until the policy class and its information boundary are fixed."
+  ],
+  "literalGateDImplication": {
+    "unrestrictedOptimalPathRequired": true,
+    "anyFiniteWinningSequenceCanBeEncodedAsTurnOnlyPolicy": true,
+    "literalUniversalNoNextAttackFailureIsIncompatibleWithThatRequirement": true
+  }
+}
