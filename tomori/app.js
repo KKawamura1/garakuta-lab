@@ -350,10 +350,10 @@ function bindInteractions() {
   app.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => choose(button.dataset.action)));
   app.querySelectorAll("[data-next]").forEach(button => button.addEventListener("click", nextDay));
   app.querySelectorAll("[data-emotion]").forEach(button => button.addEventListener("click", () => recordEmotion(button.dataset.emotion)));
-  app.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", () => {
+  app.querySelectorAll("[data-start]").forEach(button => button.onclick = () => {
     app.dataset.clicked = "yes";
     startGame();
-  }));
+  });
   app.querySelectorAll("[data-resume]").forEach(button => button.addEventListener("click", render));
   app.querySelectorAll("[data-restart]").forEach(button => button.addEventListener("click", () => { state = null; render(); }));
   app.querySelectorAll("[data-resend]").forEach(button => button.addEventListener("click", sendCurrent));
