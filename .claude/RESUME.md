@@ -1,5 +1,9 @@
 # 起きたときに読むもの
 
+## 現在の設計判断への注意（2026-08-26）
+
+このファイルは、停止した定期運用を再開するための歴史的な runbook と、当時の作業記録です。現在の設計キューやゲームの判定はここから始めず、[PROJECT_MEMORY.md](../PROJECT_MEMORY.md)、[analysis/CURRENT.md](../analysis/CURRENT.md)、[analysis/EXPERIMENT_LEDGER.md](../analysis/EXPERIMENT_LEDGER.md)、[docs/AGENT_ONBOARDING.md](../docs/AGENT_ONBOARDING.md) を先に読みます。以下の古い計画・seed・担当分けは、過去を再現するとき以外は現行の指示ではありません。本文は歴史を保つため削除していません。
+
 > **【停止中】2026-08-25 18:30 JST、作者の指示で毎時の定期便を止めた。**
 > 「いったん定期便を止めましょう」
 >
