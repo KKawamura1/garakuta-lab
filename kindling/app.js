@@ -623,6 +623,7 @@ function showFinal() {
 function markEmotion(kind) {
   const marker = MARKERS.find(function (item) { return item.kind === kind; });
   if (!marker) return;
+  const note = String(state.noteDraft || "").trim();
   record(state, {
     type: "emotion_marked",
     kind: kind,
@@ -630,11 +631,13 @@ function markEmotion(kind) {
     phase: state.phase,
     stage: state.stage,
     scene: currentScene().title,
-    note: state.noteDraft || ""
+    note: note
   });
+  state.noteDraft = "";
   message = marker.label + " を記録した。";
   chirp("marker");
   persist();
+  render();
   const button = document.querySelector("[data-marker=\"" + kind + "\"]");
   if (button) {
     button.classList.add("is-flashed");
