@@ -60,7 +60,7 @@ function buildNameList(state) {
 export function buildScraplinePayload(state, options = {}) {
   ensureTelemetry(state);
   const events = state.telemetry.events || [];
-  const moments = (state.markers || []).map((marker, index) => ({
+  const moments = (state.markers || []).slice(-200).map((marker, index) => ({
     seq: index + 1,
     at: marker.at || null,
     elapsedMs: marker.at && state.telemetry.startedAt
@@ -103,7 +103,7 @@ export function buildScraplinePayload(state, options = {}) {
     },
     answers: state.survey || {},
     client: clientFor(state),
-    events,
+    events: events.slice(-2000),
     moments,
   };
 }
@@ -125,4 +125,3 @@ export async function sendScraplineTelemetry(state) {
     return { ok: false, error: state.telemetry.error };
   }
 }
-
