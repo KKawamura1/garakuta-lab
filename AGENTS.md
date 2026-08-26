@@ -1,5 +1,16 @@
 # 作業の約束
 
+## 現在の正史（2026-08-26）
+
+大規模な棚卸しの結果、現在の設計判断と次の実験の入口を新設した。
+
+- [PROJECT_MEMORY.md](./PROJECT_MEMORY.md)：現在の結論、反復失敗、未検証の方向、次の実験案
+- [analysis/CURRENT.md](./analysis/CURRENT.md)：短縮版の現在地
+- [analysis/EXPERIMENT_LEDGER.md](./analysis/EXPERIMENT_LEDGER.md)：全実験の仮説・証拠・判定・持ち越し
+- [docs/AGENT_ONBOARDING.md](./docs/AGENT_ONBOARDING.md)：新しいエージェントの読み順と作業手順
+
+これらを、個別の実験票と作者の生ログへ入る前に読むこと。古い文書、Sol/Terra 分業の記録、Claude向けの手順、RESUME は削除しないが、現在の設計キューと矛盾するときは上記の現行資料を優先する。歴史的な仮説の実装条件が成立していなかった場合は、反証ではなく「未検証」として扱う。
+
 ## この企画が何をしているか
 
 **最終目的は、作者自身が中身を知った後も繰り返し遊びたい、面白いゲームを作ること。**
