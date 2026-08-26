@@ -22,8 +22,10 @@ function newRunId() {
 }
 
 export function ensureTelemetry(state, now = nowIso()) {
-  state.telemetry ||= { runId: newRunId(), startedAt: now, events: [], sentAt: null, error: null };
+  state.telemetry ||= { runId: newRunId(), startedAt: now, events: [], sentAt: null, error: null, pending: false, attempts: 0, lastAttemptAt: null };
   state.telemetry.events ||= [];
+  if (typeof state.telemetry.pending !== "boolean") state.telemetry.pending = false;
+  if (!Number.isInteger(state.telemetry.attempts)) state.telemetry.attempts = 0;
   return state;
 }
 
@@ -88,6 +90,7 @@ export function buildScraplinePayload(state, options = {}) {
     build: buildNameList(state),
     stats: {
       seed: state.seed,
+      starterPattern: state.starterPattern || state.activeCars[0] || null,
       stage: state.stage,
       maxStages: MAX_STAGES,
       hull: state.hull,
@@ -100,6 +103,7 @@ export function buildScraplinePayload(state, options = {}) {
       rebuildCount: state.rebuildCount || 0,
       previewCount: state.previewCount || 0,
       swapCount: state.swapCount || 0,
+      telemetryAttempts: state.telemetry.attempts || 0,
     },
     answers: state.survey || {},
     client: clientFor(state),
@@ -110,12 +114,16 @@ export function buildScraplinePayload(state, options = {}) {
 
 export async function sendScraplineTelemetry(state) {
   ensureTelemetry(state);
+  state.telemetry.pending = true;
+  state.telemetry.attempts += 1;
+  state.telemetry.lastAttemptAt = nowIso();
   try {
     const { deviceIdForRun, sendPayload } = await import("../agent-view/sync.js");
     const result = await sendPayload(buildScraplinePayload(state, { deviceId: deviceIdForRun() }));
     if (result.ok) {
       state.telemetry.sentAt = nowIso();
       state.telemetry.error = null;
+      state.telemetry.pending = false;
     } else {
       state.telemetry.error = result.error || "送信に失敗しました";
     }
