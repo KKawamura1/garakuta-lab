@@ -269,13 +269,18 @@ function render() {
 }
 
 function startGame() {
-  const name = document.querySelector("#new-name")?.value || "";
-  const previous = loadLastResult();
-  state = createGame({ seed: forcedSeed, name, legacy: previous ? { title: previous.title, line: previous.line } : null });
-  record(state, { type: "run_started", name: state.name, origin: state.origin, legacy: Boolean(state.legacy) });
-  record(state, { type: "scene_seen", day: 1, scene: sceneFor(state).title });
-  saveState();
-  render();
+  try {
+    const name = document.querySelector("#new-name")?.value || "";
+    const previous = loadLastResult();
+    state = createGame({ seed: forcedSeed, name, legacy: previous ? { title: previous.title, line: previous.line } : null });
+    record(state, { type: "run_started", name: state.name, origin: state.origin, legacy: Boolean(state.legacy) });
+    record(state, { type: "scene_seen", day: 1, scene: sceneFor(state).title });
+    saveState();
+    render();
+  } catch (error) {
+    console.error("TOMORI start failed", error);
+    showToast("灯りを起こせませんでした。もう一度試してください");
+  }
 }
 
 function recordEmotion(kind) {
@@ -339,22 +344,30 @@ function submitSurvey(form) {
   sendCurrent();
 }
 
+function eventElement(event) {
+  const path = typeof event.composedPath === "function" ? event.composedPath() : [event.target];
+  return path.find(node => node && typeof node.closest === "function") || null;
+}
+
 app.addEventListener("click", event => {
-  const actionButton = event.target.closest("[data-action]");
+  const target = eventElement(event);
+  if (!target) return;
+  const actionButton = target.closest("[data-action]");
   if (actionButton) return choose(actionButton.dataset.action);
-  if (event.target.closest("[data-next]")) return nextDay();
-  if (event.target.closest("[data-emotion]")) return recordEmotion(event.target.closest("[data-emotion]").dataset.emotion);
-  if (event.target.closest("[data-start]")) return startGame();
-  if (event.target.closest("[data-resume]")) return render();
-  if (event.target.closest("[data-restart]")) { state = null; render(); return; }
-  if (event.target.closest("[data-resend]")) return sendCurrent();
+  if (target.closest("[data-next]")) return nextDay();
+  if (target.closest("[data-emotion]")) return recordEmotion(target.closest("[data-emotion]").dataset.emotion);
+  if (target.closest("[data-start]")) return startGame();
+  if (target.closest("[data-resume]")) return render();
+  if (target.closest("[data-restart]")) { state = null; render(); return; }
+  if (target.closest("[data-resend]")) return sendCurrent();
 });
 
 app.addEventListener("submit", event => {
-  if (!event.target.matches("#survey-form")) return;
+  const target = eventElement(event);
+  if (!target || !target.matches("#survey-form")) return;
   event.preventDefault();
-  if (!event.target.reportValidity()) return;
-  submitSurvey(event.target);
+  if (!target.reportValidity()) return;
+  submitSurvey(target);
 });
 
 if (state?.phase === "result" && !state.telemetry?.sentAt) sendCurrent();
