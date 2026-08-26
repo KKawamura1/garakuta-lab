@@ -12,6 +12,8 @@ const MARKER_LABELS = {
   bored: "退屈",
 };
 
+const QUEUE_KEY = "scrapline-telemetry-queue-v1";
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -19,6 +21,55 @@ function nowIso() {
 function newRunId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function readQueue() {
+  if (typeof localStorage === "undefined") return [];
+  try {
+    const value = JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(queue) {
+  if (typeof localStorage === "undefined") return;
+  try { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue.slice(-20))); } catch { /* private mode */ }
+}
+
+export function enqueueScraplinePayload(payload) {
+  const queue = readQueue().filter((entry) => entry?.runId !== payload?.runId);
+  queue.push({ queuedAt: nowIso(), runId: payload?.runId || null, payload });
+  writeQueue(queue);
+  return queue.length;
+}
+
+function removeQueuedRun(runId) {
+  writeQueue(readQueue().filter((entry) => entry?.runId !== runId));
+}
+
+export async function flushScraplineTelemetryQueue() {
+  const queue = readQueue();
+  if (!queue.length || (typeof navigator !== "undefined" && navigator.onLine === false)) return { sent: 0, remaining: queue.length };
+  let sent = 0;
+  const remaining = [];
+  try {
+    const { sendPayload } = await import("../agent-view/sync.js");
+    for (const entry of queue) {
+      try {
+        const result = await sendPayload(entry.payload);
+        if (result.ok) sent += 1;
+        else remaining.push(entry);
+      } catch {
+        remaining.push(entry);
+      }
+    }
+  } catch {
+    return { sent: 0, remaining: queue.length };
+  }
+  writeQueue(remaining);
+  return { sent, remaining: remaining.length };
 }
 
 export function ensureTelemetry(state, now = nowIso()) {
@@ -119,17 +170,21 @@ export async function sendScraplineTelemetry(state) {
   state.telemetry.lastAttemptAt = nowIso();
   try {
     const { deviceIdForRun, sendPayload } = await import("../agent-view/sync.js");
-    const result = await sendPayload(buildScraplinePayload(state, { deviceId: deviceIdForRun() }));
+    const payload = buildScraplinePayload(state, { deviceId: deviceIdForRun() });
+    const result = await sendPayload(payload);
     if (result.ok) {
       state.telemetry.sentAt = nowIso();
       state.telemetry.error = null;
       state.telemetry.pending = false;
+      removeQueuedRun(payload.runId);
     } else {
       state.telemetry.error = result.error || "送信に失敗しました";
+      enqueueScraplinePayload(payload);
     }
     return result;
   } catch (error) {
     state.telemetry.error = error?.message || "送信モジュールを読み込めませんでした";
+    try { enqueueScraplinePayload(buildScraplinePayload(state)); } catch { /* preserve the local run even in private mode */ }
     return { ok: false, error: state.telemetry.error };
   }
 }
