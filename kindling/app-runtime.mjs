@@ -56,7 +56,7 @@ export const PARTS = [
       eyes: { verb: "暗闇を読む", stat: "sense", value: 1 },
       heart: { verb: "燃える", stat: "warm", value: 2 },
       hands: { verb: "火花を散らす", stat: "spark", value: 2 },
-      feet: { verb: "踏ん張る", stat: "guard", value: 1 }
+      feet: { verb: "踏ん張る", stat: "guard", value: 2 }
     }
   },
   {
@@ -103,7 +103,7 @@ export const PARTS = [
     id: "button", name: "知らない服のボタン", glyph: "⊙", color: "#f2a6d1",
     line: "小さいけれど、誰かを思い出す。",
     uses: {
-      eyes: { verb: "顔を思い出す", stat: "bond", value: 1 },
+      eyes: { verb: "顔を思い出す", stat: "bond", value: 2 },
       heart: { verb: "結ぶ", stat: "bond", value: 2 },
       hands: { verb: "とめる", stat: "guard", value: 1 },
       feet: { verb: "ころがる", stat: "dash", value: 1 }
@@ -480,10 +480,18 @@ export function offersFor(state) {
   }).sort(function (a, b) { return b.missing - a.missing; });
   const desired = (deficits[0] && deficits[0].missing > 0) ? deficits[0].stat : Object.keys(route.req)[0];
   const rng = makeRng((Number(state.seed) + (state.stage + 1) * 104729 + hashText(route.id)) >>> 0);
+  const desiredMissing = (deficits[0] && deficits[0].missing > 0) ? deficits[0].missing : 1;
   const helpers = PARTS.filter(function (part) {
+    if (state.slots.indexOf(part.id) >= 0) return false;
+    return Object.values(part.uses).some(function (use) {
+      return use.stat === desired && use.value >= desiredMissing;
+    });
+  });
+  const fallbackHelpers = PARTS.filter(function (part) {
     return Object.values(part.uses).some(function (use) { return use.stat === desired; });
   });
-  const helper = helpers[Math.floor(rng() * helpers.length)];
+  const helperPool = helpers.length ? helpers : fallbackHelpers;
+  const helper = helperPool[Math.floor(rng() * helperPool.length)];
   const others = shuffle(PARTS.filter(function (part) { return part.id !== helper.id; }), rng);
   return shuffle([helper, others[0]], rng).map(function (part) { return part.id; });
 }
