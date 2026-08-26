@@ -346,6 +346,7 @@ function submitSurvey(form) {
 }
 
 function bindInteractions() {
+  app.dataset.bindMode = "direct";
   app.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => choose(button.dataset.action)));
   app.querySelectorAll("[data-next]").forEach(button => button.addEventListener("click", nextDay));
   app.querySelectorAll("[data-emotion]").forEach(button => button.addEventListener("click", () => recordEmotion(button.dataset.emotion)));
