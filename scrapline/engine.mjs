@@ -281,7 +281,7 @@ function applyCar(carId, projectiles, context, path = "forward", index = 0) {
     note = "戻り道も車列を逆順に通る";
   } else if (car.id === "loop") {
     context.loopIndex = index;
-    note = "この位置までを発射前にもう一周";
+    note = "この車両より後ろ側の加工を発射前にもう一周";
   } else if (car.id === "scar") {
     if (context.hull < MAX_HULL) {
       note = "傷ついた列車なので積載済みの鉄塊が +1";
