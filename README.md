@@ -114,7 +114,7 @@ TOMORI 0.1では、雰囲気はあっても「何をしたか・なぜそうな�
 
 **火走り / EMBERLINE 0.1** は、拾った廃材を4穴の機関へ装着し、左から順番に動かして、5区画の先の灯台へ火種を運ぶゲームです。毎区画で3つの廃材から1つを選び、空き穴への装着・既存部品との交換・無料の順序変更を行います。部品単体の効果だけでなく、火花・熱・守り・直前の出力による連鎖を、部品名つきの走行ログで確認できます。
 
-- プレイ版（公開確認後）：https://garakuta-lab.pages.dev/emberline/
+- プレイ版：https://garakuta-lab.pages.dev/emberline/
 - [emberline/README.md](./emberline/README.md) — 遊び方、記録、検査
 - [analysis/EMBERLINE_0_1.md](./analysis/EMBERLINE_0_1.md) — 仮説、失敗信号、作者テストの判断基準
 - [analysis/emberline-gate.mjs](./analysis/emberline-gate.mjs) — 問題空間の自動ゲート
