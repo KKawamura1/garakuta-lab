@@ -262,9 +262,11 @@ function renderResult(current) {
 }
 
 function render() {
+  app.dataset.renderState = state ? `${state.phase}:${state.day}` : "title";
   if (!state) renderTitle();
   else if (state.phase === "result") renderResult(state);
   else renderScene(state, state.phase);
+  app.dataset.renderHtml = app.querySelector(".title-screen") ? "title" : app.querySelector(".shell") ? "shell" : "other";
   bindInteractions();
   app.dataset.ready = "true";
 }
