@@ -172,6 +172,7 @@ assert.match(appSource, /serviceWorker/);
 assert.match(appSource, /return_reprocess/);
 assert.match(appSource, /enemy_shell/);
 assert.match(appSource, /final-train-summary/);
+assert.match(appSource, /data-complexity/);
 const indexSource = await readFile(new URL("../scrapline/index.html", import.meta.url), "utf8");
 assert.match(indexSource, /manifest\.webmanifest/);
 const swSource = await readFile(new URL("../scrapline/sw.js", import.meta.url), "utf8");
