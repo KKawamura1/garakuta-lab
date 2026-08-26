@@ -262,10 +262,10 @@ function renderResult(current) {
 }
 
 function render() {
+  if (!state) renderTitle();
+  else if (state.phase === "result") renderResult(state);
+  else renderScene(state, state.phase);
   app.dataset.ready = "true";
-  if (!state) return renderTitle();
-  if (state.phase === "result") return renderResult(state);
-  return renderScene(state, state.phase);
 }
 
 function startGame() {
