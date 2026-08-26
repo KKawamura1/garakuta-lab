@@ -14,8 +14,8 @@ import {
 } from "./engine.mjs";
 import { buildPayload, record, send } from "./telemetry.mjs";
 
-const STORAGE_KEY = "tomori-current-run";
-const LAST_RESULT_KEY = "tomori-last-result";
+const STORAGE_KEY = "tomori-current-run-v1";
+const LAST_RESULT_KEY = "tomori-last-result-v1";
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
 const forcedSeed = params.has("seed") ? params.get("seed") : null;
