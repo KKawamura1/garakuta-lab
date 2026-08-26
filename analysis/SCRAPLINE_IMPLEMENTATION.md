@@ -43,7 +43,8 @@
 
 ## 残るのは人間・公開環境の検証
 
-ローカルの決定性、複数解法、0〜255 seed、PWA資産、UIのネイティブダイアログ不使用は
-`analysis/scrapline-smoke.mjs` で検査します。一方、iPhone Safariの実機操作、公開環境の
+ローカルの決定性、複数解法、PWA資産、UIのネイティブダイアログ不使用は
+`analysis/scrapline-smoke.mjs`、0〜255 seed の完走と最終列の分岐は
+`analysis/scrapline-seed-regression.mjs` で検査します。一方、iPhone Safariの実機操作、公開環境の
 D1行/export、初見プレイヤーの再プレイ欲はコードだけでは合格にできないため、
 `docs/HUMAN_TEST_RELEASE.md` のリリースゲートで別途確認します。
