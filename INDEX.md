@@ -40,6 +40,10 @@
 
 ### 新しい実験を設計する
 
+6. [kindling/README.md](./kindling/README.md) — 新作KINDLINGの遊び方と観測
+7. [analysis/KINDLING_0_1.md](./analysis/KINDLING_0_1.md) — 仮説と到達可能性の判断
+8. [research/fun_beyond_difficulty_2026-08-26.md](./research/fun_beyond_difficulty_2026-08-26.md) — 面白さの分解
+
 1. [DESIGN_CHARTER.md](./DESIGN_CHARTER.md)
 2. [DESIGN_LEARNINGS.md](./DESIGN_LEARNINGS.md) の関係節
 3. [agents/HYPOTHESIS_TESTING.md](./agents/HYPOTHESIS_TESTING.md)
@@ -53,6 +57,7 @@
 | `core/` | UIから分離したルール、状態機械、決定的乱数、シミュレーション、指標 |
 | `play/` | 現在の本編UI。laws / skip / cost / squeeze / ident / 旧版を切替 |
 | `puzzle/` | 法則を読んで並びを作る短い「破れ」 |
+| `kindling/` | KINDLING 0.1。拾った素材を部位へ組み込み、6夜の物語を進む新作縦切り |
 | `material/` | MAT 0.3。来た素材を複数用途へ割り当てる比較試作 |
 | `cycle/` | 周期・循環系の旧比較試作 |
 | `agent-view/` | 人間とエージェントへ同じ観測・操作空間を出す画面 |
