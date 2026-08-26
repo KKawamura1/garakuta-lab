@@ -227,6 +227,7 @@ function startReplay(report) {
   const stage = document.querySelector("#replay-stage");
   if (!stage || !events.length) return;
   const token = replayToken;
+  const frameDelay = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 460;
   let index = 0;
   const tick = () => {
     if (token !== replayToken) return;
@@ -236,7 +237,7 @@ function startReplay(report) {
     frame.dataset.eventIndex = String(index);
     if (index < events.length - 1) {
       index += 1;
-      replayTimer = window.setTimeout(tick, 460);
+      replayTimer = window.setTimeout(tick, frameDelay);
     } else {
       replayTimer = null;
     }
