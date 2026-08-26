@@ -13,7 +13,7 @@
     <script>
       function showBootFailure(message) {
         var app = document.getElementById("app");
-        if (!app || app.dataset.ready === "true") return;
+        if (!app || (app.dataset.ready === "true" && !app.querySelector(".boot-screen"))) return;
         app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p><details><summary>詳しい情報</summary><code id="boot-error"></code></details></main>';
         var detail = document.getElementById("boot-error");
         if (detail) detail.textContent = String(message || "module load failed").slice(0, 240);
@@ -28,7 +28,7 @@
       document.getElementById("app").dataset.inline = "ready";
       window.setTimeout(function () {
         var app = document.getElementById("app");
-        if (app && app.dataset.ready !== "true" && app.querySelector(".boot-screen")) showBootFailure("TOMORI did not initialize within 4 seconds");
+        if (app && app.querySelector(".boot-screen")) showBootFailure("TOMORI did not initialize within 4 seconds");
       }, 4000);
     </script>
     <script type="module">
