@@ -326,8 +326,8 @@ function buildPanel() {
     "<div class=\"build-grid\"><div><div class=\"mini-heading\"><span>いまの相棒</span><small>" + esc(buildSignature(state.slots)) + "</small></div>" + bodyMapHtml(Boolean(state.selectedPart)) + "</div>" +
     "<div class=\"offers\"><div class=\"mini-heading\"><span>今夜拾えるもの</span><small>2つだけ</small></div>" + offers.map(function (part) { return offerCard(part.id); }).join("") + "</div></div>" +
     "<div class=\"build-readout\"><div class=\"mini-heading\"><span>体の働き</span><small>組み込みで変わる</small></div>" + activeBuildSummary(result) + "</div>" +
-    "<div class=\"build-footer\"><p class=\"selection-note\">" + (state.selectedPart ? "「" + esc(partName(state.selectedPart)) + "」を選択中。組み込みたい部位をタップ。" : "拾うものを一つ選んでから、部位を選ぶ。") + "</p>" +
-    "<button class=\"primary-button " + (state.selectedPart ? "is-ready" : "") + "\" data-start=\"travel\" type=\"button\" " + (state.selectedPart ? "" : "disabled") + ">" + (state.selectedPart ? "この体で歩く" : "まず拾うものを選ぶ") + "<span>→</span></button></div>" +
+    "<div class=\"build-footer\"><p class=\"selection-note\">" + (state.selectedPart ? "「" + esc(partName(state.selectedPart)) + "」を選択中。組み込みたい部位をタップ。" : "組み込みを終えたら、この体で歩ける。必要なら拾わずに進んでもよい。") + "</p>" +
+    "<button class=\"primary-button " + (!state.selectedPart ? "is-ready" : "") + "\" data-start=\"travel\" type=\"button\" " + (!state.selectedPart ? "" : "disabled") + ">" + (!state.selectedPart ? "この体で歩く" : "まず拾うものを組み込む") + "<span>→</span></button></div>" +
     "</section>";
 }
 
