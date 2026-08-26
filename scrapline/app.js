@@ -21,7 +21,10 @@ import {
 } from "./engine.mjs";
 import { ensureTelemetry, recordTelemetry, sendScraplineTelemetry } from "./telemetry.mjs";
 
-const STORAGE_KEY = "scrapline-state-v1";
+const requestedSeed = querySeed();
+const STORAGE_KEY = requestedSeed === null
+  ? "scrapline-state-v1"
+  : `scrapline-state-v1-seed-${Number(requestedSeed) >>> 0}`;
 const app = document.querySelector("#app");
 let state = loadState();
 let selectedSlot = Number.isInteger(state.selectedSlot) ? state.selectedSlot : null;
@@ -51,8 +54,9 @@ function loadState() {
   } catch {
     loaded = null;
   }
-  if (!loaded || loaded.version !== VERSION || !Array.isArray(loaded.activeCars)) {
-    loaded = createGame(querySeed());
+  const expectedSeed = requestedSeed === null ? null : (Number(requestedSeed) >>> 0);
+  if (!loaded || loaded.version !== VERSION || !Array.isArray(loaded.activeCars) || (expectedSeed !== null && loaded.seed !== expectedSeed)) {
+    loaded = createGame(requestedSeed);
     recordTelemetry(loaded, { type: "run_started", seed: loaded.seed });
   } else {
     ensureTelemetry(loaded);
@@ -423,4 +427,3 @@ window.addEventListener("error", (event) => {
 ensureTelemetry(state);
 persist();
 render();
-
