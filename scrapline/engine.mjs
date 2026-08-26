@@ -1,5 +1,5 @@
 /**
- * SCRAPLINE 0.1 — deterministic train-line simulation.
+ * SCRAPLINE 0.4 — deterministic train-line simulation.
  *
  * The engine deliberately keeps the cause chain visible: a single lump is
  * passed through the cars in order, then the result is fired and (sometimes)
@@ -7,14 +7,30 @@
  * volley worked or failed instead of exposing an opaque score formula.
  */
 
-export const VERSION = "scrapline-0.2";
-export const BUILD_STAMP = "scrapline-build-20260826-r2";
+export const VERSION = "scrapline-0.4";
+export const BUILD_STAMP = "scrapline-build-20260827-r4";
 export const MAX_STAGES = 7;
 export const MAX_CARS = 5;
 export const MAX_HULL = 8;
+// Five volleys leave room for a deliberate comeback line while the physical
+// travel penalty still makes a slow, single-shot train pay for every miss.
 export const MAX_VOLLEYS = 5;
 
 const STARTER_PATTERNS = [["charge"], ["accelerator"]];
+
+const CAR_EFFECTS = {
+  accelerator: ["speed"],
+  cut: ["split"],
+  press: ["compress"],
+  charge: ["spark"],
+  melt: ["melt", "blast"],
+  magnet: ["return"],
+  armor: ["armor"],
+  collector: ["collect"],
+  reverse: ["reverse"],
+  loop: ["loop"],
+  scar: ["scar"],
+};
 
 export const CARS = [
   {
@@ -103,6 +119,8 @@ export const CHALLENGES = [
     id: "sparrows",
     name: "鉄くずスズメ",
     kind: "swarm",
+    icon: "🐦",
+    motion: "小型機が三方向へ散り、後尾へ回り込む",
     text: "小型機が散っている。手数か爆風でまとめて落とせ。",
     waves: [
       { id: "sparrow-pack", name: "スズメの群れ", hp: 7, armor: 0, count: 3, attack: 1 },
@@ -112,6 +130,8 @@ export const CHALLENGES = [
     id: "plate",
     name: "廃工場の盾",
     kind: "armor",
+    icon: "⬟",
+    motion: "厚い盾が正面で弾を受け、ゆっくり迫る",
     text: "分厚い装甲板が正面を覆う。圧縮か溶解が答えになる。",
     waves: [
       { id: "plate", name: "装甲運搬車", hp: 10, armor: 1, count: 1, attack: 1 },
@@ -121,15 +141,19 @@ export const CHALLENGES = [
     id: "cannon",
     name: "赤錆キャノン",
     kind: "fast",
+    icon: "◈",
+    motion: "照準線が先頭車へ走り、三拍で撃つ",
     text: "照準が早い。短い通過時間で撃ち返される前に壊せ。",
     waves: [
-      { id: "cannon", name: "赤錆砲台", hp: 7, armor: 1, count: 1, attack: 1, fast: true },
+      { id: "cannon", name: "赤錆砲台", hp: 8, armor: 1, count: 1, attack: 1, fast: true },
     ],
   },
   {
     id: "scavengers",
     name: "拾い屋の列",
     kind: "scavenger",
+    icon: "🦾",
+    motion: "残骸を拾いながら後尾へ寄る二台組",
     text: "こちらの弾を拾って回復する。磁石と回収車で逆に利用できる。",
     waves: [
       { id: "scavenger-a", name: "拾い屋A", hp: 4, armor: 1, count: 1, attack: 1, steal: true },
@@ -140,6 +164,8 @@ export const CHALLENGES = [
     id: "splitter",
     name: "分解クレーン",
     kind: "split",
+    icon: "⚒",
+    motion: "当たった残骸を吊り上げ、小型機へ組み直す",
     text: "殴るほど敵が増える。圧縮してから撃つか、溶かして一掃。",
     waves: [
       { id: "splitter", name: "分解クレーン", hp: 5, armor: 1, count: 1, attack: 1, splits: true },
@@ -149,6 +175,8 @@ export const CHALLENGES = [
     id: "yard",
     name: "夜間ヤード",
     kind: "mixed",
+    icon: "⚠",
+    motion: "群れが視界を塞ぎ、背後から装甲機が加速する",
     text: "速い小型機と装甲機が同時に来る。車列の順番が問われる。",
     waves: [
       { id: "yard-swarm", name: "ヤードの群れ", hp: 7, armor: 0, count: 3, attack: 1 },
@@ -159,10 +187,12 @@ export const CHALLENGES = [
     id: "core",
     name: "炉心を喰う王",
     kind: "boss",
+    icon: "♛",
+    motion: "護衛を盾にして炉心砲を二拍ごとに撃つ",
     text: "拾った鉄くずを王冠にする巨体。ここまでの車列を一つの答えに変えろ。",
     waves: [
       { id: "core-guard", name: "炉心の護衛", hp: 9, armor: 1, count: 1, attack: 1 },
-      { id: "core-king", name: "炉心を喰う王", hp: 16, armor: 1, count: 1, attack: 2, fast: true, boss: true },
+      { id: "core-king", name: "炉心を喰う王", hp: 22, armor: 1, count: 1, attack: 2, fast: true, boss: true },
     ],
   },
 ];
@@ -188,15 +218,17 @@ function carFor(id) {
 
 function projectileSignature(projectiles) {
   return projectiles
-    .map((p) => `${p.mass}${p.sparks ? `⚡${p.sparks}` : ""}${p.mode === "molten" ? "♨" : ""}${p.returning ? "↩" : ""}${p.returnBlast ? "💥" : ""}${Math.abs((p.speed || 1) - 1) > 0.05 ? `×${Number(p.speed).toFixed(1)}` : ""}`)
+    .map((p) => `${p.mass}${p.splitCount ? `◆${p.splitCount}` : ""}${p.sparks ? `⚡${p.sparks}` : ""}${p.mode === "molten" ? "♨" : ""}${p.returning ? "↩" : ""}${p.returnBlast ? "💥" : ""}${Math.abs((p.speed || 1) - 1) > 0.05 ? `×${Number(p.speed).toFixed(1)}` : ""}`)
     .join(" + ") || "空";
 }
 
 function projectileSnapshot(projectiles) {
   return projectiles.map((p) => ({
+    id: p.id,
     mass: p.mass,
     sparks: p.sparks,
     mode: p.mode,
+    splitCount: p.splitCount || 0,
     returning: Boolean(p.returning),
     returnBlast: Boolean(p.returnBlast),
     speed: Number((p.speed || 1).toFixed(2)),
@@ -204,18 +236,34 @@ function projectileSnapshot(projectiles) {
 }
 
 function makeProjectile(id, mass = 2) {
-  return { id, mass, sparks: 0, mode: "solid", returning: false, returnBlast: false, speed: 1, collected: false };
+  return { id, mass, sparks: 0, mode: "solid", splitCount: 0, returning: false, returnBlast: false, speed: 1, collected: false };
 }
 
-function logCarEvent(events, car, path, before, after, note) {
+function spectacleFor(carIds, projectiles) {
+  const count = projectiles.length;
+  const molten = projectiles.filter((projectile) => projectile.mode === "molten").length;
+  const returning = projectiles.filter((projectile) => projectile.returning).length;
+  const sparks = projectiles.reduce((total, projectile) => total + (projectile.sparks || 0), 0);
+  const level = Math.max(1, Math.min(5, Math.ceil((carIds.length + count + molten * 2 + returning * 2 + sparks) / 3)));
+  const theme = returning && molten ? "return-blast" : returning ? "return" : molten ? "molten" : count > 1 ? "split" : "solid";
+  return { level, theme, projectileCount: count, molten, returning, sparks, carCount: carIds.length };
+}
+
+function logCarEvent(events, car, path, before, after, note, context, index) {
   events.push({
     type: "car",
     carId: car.id,
     carName: car.name,
     icon: car.icon,
     path,
+    carIndex: index,
+    train: [...(context.activeCars || [])],
+    effects: [...(CAR_EFFECTS[car.id] || [])],
+    location: { lane: path === "reverse" ? "return" : "train", carIndex: index },
     before,
     after,
+    beforeProjectiles: projectileSnapshot(context.beforeProjectiles || []),
+    afterProjectiles: projectileSnapshot(context.afterProjectiles || []),
     note,
   });
 }
@@ -223,6 +271,7 @@ function logCarEvent(events, car, path, before, after, note) {
 function applyCar(carId, projectiles, context, path = "forward", index = 0) {
   const car = carFor(carId);
   const before = projectileSignature(projectiles);
+  context.beforeProjectiles = projectiles;
   let next = projectiles;
   let note = car.text;
 
@@ -231,13 +280,18 @@ function applyCar(carId, projectiles, context, path = "forward", index = 0) {
     note = "全ての弾速 +1。速い敵の照準を外しやすい";
   } else if (car.id === "cut") {
     next = projectiles.flatMap((projectile) => {
-      if (projectile.mass <= 1 && projectile.sparks === 0) return [projectile];
+      // A shard can be split again on a loop/return pass, but it cannot
+      // multiply forever. Three generations are enough to make the late-run
+      // machine visibly different (up to eight pellets) without making the
+      // first cut an automatic answer.
+      if ((projectile.splitCount || 0) >= 3) return [projectile];
       const fragmentSpeed = Math.max(0.6, (projectile.speed || 1) * 0.85);
-      const first = { ...projectile, mass: Math.max(1, Math.ceil(projectile.mass / 2)), sparks: Math.ceil(projectile.sparks / 2), speed: fragmentSpeed };
-      const second = { ...projectile, id: `${projectile.id}-b`, mass: Math.max(1, Math.floor(projectile.mass / 2)), sparks: Math.floor(projectile.sparks / 2), speed: fragmentSpeed };
+      const splitCount = (projectile.splitCount || 0) + 1;
+      const first = { ...projectile, mass: Math.max(1, Math.ceil(projectile.mass / 2)), sparks: Math.ceil(projectile.sparks / 2), splitCount, mode: "solid", speed: fragmentSpeed };
+      const second = { ...projectile, id: `${projectile.id}-b`, mass: Math.max(1, Math.floor(projectile.mass / 2)), sparks: Math.floor(projectile.sparks / 2), splitCount, mode: "solid", speed: fragmentSpeed };
       return [first, second];
     });
-    note = `${projectiles.length}個 → ${next.length}個。分かれた弾は少し減速`;
+    note = `${projectiles.length}個 → ${next.length}個。分かれた弾は少し減速（第${Math.max(...next.map((projectile) => projectile.splitCount || 0), 0)}世代）`;
   } else if (car.id === "press") {
     if (projectiles.length > 1) {
       const merged = projectiles.reduce((total, p) => ({
@@ -293,7 +347,8 @@ function applyCar(carId, projectiles, context, path = "forward", index = 0) {
   // Processing cars change the payload, but do not each add a full enemy
   // tick. A long train should feel richer, not become an automatic loss.
   if (car.id === "loop") context.loopPenalty += 1;
-  logCarEvent(context.events, car, path, before, projectileSignature(next), note);
+  context.afterProjectiles = next;
+  logCarEvent(context.events, car, path, before, projectileSignature(next), note, context, index);
   return next;
 }
 
@@ -308,7 +363,10 @@ function processLine(carIds, projectiles, context, path = "forward", from = 0, t
 }
 
 function damageFor(projectile) {
-  const base = projectile.mass + projectile.sparks;
+  // A single spark is a fuse, not free damage. It only becomes extra force
+  // after a second charge (or after melt consumes it into a blast), so a
+  // starter charge cannot brute-force every encounter by itself.
+  const base = projectile.mass + Math.max(0, (projectile.sparks || 0) - 1);
   return projectile.mode === "molten" ? base + 3 + (projectile.returnBlast ? 2 : 0) : base;
 }
 
@@ -325,29 +383,34 @@ function hitEnemy(enemy, projectile, context) {
     raw,
     armor: armorCut,
     projectile: { ...projectile },
+    projectileId: projectile.id,
+    location: { lane: "enemy", offset: Number(((context.waveIndex || 0) * 0.17 + 0.42).toFixed(2)) },
     note: projectile.mode === "molten" ? "溶解弾の爆風が周囲にも届いた" : "正面に命中",
   });
-  if (projectile.mode === "molten" && enemy.count > 0) enemy.count = Math.max(0, enemy.count - 1);
+  if (projectile.mode === "molten" && enemy.count > 1) enemy.count = Math.max(0, enemy.count - 1);
   if (enemy.splits && enemy.hp > 0 && !enemy.splitDone && raw >= 2) {
     enemy.splitDone = true;
     enemy.hp += 2;
     enemy.count += 1;
     context.events.push({ type: "enemy_split", target: enemy.name, amount: 2, note: "分解クレーンが残骸から小型機を組み立てた" });
   }
-  if (enemy.steal && projectile.returning && !context.hasCollector) {
+  if (enemy.steal && projectile.mode !== "molten" && !context.hasCollector) {
     enemy.hp += 1;
-    context.events.push({ type: "enemy_recover", target: enemy.name, amount: 1, note: "拾い屋が戻り弾の残骸を拾った" });
+    context.events.push({ type: "enemy_recover", target: enemy.name, amount: 1, note: "拾い屋が命中後の残骸を拾った" });
   }
 }
 
 function enemyDefeated(enemy) {
-  return enemy.hp <= 0 || enemy.count <= 0;
+  // `count` is the visible unit count for a swarm. A lone machine cannot be
+  // deleted just because one blast touched it; it must actually lose its HP.
+  return enemy.hp <= 0 || (enemy.count > 1 && enemy.count <= 0);
 }
 
-function simulateVolley(state, challenge, enemy, volleyIndex) {
+function simulateVolley(state, challenge, enemy, volleyIndex, waveIndex = 0) {
   const events = [];
   const context = {
     events,
+    activeCars: [...state.activeCars],
     baseTravel: Math.max(1, state.activeCars.length),
     travel: 1,
     loopPenalty: 0,
@@ -358,14 +421,22 @@ function simulateVolley(state, challenge, enemy, volleyIndex) {
     scarBonus: state.activeCars.includes("scar") && state.hull < MAX_HULL ? 1 : 0,
     hull: state.hull,
     hasCollector: state.activeCars.includes("collector"),
+    waveIndex,
   };
   const startingMass = 2 + (state.storedMass || 0) + context.scarBonus;
   let projectiles = [makeProjectile(`s${state.stage}-v${volleyIndex}`, startingMass)];
-  events.push({ type: "volley", volley: volleyIndex + 1, before: projectileSignature(projectiles), note: "後部ホッパーから鉄塊が1つ入った" });
+  events.push({
+    type: "volley",
+    volley: volleyIndex + 1,
+    before: projectileSignature(projectiles),
+    projectiles: projectileSnapshot(projectiles),
+    location: { lane: "hopper", offset: 0 },
+    note: "後部ホッパーから鉄塊が1つ入った",
+  });
   projectiles = processLine(state.activeCars, projectiles, context, "forward");
 
   if (context.loopIndex !== null && context.loopIndex < state.activeCars.length - 1) {
-    events.push({ type: "loop", note: "ループ車が後ろ側の加工をやり直す", from: context.loopIndex + 1 });
+    events.push({ type: "loop", carIndex: context.loopIndex, train: [...state.activeCars], note: "ループ車が後ろ側の加工をやり直す", from: context.loopIndex + 1 });
     projectiles = processLine(state.activeCars, projectiles, context, "loop", context.loopIndex + 1, state.activeCars.length);
   }
 
@@ -379,6 +450,9 @@ function simulateVolley(state, challenge, enemy, volleyIndex) {
     travel: context.travel,
     projectiles: projectileSnapshot(projectiles),
     summary: projectileSignature(projectiles),
+    train: [...state.activeCars],
+    spectacle: spectacleFor(state.activeCars, projectiles),
+    location: { lane: "cannon", offset: 1 },
     note: "先頭砲から発射",
   });
   for (const projectile of projectiles) hitEnemy(enemy, projectile, context);
@@ -386,9 +460,27 @@ function simulateVolley(state, challenge, enemy, volleyIndex) {
   const returners = projectiles.filter((projectile) => projectile.returning);
   if (returners.length) {
     let returned = returners.map((projectile) => ({ ...projectile, returning: false }));
-    events.push({ type: "return", summary: projectileSignature(returned), note: "磁石が着弾後の鉄片を呼び戻す" });
+    events.push({
+      type: "return",
+      summary: projectileSignature(returned),
+      projectiles: projectileSnapshot(returned),
+      train: [...state.activeCars],
+      path: "return",
+      location: { lane: "enemy", offset: 0.72 },
+      note: "磁石が着弾後の鉄片を呼び戻す",
+    });
     if (context.reverseOnReturn) {
       returned = processLine(state.activeCars, returned, context, "reverse", state.activeCars.length - 1, -1);
+      events.push({
+        type: "return_reprocess",
+        summary: projectileSignature(returned),
+        projectiles: projectileSnapshot(returned),
+        train: [...state.activeCars],
+        path: "reverse",
+        spectacle: spectacleFor(state.activeCars, returned),
+        location: { lane: "train", offset: 0.5 },
+        note: "逆走車が戻り弾を車列へ通し直した",
+      });
       for (const projectile of returned) hitEnemy(enemy, projectile, context);
     }
     if (state.activeCars.includes("collector")) {
@@ -411,8 +503,25 @@ function enemyFrom(definition) {
   return clone(definition);
 }
 
-export function challengeFor(stage) {
-  return CHALLENGES[Math.max(0, Math.min(CHALLENGES.length - 1, stage))];
+export function challengeFor(stage, seed = null) {
+  const safeStage = Math.max(0, Math.min(CHALLENGES.length - 1, stage));
+  // The first question is always the readable swarm tutorial. Later questions
+  // permute deterministically so a run changes its pressure without making the
+  // first screen an accidental hard wall.
+  if (safeStage === 0 || safeStage === CHALLENGES.length - 1 || seed === null || seed === undefined || seed === "") {
+    return CHALLENGES[safeStage];
+  }
+  // Keep the boss at the end, but make the first six questions seed-dependent.
+  // A deterministic permutation changes the question, never the combat rules.
+  const order = CHALLENGES.slice(1, -1)
+    .map((challenge, index) => ({ challenge, score: hash(seed, 700 + index * 31) }))
+    .sort((a, b) => a.score - b.score);
+  const yardIndex = order.findIndex((entry) => entry.challenge.id === "yard");
+  if (yardIndex >= 0 && yardIndex !== order.length - 1) {
+    const [yard] = order.splice(yardIndex, 1);
+    order.push(yard);
+  }
+  return order[safeStage - 1].challenge;
 }
 
 export function carById(carId) {
@@ -423,6 +532,7 @@ export function previewTrain(state, projectile = null) {
   const safeState = clone(state);
   const context = {
     events: [],
+    activeCars: [...safeState.activeCars],
     baseTravel: Math.max(1, safeState.activeCars.length),
     travel: 1,
     loopPenalty: 0,
@@ -462,16 +572,20 @@ export function offersFor(state) {
   // next threat, but their position is seed-dependent. A player can learn
   // the language without being handed one solved build order.
   const counters = {
-    1: ["charge", "cut"],
-    2: ["charge", "melt", "press"],
-    3: ["collector", "reverse"],
-    4: ["charge", "press", "melt"],
-    5: ["reverse", "cut"],
-    6: ["loop", "reverse"],
+    swarm: ["charge", "cut"],
+    armor: ["melt", "press", "cut"],
+    fast: ["melt", "charge", "cut"],
+    scavenger: ["collector", "melt", "reverse"],
+    split: ["melt", "press", "cut"],
+    mixed: ["melt", "charge", "cut"],
+    boss: ["reverse", "collector", "melt"],
   };
-  const counterPool = (counters[state.stage] || [])
+  const counterPool = (counters[challengeFor(state.stage, state.seed).kind] || [])
     .filter((id) => !state.activeCars.includes(id) && pool.some((car) => car.id === id));
-  const counterCount = Math.min(2, counterPool.length);
+  // Surface every readable answer to the next question when it exists. The
+  // player still chooses one car (and the remaining slots are seed-noise),
+  // but a seed must never hide the only viable physical verb.
+  const counterCount = Math.min(3, counterPool.length);
   const counterOffset = counterPool.length ? hash(state.seed, state.stage * 101 + 53) % counterPool.length : 0;
   for (let index = 0; index < counterCount; index += 1) {
     offers.push(carFor(counterPool[(counterOffset + index) % counterPool.length]));
@@ -529,6 +643,7 @@ export function moveCar(state, from, to) {
   const [car] = next.activeCars.splice(from, 1);
   next.activeCars.splice(to, 0, car);
   next.moveCount += 1;
+  next.carHistory.push({ action: "move", carId: car, from, to, stage: next.stage });
   delete next.preview;
   next.events.push({ type: "move", from, to, carId: car });
   return next;
@@ -536,9 +651,10 @@ export function moveCar(state, from, to) {
 
 export function removeCar(state, index) {
   const next = clone(state);
-  if (index < 0 || index >= next.activeCars.length) return next;
+  if (index < 0 || index >= next.activeCars.length || next.activeCars.length <= 1) return next;
   const [car] = next.activeCars.splice(index, 1);
   delete next.preview;
+  next.carHistory.push({ action: "remove", carId: car, index, stage: next.stage });
   next.events.push({ type: "remove", index, carId: car });
   next.rebuildCount += 1;
   return next;
@@ -546,7 +662,7 @@ export function removeCar(state, index) {
 
 export function installCar(state, carId, slot = null) {
   const next = clone(state);
-  if (!CAR_BY_ID.has(carId) || carId === "accelerator" && next.activeCars.includes(carId)) return next;
+  if (!CAR_BY_ID.has(carId) || next.activeCars.includes(carId)) return next;
   if (slot !== null && Number.isInteger(slot) && slot >= 0 && slot < next.activeCars.length) {
     const replaced = next.activeCars[slot];
     next.activeCars[slot] = carId;
@@ -588,8 +704,19 @@ function enemyDamage(enemy, travel) {
 export function runBattle(state) {
   if (state.done || state.phase !== "build") return { state: clone(state), report: state.lastBattle };
   const next = clone(state);
-  const challenge = challengeFor(next.stage);
-  const events = [{ type: "battle_start", challenge: challenge.name, stage: next.stage + 1, note: challenge.text }];
+  const challenge = challengeFor(next.stage, next.seed);
+  const events = [{
+    type: "battle_start",
+    challenge: challenge.name,
+    challengeId: challenge.id,
+    kind: challenge.kind,
+    enemyIcon: challenge.icon,
+    motion: challenge.motion,
+    icon: challenge.icon,
+    stage: next.stage + 1,
+    train: [...next.activeCars],
+    note: challenge.text,
+  }];
   let hull = next.hull;
   let armor = next.armor;
   let storedMass = next.storedMass || 0;
@@ -600,7 +727,7 @@ export function runBattle(state) {
     const waveEvents = [];
     let waveWon = false;
     for (let volley = 0; volley < MAX_VOLLEYS; volley += 1) {
-      const volleyResult = simulateVolley({ ...next, hull, armor, storedMass }, challenge, enemy, volley);
+      const volleyResult = simulateVolley({ ...next, hull, armor, storedMass }, challenge, enemy, volley, waveIndex);
       waveEvents.push(...volleyResult.events);
       events.push(...volleyResult.events.map((event) => ({ ...event, wave: waveIndex })));
       armor += volleyResult.armorGain;
@@ -615,7 +742,48 @@ export function runBattle(state) {
       armor -= absorbed;
       attack -= absorbed;
       hull -= attack;
-      events.push({ type: "enemy_attack", wave: waveIndex, target: enemy.name, damage: attack, absorbed, hull, note: absorbed ? `装甲が ${absorbed} 受け止めた` : "車体に直撃" });
+      const targetCarIndex = next.activeCars.length
+        ? Math.max(0, next.activeCars.length - 1 - ((waveIndex + volley) % next.activeCars.length))
+        : null;
+      events.push({
+        type: "enemy_shell",
+        wave: waveIndex,
+        target: enemy.name,
+        targetCarIndex,
+        targetCarId: targetCarIndex === null ? null : next.activeCars[targetCarIndex],
+        projectile: {
+          id: `enemy-${waveIndex}-${volley}`,
+          mass: Math.max(1, attack + absorbed),
+          mode: "enemy-shell",
+          speed: Number((1 / Math.max(1, volleyResult.travel)).toFixed(2)),
+        },
+        location: { lane: "enemy", carIndex: targetCarIndex, offset: 0.8 },
+        note: `${enemy.name}の攻撃弾が列車へ向かう`,
+      });
+      let convertedMass = 0;
+      // An armour plate is not a dead-end meter: when it catches a shell, a
+      // piece of that impact becomes material for the next visible volley.
+      // This is the concrete “enemy attack becomes a bullet” turn in the
+      // late-run machine, and is capped to one lump per hit.
+      if (absorbed > 0 && next.activeCars.includes("armor")) {
+        convertedMass = 1;
+        storedMass = Math.min(3, storedMass + convertedMass);
+      }
+      events.push({
+        type: "enemy_attack",
+        wave: waveIndex,
+        target: enemy.name,
+        targetCarIndex,
+        targetCarId: targetCarIndex === null ? null : next.activeCars[targetCarIndex],
+        damage: attack,
+        absorbed,
+        convertedMass,
+        hull,
+        location: { lane: "train", carIndex: targetCarIndex },
+        note: convertedMass
+          ? `装甲が ${absorbed} 受け止め、鉄塊 +${convertedMass} を次弾へ戻した`
+          : absorbed ? `装甲が ${absorbed} 受け止めた` : "車体に直撃",
+      });
       if (hull <= 0) {
         won = false;
         break;
@@ -628,7 +796,7 @@ export function runBattle(state) {
     }
   }
 
-  const repair = won ? Math.min(2, MAX_HULL - Math.max(0, hull)) : 0;
+  const repair = won ? Math.min(6, MAX_HULL - Math.max(0, hull)) : 0;
   hull += repair;
   if (repair) events.push({ type: "repair", amount: repair, hull, note: "区画のあいだに応急修理を入れた" });
   next.hull = Math.max(0, hull);
@@ -639,15 +807,21 @@ export function runBattle(state) {
     challenge: challenge.name,
     challengeId: challenge.id,
     kind: challenge.kind,
+    enemyIcon: challenge.icon,
+    motion: challenge.motion,
     won,
     hullBefore: state.hull,
     hullAfter: next.hull,
     armorAfter: next.armor,
     waveReports,
+    train: [...next.activeCars],
+    spectacle: events
+      .filter((event) => event.spectacle)
+      .reduce((best, event) => event.spectacle.level > best.level ? event.spectacle : best, spectacleFor(next.activeCars, [])),
     events,
-    highlight: events.filter((event) => ["car", "impact", "return", "enemy_recover", "enemy_split", "wave_clear"].includes(event.type)).slice(-8),
+    highlight: events.filter((event) => ["car", "impact", "return", "return_reprocess", "enemy_recover", "enemy_split", "enemy_shell", "enemy_attack", "wave_clear"].includes(event.type)).slice(-12),
   };
-  next.battleHistory.push({ stage: next.stage + 1, challenge: challenge.id, won, hull: next.hull, armor: next.armor });
+  next.battleHistory.push({ stage: next.stage + 1, challenge: challenge.id, kind: challenge.kind, won, hull: next.hull, armor: next.armor, train: [...next.activeCars] });
   if (won) {
     next.stage += 1;
     if (next.stage >= MAX_STAGES) {
