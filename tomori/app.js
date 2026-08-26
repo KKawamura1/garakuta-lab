@@ -262,6 +262,7 @@ function renderResult(current) {
 }
 
 function render() {
+  app.dataset.ready = "true";
   if (!state) return renderTitle();
   if (state.phase === "result") return renderResult(state);
   return renderScene(state, state.phase);

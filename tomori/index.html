@@ -9,7 +9,17 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app"><main class="boot-screen"><div class="boot-orb">✧</div><p>小さな灯りを起こしています…</p></main></div>
+    <script>
+      window.addEventListener("error", function () {
+        var app = document.getElementById("app");
+        if (app && app.dataset.ready !== "true") app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p></main>';
+      });
+      window.addEventListener("unhandledrejection", function () {
+        var app = document.getElementById("app");
+        if (app && app.dataset.ready !== "true") app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p></main>';
+      });
+    </script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>
