@@ -72,6 +72,17 @@ HAUL 0.1では、部品7個という目標は読めましたが、余分に回�
 
 結果と次の仮説は [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md)、実装と遊び方は [haul/README.md](./haul/README.md) です。
 
+## 本気の縦切り：拾い火 / KINDLING 0.1
+
+難易度やルール量を増やす前に、「拾ったものを自分の形にして、相棒が実際に変わり、その帰結が物語になる」面白さを一度つなげて試す独立作です。6場面の夜道で、ルート選択、部位への組み込み、コンボ演出、短い物語、失敗の傷を一周にまとめています。
+
+- プレイ版: https://garakuta-lab.pages.dev/kindling/
+- [kindling/README.md](./kindling/README.md) — 遊び方、seed、ログ仕様
+- [analysis/KINDLING_0_1.md](./analysis/KINDLING_0_1.md) — 仮説、公開条件、到達可能性の学び
+- [research/fun_beyond_difficulty_2026-08-26.md](./research/fun_beyond_difficulty_2026-08-26.md) — 難易度・複雑さ以外の面白さの分解
+
+通常はランダムseedで遊び、再現比較が必要なときだけURLに `?seed=12` のように指定します。既定の `/play/` は置き換えません。
+
 ## 実装と記録
 
 - HTML / CSS / JavaScriptのみの静的PWA
