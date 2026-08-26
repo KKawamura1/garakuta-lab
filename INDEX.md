@@ -126,6 +126,7 @@ COST、SQUEEZE、IDENTは画面内に残っていますが休止中です。
 
 - [research/raising_game_survey_2026-08-26.md](./research/raising_game_survey_2026-08-26.md) — 育成ゲームの構造、既存作の比較、NIGHT-EATERへの次の仮説
 - [research/difficulty_complexity_fun.md](./research/difficulty_complexity_fun.md) — 難易度・複雑さ・深さ・面白さの作業モデルとEMBERLINE診断
+- [research/fun_beyond_difficulty_2026-08-26.md](./research/fun_beyond_difficulty_2026-08-26.md) — 難易度・複雑さ以外の体験エンジン、既存ゲーム比較、未使用手段
 
 `analysis/agent-runs/`、JSON、画像は付属データです。Markdownの判定を読んでから、
 必要な標本だけ開いてください。
