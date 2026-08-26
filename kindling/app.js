@@ -18,7 +18,7 @@ import {
 import { record, send } from "./telemetry.mjs";
 
 const STORAGE_KEY = "garakuta-kindling-state-v1";
-const STARTER_SLOTS = ["button", "nail", null, null];
+const STARTER_SLOTS = ["button", "mirror", null, null];
 const MARKERS = [
   { kind: "spark", label: "ひらめいた" },
   { kind: "choice", label: "迷った" },
