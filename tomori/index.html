@@ -25,6 +25,7 @@
         showBootFailure(event.reason && event.reason.message || event.reason || "module load failed");
       });
       window.showBootFailure = showBootFailure;
+      document.getElementById("app").dataset.inline = "ready";
       window.setTimeout(function () {
         var app = document.getElementById("app");
         if (app && app.dataset.ready !== "true" && app.querySelector(".boot-screen")) showBootFailure("TOMORI did not initialize within 4 seconds");
