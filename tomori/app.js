@@ -23,6 +23,14 @@ let state = loadState();
 let toastTimer = null;
 let audioContext = null;
 
+function storageGet(key) {
+  try { return typeof localStorage === "undefined" ? null : localStorage.getItem(key); } catch { return null; }
+}
+
+function storageSet(key, value) {
+  try { if (typeof localStorage !== "undefined") localStorage.setItem(key, value); } catch { /* persistence is optional */ }
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -34,7 +42,7 @@ function escapeHtml(value) {
 
 function loadState() {
   try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    const value = JSON.parse(storageGet(STORAGE_KEY) || "null");
     return value?.gameVersion === GAME_VERSION ? value : null;
   } catch {
     return null;
@@ -42,11 +50,11 @@ function loadState() {
 }
 
 function saveState() {
-  if (state) localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (state) storageSet(STORAGE_KEY, JSON.stringify(state));
 }
 
 function loadLastResult() {
-  try { return JSON.parse(localStorage.getItem(LAST_RESULT_KEY) || "null"); } catch { return null; }
+  try { return JSON.parse(storageGet(LAST_RESULT_KEY) || "null"); } catch { return null; }
 }
 
 function originOf(current) {
@@ -298,7 +306,7 @@ async function nextDay() {
   state = result.state;
   if (result.ended) {
     record(state, { type: "run_ended", ending: state.ending.id, title: state.ending.title, counts: state.counts });
-    localStorage.setItem(LAST_RESULT_KEY, JSON.stringify({ title: state.ending.title, line: state.ending.lead }));
+    storageSet(LAST_RESULT_KEY, JSON.stringify({ title: state.ending.title, line: state.ending.lead }));
   } else {
     record(state, { type: "scene_seen", day: state.day + 1, scene: sceneFor(state).title });
   }
