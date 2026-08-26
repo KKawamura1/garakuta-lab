@@ -205,3 +205,13 @@ READMEやINDEXに固定した組数・版・「本命」を書いた場合は、
 - [analysis/tomori-smoke.mjs](./analysis/tomori-smoke.mjs) — 3日完走、4結末、payloadの回帰検査
 - [research/raising_game_survey_2026-08-26.md](./research/raising_game_survey_2026-08-26.md) — 既存の育成ゲームからの設計示唆
 
+## 次の作者テスト：EMBERLINE 0.1
+
+TOMORIで「雰囲気はあるが、分からないまま終わる」という反証が出たため、物語を長くする前に、目的・選択・結果の因果が一周で読める構築ゲームを登録した。
+
+- [emberline/README.md](./emberline/README.md) — 火走りの遊び方とログ仕様
+- [analysis/EMBERLINE_0_1.md](./analysis/EMBERLINE_0_1.md) — 仮説、失敗信号、自動ゲート、公開テスト条件
+- [analysis/emberline-gate.mjs](./analysis/emberline-gate.mjs) — 5問の構造ゲート（実装時点5/5）
+- [analysis/emberline-smoke.mjs](./analysis/emberline-smoke.mjs) — seed再現、装着、並べ替え、走行の回帰検査
+
+この版は既存の本編を置き換えない。自動検査を通したあと、公開URLで作者が遊び、面白さと再プレイ欲を判定する。
