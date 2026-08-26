@@ -19,7 +19,12 @@ import {
   runBattle,
   skipReward,
 } from "./engine.mjs";
-import { ensureTelemetry, recordTelemetry, sendScraplineTelemetry } from "./telemetry.mjs";
+import {
+  ensureTelemetry,
+  flushScraplineTelemetryQueue,
+  recordTelemetry,
+  sendScraplineTelemetry,
+} from "./telemetry.mjs";
 
 const requestedSeed = querySeed();
 const STORAGE_KEY = requestedSeed === null
@@ -30,6 +35,10 @@ let state = loadState();
 let selectedSlot = Number.isInteger(state.selectedSlot) ? state.selectedSlot : null;
 let replayTimer = null;
 let replayToken = 0;
+let audioContext = null;
+let dragSource = null;
+let pointerDrag = null;
+let suppressClickUntil = 0;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -114,17 +123,18 @@ function progressBar(value, max) {
 function renderTrain() {
   const cars = carList(state.activeCars);
   const slots = cars.map((car, index) => `
-    <article class="train-slot ${selectedSlot === index ? "is-selected" : ""}">
+    <article class="train-slot ${selectedSlot === index ? "is-selected" : ""}" data-drag-slot="${index}" draggable="true" aria-label="${escapeHtml(car.name)}。ドラッグで並べ替え">
       <button class="car-card" data-action="select-slot" data-slot="${index}" aria-pressed="${selectedSlot === index}">
         <span class="car-icon" aria-hidden="true">${car.icon}</span>
         <span class="car-name">${escapeHtml(car.name)}</span>
         <span class="car-effect">${escapeHtml(car.text)}</span>
         <span class="slot-number">車両 ${index + 1}</span>
       </button>
+      <div class="drag-grip" aria-hidden="true">⠿ ドラッグ</div>
       <div class="slot-actions" aria-label="${escapeHtml(car.name)}の並び替え">
         <button class="icon-button" data-action="move-left" data-slot="${index}" ${index === 0 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を左へ">←</button>
         <button class="icon-button" data-action="move-right" data-slot="${index}" ${index === cars.length - 1 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を右へ">→</button>
-        <button class="icon-button danger" data-action="remove" data-slot="${index}" aria-label="${escapeHtml(car.name)}を外す">×</button>
+        <button class="icon-button danger" data-action="remove" data-slot="${index}" ${cars.length <= 1 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を外す">×</button>
       </div>
     </article>
   `).join("");
@@ -134,12 +144,12 @@ function renderTrain() {
     </div>
   `).join("");
   return `
-    <section class="train-panel panel">
+    <section class="train-panel panel" data-stage="${state.stage}" data-train-size="${cars.length}">
       <div class="panel-heading">
         <div><p class="kicker">BUILD THE CAUSE CHAIN</p><h2>車列の順番</h2></div>
         <span class="selection-hint">${selectedSlot === null ? "満車なら交換先を選択" : `交換先: 車両 ${selectedSlot + 1}`}</span>
       </div>
-      <p class="muted">左が後部ホッパー、右が砲台。鉄塊はこの順に一度ずつ通ります。</p>
+      <p class="muted">左が後部ホッパー、右が砲台。車両をドラッグして並べ替えます（矢印でも操作できます）。鉄塊はこの順に通ります。</p>
       <div class="train-line">
         <div class="train-end hopper"><span aria-hidden="true">◉</span><strong>ホッパー</strong><small>鉄塊 1</small></div>
         <div class="line-arrow" aria-hidden="true">›</div>
@@ -151,6 +161,29 @@ function renderTrain() {
   `;
 }
 
+function enemyPreviewMarkup(challenge) {
+  const waves = (challenge.waves || []).map((wave) => `${escapeHtml(wave.name)}${wave.count > 1 ? ` ×${wave.count}` : ""}`).join(" / ");
+  return `
+    <div class="enemy-preview" data-kind="${escapeHtml(challenge.kind)}">
+      <div class="enemy-preview-lane"><span class="enemy-track-line" aria-hidden="true"></span><span class="enemy-sprite" aria-hidden="true">${escapeHtml(challenge.icon || "⚠")}</span><span class="enemy-target" aria-hidden="true">列車</span></div>
+      <div class="enemy-preview-copy"><span class="enemy-preview-label">敵の動き</span><strong>${escapeHtml(challenge.motion || challenge.text)}</strong><small>${waves}</small></div>
+    </div>
+  `;
+}
+
+function previewVisualMarkup(preview) {
+  const nodes = state.activeCars.map((id, index) => {
+    const car = carById(id);
+    const event = preview.events[index];
+    return `<span class="preview-machine ${event ? "has-effect" : ""}" style="--machine-index:${index}"><b>${escapeHtml(car.icon)}</b><small>${escapeHtml(car.name)}</small></span>`;
+  }).join("");
+  const level = Math.max(1, Math.min(5, preview.projectiles?.length || 1));
+  const visibleProjectiles = (preview.projectiles || []).slice(0, 8);
+  const balls = visibleProjectiles.map((projectile, index) => `<span class="preview-ball ${projectile.mode === "molten" ? "is-molten" : ""} ${projectile.returning ? "is-returning" : ""}" style="--ball-index:${index};--ball-size:${Math.max(0.68, Math.min(1.45, 0.72 + ((projectile.mass || 2) * 0.1)))}rem" aria-hidden="true"></span>`).join("");
+  const overflow = (preview.projectiles?.length || 0) > visibleProjectiles.length ? `<span class="preview-overflow">+${preview.projectiles.length - visibleProjectiles.length}</span>` : "";
+  return `<div class="preview-visual" data-level="${level}" data-projectiles="${preview.projectiles?.length || 0}"><span class="preview-hopper">◉</span><i>›</i>${nodes}<i>›</i><span class="preview-cannon">◎</span>${balls}${overflow}</div>`;
+}
+
 function previewMarkup() {
   const preview = state.preview || previewTrain(state);
   const eventText = preview.events.length
@@ -159,6 +192,7 @@ function previewMarkup() {
   return `
     <div class="preview-box">
       <div class="preview-label"><span>LOCAL PREVIEW / 同じ因果列</span><span>到着 ${preview.travel} tick</span></div>
+      ${previewVisualMarkup(preview)}
       <div class="preview-result"><strong>${escapeHtml(preview.summary)}</strong><span>発射前の形</span></div>
       <ol class="preview-flow">${eventText}</ol>
       <p class="preview-footnote">順番を一つ動かすと、速度・火花・戻り印のどこが変わるかをここで確認できます。</p>
@@ -167,33 +201,36 @@ function previewMarkup() {
 }
 
 function renderBuildPanel() {
-  const challenge = challengeFor(state.stage);
+  const challenge = challengeFor(state.stage, state.seed);
   if (state.phase !== "build") return "";
   return `
     <section class="panel mission-panel">
       <div class="panel-heading"><div><p class="kicker">NEXT TARGET</p><h2>第${state.stage + 1}区画: ${escapeHtml(challenge.name)}</h2></div><span class="threat threat-${escapeHtml(challenge.kind)}">${escapeHtml(challenge.kind)}</span></div>
       <p class="mission-copy">${escapeHtml(challenge.text)}</p>
+      ${enemyPreviewMarkup(challenge)}
       ${previewMarkup()}
       <div class="action-row">
         <button class="button secondary" data-action="preview">もう一度プレビュー</button>
         <button class="button primary launch" data-action="launch">発車する <span aria-hidden="true">→</span></button>
       </div>
-      <p class="microcopy">発車すると敵の反撃まで自動で進みます。結果の途中でリロードしても、この画面から再開できます。</p>
+      <p class="microcopy">発車すると、弾が車両を通る順に短いショーが始まります。結果の途中でリロードしても、この画面から再開できます。</p>
     </section>
   `;
 }
 
 function reportEventLabel(event) {
-  if (event.type === "battle_start") return ["発車ベル", event.note || "敵影を確認"];
+  if (event.type === "battle_start") return [`${event.icon || "⚠"} 敵影`, event.motion || event.note || "敵影を確認"];
   if (event.type === "volley") return [`Volley ${event.volley}`, `${event.before || "鉄塊"} が後部から入った`];
   if (event.type === "car") return [`${event.icon || "•"} ${event.carName || "加工車"}`, `${event.before || ""} → ${event.after || ""} · ${event.note || ""}`];
   if (event.type === "loop") return ["∞ ループ", event.note || "後ろ側の加工をやり直す"];
   if (event.type === "fire") return ["◎ 発射", `${event.summary || "鉄塊"} · 到着 ${event.travel || "?"} tick`];
   if (event.type === "impact") return [`✹ ${event.target || "敵"} に命中`, `${event.damage || 0} ダメージ（${event.note || "正面に命中"}）`];
   if (event.type === "return") return ["↩ 回収ライン", event.note || "磁石が着弾後の鉄片を呼び戻す"];
+  if (event.type === "return_reprocess") return ["↶ 帰還再加工", `${event.summary || "戻り弾"} · ${event.note || "逆走車が帰路を変えた"}`];
   if (event.type === "enemy_recover") return ["敵の拾い直し", event.note || "戻り弾の残骸を拾われた"];
   if (event.type === "enemy_split") return ["分解クレーン", event.note || "敵が残骸から増えた"];
-  if (event.type === "enemy_attack") return ["敵の反撃", `${event.damage || 0} ダメージ / 装甲吸収 ${event.absorbed || 0}`];
+  if (event.type === "enemy_shell") return ["⚠ 敵弾", `${event.target || "敵"} → ${event.targetCarId ? carById(event.targetCarId).name : "車体"}`];
+  if (event.type === "enemy_attack") return ["敵の反撃", `${event.damage || 0} ダメージ / ${event.targetCarId ? `${carById(event.targetCarId).name}へ` : "車体へ"} / 装甲吸収 ${event.absorbed || 0}${event.convertedMass ? ` / 次弾の鉄塊 +${event.convertedMass}` : ""}`];
   if (event.type === "wave_clear") return ["✓ ウェーブ突破", event.note || "敵影が消えた"];
   if (event.type === "repair") return ["応急修理", event.note || `車体を ${event.amount || 0} 回復`];
   if (event.type === "battle_end") return ["終点", event.reason || "列車が止まった"];
@@ -201,24 +238,116 @@ function reportEventLabel(event) {
 }
 
 function replayEvents(report) {
-  return (report.events || [])
-    .filter((event) => ["battle_start", "volley", "car", "loop", "fire", "impact", "return", "enemy_recover", "enemy_split", "enemy_attack", "wave_clear", "repair", "battle_end"].includes(event.type))
-    .slice(0, 28);
+  const events = (report.events || [])
+    .filter((event) => ["battle_start", "volley", "car", "loop", "fire", "impact", "return", "return_reprocess", "enemy_recover", "enemy_split", "enemy_shell", "enemy_attack", "wave_clear", "repair", "battle_end"].includes(event.type));
+  const maxFrames = 40;
+  if (events.length <= maxFrames) return events;
+  // Keep the beginning and end of the show, then spend the remaining frames
+  // on events that explain a transformation or collision. This avoids a
+  // late-run eight-pellet burst pushing the outcome off screen.
+  const keep = new Set([0, events.length - 1]);
+  const priority = new Set(["car", "loop", "fire", "impact", "return", "return_reprocess", "enemy_recover", "enemy_split", "enemy_shell", "enemy_attack", "wave_clear"]);
+  events.forEach((event, index) => { if (priority.has(event.type) && keep.size < maxFrames) keep.add(index); });
+  for (let index = 0; keep.size < maxFrames && index < events.length; index += 1) keep.add(index);
+  return [...keep].sort((a, b) => a - b).map((index) => events[index]);
+}
+
+function causalHighlights(report) {
+  const events = report?.events || [];
+  const meaningful = events.filter((event) => ["car", "loop", "impact", "return", "return_reprocess", "enemy_recover", "enemy_split", "enemy_attack", "wave_clear"].includes(event.type));
+  const selected = [];
+  const add = (event) => { if (event && !selected.includes(event) && selected.length < 3) selected.push(event); };
+  add(meaningful.find((event) => event.type === "car" && event.before !== event.after) || meaningful.find((event) => event.type === "loop"));
+  add(meaningful.find((event) => ["return_reprocess", "return", "enemy_split", "enemy_recover"].includes(event.type)));
+  add([...meaningful].reverse().find((event) => ["wave_clear", "impact", "enemy_attack"].includes(event.type)));
+  meaningful.slice().reverse().forEach(add);
+  return selected;
 }
 
 function replayFrame(event, index, total) {
   const [title, detail] = reportEventLabel(event);
-  const payload = event.after || event.summary || (event.projectile ? `${event.projectile.mass || 0}` : "");
-  const lane = event.type === "impact" || event.type === "enemy_attack" ? "enemy" : event.type === "return" ? "return" : "train";
+  const payload = event.type === "enemy_shell"
+    ? "⚠"
+    : event.after || event.summary || (event.projectile ? `${event.projectile.mass || 0}` : "");
+  const lane = event.type === "impact" || event.type === "enemy_shell" || event.type === "enemy_attack" || event.type === "enemy_recover" || event.type === "enemy_split" ? "enemy" : event.type === "return" || event.type === "return_reprocess" ? "return" : "train";
+  const train = event.train || state.lastBattle?.train || state.activeCars;
+  const activeIndex = Number.isInteger(event.carIndex) ? event.carIndex : Number.isInteger(event.targetCarIndex) ? event.targetCarIndex : -1;
+  const trainNodes = train.map((id, carIndex) => {
+    const car = carById(id);
+    return `<span class="replay-train-car ${carIndex === activeIndex ? "is-active" : ""}" data-car-index="${carIndex}"><b>${escapeHtml(car.icon)}</b><small>${escapeHtml(car.name)}</small></span>`;
+  }).join("");
+  const projectileList = event.projectiles?.length ? event.projectiles : (event.projectile ? [event.projectile] : []);
+  const projectileGlyph = (item) => item.mode === "enemy-shell" ? "⚠" : item.mode === "molten" ? "✹" : item.returning ? "↩" : (item.splitCount || 0) > 0 ? "◆" : "●";
+  const projectileMarkup = projectileList.length
+    ? projectileList.slice(0, 10).map((item, itemIndex) => {
+      const itemClass = `${item.mode === "molten" ? "is-molten" : ""} ${item.mode === "enemy-shell" ? "is-enemy-shell" : ""} ${item.returning ? "is-returning" : ""} ${item.returnBlast ? "is-blast" : ""}`;
+      return `<span class="replay-payload ${itemClass}" style="--payload-index:${itemIndex};--payload-size:${Math.max(0.72, Math.min(1.55, 0.72 + ((item.mass || 2) * 0.1)))}rem">${projectileGlyph(item)}</span>`;
+    }).join("")
+    : `<span class="replay-payload" style="--payload-size:0.9rem">${escapeHtml(payload || "鉄塊")}</span>`;
+  const spectacleLevel = event.spectacle?.level || state.lastBattle?.spectacle?.level || 1;
+  const particles = Array.from({ length: Math.min(10, 3 + spectacleLevel * 2) }, (_, particleIndex) => `<i class="replay-particle particle-${particleIndex}" aria-hidden="true">${event.type === "impact" || event.type === "fire" ? "✦" : "·"}</i>`).join("");
+  const enemyNode = lane === "enemy" ? `<span class="replay-enemy-node" aria-hidden="true">${escapeHtml(state.lastBattle?.enemyIcon || "⚠")}</span>` : "";
   return `
     <div class="replay-progress"><span style="width:${Math.round(((index + 1) / Math.max(1, total)) * 100)}%"></span></div>
-    <div class="replay-route replay-${lane}">
-      <span class="replay-node">ホッパー</span><i aria-hidden="true">›</i><span class="replay-car">${escapeHtml(event.icon || (event.type === "impact" ? "✹" : event.type === "return" ? "↩" : "•"))}</span><i aria-hidden="true">›</i><span class="replay-node">砲台</span>
-      <span class="replay-payload">${escapeHtml(payload || "鉄塊")}</span>
+    <div class="replay-route replay-${lane}" data-spectacle="${spectacleLevel}">
+      <span class="replay-node">ホッパー</span><i aria-hidden="true">›</i><div class="replay-train-cars">${trainNodes}</div><i aria-hidden="true">›</i><span class="replay-node">砲台</span>${enemyNode}
+      <span class="replay-payloads" data-location="${escapeHtml(event.location?.lane || lane)}">${projectileMarkup}</span>${particles}
     </div>
     <div class="replay-caption"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></div>
     <small class="replay-count">${index + 1} / ${total}</small>
   `;
+}
+
+function playEventCue(event) {
+  const frequencies = {
+    battle_start: 220,
+    volley: 260,
+    car: 320,
+    loop: 380,
+    fire: 520,
+    impact: 760,
+    return: 430,
+    enemy_recover: 180,
+    enemy_split: 190,
+    enemy_shell: 150,
+    enemy_attack: 130,
+    wave_clear: 880,
+    repair: 610,
+    battle_end: 980,
+  };
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext || !frequencies[event.type]) return;
+    audioContext ||= new AudioContext();
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+    const now = audioContext.currentTime;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = event.type === "impact" || event.type === "wave_clear" ? "triangle" : "sine";
+    oscillator.frequency.setValueAtTime(frequencies[event.type], now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(event.type === "impact" ? 0.065 : 0.035, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (event.type === "wave_clear" ? 0.32 : 0.16));
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + (event.type === "wave_clear" ? 0.33 : 0.18));
+  } catch {
+    // Sound is optional; the visual route remains the source of truth.
+  }
+}
+
+function vibrateForEvent(event) {
+  if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") return;
+  const pattern = {
+    impact: 16,
+    return: [10, 18, 10],
+    enemy_shell: 10,
+    enemy_attack: 32,
+    wave_clear: [12, 24, 22],
+  }[event.type];
+  if (pattern) {
+    try { navigator.vibrate(pattern); } catch { /* optional */ }
+  }
 }
 
 function startReplay(report) {
@@ -227,7 +356,7 @@ function startReplay(report) {
   const stage = document.querySelector("#replay-stage");
   if (!stage || !events.length) return;
   const token = replayToken;
-  const frameDelay = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 460;
+  const frameDelay = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 320;
   let index = 0;
   const tick = () => {
     if (token !== replayToken) return;
@@ -235,6 +364,8 @@ function startReplay(report) {
     if (!frame) return;
     frame.innerHTML = replayFrame(events[index], index, events.length);
     frame.dataset.eventIndex = String(index);
+    playEventCue(events[index]);
+    vibrateForEvent(events[index]);
     if (index < events.length - 1) {
       index += 1;
       replayTimer = window.setTimeout(tick, frameDelay);
@@ -248,10 +379,7 @@ function startReplay(report) {
 function renderReport() {
   if (state.phase !== "report" || !state.lastBattle) return "";
   const report = state.lastBattle;
-  const causal = report.highlight?.length
-    ? report.highlight
-    : report.events.filter((event) => ["car", "impact", "return", "enemy_attack", "wave_clear"].includes(event.type));
-  const highlights = causal.slice(-3).map((event) => {
+  const highlights = causalHighlights(report).map((event) => {
     const [title, detail] = reportEventLabel(event);
     return `<li class="highlight-item highlight-${event.type}"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(detail)}</span></li>`;
   }).join("");
@@ -266,8 +394,8 @@ function renderReport() {
   const outcomeClass = report.won ? "success" : "failure";
   return `
     <section class="panel report-panel ${outcomeClass}">
-      <div class="report-head"><div><p class="kicker">CAUSE CHAIN REPLAY</p><h2>${escapeHtml(report.challenge)} <span class="outcome-pill">${outcome}</span></h2></div><div class="report-hp">車体 ${report.hullBefore} → <strong>${report.hullAfter}</strong></div></div>
-      <p class="muted">結果を先に見せず、同じイベント列を一コマずつ再生します。止めてから順番の理由を読み返せます。</p>
+      <div class="report-head"><div><p class="kicker">CAUSE CHAIN REPLAY</p><h2>${escapeHtml(report.enemyIcon || "⚠")} ${escapeHtml(report.challenge)} <span class="outcome-pill">${outcome}</span></h2></div><div class="report-hp">車体 ${report.hullBefore} → <strong>${report.hullAfter}</strong></div></div>
+      <p class="muted">${escapeHtml(report.motion || "敵と弾の動きを、同じイベント列から再生します。")}</p>
       <div id="replay-stage" class="replay-stage" role="status" aria-live="polite"><span>再生準備中…</span></div>
       <div class="highlight-box"><p class="kicker">THREE CAUSES TO REMEMBER</p><ol class="highlight-list">${highlights || "<li class=\"highlight-item\"><span>この区画では変化なし</span></li>"}</ol></div>
       <details class="trace-details"><summary>全ログを見る（${replayEvents(report).length} コマ）</summary><ol class="trace-list">${lines}</ol></details>
@@ -318,20 +446,54 @@ function nextExperimentQuestion() {
   return "同じ敵に再挑戦し、" + (unused ? unused.name : "先頭車") + "を一台だけ交換して因果を比べる。";
 }
 
+function majorRebuild() {
+  const entries = (state.carHistory || []).filter((entry) => entry.action !== "skip");
+  if (!entries.length) return null;
+  const counts = new Map();
+  entries.forEach((entry) => counts.set(entry.stage || 0, (counts.get(entry.stage || 0) || 0) + 1));
+  const [stage, count] = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0];
+  return { stage, count };
+}
+
+function finalTrainMarkup() {
+  return `<div class="final-train-summary" aria-label="最終車列">${state.activeCars.map((id, index) => {
+    const car = carById(id);
+    return `<span><b>${escapeHtml(car.icon)}</b><small>${index + 1}. ${escapeHtml(car.name)}</small></span>`;
+  }).join("")}</div>`;
+}
+
 function finalShotMarkup() {
   const report = state.lastBattle;
   if (!report) return "";
-  const highlights = (report.highlight || []).slice(-3).map((event) => {
+  const highlights = causalHighlights(report).map((event) => {
     const [title, detail] = reportEventLabel(event);
     return "<li class=\"highlight-item\"><strong>" + escapeHtml(title) + "</strong><span>" + escapeHtml(detail) + "</span></li>";
   }).join("");
   return [
     "<div class=\"final-shot\">",
     "<div class=\"final-shot-heading\"><p class=\"kicker\">LAST SHOT / " + escapeHtml(runName()) + "</p><button class=\"button text-button\" data-action=\"restart-replay\">もう一度再生</button></div>",
+    finalTrainMarkup(),
     "<div id=\"replay-stage\" class=\"replay-stage final-replay\" role=\"status\" aria-live=\"polite\"><span>最終ショーを準備中…</span></div>",
     "<ol class=\"highlight-list\">" + (highlights || "<li class=\"highlight-item\"><span>最後の因果ログはありません</span></li>") + "</ol>",
     "</div>",
   ].join("");
+}
+
+function rebuildHistoryMarkup() {
+  const history = state.carHistory || [];
+  if (!history.length) return `<p class="muted history-empty">このランではまだ車両を動かしていません。</p>`;
+  const rows = history.map((entry, index) => {
+    const name = entry.carId ? (carById(entry.carId)?.name || entry.carId) : "車列";
+    const replaced = entry.replaced ? (carById(entry.replaced)?.name || entry.replaced) : "";
+    let detail = `${name}を残した`;
+    if (entry.action === "append") detail = `${name}を車列へ連結`;
+    if (entry.action === "replace") detail = `${replaced}を外し、${name}へ交換`;
+    if (entry.action === "remove") detail = `${name}を解体`;
+    if (entry.action === "move") detail = `${name}を ${entry.from + 1}番 → ${entry.to + 1}番へ移動`;
+    if (entry.action === "skip") detail = "残骸を見送り、現在の車列を残した";
+    return `<li class="history-row"><span class="history-index">${index + 1}</span><span><strong>区画 ${Math.min(MAX_STAGES, (entry.stage || 0) + 1)}</strong><small>${escapeHtml(detail)}</small></span></li>`;
+  }).join("");
+  return `<ol class="history-list">${rows}</ol>`;
 }
 
 function renderDone() {
@@ -340,13 +502,16 @@ function renderDone() {
   const resultCopy = state.won
     ? "七つの区画を抜け、最初の鉄塊が王の炉心まで届きました。次は別の順番で同じ問いを試せます。"
     : `${state.reason || "敵の反撃で列車が止まりました"}。車列のどこを入れ替えれば、同じ敵に別の答えが返るかを残してください。`;
-  const sent = state.telemetry?.sentAt ? "送信済み" : state.telemetry?.error ? "再送待ち" : "未送信";
+  const sent = state.telemetry?.sentAt ? "送信済み" : state.telemetry?.pending || state.telemetry?.error ? "再送待ち" : "未送信";
   const discarded = (state.carHistory || []).filter((entry) => entry.action === "replace" || entry.action === "skip").length;
+  const peak = majorRebuild();
+  const peakCopy = peak ? `大改造の山: 第${Math.min(MAX_STAGES, peak.stage + 1)}区画（${peak.count}操作）` : "大改造の記録はありません";
   return `
     <section class="panel done-panel ${state.won ? "success" : "failure"}">
       <p class="kicker">RUN COMPLETE / ${escapeHtml(sent)}</p><h2>${resultTitle}</h2><p>${resultCopy}</p>
-      <div class="run-name"><span>この列車の呼び名</span><strong>${escapeHtml(runName())}</strong><small>${escapeHtml(nextExperimentQuestion())}</small></div>
+      <div class="run-name"><span>この列車の呼び名</span><strong>${escapeHtml(runName())}</strong><small>${escapeHtml(peakCopy)}</small><small>${escapeHtml(nextExperimentQuestion())}</small></div>
       ${finalShotMarkup()}
+      <details class="history-details"><summary>大改造の履歴（${(state.carHistory || []).length}件）</summary>${rebuildHistoryMarkup()}</details>
       <div class="result-stats"><span>到達 <strong>${state.stage}/${MAX_STAGES}</strong></span><span>車体 <strong>${state.hull}/${MAX_HULL}</strong></span><span>車両 <strong>${state.activeCars.length}/${MAX_CARS}</strong></span><span>交換・見送り <strong>${discarded}</strong></span></div>
       ${renderSurvey()}
     </section>
@@ -386,10 +551,76 @@ function renderMarkers() {
   `;
 }
 
+function completeDrag(from, to) {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from === to) return;
+  suppressClickUntil = Date.now() + 450;
+  setState(moveCar(state, from, to), { type: "car_reordered", from, to, method: "drag" });
+}
+
+function bindTrainDragging() {
+  if (!app) return;
+  const slots = [...app.querySelectorAll("[data-drag-slot]")];
+  slots.forEach((slot) => {
+    slot.addEventListener("dragstart", (event) => {
+      if (event.target.closest(".slot-actions")) { event.preventDefault(); return; }
+      dragSource = Number(slot.dataset.dragSlot);
+      slot.classList.add("is-dragging");
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(dragSource));
+      }
+    });
+    slot.addEventListener("dragend", () => {
+      dragSource = null;
+      slot.classList.remove("is-dragging");
+      slots.forEach((candidate) => candidate.classList.remove("is-drag-target"));
+    });
+    slot.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      slot.classList.add("is-drag-target");
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+    });
+    slot.addEventListener("dragleave", () => slot.classList.remove("is-drag-target"));
+    slot.addEventListener("drop", (event) => {
+      event.preventDefault();
+      const from = dragSource ?? Number(event.dataTransfer?.getData("text/plain"));
+      const to = Number(slot.dataset.dragSlot);
+      completeDrag(from, to);
+    });
+    slot.addEventListener("pointerdown", (event) => {
+      if (event.target.closest(".slot-actions")) return;
+      if (!event.isPrimary) return;
+      pointerDrag = { from: Number(slot.dataset.dragSlot), startX: event.clientX, startY: event.clientY, moved: false, slot };
+      try { slot.setPointerCapture(event.pointerId); } catch { /* optional */ }
+    });
+    slot.addEventListener("pointermove", (event) => {
+      if (!pointerDrag || pointerDrag.slot !== slot) return;
+      const dx = event.clientX - pointerDrag.startX;
+      const dy = event.clientY - pointerDrag.startY;
+      if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy)) return;
+      pointerDrag.moved = true;
+      slot.classList.add("is-dragging");
+      event.preventDefault();
+    });
+    const finishPointerDrag = (event) => {
+      if (!pointerDrag || pointerDrag.slot !== slot) return;
+      const drag = pointerDrag;
+      pointerDrag = null;
+      slot.classList.remove("is-dragging");
+      if (!drag.moved) return;
+      event.preventDefault();
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-drag-slot]");
+      completeDrag(drag.from, target ? Number(target.dataset.dragSlot) : drag.from);
+    };
+    slot.addEventListener("pointerup", finishPointerDrag);
+    slot.addEventListener("pointercancel", finishPointerDrag);
+  });
+}
+
 function render() {
   if (!app) return;
   stopReplay();
-  const challenge = challengeFor(state.stage);
+  const challenge = challengeFor(state.stage, state.seed);
   const status = state.telemetry?.error ? `<p class="sync-error" role="status">ログ送信: ${escapeHtml(state.telemetry.error)}</p>` : "";
   const diagnosticStamp = requestedSeed === null ? "" : "<span>diagnostic seed " + state.seed + "</span>";
   app.innerHTML = `
@@ -412,6 +643,7 @@ function render() {
       <footer class="footer"><span>build ${BUILD_STAMP}</span><span>このルートは既存の /play/ を置き換えません。</span><button class="text-button" data-action="new-run">最初からやり直す</button>${status}</footer>
     </main>
   `;
+  bindTrainDragging();
   if ((state.phase === "report" || state.phase === "done") && state.lastBattle) startReplay(state.lastBattle);
 }
 
@@ -438,32 +670,6 @@ function showMessage(message) {
   }
 }
 
-function battleFeedback(report) {
-  try {
-    if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(report.won ? [18, 28, 18] : [80]);
-  } catch {
-    // Haptics are optional on iPhone browsers.
-  }
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const audio = new AudioContext();
-    const oscillator = audio.createOscillator();
-    const gain = audio.createGain();
-    oscillator.type = report.won ? "triangle" : "sine";
-    oscillator.frequency.value = report.won ? 560 : 150;
-    gain.gain.setValueAtTime(0.0001, audio.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.045, audio.currentTime + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 0.24);
-    oscillator.connect(gain).connect(audio.destination);
-    oscillator.start();
-    oscillator.stop(audio.currentTime + 0.25);
-    oscillator.addEventListener("ended", () => audio.close(), { once: true });
-  } catch {
-    // Sound is a progressive enhancement; the replay remains fully usable.
-  }
-}
-
 function launch() {
   if (state.phase !== "build") return;
   recordTelemetry(state, { type: "battle_started", stage: state.stage + 1, cars: [...state.activeCars] });
@@ -472,7 +678,7 @@ function launch() {
   ensureTelemetry(state);
   recordTelemetry(state, { type: "battle_finished", stage: result.report.stage, won: result.report.won, hull: result.report.hullAfter });
   result.report.events.slice(0, 220).forEach((event, eventIndex) => {
-    if (["battle_start", "volley", "car", "loop", "fire", "impact", "return", "enemy_recover", "enemy_split", "enemy_attack", "wave_clear", "repair", "battle_end"].includes(event.type)) {
+    if (["battle_start", "volley", "car", "loop", "fire", "impact", "return", "return_reprocess", "enemy_recover", "enemy_split", "enemy_shell", "enemy_attack", "wave_clear", "repair", "battle_end"].includes(event.type)) {
       recordTelemetry(state, {
         type: "cause_replay_event",
         stage: result.report.stage,
@@ -491,7 +697,6 @@ function launch() {
       });
     }
   });
-  battleFeedback(result.report);
   persist();
   render();
 }
@@ -532,6 +737,11 @@ async function retryTelemetry() {
   showMessage(result.ok ? "再送しました" : result.error || "まだ送信できません。もう一度試せます。");
 }
 
+async function flushTelemetryQueue() {
+  const result = await flushScraplineTelemetryQueue();
+  if (result?.sent) showMessage(`${result.sent}件の保存済みログを送信しました`);
+}
+
 function newRun() {
   const next = createGame(querySeed());
   recordTelemetry(next, { type: "run_started", seed: next.seed, restarted: true });
@@ -540,6 +750,10 @@ function newRun() {
 }
 
 app?.addEventListener("click", (event) => {
+  if (Date.now() < suppressClickUntil) {
+    event.preventDefault();
+    return;
+  }
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const action = button.dataset.action;
@@ -590,6 +804,14 @@ window.addEventListener("error", (event) => {
   app.innerHTML = `<main class="shell boot-error"><h1>SCRAPLINE を読み込めませんでした</h1><p>${escapeHtml(event.error?.message || event.message || "unknown error")}</p><button class="button primary" onclick="location.reload()">再読み込み</button></main>`;
 });
 
+window.addEventListener("online", () => { flushTelemetryQueue(); });
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {
+    // The route stays usable when a host does not allow service workers.
+  });
+}
+
 ensureTelemetry(state);
 persist();
 render();
+window.setTimeout(() => { flushTelemetryQueue(); }, 900);
