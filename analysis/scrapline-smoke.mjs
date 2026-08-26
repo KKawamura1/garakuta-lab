@@ -95,6 +95,7 @@ assert.equal(payload.events.length, 1);
 const appSource = await readFile(new URL("../scrapline/app.js", import.meta.url), "utf8");
 assert.doesNotMatch(appSource, /\b(alert|prompt|confirm)\s*\(/, "the route must use in-page controls");
 assert.match(appSource, /localStorage/);
+assert.match(appSource, /scrapline-state-v1-seed/);
 assert.match(appSource, /sendScraplineTelemetry/);
 
 console.log("scrapline smoke ok", JSON.stringify({ version: VERSION, stages: fullRun.stage, events: payload.events.length }));
