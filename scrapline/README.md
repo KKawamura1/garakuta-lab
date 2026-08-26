@@ -10,7 +10,7 @@
 4. 区画を突破したら、残骸から一台だけ拾う。満車なら車両をタップして交換先を選ぶ。
 5. 7区画を抜けた後、面白さ・再プレイ意欲・詰まりを30秒で記録する。
 
-通常起動では seed を画面に出さず毎回新しい列車を生成します。`?seed=12` のように指定した診断起動だけ seed を表示し、同じ区画・敵順・残骸候補を再現できます。`scrapline-0.4` と build stamp は画面とログに残ります。
+通常起動では seed を画面に出さず毎回新しい列車を生成します。`?seed=12` のように指定した診断起動だけ seed を表示し、同じ区画・敵順・残骸候補を再現できます。`scrapline-0.5` と build stamp は画面とログに残ります。
 
 ## 核になる仕掛け
 
@@ -24,7 +24,7 @@ node --input-type=module --check < scrapline/app.js
 node --input-type=module --check < scrapline/engine.mjs
 ```
 
-エンジンは副作用のない決定的シミュレーションとして切り出し、UI は `localStorage` に現在の run と送信待ちキューを保存します。アンケート送信は既存の `/api/runs` と `agent-view/sync.js` を使い、`head: scrapline` と `gameVersion: scrapline-0.4` を付けます。Service Worker と manifest も `/scrapline/` 専用に登録します。単体敵はHP、群れは個体数で判定し、装甲が受けた敵弾は次の鉄塊へ一片だけ戻ります。
+エンジンは副作用のない決定的シミュレーションとして切り出し、UI は `localStorage` に現在の run と送信待ちキューを保存します。アンケート送信は既存の `/api/runs` と `agent-view/sync.js` を使い、`head: scrapline` と `gameVersion: scrapline-0.5` を付けます。Service Worker と manifest も `/scrapline/` 専用に登録します。単体敵はHP、群れは個体数で判定し、装甲が受けた敵弾は次の鉄塊へ一片だけ戻ります。
 
 ## 未完了の検証
 
