@@ -60,7 +60,7 @@
 | `haul/` | 意味のある目標と可視化された危険の独立試作 |
 | `agents/` | エージェント実験のプロトコル、方策、実行コード |
 | `analysis/` | 事前登録、関門、調律、プレイ判定、反証、回帰検査 |
-| `research/` | ランダム性・構築ゲームの先行調査 |
+| `research/` | ランダム性・構築ゲーム・育成ゲームの先行調査 |
 | `functions/`, `migrations/` | Pages FunctionからD1へプレイログを保存 |
 | `docs/` | 公開、ログ取得、export、日常運用 |
 | `.github/workflows/` | D1ログexportなどのActions |
@@ -120,6 +120,10 @@ COST、SQUEEZE、IDENTは画面内に残っていますが休止中です。
 | [analysis/AGENT_PROXY_PILOT.md](./analysis/AGENT_PROXY_PILOT.md) | エージェントを面白さ採点へ使う限界 |
 | [analysis/ECHO_0_1.md](./analysis/ECHO_0_1.md) | 前回の自分を書き換える再プレイ仮説と反証 |
 | [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md) | 意味のある目標と危険を押す再プレイ仮説 |
+
+### 先行調査
+
+- [research/raising_game_survey_2026-08-26.md](./research/raising_game_survey_2026-08-26.md) — 育成ゲームの構造、既存作の比較、NIGHT-EATERへの次の仮説
 
 `analysis/agent-runs/`、JSON、画像は付属データです。Markdownの判定を読んでから、
 必要な標本だけ開いてください。
