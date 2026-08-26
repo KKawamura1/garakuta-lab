@@ -415,6 +415,9 @@ export function previewTrain(state, projectile = null) {
   };
   let projectiles = projectile ? [clone(projectile)] : [makeProjectile("preview", 2)];
   projectiles = processLine(safeState.activeCars, projectiles, context);
+  if (context.loopIndex !== null && context.loopIndex > 0) {
+    projectiles = processLine(safeState.activeCars, projectiles, context, "loop", 0, context.loopIndex);
+  }
   return {
     events: context.events,
     summary: projectileSignature(projectiles),
