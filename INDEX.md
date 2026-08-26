@@ -195,6 +195,8 @@ READMEやINDEXに固定した組数・版・「本命」を書いた場合は、
 - [analysis/ECHO_0_1.md](./analysis/ECHO_0_1.md) — 再プレイ動機の事前登録と判定
 - [haul/README.md](./haul/README.md) — 持ち帰り限界 HAUL 0.1
 - [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md) — 目標と危険の事前登録
+- [scrapline/README.md](./scrapline/README.md) — ガラクタ列車 SCRAPLINE 0.1 の遊び方とログ仕様
+- [analysis/SCRAPLINE_0_1.md](./analysis/SCRAPLINE_0_1.md) — 車列の因果・成功信号・停止条件
 
 ## 新しい本気の縦切り（公開前）
 
@@ -214,6 +216,9 @@ READMEやINDEXに固定した組数・版・「本命」を書いた場合は、
 - [tomori/README.md](./tomori/README.md) — 灯守 / TOMORI 0.1 の遊び方とログ仕様
 - [analysis/TOMORI_0_1.md](./analysis/TOMORI_0_1.md) — NE-2の事前登録、成功・失敗信号
 - [analysis/tomori-smoke.mjs](./analysis/tomori-smoke.mjs) — 3日完走、4結末、payloadの回帰検査
+- [scrapline/README.md](./scrapline/README.md) — ガラクタ列車 SCRAPLINE 0.1 の遊び方とログ仕様
+- [analysis/SCRAPLINE_0_1.md](./analysis/SCRAPLINE_0_1.md) — 車列の因果・成功信号・停止条件
+- [analysis/scrapline-smoke.mjs](./analysis/scrapline-smoke.mjs) — 決定性、順番差、逆走、7区画完走の回帰検査
 - [research/raising_game_survey_2026-08-26.md](./research/raising_game_survey_2026-08-26.md) — 既存の育成ゲームからの設計示唆
 
 ## 次の作者テスト：EMBERLINE 0.1
