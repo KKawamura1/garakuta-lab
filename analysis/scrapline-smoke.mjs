@@ -31,7 +31,7 @@ const stable = (state) => ({
   won: state.won,
 });
 
-assert.equal(VERSION, "scrapline-0.1");
+assert.equal(VERSION, "scrapline-0.2");
 assert.equal(CARS.length, 11);
 assert.equal(new Set(CARS.map((car) => car.id)).size, CARS.length);
 assert.equal(challengeFor(0).id, "sparrows");
