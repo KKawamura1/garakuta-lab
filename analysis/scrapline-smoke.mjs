@@ -38,7 +38,7 @@ const stable = (state) => ({
   won: state.won,
 });
 
-assert.equal(VERSION, "scrapline-0.4");
+assert.equal(VERSION, "scrapline-0.5");
 assert.equal(CARS.length, 11);
 assert.equal(MAX_VOLLEYS, 5);
 assert.equal(new Set(CARS.map((car) => car.id)).size, CARS.length);
