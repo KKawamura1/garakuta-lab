@@ -92,7 +92,7 @@ main の直近の履歴は 2026-08-17〜2026-08-26 に集中し、GitHub API 上
 - 判断: コア候補として部分支持。チップ数追加や移動制限の調整は凍結。
 - 持ち越し: 途中で既存の意味が変わること、変化を目で追えること、敗北から次の仮説を作れること。
 
-参照: [exp-01](experiments/exp-01/README.md)、[EXPERIMENT_HISTORY](EXPERIMENT_HISTORY.md)
+参照: [exp-01](experiments/exp-01/R1_MUTATION.md)、[EXPERIMENT_HISTORY](EXPERIMENT_HISTORY.md)
 
 ### EXP-08 — EXP-02 DISCOVERY / PUZZLE
 
@@ -101,7 +101,7 @@ main の直近の履歴は 2026-08-17〜2026-08-26 に集中し、GitHub API 上
 - 判断: 一回の insight は支持、固定パズルを主ゲームにする案は不採用。
 - 持ち越し: 問いを解いた後に、新しい問い・未見の相互作用・自己表現が残る仕組み。
 
-参照: [exp-02](experiments/exp-02/README.md)
+参照: [exp-02](experiments/exp-02/R1_DISCOVERY.md)
 
 ### EXP-09 — EXP-03 CONTROL
 
@@ -110,7 +110,7 @@ main の直近の履歴は 2026-08-17〜2026-08-26 に集中し、GitHub API 上
 - 判断: この具体版は不採用。しかし「戦闘中の短い選択」そのものは未検証。
 - 持ち越し: 仮説が実装されているかを先に確認し、未成立の条件から方向全体を否定しない。
 
-参照: [exp-03](experiments/exp-03/README.md)
+参照: [exp-03](experiments/exp-03/R1_CONTROL.md)
 
 ### EXP-10 — EXP-04 GRAFT
 
@@ -119,7 +119,7 @@ main の直近の履歴は 2026-08-17〜2026-08-26 に集中し、GitHub API 上
 - 判断: 仮説→実行→結果→次の方針という局所ループは支持。長期 replay と方策の多様性は未解決。
 - 持ち越し: what-if の表示、学習が次の選択を変えること。支配戦略を単に弱くするだけでは再設計にならない。
 
-参照: [exp-04](experiments/exp-04/README.md)
+参照: [exp-04](experiments/exp-04/R1_GRAFT.md)
 
 ### EXP-11 — ECHO
 
