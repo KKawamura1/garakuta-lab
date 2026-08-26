@@ -14,8 +14,8 @@ import {
 } from "./engine.mjs";
 import { buildPayload, record, send } from "./telemetry.mjs";
 
-const STORAGE_KEY = "tomori-current-run-v3";
-const LAST_RESULT_KEY = "tomori-last-result-v3";
+const STORAGE_KEY = "tomori-current-run-v1";
+const LAST_RESULT_KEY = "tomori-last-result-v1";
 const app = document.querySelector("#app");
 const params = new URLSearchParams(location.search);
 const forcedSeed = params.has("seed") ? params.get("seed") : null;
@@ -262,11 +262,9 @@ function renderResult(current) {
 }
 
 function render() {
-  app.dataset.renderState = state ? `${state.phase}:${state.day}` : "title";
   if (!state) renderTitle();
   else if (state.phase === "result") renderResult(state);
-  else renderScene(state, state.phase);
-  app.dataset.renderHtml = app.querySelector(".title-screen") ? "title" : app.querySelector(".shell") ? "shell" : "other";
+  else app.innerHTML = renderScene(state, state.phase);
   bindInteractions();
   app.dataset.ready = "true";
 }
@@ -348,12 +346,10 @@ function submitSurvey(form) {
 }
 
 function bindInteractions() {
-  app.dataset.bindMode = "direct";
   app.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => choose(button.dataset.action)));
   app.querySelectorAll("[data-next]").forEach(button => button.addEventListener("click", nextDay));
   app.querySelectorAll("[data-emotion]").forEach(button => button.addEventListener("click", () => recordEmotion(button.dataset.emotion)));
   app.querySelectorAll("[data-start]").forEach(button => button.onclick = () => {
-    app.dataset.clicked = "yes";
     startGame();
   });
   app.querySelectorAll("[data-resume]").forEach(button => button.addEventListener("click", render));
