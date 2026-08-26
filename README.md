@@ -78,6 +78,12 @@ HAUL 0.1では、部品7個という目標は読めましたが、余分に回�
 
 結果と次の仮説は [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md)、実装と遊び方は [haul/README.md](./haul/README.md) です。
 
+次の独立縦切りとして **ガラクタ列車 / SCRAPLINE 0.1** を追加しました。後部ホッパーから砲台までの車両順で一つの鉄塊を加工し、着弾後の戻り道までを因果ログとして再生します。7区画・最大5車両・seed再現・D1ログを備えます。公開URLでの人間テストは、ブラウザE2EとD1保存確認が済むまで案内しません。
+
+- [scrapline/README.md](./scrapline/README.md) — 遊び方、seed、ログ仕様
+- [analysis/SCRAPLINE_0_1.md](./analysis/SCRAPLINE_0_1.md) — 面白さの核、失敗回避、成功・停止信号
+- [analysis/scrapline-smoke.mjs](./analysis/scrapline-smoke.mjs) — 決定性・順番差・7区画完走の回帰検査
+
 ## 本気の縦切り：拾い火 / KINDLING 0.1
 
 難易度やルール量を増やす前に、「拾ったものを自分の形にして、相棒が実際に変わり、その帰結が物語になる」面白さを一度つなげて試す独立作です。6場面の夜道で、ルート選択、部位への組み込み、コンボ演出、短い物語、失敗の傷を一周にまとめています。
