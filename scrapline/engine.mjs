@@ -287,8 +287,8 @@ function applyCar(carId, projectiles, context, path = "forward", index = 0) {
       if ((projectile.splitCount || 0) >= 3) return [projectile];
       const fragmentSpeed = Math.max(0.6, (projectile.speed || 1) * 0.85);
       const splitCount = (projectile.splitCount || 0) + 1;
-      const first = { ...projectile, mass: Math.max(1, Math.ceil(projectile.mass / 2)), sparks: Math.ceil(projectile.sparks / 2), splitCount, mode: "solid", speed: fragmentSpeed };
-      const second = { ...projectile, id: `${projectile.id}-b`, mass: Math.max(1, Math.floor(projectile.mass / 2)), sparks: Math.floor(projectile.sparks / 2), splitCount, mode: "solid", speed: fragmentSpeed };
+      const first = { ...projectile, mass: Math.max(1, Math.ceil(projectile.mass / 2)), sparks: Math.ceil(projectile.sparks / 2), splitCount, speed: fragmentSpeed };
+      const second = { ...projectile, id: `${projectile.id}-b`, mass: Math.max(1, Math.floor(projectile.mass / 2)), sparks: Math.floor(projectile.sparks / 2), splitCount, speed: fragmentSpeed };
       return [first, second];
     });
     note = `${projectiles.length}個 → ${next.length}個。分かれた弾は少し減速（第${Math.max(...next.map((projectile) => projectile.splitCount || 0), 0)}世代）`;
