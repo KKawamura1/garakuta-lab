@@ -2,7 +2,7 @@
 
 `analysis/SCRAPLINE_GAME_CONCEPT.md` の「最初から守る設計上の境界」を、
 `scrapline/` の実装と自動検査へ対応づけた記録です。現在の ruleset は
-`scrapline-0.4`、build は `scrapline-build-20260827-r4` です。
+`scrapline-0.5`、build は `scrapline-build-20260827-r5` です。
 
 ## 簡単な土台から順に積んだもの
 
