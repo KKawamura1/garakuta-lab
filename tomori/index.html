@@ -11,15 +11,21 @@
   <body>
     <div id="app"><main class="boot-screen"><div class="boot-orb">✧</div><p>小さな灯りを起こしています…</p></main></div>
     <script>
-      window.addEventListener("error", function () {
+      function showBootFailure(message) {
         var app = document.getElementById("app");
-        if (app && app.dataset.ready !== "true") app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p></main>';
+        if (!app || app.dataset.ready === "true") return;
+        app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p><details><summary>詳しい情報</summary><code id="boot-error"></code></details></main>';
+        var detail = document.getElementById("boot-error");
+        if (detail) detail.textContent = String(message || "module load failed").slice(0, 240);
+      }
+      window.addEventListener("error", function (event) {
+        showBootFailure(event.message || "module load failed");
+      }, true);
+      window.addEventListener("unhandledrejection", function (event) {
+        showBootFailure(event.reason && event.reason.message || event.reason || "module load failed");
       });
-      window.addEventListener("unhandledrejection", function () {
-        var app = document.getElementById("app");
-        if (app && app.dataset.ready !== "true") app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p></main>';
-      });
+      window.showBootFailure = showBootFailure;
     </script>
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="./app.js" onerror="window.showBootFailure('app.js could not be loaded')"></script>
   </body>
 </html>
