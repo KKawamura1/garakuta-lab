@@ -96,6 +96,7 @@
 | `/agent-view/` | エージェントと同条件で見るデバッグ画面 |
 | `/echo/?seed=12` | ECHO 0.1。前回の6手を書き換える短時間試作 |
 | `/haul/?seed=12` | HAUL 0.1。部品を持ち帰るために危険を押す短時間試作 |
+| `/tomori/` | TOMORI 0.1。相棒の育成と別の結末を3日で検証する独立試作 |
 
 COST、SQUEEZE、IDENTは画面内に残っていますが休止中です。
 削除せず、比較点・反証記録として保持しています。
@@ -193,3 +194,14 @@ READMEやINDEXに固定した組数・版・「本命」を書いた場合は、
 - [analysis/night-eater-smoke.mjs](./analysis/night-eater-smoke.mjs) — 6夜完走、seed再現、部品取付、payloadの回帰検査
 
 これはmainの既定版ではなく、ブラウザE2E・公開先D1保存・export照合を終えるまで人間テストURLを渡さない。
+
+
+## 育成の縦切り（公開確認中）
+
+既存のNIGHT-EATERで不足していた「関係 → 変化 → 試験 → 結末」を、より小さく検証する独立作。
+
+- [tomori/README.md](./tomori/README.md) — 灯守 / TOMORI 0.1 の遊び方とログ仕様
+- [analysis/TOMORI_0_1.md](./analysis/TOMORI_0_1.md) — NE-2の事前登録、成功・失敗信号
+- [analysis/tomori-smoke.mjs](./analysis/tomori-smoke.mjs) — 3日完走、4結末、payloadの回帰検査
+- [research/raising_game_survey_2026-08-26.md](./research/raising_game_survey_2026-08-26.md) — 既存の育成ゲームからの設計示唆
+

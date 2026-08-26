@@ -96,3 +96,14 @@ Cloudflare PagesではD1を `PLAYTEST_DB` としてbindingし、
 - [analysis/NIGHT_EATER_0_1.md](./analysis/NIGHT_EATER_0_1.md) — 開始時刻、魂、仮説、失敗信号
 
 人間テスト公開条件とブラウザE2Eが未確認のため、現時点ではmainの既定版ではありません。
+
+
+## 育成の縦切り：灯守 / TOMORI 0.1
+
+NIGHT-EATER 0.1の反省から、相棒一体・3日間で「接し方が姿と反応に残り、最後の場面で返ってくる」ことを試す独立作です。
+
+- プレイ版: https://garakuta-lab.pages.dev/tomori/
+- [tomori/README.md](./tomori/README.md) — 遊び方とログ仕様
+- [analysis/TOMORI_0_1.md](./analysis/TOMORI_0_1.md) — 仮説、成功・失敗信号、人間テストの問い
+
+既定の本編入口や過去の試作は置き換えません。
