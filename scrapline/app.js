@@ -44,7 +44,8 @@ function nowIso() {
 
 function querySeed() {
   const raw = new URLSearchParams(location.search).get("seed");
-  return raw === null || raw === "" ? null : Number(raw);
+  const parsed = raw === null || raw === "" ? null : Number(raw);
+  return parsed === null || !Number.isFinite(parsed) ? null : parsed;
 }
 
 function loadState() {
