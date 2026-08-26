@@ -11,29 +11,19 @@
   <body>
     <div id="app"><main class="boot-screen"><div class="boot-orb">✧</div><p>小さな灯りを起こしています…</p></main></div>
     <script>
-      function showBootFailure(message) {
+      function showBootFailure() {
         var app = document.getElementById("app");
         if (!app || (app.dataset.ready === "true" && !app.querySelector(".boot-screen"))) return;
-        app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p><details><summary>詳しい情報</summary><code id="boot-error"></code></details></main>';
-        var detail = document.getElementById("boot-error");
-        if (detail) detail.textContent = String(message || "module load failed").slice(0, 240);
+        app.innerHTML = '<main class="boot-screen"><div class="boot-orb">·</div><h1>灯りが眠っています</h1><p>読み込みに失敗しました。ページを一度だけ再読み込みしてください。</p></main>';
       }
-      window.addEventListener("error", function (event) {
-        showBootFailure(event.message || "module load failed");
-      }, true);
-      window.addEventListener("unhandledrejection", function (event) {
-        showBootFailure(event.reason && event.reason.message || event.reason || "module load failed");
-      });
+      window.addEventListener("error", showBootFailure, true);
+      window.addEventListener("unhandledrejection", showBootFailure);
       window.showBootFailure = showBootFailure;
-      document.getElementById("app").dataset.inline = "ready";
       window.setTimeout(function () {
         var app = document.getElementById("app");
-        if (app && app.querySelector(".boot-screen")) showBootFailure("TOMORI did not initialize within 4 seconds");
-      }, 4000);
+        if (app && app.querySelector(".boot-screen")) showBootFailure();
+      }, 5000);
     </script>
-    <script type="module">
-      document.getElementById("app").dataset.inlineModule = "ready";
-    </script>
-    <script type="module" src="./instrument.mjs" onerror="window.showBootFailure('TOMORI module could not be loaded')"></script>
+    <script type="module" src="./release.mjs" onerror="window.showBootFailure()"></script>
   </body>
 </html>
