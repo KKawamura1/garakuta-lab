@@ -199,6 +199,7 @@ READMEやINDEXに固定した組数・版・「本命」を書いた場合は、
 - [analysis/HAUL_0_1.md](./analysis/HAUL_0_1.md) — 目標と危険の事前登録
 - [scrapline/README.md](./scrapline/README.md) — ガラクタ列車 SCRAPLINE 0.1 の遊び方とログ仕様
 - [analysis/SCRAPLINE_0_1.md](./analysis/SCRAPLINE_0_1.md) — 車列の因果・成功信号・停止条件
+- [analysis/scrapline-smoke.mjs](./analysis/scrapline-smoke.mjs) — 決定性、順番差、逆走、7区画完走の回帰検査
 
 ## 新しい本気の縦切り（公開前）
 
