@@ -107,3 +107,17 @@ NIGHT-EATER 0.1の反省から、相棒一体・3日間で「接し方が姿と�
 - [analysis/TOMORI_0_1.md](./analysis/TOMORI_0_1.md) — 仮説、成功・失敗信号、人間テストの問い
 
 既定の本編入口や過去の試作は置き換えません。
+
+## もう一度遊びたくなる核を探す：火走り / EMBERLINE 0.1
+
+TOMORI 0.1では、雰囲気はあっても「何をしたか・なぜそうなったか」が一周で掴めず、作者の面白さ2/5・再プレイ度1〜2/5に留まりました。そこで物語を長くする前に、作者が遊びの中で方針を作れる小さな構築ゲームを新しく作っています。
+
+**火走り / EMBERLINE 0.1** は、拾った廃材を4穴の機関へ装着し、左から順番に動かして、5区画の先の灯台へ火種を運ぶゲームです。毎区画で3つの廃材から1つを選び、空き穴への装着・既存部品との交換・無料の順序変更を行います。部品単体の効果だけでなく、火花・熱・守り・直前の出力による連鎖を、部品名つきの走行ログで確認できます。
+
+- プレイ版（公開確認後）：https://garakuta-lab.pages.dev/emberline/
+- [emberline/README.md](./emberline/README.md) — 遊び方、記録、検査
+- [analysis/EMBERLINE_0_1.md](./analysis/EMBERLINE_0_1.md) — 仮説、失敗信号、作者テストの判断基準
+- [analysis/emberline-gate.mjs](./analysis/emberline-gate.mjs) — 問題空間の自動ゲート
+- [analysis/emberline-smoke.mjs](./analysis/emberline-smoke.mjs) — 縦切りの回帰検査
+
+実装時点の自動ゲートは5/5通過しています。ただしこれは面白さの合格ではありません。作者が実際に「次はこの廃材をこの順で試したい」と思うかを、公開プレイで判定します。既存のSKIP、ECHO、HAUL、TOMORIは比較基準として残し、既定版にはまだしません。
