@@ -56,7 +56,7 @@ export const PARTS = [
       eyes: { verb: "暗闇を読む", stat: "sense", value: 1 },
       heart: { verb: "燃える", stat: "warm", value: 2 },
       hands: { verb: "火花を散らす", stat: "spark", value: 2 },
-      feet: { verb: "踏ん張る", stat: "guard", value: 1 }
+      feet: { verb: "踏ん張る", stat: "guard", value: 2 }
     }
   },
   {
@@ -103,7 +103,7 @@ export const PARTS = [
     id: "button", name: "知らない服のボタン", glyph: "⊙", color: "#f2a6d1",
     line: "小さいけれど、誰かを思い出す。",
     uses: {
-      eyes: { verb: "顔を思い出す", stat: "bond", value: 1 },
+      eyes: { verb: "顔を思い出す", stat: "bond", value: 2 },
       heart: { verb: "結ぶ", stat: "bond", value: 2 },
       hands: { verb: "とめる", stat: "guard", value: 1 },
       feet: { verb: "ころがる", stat: "dash", value: 1 }
@@ -125,7 +125,7 @@ export const PARTS = [
     uses: {
       eyes: { verb: "季節を読む", stat: "sense", value: 2 },
       heart: { verb: "あたためる", stat: "warm", value: 2 },
-      hands: { verb: "なおす", stat: "mend", value: 1 },
+      hands: { verb: "なおす", stat: "mend", value: 2 },
       feet: { verb: "灯りを運ぶ", stat: "light", value: 1 }
     }
   },
@@ -195,7 +195,7 @@ export const SCENES = [
         name: "火花で走る",
         icon: "✦",
         desc: "一瞬の火花で犬の目をくらませ、先に曲がる。速さが要る。",
-        req: { dash: 4, spark: 1 },
+        req: { dash: 3, spark: 1 },
         reward: "memory",
         rewardText: "鉄犬が迷った、ほんの一秒",
         success: "火花が夜の中で弾け、鉄犬は一秒だけ道を見失った。その一秒で、相棒はあなたの手を引いた。"
@@ -205,7 +205,7 @@ export const SCENES = [
         name: "胸を張って守る",
         icon: "盾",
         desc: "逃げずに灯りを囲む。相棒を信じるほど、足が止まらない。",
-        req: { guard: 3, bond: 2 },
+        req: { guard: 2, bond: 2 },
         reward: "light",
         rewardText: "灯りが少し戻る",
         success: "鉄犬の鼻先が灯りに触れた。それでも相棒は動かなかった。犬は、あなたたちを通り過ぎた。"
@@ -223,7 +223,7 @@ export const SCENES = [
         name: "橋をつなぐ",
         icon: "⌁",
         desc: "壊れたものを直して、灯りと一緒に渡る。時間がかかる。",
-        req: { mend: 2, light: 2 },
+        req: { mend: 1, light: 2 },
         reward: "memory",
         rewardText: "直すと、橋は少しだけ歌った",
         success: "テープと種が裂け目をふさいだ。渡り終えると、橋の奥から古い歌が一節だけ聞こえた。"
@@ -251,7 +251,7 @@ export const SCENES = [
         name: "あたたかい店へ",
         icon: "⌂",
         desc: "灯りを分けて、店の奥に残ったものを起こす。",
-        req: { warm: 3, bond: 2 },
+        req: { warm: 2, bond: 2 },
         reward: "memory",
         rewardText: "店の奥に残っていた、赤い糸",
         success: "相棒の胸が明るくなり、店の奥から赤い糸が一筋だけ伸びた。帰る窓まで、途切れずに続いている。"
@@ -261,7 +261,7 @@ export const SCENES = [
         name: "看板の音を返す",
         icon: "♫",
         desc: "雨音にまぎれた看板を鳴らす。返事があれば道が開く。",
-        req: { echo: 3, sense: 2 },
+        req: { echo: 2, bond: 2 },
         reward: "light",
         rewardText: "灯りが少し戻る",
         success: "看板の音が雨の中を走り、遠くの扉が一つだけ開いた。相棒は迷わずそこへ向かった。"
@@ -276,10 +276,10 @@ export const SCENES = [
     routes: [
       {
         id: "fire",
-        name: "火花を咲かせる",
+        name: "残り火を咲かせる",
         icon: "✹",
-        desc: "一度きりの大きな光で、階段を空ける。守りが薄いと危険。",
-        req: { spark: 3, guard: 2 },
+        desc: "残ったあたたかさを花火のように咲かせて、階段を空ける。",
+        req: { warm: 2, bond: 2 },
         reward: "memory",
         rewardText: "相棒の影が、初めて笑った",
         success: "火花が花のように開き、黒いものは影へ戻った。相棒の影が、初めてあなたと同じ形に笑った。"
@@ -289,7 +289,7 @@ export const SCENES = [
         name: "上からの音を聴く",
         icon: "♩",
         desc: "急がず、塔の内側から返る音を探す。灯りを絶やさないこと。",
-        req: { echo: 3, light: 2 },
+        req: { echo: 2, bond: 2 },
         reward: "light",
         rewardText: "灯りが少し戻る",
         success: "上から三度、鈴の音が返った。黒いものは道を空け、相棒はその音を胸にしまった。"
