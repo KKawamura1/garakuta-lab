@@ -4,6 +4,10 @@
 運用コードを同じ場所で管理する実験場です。**全部読む必要はありません。**
 目的に合う入口から入り、詳細データは必要になった実験だけ開いてください。
 
+## 現在の正史と最小読書順
+
+現在の判断は [PROJECT_MEMORY.md](./PROJECT_MEMORY.md)、短縮版は [analysis/CURRENT.md](./analysis/CURRENT.md)、全実験の統合表は [analysis/EXPERIMENT_LEDGER.md](./analysis/EXPERIMENT_LEDGER.md) を参照してください。新しいエージェントの手順は [docs/AGENT_ONBOARDING.md](./docs/AGENT_ONBOARDING.md) にまとめています。
+
 ## まず現在地
 
 - 最終目的：作者自身が、中身を知った後も繰り返し遊びたいゲームを作る
@@ -14,7 +18,7 @@
 - 未決着：strikeの何が効いたか、答え合わせが継続を作るか、T2、法則同士の噛み合わせ、
   1巡上限と倍率の衝突
 
-最新の作業状態は [.claude/RESUME.md](./.claude/RESUME.md) を正とします。
+現在の作業状態は [PROJECT_MEMORY.md](./PROJECT_MEMORY.md) と [analysis/CURRENT.md](./analysis/CURRENT.md) を正とします。全実験の判断は [analysis/EXPERIMENT_LEDGER.md](./analysis/EXPERIMENT_LEDGER.md) を参照し、[.claude/RESUME.md](./.claude/RESUME.md) は歴史的な運用記録として扱います。
 版の説明は [core/rules-version.mjs](./core/rules-version.mjs)、
 人間テストの判定は該当する `analysis/*.md` を正とします。
 

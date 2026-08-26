@@ -7,6 +7,10 @@
 方法論は `agents/HYPOTHESIS_TESTING.md`、手順は `docs/OPERATIONS.md`、
 学びは `DESIGN_LEARNINGS.md`。
 
+## 現在の索引
+
+設計の現在地は [PROJECT_MEMORY.md](../PROJECT_MEMORY.md)、短縮版は [CURRENT.md](CURRENT.md)、全実験の統合表は [EXPERIMENT_LEDGER.md](EXPERIMENT_LEDGER.md) です。この README の下にある古いツール一覧は、検査・再現・運用の入口として残していますが、現在のゲーム仮説の優先順位を決める資料ではありません。
+
 ---
 
 ## 公開する前に必ず走らせるもの

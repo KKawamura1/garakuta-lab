@@ -4,6 +4,12 @@
 完成仕様を磨くより、**面白さの仮説 → 小さな試作 → 自分でプレイ → 観測 → 次の仮説**
 を短く回します。
 
+## 新しい作業者が最初に読む資料
+
+現在の正史は [PROJECT_MEMORY.md](./PROJECT_MEMORY.md) です。全ファイルを読む必要はありません。次に [analysis/EXPERIMENT_LEDGER.md](./analysis/EXPERIMENT_LEDGER.md) で、どの仮説が支持・不支持・未検証かを確認し、具体的な作業手順は [docs/AGENT_ONBOARDING.md](./docs/AGENT_ONBOARDING.md) に従ってください。
+
+過去の [analysis/EXPERIMENT_HISTORY.md](./analysis/EXPERIMENT_HISTORY.md) や [.claude/RESUME.md](./.claude/RESUME.md) は失敗や運用経緯を保存した資料です。現在の実験キューを探す場所ではありません。失敗作・成功作・成立しなかった検証も含めて残しています。
+
 プレイ版: https://garakuta-lab.pages.dev/
 
 現在の既定版: **連勝機関 / SKIP 0.4**  
