@@ -1,5 +1,5 @@
 /**
- * SCRAPLINE 0.4 — deterministic train-line simulation.
+ * SCRAPLINE 0.5 — deterministic train-line simulation.
  *
  * The engine deliberately keeps the cause chain visible: a single lump is
  * passed through the cars in order, then the result is fired and (sometimes)
@@ -7,8 +7,8 @@
  * volley worked or failed instead of exposing an opaque score formula.
  */
 
-export const VERSION = "scrapline-0.4";
-export const BUILD_STAMP = "scrapline-build-20260827-r4";
+export const VERSION = "scrapline-0.5";
+export const BUILD_STAMP = "scrapline-build-20260827-r5";
 export const MAX_STAGES = 7;
 export const MAX_CARS = 5;
 export const MAX_HULL = 8;
