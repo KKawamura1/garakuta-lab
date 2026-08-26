@@ -122,8 +122,10 @@ function progressBar(value, max) {
 
 function renderTrain() {
   const cars = carList(state.activeCars);
+  const rareCount = cars.filter((car) => car.rarity === "rare").length;
+  const complexity = Math.min(5, cars.length + rareCount + Math.floor(state.stage / 2));
   const slots = cars.map((car, index) => `
-    <article class="train-slot ${selectedSlot === index ? "is-selected" : ""}" data-drag-slot="${index}" draggable="true" aria-label="${escapeHtml(car.name)}。ドラッグで並べ替え">
+    <article class="train-slot ${selectedSlot === index ? "is-selected" : ""} ${car.rarity === "rare" ? "rare-slot" : ""}" data-drag-slot="${index}" draggable="true" aria-label="${escapeHtml(car.name)}。ドラッグで並べ替え">
       <button class="car-card" data-action="select-slot" data-slot="${index}" aria-pressed="${selectedSlot === index}">
         <span class="car-icon" aria-hidden="true">${car.icon}</span>
         <span class="car-name">${escapeHtml(car.name)}</span>
@@ -144,7 +146,7 @@ function renderTrain() {
     </div>
   `).join("");
   return `
-    <section class="train-panel panel" data-stage="${state.stage}" data-train-size="${cars.length}">
+    <section class="train-panel panel" data-stage="${state.stage}" data-train-size="${cars.length}" data-complexity="${complexity}">
       <div class="panel-heading">
         <div><p class="kicker">BUILD THE CAUSE CHAIN</p><h2>車列の順番</h2></div>
         <span class="selection-hint">${selectedSlot === null ? "満車なら交換先を選択" : `交換先: 車両 ${selectedSlot + 1}`}</span>
@@ -325,10 +327,11 @@ function playEventCue(event) {
     const now = audioContext.currentTime;
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
-    oscillator.type = event.type === "impact" || event.type === "wave_clear" ? "triangle" : "sine";
-    oscillator.frequency.setValueAtTime(frequencies[event.type], now);
+    const spectacleLevel = event.spectacle?.level || state.lastBattle?.spectacle?.level || 1;
+    oscillator.type = ["impact", "return_reprocess", "wave_clear"].includes(event.type) ? "triangle" : event.type === "enemy_attack" ? "sawtooth" : "sine";
+    oscillator.frequency.setValueAtTime(frequencies[event.type] + spectacleLevel * 18, now);
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(event.type === "impact" ? 0.065 : 0.035, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime((event.type === "impact" ? 0.065 : 0.035) + spectacleLevel * 0.004, now + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + (event.type === "wave_clear" ? 0.32 : 0.16));
     oscillator.connect(gain).connect(audioContext.destination);
     oscillator.start(now);
