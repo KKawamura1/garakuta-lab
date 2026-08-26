@@ -28,7 +28,7 @@ done
 # **`smoke-*` だけでなく `*smoke*` を拾う。**
 # `analysis/graft-smoke.mjs` は名前の向きが逆だったせいで、
 # 存在して・通るのに、束からずっと外れていた（2026-08-25 に気づいた）。
-for f in $(ls analysis/*smoke*.mjs | sort -u); do
+for f in $(ls analysis/*smoke*.mjs analysis/*seed-regression*.mjs 2>/dev/null | sort -u); do
   if out=$(node "$f" 2>&1); then
     echo "ok   $f"
   else
