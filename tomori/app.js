@@ -265,6 +265,7 @@ function render() {
   if (!state) renderTitle();
   else if (state.phase === "result") renderResult(state);
   else renderScene(state, state.phase);
+  bindInteractions();
   app.dataset.ready = "true";
 }
 
@@ -344,31 +345,21 @@ function submitSurvey(form) {
   sendCurrent();
 }
 
-function eventElement(event) {
-  const path = typeof event.composedPath === "function" ? event.composedPath() : [event.target];
-  return path.find(node => node && typeof node.closest === "function") || null;
+function bindInteractions() {
+  app.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => choose(button.dataset.action)));
+  app.querySelectorAll("[data-next]").forEach(button => button.addEventListener("click", nextDay));
+  app.querySelectorAll("[data-emotion]").forEach(button => button.addEventListener("click", () => recordEmotion(button.dataset.emotion)));
+  app.querySelectorAll("[data-start]").forEach(button => button.addEventListener("click", startGame));
+  app.querySelectorAll("[data-resume]").forEach(button => button.addEventListener("click", render));
+  app.querySelectorAll("[data-restart]").forEach(button => button.addEventListener("click", () => { state = null; render(); }));
+  app.querySelectorAll("[data-resend]").forEach(button => button.addEventListener("click", sendCurrent));
+  const form = app.querySelector("#survey-form");
+  if (form) form.addEventListener("submit", event => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    submitSurvey(form);
+  });
 }
-
-app.addEventListener("click", event => {
-  const target = eventElement(event);
-  if (!target) return;
-  const actionButton = target.closest("[data-action]");
-  if (actionButton) return choose(actionButton.dataset.action);
-  if (target.closest("[data-next]")) return nextDay();
-  if (target.closest("[data-emotion]")) return recordEmotion(target.closest("[data-emotion]").dataset.emotion);
-  if (target.closest("[data-start]")) return startGame();
-  if (target.closest("[data-resume]")) return render();
-  if (target.closest("[data-restart]")) { state = null; render(); return; }
-  if (target.closest("[data-resend]")) return sendCurrent();
-});
-
-app.addEventListener("submit", event => {
-  const target = eventElement(event);
-  if (!target || !target.matches("#survey-form")) return;
-  event.preventDefault();
-  if (!target.reportValidity()) return;
-  submitSurvey(target);
-});
 
 if (state?.phase === "result" && !state.telemetry?.sentAt) sendCurrent();
 render();
