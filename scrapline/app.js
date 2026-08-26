@@ -276,7 +276,9 @@ function replayFrame(event, index, total) {
     const car = carById(id);
     return `<span class="replay-train-car ${carIndex === activeIndex ? "is-active" : ""}" data-car-index="${carIndex}"><b>${escapeHtml(car.icon)}</b><small>${escapeHtml(car.name)}</small></span>`;
   }).join("");
-  const projectileList = event.projectiles?.length ? event.projectiles : (event.projectile ? [event.projectile] : []);
+  const projectileList = event.afterProjectiles?.length
+    ? event.afterProjectiles
+    : event.projectiles?.length ? event.projectiles : (event.projectile ? [event.projectile] : []);
   const projectileGlyph = (item) => item.mode === "enemy-shell" ? "⚠" : item.mode === "molten" ? "✹" : item.returning ? "↩" : (item.splitCount || 0) > 0 ? "◆" : "●";
   const projectileMarkup = projectileList.length
     ? projectileList.slice(0, 10).map((item, itemIndex) => {
