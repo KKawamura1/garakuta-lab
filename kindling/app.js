@@ -17,7 +17,7 @@ import {
 } from "./app-runtime.mjs";
 import { record, send } from "./telemetry.mjs";
 
-const STORAGE_KEY = "garakuta-kindling-state-v1";
+const STORAGE_KEY_BASE = "garakuta-kindling-state-v1";
 const STARTER_SLOTS = ["button", "mirror", null, null];
 const MARKERS = [
   { kind: "spark", label: "ひらめいた" },
@@ -46,6 +46,11 @@ let travelTimer = null;
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function storageKey() {
+  const raw = new URLSearchParams(location.search).get("seed");
+  return raw ? STORAGE_KEY_BASE + "-seed-" + hashSeed(raw) : STORAGE_KEY_BASE;
 }
 
 function randomSeed() {
@@ -126,7 +131,7 @@ function newState(seed) {
 
 function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey());
     if (raw) {
       const saved = JSON.parse(raw);
       if (saved && saved.version === 1 && saved.gameVersion === GAME_VERSION && Array.isArray(saved.slots)) {
@@ -141,7 +146,7 @@ function loadState() {
 
 function persist() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(storageKey(), JSON.stringify(state));
   } catch (error) {
     // The game remains playable without local persistence.
   }
