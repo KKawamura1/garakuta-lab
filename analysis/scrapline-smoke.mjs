@@ -16,6 +16,7 @@ import {
   offersFor,
   previewTrain,
   recommendedPolicy,
+  revealReport,
   removeCar,
   runBattle,
 } from "../scrapline/engine.mjs";
@@ -40,8 +41,8 @@ const stable = (state) => ({
   won: state.won,
 });
 
-assert.equal(VERSION, "scrapline-0.6");
-assert.match(BUILD_STAMP, /^scrapline-build-20260827-r6$/);
+assert.equal(VERSION, "scrapline-0.7");
+assert.match(BUILD_STAMP, /^scrapline-build-20260827-r7$/);
 assert.equal(CARS.length, 11);
 assert.equal(MAX_CARS, 5);
 assert.equal(MAX_VOLLEYS, 6);
@@ -195,7 +196,7 @@ assert.equal(fullRunReport.version, VERSION);
 assert.equal(fullRunReport.done, true);
 assert.equal(fullRunReport.won, true);
 assert.equal(fullRunReport.stage, MAX_STAGES);
-const fullRun = continueFromReport(fullRunReport);
+const fullRun = continueFromReport(revealReport(fullRunReport));
 assert.equal(fullRun.phase, "done");
 assert.match(fullRun.reason, /7ステージ/);
 const sampledRuns = [0, 3, 65, 255].map((seed) => recommendedPolicy(seed));
@@ -219,12 +220,16 @@ const appSource = await readFile(new URL("../scrapline/app.js", import.meta.url)
 assert.doesNotMatch(appSource, /\b(alert|prompt|confirm)\s*\(/, "the route uses in-page controls");
 for (const marker of [
   "localStorage",
-  "scrapline-state-v1-seed",
+  "scrapline-state-v2-seed",
   "sendScraplineTelemetry",
   "startReplay",
   "retry-send",
   "salvage-row",
   "data-drag-slot",
+  "data-drag-handle",
+  "reportDisclosure",
+  "sendScraplineCheckpoint",
+  "ここまでを記録して終了",
   "enemyPreviewMarkup",
   "rewardPreviewMarkup",
   "playEventCue",
@@ -242,7 +247,7 @@ for (const marker of [
 const indexSource = await readFile(new URL("../scrapline/index.html", import.meta.url), "utf8");
 assert.match(indexSource, /manifest\.webmanifest/);
 const swSource = await readFile(new URL("../scrapline/sw.js", import.meta.url), "utf8");
-assert.match(swSource, /scrapline-static-v5/);
+assert.match(swSource, /scrapline-static-v6/);
 const manifestSource = await readFile(new URL("../scrapline/manifest.webmanifest", import.meta.url), "utf8");
 assert.match(manifestSource, /standalone/);
 const implementationMap = await readFile(new URL("./SCRAPLINE_IMPLEMENTATION.md", import.meta.url), "utf8");

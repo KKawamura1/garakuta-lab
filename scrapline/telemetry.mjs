@@ -1,6 +1,6 @@
 import { BUILD_STAMP, VERSION, MAX_STAGES, carById } from "./engine.mjs";
 
-export const SCRAPLINE_SCHEMA_VERSION = 4;
+export const SCRAPLINE_SCHEMA_VERSION = 5;
 export const SCRAPLINE_GAME_VERSION = VERSION;
 
 const MARKER_LABELS = {
@@ -134,6 +134,9 @@ export function buildScraplinePayload(state, options = {}) {
     endedAt: state.endedAt || null,
     outcome: {
       won: Boolean(state.won),
+      status: state.outcomeStatus || (state.done ? (state.won ? "won" : "lost") : "in_progress"),
+      complete: Boolean(state.done),
+      endedEarly: Boolean(state.endedEarly),
       reached: state.stage,
       hp: state.hull,
       reason: state.reason,
@@ -150,6 +153,9 @@ export function buildScraplinePayload(state, options = {}) {
       activeCars: [...state.activeCars],
       carHistory: state.carHistory || [],
       battleHistory: state.battleHistory || [],
+      offerHistory: state.offerHistory || [],
+      reportRevealed: Boolean(state.reportRevealed),
+      endedEarly: Boolean(state.endedEarly),
       moveCount: state.moveCount || 0,
       rebuildCount: state.rebuildCount || 0,
       previewCount: state.previewCount || 0,
@@ -161,6 +167,19 @@ export function buildScraplinePayload(state, options = {}) {
     events: events.slice(-2000),
     moments,
   };
+}
+
+export function sendScraplineCheckpoint(state) {
+  ensureTelemetry(state);
+  if (state.telemetry.sentAt || !(state.telemetry.events || []).length) return false;
+  if (typeof navigator === "undefined" || typeof navigator.sendBeacon !== "function") return false;
+  try {
+    const payload = buildScraplinePayload(state, { deviceId: state.telemetry.runId });
+    const body = new Blob([JSON.stringify(payload)], { type: "application/json" });
+    return navigator.sendBeacon("/api/runs", body);
+  } catch {
+    return false;
+  }
 }
 
 export async function sendScraplineTelemetry(state) {

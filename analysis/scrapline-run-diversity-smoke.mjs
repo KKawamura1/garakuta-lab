@@ -4,6 +4,7 @@ import {
   createGame,
   continueFromReport,
   installCar,
+  revealReport,
   runBattle,
   skipReward,
 } from "../scrapline/engine.mjs";
@@ -15,7 +16,7 @@ function playPath(orders, rewards) {
     assert.equal(result.report.won, true, `witness path clears stage ${stage + 1}`);
     state = result.state;
     if (state.done) break;
-    state = continueFromReport(state);
+    state = continueFromReport(revealReport(state));
     const reward = rewards[stage];
     if (reward === "skip") {
       state = skipReward(state);

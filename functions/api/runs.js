@@ -62,6 +62,7 @@ export async function onRequestPost(context) {
       ended_at=COALESCE(excluded.ended_at, runs.ended_at),
       schema_version=MAX(runs.schema_version, excluded.schema_version),
       game_version=excluded.game_version,
+      device_id=excluded.device_id,
       won=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.won ELSE runs.won END,
       reached=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.reached ELSE runs.reached END,
       final_hp=CASE WHEN excluded.event_count >= runs.event_count THEN excluded.final_hp ELSE runs.final_hp END,

@@ -7,8 +7,8 @@
  * number, weight, time, and whether the train can protect its tail.
  */
 
-export const VERSION = "scrapline-0.6";
-export const BUILD_STAMP = "scrapline-build-20260827-r6";
+export const VERSION = "scrapline-0.7";
+export const BUILD_STAMP = "scrapline-build-20260827-r7";
 export const MAX_STAGES = 7;
 export const MAX_CARS = 5;
 export const MAX_HULL = 8;
@@ -895,9 +895,12 @@ export function createGame(seed = null) {
     activeCars: starterCars,
     starterPattern: starterCars[0],
     offers: [],
+    offerHistory: [],
     selectedOffer: null,
     lastBattle: null,
     battleHistory: [],
+    battleReports: [],
+    collectReports: true,
     carHistory: [],
     moveCount: 0,
     rebuildCount: 0,
@@ -905,6 +908,9 @@ export function createGame(seed = null) {
     swapCount: 0,
     done: false,
     won: false,
+    outcomeStatus: "in_progress",
+    endedEarly: false,
+    reportRevealed: false,
     reason: null,
     survey: null,
     markers: [],
@@ -917,10 +923,11 @@ export function createGame(seed = null) {
 export function moveCar(state, from, to) {
   const next = clone(state);
   if (from < 0 || from >= next.activeCars.length || to < 0 || to >= next.activeCars.length || from === to) return next;
+  const before = [...next.activeCars];
   const [car] = next.activeCars.splice(from, 1);
   next.activeCars.splice(to, 0, car);
   next.moveCount += 1;
-  next.carHistory.push({ action: "move", carId: car, from, to, stage: next.stage });
+  next.carHistory.push({ action: "move", carId: car, from, to, stage: next.stage, before, after: [...next.activeCars], at: new Date().toISOString() });
   delete next.preview;
   next.events.push({ type: "move", from, to, carId: car });
   return next;
@@ -929,9 +936,10 @@ export function moveCar(state, from, to) {
 export function removeCar(state, index) {
   const next = clone(state);
   if (index < 0 || index >= next.activeCars.length || next.activeCars.length <= 1) return next;
+  const before = [...next.activeCars];
   const [car] = next.activeCars.splice(index, 1);
   delete next.preview;
-  next.carHistory.push({ action: "remove", carId: car, index, stage: next.stage });
+  next.carHistory.push({ action: "remove", carId: car, index, stage: next.stage, before, after: [...next.activeCars], at: new Date().toISOString() });
   next.events.push({ type: "remove", index, carId: car });
   next.rebuildCount += 1;
   return next;
@@ -940,16 +948,25 @@ export function removeCar(state, index) {
 export function installCar(state, carId, slot = null) {
   const next = clone(state);
   if (!CAR_BY_ID.has(carId) || next.activeCars.includes(carId)) return next;
+  const before = [...next.activeCars];
+  let action = null;
+  let replaced = null;
   if (slot !== null && Number.isInteger(slot) && slot >= 0 && slot < next.activeCars.length) {
-    const replaced = next.activeCars[slot];
+    replaced = next.activeCars[slot];
     next.activeCars[slot] = carId;
     next.swapCount += 1;
-    next.carHistory.push({ action: "replace", carId, replaced, slot, stage: next.stage });
+    action = "replace";
+    next.carHistory.push({ action, carId, replaced, slot, stage: next.stage, before, after: [...next.activeCars], at: new Date().toISOString() });
   } else if (next.activeCars.length < MAX_CARS) {
     next.activeCars.push(carId);
-    next.carHistory.push({ action: "append", carId, slot: next.activeCars.length - 1, stage: next.stage });
+    action = "append";
+    next.carHistory.push({ action, carId, slot: next.activeCars.length - 1, stage: next.stage, before, after: [...next.activeCars], at: new Date().toISOString() });
   } else {
     return next;
+  }
+  const presented = [...(next.offerHistory || [])].reverse().find((entry) => entry.stage === next.stage && !entry.decision);
+  if (presented) {
+    presented.decision = { action, carId, replaced, slot, before, after: [...next.activeCars], at: new Date().toISOString() };
   }
   next.rebuildCount += 1;
   delete next.preview;
@@ -962,7 +979,10 @@ export function installCar(state, carId, slot = null) {
 
 export function skipReward(state) {
   const next = clone(state);
-  next.carHistory.push({ action: "skip", stage: next.stage });
+  const before = [...next.activeCars];
+  next.carHistory.push({ action: "skip", stage: next.stage, before, after: [...next.activeCars], at: new Date().toISOString() });
+  const presented = [...(next.offerHistory || [])].reverse().find((entry) => entry.stage === next.stage && !entry.decision);
+  if (presented) presented.decision = { action: "skip", carId: null, before, after: [...next.activeCars], at: new Date().toISOString() };
   next.offers = [];
   next.selectedOffer = "skip";
   next.phase = "build";
@@ -1058,20 +1078,29 @@ export function runBattle(state) {
     motion: challenge.motion,
     won,
     hullBefore: state.hull,
+    armorBefore: state.armor || 0,
     hullAfter: next.hull,
     armorAfter: next.armor,
     waveReports,
+    trainBefore: [...state.activeCars],
     train: [...next.activeCars],
     spectacle: events.filter((event) => event.spectacle).reduce((best, event) => event.spectacle.level > best.level ? event.spectacle : best, spectacleFor(next.activeCars, [])),
     events,
     highlight: events.filter((event) => ["car", "impact", "impact_splash", "impact_blocked", "return", "return_reprocess", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed", "enemy_shell", "enemy_attack", "wave_clear"].includes(event.type)).slice(-16),
   };
-  next.battleHistory.push({ stage: next.stage + 1, challenge: challenge.id, kind: challenge.kind, won, hull: next.hull, armor: next.armor, train: [...next.activeCars] });
+  const enemyDefeatedAll = waveReports.length === challenge.waves.length && waveReports.every((wave) => wave.won);
+  const mutual = !won && enemyDefeatedAll && next.hull <= 0;
+  const outcome = won ? "won" : mutual ? "mutual" : "lost";
+  next.lastBattle.outcome = outcome;
+  next.lastBattle.enemyDefeated = enemyDefeatedAll;
+  next.reportRevealed = false;
+  next.battleHistory.push({ stage: next.stage + 1, challenge: challenge.id, kind: challenge.kind, won, outcome, enemyDefeated: enemyDefeatedAll, hull: next.hull, armor: next.armor, train: [...next.activeCars] });
   if (won) {
     next.stage += 1;
     if (next.stage >= MAX_STAGES) {
       next.done = true;
       next.won = true;
+      next.outcomeStatus = "won";
       next.phase = "report";
       next.reason = "7ステージ突破";
       next.endedAt = new Date().toISOString();
@@ -1082,24 +1111,69 @@ export function runBattle(state) {
   } else {
     next.done = true;
     next.won = false;
+    next.outcomeStatus = outcome;
     next.phase = "report";
-    next.reason = next.hull <= 0 ? "列車が大破" : "敵を撃破できなかった";
+    next.reason = mutual ? "敵と列車が同時に壊れた" : next.hull <= 0 ? "列車が大破" : "敵を撃破できなかった";
     next.endedAt = new Date().toISOString();
   }
-  next.lastBattle.events.push({ type: "battle_end", stage: next.stage, won, reason: next.reason || (won ? "次の残骸が開いた" : "列車が止まった") });
-  next.events.push({ type: "battle_end", stage: next.stage, won, reason: next.reason });
+  next.lastBattle.reason = next.reason || (won ? "次の残骸が開いた" : "列車が止まった");
+  next.lastBattle.events.push({ type: "battle_end", stage: next.stage, won, outcome, reason: next.lastBattle.reason });
+  if (next.collectReports !== false) {
+    next.battleReports ||= [];
+    next.battleReports.push(clone(next.lastBattle));
+  }
+  next.events.push({ type: "battle_end", stage: next.stage, won, outcome, reason: next.reason });
   return { state: next, report: next.lastBattle };
+}
+
+export function revealReport(state) {
+  const next = clone(state);
+  if (next.phase === "report" && next.lastBattle) next.reportRevealed = true;
+  return next;
+}
+
+function registerOfferPresentation(state) {
+  const next = state;
+  next.offerHistory ||= [];
+  const alreadyPresented = next.offerHistory.some((entry) => entry.stage === next.stage);
+  if (alreadyPresented) return next;
+  const challenge = challengeFor(next.stage, next.seed);
+  next.offerHistory.push({
+    stage: next.stage,
+    presentedAt: new Date().toISOString(),
+    nextChallenge: { id: challenge.id, kind: challenge.kind, name: challenge.name, motion: challenge.motion },
+    before: { train: [...next.activeCars], hull: next.hull, armor: next.armor, storedMass: next.storedMass },
+    offers: next.offers.map((car) => ({ id: car.id, name: car.name, rarity: car.rarity, text: car.text })),
+    decision: null,
+  });
+  next.events.push({ type: "offers_presented", stage: next.stage, nextChallenge: challenge.id, offers: next.offers.map((car) => car.id) });
+  return next;
 }
 
 export function continueFromReport(state) {
   const next = clone(state);
-  if (next.phase !== "report") return next;
+  if (next.phase !== "report" || !next.reportRevealed) return next;
   if (next.done) {
     next.phase = "done";
     return next;
   }
   next.phase = "reward";
   next.offers = next.offers.length ? next.offers : offersFor(next);
+  return registerOfferPresentation(next);
+}
+
+export function endRunEarly(state, reason = "プレイヤーが途中で記録を終了") {
+  const next = clone(state);
+  if (next.done) return next;
+  next.done = true;
+  next.won = false;
+  next.endedEarly = true;
+  next.outcomeStatus = "abandoned";
+  next.reason = reason;
+  next.phase = "done";
+  next.reportRevealed = true;
+  next.endedAt = new Date().toISOString();
+  next.events.push({ type: "run_ended_early", stage: next.stage, reason, at: next.endedAt });
   return next;
 }
 
@@ -1267,7 +1341,7 @@ function canPolicyFinish(state, memo, depth = 0, battleMemo = new Map()) {
       ? canPolicyFinish(direct.state, memo, depth + 1, battleMemo)
       : battleVariants(state).slice(1).some((variant) => canPolicyFinish(cachedBattle(variant, battleMemo).state, memo, depth + 1, battleMemo));
   } else if (state.phase === "report") {
-    result = canPolicyFinish(continueFromReport(state), memo, depth + 1, battleMemo);
+    result = canPolicyFinish(continueFromReport(revealReport(state)), memo, depth + 1, battleMemo);
   } else if (state.phase === "reward") {
     const candidates = [];
     for (const offer of state.offers) {
@@ -1293,6 +1367,9 @@ function policyReward(state, memo, battleMemo) {
 
 export function recommendedPolicy(seed) {
   let state = createGame(seed);
+  // Search branches do not need full replay snapshots. Omitting them keeps
+  // the verifier fast without changing any battle decision or user run.
+  state.collectReports = false;
   for (let guard = 0; guard < MAX_STAGES * 7 && !state.done; guard += 1) {
     if (state.phase === "build") {
       state = arrangePolicyTrain(state);
@@ -1300,7 +1377,7 @@ export function recommendedPolicy(seed) {
       state.previewCount += 1;
       state = policyBattle(state).state;
     } else if (state.phase === "report") {
-      state = continueFromReport(state);
+      state = continueFromReport(revealReport(state));
     } else if (state.phase === "reward") {
       state = greedyReward(state);
     }
