@@ -1,50 +1,82 @@
 # SCRAPLINE — 企画書実装マップ
 
-`analysis/SCRAPLINE_GAME_CONCEPT.md` の「最初から守る設計上の境界」を、
-`scrapline/` の実装と自動検査へ対応づけた記録です。現在の ruleset は
-`scrapline-0.5`、build は `scrapline-build-20260827-r5` です。
+企画書 `analysis/SCRAPLINE_GAME_CONCEPT.md` の「最初から守る設計上の境界」を、
+`scrapline/` の現行実装と回帰検査へ対応づけた記録です。
 
-## 簡単な土台から順に積んだもの
+- ruleset: `scrapline-0.6`
+- build: `scrapline-build-20260827-r6`
+- engine: `scrapline/engine.mjs`
+- visual route: `scrapline/app.js`
 
-1. **決定的な弾の変形** — `engine.mjs` の `makeProjectile` / `processLine`。
-   弾ID、重さ、火花、速度、分裂世代、溶融、帰還を一つのオブジェクトで追います。
-2. **順番と局所プレビュー** — `previewTrain` と `previewMarkup`。
-   各車両の前後スナップショットを表示し、勝敗そのものは予告しません。
-3. **敵の問いと物理的な時間** — `CHALLENGES`、`enemyDamage`、`challengeFor`。
-   群れ、装甲、速攻、拾い屋、分解、混成、ボスを、行動と複数の解法で表現します。
-   車両が長いほど `travel` が伸び、外し続けると敵弾が車体へ届きます。
-4. **毎区画の再構築** — `offersFor`、`installCar`、`removeCar`、`moveCar`。
-   新車両は一台だけ拾い、満車なら交換、不要車は解体、重複レベル上げは不可です。
-5. **ショーと答え合わせ** — `runBattle` のイベント列を `replayFrame` が再生。
-   車両ハイライト、弾の色・大きさ・世代、敵弾の標的車両、帰還再加工、粒子、音、振動を同じ列から生成します。
-6. **作品としての終了** — `finalShotMarkup`、`majorRebuild`、`rebuildHistoryMarkup`。
-   最終車列、最大の一射、三つの因果、大改造地点、車列名、次の未完の問いを残します。
-7. **保存と観測** — `localStorage`、`telemetry.mjs`、manifest、Service Worker。
-   report/reward/done の再開、オフライン送信待ち、seed・車列・イベント・感情マーカーを保存します。
+## 簡単な土台から積み上げたもの
+
+1. **決定的な弾の変形** — `makeProjectile` / `processLine` が、弾ID、重さ、
+   火花、速度、分裂世代、溶融、帰還、回収印を一つの物体として追跡する。
+2. **順番と局所プレビュー** — `previewTrain` と `previewMarkup` が各車両の前後を
+   表示し、勝敗そのものは先に表示しない。
+3. **敵の問いと物理的な時間** — 群れ、装甲、速攻、拾い屋、二段階ボスを、
+   異なる行動と複数の解法で実装する。車両が長いほど `travel` が伸び、速攻砲台は
+   四両以上の遅い列を迎撃する。
+4. **毎区画の再構築** — 残骸から一台を拾い、満車なら選択スロットと交換し、
+   見送り、解体、ドラッグ移動を履歴へ残す。レア車両は順番そのものを変える。
+5. **ショーと答え合わせ** — `runBattle` のイベント列から、車両発動、弾のIDと
+   状態、敵への着弾、敵弾の標的、帰還再加工、粒子、音、振動を再生する。
+6. **作品としての終了** — 最終車列、最大の一射、三つの因果、手放した車両、
+   大改造地点、自動命名、次に試す問いを結果画面へ残す。
+7. **保存と観測** — `localStorage`、送信待ちキュー、D1 payload、感情マーカー、
+   seed別の再開を既存の `/api/runs` 契約へ接続する。
 
 ## 8つの境界の対応
 
-| 企画書の意図 | 実装上の対応 | 機械検査 |
+| 企画書の意図 | 実装上の対応 | 固定検査 |
 | --- | --- | --- |
-| 一つの鉄塊を追跡 | projectile `id` と `beforeProjectiles` / `afterProjectiles` | carイベントに前後配列がある |
-| 配置順で意味が変わる | `processLine`、加速/切断/帯電/溶融/磁石の順 | previewの要約・速度が不一致 |
-| 新報酬で既存列を再解釈 | seed依存の3候補、交換・見送り・移動履歴 | 256 seedの最終列191通り |
-| 車両数と発射速度の交換 | `baseTravel` と弾速、敵の遅延反撃 | 到着tickと反撃イベント |
-| 行動の違う複数の敵 | wave、armor、fast、steal、splits、boss | 各問い2本以上の勝ち筋 |
-| 戦前プレビュー/戦後再生 | enemy preview、local preview、cause replay | UIソースとイベント対応検査 |
-| 見た目・音・振動の質的成長 | 8発までの帰還再加工、色、粒子、WebAudio、Vibration API | 8発 `return_reprocess` と敵弾変換 |
-| 最終列車と大改造履歴 | final train、`carHistory`、major rebuild | 終了画面の履歴・次の問い |
+| 一つの鉄塊を追跡 | projectile `id`、`beforeProjectiles`、`afterProjectiles`、同一イベント列 | 全 `car` イベントに前後スナップショット |
+| 配置順で意味が変わる | 加速・切断・帯電・溶融・磁石・ループ・逆走を順に適用 | 加速↔切断、帯電↔溶解、切断↔圧縮、磁石↔溶解の差 |
+| 新報酬で既存列を再解釈 | seed依存の三候補、仮組み表示、連結・交換・見送り、レア三種 | 32 seed×6区画の三択・重複なし |
+| 車両数と発射速度を交換 | `computeTravel`、弾速、速攻砲台の迎撃、敵の遅延反撃 | 四両の長い列の阻止と短い複数解 |
+| 複数の解法を持つ行動の違う敵 | 群れの隊形、装甲の重量閾値、速攻の照準、拾い屋の回収・窃取、ボスの帰還要求 | 全64,471列×5問い、各問い2解以上、万能列0 |
+| 戦前プレビューと戦後因果再生 | `enemyPreviewMarkup`、`previewTrain`、`replayFrame`、`showcaseReport` | イベント種別とUI描画・音・振動の対応文字列 |
+| 見た目・音・振動の質的成長 | 弾の色・大きさ・ID、最大8発の帰還再加工、粒子、WebAudio、Vibration API | 8発 `return_reprocess`、敵弾変換、構文検査 |
+| 最終列車と大改造の履歴 | `finalTrainMarkup`、`finalShotMarkup`、`carHistory`、`majorRebuild` | 終了画面の列車、最大射撃、履歴、次の問いのソース検査 |
 
-## 企画書で「初版には入れない」もの
+## 敵ごとの具体的な問い
 
-熱・電気ゲージ、固有A+Bレシピ、同一車両のレベル上げ、リロール店、指数HP、
-隠し命中乱数、長いストーリー、永続スコアを追加していません。火花や装甲は、
-弾・装甲板・敵弾という画面上の具体物としてだけ現れます。
+| 問い | 具体的な阻止・報酬 | 実装された解法の例 |
+| --- | --- | --- |
+| 群れ | 遅い単発弾を密集隊形が止め、複数の敵へ攻撃する | 切断、帯電→溶解、磁石＋帰還 |
+| 装甲 | 軽い弾を `armorCharges` 回弾き、装甲値を差し引く | 圧縮、溶融、帰還による累積 |
+| 速攻 | 四両以上の遅い列を迎撃し、先頭車へ先制射撃する | 一〜三両の短い列、加速、溶融 |
+| 拾い屋 | 非致死の弾で回復し、尾部車両を奪う | 早期撃破、回収車、磁石＋逆走、尾部装甲 |
+| ボス | 群れの護衛の後ろで正面の非溶融弾を受け流す | 圧縮・帯電・磁石・逆走の帰還列、溶融帰還列 |
 
-## 残るのは人間・公開環境の検証
+敵の勝敗判定は乱数に依存しません。seedは敵の並びと残骸候補を変え、戦闘の
+結果は同じ車列なら同じになります。
 
-ローカルの決定性、複数解法、PWA資産、UIのネイティブダイアログ不使用は
-`analysis/scrapline-smoke.mjs`、0〜255 seed の完走と最終列の分岐は
-`analysis/scrapline-seed-regression.mjs` で検査します。一方、iPhone Safariの実機操作、公開環境の
-D1行/export、初見プレイヤーの再プレイ欲はコードだけでは合格にできないため、
-`docs/HUMAN_TEST_RELEASE.md` のリリースゲートで別途確認します。
+## 企画書で入れないもの
+
+熱・電気などの抽象ゲージ、固有名詞A+Bの専用レシピ、同一車両のレベル上げ、
+リロール店、指数HP、隠し命中乱数、長い物語、永続スコア、分岐マップ、恒久成長、
+大量の部品・敵は追加していません。火花、装甲、速度、帰還は弾・装甲板・敵弾と
+いう画面上の具体物に結びつけています。
+
+## 検査の入口
+
+```sh
+node analysis/scrapline-smoke.mjs
+node analysis/scrapline-balance-smoke.mjs
+node analysis/scrapline-seed-regression.mjs
+node --check scrapline/engine.mjs
+node --input-type=module --check < scrapline/app.js
+```
+
+`scrapline-balance-smoke.mjs` は通常車両11種の順序付き列を1〜5両まで全列挙し、
+322,355件の戦闘判定を行います。万能列がなく、群れ・装甲・速攻・拾い屋・ボスの
+各問いに複数の異なる列があることを確認します。`scrapline-seed-regression.mjs`
+は0〜255 seedの完全ランを検査します。
+
+## コード外に残る公開ゲート
+
+コード上の企画境界は上記で固定しました。ただし、企画書の「実際に遊びたいか」
+は機械検査では判定できません。公開前には `docs/HUMAN_TEST_RELEASE.md` に従って、
+iPhone Safari 390×844での操作、公開環境のD1保存・export、初見プレイヤーの
+10〜15分プレイを別途確認します。未確認のまま公開判定やプレイURLの案内はしません。
