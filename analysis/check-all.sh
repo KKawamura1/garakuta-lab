@@ -1,20 +1,10 @@
 #!/usr/bin/env bash
-# 検査を全部走らせ、**一つでも落ちたら 1 で終わる。**
-#
-# 一晩に一度、これが無かったせいで**落ちている検査を抱えたまま公開した。**
-# for ループで走らせて "FAIL" と印字するだけだと、後ろの `set -e` は反応しない。
-# 印字は人が読む前提だが、公開の判断は機械にさせないといけない。
+# 全検査を一つでも落としたら失敗させる。SCRAPLINEの新しい境界検査も
+# 通常の smoke と seed 回帰に含め、push時に古いルールへ戻らないようにする。
 set -u
 fail=0
 
-# **ブラウザ側の .js を、モジュールとして構文検査する。**
-#
-# `node --check play/app.js` は**何も見ていなかった。**
-# import を含む `.js` は CommonJS 判定の道へ入り、そこで黙って 0 を返す
-# （`.mjs` なら同じ間違いを捕まえる）。実際 2026-08-23、同じ関数の中に
-# `const rules` を二重に宣言したまま `--check` を通り、ブラウザで初めて落ちた。
-# **検査だと思っていたものが、検査ではなかった。**
-for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/app.js control/app.js night-eater/app.js night-eater/telemetry.mjs; do
+for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/app.js control/app.js night-eater/app.js night-eater/telemetry.mjs scrapline/app.js; do
   [ -f "$f" ] || continue
   if node --input-type=module --check < "$f" 2>/tmp/syntax.$$; then
     echo "ok   構文 $f"
@@ -25,9 +15,7 @@ for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/ap
   fi
   rm -f /tmp/syntax.$$
 done
-# **`smoke-*` だけでなく `*smoke*` を拾う。**
-# `analysis/graft-smoke.mjs` は名前の向きが逆だったせいで、
-# 存在して・通るのに、束からずっと外れていた（2026-08-25 に気づいた）。
+
 for f in $(ls analysis/*smoke*.mjs analysis/*seed-regression*.mjs 2>/dev/null | sort -u); do
   if out=$(node "$f" 2>&1); then
     echo "ok   $f"
@@ -37,8 +25,16 @@ for f in $(ls analysis/*smoke*.mjs analysis/*seed-regression*.mjs 2>/dev/null | 
     fail=1
   fi
 done
+
+if node --check scrapline/engine.mjs; then
+  echo "ok   構文 scrapline/engine.mjs"
+else
+  echo "FAIL 構文 scrapline/engine.mjs"
+  fail=1
+fi
+
 if [ "$fail" -ne 0 ]; then
-  echo "検査が落ちている。**公開しない。**"
+  echo "検査が落ちている。公開しない。"
   exit 1
 fi
 echo "検査は全部通った。"
