@@ -25,6 +25,7 @@ import {
   bestShowcaseReport,
   causalHighlights,
   reportDisclosure,
+  selectReplayEvents,
 } from "./presentation.mjs";
 import {
   ensureTelemetry,
@@ -239,6 +240,7 @@ function reportEventLabel(event) {
   if (event.type === "car") return [`${event.icon || "•"} ${event.carName || "加工車"}`, `${event.before || ""} → ${event.after || ""} · ${event.note || ""}`];
   if (event.type === "loop") return ["∞ ループ", event.note || "後ろ側の加工をやり直す"];
   if (event.type === "fire") return ["◎ 発射", `${event.summary || "鉄塊"} · 到着 ${event.travel || "?"} tick`];
+  if (event.type === "enemy_approach") return ["敵が接近", `${event.amount || 0} tick 進行 · 攻撃準備 ${event.approach || 0}`];
   if (event.type === "impact") return [`✹ ${event.target || "敵"} に命中`, `${event.damage || 0} ダメージ（${event.note || "正面に命中"}）`];
   if (event.type === "impact_splash") return [`✹ 爆風が ${event.target || "敵"} へ`, `${event.damage || 0} ダメージ（${event.note || "隣の敵へ広がった"}）`];
   if (event.type === "impact_blocked") return ["弾が止まった", `${event.target || "敵"} · ${event.note || "相手の性質に弾かれた"}`];
@@ -260,25 +262,16 @@ function reportEventLabel(event) {
 
 function replayEvents(report) {
   const events = (report.events || [])
-    .filter((event) => ["battle_start", "volley", "car", "loop", "fire", "impact", "impact_splash", "impact_blocked", "return", "return_reprocess", "collector_gain", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed", "enemy_shell", "enemy_attack", "wave_clear", "repair", "battle_end"].includes(event.type));
-  const maxFrames = 32;
-  if (events.length <= maxFrames) return events;
-  // Keep the beginning and end of the show, then spend the remaining frames
-  // on events that explain a transformation or collision. This avoids a
-  // late-run eight-pellet burst pushing the outcome off screen.
-  const keep = new Set([0, events.length - 1]);
-  const priority = new Set(["car", "loop", "fire", "impact", "impact_splash", "impact_blocked", "return", "return_reprocess", "collector_gain", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed", "enemy_shell", "enemy_attack", "wave_clear"]);
-  events.forEach((event, index) => { if (priority.has(event.type) && keep.size < maxFrames) keep.add(index); });
-  for (let index = 0; keep.size < maxFrames && index < events.length; index += 1) keep.add(index);
-  return [...keep].sort((a, b) => a - b).map((index) => events[index]);
+    .filter((event) => ["battle_start", "volley", "car", "loop", "fire", "enemy_approach", "impact", "impact_splash", "impact_blocked", "return", "return_reprocess", "collector_gain", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed", "enemy_shell", "enemy_attack", "wave_clear", "mutual_destruction", "repair", "battle_end"].includes(event.type));
+  return selectReplayEvents(events, 32);
 }
 
 function replayFrame(event, index, total, report) {
   const [title, detail] = reportEventLabel(event);
-  const payload = event.type === "enemy_shell"
+  const payload = ["enemy_shell", "enemy_approach", "mutual_destruction"].includes(event.type)
     ? "⚠"
     : event.after || event.summary || (event.projectile ? `${event.projectile.mass || 0}` : "");
-  const lane = ["impact", "impact_splash", "impact_blocked", "enemy_shell", "enemy_attack", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed"].includes(event.type)
+  const lane = ["enemy_approach", "impact", "impact_splash", "impact_blocked", "enemy_shell", "enemy_attack", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed", "mutual_destruction"].includes(event.type)
     ? "enemy"
     : event.type === "return" || event.type === "return_reprocess" ? "return" : "train";
   const train = event.train || report?.train || state.activeCars;
@@ -303,7 +296,7 @@ function replayFrame(event, index, total, report) {
   const enemyNode = lane === "enemy" ? `<span class="replay-enemy-node" aria-hidden="true">${escapeHtml(report?.enemyIcon || "⚠")}</span>` : "";
   return `
     <div class="replay-progress"><span style="width:${Math.round(((index + 1) / Math.max(1, total)) * 100)}%"></span></div>
-    <div class="replay-route replay-${lane}" data-spectacle="${spectacleLevel}">
+    <div class="replay-route replay-${lane}" data-event="${escapeHtml(event.type)}" data-spectacle="${spectacleLevel}">
       <span class="replay-node">ホッパー</span><i aria-hidden="true">›</i><div class="replay-train-cars">${trainNodes}</div><i aria-hidden="true">›</i><span class="replay-node">砲台</span>${enemyNode}
       <span class="replay-payloads" data-location="${escapeHtml(event.location?.lane || lane)}">${projectileMarkup}</span>${particles}
     </div>
@@ -319,6 +312,7 @@ function playEventCue(event) {
     car: 320,
     loop: 380,
     fire: 520,
+    enemy_approach: 245,
     impact: 760,
     impact_splash: 840,
     impact_blocked: 170,
@@ -332,6 +326,7 @@ function playEventCue(event) {
     enemy_shell: 150,
     enemy_attack: 130,
     wave_clear: 880,
+    mutual_destruction: 92,
     repair: 610,
     battle_end: 980,
   };
@@ -369,6 +364,7 @@ function vibrateForEvent(event) {
     enemy_attack: 32,
     car_stolen_confirmed: [12, 28, 12],
     wave_clear: [12, 24, 22],
+    mutual_destruction: [34, 24, 55],
   }[event.type];
   if (pattern) {
     try { navigator.vibrate(pattern); } catch { /* optional */ }
@@ -385,9 +381,9 @@ function startReplay(report) {
   const reducedMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const frameDelay = (event) => {
     if (reducedMotion) return 0;
-    if (["wave_clear", "battle_end", "car_stolen_confirmed"].includes(event.type)) return 680;
+    if (["wave_clear", "battle_end", "car_stolen_confirmed", "mutual_destruction"].includes(event.type)) return 680;
     if (["impact", "impact_splash", "impact_blocked", "return", "return_reprocess", "enemy_attack"].includes(event.type)) return 520;
-    if (["car", "loop", "fire"].includes(event.type)) return 390;
+    if (["car", "loop", "fire", "enemy_approach"].includes(event.type)) return 390;
     return 260;
   };
   const finish = () => {
@@ -488,7 +484,7 @@ function renderReward() {
     <li class="salvage-row ${car.rarity === "rare" ? "rare" : ""}">
       <span class="offer-index" aria-hidden="true">${index + 1}</span>
       <span class="offer-icon" aria-hidden="true">${car.icon}</span>
-      <span class="salvage-copy"><span class="rarity">${car.rarity === "rare" ? "RARE / ルール変更" : car.rarity === "starter" ? "SALVAGE / 始動" : "SALVAGE / 加工"}</span><strong>${escapeHtml(car.name)}</strong><small>${escapeHtml(car.text)}</small>${rewardPreviewMarkup(car)}</span>
+      <span class="salvage-copy"><span class="rarity">${car.recovered ? "RECOVER / 直前の解体品" : car.rarity === "rare" ? "RARE / ルール変更" : car.rarity === "starter" ? "SALVAGE / 始動" : "SALVAGE / 加工"}</span><strong>${escapeHtml(car.name)}</strong><small>${escapeHtml(car.text)}</small>${rewardPreviewMarkup(car)}</span>
       <button class="button small" data-action="install" data-car="${car.id}" ${needsSlot ? "disabled aria-disabled=\"true\"" : ""}>${state.activeCars.length < MAX_CARS ? "連結する" : needsSlot ? "交換先を選択" : `車両 ${selectedReplacement() + 1} と交換`}</button>
     </li>
   `).join("");
@@ -706,6 +702,7 @@ function render() {
   stopReplay();
   const challenge = challengeFor(state.stage, state.seed);
   const awaitingReveal = state.phase === "report" && !state.reportRevealed && state.lastBattle;
+  const visibleStage = awaitingReveal ? state.lastBattle.stage : state.stage;
   const status = state.telemetry?.error ? `<p class="sync-error" role="status">ログ送信: ${escapeHtml(state.telemetry.error)}</p>` : "";
   const diagnosticStamp = requestedSeed === null ? "" : "<span>diagnostic seed " + state.seed + "</span>";
   const hullStatus = awaitingReveal
@@ -714,7 +711,7 @@ function render() {
   const armorStatus = awaitingReveal
     ? `<div class="status-meter armor-meter"><span>装甲 ${state.lastBattle.armorBefore || 0} → 再生中</span>${progressBar(Math.min(state.lastBattle.armorBefore || 0, MAX_HULL), MAX_HULL)}</div>`
     : `<div class="status-meter armor-meter"><span>装甲 ${state.armor}</span>${progressBar(Math.min(state.armor, MAX_HULL), MAX_HULL)}</div>`;
-  const endAction = state.done ? "" : `<button class="text-button" data-action="end-run">ここまでを記録して終了</button>`;
+  const endAction = state.done || awaitingReveal ? "" : `<button class="text-button" data-action="end-run">ここまでを記録して終了</button>`;
   app.innerHTML = `
     <main class="shell">
       <header class="hero">
@@ -780,7 +777,7 @@ function launch() {
   ensureTelemetry(state);
   recordTelemetry(state, { type: "battle_finished", stage: result.report.stage, won: result.report.won, outcome: result.report.outcome, enemyDefeated: result.report.enemyDefeated, hull: result.report.hullAfter });
   result.report.events.slice(0, 220).forEach((event, eventIndex) => {
-    if (["battle_start", "volley", "car", "loop", "fire", "impact", "impact_splash", "impact_blocked", "return", "return_reprocess", "collector_gain", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed", "enemy_shell", "enemy_attack", "wave_clear", "repair", "battle_end"].includes(event.type)) {
+    if (["battle_start", "volley", "car", "loop", "fire", "enemy_approach", "impact", "impact_splash", "impact_blocked", "return", "return_reprocess", "collector_gain", "enemy_recover", "enemy_repelled", "car_stolen", "car_stolen_confirmed", "enemy_shell", "enemy_attack", "wave_clear", "mutual_destruction", "repair", "battle_end"].includes(event.type)) {
       recordTelemetry(state, {
         type: "cause_replay_event",
         stage: result.report.stage,

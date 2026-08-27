@@ -40,11 +40,18 @@ export async function onRequestPost(context) {
   const contentType = context.request.headers.get("Content-Type") || "";
   const length = Number(context.request.headers.get("Content-Length") || 0);
   if (!contentType.startsWith("application/json")) return json({ ok: false, error: "json_required" }, 415);
-  if (!length || length > MAX_BODY_BYTES) return json({ ok: false, error: "invalid_body_size" }, 413);
+  if (length > MAX_BODY_BYTES) return json({ ok: false, error: "invalid_body_size" }, 413);
 
   let payload;
   try {
-    payload = await context.request.json();
+    // sendBeacon may use a request body without a Content-Length header. Read
+    // and bound the actual UTF-8 bytes so pagehide checkpoints remain valid
+    // without weakening the payload-size limit.
+    const body = await context.request.text();
+    if (!body || new TextEncoder().encode(body).byteLength > MAX_BODY_BYTES) {
+      return json({ ok: false, error: "invalid_body_size" }, 413);
+    }
+    payload = JSON.parse(body);
   } catch (_) {
     return json({ ok: false, error: "invalid_json" }, 400);
   }

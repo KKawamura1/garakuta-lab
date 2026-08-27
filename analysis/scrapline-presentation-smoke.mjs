@@ -14,6 +14,7 @@ import {
   bestShowcaseReport,
   causalHighlights,
   reportDisclosure,
+  selectReplayEvents,
 } from "../scrapline/presentation.mjs";
 import {
   SCRAPLINE_SCHEMA_VERSION,
@@ -75,6 +76,26 @@ const quiet = { stage: 1, events: [{ type: "fire", spectacle: { level: 1, projec
 const spectacular = { stage: 4, events: [{ type: "fire", spectacle: { level: 5, projectileCount: 8, returning: 8, molten: 4 } }, { type: "return_reprocess", projectiles: Array(8).fill({}) }, { type: "impact_splash", damage: 12 }] };
 assert.equal(bestShowcaseReport([spectacular, quiet]).stage, 4, "the full run, not the last battle, chooses the final showcase");
 
+const longReplay = [{ type: "battle_start" }];
+for (let volley = 1; volley <= 4; volley += 1) {
+  longReplay.push({ type: "volley", wave: 0, volley });
+  for (let carIndex = 0; carIndex < 5; carIndex += 1) longReplay.push({ type: "car", carId: `v${volley}-car${carIndex}`, wave: 0, volley });
+  longReplay.push({ type: "fire", wave: 0, volley, spectacle: { level: volley + 1, projectileCount: volley * 2 } });
+  longReplay.push({ type: "enemy_approach", wave: 0, volley });
+  for (let hit = 0; hit < 8; hit += 1) longReplay.push({ type: "impact", wave: 0, volley, damage: hit + 1 });
+  if (volley === 4) longReplay.push({ type: "return_reprocess", wave: 0, volley, projectiles: Array(8).fill({}) });
+}
+longReplay.push({ type: "wave_clear", wave: 0, volley: 4 }, { type: "battle_end", won: true });
+const selectedReplay = selectReplayEvents(longReplay, 32);
+assert.equal(selectedReplay.length, 32);
+assert.equal(selectedReplay[0].type, "battle_start");
+assert.equal(selectedReplay.at(-1).type, "battle_end");
+assert.ok(selectedReplay.some((event) => event.type === "wave_clear"));
+assert.ok(selectedReplay.some((event) => event.type === "return_reprocess"));
+for (let carIndex = 0; carIndex < 5; carIndex += 1) {
+  assert.ok(selectedReplay.some((event) => event.carId === `v4-car${carIndex}`), "the most spectacular volley keeps its complete processing chain");
+}
+
 let state = runBattle(createGame(0)).state;
 assert.equal(state.phase, "report");
 assert.equal(state.reportRevealed, false);
@@ -119,5 +140,7 @@ assert.match(appSource, /交換先を選択してください/);
 assert.match(appSource, /pagehide/);
 assert.match(appSource, /sendScraplineCheckpoint/);
 assert.match(appSource, /ここまでを記録して終了/);
+assert.match(appSource, /enemy_approach/);
+assert.match(appSource, /data-event=/);
 
 console.log("scrapline presentation smoke ok", JSON.stringify({ schema: SCRAPLINE_SCHEMA_VERSION, offerSets: state.offerHistory.length }));

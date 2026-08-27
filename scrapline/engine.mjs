@@ -1,5 +1,5 @@
 /**
- * SCRAPLINE 0.6 — deterministic train-line simulation.
+ * SCRAPLINE 0.7 — deterministic train-line simulation.
  *
  * The game is intentionally built from a small physical grammar. A single
  * lump enters at the rear, is transformed by the cars in order, is fired,
@@ -134,7 +134,7 @@ export const CHALLENGES = [
     motion: "厚い盾が正面で軽い弾を受け、ゆっくり迫る",
     text: "軽い弾を止める装甲板。圧縮した重弾、溶融、帰還の累積が答えになる。",
     waves: [
-      { id: "plate", name: "装甲運搬車", kind: "armor", count: 1, hp: 11, armor: 1, armorCharges: 2, weightThreshold: 3, attack: 1, attackInterval: 3 },
+      { id: "plate", name: "装甲運搬車", kind: "armor", count: 1, hp: 8, armor: 1, armorCharges: 2, weightThreshold: 3, attack: 1, attackInterval: 3 },
     ],
   },
   {
@@ -143,9 +143,9 @@ export const CHALLENGES = [
     kind: "fast",
     icon: "◈",
     motion: "照準線が先頭車へ走り、短い拍で撃つ",
-    text: "照準が早い。短い列、加速、または狙われた車両の装甲で先手を取れ。",
+    text: "照準が早い。短い列か加速で、迎撃線より先に弾を届けろ。",
     waves: [
-      { id: "cannon", name: "赤錆砲台", kind: "fast", count: 1, hp: 6, armor: 1, weightThreshold: 3, attack: 2, reactionTime: 2.2, attackInterval: 2.2, fast: true },
+      { id: "cannon", name: "赤錆砲台", kind: "fast", count: 1, hp: 8, armor: 1, weightThreshold: 3, attack: 2, reactionTime: 1.4, attackInterval: 2.2, fast: true },
     ],
   },
   {
@@ -156,7 +156,7 @@ export const CHALLENGES = [
     motion: "残骸を拾いながら後尾へ寄り、車両を狙う",
     text: "残った弾を拾って回復し、後尾の車両を奪おうとする。早期撃破、回収、帰還、尾部装甲で対処する。",
     waves: [
-      { id: "scavenger-pack", name: "拾い屋", kind: "scavenger", count: 1, hp: 10, armor: 1, attack: 1, attackInterval: 2.8, stealAfter: 2.4, steal: true, recoverAmount: 1 },
+      { id: "scavenger-pack", name: "拾い屋", kind: "scavenger", count: 1, hp: 6, armor: 1, attack: 1, attackInterval: 2.8, stealAfter: 2.4, steal: true, recoverAmount: 1 },
     ],
   },
   {
@@ -168,7 +168,7 @@ export const CHALLENGES = [
     text: "群れの護衛を抜き、装甲の炉心へ別の答えを返せ。ここまでの車列を一つの機械にする。",
     waves: [
       { id: "core-guard", name: "炉心の護衛", kind: "swarm", count: 3, hp: 2, armor: 0, attack: 1, attackInterval: 3 },
-      { id: "core-king", name: "炉心を喰う王", kind: "armor", count: 1, hp: 26, armor: 1, armorCharges: 3, weightThreshold: 3, attack: 2, reactionTime: 2.8, attackInterval: 2.6, fast: true, boss: true, returnRequired: true, moltenResistance: 0.55 },
+      { id: "core-king", name: "炉心を喰う王", kind: "armor", count: 1, hp: 24, armor: 1, armorCharges: 3, weightThreshold: 3, coreWeightThreshold: 3, attack: 2, reactionTime: 2.8, attackInterval: 2.6, fast: true, boss: true, moltenResistance: 0.55 },
     ],
   },
 ];
@@ -186,25 +186,6 @@ function hash(seed, salt = 0) {
 
 function carFor(id) {
   return CAR_BY_ID.get(id) || CARS[0];
-}
-
-function bossPreparation(state) {
-  const finalOrder = ["accelerator", "charge", "melt", "magnet", "reverse"];
-  const acquisitionOrder = state.starterPattern === "charge"
-    ? ["melt", "accelerator", "charge", "magnet", "reverse"]
-    : ["charge", "melt", "accelerator", "magnet", "reverse"];
-  const hasMagnet = state.activeCars.includes("magnet");
-  const hasReverse = state.activeCars.includes("reverse");
-  if (state.stage >= 4 && hasMagnet && !hasReverse) {
-    return { finalOrder, next: "reverse" };
-  }
-  if (state.stage >= 4 && hasReverse && !hasMagnet) {
-    return { finalOrder, next: "magnet" };
-  }
-  return {
-    finalOrder,
-    next: acquisitionOrder.find((id) => !state.activeCars.includes(id)) || null,
-  };
 }
 
 function projectileSignature(projectiles) {
@@ -291,6 +272,7 @@ function applyCar(carId, projectiles, context, path = "forward", index = 0) {
         ...projectile,
         mass: Math.max(1, Math.ceil(projectile.mass / 2)),
         sparks: Math.ceil(projectile.sparks / 2),
+        compressed: false,
         splitCount,
         speed: fragmentSpeed,
       };
@@ -299,6 +281,7 @@ function applyCar(carId, projectiles, context, path = "forward", index = 0) {
         id: `${projectile.id}-b`,
         mass: Math.max(1, Math.floor(projectile.mass / 2)),
         sparks: Math.floor(projectile.sparks / 2),
+        compressed: false,
         splitCount,
         speed: fragmentSpeed,
       };
@@ -394,7 +377,10 @@ function damageFor(projectile) {
   // Speed is not a separate gauge: a faster physical projectile hits harder.
   // Sparks add force once they are present; melt converts all of that energy
   // into the much louder molten/blast state below.
-  const base = projectile.mass + (projectile.sparks || 0) + Math.max(0, Math.floor(projectile.speed || 1) - 1);
+  const base = projectile.mass
+    + (projectile.sparks || 0)
+    + (projectile.compressed ? 1 : 0)
+    + Math.max(0, Math.floor(projectile.speed || 1) - 1);
   return projectile.mode === "molten" ? base + 3 + (projectile.returnBlast ? 2 : 0) : base;
 }
 
@@ -431,12 +417,13 @@ function pushImpact(events, enemy, unit, projectile, damage, raw, armor, context
 
 function hitUnit(enemy, unit, projectile, context, splash = false) {
   const raw = damageFor(projectile);
-  const bossReturnBlock = enemy.boss
-    && enemy.returnRequired
+  const bossCoreBlock = enemy.boss
     && !context.returnPass
-    && projectile.mode !== "molten";
-  if (bossReturnBlock) {
-    pushImpact(context.events, enemy, unit, projectile, 0, raw, 0, context, "炉心が正面の弾を受け流した。帰還弾だけが内部へ届く", "impact_blocked");
+    && projectile.mode !== "molten"
+    && !projectile.compressed
+    && projectile.mass < (enemy.coreWeightThreshold || 3);
+  if (bossCoreBlock) {
+    pushImpact(context.events, enemy, unit, projectile, 0, raw, 0, context, "炉心殻が軽い正面弾を受け流した。重弾、溶解、帰還なら内部へ届く", "impact_blocked");
     return { damage: 0, blocked: true };
   }
   const swarmFormationBlock = enemy.kind === "swarm"
@@ -444,29 +431,20 @@ function hitUnit(enemy, unit, projectile, context, splash = false) {
     && !context.returnPass
     && (context.projectileCount || 1) < 2
     && projectile.mode !== "molten"
-    && (projectile.sparks || 0) < 1
-    && (projectile.speed || 1) < 2;
+    && (projectile.compressed || ((projectile.sparks || 0) < 1 && (projectile.speed || 1) < 2));
   if (swarmFormationBlock) {
     pushImpact(context.events, enemy, unit, projectile, 0, raw, 0, context, "密集隊形が単発の遅い弾をかわした", "impact_blocked");
     return { damage: 0, blocked: true };
   }
-  // An accelerated molten round that is already on the forward path can
-  // still arrive in time. A returning blast has spent a beat turning around,
-  // so the same four-car length is intercepted; this keeps speed and return
-  // as a real placement tradeoff rather than a hidden enemy-specific recipe.
-  const moltenRush = context.activeCars.length === 4
-    && projectile.mode === "molten"
-    && (projectile.speed || 1) >= 2
-    && !projectile.returnBlast;
   const fastIntercept = enemy.kind === "fast"
-    && ((context.activeCars.length >= 4 && context.travel >= 2 && !moltenRush)
-      || (context.travel > (enemy.reactionTime || 2.5) && (projectile.speed || 1) <= 2));
+    && context.travel > (enemy.reactionTime || 2.5);
   if (fastIntercept) {
-    pushImpact(context.events, enemy, unit, projectile, 0, raw, 0, context, context.activeCars.length >= 4 ? "長い列の弾を砲台が照準の途中で撃ち落とした" : "遅れて届いた分裂弾を砲台が撃ち落とした", "impact_blocked");
+    pushImpact(context.events, enemy, unit, projectile, 0, raw, 0, context, "照準が弾道へ先回りした。短い列か加速なら迎撃線より先に届く", "impact_blocked");
     return { damage: 0, blocked: true };
   }
   const lightBlocked = enemy.kind === "armor"
     && projectile.mode !== "molten"
+    && !projectile.compressed
     && projectile.mass < (unit.weightThreshold || enemy.weightThreshold || 3)
     && unit.armorCharges > 0;
   if (lightBlocked) {
@@ -476,7 +454,9 @@ function hitUnit(enemy, unit, projectile, context, splash = false) {
   }
   const armorCut = projectile.mode === "molten" ? 0 : unit.armor;
   const unresistedDamage = Math.max(1, raw - armorCut);
-  const damage = enemy.moltenResistance && projectile.mode === "molten"
+  // A return blast detonates inside the shell after the magnet has marked it,
+  // so the boss's frontal molten resistance only applies to ordinary shots.
+  const damage = enemy.moltenResistance && projectile.mode === "molten" && !projectile.returnBlast
     ? Math.max(1, Math.floor(unresistedDamage * enemy.moltenResistance))
     : unresistedDamage;
   unit.hp -= damage;
@@ -499,8 +479,11 @@ function hitEnemy(enemy, projectile, projectileIndex, context) {
 }
 
 function enemyDamage(enemy, travel) {
+  // Missing the first beat exposes the train for longer, so the incoming
+  // shell arrives with more force. This is shared by every enemy and depends
+  // only on physical travel time, not enemy names or exact train lengths.
   const late = Math.max(0, Math.ceil(travel) - 3);
-  return enemy.attack + Math.min(2, late);
+  return enemy.attack + late;
 }
 
 function chooseTargetCar(context, enemy) {
@@ -556,6 +539,30 @@ function applyEnemyAttack(enemy, context, reason) {
   });
 }
 
+function advanceEnemyBeforeImpact(enemy, context) {
+  const gained = context.travel;
+  enemy.approach += gained;
+  context.events.push({
+    type: "enemy_approach",
+    target: enemy.name,
+    amount: gained,
+    approach: Number(enemy.approach.toFixed(2)),
+    location: { lane: "enemy", offset: 0.82 },
+    note: `弾が届くまで ${gained} 拍ぶん敵が接近`,
+  });
+  const threshold = enemy.attacksMade === 0 && enemy.reactionTime
+    ? enemy.reactionTime
+    : (enemy.attackInterval || 2.5);
+  if (context.hull <= 0 || enemy.approach + Number.EPSILON < threshold) return 0;
+  // A volley is one readable exchange: even when a very long train gives the
+  // enemy more than one interval, the enemy launches one visible shell and
+  // carries the remaining approach time into the next exchange.
+  enemy.approach = Math.max(0, enemy.approach - threshold);
+  enemy.attacksMade += 1;
+  applyEnemyAttack(enemy, context, "着弾前に敵の攻撃準備が完了");
+  return 1;
+}
+
 function computeTravel(activeCars, projectiles, loopPenalty) {
   const meanSpeed = projectiles.length
     ? projectiles.reduce((total, projectile) => total + (projectile.speed || 1), 0) / projectiles.length
@@ -575,6 +582,7 @@ function enemyFrom(definition) {
     weightThreshold: enemy.weightThreshold || 3,
   }));
   enemy.approach = 0;
+  enemy.attacksMade = 0;
   return enemy;
 }
 
@@ -599,7 +607,7 @@ function simulateVolley(state, challenge, enemy, volleyIndex, waveIndex = 0) {
     waveIndex,
     volleyIndex,
     scavengerProgress: state.scavengerProgress || 0,
-    preImpactAttack: false,
+    preImpactAttacks: 0,
     sawReturnReprocess: false,
     projectileCount: 1,
     returnPass: false,
@@ -624,7 +632,6 @@ function simulateVolley(state, challenge, enemy, volleyIndex, waveIndex = 0) {
 
   context.travel = computeTravel(state.activeCars, projectiles, context.loopPenalty);
   context.projectileCount = projectiles.length;
-  enemy.approach += context.travel;
   events.push({
     type: "fire",
     travel: context.travel,
@@ -636,11 +643,7 @@ function simulateVolley(state, challenge, enemy, volleyIndex, waveIndex = 0) {
     note: "先頭砲から発射",
   });
 
-  if (enemy.fast && context.travel >= (enemy.reactionTime || 2.5)) {
-    context.preImpactAttack = true;
-    applyEnemyAttack(enemy, context, "発射前に照準が完了");
-    enemy.approach = Math.max(0, enemy.approach - (enemy.attackInterval || 2.5));
-  }
+  context.preImpactAttacks = advanceEnemyBeforeImpact(enemy, context);
 
   projectiles.forEach((projectile, index) => hitEnemy(enemy, projectile, index, context));
 
@@ -679,11 +682,6 @@ function simulateVolley(state, challenge, enemy, volleyIndex, waveIndex = 0) {
     if (context.hasCollector) {
       context.collectedMass += returned.reduce((total, projectile) => total + (projectile.collected ? projectile.mass : 0), 0);
     }
-  }
-
-  if (!enemyDefeated(enemy) && !context.preImpactAttack && enemy.approach >= (enemy.attackInterval || 2.5)) {
-    applyEnemyAttack(enemy, context, "敵の反撃");
-    enemy.approach -= enemy.attackInterval || 2.5;
   }
 
   if (enemy.kind === "scavenger" && !enemyDefeated(enemy)) {
@@ -732,12 +730,22 @@ function simulateVolley(state, challenge, enemy, volleyIndex, waveIndex = 0) {
   };
 }
 
-function regularOrder(seed) {
-  const regular = CHALLENGES.slice(0, 4);
-  return regular
+function regularSequence(seed) {
+  const openingQuestion = CHALLENGES[0];
+  const newQuestions = CHALLENGES.slice(1, 4)
     .map((challenge, index) => ({ challenge, score: hash(seed, 700 + index * 31) }))
     .sort((a, b) => a.score - b.score)
     .map((entry) => entry.challenge);
+  const sequence = [...newQuestions];
+  for (let repeatIndex = 0; repeatIndex < 2; repeatIndex += 1) {
+    const previous = sequence.at(-1);
+    const candidates = [openingQuestion, ...newQuestions]
+      .filter((challenge) => challenge.id !== previous.id)
+      .map((challenge, index) => ({ challenge, score: hash(seed, 991 + repeatIndex * 101 + index * 29) }))
+      .sort((a, b) => a.score - b.score);
+    sequence.push(candidates[0].challenge);
+  }
+  return sequence;
 }
 
 export function challengeFor(stage, seed = null) {
@@ -745,9 +753,7 @@ export function challengeFor(stage, seed = null) {
   if (safeStage === 0) return clone(CHALLENGES[0]);
   if (safeStage === MAX_STAGES - 1) return clone(CHALLENGES[4]);
   const normalizedSeed = seed === null || seed === undefined || seed === "" ? 0 : Number(seed) >>> 0;
-  const order = regularOrder(normalizedSeed);
-  const repeated = order[hash(normalizedSeed, 991) % order.length];
-  const sequence = [...order, repeated];
+  const sequence = regularSequence(normalizedSeed);
   const challenge = clone(sequence[safeStage - 1]);
   challenge.encounter = safeStage + 1;
   challenge.pressure = safeStage >= 4 ? 1 : 0;
@@ -802,80 +808,26 @@ export function offersFor(state) {
   // versa), making the two readable openings secretly irreversible.
   const eligible = CARS.filter((car) => !state.activeCars.includes(car.id));
   if (!eligible.length) return [];
-  const ranked = eligible
-    .map((car, index) => ({ car, score: hash(state.seed, state.stage * 37 + index * 17 + car.id.length) }))
+  // Rare cars enter the pool after the first salvage. There are no guaranteed
+  // counters or preselected endgame pairs. The one exception is ownership,
+  // not enemy identity: a car the player just dismantled remains recoverable
+  // for one salvage screen so shortening a train is a reversible decision.
+  const discoveryPool = eligible.filter((car) => car.rarity !== "rare" || state.stage >= 2);
+  const pool = discoveryPool.length >= 3 ? discoveryPool : eligible;
+  const recoverableCarId = pool.some((car) => car.id === state.recoverableCarId)
+    ? state.recoverableCarId
+    : null;
+  return pool
+    .map((car) => ({
+      car,
+      recovered: car.id === recoverableCarId,
+      score: car.id === recoverableCarId
+        ? -1
+        : hash(state.seed, 2003 + state.stage * 97 + CARS.findIndex((candidate) => candidate.id === car.id) * 131),
+    }))
     .sort((a, b) => a.score - b.score)
-    .map((entry) => entry.car);
-  const counters = {
-    swarm: ["cut", "charge", "melt", "magnet"],
-    armor: ["press", "melt", "magnet", "reverse"],
-    // Melt is the readable one-car answer to the fast cannon: it arrives
-    // with enough force before the cannon's reaction window closes. The
-    // other entries create different answers once the line is longer.
-    fast: ["accelerator", "melt", "press", "magnet", "collector", "armor", "cut"],
-    scavenger: ["collector", "magnet", "reverse", "armor"],
-    boss: ["melt", "reverse", "magnet", "press"],
-  };
-  const counterPool = (counters[challengeFor(state.stage, state.seed).kind] || [])
-    .filter((id) => eligible.some((car) => car.id === id));
-  const offers = [];
-  const challengeKind = challengeFor(state.stage, state.seed).kind;
-  const answerFor = (kind) => {
-    const answerIds = {
-      swarm: ["cut", "melt", "charge"],
-      armor: ["press", "melt", "magnet"],
-      fast: ["accelerator", "melt", "press"],
-      scavenger: ["collector", "magnet", "armor"],
-      boss: ["press", "reverse", "magnet", "melt"],
-    }[kind] || [];
-    return answerIds.find((id) => eligible.some((car) => car.id === id));
-  };
-  const immediateNeedsAnswer = challengeKind === "fast" && !state.activeCars.includes("accelerator")
-    || challengeKind === "scavenger" && !state.activeCars.some((id) => ["collector", "magnet"].includes(id))
-    || challengeKind === "armor" && !state.activeCars.some((id) => ["press", "melt", "magnet"].includes(id));
-  const guarantees = [];
-  const bossPart = bossPreparation(state).next;
-  if (bossPart && eligible.some((car) => car.id === bossPart)) guarantees.push(bossPart);
-  // From the fourth encounter onward, keep both halves of the return idea
-  // visible whenever neither is in the train yet. A player may still ignore
-  // them, but the run must not secretly become impossible because the last
-  // reward offered only one half of a two-part physical route.
-  if (state.stage >= 4) {
-    ["magnet", "reverse"].forEach((id) => {
-      if (!state.activeCars.includes(id) && eligible.some((car) => car.id === id)) guarantees.push(id);
-    });
-  }
-  if (immediateNeedsAnswer) guarantees.push(answerFor(challengeKind));
-  // The next encounter is visible before the choice. Preserve one readable
-  // answer for that next question too, so a line does not become doomed just
-  // because the previous choice solved a different question.
-  if (state.stage < MAX_STAGES - 1) {
-    const nextKind = challengeFor(state.stage + 1, state.seed).kind;
-    const nextAnswer = nextKind === "fast" && !state.activeCars.includes("accelerator")
-      ? answerFor(nextKind)
-      : nextKind === "scavenger" && !state.activeCars.some((id) => ["collector", "magnet"].includes(id))
-        ? answerFor(nextKind)
-        : nextKind === "armor" && !state.activeCars.some((id) => ["press", "melt", "magnet"].includes(id))
-          ? answerFor(nextKind)
-          : null;
-    if (nextAnswer) guarantees.push(nextAnswer);
-  }
-  guarantees.filter(Boolean).forEach((id) => {
-    if (!offers.some((offer) => offer.id === id)) offers.push(carFor(id));
-  });
-  const counterOffset = counterPool.length ? hash(state.seed, state.stage * 101 + 53) % counterPool.length : 0;
-  // Two readable answers and one discovery slot keep the choice constrained
-  // while avoiding a fixed “take the first counter” order.
-  for (let index = 0; index < Math.min(2, counterPool.length); index += 1) {
-    const candidate = counterPool[(counterOffset + index) % counterPool.length];
-    if (!offers.some((offer) => offer.id === candidate)) offers.push(carFor(candidate));
-  }
-  for (const car of ranked) {
-    if (offers.some((offer) => offer.id === car.id)) continue;
-    offers.push(car);
-    if (offers.length === 3) break;
-  }
-  return offers.slice(0, 3).sort((a, b) => hash(state.seed, state.stage * 211 + a.id.length) - hash(state.seed, state.stage * 211 + b.id.length));
+    .slice(0, 3)
+    .map((entry) => ({ ...entry.car, recovered: entry.recovered }));
 }
 
 export function createGame(seed = null) {
@@ -892,6 +844,7 @@ export function createGame(seed = null) {
     hull: MAX_HULL,
     armor: 0,
     storedMass: 0,
+    recoverableCarId: null,
     activeCars: starterCars,
     starterPattern: starterCars[0],
     offers: [],
@@ -938,6 +891,7 @@ export function removeCar(state, index) {
   if (index < 0 || index >= next.activeCars.length || next.activeCars.length <= 1) return next;
   const before = [...next.activeCars];
   const [car] = next.activeCars.splice(index, 1);
+  next.recoverableCarId = car;
   delete next.preview;
   next.carHistory.push({ action: "remove", carId: car, index, stage: next.stage, before, after: [...next.activeCars], at: new Date().toISOString() });
   next.events.push({ type: "remove", index, carId: car });
@@ -964,6 +918,7 @@ export function installCar(state, carId, slot = null) {
   } else {
     return next;
   }
+  next.recoverableCarId = action === "replace" ? replaced : null;
   const presented = [...(next.offerHistory || [])].reverse().find((entry) => entry.stage === next.stage && !entry.decision);
   if (presented) {
     presented.decision = { action, carId, replaced, slot, before, after: [...next.activeCars], at: new Date().toISOString() };
@@ -985,6 +940,7 @@ export function skipReward(state) {
   if (presented) presented.decision = { action: "skip", carId: null, before, after: [...next.activeCars], at: new Date().toISOString() };
   next.offers = [];
   next.selectedOffer = "skip";
+  next.recoverableCarId = null;
   next.phase = "build";
   delete next.preview;
   next.events.push({ type: "skip_reward", stage: next.stage });
@@ -1020,7 +976,7 @@ export function runBattle(state) {
     let scavengerProgress = 0;
     for (let volley = 0; volley < MAX_VOLLEYS; volley += 1) {
       const volleyResult = simulateVolley({ ...next, activeCars, hull, armor, storedMass, scavengerProgress }, challenge, enemy, volley, waveIndex);
-      events.push(...volleyResult.events.map((event) => ({ ...event, wave: waveIndex })));
+      events.push(...volleyResult.events.map((event) => ({ ...event, wave: waveIndex, volley: event.volley ?? volley + 1 })));
       hull = volleyResult.hullAfter;
       armor = volleyResult.armorAfter + volleyResult.armorGain;
       storedMass = volleyResult.nextStoredMass;
@@ -1062,7 +1018,7 @@ export function runBattle(state) {
     }
   }
 
-  const repair = won ? Math.min(4, MAX_HULL - Math.max(0, hull)) : 0;
+  const repair = won ? Math.min(1, MAX_HULL - Math.max(0, hull)) : 0;
   hull += repair;
   if (repair) events.push({ type: "repair", amount: repair, hull, note: "区画のあいだに応急修理を入れた" });
   next.activeCars = [...activeCars];
@@ -1117,6 +1073,15 @@ export function runBattle(state) {
     next.endedAt = new Date().toISOString();
   }
   next.lastBattle.reason = next.reason || (won ? "次の残骸が開いた" : "列車が止まった");
+  if (mutual) {
+    next.lastBattle.events.push({
+      type: "mutual_destruction",
+      stage: next.stage + 1,
+      outcome: "mutual",
+      target: challenge.name,
+      note: "敵を破壊した直後、列車の車体も0になった",
+    });
+  }
   next.lastBattle.events.push({ type: "battle_end", stage: next.stage, won, outcome, reason: next.lastBattle.reason });
   if (next.collectReports !== false) {
     next.battleReports ||= [];
@@ -1143,7 +1108,7 @@ function registerOfferPresentation(state) {
     presentedAt: new Date().toISOString(),
     nextChallenge: { id: challenge.id, kind: challenge.kind, name: challenge.name, motion: challenge.motion },
     before: { train: [...next.activeCars], hull: next.hull, armor: next.armor, storedMass: next.storedMass },
-    offers: next.offers.map((car) => ({ id: car.id, name: car.name, rarity: car.rarity, text: car.text })),
+    offers: next.offers.map((car) => ({ id: car.id, name: car.name, rarity: car.rarity, text: car.text, recovered: Boolean(car.recovered) })),
     decision: null,
   });
   next.events.push({ type: "offers_presented", stage: next.stage, nextChallenge: challenge.id, offers: next.offers.map((car) => car.id) });
@@ -1192,14 +1157,15 @@ export function recordSurvey(state, survey) {
 }
 
 function policyKey(state) {
-  return [state.stage, state.phase, state.hull, state.armor, state.storedMass, state.activeCars.join(",")].join("|");
+  return [state.stage, state.phase, state.hull, state.armor, state.storedMass, state.recoverableCarId || "-", state.activeCars.join(",")].join("|");
 }
 
 function battleVariants(state) {
   const variants = [state];
-  const seen = new Set([state.activeCars.join(",")]);
+  const variantKey = (candidate) => `${candidate.activeCars.join(",")}|${candidate.recoverableCarId || "-"}`;
+  const seen = new Set([variantKey(state)]);
   const add = (candidate) => {
-    const key = candidate.activeCars.join(",");
+    const key = variantKey(candidate);
     if (!seen.has(key)) {
       seen.add(key);
       variants.push(candidate);
@@ -1213,26 +1179,50 @@ function battleVariants(state) {
   // able to discover that same legal decision instead of treating it as an
   // unwinnable seed.
   if (state.activeCars.length > 1) {
-    const core = new Set(bossPreparation(state).finalOrder);
     const removalOrder = state.activeCars
       .map((carId, index) => ({ carId, index }))
       .sort((a, b) => Number(preserve.has(a.carId)) - Number(preserve.has(b.carId))
-        || Number(core.has(a.carId)) - Number(core.has(b.carId)))
+        || a.index - b.index)
       .map((entry) => entry.index);
     removalOrder.forEach((index) => add(removeCar(state, index)));
   }
-  if (challengeFor(state.stage, state.seed).kind === "fast" && state.activeCars.length > 3) {
-    // A fast cannon asks for a genuinely short line. Generate legal two-car
-    // dismantles as well, because a five-car train can otherwise remain four
-    // cars long after a single removal.
-    for (let first = 0; first < state.activeCars.length; first += 1) {
-      if (preserve.has(state.activeCars[first])) continue;
-      const once = removeCar(state, first);
-      for (let second = 0; second < once.activeCars.length; second += 1) {
-        if (preserve.has(once.activeCars[second])) continue;
-        add(removeCar(once, second));
+  if (challengeFor(state.stage, state.seed).kind === "fast") {
+    // The time question may require dismantling all the way to one or two
+    // cars. Explore every legal ordered subset instead of hard-preserving a
+    // favourite late-game pair; the player is free to make the same choice.
+    const visitSubtrains = (candidate) => {
+      add(candidate);
+      if (candidate.activeCars.length === 1) return;
+      if (candidate.activeCars.length === 2) add(moveCar(candidate, 0, 1));
+      for (let index = 0; index < candidate.activeCars.length; index += 1) {
+        visitSubtrains(removeCar(candidate, index));
       }
-    }
+    };
+    visitSubtrains(state);
+  }
+  if (challengeFor(state.stage, state.seed).kind === "boss") {
+    // The finale tests the whole machine, and a player may perform several
+    // moves or dismantles before departure. Enumerate every ordered non-empty
+    // subset so the verifier does not miss a legal solution because it only
+    // considered one drag operation.
+    const realizeOrder = (order) => {
+      let candidate = state;
+      for (const carId of [...candidate.activeCars]) {
+        if (!order.includes(carId)) candidate = removeCar(candidate, candidate.activeCars.indexOf(carId));
+      }
+      for (let target = 0; target < order.length; target += 1) {
+        const from = candidate.activeCars.indexOf(order[target]);
+        if (from !== target) candidate = moveCar(candidate, from, target);
+      }
+      add(candidate);
+    };
+    const visitOrders = (prefix, remaining) => {
+      if (prefix.length) realizeOrder(prefix);
+      for (let index = 0; index < remaining.length; index += 1) {
+        visitOrders([...prefix, remaining[index]], remaining.filter((_, candidate) => candidate !== index));
+      }
+    };
+    visitOrders([], state.activeCars);
   }
   // Placement is part of the game, so the verifier explores one legal swap
   // at a time. Re-entering this function after a move covers the remaining
@@ -1290,7 +1280,6 @@ function greedyReward(state) {
     scavenger: new Set(["collector", "magnet", "armor"]),
     boss: new Set(["reverse", "magnet", "press", "melt"]),
   }[challenge.kind] || new Set();
-  const preparation = bossPreparation(state);
   const fastAhead = Array.from({ length: MAX_STAGES - state.stage }, (_, index) => challengeFor(state.stage + index, state.seed))
     .some((nextChallenge) => nextChallenge.kind === "fast");
   const baseline = policyBattle(skipReward(state));
@@ -1299,16 +1288,15 @@ function greedyReward(state) {
     const preview = policyBattle(candidate.state);
     const addedAnswer = candidate.offer !== "skip" && answerSet.has(candidate.offer);
     const fastShort = challenge.kind === "fast" && candidate.state.activeCars.includes("accelerator") && candidate.state.activeCars.length <= 3;
-    const safeBossPart = candidate.offer === preparation.next
-      && (candidate.state.activeCars.length <= 4 || state.stage >= MAX_STAGES - 1 || !fastAhead);
+    const rareRewrite = candidate.offer !== "skip" && carFor(candidate.offer).rarity === "rare";
     return {
       candidate,
       score: (preview.report?.won ? 100000 : 0)
         + (preview.report?.hullAfter || 0) * 100
         + (fastShort ? 500 : 0)
         + (addedAnswer ? (neededNow ? 40 : -120) : 0)
-        + (safeBossPart ? 5000 : 0)
-        - (!neededNow && candidate.offer !== "skip" && candidate.state.activeCars.length >= 4 && !safeBossPart ? 100 : 0)
+        + (rareRewrite ? 80 : 0)
+        - (!neededNow && candidate.offer !== "skip" && candidate.state.activeCars.length >= 4 && fastAhead ? 100 : 0)
         - candidate.state.activeCars.length
         - index,
     };
@@ -1318,7 +1306,7 @@ function greedyReward(state) {
 }
 
 function battleKey(state) {
-  return [state.seed, state.stage, state.hull, state.armor, state.storedMass, state.activeCars.join(",")].join("|");
+  return [state.seed, state.stage, state.hull, state.armor, state.storedMass, state.recoverableCarId || "-", state.activeCars.join(",")].join("|");
 }
 
 function cachedBattle(state, battleMemo) {
@@ -1336,10 +1324,10 @@ function canPolicyFinish(state, memo, depth = 0, battleMemo = new Map()) {
   if (memo.has(key)) return memo.get(key);
   let result = false;
   if (state.phase === "build") {
-    const direct = cachedBattle(state, battleMemo);
-    result = direct.report?.won
-      ? canPolicyFinish(direct.state, memo, depth + 1, battleMemo)
-      : battleVariants(state).slice(1).some((variant) => canPolicyFinish(cachedBattle(variant, battleMemo).state, memo, depth + 1, battleMemo));
+    result = battleVariants(state).some((variant) => {
+      const battle = cachedBattle(variant, battleMemo);
+      return battle.report?.won && canPolicyFinish(battle.state, memo, depth + 1, battleMemo);
+    });
   } else if (state.phase === "report") {
     result = canPolicyFinish(continueFromReport(revealReport(state)), memo, depth + 1, battleMemo);
   } else if (state.phase === "reward") {
@@ -1365,10 +1353,20 @@ function policyReward(state, memo, battleMemo) {
   return candidates.find((candidate) => canPolicyFinish(candidate.state, memo, 0, battleMemo)) || candidates[0];
 }
 
-export function recommendedPolicy(seed) {
+function policyBattleTowardFinish(state, memo, battleMemo) {
+  const outcomes = battleVariants(state).map((candidate) => ({ candidate, result: cachedBattle(candidate, battleMemo) }));
+  const viable = outcomes.filter((entry) => entry.result.report?.won
+    && canPolicyFinish(entry.result.state, memo, 0, battleMemo));
+  if (viable.length) {
+    viable.sort((a, b) => (b.result.report.hullAfter || 0) - (a.result.report.hullAfter || 0)
+      || a.candidate.activeCars.length - b.candidate.activeCars.length);
+    return viable[0].result;
+  }
+  return policyBattle(state);
+}
+
+function greedyPolicy(seed) {
   let state = createGame(seed);
-  // Search branches do not need full replay snapshots. Omitting them keeps
-  // the verifier fast without changing any battle decision or user run.
   state.collectReports = false;
   for (let guard = 0; guard < MAX_STAGES * 7 && !state.done; guard += 1) {
     if (state.phase === "build") {
@@ -1380,6 +1378,123 @@ export function recommendedPolicy(seed) {
       state = continueFromReport(revealReport(state));
     } else if (state.phase === "reward") {
       state = greedyReward(state);
+    }
+  }
+  return state;
+}
+
+function planningScore(state) {
+  const ids = new Set(state.activeCars);
+  const connections = Number(ids.has("press")) * 70
+    + Number(ids.has("armor")) * 65
+    + Number(ids.has("accelerator")) * 55
+    + Number(ids.has("charge") && ids.has("melt")) * 150
+    + Number(ids.has("magnet") && ids.has("reverse")) * 170
+    + Number(ids.has("cut") && (ids.has("charge") || ids.has("press"))) * 60
+    + Number(ids.has("collector") && ids.has("magnet")) * 55
+    + Number(ids.has("scar") && state.hull < MAX_HULL) * 45;
+  return state.stage * 100000
+    + state.hull * 1000
+    + Math.min(24, state.armor || 0) * 85
+    + (state.storedMass || 0) * 30
+    + connections
+    - state.activeCars.length * 8;
+}
+
+function planningFamily(state) {
+  const ids = new Set(state.activeCars);
+  return [
+    Number(ids.has("press")),
+    Number(ids.has("charge") && ids.has("melt")),
+    Number(ids.has("magnet") && ids.has("reverse")),
+    Number(ids.has("armor")),
+    Number(ids.has("accelerator")),
+  ].join("");
+}
+
+function prunePlanningStates(states, width) {
+  const best = new Map();
+  states.forEach((state) => {
+    const key = policyKey(state);
+    if (!best.has(key) || planningScore(state) > planningScore(best.get(key))) best.set(key, state);
+  });
+  const ranked = [...best.values()].sort((a, b) => planningScore(b) - planningScore(a));
+  if (ranked.length <= width) return ranked;
+  const selected = [];
+  const selectedStates = new Set();
+  const familyCounts = new Map();
+  for (const state of ranked) {
+    const family = planningFamily(state);
+    if ((familyCounts.get(family) || 0) >= 2) continue;
+    selected.push(state);
+    selectedStates.add(state);
+    familyCounts.set(family, (familyCounts.get(family) || 0) + 1);
+    if (selected.length >= width) return selected;
+  }
+  for (const state of ranked) {
+    if (selectedStates.has(state)) continue;
+    selected.push(state);
+    if (selected.length >= width) break;
+  }
+  return selected;
+}
+
+function beamPolicy(seed, width = 6) {
+  const initial = createGame(seed);
+  initial.collectReports = false;
+  let frontier = [initial];
+  let bestFailure = initial;
+  const battleMemo = new Map();
+  for (let stage = 0; stage < MAX_STAGES && frontier.length; stage += 1) {
+    const nextFrontier = [];
+    const completed = [];
+    for (const state of frontier) {
+      for (const variant of battleVariants(state)) {
+        const battle = cachedBattle(variant, battleMemo);
+        if (!battle.report?.won) {
+          if (battle.state.stage > bestFailure.stage || (battle.state.stage === bestFailure.stage && battle.state.hull > bestFailure.hull)) bestFailure = battle.state;
+          continue;
+        }
+        if (battle.state.done) {
+          completed.push(battle.state);
+          continue;
+        }
+        const reward = continueFromReport(revealReport(battle.state));
+        for (const offer of reward.offers) {
+          if (reward.activeCars.length < MAX_CARS) nextFrontier.push(installCar(reward, offer.id));
+          else for (let slot = 0; slot < reward.activeCars.length; slot += 1) nextFrontier.push(installCar(reward, offer.id, slot));
+        }
+        nextFrontier.push(skipReward(reward));
+      }
+    }
+    if (completed.length) return completed.sort((a, b) => planningScore(b) - planningScore(a))[0];
+    frontier = prunePlanningStates(nextFrontier, width);
+  }
+  return bestFailure;
+}
+
+export function recommendedPolicy(seed) {
+  const greedy = greedyPolicy(seed);
+  if (greedy.done && greedy.won) return greedy;
+
+  const planned = beamPolicy(seed);
+  if (planned.done && planned.won) return planned;
+
+  let state = createGame(seed);
+  // Search branches do not need full replay snapshots. Omitting them keeps
+  // the verifier fast without changing any battle decision or user run.
+  state.collectReports = false;
+  const memo = new Map();
+  const battleMemo = new Map();
+  for (let guard = 0; guard < MAX_STAGES * 7 && !state.done; guard += 1) {
+    if (state.phase === "build") {
+      state.preview = previewTrain(state);
+      state.previewCount += 1;
+      state = policyBattleTowardFinish(state, memo, battleMemo).state;
+    } else if (state.phase === "report") {
+      state = continueFromReport(revealReport(state));
+    } else if (state.phase === "reward") {
+      state = policyReward(state, memo, battleMemo).state;
     }
   }
   return state;

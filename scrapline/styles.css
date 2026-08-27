@@ -206,12 +206,15 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .replay-payload.is-blast { color: #fff3a2; text-shadow: 0 0 20px var(--orange), 0 0 32px var(--danger); }
 .replay-payload small { display: inline-block; margin-left: 2px; color: currentColor; font-size: 0.42em; vertical-align: 0.35em; opacity: 0.82; }
 .replay-enemy-node { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid var(--orange); border-radius: 50%; background: #39271c; color: var(--orange); font-size: 1.35rem; animation: enemy-hit 450ms ease-out both; }
+.replay-route[data-event="enemy_approach"] .replay-enemy-node { animation: enemy-approach 560ms ease-out both; }
+.replay-route[data-event="mutual_destruction"] { background: radial-gradient(circle, rgba(255, 120, 108, 0.24), transparent 68%); }
 .replay-particle { position: absolute; color: var(--orange); font-size: 0.95rem; opacity: 0; animation: particle-pop 650ms ease-out both; }
 .particle-0 { left: 31%; top: 25%; } .particle-1 { left: 39%; top: 68%; } .particle-2 { left: 54%; top: 20%; } .particle-3 { left: 62%; top: 69%; } .particle-4 { left: 72%; top: 32%; } .particle-5 { left: 46%; top: 78%; } .particle-6 { left: 26%; top: 52%; } .particle-7 { left: 79%; top: 58%; } .particle-8 { left: 57%; top: 82%; } .particle-9 { left: 68%; top: 14%; }
 @keyframes payload-fly-swarm { from { opacity: 0; left: 23%; } to { opacity: 1; left: calc(50% + ((var(--payload-index, 0) - 4.5) * 18px)); } }
 @keyframes enemy-shell-fly { from { opacity: 0; left: 82%; transform: translateX(-50%) scale(0.7); } to { opacity: 1; left: 53%; transform: translateX(-50%) scale(1); } }
 @keyframes particle-pop { 0% { opacity: 0; transform: scale(0.4); } 45% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: translateY(-13px) scale(0.6); } }
 @keyframes enemy-hit { from { transform: scale(0.8); filter: brightness(1); } 55% { transform: scale(1.16); filter: brightness(1.6); } to { transform: scale(1); filter: brightness(1); } }
+@keyframes enemy-approach { from { transform: translateX(32px) scale(0.72); opacity: 0.45; } to { transform: translateX(0) scale(1); opacity: 1; } }
 .replay-caption { display: grid; gap: 3px; text-align: center; }
 .replay-caption strong { color: var(--ink); font-size: 0.82rem; }
 .replay-caption span { color: var(--muted); font-size: 0.7rem; line-height: 1.4; }

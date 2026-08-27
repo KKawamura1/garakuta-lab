@@ -9,6 +9,80 @@ export const SURVEY_SCALES = Object.freeze({
   replay: Object.freeze({ low: "一度で十分", high: "もう一度試したい" }),
 });
 
+function replayVolleyKey(event) {
+  return Number.isInteger(event?.wave) && Number.isInteger(event?.volley)
+    ? `${event.wave}:${event.volley}`
+    : null;
+}
+
+export function selectReplayEvents(events = [], maxFrames = 32) {
+  if (events.length <= maxFrames) return events;
+  const safeMax = Math.max(2, maxFrames);
+  const selected = new Set();
+  const add = (index) => {
+    if (index >= 0 && index < events.length && selected.size < safeMax) selected.add(index);
+  };
+
+  add(0);
+  add(events.length - 1);
+  events.forEach((event, index) => {
+    if (["wave_clear", "mutual_destruction", "car_stolen_confirmed"].includes(event.type)) add(index);
+  });
+
+  const bestFire = events
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) => event.type === "fire")
+    .sort((a, b) => {
+      const score = ({ event }) => (event.spectacle?.level || 0) * 100
+        + (event.spectacle?.projectileCount || event.projectiles?.length || 0) * 8
+        + (event.spectacle?.returning || 0) * 12
+        + (event.spectacle?.molten || 0) * 10;
+      return score(b) - score(a) || b.index - a.index;
+    })[0];
+  const bestKey = replayVolleyKey(bestFire?.event);
+  if (bestKey) {
+    const chainTypes = new Set(["volley", "car", "loop", "fire", "enemy_approach", "return", "return_reprocess", "enemy_shell", "enemy_attack", "impact_splash", "impact_blocked"]);
+    events.forEach((event, index) => {
+      if (replayVolleyKey(event) === bestKey && chainTypes.has(event.type)) add(index);
+    });
+    events
+      .map((event, index) => ({ event, index }))
+      .filter(({ event }) => replayVolleyKey(event) === bestKey && event.type === "impact")
+      .sort((a, b) => eventDamage(b.event) - eventDamage(a.event) || b.index - a.index)
+      .slice(0, 3)
+      .forEach(({ index }) => add(index));
+  }
+
+  const priority = {
+    battle_start: 260,
+    battle_end: 255,
+    return_reprocess: 245,
+    return: 235,
+    impact_splash: 225,
+    car_stolen: 220,
+    enemy_attack: 215,
+    enemy_shell: 205,
+    impact_blocked: 200,
+    impact: 190,
+    fire: 180,
+    enemy_approach: 170,
+    loop: 165,
+    car: 155,
+    collector_gain: 145,
+    enemy_recover: 140,
+    enemy_repelled: 135,
+    repair: 120,
+    volley: 100,
+  };
+  events
+    .map((event, index) => ({ event, index, score: priority[event.type] || 0 }))
+    .filter(({ index }) => !selected.has(index))
+    .sort((a, b) => b.score - a.score || b.index - a.index)
+    .forEach(({ index }) => add(index));
+
+  return [...selected].sort((a, b) => a - b).map((index) => events[index]);
+}
+
 export function reportDisclosure(report, revealed = false) {
   if (!report || !revealed) {
     return {
