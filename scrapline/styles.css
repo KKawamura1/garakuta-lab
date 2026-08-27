@@ -157,7 +157,11 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .trace-title { color: var(--ink); font-size: 0.78rem; font-weight: 700; }
 .trace-detail { color: var(--muted); font-size: 0.74rem; line-height: 1.45; }
 .trace-impact { border-left-color: var(--orange); }
+.trace-impact_splash { border-left-color: var(--orange); background: rgba(65, 39, 22, 0.48); }
+.trace-impact_blocked { border-left-color: var(--danger); }
 .trace-return { border-left-color: var(--cyan); }
+.trace-enemy_repelled, .trace-collector_gain { border-left-color: var(--cyan); }
+.trace-car_stolen, .trace-car_stolen_confirmed { border-left-color: var(--danger); }
 .trace-wave_clear { border-left-color: var(--lime); }
 @keyframes trace-in { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
 .preview-flow { display: grid; gap: 6px; margin: 13px 0 0; padding: 0; list-style: none; }
@@ -196,6 +200,7 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .replay-payload.is-enemy-shell { color: var(--danger); text-shadow: 0 0 16px rgba(255, 120, 108, 0.72); animation-name: enemy-shell-fly; }
 .replay-payload.is-returning { color: var(--cyan); }
 .replay-payload.is-blast { color: #fff3a2; text-shadow: 0 0 20px var(--orange), 0 0 32px var(--danger); }
+.replay-payload small { display: inline-block; margin-left: 2px; color: currentColor; font-size: 0.42em; vertical-align: 0.35em; opacity: 0.82; }
 .replay-enemy-node { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid var(--orange); border-radius: 50%; background: #39271c; color: var(--orange); font-size: 1.35rem; animation: enemy-hit 450ms ease-out both; }
 .replay-particle { position: absolute; color: var(--orange); font-size: 0.95rem; opacity: 0; animation: particle-pop 650ms ease-out both; }
 .particle-0 { left: 31%; top: 25%; } .particle-1 { left: 39%; top: 68%; } .particle-2 { left: 54%; top: 20%; } .particle-3 { left: 62%; top: 69%; } .particle-4 { left: 72%; top: 32%; } .particle-5 { left: 46%; top: 78%; } .particle-6 { left: 26%; top: 52%; } .particle-7 { left: 79%; top: 58%; } .particle-8 { left: 57%; top: 82%; } .particle-9 { left: 68%; top: 14%; }
@@ -215,7 +220,11 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .highlight-item strong { color: var(--ink); font-size: 0.75rem; }
 .highlight-item span { color: var(--muted); font-size: 0.71rem; line-height: 1.45; }
 .highlight-impact { border-left-color: var(--orange); }
+.highlight-impact_splash { border-left-color: var(--orange); }
+.highlight-impact_blocked { border-left-color: var(--danger); }
 .highlight-return { border-left-color: var(--cyan); }
+.highlight-enemy_repelled, .highlight-collector_gain { border-left-color: var(--cyan); }
+.highlight-car_stolen, .highlight-car_stolen_confirmed { border-left-color: var(--danger); }
 .trace-details { border-top: 1px solid var(--line); padding-top: 12px; }
 .trace-details summary { color: var(--muted); cursor: pointer; font-size: 0.76rem; }
 .trace-details summary:hover { color: var(--cyan); }
@@ -237,6 +246,9 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .salvage-copy { display: grid; min-width: 0; gap: 2px; }
 .salvage-copy strong { font-size: 0.9rem; }
 .salvage-copy small { color: var(--muted); font-size: 0.72rem; line-height: 1.4; }
+.salvage-impact { display: grid; gap: 2px; margin-top: 6px; padding: 6px 7px; border-left: 2px solid var(--cyan); background: rgba(16, 35, 39, 0.55); }
+.salvage-impact span, .salvage-impact small { color: var(--faint); font: 0.58rem "DM Mono", monospace; }
+.salvage-impact strong { overflow: hidden; color: var(--lime); font: 0.72rem "DM Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
 .run-name { display: grid; gap: 4px; margin: 17px 0; padding: 13px 14px; border-left: 3px solid var(--lime); border-radius: 0 9px 9px 0; background: rgba(212, 242, 106, 0.08); }
 .run-name span { color: var(--faint); font: 0.61rem "DM Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; }
 .run-name strong { color: var(--lime); font-size: 1.2rem; }
