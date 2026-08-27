@@ -92,6 +92,16 @@ SCRAPLINE 0.7 は、強い部品を引くゲームではなく、「一つの鉄
 
 ## 検査入口
 
+次担当の判断順、変更権限、残作業の証拠形式は
+`analysis/SCRAPLINE_AGENT_RUNBOOK.md` を正とする。通常は次の統合入口を使う。
+
+```sh
+node analysis/scrapline-agent-gate.mjs --quick
+node analysis/scrapline-agent-gate.mjs --full
+```
+
+個別に原因を切り分ける場合だけ、以下を直接実行する。
+
 ```sh
 node analysis/scrapline-smoke.mjs
 node analysis/scrapline-presentation-smoke.mjs
