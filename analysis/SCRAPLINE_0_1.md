@@ -1,4 +1,7 @@
-# SCRAPLINE 0.1 — 実装・検証チケット
+# SCRAPLINE 0.1 — 実装・検証チケット（履歴）
+
+> この文書は0.5時点の履歴です。現行の0.6実装と検査結果は
+> `analysis/SCRAPLINE_0_6.md` と `analysis/SCRAPLINE_IMPLEMENTATION.md` を参照してください。
 
 現在の追試実装版: `scrapline-0.5`（弾道・敵予告・ラン変異・PWA・帰還再加工・敵弾→鉄塊を追加した版）
 
