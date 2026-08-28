@@ -14,6 +14,12 @@ const openingPatterns = new Set();
 const offerSets = new Set();
 
 for (let seed = 0; seed < 256; seed += 1) {
+  const sequence = Array.from({ length: MAX_STAGES }, (_, stage) => challengeFor(stage, seed).kind);
+  assert.equal(sequence[0], "swarm", `seed ${seed} opens with the readable swarm`);
+  assert.notEqual(sequence[1], "swarm", `seed ${seed} does not repeat the opening question`);
+  assert.deepEqual(new Set(sequence.slice(0, MAX_STAGES - 1)), new Set(["swarm", "armor", "fast", "scavenger"]), `seed ${seed} presents all four regular questions before the boss`);
+  assert.ok(sequence.slice(1).every((kind, index) => kind !== sequence[index]), `seed ${seed} never repeats a question consecutively`);
+
   const run = recommendedPolicy(seed);
   runs.push(run);
   assert.equal(run.version, VERSION, `seed ${seed} uses the current ruleset`);
@@ -21,7 +27,7 @@ for (let seed = 0; seed < 256; seed += 1) {
 
   const initial = createGame(seed);
   openingPatterns.add(initial.starterPattern);
-  challengeSequences.add(Array.from({ length: MAX_STAGES }, (_, stage) => challengeFor(stage, seed).kind).join(","));
+  challengeSequences.add(sequence.join(","));
   offerSets.add(offersFor({ ...initial, stage: 0 }).map((car) => car.id).join(","));
 }
 

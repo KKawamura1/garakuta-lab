@@ -18,13 +18,14 @@ const enumerate = (prefix) => {
 };
 enumerate([]);
 
-// These stages contain the four regular questions and the two-wave boss for
-// one deterministic encounter order. The order itself changes by seed; the
-// balance invariant is about the questions, not their presentation order.
-const stages = [0, 2, 3, 4, 6];
+// Check the whole seven-encounter pressure curve. Repeated questions are
+// deliberately harder, so a fixed train that only beats the tutorial form
+// must not be counted as a universal answer.
+const stages = Array.from({ length: 7 }, (_, stage) => stage);
 const kinds = stages.map((stage) => challengeFor(stage, 0).kind);
 const solutionCounts = Object.fromEntries(kinds.map((kind) => [kind, 0]));
 const examples = Object.fromEntries(kinds.map((kind) => [kind, []]));
+const mechanismSignatures = Object.fromEntries(kinds.map((kind) => [kind, new Set()]));
 let checked = 0;
 let universalCount = 0;
 
@@ -37,6 +38,17 @@ for (const activeCars of builds) {
     if (report.won) {
       solutionCounts[kind] += 1;
       if (examples[kind].length < 4) examples[kind].push(activeCars);
+      const events = report.events;
+      const mechanisms = [
+        events.some((event) => event.type === "car" && event.carId === "cut" && event.afterProjectiles?.length > event.beforeProjectiles?.length) ? "split" : null,
+        events.some((event) => event.projectile?.compressed && event.damage > 0) ? "heavy" : null,
+        events.some((event) => ["impact", "impact_splash"].includes(event.type) && event.projectile?.mode === "molten" && event.damage > 0) ? "molten" : null,
+        events.some((event) => event.type === "return_reprocess") ? "return" : null,
+        events.some((event) => event.type === "enemy_attack" && event.absorbed > 0) ? "armor" : null,
+        events.some((event) => event.type === "collector_gain") ? "collector" : null,
+        events.some((event) => event.type === "fire" && event.projectiles?.some((projectile) => projectile.speed > 1)) ? "speed" : null,
+      ].filter(Boolean);
+      mechanismSignatures[kind].add(mechanisms.sort().join("+") || "plain");
     } else {
       winsEveryQuestion = false;
     }
@@ -50,6 +62,7 @@ assert.equal(universalCount, 0, "no one ordered train dominates every enemy ques
 for (const kind of kinds) {
   assert.ok(solutionCounts[kind] >= 2, `${kind} keeps at least two distinct solutions`);
   assert.ok(new Set(examples[kind].map((build) => build.join(","))).size >= 2, `${kind} examples are distinct trains`);
+  assert.ok(mechanismSignatures[kind].size >= 2, `${kind} can be cleared through more than one observed mechanism signature`);
 }
 
 console.log("scrapline balance smoke ok", JSON.stringify({
@@ -57,5 +70,6 @@ console.log("scrapline balance smoke ok", JSON.stringify({
   checked,
   universalCount,
   solutionCounts,
+  mechanismSignatures: Object.fromEntries(Object.entries(mechanismSignatures).map(([kind, signatures]) => [kind, signatures.size])),
   examples,
 }));
