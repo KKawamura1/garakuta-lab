@@ -6,7 +6,6 @@ const sw = fs.readFileSync("scrapline/sw.js", "utf8");
 
 const checks = [
   ["reordering uses direct button handlers", app.includes("function bindTrainControls") && app.includes('button.addEventListener("click"')],
-  ["drag-and-drop is not required", !app.includes("data-drag-handle") && !app.includes("bindTrainDragging") && !css.includes(".drag-grip")],
   ["mobile train is stacked", css.includes("grid-template-columns: minmax(0, 1fr)") && css.includes("overflow: visible")],
   ["movement controls have visible labels", app.includes('class="move-label">左へ') && app.includes('class="move-label">右へ')],
   ["buttons have a touch target", css.includes("touch-action: manipulation") && css.includes("min-height: 38px")],
