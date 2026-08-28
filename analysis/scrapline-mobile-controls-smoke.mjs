@@ -5,7 +5,7 @@ const css = fs.readFileSync("scrapline/styles.css", "utf8");
 const sw = fs.readFileSync("scrapline/sw.js", "utf8");
 
 const checks = [
-  ["touch pointer path ignores mouse-only native drag", app.includes('event.pointerType === "mouse"')],
+  ["pointer path accepts mouse and touch input", app.includes('handle.addEventListener("pointerdown"') && !app.includes('event.pointerType === "mouse"')],
   ["pointer path tracks capture loss", app.includes('handle.addEventListener("lostpointercapture"')],
   ["pointer path chooses a nearby slot", app.includes("getBoundingClientRect") && app.includes("nearestDistance <= 90")],
   ["movement controls have visible labels", app.includes('class="move-label">左へ') && app.includes('class="move-label">右へ')],
