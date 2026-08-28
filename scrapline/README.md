@@ -47,6 +47,8 @@
 node analysis/scrapline-smoke.mjs
 node analysis/scrapline-balance-smoke.mjs
 node analysis/scrapline-seed-regression.mjs
+bash analysis/check-all.sh
+RUN_EXHAUSTIVE=1 bash analysis/check-all.sh
 node --check scrapline/engine.mjs
 node --input-type=module --check < scrapline/app.js
 ```
@@ -57,8 +59,10 @@ node --input-type=module --check < scrapline/app.js
 Service Workerとmanifestも `/scrapline/` 専用です。
 
 全順序検査では、1〜5両の64,471列を5つの問いへ通し、各敵に複数の解法があり、
-全敵を支配する万能列がないことを確認します。0〜255 seedの完全ランも回帰検査に
-含めています。
+全敵を支配する万能列がないことを確認します。通常のPR/push CIではこの検査だけを
+時間短縮のため除外し、`RUN_EXHAUSTIVE=1 bash analysis/check-all.sh` と
+GitHub Actionsの手動・週次Workflowで同じ検査を実行します。0〜255 seedの完全ランも
+通常CIに含めています。
 
 ## 公開前の確認
 
