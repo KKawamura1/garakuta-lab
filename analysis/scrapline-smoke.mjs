@@ -43,7 +43,7 @@ const stable = (state) => ({
 });
 
 assert.equal(VERSION, "scrapline-0.7");
-assert.match(BUILD_STAMP, /^scrapline-build-20260828-r8$/);
+assert.match(BUILD_STAMP, /^scrapline-build-20260828-r9$/);
 assert.equal(CARS.length, 11);
 assert.equal(MAX_CARS, 5);
 assert.equal(MAX_VOLLEYS, 6);
