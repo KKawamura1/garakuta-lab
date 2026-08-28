@@ -140,17 +140,17 @@ function renderTrain() {
   const complexity = Math.min(5, cars.length + rareCount + Math.floor(state.stage / 2));
   const slots = cars.map((car, index) => `
     <article class="train-slot ${editable && selectedSlot === index ? "is-selected" : ""} ${car.rarity === "rare" ? "rare-slot" : ""}" data-drag-slot="${index}" aria-label="${escapeHtml(car.name)}${editable ? "。把手で並べ替え" : ""}">
-      <button class="car-card" ${editable ? `data-action="select-slot" data-slot="${index}"` : "disabled"} aria-pressed="${editable && selectedSlot === index}">
+      <button type="button" class="car-card" ${editable ? `data-action="select-slot" data-slot="${index}"` : "disabled"} aria-pressed="${editable && selectedSlot === index}">
         <span class="car-icon" aria-hidden="true">${car.icon}</span>
         <span class="car-name">${escapeHtml(car.name)}</span>
         <span class="car-effect">${escapeHtml(car.text)}</span>
         <span class="slot-number">車両 ${index + 1}</span>
       </button>
-      ${editable ? `<button class="drag-grip" draggable="true" data-drag-handle="${index}" aria-label="${escapeHtml(car.name)}をドラッグして並べ替え">⠿ 移動</button>` : ""}
+      ${editable ? `<button type="button" class="drag-grip" draggable="true" data-drag-handle="${index}" aria-label="${escapeHtml(car.name)}をドラッグして並べ替え">⠿ 長押しで移動</button>` : ""}
       <div class="slot-actions" aria-label="${escapeHtml(car.name)}の並び替え">
-        <button class="icon-button" data-action="move-left" data-slot="${index}" ${!editable || index === 0 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を左へ">←</button>
-        <button class="icon-button" data-action="move-right" data-slot="${index}" ${!editable || index === cars.length - 1 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を右へ">→</button>
-        <button class="icon-button danger" data-action="remove" data-slot="${index}" ${!editable || cars.length <= 1 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を外す">×</button>
+        <button type="button" class="icon-button" data-action="move-left" data-slot="${index}" ${!editable || index === 0 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を左へ"><span class="button-glyph" aria-hidden="true">←</span><span class="move-label">左へ</span></button>
+        <button type="button" class="icon-button" data-action="move-right" data-slot="${index}" ${!editable || index === cars.length - 1 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を右へ"><span class="button-glyph" aria-hidden="true">→</span><span class="move-label">右へ</span></button>
+        <button type="button" class="icon-button danger" data-action="remove" data-slot="${index}" ${!editable || cars.length <= 1 ? "disabled" : ""} aria-label="${escapeHtml(car.name)}を外す"><span class="button-glyph" aria-hidden="true">×</span><span class="move-label">外す</span></button>
       </div>
     </article>
   `).join("");
@@ -635,12 +635,40 @@ function completeDrag(from, to) {
   setState(moveCar(state, from, to), { type: "car_reordered", from, to, method: "drag" });
 }
 
+function dragTargetAt(x, y, slots) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  const candidate = document.elementFromPoint(x, y)?.closest?.("[data-drag-slot]");
+  if (candidate && slots.includes(candidate)) return candidate;
+  let nearest = null;
+  let nearestDistance = Infinity;
+  slots.forEach((slot) => {
+    const rect = slot.getBoundingClientRect();
+    const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
+    const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+    const distance = Math.hypot(dx, dy);
+    if (distance < nearestDistance) {
+      nearest = slot;
+      nearestDistance = distance;
+    }
+  });
+  return nearestDistance <= 90 ? nearest : null;
+}
+
+function clearDragTargets(slots) {
+  slots.forEach((candidate) => candidate.classList.remove("is-drag-target"));
+}
+
 function bindTrainDragging() {
   if (!app) return;
   const slots = [...app.querySelectorAll("[data-drag-slot]")];
   const handles = [...app.querySelectorAll("[data-drag-handle]")];
   handles.forEach((handle) => {
     const slot = handle.closest("[data-drag-slot]");
+    const finishNativeDrag = () => {
+      dragSource = null;
+      slot?.classList.remove("is-dragging", "is-pointer-dragging");
+      clearDragTargets(slots);
+    };
     handle.addEventListener("dragstart", (event) => {
       dragSource = Number(handle.dataset.dragHandle);
       slot?.classList.add("is-dragging");
@@ -649,37 +677,59 @@ function bindTrainDragging() {
         event.dataTransfer.setData("text/plain", String(dragSource));
       }
     });
-    handle.addEventListener("dragend", () => {
-      dragSource = null;
-      slot?.classList.remove("is-dragging");
-      slots.forEach((candidate) => candidate.classList.remove("is-drag-target"));
-    });
-    handle.addEventListener("pointerdown", (event) => {
-      if (!event.isPrimary) return;
-      pointerDrag = { from: Number(handle.dataset.dragHandle), startX: event.clientX, startY: event.clientY, moved: false, slot, handle };
-      try { handle.setPointerCapture(event.pointerId); } catch { /* optional */ }
-    });
-    handle.addEventListener("pointermove", (event) => {
-      if (!pointerDrag || pointerDrag.handle !== handle) return;
+    handle.addEventListener("dragend", finishNativeDrag);
+
+    const updatePointerDrag = (event) => {
+      if (!pointerDrag || pointerDrag.handle !== handle || pointerDrag.pointerId !== event.pointerId) return;
+      pointerDrag.lastX = event.clientX;
+      pointerDrag.lastY = event.clientY;
       const dx = event.clientX - pointerDrag.startX;
       const dy = event.clientY - pointerDrag.startY;
-      if (Math.hypot(dx, dy) < 10) return;
+      if (!pointerDrag.moved && Math.hypot(dx, dy) < 8) return;
       pointerDrag.moved = true;
-      slot?.classList.add("is-dragging");
+      slot?.classList.add("is-dragging", "is-pointer-dragging");
+      clearDragTargets(slots);
+      const target = dragTargetAt(event.clientX, event.clientY, slots);
+      pointerDrag.target = target;
+      target?.classList.add("is-drag-target");
       event.preventDefault();
-    });
+    };
+
     const finishPointerDrag = (event) => {
-      if (!pointerDrag || pointerDrag.handle !== handle) return;
+      if (!pointerDrag || pointerDrag.handle !== handle || pointerDrag.pointerId !== event.pointerId) return;
       const drag = pointerDrag;
       pointerDrag = null;
-      slot?.classList.remove("is-dragging");
-      if (!drag.moved) return;
+      slot?.classList.remove("is-dragging", "is-pointer-dragging");
+      clearDragTargets(slots);
+      if (!drag.moved || event.type === "pointercancel") return;
+      const x = Number.isFinite(event.clientX) ? event.clientX : drag.lastX;
+      const y = Number.isFinite(event.clientY) ? event.clientY : drag.lastY;
       event.preventDefault();
-      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-drag-slot]");
+      const target = drag.target || dragTargetAt(x, y, slots);
       completeDrag(drag.from, target ? Number(target.dataset.dragSlot) : drag.from);
     };
+
+    handle.addEventListener("pointerdown", (event) => {
+      if (event.isPrimary === false || (event.button !== undefined && event.button > 0) || event.pointerType === "mouse") return;
+      pointerDrag = {
+        from: Number(handle.dataset.dragHandle),
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        moved: false,
+        target: null,
+        slot,
+        handle,
+      };
+      try { handle.setPointerCapture(event.pointerId); } catch { /* optional */ }
+      event.preventDefault();
+    }, { passive: false });
+    handle.addEventListener("pointermove", updatePointerDrag, { passive: false });
     handle.addEventListener("pointerup", finishPointerDrag);
     handle.addEventListener("pointercancel", finishPointerDrag);
+    handle.addEventListener("lostpointercapture", finishPointerDrag);
   });
   slots.forEach((slot) => {
     slot.addEventListener("dragover", (event) => {
@@ -696,7 +746,6 @@ function bindTrainDragging() {
     });
   });
 }
-
 function render() {
   if (!app) return;
   stopReplay();

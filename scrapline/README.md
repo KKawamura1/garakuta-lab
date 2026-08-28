@@ -16,7 +16,7 @@
 
 通常起動では seed を画面に出さず、毎回新しい列車を生成します。`?seed=12` の
 ような診断起動だけ、同じ敵順・残骸候補を再現します。現行版は
-`scrapline-0.7` / `scrapline-build-20260827-r7` です。
+`scrapline-0.7` / `scrapline-build-20260828-r8` です。
 
 ## 敵が出す問い
 
@@ -53,7 +53,7 @@ node --input-type=module --check < scrapline/app.js
 
 エンジンは副作用のない決定的シミュレーションとして切り出し、UIは現在のrunと
 送信待ちキューを `localStorage` に保存します。アンケートと戦闘イベントは既存の
-`/api/runs` 契約へ `head: scrapline`、`gameVersion: scrapline-0.6` で送ります。
+`/api/runs` 契約へ `head: scrapline`、`gameVersion: scrapline-0.7` で送ります。
 Service Workerとmanifestも `/scrapline/` 専用です。
 
 全順序検査では、1〜5両の64,471列を5つの問いへ通し、各敵に複数の解法があり、

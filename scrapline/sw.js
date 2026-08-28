@@ -1,4 +1,4 @@
-const CACHE = "scrapline-static-v7";
+const CACHE = "scrapline-static-v8";
 const ASSETS = [
   "./",
   "./index.html",
