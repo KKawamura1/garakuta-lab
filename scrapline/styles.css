@@ -67,17 +67,17 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .train-panel[data-complexity="5"] { border-color: #896243; box-shadow: 0 18px 62px rgba(255, 157, 92, 0.18); }
 .selection-hint { color: var(--faint); font-size: 0.63rem; text-align: right; line-height: 1.5; }
 .train-line { display: flex; align-items: stretch; gap: 8px; overflow-x: auto; padding: 16px 2px 3px; scrollbar-width: thin; }
-.train-end, .train-slot { position: relative; min-width: 0; display: flex; flex-direction: column; }
+.train-end, .train-slot { flex: 0 0 154px; min-height: 154px; min-width: 0; }
 .train-end { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; border: 1px dashed #43515a; border-radius: 14px; color: var(--muted); background: rgba(12, 15, 17, 0.7); }
 .train-end span { color: var(--orange); font-size: 2.1rem; line-height: 1; }
 .train-end strong { font-size: 0.9rem; }
 .train-end small { color: var(--faint); font: 0.67rem "DM Mono", monospace; }
 .cannon span { color: var(--lime); }
 .line-arrow { flex: 0 0 18px; align-self: center; color: var(--faint); font-size: 1.8rem; }
-.train-slot { position: relative; }
+.train-slot { position: relative; display: flex; flex-direction: column; }
 .train-slot.is-dragging, .train-slot.is-pointer-dragging { opacity: 0.55; transform: scale(0.98); }
-.train-slot.is-drag-target .car-card { display: flex; flex: 1 1 auto; width: 100%; min-height: 112px; height: auto; flex-direction: column; align-items: flex-start; gap: 5px; padding: 12px; text-align: left; border: 1px solid #3a474e; border-radius: 13px; background: #20282d; cursor: pointer; transition: transform 150ms ease, border-color 150ms ease, background 150ms ease; }
-.car-card { display: flex; width: 100%; min-height: 126px; height: calc(100% - 28px); flex-direction: column; align-items: flex-start; gap: 5px; padding: 12px; text-align: left; border: 1px solid #3a474e; border-radius: 13px; background: #20282d; cursor: pointer; transition: transform 150ms ease, border-color 150ms ease, background 150ms ease; }
+.train-slot.is-drag-target .car-card { border-color: var(--lime); box-shadow: 0 0 0 3px rgba(212, 242, 106, 0.16); }
+.car-card { display: flex; flex: 1 1 auto; width: 100%; min-height: 112px; height: auto; flex-direction: column; align-items: flex-start; gap: 5px; padding: 12px; text-align: left; border: 1px solid #3a474e; border-radius: 13px; background: #20282d; cursor: pointer; transition: transform 150ms ease, border-color 150ms ease, background 150ms ease; }
 .car-card:hover { transform: translateY(-2px); border-color: var(--cyan); }
 .car-card:disabled { cursor: default; opacity: 1; }
 .car-card:disabled:hover { transform: none; border-color: #3a474e; }
