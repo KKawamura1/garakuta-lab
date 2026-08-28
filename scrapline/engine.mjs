@@ -8,7 +8,7 @@
  */
 
 export const VERSION = "scrapline-0.7";
-export const BUILD_STAMP = "scrapline-build-20260827-r7";
+export const BUILD_STAMP = "scrapline-build-20260828-r8";
 export const MAX_STAGES = 7;
 export const MAX_CARS = 5;
 export const MAX_HULL = 8;
