@@ -25,6 +25,8 @@ concurrency:
 permissions:
   contents: read
 
+# Pull requests use the fast suite. The unchanged ordered-train exhaustive search
+# is retained in .github/workflows/exhaustive-checks.yml.
 jobs:
   check-all:
     runs-on: ubuntu-latest
@@ -35,24 +37,24 @@ jobs:
           node-version: "22"
       # 検査は core/ の .mjs しか読まないので、依存の導入は要らない。
       # 同じ入力コードに対する成功結果は、そのまま再利用する。
-      - name: Restore exact full-check result
+      - name: Restore exact fast-check result
         id: check-cache
         uses: actions/cache/restore@v4
         with:
-          path: .ci-cache/full-check
-          key: scrapline-check-v1-${{ runner.os }}-node22-${{ hashFiles('**/*.js', '**/*.mjs', '**/*.sh', '**/*.json', 'wrangler.jsonc', '.github/workflows/checks.yml') }}
+          path: .ci-cache/fast-check
+          key: scrapline-check-fast-v1-${{ runner.os }}-node22-${{ hashFiles('**/*.js', '**/*.mjs', '**/*.sh', '**/*.json', 'wrangler.jsonc', '.github/workflows/checks.yml') }}
       - name: analysis/check-all.sh
         if: steps.check-cache.outputs.cache-hit != 'true'
         run: bash analysis/check-all.sh
-      - name: Record successful full-check result
+      - name: Record successful fast-check result
         if: steps.check-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          mkdir -p .ci-cache/full-check
-          printf '%s\n' "all checks passed for this exact source hash" > .ci-cache/full-check/pass.txt
-      - name: Cache successful full-check result
+          mkdir -p .ci-cache/fast-check
+          printf '%s\n' "all fast checks passed for this exact source hash" > .ci-cache/fast-check/pass.txt
+      - name: Cache successful fast-check result
         if: steps.check-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: .ci-cache/full-check
-          key: scrapline-check-v1-${{ runner.os }}-node22-${{ hashFiles('**/*.js', '**/*.mjs', '**/*.sh', '**/*.json', 'wrangler.jsonc', '.github/workflows/checks.yml') }}
+          path: .ci-cache/fast-check
+          key: scrapline-check-fast-v1-${{ runner.os }}-node22-${{ hashFiles('**/*.js', '**/*.mjs', '**/*.sh', '**/*.json', 'wrangler.jsonc', '.github/workflows/checks.yml') }}
