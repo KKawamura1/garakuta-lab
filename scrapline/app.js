@@ -658,10 +658,31 @@ function clearDragTargets(slots) {
   slots.forEach((candidate) => candidate.classList.remove("is-drag-target"));
 }
 
+function bindTrainControls() {
+  if (!app) return;
+  app.querySelectorAll('[data-action="move-left"], [data-action="move-right"]').forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (button.disabled) return;
+      const from = Number(button.dataset.slot);
+      const to = button.dataset.action === "move-left" ? from - 1 : from + 1;
+      if (!Number.isInteger(from) || !Number.isInteger(to)) return;
+      setState(moveCar(state, from, to), { type: "car_reordered", from, to, method: "button" });
+    });
+  });
+}
+
 function bindTrainDragging() {
   if (!app) return;
   const slots = [...app.querySelectorAll("[data-drag-slot]")];
   const handles = [...app.querySelectorAll("[data-drag-handle]")];
+
+  const pointForTouch = (event, pointerId) => {
+    const touches = [...(event.changedTouches || []), ...(event.touches || [])];
+    return touches.find((touch) => touch.identifier === pointerId) || touches[0] || null;
+  };
+
   handles.forEach((handle) => {
     const slot = handle.closest("[data-drag-slot]");
     const finishNativeDrag = () => {
@@ -669,6 +690,7 @@ function bindTrainDragging() {
       slot?.classList.remove("is-dragging", "is-pointer-dragging");
       clearDragTargets(slots);
     };
+
     handle.addEventListener("dragstart", (event) => {
       dragSource = Number(handle.dataset.dragHandle);
       slot?.classList.add("is-dragging");
@@ -679,31 +701,29 @@ function bindTrainDragging() {
     });
     handle.addEventListener("dragend", finishNativeDrag);
 
-    const updatePointerDrag = (event) => {
-      if (!pointerDrag || pointerDrag.handle !== handle || pointerDrag.pointerId !== event.pointerId) return;
-      pointerDrag.lastX = event.clientX;
-      pointerDrag.lastY = event.clientY;
-      const dx = event.clientX - pointerDrag.startX;
-      const dy = event.clientY - pointerDrag.startY;
+    const updateDrag = (x, y, event) => {
+      if (!pointerDrag || pointerDrag.handle !== handle) return;
+      pointerDrag.lastX = x;
+      pointerDrag.lastY = y;
+      const dx = x - pointerDrag.startX;
+      const dy = y - pointerDrag.startY;
       if (!pointerDrag.moved && Math.hypot(dx, dy) < 8) return;
       pointerDrag.moved = true;
       slot?.classList.add("is-dragging", "is-pointer-dragging");
       clearDragTargets(slots);
-      const target = dragTargetAt(event.clientX, event.clientY, slots);
+      const target = dragTargetAt(x, y, slots);
       pointerDrag.target = target;
       target?.classList.add("is-drag-target");
       event.preventDefault();
     };
 
-    const finishPointerDrag = (event) => {
-      if (!pointerDrag || pointerDrag.handle !== handle || pointerDrag.pointerId !== event.pointerId) return;
+    const finishDrag = (x, y, event, cancelled = false) => {
+      if (!pointerDrag || pointerDrag.handle !== handle) return;
       const drag = pointerDrag;
       pointerDrag = null;
       slot?.classList.remove("is-dragging", "is-pointer-dragging");
       clearDragTargets(slots);
-      if (!drag.moved || event.type === "pointercancel") return;
-      const x = Number.isFinite(event.clientX) ? event.clientX : drag.lastX;
-      const y = Number.isFinite(event.clientY) ? event.clientY : drag.lastY;
+      if (!drag.moved || cancelled) return;
       event.preventDefault();
       const target = drag.target || dragTargetAt(x, y, slots);
       completeDrag(drag.from, target ? Number(target.dataset.dragSlot) : drag.from);
@@ -711,9 +731,11 @@ function bindTrainDragging() {
 
     handle.addEventListener("pointerdown", (event) => {
       if (event.isPrimary === false || (event.button !== undefined && event.button > 0) || event.pointerType === "mouse") return;
+      const from = Number(handle.dataset.dragHandle);
       pointerDrag = {
-        from: Number(handle.dataset.dragHandle),
+        from,
         pointerId: event.pointerId,
+        input: "pointer",
         startX: event.clientX,
         startY: event.clientY,
         lastX: event.clientX,
@@ -726,11 +748,68 @@ function bindTrainDragging() {
       try { handle.setPointerCapture(event.pointerId); } catch { /* optional */ }
       event.preventDefault();
     }, { passive: false });
-    handle.addEventListener("pointermove", updatePointerDrag, { passive: false });
-    handle.addEventListener("pointerup", finishPointerDrag);
-    handle.addEventListener("pointercancel", finishPointerDrag);
-    handle.addEventListener("lostpointercapture", finishPointerDrag);
+
+    handle.addEventListener("pointermove", (event) => {
+      if (!pointerDrag || pointerDrag.input !== "pointer" || pointerDrag.pointerId !== event.pointerId) return;
+      updateDrag(event.clientX, event.clientY, event);
+    }, { passive: false });
+
+    handle.addEventListener("pointerup", (event) => {
+      if (!pointerDrag || pointerDrag.input !== "pointer" || pointerDrag.pointerId !== event.pointerId) return;
+      finishDrag(
+        Number.isFinite(event.clientX) ? event.clientX : pointerDrag.lastX,
+        Number.isFinite(event.clientY) ? event.clientY : pointerDrag.lastY,
+        event,
+      );
+    });
+    handle.addEventListener("pointercancel", (event) => {
+      if (!pointerDrag || pointerDrag.input !== "pointer" || pointerDrag.pointerId !== event.pointerId) return;
+      finishDrag(pointerDrag.lastX, pointerDrag.lastY, event, true);
+    });
+    handle.addEventListener("lostpointercapture", (event) => {
+      if (!pointerDrag || pointerDrag.input !== "pointer") return;
+      finishDrag(pointerDrag.lastX, pointerDrag.lastY, event, false);
+    });
+
+    // iOS Safari can expose touch events without delivering a usable pointer
+    // sequence to a draggable button. Keep a touch-only fallback for the same
+    // long-press-and-move interaction.
+    handle.addEventListener("touchstart", (event) => {
+      if (pointerDrag) return;
+      const touch = event.changedTouches?.[0];
+      if (!touch) return;
+      pointerDrag = {
+        from: Number(handle.dataset.dragHandle),
+        pointerId: touch.identifier,
+        input: "touch",
+        startX: touch.clientX,
+        startY: touch.clientY,
+        lastX: touch.clientX,
+        lastY: touch.clientY,
+        moved: false,
+        target: null,
+        slot,
+        handle,
+      };
+      event.preventDefault();
+    }, { passive: false });
+    handle.addEventListener("touchmove", (event) => {
+      if (!pointerDrag || pointerDrag.input !== "touch") return;
+      const touch = pointForTouch(event, pointerDrag.pointerId);
+      if (!touch) return;
+      updateDrag(touch.clientX, touch.clientY, event);
+    }, { passive: false });
+    handle.addEventListener("touchend", (event) => {
+      if (!pointerDrag || pointerDrag.input !== "touch") return;
+      const touch = pointForTouch(event, pointerDrag.pointerId) || { clientX: pointerDrag.lastX, clientY: pointerDrag.lastY };
+      finishDrag(touch.clientX, touch.clientY, event);
+    }, { passive: false });
+    handle.addEventListener("touchcancel", (event) => {
+      if (!pointerDrag || pointerDrag.input !== "touch") return;
+      finishDrag(pointerDrag.lastX, pointerDrag.lastY, event, true);
+    }, { passive: false });
   });
+
   slots.forEach((slot) => {
     slot.addEventListener("dragover", (event) => {
       event.preventDefault();
@@ -781,6 +860,7 @@ function render() {
       <footer class="footer"><span>build ${BUILD_STAMP}</span><span>このルートは既存の /play/ を置き換えません。</span>${endAction}<button class="text-button" data-action="new-run">最初からやり直す</button>${status}</footer>
     </main>
   `;
+  bindTrainControls();
   bindTrainDragging();
   if (state.phase === "report" && !state.reportRevealed && state.lastBattle) {
     startReplay(state.lastBattle);
