@@ -11,7 +11,7 @@ const checks = [
   ["movement controls have visible labels", app.includes('class="move-label">左へ') && app.includes('class="move-label">右へ')],
   ["drag grip is a dedicated touch surface", css.includes("touch-action: none") && css.includes("position: static")],
   ["movement controls use a three-column grid", css.includes("grid-template-columns: repeat(3, minmax(0, 1fr))")],
-  ["mobile controls have a fresh cache namespace", sw.includes('scrapline-static-v9')],
+  ["mobile controls have a fresh cache namespace", sw.includes('scrapline-static-v10')],
 ];
 
 for (const [label, passed] of checks) {
