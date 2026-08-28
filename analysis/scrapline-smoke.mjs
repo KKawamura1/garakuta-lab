@@ -262,7 +262,7 @@ for (const marker of [
 const indexSource = await readFile(new URL("../scrapline/index.html", import.meta.url), "utf8");
 assert.match(indexSource, /manifest\.webmanifest/);
 const swSource = await readFile(new URL("../scrapline/sw.js", import.meta.url), "utf8");
-assert.match(swSource, /scrapline-static-v8/);
+assert.match(swSource, /scrapline-static-v9/);
 const manifestSource = await readFile(new URL("../scrapline/manifest.webmanifest", import.meta.url), "utf8");
 assert.match(manifestSource, /standalone/);
 const implementationMap = await readFile(new URL("./SCRAPLINE_IMPLEMENTATION.md", import.meta.url), "utf8");
