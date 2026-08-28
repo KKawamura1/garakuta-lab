@@ -43,7 +43,7 @@ const stable = (state) => ({
 });
 
 assert.equal(VERSION, "scrapline-0.7");
-assert.match(BUILD_STAMP, /^scrapline-build-20260828-r9$/);
+assert.match(BUILD_STAMP, /^scrapline-build-20260828-r10$/);
 assert.equal(CARS.length, 11);
 assert.equal(MAX_CARS, 5);
 assert.equal(MAX_VOLLEYS, 6);
@@ -262,7 +262,7 @@ for (const marker of [
 const indexSource = await readFile(new URL("../scrapline/index.html", import.meta.url), "utf8");
 assert.match(indexSource, /manifest\.webmanifest/);
 const swSource = await readFile(new URL("../scrapline/sw.js", import.meta.url), "utf8");
-assert.match(swSource, /scrapline-static-v9/);
+assert.match(swSource, /scrapline-static-v10/);
 const manifestSource = await readFile(new URL("../scrapline/manifest.webmanifest", import.meta.url), "utf8");
 assert.match(manifestSource, /standalone/);
 const implementationMap = await readFile(new URL("./SCRAPLINE_IMPLEMENTATION.md", import.meta.url), "utf8");
