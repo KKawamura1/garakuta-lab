@@ -22,12 +22,7 @@ if (!isMainThread) {
       const run = recommendedPolicy(seed);
       parentPort.postMessage({
         seed,
-        run: {
-          version: run.version,
-          done: run.done,
-          won: run.won,
-          stage: run.stage,
-        },
+        run: { version: run.version, done: run.done, won: run.won, stage: run.stage },
       });
     } catch (error) {
       parentPort.postMessage({ seed, error: error?.stack || String(error) });
@@ -80,14 +75,14 @@ if (!isMainThread) {
   for (const entry of bySeed) {
     const { seed, run } = entry;
     const sequence = Array.from({ length: MAX_STAGES }, (_, stage) => challengeFor(stage, seed).kind);
-    assert.equal(sequence[0], "swarm", \`seed \${seed} opens with the readable swarm\`);
-    assert.notEqual(sequence[1], "swarm", \`seed \${seed} does not repeat the opening question\`);
-    assert.deepEqual(new Set(sequence.slice(0, MAX_STAGES - 1)), new Set(["swarm", "armor", "fast", "scavenger"]), \`seed \${seed} presents all four regular questions before the boss\`);
-    assert.ok(sequence.slice(1).every((kind, index) => kind !== sequence[index]), \`seed \${seed} never repeats a question consecutively\`);
+    assert.equal(sequence[0], "swarm", "seed " + seed + " opens with the readable swarm");
+    assert.notEqual(sequence[1], "swarm", "seed " + seed + " does not repeat the opening question");
+    assert.deepEqual(new Set(sequence.slice(0, MAX_STAGES - 1)), new Set(["swarm", "armor", "fast", "scavenger"]), "seed " + seed + " presents all four regular questions before the boss");
+    assert.ok(sequence.slice(1).every((kind, index) => kind !== sequence[index]), "seed " + seed + " never repeats a question consecutively");
 
     runs.push(run);
-    assert.equal(run.version, VERSION, \`seed \${seed} uses the current ruleset\`);
-    assert.ok(run.done && run.won && run.stage === MAX_STAGES, \`seed \${seed} has a complete legal winning line\`);
+    assert.equal(run.version, VERSION, "seed " + seed + " uses the current ruleset");
+    assert.ok(run.done && run.won && run.stage === MAX_STAGES, "seed " + seed + " has a complete legal winning line");
 
     const initial = createGame(seed);
     openingPatterns.add(initial.starterPattern);
@@ -104,7 +99,6 @@ if (!isMainThread) {
     version: VERSION,
     seeds: runs.length,
     workers: workerCount,
-    uniqueRecommendedTrains: "checked in recommendedPolicy workers",
     uniqueChallengeSequences: challengeSequences.size,
     uniqueOpeningPatterns: openingPatterns.size,
     uniqueOpeningOfferSets: offerSets.size,
