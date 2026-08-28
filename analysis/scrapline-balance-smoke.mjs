@@ -27,7 +27,7 @@ function emptySummary() {
     universalCount: 0,
     solutionCounts: Object.fromEntries(kinds.map((kind) => [kind, 0])),
     examples: Object.fromEntries(kinds.map((kind) => [kind, []])),
-    mechanismSignatures: Object.fromEntries(kinds.map((kind) => [kind, []])),
+    mechanismSignatures: Object.fromEntries(kinds.map((kind) => [kind, new Set()])),
   };
 }
 
@@ -56,7 +56,7 @@ if (!isMainThread) {
           events.some((event) => event.type === "collector_gain") ? "collector" : null,
           events.some((event) => event.type === "fire" && event.projectiles?.some((projectile) => projectile.speed > 1)) ? "speed" : null,
         ].filter(Boolean);
-        summary.mechanismSignatures[kind].push(mechanisms.sort().join("+") || "plain");
+        summary.mechanismSignatures[kind].add(mechanisms.sort().join("+") || "plain");
       } else {
         winsEveryQuestion = false;
       }
@@ -90,7 +90,7 @@ if (!isMainThread) {
       merged.solutionCounts[kind] += summary.solutionCounts[kind];
       merged.examples[kind].push(...summary.examples[kind]);
       merged.examples[kind] = merged.examples[kind].slice(0, 4);
-      merged.mechanismSignatures[kind].push(...summary.mechanismSignatures[kind]);
+      for (const signature of summary.mechanismSignatures[kind]) merged.mechanismSignatures[kind].add(signature);
     }
   }
 
@@ -99,7 +99,7 @@ if (!isMainThread) {
   for (const kind of kinds) {
     assert.ok(merged.solutionCounts[kind] >= 2, kind + " keeps at least two distinct solutions");
     assert.ok(new Set(merged.examples[kind].map((build) => build.join(","))).size >= 2, kind + " examples are distinct trains");
-    assert.ok(new Set(merged.mechanismSignatures[kind]).size >= 2, kind + " can be cleared through more than one observed mechanism signature");
+    assert.ok(merged.mechanismSignatures[kind].size >= 2, kind + " can be cleared through more than one observed mechanism signature");
   }
 
   console.log("scrapline balance smoke ok", JSON.stringify({
@@ -108,7 +108,7 @@ if (!isMainThread) {
     workers: workerCount,
     universalCount: merged.universalCount,
     solutionCounts: merged.solutionCounts,
-    mechanismSignatures: Object.fromEntries(Object.entries(merged.mechanismSignatures).map(([kind, signatures]) => [kind, new Set(signatures).size])),
+    mechanismSignatures: Object.fromEntries(Object.entries(merged.mechanismSignatures).map(([kind, signatures]) => [kind, signatures.size])),
     examples: merged.examples,
   }));
 }
