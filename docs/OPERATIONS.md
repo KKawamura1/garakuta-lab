@@ -150,7 +150,10 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 `browser-trial.mjs` は origin と一致しなければ測る前に止まる——
 一度、巻き戻った版を測って「対の流れが壊れている」と読みかけた。
 
-公開前に **`./analysis/check-all.sh`** を通す（一つでも落ちたら 1 で終わる）。
+通常のpush/PRでは **`./analysis/check-all.sh`** を高速経路として通す。64,471列の
+順序付き全探索はこの経路から一時的に外しているが、探索コードとassert条件は残している。
+公開前、ruleset変更時、または全量を確認するときは **`RUN_EXHAUSTIVE=1 bash analysis/check-all.sh`**
+を通す（一つでも落ちたら 1 で終わる）。
 
 **`for f in ...; do node $f; done` で済ませない。**
 2026-08-23、その形で走らせて "FAIL smoke-play" と印字されているのに、
