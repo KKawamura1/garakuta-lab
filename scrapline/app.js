@@ -624,7 +624,12 @@ function renderMarkers() {
   return `
     <section class="panel marker-panel">
       <div class="panel-heading"><div><p class="kicker">MOMENT MARKER</p><h2>今の感触を一つ記録</h2></div><span class="selection-hint">任意 / 何度でも</span></div>
-      <form id="marker-form" class="marker-form"><div cfunction completeDrag(from, to) {
+      <form id="marker-form" class="marker-form"><div class="marker-buttons">${markers.map(([id, label]) => `<button type="button" class="marker-button" data-action="marker" data-marker="${id}">${label}</button>`).join("")}</div><input name="markerNote" maxlength="180" placeholder="一言メモ（任意）"><span id="marker-status" class="form-status" role="status"></span></form>
+    </section>
+  `;
+}
+
+function completeDrag(from, to) {
   if (!Number.isInteger(from) || !Number.isInteger(to) || from === to) return;
   suppressClickUntil = Date.now() + 450;
   setState(moveCar(state, from, to), { type: "car_reordered", from, to, method: "drag" });
@@ -740,16 +745,7 @@ function bindTrainDragging() {
       completeDrag(from, to);
     });
   });
-}t.addEventListener("dragleave", () => slot.classList.remove("is-drag-target"));
-    slot.addEventListener("drop", (event) => {
-      event.preventDefault();
-      const from = dragSource ?? Number(event.dataTransfer?.getData("text/plain"));
-      const to = Number(slot.dataset.dragSlot);
-      completeDrag(from, to);
-    });
-  });
 }
-
 function render() {
   if (!app) return;
   stopReplay();
