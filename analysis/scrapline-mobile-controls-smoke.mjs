@@ -11,7 +11,7 @@ const checks = [
   ["movement controls have visible labels", app.includes('class="move-label">左へ') && app.includes('class="move-label">右へ')],
   ["buttons have a touch target", css.includes("touch-action: manipulation") && css.includes("min-height: 38px")],
   ["movement controls use a three-column grid", css.includes("grid-template-columns: repeat(3, minmax(0, 1fr))")],
-  ["mobile controls have a fresh cache namespace", sw.includes('scrapline-static-v10')],
+  ["mobile controls have a fresh cache namespace", sw.includes('scrapline-static-v11')],
 ];
 
 for (const [label, passed] of checks) {

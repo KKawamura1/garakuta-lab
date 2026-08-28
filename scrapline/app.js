@@ -19,21 +19,21 @@ import {
   removeCar,
   runBattle,
   skipReward,
-} from "./engine.mjs?build=20260828-r10";
+} from "./engine.mjs?build=20260828-r11";
 import {
   SURVEY_SCALES,
   bestShowcaseReport,
   causalHighlights,
   reportDisclosure,
   selectReplayEvents,
-} from "./presentation.mjs?build=20260828-r10";
+} from "./presentation.mjs?build=20260828-r11";
 import {
   ensureTelemetry,
   flushScraplineTelemetryQueue,
   recordTelemetry,
   sendScraplineCheckpoint,
   sendScraplineTelemetry,
-} from "./telemetry.mjs?build=20260828-r10";
+} from "./telemetry.mjs?build=20260828-r11";
 
 const requestedSeed = querySeed();
 const STORAGE_KEY = requestedSeed === null
@@ -864,7 +864,7 @@ window.addEventListener("pagehide", () => {
   sendScraplineCheckpoint(state);
 });
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js?build=20260828-r10").catch(() => {
+  navigator.serviceWorker.register("./sw.js?build=20260828-r11").catch(() => {
     // The route stays usable when a host does not allow service workers.
   });
 }
