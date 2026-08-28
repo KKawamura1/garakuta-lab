@@ -93,7 +93,7 @@ SCRAPLINE 0.7 は、強い部品を引くゲームではなく、「一つの鉄
 ## 検査入口
 
 次担当の判断順、変更権限、残作業の証拠形式は
-`analysis/SCRAPLINE_AGENT_RUNBOOK.md` を正とする。通常は次の統合入口を使う。PR/pushの通常CIは、64,471列の全順序探索だけを除外した
+`analysis/SCRAPLINE_AGENT_RUNBOOK.md` を正とする。通常は次の統合入口を使う。PR/pushの通常CIは、64,471列の全順序探索と256 seed回帰だけを除外した
 高速経路である。探索本体とassert条件は変更していない。全量を確認するときは
 `RUN_EXHAUSTIVE=1` を付ける。GitHub Actionsでは
 `.github/workflows/exhaustive-checks.yml` が手動・週次でこの経路を実行する。
