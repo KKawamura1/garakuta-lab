@@ -730,7 +730,7 @@ function bindTrainDragging() {
     };
 
     handle.addEventListener("pointerdown", (event) => {
-      if (event.isPrimary === false || (event.button !== undefined && event.button > 0) || event.pointerType === "mouse") return;
+      if (event.isPrimary === false || (event.button !== undefined && event.button > 0)) return;
       const from = Number(handle.dataset.dragHandle);
       pointerDrag = {
         from,
