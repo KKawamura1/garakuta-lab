@@ -75,8 +75,6 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .cannon span { color: var(--lime); }
 .line-arrow { flex: 0 0 18px; align-self: center; color: var(--faint); font-size: 1.8rem; }
 .train-slot { position: relative; display: flex; flex-direction: column; }
-.train-slot.is-dragging, .train-slot.is-pointer-dragging { opacity: 0.55; transform: scale(0.98); }
-.train-slot.is-drag-target .car-card { border-color: var(--lime); box-shadow: 0 0 0 3px rgba(212, 242, 106, 0.16); }
 .car-card { display: flex; flex: 1 1 auto; width: 100%; min-height: 112px; height: auto; flex-direction: column; align-items: flex-start; gap: 5px; padding: 12px; text-align: left; border: 1px solid #3a474e; border-radius: 13px; background: #20282d; cursor: pointer; transition: transform 150ms ease, border-color 150ms ease, background 150ms ease; }
 .car-card:hover { transform: translateY(-2px); border-color: var(--cyan); }
 .car-card:disabled { cursor: default; opacity: 1; }
@@ -89,12 +87,11 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .car-effect { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: 0.68rem; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .slot-number { margin-top: auto; color: var(--faint); font-size: 0.57rem; }
 .slot-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding-top: 5px; }
-.drag-grip { position: static; display: flex; align-items: center; justify-content: center; width: 100%; min-width: 0; min-height: 36px; height: auto; margin-top: 5px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; background: #151b1e; color: var(--faint); font: 0.62rem "DM Mono", monospace; cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-appearance: none; appearance: none; }
-.drag-grip:active { cursor: grabbing; border-color: var(--lime); color: var(--lime); }
-.icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 2px; width: 100%; min-width: 0; min-height: 36px; height: auto; padding: 4px 3px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.74rem; font-weight: 700; line-height: 1; white-space: nowrap; -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
-.icon-button:hover:not(:disabled) { border-color: var(--cyan); color: var(--cyan); }
+.icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 2px; width: 100%; min-width: 0; min-height: 36px; height: auto; padding: 4px 3px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font-size: 0.74rem; font-weight: 700; line-height: 1; white-space: nowrap; touch-action: manipulation; -webkit-appearance: none; appearance: none; -webkit-tap-highlight-color: transparent; }
+.icon-button:not(:disabled):hover { border-color: var(--cyan); color: var(--cyan); }
 .icon-button.danger:hover { border-color: var(--danger); color: var(--danger); }
 .icon-button:disabled { cursor: not-allowed; opacity: 0.28; }
+.icon-button:not(:disabled) .button-glyph { color: var(--lime); }
 .empty-slot { display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px dashed #303b42; border-radius: 14px; color: var(--faint); font: 0.8rem "DM Mono", monospace; gap: 8px; }
 .empty-slot small { font-size: 0.6rem; }
 .mission-panel { border-color: #475731; }
@@ -316,7 +313,10 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
   .status-strip { grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
   .status-strip > div:first-child { grid-column: 1 / -1; }
   .train-panel, .mission-panel, .report-panel, .reward-panel, .done-panel, .marker-panel { padding: 17px; border-radius: 14px; }
-  .train-line { margin-right: -12px; padding-right: 13px; }
+  .train-line { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; margin-right: 0; padding-right: 0; overflow: visible; }
+  .train-line .line-arrow { justify-self: center; transform: rotate(90deg); }
+  .train-end, .train-slot { width: 100%; flex-basis: auto; }
+  .train-slot.empty-slot { min-height: 84px; }
   .train-end, .train-slot { flex-basis: 138px; min-height: 143px; }
   .enemy-preview { grid-template-columns: 1fr; gap: 7px; }
   .preview-visual { gap: 3px; }
@@ -343,7 +343,6 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .move-label { font-size: 0.56rem; font-weight: 700; }
 
 @media (max-width: 760px) {
-  .drag-grip { min-height: 38px; }
   .icon-button { min-height: 38px; padding-inline: 2px; }
   .move-label { font-size: 0.54rem; }
 }
