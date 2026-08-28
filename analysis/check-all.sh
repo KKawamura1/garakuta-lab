@@ -19,6 +19,25 @@ for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/ap
 done
 
 mapfile -t smoke_files < <(ls analysis/*smoke*.mjs analysis/*seed-regression*.mjs 2>/dev/null | sort -u)
+
+# The ordered-train balance search and 256-seed regression are the expensive
+# SCRAPLINE checks. Keep both files and every assertion intact, but leave them
+# out of normal push/PR checks. The exhaustive workflow runs this script with
+# RUN_EXHAUSTIVE=1.
+if [[ "${RUN_EXHAUSTIVE:-0}" == "1" ]]; then
+  echo "full mode: including exhaustive train and seed checks"
+else
+  fast_smoke_files=()
+  for f in "${smoke_files[@]}"; do
+    case "$f" in
+      analysis/scrapline-balance-smoke.mjs|analysis/scrapline-seed-regression.mjs) continue ;;
+    esac
+    fast_smoke_files+=("$f")
+  done
+  smoke_files=("${fast_smoke_files[@]}")
+  echo "fast mode: exhaustive train and seed checks skipped (RUN_EXHAUSTIVE=1 to include them)"
+fi
+
 pids=()
 status_files=()
 for i in "${!smoke_files[@]}"; do
