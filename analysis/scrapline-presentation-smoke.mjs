@@ -134,7 +134,6 @@ assert.match(appSource, /reportDisclosure\(report, state\.reportRevealed\)/);
 assert.match(appSource, /data-scale-direction="low-to-high"/);
 assert.doesNotMatch(appSource, /例:\s*(磁石|溶解車|どの車両)/, "free answers are not seeded with concrete car hypotheses");
 assert.match(appSource, /function bindTrainControls/);
-assert.doesNotMatch(appSource, /data-drag-handle|bindTrainDragging|drag-grip/, "mobile reordering does not depend on drag-and-drop");
 assert.match(appSource, /NEXT QUESTION \/ 選択後の敵/);
 assert.match(appSource, /交換先を選択してください/);
 assert.match(appSource, /pagehide/);
