@@ -20,19 +20,22 @@ done
 
 mapfile -t smoke_files < <(ls analysis/*smoke*.mjs analysis/*seed-regression*.mjs 2>/dev/null | sort -u)
 
-# The ordered-train balance search enumerates 64,471 trains across seven stages.
-# Keep the exact search and every assertion intact, but leave it out of normal
-# push/PR checks. The exhaustive workflow runs this script with RUN_EXHAUSTIVE=1.
+# The ordered-train balance search and 256-seed regression are the expensive
+# SCRAPLINE checks. Keep both files and every assertion intact, but leave them
+# out of normal push/PR checks. The exhaustive workflow runs this script with
+# RUN_EXHAUSTIVE=1.
 if [[ "${RUN_EXHAUSTIVE:-0}" == "1" ]]; then
-  echo "full mode: including analysis/scrapline-balance-smoke.mjs"
+  echo "full mode: including exhaustive train and seed checks"
 else
   fast_smoke_files=()
   for f in "${smoke_files[@]}"; do
-    [[ "$f" == "analysis/scrapline-balance-smoke.mjs" ]] && continue
+    case "$f" in
+      analysis/scrapline-balance-smoke.mjs|analysis/scrapline-seed-regression.mjs) continue ;;
+    esac
     fast_smoke_files+=("$f")
   done
   smoke_files=("${fast_smoke_files[@]}")
-  echo "fast mode: exhaustive ordered-train search skipped (RUN_EXHAUSTIVE=1 to include it)"
+  echo "fast mode: exhaustive train and seed checks skipped (RUN_EXHAUSTIVE=1 to include them)"
 fi
 
 pids=()
