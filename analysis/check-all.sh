@@ -19,6 +19,22 @@ for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/ap
 done
 
 mapfile -t smoke_files < <(ls analysis/*smoke*.mjs analysis/*seed-regression*.mjs 2>/dev/null | sort -u)
+
+# The ordered-train balance search enumerates 64,471 trains across seven stages.
+# Keep the exact search and every assertion intact, but leave it out of normal
+# push/PR checks. The exhaustive workflow runs this script with RUN_EXHAUSTIVE=1.
+if [[ "${RUN_EXHAUSTIVE:-0}" == "1" ]]; then
+  echo "full mode: including analysis/scrapline-balance-smoke.mjs"
+else
+  fast_smoke_files=()
+  for f in "${smoke_files[@]}"; do
+    [[ "$f" == "analysis/scrapline-balance-smoke.mjs" ]] && continue
+    fast_smoke_files+=("$f")
+  done
+  smoke_files=("${fast_smoke_files[@]}")
+  echo "fast mode: exhaustive ordered-train search skipped (RUN_EXHAUSTIVE=1 to include it)"
+fi
+
 pids=()
 status_files=()
 for i in "${!smoke_files[@]}"; do
