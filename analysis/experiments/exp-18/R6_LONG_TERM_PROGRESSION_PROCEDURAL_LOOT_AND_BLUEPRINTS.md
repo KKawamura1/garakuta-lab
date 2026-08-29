@@ -15,10 +15,13 @@
 - 遠征開始時に、その遠征で使える技能パック、装備affix群、主な敵、ボス法則を提示する。
 - 装備は、基材と汎用ルール断片の組み合わせからseed付きで生成する。
 - 遠征終了時、生成装備を正確な「設計図」として少数だけ永久保存できる。
-- 次の遠征へ持ち込める設計図は最初1枚。高難度の達成で最大5枚まで、非常にゆっくり増える。
-- 持込設計図からは、その遠征に一つだけ同じ装備を再製造する。敵は持込品に合わせて隠れて強くならない。
-- 永続解禁は原則として選択肢を増やす横方向のものとし、無制限な攻撃力上昇を置かない。
-- 通常クリア後に難易度0〜20とエンドレス深度を置く。一生育成の数値インフレはエンドレスだけに隔離する。
+- 遠征結果に応じて、ギルドの「活動資金」を得る。敗北・放棄でも、その遠征で確定した分は失わない。
+- 次の遠征へ持ち込める設計図は最初1枚。活動資金で最大5枚まで、非常に高い費用を払って増やす。
+- 持込設計図からは、その遠征に一つだけ同じ装備を再製造する。敵は持込品や永続鍛錬に合わせて隠れて強くならない。
+- 技能、装備基材、affix family、人物、補給、目利きは活動資金で横方向へ解禁する。難易度だけは一つ前のrankのクリアで順番に解禁する。
+- 人物ごとの永続鍛錬は上限なしで許す。ただし一段+0.1%、高い初期費用、二次的に増える費用とし、有限解禁を取り終えた後のendless用sinkにする。
+- 技能は手作業で「少なくとも一つの一般的な強み」を保証する。生成装備は平均的には技能より弱くてよく、複数の独立ruleが偶然噛み合うセレンディピティを担う。
+- 通常クリア後に難易度0〜20とendless深度を置く。endlessでも活動資金と永続鍛錬が残り、周回を完全な無駄にしない。
 
 この方式は、次の二つを両立させる。
 
@@ -77,8 +80,9 @@ PR #49では、8人、24技能、18装備、7区画が一周の画面として�
 - 装備生成も戦闘もseed付きで再現可能にする。
 - プレイヤーに見えない自動難易度補正を行わない。
 - 強い設計図を持ち込んだときは、実際に強く感じられるようにする。
-- 永続の生攻撃力、防御力、HPを無制限に増やさない。
-- 装備の説明は、発火契機、条件、代償、効果、制限を省略せず表示する。
+- 永続能力上昇は人物ごとの威力と最大HPだけに限定する。上限は設けないが、一段+0.1%、費用増加、全量表示を不変条件とし、speed、AP、RP、防御率は上げない。
+- 通常の人物行動には必ず攻撃手段がある。技能未装備・不発時は通常攻撃、純支援技能の解決後は威力50%の追撃を行う。明示された「溜め」だけを例外にする。
+- 装備の説明は、複数ruleを持つ場合もruleごとに発火契機、条件、代償、効果、制限を省略せず表示する。
 - 機械検査は破綻と支配性候補の検出に使い、面白さの証明に使わない。
 - PR #49の人間評価がまだ無くても、この設計票を面白さの支持証拠とは書かない。
 
@@ -95,6 +99,9 @@ type ProfileState = {
   unlockedAffixFamilyIds: string[];
   blueprintArchive: Blueprint[];
   blueprintCarryCapacity: number;
+  activityFunds: string;              // 10進整数。永続化はnumberでなくbigint文字列
+  activityFundsLifetimeEarned: string;
+  metaUpgradeLevels: Record<MetaUpgradeId, number>;
   codex: CodexState;
   regionProgress: Record<RegionId, RegionProgress>;
   achievements: string[];
@@ -106,6 +113,10 @@ type CharacterProfile = {
   signatureVariantIds: string[];
   activeSignatureVariantId: string;
   affinity: number;
+  trainingLevels: {
+    potency: number;                  // damage / heal / barrier、1 level = +10 bps
+    vitality: number;                 // maxHp、1 level = +10 bps
+  };
   storyFlags: string[];
   cosmetics: string[];
 };
@@ -141,7 +152,19 @@ type RunState = {
   carriedBlueprintIds: string[];
   generatedEquipmentDefs: Record<string, EquipmentDef>;
   results: EncounterResultSummary[];
+  fundLedger: RunFundLedger;
   status: "active" | "won" | "lost" | "abandoned";
+};
+
+type RunFundLedger = {
+  clearedEncounterKeys: string[];     // retryしても同じencounterは一度だけ
+  clearedEncounterBase: number;
+  highestClearedEncounter: number;
+  outcomeBonus: number;
+  firstClearBonus: number;
+  difficultyMultiplierBps: number;
+  provisionalTotal: number;
+  settled: boolean;
 };
 ~~~
 
@@ -194,6 +217,8 @@ baselineには、最低限の攻撃、回復、防壁を入れ、どのmanifest�
 
 現在の「8人全員へ永続技能点+2」は削除する。runSkillPointsとrunUnlockedSkillsは遠征終了時に消える。
 
+活動資金は4候補から選ぶ報酬ではない。戦闘結果から別枠で仮計上し、遠征終了時に勝敗を問わず精算する。補給や技能点を選んでも、活動資金の獲得量は減らない。
+
 ## 6. 技能パック
 
 ### 6.1 定義
@@ -239,6 +264,38 @@ baselineとの重複は許す。将来は一要素を複数パックへ重複登
 
 共通技能を広く付け替えられる余地は残す。固有能力は「その人物でなければ成立しない完成コンボ」ではなく、共有eventの一つを少し違う価値へ変える程度にする。
 
+### 6.4 攻撃テンポを保証する基礎規則
+
+技能数が増えても、支援技能だけを連打して戦闘が止まらないよう、次をengine invariantにする。
+
+- 全人物はskill slotを消費しない basic_strike を常備する。基準威力は100%。
+- active技能は offense、utility、channel のいずれかを静的dataで持つ。
+- offense は、使用可能と判定されたなら、生存敵へ少なくとも一つのdirect damage proposalを必ず作る。
+- utility の全ruleを解決した後、同じactorが生存敵へ威力50%の fallback_strike を一度だけ行う。
+- channel は追撃を行わない明示的例外である。使用回数、cooldown、次行動での解決のいずれかを必須にし、連続使用で停止できないようにする。
+- 技能未装備、全技能が不発、または有効対象なしなら basic_strike を行う。
+- fallback_strike は通常のdamage / hit eventを発生させ、汎用のon-hit ruleを発火できる。ただし追撃を生成する判定そのものはrule effectではなくaction resolverが一度だけ行い、追撃から別の追撃は生まれない。
+- stun等でactor自身が行動不能な場合は攻撃保証の対象外とする。
+
+utility は「支援に加えて半分の通常攻撃」、offense は「通常攻撃以上の攻撃と付随効果」という比較になる。支援が無料の上位互換にならないよう、utility側の効果量は50%追撃込みで手作業調整する。
+
+新SkillPackのactive 4個は、原則3個以上をoffenseにする。offenseの多くは、攻撃だけでなく防壁、移動、mark、回復、行動権などの小さい付随効果を持ってよい。純utilityはactive技能pool全体の25%以下を目標にし、報酬3候補にはoffenseを最低2個含める。装備条件として「攻撃技能を必ず装着」を課す必要はない。
+
+技能は生成しない。各技能は公開前に、名前指定の相方なしで次を満たす。
+
+1. 基準人物と中立敵で、basic strikeと異なる用途を一文で説明できる。
+2. 少なくとも二つの異なる味方構成または敵条件で、採用理由がある。
+3. 常にbasic strike以下でも、あらゆる相手への上位互換でもない。
+4. active技能全体の攻撃比率と、戦闘のdirect-damage行動比率を下げすぎない。
+
+### 6.5 既存24技能の移行
+
+- strike、heavy_swing等、direct damageを保証できるものは offense。
+- mend、triage、bulwark、reposition等の純支援は utility とし、解決後に50%追撃。
+- relay_order等、別人物の即時攻撃を確実に発生させる技能は、実event列にdirect damageが含まれるなら offense としてよい。
+- prep系のうち行動を溜めること自体が代償のものだけを channel にする。単なる支援をchannelへ逃がさない。
+- skill tagだけで分類し、人物IDや個別敵IDによる例外を作らない。
+
 ## 7. 手続き生成装備
 
 ### 7.1 目的
@@ -263,17 +320,29 @@ type GeneratedEquipmentInstance = {
   dropIndex: number;
   baseId: string;
   rarity: "common" | "rare" | "epic" | "legendary";
-  affixes: RolledAffix[];
+  rules: RolledEquipmentRule[];
   maxDurability: number;
   displayName: string;
   tags: string[];
   origin: ItemOrigin;
 };
 
+type RolledEquipmentRule = {
+  ruleIndex: number;             // canonical順。0から連番
+  parts: RolledAffix[];          // trigger / condition / cost / effect / modifier
+  powerSpent: number;
+  complexitySpent: number;
+  resolvedLimit: {
+    scope: "chain" | "round" | "battle";
+    maxActivations: number;
+    durabilityCost: number;
+  };
+};
+
 type RolledAffix = {
   affixId: string;
   tier: number;
-  rollQuality: number;          // 0..100
+  rollQuality: number;           // 0..100
   resolvedParameters: Record<string, number | string>;
 };
 
@@ -290,7 +359,7 @@ resolvedParametersを保存し、後から同じaffixの数値表が変わって
 
 ### 7.3 装備文法
 
-一つの装備ruleは次からなる。
+一つの完結した装備ruleは次からなる。
 
 1. Trigger: listenToとtiming。
 2. Conditions: predicates 0〜2個。
@@ -315,7 +384,9 @@ type AffixDef = {
 };
 ~~~
 
-triggerだけ、effectだけの不完全なEquipmentDefを生成しない。基材が必ず最低一つのtriggerとeffectを供給する。
+triggerだけ、effectだけの不完全なruleを生成しない。基材は第1ruleのtriggerとeffectを供給してよいが、第2rule以降もそれぞれ単独で発火できるtriggerとeffectを必ず持つ。
+
+高rarity装備は、同じ一ruleへ副詞を増やすだけでなく、独立した完結ruleを複数持てる。rule間に設計者が完成コンボを埋め込まない。偶然、rule Aのeffectがrule Bのtriggerやconditionを満たすことは許し、それをcanonical event列と停止上限で安全に処理する。
 
 個別技能ID、人物ID、装備IDをpredicateへ埋め込まない。event type、tag、source relation、target relationだけを使う。
 
@@ -323,12 +394,12 @@ triggerだけ、effectだけの不完全なEquipmentDefを生成しない。基�
 
 初期値は次とする。値はfun判定前の生成設定であり、テストを通すために後から変更しない。
 
-| rarity | 通常affix数 | 特徴 | power budget |
-|---|---:|---|---:|
-| common | 1 | 基材の意味が明瞭 | 2 |
-| rare | 2 | 条件または追加effect | 4 |
-| epic | 3 | 二つの用途、または強い効果と明確な代償 | 7 |
-| legendary | 3 + keystone 1 | 通常にない関係変換 | 10 |
+| rarity | 完結rule数 | 一itemの総affix目安 | 特徴 | total power budget |
+|---|---:|---:|---|---:|
+| common | 1 | 1〜2 | 基材の意味が明瞭 | 2 |
+| rare | 1〜2 | 2〜4 | 一つの強めのrule、または弱い二用途 | 4 |
+| epic | 2〜3 | 4〜7 | 独立した複数用途が偶然共存する | 7 |
+| legendary | 3〜4 | 6〜10 + keystone 0〜1 | 多文脈。各ruleは単体で読める | 10 |
 
 幕ごとの仮loot weight:
 
@@ -346,6 +417,8 @@ Legendaryは固定の正解コンボではない。通常affix poolに存在し�
 
 強い効果はpowerCostを消費する。厳しい条件、RP、HP、耐久のcostはbudget rebateを持てる。generatorはrarityのtarget budget範囲に収まる組み合わせだけを採用する。
 
+budgetはitem全体で一つだけ持ち、複数ruleへ分配する。rule数が増えてもbudgetをrule数倍しない。各ruleは最低1を消費し、同一item内の完全に同じcanonical ruleは拒否する。これにより、高rarityは「強いruleを複数積んだ確定上位品」ではなく、「一つ一つは弱めだが、用途が重なれば奇跡になる品」になりやすい。
+
 同じbudgetでも用途が異なるようにし、rarityを単純な上位互換にしない。高rarityは広く強いのではなく、複数の文脈を持つか、強い代わりに代償が大きいものとする。
 
 ### 7.6 生成手順
@@ -353,15 +426,35 @@ Legendaryは固定の正解コンボではない。通常affix poolに存在し�
 1. runSeed、encounterIndex、rewardSlotからitemSeedを作る。
 2. rarity tableでrarityを決める。
 3. manifestのenabledAffixFamilyIdsから基材を選ぶ。
-4. compatibility、power budget、complexity budgetを満たすaffixを順に選ぶ。
-5. resolvedParametersを確定する。
-6. EquipmentDefへcompileする。
-7. validateContentBundleを通す。
-8. generator固有のdead-rule検査を通す。
-9. 失敗なら同じitemSeedのattempt番号を増やして再生成する。
-10. 50 attemptで生成不能なら、既定品へ黙ってfallbackせず診断エラーにする。
+4. rarityからrule数をrollし、total power / complexity budgetを各ruleへ最低1ずつ分配する。
+5. 各ruleを独立に、完全なtrigger→condition/cost→effect→limitとして生成する。
+6. compatibility、item総budget、rule単体budget、cross-rule停止条件を検査する。
+7. resolvedParametersとdisplayNameを確定する。
+8. EquipmentDefへcompileする。
+9. validateContentBundleを通す。
+10. generator固有のdead-rule、同一rule重複、無料循環検査を通す。
+11. 失敗なら同じitemSeedのattempt番号を増やして再生成する。
+12. 50 attemptで生成不能なら、既定品へ黙ってfallbackせず診断エラーにする。
 
 生成された定義IDとrule IDはcanonical descriptorから決定的に作り、contentBundle内で一意にする。
+
+### 7.7 名前と役割分担
+
+生成品へ個別の固有名を手書きしない。displayName は次の決定的な部品から作る。
+
+1. baseIdに対応する基材名。
+2. 最もpowerを使ったruleのtrigger/effect motif。
+3. 二番目に目立つruleのmotif。存在しなければ省略。
+4. 同名descriptorが同じarchiveにある場合だけ、hash先頭4桁を表示上のsuffixにする。
+
+表示例は「黄銅の短剣〈余熱・返礼〉」程度とし、名前から全効果を推測させない。詳細欄は RULE I、RULE II のように分割して全文を出す。
+
+技能は意図して選べる主構築、装備は偶然から再評価を起こす副構築とする。
+
+- 技能: 手作業、すべてに一般的な採用理由、manifest内で選択可能。
+- 装備: 完全なseed生成、弱い品や用途の狭い品も許す、奇跡的な複数rule一致をBlueprintで保存。
+- 装備の平均期待値を上げて全品を有用にしない。読み捨てられる品があるから、稀な一致が記憶に残る。
+- ただしdead rule、説明不能、発火不能、無料無限循環は「弱い品」ではなくgenerator bugとして拒否する。
 
 ## 8. 設計図
 
@@ -413,28 +506,151 @@ Blueprintはimmutableである。保存後にreroll、tier変更、affix差替�
 
 - 遠征開始前に、archiveからcarry capacity以内のBlueprintを選ぶ。
 - 一Blueprintから一遠征につき一品だけ再製造する。
-- 再製造品はsourceItemのaffix、tier、rollQuality、resolvedParametersを完全に保持する。
+- 再製造品はsourceItemの全rule、affix、tier、rollQuality、resolvedParametersを完全に保持する。
 - 再製造品は通常のinventory上限と装備枠を使う。
 - 同じBlueprintを複製して複数人物へ配らない。
 - manifestに含まれないaffix familyでも持込品は有効。これが長期報酬である。
 - 敵のthreat budgetは持込品数や強さを見て自動変更しない。
 - 低難度を過去の強い設計図で圧倒することは許す。次の挑戦は明示的な高難度で行う。
 
-### 8.4 carry capacityの解禁
+### 8.4 carry capacityの購入
 
-初期実装の最大値は5。条件は厳しくし、容量を増やす挑戦では、まだ解禁していない枠を使えない。
+初期値1、v1最大値5。難易度実績による直接解禁は廃止し、活動資金だけで購入する。前のslotを購入済みであること以外に、難易度、地域、achievementの条件を付けない。
 
-| capacity | 解禁条件 |
-|---:|---|
-| 1 | チュートリアル遠征を初回クリア |
-| 2 | 難易度5を、持込Blueprint 1枚以下でクリア |
-| 3 | 難易度10を、持込Blueprint 2枚以下でクリア |
-| 4 | 難易度15を、持込Blueprint 3枚以下、再挑戦0回でクリア |
-| 5 | 難易度20を、持込Blueprint 4枚以下、再挑戦0回でクリア |
+| capacity | 追加slotの費用 | 累計費用 |
+|---:|---:|---:|
+| 1 | 初期所持 | 0 |
+| 2 | 4,000 | 4,000 |
+| 3 | 20,000 | 24,000 |
+| 4 | 100,000 | 124,000 |
+| 5 | 500,000 | 624,000 |
 
-複数地域が実装された後は、単一地域の反復だけでcapacity 4以降を解禁できないよう「異なる地域での達成」を追加してよい。ただし条件変更はR6の次版で明記する。
+slot 2は早期の目標、slot 4以降は長期目標、slot 5はendgame目標である。数値は「旧案の40 / 200 / 1,000 / 5,000を100倍した初期値」であり、作者テスト前に値下げして取得を急がせない。
 
-## 9. inventory
+## 9. ギルドの活動資金
+
+### 9.1 名前と単位
+
+世界観上の名称は「活動資金」とする。遠征、調査、補給、人材育成へ使うギルド共通の資金であり、抽象的な魂、記憶、転生資源にはしない。
+
+内部値は非負の整数だけを使う。初期の概念値1を100として設計し、通常戦一勝を100前後にする。1000倍ではなく100倍を採用する理由は、将来1%単位の調整余地を残しつつ、UIの桁を無用に増やさないためである。永続saveではJS safe integer超過を避けるため10進文字列で保存し、計算はbigintで行う。
+
+### 9.2 遠征精算
+
+活動資金は戦闘ごとにProfileへ直接加算せず、RunFundLedgerへ仮計上する。遠征の勝利、敗北、放棄のいずれかで一度だけ精算し、同じrunIdを二重精算しない。
+
+基礎値:
+
+| 確定した結果 | base |
+|---|---:|
+| 通常戦を初回撃破 | 100 |
+| 精鋭戦を初回撃破 | 180 |
+| ボスを初回撃破 | 320 |
+| 到達距離 | クリア済み戦闘数 × 25 |
+| 12戦完走 | 600 |
+| その地域・rankの初回クリア | 800 + rank × 100 |
+
+同一run内で同じencounterをretryしても、撃破baseは一度だけ。敗北そのもの、同じ敵への反復、戦闘開始直後の放棄には資金を与えない。途中まで確定した撃破baseと到達距離は、最終的に負けても持ち帰る。
+
+~~~ts
+difficultyMultiplierBps = 10_000 + difficultyRank * 1_000;
+activityFundsEarned =
+  floor(
+    (clearedEncounterBase + highestClearedEncounter * 25
+      + outcomeBonus + firstClearBonus)
+    * difficultyMultiplierBps
+    / 10_000
+  );
+~~~
+
+rank 0の12戦を通常9、boss 3として初回クリアすると、初期値では3,560を得る。rank 0で7戦まで勝って8戦目で終了した場合は、敵種別によるが約1,100を持ち帰る。高難度は+10% / rankなので、低難度farmを完全禁止せず、高難度へ進む方が時間効率で有利になる。
+
+endlessは4戦blockを一精算単位とし、通常のdifficulty倍率へ completedEndlessBlocks × 200 bps を加える。block途中で敗北しても、そのblock内で確定した個別撃破baseは残す。
+
+### 9.3 ギルド投資
+
+難易度以外の永続解禁は、原則すべて活動資金で購入する。同一upgradeのlevel順以外にachievement条件を置かない。
+
+~~~ts
+type MetaUpgradeDef = {
+  id: MetaUpgradeId;
+  category:
+    | "blueprint_capacity"
+    | "starting_supplies"
+    | "skill_pack"
+    | "equipment_pool"
+    | "character"
+    | "appraisal"
+    | "training";
+  maxLevel?: number;                    // trainingだけ省略＝上限なし
+  costs: string[] | { formulaId: string };
+  unlocks: string[];
+};
+
+type MetaPurchase = {
+  purchaseId: string;
+  upgradeId: MetaUpgradeId;
+  fromLevel: number;
+  toLevel: number;
+  cost: string;
+  balanceBefore: string;
+  balanceAfter: string;
+};
+~~~
+
+初期価格帯:
+
+| 投資 | 初期仕様 |
+|---|---|
+| Blueprint持込枠 | §8.4の4,000 / 20,000 / 100,000 / 500,000 |
+| 開始補給 | 3→4は12,000、4→5は60,000。上限5 |
+| SkillPack | 1 pack 3,000〜30,000。購入後も各遠征ではmanifestに選ばれたpackだけが出る |
+| 装備基材 / affix family | 一群2,000〜20,000。購入は生成poolを増やすが、全遠征へ必ず出現させない |
+| 新人物 / signature variant | 一件10,000〜50,000。人物固有の完成コンボではなく共有eventへの別角度を増やす |
+| 目利き | 5 level、15,000 / 45,000 / 120,000 / 300,000 / 750,000 |
+| 人物鍛錬 | §9.5。各人物・各能力ごとに上限なし |
+
+購入画面は、現在残高、購入後残高、何がpoolへ加わるか、次level費用を常に表示する。購入は取消不能なので、確認画面に「この遠征で必ず出るわけではない」ことも表示する。
+
+pool dilutionを避けるため、解禁済みSkillPackが増えても一遠征のenabled pack数は増やさない。開始時にseed生成されたmanifest候補3つから選ぶ。
+
+### 9.4 目利き
+
+目利きは全dropを高rarity化しない。各報酬offerの先頭の装備候補一枠だけを lucky slot とする。levelをL（0〜5）として、その枠の最低rarityから次のrarityへ重みを次の通り移す。
+
+- commonがあるtable: commonから 100 × L bpsを引き、rareへ80%、epicへ18%、legendaryへ2%を配る。
+- commonがないtable: 現在の最低rarityから同量を引き、一段上へ80%、二段上へ20%を配る。
+- 負のweightは0でclampし、余りは最低rarityへ戻して総計10,000 bpsを保つ。
+- 他の装備候補、持込Blueprint、敵threatは変えない。
+
+level 5でも通常tableのcommonが5 percentage points減るだけである。奇跡を日用品にせず、「少しだけ良い抽選を一枠増やした」感覚に留める。
+
+### 9.5 上限なしの人物鍛錬
+
+有限解禁を取り終えた後も遠征を無駄にしないため、各人物に potency と vitality の二系統だけを置く。
+
+- potency 1 level: その人物がsourceのdamage、heal、barrierの基礎量を+10 bps（+0.1%）。
+- vitality 1 level: その人物の遠征開始時maxHpを+10 bps（+0.1%）。
+- speed、AP、RP、防御率、target priority、発火回数は上げない。閾値や行動回数を壊しやすいためである。
+- level上限なし。費用は人物・能力ごとに独立。
+- 現在levelをLとすると、次の一段の費用は次式。100単位に切り上げる。
+
+~~~ts
+rawCost = 10_000n + 1_000n * L + 25n * L * L;
+cost = ((rawCost + 99n) / 100n) * 100n;
+~~~
+
+level 0→1は10,000、level 10→11は22,500を22,500のまま、level 100→101は360,000である。効果は線形、費用は二次増加なので、購入は続けられるが有限解禁より急速に割高になる。
+
+戦闘計算はbasis pointの固定小数で行う。整数damage等へ丸める際はactor・effect categoryごとのdeterministic residueをBattleState内で持ち、小さいbonusが永遠に切り捨てられないようにする。residueは戦闘外へ持ち越さない。
+
+永続鍛錬で過去の低難度が簡単になることは許す。敵を鍛錬量へ自動追従させない。挑戦は明示difficultyとendlessで取り戻す。UI、BattleInput、結果logへ人物ごとの鍛錬bpsを残す。
+
+### 9.6 難易度だけはクリアで解禁する
+
+rank 0だけを初期解禁する。同じ地域のrank Nをクリアするとrank N+1を解禁する。活動資金でrankを買えず、rankを飛ばせず、持込Blueprint数やretry回数などの追加achievement条件も付けない。rank 20クリアでendlessを解禁する。
+
+## 10. inventory
 
 - 遠征中inventoryは12品まで。
 - 装備中の品も12品に含む。
@@ -443,9 +659,9 @@ Blueprintはimmutableである。保存後にreroll、tier変更、affix差替�
 - v1ではaffix crafting、reroll、合成を実装しない。報酬候補全体のrerollだけを補給1で行う。
 - Blueprint化は遠征終了時だけ。戦闘中の一時状態や摩耗状態は保存しない。
 
-## 10. 敵生成とスケール
+## 11. 敵生成とスケール
 
-### 10.1 敵も同じ小規則で構成する
+### 11.1 敵も同じ小規則で構成する
 
 ~~~ts
 type EnemyChassisDef = {
@@ -469,7 +685,7 @@ type EnemyMutationDef = {
 
 Encounterはchassis、mutation、region lawをthreat budget内で組み合わせる。
 
-### 10.2 threat budget
+### 11.2 threat budget
 
 - 戦闘番号ごとのbase budgetをデータで持つ。
 - 難易度modifierがbudgetを明示的に加算する。
@@ -482,7 +698,7 @@ Encounterはchassis、mutation、region lawをthreat budget内で組み合わせ
 
 初期のbase budgetは、現在の7戦を基準に実測し、12段階へ単調増加させる。実装担当が数値を決める前に、現在の7戦をchassis/mutationへ分解した対応表をPREFLIGHTへ出す。
 
-### 10.3 boss
+### 11.3 boss
 
 各bossは次を持つ。
 
@@ -494,9 +710,9 @@ Encounterはchassis、mutation、region lawをthreat budget内で組み合わせ
 
 ボス法則は遠征開始時から見える。途中の報酬を「最後に向けて取る」判断を可能にする。
 
-## 11. 敗北と補給
+## 12. 敗北と補給
 
-### 11.1 補給
+### 12.1 補給
 
 - 遠征開始時3。
 - 上限5。
@@ -509,7 +725,7 @@ Encounterはchassis、mutation、region lawをthreat budget内で組み合わせ
 
 boss law、enemy family、region lawは補給を使わなくても見える。偵察で見えるのは個体、位置、mutationの組み合わせである。
 
-### 11.2 敗北処理
+### 12.2 敗北処理
 
 - 敗北後、即座に遠征を破棄しない。
 - 補給が1以上なら、1消費してcampへ戻り、人物、位置、技能、装備を変更して同じBattleInput seedへ再挑戦できる。
@@ -521,9 +737,9 @@ boss law、enemy family、region lawは補給を使わなくても見える。�
 
 補給をrerollへ使うと再挑戦余地が減る。これが遠征全体の勝敗以外のトレードオフになる。
 
-## 12. 難易度、一区切り、エンドレス
+## 13. 難易度、一区切り、エンドレス
 
-### 12.1 明確な完了
+### 13.1 明確な完了
 
 - 難易度0の12戦目撃破で地域クリア。
 - 初回クリア時に短いキャラクター場面とcredits相当の区切りを出す。
@@ -531,7 +747,7 @@ boss law、enemy family、region lawは補給を使わなくても見える。�
 - 難易度20で設計上の最高難度を完了。
 - 以後はendless depthを記録する。
 
-### 12.2 難易度modifier
+### 13.2 難易度modifier
 
 DifficultyDefをデータとして持つ。
 
@@ -546,7 +762,7 @@ type DifficultyDef = {
 };
 ~~~
 
-rankは順番に解禁し、全変更を開始前に表示する。最初の実装は0〜5だけでよい。6〜20は同じschemaで追加する。
+rankは§9.6の通り、一つ前のrankクリアだけで順番に解禁し、全変更を開始前に表示する。活動資金では購入できない。最初の実装は0〜5だけでよい。6〜20は同じschemaで追加する。
 
 例:
 
@@ -558,16 +774,16 @@ rankは順番に解禁し、全変更を開始前に表示する。最初の実�
 
 以後も、見える変異、budget、資源制約を優先する。単純な敵HP倍率を毎rank積まない。
 
-### 12.3 endless
+### 13.3 endless
 
 - 難易度20後に解禁。
 - 12戦後も4戦単位で続く。
 - 4戦ごとにthreat budget、mutation count、数値倍率を増やす。
 - 無限の公平性や全buildの生存を保証しない。
 - 個人記録はdepth、boss撃破、使用Blueprint、構成fingerprintを保存する。
-- ここでは数値インフレと圧倒を許すが、本編の通常難易度へ逆流させない。
+- ここでは数値インフレと圧倒を許す。活動資金と人物鍛錬は本編にも残るが、敵が自動追従せず、低難度が簡単になることを許容する。
 
-## 13. 拡張単位
+## 14. 拡張単位
 
 新しい仕組みを追加するときは、単一技能や単一敵だけを足さず、SkillPack単位で追加する。
 
@@ -577,9 +793,9 @@ rankは順番に解禁し、全変更を開始前に表示する。最初の実�
 
 これにより、総コンテンツは増えるが、一回のプレイヤーが把握する局所ルール量は増え続けない。
 
-## 14. UI要件
+## 15. UI要件
 
-### 14.1 遠征開始
+### 15.1 遠征開始
 
 一画面で次を表示する。
 
@@ -593,7 +809,7 @@ rankは順番に解禁し、全変更を開始前に表示する。最初の実�
 
 三つのmanifestから選ぶ段階では、それぞれを同じ比較軸で横並びにする。
 
-### 14.2 装備
+### 15.2 装備
 
 装備説明は次の順で固定する。
 
@@ -605,7 +821,7 @@ rankは順番に解禁し、全変更を開始前に表示する。最初の実�
 
 rarity色だけで強さを判断させない。event名、対象relation、値、耐久を必ず文字で出す。
 
-### 14.3 Blueprint archive
+### 15.3 Blueprint archive
 
 - 名前、rarity、全rule、来歴、最初に使った人物を表示。
 - favorite、検索、filter。
@@ -613,7 +829,7 @@ rarity色だけで強さを判断させない。event名、対象relation、値�
 - Blueprintから生成される実物がexact copyであることを表示。
 - disabled Blueprintを消さず、理由を表示。
 
-## 15. 決定性とversioning
+## 16. 決定性とversioning
 
 次の生成物は同じ入力でJSON深一致する。
 
@@ -638,36 +854,39 @@ runSeed:item:dropIndex:attempt
 
 generatorVersion、manifestVersion、profile schema、run schemaを保存する。version不一致を黙って読み飛ばさない。
 
-## 16. 実装境界
+## 17. 実装境界
 
-### 16.1 最初の実装で行う
+### 17.1 最初の実装で行う
 
 - ProfileStateとRunStateの分離。
 - 既存saveのmigration。
+- 活動資金の仮計上、勝敗を問わない一回精算、購入transaction。
 - 12戦、3boss、補給3。
+- 全人物のbasic strike、技能action mode、utility後の50%追撃。
 - 現24技能の4パック化と、3パックを使うmanifest。
-- equipment generator v1。
+- equipment generator v1。epic以上で複数の完結ruleを生成する。
 - Blueprint archive、勝利2／敗北1の保存。
-- carry capacity 1、およびcapacity 2の解禁条件。
+- carry capacity 1、およびcapacity 2の4,000での購入。
 - inventory 12。
 - threat budgetとenemy mutationのschema。
 - Difficulty 0〜5。
 - UI、D1にmanifest、生成装備descriptor、Blueprint選択、補給使用を保存。
 - 人間テスト前の公開条件。
 
-### 16.2 最初の実装で行わない
+### 17.2 最初の実装で行わない
 
 - 6個以上の新SkillPack。
 - 新人物、物語本編、アート量産。
 - affix個別reroll、合成、取引。
 - online season、日次、週次、ランキング。
-- capacity 3〜5の実際の解禁。
+- capacity 3〜5の実際の購入。
+- 全SkillPack、全装備family、全人物の解禁内容量産。
 - Difficulty 6〜20の内容量産。
 - endlessの本実装。
 - funの自動判定。
 - PR #49の人間評価を省略した長期コンテンツ量産。
 
-## 17. 実装Gate
+## 18. 実装Gate
 
 実装担当はコード前にPREFLIGHTとTRACEABILITYを作る。
 
@@ -677,8 +896,12 @@ generatorVersion、manifestVersion、profile schema、run schemaを保存する�
 
 - 最初から持込Blueprintだけで全報酬が無意味になる。
 - manifest外Blueprintが毎回同じ構成を固定する。
-- 低難度farmが最高Blueprintの最適入手法になる。
+- 低難度farmが活動資金と最高Blueprintの両方で最適になる。
+- 活動資金を稼ぐため、勝ち目のない戦闘を同一runでretryし続ける。
+- 永続鍛錬が有限投資より先に買う最適解になる。
 - rarityが単純な上位互換になる。
+- 複数rule装備が説明不能またはcross-rule無料循環になる。
+- 支援技能だけでdirect damageが止まり、戦闘が泥仕合になる。
 - generatorがdead ruleまたは無料循環を作る。
 - 新しい解禁がpool dilutionだけを起こす。
 - 敗北保存が即放棄farmを支配させる。
@@ -691,7 +914,7 @@ generatorVersion、manifestVersion、profile schema、run schemaを保存する�
 ### Gate B — 状態分離
 
 - 新遠征でrunSkillPoints、runUnlockedSkills、inventory、suppliesが初期化される。
-- characters、Blueprint、codex、difficultyは保持される。
+- characters、Blueprint、codex、difficulty、活動資金、購入済み投資、人物鍛錬は保持される。
 - ProfileStateへ戦闘中HPやrun装備が混入しない。
 - 旧saveからのmigrationをfixtureで固定する。
 - reloadで遠征とBlueprint archiveが壊れない。
@@ -722,7 +945,7 @@ Slow check:
 ### Gate E — Blueprint
 
 - item → Blueprint → itemのcanonical descriptorが一致。
-- rarity、affix、tier、rollQuality、resolvedParametersが一致。
+- rarity、全rule、affix、tier、rollQuality、resolvedParametersが一致。
 - 一Blueprintから一遠征に二個生成できない。
 - carry capacity超過を拒否。
 - manifest外affixでも持込品が機能する。
@@ -740,7 +963,31 @@ Slow check:
 - inventory 12超過を拒否。
 - run終了時にrun資産が次runへ漏れない。
 
-### Gate G — 敵と難易度
+### Gate G — 活動資金と永続投資
+
+- 通常、精鋭、boss、距離、完走、初回clearの全fixtureが§9.2の整数式と一致。
+- 同一encounterを何度retryしても撃破baseは一度だけ。
+- 勝利、敗北、放棄で確定分を持ち帰り、同じrunIdの二重精算を拒否。
+- 0未満の残高、残高不足購入、level飛ばし、同一purchaseIdの二重適用を拒否。
+- activityFundsと費用はbigintで計算し、profile export/importで10進文字列が一致。
+- Blueprint capacity 2の費用4,000、開始補給、目利き、人物鍛錬の購入結果をfixture化。
+- 人物鍛錬のcost式、+10 bps、deterministic residueが同一入力で一致。
+- 永続投資による敵threatの隠れ変更0。
+- rank N未clearでN+1開始を拒否し、rank N clearでN+1だけを解禁。活動資金によるrank購入経路0。
+
+### Gate H — 攻撃テンポと技能品質
+
+- 技能未装備、全技能不発で100% basic strike。
+- utility解決後に50% fallback strikeが一度だけ発生し、追撃から追撃0。
+- offenseが使用可能なのにdirect damage proposal 0となるcontentをvalidatorが拒否。
+- channelに使用上限、cooldown、次行動解決のいずれも無いcontentを拒否。
+- active skill poolのutility比率25%以下、新packのactive 4中offense 3以上。
+- reward技能3候補のoffense 2未満0。
+- 全人物生存・行動可能な代表build 10,000 actor-turnで、direct damageを含むturn 75%以上。
+- 生存敵と行動可能な味方がいるのに、direct damage proposal 0が2 round連続するfixture 0。
+- 各技能に、名前指定の相方なしで採用理由が二文脈以上あることをcontent review表へ記録。
+
+### Gate I — 敵と難易度
 
 - Encounterの総threat costがbudget以下。
 - mutation incompatibility違反0。
@@ -749,7 +996,7 @@ Slow check:
 - Blueprint強度による隠れbudget変更0。
 - Difficulty 0〜5の差分を開始画面とログへ保存。
 
-### Gate H — 人間テスト公開
+### Gate J — 人間テスト公開
 
 既存HUMAN_TEST_RELEASEを満たす。さらにD1へ次を保存する。
 
@@ -759,11 +1006,14 @@ Slow check:
 - 装備取得、破棄、分解。
 - run中の大きなloadout変更。
 - 補給の取得・使用理由。
+- 活動資金の仮計上、難易度倍率、精算、購入履歴。
+- 人物鍛錬bpsと戦闘へ適用した固定小数residue。
+- 技能action mode、basic / fallback strike、攻撃を含むturn比率。
 - 敗北、再挑戦、放棄。
 - 終了時に保存したBlueprint。
 - 最終構成と戦闘event。
 
-## 18. 人間評価
+## 19. 人間評価
 
 初回の実装評価では長期性を証明しない。まず2遠征以内で、仕組みが次の行動を生むかを見る。
 
@@ -772,7 +1022,9 @@ Slow check:
 - 開始時に「今回は○○が強そう」と具体的に言う。
 - 新装備によって人物、技能順、装備先を大きく変える。
 - 補給をrerollに使うか残すか迷う。
-- 終了時に保存Blueprintを迷い、その品の発火契機を説明できる。
+- 活動資金をBlueprint枠、content解禁、補給、目利きのどれへ使うか迷う。
+- 敗色が濃くても、次の撃破または到達資金のために構成を変えて続ける。
+- 終了時に保存Blueprintを迷い、その品の複数ruleを個別に説明できる。
 - 次回に持ち込むBlueprintまたは別manifestを自発的に考える。
 - 24時間以内に、依頼されず再度開く。
 
@@ -785,22 +1037,29 @@ Slow check:
 - manifestを読まず、同じ初期構成で進む。
 - 敗北理由が分からず、同じ構成で再試行する。
 - 一遠征が長いだけで、戦闘4回ごとの問いが変わらない。
+- 低難度周回だけが活動資金の時間効率で常に最適になる。
+- 有限解禁より人物鍛錬だけを先に買う。
+- 支援技能の選びすぎで攻撃が止まる、または50%追撃込みのutilityが常にoffenseより強い。
+- 複数rule装備をrarity色だけで選び、各ruleを説明できない。
 
-## 19. 実装順
+## 20. 実装順
 
-1. State splitとsave migration。
-2. Manifest、SkillPack、12戦のrun shell。
-3. 装備affix schema、compiler、deterministic generator。
-4. Blueprint archiveとcarry capacity 1〜2。
-5. 補給、inventory、報酬。
-6. Enemy chassis、mutation、threat budget。
-7. Difficulty 0〜5。
-8. UIとD1。
-9. 機械Gate。
-10. 公開条件を満たした後、作者1〜2遠征。
-11. 作者結果の判定前に、新SkillPackやDifficulty 6以降を量産しない。
+1. State split、save migration、activityFunds bigint文字列。
+2. RunFundLedger、一回精算、購入transaction、rank順次解禁。
+3. basic strike、skill action mode、utility後の50%追撃。
+4. Manifest、SkillPack、12戦のrun shell。
+5. 複数完結ruleを持つ装備schema、compiler、deterministic generator。
+6. Blueprint archiveとcarry capacity 1〜2の購入。
+7. 補給、inventory、報酬、目利きlevel 0〜1。
+8. 人物鍛錬potency / vitalityとfixed-point residue。
+9. Enemy chassis、mutation、threat budget。
+10. Difficulty 0〜5。
+11. UIとD1。
+12. 機械Gate。
+13. 公開条件を満たした後、作者1〜2遠征。
+14. 作者結果の判定前に、新SkillPackやDifficulty 6以降を量産しない。
 
-## 20. 実装担当が決めてよいHOW
+## 21. 実装担当が決めてよいHOW
 
 - ファイル分割。
 - generator内部の探索順。
@@ -816,17 +1075,25 @@ Slow check:
 - run/metaの境界。
 - 12戦とboss位置。
 - 補給の用途。
+- 活動資金の100倍単位、敗北時保持、一回精算。
+- 難易度だけを一つ前のclearで解禁すること。
+- 人物鍛錬の+10 bps、対象能力、費用式、上限なし。
+- basic strikeとutility後の50%追撃。
 - Blueprintのexact copy、archive上限なし、carry上限。
-- carry capacityの解禁条件。
-- 敵がBlueprintへ隠れて追従しないこと。
-- rarityの構造。
+- carry capacityの活動資金価格。
+- 敵がBlueprintや人物鍛錬へ隠れて追従しないこと。
+- rarityごとの複数rule構造とitem総power budget。
 - 人間テスト前に長期コンテンツを量産しないこと。
 
-## 21. 停止条件
+## 22. 停止条件
 
 - PR #49とmainの差により、state migrationの正しい起点を特定できない。
 - 既存R5 schemaでは手続き生成品を個別content ID分岐なしにcompileできない。
 - exact Blueprintを保存すると、既存saveやcontent versionを安全に読めない。
+- activityFundsの二重精算をtransactionまたは同等のidempotencyで防げない。
+- bigint文字列を既存save、D1、exportでlosslessに扱えない。
+- utility後のfallback strikeをevent上限と因果logを壊さず追加できない。
+- 複数rule間の無料循環を既存停止検査で検出または制限できない。
 - generatorの停止性を50 attempt以内で保証できない。
 - Fast checkが一分を超え、slow経路へ分離できない。
 - Blueprint持込とmanifest制限のどちらを優先するかが実装中に再び曖昧になる。
@@ -835,22 +1102,25 @@ Slow check:
 
 停止時は、反例、影響、最小修正案をPREFLIGHTへ保存し、作者へE2E代行を求めない。
 
-## 22. この設計が採用するもの／採用しないもの
+## 23. この設計が採用するもの／採用しないもの
 
 採用する:
 
 - Super Auto Pets型の、runごとに異なる使用可能集合。
 - ハクスラ型の、奇跡的なランダム複合装備。
 - Slay the Spire型の有限run、明示難易度、クリア後の高難度。
-- 横方向の永続アンロック。
-- 一品の来歴とexact ruleを保存するBlueprint。
+- 活動資金をどこへ投資するかという永続構築。
+- 横方向の永続アンロックと、非常に遅い上限なし人物鍛錬。
+- 一品の来歴と複数のexact ruleを保存するBlueprint。
+- 通常攻撃を土台に、攻撃へ支援を付随させる技能構成。
 - エンドレスでの数値インフレと到達深度。
 
 採用しない:
 
 - 全技能・全装備が一つのsaveへ単調蓄積するだけの進行。
 - 敵がプレイヤー戦力を見て自動的に同じ強さへ追従する方式。
-- 無制限の永続攻撃力上昇。
+- 低費用・大幅・speed/AP/RPまで含む永続能力上昇。
+- 活動資金に合わせて敵が隠れて強くなる自動追従。
 - 一敗即リセットと、無損失無制限retryの両極端。
 - 名前指定の完成コンボ。
 - rarityだけで決まる上位互換。
