@@ -616,10 +616,11 @@ pool dilutionを避けるため、解禁済みSkillPackが増えても一遠征�
 
 ### 9.4 目利き
 
-目利きは全dropを高rarity化しない。各報酬offerの先頭の装備候補一枠だけを lucky slot とする。levelをL（0〜5）として、その枠の最低rarityから次のrarityへ重みを次の通り移す。
+目利きは全dropを高rarity化しない。各報酬offerの先頭の装備候補一枠だけを lucky slot とする。levelをL（0〜5）として、その枠の最低rarityから次のrarityへ重みを次の通り移す。§7.4の70 / 25 / 5等は表示上の百分率であり、計算前に100倍して合計10,000 bpsへ正規化する。
 
 - commonがあるtable: commonから 100 × L bpsを引き、rareへ80%、epicへ18%、legendaryへ2%を配る。
 - commonがないtable: 現在の最低rarityから同量を引き、一段上へ80%、二段上へ20%を配る。
+- legendaryより上へ配る分はlegendaryへ寄せる。
 - 負のweightは0でclampし、余りは最低rarityへ戻して総計10,000 bpsを保つ。
 - 他の装備候補、持込Blueprint、敵threatは変えない。
 
