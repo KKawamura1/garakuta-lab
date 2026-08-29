@@ -430,7 +430,7 @@ function renderRoster() {
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
-    + (formationSelection ? button("選択解除", "clear-formation-selection", false, "tiny-button") : "") + "</p></section>"
+    + (formationSelection ? "<span class=\"formation-selection-actions\">" + button("選択解除", "clear-formation-selection", false, "tiny-button") + "</span>" : "") + "</p></section>"
     + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → 4", "同行する仲間を選ぶ")
     + "<p class=\"muted\">8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。</p>"
     + "<div class=\"character-grid\">" + characterCards + "</div></section>"
