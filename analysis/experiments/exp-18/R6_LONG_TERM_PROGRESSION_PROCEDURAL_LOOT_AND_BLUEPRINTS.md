@@ -202,6 +202,21 @@ type ScaledAmount = {
 };
 ~~~
 
+既存8人物のR6初期値:
+
+| 人物 | maxHp | might | focus | guard | speed | AP | RP |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| ユウリ | 26,000 | 3,200 | 2,400 | 1,000 | 4 | 1 | 2 |
+| ミナ | 18,000 | 1,800 | 4,400 | 250 | 6 | 1 | 2 |
+| レオン | 20,000 | 4,600 | 1,800 | 350 | 8 | 1 | 2 |
+| スイ | 16,000 | 3,600 | 2,600 | 200 | 10 | 1 | 2 |
+| カイ | 22,000 | 3,200 | 3,200 | 550 | 5 | 2 | 2 |
+| ナギ | 26,000 | 2,600 | 2,400 | 1,200 | 3 | 1 | 2 |
+| アオ | 16,000 | 1,600 | 5,000 | 150 | 5 | 1 | 2 |
+| トワ | 17,000 | 2,400 | 4,000 | 250 | 7 | 1 | 2 |
+
+この表は人物差の最初の仮値であり、名前ごとのengine分岐ではない。CharacterDefのdataとして保存する。全員がmightとfocusを持つため、物理役にも支援技能、支援役にもtechnique攻撃を付けられる。
+
 1,000倍するもの:
 
 - maxHp、currentHp。
@@ -236,6 +251,8 @@ damage =
 最低10%は通す。guardはhitごとに適用するので、同じ総係数なら多段はguardに弱く、単発大威力はguardに強い。healとbarrierにはguardを適用しない。
 
 basic strikeは原則としてmight 100%を使う。weapon技能はmight、technique技能はfocusを使う。focusはheal / barrierにも使うため、支援人物にも攻撃成長軸が残る。
+
+既存skillを機械的に定数×1,000だけへ変換して終えない。斬撃をmight 100%、手当てをfocus 80%、防壁形成をfocus 60%のように、各skillをmight / focusのいずれかと係数へ移す。溜め、対象条件、cost等を含むskillは、中立parameter might=4,000 / focus=4,000で現行の相対効果量を概ね保つ係数から開始する。装備のflat rollはparameter非依存で残してよい。
 
 計算はNumber safe integerだけを許し、途中値がNumber.MAX_SAFE_INTEGERを超えるBattleInputはvalidator errorにする。黙ってclampしない。表示は3桁区切りとし、省略表示を使う場合も詳細画面と因果logには完全値を残す。
 
@@ -457,6 +474,15 @@ block用eventを追加する。
 - block_gained。
 - damage_blocked。
 - block_spent。
+
+multi-hitのevent順は次で固定する。
+
+1. action開始時にtarget listを一度だけ確定し、position順へ並べる。
+2. hitIndexを外側、target順を内側にして処理する。
+3. 一damage instanceごとにdamage_proposed → block → guard → barrier → damage_taken / damage_blockedを完了する。
+4. そのinstanceのafter reactionを処理してから次targetへ進む。
+5. 途中で倒れたtargetへの残りhitは失われ、別targetへ自動retargetしない。
+6. retargetを行うskillは、将来明示的な別effectとして追加する。暗黙挙動にしない。
 
 最初から採用しない軸:
 
@@ -1005,7 +1031,7 @@ rankは§9.6の通り、一つ前のrankクリアだけで順番に解禁し、�
 - base値、永続鍛錬、run内補正を分けて表示する。
 - 5人×最大4 / 4技能を一画面に平置きしない。人物ごとにactive priorityとreactiveを分け、現在装着中の一覧はscroll位置に依存せず固定表示する。
 
-### 15.2 装備
+### 15.3 装備
 
 装備説明は次の順で固定する。
 
@@ -1017,7 +1043,7 @@ rankは§9.6の通り、一つ前のrankクリアだけで順番に解禁し、�
 
 rarity色だけで強さを判断させない。event名、対象relation、値、使用parameter、係数、hit数、reach、target pattern、guard貫通、耐久を必ず文字で出す。
 
-### 15.3 Blueprint archive
+### 15.4 Blueprint archive
 
 - 名前、rarity、全rule、来歴、最初に使った人物を表示。
 - favorite、検索、filter。
@@ -1245,7 +1271,7 @@ Slow check:
 失敗信号:
 
 - rarityだけを見て常に上位品へ交換する。
-- 持込Blueprintを毎回同じ4人へ付け、run報酬を見ない。
+- 持込Blueprintを毎回同じ5人へ付け、run報酬を見ない。
 - 生成装備の文章が長く、何が起きるか説明できない。
 - inventory整理が戦闘構築より長い。
 - manifestを読まず、同じ初期構成で進む。
