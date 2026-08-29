@@ -94,7 +94,8 @@ function applyPackage(allies, packageId) {
     }
     for (const item of pack.equipment) {
       if (item.characterId !== ally.characterId || ally.equipment.some((entry) => entry.equipmentId === item.equipmentId)) continue;
-      ally.equipment.push({ instanceId: item.instanceId, equipmentId: item.equipmentId, durability: item.equipmentId === "momentum_rig" ? 2 : 3 });
+      const maxDurability = ["field_kit", "momentum_rig", "splinter_edge"].includes(item.equipmentId) ? 2 : 3;
+      ally.equipment.push({ instanceId: item.instanceId, equipmentId: item.equipmentId, durability: maxDurability });
     }
   }
 }
