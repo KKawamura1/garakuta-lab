@@ -31,6 +31,32 @@ export function endChain(state) {
   state.chain = null;
 }
 
+function actorSnapshots(state) {
+  return state.actorOrder.map((instanceId) => {
+    const actor = state.actors.get(instanceId);
+    return {
+      instanceId: actor.instanceId,
+      definitionId: actor.definitionId,
+      displayName: actor.displayName,
+      side: actor.side,
+      position: actor.position,
+      hp: actor.hp,
+      maxHp: actor.maxHp,
+      alive: actor.alive,
+      actionPoints: actor.actionPoints,
+      reactionPoints: actor.reactionPoints,
+      barrier: (actor.barriers || []).reduce((sum, packet) => sum + packet.amount, 0),
+      statuses: (actor.statuses || []).map((status) => ({
+        statusId: status.statusId,
+        stacks: status.stacks,
+      })),
+      preparation: actor.preparation
+        ? { skillId: actor.preparation.skillId, stepsRemaining: actor.preparation.stepsRemaining }
+        : null,
+    };
+  });
+}
+
 // §7 — every event carries the same shape. Display text never goes in: values
 // are facts, and the renderer is expected to replay them (§3.1).
 export function pushEvent(state, spec) {
@@ -71,6 +97,9 @@ export function pushEvent(state, spec) {
       limit: "maxEventsPerBattle",
       limitValue: state.options.maxEventsPerBattle,
     });
+  }
+  if (state.options.captureReplaySnapshots) {
+    state.replaySnapshots.push(actorSnapshots(state));
   }
   return event;
 }

@@ -85,6 +85,7 @@ function buildState(input, content, options) {
     parentEventId: undefined,
     events: [],
     eventsById: new Map(),
+    replaySnapshots: [],
     actors: new Map(),
     actorOrder: [],
     queue: [],
@@ -119,7 +120,7 @@ function buildState(input, content, options) {
         equipmentId: item.equipmentId,
         durability: item.durability,
         maxDurability: content.equipment[item.equipmentId].maxDurability,
-        broken: item.durability === 0,
+        broken: item.durability === 0 && options.equipmentBreaks !== false,
       })),
     });
   }
@@ -229,8 +230,10 @@ function ruleEntriesFor(state, actor) {
     });
   }
   for (const item of actor.equipment) {
-    // §5.6 — a broken item stops supplying rules for the rest of the battle.
-    if (item.broken) continue;
+    // §5.6 — a broken or depleted item stops supplying rules for the rest of
+    // the battle. The playable mode may deplete without emitting a permanent
+    // break; the durability check keeps that mode from firing at zero.
+    if (item.broken || item.durability <= 0) continue;
     for (const rule of state.content.equipment[item.equipmentId].rules) {
       entries.push({
         rule,
@@ -292,7 +295,7 @@ function ruleSourceIntact(state, entry) {
   if (entry.owner && !entry.owner.alive) return false;
   if (entry.equipmentInstanceId) {
     const item = entry.owner.equipment.find((candidate) => candidate.instanceId === entry.equipmentInstanceId);
-    if (!item || item.broken) return false;
+    if (!item || item.broken || item.durability <= 0) return false;
   }
   if (entry.statusId && statusStacks(entry.owner, entry.statusId) === 0) return false;
   return true;
@@ -991,6 +994,7 @@ function buildResult(state, content) {
     actors,
     equipment,
     events: state.events,
+    replaySnapshots: state.replaySnapshots,
     metrics,
   };
 }

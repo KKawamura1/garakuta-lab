@@ -12,6 +12,7 @@ const SUITES = [
   "termination.test.mjs",
   "extensibility.test.mjs",
   "mine.test.mjs",
+  "playable.test.mjs",
 ];
 
 let failed = 0;

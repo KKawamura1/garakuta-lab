@@ -573,7 +573,7 @@ function interruptPreparation(rt, ctx, effect) {
 
 // §12.6 — equipment wear. The instance is always the one the rule came from.
 export function wearEquipmentInstance(rt, ctx, item, amount, tags) {
-  if (!item || item.broken) return;
+  if (!item || item.broken || item.durability <= 0) return;
   const before = item.durability;
   const worn = Math.min(before, amount);
   item.durability = before - worn;
@@ -585,7 +585,7 @@ export function wearEquipmentInstance(rt, ctx, item, amount, tags) {
     tags,
     values: { equipmentId: item.equipmentId, before, amount: worn, after: item.durability },
   });
-  if (item.durability === 0) {
+  if (item.durability === 0 && rt.state.options.equipmentBreaks !== false) {
     item.broken = true;
     rt.emit({
       type: "equipment_broken",
@@ -600,7 +600,9 @@ export function wearEquipmentInstance(rt, ctx, item, amount, tags) {
 
 // §12.6 partner. A repair raises durability up to maxDurability and never
 // revives an item that already broke: §5.6 says a broken item supplies no rules
-// for the rest of the battle, and a repair must not quietly undo that.
+// for the rest of the battle, and a repair must not quietly undo that. In the
+// playable no-break mode, a depleted item cannot fire its own repair rule
+// because ruleSourceIntact excludes it at zero.
 export function repairEquipmentInstance(rt, ctx, item, amount, tags) {
   if (!item || item.broken) return;
   const before = item.durability;
