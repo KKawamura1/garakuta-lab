@@ -153,6 +153,7 @@ function newRunState(meta) {
     hp: {},
     rewardOffer: [],
     selectedCharacter: roster[0],
+    formationSelection: roster[0],
     selectedSkillNode: null,
     selectedEquipment: null,
     lastResult: null,
@@ -198,6 +199,9 @@ function loadState() {
       : fresh.roster;
     next.formation = normalizeFormation(next.formation, next.roster);
     next.loadout = next.loadout || freshLoadout(next.roster);
+    next.formationSelection = next.roster.includes(next.formationSelection)
+      ? next.formationSelection
+      : next.roster.includes(next.selectedCharacter) ? next.selectedCharacter : (next.roster[0] ?? null);
     next.hp = Object.fromEntries(CHARACTER_OPTIONS.map((option) => [option.id, maxHp(option.id)]));
     next.results = Array.isArray(next.results) ? next.results : [];
     next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
@@ -320,6 +324,10 @@ function selectedCharacter() {
   return state.roster[0];
 }
 
+function selectedFormationCharacter() {
+  return state.roster.includes(state.formationSelection) ? state.formationSelection : null;
+}
+
 function positionOwner(position) {
   return state.roster.find((characterId) => state.formation[characterId] === position) ?? null;
 }
@@ -388,23 +396,24 @@ function renderCamp() {
 }
 
 function renderRoster() {
+  const formationSelection = selectedFormationCharacter();
   const slots = POSITIONS.map((position) => {
     const owner = positionOwner(position);
-    const selected = owner && selectedCharacter() === owner;
+    const selected = owner && formationSelection === owner;
     const content = owner
       ? "<span class=\"avatar\">" + esc(characterInfo(owner)?.icon ?? "・") + "</span><span><b>"
         + esc(characterName(owner)) + "</b><small>" + esc(characterInfo(owner)?.role ?? "")
         + " · HP " + currentHp(owner) + "/" + maxHp(owner) + "</small></span>"
       : "<span class=\"empty-icon\">＋</span><span><b>空き枠</b><small>選択した仲間をここへ置く</small></span>";
     return "<button type=\"button\" class=\"formation-slot " + (selected ? "selected" : "")
-      + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
+      + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
       + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
   }).join("");
   const characterCards = CHARACTER_OPTIONS.map((option) => {
     const inParty = state.roster.includes(option.id);
-    const selected = selectedCharacter() === option.id;
-    const action = inParty ? "select-character" : "toggle-roster";
-    const actionLabel = inParty ? (selected ? "選択中" : "選ぶ") : "編成に入れる";
+    const selected = formationSelection === option.id;
+    const action = inParty ? "select-formation-character" : "toggle-roster";
+    const actionLabel = inParty ? (selected ? "位置選択中" : "位置を選ぶ") : "編成に入れる";
     return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
       + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
       + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
@@ -417,9 +426,11 @@ function renderRoster() {
       + "</article>";
   }).join("");
   return "<section class=\"card\">" + sectionHeading("FORMATION / 4 SLOTS", "誰がどこに立つ？", "<span class=\"stage\">"
-    + state.roster.length + " / 4人</span>") + "<p class=\"muted\">仲間を選んでから位置枠をタップすると、二人の位置を交換できます。前列・後列は敵の狙いと技能の条件に影響します。</p>"
-    + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">選択中: <b>"
-    + esc(characterName(selectedCharacter())) + "</b> · 位置枠をタップして配置</p></section>"
+    + state.roster.length + " / 4人</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。前列・後列は敵の狙いと技能の条件に影響します。</p>"
+    + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
+    + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
+    + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
+    + (formationSelection ? button("選択解除", "clear-formation-selection", false, "tiny-button") : "") + "</p></section>"
     + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → 4", "同行する仲間を選ぶ")
     + "<p class=\"muted\">8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。</p>"
     + "<div class=\"character-grid\">" + characterCards + "</div></section>"
@@ -934,6 +945,24 @@ function handleAction(event) {
     return;
   }
 
+  if (action === "select-formation-character") {
+    const id = element.dataset.character;
+    if (!id || !state.roster.includes(id)) return;
+    state.selectedCharacter = id;
+    state.selectedSkillNode = null;
+    state.formationSelection = selectedFormationCharacter() === id ? null : id;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "clear-formation-selection") {
+    state.formationSelection = null;
+    saveState();
+    render();
+    return;
+  }
+
   if (action === "select-skill-node") {
     state.selectedSkillNode = element.dataset.skill || null;
     saveState();
@@ -957,6 +986,9 @@ function handleAction(event) {
         }
         state.loadout = nextLoadout;
         state.formation = normalizeFormation(state.formation, state.roster);
+        if (state.formationSelection === id) {
+          state.formationSelection = state.roster[0] ?? null;
+        }
         ensureSelectedCharacter();
         record("roster_changed", { roster: [...state.roster], removed: id });
       }
@@ -970,6 +1002,7 @@ function handleAction(event) {
       state.loadout.equipment[id] = [];
       state.formation = normalizeFormation(state.formation, state.roster);
       state.selectedCharacter = id;
+      state.formationSelection = id;
       record("roster_changed", { roster: [...state.roster], added: id });
     }
     saveState();
@@ -979,15 +1012,32 @@ function handleAction(event) {
 
   if (action === "place-character") {
     const position = element.dataset.position;
-    const id = selectedCharacter();
-    if (!POSITIONS.includes(position) || !id) return;
+    const id = selectedFormationCharacter();
+    if (!POSITIONS.includes(position)) return;
     const other = positionOwner(position);
+    if (!id) {
+      if (other) {
+        state.selectedCharacter = other;
+        state.formationSelection = other;
+        state.selectedSkillNode = null;
+        saveState();
+        render();
+      }
+      return;
+    }
+    if (other === id) {
+      state.formationSelection = null;
+      saveState();
+      render();
+      return;
+    }
     const oldPosition = state.formation[id];
     if (other && other !== id) {
       state.formation[other] = oldPosition;
     }
     state.formation[id] = position;
     state.formation = normalizeFormation(state.formation, state.roster);
+    state.formationSelection = null;
     record("formation_changed", { characterId: id, position, swappedWith: other });
     saveState();
     render();
