@@ -118,6 +118,36 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 
 **残っていないかを時々見る。** `ps -eo pid,etime,args --no-headers | grep "eval 'until"`
 
+### push ごとの検査（1分以内に保つ）
+
+**押すたびに走る検査は1分以内。** 長いもの、一度回せば十分なものは毎回走らせない。
+`analysis/check-all.sh` の `SLOW_CHECKS` に入れると、毎pushの経路から外れて
+**毎週日曜と手動実行**（`.github/workflows/exhaustive-checks.yml`）でだけ走る。
+
+予算は機械が見ている。`check-all.sh` は自分の所要時間を測り、
+`FAST_CHECK_BUDGET_MS`（既定60000）を超えたら落ちる。
+**超えたときに動かすのは予算ではなく、検査の置き場所。**
+どれが長いかは検査の出力に ms で出る。
+
+いま毎pushから外してあるもの（assertion は1つも削っていない。走る頻度だけを落としてある）:
+
+| 検査 | 実測 | 何を見ているか | いつ手で回すか |
+|---|---|---|---|
+| `analysis/smoke-trial.mjs` | 約19秒 | 対の釣り合い（詰みなし・順序が効く・両側遊べる） | `core/trial.mjs` `core/laws.mjs` を触ったとき |
+| `analysis/scrapline-run-policy-smoke.mjs` | 約6秒 | 愚直方策が後半判断を消さないこと | `scrapline/engine.mjs` の報酬・損耗を触ったとき |
+| `analysis/scrapline-balance-smoke.mjs` | 約45秒 | 全順序列 × 7区画の総当たり | 車両・敵の数値を触ったとき |
+| `analysis/scrapline-seed-regression.mjs` | 長い | 256 seed の敵順回帰 | seed生成・敵順を触ったとき |
+
+手で回すとき:
+
+```bash
+node analysis/smoke-trial.mjs                  # 1本だけ
+RUN_EXHAUSTIVE=1 bash analysis/check-all.sh    # 外したものも含めて全部（約4分半）
+```
+
+**公開前は全量を回す。** [HUMAN_TEST_RELEASE.md](./HUMAN_TEST_RELEASE.md) の条件を満たす前に、
+`RUN_EXHAUSTIVE=1` を一度通しておくこと。毎pushの緑は、外した4本については何も言っていない。
+
 ## 公開
 
 **手順（この順で）**
