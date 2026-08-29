@@ -180,12 +180,27 @@ mainの最新コミットは 3c0790c80d74ef0361dda06f21f806b5dbf6f3e0（2026-08-
 
 参照: SCRAPLINE_GAME_CONCEPT.md、SCRAPLINE_IMPLEMENTATION.md、SCRAPLINE_D1_PLAYTEST_20260829.md、SCRAPLINE_D1_PLAYTEST_20260829_CLEAR.md
 
+
+### EXP-18 — キャラクター主体の創発的ルール生態系（設計・実装待ち）
+
+- 問い: 少人数の永続キャラクター、汎用技能・装備、決定的な共通イベントを組み合わせると、設計者が完成コンボを列挙せずに一般的に強い構築と長期的な再解釈を生めるか。
+- R1/A1: 三拍・群れ・要塞・二正面の参照コアを実装。決定性と因果イベントは成立したが、敵別の分類問題であり本編コアとして棄却。
+- R2: 「局所可読・全体把握不能」、一般的な強さ、勝敗以外のトレードオフ、長いbuild arcへ転換。
+- R3: ガラクタ・機体主体を外し、永続人物と交換可能な技能・装備へ転換。
+- R4: 完成エンジンを先に設計せず、小規則と共通イベントから後で連鎖を発見するルール生態系へ修正。
+- R5: ecology/の決定的ルールエンジン、schema、停止検査、拡張検査、連鎖採掘を実装担当へ委譲できる仕様まで固定。
+- 現在の判断: 未検証。R2〜R5は設計であり、作者のfun/replay証拠ではない。UI・公開・人間テストへ進む前にA5 Gate A〜Fを実装する。
+- 持ち越し: 人物を愛着の主語にする。人名指定コンボを避ける。余剰回復、余剰ダメージ、対象変更、移動、未使用資源などを将来の拡張フックとして保存する。
+
+参照: [R2](experiments/exp-18/R2_CORE_REJECTION_AND_SYSTEM_SCALE.md)、[R3](experiments/exp-18/R3_CHARACTER_FIRST_CONTEXT.md)、[R4](experiments/exp-18/R4_EMERGENT_RULE_ECOLOGY_AND_LONG_TERM_EXPANSION.md)、[R5](experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md)
+
 ## 2. 研究・設計の統合
 
 - [難易度・複雑さ・面白さ](../research/difficulty_complexity_fun.md): 複雑さ、深さ、難易度を分ける。低複雑・高深度も可能で、複雑さを足すだけでは死んだ複雑さになる。
 - [面白さを難易度以外へ広げた整理](../research/fun_beyond_difficulty_2026-08-26.md): 熟達、発見、作者性、成長、感覚、物語、収集、謎、安心、社会の複数ループ。
 - [育成ゲームサーベイ](../research/raising_game_survey_2026-08-26.md): 関係→成長→目撃される試練。観察可能な相手と短期反応が必要。
 - [ランダム性を材料として使う整理](../research/randomness_as_material_survey.md): 素材の意味、コミットメント、可逆性、共通文法、結果の因果を設計軸にする。
+- [創発的ルール生態系と長期拡張可能なゲーム設計](../research/emergent_rule_ecology_and_extensible_game_design.md): 完成コンボを先に作らず、共通イベントと小規則から相互作用を育てる設計、長期互換、AI委譲の一般原則。
 - [RETROSPECTIVE](RETROSPECTIVE.md): 既存 8 ルールセットが同じ「5 スロットに置く→押す→眺める」骨格を共有し、差分が小さすぎた。
 
 ## 3. 次の実験を選ぶための未解決点
