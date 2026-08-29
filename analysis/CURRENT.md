@@ -1,7 +1,7 @@
 # 現在地 — 新しいエージェント向け短縮版
 
 更新日: 2026-08-29（UTC）
-対象: main（EXP-18 R5実装委譲票登録後）
+対象: main + branch claude/exp-18-r5-implementation-ye41p1（EXP-18 A5 ルールエンジン実装後）
 
 ## 1. 結論
 
@@ -22,7 +22,7 @@
 - 既定入口: /play/ — SKIP 0.4 / laws-0.5。比較基準として維持。
 - 最新の公開試作: /scrapline/ — SCRAPLINE 0.7 / scrapline-build-20260829-r12。不採択。
 - EXP-18 frontier/: R1の三拍参照コア。決定性と因果イベントの教材であり、本編コアとしては棄却。
-- ecology/: EXP-18 R5の新実装先。現時点では未実装で、公開・人間テスト対象ではない。
+- ecology/: EXP-18 R5の決定的ルールエンジン。実装済みでGate A〜F通過。UI・公開・D1・人間テストは持たない。面白さは証明していない。
 
 ルール版、build、schema、対象commitを混ぜずに扱います。
 
@@ -40,14 +40,16 @@ EXP-18 R2〜R5は、この観測後の設計仮説と実装委譲票です。作
 
 ## 4. 次にすること
 
-[EXP-18 R5](experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md)に従い、
-実装担当1名がecology/の純粋戦闘エンジンとGate A〜Fを実装します。
+[EXP-18 R5](experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md)の実装
+（A5）は完了し、Gate A〜Fを通過しました。結果は
+[A5_RULE_ENGINE/RESULT.md](experiments/exp-18/A5_RULE_ENGINE/RESULT.md)。
 
-現在の段階:
+次は設計担当へ戻ります。実装担当が決めないこととして残っているもの:
 
-1. Gate A: 反証レビューと要求トレーサビリティ。
-2. Gate B〜E: schema、決定性、停止、データ追加による拡張。
-3. Gate F: 構成とイベント連鎖の採掘。
+1. 仕様逸脱2件の可否（`is_event_source` フィルタの追加、装備修理のv2送り）。
+2. 本番コンテンツ（人物8名、技能・装備、初期敵、遠征の回復速度）。
+3. どのchain fingerprintを面白い候補とみなすか。
+4. UI・アート文脈と、人間テストへ出すbuild arc。
 4. 結果をanalysis/experiments/exp-18/A5_RULE_ENGINE/へ保存。
 5. 設計担当が結果を読み、本番人物・技能・装備・敵の設計へ戻る。
 

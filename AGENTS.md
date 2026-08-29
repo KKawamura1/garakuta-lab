@@ -75,6 +75,13 @@ Solの文書は**目的・不変条件・委任するHOW**を分ける。Terra�
 | **規則が変わったのに版が据え置きでないか** | `analysis/smoke-version.mjs` |
 | リロードで進行が壊れないか | `analysis/smoke-resume.mjs` |
 | **検査が全部通っているか（push ごと）** | `.github/workflows/checks.yml` |
+| **push ごとの検査が1分を超えていないか** | `analysis/check-all.sh` の `FAST_CHECK_BUDGET_MS` |
+| **毎pushから外した検査が、週次と手動の経路に残っているか** | `analysis/ci-mode-smoke.mjs` |
+
+**押すたびに走る検査は1分以内に保つ。** 長いもの、一度回せば十分なもの（総当たり、seed回帰、
+方策探索、釣り合い探索）は `analysis/check-all.sh` の `SLOW_CHECKS` へ入れ、毎週と手動だけで回す。
+**超えたときに動かすのは予算ではなく、検査の置き場所。** 手順と、いま外してあるものの一覧は
+[docs/OPERATIONS.md](./docs/OPERATIONS.md)「push ごとの検査」。公開前は `RUN_EXHAUSTIVE=1` を一度通す。
 
 **散文に書いたルールは落ちる。** 瞬間に発火するルールは機械へ移すこと。
 **そして、移したら鳴ることを確かめる。** リポジトリ側の hook はこの環境では呼ばれない

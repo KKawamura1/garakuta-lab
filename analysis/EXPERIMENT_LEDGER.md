@@ -181,7 +181,7 @@ mainの最新コミットは 3c0790c80d74ef0361dda06f21f806b5dbf6f3e0（2026-08-
 参照: SCRAPLINE_GAME_CONCEPT.md、SCRAPLINE_IMPLEMENTATION.md、SCRAPLINE_D1_PLAYTEST_20260829.md、SCRAPLINE_D1_PLAYTEST_20260829_CLEAR.md
 
 
-### EXP-18 — キャラクター主体の創発的ルール生態系（設計・実装待ち）
+### EXP-18 — キャラクター主体の創発的ルール生態系（基盤実装済み・未検証）
 
 - 問い: 少人数の永続キャラクター、汎用技能・装備、決定的な共通イベントを組み合わせると、設計者が完成コンボを列挙せずに一般的に強い構築と長期的な再解釈を生めるか。
 - R1/A1: 三拍・群れ・要塞・二正面の参照コアを実装。決定性と因果イベントは成立したが、敵別の分類問題であり本編コアとして棄却。
@@ -189,10 +189,13 @@ mainの最新コミットは 3c0790c80d74ef0361dda06f21f806b5dbf6f3e0（2026-08-
 - R3: ガラクタ・機体主体を外し、永続人物と交換可能な技能・装備へ転換。
 - R4: 完成エンジンを先に設計せず、小規則と共通イベントから後で連鎖を発見するルール生態系へ修正。
 - R5: ecology/の決定的ルールエンジン、schema、停止検査、拡張検査、連鎖採掘を実装担当へ委譲できる仕様まで固定。
-- 現在の判断: 未検証。R2〜R5は設計であり、作者のfun/replay証拠ではない。UI・公開・人間テストへ進む前にA5 Gate A〜Fを実装する。
+- A5: ecology/へ実装。Gate A〜F通過（5本のテスト、1608 checks、analysis/check-all.shから CI で鳴る）。エンジンに個別人物・技能・装備・敵の分岐は無く、Gate Eの4件はデータ追加だけで実現しエンジン差分は空。連鎖採掘は81 buildから96種のfingerprintを決定的に出した。
+- A5の監査レビュー: 初版の「未確認項目なし」は誤りで、5件の穴が出た。最も重かったのは stalemate 判定で、`round_number` を条件にした待機戦術を2ラウンド目のdrawで永久に発動不能にしていた（再現済み）。判定を撤去し、防壁の提案イベント・量変更の記録イベント・装備修理を追加し、同一装備の重複を禁止した。**反証レビューは「既存の分岐が恒偽か」を見たが、「実装した最適化が、まだ書いていないコンテンツを恒偽にしないか」を見ていなかった。**
+- A5の仕様逸脱: v1語彙への追加4件（filter `is_event_source`、event `barrier_proposed`、event `pending_amount_modified`、effect `repair_equipment` と event `equipment_repaired`）と、R5 §11.6 の任意項目 stalemate の撤去1件。いずれも §1.2 の不変条件は変えていない。
+- 現在の判断: 未検証。基盤は動くが、面白さの証拠は1件も無い。fingerprintが96種出たことは因果列が決定的でデータ追加で形が増えることの証拠であって、面白い組み合わせが96個ある証拠ではない。UI・公開・人間テストへは進んでいない。
 - 持ち越し: 人物を愛着の主語にする。人名指定コンボを避ける。余剰回復、余剰ダメージ、対象変更、移動、未使用資源などを将来の拡張フックとして保存する。
 
-参照: [R2](experiments/exp-18/R2_CORE_REJECTION_AND_SYSTEM_SCALE.md)、[R3](experiments/exp-18/R3_CHARACTER_FIRST_CONTEXT.md)、[R4](experiments/exp-18/R4_EMERGENT_RULE_ECOLOGY_AND_LONG_TERM_EXPANSION.md)、[R5](experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md)
+参照: [R2](experiments/exp-18/R2_CORE_REJECTION_AND_SYSTEM_SCALE.md)、[R3](experiments/exp-18/R3_CHARACTER_FIRST_CONTEXT.md)、[R4](experiments/exp-18/R4_EMERGENT_RULE_ECOLOGY_AND_LONG_TERM_EXPANSION.md)、[R5](experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md)、[A5 PREFLIGHT](experiments/exp-18/A5_RULE_ENGINE/PREFLIGHT.md)、[A5 GATE_RESULTS](experiments/exp-18/A5_RULE_ENGINE/GATE_RESULTS.md)、[A5 RESULT](experiments/exp-18/A5_RULE_ENGINE/RESULT.md)、[ecology/README](../ecology/README.md)
 
 ## 2. 研究・設計の統合
 
