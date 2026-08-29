@@ -13,6 +13,8 @@ import {
   removeSkill,
 } from "./playable-battles.mjs";
 
+const PLAYABLE_ENGINE_OPTIONS = { equipmentBreaks: false, captureReplaySnapshots: true };
+
 assert.deepEqual(validateContentBundle(PLAYABLE_CONTENT), []);
 assert.equal(CHARACTER_OPTIONS.length, 8);
 assert.equal(Object.keys(SKILLS.active).length, 12);
@@ -71,11 +73,34 @@ assert.deepEqual(
 for (let stage = 1; stage <= 7; stage += 1) {
   const battle = makeBattle(stage, roster, loadout, "frontier-test", formation);
   assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), [], "stage " + stage);
-  const first = simulateBattle(battle, PLAYABLE_CONTENT);
-  const second = simulateBattle(battle, PLAYABLE_CONTENT);
+  const first = simulateBattle(battle, PLAYABLE_CONTENT, PLAYABLE_ENGINE_OPTIONS);
+  const second = simulateBattle(battle, PLAYABLE_CONTENT, PLAYABLE_ENGINE_OPTIONS);
   assert.deepEqual(first, second, "stage " + stage + " must replay deterministically");
   assert.ok(first.events.length > 0);
+  assert.equal(first.replaySnapshots.length, first.events.length);
 }
+
+const terminalResult = simulateBattle(
+  makeBattle(1, roster, loadout, "frontier-terminal", formation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+const lastEnemyDefeat = Math.max(
+  ...terminalResult.events.map((event, index) =>
+    event.type === "actor_defeated" && event.values?.side === "enemy" ? index : -1
+  ),
+);
+const battleEnded = terminalResult.events.findIndex(
+  (event, index) => index > lastEnemyDefeat && event.type === "battle_ended",
+);
+assert.ok(battleEnded > lastEnemyDefeat, "battle must end after the final enemy defeat");
+assert.equal(
+  terminalResult.events
+    .slice(lastEnemyDefeat + 1, battleEnded)
+    .some((event) => ["actor_activated", "action_declared", "target_selected", "action_started"].includes(event.type)),
+  false,
+  "no new actor action may start after the final enemy defeat",
+);
 
 // The original R5 fixture contains an intentionally free-looping idle_shuffle.
 // The playable bundle must keep old saves safe and must not make the pivot's
@@ -88,16 +113,16 @@ const pivotFormation = {
   pivot: "rear_right",
 };
 const pivotBattle = makeBattle(1, pivotRoster, freshLoadout(pivotRoster), "frontier-pivot", pivotFormation);
-const pivotResult = simulateBattle(pivotBattle, PLAYABLE_CONTENT);
+const pivotResult = simulateBattle(pivotBattle, PLAYABLE_CONTENT, PLAYABLE_ENGINE_OPTIONS);
 assert.ok(pivotResult.events.length < 4096, "pivot starter build must not hit the event cap");
 
 const legacyLoadout = freshLoadout(pivotRoster);
 legacyLoadout.tactics.pivot = ["idle_shuffle", "strike"];
 const legacyBattle = makeBattle(1, pivotRoster, legacyLoadout, "frontier-legacy", pivotFormation);
-const legacyResult = simulateBattle(legacyBattle, PLAYABLE_CONTENT);
+const legacyResult = simulateBattle(legacyBattle, PLAYABLE_CONTENT, PLAYABLE_ENGINE_OPTIONS);
 assert.ok(legacyResult.events.length < 4096, "old idle_shuffle saves must remain safe");
 
-const targetCheck = simulateBattle(firstBattle, PLAYABLE_CONTENT);
+const targetCheck = simulateBattle(firstBattle, PLAYABLE_CONTENT, PLAYABLE_ENGINE_OPTIONS);
 const marksmanTarget = targetCheck.events.find((event) =>
   event.type === "target_selected" && event.sourceActorId === "e_marksman"
 );
@@ -107,5 +132,27 @@ const targetedActor = targetCheck.actors.find((actor) =>
   actor.instanceId === marksmanTarget.targetIds?.[0]
 );
 assert.equal(targetedActor?.position, "rear_left");
+
+const depletedLoadout = freshLoadout(roster);
+const depletedEquip = equipEquipment(depletedLoadout, "warden", "hungry_plate", 0);
+assert.equal(depletedEquip.ok, true);
+const depletedBattle = makeBattle(
+  1,
+  roster,
+  depletedEquip.loadout,
+  "frontier-depleted",
+  formation,
+  { hp: {}, equipmentDurability: { hungry_plate: 1 } },
+);
+const depletedResult = simulateBattle(depletedBattle, PLAYABLE_CONTENT, PLAYABLE_ENGINE_OPTIONS);
+const depletedItem = depletedResult.equipment.find((item) => item.equipmentId === "hungry_plate");
+assert.equal(depletedItem?.durability, 0, "playable equipment may be depleted during a battle");
+assert.equal(depletedItem?.broken, false, "playable equipment must not be marked broken");
+assert.equal(
+  depletedResult.events.some((event) => event.type === "equipment_broken"),
+  false,
+  "playable depletion must not emit a break event",
+);
+assert.equal(depletedResult.replaySnapshots.length, depletedResult.events.length);
 
 console.log("full prototype: roster, formation, 12+12 skills, 18 equipment, targeting, 7 stages, deterministic replay passed");

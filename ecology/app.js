@@ -24,8 +24,8 @@ import {
 import { POSITIONS } from "./schema.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 
-const VERSION = "EXP-18 Full prototype 0.1";
-const SAVE_KEY = "exp18-full-prototype-v01";
+const VERSION = "EXP-18 Full prototype 0.2";
+const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
   front_left: "前列左",
@@ -75,6 +75,22 @@ const replayTypes = new Set([
 
 let replayTimer = null;
 
+const STARTING_SKILL_POINTS = 2;
+
+function initialSkillPoints() {
+  return Object.fromEntries(CHARACTER_OPTIONS.map((option) => [option.id, STARTING_SKILL_POINTS]));
+}
+
+function normalizeSkillPoints(value) {
+  const defaults = initialSkillPoints();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return defaults;
+  for (const option of CHARACTER_OPTIONS) {
+    const points = Number(value[option.id]);
+    if (Number.isFinite(points)) defaults[option.id] = Math.max(0, Math.floor(points));
+  }
+  return defaults;
+}
+
 function defaultMeta() {
   const unlocked = {};
   for (const option of CHARACTER_OPTIONS) unlocked[option.id] = initialUnlockedSkills(option.id);
@@ -89,7 +105,7 @@ function defaultMeta() {
   const equipmentDurability = {};
   for (const id of ownedEquipment) equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
   return {
-    skillPoints: 10,
+    skillPoints: initialSkillPoints(),
     unlocked,
     ownedEquipment,
     equipmentDurability,
@@ -141,11 +157,11 @@ function newRunState(meta) {
     selectedEquipment: null,
     lastResult: null,
     replayEvents: [],
+    replaySnapshots: [],
     replayIndex: 0,
     replayPlaying: false,
     results: [],
     runEvents: [],
-    battleSnapshot: null,
     battleError: null,
     feedback: null,
     error: null,
@@ -168,21 +184,26 @@ function loadState() {
     const next = { ...fresh, ...saved };
     const meta = { ...defaultMeta(), ...(saved.meta || {}) };
     meta.unlocked = { ...defaultMeta().unlocked, ...(saved.meta?.unlocked || {}) };
+    meta.skillPoints = normalizeSkillPoints(saved.meta?.skillPoints);
     meta.ownedEquipment = Array.isArray(saved.meta?.ownedEquipment)
       ? saved.meta.ownedEquipment.filter((id) => EQUIPMENT[id])
       : meta.ownedEquipment;
     meta.equipmentDurability = { ...defaultMeta().equipmentDurability, ...(saved.meta?.equipmentDurability || {}) };
+    for (const id of meta.ownedEquipment) {
+      meta.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
+    }
     next.meta = meta;
     next.roster = Array.isArray(next.roster)
       ? next.roster.filter((id) => characterInfo(id)).slice(0, 4)
       : fresh.roster;
     next.formation = normalizeFormation(next.formation, next.roster);
     next.loadout = next.loadout || freshLoadout(next.roster);
-    next.hp = next.hp && typeof next.hp === "object" ? next.hp : {};
+    next.hp = Object.fromEntries(CHARACTER_OPTIONS.map((option) => [option.id, maxHp(option.id)]));
     next.results = Array.isArray(next.results) ? next.results : [];
     next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
     next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
     next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
+    next.replaySnapshots = Array.isArray(next.replaySnapshots) ? next.replaySnapshots : [];
     next.selectedSkillNode = next.selectedSkillNode || null;
     next.battleError = next.battleError || null;
     return next;
@@ -274,6 +295,17 @@ function equipmentDurability(equipmentId) {
   return Math.max(0, state.meta.equipmentDurability[equipmentId] ?? EQUIPMENT[equipmentId]?.maxDurability ?? 1);
 }
 
+function skillPointsFor(characterId) {
+  return Math.max(0, Math.floor(Number(state.meta.skillPoints?.[characterId] ?? STARTING_SKILL_POINTS)));
+}
+
+function resetBattleResources() {
+  for (const option of CHARACTER_OPTIONS) state.hp[option.id] = maxHp(option.id);
+  for (const id of state.meta.ownedEquipment) {
+    state.meta.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
+  }
+}
+
 function isUnlocked(characterId, skillId) {
   return (state.meta.unlocked?.[characterId] || []).includes(skillId);
 }
@@ -298,9 +330,10 @@ function sectionHeading(eyebrow, title, right = "") {
 }
 
 function campNav() {
+  const skillCharacter = selectedCharacter();
   const tabs = [
     ["roster", "編成", state.roster.length + "/4"],
-    ["skills", "スキル", "残り" + state.meta.skillPoints + "pt"],
+    ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
     ["equipment", "装備", state.roster.reduce((total, id) => total + (state.loadout.equipment?.[id] || []).length, 0) + "/" + (state.roster.length * 2)],
     ["map", "戦闘", state.stage + "/7"],
   ];
@@ -419,7 +452,8 @@ function memberTabs(characterId) {
     + (id === characterId ? "active" : "") + "\" aria-pressed=\"" + (id === characterId ? "true" : "false")
     + "\" data-action=\"select-character\" data-character=\"" + id
     + "\"><span class=\"avatar small\">" + esc(characterInfo(id)?.icon ?? "・") + "</span>"
-    + "<span>" + characterName(id) + "<small>" + positionText(state.formation[id]) + "</small></span></button>").join("") + "</div>";
+    + "<span>" + characterName(id) + "<small>" + positionText(state.formation[id]) + " · "
+    + skillPointsFor(id) + "pt</small></span></button>").join("") + "</div>";
 }
 
 function memberContext(characterId, emphasis = "skills") {
@@ -448,7 +482,7 @@ function renderSkillNode(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
   const equipped = installedSkill(characterId, node.skillId, node.kind);
   const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
-  const canUnlock = !unlocked && prereqsMet && state.meta.skillPoints >= node.cost;
+  const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
   const selected = state.selectedSkillNode === node.skillId;
   let status = "ロック";
   let action = "";
@@ -493,7 +527,7 @@ function renderSkillBranch(branch, characterId) {
 
 function renderSkills() {
   const characterId = selectedCharacter();
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>残り技能点</small><b>" + state.meta.skillPoints + "</b></span>";
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の残り技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
   const branches = ["攻撃", "指揮", "支援", "守り"].map((branch) => renderSkillBranch(branch, characterId)).join("");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / 24 NODES", "誰を伸ばす？", pointsBadge)
     + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・装備を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
@@ -513,7 +547,7 @@ function equipmentSlotHtml(characterId, slot) {
   const canInstall = Boolean(selected && selected !== equipmentId);
   const label = equipmentId ? nameFor(equipmentId) : "空き枠";
   const detail = equipmentId
-    ? "耐久 " + equipmentDurability(equipmentId) + " / " + (EQUIPMENT[equipmentId]?.maxDurability ?? 1)
+    ? "戦闘耐久 " + equipmentDurability(equipmentId) + " / " + (EQUIPMENT[equipmentId]?.maxDurability ?? 1)
     : selected ? "選択中の装備をここへ" : "装備を選んでください";
   return "<div class=\"equipment-slot\"><button type=\"button\" class=\"equip-slot-button "
     + (canInstall ? "ready" : "") + "\" data-action=\"" + (canInstall ? "equip-equipment" : "select-character")
@@ -531,11 +565,11 @@ function renderEquipment() {
     const isSelected = selected === id;
     const max = EQUIPMENT[id]?.maxDurability ?? 1;
     const durability = equipmentDurability(id);
-    return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " broken" : "")
+    return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " depleted" : "")
       + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
       + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(EQUIPMENT[id]?.label ?? id)
       + "</b><small>" + esc(EQUIPMENT[id]?.effect ?? "") + "</small></span><span class=\"gear-state\">"
-      + (owner ? characterName(owner) : "手元") + "<br>" + durability + "/" + max + "</span></button>"
+      + (owner ? characterName(owner) : "手元") + "<br>戦闘耐久 " + durability + "/" + max + "</span></button>"
       + "</article>";
   }).join("");
   const codex = Object.keys(EQUIPMENT).filter((id) => !state.meta.ownedEquipment.includes(id)).map((id) =>
@@ -547,7 +581,7 @@ function renderEquipment() {
     + esc(positionText(state.formation[id])) + " · 2装備枠</small></span><span class=\"member-focus\">" + (id === characterId ? "選択中" : "選ぶ") + "</span></button><div class=\"equipment-slots\">"
     + equipmentSlotHtml(id, 0) + equipmentSlotHtml(id, 1) + "</div></article>").join("");
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT / 2 SLOTS EACH", "実物を組み替える", "<span class=\"stage\">"
-    + state.meta.ownedEquipment.length + " / " + Object.keys(EQUIPMENT).length + "</span>") + "<p class=\"muted\">装備は共有インベントリの実物です。選択してから仲間の枠をタップすると移動します。戦闘で耐久が減り、壊れても所持は失いません。</p>"
+    + state.meta.ownedEquipment.length + " / " + Object.keys(EQUIPMENT).length + "</span>") + "<p class=\"muted\">装備は共有インベントリの実物です。選択してから仲間の枠をタップすると移動します。戦闘中に耐久が減り、0になるとその装備の効果が止まります。破損はせず、戦闘終了後に最大へ戻ります。</p>"
     + memberTabs(characterId) + memberContext(characterId, "equipment")
     + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? EQUIPMENT[selected]?.label ?? selected : "なし")
     + "</b> · " + (selected ? "下の枠をタップして装着" : "上の装備をタップ") + "</p>"
@@ -587,7 +621,7 @@ function renderMap() {
     + "<p class=\"muted\">敵ごとに狙いが違います。前列を守るだけでなく、後列優先・準備中優先の攻撃もあります。戦闘前に確認し、隊列とリアクティブを組み直してください。</p>"
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
       + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">勝利するとHPと装備耐久を持ち越します。報酬を1つ選び、次の区画へ進みます。敗北時は戦闘前の状態へ戻って構成を練り直せます。</p></section>";
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">戦闘中のHPと装備耐久は、その戦闘の中だけ有効です。勝敗が決まるとHPと装備耐久は最大へ戻ります。報酬を1つ選び、次の区画へ進みます。</p></section>";
 }
 
 function renderBattlePreview() {
@@ -666,6 +700,17 @@ function compactEvents(events) {
   return (events || []).filter((event) => replayTypes.has(event.type));
 }
 
+function compactReplay(result) {
+  const events = [];
+  const snapshots = [];
+  (result?.events || []).forEach((event, index) => {
+    if (!replayTypes.has(event.type)) return;
+    events.push(event);
+    snapshots.push(result.replaySnapshots?.[index] ?? null);
+  });
+  return { events, snapshots };
+}
+
 function renderReplayActor(actor) {
   return "<div class=\"replay-actor " + (actor.alive ? "" : "defeated") + "\"><span class=\"avatar small\">"
     + esc(characterInfo(actor.definitionId)?.icon ?? (actor.side === "enemy" ? "◆" : "・"))
@@ -680,7 +725,7 @@ function renderBattle() {
   const current = events[index];
   const visible = events.slice(Math.max(0, index - 11), index + 1).reverse();
   const percent = events.length ? Math.round(((index + 1) / events.length) * 100) : 100;
-  const actors = result ? result.actors || [] : [];
+  const actors = state.replaySnapshots?.[index] || (result ? result.actors || [] : []);
   const allies = actors.filter((actor) => actor.side === "ally").map(renderReplayActor).join("");
   const enemies = actors.filter((actor) => actor.side === "enemy").map(renderReplayActor).join("");
   const controls = state.replayPlaying
@@ -733,8 +778,8 @@ function resultActors(result) {
   return (result?.actors || []).filter((actor) => actor.side === "ally").map((actor) =>
     "<div class=\"result-actor\"><span class=\"avatar small\">" + esc(characterInfo(actor.definitionId)?.icon ?? "・")
       + "</span><div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
-      + (actor.alive ? "HP " + actor.hp + "/" + actor.maxHp : "戦闘不能")
-      + " · 防壁 " + actor.barrier + "</small></div></div>").join("");
+      + (actor.alive ? "戦闘内 HP " + actor.hp + "/" + actor.maxHp : "戦闘内 戦闘不能")
+      + " → 次戦 HP " + actor.maxHp + "/" + actor.maxHp + " · 防壁 " + actor.barrier + "</small></div></div>").join("");
 }
 
 function renderResult() {
@@ -751,7 +796,8 @@ function renderResult() {
     : button("構成を見直す", "retry-build", false, "button primary");
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(EQUIPMENT[item.equipmentId]?.label ?? item.equipmentId) + "</b><span>"
-    + item.durability + " / " + item.maxDurability + (item.broken ? " · 壊れた" : "") + "</span></div>").join("");
+    + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
+    + item.maxDurability + " / " + item.maxDurability + "</span></div>").join("");
   return shell(won ? "突破した" : "足を止めた", encounterInfo(state.stage).name + " · " + result.roundsUsed + "ラウンド", "<section class=\"card verdict "
     + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">" + (won ? "✓" : "×")
     + "</div><h2>" + (won ? "この組み合わせは通った" : "この組み合わせでは届かなかった")
@@ -759,7 +805,8 @@ function renderResult() {
     + "</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
     + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
     + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div></section>"
-    + "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "味方の状態") + "<div class=\"result-actors\">"
+    + "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "次の区画へ持ち越す状態")
+    + "<p class=\"muted\">戦闘中のHPと装備耐久は次の区画へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。</p><div class=\"result-actors\">"
     + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section><section class=\"card\">" + sectionHeading("CAUSE & EFFECT", "何が起きたか", "<span class=\"count\">"
     + shown.length + (shown.length === events.length ? "" : " / " + events.length) + " events</span>")
@@ -774,16 +821,14 @@ function renderReward() {
     const info = EQUIPMENT[id];
     return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
       + esc(info?.label ?? id) + "</h3><p>" + esc(info?.effect ?? "") + "</p><small>"
-      + esc(info?.grammar ?? "") + " · 耐久 " + (info?.maxDurability ?? 1) + "</small>"
+      + esc(info?.grammar ?? "") + " · 戦闘耐久 " + (info?.maxDurability ?? 1) + "</small>"
       + button("拾って次へ", "take-reward", false, "button", "data-equipment=\"" + id + "\"") + "</article>";
   }).join("");
   return shell("報酬を選ぶ", encounterInfo(state.stage).name + "を突破 · 次の区画へ", "<section class=\"card\">"
-    + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？") + "<p class=\"muted\">装備は共有インベントリに入り、次のキャンプで誰に持たせるかを決めます。装備を取らず、技能点や休息を選ぶこともできます。</p>"
+    + sectionHeading("REWARD / 4 → 1", "何を持ち帰る？") + "<p class=\"muted\">装備3候補から1つ選ぶか、参加・不参加を問わず8人全員へ技能点を配ります。</p>"
     + "<div class=\"reward-grid\">" + offers + "</div><div class=\"reward-special\">"
-    + "<article class=\"reward-card special\"><div class=\"reward-kind kind-active\">成長</div><h3>技能点 +2</h3><p>キャンプへ戻り、誰かのスキルツリーを2段進める。</p>"
-    + button("技能点を取る", "take-skill-reward", false, "button") + "</article>"
-    + "<article class=\"reward-card special\"><div class=\"reward-kind kind-reactive\">休息</div><h3>短い休息</h3><p>全員のHPを5回復し、全装備を1修理する。</p>"
-    + button("休息する", "take-rest-reward", false, "button") + "</article></div></section>");
+    + "<article class=\"reward-card special\"><div class=\"reward-kind kind-active\">成長</div><h3>全員の技能点 +2</h3><p>8人全員のスキルツリーを2点ずつ進められる。</p>"
+    + button("全員に技能点を配る", "take-skill-reward", false, "button") + "</article></div></section>");
 }
 
 function renderComplete() {
@@ -807,18 +852,6 @@ function renderComplete() {
     + "<p id=\"feedback-status\" class=\"hint\">D1へ送信すると、編成・技能・装備・戦闘イベントも一緒に保存されます。</p></section>");
 }
 
-function updateMetaDurability(result) {
-  for (const item of result.equipment || []) {
-    state.meta.equipmentDurability[item.equipmentId] = item.durability;
-  }
-}
-
-function updateHpFromResult(result) {
-  for (const actor of result.actors || []) {
-    if (actor.side === "ally") state.hp[actor.definitionId] = actor.hp;
-  }
-}
-
 function startReplayTimer() {
   replayTimer = setInterval(() => {
     if (!state.replayPlaying) return;
@@ -839,6 +872,7 @@ function advanceAfterReward() {
   state.rewardOffer = [];
   state.lastResult = null;
   state.replayEvents = [];
+  state.replaySnapshots = [];
   state.replayIndex = 0;
   state.replayPlaying = false;
   state.phase = "camp";
@@ -967,10 +1001,10 @@ function handleAction(event) {
     if (!node || isUnlocked(characterId, skillId)) return;
     if (!node.requires.every((required) => isUnlocked(characterId, required))) {
       state.error = "前提技能がまだ解禁されていません。";
-    } else if (state.meta.skillPoints < node.cost) {
+    } else if (skillPointsFor(characterId) < node.cost) {
       state.error = "技能点が足りません。";
     } else {
-      state.meta.skillPoints -= node.cost;
+      state.meta.skillPoints[characterId] = skillPointsFor(characterId) - node.cost;
       state.meta.unlocked[characterId] = [...new Set([...(state.meta.unlocked[characterId] || []), skillId])];
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
     }
@@ -1069,7 +1103,7 @@ function handleAction(event) {
       state.tab = "roster";
     } else {
       state.formation = normalizeFormation(state.formation, state.roster);
-      state.battleSnapshot = { hp: clone(state.hp), equipmentDurability: clone(state.meta.equipmentDurability) };
+      resetBattleResources();
       state.battleError = null;
       record("loadout_confirmed", {
         stage: state.stage,
@@ -1096,9 +1130,14 @@ function handleAction(event) {
         { hp: state.hp, equipmentDurability: state.meta.equipmentDurability },
       );
       record("battle_started", { stage: state.stage, battleId: battle.battleId });
-      const result = simulateBattle(battle, PLAYABLE_CONTENT);
+      const result = simulateBattle(battle, PLAYABLE_CONTENT, {
+        equipmentBreaks: false,
+        captureReplaySnapshots: true,
+      });
       state.lastResult = result;
-      state.replayEvents = compactEvents(result.events);
+      const replay = compactReplay(result);
+      state.replayEvents = replay.events;
+      state.replaySnapshots = replay.snapshots;
       state.replayIndex = 0;
       state.replayPlaying = true;
       state.results = [...state.results, {
@@ -1122,13 +1161,7 @@ function handleAction(event) {
         reason: result.reason,
         roundsUsed: result.roundsUsed,
       });
-      if (result.result === "win") {
-        updateHpFromResult(result);
-        updateMetaDurability(result);
-      } else if (state.battleSnapshot) {
-        state.hp = clone(state.battleSnapshot.hp);
-        state.meta.equipmentDurability = clone(state.battleSnapshot.equipmentDurability);
-      }
+      resetBattleResources();
       state.phase = "battle";
     } catch (error) {
       state.error = error.message;
@@ -1151,6 +1184,7 @@ function handleAction(event) {
           recentEvents: diagnostics.recentEvents ?? [],
         },
       };
+      resetBattleResources();
       state.error = null;
       state.phase = "battleError";
     }
@@ -1221,21 +1255,15 @@ function handleAction(event) {
   }
 
   if (action === "take-skill-reward") {
-    state.meta.skillPoints += 2;
-    record("reward_taken", { stage: state.stage, reward: "skill_points", amount: 2 });
-    advanceAfterReward();
-    return;
-  }
-
-  if (action === "take-rest-reward") {
-    for (const id of state.roster) state.hp[id] = Math.min(maxHp(id), currentHp(id) + 5);
-    for (const id of state.meta.ownedEquipment) {
-      state.meta.equipmentDurability[id] = Math.min(
-        EQUIPMENT[id]?.maxDurability ?? 1,
-        equipmentDurability(id) + 1,
-      );
+    for (const option of CHARACTER_OPTIONS) {
+      state.meta.skillPoints[option.id] = skillPointsFor(option.id) + 2;
     }
-    record("reward_taken", { stage: state.stage, reward: "rest", heal: 5, repair: 1 });
+    record("reward_taken", {
+      stage: state.stage,
+      reward: "skill_points",
+      amount: 2,
+      recipients: CHARACTER_OPTIONS.map((option) => option.id),
+    });
     advanceAfterReward();
     return;
   }
@@ -1287,7 +1315,7 @@ function handleAction(event) {
         seed: state.runSeed,
         stageCount: state.stage,
         ruleset: PLAYABLE_CONTENT.contentVersion,
-        skillPoints: state.meta.skillPoints,
+        skillPoints: clone(state.meta.skillPoints),
         results: state.results,
         finalResult,
       },

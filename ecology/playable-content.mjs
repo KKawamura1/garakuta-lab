@@ -309,7 +309,7 @@ enemyActors.ash_core = cloneEnemy("husk_bulwark", "ash_core", sectionNames.enemy
 
 export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
-  contentVersion: "ecology-playable-full-0.1",
+  contentVersion: "ecology-playable-full-0.2",
   characters,
   activeSkills,
   reactiveSkills,
