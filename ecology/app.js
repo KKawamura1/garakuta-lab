@@ -200,7 +200,7 @@ function renderBattle() {
 
 function actorName(id) {
   const actor = state.lastResult?.actors?.find((entry) => entry.instanceId === id);
-  return actor?.displayName ?? nameFor(id);
+  return String(actor?.displayName ?? nameFor(id)).split(" — ")[0];
 }
 
 function targetNames(ids) {
@@ -218,13 +218,16 @@ function eventText(event) {
   const reactionId = values.reactiveSkillId || event.reactiveSkillId;
   const reaction = reactionId ? nameFor(reactionId) : "反応";
   const round = event.round ?? values.round ?? "-";
+  const resourceLabel = (resource) => ({ action_points: "行動権", reaction_points: "RP" }[resource] ?? resource ?? "資源");
+  const targetLabel = target && target === source ? "自分" : target || "相手";
+  const cause = event.ruleId && event.sourceDefinitionId ? `（${nameFor(event.sourceDefinitionId)}）` : "";
   const map = {
     battle_started: "戦闘開始",
     round_started: `ラウンド${round}開始`,
     actor_activated: `${source}が動き出す`,
     action_declared: `${source}が${skill}を選んだ`,
-    target_selected: `${source}が${target || "相手"}を狙う`,
-    target_changed: `狙いが${target || "変更"}になった`,
+    target_selected: `${source}が${targetLabel}を狙う`,
+    target_changed: `狙いが${targetLabel}になった`,
     action_cost_paid: `${source}が${skill}のコストを払った`,
     action_started: `${source}の${skill}が始まる`,
     action_resolved: `${source}の${skill}が解決した`,
@@ -245,10 +248,10 @@ function eventText(event) {
     barrier_proposed: `${target || source}に防壁の提案${amountText}`,
     barrier_gained: `${target || source}に防壁が生まれた${amountText}`,
     barrier_expired: `${target || source}の防壁が消えた`,
-    resource_refreshed: `${source}の${values.resource || "資源"}が戻った`,
-    resource_spent: `${source}が${values.resource || "資源"}を使った${amountText}`,
-    resource_gained: `${target || source}が${values.resource || "資源"}を得た${amountText}`,
-    resource_unused: `${source}の${values.resource || "資源"}が余った${amountText}`,
+    resource_refreshed: `${source}の${resourceLabel(values.resource)}が戻った`,
+    resource_spent: `${source}が${resourceLabel(values.resource)}を使った${amountText}`,
+    resource_gained: `${target || source}が${resourceLabel(values.resource)}を得た${amountText}`,
+    resource_unused: `${source}の${resourceLabel(values.resource)}が余った${amountText}`,
     actor_moved: `${source}が位置を替えた`,
     status_added: `${target || source}に状態が加わった`,
     status_removed: `${target || source}の状態が外れた`,
@@ -258,16 +261,16 @@ function eventText(event) {
     actor_defeated: `${source}が倒れた`,
     battle_ended: `戦闘終了 · ${values.result || "決着"}`,
   };
-  if (event.type === "reaction_fired" || event.type === "rule_triggered") return `${source}の${reaction}が発火`;
-  return map[event.type] || `${event.type}${amountText}`;
+  if (event.type === "reaction_fired" || event.type === "rule_triggered") return `${source}の${reaction}が発火${cause}`;
+  return `${map[event.type] || `${event.type}${amountText}`}${cause}`;
 }
 
 const readableEvents = new Set([
-  "actor_activated", "action_declared", "target_selected", "target_changed", "action_started", "action_resolved",
-  "action_skipped", "preparation_started", "preparation_advanced", "preparation_completed", "damage_taken",
-  "healing_applied", "excess_damage", "excess_healing", "barrier_gained", "resource_gained", "resource_spent",
-  "resource_unused", "actor_moved", "status_added", "equipment_worn", "equipment_broken", "equipment_repaired",
-  "actor_defeated", "battle_ended", "reaction_fired", "rule_triggered",
+  "action_declared", "target_changed", "action_started", "action_skipped", "preparation_started",
+  "preparation_advanced", "preparation_completed", "damage_taken", "healing_applied", "excess_damage",
+  "excess_healing", "barrier_gained", "resource_gained", "resource_spent", "actor_moved", "status_added",
+  "equipment_worn", "equipment_broken", "equipment_repaired", "actor_defeated", "reaction_fired", "rule_triggered",
+  "battle_ended",
 ]);
 
 function renderResult() {
@@ -277,9 +280,11 @@ function renderResult() {
   const metrics = result.metrics || {};
   const events = (result.events || []).filter((event) => readableEvents.has(event.type));
   const eventRows = events.length ? events : (result.events || []).slice(-20);
-  const eventHtml = eventRows.map((event) => `<li class="event"><span class="event-round">R${event.round ?? "-"}</span><span>${esc(eventText(event))}</span></li>`).join("");
+  const displayEvents = eventRows.length > 40 ? [...eventRows.slice(0, 34), ...eventRows.slice(-6)] : eventRows;
+  const eventHtml = displayEvents.map((event) => `<li class="event"><span class="event-round">R${event.round ?? "-"}</span><span>${esc(eventText(event))}</span></li>`).join("");
+  const eventCount = displayEvents.length === eventRows.length ? `${eventRows.length}` : `${displayEvents.length} / ${eventRows.length}`;
   const nextAction = won ? (state.stage >= 3 ? button("遠征結果を見る", "complete", false, "button primary") : button("次の部材を見る", "rewards", false, "button primary")) : button("構成に戻る", "back-build", false, "button primary");
-  return shell(won ? "突破した" : "足を止めた", `${encounterLabel(state.stage)} · ${result.roundsUsed}ラウンド`, `<section class="card verdict ${won ? "win" : "loss"}"><div class="verdict-mark">${won ? "✓" : "×"}</div><h2>${won ? "この組み合わせは通った" : "この組み合わせでは届かなかった"}</h2><p>${won ? "部材の因果を確認し、次の報酬でさらに改造できます。" : "優先順か、部材を付ける相手を見直せます。"}</p><div class="metrics"><span><b>${metrics.allyHpLost ?? 0}</b><small>味方HP損失</small></span><span><b>${metrics.equipmentWear ?? 0}</b><small>装備摩耗</small></span><span><b>${metrics.reactionsFired ?? 0}</b><small>反応発火</small></span></div></section><section class="card"><div class="section-head"><div><p class="eyebrow">CAUSE & EFFECT</p><h2>何が起きたか</h2></div><span class="count">${eventRows.length} events</span></div><ol class="events">${eventHtml}</ol><details><summary>全イベントを見る</summary><pre>${esc((result.events || []).map(eventText).join("\n"))}</pre></details></section>${nextAction}`);
+  return shell(won ? "突破した" : "足を止めた", `${encounterLabel(state.stage)} · ${result.roundsUsed}ラウンド`, `<section class="card verdict ${won ? "win" : "loss"}"><div class="verdict-mark">${won ? "✓" : "×"}</div><h2>${won ? "この組み合わせは通った" : "この組み合わせでは届かなかった"}</h2><p>${won ? "部材の因果を確認し、次の報酬でさらに改造できます。" : "優先順か、部材を付ける相手を見直せます。"}</p><div class="metrics"><span><b>${metrics.allyHpLost ?? 0}</b><small>味方HP損失</small></span><span><b>${metrics.equipmentWear ?? 0}</b><small>装備摩耗</small></span><span><b>${metrics.reactionsFired ?? 0}</b><small>反応発火</small></span></div></section><section class="card"><div class="section-head"><div><p class="eyebrow">CAUSE & EFFECT</p><h2>何が起きたか</h2></div><span class="count">${eventCount} events</span></div><ol class="events">${eventHtml}</ol><details><summary>全イベントを見る</summary><pre>${esc((result.events || []).map(eventText).join("\n"))}</pre></details></section>${nextAction}`);
 }
 
 function renderReward() {
