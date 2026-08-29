@@ -4,6 +4,9 @@ name: Ecology trial (deployed)
 # Claude が動く箱からは pages.dev へ出られない（egress ブロック）ので、
 # docs/HUMAN_TEST_RELEASE.md の「本番E2E」は、同じ台本をここから走らせて満たす。
 # 台本は analysis/ecology-trial.mjs（手元では localhost、ここでは公開先を見る）。
+#
+# **push でも走らせる。** workflow_dispatch は既定ブランチに置かれるまで叩けず、
+# 「作者へ渡す前に公開先を確かめる」がブランチ上で成り立たなくなるため。
 
 on:
   workflow_dispatch:
@@ -14,10 +17,18 @@ on:
         default: ""
         type: string
       expect_build:
-        description: "画面に出ているべき build の印（例 00aeeaa）。空なら照合しない"
+        description: "公開先が出しているべき build の印。空なら core/build.mjs から読む"
         required: false
         default: ""
         type: string
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "ecology/**"
+      - "core/build.mjs"
+      - "analysis/ecology-trial.mjs"
+      - ".github/workflows/ecology-trial.yml"
 
 permissions:
   contents: read
@@ -26,7 +37,7 @@ jobs:
   trial:
     name: Play one expedition on the deployed preview
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -43,13 +54,21 @@ jobs:
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
 
-      - name: Resolve the deployed URL
+      - name: Wait for the deployment to serve this build
         id: resolve
         shell: bash
         env:
           BASE_URL: ${{ inputs.base_url }}
+          EXPECT_INPUT: ${{ inputs.expect_build }}
         run: |
           set -uo pipefail
+          expect="$EXPECT_INPUT"
+          if [[ -z "$expect" ]]; then
+            # core/build.mjs の BUILD は "<短縮sha> / <日時>Z"。sha だけ見る。
+            expect="$(sed -n 's/.*BUILD = "\([^ ]*\).*/\1/p' core/build.mjs)"
+          fi
+          echo "期待する build: $expect"
+
           candidates=()
           if [[ -n "$BASE_URL" ]]; then
             candidates+=("$BASE_URL")
@@ -58,33 +77,26 @@ jobs:
             alias="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' \
               | sed 's/[^a-z0-9]/-/g' | cut -c1-28 | sed 's/-*$//')"
             candidates+=("https://${alias}.garakuta-lab.pages.dev/ecology/")
-            candidates+=("https://garakuta-lab.pages.dev/ecology/")
+            candidates+=("https://${GITHUB_SHA:0:8}.garakuta-lab.pages.dev/ecology/")
           fi
-          for url in "${candidates[@]}"; do
-            code="$(curl -s -o /tmp/page.html -w '%{http_code}' --max-time 30 "$url" || echo 000)"
-            echo "$url -> $code"
-            if [[ "$code" == "200" ]]; then
-              echo "url=$url" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-          done
-          echo "遊べるURLが見つからない。base_url を渡して再実行すること。" >&2
-          exit 1
 
-      - name: Check the build stamp that the deployment serves
-        if: inputs.expect_build != ''
-        shell: bash
-        env:
-          URL: ${{ steps.resolve.outputs.url }}
-          EXPECT: ${{ inputs.expect_build }}
-        run: |
-          set -euo pipefail
-          served="$(curl -s --max-time 30 "${URL%/}/../core/build.mjs")"
-          echo "$served"
-          if ! grep -q "$EXPECT" <<< "$served"; then
-            echo "公開先が古い build を出している（期待 ${EXPECT}）。デプロイを待って再実行すること。" >&2
-            exit 1
-          fi
+          # デプロイは push と同時に始まるので、出てくるまで待つ。
+          for attempt in $(seq 1 40); do
+            for url in "${candidates[@]}"; do
+              served="$(curl -s --max-time 20 "${url%/ecology/}/core/build.mjs" || true)"
+              if grep -q "$expect" <<< "$served"; then
+                echo "url=$url" >> "$GITHUB_OUTPUT"
+                echo "expect=$expect" >> "$GITHUB_OUTPUT"
+                echo "公開先が $expect を出している: $url"
+                exit 0
+              fi
+            done
+            echo "まだ古い build（$attempt/40）。15秒待つ。"
+            sleep 15
+          done
+          echo "公開先が $expect を出さないまま10分たった。候補: ${candidates[*]}" >&2
+          echo "base_url を渡して再実行するか、Cloudflare Pages のデプロイを確認すること。" >&2
+          exit 1
 
       - name: Play one expedition end to end
         shell: bash
@@ -98,9 +110,11 @@ jobs:
         shell: bash
         env:
           URL: ${{ steps.resolve.outputs.url }}
+          EXPECT: ${{ steps.resolve.outputs.expect }}
         run: |
           {
             echo "## Ecology trial"
             echo
-            echo "Played: ${URL:-（URL未解決）}"
+            echo "- 遊んだURL: ${URL:-（未解決）}"
+            echo "- build の印: ${EXPECT:-（未解決）}"
           } >> "$GITHUB_STEP_SUMMARY"
