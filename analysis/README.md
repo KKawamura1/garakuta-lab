@@ -1,106 +1,42 @@
-# `analysis/` — 何を知りたいとき、どれを走らせるか
+# analysis/ — 実験・検査・結果の索引
 
-**道具が増えたのに索引が古いと、同じものが二度書かれる。**
-このファイルは「その問いに答える道具は既にあるか」を先に引くためのものである。
+更新日: 2026-08-29（UTC）
 
-いまの企画は**法則機関（LAWS 0.3）とその派生版**を、**対にして遊んでもらって**測っている。
-方法論は `agents/HYPOTHESIS_TESTING.md`、手順は `docs/OPERATIONS.md`、
-学びは `DESIGN_LEARNINGS.md`。
+analysis/は、ゲームの面白さを直接決める場所ではなく、仮説・実装条件・検査・作者観測を結び付ける場所です。現在地は PROJECT_MEMORY、CURRENT、REPOSITORY_MAP を先に読んでください。
 
-## 現在の索引
+## 読む順番
 
-設計の現在地は [PROJECT_MEMORY.md](../PROJECT_MEMORY.md)、短縮版は [CURRENT.md](CURRENT.md)、全実験の統合表は [EXPERIMENT_LEDGER.md](EXPERIMENT_LEDGER.md) です。この README の下にある古いツール一覧は、検査・再現・運用の入口として残していますが、現在のゲーム仮説の優先順位を決める資料ではありません。
+1. EXPERIMENT_LEDGER.md — 系列ごとの問い・観測・判定
+2. 該当する実験票 — experiments/exp-XX/ または独立試作票
+3. 作者の一次記録 — human-runs/、D1結果票
+4. 機械検査 — 該当する smoke、gate、search
+5. 実装 — core/または試作ディレクトリ
 
----
+## 目的別の入口
 
-## 公開する前に必ず走らせるもの
-
-| | |
+| 知りたいこと | 入口 |
 |---|---|
-| `./check-all.sh` | **検査を全部走らせ、一つでも落ちたら 1 で終わる。**印字だけ見て公開しない |
-| `node browser-trial.mjs` | **対を1組まるごと遊びきる。**画面で一番長い流れ。巻き戻ったツリーでは止まる |
-| `node browser-check.mjs "?ruleset=cost"` | 入口ごとに、読み込み・配置・予告・例外なしを見る |
-| `node browser-period.mjs` | **位相表と札と部品の説明が同じ周期を言っているか。**倍速で食い違っていた |
-| `node stamp.mjs` | build の印を打ち直す（忘れると作者が新旧を見分けられない） |
+| 現在の本編のルール・版 | core/rules-version.mjs、core/laws.mjs、core/law-table.mjs |
+| 本編の状態機械 | core/run.mjs、core/metrics.mjs、core/render.mjs |
+| 本編の回帰検査 | smoke-core.mjs、smoke-laws.mjs、smoke-version.mjs、smoke-resume.mjs、smoke-sync.mjs |
+| まとめて検査 | check-all.sh。通常CIは高速経路、全量はRUN_EXHAUSTIVE=1 bash check-all.sh |
+| SCRAPLINEを検査 | scrapline-agent-gate.mjs とSCRAPLINE_AGENT_RUNBOOK.md |
+| SCRAPLINEの作者観測 | SCRAPLINE_D1_PLAYTEST_20260829.md、SCRAPLINE_D1_PLAYTEST_20260829_CLEAR.md |
+| 作者ログを比較 | human-panel.mjs、import-export.mjs、human-runs/ |
+| エージェント代理プレイ | agent-panel.mjs、agent-runs/、agents/PROTOCOL.md |
+| 法則表・構造ゲート | tune-laws.mjs、pair-check.mjs、arrangement-space.mjs |
+| 過去世代の検査 | system-*.mjs、phase-candidates.mjs、emotional-arc-*.mjsと対応するROUND票 |
 
-**検査が通ることと、画面で動くことは別である**（学び#58・#59）。
-一晩で、検査を通り抜けた欠陥が4件出ている。
+## ディレクトリの意味
 
-## 版そのものを見張る検査（`smoke-*.mjs`）
+- experiments/: 事前登録されたSolの依頼RとTerraの回答A。実験の一次記録です。
+- human-runs/: 人間の行動列・回答・感情マーカー。作者の代替評価ではありません。
+- agent-runs/: エージェントの補助的な出力。fun/replayを自動合格にしません。
+- 直下のMarkdown: 初期試作、旧ラウンド、独立試作、結果要約。現行かどうかはCURRENT/LEDGERで確認します。
+- 直下のmjs: 回帰検査、探索、調律、分析、import/export。実験票と対応しない古いスクリプトも削除しません。
 
-`smoke-laws` `smoke-play` `smoke-trial` `smoke-version` `smoke-sync` `smoke-resume` `smoke-core` ほか。
-版ごとの主張を守るもの：
+## 新しいファイルを置くとき
 
-| | 何が壊れたら落ちるか |
-|---|---|
-| `smoke-cost` | 代償が消えた（速さと安全さの相関が正に戻った） |
-| `smoke-squeeze` | 代償が**請求されなく**なった（無傷で抜けられる局面が増えた） |
-| `smoke-feasible` | **算術で勝てない敵が表に載った**（1巡上限×12巡 − 毎巡回復×11 ＜ 敵HP）。器を通さずに言える必要条件 |
-| `smoke-readout` | 調律器の**読み替えが実機とずれた**（勝敗・巡回数・残HP を1152局面で突き合わせる） |
-| `smoke-skip` | 飛ばしが起きない／起きすぎる／記録に残らない |
-| `smoke-ident` | 盤面から法則を見分ける情報が消えた |
-| `smoke-trial` | 対で揃えるべき量が揃わなくなった |
+新しい主仮説は、可能ならexperiments/exp-XX/に依頼・回答・証拠をまとめます。独立縦切りは試作名のREADMEとanalysis/NAME_VERSION.mdを対にします。検査は、何を保証するかがファイル名または票から分かるようにします。
 
-## 「この版は何をしているのか」を測る
-
-| 問い | 道具 |
-|---|---|
-| つまらないとは、記録の上で何か | `boredom.mjs <書き出し.json>` |
-| 速く行くことと安全に行くことは両立するか（**代償**） | `tradeoff.mjs` |
-| 1ラン通して終われるか（1戦ずつでは見えない） | `run-viability.mjs` |
-| 法則どうしが噛み合っているか（**閃きの余地**） | `interaction.mjs` |
-| 伏せた法則を当てられるか | `identify.mjs`（`--cells` `--gains` で観測を広げる） |
-| 同じ並びのまま次も勝てる頻度 | `carryover-wins.mjs` |
-| 詰み・勝てる並び・順序が効くか・天井 | `pair-check.mjs` |
-
-**測るときは「遊ぶ側に何が見えているか」から数える**（学び#60）。
-`identify.mjs` は狭く測って一度間違えた。
-
-## 対（Recall テスト）を作る
-
-| | |
-|---|---|
-| `match-pair.mjs` | 位相の対を、揃えるべき量で寄せる |
-| `match-insight.mjs` | 噛み合わせの対を、91組から選んで揃える |
-
-## 表を作る（どの法則の組を出してよいか）
-
-| | |
-|---|---|
-| `tune-laws.mjs --noceiling --sets=20 --cap=300 --screen` | 素の表（`core/law-table.mjs`） |
-| `tune-laws.mjs ... --cost --noceiling` | 代償の版の表（`core/cost-table.mjs`） |
-| `tune-squeeze.mjs` | 締めつけの版の表。**近道が使えないので直に測る**（毎巡回復と両立しない） |
-
-**版が違えば表も違う。**素の表を暴走ありで測ったら16組中15組が壊れた。
-
-**`--noceiling` を落とすと表が3組まで縮む。**天井（P12-b、最上位等級の1戦あたり到達率50%未満）は
-**T1 と同時に満たせないことが判明していて、作者の判断で「測るが落とさない」ことになっている**
-（参照点の RELAY 0.1 でも天井は71%。`analysis/tune-laws.mjs` の該当箇所と学び#52）。
-索引にその旗が書いていなかったせいで、一度**天井で75組を落とした表**を作りかけた。
-残った3組は全部「減衰」入り——**いま唯一きちんと圧力を作っている法則が、
-作者が「つまらない」と言った法則だった**という、それ自体は読む価値のある結果である。
-
-## 記録を取り込む
-
-`import-export.mjs`、D1 の書き出し手順は `docs/OPERATIONS.md` と `.claude/RESUME.md`。
-
-## 古い世代のもの（読むときは時期に注意）
-
-`system-tournament.mjs` `system-gate-v2.mjs` `phase-candidates.mjs` `armor-probe.mjs`
-`emotional-arc-*.mjs` `agent-panel.mjs` `human-panel.mjs` などは、
-**法則機関より前の世代**（ARC/BUS/CYCLE/PHASE の比較期）の道具である。
-当時の報告書（`SYSTEM_*_REPORT.md`、`ROUND2`〜`ROUND10`）と対で読むこと。
-
-## 解釈上の注意（世代が変わっても効く）
-
-- 全知探索の勝率は面白さではなく、**答えが存在する上限**である。
-- 一戦先読みは全配置を列挙するので、**人間の能力を過大評価する。**
-- 良い数値は必要条件であって十分条件ではない。**足切り後は必ず人間が遊ぶ。**
-- 一つの合成スコアで順位を決めず、複数軸で見る。
-- **標本が端（全部／ゼロ）を指したときは、測り方の側を先に疑う。**
-  57戦すべてで予告が的中したときも、天井に張り付いているだけではないかを確かめてから採った。
-
-
-## 実験票
-
-実験票は [experiments/README.md](./experiments/README.md) から、`exp-01`、`exp-02` の順に読む。
+古い資料を短く書き直す場合は、原文を上書きせず、新しい要約から旧資料へリンクします。既存の「次にやること」は、更新日が古ければ現在のキューとして扱いません。

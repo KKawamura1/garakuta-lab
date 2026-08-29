@@ -1,6 +1,6 @@
 # 作業の約束
 
-## 現在の正史（2026-08-26）
+## 現在の正史（2026-08-29）
 
 大規模な棚卸しの結果、現在の設計判断と次の実験の入口を新設した。
 
@@ -8,8 +8,9 @@
 - [analysis/CURRENT.md](./analysis/CURRENT.md)：短縮版の現在地
 - [analysis/EXPERIMENT_LEDGER.md](./analysis/EXPERIMENT_LEDGER.md)：全実験の仮説・証拠・判定・持ち越し
 - [docs/AGENT_ONBOARDING.md](./docs/AGENT_ONBOARDING.md)：新しいエージェントの読み順と作業手順
+- [docs/REPOSITORY_MAP.md](./docs/REPOSITORY_MAP.md)：全ディレクトリ・資料の分類と更新ルール
 
-これらを、個別の実験票と作者の生ログへ入る前に読むこと。古い文書、Sol/Terra 分業の記録、Claude向けの手順、RESUME は削除しないが、現在の設計キューと矛盾するときは上記の現行資料を優先する。歴史的な仮説の実装条件が成立していなかった場合は、反証ではなく「未検証」として扱う。
+これらを、個別の実験票と作者の生ログへ入る前に読むこと。mainの最新は 3c0790c80d74ef0361dda06f21f806b5dbf6f3e0 で、SCRAPLINE 0.7の作者プレイ結果まで反映している。古い文書、Sol/Terra 分業の記録、Claude向けの手順、RESUME は削除しないが、現在の設計キューと矛盾するときは上記の現行資料を優先する。歴史的な仮説の実装条件が成立していなかった場合は、反証ではなく「未検証」として扱う。
 
 ## この企画が何をしているか
 
