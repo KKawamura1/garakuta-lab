@@ -1,0 +1,555 @@
+// ecology/engine.test.mjs — Gate C.
+//
+// Determinism, purity, and the meaning of each event. Numbers alone are not
+// enough here: most checks assert that a particular event exists, in a
+// particular place, with particular values.
+
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { EVENT_TYPES, RESULT_SCHEMA_VERSION } from "./schema.mjs";
+import { simulateBattle } from "./engine.mjs";
+import { FIXTURE_CONTENT } from "./fixture-content.mjs";
+import {
+  ALL_FIXTURE_BATTLES,
+  BARRIER_PACKET_BATTLE,
+  BARRIER_PARTIAL_BATTLE,
+  BROKEN_EQUIPMENT_BATTLE,
+  CORE_BATTLE,
+  COST_CONTEST_BATTLE,
+  COVER_BATTLE,
+  DEFINITION_BATTLE,
+  EXTERNAL_ADVANCE_BATTLE,
+  FIELD_KIT_BATTLE,
+  FULL_PARTY_BATTLE,
+  IMMEDIATE_BATTLE,
+  MOVE_BATTLE,
+  PREPARATION_BATTLE,
+  REGION_BATTLE,
+  REQUEUE_BATTLE,
+  ROUND_LIMIT_BATTLE,
+  STALEMATE_BATTLE,
+  STATUS_BATTLE,
+} from "./fixtures.mjs";
+
+let checks = 0;
+const check = (condition, message) => {
+  assert.ok(condition, message);
+  checks += 1;
+};
+const equal = (actual, expected, message) => {
+  assert.equal(actual, expected, message);
+  checks += 1;
+};
+
+const run = (battle, options) => simulateBattle(battle, FIXTURE_CONTENT, options);
+const of = (result, type) => result.events.filter((event) => event.type === type);
+const first = (result, type) => of(result, type)[0];
+const indexOf = (result, predicate) => result.events.findIndex(predicate);
+
+// ---- §4.2 purity -------------------------------------------------------------
+
+for (const file of [
+  "engine.mjs",
+  "effects.mjs",
+  "selectors.mjs",
+  "predicates.mjs",
+  "values.mjs",
+  "event-queue.mjs",
+  "validate.mjs",
+  "actors.mjs",
+]) {
+  const source = readFileSync(new URL(file, import.meta.url), "utf8");
+  check(!source.includes("Math.random"), `${file} must not use Math.random`);
+  check(!/\bDate\.now\b|new Date\(/.test(source), `${file} must not read the clock`);
+}
+
+{
+  // The same arguments produce a JSON deep identical result, event ids and chain
+  // ids included, one hundred times over.
+  const baseline = JSON.stringify(run(FULL_PARTY_BATTLE));
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    assert.equal(JSON.stringify(run(FULL_PARTY_BATTLE)), baseline, `run ${attempt} diverged`);
+  }
+  checks += 1;
+
+  // Neither the input nor the content bundle is touched.
+  const inputBefore = JSON.stringify(FULL_PARTY_BATTLE);
+  const contentBefore = JSON.stringify(FIXTURE_CONTENT);
+  run(FULL_PARTY_BATTLE);
+  equal(JSON.stringify(FULL_PARTY_BATTLE), inputBefore, "battle input was mutated");
+  equal(JSON.stringify(FIXTURE_CONTENT), contentBefore, "content bundle was mutated");
+}
+
+// ---- §4.1 result shape --------------------------------------------------------
+
+{
+  const result = run(CORE_BATTLE);
+  equal(result.schemaVersion, RESULT_SCHEMA_VERSION);
+  equal(result.contentVersion, "fixture-1");
+  equal(result.battleId, "fixture_core");
+  equal(result.result, "win");
+  equal(result.reason, "objective_met");
+  check(Array.isArray(result.actors) && result.actors.length === 4, "actors snapshot");
+  check(Array.isArray(result.equipment), "equipment snapshot");
+  check(result.metrics.eventCount === result.events.length, "metrics agree with the event list");
+
+  // §7 — ids come from the sequence, and every parent really exists.
+  const ids = new Set();
+  result.events.forEach((event, index) => {
+    equal(event.sequence, index, "sequence is dense and ordered");
+    equal(event.id, `evt_${String(index).padStart(4, "0")}`, "id is derived from the sequence");
+    check(!ids.has(event.id), "event ids are unique");
+    ids.add(event.id);
+    if (event.parentEventId !== undefined) {
+      check(ids.has(event.parentEventId), `parent ${event.parentEventId} precedes its child`);
+    }
+    check(!("text" in event.values), "events carry facts, not display text");
+  });
+}
+
+// ---- §11.1 the opening and the closing ---------------------------------------
+
+for (const battle of ALL_FIXTURE_BATTLES) {
+  const result = run(battle);
+  equal(result.events[0].type, "battle_started", `${battle.battleId} opens with battle_started`);
+  equal(result.events.at(-1).type, "battle_ended", `${battle.battleId} closes with battle_ended`);
+  equal(of(result, "battle_ended").length, 1, `${battle.battleId} ends once`);
+}
+
+{
+  // §11.1-6 — already decided at the start, and still recorded in order.
+  const result = run(IMMEDIATE_BATTLE);
+  assert.deepEqual(result.events.map((event) => event.type), ["battle_started", "battle_ended"]);
+  equal(result.result, "win");
+  equal(result.roundsUsed, 0);
+  checks += 1;
+}
+
+// ---- §12.1 damage, barrier and overkill --------------------------------------
+
+{
+  const result = run(BARRIER_PARTIAL_BATTLE);
+  const proposed = first(result, "damage_proposed");
+  const absorbed = first(result, "barrier_damaged");
+  const broken = first(result, "barrier_broken");
+  const taken = first(result, "damage_taken");
+  equal(proposed.values.amount, 4);
+  equal(absorbed.values.amount, 2, "the barrier ate what it could");
+  check(broken.sequence > absorbed.sequence, "the packet breaks after it is emptied");
+  equal(taken.values.amount, 2, "the rest reached hp");
+  equal(taken.values.barrierAbsorbed, 2);
+  equal(taken.values.proposed, 4);
+  equal(of(result, "excess_damage").length, 0, "no overkill when the target survives");
+}
+
+{
+  // §12.3 — earliest expiry first, oldest first inside one expiry, and a fully
+  // absorbed hit records no damage_taken at all (§12.1-9).
+  const result = run(BARRIER_PACKET_BATTLE);
+  const absorbed = of(result, "barrier_damaged").filter((event) => event.round === 1);
+  equal(absorbed.length, 2, "two packets were touched");
+  equal(absorbed[0].values.duration, "round");
+  equal(absorbed[1].values.duration, "round");
+  equal(absorbed[0].values.amount, 1, "the older round packet went first");
+  equal(absorbed[1].values.amount, 3);
+  equal(of(result, "damage_taken").filter((event) => event.round === 1).length, 0, "nothing reached hp");
+  equal(of(result, "damage_proposed").filter((event) => event.round === 1).length, 1, "the proposal is still recorded");
+  const secondRound = of(result, "barrier_damaged").filter((event) => event.round === 2);
+  equal(secondRound.at(-1).values.duration, "battle", "the battle packet is spent last");
+}
+
+{
+  // §12.1 — excess is max(0, proposed - absorbed - hpBefore).
+  const result = run(BROKEN_EQUIPMENT_BATTLE);
+  const excess = first(result, "excess_damage");
+  equal(excess.values.amount, 3);
+  equal(excess.values.proposed, 4);
+  equal(excess.values.hpBefore, 1);
+  const defeated = first(result, "actor_defeated");
+  check(defeated.sequence < excess.sequence, "the defeat is recorded before the overkill");
+}
+
+// ---- §12.2 healing and overflow ----------------------------------------------
+
+{
+  const result = run(CORE_BATTLE);
+  const proposed = first(result, "healing_proposed");
+  const applied = first(result, "healing_applied");
+  const excess = first(result, "excess_healing");
+  equal(proposed.values.amount, 5);
+  equal(applied.values.requested, 5);
+  equal(applied.values.actual, 0, "a full actor takes none of it");
+  equal(excess.values.amount, 5);
+
+  // §15.2 — the overflow rule hands the leftover to somebody else, and
+  // not_previous_target is what keeps it off the actor just healed.
+  const overflow = of(result, "healing_applied").find((event) => event.ruleId === "overflow_care_rule");
+  check(overflow !== undefined, "the overflow rule healed someone");
+  equal(overflow.targetActorIds[0], "a_lancer");
+  equal(overflow.values.actual, 1, "the lancer was one point down");
+  check(
+    of(result, "healing_applied").filter((event) => event.ruleId === "overflow_care_rule").length === 1,
+    "the overflow rule fires once per chain",
+  );
+}
+
+// ---- §11.5 interrupt ordering, cover, and re-evaluation ----------------------
+
+{
+  const result = run(COVER_BATTLE);
+  const changes = of(result, "target_changed").filter((event) => event.round === 1);
+  equal(changes.length, 2, "both covers fired on one action");
+  // Equal priority, so the tie-break is initiative rank: the lancer (speed 8)
+  // moves before the warden (speed 4).
+  equal(changes[0].sourceActorId, "a_lancer");
+  equal(changes[1].sourceActorId, "a_warden");
+  equal(changes[0].values.from, "a_mender");
+  equal(changes[1].values.from, "a_lancer");
+  const started = of(result, "action_started").find((event) => event.sourceActorId === "e_husk");
+  equal(started.targetActorIds[0], "a_warden", "the action resolves against the final target");
+  const taken = of(result, "damage_taken").find((event) => event.sourceActorId === "e_husk");
+  equal(taken.targetActorIds[0], "a_warden");
+  const declared = of(result, "action_declared").find((event) => event.sourceActorId === "e_husk");
+  check(changes[0].sequence > declared.sequence, "the redirect happens inside the action");
+  check(changes[1].sequence < started.sequence, "and before the action starts");
+}
+
+{
+  // §5.7 — an earlier reaction spent the only reaction point, so the later one
+  // is re-checked and does not fire.
+  const result = run(COST_CONTEST_BATTLE);
+  const counters = of(result, "damage_proposed").filter((event) => event.ruleId === "counter_blow_rule");
+  const braces = of(result, "barrier_gained").filter((event) => event.ruleId === "brace_after_hit_rule");
+  equal(counters.length, 2, "the cheaper priority fired in both rounds");
+  equal(braces.length, 0, "the later rule could not pay and did not fire");
+}
+
+// ---- §12.4 preparation --------------------------------------------------------
+
+{
+  // Completed on the preparing actor's own next activation.
+  const result = run(PREPARATION_BATTLE);
+  const started = first(result, "preparation_started");
+  const advanced = first(result, "preparation_advanced");
+  const completed = first(result, "preparation_completed");
+  equal(started.round, 1);
+  equal(advanced.round, 2, "the activation advances it a step");
+  equal(completed.chainId, advanced.chainId, "completion happens in the same chain");
+  const heavy = of(result, "damage_taken").find((event) => event.skillId === "heavy_swing");
+  equal(heavy.values.amount, 9);
+  // The activation that completes a preparation does not go on to a normal action.
+  const activationChain = advanced.chainId;
+  check(
+    !result.events.some((event) => event.chainId === activationChain && event.type === "action_declared"),
+    "no ordinary action follows the completion in that activation",
+  );
+}
+
+{
+  // Completed from outside, in the same chain the preparation started in.
+  const result = run(EXTERNAL_ADVANCE_BATTLE);
+  const started = first(result, "preparation_started");
+  const advanced = first(result, "preparation_advanced");
+  const completed = first(result, "preparation_completed");
+  equal(advanced.ruleId, "urging_rule");
+  equal(advanced.chainId, started.chainId, "the external advance is part of the same chain");
+  equal(completed.chainId, started.chainId);
+  equal(completed.round, 1, "it finished in the round it started");
+}
+
+// ---- §11.3 requeue on an action point --------------------------------------
+
+{
+  const result = run(REQUEUE_BATTLE);
+  const activations = of(result, "actor_activated").filter(
+    (event) => event.sourceActorId === "a_lancer" && event.round === 1,
+  );
+  equal(activations.length, 2, "the lancer acted twice after being handed a point");
+  equal(activations[1].values.activation, 2);
+  const gain = of(result, "resource_gained").find((event) => event.skillId === "relay_order");
+  check(gain.sequence < activations[1].sequence, "the requeue follows the gain");
+  // The requeue is once, at the tail: the enemy acted in between.
+  const husk = of(result, "actor_activated").find(
+    (event) => event.sourceActorId === "e_husk" && event.round === 1,
+  );
+  check(husk.sequence < activations[1].sequence, "the requeued actor went to the back of the queue");
+}
+
+// ---- §5.6 a broken item stops supplying its rule ------------------------------
+
+{
+  const result = run(BROKEN_EQUIPMENT_BATTLE);
+  const broken = first(result, "equipment_broken");
+  const splinters = of(result, "damage_proposed").filter((event) => event.ruleId === "splinter_edge_rule");
+  const overkills = of(result, "excess_damage");
+  equal(splinters.length, 1, "the item fired once before breaking");
+  check(overkills.length >= 2, "a later overkill happened");
+  check(overkills[1].sequence > broken.sequence, "and it is after the break");
+  // §12.6 — a rule already running is not cancelled mid way, so its own damage
+  // still lands after the break; what stops is every later firing.
+  check(
+    result.events.some((event) => event.ruleId === "splinter_edge_rule" && event.sequence > broken.sequence),
+    "the firing that broke the item still finished",
+  );
+  check(
+    !result.events.some(
+      (event) => event.ruleId === "splinter_edge_rule" && event.sequence > overkills[1].sequence,
+    ),
+    "the broken item supplies nothing to any later event",
+  );
+  equal(result.equipment[0].durability, 0);
+  equal(result.equipment[0].broken, true);
+}
+
+// ---- §13 objectives -----------------------------------------------------------
+
+{
+  // The reaction to actor_defeated is resolved before the battle can end.
+  const result = run(CORE_BATTLE);
+  const defeated = first(result, "actor_defeated");
+  const scavenge = of(result, "resource_gained").find((event) => event.ruleId === "scavenge_ap_rule");
+  const ended = first(result, "battle_ended");
+  check(scavenge !== undefined, "the defeat reaction fired");
+  check(defeated.sequence < scavenge.sequence, "reaction after the defeat");
+  check(scavenge.sequence < ended.sequence, "and before the battle ends");
+}
+
+{
+  const result = run(DEFINITION_BATTLE);
+  equal(result.result, "win");
+  equal(result.reason, "objective_met");
+  // The objective named a definition; the other enemy is still standing.
+  const survivors = result.actors.filter((actor) => actor.side === "enemy" && actor.alive);
+  equal(survivors.length, 1);
+  equal(survivors[0].definitionId, "husk_bulwark");
+}
+
+{
+  const result = run(ROUND_LIMIT_BATTLE);
+  equal(result.result, "loss");
+  equal(result.reason, "round_limit");
+  equal(result.roundsUsed, 2);
+}
+
+{
+  const result = run(STALEMATE_BATTLE);
+  equal(result.result, "draw");
+  equal(result.reason, "stalemate");
+  equal(result.roundsUsed, 2, "two rounds without a change is enough");
+  check(result.roundsUsed < STALEMATE_BATTLE.maxRounds, "and it beat the round limit");
+  equal(
+    of(result, "action_skipped").filter((event) => event.sourceActorId === "a_warden").length,
+    2,
+    "the idle ally recorded one skip per round",
+  );
+}
+
+// ---- §11.6 round end ordering (PREFLIGHT §4) ---------------------------------
+
+{
+  const result = run(FIELD_KIT_BATTLE);
+  const unused = of(result, "resource_unused").find((event) => event.values.resource === "reaction_points");
+  const spent = of(result, "resource_spent").find((event) => event.ruleId === "field_kit_rule");
+  const healed = of(result, "healing_applied").find((event) => event.ruleId === "field_kit_rule");
+  check(unused !== undefined, "the unused reaction point was reported");
+  check(spent.sequence > unused.sequence, "the rule paid after the report");
+  equal(spent.values.before, 1, "the point was still there to pay with");
+  equal(healed.values.actual, 1);
+
+  const ended = of(result, "round_ended")[0];
+  const expired = of(result, "barrier_expired")[0];
+  check(ended.sequence < unused.sequence, "round_ended, then the unused report");
+  check(unused.sequence < expired.sequence, "then the barrier expiry");
+}
+
+{
+  // A round barrier created during the round end phase belongs to the round
+  // about to start, not to the one being closed. Otherwise "turn the unused
+  // action points into a barrier" would expire one step after it was granted.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.characters.warden.signatureRules = [
+    {
+      id: "warden_banks_the_rest",
+      listenTo: "resource_unused",
+      timing: "after",
+      priority: 100,
+      predicates: [
+        { type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 } },
+        { type: "event_tag", tag: "action_points", value: true },
+      ],
+      costs: [],
+      effects: [
+        {
+          type: "gain_barrier",
+          target: { scope: "self", take: 1 },
+          amount: { type: "event_value_scaled", key: "amount" },
+          duration: "round",
+        },
+      ],
+      limit: { scope: "round", count: 1 },
+    },
+  ];
+  const battle = structuredClone(FIELD_KIT_BATTLE);
+  battle.allies[0].equipment = [{ instanceId: "e_greaves", equipmentId: "worn_greaves", durability: 2 }];
+  // A tactic the front row warden can never use, so the action points are left
+  // over for the signature rule to bank.
+  battle.allies[0].tactics = [{ activeSkillId: "reposition", useWhen: [] }];
+  const result = simulateBattle(battle, bundle);
+  const banked = of(result, "barrier_gained").find((event) => event.ruleId === "warden_banks_the_rest");
+  check(banked !== undefined, "the leftover action point became a barrier");
+  const expiries = of(result, "barrier_expired").filter((event) => event.sequence > banked.sequence);
+  check(
+    expiries.length === 0 || expiries[0].round > banked.round,
+    "and it survived the round end that created it",
+  );
+}
+
+// ---- §12.5 movement ------------------------------------------------------------
+
+{
+  const result = run(MOVE_BATTLE);
+  const moves = of(result, "actor_moved");
+  equal(moves.length, 2, "a swap records one event per actor");
+  equal(moves[0].chainId, moves[1].chainId, "both in the same chain");
+  equal(moves[0].values.from, "rear_left");
+  equal(moves[0].values.to, "front_left");
+  equal(moves[1].values.from, "front_left");
+  equal(moves[1].values.to, "rear_left");
+  // No event ever shows two actors on one position: the swap is atomic.
+  equal(moves[0].sequence + 1, moves[1].sequence);
+  const barriers = of(result, "barrier_gained").filter((event) => event.ruleId === "guard_step_rule");
+  equal(barriers.length, 2, "both movers answered their own actor_moved");
+  assert.deepEqual(barriers.map((event) => event.targetActorIds[0]), ["a_scout", "a_warden"]);
+  checks += 1;
+}
+
+// ---- §15.4 statuses -------------------------------------------------------------
+
+{
+  const result = run(STATUS_BATTLE);
+  // The negative status raises what its holder is about to take.
+  const raised = of(result, "damage_taken").find(
+    (event) => event.sourceActorId === "e_husk" && event.round === 1,
+  );
+  equal(raised.values.proposed, 5, "4 proposed plus 1 from the status");
+  equal(first(result, "damage_proposed").values.amount, 4, "the event keeps the fact it recorded");
+
+  // The positive status raises the holder's own damage and then removes itself.
+  const empowered = of(result, "damage_taken").find((event) => event.sourceActorId === "a_lancer");
+  equal(empowered.values.proposed, 5);
+  const removal = of(result, "status_removed").find((event) => event.ruleId === "focused_damage_rule");
+  check(removal !== undefined, "the positive status consumed itself");
+  equal(removal.values.cause, "effect");
+
+  // A round duration status is gone by the next round.
+  const expiry = of(result, "status_removed").find((event) => event.values.cause === "duration");
+  equal(expiry.values.statusId, "exposed");
+}
+
+// ---- PREFLIGHT §7 region rules --------------------------------------------------
+
+{
+  const result = run(REGION_BATTLE);
+  const regionDamage = of(result, "damage_proposed").find((event) => event.ruleId === "region_dust");
+  check(regionDamage !== undefined, "the region rule fired");
+  equal(regionDamage.sourceActorId, undefined, "a region rule has no source actor");
+  equal(regionDamage.targetActorIds[0], "a_warden", "allies means the ally side");
+  equal(of(result, "damage_proposed").filter((event) => event.ruleId === "region_dust").length, 1);
+}
+
+// ---- §9 implicit sort and §8 integer hp_percent ---------------------------------
+
+{
+  const result = run(FULL_PARTY_BATTLE);
+  const firstStrike = of(result, "target_selected").find((event) => event.skillId === "strike");
+  equal(firstStrike.targetActorIds[0], "e_warden", "the lowest hp enemy is chosen first");
+
+  // Two enemies with identical hp: the pick is decided by position, never by the
+  // order they happened to be listed in. Reversing the input changes nothing.
+  const tieBattle = structuredClone(ROUND_LIMIT_BATTLE);
+  tieBattle.enemies = [
+    { instanceId: "e_right", enemyActorId: "husk", position: "front_right" },
+    { instanceId: "e_left", enemyActorId: "husk", position: "front_left" },
+  ];
+  const tie = simulateBattle(tieBattle, FIXTURE_CONTENT);
+  equal(
+    of(tie, "target_selected").find(
+      (event) => event.skillId === "strike" && event.sourceActorId === "a_warden",
+    ).targetActorIds[0],
+    "e_left",
+    "front_left wins the tie",
+  );
+  const reversed = structuredClone(tieBattle);
+  reversed.enemies.reverse();
+  equal(
+    of(simulateBattle(reversed, FIXTURE_CONTENT), "target_selected").find(
+      (event) => event.skillId === "strike" && event.sourceActorId === "a_warden",
+    ).targetActorIds[0],
+    "e_left",
+    "and the listing order does not matter",
+  );
+}
+
+{
+  // hp_percent compares hp * 100 with maxHp * threshold, so a 50% threshold on
+  // an odd maximum has no float rounding to argue about.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.strike.intrinsicPredicates = [
+    { type: "hp_percent", subject: "self", op: "lte", value: 50 },
+  ];
+  const battle = structuredClone(ROUND_LIMIT_BATTLE);
+  battle.allies[0].hp = 10; // exactly 50% of 20
+  const atThreshold = simulateBattle(battle, bundle);
+  check(
+    of(atThreshold, "action_declared").some((event) => event.skillId === "strike"),
+    "hp exactly at the threshold satisfies lte",
+  );
+  battle.allies[0].hp = 11; // just above
+  const above = simulateBattle(battle, bundle);
+  check(
+    of(above, "action_declared").length === 0,
+    "one point above the threshold does not",
+  );
+}
+
+// ---- §11.2 initiative ------------------------------------------------------------
+
+{
+  const result = run(FULL_PARTY_BATTLE);
+  // First activations only: a requeue appends to the tail and is checked
+  // separately, and an actor defeated before its turn never activates.
+  const roundOne = of(result, "actor_activated")
+    .filter((event) => event.round === 1 && event.values.activation === 1)
+    .map((event) => event.sourceActorId);
+  const byInitiative = ["a_scout", "a_lancer", "e_marker", "a_mender", "e_husk", "e_husk_b", "a_warden", "e_warden"];
+  assert.deepEqual(
+    roundOne,
+    byInitiative.filter((instanceId) => roundOne.includes(instanceId)),
+    "speed descending, then position, then instance id, with no side bias",
+  );
+  checks += 1;
+}
+
+// ---- §14 the ordinary fixtures stay far below the caps --------------------------
+
+for (const battle of ALL_FIXTURE_BATTLES) {
+  const result = run(battle);
+  check(
+    result.metrics.eventCount < 4096 * 0.1,
+    `${battle.battleId} used ${result.metrics.eventCount} events, under 10% of the battle cap`,
+  );
+  check(
+    result.metrics.maxChainEventCount < 256 * 0.1,
+    `${battle.battleId} longest chain ${result.metrics.maxChainEventCount}, under 10% of the chain cap`,
+  );
+}
+
+// §7 — the values table in the README has to keep up with the engine.
+{
+  const readme = readFileSync(new URL("README.md", import.meta.url), "utf8");
+  for (const type of EVENT_TYPES) {
+    check(readme.includes(`\`${type}\``), `README documents the values of ${type}`);
+  }
+}
+
+console.log(`engine.test.mjs: ${checks} checks passed`);

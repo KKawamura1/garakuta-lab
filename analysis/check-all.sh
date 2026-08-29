@@ -72,6 +72,18 @@ for i in "${!smoke_files[@]}"; do
   fi
 done
 
+# ecology/ は R5 の戦闘ルールエンジン。自前の runner が各テストを別プロセスで
+# 走らせ、出力ではなく exit code を見る。散文の約束ではなく、ここから鳴らす。
+if [ -f ecology/check.mjs ]; then
+  if node ecology/check.mjs >"$tmpdir/ecology.log" 2>&1; then
+    echo "ok   ecology/check.mjs"
+  else
+    echo "FAIL ecology/check.mjs"
+    tail -20 "$tmpdir/ecology.log"
+    fail=1
+  fi
+fi
+
 if node --check scrapline/engine.mjs; then
   echo "ok   構文 scrapline/engine.mjs"
 else
