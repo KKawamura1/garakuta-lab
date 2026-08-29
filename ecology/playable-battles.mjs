@@ -270,7 +270,20 @@ export function componentOffer(seed, stage, ownedComponents = [], count = stage 
   const owned = new Set(ownedComponents);
   const pool = OFFER_POOLS[stage] ?? COMPONENT_ORDER;
   const candidates = [...new Set([...pool, ...COMPONENT_ORDER])].filter((id) => !owned.has(id));
-  return seededShuffle(candidates, `${seed}:offer:${stage}`).slice(0, count);
+  const shuffled = seededShuffle(candidates, `${seed}:offer:${stage}`);
+  const chosen = [];
+  // Every offer is readable as a combination surface: when available, show at
+  // least one action, one reaction and one piece of equipment before filling
+  // the remaining slots from the seeded order.
+  for (const kind of ["active", "reactive", "equipment"]) {
+    const match = shuffled.find((id) => COMPONENTS[id]?.kind === kind && !chosen.includes(id));
+    if (match) chosen.push(match);
+  }
+  for (const id of shuffled) {
+    if (chosen.length >= count) break;
+    if (!chosen.includes(id)) chosen.push(id);
+  }
+  return chosen.slice(0, count);
 }
 
 export function freshLoadout(rosterIds) {
