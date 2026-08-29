@@ -15,7 +15,7 @@
 | 新しい実験を設計する | DESIGN_CHARTER.md | docs/AGENT_ONBOARDING.md → 類似実験の票 |
 | 現在の本編を直す | core/rules-version.mjs | core/ → play/ → 関係するsmoke |
 | SCRAPLINEを扱う | analysis/SCRAPLINE_AGENT_RUNBOOK.md | concept → implementation → D1結果 |
-| EXP-18を扱う | analysis/experiments/exp-18/A5_RULE_ENGINE/RESULT.md | R4 → R5 → A5_RULE_ENGINE/、コードは ecology/ |
+| EXP-18を扱う | analysis/experiments/exp-18/R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS.md | R4 → R5 → A5_RULE_ENGINE/ → PR #49、コードは ecology/ |
 | 公開やログ取得を行う | docs/HUMAN_TEST_RELEASE.md | docs/OPERATIONS.md / EXPORT.md |
 
 全ファイルを読む必要はありません。先に現在地を固定し、必要な系列だけを深掘りしてください。
@@ -26,7 +26,7 @@
 - 現在の既定入口は /play/ の SKIP 0.4 / laws-0.5 です。これは比較基準であり、面白さの勝者として確定していません。
 - 最新の独立試作は /scrapline/ の SCRAPLINE 0.7 / scrapline-build-20260829-r12 です。
 - SCRAPLINEは、機械検査と保存完全性は確認できましたが、作者プレイではfun 1〜2/5、因果の説明は成立せず、不採択です。
-- EXP-18 R5の実装（A5）は完了し、Gate A〜Fを通過しました。コードは ecology/、証拠は analysis/experiments/exp-18/A5_RULE_ENGINE/ です。UI・公開・人間テストはまだ行っていません。
+- EXP-18 R5の実装と監査修正はmainにあります。PR #49は8人・24技能・18装備・7区画を一周できるdraft試作、R6は長期進行・手続き生成装備・Blueprintの実装委譲票です。PR #49は人間評価前で、R6は設計段階です。
 
 ## 3. 判断の優先順位
 
