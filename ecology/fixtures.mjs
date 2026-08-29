@@ -375,6 +375,63 @@ export const TERMINATION_BATTLES = [
   ACTIVATION_CAP_BATTLE,
 ];
 
+// ---- Gate E (§16 E) ------------------------------------------------------------
+//
+// Battle inputs for the four content items added after the engine was finished.
+// Everything these need already existed in the v1 vocabulary.
+
+export const TRIAGE_BATTLE = battle("fixture_triage", {
+  maxRounds: 1,
+  objective: { type: "survive_rounds", rounds: 1 },
+  allies: [
+    // Exactly half health, and short of a full heal, so the skill both finds it
+    // and overflows on it.
+    ally("a_mender", "mender", "rear_left", {
+      tactics: ["triage"],
+      reactives: ["triage_relay"],
+      hp: 7,
+    }),
+    ally("a_lancer", "lancer", "front_left", { tactics: ["strike"], hp: 15 }),
+  ],
+  enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
+});
+
+export const MOMENTUM_BATTLE = battle("fixture_momentum", {
+  maxRounds: 2,
+  objective: { type: "survive_rounds", rounds: 2 },
+  allies: [
+    ally("a_scout", "scout", "rear_left", {
+      tactics: ["reposition", "strike"],
+      equipment: [["e_rig", "momentum_rig", 2]],
+    }),
+    ally("a_warden", "warden", "front_left", { tactics: ["bulwark"] }),
+  ],
+  enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
+});
+
+export const PIVOT_BATTLE = battle("fixture_pivot", {
+  maxRounds: 2,
+  objective: { type: "survive_rounds", rounds: 2 },
+  allies: [
+    // The tactic needs the rear row, so this front row actor never spends its
+    // two action points and the signature has something to bank.
+    ally("a_pivot", "pivot", "front_left", { tactics: ["reposition"] }),
+  ],
+  enemies: [enemy("e_husk", "husk", "front_left")],
+});
+
+export const HUNTER_BATTLE = battle("fixture_hunter", {
+  maxRounds: 2,
+  objective: { type: "survive_rounds", rounds: 2 },
+  allies: [
+    ally("a_lancer", "lancer", "front_left", { tactics: ["heavy_swing"] }),
+    ally("a_warden", "warden", "front_right", { tactics: ["bulwark"] }),
+  ],
+  enemies: [enemy("e_hunter", "husk_hunter", "front_left")],
+});
+
+export const GATE_E_BATTLES = [TRIAGE_BATTLE, MOMENTUM_BATTLE, PIVOT_BATTLE, HUNTER_BATTLE];
+
 // §16 F — a small mining pool. It is deliberately tiny: mining exists to show
 // that the same input gives the same chains and that data additions change the
 // shapes, not to search for anything.
@@ -428,4 +485,5 @@ export const ALL_FIXTURE_BATTLES = [
   ROUND_LIMIT_BATTLE,
   REGION_BATTLE,
   FULL_PARTY_BATTLE,
+  ...GATE_E_BATTLES,
 ];

@@ -10,6 +10,7 @@ const SUITES = [
   "schema.test.mjs",
   "engine.test.mjs",
   "termination.test.mjs",
+  "extensibility.test.mjs",
   "mine.test.mjs",
 ];
 

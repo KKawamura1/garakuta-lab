@@ -102,6 +102,41 @@ const characters = {
     ],
     tags: ["fixture", "fast"],
   },
+  // ---- Gate E (§16 E) --------------------------------------------------------
+  // Added after the engine was finished, as data only. "Turn the action points
+  // you did not spend into a round barrier."
+  pivot: {
+    id: "pivot",
+    displayName: "Pivot (fixture, Gate E)",
+    maxHp: 18,
+    speed: 5,
+    baseActionPoints: 2,
+    baseReactionPoints: 1,
+    signatureRules: [
+      {
+        id: "pivot_banks_the_rest",
+        listenTo: "resource_unused",
+        timing: "after",
+        priority: 100,
+        predicates: [
+          SELF_IS_EVENT_TARGET,
+          { type: "event_tag", tag: "action_points", value: true },
+          { type: "event_value", key: "amount", op: "gte", value: 1 },
+        ],
+        costs: [],
+        effects: [
+          {
+            type: "gain_barrier",
+            target: SELF_TARGET,
+            amount: { type: "event_value_scaled", key: "amount" },
+            duration: "round",
+          },
+        ],
+        limit: { scope: "round", count: 1 },
+      },
+    ],
+    tags: ["fixture", "gate_e"],
+  },
 };
 
 const activeSkills = {
@@ -225,6 +260,55 @@ const activeSkills = {
       ],
     },
     tags: ["attack", "slow", "termination"],
+  },
+  // ---- Gate E (§16 E) --------------------------------------------------------
+  // "Heal an ally at or below half health, and let the overflow reach someone
+  // else." The half health part is the target query; the overflow part is the
+  // reactive skill triage_relay below.
+  triage: {
+    id: "triage",
+    displayName: "Triage (fixture, Gate E)",
+    apCost: 1,
+    intrinsicPredicates: [],
+    targetQuery: {
+      scope: "allies",
+      filters: [ALIVE, { type: "hp_percent", op: "lte", value: 50 }],
+      sort: ["hp_asc"],
+      take: 1,
+    },
+    effects: [
+      {
+        type: "heal",
+        target: { scope: "event_targets", filters: [ALIVE], take: 1 },
+        amount: constant(8),
+        tags: ["care", "triage"],
+      },
+    ],
+    tags: ["care"],
+  },
+  // "Hit whoever is winding something up." Priority comes from tactic order:
+  // when nobody is preparing the query is empty, the tactic is unusable, and
+  // the enemy falls through to its next tactic.
+  hunt_the_slow: {
+    id: "hunt_the_slow",
+    displayName: "Hunt The Slow (fixture, Gate E)",
+    apCost: 1,
+    intrinsicPredicates: [],
+    targetQuery: {
+      scope: "enemies",
+      filters: [ALIVE, { type: "is_preparing", value: true }],
+      sort: ["hp_asc"],
+      take: 1,
+    },
+    effects: [
+      {
+        type: "deal_damage",
+        target: { scope: "event_targets", filters: [ALIVE], take: 1 },
+        amount: constant(5),
+        tags: ["attack", "hunt"],
+      },
+    ],
+    tags: ["attack"],
   },
   // PREFLIGHT §6 — a真の無限ループ: costs nothing, is always usable, and the
   // activation loop in §11.3 has no action cap of its own. Only the event cap
@@ -376,6 +460,35 @@ const reactiveSkills = {
       limit: { scope: "chain", count: 1 },
     },
     tags: ["reaction", "guard"],
+  },
+
+  // ---- Gate E (§16 E) --------------------------------------------------------
+  triage_relay: {
+    id: "triage_relay",
+    displayName: "Triage Relay (fixture, Gate E)",
+    rule: {
+      id: "triage_relay_rule",
+      listenTo: "excess_healing",
+      timing: "after",
+      priority: 90,
+      predicates: [SELF_IS_EVENT_SOURCE, { type: "event_tag", tag: "triage", value: true }],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [
+        {
+          type: "heal",
+          target: {
+            scope: "allies",
+            filters: [ALIVE, { type: "not_previous_target" }, { type: "hp_percent", op: "lt", value: 100 }],
+            sort: ["hp_asc"],
+            take: 1,
+          },
+          amount: { type: "event_value_scaled", key: "amount" },
+          tags: ["care", "overflow"],
+        },
+      ],
+      limit: { scope: "chain", count: 1 },
+    },
+    tags: ["reaction", "care"],
   },
 
   // ---- §14 termination witnesses. All five stop on the "same owner, same rule,
@@ -590,6 +703,28 @@ const equipment = {
     ],
     tags: ["fixture"],
   },
+  // ---- Gate E (§16 E) --------------------------------------------------------
+  // "Strengthen the action after a move." The focused status already means
+  // "your next damage or healing is one larger", so the item only has to hand
+  // it over on actor_moved.
+  momentum_rig: {
+    id: "momentum_rig",
+    displayName: "Momentum Rig (fixture, Gate E)",
+    maxDurability: 2,
+    rules: [
+      {
+        id: "momentum_rig_rule",
+        listenTo: "actor_moved",
+        timing: "after",
+        priority: 90,
+        predicates: [SELF_IS_EVENT_TARGET],
+        costs: [{ type: "wear_equipment", amount: 1 }],
+        effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
+        limit: { scope: "round", count: 1 },
+      },
+    ],
+    tags: ["fixture", "gate_e"],
+  },
   // §14 — an item that reacts to its own wear.
   hungry_plate: {
     id: "hungry_plate",
@@ -725,6 +860,22 @@ const enemyActors = {
     intrinsicRules: [],
     tags: ["fixture", "inert"],
   },
+  // ---- Gate E (§16 E) --------------------------------------------------------
+  husk_hunter: {
+    id: "husk_hunter",
+    displayName: "Husk Hunter (fixture, Gate E)",
+    maxHp: 26,
+    speed: 6,
+    baseActionPoints: 1,
+    baseReactionPoints: 0,
+    tactics: [
+      { activeSkillId: "hunt_the_slow", useWhen: [] },
+      { activeSkillId: "strike", useWhen: [] },
+    ],
+    reactiveSkillIds: [],
+    intrinsicRules: [],
+    tags: ["fixture", "gate_e"],
+  },
   // A durable body, so a fixture that needs several rounds to observe an
   // ordering rule does not end early by accident.
   husk_bulwark: {
@@ -848,6 +999,10 @@ export const FIXTURE_COVERAGE = deepFreeze({
   field_kit: "§15.3 unused reaction point spender (PREFLIGHT §2 deviation)",
   standing_plate: "§15.3 battle duration barrier",
   hungry_plate: "§14 equipment reacting to its own wear",
+  triage: "Gate E: heal an ally at or below half health",
+  triage_relay: "Gate E: hand the overflow of that heal to somebody else",
+  hunt_the_slow: "Gate E: an enemy tactic that prefers a preparing target",
+  momentum_rig: "Gate E: equipment that strengthens the action after a move",
   exposed: "§15.4 negative status raising incoming damage proposals",
   focused: "§15.4 positive status raising the holder's next damage or healing",
 });
