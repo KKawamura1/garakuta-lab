@@ -1,12 +1,14 @@
 import { simulateBattle } from "./engine.mjs";
 import { PLAYABLE_CONTENT, DISPLAY_NAMES } from "./playable-content.mjs";
 import { DOCTRINES, makeBattle, encounterLabel, packageLabel, packageDetail } from "./playable-battles.mjs";
+import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 
 const VERSION = "EXP-18 UI slice 0.1";
+const SEED = "slice-1801";
 const SAVE_KEY = "exp18-playable-slice-v01";
 const app = document.querySelector("#app");
 
-const freshState = () => ({ phase: "intro", stage: 0, packages: [], lastResult: null, error: null });
+const freshState = () => ({ phase: "intro", stage: 0, packages: [], lastResult: null, error: null, runId: uuid(), startedAt: null, feedback: null });
 let state = loadState();
 
 function loadState() {
@@ -28,7 +30,7 @@ function button(label, action, disabled = false, className = "button") {
 }
 
 function shell(title, subtitle, body) {
-  return `<div class="shell"><header class="header"><div><p class="kicker">${VERSION}</p><h1>${title}</h1><p class="subtitle">${subtitle}</p></div><button class="menu" data-action="reset" aria-label="最初から">↺</button></header>${body}<footer>seed: deterministic · build: ${VERSION}</footer></div>`;
+  return `<div class="shell"><header class="header"><div><p class="kicker">${VERSION}</p><h1>${title}</h1><p class="subtitle">${subtitle}</p></div><button class="menu" data-action="reset" aria-label="最初から">↺</button></header>${body}<footer>seed: ${SEED} · build: ${VERSION}</footer></div>`;
 }
 
 function render() {
@@ -110,14 +112,13 @@ function renderReward() {
 }
 
 function renderComplete() {
-  const result = state.lastResult;
-  return shell("遠征を終えた", "この小さな版で、UIの方向を確認してください", `<section class="card verdict win"><div class="verdict-mark">✦</div><h2>三つの区画を見届けた</h2><p>次は、どの情報を残し、どの判断を増やすかを決めます。</p><div class="build-trail">${state.packages.map((id, index) => `<span><i>${index + 1}</i>${esc(packageLabel(id))}</span>`).join("")}</div></section><section class="card feedback"><p class="eyebrow">UI CHECK</p><h2>画面についてのメモ</h2><label>一番分かりやすかったところ<textarea id="feedback-clear" placeholder="例：戦闘前に方針の違いが見えた"></textarea></label><label>一番分かりにくかったところ<textarea id="feedback-confusing" placeholder="例：反応がなぜ発火したか"></textarea></label>${button("端末に保存", "save-feedback", false, "button primary")}<p class="hint">この版では端末内に保存します。D1送信は公開前の次工程です。</p></section>`);
+  return shell("遠征を終えた", "この小さな版で、UIの方向を確認してください", `<section class="card verdict win"><div class="verdict-mark">✦</div><h2>三つの区画を見届けた</h2><p>次は、どの情報を残し、どの判断を増やすかを決めます。</p><div class="build-trail">${state.packages.map((id, index) => `<span><i>${index + 1}</i>${esc(packageLabel(id))}</span>`).join("")}</div></section><section class="card feedback"><p class="eyebrow">UI CHECK</p><h2>画面についてのメモ</h2><label>もう一度遊びたい度<select id="feedback-replay"><option value="">選択してください</option><option value="1">1 — もう遊ばない</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 — もう一度遊びたい</option></select></label><label>感情マーカー<select id="feedback-marker"><option value="">選択なし</option><option value="hit">きた！</option><option value="insight">ひらめいた</option><option value="choice">迷う</option><option value="payoff">うまくいった</option><option value="friction">つらい</option><option value="unclear">わからない</option></select></label><label>一番分かりやすかったところ<textarea id="feedback-clear" placeholder="例：戦闘前に方針の違いが見えた"></textarea></label><label>一番分かりにくかったところ<textarea id="feedback-confusing" placeholder="例：反応がなぜ発火したか"></textarea></label>${button("保存して送信", "save-feedback", false, "button primary")}<p id="feedback-status" class="hint">run: ${esc(state.runId)} · seed: ${SEED}</p></section>`);
 }
 
 function handleAction(event) {
   const action = event.currentTarget.dataset.action;
   if (action === "reset") { state = freshState(); saveState(); render(); return; }
-  if (action === "start") { state = { ...freshState(), phase: "build", stage: 1 }; saveState(); render(); return; }
+  if (action === "start") { state = { ...freshState(), phase: "build", stage: 1, startedAt: new Date().toISOString() }; saveState(); render(); return; }
   if (action === "choose-package") {
     const id = event.currentTarget.dataset.package;
     state.packages = state.packages.includes(id) ? state.packages.filter((entry) => entry !== id) : [...state.packages, id];
@@ -135,8 +136,42 @@ function handleAction(event) {
   }
   if (action === "complete") { state.phase = "complete"; saveState(); render(); return; }
   if (action === "save-feedback") {
-    localStorage.setItem(`${SAVE_KEY}-feedback`, JSON.stringify({ clear: document.querySelector("#feedback-clear")?.value || "", confusing: document.querySelector("#feedback-confusing")?.value || "", savedAt: new Date().toISOString() }));
-    event.currentTarget.textContent = "保存しました"; return;
+    const clear = document.querySelector("#feedback-clear")?.value || "";
+    const confusing = document.querySelector("#feedback-confusing")?.value || "";
+    const replay = document.querySelector("#feedback-replay")?.value || "";
+    const marker = document.querySelector("#feedback-marker")?.value || "";
+    const endedAt = new Date().toISOString();
+    state.feedback = { clear, confusing, replay, marker, savedAt: endedAt };
+    saveState();
+    localStorage.setItem(`${SAVE_KEY}-feedback`, JSON.stringify(state.feedback));
+    const payload = {
+      runId: state.runId,
+      telemetryRunId: state.runId,
+      deviceId: deviceIdForRun(),
+      schemaVersion: 4,
+      gameVersion: VERSION,
+      startedAt: state.startedAt || endedAt,
+      endedAt,
+      outcome: { won: Boolean(state.lastResult?.result === "win"), reached: state.stage, hp: 0 },
+      build: state.packages,
+      stats: { seed: SEED, stageCount: state.stage, ruleset: PLAYABLE_CONTENT.contentVersion },
+      answers: { replay, clear, confusing, marker },
+      client: { language: navigator.language, viewport: `${innerWidth}x${innerHeight}`, head: "ecology" },
+      events: state.lastResult?.events || [],
+      moments: marker ? [{ seq: 0, at: endedAt, elapsedMs: 0, kind: marker, label: marker, phase: "complete", note: clear }] : [],
+    };
+    event.currentTarget.disabled = true;
+    event.currentTarget.textContent = "保存中…";
+    sendPayload(payload).then((result) => {
+      event.currentTarget.disabled = false;
+      event.currentTarget.textContent = result.ok ? "D1に保存しました" : "端末に保存しました（D1未送信）";
+      const hint = document.querySelector("#feedback-status");
+      if (hint) hint.textContent = result.ok ? `保存済み · run ${state.runId.slice(0, 8)}` : `送信待ち · ${result.error}`;
+    }).catch(() => {
+      event.currentTarget.disabled = false;
+      event.currentTarget.textContent = "端末に保存しました（D1未送信）";
+    });
+    return;
   }
 }
 
