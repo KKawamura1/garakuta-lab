@@ -15,6 +15,7 @@
 | 新しい実験を設計する | DESIGN_CHARTER.md | docs/AGENT_ONBOARDING.md → 類似実験の票 |
 | 現在の本編を直す | core/rules-version.mjs | core/ → play/ → 関係するsmoke |
 | SCRAPLINEを扱う | analysis/SCRAPLINE_AGENT_RUNBOOK.md | concept → implementation → D1結果 |
+| EXP-18を扱う | analysis/experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md | R4 → 実装後はA5_RULE_ENGINE/ |
 | 公開やログ取得を行う | docs/HUMAN_TEST_RELEASE.md | docs/OPERATIONS.md / EXPORT.md |
 
 全ファイルを読む必要はありません。先に現在地を固定し、必要な系列だけを深掘りしてください。
@@ -25,7 +26,7 @@
 - 現在の既定入口は /play/ の SKIP 0.4 / laws-0.5 です。これは比較基準であり、面白さの勝者として確定していません。
 - 最新の独立試作は /scrapline/ の SCRAPLINE 0.7 / scrapline-build-20260829-r12 です。
 - SCRAPLINEは、機械検査と保存完全性は確認できましたが、作者プレイではfun 1〜2/5、因果の説明は成立せず、不採択です。
-- 次の実験はmain上では未登録です。まず、弾・車両・敵・勝敗の因果を一読できるかを問う実験票を登録してから実装します。
+- 次の実装票はEXP-18 R5です。ecology/の決定的ルールエンジンとGate A〜Fを先に実装し、UI・公開・人間テストはまだ行いません。
 
 ## 3. 判断の優先順位
 
@@ -45,6 +46,7 @@
 | 場所 | 役割 | 現在の扱い |
 |---|---|---|
 | core/ | 本編のルール、状態機械、乱数、指標 | 現行コード |
+| ecology/ | EXP-18のデータ駆動・決定的ルールエンジン | R5の実装先。現時点では未実装 |
 | play/ | 本編の既定UIと比較ルールセット | 現行の比較基準 |
 | scrapline/ | SCRAPLINE 0.7の独立試作 | 最新試作。ただし不採択 |
 | kindling/、emberline/、tomori/、night-eater/ | 縦切り試作 | 作者テスト結果を反映して凍結・比較保存 |
@@ -54,7 +56,7 @@
 | analysis/ 直下 | 旧ラウンド、独立試作票、smoke、調律、結果要約 | 既存の履歴・検査資産 |
 | analysis/human-runs/ | 作者・人間の再現可能なプレイ記録 | 一次証拠 |
 | analysis/agent-runs/ | エージェント代理プレイの出力 | 補助証拠。作者のfun代替にはしない |
-| research/ | 先行事例と設計仮説の調査 | 参考資料 |
+| research/ | 先行事例と一般化した設計知見 | 参考資料。創発的ルール生態系の一般メモを含む |
 | docs/ | 作業導線、公開、D1/export、運用 | 手順書 |
 | .github/workflows/ | 検査とD1 export | 自動化 |
 | .claude/ | Claude Codeの再開・停止運用 | 歴史的運用資料。現在の設計キューではない |
