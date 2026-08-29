@@ -8,7 +8,7 @@
  */
 
 export const VERSION = "scrapline-0.7";
-export const BUILD_STAMP = "scrapline-build-20260828-r11";
+export const BUILD_STAMP = "scrapline-build-20260829-r12";
 export const MAX_STAGES = 7;
 export const MAX_CARS = 5;
 export const MAX_HULL = 8;
@@ -883,6 +883,34 @@ export function moveCar(state, from, to) {
   next.carHistory.push({ action: "move", carId: car, from, to, stage: next.stage, before, after: [...next.activeCars], at: new Date().toISOString() });
   delete next.preview;
   next.events.push({ type: "move", from, to, carId: car });
+  return next;
+}
+
+export function swapCars(state, from, to) {
+  const next = clone(state);
+  if (!Number.isInteger(from) || !Number.isInteger(to)
+    || from < 0 || from >= next.activeCars.length
+    || to < 0 || to >= next.activeCars.length
+    || from === to) return next;
+  const before = [...next.activeCars];
+  const fromCar = next.activeCars[from];
+  const toCar = next.activeCars[to];
+  next.activeCars[from] = toCar;
+  next.activeCars[to] = fromCar;
+  next.moveCount += 1;
+  next.carHistory.push({
+    action: "swap",
+    carId: fromCar,
+    otherCarId: toCar,
+    from,
+    to,
+    stage: next.stage,
+    before,
+    after: [...next.activeCars],
+    at: new Date().toISOString(),
+  });
+  delete next.preview;
+  next.events.push({ type: "swap", from, to, carId: fromCar, otherCarId: toCar });
   return next;
 }
 

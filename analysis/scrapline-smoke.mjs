@@ -14,6 +14,7 @@ import {
   createGame,
   installCar,
   moveCar,
+  swapCars,
   offersFor,
   previewTrain,
   recommendedPolicy,
@@ -43,7 +44,7 @@ const stable = (state) => ({
 });
 
 assert.equal(VERSION, "scrapline-0.7");
-assert.match(BUILD_STAMP, /^scrapline-build-20260828-r11$/);
+assert.match(BUILD_STAMP, /^scrapline-build-20260829-r12$/);
 assert.equal(CARS.length, 11);
 assert.equal(MAX_CARS, 5);
 assert.equal(MAX_VOLLEYS, 6);
@@ -126,6 +127,11 @@ const withCars = installCar(installCar(a, "charge"), "melt");
 assert.deepEqual(withCars.activeCars, ["accelerator", "charge", "melt"]);
 const moved = moveCar(withCars, 1, 2);
 assert.deepEqual(moved.activeCars, ["accelerator", "melt", "charge"]);
+const swapped = swapCars(withCars, 0, 2);
+assert.deepEqual(swapped.activeCars, ["melt", "charge", "accelerator"], "tap destination swaps with the selected car");
+assert.equal(swapped.carHistory.at(-1).action, "swap");
+assert.equal(swapped.events.at(-1).type, "swap");
+
 const removed = removeCar(moved, 1);
 assert.deepEqual(removed.activeCars, ["accelerator", "charge"]);
 let full = a;
