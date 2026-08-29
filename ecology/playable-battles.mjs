@@ -16,6 +16,7 @@ const PACKAGES = {
     short: "一手を遅らせて、大きく返す",
     detail: "レオンが溜め突きを使う。ミナの急かしが準備を短くする。",
     setTactics: { lancer: ["heavy_swing", "strike"] },
+    setReactives: { mender: ["counter_blow", "urging"] },
     addReactives: [{ characterId: "mender", skillId: "urging" }],
     equipment: [{ characterId: "lancer", equipmentId: "momentum_rig", instanceId: "pack_momentum" }],
   },
@@ -87,6 +88,8 @@ function applyPackage(allies, packageId) {
   for (const ally of allies) {
     const tactics = pack.setTactics[ally.characterId];
     if (tactics) ally.tactics = tactics.map((activeSkillId) => ({ activeSkillId, useWhen: [] }));
+    const reactives = pack.setReactives?.[ally.characterId];
+    if (reactives) ally.reactiveSkillIds = [...reactives];
     for (const addition of pack.addReactives) {
       if (addition.characterId === ally.characterId && !ally.reactiveSkillIds.includes(addition.skillId)) {
         ally.reactiveSkillIds.push(addition.skillId);
