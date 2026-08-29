@@ -161,6 +161,7 @@ function newRunState(meta) {
     replaySnapshots: [],
     replayIndex: 0,
     replayPlaying: false,
+    skillTreeScroll: {},
     results: [],
     runEvents: [],
     battleError: null,
@@ -210,6 +211,9 @@ function loadState() {
     next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
     next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
     next.replaySnapshots = Array.isArray(next.replaySnapshots) ? next.replaySnapshots : [];
+    next.skillTreeScroll = next.skillTreeScroll && typeof next.skillTreeScroll === "object" && !Array.isArray(next.skillTreeScroll)
+      ? next.skillTreeScroll
+      : {};
     next.selectedSkillNode = next.selectedSkillNode || null;
     next.battleError = next.battleError || null;
     return next;
@@ -373,7 +377,27 @@ function render() {
   app.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
   });
+  restoreSkillTreeScroll();
   if (state.phase === "battle" && state.replayPlaying) startReplayTimer();
+}
+
+function captureSkillTreeScroll() {
+  if (state.phase !== "camp" || state.tab !== "skills") return;
+  const scroll = { ...(state.skillTreeScroll || {}) };
+  app.querySelectorAll(".skill-branch[data-branch]").forEach((element) => {
+    const value = Number(element.scrollLeft);
+    if (Number.isFinite(value)) scroll[element.dataset.branch] = value;
+  });
+  state.skillTreeScroll = scroll;
+}
+
+function restoreSkillTreeScroll() {
+  if (state.phase !== "camp" || state.tab !== "skills") return;
+  const scroll = state.skillTreeScroll || {};
+  app.querySelectorAll(".skill-branch[data-branch]").forEach((element) => {
+    const value = Number(scroll[element.dataset.branch]);
+    if (Number.isFinite(value)) element.scrollLeft = value;
+  });
 }
 
 function renderIntro() {
@@ -486,6 +510,26 @@ function memberContext(characterId, emphasis = "skills") {
     + "<div class=\"member-context-loadout\"><span><b>" + esc(primary) + "</b></span><span><b>" + esc(secondary) + "</b></span></div></section>";
 }
 
+function skillBuildSummary(characterId) {
+  const active = (state.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const reactive = (state.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
+  const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
+  const slotKey = selectedNode?.kind === "active" ? "tactics" : "reactives";
+  const slotLabel = selectedNode?.kind === "active" ? "行動枠" : "リアクティブ枠";
+  const slotCount = selectedNode ? (state.loadout[slotKey]?.[characterId] || []).length : 0;
+  const target = selectedNode
+    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " → " + characterName(characterId)
+      + "の" + slotLabel + "（" + slotCount + " / 2）"
+    : "技能を選択すると、ここに装着先を表示";
+  return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
+    + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
+    + "のビルド</b><small>" + esc(positionText(state.formation[characterId])) + " · "
+    + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>行動</b> "
+    + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>反応</b> "
+    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-target\">"
+    + esc(target) + "</div></aside>";
+}
 function skillNodeIcon(node) {
   return (node.kind === "reactive" ? "↳" : branchIcons[node.branch] ?? "·");
 }
@@ -534,7 +578,7 @@ function renderSkillBranch(branch, characterId) {
     return "<div class=\"skill-tier\"><span class=\"tier-label\">T" + (tier + 1) + "</span><div class=\"tier-nodes\">"
       + (tierNodes.length ? tierNodes.map((node) => renderSkillNode(node, characterId)).join("") : "<span class=\"tier-empty\">—</span>") + "</div></div>";
   }).join("");
-  return "<section class=\"skill-branch\"><div class=\"branch-title\"><b><span class=\"branch-icon\">" + esc(branchIcons[branch] ?? "·")
+  return "<section class=\"skill-branch\" data-branch=\"" + esc(branch) + "\"><div class=\"branch-title\"><b><span class=\"branch-icon\">" + esc(branchIcons[branch] ?? "·")
     + "</span>" + branch + "</b><small>" + nodes.length + " ノード</small></div><div class=\"skill-tree-map\">" + tiers + "</div></section>";
 }
 
@@ -548,7 +592,7 @@ function renderSkills() {
     + "<section class=\"card\">" + sectionHeading("COMMON TREE / 12 + 12", "技能を解禁する")
     + "<p class=\"muted\">同じツリーでも、誰に装着するか・どの順番で試すかで役割が変わります。アイコンを選び、説明を必要な時だけ開いてください。</p>"
     + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 自分の順番に試す</span><span><i class=\"kind kind-reactive\">反応</i> 条件発生時に発火</span></div>"
-    + branches + "</section>"
+    + skillBuildSummary(characterId) + branches + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">枠が決まったら、同じ仲間の装備と耐久を確認します。</p>"
     + "<div class=\"flow-actions\">" + button("編成へ戻る", "tab", false, "button", "data-tab=\"roster\"")
     + button("装備へ進む", "tab", false, "button primary", "data-tab=\"equipment\"") + "</div></section>";
@@ -903,6 +947,7 @@ function ensureSelectedCharacter() {
 function handleAction(event) {
   const element = event.currentTarget;
   const action = element.dataset.action;
+  captureSkillTreeScroll();
   state.error = null;
 
   if (action === "reset") {
