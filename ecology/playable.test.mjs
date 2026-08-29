@@ -3,61 +3,89 @@ import { simulateBattle, validateBattleInput, validateContentBundle } from "./en
 import { PLAYABLE_CONTENT } from "./playable-content.mjs";
 import {
   CHARACTER_OPTIONS,
-  COMPONENTS,
-  componentOffer,
+  EQUIPMENT,
+  SKILLS,
+  SKILL_TREE_NODES,
+  equipEquipment,
+  equipSkill,
   freshLoadout,
-  installComponent,
   makeBattle,
-  reorderTactic,
+  removeSkill,
 } from "./playable-battles.mjs";
 
-const contentErrors = validateContentBundle(PLAYABLE_CONTENT);
-assert.deepEqual(contentErrors, [], `content errors: ${JSON.stringify(contentErrors)}`);
-assert.equal(CHARACTER_OPTIONS.length, 4);
-assert.equal(Object.keys(COMPONENTS).length, 17);
+assert.deepEqual(validateContentBundle(PLAYABLE_CONTENT), []);
+assert.equal(CHARACTER_OPTIONS.length, 8);
+assert.equal(Object.keys(SKILLS.active).length, 12);
+assert.equal(Object.keys(SKILLS.reactive).length, 12);
+assert.equal(Object.keys(EQUIPMENT).length, 18);
+assert.equal(SKILL_TREE_NODES.length, 24);
 
-for (const [id, component] of Object.entries(COMPONENTS)) {
-  const section = component.kind === "active" ? "activeSkills" : component.kind === "reactive" ? "reactiveSkills" : "equipment";
-  assert.ok(PLAYABLE_CONTENT[section][component.definitionId], `${id} must point at real content`);
-  assert.ok(component.effect.length > 0, `${id} needs a player-facing effect`);
+for (const [id, skill] of Object.entries(SKILLS.active)) {
+  assert.ok(PLAYABLE_CONTENT.activeSkills[id], id + " must point at real active content");
+  assert.ok(skill.effect.length > 0);
+}
+for (const [id, skill] of Object.entries(SKILLS.reactive)) {
+  assert.ok(PLAYABLE_CONTENT.reactiveSkills[id], id + " must point at real reactive content");
+  assert.ok(skill.effect.length > 0);
 }
 
-const offers = componentOffer("slice-1801", 1, [], 5);
-assert.equal(new Set(offers).size, offers.length);
-assert.deepEqual(offers, componentOffer("slice-1801", 1, [], 5));
-assert.ok(offers.every((id) => Object.hasOwn(COMPONENTS, id)));
+const roster = ["warden", "mender", "lancer", "scout"];
+let loadout = freshLoadout(roster);
+loadout = removeSkill(loadout, "warden", "strike", "active").loadout;
+loadout = removeSkill(loadout, "warden", "cover_ally", "reactive").loadout;
+let next = equipSkill(loadout, "warden", "steady_aim", "active");
+assert.equal(next.ok, true);
+loadout = next.loadout;
+next = equipSkill(loadout, "warden", "counter_blow", "reactive");
+assert.equal(next.ok, true);
+loadout = next.loadout;
+next = equipEquipment(loadout, "warden", "standing_plate", 0);
+assert.equal(next.ok, true);
+loadout = next.loadout;
+next = equipEquipment(loadout, "mender", "worn_greaves", 1);
+assert.equal(next.ok, true);
+loadout = next.loadout;
+assert.deepEqual(loadout.equipment.warden, ["standing_plate"]);
+assert.deepEqual(loadout.equipment.mender, ["worn_greaves"]);
 
-const rosters = [
-  ["warden", "mender", "lancer"],
-  ["warden", "mender", "pivot"],
-  ["warden", "lancer", "pivot"],
-  ["mender", "lancer", "pivot"],
-];
+const formation = {
+  warden: "rear_right",
+  mender: "front_left",
+  lancer: "front_right",
+  scout: "rear_left",
+};
+const firstBattle = makeBattle(
+  2,
+  roster,
+  loadout,
+  "frontier-test",
+  formation,
+  { hp: {}, equipmentDurability: {} },
+);
+assert.deepEqual(validateBattleInput(firstBattle, PLAYABLE_CONTENT), []);
+assert.deepEqual(
+  Object.fromEntries(firstBattle.allies.map((ally) => [ally.characterId, ally.position])),
+  formation,
+);
 
-for (const roster of rosters) {
-  const loadout = freshLoadout(roster);
-  let configured = installComponent(loadout, "heavy_swing", roster[0]);
-  assert.equal(configured.ok, true);
-  configured = installComponent(configured.loadout, "counter_blow", roster[1]);
-  assert.equal(configured.ok, true);
-  configured = installComponent(configured.loadout, "standing_plate", roster[2]);
-  assert.equal(configured.ok, true);
-  configured = installComponent(configured.loadout, "relay_order", roster[2]);
-  assert.equal(configured.ok, true);
-  const beforeReorder = configured.loadout.tactics[roster[0]];
-  const reordered = reorderTactic(configured.loadout, roster[0], 0, 1);
-  assert.deepEqual(reordered.tactics[roster[0]], [beforeReorder[1], beforeReorder[0]]);
-
-  for (const stage of [1, 2, 3]) {
-    const battle = makeBattle(stage, roster, configured.loadout, "slice-1801");
-    const inputErrors = validateBattleInput(battle, PLAYABLE_CONTENT);
-    assert.deepEqual(inputErrors, [], `roster ${roster.join(",")} stage ${stage}: ${JSON.stringify(inputErrors)}`);
-    const first = simulateBattle(battle, PLAYABLE_CONTENT);
-    const second = simulateBattle(battle, PLAYABLE_CONTENT);
-    assert.deepEqual(first, second, `replay mismatch for ${roster.join(",")} stage ${stage}`);
-    assert.equal(first.schemaVersion, "ecology-result-1");
-    assert.ok(first.events.length > 0);
-  }
+for (let stage = 1; stage <= 7; stage += 1) {
+  const battle = makeBattle(stage, roster, loadout, "frontier-test", formation);
+  assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), [], "stage " + stage);
+  const first = simulateBattle(battle, PLAYABLE_CONTENT);
+  const second = simulateBattle(battle, PLAYABLE_CONTENT);
+  assert.deepEqual(first, second, "stage " + stage + " must replay deterministically");
+  assert.ok(first.events.length > 0);
 }
 
-console.log("playable slice: 4-to-3 roster, real components, 3 stages, and deterministic replay passed");
+const targetCheck = simulateBattle(firstBattle, PLAYABLE_CONTENT);
+const marksmanTarget = targetCheck.events.find((event) =>
+  event.type === "target_selected" && event.sourceActorId === "e_marksman"
+);
+assert.ok(marksmanTarget, "the rear attacker must select a target");
+const targetedActor = targetCheck.actors.find((actor) =>
+  actor.instanceId === marksmanTarget.targetActorIds?.[0] ||
+  actor.instanceId === marksmanTarget.targetIds?.[0]
+);
+assert.equal(targetedActor?.position, "rear_left");
+
+console.log("full prototype: roster, formation, 12+12 skills, 18 equipment, targeting, 7 stages, deterministic replay passed");

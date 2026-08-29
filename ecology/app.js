@@ -3,67 +3,197 @@ import { PLAYABLE_CONTENT, DISPLAY_NAMES } from "./playable-content.mjs";
 import {
   CHARACTER_OPTIONS,
   COMPONENTS,
+  EQUIPMENT,
   RUN_SEED,
-  componentInfo,
-  componentLabel,
-  componentOffer,
-  encounterLabel,
+  SKILLS,
+  SKILL_TREE_NODES,
+  characterInfo,
+  encounterInfo,
+  enemyInfo,
+  enemyTargetingText,
+  equipEquipment,
+  equipSkill,
   freshLoadout,
-  installComponent,
-  loadoutSummary,
+  initialUnlockedSkills,
   makeBattle,
+  removeEquipment,
+  removeSkill,
   reorderTactic,
-  stageRule,
+  rewardOffer,
 } from "./playable-battles.mjs";
+import { POSITIONS } from "./schema.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 
-const VERSION = "EXP-18 UI slice 0.2";
-const SAVE_KEY = "exp18-playable-slice-v02";
+const VERSION = "EXP-18 Full prototype 0.1";
+const SAVE_KEY = "exp18-full-prototype-v01";
 const app = document.querySelector("#app");
+const positionLabels = {
+  front_left: "前列左",
+  front_right: "前列右",
+  rear_left: "後列左",
+  rear_right: "後列右",
+};
+const positionRows = {
+  front_left: "前列",
+  front_right: "前列",
+  rear_left: "後列",
+  rear_right: "後列",
+};
+const kindLabels = { active: "行動", reactive: "反応", equipment: "装備" };
+const replayTypes = new Set([
+  "battle_started",
+  "round_started",
+  "actor_activated",
+  "action_declared",
+  "target_selected",
+  "target_changed",
+  "action_started",
+  "action_resolved",
+  "action_skipped",
+  "preparation_started",
+  "preparation_advanced",
+  "preparation_completed",
+  "preparation_interrupted",
+  "damage_taken",
+  "excess_damage",
+  "healing_applied",
+  "excess_healing",
+  "barrier_gained",
+  "resource_gained",
+  "resource_spent",
+  "actor_moved",
+  "status_added",
+  "equipment_worn",
+  "equipment_broken",
+  "equipment_repaired",
+  "actor_defeated",
+  "reaction_fired",
+  "rule_triggered",
+  "battle_ended",
+]);
 
-const freshState = () => ({
-  phase: "intro",
-  stage: 0,
-  runSeed: `${RUN_SEED}-${uuid().slice(0, 8)}`,
-  roster: [],
-  loadout: null,
-  ownedComponents: [],
-  offer: [],
-  takenThisStage: 0,
-  lastResult: null,
-  results: [],
-  runEvents: [],
-  error: null,
-  runId: uuid(),
-  startedAt: null,
-  feedback: null,
-});
+let replayTimer = null;
 
-let state = loadState();
+function defaultMeta() {
+  const unlocked = {};
+  for (const option of CHARACTER_OPTIONS) unlocked[option.id] = initialUnlockedSkills(option.id);
+  const ownedEquipment = [
+    "standing_plate",
+    "worn_greaves",
+    "splinter_edge",
+    "field_kit",
+    "momentum_rig",
+    "bastion_shell",
+  ];
+  const equipmentDurability = {};
+  for (const id of ownedEquipment) equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
+  return {
+    skillPoints: 10,
+    unlocked,
+    ownedEquipment,
+    equipmentDurability,
+    expeditions: 0,
+  };
+}
+
+function defaultFormation(roster) {
+  const formation = {};
+  roster.forEach((id, index) => {
+    formation[id] = CHARACTER_OPTIONS.find((option) => option.id === id)?.defaultPosition
+      ?? POSITIONS[index];
+  });
+  return normalizeFormation(formation, roster);
+}
+
+function normalizeFormation(formation, roster) {
+  const next = {};
+  const used = new Set();
+  for (const id of roster) {
+    const requested = formation?.[id];
+    const position = POSITIONS.includes(requested) && !used.has(requested)
+      ? requested
+      : POSITIONS.find((candidate) => !used.has(candidate));
+    if (position) {
+      next[id] = position;
+      used.add(position);
+    }
+  }
+  return next;
+}
+
+function newRunState(meta) {
+  const roster = ["warden", "mender", "lancer", "scout"];
+  return {
+    phase: "camp",
+    tab: "roster",
+    stage: 1,
+    runSeed: RUN_SEED + "-" + uuid().slice(0, 8),
+    runId: uuid(),
+    startedAt: new Date().toISOString(),
+    roster,
+    formation: defaultFormation(roster),
+    loadout: freshLoadout(roster),
+    hp: {},
+    rewardOffer: [],
+    selectedCharacter: roster[0],
+    selectedEquipment: null,
+    lastResult: null,
+    replayEvents: [],
+    replayIndex: 0,
+    replayPlaying: false,
+    results: [],
+    runEvents: [],
+    battleSnapshot: null,
+    feedback: null,
+    error: null,
+    meta: structuredClone(meta),
+  };
+}
+
+function initialState() {
+  const state = newRunState(defaultMeta());
+  state.phase = "intro";
+  state.startedAt = null;
+  return state;
+}
 
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!saved || typeof saved !== "object") return freshState();
-    const next = { ...freshState(), ...saved };
-    next.roster = Array.isArray(next.roster) ? next.roster : [];
-    next.ownedComponents = Array.isArray(next.ownedComponents) ? next.ownedComponents : [];
-    next.offer = Array.isArray(next.offer) ? next.offer : [];
+    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    if (!saved || typeof saved !== "object") return initialState();
+    const fresh = initialState();
+    const next = { ...fresh, ...saved };
+    const meta = { ...defaultMeta(), ...(saved.meta || {}) };
+    meta.unlocked = { ...defaultMeta().unlocked, ...(saved.meta?.unlocked || {}) };
+    meta.ownedEquipment = Array.isArray(saved.meta?.ownedEquipment)
+      ? saved.meta.ownedEquipment.filter((id) => EQUIPMENT[id])
+      : meta.ownedEquipment;
+    meta.equipmentDurability = { ...defaultMeta().equipmentDurability, ...(saved.meta?.equipmentDurability || {}) };
+    next.meta = meta;
+    next.roster = Array.isArray(next.roster)
+      ? next.roster.filter((id) => characterInfo(id)).slice(0, 4)
+      : fresh.roster;
+    next.formation = normalizeFormation(next.formation, next.roster);
+    next.loadout = next.loadout || freshLoadout(next.roster);
+    next.hp = next.hp && typeof next.hp === "object" ? next.hp : {};
     next.results = Array.isArray(next.results) ? next.results : [];
     next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
-    if (!next.runSeed) next.runSeed = RUN_SEED;
-    if (!next.feedback) {
-      const savedFeedback = JSON.parse(localStorage.getItem(`${SAVE_KEY}-feedback`) || "null");
-      next.feedback = savedFeedback && typeof savedFeedback === "object" ? savedFeedback : null;
-    }
+    next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
+    next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
     return next;
   } catch {
-    return freshState();
+    return initialState();
   }
 }
 
+let state = loadState();
+
 function saveState() {
   localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+}
+
+function clone(value) {
+  return structuredClone(value);
 }
 
 function esc(value) {
@@ -77,125 +207,354 @@ function esc(value) {
 }
 
 function button(label, action, disabled = false, className = "button", attributes = "") {
-  return `<button type="button" class="${className}" data-action="${action}" ${attributes} ${disabled ? "disabled" : ""}>${esc(label)}</button>`;
+  return "<button type=\"button\" class=\"" + className + "\" data-action=\"" + esc(action) + "\" "
+    + attributes + (disabled ? " disabled" : "") + ">" + esc(label) + "</button>";
 }
 
-function shell(title, subtitle, body) {
-  const error = state.error ? `<p class="error" role="alert">${esc(state.error)}</p>` : "";
-  return `<div class="shell"><header class="header"><div><p class="kicker">${VERSION}</p><h1>${title}</h1><p class="subtitle">${subtitle}</p></div><button type="button" class="menu" data-action="reset" aria-label="最初から">↺</button></header>${body}${error}<footer>seed: ${esc(state.runSeed)} · build: ${VERSION}</footer></div>`;
+function shell(title, subtitle, body, options = {}) {
+  const error = state.error ? "<p class=\"error\" role=\"alert\">" + esc(state.error) + "</p>" : "";
+  const headerAction = options.back
+    ? button("キャンプへ", "back-camp", false, "menu-button")
+    : button("新しい遠征", "new-expedition", false, "menu-button");
+  return "<div class=\"shell\"><header class=\"header\"><div><p class=\"kicker\">" + VERSION
+    + "</p><h1>" + esc(title) + "</h1><p class=\"subtitle\">" + esc(subtitle)
+    + "</p></div>" + headerAction + "</header>" + body + error
+    + "<footer>遠征 " + esc(state.runId.slice(0, 8)) + " · seed " + esc(state.runSeed)
+    + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion) + "</footer></div>";
 }
 
 function record(type, details = {}) {
-  const entry = { seq: state.runEvents.length, at: new Date().toISOString(), type, ...details };
-  state.runEvents = [...state.runEvents, entry];
+  state.runEvents = [...state.runEvents, {
+    seq: state.runEvents.length,
+    at: new Date().toISOString(),
+    type,
+    ...details,
+  }];
 }
 
 function nameFor(id) {
-  return DISPLAY_NAMES[id] ?? id ?? "誰か";
+  return DISPLAY_NAMES[id] ?? id ?? "不明";
 }
 
 function characterName(id) {
-  return nameFor(id).split(" — ")[0];
+  return String(nameFor(id)).split(" — ")[0];
 }
 
-function positionLabel(position) {
-  return {
-    front_left: "前列左",
-    front_right: "前列右",
-    rear_left: "後列左",
-    rear_right: "後列右",
-  }[position] ?? position;
+function characterDisplay(id) {
+  const definition = PLAYABLE_CONTENT.characters[id];
+  return String(definition?.displayName ?? nameFor(id)).split(" — ")[0];
 }
 
-function kindLabel(kind) {
-  return { active: "行動", reactive: "反応", equipment: "装備" }[kind] ?? kind;
+function positionText(position) {
+  return positionLabels[position] ?? position;
 }
 
-const starterEffects = {
-  bulwark: "自分にラウンド防壁3。",
-  mend: "最も傷ついた味方を5回復。",
-  strike: "最も弱った敵に4ダメージ。",
-};
-
-function effectFor(kind, id) {
-  return COMPONENTS[id]?.effect ?? starterEffects[id] ?? nameFor(id);
+function kindText(kind) {
+  return kindLabels[kind] ?? kind;
 }
 
-function tacticRows(characterId, tactics) {
-  return tactics.map((id, index) => `<div class="installed-row"><span class="order">${index + 1}</span><span class="installed-copy"><b>${esc(nameFor(id))}</b><small>${esc(effectFor("active", id))}</small></span><span class="reorder">${button("↑", "move-tactic", index === 0, "icon-button", `data-character="${characterId}" data-index="${index}" data-direction="-1"`)}${button("↓", "move-tactic", index === tactics.length - 1, "icon-button", `data-character="${characterId}" data-index="${index}" data-direction="1"`)}</span></div>`).join("");
+function maxHp(characterId) {
+  return PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
 }
 
-function reactiveRows(reactives) {
-  return reactives.map((id) => `<div class="installed-row"><span class="bullet">↳</span><span class="installed-copy"><b>${esc(nameFor(id))}</b><small>${esc(effectFor("reactive", id))}</small></span></div>`).join("");
+function currentHp(characterId) {
+  return Math.max(0, Math.min(maxHp(characterId), state.hp[characterId] ?? maxHp(characterId)));
 }
 
-function renderMember(member) {
-  const info = CHARACTER_OPTIONS.find((option) => option.id === member.characterId);
-  const summary = loadoutSummary(state.loadout, [member.characterId])[0];
-  const equipment = summary.equipment
-    ? `<div class="installed-row"><span class="bullet">◆</span><span class="installed-copy"><b>${esc(nameFor(summary.equipment))}</b><small>${esc(effectFor("equipment", summary.equipment))}</small></span></div>`
-    : `<p class="empty-slot">装備なし</p>`;
-  return `<article class="member-node"><div class="member-head"><span class="avatar">${esc(info?.icon ?? "・")}</span><div><b>${esc(characterName(member.characterId))}</b><small>${esc(info?.role ?? "")} · ${esc(positionLabel(info?.position))}</small></div></div><div class="slot-group"><div class="slot-heading"><span>行動・優先順</span><small>${summary.tactics.length} / 2</small></div>${tacticRows(member.characterId, summary.tactics)}</div><div class="slot-group"><div class="slot-heading"><span>リアクティブ</span><small>${summary.reactives.length} / 2</small></div>${reactiveRows(summary.reactives) || '<p class="empty-slot">反応なし</p>'}</div><div class="slot-group"><div class="slot-heading"><span>装備</span><small>${summary.equipment ? "1 / 1" : "0 / 1"}</small></div>${equipment}</div></article>`;
+function equipmentOwner(equipmentId) {
+  return state.roster.find((characterId) => (state.loadout.equipment?.[characterId] || []).includes(equipmentId)) ?? null;
 }
 
-function assignButtons(componentId, action = "assign-component") {
-  return state.roster.map((characterId) => {
-    const preview = state.loadout ? installComponent(state.loadout, componentId, characterId) : { ok: false };
-    const limitReached = action === "assign-component" && state.takenThisStage >= 3;
-    const disabled = !preview.ok || limitReached;
-    const label = disabled && !preview.ok ? `${characterName(characterId)}（枠なし）` : `${characterName(characterId)}へ`;
-    const attrs = `data-component="${componentId}" data-character="${characterId}"`;
-    return button(label, action, disabled, "tiny-button", attrs);
-  }).join("");
+function equipmentDurability(equipmentId) {
+  return Math.max(0, state.meta.equipmentDurability[equipmentId] ?? EQUIPMENT[equipmentId]?.maxDurability ?? 1);
 }
 
-function componentLine(componentId, action = "assign-component") {
-  const component = componentInfo(componentId);
-  if (!component) return "";
-  const status = action === "assign-component" ? "拾う" : "報酬";
-  return `<div class="component-line"><div class="component-copy"><div class="component-title"><span class="kind kind-${component.kind}">${kindLabel(component.kind)}</span><b>${esc(component.label)}</b><span class="component-status">${status}</span></div><p>${esc(component.effect)}</p><small>${esc(component.grammar)}</small></div><div class="component-actions">${assignButtons(componentId, action)}</div></div>`;
+function isUnlocked(characterId, skillId) {
+  return (state.meta.unlocked?.[characterId] || []).includes(skillId);
+}
+
+function installedSkill(characterId, skillId, kind) {
+  const key = kind === "active" ? "tactics" : "reactives";
+  return (state.loadout[key]?.[characterId] || []).includes(skillId);
+}
+
+function selectedCharacter() {
+  if (state.roster.includes(state.selectedCharacter)) return state.selectedCharacter;
+  return state.roster[0];
+}
+
+function positionOwner(position) {
+  return state.roster.find((characterId) => state.formation[characterId] === position) ?? null;
+}
+
+function sectionHeading(eyebrow, title, right = "") {
+  return "<div class=\"section-head\"><div><p class=\"eyebrow\">" + esc(eyebrow)
+    + "</p><h2>" + esc(title) + "</h2></div>" + right + "</div>";
+}
+
+function campNav() {
+  const tabs = [
+    ["roster", "編成"],
+    ["skills", "スキルツリー"],
+    ["equipment", "装備"],
+    ["map", "遠征マップ"],
+  ];
+  return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label]) =>
+    "<button type=\"button\" class=\"tab " + (state.tab === id ? "active" : "")
+      + "\" data-action=\"tab\" data-tab=\"" + id + "\">" + label + "</button>").join("")
+    + "</nav>";
 }
 
 function render() {
-  const views = { intro: renderIntro, roster: renderRoster, build: renderBuild, battle: renderBattle, result: renderResult, reward: renderReward, complete: renderComplete };
+  if (replayTimer) {
+    clearInterval(replayTimer);
+    replayTimer = null;
+  }
+  const views = {
+    intro: renderIntro,
+    camp: renderCamp,
+    battlePreview: renderBattlePreview,
+    battle: renderBattle,
+    result: renderResult,
+    reward: renderReward,
+    complete: renderComplete,
+  };
   app.innerHTML = (views[state.phase] ?? renderIntro)();
-  app.querySelectorAll("[data-action]").forEach((element) => element.addEventListener("click", handleAction));
+  app.querySelectorAll("[data-action]").forEach((element) => {
+    element.addEventListener("click", handleAction);
+  });
+  if (state.phase === "battle" && state.replayPlaying) startReplayTimer();
 }
 
 function renderIntro() {
-  return shell("灰の遠征", "仲間と部材を組み替え、戦闘で答え合わせする", `<section class="hero card"><div class="sigil">◌</div><p class="lead">4人から3人を選び、<br>スキル・反応・装備を仲間の枠へ取り付けます。</p>${button("遠征を始める", "start", false, "button primary")}<p class="hint">戦闘中の操作はありません。組んだ仕組みが何を起こしたかを、短いログで確認します。</p></section><section class="three-up"><div class="card"><b>仲間を選ぶ</b><span>4人から3人</span></div><div class="card"><b>部材を組む</b><span>行動・反応・装備</span></div><div class="card"><b>答えを見る</b><span>3区画を自動戦闘</span></div></section>`);
+  return shell("灰の遠征", "仲間の役割、技能、装備、隊列を組み替えて7区画を越える", "<section class=\"hero card\">"
+    + "<div class=\"sigil\">◈</div><p class=\"lead\">4人を選び、4つの位置へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。</p>"
+    + button("遠征を始める", "start", false, "button primary")
+    + "<div class=\"loop\"><span><b>1</b>4人を編成</span><span><b>2</b>技能を解禁・装着</span><span><b>3</b>装備を2枠へ組む</span><span><b>4</b>自動戦闘で検証</span></div></section>"
+    + "<section class=\"three-up\"><div class=\"card\"><b>8人の仲間</b><span>固有の役割と初期技能</span></div><div class=\"card\"><b>24技能</b><span>行動12・反応12</span></div><div class=\"card\"><b>18装備</b><span>耐久を持つ実物</span></div></section>");
+}
+
+function renderCamp() {
+  const view = {
+    roster: renderRoster,
+    skills: renderSkills,
+    equipment: renderEquipment,
+    map: renderMap,
+  }[state.tab]();
+  const title = state.tab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
+  const subtitle = "第" + state.stage + "区画 · " + encounterInfo(state.stage).name + " · 4人編成";
+  return shell(title, subtitle, campNav() + view);
 }
 
 function renderRoster() {
-  const characters = CHARACTER_OPTIONS.map((option) => {
-    const selected = state.roster.includes(option.id);
-    const active = option.starterTactics.map(nameFor).join("、");
-    const reactive = option.starterReactives.map(nameFor).join("、");
-    return `<button type="button" class="character-option ${selected ? "selected" : ""}" data-action="toggle-character" data-character="${option.id}"><div class="character-top"><span class="avatar">${esc(option.icon)}</span><span><b>${esc(characterName(option.id))}</b><small>${esc(option.role)} · ${esc(positionLabel(option.position))}</small></span><span class="check">${selected ? "✓" : "＋"}</span></div><p>${esc(option.summary)}</p><small>初期行動: ${esc(active)} · 初期反応: ${esc(reactive)}</small></button>`;
+  const slots = POSITIONS.map((position) => {
+    const owner = positionOwner(position);
+    const selected = owner && selectedCharacter() === owner;
+    const content = owner
+      ? "<span class=\"avatar\">" + esc(characterInfo(owner)?.icon ?? "・") + "</span><span><b>"
+        + esc(characterName(owner)) + "</b><small>" + esc(characterInfo(owner)?.role ?? "")
+        + " · HP " + currentHp(owner) + "/" + maxHp(owner) + "</small></span>"
+      : "<span class=\"empty-icon\">＋</span><span><b>空き枠</b><small>選択した仲間をここへ置く</small></span>";
+    return "<button type=\"button\" class=\"formation-slot " + (selected ? "selected" : "")
+      + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
+      + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
   }).join("");
-  const selectedNames = state.roster.map(characterName).join("、") || "まだ選ばれていません";
-  return shell("出撃する3人", "4人の役割から、今回の3人を選ぶ", `<section class="card"><div class="section-head"><div><p class="eyebrow">ROSTER / 4 → 3</p><h2>誰を組み合わせる？</h2></div><span class="stage">${state.roster.length} / 3</span></div><p class="muted">仲間は初期行動と初期反応を1つずつ持ちます。あとから拾う部材で、別の仲間にも役割を移せます。</p><div class="character-grid">${characters}</div><p class="selection-note">選択中: <b>${esc(selectedNames)}</b></p>${button("この3人で構成を始める", "confirm-roster", state.roster.length !== 3, "button primary")}</section><section class="card rule-note"><p class="eyebrow">RULE</p><p>位置は仲間ごとに固定です。前衛は狙われやすく、後衛は位置替えや号令の影響を受けます。</p></section>`);
+  const characterCards = CHARACTER_OPTIONS.map((option) => {
+    const inParty = state.roster.includes(option.id);
+    const selected = selectedCharacter() === option.id;
+    const action = inParty ? "select-character" : "toggle-roster";
+    const actionLabel = inParty ? (selected ? "選択中" : "選ぶ") : "編成に入れる";
+    return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
+      + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
+      + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
+      + esc(option.icon) + "</span><span class=\"character-copy\"><b>" + esc(characterName(option.id))
+      + "</b><small>" + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
+      + (inParty ? "✓" : "＋") + "</span></button><div class=\"character-stats\"><span>HP "
+      + maxHp(option.id) + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
+      + "</span><span>" + esc(actionLabel) + "</span></div>"
+      + (inParty ? button("外す", "toggle-roster", state.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"") : "")
+      + "</article>";
+  }).join("");
+  return "<section class=\"card\">" + sectionHeading("FORMATION / 4 SLOTS", "誰がどこに立つ？", "<span class=\"stage\">"
+    + state.roster.length + " / 4人</span>") + "<p class=\"muted\">仲間を選んでから位置枠をタップすると、二人の位置を交換できます。前列・後列は敵の狙いと技能の条件に影響します。</p>"
+    + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">選択中: <b>"
+    + esc(characterName(selectedCharacter())) + "</b> · 位置枠をタップして配置</p></section>"
+    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → 4", "同行する仲間を選ぶ")
+    + "<p class=\"muted\">8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。</p>"
+    + "<div class=\"character-grid\">" + characterCards + "</div></section>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで行動2・反応2を組み、装備画面で実物を2枠に割り当ててください。</p>"
+    + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
 
-function renderBuild() {
-  if (!state.loadout) return renderRoster();
-  const offer = state.offer.length
-    ? `<section class="card"><div class="section-head"><div><p class="eyebrow">MATERIALS / SEEDED OFFER</p><h2>拾える部材</h2></div><span class="stage">${state.stage === 1 ? `${state.takenThisStage} / 3` : "任意"}</span></div><p class="muted">部材をひとつ選び、取り付け先を決めます。同じ部材を複数の仲間には付けられません。</p><div class="component-list">${state.offer.map((id) => componentLine(id)).join("")}</div>${state.stage === 1 ? '<p class="hint">初期構成は2個以上、3個まで。迷った部材は見送ってかまいません。</p>' : ""}</section>`
-    : `<section class="card quiet"><p class="eyebrow">MATERIALS</p><h2>今の部材で組み直した</h2><p class="muted">この区画で追加できる部材はありません。優先順を見直してから戦えます。</p></section>`;
-  const memberNodes = state.roster.map((characterId) => renderMember({ characterId })).join("");
-  const inventory = state.ownedComponents.length
-    ? `<div class="inventory">${state.ownedComponents.map((id) => `<span class="inventory-chip"><span class="kind kind-${COMPONENTS[id]?.kind}">${kindLabel(COMPONENTS[id]?.kind)}</span>${esc(componentLabel(id))}</span>`).join("")}</div>`
-    : '<p class="empty-slot">まだ追加部材はありません。</p>';
-  const fightDisabled = state.stage === 1 && state.takenThisStage < 2;
-  return shell(`第${state.stage}区画の構成`, `${encounterLabel(state.stage)} · ${stageRule(state.stage)}`, `<section class="card"><div class="section-head"><div><p class="eyebrow">ASSEMBLY</p><h2>仕組みを組む</h2></div><span class="stage">${state.stage} / 3</span></div><div class="member-grid">${memberNodes}</div><div class="inventory-wrap"><div class="slot-heading"><span>手元にある部材</span><small>${state.ownedComponents.length} 個</small></div>${inventory}</div></section>${offer}${button(state.stage === 1 ? "この構成で戦う" : "次の戦闘へ", "fight", fightDisabled, "button primary")}<p class="hint centered">行動は上から順に試します。↑↓で優先順を変えられます。</p>`);
+function skillSlotRows(characterId, kind) {
+  const key = kind === "active" ? "tactics" : "reactives";
+  const list = state.loadout[key]?.[characterId] || [];
+  const title = kind === "active" ? "行動（優先順）" : "リアクティブ（条件発火）";
+  const rows = list.map((skillId, index) => {
+    const info = COMPONENTS[skillId];
+    const moveButtons = kind === "active"
+      ? "<span class=\"reorder\">" + button("↑", "move-tactic", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
+        + button("↓", "move-tactic", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
+      : "";
+    return "<div class=\"installed-row\"><span class=\"" + (kind === "active" ? "order" : "bullet") + "\">"
+      + (kind === "active" ? index + 1 : "↳") + "</span><span class=\"installed-copy\"><b>"
+      + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span>"
+      + moveButtons + button("外す", "remove-skill", false, "icon-button remove", "data-character=\"" + characterId
+        + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"") + "</div>";
+  }).join("");
+  return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
+    + list.length + " / 2</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
 }
 
-function renderBattle() {
-  const battle = makeBattle(state.stage, state.roster, state.loadout, state.runSeed);
-  const allies = battle.allies.map((ally) => `<div class="battle-member"><div><b>${esc(characterName(ally.characterId))}</b><small>${esc(positionLabel(ally.position))}</small></div><span>${esc(ally.tactics.map((tactic) => nameFor(tactic.activeSkillId)).join(" → "))}</span></div>`).join("");
-  const enemies = battle.enemies.map((enemy) => `<div class="enemy-row"><span class="enemy-mark">◆</span><b>${esc(nameFor(enemy.enemyActorId))}</b><span>${enemy.hp} HP</span></div>`).join("");
-  const components = state.ownedComponents.map(componentLabel).join("、") || "初期構成のみ";
-  return shell(`第${state.stage}区画`, "戦闘前の最終確認", `<section class="card battle-plan"><p class="eyebrow">AUTO BATTLE</p><h2>この仕組みを試す</h2><p class="muted">敵を倒すまで、R5の決定的な自動戦闘が進みます。seedは ${esc(state.runSeed)} です。</p><div class="plan-section"><h3>味方の優先順</h3>${allies}</div><div class="plan-section"><h3>部材</h3><p class="plan-components">${esc(components)}</p></div><div class="plan-section"><h3>相手</h3>${enemies}</div>${button("戦闘を再生する", "simulate", false, "button primary")}</section><p class="hint centered">戦闘後に、発動した行動・反応・装備を因果順で表示します。</p>`);
+function renderSkillNode(node, characterId) {
+  const info = COMPONENTS[node.skillId];
+  const unlocked = isUnlocked(characterId, node.skillId);
+  const equipped = installedSkill(characterId, node.skillId, node.kind);
+  const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
+  const canUnlock = !unlocked && prereqsMet && state.meta.skillPoints >= node.cost;
+  let action = "";
+  if (equipped) {
+    action = button("装着中 · 外す", "remove-skill", false, "tiny-button", "data-character=\"" + characterId
+      + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"");
+  } else if (unlocked) {
+    action = button("枠へ装着", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
+      + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"");
+  } else if (canUnlock) {
+    action = button("解禁（" + node.cost + "点）", "unlock-skill", false, "tiny-button primary-mini", "data-character=\"" + characterId
+      + "\" data-skill=\"" + node.skillId + "\"");
+  } else {
+    const reason = !prereqsMet ? "前提未解禁" : "点数不足";
+    action = "<span class=\"locked-reason\">" + reason + "</span>";
+  }
+  const stateClass = unlocked ? "unlocked" : canUnlock ? "available" : "locked";
+  return "<article class=\"skill-node " + stateClass + "\"><div class=\"node-top\"><span class=\"kind kind-"
+    + node.kind + "\">" + kindText(node.kind) + "</span><span class=\"tier\">T" + (node.tier + 1)
+    + "</span></div><b>" + esc(info?.label ?? node.skillId) + "</b><p>" + esc(info?.effect ?? "")
+    + "</p><small>前提: " + (node.requires.length ? esc(node.requires.map((id) => COMPONENTS[id]?.label ?? id).join(" / ")) : "なし")
+    + "</small><div class=\"node-action\">" + action + "</div></article>";
+}
+
+function renderSkills() {
+  const characterId = selectedCharacter();
+  const option = characterInfo(characterId);
+  const branches = ["攻撃", "指揮", "支援", "守り"].map((branch) => {
+    const nodes = SKILL_TREE_NODES.filter((node) => node.branch === branch)
+      .sort((a, b) => a.tier - b.tier || a.id.localeCompare(b.id))
+      .map((node) => renderSkillNode(node, characterId)).join("");
+    return "<section class=\"skill-branch\"><div class=\"branch-title\"><b>" + branch + "</b><small>"
+      + (nodes.split("skill-node").length - 1) + " ノード</small></div><div class=\"skill-tree-row\">" + nodes + "</div></section>";
+  }).join("");
+  const members = state.roster.map((id) => "<button type=\"button\" class=\"member-tab "
+    + (id === characterId ? "active" : "") + "\" data-action=\"select-character\" data-character=\"" + id
+    + "\"><span class=\"avatar small\">" + esc(characterInfo(id)?.icon ?? "・") + "</span>"
+    + characterName(id) + "</button>").join("");
+  return "<section class=\"card\">" + sectionHeading("SKILL TREE / " + state.meta.skillPoints + " POINTS", "誰を伸ばす？", "<span class=\"stage\">"
+    + esc(characterName(characterId)) + "</span>") + "<p class=\"muted\">解禁した技能だけが装着候補になります。行動は上から順に試し、リアクティブは条件が起きた瞬間に発火します。</p>"
+    + "<div class=\"member-tabs\">" + members + "</div><div class=\"member-summary\"><span class=\"avatar\">"
+    + esc(option?.icon ?? "・") + "</span><div><b>" + esc(characterName(characterId)) + "</b><small>"
+    + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div></div>"
+    + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + "</section>"
+    + "<section class=\"card\">" + sectionHeading("COMMON TREE / 12 + 12", "技能を解禁する")
+    + "<p class=\"muted\">これは全員が同じ地図から選ぶ技能です。人物の初期能力と組み合わせることで、同じ技能でも役割が変わります。</p>"
+    + branches + "</section>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">RULE</p><p class=\"muted\">行動枠は2、リアクティブ枠は2。枠が埋まったら、現在の技能を外してから新しい技能を装着します。</p>"
+    + button("装備を組む", "tab", false, "button", "data-tab=\"equipment\"") + "</section>";
+}
+
+function equipmentSlotHtml(characterId, slot) {
+  const equipmentId = (state.loadout.equipment?.[characterId] || [])[slot] || null;
+  const selected = state.selectedEquipment;
+  const canInstall = Boolean(selected && selected !== equipmentId);
+  const label = equipmentId ? nameFor(equipmentId) : "空き枠";
+  const detail = equipmentId
+    ? "耐久 " + equipmentDurability(equipmentId) + " / " + (EQUIPMENT[equipmentId]?.maxDurability ?? 1)
+    : selected ? "選択中の装備をここへ" : "装備を選んでください";
+  return "<div class=\"equipment-slot\"><button type=\"button\" class=\"equip-slot-button "
+    + (canInstall ? "ready" : "") + "\" data-action=\"" + (canInstall ? "equip-equipment" : "select-character")
+    + "\" data-character=\"" + characterId + "\" data-slot=\"" + slot + "\"><span class=\"slot-number\">"
+    + (slot + 1) + "</span><span><b>" + esc(label) + "</b><small>" + esc(detail) + "</small></span></button>"
+    + (equipmentId ? button("外す", "remove-equipment", false, "tiny-button", "data-character=\"" + characterId
+      + "\" data-equipment=\"" + equipmentId + "\"") : "") + "</div>";
+}
+
+function renderEquipment() {
+  const selected = state.selectedEquipment;
+  const inventory = state.meta.ownedEquipment.map((id) => {
+    const owner = equipmentOwner(id);
+    const isSelected = selected === id;
+    const max = EQUIPMENT[id]?.maxDurability ?? 1;
+    const durability = equipmentDurability(id);
+    return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " broken" : "")
+      + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
+      + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(EQUIPMENT[id]?.label ?? id)
+      + "</b><small>" + esc(EQUIPMENT[id]?.effect ?? "") + "</small></span><span class=\"gear-state\">"
+      + (owner ? characterName(owner) : "手元") + "<br>" + durability + "/" + max + "</span></button>"
+      + "</article>";
+  }).join("");
+  const codex = Object.keys(EQUIPMENT).filter((id) => !state.meta.ownedEquipment.includes(id)).map((id) =>
+    "<span class=\"codex-chip locked\"><b>" + esc(EQUIPMENT[id].label) + "</b><small>未入手 · "
+      + esc(EQUIPMENT[id].grammar) + "</small></span>").join("");
+  const members = state.roster.map((id) => "<article class=\"gear-member\"><div class=\"member-head\"><span class=\"avatar\">"
+    + esc(characterInfo(id)?.icon ?? "・") + "</span><div><b>" + esc(characterName(id)) + "</b><small>"
+    + esc(positionText(state.formation[id])) + " · 2装備枠</small></div></div><div class=\"equipment-slots\">"
+    + equipmentSlotHtml(id, 0) + equipmentSlotHtml(id, 1) + "</div></article>").join("");
+  return "<section class=\"card\">" + sectionHeading("EQUIPMENT / 2 SLOTS EACH", "実物を組み替える", "<span class=\"stage\">"
+    + state.meta.ownedEquipment.length + " / " + Object.keys(EQUIPMENT).length + "</span>") + "<p class=\"muted\">装備は共有インベントリの実物です。選択してから仲間の枠をタップすると移動します。戦闘で耐久が減り、壊れても所持は失いません。</p>"
+    + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? EQUIPMENT[selected]?.label ?? selected : "なし")
+    + "</b> · " + (selected ? "下の枠をタップして装着" : "上の装備をタップ") + "</p>"
+    + "<div class=\"gear-grid\">" + inventory + "</div></section>"
+    + "<section class=\"card\">" + sectionHeading("LOADOUT / 4 MEMBERS", "誰に何を持たせる？")
+    + "<div class=\"gear-member-grid\">" + members + "</div></section>"
+    + "<section class=\"card quiet\">" + sectionHeading("CODEX / 18 EQUIPMENT", "まだ見ぬ装備")
+    + "<div class=\"codex-list\">" + (codex || "<p class=\"muted\">すべて入手済みです。</p>") + "</div>"
+    + button("遠征マップへ", "tab", false, "button", "data-tab=\"map\"") + "</section>";
+}
+
+function renderEnemy(enemy) {
+  const info = enemyInfo(enemy.enemyActorId);
+  return "<article class=\"enemy-card\"><div class=\"enemy-top\"><span class=\"enemy-mark\">◆</span><div><b>"
+    + esc(info.label) + "</b><small>" + esc(positionText(enemy.position)) + " · HP " + enemy.hp + "</small></div></div>"
+    + "<p>" + esc(info.targeting) + "</p></article>";
+}
+
+function renderMap() {
+  const encounter = encounterInfo(state.stage);
+  const progress = Array.from({ length: 7 }, (_, index) => {
+    const stage = index + 1;
+    return "<span class=\"map-node " + (stage < state.stage ? "done" : stage === state.stage ? "current" : "")
+      + "\">" + stage + "</span>";
+  }).join("");
+  const party = state.roster.map((id) => "<div class=\"map-party-row\"><span class=\"avatar small\">"
+    + esc(characterInfo(id)?.icon ?? "・") + "</span><b>" + esc(characterName(id)) + "</b><span>"
+    + positionText(state.formation[id]) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</span></div>").join("");
+  return "<section class=\"card\">" + sectionHeading("EXPEDITION / 7 AREAS", "次の敵を見る", "<span class=\"stage\">"
+    + state.stage + " / 7</span>") + "<div class=\"map-progress\">" + progress + "</div><h3>"
+    + esc(encounter.name) + "</h3><p class=\"lead-small\">" + esc(encounter.description) + "</p>"
+    + "<div class=\"enemy-grid\">" + encounter.enemies.map(renderEnemy).join("") + "</div>"
+    + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
+    + button("この敵に挑む", "begin-stage", false, "button primary") + "</section>"
+    + "<section class=\"card\">" + sectionHeading("TARGETING", "敵は誰を狙う？")
+    + "<p class=\"muted\">敵ごとに狙いが違います。前列を守るだけでなく、後列優先・準備中優先の攻撃もあります。戦闘前に確認し、隊列とリアクティブを組み直してください。</p>"
+    + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
+      + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</section>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">勝利するとHPと装備耐久を持ち越します。報酬を1つ選び、次の区画へ進みます。敗北時は戦闘前の状態へ戻って構成を練り直せます。</p></section>";
+}
+
+function renderBattlePreview() {
+  const encounter = encounterInfo(state.stage);
+  const allies = state.roster.map((id) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
+    + esc(characterInfo(id)?.icon ?? "・") + "</span><div><b>" + esc(characterName(id)) + "</b><small>"
+    + esc(positionText(state.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
+    + esc((state.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
+    + "</span></div>").join("");
+  return shell("第" + state.stage + "区画", encounter.name + " · 戦闘前の最終確認", "<section class=\"card\">"
+    + sectionHeading("AUTO BATTLE / PLAN", "この構成で試す") + "<p class=\"muted\">戦闘中の操作はありません。行動の優先順、リアクティブの条件、敵の狙いをR5エンジンが決定的に解決します。</p>"
+    + "<div class=\"plan-list\"><h3>味方の構成</h3>" + allies + "</div><div class=\"plan-list\"><h3>敵の狙い</h3>"
+    + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
+      + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</div>"
+    + button("自動戦闘を再生する", "simulate", false, "button primary")
+    + button("キャンプへ戻る", "back-camp", false, "button") + "</section>");
 }
 
 function actorName(id) {
@@ -212,254 +571,564 @@ function eventText(event) {
   const source = actorName(event.sourceActorId || event.actorId || event.ownerActorId);
   const target = targetNames(event.targetActorIds || event.targetIds);
   const amount = values.amount ?? values.actual ?? values.proposed;
-  const amountText = amount !== undefined ? ` · ${amount}` : "";
+  const amountText = amount !== undefined ? " · " + amount : "";
   const skillId = values.activeSkillId || values.skillId || event.activeSkillId || event.skillId;
   const skill = skillId ? nameFor(skillId) : "行動";
   const reactionId = values.reactiveSkillId || event.reactiveSkillId;
   const reaction = reactionId ? nameFor(reactionId) : "反応";
   const round = event.round ?? values.round ?? "-";
-  const resourceLabel = (resource) => ({ action_points: "行動権", reaction_points: "RP" }[resource] ?? resource ?? "資源");
   const targetLabel = target && target === source ? "自分" : target || "相手";
-  const cause = event.ruleId && event.sourceDefinitionId ? `（${nameFor(event.sourceDefinitionId)}）` : "";
+  const cause = event.ruleId && event.sourceDefinitionId ? "（" + nameFor(event.sourceDefinitionId) + "）" : "";
+  const resourceLabel = (resource) => ({ action_points: "行動権", reaction_points: "RP" }[resource] ?? resource ?? "資源");
   const map = {
     battle_started: "戦闘開始",
-    round_started: `ラウンド${round}開始`,
-    actor_activated: `${source}が動き出す`,
-    action_declared: `${source}が${skill}を選んだ`,
-    target_selected: `${source}が${targetLabel}を狙う`,
-    target_changed: `狙いが${targetLabel}になった`,
-    action_cost_paid: `${source}が${skill}のコストを払った`,
-    action_started: `${source}の${skill}が始まる`,
-    action_resolved: `${source}の${skill}が解決した`,
-    action_skipped: `${source}は行動しなかった`,
-    action_canceled: `${source}の行動が取り消された`,
-    preparation_started: `${source}が準備を始める`,
-    preparation_advanced: `${source}の準備が進む`,
-    preparation_completed: `${source}の準備が完了`,
-    preparation_interrupted: `${source}の準備が止まった`,
-    damage_proposed: `${source}から攻撃の提案${amountText}`,
-    barrier_damaged: `${target || source}の防壁が削れた${amountText}`,
-    barrier_broken: `${target || source}の防壁が壊れた`,
-    damage_taken: `${target || source}がダメージを受けた${amountText}`,
-    excess_damage: "攻撃が余った",
-    healing_proposed: `${source}から回復の提案${amountText}`,
-    healing_applied: `${target || source}が回復した${amountText}`,
-    excess_healing: "回復が余った",
-    barrier_proposed: `${target || source}に防壁の提案${amountText}`,
-    barrier_gained: `${target || source}に防壁が生まれた${amountText}`,
-    barrier_expired: `${target || source}の防壁が消えた`,
-    resource_refreshed: `${source}の${resourceLabel(values.resource)}が戻った`,
-    resource_spent: `${source}が${resourceLabel(values.resource)}を使った${amountText}`,
-    resource_gained: `${target || source}が${resourceLabel(values.resource)}を得た${amountText}`,
-    resource_unused: `${source}の${resourceLabel(values.resource)}が余った${amountText}`,
-    actor_moved: `${source}が位置を替えた`,
-    status_added: `${target || source}に状態が加わった`,
-    status_removed: `${target || source}の状態が外れた`,
-    equipment_worn: `${source}の装備が摩耗した${amountText}`,
-    equipment_broken: `${source}の装備が壊れた`,
-    equipment_repaired: `${source}の装備が修理された${amountText}`,
-    actor_defeated: `${source}が倒れた`,
-    battle_ended: `戦闘終了 · ${values.result || "決着"}`,
+    round_started: "ラウンド" + round + "開始",
+    actor_activated: source + "が動き出す",
+    action_declared: source + "が" + skill + "を選んだ",
+    target_selected: source + "が" + targetLabel + "を狙う",
+    target_changed: "狙いが" + targetLabel + "になった",
+    action_started: source + "の" + skill + "が始まる",
+    action_resolved: source + "の" + skill + "が解決した",
+    action_skipped: source + "は行動しなかった",
+    preparation_started: source + "が準備を始める",
+    preparation_advanced: source + "の準備が進む",
+    preparation_completed: source + "の準備が完了",
+    preparation_interrupted: source + "の準備が止まった",
+    damage_taken: target + "が" + amountText + "ダメージを受けた",
+    excess_damage: "攻撃が" + amountText + "余った",
+    healing_applied: target + "が" + amountText + "回復した",
+    excess_healing: "回復が" + amountText + "余った",
+    barrier_gained: target + "に防壁" + amountText + "が生まれた",
+    resource_gained: target + "が" + resourceLabel(values.resource) + amountText + "を得た",
+    resource_spent: source + "が" + resourceLabel(values.resource) + amountText + "を使った",
+    actor_moved: source + "が位置を替えた",
+    status_added: target + "に状態が加わった",
+    equipment_worn: source + "の装備が" + amountText + "摩耗した",
+    equipment_broken: source + "の装備が壊れた",
+    equipment_repaired: source + "の装備が" + amountText + "修理された",
+    actor_defeated: source + "が倒れた",
+    battle_ended: "戦闘終了 · " + (values.result || "決着"),
   };
-  if (event.type === "reaction_fired" || event.type === "rule_triggered") return `${source}の${reaction}が発火${cause}`;
-  return `${map[event.type] || `${event.type}${amountText}`}${cause}`;
+  if (event.type === "reaction_fired" || event.type === "rule_triggered") return source + "の" + reaction + "が発火" + cause;
+  return map[event.type] || event.type + amountText;
 }
 
-const readableEvents = new Set([
-  "action_declared", "target_changed", "action_started", "action_skipped", "preparation_started",
-  "preparation_advanced", "preparation_completed", "damage_taken", "healing_applied", "excess_damage",
-  "excess_healing", "barrier_gained", "resource_gained", "resource_spent", "actor_moved", "status_added",
-  "equipment_worn", "equipment_broken", "equipment_repaired", "actor_defeated", "reaction_fired", "rule_triggered",
-  "battle_ended",
-]);
+function compactEvents(events) {
+  return (events || []).filter((event) => replayTypes.has(event.type));
+}
+
+function renderReplayActor(actor) {
+  return "<div class=\"replay-actor " + (actor.alive ? "" : "defeated") + "\"><span class=\"avatar small\">"
+    + esc(characterInfo(actor.definitionId)?.icon ?? (actor.side === "enemy" ? "◆" : "・"))
+    + "</span><div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
+    + (actor.alive ? "HP " + actor.hp + "/" + actor.maxHp : "戦闘不能") + " · 防壁 " + actor.barrier + "</small></div></div>";
+}
+
+function renderBattle() {
+  const result = state.lastResult;
+  const events = state.replayEvents;
+  const index = Math.min(state.replayIndex, Math.max(0, events.length - 1));
+  const current = events[index];
+  const visible = events.slice(Math.max(0, index - 11), index + 1).reverse();
+  const percent = events.length ? Math.round(((index + 1) / events.length) * 100) : 100;
+  const actors = result ? result.actors || [] : [];
+  const allies = actors.filter((actor) => actor.side === "ally").map(renderReplayActor).join("");
+  const enemies = actors.filter((actor) => actor.side === "enemy").map(renderReplayActor).join("");
+  const controls = state.replayPlaying
+    ? button("一時停止", "replay-toggle", false, "button")
+    : button("自動再生", "replay-toggle", index >= events.length - 1, "button primary");
+  return shell("戦闘リプレイ", encounterInfo(state.stage).name + " · " + percent + "%", "<section class=\"card replay-card\">"
+    + "<div class=\"replay-progress\"><span style=\"width:" + percent + "%\"></span></div><div class=\"replay-now\">"
+    + (current ? esc(eventText(current)) : "戦闘開始") + "</div><div class=\"replay-columns\"><div><h3>味方</h3>"
+    + allies + "</div><div><h3>敵</h3>" + enemies + "</div></div><ol class=\"events replay-events\">"
+    + visible.map((event) => "<li class=\"event\"><span class=\"event-round\">R" + (event.round ?? "-")
+      + "</span><span>" + esc(eventText(event)) + "</span></li>").join("") + "</ol>"
+    + "<div class=\"replay-controls\">" + controls + button("一拍進める", "replay-step", index >= events.length - 1, "button")
+    + button("結果を見る", "replay-result", false, "button") + "</div></section>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">WHY THIS TARGET?</p><p class=\"muted\">「誰が誰を狙ったか」「なぜ技能が発火したか」をイベント順に表示しています。戦闘後は全イベントを開けます。</p></section>");
+}
+
+function resultActors(result) {
+  return (result?.actors || []).filter((actor) => actor.side === "ally").map((actor) =>
+    "<div class=\"result-actor\"><span class=\"avatar small\">" + esc(characterInfo(actor.definitionId)?.icon ?? "・")
+      + "</span><div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
+      + (actor.alive ? "HP " + actor.hp + "/" + actor.maxHp : "戦闘不能")
+      + " · 防壁 " + actor.barrier + "</small></div></div>").join("");
+}
 
 function renderResult() {
   const result = state.lastResult;
-  if (!result) return renderBuild();
+  if (!result) return renderCamp();
   const won = result.result === "win";
   const metrics = result.metrics || {};
-  const events = (result.events || []).filter((event) => readableEvents.has(event.type));
-  const eventRows = events.length ? events : (result.events || []).slice(-20);
-  const displayEvents = eventRows.length > 40 ? [...eventRows.slice(0, 34), ...eventRows.slice(-6)] : eventRows;
-  const eventHtml = displayEvents.map((event) => `<li class="event"><span class="event-round">R${event.round ?? "-"}</span><span>${esc(eventText(event))}</span></li>`).join("");
-  const eventCount = displayEvents.length === eventRows.length ? `${eventRows.length}` : `${displayEvents.length} / ${eventRows.length}`;
-  const nextAction = won ? (state.stage >= 3 ? button("遠征結果を見る", "complete", false, "button primary") : button("次の部材を見る", "rewards", false, "button primary")) : button("構成に戻る", "back-build", false, "button primary");
-  return shell(won ? "突破した" : "足を止めた", `${encounterLabel(state.stage)} · ${result.roundsUsed}ラウンド`, `<section class="card verdict ${won ? "win" : "loss"}"><div class="verdict-mark">${won ? "✓" : "×"}</div><h2>${won ? "この組み合わせは通った" : "この組み合わせでは届かなかった"}</h2><p>${won ? "部材の因果を確認し、次の報酬でさらに改造できます。" : "優先順か、部材を付ける相手を見直せます。"}</p><div class="metrics"><span><b>${metrics.allyHpLost ?? 0}</b><small>味方HP損失</small></span><span><b>${metrics.equipmentWear ?? 0}</b><small>装備摩耗</small></span><span><b>${metrics.reactionsFired ?? 0}</b><small>反応発火</small></span></div></section><section class="card"><div class="section-head"><div><p class="eyebrow">CAUSE & EFFECT</p><h2>何が起きたか</h2></div><span class="count">${eventCount} events</span></div><ol class="events">${eventHtml}</ol><details><summary>全イベントを見る</summary><pre>${esc((result.events || []).map(eventText).join("\n"))}</pre></details></section>${nextAction}`);
+  const events = compactEvents(result.events);
+  const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
+  const next = won
+    ? state.stage >= 7
+      ? button("遠征を終えて記録する", "complete", false, "button primary")
+      : button("報酬を見る", "show-reward", false, "button primary")
+    : button("構成を見直す", "retry-build", false, "button primary");
+  const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
+    + esc(EQUIPMENT[item.equipmentId]?.label ?? item.equipmentId) + "</b><span>"
+    + item.durability + " / " + item.maxDurability + (item.broken ? " · 壊れた" : "") + "</span></div>").join("");
+  return shell(won ? "突破した" : "足を止めた", encounterInfo(state.stage).name + " · " + result.roundsUsed + "ラウンド", "<section class=\"card verdict "
+    + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">" + (won ? "✓" : "×")
+    + "</div><h2>" + (won ? "この組み合わせは通った" : "この組み合わせでは届かなかった")
+    + "</h2><p>" + (won ? "構成の因果を確認し、次の報酬でさらに変えられます。" : "敵の狙い、技能の優先順、装備の持たせ先を見直せます。")
+    + "</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
+    + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
+    + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div></section>"
+    + "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "味方の状態") + "<div class=\"result-actors\">"
+    + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
+    + "</div></section><section class=\"card\">" + sectionHeading("CAUSE & EFFECT", "何が起きたか", "<span class=\"count\">"
+    + shown.length + (shown.length === events.length ? "" : " / " + events.length) + " events</span>")
+    + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
+      + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span></li>").join("") + "</ol>"
+    + "<details><summary>全イベントを見る</summary><pre>" + esc((result.events || []).map(eventText).join("\n")) + "</pre></details></section>"
+    + next);
 }
 
 function renderReward() {
-  const options = state.offer.map((id) => componentLine(id, "take-reward")).join("");
-  return shell("部材をひとつ拾う", `${encounterLabel(state.stage)}を突破 · 次は第${state.stage + 1}区画`, `<section class="card"><p class="eyebrow">REWARD / 3 → 1</p><h2>次の組み合わせに何を足す？</h2><p class="muted">候補は3つ。選んだ部材は、取り付け先まで決めると次の区画へ進みます。</p><div class="component-list">${options}</div>${button("今回は見送る", "skip-reward", false, "button")}</section>`);
+  const offers = state.rewardOffer.map((id) => {
+    const info = EQUIPMENT[id];
+    return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
+      + esc(info?.label ?? id) + "</h3><p>" + esc(info?.effect ?? "") + "</p><small>"
+      + esc(info?.grammar ?? "") + " · 耐久 " + (info?.maxDurability ?? 1) + "</small>"
+      + button("拾って次へ", "take-reward", false, "button", "data-equipment=\"" + id + "\"") + "</article>";
+  }).join("");
+  return shell("報酬を選ぶ", encounterInfo(state.stage).name + "を突破 · 次の区画へ", "<section class=\"card\">"
+    + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？") + "<p class=\"muted\">装備は共有インベントリに入り、次のキャンプで誰に持たせるかを決めます。装備を取らず、技能点や休息を選ぶこともできます。</p>"
+    + "<div class=\"reward-grid\">" + offers + "</div><div class=\"reward-special\">"
+    + "<article class=\"reward-card special\"><div class=\"reward-kind kind-active\">成長</div><h3>技能点 +2</h3><p>キャンプへ戻り、誰かのスキルツリーを2段進める。</p>"
+    + button("技能点を取る", "take-skill-reward", false, "button") + "</article>"
+    + "<article class=\"reward-card special\"><div class=\"reward-kind kind-reactive\">休息</div><h3>短い休息</h3><p>全員のHPを5回復し、全装備を1修理する。</p>"
+    + button("休息する", "take-rest-reward", false, "button") + "</article></div></section>");
 }
 
 function renderComplete() {
   const feedback = state.feedback || {};
-  const option = (value, label, selected) => `<option value="${value}" ${selected ? "selected" : ""}>${label}</option>`;
+  const option = (value, label, selected) => "<option value=\"" + value + "\" " + (selected ? "selected" : "") + ">" + label + "</option>";
   const trail = state.roster.map(characterName).join("、");
-  const materials = state.ownedComponents.map(componentLabel).join("、") || "初期構成のみ";
-  return shell("遠征を終えた", "この版では、組合せUIと因果表示を評価してください", `<section class="card verdict win"><div class="verdict-mark">✦</div><h2>三つの区画を見届けた</h2><p>今回の仲間: ${esc(trail)}<br>手にした部材: ${esc(materials)}</p><div class="build-trail"><span><i>1</i>仲間を4人から3人に絞った</span><span><i>2</i>部材を枠へ取り付けた</span><span><i>3</i>自動戦闘で因果を確認した</span></div></section><section class="card feedback"><p class="eyebrow">UI CHECK</p><h2>画面についてのメモ</h2><label>もう一度遊びたい度<select id="feedback-replay">${option("", "選択してください", !feedback.replay)}${option("1", "1 — もう遊ばない", feedback.replay === "1")}${option("2", "2", feedback.replay === "2")}${option("3", "3", feedback.replay === "3")}${option("4", "4", feedback.replay === "4")}${option("5", "5 — もう一度遊びたい", feedback.replay === "5")}</select></label><label>感情マーカー<select id="feedback-marker">${option("", "選択なし", !feedback.marker)}${option("hit", "きた！", feedback.marker === "hit")}${option("insight", "ひらめいた", feedback.marker === "insight")}${option("choice", "迷う", feedback.marker === "choice")}${option("payoff", "うまくいった", feedback.marker === "payoff")}${option("friction", "つらい", feedback.marker === "friction")}${option("unclear", "わからない", feedback.marker === "unclear")}</select></label><label>一番分かりやすかったところ<textarea id="feedback-clear" placeholder="例：部材を仲間へ付ける画面">${esc(feedback.clear || "")}</textarea></label><label>一番分かりにくかったところ<textarea id="feedback-confusing" placeholder="例：反応がなぜ発火したか">${esc(feedback.confusing || "")}</textarea></label>${button("保存して送信", "save-feedback", false, "button primary")}<p id="feedback-status" class="hint">run: ${esc(state.runId)} · seed: ${esc(state.runSeed)}</p></section>`);
+  const gear = state.meta.ownedEquipment.map((id) => EQUIPMENT[id]?.label ?? id).join("、");
+  return shell("遠征を終えた", "今回の編成と因果を記録する", "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>7区画を見届けた</h2><p>今回の仲間: "
+    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし") + "</p><div class=\"build-trail\"><span><i>1</i>4人を選び、隊列を組んだ</span><span><i>2</i>技能ツリーから実際の技能を装着した</span><span><i>3</i>装備2枠と敵の狙いを考えた</span><span><i>4</i>自動戦闘の因果を確認した</span></div></section>"
+    + "<section class=\"card feedback\"><p class=\"eyebrow\">HUMAN CHECK</p><h2>今回のUIについて</h2><label>もう一度遊びたい度<select id=\"feedback-replay\">"
+    + option("", "選択してください", !feedback.replay) + option("1", "1 — もう遊ばない", feedback.replay === "1")
+    + option("2", "2", feedback.replay === "2") + option("3", "3", feedback.replay === "3")
+    + option("4", "4", feedback.replay === "4") + option("5", "5 — もう一度遊びたい", feedback.replay === "5")
+    + "</select></label><label>感情マーカー<select id=\"feedback-marker\">"
+    + option("", "選択なし", !feedback.marker) + option("hit", "きた！", feedback.marker === "hit")
+    + option("insight", "ひらめいた", feedback.marker === "insight") + option("choice", "迷う", feedback.marker === "choice")
+    + option("payoff", "うまくいった", feedback.marker === "payoff") + option("friction", "つらい", feedback.marker === "friction")
+    + option("unclear", "わからない", feedback.marker === "unclear") + "</select></label><label>一番分かりやすかったところ<textarea id=\"feedback-clear\">"
+    + esc(feedback.clear || "") + "</textarea></label><label>一番分かりにくかったところ<textarea id=\"feedback-confusing\">"
+    + esc(feedback.confusing || "") + "</textarea></label>" + button("保存して送信", "save-feedback", false, "button primary")
+    + "<p id=\"feedback-status\" class=\"hint\">D1へ送信すると、編成・技能・装備・戦闘イベントも一緒に保存されます。</p></section>");
+}
+
+function updateMetaDurability(result) {
+  for (const item of result.equipment || []) {
+    state.meta.equipmentDurability[item.equipmentId] = item.durability;
+  }
+}
+
+function updateHpFromResult(result) {
+  for (const actor of result.actors || []) {
+    if (actor.side === "ally") state.hp[actor.definitionId] = actor.hp;
+  }
+}
+
+function startReplayTimer() {
+  replayTimer = setInterval(() => {
+    if (!state.replayPlaying) return;
+    if (state.replayIndex >= state.replayEvents.length - 1) {
+      state.replayPlaying = false;
+      saveState();
+      render();
+      return;
+    }
+    state.replayIndex += 1;
+    saveState();
+    render();
+  }, 180);
+}
+
+function advanceAfterReward() {
+  state.stage += 1;
+  state.rewardOffer = [];
+  state.lastResult = null;
+  state.replayEvents = [];
+  state.replayIndex = 0;
+  state.replayPlaying = false;
+  state.phase = "camp";
+  state.tab = "map";
+  state.error = null;
+  record("stage_advanced", { stage: state.stage });
+  saveState();
+  render();
+}
+
+function ensureSelectedCharacter() {
+  state.selectedCharacter = selectedCharacter();
 }
 
 function handleAction(event) {
   const element = event.currentTarget;
   const action = element.dataset.action;
+  state.error = null;
+
   if (action === "reset") {
-    state = freshState();
+    state = initialState();
     saveState();
     render();
     return;
   }
-  if (action === "start") {
-    state = freshState();
-    state.phase = "roster";
-    state.startedAt = new Date().toISOString();
-    record("run_started", { seed: state.runSeed, version: VERSION });
+
+  if (action === "start" || action === "new-expedition") {
+    const meta = state.meta || defaultMeta();
+    state = newRunState(meta);
+    record("run_started", { seed: state.runSeed, version: VERSION, roster: [...state.roster] });
     saveState();
     render();
     return;
   }
-  if (action === "toggle-character") {
+
+  if (action === "back-camp") {
+    state.phase = "camp";
+    state.tab = "map";
+    state.replayPlaying = false;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "tab") {
+    state.phase = "camp";
+    state.tab = element.dataset.tab || state.tab;
+    ensureSelectedCharacter();
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-character") {
+    state.selectedCharacter = element.dataset.character || state.selectedCharacter;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "toggle-roster") {
     const id = element.dataset.character;
-    if (state.roster.includes(id)) state.roster = state.roster.filter((entry) => entry !== id);
-    else if (state.roster.length < 3) state.roster = [...state.roster, id];
-    state.error = null;
-    saveState();
-    render();
-    return;
-  }
-  if (action === "confirm-roster") {
-    if (state.roster.length !== 3) return;
-    state.loadout = freshLoadout(state.roster);
-    state.stage = 1;
-    state.offer = componentOffer(state.runSeed, 1, [], 5);
-    state.takenThisStage = 0;
-    state.phase = "build";
-    state.error = null;
-    record("roster_selected", { roster: [...state.roster], offer: [...state.offer] });
-    saveState();
-    render();
-    return;
-  }
-  if (action === "assign-component") {
-    if (state.takenThisStage >= 3) {
-      state.error = "初期構成は3個までです。";
-      render();
-      return;
+    if (!id || !characterInfo(id)) return;
+    if (state.roster.includes(id)) {
+      if (state.roster.length <= 1) {
+        state.error = "最低1人は残してください。";
+      } else {
+        state.roster = state.roster.filter((entry) => entry !== id);
+        const nextLoadout = freshLoadout(state.roster);
+        for (const characterId of state.roster) {
+          nextLoadout.tactics[characterId] = [...(state.loadout.tactics?.[characterId] || nextLoadout.tactics[characterId])];
+          nextLoadout.reactives[characterId] = [...(state.loadout.reactives?.[characterId] || nextLoadout.reactives[characterId])];
+          nextLoadout.equipment[characterId] = [...(state.loadout.equipment?.[characterId] || [])];
+        }
+        state.loadout = nextLoadout;
+        state.formation = normalizeFormation(state.formation, state.roster);
+        ensureSelectedCharacter();
+        record("roster_changed", { roster: [...state.roster], removed: id });
+      }
+    } else if (state.roster.length >= 4) {
+      state.error = "編成は4人までです。";
+    } else {
+      state.roster = [...state.roster, id];
+      const fresh = freshLoadout([id]);
+      state.loadout.tactics[id] = fresh.tactics[id];
+      state.loadout.reactives[id] = fresh.reactives[id];
+      state.loadout.equipment[id] = [];
+      state.formation = normalizeFormation(state.formation, state.roster);
+      state.selectedCharacter = id;
+      record("roster_changed", { roster: [...state.roster], added: id });
     }
-    const componentId = element.dataset.component;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "place-character") {
+    const position = element.dataset.position;
+    const id = selectedCharacter();
+    if (!POSITIONS.includes(position) || !id) return;
+    const other = positionOwner(position);
+    const oldPosition = state.formation[id];
+    if (other && other !== id) {
+      state.formation[other] = oldPosition;
+    }
+    state.formation[id] = position;
+    state.formation = normalizeFormation(state.formation, state.roster);
+    record("formation_changed", { characterId: id, position, swappedWith: other });
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "unlock-skill") {
     const characterId = element.dataset.character;
-    const result = installComponent(state.loadout, componentId, characterId);
-    if (!result.ok) {
-      state.error = result.reason;
-      render();
-      return;
+    const skillId = element.dataset.skill;
+    const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+    if (!node || isUnlocked(characterId, skillId)) return;
+    if (!node.requires.every((required) => isUnlocked(characterId, required))) {
+      state.error = "前提技能がまだ解禁されていません。";
+    } else if (state.meta.skillPoints < node.cost) {
+      state.error = "技能点が足りません。";
+    } else {
+      state.meta.skillPoints -= node.cost;
+      state.meta.unlocked[characterId] = [...new Set([...(state.meta.unlocked[characterId] || []), skillId])];
+      record("skill_unlocked", { characterId, skillId, cost: node.cost });
     }
-    state.loadout = result.loadout;
-    state.ownedComponents = [...state.ownedComponents, componentId];
-    state.offer = state.offer.filter((id) => id !== componentId);
-    state.takenThisStage += 1;
-    state.error = null;
-    record("component_assigned", { componentId, characterId, stage: state.stage, source: "offer" });
     saveState();
     render();
     return;
   }
+
+  if (action === "equip-skill") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const kind = element.dataset.kind;
+    const result = equipSkill(state.loadout, characterId, skillId, kind);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.loadout = result.loadout;
+      record("skill_equipped", { characterId, skillId, kind });
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "remove-skill") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const kind = element.dataset.kind;
+    const result = removeSkill(state.loadout, characterId, skillId, kind);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.loadout = result.loadout;
+      record("skill_removed", { characterId, skillId, kind });
+    }
+    saveState();
+    render();
+    return;
+  }
+
   if (action === "move-tactic") {
-    state.loadout = reorderTactic(state.loadout, element.dataset.character, Number(element.dataset.index), Number(element.dataset.direction));
-    state.error = null;
-    record("tactic_reordered", { characterId: element.dataset.character, index: Number(element.dataset.index), direction: Number(element.dataset.direction), stage: state.stage });
+    state.loadout = reorderTactic(
+      state.loadout,
+      element.dataset.character,
+      Number(element.dataset.index),
+      Number(element.dataset.direction),
+    );
+    record("tactic_reordered", {
+      characterId: element.dataset.character,
+      index: Number(element.dataset.index),
+      direction: Number(element.dataset.direction),
+    });
     saveState();
     render();
     return;
   }
-  if (action === "fight") {
-    if (state.stage === 1 && state.takenThisStage < 2) {
-      state.error = "初期部材を2個以上取り付けてください。";
-      render();
-      return;
+
+  if (action === "select-equipment") {
+    state.selectedEquipment = element.dataset.equipment || null;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "equip-equipment") {
+    const equipmentId = state.selectedEquipment;
+    const characterId = element.dataset.character;
+    const slot = Number(element.dataset.slot);
+    if (!equipmentId || !state.meta.ownedEquipment.includes(equipmentId)) {
+      state.error = "先に手元の装備を選んでください。";
+    } else {
+      const result = equipEquipment(state.loadout, characterId, equipmentId, slot);
+      if (!result.ok) state.error = result.reason;
+      else {
+        state.loadout = result.loadout;
+        state.selectedEquipment = null;
+        record("equipment_equipped", { characterId, equipmentId, slot });
+      }
     }
-    state.phase = "battle";
-    state.error = null;
-    record("loadout_confirmed", { stage: state.stage, roster: [...state.roster], loadout: loadoutSummary(state.loadout, state.roster) });
     saveState();
     render();
     return;
   }
+
+  if (action === "remove-equipment") {
+    const characterId = element.dataset.character;
+    const equipmentId = element.dataset.equipment;
+    state.loadout = removeEquipment(state.loadout, characterId, equipmentId);
+    record("equipment_removed", { characterId, equipmentId });
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "begin-stage") {
+    if (state.roster.length !== 4) {
+      state.error = "出発には4人の編成が必要です。";
+      state.tab = "roster";
+    } else {
+      state.formation = normalizeFormation(state.formation, state.roster);
+      state.battleSnapshot = { hp: clone(state.hp), equipmentDurability: clone(state.meta.equipmentDurability) };
+      record("loadout_confirmed", {
+        stage: state.stage,
+        roster: [...state.roster],
+        formation: clone(state.formation),
+        loadout: clone(state.loadout),
+      });
+      state.phase = "battlePreview";
+    }
+    saveState();
+    render();
+    return;
+  }
+
   if (action === "simulate") {
     try {
-      const battle = makeBattle(state.stage, state.roster, state.loadout, state.runSeed);
+      const battle = makeBattle(
+        state.stage,
+        state.roster,
+        state.loadout,
+        state.runSeed,
+        state.formation,
+        { hp: state.hp, equipmentDurability: state.meta.equipmentDurability },
+      );
       record("battle_started", { stage: state.stage, battleId: battle.battleId });
       const result = simulateBattle(battle, PLAYABLE_CONTENT);
       state.lastResult = result;
-      state.results = [...state.results, { stage: state.stage, result: result.result, roundsUsed: result.roundsUsed, metrics: result.metrics }];
+      state.replayEvents = compactEvents(result.events);
+      state.replayIndex = 0;
+      state.replayPlaying = true;
+      state.results = [...state.results, {
+        stage: state.stage,
+        result: result.result,
+        roundsUsed: result.roundsUsed,
+        metrics: result.metrics,
+      }];
       for (const combatEvent of result.events || []) {
-        state.runEvents.push({ seq: state.runEvents.length, at: new Date().toISOString(), type: "combat_event", stage: state.stage, event: combatEvent });
+        state.runEvents.push({
+          seq: state.runEvents.length,
+          at: new Date().toISOString(),
+          type: "combat_event",
+          stage: state.stage,
+          event: combatEvent,
+        });
       }
-      record("battle_completed", { stage: state.stage, result: result.result, reason: result.reason, roundsUsed: result.roundsUsed });
-      state.phase = "result";
-      state.error = null;
+      record("battle_completed", {
+        stage: state.stage,
+        result: result.result,
+        reason: result.reason,
+        roundsUsed: result.roundsUsed,
+      });
+      if (result.result === "win") {
+        updateHpFromResult(result);
+        updateMetaDurability(result);
+      } else if (state.battleSnapshot) {
+        state.hp = clone(state.battleSnapshot.hp);
+        state.meta.equipmentDurability = clone(state.battleSnapshot.equipmentDurability);
+      }
+      state.phase = "battle";
     } catch (error) {
       state.error = error.message;
+      state.phase = "battlePreview";
     }
     saveState();
     render();
     return;
   }
-  if (action === "back-build") {
-    state.phase = "build";
-    state.error = null;
+
+  if (action === "replay-toggle") {
+    if (state.replayIndex >= state.replayEvents.length - 1) return;
+    state.replayPlaying = !state.replayPlaying;
     saveState();
     render();
     return;
   }
-  if (action === "rewards") {
-    state.offer = componentOffer(state.runSeed, state.stage + 1, state.ownedComponents, 3);
+
+  if (action === "replay-step") {
+    state.replayPlaying = false;
+    if (state.replayIndex < state.replayEvents.length - 1) state.replayIndex += 1;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "replay-result") {
+    state.replayPlaying = false;
+    state.phase = "result";
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "retry-build") {
+    state.phase = "camp";
+    state.tab = "skills";
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "show-reward") {
+    state.rewardOffer = rewardOffer(state.runSeed, state.stage, state.meta.ownedEquipment, 3);
+    record("reward_presented", { stage: state.stage + 1, offer: [...state.rewardOffer] });
     state.phase = "reward";
-    state.error = null;
-    record("reward_presented", { stage: state.stage + 1, offer: [...state.offer] });
     saveState();
     render();
     return;
   }
+
   if (action === "take-reward") {
-    const componentId = element.dataset.component;
-    const characterId = element.dataset.character;
-    const result = installComponent(state.loadout, componentId, characterId);
-    if (!result.ok) {
-      state.error = result.reason;
-      render();
-      return;
+    const equipmentId = element.dataset.equipment;
+    if (equipmentId && !state.meta.ownedEquipment.includes(equipmentId)) {
+      state.meta.ownedEquipment = [...state.meta.ownedEquipment, equipmentId];
+      state.meta.equipmentDurability[equipmentId] = EQUIPMENT[equipmentId]?.maxDurability ?? 1;
+      record("reward_taken", { stage: state.stage, equipmentId });
     }
-    state.loadout = result.loadout;
-    state.ownedComponents = [...state.ownedComponents, componentId];
-    record("reward_taken", { stage: state.stage, componentId, characterId });
-    state.stage += 1;
-    state.offer = [];
-    state.takenThisStage = 0;
-    state.phase = "build";
-    state.error = null;
-    saveState();
-    render();
+    advanceAfterReward();
     return;
   }
-  if (action === "skip-reward") {
-    record("reward_skipped", { stage: state.stage, offer: [...state.offer] });
-    state.stage += 1;
-    state.offer = [];
-    state.takenThisStage = 0;
-    state.phase = "build";
-    state.error = null;
-    saveState();
-    render();
+
+  if (action === "take-skill-reward") {
+    state.meta.skillPoints += 2;
+    record("reward_taken", { stage: state.stage, reward: "skill_points", amount: 2 });
+    advanceAfterReward();
     return;
   }
+
+  if (action === "take-rest-reward") {
+    for (const id of state.roster) state.hp[id] = Math.min(maxHp(id), currentHp(id) + 5);
+    for (const id of state.meta.ownedEquipment) {
+      state.meta.equipmentDurability[id] = Math.min(
+        EQUIPMENT[id]?.maxDurability ?? 1,
+        equipmentDurability(id) + 1,
+      );
+    }
+    record("reward_taken", { stage: state.stage, reward: "rest", heal: 5, repair: 1 });
+    advanceAfterReward();
+    return;
+  }
+
   if (action === "complete") {
     record("run_completed", { stage: state.stage, result: state.lastResult?.result || "win" });
+    state.meta.expeditions += 1;
     state.phase = "complete";
     saveState();
     render();
     return;
   }
+
   if (action === "save-feedback") {
     const clear = document.querySelector("#feedback-clear")?.value || "";
     const confusing = document.querySelector("#feedback-confusing")?.value || "";
@@ -469,10 +1138,12 @@ function handleAction(event) {
     state.feedback = { clear, confusing, replay, marker, savedAt: endedAt };
     record("feedback_submitted", { replay, marker });
     saveState();
-    localStorage.setItem(`${SAVE_KEY}-feedback`, JSON.stringify(state.feedback));
-    const events = state.runEvents.length <= 2000 ? state.runEvents : [state.runEvents[0], ...state.runEvents.slice(-1999)];
-    const finalResult = state.results.findLast?.((entry) => entry.stage === 3) || state.results[state.results.length - 1];
-    const finalWon = state.results.some((entry) => entry.stage === 3 && entry.result === "win");
+    const events = state.runEvents.length <= 4000
+      ? state.runEvents
+      : [state.runEvents[0], ...state.runEvents.slice(-3999)];
+    const finalResult = state.results[state.results.length - 1];
+    const finalWon = state.results.some((entry) => entry.stage === 7 && entry.result === "win");
+    const finalActor = state.lastResult?.actors?.find((actor) => actor.side === "ally" && actor.alive);
     const payload = {
       runId: state.runId,
       telemetryRunId: state.runId,
@@ -481,13 +1152,35 @@ function handleAction(event) {
       gameVersion: VERSION,
       startedAt: state.startedAt || endedAt,
       endedAt,
-      outcome: { won: finalWon, reached: state.stage, hp: finalResult?.metrics?.allyHpLost === undefined ? 0 : Math.max(0, 100 - finalResult.metrics.allyHpLost) },
-      build: { roster: state.roster, loadout: state.loadout, ownedComponents: state.ownedComponents },
-      stats: { seed: state.runSeed, stageCount: state.stage, ruleset: PLAYABLE_CONTENT.contentVersion, results: state.results },
+      outcome: {
+        won: finalWon,
+        reached: state.stage,
+        hp: finalActor?.hp ?? 0,
+      },
+      build: {
+        roster: state.roster,
+        formation: state.formation,
+        loadout: state.loadout,
+        ownedEquipment: state.meta.ownedEquipment,
+      },
+      stats: {
+        seed: state.runSeed,
+        stageCount: state.stage,
+        ruleset: PLAYABLE_CONTENT.contentVersion,
+        skillPoints: state.meta.skillPoints,
+        results: state.results,
+        finalResult,
+      },
       answers: { replay, clear, confusing, marker },
-      client: { language: navigator.language, viewport: `${innerWidth}x${innerHeight}`, head: "ecology" },
+      client: {
+        language: navigator.language,
+        viewport: innerWidth + "x" + innerHeight,
+        head: "ecology",
+      },
       events,
-      moments: marker ? [{ seq: state.runEvents.length - 1, at: endedAt, elapsedMs: 0, kind: marker, label: marker, phase: "complete", note: clear }] : [],
+      moments: marker
+        ? [{ seq: state.runEvents.length - 1, at: endedAt, elapsedMs: 0, kind: marker, label: marker, phase: "complete", note: clear }]
+        : [],
     };
     const submitButton = element;
     submitButton.disabled = true;
@@ -496,7 +1189,9 @@ function handleAction(event) {
       submitButton.disabled = false;
       submitButton.textContent = result.ok ? "D1に保存しました" : "端末に保存しました（D1未送信）";
       const hint = document.querySelector("#feedback-status");
-      if (hint) hint.textContent = result.ok ? `保存済み · run ${state.runId.slice(0, 8)}` : `送信待ち · ${result.error}`;
+      if (hint) hint.textContent = result.ok
+        ? "保存済み · run " + state.runId.slice(0, 8)
+        : "送信待ち · " + result.error;
     }).catch(() => {
       submitButton.disabled = false;
       submitButton.textContent = "端末に保存しました（D1未送信）";
