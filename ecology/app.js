@@ -23,6 +23,7 @@ import {
 } from "./playable-battles.mjs";
 import { POSITIONS } from "./schema.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
+import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
 const VERSION = "EXP-18 Full prototype 0.3";
 const SAVE_KEY = "exp18-full-prototype-v02";
@@ -317,7 +318,8 @@ function shell(title, subtitle, body, options = {}) {
     + "</p><h1>" + esc(title) + "</h1><p class=\"subtitle\">" + esc(subtitle)
     + "</p></div>" + headerAction + "</header>" + body + error
     + "<footer>遠征 " + esc(state.runId.slice(0, 8)) + " · seed " + esc(state.runSeed)
-    + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion) + "</footer></div>";
+    + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion)
+    + "<br>build " + esc(BUILD) + "</footer></div>";
 }
 
 function record(type, details = {}) {
@@ -1817,6 +1819,11 @@ function handleAction(event) {
         ownedEquipment: state.meta.ownedEquipment,
       },
       stats: {
+        // **印は stats に置く。**functions/api/runs.js が保存するのは
+        // outcome / build / stats / answers / client / events だけで、
+        // 最上位に足した項目は export に出ない（＝後から版を照合できない）。
+        buildStamp: BUILD,
+        rulesFingerprint: FINGERPRINT,
         seed: state.runSeed,
         stageCount: state.stage,
         ruleset: PLAYABLE_CONTENT.contentVersion,

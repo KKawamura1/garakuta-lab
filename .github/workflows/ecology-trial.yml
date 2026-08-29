@@ -1,0 +1,106 @@
+name: Ecology trial (deployed)
+
+# **公開先で通しを踏むための経路。**
+# Claude が動く箱からは pages.dev へ出られない（egress ブロック）ので、
+# docs/HUMAN_TEST_RELEASE.md の「本番E2E」は、同じ台本をここから走らせて満たす。
+# 台本は analysis/ecology-trial.mjs（手元では localhost、ここでは公開先を見る）。
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "遊べるURL（例 https://<alias>.garakuta-lab.pages.dev/ecology/）。空なら候補を探す"
+        required: false
+        default: ""
+        type: string
+      expect_build:
+        description: "画面に出ているべき build の印（例 00aeeaa）。空なら照合しない"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  trial:
+    name: Play one expedition on the deployed preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install Playwright Chromium
+        run: |
+          set -euo pipefail
+          npm init -y > /dev/null
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Resolve the deployed URL
+        id: resolve
+        shell: bash
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+        run: |
+          set -uo pipefail
+          candidates=()
+          if [[ -n "$BASE_URL" ]]; then
+            candidates+=("$BASE_URL")
+          else
+            # Cloudflare Pages のブランチ別名は、英数字以外を - にして 28 文字で切る。
+            alias="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' \
+              | sed 's/[^a-z0-9]/-/g' | cut -c1-28 | sed 's/-*$//')"
+            candidates+=("https://${alias}.garakuta-lab.pages.dev/ecology/")
+            candidates+=("https://garakuta-lab.pages.dev/ecology/")
+          fi
+          for url in "${candidates[@]}"; do
+            code="$(curl -s -o /tmp/page.html -w '%{http_code}' --max-time 30 "$url" || echo 000)"
+            echo "$url -> $code"
+            if [[ "$code" == "200" ]]; then
+              echo "url=$url" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "遊べるURLが見つからない。base_url を渡して再実行すること。" >&2
+          exit 1
+
+      - name: Check the build stamp that the deployment serves
+        if: inputs.expect_build != ''
+        shell: bash
+        env:
+          URL: ${{ steps.resolve.outputs.url }}
+          EXPECT: ${{ inputs.expect_build }}
+        run: |
+          set -euo pipefail
+          served="$(curl -s --max-time 30 "${URL%/}/../core/build.mjs")"
+          echo "$served"
+          if ! grep -q "$EXPECT" <<< "$served"; then
+            echo "公開先が古い build を出している（期待 ${EXPECT}）。デプロイを待って再実行すること。" >&2
+            exit 1
+          fi
+
+      - name: Play one expedition end to end
+        shell: bash
+        env:
+          ECOLOGY_TRIAL_BASE: ${{ steps.resolve.outputs.url }}
+          PLAYWRIGHT_MODULE: playwright
+        run: node analysis/ecology-trial.mjs
+
+      - name: Report the URL that was played
+        if: always()
+        shell: bash
+        env:
+          URL: ${{ steps.resolve.outputs.url }}
+        run: |
+          {
+            echo "## Ecology trial"
+            echo
+            echo "Played: ${URL:-（URL未解決）}"
+          } >> "$GITHUB_STEP_SUMMARY"

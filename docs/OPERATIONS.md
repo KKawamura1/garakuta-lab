@@ -176,6 +176,13 @@ RUN_EXHAUSTIVE=1 bash analysis/check-all.sh    # 外したものも含めて全�
 **画面の中で一番長い流れで、途中で止まると遊び終えた1本目ごと無駄になる。**
 検査は通るのに画面では動かない、という欠陥が一晩で4件出ている（学び#58・#59）。
 
+**灰の遠征（`ecology/`）を触ったら、`node analysis/ecology-trial.mjs` を通す。**
+390×844 で、編成→技能→装備→戦闘の盤面→デバッグログ→区画をまたぐ進行→**戦闘中のリロード**
+→終了アンケート送信まで一度に踏む。印字ではなく終了コードを見る。
+`ECOLOGY_TRIAL_BASE` を渡せば公開先も見られるが、**この箱からは pages.dev へ出られない**ので、
+公開先の通しは GitHub Actions の **Ecology trial (deployed)**（`workflow_dispatch`）から走らせる。
+`base_url` と `expect_build` を渡すと、公開先が新しい build を出しているかも一緒に見る。
+
 **巻き戻ったツリーで測らない。**コンテナ再起動で古い版へ戻ることがある。
 `browser-trial.mjs` は origin と一致しなければ測る前に止まる——
 一度、巻き戻った版を測って「対の流れが壊れている」と読みかけた。
