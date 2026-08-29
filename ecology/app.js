@@ -606,7 +606,7 @@ function eventText(event) {
     equipment_worn: source + "の装備が" + amountText + "摩耗した",
     equipment_broken: source + "の装備が壊れた",
     equipment_repaired: source + "の装備が" + amountText + "修理された",
-    actor_defeated: source + "が倒れた",
+    actor_defeated: target + "が倒れた",
     battle_ended: "戦闘終了 · " + (values.result || "決着"),
   };
   if (event.type === "reaction_fired" || event.type === "rule_triggered") return source + "の" + reaction + "が発火" + cause;
