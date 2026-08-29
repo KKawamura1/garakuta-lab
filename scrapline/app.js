@@ -11,6 +11,7 @@ import {
   endRunEarly,
   installCar,
   moveCar,
+  swapCars,
   offersFor,
   previewTrain,
   recordMarker,
@@ -19,21 +20,21 @@ import {
   removeCar,
   runBattle,
   skipReward,
-} from "./engine.mjs?build=20260828-r11";
+} from "./engine.mjs?build=20260829-r12";
 import {
   SURVEY_SCALES,
   bestShowcaseReport,
   causalHighlights,
   reportDisclosure,
   selectReplayEvents,
-} from "./presentation.mjs?build=20260828-r11";
+} from "./presentation.mjs?build=20260829-r12";
 import {
   ensureTelemetry,
   flushScraplineTelemetryQueue,
   recordTelemetry,
   sendScraplineCheckpoint,
   sendScraplineTelemetry,
-} from "./telemetry.mjs?build=20260828-r11";
+} from "./telemetry.mjs?build=20260829-r12";
 
 const requestedSeed = querySeed();
 const STORAGE_KEY = requestedSeed === null
@@ -132,12 +133,14 @@ function renderTrain() {
   const visibleStage = awaitingReveal ? state.lastBattle.stage : state.stage;
   const displayIds = awaitingReveal ? (state.lastBattle.trainBefore || state.activeCars) : state.activeCars;
   const editable = state.phase === "build" || state.phase === "reward";
+  const reorderable = state.phase === "build";
+  const hasMoveSelection = reorderable && selectedSlot !== null;
   const cars = carList(displayIds);
   const rareCount = cars.filter((car) => car.rarity === "rare").length;
   const complexity = Math.min(5, cars.length + rareCount + Math.floor(state.stage / 2));
   const slots = cars.map((car, index) => `
-    <article class="train-slot ${editable && selectedSlot === index ? "is-selected" : ""} ${car.rarity === "rare" ? "rare-slot" : ""}" aria-label="${escapeHtml(car.name)}${editable ? "。左右ボタンで並べ替え" : ""}">
-      <button type="button" class="car-card" ${editable ? `data-action="select-slot" data-slot="${index}"` : "disabled"} aria-pressed="${editable && selectedSlot === index}">
+    <article class="train-slot ${editable && selectedSlot === index ? "is-selected" : ""} ${reorderable && hasMoveSelection && selectedSlot !== index ? "is-move-target" : ""} ${car.rarity === "rare" ? "rare-slot" : ""}" aria-label="${escapeHtml(car.name)}${reorderable ? selectedSlot === index ? "。選択中。交換先をタップ" : hasMoveSelection ? "。移動先としてタップ" : "。タップして選択" : editable ? "。交換先として選択" : ""}">
+      <button type="button" class="car-card" ${editable ? `data-action="${reorderable ? "tap-slot" : "select-slot"}" data-slot="${index}"` : "disabled"} aria-pressed="${editable && selectedSlot === index}">
         <span class="car-icon" aria-hidden="true">${car.icon}</span>
         <span class="car-name">${escapeHtml(car.name)}</span>
         <span class="car-effect">${escapeHtml(car.text)}</span>
@@ -159,9 +162,9 @@ function renderTrain() {
     <section class="train-panel panel" data-stage="${state.stage}" data-train-size="${cars.length}" data-complexity="${complexity}">
       <div class="panel-heading">
         <div><p class="kicker">BUILD THE CAUSE CHAIN</p><h2>車列の順番</h2></div>
-        <span class="selection-hint">${awaitingReveal ? "戦闘前の車列" : !editable ? "この区画の記録" : selectedSlot === null ? "満車なら交換先を選択" : `交換先: 車両 ${selectedSlot + 1}`}</span>
+        <span class="selection-hint">${awaitingReveal ? "戦闘前の車列" : state.phase === "build" ? selectedSlot === null ? "車両をタップして選択" : `車両 ${selectedSlot + 1} を選択中。交換先をタップ` : state.phase === "reward" ? selectedSlot === null ? "満車なら交換先を選択" : `交換先: 車両 ${selectedSlot + 1}` : "この区画の記録"}</span>
       </div>
-      <p class="muted">左が後部ホッパー、右が砲台。${editable ? "左右ボタンで並べ替えます。" : "鉄塊が通った順番を表示しています。"}鉄塊はこの順に通ります。</p>
+      <p class="muted">左が後部ホッパー、右が砲台。${state.phase === "build" ? "車両をタップして選び、移動先の車両をタップすると交換します。左右ボタンも使えます。" : state.phase === "reward" ? "交換先を選ぶには車両をタップします。左右ボタンで順番も調整できます。" : "鉄塊が通った順番を表示しています。"}鉄塊はこの順に通ります。</p>
       <div class="train-line">
         <div class="train-end hopper"><span aria-hidden="true">◉</span><strong>ホッパー</strong><small>鉄塊 1</small></div>
         <div class="line-arrow" aria-hidden="true">›</div>
@@ -625,8 +628,41 @@ function renderMarkers() {
   `;
 }
 
+function handleTapReorder(index) {
+  if (state.phase !== "build" || !Number.isInteger(index) || index < 0 || index >= state.activeCars.length) return;
+  if (selectedSlot === null) {
+    selectedSlot = index;
+    persist();
+    render();
+    return;
+  }
+  if (selectedSlot === index) {
+    selectedSlot = null;
+    persist();
+    render();
+    return;
+  }
+  const from = selectedSlot;
+  selectedSlot = null;
+  setState(swapCars(state, from, index), { type: "car_reordered", from, to: index, method: "tap" });
+}
+
+function handleButtonReorder(from, to) {
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from === to) return;
+  if (state.phase === "build") selectedSlot = null;
+  setState(moveCar(state, from, to), { type: "car_reordered", from, to, method: "button" });
+}
+
 function bindTrainControls() {
   if (!app) return;
+  app.querySelectorAll('[data-action="tap-slot"]').forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (button.disabled) return;
+      handleTapReorder(Number(button.dataset.slot));
+    });
+  });
   app.querySelectorAll('[data-action="move-left"], [data-action="move-right"]').forEach((button) => {
     button.addEventListener("click", (event) => {
       event.preventDefault();
@@ -634,8 +670,7 @@ function bindTrainControls() {
       if (button.disabled) return;
       const from = Number(button.dataset.slot);
       const to = button.dataset.action === "move-left" ? from - 1 : from + 1;
-      if (!Number.isInteger(from) || !Number.isInteger(to)) return;
-      setState(moveCar(state, from, to), { type: "car_reordered", from, to, method: "button" });
+      handleButtonReorder(from, to);
     });
   });
 }
@@ -717,6 +752,7 @@ function launch() {
   recordTelemetry(state, { type: "battle_started", stage: state.stage + 1, cars: [...state.activeCars] });
   const result = runBattle(state);
   state = result.state;
+  selectedSlot = null;
   ensureTelemetry(state);
   recordTelemetry(state, { type: "battle_finished", stage: result.report.stage, won: result.report.won, outcome: result.report.outcome, enemyDefeated: result.report.enemyDefeated, hull: result.report.hullAfter });
   result.report.events.slice(0, 220).forEach((event, eventIndex) => {
@@ -805,10 +841,6 @@ app?.addEventListener("click", (event) => {
     selectedSlot = Number(button.dataset.slot);
     persist();
     render();
-  } else if (action === "move-left" || action === "move-right") {
-    const from = Number(button.dataset.slot);
-    const to = action === "move-left" ? from - 1 : from + 1;
-    setState(moveCar(state, from, to), { type: "car_reordered", from, to });
   } else if (action === "remove") {
     const index = Number(button.dataset.slot);
     selectedSlot = null;
@@ -864,7 +896,7 @@ window.addEventListener("pagehide", () => {
   sendScraplineCheckpoint(state);
 });
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js?build=20260828-r11").catch(() => {
+  navigator.serviceWorker.register("./sw.js?build=20260829-r12").catch(() => {
     // The route stays usable when a host does not allow service workers.
   });
 }

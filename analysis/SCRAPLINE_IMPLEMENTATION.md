@@ -1,9 +1,9 @@
 # SCRAPLINE — 企画書実装マップ
 
-更新日: 2026-08-28（UTC）
+更新日: 2026-08-29（UTC）
 対象企画: `analysis/SCRAPLINE_GAME_CONCEPT.md`
 ruleset: `scrapline-0.7`
-build: `scrapline-build-20260828-r8`
+build: `scrapline-build-20260829-r12`
 schema: `5`
 
 ## 何を検証できる実装にしたか
@@ -17,7 +17,7 @@ SCRAPLINE 0.7 は、強い部品を引くゲームではなく、「一つの鉄
    圧縮、溶融、帰還、回収印を同じ物体の状態として追跡する。
 2. **配置順と局所プレビュー**
    `previewTrain` は各車両の前後だけを正確に見せ、最終勝敗は予告しない。
-   左右ボタンで順番を変え、満車時は交換先を選ぶまで仮組みも交換も行わない。
+   車両をタップして選び、別の車両をタップするとその2両を交換できる。左右ボタンでも順番を変え、満車時は交換先を選ぶまで仮組みも交換も行わない。
 3. **全敵共通の時間コスト**
    `computeTravel` で求めた着弾時間だけ `enemy.approach` が進む。
    全通常敵が同じ `advanceEnemyBeforeImpact` を使い、長い列は敵名や正確な
@@ -50,7 +50,7 @@ SCRAPLINE 0.7 は、強い部品を引くゲームではなく、「一つの鉄
 | 企画上の境界 | 実装 | 固定検査 |
 | --- | --- | --- |
 | 一つの鉄塊を追跡 | projectile ID と前後スナップショット | `scrapline-smoke.mjs` |
-| 配置順で意味が変わる | 加速・切断・帯電・溶融・磁石・圧縮・逆走を順次適用 | `scrapline-smoke.mjs` |
+| 配置順で意味が変わる | 車両タップ→移動先タップの交換、左右ボタン、加速・切断・帯電・溶融・磁石・圧縮・逆走を順次適用 | `scrapline-smoke.mjs` |
 | 長列に共通の時間代償 | 全敵共通 `approach += travel`、着弾前攻撃 | `scrapline-physics-smoke.mjs` |
 | 固有四両例外を置かない | 命中判定から正確な車両数分岐を削除 | `scrapline-physics-smoke.mjs` |
 | 敵順に感情曲線を持たせる | 群れ開始、非群れ第2区画、四問網羅、連続なし | `scrapline-seed-regression.mjs` |

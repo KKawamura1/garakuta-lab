@@ -14,6 +14,7 @@ import {
   createGame,
   installCar,
   moveCar,
+  swapCars,
   offersFor,
   previewTrain,
   recommendedPolicy,
@@ -43,7 +44,7 @@ const stable = (state) => ({
 });
 
 assert.equal(VERSION, "scrapline-0.7");
-assert.match(BUILD_STAMP, /^scrapline-build-20260828-r11$/);
+assert.match(BUILD_STAMP, /^scrapline-build-20260829-r12$/);
 assert.equal(CARS.length, 11);
 assert.equal(MAX_CARS, 5);
 assert.equal(MAX_VOLLEYS, 6);
@@ -126,6 +127,11 @@ const withCars = installCar(installCar(a, "charge"), "melt");
 assert.deepEqual(withCars.activeCars, ["accelerator", "charge", "melt"]);
 const moved = moveCar(withCars, 1, 2);
 assert.deepEqual(moved.activeCars, ["accelerator", "melt", "charge"]);
+const swapped = swapCars(withCars, 0, 2);
+assert.deepEqual(swapped.activeCars, ["melt", "charge", "accelerator"], "tap destination swaps with the selected car");
+assert.equal(swapped.carHistory.at(-1).action, "swap");
+assert.equal(swapped.events.at(-1).type, "swap");
+
 const removed = removeCar(moved, 1);
 assert.deepEqual(removed.activeCars, ["accelerator", "charge"]);
 let full = a;
@@ -262,7 +268,7 @@ for (const marker of [
 const indexSource = await readFile(new URL("../scrapline/index.html", import.meta.url), "utf8");
 assert.match(indexSource, /manifest\.webmanifest/);
 const swSource = await readFile(new URL("../scrapline/sw.js", import.meta.url), "utf8");
-assert.match(swSource, /scrapline-static-v11/);
+assert.match(swSource, /scrapline-static-v12/);
 const manifestSource = await readFile(new URL("../scrapline/manifest.webmanifest", import.meta.url), "utf8");
 assert.match(manifestSource, /standalone/);
 const implementationMap = await readFile(new URL("./SCRAPLINE_IMPLEMENTATION.md", import.meta.url), "utf8");

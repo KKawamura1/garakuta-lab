@@ -75,13 +75,14 @@ h3 { margin: 4px 0 4px; font-size: 1.05rem; }
 .cannon span { color: var(--lime); }
 .line-arrow { flex: 0 0 18px; align-self: center; color: var(--faint); font-size: 1.8rem; }
 .train-slot { position: relative; display: flex; flex-direction: column; }
-.car-card { display: flex; flex: 1 1 auto; width: 100%; min-height: 112px; height: auto; flex-direction: column; align-items: flex-start; gap: 5px; padding: 12px; text-align: left; border: 1px solid #3a474e; border-radius: 13px; background: #20282d; cursor: pointer; transition: transform 150ms ease, border-color 150ms ease, background 150ms ease; }
+.car-card { display: flex; flex: 1 1 auto; width: 100%; min-height: 112px; height: auto; flex-direction: column; align-items: flex-start; gap: 5px; padding: 12px; text-align: left; border: 1px solid #3a474e; border-radius: 13px; background: #20282d; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: transform 150ms ease, border-color 150ms ease, background 150ms ease; }
 .car-card:hover { transform: translateY(-2px); border-color: var(--cyan); }
 .car-card:disabled { cursor: default; opacity: 1; }
 .car-card:disabled:hover { transform: none; border-color: #3a474e; }
 .rare-slot .car-card { border-color: #6c5b37; background: linear-gradient(145deg, #28291f, #20282d); }
 .rare-slot .car-icon { color: var(--orange); text-shadow: 0 0 10px rgba(255, 157, 92, 0.22); }
 .is-selected .car-card { border-color: var(--lime); background: #283127; box-shadow: 0 0 0 2px rgba(212, 242, 106, 0.18); }
+.is-move-target .car-card { border-color: var(--cyan); background: #1f2c2f; box-shadow: 0 0 0 2px rgba(130, 214, 229, 0.14); }
 .car-icon { color: var(--lime); font-size: 1.8rem; line-height: 1; }
 .car-name { font-weight: 700; }
 .car-effect { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: 0.68rem; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
