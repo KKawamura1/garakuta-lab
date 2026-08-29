@@ -1,7 +1,7 @@
 # 現在地 — 新しいエージェント向け短縮版
 
 更新日: 2026-08-29（UTC）
-対象: main + branch claude/exp-18-r5-implementation-ye41p1（EXP-18 A5 ルールエンジン実装後）
+対象: main、PR #49（EXP-18 一周可能試作）、R6長期進行設計
 
 ## 1. 結論
 
@@ -40,21 +40,25 @@ EXP-18 R2〜R5は、この観測後の設計仮説と実装委譲票です。作
 
 ## 4. 次にすること
 
-[EXP-18 R5](experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md)の実装
-（A5）は完了し、Gate A〜Fを通過しました。結果は
-[A5_RULE_ENGINE/RESULT.md](experiments/exp-18/A5_RULE_ENGINE/RESULT.md)。
+EXP-18の決定的ルールエンジンはmainへ入り、監査で見つかったstalemate、防壁提案、量変更記録、装備修理、同一装備重複の穴も修正済みです。
 
-次は設計担当へ戻ります。実装担当が決めないこととして残っているもの:
+PR #49は、8人から4人を選び、24技能、18装備、7区画を一周するUIまで実装したdraftです。これは「編成→技能・装備→決定的自動戦闘→報酬」が一画面系としてつながるかを確認する試作で、長期バランスや面白さはまだ人間評価されていません。
 
-1. 仕様逸脱2件の可否（`is_event_source` フィルタの追加、装備修理のv2送り）。
-2. 本番コンテンツ（人物8名、技能・装備、初期敵、遠征の回復速度）。
-3. どのchain fingerprintを面白い候補とみなすか。
-4. UI・アート文脈と、人間テストへ出すbuild arc。
-4. 結果をanalysis/experiments/exp-18/A5_RULE_ENGINE/へ保存。
-5. 設計担当が結果を読み、本番人物・技能・装備・敵の設計へ戻る。
+作者の最新判断は、有限遠征、runごとの技能集合、手続き生成装備、永続Blueprintを組み合わせる長期構造を「かなり面白そう」とし、特に「奇跡のようなアイテムを手に入れた嬉しさを永久保存しつつ、持込数を厳しく制限するBlueprint」を支持しています。
 
-この段階ではUI、Cloudflare公開、D1、本番コンテンツ、人間テストを行いません。
-構造検査の通過を面白さの証明と書きません。
+次の設計票は
+[R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS](experiments/exp-18/R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS.md)
+です。R6は次を固定します。
+
+1. 人物・Blueprint・図鑑・難易度は永続、技能点・遠征技能・生成装備・補給はrun終了でreset。
+2. 一遠征3幕12戦、4・8・12戦目をbossとする。
+3. 遠征ごとに使用可能SkillPack、affix family、敵family、boss lawを提示する。
+4. 生成装備をexact Blueprintとして勝利時2件、敗北時1件保存できる。
+5. Blueprint持込枠は1から最大5へ、高難度達成で厳しく解禁する。
+6. 敵は持込Blueprintへ隠れて追従せず、明示Difficultyとthreat budgetで強化する。
+7. PR #49のコア理解を人間評価する前に、技能・敵・affixを量産しない。
+
+R6の文書完成は面白さの証明ではありません。実装時はState splitと生成安全性を先に検査し、PR #49との正しい統合起点が不明なら停止します。
 
 ## 5. 現在の設計上の不変条件
 
