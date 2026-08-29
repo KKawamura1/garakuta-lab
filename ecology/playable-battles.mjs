@@ -70,7 +70,7 @@ const encounters = [
   {
     name: "二つの足音",
     enemies: [
-      { instanceId: "e_husk", enemyActorId: "husk", position: "front_left", hp: 12 },
+      { instanceId: "e_husk", enemyActorId: "husk", position: "front_left", hp: 10 },
       { instanceId: "e_warden", enemyActorId: "husk_warden", position: "front_right", hp: 8 },
     ],
     maxRounds: 7,
