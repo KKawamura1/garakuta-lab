@@ -160,16 +160,17 @@ function handleAction(event) {
       events: state.lastResult?.events || [],
       moments: marker ? [{ seq: 0, at: endedAt, elapsedMs: 0, kind: marker, label: marker, phase: "complete", note: clear }] : [],
     };
-    event.currentTarget.disabled = true;
-    event.currentTarget.textContent = "保存中…";
+    const submitButton = event.currentTarget;
+    submitButton.disabled = true;
+    submitButton.textContent = "保存中…";
     sendPayload(payload).then((result) => {
-      event.currentTarget.disabled = false;
-      event.currentTarget.textContent = result.ok ? "D1に保存しました" : "端末に保存しました（D1未送信）";
+      submitButton.disabled = false;
+      submitButton.textContent = result.ok ? "D1に保存しました" : "端末に保存しました（D1未送信）";
       const hint = document.querySelector("#feedback-status");
       if (hint) hint.textContent = result.ok ? `保存済み · run ${state.runId.slice(0, 8)}` : `送信待ち · ${result.error}`;
     }).catch(() => {
-      event.currentTarget.disabled = false;
-      event.currentTarget.textContent = "端末に保存しました（D1未送信）";
+      submitButton.disabled = false;
+      submitButton.textContent = "端末に保存しました（D1未送信）";
     });
     return;
   }
