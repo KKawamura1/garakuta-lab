@@ -19,7 +19,10 @@
 - 次の遠征へ持ち込める設計図は最初1枚。活動資金で最大5枚まで、非常に高い費用を払って増やす。
 - 持込設計図からは、その遠征に一つだけ同じ装備を再製造する。敵は持込品や永続鍛錬に合わせて隠れて強くならない。
 - 技能、装備基材、affix family、人物、補給、目利きは活動資金で横方向へ解禁する。難易度だけは一つ前のrankのクリアで順番に解禁する。
-- 人物ごとの永続鍛錬は上限なしで許す。ただし一段+0.1%、高い初期費用、二次的に増える費用とし、有限解禁を取り終えた後のendless用sinkにする。
+- HP、damage、heal、barrier、might、focus、guard等の連続量は現行値の1,000倍へ移行し、小さい成長とroll差を整数で表現する。AP、RP、hit数、round、durability等の離散量は増やさない。
+- 人物ごとのmight、focus、guard、vitality鍛錬は上限なしで許す。ただし一段+0.1%、高い初期費用、二次的に増える費用とし、有限解禁を取り終えた後のendless用sinkにする。speed、AP、RPは鍛錬しない。
+- 味方は5人編成とし、2行×3列の6枠へ5人を置く。空き枠により前3・後2または前2・後3を選ぶ。
+- 各人物は基本3 active / 3 reactiveを装備でき、活動資金で人物ごとに4 / 4まで増やす。basic strikeとsignatureは別枠。
 - 技能は手作業で「少なくとも一つの一般的な強み」を保証する。生成装備は平均的には技能より弱くてよく、複数の独立ruleが偶然噛み合うセレンディピティを担う。
 - 通常クリア後に難易度0〜20とendless深度を置く。endlessでも活動資金と永続鍛錬が残り、周回を完全な無駄にしない。
 
@@ -80,7 +83,8 @@ PR #49では、8人、24技能、18装備、7区画が一周の画面として�
 - 装備生成も戦闘もseed付きで再現可能にする。
 - プレイヤーに見えない自動難易度補正を行わない。
 - 強い設計図を持ち込んだときは、実際に強く感じられるようにする。
-- 永続能力上昇は人物ごとの威力と最大HPだけに限定する。上限は設けないが、一段+0.1%、費用増加、全量表示を不変条件とし、speed、AP、RP、防御率は上げない。
+- 永続能力上昇は人物ごとのmight、focus、guard、maxHpだけに限定する。上限は設けないが、一段+0.1%、費用増加、全量表示を不変条件とし、speed、AP、RP、slot数、発火回数は鍛錬で上げない。
+- 連続戦闘量だけを1,000倍scaleで持つ。AP、RP、hit数、block回数、round、durability、status stackは小整数のままにする。
 - 通常の人物行動には必ず攻撃手段がある。技能未装備・不発時は通常攻撃、純支援技能の解決後は威力50%の追撃を行う。明示された「溜め」だけを例外にする。
 - 装備の説明は、複数ruleを持つ場合もruleごとに発火契機、条件、代償、効果、制限を省略せず表示する。
 - 機械検査は破綻と支配性候補の検出に使い、面白さの証明に使わない。
@@ -114,8 +118,10 @@ type CharacterProfile = {
   activeSignatureVariantId: string;
   affinity: number;
   trainingLevels: {
-    potency: number;                  // damage / heal / barrier、1 level = +10 bps
-    vitality: number;                 // maxHp、1 level = +10 bps
+    might: number;                    // weapon系damage、1 level = +10 bps
+    focus: number;                    // technique系damage / heal / barrier
+    guard: number;                    // hitごとの固定軽減
+    vitality: number;                 // maxHp
   };
   storyFlags: string[];
   cosmetics: string[];
@@ -172,11 +178,73 @@ type RunFundLedger = {
 
 既存R5 BattleInputとBattleResultを使う。HPと装備耐久はBattleState内だけで変化し、通常戦後に全回復する。この設計では遠征の緊張をHP持越しではなく、補給、報酬、設計図枠、敵難易度で作る。
 
+### 4.4 戦闘数値と人物parameter
+
+現行のmaxHp 16〜26、主要damage 4〜8等は、migration時に一律1,000倍する。新規contentは次の単位で書く。
+
+~~~ts
+const COMBAT_SCALE = 1_000;
+
+type CombatStats = {
+  maxHp: number;              // 例: 16_000..26_000
+  might: number;              // weapon damageの基礎
+  focus: number;              // technique damage / heal / barrierの基礎
+  guard: number;              // direct damage一hitごとの固定軽減
+  speed: number;              // 現行3..10程度の離散initiative
+  baseActionPoints: number;   // 小整数
+  baseReactionPoints: number; // 小整数
+};
+
+type ScaledAmount = {
+  flat: number;
+  scalingStat?: "might" | "focus" | "max_hp";
+  coefficientBps?: number;
+};
+~~~
+
+1,000倍するもの:
+
+- maxHp、currentHp。
+- might、focus、guard。
+- damage、heal、barrier、HP cost。
+- 装備rollの連続量。
+
+1,000倍しないもの:
+
+- speed、AP、RP。
+- hit数、target数、block charge、round。
+- status stack、preparation step、durability。
+- priority、position index。
+
+amountの基礎式:
+
+~~~ts
+rawAmount =
+  flat
+  + floor(source[scalingStat] * coefficientBps / 10_000);
+~~~
+
+direct damageは次で軽減する。
+
+~~~ts
+effectiveGuard =
+  floor(target.guard * (10_000 - guardPierceBps) / 10_000);
+damage =
+  max(ceil(rawAmount * 1_000 / 10_000), rawAmount - effectiveGuard);
+~~~
+
+最低10%は通す。guardはhitごとに適用するので、同じ総係数なら多段はguardに弱く、単発大威力はguardに強い。healとbarrierにはguardを適用しない。
+
+basic strikeは原則としてmight 100%を使う。weapon技能はmight、technique技能はfocusを使う。focusはheal / barrierにも使うため、支援人物にも攻撃成長軸が残る。
+
+計算はNumber safe integerだけを許し、途中値がNumber.MAX_SAFE_INTEGERを超えるBattleInputはvalidator errorにする。黙ってclampしない。表示は3桁区切りとし、省略表示を使う場合も詳細画面と因果logには完全値を残す。
+
 ## 5. 一遠征
 
 ### 5.1 長さ
 
 - 3幕、合計12戦。
+- 味方は8人以上の永続rosterから5人を選ぶ。
 - 1〜3、5〜7、9〜11戦目は通常または精鋭。
 - 4、8、12戦目はボス。
 - 12戦目撃破で遠征勝利。
@@ -218,6 +286,43 @@ baselineには、最低限の攻撃、回復、防壁を入れ、どのmanifest�
 現在の「8人全員へ永続技能点+2」は削除する。runSkillPointsとrunUnlockedSkillsは遠征終了時に消える。
 
 活動資金は4候補から選ぶ報酬ではない。戦闘結果から別枠で仮計上し、遠征終了時に勝敗を問わず精算する。補給や技能点を選んでも、活動資金の獲得量は減らない。
+
+### 5.4 五人編成と2×3 formation
+
+戦闘fieldは各sideとも2行×3列の6 positionを持ち、5人編成では必ず一枠だけ空ける。
+
+~~~ts
+type Column = "left" | "center" | "right";
+type Row = "front" | "rear";
+type Position =
+  | "front_left" | "front_center" | "front_right"
+  | "rear_left" | "rear_center" | "rear_right";
+
+type Formation = {
+  actors: Partial<Record<Position, ActorInstanceId>>;
+  emptyPosition: Position;
+};
+~~~
+
+有効formationは、前列3・後列2または前列2・後列3だけ。前1・後4、前4・後1は作れない。人物の交換だけでなく、空き枠を選んで5人全体を配置できる。
+
+基礎target規則:
+
+- meleeは、生存する前列が一人でもいる間は前列だけを通常targetにできる。前列全滅後に後列へ届く。
+- rangedとtechniqueは、skill側のtarget queryが許せば後列を直接狙える。
+- rowは選んだ一行、columnは同じ列の前後、splashはprimary targetと同じ行の隣接列、allは全生存target。
+- 同一columnの空き枠はcolumn attackの対象数を減らす。空き枠そのものをactor扱いしない。
+- 前3はsingle meleeを分散しやすいがfront-row attackが3人へ当たる。前2はrearを3人置けるが前列一人あたりの被弾が増える。
+- front / rearは人物tagではなく現在positionから決める。
+
+target queryへ次を追加する。
+
+~~~ts
+type TargetPattern = "single" | "row" | "column" | "splash" | "all";
+type Reach = "melee" | "ranged" | "unrestricted";
+~~~
+
+敵も最大5体とし、同じ6 positionを使う。boss一体だけの戦闘も、boss＋support四体も許す。
 
 ## 6. 技能パック
 
@@ -268,7 +373,8 @@ baselineとの重複は許す。将来は一要素を複数パックへ重複登
 
 技能数が増えても、支援技能だけを連打して戦闘が止まらないよう、次をengine invariantにする。
 
-- 全人物はskill slotを消費しない basic_strike を常備する。基準威力は100%。
+- 全人物はskill slotを消費しない basic_strike を常備する。基準威力はmight 100%。
+- basic strikeは人物ごとにmeleeまたはrangedのreachを持つ。これはsignature variantで変更してよい。
 - active技能は offense、utility、channel のいずれかを静的dataで持つ。
 - offense は、使用可能と判定されたなら、生存敵へ少なくとも一つのdirect damage proposalを必ず作る。
 - utility の全ruleを解決した後、同じactorが生存敵へ威力50%の fallback_strike を一度だけ行う。
@@ -295,6 +401,74 @@ utility は「支援に加えて半分の通常攻撃」、offense は「通常�
 - relay_order等、別人物の即時攻撃を確実に発生させる技能は、実event列にdirect damageが含まれるなら offense としてよい。
 - prep系のうち行動を溜めること自体が代償のものだけを channel にする。単なる支援をchannelへ逃がさない。
 - skill tagだけで分類し、人物IDや個別敵IDによる例外を作らない。
+
+### 6.6 装備可能な技能数
+
+現行の2 active / 2 reactiveを、R6開始時に3 / 3へ増やす。旧saveは既存装着を保ち、追加枠を空欄で作る。
+
+- 基本: active tactic 3、reactive 3。
+- 最大: active tactic 4、reactive 4。
+- basic strike、人物signature rule、装備ruleはこの数に含めない。
+- activeはpriority順に一つを選ぶため、枠増加は条件別の行動を増やす。
+- reactiveは同じeventへ複数候補が反応できるため、組み合わせ爆発の主な置き場になる。
+- reactiveは原則RP 1以上、または同等のround / battle limitを持つ。slotが増えても全反応が無料発火しない。
+- 同じSkillIdを一人物へ重複装着できない。
+
+第4枠は人物ごとの永続投資にする。
+
+| 投資 | 費用 |
+|---|---:|
+| active 3→4 | 30,000 |
+| reactive 3→4 | 60,000 |
+
+人物単位にすることで、好きな人物を先に複雑化する選択を作り、全小隊が一度に大幅強化されることを避ける。第5枠はR6では追加しない。5人×4 reactiveだけで最大20反応候補があり、これを超える必要は人間テスト後に判断する。
+
+### 6.7 採用する攻撃多様性
+
+攻撃技能を増やすため、次の軸を共有文法へ入れる。
+
+~~~ts
+type DamageEffect = {
+  type: "deal_damage";
+  amount: ScaledAmount;
+  hitCount: number;                 // 1..8
+  guardPierceBps: number;           // 0..10_000
+  targetPattern: TargetPattern;
+  reach: Reach;
+  tags: string[];                   // weapon / technique / heavy / rapid等
+};
+~~~
+
+採用する軸:
+
+1. 単発大威力と多段。guardはhitごとの固定軽減なので単発有利。
+2. block charge。次のdamage instanceを一回完全に防ぎ、一charge消費する。多段は一部hitを通しやすい。
+3. barrier amount。総damage量を受ける既存防壁で、hit数より総量を問う。
+4. single / row / column / splash / all。対象数が増えるほど一体あたり係数を下げる。
+5. guard貫通。低い総係数と引き換えにguardの一部を無視する。
+6. lost-HP、target HP、status、position、historyによる条件付き係数。
+7. HP、AP、barrier、position移動、preparation、equipment wearを代償にするrisk attack。
+8. on-hit、mark、status stack、target変更との相互作用。多段は発火回数で有利になる。
+9. weapon / technique。使用parameterとevent tagを変えるが、普遍的な物理防御／魔法防御表は置かない。
+
+block用eventを追加する。
+
+- block_proposed。
+- block_gained。
+- damage_blocked。
+- block_spent。
+
+最初から採用しない軸:
+
+- 命中率、回避率、確率critical。決定的な予測と因果説明を濁らせる。
+- 火水風等の固定属性相性表。敵に対応属性を持ち込む所持品検査へなりやすい。
+- 物理防御と魔法防御の二重parameter。might / focusとweapon / technique tagまでは持つが、防御はguard、block、barrierで共通化する。
+- damage完全無効、属性完全無効。
+- weapon種ごとの別計算式。
+
+属性やmagic wardは永久禁止ではない。後のmechanics packで、少なくとも人物、技能、装備、敵の三領域に一般的な相互作用を追加でき、特定敵の鍵にならない場合だけ採用する。
+
+攻撃skillの初期archetypeは最低限、basic、heavy、rapid、pierce、row、column、all、execute、recoil、channelの10種を用意する。同じ名前の係数違いを量産せず、各archetypeがguard / block / formation / riskの少なくとも一軸で評価を変えるようにする。
 
 ## 7. 手続き生成装備
 
@@ -608,7 +782,8 @@ type MetaPurchase = {
 | 装備基材 / affix family | 一群2,000〜20,000。購入は生成poolを増やすが、全遠征へ必ず出現させない |
 | 新人物 / signature variant | 一件10,000〜50,000。人物固有の完成コンボではなく共有eventへの別角度を増やす |
 | 目利き | 5 level、15,000 / 45,000 / 120,000 / 300,000 / 750,000 |
-| 人物鍛錬 | §9.5。各人物・各能力ごとに上限なし |
+| active / reactive第4枠 | 人物ごとに30,000 / 60,000 |
+| 人物鍛錬 | §9.5。might / focus / guard / vitalityを人物ごとに上限なし |
 
 購入画面は、現在残高、購入後残高、何がpoolへ加わるか、次level費用を常に表示する。購入は取消不能なので、確認画面に「この遠征で必ず出るわけではない」ことも表示する。
 
@@ -628,24 +803,28 @@ level 5でも通常tableのcommonが5 percentage points減るだけである。�
 
 ### 9.5 上限なしの人物鍛錬
 
-有限解禁を取り終えた後も遠征を無駄にしないため、各人物に potency と vitality の二系統だけを置く。
+有限解禁を取り終えた後も遠征を無駄にしないため、各人物に might、focus、guard、vitality の四系統を置く。
 
-- potency 1 level: その人物がsourceのdamage、heal、barrierの基礎量を+10 bps（+0.1%）。
-- vitality 1 level: その人物の遠征開始時maxHpを+10 bps（+0.1%）。
-- speed、AP、RP、防御率、target priority、発火回数は上げない。閾値や行動回数を壊しやすいためである。
+- might 1 level: base mightを+10 bps（+0.1%）。
+- focus 1 level: base focusを+10 bps（+0.1%）。
+- guard 1 level: base guardを+10 bps（+0.1%）。
+- vitality 1 level: base maxHpを+10 bps（+0.1%）。
+- speed、AP、RP、slot数、発火回数、target priorityは鍛錬で上げない。
 - level上限なし。費用は人物・能力ごとに独立。
 - 現在levelをLとすると、次の一段の費用は次式。100単位に切り上げる。
 
 ~~~ts
 rawCost = 10_000n + 1_000n * L + 25n * L * L;
 cost = ((rawCost + 99n) / 100n) * 100n;
+trainedStat =
+  floor(baseStat * (10_000 + 10 * L) / 10_000);
 ~~~
 
-level 0→1は10,000、level 10→11は22,500を22,500のまま、level 100→101は360,000である。効果は線形、費用は二次増加なので、購入は続けられるが有限解禁より急速に割高になる。
+level 0→1は10,000、level 10→11は22,500、level 100→101は360,000である。効果はbase値への線形加算で、購入順やsave/loadによる複利差を作らない。費用は二次増加なので、購入は続けられるが有限解禁より急速に割高になる。
 
-戦闘計算はbasis pointの固定小数で行う。整数damage等へ丸める際はactor・effect categoryごとのdeterministic residueをBattleState内で持ち、小さいbonusが永遠に切り捨てられないようにする。residueは戦闘外へ持ち越さない。
+戦闘値を1,000倍しているため、maxHpや主要damageでは少数levelでも整数差が現れる。なお丸めで差が消える小値については、actor・statごとのdeterministic residueをBattleState内で持ち、小さいbonusが永遠に切り捨てられないようにする。residueは戦闘外へ持ち越さない。
 
-永続鍛錬で過去の低難度が簡単になることは許す。敵を鍛錬量へ自動追従させない。挑戦は明示difficultyとendlessで取り戻す。UI、BattleInput、結果logへ人物ごとの鍛錬bpsを残す。
+永続鍛錬で過去の低難度が簡単になることは許す。敵を鍛錬量へ自動追従させない。挑戦は明示difficultyとendlessで取り戻す。UI、BattleInput、結果logへ人物ごとのbase stat、鍛錬level、適用後statを残す。
 
 ### 9.6 難易度だけはクリアで解禁する
 
@@ -667,7 +846,15 @@ rank 0だけを初期解禁する。同じ地域のrank Nをクリアするとra
 ~~~ts
 type EnemyChassisDef = {
   id: string;
-  baseStats: { maxHp: number; speed: number; actionPoints: number; reactionPoints: number };
+  baseStats: {
+    maxHp: number;
+    might: number;
+    focus: number;
+    guard: number;
+    speed: number;
+    actionPoints: number;
+    reactionPoints: number;
+  };
   baseTacticIds: string[];
   baseRuleIds: string[];
   threatCost: number;
@@ -692,7 +879,7 @@ Encounterはchassis、mutation、region lawをthreat budget内で組み合わせ
 - 難易度modifierがbudgetを明示的に加算する。
 - chassis、追加個体、mutation、boss lawがbudgetを消費する。
 - HP/攻撃倍率は最終微調整だけに使い、難易度の主役にしない。
-- 最大4体、位置重複なし。
+- 最大5体、2×3 position内で位置重複なし。
 - 一つのskill packを完全に無効化するhard counterを生成しない。
 - 「準備中を狙う」「最初の防壁を反響する」のように、庇う、位置、速度、別技能で迂回可能なsoft counterにする。
 - 全enemy mutationとboss lawを戦闘前に表示する。
@@ -810,6 +997,14 @@ rankは§9.6の通り、一つ前のrankクリアだけで順番に解禁し、�
 
 三つのmanifestから選ぶ段階では、それぞれを同じ比較軸で横並びにする。
 
+### 15.2 formationと人物parameter
+
+- 2×3の六枠を常時表示し、一枠だけ空ける。
+- 前3・後2と前2・後3の人数、meleeで狙われる範囲、row / column attackの予告範囲を表示する。
+- 人物選択中もmaxHp、might、focus、guard、speed、AP、RPを比較できる。
+- base値、永続鍛錬、run内補正を分けて表示する。
+- 5人×最大4 / 4技能を一画面に平置きしない。人物ごとにactive priorityとreactiveを分け、現在装着中の一覧はscroll位置に依存せず固定表示する。
+
 ### 15.2 装備
 
 装備説明は次の順で固定する。
@@ -820,7 +1015,7 @@ rankは§9.6の通り、一つ前のrankクリアだけで順番に解禁し、�
 4. DO — 起きる効果。
 5. LIMIT — 発火上限と耐久。
 
-rarity色だけで強さを判断させない。event名、対象relation、値、耐久を必ず文字で出す。
+rarity色だけで強さを判断させない。event名、対象relation、値、使用parameter、係数、hit数、reach、target pattern、guard貫通、耐久を必ず文字で出す。
 
 ### 15.3 Blueprint archive
 
@@ -862,8 +1057,12 @@ generatorVersion、manifestVersion、profile schema、run schemaを保存する�
 - ProfileStateとRunStateの分離。
 - 既存saveのmigration。
 - 活動資金の仮計上、勝敗を問わない一回精算、購入transaction。
+- combat continuous valueの1,000倍migrationとmight / focus / guard追加。
+- 5人roster、2×3 formation、敵最大5。
 - 12戦、3boss、補給3。
 - 全人物のbasic strike、技能action mode、utility後の50%追撃。
+- 3 active / 3 reactive、および人物別第4枠購入。
+- DamageEffectのhitCount、guardPierce、targetPattern、reachとblock charge。
 - 現24技能の4パック化と、3パックを使うmanifest。
 - equipment generator v1。epic以上で複数の完結ruleを生成する。
 - Blueprint archive、勝利2／敗北1の保存。
@@ -881,6 +1080,8 @@ generatorVersion、manifestVersion、profile schema、run schemaを保存する�
 - affix個別reroll、合成、取引。
 - online season、日次、週次、ランキング。
 - capacity 3〜5の実際の購入。
+- active / reactive第5枠。
+- 属性相性表、命中、回避、確率critical、物理／魔法別防御。
 - 全SkillPack、全装備family、全人物の解禁内容量産。
 - Difficulty 6〜20の内容量産。
 - endlessの本実装。
@@ -903,6 +1104,9 @@ generatorVersion、manifestVersion、profile schema、run schemaを保存する�
 - rarityが単純な上位互換になる。
 - 複数rule装備が説明不能またはcross-rule無料循環になる。
 - 支援技能だけでdirect damageが止まり、戦闘が泥仕合になる。
+- parameterを増やしたが、全skillが同じmight係数だけを比較する。
+- 多段、範囲、貫通が単発basic strikeの係数違いにしかならない。
+- 5人化とskill枠増加で、反応列が説明不能またはmobile上で遅くなる。
 - generatorがdead ruleまたは無料循環を作る。
 - 新しい解禁がpool dilutionだけを起こす。
 - 敗北保存が即放棄farmを支配させる。
@@ -972,19 +1176,26 @@ Slow check:
 - 0未満の残高、残高不足購入、level飛ばし、同一purchaseIdの二重適用を拒否。
 - activityFundsと費用はbigintで計算し、profile export/importで10進文字列が一致。
 - Blueprint capacity 2の費用4,000、開始補給、目利き、人物鍛錬の購入結果をfixture化。
-- 人物鍛錬のcost式、+10 bps、deterministic residueが同一入力で一致。
+- 四種の人物鍛錬のcost式、base statへの+10 bps、deterministic residueが同一入力で一致。
 - 永続投資による敵threatの隠れ変更0。
 - rank N未clearでN+1開始を拒否し、rank N clearでN+1だけを解禁。活動資金によるrank購入経路0。
 
-### Gate H — 攻撃テンポと技能品質
+### Gate H — 戦闘尺度、formation、攻撃テンポと技能品質
 
+- legacyのHP、damage、heal、barrier、HP costが正確に1,000倍migrationされ、AP、RP、speed、hit、round、durabilityは変化しない。
+- maxHp、might、focus、guardを使うamount式とguard式が整数fixtureに一致。
+- 2×3に味方5人・空き1、前3後2または前2後3以外を拒否。
+- melee / ranged、row / column / splash / allのtarget fixtureが一致。
+- 敵6体以上0、位置重複0。
+- 基本3 active / 3 reactive、購入後4 / 4、同一SkillId重複0、第5枠0。
 - 技能未装備、全技能不発で100% basic strike。
 - utility解決後に50% fallback strikeが一度だけ発生し、追撃から追撃0。
 - offenseが使用可能なのにdirect damage proposal 0となるcontentをvalidatorが拒否。
 - channelに使用上限、cooldown、次行動解決のいずれも無いcontentを拒否。
 - active skill poolのutility比率25%以下、新packのactive 4中offense 3以上。
 - reward技能3候補のoffense 2未満0。
-- 全人物生存・行動可能な代表build 10,000 actor-turnで、direct damageを含むturn 75%以上。
+- heavy / rapid / pierce / row / column / all / execute / recoil / channelが、少なくとも一つのguard、block、formation、risk fixtureで採用評価を変える。
+- 代表5人build 10,000 actor-turnで、direct damageを含むturn 75%以上。
 - 生存敵と行動可能な味方がいるのに、direct damage proposal 0が2 round連続するfixture 0。
 - 各技能に、名前指定の相方なしで採用理由が二文脈以上あることをcontent review表へ記録。
 
@@ -992,7 +1203,7 @@ Slow check:
 
 - Encounterの総threat costがbudget以下。
 - mutation incompatibility違反0。
-- 位置重複0、敵5体以上0。
+- 位置重複0、敵6体以上0。
 - mutationとboss lawを戦闘前に完全表示。
 - Blueprint強度による隠れbudget変更0。
 - Difficulty 0〜5の差分を開始画面とログへ保存。
@@ -1008,8 +1219,10 @@ Slow check:
 - run中の大きなloadout変更。
 - 補給の取得・使用理由。
 - 活動資金の仮計上、難易度倍率、精算、購入履歴。
-- 人物鍛錬bpsと戦闘へ適用した固定小数residue。
-- 技能action mode、basic / fallback strike、攻撃を含むturn比率。
+- 人物のbase / trained maxHp、might、focus、guardと固定小数residue。
+- 5人roster、六position、空き枠、target pattern。
+- 装着した3〜4 active / reactiveと発火候補競合。
+- 技能action mode、basic / fallback strike、hit列、guard / block、攻撃を含むturn比率。
 - 敗北、再挑戦、放棄。
 - 終了時に保存したBlueprint。
 - 最終構成と戦闘event。
@@ -1041,24 +1254,31 @@ Slow check:
 - 低難度周回だけが活動資金の時間効率で常に最適になる。
 - 有限解禁より人物鍛錬だけを先に買う。
 - 支援技能の選びすぎで攻撃が止まる、または50%追撃込みのutilityが常にoffenseより強い。
+- どの人物でもparameter差を無視して同じ技能を装着する。
+- 前3 / 後2と前2 / 後3の違いが結果へ現れない。
+- skill枠を増やしてもpriority下位が一度も候補にならない、またはreactiveが多すぎて因果を追えない。
+- 攻撃skillを係数の大きい順に並べるだけになる。
 - 複数rule装備をrarity色だけで選び、各ruleを説明できない。
 
 ## 20. 実装順
 
 1. State split、save migration、activityFunds bigint文字列。
 2. RunFundLedger、一回精算、購入transaction、rank順次解禁。
-3. basic strike、skill action mode、utility後の50%追撃。
-4. Manifest、SkillPack、12戦のrun shell。
-5. 複数完結ruleを持つ装備schema、compiler、deterministic generator。
-6. Blueprint archiveとcarry capacity 1〜2の購入。
-7. 補給、inventory、報酬、目利きlevel 0〜1。
-8. 人物鍛錬potency / vitalityとfixed-point residue。
-9. Enemy chassis、mutation、threat budget。
-10. Difficulty 0〜5。
-11. UIとD1。
-12. 機械Gate。
-13. 公開条件を満たした後、作者1〜2遠征。
-14. 作者結果の判定前に、新SkillPackやDifficulty 6以降を量産しない。
+3. combat value 1,000倍migration、might / focus / guardとdamage式。
+4. 5人・2×3 formation、target pattern、block。
+5. basic strike、skill action mode、utility後の50%追撃、3 / 3 skill slot。
+6. Manifest、SkillPack、12戦のrun shell。
+7. 複数完結ruleを持つ装備schema、compiler、deterministic generator。
+8. Blueprint archiveとcarry capacity 1〜2の購入。
+9. 補給、inventory、報酬、目利きlevel 0〜1。
+10. 人物鍛錬might / focus / guard / vitalityとfixed-point residue。
+11. 人物別active / reactive第4枠。
+12. Enemy chassis、mutation、threat budget。
+13. Difficulty 0〜5。
+14. UIとD1。
+15. 機械Gate。
+16. 公開条件を満たした後、作者1〜2遠征。
+17. 作者結果の判定前に、新SkillPackやDifficulty 6以降を量産しない。
 
 ## 21. 実装担当が決めてよいHOW
 
@@ -1078,7 +1298,11 @@ Slow check:
 - 補給の用途。
 - 活動資金の100倍単位、敗北時保持、一回精算。
 - 難易度だけを一つ前のclearで解禁すること。
-- 人物鍛錬の+10 bps、対象能力、費用式、上限なし。
+- combat continuous valueだけを1,000倍する境界。
+- maxHp、might、focus、guardの式と、鍛錬+10 bps、費用式、上限なし。
+- 5人、2×3、空き一枠、前3後2または前2後3。
+- 基本3 / 3、人物別最大4 / 4のskill slot。
+- 採用する攻撃軸と、属性相性・確率命中等を初期導入しないこと。
 - basic strikeとutility後の50%追撃。
 - Blueprintのexact copy、archive上限なし、carry上限。
 - carry capacityの活動資金価格。
@@ -1093,7 +1317,11 @@ Slow check:
 - exact Blueprintを保存すると、既存saveやcontent versionを安全に読めない。
 - activityFundsの二重精算をtransactionまたは同等のidempotencyで防げない。
 - bigint文字列を既存save、D1、exportでlosslessに扱えない。
+- 4 position前提を、旧replayとsaveを壊さず6 positionへmigrationできない。
+- 1,000倍migrationでamountと離散countを区別できない。
+- guard / block / multi-hitのevent順を一意に固定できない。
 - utility後のfallback strikeをevent上限と因果logを壊さず追加できない。
+- 5人×4 reactiveで代表戦闘がmobile許容時間内に停止しない。
 - 複数rule間の無料循環を既存停止検査で検出または制限できない。
 - generatorの停止性を50 attempt以内で保証できない。
 - Fast checkが一分を超え、slow経路へ分離できない。
@@ -1113,6 +1341,10 @@ Slow check:
 - 活動資金をどこへ投資するかという永続構築。
 - 横方向の永続アンロックと、非常に遅い上限なし人物鍛錬。
 - 一品の来歴と複数のexact ruleを保存するBlueprint。
+- 1,000倍の連続戦闘量と、might / focus / guardによる人物差。
+- 五人編成と、前3後2／前2後3を作る2×3 formation。
+- 最大4 / 4のskill slotと、RP / APによる発火競合。
+- guard、block、barrier、hit数、範囲、貫通、riskによる攻撃多様性。
 - 通常攻撃を土台に、攻撃へ支援を付随させる技能構成。
 - エンドレスでの数値インフレと到達深度。
 
@@ -1121,6 +1353,9 @@ Slow check:
 - 全技能・全装備が一つのsaveへ単調蓄積するだけの進行。
 - 敵がプレイヤー戦力を見て自動的に同じ強さへ追従する方式。
 - 低費用・大幅・speed/AP/RPまで含む永続能力上昇。
+- 全数値を無差別に1,000倍し、hit数やresourceまで巨大化すること。
+- 確率命中／回避／critical、固定属性相性、物理／魔法別防御を初期coreへ同時導入すること。
+- 五枠を超えるactive / reactiveを、人間テスト前に追加すること。
 - 活動資金に合わせて敵が隠れて強くなる自動追従。
 - 一敗即リセットと、無損失無制限retryの両極端。
 - 名前指定の完成コンボ。
