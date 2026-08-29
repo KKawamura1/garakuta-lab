@@ -42,6 +42,8 @@ for (const roster of rosters) {
   assert.equal(configured.ok, true);
   configured = installComponent(configured.loadout, "standing_plate", roster[2]);
   assert.equal(configured.ok, true);
+  configured = installComponent(configured.loadout, "relay_order", roster[2]);
+  assert.equal(configured.ok, true);
   const beforeReorder = configured.loadout.tactics[roster[0]];
   const reordered = reorderTactic(configured.loadout, roster[0], 0, 1);
   assert.deepEqual(reordered.tactics[roster[0]], [beforeReorder[1], beforeReorder[0]]);

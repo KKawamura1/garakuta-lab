@@ -204,6 +204,14 @@ const OFFER_POOLS = Object.freeze({
   3: ["heavy_swing", "relay_order", "triage", "counter_blow", "guard_step", "brace_after_hit", "splinter_edge", "worn_greaves", "momentum_rig"],
 });
 
+const TACTIC_USE_WHEN = Object.freeze({
+  // Without a condition, handing an action point to the fastest front actor
+  // can hand it back to the same actor forever. This is an authored priority
+  // rule: use the relay once on the first activation of each round, then fall
+  // through to the next tactic.
+  relay_order: [{ type: "history_count", subject: "self", metric: "active_actions", window: "round", op: "eq", value: 0 }],
+});
+
 const encounters = [
   {
     name: "崩れた見張り所",
@@ -355,7 +363,7 @@ export function makeBattle(stage, rosterIds = ["warden", "mender", "lancer"], lo
       instanceId: `a_${characterId}`,
       characterId,
       position: option.position,
-      tactics: tactics.map((activeSkillId) => ({ activeSkillId, useWhen: [] })),
+      tactics: tactics.map((activeSkillId) => ({ activeSkillId, useWhen: TACTIC_USE_WHEN[activeSkillId] ?? [] })),
       reactiveSkillIds: [...reactives],
       equipment: equipmentInput(characterId, loadout.equipment?.[characterId]),
     };
