@@ -519,8 +519,8 @@ function skillBuildSummary(characterId) {
   const slotLabel = selectedNode?.kind === "active" ? "行動枠" : "リアクティブ枠";
   const slotCount = selectedNode ? (state.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
-    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " → " + characterName(characterId)
-      + "の" + slotLabel + "（" + slotCount + " / 2）"
+    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
+      + " · " + slotLabel + "（" + slotCount + " / 2）"
     : "技能を選択すると、ここに装着先を表示";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
