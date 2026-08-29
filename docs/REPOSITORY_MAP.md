@@ -15,7 +15,7 @@
 | 新しい実験を設計する | DESIGN_CHARTER.md | docs/AGENT_ONBOARDING.md → 類似実験の票 |
 | 現在の本編を直す | core/rules-version.mjs | core/ → play/ → 関係するsmoke |
 | SCRAPLINEを扱う | analysis/SCRAPLINE_AGENT_RUNBOOK.md | concept → implementation → D1結果 |
-| EXP-18を扱う | analysis/experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md | R4 → 実装後はA5_RULE_ENGINE/ |
+| EXP-18を扱う | analysis/experiments/exp-18/A5_RULE_ENGINE/RESULT.md | R4 → R5 → A5_RULE_ENGINE/、コードは ecology/ |
 | 公開やログ取得を行う | docs/HUMAN_TEST_RELEASE.md | docs/OPERATIONS.md / EXPORT.md |
 
 全ファイルを読む必要はありません。先に現在地を固定し、必要な系列だけを深掘りしてください。
@@ -26,7 +26,7 @@
 - 現在の既定入口は /play/ の SKIP 0.4 / laws-0.5 です。これは比較基準であり、面白さの勝者として確定していません。
 - 最新の独立試作は /scrapline/ の SCRAPLINE 0.7 / scrapline-build-20260829-r12 です。
 - SCRAPLINEは、機械検査と保存完全性は確認できましたが、作者プレイではfun 1〜2/5、因果の説明は成立せず、不採択です。
-- 次の実装票はEXP-18 R5です。ecology/の決定的ルールエンジンとGate A〜Fを先に実装し、UI・公開・人間テストはまだ行いません。
+- EXP-18 R5の実装（A5）は完了し、Gate A〜Fを通過しました。コードは ecology/、証拠は analysis/experiments/exp-18/A5_RULE_ENGINE/ です。UI・公開・人間テストはまだ行っていません。
 
 ## 3. 判断の優先順位
 
@@ -46,7 +46,7 @@
 | 場所 | 役割 | 現在の扱い |
 |---|---|---|
 | core/ | 本編のルール、状態機械、乱数、指標 | 現行コード |
-| ecology/ | EXP-18のデータ駆動・決定的ルールエンジン | R5の実装先。現時点では未実装 |
+| ecology/ | EXP-18のデータ駆動・決定的ルールエンジン | 実装済み。UIも公開もD1も持たない。`node ecology/check.mjs` で検査。詳細は ecology/README.md |
 | play/ | 本編の既定UIと比較ルールセット | 現行の比較基準 |
 | scrapline/ | SCRAPLINE 0.7の独立試作 | 最新試作。ただし不採択 |
 | kindling/、emberline/、tomori/、night-eater/ | 縦切り試作 | 作者テスト結果を反映して凍結・比較保存 |
