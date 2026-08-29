@@ -140,6 +140,12 @@ function setRuleEffectAmount(definition, value, effectType) {
 }
 
 const activeSkills = renamed("activeSkills");
+// The R5 fixture's idle_shuffle is intentionally a zero-cost infinite-loop
+// witness. It must not leak into player-facing content, including old saves
+// that may already contain the id. Keep the id as a safe compatibility alias.
+activeSkills.idle_shuffle = cloneActive("steady_aim", "idle_shuffle", "息を整える", {
+  tags: ["buff", "playable"],
+});
 activeSkills.front_strike = cloneActive("strike", "front_strike", sectionNames.activeSkills.front_strike, {
   targetQuery: {
     scope: "enemies",

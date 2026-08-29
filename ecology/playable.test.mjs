@@ -77,6 +77,26 @@ for (let stage = 1; stage <= 7; stage += 1) {
   assert.ok(first.events.length > 0);
 }
 
+// The original R5 fixture contains an intentionally free-looping idle_shuffle.
+// The playable bundle must keep old saves safe and must not make the pivot's
+// starter build hit the engine's event cap.
+const pivotRoster = ["warden", "mender", "lancer", "pivot"];
+const pivotFormation = {
+  warden: "front_left",
+  mender: "rear_left",
+  lancer: "front_right",
+  pivot: "rear_right",
+};
+const pivotBattle = makeBattle(1, pivotRoster, freshLoadout(pivotRoster), "frontier-pivot", pivotFormation);
+const pivotResult = simulateBattle(pivotBattle, PLAYABLE_CONTENT);
+assert.ok(pivotResult.events.length < 4096, "pivot starter build must not hit the event cap");
+
+const legacyLoadout = freshLoadout(pivotRoster);
+legacyLoadout.tactics.pivot = ["idle_shuffle", "strike"];
+const legacyBattle = makeBattle(1, pivotRoster, legacyLoadout, "frontier-legacy", pivotFormation);
+const legacyResult = simulateBattle(legacyBattle, PLAYABLE_CONTENT);
+assert.ok(legacyResult.events.length < 4096, "old idle_shuffle saves must remain safe");
+
 const targetCheck = simulateBattle(firstBattle, PLAYABLE_CONTENT);
 const marksmanTarget = targetCheck.events.find((event) =>
   event.type === "target_selected" && event.sourceActorId === "e_marksman"

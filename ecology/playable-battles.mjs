@@ -48,7 +48,7 @@ const CHARACTER_DEFINITIONS = [
     icon: "環",
     defaultPosition: "rear_left",
     summary: "余った行動権を防壁に変え、長期戦を支える。",
-    starterTactics: ["strike", "idle_shuffle"],
+    starterTactics: ["strike", "bulwark"],
     starterReactives: ["guard_step", "scavenge_ap"],
   },
   {
@@ -95,7 +95,7 @@ const activeMeta = {
   long_swing: ["大溜め", "準備3回のあと、最も傷ついた敵へ9ダメージ。", "攻撃"],
   triage: ["応急手当", "HP半分以下の味方を8回復。", "支援"],
   hunt_the_slow: ["準備狩り", "準備中の敵へ5ダメージ。", "攻撃"],
-  idle_shuffle: ["息を整える", "行動権を使わず、RPを1得る。", "資源"],
+  idle_shuffle: ["息を整える", "自分に集中を1つ付ける。集中中は使わない。", "準備"],
   mark_target: ["隙を刻む", "最もHPの高い敵に「隙」を1つ付ける。", "指揮"],
   steady_aim: ["狙いを澄ます", "自分に「集中」を1つ付ける。", "準備"],
 };
