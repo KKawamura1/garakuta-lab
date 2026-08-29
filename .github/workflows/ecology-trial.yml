@@ -99,11 +99,53 @@ jobs:
           exit 1
 
       - name: Play one expedition end to end
+        id: play
         shell: bash
         env:
           ECOLOGY_TRIAL_BASE: ${{ steps.resolve.outputs.url }}
           PLAYWRIGHT_MODULE: playwright
-        run: node analysis/ecology-trial.mjs
+        run: |
+          set -euo pipefail
+          node analysis/ecology-trial.mjs | tee /tmp/trial.log
+          run_id="$(sed -n 's/^RUN_ID=//p' /tmp/trial.log | tail -1)"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      # **「保存しました」と画面が言うことと、行があることは別。**
+      # 2026-08-29、上限のずれで invalid_payload になっていたのに、
+      # 画面の文言だけを見て通してしまった。ここは D1 の実物を見る。
+      # 自由記述は選ばない（公開ログに出さない）。版・seed・印・件数だけ。
+      - name: Check the run actually landed in D1
+        if: steps.play.outputs.run_id != ''
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RUN_ID: ${{ steps.play.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "D1 の資格情報が無いので照合できない。未確認として扱うこと。" >&2
+            exit 1
+          fi
+          sql="SELECT run_id, game_version, event_count,
+            json_extract(stats_json, '\$.seed') AS seed,
+            json_extract(stats_json, '\$.buildStamp') AS build_stamp,
+            json_extract(stats_json, '\$.eventsRecorded') AS events_recorded,
+            json_extract(stats_json, '\$.eventsSent') AS events_sent
+            FROM runs WHERE run_id = '${RUN_ID}';"
+          npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
+            --remote --json --command "$sql" > /tmp/row.json
+          jq -c '.[0].results' /tmp/row.json
+          found="$(jq '.[0].results | length' /tmp/row.json)"
+          if [[ "$found" != "1" ]]; then
+            echo "D1 に ${RUN_ID} の行が無い。画面は保存したと言っているのに残っていない。" >&2
+            exit 1
+          fi
+          {
+            echo "## D1 に残った行"
+            echo
+            jq -r '.[0].results[0] | "- run_id: `\(.run_id)`\n- game_version: \(.game_version)\n- seed: \(.seed)\n- build: \(.build_stamp)\n- events: \(.events_sent)/\(.events_recorded) 件"' /tmp/row.json
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Report the URL that was played
         if: always()

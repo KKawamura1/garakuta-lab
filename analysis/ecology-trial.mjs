@@ -199,6 +199,11 @@ try {
   note("控えに主要行動列が残る", (saved?.runEvents || []).some((e) => e.type === "battle_completed"));
 
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 4).join(" / "));
+
+  // 送った run を後から D1 で照合できるように、id を1行で出す。
+  // 呼び出し側（.github/workflows/ecology-trial.yml）がこれを拾って、
+  // **保存されたと言っている行が本当にあるか**を狭い SELECT で確かめる。
+  if (saved?.runId) console.log(`RUN_ID=${saved.runId}`);
 } catch (error) {
   note("通しが最後まで走った", false, String(error).split("\n")[0]);
 } finally {
