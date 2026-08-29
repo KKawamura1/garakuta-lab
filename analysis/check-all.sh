@@ -13,7 +13,7 @@ FAST_CHECK_BUDGET_MS="${FAST_CHECK_BUDGET_MS:-60000}"
 tmpdir="$(mktemp -d)"
 trap 'rm -rf -- "$tmpdir"' EXIT
 
-for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/app.js control/app.js night-eater/app.js night-eater/telemetry.mjs scrapline/app.js; do
+for f in play/app.js puzzle/app.js agent-view/app.js agent-view/sync.js graft/app.js control/app.js night-eater/app.js night-eater/telemetry.mjs scrapline/app.js ecology/app.js; do
   [ -f "$f" ] || continue
   syntax_log="$tmpdir/syntax-$(basename "$f").log"
   if node --input-type=module --check < "$f" 2>"$syntax_log"; then

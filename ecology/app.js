@@ -24,7 +24,7 @@ import {
 import { POSITIONS } from "./schema.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 
-const VERSION = "EXP-18 Full prototype 0.2";
+const VERSION = "EXP-18 Full prototype 0.3";
 const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
@@ -73,7 +73,64 @@ const replayTypes = new Set([
   "battle_ended",
 ]);
 
+const ENEMY_ICONS = {
+  gray_scrapper: "走",
+  gray_marksman: "撃",
+  gray_guard: "衛",
+  gray_hunter: "狩",
+  gray_echo: "響",
+  gray_bulwark: "盾",
+  ash_core: "核",
+};
+
+const REPLAY_SPEEDS = [
+  { id: "slow", label: "ゆっくり", factor: 1.7 },
+  { id: "normal", label: "標準", factor: 1 },
+  { id: "fast", label: "速い", factor: 0.45 },
+];
+
+// **一拍の長さはイベントの重さで変える。** 全部を同じ間隔で流すと、
+// 何が起きたかの山（damage_taken / actor_defeated）が資源の増減に埋もれる。
+const BEAT_MS = {
+  battle_started: 620,
+  round_started: 640,
+  actor_activated: 260,
+  action_declared: 360,
+  target_selected: 320,
+  target_changed: 440,
+  action_started: 380,
+  action_resolved: 200,
+  action_skipped: 380,
+  preparation_started: 440,
+  preparation_advanced: 300,
+  preparation_completed: 440,
+  preparation_interrupted: 440,
+  damage_taken: 560,
+  healing_applied: 520,
+  barrier_gained: 440,
+  actor_moved: 460,
+  actor_defeated: 760,
+  reaction_fired: 420,
+  rule_triggered: 360,
+  battle_ended: 900,
+};
+const DEFAULT_BEAT_MS = 190;
+
+// 動いている側を光らせるイベント。
+const ACTING_TYPES = new Set([
+  "actor_activated", "action_declared", "action_started", "action_resolved", "action_skipped",
+  "target_selected", "target_changed", "preparation_started", "preparation_advanced",
+  "preparation_completed", "preparation_interrupted", "reaction_fired", "rule_triggered",
+  "damage_taken", "healing_applied", "barrier_gained", "resource_spent", "actor_moved",
+]);
+// 相手へ踏み込む動きを出すイベント。
+const STRIKE_TYPES = new Set(["action_started", "damage_taken"]);
+// 狙われている箱に印を出すイベント。
+const AIM_TYPES = new Set(["target_selected", "target_changed", "action_started", "action_declared"]);
+
 let replayTimer = null;
+let saveTimer = null;
+let battleLayoutKey = null;
 
 const STARTING_SKILL_POINTS = 2;
 
@@ -161,6 +218,8 @@ function newRunState(meta) {
     replaySnapshots: [],
     replayIndex: 0,
     replayPlaying: false,
+    replaySpeed: "normal",
+    replayLogOpen: false,
     skillTreeScroll: {},
     results: [],
     runEvents: [],
@@ -216,6 +275,8 @@ function loadState() {
       : {};
     next.selectedSkillNode = next.selectedSkillNode || null;
     next.battleError = next.battleError || null;
+    next.replaySpeed = REPLAY_SPEEDS.some((entry) => entry.id === next.replaySpeed) ? next.replaySpeed : "normal";
+    next.replayLogOpen = next.replayLogOpen === true;
     return next;
   } catch {
     return initialState();
@@ -359,10 +420,7 @@ function campNav() {
 }
 
 function render() {
-  if (replayTimer) {
-    clearInterval(replayTimer);
-    replayTimer = null;
-  }
+  stopReplayTimer();
   const views = {
     intro: renderIntro,
     camp: renderCamp,
@@ -378,7 +436,7 @@ function render() {
     element.addEventListener("click", handleAction);
   });
   restoreSkillTreeScroll();
-  if (state.phase === "battle" && state.replayPlaying) startReplayTimer();
+  if (state.phase === "battle") mountBattleView();
 }
 
 function captureSkillTreeScroll() {
@@ -708,10 +766,14 @@ function targetNames(ids) {
 
 function eventText(event) {
   const values = event.values || {};
-  const source = actorName(event.sourceActorId || event.actorId || event.ownerActorId);
+  const sourceId = event.sourceActorId || event.actorId || event.ownerActorId;
+  const source = sourceId ? actorName(sourceId) : "";
   const target = targetNames(event.targetActorIds || event.targetIds);
   const amount = values.amount ?? values.actual ?? values.proposed;
   const amountText = amount !== undefined ? " · " + amount : "";
+  // だれがだれをどうしたかをひとつの行で読めるようにする。
+  const number = amount ?? "";
+  const arrow = source && target && source !== target ? source + " → " : "";
   const skillId = values.activeSkillId || values.skillId || event.activeSkillId || event.skillId;
   const skill = skillId ? nameFor(skillId) : "行動";
   const reactionId = values.reactiveSkillId || event.reactiveSkillId;
@@ -734,11 +796,11 @@ function eventText(event) {
     preparation_advanced: source + "の準備が進む",
     preparation_completed: source + "の準備が完了",
     preparation_interrupted: source + "の準備が止まった",
-    damage_taken: target + "が" + amountText + "ダメージを受けた",
+    damage_taken: arrow + target + " に " + number + " ダメージ",
     excess_damage: "攻撃が" + amountText + "余った",
-    healing_applied: target + "が" + amountText + "回復した",
+    healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
-    barrier_gained: target + "に防壁" + amountText + "が生まれた",
+    barrier_gained: target + " に防壁 " + number,
     resource_gained: target + "が" + resourceLabel(values.resource) + amountText + "を得た",
     resource_spent: source + "が" + resourceLabel(values.resource) + amountText + "を使った",
     actor_moved: source + "が位置を替えた",
@@ -768,36 +830,319 @@ function compactReplay(result) {
   return { events, snapshots };
 }
 
-function renderReplayActor(actor) {
-  return "<div class=\"replay-actor " + (actor.alive ? "" : "defeated") + "\"><span class=\"avatar small\">"
-    + esc(characterInfo(actor.definitionId)?.icon ?? (actor.side === "enemy" ? "◆" : "・"))
-    + "</span><div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
-    + (actor.alive ? "HP " + actor.hp + "/" + actor.maxHp : "戦闘不能") + " · 防壁 " + actor.barrier + "</small></div></div>";
+// ---------------------------------------------------------------- 戦闘の見せ方
+//
+// **ログは主役から降ろした。** 名前とHPの箱を人数分並べ、攻撃した側が相手へ踏み込み、
+// 受けた側の箱の上へダメージ値が浮く。何が起きたかは動きで見せ、
+// 「何のイベントが出たか」はデバッグログ（既定で閉じている）で確かめる。
+
+function shortName(displayName) {
+  return String(displayName ?? "").split(" — ")[0];
+}
+
+function unitIcon(actor) {
+  return characterInfo(actor.definitionId)?.icon
+    ?? ENEMY_ICONS[actor.definitionId]
+    ?? (actor.side === "enemy" ? "◆" : "・");
+}
+
+function replaySpeed() {
+  return REPLAY_SPEEDS.find((entry) => entry.id === state.replaySpeed) ?? REPLAY_SPEEDS[1];
+}
+
+function beatMs(event) {
+  const base = BEAT_MS[event?.type] ?? DEFAULT_BEAT_MS;
+  return Math.max(60, Math.round(base * replaySpeed().factor));
+}
+
+function eventSourceId(event) {
+  return event?.sourceActorId || event?.actorId || event?.ownerActorId || null;
+}
+
+function eventSkillName(event) {
+  const values = event?.values || {};
+  const skillId = values.activeSkillId || values.skillId || event?.skillId || event?.sourceDefinitionId;
+  return skillId ? nameFor(skillId) : null;
+}
+
+function replayActors() {
+  const index = clampReplayIndex();
+  return state.replaySnapshots?.[index]
+    || state.replaySnapshots?.[0]
+    || state.lastResult?.actors
+    || [];
+}
+
+function clampReplayIndex() {
+  const events = state.replayEvents || [];
+  if (!events.length) return 0;
+  return Math.max(0, Math.min(state.replayIndex, events.length - 1));
+}
+
+function layoutKeyOf(actors) {
+  return actors.map((actor) => actor.instanceId + ":" + actor.position).join("|");
+}
+
+function unitHtml(actor) {
+  return "<div class=\"unit\" data-unit=\"" + esc(actor.instanceId) + "\">"
+    + "<div class=\"unit-floats\"></div>"
+    + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
+    + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
+    + "</b></div><div class=\"unit-bar\"><span class=\"unit-fill\"></span></div>"
+    + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span><span class=\"unit-barrier\"></span></div>"
+    + "<div class=\"unit-cast\"></div></div>";
+}
+
+function battleRowsHtml(actors, side) {
+  const mine = actors.filter((actor) => actor.side === side);
+  const front = mine.filter((actor) => positionRows[actor.position] === "前列");
+  const rear = mine.filter((actor) => positionRows[actor.position] !== "前列");
+  const ordered = side === "enemy" ? [["後列", rear], ["前列", front]] : [["前列", front], ["後列", rear]];
+  const rows = ordered.filter(([, list]) => list.length).map(([label, list]) =>
+    "<div class=\"battle-row\"><span class=\"battle-row-label\">" + label + "</span>"
+    + "<div class=\"battle-units\">" + list.map(unitHtml).join("") + "</div></div>").join("");
+  return "<span class=\"battle-side-label\">" + (side === "enemy" ? "敵" : "味方") + "</span>" + rows;
 }
 
 function renderBattle() {
-  const result = state.lastResult;
-  const events = state.replayEvents;
-  const index = Math.min(state.replayIndex, Math.max(0, events.length - 1));
-  const current = events[index];
-  const visible = events.slice(Math.max(0, index - 11), index + 1).reverse();
-  const percent = events.length ? Math.round(((index + 1) / events.length) * 100) : 100;
-  const actors = state.replaySnapshots?.[index] || (result ? result.actors || [] : []);
-  const allies = actors.filter((actor) => actor.side === "ally").map(renderReplayActor).join("");
-  const enemies = actors.filter((actor) => actor.side === "enemy").map(renderReplayActor).join("");
-  const controls = state.replayPlaying
-    ? button("一時停止", "replay-toggle", false, "button")
-    : button("自動再生", "replay-toggle", index >= events.length - 1, "button primary");
-  return shell("戦闘リプレイ", encounterInfo(state.stage).name + " · " + percent + "%", "<section class=\"card replay-card\">"
-    + "<div class=\"replay-progress\"><span style=\"width:" + percent + "%\"></span></div><div class=\"replay-now\">"
-    + (current ? esc(eventText(current)) : "戦闘開始") + "</div><div class=\"replay-columns\"><div><h3>味方</h3>"
-    + allies + "</div><div><h3>敵</h3>" + enemies + "</div></div><ol class=\"events replay-events\">"
-    + visible.map((event) => "<li class=\"event\"><span class=\"event-round\">R" + (event.round ?? "-")
-      + "</span><span>" + esc(eventText(event)) + "</span></li>").join("") + "</ol>"
-    + "<div class=\"replay-controls\">" + controls + button("一拍進める", "replay-step", index >= events.length - 1, "button")
-    + button("結果を見る", "replay-result", false, "button") + "</div></section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">WHY THIS TARGET?</p><p class=\"muted\">「誰が誰を狙ったか」「なぜ技能が発火したか」をイベント順に表示しています。戦闘後は全イベントを開けます。</p></section>");
+  const events = state.replayEvents || [];
+  const actors = replayActors();
+  const speedButtons = REPLAY_SPEEDS.map((entry) =>
+    button(entry.label, "replay-speed", false, "speed-button" + (replaySpeed().id === entry.id ? " active" : ""),
+      "data-speed=\"" + entry.id + "\"")).join("");
+  return shell("戦闘", encounterInfo(state.stage).name + " · 自動戦闘を見る", "<section class=\"card battle-card\">"
+    + "<div class=\"replay-progress\"><span class=\"replay-progress-fill\"></span></div>"
+    + "<div class=\"battle-field\" aria-live=\"off\">"
+    + "<div class=\"battle-side\" data-side=\"enemy\">" + battleRowsHtml(actors, "enemy") + "</div>"
+    + "<div class=\"battle-beat\"><span class=\"beat-round\"></span>"
+    + "<p class=\"beat-text\" aria-live=\"polite\"></p><span class=\"beat-count\"></span></div>"
+    + "<div class=\"battle-side\" data-side=\"ally\">" + battleRowsHtml(actors, "ally") + "</div>"
+    + "</div>"
+    + "<div class=\"replay-transport\">"
+    + button("◀ 一拍", "replay-back", true, "button", "data-role=\"replay-back\"")
+    + button("自動再生", "replay-toggle", events.length === 0, "button primary", "data-role=\"replay-toggle\"")
+    + button("一拍 ▶", "replay-step", true, "button", "data-role=\"replay-step\"")
+    + "</div>"
+    + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
+    + button("結果を見る", "replay-result", false, "button") + "</section>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">HOW TO READ</p>"
+    + "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。箱の上に浮かぶ数字がダメージ（赤）・回復（緑）・防壁（青）、"
+    + "箱の下の帯がHP、箱の中の札がいま使っている技能です。細かい因果を追いたいときだけ、下のデバッグログを開いてください。</p></section>"
+    + "<details class=\"card debug-log\"" + (state.replayLogOpen ? " open" : "")
+    + "><summary>デバッグログ（アニメーションで分かりにくいとき）</summary>"
+    + "<p class=\"muted\">再生中の位置までのイベントを、新しい順に出しています。</p>"
+    + "<ol class=\"events replay-events\"></ol></details>");
 }
+
+function castChips(events, index) {
+  const chips = {};
+  for (let i = 0; i <= index; i += 1) {
+    const event = events[i];
+    if (!event) continue;
+    if (event.type === "round_started") {
+      for (const key of Object.keys(chips)) delete chips[key];
+      continue;
+    }
+    const id = eventSourceId(event);
+    if (!id) continue;
+    if (event.type === "action_declared" || event.type === "action_started") {
+      chips[id] = { text: eventSkillName(event) ?? "行動", kind: "action" };
+    } else if (event.type === "action_resolved" || event.type === "action_skipped") {
+      delete chips[id];
+    }
+  }
+  return chips;
+}
+
+function floatsFor(event) {
+  const values = event.values || {};
+  const targets = event.targetActorIds || [];
+  const sourceId = eventSourceId(event);
+  switch (event.type) {
+    case "damage_taken":
+      return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: "damage" }));
+    case "healing_applied": {
+      const amount = values.actual ?? values.amount ?? 0;
+      return amount > 0 ? targets.map((id) => ({ actorId: id, text: "+" + amount, tone: "heal" })) : [];
+    }
+    case "barrier_gained":
+      return targets.map((id) => ({ actorId: id, text: "◈" + (values.amount ?? 0), tone: "barrier" }));
+    case "actor_defeated":
+      return targets.map((id) => ({ actorId: id, text: "撃破", tone: "defeat" }));
+    case "actor_moved":
+      return sourceId ? [{ actorId: sourceId, text: "位置替え", tone: "move" }] : [];
+    case "equipment_worn":
+      return sourceId ? [{ actorId: sourceId, text: "装備 -" + (values.amount ?? 1), tone: "wear" }] : [];
+    case "reaction_fired":
+    case "rule_triggered": {
+      const label = event.sourceDefinitionId ? nameFor(event.sourceDefinitionId) : null;
+      return sourceId && label ? [{ actorId: sourceId, text: label, tone: "reaction" }] : [];
+    }
+    default:
+      return [];
+  }
+}
+
+function restartAnimation(element, className) {
+  element.classList.remove(className);
+  void element.offsetWidth;
+  element.classList.add(className);
+}
+
+function spawnFloat(unit, spec) {
+  const host = unit.querySelector(".unit-floats");
+  if (!host) return;
+  const node = document.createElement("span");
+  node.className = "float " + spec.tone;
+  node.textContent = spec.text;
+  host.appendChild(node);
+  setTimeout(() => node.remove(), 1200);
+}
+
+function updateReplayControls(index, events) {
+  const atEnd = index >= events.length - 1;
+  const toggle = app.querySelector("[data-role=\"replay-toggle\"]");
+  if (toggle) {
+    toggle.textContent = state.replayPlaying ? "一時停止" : (atEnd ? "最初から再生" : "自動再生");
+    toggle.className = "button" + (state.replayPlaying ? "" : " primary");
+    toggle.disabled = events.length === 0;
+  }
+  const step = app.querySelector("[data-role=\"replay-step\"]");
+  if (step) step.disabled = atEnd;
+  const back = app.querySelector("[data-role=\"replay-back\"]");
+  if (back) back.disabled = index <= 0;
+  app.querySelectorAll(".speed-button[data-speed]").forEach((element) => {
+    element.classList.toggle("active", element.dataset.speed === replaySpeed().id);
+  });
+}
+
+function updateDebugLog(index, events) {
+  const list = app.querySelector(".debug-log .replay-events");
+  if (!list) return;
+  const from = Math.max(0, index - 59);
+  const rows = [];
+  for (let i = index; i >= from; i -= 1) {
+    const event = events[i];
+    if (!event) continue;
+    rows.push("<li class=\"event" + (i === index ? " current" : "") + "\"><span class=\"event-round\">R"
+      + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
+      + "<code class=\"event-type\">" + esc(event.type) + "</code></li>");
+  }
+  list.innerHTML = rows.join("");
+}
+
+function syncBattleView(options = {}) {
+  if (state.phase !== "battle") return;
+  const field = app.querySelector(".battle-field");
+  if (!field) return;
+  const events = state.replayEvents || [];
+  const index = clampReplayIndex();
+  const actors = replayActors();
+  const current = events[index] || null;
+
+  const key = layoutKeyOf(actors);
+  if (key !== battleLayoutKey) {
+    const enemySide = field.querySelector("[data-side=\"enemy\"]");
+    const allySide = field.querySelector("[data-side=\"ally\"]");
+    if (enemySide) enemySide.innerHTML = battleRowsHtml(actors, "enemy");
+    if (allySide) allySide.innerHTML = battleRowsHtml(actors, "ally");
+    battleLayoutKey = key;
+  }
+
+  const chips = castChips(events, index);
+  const preparing = new Set();
+  for (const actor of actors) {
+    const unit = field.querySelector("[data-unit=\"" + CSS.escape(actor.instanceId) + "\"]");
+    if (!unit) continue;
+    const ratio = actor.maxHp > 0 ? Math.max(0, Math.min(1, actor.hp / actor.maxHp)) : 0;
+    const fill = unit.querySelector(".unit-fill");
+    if (fill) {
+      fill.style.width = (ratio * 100) + "%";
+      fill.className = "unit-fill" + (ratio <= 0.25 ? " critical" : ratio <= 0.55 ? " low" : "");
+    }
+    const hp = unit.querySelector(".unit-hp");
+    if (hp) hp.textContent = actor.alive ? actor.hp + "/" + actor.maxHp : "戦闘不能";
+    const barrier = unit.querySelector(".unit-barrier");
+    if (barrier) barrier.textContent = actor.barrier > 0 ? "◈" + actor.barrier : "";
+    unit.classList.toggle("defeated", !actor.alive);
+    const cast = unit.querySelector(".unit-cast");
+    if (cast) {
+      const prep = actor.preparation;
+      if (prep) {
+        preparing.add(actor.instanceId);
+        cast.textContent = "準備 " + nameFor(prep.skillId) + "（残" + prep.stepsRemaining + "）";
+        cast.className = "unit-cast prep show";
+      } else if (actor.alive && chips[actor.instanceId]) {
+        cast.textContent = chips[actor.instanceId].text;
+        cast.className = "unit-cast show";
+      } else {
+        cast.textContent = "";
+        cast.className = "unit-cast";
+      }
+    }
+  }
+
+  field.querySelectorAll(".unit").forEach((unit) => {
+    unit.classList.remove("is-acting", "is-aimed");
+  });
+
+  if (current) {
+    const sourceId = eventSourceId(current);
+    const targets = current.targetActorIds || [];
+    const sourceUnit = sourceId ? field.querySelector("[data-unit=\"" + CSS.escape(sourceId) + "\"]") : null;
+    if (sourceUnit && ACTING_TYPES.has(current.type)) sourceUnit.classList.add("is-acting");
+    if (sourceUnit && STRIKE_TYPES.has(current.type) && !options.silent) {
+      restartAnimation(sourceUnit, "is-striking");
+    }
+    for (const id of targets) {
+      const unit = field.querySelector("[data-unit=\"" + CSS.escape(id) + "\"]");
+      if (!unit) continue;
+      if (AIM_TYPES.has(current.type)) unit.classList.add("is-aimed");
+      if (options.silent) continue;
+      if (current.type === "damage_taken" || current.type === "actor_defeated") restartAnimation(unit, "is-hit");
+      if (current.type === "healing_applied") restartAnimation(unit, "is-healed");
+      if (current.type === "barrier_gained") restartAnimation(unit, "is-shielded");
+    }
+    if (!options.silent) {
+      for (const spec of floatsFor(current)) {
+        const unit = field.querySelector("[data-unit=\"" + CSS.escape(spec.actorId) + "\"]");
+        if (unit) spawnFloat(unit, spec);
+      }
+    }
+  }
+
+  const beatText = field.querySelector(".beat-text");
+  if (beatText) {
+    const text = current ? eventText(current) : "戦闘開始";
+    if (beatText.textContent !== text) {
+      beatText.textContent = text;
+      restartAnimation(beatText, "pulse");
+    }
+  }
+  const beatRound = field.querySelector(".beat-round");
+  if (beatRound) beatRound.textContent = "R" + (current?.round ?? "-");
+  const beatCount = field.querySelector(".beat-count");
+  if (beatCount) beatCount.textContent = (events.length ? index + 1 : 0) + " / " + events.length;
+  const progress = app.querySelector(".replay-progress-fill");
+  if (progress) progress.style.width = (events.length ? Math.round(((index + 1) / events.length) * 100) : 100) + "%";
+
+  updateReplayControls(index, events);
+  updateDebugLog(index, events);
+  scheduleReplayBeat();
+}
+
+function mountBattleView() {
+  battleLayoutKey = null;
+  const details = app.querySelector("details.debug-log");
+  if (details) {
+    details.addEventListener("toggle", () => {
+      state.replayLogOpen = details.open;
+      saveState();
+    });
+  }
+  syncBattleView({ silent: true });
+}
+
 
 function diagnosticEventText(event, actorLabels) {
   const source = actorLabels?.[event.sourceActorId] ?? event.sourceActorId ?? "—";
@@ -865,11 +1210,19 @@ function renderResult() {
     + "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "次の区画へ持ち越す状態")
     + "<p class=\"muted\">戦闘中のHPと装備耐久は次の区画へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。</p><div class=\"result-actors\">"
     + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
-    + "</div></section><section class=\"card\">" + sectionHeading("CAUSE & EFFECT", "何が起きたか", "<span class=\"count\">"
-    + shown.length + (shown.length === events.length ? "" : " / " + events.length) + " events</span>")
+    + "</div></section>"
+    // **因果はまずアニメーションで見せる。** 文字の一覧は、見返したいときの補助に降ろした。
+    + (state.replayEvents?.length
+      ? "<section class=\"card\">" + sectionHeading("CAUSE & EFFECT", "何が起きたかをもう一度見る")
+        + "<p class=\"muted\">同じ戦闘を最初から、同じ順で再生します。決着までの因果は、箱の動きとダメージ値で追えます。</p>"
+        + button("戦闘をもう一度見る", "replay-again", false, "button") + "</section>"
+      : "")
+    + "<details class=\"card debug-log\"><summary>デバッグログ（" + events.length + " イベント）</summary>"
+    + "<p class=\"muted\">アニメーションで分かりにくかったところを、文字で確かめるためのものです。</p>"
     + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
-      + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span></li>").join("") + "</ol>"
-    + "<details><summary>全イベントを見る</summary><pre>" + esc((result.events || []).map(eventText).join("\n")) + "</pre></details></section>"
+      + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
+      + "<code class=\"event-type\">" + esc(event.type) + "</code></li>").join("") + "</ol>"
+    + "<details><summary>全イベントを見る</summary><pre>" + esc((result.events || []).map(eventText).join("\n")) + "</pre></details></details>"
     + next);
 }
 
@@ -909,19 +1262,41 @@ function renderComplete() {
     + "<p id=\"feedback-status\" class=\"hint\">D1へ送信すると、編成・技能・装備・戦闘イベントも一緒に保存されます。</p></section>");
 }
 
-function startReplayTimer() {
-  replayTimer = setInterval(() => {
-    if (!state.replayPlaying) return;
-    if (state.replayIndex >= state.replayEvents.length - 1) {
-      state.replayPlaying = false;
-      saveState();
-      render();
-      return;
-    }
-    state.replayIndex += 1;
+function stopReplayTimer() {
+  if (replayTimer) {
+    clearTimeout(replayTimer);
+    replayTimer = null;
+  }
+}
+
+// 拍ごとに全状態を書き出すと、リプレイのなめらかさをlocalStorageに食われる。
+// 進行位置の控えは間引き、止めたとき・進めたときは即座に書く。
+function saveStateSoon() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
     saveState();
-    render();
-  }, 180);
+  }, 700);
+}
+
+function scheduleReplayBeat() {
+  stopReplayTimer();
+  if (state.phase !== "battle" || !state.replayPlaying) return;
+  const events = state.replayEvents || [];
+  const index = clampReplayIndex();
+  if (index >= events.length - 1) {
+    state.replayPlaying = false;
+    saveState();
+    updateReplayControls(index, events);
+    return;
+  }
+  replayTimer = setTimeout(() => {
+    replayTimer = null;
+    if (state.phase !== "battle" || !state.replayPlaying) return;
+    state.replayIndex = clampReplayIndex() + 1;
+    saveStateSoon();
+    syncBattleView();
+  }, beatMs(events[index]));
 }
 
 function advanceAfterReward() {
@@ -1291,16 +1666,49 @@ function handleAction(event) {
   }
 
   if (action === "replay-toggle") {
-    if (state.replayIndex >= state.replayEvents.length - 1) return;
-    state.replayPlaying = !state.replayPlaying;
+    if (!state.replayEvents.length) return;
+    if (state.replayIndex >= state.replayEvents.length - 1) {
+      // 最後まで見たあとは、同じ戦闘をもう一度頭から流せる。
+      state.replayIndex = 0;
+      state.replayPlaying = true;
+    } else {
+      state.replayPlaying = !state.replayPlaying;
+    }
     saveState();
-    render();
+    syncBattleView({ silent: true });
     return;
   }
 
   if (action === "replay-step") {
     state.replayPlaying = false;
     if (state.replayIndex < state.replayEvents.length - 1) state.replayIndex += 1;
+    saveState();
+    syncBattleView();
+    return;
+  }
+
+  if (action === "replay-back") {
+    state.replayPlaying = false;
+    if (state.replayIndex > 0) state.replayIndex -= 1;
+    saveState();
+    syncBattleView({ silent: true });
+    return;
+  }
+
+  if (action === "replay-speed") {
+    const speed = element.dataset.speed;
+    if (!REPLAY_SPEEDS.some((entry) => entry.id === speed)) return;
+    state.replaySpeed = speed;
+    saveState();
+    syncBattleView({ silent: true });
+    return;
+  }
+
+  if (action === "replay-again") {
+    if (!state.replayEvents.length) return;
+    state.phase = "battle";
+    state.replayIndex = 0;
+    state.replayPlaying = true;
     saveState();
     render();
     return;
