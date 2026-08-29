@@ -50,13 +50,15 @@ PR #49は、8人から4人を選び、24技能、18装備、7区画を一周す�
 [R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS](experiments/exp-18/R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS.md)
 です。R6は次を固定します。
 
-1. 人物・Blueprint・図鑑・難易度は永続、技能点・遠征技能・生成装備・補給はrun終了でreset。
+1. 人物・Blueprint・図鑑・活動資金・購入済み投資・微小な人物鍛錬は永続、技能点・遠征技能・生成装備・補給はrun終了でreset。
 2. 一遠征3幕12戦、4・8・12戦目をbossとする。
 3. 遠征ごとに使用可能SkillPack、affix family、敵family、boss lawを提示する。
-4. 生成装備をexact Blueprintとして勝利時2件、敗北時1件保存できる。
-5. Blueprint持込枠は1から最大5へ、高難度達成で厳しく解禁する。
-6. 敵は持込Blueprintへ隠れて追従せず、明示Difficultyとthreat budgetで強化する。
-7. PR #49のコア理解を人間評価する前に、技能・敵・affixを量産しない。
+4. 生成装備はrarityに応じて複数の完結ruleを持て、exact Blueprintとして勝利時2件、敗北時1件保存できる。
+5. 遠征結果を100倍単位の「活動資金」として敗北時にも持ち帰り、Blueprint枠、補給、技能、装備、人物、目利きへ投資する。
+6. Blueprint持込枠は1から最大5へ、4,000 / 20,000 / 100,000 / 500,000で購入する。難易度だけは一つ前のclearで順番に解禁する。
+7. 人物ごとのpotency / vitality鍛錬は一段+0.1%、費用二次増加、上限なし。敵は持込Blueprintや鍛錬へ隠れて追従しない。
+8. 全人物は通常攻撃を常備し、純支援技能後は半威力追撃を行う。active技能は原則75%以上を攻撃技能にする。
+9. PR #49のコア理解を人間評価する前に、技能・敵・affixを量産しない。
 
 R6の文書完成は面白さの証明ではありません。実装時はState splitと生成安全性を先に検査し、PR #49との正しい統合起点が不明なら停止します。
 
@@ -70,6 +72,9 @@ R6の文書完成は面白さの証明ではありません。実装時はState 
 - 勝敗だけでなく、損傷、消耗、速度、資源温存を結果に残す。
 - 新規則が旧人物・旧技能・旧装備の意味を変えられるイベント履歴を持つ。
 - 機械検査は破綻の足切りに使い、fun判定には使わない。
+- 技能は手作業で一般的な採用理由を保証し、装備は完全生成の偶然性を担う。
+- 戦闘進行に必要な攻撃はloadout強制ではなく、通常攻撃と支援後の半威力追撃で保証する。
+- 永続鍛錬は微小・高費用に限り、speed、AP、RP、発火回数を上げない。
 
 一般化した設計知見は
 [research/emergent_rule_ecology_and_extensible_game_design.md](../research/emergent_rule_ecology_and_extensible_game_design.md)
