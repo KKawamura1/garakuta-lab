@@ -199,9 +199,11 @@ function loadState() {
       : fresh.roster;
     next.formation = normalizeFormation(next.formation, next.roster);
     next.loadout = next.loadout || freshLoadout(next.roster);
-    next.formationSelection = next.roster.includes(next.formationSelection)
-      ? next.formationSelection
-      : next.roster.includes(next.selectedCharacter) ? next.selectedCharacter : (next.roster[0] ?? null);
+    const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
+    const savedFormationSelection = hasFormationSelection ? saved.formationSelection : next.selectedCharacter;
+    next.formationSelection = hasFormationSelection
+      ? (next.roster.includes(savedFormationSelection) ? savedFormationSelection : null)
+      : (next.roster.includes(savedFormationSelection) ? savedFormationSelection : (next.roster[0] ?? null));
     next.hp = Object.fromEntries(CHARACTER_OPTIONS.map((option) => [option.id, maxHp(option.id)]));
     next.results = Array.isArray(next.results) ? next.results : [];
     next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
