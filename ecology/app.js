@@ -726,7 +726,7 @@ function renderBattleError() {
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
     + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やすリアクティブを外して再試行してください。</p>"
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
-    + button("戦闘前へ戻る", "back-battle-preview", false, "button") + "</div></section>";
+    + button("戦闘前へ戻る", "back-battle-preview", false, "button") + "</div></section>");
 }
 
 function resultActors(result) {
