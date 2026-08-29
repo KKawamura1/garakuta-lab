@@ -462,8 +462,9 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       break;
     case "wear_equipment":
+    case "repair_equipment":
       if (!ctx.fromEquipment) {
-        bag.add(path, "not_equipment_rule", "wear_equipment is only usable by an equipment rule");
+        bag.add(path, "not_equipment_rule", `${effect.type} is only usable by an equipment rule`);
       }
       if (effect.amount !== undefined) validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
@@ -832,6 +833,23 @@ export function validateBattleInput(input, bundle) {
 
 function validateEquipmentInputs(bag, path, equipment, bundle, claimInstance) {
   if (!requireArray(bag, path, equipment, { max: LIMITS.maxEquipment })) return;
+  // §5.7 budgets a rule per owner per chain, so two copies of one item on one
+  // actor would share a firing budget and it would take the array order to say
+  // which physical copy wears out. Refuse the case rather than pick a winner;
+  // whether a second copy should act twice is a design question, not an
+  // implementation one (R5 §20).
+  const equipmentIds = new Set();
+  equipment.forEach((item, index) => {
+    if (!isPlainObject(item) || !isValidId(item.equipmentId)) return;
+    if (equipmentIds.has(item.equipmentId)) {
+      bag.add(
+        `${path}[${index}].equipmentId`,
+        "duplicate_equipment",
+        `one actor may not carry two of ${item.equipmentId}`,
+      );
+    }
+    equipmentIds.add(item.equipmentId);
+  });
   equipment.forEach((item, index) => {
     const itemPath = `${path}[${index}]`;
     if (!isPlainObject(item)) {

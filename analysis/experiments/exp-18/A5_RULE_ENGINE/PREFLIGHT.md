@@ -23,6 +23,10 @@ R5 §16 Gate A の要求どおり、コードより先に「この票のまま�
 | 9 | §13 draw の reason | 列挙に draw 用が無い | 決めて明記 | 双方全滅かつ未達は `all_allies_defeated` |
 | 10 | §16 Gate F の合格条件 | 代理指標の誤読リスク | 文書で封じる | fingerprint 数を面白さの証拠にしない |
 
+**この表は完全ではなかった。** 実装後の監査レビューで5件の穴が出ている。
+本書末尾の「追補」（§14〜§19）を必ず併せて読むこと。とくに §17 は、
+書いた最適化が正当なコンテンツを壊していた例である。
+
 ## 1. §15.4 の positive status は v1 predicate/filter では書けない
 
 ### 要求
@@ -84,11 +88,13 @@ R5 §19 は「個別コンテンツifなしでは表現不可能な必須fixture
 §5.2 は「数値は0以上、負の変化は effect type で表す」と定めるので、負の amount による回避もできない。
 §12.6 も「0まで減らす」しか定義しておらず、`equipment_repaired` に相当するイベントも §6 に無い。
 
-- v1 で実装するもの: 同じ配線（`resource_unused` を listen する装備由来 rule、`spend_reaction_points` コスト、
-  event_tag / event_value による資源種別の判定）を検査する最寄りの v1 表現として、**保持者を1回復する**装備にする。
-- v2 の最小修正案: effect `repair_equipment { amount }` と event `equipment_repaired`（values: before/amount/after）を追加し、
-  `maxDurability` を上限に clamp する。耐久が戻ると「壊れた装備の rule は供給しない」（§5.6）の反転条件が要るため、
-  broken フラグの解除規則も同時に決める必要がある。これは設計担当の判断に属するので、実装担当は決めない。
+**この判断は §16 で覆した。** 以下は初版の判断の記録である。
+
+- 初版で実装したもの: 同じ配線（`resource_unused` を listen する装備由来 rule、`spend_reaction_points` コスト、
+  event_tag / event_value による資源種別の判定）を検査する最寄りの v1 表現として、**保持者を1回復する**装備にした。
+- 監査レビューの指摘: 配線の検査にはなるが同じゲーム性ではない。装備消耗を遠征のトレードオフにするなら
+  修理は基礎語彙である。→ §16 で `repair_equipment` / `equipment_repaired` を実装し、
+  broken の解除は「しない」と決めた（§5.6 を黙って取り消さないため）。
 
 ## 3. §15.3 の「最初の active action の AP cost を1下げる装備」
 
@@ -218,3 +224,105 @@ R5 §3.2 の列挙と一致するが、実装判断として重いものを3点�
 無し。§1 は最小修正（filter 1件追加）で塞ぎ、§2 は仕様逸脱として記録したうえで代替 fixture にする。
 §4〜§9 はいずれも R5 が実装担当へ委任した「観測順・診断・内部HOW」の範囲で決められる。
 不変条件（§1.2）を変更する必要は生じない。
+
+---
+
+# 追補（実装後の監査レビューで見つかったもの）
+
+**上の §13 と、初版 GATE_RESULTS.md の「未確認項目: なし」は誤りだった。**
+実装後の監査レビューで5件の穴が出た。うち1件（§17）は、書いたコードが正当なコンテンツを
+壊すもので、fixture を1つ増やせば初版でも捕まえられたはずのものである。
+
+反証レビューの弱点も一緒に記録する。**§11 で「恒偽・恒真・未定義」は列挙したが、
+「実装した最適化が、まだ書いていないコンテンツを殺さないか」を見ていなかった。**
+恒偽になるのは既存の分岐だけではない。将来のデータの側が恒偽になることもある。
+
+## 14. 防壁だけ提案イベントが無く、§15.4 の三分の一が書けない
+
+§15.4 は「次の damage/heal/**barrier** amount を+1し、その後消える positive status」を要求する。
+ところが §6 のイベント一覧には `damage_proposed` と `healing_proposed` はあるが、防壁の提案が無い。
+`gain_barrier` は提案を経ずに packet を作るので、interrupt 窓が開かない。
+
+初版はこれを「既知の制約」として文書に書いて済ませた。これは誤り。
+**必須 fixture の三分の一が実装不能なまま緑になっていた。**
+
+修正: event `barrier_proposed` を追加し、damage / healing と同じ pending amount 処理へ通す。
+`barrier_gained` は `proposed`（変更前）を values に持つ。
+fixture は `fixture_focused_barrier`（防壁3が4になり、status が自分を消す）。
+
+## 15. 量を変えた rule が、イベント列から消える
+
+`modify_pending_amount` は pending frame の数値を直接書き換えるだけだった。
+攻撃が4から5になった事実は `damage_proposed.amount` と `damage_taken.proposed` の差で見えるが、
+**誰のどの規則が +1 したかは再生できない。**
+
+R5 §1.2 は「全ての状態変化は因果イベントから追跡できる」を不変条件に挙げている。
+連鎖の説明可能性はこの企画の根幹なので、v2 送りにしてよいものではない。
+
+修正: event `pending_amount_modified` を追加し、
+operation / before / after / delta / proposalEventId と、rule ID・source定義ID を残す。
+**listen 不可**にする（`resource_refreshed` と同じ扱い）。listen できると、
+他人の interrupt 窓の内側で反応が走ることになる。
+
+## 16. 装備の修理が語彙に無く、fixture が別物になっていた
+
+§15.3 の「resource_unused の RP で自分を1修理する装備」を、初版は保持者のHP回復へ置換した（§2）。
+配線の検査にはなるが、**同じゲーム性ではない。**
+装備消耗を遠征のトレードオフにするなら、修理は基礎語彙である。
+
+修正: effect `repair_equipment` と event `equipment_repaired` を追加する。決めた意味は2つ。
+
+- **maxDurability で clamp する。**
+- **耐久0で壊れた装備は修理で復活しない。** §5.6 が「0になった装備は以後 rule を供給しない」と
+  定めている以上、修理がそれを黙って取り消してはならない。壊れた装備は自分の修理規則も供給しないので、
+  自力で戻ってくることもできない。
+
+fixture は `fixture_field_kit`（耐久1から2へ、次ラウンドは clamp で何もしない）と
+`fixture_broken_kit`（耐久0は修理イベントを1件も出さない）。
+
+## 17. stalemate 判定が、正当な待機戦術を殺していた
+
+これが一番重い。**書いた最適化が、まだ存在しないコンテンツを壊していた。**
+
+初版は R5 §11.6 の任意項目を採用し、HP・防壁・準備・状態・装備耐久が2ラウンド連続で
+変化しなければ draw にしていた。state hash にラウンド数も履歴も入っていない。
+
+反例（実際に再現した）:
+
+~~~js
+tactics: [{ activeSkillId: "strike", useWhen: [{ type: "round_number", op: "gte", value: 3 }] }]
+// → 2ラウンド目終わりで draw / stalemate。strike は一度も撃てない。
+~~~
+
+v1 は `round_number` と `history_count` を述語として持つ。
+「3ラウンド目から」「未使用APが累計4以上になったら」は普通に書ける設計である。
+その待機中は5つの量がどれも動かないので、待機と膠着を区別できない。
+
+hash にラウンド数や履歴を足しても直らない。どちらも毎ラウンド変わるので、
+今度は判定が一度も成立しない（恒偽の分岐が残る）。
+
+修正: **v1 では stalemate を採用しない。** 何も動かない試合は `round_limit` で終わらせる。
+`stalemate` は §4.1 の reason 一覧に残すが、v1 は決して返さない。
+fixture は `fixture_inert`（何も起きない試合が maxRounds で終わる）と
+`fixture_waiting_tactic`（上の反例が3ラウンド目に撃てる）。
+
+## 18. 同じ装備を2つ持ったときの意味が決まっていない
+
+発火予算のキーは owner + ruleId なので、同じ装備の2つ目は**予算を共有する**。
+さらに tie-break が rule id で終わっていたため、どちらの実物が摩耗するかは
+`actor.equipment` の配列順（sort の安定性）に落ちていた。決定的ではあるが、根拠が無い。
+
+修正: **1人が同じ装備を2つ持つことを validator が拒否する。**
+2つ目が独立して働くべきか（＝§5.7 の予算を装備インスタンス単位にするか）は
+ゲーム設計の判断であり、実装担当が決めることではない（R5 §20）。禁止しておけば後からどちらへでも開ける。
+tie-break にも equipmentInstanceId を足し、順序が配列順に落ちる経路自体を消した。
+
+## 19. 「最初の行動コスト -1」は「activation時に AP+1」と同値ではない
+
+§3 で「差分は行動しなかった場合に AP が余る点だけで、コスト計算としては同値」と書いたが、これは誤り。
+Gate E で追加した `pivot`（未使用APを同量の round barrier に変える人物signature）のような規則がある世界では、
+**余った AP は防壁に化けるので、割引と増分の差が連鎖する。**
+
+修正: 代用をやめ、**この装備は「activation時に AP を1得る」ものだと正式に読み替える。**
+表示名とコメントを実際の挙動に合わせた。割引が必要なら、コストを変える effect を v2 で足す判断になる。
+

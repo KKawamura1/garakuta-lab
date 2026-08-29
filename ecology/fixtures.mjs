@@ -202,16 +202,40 @@ export const STATUS_BATTLE = battle("fixture_status", {
 });
 
 // §15.3 the field kit spends an unused reaction point at the end of the round.
+// It starts one point of durability down, so the first round has something to
+// repair and the second round runs into the maxDurability clamp.
 export const FIELD_KIT_BATTLE = battle("fixture_field_kit", {
   maxRounds: 2,
   objective: { type: "survive_rounds", rounds: 2 },
   allies: [
     ally("a_warden", "warden", "front_left", {
       tactics: ["bulwark"],
-      equipment: [["e_kit", "field_kit", 2]],
+      equipment: [["e_kit", "field_kit", 1]],
       hp: 15,
     }),
   ],
+  enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
+});
+
+// §5.6 — a kit that is already broken supplies no rules, so it cannot mend
+// itself back into the battle.
+export const BROKEN_KIT_BATTLE = battle("fixture_broken_kit", {
+  maxRounds: 2,
+  objective: { type: "survive_rounds", rounds: 2 },
+  allies: [
+    ally("a_warden", "warden", "front_left", {
+      tactics: ["bulwark"],
+      equipment: [["e_kit", "field_kit", 0]],
+    }),
+  ],
+  enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
+});
+
+// §15.4 — the positive status raises a barrier as well as damage and healing.
+export const FOCUSED_BARRIER_BATTLE = battle("fixture_focused_barrier", {
+  maxRounds: 2,
+  objective: { type: "survive_rounds", rounds: 2 },
+  allies: [ally("a_warden", "warden", "front_left", { tactics: ["steady_aim", "bulwark"] })],
   enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
 });
 
@@ -224,11 +248,27 @@ export const IMMEDIATE_BATTLE = battle("fixture_immediate", {
   enemies: [enemy("e_husk", "husk", "front_left", { hp: 0 })],
 });
 
-// §11.6 stalemate: nothing on either side can change any state.
-export const STALEMATE_BATTLE = battle("fixture_stalemate", {
-  maxRounds: 9,
+// Nothing on either side can change any state. v1 does not call this a
+// stalemate (see engine.mjs, endRound): the round limit ends it.
+export const INERT_BATTLE = battle("fixture_inert", {
+  maxRounds: 4,
   objective: ELIMINATE,
   allies: [ally("a_warden", "warden", "front_left", { tactics: [] })],
+  enemies: [enemy("e_still", "still_husk", "front_left")],
+});
+
+// The counter-example that removed the stalemate rule. Waiting is a legal
+// tactic: nothing changes for two rounds and then the skill becomes usable. A
+// stalemate check over hp, barrier, preparation, status and durability would
+// have called this a draw on round two and the strike would never have landed.
+export const WAITING_TACTIC_BATTLE = battle("fixture_waiting_tactic", {
+  maxRounds: 6,
+  objective: ELIMINATE,
+  allies: [
+    ally("a_lancer", "lancer", "front_left", {
+      tactics: [{ activeSkillId: "strike", useWhen: [{ type: "round_number", op: "gte", value: 3 }] }],
+    }),
+  ],
   enemies: [enemy("e_still", "still_husk", "front_left")],
 });
 
@@ -480,7 +520,10 @@ export const ALL_FIXTURE_BATTLES = [
   STATUS_BATTLE,
   FIELD_KIT_BATTLE,
   IMMEDIATE_BATTLE,
-  STALEMATE_BATTLE,
+  INERT_BATTLE,
+  WAITING_TACTIC_BATTLE,
+  BROKEN_KIT_BATTLE,
+  FOCUSED_BARRIER_BATTLE,
   DEFINITION_BATTLE,
   ROUND_LIMIT_BATTLE,
   REGION_BATTLE,

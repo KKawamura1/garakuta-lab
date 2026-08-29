@@ -143,6 +143,7 @@ export function applyEffect(rt, ctx, effect) {
     case "advance_preparation": return advancePreparation(rt, ctx, effect);
     case "interrupt_preparation": return interruptPreparation(rt, ctx, effect);
     case "wear_equipment": return wearEquipmentEffect(rt, ctx, effect);
+    case "repair_equipment": return repairEquipmentEffect(rt, ctx, effect);
     case "modify_pending_amount": return modifyPendingAmount(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
@@ -322,12 +323,29 @@ function applyHealing(rt, ctx, effect) {
 
 // §12.3 — barrier packets. v1 puts no cap on the total: dominance is a content
 // question, and the engine must not quietly truncate it.
+//
+// The proposal step mirrors damage and healing so that an interrupt rule can
+// change the amount before the packet exists (PREFLIGHT §14).
 function gainBarrier(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
-    const amount = evaluateValue(rt.state, ctx, effect.amount);
+    const proposed = evaluateValue(rt.state, ctx, effect.amount);
+    const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
+    const event = rt.emit(
+      {
+        type: "barrier_proposed",
+        ...sourceFields(ctx),
+        targetActorIds: [target.instanceId],
+        tags: [effect.duration],
+        values: { amount: proposed, duration: effect.duration },
+      },
+      frame,
+    );
+    const finalTarget = getActor(rt.state, frame.targetActorIds[0]);
+    if (!finalTarget || !finalTarget.alive) continue;
+    const amount = frame.amount;
     if (amount <= 0) continue;
-    target.barriers.push({
+    finalTarget.barriers.push({
       amount,
       duration: effect.duration,
       createdSequence: rt.state.sequence,
@@ -337,9 +355,15 @@ function gainBarrier(rt, ctx, effect) {
     rt.emit({
       type: "barrier_gained",
       ...sourceFields(ctx),
-      targetActorIds: [target.instanceId],
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
       tags: [effect.duration],
-      values: { amount, duration: effect.duration, barrierTotal: totalBarrier(target) },
+      values: {
+        amount,
+        proposed,
+        duration: effect.duration,
+        barrierTotal: totalBarrier(finalTarget),
+      },
     });
   }
 }
@@ -574,6 +598,30 @@ export function wearEquipmentInstance(rt, ctx, item, amount, tags) {
   }
 }
 
+// §12.6 partner. A repair raises durability up to maxDurability and never
+// revives an item that already broke: §5.6 says a broken item supplies no rules
+// for the rest of the battle, and a repair must not quietly undo that.
+export function repairEquipmentInstance(rt, ctx, item, amount, tags) {
+  if (!item || item.broken) return;
+  const before = item.durability;
+  const repaired = Math.min(amount, item.maxDurability - before);
+  if (repaired <= 0) return;
+  item.durability = before + repaired;
+  rt.emit({
+    type: "equipment_repaired",
+    ...sourceFields(ctx),
+    targetActorIds: [ctx.owner ? ctx.owner.instanceId : item.instanceId],
+    equipmentInstanceId: item.instanceId,
+    tags,
+    values: { equipmentId: item.equipmentId, before, amount: repaired, after: item.durability },
+  });
+}
+
+function repairEquipmentEffect(rt, ctx, effect) {
+  const amount = effect.amount ? evaluateValue(rt.state, ctx, effect.amount) : 1;
+  repairEquipmentInstance(rt, ctx, equipmentInstance(rt, ctx), amount, []);
+}
+
 function wearEquipmentEffect(rt, ctx, effect) {
   const amount = effect.amount ? evaluateValue(rt.state, ctx, effect.amount) : 1;
   wearEquipmentInstance(rt, ctx, equipmentInstance(rt, ctx), amount, []);
@@ -585,9 +633,26 @@ function modifyPendingAmount(rt, ctx, effect) {
   const frame = ctx.pending;
   if (!frame || frame.kind !== "amount") return;
   const amount = evaluateValue(rt.state, ctx, effect.amount);
+  const before = frame.amount;
   if (effect.operation === "set") frame.amount = amount;
-  else if (effect.operation === "decrease") frame.amount = Math.max(0, frame.amount - amount);
-  else frame.amount = frame.amount + amount;
+  else if (effect.operation === "decrease") frame.amount = Math.max(0, before - amount);
+  else frame.amount = before + amount;
+  if (frame.amount === before) return;
+  // §1.2 — every state change is traceable from the event列. Without this the
+  // number changes and nothing says whose rule changed it.
+  rt.emit({
+    type: "pending_amount_modified",
+    ...sourceFields(ctx),
+    targetActorIds: [...frame.targetActorIds],
+    tags: [effect.operation],
+    values: {
+      operation: effect.operation,
+      before,
+      after: frame.amount,
+      delta: frame.amount - before,
+      proposalEventId: ctx.event ? ctx.event.id : null,
+    },
+  });
 }
 
 function redirectPendingTarget(rt, ctx, effect) {

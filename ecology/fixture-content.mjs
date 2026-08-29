@@ -615,12 +615,15 @@ const reactiveSkills = {
 };
 
 const equipment = {
-  // §15.3 — "the first active action of the round costs one less action point".
-  // v1 has no cost-modifying effect, so the equivalent form is a single extra
-  // action point at the start of the activation (PREFLIGHT §3).
+  // §15.3 asks for "the first active action of the round costs one less action
+  // point". v1 has no cost-modifying effect, and an extra action point is NOT
+  // the same thing: a point that goes unused can be banked by a rule such as
+  // the pivot signature, while a discount that is never taken buys nothing
+  // (PREFLIGHT §3). So this item is not a stand-in for a discount. It is what
+  // it says: one extra action point when its holder activates.
   worn_greaves: {
     id: "worn_greaves",
-    displayName: "Worn Greaves (fixture)",
+    displayName: "Worn Greaves — an extra action point on activation (fixture)",
     maxDurability: 2,
     rules: [
       {
@@ -655,13 +658,10 @@ const equipment = {
     ],
     tags: ["fixture"],
   },
-  // §15.3 — spend an unused reaction point at the end of the round.
-  //
-  // DEVIATION (PREFLIGHT §2): R5 asks for an item that repairs itself by 1.
-  // v1 has no effect that raises durability and forbids negative amounts, so
-  // this witnesses the same wiring (resource_unused listener, reaction point
-  // cost, equipment owned rule) and mends its holder instead. The v2 fix is
-  // `repair_equipment` + `equipment_repaired`.
+  // §15.3 — spend an unused reaction point at the end of the round to repair
+  // itself by one. The repair stops at maxDurability and never revives an item
+  // that already broke (§5.6), so a kit that reached zero stays dead for the
+  // rest of the battle and cannot mend itself back into play.
   field_kit: {
     id: "field_kit",
     displayName: "Field Kit (fixture)",
@@ -678,7 +678,7 @@ const equipment = {
           { type: "event_value", key: "amount", op: "gte", value: 1 },
         ],
         costs: [{ type: "spend_reaction_points", amount: 1 }],
-        effects: [{ type: "heal", target: SELF_TARGET, amount: constant(1), tags: ["repair"] }],
+        effects: [{ type: "repair_equipment", amount: constant(1) }],
         limit: { scope: "round", count: 1 },
       },
     ],
@@ -778,9 +778,9 @@ const statuses = {
     ],
     tags: ["fixture"],
   },
-  // §15.4 — the holder's next damage or healing is one larger, then the status
-  // is gone. Barrier is not covered: v1 has no barrier proposal frame to modify
-  // (see IMPLEMENTATION.md, known limits).
+  // §15.4 — the holder's next damage, healing or barrier is one larger, then
+  // the status is gone. The barrier third needs the barrier_proposed event
+  // added in PREFLIGHT §14; without it that third of this fixture is unwritable.
   focused: {
     id: "focused",
     displayName: "Focused (fixture)",
@@ -804,6 +804,19 @@ const statuses = {
       {
         id: "focused_healing_rule",
         listenTo: "healing_proposed",
+        timing: "interrupt",
+        priority: 40,
+        predicates: [SELF_IS_EVENT_SOURCE],
+        costs: [],
+        effects: [
+          { type: "modify_pending_amount", operation: "increase", amount: constant(1) },
+          { type: "remove_status", target: SELF_TARGET, statusId: "focused", stacks: "all" },
+        ],
+        limit: { scope: "chain", count: 1 },
+      },
+      {
+        id: "focused_barrier_rule",
+        listenTo: "barrier_proposed",
         timing: "interrupt",
         priority: 40,
         predicates: [SELF_IS_EVENT_SOURCE],
@@ -994,9 +1007,9 @@ export const FIXTURE_COVERAGE = deepFreeze({
   prep_spiral: "§14 a rule re-firing preparation_advanced on itself",
   relay_front: "PREFLIGHT §5 activation ceiling, half of the ping pong",
   relay_rear: "PREFLIGHT §5 activation ceiling, the other half",
-  worn_greaves: "§15.3 first action costs one less (PREFLIGHT §3 equivalent form)",
+  worn_greaves: "§15.3 an extra action point on activation (PREFLIGHT §3, not a cost discount)",
   splinter_edge: "§15.3 excess_damage read by equipment; §5.6 broken stops supplying",
-  field_kit: "§15.3 unused reaction point spender (PREFLIGHT §2 deviation)",
+  field_kit: "§15.3 spends an unused reaction point to repair itself; clamps at maxDurability",
   standing_plate: "§15.3 battle duration barrier",
   hungry_plate: "§14 equipment reacting to its own wear",
   triage: "Gate E: heal an ally at or below half health",
@@ -1004,5 +1017,5 @@ export const FIXTURE_COVERAGE = deepFreeze({
   hunt_the_slow: "Gate E: an enemy tactic that prefers a preparing target",
   momentum_rig: "Gate E: equipment that strengthens the action after a move",
   exposed: "§15.4 negative status raising incoming damage proposals",
-  focused: "§15.4 positive status raising the holder's next damage or healing",
+  focused: "§15.4 positive status raising the holder's next damage, healing or barrier",
 });

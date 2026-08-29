@@ -101,8 +101,8 @@ R5 §11.5 は内部実装を委任しているので、ここに書いた順序�
 
 ### 反応
 
-- interrupt は、pending frame を持つ4イベント（`action_declared` / `target_selected` /
-  `damage_proposed` / `healing_proposed`）でのみ、**その場で同期的に**処理する。
+- interrupt は、pending frame を持つ5イベント（`action_declared` / `target_selected` /
+  `damage_proposed` / `healing_proposed` / `barrier_proposed`）でのみ、**その場で同期的に**処理する。
 - after は chain の queue へ入れ、chain の末尾で FIFO に処理する。
 - 発火順は priority 昇順 → owner の initiative rank → owner の position → owner instanceId → rule id。
 - 候補は列挙時に一度確定し、各ruleは**発火直前に**owner生存・装備耐久・status残存・limit・述語・コストを再評価する。
@@ -140,7 +140,8 @@ R5 §11.5 は内部実装を委任しているので、ここに書いた順序�
 | `healing_proposed` | amount | 効果のtags |
 | `healing_applied` | requested, actual, hpAfter | 効果のtags |
 | `excess_healing` | amount, requested, actual | 効果のtags |
-| `barrier_gained` | amount, duration, barrierTotal | duration |
+| `barrier_proposed` | amount（interrupt前の提案値）, duration | duration |
+| `barrier_gained` | amount, proposed, duration, barrierTotal | duration |
 | `barrier_expired` | amount, duration, barrierTotal | round |
 | `actor_defeated` | definitionId, side | side |
 | `resource_refreshed` | actionPointsBefore, actionPoints, reactionPointsBefore, reactionPoints | — |
@@ -152,11 +153,18 @@ R5 §11.5 は内部実装を委任しているので、ここに書いた順序�
 | `status_removed` | statusId, removed, remaining, cause | effect / round / turn |
 | `equipment_worn` | equipmentId, before, amount, after | cost |
 | `equipment_broken` | equipmentId | cost |
+| `equipment_repaired` | equipmentId, before, amount, after | — |
+| `pending_amount_modified` | operation, before, after, delta, proposalEventId | operation |
 
 イベントに表示用の文章は入れない。事実だけを入れ、表示側が再生する。
 
 `damage_proposed.amount` は**interrupt前**の値、`damage_taken.proposed` は**interrupt後**の値である。
-両者の差が、interrupt で加減された量になる。
+`healing_proposed` / `barrier_proposed` も同じ形をとる。
+
+**量を変えた rule は `pending_amount_modified` に残る。** 差分が見えるだけでは
+「誰のどの規則が +1 したか」を再生できないので、変更ごとに1件記録する。
+このイベントは listen できない（validatorが拒否する）。他人のinterrupt窓の内側で
+反応が走ることになるため。
 
 ## 細かい意味
 
@@ -168,25 +176,38 @@ R5 §11.5 は内部実装を委任しているので、ここに書いた順序�
   余剰回復を別の味方へ渡す規則は、これで自分が今治した相手を避けている。
 - **status の duration**: `turn` は保持者の activation 終了時、`round` はラウンド終了時、`battle` は戦闘中ずっと。
 - **壊れた装備**は以後 rule を供給しない。ただし**発火中の rule は途中で取り消さない**（§12.6）。
+- **修理は maxDurability で止まり、壊れた装備を復活させない。** 耐久0の装備はその戦闘のあいだ死んだままで、
+  自分を修理して戻ってくることもできない（rule を供給しないので、そもそも発火しない）。
+- **同じ装備を1人が2つ持てない**（validatorが拒否）。§5.7 の発火予算は owner と rule で数えるので、
+  2つ目は予算を共有してしまい、どちらの実物が摩耗するかも配列順に依存する。
+  2つ目が独立して働くべきかは設計判断なので、実装側では決めずに禁止した。
 - **region rule** には owner がいない。`self` の述語・スコープ・コストは validator が拒否し、
   `allies` は味方側、`enemies` は敵側として解決する。
 - **objective は定義IDで指定する。** instance ID を目的に埋め込めない。
 - **round_limit** は objective 未達のまま maxRounds に達した場合で、結果は `loss`。
 - **draw** は双方全滅かつ objective 未達のときだけ。reason は `all_allies_defeated`（v1の語彙に draw 専用の理由が無いため）。
 
-## stalemate の判定
+## stalemate を採用しない理由
 
-R5 §11.6 の任意項目を採用した。ラウンド終了ごとに次の state hash を取り、
-**直近3件（＝2ラウンド連続で変化なし）が一致したら `draw` / `stalemate`** とする。
+R5 §11.6 は stalemate 判定を**任意**としている。v1 では採用しない。好みではなく反例がある。
+
+**待つことは正当な戦術である。** v1 は `round_number` と `history_count` を述語として持つので、
+「3ラウンド目から使う」「未使用APが累計4以上になったら使う」は普通に書ける。
+その待機中、HP・防壁・準備・状態・装備耐久のどれも動かない。
+2ラウンド連続の無変化で draw にすると、**その技能は一度も撃てないまま試合が終わる。**
 
 ~~~text
-hash = actorごとに "instanceId:hp:防壁合計:準備残り:status(id:stacks を昇順):装備(instanceId:durability):生存"
-       を "|" で連結し、"#" と objective 進捗を付ける
+tactics: [{ activeSkillId: "strike", useWhen: [{ type: "round_number", op: "gte", value: 3 }] }]
+→ 採用していたら2ラウンド目終わりで draw。strike は永遠に発動しない。
 ~~~
 
-fixture は `fixture_stalemate`（`STALEMATE_BATTLE`）。
-tactic を持たない味方と、tactic も rule も持たない敵 `still_husk` を置き、maxRounds 9 に対して
-2ラウンド目の終わりで stalemate になる（round_limit より先に出ることをテストで固定している）。
+hash にラウンド数や履歴を足しても直らない。どちらも毎ラウンド変わるので、
+今度は判定が一度も成立しなくなる（恒偽の分岐が残るだけ）。
+
+したがって、何も動かない試合を終わらせるのは `round_limit` だけである。
+`fixture_inert`（何も起きない試合が maxRounds で終わる）と
+`fixture_waiting_tactic`（上の反例。3ラウンド目に撃てる）でこの挙動を固定している。
+`stalemate` は R5 §4.1 の reason 一覧に残っているが、**v1 は決して返さない。**
 
 ## 停止
 
@@ -212,11 +233,17 @@ v1では、単一 chain は「同 owner 同 rule は1回」で構造的に停止
 
 ## R5からの逸脱
 
-1. **`is_event_source` フィルタを1件追加した。** v1の語彙では「このイベントを起こしたのは自分か」を書けず、
-   §15.4 の強化 status が表現できない。代用（`has_status(subject: event_source)`）は保持者が2人以上いると
-   二重適用になる。詳細と反例は
-   [PREFLIGHT §1](../analysis/experiments/exp-18/A5_RULE_ENGINE/PREFLIGHT.md)。
-2. **§15.3 の「1修理する装備」を回復へ置換した。** v1に耐久を戻す effect が無い。PREFLIGHT §2。
+いずれも v1 語彙の穴を塞ぐための追加で、**R5 §1.2 の不変条件は1つも変えていない。**
+理由と反例は [PREFLIGHT](../analysis/experiments/exp-18/A5_RULE_ENGINE/PREFLIGHT.md)。
+
+| # | 追加したもの | 無いと何が書けないか |
+|---|---|---|
+| 1 | filter `is_event_source` | 「このイベントを起こしたのは自分か」。§15.4 の強化 status が書けない。代用は保持者が2人以上で二重適用になる |
+| 2 | event `barrier_proposed` | §15.4 の「次の**防壁**量を+1」。防壁だけ提案イベントが無く、interrupt窓が開かない |
+| 3 | event `pending_amount_modified` | 量を変えた rule の身元。R5 §1.2「全ての状態変化は因果イベントから追跡できる」を満たせない |
+| 4 | effect `repair_equipment` / event `equipment_repaired` | §15.3 の「自分を1修理する装備」。耐久を戻す手段が無く、負の amount も禁止されている |
+
+削ったもの: **stalemate 判定**（R5 §11.6 の任意項目。上の反例のため採用しない）。
 
 その他の決め（round_limit の勝敗、draw の reason、activation上限の扱い、region rule の制約、
-ラウンド終了の drain 位置）は R5 が未定義だった箇所で、PREFLIGHT に理由を書いてある。
+ラウンド終了の drain 位置、同一装備の重複禁止）は R5 が未定義だった箇所で、PREFLIGHT に理由を書いてある。

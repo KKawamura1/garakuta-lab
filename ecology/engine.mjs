@@ -93,7 +93,6 @@ function buildState(input, content, options) {
     currentPendingAction: null,
     roundFirings: new Map(),
     battleFirings: new Map(),
-    stateHashes: [],
     roundEndStartSequence: 0,
     finished: false,
     result: null,
@@ -307,6 +306,13 @@ function compareRuleEntries(a, b) {
   if (a.positionRank !== b.positionRank) return a.positionRank - b.positionRank;
   if (a.ownerId !== b.ownerId) return a.ownerId < b.ownerId ? -1 : 1;
   if (a.rule.id !== b.rule.id) return a.rule.id < b.rule.id ? -1 : 1;
+  // Two rule entries can still share every key above when they come from two
+  // equipment instances. validate.mjs refuses two copies of one item on one
+  // actor, so this is unreachable today; it is here so the order can never fall
+  // back to whatever order the equipment array happened to have.
+  const equipmentA = a.equipmentInstanceId ?? "";
+  const equipmentB = b.equipmentInstanceId ?? "";
+  if (equipmentA !== equipmentB) return equipmentA < equipmentB ? -1 : 1;
   return 0;
 }
 
@@ -391,8 +397,6 @@ function runBattle(state) {
       },
     });
   });
-
-  state.stateHashes.push(stateHash(state));
 
   while (!state.finished) {
     if (state.round >= state.maxRounds) {
@@ -844,31 +848,22 @@ function endRound(state) {
 
   state.roundsCompleted = state.round;
   checkOutcome(state);
-  if (state.finished) return;
-
-  // §11.6 — optional stalemate. Two consecutive rounds in which no hp, barrier,
-  // preparation, status or durability changed and no side progressed.
-  state.stateHashes.push(stateHash(state));
-  const hashes = state.stateHashes;
-  if (hashes.length >= 3) {
-    const [a, b, c] = hashes.slice(-3);
-    if (a === b && b === c) finish(state, "draw", "stalemate");
-  }
 }
 
-// The hash covers exactly the five things §11.6 names, plus objective progress.
-function stateHash(state) {
-  const parts = allActors(state).map((actor) => [
-    actor.instanceId,
-    actor.hp,
-    totalBarrier(actor),
-    actor.preparation ? actor.preparation.stepsRemaining : -1,
-    actor.statuses.map((status) => `${status.statusId}:${status.stacks}`).sort().join(","),
-    actor.equipment.map((item) => `${item.instanceId}:${item.durability}`).join(","),
-    actor.alive ? 1 : 0,
-  ].join(":"));
-  return `${parts.join("|")}#${objectiveProgress(state)}`;
-}
+// §11.6 offers an optional stalemate rule: end the battle when two consecutive
+// rounds change no hp, barrier, preparation, status or durability. v1 does NOT
+// implement it, and the reason is a counter-example rather than a preference.
+//
+// Waiting is a legal tactic here. v1 gives content both `round_number` and
+// `history_count`, so "only from round three" and "once four action points have
+// gone unused" are ordinary things to write — and during the wait none of the
+// five things the hash covers changes. A battle that used the rule would be
+// called a draw on round two and the skill could never fire once. Adding the
+// round number or the history to the hash does not save it either: both change
+// every round, so the rule would never fire at all.
+//
+// So the round limit is the only thing that ends a battle where nothing moves.
+// `fixture_inert` and `fixture_waiting_tactic` hold that behaviour in place.
 
 function objectiveProgress(state) {
   const objective = state.objective;

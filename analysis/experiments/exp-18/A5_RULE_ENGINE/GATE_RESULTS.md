@@ -1,6 +1,6 @@
 # A5 — Gate 結果
 
-対象コミット: `ea27f90`（Gate E まで）。本文書と証拠文書はその後のコミット。
+対象コミット: 監査レビュー後の修正まで（初版は `ea27f90`）。
 実行環境: Node v22.22.2、外部依存なし。
 Gate は面白さを判定しない。実装が次の設計実験を信用できるかだけを判定する。
 
@@ -8,8 +8,8 @@ Gate は面白さを判定しない。実装が次の設計実験を信用でき
 
 ~~~sh
 $ node ecology/check.mjs
-schema.test.mjs: 119 checks passed
-engine.test.mjs: 538 checks passed
+schema.test.mjs: 126 checks passed
+engine.test.mjs: 589 checks passed
 termination.test.mjs: 108 checks passed
 extensibility.test.mjs: 31 checks passed
 mine.test.mjs: 754 checks passed
@@ -17,6 +17,10 @@ ecology: 5 suites passed.
 $ echo $?
 0
 ~~~
+
+**初版の Gate 結果は「未確認項目: なし」と書いていたが、それは誤りだった。**
+実装後の監査レビューで5件の穴が出ている。何が漏れていたかは
+[PREFLIGHT §14〜§19](./PREFLIGHT.md)、直した内容は本書末尾の「監査レビューで見つかった穴」。
 
 `ecology/check.mjs` は各テストを別プロセスで走らせ、**出力ではなく exit code** を見る。
 `analysis/check-all.sh` からも呼ぶので、push ごとに CI で鳴る。
@@ -33,16 +37,22 @@ $ echo $?
 
 | 項目 | 内容 |
 |---|---|
-| 判定 | 通過 |
+| 判定 | **条件付き通過**（初版の判定は誤り） |
 | コマンド | — （文書） |
-| 対象commit | `d97f3f5` |
+| 対象commit | `d97f3f5`、追補は本コミット |
 | 証拠 | [PREFLIGHT.md](./PREFLIGHT.md), [TRACEABILITY.md](./TRACEABILITY.md) |
 
 コードを1行も書く前に作成した。R5 §19 の停止条件に該当する項目が1件（§15.4 の表現不能）あったが、
 不変条件を変えずに済む最小修正（filter 1件追加）があるため停止せず、逸脱として記録した。
 恒偽・到達不能・未定義を10件挙げ、全て実装で塞いだ。
 
-未確認項目: なし。
+**ただし5件を見落としていた。** 反証レビューは「既存の分岐が恒偽・恒真になっていないか」を見たが、
+**「実装した最適化が、まだ書いていないコンテンツを恒偽にしないか」を見ていなかった。**
+stalemate 判定（PREFLIGHT §17）はまさにそれで、`round_number` を条件にした待機戦術を
+2ラウンドで殺していた。fixture を1つ足せば初版で捕まえられたはずのものである。
+
+未確認項目: 追補（PREFLIGHT §14〜§19）は監査レビューの指摘を受けて書いたものであり、
+実装前レビューで自力で見つけたものではない。
 
 ## Gate B — schema
 
@@ -50,7 +60,7 @@ $ echo $?
 |---|---|
 | 判定 | 通過 |
 | コマンド | `node ecology/schema.test.mjs` |
-| exit code | 0（119 checks） |
+| exit code | 0（126 checks） |
 | 対象commit | `ea27f90` |
 | 証拠 | `ecology/schema.test.mjs`, `ecology/validate.mjs` |
 
@@ -68,6 +78,9 @@ $ echo $?
 | interrupt専用effectをafter ruleで使う定義を拒否 | `interrupt_only_effect`、さらに pending frame の種類違いも拒否 |
 | 0除算、負数、非整数、NaN相当を拒否 | denominator 0, maxHp -1, speed 1.5, NaN, Infinity, priority 1001, steps 4, limit 0 |
 | 人物名・特定相方IDをpredicateで参照できる型が存在しない | subject 一覧が関係だけであることを構造検査し、`instance_id_is` / `character_is` を書くと拒否されることも検査 |
+| （追加）listen 不可のイベントを listen しようとする定義 | `resource_refreshed` と `pending_amount_modified` の両方 |
+| （追加）装備由来でない rule の `repair_equipment` | `not_equipment_rule` |
+| （追加）1人が同じ装備を2つ持つ編成 | `duplicate_equipment`（PREFLIGHT §18） |
 
 未確認項目: なし。
 
@@ -77,7 +90,7 @@ $ echo $?
 |---|---|
 | 判定 | 通過 |
 | コマンド | `node ecology/engine.test.mjs` |
-| exit code | 0（538 checks） |
+| exit code | 0（589 checks） |
 | 対象commit | `ea27f90` |
 | 証拠 | `ecology/engine.test.mjs` |
 
@@ -91,8 +104,17 @@ $ echo $?
 | coverによる target_changed | 同上。`action_started` の対象が最終的な相手になる |
 | preparation の自己activation完成と外部advance完成 | `fixture_preparation`（次のactivationで完成、その activation は通常行動へ進まない）、`fixture_external_advance`（`urging` が同じ chain 内で完成させる） |
 | AP取得による queue末尾再行動 | `fixture_requeue`：敵の activation を挟んでから2回目が来る＝末尾に入っている |
-| broken equipment が後続ruleを供給しない | `fixture_broken_equipment`：発火中のruleは完走し、以後の `excess_damage` には反応しない |
+| broken equipment が後続ruleを供給しない | `fixture_broken_equipment`：発火中のruleは完走し、以後の `excess_damage` には反応しない。`fixture_broken_kit`：耐久0の装備は自分の修理規則も供給しないので、修理で戻ってこられない |
 | actor_defeated reaction 後に objective 判定 | `fixture_core`：`actor_defeated` → `scavenge_ap` → `battle_ended` の順 |
+
+監査レビュー後に足した固定:
+
+| 何を | fixture |
+|---|---|
+| 待機戦術が殺されないこと（stalemate 撤去の反例） | `fixture_waiting_tactic`（3ラウンド目に撃てる）、`fixture_inert`（何も起きない試合は round_limit で終わる） |
+| 防壁量が interrupt で上がること | `fixture_focused_barrier`（提案3 → 実際4、status が自分を消す） |
+| 量を変えた rule が追跡できること | `pending_amount_modified` に operation/before/after/delta/proposalEventId と rule ID |
+| 装備の修理と clamp | `fixture_field_kit`（1→2、次ラウンドは最大なので何もしない） |
 
 追加で固定したもの: イベントIDがsequenceから決まること、親イベントが必ず先行すること、
 initiative の並び、対象クエリの暗黙tie-break（入力順を逆にしても同じ相手）、
@@ -144,7 +166,7 @@ rule activation stack, 直近20イベント, 各ruleのchain発火回数。
 
 余裕率（R5 Gate D「正常fixtureは maxEvents の10%未満」）:
 
-- 正常fixture 23件の最大: **315 / 4096 = 7.7%**（`fixture_full_party`）、chain最大 **14 / 256 = 5.5%**。
+- 正常fixture 27件の最大: **316 / 4096 = 7.7%**（`fixture_full_party`）、chain最大 **14 / 256 = 5.5%**。
 - 参考: termination fixture `fixture_activation_cap` は chain 30（11.7%）。これは正常fixtureではなく、
   上限に当てにいくための標本である。
 - 余裕率そのものは安全性の証拠にならない（PREFLIGHT §12）。分子と分母を両方書いたのはそのため。
@@ -204,7 +226,7 @@ $ git diff --stat ab83135 ea27f90
 プール `fixture_pool_1`（人物3 × アクティブ3 × リアクティブ3 × 装備3 = 81 build、戦闘2件）:
 
 - buildsEvaluated 81、battlesEvaluated 162、エラー0。
-- **uniqueChainFingerprints 80**（合格条件は2件以上）。
+- **uniqueChainFingerprints 96**（合格条件は2件以上）。
 - 同じプールを2回採掘して JSON 一致。
 - fingerprint は instance ID（`mine_ally` 等）と event ID を含まず、
   イベント型・source定義ID・対象関係（self / same_side / opposing_side）・
@@ -228,3 +250,19 @@ fingerprint の数は粒度の選び方で動く。どれを候補とみなす�
 2. **行動に成功した直後にも `action_skipped` が出ていた。** §11.3-8 の読みを
    「一度も行動しなかった activation にだけ」へ直した。
 3. **`roundsUsed` がラウンド途中の決着で0のままだった。** 決着したラウンドを使ったラウンド数に数えるよう直した。
+
+## 監査レビューで見つかった穴（初版の後）
+
+初版を通した後の監査レビューで5件。全て直した。詳細は [PREFLIGHT §14〜§19](./PREFLIGHT.md)。
+
+| # | 指摘 | 何が起きていたか | 直し方 |
+|---|---|---|---|
+| 1 | stalemate が待機戦術を殺す | `round_number` を条件にした技能が2ラウンド目の draw で永久に撃てない（再現済み） | 判定を撤去。`round_limit` に任せる |
+| 2 | §15.4 の防壁強化が未実装 | 防壁だけ提案イベントが無く、必須fixtureの三分の一が書けないまま「既知の制約」で済ませていた | `barrier_proposed` を追加 |
+| 3 | 量を変えた rule が消える | 差分は見えるが、誰のどの規則が変えたか再生できない | `pending_amount_modified`（listen 不可）を追加 |
+| 4 | 装備修理がHP回復に置換されていた | 配線の検査にはなるが同じゲーム性ではない | `repair_equipment` / `equipment_repaired` を追加。clamp あり、壊れた装備は復活しない |
+| 5 | 同一装備2個の意味が不安定 | 発火予算を共有し、どちらが摩耗するかが配列順に落ちていた | validator で重複を禁止。tie-break にも instance を追加 |
+
+あわせて、「最初の行動コスト -1」を「activation時に AP+1」で代用したという説明も訂正した。
+未使用APが防壁へ変わる規則（Gate E の `pivot`）がある世界では同値ではないので、
+代用ではなく**そういう装備**として改名した（PREFLIGHT §19）。

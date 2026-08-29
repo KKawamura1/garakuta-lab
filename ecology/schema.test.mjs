@@ -547,6 +547,40 @@ expectRejected(
   "a non equipment rule wearing equipment",
 );
 
+expectRejected(
+  content((bundle) => {
+    bundle.reactiveSkills.counter_blow.rule.effects = [
+      { type: "repair_equipment", amount: { type: "constant", value: 1 } },
+    ];
+  }),
+  "not_equipment_rule",
+  "a non equipment rule repairing equipment",
+);
+
+// §5.7 budgets a rule per owner per chain, so two copies of one item would
+// share it and the array order would decide which copy wears out.
+expectRejected(
+  input((battle) => {
+    battle.allies[0].equipment = [
+      { instanceId: "e_1", equipmentId: "worn_greaves", durability: 1 },
+      { instanceId: "e_2", equipmentId: "worn_greaves", durability: 2 },
+    ];
+  }),
+  "duplicate_equipment",
+  "two copies of one item on one actor",
+);
+
+// The non-listenable records refuse a listener rather than sitting dead.
+for (const eventType of ["resource_refreshed", "pending_amount_modified"]) {
+  expectRejected(
+    content((bundle) => {
+      bundle.reactiveSkills.counter_blow.rule.listenTo = eventType;
+    }),
+    "non_listenable_event",
+    `a rule listening to ${eventType}`,
+  );
+}
+
 // ---- no vocabulary can name a person or a partner (§1.2, Gate B) ------------
 //
 // This is the structural check: there is no predicate, filter or subject that

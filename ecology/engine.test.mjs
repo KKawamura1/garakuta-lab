@@ -7,28 +7,31 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { EVENT_TYPES, RESULT_SCHEMA_VERSION } from "./schema.mjs";
-import { simulateBattle } from "./engine.mjs";
+import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import {
   ALL_FIXTURE_BATTLES,
   BARRIER_PACKET_BATTLE,
   BARRIER_PARTIAL_BATTLE,
   BROKEN_EQUIPMENT_BATTLE,
+  BROKEN_KIT_BATTLE,
   CORE_BATTLE,
   COST_CONTEST_BATTLE,
   COVER_BATTLE,
   DEFINITION_BATTLE,
   EXTERNAL_ADVANCE_BATTLE,
   FIELD_KIT_BATTLE,
+  FOCUSED_BARRIER_BATTLE,
   FULL_PARTY_BATTLE,
   IMMEDIATE_BATTLE,
+  INERT_BATTLE,
   MOVE_BATTLE,
   PREPARATION_BATTLE,
   REGION_BATTLE,
   REQUEUE_BATTLE,
   ROUND_LIMIT_BATTLE,
-  STALEMATE_BATTLE,
   STATUS_BATTLE,
+  WAITING_TACTIC_BATTLE,
 } from "./fixtures.mjs";
 
 let checks = 0;
@@ -332,15 +335,33 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
-  const result = run(STALEMATE_BATTLE);
-  equal(result.result, "draw");
-  equal(result.reason, "stalemate");
-  equal(result.roundsUsed, 2, "two rounds without a change is enough");
-  check(result.roundsUsed < STALEMATE_BATTLE.maxRounds, "and it beat the round limit");
+  // A battle where nothing can change runs to the round limit. v1 has no
+  // stalemate shortcut, on purpose: see the next check.
+  const result = run(INERT_BATTLE);
+  equal(result.result, "loss");
+  equal(result.reason, "round_limit");
+  equal(result.roundsUsed, INERT_BATTLE.maxRounds);
   equal(
     of(result, "action_skipped").filter((event) => event.sourceActorId === "a_warden").length,
-    2,
+    INERT_BATTLE.maxRounds,
     "the idle ally recorded one skip per round",
+  );
+}
+
+{
+  // The counter-example that removed the stalemate rule. Rounds 1 and 2 change
+  // no hp, barrier, preparation, status or durability, and the tactic is meant
+  // to wait for round 3. A stalemate check over those five would have declared
+  // a draw before the strike could ever happen.
+  const result = run(WAITING_TACTIC_BATTLE);
+  const declared = of(result, "action_declared");
+  check(declared.length > 0, "the waiting tactic eventually fired");
+  equal(declared[0].round, 3, "on the round its condition allows");
+  equal(result.result, "win", "and the battle was winnable after the wait");
+  check(result.roundsUsed > 2, "which needs more than the two quiet rounds");
+  check(
+    !result.events.some((event) => event.values.reason === "stalemate"),
+    "v1 never reports a stalemate",
   );
 }
 
@@ -350,11 +371,19 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const result = run(FIELD_KIT_BATTLE);
   const unused = of(result, "resource_unused").find((event) => event.values.resource === "reaction_points");
   const spent = of(result, "resource_spent").find((event) => event.ruleId === "field_kit_rule");
-  const healed = of(result, "healing_applied").find((event) => event.ruleId === "field_kit_rule");
+  const repaired = of(result, "equipment_repaired").find((event) => event.ruleId === "field_kit_rule");
   check(unused !== undefined, "the unused reaction point was reported");
   check(spent.sequence > unused.sequence, "the rule paid after the report");
   equal(spent.values.before, 1, "the point was still there to pay with");
-  equal(healed.values.actual, 1);
+  equal(repaired.values.before, 1, "the kit was one point down");
+  equal(repaired.values.amount, 1);
+  equal(repaired.values.after, 2, "and it came back to its maximum");
+  equal(
+    of(result, "equipment_repaired").length,
+    1,
+    "the second round found nothing to repair: the clamp is maxDurability",
+  );
+  equal(result.equipment[0].durability, 2);
 
   const ended = of(result, "round_ended")[0];
   const expired = of(result, "barrier_expired")[0];
@@ -404,6 +433,19 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
+{
+  // §5.6 — a kit that already broke supplies no rules at all, so it cannot mend
+  // itself back into the battle.
+  const result = run(BROKEN_KIT_BATTLE);
+  equal(of(result, "equipment_repaired").length, 0, "a broken item stays broken");
+  check(
+    !result.events.some((event) => event.ruleId === "field_kit_rule"),
+    "and its rule never fires",
+  );
+  equal(result.equipment[0].durability, 0);
+  equal(result.equipment[0].broken, true);
+}
+
 // ---- §12.5 movement ------------------------------------------------------------
 
 {
@@ -444,6 +486,50 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   // A round duration status is gone by the next round.
   const expiry = of(result, "status_removed").find((event) => event.values.cause === "duration");
   equal(expiry.values.statusId, "exposed");
+}
+
+{
+  // §15.4 — the positive status raises a barrier too, which needs the barrier
+  // proposal event (PREFLIGHT §14).
+  const result = run(FOCUSED_BARRIER_BATTLE);
+  const proposed = of(result, "barrier_proposed").find((event) => event.skillId === "bulwark");
+  const gained = of(result, "barrier_gained").find((event) => event.skillId === "bulwark");
+  equal(proposed.values.amount, 3, "the proposal keeps the fact it recorded");
+  equal(gained.values.amount, 4, "the packet carries the raised amount");
+  equal(gained.values.proposed, 3);
+  const removal = of(result, "status_removed").find((event) => event.ruleId === "focused_barrier_rule");
+  check(removal !== undefined, "and the status consumed itself");
+}
+
+{
+  // §1.2 — a rule that changes a pending amount has to be findable in the
+  // event列. The number alone does not say whose rule moved it.
+  for (const [battle, ruleId, before, after] of [
+    [STATUS_BATTLE, "exposed_rule", 4, 5],
+    [FOCUSED_BARRIER_BATTLE, "focused_barrier_rule", 3, 4],
+  ]) {
+    const result = run(battle);
+    const record = of(result, "pending_amount_modified").find((event) => event.ruleId === ruleId);
+    check(record !== undefined, `${ruleId} left a record of the change`);
+    equal(record.values.before, before);
+    equal(record.values.after, after);
+    equal(record.values.delta, after - before);
+    equal(record.values.operation, "increase");
+    check(record.sourceDefinitionId !== undefined, "and says which definition it came from");
+    const proposal = result.events.find((event) => event.id === record.values.proposalEventId);
+    check(proposal !== undefined, "and points at the proposal it changed");
+    equal(proposal.values.amount, before);
+  }
+
+  // Nothing may listen to it: a reaction there would fire inside somebody
+  // else's interrupt window.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.reactiveSkills.counter_blow.rule.listenTo = "pending_amount_modified";
+  const errors = validateContentBundle(bundle);
+  check(
+    errors.some((error) => error.code === "non_listenable_event"),
+    "pending_amount_modified is a record, not a hook",
+  );
 }
 
 // ---- PREFLIGHT §7 region rules --------------------------------------------------

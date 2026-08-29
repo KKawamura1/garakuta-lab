@@ -61,6 +61,7 @@ export const EVENT_TYPES = freeze([
   "healing_proposed",
   "healing_applied",
   "excess_healing",
+  "barrier_proposed",
   "barrier_gained",
   "barrier_expired",
   "actor_defeated",
@@ -74,6 +75,10 @@ export const EVENT_TYPES = freeze([
   "status_removed",
   "equipment_worn",
   "equipment_broken",
+  "equipment_repaired",
+  // Emitted when an interrupt rule changes a pending damage, healing or barrier
+  // amount. It is a record, not a hook: nothing may listen to it (see below).
+  "pending_amount_modified",
 ]);
 
 // §6 — reserved for later mechanics packs. Referencing one is a validator error,
@@ -88,11 +93,20 @@ export const RESERVED_EVENT_TYPES = freeze([
 
 // §11.2-3 — the refresh is recorded but is not a reaction hook in v1. A rule that
 // listens to it could never fire, so the validator rejects it (PREFLIGHT §11).
-export const NON_LISTENABLE_EVENT_TYPES = freeze(["resource_refreshed"]);
+// A rule that listened to pending_amount_modified would react inside somebody
+// else's interrupt window, so it stays a record only, like the refresh.
+export const NON_LISTENABLE_EVENT_TYPES = freeze(["resource_refreshed", "pending_amount_modified"]);
 
 // §11.5 — interrupt rules may only listen to events that carry a pending frame.
 export const PENDING_ACTION_EVENT_TYPES = freeze(["action_declared", "target_selected"]);
-export const PENDING_AMOUNT_EVENT_TYPES = freeze(["damage_proposed", "healing_proposed"]);
+export const PENDING_AMOUNT_EVENT_TYPES = freeze([
+  "damage_proposed",
+  "healing_proposed",
+  // DEVIATION (PREFLIGHT §14): §6 does not list a barrier proposal, but §15.4
+  // requires a status that raises "the next damage, healing or barrier amount".
+  // Without this event the barrier third of that fixture cannot exist.
+  "barrier_proposed",
+]);
 export const INTERRUPTIBLE_EVENT_TYPES = freeze([
   ...PENDING_ACTION_EVENT_TYPES,
   ...PENDING_AMOUNT_EVENT_TYPES,
@@ -215,6 +229,9 @@ export const EFFECT_TYPES = freeze([
   "advance_preparation",
   "interrupt_preparation",
   "wear_equipment",
+  // DEVIATION (PREFLIGHT §16): the partner of wear_equipment. §15.3 asks for an
+  // item that repairs itself and §10.2 has no way to raise durability.
+  "repair_equipment",
   "modify_pending_amount",
   "redirect_pending_target",
   "cancel_pending_action",

@@ -2,7 +2,7 @@
 
 R5 の各節を、実装ファイル・テスト・証拠へ対応させる。
 状態は「予定」で作成し、完了時に「実績」へ更新した（R5 §16 Gate A）。
-更新時点のコミットは `ea27f90`。
+更新時点のコミットは監査レビュー後の修正（初版は `ea27f90`）。
 
 状態の凡例: 検査済（テストが存在して緑）/ 実装済（テストで直接固定していない）/ 逸脱（RESULT.md に記載）
 
@@ -42,7 +42,7 @@ R5 の各節を、実装ファイル・テスト・証拠へ対応させる。
 | §11.4 | active action の14手順 | `engine.mjs` `performAction` | `engine.test.mjs` 順序固定 | 検査済 |
 | §11.5 | interrupt は同期、after は FIFO | `engine.mjs` | `engine.test.mjs` 順序固定 | 検査済 |
 | §11.6 | ラウンド終了処理 | `engine.mjs` `endRound` | `engine.test.mjs` | 検査済 |
-| §11.6 | stalemate（採用した。state hash と fixture は README に記載） | `engine.mjs` `stateHash` | `engine.test.mjs` stalemate | 検査済 |
+| §11.6 | stalemate（任意項目。**採用しない**。理由と反例は PREFLIGHT §17） | `engine.mjs` `endRound` のコメント | `engine.test.mjs` `fixture_waiting_tactic` / `fixture_inert` | 逸脱: RESULT §3.5 |
 | §12.1 | damage の7手順と excess_damage 式 | `effects.mjs` | `engine.test.mjs` 境界 | 検査済 |
 | §12.2 | healing と excess_healing | `effects.mjs` | `engine.test.mjs` 境界 | 検査済 |
 | §12.3 | barrier packet、期限順吸収 | `effects.mjs` | `engine.test.mjs` | 検査済 |
@@ -66,7 +66,7 @@ R5 の各節を、実装ファイル・テスト・証拠へ対応させる。
 | PREFLIGHT # | 決め | 実装 | テスト |
 |---|---|---|---|
 | 1 | filter `is_event_source` を1件追加（**仕様逸脱**: RESULT §3.1） | `selectors.mjs` `schema.mjs` | `engine.test.mjs` 強化 status |
-| 2 | 「1修理する装備」は v1 では回復へ置換（**仕様逸脱**: RESULT §3.2） | `fixture-content.mjs` | `engine.test.mjs` field kit |
+| 2 | 「1修理する装備」は初版で回復へ置換 → **§16 で撤回し `repair_equipment` を実装** | `effects.mjs` `schema.mjs` | `engine.test.mjs` field kit / broken kit |
 | 3 | AP cost -1 は actor_activated + round 1回の +1 AP | `fixture-content.mjs` | `engine.test.mjs` |
 | 4 | round 終了は各サブステップ後に drain | `engine.mjs` `endRound` | `engine.test.mjs` 順序固定 |
 | 5 | activation 8上限は安全制約（エラーにしない） | `engine.mjs` | `termination.test.mjs` |
@@ -75,6 +75,15 @@ R5 の各節を、実装ファイル・テスト・証拠へ対応させる。
 | 8 | round_limit は loss | `engine.mjs` | `engine.test.mjs` |
 | 9 | 双方全滅・未達は draw / all_allies_defeated | `engine.mjs` | `engine.test.mjs` |
 | 10 | fingerprint 数を面白さの証拠にしない | — | `RESULT.md` §7 と `GATE_RESULTS.md` Gate F |
+| 14 | event `barrier_proposed`（**仕様逸脱**: RESULT §3.2） | `schema.mjs` `effects.mjs` | `engine.test.mjs` `fixture_focused_barrier` |
+| 15 | event `pending_amount_modified`（**仕様逸脱**: RESULT §3.3） | `schema.mjs` `effects.mjs` | `engine.test.mjs` 追跡可能性、`schema.test.mjs` listen不可 |
+| 16 | effect `repair_equipment` / event `equipment_repaired`（**仕様逸脱**: RESULT §3.4） | `schema.mjs` `effects.mjs` `validate.mjs` | `engine.test.mjs` clamp と broken |
+| 17 | stalemate 撤去（**仕様逸脱**: RESULT §3.5） | `engine.mjs` | `engine.test.mjs` `fixture_waiting_tactic` |
+| 18 | 同一装備の重複を禁止 | `validate.mjs`、tie-break は `engine.mjs` | `schema.test.mjs` `duplicate_equipment` |
+| 19 | AP+1装備を実際の挙動へ改名（代用ではない） | `fixture-content.mjs` | — （表示名とコメント） |
+
+PREFLIGHT §14〜§19 は**実装後の監査レビュー**で見つかったもので、
+実装前レビューで自力で挙げたものではない。GATE_RESULTS.md の Gate A に訂正を書いてある。
 
 ## 追加した実装ファイル
 
