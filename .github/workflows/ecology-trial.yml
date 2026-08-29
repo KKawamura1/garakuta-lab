@@ -121,17 +121,24 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RUN_ID: ${{ steps.play.outputs.run_id }}
+          TRIAL_NOTE: "ecology-trial: 通し確認"
         run: |
           set -euo pipefail
           if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
             echo "D1 の資格情報が無いので照合できない。未確認として扱うこと。" >&2
             exit 1
           fi
+          # 自由記述そのものは選ばない。**書いた通りに入っているか**だけを真偽で見る。
+          # （公開ジョブログへ本文を出さないため。答えの数値は元から公開情報。）
           sql="SELECT run_id, game_version, event_count,
             json_extract(stats_json, '\$.seed') AS seed,
             json_extract(stats_json, '\$.buildStamp') AS build_stamp,
             json_extract(stats_json, '\$.eventsRecorded') AS events_recorded,
-            json_extract(stats_json, '\$.eventsSent') AS events_sent
+            json_extract(stats_json, '\$.eventsSent') AS events_sent,
+            json_extract(answers_json, '\$.replay') AS answer_replay,
+            json_extract(answers_json, '\$.marker') AS answer_marker,
+            (json_extract(answers_json, '\$.clear') = '${TRIAL_NOTE}') AS free_text_matches,
+            (SELECT COUNT(*) FROM moments WHERE moments.run_id = runs.run_id) AS moment_rows
             FROM runs WHERE run_id = '${RUN_ID}';"
           npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
             --remote --json --command "$sql" > /tmp/row.json
@@ -139,6 +146,14 @@ jobs:
           found="$(jq '.[0].results | length' /tmp/row.json)"
           if [[ "$found" != "1" ]]; then
             echo "D1 に ${RUN_ID} の行が無い。画面は保存したと言っているのに残っていない。" >&2
+            exit 1
+          fi
+          if [[ "$(jq -r '.[0].results[0].free_text_matches' /tmp/row.json)" != "1" ]]; then
+            echo "自由記述が書いたとおりに入っていない。アンケートの本文が落ちている。" >&2
+            exit 1
+          fi
+          if [[ "$(jq -r '.[0].results[0].moment_rows' /tmp/row.json)" == "0" ]]; then
+            echo "感情マーカーの行が moments に無い。" >&2
             exit 1
           fi
           {
