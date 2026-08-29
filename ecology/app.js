@@ -135,6 +135,35 @@ let battleLayoutKey = null;
 
 const STARTING_SKILL_POINTS = 2;
 
+// **上限は functions/api/runs.js と同じ数にする。**
+// 4000件で切って送っていたが、サーバは2000件で弾く（invalid_payload）。
+// 戦闘イベントを1件ずつ runEvents へ積むので、5区画も遊べば2000を超える。
+// そのとき画面には「端末に保存しました（D1未送信）」としか出ず、
+// **遊んだ記録がD1に1行も残らない。**2026-08-29、公開先の通しで実測した。
+// バイト側も同じで、1区画ぶんで約96KB あるため件数だけでは足りない。
+// analysis/ecology-upload-smoke.mjs が、この2つとサーバ側の値を照合する。
+const MAX_SENT_EVENTS = 2000;
+const MAX_SENT_BYTES = 700000;
+
+function payloadBytes(payload) {
+  return new TextEncoder().encode(JSON.stringify(payload)).length;
+}
+
+// 送れる分だけ送り、**何件落としたかを控えに書く。**
+// 黙って切ると、後から「そもそも起きなかった」と読み違える。
+function fitPayload(payload) {
+  const recorded = payload.events.length;
+  if (payload.events.length > MAX_SENT_EVENTS) {
+    payload.events = [payload.events[0], ...payload.events.slice(-(MAX_SENT_EVENTS - 1))];
+  }
+  while (payload.events.length > 1 && payloadBytes(payload) > MAX_SENT_BYTES) {
+    payload.events = [payload.events[0], ...payload.events.slice(Math.ceil(payload.events.length / 2))];
+  }
+  payload.stats.eventsRecorded = recorded;
+  payload.stats.eventsSent = payload.events.length;
+  return payload;
+}
+
 function initialSkillPoints() {
   return Object.fromEntries(CHARACTER_OPTIONS.map((option) => [option.id, STARTING_SKILL_POINTS]));
 }
@@ -1793,9 +1822,7 @@ function handleAction(event) {
     state.feedback = { clear, confusing, replay, marker, savedAt: endedAt };
     record("feedback_submitted", { replay, marker });
     saveState();
-    const events = state.runEvents.length <= 4000
-      ? state.runEvents
-      : [state.runEvents[0], ...state.runEvents.slice(-3999)];
+    const events = state.runEvents;
     const finalResult = state.results[state.results.length - 1];
     const finalWon = state.results.some((entry) => entry.stage === 7 && entry.result === "win");
     const finalActor = state.lastResult?.actors?.find((actor) => actor.side === "ally" && actor.alive);
@@ -1845,7 +1872,7 @@ function handleAction(event) {
     const submitButton = element;
     submitButton.disabled = true;
     submitButton.textContent = "保存中…";
-    sendPayload(payload).then((result) => {
+    sendPayload(fitPayload(payload)).then((result) => {
       submitButton.disabled = false;
       submitButton.textContent = result.ok ? "D1に保存しました" : "端末に保存しました（D1未送信）";
       const hint = document.querySelector("#feedback-status");

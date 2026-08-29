@@ -182,7 +182,16 @@ try {
   const status = await page.locator("#feedback-status").textContent();
   // ローカルには /api/runs が無いので D1 未送信で正しい。公開先で走らせたときだけ ok を要求する。
   note("送信の結果が画面に出る", Boolean(status && status.length > 0), status ?? "");
-  if (!local) note("D1へ保存できた", /保存しました/.test(await page.locator('[data-action="save-feedback"]').textContent() ?? ""));
+  const saveLabel = await page.locator('[data-action="save-feedback"]').textContent() ?? "";
+  // **「保存しました」で見ない。**成功は「D1に保存しました」、失敗は
+  // 「端末に保存しました（D1未送信）」。どちらにも「保存しました」が入るので、
+  // 2026-08-29、この見方で invalid_payload を通してしまった。
+  const savedToD1 = saveLabel.includes("D1に保存しました");
+  if (local) {
+    note("ローカルではD1へ送らない（501で正しい）", !savedToD1, saveLabel);
+  } else {
+    note("D1へ保存できた", savedToD1, `${saveLabel} / ${status ?? ""}`);
+  }
 
   // 送信した控えに、版・seed・buildの印・主要イベントが載っているか。
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-full-prototype-v02")));
