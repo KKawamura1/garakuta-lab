@@ -58,7 +58,7 @@
 9. export取得
 10. 保存された版、seed、主要イベント、自由記述の照合
 
-D1 exportの実行・取得手順は [docs/EXPORT.md](./EXPORT.md) を参照する。初回のSecret設定と、workflow起動が連携に現れない場合の安全な代替手順は [docs/D1_LOG_ACCESS.md](./D1_LOG_ACCESS.md) にまとめている。`echo_to_log=true` は自由記述を公開ジョブログへ出すため、必要な場合だけ使う。
+D1 exportの実行・取得手順は [docs/EXPORT.md](./EXPORT.md) を参照する。初回のSecret設定と、workflow起動が連携に現れない場合の安全な代替手順は [docs/D1_LOG_ACCESS.md](./D1_LOG_ACCESS.md) にまとめている。`echo_to_log=true` は自由記述を公開ジョブログへ出すため、必要な場合だけ使う。 このリポジトリの作者は2026-08-29、自由記述が公開ログへ出ることを理解したうえで、D1 exportの再実行を個別確認なしに行ってよいと明示的に許可した。
 
 複数分岐が実験の主題なら、主題に関係する両側を通す。
 
