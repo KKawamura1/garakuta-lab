@@ -38,6 +38,10 @@ export const BOARD_SKIP = new Set([
   "damage_proposed",
   "healing_proposed",
   "barrier_proposed",
+  // R6 §6.7 — block の提案と消費は盤面に出さない。**止まった事実（damage_blocked）
+  // だけが見せ場**で、charge の増減は箱の数字で分かる。
+  "block_proposed",
+  "block_spent",
 ]);
 
 // 拍ごとの長さ（標準速度、ミリ秒）。
@@ -50,6 +54,7 @@ export const BEAT_MS = {
   prepare: 420,
   move: 440,
   defeat: 700,
+  blocked: 520,
   skipped: 340,
   ending: 900,
   other: 240,
@@ -58,7 +63,7 @@ export const BEAT_MS = {
 export const EFFECT_MS = 170;
 export const IMPACT_CAP_MS = 820;
 
-const IMPACT_EFFECTS = new Set(["damage_taken", "healing_applied", "barrier_gained"]);
+const IMPACT_EFFECTS = new Set(["damage_taken", "healing_applied", "barrier_gained", "damage_blocked", "block_gained"]);
 const QUIET_EFFECTS = new Set(["status_added", "equipment_worn", "equipment_repaired", "equipment_broken"]);
 
 export function eventSourceId(event) {

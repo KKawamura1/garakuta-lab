@@ -148,13 +148,15 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .formation-selection-actions { display: inline-block; margin-left: 8px; }
 .formation-board {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
+  /* R6 §5.4 — 2行×3列。**盤面と同じ形で見せる。**
+     枠が並んでいる形そのものが「前3後2か前2後3か」の判断材料になる。 */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
   margin-top: 16px;
 }
 .formation-slot {
-  min-height: 90px;
-  padding: 9px;
+  min-height: 84px;
+  padding: 7px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #172124;
@@ -175,6 +177,8 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   gap: 8px;
 }
 .slot-person b, .slot-person small { display: block; }
+.formation-slot .avatar { width: 28px; height: 28px; border-radius: 8px; font-size: 12px; }
+.slot-person b { font-size: 12px; }
 .slot-person small { color: var(--muted); font-size: 10px; }
 .empty-icon { color: var(--muted); font-size: 22px; }
 .avatar {
@@ -350,6 +354,8 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .kind-active { background: var(--gold); color: #1b201e; }
 .kind-reactive { background: var(--violet); color: #1b201e; }
 .kind-equipment { background: var(--blue); color: #1b201e; }
+.kind-passive { background: var(--good); color: #1b201e; }
+.bullet.passive { background: var(--good); }
 .tier { color: var(--muted); font-size: 10px; }
 .skill-node b { display: block; font-size: 13px; }
 .skill-node p { min-height: 48px; margin: 5px 0; color: var(--muted); font-size: 11px; line-height: 1.35; }
@@ -775,13 +781,16 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .battle-side[data-side="ally"] .battle-side-label { color: var(--good); }
 .battle-row { display: grid; grid-template-columns: 30px 1fr; align-items: center; gap: 7px; }
 .battle-row-label { color: var(--muted); font-size: 9px; letter-spacing: .06em; }
-.battle-units { display: flex; flex-wrap: wrap; gap: 7px; }
+/* 2×3 をそのまま格子で出す。空き枠は詰めない——**どこが空いているかが情報**。 */
+.battle-units { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.unit-empty {
+  border: 1px dashed rgba(58, 77, 79, .55);
+  border-radius: 9px;
+}
 .unit {
   position: relative;
   min-width: 0;
-  flex: 1 1 130px;
-  max-width: 200px;
-  padding: 7px 8px 8px;
+  padding: 7px 6px 8px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--panel);
@@ -791,8 +800,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .unit-top { display: flex; align-items: center; gap: 5px; }
 .unit-icon {
   display: grid;
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
   flex: none;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -801,7 +810,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   place-items: center;
 }
 .battle-side[data-side="enemy"] .unit-icon { border-color: #5e3f3d; background: #3b2726; color: var(--bad); }
-.unit-name { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.unit-name { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .unit-bar { height: 6px; margin-top: 6px; overflow: hidden; border-radius: 999px; background: #0d1315; }
 .unit-fill {
   display: block;
@@ -826,6 +835,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   white-space: nowrap;
 }
 .mark.barrier { background: rgba(145, 203, 213, .18); color: var(--blue); }
+.mark.block { background: rgba(192, 167, 229, .2); color: var(--violet); }
+.mark.guard { background: rgba(158, 173, 167, .16); color: var(--muted); }
+.float.blocked { background: rgba(192, 167, 229, .2); color: var(--violet); font-size: 11px; }
 .mark.bad { background: rgba(231, 137, 128, .2); color: var(--bad); }
 .mark.good { background: rgba(155, 214, 158, .18); color: var(--good); }
 /* 行動権（金）と反応権（青）の粒。**尽きた粒は残す**ので、
@@ -975,9 +987,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .debug-log .event.from-rule .event-type { color: var(--violet); }
 .event-type { margin-left: auto; color: #6d7d77; font: 9px/1.4 ui-monospace, monospace; }
 @media (max-width: 380px) {
-  .battle-row { grid-template-columns: 24px 1fr; }
-  .battle-units { gap: 5px; }
-  .unit { flex-basis: 104px; }
+  .battle-row { grid-template-columns: 22px 1fr; }
+  .battle-units { gap: 4px; }
+  .unit { padding: 5px 4px 6px; }
   .unit { padding: 6px; }
   .beat-text { font-size: 12px; }
 }

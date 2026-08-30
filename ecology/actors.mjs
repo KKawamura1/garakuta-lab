@@ -92,6 +92,11 @@ export function actorStat(actor, stat) {
     case "action_points": return actor.actionPoints;
     case "reaction_points": return actor.reactionPoints;
     case "speed": return actor.speed;
+    // R6 §4.4 / §6.7 — PHASE A.
+    case "might": return actor.might ?? 0;
+    case "focus": return actor.focus ?? 0;
+    case "guard": return actor.guard ?? 0;
+    case "block": return actor.block ?? 0;
     default: return 0;
   }
 }

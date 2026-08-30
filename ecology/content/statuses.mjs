@@ -7,7 +7,7 @@
 //
 // ここを触ってよいのは 統合 担当だけ。engine・schema・共通registryは変更しない。
 
-import { renamed } from "./base.mjs";
+import { renamed, scaleFlatAmounts } from "./base.mjs";
 
 export const STATUS_NAMES = {
   exposed: "隙",
@@ -15,3 +15,6 @@ export const STATUS_NAMES = {
 };
 
 export const STATUSES = renamed("statuses", STATUS_NAMES);
+
+// 状態異常の増減も parameter 非依存の flat。隙も集中も、誰が持っても同じだけ動かす。
+for (const definition of Object.values(STATUSES)) scaleFlatAmounts(definition);

@@ -258,14 +258,16 @@ expectRejected(
 
 expectRejected(
   input((battle) => {
+    // PHASE A: 行動枠は 2 → 3（R6 §17.1）。拒否されるのは4つ目から。
     battle.allies[0].tactics = [
       { activeSkillId: "strike", useWhen: [] },
       { activeSkillId: "mend", useWhen: [] },
       { activeSkillId: "bulwark", useWhen: [] },
+      { activeSkillId: "triage", useWhen: [] },
     ];
   }),
   "too_many",
-  "three active tactics",
+  "four active tactics",
 );
 
 expectRejected(
@@ -287,10 +289,11 @@ expectRejected(
 
 expectRejected(
   input((battle) => {
-    battle.allies[0].reactiveSkillIds = ["counter_blow", "guard_step", "scavenge_ap"];
+    // PHASE A: 反応枠も 2 → 3。
+    battle.allies[0].reactiveSkillIds = ["counter_blow", "guard_step", "scavenge_ap", "urging"];
   }),
   "too_many",
-  "three reactive skills",
+  "four reactive skills",
 );
 
 expectRejected(
@@ -307,11 +310,15 @@ expectRejected(
 
 expectRejected(
   input((battle) => {
-    battle.allies = [...battle.allies, { ...battle.allies[0], instanceId: "a_x", position: "rear_right" },
-      { ...battle.allies[0], instanceId: "a_y", position: "front_right" }];
+    // PHASE A: 編成は 4 → 5（R6 §5.4）。6人目から拒否される。
+    battle.allies = [...battle.allies,
+      { ...battle.allies[0], instanceId: "a_x", position: "rear_right" },
+      { ...battle.allies[0], instanceId: "a_y", position: "front_right" },
+      { ...battle.allies[0], instanceId: "a_z", position: "front_center" },
+      { ...battle.allies[0], instanceId: "a_w", position: "rear_center" }];
   }),
   "too_many",
-  "five allies",
+  "six allies",
 );
 
 // ---- useWhen is restricted to the actor's own state (§8) --------------------

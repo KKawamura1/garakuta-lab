@@ -102,7 +102,7 @@ function buildState(input, content, options) {
 
   for (const ally of input.allies) {
     const definition = content.characters[ally.characterId];
-    addActor(state, {
+    addActor(state, withPassiveBonuses(content, {
       instanceId: ally.instanceId,
       side: "ally",
       definitionId: ally.characterId,
@@ -110,11 +110,17 @@ function buildState(input, content, options) {
       maxHp: definition.maxHp,
       hp: ally.hp ?? definition.maxHp,
       speed: definition.speed,
+      might: definition.might,
+      focus: definition.focus,
+      guard: definition.guard,
+      // R6 §6.4 — basic strike の届き方は人物ごと。定義が持たなければ近接。
+      basicStrikeReach: definition.basicStrikeReach ?? "melee",
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
       tactics: ally.tactics.map((tactic) => ({ ...tactic })),
       reactiveSkillIds: [...ally.reactiveSkillIds],
+      passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
       equipment: ally.equipment.map((item) => ({
         instanceId: item.instanceId,
         equipmentId: item.equipmentId,
@@ -122,12 +128,12 @@ function buildState(input, content, options) {
         maxDurability: content.equipment[item.equipmentId].maxDurability,
         broken: item.durability === 0 && options.equipmentBreaks !== false,
       })),
-    });
+    }, ally.passiveSkillIds));
   }
 
   for (const enemy of input.enemies) {
     const definition = content.enemyActors[enemy.enemyActorId];
-    addActor(state, {
+    addActor(state, withPassiveBonuses(content, {
       instanceId: enemy.instanceId,
       side: "enemy",
       definitionId: enemy.enemyActorId,
@@ -135,16 +141,42 @@ function buildState(input, content, options) {
       maxHp: definition.maxHp,
       hp: enemy.hp ?? definition.maxHp,
       speed: definition.speed,
+      might: definition.might,
+      focus: definition.focus,
+      guard: definition.guard,
+      basicStrikeReach: definition.basicStrikeReach ?? "melee",
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: enemy.position,
       tactics: definition.tactics.map((tactic) => ({ ...tactic })),
       reactiveSkillIds: [...definition.reactiveSkillIds],
+      passiveSkillIds: [...(definition.passiveSkillIds ?? [])],
       equipment: [],
-    });
+    }, definition.passiveSkillIds));
   }
 
   return state;
+}
+
+// R6 §6.8 — passive の statBonus を足し込む。**maxHp を先に決めてから hp を決める**
+// （順番を逆にすると、地力を取った回の開始 HP が上限より低くなる）。
+function withPassiveBonuses(content, fields, passiveSkillIds) {
+  const next = { ...fields };
+  // 満タンで入ってきたのかを、上げる前に覚えておく。
+  const startedFull = next.hp >= next.maxHp;
+  for (const id of passiveSkillIds ?? []) {
+    const bonus = content.passiveSkills?.[id]?.statBonus;
+    if (!bonus) continue;
+    if (bonus.max_hp) next.maxHp += bonus.max_hp;
+    if (bonus.might) next.might = (next.might ?? 0) + bonus.might;
+    if (bonus.focus) next.focus = (next.focus ?? 0) + bonus.focus;
+    if (bonus.guard) next.guard = (next.guard ?? 0) + bonus.guard;
+    if (bonus.speed) next.speed += bonus.speed;
+  }
+  // 満タンで来た人は、上限が上がったぶんも満たして始める。
+  // 途中の HP を持ち越している人（Phase B の補給）は、その値のまま。
+  if (startedFull) next.hp = next.maxHp;
+  return next;
 }
 
 function addActor(state, fields) {
@@ -153,6 +185,13 @@ function addActor(state, fields) {
     alive: fields.hp > 0,
     actionPoints: 0,
     reactionPoints: 0,
+    // R6 §4.4 / §6.7 — PHASE A. 定義が持たなければ 0。
+    // **既存 content は持たないので、guard 0 = 軽減なし＝v1 と同じ挙動になる。**
+    might: fields.might ?? 0,
+    focus: fields.focus ?? 0,
+    guard: fields.guard ?? 0,
+    // block charge は戦闘開始時 0。持続は round ではなく「使うまで」。
+    block: 0,
     barriers: [],
     statuses: [],
     preparation: null,
@@ -227,6 +266,19 @@ function ruleEntriesFor(state, actor) {
       owner: actor,
       sourceDefinitionId: skillId,
       ruleSource: "reactive_skill",
+    });
+  }
+  // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
+  // **反応権を払わない**ので、costs は content 側で空にしてある
+  // （validator は rule として同じ検査を通す）。
+  for (const skillId of actor.passiveSkillIds ?? []) {
+    const rule = state.content.passiveSkills?.[skillId]?.rule;
+    if (!rule) continue;
+    entries.push({
+      rule,
+      owner: actor,
+      sourceDefinitionId: skillId,
+      ruleSource: "passive_skill",
     });
   }
   for (const item of actor.equipment) {
@@ -524,7 +576,11 @@ function activateActor(state, actor) {
 
   let actionsTaken = 0;
   while (!state.finished && actor.alive) {
-    const choice = chooseTactic(state, actor);
+    let choice = chooseTactic(state, actor);
+    // R6 §6.4 — 技能未装備、全技能が不発、または有効対象なしなら basic strike。
+    // **一度の起動につき一度だけ。**ここで繰り返すと、行動権を持たない actor が
+    // 回り続ける。
+    if (!choice && actionsTaken === 0) choice = coreActionChoice(state, actor, "basicStrike");
     if (!choice) {
       // §11.3-8 — one action_skipped for an activation that produced nothing.
       // An activation that already acted and then ran out of action points is
@@ -544,7 +600,15 @@ function activateActor(state, actor) {
       break;
     }
     actionsTaken += 1;
+    const mode = choice.skill.actionMode ?? "offense";
     runChain(state, "action", () => performAction(state, actor, choice));
+    // R6 §6.4 — utility の全 rule を解決した後、威力50%の追撃を一度だけ。
+    // **追撃を作る判定は rule effect ではなく、ここ（action resolver）が一度だけ行う。**
+    // だから追撃から別の追撃は生まれない。
+    if (mode === "utility" && actor.alive && !state.finished) {
+      const followUp = coreActionChoice(state, actor, "fallbackStrike");
+      if (followUp) runChain(state, "action", () => performAction(state, actor, followUp));
+    }
   }
 
   finishActivation(state, actor);
@@ -583,6 +647,33 @@ function preparationContext(state, actor) {
     skillId: actor.preparation ? actor.preparation.skillId : undefined,
     equipmentInstanceId: actor.preparation ? actor.preparation.equipmentInstanceId : undefined,
   };
+}
+
+// R6 §6.4 — 攻撃テンポの保証。**支援だけを連打して戦闘が止まらないようにする。**
+// どの技能を使うかは content の coreActions 宣言が決める（engine は個別 ID で
+// 分岐しない）。届き方は人物ごとの basicStrikeReach。
+function coreActionChoice(state, actor, key) {
+  const reach = actor.basicStrikeReach ?? "melee";
+  const skillId = state.content.coreActions?.[key]?.[reach];
+  const skill = skillId ? state.content.activeSkills[skillId] : null;
+  if (!skill) return null;
+  const rt = makeRuntime(state);
+  const ctx = {
+    owner: actor,
+    event: null,
+    pending: null,
+    pendingAction: null,
+    candidate: null,
+    sourceDefinitionId: actor.definitionId,
+    ruleId: undefined,
+    skillId: skill.id,
+    equipmentInstanceId: undefined,
+  };
+  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach });
+  if (targets.length === 0) return null;
+  const costs = [{ type: "spend_action_points", amount: skill.apCost }];
+  if (!canPayCosts(rt, ctx, costs)) return null;
+  return { skill, targets, costs, tactic: { activeSkillId: skill.id, useWhen: [] } };
 }
 
 // §11.4-1..4 — tactics are tried in the listed order and the first one whose

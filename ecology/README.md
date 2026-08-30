@@ -10,7 +10,7 @@
 ## 実行
 
 ~~~sh
-node ecology/check.mjs        # 7本まとめて（exit code を検査する）
+node ecology/check.mjs        # 8本まとめて（exit code を検査する）
 node ecology/schema.test.mjs
 node ecology/engine.test.mjs
 node ecology/termination.test.mjs
@@ -18,6 +18,7 @@ node ecology/extensibility.test.mjs
 node ecology/mine.test.mjs
 node ecology/playable.test.mjs
 node ecology/contract.test.mjs  # content contract の深一致（R7 Milestone 0）
+node ecology/phase-a.test.mjs   # block / guard / 多段 / 範囲 / reach（R6 Phase A）
 ~~~
 
 外部依存なし。Node標準のみ。`analysis/check-all.sh` からも呼ばれる。
@@ -180,6 +181,10 @@ R5 §11.5 は内部実装を委任しているので、ここに書いた順序�
 | `equipment_worn` | equipmentId, before, amount, after | cost |
 | `equipment_broken` | equipmentId | cost |
 | `equipment_repaired` | equipmentId, before, amount, after | — |
+| `block_proposed` | amount | — |
+| `block_gained` | amount, before, after | — |
+| `damage_blocked` | proposed, blockBefore, blockAfter | tags of the blocked damage |
+| `block_spent` | amount, before, after | — |
 | `pending_amount_modified` | operation, before, after, delta, proposalEventId | operation |
 
 イベントに表示用の文章は入れない。事実だけを入れ、表示側が再生する。

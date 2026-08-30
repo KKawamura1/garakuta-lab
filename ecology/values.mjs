@@ -6,6 +6,21 @@
 
 import { actorStat, resolveSubject, statusStacks } from "./actors.mjs";
 
+// R6 §4.4 — round-half-up, done on integers.
+//
+// **商と余りに分けてから比べる。** 素直に書くと
+// `Math.floor((numerator * 2 + denominator) / (denominator * 2))` だが、
+// 分子を2倍した時点で 2^53 を越えて丸めがぶれる（phase-a.test.mjs が実測した）。
+// 余りだけを2倍すれば、余りは必ず分母より小さいので桁が落ちない。
+// 負値はこの式では現れない（amount も stat も非負）。
+export function roundHalfUpDiv(numerator, denominator) {
+  const quotient = Math.floor(numerator / denominator);
+  const remainder = numerator - quotient * denominator;
+  return remainder * 2 >= denominator ? quotient + 1 : quotient;
+}
+
+export const BPS = 10_000;
+
 export function evaluateValue(state, ctx, valueDef) {
   const numerator = valueDef.numerator ?? 1;
   const denominator = valueDef.denominator ?? 1;
@@ -23,6 +38,15 @@ export function evaluateValue(state, ctx, valueDef) {
     case "actor_stat_scaled": {
       const actor = resolveSubject(state, ctx, valueDef.subject);
       base = actor ? actorStat(actor, valueDef.stat) : 0;
+      break;
+    }
+    // R6 §4.4 — flat + roundHalfUp(stat * coefficientBps / 10_000)。
+    // basic strike は might 100%、technique は focus。
+    case "stat_scaled": {
+      const actor = resolveSubject(state, ctx, valueDef.subject);
+      const stat = actor ? actorStat(actor, valueDef.scalingStat) : 0;
+      const coefficientBps = valueDef.coefficientBps ?? 0;
+      base = (valueDef.flat ?? 0) + roundHalfUpDiv(stat * coefficientBps, BPS);
       break;
     }
     case "status_stacks_scaled": {

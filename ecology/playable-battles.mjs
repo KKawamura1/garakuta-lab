@@ -1,4 +1,4 @@
-import { BATTLE_SCHEMA_VERSION, POSITIONS } from "./schema.mjs";
+import { BATTLE_SCHEMA_VERSION, POSITIONS, POSITION_ROW } from "./schema.mjs";
 import {
   ACTIVE_META,
   CHARACTER_DEFINITIONS,
@@ -7,11 +7,77 @@ import {
   ENEMY_TARGETING,
   EQUIPMENT_META,
   PLAYABLE_CONTENT,
+  PASSIVE_META,
   REACTIVE_META,
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
 
 export const RUN_SEED = "frontier-1801";
+
+// R6 §5.4 — 5人編成、2×3、空きは必ず一枠。
+export const PARTY_SIZE = 5;
+export const ROW_CAPACITY = 3;
+
+// 有効な隊列は**前3後2 か 前2後3 だけ**。前1後4 と前4後1 は作れない。
+// 前3は single melee を分散しやすいが front-row attack が3人へ当たる。
+// 前2は後列を3人置けるが、前列一人あたりの被弾が増える。**そこが選択になる。**
+export function isValidRowSplit(frontCount, partySize = PARTY_SIZE) {
+  return frontCount >= partySize - ROW_CAPACITY && frontCount <= ROW_CAPACITY;
+}
+
+// 隊列を必ず有効な形へ落とす。**置き場所の規則はここ一箇所にしかない**
+// （画面側にもう一つ持つと、いつか片方だけが直る）。
+export function normalizeFormation(formation, rosterIds) {
+  const members = (rosterIds ?? []).filter((id) => characterById[id]).slice(0, PARTY_SIZE);
+  const next = {};
+  const used = new Set();
+
+  // 1. 希望どおりに置けるものを置く（既存の save はここで全部決まる）。
+  for (const id of members) {
+    const requested = formation?.[id];
+    if (POSITIONS.includes(requested) && !used.has(requested)) {
+      next[id] = requested;
+      used.add(requested);
+    }
+  }
+  // 2. 残りは既定位置を優先し、埋まっていれば空きの先頭へ。
+  for (const id of members) {
+    if (next[id]) continue;
+    const preferred = characterById[id]?.defaultPosition;
+    const slot = POSITIONS.includes(preferred) && !used.has(preferred)
+      ? preferred
+      : POSITIONS.find((candidate) => !used.has(candidate));
+    if (!slot) break;
+    next[id] = slot;
+    used.add(slot);
+  }
+  // 3. 行の偏りを直す。**ここが無いと、旧 save から前4後1 が生まれる。**
+  const rowMembers = (row) => members.filter((id) => next[id] && POSITION_ROW[next[id]] === row);
+  const freeIn = (row) => POSITIONS.filter((p) => POSITION_ROW[p] === row && !used.has(p));
+  for (let guard = 0; guard <= PARTY_SIZE; guard += 1) {
+    const front = rowMembers("front");
+    if (isValidRowSplit(front.length, members.length)) break;
+    const from = front.length > ROW_CAPACITY ? "front" : "rear";
+    const movers = rowMembers(from);
+    const mover = movers[movers.length - 1];
+    const slot = freeIn(from === "front" ? "rear" : "front")[0];
+    if (!mover || !slot) break;
+    used.delete(next[mover]);
+    next[mover] = slot;
+    used.add(slot);
+  }
+  return next;
+}
+
+// 旧 save は4人。**5人目を決定的に足す**（並び順の先頭から、まだ居ない人）。
+export function ensurePartySize(rosterIds) {
+  const roster = (rosterIds ?? []).filter((id) => characterById[id]).slice(0, PARTY_SIZE);
+  for (const option of CHARACTER_OPTIONS) {
+    if (roster.length >= PARTY_SIZE) break;
+    if (!roster.includes(option.id)) roster.push(option.id);
+  }
+  return roster;
+}
 
 const clone = (value) => structuredClone(value);
 
@@ -44,11 +110,13 @@ function metadata(source, kind) {
 export const SKILLS = Object.freeze({
   active: Object.freeze(metadata(ACTIVE_META, "active")),
   reactive: Object.freeze(metadata(REACTIVE_META, "reactive")),
+  passive: Object.freeze(metadata(PASSIVE_META, "passive")),
 });
 export const EQUIPMENT = Object.freeze(metadata(EQUIPMENT_META, "equipment"));
 export const COMPONENTS = Object.freeze({
   ...SKILLS.active,
   ...SKILLS.reactive,
+  ...SKILLS.passive,
   ...EQUIPMENT,
 });
 export const COMPONENT_ORDER = Object.freeze(Object.keys(COMPONENTS));
@@ -84,26 +152,38 @@ export function initialUnlockedSkills(characterId) {
   ])];
 }
 
+// R6 §17.1 — PHASE A. 行動3・反応3・常設2。
+export const SLOT_LIMITS = Object.freeze({ active: 3, reactive: 3, passive: 2, equipment: 2 });
+const LOADOUT_KEYS = Object.freeze({ active: "tactics", reactive: "reactives", passive: "passives" });
+
 export function freshLoadout(rosterIds) {
   const tactics = {};
   const reactives = {};
+  const passives = {};
   const equipment = {};
   for (const characterId of rosterIds) {
     const option = characterById[characterId];
     if (!option) continue;
     tactics[characterId] = [...option.starterTactics];
     reactives[characterId] = [...option.starterReactives];
+    // **常設は空から始める。**基礎訓練は詰み防止であって、既定の答えではない
+    // （最初から入れておくと「他に欲しいものが無かった」の信号が消える）。
+    passives[characterId] = [];
     equipment[characterId] = [];
   }
-  return { tactics, reactives, equipment };
+  return { tactics, reactives, passives, equipment };
 }
 
 function normalizeLoadout(loadout, rosterIds) {
   const next = clone(loadout ?? freshLoadout(rosterIds));
+  // 旧 save には passives が無い。**足りない鍵はここで生やす**
+  // （呼び出し側それぞれで面倒を見ると、いつか一箇所が忘れる）。
+  next.passives = next.passives ?? {};
   for (const characterId of rosterIds) {
-    next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])].slice(0, 2);
-    next.reactives[characterId] = [...new Set(next.reactives?.[characterId] ?? [])].slice(0, 2);
-    next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, 2);
+    next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])].slice(0, SLOT_LIMITS.active);
+    next.reactives[characterId] = [...new Set(next.reactives?.[characterId] ?? [])].slice(0, SLOT_LIMITS.reactive);
+    next.passives[characterId] = [...new Set(next.passives?.[characterId] ?? [])].slice(0, SLOT_LIMITS.passive);
+    next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, SLOT_LIMITS.equipment);
   }
   return next;
 }
@@ -114,19 +194,24 @@ export function equipSkill(loadout, characterId, skillId, kind) {
     return { ok: false, reason: "技能か仲間が見つかりません。" };
   }
   const next = normalizeLoadout(loadout, [characterId]);
-  const listKey = kind === "active" ? "tactics" : "reactives";
+  const listKey = LOADOUT_KEYS[kind];
+  if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
   if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
-  if (list.length >= 2) return { ok: false, reason: "その枠は埋まっています。先に技能を外してください。" };
+  if (list.length >= SLOT_LIMITS[kind]) return { ok: false, reason: "その枠は埋まっています。先に技能を外してください。" };
   next[listKey][characterId] = [skillId, ...list];
   return { ok: true, loadout: next };
 }
 
 export function removeSkill(loadout, characterId, skillId, kind) {
   const next = normalizeLoadout(loadout, [characterId]);
-  const listKey = kind === "active" ? "tactics" : "reactives";
+  const listKey = LOADOUT_KEYS[kind];
+  if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
-  if (list.length <= 1) return { ok: false, reason: "各仲間には最低1つの技能を残してください。" };
+  // 常設は0個でよい（基礎訓練は詰み防止で、必須ではない）。
+  // 行動と反応は最低1つ残す。全部外すと、その仲間が何もしなくなる。
+  const floor = kind === "passive" ? 0 : 1;
+  if (list.length <= floor) return { ok: false, reason: "各仲間には最低1つの技能を残してください。" };
   next[listKey][characterId] = list.filter((id) => id !== skillId);
   return { ok: true, loadout: next };
 }
@@ -249,22 +334,20 @@ function usableTactics(ids) {
 
 export function makeBattle(
   stage,
-  rosterIds = ["warden", "mender", "lancer", "scout"],
+  rosterIds = ["warden", "mender", "lancer", "scout", "guardian"],
   loadout = freshLoadout(rosterIds),
   seed = RUN_SEED,
   formation = {},
   persistent = {},
 ) {
   const encounter = encounterInfo(stage);
-  const selected = rosterIds.filter((characterId) => characterById[characterId]).slice(0, 4);
-  const usedPositions = new Set();
-  const allies = selected.map((characterId, index) => {
+  const selected = rosterIds.filter((characterId) => characterById[characterId]).slice(0, PARTY_SIZE);
+  // **置き場所の規則は normalizeFormation にしかない。**ここで別に決めると、
+  // 画面が見せている隊列と戦闘に入る隊列がずれる。
+  const placed = normalizeFormation(formation, selected);
+  const allies = selected.map((characterId) => {
     const option = characterById[characterId];
-    let position = formation[characterId] ?? option.defaultPosition;
-    if (!POSITIONS.includes(position) || usedPositions.has(position)) {
-      position = POSITIONS.find((candidate) => !usedPositions.has(candidate)) ?? POSITIONS[index];
-    }
-    usedPositions.add(position);
+    const position = placed[characterId] ?? option.defaultPosition;
     const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
     const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
     const ally = {
@@ -272,7 +355,9 @@ export function makeBattle(
       characterId,
       position,
       tactics: usableTactics(tactics),
-      reactiveSkillIds: reactives.filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]).slice(0, 2),
+      reactiveSkillIds: reactives.filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]).slice(0, SLOT_LIMITS.reactive),
+      passiveSkillIds: (loadout.passives?.[characterId] ?? [])
+        .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]).slice(0, SLOT_LIMITS.passive),
       equipment: equipmentInput(characterId, loadout.equipment?.[characterId] ?? [], persistent.equipmentDurability ?? {}),
     };
     const hp = persistent.hp?.[characterId];

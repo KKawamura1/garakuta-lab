@@ -7,6 +7,11 @@
 // ここを触ってよいのは 統合 担当だけ。engine・schema・共通registryは変更しない。
 
 const activeMeta = {
+  // R6 §17.1 — Phase A の攻撃 archetype。**説明に「何に強くて何に弱いか」を書く。**
+  rapid_cuts: ["刻み斬り", "3回に分けて刻む。合計は大きいが、受けの硬い相手には通りにくい。", "攻撃"],
+  pierce_thrust: ["貫き突き", "威力は控えめだが、相手の受けを6割無視する。硬い相手向け。", "攻撃"],
+  row_sweep: ["薙ぎ払い", "狙った相手と同じ行を薙ぐ。前列に3人並ぶ相手ほど効く。", "攻撃"],
+  column_thrust: ["突き通し", "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。", "攻撃"],
   strike: ["斬撃", "最も弱った敵へ4ダメージ。", "攻撃"],
   mend: ["手当て", "最も傷ついた味方を5回復。", "支援"],
   bulwark: ["防壁形成", "自分にラウンド防壁3。", "守り"],
@@ -61,6 +66,19 @@ export const ACTIVE_META = activeMeta;
 export const REACTIVE_META = reactiveMeta;
 export const EQUIPMENT_META = equipmentMeta;
 
+// R6 §6.8 — 常設 fallback passive の表示文。**基礎訓練は系統に属さない。**
+// どの人物も、いつでも、前提なしで取れる（詰み防止だから）。
+const passiveMeta = {
+  foundation_vitality: ["地力", "最大HPが50増える。", "基礎"],
+  foundation_might: ["膂力", "腕力が2増える。武器技能の量が上がる。", "基礎"],
+  foundation_focus: ["集中力", "術力が2増える。技術・治療・防壁の量が上がる。", "基礎"],
+  foundation_guard: ["受け", "受けが1増える。一撃ごとの被害を減らす。", "基礎"],
+  foundation_speed: ["速さ", "速度が1増える。行動順が早くなる。", "基礎"],
+  foundation_ap: ["出足", "戦闘開始時に一度だけ行動権+1。毎ラウンドではない。", "基礎"],
+  foundation_rp: ["備え", "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。", "基礎"],
+};
+export const PASSIVE_META = passiveMeta;
+
 export const SKILL_TREE_NODES = Object.freeze([
   { id: "node_strike", skillId: "strike", kind: "active", branch: "攻撃", tier: 0, cost: 0, requires: [] },
   { id: "node_heavy", skillId: "heavy_swing", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
@@ -86,4 +104,17 @@ export const SKILL_TREE_NODES = Object.freeze([
   { id: "node_urging", skillId: "urging", kind: "reactive", branch: "支援", tier: 0, cost: 1, requires: ["mend"] },
   { id: "node_prep_spiral", skillId: "prep_spiral", kind: "reactive", branch: "支援", tier: 1, cost: 2, requires: ["urging"] },
   { id: "node_ap_loop", skillId: "ap_loop", kind: "reactive", branch: "指揮", tier: 1, cost: 2, requires: ["scavenge_ap"] },
+  // R6 §17.1 — Phase A の攻撃 archetype。攻撃系統の T1/T2 へ置く。
+  { id: "node_rapid", skillId: "rapid_cuts", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_pierce", skillId: "pierce_thrust", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_row", skillId: "row_sweep", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["rapid_cuts"] },
+  { id: "node_column", skillId: "column_thrust", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["pierce_thrust"] },
+  // R6 §6.8 — 基礎訓練。**前提を持たない**ので、どの人物もいつでも取れる。
+  { id: "node_found_vitality", skillId: "foundation_vitality", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
+  { id: "node_found_might", skillId: "foundation_might", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
+  { id: "node_found_focus", skillId: "foundation_focus", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
+  { id: "node_found_guard", skillId: "foundation_guard", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
+  { id: "node_found_speed", skillId: "foundation_speed", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
+  { id: "node_found_ap", skillId: "foundation_ap", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
+  { id: "node_found_rp", skillId: "foundation_rp", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
 ]);

@@ -9,24 +9,45 @@
 
 const freeze = (value) => Object.freeze(value);
 
-export const CONTENT_SCHEMA_VERSION = "ecology-content-1";
-export const BATTLE_SCHEMA_VERSION = "ecology-battle-1";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-2";
+export const BATTLE_SCHEMA_VERSION = "ecology-battle-2";
 export const RESULT_SCHEMA_VERSION = "ecology-result-1";
 export const MINING_VERSION = "ecology-mining-1";
 
-// §5.4 — the four v1 positions. The listed order is also the deterministic
-// tie-break order, so nothing else may sort positions.
-export const POSITIONS = freeze(["front_left", "front_right", "rear_left", "rear_right"]);
+// R6 §5.4 — the six positions of the 2x3 field. The listed order is also the
+// deterministic tie-break order, so nothing else may sort positions.
+//
+// PHASE A: this grew from four to six. **The two v1 rows kept their relative
+// order** (front_left < front_right < rear_left < rear_right), so every existing
+// position_asc sort resolves exactly as before; only the indices shifted, and no
+// index is persisted anywhere — save, D1 and content all store the string id.
+export const POSITIONS = freeze([
+  "front_left", "front_center", "front_right",
+  "rear_left", "rear_center", "rear_right",
+]);
 export const POSITION_ORDER = freeze(
   Object.fromEntries(POSITIONS.map((position, index) => [position, index])),
 );
 export const POSITION_ROW = freeze({
   front_left: "front",
+  front_center: "front",
   front_right: "front",
   rear_left: "rear",
+  rear_center: "rear",
   rear_right: "rear",
 });
+// R6 §5.4 — column attacks hit the same column front and rear, so the column of
+// a position is vocabulary, not something a caller may derive from the id text.
+export const POSITION_COLUMN = freeze({
+  front_left: "left",
+  front_center: "center",
+  front_right: "right",
+  rear_left: "left",
+  rear_center: "center",
+  rear_right: "right",
+});
 export const ROWS = freeze(["front", "rear"]);
+export const COLUMNS = freeze(["left", "center", "right"]);
 
 export const SIDES = freeze(["ally", "enemy"]);
 
@@ -76,6 +97,12 @@ export const EVENT_TYPES = freeze([
   "equipment_worn",
   "equipment_broken",
   "equipment_repaired",
+  // R6 §6.7 — block. A charge stops one whole damage instance and is spent.
+  // PHASE A: added with the mechanic, not reserved ahead of it.
+  "block_proposed",
+  "block_gained",
+  "damage_blocked",
+  "block_spent",
   // Emitted when an interrupt rule changes a pending damage, healing or barrier
   // amount. It is a record, not a hook: nothing may listen to it (see below).
   "pending_amount_modified",
@@ -235,7 +262,23 @@ export const EFFECT_TYPES = freeze([
   "modify_pending_amount",
   "redirect_pending_target",
   "cancel_pending_action",
+  // R6 §6.7 — PHASE A. Block charges are a small integer, not a pool of points.
+  "gain_block",
 ]);
+
+// R6 §5.4 / §6.7 — PHASE A. How a damage effect spreads and how far it reaches.
+// Absent means single / unrestricted, which is exactly v1 behaviour.
+// PHASE A implements three of R6's five. splash and all arrive with their
+// implementation in a later phase; listing them here now would let content
+// reference a pattern the engine silently treats as single.
+export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
+
+// R6 §6.4 — PHASE A. active 技能の静的な種別。攻撃テンポの保証がこれで決まる。
+//   offense … 使えると判定されたら、生存敵へ direct damage を必ず作る
+//   utility … 解決後に、同じ actor が威力50%の追撃を一度だけ行う
+//   channel … 追撃を行わない明示的例外。溜めること自体が代償のもの
+export const ACTION_MODES = freeze(["offense", "utility", "channel"]);
+export const REACHES = freeze(["melee", "ranged", "unrestricted"]);
 
 // §11.4 — usable only from interrupt-timing rules.
 export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
@@ -261,6 +304,10 @@ export const VALUE_TYPES = freeze([
   "event_value_scaled",
   "actor_stat_scaled",
   "status_stacks_scaled",
+  // R6 §4.4 — PHASE A. flat + roundHalfUp(stat * coefficientBps / 10_000).
+  // Kept separate from actor_stat_scaled because that one floors and has no
+  // flat term; changing it would move every existing fixture amount.
+  "stat_scaled",
 ]);
 export const ACTOR_STATS = freeze([
   "max_hp",
@@ -269,7 +316,26 @@ export const ACTOR_STATS = freeze([
   "action_points",
   "reaction_points",
   "speed",
+  // R6 §4.4 — PHASE A. might drives weapon damage, focus drives technique
+  // damage, healing and barrier, guard is flat per-hit reduction of direct
+  // damage. Every actor carries all three, so a support role still has an
+  // attack axis and a weapon role still has support scaling.
+  "might",
+  "focus",
+  "guard",
+  "block",
 ]);
+
+// R6 §4.4 — the stats an amount may scale from. Deliberately narrower than
+// ACTOR_STATS: scaling off current_hp or barrier makes an amount that swings
+// mid-chain, which the causal log cannot explain.
+export const SCALING_STATS = freeze(["might", "focus", "max_hp"]);
+
+// R6 §6.8 — PHASE A. passive が定数で押し上げてよい stat。
+// **行動回数（AP/RP）はここに無い。**毎 round の行動回数を恒常的に増やす効果は、
+// 多くの面白い skill より強くなりやすい（R6 §6.8）。開始時1回だけなら
+// gain_resource の rule で書けるので、語彙を増やさずに済む。
+export const PASSIVE_STAT_BONUSES = freeze(["max_hp", "might", "focus", "guard", "speed"]);
 
 export const DURATIONS = freeze(["turn", "round", "battle"]);
 export const BARRIER_DURATIONS = freeze(["round", "battle"]);
@@ -292,14 +358,18 @@ export const BATTLE_REASONS = freeze([
 
 // §5.3, §5.5, §5.7 — structural limits that content may not exceed.
 export const LIMITS = freeze({
-  maxAlliesInCampaign: 4,
-  maxAlliesInBattle: 4,
+  // R6 §5.4 — PHASE A. 5人編成、2×3、敵も最大5。
+  maxAlliesInCampaign: 5,
+  maxAlliesInBattle: 5,
   minAlliesInBattle: 1,
-  maxEnemiesInBattle: 4,
+  maxEnemiesInBattle: 5,
   minEnemiesInBattle: 1,
-  maxTactics: 2,
+  // R6 §17.1 — PHASE A. 基本 3 active / 3 reactive / 2 passive。
+  // 人物別の最大 4/4/2 は Phase B（第4枠の購入）で開く。
+  maxTactics: 3,
   maxUseWhen: 2,
-  maxReactiveSkills: 2,
+  maxReactiveSkills: 3,
+  maxPassiveSkills: 2,
   maxEquipment: 2,
   minPreparationSteps: 1,
   maxPreparationSteps: 3,

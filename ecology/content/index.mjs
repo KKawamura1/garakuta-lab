@@ -10,13 +10,14 @@ import { FIXTURE_CONTENT } from "../fixture-content.mjs";
 import { CHARACTERS, CHARACTER_NAMES } from "./characters.mjs";
 import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES } from "./skills-active.mjs";
 import { REACTIVE_SKILLS, REACTIVE_SKILL_NAMES } from "./skills-reactive.mjs";
+import { PASSIVE_SKILLS } from "./skills-passive.mjs";
 import { FIXED_EQUIPMENT, EQUIPMENT_NAMES } from "./equipment-fixed.mjs";
 import { STATUSES, STATUS_NAMES } from "./statuses.mjs";
 import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-1";
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-2";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -40,13 +41,22 @@ export const NAMED_SECTIONS = Object.freeze([
 
 export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
-  contentVersion: "ecology-playable-full-0.2",
+  // Phase A で戦闘量と人物 parameter が変わった。**記録を分けるために上げる**
+  // （0.2 の遠征と 0.3 の遠征は別のゲームで、同じ入れ物に混ぜられない）。
+  contentVersion: "ecology-playable-full-0.3",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
+  passiveSkills: PASSIVE_SKILLS,
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
   enemyActors: ENEMY_ACTORS,
+  // R6 §6.4 — 攻撃テンポの保証に使う行動を、content が名指しする。
+  // **engine は個別 ID で分岐せず、この宣言を読むだけ。**
+  coreActions: Object.freeze({
+    basicStrike: Object.freeze({ melee: "basic_strike_melee", ranged: "basic_strike_ranged" }),
+    fallbackStrike: Object.freeze({ melee: "fallback_strike_melee", ranged: "fallback_strike_ranged" }),
+  }),
 });
 
 export const DISPLAY_NAMES = Object.freeze(
@@ -70,5 +80,5 @@ export const SECTION_NAMES = Object.freeze({
 });
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
-export { ACTIVE_META, REACTIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
+export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
 export { ENCOUNTERS, ENEMY_TARGETING } from "./encounters.mjs";

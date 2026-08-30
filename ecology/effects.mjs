@@ -9,15 +9,18 @@
 // emit(spec, pendingFrame) records the event and, when a pending frame is given,
 // runs the interrupt window for it before returning.
 
+import { POSITION_COLUMN, POSITION_ROW } from "./schema.mjs";
 import {
+  actorsOnSide,
   bumpHistory,
+  compareActorsDefault,
   getActor,
   positionIndex,
   statusStacks,
   totalBarrier,
 } from "./actors.mjs";
 import { resolveTargets } from "./selectors.mjs";
-import { evaluateValue } from "./values.mjs";
+import { BPS, evaluateValue, roundHalfUpDiv } from "./values.mjs";
 
 const DURATION_RANK = { round: 0, battle: 1 };
 
@@ -31,8 +34,8 @@ function sourceFields(ctx) {
   };
 }
 
-function selectTargets(rt, ctx, query) {
-  const targets = resolveTargets(rt.state, ctx, query);
+function selectTargets(rt, ctx, query, options) {
+  const targets = resolveTargets(rt.state, ctx, query, options);
   rt.state.chain.lastResolvedTargets = targets.map((actor) => actor.instanceId);
   return targets;
 }
@@ -135,6 +138,7 @@ export function applyEffect(rt, ctx, effect) {
     case "deal_damage": return dealDamage(rt, ctx, effect);
     case "heal": return applyHealing(rt, ctx, effect);
     case "gain_barrier": return gainBarrier(rt, ctx, effect);
+    case "gain_block": return gainBlock(rt, ctx, effect);
     case "gain_resource": return gainResource(rt, ctx, effect);
     case "add_status": return addStatus(rt, ctx, effect);
     case "remove_status": return removeStatus(rt, ctx, effect);
@@ -153,64 +157,176 @@ export function applyEffect(rt, ctx, effect) {
   }
 }
 
-// §12.1 — damage.
-function dealDamage(rt, ctx, effect) {
+// R6 §6.7 — block charge を与える。**次の damage instance を丸ごと止める。**
+// barrier が「総量を受ける」のに対し、block は「回数を止める」ので、
+// 単発大威力に強く、多段に弱い。同じ防御でも問われるものが違う。
+function gainBlock(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
     const proposed = evaluateValue(rt.state, ctx, effect.amount);
-    const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
-    const event = rt.emit(
-      {
-        type: "damage_proposed",
-        ...sourceFields(ctx),
-        targetActorIds: [target.instanceId],
-        tags: effect.tags ?? [],
-        values: { amount: proposed },
+    if (proposed <= 0) continue;
+    const event = rt.emit({
+      type: "block_proposed",
+      ...sourceFields(ctx),
+      targetActorIds: [target.instanceId],
+      tags: effect.tags ?? [],
+      values: { amount: proposed },
+    });
+    const before = target.block ?? 0;
+    target.block = before + proposed;
+    rt.emit({
+      type: "block_gained",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [target.instanceId],
+      tags: effect.tags ?? [],
+      values: { amount: proposed, before, after: target.block },
+    });
+  }
+}
+
+// §12.1 / R6 §6.7 — damage.
+//
+// **一 damage instance の順は block → guard → barrier → HP。**
+// R6 §6.7 が固定した順で、途中で変えると同じ構成が別の結果になる。
+//
+//   1. 対象列は action 開始時に一度だけ確定し、position 順に並べる
+//   2. hitIndex を外側、対象順を内側にする
+//   3. 一 instance ごとに damage_proposed → block → guard → barrier →
+//      damage_taken / damage_blocked を完了する
+//   4. その instance の after reaction を処理してから次の対象へ進む
+//   5. 途中で倒れた対象への残り hit は**失われる。別対象へ自動 retarget しない**
+function dealDamage(rt, ctx, effect) {
+  const hitCount = effect.hitCount ?? 1;
+  // 1. 一度だけ確定する。hit の途中で対象が変わらないのが multi-hit の前提。
+  const targetIds = expandPattern(rt, ctx, effect).map((actor) => actor.instanceId);
+  for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
+    for (const instanceId of targetIds) {
+      const target = getActor(rt.state, instanceId);
+      // 5. 倒れていたらこの hit は失われる。別の相手へ回さない。
+      if (!target || !target.alive) continue;
+      dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount);
+    }
+  }
+}
+
+// R6 §5.4 — targetPattern は「最初に選ばれた相手」から広げる。
+// row は同じ行、column は同じ列の前後。空き枠は actor ではないので数に入らない。
+function expandPattern(rt, ctx, effect) {
+  const primary = selectTargets(rt, ctx, effect.target, { reach: effect.reach });
+  const pattern = effect.targetPattern ?? "single";
+  if (pattern === "single" || primary.length === 0) return primary;
+  const anchor = primary[0];
+  const pool = actorsOnSide(rt.state, anchor.side).filter((actor) => actor.alive);
+  const spread = pattern === "row"
+    ? pool.filter((actor) => POSITION_ROW[actor.position] === POSITION_ROW[anchor.position])
+    : pool.filter((actor) => POSITION_COLUMN[actor.position] === POSITION_COLUMN[anchor.position]);
+  const chosen = spread.length > 0 ? spread : primary;
+  const ordered = [...chosen].sort(compareActorsDefault);
+  rt.state.chain.lastResolvedTargets = ordered.map((actor) => actor.instanceId);
+  return ordered;
+}
+
+// R6 §4.4 — direct damage の軽減。**最低10%は通す。**
+// guard は hit ごとに引くので、同じ総係数なら多段は guard に弱く、単発大威力は強い。
+function afterGuard(rawAmount, target, guardPierceBps) {
+  const effectiveGuard = roundHalfUpDiv(
+    (target.guard ?? 0) * (BPS - (guardPierceBps ?? 0)),
+    BPS,
+  );
+  const floor = roundHalfUpDiv(rawAmount * 1_000, BPS);
+  return Math.max(floor, rawAmount - effectiveGuard);
+}
+
+function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
+  const proposed = evaluateValue(rt.state, ctx, effect.amount);
+  const tags = effect.tags ?? [];
+  const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
+  const event = rt.emit(
+    {
+      type: "damage_proposed",
+      ...sourceFields(ctx),
+      targetActorIds: [target.instanceId],
+      tags,
+      values: { amount: proposed, hitIndex, hitCount },
+    },
+    frame,
+  );
+  const finalTarget = getActor(rt.state, frame.targetActorIds[0]);
+  if (!finalTarget || !finalTarget.alive) return;
+  const amount = frame.amount;
+
+  // block — 一 charge で instance を丸ごと止める。
+  // **多段は charge を1つずつ剥がすので、単発より通しやすい。**
+  if ((finalTarget.block ?? 0) > 0) {
+    const before = finalTarget.block;
+    finalTarget.block = before - 1;
+    rt.emit({
+      type: "damage_blocked",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags,
+      values: { proposed: amount, blockBefore: before, blockAfter: finalTarget.block, hitIndex },
+    });
+    rt.emit({
+      type: "block_spent",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags: [],
+      values: { amount: 1, before, after: finalTarget.block },
+    });
+    return;
+  }
+
+  // guard — hit ごとの固定軽減。heal と barrier には掛からない。
+  const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps);
+
+  // barrier — 位置は v1 から動かしていないので、barrier だけを使う定義は挙動不変。
+  const absorbed = absorbBarrier(rt, ctx, finalTarget, guarded, []);
+  const remaining = guarded - absorbed;
+  const hpBefore = finalTarget.hp;
+  const hpDamage = Math.min(hpBefore, remaining);
+  if (hpDamage > 0) {
+    finalTarget.hp = hpBefore - hpDamage;
+    bumpHistory(finalTarget, "damage_taken", hpDamage);
+    if (ctx.owner) bumpHistory(ctx.owner, "damage_dealt", hpDamage);
+    rt.emit({
+      type: "damage_taken",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags,
+      values: {
+        amount: hpDamage,
+        hpBefore,
+        hpAfter: finalTarget.hp,
+        proposed: amount,
+        // 因果ログに「適用前・軽減後・吸収」を残す（R6 §4.4）。
+        afterGuard: guarded,
+        guardApplied: amount - guarded,
+        barrierAbsorbed: absorbed,
+        hitIndex,
+        hitCount,
       },
-      frame,
-    );
-    const finalTarget = getActor(rt.state, frame.targetActorIds[0]);
-    if (!finalTarget || !finalTarget.alive) continue;
-    const amount = frame.amount;
-    const absorbed = absorbBarrier(rt, ctx, finalTarget, amount, []);
-    const remaining = amount - absorbed;
-    const hpBefore = finalTarget.hp;
-    const hpDamage = Math.min(hpBefore, remaining);
-    if (hpDamage > 0) {
-      finalTarget.hp = hpBefore - hpDamage;
-      bumpHistory(finalTarget, "damage_taken", hpDamage);
-      if (ctx.owner) bumpHistory(ctx.owner, "damage_dealt", hpDamage);
-      rt.emit({
-        type: "damage_taken",
-        ...sourceFields(ctx),
-        parentEventId: event.id,
-        targetActorIds: [finalTarget.instanceId],
-        tags: effect.tags ?? [],
-        values: {
-          amount: hpDamage,
-          hpBefore,
-          hpAfter: finalTarget.hp,
-          proposed: amount,
-          barrierAbsorbed: absorbed,
-        },
-      });
-    }
-    if (finalTarget.hp === 0 && finalTarget.alive) {
-      defeatActor(rt, ctx, finalTarget, event.id);
-    }
-    // §12.1 — max(0, proposedAfterInterrupt - barrierAbsorbed - hpBefore)
-    const excess = Math.max(0, amount - absorbed - hpBefore);
-    if (excess > 0) {
-      if (ctx.owner) bumpHistory(ctx.owner, "excess_damage", excess);
-      rt.emit({
-        type: "excess_damage",
-        ...sourceFields(ctx),
-        parentEventId: event.id,
-        targetActorIds: [finalTarget.instanceId],
-        tags: effect.tags ?? [],
-        values: { amount: excess, proposed: amount, barrierAbsorbed: absorbed, hpBefore },
-      });
-    }
+    });
+  }
+  if (finalTarget.hp === 0 && finalTarget.alive) {
+    defeatActor(rt, ctx, finalTarget, event.id);
+  }
+  // §12.1 — max(0, guarded - barrierAbsorbed - hpBefore)
+  const excess = Math.max(0, guarded - absorbed - hpBefore);
+  if (excess > 0) {
+    if (ctx.owner) bumpHistory(ctx.owner, "excess_damage", excess);
+    rt.emit({
+      type: "excess_damage",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags,
+      values: { amount: excess, proposed: amount, afterGuard: guarded, barrierAbsorbed: absorbed, hpBefore },
+    });
   }
 }
 

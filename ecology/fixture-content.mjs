@@ -969,6 +969,9 @@ export const FIXTURE_CONTENT = deepFreeze({
   characters,
   activeSkills,
   reactiveSkills,
+  // PHASE A: fixture は passive を使わないが、節そのものは必ず在る
+  // （空の節と、節が無いことは別。validator は後者を拒否する）。
+  passiveSkills: {},
   equipment,
   statuses,
   enemyActors,

@@ -20,29 +20,37 @@ import {
   removeSkill,
   reorderTactic,
   rewardOffer,
+  PARTY_SIZE,
+  SLOT_LIMITS,
+  ensurePartySize,
+  normalizeFormation,
 } from "./playable-battles.mjs";
 import { POSITIONS } from "./schema.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 Full prototype 0.3";
+const VERSION = "EXP-18 Phase A 0.4";
 const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
   front_left: "前列左",
+  front_center: "前列中",
   front_right: "前列右",
   rear_left: "後列左",
+  rear_center: "後列中",
   rear_right: "後列右",
 };
 const positionRows = {
   front_left: "前列",
+  front_center: "前列",
   front_right: "前列",
   rear_left: "後列",
+  rear_center: "後列",
   rear_right: "後列",
 };
-const kindLabels = { active: "行動", reactive: "反応", equipment: "装備" };
-const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇" };
+const kindLabels = { active: "行動", reactive: "反応", passive: "常設", equipment: "装備" };
+const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇", "基礎": "▣" };
 // デバッグログに残すイベント。**盤面で畳んだものもここには残る**ので、
 // 「なぜそうなったか」を文字で追える。engine が出さない型は入れない
 // （reaction_fired / rule_triggered は R5 には無い。ルール由来かは event.ruleId で分かる）。
@@ -182,24 +190,13 @@ function defaultFormation(roster) {
   return normalizeFormation(formation, roster);
 }
 
-function normalizeFormation(formation, roster) {
-  const next = {};
-  const used = new Set();
-  for (const id of roster) {
-    const requested = formation?.[id];
-    const position = POSITIONS.includes(requested) && !used.has(requested)
-      ? requested
-      : POSITIONS.find((candidate) => !used.has(candidate));
-    if (position) {
-      next[id] = position;
-      used.add(position);
-    }
-  }
-  return next;
+function partyLabel() {
+  return state.roster.length + " / " + PARTY_SIZE + "人";
 }
 
+
 function newRunState(meta) {
-  const roster = ["warden", "mender", "lancer", "scout"];
+  const roster = ensurePartySize(["warden", "mender", "lancer", "scout"]);
   return {
     phase: "camp",
     tab: "roster",
@@ -257,9 +254,12 @@ function loadState() {
       meta.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
     }
     next.meta = meta;
-    next.roster = Array.isArray(next.roster)
-      ? next.roster.filter((id) => characterInfo(id)).slice(0, 4)
-      : fresh.roster;
+    // R6 §5.4 — 4人の旧 save は5人へ育てる。**SAVE_KEY は上げない**
+    // （上げると作者の進行が消える）。足りない一人は並び順の先頭から決定的に選び、
+    // 位置は normalizeFormation が前3後2／前2後3へ落とす。
+    next.roster = ensurePartySize(
+      Array.isArray(next.roster) ? next.roster.filter((id) => characterInfo(id)) : fresh.roster,
+    );
     next.formation = normalizeFormation(next.formation, next.roster);
     next.loadout = next.loadout || freshLoadout(next.roster);
     const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
@@ -411,7 +411,7 @@ function sectionHeading(eyebrow, title, right = "") {
 function campNav() {
   const skillCharacter = selectedCharacter();
   const tabs = [
-    ["roster", "編成", state.roster.length + "/4"],
+    ["roster", "編成", partyLabel()],
     ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
     ["equipment", "装備", state.roster.reduce((total, id) => total + (state.loadout.equipment?.[id] || []).length, 0) + "/" + (state.roster.length * 2)],
     ["map", "戦闘", state.stage + "/7"],
@@ -464,11 +464,11 @@ function restoreSkillTreeScroll() {
 
 function renderIntro() {
   return shell("灰の遠征", "仲間の役割、技能、装備、隊列を組み替えて7区画を越える", "<section class=\"hero card\">"
-    + "<div class=\"sigil\">◈</div><p class=\"lead\">4人を選び、4つの位置へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
+    + "<div class=\"sigil\">◈</div><p class=\"lead\">5人を選び、2×3の6枠へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
     + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。</p>"
     + button("遠征を始める", "start", false, "button primary")
-    + "<div class=\"loop\"><span><b>1</b>4人を編成</span><span><b>2</b>技能を解禁・装着</span><span><b>3</b>装備を2枠へ組む</span><span><b>4</b>自動戦闘で検証</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>8人の仲間</b><span>固有の役割と初期技能</span></div><div class=\"card\"><b>24技能</b><span>行動12・反応12</span></div><div class=\"card\"><b>18装備</b><span>耐久を持つ実物</span></div></section>");
+    + "<div class=\"loop\"><span><b>1</b>5人を編成</span><span><b>2</b>技能を解禁・装着</span><span><b>3</b>装備を2枠へ組む</span><span><b>4</b>自動戦闘で検証</span></div></section>"
+    + "<section class=\"three-up\"><div class=\"card\"><b>8人から5人</b><span>2×3の6枠に一枠空く</span></div><div class=\"card\"><b>24技能</b><span>行動12・反応12</span></div><div class=\"card\"><b>18装備</b><span>耐久を持つ実物</span></div></section>");
 }
 
 function renderCamp() {
@@ -479,7 +479,7 @@ function renderCamp() {
     map: renderMap,
   }[state.tab]();
   const title = state.tab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
-  const subtitle = "第" + state.stage + "区画 · " + encounterInfo(state.stage).name + " · 4人編成";
+  const subtitle = "第" + state.stage + "区画 · " + encounterInfo(state.stage).name + " · " + partyLabel();
   return shell(title, subtitle, campNav() + view);
 }
 
@@ -513,37 +513,44 @@ function renderRoster() {
       + (inParty ? button("外す", "toggle-roster", state.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"") : "")
       + "</article>";
   }).join("");
-  return "<section class=\"card\">" + sectionHeading("FORMATION / 4 SLOTS", "誰がどこに立つ？", "<span class=\"stage\">"
-    + state.roster.length + " / 4人</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。前列・後列は敵の狙いと技能の条件に影響します。</p>"
+  return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
+    + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>5人で6枠なので、必ず一枠が空きます。</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
     + (formationSelection ? "<span class=\"formation-selection-actions\">" + button("選択解除", "clear-formation-selection", false, "tiny-button") + "</span>" : "") + "</p></section>"
-    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → 4", "同行する仲間を選ぶ")
+    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → " + PARTY_SIZE, "同行する仲間を選ぶ")
     + "<p class=\"muted\">8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。</p>"
     + "<div class=\"character-grid\">" + characterCards + "</div></section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで行動2・反応2を組み、装備画面で実物を2枠に割り当ててください。</p>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を組み、装備画面で実物を2枠に割り当ててください。</p>"
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
 
+const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
+const SLOT_TITLES = {
+  active: "行動（優先順）",
+  reactive: "リアクティブ（条件発火）",
+  passive: "常設（いつでも効く）",
+};
+
 function skillSlotRows(characterId, kind) {
-  const key = kind === "active" ? "tactics" : "reactives";
+  const key = SLOT_KEYS[kind];
   const list = state.loadout[key]?.[characterId] || [];
-  const title = kind === "active" ? "行動（優先順）" : "リアクティブ（条件発火）";
+  const title = SLOT_TITLES[kind];
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
     const moveButtons = kind === "active"
       ? "<span class=\"reorder\">" + button("↑", "move-tactic", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-tactic", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
-    return "<div class=\"installed-row\"><span class=\"" + (kind === "active" ? "order" : "bullet") + "\">"
+    return "<div class=\"installed-row\"><span class=\"" + (kind === "active" ? "order" : kind === "passive" ? "bullet passive" : "bullet") + "\">"
       + (kind === "active" ? index + 1 : "↳") + "</span><span class=\"installed-copy\"><b>"
       + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span>"
       + moveButtons + button("外す", "remove-skill", false, "icon-button remove", "data-character=\"" + characterId
         + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"") + "</div>";
   }).join("");
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " / 2</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
+    + list.length + " / " + SLOT_LIMITS[kind] + "</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
 }
 
 function memberTabs(characterId) {
@@ -647,13 +654,15 @@ function renderSkillBranch(branch, characterId) {
 function renderSkills() {
   const characterId = selectedCharacter();
   const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の残り技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
-  const branches = ["攻撃", "指揮", "支援", "守り"].map((branch) => renderSkillBranch(branch, characterId)).join("");
-  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / 24 NODES", "誰を伸ばす？", pointsBadge)
+  // 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
+  const branches = ["攻撃", "指揮", "支援", "守り", "基礎"].map((branch) => renderSkillBranch(branch, characterId)).join("");
+  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_NODES.length + " NODES", "誰を伸ばす？", pointsBadge)
     + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・装備を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
-    + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + "</section>"
-    + "<section class=\"card\">" + sectionHeading("COMMON TREE / 12 + 12", "技能を解禁する")
+    + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
+    + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
     + "<p class=\"muted\">同じツリーでも、誰に装着するか・どの順番で試すかで役割が変わります。アイコンを選び、説明を必要な時だけ開いてください。</p>"
-    + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 自分の順番に試す</span><span><i class=\"kind kind-reactive\">反応</i> 条件発生時に発火</span></div>"
+    + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 自分の順番に試す</span><span><i class=\"kind kind-reactive\">反応</i> 条件発生時に発火</span>"
+    + "<span><i class=\"kind kind-passive\">常設</i> いつでも効く</span></div>"
     + skillBuildSummary(characterId) + branches + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">枠が決まったら、同じ仲間の装備と耐久を確認します。</p>"
     + "<div class=\"flow-actions\">" + button("編成へ戻る", "tab", false, "button", "data-tab=\"roster\"")
@@ -799,11 +808,17 @@ function eventText(event) {
     preparation_advanced: source + "の準備が進む",
     preparation_completed: source + "の準備が完了",
     preparation_interrupted: source + "の準備が止まった",
-    damage_taken: arrow + target + " に " + number + " ダメージ",
+    // 受けで減ったぶんは、隠すと「なぜ通らないのか」が読めなくなる。
+    damage_taken: arrow + target + " に " + number + " ダメージ"
+      + (values.guardApplied > 0 ? "（受けで -" + values.guardApplied + "）" : ""),
     excess_damage: "攻撃が" + amountText + "余った",
     healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
     barrier_gained: target + " に防壁 " + number,
+    // R6 §6.7 — block と guard。**何がどれだけ止めたのかを文字でも残す。**
+    block_gained: target + " に受け構え " + number,
+    block_spent: target + " の受け構えが1つ減った",
+    damage_blocked: arrow + target + " の受け構えが " + (values.proposed ?? "") + " を止めた",
     resource_refreshed: target + "の" + resourceLabel(values.resource) + "が戻った",
     resource_unused: source + "は" + resourceLabel(values.resource) + "を余らせた",
     action_cost_paid: source + "が" + skill + "の代価を払った",
@@ -944,14 +959,21 @@ function unitHtml(actor) {
     + "<div class=\"unit-cast\"></div></div>";
 }
 
+// 盤面は 2×3 のまま見せる。**折り返して並べ替えると隊列が読めなくなる**
+// （前3後2 と 前2後3 の違いが、まさに「どの枠が空いているか」なので）。
+const BATTLE_COLUMNS = ["left", "center", "right"];
+
 function battleRowsHtml(actors, side) {
   const mine = actors.filter((actor) => actor.side === side);
-  const front = mine.filter((actor) => positionRows[actor.position] === "前列");
-  const rear = mine.filter((actor) => positionRows[actor.position] !== "前列");
-  const ordered = side === "enemy" ? [["後列", rear], ["前列", front]] : [["前列", front], ["後列", rear]];
-  const rows = ordered.filter(([, list]) => list.length).map(([label, list]) =>
-    "<div class=\"battle-row\"><span class=\"battle-row-label\">" + label + "</span>"
-    + "<div class=\"battle-units\">" + list.map(unitHtml).join("") + "</div></div>").join("");
+  const rowsOrder = side === "enemy" ? ["rear", "front"] : ["front", "rear"];
+  const rows = rowsOrder.map((row) => {
+    const cells = BATTLE_COLUMNS.map((column) => {
+      const actor = mine.find((entry) => entry.position === row + "_" + column);
+      return actor ? unitHtml(actor) : "<div class=\"unit-empty\" aria-hidden=\"true\"></div>";
+    }).join("");
+    return "<div class=\"battle-row\"><span class=\"battle-row-label\">"
+      + (row === "front" ? "前列" : "後列") + "</span><div class=\"battle-units\">" + cells + "</div></div>";
+  }).join("");
   return "<span class=\"battle-side-label\">" + (side === "enemy" ? "敵" : "味方") + "</span>" + rows;
 }
 
@@ -978,7 +1000,7 @@ function renderBattle() {
     + button("結果を見る", "replay-result", false, "button") + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">HOW TO READ</p>"
     + "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。箱の上に浮かぶ数字がダメージ（赤）・回復（緑）・防壁（青）、"
-    + "箱の下の帯がHP、箱の中の札がいま使っている技能です。右下の粒は残っている行動権（金 ◆）と反応権（青 ◈）で、"
+    + "箱の下の帯がHP、箱の中の札がいま使っている技能です。防御は3つあり、<b>◈防壁</b>は総量を受け、<b>▣受け構え</b>は一撃を丸ごと止め、<b>盾受け</b>は一撃ごとに固定で引きます。右下の粒は残っている行動権（金 ◆）と反応権（青 ◈）で、"
     + "金が尽きた仲間はそのラウンドの主行動を終えています。細かい因果を追いたいときだけ、下のデバッグログを開いてください。</p></section>"
     + "<details class=\"card debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>デバッグログ（アニメーションで分かりにくいとき）</summary>"
@@ -1026,6 +1048,10 @@ function floatsFor(event) {
       return targets.map((id) => ({ actorId: id, text: "◈" + (values.amount ?? 0), tone: tone("barrier"), cause }));
     case "actor_defeated":
       return targets.map((id) => ({ actorId: id, text: "撃破", tone: "defeat" }));
+    case "damage_blocked":
+      return targets.map((id) => ({ actorId: id, text: "止めた", tone: "blocked" }));
+    case "block_gained":
+      return targets.map((id) => ({ actorId: id, text: "▣" + (values.amount ?? 1), tone: "barrier" }));
     case "actor_moved":
       return sourceId ? [{ actorId: sourceId, text: "位置替え", tone: "move" }] : [];
     case "status_added": {
@@ -1107,7 +1133,13 @@ function unitPipsHtml(actor) {
 
 function unitMarksHtml(actor) {
   const marks = [];
+  // R6 §6.7 — 防御は3つある。**同じ「硬さ」でも問われるものが違う**ので、別々に出す。
+  //   ◈ 防壁 … 総量を受ける
+  //   ▣ 受け構え … 一撃を丸ごと止める（回数）
+  //   盾 受け … 一撃ごとに固定で引く
+  if (actor.block > 0) marks.push("<span class=\"mark block\">▣" + actor.block + "</span>");
   if (actor.barrier > 0) marks.push("<span class=\"mark barrier\">◈" + actor.barrier + "</span>");
+  if (actor.guard > 0) marks.push("<span class=\"mark guard\">盾" + actor.guard + "</span>");
   for (const status of actor.statuses || []) {
     const info = statusInfo(status.statusId);
     if (!info) continue;
@@ -1365,7 +1397,7 @@ function renderComplete() {
   const trail = state.roster.map(characterName).join("、");
   const gear = state.meta.ownedEquipment.map((id) => EQUIPMENT[id]?.label ?? id).join("、");
   return shell("遠征を終えた", "今回の編成と因果を記録する", "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>7区画を見届けた</h2><p>今回の仲間: "
-    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし") + "</p><div class=\"build-trail\"><span><i>1</i>4人を選び、隊列を組んだ</span><span><i>2</i>技能ツリーから実際の技能を装着した</span><span><i>3</i>装備2枠と敵の狙いを考えた</span><span><i>4</i>自動戦闘の因果を確認した</span></div></section>"
+    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし") + "</p><div class=\"build-trail\"><span><i>1</i>5人を選び、2×3へ組んだ</span><span><i>2</i>技能ツリーから実際の技能を装着した</span><span><i>3</i>装備2枠と敵の狙いを考えた</span><span><i>4</i>自動戦闘の因果を確認した</span></div></section>"
     + "<section class=\"card feedback\"><p class=\"eyebrow\">HUMAN CHECK</p><h2>今回のUIについて</h2><label>もう一度遊びたい度<select id=\"feedback-replay\">"
     + option("", "選択してください", !feedback.replay) + option("1", "1 — もう遊ばない", feedback.replay === "1")
     + option("2", "2", feedback.replay === "2") + option("3", "3", feedback.replay === "3")
@@ -1532,8 +1564,8 @@ function handleAction(event) {
         ensureSelectedCharacter();
         record("roster_changed", { roster: [...state.roster], removed: id });
       }
-    } else if (state.roster.length >= 4) {
-      state.error = "編成は4人までです。";
+    } else if (state.roster.length >= PARTY_SIZE) {
+      state.error = "編成は" + PARTY_SIZE + "人までです。";
     } else {
       state.roster = [...state.roster, id];
       const fresh = freshLoadout([id]);
@@ -1688,8 +1720,8 @@ function handleAction(event) {
   }
 
   if (action === "begin-stage") {
-    if (state.roster.length !== 4) {
-      state.error = "出発には4人の編成が必要です。";
+    if (state.roster.length !== PARTY_SIZE) {
+      state.error = "出発には" + PARTY_SIZE + "人の編成が必要です。";
       state.tab = "roster";
     } else {
       state.formation = normalizeFormation(state.formation, state.roster);

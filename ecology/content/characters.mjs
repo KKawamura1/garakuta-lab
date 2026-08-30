@@ -7,7 +7,7 @@
 //
 // ここを触ってよいのは 人物 担当だけ。engine・schema・共通registryは変更しない。
 
-import { renamed } from "./base.mjs";
+import { renamed, scaleDefinitionAmounts } from "./base.mjs";
 
 export const CHARACTER_NAMES = {
   warden: "ユウリ — 守る人",
@@ -56,5 +56,42 @@ characters.tactician = {
   signatureRules: [],
   tags: ["playable", "rear", "tempo"],
 };
+
+// R6 §4.4 — Phase A の人物 parameter。**この表は R6 が明示した仮値**で、
+// 実装側で勝手に動かさない（R6 §21）。名前ごとの engine 分岐ではなく、
+// CharacterDef の data として持つ。
+//
+// 全員が might と focus を持つ。だから weapon 役にも支援技能を、
+// 支援役にも technique 攻撃を付けられる。
+export const CHARACTER_STATS = {
+  warden:    { maxHp: 260, might: 32, focus: 24, guard: 10, speed: 4,  baseActionPoints: 1, baseReactionPoints: 2 },
+  mender:    { maxHp: 180, might: 18, focus: 44, guard: 3,  speed: 6,  baseActionPoints: 1, baseReactionPoints: 2 },
+  lancer:    { maxHp: 200, might: 46, focus: 18, guard: 4,  speed: 8,  baseActionPoints: 1, baseReactionPoints: 2 },
+  scout:     { maxHp: 160, might: 36, focus: 26, guard: 2,  speed: 10, baseActionPoints: 1, baseReactionPoints: 2 },
+  pivot:     { maxHp: 220, might: 32, focus: 32, guard: 6,  speed: 5,  baseActionPoints: 2, baseReactionPoints: 2 },
+  guardian:  { maxHp: 260, might: 26, focus: 24, guard: 12, speed: 3,  baseActionPoints: 1, baseReactionPoints: 2 },
+  arcanist:  { maxHp: 160, might: 16, focus: 50, guard: 2,  speed: 5,  baseActionPoints: 1, baseReactionPoints: 2 },
+  tactician: { maxHp: 170, might: 24, focus: 40, guard: 3,  speed: 7,  baseActionPoints: 1, baseReactionPoints: 2 },
+};
+
+// R6 §6.4 — basic strike の届き方。前で受ける人は近接、後ろから支える人は遠隔。
+// **signature variant で変えてよい**と R6 は言っているが、Phase A では固定。
+const BASIC_STRIKE_REACH = {
+  warden: "melee", mender: "ranged", lancer: "melee", scout: "ranged",
+  pivot: "melee", guardian: "melee", arcanist: "ranged", tactician: "ranged",
+};
+for (const [id, reach] of Object.entries(BASIC_STRIKE_REACH)) {
+  if (characters[id]) characters[id].basicStrikeReach = reach;
+}
+
+for (const [id, stats] of Object.entries(CHARACTER_STATS)) {
+  Object.assign(characters[id], stats);
+}
+
+// 固有の性質が持つ量も、その人の focus で伸びるようにする
+// （scout の「先を読む」防壁など）。持ち主が育てば固有も伸びる。
+for (const definition of Object.values(characters)) {
+  scaleDefinitionAmounts(definition, { stat: "focus" });
+}
 
 export const CHARACTERS = characters;

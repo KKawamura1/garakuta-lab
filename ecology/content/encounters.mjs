@@ -6,6 +6,8 @@
 //
 // ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
 
+import { LEGACY_COMBAT_SCALE } from "./base.mjs";
+
 export const ENCOUNTERS = [
   {
     stage: 1,
@@ -81,6 +83,14 @@ export const ENCOUNTERS = [
     maxRounds: 12,
   },
 ];
+
+// R6 §4.4 — encounter が持つ hp も連続量なので10倍する。
+// **敵定義の maxHp と同じ倍率**でないと、区画ごとに強さがずれる。
+for (const encounter of ENCOUNTERS) {
+  for (const enemy of encounter.enemies) {
+    if (typeof enemy.hp === "number") enemy.hp *= LEGACY_COMBAT_SCALE;
+  }
+}
 
 // 敵ごとの狙いの説明文。engine の targetQuery を人の言葉へ写したもので、
 // **規則そのものではない**（ずれたら enemies.mjs 側の定義が正）。

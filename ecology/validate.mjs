@@ -10,7 +10,12 @@
 // EcologyValidationError, so no caller can accidentally simulate bad content.
 
 import {
+  ACTION_MODES,
   ACTOR_STATS,
+  PASSIVE_STAT_BONUSES,
+  REACHES,
+  SCALING_STATS,
+  TARGET_PATTERNS,
   BARRIER_DURATIONS,
   BATTLE_SCHEMA_VERSION,
   COMPARISON_OPS,
@@ -152,6 +157,13 @@ function validateValue(bag, path, value, ctx) {
     case "actor_stat_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireOneOf(bag, `${path}.stat`, value.stat, ACTOR_STATS, "unknown_actor_stat");
+      break;
+    // R6 §4.4 — PHASE A. flat + roundHalfUp(stat * coefficientBps / 10_000)
+    case "stat_scaled":
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireOneOf(bag, `${path}.scalingStat`, value.scalingStat, SCALING_STATS, "unknown_scaling_stat");
+      if (value.flat !== undefined) requireCount(bag, `${path}.flat`, value.flat, { max: 100_000 });
+      requireCount(bag, `${path}.coefficientBps`, value.coefficientBps, { max: 100_000 });
       break;
     case "status_stacks_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
@@ -408,6 +420,30 @@ function validateEffect(bag, path, effect, ctx) {
 
   switch (effect.type) {
     case "deal_damage":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+      // R6 §6.7 — PHASE A. 省略時は hit 1・貫通0・single・unrestricted で、
+      // それは v1 の挙動そのもの。**既存定義は書き換えなくてよい。**
+      if (effect.hitCount !== undefined) {
+        requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: 8 });
+      }
+      if (effect.guardPierceBps !== undefined) {
+        requireCount(bag, `${path}.guardPierceBps`, effect.guardPierceBps, { min: 0, max: 10_000 });
+      }
+      if (effect.targetPattern !== undefined) {
+        requireOneOf(bag, `${path}.targetPattern`, effect.targetPattern, TARGET_PATTERNS, "unknown_target_pattern");
+      }
+      if (effect.reach !== undefined) {
+        requireOneOf(bag, `${path}.reach`, effect.reach, REACHES, "unknown_reach");
+      }
+      // **範囲攻撃は take: 1 から広げる。** take: "all" と組み合わせると、
+      // どの一体を基点に広げたのかが決まらない。
+      if (effect.targetPattern && effect.targetPattern !== "single" && effect.target?.take !== 1) {
+        bag.add(`${path}.targetPattern`, "pattern_needs_single_anchor",
+          `${effect.targetPattern} spreads from one anchor, so target.take must be 1`);
+      }
+      break;
     case "heal":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
@@ -417,6 +453,11 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.duration`, effect.duration, BARRIER_DURATIONS, "unknown_duration");
+      break;
+    // R6 §6.7 — PHASE A. block は charge（回数）なので離散量。
+    case "gain_block":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
     case "gain_resource":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -554,7 +595,9 @@ export function validateContentBundle(bundle) {
     bag.add("contentBundle.contentVersion", "bad_content_version", "contentVersion must be a non-empty string");
   }
 
-  const sections = ["characters", "activeSkills", "reactiveSkills", "equipment", "statuses", "enemyActors"];
+  // PHASE A: passiveSkills を足した。**古い bundle にも空で存在させる**ので、
+  // ここは必須節のままでよい（content/index.mjs が必ず入れる）。
+  const sections = ["characters", "activeSkills", "reactiveSkills", "passiveSkills", "equipment", "statuses", "enemyActors"];
   for (const section of sections) {
     if (!isPlainObject(bundle[section])) {
       bag.add(`contentBundle.${section}`, "not_an_object", "expected a record of definitions");
@@ -603,6 +646,10 @@ export function validateContentBundle(bundle) {
     requireCount(bag, `${path}.speed`, character.speed, { min: 0 });
     requireCount(bag, `${path}.baseActionPoints`, character.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, character.baseReactionPoints, { min: 0 });
+    // R6 §6.4 — basic strike の届き方は人物ごと。省略時は unrestricted。
+    if (character.basicStrikeReach !== undefined) {
+      requireOneOf(bag, `${path}.basicStrikeReach`, character.basicStrikeReach, REACHES, "unknown_reach");
+    }
     requireTags(bag, `${path}.tags`, character.tags);
     validateRules(bag, `${path}.signatureRules`, character.signatureRules, baseCtx);
   }
@@ -630,11 +677,63 @@ export function validateContentBundle(bundle) {
     }
   }
 
+  // R6 §6.4 — PHASE A. actionMode は任意（省略時は offense＝追撃なし＝v1 の挙動）。
+  // 遊べる版が全技能で宣言していることは analysis/ecology-contract-smoke.mjs が見る。
+  for (const [id, skill] of Object.entries(bundle.activeSkills)) {
+    if (skill.actionMode !== undefined) {
+      requireOneOf(bag, `activeSkills.${id}.actionMode`, skill.actionMode, ACTION_MODES, "unknown_action_mode");
+    }
+  }
+
+  // R6 §6.4 — 攻撃テンポの保証に使う技能は content が名指しする。
+  // **engine は個別 ID で分岐しない**ので、宣言が壊れていればここで落とす。
+  if (bundle.coreActions !== undefined) {
+    if (!isPlainObject(bundle.coreActions)) {
+      bag.add("contentBundle.coreActions", "not_an_object", "expected a record of core action ids");
+    } else {
+      for (const [key, byReach] of Object.entries(bundle.coreActions)) {
+        if (!isPlainObject(byReach)) {
+          bag.add(`contentBundle.coreActions.${key}`, "not_an_object", "expected { melee, ranged }");
+          continue;
+        }
+        for (const [reach, skillId] of Object.entries(byReach)) {
+          requireOneOf(bag, `contentBundle.coreActions.${key}.${reach}`, reach, REACHES, "unknown_reach");
+          if (!Object.hasOwn(bundle.activeSkills, skillId)) {
+            bag.add(`contentBundle.coreActions.${key}.${reach}`, "dangling_reference", `no such active skill: ${skillId}`);
+          }
+        }
+      }
+    }
+  }
+
   for (const [id, skill] of Object.entries(bundle.reactiveSkills)) {
     const path = `reactiveSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireTags(bag, `${path}.tags`, skill.tags);
     validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+  }
+
+  // R6 §6.8 — PHASE A. passive は「定数で押し上げる」か「常時ある rule」の
+  // どちらか、あるいは両方。**どちらも無い passive は装着しても何も起きない**ので拒否する。
+  for (const [id, skill] of Object.entries(bundle.passiveSkills)) {
+    const path = `passiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    const bonus = skill.statBonus;
+    if (bonus !== undefined) {
+      if (!isPlainObject(bonus)) {
+        bag.add(`${path}.statBonus`, "not_an_object", "expected a stat bonus record");
+      } else {
+        for (const [stat, value] of Object.entries(bonus)) {
+          requireOneOf(bag, `${path}.statBonus.${stat}`, stat, PASSIVE_STAT_BONUSES, "unknown_passive_stat");
+          requireCount(bag, `${path}.statBonus.${stat}`, value, { min: 1, max: 1_000 });
+        }
+      }
+    }
+    if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    if (skill.statBonus === undefined && skill.rule === undefined) {
+      bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
+    }
   }
 
   for (const [id, item] of Object.entries(bundle.equipment)) {
@@ -708,6 +807,24 @@ function validateTactics(bag, path, tactics, bundle, ctx) {
       allowedSubjects: USE_WHEN_SUBJECTS,
       ownerless: false,
     }, { max: LIMITS.maxUseWhen });
+  });
+}
+
+function validatePassiveSkillIds(bag, path, ids, bundle) {
+  if (ids === undefined) return;
+  if (!requireArray(bag, path, ids, { max: LIMITS.maxPassiveSkills })) return;
+  const seen = new Set();
+  ids.forEach((id, index) => {
+    const idPath = `${path}[${index}]`;
+    if (!isValidId(id)) {
+      bag.add(idPath, "bad_id", "not a valid id");
+      return;
+    }
+    if (!Object.hasOwn(bundle.passiveSkills, id)) {
+      bag.add(idPath, "dangling_reference", `no such passive skill: ${id}`);
+    }
+    if (seen.has(id)) bag.add(idPath, "duplicate_reference", `passive skill listed twice: ${id}`);
+    seen.add(id);
   });
 }
 
@@ -792,6 +909,7 @@ export function validateBattleInput(input, bundle) {
       }
       validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
       validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, ally.reactiveSkillIds, bundle);
+      validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
       validateEquipmentInputs(bag, `${path}.equipment`, ally.equipment, bundle, claimInstance);
     });
   }

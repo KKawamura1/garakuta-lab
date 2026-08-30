@@ -7,7 +7,7 @@
 //
 // ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
 
-import { cloneEnemy, renamed } from "./base.mjs";
+import { LEGACY_COMBAT_SCALE, NEUTRAL_STAT, cloneEnemy, renamed } from "./base.mjs";
 
 export const ENEMY_NAMES = {
   husk: "灰殻兵",
@@ -74,5 +74,30 @@ enemyActors.ash_core = cloneEnemy("husk_bulwark", "ash_core", ENEMY_NAMES.ash_co
     { activeSkillId: "front_strike", useWhen: [] },
   ],
 });
+
+// R6 §4.4 / §11.1 — Phase A の敵 parameter。R6 は人物の表しか出していないので、
+// 敵はここで決める（R7 §4.2 の soft data。遊んでから動かす前提）。
+//
+// **決め方は一つだけ：中立 parameter を置く。** might = focus = 40 にすると、
+// 技能側の係数が「中立 40 で現行の相対効果量を保つ」ように作ってあるので、
+// 敵の攻撃力は現行の10倍そのままになる。**移行で強さが動かない。**
+//
+// guard だけは役割で分ける。前で受ける敵に guard を持たせないと、
+// 単発と多段の使い分け（R6 §6.7 の軸1）が盤面に現れない。
+// **人物と同じ帯に置く。** R6 §4.4 の人物表は guard 2〜12 なので、
+// 敵だけ 20〜30 にすると「敵は同じ小規則で構成する」（R6 §11.1）が嘘になる。
+// 実測でも 20 だと might 18 の反撃が最低保証まで落ちて、役割ごと無効になっていた。
+const ENEMY_GUARD = {
+  gray_guard: 10,     // 衛。前で受ける。ユウリと同じ硬さ
+  gray_bulwark: 14,   // 盾兵。いちばん硬い。多段を誘う
+  ash_core: 12,       // 核。重い一撃の代わりに受けも硬い
+};
+
+for (const [id, definition] of Object.entries(enemyActors)) {
+  definition.maxHp = definition.maxHp * LEGACY_COMBAT_SCALE;
+  definition.might = NEUTRAL_STAT;
+  definition.focus = NEUTRAL_STAT;
+  definition.guard = ENEMY_GUARD[id] ?? 0;
+}
 
 export const ENEMY_ACTORS = enemyActors;
