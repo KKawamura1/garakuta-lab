@@ -46,7 +46,8 @@
 | 場所 | 役割 | 現在の扱い |
 |---|---|---|
 | core/ | 本編のルール、状態機械、乱数、指標 | 現行コード |
-| ecology/ | EXP-18のデータ駆動・決定的ルールエンジン | 実装済み。UIも公開もD1も持たない。`node ecology/check.mjs` で検査。詳細は ecology/README.md |
+| ecology/ | EXP-18のデータ駆動・決定的ルールエンジンと遊べる版 | 実装済み。`node ecology/check.mjs` で検査。詳細は ecology/README.md |
+| ecology/content/ | 遊べる版の定義を種類別に分けた置き場（R7 Milestone 0） | 技能・敵・装備はここを触る。`playable-content.mjs` は adapter で、足す場所ではない |
 | play/ | 本編の既定UIと比較ルールセット | 現行の比較基準 |
 | scrapline/ | SCRAPLINE 0.7の独立試作 | 最新試作。ただし不採択 |
 | kindling/、emberline/、tomori/、night-eater/ | 縦切り試作 | 作者テスト結果を反映して凍結・比較保存 |
