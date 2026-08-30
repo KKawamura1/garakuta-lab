@@ -22,6 +22,7 @@ import {
   rewardOffer,
 } from "./playable-battles.mjs";
 import { POSITIONS } from "./schema.mjs";
+import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
@@ -42,13 +43,18 @@ const positionRows = {
 };
 const kindLabels = { active: "行動", reactive: "反応", equipment: "装備" };
 const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇" };
+// デバッグログに残すイベント。**盤面で畳んだものもここには残る**ので、
+// 「なぜそうなったか」を文字で追える。engine が出さない型は入れない
+// （reaction_fired / rule_triggered は R5 には無い。ルール由来かは event.ruleId で分かる）。
 const replayTypes = new Set([
   "battle_started",
+  "resource_refreshed",
   "round_started",
   "actor_activated",
   "action_declared",
   "target_selected",
   "target_changed",
+  "action_cost_paid",
   "action_started",
   "action_resolved",
   "action_skipped",
@@ -58,19 +64,22 @@ const replayTypes = new Set([
   "preparation_interrupted",
   "damage_taken",
   "excess_damage",
+  "pending_amount_modified",
   "healing_applied",
   "excess_healing",
   "barrier_gained",
+  "barrier_expired",
   "resource_gained",
   "resource_spent",
+  "resource_unused",
   "actor_moved",
   "status_added",
+  "status_removed",
   "equipment_worn",
   "equipment_broken",
   "equipment_repaired",
   "actor_defeated",
-  "reaction_fired",
-  "rule_triggered",
+  "round_ended",
   "battle_ended",
 ]);
 
@@ -90,48 +99,12 @@ const REPLAY_SPEEDS = [
   { id: "fast", label: "速い", factor: 0.45 },
 ];
 
-// **一拍の長さはイベントの重さで変える。** 全部を同じ間隔で流すと、
-// 何が起きたかの山（damage_taken / actor_defeated）が資源の増減に埋もれる。
-const BEAT_MS = {
-  battle_started: 620,
-  round_started: 640,
-  actor_activated: 260,
-  action_declared: 360,
-  target_selected: 320,
-  target_changed: 440,
-  action_started: 380,
-  action_resolved: 200,
-  action_skipped: 380,
-  preparation_started: 440,
-  preparation_advanced: 300,
-  preparation_completed: 440,
-  preparation_interrupted: 440,
-  damage_taken: 560,
-  healing_applied: 520,
-  barrier_gained: 440,
-  actor_moved: 460,
-  actor_defeated: 760,
-  reaction_fired: 420,
-  rule_triggered: 360,
-  battle_ended: 900,
-};
-const DEFAULT_BEAT_MS = 190;
-
-// 動いている側を光らせるイベント。
-const ACTING_TYPES = new Set([
-  "actor_activated", "action_declared", "action_started", "action_resolved", "action_skipped",
-  "target_selected", "target_changed", "preparation_started", "preparation_advanced",
-  "preparation_completed", "preparation_interrupted", "reaction_fired", "rule_triggered",
-  "damage_taken", "healing_applied", "barrier_gained", "resource_spent", "actor_moved",
-]);
-// 相手へ踏み込む動きを出すイベント。
-const STRIKE_TYPES = new Set(["action_started", "damage_taken"]);
-// 狙われている箱に印を出すイベント。
-const AIM_TYPES = new Set(["target_selected", "target_changed", "action_started", "action_declared"]);
-
+// 拍の組み立てはイベント列が変わったときだけ。毎拍やり直さない。
 let replayTimer = null;
 let saveTimer = null;
 let battleLayoutKey = null;
+let battleBeats = [];
+let battleBeatsSource = null;
 
 const STARTING_SKILL_POINTS = 2;
 
@@ -807,11 +780,10 @@ function eventText(event) {
   const arrow = source && target && source !== target ? source + " → " : "";
   const skillId = values.activeSkillId || values.skillId || event.activeSkillId || event.skillId;
   const skill = skillId ? nameFor(skillId) : "行動";
-  const reactionId = values.reactiveSkillId || event.reactiveSkillId;
-  const reaction = reactionId ? nameFor(reactionId) : "反応";
   const round = event.round ?? values.round ?? "-";
   const targetLabel = target && target === source ? "自分" : target || "相手";
-  const cause = event.ruleId && event.sourceDefinitionId ? "（" + nameFor(event.sourceDefinitionId) + "）" : "";
+  const causeName = eventCauseName(event);
+  const cause = causeName ? "（" + causeName + "）" : "";
   const resourceLabel = (resource) => ({ action_points: "行動権", reaction_points: "RP" }[resource] ?? resource ?? "資源");
   const map = {
     battle_started: "戦闘開始",
@@ -832,18 +804,31 @@ function eventText(event) {
     healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
     barrier_gained: target + " に防壁 " + number,
+    resource_refreshed: target + "の" + resourceLabel(values.resource) + "が戻った",
+    resource_unused: source + "は" + resourceLabel(values.resource) + "を余らせた",
+    action_cost_paid: source + "が" + skill + "の代価を払った",
+    round_ended: "ラウンド" + round + "終了",
+    barrier_expired: target + "の防壁が切れた",
+    status_removed: target + "の" + (statusInfo(values.statusId)?.displayName ?? "状態") + "が消えた",
+    pending_amount_modified: "値が" + number + "へ変わった",
+    damage_proposed: arrow + target + " へ " + number + " ダメージを提案",
+    healing_proposed: arrow + target + " へ " + number + " 回復を提案",
+    barrier_proposed: target + " へ防壁 " + number + " を提案",
     resource_gained: target + "が" + resourceLabel(values.resource) + amountText + "を得た",
     resource_spent: source + "が" + resourceLabel(values.resource) + amountText + "を使った",
     actor_moved: source + "が位置を替えた",
-    status_added: target + "に状態が加わった",
+    status_added: target + "に" + (statusInfo(values.statusId)?.displayName ?? "状態")
+      + (values.stacks > 1 ? values.stacks : ""),
     equipment_worn: source + "の装備が" + amountText + "摩耗した",
     equipment_broken: source + "の装備が壊れた",
     equipment_repaired: source + "の装備が" + amountText + "修理された",
     actor_defeated: target + "が倒れた",
     battle_ended: "戦闘終了 · " + (values.result || "決着"),
   };
-  if (event.type === "reaction_fired" || event.type === "rule_triggered") return source + "の" + reaction + "が発火" + cause;
-  return map[event.type] || event.type + amountText;
+  // ルール由来（リアクティブ・固有・装備）は、何が起こしたのかを添える。
+  // 添えないと、ログでは主行動と見分けがつかない。
+  const line = map[event.type] || event.type + amountText;
+  return event.ruleId && cause ? line + cause : line;
 }
 
 function compactEvents(events) {
@@ -867,6 +852,16 @@ function compactReplay(result) {
 // 受けた側の箱の上へダメージ値が浮く。何が起きたかは動きで見せ、
 // 「何のイベントが出たか」はデバッグログ（既定で閉じている）で確かめる。
 
+// ---------------------------------------------------------------- 戦闘の見せ方
+//
+// **ログは主役から降ろした。** 名前・HP・行動権・状態の箱を人数分並べ、
+// 攻撃した側が相手へ踏み込み、受けた側の箱の上へダメージ値が浮く。
+// 何のイベントが出たかはデバッグログ（既定で閉）で確かめる。
+//
+// 進む単位は「拍」で、組み方は ecology/replay-beats.mjs にある。
+// 主行動は必ず止め、自分に向いたサブ行動は攻撃と同時に出し、
+// 事務（行動権の消費・解決の締め）は盤面に出さない。
+
 function shortName(displayName) {
   return String(displayName ?? "").split(" — ")[0];
 }
@@ -877,37 +872,61 @@ function unitIcon(actor) {
     ?? (actor.side === "enemy" ? "◆" : "・");
 }
 
+function actorDefinition(actor) {
+  return actor.side === "ally"
+    ? PLAYABLE_CONTENT.characters[actor.definitionId]
+    : PLAYABLE_CONTENT.enemyActors[actor.definitionId];
+}
+
+function statusInfo(statusId) {
+  return PLAYABLE_CONTENT.statuses?.[statusId] ?? null;
+}
+
 function replaySpeed() {
   return REPLAY_SPEEDS.find((entry) => entry.id === state.replaySpeed) ?? REPLAY_SPEEDS[1];
 }
 
-function beatMs(event) {
-  const base = BEAT_MS[event?.type] ?? DEFAULT_BEAT_MS;
-  return Math.max(60, Math.round(base * replaySpeed().factor));
-}
-
-function eventSourceId(event) {
-  return event?.sourceActorId || event?.actorId || event?.ownerActorId || null;
-}
-
 function eventSkillName(event) {
   const values = event?.values || {};
-  const skillId = values.activeSkillId || values.skillId || event?.skillId || event?.sourceDefinitionId;
+  const skillId = values.activeSkillId || values.skillId || event?.skillId;
   return skillId ? nameFor(skillId) : null;
 }
 
-function replayActors() {
-  const index = clampReplayIndex();
-  return state.replaySnapshots?.[index]
-    || state.replaySnapshots?.[0]
-    || state.lastResult?.actors
-    || [];
+// サブ行動やパッシブは、どの技能が起こしたのかが分からないと読めない。
+// ただし固有の性質（sourceDefinitionId が本人）は名前を出さない。
+// 「スイ に防壁1（スイ — 先を読む人）」は、箱の上に浮いている時点で分かっている。
+function eventCauseName(event) {
+  const id = event?.ruleId ? event.sourceDefinitionId : null;
+  if (!id) return null;
+  const known = SKILLS.reactive?.[id] || SKILLS.active?.[id] || EQUIPMENT[id];
+  return known ? shortName(nameFor(id)) : null;
+}
+
+function replayBeats() {
+  const events = state.replayEvents || [];
+  if (battleBeatsSource !== events) {
+    battleBeats = buildBeats(events);
+    battleBeatsSource = events;
+  }
+  return battleBeats;
 }
 
 function clampReplayIndex() {
-  const events = state.replayEvents || [];
-  if (!events.length) return 0;
-  return Math.max(0, Math.min(state.replayIndex, events.length - 1));
+  const beats = replayBeats();
+  if (!beats.length) return 0;
+  return Math.max(0, Math.min(state.replayIndex, beats.length - 1));
+}
+
+function currentBeat() {
+  return replayBeats()[clampReplayIndex()] ?? null;
+}
+
+function replayActors() {
+  const beat = currentBeat();
+  return state.replaySnapshots?.[beat ? beat.to : 0]
+    || state.replaySnapshots?.[0]
+    || state.lastResult?.actors
+    || [];
 }
 
 function layoutKeyOf(actors) {
@@ -920,7 +939,8 @@ function unitHtml(actor) {
     + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
     + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
     + "</b></div><div class=\"unit-bar\"><span class=\"unit-fill\"></span></div>"
-    + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span><span class=\"unit-barrier\"></span></div>"
+    + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
+    + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div>"
     + "<div class=\"unit-cast\"></div></div>";
 }
 
@@ -936,7 +956,7 @@ function battleRowsHtml(actors, side) {
 }
 
 function renderBattle() {
-  const events = state.replayEvents || [];
+  const beats = replayBeats();
   const actors = replayActors();
   const speedButtons = REPLAY_SPEEDS.map((entry) =>
     button(entry.label, "replay-speed", false, "speed-button" + (replaySpeed().id === entry.id ? " active" : ""),
@@ -950,34 +970,38 @@ function renderBattle() {
     + "<div class=\"battle-side\" data-side=\"ally\">" + battleRowsHtml(actors, "ally") + "</div>"
     + "</div>"
     + "<div class=\"replay-transport\">"
-    + button("◀ 一拍", "replay-back", true, "button", "data-role=\"replay-back\"")
-    + button("自動再生", "replay-toggle", events.length === 0, "button primary", "data-role=\"replay-toggle\"")
-    + button("一拍 ▶", "replay-step", true, "button", "data-role=\"replay-step\"")
+    + button("◀ 一手", "replay-back", true, "button", "data-role=\"replay-back\"")
+    + button("自動再生", "replay-toggle", beats.length === 0, "button primary", "data-role=\"replay-toggle\"")
+    + button("一手 ▶", "replay-step", true, "button", "data-role=\"replay-step\"")
     + "</div>"
     + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
     + button("結果を見る", "replay-result", false, "button") + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">HOW TO READ</p>"
     + "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。箱の上に浮かぶ数字がダメージ（赤）・回復（緑）・防壁（青）、"
-    + "箱の下の帯がHP、箱の中の札がいま使っている技能です。細かい因果を追いたいときだけ、下のデバッグログを開いてください。</p></section>"
+    + "箱の下の帯がHP、箱の中の札がいま使っている技能です。右下の粒は残っている行動権（金 ◆）と反応権（青 ◈）で、"
+    + "金が尽きた仲間はそのラウンドの主行動を終えています。細かい因果を追いたいときだけ、下のデバッグログを開いてください。</p></section>"
     + "<details class=\"card debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>デバッグログ（アニメーションで分かりにくいとき）</summary>"
-    + "<p class=\"muted\">再生中の位置までのイベントを、新しい順に出しています。</p>"
+    + "<p class=\"muted\">再生中の位置までのイベントを、新しい順に出しています。盤面では畳んだ行動権の消費や解決の締めも、ここには残ります。</p>"
     + "<ol class=\"events replay-events\"></ol></details>");
 }
 
-function castChips(events, index) {
+// いま誰がどの技能を使っているか。拍をまたいで札を出し続けるので、
+// イベント列を頭から見て「開いている行動」を求める。
+function castChips(events, upTo) {
   const chips = {};
-  for (let i = 0; i <= index; i += 1) {
+  for (let i = 0; i <= upTo; i += 1) {
     const event = events[i];
     if (!event) continue;
     if (event.type === "round_started") {
       for (const key of Object.keys(chips)) delete chips[key];
       continue;
     }
+    if (event.ruleId) continue;
     const id = eventSourceId(event);
     if (!id) continue;
     if (event.type === "action_declared" || event.type === "action_started") {
-      chips[id] = { text: eventSkillName(event) ?? "行動", kind: "action" };
+      chips[id] = eventSkillName(event) ?? "行動";
     } else if (event.type === "action_resolved" || event.type === "action_skipped") {
       delete chips[id];
     }
@@ -989,26 +1013,27 @@ function floatsFor(event) {
   const values = event.values || {};
   const targets = event.targetActorIds || [];
   const sourceId = eventSourceId(event);
+  const cause = eventCauseName(event);
+  const tone = (base) => (event.ruleId ? base + " from-rule" : base);
   switch (event.type) {
     case "damage_taken":
-      return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: "damage" }));
+      return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: tone("damage"), cause }));
     case "healing_applied": {
       const amount = values.actual ?? values.amount ?? 0;
-      return amount > 0 ? targets.map((id) => ({ actorId: id, text: "+" + amount, tone: "heal" })) : [];
+      return amount > 0 ? targets.map((id) => ({ actorId: id, text: "+" + amount, tone: tone("heal"), cause })) : [];
     }
     case "barrier_gained":
-      return targets.map((id) => ({ actorId: id, text: "◈" + (values.amount ?? 0), tone: "barrier" }));
+      return targets.map((id) => ({ actorId: id, text: "◈" + (values.amount ?? 0), tone: tone("barrier"), cause }));
     case "actor_defeated":
       return targets.map((id) => ({ actorId: id, text: "撃破", tone: "defeat" }));
     case "actor_moved":
       return sourceId ? [{ actorId: sourceId, text: "位置替え", tone: "move" }] : [];
+    case "status_added": {
+      const info = statusInfo(values.statusId);
+      return info ? targets.map((id) => ({ actorId: id, text: info.displayName, tone: info.polarity === "negative" ? "bad" : "good" })) : [];
+    }
     case "equipment_worn":
       return sourceId ? [{ actorId: sourceId, text: "装備 -" + (values.amount ?? 1), tone: "wear" }] : [];
-    case "reaction_fired":
-    case "rule_triggered": {
-      const label = event.sourceDefinitionId ? nameFor(event.sourceDefinitionId) : null;
-      return sourceId && label ? [{ actorId: sourceId, text: label, tone: "reaction" }] : [];
-    }
     default:
       return [];
   }
@@ -1020,23 +1045,26 @@ function restartAnimation(element, className) {
   element.classList.add(className);
 }
 
-function spawnFloat(unit, spec) {
+function spawnFloat(unit, spec, offset) {
   const host = unit.querySelector(".unit-floats");
   if (!host) return;
   const node = document.createElement("span");
   node.className = "float " + spec.tone;
-  node.textContent = spec.text;
+  // 同じ拍で複数浮くときに重ならないように、少しずつずらす。
+  node.style.setProperty("--float-shift", (offset % 3 - 1) * 26 + "px");
+  node.style.animationDelay = Math.min(offset, 3) * 70 + "ms";
+  node.textContent = spec.cause ? spec.text + " " + spec.cause : spec.text;
   host.appendChild(node);
-  setTimeout(() => node.remove(), 1200);
+  setTimeout(() => node.remove(), 1400);
 }
 
-function updateReplayControls(index, events) {
-  const atEnd = index >= events.length - 1;
+function updateReplayControls(index, beats) {
+  const atEnd = index >= beats.length - 1;
   const toggle = app.querySelector("[data-role=\"replay-toggle\"]");
   if (toggle) {
     toggle.textContent = state.replayPlaying ? "一時停止" : (atEnd ? "最初から再生" : "自動再生");
     toggle.className = "button" + (state.replayPlaying ? "" : " primary");
-    toggle.disabled = events.length === 0;
+    toggle.disabled = beats.length === 0;
   }
   const step = app.querySelector("[data-role=\"replay-step\"]");
   if (step) step.disabled = atEnd;
@@ -1047,19 +1075,46 @@ function updateReplayControls(index, events) {
   });
 }
 
-function updateDebugLog(index, events) {
+function updateDebugLog(upTo, events) {
   const list = app.querySelector(".debug-log .replay-events");
   if (!list) return;
-  const from = Math.max(0, index - 59);
+  const from = Math.max(0, upTo - 59);
   const rows = [];
-  for (let i = index; i >= from; i -= 1) {
+  for (let i = upTo; i >= from; i -= 1) {
     const event = events[i];
     if (!event) continue;
-    rows.push("<li class=\"event" + (i === index ? " current" : "") + "\"><span class=\"event-round\">R"
-      + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
+    rows.push("<li class=\"event" + (i === upTo ? " current" : "") + (event.ruleId ? " from-rule" : "")
+      + "\"><span class=\"event-round\">R" + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
       + "<code class=\"event-type\">" + esc(event.type) + "</code></li>");
   }
   list.innerHTML = rows.join("");
+}
+
+function unitPipsHtml(actor) {
+  const definition = actorDefinition(actor);
+  const apMax = Math.max(actor.actionPoints ?? 0, definition?.baseActionPoints ?? 0);
+  const rpMax = Math.max(actor.reactionPoints ?? 0, definition?.baseReactionPoints ?? 0);
+  const pips = [];
+  for (let i = 0; i < apMax; i += 1) {
+    pips.push("<i class=\"pip ap" + (i < (actor.actionPoints ?? 0) ? " on" : "") + "\"></i>");
+  }
+  if (apMax > 0 && rpMax > 0) pips.push("<i class=\"pip-gap\"></i>");
+  for (let i = 0; i < rpMax; i += 1) {
+    pips.push("<i class=\"pip rp" + (i < (actor.reactionPoints ?? 0) ? " on" : "") + "\"></i>");
+  }
+  return pips.join("");
+}
+
+function unitMarksHtml(actor) {
+  const marks = [];
+  if (actor.barrier > 0) marks.push("<span class=\"mark barrier\">◈" + actor.barrier + "</span>");
+  for (const status of actor.statuses || []) {
+    const info = statusInfo(status.statusId);
+    if (!info) continue;
+    marks.push("<span class=\"mark " + (info.polarity === "negative" ? "bad" : "good") + "\">"
+      + esc(info.displayName) + (status.stacks > 1 ? status.stacks : "") + "</span>");
+  }
+  return marks.join("");
 }
 
 function syncBattleView(options = {}) {
@@ -1067,9 +1122,11 @@ function syncBattleView(options = {}) {
   const field = app.querySelector(".battle-field");
   if (!field) return;
   const events = state.replayEvents || [];
+  const beats = replayBeats();
   const index = clampReplayIndex();
+  const beat = beats[index] ?? null;
+  const upTo = beat ? beat.to : 0;
   const actors = replayActors();
-  const current = events[index] || null;
 
   const key = layoutKeyOf(actors);
   if (key !== battleLayoutKey) {
@@ -1080,10 +1137,11 @@ function syncBattleView(options = {}) {
     battleLayoutKey = key;
   }
 
-  const chips = castChips(events, index);
-  const preparing = new Set();
+  const chips = castChips(events, upTo);
+  const unitOf = (id) => (id ? field.querySelector("[data-unit=\"" + CSS.escape(id) + "\"]") : null);
+
   for (const actor of actors) {
-    const unit = field.querySelector("[data-unit=\"" + CSS.escape(actor.instanceId) + "\"]");
+    const unit = unitOf(actor.instanceId);
     if (!unit) continue;
     const ratio = actor.maxHp > 0 ? Math.max(0, Math.min(1, actor.hp / actor.maxHp)) : 0;
     const fill = unit.querySelector(".unit-fill");
@@ -1093,18 +1151,21 @@ function syncBattleView(options = {}) {
     }
     const hp = unit.querySelector(".unit-hp");
     if (hp) hp.textContent = actor.alive ? actor.hp + "/" + actor.maxHp : "戦闘不能";
-    const barrier = unit.querySelector(".unit-barrier");
-    if (barrier) barrier.textContent = actor.barrier > 0 ? "◈" + actor.barrier : "";
+    const marks = unit.querySelector(".unit-marks");
+    if (marks) marks.innerHTML = unitMarksHtml(actor);
+    const pips = unit.querySelector(".unit-pips");
+    if (pips) pips.innerHTML = unitPipsHtml(actor);
     unit.classList.toggle("defeated", !actor.alive);
+    // 行動権が尽きた＝そのラウンドの主行動を終えている。
+    unit.classList.toggle("spent", actor.alive && (actor.actionPoints ?? 0) === 0);
     const cast = unit.querySelector(".unit-cast");
     if (cast) {
       const prep = actor.preparation;
       if (prep) {
-        preparing.add(actor.instanceId);
         cast.textContent = "準備 " + nameFor(prep.skillId) + "（残" + prep.stepsRemaining + "）";
         cast.className = "unit-cast prep show";
       } else if (actor.alive && chips[actor.instanceId]) {
-        cast.textContent = chips[actor.instanceId].text;
+        cast.textContent = chips[actor.instanceId];
         cast.className = "unit-cast show";
       } else {
         cast.textContent = "";
@@ -1113,53 +1174,80 @@ function syncBattleView(options = {}) {
     }
   }
 
-  field.querySelectorAll(".unit").forEach((unit) => {
-    unit.classList.remove("is-acting", "is-aimed");
-  });
+  field.querySelectorAll(".unit").forEach((unit) => unit.classList.remove("is-acting", "is-aimed"));
 
-  if (current) {
-    const sourceId = eventSourceId(current);
-    const targets = current.targetActorIds || [];
-    const sourceUnit = sourceId ? field.querySelector("[data-unit=\"" + CSS.escape(sourceId) + "\"]") : null;
-    if (sourceUnit && ACTING_TYPES.has(current.type)) sourceUnit.classList.add("is-acting");
-    if (sourceUnit && STRIKE_TYPES.has(current.type) && !options.silent) {
-      restartAnimation(sourceUnit, "is-striking");
+  if (beat) {
+    const head = beat.events[0];
+    const actingId = eventSourceId(head);
+    const actingUnit = unitOf(actingId);
+    if (actingUnit) actingUnit.classList.add("is-acting");
+    if (actingUnit && (beat.kind === "impact" || beat.kind === "sub") && !options.silent) {
+      restartAnimation(actingUnit, "is-striking");
     }
-    for (const id of targets) {
-      const unit = field.querySelector("[data-unit=\"" + CSS.escape(id) + "\"]");
-      if (!unit) continue;
-      if (AIM_TYPES.has(current.type)) unit.classList.add("is-aimed");
-      if (options.silent) continue;
-      if (current.type === "damage_taken" || current.type === "actor_defeated") restartAnimation(unit, "is-hit");
-      if (current.type === "healing_applied") restartAnimation(unit, "is-healed");
-      if (current.type === "barrier_gained") restartAnimation(unit, "is-shielded");
+    if (beat.kind === "declare" || beat.kind === "impact") {
+      for (const event of beat.events) {
+        for (const id of event.targetActorIds || []) unitOf(id)?.classList.add("is-aimed");
+      }
     }
     if (!options.silent) {
-      for (const spec of floatsFor(current)) {
-        const unit = field.querySelector("[data-unit=\"" + CSS.escape(spec.actorId) + "\"]");
-        if (unit) spawnFloat(unit, spec);
+      let offset = 0;
+      for (const event of beat.events) {
+        for (const id of event.targetActorIds || []) {
+          const unit = unitOf(id);
+          if (!unit) continue;
+          if (event.type === "damage_taken" || event.type === "actor_defeated") restartAnimation(unit, "is-hit");
+          else if (event.type === "healing_applied") restartAnimation(unit, "is-healed");
+          else if (event.type === "barrier_gained") restartAnimation(unit, "is-shielded");
+        }
+        for (const spec of floatsFor(event)) {
+          const unit = unitOf(spec.actorId);
+          if (unit) spawnFloat(unit, spec, offset++);
+        }
       }
     }
   }
 
   const beatText = field.querySelector(".beat-text");
   if (beatText) {
-    const text = current ? eventText(current) : "戦闘開始";
+    const text = beat ? beatText_(beat) : "戦闘開始";
     if (beatText.textContent !== text) {
       beatText.textContent = text;
       restartAnimation(beatText, "pulse");
     }
   }
   const beatRound = field.querySelector(".beat-round");
-  if (beatRound) beatRound.textContent = "R" + (current?.round ?? "-");
+  if (beatRound) beatRound.textContent = "R" + (beat?.events[0]?.round ?? "-");
   const beatCount = field.querySelector(".beat-count");
-  if (beatCount) beatCount.textContent = (events.length ? index + 1 : 0) + " / " + events.length;
+  if (beatCount) beatCount.textContent = (beats.length ? index + 1 : 0) + " / " + beats.length;
   const progress = app.querySelector(".replay-progress-fill");
-  if (progress) progress.style.width = (events.length ? Math.round(((index + 1) / events.length) * 100) : 100) + "%";
+  if (progress) progress.style.width = (beats.length ? Math.round(((index + 1) / beats.length) * 100) : 100) + "%";
 
-  updateReplayControls(index, events);
-  updateDebugLog(index, events);
+  updateReplayControls(index, beats);
+  updateDebugLog(upTo, events);
   scheduleReplayBeat();
+}
+
+// 拍の一行。同時に出したものは「＋」で並べる（並列に出したことが読めるように）。
+// **同じことを二度言わない。** 「レオンの斬撃が始まる ＋ レオン → 敵に5ダメージ」は
+// 二行ぶんの場所を取って一行ぶんしか伝えない。
+function beatText_(beat) {
+  const head = beat.events[0];
+  if (beat.kind === "declare") {
+    const targets = [];
+    for (const event of beat.events) {
+      for (const id of event.targetActorIds || []) if (!targets.includes(id)) targets.push(id);
+    }
+    return actorName(eventSourceId(head)) + "：" + (eventSkillName(head) ?? "行動")
+      + (targets.length ? " → " + targets.map(actorName).join("、") : "");
+  }
+  // 着弾の拍は、結果の行があるなら「始まる」を省く。
+  const meaty = beat.events.filter((event) => event.type !== "action_started");
+  const parts = [];
+  for (const event of (meaty.length ? meaty : beat.events)) {
+    const line = eventText(event);
+    if (line && !parts.includes(line)) parts.push(line);
+  }
+  return parts.join(" ＋ ") || "戦闘開始";
 }
 
 function mountBattleView() {
@@ -1173,7 +1261,6 @@ function mountBattleView() {
   }
   syncBattleView({ silent: true });
 }
-
 
 function diagnosticEventText(event, actorLabels) {
   const source = actorLabels?.[event.sourceActorId] ?? event.sourceActorId ?? "—";
@@ -1313,12 +1400,12 @@ function saveStateSoon() {
 function scheduleReplayBeat() {
   stopReplayTimer();
   if (state.phase !== "battle" || !state.replayPlaying) return;
-  const events = state.replayEvents || [];
+  const beats = replayBeats();
   const index = clampReplayIndex();
-  if (index >= events.length - 1) {
+  if (index >= beats.length - 1) {
     state.replayPlaying = false;
     saveState();
-    updateReplayControls(index, events);
+    updateReplayControls(index, beats);
     return;
   }
   replayTimer = setTimeout(() => {
@@ -1327,7 +1414,7 @@ function scheduleReplayBeat() {
     state.replayIndex = clampReplayIndex() + 1;
     saveStateSoon();
     syncBattleView();
-  }, beatMs(events[index]));
+  }, beatDurationMs(beats[index], replaySpeed().factor));
 }
 
 function advanceAfterReward() {
@@ -1698,7 +1785,7 @@ function handleAction(event) {
 
   if (action === "replay-toggle") {
     if (!state.replayEvents.length) return;
-    if (state.replayIndex >= state.replayEvents.length - 1) {
+    if (state.replayIndex >= replayBeats().length - 1) {
       // 最後まで見たあとは、同じ戦闘をもう一度頭から流せる。
       state.replayIndex = 0;
       state.replayPlaying = true;
@@ -1712,7 +1799,7 @@ function handleAction(event) {
 
   if (action === "replay-step") {
     state.replayPlaying = false;
-    if (state.replayIndex < state.replayEvents.length - 1) state.replayIndex += 1;
+    if (state.replayIndex < replayBeats().length - 1) state.replayIndex += 1;
     saveState();
     syncBattleView();
     return;
