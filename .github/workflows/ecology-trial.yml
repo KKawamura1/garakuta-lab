@@ -1,0 +1,177 @@
+name: Ecology trial (deployed)
+
+# **公開先で通しを踏むための経路。**
+# Claude が動く箱からは pages.dev へ出られない（egress ブロック）ので、
+# docs/HUMAN_TEST_RELEASE.md の「本番E2E」は、同じ台本をここから走らせて満たす。
+# 台本は analysis/ecology-trial.mjs（手元では localhost、ここでは公開先を見る）。
+#
+# **push でも走らせる。** workflow_dispatch は既定ブランチに置かれるまで叩けず、
+# 「作者へ渡す前に公開先を確かめる」がブランチ上で成り立たなくなるため。
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "遊べるURL（例 https://<alias>.garakuta-lab.pages.dev/ecology/）。空なら候補を探す"
+        required: false
+        default: ""
+        type: string
+      expect_build:
+        description: "公開先が出しているべき build の印。空なら core/build.mjs から読む"
+        required: false
+        default: ""
+        type: string
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "ecology/**"
+      - "core/build.mjs"
+      - "analysis/ecology-trial.mjs"
+      - ".github/workflows/ecology-trial.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trial:
+    name: Play one expedition on the deployed preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install Playwright Chromium
+        run: |
+          set -euo pipefail
+          npm init -y > /dev/null
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+
+      - name: Wait for the deployment to serve this build
+        id: resolve
+        shell: bash
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          EXPECT_INPUT: ${{ inputs.expect_build }}
+        run: |
+          set -uo pipefail
+          expect="$EXPECT_INPUT"
+          if [[ -z "$expect" ]]; then
+            # core/build.mjs の BUILD は "<短縮sha> / <日時>Z"。sha だけ見る。
+            expect="$(sed -n 's/.*BUILD = "\([^ ]*\).*/\1/p' core/build.mjs)"
+          fi
+          echo "期待する build: $expect"
+
+          candidates=()
+          if [[ -n "$BASE_URL" ]]; then
+            candidates+=("$BASE_URL")
+          else
+            # Cloudflare Pages のブランチ別名は、英数字以外を - にして 28 文字で切る。
+            alias="$(echo "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' \
+              | sed 's/[^a-z0-9]/-/g' | cut -c1-28 | sed 's/-*$//')"
+            candidates+=("https://${alias}.garakuta-lab.pages.dev/ecology/")
+            candidates+=("https://${GITHUB_SHA:0:8}.garakuta-lab.pages.dev/ecology/")
+          fi
+
+          # デプロイは push と同時に始まるので、出てくるまで待つ。
+          for attempt in $(seq 1 40); do
+            for url in "${candidates[@]}"; do
+              served="$(curl -s --max-time 20 "${url%/ecology/}/core/build.mjs" || true)"
+              if grep -q "$expect" <<< "$served"; then
+                echo "url=$url" >> "$GITHUB_OUTPUT"
+                echo "expect=$expect" >> "$GITHUB_OUTPUT"
+                echo "公開先が $expect を出している: $url"
+                exit 0
+              fi
+            done
+            echo "まだ古い build（$attempt/40）。15秒待つ。"
+            sleep 15
+          done
+          echo "公開先が $expect を出さないまま10分たった。候補: ${candidates[*]}" >&2
+          echo "base_url を渡して再実行するか、Cloudflare Pages のデプロイを確認すること。" >&2
+          exit 1
+
+      - name: Play one expedition end to end
+        id: play
+        shell: bash
+        env:
+          ECOLOGY_TRIAL_BASE: ${{ steps.resolve.outputs.url }}
+          PLAYWRIGHT_MODULE: playwright
+        run: |
+          set -euo pipefail
+          node analysis/ecology-trial.mjs | tee /tmp/trial.log
+          run_id="$(sed -n 's/^RUN_ID=//p' /tmp/trial.log | tail -1)"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      # **「保存しました」と画面が言うことと、行があることは別。**
+      # 2026-08-29、上限のずれで invalid_payload になっていたのに、
+      # 画面の文言だけを見て通してしまった。ここは D1 の実物を見る。
+      # 自由記述は選ばない（公開ログに出さない）。版・seed・印・件数だけ。
+      - name: Check the run actually landed in D1
+        if: steps.play.outputs.run_id != ''
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RUN_ID: ${{ steps.play.outputs.run_id }}
+          TRIAL_NOTE: "ecology-trial: 通し確認"
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "D1 の資格情報が無いので照合できない。未確認として扱うこと。" >&2
+            exit 1
+          fi
+          # 自由記述そのものは選ばない。**書いた通りに入っているか**だけを真偽で見る。
+          # （公開ジョブログへ本文を出さないため。答えの数値は元から公開情報。）
+          sql="SELECT run_id, game_version, event_count,
+            json_extract(stats_json, '\$.seed') AS seed,
+            json_extract(stats_json, '\$.buildStamp') AS build_stamp,
+            json_extract(stats_json, '\$.eventsRecorded') AS events_recorded,
+            json_extract(stats_json, '\$.eventsSent') AS events_sent,
+            json_extract(answers_json, '\$.replay') AS answer_replay,
+            json_extract(answers_json, '\$.marker') AS answer_marker,
+            (json_extract(answers_json, '\$.clear') = '${TRIAL_NOTE}') AS free_text_matches,
+            (SELECT COUNT(*) FROM moments WHERE moments.run_id = runs.run_id) AS moment_rows
+            FROM runs WHERE run_id = '${RUN_ID}';"
+          npx --yes wrangler@4.123.0 d1 execute garakuta-playtests \
+            --remote --json --command "$sql" > /tmp/row.json
+          jq -c '.[0].results' /tmp/row.json
+          found="$(jq '.[0].results | length' /tmp/row.json)"
+          if [[ "$found" != "1" ]]; then
+            echo "D1 に ${RUN_ID} の行が無い。画面は保存したと言っているのに残っていない。" >&2
+            exit 1
+          fi
+          if [[ "$(jq -r '.[0].results[0].free_text_matches' /tmp/row.json)" != "1" ]]; then
+            echo "自由記述が書いたとおりに入っていない。アンケートの本文が落ちている。" >&2
+            exit 1
+          fi
+          if [[ "$(jq -r '.[0].results[0].moment_rows' /tmp/row.json)" == "0" ]]; then
+            echo "感情マーカーの行が moments に無い。" >&2
+            exit 1
+          fi
+          {
+            echo "## D1 に残った行"
+            echo
+            jq -r '.[0].results[0] | "- run_id: `\(.run_id)`\n- game_version: \(.game_version)\n- seed: \(.seed)\n- build: \(.build_stamp)\n- events: \(.events_sent)/\(.events_recorded) 件"' /tmp/row.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report the URL that was played
+        if: always()
+        shell: bash
+        env:
+          URL: ${{ steps.resolve.outputs.url }}
+          EXPECT: ${{ steps.resolve.outputs.expect }}
+        run: |
+          {
+            echo "## Ecology trial"
+            echo
+            echo "- 遊んだURL: ${URL:-（未解決）}"
+            echo "- build の印: ${EXPECT:-（未解決）}"
+          } >> "$GITHUB_STEP_SUMMARY"
