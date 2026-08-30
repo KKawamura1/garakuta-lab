@@ -3637,7 +3637,7 @@
         },
         "amount": {
          "type": "constant",
-         "value": 20
+         "value": 10
         },
         "duration": "battle"
        }

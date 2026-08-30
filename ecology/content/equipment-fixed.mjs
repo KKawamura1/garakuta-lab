@@ -74,12 +74,12 @@ equipment.recovery_satchel = setRuleEffectAmount(
   2,
   "repair_equipment",
 );
-equipment.block_latch = cloneEquipment(
+equipment.block_latch = setRuleEffectAmount(cloneEquipment(
   "standing_plate",
   "block_latch",
   EQUIPMENT_NAMES.block_latch,
   { maxDurability: 2 },
-);
+), 1, "gain_barrier");
 equipment.impact_spring = cloneEquipment(
   "standing_plate",
   "impact_spring",
