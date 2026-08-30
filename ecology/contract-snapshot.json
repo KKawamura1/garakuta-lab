@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.3",
+ "contentVersion": "ecology-playable-full-0.4",
  "content": {
   "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.3",
+  "contentVersion": "ecology-playable-full-0.4",
   "characters": {
    "warden": {
     "id": "warden",
@@ -1346,6 +1346,240 @@
     ],
     "tags": [
      "attack"
+    ]
+   },
+   "guard_crush": {
+    "id": "guard_crush",
+    "displayName": "受け崩し",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 7000
+      },
+      "tags": [
+       "attack"
+      ],
+      "guardPierceBps": 10000
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "rear_hunt": {
+    "id": "rear_hunt",
+    "displayName": "後衛狩り",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "rear"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 8500
+      },
+      "tags": [
+       "attack"
+      ],
+      "reach": "ranged"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "finishing_thrust": {
+    "id": "finishing_thrust",
+    "displayName": "止めの一突き",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lte",
+       "value": 50
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 12000
+      },
+      "tags": [
+       "attack"
+      ]
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "crack_mark": {
+    "id": "crack_mark",
+    "displayName": "傷口を開く",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 6500
+      },
+      "tags": [
+       "attack",
+       "debuff"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "debuff"
+    ]
+   },
+   "brace_for_impact": {
+    "id": "brace_for_impact",
+    "displayName": "衝撃に備える",
+    "apCost": 1,
+    "actionMode": "utility",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_block",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "constant",
+       "value": 1
+      }
+     }
+    ],
+    "tags": [
+     "guard"
     ]
    }
   },
@@ -3820,6 +4054,11 @@
   "pierce_thrust": "貫き突き",
   "row_sweep": "薙ぎ払い",
   "column_thrust": "突き通し",
+  "guard_crush": "受け崩し",
+  "rear_hunt": "後衛狩り",
+  "finishing_thrust": "止めの一突き",
+  "crack_mark": "傷口を開く",
+  "brace_for_impact": "衝撃に備える",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -4024,6 +4263,46 @@
     "label": "突き通し",
     "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
     "grammar": "攻撃"
+   },
+   "guard_crush": {
+    "id": "guard_crush",
+    "kind": "active",
+    "definitionId": "guard_crush",
+    "label": "受け崩し",
+    "effect": "威力は控えめだが、相手の受けを完全に無視する。硬い単発防御に強い。",
+    "grammar": "攻撃"
+   },
+   "rear_hunt": {
+    "id": "rear_hunt",
+    "kind": "active",
+    "definitionId": "rear_hunt",
+    "label": "後衛狩り",
+    "effect": "後列の生存者だけを狙う。後列がいないときは通常攻撃へ戻る。",
+    "grammar": "攻撃"
+   },
+   "finishing_thrust": {
+    "id": "finishing_thrust",
+    "kind": "active",
+    "definitionId": "finishing_thrust",
+    "label": "止めの一突き",
+    "effect": "HP半分以下の敵だけを狙い、大きく削る。傷のない敵には使えない。",
+    "grammar": "攻撃"
+   },
+   "crack_mark": {
+    "id": "crack_mark",
+    "kind": "active",
+    "definitionId": "crack_mark",
+    "label": "傷口を開く",
+    "effect": "威力を抑えて攻撃し、狙った敵へ「隙」を付ける。追撃役がいるほど強い。",
+    "grammar": "攻撃"
+   },
+   "brace_for_impact": {
+    "id": "brace_for_impact",
+    "kind": "active",
+    "definitionId": "brace_for_impact",
+    "label": "衝撃に備える",
+    "effect": "受け構えを1つ得てから、通常の追い打ちを行う。多段攻撃には剥がされやすい。",
+    "grammar": "守り"
    },
    "strike": {
     "id": "strike",
@@ -4476,6 +4755,46 @@
    "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
    "grammar": "攻撃"
   },
+  "guard_crush": {
+   "id": "guard_crush",
+   "kind": "active",
+   "definitionId": "guard_crush",
+   "label": "受け崩し",
+   "effect": "威力は控えめだが、相手の受けを完全に無視する。硬い単発防御に強い。",
+   "grammar": "攻撃"
+  },
+  "rear_hunt": {
+   "id": "rear_hunt",
+   "kind": "active",
+   "definitionId": "rear_hunt",
+   "label": "後衛狩り",
+   "effect": "後列の生存者だけを狙う。後列がいないときは通常攻撃へ戻る。",
+   "grammar": "攻撃"
+  },
+  "finishing_thrust": {
+   "id": "finishing_thrust",
+   "kind": "active",
+   "definitionId": "finishing_thrust",
+   "label": "止めの一突き",
+   "effect": "HP半分以下の敵だけを狙い、大きく削る。傷のない敵には使えない。",
+   "grammar": "攻撃"
+  },
+  "crack_mark": {
+   "id": "crack_mark",
+   "kind": "active",
+   "definitionId": "crack_mark",
+   "label": "傷口を開く",
+   "effect": "威力を抑えて攻撃し、狙った敵へ「隙」を付ける。追撃役がいるほど強い。",
+   "grammar": "攻撃"
+  },
+  "brace_for_impact": {
+   "id": "brace_for_impact",
+   "kind": "active",
+   "definitionId": "brace_for_impact",
+   "label": "衝撃に備える",
+   "effect": "受け構えを1つ得てから、通常の追い打ちを行う。多段攻撃には剥がされやすい。",
+   "grammar": "守り"
+  },
   "strike": {
    "id": "strike",
    "kind": "active",
@@ -4892,6 +5211,11 @@
   "pierce_thrust",
   "row_sweep",
   "column_thrust",
+  "guard_crush",
+  "rear_hunt",
+  "finishing_thrust",
+  "crack_mark",
+  "brace_for_impact",
   "strike",
   "mend",
   "bulwark",
@@ -5241,6 +5565,61 @@
    "cost": 1,
    "requires": [
     "pierce_thrust"
+   ]
+  },
+  {
+   "id": "node_guard_crush",
+   "skillId": "guard_crush",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_rear_hunt",
+   "skillId": "rear_hunt",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "guard_crush"
+   ]
+  },
+  {
+   "id": "node_finishing",
+   "skillId": "finishing_thrust",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_crack_mark",
+   "skillId": "crack_mark",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_brace_impact",
+   "skillId": "brace_for_impact",
+   "kind": "active",
+   "branch": "守り",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "bulwark"
    ]
   },
   {

@@ -26,6 +26,11 @@ export const ACTIVE_SKILL_NAMES = {
   rear_strike: "後列打ち",
   enemy_heavy: "重い一撃",
   enemy_guard: "盾を構える",
+  guard_crush: "受け崩し",
+  rear_hunt: "後衛狩り",
+  finishing_thrust: "止めの一突き",
+  crack_mark: "傷口を開く",
+  brace_for_impact: "衝撃に備える",
 };
 
 const activeSkills = renamed("activeSkills", ACTIVE_SKILL_NAMES);
@@ -192,6 +197,85 @@ activeSkills.column_thrust = archetype("column_thrust", "突き通し", 7_000, {
   effectPatch: { targetPattern: "column" },
 });
 
+// Content Wave 1 — existing Phase A vocabulary only. Each skill changes the
+// answer to a different board question; none is a character-specific key.
+const EVENT_TARGET = { scope: "event_targets", filters: [{ type: "alive" }], take: 1 };
+const REAR_ENEMY = {
+  scope: "enemies",
+  filters: [{ type: "alive" }, { type: "row_is", row: "rear" }],
+  sort: ["hp_asc"],
+  take: 1,
+};
+
+function waveAttack(id, displayName, targetQuery, coefficientBps, effectPatch = {}, tags = ["attack"]) {
+  return {
+    id,
+    displayName,
+    apCost: 1,
+    actionMode: "offense",
+    intrinsicPredicates: [],
+    targetQuery,
+    effects: [{
+      type: "deal_damage",
+      target: EVENT_TARGET,
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps },
+      tags,
+      ...effectPatch,
+    }],
+    tags,
+  };
+}
+
+// Raw output is deliberately below basic, but it ignores guard completely.
+// It is weaker on unguarded targets and answers a different question than pierce.
+activeSkills.guard_crush = waveAttack(
+  "guard_crush", ACTIVE_SKILL_NAMES.guard_crush,
+  { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+  7_000,
+  { guardPierceBps: 10_000 },
+);
+// A ranged, rear-only choice. It becomes unusable when the rear is empty, so
+// the actor falls back to its core action instead of wasting an AP.
+activeSkills.rear_hunt = waveAttack("rear_hunt", ACTIVE_SKILL_NAMES.rear_hunt, REAR_ENEMY, 8_500, { reach: "ranged" });
+// A conditional finisher: no low-health target means the tactic is skipped.
+activeSkills.finishing_thrust = waveAttack(
+  "finishing_thrust", ACTIVE_SKILL_NAMES.finishing_thrust,
+  { scope: "enemies", filters: [{ type: "alive" }, { type: "hp_percent", op: "lte", value: 50 }], sort: ["hp_asc"], take: 1 },
+  12_000,
+);
+// Setup trades immediate damage for an exposed target. The second effect uses
+// the same selected target and therefore cannot mark a different actor.
+activeSkills.crack_mark = {
+  id: "crack_mark",
+  displayName: ACTIVE_SKILL_NAMES.crack_mark,
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+  effects: [
+    {
+      type: "deal_damage",
+      target: EVENT_TARGET,
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 6_500 },
+      tags: ["attack", "debuff"],
+    },
+    { type: "add_status", target: EVENT_TARGET, statusId: "exposed", stacks: 1 },
+  ],
+  tags: ["attack", "debuff"],
+};
+// Utility still receives the guaranteed 50% core follow-up. Its value is a
+// block charge, so it is good into one large hit and poor into many small hits.
+activeSkills.brace_for_impact = {
+  id: "brace_for_impact",
+  displayName: ACTIVE_SKILL_NAMES.brace_for_impact,
+  apCost: 1,
+  actionMode: "utility",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "self", take: 1 },
+  effects: [{ type: "gain_block", target: { scope: "self", take: 1 }, amount: { type: "constant", value: 1 } }],
+  tags: ["guard"],
+};
+
 // R6 §6.4 — active 技能の静的な種別。**skill tag だけで分類し、
 // 人物 ID や個別敵 ID による例外を作らない。**
 // direct damage を保証できるものが offense、純支援が utility、
@@ -202,6 +286,11 @@ const ACTION_MODES = {
   pierce_thrust: "offense",
   row_sweep: "offense",
   column_thrust: "offense",
+  guard_crush: "offense",
+  rear_hunt: "offense",
+  finishing_thrust: "offense",
+  crack_mark: "offense",
+  brace_for_impact: "utility",
   heavy_swing: "channel",     // 溜めが代償
   long_swing: "channel",      // 溜めが代償
   hunt_the_slow: "offense",
