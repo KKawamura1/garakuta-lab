@@ -23,20 +23,26 @@
 // 成功と誤認しない。同じ理由で、この関門は敵がどう作られるべきかについて
 // 何も仮定しない（特定の対策を強いる敵を正解として埋め込まない）。
 //
-// ## 関門は3つ。**別々の条件なので、別々に落ちる。**
+// ## 関門は2つ。**帯の床と天井を留める。**
 //
-//   1. 遠征が理不尽でない  : 探索の最良編成は、出荷している難度（1.0倍）を完走できる
-//   2. 雑な編成が通らない  : 無作為編成の耐久倍率の**中央値が 1.0 未満**
-//   3. 考える幅がある      : 知識の利得 ≥ 2.0
+//   床: 無作為編成の耐久倍率の**中央値が 1.0 未満**
+//       … 考えずに枠を埋めた編成が、出荷している難度を通ってはいけない
+//   天井: 探索で見つけた最良編成の耐久倍率が **2.0 以上**
+//       … 考え抜いた編成は、敵の連続量を全部2倍にしても完走できてほしい
 //
-// 1 が無いと 2 は「不可能にすれば通る」関門になり、2 が無いと 3 は
-// 「幅は存在するがプレイヤーがその外に立っている」状態を見逃す。実際、
-// 2026-08-30 の main はこの形だった（利得 2.11 倍で 3 は通るのに、無作為編成の
-// 中央値が 1.11 倍あり、**出荷難度が編成系の効く帯の下にあった**）。
-// 3 だけでは「編成系は壊れていないのに game が退屈」を検出できない。
+// 天井は作者の指定（2026-08-30）。**「いい戦略には、いい意味でゲームを壊してほしい」。**
+// 強い編成の到達点を、比ではなく絶対値で留める。難度を上げるだけでは通らない
+// （敵を強くすると探索の最良も同じだけ下がる）ので、天井を上げるには
+// 編成側の上振れを作るしかない。
 //
-// 閾値 2.0 は数字を見る前に決めた。1.0 は「出荷している難度そのもの」であって
-// 選んだ値ではない。**通らないからといって動かさない**（AGENTS.md）。
+// 床が無いと天井は「簡単にすれば通る」関門になり、
+// 天井が無いと床は「難しくすれば通る」関門になる。**両側から挟む。**
+//
+// 知識の利得（＝ 天井 ÷ 床）は、この2つから導かれる量なので関門にしない。
+// 床 < 1.0 かつ 天井 ≥ 2.0 なら利得は必ず 2.0 を超える。診断として印字だけする。
+//
+// 1.0 は「出荷している難度そのもの」であって選んだ値ではない。
+// 2.0 は作者が決めた。**通らないからといって動かさない**（AGENTS.md）。
 //
 // ## 関門自身の参照点
 //
@@ -66,6 +72,8 @@ const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
 const PREMIUM_GATE = 2.0;
 // 出荷している難度。選んだ閾値ではなく、遊ばれている設定そのもの。
 const SHIPPED_DIFFICULTY = 1.0;
+// 天井。**考え抜いた編成に届いてほしい高さ**（作者指定、2026-08-30）。
+const CEILING_GATE = 2.0;
 // 陰性参照の許容。全編成が同一なのだから、ちょうど 1.00 のはず。
 // 二分探索の刻みぶんだけ緩める。
 const IDENTICAL_TOLERANCE = 1.001;
@@ -87,11 +95,19 @@ const BASE_ENCOUNTERS = structuredClone(ENCOUNTERS);
 // 敵の強さを一律 multiplier 倍にする。**定義の maxHp と encounter の初期hpを
 // 同じ倍率で動かす。** 片方だけだと、敵が上限より低いHPで湧いて難度がずれる
 // （engine は `hp: enemy.hp ?? enemyStats.maxHp` で初期HPを決めている）。
+//
+// **倍にするのは連続量の4つだけ**（R6 §4.4 が連続量と呼んでいるもの）。
+// speed / AP / RP は小整数のままにする。ここを倍にすると敵の手数そのものが増えて、
+// 「同じ敵が強い」ではなく「敵が増えた」に化ける。**測りたいのは強さであって数ではない。**
+const SCALED_ENEMY_STATS = ["maxHp", "might", "focus", "guard"];
 function setDifficulty(multiplier) {
   for (const [id, base] of Object.entries(BASE_ENEMIES)) {
     const actor = PLAYABLE_CONTENT.enemyActors[id];
-    actor.maxHp = Math.max(1, Math.round(base.maxHp * multiplier));
-    actor.might = Math.max(1, Math.round(base.might * multiplier));
+    for (const stat of SCALED_ENEMY_STATS) {
+      if (typeof base[stat] !== "number") continue;
+      // guard は 0 の敵がいる。0 は 0 のままにする（下駄を履かせない）。
+      actor[stat] = base[stat] === 0 ? 0 : Math.max(1, Math.round(base[stat] * multiplier));
+    }
   }
   for (let i = 0; i < ENCOUNTERS.length; i += 1) {
     for (let j = 0; j < ENCOUNTERS[i].enemies.length; j += 1) {
@@ -200,6 +216,11 @@ function randomLoadout(rng, pools) {
 // 枠ごとに候補を総当たりして、点数が上がる置き換えだけ残す。
 // **無作為の最良から始める。** そうしないと、関門が落ちた理由が
 // 「game が平坦」なのか「探索が弱い」なのか分けられない。
+//
+// **登る難度は「いま一番強い編成がちょうど限界を迎える倍率」にする。**
+// ここを無作為の中央値にすると、その難度でだけ強い編成が見つかり、
+// 天井（もっと高い倍率で勝てるか）とずれる。実測で
+// 「探索の最良 2.02 < 運の最良 2.07」という逆転が出た。
 function climb(start, multiplier, pools, sweeps) {
   let best = structuredClone(start);
   let bestScore = score(best, multiplier);
@@ -245,8 +266,11 @@ function measure(label, pools, seed) {
     return { label, median, verdict: "判定不能", note: "無作為編成の中央値が 0 倍。比が定義できない" };
   }
 
-  const climbed = climb(luckiest.loadout, median, pools, GREEDY_SWEEPS);
-  const searched = tolerance(climbed.best);
+  const climbed = climb(luckiest.loadout, luckiest.tolerance, pools, GREEDY_SWEEPS);
+  // **報告する天井は、見つけた中で一番高いもの。** 山登りは固定難度の点数を
+  // 上げるので、耐久倍率で見ると種より下がることがある（別の量だから）。
+  // 下がったときに種を捨てると、探索の弱さを game の平坦さとして報告してしまう。
+  const searched = Math.max(tolerance(climbed.best), luckiest.tolerance);
   return {
     label,
     median,
@@ -255,6 +279,7 @@ function measure(label, pools, seed) {
     premium: searched / median,
     luckSpread: luckiest.tolerance / median,
     medianInterval,
+    values,
     evaluations: climbed.evaluations,
     verdict: null,
   };
@@ -357,6 +382,18 @@ assert.ok(
   + " game の判定へ進んではいけない",
 );
 
+// **出荷難度をどこへ置くと、無作為編成が通らなくなるか。**
+// 関門ではなく判断材料。床が落ちたとき、次に動かす一つ目の数がこれになる。
+function shippingDial(row) {
+  const lines = [];
+  for (const dial of [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]) {
+    const clears = row.values.filter((value) => value >= dial).length;
+    lines.push(`    敵 ${dial.toFixed(1)} 倍: 無作為編成の完走率 ${String(Math.round(clears * 100 / row.values.length)).padStart(3)}%`
+      + `（${clears}/${row.values.length}）`);
+  }
+  return lines.join("\n");
+}
+
 // ---------------------------------------------------------------------------
 // 本番
 // ---------------------------------------------------------------------------
@@ -365,17 +402,15 @@ console.log("\n灰の遠征（現行 content）:");
 const realRow = measure("現行", realPools, 20260830);
 report(realRow);
 
+console.log("\n  出荷難度をどこへ置くか（関門ではなく判断材料。天井は "
+  + realRow.searched.toFixed(2) + " 倍）:");
+console.log(shippingDial(realRow));
+
 assert.equal(realRow.verdict, null, `現行 content が判定不能: ${realRow.note ?? ""}`);
 
-// 関門1 — 遠征が理不尽でない。**関門2の参照点。**
-// これが無いと「勝てなくすれば通る」関門になる。
-assert.ok(
-  realRow.searched >= SHIPPED_DIFFICULTY,
-  `探索で見つけた最良編成でも敵 ${realRow.searched.toFixed(2)} 倍までしか耐えられず、`
-  + ` 出荷している難度 ${SHIPPED_DIFFICULTY.toFixed(2)} 倍を完走できない。遠征が理不尽になっている`,
-);
-
-// 関門2 — 雑な編成が通らない。**出荷難度が編成系の効く帯に入っているか。**
+// 床 — 考えずに枠を埋めた編成が、出荷している難度を通ってはいけない。
+// 中央値の95%区間が閾値をまたいでいたら、数字を出して判定不能で落とす
+// （AGENTS.md 検証5規則の3。黙って通さない）。
 const [medianLow, medianHigh] = realRow.medianInterval;
 assert.ok(
   medianLow > SHIPPED_DIFFICULTY || medianHigh < SHIPPED_DIFFICULTY,
@@ -385,27 +420,24 @@ assert.ok(
 );
 assert.ok(
   realRow.median < SHIPPED_DIFFICULTY,
-  `無作為に枠を埋めた編成が、敵 ${realRow.median.toFixed(2)} 倍まで耐える`
+  `【床】無作為に枠を埋めた編成が、敵の連続量 ${realRow.median.toFixed(2)} 倍まで耐える`
   + ` （95%区間 [${medianLow.toFixed(2)}, ${medianHigh.toFixed(2)}]）。`
-  + ` 出荷している難度は ${SHIPPED_DIFFICULTY.toFixed(2)} 倍なので、**考えずに組んだ編成が半分以上の確率で完走する。**`
-  + (realRow.premium >= PREMIUM_GATE
-    ? ` 知識の利得は ${realRow.premium.toFixed(2)} 倍あるので、編成系そのものは働いている。`
-      + " **出荷難度が、その幅の下に置かれている。**"
-    : "")
-  + " 選択が結果を決めていない",
+  + ` 出荷している難度は ${SHIPPED_DIFFICULTY.toFixed(2)} 倍なので、`
+  + " **考えずに組んだ編成が半分以上の確率で完走する。**"
+  + ` 探索の最良は ${realRow.searched.toFixed(2)} 倍あるので、幅そのものは在る。`
+  + " 出荷難度が、その帯の下に置かれている",
 );
 
-// 関門3 — 考える幅がある。
+// 天井 — 考え抜いた編成は、敵の連続量を全部2倍にしても完走できてほしい。
+// **「いい戦略には、いい意味でゲームを壊してほしい」**（作者、2026-08-30）。
 assert.ok(
-  realRow.premium >= PREMIUM_GATE,
-  `知識の利得が ${realRow.premium.toFixed(2)} 倍で、閾値 ${PREMIUM_GATE} に届かない。`
-  + ` 無作為に枠を埋めた編成が敵 ${realRow.median.toFixed(2)} 倍まで耐えるのに対し、`
-  + ` 探索で見つけた最良編成は ${realRow.searched.toFixed(2)} 倍しか耐えない。`
-  + (realRow.premium < realRow.luckSpread
-    ? ` しかも運の幅 ${realRow.luckSpread.toFixed(2)} 倍を下回っている。`
-      + " **考えて組むことが、さいころを振ることに負けている。**"
-    : "")
-  + " 編成画面が選択になっていない",
+  realRow.searched >= CEILING_GATE,
+  `【天井】探索で見つけた最良編成でも、敵の連続量 ${realRow.searched.toFixed(2)} 倍までしか耐えられない。`
+  + ` ${CEILING_GATE.toFixed(1)} 倍に届いていない。`
+  + ` 無作為編成の中央値 ${realRow.median.toFixed(2)} 倍に対する利得は ${realRow.premium.toFixed(2)} 倍、`
+  + ` 48回引き直したときの当たり（運の幅 ${realRow.luckSpread.toFixed(2)} 倍）と比べても`
+  + (realRow.premium <= realRow.luckSpread ? "小さい" : "大きくない")
+  + "。**上振れる編成が存在しない。** 技能・装備の側に、掛け算になる軸が要る",
 );
 
 console.log("\n決着しなかった戦闘（イベント上限）: " + eventLimitHits + " 件。"
