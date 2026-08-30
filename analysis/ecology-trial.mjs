@@ -232,11 +232,21 @@ try {
   await page.fill("#feedback-confusing", "ecology-trial: 通し確認");
   note("送信ボタンが画面内にある", await onScreen('[data-action="save-feedback"]'));
   await click("保存して送信");
-  await page.waitForTimeout(1200);
+  // 公開先のD1への送信はネットワーク応答次第で1.2秒を超えることがある。
+  // 成功・失敗の終端状態を最大10秒待ち、固定待機によるCIの揺れを避ける。
+  await page.waitForFunction(() => {
+    const label = document.querySelector('[data-action="save-feedback"]')?.textContent ?? "";
+    return label.includes("D1に保存しました")
+      || label.includes("端末に保存しました（D1未送信）");
+  }, null, { timeout: 10000 }).catch(() => {});
   const status = await page.locator("#feedback-status").textContent();
   // ローカルには /api/runs が無いので D1 未送信で正しい。公開先で走らせたときだけ ok を要求する。
-  note("送信の結果が画面に出る", Boolean(status && status.length > 0), status ?? "");
   const saveLabel = await page.locator('[data-action="save-feedback"]').textContent() ?? "";
+  const saveFinished = saveLabel.includes("D1に保存しました")
+    || saveLabel.includes("端末に保存しました（D1未送信）");
+  note("送信の結果が画面に出る",
+    saveFinished && Boolean(status && status.length > 0),
+    `${saveLabel} / ${status ?? ""}`);
   // **「保存しました」で見ない。**成功は「D1に保存しました」、失敗は
   // 「端末に保存しました（D1未送信）」。どちらにも「保存しました」が入るので、
   // 2026-08-29、この見方で invalid_payload を通してしまった。
