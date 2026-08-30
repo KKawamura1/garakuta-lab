@@ -16,7 +16,6 @@
      "fixture",
      "front"
     ],
-    "basicStrikeReach": "melee",
     "might": 32,
     "focus": 24,
     "guard": 10
@@ -33,7 +32,6 @@
      "fixture",
      "support"
     ],
-    "basicStrikeReach": "ranged",
     "might": 18,
     "focus": 44,
     "guard": 3
@@ -50,7 +48,6 @@
      "fixture",
      "strike"
     ],
-    "basicStrikeReach": "melee",
     "might": 46,
     "focus": 18,
     "guard": 4
@@ -102,7 +99,6 @@
      "fixture",
      "fast"
     ],
-    "basicStrikeReach": "ranged",
     "might": 36,
     "focus": 26,
     "guard": 2
@@ -170,7 +166,6 @@
      "fixture",
      "gate_e"
     ],
-    "basicStrikeReach": "melee",
     "might": 32,
     "focus": 32,
     "guard": 6
@@ -188,7 +183,6 @@
      "front",
      "guard"
     ],
-    "basicStrikeReach": "melee",
     "might": 26,
     "focus": 24,
     "guard": 12
@@ -206,7 +200,6 @@
      "rear",
      "attack"
     ],
-    "basicStrikeReach": "ranged",
     "might": 16,
     "focus": 50,
     "guard": 2
@@ -224,7 +217,6 @@
      "rear",
      "tempo"
     ],
-    "basicStrikeReach": "ranged",
     "might": 24,
     "focus": 40,
     "guard": 3
@@ -266,6 +258,7 @@
        "scalingStat": "might",
        "coefficientBps": 12000
       },
+      "reach": "melee",
       "tags": [
        "attack"
       ]
@@ -445,7 +438,8 @@
        "tags": [
         "attack",
         "heavy"
-       ]
+       ],
+       "reach": "melee"
       }
      ]
     },
@@ -550,7 +544,8 @@
        "tags": [
         "attack",
         "heavy"
-       ]
+       ],
+       "reach": "melee"
       }
      ]
     },
@@ -654,7 +649,8 @@
       "tags": [
        "attack",
        "hunt"
-      ]
+      ],
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -808,6 +804,7 @@
        "scalingStat": "might",
        "coefficientBps": 10000
       },
+      "reach": "melee",
       "tags": [
        "attack"
       ]
@@ -857,6 +854,7 @@
        "scalingStat": "might",
        "coefficientBps": 10000
       },
+      "reach": "ranged",
       "tags": [
        "attack"
       ]
@@ -911,7 +909,8 @@
        "tags": [
         "attack",
         "heavy"
-       ]
+       ],
+       "reach": "melee"
       }
      ]
     },
@@ -1094,7 +1093,7 @@
        "scalingStat": "might",
        "coefficientBps": 10000
       },
-      "reach": "ranged",
+      "reach": "melee",
       "tags": [
        "attack",
        "weapon",
@@ -1146,7 +1145,7 @@
        "scalingStat": "might",
        "coefficientBps": 5000
       },
-      "reach": "ranged",
+      "reach": "melee",
       "tags": [
        "attack",
        "weapon",
@@ -1202,7 +1201,8 @@
        "attack",
        "weapon"
       ],
-      "hitCount": 3
+      "hitCount": 3,
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1252,7 +1252,8 @@
        "attack",
        "weapon"
       ],
-      "guardPierceBps": 6000
+      "guardPierceBps": 6000,
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1325,7 +1326,8 @@
        "attack",
        "weapon"
       ],
-      "targetPattern": "row"
+      "targetPattern": "row",
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1375,7 +1377,8 @@
        "attack",
        "weapon"
       ],
-      "targetPattern": "column"
+      "targetPattern": "column",
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1421,7 +1424,8 @@
       "tags": [
        "attack"
       ],
-      "guardPierceBps": 10000
+      "guardPierceBps": 10000,
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1521,7 +1525,8 @@
       },
       "tags": [
        "attack"
-      ]
+      ],
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1573,7 +1578,8 @@
       "tags": [
        "attack",
        "debuff"
-      ]
+      ],
+      "reach": "melee"
      },
      {
       "type": "add_status",
@@ -4397,7 +4403,7 @@
    "gray_stalker": {
     "id": "gray_stalker",
     "displayName": "灰殻の潜み手",
-    "maxHp": 160,
+    "maxHp": 130,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4452,7 +4458,7 @@
    "gray_breaker": {
     "id": "gray_breaker",
     "displayName": "灰殻の砕き手",
-    "maxHp": 260,
+    "maxHp": 220,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4480,7 +4486,7 @@
    "gray_shelter": {
     "id": "gray_shelter",
     "displayName": "灰殻の籠り手",
-    "maxHp": 240,
+    "maxHp": 200,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4593,7 +4599,7 @@
    "gray_swarm": {
     "id": "gray_swarm",
     "displayName": "灰殻の群れ",
-    "maxHp": 100,
+    "maxHp": 80,
     "speed": 10,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4644,7 +4650,7 @@
    "ash_core": {
     "id": "ash_core",
     "displayName": "灰の核心",
-    "maxHp": 640,
+    "maxHp": 540,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -6594,7 +6600,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     }
    ],
    "maxRounds": 7
@@ -6608,13 +6614,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 260
+     "hp": 220
     }
    ],
    "maxRounds": 8
@@ -6634,7 +6640,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_runner",
@@ -6680,13 +6686,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_echo",
@@ -6698,7 +6704,7 @@
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 100
+     "hp": 80
     }
    ],
    "maxRounds": 10
@@ -6712,31 +6718,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 640
+     "hp": 540
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 260
+     "hp": 220
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 100
+     "hp": 80
     }
    ],
    "maxRounds": 12
@@ -6778,7 +6784,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     }
    ],
    "maxRounds": 7
@@ -6792,13 +6798,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 260
+     "hp": 220
     }
    ],
    "maxRounds": 8
@@ -6818,7 +6824,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_runner",
@@ -6864,13 +6870,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_echo",
@@ -6882,7 +6888,7 @@
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 100
+     "hp": 80
     }
    ],
    "maxRounds": 10
@@ -6896,31 +6902,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 640
+     "hp": 540
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 260
+     "hp": 220
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 100
+     "hp": 80
     }
    ],
    "maxRounds": 12
@@ -7440,7 +7446,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     }
    ]
   },
@@ -7563,13 +7569,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 260
+     "hp": 220
     }
    ]
   },
@@ -7698,7 +7704,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_runner",
@@ -7962,13 +7968,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_echo",
@@ -7980,7 +7986,7 @@
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 100
+     "hp": 80
     }
    ]
   },
@@ -8103,31 +8109,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 640
+     "hp": 540
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 260
+     "hp": 220
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 240
+     "hp": 200
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 160
+     "hp": 130
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 100
+     "hp": 80
     }
    ]
   }

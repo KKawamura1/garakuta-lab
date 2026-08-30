@@ -41,8 +41,8 @@ export const NAMED_SECTIONS = Object.freeze([
 
 export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
-  // Content Wave 1 のスキル追加とバランス調整を反映した build 印。
-  contentVersion: "ecology-playable-full-0.5",
+  // Content Wave 1 を追加した。**記録を分けるために上げる**。
+  contentVersion: "ecology-playable-full-0.4",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

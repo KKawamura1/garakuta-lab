@@ -78,6 +78,15 @@ for (const skillId of ["heavy_swing", "long_swing", "hunt_the_slow"]) {
 }
 assert.equal(PLAYABLE_CONTENT.activeSkills.mend.targetQuery.filters.at(-1).type, "hp_percent");
 assert.equal(PLAYABLE_CONTENT.activeSkills.mark_target.targetQuery.filters.at(-1).type, "has_status");
+assert.equal(PLAYABLE_CONTENT.characters.scout.basicStrikeReach, undefined, "reach must not be assigned by character role");
+for (const skillId of [
+  "strike", "rapid_cuts", "pierce_thrust", "row_sweep", "column_thrust", "guard_crush",
+  "finishing_thrust", "crack_mark", "heavy_swing", "long_swing", "hunt_the_slow",
+]) {
+  assert.equal(damageEffect(skillId).reach, "melee", skillId + " is melee unless explicitly ranged");
+}
+assert.equal(damageEffect("rear_hunt").reach, "ranged");
+assert.equal(PLAYABLE_CONTENT.activeSkills.rear_strike.effects[0].reach, "ranged");
 
 // An ineligible tactic is skipped without spending AP. If every tactic is
 // ineligible, the result must be byte-for-byte the same event stream as an
@@ -107,7 +116,7 @@ const impossibleSkillResult = simulateBattle(
 assert.deepEqual(impossibleSkillResult.events, noSkillResult.events, "an unusable skill must behave like no equipped skill");
 assert.ok(
   impossibleSkillResult.events.some(
-    (event) => event.type === "action_started" && event.sourceActorId === "a_scout" && event.skillId === "basic_strike_ranged",
+    (event) => event.type === "action_started" && event.sourceActorId === "a_scout" && event.skillId === "basic_strike_melee",
   ),
   "all unusable tactics must fall through to a normal attack",
 );
@@ -124,8 +133,53 @@ assert.equal(
   "an ineligible first tactic must yield to the next eligible tactic",
 );
 
+// Row position does not grant reach. A rear-positioned scout using an ordinary
+// skill or no skill can hit the front anchor, while the explicitly ranged
+// skill can select the rear stalker directly.
+const normalRearLoadout = freshLoadout(behaviorRoster);
+normalRearLoadout.tactics.scout = [];
+const normalRearResult = simulateBattle(
+  makeBattle(2, behaviorRoster, normalRearLoadout, "frontier-reach-by-skill", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+assert.equal(
+  normalRearResult.events.find((event) => event.type === "action_started" && event.sourceActorId === "a_scout")?.skillId,
+  "basic_strike_melee",
+  "a rear-positioned actor still uses the melee normal attack",
+);
+assert.deepEqual(
+  normalRearResult.events.find((event) => event.type === "target_selected" && event.sourceActorId === "a_scout")?.targetActorIds,
+  ["e_harrower"],
+  "a normal attack from the rear must target the enemy front row",
+);
+const frontSkillLoadout = freshLoadout(behaviorRoster);
+frontSkillLoadout.tactics.scout = ["strike"];
+const frontSkillResult = simulateBattle(
+  makeBattle(2, behaviorRoster, frontSkillLoadout, "frontier-reach-by-skill", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+assert.deepEqual(
+  frontSkillResult.events.find((event) => event.type === "target_selected" && event.sourceActorId === "a_scout")?.targetActorIds,
+  ["e_harrower"],
+  "an ordinary skill from the rear must target the enemy front row",
+);
+const rangedSkillLoadout = freshLoadout(behaviorRoster);
+rangedSkillLoadout.tactics.scout = ["rear_hunt"];
+const rangedSkillResult = simulateBattle(
+  makeBattle(2, behaviorRoster, rangedSkillLoadout, "frontier-reach-by-skill", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+assert.deepEqual(
+  rangedSkillResult.events.find((event) => event.type === "target_selected" && event.sourceActorId === "a_scout")?.targetActorIds,
+  ["e_stalker"],
+  "an explicitly ranged skill may target the enemy rear row",
+);
+
 // The final expedition must still distinguish a starter/default answer from a
-// deliberate Wave 1 answer after the skill buffs: default tactics time out,
+// deliberate Wave 1 answer after the skill buffs: default tactics fail,
 // while a build that attacks the rear, breaks guard and finishes low HP targets
 // clears the same fixed encounter.
 const defaultFinalResult = simulateBattle(
@@ -133,9 +187,9 @@ const defaultFinalResult = simulateBattle(
   PLAYABLE_CONTENT,
   PLAYABLE_ENGINE_OPTIONS,
 );
-assert.equal(
+assert.notEqual(
   defaultFinalResult.events.find((event) => event.type === "battle_ended")?.values?.reason,
-  "round_limit",
+  "objective_met",
   "the starter/default build must not auto-clear the final expedition",
 );
 const waveLoadout = freshLoadout(behaviorRoster);

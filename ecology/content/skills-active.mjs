@@ -135,8 +135,8 @@ for (const [id, scaling] of Object.entries(ACTIVE_SCALING)) {
 // 技能を持たない、全部が不発、有効対象なしのときに basic、
 // utility の解決後に fallback が一度だけ走る。
 //
-// 届き方は人物ごとなので melee / ranged の2つずつ持つ。**同じ技能に
-// engine が reach を注入するのではなく、content が両方を持って選ばせる。**
+// 通常攻撃の届き方も技能側の effect.reach で決める。playable では全員が
+// melee の core を使い、後衛へ届く技能だけが ranged を明示する。
 function coreStrike(id, displayName, coefficientBps, apCost, reach) {
   return {
     id,
@@ -315,6 +315,25 @@ activeSkills.brace_for_impact = {
   effects: [{ type: "gain_block", target: { scope: "self", take: 1 }, amount: { type: "constant", value: 1 } }],
   tags: ["guard"],
 };
+
+// `reach` is an effect-level contract field. Stamp the default on every
+// enemy-damaging skill so both tactic selection and effect resolution agree:
+// ordinary attacks stop at the front row while a ranged skill may cross it.
+function setDamageReach(skill, reach) {
+  for (const effect of [
+    ...(skill.effects ?? []),
+    ...(skill.preparation?.completionEffects ?? []),
+  ]) {
+    if (effect.type === "deal_damage") effect.reach = reach;
+  }
+  return skill;
+}
+
+for (const [id, skill] of Object.entries(activeSkills)) {
+  if (skill.targetQuery?.scope === "enemies") setDamageReach(skill, "melee");
+}
+setDamageReach(activeSkills.rear_strike, "ranged");
+setDamageReach(activeSkills.rear_hunt, "ranged");
 
 // R6 §6.4 — active 技能の静的な種別。**skill tag だけで分類し、
 // 人物 ID や個別敵 ID による例外を作らない。**

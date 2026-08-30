@@ -646,10 +646,6 @@ export function validateContentBundle(bundle) {
     requireCount(bag, `${path}.speed`, character.speed, { min: 0 });
     requireCount(bag, `${path}.baseActionPoints`, character.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, character.baseReactionPoints, { min: 0 });
-    // R6 §6.4 — basic strike の届き方は人物ごと。省略時は unrestricted。
-    if (character.basicStrikeReach !== undefined) {
-      requireOneOf(bag, `${path}.basicStrikeReach`, character.basicStrikeReach, REACHES, "unknown_reach");
-    }
     requireTags(bag, `${path}.tags`, character.tags);
     validateRules(bag, `${path}.signatureRules`, character.signatureRules, baseCtx);
   }

@@ -74,15 +74,9 @@ export const CHARACTER_STATS = {
   tactician: { maxHp: 170, might: 24, focus: 40, guard: 3,  speed: 7,  baseActionPoints: 1, baseReactionPoints: 2 },
 };
 
-// R6 §6.4 — basic strike の届き方。前で受ける人は近接、後ろから支える人は遠隔。
-// **signature variant で変えてよい**と R6 は言っているが、Phase A では固定。
-const BASIC_STRIKE_REACH = {
-  warden: "melee", mender: "ranged", lancer: "melee", scout: "ranged",
-  pivot: "melee", guardian: "melee", arcanist: "ranged", tactician: "ranged",
-};
-for (const [id, reach] of Object.entries(BASIC_STRIKE_REACH)) {
-  if (characters[id]) characters[id].basicStrikeReach = reach;
-}
+// R6 §6.4 — 届き方は技能側の effect.reach で決める。
+// playable の通常攻撃は全員 melee とし、後衛の仲間だから自動的に遠隔にはしない。
+// 後衛へ届く能力は `rear_hunt` など、技能定義が `reach: "ranged"` を持つものだけ。
 
 for (const [id, stats] of Object.entries(CHARACTER_STATS)) {
   Object.assign(characters[id], stats);

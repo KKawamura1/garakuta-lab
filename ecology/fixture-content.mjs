@@ -152,6 +152,10 @@ const activeSkills = {
         type: "deal_damage",
         target: { scope: "event_targets", filters: [ALIVE], take: 1 },
         amount: constant(4),
+        // Fixture content predates the playable formation rule. Keep this
+        // witness explicitly unrestricted so its cover test continues to
+        // start from the rear mender and exercise two redirects.
+        reach: "unrestricted",
         tags: ["attack"],
       },
     ],

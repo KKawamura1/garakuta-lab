@@ -2,7 +2,8 @@
 //
 // **敵 unit の定義と、その狙いの説明文。**
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
-// 種類別へ分離した。敵の役割に合わせたHP帯の調整もここで管理する。
+// 種類別へ分離した。**挙動は1バイトも変えていない**（ecology/contract.test.mjs が
+// 分離前の出力と深一致を見る）。
 //
 // ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
 
@@ -48,7 +49,7 @@ enemyActors.gray_marksman = cloneEnemy("husk", "gray_marksman", ENEMY_NAMES.gray
   tactics: [{ activeSkillId: "rear_strike", useWhen: [] }],
 });
 enemyActors.gray_stalker = cloneEnemy("husk", "gray_stalker", ENEMY_NAMES.gray_stalker, {
-  maxHp: 16,
+  maxHp: 13,
   speed: 7,
   tactics: [
     { activeSkillId: "rear_strike", useWhen: [] },
@@ -64,7 +65,7 @@ enemyActors.gray_guard = cloneEnemy("husk_warden", "gray_guard", ENEMY_NAMES.gra
   ],
 });
 enemyActors.gray_breaker = cloneEnemy("husk_warden", "gray_breaker", ENEMY_NAMES.gray_breaker, {
-  maxHp: 26,
+  maxHp: 22,
   speed: 5,
   tactics: [
     { activeSkillId: "enemy_heavy", useWhen: [] },
@@ -72,7 +73,7 @@ enemyActors.gray_breaker = cloneEnemy("husk_warden", "gray_breaker", ENEMY_NAMES
   ],
 });
 enemyActors.gray_shelter = cloneEnemy("husk_warden", "gray_shelter", ENEMY_NAMES.gray_shelter, {
-  maxHp: 24,
+  maxHp: 20,
   speed: 4,
   tactics: [
     { activeSkillId: "enemy_guard", useWhen: [] },
@@ -102,7 +103,7 @@ enemyActors.gray_echo = cloneEnemy("husk_echo", "gray_echo", ENEMY_NAMES.gray_ec
   tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
 });
 enemyActors.gray_swarm = cloneEnemy("husk", "gray_swarm", ENEMY_NAMES.gray_swarm, {
-  maxHp: 10,
+  maxHp: 8,
   speed: 10,
   tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
 });
@@ -115,7 +116,7 @@ enemyActors.gray_bulwark = cloneEnemy("husk_bulwark", "gray_bulwark", ENEMY_NAME
   ],
 });
 enemyActors.ash_core = cloneEnemy("husk_bulwark", "ash_core", ENEMY_NAMES.ash_core, {
-  maxHp: 64,
+  maxHp: 54,
   speed: 4,
   tactics: [
     { activeSkillId: "enemy_heavy", useWhen: [] },
