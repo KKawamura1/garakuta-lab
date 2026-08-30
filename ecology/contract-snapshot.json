@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.4",
+ "contentVersion": "ecology-playable-full-0.5",
  "content": {
   "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.4",
+  "contentVersion": "ecology-playable-full-0.5",
   "characters": {
    "warden": {
     "id": "warden",
@@ -264,7 +264,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 10000
+       "coefficientBps": 12000
       },
       "tags": [
        "attack"
@@ -286,6 +286,11 @@
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lt",
+       "value": 100
       }
      ],
      "sort": [
@@ -309,7 +314,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 8000
+       "coefficientBps": 25000
       },
       "tags": [
        "care"
@@ -341,7 +346,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 6000
+       "coefficientBps": 20000
       },
       "duration": "round"
      }
@@ -435,7 +440,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 22500
+        "coefficientBps": 55000
        },
        "tags": [
         "attack",
@@ -540,7 +545,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 22500
+        "coefficientBps": 100000
        },
        "tags": [
         "attack",
@@ -594,7 +599,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 20000
+       "coefficientBps": 25000
       },
       "tags": [
        "care",
@@ -644,7 +649,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 12500
+       "coefficientBps": 30000
       },
       "tags": [
        "attack",
@@ -701,6 +706,12 @@
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
       }
      ],
      "sort": [
@@ -895,7 +906,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 20000
+        "coefficientBps": 35000
        },
        "tags": [
         "attack",
@@ -1185,7 +1196,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 4000
+       "coefficientBps": 5000
       },
       "tags": [
        "attack",
@@ -1235,7 +1246,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 8000
+       "coefficientBps": 11500
       },
       "tags": [
        "attack",
@@ -1253,12 +1264,35 @@
     "displayName": "薙ぎ払い",
     "apCost": 1,
     "actionMode": "offense",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 2,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "front"
       }
      ],
      "sort": [
@@ -1285,7 +1319,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 6000
+       "coefficientBps": 8000
       },
       "tags": [
        "attack",
@@ -1335,7 +1369,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 7000
+       "coefficientBps": 11000
       },
       "tags": [
        "attack",
@@ -1382,7 +1416,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 7000
+       "coefficientBps": 11500
       },
       "tags": [
        "attack"
@@ -1432,7 +1466,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 8500
+       "coefficientBps": 12000
       },
       "tags": [
        "attack"
@@ -1483,7 +1517,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 12000
+       "coefficientBps": 14000
       },
       "tags": [
        "attack"
@@ -1505,6 +1539,12 @@
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
       }
      ],
      "sort": [
@@ -1528,7 +1568,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 6500
+       "coefficientBps": 11000
       },
       "tags": [
        "attack",
@@ -4357,7 +4397,7 @@
    "gray_stalker": {
     "id": "gray_stalker",
     "displayName": "灰殻の潜み手",
-    "maxHp": 130,
+    "maxHp": 160,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4412,7 +4452,7 @@
    "gray_breaker": {
     "id": "gray_breaker",
     "displayName": "灰殻の砕き手",
-    "maxHp": 220,
+    "maxHp": 260,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4440,7 +4480,7 @@
    "gray_shelter": {
     "id": "gray_shelter",
     "displayName": "灰殻の籠り手",
-    "maxHp": 200,
+    "maxHp": 240,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4553,7 +4593,7 @@
    "gray_swarm": {
     "id": "gray_swarm",
     "displayName": "灰殻の群れ",
-    "maxHp": 80,
+    "maxHp": 100,
     "speed": 10,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4604,7 +4644,7 @@
    "ash_core": {
     "id": "ash_core",
     "displayName": "灰の核心",
-    "maxHp": 540,
+    "maxHp": 640,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4871,7 +4911,7 @@
     "kind": "active",
     "definitionId": "rapid_cuts",
     "label": "刻み斬り",
-    "effect": "3回に分けて刻む。合計は大きいが、受けの硬い相手には通りにくい。",
+    "effect": "50%を3回。合計150%で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
     "grammar": "攻撃"
    },
    "pierce_thrust": {
@@ -4879,7 +4919,7 @@
     "kind": "active",
     "definitionId": "pierce_thrust",
     "label": "貫き突き",
-    "effect": "威力は控えめだが、相手の受けを6割無視する。硬い相手向け。",
+    "effect": "通常攻撃を上回る115%。相手の受けを6割無視する。硬い相手向け。",
     "grammar": "攻撃"
    },
    "row_sweep": {
@@ -4887,7 +4927,7 @@
     "kind": "active",
     "definitionId": "row_sweep",
     "label": "薙ぎ払い",
-    "effect": "狙った相手と同じ行を薙ぐ。前列に3人並ぶ相手ほど効く。",
+    "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。1体なら通常攻撃へ戻る。",
     "grammar": "攻撃"
    },
    "column_thrust": {
@@ -4895,7 +4935,7 @@
     "kind": "active",
     "definitionId": "column_thrust",
     "label": "突き通し",
-    "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
+    "effect": "同じ列の前後を110%ずつ貫く。後列を庇う列に効く。",
     "grammar": "攻撃"
    },
    "guard_crush": {
@@ -4903,7 +4943,7 @@
     "kind": "active",
     "definitionId": "guard_crush",
     "label": "受け崩し",
-    "effect": "威力は控えめだが、相手の受けを完全に無視する。硬い単発防御に強い。",
+    "effect": "通常攻撃を上回る115%。相手の受け構えと受けを完全に無視する。",
     "grammar": "攻撃"
    },
    "rear_hunt": {
@@ -4911,7 +4951,7 @@
     "kind": "active",
     "definitionId": "rear_hunt",
     "label": "後衛狩り",
-    "effect": "後列の生存者だけを狙う。後列がいないときは通常攻撃へ戻る。",
+    "effect": "後列の生存者だけを120%で狙う。後列がいないときは通常攻撃へ戻る。",
     "grammar": "攻撃"
    },
    "finishing_thrust": {
@@ -4919,7 +4959,7 @@
     "kind": "active",
     "definitionId": "finishing_thrust",
     "label": "止めの一突き",
-    "effect": "HP半分以下の敵だけを狙い、大きく削る。傷のない敵には使えない。",
+    "effect": "HP半分以下の敵だけを140%で狙う。条件なしでは通常攻撃へ戻る。",
     "grammar": "攻撃"
    },
    "crack_mark": {
@@ -4927,7 +4967,7 @@
     "kind": "active",
     "definitionId": "crack_mark",
     "label": "傷口を開く",
-    "effect": "威力を抑えて攻撃し、狙った敵へ「隙」を付ける。追撃役がいるほど強い。",
+    "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。すでに隙があれば通常攻撃へ戻る。",
     "grammar": "攻撃"
    },
    "brace_for_impact": {
@@ -4943,7 +4983,7 @@
     "kind": "active",
     "definitionId": "strike",
     "label": "斬撃",
-    "effect": "最も弱った敵へ4ダメージ。",
+    "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
     "grammar": "攻撃"
    },
    "mend": {
@@ -4951,7 +4991,7 @@
     "kind": "active",
     "definitionId": "mend",
     "label": "手当て",
-    "effect": "最も傷ついた味方を5回復。",
+    "effect": "傷ついた味方を100%回復。負傷者がいなければ通常攻撃へ戻る。",
     "grammar": "支援"
    },
    "bulwark": {
@@ -4959,7 +4999,7 @@
     "kind": "active",
     "definitionId": "bulwark",
     "label": "防壁形成",
-    "effect": "自分にラウンド防壁3。",
+    "effect": "自分に80%相当のラウンド防壁を張ってから、追い打ちを行う。",
     "grammar": "守り"
    },
    "relay_order": {
@@ -4975,7 +5015,7 @@
     "kind": "active",
     "definitionId": "heavy_swing",
     "label": "溜め突き",
-    "effect": "準備1回のあと、最も傷ついた敵へ9ダメージ。",
+    "effect": "準備1回のあと、通常攻撃2回分を上回る220%の一撃。",
     "grammar": "攻撃"
    },
    "reposition": {
@@ -4991,7 +5031,7 @@
     "kind": "active",
     "definitionId": "long_swing",
     "label": "大溜め",
-    "effect": "準備3回のあと、最も傷ついた敵へ9ダメージ。",
+    "effect": "準備3回のあと、通常攻撃4回分の400%を一撃で返す。",
     "grammar": "攻撃"
    },
    "triage": {
@@ -4999,7 +5039,7 @@
     "kind": "active",
     "definitionId": "triage",
     "label": "応急手当",
-    "effect": "HP半分以下の味方を8回復。",
+    "effect": "HP半分以下の味方を100%回復。条件なしでは通常攻撃へ戻る。",
     "grammar": "支援"
    },
    "hunt_the_slow": {
@@ -5007,7 +5047,7 @@
     "kind": "active",
     "definitionId": "hunt_the_slow",
     "label": "準備狩り",
-    "effect": "準備中の敵へ5ダメージ。",
+    "effect": "準備中の敵へ120%の一撃。いなければ次の攻撃へ進む。",
     "grammar": "攻撃"
    },
    "idle_shuffle": {
@@ -5023,7 +5063,7 @@
     "kind": "active",
     "definitionId": "mark_target",
     "label": "隙を刻む",
-    "effect": "最もHPの高い敵に「隙」を1つ付ける。",
+    "effect": "まだ「隙」のない敵に付与する。全員に隙があれば通常攻撃へ戻る。",
     "grammar": "指揮"
    },
    "steady_aim": {
@@ -5031,7 +5071,7 @@
     "kind": "active",
     "definitionId": "steady_aim",
     "label": "狙いを澄ます",
-    "effect": "自分に「集中」を1つ付ける。",
+    "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中は通常攻撃。",
     "grammar": "準備"
    }
   },
@@ -5440,7 +5480,7 @@
    "kind": "active",
    "definitionId": "rapid_cuts",
    "label": "刻み斬り",
-   "effect": "3回に分けて刻む。合計は大きいが、受けの硬い相手には通りにくい。",
+   "effect": "50%を3回。合計150%で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
    "grammar": "攻撃"
   },
   "pierce_thrust": {
@@ -5448,7 +5488,7 @@
    "kind": "active",
    "definitionId": "pierce_thrust",
    "label": "貫き突き",
-   "effect": "威力は控えめだが、相手の受けを6割無視する。硬い相手向け。",
+   "effect": "通常攻撃を上回る115%。相手の受けを6割無視する。硬い相手向け。",
    "grammar": "攻撃"
   },
   "row_sweep": {
@@ -5456,7 +5496,7 @@
    "kind": "active",
    "definitionId": "row_sweep",
    "label": "薙ぎ払い",
-   "effect": "狙った相手と同じ行を薙ぐ。前列に3人並ぶ相手ほど効く。",
+   "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。1体なら通常攻撃へ戻る。",
    "grammar": "攻撃"
   },
   "column_thrust": {
@@ -5464,7 +5504,7 @@
    "kind": "active",
    "definitionId": "column_thrust",
    "label": "突き通し",
-   "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
+   "effect": "同じ列の前後を110%ずつ貫く。後列を庇う列に効く。",
    "grammar": "攻撃"
   },
   "guard_crush": {
@@ -5472,7 +5512,7 @@
    "kind": "active",
    "definitionId": "guard_crush",
    "label": "受け崩し",
-   "effect": "威力は控えめだが、相手の受けを完全に無視する。硬い単発防御に強い。",
+   "effect": "通常攻撃を上回る115%。相手の受け構えと受けを完全に無視する。",
    "grammar": "攻撃"
   },
   "rear_hunt": {
@@ -5480,7 +5520,7 @@
    "kind": "active",
    "definitionId": "rear_hunt",
    "label": "後衛狩り",
-   "effect": "後列の生存者だけを狙う。後列がいないときは通常攻撃へ戻る。",
+   "effect": "後列の生存者だけを120%で狙う。後列がいないときは通常攻撃へ戻る。",
    "grammar": "攻撃"
   },
   "finishing_thrust": {
@@ -5488,7 +5528,7 @@
    "kind": "active",
    "definitionId": "finishing_thrust",
    "label": "止めの一突き",
-   "effect": "HP半分以下の敵だけを狙い、大きく削る。傷のない敵には使えない。",
+   "effect": "HP半分以下の敵だけを140%で狙う。条件なしでは通常攻撃へ戻る。",
    "grammar": "攻撃"
   },
   "crack_mark": {
@@ -5496,7 +5536,7 @@
    "kind": "active",
    "definitionId": "crack_mark",
    "label": "傷口を開く",
-   "effect": "威力を抑えて攻撃し、狙った敵へ「隙」を付ける。追撃役がいるほど強い。",
+   "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。すでに隙があれば通常攻撃へ戻る。",
    "grammar": "攻撃"
   },
   "brace_for_impact": {
@@ -5512,7 +5552,7 @@
    "kind": "active",
    "definitionId": "strike",
    "label": "斬撃",
-   "effect": "最も弱った敵へ4ダメージ。",
+   "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
    "grammar": "攻撃"
   },
   "mend": {
@@ -5520,7 +5560,7 @@
    "kind": "active",
    "definitionId": "mend",
    "label": "手当て",
-   "effect": "最も傷ついた味方を5回復。",
+   "effect": "傷ついた味方を100%回復。負傷者がいなければ通常攻撃へ戻る。",
    "grammar": "支援"
   },
   "bulwark": {
@@ -5528,7 +5568,7 @@
    "kind": "active",
    "definitionId": "bulwark",
    "label": "防壁形成",
-   "effect": "自分にラウンド防壁3。",
+   "effect": "自分に80%相当のラウンド防壁を張ってから、追い打ちを行う。",
    "grammar": "守り"
   },
   "relay_order": {
@@ -5544,7 +5584,7 @@
    "kind": "active",
    "definitionId": "heavy_swing",
    "label": "溜め突き",
-   "effect": "準備1回のあと、最も傷ついた敵へ9ダメージ。",
+   "effect": "準備1回のあと、通常攻撃2回分を上回る220%の一撃。",
    "grammar": "攻撃"
   },
   "reposition": {
@@ -5560,7 +5600,7 @@
    "kind": "active",
    "definitionId": "long_swing",
    "label": "大溜め",
-   "effect": "準備3回のあと、最も傷ついた敵へ9ダメージ。",
+   "effect": "準備3回のあと、通常攻撃4回分の400%を一撃で返す。",
    "grammar": "攻撃"
   },
   "triage": {
@@ -5568,7 +5608,7 @@
    "kind": "active",
    "definitionId": "triage",
    "label": "応急手当",
-   "effect": "HP半分以下の味方を8回復。",
+   "effect": "HP半分以下の味方を100%回復。条件なしでは通常攻撃へ戻る。",
    "grammar": "支援"
   },
   "hunt_the_slow": {
@@ -5576,7 +5616,7 @@
    "kind": "active",
    "definitionId": "hunt_the_slow",
    "label": "準備狩り",
-   "effect": "準備中の敵へ5ダメージ。",
+   "effect": "準備中の敵へ120%の一撃。いなければ次の攻撃へ進む。",
    "grammar": "攻撃"
   },
   "idle_shuffle": {
@@ -5592,7 +5632,7 @@
    "kind": "active",
    "definitionId": "mark_target",
    "label": "隙を刻む",
-   "effect": "最もHPの高い敵に「隙」を1つ付ける。",
+   "effect": "まだ「隙」のない敵に付与する。全員に隙があれば通常攻撃へ戻る。",
    "grammar": "指揮"
   },
   "steady_aim": {
@@ -5600,7 +5640,7 @@
    "kind": "active",
    "definitionId": "steady_aim",
    "label": "狙いを澄ます",
-   "effect": "自分に「集中」を1つ付ける。",
+   "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中は通常攻撃。",
    "grammar": "準備"
   },
   "counter_blow": {
@@ -6554,7 +6594,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     }
    ],
    "maxRounds": 7
@@ -6568,13 +6608,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 220
+     "hp": 260
     }
    ],
    "maxRounds": 8
@@ -6594,7 +6634,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_runner",
@@ -6640,13 +6680,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_echo",
@@ -6658,7 +6698,7 @@
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 100
     }
    ],
    "maxRounds": 10
@@ -6672,31 +6712,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 540
+     "hp": 640
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 220
+     "hp": 260
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 100
     }
    ],
    "maxRounds": 12
@@ -6738,7 +6778,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     }
    ],
    "maxRounds": 7
@@ -6752,13 +6792,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 220
+     "hp": 260
     }
    ],
    "maxRounds": 8
@@ -6778,7 +6818,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_runner",
@@ -6824,13 +6864,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_echo",
@@ -6842,7 +6882,7 @@
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 100
     }
    ],
    "maxRounds": 10
@@ -6856,31 +6896,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 540
+     "hp": 640
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 220
+     "hp": 260
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 100
     }
    ],
    "maxRounds": 12
@@ -7400,7 +7440,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     }
    ]
   },
@@ -7523,13 +7563,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 220
+     "hp": 260
     }
    ]
   },
@@ -7658,7 +7698,7 @@
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_runner",
@@ -7922,13 +7962,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_echo",
@@ -7940,7 +7980,7 @@
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 100
     }
    ]
   },
@@ -8063,31 +8103,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 540
+     "hp": 640
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 220
+     "hp": 260
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 160
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 100
     }
    ]
   }

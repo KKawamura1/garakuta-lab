@@ -1,8 +1,7 @@
 // ecology/content/encounters.mjs
 //
 // **区画ごとの敵の配置。threat budget は Phase B まで入れない。**
-// R7 Milestone 0 で playable-battles.mjs から分離した。**挙動は変えていない**
-// （ecology/contract.test.mjs が分離前の出力と深一致を見る）。
+// R7 Milestone 0 で playable-battles.mjs から分離した。Wave 1 の難度調整もここで行う。
 //
 // ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
 
@@ -25,7 +24,7 @@ export const ENCOUNTERS = [
     description: "準備中の味方を追う追い手と、後列へ潜む潜み手。狙われる順番を読む。",
     enemies: [
       { instanceId: "e_harrower", enemyActorId: "gray_harrower", position: "front_left", hp: 18 },
-      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 13 },
+      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 16 },
     ],
     maxRounds: 7,
   },
@@ -34,8 +33,8 @@ export const ENCOUNTERS = [
     name: "崩れた盾列",
     description: "防壁で粘る籠り手と、重い一撃を準備する砕き手。受けるか先に崩すかを選ぶ。",
     enemies: [
-      { instanceId: "e_shelter", enemyActorId: "gray_shelter", position: "front_left", hp: 20 },
-      { instanceId: "e_breaker", enemyActorId: "gray_breaker", position: "front_right", hp: 22 },
+      { instanceId: "e_shelter", enemyActorId: "gray_shelter", position: "front_left", hp: 24 },
+      { instanceId: "e_breaker", enemyActorId: "gray_breaker", position: "front_right", hp: 26 },
     ],
     maxRounds: 8,
   },
@@ -45,7 +44,7 @@ export const ENCOUNTERS = [
     description: "反響体と潜み手が別の列から圧をかける。単発の大打撃と回復を使い分ける。",
     enemies: [
       { instanceId: "e_echo", enemyActorId: "gray_echo", position: "front_left", hp: 20 },
-      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 13 },
+      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 16 },
       { instanceId: "e_runner", enemyActorId: "gray_runner", position: "front_right", hp: 12 },
     ],
     maxRounds: 8,
@@ -66,10 +65,10 @@ export const ENCOUNTERS = [
     name: "二つの狙い",
     description: "籠り手と反響体が前列を削り、潜み手と群れが後列を揺さぶる。配置そのものが防御になる。",
     enemies: [
-      { instanceId: "e_shelter", enemyActorId: "gray_shelter", position: "front_left", hp: 20 },
-      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 13 },
+      { instanceId: "e_shelter", enemyActorId: "gray_shelter", position: "front_left", hp: 24 },
+      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 16 },
       { instanceId: "e_echo", enemyActorId: "gray_echo", position: "front_right", hp: 20 },
-      { instanceId: "e_swarm", enemyActorId: "gray_swarm", position: "rear_right", hp: 8 },
+      { instanceId: "e_swarm", enemyActorId: "gray_swarm", position: "rear_right", hp: 10 },
     ],
     maxRounds: 10,
   },
@@ -78,11 +77,11 @@ export const ENCOUNTERS = [
     name: "灰の核心",
     description: "準備する核心を止めながら、砕き手と籠り手を突破し、後列の潜み手と群れも抑える最終戦。",
     enemies: [
-      { instanceId: "e_core", enemyActorId: "ash_core", position: "front_left", hp: 54 },
-      { instanceId: "e_breaker", enemyActorId: "gray_breaker", position: "front_center", hp: 22 },
-      { instanceId: "e_shelter", enemyActorId: "gray_shelter", position: "front_right", hp: 20 },
-      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 13 },
-      { instanceId: "e_swarm", enemyActorId: "gray_swarm", position: "rear_right", hp: 8 },
+      { instanceId: "e_core", enemyActorId: "ash_core", position: "front_left", hp: 64 },
+      { instanceId: "e_breaker", enemyActorId: "gray_breaker", position: "front_center", hp: 26 },
+      { instanceId: "e_shelter", enemyActorId: "gray_shelter", position: "front_right", hp: 24 },
+      { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left", hp: 16 },
+      { instanceId: "e_swarm", enemyActorId: "gray_swarm", position: "rear_right", hp: 10 },
     ],
     maxRounds: 12,
   },

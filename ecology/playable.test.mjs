@@ -48,6 +48,113 @@ for (const node of SKILL_TREE_NODES.filter((n) => n.kind === "passive" && n.bran
   assert.deepEqual(node.requires, [], node.id + " は前提を持たない");
 }
 
+// Balance contract: the core normal attack is 100% might. Direct-damage
+// skills must beat it when their target condition is true; multi-target and
+// multi-hit skills are checked by their full intended payload.
+const normalAttackCoefficient = 10_000;
+const damageEffect = (skillId) => {
+  const skill = PLAYABLE_CONTENT.activeSkills[skillId];
+  return skill.effects?.find((effect) => effect.type === "deal_damage")
+    ?? skill.preparation?.completionEffects?.find((effect) => effect.type === "deal_damage");
+};
+assert.ok(PLAYABLE_CONTENT.activeSkills.basic_strike_melee.effects[0].amount.coefficientBps === normalAttackCoefficient);
+assert.ok(PLAYABLE_CONTENT.activeSkills.strike.effects[0].amount.coefficientBps > normalAttackCoefficient);
+assert.ok(
+  damageEffect("rapid_cuts").amount.coefficientBps * damageEffect("rapid_cuts").hitCount > normalAttackCoefficient,
+);
+for (const skillId of [
+  "pierce_thrust", "column_thrust", "guard_crush", "rear_hunt", "finishing_thrust", "crack_mark",
+]) {
+  assert.ok(
+    damageEffect(skillId).amount.coefficientBps > normalAttackCoefficient,
+    skillId + " must beat the normal attack when its condition is true",
+  );
+}
+for (const skillId of ["heavy_swing", "long_swing", "hunt_the_slow"]) {
+  assert.ok(
+    damageEffect(skillId).amount.coefficientBps > normalAttackCoefficient,
+    skillId + " completion must beat the normal attack",
+  );
+}
+assert.equal(PLAYABLE_CONTENT.activeSkills.mend.targetQuery.filters.at(-1).type, "hp_percent");
+assert.equal(PLAYABLE_CONTENT.activeSkills.mark_target.targetQuery.filters.at(-1).type, "has_status");
+
+// An ineligible tactic is skipped without spending AP. If every tactic is
+// ineligible, the result must be byte-for-byte the same event stream as an
+// actor with no skills equipped; a later eligible tactic is still tried.
+const behaviorRoster = ["warden", "mender", "lancer", "scout", "guardian"];
+const behaviorFormation = {
+  warden: "front_left",
+  mender: "rear_left",
+  lancer: "front_right",
+  scout: "rear_right",
+  guardian: "front_center",
+};
+const noSkillLoadout = freshLoadout(behaviorRoster);
+noSkillLoadout.tactics.scout = [];
+const impossibleSkillLoadout = freshLoadout(behaviorRoster);
+impossibleSkillLoadout.tactics.scout = ["rear_hunt"];
+const noSkillResult = simulateBattle(
+  makeBattle(1, behaviorRoster, noSkillLoadout, "frontier-skill-fallback", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+const impossibleSkillResult = simulateBattle(
+  makeBattle(1, behaviorRoster, impossibleSkillLoadout, "frontier-skill-fallback", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+assert.deepEqual(impossibleSkillResult.events, noSkillResult.events, "an unusable skill must behave like no equipped skill");
+assert.ok(
+  impossibleSkillResult.events.some(
+    (event) => event.type === "action_started" && event.sourceActorId === "a_scout" && event.skillId === "basic_strike_ranged",
+  ),
+  "all unusable tactics must fall through to a normal attack",
+);
+const nextSkillLoadout = freshLoadout(behaviorRoster);
+nextSkillLoadout.tactics.scout = ["rear_hunt", "strike"];
+const nextSkillResult = simulateBattle(
+  makeBattle(1, behaviorRoster, nextSkillLoadout, "frontier-skill-fallback", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+assert.equal(
+  nextSkillResult.events.find((event) => event.type === "action_started" && event.sourceActorId === "a_scout")?.skillId,
+  "strike",
+  "an ineligible first tactic must yield to the next eligible tactic",
+);
+
+// The final expedition must still distinguish a starter/default answer from a
+// deliberate Wave 1 answer after the skill buffs: default tactics time out,
+// while a build that attacks the rear, breaks guard and finishes low HP targets
+// clears the same fixed encounter.
+const defaultFinalResult = simulateBattle(
+  makeBattle(7, behaviorRoster, freshLoadout(behaviorRoster), "frontier-balance-final", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+assert.equal(
+  defaultFinalResult.events.find((event) => event.type === "battle_ended")?.values?.reason,
+  "round_limit",
+  "the starter/default build must not auto-clear the final expedition",
+);
+const waveLoadout = freshLoadout(behaviorRoster);
+waveLoadout.tactics.warden = ["guard_crush", "strike"];
+waveLoadout.tactics.mender = ["mend", "triage"];
+waveLoadout.tactics.lancer = ["finishing_thrust", "strike"];
+waveLoadout.tactics.scout = ["rear_hunt", "strike"];
+waveLoadout.tactics.guardian = ["row_sweep", "column_thrust"];
+const waveFinalResult = simulateBattle(
+  makeBattle(7, behaviorRoster, waveLoadout, "frontier-balance-final", behaviorFormation),
+  PLAYABLE_CONTENT,
+  PLAYABLE_ENGINE_OPTIONS,
+);
+assert.equal(
+  waveFinalResult.events.find((event) => event.type === "battle_ended")?.values?.reason,
+  "objective_met",
+  "a Wave 1 composition must be able to clear the final expedition",
+);
+
 for (const [id, skill] of Object.entries(SKILLS.active)) {
   assert.ok(PLAYABLE_CONTENT.activeSkills[id], id + " must point at real active content");
   assert.ok(skill.effect.length > 0);

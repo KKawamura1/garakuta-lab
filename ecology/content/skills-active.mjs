@@ -2,8 +2,7 @@
 //
 // **行動技能（active skill）の定義。**
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
-// 種類別へ分離した。**挙動は1バイトも変えていない**（ecology/contract.test.mjs が
-// 分離前の出力と深一致を見る）。
+// 種類別へ分離した。Wave 1 の追加と、その後の倍率・条件バランスもここで管理する。
 //
 // ここを触ってよいのは 技能 担当だけ。engine・schema・共通registryは変更しない。
 
@@ -87,24 +86,44 @@ activeSkills.enemy_guard = cloneActive("bulwark", "enemy_guard", ACTIVE_SKILL_NA
   }],
 });
 
+// A support action is only worth spending when it can change the board. If no
+// ally is injured, mend is not a weaker empty heal: its target query is empty
+// and the engine selects the core normal attack instead.
+activeSkills.mend.targetQuery = {
+  scope: "allies",
+  filters: [{ type: "alive" }, { type: "hp_percent", op: "lt", value: 100 }],
+  sort: ["hp_asc"],
+  take: 1,
+};
+
+// Likewise, marking an already exposed target has no tactical value. Keep the
+// effect strong on a fresh target and let the normal attack handle repeats.
+activeSkills.mark_target.targetQuery = {
+  scope: "enemies",
+  filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "eq", value: 0 }],
+  sort: ["hp_desc"],
+  take: 1,
+};
+
 // R6 §4.4 — Phase A の係数。**技能ごとに weapon(might) か technique(focus) かを決める。**
-// R6 が名指しした3つは名指しの値、それ以外は中立 parameter 40 で
-// 現行の相対効果量を保つ係数（現行値 × 2500 bps）から始める。
+// ここでは「通常攻撃 = might 100%」を基準に、攻撃技能は条件を満たした
+// 場合に明確な上振れになるようにする。条件を満たせない技能は targetQuery
+// が空になり、engine の basic fallback へ戻る。
 export const ACTIVE_SCALING = {
   // R6 §4.4 が名指し
-  strike: { stat: "might", bps: 10_000 },          // 斬撃 might 100%
-  mend: { stat: "focus", bps: 8_000 },             // 手当て focus 80%
-  bulwark: { stat: "focus", bps: 6_000 },          // 防壁形成 focus 60%
-  // 攻撃系 → might。溜めや条件を持つので中立則で始める
-  heavy_swing: { stat: "might", bps: bpsForLegacyAmount(9) },
-  long_swing: { stat: "might", bps: bpsForLegacyAmount(9) },
-  hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(5) },
+  strike: { stat: "might", bps: 12_000 },          // 斬撃 might 120%
+  mend: { stat: "focus", bps: bpsForLegacyAmount(10) }, // 手当て focus 100%
+  bulwark: { stat: "focus", bps: bpsForLegacyAmount(8) }, // 防壁形成 focus 80%
+  // 攻撃系 → might。溜めや条件を持つので、成立時は通常攻撃を上回る
+  heavy_swing: { stat: "might", bps: bpsForLegacyAmount(22) },
+  long_swing: { stat: "might", bps: bpsForLegacyAmount(40) },
+  hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(12) },
   // 支援系 → focus
-  triage: { stat: "focus", bps: bpsForLegacyAmount(8) },
-  // 敵の技能。basic strike は might 100%、重い一撃は中立則
+  triage: { stat: "focus", bps: bpsForLegacyAmount(10) },
+  // 敵の技能。basic strike は might 100%、重い一撃は might 140%
   front_strike: { stat: "might", bps: 10_000 },
   rear_strike: { stat: "might", bps: 10_000 },
-  enemy_heavy: { stat: "might", bps: bpsForLegacyAmount(8) },
+  enemy_heavy: { stat: "might", bps: bpsForLegacyAmount(14) },
   enemy_guard: { stat: "focus", bps: bpsForLegacyAmount(4) },
 };
 
@@ -151,10 +170,10 @@ for (const reach of ["melee", "ranged"]) {
 // R6 §6.7 / §17.1 — Phase A の6 archetype。**同じ名前の係数違いを量産しない。**
 // それぞれが guard / block / formation / risk の少なくとも一軸で評価を変える。
 //
-//   basic   … 既存の斬撃（might 100%、単発）
+//   basic   … 技能枠を使わない通常攻撃（might 100%、単発）
 //   heavy   … 既存の溜め突き（溜めが代償）
 //   rapid   … 多段。総係数は basic 以上だが **guard に弱い**
-//   pierce  … guard を半分無視。総係数は basic 以下
+//   pierce  … guard を半分無視。単発係数も basic を上回る
 //   row     … 選んだ一行。一体あたりの係数を下げる
 //   column  … 同じ列の前後。前列の後ろに誰が居るかを問う
 function archetype(id, displayName, coefficientBps, patch = {}) {
@@ -179,21 +198,38 @@ function archetype(id, displayName, coefficientBps, patch = {}) {
   };
 }
 
-// 多段。1hit あたり 40%×3 = 総120%。guard を3回引かれるので、
+// 多段。1hit あたり 50%×3 = 総150%。guard を3回引かれるので、
 // **硬い相手には basic より弱くなる。**
-activeSkills.rapid_cuts = archetype("rapid_cuts", "刻み斬り", 4_000, {
+activeSkills.rapid_cuts = archetype("rapid_cuts", "刻み斬り", 5_000, {
   effectPatch: { hitCount: 3 },
 });
-// 貫き。総80% と引き換えに guard を6割無視する。
-activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 8_000, {
+// 貫き。単発115%で通常攻撃を上回り、guard を6割無視する。
+activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 11_500, {
   effectPatch: { guardPierceBps: 6_000 },
 });
-// 薙ぎ。選んだ一行へ 60% ずつ。**前3の隊列を選んだ相手ほど刺さる。**
-activeSkills.row_sweep = archetype("row_sweep", "薙ぎ払い", 6_000, {
+// 薙ぎ。前列の敵が2体以上いるときだけ、同じ行へ80%ずつ。
+// 1体しかいない行は通常攻撃へ戻すので、単体時も択の損にならない。
+activeSkills.row_sweep = archetype("row_sweep", "薙ぎ払い", 8_000, {
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  intrinsicPredicates: [{
+    type: "target_exists",
+    op: "gte",
+    value: 2,
+    query: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+      take: "all",
+    },
+  }],
   effectPatch: { targetPattern: "row" },
 });
-// 突き通し。同じ列の前後へ 70% ずつ。後列を庇う列を貫く。
-activeSkills.column_thrust = archetype("column_thrust", "突き通し", 7_000, {
+// 突き通し。同じ列の前後へ110%ずつ。後列を庇う列を貫く。
+activeSkills.column_thrust = archetype("column_thrust", "突き通し", 11_000, {
   effectPatch: { targetPattern: "column" },
 });
 
@@ -226,37 +262,41 @@ function waveAttack(id, displayName, targetQuery, coefficientBps, effectPatch = 
   };
 }
 
-// Raw output is deliberately below basic, but it ignores guard completely.
-// It is weaker on unguarded targets and answers a different question than pierce.
+// 受け崩しは通常攻撃を上回り、受け構えと受けを完全に無視する。
 activeSkills.guard_crush = waveAttack(
   "guard_crush", ACTIVE_SKILL_NAMES.guard_crush,
   { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
-  7_000,
+  11_500,
   { guardPierceBps: 10_000 },
 );
 // A ranged, rear-only choice. It becomes unusable when the rear is empty, so
 // the actor falls back to its core action instead of wasting an AP.
-activeSkills.rear_hunt = waveAttack("rear_hunt", ACTIVE_SKILL_NAMES.rear_hunt, REAR_ENEMY, 8_500, { reach: "ranged" });
+activeSkills.rear_hunt = waveAttack("rear_hunt", ACTIVE_SKILL_NAMES.rear_hunt, REAR_ENEMY, 12_000, { reach: "ranged" });
 // A conditional finisher: no low-health target means the tactic is skipped.
 activeSkills.finishing_thrust = waveAttack(
   "finishing_thrust", ACTIVE_SKILL_NAMES.finishing_thrust,
   { scope: "enemies", filters: [{ type: "alive" }, { type: "hp_percent", op: "lte", value: 50 }], sort: ["hp_asc"], take: 1 },
-  12_000,
+  14_000,
 );
-// Setup trades immediate damage for an exposed target. The second effect uses
-// the same selected target and therefore cannot mark a different actor.
+// Setup is still an attack, but it must not spend an AP for a weak repeat mark:
+// an already exposed target is not eligible, so the tactic falls through to basic.
 activeSkills.crack_mark = {
   id: "crack_mark",
   displayName: ACTIVE_SKILL_NAMES.crack_mark,
   apCost: 1,
   actionMode: "offense",
   intrinsicPredicates: [],
-  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "eq", value: 0 }],
+    sort: ["position_asc"],
+    take: 1,
+  },
   effects: [
     {
       type: "deal_damage",
       target: EVENT_TARGET,
-      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 6_500 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 11_000 },
       tags: ["attack", "debuff"],
     },
     { type: "add_status", target: EVENT_TARGET, statusId: "exposed", stacks: 1 },
