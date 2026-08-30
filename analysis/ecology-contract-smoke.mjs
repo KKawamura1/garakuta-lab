@@ -16,7 +16,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { validateContentBundle } from "../ecology/validate.mjs";
-import { POSITIONS } from "../ecology/schema.mjs";
+import { EFFECT_TYPES, POSITIONS } from "../ecology/schema.mjs";
 import {
   CONTENT_CONTRACT_VERSION,
   NAMED_SECTIONS,
@@ -114,6 +114,45 @@ if (typeof CONTENT_CONTRACT_VERSION !== "string" || !CONTENT_CONTRACT_VERSION) {
   problems.push("content contract の版が無い");
 }
 
+// 6. **量の種別が全部宣言されていること。**
+//    Phase A は連続量（HP・damage・heal・barrier）を10倍し、離散量
+//    （AP/RP・耐久・段数・回数）はそのまま残す（R6 §4.4）。
+//    種別の分からない量が1つでもあると、移行で黙って取り違える。
+//    ここは**移行そのものではなく、移行できる状態かの検査**である。
+const CONTINUOUS_EFFECTS = new Set([
+  "deal_damage",          // damage 量
+  "heal",                 // heal 量
+  "gain_barrier",         // barrier 量
+  "modify_pending_amount", // damage / heal の増減
+]);
+const DISCRETE_EFFECTS = new Set([
+  "gain_resource",        // AP / RP
+  "repair_equipment",     // 耐久
+  "advance_preparation",  // 準備の段数
+  "wear_equipment",       // 耐久
+]);
+const unclassified = [];
+function classifyAmounts(value, owner) {
+  if (Array.isArray(value)) return value.forEach((item) => classifyAmounts(item, owner));
+  if (!value || typeof value !== "object") return;
+  if (typeof value.type === "string" && value.amount?.type === "constant"
+      && !CONTINUOUS_EFFECTS.has(value.type) && !DISCRETE_EFFECTS.has(value.type)
+      && EFFECT_TYPES.includes(value.type)) {
+    unclassified.push(`${owner}: ${value.type}`);
+  }
+  for (const item of Object.values(value)) classifyAmounts(item, owner);
+}
+for (const section of NAMED_SECTIONS) {
+  for (const [id, definition] of Object.entries(PLAYABLE_CONTENT[section])) {
+    classifyAmounts(definition, `${section}.${id}`);
+  }
+}
+if (unclassified.length) {
+  problems.push("量の種別が宣言されていない effect: " + [...new Set(unclassified)].join(", ")
+    + "（連続量か離散量かを analysis/ecology-contract-smoke.mjs の表へ足す。"
+    + "Phase A の10倍移行がこの表を使う）");
+}
+
 // 参照点。**この検査が本当に引っかかるのかを、ここで確かめる。**
 // 片側だけ書いて「通った」で終わらせない。
 {
@@ -122,6 +161,7 @@ if (typeof CONTENT_CONTRACT_VERSION !== "string" || !CONTENT_CONTRACT_VERSION) {
     ["小数", fractions({ a: { b: 1.5 } }, "x").length === 1],
     ["表示語の position", positionWords({ a: { position: "前列" } }, "x").length === 1],
     ["canonical な position は通す", positionWords({ a: { position: POSITIONS[0] } }, "x").length === 0],
+    ["量の種別が両方とも空でない", CONTINUOUS_EFFECTS.size > 0 && DISCRETE_EFFECTS.size > 0],
   ];
   for (const [what, ok] of selfChecks) {
     if (!ok) {
