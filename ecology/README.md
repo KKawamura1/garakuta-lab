@@ -10,7 +10,7 @@
 ## 実行
 
 ~~~sh
-node ecology/check.mjs        # 7本まとめて（exit code を検査する）
+node ecology/check.mjs        # 8本まとめて（exit code を検査する）
 node ecology/schema.test.mjs
 node ecology/engine.test.mjs
 node ecology/termination.test.mjs
@@ -18,6 +18,7 @@ node ecology/extensibility.test.mjs
 node ecology/mine.test.mjs
 node ecology/playable.test.mjs
 node ecology/contract.test.mjs  # content contract の深一致（R7 Milestone 0）
+node ecology/phase-a.test.mjs   # block / guard / 多段 / 範囲 / reach（R6 Phase A）
 ~~~
 
 外部依存なし。Node標準のみ。`analysis/check-all.sh` からも呼ばれる。

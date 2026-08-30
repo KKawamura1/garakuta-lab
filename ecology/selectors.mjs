@@ -3,7 +3,7 @@
 // §9 — target queries. Every query ends with position_asc then instance_id_asc,
 // so `take: 1` can never depend on array order coming out of a Map or a filter.
 
-import { IMPLICIT_SORTS, compareOp } from "./schema.mjs";
+import { IMPLICIT_SORTS, POSITION_ROW, compareOp } from "./schema.mjs";
 import {
   actorsOnSide,
   compareActorsDefault,
@@ -44,10 +44,11 @@ function passesFilter(state, ctx, filter, actor) {
   switch (filter.type) {
     case "alive":
       return actor.alive === (filter.value ?? true);
-    case "row_is": {
-      const row = actor.position.startsWith("front") ? "front" : "rear";
-      return row === filter.row;
-    }
+    case "row_is":
+      // **id の文字列から導かない。**語彙表を引く（POSITION_ROW）。
+      // 前は startsWith("front") で見ていたが、行の判定は schema の持ち物で、
+      // id の綴りに依存させると position を足したときに黙って壊れる。
+      return POSITION_ROW[actor.position] === filter.row;
     case "hp_percent":
       return compareOp(filter.op, actor.hp * 100, actor.maxHp * filter.value);
     case "has_status":
@@ -82,8 +83,16 @@ function sortValue(actor, sortType) {
   }
 }
 
-export function resolveTargets(state, ctx, query) {
+export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {}) {
   let pool = scopePool(state, ctx, query.scope);
+  // R6 §5.4 — melee は、生存する前列が一人でもいる間は前列だけを狙える。
+  // 前列が全滅して初めて後列へ届く。**これが前3後2と前2後3の選択を意味あるものにする。**
+  if (reach === "melee") {
+    const living = pool.filter((actor) => actor.alive);
+    if (living.some((actor) => POSITION_ROW[actor.position] === "front")) {
+      pool = pool.filter((actor) => POSITION_ROW[actor.position] === "front");
+    }
+  }
   for (const filter of query.filters ?? []) {
     pool = pool.filter((actor) => passesFilter(state, ctx, filter, actor));
   }

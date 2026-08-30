@@ -268,7 +268,10 @@ export const EFFECT_TYPES = freeze([
 
 // R6 §5.4 / §6.7 — PHASE A. How a damage effect spreads and how far it reaches.
 // Absent means single / unrestricted, which is exactly v1 behaviour.
-export const TARGET_PATTERNS = freeze(["single", "row", "column", "splash", "all"]);
+// PHASE A implements three of R6's five. splash and all arrive with their
+// implementation in a later phase; listing them here now would let content
+// reference a pattern the engine silently treats as single.
+export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
 export const REACHES = freeze(["melee", "ranged", "unrestricted"]);
 
 // §11.4 — usable only from interrupt-timing rules.

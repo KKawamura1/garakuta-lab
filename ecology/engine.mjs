@@ -110,6 +110,9 @@ function buildState(input, content, options) {
       maxHp: definition.maxHp,
       hp: ally.hp ?? definition.maxHp,
       speed: definition.speed,
+      might: definition.might,
+      focus: definition.focus,
+      guard: definition.guard,
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
@@ -135,6 +138,9 @@ function buildState(input, content, options) {
       maxHp: definition.maxHp,
       hp: enemy.hp ?? definition.maxHp,
       speed: definition.speed,
+      might: definition.might,
+      focus: definition.focus,
+      guard: definition.guard,
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: enemy.position,
@@ -153,6 +159,13 @@ function addActor(state, fields) {
     alive: fields.hp > 0,
     actionPoints: 0,
     reactionPoints: 0,
+    // R6 §4.4 / §6.7 — PHASE A. 定義が持たなければ 0。
+    // **既存 content は持たないので、guard 0 = 軽減なし＝v1 と同じ挙動になる。**
+    might: fields.might ?? 0,
+    focus: fields.focus ?? 0,
+    guard: fields.guard ?? 0,
+    // block charge は戦闘開始時 0。持続は round ではなく「使うまで」。
+    block: 0,
     barriers: [],
     statuses: [],
     preparation: null,

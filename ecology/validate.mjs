@@ -11,6 +11,9 @@
 
 import {
   ACTOR_STATS,
+  REACHES,
+  SCALING_STATS,
+  TARGET_PATTERNS,
   BARRIER_DURATIONS,
   BATTLE_SCHEMA_VERSION,
   COMPARISON_OPS,
@@ -152,6 +155,13 @@ function validateValue(bag, path, value, ctx) {
     case "actor_stat_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireOneOf(bag, `${path}.stat`, value.stat, ACTOR_STATS, "unknown_actor_stat");
+      break;
+    // R6 §4.4 — PHASE A. flat + roundHalfUp(stat * coefficientBps / 10_000)
+    case "stat_scaled":
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireOneOf(bag, `${path}.scalingStat`, value.scalingStat, SCALING_STATS, "unknown_scaling_stat");
+      if (value.flat !== undefined) requireCount(bag, `${path}.flat`, value.flat, { max: 100_000 });
+      requireCount(bag, `${path}.coefficientBps`, value.coefficientBps, { max: 100_000 });
       break;
     case "status_stacks_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
@@ -408,6 +418,30 @@ function validateEffect(bag, path, effect, ctx) {
 
   switch (effect.type) {
     case "deal_damage":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+      // R6 §6.7 — PHASE A. 省略時は hit 1・貫通0・single・unrestricted で、
+      // それは v1 の挙動そのもの。**既存定義は書き換えなくてよい。**
+      if (effect.hitCount !== undefined) {
+        requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: 8 });
+      }
+      if (effect.guardPierceBps !== undefined) {
+        requireCount(bag, `${path}.guardPierceBps`, effect.guardPierceBps, { min: 0, max: 10_000 });
+      }
+      if (effect.targetPattern !== undefined) {
+        requireOneOf(bag, `${path}.targetPattern`, effect.targetPattern, TARGET_PATTERNS, "unknown_target_pattern");
+      }
+      if (effect.reach !== undefined) {
+        requireOneOf(bag, `${path}.reach`, effect.reach, REACHES, "unknown_reach");
+      }
+      // **範囲攻撃は take: 1 から広げる。** take: "all" と組み合わせると、
+      // どの一体を基点に広げたのかが決まらない。
+      if (effect.targetPattern && effect.targetPattern !== "single" && effect.target?.take !== 1) {
+        bag.add(`${path}.targetPattern`, "pattern_needs_single_anchor",
+          `${effect.targetPattern} spreads from one anchor, so target.take must be 1`);
+      }
+      break;
     case "heal":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
@@ -417,6 +451,11 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.duration`, effect.duration, BARRIER_DURATIONS, "unknown_duration");
+      break;
+    // R6 §6.7 — PHASE A. block は charge（回数）なので離散量。
+    case "gain_block":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
     case "gain_resource":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
