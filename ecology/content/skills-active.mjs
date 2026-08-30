@@ -243,6 +243,18 @@ const REAR_ENEMY = {
   take: 1,
 };
 
+// 対象が存在すること自体が発動条件になる技能は、targetQuery だけでなく
+// intrinsicPredicates にも明示する。これで「条件技能」として先に不成立を
+// 判定でき、APを払わず次の行動へ進む契約を定義上も共有できる。
+function hasEligibleTarget(query) {
+  return {
+    type: "target_exists",
+    op: "gte",
+    value: 1,
+    query: { ...query, take: "all" },
+  };
+}
+
 function waveAttack(id, displayName, targetQuery, coefficientBps, effectPatch = {}, tags = ["attack"]) {
   return {
     id,
@@ -272,12 +284,20 @@ activeSkills.guard_crush = waveAttack(
 // A ranged, rear-only choice. It becomes unusable when the rear is empty, so
 // the actor falls back to its core action instead of wasting an AP.
 activeSkills.rear_hunt = waveAttack("rear_hunt", ACTIVE_SKILL_NAMES.rear_hunt, REAR_ENEMY, 12_000, { reach: "ranged" });
+activeSkills.rear_hunt.intrinsicPredicates = [hasEligibleTarget(REAR_ENEMY)];
 // A conditional finisher: no low-health target means the tactic is skipped.
+const LOW_HEALTH_ENEMY = {
+  scope: "enemies",
+  filters: [{ type: "alive" }, { type: "hp_percent", op: "lte", value: 50 }],
+  sort: ["hp_asc"],
+  take: 1,
+};
 activeSkills.finishing_thrust = waveAttack(
   "finishing_thrust", ACTIVE_SKILL_NAMES.finishing_thrust,
-  { scope: "enemies", filters: [{ type: "alive" }, { type: "hp_percent", op: "lte", value: 50 }], sort: ["hp_asc"], take: 1 },
+  LOW_HEALTH_ENEMY,
   14_000,
 );
+activeSkills.finishing_thrust.intrinsicPredicates = [hasEligibleTarget(LOW_HEALTH_ENEMY)];
 // Setup is still an attack, but it must not spend an AP for a weak repeat mark:
 // an already exposed target is not eligible, so the tactic falls through to basic.
 activeSkills.crack_mark = {
@@ -315,6 +335,13 @@ activeSkills.brace_for_impact = {
   effects: [{ type: "gain_block", target: { scope: "self", take: 1 }, amount: { type: "constant", value: 1 } }],
   tags: ["guard"],
 };
+
+// These skills encode a board-state requirement in their target query. Keep
+// the same requirement as an explicit skill predicate so they are all handled
+// uniformly with row_sweep and other conditional tactics.
+for (const skillId of ["mend", "triage", "hunt_the_slow", "mark_target"]) {
+  activeSkills[skillId].intrinsicPredicates = [hasEligibleTarget(activeSkills[skillId].targetQuery)];
+}
 
 // `reach` is an effect-level contract field. Stamp the default on every
 // enemy-damaging skill so both tactic selection and effect resolution agree:

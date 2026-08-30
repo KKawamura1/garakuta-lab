@@ -78,6 +78,12 @@ for (const skillId of ["heavy_swing", "long_swing", "hunt_the_slow"]) {
 }
 assert.equal(PLAYABLE_CONTENT.activeSkills.mend.targetQuery.filters.at(-1).type, "hp_percent");
 assert.equal(PLAYABLE_CONTENT.activeSkills.mark_target.targetQuery.filters.at(-1).type, "has_status");
+for (const skillId of ["mend", "triage", "hunt_the_slow", "mark_target", "rear_hunt", "finishing_thrust"]) {
+  assert.ok(
+    PLAYABLE_CONTENT.activeSkills[skillId].intrinsicPredicates.some((predicate) => predicate.type === "target_exists"),
+    skillId + " must declare its target condition as a skill predicate",
+  );
+}
 assert.equal(PLAYABLE_CONTENT.characters.scout.basicStrikeReach, undefined, "reach must not be assigned by character role");
 for (const skillId of [
   "strike", "rapid_cuts", "pierce_thrust", "row_sweep", "column_thrust", "guard_crush",

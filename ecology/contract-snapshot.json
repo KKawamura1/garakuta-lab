@@ -273,7 +273,30 @@
     "id": "mend",
     "displayName": "手当て",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lt",
+         "value": 100
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "allies",
      "filters": [
@@ -560,7 +583,30 @@
     "id": "triage",
     "displayName": "応急手当",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lte",
+         "value": 50
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "allies",
      "filters": [
@@ -611,7 +657,29 @@
     "id": "hunt_the_slow",
     "displayName": "準備狩り",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "is_preparing",
+         "value": true
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
@@ -696,7 +764,31 @@
     "id": "mark_target",
     "displayName": "隙を刻む",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "eq",
+         "value": 0
+        }
+       ],
+       "sort": [
+        "hp_desc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
@@ -1437,7 +1529,29 @@
     "displayName": "後衛狩り",
     "apCost": 1,
     "actionMode": "offense",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "rear"
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
@@ -1487,7 +1601,30 @@
     "displayName": "止めの一突き",
     "apCost": 1,
     "actionMode": "offense",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lte",
+         "value": 50
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
