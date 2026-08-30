@@ -112,14 +112,20 @@ activeSkills.mark_target.targetQuery = {
 export const ACTIVE_SCALING = {
   // R6 §4.4 が名指し
   strike: { stat: "might", bps: 12_000 },          // 斬撃 might 120%
-  mend: { stat: "focus", bps: bpsForLegacyAmount(10) }, // 手当て focus 100%
+  // 手当て focus 120%。**斬撃と同じ係数**にしてある。
+  // bpsForLegacyAmount(10) は 250% であり（旧尺度の量10 → 中立 focus 40 で 2.5倍）、
+  // ミナ（focus 44、maxHp 180）の1回の回復が 110、**自分の最大HPの61%**だった。
+  // その結果「全員に回復を持たせる」だけの編成が素朴な編成の中で突出して強く
+  // （耐久1.90倍。全員攻撃1.43倍、攻撃2回復2防御1で1.55倍）、
+  // 考えて組んだ編成との差を潰していた。**1回の回復 ≒ 1回の攻撃**へ揃える。
+  mend: { stat: "focus", bps: 12_000 },
   bulwark: { stat: "focus", bps: bpsForLegacyAmount(8) }, // 防壁形成 focus 80%
   // 攻撃系 → might。溜めや条件を持つので、成立時は通常攻撃を上回る
   heavy_swing: { stat: "might", bps: bpsForLegacyAmount(22) },
   long_swing: { stat: "might", bps: bpsForLegacyAmount(40) },
   hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(12) },
   // 支援系 → focus
-  triage: { stat: "focus", bps: bpsForLegacyAmount(10) },
+  triage: { stat: "focus", bps: 12_000 },   // 手当てと同じ理由で 120%
   // 敵の技能。basic strike は might 100%、重い一撃は might 140%
   front_strike: { stat: "might", bps: 10_000 },
   rear_strike: { stat: "might", bps: 10_000 },

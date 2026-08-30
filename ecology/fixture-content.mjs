@@ -434,7 +434,22 @@ const reactiveSkills = {
       listenTo: "preparation_started",
       timing: "after",
       priority: 100,
-      predicates: [EVENT_TARGET_IS_ALLY],
+      // **まだ準備中の味方にしか反応しない。**
+      // predicate が「味方が対象か」しか見ていなかったので、同じ準備開始に対して
+      // 急かすを持つ全員が発火し、最初の一人で完了したあとも反応権を払っていた
+      // （準備1段の溜め突きで、9点払って進んだのは3段。**6回が無駄撃ち**）。
+      // 効果側の target は is_preparing を見ていたが、costs はその前に払われる。
+      predicates: [
+        EVENT_TARGET_IS_ALLY,
+        {
+          type: "target_exists",
+          query: {
+            scope: "allies",
+            filters: [{ type: "is_event_primary_target" }, ALIVE, { type: "is_preparing", value: true }],
+            take: 1,
+          },
+        },
+      ],
       costs: [{ type: "spend_reaction_points", amount: 1 }],
       effects: [
         {

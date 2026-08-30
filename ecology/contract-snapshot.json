@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.5",
+ "contentVersion": "ecology-playable-full-0.6",
  "content": {
   "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.5",
+  "contentVersion": "ecology-playable-full-0.6",
   "characters": {
    "warden": {
     "id": "warden",
@@ -330,7 +330,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 25000
+       "coefficientBps": 12000
       },
       "tags": [
        "care"
@@ -640,7 +640,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 25000
+       "coefficientBps": 12000
       },
       "tags": [
        "care",
@@ -2088,6 +2088,25 @@
         "filters": [
          {
           "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_preparing",
+          "value": true
          }
         ],
         "take": 1
