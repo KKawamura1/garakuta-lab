@@ -61,3 +61,43 @@ equipment.recovery_satchel = setRuleEffectAmount(
 for (const definition of Object.values(equipment)) scaleFlatAmounts(definition);
 
 export const FIXED_EQUIPMENT = equipment;
+
+// R6 §9.3 — PHASE B. 報酬 pool は群単位で増える。**購入は pool を増やすだけで、
+// 全遠征へ必ず出現させない**（買った瞬間に強くなる買い物にしない）。
+// 群の切り方は表示文の「役割」欄（守り・速度・機動・攻撃・修理）と同じ。
+//
+// **買える群を1つだけにしてある。** 固定装備は全部で18品しかなく、
+// 一遠征で報酬を選べる機会は11回ある。群を後ろに残しすぎると、
+// 遠征の後半で「拾える装備がもう無い」状態になる（実測で第5戦だった）。
+// 品数そのものが増えるのは Phase C の生成装備で、R6 §17.3 がそこへ置いている。
+//
+// `hungry_plate` はどの群にも入れない。摩耗を誘発するだけの品で、
+// 報酬として出すと「拾わない」以外の答えが無い（Phase A から報酬 pool 外）。
+export const EQUIPMENT_GROUPS = Object.freeze([
+  Object.freeze({
+    id: "group_guard", displayName: "守りの品", startsUnlocked: true, cost: "0",
+    equipmentIds: Object.freeze(["standing_plate", "guard_lantern", "bastion_shell"]),
+  }),
+  Object.freeze({
+    id: "group_tempo", displayName: "速さの品", startsUnlocked: true, cost: "0",
+    equipmentIds: Object.freeze(["worn_greaves", "tempo_buckle", "quickstrap", "reserve_coil"]),
+  }),
+  Object.freeze({
+    id: "group_edge", displayName: "刃の品", startsUnlocked: true, cost: "0",
+    equipmentIds: Object.freeze(["splinter_edge", "thorn_clasp", "shard_hilt"]),
+  }),
+  Object.freeze({
+    id: "group_mobility", displayName: "機動の品", startsUnlocked: true, cost: "0",
+    equipmentIds: Object.freeze(["momentum_rig", "focus_band", "anchor_boots", "signal_lens"]),
+  }),
+  Object.freeze({
+    id: "group_repair", displayName: "修理の品", startsUnlocked: false, cost: "12000",
+    equipmentIds: Object.freeze(["field_kit", "repair_pouch", "recovery_satchel"]),
+  }),
+]);
+
+// 遠征開始時に手元にある品。**買い物の対象ではなく、初期条件**。
+// 5人が2枠ずつ持てるので、最初から10枠を埋められる量は渡さない。
+export const STARTER_EQUIPMENT_IDS = Object.freeze([
+  "standing_plate", "worn_greaves", "guard_lantern", "tempo_buckle",
+]);

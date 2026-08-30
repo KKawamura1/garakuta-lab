@@ -17,7 +17,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-2";
+// Phase B で battle input へ stats 上書き（鍛錬・変異）が入り、
+// slot の構造上限が 3/3 から 4/4 になった。**語彙が増えたので上げる。**
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-3";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -43,7 +45,9 @@ export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
   // Phase A で戦闘量と人物 parameter が変わった。**記録を分けるために上げる**
   // （0.2 の遠征と 0.3 の遠征は別のゲームで、同じ入れ物に混ぜられない）。
-  contentVersion: "ecology-playable-full-0.3",
+  // Phase B で遠征の形（3幕12戦、活動資金、補給、難易度）が変わった。
+  // **0.3 の7区画と 0.4 の12戦は別のゲーム**で、同じ入れ物に混ぜられない。
+  contentVersion: "ecology-playable-full-0.4",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
@@ -82,3 +86,30 @@ export const SECTION_NAMES = Object.freeze({
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
 export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
 export { ENCOUNTERS, ENEMY_TARGETING } from "./encounters.mjs";
+export { EQUIPMENT_GROUPS, STARTER_EQUIPMENT_IDS } from "./equipment-fixed.mjs";
+// R7 Milestone 4（Phase B）— 遠征、技能パック、難易度。
+export {
+  BASELINE_ACTIVE_SKILL_IDS,
+  BASELINE_PASSIVE_SKILL_IDS,
+  PACKS_PER_MANIFEST,
+  PACK_BY_ID,
+  SKILL_PACKS,
+  packOfSkill,
+  skillIdsForPacks,
+} from "./packs.mjs";
+export {
+  ACT_BOSS_INDEXES,
+  BOSS_LAWS,
+  DIFFICULTIES,
+  ENCOUNTERS_PER_RUN,
+  ENEMY_MUTATIONS,
+  ENEMY_THREAT_COST,
+  EXPEDITION_ENCOUNTERS,
+  MAX_DIFFICULTY_RANK,
+  MAX_MUTATIONS_PER_UNIT,
+  MUTATION_SPEND_ORDER,
+  REGION,
+  actOf,
+  difficultyDef,
+  expeditionEncounter,
+} from "./expedition.mjs";

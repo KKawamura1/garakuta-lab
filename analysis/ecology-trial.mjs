@@ -46,10 +46,11 @@ const expectedBuild = (() => {
 })();
 
 let browser;
+let page;
 try {
   browser = await chromium.launch(existsSync(CHROMIUM_PATH) ? { executablePath: CHROMIUM_PATH } : {});
   // iPhone相当。**主要操作が画面外へ隠れないことを、実寸で見る。**
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errs = [];
   page.on("pageerror", (e) => errs.push(String(e)));
   // console の "Failed to load resource" はURLを持たない。下の response 側で
@@ -79,11 +80,27 @@ try {
   note("build の印が画面に出ている",
     expectedBuild ? (await bodyText()).includes(expectedBuild) : false, expectedBuild);
 
-  await click("遠征を始める");
+  // R6 §15.1 — 遠征開始前に、有効パック・敵family・3体のボスと法則・難易度が出る。
+  await click("ギルドへ");
+  const guildText = await bodyText();
+  note("ギルド（遠征を仕立てる）に着く", /この遠征に出るもの/.test(guildText));
+  note("有効な技能パックが出ている", /この遠征では出ない/.test(guildText) && /有効/.test(guildText));
+  note("3体のボスと法則が先に見えている", /盾将の法則/.test(guildText) && /核の法則/.test(guildText));
+  note("難易度が出ている", /難易度 0/.test(guildText));
+
+  // R6 §9.3 — ギルド投資。**買い物の画面が実在して、値段と残高が出るか。**
+  await page.locator('[data-action="guild-tab"][data-tab="guild"]').click();
+  const investText = await bodyText();
+  note("ギルド投資の画面がある", /持ち帰った資金を使う/.test(investText));
+  note("鍛錬に費用と丸め後statが出る", /鍛錬（上限なし）/.test(investText) && /基礎/.test(investText));
+  note("第4枠が人物ごとに売られている", /第4枠/.test(investText));
+  await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
+
+  await click("この条件で遠征へ出る");
   note("編成タブ", /編成|仲間/.test(await bodyText()));
 
   // 4つのタブを踏む。各画面の主要操作が画面内にあることも見る。
-  for (const [tab, needle] of [["roster", "編成"], ["skills", "技能点"], ["equipment", "装備"], ["map", "この敵に挑む"]]) {
+  for (const [tab, needle] of [["roster", "編成"], ["skills", "遠征内技能点"], ["equipment", "装備"], ["map", "この敵に挑む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
     note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
   }
@@ -102,8 +119,18 @@ try {
   let stage = 1;
   let reloaded = false;
   let sawAnimation = false;
-  for (; stage <= 7; stage += 1) {
+  let retried = false;
+  let rerolled = false;
+  // R6 §5.1 — 3幕12戦。負けたら補給で再挑戦し、尽きたら精算まで進む。
+  for (; stage <= 12; stage += 1) {
     await page.locator('nav.tabs [data-tab="map"]').click();
+    if (stage === 1) {
+      // R6 §11.2 / §12.1 — 敵の重さと偵察の枠は戦闘前に見えている。
+      // **中身を見ずに ok と言わない。**
+      const mapText = await bodyText();
+      note("戦闘前に threat と幕が出ている", /threat \d+ \/ \d+/.test(mapText) && /第1幕/.test(mapText));
+      note("次の幕の偵察の枠がある", /まだ偵察していません|偵察済み/.test(mapText));
+    }
     await click("この敵に挑む");
     await click("自動戦闘を再生する");
     await page.waitForSelector(".battle-field", { timeout: 8000 });
@@ -142,23 +169,50 @@ try {
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
     }
     if (verdict !== "突破した") {
-      // 負けても遠征は終わらない。構成を変えて再挑戦する経路を踏み、
-      // 通しを終えるためにこの区画は諦めて終端（アンケート）へ向かう。
-      note(`第${stage}区画で敗北（構成の見直し経路）`, true, verdict ?? "");
-      await click("構成を見直す");
+      // R6 §12.2 — 敗北で即座に破棄しない。補給が残っていれば同じ戦闘へ挑み直す。
+      await click("この先どうするか");
+      const defeatText = await bodyText();
+      note(`第${stage}戦で敗北（敗北処理の画面）`, /ここまでで確定した活動資金/.test(defeatText));
+      const retry = page.getByRole("button", { name: "補給1で編成を変えて再挑戦" });
+      if (await retry.count() && !(await retry.first().isDisabled())) {
+        await retry.first().click();
+        if (!retried) { note("補給1で同じ戦闘へ再挑戦できる", true); retried = true; }
+        stage -= 1;
+        continue;
+      }
+      const outOfSupplies = await page.getByRole("button", { name: "補給1で編成を変えて再挑戦" }).count() === 0;
+      note("補給0で再挑戦の手が消える", outOfSupplies);
+      await click("遠征を終えて精算する");
       break;
     }
-    if (stage < 7) {
+    if (stage < 12) {
       await click("報酬を見る");
-      note(`第${stage}区画の報酬選択`, /報酬を選ぶ/.test(await bodyText()));
-      await click("全員に技能点を配る");
+      note(`第${stage}戦の報酬選択`, /報酬を選ぶ/.test(await bodyText()));
+      // R6 §12.1 — 引き直しは補給1。一度だけ踏む。
+      if (!rerolled) {
+        const reroll = page.getByRole("button", { name: "補給1で4候補を引き直す" });
+        if (await reroll.count() && !(await reroll.first().isDisabled())) {
+          await reroll.first().click();
+          note("補給1で報酬を引き直せる", true);
+          rerolled = true;
+        }
+      }
+      const gear = page.getByRole("button", { name: "拾って次へ" });
+      if (await gear.count() && !(await gear.first().isDisabled())) await gear.first().click();
+      else await click("この仲間へ配る");
     } else {
-      await click("遠征を終えて記録する");
+      await click("遠征を精算する");
     }
   }
-  note("7区画まで進めた or 敗北で止まった", stage >= 1, `到達 ${Math.min(stage, 7)}`);
+  note("12戦まで進めた or 敗北で止まった", stage >= 1, `到達 ${Math.min(stage, 12)}`);
 
-  // 終端（アンケート）へ。負けて抜けた場合は、その場から終端画面を開く。
+  // R6 §9.2 — 精算は一度だけ。内訳と残高が画面に出る。
+  const settleText = await bodyText();
+  note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
+  note("精算の内訳が出ている", /到達距離/.test(settleText) && /難易度倍率/.test(settleText));
+  if (/記録を送る/.test(settleText)) await click("記録を送る");
+
+  // 終端（アンケート）へ。まだ着いていなければ、その場から終端画面を開く。
   if (!/今回のUIについて/.test(await bodyText())) {
     await page.evaluate(() => {
       const key = "exp18-full-prototype-v02";
@@ -195,7 +249,13 @@ try {
 
   // 送信した控えに、版・seed・buildの印・主要イベントが載っているか。
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-full-prototype-v02")));
-  note("控えに版が残る", Boolean(saved?.runSeed) && Boolean(saved?.feedback?.savedAt));
+  note("控えに版が残る", Boolean(saved?.run?.runSeed) && Boolean(saved?.feedback?.savedAt));
+  // R6 §4.1 — ProfileState と RunState が別に保存されている。
+  note("profile と run が分かれて保存されている",
+    saved?.profile?.schemaVersion === "ecology-profile-1" && saved?.run?.schemaVersion === "ecology-run-1");
+  note("活動資金が profile に残る", typeof saved?.profile?.activityFunds === "string");
+  note("遠征内の技能点は run にだけある",
+    Boolean(saved?.run?.runSkillPoints) && !("skillPoints" in (saved?.profile ?? {})));
   note("控えに主要行動列が残る", (saved?.runEvents || []).some((e) => e.type === "battle_completed"));
 
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 4).join(" / "));
@@ -206,6 +266,11 @@ try {
   if (saved?.runId) console.log(`RUN_ID=${saved.runId}`);
 } catch (error) {
   note("通しが最後まで走った", false, String(error).split("\n")[0]);
+  // **落ちた場所の画面を出す。**「時間切れ」だけでは、どの経路で詰まったか分からない。
+  try {
+    const where = await page?.locator("body").innerText();
+    console.log("  画面:", where.slice(0, 700).replace(/\n/g, " | "));
+  } catch { /* 画面も取れないときは諦める */ }
 } finally {
   if (browser) await browser.close();
   stop();
