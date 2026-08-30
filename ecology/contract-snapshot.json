@@ -1,13 +1,13 @@
 {
- "contentVersion": "ecology-playable-full-0.2",
+ "contentVersion": "ecology-playable-full-0.3",
  "content": {
   "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.2",
+  "contentVersion": "ecology-playable-full-0.3",
   "characters": {
    "warden": {
     "id": "warden",
     "displayName": "ユウリ — 守る人",
-    "maxHp": 26,
+    "maxHp": 260,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -15,12 +15,15 @@
     "tags": [
      "fixture",
      "front"
-    ]
+    ],
+    "might": 32,
+    "focus": 24,
+    "guard": 10
    },
    "mender": {
     "id": "mender",
     "displayName": "ミナ — 手当てする人",
-    "maxHp": 18,
+    "maxHp": 180,
     "speed": 6,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -28,12 +31,15 @@
     "tags": [
      "fixture",
      "support"
-    ]
+    ],
+    "might": 18,
+    "focus": 44,
+    "guard": 3
    },
    "lancer": {
     "id": "lancer",
     "displayName": "レオン — 切り込む人",
-    "maxHp": 20,
+    "maxHp": 200,
     "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -41,12 +47,15 @@
     "tags": [
      "fixture",
      "strike"
-    ]
+    ],
+    "might": 46,
+    "focus": 18,
+    "guard": 4
    },
    "scout": {
     "id": "scout",
     "displayName": "スイ — 先を読む人",
-    "maxHp": 16,
+    "maxHp": 160,
     "speed": 10,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -72,8 +81,10 @@
          "take": 1
         },
         "amount": {
-         "type": "constant",
-         "value": 1
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 2500
         },
         "duration": "round"
        }
@@ -87,12 +98,15 @@
     "tags": [
      "fixture",
      "fast"
-    ]
+    ],
+    "might": 36,
+    "focus": 26,
+    "guard": 2
    },
    "pivot": {
     "id": "pivot",
     "displayName": "カイ — 余りを活かす人",
-    "maxHp": 22,
+    "maxHp": 220,
     "speed": 5,
     "baseActionPoints": 2,
     "baseReactionPoints": 2,
@@ -151,12 +165,15 @@
     "tags": [
      "fixture",
      "gate_e"
-    ]
+    ],
+    "might": 32,
+    "focus": 32,
+    "guard": 6
    },
    "guardian": {
     "id": "guardian",
     "displayName": "ナギ — かばう人",
-    "maxHp": 26,
+    "maxHp": 260,
     "speed": 3,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -165,12 +182,15 @@
      "playable",
      "front",
      "guard"
-    ]
+    ],
+    "might": 26,
+    "focus": 24,
+    "guard": 12
    },
    "arcanist": {
     "id": "arcanist",
     "displayName": "アオ — 溜める人",
-    "maxHp": 16,
+    "maxHp": 160,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -179,12 +199,15 @@
      "playable",
      "rear",
      "attack"
-    ]
+    ],
+    "might": 16,
+    "focus": 50,
+    "guard": 2
    },
    "tactician": {
     "id": "tactician",
     "displayName": "トワ — つなぐ人",
-    "maxHp": 17,
+    "maxHp": 170,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -193,7 +216,10 @@
      "playable",
      "rear",
      "tempo"
-    ]
+    ],
+    "might": 24,
+    "focus": 40,
+    "guard": 3
    }
   },
   "activeSkills": {
@@ -227,8 +253,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 4
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
       },
       "tags": [
        "attack"
@@ -269,8 +297,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 5
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 8000
       },
       "tags": [
        "care"
@@ -298,8 +328,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 3
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 6000
       },
       "duration": "round"
      }
@@ -388,8 +420,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 9
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 22500
        },
        "tags": [
         "attack",
@@ -489,8 +523,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 9
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 22500
        },
        "tags": [
         "attack",
@@ -540,8 +576,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 8
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 20000
       },
       "tags": [
        "care",
@@ -587,8 +625,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 5
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 12500
       },
       "tags": [
        "attack",
@@ -732,8 +772,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 4
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
       },
       "tags": [
        "attack"
@@ -778,8 +820,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 4
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
       },
       "tags": [
        "attack"
@@ -826,8 +870,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 8
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 20000
        },
        "tags": [
         "attack",
@@ -858,8 +904,10 @@
        "take": 1
       },
       "amount": {
-       "type": "constant",
-       "value": 4
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 10000
       },
       "duration": "round"
      }
@@ -926,8 +974,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 2
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 5000
        },
        "tags": [
         "counter"
@@ -1150,8 +1200,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 2
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "focus",
+        "coefficientBps": 5000
        },
        "duration": "round"
       }
@@ -1262,8 +1314,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 2
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "focus",
+        "coefficientBps": 5000
        },
        "duration": "round"
       }
@@ -1438,8 +1492,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 1
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 2500
        },
        "tags": [
         "echo"
@@ -1486,8 +1542,10 @@
         "take": 1
        },
        "amount": {
-        "type": "constant",
-        "value": 1
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "focus",
+        "coefficientBps": 2500
        },
        "duration": "round"
       }
@@ -1760,7 +1818,7 @@
         },
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         },
         "tags": [
          "splinter"
@@ -1862,7 +1920,7 @@
         },
         "amount": {
          "type": "constant",
-         "value": 2
+         "value": 20
         },
         "duration": "battle"
        }
@@ -2017,7 +2075,7 @@
         },
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         },
         "duration": "battle"
        }
@@ -2057,7 +2115,7 @@
         },
         "amount": {
          "type": "constant",
-         "value": 3
+         "value": 30
         },
         "duration": "battle"
        }
@@ -2422,7 +2480,7 @@
         },
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         },
         "tags": [
          "splinter"
@@ -2486,7 +2544,7 @@
         },
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         },
         "tags": [
          "splinter"
@@ -2658,7 +2716,7 @@
         "operation": "increase",
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         }
        }
       ],
@@ -2705,7 +2763,7 @@
         "operation": "increase",
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         }
        },
        {
@@ -2749,7 +2807,7 @@
         "operation": "increase",
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         }
        },
        {
@@ -2793,7 +2851,7 @@
         "operation": "increase",
         "amount": {
          "type": "constant",
-         "value": 1
+         "value": 10
         }
        },
        {
@@ -2821,7 +2879,7 @@
    "husk": {
     "id": "husk",
     "displayName": "灰殻兵",
-    "maxHp": 10,
+    "maxHp": 100,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2835,12 +2893,15 @@
     "intrinsicRules": [],
     "tags": [
      "fixture"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "husk_warden": {
     "id": "husk_warden",
     "displayName": "灰殻の見張り",
-    "maxHp": 8,
+    "maxHp": 80,
     "speed": 3,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2855,12 +2916,15 @@
     "tags": [
      "fixture",
      "objective"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "still_husk": {
     "id": "still_husk",
     "displayName": "動かない灰殻",
-    "maxHp": 10,
+    "maxHp": 100,
     "speed": 1,
     "baseActionPoints": 0,
     "baseReactionPoints": 0,
@@ -2870,12 +2934,15 @@
     "tags": [
      "fixture",
      "inert"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "husk_hunter": {
     "id": "husk_hunter",
     "displayName": "灰殻の狩人",
-    "maxHp": 26,
+    "maxHp": 260,
     "speed": 6,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2894,12 +2961,15 @@
     "tags": [
      "fixture",
      "gate_e"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "husk_bulwark": {
     "id": "husk_bulwark",
     "displayName": "灰殻の盾兵",
-    "maxHp": 40,
+    "maxHp": 400,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2914,12 +2984,15 @@
     "tags": [
      "fixture",
      "durable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "husk_echo": {
     "id": "husk_echo",
     "displayName": "灰殻の反響体",
-    "maxHp": 30,
+    "maxHp": 300,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2935,12 +3008,15 @@
     "intrinsicRules": [],
     "tags": [
      "termination"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "husk_marker": {
     "id": "husk_marker",
     "displayName": "灰殻の標定手",
-    "maxHp": 30,
+    "maxHp": 300,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2954,12 +3030,15 @@
     "intrinsicRules": [],
     "tags": [
      "fixture"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "gray_scrapper": {
     "id": "gray_scrapper",
     "displayName": "灰殻の走者",
-    "maxHp": 10,
+    "maxHp": 100,
     "speed": 6,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2974,12 +3053,15 @@
     "tags": [
      "fixture",
      "playable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "gray_marksman": {
     "id": "gray_marksman",
     "displayName": "灰殻の後撃ち",
-    "maxHp": 12,
+    "maxHp": 120,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -2994,12 +3076,15 @@
     "tags": [
      "fixture",
      "playable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "gray_guard": {
     "id": "gray_guard",
     "displayName": "灰殻の守衛",
-    "maxHp": 18,
+    "maxHp": 180,
     "speed": 3,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -3019,12 +3104,15 @@
      "fixture",
      "objective",
      "playable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 10
    },
    "gray_hunter": {
     "id": "gray_hunter",
     "displayName": "灰殻の狩人",
-    "maxHp": 20,
+    "maxHp": 200,
     "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -3044,12 +3132,15 @@
      "fixture",
      "gate_e",
      "playable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "gray_echo": {
     "id": "gray_echo",
     "displayName": "灰殻の反響体",
-    "maxHp": 20,
+    "maxHp": 200,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -3066,12 +3157,15 @@
     "tags": [
      "termination",
      "playable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
    },
    "gray_bulwark": {
     "id": "gray_bulwark",
     "displayName": "灰殻の盾兵",
-    "maxHp": 32,
+    "maxHp": 320,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -3091,12 +3185,15 @@
      "fixture",
      "durable",
      "playable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 14
    },
    "ash_core": {
     "id": "ash_core",
     "displayName": "灰の核心",
-    "maxHp": 54,
+    "maxHp": 540,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -3116,7 +3213,10 @@
      "fixture",
      "durable",
      "playable"
-    ]
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 12
    }
   }
  },
@@ -4346,13 +4446,13 @@
      "instanceId": "e_scrapper_1",
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
-     "hp": 10
+     "hp": 100
     },
     {
      "instanceId": "e_scrapper_2",
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
-     "hp": 10
+     "hp": 100
     }
    ],
    "maxRounds": 6
@@ -4366,13 +4466,13 @@
      "instanceId": "e_hunter",
      "enemyActorId": "gray_hunter",
      "position": "front_left",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ],
    "maxRounds": 7
@@ -4386,13 +4486,13 @@
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_left",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_scrapper",
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
-     "hp": 10
+     "hp": 100
     }
    ],
    "maxRounds": 8
@@ -4406,13 +4506,13 @@
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_left",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ],
    "maxRounds": 8
@@ -4426,19 +4526,19 @@
      "instanceId": "e_bulwark",
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
-     "hp": 32
+     "hp": 320
     },
     {
      "instanceId": "e_hunter",
      "enemyActorId": "gray_hunter",
      "position": "front_right",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_scrapper",
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
-     "hp": 10
+     "hp": 100
     }
    ],
    "maxRounds": 9
@@ -4452,19 +4552,19 @@
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_left",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
-     "hp": 20
+     "hp": 200
     }
    ],
    "maxRounds": 10
@@ -4478,19 +4578,19 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 54
+     "hp": 540
     },
     {
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_right",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ],
    "maxRounds": 12
@@ -4506,13 +4606,13 @@
      "instanceId": "e_scrapper_1",
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
-     "hp": 10
+     "hp": 100
     },
     {
      "instanceId": "e_scrapper_2",
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
-     "hp": 10
+     "hp": 100
     }
    ],
    "maxRounds": 6
@@ -4526,13 +4626,13 @@
      "instanceId": "e_hunter",
      "enemyActorId": "gray_hunter",
      "position": "front_left",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ],
    "maxRounds": 7
@@ -4546,13 +4646,13 @@
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_left",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_scrapper",
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
-     "hp": 10
+     "hp": 100
     }
    ],
    "maxRounds": 8
@@ -4566,13 +4666,13 @@
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_left",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ],
    "maxRounds": 8
@@ -4586,19 +4686,19 @@
      "instanceId": "e_bulwark",
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
-     "hp": 32
+     "hp": 320
     },
     {
      "instanceId": "e_hunter",
      "enemyActorId": "gray_hunter",
      "position": "front_right",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_scrapper",
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
-     "hp": 10
+     "hp": 100
     }
    ],
    "maxRounds": 9
@@ -4612,19 +4712,19 @@
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_left",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
-     "hp": 20
+     "hp": 200
     }
    ],
    "maxRounds": 10
@@ -4638,19 +4738,19 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 54
+     "hp": 540
     },
     {
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_right",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ],
    "maxRounds": 12
@@ -4958,13 +5058,13 @@
      "instanceId": "e_scrapper_1",
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
-     "hp": 10
+     "hp": 100
     },
     {
      "instanceId": "e_scrapper_2",
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
-     "hp": 10
+     "hp": 100
     }
    ]
   },
@@ -5062,13 +5162,13 @@
      "instanceId": "e_hunter",
      "enemyActorId": "gray_hunter",
      "position": "front_left",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ]
   },
@@ -5166,13 +5266,13 @@
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_left",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_scrapper",
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
-     "hp": 10
+     "hp": 100
     }
    ]
   },
@@ -5270,13 +5370,13 @@
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_left",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ]
   },
@@ -5374,19 +5474,19 @@
      "instanceId": "e_bulwark",
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
-     "hp": 32
+     "hp": 320
     },
     {
      "instanceId": "e_hunter",
      "enemyActorId": "gray_hunter",
      "position": "front_right",
-     "hp": 20
+     "hp": 200
     },
     {
      "instanceId": "e_scrapper",
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
-     "hp": 10
+     "hp": 100
     }
    ]
   },
@@ -5484,19 +5584,19 @@
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_left",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
-     "hp": 20
+     "hp": 200
     }
    ]
   },
@@ -5594,19 +5694,19 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 54
+     "hp": 540
     },
     {
      "instanceId": "e_guard",
      "enemyActorId": "gray_guard",
      "position": "front_right",
-     "hp": 18
+     "hp": 180
     },
     {
      "instanceId": "e_marksman",
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
-     "hp": 12
+     "hp": 120
     }
    ]
   }

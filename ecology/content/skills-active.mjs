@@ -7,7 +7,7 @@
 //
 // ここを触ってよいのは 技能 担当だけ。engine・schema・共通registryは変更しない。
 
-import { cloneActive, renamed } from "./base.mjs";
+import { bpsForLegacyAmount, cloneActive, renamed, scaleDefinitionAmounts } from "./base.mjs";
 
 export const ACTIVE_SKILL_NAMES = {
   strike: "斬撃",
@@ -81,5 +81,30 @@ activeSkills.enemy_guard = cloneActive("bulwark", "enemy_guard", ACTIVE_SKILL_NA
     duration: "round",
   }],
 });
+
+// R6 §4.4 — Phase A の係数。**技能ごとに weapon(might) か technique(focus) かを決める。**
+// R6 が名指しした3つは名指しの値、それ以外は中立 parameter 40 で
+// 現行の相対効果量を保つ係数（現行値 × 2500 bps）から始める。
+export const ACTIVE_SCALING = {
+  // R6 §4.4 が名指し
+  strike: { stat: "might", bps: 10_000 },          // 斬撃 might 100%
+  mend: { stat: "focus", bps: 8_000 },             // 手当て focus 80%
+  bulwark: { stat: "focus", bps: 6_000 },          // 防壁形成 focus 60%
+  // 攻撃系 → might。溜めや条件を持つので中立則で始める
+  heavy_swing: { stat: "might", bps: bpsForLegacyAmount(9) },
+  long_swing: { stat: "might", bps: bpsForLegacyAmount(9) },
+  hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(5) },
+  // 支援系 → focus
+  triage: { stat: "focus", bps: bpsForLegacyAmount(8) },
+  // 敵の技能。basic strike は might 100%、重い一撃は中立則
+  front_strike: { stat: "might", bps: 10_000 },
+  rear_strike: { stat: "might", bps: 10_000 },
+  enemy_heavy: { stat: "might", bps: bpsForLegacyAmount(8) },
+  enemy_guard: { stat: "focus", bps: bpsForLegacyAmount(4) },
+};
+
+for (const [id, scaling] of Object.entries(ACTIVE_SCALING)) {
+  scaleDefinitionAmounts(activeSkills[id], scaling);
+}
 
 export const ACTIVE_SKILLS = activeSkills;

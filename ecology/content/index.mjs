@@ -40,7 +40,9 @@ export const NAMED_SECTIONS = Object.freeze([
 
 export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
-  contentVersion: "ecology-playable-full-0.2",
+  // Phase A で戦闘量と人物 parameter が変わった。**記録を分けるために上げる**
+  // （0.2 の遠征と 0.3 の遠征は別のゲームで、同じ入れ物に混ぜられない）。
+  contentVersion: "ecology-playable-full-0.3",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

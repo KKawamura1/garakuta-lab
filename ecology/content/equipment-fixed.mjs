@@ -7,7 +7,7 @@
 //
 // ここを触ってよいのは 装備 担当だけ。engine・schema・共通registryは変更しない。
 
-import { cloneEquipment, renamed, setRuleEffectAmount } from "./base.mjs";
+import { cloneEquipment, renamed, scaleFlatAmounts, setRuleEffectAmount } from "./base.mjs";
 
 export const EQUIPMENT_NAMES = {
   worn_greaves: "踏み込みの靴",
@@ -55,5 +55,9 @@ equipment.recovery_satchel = setRuleEffectAmount(
   2,
   "repair_equipment",
 );
+
+// R6 §4.4 — 装備の flat roll は parameter 非依存のまま10倍する。
+// **持ち主が強くなっても装備は同じだけ効く。**耐久や行動権は離散量なので触らない。
+for (const definition of Object.values(equipment)) scaleFlatAmounts(definition);
 
 export const FIXED_EQUIPMENT = equipment;

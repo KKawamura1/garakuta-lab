@@ -7,7 +7,7 @@
 //
 // ここを触ってよいのは 技能 担当だけ。engine・schema・共通registryは変更しない。
 
-import { renamed } from "./base.mjs";
+import { bpsForLegacyAmount, renamed, scaleDefinitionAmounts } from "./base.mjs";
 
 export const REACTIVE_SKILL_NAMES = {
   counter_blow: "反撃",
@@ -27,5 +27,19 @@ export const REACTIVE_SKILL_NAMES = {
 };
 
 const reactiveSkills = renamed("reactiveSkills", REACTIVE_SKILL_NAMES);
+
+// R6 §4.4 — Phase A の係数。反応技能も同じ決め方。
+// 反撃は殴られた側の might、防壁と治療は focus。
+export const REACTIVE_SCALING = {
+  counter_blow: { stat: "might", bps: bpsForLegacyAmount(2) },
+  damage_echo: { stat: "might", bps: bpsForLegacyAmount(1) },
+  guard_step: { stat: "focus", bps: bpsForLegacyAmount(2) },
+  brace_after_hit: { stat: "focus", bps: bpsForLegacyAmount(2) },
+  barrier_bloom: { stat: "focus", bps: bpsForLegacyAmount(1) },
+};
+
+for (const [id, scaling] of Object.entries(REACTIVE_SCALING)) {
+  scaleDefinitionAmounts(reactiveSkills[id], scaling);
+}
 
 export const REACTIVE_SKILLS = reactiveSkills;
