@@ -179,3 +179,4 @@ export function buildBeats(events) {
 export function beatDurationMs(beat, factor = 1) {
   return Math.max(60, Math.round((beat?.ms ?? BEAT_MS.other) * factor));
 }
+

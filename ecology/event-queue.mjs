@@ -147,3 +147,4 @@ export function runtimeError(state, message, extra = {}) {
   };
   return new EcologyRuntimeError(`${message} (battle ${state.battleId}, round ${state.round})`, diagnostics);
 }
+

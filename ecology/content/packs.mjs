@@ -28,7 +28,7 @@ export const SKILL_PACKS = Object.freeze([
     id: "pack_edge",
     displayName: "刃と撃破",
     summary: "単発・多段・貫通で、受けの厚い相手をどう抜くかを問う。",
-    activeSkillIds: Object.freeze(["heavy_swing", "long_swing", "hunt_the_slow", "rapid_cuts", "pierce_thrust"]),
+    activeSkillIds: Object.freeze(["heavy_swing", "long_swing", "hunt_the_slow", "rapid_cuts", "pierce_thrust", "guard_crush", "rear_hunt", "finishing_thrust", "crack_mark"]),
     reactiveSkillIds: Object.freeze(["counter_blow", "damage_echo", "scavenge_ap"]),
     tags: Object.freeze(["attack", "execute"]),
   }),
@@ -44,8 +44,9 @@ export const SKILL_PACKS = Object.freeze([
     id: "pack_wall",
     displayName: "防壁と隊列",
     summary: "誰が前に立つかと、行・列のどちらを薙ぐかを問う。",
-    activeSkillIds: Object.freeze(["reposition", "row_sweep", "column_thrust"]),
-    reactiveSkillIds: Object.freeze(["cover_ally", "guard_step", "barrier_bloom"]),
+    activeSkillIds: Object.freeze(["reposition", "row_sweep", "column_thrust", "brace_for_impact"]),
+    reactiveSkillIds: Object.freeze(["cover_ally", "guard_step", "barrier_bloom", "block_focus", "barrier_stitch"]),
+    passiveSkillIds: Object.freeze(["opening_guard"]),
     tags: Object.freeze(["barrier", "formation"]),
   }),
   Object.freeze({
@@ -71,17 +72,19 @@ export const PACK_BY_ID = Object.freeze(
 export function skillIdsForPacks(packIds) {
   const active = new Set(BASELINE_ACTIVE_SKILL_IDS);
   const reactive = new Set();
+  const passive = new Set(BASELINE_PASSIVE_SKILL_IDS);
   for (const packId of packIds ?? []) {
     const pack = PACK_BY_ID[packId];
     if (!pack) continue;
     for (const id of pack.activeSkillIds) active.add(id);
     for (const id of pack.reactiveSkillIds) reactive.add(id);
+    for (const id of pack.passiveSkillIds ?? []) passive.add(id);
   }
   return {
     active: [...active],
     reactive: [...reactive],
-    passive: [...BASELINE_PASSIVE_SKILL_IDS],
-    all: [...active, ...reactive, ...BASELINE_PASSIVE_SKILL_IDS],
+    passive: [...passive],
+    all: [...active, ...reactive, ...passive],
   };
 }
 
@@ -89,7 +92,9 @@ export function skillIdsForPacks(packIds) {
 // 技能を足してパックへ載せ忘れると黙って消えるので、検査がここを見る。
 export function packOfSkill(skillId) {
   for (const pack of SKILL_PACKS) {
-    if (pack.activeSkillIds.includes(skillId) || pack.reactiveSkillIds.includes(skillId)) return pack.id;
+    if (pack.activeSkillIds.includes(skillId)
+      || pack.reactiveSkillIds.includes(skillId)
+      || (pack.passiveSkillIds ?? []).includes(skillId)) return pack.id;
   }
   if (BASELINE_ACTIVE_SKILL_IDS.includes(skillId) || BASELINE_PASSIVE_SKILL_IDS.includes(skillId)) {
     return "baseline";

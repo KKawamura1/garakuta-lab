@@ -222,3 +222,4 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 
 void PREP;
 console.log(`termination.test.mjs: ${checks} checks passed`);
+

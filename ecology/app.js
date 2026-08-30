@@ -269,9 +269,8 @@ function joinRun(run, characterId) {
   next.loadout.reactives[characterId] = keep(run.loadout?.reactives?.[characterId] ?? fresh.reactives[characterId]);
   next.loadout.passives[characterId] = run.loadout?.passives?.[characterId] ?? [];
   next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
-  // 行動が一つも残らないと、その仲間は basic strike しかしない。
-  // baseline の斬撃は manifest に必ず入っている（R6 §5.2）。
-  if (!next.loadout.tactics[characterId].length) next.loadout.tactics[characterId] = ["strike"];
+  // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
+  // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
   return next;
 }
 
@@ -391,31 +390,68 @@ function loadState() {
 
 let state = loadState();
 
-function saveState() {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-  } catch (error) {
-    // 枠を超えたら、**進行ではなく控えを捨てる。**遠征の途中で保存が止まると、
-    // そこから先はリロードで全部消える（それが quota 超過の実害だった）。
-    // 捨てる順は「後から作り直せるもの」から。進行（profile / run）は最後まで残す。
-    const shed = [
-      () => {
-        state.runEventsDropped = (state.runEventsDropped ?? 0) + Math.max(0, state.runEvents.length - 50);
-        state.runEvents = state.runEvents.slice(-50);
-      },
-      () => { state.replaySnapshots = []; },
-      () => { state.replayEvents = []; if (state.phase === "battle") state.phase = "result"; },
-      () => { if (state.lastResult) state.lastResult.events = []; },
-    ];
-    for (const drop of shed) {
-      drop();
-      try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-        return;
-      } catch { /* 次を捨てる */ }
-    }
-    state.error = "端末の保存枠が足りません。記録を送ってから、新しい遠征を始めてください。";
+// Keep the live replay in memory, but avoid persisting the same snapshots twice.
+// Safari can hit its Web Storage quota around the sixth, event-heavy battle;
+// an exception here used to happen before render(), leaving the user on the
+// "自動戦闘を再生する" screen even though simulation had completed.
+function persistableState() {
+  const persisted = { ...state };
+  if (state.lastResult && typeof state.lastResult === "object") {
+    // Copy only the object that we trim; the live state remains untouched.
+    persisted.lastResult = { ...state.lastResult };
+    // state.replaySnapshots is the copy used by the replay screen.
+    delete persisted.lastResult.replaySnapshots;
   }
+  return persisted;
+}
+
+function isRecoverableStorageError(error) {
+  return [
+    "QuotaExceededError",
+    "NS_ERROR_DOM_QUOTA_REACHED",
+    "SecurityError",
+  ].includes(error?.name);
+}
+
+function saveState() {
+  // Keep the live replay in memory, but do not block the battle when the
+  // device's Web Storage quota is exhausted. The fallback progressively drops
+  // reconstructible data while retaining profile/run progress.
+  const snapshot = persistableState();
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
+    return true;
+  } catch (error) {
+    if (!isRecoverableStorageError(error)) throw error;
+  }
+
+  const minimal = persistableState();
+  const shed = [
+    () => {
+      const events = Array.isArray(minimal.runEvents) ? minimal.runEvents : [];
+      minimal.runEventsDropped = (minimal.runEventsDropped ?? 0) + Math.max(0, events.length - 50);
+      minimal.runEvents = events.slice(-50);
+    },
+    () => { minimal.replaySnapshots = []; },
+    () => {
+      minimal.replayEvents = [];
+      if (minimal.phase === "battle") minimal.phase = "result";
+    },
+    () => { if (minimal.lastResult) minimal.lastResult.events = []; },
+  ];
+  for (const drop of shed) {
+    drop();
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(minimal));
+      return false;
+    } catch (retryError) {
+      if (!isRecoverableStorageError(retryError)) throw retryError;
+    }
+  }
+  // Persistence is best-effort; the in-memory UI and the current battle remain
+  // usable even when no checkpoint fits on the device.
+  state.error = "端末の保存枠が足りません。記録を送ってから、新しい遠征を始めてください。";
+  return false;
 }
 
 function clone(value) {
@@ -582,7 +618,7 @@ function nextActPreview() {
 }
 
 function installedSkill(characterId, skillId, kind) {
-  const key = kind === "active" ? "tactics" : "reactives";
+  const key = SLOT_KEYS[kind];
   return (state.run.loadout[key]?.[characterId] || []).includes(skillId);
 }
 
@@ -922,10 +958,13 @@ function memberContext(characterId, emphasis = "skills") {
 function skillBuildSummary(characterId) {
   const active = (state.run.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
   const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const passive = (state.run.loadout.passives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
   const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
-  const slotKey = selectedNode?.kind === "active" ? "tactics" : "reactives";
-  const slotLabel = selectedNode?.kind === "active" ? "行動枠" : "リアクティブ枠";
+  const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
+  const slotLabel = selectedNode?.kind === "active" ? "行動枠"
+    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "常設枠";
   const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
     ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
@@ -936,7 +975,11 @@ function skillBuildSummary(characterId) {
     + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
     + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>行動</b> "
     + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>反応</b> "
-    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-target\">"
+    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span><span><b>常設</b> "
+    + esc(passive.length ? passive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-stats\">"
+    + "<span><b>HP</b> " + currentHp(characterId) + "/" + maxHp(characterId) + "</span><span><b>AP</b> "
+    + (definition.baseActionPoints ?? "-") + "</span><span><b>RP</b> " + (definition.baseReactionPoints ?? "-")
+    + "</span></div><div class=\"skill-summary-target\">"
     + esc(target) + "</div></aside>";
 }
 function skillNodeIcon(node) {
@@ -976,7 +1019,15 @@ function renderSkillNode(node, characterId) {
   } else {
     status = !prereqsMet ? "前提待ち" : "点数不足";
   }
-  const stateClass = unlocked ? "unlocked" : canUnlock ? "available" : "locked";
+  const stateClass = equipped
+    ? "equipped"
+    : unlocked
+      ? "unlocked"
+      : canUnlock
+        ? "available"
+        : !prereqsMet
+          ? "prerequisite"
+          : "locked";
   const detail = selected
     ? "<div class=\"skill-detail\"><p>" + esc(info?.effect ?? "") + "</p><small>前提: "
       + (node.requires.length ? esc(node.requires.map((id) => COMPONENTS[id]?.label ?? id).join(" / ")) : "なし")
@@ -1013,7 +1064,7 @@ function renderSkills() {
   // 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
   const branches = ["攻撃", "指揮", "支援", "守り", "基礎"].map((branch) => renderSkillBranch(branch, characterId)).join("");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_NODES.length + " NODES", "誰を伸ばす？", pointsBadge)
-    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・装備を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
+    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
     + manifestNote
     + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
@@ -1786,7 +1837,7 @@ function renderResult() {
   if (!result) return renderCamp();
   const won = result.result === "win";
   const metrics = result.metrics || {};
-  const events = compactEvents(result.events);
+  const events = compactEvents(result.events || state.replayEvents);
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   // R6 §12.2 — **敗北で即座に遠征を破棄しない。**補給が残っていれば再挑戦へ。
   const next = won
@@ -1825,7 +1876,7 @@ function renderResult() {
     + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
       + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
       + "<code class=\"event-type\">" + esc(event.type) + "</code></li>").join("") + "</ol>"
-    + "<details><summary>全イベントを見る</summary><pre>" + esc((result.events || []).map(eventText).join("\n")) + "</pre></details></details>"
+    + "<details><summary>全イベントを見る</summary><pre>" + esc((result.events || state.replayEvents || []).map(eventText).join("\n")) + "</pre></details></details>"
     + next);
 }
 
@@ -2284,7 +2335,6 @@ function handleAction(event) {
       state.run.loadout[key][characterId] = (state.run.loadout[key][characterId] ?? [])
         .filter((skillId) => unlocked.has(skillId));
     }
-    if (!state.run.loadout.tactics[characterId].length) state.run.loadout.tactics[characterId] = ["strike"];
     record("run_skills_reset", { characterId, refunded });
     saveState();
     render();

@@ -358,12 +358,12 @@ for (const position of POSITIONS) {
   check(basics.length > 0, "技能を持たない仲間も通常攻撃をする（R6 §6.4）");
   equal(basics[0].skillId, "basic_strike_melee", "レオンは近接なので通常攻撃");
 
-  // 届き方は人物ごと。後ろの二人は遠隔。
+  // 届き方は技能ごと。playable の通常攻撃・追撃は、仲間の位置に関係なく melee。
   const reaches = new Set(supportRun.events
     .filter((event) => event.type === "action_started" && String(event.skillId ?? "").includes("strike_"))
     .map((event) => event.skillId));
-  check(reaches.has("fallback_strike_ranged"), "後衛は遠隔で追撃する");
-  check(reaches.has("fallback_strike_melee"), "前衛は近接で追撃する");
+  check(!reaches.has("fallback_strike_ranged"), "後衛でも追撃は自動的に遠隔にならない");
+  check(reaches.has("fallback_strike_melee"), "通常攻撃・追撃は技能定義の melee を使う");
 }
 
 console.log(`phase-a.test.mjs: ${checks} checks passed`);

@@ -189,3 +189,4 @@ if (problems.length) {
 
 console.log(`ecology-contract smoke: ${CONTENT_CONTRACT_VERSION} — `
   + `ID ${allIds.size}件、engine に個別分岐なし、小数なし、公開済み ID の引っ越しなし`);
+

@@ -28,9 +28,28 @@ export const EQUIPMENT_NAMES = {
   shard_hilt: "破片の柄",
   repair_pouch: "修繕袋",
   recovery_satchel: "大きな救急袋",
+  block_latch: "受け止め金具",
+  impact_spring: "衝撃ばね",
+  wound_thread: "傷縫い糸",
+  quiet_lens: "静観レンズ",
+  rescue_sachet: "救急の小袋",
+  last_bell: "仕留めの鈴",
 };
 
 const equipment = renamed("equipment", EQUIPMENT_NAMES);
+const SELF_TARGET = { scope: "self", take: 1 };
+const SELF_IS_EVENT_TARGET = {
+  type: "target_exists",
+  query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
+};
+const SELF_IS_EVENT_SOURCE = {
+  type: "target_exists",
+  query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
+};
+const EVENT_TARGET_IS_ENEMY = {
+  type: "target_exists",
+  query: { scope: "enemies", filters: [{ type: "is_event_primary_target" }], take: 1 },
+};
 equipment.guard_lantern = setRuleEffectAmount(
   cloneEquipment("standing_plate", "guard_lantern", EQUIPMENT_NAMES.guard_lantern, { maxDurability: 2 }),
   1,
@@ -55,6 +74,91 @@ equipment.recovery_satchel = setRuleEffectAmount(
   2,
   "repair_equipment",
 );
+equipment.block_latch = setRuleEffectAmount(cloneEquipment(
+  "standing_plate",
+  "block_latch",
+  EQUIPMENT_NAMES.block_latch,
+  { maxDurability: 2 },
+), 1, "gain_barrier");
+equipment.impact_spring = cloneEquipment(
+  "standing_plate",
+  "impact_spring",
+  EQUIPMENT_NAMES.impact_spring,
+  { maxDurability: 1 },
+);
+equipment.impact_spring.rules[0] = {
+  ...equipment.impact_spring.rules[0],
+  id: "impact_spring_rule",
+  listenTo: "block_spent",
+  predicates: [SELF_IS_EVENT_TARGET],
+  costs: [{ type: "wear_equipment", amount: 1 }],
+  effects: [{ type: "gain_barrier", target: SELF_TARGET, amount: { type: "constant", value: 1 }, duration: "round" }],
+  limit: { scope: "battle", count: 1 },
+};
+equipment.wound_thread = cloneEquipment(
+  "momentum_rig",
+  "wound_thread",
+  EQUIPMENT_NAMES.wound_thread,
+  { maxDurability: 2 },
+);
+equipment.wound_thread.rules[0] = {
+  ...equipment.wound_thread.rules[0],
+  id: "wound_thread_rule",
+  listenTo: "damage_taken",
+  predicates: [SELF_IS_EVENT_TARGET],
+  costs: [{ type: "wear_equipment", amount: 1 }],
+  effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
+  limit: { scope: "round", count: 1 },
+};
+equipment.quiet_lens = cloneEquipment(
+  "field_kit",
+  "quiet_lens",
+  EQUIPMENT_NAMES.quiet_lens,
+  { maxDurability: 2 },
+);
+equipment.quiet_lens.rules[0] = {
+  ...equipment.quiet_lens.rules[0],
+  id: "quiet_lens_rule",
+  listenTo: "resource_unused",
+  predicates: [
+    SELF_IS_EVENT_TARGET,
+    { type: "event_tag", tag: "action_points", value: true },
+    { type: "event_value", key: "amount", op: "gte", value: 1 },
+  ],
+  costs: [{ type: "wear_equipment", amount: 1 }],
+  effects: [{ type: "gain_barrier", target: SELF_TARGET, amount: { type: "constant", value: 1 }, duration: "round" }],
+  limit: { scope: "round", count: 1 },
+};
+equipment.rescue_sachet = cloneEquipment(
+  "field_kit",
+  "rescue_sachet",
+  EQUIPMENT_NAMES.rescue_sachet,
+  { maxDurability: 2 },
+);
+equipment.rescue_sachet.rules[0] = {
+  ...equipment.rescue_sachet.rules[0],
+  id: "rescue_sachet_rule",
+  listenTo: "healing_applied",
+  predicates: [SELF_IS_EVENT_SOURCE],
+  costs: [{ type: "wear_equipment", amount: 1 }],
+  effects: [{ type: "gain_resource", target: SELF_TARGET, resource: "reaction_points", amount: { type: "constant", value: 1 } }],
+  limit: { scope: "round", count: 1 },
+};
+equipment.last_bell = cloneEquipment(
+  "worn_greaves",
+  "last_bell",
+  EQUIPMENT_NAMES.last_bell,
+  { maxDurability: 1 },
+);
+equipment.last_bell.rules[0] = {
+  ...equipment.last_bell.rules[0],
+  id: "last_bell_rule",
+  listenTo: "actor_defeated",
+  predicates: [EVENT_TARGET_IS_ENEMY],
+  costs: [{ type: "wear_equipment", amount: 1 }],
+  effects: [{ type: "gain_resource", target: SELF_TARGET, resource: "action_points", amount: { type: "constant", value: 1 } }],
+  limit: { scope: "battle", count: 1 },
+};
 
 // R6 §4.4 — 装備の flat roll は parameter 非依存のまま10倍する。
 // **持ち主が強くなっても装備は同じだけ効く。**耐久や行動権は離散量なので触らない。
@@ -101,3 +205,4 @@ export const EQUIPMENT_GROUPS = Object.freeze([
 export const STARTER_EQUIPMENT_IDS = Object.freeze([
   "standing_plate", "worn_greaves", "guard_lantern", "tempo_buckle",
 ]);
+

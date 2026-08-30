@@ -639,3 +639,4 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 console.log(`engine.test.mjs: ${checks} checks passed`);
+

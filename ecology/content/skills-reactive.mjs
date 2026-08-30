@@ -24,9 +24,17 @@ export const REACTIVE_SKILL_NAMES = {
   relay_front: "前列への号令",
   relay_rear: "後列への号令",
   prep_spiral: "準備の螺旋",
+  block_focus: "受け返しの集中",
+  barrier_stitch: "防壁の縫い直し",
 };
 
 const reactiveSkills = renamed("reactiveSkills", REACTIVE_SKILL_NAMES);
+
+const SELF_TARGET = { scope: "self", take: 1 };
+const SELF_IS_EVENT_TARGET = {
+  type: "target_exists",
+  query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
+};
 
 // R6 §4.4 — Phase A の係数。反応技能も同じ決め方。
 // 反撃は殴られた側の might、防壁と治療は focus。
@@ -41,5 +49,48 @@ export const REACTIVE_SCALING = {
 for (const [id, scaling] of Object.entries(REACTIVE_SCALING)) {
   scaleDefinitionAmounts(reactiveSkills[id], scaling);
 }
+
+// 余剰治療は汎用、連携治療は応急手当専用。汎用側を無償にすると
+// 後者の完全な上位互換になるため、両方ともRP1を払い、専用側だけ
+// 余剰量を増幅する。これで「広く薄く」と「狭く強く」の選択になる。
+reactiveSkills.overflow_care.rule.costs = [{ type: "spend_reaction_points", amount: 1 }];
+for (const effect of reactiveSkills.triage_relay.rule.effects ?? []) {
+  if (effect.type === "heal" && effect.amount?.type === "event_value_scaled") {
+    effect.amount = { ...effect.amount, numerator: 5, denominator: 4 };
+  }
+}
+
+// Content Wave 1 — connect two existing defensive events to two different
+// follow-up resources. Both spend RP, so the answer is not free durability.
+reactiveSkills.block_focus = {
+  id: "block_focus",
+  displayName: REACTIVE_SKILL_NAMES.block_focus,
+  rule: {
+    id: "block_focus_rule",
+    listenTo: "damage_blocked",
+    timing: "after",
+    predicates: [SELF_IS_EVENT_TARGET],
+    costs: [{ type: "spend_reaction_points", amount: 1 }],
+    effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
+    limit: { scope: "round", count: 1 },
+    priority: 100,
+  },
+  tags: ["reaction", "tempo"],
+};
+reactiveSkills.barrier_stitch = {
+  id: "barrier_stitch",
+  displayName: REACTIVE_SKILL_NAMES.barrier_stitch,
+  rule: {
+    id: "barrier_stitch_rule",
+    listenTo: "barrier_broken",
+    timing: "after",
+    predicates: [SELF_IS_EVENT_TARGET],
+    costs: [{ type: "spend_reaction_points", amount: 1 }],
+    effects: [{ type: "gain_block", target: SELF_TARGET, amount: { type: "constant", value: 1 } }],
+    limit: { scope: "round", count: 1 },
+    priority: 100,
+  },
+  tags: ["reaction", "guard"],
+};
 
 export const REACTIVE_SKILLS = reactiveSkills;

@@ -151,3 +151,5 @@ if (process.argv[1] && process.argv[1].endsWith("contract-snapshot.mjs") && proc
   writeFileSync(path, contractSnapshotJson());
   console.log("凍結を作り直した: " + path);
 }
+
+

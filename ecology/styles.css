@@ -335,9 +335,17 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   border-radius: 10px;
   background: #172124;
 }
-.skill-node.unlocked { border-color: #66836e; }
-.skill-node.available { border-color: var(--gold); background: #2b2a21; }
-.skill-node.locked { opacity: .58; }
+/* 解禁可能は案内として残すが、装着中より目立たせない。 */
+.skill-node.unlocked { border-color: #66836e; background: rgba(102, 131, 110, .08); }
+.skill-node.available { border-color: #8a7d50; background: rgba(138, 125, 80, .08); }
+.skill-node.prerequisite { border-color: #53635f; opacity: .68; }
+.skill-node.locked { border-color: #4b5a57; opacity: .58; }
+/* 装着中は現在の編成を示す最優先状態。 */
+.skill-node.equipped {
+  border-color: var(--gold);
+  background: var(--gold-dark);
+  box-shadow: 0 0 0 1px var(--gold), 0 0 0 3px rgba(229, 184, 105, .2);
+}
 .node-top {
   display: flex;
   justify-content: space-between;
@@ -642,7 +650,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-build-summary-head small { margin-top: 2px; color: var(--muted); font-size: 9px; }
 .skill-summary-slots {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
   color: var(--blue);
   font-size: 9px;
@@ -650,6 +658,14 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .skill-summary-slots span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skill-summary-slots b, .skill-summary-target { color: var(--ink); }
+.skill-summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.skill-summary-stats b { color: var(--ink); }
 .skill-summary-target {
   padding-top: 6px;
   border-top: 1px solid rgba(224, 195, 116, .2);
@@ -705,15 +721,18 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 14px;
   font-weight: 800;
 }
-.skill-node.locked .node-icon { border-color: #5f6c68; color: #82938b; }
-.skill-node.available .node-icon { background: var(--gold); color: #1b201e; }
+.skill-node.locked .node-icon, .skill-node.prerequisite .node-icon { border-color: #5f6c68; color: #82938b; }
+.skill-node.available .node-icon { border-color: #8a7d50; background: rgba(138, 125, 80, .16); color: #c9b66e; }
+.skill-node.equipped .node-icon { border-color: var(--gold); background: var(--gold); color: #1b201e; }
 .node-copy { min-width: 0; }
 .node-copy b, .node-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .node-copy b { font-size: 11px; }
 .node-copy small { margin-top: 3px; color: var(--muted); font-size: 9px; }
 .node-status { color: var(--blue); font-size: 9px; text-align: right; white-space: nowrap; }
 .skill-node.locked .node-status { color: var(--muted); }
-.skill-node.available .node-status { color: var(--gold); }
+.skill-node.available .node-status { color: #c9b66e; }
+.skill-node.prerequisite .node-status { color: #82938b; }
+.skill-node.equipped .node-status { color: var(--gold); font-weight: 800; }
 .skill-detail {
   padding: 8px 9px 10px 44px;
   border-top: 1px solid rgba(224, 195, 116, .2);

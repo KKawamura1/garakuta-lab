@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.4",
+ "contentVersion": "ecology-playable-full-0.5",
  "content": {
   "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.4",
+  "contentVersion": "ecology-playable-full-0.5",
   "characters": {
    "warden": {
     "id": "warden",
@@ -16,7 +16,6 @@
      "fixture",
      "front"
     ],
-    "basicStrikeReach": "melee",
     "might": 32,
     "focus": 24,
     "guard": 10
@@ -33,7 +32,6 @@
      "fixture",
      "support"
     ],
-    "basicStrikeReach": "ranged",
     "might": 18,
     "focus": 44,
     "guard": 3
@@ -50,7 +48,6 @@
      "fixture",
      "strike"
     ],
-    "basicStrikeReach": "melee",
     "might": 46,
     "focus": 18,
     "guard": 4
@@ -102,7 +99,6 @@
      "fixture",
      "fast"
     ],
-    "basicStrikeReach": "ranged",
     "might": 36,
     "focus": 26,
     "guard": 2
@@ -170,7 +166,6 @@
      "fixture",
      "gate_e"
     ],
-    "basicStrikeReach": "melee",
     "might": 32,
     "focus": 32,
     "guard": 6
@@ -188,7 +183,6 @@
      "front",
      "guard"
     ],
-    "basicStrikeReach": "melee",
     "might": 26,
     "focus": 24,
     "guard": 12
@@ -206,7 +200,6 @@
      "rear",
      "attack"
     ],
-    "basicStrikeReach": "ranged",
     "might": 16,
     "focus": 50,
     "guard": 2
@@ -224,7 +217,6 @@
      "rear",
      "tempo"
     ],
-    "basicStrikeReach": "ranged",
     "might": 24,
     "focus": 40,
     "guard": 3
@@ -264,8 +256,9 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 10000
+       "coefficientBps": 12000
       },
+      "reach": "melee",
       "tags": [
        "attack"
       ]
@@ -280,12 +273,40 @@
     "id": "mend",
     "displayName": "手当て",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lt",
+         "value": 100
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "allies",
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lt",
+       "value": 100
       }
      ],
      "sort": [
@@ -309,7 +330,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 8000
+       "coefficientBps": 25000
       },
       "tags": [
        "care"
@@ -341,7 +362,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 6000
+       "coefficientBps": 20000
       },
       "duration": "round"
      }
@@ -435,12 +456,13 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 22500
+        "coefficientBps": 55000
        },
        "tags": [
         "attack",
         "heavy"
-       ]
+       ],
+       "reach": "melee"
       }
      ]
     },
@@ -540,12 +562,13 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 22500
+        "coefficientBps": 100000
        },
        "tags": [
         "attack",
         "heavy"
-       ]
+       ],
+       "reach": "melee"
       }
      ]
     },
@@ -560,7 +583,30 @@
     "id": "triage",
     "displayName": "応急手当",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lte",
+         "value": 50
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "allies",
      "filters": [
@@ -594,7 +640,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 20000
+       "coefficientBps": 25000
       },
       "tags": [
        "care",
@@ -611,7 +657,29 @@
     "id": "hunt_the_slow",
     "displayName": "準備狩り",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "is_preparing",
+         "value": true
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
@@ -644,12 +712,13 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 12500
+       "coefficientBps": 30000
       },
       "tags": [
        "attack",
        "hunt"
-      ]
+      ],
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -695,12 +764,42 @@
     "id": "mark_target",
     "displayName": "隙を刻む",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "eq",
+         "value": 0
+        }
+       ],
+       "sort": [
+        "hp_desc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
       }
      ],
      "sort": [
@@ -797,6 +896,7 @@
        "scalingStat": "might",
        "coefficientBps": 10000
       },
+      "reach": "melee",
       "tags": [
        "attack"
       ]
@@ -846,6 +946,7 @@
        "scalingStat": "might",
        "coefficientBps": 10000
       },
+      "reach": "ranged",
       "tags": [
        "attack"
       ]
@@ -895,12 +996,13 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 20000
+        "coefficientBps": 35000
        },
        "tags": [
         "attack",
         "heavy"
-       ]
+       ],
+       "reach": "melee"
       }
      ]
     },
@@ -1083,7 +1185,7 @@
        "scalingStat": "might",
        "coefficientBps": 10000
       },
-      "reach": "ranged",
+      "reach": "melee",
       "tags": [
        "attack",
        "weapon",
@@ -1135,7 +1237,7 @@
        "scalingStat": "might",
        "coefficientBps": 5000
       },
-      "reach": "ranged",
+      "reach": "melee",
       "tags": [
        "attack",
        "weapon",
@@ -1185,13 +1287,14 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 4000
+       "coefficientBps": 5000
       },
       "tags": [
        "attack",
        "weapon"
       ],
-      "hitCount": 3
+      "hitCount": 3,
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1235,13 +1338,14 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 8000
+       "coefficientBps": 11500
       },
       "tags": [
        "attack",
        "weapon"
       ],
-      "guardPierceBps": 6000
+      "guardPierceBps": 6000,
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1253,12 +1357,35 @@
     "displayName": "薙ぎ払い",
     "apCost": 1,
     "actionMode": "offense",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 2,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "enemies",
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "front"
       }
      ],
      "sort": [
@@ -1285,13 +1412,14 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 6000
+       "coefficientBps": 8000
       },
       "tags": [
        "attack",
        "weapon"
       ],
-      "targetPattern": "row"
+      "targetPattern": "row",
+      "reach": "melee"
      }
     ],
     "tags": [
@@ -1335,17 +1463,306 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 7000
+       "coefficientBps": 11000
       },
       "tags": [
        "attack",
        "weapon"
       ],
-      "targetPattern": "column"
+      "targetPattern": "column",
+      "reach": "melee"
      }
     ],
     "tags": [
      "attack"
+    ]
+   },
+   "guard_crush": {
+    "id": "guard_crush",
+    "displayName": "受け崩し",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 11500
+      },
+      "tags": [
+       "attack"
+      ],
+      "guardPierceBps": 10000,
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "rear_hunt": {
+    "id": "rear_hunt",
+    "displayName": "後衛狩り",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "rear"
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "rear"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 12000
+      },
+      "tags": [
+       "attack"
+      ],
+      "reach": "ranged"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "finishing_thrust": {
+    "id": "finishing_thrust",
+    "displayName": "止めの一突き",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lte",
+         "value": 50
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lte",
+       "value": 50
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 14000
+      },
+      "tags": [
+       "attack"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "crack_mark": {
+    "id": "crack_mark",
+    "displayName": "傷口を開く",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 11000
+      },
+      "tags": [
+       "attack",
+       "debuff"
+      ],
+      "reach": "melee"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "debuff"
+    ]
+   },
+   "brace_for_impact": {
+    "id": "brace_for_impact",
+    "displayName": "衝撃に備える",
+    "apCost": 1,
+    "actionMode": "utility",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_block",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "constant",
+       "value": 1
+      }
+     }
+    ],
+    "tags": [
+     "guard"
     ]
    }
   },
@@ -1510,7 +1927,12 @@
        }
       }
      ],
-     "costs": [],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
      "effects": [
       {
        "type": "heal",
@@ -1822,7 +2244,9 @@
        },
        "amount": {
         "type": "event_value_scaled",
-        "key": "amount"
+        "key": "amount",
+        "numerator": 5,
+        "denominator": 4
        },
        "tags": [
         "care",
@@ -2151,6 +2575,106 @@
     "tags": [
      "termination"
     ]
+   },
+   "block_focus": {
+    "id": "block_focus",
+    "displayName": "受け返しの集中",
+    "rule": {
+     "id": "block_focus_rule",
+     "listenTo": "damage_blocked",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "focused",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "scope": "round",
+      "count": 1
+     },
+     "priority": 100
+    },
+    "tags": [
+     "reaction",
+     "tempo"
+    ]
+   },
+   "barrier_stitch": {
+    "id": "barrier_stitch",
+    "displayName": "防壁の縫い直し",
+    "rule": {
+     "id": "barrier_stitch_rule",
+     "listenTo": "barrier_broken",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "gain_block",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "amount": {
+        "type": "constant",
+        "value": 1
+       }
+      }
+     ],
+     "limit": {
+      "scope": "round",
+      "count": 1
+     },
+     "priority": 100
+    },
+    "tags": [
+     "reaction",
+     "guard"
+    ]
    }
   },
   "passiveSkills": {
@@ -2264,6 +2788,46 @@
         "take": 1
        },
        "resource": "reaction_points",
+       "amount": {
+        "type": "constant",
+        "value": 1
+       }
+      }
+     ],
+     "limit": {
+      "scope": "battle",
+      "count": 1
+     },
+     "priority": 100
+    }
+   },
+   "opening_guard": {
+    "id": "opening_guard",
+    "displayName": "初手の構え",
+    "tags": [
+     "passive",
+     "playable",
+     "guard"
+    ],
+    "rule": {
+     "id": "opening_guard_rule",
+     "listenTo": "round_started",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "round_number",
+       "op": "eq",
+       "value": 1
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "gain_block",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
        "amount": {
         "type": "constant",
         "value": 1
@@ -3237,6 +3801,325 @@
     "tags": [
      "fixture"
     ]
+   },
+   "block_latch": {
+    "id": "block_latch",
+    "displayName": "受け止め金具",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "block_latch_rule_0",
+      "listenTo": "battle_started",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "always"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 10
+        },
+        "duration": "battle"
+       }
+      ],
+      "limit": {
+       "scope": "battle",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "impact_spring": {
+    "id": "impact_spring",
+    "displayName": "衝撃ばね",
+    "maxDurability": 1,
+    "rules": [
+     {
+      "id": "impact_spring_rule",
+      "listenTo": "block_spent",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 10
+        },
+        "duration": "round"
+       }
+      ],
+      "limit": {
+       "scope": "battle",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "wound_thread": {
+    "id": "wound_thread",
+    "displayName": "傷縫い糸",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "wound_thread_rule",
+      "listenTo": "damage_taken",
+      "timing": "after",
+      "priority": 90,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "focused",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture",
+     "gate_e"
+    ]
+   },
+   "quiet_lens": {
+    "id": "quiet_lens",
+    "displayName": "静観レンズ",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "quiet_lens_rule",
+      "listenTo": "resource_unused",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "action_points",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "amount",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 10
+        },
+        "duration": "round"
+       }
+      ],
+      "limit": {
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "rescue_sachet": {
+    "id": "rescue_sachet",
+    "displayName": "救急の小袋",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "rescue_sachet_rule",
+      "listenTo": "healing_applied",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "reaction_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        }
+       }
+      ],
+      "limit": {
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "last_bell": {
+    "id": "last_bell",
+    "displayName": "仕留めの鈴",
+    "maxDurability": 1,
+    "rules": [
+     {
+      "id": "last_bell_rule",
+      "listenTo": "actor_defeated",
+      "timing": "after",
+      "priority": 50,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "action_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        }
+       }
+      ],
+      "limit": {
+       "scope": "battle",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
    }
   },
   "statuses": {
@@ -3615,6 +4498,29 @@
     "focus": 40,
     "guard": 0
    },
+   "gray_runner": {
+    "id": "gray_runner",
+    "displayName": "灰殻の走り手",
+    "maxHp": 120,
+    "speed": 9,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
+   },
    "gray_marksman": {
     "id": "gray_marksman",
     "displayName": "灰殻の後撃ち",
@@ -3625,6 +4531,33 @@
     "tactics": [
      {
       "activeSkillId": "rear_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
+   },
+   "gray_stalker": {
+    "id": "gray_stalker",
+    "displayName": "灰殻の潜み手",
+    "maxHp": 130,
+    "speed": 7,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "rear_strike",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
       "useWhen": []
      }
     ],
@@ -3666,6 +4599,62 @@
     "focus": 40,
     "guard": 10
    },
+   "gray_breaker": {
+    "id": "gray_breaker",
+    "displayName": "灰殻の砕き手",
+    "maxHp": 220,
+    "speed": 5,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "enemy_heavy",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "objective",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 4
+   },
+   "gray_shelter": {
+    "id": "gray_shelter",
+    "displayName": "灰殻の籠り手",
+    "maxHp": 200,
+    "speed": 4,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "enemy_guard",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "objective",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 8
+   },
    "gray_hunter": {
     "id": "gray_hunter",
     "displayName": "灰殻の狩人",
@@ -3694,6 +4683,38 @@
     "focus": 40,
     "guard": 0
    },
+   "gray_harrower": {
+    "id": "gray_harrower",
+    "displayName": "灰殻の追い手",
+    "maxHp": 180,
+    "speed": 8,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "hunt_the_slow",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "rear_strike",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "gate_e",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 2
+   },
    "gray_echo": {
     "id": "gray_echo",
     "displayName": "灰殻の反響体",
@@ -3713,6 +4734,29 @@
     "intrinsicRules": [],
     "tags": [
      "termination",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
+   },
+   "gray_swarm": {
+    "id": "gray_swarm",
+    "displayName": "灰殻の群れ",
+    "maxHp": 80,
+    "speed": 10,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
      "playable"
     ],
     "might": 40,
@@ -3820,6 +4864,11 @@
   "pierce_thrust": "貫き突き",
   "row_sweep": "薙ぎ払い",
   "column_thrust": "突き通し",
+  "guard_crush": "受け崩し",
+  "rear_hunt": "後衛狩り",
+  "finishing_thrust": "止めの一突き",
+  "crack_mark": "傷口を開く",
+  "brace_for_impact": "衝撃に備える",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -3834,6 +4883,8 @@
   "relay_front": "前列への号令",
   "relay_rear": "後列への号令",
   "prep_spiral": "準備の螺旋",
+  "block_focus": "受け返しの集中",
+  "barrier_stitch": "防壁の縫い直し",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -3852,6 +4903,12 @@
   "shard_hilt": "破片の柄",
   "repair_pouch": "修繕袋",
   "recovery_satchel": "大きな救急袋",
+  "block_latch": "受け止め金具",
+  "impact_spring": "衝撃ばね",
+  "wound_thread": "傷縫い糸",
+  "quiet_lens": "静観レンズ",
+  "rescue_sachet": "救急の小袋",
+  "last_bell": "仕留めの鈴",
   "exposed": "隙",
   "focused": "集中",
   "husk": "灰殻兵",
@@ -3862,10 +4919,16 @@
   "husk_echo": "灰殻の反響体",
   "husk_marker": "灰殻の標定手",
   "gray_scrapper": "灰殻の走者",
+  "gray_runner": "灰殻の走り手",
   "gray_marksman": "灰殻の後撃ち",
+  "gray_stalker": "灰殻の潜み手",
   "gray_guard": "灰殻の守衛",
+  "gray_breaker": "灰殻の砕き手",
+  "gray_shelter": "灰殻の籠り手",
   "gray_hunter": "灰殻の狩人",
+  "gray_harrower": "灰殻の追い手",
   "gray_echo": "灰殻の反響体",
+  "gray_swarm": "灰殻の群れ",
   "gray_bulwark": "灰殻の盾兵",
   "ash_core": "灰の核心"
  },
@@ -3998,7 +5061,7 @@
     "kind": "active",
     "definitionId": "rapid_cuts",
     "label": "刻み斬り",
-    "effect": "3回に分けて刻む。合計は大きいが、受けの硬い相手には通りにくい。",
+    "effect": "50%を3回。合計150%で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
     "grammar": "攻撃"
    },
    "pierce_thrust": {
@@ -4006,7 +5069,7 @@
     "kind": "active",
     "definitionId": "pierce_thrust",
     "label": "貫き突き",
-    "effect": "威力は控えめだが、相手の受けを6割無視する。硬い相手向け。",
+    "effect": "通常攻撃を上回る115%。相手の受けを6割無視する。硬い相手向け。",
     "grammar": "攻撃"
    },
    "row_sweep": {
@@ -4014,7 +5077,7 @@
     "kind": "active",
     "definitionId": "row_sweep",
     "label": "薙ぎ払い",
-    "effect": "狙った相手と同じ行を薙ぐ。前列に3人並ぶ相手ほど効く。",
+    "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "column_thrust": {
@@ -4022,15 +5085,55 @@
     "kind": "active",
     "definitionId": "column_thrust",
     "label": "突き通し",
-    "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
+    "effect": "同じ列の前後を110%ずつ貫く。後列を庇う列に効く。",
     "grammar": "攻撃"
+   },
+   "guard_crush": {
+    "id": "guard_crush",
+    "kind": "active",
+    "definitionId": "guard_crush",
+    "label": "受け崩し",
+    "effect": "通常攻撃を上回る115%。相手の受け構えと受けを完全に無視する。",
+    "grammar": "攻撃"
+   },
+   "rear_hunt": {
+    "id": "rear_hunt",
+    "kind": "active",
+    "definitionId": "rear_hunt",
+    "label": "後衛狩り",
+    "effect": "後列の生存者がいるときだけ120%で狙う。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "finishing_thrust": {
+    "id": "finishing_thrust",
+    "kind": "active",
+    "definitionId": "finishing_thrust",
+    "label": "止めの一突き",
+    "effect": "HP半分以下の敵がいるときだけ140%で狙う。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "crack_mark": {
+    "id": "crack_mark",
+    "kind": "active",
+    "definitionId": "crack_mark",
+    "label": "傷口を開く",
+    "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "brace_for_impact": {
+    "id": "brace_for_impact",
+    "kind": "active",
+    "definitionId": "brace_for_impact",
+    "label": "衝撃に備える",
+    "effect": "受け構えを1つ得てから、通常の追い打ちを行う。多段攻撃には剥がされやすい。",
+    "grammar": "守り"
    },
    "strike": {
     "id": "strike",
     "kind": "active",
     "definitionId": "strike",
     "label": "斬撃",
-    "effect": "最も弱った敵へ4ダメージ。",
+    "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
     "grammar": "攻撃"
    },
    "mend": {
@@ -4038,7 +5141,7 @@
     "kind": "active",
     "definitionId": "mend",
     "label": "手当て",
-    "effect": "最も傷ついた味方を5回復。",
+    "effect": "傷ついた味方を100%回復。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "bulwark": {
@@ -4046,7 +5149,7 @@
     "kind": "active",
     "definitionId": "bulwark",
     "label": "防壁形成",
-    "effect": "自分にラウンド防壁3。",
+    "effect": "自分に80%相当のラウンド防壁を張ってから、追い打ちを行う。",
     "grammar": "守り"
    },
    "relay_order": {
@@ -4062,7 +5165,7 @@
     "kind": "active",
     "definitionId": "heavy_swing",
     "label": "溜め突き",
-    "effect": "準備1回のあと、最も傷ついた敵へ9ダメージ。",
+    "effect": "準備1回のあと、通常攻撃2回分を上回る220%の一撃。",
     "grammar": "攻撃"
    },
    "reposition": {
@@ -4078,7 +5181,7 @@
     "kind": "active",
     "definitionId": "long_swing",
     "label": "大溜め",
-    "effect": "準備3回のあと、最も傷ついた敵へ9ダメージ。",
+    "effect": "準備3回のあと、通常攻撃4回分の400%を一撃で返す。",
     "grammar": "攻撃"
    },
    "triage": {
@@ -4086,7 +5189,7 @@
     "kind": "active",
     "definitionId": "triage",
     "label": "応急手当",
-    "effect": "HP半分以下の味方を8回復。",
+    "effect": "HP半分以下の味方を100%回復。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "hunt_the_slow": {
@@ -4094,7 +5197,7 @@
     "kind": "active",
     "definitionId": "hunt_the_slow",
     "label": "準備狩り",
-    "effect": "準備中の敵へ5ダメージ。",
+    "effect": "準備中の敵がいるときだけ120%で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "idle_shuffle": {
@@ -4102,7 +5205,7 @@
     "kind": "active",
     "definitionId": "idle_shuffle",
     "label": "息を整える",
-    "effect": "自分に集中を1つ付ける。集中中は使わない。",
+    "effect": "自分に集中を1つ付ける。集中中はスキップ。",
     "grammar": "準備"
    },
    "mark_target": {
@@ -4110,7 +5213,7 @@
     "kind": "active",
     "definitionId": "mark_target",
     "label": "隙を刻む",
-    "effect": "最もHPの高い敵に「隙」を1つ付ける。",
+    "effect": "まだ「隙」のない敵に付与する。対象がいなければスキップ。",
     "grammar": "指揮"
    },
    "steady_aim": {
@@ -4118,7 +5221,7 @@
     "kind": "active",
     "definitionId": "steady_aim",
     "label": "狙いを澄ます",
-    "effect": "自分に「集中」を1つ付ける。",
+    "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
     "grammar": "準備"
    }
   },
@@ -4144,7 +5247,7 @@
     "kind": "reactive",
     "definitionId": "overflow_care",
     "label": "余剰治療",
-    "effect": "余った回復を別の負傷者へ回す。",
+    "effect": "自分が行った回復の余剰を、RP1で別の負傷者へそのまま回す。回復手段を選ばない。",
     "grammar": "回復"
    },
    "scavenge_ap": {
@@ -4184,7 +5287,7 @@
     "kind": "reactive",
     "definitionId": "triage_relay",
     "label": "連携治療",
-    "effect": "応急手当の余剰を別の負傷者へ回す。",
+    "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
     "grammar": "回復"
    },
    "ap_loop": {
@@ -4218,6 +5321,22 @@
     "label": "準備の螺旋",
     "effect": "準備が進むたび、自分の準備をさらに1段進める。",
     "grammar": "準備"
+   },
+   "block_focus": {
+    "id": "block_focus",
+    "kind": "reactive",
+    "definitionId": "block_focus",
+    "label": "受け返しの集中",
+    "effect": "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。",
+    "grammar": "防御"
+   },
+   "barrier_stitch": {
+    "id": "barrier_stitch",
+    "kind": "reactive",
+    "definitionId": "barrier_stitch",
+    "label": "防壁の縫い直し",
+    "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
+    "grammar": "防御"
    }
   },
   "passive": {
@@ -4276,6 +5395,14 @@
     "label": "備え",
     "effect": "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。",
     "grammar": "基礎"
+   },
+   "opening_guard": {
+    "id": "opening_guard",
+    "kind": "passive",
+    "definitionId": "opening_guard",
+    "label": "初手の構え",
+    "effect": "戦闘開始時、受け構えを1つ得る。最初の一撃を受け止めるための守り。",
+    "grammar": "守り"
    }
   }
  },
@@ -4441,6 +5568,60 @@
    "effect": "余ったRPで装備を2修理する。",
    "grammar": "修理",
    "maxDurability": 4
+  },
+  "block_latch": {
+   "id": "block_latch",
+   "kind": "equipment",
+   "definitionId": "block_latch",
+   "label": "受け止め金具",
+   "effect": "戦闘開始時、戦闘中防壁1を得る。耐久2。",
+   "grammar": "防御",
+   "maxDurability": 2
+  },
+  "impact_spring": {
+   "id": "impact_spring",
+   "kind": "equipment",
+   "definitionId": "impact_spring",
+   "label": "衝撃ばね",
+   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁1を得る。",
+   "grammar": "防御",
+   "maxDurability": 1
+  },
+  "wound_thread": {
+   "id": "wound_thread",
+   "kind": "equipment",
+   "definitionId": "wound_thread",
+   "label": "傷縫い糸",
+   "effect": "被弾後、耐久1で「集中」を得る。ラウンド1回。",
+   "grammar": "反撃",
+   "maxDurability": 2
+  },
+  "quiet_lens": {
+   "id": "quiet_lens",
+   "kind": "equipment",
+   "definitionId": "quiet_lens",
+   "label": "静観レンズ",
+   "effect": "余った行動権を耐久1でラウンド防壁へ変える。",
+   "grammar": "蓄積",
+   "maxDurability": 2
+  },
+  "rescue_sachet": {
+   "id": "rescue_sachet",
+   "kind": "equipment",
+   "definitionId": "rescue_sachet",
+   "label": "救急の小袋",
+   "effect": "回復を行ったあと、耐久1で反応権を1得る。",
+   "grammar": "治療",
+   "maxDurability": 2
+  },
+  "last_bell": {
+   "id": "last_bell",
+   "kind": "equipment",
+   "definitionId": "last_bell",
+   "label": "仕留めの鈴",
+   "effect": "敵を倒したあと、耐久1で行動権を1得る。戦闘1回。",
+   "grammar": "撃破",
+   "maxDurability": 1
   }
  },
  "components": {
@@ -4449,7 +5630,7 @@
    "kind": "active",
    "definitionId": "rapid_cuts",
    "label": "刻み斬り",
-   "effect": "3回に分けて刻む。合計は大きいが、受けの硬い相手には通りにくい。",
+   "effect": "50%を3回。合計150%で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
    "grammar": "攻撃"
   },
   "pierce_thrust": {
@@ -4457,7 +5638,7 @@
    "kind": "active",
    "definitionId": "pierce_thrust",
    "label": "貫き突き",
-   "effect": "威力は控えめだが、相手の受けを6割無視する。硬い相手向け。",
+   "effect": "通常攻撃を上回る115%。相手の受けを6割無視する。硬い相手向け。",
    "grammar": "攻撃"
   },
   "row_sweep": {
@@ -4465,7 +5646,7 @@
    "kind": "active",
    "definitionId": "row_sweep",
    "label": "薙ぎ払い",
-   "effect": "狙った相手と同じ行を薙ぐ。前列に3人並ぶ相手ほど効く。",
+   "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "column_thrust": {
@@ -4473,15 +5654,55 @@
    "kind": "active",
    "definitionId": "column_thrust",
    "label": "突き通し",
-   "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
+   "effect": "同じ列の前後を110%ずつ貫く。後列を庇う列に効く。",
    "grammar": "攻撃"
+  },
+  "guard_crush": {
+   "id": "guard_crush",
+   "kind": "active",
+   "definitionId": "guard_crush",
+   "label": "受け崩し",
+   "effect": "通常攻撃を上回る115%。相手の受け構えと受けを完全に無視する。",
+   "grammar": "攻撃"
+  },
+  "rear_hunt": {
+   "id": "rear_hunt",
+   "kind": "active",
+   "definitionId": "rear_hunt",
+   "label": "後衛狩り",
+   "effect": "後列の生存者がいるときだけ120%で狙う。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "finishing_thrust": {
+   "id": "finishing_thrust",
+   "kind": "active",
+   "definitionId": "finishing_thrust",
+   "label": "止めの一突き",
+   "effect": "HP半分以下の敵がいるときだけ140%で狙う。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "crack_mark": {
+   "id": "crack_mark",
+   "kind": "active",
+   "definitionId": "crack_mark",
+   "label": "傷口を開く",
+   "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "brace_for_impact": {
+   "id": "brace_for_impact",
+   "kind": "active",
+   "definitionId": "brace_for_impact",
+   "label": "衝撃に備える",
+   "effect": "受け構えを1つ得てから、通常の追い打ちを行う。多段攻撃には剥がされやすい。",
+   "grammar": "守り"
   },
   "strike": {
    "id": "strike",
    "kind": "active",
    "definitionId": "strike",
    "label": "斬撃",
-   "effect": "最も弱った敵へ4ダメージ。",
+   "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
    "grammar": "攻撃"
   },
   "mend": {
@@ -4489,7 +5710,7 @@
    "kind": "active",
    "definitionId": "mend",
    "label": "手当て",
-   "effect": "最も傷ついた味方を5回復。",
+   "effect": "傷ついた味方を100%回復。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "bulwark": {
@@ -4497,7 +5718,7 @@
    "kind": "active",
    "definitionId": "bulwark",
    "label": "防壁形成",
-   "effect": "自分にラウンド防壁3。",
+   "effect": "自分に80%相当のラウンド防壁を張ってから、追い打ちを行う。",
    "grammar": "守り"
   },
   "relay_order": {
@@ -4513,7 +5734,7 @@
    "kind": "active",
    "definitionId": "heavy_swing",
    "label": "溜め突き",
-   "effect": "準備1回のあと、最も傷ついた敵へ9ダメージ。",
+   "effect": "準備1回のあと、通常攻撃2回分を上回る220%の一撃。",
    "grammar": "攻撃"
   },
   "reposition": {
@@ -4529,7 +5750,7 @@
    "kind": "active",
    "definitionId": "long_swing",
    "label": "大溜め",
-   "effect": "準備3回のあと、最も傷ついた敵へ9ダメージ。",
+   "effect": "準備3回のあと、通常攻撃4回分の400%を一撃で返す。",
    "grammar": "攻撃"
   },
   "triage": {
@@ -4537,7 +5758,7 @@
    "kind": "active",
    "definitionId": "triage",
    "label": "応急手当",
-   "effect": "HP半分以下の味方を8回復。",
+   "effect": "HP半分以下の味方を100%回復。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "hunt_the_slow": {
@@ -4545,7 +5766,7 @@
    "kind": "active",
    "definitionId": "hunt_the_slow",
    "label": "準備狩り",
-   "effect": "準備中の敵へ5ダメージ。",
+   "effect": "準備中の敵がいるときだけ120%で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "idle_shuffle": {
@@ -4553,7 +5774,7 @@
    "kind": "active",
    "definitionId": "idle_shuffle",
    "label": "息を整える",
-   "effect": "自分に集中を1つ付ける。集中中は使わない。",
+   "effect": "自分に集中を1つ付ける。集中中はスキップ。",
    "grammar": "準備"
   },
   "mark_target": {
@@ -4561,7 +5782,7 @@
    "kind": "active",
    "definitionId": "mark_target",
    "label": "隙を刻む",
-   "effect": "最もHPの高い敵に「隙」を1つ付ける。",
+   "effect": "まだ「隙」のない敵に付与する。対象がいなければスキップ。",
    "grammar": "指揮"
   },
   "steady_aim": {
@@ -4569,7 +5790,7 @@
    "kind": "active",
    "definitionId": "steady_aim",
    "label": "狙いを澄ます",
-   "effect": "自分に「集中」を1つ付ける。",
+   "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
    "grammar": "準備"
   },
   "counter_blow": {
@@ -4593,7 +5814,7 @@
    "kind": "reactive",
    "definitionId": "overflow_care",
    "label": "余剰治療",
-   "effect": "余った回復を別の負傷者へ回す。",
+   "effect": "自分が行った回復の余剰を、RP1で別の負傷者へそのまま回す。回復手段を選ばない。",
    "grammar": "回復"
   },
   "scavenge_ap": {
@@ -4633,7 +5854,7 @@
    "kind": "reactive",
    "definitionId": "triage_relay",
    "label": "連携治療",
-   "effect": "応急手当の余剰を別の負傷者へ回す。",
+   "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
    "grammar": "回復"
   },
   "ap_loop": {
@@ -4667,6 +5888,22 @@
    "label": "準備の螺旋",
    "effect": "準備が進むたび、自分の準備をさらに1段進める。",
    "grammar": "準備"
+  },
+  "block_focus": {
+   "id": "block_focus",
+   "kind": "reactive",
+   "definitionId": "block_focus",
+   "label": "受け返しの集中",
+   "effect": "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。",
+   "grammar": "防御"
+  },
+  "barrier_stitch": {
+   "id": "barrier_stitch",
+   "kind": "reactive",
+   "definitionId": "barrier_stitch",
+   "label": "防壁の縫い直し",
+   "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
+   "grammar": "防御"
   },
   "foundation_vitality": {
    "id": "foundation_vitality",
@@ -4723,6 +5960,14 @@
    "label": "備え",
    "effect": "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。",
    "grammar": "基礎"
+  },
+  "opening_guard": {
+   "id": "opening_guard",
+   "kind": "passive",
+   "definitionId": "opening_guard",
+   "label": "初手の構え",
+   "effect": "戦闘開始時、受け構えを1つ得る。最初の一撃を受け止めるための守り。",
+   "grammar": "守り"
   },
   "worn_greaves": {
    "id": "worn_greaves",
@@ -4885,6 +6130,60 @@
    "effect": "余ったRPで装備を2修理する。",
    "grammar": "修理",
    "maxDurability": 4
+  },
+  "block_latch": {
+   "id": "block_latch",
+   "kind": "equipment",
+   "definitionId": "block_latch",
+   "label": "受け止め金具",
+   "effect": "戦闘開始時、戦闘中防壁1を得る。耐久2。",
+   "grammar": "防御",
+   "maxDurability": 2
+  },
+  "impact_spring": {
+   "id": "impact_spring",
+   "kind": "equipment",
+   "definitionId": "impact_spring",
+   "label": "衝撃ばね",
+   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁1を得る。",
+   "grammar": "防御",
+   "maxDurability": 1
+  },
+  "wound_thread": {
+   "id": "wound_thread",
+   "kind": "equipment",
+   "definitionId": "wound_thread",
+   "label": "傷縫い糸",
+   "effect": "被弾後、耐久1で「集中」を得る。ラウンド1回。",
+   "grammar": "反撃",
+   "maxDurability": 2
+  },
+  "quiet_lens": {
+   "id": "quiet_lens",
+   "kind": "equipment",
+   "definitionId": "quiet_lens",
+   "label": "静観レンズ",
+   "effect": "余った行動権を耐久1でラウンド防壁へ変える。",
+   "grammar": "蓄積",
+   "maxDurability": 2
+  },
+  "rescue_sachet": {
+   "id": "rescue_sachet",
+   "kind": "equipment",
+   "definitionId": "rescue_sachet",
+   "label": "救急の小袋",
+   "effect": "回復を行ったあと、耐久1で反応権を1得る。",
+   "grammar": "治療",
+   "maxDurability": 2
+  },
+  "last_bell": {
+   "id": "last_bell",
+   "kind": "equipment",
+   "definitionId": "last_bell",
+   "label": "仕留めの鈴",
+   "effect": "敵を倒したあと、耐久1で行動権を1得る。戦闘1回。",
+   "grammar": "撃破",
+   "maxDurability": 1
   }
  },
  "componentOrder": [
@@ -4892,6 +6191,11 @@
   "pierce_thrust",
   "row_sweep",
   "column_thrust",
+  "guard_crush",
+  "rear_hunt",
+  "finishing_thrust",
+  "crack_mark",
+  "brace_for_impact",
   "strike",
   "mend",
   "bulwark",
@@ -4916,6 +6220,8 @@
   "damage_echo",
   "barrier_bloom",
   "prep_spiral",
+  "block_focus",
+  "barrier_stitch",
   "foundation_vitality",
   "foundation_might",
   "foundation_focus",
@@ -4923,6 +6229,7 @@
   "foundation_speed",
   "foundation_ap",
   "foundation_rp",
+  "opening_guard",
   "worn_greaves",
   "splinter_edge",
   "field_kit",
@@ -4940,7 +6247,13 @@
   "thorn_clasp",
   "shard_hilt",
   "repair_pouch",
-  "recovery_satchel"
+  "recovery_satchel",
+  "block_latch",
+  "impact_spring",
+  "wound_thread",
+  "quiet_lens",
+  "rescue_sachet",
+  "last_bell"
  ],
  "skillTreeNodes": [
   {
@@ -5200,6 +6513,28 @@
    ]
   },
   {
+   "id": "node_block_focus",
+   "skillId": "block_focus",
+   "kind": "reactive",
+   "branch": "守り",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "brace_after_hit"
+   ]
+  },
+  {
+   "id": "node_barrier_stitch",
+   "skillId": "barrier_stitch",
+   "kind": "reactive",
+   "branch": "守り",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "barrier_bloom"
+   ]
+  },
+  {
    "id": "node_rapid",
    "skillId": "rapid_cuts",
    "kind": "active",
@@ -5241,6 +6576,61 @@
    "cost": 1,
    "requires": [
     "pierce_thrust"
+   ]
+  },
+  {
+   "id": "node_guard_crush",
+   "skillId": "guard_crush",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_rear_hunt",
+   "skillId": "rear_hunt",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "guard_crush"
+   ]
+  },
+  {
+   "id": "node_finishing",
+   "skillId": "finishing_thrust",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_crack_mark",
+   "skillId": "crack_mark",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_brace_impact",
+   "skillId": "brace_for_impact",
+   "kind": "active",
+   "branch": "守り",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "bulwark"
    ]
   },
   {
@@ -5305,25 +6695,36 @@
    "tier": 0,
    "cost": 1,
    "requires": []
+  },
+  {
+   "id": "node_opening_guard",
+   "skillId": "opening_guard",
+   "kind": "passive",
+   "branch": "守り",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "bulwark"
+   ]
   }
  ],
  "encounters": [
   {
    "stage": 1,
    "name": "灰の入口",
-   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "description": "速い走り手が正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
    "enemies": [
     {
-     "instanceId": "e_scrapper_1",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_runner_1",
+     "enemyActorId": "gray_runner",
      "position": "front_left",
-     "hp": 100
+     "hp": 120
     },
     {
-     "instanceId": "e_scrapper_2",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_runner_2",
+     "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 100
+     "hp": 120
     }
    ],
    "maxRounds": 6
@@ -5331,19 +6732,19 @@
   {
    "stage": 2,
    "name": "狩りの路地",
-   "description": "準備中の味方を狙う狩人と、後列を狙う射手。",
+   "description": "準備中の味方を追う追い手と、後列へ潜む潜み手。狙われる順番を読む。",
    "enemies": [
     {
-     "instanceId": "e_hunter",
-     "enemyActorId": "gray_hunter",
+     "instanceId": "e_harrower",
+     "enemyActorId": "gray_harrower",
      "position": "front_left",
-     "hp": 200
+     "hp": 180
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
     }
    ],
    "maxRounds": 7
@@ -5351,19 +6752,19 @@
   {
    "stage": 3,
    "name": "崩れた盾列",
-   "description": "防壁を張り直す守衛を、印と準備で崩す。",
+   "description": "防壁で粘る籠り手と、重い一撃を準備する砕き手。受けるか先に崩すかを選ぶ。",
    "enemies": [
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 180
+     "hp": 200
     },
     {
-     "instanceId": "e_scrapper",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_breaker",
+     "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 100
+     "hp": 220
     }
    ],
    "maxRounds": 8
@@ -5371,7 +6772,7 @@
   {
    "stage": 4,
    "name": "反響の坑道",
-   "description": "敵を殴るほど返ってくる。単発の大打撃と回復を使い分ける。",
+   "description": "反響体と潜み手が別の列から圧をかける。単発の大打撃と回復を使い分ける。",
    "enemies": [
     {
      "instanceId": "e_echo",
@@ -5380,9 +6781,15 @@
      "hp": 200
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
+     "hp": 130
+    },
+    {
+     "instanceId": "e_runner",
+     "enemyActorId": "gray_runner",
+     "position": "front_right",
      "hp": 120
     }
    ],
@@ -5391,7 +6798,7 @@
   {
    "stage": 5,
    "name": "灰の圧力",
-   "description": "重い盾、狩人、走者。どの役割を厚くするかが問われる。",
+   "description": "重い盾、後衛を追う追い手、速い走り手。どの役割を厚くするかが問われる。",
    "enemies": [
     {
      "instanceId": "e_bulwark",
@@ -5400,16 +6807,16 @@
      "hp": 320
     },
     {
-     "instanceId": "e_hunter",
-     "enemyActorId": "gray_hunter",
-     "position": "front_right",
-     "hp": 200
+     "instanceId": "e_harrower",
+     "enemyActorId": "gray_harrower",
+     "position": "front_center",
+     "hp": 180
     },
     {
-     "instanceId": "e_scrapper",
-     "enemyActorId": "gray_scrapper",
-     "position": "rear_left",
-     "hp": 100
+     "instanceId": "e_runner",
+     "enemyActorId": "gray_runner",
+     "position": "rear_right",
+     "hp": 120
     }
    ],
    "maxRounds": 9
@@ -5417,25 +6824,31 @@
   {
    "stage": 6,
    "name": "二つの狙い",
-   "description": "前列を削る守衛と、後列を狙う射手。配置そのものが防御になる。",
+   "description": "籠り手と反響体が前列を削り、潜み手と群れが後列を揺さぶる。配置そのものが防御になる。",
    "enemies": [
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 180
+     "hp": 200
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "hp": 200
+    },
+    {
+     "instanceId": "e_swarm",
+     "enemyActorId": "gray_swarm",
+     "position": "rear_right",
+     "hp": 80
     }
    ],
    "maxRounds": 10
@@ -5443,7 +6856,7 @@
   {
    "stage": 7,
    "name": "灰の核心",
-   "description": "準備する核心を止めながら、前列の護衛を突破する最終戦。",
+   "description": "準備する核心を止めながら、砕き手と籠り手を突破し、後列の潜み手と群れも抑える最終戦。",
    "enemies": [
     {
      "instanceId": "e_core",
@@ -5452,16 +6865,28 @@
      "hp": 540
     },
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
-     "position": "front_right",
-     "hp": 180
+     "instanceId": "e_breaker",
+     "enemyActorId": "gray_breaker",
+     "position": "front_center",
+     "hp": 220
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
+     "position": "front_right",
+     "hp": 200
+    },
+    {
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
+    },
+    {
+     "instanceId": "e_swarm",
+     "enemyActorId": "gray_swarm",
+     "position": "rear_right",
+     "hp": 80
     }
    ],
    "maxRounds": 12
@@ -5471,19 +6896,19 @@
   "1": {
    "stage": 1,
    "name": "灰の入口",
-   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "description": "速い走り手が正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
    "enemies": [
     {
-     "instanceId": "e_scrapper_1",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_runner_1",
+     "enemyActorId": "gray_runner",
      "position": "front_left",
-     "hp": 100
+     "hp": 120
     },
     {
-     "instanceId": "e_scrapper_2",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_runner_2",
+     "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 100
+     "hp": 120
     }
    ],
    "maxRounds": 6
@@ -5491,19 +6916,19 @@
   "2": {
    "stage": 2,
    "name": "狩りの路地",
-   "description": "準備中の味方を狙う狩人と、後列を狙う射手。",
+   "description": "準備中の味方を追う追い手と、後列へ潜む潜み手。狙われる順番を読む。",
    "enemies": [
     {
-     "instanceId": "e_hunter",
-     "enemyActorId": "gray_hunter",
+     "instanceId": "e_harrower",
+     "enemyActorId": "gray_harrower",
      "position": "front_left",
-     "hp": 200
+     "hp": 180
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
     }
    ],
    "maxRounds": 7
@@ -5511,19 +6936,19 @@
   "3": {
    "stage": 3,
    "name": "崩れた盾列",
-   "description": "防壁を張り直す守衛を、印と準備で崩す。",
+   "description": "防壁で粘る籠り手と、重い一撃を準備する砕き手。受けるか先に崩すかを選ぶ。",
    "enemies": [
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 180
+     "hp": 200
     },
     {
-     "instanceId": "e_scrapper",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_breaker",
+     "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 100
+     "hp": 220
     }
    ],
    "maxRounds": 8
@@ -5531,7 +6956,7 @@
   "4": {
    "stage": 4,
    "name": "反響の坑道",
-   "description": "敵を殴るほど返ってくる。単発の大打撃と回復を使い分ける。",
+   "description": "反響体と潜み手が別の列から圧をかける。単発の大打撃と回復を使い分ける。",
    "enemies": [
     {
      "instanceId": "e_echo",
@@ -5540,9 +6965,15 @@
      "hp": 200
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
+     "hp": 130
+    },
+    {
+     "instanceId": "e_runner",
+     "enemyActorId": "gray_runner",
+     "position": "front_right",
      "hp": 120
     }
    ],
@@ -5551,7 +6982,7 @@
   "5": {
    "stage": 5,
    "name": "灰の圧力",
-   "description": "重い盾、狩人、走者。どの役割を厚くするかが問われる。",
+   "description": "重い盾、後衛を追う追い手、速い走り手。どの役割を厚くするかが問われる。",
    "enemies": [
     {
      "instanceId": "e_bulwark",
@@ -5560,16 +6991,16 @@
      "hp": 320
     },
     {
-     "instanceId": "e_hunter",
-     "enemyActorId": "gray_hunter",
-     "position": "front_right",
-     "hp": 200
+     "instanceId": "e_harrower",
+     "enemyActorId": "gray_harrower",
+     "position": "front_center",
+     "hp": 180
     },
     {
-     "instanceId": "e_scrapper",
-     "enemyActorId": "gray_scrapper",
-     "position": "rear_left",
-     "hp": 100
+     "instanceId": "e_runner",
+     "enemyActorId": "gray_runner",
+     "position": "rear_right",
+     "hp": 120
     }
    ],
    "maxRounds": 9
@@ -5577,25 +7008,31 @@
   "6": {
    "stage": 6,
    "name": "二つの狙い",
-   "description": "前列を削る守衛と、後列を狙う射手。配置そのものが防御になる。",
+   "description": "籠り手と反響体が前列を削り、潜み手と群れが後列を揺さぶる。配置そのものが防御になる。",
    "enemies": [
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 180
+     "hp": 200
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "hp": 200
+    },
+    {
+     "instanceId": "e_swarm",
+     "enemyActorId": "gray_swarm",
+     "position": "rear_right",
+     "hp": 80
     }
    ],
    "maxRounds": 10
@@ -5603,7 +7040,7 @@
   "7": {
    "stage": 7,
    "name": "灰の核心",
-   "description": "準備する核心を止めながら、前列の護衛を突破する最終戦。",
+   "description": "準備する核心を止めながら、砕き手と籠り手を突破し、後列の潜み手と群れも抑える最終戦。",
    "enemies": [
     {
      "instanceId": "e_core",
@@ -5612,16 +7049,28 @@
      "hp": 540
     },
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
-     "position": "front_right",
-     "hp": 180
+     "instanceId": "e_breaker",
+     "enemyActorId": "gray_breaker",
+     "position": "front_center",
+     "hp": 220
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
+     "position": "front_right",
+     "hp": 200
+    },
+    {
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
+    },
+    {
+     "instanceId": "e_swarm",
+     "enemyActorId": "gray_swarm",
+     "position": "rear_right",
+     "hp": 80
     }
    ],
    "maxRounds": 12
@@ -5677,25 +7126,55 @@
    "label": "灰殻の走者",
    "targeting": "前列の生存者を、左から狙う。"
   },
+  "gray_runner": {
+   "id": "gray_runner",
+   "label": "灰殻の走り手",
+   "targeting": "前列の生存者を、速い順に狙う。"
+  },
   "gray_marksman": {
    "id": "gray_marksman",
    "label": "灰殻の後撃ち",
    "targeting": "後列の生存者を優先して狙う。"
+  },
+  "gray_stalker": {
+   "id": "gray_stalker",
+   "label": "灰殻の潜み手",
+   "targeting": "まず後列を狙い、後列がいなければ前列を狙う。"
   },
   "gray_guard": {
    "id": "gray_guard",
    "label": "灰殻の守衛",
    "targeting": "前列を狙い、最初の行動で防壁を張る。"
   },
+  "gray_breaker": {
+   "id": "gray_breaker",
+   "label": "灰殻の砕き手",
+   "targeting": "重い一撃を準備して前列へ放ち、その後は前列を狙う。"
+  },
+  "gray_shelter": {
+   "id": "gray_shelter",
+   "label": "灰殻の籠り手",
+   "targeting": "最初に防壁を張り、その後は前列を狙う。"
+  },
   "gray_hunter": {
    "id": "gray_hunter",
    "label": "灰殻の狩人",
    "targeting": "準備中の味方を見つければ先に狙う。いなければ前列。"
   },
+  "gray_harrower": {
+   "id": "gray_harrower",
+   "label": "灰殻の追い手",
+   "targeting": "準備中の味方を追い、後列、前列の順に狙う。"
+  },
   "gray_echo": {
    "id": "gray_echo",
    "label": "灰殻の反響体",
    "targeting": "前列を殴り、受けたダメージを反響する。"
+  },
+  "gray_swarm": {
+   "id": "gray_swarm",
+   "label": "灰殻の群れ",
+   "targeting": "速く動き、前列の生存者を狙う。"
   },
   "gray_bulwark": {
    "id": "gray_bulwark",
@@ -5717,10 +7196,16 @@
   "husk_echo": "前列を優先して狙う。",
   "husk_marker": "前列を優先して狙う。",
   "gray_scrapper": "前列の生存者を、左から狙う。",
+  "gray_runner": "前列の生存者を、速い順に狙う。",
   "gray_marksman": "後列の生存者を優先して狙う。",
+  "gray_stalker": "まず後列を狙い、後列がいなければ前列を狙う。",
   "gray_guard": "前列を狙い、最初の行動で防壁を張る。",
+  "gray_breaker": "重い一撃を準備して前列へ放ち、その後は前列を狙う。",
+  "gray_shelter": "最初に防壁を張り、その後は前列を狙う。",
   "gray_hunter": "準備中の味方を見つければ先に狙う。いなければ前列。",
+  "gray_harrower": "準備中の味方を追い、後列、前列の順に狙う。",
   "gray_echo": "前列を殴り、受けたダメージを反響する。",
+  "gray_swarm": "速く動き、前列の生存者を狙う。",
   "gray_bulwark": "防壁を張り直しながら前列を狙う。",
   "ash_core": "重い一撃を準備し、完成したら前列へ放つ。"
  },
@@ -5967,16 +7452,16 @@
    ],
    "enemies": [
     {
-     "instanceId": "e_scrapper_1",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_runner_1",
+     "enemyActorId": "gray_runner",
      "position": "front_left",
-     "hp": 100
+     "hp": 120
     },
     {
-     "instanceId": "e_scrapper_2",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_runner_2",
+     "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 100
+     "hp": 120
     }
    ]
   },
@@ -6096,16 +7581,16 @@
    ],
    "enemies": [
     {
-     "instanceId": "e_hunter",
-     "enemyActorId": "gray_hunter",
+     "instanceId": "e_harrower",
+     "enemyActorId": "gray_harrower",
      "position": "front_left",
-     "hp": 200
+     "hp": 180
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
     }
    ]
   },
@@ -6225,16 +7710,16 @@
    ],
    "enemies": [
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 180
+     "hp": 200
     },
     {
-     "instanceId": "e_scrapper",
-     "enemyActorId": "gray_scrapper",
+     "instanceId": "e_breaker",
+     "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 100
+     "hp": 220
     }
    ]
   },
@@ -6360,9 +7845,15 @@
      "hp": 200
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
+     "hp": 130
+    },
+    {
+     "instanceId": "e_runner",
+     "enemyActorId": "gray_runner",
+     "position": "front_right",
      "hp": 120
     }
    ]
@@ -6489,16 +7980,16 @@
      "hp": 320
     },
     {
-     "instanceId": "e_hunter",
-     "enemyActorId": "gray_hunter",
-     "position": "front_right",
-     "hp": 200
+     "instanceId": "e_harrower",
+     "enemyActorId": "gray_harrower",
+     "position": "front_center",
+     "hp": 180
     },
     {
-     "instanceId": "e_scrapper",
-     "enemyActorId": "gray_scrapper",
-     "position": "rear_left",
-     "hp": 100
+     "instanceId": "e_runner",
+     "enemyActorId": "gray_runner",
+     "position": "rear_right",
+     "hp": 120
     }
    ]
   },
@@ -6618,22 +8109,28 @@
    ],
    "enemies": [
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 180
+     "hp": 200
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "hp": 200
+    },
+    {
+     "instanceId": "e_swarm",
+     "enemyActorId": "gray_swarm",
+     "position": "rear_right",
+     "hp": 80
     }
    ]
   },
@@ -6759,230 +8256,242 @@
      "hp": 540
     },
     {
-     "instanceId": "e_guard",
-     "enemyActorId": "gray_guard",
-     "position": "front_right",
-     "hp": 180
+     "instanceId": "e_breaker",
+     "enemyActorId": "gray_breaker",
+     "position": "front_center",
+     "hp": 220
     },
     {
-     "instanceId": "e_marksman",
-     "enemyActorId": "gray_marksman",
+     "instanceId": "e_shelter",
+     "enemyActorId": "gray_shelter",
+     "position": "front_right",
+     "hp": 200
+    },
+    {
+     "instanceId": "e_stalker",
+     "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 120
+     "hp": 130
+    },
+    {
+     "instanceId": "e_swarm",
+     "enemyActorId": "gray_swarm",
+     "position": "rear_right",
+     "hp": 80
     }
    ]
   }
  },
  "rewards": {
   "frontier-1801/1": [
-   "shard_hilt",
-   "splinter_edge",
-   "guard_lantern"
+   "impact_spring",
+   "standing_plate",
+   "rescue_sachet"
   ],
   "frontier-1801/1/owned": [
-   "bastion_shell",
-   "splinter_edge",
-   "worn_greaves"
+   "momentum_rig",
+   "worn_greaves",
+   "quiet_lens"
   ],
   "frontier-1801/2": [
-   "repair_pouch",
+   "anchor_boots",
    "splinter_edge",
-   "recovery_satchel"
+   "last_bell"
   ],
   "frontier-1801/2/owned": [
+   "momentum_rig",
+   "signal_lens",
+   "splinter_edge"
+  ],
+  "frontier-1801/3": [
+   "worn_greaves",
+   "rescue_sachet",
+   "standing_plate"
+  ],
+  "frontier-1801/3/owned": [
+   "momentum_rig",
+   "block_latch",
+   "tempo_buckle"
+  ],
+  "frontier-1801/4": [
+   "guard_lantern",
+   "repair_pouch",
+   "impact_spring"
+  ],
+  "frontier-1801/4/owned": [
+   "quiet_lens",
    "splinter_edge",
+   "repair_pouch"
+  ],
+  "frontier-1801/5": [
+   "impact_spring",
+   "splinter_edge",
+   "wound_thread"
+  ],
+  "frontier-1801/5/owned": [
+   "impact_spring",
    "focus_band",
    "worn_greaves"
   ],
-  "frontier-1801/3": [
-   "reserve_coil",
-   "tempo_buckle",
-   "signal_lens"
-  ],
-  "frontier-1801/3/owned": [
-   "shard_hilt",
-   "repair_pouch",
-   "signal_lens"
-  ],
-  "frontier-1801/4": [
-   "signal_lens",
-   "guard_lantern",
-   "repair_pouch"
-  ],
-  "frontier-1801/4/owned": [
-   "anchor_boots",
-   "splinter_edge",
-   "thorn_clasp"
-  ],
-  "frontier-1801/5": [
-   "splinter_edge",
-   "worn_greaves",
-   "recovery_satchel"
-  ],
-  "frontier-1801/5/owned": [
-   "worn_greaves",
-   "bastion_shell",
-   "signal_lens"
-  ],
   "frontier-1801/6": [
-   "splinter_edge",
-   "guard_lantern",
-   "momentum_rig"
-  ],
-  "frontier-1801/6/owned": [
-   "focus_band",
-   "guard_lantern",
-   "bastion_shell"
-  ],
-  "frontier-1801/7": [
-   "repair_pouch",
-   "field_kit",
-   "signal_lens"
-  ],
-  "frontier-1801/7/owned": [
-   "repair_pouch",
-   "tempo_buckle",
-   "bastion_shell"
-  ],
-  "frontier-1801-abc12345/1": [
-   "thorn_clasp",
-   "splinter_edge",
-   "anchor_boots"
-  ],
-  "frontier-1801-abc12345/1/owned": [
-   "quickstrap",
-   "signal_lens",
-   "momentum_rig"
-  ],
-  "frontier-1801-abc12345/2": [
-   "reserve_coil",
-   "thorn_clasp",
-   "guard_lantern"
-  ],
-  "frontier-1801-abc12345/2/owned": [
-   "shard_hilt",
-   "guard_lantern",
-   "reserve_coil"
-  ],
-  "frontier-1801-abc12345/3": [
-   "worn_greaves",
    "bastion_shell",
+   "recovery_satchel",
    "field_kit"
   ],
-  "frontier-1801-abc12345/3/owned": [
-   "worn_greaves",
+  "frontier-1801/6/owned": [
+   "momentum_rig",
    "anchor_boots",
-   "recovery_satchel"
+   "rescue_sachet"
+  ],
+  "frontier-1801/7": [
+   "thorn_clasp",
+   "anchor_boots",
+   "wound_thread"
+  ],
+  "frontier-1801/7/owned": [
+   "guard_lantern",
+   "shard_hilt",
+   "quiet_lens"
+  ],
+  "frontier-1801-abc12345/1": [
+   "field_kit",
+   "last_bell",
+   "impact_spring"
+  ],
+  "frontier-1801-abc12345/1/owned": [
+   "momentum_rig",
+   "reserve_coil",
+   "focus_band"
+  ],
+  "frontier-1801-abc12345/2": [
+   "tempo_buckle",
+   "block_latch",
+   "signal_lens"
+  ],
+  "frontier-1801-abc12345/2/owned": [
+   "block_latch",
+   "reserve_coil",
+   "signal_lens"
+  ],
+  "frontier-1801-abc12345/3": [
+   "splinter_edge",
+   "signal_lens",
+   "rescue_sachet"
+  ],
+  "frontier-1801-abc12345/3/owned": [
+   "splinter_edge",
+   "shard_hilt",
+   "guard_lantern"
   ],
   "frontier-1801-abc12345/4": [
+   "block_latch",
    "signal_lens",
-   "standing_plate",
    "thorn_clasp"
   ],
   "frontier-1801-abc12345/4/owned": [
-   "bastion_shell",
-   "reserve_coil",
-   "signal_lens"
+   "tempo_buckle",
+   "thorn_clasp",
+   "reserve_coil"
   ],
   "frontier-1801-abc12345/5": [
    "worn_greaves",
-   "reserve_coil",
-   "bastion_shell"
+   "last_bell",
+   "focus_band"
   ],
   "frontier-1801-abc12345/5/owned": [
+   "momentum_rig",
    "worn_greaves",
-   "guard_lantern",
-   "quickstrap"
+   "recovery_satchel"
   ],
   "frontier-1801-abc12345/6": [
-   "anchor_boots",
-   "focus_band",
-   "worn_greaves"
+   "quiet_lens",
+   "block_latch",
+   "repair_pouch"
   ],
   "frontier-1801-abc12345/6/owned": [
-   "worn_greaves",
-   "shard_hilt",
-   "signal_lens"
+   "guard_lantern",
+   "splinter_edge",
+   "repair_pouch"
   ],
   "frontier-1801-abc12345/7": [
-   "shard_hilt",
-   "guard_lantern",
+   "momentum_rig",
+   "standing_plate",
    "worn_greaves"
   ],
   "frontier-1801-abc12345/7/owned": [
-   "bastion_shell",
-   "signal_lens",
-   "momentum_rig"
+   "worn_greaves",
+   "recovery_satchel",
+   "last_bell"
   ],
   "frontier-1801-zzz/1": [
-   "shard_hilt",
-   "recovery_satchel",
-   "anchor_boots"
-  ],
-  "frontier-1801-zzz/1/owned": [
-   "focus_band",
-   "splinter_edge",
-   "recovery_satchel"
-  ],
-  "frontier-1801-zzz/2": [
    "repair_pouch",
-   "quickstrap",
-   "worn_greaves"
-  ],
-  "frontier-1801-zzz/2/owned": [
-   "focus_band",
    "guard_lantern",
-   "thorn_clasp"
-  ],
-  "frontier-1801-zzz/3": [
-   "bastion_shell",
-   "worn_greaves",
    "splinter_edge"
   ],
+  "frontier-1801-zzz/1/owned": [
+   "rescue_sachet",
+   "shard_hilt",
+   "last_bell"
+  ],
+  "frontier-1801-zzz/2": [
+   "block_latch",
+   "shard_hilt",
+   "wound_thread"
+  ],
+  "frontier-1801-zzz/2/owned": [
+   "block_latch",
+   "repair_pouch",
+   "impact_spring"
+  ],
+  "frontier-1801-zzz/3": [
+   "last_bell",
+   "wound_thread",
+   "bastion_shell"
+  ],
   "frontier-1801-zzz/3/owned": [
-   "worn_greaves",
-   "focus_band",
-   "shard_hilt"
+   "momentum_rig",
+   "splinter_edge",
+   "rescue_sachet"
   ],
   "frontier-1801-zzz/4": [
-   "thorn_clasp",
-   "guard_lantern",
-   "worn_greaves"
+   "last_bell",
+   "quiet_lens",
+   "standing_plate"
   ],
   "frontier-1801-zzz/4/owned": [
-   "thorn_clasp",
-   "recovery_satchel",
-   "signal_lens"
-  ],
-  "frontier-1801-zzz/5": [
-   "recovery_satchel",
-   "thorn_clasp",
-   "focus_band"
-  ],
-  "frontier-1801-zzz/5/owned": [
-   "thorn_clasp",
-   "quickstrap",
-   "anchor_boots"
-  ],
-  "frontier-1801-zzz/6": [
-   "reserve_coil",
-   "recovery_satchel",
-   "field_kit"
-  ],
-  "frontier-1801-zzz/6/owned": [
-   "repair_pouch",
-   "reserve_coil",
+   "momentum_rig",
+   "signal_lens",
    "quickstrap"
   ],
-  "frontier-1801-zzz/7": [
-   "anchor_boots",
-   "recovery_satchel",
+  "frontier-1801-zzz/5": [
+   "block_latch",
+   "wound_thread",
+   "impact_spring"
+  ],
+  "frontier-1801-zzz/5/owned": [
+   "focus_band",
+   "splinter_edge",
+   "wound_thread"
+  ],
+  "frontier-1801-zzz/6": [
+   "wound_thread",
+   "standing_plate",
+   "last_bell"
+  ],
+  "frontier-1801-zzz/6/owned": [
+   "last_bell",
+   "bastion_shell",
    "focus_band"
   ],
-  "frontier-1801-zzz/7/owned": [
-   "anchor_boots",
-   "thorn_clasp",
+  "frontier-1801-zzz/7": [
+   "splinter_edge",
+   "block_latch",
    "bastion_shell"
+  ],
+  "frontier-1801-zzz/7/owned": [
+   "block_latch",
+   "splinter_edge",
+   "tempo_buckle"
   ]
  },
  "region": {
@@ -7016,7 +8525,11 @@
     "long_swing",
     "hunt_the_slow",
     "rapid_cuts",
-    "pierce_thrust"
+    "pierce_thrust",
+    "guard_crush",
+    "rear_hunt",
+    "finishing_thrust",
+    "crack_mark"
    ],
    "reactiveSkillIds": [
     "counter_blow",
@@ -7053,12 +8566,18 @@
    "activeSkillIds": [
     "reposition",
     "row_sweep",
-    "column_thrust"
+    "column_thrust",
+    "brace_for_impact"
    ],
    "reactiveSkillIds": [
     "cover_ally",
     "guard_step",
-    "barrier_bloom"
+    "barrier_bloom",
+    "block_focus",
+    "barrier_stitch"
+   ],
+   "passiveSkillIds": [
+    "opening_guard"
    ],
    "tags": [
     "barrier",

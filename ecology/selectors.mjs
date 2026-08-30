@@ -110,3 +110,4 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
   });
   return query.take === 1 ? sorted.slice(0, 1) : sorted;
 }
+

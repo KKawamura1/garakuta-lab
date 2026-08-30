@@ -94,4 +94,23 @@ export const PASSIVE_SKILLS = {
       priority: 100,
     },
   },
+  opening_guard: {
+    id: "opening_guard",
+    displayName: "初手の構え",
+    tags: ["passive", "playable", "guard"],
+    rule: {
+      id: "opening_guard_rule",
+      listenTo: "round_started",
+      timing: "after",
+      predicates: [{ type: "round_number", op: "eq", value: 1 }],
+      costs: [],
+      effects: [{
+        type: "gain_block",
+        target: self,
+        amount: { type: "constant", value: 1 },
+      }],
+      limit: { scope: "battle", count: 1 },
+      priority: 100,
+    },
+  },
 };

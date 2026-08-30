@@ -43,11 +43,9 @@ export const NAMED_SECTIONS = Object.freeze([
 
 export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
-  // Phase A で戦闘量と人物 parameter が変わった。**記録を分けるために上げる**
-  // （0.2 の遠征と 0.3 の遠征は別のゲームで、同じ入れ物に混ぜられない）。
-  // Phase B で遠征の形（3幕12戦、活動資金、補給、難易度）が変わった。
-  // **0.3 の7区画と 0.4 の12戦は別のゲーム**で、同じ入れ物に混ぜられない。
-  contentVersion: "ecology-playable-full-0.4",
+  // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
+  // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
+  contentVersion: "ecology-playable-full-0.5",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

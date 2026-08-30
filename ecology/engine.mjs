@@ -119,8 +119,6 @@ function buildState(input, content, options) {
       guard: allyStats.guard,
       baseStats: baseStatsOf(definition),
       training: ally.training ? { ...ally.training } : null,
-      // R6 §6.4 — basic strike の届き方は人物ごと。定義が持たなければ近接。
-      basicStrikeReach: definition.basicStrikeReach ?? "melee",
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
@@ -156,7 +154,6 @@ function buildState(input, content, options) {
       guard: enemyStats.guard,
       baseStats: baseStatsOf(definition),
       mutations: [...(enemy.mutations ?? [])],
-      basicStrikeReach: definition.basicStrikeReach ?? "melee",
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: enemy.position,
@@ -687,10 +684,25 @@ function preparationContext(state, actor) {
 
 // R6 §6.4 — 攻撃テンポの保証。**支援だけを連打して戦闘が止まらないようにする。**
 // どの技能を使うかは content の coreActions 宣言が決める（engine は個別 ID で
-// 分岐しない）。届き方は人物ごとの basicStrikeReach。
+// 分岐しない）。playable の届き方は core skill の effect.reach で決まる。
+function actionReach(skill) {
+  const effects = [
+    ...(skill.effects ?? []),
+    ...(skill.preparation?.completionEffects ?? []),
+  ];
+  const explicit = effects.find((effect) => effect.reach !== undefined);
+  if (explicit) return explicit.reach;
+  // Enemy-targeting skills without an explicit ranged effect are ordinary
+  // melee actions. Ally/self support skills are not restricted by front rows.
+  return skill.targetQuery?.scope === "enemies" ? "melee" : "unrestricted";
+}
 function coreActionChoice(state, actor, key) {
-  const reach = actor.basicStrikeReach ?? "melee";
-  const skillId = state.content.coreActions?.[key]?.[reach];
+  // Core actions are content-selected, never position- or character-selected.
+  // The selected skill's effect.reach is the sole targeting contract. Keep the
+  // `melee` entry as the playable default; the first declared entry is a small
+  // compatibility fallback for bundles that expose a single core variant.
+  const byReach = state.content.coreActions?.[key] ?? {};
+  const skillId = byReach.melee ?? Object.values(byReach)[0];
   const skill = skillId ? state.content.activeSkills[skillId] : null;
   if (!skill) return null;
   const rt = makeRuntime(state);
@@ -705,7 +717,7 @@ function coreActionChoice(state, actor, key) {
     skillId: skill.id,
     equipmentInstanceId: undefined,
   };
-  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach });
+  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
   if (targets.length === 0) return null;
   const costs = [{ type: "spend_action_points", amount: skill.apCost }];
   if (!canPayCosts(rt, ctx, costs)) return null;
@@ -733,7 +745,7 @@ function chooseTactic(state, actor) {
     };
     if (!evaluatePredicates(state, ctx, skill.intrinsicPredicates)) continue;
     if (!evaluatePredicates(state, ctx, tactic.useWhen)) continue;
-    const targets = resolveTargets(state, ctx, skill.targetQuery);
+    const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
     if (targets.length === 0) continue;
     const costs = [{ type: "spend_action_points", amount: skill.apCost }];
     if (!canPayCosts(rt, ctx, costs)) continue;

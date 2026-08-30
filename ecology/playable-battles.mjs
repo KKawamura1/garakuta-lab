@@ -222,10 +222,8 @@ export function removeSkill(loadout, characterId, skillId, kind, limitsFor) {
   const listKey = LOADOUT_KEYS[kind];
   if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
-  // 常設は0個でよい（基礎訓練は詰み防止で、必須ではない）。
-  // 行動と反応は最低1つ残す。全部外すと、その仲間が何もしなくなる。
-  const floor = kind === "passive" ? 0 : 1;
-  if (list.length <= floor) return { ok: false, reason: "各仲間には最低1つの技能を残してください。" };
+  // どの種類の技能も0個まで外せる。行動が空でも、engine が通常攻撃へ戻す。
+  // 反応・常設が空なら、その種類の追加効果なしとして解決する。
   next[listKey][characterId] = list.filter((id) => id !== skillId);
   return { ok: true, loadout: next };
 }
@@ -433,3 +431,4 @@ export function allEncounters() {
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。
 export { ENEMY_TARGETING as enemyTargeting, SKILL_TREE_NODES, CHARACTER_DEFINITIONS };
+

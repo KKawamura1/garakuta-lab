@@ -61,3 +61,4 @@ export function evaluateValue(state, ctx, valueDef) {
   const scaled = Math.floor((base * numerator) / denominator);
   return scaled > 0 ? scaled : 0;
 }
+
