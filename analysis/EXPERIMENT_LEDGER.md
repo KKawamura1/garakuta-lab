@@ -192,6 +192,9 @@ mainの最新コミットは 3c0790c80d74ef0361dda06f21f806b5dbf6f3e0（2026-08-
 - A5: ecology/へ実装。Gate A〜F通過（5本のテスト、1608 checks、analysis/check-all.shから CI で鳴る）。エンジンに個別人物・技能・装備・敵の分岐は無く、Gate Eの4件はデータ追加だけで実現しエンジン差分は空。連鎖採掘は81 buildから96種のfingerprintを決定的に出した。
 - A5の監査レビュー: 初版の「未確認項目なし」は誤りで、5件の穴が出た。最も重かったのは stalemate 判定で、`round_number` を条件にした待機戦術を2ラウンド目のdrawで永久に発動不能にしていた（再現済み）。判定を撤去し、防壁の提案イベント・量変更の記録イベント・装備修理を追加し、同一装備の重複を禁止した。**反証レビューは「既存の分岐が恒偽か」を見たが、「実装した最適化が、まだ書いていないコンテンツを恒偽にしないか」を見ていなかった。**
 - A5の仕様逸脱: v1語彙への追加4件（filter `is_event_source`、event `barrier_proposed`、event `pending_amount_modified`、effect `repair_equipment` と event `equipment_repaired`）と、R5 §11.6 の任意項目 stalemate の撤去1件。いずれも §1.2 の不変条件は変えていない。
+- PR #49: 8人、24技能、18装備、7区画、報酬、決定的リプレイを一周できるdraft試作を実装。HPと装備耐久は毎戦reset、敗北は無損失再挑戦。人間評価前であり、面白さと長期性は未判定。
+- R6: 作者が支持した長期方向を、3幕12戦、run/meta分離、SkillPack、手続き生成装備、exact Blueprint、持込枠1〜5、補給、threat budget、Difficulty 0〜20、endlessとして実装委譲可能な完成形へ固定。敗北時も確定分を持ち帰る100倍単位の活動資金、難易度以外の永続投資、+0.1%・段階的線形費用・上限なしの人物鍛錬、複数の完結ruleを持つ高rarity装備、通常攻撃と支援後の半威力追撃を採用した。戦闘量は現行のおよそ10倍、未強化maxHp 160〜300・主要parameter 100以下を通常帯とし、5人2×3 formation、基本3 active / 3 reactive / 2 passive・最大4 / 4 / 2、常設能力passive、guard / block / barrier / hit数 / 範囲 / 貫通 / riskによる攻撃差を固定した。固定属性相性・確率命中回避・物理魔法別防御は初期coreから外した。実装はPhase A戦闘、B遠征経済、C生成装備・Blueprint、D長期拡張へ分割し、各段階を作者評価してから次へ進む。作者は特にBlueprintを「奇跡のようなアイテム」の価値を残しつつ全体破壊を抑える仕組みとして支持した。
+- R7: systemを全実装してからcontentを増やす案と、未固定system上でcontentを量産する案の双方を退け、content file分離・ID/event/effect/target/単位/version/validatorという薄い全体契約を先に固定する順序を登録。Phase A作者支持後に技能8、敵unit 6、encounter 6、固定装備6を上限とするprobe batchを種類別PRで追加する。Phase B systemと既存語彙の技能・敵・固定装備は技術的に並列可能だが、encounter最終配置は12戦・threat budget後、procedural affixと複数rule装備はPhase C契約後とする。現在の一実装担当制を変更するものではなく、並列workstreamは責務・branch境界として定義した。
 - 現在の判断: 未検証。基盤は動くが、面白さの証拠は1件も無い。fingerprintが96種出たことは因果列が決定的でデータ追加で形が増えることの証拠であって、面白い組み合わせが96個ある証拠ではない。UI・公開・人間テストへは進んでいない。
 - 持ち越し: 人物を愛着の主語にする。人名指定コンボを避ける。余剰回復、余剰ダメージ、対象変更、移動、未使用資源などを将来の拡張フックとして保存する。
 
