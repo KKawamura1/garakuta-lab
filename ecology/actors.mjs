@@ -133,3 +133,4 @@ export function compareActorsDefault(a, b) {
   if (byPosition !== 0) return byPosition;
   return a.instanceId < b.instanceId ? -1 : a.instanceId > b.instanceId ? 1 : 0;
 }
+

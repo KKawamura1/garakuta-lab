@@ -95,3 +95,4 @@ export function evaluatePredicate(state, ctx, predicate) {
 }
 
 export { getActor };
+

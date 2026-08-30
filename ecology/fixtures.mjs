@@ -530,3 +530,4 @@ export const ALL_FIXTURE_BATTLES = [
   FULL_PARTY_BATTLE,
   ...GATE_E_BATTLES,
 ];
+

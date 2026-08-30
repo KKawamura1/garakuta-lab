@@ -65,3 +65,4 @@ console.log(
   `content contract: ${sections.length}節が凍結と一致（${CONTENT_CONTRACT_VERSION}、`
   + `battle ${Object.keys(frozen.battles).length}件・reward ${Object.keys(frozen.rewards).length}件）`,
 );
+

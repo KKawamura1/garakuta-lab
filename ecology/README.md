@@ -278,3 +278,4 @@ v1では、単一 chain は「同 owner 同 rule は1回」で構造的に停止
 
 その他の決め（round_limit の勝敗、draw の reason、activation上限の扱い、region rule の制約、
 ラウンド終了の drain 位置、同一装備の重複禁止）は R5 が未定義だった箇所で、PREFLIGHT に理由を書いてある。
+

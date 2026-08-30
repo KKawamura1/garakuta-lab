@@ -410,3 +410,4 @@ export function compareOp(op, left, right) {
     default: throw new Error(`unknown comparison operator: ${op}`);
   }
 }
+

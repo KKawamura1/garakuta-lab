@@ -24,3 +24,4 @@ export class EcologyRuntimeError extends Error {
 export function formatValidationErrors(errors) {
   return errors.map((error) => `${error.path}: [${error.code}] ${error.message}`).join("\n");
 }
+

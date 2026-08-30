@@ -124,3 +124,4 @@ function walkEffects(node, visit) {
   if (typeof node.type === "string" && node.amount) visit(node);
   for (const value of Object.values(node)) walkEffects(value, visit);
 }
+

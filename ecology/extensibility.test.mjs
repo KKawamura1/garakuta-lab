@@ -121,3 +121,4 @@ for (const battle of GATE_E_BATTLES) {
 }
 
 console.log(`extensibility.test.mjs: ${checks} checks passed`);
+

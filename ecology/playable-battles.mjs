@@ -389,3 +389,4 @@ export function allEncounters() {
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。
 export { ENEMY_TARGETING as enemyTargeting, SKILL_TREE_NODES, CHARACTER_DEFINITIONS };
+

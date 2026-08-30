@@ -2,8 +2,7 @@
 //
 // **敵 unit の定義と、その狙いの説明文。**
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
-// 種類別へ分離した。**挙動は1バイトも変えていない**（ecology/contract.test.mjs が
-// 分離前の出力と深一致を見る）。
+// 種類別へ分離した。敵の役割に合わせたHP帯の調整もここで管理する。
 //
 // ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
 
