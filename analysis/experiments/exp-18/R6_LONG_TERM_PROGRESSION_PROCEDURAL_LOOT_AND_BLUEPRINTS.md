@@ -19,7 +19,7 @@
 - 次の遠征へ持ち込める設計図は最初1枚。活動資金で最大5枚まで、非常に高い費用を払って増やす。
 - 持込設計図からは、その遠征に一つだけ同じ装備を再製造する。敵は持込品や永続鍛錬に合わせて隠れて強くならない。
 - 技能、装備基材、affix family、人物、補給、目利きは活動資金で横方向へ解禁する。難易度だけは一つ前のrankのクリアで順番に解禁する。
-- HP、damage、heal、barrier、might、focus、guard等の連続量は現行値の1,000倍へ移行し、小さい成長とroll差を整数で表現する。AP、RP、hit数、round、durability等の離散量は増やさない。
+- HP、damage、heal、barrier等は現行値の約10倍へ移行する。未強化maxHpは概ね160〜300、might / focus / guard等は100以下を基準とし、最終値を四捨五入する。AP、RP、hit数、round、durability等の離散量は増やさない。
 - 人物ごとのmight、focus、guard、vitality鍛錬は上限なしで許す。ただし一段+0.1%、高い初期費用、二次的に増える費用とし、有限解禁を取り終えた後のendless用sinkにする。speed、AP、RPは鍛錬しない。
 - 味方は5人編成とし、2行×3列の6枠へ5人を置く。空き枠により前3・後2または前2・後3を選ぶ。
 - 各人物は基本3 active / 3 reactiveを装備でき、活動資金で人物ごとに4 / 4まで増やす。basic strikeとsignatureは別枠。
@@ -84,7 +84,7 @@ PR #49では、8人、24技能、18装備、7区画が一周の画面として�
 - プレイヤーに見えない自動難易度補正を行わない。
 - 強い設計図を持ち込んだときは、実際に強く感じられるようにする。
 - 永続能力上昇は人物ごとのmight、focus、guard、maxHpだけに限定する。上限は設けないが、一段+0.1%、費用増加、全量表示を不変条件とし、speed、AP、RP、slot数、発火回数は鍛錬で上げない。
-- 連続戦闘量だけを1,000倍scaleで持つ。AP、RP、hit数、block回数、round、durability、status stackは小整数のままにする。
+- 戦闘量は原則3桁以内で読めるscaleにする。未強化maxHpは160〜300、他parameterは100以下を基準とし、計算の最終段で四捨五入する。AP、RP、hit数、block回数、round、durability、status stackは小整数のままにする。
 - 通常の人物行動には必ず攻撃手段がある。技能未装備・不発時は通常攻撃、純支援技能の解決後は威力50%の追撃を行う。明示された「溜め」だけを例外にする。
 - 装備の説明は、複数ruleを持つ場合もruleごとに発火契機、条件、代償、効果、制限を省略せず表示する。
 - 機械検査は破綻と支配性候補の検出に使い、面白さの証明に使わない。
@@ -180,15 +180,15 @@ type RunFundLedger = {
 
 ### 4.4 戦闘数値と人物parameter
 
-現行のmaxHp 16〜26、主要damage 4〜8等は、migration時に一律1,000倍する。新規contentは次の単位で書く。
+現行のmaxHp 16〜26、主要damage 4〜8等は、migration時に原則10倍する。新規contentは「未強化の通常戦闘では三桁以内で読める」ことを表示上の基準にする。
 
 ~~~ts
-const COMBAT_SCALE = 1_000;
+const LEGACY_COMBAT_SCALE = 10;
 
 type CombatStats = {
-  maxHp: number;              // 例: 16_000..26_000
-  might: number;              // weapon damageの基礎
-  focus: number;              // technique damage / heal / barrierの基礎
+  maxHp: number;              // 初期160..300程度
+  might: number;              // weapon damageの基礎、初期100以下
+  focus: number;              // technique damage / heal / barrier、初期100以下
   guard: number;              // direct damage一hitごとの固定軽減
   speed: number;              // 現行3..10程度の離散initiative
   baseActionPoints: number;   // 小整数
@@ -206,25 +206,24 @@ type ScaledAmount = {
 
 | 人物 | maxHp | might | focus | guard | speed | AP | RP |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| ユウリ | 26,000 | 3,200 | 2,400 | 1,000 | 4 | 1 | 2 |
-| ミナ | 18,000 | 1,800 | 4,400 | 250 | 6 | 1 | 2 |
-| レオン | 20,000 | 4,600 | 1,800 | 350 | 8 | 1 | 2 |
-| スイ | 16,000 | 3,600 | 2,600 | 200 | 10 | 1 | 2 |
-| カイ | 22,000 | 3,200 | 3,200 | 550 | 5 | 2 | 2 |
-| ナギ | 26,000 | 2,600 | 2,400 | 1,200 | 3 | 1 | 2 |
-| アオ | 16,000 | 1,600 | 5,000 | 150 | 5 | 1 | 2 |
-| トワ | 17,000 | 2,400 | 4,000 | 250 | 7 | 1 | 2 |
+| ユウリ | 260 | 32 | 24 | 10 | 4 | 1 | 2 |
+| ミナ | 180 | 18 | 44 | 3 | 6 | 1 | 2 |
+| レオン | 200 | 46 | 18 | 4 | 8 | 1 | 2 |
+| スイ | 160 | 36 | 26 | 2 | 10 | 1 | 2 |
+| カイ | 220 | 32 | 32 | 6 | 5 | 2 | 2 |
+| ナギ | 260 | 26 | 24 | 12 | 3 | 1 | 2 |
+| アオ | 160 | 16 | 50 | 2 | 5 | 1 | 2 |
+| トワ | 170 | 24 | 40 | 3 | 7 | 1 | 2 |
 
-この表は人物差の最初の仮値であり、名前ごとのengine分岐ではない。CharacterDefのdataとして保存する。全員がmightとfocusを持つため、物理役にも支援技能、支援役にもtechnique攻撃を付けられる。
+この表は人物差の最初の仮値であり、名前ごとのengine分岐ではない。CharacterDefのdataとして保存する。全員がmightとfocusを持つため、weapon役にも支援技能、支援役にもtechnique攻撃を付けられる。
 
-1,000倍するもの:
+原則三桁に保つもの:
 
-- maxHp、currentHp。
+- 未強化maxHp、currentHp、通常のdamage、heal、barrier。
 - might、focus、guard。
-- damage、heal、barrier、HP cost。
-- 装備rollの連続量。
+- HP costと装備rollの連続量。
 
-1,000倍しないもの:
+小整数のまま残すもの:
 
 - speed、AP、RP。
 - hit数、target数、block charge、round。
@@ -236,25 +235,25 @@ amountの基礎式:
 ~~~ts
 rawAmount =
   flat
-  + floor(source[scalingStat] * coefficientBps / 10_000);
+  + roundHalfUp(source[scalingStat] * coefficientBps / 10_000);
 ~~~
 
 direct damageは次で軽減する。
 
 ~~~ts
 effectiveGuard =
-  floor(target.guard * (10_000 - guardPierceBps) / 10_000);
+  roundHalfUp(target.guard * (10_000 - guardPierceBps) / 10_000);
 damage =
-  max(ceil(rawAmount * 1_000 / 10_000), rawAmount - effectiveGuard);
+  max(roundHalfUp(rawAmount * 1_000 / 10_000), rawAmount - effectiveGuard);
 ~~~
 
 最低10%は通す。guardはhitごとに適用するので、同じ総係数なら多段はguardに弱く、単発大威力はguardに強い。healとbarrierにはguardを適用しない。
 
 basic strikeは原則としてmight 100%を使う。weapon技能はmight、technique技能はfocusを使う。focusはheal / barrierにも使うため、支援人物にも攻撃成長軸が残る。
 
-既存skillを機械的に定数×1,000だけへ変換して終えない。斬撃をmight 100%、手当てをfocus 80%、防壁形成をfocus 60%のように、各skillをmight / focusのいずれかと係数へ移す。溜め、対象条件、cost等を含むskillは、中立parameter might=4,000 / focus=4,000で現行の相対効果量を概ね保つ係数から開始する。装備のflat rollはparameter非依存で残してよい。
+既存skillを定数×10だけへ変換して終えない。斬撃をmight 100%、手当てをfocus 80%、防壁形成をfocus 60%のように、各skillをmight / focusのいずれかと係数へ移す。溜め、対象条件、cost等を含むskillは、中立parameter might=40 / focus=40で現行の相対効果量を概ね保つ係数から開始する。装備のflat rollはparameter非依存で残してよい。
 
-計算はNumber safe integerだけを許し、途中値がNumber.MAX_SAFE_INTEGERを超えるBattleInputはvalidator errorにする。黙ってclampしない。表示は3桁区切りとし、省略表示を使う場合も詳細画面と因果logには完全値を残す。
+全中間計算は整数の分子を保持し、effectをeventへ確定する直前にround-half-upする。画面に小数を出さず、因果logにも適用前値、係数、丸め後値を残す。桁数は数学的上限ではなく通常時の可読性基準なので、永続鍛錬やendlessで300を超えることは許すが、K / M省略を常用するscaleにはしない。
 
 ## 5. 一遠征
 
@@ -423,8 +422,8 @@ utility は「支援に加えて半分の通常攻撃」、offense は「通常�
 
 現行の2 active / 2 reactiveを、R6開始時に3 / 3へ増やす。旧saveは既存装着を保ち、追加枠を空欄で作る。
 
-- 基本: active tactic 3、reactive 3。
-- 最大: active tactic 4、reactive 4。
+- 基本: active tactic 3、reactive 3、passive 2。
+- 最大: active tactic 4、reactive 4、passive 2。
 - basic strike、人物signature rule、装備ruleはこの数に含めない。
 - activeはpriority順に一つを選ぶため、枠増加は条件別の行動を増やす。
 - reactiveは同じeventへ複数候補が反応できるため、組み合わせ爆発の主な置き場になる。
@@ -439,6 +438,8 @@ utility は「支援に加えて半分の通常攻撃」、offense は「通常�
 | reactive 3→4 | 60,000 |
 
 人物単位にすることで、好きな人物を先に複雑化する選択を作り、全小隊が一度に大幅強化されることを避ける。第5枠はR6では追加しない。5人×4 reactiveだけで最大20反応候補があり、これを超える必要は人間テスト後に判断する。
+
+passiveは戦闘開始時parameter補正またはevent ruleを持つが、active priorityとRP競合には入らない。同じPassiveSkillIdを重複装着できない。
 
 ### 6.7 採用する攻撃多様性
 
@@ -494,7 +495,33 @@ multi-hitのevent順は次で固定する。
 
 属性やmagic wardは永久禁止ではない。後のmechanics packで、少なくとも人物、技能、装備、敵の三領域に一般的な相互作用を追加でき、特定敵の鍵にならない場合だけ採用する。
 
-攻撃skillの初期archetypeは最低限、basic、heavy、rapid、pierce、row、column、all、execute、recoil、channelの10種を用意する。同じ名前の係数違いを量産せず、各archetypeがguard / block / formation / riskの少なくとも一軸で評価を変えるようにする。
+攻撃skillの完成形では、basic、heavy、rapid、pierce、row、column、all、execute、recoil、channelの10 archetypeを候補にする。同じ名前の係数違いを量産せず、各archetypeがguard / block / formation / riskの少なくとも一軸で評価を変えるようにする。最初の実装段階では§17の通り6 archetypeへ絞る。
+
+### 6.8 常設fallback passive
+
+遠征manifestに関係なく、各人物は次の基礎訓練passiveを常に取得候補として持つ。run終了時に失い、各skillは一回だけ取得でき、passive slotを一つ使う。
+
+| id | 効果 | run skill point cost |
+|---|---:|---:|
+| foundation_vitality | maxHp +5 | 1 |
+| foundation_might | might +2 | 1 |
+| foundation_focus | focus +2 | 1 |
+| foundation_guard | guard +1 | 1 |
+| foundation_speed | speed +1 | 1 |
+| foundation_ap | battle開始時だけAP +1 | 1 |
+| foundation_rp | battle開始時だけRP +1 | 1 |
+
+base AP / RPを毎round +1するpassiveはfallbackにしない。行動回数を恒常的に増やす効果は、多くの面白いskillより強くなりやすいためである。常設版はbattle開始時の一回だけにする。
+
+これらは詰み防止であり、魅力的な完成buildの主役にはしない。ただしspeed調整等が意図的な構築になる場合はあるので、取得した事実だけで失敗と断定しない。D1へ次を保存する。
+
+- fallback取得数と全skill取得数。
+- 取得時に未取得だったmanifest skill。
+- 取得した人物と時点。
+- fallbackを装着したまま戦った回数。
+- 作者が「他に欲しいものが無かった」と書いたか。
+
+機械指標は fallbackPickRate とする。人間テスト20遠征以上で、幕2以降の取得の25%以上がfallback、または自由記述で「欲しいskillが無い」が複数回出た場合、SkillPackの量・質・報酬提示の失敗候補として調査する。閾値だけでfun不合格にはしない。
 
 ## 7. 手続き生成装備
 
