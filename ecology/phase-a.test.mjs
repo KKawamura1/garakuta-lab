@@ -291,4 +291,79 @@ for (const position of POSITIONS) {
   checks += 1;
 }
 
+// ---- 攻撃テンポの保証（R6 §6.4）------------------------------------------------
+//
+// **これは「支援だけを連打して戦闘が止まらない」ための不変条件。**
+// 実装があることではなく、止まらないことを見る。
+
+{
+  const { PLAYABLE_CONTENT } = await import("./content/index.mjs");
+  const { freshLoadout, makeBattle, RUN_SEED, equipSkill, removeSkill } = await import("./playable-battles.mjs");
+  const roster = ["warden", "mender", "lancer", "scout", "guardian"];
+  const formation = {
+    warden: "front_left", lancer: "front_center", guardian: "front_right",
+    mender: "rear_left", scout: "rear_right",
+  };
+
+  const play = (loadout) => simulateBattle(
+    makeBattle(2, roster, loadout, RUN_SEED, formation),
+    PLAYABLE_CONTENT,
+    { captureReplaySnapshots: false },
+  );
+
+  // 全員を純支援にする。**追撃が無ければ、誰も敵を殴らない。**
+  let supportOnly = freshLoadout(roster);
+  for (const id of roster) {
+    for (const skillId of [...supportOnly.tactics[id]]) {
+      const removed = removeSkill(supportOnly, id, skillId, "active");
+      if (removed.ok) supportOnly = removed.loadout;
+    }
+    const equipped = equipSkill(supportOnly, id, "bulwark", "active");
+    if (equipped.ok) supportOnly = equipped.loadout;
+  }
+  const supportRun = play(supportOnly);
+  const followUps = supportRun.events.filter(
+    (event) => event.type === "action_started" && String(event.skillId ?? "").startsWith("fallback_strike"),
+  );
+  check(followUps.length > 0, "支援だけの構成でも追撃が出る（R6 §6.4）");
+  const damageToEnemies = supportRun.events.filter(
+    (event) => event.type === "damage_taken" && String(event.targetActorIds?.[0] ?? "").startsWith("e_"),
+  );
+  check(damageToEnemies.length > 0, "**支援だけでも敵にダメージが入る。**戦闘が止まらない");
+
+  // 追撃から追撃は生まれない。**行動1回につき、追撃は多くとも1回。**
+  const utilityActions = supportRun.events.filter(
+    (event) => event.type === "action_started"
+      && !String(event.skillId ?? "").startsWith("fallback_strike")
+      && (PLAYABLE_CONTENT.activeSkills[event.skillId]?.actionMode === "utility"),
+  );
+  check(
+    followUps.length <= utilityActions.length,
+    `追撃(${followUps.length}) が支援行動(${utilityActions.length}) を超えない。**追撃から追撃は生まれない**`,
+  );
+
+  // 技能を一つも持たない人物でも basic strike が出る。
+  const bare = freshLoadout(roster);
+  for (const skillId of [...bare.tactics.lancer]) {
+    const removed = removeSkill(bare, "lancer", skillId, "active");
+    if (removed.ok) bare.tactics.lancer = removed.loadout.tactics.lancer;
+  }
+  bare.tactics.lancer = [];
+  const bareRun = play(bare);
+  const basics = bareRun.events.filter(
+    (event) => event.type === "action_started"
+      && event.sourceActorId === "a_lancer"
+      && String(event.skillId ?? "").startsWith("basic_strike"),
+  );
+  check(basics.length > 0, "技能を持たない仲間も通常攻撃をする（R6 §6.4）");
+  equal(basics[0].skillId, "basic_strike_melee", "レオンは近接なので通常攻撃");
+
+  // 届き方は人物ごと。後ろの二人は遠隔。
+  const reaches = new Set(supportRun.events
+    .filter((event) => event.type === "action_started" && String(event.skillId ?? "").includes("strike_"))
+    .map((event) => event.skillId));
+  check(reaches.has("fallback_strike_ranged"), "後衛は遠隔で追撃する");
+  check(reaches.has("fallback_strike_melee"), "前衛は近接で追撃する");
+}
+
 console.log(`phase-a.test.mjs: ${checks} checks passed`);

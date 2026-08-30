@@ -10,6 +10,7 @@
 // EcologyValidationError, so no caller can accidentally simulate bad content.
 
 import {
+  ACTION_MODES,
   ACTOR_STATS,
   PASSIVE_STAT_BONUSES,
   REACHES,
@@ -645,6 +646,10 @@ export function validateContentBundle(bundle) {
     requireCount(bag, `${path}.speed`, character.speed, { min: 0 });
     requireCount(bag, `${path}.baseActionPoints`, character.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, character.baseReactionPoints, { min: 0 });
+    // R6 §6.4 — basic strike の届き方は人物ごと。省略時は unrestricted。
+    if (character.basicStrikeReach !== undefined) {
+      requireOneOf(bag, `${path}.basicStrikeReach`, character.basicStrikeReach, REACHES, "unknown_reach");
+    }
     requireTags(bag, `${path}.tags`, character.tags);
     validateRules(bag, `${path}.signatureRules`, character.signatureRules, baseCtx);
   }
@@ -669,6 +674,35 @@ export function validateContentBundle(bundle) {
         listenTo: null,
         insidePreparation: true,
       });
+    }
+  }
+
+  // R6 §6.4 — PHASE A. actionMode は任意（省略時は offense＝追撃なし＝v1 の挙動）。
+  // 遊べる版が全技能で宣言していることは analysis/ecology-contract-smoke.mjs が見る。
+  for (const [id, skill] of Object.entries(bundle.activeSkills)) {
+    if (skill.actionMode !== undefined) {
+      requireOneOf(bag, `activeSkills.${id}.actionMode`, skill.actionMode, ACTION_MODES, "unknown_action_mode");
+    }
+  }
+
+  // R6 §6.4 — 攻撃テンポの保証に使う技能は content が名指しする。
+  // **engine は個別 ID で分岐しない**ので、宣言が壊れていればここで落とす。
+  if (bundle.coreActions !== undefined) {
+    if (!isPlainObject(bundle.coreActions)) {
+      bag.add("contentBundle.coreActions", "not_an_object", "expected a record of core action ids");
+    } else {
+      for (const [key, byReach] of Object.entries(bundle.coreActions)) {
+        if (!isPlainObject(byReach)) {
+          bag.add(`contentBundle.coreActions.${key}`, "not_an_object", "expected { melee, ranged }");
+          continue;
+        }
+        for (const [reach, skillId] of Object.entries(byReach)) {
+          requireOneOf(bag, `contentBundle.coreActions.${key}.${reach}`, reach, REACHES, "unknown_reach");
+          if (!Object.hasOwn(bundle.activeSkills, skillId)) {
+            bag.add(`contentBundle.coreActions.${key}.${reach}`, "dangling_reference", `no such active skill: ${skillId}`);
+          }
+        }
+      }
     }
   }
 

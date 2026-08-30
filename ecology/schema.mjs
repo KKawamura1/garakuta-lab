@@ -272,6 +272,12 @@ export const EFFECT_TYPES = freeze([
 // implementation in a later phase; listing them here now would let content
 // reference a pattern the engine silently treats as single.
 export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
+
+// R6 §6.4 — PHASE A. active 技能の静的な種別。攻撃テンポの保証がこれで決まる。
+//   offense … 使えると判定されたら、生存敵へ direct damage を必ず作る
+//   utility … 解決後に、同じ actor が威力50%の追撃を一度だけ行う
+//   channel … 追撃を行わない明示的例外。溜めること自体が代償のもの
+export const ACTION_MODES = freeze(["offense", "utility", "channel"]);
 export const REACHES = freeze(["melee", "ranged", "unrestricted"]);
 
 // §11.4 — usable only from interrupt-timing rules.

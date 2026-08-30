@@ -110,6 +110,16 @@ function positionWords(value, path, found = []) {
 const badPositions = positionWords(PLAYABLE_CONTENT, "content");
 if (badPositions.length) problems.push("position が canonical ID でない: " + badPositions.join(", "));
 
+// 7. **攻撃テンポの宣言が全部あること。**（R6 §6.4）
+//    actionMode の無い active 技能は、追撃するのかしないのかが決まらない。
+//    schema では任意（旧 fixture のため）なので、遊べる版はここで縛る。
+for (const [id, skill] of Object.entries(PLAYABLE_CONTENT.activeSkills)) {
+  if (!["offense", "utility", "channel"].includes(skill.actionMode)) {
+    problems.push(`activeSkills.${id} が actionMode を宣言していない`
+      + "（offense / utility / channel のどれか。支援だけで戦闘が止まらないための宣言）");
+  }
+}
+
 if (typeof CONTENT_CONTRACT_VERSION !== "string" || !CONTENT_CONTRACT_VERSION) {
   problems.push("content contract の版が無い");
 }

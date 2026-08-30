@@ -16,6 +16,7 @@
      "fixture",
      "front"
     ],
+    "basicStrikeReach": "melee",
     "might": 32,
     "focus": 24,
     "guard": 10
@@ -32,6 +33,7 @@
      "fixture",
      "support"
     ],
+    "basicStrikeReach": "ranged",
     "might": 18,
     "focus": 44,
     "guard": 3
@@ -48,6 +50,7 @@
      "fixture",
      "strike"
     ],
+    "basicStrikeReach": "melee",
     "might": 46,
     "focus": 18,
     "guard": 4
@@ -99,6 +102,7 @@
      "fixture",
      "fast"
     ],
+    "basicStrikeReach": "ranged",
     "might": 36,
     "focus": 26,
     "guard": 2
@@ -166,6 +170,7 @@
      "fixture",
      "gate_e"
     ],
+    "basicStrikeReach": "melee",
     "might": 32,
     "focus": 32,
     "guard": 6
@@ -183,6 +188,7 @@
      "front",
      "guard"
     ],
+    "basicStrikeReach": "melee",
     "might": 26,
     "focus": 24,
     "guard": 12
@@ -200,6 +206,7 @@
      "rear",
      "attack"
     ],
+    "basicStrikeReach": "ranged",
     "might": 16,
     "focus": 50,
     "guard": 2
@@ -217,6 +224,7 @@
      "rear",
      "tempo"
     ],
+    "basicStrikeReach": "ranged",
     "might": 24,
     "focus": 40,
     "guard": 3
@@ -265,7 +273,8 @@
     ],
     "tags": [
      "attack"
-    ]
+    ],
+    "actionMode": "offense"
    },
    "mend": {
     "id": "mend",
@@ -309,7 +318,8 @@
     ],
     "tags": [
      "care"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "bulwark": {
     "id": "bulwark",
@@ -338,7 +348,8 @@
     ],
     "tags": [
      "guard"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "relay_order": {
     "id": "relay_order",
@@ -382,7 +393,8 @@
     ],
     "tags": [
      "order"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "heavy_swing": {
     "id": "heavy_swing",
@@ -435,7 +447,8 @@
     "tags": [
      "attack",
      "slow"
-    ]
+    ],
+    "actionMode": "channel"
    },
    "reposition": {
     "id": "reposition",
@@ -485,7 +498,8 @@
     ],
     "tags": [
      "move"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "long_swing": {
     "id": "long_swing",
@@ -539,7 +553,8 @@
      "attack",
      "slow",
      "termination"
-    ]
+    ],
+    "actionMode": "channel"
    },
    "triage": {
     "id": "triage",
@@ -589,7 +604,8 @@
     ],
     "tags": [
      "care"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "hunt_the_slow": {
     "id": "hunt_the_slow",
@@ -638,7 +654,8 @@
     ],
     "tags": [
      "attack"
-    ]
+    ],
+    "actionMode": "offense"
    },
    "idle_shuffle": {
     "id": "idle_shuffle",
@@ -671,7 +688,8 @@
     "tags": [
      "buff",
      "playable"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "mark_target": {
     "id": "mark_target",
@@ -708,7 +726,8 @@
     ],
     "tags": [
      "debuff"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "steady_aim": {
     "id": "steady_aim",
@@ -740,7 +759,8 @@
     ],
     "tags": [
      "buff"
-    ]
+    ],
+    "actionMode": "utility"
    },
    "front_strike": {
     "id": "front_strike",
@@ -784,7 +804,8 @@
     ],
     "tags": [
      "attack"
-    ]
+    ],
+    "actionMode": "offense"
    },
    "rear_strike": {
     "id": "rear_strike",
@@ -832,7 +853,8 @@
     ],
     "tags": [
      "attack"
-    ]
+    ],
+    "actionMode": "offense"
    },
    "enemy_heavy": {
     "id": "enemy_heavy",
@@ -885,7 +907,8 @@
     "tags": [
      "attack",
      "slow"
-    ]
+    ],
+    "actionMode": "channel"
    },
    "enemy_guard": {
     "id": "enemy_guard",
@@ -914,6 +937,415 @@
     ],
     "tags": [
      "guard"
+    ],
+    "actionMode": "utility"
+   },
+   "basic_strike_melee": {
+    "id": "basic_strike_melee",
+    "displayName": "通常攻撃",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "reach": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "core"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "core"
+    ]
+   },
+   "fallback_strike_melee": {
+    "id": "fallback_strike_melee",
+    "displayName": "追い打ち",
+    "apCost": 0,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 5000
+      },
+      "reach": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "core"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "core"
+    ]
+   },
+   "basic_strike_ranged": {
+    "id": "basic_strike_ranged",
+    "displayName": "通常射撃",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "reach": "ranged",
+      "tags": [
+       "attack",
+       "weapon",
+       "core"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "core"
+    ]
+   },
+   "fallback_strike_ranged": {
+    "id": "fallback_strike_ranged",
+    "displayName": "追い射ち",
+    "apCost": 0,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 5000
+      },
+      "reach": "ranged",
+      "tags": [
+       "attack",
+       "weapon",
+       "core"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "core"
+    ]
+   },
+   "rapid_cuts": {
+    "id": "rapid_cuts",
+    "displayName": "刻み斬り",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "hitCount": 3
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "pierce_thrust": {
+    "id": "pierce_thrust",
+    "displayName": "貫き突き",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 8000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "guardPierceBps": 6000
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "row_sweep": {
+    "id": "row_sweep",
+    "displayName": "薙ぎ払い",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 6000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "targetPattern": "row"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "column_thrust": {
+    "id": "column_thrust",
+    "displayName": "突き通し",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 7000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "targetPattern": "column"
+     }
+    ],
+    "tags": [
+     "attack"
     ]
    }
   },
@@ -3343,6 +3775,16 @@
     "focus": 40,
     "guard": 12
    }
+  },
+  "coreActions": {
+   "basicStrike": {
+    "melee": "basic_strike_melee",
+    "ranged": "basic_strike_ranged"
+   },
+   "fallbackStrike": {
+    "melee": "fallback_strike_melee",
+    "ranged": "fallback_strike_ranged"
+   }
   }
  },
  "displayNames": {
@@ -3370,6 +3812,14 @@
   "rear_strike": "後列打ち",
   "enemy_heavy": "重い一撃",
   "enemy_guard": "盾を構える",
+  "basic_strike_melee": "通常攻撃",
+  "fallback_strike_melee": "追い打ち",
+  "basic_strike_ranged": "通常射撃",
+  "fallback_strike_ranged": "追い射ち",
+  "rapid_cuts": "刻み斬り",
+  "pierce_thrust": "貫き突き",
+  "row_sweep": "薙ぎ払い",
+  "column_thrust": "突き通し",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -3543,6 +3993,38 @@
  ],
  "skills": {
   "active": {
+   "rapid_cuts": {
+    "id": "rapid_cuts",
+    "kind": "active",
+    "definitionId": "rapid_cuts",
+    "label": "刻み斬り",
+    "effect": "3回に分けて刻む。合計は大きいが、受けの硬い相手には通りにくい。",
+    "grammar": "攻撃"
+   },
+   "pierce_thrust": {
+    "id": "pierce_thrust",
+    "kind": "active",
+    "definitionId": "pierce_thrust",
+    "label": "貫き突き",
+    "effect": "威力は控えめだが、相手の受けを6割無視する。硬い相手向け。",
+    "grammar": "攻撃"
+   },
+   "row_sweep": {
+    "id": "row_sweep",
+    "kind": "active",
+    "definitionId": "row_sweep",
+    "label": "薙ぎ払い",
+    "effect": "狙った相手と同じ行を薙ぐ。前列に3人並ぶ相手ほど効く。",
+    "grammar": "攻撃"
+   },
+   "column_thrust": {
+    "id": "column_thrust",
+    "kind": "active",
+    "definitionId": "column_thrust",
+    "label": "突き通し",
+    "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
+    "grammar": "攻撃"
+   },
    "strike": {
     "id": "strike",
     "kind": "active",
@@ -3962,6 +4444,38 @@
   }
  },
  "components": {
+  "rapid_cuts": {
+   "id": "rapid_cuts",
+   "kind": "active",
+   "definitionId": "rapid_cuts",
+   "label": "刻み斬り",
+   "effect": "3回に分けて刻む。合計は大きいが、受けの硬い相手には通りにくい。",
+   "grammar": "攻撃"
+  },
+  "pierce_thrust": {
+   "id": "pierce_thrust",
+   "kind": "active",
+   "definitionId": "pierce_thrust",
+   "label": "貫き突き",
+   "effect": "威力は控えめだが、相手の受けを6割無視する。硬い相手向け。",
+   "grammar": "攻撃"
+  },
+  "row_sweep": {
+   "id": "row_sweep",
+   "kind": "active",
+   "definitionId": "row_sweep",
+   "label": "薙ぎ払い",
+   "effect": "狙った相手と同じ行を薙ぐ。前列に3人並ぶ相手ほど効く。",
+   "grammar": "攻撃"
+  },
+  "column_thrust": {
+   "id": "column_thrust",
+   "kind": "active",
+   "definitionId": "column_thrust",
+   "label": "突き通し",
+   "effect": "狙った相手と同じ列の前後を貫く。後列を庇う列に効く。",
+   "grammar": "攻撃"
+  },
   "strike": {
    "id": "strike",
    "kind": "active",
@@ -4374,6 +4888,10 @@
   }
  },
  "componentOrder": [
+  "rapid_cuts",
+  "pierce_thrust",
+  "row_sweep",
+  "column_thrust",
   "strike",
   "mend",
   "bulwark",
@@ -4679,6 +5197,50 @@
    "cost": 2,
    "requires": [
     "scavenge_ap"
+   ]
+  },
+  {
+   "id": "node_rapid",
+   "skillId": "rapid_cuts",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_pierce",
+   "skillId": "pierce_thrust",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_row",
+   "skillId": "row_sweep",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "rapid_cuts"
+   ]
+  },
+  {
+   "id": "node_column",
+   "skillId": "column_thrust",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "pierce_thrust"
    ]
   },
   {

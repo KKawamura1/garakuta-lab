@@ -17,15 +17,32 @@ const PLAYABLE_ENGINE_OPTIONS = { equipmentBreaks: false, captureReplaySnapshots
 
 assert.deepEqual(validateContentBundle(PLAYABLE_CONTENT), []);
 assert.equal(CHARACTER_OPTIONS.length, 8);
-assert.equal(Object.keys(SKILLS.active).length, 12);
+// PHASE A: 行動12 に R6 §17.1 の archetype 4（刻み・貫き・薙ぎ・突き通し）を足して16。
+assert.equal(Object.keys(SKILLS.active).length, 16);
 assert.equal(Object.keys(SKILLS.reactive).length, 12);
+assert.equal(Object.keys(SKILLS.passive).length, 7);
 assert.equal(Object.keys(EQUIPMENT).length, 18);
 // PHASE A: 24（行動12＋反応12）に、R6 §6.8 の常設 fallback 7 を足して31。
 // **数そのものより、種類ごとの内訳が動いていないこと**を見る。
-assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "active").length, 12);
+assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "active").length, 16);
 assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "reactive").length, 12);
 assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "passive").length, 7);
-assert.equal(SKILL_TREE_NODES.length, 31);
+assert.equal(SKILL_TREE_NODES.length, 35);
+
+// R6 §6.4 — **どの active 技能も種別を宣言している。**宣言が無いと
+// 追撃するのかしないのかが決まらず、支援だけで戦闘が止まりうる。
+for (const [id, skill] of Object.entries(PLAYABLE_CONTENT.activeSkills)) {
+  assert.ok(
+    ["offense", "utility", "channel"].includes(skill.actionMode),
+    id + " が actionMode を宣言していない",
+  );
+}
+// 中核の行動は content が名指しし、実在すること。
+for (const byReach of Object.values(PLAYABLE_CONTENT.coreActions)) {
+  for (const skillId of Object.values(byReach)) {
+    assert.ok(PLAYABLE_CONTENT.activeSkills[skillId], skillId + " が無い");
+  }
+}
 // 常設は前提を持たない。**詰み防止なので、いつでも取れなければ意味がない。**
 for (const node of SKILL_TREE_NODES.filter((n) => n.kind === "passive")) {
   assert.deepEqual(node.requires, [], node.id + " は前提を持たない");

@@ -51,6 +51,12 @@ export const PLAYABLE_CONTENT = Object.freeze({
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
   enemyActors: ENEMY_ACTORS,
+  // R6 §6.4 — 攻撃テンポの保証に使う行動を、content が名指しする。
+  // **engine は個別 ID で分岐せず、この宣言を読むだけ。**
+  coreActions: Object.freeze({
+    basicStrike: Object.freeze({ melee: "basic_strike_melee", ranged: "basic_strike_ranged" }),
+    fallbackStrike: Object.freeze({ melee: "fallback_strike_melee", ranged: "fallback_strike_ranged" }),
+  }),
 });
 
 export const DISPLAY_NAMES = Object.freeze(
