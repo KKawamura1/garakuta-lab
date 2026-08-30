@@ -4308,6 +4308,29 @@
     "focus": 40,
     "guard": 0
    },
+   "gray_runner": {
+    "id": "gray_runner",
+    "displayName": "灰殻の走り手",
+    "maxHp": 120,
+    "speed": 9,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
+   },
    "gray_marksman": {
     "id": "gray_marksman",
     "displayName": "灰殻の後撃ち",
@@ -4318,6 +4341,33 @@
     "tactics": [
      {
       "activeSkillId": "rear_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
+   },
+   "gray_stalker": {
+    "id": "gray_stalker",
+    "displayName": "灰殻の潜み手",
+    "maxHp": 130,
+    "speed": 7,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "rear_strike",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
       "useWhen": []
      }
     ],
@@ -4359,6 +4409,62 @@
     "focus": 40,
     "guard": 10
    },
+   "gray_breaker": {
+    "id": "gray_breaker",
+    "displayName": "灰殻の砕き手",
+    "maxHp": 220,
+    "speed": 5,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "enemy_heavy",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "objective",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 4
+   },
+   "gray_shelter": {
+    "id": "gray_shelter",
+    "displayName": "灰殻の籠り手",
+    "maxHp": 200,
+    "speed": 4,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "enemy_guard",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "objective",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 8
+   },
    "gray_hunter": {
     "id": "gray_hunter",
     "displayName": "灰殻の狩人",
@@ -4387,6 +4493,38 @@
     "focus": 40,
     "guard": 0
    },
+   "gray_harrower": {
+    "id": "gray_harrower",
+    "displayName": "灰殻の追い手",
+    "maxHp": 180,
+    "speed": 8,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "hunt_the_slow",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "rear_strike",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "gate_e",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 2
+   },
    "gray_echo": {
     "id": "gray_echo",
     "displayName": "灰殻の反響体",
@@ -4406,6 +4544,29 @@
     "intrinsicRules": [],
     "tags": [
      "termination",
+     "playable"
+    ],
+    "might": 40,
+    "focus": 40,
+    "guard": 0
+   },
+   "gray_swarm": {
+    "id": "gray_swarm",
+    "displayName": "灰殻の群れ",
+    "maxHp": 80,
+    "speed": 10,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
      "playable"
     ],
     "might": 40,
@@ -4568,10 +4729,16 @@
   "husk_echo": "灰殻の反響体",
   "husk_marker": "灰殻の標定手",
   "gray_scrapper": "灰殻の走者",
+  "gray_runner": "灰殻の走り手",
   "gray_marksman": "灰殻の後撃ち",
+  "gray_stalker": "灰殻の潜み手",
   "gray_guard": "灰殻の守衛",
+  "gray_breaker": "灰殻の砕き手",
+  "gray_shelter": "灰殻の籠り手",
   "gray_hunter": "灰殻の狩人",
+  "gray_harrower": "灰殻の追い手",
   "gray_echo": "灰殻の反響体",
+  "gray_swarm": "灰殻の群れ",
   "gray_bulwark": "灰殻の盾兵",
   "ash_core": "灰の核心"
  },
@@ -6721,25 +6888,55 @@
    "label": "灰殻の走者",
    "targeting": "前列の生存者を、左から狙う。"
   },
+  "gray_runner": {
+   "id": "gray_runner",
+   "label": "灰殻の走り手",
+   "targeting": "前列の生存者を、速い順に狙う。"
+  },
   "gray_marksman": {
    "id": "gray_marksman",
    "label": "灰殻の後撃ち",
    "targeting": "後列の生存者を優先して狙う。"
+  },
+  "gray_stalker": {
+   "id": "gray_stalker",
+   "label": "灰殻の潜み手",
+   "targeting": "まず後列を狙い、後列がいなければ前列を狙う。"
   },
   "gray_guard": {
    "id": "gray_guard",
    "label": "灰殻の守衛",
    "targeting": "前列を狙い、最初の行動で防壁を張る。"
   },
+  "gray_breaker": {
+   "id": "gray_breaker",
+   "label": "灰殻の砕き手",
+   "targeting": "重い一撃を準備して前列へ放ち、その後は前列を狙う。"
+  },
+  "gray_shelter": {
+   "id": "gray_shelter",
+   "label": "灰殻の籠り手",
+   "targeting": "最初に防壁を張り、その後は前列を狙う。"
+  },
   "gray_hunter": {
    "id": "gray_hunter",
    "label": "灰殻の狩人",
    "targeting": "準備中の味方を見つければ先に狙う。いなければ前列。"
   },
+  "gray_harrower": {
+   "id": "gray_harrower",
+   "label": "灰殻の追い手",
+   "targeting": "準備中の味方を追い、後列、前列の順に狙う。"
+  },
   "gray_echo": {
    "id": "gray_echo",
    "label": "灰殻の反響体",
    "targeting": "前列を殴り、受けたダメージを反響する。"
+  },
+  "gray_swarm": {
+   "id": "gray_swarm",
+   "label": "灰殻の群れ",
+   "targeting": "速く動き、前列の生存者を狙う。"
   },
   "gray_bulwark": {
    "id": "gray_bulwark",
@@ -6761,10 +6958,16 @@
   "husk_echo": "前列を優先して狙う。",
   "husk_marker": "前列を優先して狙う。",
   "gray_scrapper": "前列の生存者を、左から狙う。",
+  "gray_runner": "前列の生存者を、速い順に狙う。",
   "gray_marksman": "後列の生存者を優先して狙う。",
+  "gray_stalker": "まず後列を狙い、後列がいなければ前列を狙う。",
   "gray_guard": "前列を狙い、最初の行動で防壁を張る。",
+  "gray_breaker": "重い一撃を準備して前列へ放ち、その後は前列を狙う。",
+  "gray_shelter": "最初に防壁を張り、その後は前列を狙う。",
   "gray_hunter": "準備中の味方を見つければ先に狙う。いなければ前列。",
+  "gray_harrower": "準備中の味方を追い、後列、前列の順に狙う。",
   "gray_echo": "前列を殴り、受けたダメージを反響する。",
+  "gray_swarm": "速く動き、前列の生存者を狙う。",
   "gray_bulwark": "防壁を張り直しながら前列を狙う。",
   "ash_core": "重い一撃を準備し、完成したら前列へ放つ。"
  },

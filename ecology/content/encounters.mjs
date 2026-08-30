@@ -96,10 +96,16 @@ for (const encounter of ENCOUNTERS) {
 // **規則そのものではない**（ずれたら enemies.mjs 側の定義が正）。
 export const ENEMY_TARGETING = {
   gray_scrapper: "前列の生存者を、左から狙う。",
+  gray_runner: "前列の生存者を、速い順に狙う。",
   gray_marksman: "後列の生存者を優先して狙う。",
+  gray_stalker: "まず後列を狙い、後列がいなければ前列を狙う。",
   gray_guard: "前列を狙い、最初の行動で防壁を張る。",
+  gray_breaker: "重い一撃を準備して前列へ放ち、その後は前列を狙う。",
+  gray_shelter: "最初に防壁を張り、その後は前列を狙う。",
   gray_hunter: "準備中の味方を見つければ先に狙う。いなければ前列。",
+  gray_harrower: "準備中の味方を追い、後列、前列の順に狙う。",
   gray_echo: "前列を殴り、受けたダメージを反響する。",
   gray_bulwark: "防壁を張り直しながら前列を狙う。",
+  gray_swarm: "速く動き、前列の生存者を狙う。",
   ash_core: "重い一撃を準備し、完成したら前列へ放つ。",
 };
