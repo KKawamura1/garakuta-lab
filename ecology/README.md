@@ -10,15 +10,41 @@
 ## 実行
 
 ~~~sh
-node ecology/check.mjs        # 5本まとめて（exit code を検査する）
+node ecology/check.mjs        # 7本まとめて（exit code を検査する）
 node ecology/schema.test.mjs
 node ecology/engine.test.mjs
 node ecology/termination.test.mjs
 node ecology/extensibility.test.mjs
 node ecology/mine.test.mjs
+node ecology/playable.test.mjs
+node ecology/contract.test.mjs  # content contract の深一致（R7 Milestone 0）
 ~~~
 
 外部依存なし。Node標準のみ。`analysis/check-all.sh` からも呼ばれる。
+
+
+## content はどこにあるか
+
+遊べる版の定義は `ecology/content/` に**種類別**で置いてある（R7 Milestone 0）。
+
+| 触りたいもの | ファイル |
+|---|---|
+| 行動技能 | `content/skills-active.mjs` |
+| 反応技能 | `content/skills-reactive.mjs` |
+| 固定装備 | `content/equipment-fixed.mjs` |
+| 仲間（engine 定義） | `content/characters.mjs` |
+| 仲間（役割・図像・初期の技能） | `content/roster.mjs` |
+| 敵 unit と狙いの説明文 | `content/enemies.mjs` |
+| 区画ごとの配置 | `content/encounters.mjs` |
+| 技能ツリーと表示文 | `content/skill-tree.mjs` |
+| bundle の組み立て・contract 版・引退 ID | `content/index.mjs` |
+
+`playable-content.mjs` は既存の import を壊さないための adapter で、
+**新しい定義を足す場所ではない。**
+
+定義を足したり数値を動かしたりすると `ecology/contract.test.mjs` が落ちる。
+それは正しい落ち方なので、差分を読んでから
+`node ecology/contract-snapshot.mjs --write` で凍結を作り直すこと。
 
 ## ファイル
 
