@@ -8,29 +8,73 @@ import {
   SKILLS,
   SKILL_TREE_NODES,
   characterInfo,
-  encounterInfo,
   enemyInfo,
   enemyTargetingText,
   equipEquipment,
   equipSkill,
   freshLoadout,
   initialUnlockedSkills,
-  makeBattle,
+  makeExpeditionBattle,
   removeEquipment,
   removeSkill,
   reorderTactic,
-  rewardOffer,
   PARTY_SIZE,
-  SLOT_LIMITS,
   ensurePartySize,
   normalizeFormation,
 } from "./playable-battles.mjs";
-import { POSITIONS } from "./schema.mjs";
+import {
+  BOSS_LAWS,
+  ENEMY_MUTATIONS,
+  EQUIPMENT_GROUPS,
+  PACK_BY_ID,
+  REGION,
+  SKILL_PACKS,
+  difficultyDef,
+} from "./content/index.mjs";
+import {
+  ENCOUNTERS_PER_RUN,
+  MAX_DIFFICULTY_RANK,
+  META_UPGRADES,
+  SCRAP_PER_SUPPLY,
+  SUPPLY_USES,
+  availableDifficulties,
+  convertScrap,
+  dismantle,
+  characterStats,
+  composeEncounter,
+  formatFunds,
+  gainSupply,
+  grantRunSkillPoints,
+  manifestSkillIds,
+  migrateLegacyProfile,
+  newProfile,
+  newRun,
+  normalizeProfile,
+  parseFunds,
+  purchaseTraining,
+  purchaseUpgrade,
+  recordEncounterCleared,
+  registerSkillCosts,
+  resetRunSkills,
+  STARTING_RUN_SKILL_POINTS,
+  rewardOffer,
+  runSkillPoints,
+  settleRun,
+  slotLimits,
+  slotUpgradeId,
+  spendSupply,
+  unlockRunSkill,
+  upgradeCost,
+  upgradeLevel,
+  INVENTORY_LIMIT,
+  MAX_SUPPLIES,
+} from "./progression.mjs";
+import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 Phase A 0.4";
+const VERSION = "EXP-18 Phase B 0.5";
 const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
@@ -114,8 +158,6 @@ let battleLayoutKey = null;
 let battleBeats = [];
 let battleBeatsSource = null;
 
-const STARTING_SKILL_POINTS = 2;
-
 // **上限は functions/api/runs.js と同じ数にする。**
 // 4000件で切って送っていたが、サーバは2000件で弾く（invalid_payload）。
 // 戦闘イベントを1件ずつ runEvents へ積むので、5区画も遊べば2000を超える。
@@ -140,46 +182,21 @@ function fitPayload(payload) {
   while (payload.events.length > 1 && payloadBytes(payload) > MAX_SENT_BYTES) {
     payload.events = [payload.events[0], ...payload.events.slice(Math.ceil(payload.events.length / 2))];
   }
-  payload.stats.eventsRecorded = recorded;
+  payload.stats.eventsRecorded = recorded + (payload.stats.eventsDroppedLocally ?? 0);
   payload.stats.eventsSent = payload.events.length;
   return payload;
 }
 
-function initialSkillPoints() {
-  return Object.fromEntries(CHARACTER_OPTIONS.map((option) => [option.id, STARTING_SKILL_POINTS]));
-}
+// ============================================================ 状態の三層（R6 §4）
+//
+// ProfileState … 遠征をまたいで残るもの（活動資金、鍛錬、購入、難易度解禁）
+// RunState     … 一遠征のあいだだけのもの（編成、技能点、装備、補給、仮計上）
+// BattleState  … 一戦のあいだだけのもの（現在HP、装備耐久）— state.hp がそれ
+//
+// **profile へ遠征内のものを入れない。**入れた瞬間に「遠征を捨てても残る」に
+// なって、補給と再挑戦のトレードオフ（R6 §12.1）が消える。
 
-function normalizeSkillPoints(value) {
-  const defaults = initialSkillPoints();
-  if (!value || typeof value !== "object" || Array.isArray(value)) return defaults;
-  for (const option of CHARACTER_OPTIONS) {
-    const points = Number(value[option.id]);
-    if (Number.isFinite(points)) defaults[option.id] = Math.max(0, Math.floor(points));
-  }
-  return defaults;
-}
-
-function defaultMeta() {
-  const unlocked = {};
-  for (const option of CHARACTER_OPTIONS) unlocked[option.id] = initialUnlockedSkills(option.id);
-  const ownedEquipment = [
-    "standing_plate",
-    "worn_greaves",
-    "splinter_edge",
-    "field_kit",
-    "momentum_rig",
-    "bastion_shell",
-  ];
-  const equipmentDurability = {};
-  for (const id of ownedEquipment) equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
-  return {
-    skillPoints: initialSkillPoints(),
-    unlocked,
-    ownedEquipment,
-    equipmentDurability,
-    expeditions: 0,
-  };
-}
+registerSkillCosts(SKILL_TREE_NODES);
 
 function defaultFormation(roster) {
   const formation = {};
@@ -191,29 +208,92 @@ function defaultFormation(roster) {
 }
 
 function partyLabel() {
-  return state.roster.length + " / " + PARTY_SIZE + "人";
+  return state.run.roster.length + " / " + PARTY_SIZE + "人";
 }
 
-
-function newRunState(meta) {
-  const roster = ensurePartySize(["warden", "mender", "lancer", "scout"]);
-  return {
-    phase: "camp",
-    tab: "roster",
-    stage: 1,
-    runSeed: RUN_SEED + "-" + uuid().slice(0, 8),
-    runId: uuid(),
-    startedAt: new Date().toISOString(),
+// 遠征を1つ作る。**技能の解禁も装備も、ここで run の中へ入る。**
+//
+// `runSeed` を渡せるのは、**難易度を選び直しても manifest を引き直させない**ため。
+// 渡さずに作り直すと、有効パックが気に入るまで難易度ボタンを往復すれば
+// 引き直せてしまう（R6 §5.2 は manifest を seed で決めると言っている）。
+function startRun(profile, options = {}) {
+  const roster = ensurePartySize(options.roster ?? ["warden", "mender", "lancer", "scout"]);
+  const runSeed = options.runSeed ?? (RUN_SEED + "-" + uuid().slice(0, 8));
+  const run = newRun(profile, {
+    runSeed,
+    runId: options.runId ?? uuid(),
     roster,
+    difficulty: options.difficulty ?? 0,
     formation: defaultFormation(roster),
-    loadout: freshLoadout(roster),
-    hp: {},
-    rewardOffer: [],
-    selectedCharacter: roster[0],
-    formationSelection: roster[0],
+    startedAt: new Date().toISOString(),
+  });
+  run.loadout = freshLoadout(roster);
+  run.runUnlockedSkills = {};
+  let joined = run;
+  for (const id of roster) joined = joinRun(joined, id);
+  return joined;
+}
+
+// 一人を遠征へ入れる。**開始時も途中加入も同じ規則を通す。**
+//
+//   - 遠征内技能点を配る（0で始めると、その仲間だけ何も解禁できない）
+//   - 解禁表を starter 技能で埋める（空だと外した技能を戻せない）
+//   - manifest から外れた技能は解禁表からも装着欄からも落とす
+//     （画面に「今回は出ない」と書いたものが戦闘へ入る、を作らない）
+function joinRun(run, characterId) {
+  const available = new Set(manifestSkillIds(run.manifest).all);
+  const fresh = freshLoadout([characterId]);
+  const keep = (list) => (list ?? []).filter((skillId) => available.has(skillId));
+  const next = {
+    ...run,
+    runSkillPoints: { ...run.runSkillPoints },
+    runUnlockedSkills: { ...run.runUnlockedSkills },
+    loadout: {
+      ...run.loadout,
+      tactics: { ...run.loadout?.tactics },
+      reactives: { ...run.loadout?.reactives },
+      passives: { ...run.loadout?.passives },
+      equipment: { ...run.loadout?.equipment },
+    },
+  };
+  // **配るのは初回だけ。**離脱と再加入で配り直すと、点を使い切ってから
+  // 外して入れ直せば無限に解禁できる。
+  next.runSkillPoints[characterId] = Object.hasOwn(run.runSkillPoints ?? {}, characterId)
+    ? runSkillPoints(run, characterId)
+    : STARTING_RUN_SKILL_POINTS;
+  next.runUnlockedSkills[characterId] = [...new Set([
+    ...keep(run.runUnlockedSkills?.[characterId]),
+    ...keep(initialUnlockedSkills(characterId)),
+  ])];
+  next.loadout.tactics[characterId] = keep(run.loadout?.tactics?.[characterId] ?? fresh.tactics[characterId]);
+  next.loadout.reactives[characterId] = keep(run.loadout?.reactives?.[characterId] ?? fresh.reactives[characterId]);
+  next.loadout.passives[characterId] = run.loadout?.passives?.[characterId] ?? [];
+  next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
+  // 行動が一つも残らないと、その仲間は basic strike しかしない。
+  // baseline の斬撃は manifest に必ず入っている（R6 §5.2）。
+  if (!next.loadout.tactics[characterId].length) next.loadout.tactics[characterId] = ["strike"];
+  return next;
+}
+
+function freshUiState() {
+  return {
+    phase: "intro",
+    tab: "roster",
+    guildTab: "expedition",
+    selectedCharacter: null,
+    // ギルドは**遠征の編成とは別の選択**を持つ。roster の5人へ丸めると、
+    // 同行していない仲間の鍛錬と第4枠が永久に買えなくなる。
+    guildCharacter: null,
+    formationSelection: null,
     selectedSkillNode: null,
     selectedEquipment: null,
+    selectedDifficulty: 0,
+    selectedRewardCharacter: null,
+    hp: {},
+    equipmentDurability: {},
+    rewardOffer: [],
     lastResult: null,
+    lastSettlement: null,
     replayEvents: [],
     replaySnapshots: [],
     replayIndex: 0,
@@ -221,54 +301,77 @@ function newRunState(meta) {
     replaySpeed: "normal",
     replayLogOpen: false,
     skillTreeScroll: {},
-    results: [],
     runEvents: [],
+    runEventsDropped: 0,
     battleError: null,
     feedback: null,
+    migrationNote: null,
     error: null,
-    meta: structuredClone(meta),
+    runId: null,
+    startedAt: null,
   };
 }
 
 function initialState() {
-  const state = newRunState(defaultMeta());
-  state.phase = "intro";
-  state.startedAt = null;
-  return state;
+  const profile = newProfile();
+  return { ...freshUiState(), profile, run: startRun(profile), phase: "intro" };
 }
 
+// R6 §16 — version 不一致を黙って読み飛ばさない。
+// 旧 save（Phase A の平たい meta）は **profile を持たない**ので、そこで見分ける。
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
     if (!saved || typeof saved !== "object") return initialState();
     const fresh = initialState();
     const next = { ...fresh, ...saved };
-    const meta = { ...defaultMeta(), ...(saved.meta || {}) };
-    meta.unlocked = { ...defaultMeta().unlocked, ...(saved.meta?.unlocked || {}) };
-    meta.skillPoints = normalizeSkillPoints(saved.meta?.skillPoints);
-    meta.ownedEquipment = Array.isArray(saved.meta?.ownedEquipment)
-      ? saved.meta.ownedEquipment.filter((id) => EQUIPMENT[id])
-      : meta.ownedEquipment;
-    meta.equipmentDurability = { ...defaultMeta().equipmentDurability, ...(saved.meta?.equipmentDurability || {}) };
-    for (const id of meta.ownedEquipment) {
-      meta.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
+    let migrationNote = null;
+
+    if (saved.profile) {
+      next.profile = normalizeProfile(saved.profile);
+    } else {
+      // Phase A の save。永続だったものが Phase B では run 内の資源になったので、
+      // **持ち越せる意味のあるものだけ**を移し、何をしたかを画面に出す。
+      const migrated = migrateLegacyProfile(saved.meta);
+      next.profile = migrated.profile;
+      migrationNote = (migrated.note ? migrated.note + " " : "")
+        + "Phase B で遠征が3幕12戦になったため、途中だった7区画の進行は引き継いでいません。";
     }
-    next.meta = meta;
-    // R6 §5.4 — 4人の旧 save は5人へ育てる。**SAVE_KEY は上げない**
-    // （上げると作者の進行が消える）。足りない一人は並び順の先頭から決定的に選び、
-    // 位置は normalizeFormation が前3後2／前2後3へ落とす。
-    next.roster = ensurePartySize(
-      Array.isArray(next.roster) ? next.roster.filter((id) => characterInfo(id)) : fresh.roster,
-    );
-    next.formation = normalizeFormation(next.formation, next.roster);
-    next.loadout = next.loadout || freshLoadout(next.roster);
+
+    // run が読めなければ作り直す。**壊れた run で camp に入らない**
+    // （形が違うまま画面へ出すと、どこで落ちたか分からなくなる）。
+    const savedRun = saved.run;
+    if (savedRun && savedRun.schemaVersion === RUN_SCHEMA_VERSION && Array.isArray(savedRun.roster)) {
+      next.run = savedRun;
+      next.run.roster = ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)));
+      next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
+      next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
+      next.run.inventory = Array.isArray(savedRun.inventory)
+        ? savedRun.inventory.filter((id) => EQUIPMENT[id]).slice(0, INVENTORY_LIMIT)
+        : [];
+      next.run.supplies = Math.max(0, Math.min(MAX_SUPPLIES, Math.floor(savedRun.supplies ?? 0)));
+      next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
+    } else {
+      next.run = startRun(next.profile);
+      if (savedRun) migrationNote = (migrationNote ?? "") + " 保存されていた遠征の形が古かったため、作り直しました。";
+      if (!savedRun && saved.phase && saved.phase !== "intro") next.phase = "expeditionStart";
+    }
+    next.migrationNote = migrationNote;
+    if (migrationNote && next.phase !== "intro") next.phase = "expeditionStart";
+
     const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
     const savedFormationSelection = hasFormationSelection ? saved.formationSelection : next.selectedCharacter;
-    next.formationSelection = hasFormationSelection
-      ? (next.roster.includes(savedFormationSelection) ? savedFormationSelection : null)
-      : (next.roster.includes(savedFormationSelection) ? savedFormationSelection : (next.roster[0] ?? null));
-    next.hp = Object.fromEntries(CHARACTER_OPTIONS.map((option) => [option.id, maxHp(option.id)]));
-    next.results = Array.isArray(next.results) ? next.results : [];
+    next.formationSelection = next.run.roster.includes(savedFormationSelection) ? savedFormationSelection : null;
+    // 戦闘内の値（HP・装備耐久）は BattleState。読み込み時に必ず満タンへ戻す。
+    //
+    // **ここで maxHp() を呼ばない。** maxHp は state.profile を読むが、
+    // state はまだ代入されていない（`let state = loadState()` の途中）。
+    // 呼ぶと ReferenceError になり、下の catch が**保存を丸ごと捨てて**
+    // intro へ戻す。2026-08-30、戦闘中のリロードがそれで進行を失っていた。
+    next.hp = Object.fromEntries(
+      CHARACTER_OPTIONS.map((option) => [option.id, characterStats(next.profile, option.id).stats.maxHp]),
+    );
+    next.equipmentDurability = {};
     next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
     next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
     next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
@@ -289,7 +392,30 @@ function loadState() {
 let state = loadState();
 
 function saveState() {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  } catch (error) {
+    // 枠を超えたら、**進行ではなく控えを捨てる。**遠征の途中で保存が止まると、
+    // そこから先はリロードで全部消える（それが quota 超過の実害だった）。
+    // 捨てる順は「後から作り直せるもの」から。進行（profile / run）は最後まで残す。
+    const shed = [
+      () => {
+        state.runEventsDropped = (state.runEventsDropped ?? 0) + Math.max(0, state.runEvents.length - 50);
+        state.runEvents = state.runEvents.slice(-50);
+      },
+      () => { state.replaySnapshots = []; },
+      () => { state.replayEvents = []; if (state.phase === "battle") state.phase = "result"; },
+      () => { if (state.lastResult) state.lastResult.events = []; },
+    ];
+    for (const drop of shed) {
+      drop();
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+        return;
+      } catch { /* 次を捨てる */ }
+    }
+    state.error = "端末の保存枠が足りません。記録を送ってから、新しい遠征を始めてください。";
+  }
 }
 
 function clone(value) {
@@ -313,24 +439,44 @@ function button(label, action, disabled = false, className = "button", attribute
 
 function shell(title, subtitle, body, options = {}) {
   const error = state.error ? "<p class=\"error\" role=\"alert\">" + esc(state.error) + "</p>" : "";
+  // R6 §9.2 / §12.2 — 遠征は勝利・敗北・**放棄**のいずれでも一度だけ精算する。
+  // 途中の遠征をボタン一つで捨てると、そこまでの活動資金が消える。
+  // だから run の最中は「放棄」で、精算画面を必ず通す。
+  const inRun = ["camp", "battlePreview", "battle", "battleError", "result", "reward", "defeat"]
+    .includes(state.phase);
   const headerAction = options.back
     ? button("キャンプへ", "back-camp", false, "menu-button")
-    : button("新しい遠征", "new-expedition", false, "menu-button");
+    : inRun
+      ? button("遠征を放棄する", "abandon-run", false, "menu-button")
+      : button("ギルドへ", "back-guild", false, "menu-button");
   return "<div class=\"shell\"><header class=\"header\"><div><p class=\"kicker\">" + VERSION
     + "</p><h1>" + esc(title) + "</h1><p class=\"subtitle\">" + esc(subtitle)
     + "</p></div>" + headerAction + "</header>" + body + error
-    + "<footer>遠征 " + esc(state.runId.slice(0, 8)) + " · seed " + esc(state.runSeed)
+    + "<footer>遠征 " + esc(String(state.run.runId).slice(0, 8)) + " · seed " + esc(state.run.runSeed)
     + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion)
     + "<br>build " + esc(BUILD) + "</footer></div>";
 }
 
+// **控えは端末の保存枠に収まる量で切る。**
+//
+// Phase A は7区画だった。Phase B は12戦あり、戦闘イベントを1件ずつ積むので、
+// 実測で第6戦の手前に localStorage の quota を超え、**保存が例外で止まった**
+// （ページエラーが出て、そこから先の進行が一切保存されない）。
+// 送信側は既に MAX_SENT_EVENTS で切っているので、控えも同じ数で切る。
+// **黙って切らない。**落とした件数を数え、控えと控えの送信の両方へ残す。
+const MAX_STORED_RUN_EVENTS = MAX_SENT_EVENTS;
+
+function pushRunEvent(entry) {
+  state.runEvents.push({ seq: state.runEvents.length + (state.runEventsDropped ?? 0), ...entry });
+  if (state.runEvents.length <= MAX_STORED_RUN_EVENTS) return;
+  const overflow = state.runEvents.length - MAX_STORED_RUN_EVENTS;
+  state.runEventsDropped = (state.runEventsDropped ?? 0) + overflow;
+  // 先頭（run_started）は残す。**始まりが消えると、何の遠征の控えか分からない。**
+  state.runEvents = [state.runEvents[0], ...state.runEvents.slice(overflow + 1)];
+}
+
 function record(type, details = {}) {
-  state.runEvents = [...state.runEvents, {
-    seq: state.runEvents.length,
-    at: new Date().toISOString(),
-    type,
-    ...details,
-  }];
+  pushRunEvent({ at: new Date().toISOString(), type, ...details });
 }
 
 function nameFor(id) {
@@ -354,8 +500,21 @@ function kindText(kind) {
   return kindLabels[kind] ?? kind;
 }
 
+// R6 §9.5 — 鍛錬後の値。**base ではなくこれを画面と戦闘の両方が読む。**
+function statsFor(characterId) {
+  return characterStats(state.profile, characterId);
+}
+
 function maxHp(characterId) {
-  return PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
+  return statsFor(characterId)?.stats.maxHp ?? PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
+}
+
+function limitsFor(characterId) {
+  return slotLimits(state.profile, characterId);
+}
+
+function funds() {
+  return parseFunds(state.profile.activityFunds);
 }
 
 function currentHp(characterId) {
@@ -363,44 +522,87 @@ function currentHp(characterId) {
 }
 
 function equipmentOwner(equipmentId) {
-  return state.roster.find((characterId) => (state.loadout.equipment?.[characterId] || []).includes(equipmentId)) ?? null;
+  return state.run.roster.find((characterId) => (state.run.loadout.equipment?.[characterId] || []).includes(equipmentId)) ?? null;
 }
 
 function equipmentDurability(equipmentId) {
-  return Math.max(0, state.meta.equipmentDurability[equipmentId] ?? EQUIPMENT[equipmentId]?.maxDurability ?? 1);
+  return Math.max(0, state.equipmentDurability[equipmentId] ?? EQUIPMENT[equipmentId]?.maxDurability ?? 1);
 }
 
+// R6 §5.3 — 技能点は**遠征内の資源**。遠征が終われば消える。
 function skillPointsFor(characterId) {
-  return Math.max(0, Math.floor(Number(state.meta.skillPoints?.[characterId] ?? STARTING_SKILL_POINTS)));
+  return runSkillPoints(state.run, characterId);
 }
 
 function resetBattleResources() {
   for (const option of CHARACTER_OPTIONS) state.hp[option.id] = maxHp(option.id);
-  for (const id of state.meta.ownedEquipment) {
-    state.meta.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
+  state.equipmentDurability = {};
+  for (const id of state.run.inventory) {
+    state.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
   }
 }
 
 function isUnlocked(characterId, skillId) {
-  return (state.meta.unlocked?.[characterId] || []).includes(skillId);
+  return (state.run.runUnlockedSkills?.[characterId] || []).includes(skillId);
+}
+
+// この遠征の manifest が有効にした技能かどうか。**外れた技能はツリーで触れない。**
+function inManifest(skillId) {
+  return manifestSkillIds(state.run.manifest).all.includes(skillId);
+}
+
+function currentEncounter() {
+  return composeEncounter(state.run.encounterIndex, state.run.difficulty);
+}
+
+function actOfIndex(index) {
+  return index <= 4 ? 1 : index <= 8 ? 2 : 3;
+}
+
+// R6 §12.1 — 偵察が見せるのは**次の幕**の通常戦の個体編成である。
+//
+// いま挑む戦闘は補給を使わずに全部見える（見えないと隊列も技能も組めない）。
+// 伏せられているのは先の幕の並びと変異で、そこを1つ前倒しで見るのが偵察。
+// 法則・敵family・各幕のボスは、偵察しなくても遠征開始時から見える（R6 §5.2）。
+function isScouted(index) {
+  const act = actOfIndex(index);
+  if (act <= actOfIndex(state.run.encounterIndex)) return true;
+  return (state.run.scoutedActs ?? []).includes(act);
+}
+
+// 次の幕の先頭の通常戦。**無ければ null**（第3幕にいるとき）。
+function nextActPreview() {
+  const act = actOfIndex(state.run.encounterIndex) + 1;
+  if (act > 3) return null;
+  for (let index = state.run.encounterIndex + 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
+    const composed = composeEncounter(index, state.run.difficulty);
+    if (composed.act === act && composed.kind !== "boss") return composed;
+  }
+  return null;
 }
 
 function installedSkill(characterId, skillId, kind) {
   const key = kind === "active" ? "tactics" : "reactives";
-  return (state.loadout[key]?.[characterId] || []).includes(skillId);
+  return (state.run.loadout[key]?.[characterId] || []).includes(skillId);
 }
 
 function selectedCharacter() {
-  if (state.roster.includes(state.selectedCharacter)) return state.selectedCharacter;
-  return state.roster[0];
+  if (state.run.roster.includes(state.selectedCharacter)) return state.selectedCharacter;
+  return state.run.roster[0];
+}
+
+// ギルド画面の選択。**8人全員が対象**（永続投資は同行の有無に関係しない）。
+function guildCharacter() {
+  const id = state.guildCharacter;
+  return CHARACTER_OPTIONS.some((option) => option.id === id) ? id : CHARACTER_OPTIONS[0].id;
 }
 
 function selectedFormationCharacter() {
-  return state.roster.includes(state.formationSelection) ? state.formationSelection : null;
+  return state.run.roster.includes(state.formationSelection) ? state.formationSelection : null;
 }
 
 function positionOwner(position) {
-  return state.roster.find((characterId) => state.formation[characterId] === position) ?? null;
+  return state.run.roster.find((characterId) => state.run.formation[characterId] === position) ?? null;
 }
 
 function sectionHeading(eyebrow, title, right = "") {
@@ -413,8 +615,8 @@ function campNav() {
   const tabs = [
     ["roster", "編成", partyLabel()],
     ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
-    ["equipment", "装備", state.roster.reduce((total, id) => total + (state.loadout.equipment?.[id] || []).length, 0) + "/" + (state.roster.length * 2)],
-    ["map", "戦闘", state.stage + "/7"],
+    ["equipment", "装備", state.run.roster.reduce((total, id) => total + (state.run.loadout.equipment?.[id] || []).length, 0) + "/" + (state.run.roster.length * 2)],
+    ["map", "戦闘", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN + " · 補給" + state.run.supplies],
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) =>
     "<button type=\"button\" class=\"tab " + (state.tab === id ? "active" : "")
@@ -427,12 +629,15 @@ function render() {
   stopReplayTimer();
   const views = {
     intro: renderIntro,
+    expeditionStart: renderExpeditionStart,
     camp: renderCamp,
     battlePreview: renderBattlePreview,
     battle: renderBattle,
     battleError: renderBattleError,
     result: renderResult,
     reward: renderReward,
+    defeat: renderDefeat,
+    settlement: renderSettlement,
     complete: renderComplete,
   };
   app.innerHTML = (views[state.phase] ?? renderIntro)();
@@ -463,12 +668,132 @@ function restoreSkillTreeScroll() {
 }
 
 function renderIntro() {
-  return shell("灰の遠征", "仲間の役割、技能、装備、隊列を組み替えて7区画を越える", "<section class=\"hero card\">"
+  return shell("灰の遠征", "5人を組み、3幕12戦を越え、持ち帰った活動資金でギルドを育てる", "<section class=\"hero card\">"
     + "<div class=\"sigil\">◈</div><p class=\"lead\">5人を選び、2×3の6枠へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。</p>"
-    + button("遠征を始める", "start", false, "button primary")
-    + "<div class=\"loop\"><span><b>1</b>5人を編成</span><span><b>2</b>技能を解禁・装着</span><span><b>3</b>装備を2枠へ組む</span><span><b>4</b>自動戦闘で検証</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>8人から5人</b><span>2×3の6枠に一枠空く</span></div><div class=\"card\"><b>24技能</b><span>行動12・反応12</span></div><div class=\"card\"><b>18装備</b><span>耐久を持つ実物</span></div></section>");
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>遠征中に得た技能点と装備はその遠征だけのもの</b>で、持ち帰るのは活動資金です。</p>"
+    + button("ギルドへ", "start", false, "button primary")
+    + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
+    + "<section class=\"three-up\"><div class=\"card\"><b>3幕12戦</b><span>4・8・12戦目にボス</span></div><div class=\"card\"><b>技能パック</b><span>4つのうち3つが有効</span></div><div class=\"card\"><b>補給3</b><span>再挑戦・引き直し・偵察</span></div></section>");
+}
+
+// ============================================================ 遠征を仕立てる（R6 §15.1）
+//
+// **遠征開始前に全部を表示する。**有効パック、敵family、3体のボスと法則、
+// 難易度modifier、開始補給。個体編成だけは伏せてよい（偵察で開く）。
+
+function difficultyCard(rank) {
+  const def = difficultyDef(rank);
+  const selected = state.selectedDifficulty === rank;
+  const mods = def.encounterModifiers.length
+    ? def.encounterModifiers.length + "件の変更"
+    : "変更なし";
+  return "<button type=\"button\" class=\"difficulty-card " + (selected ? "selected" : "")
+    + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-difficulty\" data-rank=\"" + rank
+    + "\"><b>難易度 " + rank + "</b><small>" + esc(def.summary) + "</small>"
+    + "<span class=\"difficulty-meta\">報酬 ×" + (def.rank ? (1 + rank * 0.1).toFixed(1) : "1.0")
+    + " · 補給 " + def.startingSupplies + " · " + mods + "</span></button>";
+}
+
+function renderExpeditionStart() {
+  const manifest = state.run.manifest;
+  const ranks = availableDifficulties(state.profile);
+  const packs = SKILL_PACKS.map((pack) => {
+    const on = manifest.enabledPackIds.includes(pack.id);
+    return "<div class=\"pack-row " + (on ? "on" : "off") + "\"><b>" + esc(pack.displayName)
+      + "</b><small>" + esc(pack.summary) + "</small><span>" + (on ? "有効" : "この遠征では出ない") + "</span></div>";
+  }).join("");
+  const bosses = manifest.actBossLawIds.map((lawId, index) => {
+    const law = BOSS_LAWS[lawId];
+    return "<article class=\"boss-card\"><div class=\"boss-top\"><span class=\"enemy-mark\">◆</span><div><b>第"
+      + (index + 1) + "幕 · " + esc(enemyInfo(manifest.actBossIds[index]).label) + "</b><small>"
+      + esc(law.displayName) + "</small></div></div><p>" + esc(law.previewText) + "</p>"
+      + "<ul class=\"boss-counters\">" + law.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></article>";
+  }).join("");
+  const note = state.migrationNote
+    ? "<section class=\"card quiet\"><p class=\"eyebrow\">SAVE MIGRATION</p><p class=\"muted\">"
+      + esc(state.migrationNote) + "</p></section>"
+    : "";
+  const tabs = "<nav class=\"tabs\" aria-label=\"ギルド画面\">"
+    + [["expedition", "遠征", ENCOUNTERS_PER_RUN + "戦"], ["guild", "ギルド投資", formatFunds(funds())]]
+      .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.guildTab === id ? "active" : "")
+        + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
+        + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
+    + "</nav>";
+  const expeditionBody = ""
+    + "<section class=\"card\">" + sectionHeading("EXPEDITION / " + esc(REGION.displayName), "この遠征に出るもの",
+      "<span class=\"stage\">活動資金 " + formatFunds(funds()) + "</span>")
+    + "<p class=\"muted\">" + esc(REGION.summary) + " 敵family: " + esc(REGION.enemyFamilyText)
+    + "。<b>個体の並びと変異は、その幕を偵察するまで伏せられます。</b></p>"
+    + "<div class=\"pack-list\">" + packs + "</div></section>"
+    + "<section class=\"card\">" + sectionHeading("ACT BOSSES / 3", "先に見えている3つの法則")
+    + "<p class=\"muted\">ボスの法則は遠征開始時から見えます。途中の報酬を「最後に向けて取る」判断ができます。</p>"
+    + "<div class=\"boss-grid\">" + bosses + "</div></section>"
+    + "<section class=\"card\">" + sectionHeading("DIFFICULTY / 0 - " + MAX_DIFFICULTY_RANK, "どの難易度で出るか",
+      "<span class=\"stage\">解禁 " + ranks.length + " / " + (MAX_DIFFICULTY_RANK + 1) + "</span>")
+    + "<p class=\"muted\">難易度は活動資金で買えません。<b>一つ前をクリアしたときだけ次が開きます。</b>報酬は難易度1つにつき+10%です。</p>"
+    + "<div class=\"difficulty-grid\">" + ranks.map(difficultyCard).join("") + "</div>"
+    + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
+  const body = state.guildTab === "guild" ? renderGuild() : expeditionBody;
+  return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う", tabs + note + body);
+}
+
+// ---------------------------------------------------------------- ギルド投資（R6 §9.3）
+function purchaseRow(id, displayName, detail, cost, disabledReason) {
+  const affordable = cost !== null && funds() >= cost;
+  const label = cost === null ? "購入済み" : formatFunds(cost);
+  return "<div class=\"purchase-row\"><span class=\"purchase-copy\"><b>" + esc(displayName)
+    + "</b><small>" + esc(detail) + "</small></span><span class=\"purchase-cost\">" + esc(label) + "</span>"
+    + (cost === null
+      ? "<span class=\"purchase-done\">✓</span>"
+      : button("買う", "purchase", !affordable || Boolean(disabledReason), "tiny-button primary-mini",
+        "data-upgrade=\"" + esc(id) + "\"")) + "</div>";
+}
+
+function renderGuild() {
+  const characterId = guildCharacter();
+  const stats = statsFor(characterId);
+  const upgrades = META_UPGRADES.map((upgrade) => {
+    const level = upgradeLevel(state.profile, upgrade.id);
+    return purchaseRow(upgrade.id, upgrade.displayName, upgrade.describeLevel(level + 1),
+      upgradeCost(state.profile, upgrade.id));
+  }).join("");
+  const slots = ["active", "reactive"].map((kind) => {
+    const id = slotUpgradeId(kind, characterId);
+    return purchaseRow(id, kindText(kind) + "の第4枠 · " + characterName(characterId),
+      "この仲間だけ " + kindText(kind) + " を4つ装着できるようになる",
+      upgradeCost(state.profile, id));
+  }).join("");
+  // R6 §9.5 — 上限なしの鍛錬。**現在の合計bonus、丸め後stat、次に整数が増えるlevelを出す。**
+  // 効果が見えないことを隠さない。
+  const trainingRows = Object.entries(stats.detail).map(([axis, detail]) => {
+    const axisLabel = { might: "腕力", focus: "術力", guard: "受け", vitality: "体力" }[axis];
+    const nextText = detail.nextVisibleLevel === null
+      ? "これ以上は表示が変わりません"
+      : detail.nextVisibleLevel === detail.level + 1
+        ? "次の一段で " + (detail.value + 1) + " になる"
+        : "次に整数が増えるのは level " + detail.nextVisibleLevel;
+    return "<div class=\"purchase-row\"><span class=\"purchase-copy\"><b>" + esc(axisLabel)
+      + " Lv" + detail.level + "</b><small>基礎 " + detail.base + " → 現在 " + detail.value
+      + "（+" + (detail.bonusBps / 100).toFixed(1) + "%） · " + esc(nextText) + "</small></span>"
+      + "<span class=\"purchase-cost\">" + formatFunds(detail.cost) + "</span>"
+      + button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
+        "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"") + "</div>";
+  }).join("");
+  const memberTabsHtml = "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">"
+    + CHARACTER_OPTIONS.map((option) => "<button type=\"button\" class=\"member-tab "
+      + (option.id === characterId ? "active" : "") + "\" data-action=\"select-guild-character\" data-character=\""
+      + option.id + "\"><span class=\"avatar small\">" + esc(option.icon) + "</span><span>"
+      + characterName(option.id) + "<small>" + esc(option.role) + "</small></span></button>").join("") + "</div>";
+  return "<section class=\"card\">" + sectionHeading("ACTIVITY FUNDS", "持ち帰った資金を使う",
+      "<span class=\"stage\">" + formatFunds(funds()) + "</span>")
+    + "<p class=\"muted\">活動資金は遠征の勝敗を問わず、遠征が終わるたびに一度だけ精算されます。<b>購入は取り消せません。</b>買った品は報酬 pool へ加わりますが、どの遠征にも必ず出るわけではありません。</p>"
+    + "<div class=\"purchase-list\">" + upgrades + "</div></section>"
+    + "<section class=\"card\">" + sectionHeading("PER CHARACTER", "誰を先に複雑にするか")
+    + memberTabsHtml
+    + "<div class=\"purchase-list\">" + slots + "</div>"
+    + "<h3 class=\"training-heading\">鍛錬（上限なし）</h3>"
+    + "<p class=\"muted\">1段で +0.1%。速度・行動権・枠数・発火回数は鍛錬で上がりません。</p>"
+    + "<div class=\"purchase-list\">" + trainingRows + "</div></section>";
 }
 
 function renderCamp() {
@@ -479,8 +804,17 @@ function renderCamp() {
     map: renderMap,
   }[state.tab]();
   const title = state.tab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
-  const subtitle = "第" + state.stage + "区画 · " + encounterInfo(state.stage).name + " · " + partyLabel();
+  const subtitle = "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN
+    + " · " + currentEncounter().name + " · " + partyLabel();
   return shell(title, subtitle, campNav() + view);
+}
+
+// R6 §15.2 — base 値・永続鍛錬・run 内補正を分けて表示する。
+// **鍛錬が乗っている stat だけに印を付ける。**印が無い＝地のままと読める。
+function trainedMark(stats, axis) {
+  const detail = stats?.detail?.[axis];
+  if (!detail || detail.level === 0) return "";
+  return "<i class=\"trained\" title=\"基礎 " + detail.base + " · 鍛錬 Lv" + detail.level + "\">＋</i>";
 }
 
 function renderRoster() {
@@ -498,8 +832,9 @@ function renderRoster() {
       + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
   }).join("");
   const characterCards = CHARACTER_OPTIONS.map((option) => {
-    const inParty = state.roster.includes(option.id);
+    const inParty = state.run.roster.includes(option.id);
     const selected = formationSelection === option.id;
+    const stats = statsFor(option.id);
     const action = inParty ? "select-formation-character" : "toggle-roster";
     const actionLabel = inParty ? (selected ? "位置選択中" : "位置を選ぶ") : "編成に入れる";
     return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
@@ -508,9 +843,14 @@ function renderRoster() {
       + esc(option.icon) + "</span><span class=\"character-copy\"><b>" + esc(characterName(option.id))
       + "</b><small>" + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
       + (inParty ? "✓" : "＋") + "</span></button><div class=\"character-stats\"><span>HP "
-      + maxHp(option.id) + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
+      + stats.stats.maxHp + trainedMark(stats, "vitality") + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
+      + "</span><span>術力 " + stats.stats.focus + trainedMark(stats, "focus")
+      + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
+      + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
+      + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
+      + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
       + "</span><span>" + esc(actionLabel) + "</span></div>"
-      + (inParty ? button("外す", "toggle-roster", state.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"") : "")
+      + (inParty ? button("外す", "toggle-roster", state.run.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"") : "")
       + "</article>";
   }).join("");
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
@@ -535,7 +875,7 @@ const SLOT_TITLES = {
 
 function skillSlotRows(characterId, kind) {
   const key = SLOT_KEYS[kind];
-  const list = state.loadout[key]?.[characterId] || [];
+  const list = state.run.loadout[key]?.[characterId] || [];
   const title = SLOT_TITLES[kind];
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
@@ -550,28 +890,28 @@ function skillSlotRows(characterId, kind) {
         + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"") + "</div>";
   }).join("");
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " / " + SLOT_LIMITS[kind] + "</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
+    + list.length + " / " + limitsFor(characterId)[kind] + "</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
 }
 
 function memberTabs(characterId) {
-  return "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">" + state.roster.map((id) => "<button type=\"button\" class=\"member-tab "
+  return "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">" + state.run.roster.map((id) => "<button type=\"button\" class=\"member-tab "
     + (id === characterId ? "active" : "") + "\" aria-pressed=\"" + (id === characterId ? "true" : "false")
     + "\" data-action=\"select-character\" data-character=\"" + id
     + "\"><span class=\"avatar small\">" + esc(characterInfo(id)?.icon ?? "・") + "</span>"
-    + "<span>" + characterName(id) + "<small>" + positionText(state.formation[id]) + " · "
+    + "<span>" + characterName(id) + "<small>" + positionText(state.run.formation[id]) + " · "
     + skillPointsFor(id) + "pt</small></span></button>").join("") + "</div>";
 }
 
 function memberContext(characterId, emphasis = "skills") {
   const option = characterInfo(characterId);
-  const active = (state.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
-  const reactive = (state.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
-  const gear = (state.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
+  const active = (state.run.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const gear = (state.run.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
   const primary = emphasis === "skills"
     ? "装備 " + (gear.length ? gear.join(" · ") : "なし")
     : "行動 " + (active.length ? active.join(" → ") : "なし");
   const secondary = emphasis === "skills"
-    ? "位置 " + positionText(state.formation[characterId]) + " · HP " + currentHp(characterId) + "/" + maxHp(characterId)
+    ? "位置 " + positionText(state.run.formation[characterId]) + " · HP " + currentHp(characterId) + "/" + maxHp(characterId)
     : "反応 " + (reactive.length ? reactive.join(" · ") : "なし");
   return "<section class=\"member-context\"><div class=\"member-context-head\"><span class=\"avatar\">"
     + esc(option?.icon ?? "・") + "</span><div><p class=\"eyebrow\">選択中の仲間</p><h3>" + esc(characterName(characterId))
@@ -580,20 +920,20 @@ function memberContext(characterId, emphasis = "skills") {
 }
 
 function skillBuildSummary(characterId) {
-  const active = (state.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
-  const reactive = (state.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const active = (state.run.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
   const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
   const slotKey = selectedNode?.kind === "active" ? "tactics" : "reactives";
   const slotLabel = selectedNode?.kind === "active" ? "行動枠" : "リアクティブ枠";
-  const slotCount = selectedNode ? (state.loadout[slotKey]?.[characterId] || []).length : 0;
+  const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
     ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
       + " · " + slotLabel + "（" + slotCount + " / 2）"
     : "技能を選択すると、ここに装着先を表示";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
-    + "のビルド</b><small>" + esc(positionText(state.formation[characterId])) + " · "
+    + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
     + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>行動</b> "
     + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>反応</b> "
     + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-target\">"
@@ -605,6 +945,15 @@ function skillNodeIcon(node) {
 
 function renderSkillNode(node, characterId) {
   const info = COMPONENTS[node.skillId];
+  // R6 §5.2 — この遠征の manifest に入っていない技能は触れない。
+  // **灰色にして残す。**消すと「今回は出ない」ことが分からなくなる。
+  if (!inManifest(node.skillId)) {
+    return "<article class=\"skill-node out-of-manifest\"><button type=\"button\" class=\"skill-node-button\""
+      + " disabled data-action=\"select-skill-node\" data-skill=\"" + node.skillId + "\">"
+      + "<span class=\"node-icon\">" + esc(skillNodeIcon(node)) + "</span><span class=\"node-copy\"><b>"
+      + esc(info?.label ?? node.skillId) + "</b><small>" + kindText(node.kind) + " · T" + (node.tier + 1)
+      + "</small></span><span class=\"node-status\">今回は出ない</span></button></article>";
+  }
   const unlocked = isUnlocked(characterId, node.skillId);
   const equipped = installedSkill(characterId, node.skillId, node.kind);
   const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
@@ -653,11 +1002,19 @@ function renderSkillBranch(branch, characterId) {
 
 function renderSkills() {
   const characterId = selectedCharacter();
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の残り技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の遠征内技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
+  const packs = state.run.manifest.enabledPackIds.map((id) => PACK_BY_ID[id]?.displayName ?? id).join(" · ");
+  const manifestNote = "<p class=\"muted\">この遠征で有効な技能パック: <b>" + esc(packs)
+    + "</b>。<b>外れたパックの技能は今回出ません。</b>技能点も解禁も遠征が終われば消えます。</p>"
+    + "<div class=\"flow-actions\">"
+    + button("この仲間の解禁をやり直す", "reset-run-skills", false, "tiny-button",
+      "data-character=\"" + characterId + "\"")
+    + "</div>";
   // 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
   const branches = ["攻撃", "指揮", "支援", "守り", "基礎"].map((branch) => renderSkillBranch(branch, characterId)).join("");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_NODES.length + " NODES", "誰を伸ばす？", pointsBadge)
     + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・装備を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
+    + manifestNote
     + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
     + "<p class=\"muted\">同じツリーでも、誰に装着するか・どの順番で試すかで役割が変わります。アイコンを選び、説明を必要な時だけ開いてください。</p>"
@@ -670,7 +1027,7 @@ function renderSkills() {
 }
 
 function equipmentSlotHtml(characterId, slot) {
-  const equipmentId = (state.loadout.equipment?.[characterId] || [])[slot] || null;
+  const equipmentId = (state.run.loadout.equipment?.[characterId] || [])[slot] || null;
   const selected = state.selectedEquipment;
   const canInstall = Boolean(selected && selected !== equipmentId);
   const label = equipmentId ? nameFor(equipmentId) : "空き枠";
@@ -685,10 +1042,20 @@ function equipmentSlotHtml(characterId, slot) {
       + "\" data-equipment=\"" + equipmentId + "\"") : "") + "</div>";
 }
 
+// 報酬 pool に入っている装備。**買っていない群は、まだ拾えないと分かるように出さない。**
+function unlockedGear() {
+  const ids = [];
+  for (const group of EQUIPMENT_GROUPS) {
+    const on = group.startsUnlocked || upgradeLevel(state.profile, "equipment_pool." + group.id) > 0;
+    if (on) ids.push(...group.equipmentIds);
+  }
+  return ids;
+}
+
 function renderEquipment() {
   const characterId = selectedCharacter();
   const selected = state.selectedEquipment;
-  const inventory = state.meta.ownedEquipment.map((id) => {
+  const inventory = state.run.inventory.map((id) => {
     const owner = equipmentOwner(id);
     const isSelected = selected === id;
     const max = EQUIPMENT[id]?.maxDurability ?? 1;
@@ -698,25 +1065,30 @@ function renderEquipment() {
       + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(EQUIPMENT[id]?.label ?? id)
       + "</b><small>" + esc(EQUIPMENT[id]?.effect ?? "") + "</small></span><span class=\"gear-state\">"
       + (owner ? characterName(owner) : "手元") + "<br>戦闘耐久 " + durability + "/" + max + "</span></button>"
+      + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
       + "</article>";
   }).join("");
-  const codex = Object.keys(EQUIPMENT).filter((id) => !state.meta.ownedEquipment.includes(id)).map((id) =>
+  const codex = unlockedGear().filter((id) => !state.run.inventory.includes(id)).map((id) =>
     "<span class=\"codex-chip locked\"><b>" + esc(EQUIPMENT[id].label) + "</b><small>未入手 · "
       + esc(EQUIPMENT[id].grammar) + "</small></span>").join("");
-  const memberIds = [characterId, ...state.roster.filter((id) => id !== characterId)];
+  const memberIds = [characterId, ...state.run.roster.filter((id) => id !== characterId)];
   const members = memberIds.map((id) => "<article class=\"gear-member " + (id === characterId ? "selected" : "") + "\"><button type=\"button\" class=\"member-head member-head-button\" data-action=\"select-character\" data-character=\"" + id + "\"><span class=\"avatar\">"
     + esc(characterInfo(id)?.icon ?? "・") + "</span><span><b>" + esc(characterName(id)) + "</b><small>"
-    + esc(positionText(state.formation[id])) + " · 2装備枠</small></span><span class=\"member-focus\">" + (id === characterId ? "選択中" : "選ぶ") + "</span></button><div class=\"equipment-slots\">"
+    + esc(positionText(state.run.formation[id])) + " · 2装備枠</small></span><span class=\"member-focus\">" + (id === characterId ? "選択中" : "選ぶ") + "</span></button><div class=\"equipment-slots\">"
     + equipmentSlotHtml(id, 0) + equipmentSlotHtml(id, 1) + "</div></article>").join("");
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT / 2 SLOTS EACH", "実物を組み替える", "<span class=\"stage\">"
-    + state.meta.ownedEquipment.length + " / " + Object.keys(EQUIPMENT).length + "</span>") + "<p class=\"muted\">装備は共有インベントリの実物です。選択してから仲間の枠をタップすると移動します。戦闘中に耐久が減り、0になるとその装備の効果が止まります。破損はせず、戦闘終了後に最大へ戻ります。</p>"
+    + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>") + "<p class=\"muted\">装備はこの遠征の持ち物です（上限" + INVENTORY_LIMIT + "品）。選択してから仲間の枠をタップすると移動します。戦闘中に耐久が減り、0になるとその装備の効果が止まります。破損はせず、戦闘終了後に最大へ戻ります。<b>遠征が終わると手放します。</b></p>"
     + memberTabs(characterId) + memberContext(characterId, "equipment")
     + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? EQUIPMENT[selected]?.label ?? selected : "なし")
     + "</b> · " + (selected ? "下の枠をタップして装着" : "上の装備をタップ") + "</p>"
+    + "<div class=\"scrap-line\"><span>分解の屑 <b>" + (state.run.scrap ?? 0) + "</b>（"
+    + SCRAP_PER_SUPPLY + "で補給1）</span>"
+    + button("補給へ替える", "convert-scrap", (state.run.scrap ?? 0) < SCRAP_PER_SUPPLY
+      || state.run.supplies >= MAX_SUPPLIES, "tiny-button") + "</div>"
     + "<div class=\"gear-grid\">" + inventory + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("LOADOUT / 4 MEMBERS", "誰に何を持たせる？")
+    + "<section class=\"card\">" + sectionHeading("LOADOUT / " + PARTY_SIZE + " MEMBERS", "誰に何を持たせる？")
     + "<div class=\"gear-member-grid\">" + members + "</div></section>"
-    + "<section class=\"card quiet\">" + sectionHeading("CODEX / 18 EQUIPMENT", "まだ見ぬ装備")
+    + "<section class=\"card quiet\">" + sectionHeading("REWARD POOL / " + unlockedGear().length + " EQUIPMENT", "この遠征で拾える装備")
     + "<div class=\"codex-list\">" + (codex || "<p class=\"muted\">すべて入手済みです。</p>") + "</div>"
     + "<div class=\"flow-actions\">" + button("スキルへ戻る", "tab", false, "button", "data-tab=\"skills\"")
     + button("戦闘前確認へ", "tab", false, "button primary", "data-tab=\"map\"") + "</div></section>";
@@ -724,42 +1096,92 @@ function renderEquipment() {
 
 function renderEnemy(enemy) {
   const info = enemyInfo(enemy.enemyActorId);
-  return "<article class=\"enemy-card\"><div class=\"enemy-top\"><span class=\"enemy-mark\">◆</span><div><b>"
-    + esc(info.label) + "</b><small>" + esc(positionText(enemy.position)) + " · HP " + enemy.hp + "</small></div></div>"
-    + "<p>" + esc(info.targeting) + "</p></article>";
+  const mutations = (enemy.mutations ?? []).map((id) => ENEMY_MUTATIONS[id]?.displayName ?? id);
+  const badges = (enemy.boss ? ["ボス"] : []).concat(enemy.reinforcement ? ["増援"] : []).concat(mutations);
+  return "<article class=\"enemy-card" + (enemy.boss ? " boss" : "") + "\"><div class=\"enemy-top\"><span class=\"enemy-mark\">◆</span><div><b>"
+    + esc(info.label) + "</b><small>" + esc(positionText(enemy.position)) + " · HP " + enemy.stats.maxHp
+    + " · 受け " + enemy.stats.guard + "</small></div></div>"
+    + (badges.length ? "<div class=\"enemy-badges\">" + badges.map((text) =>
+      "<span class=\"badge\">" + esc(text) + "</span>").join("") + "</div>" : "")
+    + "<p>" + esc(info.targeting) + "</p>"
+    + (mutations.length ? "<p class=\"muted small\">" + esc((enemy.mutations ?? [])
+      .map((id) => ENEMY_MUTATIONS[id]?.previewText ?? "").join(" ")) + "</p>" : "")
+    + "</article>";
+}
+
+// R6 §12.1 — 補給は3用途で共有する。**引き直しに使うと再挑戦の余地が減る。**
+// そのトレードオフを、残数と用途を同じ場所へ並べて見せる。
+function suppliesBar(context) {
+  const supplies = state.run.supplies;
+  const pips = Array.from({ length: MAX_SUPPLIES }, (_, index) =>
+    "<span class=\"supply-pip " + (index < supplies ? "on" : "") + "\"></span>").join("");
+  const uses = Object.entries(SUPPLY_USES)
+    .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", scout: "偵察" }[id])
+      + "</b> " + esc(text) + "</li>").join("");
+  return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + MAX_SUPPLIES
+    + "</b><span>" + esc(context ?? "3つの用途で取り合う") + "</span></div>"
+    + "<div class=\"supply-pips\">" + pips + "</div><ul class=\"supply-uses\">" + uses + "</ul></div>";
 }
 
 function renderMap() {
-  const encounter = encounterInfo(state.stage);
-  const progress = Array.from({ length: 7 }, (_, index) => {
-    const stage = index + 1;
-    return "<span class=\"map-node " + (stage < state.stage ? "done" : stage === state.stage ? "current" : "")
-      + "\">" + stage + "</span>";
+  const index = state.run.encounterIndex;
+  const encounter = currentEncounter();
+  const progress = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
+    const step = offset + 1;
+    const kind = composeEncounter(step, state.run.difficulty).kind;
+    return "<span class=\"map-node " + (step < index ? "done" : step === index ? "current" : "")
+      + " kind-" + kind + "\" title=\"" + esc({ normal: "通常", elite: "精鋭", boss: "ボス" }[kind]) + "\">"
+      + (kind === "boss" ? "★" : step) + "</span>";
   }).join("");
-  const party = state.roster.map((id) => "<div class=\"map-party-row\"><span class=\"avatar small\">"
+  const party = state.run.roster.map((id) => "<div class=\"map-party-row\"><span class=\"avatar small\">"
     + esc(characterInfo(id)?.icon ?? "・") + "</span><b>" + esc(characterName(id)) + "</b><span>"
-    + positionText(state.formation[id]) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</span></div>").join("");
-  return "<section class=\"card\">" + sectionHeading("EXPEDITION / 7 AREAS", "次の敵を見る", "<span class=\"stage\">"
-    + state.stage + " / 7</span>") + "<div class=\"map-progress\">" + progress + "</div><h3>"
+    + positionText(state.run.formation[id]) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</span></div>").join("");
+  const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[encounter.kind];
+  const law = encounter.bossLaw
+    ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
+      + esc(encounter.bossLaw.previewText) + "</p><ul class=\"boss-counters\">"
+      + encounter.bossLaw.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></div>"
+    : "";
+  // いま挑む戦闘は常に全部見える。伏せられているのは先の幕である。
+  const enemyBlock = "<div class=\"enemy-grid\">" + encounter.enemies.map(renderEnemy).join("") + "</div>";
+  const preview = nextActPreview();
+  const scoutBlock = preview === null
+    ? ""
+    : "<section class=\"card\">" + sectionHeading("SCOUT / 次の幕", "先に見ておくか")
+      + (isScouted(preview.index)
+        ? "<p class=\"muted\">第" + preview.act + "幕の通常戦。偵察済みなので、個体と変異が見えています。</p>"
+          + "<div class=\"enemy-grid\">" + preview.enemies.map(renderEnemy).join("") + "</div>"
+        : "<div class=\"scout-veil\"><p><b>第" + preview.act + "幕はまだ偵察していません。</b>"
+          + "敵family（" + esc(REGION.enemyFamilyText) + "）と各幕のボスは最初から見えています。"
+          + "偵察で見えるのは、個体・位置・変異の組み合わせです。</p>"
+          + button("補給1で次の幕を偵察する", "scout", state.run.supplies < 1, "button") + "</div>")
+      + "</section>";
+  return "<section class=\"card\">" + sectionHeading("EXPEDITION / 3 ACTS · " + ENCOUNTERS_PER_RUN + " BATTLES",
+      "次の敵を見る", "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
+    + "<div class=\"map-progress\">" + progress + "</div>"
+    + "<p class=\"act-line\">第" + encounter.act + "幕 · " + kindLabel + "戦 · threat " + encounter.spentThreat
+    + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "ラウンド</p><h3>"
     + esc(encounter.name) + "</h3><p class=\"lead-small\">" + esc(encounter.description) + "</p>"
-    + "<div class=\"enemy-grid\">" + encounter.enemies.map(renderEnemy).join("") + "</div>"
+    + law + enemyBlock
     + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
     + button("この敵に挑む", "begin-stage", false, "button primary") + "</section>"
+    + "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給をどこへ使う？") + suppliesBar() + "</section>"
+    + scoutBlock
     + "<section class=\"card\">" + sectionHeading("TARGETING", "敵は誰を狙う？")
     + "<p class=\"muted\">敵ごとに狙いが違います。前列を守るだけでなく、後列優先・準備中優先の攻撃もあります。戦闘前に確認し、隊列とリアクティブを組み直してください。</p>"
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
       + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">戦闘中のHPと装備耐久は、その戦闘の中だけ有効です。勝敗が決まるとHPと装備耐久は最大へ戻ります。報酬を1つ選び、次の区画へ進みます。</p></section>";
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">戦闘中のHPと装備耐久は、その戦闘の中だけ有効です。勝敗が決まると最大へ戻ります。<b>遠征の緊張は持ち越しHPではなく、補給・報酬・敵の重さで作ります。</b>負けても補給が残っていれば、編成を変えて同じ戦闘へ挑み直せます。</p></section>";
 }
 
 function renderBattlePreview() {
-  const encounter = encounterInfo(state.stage);
-  const allies = state.roster.map((id) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
+  const encounter = currentEncounter();
+  const allies = state.run.roster.map((id) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
     + esc(characterInfo(id)?.icon ?? "・") + "</span><div><b>" + esc(characterName(id)) + "</b><small>"
-    + esc(positionText(state.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
-    + esc((state.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
+    + esc(positionText(state.run.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
+    + esc((state.run.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
     + "</span></div>").join("");
-  return shell("第" + state.stage + "区画", encounter.name + " · 戦闘前の最終確認", "<section class=\"card\">"
+  return shell("第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN, encounter.name + " · 戦闘前の最終確認", "<section class=\"card\">"
     + sectionHeading("AUTO BATTLE / PLAN", "この構成で試す") + "<p class=\"muted\">戦闘中の操作はありません。行動の優先順、リアクティブの条件、敵の狙いをR5エンジンが決定的に解決します。</p>"
     + "<div class=\"plan-list\"><h3>味方の構成</h3>" + allies + "</div><div class=\"plan-list\"><h3>敵の狙い</h3>"
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
@@ -848,6 +1270,31 @@ function eventText(event) {
 
 function compactEvents(events) {
   return (events || []).filter((event) => replayTypes.has(event.type));
+}
+
+// 結果画面が使うぶんだけを控えへ残す。
+//
+// **result をそのまま保存すると端末の保存枠を超える。** 実測で第10戦の
+// replaySnapshots だけで 5.8MB あった（localStorage は端末あたり数MB）。
+// 再生に使う snapshot は compactReplay 側で別に持っているので、
+// ここでは落とす。イベント列は結果画面のログ用に上限つきで残す。
+const MAX_RESULT_EVENTS = 600;
+
+function compactResult(result) {
+  const events = result.events || [];
+  const kept = events.length > MAX_RESULT_EVENTS
+    ? [...events.slice(0, MAX_RESULT_EVENTS - 100), ...events.slice(-100)]
+    : events;
+  return {
+    result: result.result,
+    reason: result.reason,
+    roundsUsed: result.roundsUsed,
+    metrics: result.metrics,
+    actors: result.actors,
+    equipment: result.equipment,
+    events: kept,
+    eventsTotal: events.length,
+  };
 }
 
 function compactReplay(result) {
@@ -983,7 +1430,7 @@ function renderBattle() {
   const speedButtons = REPLAY_SPEEDS.map((entry) =>
     button(entry.label, "replay-speed", false, "speed-button" + (replaySpeed().id === entry.id ? " active" : ""),
       "data-speed=\"" + entry.id + "\"")).join("");
-  return shell("戦闘", encounterInfo(state.stage).name + " · 自動戦闘を見る", "<section class=\"card battle-card\">"
+  return shell("戦闘", currentEncounter().name + " · 自動戦闘を見る", "<section class=\"card battle-card\">"
     + "<div class=\"replay-progress\"><span class=\"replay-progress-fill\"></span></div>"
     + "<div class=\"battle-field\" aria-live=\"off\">"
     + "<div class=\"battle-side\" data-side=\"enemy\">" + battleRowsHtml(actors, "enemy") + "</div>"
@@ -1309,7 +1756,7 @@ function renderBattleError() {
   const recent = diagnostics.recentEvents || [];
   const actorLabels = failure.actorLabels || {};
   const stack = diagnostics.ruleActivationStack || [];
-  return shell("戦闘を停止しました", encounterInfo(state.stage).name + " · 構成を見直してください", "<section class=\"card verdict loss\">"
+  return shell("戦闘を停止しました", currentEncounter().name + " · 構成を見直してください", "<section class=\"card verdict loss\">"
     + "<div class=\"verdict-mark\">!</div><h2>安全弁が働きました</h2><p>この構成の戦闘イベントが上限を超えたため、途中結果を破棄しました。原因を確認できるよう、直前のイベントを残しています。</p>"
     + "<p class=\"error battle-error-message\">" + esc(failure.message || "battle runtime error") + "</p>"
     + "<div class=\"metrics\"><span><b>" + (diagnostics.eventSequence ?? "—") + "</b><small>イベント番号</small></span><span><b>"
@@ -1341,24 +1788,28 @@ function renderResult() {
   const metrics = result.metrics || {};
   const events = compactEvents(result.events);
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
+  // R6 §12.2 — **敗北で即座に遠征を破棄しない。**補給が残っていれば再挑戦へ。
   const next = won
-    ? state.stage >= 7
-      ? button("遠征を終えて記録する", "complete", false, "button primary")
+    ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+      ? button("遠征を精算する", "settle-run", false, "button primary")
       : button("報酬を見る", "show-reward", false, "button primary")
-    : button("構成を見直す", "retry-build", false, "button primary");
+    : button("この先どうするか", "show-defeat", false, "button primary");
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(EQUIPMENT[item.equipmentId]?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
     + item.maxDurability + " / " + item.maxDurability + "</span></div>").join("");
-  return shell(won ? "突破した" : "足を止めた", encounterInfo(state.stage).name + " · " + result.roundsUsed + "ラウンド", "<section class=\"card verdict "
+  return shell(won ? "突破した" : "足を止めた", currentEncounter().name + " · " + result.roundsUsed + "ラウンド", "<section class=\"card verdict "
     + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">" + (won ? "✓" : "×")
     + "</div><h2>" + (won ? "この組み合わせは通った" : "この組み合わせでは届かなかった")
     + "</h2><p>" + (won ? "構成の因果を確認し、次の報酬でさらに変えられます。" : "敵の狙い、技能の優先順、装備の持たせ先を見直せます。")
     + "</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
     + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
     + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div></section>"
-    + "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "次の区画へ持ち越す状態")
-    + "<p class=\"muted\">戦闘中のHPと装備耐久は次の区画へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。</p><div class=\"result-actors\">"
+    + "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "次の戦闘へ持ち越す状態")
+    + "<p class=\"muted\">戦闘中のHPと装備耐久は次の戦闘へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。</p>"
+    + "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
+    + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
+    + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p><div class=\"result-actors\">"
     + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section>"
     // **因果はまずアニメーションで見せる。** 文字の一覧は、見返したいときの補助に降ろした。
@@ -1367,7 +1818,9 @@ function renderResult() {
         + "<p class=\"muted\">同じ戦闘を最初から、同じ順で再生します。決着までの因果は、箱の動きとダメージ値で追えます。</p>"
         + button("戦闘をもう一度見る", "replay-again", false, "button") + "</section>"
       : "")
-    + "<details class=\"card debug-log\"><summary>デバッグログ（" + events.length + " イベント）</summary>"
+    + "<details class=\"card debug-log\"><summary>デバッグログ（" + events.length + " イベント"
+    + (result.eventsTotal && result.eventsTotal > (result.events || []).length
+      ? " · 全 " + result.eventsTotal + " 件のうち端末に残した分" : "") + "）</summary>"
     + "<p class=\"muted\">アニメーションで分かりにくかったところを、文字で確かめるためのものです。</p>"
     + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
       + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
@@ -1376,28 +1829,117 @@ function renderResult() {
     + next);
 }
 
+// R6 §5.3 — 通常戦勝利後は4候補から1つ。
+// **活動資金はこの4候補に入らない。**補給や技能点を選んでも資金は減らない。
 function renderReward() {
-  const offers = state.rewardOffer.map((id) => {
-    const info = EQUIPMENT[id];
-    return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
-      + esc(info?.label ?? id) + "</h3><p>" + esc(info?.effect ?? "") + "</p><small>"
-      + esc(info?.grammar ?? "") + " · 戦闘耐久 " + (info?.maxDurability ?? 1) + "</small>"
-      + button("拾って次へ", "take-reward", false, "button", "data-equipment=\"" + id + "\"") + "</article>";
+  const rewardCharacter = state.selectedRewardCharacter && state.run.roster.includes(state.selectedRewardCharacter)
+    ? state.selectedRewardCharacter
+    : state.run.roster[0];
+  const full = state.run.inventory.length >= INVENTORY_LIMIT;
+  const cards = state.rewardOffer.map((offer, index) => {
+    if (offer.type === "equipment") {
+      const info = EQUIPMENT[offer.equipmentId];
+      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
+        + esc(info?.label ?? offer.equipmentId) + "</h3><p>" + esc(info?.effect ?? "") + "</p><small>"
+        + esc(info?.grammar ?? "") + " · 戦闘耐久 " + (info?.maxDurability ?? 1) + "</small>"
+        + (full ? "<p class=\"muted\">持ち物が" + INVENTORY_LIMIT + "品で一杯です。装備画面で一品を分解してください。</p>" : "")
+        + button("拾って次へ", "take-reward", full, "button", "data-offer=\"" + index + "\"") + "</article>";
+    }
+    if (offer.type === "skill_points") {
+      const picker = state.run.roster.map((id) => "<button type=\"button\" class=\"reward-pick "
+        + (id === rewardCharacter ? "selected" : "") + "\" data-action=\"select-reward-character\" data-character=\""
+        + id + "\">" + esc(characterName(id)) + "</button>").join("");
+      return "<article class=\"reward-card special\"><div class=\"reward-kind kind-active\">成長</div><h3>技能点 +"
+        + offer.amount + "</h3><p>選んだ一人の遠征内技能点が " + offer.amount + " 増える。<b>遠征が終わると消えます。</b></p>"
+        + "<div class=\"reward-picker\">" + picker + "</div>"
+        + button("この仲間へ配る", "take-reward", false, "button", "data-offer=\"" + index + "\"") + "</article>";
+    }
+    return "<article class=\"reward-card special\"><div class=\"reward-kind kind-passive\">補給</div><h3>補給 +"
+      + offer.amount + "</h3><p>再挑戦・報酬の引き直し・偵察に使う。上限 " + MAX_SUPPLIES + "。現在 "
+      + state.run.supplies + "。</p>"
+      + button("補給を受け取る", "take-reward", state.run.supplies >= MAX_SUPPLIES, "button",
+        "data-offer=\"" + index + "\"") + "</article>";
   }).join("");
-  return shell("報酬を選ぶ", encounterInfo(state.stage).name + "を突破 · 次の区画へ", "<section class=\"card\">"
-    + sectionHeading("REWARD / 4 → 1", "何を持ち帰る？") + "<p class=\"muted\">装備3候補から1つ選ぶか、参加・不参加を問わず8人全員へ技能点を配ります。</p>"
-    + "<div class=\"reward-grid\">" + offers + "</div><div class=\"reward-special\">"
-    + "<article class=\"reward-card special\"><div class=\"reward-kind kind-active\">成長</div><h3>全員の技能点 +2</h3><p>8人全員のスキルツリーを2点ずつ進められる。</p>"
-    + button("全員に技能点を配る", "take-skill-reward", false, "button") + "</article></div></section>");
+  const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
+  return shell("報酬を選ぶ", currentEncounter().name + "を突破 · 次の戦闘へ", "<section class=\"card\">"
+    + sectionHeading("REWARD / 4 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
+    + "<p class=\"muted\">4候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>（補給や技能点を選んでも、持ち帰る資金は減りません）。</p>"
+    + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
+      ? "<p class=\"muted\">まだ持っていない固定装備が尽きたので、装備の候補が減っています。<b>品数そのものが増えるのは Phase C の生成装備です。</b></p>"
+      : "")
+    + "<div class=\"reward-grid\">" + cards + "</div>"
+    + "<div class=\"reward-reroll\">"
+    + button("補給1で4候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
+    + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "引き直しは1戦闘につき一度だけ。使うと再挑戦の余地が減ります。")
+    + "</small></div></section>");
+}
+
+// R6 §12.2 — 敗北処理。**即座に破棄しない。**
+function renderDefeat() {
+  const canRetry = state.run.supplies >= 1;
+  return shell("足を止めた", currentEncounter().name + " · 補給 " + state.run.supplies, "<section class=\"card verdict loss\">"
+    + "<div class=\"verdict-mark\">×</div><h2>この組み合わせでは届かなかった</h2>"
+    + "<p>敵は強化されません。報酬も変わりません。<b>補給1で編成・位置・技能・装備を変えて、同じ戦闘へもう一度挑めます。</b></p>"
+    + "</section>"
+    + "<section class=\"card\">" + sectionHeading("SUPPLIES", "残っている手")
+    + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた") + "</section>"
+    + "<section class=\"card\">" + sectionHeading("CARRY HOME", "ここまでで確定した活動資金")
+    + "<p class=\"muted\">撃破した戦闘と到達距離は、負けても持ち帰ります。</p>"
+    + "<p class=\"fund-line\"><b>" + formatFunds(state.run.fundLedger.provisionalTotal) + "</b>"
+    + "<small>撃破 " + state.run.fundLedger.clearedEncounterBase + " · 到達 "
+    + state.run.fundLedger.highestClearedEncounter + " 戦 · 難易度 ×"
+    + (state.run.fundLedger.difficultyMultiplierBps / 10000).toFixed(1) + "</small></p>"
+    + (canRetry
+      ? button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
+      : "<p class=\"muted\">補給が0なので、この遠征はここで終わります。</p>")
+    + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary") + "</section>");
+}
+
+// R6 §9.2 — 精算は**一度だけ**。ここが唯一の入口。
+function renderSettlement() {
+  const settlement = state.lastSettlement;
+  if (!settlement) return renderExpeditionStart();
+  const b = settlement.breakdown;
+  const won = settlement.outcome === "won";
+  const rows = [
+    ["撃破した戦闘", b.clearedEncounterBase],
+    ["到達距離（" + state.run.fundLedger.highestClearedEncounter + "戦 × 25）", b.distance],
+    ["12戦完走", b.outcomeBonus],
+    ["この難易度の初回クリア", b.firstClearBonus],
+  ].map(([label, value]) => "<div class=\"settle-row\"><span>" + esc(label) + "</span><b>" + value + "</b></div>").join("");
+  return shell(won ? "遠征を終えた" : "遠征は途中で終わった",
+    "難易度 " + state.run.difficulty + " · " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + " 戦",
+    "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
+    + (won ? "✦" : "◆") + "</div><h2>活動資金 " + formatFunds(settlement.earned) + " を持ち帰った</h2>"
+    + "<p>残高 " + formatFunds(settlement.balanceBefore) + " → <b>" + formatFunds(settlement.balanceAfter) + "</b></p></section>"
+    + "<section class=\"card\">" + sectionHeading("SETTLEMENT", "内訳")
+    + "<div class=\"settle-list\">" + rows + "</div>"
+    + "<div class=\"settle-row total\"><span>難易度倍率</span><b>×"
+    + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
+    + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
+    + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは活動資金だけです。</p></section>"
+    + (settlement.unlockedDifficulty !== null
+      ? "<section class=\"card\"><p class=\"eyebrow\">DIFFICULTY</p><h3>難易度 "
+        + settlement.unlockedDifficulty + " が開いた</h3><p class=\"muted\">"
+        + esc(difficultyDef(settlement.unlockedDifficulty).summary) + "</p></section>"
+      : "")
+    + "<section class=\"card quiet\">"
+    + button("ギルドへ戻る", "back-guild", false, "button primary")
+    + button("記録を送る", "complete", false, "button") + "</section>");
 }
 
 function renderComplete() {
   const feedback = state.feedback || {};
   const option = (value, label, selected) => "<option value=\"" + value + "\" " + (selected ? "selected" : "") + ">" + label + "</option>";
-  const trail = state.roster.map(characterName).join("、");
-  const gear = state.meta.ownedEquipment.map((id) => EQUIPMENT[id]?.label ?? id).join("、");
-  return shell("遠征を終えた", "今回の編成と因果を記録する", "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>7区画を見届けた</h2><p>今回の仲間: "
-    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし") + "</p><div class=\"build-trail\"><span><i>1</i>5人を選び、2×3へ組んだ</span><span><i>2</i>技能ツリーから実際の技能を装着した</span><span><i>3</i>装備2枠と敵の狙いを考えた</span><span><i>4</i>自動戦闘の因果を確認した</span></div></section>"
+  const trail = state.run.roster.map(characterName).join("、");
+  const gear = state.run.inventory.map((id) => EQUIPMENT[id]?.label ?? id).join("、");
+  const reached = state.run.fundLedger.highestClearedEncounter;
+  const settlement = state.lastSettlement;
+  return shell("遠征を終えた", "今回の編成と因果を記録する", "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>"
+    + reached + " / " + ENCOUNTERS_PER_RUN + " 戦を見届けた</h2><p>今回の仲間: "
+    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし")
+    + (settlement ? "<br>持ち帰った活動資金: " + formatFunds(settlement.earned) : "")
+    + "</p><div class=\"build-trail\"><span><i>1</i>遠征を仕立てた</span><span><i>2</i>技能パックの範囲で技能を組んだ</span><span><i>3</i>補給をどこへ使うか決めた</span><span><i>4</i>持ち帰った資金でギルドを育てた</span></div></section>"
     + "<section class=\"card feedback\"><p class=\"eyebrow\">HUMAN CHECK</p><h2>今回のUIについて</h2><label>もう一度遊びたい度<select id=\"feedback-replay\">"
     + option("", "選択してください", !feedback.replay) + option("1", "1 — もう遊ばない", feedback.replay === "1")
     + option("2", "2", feedback.replay === "2") + option("3", "3", feedback.replay === "3")
@@ -1450,7 +1992,7 @@ function scheduleReplayBeat() {
 }
 
 function advanceAfterReward() {
-  state.stage += 1;
+  state.run.encounterIndex += 1;
   state.rewardOffer = [];
   state.lastResult = null;
   state.replayEvents = [];
@@ -1460,7 +2002,8 @@ function advanceAfterReward() {
   state.phase = "camp";
   state.tab = "map";
   state.error = null;
-  record("stage_advanced", { stage: state.stage });
+  state.run.act = actOfIndex(state.run.encounterIndex);
+  record("stage_advanced", { encounter: state.run.encounterIndex, act: state.run.act });
   saveState();
   render();
 }
@@ -1482,10 +2025,107 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "start" || action === "new-expedition") {
-    const meta = state.meta || defaultMeta();
-    state = newRunState(meta);
-    record("run_started", { seed: state.runSeed, version: VERSION, roster: [...state.roster] });
+  // intro からも精算後からも、まずギルド（遠征を仕立てる画面）へ入る。
+  if (action === "start" || action === "new-expedition" || action === "back-guild") {
+    const profile = state.profile;
+    // **rank は state を差し替える前に決める。**あとで決めると、
+    // clamp は新しい state（常に0）を読み、run は前の選択で作られて、
+    // 画面が「難易度0」と言いながら rank 1 を走らせる。
+    const ranks = availableDifficulties(profile);
+    const rank = Math.min(state.selectedDifficulty ?? 0, ranks[ranks.length - 1]);
+    const guildCharacterId = state.guildCharacter;
+    state = { ...freshUiState(), profile, run: startRun(profile, { difficulty: rank }) };
+    state.phase = "expeditionStart";
+    state.selectedDifficulty = rank;
+    state.guildCharacter = guildCharacterId;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "guild-tab") {
+    state.guildTab = element.dataset.tab === "guild" ? "guild" : "expedition";
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-guild-character") {
+    const id = element.dataset.character;
+    if (!CHARACTER_OPTIONS.some((option) => option.id === id)) return;
+    state.guildCharacter = id;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-difficulty") {
+    const rank = Number(element.dataset.rank);
+    if (!Number.isInteger(rank) || !availableDifficulties(state.profile).includes(rank)) return;
+    state.selectedDifficulty = rank;
+    // 難易度は開始補給と敵編成を変えるので run を作り直すが、
+    // **seed は持ち回す**（manifest を引き直させない）。
+    state.run = startRun(state.profile, {
+      difficulty: rank,
+      roster: state.run.roster,
+      runSeed: state.run.runSeed,
+      runId: state.run.runId,
+    });
+    saveState();
+    render();
+    return;
+  }
+
+  // R6 §9.3 — 購入は取り消せない。**残高・前後・費用を1件で残す。**
+  if (action === "purchase") {
+    const result = purchaseUpgrade(state.profile, element.dataset.upgrade);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.profile = result.profile;
+      // 買った枠と補給は、いま仕立てている遠征へすぐ効く。seed は持ち回す。
+      state.run = startRun(state.profile, {
+        difficulty: state.run.difficulty,
+        roster: state.run.roster,
+        runSeed: state.run.runSeed,
+        runId: state.run.runId,
+      });
+      record("meta_purchased", result.purchase);
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "train") {
+    const result = purchaseTraining(state.profile, element.dataset.character, element.dataset.axis);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.profile = result.profile;
+      record("training_purchased", result.purchase);
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "begin-expedition") {
+    state.run.startedAt = new Date().toISOString();
+    state.startedAt = state.run.startedAt;
+    state.runId = state.run.runId;
+    state.phase = "camp";
+    state.tab = "roster";
+    state.migrationNote = null;
+    ensureSelectedCharacter();
+    state.formationSelection = state.run.roster[0] ?? null;
+    record("run_started", {
+      runId: state.run.runId,
+      seed: state.run.runSeed,
+      version: VERSION,
+      difficulty: state.run.difficulty,
+      packs: [...state.run.manifest.enabledPackIds],
+      supplies: state.run.supplies,
+      roster: [...state.run.roster],
+    });
     saveState();
     render();
     return;
@@ -1519,7 +2159,7 @@ function handleAction(event) {
 
   if (action === "select-formation-character") {
     const id = element.dataset.character;
-    if (!id || !state.roster.includes(id)) return;
+    if (!id || !state.run.roster.includes(id)) return;
     state.selectedCharacter = id;
     state.selectedSkillNode = null;
     state.formationSelection = selectedFormationCharacter() === id ? null : id;
@@ -1545,37 +2185,37 @@ function handleAction(event) {
   if (action === "toggle-roster") {
     const id = element.dataset.character;
     if (!id || !characterInfo(id)) return;
-    if (state.roster.includes(id)) {
-      if (state.roster.length <= 1) {
+    if (state.run.roster.includes(id)) {
+      if (state.run.roster.length <= 1) {
         state.error = "最低1人は残してください。";
       } else {
-        state.roster = state.roster.filter((entry) => entry !== id);
-        const nextLoadout = freshLoadout(state.roster);
-        for (const characterId of state.roster) {
-          nextLoadout.tactics[characterId] = [...(state.loadout.tactics?.[characterId] || nextLoadout.tactics[characterId])];
-          nextLoadout.reactives[characterId] = [...(state.loadout.reactives?.[characterId] || nextLoadout.reactives[characterId])];
-          nextLoadout.equipment[characterId] = [...(state.loadout.equipment?.[characterId] || [])];
+        state.run.roster = state.run.roster.filter((entry) => entry !== id);
+        const nextLoadout = freshLoadout(state.run.roster);
+        for (const characterId of state.run.roster) {
+          nextLoadout.tactics[characterId] = [...(state.run.loadout.tactics?.[characterId] || nextLoadout.tactics[characterId])];
+          nextLoadout.reactives[characterId] = [...(state.run.loadout.reactives?.[characterId] || nextLoadout.reactives[characterId])];
+          nextLoadout.equipment[characterId] = [...(state.run.loadout.equipment?.[characterId] || [])];
         }
-        state.loadout = nextLoadout;
-        state.formation = normalizeFormation(state.formation, state.roster);
+        state.run.loadout = nextLoadout;
+        state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
         if (state.formationSelection === id) {
-          state.formationSelection = state.roster[0] ?? null;
+          state.formationSelection = state.run.roster[0] ?? null;
         }
         ensureSelectedCharacter();
-        record("roster_changed", { roster: [...state.roster], removed: id });
+        record("roster_changed", { roster: [...state.run.roster], removed: id });
       }
-    } else if (state.roster.length >= PARTY_SIZE) {
+    } else if (state.run.roster.length >= PARTY_SIZE) {
       state.error = "編成は" + PARTY_SIZE + "人までです。";
     } else {
-      state.roster = [...state.roster, id];
-      const fresh = freshLoadout([id]);
-      state.loadout.tactics[id] = fresh.tactics[id];
-      state.loadout.reactives[id] = fresh.reactives[id];
-      state.loadout.equipment[id] = [];
-      state.formation = normalizeFormation(state.formation, state.roster);
+      state.run.roster = [...state.run.roster, id];
+      // **run 側の欄も一緒に生やす。**loadout だけ足すと、
+      // 技能点0で始まり、解禁表が空なので外した starter 技能を戻せなくなり、
+      // manifest から外れた starter 技能が「今回は出ない」と書かれたまま戦闘へ入る。
+      state.run = joinRun(state.run, id);
+      state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
       state.selectedCharacter = id;
       state.formationSelection = id;
-      record("roster_changed", { roster: [...state.roster], added: id });
+      record("roster_changed", { roster: [...state.run.roster], added: id });
     }
     saveState();
     render();
@@ -1603,12 +2243,12 @@ function handleAction(event) {
       render();
       return;
     }
-    const oldPosition = state.formation[id];
+    const oldPosition = state.run.formation[id];
     if (other && other !== id) {
-      state.formation[other] = oldPosition;
+      state.run.formation[other] = oldPosition;
     }
-    state.formation[id] = position;
-    state.formation = normalizeFormation(state.formation, state.roster);
+    state.run.formation[id] = position;
+    state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
     state.formationSelection = null;
     record("formation_changed", { characterId: id, position, swappedWith: other });
     saveState();
@@ -1616,20 +2256,36 @@ function handleAction(event) {
     return;
   }
 
+  // R6 §5.3 — 解禁は遠征内。遠征が終われば消える。
   if (action === "unlock-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
     const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
-    if (!node || isUnlocked(characterId, skillId)) return;
-    if (!node.requires.every((required) => isUnlocked(characterId, required))) {
-      state.error = "前提技能がまだ解禁されていません。";
-    } else if (skillPointsFor(characterId) < node.cost) {
-      state.error = "技能点が足りません。";
-    } else {
-      state.meta.skillPoints[characterId] = skillPointsFor(characterId) - node.cost;
-      state.meta.unlocked[characterId] = [...new Set([...(state.meta.unlocked[characterId] || []), skillId])];
+    const result = unlockRunSkill(state.run, characterId, node);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.run = result.run;
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
     }
+    saveState();
+    render();
+    return;
+  }
+
+  // R6 §17.2 — run skill reset。**使った点をそのまま戻す**（罰を付けない）。
+  if (action === "reset-run-skills") {
+    const characterId = element.dataset.character;
+    const { run, refunded } = resetRunSkills(state.run, characterId, initialUnlockedSkills(characterId)
+      .filter((skillId) => inManifest(skillId)));
+    state.run = run;
+    // 装着済みからも、解禁を失った技能を外す。**装着したまま戦闘へ入らない。**
+    const unlocked = new Set(state.run.runUnlockedSkills[characterId] ?? []);
+    for (const key of ["tactics", "reactives", "passives"]) {
+      state.run.loadout[key][characterId] = (state.run.loadout[key][characterId] ?? [])
+        .filter((skillId) => unlocked.has(skillId));
+    }
+    if (!state.run.loadout.tactics[characterId].length) state.run.loadout.tactics[characterId] = ["strike"];
+    record("run_skills_reset", { characterId, refunded });
     saveState();
     render();
     return;
@@ -1639,10 +2295,10 @@ function handleAction(event) {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
     const kind = element.dataset.kind;
-    const result = equipSkill(state.loadout, characterId, skillId, kind);
+    const result = equipSkill(state.run.loadout, characterId, skillId, kind, limitsFor);
     if (!result.ok) state.error = result.reason;
     else {
-      state.loadout = result.loadout;
+      state.run.loadout = result.loadout;
       record("skill_equipped", { characterId, skillId, kind });
     }
     saveState();
@@ -1654,10 +2310,10 @@ function handleAction(event) {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
     const kind = element.dataset.kind;
-    const result = removeSkill(state.loadout, characterId, skillId, kind);
+    const result = removeSkill(state.run.loadout, characterId, skillId, kind, limitsFor);
     if (!result.ok) state.error = result.reason;
     else {
-      state.loadout = result.loadout;
+      state.run.loadout = result.loadout;
       record("skill_removed", { characterId, skillId, kind });
     }
     saveState();
@@ -1666,11 +2322,12 @@ function handleAction(event) {
   }
 
   if (action === "move-tactic") {
-    state.loadout = reorderTactic(
-      state.loadout,
+    state.run.loadout = reorderTactic(
+      state.run.loadout,
       element.dataset.character,
       Number(element.dataset.index),
       Number(element.dataset.direction),
+      limitsFor,
     );
     record("tactic_reordered", {
       characterId: element.dataset.character,
@@ -1693,13 +2350,13 @@ function handleAction(event) {
     const equipmentId = state.selectedEquipment;
     const characterId = element.dataset.character;
     const slot = Number(element.dataset.slot);
-    if (!equipmentId || !state.meta.ownedEquipment.includes(equipmentId)) {
+    if (!equipmentId || !state.run.inventory.includes(equipmentId)) {
       state.error = "先に手元の装備を選んでください。";
     } else {
-      const result = equipEquipment(state.loadout, characterId, equipmentId, slot);
+      const result = equipEquipment(state.run.loadout, characterId, equipmentId, slot, limitsFor);
       if (!result.ok) state.error = result.reason;
       else {
-        state.loadout = result.loadout;
+        state.run.loadout = result.loadout;
         state.selectedEquipment = null;
         record("equipment_equipped", { characterId, equipmentId, slot });
       }
@@ -1712,7 +2369,7 @@ function handleAction(event) {
   if (action === "remove-equipment") {
     const characterId = element.dataset.character;
     const equipmentId = element.dataset.equipment;
-    state.loadout = removeEquipment(state.loadout, characterId, equipmentId);
+    state.run.loadout = removeEquipment(state.run.loadout, characterId, equipmentId, limitsFor);
     record("equipment_removed", { characterId, equipmentId });
     saveState();
     render();
@@ -1720,18 +2377,18 @@ function handleAction(event) {
   }
 
   if (action === "begin-stage") {
-    if (state.roster.length !== PARTY_SIZE) {
+    if (state.run.roster.length !== PARTY_SIZE) {
       state.error = "出発には" + PARTY_SIZE + "人の編成が必要です。";
       state.tab = "roster";
     } else {
-      state.formation = normalizeFormation(state.formation, state.roster);
+      state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
       resetBattleResources();
       state.battleError = null;
       record("loadout_confirmed", {
-        stage: state.stage,
-        roster: [...state.roster],
-        formation: clone(state.formation),
-        loadout: clone(state.loadout),
+        stage: state.run.encounterIndex,
+        roster: [...state.run.roster],
+        formation: clone(state.run.formation),
+        loadout: clone(state.run.loadout),
       });
       state.phase = "battlePreview";
     }
@@ -1743,42 +2400,56 @@ function handleAction(event) {
   if (action === "simulate") {
     let battle;
     try {
-      battle = makeBattle(
-        state.stage,
-        state.roster,
-        state.loadout,
-        state.runSeed,
-        state.formation,
-        { hp: state.hp, equipmentDurability: state.meta.equipmentDurability },
+      const composed = currentEncounter();
+      battle = makeExpeditionBattle(
+        composed,
+        state.run.roster,
+        state.run.loadout,
+        state.run.runSeed,
+        state.run.formation,
+        {
+          hp: state.hp,
+          equipmentDurability: state.equipmentDurability,
+          limitsFor,
+          statsFor,
+        },
       );
-      record("battle_started", { stage: state.stage, battleId: battle.battleId });
+      record("battle_started", {
+        encounter: state.run.encounterIndex,
+        kind: composed.kind,
+        difficulty: state.run.difficulty,
+        threat: composed.spentThreat,
+        battleId: battle.battleId,
+      });
       const result = simulateBattle(battle, PLAYABLE_CONTENT, {
         equipmentBreaks: false,
         captureReplaySnapshots: true,
       });
-      state.lastResult = result;
+      state.lastResult = compactResult(result);
       const replay = compactReplay(result);
       state.replayEvents = replay.events;
       state.replaySnapshots = replay.snapshots;
       state.replayIndex = 0;
       state.replayPlaying = true;
-      state.results = [...state.results, {
-        stage: state.stage,
+      state.run.results = [...state.run.results, {
+        encounter: state.run.encounterIndex,
         result: result.result,
         roundsUsed: result.roundsUsed,
         metrics: result.metrics,
       }];
+      // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
+      // retry しても同じ encounter の撃破 base は一度だけ。
+      if (result.result === "win") state.run = recordEncounterCleared(state.run, state.run.encounterIndex);
       for (const combatEvent of result.events || []) {
-        state.runEvents.push({
-          seq: state.runEvents.length,
+        pushRunEvent({
           at: new Date().toISOString(),
           type: "combat_event",
-          stage: state.stage,
+          stage: state.run.encounterIndex,
           event: combatEvent,
         });
       }
       record("battle_completed", {
-        stage: state.stage,
+        stage: state.run.encounterIndex,
         result: result.result,
         reason: result.reason,
         roundsUsed: result.roundsUsed,
@@ -1890,42 +2561,162 @@ function handleAction(event) {
   }
 
   if (action === "show-reward") {
-    state.rewardOffer = rewardOffer(state.runSeed, state.stage, state.meta.ownedEquipment, 3);
-    record("reward_presented", { stage: state.stage + 1, offer: [...state.rewardOffer] });
+    const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
+    state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, rerolls);
+    state.selectedRewardCharacter = state.run.roster[0] ?? null;
+    record("reward_presented", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
     state.phase = "reward";
     saveState();
     render();
     return;
   }
 
+  // R6 §12.1 — 報酬の引き直しは補給1。**1戦闘につき一度だけ**（R6 §10）。
+  if (action === "reroll-reward") {
+    const used = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
+    if (used >= 1) {
+      state.error = "この戦闘ではもう引き直せません。";
+    } else {
+      const spent = spendSupply(state.run, "reroll");
+      if (!spent.ok) state.error = spent.reason;
+      else {
+        state.run = { ...spent.run, rerollsUsed: { ...spent.run.rerollsUsed, [state.run.encounterIndex]: used + 1 } };
+        state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, used + 1);
+        record("reward_rerolled", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
+      }
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  // R6 §10 — 13品目になるときは、その場で一品を分解するか捨てる。
+  if (action === "dismantle") {
+    const result = dismantle(state.run, element.dataset.equipment);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.run = result.run;
+      if (state.selectedEquipment === element.dataset.equipment) state.selectedEquipment = null;
+      record("equipment_dismantled", { equipmentId: element.dataset.equipment, scrap: state.run.scrap });
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "convert-scrap") {
+    const result = convertScrap(state.run);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.run = result.run;
+      record("scrap_converted", { scrap: state.run.scrap, supplies: state.run.supplies });
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-reward-character") {
+    state.selectedRewardCharacter = element.dataset.character || null;
+    saveState();
+    render();
+    return;
+  }
+
   if (action === "take-reward") {
-    const equipmentId = element.dataset.equipment;
-    if (equipmentId && !state.meta.ownedEquipment.includes(equipmentId)) {
-      state.meta.ownedEquipment = [...state.meta.ownedEquipment, equipmentId];
-      state.meta.equipmentDurability[equipmentId] = EQUIPMENT[equipmentId]?.maxDurability ?? 1;
-      record("reward_taken", { stage: state.stage, equipmentId });
+    const offer = state.rewardOffer[Number(element.dataset.offer)];
+    if (!offer) return;
+    if (offer.type === "equipment") {
+      if (state.run.inventory.length >= INVENTORY_LIMIT) {
+        state.error = "遠征中の持ち物は" + INVENTORY_LIMIT + "品までです。";
+        saveState();
+        render();
+        return;
+      }
+      state.run.inventory = [...state.run.inventory, offer.equipmentId];
+      record("reward_taken", { encounter: state.run.encounterIndex, reward: "equipment", equipmentId: offer.equipmentId });
+    } else if (offer.type === "skill_points") {
+      const target = state.run.roster.includes(state.selectedRewardCharacter)
+        ? state.selectedRewardCharacter
+        : state.run.roster[0];
+      state.run = grantRunSkillPoints(state.run, target, offer.amount);
+      record("reward_taken", { encounter: state.run.encounterIndex, reward: "skill_points", characterId: target, amount: offer.amount });
+    } else {
+      state.run = gainSupply(state.run, offer.amount);
+      record("reward_taken", { encounter: state.run.encounterIndex, reward: "supplies", amount: offer.amount });
     }
     advanceAfterReward();
     return;
   }
 
-  if (action === "take-skill-reward") {
-    for (const option of CHARACTER_OPTIONS) {
-      state.meta.skillPoints[option.id] = skillPointsFor(option.id) + 2;
+  // R6 §12.2 — 敗北しても即座に破棄しない。補給が残っていれば同じ戦闘へ挑み直す。
+  if (action === "show-defeat") {
+    state.phase = "defeat";
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "retry-encounter") {
+    const spent = spendSupply(state.run, "retry");
+    if (!spent.ok) {
+      state.error = spent.reason;
+    } else {
+      state.run = { ...spent.run, retries: { ...spent.run.retries, [state.run.encounterIndex]: (spent.run.retries?.[state.run.encounterIndex] ?? 0) + 1 } };
+      state.phase = "camp";
+      state.tab = "roster";
+      state.lastResult = null;
+      state.replayEvents = [];
+      state.replaySnapshots = [];
+      record("encounter_retried", { encounter: state.run.encounterIndex, supplies: state.run.supplies });
     }
-    record("reward_taken", {
-      stage: state.stage,
-      reward: "skill_points",
-      amount: 2,
-      recipients: CHARACTER_OPTIONS.map((option) => option.id),
-    });
-    advanceAfterReward();
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "scout") {
+    const spent = spendSupply(state.run, "scout");
+    if (!spent.ok) {
+      state.error = spent.reason;
+    } else {
+      // 偵察が開けるのは**次の幕**。いまの幕は補給なしで見えている。
+      const act = actOfIndex(state.run.encounterIndex) + 1;
+      state.run = { ...spent.run, scoutedActs: [...new Set([...(spent.run.scoutedActs ?? []), act])] };
+      record("act_scouted", { act, supplies: state.run.supplies });
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  // R6 §9.2 — 精算は勝敗・放棄のいずれでも一度だけ。**ここが唯一の入口。**
+  if (action === "settle-run" || action === "abandon-run") {
+    const won = action === "settle-run"
+      && state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+      && state.lastResult?.result === "win";
+    const outcome = won ? "won" : action === "abandon-run" ? "abandoned" : "lost";
+    const result = settleRun(state.profile, state.run, outcome);
+    if (!result.ok) {
+      state.error = result.reason;
+    } else {
+      state.profile = result.profile;
+      state.run = result.run;
+      state.lastSettlement = result.settlement;
+      record("run_settled", result.settlement);
+    }
+    state.phase = "settlement";
+    saveState();
+    render();
     return;
   }
 
   if (action === "complete") {
-    record("run_completed", { stage: state.stage, result: state.lastResult?.result || "win" });
-    state.meta.expeditions += 1;
+    record("run_completed", {
+      encounter: state.run.encounterIndex,
+      reached: state.run.fundLedger.highestClearedEncounter,
+      result: state.run.status,
+    });
     state.phase = "complete";
     saveState();
     render();
@@ -1942,27 +2733,29 @@ function handleAction(event) {
     record("feedback_submitted", { replay, marker });
     saveState();
     const events = state.runEvents;
-    const finalResult = state.results[state.results.length - 1];
-    const finalWon = state.results.some((entry) => entry.stage === 7 && entry.result === "win");
+    const finalResult = state.run.results[state.run.results.length - 1];
+    const finalWon = state.run.results.some(
+      (entry) => entry.encounter === ENCOUNTERS_PER_RUN && entry.result === "win",
+    );
     const finalActor = state.lastResult?.actors?.find((actor) => actor.side === "ally" && actor.alive);
     const payload = {
-      runId: state.runId,
-      telemetryRunId: state.runId,
+      runId: state.run.runId,
+      telemetryRunId: state.run.runId,
       deviceId: deviceIdForRun(),
       schemaVersion: 4,
       gameVersion: VERSION,
-      startedAt: state.startedAt || endedAt,
+      startedAt: state.run.startedAt || state.startedAt || endedAt,
       endedAt,
       outcome: {
         won: finalWon,
-        reached: state.stage,
+        reached: state.run.fundLedger.highestClearedEncounter,
         hp: finalActor?.hp ?? 0,
       },
       build: {
-        roster: state.roster,
-        formation: state.formation,
-        loadout: state.loadout,
-        ownedEquipment: state.meta.ownedEquipment,
+        roster: state.run.roster,
+        formation: state.run.formation,
+        loadout: state.run.loadout,
+        ownedEquipment: state.run.inventory,
       },
       stats: {
         // **印は stats に置く。**functions/api/runs.js が保存するのは
@@ -1970,11 +2763,25 @@ function handleAction(event) {
         // 最上位に足した項目は export に出ない（＝後から版を照合できない）。
         buildStamp: BUILD,
         rulesFingerprint: FINGERPRINT,
-        seed: state.runSeed,
-        stageCount: state.stage,
+        // 端末の保存枠に収めるため、控えの側で先に落とした件数。
+        eventsDroppedLocally: state.runEventsDropped ?? 0,
+        seed: state.run.runSeed,
+        stageCount: state.run.encounterIndex,
         ruleset: PLAYABLE_CONTENT.contentVersion,
-        skillPoints: clone(state.meta.skillPoints),
-        results: state.results,
+        // R6 §16 — 版と難易度を控えへ残す。**混ぜたら比較できない。**
+        profileSchema: state.profile.schemaVersion,
+        runSchema: state.run.schemaVersion,
+        manifest: clone(state.run.manifest),
+        difficulty: state.run.difficulty,
+        supplies: state.run.supplies,
+        runSkillPoints: clone(state.run.runSkillPoints),
+        runUnlockedSkills: clone(state.run.runUnlockedSkills),
+        // R6 §9.5 — 人物ごとの base stat・鍛錬 level・丸め後 stat。
+        training: Object.fromEntries(state.run.roster.map((id) => [id, statsFor(id)])),
+        activityFunds: state.profile.activityFunds,
+        fundLedger: clone(state.run.fundLedger),
+        settlement: state.lastSettlement ? clone(state.lastSettlement) : null,
+        results: state.run.results,
         finalResult,
       },
       answers: { replay, clear, confusing, marker },
@@ -1996,7 +2803,7 @@ function handleAction(event) {
       submitButton.textContent = result.ok ? "D1に保存しました" : "端末に保存しました（D1未送信）";
       const hint = document.querySelector("#feedback-status");
       if (hint) hint.textContent = result.ok
-        ? "保存済み · run " + state.runId.slice(0, 8)
+        ? "保存済み · run " + String(state.run.runId).slice(0, 8)
         : "送信待ち · " + result.error;
     }).catch(() => {
       submitButton.disabled = false;

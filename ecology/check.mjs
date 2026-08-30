@@ -15,6 +15,7 @@ const SUITES = [
   "playable.test.mjs",
   "contract.test.mjs",
   "phase-a.test.mjs",
+  "phase-b.test.mjs",
 ];
 
 let failed = 0;

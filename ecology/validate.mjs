@@ -30,6 +30,8 @@ import {
   LIMIT_SCOPES,
   NON_LISTENABLE_EVENT_TYPES,
   OBJECTIVE_TYPES,
+  OVERRIDABLE_STATS,
+  TRAINABLE_STATS,
   PENDING_ACTION_EFFECT_TYPES,
   PENDING_ACTION_EVENT_TYPES,
   PENDING_AMOUNT_EFFECT_TYPES,
@@ -904,9 +906,15 @@ export function validateBattleInput(input, bundle) {
         }
         positions.add(ally.position);
       }
-      if (ally.hp !== undefined && character) {
-        requireCount(bag, `${path}.hp`, ally.hp, { min: 0, max: character.maxHp });
+      // PHASE B: training raises maxHp, so the ceiling on a carried-over hp is
+      // the overridden maxHp when there is one — not the definition's.
+      const allyMaxHp = validateStatOverride(bag, `${path}.stats`, ally.stats)
+        ?? character?.maxHp;
+      validateTrainingRecord(bag, `${path}.training`, ally.training);
+      if (ally.hp !== undefined && Number.isFinite(allyMaxHp)) {
+        requireCount(bag, `${path}.hp`, ally.hp, { min: 0, max: allyMaxHp });
       }
+      rejectUnknownKeys(bag, path, ally, ALLY_INPUT_KEYS);
       validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
       validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, ally.reactiveSkillIds, bundle);
       validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
@@ -936,9 +944,13 @@ export function validateBattleInput(input, bundle) {
         }
         positions.add(enemy.position);
       }
-      if (enemy.hp !== undefined && definition) {
-        requireCount(bag, `${path}.hp`, enemy.hp, { min: 0, max: definition.maxHp });
+      const enemyMaxHp = validateStatOverride(bag, `${path}.stats`, enemy.stats)
+        ?? definition?.maxHp;
+      validateMutationRecord(bag, `${path}.mutations`, enemy.mutations);
+      if (enemy.hp !== undefined && Number.isFinite(enemyMaxHp)) {
+        requireCount(bag, `${path}.hp`, enemy.hp, { min: 0, max: enemyMaxHp });
       }
+      rejectUnknownKeys(bag, path, enemy, ENEMY_INPUT_KEYS);
     });
   }
 
@@ -947,6 +959,77 @@ export function validateBattleInput(input, bundle) {
   }
 
   return bag.list;
+}
+
+// R6 §9.5 / §11 — PHASE B. A per-instance stat override: permanent training on
+// an ally, a difficulty mutation on an enemy. **Only the four continuous stats
+// may be overridden.** Letting an override reach speed, AP or RP would buy extra
+// turns, which R6 §9.5 forbids outright, and letting it reach tactics or rules
+// would put content vocabulary in a save file.
+//
+// Returns the overridden maxHp when there is one, so the caller can use it as
+// the ceiling for a carried-over hp.
+function validateStatOverride(bag, path, stats) {
+  if (stats === undefined) return undefined;
+  if (!isPlainObject(stats)) {
+    bag.add(path, "not_an_object", "expected a stat override object");
+    return undefined;
+  }
+  for (const key of Object.keys(stats)) {
+    if (!OVERRIDABLE_STATS.includes(key)) {
+      bag.add(`${path}.${key}`, "unknown_stat", `${key} may not be overridden per instance`);
+      continue;
+    }
+    requireCount(bag, `${path}.${key}`, stats[key], { min: key === "maxHp" ? 1 : 0 });
+  }
+  return Number.isSafeInteger(stats.maxHp) ? stats.maxHp : undefined;
+}
+
+// R6 §9.5 — the training levels that produced the override above. It is a
+// record for the causal log, not an input the engine reads: the rounded values
+// are already in `stats`, so a reader never has to redo the rounding.
+function validateTrainingRecord(bag, path, training) {
+  if (training === undefined) return;
+  if (!isPlainObject(training)) {
+    bag.add(path, "not_an_object", "expected a training record");
+    return;
+  }
+  for (const key of Object.keys(training)) {
+    if (!TRAINABLE_STATS.includes(key)) {
+      bag.add(`${path}.${key}`, "unknown_training_stat", `${key} is not a trainable axis`);
+      continue;
+    }
+    requireCount(bag, `${path}.${key}`, training[key], { min: 0 });
+  }
+}
+
+// R6 §11.2 / §13.2 — the visible mutation ids a difficulty rank added to this
+// unit. Also a record: the numbers they produced are already in `stats`, and the
+// preview text comes from the mutation definition, not from the save.
+function validateMutationRecord(bag, path, mutations) {
+  if (mutations === undefined) return;
+  if (!requireArray(bag, path, mutations, { max: 4 })) return;
+  mutations.forEach((id, index) => {
+    if (!isValidId(id)) bag.add(`${path}[${index}]`, "bad_id", `${JSON.stringify(id)} is not a valid id`);
+  });
+}
+
+// R7 §4.3 — "validator が未知語彙を黙って無視せず拒否する". A misspelt key on a
+// battle input used to resolve as "no training at all" and look like a balance
+// problem. Only the two input objects Phase B grew are checked here.
+const ALLY_INPUT_KEYS = Object.freeze([
+  "instanceId", "characterId", "position", "hp", "tactics",
+  "reactiveSkillIds", "passiveSkillIds", "equipment", "stats", "training",
+]);
+const ENEMY_INPUT_KEYS = Object.freeze([
+  "instanceId", "enemyActorId", "position", "hp", "stats", "mutations",
+]);
+
+function rejectUnknownKeys(bag, path, value, allowed) {
+  for (const key of Object.keys(value)) {
+    if (allowed.includes(key)) continue;
+    bag.add(`${path}.${key}`, "unknown_key", `${key} is not part of this input`);
+  }
 }
 
 function validateEquipmentInputs(bag, path, equipment, bundle, claimInstance) {
