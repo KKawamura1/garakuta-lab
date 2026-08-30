@@ -269,9 +269,8 @@ function joinRun(run, characterId) {
   next.loadout.reactives[characterId] = keep(run.loadout?.reactives?.[characterId] ?? fresh.reactives[characterId]);
   next.loadout.passives[characterId] = run.loadout?.passives?.[characterId] ?? [];
   next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
-  // 行動が一つも残らないと、その仲間は basic strike しかしない。
-  // baseline の斬撃は manifest に必ず入っている（R6 §5.2）。
-  if (!next.loadout.tactics[characterId].length) next.loadout.tactics[characterId] = ["strike"];
+  // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
+  // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
   return next;
 }
 
@@ -619,7 +618,7 @@ function nextActPreview() {
 }
 
 function installedSkill(characterId, skillId, kind) {
-  const key = kind === "active" ? "tactics" : "reactives";
+  const key = SLOT_KEYS[kind];
   return (state.run.loadout[key]?.[characterId] || []).includes(skillId);
 }
 
@@ -959,10 +958,13 @@ function memberContext(characterId, emphasis = "skills") {
 function skillBuildSummary(characterId) {
   const active = (state.run.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
   const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const passive = (state.run.loadout.passives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
   const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
-  const slotKey = selectedNode?.kind === "active" ? "tactics" : "reactives";
-  const slotLabel = selectedNode?.kind === "active" ? "行動枠" : "リアクティブ枠";
+  const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
+  const slotLabel = selectedNode?.kind === "active" ? "行動枠"
+    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "常設枠";
   const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
     ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
@@ -973,7 +975,11 @@ function skillBuildSummary(characterId) {
     + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
     + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>行動</b> "
     + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>反応</b> "
-    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-target\">"
+    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span><span><b>常設</b> "
+    + esc(passive.length ? passive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-stats\">"
+    + "<span><b>HP</b> " + currentHp(characterId) + "/" + maxHp(characterId) + "</span><span><b>AP</b> "
+    + (definition.baseActionPoints ?? "-") + "</span><span><b>RP</b> " + (definition.baseReactionPoints ?? "-")
+    + "</span></div><div class=\"skill-summary-target\">"
     + esc(target) + "</div></aside>";
 }
 function skillNodeIcon(node) {
@@ -1013,7 +1019,15 @@ function renderSkillNode(node, characterId) {
   } else {
     status = !prereqsMet ? "前提待ち" : "点数不足";
   }
-  const stateClass = unlocked ? "unlocked" : canUnlock ? "available" : "locked";
+  const stateClass = equipped
+    ? "equipped"
+    : unlocked
+      ? "unlocked"
+      : canUnlock
+        ? "available"
+        : !prereqsMet
+          ? "prerequisite"
+          : "locked";
   const detail = selected
     ? "<div class=\"skill-detail\"><p>" + esc(info?.effect ?? "") + "</p><small>前提: "
       + (node.requires.length ? esc(node.requires.map((id) => COMPONENTS[id]?.label ?? id).join(" / ")) : "なし")
@@ -1050,7 +1064,7 @@ function renderSkills() {
   // 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
   const branches = ["攻撃", "指揮", "支援", "守り", "基礎"].map((branch) => renderSkillBranch(branch, characterId)).join("");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_NODES.length + " NODES", "誰を伸ばす？", pointsBadge)
-    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・装備を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
+    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
     + manifestNote
     + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
@@ -2321,7 +2335,6 @@ function handleAction(event) {
       state.run.loadout[key][characterId] = (state.run.loadout[key][characterId] ?? [])
         .filter((skillId) => unlocked.has(skillId));
     }
-    if (!state.run.loadout.tactics[characterId].length) state.run.loadout.tactics[characterId] = ["strike"];
     record("run_skills_reset", { characterId, refunded });
     saveState();
     render();

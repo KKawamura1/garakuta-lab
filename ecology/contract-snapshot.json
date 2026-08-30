@@ -1790,7 +1790,12 @@
        }
       }
      ],
-     "costs": [],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
      "effects": [
       {
        "type": "heal",
@@ -2102,7 +2107,9 @@
        },
        "amount": {
         "type": "event_value_scaled",
-        "key": "amount"
+        "key": "amount",
+        "numerator": 5,
+        "denominator": 4
        },
        "tags": [
         "care",
@@ -5103,7 +5110,7 @@
     "kind": "reactive",
     "definitionId": "overflow_care",
     "label": "余剰治療",
-    "effect": "余った回復を別の負傷者へ回す。",
+    "effect": "自分が行った回復の余剰を、RP1で別の負傷者へそのまま回す。回復手段を選ばない。",
     "grammar": "回復"
    },
    "scavenge_ap": {
@@ -5143,7 +5150,7 @@
     "kind": "reactive",
     "definitionId": "triage_relay",
     "label": "連携治療",
-    "effect": "応急手当の余剰を別の負傷者へ回す。",
+    "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
     "grammar": "回復"
    },
    "ap_loop": {
@@ -5670,7 +5677,7 @@
    "kind": "reactive",
    "definitionId": "overflow_care",
    "label": "余剰治療",
-   "effect": "余った回復を別の負傷者へ回す。",
+   "effect": "自分が行った回復の余剰を、RP1で別の負傷者へそのまま回す。回復手段を選ばない。",
    "grammar": "回復"
   },
   "scavenge_ap": {
@@ -5710,7 +5717,7 @@
    "kind": "reactive",
    "definitionId": "triage_relay",
    "label": "連携治療",
-   "effect": "応急手当の余剰を別の負傷者へ回す。",
+   "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
    "grammar": "回復"
   },
   "ap_loop": {

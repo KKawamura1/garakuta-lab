@@ -222,6 +222,33 @@ const roster = ["warden", "mender", "lancer", "scout"];
 let loadout = freshLoadout(roster);
 loadout = removeSkill(loadout, "warden", "strike", "active").loadout;
 loadout = removeSkill(loadout, "warden", "cover_ally", "reactive").loadout;
+// 行動・反応とも0個まで外せる。空の行動枠は通常攻撃へ戻る契約で、
+// 空の反応枠は追加反応なしとして扱う。
+for (const skillId of [...loadout.tactics.warden]) {
+  const removed = removeSkill(loadout, "warden", skillId, "active");
+  assert.equal(removed.ok, true, "行動技能を最後の1つまで外せる");
+  loadout = removed.loadout;
+}
+for (const skillId of [...loadout.reactives.warden]) {
+  const removed = removeSkill(loadout, "warden", skillId, "reactive");
+  assert.equal(removed.ok, true, "反応技能を最後の1つまで外せる");
+  loadout = removed.loadout;
+}
+assert.deepEqual(loadout.tactics.warden, [], "行動技能0個を保存できる");
+assert.deepEqual(loadout.reactives.warden, [], "反応技能0個を保存できる");
+const overflowRule = PLAYABLE_CONTENT.reactiveSkills.overflow_care.rule;
+const triageRelayRule = PLAYABLE_CONTENT.reactiveSkills.triage_relay.rule;
+assert.deepEqual(overflowRule.costs, [{ type: "spend_reaction_points", amount: 1 }], "余剰治療もRP1を使う");
+assert.ok(
+  triageRelayRule.predicates.some((predicate) => predicate.type === "event_tag" && predicate.tag === "triage"),
+  "連携治療は応急手当だけに反応する",
+);
+const triageRelayHeal = triageRelayRule.effects.find((effect) => effect.type === "heal");
+assert.deepEqual(
+  { numerator: triageRelayHeal.amount.numerator, denominator: triageRelayHeal.amount.denominator },
+  { numerator: 5, denominator: 4 },
+  "連携治療は限定条件の代わりに余剰量を125%へ増幅する",
+);
 let next = equipSkill(loadout, "warden", "steady_aim", "active");
 assert.equal(next.ok, true);
 loadout = next.loadout;

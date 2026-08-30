@@ -50,6 +50,16 @@ for (const [id, scaling] of Object.entries(REACTIVE_SCALING)) {
   scaleDefinitionAmounts(reactiveSkills[id], scaling);
 }
 
+// 余剰治療は汎用、連携治療は応急手当専用。汎用側を無償にすると
+// 後者の完全な上位互換になるため、両方ともRP1を払い、専用側だけ
+// 余剰量を増幅する。これで「広く薄く」と「狭く強く」の選択になる。
+reactiveSkills.overflow_care.rule.costs = [{ type: "spend_reaction_points", amount: 1 }];
+for (const effect of reactiveSkills.triage_relay.rule.effects ?? []) {
+  if (effect.type === "heal" && effect.amount?.type === "event_value_scaled") {
+    effect.amount = { ...effect.amount, numerator: 5, denominator: 4 };
+  }
+}
+
 // Content Wave 1 — connect two existing defensive events to two different
 // follow-up resources. Both spend RP, so the answer is not free durability.
 reactiveSkills.block_focus = {
