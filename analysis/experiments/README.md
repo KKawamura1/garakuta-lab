@@ -42,7 +42,7 @@
 - R4 — 完成コンボを先に列挙せず、共有eventと小規則から相互作用を作る設計。
 - R5 → A5_RULE_ENGINE/ — 決定的ルールエンジン、schema、停止、拡張、連鎖採掘。
 - PR #49 — 8人、24技能、18装備、7区画を一周できるdraft試作。人間評価前。
-- R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS.md — 12戦run、SkillPack、複数rule生成装備、exact Blueprint、活動資金、永続投資、1,000倍戦闘量、人物parameter、5人formation、3〜4 active / reactive、攻撃多様性、敵予算、難易度、敗北とresetの実装委譲票。
+- R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS.md — 12戦run、SkillPack、複数rule生成装備、exact Blueprint、活動資金、段階的線形の永続鍛錬、三桁中心の戦闘量、人物parameter、5人formation、3〜4 active / reactive・2 passive、常設能力passive、攻撃多様性、敵予算、難易度、敗北とresetの完成形、およびPhase A〜Dの段階実装票。
 
 ## EXP-00以外の独立試作
 
