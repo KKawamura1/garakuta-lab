@@ -325,6 +325,12 @@ export const ACTOR_STATS = freeze([
 // mid-chain, which the causal log cannot explain.
 export const SCALING_STATS = freeze(["might", "focus", "max_hp"]);
 
+// R6 §6.8 — PHASE A. passive が定数で押し上げてよい stat。
+// **行動回数（AP/RP）はここに無い。**毎 round の行動回数を恒常的に増やす効果は、
+// 多くの面白い skill より強くなりやすい（R6 §6.8）。開始時1回だけなら
+// gain_resource の rule で書けるので、語彙を増やさずに済む。
+export const PASSIVE_STAT_BONUSES = freeze(["max_hp", "might", "focus", "guard", "speed"]);
+
 export const DURATIONS = freeze(["turn", "round", "battle"]);
 export const BARRIER_DURATIONS = freeze(["round", "battle"]);
 export const STATUS_POLARITIES = freeze(["positive", "negative", "neutral"]);
@@ -357,6 +363,7 @@ export const LIMITS = freeze({
   maxTactics: 3,
   maxUseWhen: 2,
   maxReactiveSkills: 3,
+  maxPassiveSkills: 2,
   maxEquipment: 2,
   minPreparationSteps: 1,
   maxPreparationSteps: 3,

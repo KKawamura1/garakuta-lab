@@ -20,7 +20,16 @@ assert.equal(CHARACTER_OPTIONS.length, 8);
 assert.equal(Object.keys(SKILLS.active).length, 12);
 assert.equal(Object.keys(SKILLS.reactive).length, 12);
 assert.equal(Object.keys(EQUIPMENT).length, 18);
-assert.equal(SKILL_TREE_NODES.length, 24);
+// PHASE A: 24（行動12＋反応12）に、R6 §6.8 の常設 fallback 7 を足して31。
+// **数そのものより、種類ごとの内訳が動いていないこと**を見る。
+assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "active").length, 12);
+assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "reactive").length, 12);
+assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "passive").length, 7);
+assert.equal(SKILL_TREE_NODES.length, 31);
+// 常設は前提を持たない。**詰み防止なので、いつでも取れなければ意味がない。**
+for (const node of SKILL_TREE_NODES.filter((n) => n.kind === "passive")) {
+  assert.deepEqual(node.requires, [], node.id + " は前提を持たない");
+}
 
 for (const [id, skill] of Object.entries(SKILLS.active)) {
   assert.ok(PLAYABLE_CONTENT.activeSkills[id], id + " must point at real active content");

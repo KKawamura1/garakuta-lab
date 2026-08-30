@@ -131,6 +131,7 @@ const CONTENT = Object.freeze({
     },
   },
   reactiveSkills: {},
+  passiveSkills: {},
   equipment: {},
   statuses: {},
   enemyActors: {

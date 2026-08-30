@@ -11,6 +11,7 @@
 
 import {
   ACTOR_STATS,
+  PASSIVE_STAT_BONUSES,
   REACHES,
   SCALING_STATS,
   TARGET_PATTERNS,
@@ -593,7 +594,9 @@ export function validateContentBundle(bundle) {
     bag.add("contentBundle.contentVersion", "bad_content_version", "contentVersion must be a non-empty string");
   }
 
-  const sections = ["characters", "activeSkills", "reactiveSkills", "equipment", "statuses", "enemyActors"];
+  // PHASE A: passiveSkills を足した。**古い bundle にも空で存在させる**ので、
+  // ここは必須節のままでよい（content/index.mjs が必ず入れる）。
+  const sections = ["characters", "activeSkills", "reactiveSkills", "passiveSkills", "equipment", "statuses", "enemyActors"];
   for (const section of sections) {
     if (!isPlainObject(bundle[section])) {
       bag.add(`contentBundle.${section}`, "not_an_object", "expected a record of definitions");
@@ -676,6 +679,29 @@ export function validateContentBundle(bundle) {
     validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
   }
 
+  // R6 §6.8 — PHASE A. passive は「定数で押し上げる」か「常時ある rule」の
+  // どちらか、あるいは両方。**どちらも無い passive は装着しても何も起きない**ので拒否する。
+  for (const [id, skill] of Object.entries(bundle.passiveSkills)) {
+    const path = `passiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    const bonus = skill.statBonus;
+    if (bonus !== undefined) {
+      if (!isPlainObject(bonus)) {
+        bag.add(`${path}.statBonus`, "not_an_object", "expected a stat bonus record");
+      } else {
+        for (const [stat, value] of Object.entries(bonus)) {
+          requireOneOf(bag, `${path}.statBonus.${stat}`, stat, PASSIVE_STAT_BONUSES, "unknown_passive_stat");
+          requireCount(bag, `${path}.statBonus.${stat}`, value, { min: 1, max: 1_000 });
+        }
+      }
+    }
+    if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    if (skill.statBonus === undefined && skill.rule === undefined) {
+      bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
+    }
+  }
+
   for (const [id, item] of Object.entries(bundle.equipment)) {
     const path = `equipment.${id}`;
     requireDisplayName(bag, `${path}.displayName`, item.displayName);
@@ -747,6 +773,24 @@ function validateTactics(bag, path, tactics, bundle, ctx) {
       allowedSubjects: USE_WHEN_SUBJECTS,
       ownerless: false,
     }, { max: LIMITS.maxUseWhen });
+  });
+}
+
+function validatePassiveSkillIds(bag, path, ids, bundle) {
+  if (ids === undefined) return;
+  if (!requireArray(bag, path, ids, { max: LIMITS.maxPassiveSkills })) return;
+  const seen = new Set();
+  ids.forEach((id, index) => {
+    const idPath = `${path}[${index}]`;
+    if (!isValidId(id)) {
+      bag.add(idPath, "bad_id", "not a valid id");
+      return;
+    }
+    if (!Object.hasOwn(bundle.passiveSkills, id)) {
+      bag.add(idPath, "dangling_reference", `no such passive skill: ${id}`);
+    }
+    if (seen.has(id)) bag.add(idPath, "duplicate_reference", `passive skill listed twice: ${id}`);
+    seen.add(id);
   });
 }
 
@@ -831,6 +875,7 @@ export function validateBattleInput(input, bundle) {
       }
       validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
       validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, ally.reactiveSkillIds, bundle);
+      validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
       validateEquipmentInputs(bag, `${path}.equipment`, ally.equipment, bundle, claimInstance);
     });
   }

@@ -1721,6 +1721,131 @@
     ]
    }
   },
+  "passiveSkills": {
+   "foundation_vitality": {
+    "id": "foundation_vitality",
+    "displayName": "地力",
+    "statBonus": {
+     "max_hp": 50
+    },
+    "tags": [
+     "foundation",
+     "playable"
+    ]
+   },
+   "foundation_might": {
+    "id": "foundation_might",
+    "displayName": "膂力",
+    "statBonus": {
+     "might": 2
+    },
+    "tags": [
+     "foundation",
+     "playable"
+    ]
+   },
+   "foundation_focus": {
+    "id": "foundation_focus",
+    "displayName": "集中力",
+    "statBonus": {
+     "focus": 2
+    },
+    "tags": [
+     "foundation",
+     "playable"
+    ]
+   },
+   "foundation_guard": {
+    "id": "foundation_guard",
+    "displayName": "受け",
+    "statBonus": {
+     "guard": 1
+    },
+    "tags": [
+     "foundation",
+     "playable"
+    ]
+   },
+   "foundation_speed": {
+    "id": "foundation_speed",
+    "displayName": "速さ",
+    "statBonus": {
+     "speed": 1
+    },
+    "tags": [
+     "foundation",
+     "playable"
+    ]
+   },
+   "foundation_ap": {
+    "id": "foundation_ap",
+    "displayName": "出足",
+    "tags": [
+     "foundation",
+     "playable"
+    ],
+    "rule": {
+     "id": "foundation_ap_rule",
+     "listenTo": "round_started",
+     "timing": "after",
+     "predicates": [],
+     "costs": [],
+     "effects": [
+      {
+       "type": "gain_resource",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "resource": "action_points",
+       "amount": {
+        "type": "constant",
+        "value": 1
+       }
+      }
+     ],
+     "limit": {
+      "scope": "battle",
+      "count": 1
+     },
+     "priority": 100
+    }
+   },
+   "foundation_rp": {
+    "id": "foundation_rp",
+    "displayName": "備え",
+    "tags": [
+     "foundation",
+     "playable"
+    ],
+    "rule": {
+     "id": "foundation_rp_rule",
+     "listenTo": "round_started",
+     "timing": "after",
+     "predicates": [],
+     "costs": [],
+     "effects": [
+      {
+       "type": "gain_resource",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "resource": "reaction_points",
+       "amount": {
+        "type": "constant",
+        "value": 1
+       }
+      }
+     ],
+     "limit": {
+      "scope": "battle",
+      "count": 1
+     },
+     "priority": 100
+    }
+   }
+  },
   "equipment": {
    "worn_greaves": {
     "id": "worn_greaves",
@@ -3612,6 +3737,64 @@
     "effect": "準備が進むたび、自分の準備をさらに1段進める。",
     "grammar": "準備"
    }
+  },
+  "passive": {
+   "foundation_vitality": {
+    "id": "foundation_vitality",
+    "kind": "passive",
+    "definitionId": "foundation_vitality",
+    "label": "地力",
+    "effect": "最大HPが50増える。",
+    "grammar": "基礎"
+   },
+   "foundation_might": {
+    "id": "foundation_might",
+    "kind": "passive",
+    "definitionId": "foundation_might",
+    "label": "膂力",
+    "effect": "腕力が2増える。武器技能の量が上がる。",
+    "grammar": "基礎"
+   },
+   "foundation_focus": {
+    "id": "foundation_focus",
+    "kind": "passive",
+    "definitionId": "foundation_focus",
+    "label": "集中力",
+    "effect": "術力が2増える。技術・治療・防壁の量が上がる。",
+    "grammar": "基礎"
+   },
+   "foundation_guard": {
+    "id": "foundation_guard",
+    "kind": "passive",
+    "definitionId": "foundation_guard",
+    "label": "受け",
+    "effect": "受けが1増える。一撃ごとの被害を減らす。",
+    "grammar": "基礎"
+   },
+   "foundation_speed": {
+    "id": "foundation_speed",
+    "kind": "passive",
+    "definitionId": "foundation_speed",
+    "label": "速さ",
+    "effect": "速度が1増える。行動順が早くなる。",
+    "grammar": "基礎"
+   },
+   "foundation_ap": {
+    "id": "foundation_ap",
+    "kind": "passive",
+    "definitionId": "foundation_ap",
+    "label": "出足",
+    "effect": "戦闘開始時に一度だけ行動権+1。毎ラウンドではない。",
+    "grammar": "基礎"
+   },
+   "foundation_rp": {
+    "id": "foundation_rp",
+    "kind": "passive",
+    "definitionId": "foundation_rp",
+    "label": "備え",
+    "effect": "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。",
+    "grammar": "基礎"
+   }
   }
  },
  "equipment": {
@@ -3971,6 +4154,62 @@
    "effect": "準備が進むたび、自分の準備をさらに1段進める。",
    "grammar": "準備"
   },
+  "foundation_vitality": {
+   "id": "foundation_vitality",
+   "kind": "passive",
+   "definitionId": "foundation_vitality",
+   "label": "地力",
+   "effect": "最大HPが50増える。",
+   "grammar": "基礎"
+  },
+  "foundation_might": {
+   "id": "foundation_might",
+   "kind": "passive",
+   "definitionId": "foundation_might",
+   "label": "膂力",
+   "effect": "腕力が2増える。武器技能の量が上がる。",
+   "grammar": "基礎"
+  },
+  "foundation_focus": {
+   "id": "foundation_focus",
+   "kind": "passive",
+   "definitionId": "foundation_focus",
+   "label": "集中力",
+   "effect": "術力が2増える。技術・治療・防壁の量が上がる。",
+   "grammar": "基礎"
+  },
+  "foundation_guard": {
+   "id": "foundation_guard",
+   "kind": "passive",
+   "definitionId": "foundation_guard",
+   "label": "受け",
+   "effect": "受けが1増える。一撃ごとの被害を減らす。",
+   "grammar": "基礎"
+  },
+  "foundation_speed": {
+   "id": "foundation_speed",
+   "kind": "passive",
+   "definitionId": "foundation_speed",
+   "label": "速さ",
+   "effect": "速度が1増える。行動順が早くなる。",
+   "grammar": "基礎"
+  },
+  "foundation_ap": {
+   "id": "foundation_ap",
+   "kind": "passive",
+   "definitionId": "foundation_ap",
+   "label": "出足",
+   "effect": "戦闘開始時に一度だけ行動権+1。毎ラウンドではない。",
+   "grammar": "基礎"
+  },
+  "foundation_rp": {
+   "id": "foundation_rp",
+   "kind": "passive",
+   "definitionId": "foundation_rp",
+   "label": "備え",
+   "effect": "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。",
+   "grammar": "基礎"
+  },
   "worn_greaves": {
    "id": "worn_greaves",
    "kind": "equipment",
@@ -4159,6 +4398,13 @@
   "damage_echo",
   "barrier_bloom",
   "prep_spiral",
+  "foundation_vitality",
+  "foundation_might",
+  "foundation_focus",
+  "foundation_guard",
+  "foundation_speed",
+  "foundation_ap",
+  "foundation_rp",
   "worn_greaves",
   "splinter_edge",
   "field_kit",
@@ -4434,6 +4680,69 @@
    "requires": [
     "scavenge_ap"
    ]
+  },
+  {
+   "id": "node_found_vitality",
+   "skillId": "foundation_vitality",
+   "kind": "passive",
+   "branch": "基礎",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_found_might",
+   "skillId": "foundation_might",
+   "kind": "passive",
+   "branch": "基礎",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_found_focus",
+   "skillId": "foundation_focus",
+   "kind": "passive",
+   "branch": "基礎",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_found_guard",
+   "skillId": "foundation_guard",
+   "kind": "passive",
+   "branch": "基礎",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_found_speed",
+   "skillId": "foundation_speed",
+   "kind": "passive",
+   "branch": "基礎",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_found_ap",
+   "skillId": "foundation_ap",
+   "kind": "passive",
+   "branch": "基礎",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_found_rp",
+   "skillId": "foundation_rp",
+   "kind": "passive",
+   "branch": "基礎",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
   }
  ],
  "encounters": [
@@ -4964,6 +5273,13 @@
     "brace_after_hit"
    ]
   },
+  "passives": {
+   "warden": [],
+   "mender": [],
+   "lancer": [],
+   "scout": [],
+   "guardian": []
+  },
   "equipment": {
    "warden": [],
    "mender": [],
@@ -4999,6 +5315,7 @@
       "brace_after_hit",
       "cover_ally"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5019,6 +5336,7 @@
       "overflow_care",
       "triage_relay"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5039,6 +5357,7 @@
       "scavenge_ap",
       "counter_blow"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5059,6 +5378,7 @@
       "guard_step",
       "urging"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5079,6 +5399,7 @@
       "cover_ally",
       "brace_after_hit"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     }
    ],
@@ -5123,6 +5444,7 @@
       "brace_after_hit",
       "cover_ally"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5143,6 +5465,7 @@
       "overflow_care",
       "triage_relay"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5163,6 +5486,7 @@
       "scavenge_ap",
       "counter_blow"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5183,6 +5507,7 @@
       "guard_step",
       "urging"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5203,6 +5528,7 @@
       "cover_ally",
       "brace_after_hit"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     }
    ],
@@ -5247,6 +5573,7 @@
       "brace_after_hit",
       "cover_ally"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5267,6 +5594,7 @@
       "overflow_care",
       "triage_relay"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5287,6 +5615,7 @@
       "scavenge_ap",
       "counter_blow"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5307,6 +5636,7 @@
       "guard_step",
       "urging"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5327,6 +5657,7 @@
       "cover_ally",
       "brace_after_hit"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     }
    ],
@@ -5371,6 +5702,7 @@
       "brace_after_hit",
       "cover_ally"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5391,6 +5723,7 @@
       "overflow_care",
       "triage_relay"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5411,6 +5744,7 @@
       "scavenge_ap",
       "counter_blow"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5431,6 +5765,7 @@
       "guard_step",
       "urging"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5451,6 +5786,7 @@
       "cover_ally",
       "brace_after_hit"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     }
    ],
@@ -5495,6 +5831,7 @@
       "brace_after_hit",
       "cover_ally"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5515,6 +5852,7 @@
       "overflow_care",
       "triage_relay"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5535,6 +5873,7 @@
       "scavenge_ap",
       "counter_blow"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5555,6 +5894,7 @@
       "guard_step",
       "urging"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5575,6 +5915,7 @@
       "cover_ally",
       "brace_after_hit"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     }
    ],
@@ -5625,6 +5966,7 @@
       "brace_after_hit",
       "cover_ally"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5645,6 +5987,7 @@
       "overflow_care",
       "triage_relay"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5665,6 +6008,7 @@
       "scavenge_ap",
       "counter_blow"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5685,6 +6029,7 @@
       "guard_step",
       "urging"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5705,6 +6050,7 @@
       "cover_ally",
       "brace_after_hit"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     }
    ],
@@ -5755,6 +6101,7 @@
       "brace_after_hit",
       "cover_ally"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5775,6 +6122,7 @@
       "overflow_care",
       "triage_relay"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5795,6 +6143,7 @@
       "scavenge_ap",
       "counter_blow"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5815,6 +6164,7 @@
       "guard_step",
       "urging"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     },
     {
@@ -5835,6 +6185,7 @@
       "cover_ally",
       "brace_after_hit"
      ],
+     "passiveSkillIds": [],
      "equipment": []
     }
    ],

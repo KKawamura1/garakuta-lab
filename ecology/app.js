@@ -21,6 +21,7 @@ import {
   reorderTactic,
   rewardOffer,
   PARTY_SIZE,
+  SLOT_LIMITS,
   ensurePartySize,
   normalizeFormation,
 } from "./playable-battles.mjs";
@@ -48,8 +49,8 @@ const positionRows = {
   rear_center: "後列",
   rear_right: "後列",
 };
-const kindLabels = { active: "行動", reactive: "反応", equipment: "装備" };
-const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇" };
+const kindLabels = { active: "行動", reactive: "反応", passive: "常設", equipment: "装備" };
+const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇", "基礎": "▣" };
 // デバッグログに残すイベント。**盤面で畳んだものもここには残る**ので、
 // 「なぜそうなったか」を文字で追える。engine が出さない型は入れない
 // （reaction_fired / rule_triggered は R5 には無い。ルール由来かは event.ruleId で分かる）。
@@ -525,24 +526,31 @@ function renderRoster() {
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
 
+const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
+const SLOT_TITLES = {
+  active: "行動（優先順）",
+  reactive: "リアクティブ（条件発火）",
+  passive: "常設（いつでも効く）",
+};
+
 function skillSlotRows(characterId, kind) {
-  const key = kind === "active" ? "tactics" : "reactives";
+  const key = SLOT_KEYS[kind];
   const list = state.loadout[key]?.[characterId] || [];
-  const title = kind === "active" ? "行動（優先順）" : "リアクティブ（条件発火）";
+  const title = SLOT_TITLES[kind];
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
     const moveButtons = kind === "active"
       ? "<span class=\"reorder\">" + button("↑", "move-tactic", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-tactic", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
-    return "<div class=\"installed-row\"><span class=\"" + (kind === "active" ? "order" : "bullet") + "\">"
+    return "<div class=\"installed-row\"><span class=\"" + (kind === "active" ? "order" : kind === "passive" ? "bullet passive" : "bullet") + "\">"
       + (kind === "active" ? index + 1 : "↳") + "</span><span class=\"installed-copy\"><b>"
       + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span>"
       + moveButtons + button("外す", "remove-skill", false, "icon-button remove", "data-character=\"" + characterId
         + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"") + "</div>";
   }).join("");
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " / 2</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
+    + list.length + " / " + SLOT_LIMITS[kind] + "</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
 }
 
 function memberTabs(characterId) {
@@ -646,13 +654,15 @@ function renderSkillBranch(branch, characterId) {
 function renderSkills() {
   const characterId = selectedCharacter();
   const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の残り技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
-  const branches = ["攻撃", "指揮", "支援", "守り"].map((branch) => renderSkillBranch(branch, characterId)).join("");
-  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / 24 NODES", "誰を伸ばす？", pointsBadge)
+  // 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
+  const branches = ["攻撃", "指揮", "支援", "守り", "基礎"].map((branch) => renderSkillBranch(branch, characterId)).join("");
+  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_NODES.length + " NODES", "誰を伸ばす？", pointsBadge)
     + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・装備を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
-    + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + "</section>"
-    + "<section class=\"card\">" + sectionHeading("COMMON TREE / 12 + 12", "技能を解禁する")
+    + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
+    + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
     + "<p class=\"muted\">同じツリーでも、誰に装着するか・どの順番で試すかで役割が変わります。アイコンを選び、説明を必要な時だけ開いてください。</p>"
-    + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 自分の順番に試す</span><span><i class=\"kind kind-reactive\">反応</i> 条件発生時に発火</span></div>"
+    + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 自分の順番に試す</span><span><i class=\"kind kind-reactive\">反応</i> 条件発生時に発火</span>"
+    + "<span><i class=\"kind kind-passive\">常設</i> いつでも効く</span></div>"
     + skillBuildSummary(characterId) + branches + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">枠が決まったら、同じ仲間の装備と耐久を確認します。</p>"
     + "<div class=\"flow-actions\">" + button("編成へ戻る", "tab", false, "button", "data-tab=\"roster\"")

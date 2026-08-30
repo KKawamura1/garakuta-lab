@@ -10,6 +10,7 @@ import { FIXTURE_CONTENT } from "../fixture-content.mjs";
 import { CHARACTERS, CHARACTER_NAMES } from "./characters.mjs";
 import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES } from "./skills-active.mjs";
 import { REACTIVE_SKILLS, REACTIVE_SKILL_NAMES } from "./skills-reactive.mjs";
+import { PASSIVE_SKILLS } from "./skills-passive.mjs";
 import { FIXED_EQUIPMENT, EQUIPMENT_NAMES } from "./equipment-fixed.mjs";
 import { STATUSES, STATUS_NAMES } from "./statuses.mjs";
 import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
@@ -46,6 +47,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
+  passiveSkills: PASSIVE_SKILLS,
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
   enemyActors: ENEMY_ACTORS,
@@ -72,5 +74,5 @@ export const SECTION_NAMES = Object.freeze({
 });
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
-export { ACTIVE_META, REACTIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
+export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
 export { ENCOUNTERS, ENEMY_TARGETING } from "./encounters.mjs";

@@ -102,7 +102,7 @@ function buildState(input, content, options) {
 
   for (const ally of input.allies) {
     const definition = content.characters[ally.characterId];
-    addActor(state, {
+    addActor(state, withPassiveBonuses(content, {
       instanceId: ally.instanceId,
       side: "ally",
       definitionId: ally.characterId,
@@ -118,6 +118,7 @@ function buildState(input, content, options) {
       position: ally.position,
       tactics: ally.tactics.map((tactic) => ({ ...tactic })),
       reactiveSkillIds: [...ally.reactiveSkillIds],
+      passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
       equipment: ally.equipment.map((item) => ({
         instanceId: item.instanceId,
         equipmentId: item.equipmentId,
@@ -125,12 +126,12 @@ function buildState(input, content, options) {
         maxDurability: content.equipment[item.equipmentId].maxDurability,
         broken: item.durability === 0 && options.equipmentBreaks !== false,
       })),
-    });
+    }, ally.passiveSkillIds));
   }
 
   for (const enemy of input.enemies) {
     const definition = content.enemyActors[enemy.enemyActorId];
-    addActor(state, {
+    addActor(state, withPassiveBonuses(content, {
       instanceId: enemy.instanceId,
       side: "enemy",
       definitionId: enemy.enemyActorId,
@@ -146,11 +147,33 @@ function buildState(input, content, options) {
       position: enemy.position,
       tactics: definition.tactics.map((tactic) => ({ ...tactic })),
       reactiveSkillIds: [...definition.reactiveSkillIds],
+      passiveSkillIds: [...(definition.passiveSkillIds ?? [])],
       equipment: [],
-    });
+    }, definition.passiveSkillIds));
   }
 
   return state;
+}
+
+// R6 §6.8 — passive の statBonus を足し込む。**maxHp を先に決めてから hp を決める**
+// （順番を逆にすると、地力を取った回の開始 HP が上限より低くなる）。
+function withPassiveBonuses(content, fields, passiveSkillIds) {
+  const next = { ...fields };
+  // 満タンで入ってきたのかを、上げる前に覚えておく。
+  const startedFull = next.hp >= next.maxHp;
+  for (const id of passiveSkillIds ?? []) {
+    const bonus = content.passiveSkills?.[id]?.statBonus;
+    if (!bonus) continue;
+    if (bonus.max_hp) next.maxHp += bonus.max_hp;
+    if (bonus.might) next.might = (next.might ?? 0) + bonus.might;
+    if (bonus.focus) next.focus = (next.focus ?? 0) + bonus.focus;
+    if (bonus.guard) next.guard = (next.guard ?? 0) + bonus.guard;
+    if (bonus.speed) next.speed += bonus.speed;
+  }
+  // 満タンで来た人は、上限が上がったぶんも満たして始める。
+  // 途中の HP を持ち越している人（Phase B の補給）は、その値のまま。
+  if (startedFull) next.hp = next.maxHp;
+  return next;
 }
 
 function addActor(state, fields) {
@@ -240,6 +263,19 @@ function ruleEntriesFor(state, actor) {
       owner: actor,
       sourceDefinitionId: skillId,
       ruleSource: "reactive_skill",
+    });
+  }
+  // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
+  // **反応権を払わない**ので、costs は content 側で空にしてある
+  // （validator は rule として同じ検査を通す）。
+  for (const skillId of actor.passiveSkillIds ?? []) {
+    const rule = state.content.passiveSkills?.[skillId]?.rule;
+    if (!rule) continue;
+    entries.push({
+      rule,
+      owner: actor,
+      sourceDefinitionId: skillId,
+      ruleSource: "passive_skill",
     });
   }
   for (const item of actor.equipment) {
