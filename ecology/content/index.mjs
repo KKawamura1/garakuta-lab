@@ -18,6 +18,16 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
 export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-1";
 
+// **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
+// この ID を持っているので、黙って消すと過去の記録が読めなくなる。
+// 消すときはここへ理由と行き先を書く。**別内容への再利用は禁止**
+// （同じ ID が別の意味になると、古い記録が嘘になる）。
+//
+//   retired_skill_id: { since: "0.4", reason: "…", replacedBy: "new_skill_id" }
+//
+// analysis/ecology-contract-smoke.mjs が、凍結済み ID との差をここで照合する。
+export const RETIRED_IDS = Object.freeze({});
+
 // 表示名を持つ節。DISPLAY_NAMES の作り方をここ一箇所に閉じる。
 export const NAMED_SECTIONS = Object.freeze([
   "characters",
