@@ -7193,7 +7193,7 @@
  },
  "battles": {
   "stage1": {
-   "schemaVersion": "ecology-battle-2",
+   "schemaVersion": "ecology-battle-3",
    "battleId": "frontier_frontier_1801_stage_1",
    "maxRounds": 6,
    "objective": {
@@ -7322,7 +7322,7 @@
    ]
   },
   "stage2": {
-   "schemaVersion": "ecology-battle-2",
+   "schemaVersion": "ecology-battle-3",
    "battleId": "frontier_frontier_1801_stage_2",
    "maxRounds": 7,
    "objective": {
@@ -7451,7 +7451,7 @@
    ]
   },
   "stage3": {
-   "schemaVersion": "ecology-battle-2",
+   "schemaVersion": "ecology-battle-3",
    "battleId": "frontier_frontier_1801_stage_3",
    "maxRounds": 8,
    "objective": {
@@ -7580,7 +7580,7 @@
    ]
   },
   "stage4": {
-   "schemaVersion": "ecology-battle-2",
+   "schemaVersion": "ecology-battle-3",
    "battleId": "frontier_frontier_1801_stage_4",
    "maxRounds": 8,
    "objective": {
@@ -7715,7 +7715,7 @@
    ]
   },
   "stage5": {
-   "schemaVersion": "ecology-battle-2",
+   "schemaVersion": "ecology-battle-3",
    "battleId": "frontier_frontier_1801_stage_5",
    "maxRounds": 9,
    "objective": {
@@ -7850,7 +7850,7 @@
    ]
   },
   "stage6": {
-   "schemaVersion": "ecology-battle-2",
+   "schemaVersion": "ecology-battle-3",
    "battleId": "frontier_frontier_1801_stage_6",
    "maxRounds": 10,
    "objective": {
@@ -7991,7 +7991,7 @@
    ]
   },
   "stage7": {
-   "schemaVersion": "ecology-battle-2",
+   "schemaVersion": "ecology-battle-3",
    "battleId": "frontier_frontier_1801_stage_7",
    "maxRounds": 12,
    "objective": {
@@ -8348,6 +8348,9319 @@
    "block_latch",
    "splinter_edge",
    "tempo_buckle"
+  ]
+ },
+ "region": {
+  "id": "ash_frontier",
+  "displayName": "灰の辺境",
+  "summary": "3幕12戦。4・8・12戦目にボスが立つ。",
+  "enemyFamilyIds": [
+   "husk"
+  ],
+  "enemyFamilyText": "灰殻（husk）— 走者・後撃ち・守衛・狩人・反響体・盾兵・核",
+  "regionLawIds": [],
+  "rewardTableId": "fixed_equipment_1",
+  "actBossIds": [
+   "gray_bulwark",
+   "gray_echo",
+   "ash_core"
+  ],
+  "actBossLawIds": [
+   "law_bulwark_wall",
+   "law_echo_return",
+   "law_core_charge"
+  ]
+ },
+ "skillPacks": [
+  {
+   "id": "pack_edge",
+   "displayName": "刃と撃破",
+   "summary": "単発・多段・貫通で、受けの厚い相手をどう抜くかを問う。",
+   "activeSkillIds": [
+    "heavy_swing",
+    "long_swing",
+    "hunt_the_slow",
+    "rapid_cuts",
+    "pierce_thrust"
+   ],
+   "reactiveSkillIds": [
+    "counter_blow",
+    "damage_echo",
+    "scavenge_ap"
+   ],
+   "tags": [
+    "attack",
+    "execute"
+   ]
+  },
+  {
+   "id": "pack_care",
+   "displayName": "手当てと余剰",
+   "summary": "溢れた回復を捨てず、削られながら立て直す。",
+   "activeSkillIds": [
+    "triage",
+    "idle_shuffle"
+   ],
+   "reactiveSkillIds": [
+    "overflow_care",
+    "triage_relay",
+    "brace_after_hit"
+   ],
+   "tags": [
+    "heal",
+    "overflow"
+   ]
+  },
+  {
+   "id": "pack_wall",
+   "displayName": "防壁と隊列",
+   "summary": "誰が前に立つかと、行・列のどちらを薙ぐかを問う。",
+   "activeSkillIds": [
+    "reposition",
+    "row_sweep",
+    "column_thrust"
+   ],
+   "reactiveSkillIds": [
+    "cover_ally",
+    "guard_step",
+    "barrier_bloom"
+   ],
+   "tags": [
+    "barrier",
+    "formation"
+   ]
+  },
+  {
+   "id": "pack_tempo",
+   "displayName": "行動権と準備",
+   "summary": "順番そのものを作り替える。遅い構成に手番を通す。",
+   "activeSkillIds": [
+    "relay_order",
+    "mark_target",
+    "steady_aim"
+   ],
+   "reactiveSkillIds": [
+    "urging",
+    "ap_loop",
+    "prep_spiral"
+   ],
+   "tags": [
+    "tempo",
+    "preparation"
+   ]
+  }
+ ],
+ "difficulties": [
+  {
+   "rank": 0,
+   "threatBudgetDelta": 0,
+   "startingSupplies": 3,
+   "eliteMutationCount": 0,
+   "bossMutationCount": 0,
+   "normalMaxRoundsDelta": 0,
+   "encounterModifiers": [],
+   "summary": "基準。設計したままの編成で戦う。"
+  },
+  {
+   "rank": 1,
+   "threatBudgetDelta": 1,
+   "startingSupplies": 3,
+   "eliteMutationCount": 0,
+   "bossMutationCount": 0,
+   "normalMaxRoundsDelta": 0,
+   "encounterModifiers": [
+    "threat_budget_plus_1"
+   ],
+   "summary": "全戦闘の threat budget +1。増援か変異が一つ増える。"
+  },
+  {
+   "rank": 2,
+   "threatBudgetDelta": 1,
+   "startingSupplies": 3,
+   "eliteMutationCount": 1,
+   "bossMutationCount": 0,
+   "normalMaxRoundsDelta": 0,
+   "encounterModifiers": [
+    "threat_budget_plus_1",
+    "elite_mutation_plus_1"
+   ],
+   "summary": "上に加えて、精鋭へ変異 +1。"
+  },
+  {
+   "rank": 3,
+   "threatBudgetDelta": 1,
+   "startingSupplies": 3,
+   "eliteMutationCount": 1,
+   "bossMutationCount": 0,
+   "normalMaxRoundsDelta": -1,
+   "encounterModifiers": [
+    "threat_budget_plus_1",
+    "elite_mutation_plus_1",
+    "normal_rounds_minus_1"
+   ],
+   "summary": "上に加えて、通常戦の round 上限 -1。"
+  },
+  {
+   "rank": 4,
+   "threatBudgetDelta": 1,
+   "startingSupplies": 3,
+   "eliteMutationCount": 1,
+   "bossMutationCount": 1,
+   "normalMaxRoundsDelta": -1,
+   "encounterModifiers": [
+    "threat_budget_plus_1",
+    "elite_mutation_plus_1",
+    "normal_rounds_minus_1",
+    "boss_mutation_plus_1"
+   ],
+   "summary": "上に加えて、各ボスへ変異 +1。"
+  },
+  {
+   "rank": 5,
+   "threatBudgetDelta": 1,
+   "startingSupplies": 2,
+   "eliteMutationCount": 1,
+   "bossMutationCount": 1,
+   "normalMaxRoundsDelta": -1,
+   "encounterModifiers": [
+    "threat_budget_plus_1",
+    "elite_mutation_plus_1",
+    "normal_rounds_minus_1",
+    "boss_mutation_plus_1"
+   ],
+   "summary": "上に加えて、開始補給が 2 になる。"
+  }
+ ],
+ "bossLaws": {
+  "law_bulwark_wall": {
+   "id": "law_bulwark_wall",
+   "displayName": "盾将の法則",
+   "threatCost": 5,
+   "patch": {
+    "guard": {
+     "flat": 8
+    },
+    "maxHp": {
+     "bps": 14000
+    }
+   },
+   "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
+   "counters": [
+    "貫き突きで受けを6割無視する",
+    "単発の大打撃で、受けの引き算を一度で済ませる",
+    "防壁と身代わりで前列を保たせ、round をかけて削る"
+   ]
+  },
+  "law_echo_return": {
+   "id": "law_echo_return",
+   "displayName": "反響の法則",
+   "threatCost": 6,
+   "patch": {
+    "might": {
+     "bps": 13000
+    },
+    "maxHp": {
+     "bps": 15000
+    }
+   },
+   "previewText": "殴られた痛みを反響して返す。手数で削るほど、こちらも減る。",
+   "counters": [
+    "多段をやめ、単発の大打撃で殴る回数を減らす",
+    "余剰治療と応急手当で、返ってくる分を先に埋める",
+    "防壁を厚くして、反響そのものを吸う"
+   ]
+  },
+  "law_core_charge": {
+   "id": "law_core_charge",
+   "displayName": "核の法則",
+   "threatCost": 8,
+   "patch": {
+    "focus": {
+     "bps": 13000
+    },
+    "guard": {
+     "flat": 6
+    },
+    "maxHp": {
+     "bps": 14000
+    }
+   },
+   "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
+   "counters": [
+    "準備狩りで、溜めている間に叩く",
+    "身代わりで受け手を選び、放たれた一撃を分散させる",
+    "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
+   ]
+  }
+ },
+ "enemyMutations": {
+  "swift": {
+   "id": "swift",
+   "displayName": "逸り",
+   "threatCost": 1,
+   "patch": {
+    "might": {
+     "flat": 6
+    }
+   },
+   "previewText": "腕力+6。一撃が重くなる。"
+  },
+  "hardened": {
+   "id": "hardened",
+   "displayName": "硬化",
+   "threatCost": 2,
+   "patch": {
+    "guard": {
+     "flat": 6
+    }
+   },
+   "previewText": "受け+6。多段が通りにくくなる。単発と貫きで抜く。"
+  },
+  "heavy_hand": {
+   "id": "heavy_hand",
+   "displayName": "重手",
+   "threatCost": 2,
+   "patch": {
+    "might": {
+     "bps": 13000
+    },
+    "focus": {
+     "bps": 13000
+    }
+   },
+   "previewText": "腕力・術力が3割増える。受け切るより先に落とす。"
+  },
+  "resilient": {
+   "id": "resilient",
+   "displayName": "厚み",
+   "threatCost": 3,
+   "patch": {
+    "maxHp": {
+     "bps": 13000
+    }
+   },
+   "previewText": "最大HPが3割増える。削り切る手数が要る。"
+  }
+ },
+ "enemyThreatCost": {
+  "gray_scrapper": 1,
+  "gray_marksman": 2,
+  "gray_guard": 3,
+  "gray_echo": 3,
+  "gray_hunter": 4,
+  "gray_bulwark": 5,
+  "ash_core": 8
+ },
+ "expeditionEncounters": [
+  {
+   "index": 1,
+   "act": 1,
+   "kind": "normal",
+   "name": "灰の入口",
+   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right"
+    }
+   ],
+   "reinforcements": [
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left"
+    }
+   ],
+   "maxRounds": 8,
+   "threatBudget": 2
+  },
+  {
+   "index": 2,
+   "act": 1,
+   "kind": "normal",
+   "name": "狩りの路地",
+   "description": "後列を狙う射手が混じる。前だけ固めても通らない。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left"
+    }
+   ],
+   "reinforcements": [
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right"
+    }
+   ],
+   "maxRounds": 8,
+   "threatBudget": 4
+  },
+  {
+   "index": 3,
+   "act": 1,
+   "kind": "elite",
+   "name": "崩れた盾列",
+   "description": "受けの厚い守衛が二体。多段では削り切れない。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_guard",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_guard",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left"
+    }
+   ],
+   "reinforcements": [
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right"
+    }
+   ],
+   "maxRounds": 9,
+   "threatBudget": 7
+  },
+  {
+   "index": 4,
+   "act": 1,
+   "kind": "boss",
+   "name": "盾将の門",
+   "description": "第1幕のボス。受けの厚い盾将と、その足元を固める二体。",
+   "bossLawId": "law_bulwark_wall",
+   "enemies": [
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "boss": true
+    },
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left"
+    }
+   ],
+   "reinforcements": [
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right"
+    }
+   ],
+   "maxRounds": 12,
+   "threatBudget": 13
+  },
+  {
+   "index": 5,
+   "act": 2,
+   "kind": "normal",
+   "name": "灰の圧力",
+   "description": "重い盾、狩人、反響体、射手。どの役割を厚くするかが問われる。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_echo",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [
+    {
+     "enemyActorId": "gray_scrapper",
+     "position": "front_center"
+    }
+   ],
+   "maxRounds": 10,
+   "threatBudget": 14
+  },
+  {
+   "index": 6,
+   "act": 2,
+   "kind": "normal",
+   "name": "二つの狙い",
+   "description": "前列を削る守衛と、準備中を狙う狩人。隊列そのものが防御になる。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_guard",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_guard",
+     "position": "front_center"
+    },
+    {
+     "enemyActorId": "gray_echo",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [],
+   "maxRounds": 10,
+   "threatBudget": 15
+  },
+  {
+   "index": 7,
+   "act": 2,
+   "kind": "elite",
+   "name": "反響の坑道",
+   "description": "殴るほど返ってくる二体。手数を出すほど自分が減る。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_echo",
+     "position": "front_center"
+    },
+    {
+     "enemyActorId": "gray_echo",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [],
+   "maxRounds": 11,
+   "threatBudget": 17
+  },
+  {
+   "index": 8,
+   "act": 2,
+   "kind": "boss",
+   "name": "反響体の巣",
+   "description": "第2幕のボス。返しの本体を、護衛ごと崩す。",
+   "bossLawId": "law_echo_return",
+   "enemies": [
+    {
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "boss": true
+    },
+    {
+     "enemyActorId": "gray_guard",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_guard",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [],
+   "maxRounds": 13,
+   "threatBudget": 21
+  },
+  {
+   "index": 9,
+   "act": 3,
+   "kind": "normal",
+   "name": "盾の回廊",
+   "description": "厚い前列が三枚。抜けないなら、行と列で薙ぐ。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "front_center"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [],
+   "maxRounds": 12,
+   "threatBudget": 22
+  },
+  {
+   "index": 10,
+   "act": 3,
+   "kind": "normal",
+   "name": "灰の重列",
+   "description": "盾が三枚並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
+   "enemies": [
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center"
+    },
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [],
+   "maxRounds": 13,
+   "threatBudget": 23
+  },
+  {
+   "index": 11,
+   "act": 3,
+   "kind": "elite",
+   "name": "核の前庭",
+   "description": "核が護衛を連れて出てくる。ボスの予行になる。",
+   "enemies": [
+    {
+     "enemyActorId": "ash_core",
+     "position": "front_center"
+    },
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [],
+   "maxRounds": 13,
+   "threatBudget": 24
+  },
+  {
+   "index": 12,
+   "act": 3,
+   "kind": "boss",
+   "name": "灰の核心",
+   "description": "最終戦。溜めを止めながら、厚い前列を突破する。",
+   "bossLawId": "law_core_charge",
+   "enemies": [
+    {
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "boss": true
+    },
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left"
+    },
+    {
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right"
+    },
+    {
+     "enemyActorId": "gray_guard",
+     "position": "rear_left"
+    },
+    {
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right"
+    }
+   ],
+   "reinforcements": [],
+   "maxRounds": 15,
+   "threatBudget": 33
+  }
+ ],
+ "composedEncounters": {
+  "e1/rank0": {
+   "index": 1,
+   "act": 1,
+   "kind": "normal",
+   "name": "灰の入口",
+   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 8,
+   "budget": 2,
+   "spentThreat": 2,
+   "enemies": [
+    {
+     "instanceId": "x1_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e1/rank1": {
+   "index": 1,
+   "act": 1,
+   "kind": "normal",
+   "name": "灰の入口",
+   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 8,
+   "budget": 3,
+   "spentThreat": 3,
+   "enemies": [
+    {
+     "instanceId": "x1_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_r2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e1/rank2": {
+   "index": 1,
+   "act": 1,
+   "kind": "normal",
+   "name": "灰の入口",
+   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 8,
+   "budget": 3,
+   "spentThreat": 3,
+   "enemies": [
+    {
+     "instanceId": "x1_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_r2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e1/rank3": {
+   "index": 1,
+   "act": 1,
+   "kind": "normal",
+   "name": "灰の入口",
+   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 7,
+   "budget": 3,
+   "spentThreat": 3,
+   "enemies": [
+    {
+     "instanceId": "x1_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_r2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e1/rank4": {
+   "index": 1,
+   "act": 1,
+   "kind": "normal",
+   "name": "灰の入口",
+   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 7,
+   "budget": 3,
+   "spentThreat": 3,
+   "enemies": [
+    {
+     "instanceId": "x1_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_r2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e1/rank5": {
+   "index": 1,
+   "act": 1,
+   "kind": "normal",
+   "name": "灰の入口",
+   "description": "正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 7,
+   "budget": 3,
+   "spentThreat": 3,
+   "enemies": [
+    {
+     "instanceId": "x1_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x1_r2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e2/rank0": {
+   "index": 2,
+   "act": 1,
+   "kind": "normal",
+   "name": "狩りの路地",
+   "description": "後列を狙う射手が混じる。前だけ固めても通らない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 8,
+   "budget": 4,
+   "spentThreat": 4,
+   "enemies": [
+    {
+     "instanceId": "x2_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e2/rank1": {
+   "index": 2,
+   "act": 1,
+   "kind": "normal",
+   "name": "狩りの路地",
+   "description": "後列を狙う射手が混じる。前だけ固めても通らない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 8,
+   "budget": 5,
+   "spentThreat": 5,
+   "enemies": [
+    {
+     "instanceId": "x2_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e2/rank2": {
+   "index": 2,
+   "act": 1,
+   "kind": "normal",
+   "name": "狩りの路地",
+   "description": "後列を狙う射手が混じる。前だけ固めても通らない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 8,
+   "budget": 5,
+   "spentThreat": 5,
+   "enemies": [
+    {
+     "instanceId": "x2_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e2/rank3": {
+   "index": 2,
+   "act": 1,
+   "kind": "normal",
+   "name": "狩りの路地",
+   "description": "後列を狙う射手が混じる。前だけ固めても通らない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 7,
+   "budget": 5,
+   "spentThreat": 5,
+   "enemies": [
+    {
+     "instanceId": "x2_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e2/rank4": {
+   "index": 2,
+   "act": 1,
+   "kind": "normal",
+   "name": "狩りの路地",
+   "description": "後列を狙う射手が混じる。前だけ固めても通らない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 7,
+   "budget": 5,
+   "spentThreat": 5,
+   "enemies": [
+    {
+     "instanceId": "x2_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e2/rank5": {
+   "index": 2,
+   "act": 1,
+   "kind": "normal",
+   "name": "狩りの路地",
+   "description": "後列を狙う射手が混じる。前だけ固めても通らない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 7,
+   "budget": 5,
+   "spentThreat": 5,
+   "enemies": [
+    {
+     "instanceId": "x2_0",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x2_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e3/rank0": {
+   "index": 3,
+   "act": 1,
+   "kind": "elite",
+   "name": "崩れた盾列",
+   "description": "受けの厚い守衛が二体。多段では削り切れない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 7,
+   "spentThreat": 7,
+   "enemies": [
+    {
+     "instanceId": "x3_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e3/rank1": {
+   "index": 3,
+   "act": 1,
+   "kind": "elite",
+   "name": "崩れた盾列",
+   "description": "受けの厚い守衛が二体。多段では削り切れない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 8,
+   "spentThreat": 8,
+   "enemies": [
+    {
+     "instanceId": "x3_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e3/rank2": {
+   "index": 3,
+   "act": 1,
+   "kind": "elite",
+   "name": "崩れた盾列",
+   "description": "受けの厚い守衛が二体。多段では削り切れない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 8,
+   "spentThreat": 8,
+   "enemies": [
+    {
+     "instanceId": "x3_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e3/rank3": {
+   "index": 3,
+   "act": 1,
+   "kind": "elite",
+   "name": "崩れた盾列",
+   "description": "受けの厚い守衛が二体。多段では削り切れない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 8,
+   "spentThreat": 8,
+   "enemies": [
+    {
+     "instanceId": "x3_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e3/rank4": {
+   "index": 3,
+   "act": 1,
+   "kind": "elite",
+   "name": "崩れた盾列",
+   "description": "受けの厚い守衛が二体。多段では削り切れない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 8,
+   "spentThreat": 8,
+   "enemies": [
+    {
+     "instanceId": "x3_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e3/rank5": {
+   "index": 3,
+   "act": 1,
+   "kind": "elite",
+   "name": "崩れた盾列",
+   "description": "受けの厚い守衛が二体。多段では削り切れない。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 8,
+   "spentThreat": 8,
+   "enemies": [
+    {
+     "instanceId": "x3_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x3_2",
+     "enemyActorId": "gray_scrapper",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e4/rank0": {
+   "index": 4,
+   "act": 1,
+   "kind": "boss",
+   "name": "盾将の門",
+   "description": "第1幕のボス。受けの厚い盾将と、その足元を固める二体。",
+   "bossLawId": "law_bulwark_wall",
+   "bossLaw": {
+    "id": "law_bulwark_wall",
+    "displayName": "盾将の法則",
+    "threatCost": 5,
+    "patch": {
+     "guard": {
+      "flat": 8
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
+    "counters": [
+     "貫き突きで受けを6割無視する",
+     "単発の大打撃で、受けの引き算を一度で済ませる",
+     "防壁と身代わりで前列を保たせ、round をかけて削る"
+    ]
+   },
+   "maxRounds": 12,
+   "budget": 13,
+   "spentThreat": 13,
+   "enemies": [
+    {
+     "instanceId": "x4_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 448,
+      "might": 40,
+      "focus": 40,
+      "guard": 22
+     },
+     "mutations": [],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x4_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e4/rank1": {
+   "index": 4,
+   "act": 1,
+   "kind": "boss",
+   "name": "盾将の門",
+   "description": "第1幕のボス。受けの厚い盾将と、その足元を固める二体。",
+   "bossLawId": "law_bulwark_wall",
+   "bossLaw": {
+    "id": "law_bulwark_wall",
+    "displayName": "盾将の法則",
+    "threatCost": 5,
+    "patch": {
+     "guard": {
+      "flat": 8
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
+    "counters": [
+     "貫き突きで受けを6割無視する",
+     "単発の大打撃で、受けの引き算を一度で済ませる",
+     "防壁と身代わりで前列を保たせ、round をかけて削る"
+    ]
+   },
+   "maxRounds": 12,
+   "budget": 14,
+   "spentThreat": 14,
+   "enemies": [
+    {
+     "instanceId": "x4_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 448,
+      "might": 40,
+      "focus": 40,
+      "guard": 22
+     },
+     "mutations": [],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x4_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_r3",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e4/rank2": {
+   "index": 4,
+   "act": 1,
+   "kind": "boss",
+   "name": "盾将の門",
+   "description": "第1幕のボス。受けの厚い盾将と、その足元を固める二体。",
+   "bossLawId": "law_bulwark_wall",
+   "bossLaw": {
+    "id": "law_bulwark_wall",
+    "displayName": "盾将の法則",
+    "threatCost": 5,
+    "patch": {
+     "guard": {
+      "flat": 8
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
+    "counters": [
+     "貫き突きで受けを6割無視する",
+     "単発の大打撃で、受けの引き算を一度で済ませる",
+     "防壁と身代わりで前列を保たせ、round をかけて削る"
+    ]
+   },
+   "maxRounds": 12,
+   "budget": 14,
+   "spentThreat": 14,
+   "enemies": [
+    {
+     "instanceId": "x4_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 448,
+      "might": 40,
+      "focus": 40,
+      "guard": 22
+     },
+     "mutations": [],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x4_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_r3",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e4/rank3": {
+   "index": 4,
+   "act": 1,
+   "kind": "boss",
+   "name": "盾将の門",
+   "description": "第1幕のボス。受けの厚い盾将と、その足元を固める二体。",
+   "bossLawId": "law_bulwark_wall",
+   "bossLaw": {
+    "id": "law_bulwark_wall",
+    "displayName": "盾将の法則",
+    "threatCost": 5,
+    "patch": {
+     "guard": {
+      "flat": 8
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
+    "counters": [
+     "貫き突きで受けを6割無視する",
+     "単発の大打撃で、受けの引き算を一度で済ませる",
+     "防壁と身代わりで前列を保たせ、round をかけて削る"
+    ]
+   },
+   "maxRounds": 12,
+   "budget": 14,
+   "spentThreat": 14,
+   "enemies": [
+    {
+     "instanceId": "x4_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 448,
+      "might": 40,
+      "focus": 40,
+      "guard": 22
+     },
+     "mutations": [],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x4_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_r3",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e4/rank4": {
+   "index": 4,
+   "act": 1,
+   "kind": "boss",
+   "name": "盾将の門",
+   "description": "第1幕のボス。受けの厚い盾将と、その足元を固める二体。",
+   "bossLawId": "law_bulwark_wall",
+   "bossLaw": {
+    "id": "law_bulwark_wall",
+    "displayName": "盾将の法則",
+    "threatCost": 5,
+    "patch": {
+     "guard": {
+      "flat": 8
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
+    "counters": [
+     "貫き突きで受けを6割無視する",
+     "単発の大打撃で、受けの引き算を一度で済ませる",
+     "防壁と身代わりで前列を保たせ、round をかけて削る"
+    ]
+   },
+   "maxRounds": 12,
+   "budget": 14,
+   "spentThreat": 14,
+   "enemies": [
+    {
+     "instanceId": "x4_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 448,
+      "might": 46,
+      "focus": 40,
+      "guard": 22
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x4_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_r3",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e4/rank5": {
+   "index": 4,
+   "act": 1,
+   "kind": "boss",
+   "name": "盾将の門",
+   "description": "第1幕のボス。受けの厚い盾将と、その足元を固める二体。",
+   "bossLawId": "law_bulwark_wall",
+   "bossLaw": {
+    "id": "law_bulwark_wall",
+    "displayName": "盾将の法則",
+    "threatCost": 5,
+    "patch": {
+     "guard": {
+      "flat": 8
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
+    "counters": [
+     "貫き突きで受けを6割無視する",
+     "単発の大打撃で、受けの引き算を一度で済ませる",
+     "防壁と身代わりで前列を保たせ、round をかけて削る"
+    ]
+   },
+   "maxRounds": 12,
+   "budget": 14,
+   "spentThreat": 14,
+   "enemies": [
+    {
+     "instanceId": "x4_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 448,
+      "might": 46,
+      "focus": 40,
+      "guard": 22
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x4_1",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_2",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x4_r3",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e5/rank0": {
+   "index": 5,
+   "act": 2,
+   "kind": "normal",
+   "name": "灰の圧力",
+   "description": "重い盾、狩人、反響体、射手。どの役割を厚くするかが問われる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 10,
+   "budget": 14,
+   "spentThreat": 14,
+   "enemies": [
+    {
+     "instanceId": "x5_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x5_1",
+     "enemyActorId": "gray_hunter",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_2",
+     "enemyActorId": "gray_echo",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_3",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e5/rank1": {
+   "index": 5,
+   "act": 2,
+   "kind": "normal",
+   "name": "灰の圧力",
+   "description": "重い盾、狩人、反響体、射手。どの役割を厚くするかが問われる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 10,
+   "budget": 15,
+   "spentThreat": 15,
+   "enemies": [
+    {
+     "instanceId": "x5_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x5_1",
+     "enemyActorId": "gray_hunter",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_2",
+     "enemyActorId": "gray_echo",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_3",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_r4",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e5/rank2": {
+   "index": 5,
+   "act": 2,
+   "kind": "normal",
+   "name": "灰の圧力",
+   "description": "重い盾、狩人、反響体、射手。どの役割を厚くするかが問われる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 10,
+   "budget": 15,
+   "spentThreat": 15,
+   "enemies": [
+    {
+     "instanceId": "x5_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x5_1",
+     "enemyActorId": "gray_hunter",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_2",
+     "enemyActorId": "gray_echo",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_3",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_r4",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e5/rank3": {
+   "index": 5,
+   "act": 2,
+   "kind": "normal",
+   "name": "灰の圧力",
+   "description": "重い盾、狩人、反響体、射手。どの役割を厚くするかが問われる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 15,
+   "spentThreat": 15,
+   "enemies": [
+    {
+     "instanceId": "x5_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x5_1",
+     "enemyActorId": "gray_hunter",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_2",
+     "enemyActorId": "gray_echo",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_3",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_r4",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e5/rank4": {
+   "index": 5,
+   "act": 2,
+   "kind": "normal",
+   "name": "灰の圧力",
+   "description": "重い盾、狩人、反響体、射手。どの役割を厚くするかが問われる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 15,
+   "spentThreat": 15,
+   "enemies": [
+    {
+     "instanceId": "x5_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x5_1",
+     "enemyActorId": "gray_hunter",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_2",
+     "enemyActorId": "gray_echo",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_3",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_r4",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e5/rank5": {
+   "index": 5,
+   "act": 2,
+   "kind": "normal",
+   "name": "灰の圧力",
+   "description": "重い盾、狩人、反響体、射手。どの役割を厚くするかが問われる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 15,
+   "spentThreat": 15,
+   "enemies": [
+    {
+     "instanceId": "x5_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x5_1",
+     "enemyActorId": "gray_hunter",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_2",
+     "enemyActorId": "gray_echo",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_3",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x5_r4",
+     "enemyActorId": "gray_scrapper",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": true,
+     "threatCost": 1,
+     "baseStats": {
+      "maxHp": 100,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e6/rank0": {
+   "index": 6,
+   "act": 2,
+   "kind": "normal",
+   "name": "二つの狙い",
+   "description": "前列を削る守衛と、準備中を狙う狩人。隊列そのものが防御になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 10,
+   "budget": 15,
+   "spentThreat": 15,
+   "enemies": [
+    {
+     "instanceId": "x6_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e6/rank1": {
+   "index": 6,
+   "act": 2,
+   "kind": "normal",
+   "name": "二つの狙い",
+   "description": "前列を削る守衛と、準備中を狙う狩人。隊列そのものが防御になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 10,
+   "budget": 16,
+   "spentThreat": 16,
+   "enemies": [
+    {
+     "instanceId": "x6_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e6/rank2": {
+   "index": 6,
+   "act": 2,
+   "kind": "normal",
+   "name": "二つの狙い",
+   "description": "前列を削る守衛と、準備中を狙う狩人。隊列そのものが防御になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 10,
+   "budget": 16,
+   "spentThreat": 16,
+   "enemies": [
+    {
+     "instanceId": "x6_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e6/rank3": {
+   "index": 6,
+   "act": 2,
+   "kind": "normal",
+   "name": "二つの狙い",
+   "description": "前列を削る守衛と、準備中を狙う狩人。隊列そのものが防御になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 16,
+   "spentThreat": 16,
+   "enemies": [
+    {
+     "instanceId": "x6_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e6/rank4": {
+   "index": 6,
+   "act": 2,
+   "kind": "normal",
+   "name": "二つの狙い",
+   "description": "前列を削る守衛と、準備中を狙う狩人。隊列そのものが防御になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 16,
+   "spentThreat": 16,
+   "enemies": [
+    {
+     "instanceId": "x6_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e6/rank5": {
+   "index": 6,
+   "act": 2,
+   "kind": "normal",
+   "name": "二つの狙い",
+   "description": "前列を削る守衛と、準備中を狙う狩人。隊列そのものが防御になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 9,
+   "budget": 16,
+   "spentThreat": 16,
+   "enemies": [
+    {
+     "instanceId": "x6_0",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 46,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x6_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x6_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e7/rank0": {
+   "index": 7,
+   "act": 2,
+   "kind": "elite",
+   "name": "反響の坑道",
+   "description": "殴るほど返ってくる二体。手数を出すほど自分が減る。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 17,
+   "spentThreat": 17,
+   "enemies": [
+    {
+     "instanceId": "x7_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x7_1",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e7/rank1": {
+   "index": 7,
+   "act": 2,
+   "kind": "elite",
+   "name": "反響の坑道",
+   "description": "殴るほど返ってくる二体。手数を出すほど自分が減る。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 18,
+   "spentThreat": 18,
+   "enemies": [
+    {
+     "instanceId": "x7_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x7_1",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e7/rank2": {
+   "index": 7,
+   "act": 2,
+   "kind": "elite",
+   "name": "反響の坑道",
+   "description": "殴るほど返ってくる二体。手数を出すほど自分が減る。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 18,
+   "spentThreat": 18,
+   "enemies": [
+    {
+     "instanceId": "x7_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x7_1",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e7/rank3": {
+   "index": 7,
+   "act": 2,
+   "kind": "elite",
+   "name": "反響の坑道",
+   "description": "殴るほど返ってくる二体。手数を出すほど自分が減る。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 18,
+   "spentThreat": 18,
+   "enemies": [
+    {
+     "instanceId": "x7_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x7_1",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e7/rank4": {
+   "index": 7,
+   "act": 2,
+   "kind": "elite",
+   "name": "反響の坑道",
+   "description": "殴るほど返ってくる二体。手数を出すほど自分が減る。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 18,
+   "spentThreat": 18,
+   "enemies": [
+    {
+     "instanceId": "x7_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x7_1",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e7/rank5": {
+   "index": 7,
+   "act": 2,
+   "kind": "elite",
+   "name": "反響の坑道",
+   "description": "殴るほど返ってくる二体。手数を出すほど自分が減る。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 18,
+   "spentThreat": 18,
+   "enemies": [
+    {
+     "instanceId": "x7_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x7_1",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 46,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_2",
+     "enemyActorId": "gray_echo",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x7_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e8/rank0": {
+   "index": 8,
+   "act": 2,
+   "kind": "boss",
+   "name": "反響体の巣",
+   "description": "第2幕のボス。返しの本体を、護衛ごと崩す。",
+   "bossLawId": "law_echo_return",
+   "bossLaw": {
+    "id": "law_echo_return",
+    "displayName": "反響の法則",
+    "threatCost": 6,
+    "patch": {
+     "might": {
+      "bps": 13000
+     },
+     "maxHp": {
+      "bps": 15000
+     }
+    },
+    "previewText": "殴られた痛みを反響して返す。手数で削るほど、こちらも減る。",
+    "counters": [
+     "多段をやめ、単発の大打撃で殴る回数を減らす",
+     "余剰治療と応急手当で、返ってくる分を先に埋める",
+     "防壁を厚くして、反響そのものを吸う"
+    ]
+   },
+   "maxRounds": 13,
+   "budget": 21,
+   "spentThreat": 21,
+   "enemies": [
+    {
+     "instanceId": "x8_0",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 300,
+      "might": 52,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_2",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e8/rank1": {
+   "index": 8,
+   "act": 2,
+   "kind": "boss",
+   "name": "反響体の巣",
+   "description": "第2幕のボス。返しの本体を、護衛ごと崩す。",
+   "bossLawId": "law_echo_return",
+   "bossLaw": {
+    "id": "law_echo_return",
+    "displayName": "反響の法則",
+    "threatCost": 6,
+    "patch": {
+     "might": {
+      "bps": 13000
+     },
+     "maxHp": {
+      "bps": 15000
+     }
+    },
+    "previewText": "殴られた痛みを反響して返す。手数で削るほど、こちらも減る。",
+    "counters": [
+     "多段をやめ、単発の大打撃で殴る回数を減らす",
+     "余剰治療と応急手当で、返ってくる分を先に埋める",
+     "防壁を厚くして、反響そのものを吸う"
+    ]
+   },
+   "maxRounds": 13,
+   "budget": 22,
+   "spentThreat": 22,
+   "enemies": [
+    {
+     "instanceId": "x8_0",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 300,
+      "might": 58,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_2",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e8/rank2": {
+   "index": 8,
+   "act": 2,
+   "kind": "boss",
+   "name": "反響体の巣",
+   "description": "第2幕のボス。返しの本体を、護衛ごと崩す。",
+   "bossLawId": "law_echo_return",
+   "bossLaw": {
+    "id": "law_echo_return",
+    "displayName": "反響の法則",
+    "threatCost": 6,
+    "patch": {
+     "might": {
+      "bps": 13000
+     },
+     "maxHp": {
+      "bps": 15000
+     }
+    },
+    "previewText": "殴られた痛みを反響して返す。手数で削るほど、こちらも減る。",
+    "counters": [
+     "多段をやめ、単発の大打撃で殴る回数を減らす",
+     "余剰治療と応急手当で、返ってくる分を先に埋める",
+     "防壁を厚くして、反響そのものを吸う"
+    ]
+   },
+   "maxRounds": 13,
+   "budget": 22,
+   "spentThreat": 22,
+   "enemies": [
+    {
+     "instanceId": "x8_0",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 300,
+      "might": 58,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_2",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e8/rank3": {
+   "index": 8,
+   "act": 2,
+   "kind": "boss",
+   "name": "反響体の巣",
+   "description": "第2幕のボス。返しの本体を、護衛ごと崩す。",
+   "bossLawId": "law_echo_return",
+   "bossLaw": {
+    "id": "law_echo_return",
+    "displayName": "反響の法則",
+    "threatCost": 6,
+    "patch": {
+     "might": {
+      "bps": 13000
+     },
+     "maxHp": {
+      "bps": 15000
+     }
+    },
+    "previewText": "殴られた痛みを反響して返す。手数で削るほど、こちらも減る。",
+    "counters": [
+     "多段をやめ、単発の大打撃で殴る回数を減らす",
+     "余剰治療と応急手当で、返ってくる分を先に埋める",
+     "防壁を厚くして、反響そのものを吸う"
+    ]
+   },
+   "maxRounds": 13,
+   "budget": 22,
+   "spentThreat": 22,
+   "enemies": [
+    {
+     "instanceId": "x8_0",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 300,
+      "might": 58,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_2",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e8/rank4": {
+   "index": 8,
+   "act": 2,
+   "kind": "boss",
+   "name": "反響体の巣",
+   "description": "第2幕のボス。返しの本体を、護衛ごと崩す。",
+   "bossLawId": "law_echo_return",
+   "bossLaw": {
+    "id": "law_echo_return",
+    "displayName": "反響の法則",
+    "threatCost": 6,
+    "patch": {
+     "might": {
+      "bps": 13000
+     },
+     "maxHp": {
+      "bps": 15000
+     }
+    },
+    "previewText": "殴られた痛みを反響して返す。手数で削るほど、こちらも減る。",
+    "counters": [
+     "多段をやめ、単発の大打撃で殴る回数を減らす",
+     "余剰治療と応急手当で、返ってくる分を先に埋める",
+     "防壁を厚くして、反響そのものを吸う"
+    ]
+   },
+   "maxRounds": 13,
+   "budget": 22,
+   "spentThreat": 22,
+   "enemies": [
+    {
+     "instanceId": "x8_0",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 300,
+      "might": 58,
+      "focus": 40,
+      "guard": 6
+     },
+     "mutations": [
+      "swift",
+      "hardened"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_2",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e8/rank5": {
+   "index": 8,
+   "act": 2,
+   "kind": "boss",
+   "name": "反響体の巣",
+   "description": "第2幕のボス。返しの本体を、護衛ごと崩す。",
+   "bossLawId": "law_echo_return",
+   "bossLaw": {
+    "id": "law_echo_return",
+    "displayName": "反響の法則",
+    "threatCost": 6,
+    "patch": {
+     "might": {
+      "bps": 13000
+     },
+     "maxHp": {
+      "bps": 15000
+     }
+    },
+    "previewText": "殴られた痛みを反響して返す。手数で削るほど、こちらも減る。",
+    "counters": [
+     "多段をやめ、単発の大打撃で殴る回数を減らす",
+     "余剰治療と応急手当で、返ってくる分を先に埋める",
+     "防壁を厚くして、反響そのものを吸う"
+    ]
+   },
+   "maxRounds": 13,
+   "budget": 22,
+   "spentThreat": 22,
+   "enemies": [
+    {
+     "instanceId": "x8_0",
+     "enemyActorId": "gray_echo",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 300,
+      "might": 58,
+      "focus": 40,
+      "guard": 6
+     },
+     "mutations": [
+      "swift",
+      "hardened"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_1",
+     "enemyActorId": "gray_guard",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_2",
+     "enemyActorId": "gray_guard",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x8_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x8_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e9/rank0": {
+   "index": 9,
+   "act": 3,
+   "kind": "normal",
+   "name": "盾の回廊",
+   "description": "厚い前列が三枚。抜けないなら、行と列で薙ぐ。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 12,
+   "budget": 22,
+   "spentThreat": 22,
+   "enemies": [
+    {
+     "instanceId": "x9_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_2",
+     "enemyActorId": "gray_hunter",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e9/rank1": {
+   "index": 9,
+   "act": 3,
+   "kind": "normal",
+   "name": "盾の回廊",
+   "description": "厚い前列が三枚。抜けないなら、行と列で薙ぐ。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 12,
+   "budget": 23,
+   "spentThreat": 23,
+   "enemies": [
+    {
+     "instanceId": "x9_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_2",
+     "enemyActorId": "gray_hunter",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e9/rank2": {
+   "index": 9,
+   "act": 3,
+   "kind": "normal",
+   "name": "盾の回廊",
+   "description": "厚い前列が三枚。抜けないなら、行と列で薙ぐ。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 12,
+   "budget": 23,
+   "spentThreat": 23,
+   "enemies": [
+    {
+     "instanceId": "x9_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_2",
+     "enemyActorId": "gray_hunter",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e9/rank3": {
+   "index": 9,
+   "act": 3,
+   "kind": "normal",
+   "name": "盾の回廊",
+   "description": "厚い前列が三枚。抜けないなら、行と列で薙ぐ。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 23,
+   "spentThreat": 23,
+   "enemies": [
+    {
+     "instanceId": "x9_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_2",
+     "enemyActorId": "gray_hunter",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e9/rank4": {
+   "index": 9,
+   "act": 3,
+   "kind": "normal",
+   "name": "盾の回廊",
+   "description": "厚い前列が三枚。抜けないなら、行と列で薙ぐ。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 23,
+   "spentThreat": 23,
+   "enemies": [
+    {
+     "instanceId": "x9_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_2",
+     "enemyActorId": "gray_hunter",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e9/rank5": {
+   "index": 9,
+   "act": 3,
+   "kind": "normal",
+   "name": "盾の回廊",
+   "description": "厚い前列が三枚。抜けないなら、行と列で薙ぐ。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 11,
+   "budget": 23,
+   "spentThreat": 23,
+   "enemies": [
+    {
+     "instanceId": "x9_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x9_2",
+     "enemyActorId": "gray_hunter",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x9_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e10/rank0": {
+   "index": 10,
+   "act": 3,
+   "kind": "normal",
+   "name": "灰の重列",
+   "description": "盾が三枚並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 23,
+   "spentThreat": 23,
+   "enemies": [
+    {
+     "instanceId": "x10_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x10_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e10/rank1": {
+   "index": 10,
+   "act": 3,
+   "kind": "normal",
+   "name": "灰の重列",
+   "description": "盾が三枚並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 24,
+   "spentThreat": 24,
+   "enemies": [
+    {
+     "instanceId": "x10_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x10_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e10/rank2": {
+   "index": 10,
+   "act": 3,
+   "kind": "normal",
+   "name": "灰の重列",
+   "description": "盾が三枚並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 24,
+   "spentThreat": 24,
+   "enemies": [
+    {
+     "instanceId": "x10_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x10_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e10/rank3": {
+   "index": 10,
+   "act": 3,
+   "kind": "normal",
+   "name": "灰の重列",
+   "description": "盾が三枚並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 12,
+   "budget": 24,
+   "spentThreat": 24,
+   "enemies": [
+    {
+     "instanceId": "x10_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x10_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e10/rank4": {
+   "index": 10,
+   "act": 3,
+   "kind": "normal",
+   "name": "灰の重列",
+   "description": "盾が三枚並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 12,
+   "budget": 24,
+   "spentThreat": 24,
+   "enemies": [
+    {
+     "instanceId": "x10_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x10_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e10/rank5": {
+   "index": 10,
+   "act": 3,
+   "kind": "normal",
+   "name": "灰の重列",
+   "description": "盾が三枚並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 12,
+   "budget": 24,
+   "spentThreat": 24,
+   "enemies": [
+    {
+     "instanceId": "x10_0",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x10_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x10_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e11/rank0": {
+   "index": 11,
+   "act": 3,
+   "kind": "elite",
+   "name": "核の前庭",
+   "description": "核が護衛を連れて出てくる。ボスの予行になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 24,
+   "spentThreat": 24,
+   "enemies": [
+    {
+     "instanceId": "x11_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x11_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x11_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e11/rank1": {
+   "index": 11,
+   "act": 3,
+   "kind": "elite",
+   "name": "核の前庭",
+   "description": "核が護衛を連れて出てくる。ボスの予行になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 25,
+   "spentThreat": 25,
+   "enemies": [
+    {
+     "instanceId": "x11_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 540,
+      "might": 46,
+      "focus": 40,
+      "guard": 12
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x11_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x11_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e11/rank2": {
+   "index": 11,
+   "act": 3,
+   "kind": "elite",
+   "name": "核の前庭",
+   "description": "核が護衛を連れて出てくる。ボスの予行になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 25,
+   "spentThreat": 25,
+   "enemies": [
+    {
+     "instanceId": "x11_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 540,
+      "might": 46,
+      "focus": 40,
+      "guard": 12
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x11_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x11_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e11/rank3": {
+   "index": 11,
+   "act": 3,
+   "kind": "elite",
+   "name": "核の前庭",
+   "description": "核が護衛を連れて出てくる。ボスの予行になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 25,
+   "spentThreat": 25,
+   "enemies": [
+    {
+     "instanceId": "x11_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 540,
+      "might": 46,
+      "focus": 40,
+      "guard": 12
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x11_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x11_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e11/rank4": {
+   "index": 11,
+   "act": 3,
+   "kind": "elite",
+   "name": "核の前庭",
+   "description": "核が護衛を連れて出てくる。ボスの予行になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 25,
+   "spentThreat": 25,
+   "enemies": [
+    {
+     "instanceId": "x11_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 540,
+      "might": 46,
+      "focus": 40,
+      "guard": 12
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x11_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x11_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e11/rank5": {
+   "index": 11,
+   "act": 3,
+   "kind": "elite",
+   "name": "核の前庭",
+   "description": "核が護衛を連れて出てくる。ボスの予行になる。",
+   "bossLawId": null,
+   "bossLaw": null,
+   "maxRounds": 13,
+   "budget": 25,
+   "spentThreat": 25,
+   "enemies": [
+    {
+     "instanceId": "x11_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 540,
+      "might": 46,
+      "focus": 40,
+      "guard": 12
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x11_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 46,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x11_3",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    },
+    {
+     "instanceId": "x11_4",
+     "enemyActorId": "gray_marksman",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 2,
+     "baseStats": {
+      "maxHp": 120,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e12/rank0": {
+   "index": 12,
+   "act": 3,
+   "kind": "boss",
+   "name": "灰の核心",
+   "description": "最終戦。溜めを止めながら、厚い前列を突破する。",
+   "bossLawId": "law_core_charge",
+   "bossLaw": {
+    "id": "law_core_charge",
+    "displayName": "核の法則",
+    "threatCost": 8,
+    "patch": {
+     "focus": {
+      "bps": 13000
+     },
+     "guard": {
+      "flat": 6
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
+    "counters": [
+     "準備狩りで、溜めている間に叩く",
+     "身代わりで受け手を選び、放たれた一撃を分散させる",
+     "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
+    ]
+   },
+   "maxRounds": 15,
+   "budget": 33,
+   "spentThreat": 33,
+   "enemies": [
+    {
+     "instanceId": "x12_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 756,
+      "might": 40,
+      "focus": 52,
+      "guard": 18
+     },
+     "mutations": [],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x12_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_3",
+     "enemyActorId": "gray_guard",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x12_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e12/rank1": {
+   "index": 12,
+   "act": 3,
+   "kind": "boss",
+   "name": "灰の核心",
+   "description": "最終戦。溜めを止めながら、厚い前列を突破する。",
+   "bossLawId": "law_core_charge",
+   "bossLaw": {
+    "id": "law_core_charge",
+    "displayName": "核の法則",
+    "threatCost": 8,
+    "patch": {
+     "focus": {
+      "bps": 13000
+     },
+     "guard": {
+      "flat": 6
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
+    "counters": [
+     "準備狩りで、溜めている間に叩く",
+     "身代わりで受け手を選び、放たれた一撃を分散させる",
+     "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
+    ]
+   },
+   "maxRounds": 15,
+   "budget": 34,
+   "spentThreat": 34,
+   "enemies": [
+    {
+     "instanceId": "x12_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 756,
+      "might": 46,
+      "focus": 52,
+      "guard": 18
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x12_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_3",
+     "enemyActorId": "gray_guard",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x12_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e12/rank2": {
+   "index": 12,
+   "act": 3,
+   "kind": "boss",
+   "name": "灰の核心",
+   "description": "最終戦。溜めを止めながら、厚い前列を突破する。",
+   "bossLawId": "law_core_charge",
+   "bossLaw": {
+    "id": "law_core_charge",
+    "displayName": "核の法則",
+    "threatCost": 8,
+    "patch": {
+     "focus": {
+      "bps": 13000
+     },
+     "guard": {
+      "flat": 6
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
+    "counters": [
+     "準備狩りで、溜めている間に叩く",
+     "身代わりで受け手を選び、放たれた一撃を分散させる",
+     "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
+    ]
+   },
+   "maxRounds": 15,
+   "budget": 34,
+   "spentThreat": 34,
+   "enemies": [
+    {
+     "instanceId": "x12_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 756,
+      "might": 46,
+      "focus": 52,
+      "guard": 18
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x12_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_3",
+     "enemyActorId": "gray_guard",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x12_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e12/rank3": {
+   "index": 12,
+   "act": 3,
+   "kind": "boss",
+   "name": "灰の核心",
+   "description": "最終戦。溜めを止めながら、厚い前列を突破する。",
+   "bossLawId": "law_core_charge",
+   "bossLaw": {
+    "id": "law_core_charge",
+    "displayName": "核の法則",
+    "threatCost": 8,
+    "patch": {
+     "focus": {
+      "bps": 13000
+     },
+     "guard": {
+      "flat": 6
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
+    "counters": [
+     "準備狩りで、溜めている間に叩く",
+     "身代わりで受け手を選び、放たれた一撃を分散させる",
+     "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
+    ]
+   },
+   "maxRounds": 15,
+   "budget": 34,
+   "spentThreat": 34,
+   "enemies": [
+    {
+     "instanceId": "x12_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 756,
+      "might": 46,
+      "focus": 52,
+      "guard": 18
+     },
+     "mutations": [
+      "swift"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x12_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_3",
+     "enemyActorId": "gray_guard",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x12_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e12/rank4": {
+   "index": 12,
+   "act": 3,
+   "kind": "boss",
+   "name": "灰の核心",
+   "description": "最終戦。溜めを止めながら、厚い前列を突破する。",
+   "bossLawId": "law_core_charge",
+   "bossLaw": {
+    "id": "law_core_charge",
+    "displayName": "核の法則",
+    "threatCost": 8,
+    "patch": {
+     "focus": {
+      "bps": 13000
+     },
+     "guard": {
+      "flat": 6
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
+    "counters": [
+     "準備狩りで、溜めている間に叩く",
+     "身代わりで受け手を選び、放たれた一撃を分散させる",
+     "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
+    ]
+   },
+   "maxRounds": 15,
+   "budget": 34,
+   "spentThreat": 34,
+   "enemies": [
+    {
+     "instanceId": "x12_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 756,
+      "might": 46,
+      "focus": 52,
+      "guard": 24
+     },
+     "mutations": [
+      "swift",
+      "hardened"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x12_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_3",
+     "enemyActorId": "gray_guard",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x12_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  },
+  "e12/rank5": {
+   "index": 12,
+   "act": 3,
+   "kind": "boss",
+   "name": "灰の核心",
+   "description": "最終戦。溜めを止めながら、厚い前列を突破する。",
+   "bossLawId": "law_core_charge",
+   "bossLaw": {
+    "id": "law_core_charge",
+    "displayName": "核の法則",
+    "threatCost": 8,
+    "patch": {
+     "focus": {
+      "bps": 13000
+     },
+     "guard": {
+      "flat": 6
+     },
+     "maxHp": {
+      "bps": 14000
+     }
+    },
+    "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
+    "counters": [
+     "準備狩りで、溜めている間に叩く",
+     "身代わりで受け手を選び、放たれた一撃を分散させる",
+     "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
+    ]
+   },
+   "maxRounds": 15,
+   "budget": 34,
+   "spentThreat": 34,
+   "enemies": [
+    {
+     "instanceId": "x12_0",
+     "enemyActorId": "ash_core",
+     "position": "front_center",
+     "stats": {
+      "maxHp": 756,
+      "might": 46,
+      "focus": 52,
+      "guard": 24
+     },
+     "mutations": [
+      "swift",
+      "hardened"
+     ],
+     "boss": true,
+     "reinforcement": false,
+     "threatCost": 8,
+     "baseStats": {
+      "maxHp": 540,
+      "might": 40,
+      "focus": 40,
+      "guard": 12
+     }
+    },
+    {
+     "instanceId": "x12_1",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_left",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_2",
+     "enemyActorId": "gray_bulwark",
+     "position": "front_right",
+     "stats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 5,
+     "baseStats": {
+      "maxHp": 320,
+      "might": 40,
+      "focus": 40,
+      "guard": 14
+     }
+    },
+    {
+     "instanceId": "x12_3",
+     "enemyActorId": "gray_guard",
+     "position": "rear_left",
+     "stats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 3,
+     "baseStats": {
+      "maxHp": 180,
+      "might": 40,
+      "focus": 40,
+      "guard": 10
+     }
+    },
+    {
+     "instanceId": "x12_4",
+     "enemyActorId": "gray_hunter",
+     "position": "rear_right",
+     "stats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     },
+     "mutations": [],
+     "boss": false,
+     "reinforcement": false,
+     "threatCost": 4,
+     "baseStats": {
+      "maxHp": 200,
+      "might": 40,
+      "focus": 40,
+      "guard": 0
+     }
+    }
+   ]
+  }
+ },
+ "manifests": {
+  "frontier-1801": {
+   "manifestVersion": "ecology-manifest-1",
+   "seed": "frontier-1801",
+   "regionId": "ash_frontier",
+   "baselineSkillIds": [
+    "strike",
+    "mend",
+    "bulwark"
+   ],
+   "enabledPackIds": [
+    "pack_care",
+    "pack_wall",
+    "pack_tempo"
+   ],
+   "enabledAffixFamilyIds": [],
+   "enemyFamilyIds": [
+    "husk"
+   ],
+   "actBossIds": [
+    "gray_bulwark",
+    "gray_echo",
+    "ash_core"
+   ],
+   "actBossLawIds": [
+    "law_bulwark_wall",
+    "law_echo_return",
+    "law_core_charge"
+   ],
+   "regionLawIds": [],
+   "rewardTableId": "fixed_equipment_1"
+  },
+  "frontier-1801-abc12345": {
+   "manifestVersion": "ecology-manifest-1",
+   "seed": "frontier-1801-abc12345",
+   "regionId": "ash_frontier",
+   "baselineSkillIds": [
+    "strike",
+    "mend",
+    "bulwark"
+   ],
+   "enabledPackIds": [
+    "pack_edge",
+    "pack_care",
+    "pack_wall"
+   ],
+   "enabledAffixFamilyIds": [],
+   "enemyFamilyIds": [
+    "husk"
+   ],
+   "actBossIds": [
+    "gray_bulwark",
+    "gray_echo",
+    "ash_core"
+   ],
+   "actBossLawIds": [
+    "law_bulwark_wall",
+    "law_echo_return",
+    "law_core_charge"
+   ],
+   "regionLawIds": [],
+   "rewardTableId": "fixed_equipment_1"
+  },
+  "frontier-1801-zzz": {
+   "manifestVersion": "ecology-manifest-1",
+   "seed": "frontier-1801-zzz",
+   "regionId": "ash_frontier",
+   "baselineSkillIds": [
+    "strike",
+    "mend",
+    "bulwark"
+   ],
+   "enabledPackIds": [
+    "pack_care",
+    "pack_wall",
+    "pack_tempo"
+   ],
+   "enabledAffixFamilyIds": [],
+   "enemyFamilyIds": [
+    "husk"
+   ],
+   "actBossIds": [
+    "gray_bulwark",
+    "gray_echo",
+    "ash_core"
+   ],
+   "actBossLawIds": [
+    "law_bulwark_wall",
+    "law_echo_return",
+    "law_core_charge"
+   ],
+   "regionLawIds": [],
+   "rewardTableId": "fixed_equipment_1"
+  }
+ },
+ "metaUpgrades": [
+  {
+   "id": "starting_supplies",
+   "category": "starting_supplies",
+   "displayName": "開始補給",
+   "maxLevel": 2,
+   "costs": [
+    "12000",
+    "60000"
+   ]
+  },
+  {
+   "id": "equipment_pool.group_repair",
+   "category": "equipment_pool",
+   "displayName": "修理の品",
+   "maxLevel": 1,
+   "costs": [
+    "12000"
+   ]
+  }
+ ],
+ "freshProfile": {
+  "schemaVersion": "ecology-profile-1",
+  "profileId": null,
+  "characters": {
+   "warden": {
+    "characterId": "warden",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   },
+   "mender": {
+    "characterId": "mender",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   },
+   "lancer": {
+    "characterId": "lancer",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   },
+   "scout": {
+    "characterId": "scout",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   },
+   "pivot": {
+    "characterId": "pivot",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   },
+   "guardian": {
+    "characterId": "guardian",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   },
+   "arcanist": {
+    "characterId": "arcanist",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   },
+   "tactician": {
+    "characterId": "tactician",
+    "trainingLevels": {
+     "might": 0,
+     "focus": 0,
+     "guard": 0,
+     "vitality": 0
+    },
+    "storyFlags": []
+   }
+  },
+  "unlockedPackIds": [
+   "pack_edge",
+   "pack_care",
+   "pack_wall",
+   "pack_tempo"
+  ],
+  "metaUpgradeLevels": {},
+  "activityFunds": "0",
+  "activityFundsLifetimeEarned": "0",
+  "regionProgress": {
+   "ash_frontier": {
+    "highestClearedDifficulty": -1,
+    "clearedRanks": [],
+    "runsFinished": 0
+   }
+  },
+  "purchases": [],
+  "settledRunIds": []
+ },
+ "runRewards": {
+  "frontier-1801/1/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "anchor_boots"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "quickstrap"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801/1/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "signal_lens"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "quickstrap"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801/5/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "bastion_shell"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "focus_band"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801/5/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "shard_hilt"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "quickstrap"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801/11/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "anchor_boots"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "signal_lens"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801/11/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "signal_lens"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "bastion_shell"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-abc12345/1/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "reserve_coil"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "signal_lens"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-abc12345/1/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "momentum_rig"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "thorn_clasp"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-abc12345/5/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "focus_band"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "signal_lens"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-abc12345/5/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "splinter_edge"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "quickstrap"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-abc12345/11/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "focus_band"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "shard_hilt"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-abc12345/11/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "momentum_rig"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "focus_band"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-zzz/1/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "shard_hilt"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "momentum_rig"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-zzz/1/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "reserve_coil"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "bastion_shell"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-zzz/5/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "bastion_shell"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "thorn_clasp"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-zzz/5/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "bastion_shell"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "signal_lens"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-zzz/11/0": [
+   {
+    "type": "equipment",
+    "equipmentId": "thorn_clasp"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "anchor_boots"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
+  ],
+  "frontier-1801-zzz/11/1": [
+   {
+    "type": "equipment",
+    "equipmentId": "thorn_clasp"
+   },
+   {
+    "type": "equipment",
+    "equipmentId": "anchor_boots"
+   },
+   {
+    "type": "skill_points",
+    "amount": 2
+   },
+   {
+    "type": "supplies",
+    "amount": 1
+   }
   ]
  }
 }

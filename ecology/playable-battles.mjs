@@ -1,4 +1,5 @@
 import { BATTLE_SCHEMA_VERSION, POSITIONS, POSITION_ROW } from "./schema.mjs";
+import { seededShuffle } from "./seeded.mjs";
 import {
   ACTIVE_META,
   CHARACTER_DEFINITIONS,
@@ -152,7 +153,10 @@ export function initialUnlockedSkills(characterId) {
   ])];
 }
 
-// R6 §17.1 — PHASE A. 行動3・反応3・常設2。
+// R6 §6.6 — 基本 3 active / 3 reactive / 2 passive。
+// **PHASE B: 第4枠は人物ごとの永続購入**なので、実際の上限は人物ごとに違う。
+// 呼び出し側は progression.slotLimits(profile, characterId) を渡す。
+// 渡さなかったときは基本値で、Phase A と同じ振る舞いになる。
 export const SLOT_LIMITS = Object.freeze({ active: 3, reactive: 3, passive: 2, equipment: 2 });
 const LOADOUT_KEYS = Object.freeze({ active: "tactics", reactive: "reactives", passive: "passives" });
 
@@ -174,37 +178,47 @@ export function freshLoadout(rosterIds) {
   return { tactics, reactives, passives, equipment };
 }
 
-function normalizeLoadout(loadout, rosterIds) {
+function normalizeLoadout(loadout, rosterIds, limitsFor) {
   const next = clone(loadout ?? freshLoadout(rosterIds));
   // 旧 save には passives が無い。**足りない鍵はここで生やす**
   // （呼び出し側それぞれで面倒を見ると、いつか一箇所が忘れる）。
   next.passives = next.passives ?? {};
   for (const characterId of rosterIds) {
-    next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])].slice(0, SLOT_LIMITS.active);
-    next.reactives[characterId] = [...new Set(next.reactives?.[characterId] ?? [])].slice(0, SLOT_LIMITS.reactive);
-    next.passives[characterId] = [...new Set(next.passives?.[characterId] ?? [])].slice(0, SLOT_LIMITS.passive);
-    next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, SLOT_LIMITS.equipment);
+    const limits = limitsOf(limitsFor, characterId);
+    next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])].slice(0, limits.active);
+    next.reactives[characterId] = [...new Set(next.reactives?.[characterId] ?? [])].slice(0, limits.reactive);
+    next.passives[characterId] = [...new Set(next.passives?.[characterId] ?? [])].slice(0, limits.passive);
+    next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, limits.equipment);
   }
   return next;
 }
 
-export function equipSkill(loadout, characterId, skillId, kind) {
+// 枠の上限をここ一箇所で解く。関数でも表でも渡せる（人物ごとに違うので）。
+function limitsOf(limitsFor, characterId) {
+  if (typeof limitsFor === "function") return { ...SLOT_LIMITS, ...limitsFor(characterId) };
+  if (limitsFor && typeof limitsFor === "object") return { ...SLOT_LIMITS, ...limitsFor };
+  return SLOT_LIMITS;
+}
+
+export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   const component = COMPONENTS[skillId];
   if (!component || component.kind !== kind || !characterById[characterId]) {
     return { ok: false, reason: "技能か仲間が見つかりません。" };
   }
-  const next = normalizeLoadout(loadout, [characterId]);
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
   const listKey = LOADOUT_KEYS[kind];
   if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
   if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
-  if (list.length >= SLOT_LIMITS[kind]) return { ok: false, reason: "その枠は埋まっています。先に技能を外してください。" };
+  if (list.length >= limitsOf(limitsFor, characterId)[kind]) {
+    return { ok: false, reason: "その枠は埋まっています。先に技能を外してください。" };
+  }
   next[listKey][characterId] = [skillId, ...list];
   return { ok: true, loadout: next };
 }
 
-export function removeSkill(loadout, characterId, skillId, kind) {
-  const next = normalizeLoadout(loadout, [characterId]);
+export function removeSkill(loadout, characterId, skillId, kind, limitsFor) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
   const listKey = LOADOUT_KEYS[kind];
   if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
@@ -216,12 +230,12 @@ export function removeSkill(loadout, characterId, skillId, kind) {
   return { ok: true, loadout: next };
 }
 
-export function equipEquipment(loadout, characterId, equipmentId, slot = 0) {
+export function equipEquipment(loadout, characterId, equipmentId, slot = 0, limitsFor) {
   const component = COMPONENTS[equipmentId];
   if (!component || component.kind !== "equipment" || !characterById[characterId]) {
     return { ok: false, reason: "装備か仲間が見つかりません。" };
   }
-  const next = normalizeLoadout(loadout, Object.keys(loadout?.tactics ?? {}));
+  const next = normalizeLoadout(loadout, Object.keys(loadout?.tactics ?? {}), limitsFor);
   for (const id of Object.keys(next.equipment)) {
     next.equipment[id] = (next.equipment[id] ?? []).filter((item) => item !== equipmentId);
   }
@@ -231,42 +245,17 @@ export function equipEquipment(loadout, characterId, equipmentId, slot = 0) {
   return { ok: true, loadout: next };
 }
 
-export function removeEquipment(loadout, characterId, equipmentId) {
-  const next = normalizeLoadout(loadout, Object.keys(loadout?.tactics ?? {}));
+export function removeEquipment(loadout, characterId, equipmentId, limitsFor) {
+  const next = normalizeLoadout(loadout, Object.keys(loadout?.tactics ?? {}), limitsFor);
   next.equipment[characterId] = (next.equipment[characterId] ?? []).filter((id) => id !== equipmentId);
   return next;
 }
 
-export function installComponent(loadout, componentId, characterId) {
+export function installComponent(loadout, componentId, characterId, limitsFor) {
   const component = COMPONENTS[componentId];
   if (!component) return { ok: false, reason: "部材が見つかりません。" };
-  if (component.kind === "equipment") return equipEquipment(loadout, characterId, componentId, 0);
-  return equipSkill(loadout, characterId, componentId, component.kind);
-}
-
-function hashSeed(value) {
-  let hash = 2166136261;
-  for (const character of String(value)) {
-    hash ^= character.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  return hash >>> 0;
-}
-
-function seededShuffle(values, seed) {
-  const result = [...values];
-  let state = hashSeed(seed) || 1;
-  const next = () => {
-    state = (Math.imul(state ^ (state >>> 15), 1 | state) + 0x6d2b79f5) >>> 0;
-    let value = state;
-    value = Math.imul(value ^ (value >>> 7), 61 | value) ^ value;
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const swap = Math.floor(next() * (index + 1));
-    [result[index], result[swap]] = [result[swap], result[index]];
-  }
-  return result;
+  if (component.kind === "equipment") return equipEquipment(loadout, characterId, componentId, 0, limitsFor);
+  return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
 }
 
 export function rewardOffer(seed, stage, ownedEquipment = [], count = 3) {
@@ -304,8 +293,8 @@ export function enemyInfo(enemyActorId) {
   };
 }
 
-export function reorderTactic(loadout, characterId, index, direction) {
-  const next = normalizeLoadout(loadout, [characterId]);
+export function reorderTactic(loadout, characterId, index, direction, limitsFor) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
   const tactics = next.tactics[characterId] ?? [];
   const otherIndex = index + direction;
   if (index < 0 || index >= tactics.length || otherIndex < 0 || otherIndex >= tactics.length) return next;
@@ -325,11 +314,49 @@ function equipmentInput(characterId, equipmentIds, durability = {}) {
   }));
 }
 
-function usableTactics(ids) {
-  return ids.filter((id) => PLAYABLE_CONTENT.activeSkills[id]).slice(0, 2).map((activeSkillId) => ({
+// **装着した行動枠を、そのまま戦闘へ渡す。**
+//
+// ここは長く `slice(0, 2)` だった。v1 の枠数が2だった頃の名残で、Phase A が
+// 枠を3へ増やしたあとも残っていたため、**3つ目に置いた行動が戦闘に入らず
+// 黙って消えていた**（画面には装着済みと出る）。Phase B で第4枠を売る前に直す。
+// 上限は validate.mjs の LIMITS.maxTactics が拒否する。
+function usableTactics(ids, limit = SLOT_LIMITS.active) {
+  return ids.filter((id) => PLAYABLE_CONTENT.activeSkills[id]).slice(0, limit).map((activeSkillId) => ({
     activeSkillId,
     useWhen: TACTIC_USE_WHEN[activeSkillId] ?? [],
   }));
+}
+
+// 味方1人ぶんの battle input。**編成・技能・装備・鍛錬をここでだけ組む。**
+// 7区画の試作（makeBattle）と12戦の遠征（makeExpeditionBattle）が同じ関数を通る。
+function allyInput(characterId, position, loadout, options = {}) {
+  const limits = options.limitsFor
+    ? { ...SLOT_LIMITS, ...(typeof options.limitsFor === "function" ? options.limitsFor(characterId) : options.limitsFor) }
+    : SLOT_LIMITS;
+  const option = characterById[characterId];
+  const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
+  const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
+  const ally = {
+    instanceId: "a_" + characterId,
+    characterId,
+    position,
+    tactics: usableTactics(tactics, limits.active),
+    reactiveSkillIds: reactives.filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]).slice(0, limits.reactive),
+    passiveSkillIds: (loadout.passives?.[characterId] ?? [])
+      .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]).slice(0, limits.passive),
+    equipment: equipmentInput(characterId, loadout.equipment?.[characterId] ?? [], options.equipmentDurability ?? {}),
+  };
+  // R6 §9.5 — PHASE B. 鍛錬後の stat と、その level。**engine は鍛錬を知らない**
+  // ので、丸め済みの値と記録の両方をここで渡す。
+  const trained = options.statsFor?.(characterId) ?? null;
+  if (trained) {
+    ally.stats = { ...trained.stats };
+    ally.training = { ...trained.training };
+  }
+  const hp = options.hp?.[characterId];
+  const ceiling = ally.stats?.maxHp ?? PLAYABLE_CONTENT.characters[characterId].maxHp;
+  if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(ceiling, hp));
+  return ally;
 }
 
 export function makeBattle(
@@ -345,25 +372,12 @@ export function makeBattle(
   // **置き場所の規則は normalizeFormation にしかない。**ここで別に決めると、
   // 画面が見せている隊列と戦闘に入る隊列がずれる。
   const placed = normalizeFormation(formation, selected);
-  const allies = selected.map((characterId) => {
-    const option = characterById[characterId];
-    const position = placed[characterId] ?? option.defaultPosition;
-    const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
-    const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
-    const ally = {
-      instanceId: "a_" + characterId,
-      characterId,
-      position,
-      tactics: usableTactics(tactics),
-      reactiveSkillIds: reactives.filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]).slice(0, SLOT_LIMITS.reactive),
-      passiveSkillIds: (loadout.passives?.[characterId] ?? [])
-        .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]).slice(0, SLOT_LIMITS.passive),
-      equipment: equipmentInput(characterId, loadout.equipment?.[characterId] ?? [], persistent.equipmentDurability ?? {}),
-    };
-    const hp = persistent.hp?.[characterId];
-    if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(PLAYABLE_CONTENT.characters[characterId].maxHp, hp));
-    return ally;
-  });
+  const allies = selected.map((characterId) => allyInput(
+    characterId,
+    placed[characterId] ?? characterById[characterId].defaultPosition,
+    loadout,
+    { hp: persistent.hp, equipmentDurability: persistent.equipmentDurability, limitsFor: persistent.limitsFor, statsFor: persistent.statsFor },
+  ));
   return {
     schemaVersion: BATTLE_SCHEMA_VERSION,
     battleId: "frontier_" + String(seed).replace(/[^a-z0-9_]/gi, "_") + "_stage_" + stage,
@@ -371,6 +385,36 @@ export function makeBattle(
     objective: { type: "eliminate_all_enemies" },
     allies,
     enemies: clone(encounter.enemies),
+  };
+}
+
+// R6 §5.1 / §11 — PHASE B. 12戦の遠征の一戦。
+//
+// **敵は composeEncounter が決めた形をそのまま渡す。**難易度で増える増援と変異は
+// 既に stat と mutation 名になっていて、ここでは何も足さない
+// （難易度の三層を同じ場所で動かさないため。R7 §8）。
+export function makeExpeditionBattle(composed, rosterIds, loadout, seed, formation = {}, options = {}) {
+  const selected = rosterIds.filter((characterId) => characterById[characterId]).slice(0, PARTY_SIZE);
+  const placed = normalizeFormation(formation, selected);
+  const allies = selected.map((characterId) => allyInput(
+    characterId,
+    placed[characterId] ?? characterById[characterId].defaultPosition,
+    loadout,
+    options,
+  ));
+  return {
+    schemaVersion: BATTLE_SCHEMA_VERSION,
+    battleId: "expedition_" + String(seed).replace(/[^a-z0-9_]/gi, "_") + "_e" + composed.index,
+    maxRounds: composed.maxRounds,
+    objective: { type: "eliminate_all_enemies" },
+    allies,
+    enemies: composed.enemies.map((enemy) => ({
+      instanceId: enemy.instanceId,
+      enemyActorId: enemy.enemyActorId,
+      position: enemy.position,
+      stats: { ...enemy.stats },
+      ...(enemy.mutations.length ? { mutations: [...enemy.mutations] } : {}),
+    })),
   };
 }
 
@@ -389,4 +433,5 @@ export function allEncounters() {
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。
 export { ENEMY_TARGETING as enemyTargeting, SKILL_TREE_NODES, CHARACTER_DEFINITIONS };
+
 

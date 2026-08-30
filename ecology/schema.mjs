@@ -10,9 +10,20 @@
 const freeze = (value) => Object.freeze(value);
 
 export const CONTENT_SCHEMA_VERSION = "ecology-content-2";
-export const BATTLE_SCHEMA_VERSION = "ecology-battle-2";
+// PHASE B: battle input gained an optional `stats` override on both sides
+// (permanent training on allies, difficulty mutations on enemies). The addition
+// is additive — an input without it resolves exactly as ecology-battle-2 did —
+// but a reader that does not know the field would silently drop the training,
+// so the version says out loud that the shape grew.
+export const BATTLE_SCHEMA_VERSION = "ecology-battle-3";
 export const RESULT_SCHEMA_VERSION = "ecology-result-1";
 export const MINING_VERSION = "ecology-mining-1";
+
+// R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
+// each one carries its own version and its own migration.
+export const PROFILE_SCHEMA_VERSION = "ecology-profile-1";
+export const RUN_SCHEMA_VERSION = "ecology-run-1";
+export const MANIFEST_VERSION = "ecology-manifest-1";
 
 // R6 §5.4 — the six positions of the 2x3 field. The listed order is also the
 // deterministic tie-break order, so nothing else may sort positions.
@@ -331,6 +342,26 @@ export const ACTOR_STATS = freeze([
 // mid-chain, which the causal log cannot explain.
 export const SCALING_STATS = freeze(["might", "focus", "max_hp"]);
 
+// R6 §9.5 — PHASE B. The four axes permanent training may raise, and the actor
+// stat each one lands on. **speed, AP, RP, slot counts, firing limits and target
+// priority are deliberately absent**: training must not buy extra turns.
+export const TRAINABLE_STATS = freeze(["might", "focus", "guard", "vitality"]);
+export const TRAINING_STAT_TARGET = freeze({
+  might: "might",
+  focus: "focus",
+  guard: "guard",
+  vitality: "maxHp",
+});
+
+// R6 §4.3 / §11 — PHASE B. The stats a battle input may override per instance.
+// Allies use it for permanent training, enemies for the difficulty mutations.
+// Everything else (speed, AP, RP, tactics, rules) stays with the definition, so
+// an override can change how hard a hit lands but never how often anyone acts.
+export const OVERRIDABLE_STATS = freeze(["maxHp", "might", "focus", "guard"]);
+
+// R6 §5.1 / §11.2 — PHASE B. What one encounter of an expedition is.
+export const ENCOUNTER_KINDS = freeze(["normal", "elite", "boss"]);
+
 // R6 §6.8 — PHASE A. passive が定数で押し上げてよい stat。
 // **行動回数（AP/RP）はここに無い。**毎 round の行動回数を恒常的に増やす効果は、
 // 多くの面白い skill より強くなりやすい（R6 §6.8）。開始時1回だけなら
@@ -364,11 +395,13 @@ export const LIMITS = freeze({
   minAlliesInBattle: 1,
   maxEnemiesInBattle: 5,
   minEnemiesInBattle: 1,
-  // R6 §17.1 — PHASE A. 基本 3 active / 3 reactive / 2 passive。
-  // 人物別の最大 4/4/2 は Phase B（第4枠の購入）で開く。
-  maxTactics: 3,
+  // R6 §6.6 — 基本 3 active / 3 reactive / 2 passive、最大 4 / 4 / 2。
+  // PHASE B: the fourth active and reactive slot is a per-character purchase, so
+  // the structural ceiling here is 4 and the *granted* count lives in the
+  // profile. 第5枠は R6 では追加しない。
+  maxTactics: 4,
   maxUseWhen: 2,
-  maxReactiveSkills: 3,
+  maxReactiveSkills: 4,
   maxPassiveSkills: 2,
   maxEquipment: 2,
   minPreparationSteps: 1,
@@ -410,4 +443,5 @@ export function compareOp(op, left, right) {
     default: throw new Error(`unknown comparison operator: ${op}`);
   }
 }
+
 

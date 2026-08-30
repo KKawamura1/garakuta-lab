@@ -997,3 +997,153 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .unit, .unit-fill, .beat-text, .replay-progress-fill { animation: none !important; transition: none !important; }
   .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), -14px); }
 }
+
+/* ------------------------------------------------------------------ PHASE B
+   遠征を仕立てる画面、ギルド投資、補給、精算。
+   R6 §15.1（遠征開始に全部出す）と §15.2（base 値・鍛錬・run 内補正を分ける）。
+   iPhone 実寸（390px）で主要操作が画面内に収まることを ecology-trial が見る。 */
+
+.pack-list { display: grid; gap: 6px; margin-top: 12px; }
+.pack-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+.pack-row b { grid-column: 1; font-size: 12px; }
+.pack-row small { grid-column: 1; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.pack-row span { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 10px; }
+.pack-row.on { border-color: var(--gold); }
+.pack-row.on span { color: var(--gold); }
+.pack-row.off { opacity: .55; }
+
+.boss-grid { display: grid; gap: 8px; margin-top: 12px; }
+.boss-card, .boss-law {
+  padding: 10px;
+  border: 1px solid rgba(231,137,128,.42);
+  border-radius: 10px;
+  background: rgba(78, 37, 37, .28);
+}
+.boss-law { margin-top: 12px; }
+.boss-card p, .boss-law p { margin: 7px 0 0; color: #e8c4bd; font-size: 11px; line-height: 1.5; }
+.boss-counters { margin: 7px 0 0; padding-left: 16px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.boss-top { display: flex; align-items: center; gap: 8px; }
+.boss-top b, .boss-top small { display: block; }
+.boss-top small { color: var(--gold); font-size: 10px; }
+
+.difficulty-grid { display: grid; gap: 6px; margin: 12px 0; }
+.difficulty-card {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-2);
+  color: var(--ink);
+  text-align: left;
+}
+.difficulty-card b { font-size: 12px; }
+.difficulty-card small { color: var(--muted); font-size: 10px; line-height: 1.4; }
+.difficulty-meta { color: var(--blue); font-size: 10px; }
+.difficulty-card.selected { border-color: var(--gold); background: var(--gold-dark); }
+
+.purchase-list { display: grid; gap: 6px; margin-top: 10px; }
+.purchase-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+.purchase-copy b { display: block; font-size: 12px; }
+.purchase-copy small { display: block; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.purchase-cost { color: var(--gold); font-size: 11px; font-variant-numeric: tabular-nums; }
+.purchase-done { color: var(--good); font-size: 12px; }
+.purchase-row .tiny-button { margin: 0; }
+.training-heading { margin-top: 16px; color: var(--ink); font-size: 13px; }
+
+.supplies-bar { margin-top: 10px; }
+.supplies-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.supplies-head b { font-size: 13px; }
+.supplies-head span { color: var(--muted); font-size: 10px; }
+.supply-pips { display: flex; gap: 5px; margin: 8px 0; }
+.supply-pip { flex: 1; height: 7px; border: 1px solid var(--line); border-radius: 4px; }
+.supply-pip.on { border-color: var(--gold); background: var(--gold); }
+.supply-uses { margin: 0; padding-left: 16px; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.supply-uses b { color: var(--ink); }
+
+.act-line { margin: 0 0 6px; color: var(--blue); font-size: 11px; }
+.map-node.kind-boss { border-color: rgba(231,137,128,.6); color: var(--bad); }
+.map-node.kind-elite { border-color: var(--orange); }
+.map-node.done { background: #2a4936; color: var(--good); }
+.scout-veil {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.scout-veil p { margin: 0 0 8px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.scout-veil b { color: var(--ink); }
+
+.enemy-card.boss { border-color: var(--gold); background: rgba(90, 68, 26, .3); }
+.enemy-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.enemy-badges .badge {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 9px;
+}
+.enemy-card p.small { min-height: 0; font-size: 9px; }
+
+.reward-picker { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.reward-pick {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 10px;
+}
+.reward-pick.selected { border-color: var(--gold); background: var(--gold-dark); color: var(--gold); }
+.reward-reroll { margin-top: 12px; }
+.reward-reroll small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+
+.settle-list { display: grid; gap: 4px; margin-top: 10px; }
+.settle-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.settle-row span { color: var(--muted); }
+.settle-row b { font-variant-numeric: tabular-nums; }
+.settle-row.total b { color: var(--gold); }
+.fund-line { display: flex; align-items: baseline; gap: 10px; margin: 8px 0 12px; }
+.fund-line b { color: var(--gold); font-size: 20px; font-variant-numeric: tabular-nums; }
+.fund-line small { color: var(--muted); font-size: 10px; }
+
+.scrap-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.scrap-line b { color: var(--ink); }
+.scrap-line .tiny-button { margin: 0; }
+
+.skill-node.out-of-manifest { opacity: .38; }
+.skill-node.out-of-manifest .node-status { color: var(--muted); }
+.character-stats .trained { color: var(--gold); font-style: normal; }

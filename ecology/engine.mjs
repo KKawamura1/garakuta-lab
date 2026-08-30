@@ -102,17 +102,23 @@ function buildState(input, content, options) {
 
   for (const ally of input.allies) {
     const definition = content.characters[ally.characterId];
+    // R6 §9.5 — PHASE B. Permanent training arrives already rounded, per
+    // instance. **The engine does not know what training is**: it reads a stat
+    // override and keeps the levels only as a record for the causal log.
+    const allyStats = statsOf(definition, ally.stats);
     addActor(state, withPassiveBonuses(content, {
       instanceId: ally.instanceId,
       side: "ally",
       definitionId: ally.characterId,
       displayName: definition.displayName,
-      maxHp: definition.maxHp,
-      hp: ally.hp ?? definition.maxHp,
+      maxHp: allyStats.maxHp,
+      hp: ally.hp ?? allyStats.maxHp,
       speed: definition.speed,
-      might: definition.might,
-      focus: definition.focus,
-      guard: definition.guard,
+      might: allyStats.might,
+      focus: allyStats.focus,
+      guard: allyStats.guard,
+      baseStats: baseStatsOf(definition),
+      training: ally.training ? { ...ally.training } : null,
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
@@ -131,17 +137,23 @@ function buildState(input, content, options) {
 
   for (const enemy of input.enemies) {
     const definition = content.enemyActors[enemy.enemyActorId];
+    // R6 §11.2 / §13.2 — PHASE B. A difficulty mutation is the same mechanism
+    // from the other side: a visible, pre-battle stat override plus the ids that
+    // produced it. No engine branch on an individual enemy id.
+    const enemyStats = statsOf(definition, enemy.stats);
     addActor(state, withPassiveBonuses(content, {
       instanceId: enemy.instanceId,
       side: "enemy",
       definitionId: enemy.enemyActorId,
       displayName: definition.displayName,
-      maxHp: definition.maxHp,
-      hp: enemy.hp ?? definition.maxHp,
+      maxHp: enemyStats.maxHp,
+      hp: enemy.hp ?? enemyStats.maxHp,
       speed: definition.speed,
-      might: definition.might,
-      focus: definition.focus,
-      guard: definition.guard,
+      might: enemyStats.might,
+      focus: enemyStats.focus,
+      guard: enemyStats.guard,
+      baseStats: baseStatsOf(definition),
+      mutations: [...(enemy.mutations ?? [])],
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: enemy.position,
@@ -153,6 +165,30 @@ function buildState(input, content, options) {
   }
 
   return state;
+}
+
+// R6 §9.5 / §11.2 — PHASE B. The definition is the base; the input may raise the
+// four continuous stats. validate.mjs has already refused every other key, so
+// this is a merge, not a filter.
+function statsOf(definition, override) {
+  return {
+    maxHp: override?.maxHp ?? definition.maxHp,
+    might: override?.might ?? definition.might,
+    focus: override?.focus ?? definition.focus,
+    guard: override?.guard ?? definition.guard,
+  };
+}
+
+// R6 §9.5 — "UI、BattleInput、結果 log へ人物ごとの base stat、鍛錬 level、
+// 合計 bps、丸め後 stat を残す". The rounded stat is on the actor; the base is
+// only knowable here, so it rides along and comes back out in the result.
+function baseStatsOf(definition) {
+  return {
+    maxHp: definition.maxHp,
+    might: definition.might ?? 0,
+    focus: definition.focus ?? 0,
+    guard: definition.guard ?? 0,
+  };
 }
 
 // R6 §6.8 — passive の statBonus を足し込む。**maxHp を先に決めてから hp を決める**
@@ -1036,6 +1072,15 @@ function buildResult(state, content) {
     hp: actor.hp,
     maxHp: actor.maxHp,
     speed: actor.speed,
+    // R6 §9.5 — PHASE B. The rounded stat, the base it came from and the levels
+    // that moved it, so the result can say *why* this ally hits for what it does
+    // without the reader redoing the rounding.
+    might: actor.might,
+    focus: actor.focus,
+    guard: actor.guard,
+    baseStats: actor.baseStats ?? null,
+    training: actor.training ?? null,
+    mutations: actor.mutations ?? [],
     alive: actor.alive,
     actionPoints: actor.actionPoints,
     reactionPoints: actor.reactionPoints,

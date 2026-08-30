@@ -22,6 +22,11 @@ function expectValid(errors, label) {
   checks += 1;
 }
 
+function expectAccepted(errors, label) {
+  assert.deepEqual(errors, [], `${label} should validate cleanly`);
+  checks += 1;
+}
+
 function expectRejected(errors, code, label) {
   assert.ok(errors.length > 0, `${label} should have been rejected`);
   assert.ok(
@@ -256,9 +261,11 @@ expectRejected(
 
 // ---- loadout limits (§5.3) --------------------------------------------------
 
-expectRejected(
+// PHASE B: R6 §6.6 の構造上限は 4（第4枠は人物ごとの永続購入）。
+// **3 で拒否していないことも見る。**上限を上げたのに purchase 側だけ増えて
+// validator が3のままだと、買った枠が戦闘へ入る手前で黙って落ちる。
+expectAccepted(
   input((battle) => {
-    // PHASE A: 行動枠は 2 → 3（R6 §17.1）。拒否されるのは4つ目から。
     battle.allies[0].tactics = [
       { activeSkillId: "strike", useWhen: [] },
       { activeSkillId: "mend", useWhen: [] },
@@ -266,8 +273,21 @@ expectRejected(
       { activeSkillId: "triage", useWhen: [] },
     ];
   }),
+  "four active tactics (Phase B の第4枠)",
+);
+
+expectRejected(
+  input((battle) => {
+    battle.allies[0].tactics = [
+      { activeSkillId: "strike", useWhen: [] },
+      { activeSkillId: "mend", useWhen: [] },
+      { activeSkillId: "bulwark", useWhen: [] },
+      { activeSkillId: "triage", useWhen: [] },
+      { activeSkillId: "heavy_swing", useWhen: [] },
+    ];
+  }),
   "too_many",
-  "four active tactics",
+  "five active tactics",
 );
 
 expectRejected(
@@ -287,13 +307,21 @@ expectRejected(
   "three useWhen conditions",
 );
 
-expectRejected(
+expectAccepted(
   input((battle) => {
-    // PHASE A: 反応枠も 2 → 3。
     battle.allies[0].reactiveSkillIds = ["counter_blow", "guard_step", "scavenge_ap", "urging"];
   }),
+  "four reactive skills (Phase B の第4枠)",
+);
+
+expectRejected(
+  input((battle) => {
+    battle.allies[0].reactiveSkillIds = [
+      "counter_blow", "guard_step", "scavenge_ap", "urging", "cover_ally",
+    ];
+  }),
   "too_many",
-  "four reactive skills",
+  "five reactive skills",
 );
 
 expectRejected(
@@ -638,4 +666,5 @@ expectRejected(
 );
 
 console.log(`schema.test.mjs: ${checks} checks passed`);
+
 
