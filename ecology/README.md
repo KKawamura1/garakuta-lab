@@ -180,6 +180,10 @@ R5 §11.5 は内部実装を委任しているので、ここに書いた順序�
 | `equipment_worn` | equipmentId, before, amount, after | cost |
 | `equipment_broken` | equipmentId | cost |
 | `equipment_repaired` | equipmentId, before, amount, after | — |
+| `block_proposed` | amount | — |
+| `block_gained` | amount, before, after | — |
+| `damage_blocked` | proposed, blockBefore, blockAfter | tags of the blocked damage |
+| `block_spent` | amount, before, after | — |
 | `pending_amount_modified` | operation, before, after, delta, proposalEventId | operation |
 
 イベントに表示用の文章は入れない。事実だけを入れ、表示側が再生する。

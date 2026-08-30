@@ -1,7 +1,7 @@
 {
  "contentVersion": "ecology-playable-full-0.2",
  "content": {
-  "schemaVersion": "ecology-content-1",
+  "schemaVersion": "ecology-content-2",
   "contentVersion": "ecology-playable-full-0.2",
   "characters": {
    "warden": {
@@ -4865,7 +4865,7 @@
  },
  "battles": {
   "stage1": {
-   "schemaVersion": "ecology-battle-1",
+   "schemaVersion": "ecology-battle-2",
    "battleId": "frontier_frontier_1801_stage_1",
    "maxRounds": 6,
    "objective": {
@@ -4969,7 +4969,7 @@
    ]
   },
   "stage2": {
-   "schemaVersion": "ecology-battle-1",
+   "schemaVersion": "ecology-battle-2",
    "battleId": "frontier_frontier_1801_stage_2",
    "maxRounds": 7,
    "objective": {
@@ -5073,7 +5073,7 @@
    ]
   },
   "stage3": {
-   "schemaVersion": "ecology-battle-1",
+   "schemaVersion": "ecology-battle-2",
    "battleId": "frontier_frontier_1801_stage_3",
    "maxRounds": 8,
    "objective": {
@@ -5177,7 +5177,7 @@
    ]
   },
   "stage4": {
-   "schemaVersion": "ecology-battle-1",
+   "schemaVersion": "ecology-battle-2",
    "battleId": "frontier_frontier_1801_stage_4",
    "maxRounds": 8,
    "objective": {
@@ -5281,7 +5281,7 @@
    ]
   },
   "stage5": {
-   "schemaVersion": "ecology-battle-1",
+   "schemaVersion": "ecology-battle-2",
    "battleId": "frontier_frontier_1801_stage_5",
    "maxRounds": 9,
    "objective": {
@@ -5391,7 +5391,7 @@
    ]
   },
   "stage6": {
-   "schemaVersion": "ecology-battle-1",
+   "schemaVersion": "ecology-battle-2",
    "battleId": "frontier_frontier_1801_stage_6",
    "maxRounds": 10,
    "objective": {
@@ -5501,7 +5501,7 @@
    ]
   },
   "stage7": {
-   "schemaVersion": "ecology-battle-1",
+   "schemaVersion": "ecology-battle-2",
    "battleId": "frontier_frontier_1801_stage_7",
    "maxRounds": 12,
    "objective": {

@@ -5,7 +5,7 @@
 // fun. A fingerprint says "this shape of chain occurred", and deciding which
 // shapes are worth building content around is the design lead's call (§20).
 
-import { MINING_VERSION } from "./schema.mjs";
+import { BATTLE_SCHEMA_VERSION, MINING_VERSION } from "./schema.mjs";
 import { simulateBattle } from "./engine.mjs";
 
 // §16 F — the fingerprint drops instance ids and event ids and keeps the shape:
@@ -77,7 +77,7 @@ export function enumerateBuilds(miningInput) {
 
 function battleInputFor(build, template, index) {
   return {
-    schemaVersion: "ecology-battle-1",
+    schemaVersion: BATTLE_SCHEMA_VERSION,
     battleId: `${template.battleId}_${index}`,
     maxRounds: template.maxRounds,
     objective: template.objective,

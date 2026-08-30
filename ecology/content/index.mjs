@@ -16,7 +16,7 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-1";
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-2";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

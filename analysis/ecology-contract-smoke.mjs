@@ -130,6 +130,7 @@ const DISCRETE_EFFECTS = new Set([
   "repair_equipment",     // 耐久
   "advance_preparation",  // 準備の段数
   "wear_equipment",       // 耐久
+  "gain_block",           // block charge（回数）
 ]);
 const unclassified = [];
 function classifyAmounts(value, owner) {
