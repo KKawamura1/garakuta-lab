@@ -21,7 +21,7 @@ assert.equal(CHARACTER_OPTIONS.length, 8);
 assert.equal(Object.keys(SKILLS.active).length, 21);
 assert.equal(Object.keys(SKILLS.reactive).length, 14);
 assert.equal(Object.keys(SKILLS.passive).length, 8);
-assert.equal(Object.keys(EQUIPMENT).length, 18);
+assert.equal(Object.keys(EQUIPMENT).length, 24);
 // 既存40ノードにWave 1の反応2を足して42。
 // **数そのものより、種類ごとの内訳が動いていないこと**を見る。
 assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "active").length, 21);
@@ -181,4 +181,4 @@ assert.equal(
 );
 assert.equal(depletedResult.replaySnapshots.length, depletedResult.events.length);
 
-console.log("full prototype: roster, formation, 21+14+8 skills, 18 equipment, targeting, 7 stages, deterministic replay passed");
+console.log("full prototype: roster, formation, 21+14+8 skills, 24 equipment, targeting, 7 stages, deterministic replay passed");

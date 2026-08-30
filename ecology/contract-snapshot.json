@@ -3611,6 +3611,325 @@
     "tags": [
      "fixture"
     ]
+   },
+   "block_latch": {
+    "id": "block_latch",
+    "displayName": "受け止め金具",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "block_latch_rule_0",
+      "listenTo": "battle_started",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "always"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 20
+        },
+        "duration": "battle"
+       }
+      ],
+      "limit": {
+       "scope": "battle",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "impact_spring": {
+    "id": "impact_spring",
+    "displayName": "衝撃ばね",
+    "maxDurability": 1,
+    "rules": [
+     {
+      "id": "impact_spring_rule",
+      "listenTo": "block_spent",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 10
+        },
+        "duration": "round"
+       }
+      ],
+      "limit": {
+       "scope": "battle",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "wound_thread": {
+    "id": "wound_thread",
+    "displayName": "傷縫い糸",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "wound_thread_rule",
+      "listenTo": "damage_taken",
+      "timing": "after",
+      "priority": 90,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "focused",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture",
+     "gate_e"
+    ]
+   },
+   "quiet_lens": {
+    "id": "quiet_lens",
+    "displayName": "静観レンズ",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "quiet_lens_rule",
+      "listenTo": "resource_unused",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "action_points",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "amount",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 10
+        },
+        "duration": "round"
+       }
+      ],
+      "limit": {
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "rescue_sachet": {
+    "id": "rescue_sachet",
+    "displayName": "救急の小袋",
+    "maxDurability": 2,
+    "rules": [
+     {
+      "id": "rescue_sachet_rule",
+      "listenTo": "healing_applied",
+      "timing": "after",
+      "priority": 100,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "reaction_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        }
+       }
+      ],
+      "limit": {
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
+   },
+   "last_bell": {
+    "id": "last_bell",
+    "displayName": "仕留めの鈴",
+    "maxDurability": 1,
+    "rules": [
+     {
+      "id": "last_bell_rule",
+      "listenTo": "actor_defeated",
+      "timing": "after",
+      "priority": 50,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "wear_equipment",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "action_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        }
+       }
+      ],
+      "limit": {
+       "scope": "battle",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "fixture"
+    ]
    }
   },
   "statuses": {
@@ -4233,6 +4552,12 @@
   "shard_hilt": "破片の柄",
   "repair_pouch": "修繕袋",
   "recovery_satchel": "大きな救急袋",
+  "block_latch": "受け止め金具",
+  "impact_spring": "衝撃ばね",
+  "wound_thread": "傷縫い糸",
+  "quiet_lens": "静観レンズ",
+  "rescue_sachet": "救急の小袋",
+  "last_bell": "仕留めの鈴",
   "exposed": "隙",
   "focused": "集中",
   "husk": "灰殻兵",
@@ -4886,6 +5211,60 @@
    "effect": "余ったRPで装備を2修理する。",
    "grammar": "修理",
    "maxDurability": 4
+  },
+  "block_latch": {
+   "id": "block_latch",
+   "kind": "equipment",
+   "definitionId": "block_latch",
+   "label": "受け止め金具",
+   "effect": "戦闘開始時、戦闘中防壁1を得る。耐久2。",
+   "grammar": "防御",
+   "maxDurability": 2
+  },
+  "impact_spring": {
+   "id": "impact_spring",
+   "kind": "equipment",
+   "definitionId": "impact_spring",
+   "label": "衝撃ばね",
+   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁1を得る。",
+   "grammar": "防御",
+   "maxDurability": 1
+  },
+  "wound_thread": {
+   "id": "wound_thread",
+   "kind": "equipment",
+   "definitionId": "wound_thread",
+   "label": "傷縫い糸",
+   "effect": "被弾後、耐久1で「集中」を得る。ラウンド1回。",
+   "grammar": "反撃",
+   "maxDurability": 2
+  },
+  "quiet_lens": {
+   "id": "quiet_lens",
+   "kind": "equipment",
+   "definitionId": "quiet_lens",
+   "label": "静観レンズ",
+   "effect": "余った行動権を耐久1でラウンド防壁へ変える。",
+   "grammar": "蓄積",
+   "maxDurability": 2
+  },
+  "rescue_sachet": {
+   "id": "rescue_sachet",
+   "kind": "equipment",
+   "definitionId": "rescue_sachet",
+   "label": "救急の小袋",
+   "effect": "回復を行ったあと、耐久1で反応権を1得る。",
+   "grammar": "治療",
+   "maxDurability": 2
+  },
+  "last_bell": {
+   "id": "last_bell",
+   "kind": "equipment",
+   "definitionId": "last_bell",
+   "label": "仕留めの鈴",
+   "effect": "敵を倒したあと、耐久1で行動権を1得る。戦闘1回。",
+   "grammar": "撃破",
+   "maxDurability": 1
   }
  },
  "components": {
@@ -5394,6 +5773,60 @@
    "effect": "余ったRPで装備を2修理する。",
    "grammar": "修理",
    "maxDurability": 4
+  },
+  "block_latch": {
+   "id": "block_latch",
+   "kind": "equipment",
+   "definitionId": "block_latch",
+   "label": "受け止め金具",
+   "effect": "戦闘開始時、戦闘中防壁1を得る。耐久2。",
+   "grammar": "防御",
+   "maxDurability": 2
+  },
+  "impact_spring": {
+   "id": "impact_spring",
+   "kind": "equipment",
+   "definitionId": "impact_spring",
+   "label": "衝撃ばね",
+   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁1を得る。",
+   "grammar": "防御",
+   "maxDurability": 1
+  },
+  "wound_thread": {
+   "id": "wound_thread",
+   "kind": "equipment",
+   "definitionId": "wound_thread",
+   "label": "傷縫い糸",
+   "effect": "被弾後、耐久1で「集中」を得る。ラウンド1回。",
+   "grammar": "反撃",
+   "maxDurability": 2
+  },
+  "quiet_lens": {
+   "id": "quiet_lens",
+   "kind": "equipment",
+   "definitionId": "quiet_lens",
+   "label": "静観レンズ",
+   "effect": "余った行動権を耐久1でラウンド防壁へ変える。",
+   "grammar": "蓄積",
+   "maxDurability": 2
+  },
+  "rescue_sachet": {
+   "id": "rescue_sachet",
+   "kind": "equipment",
+   "definitionId": "rescue_sachet",
+   "label": "救急の小袋",
+   "effect": "回復を行ったあと、耐久1で反応権を1得る。",
+   "grammar": "治療",
+   "maxDurability": 2
+  },
+  "last_bell": {
+   "id": "last_bell",
+   "kind": "equipment",
+   "definitionId": "last_bell",
+   "label": "仕留めの鈴",
+   "effect": "敵を倒したあと、耐久1で行動権を1得る。戦闘1回。",
+   "grammar": "撃破",
+   "maxDurability": 1
   }
  },
  "componentOrder": [
@@ -5457,7 +5890,13 @@
   "thorn_clasp",
   "shard_hilt",
   "repair_pouch",
-  "recovery_satchel"
+  "recovery_satchel",
+  "block_latch",
+  "impact_spring",
+  "wound_thread",
+  "quiet_lens",
+  "rescue_sachet",
+  "last_bell"
  ],
  "skillTreeNodes": [
   {
@@ -7380,214 +7819,214 @@
  },
  "rewards": {
   "frontier-1801/1": [
-   "shard_hilt",
-   "splinter_edge",
-   "guard_lantern"
+   "impact_spring",
+   "standing_plate",
+   "rescue_sachet"
   ],
   "frontier-1801/1/owned": [
-   "bastion_shell",
-   "splinter_edge",
-   "worn_greaves"
+   "momentum_rig",
+   "worn_greaves",
+   "quiet_lens"
   ],
   "frontier-1801/2": [
-   "repair_pouch",
+   "anchor_boots",
    "splinter_edge",
-   "recovery_satchel"
+   "last_bell"
   ],
   "frontier-1801/2/owned": [
+   "momentum_rig",
+   "signal_lens",
+   "splinter_edge"
+  ],
+  "frontier-1801/3": [
+   "worn_greaves",
+   "rescue_sachet",
+   "standing_plate"
+  ],
+  "frontier-1801/3/owned": [
+   "momentum_rig",
+   "block_latch",
+   "tempo_buckle"
+  ],
+  "frontier-1801/4": [
+   "guard_lantern",
+   "repair_pouch",
+   "impact_spring"
+  ],
+  "frontier-1801/4/owned": [
+   "quiet_lens",
    "splinter_edge",
+   "repair_pouch"
+  ],
+  "frontier-1801/5": [
+   "impact_spring",
+   "splinter_edge",
+   "wound_thread"
+  ],
+  "frontier-1801/5/owned": [
+   "impact_spring",
    "focus_band",
    "worn_greaves"
   ],
-  "frontier-1801/3": [
-   "reserve_coil",
-   "tempo_buckle",
-   "signal_lens"
-  ],
-  "frontier-1801/3/owned": [
-   "shard_hilt",
-   "repair_pouch",
-   "signal_lens"
-  ],
-  "frontier-1801/4": [
-   "signal_lens",
-   "guard_lantern",
-   "repair_pouch"
-  ],
-  "frontier-1801/4/owned": [
-   "anchor_boots",
-   "splinter_edge",
-   "thorn_clasp"
-  ],
-  "frontier-1801/5": [
-   "splinter_edge",
-   "worn_greaves",
-   "recovery_satchel"
-  ],
-  "frontier-1801/5/owned": [
-   "worn_greaves",
-   "bastion_shell",
-   "signal_lens"
-  ],
   "frontier-1801/6": [
-   "splinter_edge",
-   "guard_lantern",
-   "momentum_rig"
-  ],
-  "frontier-1801/6/owned": [
-   "focus_band",
-   "guard_lantern",
-   "bastion_shell"
-  ],
-  "frontier-1801/7": [
-   "repair_pouch",
-   "field_kit",
-   "signal_lens"
-  ],
-  "frontier-1801/7/owned": [
-   "repair_pouch",
-   "tempo_buckle",
-   "bastion_shell"
-  ],
-  "frontier-1801-abc12345/1": [
-   "thorn_clasp",
-   "splinter_edge",
-   "anchor_boots"
-  ],
-  "frontier-1801-abc12345/1/owned": [
-   "quickstrap",
-   "signal_lens",
-   "momentum_rig"
-  ],
-  "frontier-1801-abc12345/2": [
-   "reserve_coil",
-   "thorn_clasp",
-   "guard_lantern"
-  ],
-  "frontier-1801-abc12345/2/owned": [
-   "shard_hilt",
-   "guard_lantern",
-   "reserve_coil"
-  ],
-  "frontier-1801-abc12345/3": [
-   "worn_greaves",
    "bastion_shell",
+   "recovery_satchel",
    "field_kit"
   ],
-  "frontier-1801-abc12345/3/owned": [
-   "worn_greaves",
+  "frontier-1801/6/owned": [
+   "momentum_rig",
    "anchor_boots",
-   "recovery_satchel"
+   "rescue_sachet"
+  ],
+  "frontier-1801/7": [
+   "thorn_clasp",
+   "anchor_boots",
+   "wound_thread"
+  ],
+  "frontier-1801/7/owned": [
+   "guard_lantern",
+   "shard_hilt",
+   "quiet_lens"
+  ],
+  "frontier-1801-abc12345/1": [
+   "field_kit",
+   "last_bell",
+   "impact_spring"
+  ],
+  "frontier-1801-abc12345/1/owned": [
+   "momentum_rig",
+   "reserve_coil",
+   "focus_band"
+  ],
+  "frontier-1801-abc12345/2": [
+   "tempo_buckle",
+   "block_latch",
+   "signal_lens"
+  ],
+  "frontier-1801-abc12345/2/owned": [
+   "block_latch",
+   "reserve_coil",
+   "signal_lens"
+  ],
+  "frontier-1801-abc12345/3": [
+   "splinter_edge",
+   "signal_lens",
+   "rescue_sachet"
+  ],
+  "frontier-1801-abc12345/3/owned": [
+   "splinter_edge",
+   "shard_hilt",
+   "guard_lantern"
   ],
   "frontier-1801-abc12345/4": [
+   "block_latch",
    "signal_lens",
-   "standing_plate",
    "thorn_clasp"
   ],
   "frontier-1801-abc12345/4/owned": [
-   "bastion_shell",
-   "reserve_coil",
-   "signal_lens"
+   "tempo_buckle",
+   "thorn_clasp",
+   "reserve_coil"
   ],
   "frontier-1801-abc12345/5": [
    "worn_greaves",
-   "reserve_coil",
-   "bastion_shell"
+   "last_bell",
+   "focus_band"
   ],
   "frontier-1801-abc12345/5/owned": [
+   "momentum_rig",
    "worn_greaves",
-   "guard_lantern",
-   "quickstrap"
+   "recovery_satchel"
   ],
   "frontier-1801-abc12345/6": [
-   "anchor_boots",
-   "focus_band",
-   "worn_greaves"
+   "quiet_lens",
+   "block_latch",
+   "repair_pouch"
   ],
   "frontier-1801-abc12345/6/owned": [
-   "worn_greaves",
-   "shard_hilt",
-   "signal_lens"
+   "guard_lantern",
+   "splinter_edge",
+   "repair_pouch"
   ],
   "frontier-1801-abc12345/7": [
-   "shard_hilt",
-   "guard_lantern",
+   "momentum_rig",
+   "standing_plate",
    "worn_greaves"
   ],
   "frontier-1801-abc12345/7/owned": [
-   "bastion_shell",
-   "signal_lens",
-   "momentum_rig"
+   "worn_greaves",
+   "recovery_satchel",
+   "last_bell"
   ],
   "frontier-1801-zzz/1": [
-   "shard_hilt",
-   "recovery_satchel",
-   "anchor_boots"
-  ],
-  "frontier-1801-zzz/1/owned": [
-   "focus_band",
-   "splinter_edge",
-   "recovery_satchel"
-  ],
-  "frontier-1801-zzz/2": [
    "repair_pouch",
-   "quickstrap",
-   "worn_greaves"
-  ],
-  "frontier-1801-zzz/2/owned": [
-   "focus_band",
    "guard_lantern",
-   "thorn_clasp"
-  ],
-  "frontier-1801-zzz/3": [
-   "bastion_shell",
-   "worn_greaves",
    "splinter_edge"
   ],
+  "frontier-1801-zzz/1/owned": [
+   "rescue_sachet",
+   "shard_hilt",
+   "last_bell"
+  ],
+  "frontier-1801-zzz/2": [
+   "block_latch",
+   "shard_hilt",
+   "wound_thread"
+  ],
+  "frontier-1801-zzz/2/owned": [
+   "block_latch",
+   "repair_pouch",
+   "impact_spring"
+  ],
+  "frontier-1801-zzz/3": [
+   "last_bell",
+   "wound_thread",
+   "bastion_shell"
+  ],
   "frontier-1801-zzz/3/owned": [
-   "worn_greaves",
-   "focus_band",
-   "shard_hilt"
+   "momentum_rig",
+   "splinter_edge",
+   "rescue_sachet"
   ],
   "frontier-1801-zzz/4": [
-   "thorn_clasp",
-   "guard_lantern",
-   "worn_greaves"
+   "last_bell",
+   "quiet_lens",
+   "standing_plate"
   ],
   "frontier-1801-zzz/4/owned": [
-   "thorn_clasp",
-   "recovery_satchel",
-   "signal_lens"
-  ],
-  "frontier-1801-zzz/5": [
-   "recovery_satchel",
-   "thorn_clasp",
-   "focus_band"
-  ],
-  "frontier-1801-zzz/5/owned": [
-   "thorn_clasp",
-   "quickstrap",
-   "anchor_boots"
-  ],
-  "frontier-1801-zzz/6": [
-   "reserve_coil",
-   "recovery_satchel",
-   "field_kit"
-  ],
-  "frontier-1801-zzz/6/owned": [
-   "repair_pouch",
-   "reserve_coil",
+   "momentum_rig",
+   "signal_lens",
    "quickstrap"
   ],
-  "frontier-1801-zzz/7": [
-   "anchor_boots",
-   "recovery_satchel",
+  "frontier-1801-zzz/5": [
+   "block_latch",
+   "wound_thread",
+   "impact_spring"
+  ],
+  "frontier-1801-zzz/5/owned": [
+   "focus_band",
+   "splinter_edge",
+   "wound_thread"
+  ],
+  "frontier-1801-zzz/6": [
+   "wound_thread",
+   "standing_plate",
+   "last_bell"
+  ],
+  "frontier-1801-zzz/6/owned": [
+   "last_bell",
+   "bastion_shell",
    "focus_band"
   ],
-  "frontier-1801-zzz/7/owned": [
-   "anchor_boots",
-   "thorn_clasp",
+  "frontier-1801-zzz/7": [
+   "splinter_edge",
+   "block_latch",
    "bastion_shell"
+  ],
+  "frontier-1801-zzz/7/owned": [
+   "block_latch",
+   "splinter_edge",
+   "tempo_buckle"
   ]
  }
 }
