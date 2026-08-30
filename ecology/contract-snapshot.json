@@ -2610,6 +2610,46 @@
      },
      "priority": 100
     }
+   },
+   "opening_guard": {
+    "id": "opening_guard",
+    "displayName": "初手の構え",
+    "tags": [
+     "passive",
+     "playable",
+     "guard"
+    ],
+    "rule": {
+     "id": "opening_guard_rule",
+     "listenTo": "round_started",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "round_number",
+       "op": "eq",
+       "value": 1
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "gain_block",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "amount": {
+        "type": "constant",
+        "value": 1
+       }
+      }
+     ],
+     "limit": {
+      "scope": "battle",
+      "count": 1
+     },
+     "priority": 100
+    }
    }
   },
   "equipment": {
@@ -4673,6 +4713,14 @@
     "label": "備え",
     "effect": "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。",
     "grammar": "基礎"
+   },
+   "opening_guard": {
+    "id": "opening_guard",
+    "kind": "passive",
+    "definitionId": "opening_guard",
+    "label": "初手の構え",
+    "effect": "戦闘開始時、受け構えを1つ得る。最初の一撃を受け止めるための守り。",
+    "grammar": "守り"
    }
   }
  },
@@ -5177,6 +5225,14 @@
    "effect": "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。",
    "grammar": "基礎"
   },
+  "opening_guard": {
+   "id": "opening_guard",
+   "kind": "passive",
+   "definitionId": "opening_guard",
+   "label": "初手の構え",
+   "effect": "戦闘開始時、受け構えを1つ得る。最初の一撃を受け止めるための守り。",
+   "grammar": "守り"
+  },
   "worn_greaves": {
    "id": "worn_greaves",
    "kind": "equipment",
@@ -5383,6 +5439,7 @@
   "foundation_speed",
   "foundation_ap",
   "foundation_rp",
+  "opening_guard",
   "worn_greaves",
   "splinter_edge",
   "field_kit",
@@ -5842,6 +5899,17 @@
    "tier": 0,
    "cost": 1,
    "requires": []
+  },
+  {
+   "id": "node_opening_guard",
+   "skillId": "opening_guard",
+   "kind": "passive",
+   "branch": "守り",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "bulwark"
+   ]
   }
  ],
  "encounters": [

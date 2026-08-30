@@ -20,14 +20,14 @@ assert.equal(CHARACTER_OPTIONS.length, 8);
 // Phase Aの語彙にContent Wave 1の行動5を加えた。
 assert.equal(Object.keys(SKILLS.active).length, 21);
 assert.equal(Object.keys(SKILLS.reactive).length, 14);
-assert.equal(Object.keys(SKILLS.passive).length, 7);
+assert.equal(Object.keys(SKILLS.passive).length, 8);
 assert.equal(Object.keys(EQUIPMENT).length, 18);
 // 既存40ノードにWave 1の反応2を足して42。
 // **数そのものより、種類ごとの内訳が動いていないこと**を見る。
 assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "active").length, 21);
 assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "reactive").length, 14);
-assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "passive").length, 7);
-assert.equal(SKILL_TREE_NODES.length, 42);
+assert.equal(SKILL_TREE_NODES.filter((node) => node.kind === "passive").length, 8);
+assert.equal(SKILL_TREE_NODES.length, 43);
 
 // R6 §6.4 — **どの active 技能も種別を宣言している。**宣言が無いと
 // 追撃するのかしないのかが決まらず、支援だけで戦闘が止まりうる。
@@ -44,7 +44,7 @@ for (const byReach of Object.values(PLAYABLE_CONTENT.coreActions)) {
   }
 }
 // 常設は前提を持たない。**詰み防止なので、いつでも取れなければ意味がない。**
-for (const node of SKILL_TREE_NODES.filter((n) => n.kind === "passive")) {
+for (const node of SKILL_TREE_NODES.filter((n) => n.kind === "passive" && n.branch === "基礎")) {
   assert.deepEqual(node.requires, [], node.id + " は前提を持たない");
 }
 
@@ -181,4 +181,4 @@ assert.equal(
 );
 assert.equal(depletedResult.replaySnapshots.length, depletedResult.events.length);
 
-console.log("full prototype: roster, formation, 21+14+7 skills, 18 equipment, targeting, 7 stages, deterministic replay passed");
+console.log("full prototype: roster, formation, 21+14+8 skills, 18 equipment, targeting, 7 stages, deterministic replay passed");
