@@ -75,6 +75,9 @@ const PREMIUM_GATE = 2.0;
 const SHIPPED_DIFFICULTY = 1.0;
 // 天井。**考え抜いた編成に届いてほしい高さ**（作者指定、2026-08-30）。
 const CEILING_GATE = 2.0;
+// 素朴な編成に対する差。**「単純なビルドが山登りに大きく負ける」**（作者指定）。
+// 「大きく」の中身は指定が無いので 1.5 倍とし、数字を見る前に決めた。
+const NAIVE_MARGIN_GATE = 1.5;
 // 陰性参照の許容。全編成が同一なのだから、ちょうど 1.00 のはず。
 // 二分探索の刻みぶんだけ緩める。
 const IDENTICAL_TOLERANCE = 1.001;
@@ -405,6 +408,34 @@ function authorLoadout() {
   return loadout;
 }
 
+// **コンボを組まない素朴な編成**（作者の指定、2026-08-30）。
+// 無作為編成は戦略ではないが、これは実在するプレイヤーの戦略。
+// **「よく考えたビルドは、パッと思いつく編成より強くあってほしい」**を関門にする。
+const NAIVE_BUILDS = {
+  "全員回復": { tactics: ["mend", "triage", "strike"], reactives: ["overflow_care", "triage_relay", "brace_after_hit"] },
+  "全員防御": { tactics: ["bulwark", "brace_for_impact", "strike"], reactives: ["cover_ally", "guard_step", "barrier_bloom"] },
+  "全員攻撃": { tactics: ["strike", "heavy_swing", "rapid_cuts"], reactives: ["counter_blow", "damage_echo", "scavenge_ap"] },
+  "攻撃2 回復2 防御1": null, // 役割ごとに割り振る。下で組む
+};
+// 素朴な編成でも、空き枠を空けたままにはしない（枠を埋めるコストはゼロなので、
+// 空けた版と比べると「絞ると弱い」ぶんだけ関門が甘くなる）。
+function naiveLoadout(name) {
+  const loadout = freshLoadout(ROSTER);
+  const roles = NAIVE_BUILDS[name];
+  const attack = NAIVE_BUILDS["全員攻撃"];
+  const care = NAIVE_BUILDS["全員回復"];
+  const guard = NAIVE_BUILDS["全員防御"];
+  const mix = [attack, attack, care, care, guard];
+  ROSTER.forEach((id, index) => {
+    const role = roles ?? mix[index];
+    loadout.tactics[id] = [...role.tactics];
+    loadout.reactives[id] = [...role.reactives];
+    loadout.passives[id] = ["foundation_vitality", "foundation_ap"];
+    loadout.equipment[id] = role === guard ? ["bastion_shell", "standing_plate"] : ["quickstrap", "reserve_coil"];
+  });
+  return loadout;
+}
+
 // **出荷難度をどこへ置くと、無作為編成が通らなくなるか。**
 // 関門ではなく判断材料。床が落ちたとき、次に動かす一つ目の数がこれになる。
 function shippingDial(row) {
@@ -434,6 +465,14 @@ ROSTER.length = 0;
 ROSTER.push(...defaultRoster);
 console.log(`\n  作者が挙げた最強編成（参照点、関門ではない）: ${authorTolerance.toFixed(2)} 倍`
   + `　無作為の中央値の ${(authorTolerance / realRow.median).toFixed(2)} 倍 / 探索の天井の ${(authorTolerance / realRow.searched).toFixed(2)} 倍`);
+
+console.log("\n  コンボを組まない素朴な編成（関門の相手）:");
+const naiveRows = Object.keys(NAIVE_BUILDS).map((name) => ({ name, tolerance: tolerance(naiveLoadout(name)) }));
+naiveRows.sort((a, b) => b.tolerance - a.tolerance);
+for (const row of naiveRows) console.log(`    ${row.name.padEnd(20)} ${row.tolerance.toFixed(2)} 倍`);
+const bestNaive = naiveRows[0];
+console.log(`    → 最良の素朴編成 ${bestNaive.tolerance.toFixed(2)} 倍（${bestNaive.name}）`
+  + `　探索の天井はその ${(realRow.searched / bestNaive.tolerance).toFixed(2)} 倍`);
 
 console.log("\n  出荷難度をどこへ置くか（関門ではなく判断材料。天井は "
   + realRow.searched.toFixed(2) + " 倍）:");
@@ -471,6 +510,15 @@ assert.ok(
   + ` 48回引き直したときの当たり（運の幅 ${realRow.luckSpread.toFixed(2)} 倍）と比べても`
   + (realRow.premium <= realRow.luckSpread ? "小さい" : "大きくない")
   + "。**上振れる編成が存在しない。** 技能・装備の側に、掛け算になる軸が要る",
+);
+
+// 素朴な編成との差 — 考え抜いた編成は、パッと思いつく編成に大きく勝ってほしい。
+assert.ok(
+  realRow.searched >= bestNaive.tolerance * NAIVE_MARGIN_GATE,
+  `【素朴編成との差】探索の天井 ${realRow.searched.toFixed(2)} 倍に対し、`
+  + ` コンボを組まない素朴な編成「${bestNaive.name}」が ${bestNaive.tolerance.toFixed(2)} 倍まで耐える。`
+  + ` 差は ${(realRow.searched / bestNaive.tolerance).toFixed(2)} 倍で、閾値 ${NAIVE_MARGIN_GATE} に届かない。`
+  + " **考え抜いた編成が、パッと思いつく編成に大きく勝てていない**",
 );
 
 console.log("\n決着しなかった戦闘（イベント上限）: " + eventLimitHits + " 件。"
