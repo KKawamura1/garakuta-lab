@@ -149,13 +149,13 @@ const legacyResult = simulateBattle(legacyBattle, PLAYABLE_CONTENT, PLAYABLE_ENG
 assert.ok(legacyResult.events.length < 4096, "old idle_shuffle saves must remain safe");
 
 const targetCheck = simulateBattle(firstBattle, PLAYABLE_CONTENT, PLAYABLE_ENGINE_OPTIONS);
-const marksmanTarget = targetCheck.events.find((event) =>
-  event.type === "target_selected" && event.sourceActorId === "e_marksman"
+const stalkerTarget = targetCheck.events.find((event) =>
+  event.type === "target_selected" && event.sourceActorId === "e_stalker"
 );
-assert.ok(marksmanTarget, "the rear attacker must select a target");
+assert.ok(stalkerTarget, "the rear attacker must select a target");
 const targetedActor = targetCheck.actors.find((actor) =>
-  actor.instanceId === marksmanTarget.targetActorIds?.[0] ||
-  actor.instanceId === marksmanTarget.targetIds?.[0]
+  actor.instanceId === stalkerTarget.targetActorIds?.[0] ||
+  actor.instanceId === stalkerTarget.targetIds?.[0]
 );
 assert.equal(targetedActor?.position, "rear_left");
 
