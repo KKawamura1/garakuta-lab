@@ -30,7 +30,7 @@ import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 Full prototype 0.3";
+const VERSION = "EXP-18 Phase A 0.4";
 const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
@@ -808,11 +808,17 @@ function eventText(event) {
     preparation_advanced: source + "の準備が進む",
     preparation_completed: source + "の準備が完了",
     preparation_interrupted: source + "の準備が止まった",
-    damage_taken: arrow + target + " に " + number + " ダメージ",
+    // 受けで減ったぶんは、隠すと「なぜ通らないのか」が読めなくなる。
+    damage_taken: arrow + target + " に " + number + " ダメージ"
+      + (values.guardApplied > 0 ? "（受けで -" + values.guardApplied + "）" : ""),
     excess_damage: "攻撃が" + amountText + "余った",
     healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
     barrier_gained: target + " に防壁 " + number,
+    // R6 §6.7 — block と guard。**何がどれだけ止めたのかを文字でも残す。**
+    block_gained: target + " に受け構え " + number,
+    block_spent: target + " の受け構えが1つ減った",
+    damage_blocked: arrow + target + " の受け構えが " + (values.proposed ?? "") + " を止めた",
     resource_refreshed: target + "の" + resourceLabel(values.resource) + "が戻った",
     resource_unused: source + "は" + resourceLabel(values.resource) + "を余らせた",
     action_cost_paid: source + "が" + skill + "の代価を払った",
@@ -953,14 +959,21 @@ function unitHtml(actor) {
     + "<div class=\"unit-cast\"></div></div>";
 }
 
+// 盤面は 2×3 のまま見せる。**折り返して並べ替えると隊列が読めなくなる**
+// （前3後2 と 前2後3 の違いが、まさに「どの枠が空いているか」なので）。
+const BATTLE_COLUMNS = ["left", "center", "right"];
+
 function battleRowsHtml(actors, side) {
   const mine = actors.filter((actor) => actor.side === side);
-  const front = mine.filter((actor) => positionRows[actor.position] === "前列");
-  const rear = mine.filter((actor) => positionRows[actor.position] !== "前列");
-  const ordered = side === "enemy" ? [["後列", rear], ["前列", front]] : [["前列", front], ["後列", rear]];
-  const rows = ordered.filter(([, list]) => list.length).map(([label, list]) =>
-    "<div class=\"battle-row\"><span class=\"battle-row-label\">" + label + "</span>"
-    + "<div class=\"battle-units\">" + list.map(unitHtml).join("") + "</div></div>").join("");
+  const rowsOrder = side === "enemy" ? ["rear", "front"] : ["front", "rear"];
+  const rows = rowsOrder.map((row) => {
+    const cells = BATTLE_COLUMNS.map((column) => {
+      const actor = mine.find((entry) => entry.position === row + "_" + column);
+      return actor ? unitHtml(actor) : "<div class=\"unit-empty\" aria-hidden=\"true\"></div>";
+    }).join("");
+    return "<div class=\"battle-row\"><span class=\"battle-row-label\">"
+      + (row === "front" ? "前列" : "後列") + "</span><div class=\"battle-units\">" + cells + "</div></div>";
+  }).join("");
   return "<span class=\"battle-side-label\">" + (side === "enemy" ? "敵" : "味方") + "</span>" + rows;
 }
 
@@ -987,7 +1000,7 @@ function renderBattle() {
     + button("結果を見る", "replay-result", false, "button") + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">HOW TO READ</p>"
     + "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。箱の上に浮かぶ数字がダメージ（赤）・回復（緑）・防壁（青）、"
-    + "箱の下の帯がHP、箱の中の札がいま使っている技能です。右下の粒は残っている行動権（金 ◆）と反応権（青 ◈）で、"
+    + "箱の下の帯がHP、箱の中の札がいま使っている技能です。防御は3つあり、<b>◈防壁</b>は総量を受け、<b>▣受け構え</b>は一撃を丸ごと止め、<b>盾受け</b>は一撃ごとに固定で引きます。右下の粒は残っている行動権（金 ◆）と反応権（青 ◈）で、"
     + "金が尽きた仲間はそのラウンドの主行動を終えています。細かい因果を追いたいときだけ、下のデバッグログを開いてください。</p></section>"
     + "<details class=\"card debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>デバッグログ（アニメーションで分かりにくいとき）</summary>"
@@ -1035,6 +1048,10 @@ function floatsFor(event) {
       return targets.map((id) => ({ actorId: id, text: "◈" + (values.amount ?? 0), tone: tone("barrier"), cause }));
     case "actor_defeated":
       return targets.map((id) => ({ actorId: id, text: "撃破", tone: "defeat" }));
+    case "damage_blocked":
+      return targets.map((id) => ({ actorId: id, text: "止めた", tone: "blocked" }));
+    case "block_gained":
+      return targets.map((id) => ({ actorId: id, text: "▣" + (values.amount ?? 1), tone: "barrier" }));
     case "actor_moved":
       return sourceId ? [{ actorId: sourceId, text: "位置替え", tone: "move" }] : [];
     case "status_added": {
@@ -1116,7 +1133,13 @@ function unitPipsHtml(actor) {
 
 function unitMarksHtml(actor) {
   const marks = [];
+  // R6 §6.7 — 防御は3つある。**同じ「硬さ」でも問われるものが違う**ので、別々に出す。
+  //   ◈ 防壁 … 総量を受ける
+  //   ▣ 受け構え … 一撃を丸ごと止める（回数）
+  //   盾 受け … 一撃ごとに固定で引く
+  if (actor.block > 0) marks.push("<span class=\"mark block\">▣" + actor.block + "</span>");
   if (actor.barrier > 0) marks.push("<span class=\"mark barrier\">◈" + actor.barrier + "</span>");
+  if (actor.guard > 0) marks.push("<span class=\"mark guard\">盾" + actor.guard + "</span>");
   for (const status of actor.statuses || []) {
     const info = statusInfo(status.statusId);
     if (!info) continue;

@@ -46,6 +46,12 @@ function actorSnapshots(state) {
       actionPoints: actor.actionPoints,
       reactionPoints: actor.reactionPoints,
       barrier: (actor.barriers || []).reduce((sum, packet) => sum + packet.amount, 0),
+      // R6 §4.4 / §6.7 — PHASE A. 盤面が guard と block を出せるように運ぶ。
+      // **出せない値は、遊ぶ側にとって無いのと同じ。**
+      guard: actor.guard ?? 0,
+      block: actor.block ?? 0,
+      might: actor.might ?? 0,
+      focus: actor.focus ?? 0,
       statuses: (actor.statuses || []).map((status) => ({
         statusId: status.statusId,
         stacks: status.stacks,
