@@ -288,8 +288,53 @@ function loadState() {
 
 let state = loadState();
 
+// Keep the live replay in memory, but avoid persisting the same snapshots twice.
+// Safari can hit its Web Storage quota around the sixth, event-heavy battle;
+// an exception here used to happen before render(), leaving the user on the
+// "自動戦闘を再生する" screen even though simulation had completed.
+function persistableState() {
+  const persisted = { ...state };
+  if (state.lastResult && typeof state.lastResult === "object") {
+    // Copy only the object that we trim; the live state remains untouched.
+    persisted.lastResult = { ...state.lastResult };
+    // state.replaySnapshots is the copy used by the replay screen.
+    delete persisted.lastResult.replaySnapshots;
+  }
+  return persisted;
+}
+
+function isRecoverableStorageError(error) {
+  return [
+    "QuotaExceededError",
+    "NS_ERROR_DOM_QUOTA_REACHED",
+    "SecurityError",
+  ].includes(error?.name);
+}
+
 function saveState() {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(persistableState()));
+    return true;
+  } catch (error) {
+    if (!isRecoverableStorageError(error)) throw error;
+    try {
+      // The current tab remains fully playable even if the device can only
+      // retain a smaller checkpoint. Keep the latest replay if possible;
+      // otherwise keep enough run history to resume from the current area.
+      const minimal = persistableState();
+      if (minimal.lastResult && typeof minimal.lastResult === "object") {
+        delete minimal.lastResult.events;
+      }
+      minimal.runEvents = Array.isArray(minimal.runEvents)
+        ? minimal.runEvents.slice(-400)
+        : [];
+      localStorage.setItem(SAVE_KEY, JSON.stringify(minimal));
+    } catch (retryError) {
+      if (!isRecoverableStorageError(retryError)) throw retryError;
+      // Persistence is best-effort. Do not block the in-memory battle UI.
+    }
+    return false;
+  }
 }
 
 function clone(value) {
@@ -1339,7 +1384,7 @@ function renderResult() {
   if (!result) return renderCamp();
   const won = result.result === "win";
   const metrics = result.metrics || {};
-  const events = compactEvents(result.events);
+  const events = compactEvents(result.events || state.replayEvents);
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   const next = won
     ? state.stage >= 7
@@ -1372,7 +1417,7 @@ function renderResult() {
     + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
       + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
       + "<code class=\"event-type\">" + esc(event.type) + "</code></li>").join("") + "</ol>"
-    + "<details><summary>全イベントを見る</summary><pre>" + esc((result.events || []).map(eventText).join("\n")) + "</pre></details></details>"
+    + "<details><summary>全イベントを見る</summary><pre>" + esc((result.events || state.replayEvents || []).map(eventText).join("\n")) + "</pre></details></details>"
     + next);
 }
 
