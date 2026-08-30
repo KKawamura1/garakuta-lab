@@ -44,6 +44,8 @@ const reactiveMeta = {
   damage_echo: ["痛みの反響", "被弾した敵へ1ダメージを返す。", "被弾"],
   barrier_bloom: ["防壁の花", "防壁を得たとき、さらに防壁1。", "防壁"],
   prep_spiral: ["準備の螺旋", "準備が進むたび、自分の準備をさらに1段進める。", "準備"],
+  block_focus: ["受け返しの集中", "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。", "防御"],
+  barrier_stitch: ["防壁の縫い直し", "防壁が壊れたあと、RP1で受け構えを1つ得る。", "防御"],
 };
 
 const equipmentMeta = {
@@ -109,6 +111,8 @@ export const SKILL_TREE_NODES = Object.freeze([
   { id: "node_urging", skillId: "urging", kind: "reactive", branch: "支援", tier: 0, cost: 1, requires: ["mend"] },
   { id: "node_prep_spiral", skillId: "prep_spiral", kind: "reactive", branch: "支援", tier: 1, cost: 2, requires: ["urging"] },
   { id: "node_ap_loop", skillId: "ap_loop", kind: "reactive", branch: "指揮", tier: 1, cost: 2, requires: ["scavenge_ap"] },
+  { id: "node_block_focus", skillId: "block_focus", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["brace_after_hit"] },
+  { id: "node_barrier_stitch", skillId: "barrier_stitch", kind: "reactive", branch: "守り", tier: 2, cost: 1, requires: ["barrier_bloom"] },
   // R6 §17.1 — Phase A の攻撃 archetype。攻撃系統の T1/T2 へ置く。
   { id: "node_rapid", skillId: "rapid_cuts", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
   { id: "node_pierce", skillId: "pierce_thrust", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },

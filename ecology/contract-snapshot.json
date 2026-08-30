@@ -2385,6 +2385,106 @@
     "tags": [
      "termination"
     ]
+   },
+   "block_focus": {
+    "id": "block_focus",
+    "displayName": "受け返しの集中",
+    "rule": {
+     "id": "block_focus_rule",
+     "listenTo": "damage_blocked",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "focused",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "scope": "round",
+      "count": 1
+     },
+     "priority": 100
+    },
+    "tags": [
+     "reaction",
+     "tempo"
+    ]
+   },
+   "barrier_stitch": {
+    "id": "barrier_stitch",
+    "displayName": "防壁の縫い直し",
+    "rule": {
+     "id": "barrier_stitch_rule",
+     "listenTo": "barrier_broken",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "gain_block",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "amount": {
+        "type": "constant",
+        "value": 1
+       }
+      }
+     ],
+     "limit": {
+      "scope": "round",
+      "count": 1
+     },
+     "priority": 100
+    },
+    "tags": [
+     "reaction",
+     "guard"
+    ]
    }
   },
   "passiveSkills": {
@@ -4073,6 +4173,8 @@
   "relay_front": "前列への号令",
   "relay_rear": "後列への号令",
   "prep_spiral": "準備の螺旋",
+  "block_focus": "受け返しの集中",
+  "barrier_stitch": "防壁の縫い直し",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -4497,6 +4599,22 @@
     "label": "準備の螺旋",
     "effect": "準備が進むたび、自分の準備をさらに1段進める。",
     "grammar": "準備"
+   },
+   "block_focus": {
+    "id": "block_focus",
+    "kind": "reactive",
+    "definitionId": "block_focus",
+    "label": "受け返しの集中",
+    "effect": "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。",
+    "grammar": "防御"
+   },
+   "barrier_stitch": {
+    "id": "barrier_stitch",
+    "kind": "reactive",
+    "definitionId": "barrier_stitch",
+    "label": "防壁の縫い直し",
+    "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
+    "grammar": "防御"
    }
   },
   "passive": {
@@ -4987,6 +5105,22 @@
    "effect": "準備が進むたび、自分の準備をさらに1段進める。",
    "grammar": "準備"
   },
+  "block_focus": {
+   "id": "block_focus",
+   "kind": "reactive",
+   "definitionId": "block_focus",
+   "label": "受け返しの集中",
+   "effect": "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。",
+   "grammar": "防御"
+  },
+  "barrier_stitch": {
+   "id": "barrier_stitch",
+   "kind": "reactive",
+   "definitionId": "barrier_stitch",
+   "label": "防壁の縫い直し",
+   "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
+   "grammar": "防御"
+  },
   "foundation_vitality": {
    "id": "foundation_vitality",
    "kind": "passive",
@@ -5240,6 +5374,8 @@
   "damage_echo",
   "barrier_bloom",
   "prep_spiral",
+  "block_focus",
+  "barrier_stitch",
   "foundation_vitality",
   "foundation_might",
   "foundation_focus",
@@ -5521,6 +5657,28 @@
    "cost": 2,
    "requires": [
     "scavenge_ap"
+   ]
+  },
+  {
+   "id": "node_block_focus",
+   "skillId": "block_focus",
+   "kind": "reactive",
+   "branch": "守り",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "brace_after_hit"
+   ]
+  },
+  {
+   "id": "node_barrier_stitch",
+   "skillId": "barrier_stitch",
+   "kind": "reactive",
+   "branch": "守り",
+   "tier": 2,
+   "cost": 1,
+   "requires": [
+    "barrier_bloom"
    ]
   },
   {
