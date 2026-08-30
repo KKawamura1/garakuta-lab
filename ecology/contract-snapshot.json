@@ -5077,7 +5077,7 @@
     "kind": "active",
     "definitionId": "row_sweep",
     "label": "薙ぎ払い",
-    "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。1体なら通常攻撃へ戻る。",
+    "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "column_thrust": {
@@ -5101,7 +5101,7 @@
     "kind": "active",
     "definitionId": "rear_hunt",
     "label": "後衛狩り",
-    "effect": "後列の生存者だけを120%で狙う。後列がいないときは通常攻撃へ戻る。",
+    "effect": "後列の生存者がいるときだけ120%で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "finishing_thrust": {
@@ -5109,7 +5109,7 @@
     "kind": "active",
     "definitionId": "finishing_thrust",
     "label": "止めの一突き",
-    "effect": "HP半分以下の敵だけを140%で狙う。条件なしでは通常攻撃へ戻る。",
+    "effect": "HP半分以下の敵がいるときだけ140%で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "crack_mark": {
@@ -5117,7 +5117,7 @@
     "kind": "active",
     "definitionId": "crack_mark",
     "label": "傷口を開く",
-    "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。すでに隙があれば通常攻撃へ戻る。",
+    "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "brace_for_impact": {
@@ -5141,7 +5141,7 @@
     "kind": "active",
     "definitionId": "mend",
     "label": "手当て",
-    "effect": "傷ついた味方を100%回復。負傷者がいなければ通常攻撃へ戻る。",
+    "effect": "傷ついた味方を100%回復。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "bulwark": {
@@ -5189,7 +5189,7 @@
     "kind": "active",
     "definitionId": "triage",
     "label": "応急手当",
-    "effect": "HP半分以下の味方を100%回復。条件なしでは通常攻撃へ戻る。",
+    "effect": "HP半分以下の味方を100%回復。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "hunt_the_slow": {
@@ -5197,7 +5197,7 @@
     "kind": "active",
     "definitionId": "hunt_the_slow",
     "label": "準備狩り",
-    "effect": "準備中の敵へ120%の一撃。いなければ次の攻撃へ進む。",
+    "effect": "準備中の敵がいるときだけ120%で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "idle_shuffle": {
@@ -5205,7 +5205,7 @@
     "kind": "active",
     "definitionId": "idle_shuffle",
     "label": "息を整える",
-    "effect": "自分に集中を1つ付ける。集中中は使わない。",
+    "effect": "自分に集中を1つ付ける。集中中はスキップ。",
     "grammar": "準備"
    },
    "mark_target": {
@@ -5213,7 +5213,7 @@
     "kind": "active",
     "definitionId": "mark_target",
     "label": "隙を刻む",
-    "effect": "まだ「隙」のない敵に付与する。全員に隙があれば通常攻撃へ戻る。",
+    "effect": "まだ「隙」のない敵に付与する。対象がいなければスキップ。",
     "grammar": "指揮"
    },
    "steady_aim": {
@@ -5221,7 +5221,7 @@
     "kind": "active",
     "definitionId": "steady_aim",
     "label": "狙いを澄ます",
-    "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中は通常攻撃。",
+    "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
     "grammar": "準備"
    }
   },
@@ -5646,7 +5646,7 @@
    "kind": "active",
    "definitionId": "row_sweep",
    "label": "薙ぎ払い",
-   "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。1体なら通常攻撃へ戻る。",
+   "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "column_thrust": {
@@ -5670,7 +5670,7 @@
    "kind": "active",
    "definitionId": "rear_hunt",
    "label": "後衛狩り",
-   "effect": "後列の生存者だけを120%で狙う。後列がいないときは通常攻撃へ戻る。",
+   "effect": "後列の生存者がいるときだけ120%で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "finishing_thrust": {
@@ -5678,7 +5678,7 @@
    "kind": "active",
    "definitionId": "finishing_thrust",
    "label": "止めの一突き",
-   "effect": "HP半分以下の敵だけを140%で狙う。条件なしでは通常攻撃へ戻る。",
+   "effect": "HP半分以下の敵がいるときだけ140%で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "crack_mark": {
@@ -5686,7 +5686,7 @@
    "kind": "active",
    "definitionId": "crack_mark",
    "label": "傷口を開く",
-   "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。すでに隙があれば通常攻撃へ戻る。",
+   "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "brace_for_impact": {
@@ -5710,7 +5710,7 @@
    "kind": "active",
    "definitionId": "mend",
    "label": "手当て",
-   "effect": "傷ついた味方を100%回復。負傷者がいなければ通常攻撃へ戻る。",
+   "effect": "傷ついた味方を100%回復。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "bulwark": {
@@ -5758,7 +5758,7 @@
    "kind": "active",
    "definitionId": "triage",
    "label": "応急手当",
-   "effect": "HP半分以下の味方を100%回復。条件なしでは通常攻撃へ戻る。",
+   "effect": "HP半分以下の味方を100%回復。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "hunt_the_slow": {
@@ -5766,7 +5766,7 @@
    "kind": "active",
    "definitionId": "hunt_the_slow",
    "label": "準備狩り",
-   "effect": "準備中の敵へ120%の一撃。いなければ次の攻撃へ進む。",
+   "effect": "準備中の敵がいるときだけ120%で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "idle_shuffle": {
@@ -5774,7 +5774,7 @@
    "kind": "active",
    "definitionId": "idle_shuffle",
    "label": "息を整える",
-   "effect": "自分に集中を1つ付ける。集中中は使わない。",
+   "effect": "自分に集中を1つ付ける。集中中はスキップ。",
    "grammar": "準備"
   },
   "mark_target": {
@@ -5782,7 +5782,7 @@
    "kind": "active",
    "definitionId": "mark_target",
    "label": "隙を刻む",
-   "effect": "まだ「隙」のない敵に付与する。全員に隙があれば通常攻撃へ戻る。",
+   "effect": "まだ「隙」のない敵に付与する。対象がいなければスキップ。",
    "grammar": "指揮"
   },
   "steady_aim": {
@@ -5790,7 +5790,7 @@
    "kind": "active",
    "definitionId": "steady_aim",
    "label": "狙いを澄ます",
-   "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中は通常攻撃。",
+   "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
    "grammar": "準備"
   },
   "counter_blow": {
