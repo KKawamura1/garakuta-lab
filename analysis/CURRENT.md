@@ -65,6 +65,10 @@ PR #49は、8人から4人を選び、24技能、18装備、7区画を一周す�
 
 R6の文書完成は面白さの証明ではありません。最初はPhase Aのparameter、五人formation、skill枠、攻撃・防御文法だけを実装し、作者が1〜2遠征で差を説明・利用できた場合だけPhase Bへ進みます。
 
+systemとcontentの実装順序は
+[R7_IMPLEMENTATION_SEQUENCE_AND_PARALLEL_CONTENT_EXPANSION](experiments/exp-18/R7_IMPLEMENTATION_SEQUENCE_AND_PARALLEL_CONTENT_EXPANSION.md)
+を正とします。未来の全systemを先に作らず、content file分離とversioned contractを先に固定します。Phase A作者支持後に小さな技能・敵・固定装備probeを追加し、Phase B以降は既存語彙のcontentだけをsystem実装と並列可能にします。procedural affixと複数rule装備はPhase C契約後です。現行の一実装担当制は変更していません。
+
 ## 5. 現在の設計上の不変条件
 
 - 機体・ガラクタではなく、永続する人物を愛着の主語にする。
