@@ -20,6 +20,9 @@ import {
   removeSkill,
   reorderTactic,
   rewardOffer,
+  PARTY_SIZE,
+  ensurePartySize,
+  normalizeFormation,
 } from "./playable-battles.mjs";
 import { POSITIONS } from "./schema.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
@@ -31,14 +34,18 @@ const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
   front_left: "前列左",
+  front_center: "前列中",
   front_right: "前列右",
   rear_left: "後列左",
+  rear_center: "後列中",
   rear_right: "後列右",
 };
 const positionRows = {
   front_left: "前列",
+  front_center: "前列",
   front_right: "前列",
   rear_left: "後列",
+  rear_center: "後列",
   rear_right: "後列",
 };
 const kindLabels = { active: "行動", reactive: "反応", equipment: "装備" };
@@ -182,24 +189,13 @@ function defaultFormation(roster) {
   return normalizeFormation(formation, roster);
 }
 
-function normalizeFormation(formation, roster) {
-  const next = {};
-  const used = new Set();
-  for (const id of roster) {
-    const requested = formation?.[id];
-    const position = POSITIONS.includes(requested) && !used.has(requested)
-      ? requested
-      : POSITIONS.find((candidate) => !used.has(candidate));
-    if (position) {
-      next[id] = position;
-      used.add(position);
-    }
-  }
-  return next;
+function partyLabel() {
+  return state.roster.length + " / " + PARTY_SIZE + "人";
 }
 
+
 function newRunState(meta) {
-  const roster = ["warden", "mender", "lancer", "scout"];
+  const roster = ensurePartySize(["warden", "mender", "lancer", "scout"]);
   return {
     phase: "camp",
     tab: "roster",
@@ -257,9 +253,12 @@ function loadState() {
       meta.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
     }
     next.meta = meta;
-    next.roster = Array.isArray(next.roster)
-      ? next.roster.filter((id) => characterInfo(id)).slice(0, 4)
-      : fresh.roster;
+    // R6 §5.4 — 4人の旧 save は5人へ育てる。**SAVE_KEY は上げない**
+    // （上げると作者の進行が消える）。足りない一人は並び順の先頭から決定的に選び、
+    // 位置は normalizeFormation が前3後2／前2後3へ落とす。
+    next.roster = ensurePartySize(
+      Array.isArray(next.roster) ? next.roster.filter((id) => characterInfo(id)) : fresh.roster,
+    );
     next.formation = normalizeFormation(next.formation, next.roster);
     next.loadout = next.loadout || freshLoadout(next.roster);
     const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
@@ -411,7 +410,7 @@ function sectionHeading(eyebrow, title, right = "") {
 function campNav() {
   const skillCharacter = selectedCharacter();
   const tabs = [
-    ["roster", "編成", state.roster.length + "/4"],
+    ["roster", "編成", partyLabel()],
     ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
     ["equipment", "装備", state.roster.reduce((total, id) => total + (state.loadout.equipment?.[id] || []).length, 0) + "/" + (state.roster.length * 2)],
     ["map", "戦闘", state.stage + "/7"],
@@ -464,11 +463,11 @@ function restoreSkillTreeScroll() {
 
 function renderIntro() {
   return shell("灰の遠征", "仲間の役割、技能、装備、隊列を組み替えて7区画を越える", "<section class=\"hero card\">"
-    + "<div class=\"sigil\">◈</div><p class=\"lead\">4人を選び、4つの位置へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
+    + "<div class=\"sigil\">◈</div><p class=\"lead\">5人を選び、2×3の6枠へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
     + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。</p>"
     + button("遠征を始める", "start", false, "button primary")
-    + "<div class=\"loop\"><span><b>1</b>4人を編成</span><span><b>2</b>技能を解禁・装着</span><span><b>3</b>装備を2枠へ組む</span><span><b>4</b>自動戦闘で検証</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>8人の仲間</b><span>固有の役割と初期技能</span></div><div class=\"card\"><b>24技能</b><span>行動12・反応12</span></div><div class=\"card\"><b>18装備</b><span>耐久を持つ実物</span></div></section>");
+    + "<div class=\"loop\"><span><b>1</b>5人を編成</span><span><b>2</b>技能を解禁・装着</span><span><b>3</b>装備を2枠へ組む</span><span><b>4</b>自動戦闘で検証</span></div></section>"
+    + "<section class=\"three-up\"><div class=\"card\"><b>8人から5人</b><span>2×3の6枠に一枠空く</span></div><div class=\"card\"><b>24技能</b><span>行動12・反応12</span></div><div class=\"card\"><b>18装備</b><span>耐久を持つ実物</span></div></section>");
 }
 
 function renderCamp() {
@@ -479,7 +478,7 @@ function renderCamp() {
     map: renderMap,
   }[state.tab]();
   const title = state.tab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
-  const subtitle = "第" + state.stage + "区画 · " + encounterInfo(state.stage).name + " · 4人編成";
+  const subtitle = "第" + state.stage + "区画 · " + encounterInfo(state.stage).name + " · " + partyLabel();
   return shell(title, subtitle, campNav() + view);
 }
 
@@ -513,16 +512,16 @@ function renderRoster() {
       + (inParty ? button("外す", "toggle-roster", state.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"") : "")
       + "</article>";
   }).join("");
-  return "<section class=\"card\">" + sectionHeading("FORMATION / 4 SLOTS", "誰がどこに立つ？", "<span class=\"stage\">"
-    + state.roster.length + " / 4人</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。前列・後列は敵の狙いと技能の条件に影響します。</p>"
+  return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
+    + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>5人で6枠なので、必ず一枠が空きます。</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
     + (formationSelection ? "<span class=\"formation-selection-actions\">" + button("選択解除", "clear-formation-selection", false, "tiny-button") + "</span>" : "") + "</p></section>"
-    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → 4", "同行する仲間を選ぶ")
+    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → " + PARTY_SIZE, "同行する仲間を選ぶ")
     + "<p class=\"muted\">8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。</p>"
     + "<div class=\"character-grid\">" + characterCards + "</div></section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで行動2・反応2を組み、装備画面で実物を2枠に割り当ててください。</p>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を組み、装備画面で実物を2枠に割り当ててください。</p>"
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
 
@@ -1365,7 +1364,7 @@ function renderComplete() {
   const trail = state.roster.map(characterName).join("、");
   const gear = state.meta.ownedEquipment.map((id) => EQUIPMENT[id]?.label ?? id).join("、");
   return shell("遠征を終えた", "今回の編成と因果を記録する", "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>7区画を見届けた</h2><p>今回の仲間: "
-    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし") + "</p><div class=\"build-trail\"><span><i>1</i>4人を選び、隊列を組んだ</span><span><i>2</i>技能ツリーから実際の技能を装着した</span><span><i>3</i>装備2枠と敵の狙いを考えた</span><span><i>4</i>自動戦闘の因果を確認した</span></div></section>"
+    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし") + "</p><div class=\"build-trail\"><span><i>1</i>5人を選び、2×3へ組んだ</span><span><i>2</i>技能ツリーから実際の技能を装着した</span><span><i>3</i>装備2枠と敵の狙いを考えた</span><span><i>4</i>自動戦闘の因果を確認した</span></div></section>"
     + "<section class=\"card feedback\"><p class=\"eyebrow\">HUMAN CHECK</p><h2>今回のUIについて</h2><label>もう一度遊びたい度<select id=\"feedback-replay\">"
     + option("", "選択してください", !feedback.replay) + option("1", "1 — もう遊ばない", feedback.replay === "1")
     + option("2", "2", feedback.replay === "2") + option("3", "3", feedback.replay === "3")
@@ -1532,8 +1531,8 @@ function handleAction(event) {
         ensureSelectedCharacter();
         record("roster_changed", { roster: [...state.roster], removed: id });
       }
-    } else if (state.roster.length >= 4) {
-      state.error = "編成は4人までです。";
+    } else if (state.roster.length >= PARTY_SIZE) {
+      state.error = "編成は" + PARTY_SIZE + "人までです。";
     } else {
       state.roster = [...state.roster, id];
       const fresh = freshLoadout([id]);
@@ -1688,8 +1687,8 @@ function handleAction(event) {
   }
 
   if (action === "begin-stage") {
-    if (state.roster.length !== 4) {
-      state.error = "出発には4人の編成が必要です。";
+    if (state.roster.length !== PARTY_SIZE) {
+      state.error = "出発には" + PARTY_SIZE + "人の編成が必要です。";
       state.tab = "roster";
     } else {
       state.formation = normalizeFormation(state.formation, state.roster);

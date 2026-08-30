@@ -4936,6 +4936,10 @@
    "scout": [
     "mark_target",
     "reposition"
+   ],
+   "guardian": [
+    "bulwark",
+    "strike"
    ]
   },
   "reactives": {
@@ -4954,13 +4958,18 @@
    "scout": [
     "guard_step",
     "urging"
+   ],
+   "guardian": [
+    "cover_ally",
+    "brace_after_hit"
    ]
   },
   "equipment": {
    "warden": [],
    "mender": [],
    "lancer": [],
-   "scout": []
+   "scout": [],
+   "guardian": []
   }
  },
  "battles": {
@@ -5015,7 +5024,7 @@
     {
      "instanceId": "a_lancer",
      "characterId": "lancer",
-     "position": "front_right",
+     "position": "front_center",
      "tactics": [
       {
        "activeSkillId": "strike",
@@ -5049,6 +5058,26 @@
      "reactiveSkillIds": [
       "guard_step",
       "urging"
+     ],
+     "equipment": []
+    },
+    {
+     "instanceId": "a_guardian",
+     "characterId": "guardian",
+     "position": "front_right",
+     "tactics": [
+      {
+       "activeSkillId": "bulwark",
+       "useWhen": []
+      },
+      {
+       "activeSkillId": "strike",
+       "useWhen": []
+      }
+     ],
+     "reactiveSkillIds": [
+      "cover_ally",
+      "brace_after_hit"
      ],
      "equipment": []
     }
@@ -5119,7 +5148,7 @@
     {
      "instanceId": "a_lancer",
      "characterId": "lancer",
-     "position": "front_right",
+     "position": "front_center",
      "tactics": [
       {
        "activeSkillId": "strike",
@@ -5153,6 +5182,26 @@
      "reactiveSkillIds": [
       "guard_step",
       "urging"
+     ],
+     "equipment": []
+    },
+    {
+     "instanceId": "a_guardian",
+     "characterId": "guardian",
+     "position": "front_right",
+     "tactics": [
+      {
+       "activeSkillId": "bulwark",
+       "useWhen": []
+      },
+      {
+       "activeSkillId": "strike",
+       "useWhen": []
+      }
+     ],
+     "reactiveSkillIds": [
+      "cover_ally",
+      "brace_after_hit"
      ],
      "equipment": []
     }
@@ -5223,7 +5272,7 @@
     {
      "instanceId": "a_lancer",
      "characterId": "lancer",
-     "position": "front_right",
+     "position": "front_center",
      "tactics": [
       {
        "activeSkillId": "strike",
@@ -5257,6 +5306,26 @@
      "reactiveSkillIds": [
       "guard_step",
       "urging"
+     ],
+     "equipment": []
+    },
+    {
+     "instanceId": "a_guardian",
+     "characterId": "guardian",
+     "position": "front_right",
+     "tactics": [
+      {
+       "activeSkillId": "bulwark",
+       "useWhen": []
+      },
+      {
+       "activeSkillId": "strike",
+       "useWhen": []
+      }
+     ],
+     "reactiveSkillIds": [
+      "cover_ally",
+      "brace_after_hit"
      ],
      "equipment": []
     }
@@ -5327,7 +5396,7 @@
     {
      "instanceId": "a_lancer",
      "characterId": "lancer",
-     "position": "front_right",
+     "position": "front_center",
      "tactics": [
       {
        "activeSkillId": "strike",
@@ -5361,6 +5430,26 @@
      "reactiveSkillIds": [
       "guard_step",
       "urging"
+     ],
+     "equipment": []
+    },
+    {
+     "instanceId": "a_guardian",
+     "characterId": "guardian",
+     "position": "front_right",
+     "tactics": [
+      {
+       "activeSkillId": "bulwark",
+       "useWhen": []
+      },
+      {
+       "activeSkillId": "strike",
+       "useWhen": []
+      }
+     ],
+     "reactiveSkillIds": [
+      "cover_ally",
+      "brace_after_hit"
      ],
      "equipment": []
     }
@@ -5431,7 +5520,7 @@
     {
      "instanceId": "a_lancer",
      "characterId": "lancer",
-     "position": "front_right",
+     "position": "front_center",
      "tactics": [
       {
        "activeSkillId": "strike",
@@ -5465,6 +5554,26 @@
      "reactiveSkillIds": [
       "guard_step",
       "urging"
+     ],
+     "equipment": []
+    },
+    {
+     "instanceId": "a_guardian",
+     "characterId": "guardian",
+     "position": "front_right",
+     "tactics": [
+      {
+       "activeSkillId": "bulwark",
+       "useWhen": []
+      },
+      {
+       "activeSkillId": "strike",
+       "useWhen": []
+      }
+     ],
+     "reactiveSkillIds": [
+      "cover_ally",
+      "brace_after_hit"
      ],
      "equipment": []
     }
@@ -5541,7 +5650,7 @@
     {
      "instanceId": "a_lancer",
      "characterId": "lancer",
-     "position": "front_right",
+     "position": "front_center",
      "tactics": [
       {
        "activeSkillId": "strike",
@@ -5575,6 +5684,26 @@
      "reactiveSkillIds": [
       "guard_step",
       "urging"
+     ],
+     "equipment": []
+    },
+    {
+     "instanceId": "a_guardian",
+     "characterId": "guardian",
+     "position": "front_right",
+     "tactics": [
+      {
+       "activeSkillId": "bulwark",
+       "useWhen": []
+      },
+      {
+       "activeSkillId": "strike",
+       "useWhen": []
+      }
+     ],
+     "reactiveSkillIds": [
+      "cover_ally",
+      "brace_after_hit"
      ],
      "equipment": []
     }
@@ -5651,7 +5780,7 @@
     {
      "instanceId": "a_lancer",
      "characterId": "lancer",
-     "position": "front_right",
+     "position": "front_center",
      "tactics": [
       {
        "activeSkillId": "strike",
@@ -5685,6 +5814,26 @@
      "reactiveSkillIds": [
       "guard_step",
       "urging"
+     ],
+     "equipment": []
+    },
+    {
+     "instanceId": "a_guardian",
+     "characterId": "guardian",
+     "position": "front_right",
+     "tactics": [
+      {
+       "activeSkillId": "bulwark",
+       "useWhen": []
+      },
+      {
+       "activeSkillId": "strike",
+       "useWhen": []
+      }
+     ],
+     "reactiveSkillIds": [
+      "cover_ally",
+      "brace_after_hit"
      ],
      "equipment": []
     }

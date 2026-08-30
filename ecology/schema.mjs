@@ -346,14 +346,17 @@ export const BATTLE_REASONS = freeze([
 
 // §5.3, §5.5, §5.7 — structural limits that content may not exceed.
 export const LIMITS = freeze({
-  maxAlliesInCampaign: 4,
-  maxAlliesInBattle: 4,
+  // R6 §5.4 — PHASE A. 5人編成、2×3、敵も最大5。
+  maxAlliesInCampaign: 5,
+  maxAlliesInBattle: 5,
   minAlliesInBattle: 1,
-  maxEnemiesInBattle: 4,
+  maxEnemiesInBattle: 5,
   minEnemiesInBattle: 1,
-  maxTactics: 2,
+  // R6 §17.1 — PHASE A. 基本 3 active / 3 reactive / 2 passive。
+  // 人物別の最大 4/4/2 は Phase B（第4枠の購入）で開く。
+  maxTactics: 3,
   maxUseWhen: 2,
-  maxReactiveSkills: 2,
+  maxReactiveSkills: 3,
   maxEquipment: 2,
   minPreparationSteps: 1,
   maxPreparationSteps: 3,

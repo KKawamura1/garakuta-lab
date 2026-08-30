@@ -29,10 +29,13 @@ import {
 
 const STAGES = [1, 2, 3, 4, 5, 6, 7];
 // 観測に使う固定の編成。**seed と同じで、動かしたら比較の意味が消える。**
-const ROSTER = ["warden", "mender", "lancer", "scout"];
+// PHASE A で4人から5人・2×3へ広げた。**観測点が実物と違うと、
+// 凍結が通っても遊べる版のことを何も言っていない。**
+const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
 const FORMATION = {
   warden: "front_left",
-  lancer: "front_right",
+  lancer: "front_center",
+  guardian: "front_right",
   mender: "rear_left",
   scout: "rear_right",
 };

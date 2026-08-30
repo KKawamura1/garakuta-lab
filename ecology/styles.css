@@ -148,13 +148,15 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .formation-selection-actions { display: inline-block; margin-left: 8px; }
 .formation-board {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
+  /* R6 §5.4 — 2行×3列。**盤面と同じ形で見せる。**
+     枠が並んでいる形そのものが「前3後2か前2後3か」の判断材料になる。 */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
   margin-top: 16px;
 }
 .formation-slot {
-  min-height: 90px;
-  padding: 9px;
+  min-height: 84px;
+  padding: 7px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #172124;
@@ -175,6 +177,8 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   gap: 8px;
 }
 .slot-person b, .slot-person small { display: block; }
+.formation-slot .avatar { width: 28px; height: 28px; border-radius: 8px; font-size: 12px; }
+.slot-person b { font-size: 12px; }
 .slot-person small { color: var(--muted); font-size: 10px; }
 .empty-icon { color: var(--muted); font-size: 22px; }
 .avatar {
