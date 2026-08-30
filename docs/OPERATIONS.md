@@ -137,6 +137,7 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 | `analysis/scrapline-run-policy-smoke.mjs` | 約6秒 | 愚直方策が後半判断を消さないこと | `scrapline/engine.mjs` の報酬・損耗を触ったとき |
 | `analysis/scrapline-balance-smoke.mjs` | 約45秒 | 全順序列 × 7区画の総当たり | 車両・敵の数値を触ったとき |
 | `analysis/scrapline-seed-regression.mjs` | 長い | 256 seed の敵順回帰 | seed生成・敵順を触ったとき |
+| `analysis/ecology-decision-space-smoke.mjs` | 約2分半 | 灰の遠征で、考えて組むことが運任せに勝つか | `ecology/content/` の技能・装備・敵・区画を触ったとき |
 
 手で回すとき:
 
@@ -144,6 +145,13 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 node analysis/smoke-trial.mjs                  # 1本だけ
 RUN_EXHAUSTIVE=1 bash analysis/check-all.sh    # 外したものも含めて全部（約4分半）
 ```
+
+**`ecology-decision-space-smoke.mjs` は 2026-08-30 現在、意図して落ちている。**
+無作為に枠を埋めた編成が敵1.26倍まで耐えるのに、出荷している難度が1.0倍しかない
+（＝考えずに組んだ編成が半分以上の確率で完走する）。**未修正の欠陥を記録している赤であって、
+検査の不具合ではない。** 経緯と数字は
+[analysis/ECOLOGY_DECISION_SPACE_20260830.md](../analysis/ECOLOGY_DECISION_SPACE_20260830.md)。
+直すまでは、この1本が赤いまま `RUN_EXHAUSTIVE=1` が落ちる。**閾値を動かして緑にしない。**
 
 **公開前は全量を回す。** [HUMAN_TEST_RELEASE.md](./HUMAN_TEST_RELEASE.md) の条件を満たす前に、
 `RUN_EXHAUSTIVE=1` を一度通しておくこと。毎pushの緑は、外した4本については何も言っていない。

@@ -36,6 +36,7 @@ SLOW_CHECKS=(
   analysis/scrapline-seed-regression.mjs  # 256 seed の回帰
   analysis/smoke-trial.mjs                # 対の釣り合い探索（約19秒）
   analysis/scrapline-run-policy-smoke.mjs # 愚直方策の探索（約6秒）
+  analysis/ecology-decision-space-smoke.mjs # 灰の遠征の選択空間（探索、約2分半）
 )
 
 if [[ "${RUN_EXHAUSTIVE:-0}" == "1" ]]; then
