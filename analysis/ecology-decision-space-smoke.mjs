@@ -66,6 +66,7 @@ import { ENCOUNTERS } from "../ecology/content/index.mjs";
 import { EQUIPMENT, SKILLS, freshLoadout, makeBattle } from "../ecology/playable-battles.mjs";
 
 const ENGINE_OPTIONS = { equipmentBreaks: false, captureReplaySnapshots: false };
+// 参照編成を測るとき差し替えるので const 配列を書き換える形にしてある。
 const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
 
 // 数字を見る前に決めた閾値。**通らないからといって動かさない**（AGENTS.md）。
@@ -382,6 +383,28 @@ assert.ok(
   + " game の判定へ進んではいけない",
 );
 
+// **作者が「今の最強」として挙げた編成**（2026-08-30）。関門ではなく参照点。
+// content を触ったとき、作者の考えた戦略が強くなったか弱くなったかを見る。
+// 数字そのものより、無作為編成の中央値・探索の天井との位置関係を見る。
+const AUTHOR_ROSTER = ["pivot", "lancer", "scout", "guardian", "mender"];
+function authorLoadout() {
+  const loadout = freshLoadout(AUTHOR_ROSTER);
+  // カイ・レオン・スイ: 大溜めのみ＋急かす・準備の螺旋、行動追加の装備
+  for (const id of ["pivot", "lancer", "scout"]) {
+    loadout.tactics[id] = ["long_swing"];
+    loadout.reactives[id] = ["urging", "prep_spiral"];
+    loadout.equipment[id] = ["reserve_coil", "quickstrap"];
+  }
+  loadout.tactics.guardian = ["bulwark"];
+  loadout.reactives.guardian = ["cover_ally"];
+  loadout.equipment.guardian = ["bastion_shell", "standing_plate"];
+  loadout.tactics.mender = ["mend"];
+  loadout.reactives.mender = ["overflow_care"];
+  loadout.equipment.mender = ["guard_lantern", "worn_greaves"];
+  for (const id of AUTHOR_ROSTER) loadout.passives[id] = ["foundation_ap", "foundation_rp"];
+  return loadout;
+}
+
 // **出荷難度をどこへ置くと、無作為編成が通らなくなるか。**
 // 関門ではなく判断材料。床が落ちたとき、次に動かす一つ目の数がこれになる。
 function shippingDial(row) {
@@ -401,6 +424,16 @@ function shippingDial(row) {
 console.log("\n灰の遠征（現行 content）:");
 const realRow = measure("現行", realPools, 20260830);
 report(realRow);
+
+// 参照編成は roster が違うので、測るときだけ ROSTER を差し替える。
+const defaultRoster = [...ROSTER];
+ROSTER.length = 0;
+ROSTER.push(...AUTHOR_ROSTER);
+const authorTolerance = tolerance(authorLoadout());
+ROSTER.length = 0;
+ROSTER.push(...defaultRoster);
+console.log(`\n  作者が挙げた最強編成（参照点、関門ではない）: ${authorTolerance.toFixed(2)} 倍`
+  + `　無作為の中央値の ${(authorTolerance / realRow.median).toFixed(2)} 倍 / 探索の天井の ${(authorTolerance / realRow.searched).toFixed(2)} 倍`);
 
 console.log("\n  出荷難度をどこへ置くか（関門ではなく判断材料。天井は "
   + realRow.searched.toFixed(2) + " 倍）:");
