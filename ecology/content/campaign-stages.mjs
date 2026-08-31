@@ -16,6 +16,7 @@
 // ここを触ってよいのは Campaign Stage 担当だけ。engine・schema は変更しない。
 
 import { MANIFEST_VERSION } from "../schema.mjs";
+import { AFFIX_FAMILIES } from "./affixes.mjs";
 import { BASELINE_ACTIVE_SKILL_IDS, PACK_BY_ID, SKILL_PACKS } from "./packs.mjs";
 import { REGION } from "./expedition.mjs";
 
@@ -140,7 +141,11 @@ export function campaignManifestForStage(sequence, seed) {
     campaignStageSequence: stage.sequence,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
     enabledPackIds: [...stage.enabledPackIds],
-    enabledAffixFamilyIds: [],
+    // R8 §13.2 — Phase C。Stage の pack が、その Stage で拾える生成装備の
+    // affix family を決める。**Stage 番号では決めない**（pack が意味の単位）。
+    enabledAffixFamilyIds: AFFIX_FAMILIES
+      .filter((family) => family.packId === null || stage.enabledPackIds.includes(family.packId))
+      .map((family) => family.id),
     enemyFamilyIds: [...stage.enemyFamilyIds],
     actBossIds: [...stage.actBossIds],
     actBossLawIds: [...REGION.actBossLawIds],

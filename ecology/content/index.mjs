@@ -29,7 +29,11 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // R8 Implementation Phase 2 — pack_barrage の probe content
 // （mark_break / sweeping_barrage / piercing_barrage / guarded_opening /
 // seize_the_opening）を追加した。語彙が増えたので上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-6";
+// R8 Implementation Phase 4（Phase C）— affix 目録（content/affixes.mjs）、
+// affix family、生成装備の rule 文法を content 語彙として公開した。manifest の
+// enabledAffixFamilyIds が空配列固定から「その遠征で引ける affix family」へ
+// 意味を持った。**語彙が増え、既存欄の意味が変わったので上げる。**
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-7";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -136,6 +140,20 @@ export {
   campaignManifestForStage,
   campaignStageDef,
 } from "./campaign-stages.mjs";
+// R8 Implementation Phase 4（Phase C）— 生成装備の affix 目録。
+export {
+  AFFIXES,
+  AFFIX_BY_ID,
+  AFFIXES_BY_ROLE,
+  AFFIX_FAMILIES,
+  AFFIX_FAMILY_BY_ID,
+  AFFIX_FAMILY_IDS,
+  AFFIX_ROLES,
+  RARITIES,
+  RARITY_BUDGET,
+  RARITY_LABEL,
+  RETIRED_AFFIX_IDS,
+} from "./affixes.mjs";
 export {
   ACT_BOSS_INDEXES,
   BOSS_LAWS,

@@ -13,10 +13,11 @@ import {
   REACTIVE_META,
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
+import { RARITY_LABEL } from "./content/affixes.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
-import { characterStats, composeEncounter } from "./progression.mjs";
+import { characterStats, composeEncounter, runContentBundle } from "./progression.mjs";
 
 export const RUN_SEED = "frontier-1801";
 
@@ -134,12 +135,50 @@ export function characterInfo(characterId) {
   return characterById[characterId] ?? null;
 }
 
+// ---------------------------------------------------------------- 生成装備の metadata
+//
+// **Phase C の生成装備は COMPONENTS に居ない。**COMPONENTS は凍結した content 契約
+// （contract.test.mjs が分離前の出力と深一致を見ている）なので、実行時に品を
+// 差し込まない。代わりに、いま遊んでいる遠征が抱えている定義から作った
+// 別表をここへ置き、`componentInfo` が両方を見る。
+//
+// 表は run が変わるたびに作り直す。**貯め込むと、前の遠征の品が次の遠征の
+// 装備画面に残る。**
+let generatedComponents = Object.create(null);
+
+export function registerGeneratedEquipment(generated = {}) {
+  const table = Object.create(null);
+  for (const [id, item] of Object.entries(generated ?? {})) {
+    if (!item?.definition) continue;
+    table[id] = {
+      id,
+      kind: "equipment",
+      definitionId: id,
+      label: item.definition.displayName,
+      effect: (item.readout?.lines ?? []).join(" "),
+      grammar: "生成 · " + (RARITY_LABEL[item.rarity] ?? item.rarity),
+      maxDurability: item.definition.maxDurability,
+      generated: true,
+      rarity: item.rarity,
+      descriptor: item.descriptor,
+      carried: item.carried === true,
+      readout: item.readout ?? null,
+    };
+  }
+  generatedComponents = table;
+  return table;
+}
+
+export function generatedComponentIds() {
+  return Object.keys(generatedComponents);
+}
+
 export function componentInfo(componentId) {
-  return COMPONENTS[componentId] ?? null;
+  return COMPONENTS[componentId] ?? generatedComponents[componentId] ?? null;
 }
 
 export function componentLabel(componentId) {
-  return COMPONENTS[componentId]?.label ?? DISPLAY_NAMES[componentId] ?? componentId;
+  return componentInfo(componentId)?.label ?? DISPLAY_NAMES[componentId] ?? componentId;
 }
 
 export function skillNode(skillId) {
@@ -206,7 +245,7 @@ function limitsOf(limitsFor, characterId) {
 }
 
 export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
-  const component = COMPONENTS[skillId];
+  const component = componentInfo(skillId);
   if (!component || component.kind !== kind || !characterById[characterId]) {
     return { ok: false, reason: "技能か仲間が見つかりません。" };
   }
@@ -234,7 +273,7 @@ export function removeSkill(loadout, characterId, skillId, kind, limitsFor) {
 }
 
 export function equipEquipment(loadout, characterId, equipmentId, slot = 0, limitsFor) {
-  const component = COMPONENTS[equipmentId];
+  const component = componentInfo(equipmentId);
   if (!component || component.kind !== "equipment" || !characterById[characterId]) {
     return { ok: false, reason: "装備か仲間が見つかりません。" };
   }
@@ -255,7 +294,7 @@ export function removeEquipment(loadout, characterId, equipmentId, limitsFor) {
 }
 
 export function installComponent(loadout, componentId, characterId, limitsFor) {
-  const component = COMPONENTS[componentId];
+  const component = componentInfo(componentId);
   if (!component) return { ok: false, reason: "部材が見つかりません。" };
   if (component.kind === "equipment") return equipEquipment(loadout, characterId, componentId, 0, limitsFor);
   return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
@@ -309,11 +348,14 @@ const TACTIC_USE_WHEN = Object.freeze({
   relay_order: [{ type: "history_count", subject: "self", metric: "active_actions", window: "round", op: "eq", value: 0 }],
 });
 
-function equipmentInput(characterId, equipmentIds, durability = {}) {
-  return equipmentIds.filter((id) => PLAYABLE_CONTENT.equipment[id]).map((equipmentId, index) => ({
+// **装備の定義は content bundle から引く。**Phase C の生成装備は
+// PLAYABLE_CONTENT に無く、遠征ごとの bundle（progression.runContentBundle）
+// にしか居ないので、ここで固定 content を直接読むと生成装備が黙って落ちる。
+function equipmentInput(characterId, equipmentIds, durability = {}, content = PLAYABLE_CONTENT) {
+  return equipmentIds.filter((id) => content.equipment[id]).map((equipmentId, index) => ({
     instanceId: "e_" + characterId + "_" + equipmentId + "_" + index,
     equipmentId,
-    durability: Math.max(0, durability[equipmentId] ?? PLAYABLE_CONTENT.equipment[equipmentId].maxDurability ?? 1),
+    durability: Math.max(0, durability[equipmentId] ?? content.equipment[equipmentId].maxDurability ?? 1),
   }));
 }
 
@@ -347,7 +389,12 @@ function allyInput(characterId, position, loadout, options = {}) {
     reactiveSkillIds: reactives.filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]).slice(0, limits.reactive),
     passiveSkillIds: (loadout.passives?.[characterId] ?? [])
       .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]).slice(0, limits.passive),
-    equipment: equipmentInput(characterId, loadout.equipment?.[characterId] ?? [], options.equipmentDurability ?? {}),
+    equipment: equipmentInput(
+      characterId,
+      loadout.equipment?.[characterId] ?? [],
+      options.equipmentDurability ?? {},
+      options.content ?? PLAYABLE_CONTENT,
+    ),
   };
   // R6 §9.5 — PHASE B. 鍛錬後の stat と、その level。**engine は鍛錬を知らない**
   // ので、丸め済みの値と記録の両方をここで渡す。
@@ -454,10 +501,12 @@ export function simulateNextBattle(run, profile, encounterIndex) {
     {
       hp: run.currentHp,
       statsFor: (characterId) => characterStats(profile, characterId),
+      content: runContentBundle(run),
     },
   );
-  const result = simulateBattle(battleInput, PLAYABLE_CONTENT);
-  return { composed, battleInput, result };
+  const content = runContentBundle(run);
+  const result = simulateBattle(battleInput, content);
+  return { composed, battleInput, result, content };
 }
 
 function battleResultSummary(run, result) {

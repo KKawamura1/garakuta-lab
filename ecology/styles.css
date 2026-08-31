@@ -1166,3 +1166,47 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-node.out-of-manifest { opacity: .38; }
 .skill-node.out-of-manifest .node-status { color: var(--muted); }
 .character-stats .trained { color: var(--gold); font-style: normal; }
+
+/* ---------------------------------------------------------------- Phase C 生成装備と Blueprint
+ *
+ * 生成装備は固定装備と同じ枠に並ぶ。**別の場所へ隔離しない**（同じ2枠を取り合う
+ * ものなので、見比べられないと選べない）。等級だけを色で分ける。 */
+.rarity-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.rarity-chip.rarity-common { color: var(--muted); }
+.rarity-chip.rarity-rare { color: var(--blue); border-color: #3f6068; }
+.rarity-chip.rarity-epic { color: var(--violet); border-color: #4d4066; }
+.rarity-chip.rarity-legendary { color: var(--gold); border-color: #6b5326; background: var(--gold-dark); }
+
+.carried-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  color: var(--blue);
+  font-size: 10px;
+  vertical-align: middle;
+}
+
+.gear-card.generated { border-left: 2px solid var(--violet); }
+.gear-card.generated .gear-icon { color: var(--violet); }
+.gear-card .gear-copy small + small { margin-top: 3px; }
+
+.reward-card.generated { border-color: #4d4066; }
+.reward-card.generated p { min-height: 0; }
+.reward-card.disabled { opacity: .55; }
+.keystone-line { color: var(--gold); font-size: 11px; }
+
+.blueprint-card { display: flex; flex-direction: column; }
+.blueprint-card.selected { border-color: var(--gold); background: var(--gold-dark); }
+.blueprint-card small { display: block; margin-top: 6px; }
+.blueprint-card .tiny-button { margin-top: 8px; }
