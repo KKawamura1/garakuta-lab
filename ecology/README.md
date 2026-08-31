@@ -46,3 +46,53 @@ Campaign Stage の pack は content/campaign-stages.mjs と content/packs.mjs �
 現行版は Stage 0〜3 までです。生成装備、Blueprint、Stage 4 以降、最終的な stage 固有の敵法則はまだありません。自動検査が通っても、作者の fun や再プレイ欲は未判定です。
 
 R8 の判断と実装履歴は analysis/experiments/exp-18/ にあります。
+## イベントログの値
+
+engine が出力する `type` は、次の44種類に固定しています。
+
+- `battle_started`
+- `round_started`
+- `actor_activated`
+- `round_ended`
+- `battle_ended`
+- `action_declared`
+- `target_selected`
+- `target_changed`
+- `action_cost_paid`
+- `action_started`
+- `action_resolved`
+- `action_skipped`
+- `action_canceled`
+- `preparation_started`
+- `preparation_advanced`
+- `preparation_completed`
+- `preparation_interrupted`
+- `damage_proposed`
+- `barrier_damaged`
+- `barrier_broken`
+- `damage_taken`
+- `excess_damage`
+- `healing_proposed`
+- `healing_applied`
+- `excess_healing`
+- `barrier_proposed`
+- `barrier_gained`
+- `barrier_expired`
+- `actor_defeated`
+- `resource_refreshed`
+- `resource_spent`
+- `resource_gained`
+- `resource_unused`
+- `actor_moved`
+- `status_added`
+- `status_removed`
+- `equipment_worn`
+- `equipment_broken`
+- `equipment_repaired`
+- `block_proposed`
+- `block_gained`
+- `damage_blocked`
+- `block_spent`
+- `pending_amount_modified`
+
+イベントの値と不変条件は `schema.mjs` と `validate.mjs` が定義します。
