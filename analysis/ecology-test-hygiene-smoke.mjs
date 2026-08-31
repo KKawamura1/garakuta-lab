@@ -6,7 +6,6 @@
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 
 const root = new URL("../ecology/", import.meta.url);
 const testFiles = readdirSync(root)
