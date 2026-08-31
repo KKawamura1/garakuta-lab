@@ -5250,7 +5250,7 @@
     "kind": "reactive",
     "definitionId": "counter_blow",
     "label": "反撃",
-    "effect": "敵に殴られたあと、RP1で攻撃者へ2ダメージ。",
+    "effect": "敵に殴られたあと、RP1で攻撃者へ腕力の50%ダメージ。",
     "grammar": "被弾"
    },
    "cover_ally": {
@@ -5282,7 +5282,7 @@
     "kind": "reactive",
     "definitionId": "guard_step",
     "label": "踏み固め",
-    "effect": "移動したあと、ラウンド防壁2を得る。",
+    "effect": "移動したあと、集中力の50%のラウンド防壁を得る。",
     "grammar": "移動"
    },
    "urging": {
@@ -5298,7 +5298,7 @@
     "kind": "reactive",
     "definitionId": "brace_after_hit",
     "label": "受け流し",
-    "effect": "被弾後、RP1でラウンド防壁2を得る。",
+    "effect": "被弾後、RP1で集中力の50%のラウンド防壁を得る。",
     "grammar": "被弾"
    },
    "triage_relay": {
@@ -5322,7 +5322,7 @@
     "kind": "reactive",
     "definitionId": "damage_echo",
     "label": "痛みの反響",
-    "effect": "被弾した敵へ1ダメージを返す。",
+    "effect": "被弾した敵へ腕力の25%ダメージを返す。",
     "grammar": "被弾"
    },
    "barrier_bloom": {
@@ -5330,7 +5330,7 @@
     "kind": "reactive",
     "definitionId": "barrier_bloom",
     "label": "防壁の花",
-    "effect": "防壁を得たとき、さらに防壁1。",
+    "effect": "防壁を得たとき、さらに集中力の25%の防壁。",
     "grammar": "防壁"
    },
    "prep_spiral": {
@@ -5440,7 +5440,7 @@
    "kind": "equipment",
    "definitionId": "splinter_edge",
    "label": "棘の刃",
-   "effect": "余ったダメージが出ると、耐久1で1ダメージを追加。",
+   "effect": "余ったダメージが出ると、耐久1で10ダメージを追加。",
    "grammar": "攻撃",
    "maxDurability": 2
   },
@@ -5458,7 +5458,7 @@
    "kind": "equipment",
    "definitionId": "standing_plate",
    "label": "継ぎはぎの盾",
-   "effect": "戦闘開始時、戦闘中防壁2を得る。",
+   "effect": "戦闘開始時、戦闘中防壁20を得る。",
    "grammar": "防御",
    "maxDurability": 3
   },
@@ -5494,7 +5494,7 @@
    "kind": "equipment",
    "definitionId": "bastion_shell",
    "label": "厚い継ぎ板",
-   "effect": "戦闘開始時、防壁3。",
+   "effect": "戦闘開始時、防壁30。",
    "grammar": "防御",
    "maxDurability": 3
   },
@@ -5557,7 +5557,7 @@
    "kind": "equipment",
    "definitionId": "thorn_clasp",
    "label": "返しの留め具",
-   "effect": "余ったダメージから追加攻撃。耐久1。",
+   "effect": "余ったダメージから10ダメージの追加攻撃。耐久1。",
    "grammar": "攻撃",
    "maxDurability": 1
   },
@@ -5566,7 +5566,7 @@
    "kind": "equipment",
    "definitionId": "shard_hilt",
    "label": "破片の柄",
-   "effect": "余ったダメージから追加攻撃。",
+   "effect": "余ったダメージから10ダメージの追加攻撃。",
    "grammar": "攻撃",
    "maxDurability": 3
   },
@@ -5593,7 +5593,7 @@
    "kind": "equipment",
    "definitionId": "block_latch",
    "label": "受け止め金具",
-   "effect": "戦闘開始時、戦闘中防壁1を得る。耐久2。",
+   "effect": "戦闘開始時、戦闘中防壁10を得る。耐久2。",
    "grammar": "防御",
    "maxDurability": 2
   },
@@ -5602,7 +5602,7 @@
    "kind": "equipment",
    "definitionId": "impact_spring",
    "label": "衝撃ばね",
-   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁1を得る。",
+   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁10を得る。",
    "grammar": "防御",
    "maxDurability": 1
   },
@@ -5817,7 +5817,7 @@
    "kind": "reactive",
    "definitionId": "counter_blow",
    "label": "反撃",
-   "effect": "敵に殴られたあと、RP1で攻撃者へ2ダメージ。",
+   "effect": "敵に殴られたあと、RP1で攻撃者へ腕力の50%ダメージ。",
    "grammar": "被弾"
   },
   "cover_ally": {
@@ -5849,7 +5849,7 @@
    "kind": "reactive",
    "definitionId": "guard_step",
    "label": "踏み固め",
-   "effect": "移動したあと、ラウンド防壁2を得る。",
+   "effect": "移動したあと、集中力の50%のラウンド防壁を得る。",
    "grammar": "移動"
   },
   "urging": {
@@ -5865,7 +5865,7 @@
    "kind": "reactive",
    "definitionId": "brace_after_hit",
    "label": "受け流し",
-   "effect": "被弾後、RP1でラウンド防壁2を得る。",
+   "effect": "被弾後、RP1で集中力の50%のラウンド防壁を得る。",
    "grammar": "被弾"
   },
   "triage_relay": {
@@ -5889,7 +5889,7 @@
    "kind": "reactive",
    "definitionId": "damage_echo",
    "label": "痛みの反響",
-   "effect": "被弾した敵へ1ダメージを返す。",
+   "effect": "被弾した敵へ腕力の25%ダメージを返す。",
    "grammar": "被弾"
   },
   "barrier_bloom": {
@@ -5897,7 +5897,7 @@
    "kind": "reactive",
    "definitionId": "barrier_bloom",
    "label": "防壁の花",
-   "effect": "防壁を得たとき、さらに防壁1。",
+   "effect": "防壁を得たとき、さらに集中力の25%の防壁。",
    "grammar": "防壁"
   },
   "prep_spiral": {
@@ -6002,7 +6002,7 @@
    "kind": "equipment",
    "definitionId": "splinter_edge",
    "label": "棘の刃",
-   "effect": "余ったダメージが出ると、耐久1で1ダメージを追加。",
+   "effect": "余ったダメージが出ると、耐久1で10ダメージを追加。",
    "grammar": "攻撃",
    "maxDurability": 2
   },
@@ -6020,7 +6020,7 @@
    "kind": "equipment",
    "definitionId": "standing_plate",
    "label": "継ぎはぎの盾",
-   "effect": "戦闘開始時、戦闘中防壁2を得る。",
+   "effect": "戦闘開始時、戦闘中防壁20を得る。",
    "grammar": "防御",
    "maxDurability": 3
   },
@@ -6056,7 +6056,7 @@
    "kind": "equipment",
    "definitionId": "bastion_shell",
    "label": "厚い継ぎ板",
-   "effect": "戦闘開始時、防壁3。",
+   "effect": "戦闘開始時、防壁30。",
    "grammar": "防御",
    "maxDurability": 3
   },
@@ -6119,7 +6119,7 @@
    "kind": "equipment",
    "definitionId": "thorn_clasp",
    "label": "返しの留め具",
-   "effect": "余ったダメージから追加攻撃。耐久1。",
+   "effect": "余ったダメージから10ダメージの追加攻撃。耐久1。",
    "grammar": "攻撃",
    "maxDurability": 1
   },
@@ -6128,7 +6128,7 @@
    "kind": "equipment",
    "definitionId": "shard_hilt",
    "label": "破片の柄",
-   "effect": "余ったダメージから追加攻撃。",
+   "effect": "余ったダメージから10ダメージの追加攻撃。",
    "grammar": "攻撃",
    "maxDurability": 3
   },
@@ -6155,7 +6155,7 @@
    "kind": "equipment",
    "definitionId": "block_latch",
    "label": "受け止め金具",
-   "effect": "戦闘開始時、戦闘中防壁1を得る。耐久2。",
+   "effect": "戦闘開始時、戦闘中防壁10を得る。耐久2。",
    "grammar": "防御",
    "maxDurability": 2
   },
@@ -6164,7 +6164,7 @@
    "kind": "equipment",
    "definitionId": "impact_spring",
    "label": "衝撃ばね",
-   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁1を得る。",
+   "effect": "受け構えが消費されたあと、耐久1でラウンド防壁10を得る。",
    "grammar": "防御",
    "maxDurability": 1
   },
@@ -6727,383 +6727,6 @@
    ]
   }
  ],
- "encounters": [
-  {
-   "stage": 1,
-   "name": "灰の入口",
-   "description": "速い走り手が正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
-   "enemies": [
-    {
-     "instanceId": "e_runner_1",
-     "enemyActorId": "gray_runner",
-     "position": "front_left",
-     "hp": 144
-    },
-    {
-     "instanceId": "e_runner_2",
-     "enemyActorId": "gray_runner",
-     "position": "front_right",
-     "hp": 144
-    }
-   ],
-   "maxRounds": 6
-  },
-  {
-   "stage": 2,
-   "name": "狩りの路地",
-   "description": "準備中の味方を追う追い手と、後列へ潜む潜み手。狙われる順番を読む。",
-   "enemies": [
-    {
-     "instanceId": "e_harrower",
-     "enemyActorId": "gray_harrower",
-     "position": "front_left",
-     "hp": 216
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    }
-   ],
-   "maxRounds": 7
-  },
-  {
-   "stage": 3,
-   "name": "崩れた盾列",
-   "description": "防壁で粘る籠り手と、重い一撃を準備する砕き手。受けるか先に崩すかを選ぶ。",
-   "enemies": [
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_breaker",
-     "enemyActorId": "gray_breaker",
-     "position": "front_right",
-     "hp": 264
-    }
-   ],
-   "maxRounds": 8
-  },
-  {
-   "stage": 4,
-   "name": "反響の坑道",
-   "description": "反響体と潜み手が別の列から圧をかける。単発の大打撃と回復を使い分ける。",
-   "enemies": [
-    {
-     "instanceId": "e_echo",
-     "enemyActorId": "gray_echo",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_runner",
-     "enemyActorId": "gray_runner",
-     "position": "front_right",
-     "hp": 144
-    }
-   ],
-   "maxRounds": 8
-  },
-  {
-   "stage": 5,
-   "name": "灰の圧力",
-   "description": "重い盾、後衛を追う追い手、速い走り手。どの役割を厚くするかが問われる。",
-   "enemies": [
-    {
-     "instanceId": "e_bulwark",
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left",
-     "hp": 384
-    },
-    {
-     "instanceId": "e_harrower",
-     "enemyActorId": "gray_harrower",
-     "position": "front_center",
-     "hp": 216
-    },
-    {
-     "instanceId": "e_runner",
-     "enemyActorId": "gray_runner",
-     "position": "rear_right",
-     "hp": 144
-    }
-   ],
-   "maxRounds": 9
-  },
-  {
-   "stage": 6,
-   "name": "二つの狙い",
-   "description": "籠り手と反響体が前列を削り、潜み手と群れが後列を揺さぶる。配置そのものが防御になる。",
-   "enemies": [
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_echo",
-     "enemyActorId": "gray_echo",
-     "position": "front_right",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_swarm",
-     "enemyActorId": "gray_swarm",
-     "position": "rear_right",
-     "hp": 96
-    }
-   ],
-   "maxRounds": 10
-  },
-  {
-   "stage": 7,
-   "name": "灰の核心",
-   "description": "準備する核心を止めながら、砕き手と籠り手を突破し、後列の潜み手と群れも抑える最終戦。",
-   "enemies": [
-    {
-     "instanceId": "e_core",
-     "enemyActorId": "ash_core",
-     "position": "front_left",
-     "hp": 648
-    },
-    {
-     "instanceId": "e_breaker",
-     "enemyActorId": "gray_breaker",
-     "position": "front_center",
-     "hp": 264
-    },
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_right",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_swarm",
-     "enemyActorId": "gray_swarm",
-     "position": "rear_right",
-     "hp": 96
-    }
-   ],
-   "maxRounds": 12
-  }
- ],
- "encounterInfo": {
-  "1": {
-   "stage": 1,
-   "name": "灰の入口",
-   "description": "速い走り手が正面から来る二体。前列が受け、攻撃役が一体ずつ落とす。",
-   "enemies": [
-    {
-     "instanceId": "e_runner_1",
-     "enemyActorId": "gray_runner",
-     "position": "front_left",
-     "hp": 144
-    },
-    {
-     "instanceId": "e_runner_2",
-     "enemyActorId": "gray_runner",
-     "position": "front_right",
-     "hp": 144
-    }
-   ],
-   "maxRounds": 6
-  },
-  "2": {
-   "stage": 2,
-   "name": "狩りの路地",
-   "description": "準備中の味方を追う追い手と、後列へ潜む潜み手。狙われる順番を読む。",
-   "enemies": [
-    {
-     "instanceId": "e_harrower",
-     "enemyActorId": "gray_harrower",
-     "position": "front_left",
-     "hp": 216
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    }
-   ],
-   "maxRounds": 7
-  },
-  "3": {
-   "stage": 3,
-   "name": "崩れた盾列",
-   "description": "防壁で粘る籠り手と、重い一撃を準備する砕き手。受けるか先に崩すかを選ぶ。",
-   "enemies": [
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_breaker",
-     "enemyActorId": "gray_breaker",
-     "position": "front_right",
-     "hp": 264
-    }
-   ],
-   "maxRounds": 8
-  },
-  "4": {
-   "stage": 4,
-   "name": "反響の坑道",
-   "description": "反響体と潜み手が別の列から圧をかける。単発の大打撃と回復を使い分ける。",
-   "enemies": [
-    {
-     "instanceId": "e_echo",
-     "enemyActorId": "gray_echo",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_runner",
-     "enemyActorId": "gray_runner",
-     "position": "front_right",
-     "hp": 144
-    }
-   ],
-   "maxRounds": 8
-  },
-  "5": {
-   "stage": 5,
-   "name": "灰の圧力",
-   "description": "重い盾、後衛を追う追い手、速い走り手。どの役割を厚くするかが問われる。",
-   "enemies": [
-    {
-     "instanceId": "e_bulwark",
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left",
-     "hp": 384
-    },
-    {
-     "instanceId": "e_harrower",
-     "enemyActorId": "gray_harrower",
-     "position": "front_center",
-     "hp": 216
-    },
-    {
-     "instanceId": "e_runner",
-     "enemyActorId": "gray_runner",
-     "position": "rear_right",
-     "hp": 144
-    }
-   ],
-   "maxRounds": 9
-  },
-  "6": {
-   "stage": 6,
-   "name": "二つの狙い",
-   "description": "籠り手と反響体が前列を削り、潜み手と群れが後列を揺さぶる。配置そのものが防御になる。",
-   "enemies": [
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_echo",
-     "enemyActorId": "gray_echo",
-     "position": "front_right",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_swarm",
-     "enemyActorId": "gray_swarm",
-     "position": "rear_right",
-     "hp": 96
-    }
-   ],
-   "maxRounds": 10
-  },
-  "7": {
-   "stage": 7,
-   "name": "灰の核心",
-   "description": "準備する核心を止めながら、砕き手と籠り手を突破し、後列の潜み手と群れも抑える最終戦。",
-   "enemies": [
-    {
-     "instanceId": "e_core",
-     "enemyActorId": "ash_core",
-     "position": "front_left",
-     "hp": 648
-    },
-    {
-     "instanceId": "e_breaker",
-     "enemyActorId": "gray_breaker",
-     "position": "front_center",
-     "hp": 264
-    },
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_right",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_swarm",
-     "enemyActorId": "gray_swarm",
-     "position": "rear_right",
-     "hp": 96
-    }
-   ],
-   "maxRounds": 12
-  }
- },
- "stageRules": {
-  "1": "初期構成を組んで、敵の狙いを確認する",
-  "2": "報酬を一つ拾い、技能と装備を再配置する",
-  "3": "報酬を一つ拾い、技能と装備を再配置する",
-  "4": "傷と装備消耗を抱えたまま、次の問いに答える",
-  "5": "傷と装備消耗を抱えたまま、次の問いに答える",
-  "6": "傷と装備消耗を抱えたまま、次の問いに答える",
-  "7": "傷と装備消耗を抱えたまま、次の問いに答える"
- },
  "enemyInfo": {
   "husk": {
    "id": "husk",
@@ -7353,1165 +6976,6 @@
    "scout": [],
    "guardian": []
   }
- },
- "battles": {
-  "stage1": {
-   "schemaVersion": "ecology-battle-3",
-   "battleId": "frontier_frontier_1801_stage_1",
-   "maxRounds": 6,
-   "objective": {
-    "type": "eliminate_all_enemies"
-   },
-   "allies": [
-    {
-     "instanceId": "a_warden",
-     "characterId": "warden",
-     "position": "front_left",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "brace_after_hit",
-      "cover_ally"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_mender",
-     "characterId": "mender",
-     "position": "rear_left",
-     "tactics": [
-      {
-       "activeSkillId": "mend",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "triage",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "overflow_care",
-      "triage_relay"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_lancer",
-     "characterId": "lancer",
-     "position": "front_center",
-     "tactics": [
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "heavy_swing",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "scavenge_ap",
-      "counter_blow"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_scout",
-     "characterId": "scout",
-     "position": "rear_right",
-     "tactics": [
-      {
-       "activeSkillId": "mark_target",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "reposition",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "guard_step",
-      "urging"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_guardian",
-     "characterId": "guardian",
-     "position": "front_right",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "cover_ally",
-      "brace_after_hit"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    }
-   ],
-   "enemies": [
-    {
-     "instanceId": "e_runner_1",
-     "enemyActorId": "gray_runner",
-     "position": "front_left",
-     "hp": 144
-    },
-    {
-     "instanceId": "e_runner_2",
-     "enemyActorId": "gray_runner",
-     "position": "front_right",
-     "hp": 144
-    }
-   ]
-  },
-  "stage2": {
-   "schemaVersion": "ecology-battle-3",
-   "battleId": "frontier_frontier_1801_stage_2",
-   "maxRounds": 7,
-   "objective": {
-    "type": "eliminate_all_enemies"
-   },
-   "allies": [
-    {
-     "instanceId": "a_warden",
-     "characterId": "warden",
-     "position": "front_left",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "brace_after_hit",
-      "cover_ally"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_mender",
-     "characterId": "mender",
-     "position": "rear_left",
-     "tactics": [
-      {
-       "activeSkillId": "mend",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "triage",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "overflow_care",
-      "triage_relay"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_lancer",
-     "characterId": "lancer",
-     "position": "front_center",
-     "tactics": [
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "heavy_swing",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "scavenge_ap",
-      "counter_blow"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_scout",
-     "characterId": "scout",
-     "position": "rear_right",
-     "tactics": [
-      {
-       "activeSkillId": "mark_target",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "reposition",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "guard_step",
-      "urging"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_guardian",
-     "characterId": "guardian",
-     "position": "front_right",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "cover_ally",
-      "brace_after_hit"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    }
-   ],
-   "enemies": [
-    {
-     "instanceId": "e_harrower",
-     "enemyActorId": "gray_harrower",
-     "position": "front_left",
-     "hp": 216
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    }
-   ]
-  },
-  "stage3": {
-   "schemaVersion": "ecology-battle-3",
-   "battleId": "frontier_frontier_1801_stage_3",
-   "maxRounds": 8,
-   "objective": {
-    "type": "eliminate_all_enemies"
-   },
-   "allies": [
-    {
-     "instanceId": "a_warden",
-     "characterId": "warden",
-     "position": "front_left",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "brace_after_hit",
-      "cover_ally"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_mender",
-     "characterId": "mender",
-     "position": "rear_left",
-     "tactics": [
-      {
-       "activeSkillId": "mend",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "triage",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "overflow_care",
-      "triage_relay"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_lancer",
-     "characterId": "lancer",
-     "position": "front_center",
-     "tactics": [
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "heavy_swing",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "scavenge_ap",
-      "counter_blow"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_scout",
-     "characterId": "scout",
-     "position": "rear_right",
-     "tactics": [
-      {
-       "activeSkillId": "mark_target",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "reposition",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "guard_step",
-      "urging"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_guardian",
-     "characterId": "guardian",
-     "position": "front_right",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "cover_ally",
-      "brace_after_hit"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    }
-   ],
-   "enemies": [
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_breaker",
-     "enemyActorId": "gray_breaker",
-     "position": "front_right",
-     "hp": 264
-    }
-   ]
-  },
-  "stage4": {
-   "schemaVersion": "ecology-battle-3",
-   "battleId": "frontier_frontier_1801_stage_4",
-   "maxRounds": 8,
-   "objective": {
-    "type": "eliminate_all_enemies"
-   },
-   "allies": [
-    {
-     "instanceId": "a_warden",
-     "characterId": "warden",
-     "position": "front_left",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "brace_after_hit",
-      "cover_ally"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_mender",
-     "characterId": "mender",
-     "position": "rear_left",
-     "tactics": [
-      {
-       "activeSkillId": "mend",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "triage",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "overflow_care",
-      "triage_relay"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_lancer",
-     "characterId": "lancer",
-     "position": "front_center",
-     "tactics": [
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "heavy_swing",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "scavenge_ap",
-      "counter_blow"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_scout",
-     "characterId": "scout",
-     "position": "rear_right",
-     "tactics": [
-      {
-       "activeSkillId": "mark_target",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "reposition",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "guard_step",
-      "urging"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_guardian",
-     "characterId": "guardian",
-     "position": "front_right",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "cover_ally",
-      "brace_after_hit"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    }
-   ],
-   "enemies": [
-    {
-     "instanceId": "e_echo",
-     "enemyActorId": "gray_echo",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_runner",
-     "enemyActorId": "gray_runner",
-     "position": "front_right",
-     "hp": 144
-    }
-   ]
-  },
-  "stage5": {
-   "schemaVersion": "ecology-battle-3",
-   "battleId": "frontier_frontier_1801_stage_5",
-   "maxRounds": 9,
-   "objective": {
-    "type": "eliminate_all_enemies"
-   },
-   "allies": [
-    {
-     "instanceId": "a_warden",
-     "characterId": "warden",
-     "position": "front_left",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "brace_after_hit",
-      "cover_ally"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_mender",
-     "characterId": "mender",
-     "position": "rear_left",
-     "tactics": [
-      {
-       "activeSkillId": "mend",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "triage",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "overflow_care",
-      "triage_relay"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_lancer",
-     "characterId": "lancer",
-     "position": "front_center",
-     "tactics": [
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "heavy_swing",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "scavenge_ap",
-      "counter_blow"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_scout",
-     "characterId": "scout",
-     "position": "rear_right",
-     "tactics": [
-      {
-       "activeSkillId": "mark_target",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "reposition",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "guard_step",
-      "urging"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_guardian",
-     "characterId": "guardian",
-     "position": "front_right",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "cover_ally",
-      "brace_after_hit"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    }
-   ],
-   "enemies": [
-    {
-     "instanceId": "e_bulwark",
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left",
-     "hp": 384
-    },
-    {
-     "instanceId": "e_harrower",
-     "enemyActorId": "gray_harrower",
-     "position": "front_center",
-     "hp": 216
-    },
-    {
-     "instanceId": "e_runner",
-     "enemyActorId": "gray_runner",
-     "position": "rear_right",
-     "hp": 144
-    }
-   ]
-  },
-  "stage6": {
-   "schemaVersion": "ecology-battle-3",
-   "battleId": "frontier_frontier_1801_stage_6",
-   "maxRounds": 10,
-   "objective": {
-    "type": "eliminate_all_enemies"
-   },
-   "allies": [
-    {
-     "instanceId": "a_warden",
-     "characterId": "warden",
-     "position": "front_left",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "brace_after_hit",
-      "cover_ally"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_mender",
-     "characterId": "mender",
-     "position": "rear_left",
-     "tactics": [
-      {
-       "activeSkillId": "mend",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "triage",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "overflow_care",
-      "triage_relay"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_lancer",
-     "characterId": "lancer",
-     "position": "front_center",
-     "tactics": [
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "heavy_swing",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "scavenge_ap",
-      "counter_blow"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_scout",
-     "characterId": "scout",
-     "position": "rear_right",
-     "tactics": [
-      {
-       "activeSkillId": "mark_target",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "reposition",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "guard_step",
-      "urging"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_guardian",
-     "characterId": "guardian",
-     "position": "front_right",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "cover_ally",
-      "brace_after_hit"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    }
-   ],
-   "enemies": [
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_left",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_echo",
-     "enemyActorId": "gray_echo",
-     "position": "front_right",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_swarm",
-     "enemyActorId": "gray_swarm",
-     "position": "rear_right",
-     "hp": 96
-    }
-   ]
-  },
-  "stage7": {
-   "schemaVersion": "ecology-battle-3",
-   "battleId": "frontier_frontier_1801_stage_7",
-   "maxRounds": 12,
-   "objective": {
-    "type": "eliminate_all_enemies"
-   },
-   "allies": [
-    {
-     "instanceId": "a_warden",
-     "characterId": "warden",
-     "position": "front_left",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "brace_after_hit",
-      "cover_ally"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_mender",
-     "characterId": "mender",
-     "position": "rear_left",
-     "tactics": [
-      {
-       "activeSkillId": "mend",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "triage",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "overflow_care",
-      "triage_relay"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_lancer",
-     "characterId": "lancer",
-     "position": "front_center",
-     "tactics": [
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "heavy_swing",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "scavenge_ap",
-      "counter_blow"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_scout",
-     "characterId": "scout",
-     "position": "rear_right",
-     "tactics": [
-      {
-       "activeSkillId": "mark_target",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "reposition",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "guard_step",
-      "urging"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    },
-    {
-     "instanceId": "a_guardian",
-     "characterId": "guardian",
-     "position": "front_right",
-     "tactics": [
-      {
-       "activeSkillId": "bulwark",
-       "useWhen": []
-      },
-      {
-       "activeSkillId": "strike",
-       "useWhen": []
-      }
-     ],
-     "reactiveSkillIds": [
-      "cover_ally",
-      "brace_after_hit"
-     ],
-     "passiveSkillIds": [],
-     "equipment": []
-    }
-   ],
-   "enemies": [
-    {
-     "instanceId": "e_core",
-     "enemyActorId": "ash_core",
-     "position": "front_left",
-     "hp": 648
-    },
-    {
-     "instanceId": "e_breaker",
-     "enemyActorId": "gray_breaker",
-     "position": "front_center",
-     "hp": 264
-    },
-    {
-     "instanceId": "e_shelter",
-     "enemyActorId": "gray_shelter",
-     "position": "front_right",
-     "hp": 240
-    },
-    {
-     "instanceId": "e_stalker",
-     "enemyActorId": "gray_stalker",
-     "position": "rear_left",
-     "hp": 156
-    },
-    {
-     "instanceId": "e_swarm",
-     "enemyActorId": "gray_swarm",
-     "position": "rear_right",
-     "hp": 96
-    }
-   ]
-  }
- },
- "rewards": {
-  "frontier-1801/1": [
-   "impact_spring",
-   "standing_plate",
-   "rescue_sachet"
-  ],
-  "frontier-1801/1/owned": [
-   "momentum_rig",
-   "worn_greaves",
-   "quiet_lens"
-  ],
-  "frontier-1801/2": [
-   "anchor_boots",
-   "splinter_edge",
-   "last_bell"
-  ],
-  "frontier-1801/2/owned": [
-   "momentum_rig",
-   "signal_lens",
-   "splinter_edge"
-  ],
-  "frontier-1801/3": [
-   "worn_greaves",
-   "rescue_sachet",
-   "standing_plate"
-  ],
-  "frontier-1801/3/owned": [
-   "momentum_rig",
-   "block_latch",
-   "tempo_buckle"
-  ],
-  "frontier-1801/4": [
-   "guard_lantern",
-   "repair_pouch",
-   "impact_spring"
-  ],
-  "frontier-1801/4/owned": [
-   "quiet_lens",
-   "splinter_edge",
-   "repair_pouch"
-  ],
-  "frontier-1801/5": [
-   "impact_spring",
-   "splinter_edge",
-   "wound_thread"
-  ],
-  "frontier-1801/5/owned": [
-   "impact_spring",
-   "focus_band",
-   "worn_greaves"
-  ],
-  "frontier-1801/6": [
-   "bastion_shell",
-   "recovery_satchel",
-   "field_kit"
-  ],
-  "frontier-1801/6/owned": [
-   "momentum_rig",
-   "anchor_boots",
-   "rescue_sachet"
-  ],
-  "frontier-1801/7": [
-   "thorn_clasp",
-   "anchor_boots",
-   "wound_thread"
-  ],
-  "frontier-1801/7/owned": [
-   "guard_lantern",
-   "shard_hilt",
-   "quiet_lens"
-  ],
-  "frontier-1801-abc12345/1": [
-   "field_kit",
-   "last_bell",
-   "impact_spring"
-  ],
-  "frontier-1801-abc12345/1/owned": [
-   "momentum_rig",
-   "reserve_coil",
-   "focus_band"
-  ],
-  "frontier-1801-abc12345/2": [
-   "tempo_buckle",
-   "block_latch",
-   "signal_lens"
-  ],
-  "frontier-1801-abc12345/2/owned": [
-   "block_latch",
-   "reserve_coil",
-   "signal_lens"
-  ],
-  "frontier-1801-abc12345/3": [
-   "splinter_edge",
-   "signal_lens",
-   "rescue_sachet"
-  ],
-  "frontier-1801-abc12345/3/owned": [
-   "splinter_edge",
-   "shard_hilt",
-   "guard_lantern"
-  ],
-  "frontier-1801-abc12345/4": [
-   "block_latch",
-   "signal_lens",
-   "thorn_clasp"
-  ],
-  "frontier-1801-abc12345/4/owned": [
-   "tempo_buckle",
-   "thorn_clasp",
-   "reserve_coil"
-  ],
-  "frontier-1801-abc12345/5": [
-   "worn_greaves",
-   "last_bell",
-   "focus_band"
-  ],
-  "frontier-1801-abc12345/5/owned": [
-   "momentum_rig",
-   "worn_greaves",
-   "recovery_satchel"
-  ],
-  "frontier-1801-abc12345/6": [
-   "quiet_lens",
-   "block_latch",
-   "repair_pouch"
-  ],
-  "frontier-1801-abc12345/6/owned": [
-   "guard_lantern",
-   "splinter_edge",
-   "repair_pouch"
-  ],
-  "frontier-1801-abc12345/7": [
-   "momentum_rig",
-   "standing_plate",
-   "worn_greaves"
-  ],
-  "frontier-1801-abc12345/7/owned": [
-   "worn_greaves",
-   "recovery_satchel",
-   "last_bell"
-  ],
-  "frontier-1801-zzz/1": [
-   "repair_pouch",
-   "guard_lantern",
-   "splinter_edge"
-  ],
-  "frontier-1801-zzz/1/owned": [
-   "rescue_sachet",
-   "shard_hilt",
-   "last_bell"
-  ],
-  "frontier-1801-zzz/2": [
-   "block_latch",
-   "shard_hilt",
-   "wound_thread"
-  ],
-  "frontier-1801-zzz/2/owned": [
-   "block_latch",
-   "repair_pouch",
-   "impact_spring"
-  ],
-  "frontier-1801-zzz/3": [
-   "last_bell",
-   "wound_thread",
-   "bastion_shell"
-  ],
-  "frontier-1801-zzz/3/owned": [
-   "momentum_rig",
-   "splinter_edge",
-   "rescue_sachet"
-  ],
-  "frontier-1801-zzz/4": [
-   "last_bell",
-   "quiet_lens",
-   "standing_plate"
-  ],
-  "frontier-1801-zzz/4/owned": [
-   "momentum_rig",
-   "signal_lens",
-   "quickstrap"
-  ],
-  "frontier-1801-zzz/5": [
-   "block_latch",
-   "wound_thread",
-   "impact_spring"
-  ],
-  "frontier-1801-zzz/5/owned": [
-   "focus_band",
-   "splinter_edge",
-   "wound_thread"
-  ],
-  "frontier-1801-zzz/6": [
-   "wound_thread",
-   "standing_plate",
-   "last_bell"
-  ],
-  "frontier-1801-zzz/6/owned": [
-   "last_bell",
-   "bastion_shell",
-   "focus_band"
-  ],
-  "frontier-1801-zzz/7": [
-   "splinter_edge",
-   "block_latch",
-   "bastion_shell"
-  ],
-  "frontier-1801-zzz/7/owned": [
-   "block_latch",
-   "splinter_edge",
-   "tempo_buckle"
-  ]
  },
  "region": {
   "id": "ash_frontier",

@@ -44,8 +44,14 @@ assert.equal(
 
 // 凍結ファイルが本当に中身を持っていること。**空と一致しても意味がない。**
 assert.ok(Object.keys(frozen.content.activeSkills).length >= 12, "凍結ファイルが痩せている");
-assert.ok(Object.keys(frozen.battles).length === 7, "7区画ぶんの battle input が凍っていない");
-assert.ok(Object.keys(frozen.rewards).length >= 42, "reward offer が凍っていない");
+assert.ok(
+  Array.isArray(frozen.expeditionEncounters) && frozen.expeditionEncounters.length > 0,
+  "現行 expedition encounter が凍っていない",
+);
+assert.ok(
+  Object.keys(frozen.composedEncounters ?? {}).length > 0,
+  "現行 composed encounter が凍っていない",
+);
 
 // 表示名の表が、分離後も全節ぶん揃っていること。
 for (const section of NAMED_SECTIONS) {
@@ -63,6 +69,6 @@ assert.ok(CONTENT_CONTRACT_VERSION.length > 0, "content contract の版が空");
 
 console.log(
   `content contract: ${sections.length}節が凍結と一致（${CONTENT_CONTRACT_VERSION}、`
-  + `battle ${Object.keys(frozen.battles).length}件・reward ${Object.keys(frozen.rewards).length}件）`,
+  + `expedition ${frozen.expeditionEncounters.length}戦・composed ${Object.keys(frozen.composedEncounters).length}件）`,
 );
 

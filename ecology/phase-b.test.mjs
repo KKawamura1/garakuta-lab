@@ -536,13 +536,19 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   // 同じ鍵なら同じ、引き直すと変わる（R6 §16 の鍵の分離）。
   assert.deepEqual(rewardOffer(run, profile, 1, 0), offer);
   checks += 1;
+  const nextEncounterBefore = composeEncounter(2, 0);
   const rerolled = rewardOffer(run, profile, 1, 1);
   check(
     JSON.stringify(rerolled) !== JSON.stringify(offer) || rerolled.length < 4,
     "引き直すと候補が変わる",
   );
   // **報酬の引き直しは後続の敵を動かさない。**
-  assert.deepEqual(composeEncounter(2, 0), composeEncounter(2, 0));
+  const nextEncounterAfter = composeEncounter(2, 0);
+  assert.deepEqual(
+    nextEncounterAfter,
+    nextEncounterBefore,
+    "報酬の引き直しは後続の敵編成を動かさない",
+  );
   checks += 1;
   // 技能点は選んだ一人だけに入る（R6 §5.3 が全員配布を削除した）。
   const granted = grantRunSkillPoints(run, "lancer", 2);
