@@ -19,7 +19,7 @@
 //   事務（行動権・解決の締め等） … 盤面に出さない。デバッグログにだけ残る。
 //
 // エンジンには依存しない。イベントの配列だけを見る純関数なので、
-// analysis/ecology-beats-smoke.mjs が本物の戦闘で性質を検査できる。
+// 分析用の replay-beats smoke が本物の戦闘で性質を検査できる。
 
 // 盤面に出さないもの。ログには残る。
 export const BOARD_SKIP = new Set([
