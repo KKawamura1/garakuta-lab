@@ -26,6 +26,7 @@ export const REACTIVE_SKILL_NAMES = {
   prep_spiral: "準備の螺旋",
   block_focus: "受け返しの集中",
   barrier_stitch: "防壁の縫い直し",
+  emergency_treatment: "応急処置",
 };
 
 const reactiveSkills = renamed("reactiveSkills", REACTIVE_SKILL_NAMES);
@@ -91,6 +92,36 @@ reactiveSkills.barrier_stitch = {
     priority: 100,
   },
   tags: ["reaction", "guard"],
+};
+
+// R8 §9.1 — 応急処置。被弾と同じ chain 内だけで発火し、実回復量は
+// その被弾量の1/3を超えない。古い損傷へは効かない
+// （新しい damage_taken が起きない限り発火しようがない）ので、
+// round を稼いで待つだけでは carry HP が改善しない
+// （analysis/ecology-anti-stall-smoke.mjs が検査する不変条件）。
+// worked example は R8 §9.1 と一致させてある: 被弾36 → 応急処置12 → 残り損傷24。
+reactiveSkills.emergency_treatment = {
+  id: "emergency_treatment",
+  displayName: REACTIVE_SKILL_NAMES.emergency_treatment,
+  rule: {
+    id: "emergency_treatment_rule",
+    listenTo: "damage_taken",
+    timing: "after",
+    priority: 150,
+    predicates: [{
+      type: "target_exists",
+      query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
+    }],
+    costs: [{ type: "spend_reaction_points", amount: 1 }],
+    effects: [{
+      type: "heal",
+      target: SELF_TARGET,
+      amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 3 },
+      tags: ["care", "emergency"],
+    }],
+    limit: { scope: "chain", count: 1 },
+  },
+  tags: ["reaction", "care", "emergency"],
 };
 
 export const REACTIVE_SKILLS = reactiveSkills;

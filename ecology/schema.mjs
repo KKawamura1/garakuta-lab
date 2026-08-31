@@ -21,9 +21,13 @@ export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
 // each one carries its own version and its own migration.
-export const PROFILE_SCHEMA_VERSION = "ecology-profile-1";
-export const RUN_SCHEMA_VERSION = "ecology-run-1";
-export const MANIFEST_VERSION = "ecology-manifest-1";
+// R8 Implementation Phase 1 — ProfileState gained `campaignProgress`; RunState
+// gained `currentHp` and `campaignStageSequence`; manifests gained
+// `campaignStageId`/`campaignStageSequence` provenance and a fixed (non-random)
+// construction path for campaign mode. All three versions move up one.
+export const PROFILE_SCHEMA_VERSION = "ecology-profile-2";
+export const RUN_SCHEMA_VERSION = "ecology-run-2";
+export const MANIFEST_VERSION = "ecology-manifest-2";
 
 // R6 §5.4 — the six positions of the 2x3 field. The listed order is also the
 // deterministic tie-break order, so nothing else may sort positions.

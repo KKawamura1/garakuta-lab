@@ -262,7 +262,7 @@ try {
   note("控えに版が残る", Boolean(saved?.run?.runSeed) && Boolean(saved?.feedback?.savedAt));
   // R6 §4.1 — ProfileState と RunState が別に保存されている。
   note("profile と run が分かれて保存されている",
-    saved?.profile?.schemaVersion === "ecology-profile-1" && saved?.run?.schemaVersion === "ecology-run-1");
+    saved?.profile?.schemaVersion === "ecology-profile-2" && saved?.run?.schemaVersion === "ecology-run-2");
   note("活動資金が profile に残る", typeof saved?.profile?.activityFunds === "string");
   note("遠征内の技能点は run にだけある",
     Boolean(saved?.run?.runSkillPoints) && !("skillPoints" in (saved?.profile ?? {})));

@@ -1,5 +1,6 @@
 import { BATTLE_SCHEMA_VERSION, POSITIONS, POSITION_ROW } from "./schema.mjs";
 import { seededShuffle } from "./seeded.mjs";
+import { simulateBattle } from "./engine.mjs";
 import {
   ACTIVE_META,
   CHARACTER_DEFINITIONS,
@@ -12,6 +13,10 @@ import {
   REACTIVE_META,
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
+// R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
+// 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
+// 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
+import { characterStats, composeEncounter } from "./progression.mjs";
 
 export const RUN_SEED = "frontier-1801";
 
@@ -427,6 +432,57 @@ export function loadoutSummary(loadout, rosterIds) {
 
 export function allEncounters() {
   return clone(ENCOUNTERS);
+}
+
+// ============================================================ 次戦 exact preview（R8 §11）
+//
+// **preview と正式実行は、この一つの関数で BattleInput を組み立て、
+// 同じ simulateBattle を呼ぶ。**（R8 §11.1「同じ入力の正式実行と完全一致させる」）
+// 呼び出し側の違いは、この結果を `commitBattleResult`（progression.mjs）へ
+// 渡すかどうかだけである。simulateBattle 自体は input/content を変更せず、
+// Date も Math.random も使わない（ecology/README.md）ので、この関数は
+// **RunState を一切変更しない**。
+export function simulateNextBattle(run, profile, encounterIndex) {
+  const composed = composeEncounter(encounterIndex, run.difficulty);
+  const loadout = run.loadout ?? freshLoadout(run.roster);
+  const battleInput = makeExpeditionBattle(
+    composed,
+    run.roster,
+    loadout,
+    run.runSeed,
+    run.formation,
+    {
+      hp: run.currentHp,
+      statsFor: (characterId) => characterStats(profile, characterId),
+    },
+  );
+  const result = simulateBattle(battleInput, PLAYABLE_CONTENT);
+  return { composed, battleInput, result };
+}
+
+function battleResultSummary(run, result) {
+  const perCharacter = run.roster.map((characterId) => {
+    const actor = result.actors.find((entry) => entry.instanceId === "a_" + characterId);
+    return {
+      characterId,
+      startingHp: run.currentHp?.[characterId] ?? 0,
+      endingHp: actor ? actor.hp : 0,
+      defeated: actor ? !actor.alive : true,
+    };
+  });
+  return {
+    result: result.result,
+    reason: result.reason,
+    roundsUsed: result.roundsUsed,
+    perCharacter,
+    metrics: result.metrics,
+  };
+}
+
+// 無料・副作用なしの preview（R8 §11.1）。RunState を一切変更しない。
+export function previewNextBattle(run, profile, encounterIndex) {
+  const { result } = simulateNextBattle(run, profile, encounterIndex);
+  return battleResultSummary(run, result);
 }
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。

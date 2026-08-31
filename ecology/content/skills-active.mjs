@@ -403,4 +403,68 @@ for (const [id, mode] of Object.entries(ACTION_MODES)) {
   if (activeSkills[id]) activeSkills[id].actionMode = mode;
 }
 
+// ---------------------------------------------------------------- pack_barrage（R8 §5.4）
+//
+// Stage 3 の新パック `pack_barrage`（連撃と刻印）の最小限 content。
+// R8 Implementation Phase 1 step 1 は Stage 0〜3 を `E`, `W+E`, `T+E`, `B+W+T` へ
+// 固定することを求めるが、パックの密度（R8 §6.4: active 4〜6、offense 3以上、
+// 発生源・変換器・利得先を各1つ以上）を作り込むのは Implementation Phase 2
+// （Stage 0〜3 probe content）の仕事であり、この system migration には含めない
+// （R8 §19.4「system変更とcontent追加を同じPRへ混ぜない」）。
+//
+// ここでは `CampaignStageDef.newPackId` が参照できる、妥当だが最小限の
+// primary_offense パックだけを用意する。多段（barrage_strike）と
+// 刻印（mark_strike）という2つの軸だけを置き、既存語彙（hitCount、
+// add_status）だけで書く。新しい engine/schema 語彙は使わない。
+activeSkills.barrage_strike = {
+  id: "barrage_strike",
+  displayName: "連撃",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 4_500 },
+    hitCount: 3,
+    tags: ["attack", "weapon", "onhit"],
+  }],
+  tags: ["attack", "onhit"],
+};
+activeSkills.mark_strike = {
+  id: "mark_strike",
+  displayName: "刻印撃ち",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [{
+    type: "target_exists",
+    op: "gte",
+    value: 1,
+    query: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "eq", value: 0 }],
+      take: "all",
+    },
+  }],
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "eq", value: 0 }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  effects: [
+    {
+      type: "deal_damage",
+      target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 10_000 },
+      tags: ["attack", "weapon", "mark"],
+    },
+    { type: "add_status", target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 }, statusId: "exposed", stacks: 1 },
+  ],
+  tags: ["attack", "mark"],
+};
+setDamageReach(activeSkills.barrage_strike, "melee");
+setDamageReach(activeSkills.mark_strike, "melee");
+
 export const ACTIVE_SKILLS = activeSkills;

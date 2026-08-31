@@ -19,7 +19,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
 // Phase B で battle input へ stats 上書き（鍛錬・変異）が入り、
 // slot の構造上限が 3/3 から 4/4 になった。**語彙が増えたので上げる。**
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-3";
+// R8 Implementation Phase 1 — emergency_treatment（reactive skill）、
+// pack_barrage（barrage_strike / mark_strike）、CampaignStageDef 語彙を追加した。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-4";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -91,10 +93,22 @@ export {
   BASELINE_PASSIVE_SKILL_IDS,
   PACKS_PER_MANIFEST,
   PACK_BY_ID,
+  PACK_COMBAT_ROLES,
   SKILL_PACKS,
   packOfSkill,
   skillIdsForPacks,
 } from "./packs.mjs";
+// R8 Implementation Phase 1 — Campaign Stage 0〜3 の固定 manifest。
+export {
+  CAMPAIGN_STAGES,
+  CAMPAIGN_STAGE_BY_ID,
+  CAMPAIGN_STAGE_BY_SEQUENCE,
+  MAX_CAMPAIGN_STAGE_SEQUENCE,
+  activePackCountForSequence,
+  auditCampaignManifestLadder,
+  campaignManifestForStage,
+  campaignStageDef,
+} from "./campaign-stages.mjs";
 export {
   ACT_BOSS_INDEXES,
   BOSS_LAWS,

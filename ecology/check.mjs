@@ -14,6 +14,7 @@ const SUITES = [
   "mine.test.mjs",
   "contract.test.mjs",
   "phase-b.test.mjs",
+  "campaign-stage.test.mjs",
 ];
 
 let failed = 0;

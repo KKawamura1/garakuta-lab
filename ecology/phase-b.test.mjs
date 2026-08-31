@@ -83,9 +83,11 @@ const FORMATION = {
 
 // ---- 版（R6 §16）-------------------------------------------------------------
 
-equal(PROFILE_SCHEMA_VERSION, "ecology-profile-1", "profile の版");
-equal(RUN_SCHEMA_VERSION, "ecology-run-1", "run の版");
-equal(MANIFEST_VERSION, "ecology-manifest-1", "manifest の版");
+// R8 Implementation Phase 1 — currentHp / campaignStageSequence / campaignProgress
+// を追加したので、profile / run / manifest の版をそれぞれ1つ上げた。
+equal(PROFILE_SCHEMA_VERSION, "ecology-profile-2", "profile の版");
+equal(RUN_SCHEMA_VERSION, "ecology-run-2", "run の版");
+equal(MANIFEST_VERSION, "ecology-manifest-2", "manifest の版");
 
 // ---- 3幕12戦（R6 §5.1）------------------------------------------------------
 
@@ -188,7 +190,8 @@ for (const mutation of Object.values(ENEMY_MUTATIONS)) {
 
 // ---- 技能パック（R6 §5.2 / §6.2）--------------------------------------------
 
-equal(SKILL_PACKS.length, 4, "24技能を4パックへ分けた");
+// R8 Implementation Phase 1 — pack_barrage（Stage 3 の新パック）を追加したので5パックになった。
+equal(SKILL_PACKS.length, 5, "技能を5パックへ分けた");
 {
   const seen = new Map();
   for (const pack of SKILL_PACKS) {

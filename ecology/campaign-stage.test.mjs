@@ -1,0 +1,246 @@
+// ecology/campaign-stage.test.mjs — R8 Implementation Phase 1 / Gate 1.
+//
+// **見るのは system の不変条件であり、fun ではない。**
+//   - manifest ラダー（R8 §16.1）: Stage 0〜3 の固定 manifest が契約を満たす。
+//   - HP 持ち越し（R8 §8, §10）: 勝利時だけ commit、敗北時は commit しない、
+//     4/8戦目 boss 勝利後だけ全回復。
+//   - 野営治療（R8 §9.2）: 補給を消費し、治療できない対象へは空撃ちしない。
+//   - 安全撤退（R8 §10.3）: 完走・初clear bonus が付かず、Blueprint 保存上限が
+//     won/lost と異なる。
+//   - exact preview（R8 §11）: preview と実行が同じ経路（simulateNextBattle）を
+//     通るので、同じ引数なら同じ結果になる。
+//
+// **round を稼ぐと carry HP が伸びるか**という本来の anti-stall 機械検査
+// （R8 §16.6）は、ここには**まだ入れていない**。現行の `mend`/`triage` が
+// その検査に通らないことは analysis/ecology-anti-stall-smoke.mjs が既に
+// 診断していて（意図的に非ゼロ終了、check-all.sh の fast path 対象外）、
+// 直すまでは push ごとに走るこのファイルを赤くしない
+// （analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3）。
+
+import assert from "node:assert/strict";
+import { PLAYABLE_CONTENT } from "./content/index.mjs";
+import {
+  CAMPAIGN_STAGES,
+  MAX_CAMPAIGN_STAGE_SEQUENCE,
+  activePackCountForSequence,
+  auditCampaignManifestLadder,
+  campaignManifestForStage,
+  campaignStageDef,
+} from "./content/campaign-stages.mjs";
+import {
+  BLUEPRINT_SAVE_LIMIT,
+  CAMP_TREATMENTS,
+  MAX_SUPPLIES,
+  availableCampaignStages,
+  campTreat,
+  characterStats,
+  commitBattleResult,
+  isActBossFullHealIndex,
+  isCampaignStageUnlocked,
+  newProfile,
+  newRun,
+  settleRun,
+} from "./progression.mjs";
+import { freshLoadout, previewNextBattle, simulateNextBattle } from "./playable-battles.mjs";
+
+let checks = 0;
+const check = (condition, message) => {
+  assert.ok(condition, message);
+  checks += 1;
+};
+const equal = (actual, expected, message) => {
+  assert.equal(actual, expected, message);
+  checks += 1;
+};
+
+const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
+
+// ---- manifestラダー（R8 §16.1）----------------------------------------------
+
+{
+  const problems = auditCampaignManifestLadder(CAMPAIGN_STAGES);
+  assert.deepEqual(problems, [], "Stage 0〜3 の manifest ラダーに違反が無い");
+  checks += 1;
+
+  equal(MAX_CAMPAIGN_STAGE_SEQUENCE, 3, "Stage 0〜3 の4段だけを固定している");
+  equal(activePackCountForSequence(0), 1, "Stage 0 の有効パック数");
+  equal(activePackCountForSequence(1), 2, "Stage 1 の有効パック数");
+  equal(activePackCountForSequence(2), 2, "Stage 2 の有効パック数");
+  equal(activePackCountForSequence(3), 3, "Stage 3 の有効パック数");
+
+  assert.deepEqual(campaignStageDef(0).enabledPackIds, ["pack_edge"], "Stage 0 = E");
+  assert.deepEqual(campaignStageDef(1).enabledPackIds, ["pack_edge", "pack_wall"], "Stage 1 = W + E");
+  assert.deepEqual(campaignStageDef(2).enabledPackIds, ["pack_edge", "pack_tempo"], "Stage 2 = T + E");
+  assert.deepEqual(
+    campaignStageDef(3).enabledPackIds,
+    ["pack_wall", "pack_tempo", "pack_barrage"],
+    "Stage 3 = B + W + T",
+  );
+  checks += 4;
+
+  // 同Stage・異seedでpack構成が一致する。seed は敵順・報酬用にしか使わない。
+  const a = campaignManifestForStage(2, "seed-alpha");
+  const b = campaignManifestForStage(2, "seed-beta");
+  assert.deepEqual(a.enabledPackIds, b.enabledPackIds, "campaign manifest は seed で pack 構成が変わらない");
+  check(a.seed !== b.seed, "ただし seed 自体は記録される（敵順・報酬用）");
+}
+
+// ---- Campaign Stage 解禁（R8 §3.1）------------------------------------------
+
+{
+  const profile = newProfile();
+  assert.deepEqual(availableCampaignStages(profile), [0], "最初は Stage 0 だけ解禁");
+  check(isCampaignStageUnlocked(profile, 0), "Stage 0 は解禁済み");
+  check(!isCampaignStageUnlocked(profile, 1), "Stage 1 はまだ解禁されていない");
+  checks += 2;
+
+  const run = newRun(profile, { runSeed: "s", runId: "camp-r0", roster: ROSTER, campaignStageSequence: 0 });
+  equal(run.campaignStageSequence, 0, "run が campaign stage を記録する");
+  assert.deepEqual(run.manifest.enabledPackIds, ["pack_edge"], "Stage 0 の run manifest");
+  checks += 1;
+
+  const settled = settleRun(profile, { ...run, fundLedger: { ...run.fundLedger, settled: false } }, "won");
+  check(settled.ok, "campaign run を精算できる");
+  assert.deepEqual(availableCampaignStages(settled.profile), [0, 1], "Stage 0 クリアで Stage 1 が開く");
+  equal(settled.settlement.unlockedCampaignStage, 1, "settlement が解禁した Stage を報告する");
+  checks += 2;
+}
+
+// ---- HP持ち越し（R8 §8, §10）-------------------------------------------------
+
+function syntheticResult(result, allyHpById) {
+  return {
+    result,
+    reason: result === "win" ? "objective_met" : "all_allies_defeated",
+    roundsUsed: 3,
+    actors: ROSTER.map((characterId) => ({
+      instanceId: "a_" + characterId,
+      side: "ally",
+      hp: allyHpById[characterId] ?? 0,
+      alive: (allyHpById[characterId] ?? 0) > 0,
+    })),
+  };
+}
+
+{
+  const profile = newProfile();
+  const run = newRun(profile, { runSeed: "s", runId: "hp-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const fullHp = { ...run.currentHp };
+  for (const id of ROSTER) check(fullHp[id] > 0, id + " は遠征開始時に満タン");
+
+  // 通常戦（index 1）勝利: ダメージを負ったまま持ち越す。
+  const damaged = Object.fromEntries(ROSTER.map((id) => [id, Math.max(1, Math.floor(fullHp[id] * 0.4))]));
+  const win1 = commitBattleResult(profile, run, 1, syntheticResult("win", damaged));
+  check(win1.snapshot.committed, "勝利は commit される");
+  assert.deepEqual(win1.run.currentHp, damaged, "通常戦後は終了HPをそのまま持ち越す");
+  checks += 1;
+
+  // 同じ戦闘に負けたら、開始前 snapshot から何も変えない（retry safe）。
+  const loss1 = commitBattleResult(profile, run, 1, syntheticResult("loss", { warden: 0, mender: 5, lancer: 0, scout: 3, guardian: 0 }));
+  check(!loss1.snapshot.committed, "敗北は commit されない");
+  assert.deepEqual(loss1.run.currentHp, run.currentHp, "敗北後は run が変更されない（そのまま retry できる）");
+  checks += 1;
+
+  // 4戦目（act boss）勝利は、途中でどれだけ削れていても全回復する。
+  check(isActBossFullHealIndex(4), "4戦目は全回復対象");
+  check(isActBossFullHealIndex(8), "8戦目は全回復対象");
+  check(!isActBossFullHealIndex(1) && !isActBossFullHealIndex(12), "1戦目・12戦目は全回復対象ではない");
+  const nearDeath = Object.fromEntries(ROSTER.map((id) => [id, 1]));
+  const bossWin = commitBattleResult(profile, win1.run, 4, syntheticResult("win", nearDeath));
+  for (const id of ROSTER) {
+    equal(bossWin.run.currentHp[id], characterStats(profile, id).stats.maxHp, id + " は4戦目boss後に全回復する");
+  }
+}
+
+// ---- 野営治療（R8 §9.2）------------------------------------------------------
+
+{
+  const profile = newProfile();
+  let run = newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 0 });
+  const maxHp = characterStats(profile, "warden").stats.maxHp;
+  run = { ...run, currentHp: { ...run.currentHp, warden: Math.floor(maxHp * 0.3) } };
+  const before = run.supplies;
+
+  const treated = campTreat(run, profile, "concentrated", ["warden"]);
+  check(treated.ok, "集中治療が成功する");
+  equal(treated.run.supplies, before - 1, "野営治療は補給を1消費する");
+  const expected = Math.min(maxHp, Math.floor(maxHp * 0.3) + Math.round(maxHp * CAMP_TREATMENTS.concentrated.healBps / 10_000));
+  check(treated.run.currentHp.warden > Math.floor(maxHp * 0.3) && treated.run.currentHp.warden <= maxHp,
+    "集中治療で対象のHPが増え、maxHpを超えない");
+  checks += 1;
+  void expected;
+
+  // 満タンの対象へは空撃ちしない（補給を消費しない）。
+  const fullHpRun = { ...run, currentHp: Object.fromEntries(ROSTER.map((id) => [id, characterStats(profile, id).stats.maxHp])) };
+  const wasted = campTreat(fullHpRun, profile, "concentrated", ["warden"]);
+  check(!wasted.ok, "満タンの対象への集中治療は空撃ちしない");
+
+  // 蘇生は生存者へは効かない。
+  const reviveOnAlive = campTreat(run, profile, "revive", ["warden"]);
+  check(!reviveOnAlive.ok, "蘇生は生存者には使えない");
+
+  // 補給0なら治療できない。
+  const drained = { ...run, supplies: 0, currentHp: { ...run.currentHp, warden: 1 } };
+  const noSupply = campTreat(drained, profile, "concentrated", ["warden"]);
+  check(!noSupply.ok, "補給が無ければ野営治療できない");
+  check(MAX_SUPPLIES >= 1, "MAX_SUPPLIES が有限資源として存在する");
+}
+
+// ---- 安全撤退（R8 §10.3）------------------------------------------------------
+
+{
+  const profile = newProfile();
+  const run = newRun(profile, { runSeed: "s", runId: "retreat-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const retreated = settleRun(profile, run, "retreat");
+  check(retreated.ok, "安全撤退を精算できる");
+  equal(retreated.settlement.breakdown.outcomeBonus, 0, "安全撤退には完走ボーナスが付かない");
+  equal(retreated.settlement.firstClear, false, "安全撤退には初clearボーナスが付かない");
+  equal(retreated.settlement.blueprintSaveLimit, BLUEPRINT_SAVE_LIMIT.retreat, "安全撤退のBlueprint保存上限");
+  check(BLUEPRINT_SAVE_LIMIT.retreat > BLUEPRINT_SAVE_LIMIT.lost, "安全撤退は敗北より保存上限が高い");
+  check(BLUEPRINT_SAVE_LIMIT.retreat === BLUEPRINT_SAVE_LIMIT.won, "安全撤退と勝利の保存上限は同じ");
+
+  const lostRun = newRun(profile, { runSeed: "s", runId: "lost-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const lost = settleRun(profile, lostRun, "lost");
+  equal(lost.settlement.blueprintSaveLimit, 1, "敗北のBlueprint保存上限は1");
+}
+
+// ---- exact preview（R8 §11）---------------------------------------------------
+
+{
+  const profile = newProfile();
+  const run = newRun(profile, { runSeed: "preview-seed", runId: "preview-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const runWithLoadout = { ...run, loadout: freshLoadout(ROSTER) };
+
+  const preview = previewNextBattle(runWithLoadout, profile, 1);
+  const { result: executed } = simulateNextBattle(runWithLoadout, profile, 1);
+  const executedSummary = {
+    result: executed.result,
+    reason: executed.reason,
+    roundsUsed: executed.roundsUsed,
+    perCharacter: ROSTER.map((characterId) => {
+      const actor = executed.actors.find((entry) => entry.instanceId === "a_" + characterId);
+      return {
+        characterId,
+        startingHp: runWithLoadout.currentHp[characterId] ?? 0,
+        endingHp: actor ? actor.hp : 0,
+        defeated: actor ? !actor.alive : true,
+      };
+    }),
+    metrics: executed.metrics,
+  };
+  assert.deepEqual(preview, executedSummary, "previewは正式実行と完全一致する（同じ経路を通るため）");
+  checks += 1;
+
+  // previewはRunStateを変更しない。
+  const before = JSON.stringify(runWithLoadout);
+  previewNextBattle(runWithLoadout, profile, 1);
+  previewNextBattle(runWithLoadout, profile, 1);
+  equal(JSON.stringify(runWithLoadout), before, "preview を連打してもRunStateは変わらない");
+
+  // 同じ入力なら preview は決定的（何度呼んでも同じ）。
+  const previewAgain = previewNextBattle(runWithLoadout, profile, 1);
+  assert.deepEqual(preview, previewAgain, "preview は同じ入力に対して決定的");
+  checks += 1;
+}
+
+console.log(`campaign-stage.test.mjs: ${checks} checks passed`);
