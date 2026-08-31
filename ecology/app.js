@@ -3268,10 +3268,25 @@ function handleAction(event) {
       ? current.filter((id) => id !== blueprintId)
       : [...current, blueprintId];
     state.profile = { ...state.profile, blueprints: setCarrySelection(archive, next, capacity) };
-    // **持込は次の遠征から効く。**いま仕立て中の遠征へ後から差し込むと、
-    // 「開始時に再製造する」という契約（R8 §3.6）が崩れる。
-    state.feedback = state.feedback ?? null;
     state.error = null;
+    // R8 §3.6 —「遠征開始時、carry capacity以内のBlueprintを再製造する」。
+    // **まだ出発していない遠征なら、その場で作り直す。**そうしないと、
+    // ギルドで持込を選んでも「次の次の遠征」からしか効かない
+    // （run はギルドへ戻った時点で作られている）。
+    // seed は持ち回すので、持込を選び直しても敵順・報酬は引き直せない。
+    // 「まだ出発していない」は phase で見る。**run.startedAt は作成時に入るので
+    // 出発の印にならない**（startRun がその場で今の時刻を書いている）。
+    if (state.phase === "expeditionStart") {
+      state.run = startRun(state.profile, {
+        campaignStageSequence: state.run.campaignStageSequence,
+        difficulty: state.run.difficulty,
+        roster: state.run.roster,
+        runSeed: state.run.runSeed,
+        runId: state.run.runId,
+        freeRoster: state.run.rosterLocked === false,
+      });
+      registerGeneratedEquipment(state.run.generatedEquipment);
+    }
     record("blueprint_carry_changed", { blueprintId, carried: state.profile.blueprints.carrySelection });
     saveState();
     render();

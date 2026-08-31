@@ -136,7 +136,49 @@ try {
     }
   }
 
-  // ギルドの Blueprint 画面が実在する。
+  // ---- Phase C — 拾った品が設計図として残り、次の遠征へ持ち込めるか。
+  //
+  // **画面の文言だけでなく、次の遠征の持ち物に実物が入るところまで見る。**
+  // 安全撤退で精算まで一気に進む（R8 §10.3。撤退でも最大2件残る）。
+  await click("安全に撤退する");
+  await page.waitForTimeout(300);
+  const settleText = await bodyText();
+  note("精算画面に着く", /安全に撤退した|遠征を終えた|遠征は途中で終わった/.test(settleText));
+  note("設計図として残した品が出る", /設計図として残した品/.test(settleText));
+  note("残した件数が出ている", /新しく残した|取得履歴を追加|残せる品がありません/.test(settleText));
+
+  await click("ギルドへ戻る");
+  await page.locator('[data-action="guild-tab"][data-tab="blueprints"]').click();
+  await page.waitForTimeout(200);
+  const archiveText = await bodyText();
+  note("Blueprint archive の画面がある", /残した品の設計図/.test(archiveText));
+  const carry = page.getByRole("button", { name: "この遠征へ持ち込む" });
+  note("持ち込むボタンがある", await carry.count() > 0, archiveText.slice(0, 0));
+  let carriedName = null;
+  if (await carry.count()) {
+    carriedName = await page.locator(".blueprint-card h3").first().innerText();
+    await carry.first().click();
+    await page.waitForTimeout(200);
+    note("持込に切り替わる", /持込を外す/.test(await bodyText()));
+    note("持込枠の数が出ている", /持込 1 \/ \d/.test(await bodyText()));
+  }
+
+  // 次の遠征を始めると、持ち込んだ品が最初から手元にある。
+  await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
+  await click("この条件で遠征へ出る");
+  // 2周目の Stage 0 はまだクリアしていないので、会話と序盤の一戦は出ない
+  // （storyFlags に既読印が残っている）。
+  await page.waitForTimeout(300);
+  await page.locator('nav.tabs [data-tab="equipment"]').click();
+  await page.waitForTimeout(200);
+  const carriedText = await bodyText();
+  note("持ち込んだ品が次の遠征の手元にある", /持込/.test(carriedText));
+  if (carriedName) {
+    note("持ち込んだ品の名前が一致する",
+      carriedText.includes(carriedName.replace(/\s*(並|上|希|遺物)\s*$/, "").trim()),
+      carriedName);
+  }
+
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 3).join(" / "));
 } catch (error) {
   note("通しが最後まで進む", false, String(error).slice(0, 300));
