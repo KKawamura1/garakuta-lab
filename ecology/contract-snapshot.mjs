@@ -42,13 +42,6 @@ import {
 
 // 現行 Phase B の参照編成。**seed と同じで、動かしたら比較の意味が消える。**
 const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
-const FORMATION = {
-  warden: "front_left",
-  lancer: "front_center",
-  guardian: "front_right",
-  mender: "rear_left",
-  scout: "rear_right",
-};
 export function contractSnapshot() {
   const loadout = freshLoadout(ROSTER);
   const enemyIds = Object.keys(PLAYABLE_CONTENT.enemyActors);
