@@ -134,7 +134,7 @@ bpsForLegacyAmount(N) は N をそのまま百分率にしません。中立値4
 
 | 場所 | 問題 | 対応 |
 |---|---|---|
-| ecology/PLAYABLE_RULES.md | 7区画、Wave 1 の置換、Phase B は将来、報酬は「装備3候補 / 全員の技能点+2」、4枠など、Phase A の説明が現行として書かれていた。 | 現行の3幕12戦、4・8・12戦目のボス、装備2 / 技能点+2 / 補給+1、6枠を記載。旧7区画は「比較用・削除しない」の節へ移し、旧リプレイ・contract・beat smoke の依存を明記。戦闘尺度の数値は変更していない。 |
+| ecology/PLAYABLE_RULES.md | 7区画、Wave 1 の置換、Phase B は将来、報酬は「装備3候補 / 全員の技能点+2」、4枠など、Phase A の説明が現行として書かれていた。 | 現行の3幕12戦、4・8・12戦目のボス、装備2 / 技能点+2 / 補給+1、6枠を記載。旧7区画は decision-space 移行までの互換入力として明記し、旧テスト・contract・beat smoke の削除も記録。戦闘尺度の数値は変更していない。 |
 | ecology/README.md | check.mjs を9本と記載し、旧 Phase A test を現行 suite として案内していた。 | 7本へ修正し、現行 Phase B test・expedition と、decision-space 移行まで残す旧配置の位置づけを記載。 |
 | docs/REPOSITORY_MAP.md | main の対象commitが 3c0790c、EXP-18が8人・24技能・18装備・7区画のdraftと記載され、現行 Phase B とずれていた。 | main の監査基準commitと、Phase B 3幕12戦 / 旧Phase A互換資産を記載。 |
 | docs/ のその他 | ecology の係数を直接表示する追加文言は検索で見つからなかった。歴史資料・実験票の旧数値は当時の証拠なので書き換えていない。 | 変更なし。 |
