@@ -544,7 +544,11 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   );
   // **報酬の引き直しは後続の敵を動かさない。**
   const nextEncounterAfter = composeEncounter(2, 0);
-  assert.deepEqual(nextEncounterAfter, nextEncounterBefore);
+  assert.deepEqual(
+    nextEncounterAfter,
+    nextEncounterBefore,
+    "報酬の引き直しは後続の敵編成を動かさない",
+  );
   checks += 1;
   // 技能点は選んだ一人だけに入る（R6 §5.3 が全員配布を削除した）。
   const granted = grantRunSkillPoints(run, "lancer", 2);
