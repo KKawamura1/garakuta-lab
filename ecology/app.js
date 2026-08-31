@@ -22,6 +22,10 @@ import {
   ensurePartySize,
   normalizeFormation,
   previewNextBattle,
+  componentInfo,
+  registerGeneratedEquipment,
+  makePrologueBattle,
+  prologueEncounter,
 } from "./playable-battles.mjs";
 import {
   BOSS_LAWS,
@@ -30,7 +34,9 @@ import {
   EQUIPMENT_GROUPS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
   PACK_BY_ID,
+  PROLOGUE,
   REGION,
+  storyBeat,
   SKILL_PACKS,
   difficultyDef,
 } from "./content/index.mjs";
@@ -75,13 +81,25 @@ import {
   upgradeLevel,
   INVENTORY_LIMIT,
   MAX_SUPPLIES,
+  appraisalLevel,
+  blueprintCarryCapacity,
+  newGeneratedItems,
+  runContentBundle,
+  takeGeneratedEquipment,
 } from "./progression.mjs";
+import {
+  blueprintCompatibility,
+  searchBlueprints,
+  setCarrySelection,
+  toggleFavorite,
+} from "./blueprints.mjs";
+import { RARITY_LABEL } from "./content/affixes.mjs";
 import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 R8 Campaign 0.6";
+const VERSION = "EXP-18 R8+R9 Campaign 0.7";
 const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
@@ -205,6 +223,13 @@ function fitPayload(payload) {
 
 registerSkillCosts(SKILL_TREE_NODES);
 
+// R9 §8 — その Stage を一度でもクリアしているか。**初回だけ物語と学習順を固定し、
+// 既知になった後の再訪では編成から始められるようにする**ための分岐。
+function isCampaignStageCleared(profile, sequence) {
+  const progress = profile?.campaignProgress?.[REGION.id];
+  return Boolean(progress?.clearedStageSequences?.includes(sequence));
+}
+
 function defaultFormation(roster) {
   const formation = {};
   roster.forEach((id, index) => {
@@ -214,8 +239,19 @@ function defaultFormation(roster) {
   return normalizeFormation(formation, roster);
 }
 
+// R9 §2.1 — この遠征の人数。チュートリアル Stage は2〜5人で、
+// 一度クリアした Stage を遊び直すときは5人。
+function runPartySize() {
+  return Math.max(1, Math.min(PARTY_SIZE, Math.floor(state.run?.partySize ?? PARTY_SIZE)));
+}
+
+// 初回のチュートリアル Stage では、誰が来るかは物語が決める。
+function rosterLocked() {
+  return state.run?.rosterLocked === true;
+}
+
 function partyLabel() {
-  return state.run.roster.length + " / " + PARTY_SIZE + "人";
+  return state.run.roster.length + " / " + runPartySize() + "人";
 }
 
 // 遠征を1つ作る。**技能の解禁も装備も、ここで run の中へ入る。**
@@ -224,7 +260,16 @@ function partyLabel() {
 // 渡さずに作り直すと、有効パックが気に入るまで難易度ボタンを往復すれば
 // 引き直せてしまう（R6 §5.2 は manifest を seed で決めると言っている）。
 function startRun(profile, options = {}) {
-  const roster = ensurePartySize(options.roster ?? ["warden", "mender", "lancer", "scout"]);
+  // R9 §2.1 — Campaign Stage は、初回はその Stage の cast をそのまま使う。
+  // R9 §8 — 一度クリアした Stage は5人を自由に選べる（freeRoster）。
+  const sequence = options.campaignStageSequence ?? null;
+  const stage = sequence === null ? null : CAMPAIGN_STAGES[sequence] ?? null;
+  const cleared = sequence !== null && isCampaignStageCleared(profile, sequence);
+  const freeRoster = options.freeRoster ?? cleared;
+  const size = stage && !freeRoster ? stage.partySize : PARTY_SIZE;
+  const requested = options.roster
+    ?? (stage && !freeRoster ? [...stage.castCharacterIds] : ["warden", "mender", "lancer", "scout"]);
+  const roster = ensurePartySize(requested, size);
   const runSeed = options.runSeed ?? (RUN_SEED + "-" + uuid().slice(0, 8));
   const run = newRun(profile, {
     runSeed,
@@ -235,6 +280,7 @@ function startRun(profile, options = {}) {
     // 渡さなければ従来どおり Free / Endless の random manifest になる
     // （newRun 側の分岐。content/campaign-stages.mjs）。
     campaignStageSequence: options.campaignStageSequence ?? null,
+    freeRoster,
     formation: defaultFormation(roster),
     startedAt: new Date().toISOString(),
   });
@@ -290,6 +336,11 @@ function freshUiState() {
     phase: "intro",
     tab: "roster",
     guildTab: "expedition",
+    // Phase C — Blueprint archive の絞り込み（画面だけの状態）。
+    blueprintFilter: { rarity: null, favorite: false },
+    // R9 §2 / §7 — 物語の断片。queue が空になったら after へ進む。
+    story: { queue: [], after: "camp" },
+    prologueActive: false,
     selectedCharacter: null,
     // ギルドは**遠征の編成とは別の選択**を持つ。roster の5人へ丸めると、
     // 同行していない仲間の鍛錬と第4枠が永久に買えなくなる。
@@ -360,11 +411,29 @@ function loadState() {
     const savedRun = saved.run;
     if (savedRun && savedRun.schemaVersion === RUN_SCHEMA_VERSION && Array.isArray(savedRun.roster)) {
       next.run = savedRun;
-      next.run.roster = ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)));
+      // R9 §2.1 — **人数は遠征が持っている。**ここで既定の5人へ埋めると、
+      // 2人の Stage 0 を戦闘中にリロードしただけで5人に増える。
+      next.run.partySize = Number.isFinite(savedRun.partySize)
+        ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
+        : PARTY_SIZE;
+      next.run.rosterLocked = savedRun.rosterLocked === true;
+      next.run.roster = ensurePartySize(
+        savedRun.roster.filter((id) => characterInfo(id)),
+        next.run.partySize,
+      );
       next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
       next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
+      // Phase C — **生成装備の定義は run が抱えている。**先に登録してから
+      // 持ち物を絞らないと、拾った生成装備が読み込みのたびに消える。
+      next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
+        ? savedRun.generatedEquipment
+        : {};
+      next.run.carriedBlueprintIds = Array.isArray(savedRun.carriedBlueprintIds)
+        ? savedRun.carriedBlueprintIds
+        : [];
+      registerGeneratedEquipment(next.run.generatedEquipment);
       next.run.inventory = Array.isArray(savedRun.inventory)
-        ? savedRun.inventory.filter((id) => EQUIPMENT[id]).slice(0, INVENTORY_LIMIT)
+        ? savedRun.inventory.filter((id) => componentInfo(id)).slice(0, INVENTORY_LIMIT)
         : [];
       next.run.supplies = Math.max(0, Math.min(MAX_SUPPLIES, Math.floor(savedRun.supplies ?? 0)));
       next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
@@ -589,8 +658,31 @@ function equipmentOwner(equipmentId) {
   return state.run.roster.find((characterId) => (state.run.loadout.equipment?.[characterId] || []).includes(equipmentId)) ?? null;
 }
 
+// **装備の表示情報は一箇所から引く。**固定装備は EQUIPMENT に、Phase C の
+// 生成装備は run が抱えている定義から作った別表に居る（playable-battles の
+// registerGeneratedEquipment）。画面が EQUIPMENT を直接読むと、生成装備が
+// 名前も効果も空のまま並ぶ。
+function gear(equipmentId) {
+  return componentInfo(equipmentId) ?? null;
+}
+
+function generatedItem(equipmentId) {
+  return state.run?.generatedEquipment?.[equipmentId] ?? null;
+}
+
+function rarityChip(rarity) {
+  if (!rarity) return "";
+  return "<span class=\"rarity-chip rarity-" + esc(rarity) + "\">" + esc(RARITY_LABEL[rarity] ?? rarity) + "</span>";
+}
+
+function gearLines(equipmentId) {
+  const item = generatedItem(equipmentId);
+  if (!item) return [];
+  return item.readout?.lines ?? [];
+}
+
 function equipmentDurability(equipmentId) {
-  return Math.max(0, state.equipmentDurability[equipmentId] ?? EQUIPMENT[equipmentId]?.maxDurability ?? 1);
+  return Math.max(0, state.equipmentDurability[equipmentId] ?? gear(equipmentId)?.maxDurability ?? 1);
 }
 
 // R6 §5.3 — 技能点は**遠征内の資源**。遠征が終われば消える。
@@ -603,7 +695,7 @@ function skillPointsFor(characterId) {
 function resetEquipmentDurability() {
   state.equipmentDurability = {};
   for (const id of state.run.inventory) {
-    state.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
+    state.equipmentDurability[id] = gear(id)?.maxDurability ?? 1;
   }
 }
 
@@ -624,8 +716,13 @@ function inManifest(skillId) {
   return manifestSkillIds(state.run.manifest).all.includes(skillId);
 }
 
+// R9 §3.2 — 敵の数と threat budget は、その遠征の人数に合わせて決まる。
+// **preview と正式実行が同じ引数を使う**ように、ここ一箇所で組む。
 function currentEncounter() {
-  return composeEncounter(state.run.encounterIndex, state.run.difficulty);
+  // R9 §2.1 — 序盤の敗北は12戦の梯子に属さない。**別の敵を出しているのに
+  // 第1戦の名前を出さない**（何を見ているのか分からなくなる）。
+  if (state.prologueActive) return prologueEncounter();
+  return composeEncounter(state.run.encounterIndex, state.run.difficulty, { partySize: state.run.partySize });
 }
 
 function actOfIndex(index) {
@@ -648,7 +745,7 @@ function nextActPreview() {
   const act = actOfIndex(state.run.encounterIndex) + 1;
   if (act > 3) return null;
   for (let index = state.run.encounterIndex + 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
-    const composed = composeEncounter(index, state.run.difficulty);
+    const composed = composeEncounter(index, state.run.difficulty, { partySize: state.run.partySize });
     if (composed.act === act && composed.kind !== "boss") return composed;
   }
   return null;
@@ -700,9 +797,13 @@ function campNav() {
 
 function render() {
   stopReplayTimer();
+  // Phase C — **今の遠征が抱えている生成装備だけを、装備画面の語彙にする。**
+  // 遠征が変われば表も入れ替わる（前の遠征の品が残らない）。
+  registerGeneratedEquipment(state.run?.generatedEquipment ?? {});
   const views = {
     intro: renderIntro,
     expeditionStart: renderExpeditionStart,
+    story: renderStory,
     camp: renderCamp,
     battlePreview: renderBattlePreview,
     battle: renderBattle,
@@ -741,12 +842,12 @@ function restoreSkillTreeScroll() {
 }
 
 function renderIntro() {
-  return shell("灰の遠征", "5人を組み、3幕12戦を越え、持ち帰った活動資金でギルドを育てる", "<section class=\"hero card\">"
-    + "<div class=\"sigil\">◈</div><p class=\"lead\">5人を選び、2×3の6枠へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>遠征中に得た技能点と装備はその遠征だけのもの</b>で、持ち帰るのは活動資金です。</p>"
+  return shell("灰の遠征", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
+    + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stage を越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>遠征中に得た技能点と装備はその遠征だけのもの</b>で、持ち帰るのは活動資金と、見つけた装備の設計図です。</p>"
     + button("ギルドへ", "start", false, "button primary")
-    + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>3幕12戦</b><span>4・8・12戦目にボス</span></div><div class=\"card\"><b>技能パック</b><span>4つのうち3つが有効</span></div><div class=\"card\"><b>補給3</b><span>再挑戦・引き直し・偵察</span></div></section>");
+    + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金と設計図を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
+    + "<section class=\"three-up\"><div class=\"card\"><b>2人 → 5人</b><span>Stage ごとに一人加わる</span></div><div class=\"card\"><b>技能パックは積む</b><span>前に覚えた技能は消えない</span></div><div class=\"card\"><b>設計図</b><span>拾った生成装備を次へ持ち込む</span></div></section>");
 }
 
 // ============================================================ 遠征を仕立てる（R6 §15.1）
@@ -773,11 +874,19 @@ function campaignStageCard(sequence) {
   const stage = CAMPAIGN_STAGES[sequence];
   const selected = state.selectedCampaignStageSequence === sequence;
   const newPack = PACK_BY_ID[stage.newPackId];
+  // R9 §2.1 / §8 — Stage は「難易度」ではなく「人数と問いが違う場面」。
+  // **誰が加わるのかと、この Stage で問われることを先に見せる。**
+  const cleared = isCampaignStageCleared(state.profile, sequence);
+  const joining = stage.joiningCharacterId
+    ? characterName(stage.joiningCharacterId) + " が加わる"
+    : "最初の二人";
   return "<button type=\"button\" class=\"difficulty-card " + (selected ? "selected" : "")
     + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-campaign-stage\" data-sequence=\"" + sequence
-    + "\"><b>" + esc(stage.displayName) + "</b><small>今回初登場: " + esc(newPack?.displayName ?? stage.newPackId) + "</small>"
-    + "<span class=\"difficulty-meta\">有効パック " + stage.activePackCount + " · "
-    + stage.returningPackIds.map((id) => esc(PACK_BY_ID[id]?.displayName ?? id)).join(" / ") + "</span></button>";
+    + "\"><b>" + esc(stage.displayName) + "</b><small>" + esc(stage.question) + "</small>"
+    + "<span class=\"difficulty-meta\">"
+    + (cleared ? "5人・自由編成で再訪" : stage.partySize + "人 · " + esc(joining))
+    + " · 今回初登場 " + esc(newPack?.displayName ?? stage.newPackId)
+    + " · 有効パック " + stage.activePackCount + "</span></button>";
 }
 
 function renderExpeditionStart() {
@@ -802,7 +911,13 @@ function renderExpeditionStart() {
       + esc(state.migrationNote) + "</p></section>"
     : "";
   const tabs = "<nav class=\"tabs\" aria-label=\"ギルド画面\">"
-    + [["expedition", "遠征", ENCOUNTERS_PER_RUN + "戦"], ["guild", "ギルド投資", formatFunds(funds())]]
+    + [
+      ["expedition", "遠征", ENCOUNTERS_PER_RUN + "戦"],
+      ["guild", "ギルド投資", formatFunds(funds())],
+      ["blueprints", "Blueprint", (state.profile.blueprints?.entries?.length ?? 0)
+        + "件 · 持込 " + (state.profile.blueprints?.carrySelection?.length ?? 0)
+        + "/" + blueprintCarryCapacity(state.profile)],
+    ]
       .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.guildTab === id ? "active" : "")
         + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
         + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
@@ -841,7 +956,7 @@ function renderExpeditionStart() {
     + "<div class=\"boss-grid\">" + bosses + "</div></section>"
     + modeTabs + (isCampaign ? campaignSection : difficultySection)
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
-  const body = state.guildTab === "guild" ? renderGuild() : expeditionBody;
+  const body = { guild: renderGuild, blueprints: renderBlueprints }[state.guildTab]?.() ?? expeditionBody;
   return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う", tabs + note + body);
 }
 
@@ -904,6 +1019,148 @@ function renderGuild() {
     + "<div class=\"purchase-list\">" + trainingRows + "</div></section>";
 }
 
+// ---------------------------------------------------------------- Blueprint archive（R8 §3.6）
+//
+// **archive に所持上限は無い。**制限が掛かるのは遠征開始時の持込枠だけなので、
+// 画面も「何件持っているか」ではなく「今回どれを持ち込むか」を主役にする。
+function renderBlueprints() {
+  const archive = state.profile.blueprints ?? { entries: [], carrySelection: [] };
+  const capacity = blueprintCarryCapacity(state.profile);
+  const carried = archive.carrySelection ?? [];
+  const filter = state.blueprintFilter ?? { rarity: null, favorite: false };
+  const entries = searchBlueprints(archive, {
+    rarity: filter.rarity ?? undefined,
+    favorite: filter.favorite || undefined,
+  });
+
+  const rarityFilters = [["", "すべて"], ["legendary", "遺物"], ["epic", "希"], ["rare", "上"], ["common", "並"]]
+    .map(([value, label]) => "<button type=\"button\" class=\"tiny-button "
+      + ((filter.rarity ?? "") === value ? "primary-mini" : "") + "\" data-action=\"blueprint-filter\" data-rarity=\""
+      + value + "\">" + esc(label) + "</button>").join("")
+    + "<button type=\"button\" class=\"tiny-button " + (filter.favorite ? "primary-mini" : "")
+    + "\" data-action=\"blueprint-filter\" data-favorite=\"toggle\">★ お気に入りだけ</button>";
+
+  const cards = entries.map((entry) => {
+    const verdict = blueprintCompatibility(entry);
+    const chosen = carried.includes(entry.blueprintId);
+    const lines = (entry.readout?.lines ?? []).map((line) => "<p>" + esc(line) + "</p>").join("");
+    const origin = entry.acquisitions[0] ?? {};
+    return "<article class=\"reward-card blueprint-card" + (chosen ? " selected" : "")
+      + (verdict.ok ? "" : " disabled") + "\">"
+      + "<div class=\"reward-kind kind-equipment\">Blueprint</div>"
+      + "<h3>" + esc(entry.definition.displayName) + rarityChip(entry.rarity) + "</h3>"
+      + lines
+      + (entry.readout?.keystone ? "<p class=\"keystone-line\">" + esc(entry.readout.keystone) + "</p>" : "")
+      + "<small>耐久 " + entry.definition.maxDurability + " · 取得 " + entry.acquisitions.length + "回"
+      + (origin.campaignStageId ? " · " + esc(origin.campaignStageId) : "")
+      + (origin.outcome ? " · " + esc(origin.outcome) : "") + "</small>"
+      + (verdict.ok
+        ? button(chosen ? "持込を外す" : "この遠征へ持ち込む", "toggle-blueprint-carry",
+          !chosen && carried.length >= capacity, "tiny-button primary-mini",
+          "data-blueprint=\"" + esc(entry.blueprintId) + "\"")
+        : "<p class=\"muted\">" + esc(verdict.disabledReason) + "</p>")
+      + button(entry.favorite ? "★ お気に入り解除" : "☆ お気に入り", "toggle-blueprint-favorite", false,
+        "tiny-button", "data-blueprint=\"" + esc(entry.blueprintId) + "\"")
+      + "</article>";
+  }).join("");
+
+  return "<section class=\"card\">" + sectionHeading("BLUEPRINT ARCHIVE", "残した品の設計図",
+      "<span class=\"stage\">持込 " + carried.length + " / " + capacity + "</span>")
+    + "<p class=\"muted\">遠征で見つけた生成装備は、遠征が終わるときに設計図として残ります"
+    + "（勝利2件・安全撤退2件・敗北1件）。<b>設計図そのものに所持上限はありません。</b>"
+    + "遠征開始時に持ち込めるのは持込枠のぶんだけで、持ち込んだ品は"
+    + "その遠征の affix family の外でもそのまま動きます。</p>"
+    + "<div class=\"flow-actions\">" + rarityFilters + "</div>"
+    + (entries.length
+      ? "<div class=\"reward-grid\">" + cards + "</div>"
+      : "<p class=\"muted\">まだ設計図がありません。遠征で生成装備を拾い、遠征を終えると残ります。</p>")
+    + "</section>";
+}
+
+// ---------------------------------------------------------------- 物語（R9 §2, §7, §8）
+//
+// **説明画面ではない。**pack の意味を人物の行動として見せる断片を、
+// 一つずつ出す。**いつでも飛ばせる**（R9 §8：既知になった後の再訪で
+// チュートリアルがランの固定税になってはいけない）。
+function renderStory() {
+  const queue = state.story?.queue ?? [];
+  const current = queue[0];
+  if (!current) return renderCamp();
+  const lines = current.lines.map((line) => line.speaker
+    ? "<p class=\"story-line\"><b>" + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
+    : "<p class=\"story-line narration\">" + esc(line.text) + "</p>").join("");
+  const remaining = queue.length - 1;
+  return shell(current.title, "灰の遠征 · 物語", "<section class=\"card story-card\">"
+    + "<div class=\"story-lines\">" + lines + "</div>"
+    + (current.footer ? "<p class=\"muted story-footer\">" + esc(current.footer) + "</p>" : "")
+    + "<div class=\"flow-actions\">"
+    + button(remaining > 0 ? "次へ" : "先へ進む", "story-next", false, "button primary")
+    + button("この Stage の会話を飛ばす", "story-skip", false, "button")
+    + "</div>"
+    + "<p class=\"hint\">会話はいつでも飛ばせます。一度クリアした Stage では最初から出ません。</p>"
+    + "</section>");
+}
+
+// 物語の queue を積んで story 画面へ入る。**積むものが無ければ、そのまま次へ。**
+function enterStory(beats, after) {
+  const queue = beats.filter(Boolean);
+  state.story = { queue, after };
+  if (!queue.length) {
+    finishStory();
+    return;
+  }
+  state.phase = "story";
+  saveState();
+  render();
+}
+
+function finishStory() {
+  const after = state.story?.after ?? "camp";
+  state.story = { queue: [], after: "camp" };
+  if (after === "prologue") {
+    startPrologue();
+    return;
+  }
+  state.phase = "camp";
+  state.tab = "roster";
+  saveState();
+  render();
+}
+
+// R9 §2.1 — 本当に負ける配置を、本当に走らせる。
+function startPrologue() {
+  const battle = makePrologueBattle(statsFor);
+  const result = simulateBattle(battle, PLAYABLE_CONTENT, {
+    equipmentBreaks: false,
+    captureReplaySnapshots: true,
+  });
+  state.prologueActive = true;
+  state.lastResult = compactResult(result);
+  const replay = compactReplay(result);
+  state.replayEvents = replay.events;
+  state.replaySnapshots = replay.snapshots;
+  state.replayIndex = 0;
+  state.replayPlaying = true;
+  state.phase = "battle";
+  record("prologue_started", { battleId: battle.battleId, result: result.result });
+  saveState();
+  render();
+}
+
+// R9 §8 — その Stage の会話をこの遠征で出すかどうか。
+// **一度クリアした Stage では出さない。**初回だけ学習順を固定する。
+function storyBeatsForStart(sequence) {
+  const stage = CAMPAIGN_STAGES[sequence];
+  if (!stage) return { beats: [], after: "camp" };
+  if (isCampaignStageCleared(state.profile, sequence)) return { beats: [], after: "camp" };
+  if (sequence === 0) {
+    const seen = (state.profile.storyFlags ?? []).includes("prologue_seen");
+    if (seen) return { beats: [], after: "camp" };
+    return { beats: [storyBeat(stage.id, "opening")], after: "prologue" };
+  }
+  return { beats: [storyBeat(stage.id, "join")], after: "camp" };
+}
+
 function renderCamp() {
   const view = {
     roster: renderRoster,
@@ -943,8 +1200,11 @@ function renderRoster() {
     const inParty = state.run.roster.includes(option.id);
     const selected = formationSelection === option.id;
     const stats = statsFor(option.id);
+    const locked = rosterLocked();
     const action = inParty ? "select-formation-character" : "toggle-roster";
-    const actionLabel = inParty ? (selected ? "位置選択中" : "位置を選ぶ") : "編成に入れる";
+    const actionLabel = inParty
+      ? (selected ? "位置選択中" : "位置を選ぶ")
+      : locked ? "この Stage では合流しない" : "編成に入れる";
     return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
       + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
       + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
@@ -958,17 +1218,25 @@ function renderRoster() {
       + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
       + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
       + "</span><span>" + esc(actionLabel) + "</span></div>"
-      + (inParty ? button("外す", "toggle-roster", state.run.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"") : "")
+      + (inParty && !locked
+        ? button("外す", "toggle-roster", state.run.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"")
+        : "")
       + "</article>";
   }).join("");
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
-    + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>5人で6枠なので、必ず一枠が空きます。</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
+    + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>" + (runPartySize() >= 5 ? "5人で6枠なので、必ず一枠が空きます。" : runPartySize() + "人なので、空き枠が" + (6 - runPartySize()) + "つあります。") + "</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
     + (formationSelection ? "<span class=\"formation-selection-actions\">" + button("選択解除", "clear-formation-selection", false, "tiny-button") + "</span>" : "") + "</p></section>"
-    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → " + PARTY_SIZE, "同行する仲間を選ぶ")
-    + "<p class=\"muted\">8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。</p>"
+    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → " + runPartySize(),
+      rosterLocked() ? "この遠征に同行する仲間" : "同行する仲間を選ぶ")
+    + "<p class=\"muted\">"
+    + (rosterLocked()
+      ? "この Stage は " + runPartySize() + "人で進みます。<b>誰が来るかは物語が決めます。</b>"
+        + "一度クリアすると、次からは5人を自由に選んで挑めます。"
+      : "8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。")
+    + "</p>"
     + "<div class=\"character-grid\">" + characterCards + "</div></section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を組み、装備画面で実物を2枠に割り当ててください。</p>"
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
@@ -1014,9 +1282,9 @@ function memberContext(characterId, emphasis = "skills") {
   const option = characterInfo(characterId);
   const active = (state.run.loadout.tactics?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
   const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) => COMPONENTS[id]?.label ?? nameFor(id));
-  const gear = (state.run.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
+  const worn = (state.run.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
   const primary = emphasis === "skills"
-    ? "装備 " + (gear.length ? gear.join(" · ") : "なし")
+    ? "装備 " + (worn.length ? worn.join(" · ") : "なし")
     : "行動 " + (active.length ? active.join(" → ") : "なし");
   const secondary = emphasis === "skills"
     ? "位置 " + positionText(state.run.formation[characterId]) + " · HP " + currentHp(characterId) + "/" + maxHp(characterId)
@@ -1126,9 +1394,19 @@ function renderSkillBranch(branch, characterId) {
 function renderSkills() {
   const characterId = selectedCharacter();
   const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の遠征内技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
-  const packs = state.run.manifest.enabledPackIds.map((id) => PACK_BY_ID[id]?.displayName ?? id).join(" · ");
+  // R9 §3.1 — pack ごとに「入口だけ」か「全体」かが違う。**どちらなのかを名前の
+  // 隣に書く。**書かないと、次の Stage で技能が増えたことに気づけない。
+  const depths = state.run.manifest.packDepths ?? {};
+  const packs = state.run.manifest.enabledPackIds
+    .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
+    .join(" · ");
+  const hasCore = state.run.manifest.enabledPackIds.some((id) => depths[id] === "core");
   const manifestNote = "<p class=\"muted\">この遠征で有効な技能パック: <b>" + esc(packs)
     + "</b>。<b>外れたパックの技能は今回出ません。</b>技能点も解禁も遠征が終われば消えます。</p>"
+    + (hasCore
+      ? "<p class=\"muted\">（入口）と書いたパックは、この Stage では最初の問いに絞った技能だけが出ます。"
+        + "<b>次の Stage へ進むと、同じパックの残りが加わります。</b>前に覚えた技能は消えません。</p>"
+      : "")
     + "<div class=\"flow-actions\">"
     + button("この仲間の解禁をやり直す", "reset-run-skills", false, "tiny-button",
       "data-character=\"" + characterId + "\"")
@@ -1155,7 +1433,7 @@ function equipmentSlotHtml(characterId, slot) {
   const canInstall = Boolean(selected && selected !== equipmentId);
   const label = equipmentId ? nameFor(equipmentId) : "空き枠";
   const detail = equipmentId
-    ? "戦闘耐久 " + equipmentDurability(equipmentId) + " / " + (EQUIPMENT[equipmentId]?.maxDurability ?? 1)
+    ? "戦闘耐久 " + equipmentDurability(equipmentId) + " / " + (gear(equipmentId)?.maxDurability ?? 1)
     : selected ? "選択中の装備をここへ" : "装備を選んでください";
   return "<div class=\"equipment-slot\"><button type=\"button\" class=\"equip-slot-button "
     + (canInstall ? "ready" : "") + "\" data-action=\"" + (canInstall ? "equip-equipment" : "select-character")
@@ -1181,12 +1459,19 @@ function renderEquipment() {
   const inventory = state.run.inventory.map((id) => {
     const owner = equipmentOwner(id);
     const isSelected = selected === id;
-    const max = EQUIPMENT[id]?.maxDurability ?? 1;
+    const info = gear(id);
+    const max = info?.maxDurability ?? 1;
     const durability = equipmentDurability(id);
+    const item = generatedItem(id);
+    const lines = gearLines(id);
     return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " depleted" : "")
-      + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
-      + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(EQUIPMENT[id]?.label ?? id)
-      + "</b><small>" + esc(EQUIPMENT[id]?.effect ?? "") + "</small></span><span class=\"gear-state\">"
+      + (item ? " generated" : "") + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
+      + "\"><span class=\"gear-icon\">" + (item ? "❖" : "◆") + "</span><span class=\"gear-copy\"><b>" + esc(info?.label ?? id)
+      + rarityChip(item?.rarity) + (item?.carried ? "<span class=\"carried-chip\">持込</span>" : "")
+      + "</b>" + (lines.length
+        ? lines.map((line) => "<small>" + esc(line) + "</small>").join("")
+        : "<small>" + esc(info?.effect ?? "") + "</small>")
+      + "</span><span class=\"gear-state\">"
       + (owner ? characterName(owner) : "手元") + "<br>戦闘耐久 " + durability + "/" + max + "</span></button>"
       + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
       + "</article>";
@@ -1194,6 +1479,7 @@ function renderEquipment() {
   const codex = unlockedGear().filter((id) => !state.run.inventory.includes(id)).map((id) =>
     "<span class=\"codex-chip locked\"><b>" + esc(EQUIPMENT[id].label) + "</b><small>未入手 · "
       + esc(EQUIPMENT[id].grammar) + "</small></span>").join("");
+  const generatedCount = Object.keys(state.run.generatedEquipment ?? {}).length;
   const memberIds = [characterId, ...state.run.roster.filter((id) => id !== characterId)];
   const members = memberIds.map((id) => "<article class=\"gear-member " + (id === characterId ? "selected" : "") + "\"><button type=\"button\" class=\"member-head member-head-button\" data-action=\"select-character\" data-character=\"" + id + "\"><span class=\"avatar\">"
     + esc(characterInfo(id)?.icon ?? "・") + "</span><span><b>" + esc(characterName(id)) + "</b><small>"
@@ -1202,16 +1488,17 @@ function renderEquipment() {
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT / 2 SLOTS EACH", "実物を組み替える", "<span class=\"stage\">"
     + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>") + "<p class=\"muted\">装備はこの遠征の持ち物です（上限" + INVENTORY_LIMIT + "品）。選択してから仲間の枠をタップすると移動します。戦闘中に耐久が減り、0になるとその装備の効果が止まります。破損はせず、戦闘終了後に最大へ戻ります。<b>遠征が終わると手放します。</b></p>"
     + memberTabs(characterId) + memberContext(characterId, "equipment")
-    + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? EQUIPMENT[selected]?.label ?? selected : "なし")
+    + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? gear(selected)?.label ?? selected : "なし")
     + "</b> · " + (selected ? "下の枠をタップして装着" : "上の装備をタップ") + "</p>"
     + "<div class=\"scrap-line\"><span>分解の屑 <b>" + (state.run.scrap ?? 0) + "</b>（"
     + SCRAP_PER_SUPPLY + "で補給1）</span>"
     + button("補給へ替える", "convert-scrap", (state.run.scrap ?? 0) < SCRAP_PER_SUPPLY
       || state.run.supplies >= MAX_SUPPLIES, "tiny-button") + "</div>"
     + "<div class=\"gear-grid\">" + inventory + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("LOADOUT / " + PARTY_SIZE + " MEMBERS", "誰に何を持たせる？")
+    + "<section class=\"card\">" + sectionHeading("LOADOUT / " + runPartySize() + " MEMBERS", "誰に何を持たせる？")
     + "<div class=\"gear-member-grid\">" + members + "</div></section>"
-    + "<section class=\"card quiet\">" + sectionHeading("REWARD POOL / " + unlockedGear().length + " EQUIPMENT", "この遠征で拾える装備")
+    + "<section class=\"card quiet\">" + sectionHeading("REWARD POOL / " + unlockedGear().length + " EQUIPMENT", "この遠征で拾える装備",
+      "<span class=\"stage\">生成 " + generatedCount + "</span>")
     + "<div class=\"codex-list\">" + (codex || "<p class=\"muted\">すべて入手済みです。</p>") + "</div>"
     + "<div class=\"flow-actions\">" + button("スキルへ戻る", "tab", false, "button", "data-tab=\"skills\"")
     + button("戦闘前確認へ", "tab", false, "button primary", "data-tab=\"map\"") + "</div></section>";
@@ -1251,7 +1538,7 @@ function renderMap() {
   const encounter = currentEncounter();
   const progress = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
     const step = offset + 1;
-    const kind = composeEncounter(step, state.run.difficulty).kind;
+    const kind = composeEncounter(step, state.run.difficulty, { partySize: state.run.partySize }).kind;
     return "<span class=\"map-node " + (step < index ? "done" : step === index ? "current" : "")
       + " kind-" + kind + "\" title=\"" + esc({ normal: "通常", elite: "精鋭", boss: "ボス" }[kind]) + "\">"
       + (kind === "boss" ? "★" : step) + "</span>";
@@ -1967,13 +2254,16 @@ function renderResult() {
   const events = compactEvents(result.events || state.replayEvents);
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   // R6 §12.2 — **敗北で即座に遠征を破棄しない。**補給が残っていれば再挑戦へ。
-  const next = won
-    ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
-      ? button("遠征を精算する", "settle-run", false, "button primary")
-      : button("報酬を見る", "show-reward", false, "button primary")
-    : button("この先どうするか", "show-defeat", false, "button primary");
+  // R9 §2.1 — 序盤の敗北は遠征の結果に数えない。ここから巻き戻す。
+  const next = state.prologueActive
+    ? button("時間が巻き戻る", "rewind-prologue", false, "button primary")
+    : won
+      ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+        ? button("遠征を精算する", "settle-run", false, "button primary")
+        : button("報酬を見る", "show-reward", false, "button primary")
+      : button("この先どうするか", "show-defeat", false, "button primary");
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
-    + esc(EQUIPMENT[item.equipmentId]?.label ?? item.equipmentId) + "</b><span>"
+    + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
     + item.maxDurability + " / " + item.maxDurability + "</span></div>").join("");
   return shell(won ? "突破した" : "足を止めた", currentEncounter().name + " · " + result.roundsUsed + "ラウンド", "<section class=\"card verdict "
@@ -1988,9 +2278,12 @@ function renderResult() {
       ? "装備耐久は次の戦闘へ持ち越しません（次戦は最大から）。<b>HPは持ち越します。</b>4戦目・8戦目のボスを倒したときだけ全員が全回復します（R8 §1.5）。"
       : "戦闘中のHPと装備耐久は次の戦闘へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。")
     + "</p>"
-    + "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
-    + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
-    + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p><div class=\"result-actors\">"
+    + (state.prologueActive
+      ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金も持ち越しHPも動きません。"
+        + esc(PROLOGUE.hint) + "</p>"
+      : "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
+        + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
+        + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p>") + "<div class=\"result-actors\">"
     + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section>"
     // **因果はまずアニメーションで見せる。** 文字の一覧は、見返したいときの補助に降ろした。
@@ -2019,12 +2312,28 @@ function renderReward() {
   const full = state.run.inventory.length >= INVENTORY_LIMIT;
   const cards = state.rewardOffer.map((offer, index) => {
     if (offer.type === "equipment") {
-      const info = EQUIPMENT[offer.equipmentId];
-      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
-        + esc(info?.label ?? offer.equipmentId) + "</h3><p>" + esc(info?.effect ?? "") + "</p><small>"
+      // R8 §13.2 — 生成装備は**最初から全 rule を読める**。目利きは等級の引きを
+      // 良くするもので、読める量を売る仕組みにはしない（R8 §11 の完全開示）。
+      const item = offer.item ?? null;
+      const info = item
+        ? { label: item.definition.displayName, effect: "", grammar: "生成 · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
+        : EQUIPMENT[offer.equipmentId];
+      const body = item
+        ? (item.readout?.lines ?? []).map((line) => "<p>" + esc(line) + "</p>").join("")
+          + (item.readout?.keystone ? "<p class=\"keystone-line\">" + esc(item.readout.keystone) + "</p>" : "")
+        : "<p>" + esc(info?.effect ?? "") + "</p>";
+      return "<article class=\"reward-card" + (item ? " generated" : "") + "\"><div class=\"reward-kind kind-equipment\">"
+        + (item ? "生成装備" : "装備") + "</div><h3>"
+        + esc(info?.label ?? offer.equipmentId) + rarityChip(item?.rarity) + "</h3>" + body + "<small>"
         + esc(info?.grammar ?? "") + " · 戦闘耐久 " + (info?.maxDurability ?? 1) + "</small>"
         + (full ? "<p class=\"muted\">持ち物が" + INVENTORY_LIMIT + "品で一杯です。装備画面で一品を分解してください。</p>" : "")
         + button("拾って次へ", "take-reward", full, "button", "data-offer=\"" + index + "\"") + "</article>";
+    }
+    // R8 §3.5 — 生成に失敗したら既定品へ黙って落とさず、診断をそのまま出す。
+    if (offer.type === "generator_error") {
+      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">生成できず</div>"
+        + "<h3>装備の候補が作れませんでした</h3><p>" + esc(offer.message) + "</p>"
+        + "<small>この候補は選べません。ほかの候補を選ぶか、補給1で引き直してください。</small></article>";
     }
     if (offer.type === "skill_points") {
       const picker = state.run.roster.map((id) => "<button type=\"button\" class=\"reward-pick "
@@ -2046,7 +2355,11 @@ function renderReward() {
     + sectionHeading("REWARD / 4 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
     + "<p class=\"muted\">4候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>（補給や技能点を選んでも、持ち帰る資金は減りません）。</p>"
     + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
-      ? "<p class=\"muted\">まだ持っていない固定装備が尽きたので、装備の候補が減っています。<b>品数そのものが増えるのは Phase C の生成装備です。</b></p>"
+      ? "<p class=\"muted\">装備の候補が減っています。生成が失敗した場合は理由が候補欄に出ます。</p>"
+      : "")
+    + (appraisalLevel(state.profile) > 0
+      ? "<p class=\"muted\">目利き Lv" + appraisalLevel(state.profile)
+        + "：生成装備の等級を " + (appraisalLevel(state.profile) + 1) + " 回引いて良い方を採っています。</p>"
       : "")
     + "<div class=\"reward-grid\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
@@ -2076,6 +2389,44 @@ function renderDefeat() {
     + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary") + "</section>");
 }
 
+// R8 §3.6 / §10.3 — 遠征終了時に残った設計図。**何が残り、何が残らなかったかを
+// 両方出す。**「良い品を拾ったのに残らなかった」を黙って起こさない。
+function blueprintSettlementSection(settlement) {
+  const saved = settlement.savedBlueprints ?? [];
+  const found = newGeneratedItems(state.run).length;
+  if (!found && !saved.length) return "";
+  const cards = saved.map((entry) =>
+    "<div class=\"settle-row\"><span>" + esc(entry.displayName) + rarityChip(entry.rarity)
+    + "</span><b>" + (entry.added ? "新しく残した" : "取得履歴を追加") + "</b></div>").join("");
+  return "<section class=\"card\">" + sectionHeading("BLUEPRINT", "設計図として残した品",
+      "<span class=\"stage\">" + saved.length + " / " + settlement.blueprintSaveLimit + "</span>")
+    + (saved.length
+      ? "<div class=\"settle-list\">" + cards + "</div>"
+      : "<p class=\"muted\">今回は残せる品がありませんでした。</p>")
+    + (found > saved.length
+      ? "<p class=\"muted\">この遠征で見つけた生成装備 " + found + " 品のうち、等級の高い "
+        + saved.length + " 品だけを残しました。</p>"
+      : "")
+    + "<p class=\"muted\">設計図はギルドの Blueprint 画面から、次の遠征へ持ち込めます"
+    + "（持込枠 " + blueprintCarryCapacity(state.profile) + "）。</p></section>";
+}
+
+// R9 §7 — Stage を越えたときだけ、次へ進む理由を短く示す。
+// **勝ったときだけ。**負けた遠征のあとに「次へ進む理由」を出しても嘘になる。
+function stageEndStorySection(settlement) {
+  if (settlement.outcome !== "won") return "";
+  const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
+  const beatDef = stage ? storyBeat(stage.id, "stageEnd") : null;
+  if (!beatDef) return "";
+  const lines = beatDef.lines.map((line) => line.speaker
+    ? "<p class=\"story-line\"><b>" + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
+    : "<p class=\"story-line narration\">" + esc(line.text) + "</p>").join("");
+  return "<section class=\"card story-card\">" + sectionHeading("STORY", esc(beatDef.title))
+    + "<div class=\"story-lines\">" + lines + "</div>"
+    + (beatDef.footer ? "<p class=\"muted story-footer\">" + esc(beatDef.footer) + "</p>" : "")
+    + "</section>";
+}
+
 // R6 §9.2 — 精算は**一度だけ**。ここが唯一の入口。
 function renderSettlement() {
   const settlement = state.lastSettlement;
@@ -2102,13 +2453,12 @@ function renderSettlement() {
     + "<div class=\"settle-row total\"><span>難易度倍率</span><b>×"
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
     + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
-    + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは活動資金だけです。"
-    + (isCampaignRun()
-      ? "手続き生成装備・Blueprint archive（Phase C）はまだ実装していません。今回の結果分類（"
-        + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "）では最大" + settlement.blueprintSaveLimit
-        + "件まで保存できる設計です。"
-      : "")
-    + "</p></section>"
+    + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは"
+    + "活動資金と、下の設計図だけです。今回の結果分類（"
+    + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "）では最大" + settlement.blueprintSaveLimit
+    + "件を残せます。</p></section>"
+    + blueprintSettlementSection(settlement)
+    + stageEndStorySection(settlement)
     + (settlement.unlockedDifficulty !== null
       ? "<section class=\"card\"><p class=\"eyebrow\">DIFFICULTY</p><h3>難易度 "
         + settlement.unlockedDifficulty + " が開いた</h3><p class=\"muted\">"
@@ -2128,12 +2478,12 @@ function renderComplete() {
   const feedback = state.feedback || {};
   const option = (value, label, selected) => "<option value=\"" + value + "\" " + (selected ? "selected" : "") + ">" + label + "</option>";
   const trail = state.run.roster.map(characterName).join("、");
-  const gear = state.run.inventory.map((id) => EQUIPMENT[id]?.label ?? id).join("、");
+  const carried = state.run.inventory.map((id) => gear(id)?.label ?? id).join("、");
   const reached = state.run.fundLedger.highestClearedEncounter;
   const settlement = state.lastSettlement;
   return shell("遠征を終えた", "今回の編成と因果を記録する", "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>"
     + reached + " / " + ENCOUNTERS_PER_RUN + " 戦を見届けた</h2><p>今回の仲間: "
-    + esc(trail) + "<br>手元の装備: " + esc(gear || "なし")
+    + esc(trail) + "<br>手元の装備: " + esc(carried || "なし")
     + (settlement ? "<br>持ち帰った活動資金: " + formatFunds(settlement.earned) : "")
     + "</p><div class=\"build-trail\"><span><i>1</i>遠征を仕立てた</span><span><i>2</i>技能パックの範囲で技能を組んだ</span><span><i>3</i>補給をどこへ使うか決めた</span><span><i>4</i>持ち帰った資金でギルドを育てた</span></div></section>"
     + "<section class=\"card feedback\"><p class=\"eyebrow\">HUMAN CHECK</p><h2>今回のUIについて</h2><label>もう一度遊びたい度<select id=\"feedback-replay\">"
@@ -2280,7 +2630,9 @@ function handleAction(event) {
   }
 
   if (action === "guild-tab") {
-    state.guildTab = element.dataset.tab === "guild" ? "guild" : "expedition";
+    state.guildTab = ["guild", "blueprints"].includes(element.dataset.tab)
+      ? element.dataset.tab
+      : "expedition";
     saveState();
     render();
     return;
@@ -2353,6 +2705,7 @@ function handleAction(event) {
     state.phase = "camp";
     state.tab = "roster";
     state.migrationNote = null;
+    state.prologueActive = false;
     ensureSelectedCharacter();
     state.formationSelection = state.run.roster[0] ?? null;
     record("run_started", {
@@ -2364,8 +2717,54 @@ function handleAction(event) {
       supplies: state.run.supplies,
       roster: [...state.run.roster],
     });
+    // R9 §2 — Campaign の初回だけ、物語の断片と序盤の敗北を挟む。
+    if (isCampaignRun()) {
+      const opening = storyBeatsForStart(state.run.campaignStageSequence);
+      if (opening.beats.length) {
+        enterStory(opening.beats, opening.after);
+        return;
+      }
+    }
     saveState();
     render();
+    return;
+  }
+
+  if (action === "story-next") {
+    const queue = [...(state.story?.queue ?? [])];
+    queue.shift();
+    state.story = { queue, after: state.story?.after ?? "camp" };
+    if (!queue.length) {
+      finishStory();
+      return;
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "story-skip") {
+    record("story_skipped", { after: state.story?.after ?? "camp" });
+    state.story = { queue: [], after: state.story?.after ?? "camp" };
+    finishStory();
+    return;
+  }
+
+  // R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
+  // 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
+  if (action === "rewind-prologue") {
+    state.prologueActive = false;
+    state.profile = {
+      ...state.profile,
+      storyFlags: [...new Set([...(state.profile.storyFlags ?? []), "prologue_seen"])],
+    };
+    state.lastResult = null;
+    state.replayEvents = [];
+    state.replaySnapshots = [];
+    state.replayIndex = 0;
+    state.replayPlaying = false;
+    record("prologue_rewound", { stage: state.run.campaignStageSequence });
+    enterStory([storyBeat("stage_0_edge", "prologueDefeat")], "camp");
     return;
   }
 
@@ -2423,6 +2822,11 @@ function handleAction(event) {
   if (action === "toggle-roster") {
     const id = element.dataset.character;
     if (!id || !characterInfo(id)) return;
+    if (rosterLocked()) {
+      state.error = "この Stage の同行者は物語が決めます。一度クリアすると自由に選べます。";
+      render();
+      return;
+    }
     if (state.run.roster.includes(id)) {
       if (state.run.roster.length <= 1) {
         state.error = "最低1人は残してください。";
@@ -2442,8 +2846,10 @@ function handleAction(event) {
         ensureSelectedCharacter();
         record("roster_changed", { roster: [...state.run.roster], removed: id });
       }
-    } else if (state.run.roster.length >= PARTY_SIZE) {
-      state.error = "編成は" + PARTY_SIZE + "人までです。";
+    } else if (rosterLocked()) {
+      state.error = "この Stage の同行者は物語が決めます。一度クリアすると自由に選べます。";
+    } else if (state.run.roster.length >= runPartySize()) {
+      state.error = "編成は" + runPartySize() + "人までです。";
     } else {
       state.run.roster = [...state.run.roster, id];
       // **run 側の欄も一緒に生やす。**loadout だけ足すと、
@@ -2614,8 +3020,9 @@ function handleAction(event) {
   }
 
   if (action === "begin-stage") {
-    if (state.run.roster.length !== PARTY_SIZE) {
-      state.error = "出発には" + PARTY_SIZE + "人の編成が必要です。";
+    // R9 §2.1 — 出発に必要な人数は Stage で変わる（Stage 0 は2人）。
+    if (state.run.roster.length !== runPartySize()) {
+      state.error = "出発には" + runPartySize() + "人の編成が必要です。";
       state.tab = "roster";
     } else {
       state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
@@ -2654,6 +3061,8 @@ function handleAction(event) {
           equipmentDurability: state.equipmentDurability,
           limitsFor,
           statsFor,
+          // Phase C — 生成装備の定義を含む content bundle を渡す。
+          content: runContentBundle(state.run),
         },
       );
       record("battle_started", {
@@ -2663,7 +3072,7 @@ function handleAction(event) {
         threat: composed.spentThreat,
         battleId: battle.battleId,
       });
-      const result = simulateBattle(battle, PLAYABLE_CONTENT, {
+      const result = simulateBattle(battle, runContentBundle(state.run), {
         equipmentBreaks: false,
         captureReplaySnapshots: true,
       });
@@ -2877,9 +3286,63 @@ function handleAction(event) {
     return;
   }
 
+  if (action === "toggle-blueprint-carry") {
+    const blueprintId = element.dataset.blueprint;
+    const archive = state.profile.blueprints;
+    const capacity = blueprintCarryCapacity(state.profile);
+    const current = archive.carrySelection ?? [];
+    const next = current.includes(blueprintId)
+      ? current.filter((id) => id !== blueprintId)
+      : [...current, blueprintId];
+    state.profile = { ...state.profile, blueprints: setCarrySelection(archive, next, capacity) };
+    state.error = null;
+    // R8 §3.6 —「遠征開始時、carry capacity以内のBlueprintを再製造する」。
+    // **まだ出発していない遠征なら、その場で作り直す。**そうしないと、
+    // ギルドで持込を選んでも「次の次の遠征」からしか効かない
+    // （run はギルドへ戻った時点で作られている）。
+    // seed は持ち回すので、持込を選び直しても敵順・報酬は引き直せない。
+    // 「まだ出発していない」は phase で見る。**run.startedAt は作成時に入るので
+    // 出発の印にならない**（startRun がその場で今の時刻を書いている）。
+    if (state.phase === "expeditionStart") {
+      state.run = startRun(state.profile, {
+        campaignStageSequence: state.run.campaignStageSequence,
+        difficulty: state.run.difficulty,
+        roster: state.run.roster,
+        runSeed: state.run.runSeed,
+        runId: state.run.runId,
+        freeRoster: state.run.rosterLocked === false,
+      });
+      registerGeneratedEquipment(state.run.generatedEquipment);
+    }
+    record("blueprint_carry_changed", { blueprintId, carried: state.profile.blueprints.carrySelection });
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "toggle-blueprint-favorite") {
+    state.profile = {
+      ...state.profile,
+      blueprints: toggleFavorite(state.profile.blueprints, element.dataset.blueprint),
+    };
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "blueprint-filter") {
+    const filter = { ...(state.blueprintFilter ?? { rarity: null, favorite: false }) };
+    if (element.dataset.favorite === "toggle") filter.favorite = !filter.favorite;
+    else filter.rarity = element.dataset.rarity || null;
+    state.blueprintFilter = filter;
+    render();
+    return;
+  }
+
   if (action === "take-reward") {
     const offer = state.rewardOffer[Number(element.dataset.offer)];
     if (!offer) return;
+    if (offer.type === "generator_error") return;
     if (offer.type === "equipment") {
       if (state.run.inventory.length >= INVENTORY_LIMIT) {
         state.error = "遠征中の持ち物は" + INVENTORY_LIMIT + "品までです。";
@@ -2887,8 +3350,28 @@ function handleAction(event) {
         render();
         return;
       }
-      state.run.inventory = [...state.run.inventory, offer.equipmentId];
-      record("reward_taken", { encounter: state.run.encounterIndex, reward: "equipment", equipmentId: offer.equipmentId });
+      if (offer.item) {
+        // Phase C — 生成装備は定義ごと run へ入れる（content bundle に無い品なので）。
+        const taken = takeGeneratedEquipment(state.run, offer.item);
+        if (!taken.ok) {
+          state.error = taken.reason;
+          saveState();
+          render();
+          return;
+        }
+        state.run = taken.run;
+        registerGeneratedEquipment(state.run.generatedEquipment);
+        record("reward_taken", {
+          encounter: state.run.encounterIndex,
+          reward: "generated_equipment",
+          equipmentId: offer.equipmentId,
+          rarity: offer.item.rarity,
+          descriptor: offer.item.descriptor,
+        });
+      } else {
+        state.run.inventory = [...state.run.inventory, offer.equipmentId];
+        record("reward_taken", { encounter: state.run.encounterIndex, reward: "equipment", equipmentId: offer.equipmentId });
+      }
     } else if (offer.type === "skill_points") {
       const target = state.run.roster.includes(state.selectedRewardCharacter)
         ? state.selectedRewardCharacter
@@ -3037,6 +3520,17 @@ function handleAction(event) {
         formation: state.run.formation,
         loadout: state.run.loadout,
         ownedEquipment: state.run.inventory,
+        // Phase C — 生成装備は content 版だけでは復元できない。**descriptor と
+        // 来歴を控えへ入れる**（後から「どんな品を持っていたか」を照合するため）。
+        generatedEquipment: Object.values(state.run.generatedEquipment ?? {}).map((item) => ({
+          equipmentId: item.definition.id,
+          displayName: item.definition.displayName,
+          rarity: item.rarity,
+          descriptor: item.descriptor,
+          carried: item.carried === true,
+          affixIds: item.provenance?.affixIds ?? [],
+        })),
+        carriedBlueprintIds: state.run.carriedBlueprintIds ?? [],
       },
       stats: {
         // **印は stats に置く。**functions/api/runs.js が保存するのは
@@ -3062,6 +3556,10 @@ function handleAction(event) {
         activityFunds: state.profile.activityFunds,
         fundLedger: clone(state.run.fundLedger),
         settlement: state.lastSettlement ? clone(state.lastSettlement) : null,
+        generatorVersion: state.run.generatedEquipment && Object.values(state.run.generatedEquipment)[0]
+          ? Object.values(state.run.generatedEquipment)[0].provenance?.generatorVersion ?? null
+          : null,
+        blueprintArchiveSize: state.profile.blueprints?.entries?.length ?? 0,
         results: state.run.results,
         finalResult,
       },

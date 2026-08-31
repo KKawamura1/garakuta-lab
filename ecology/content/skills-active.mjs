@@ -540,6 +540,75 @@ activeSkills.piercing_barrage = {
   tags: ["attack", "onhit"],
 };
 
+// ---------------------------------------------------------------- R9 §4.1 — pack_care の主行動
+//
+// **手当ての pack に、HP を戻さない主行動を一つ置く。**v1 schema では active に
+// 有限コストを書けないので、heal を持つ active は round を稼ぐだけで撃ち放題に
+// なる（analysis/ecology-anti-stall-audit.mjs）。だから care の active は
+// 「傷を戻す」ではなく「これ以上の傷を止める」側へ置く。
+// 防壁は round で消えるので、待っても carry HP は増えない。
+activeSkills.shield_the_wounded = {
+  id: "shield_the_wounded",
+  displayName: "傷へ盾を",
+  apCost: 1,
+  actionMode: "utility",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  effects: [{
+    type: "gain_barrier",
+    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps: 15_000 },
+    duration: "round",
+  }],
+  tags: ["guard", "care", "playable"],
+};
+
+// ---------------------------------------------------------------- R9 §5 — 横断pack「余波と受け渡し」
+//
+// **5人が揃った後の、役割を越境させる pack の試作（probe）。**
+// Campaign Stage 0〜3 には入れていない（R9 §10「このGateを通過する前に...
+// 大量の高次packを追加しない」）。Free / Endless からだけ引ける。
+//
+// R9 §5.1 の設計条件のうち、active が担うのは
+// 「既存の通常技能でも一部参加できる」と「条件不成立時に行動を塞がない」の二つ。
+// どちらも単独で価値があり、A＋B の固定レシピを要求しない。
+
+// 発生源。庇護を「防いだ」event の作り手にする。受けた人が誰であれ、
+// pack_relay の反応はその event を読める。
+activeSkills.hand_off = {
+  id: "hand_off",
+  displayName: "引き継ぐ",
+  apCost: 1,
+  actionMode: "utility",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  effects: [{
+    type: "gain_block",
+    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    amount: { type: "constant", value: 1 },
+  }],
+  tags: ["guard", "handoff", "playable"],
+};
+
+// 条件付きの強打。**条件が成立しないときは、ただ出せないのではなく
+// 別の行動が回ってくる**（engine が offense の代替を保証する。R6 §6.4）。
+activeSkills.overreach = {
+  id: "overreach",
+  displayName: "無理を通す",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [{ type: "hp_percent", subject: "self", op: "gte", value: 60 }],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 16_500 },
+    tags: ["attack", "weapon"],
+  }],
+  tags: ["attack", "playable"],
+};
+
+setDamageReach(activeSkills.overreach, "melee");
 setDamageReach(activeSkills.barrage_strike, "melee");
 setDamageReach(activeSkills.mark_strike, "melee");
 setDamageReach(activeSkills.mark_break, "melee");

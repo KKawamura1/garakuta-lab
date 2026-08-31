@@ -20,6 +20,7 @@
 //   - 永続値は 10進文字列で保存し、計算は bigint で行う（R6 §9.1）。
 
 import {
+  LIMITS,
   MANIFEST_VERSION,
   PROFILE_SCHEMA_VERSION,
   RUN_SCHEMA_VERSION,
@@ -28,6 +29,19 @@ import {
 } from "./schema.mjs";
 import { roundHalfUpDiv, BPS } from "./values.mjs";
 import { makeRng, seedKey, seededShuffle } from "./seeded.mjs";
+import {
+  BLUEPRINT_CAPACITY_COSTS,
+  BLUEPRINT_CAPACITY_UPGRADE_ID,
+  BLUEPRINT_MAX_CAPACITY,
+  BLUEPRINT_SAVE_LIMIT,
+  carryCapacity,
+  manufactureCarried,
+  newArchive,
+  normalizeArchive,
+  saveBlueprint,
+} from "./blueprints.mjs";
+import { AFFIX_FAMILIES, RARITIES } from "./content/affixes.mjs";
+import { EquipmentGenerationError, generateEquipment, rollRarity } from "./equipment-gen.mjs";
 import {
   BOSS_LAWS,
   ENCOUNTERS_PER_RUN,
@@ -105,11 +119,15 @@ export function nextVisibleTrainingLevel(baseStat, level) {
 // ============================================================ 永続投資（R6 §9.3）
 //
 // **Phase B が持つ category は R6 §17.2 が挙げたものだけ。**
-// blueprint_capacity と appraisal は Phase C、character は Phase D。
-// 空の実装を先に置かない（R7 §4.3）。
+// character は Phase D。空の実装を先に置かない（R7 §4.3）。
+// blueprint_capacity と appraisal は Phase C で実装が付いたので開いた
+// （R8 §3.7 の初期仕様、Implementation Phase 4 step 4/5）。
 //
 // SkillPack は4つとも最初から解禁済みにする。買える pack が無いのに
 // category だけ置くと、画面に「常に買えない行」が出る。6個目以降を足すときに開く。
+export const APPRAISAL_UPGRADE_ID = "appraisal";
+export const APPRAISAL_COSTS = Object.freeze(["15000", "45000", "120000", "300000", "750000"]);
+
 export const META_UPGRADES = Object.freeze([
   Object.freeze({
     id: "starting_supplies",
@@ -118,6 +136,27 @@ export const META_UPGRADES = Object.freeze([
     maxLevel: 2,
     costs: Object.freeze(["12000", "60000"]),
     describeLevel: (level) => `遠征開始時の補給 ${3 + level}（上限5）`,
+  }),
+  // R8 §3.7 — Blueprint 持込枠。初期1、最大5。**買えるのは枠だけで、
+  // 中身（どの Blueprint を持ち込むか）は archive の選択で決める。**
+  Object.freeze({
+    id: BLUEPRINT_CAPACITY_UPGRADE_ID,
+    category: "blueprint_capacity",
+    displayName: "Blueprint 持込枠",
+    maxLevel: BLUEPRINT_CAPACITY_COSTS.length,
+    costs: BLUEPRINT_CAPACITY_COSTS,
+    describeLevel: (level) => `遠征開始時に持ち込める Blueprint ${carryCapacity(level)}件（上限 ${BLUEPRINT_MAX_CAPACITY}）`,
+  }),
+  // R8 §3.7 — 目利き。**情報を隠して売り直す仕組みにはしない**（R8 §11 の完全開示と
+  // 衝突する）。生成装備の rarity roll を level+1 回引いて良い方を採る、
+  // 「良い品を見つける目」として実装した。報酬の中身は最初から全部読める。
+  Object.freeze({
+    id: APPRAISAL_UPGRADE_ID,
+    category: "appraisal",
+    displayName: "目利き",
+    maxLevel: APPRAISAL_COSTS.length,
+    costs: APPRAISAL_COSTS,
+    describeLevel: (level) => `生成装備の等級を ${level + 1} 回引いて良い方を採る`,
   }),
   ...EQUIPMENT_GROUPS.filter((group) => !group.startsUnlocked).map((group) => Object.freeze({
     id: "equipment_pool." + group.id,
@@ -199,6 +238,12 @@ export function newProfile() {
     },
     purchases: [],
     settledRunIds: [],
+    // R9 §8 — 物語の既読印。**Profile に置く**（遠征を捨てても、序盤の敗北を
+    // もう一度見せられては困る）。
+    storyFlags: [],
+    // R8 §3.6 — Phase C。Blueprint archive は Profile 側の永続区画。
+    // **所持上限は無い。**制限が掛かるのは遠征開始時の持込枠だけ。
+    blueprints: newArchive(),
   };
 }
 
@@ -259,7 +304,33 @@ export function normalizeProfile(saved) {
   profile.settledRunIds = Array.isArray(saved.settledRunIds)
     ? saved.settledRunIds.filter((id) => typeof id === "string").slice(-200)
     : [];
+  // R8 §3.6 — 保存した品が黙って消えるのが一番困るので、archive は
+  // schemaVersion が違っても読める entry を引き継ぐ（normalizeArchive 側）。
+  profile.blueprints = normalizeArchive(saved.blueprints);
+  profile.storyFlags = Array.isArray(saved.storyFlags)
+    ? saved.storyFlags.filter((flag) => typeof flag === "string").slice(0, 50)
+    : [];
   return profile;
+}
+
+// ============================================================ Phase C の Profile 読み取り
+
+export function blueprintCarryCapacity(profile) {
+  return carryCapacity(upgradeLevel(profile, BLUEPRINT_CAPACITY_UPGRADE_ID));
+}
+
+export function appraisalLevel(profile) {
+  return upgradeLevel(profile, APPRAISAL_UPGRADE_ID);
+}
+
+// R8 §3.7 —「装備基材 / affix family 一群2,000〜20,000」は Phase D 以降の買い物。
+// 現時点の pool は **その遠征の pack から決まる**（新パックの family と、
+// どの pack にも属さない family_scar）。買って増やす経路はまだ開けない。
+export function affixFamilyIdsForPacks(packIds) {
+  const enabled = new Set(packIds ?? []);
+  return AFFIX_FAMILIES
+    .filter((family) => family.packId === null || enabled.has(family.packId))
+    .map((family) => family.id);
 }
 
 // R6 §17.2 — 旧 save（Phase A の平たい meta）からの移行。
@@ -444,7 +515,12 @@ export function makeManifest(seed, profile) {
     regionId: REGION.id,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
     enabledPackIds: enabled,
-    enabledAffixFamilyIds: [],
+    // Free / Endless は Stage の学習順を持たないので、pack は常に full で出る
+    // （R9 §3.1 の core / full はチュートリアル Stage の仕組み）。
+    packDepths: Object.fromEntries(enabled.map((packId) => [packId, "full"])),
+    // R8 §13.2 — Phase C。**affix family は pack から決まる。**新パックの
+    // family と、どの pack にも属さない傷の family がその遠征の生成 pool になる。
+    enabledAffixFamilyIds: affixFamilyIdsForPacks(enabled),
     enemyFamilyIds: [...REGION.enemyFamilyIds],
     actBossIds: [...REGION.actBossIds],
     actBossLawIds: [...REGION.actBossLawIds],
@@ -453,8 +529,10 @@ export function makeManifest(seed, profile) {
   };
 }
 
+// R9 §3.1 — manifest は pack の見せ方（core / full）も持つ。
+// **画面もツリーも run もここを通る**ので、深さの解釈が一箇所に閉じる。
 export function manifestSkillIds(manifest) {
-  return skillIdsForPacks(manifest?.enabledPackIds ?? []);
+  return skillIdsForPacks(manifest?.enabledPackIds ?? [], manifest?.packDepths ?? {});
 }
 
 // ============================================================ RunState（R6 §4.2）
@@ -475,9 +553,15 @@ export function startingSupplies(profile, rank) {
 // 渡さなければ従来どおり Free / Endless の random manifest（`makeManifest`）を使う。
 // 両経路は同じ RunState 形を返す（campaign 専用の欄を増やすだけで、
 // Free / Endless の既存出力は変えない）。
+// R8 §3.6 — 遠征開始時、carry capacity 以内の Blueprint を exact copy として
+// 再製造する。**seed からの作り直しではなく、保存した定義そのものの写し。**
+function carriedItemsFor(profile) {
+  return manufactureCarried(profile?.blueprints ?? newArchive(), blueprintCarryCapacity(profile));
+}
+
 export function newRun(profile, options = {}) {
   const rank = Math.max(0, Math.min(MAX_DIFFICULTY_RANK, Math.floor(options.difficulty ?? 0)));
-  const roster = [...(options.roster ?? [])];
+  let roster = [...(options.roster ?? [])];
   const runSeed = String(options.runSeed ?? "run");
   const isCampaign = options.campaignStageSequence !== undefined && options.campaignStageSequence !== null;
   const campaignStageSequence = isCampaign
@@ -486,12 +570,29 @@ export function newRun(profile, options = {}) {
   const manifest = isCampaign
     ? campaignManifestForStage(campaignStageSequence, runSeed)
     : makeManifest(runSeed, profile);
+  // R9 §2.1 — チュートリアル Stage は人数が決まっている。**呼び出し側が
+  // 5人渡しても、その Stage の人数へ切り詰める**（初回の学習順を守るため）。
+  // R9 §8 — 一度クリアした Stage を遊び直すときは 5人を最初から使える
+  // （`freeRoster`）。初回の物語と学習順は固定してよいが、既知になった後の
+  // 再訪でチュートリアルがランの固定税になってはいけない。
+  const rosterLocked = isCampaign && options.freeRoster !== true;
+  const partySize = rosterLocked
+    ? (manifest.partySize ?? LIMITS.maxAlliesInCampaign)
+    : LIMITS.maxAlliesInCampaign;
+  // 初回のチュートリアル Stage では、**誰が来るかは content が決める**
+  // （R9 §2.1「加入する人物」）。呼び出し側の選択は、Stage をクリアして
+  // freeRoster になってから効く。
+  roster = (rosterLocked ? [...(manifest.castCharacterIds ?? roster)] : roster).slice(0, partySize);
+  const carried = carriedItemsFor(profile);
   return {
     schemaVersion: RUN_SCHEMA_VERSION,
     runId: String(options.runId ?? runSeed),
     runSeed,
     regionId: REGION.id,
     campaignStageSequence,
+    // R9 §2.1 / §8 — この遠征の人数と、編成を組み替えてよいか。
+    partySize,
+    rosterLocked,
     difficulty: rank,
     manifest,
     encounterIndex: 1,
@@ -502,7 +603,14 @@ export function newRun(profile, options = {}) {
     runSkillPoints: Object.fromEntries(roster.map((id) => [id, STARTING_RUN_SKILL_POINTS])),
     runUnlockedSkills: { ...(options.unlockedSkills ?? {}) },
     loadout: options.loadout ?? null,
-    inventory: [...STARTER_EQUIPMENT_IDS],
+    inventory: [...STARTER_EQUIPMENT_IDS, ...carried.map((item) => item.definition.id)],
+    // R8 §3.5 / §3.6 — Phase C。**生成装備は content bundle に無い**ので、
+    // 定義そのものを run が持つ。戦闘・preview・保存は全部この一箇所を読む。
+    generatedEquipment: Object.fromEntries(carried.map((item) => [item.definition.id, item])),
+    carriedBlueprintIds: carried.map((item) => item.provenance.carriedFromBlueprintId).filter(Boolean),
+    // 生成が失敗したら黙って既定品へ落とさず、ここへ診断を残して画面へ出す
+    // （R8 §3.5「50 attemptで生成不能なら...診断errorにする」）。
+    generatorDiagnostics: [],
     scrap: 0,
     // R6 §12.1 — 偵察は**次の幕**を開ける。いまいる幕は補給なしで見えるので、
     // ここは空で始まる（第1幕が入っていると、第2幕が最初から見える意味になる）。
@@ -711,7 +819,11 @@ export function dismantle(run, equipmentId) {
     inventory: run.inventory.filter((id) => id !== equipmentId),
     scrap: (run.scrap ?? 0) + 1,
     loadout: structuredClone(run.loadout ?? {}),
+    generatedEquipment: { ...(run.generatedEquipment ?? {}) },
   };
+  // 分解した生成装備の定義は run から落とす。**save を無限に太らせない**
+  // （Blueprint に残すかどうかは遠征終了時の判断で、持ち物とは別）。
+  delete next.generatedEquipment[equipmentId];
   for (const characterId of Object.keys(next.loadout.equipment ?? {})) {
     next.loadout.equipment[characterId] = (next.loadout.equipment[characterId] ?? [])
       .filter((id) => id !== equipmentId);
@@ -766,9 +878,19 @@ function addMutation(unit, mutationId) {
   return true;
 }
 
-export function composeEncounter(index, difficultyRank) {
+// R9 §3.2 —「各Stageの敵は、新しい問いを確認するための少数の配置にする。」
+//
+// チュートリアル Stage は2〜4人で進む。**同じ12戦の敵をそのまま出すと、
+// 人数が足りないという理由だけで負ける**ので、人数に合わせて敵の数と
+// threat budget を落とす。
+//
+// **5人の遠征の出力は1バイトも変えない**（contract.test.mjs が凍結と深一致を
+// 見ている）。切り詰めは partySize < 5 のときにだけ走る。
+export function composeEncounter(index, difficultyRank, options = {}) {
   const def = expeditionEncounter(index);
   const difficulty = difficultyDef(difficultyRank);
+  const fullParty = LIMITS.maxAlliesInCampaign;
+  const partySize = Math.max(1, Math.min(fullParty, Math.floor(options.partySize ?? fullParty)));
   const units = def.enemies.map((enemy, slot) => ({
     instanceId: `x${index}_${slot}`,
     enemyActorId: enemy.enemyActorId,
@@ -779,12 +901,24 @@ export function composeEncounter(index, difficultyRank) {
     reinforcement: false,
   }));
 
-  const budget = def.threatBudget + difficulty.threatBudgetDelta;
+  let budget = def.threatBudget + difficulty.threatBudgetDelta;
   let spent = def.threatBudget;
+
+  // R9 §3.2 — 少人数 Stage の切り詰め。**boss は必ず残す**（幕の問いが消える）。
+  // 後ろの枠から落とすので、前列の圧力の形は変わらない。
+  if (partySize < fullParty) {
+    while (units.length > partySize) {
+      const removable = units.map((unit, slot) => ({ unit, slot })).filter((entry) => !entry.unit.boss);
+      if (!removable.length) break;
+      units.splice(removable[removable.length - 1].slot, 1);
+    }
+    spent = units.reduce((total, unit) => total + unit.threatCost, 0);
+    budget = Math.floor(budget * partySize / fullParty);
+  }
 
   // 1. 余り budget はまず増援（枠が残っているときだけ）。
   for (const reinforcement of def.reinforcements) {
-    if (units.length >= 5) break;
+    if (units.length >= partySize) break;
     const cost = ENEMY_THREAT_COST[reinforcement.enemyActorId] ?? 0;
     if (spent + cost > budget) continue;
     units.push({
@@ -834,10 +968,27 @@ export function composeEncounter(index, difficultyRank) {
   }
 
   // 4. stat を確定する。boss law は常に載る（rank 0 でも）。
+  //
+  // R9 §3.2 — 少人数 Stage では boss の体力も人数に合わせる。**boss は数を
+  // 減らせない**（減らすと幕の問いが消える）ので、増援と違って切り詰めが効かない。
+  // 2人で5人ぶんの体力を削り切れという形にすると、「組み方」ではなく
+  // 「人数が足りない」という理由だけで詰む。
+  // **法則・行動・狙いは変えない。**削る量だけが人数に比例する。
+  const bossScalePatch = partySize < fullParty
+    ? { maxHp: { bps: Math.floor(BPS * partySize / fullParty) } }
+    : null;
+  // 受け（guard）は**一撃ごとの定額**なので、味方が減ると「総被害に占める割合」が
+  // 勝手に上がる。2人で5人ぶんの受けを削るのは、組み方ではなく手数の問題になる。
+  // 敵の数と体力を人数へ合わせたのと同じ比で、受けも合わせる。
+  const guardScalePatch = partySize < fullParty
+    ? { guard: { bps: Math.floor(BPS * partySize / fullParty) } }
+    : null;
   const law = def.bossLawId ? BOSS_LAWS[def.bossLawId] : null;
   const enemies = units.map((unit) => {
     const base = enemyBaseStats(unit.enemyActorId);
     const patches = unit.mutations.map((id) => ENEMY_MUTATIONS[id].patch);
+    if (guardScalePatch) patches.unshift(guardScalePatch);
+    if (unit.boss && bossScalePatch) patches.unshift(bossScalePatch);
     if (unit.boss && law) patches.unshift(law.patch);
     const stats = applyPatches(base, patches);
     return {
@@ -880,21 +1031,128 @@ export function composeEncounter(index, difficultyRank) {
 
 export const REWARD_EQUIPMENT_SLOTS = 2;
 
+// ---------------------------------------------------------------- 生成装備の drop（R8 §13.2）
+
+// **drop 列の鍵。** 同じ遠征・同じ戦闘・同じ引き直し回数・同じ枠なら同じ品が出る。
+// 100 / 10 の桁分けは、引き直しと枠が互いの列を動かさないためのもの。
+export function dropIndexFor(encounterIndex, rerollIndex, slot) {
+  return encounterIndex * 100 + rerollIndex * 10 + slot;
+}
+
+// R8 §3.7 の「目利き」。**情報を隠して売るのではなく、等級の引きを良くする。**
+// level+1 回引いて一番良い等級を採る。level 0 は素の1回引き。
+function appraisedRarity(run, dropIndex, level) {
+  let best = null;
+  for (let attempt = 0; attempt <= level; attempt += 1) {
+    const rarity = rollRarity(makeRng(seedKey(run.runSeed, "rarity", dropIndex, attempt)));
+    if (best === null || RARITIES.indexOf(rarity) > RARITIES.indexOf(best)) best = rarity;
+  }
+  return best;
+}
+
+// 一品ぶんの生成。**失敗を握りつぶさない。**戻り値は
+// { type: "generated_equipment", item } か { type: "generator_error", message }。
+export function generatedRewardCandidate(run, profile, encounterIndex, rerollIndex, slot) {
+  const dropIndex = dropIndexFor(encounterIndex, rerollIndex, slot);
+  const rarity = appraisedRarity(run, dropIndex, appraisalLevel(profile));
+  try {
+    const item = generateEquipment({
+      seed: run.runSeed,
+      dropIndex,
+      rarity,
+      familyIds: run.manifest?.enabledAffixFamilyIds ?? [],
+      origin: {
+        runId: run.runId,
+        regionId: run.regionId,
+        campaignStageId: run.manifest?.campaignStageId ?? null,
+        encounterIndex,
+      },
+    });
+    // 固定装備と同じ `type: "equipment"` を名乗る。**画面が「装備の候補」を
+    // 二種類に分けて扱わずに済む**（生成かどうかは generated と item で分かる）。
+    return { type: "equipment", generated: true, equipmentId: item.definition.id, item };
+  } catch (error) {
+    if (!(error instanceof EquipmentGenerationError)) throw error;
+    return { type: "generator_error", message: error.message, diagnostics: error.diagnostics };
+  }
+}
+
+// ============================================================ 報酬（R6 §5.3）
+//
+// 通常戦勝利後は4候補から1つ。**活動資金はこの4候補に入らない**
+// （補給や技能点を選んでも、資金の獲得量は減りません）。
+//
+// R8 §13.2 — Phase C。装備2枠のうち**一つは生成装備**にする。固定装備は
+// 比較基準として残し、報酬の主食にはしない（R8 §13.1）。まだ拾っていない
+// 固定装備が尽きた遠征後半では、両枠とも生成装備になる。
+//
+// 「報酬4候補が全て同じroleにならない」（R8 §13.2）は、装備2・技能点・補給という
+// 構成そのものが満たしている。装備どうしが同じ役割に寄る場合だけ、
+// 生成側を隣の drop 列へずらして払い先の種類を変える。
 export function rewardOffer(run, profile, encounterIndex, rerollIndex = 0) {
   const owned = new Set(run.inventory ?? []);
   const pool = unlockedEquipmentIds(profile).filter((id) => !owned.has(id));
-  const equipment = [];
-  for (let slot = 0; slot < REWARD_EQUIPMENT_SLOTS; slot += 1) {
-    const key = seedKey(run.runSeed, "reward", encounterIndex, rerollIndex, slot);
-    const candidates = pool.filter((id) => !equipment.includes(id));
-    if (!candidates.length) break;
-    const pick = candidates[Math.floor(makeRng(key)() * candidates.length)];
-    equipment.push(pick);
+  const offers = [];
+  const fixedKey = seedKey(run.runSeed, "reward", encounterIndex, rerollIndex, 0);
+  if (pool.length) {
+    offers.push({ type: "equipment", equipmentId: pool[Math.floor(makeRng(fixedKey)() * pool.length)] });
   }
-  const offers = equipment.map((equipmentId) => ({ type: "equipment", equipmentId }));
+
+  const wantedGenerated = REWARD_EQUIPMENT_SLOTS - offers.length;
+  const takenTags = new Set();
+  for (let slot = 0; slot < wantedGenerated; slot += 1) {
+    let candidate = null;
+    for (let nudge = 0; nudge < 3; nudge += 1) {
+      candidate = generatedRewardCandidate(run, profile, encounterIndex, rerollIndex, slot * 3 + nudge);
+      if (candidate.type !== "equipment") break;
+      if (owned.has(candidate.equipmentId)) continue;
+      const tags = candidate.item.readout.payoffTags;
+      if (!tags.length || tags.some((tag) => !takenTags.has(tag))) break;
+    }
+    if (!candidate) continue;
+    if (candidate.type === "equipment") {
+      for (const tag of candidate.item.readout.payoffTags) takenTags.add(tag);
+    }
+    offers.push(candidate);
+  }
+
   offers.push({ type: "skill_points", amount: RUN_SKILL_POINTS_PER_REWARD });
   offers.push({ type: "supplies", amount: 1 });
   return offers;
+}
+
+// 生成装備を遠征の持ち物へ入れる。**定義そのものを run が抱える**ので、
+// 戦闘・preview・保存・送信は run.generatedEquipment だけを読めばよい。
+export function takeGeneratedEquipment(run, item) {
+  const id = item.definition.id;
+  if ((run.inventory ?? []).includes(id)) return { ok: false, reason: "その装備はすでに持っています。" };
+  if ((run.inventory ?? []).length >= INVENTORY_LIMIT) {
+    return { ok: false, reason: "持ち物が一杯です。一品を分解してください。" };
+  }
+  return {
+    ok: true,
+    run: {
+      ...run,
+      inventory: [...(run.inventory ?? []), id],
+      generatedEquipment: { ...(run.generatedEquipment ?? {}), [id]: structuredClone(item) },
+    },
+  };
+}
+
+// 遠征中に見つけた生成装備のうち、まだ Blueprint に残していないもの。
+// **持込品（carried）は既に archive にあるので候補にしない。**
+export function newGeneratedItems(run) {
+  return Object.values(run.generatedEquipment ?? {}).filter((item) => !item.carried);
+}
+
+// 生成装備の定義を混ぜた content bundle。engine も validator もこれを読む。
+export function runContentBundle(run) {
+  const generated = run?.generatedEquipment ?? {};
+  const ids = Object.keys(generated);
+  if (!ids.length) return PLAYABLE_CONTENT;
+  const equipment = { ...PLAYABLE_CONTENT.equipment };
+  for (const id of ids) equipment[id] = generated[id].definition;
+  return { ...PLAYABLE_CONTENT, equipment };
 }
 
 // ============================================================ 活動資金の仮計上（R6 §9.2）
@@ -941,11 +1199,9 @@ export function recordEncounterCleared(run, index) {
   return { ...run, fundLedger: ledger };
 }
 
-// R8 §10.3 — 安全撤退を敗北と区別する。Blueprint archive 自体は Phase C 未実装
-// なので、ここでは「今回の settlement は何件まで保存してよいか」という数値だけを
-// 記録する（実際の保存は Phase C の仕事。R8 Implementation Phase 1 step 4
-// 「安全撤退と敗北のBlueprint保存差を状態・精算へ追加する」の状態側だけを満たす）。
-export const BLUEPRINT_SAVE_LIMIT = Object.freeze({ won: 2, retreat: 2, lost: 1 });
+// R8 §10.3 — 安全撤退を敗北と区別する。件数の定義は Phase C で archive 側
+// （ecology/blueprints.mjs）へ移した。ここは再輸出だけを残す。
+export { BLUEPRINT_SAVE_LIMIT };
 
 // R6 §9.2 / R8 §10.3 — 勝利・安全撤退・敗北のいずれかで**一度だけ**精算する。
 // 二度目は黙って通さず、settled: false と理由を返す。
@@ -1000,6 +1256,38 @@ export function settleRun(profile, run, outcome) {
   }
   nextProfile.settledRunIds = [...(nextProfile.settledRunIds ?? []), run.runId].slice(-200);
 
+  // R8 §3.6 / §10.3 — Phase C。遠征終了時に、この run で見つけた生成装備を
+  // Blueprint archive へ exact に残す。件数は確定結果で変わる
+  // （勝利2 / 安全撤退2 / 敗北1）。**持込品は既に archive にあるので数えない。**
+  // 選ぶ順は「rarity が高い順 → 表示名 → id」で決定的にする。取得順に依らせると、
+  // 同じ遠征を同じように遊んでも残る品が変わる。
+  const saveLimit = BLUEPRINT_SAVE_LIMIT[outcome] ?? BLUEPRINT_SAVE_LIMIT.lost;
+  const rarityRank = { legendary: 0, epic: 1, rare: 2, common: 3 };
+  const candidates = newGeneratedItems(run)
+    .sort((a, b) => (rarityRank[a.rarity] ?? 9) - (rarityRank[b.rarity] ?? 9)
+      || a.definition.displayName.localeCompare(b.definition.displayName, "ja")
+      || a.definition.id.localeCompare(b.definition.id))
+    .slice(0, saveLimit);
+  const savedBlueprints = [];
+  let archive = nextProfile.blueprints ?? newArchive();
+  for (const item of candidates) {
+    const saved = saveBlueprint(archive, item, {
+      runId: run.runId,
+      encounterIndex: run.fundLedger.highestClearedEncounter,
+      campaignStageId: run.manifest?.campaignStageId ?? null,
+      outcome,
+    });
+    archive = saved.archive;
+    savedBlueprints.push({
+      blueprintId: saved.blueprintId,
+      descriptor: item.descriptor,
+      rarity: item.rarity,
+      displayName: item.definition.displayName,
+      added: saved.added,
+    });
+  }
+  nextProfile.blueprints = archive;
+
   return {
     ok: true,
     profile: nextProfile,
@@ -1023,8 +1311,10 @@ export function settleRun(profile, run, outcome) {
         ? run.difficulty + 1
         : null,
       unlockedCampaignStage,
-      // Phase C（Blueprint archive）実装までは「今回何件保存してよいか」の記録のみ。
-      blueprintSaveLimit: BLUEPRINT_SAVE_LIMIT[outcome] ?? BLUEPRINT_SAVE_LIMIT.lost,
+      blueprintSaveLimit: saveLimit,
+      // 実際に archive へ残した品。added: false は「同じ descriptor が既にあり、
+      // 取得履歴だけ増えた」という意味（R8 §3.6 の immutable 契約）。
+      savedBlueprints,
     },
   };
 }

@@ -27,6 +27,11 @@ const activeMeta = {
   idle_shuffle: ["息を整える", "自分に集中を1つ付ける。集中中はスキップ。", "準備"],
   mark_target: ["隙を刻む", "まだ「隙」のない敵に付与する。対象がいなければスキップ。", "指揮"],
   steady_aim: ["狙いを澄ます", "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。", "準備"],
+  // R9 §5 — 横断pack「余波と受け渡し」の主行動。
+  hand_off: ["引き継ぐ", "最も傷ついた味方へ受け構えを1つ渡してから、追い打ちを行う。", "支援"],
+  overreach: ["無理を通す", "自分のHPが60%以上のときだけ、最も弱った敵へ165%。条件を欠いても行動は塞がらない。", "攻撃"],
+  // R9 §4.1 — pack_care の主行動。HP を戻さず、これ以上の傷を止める側へ置く。
+  shield_the_wounded: ["傷へ盾を", "最も傷ついた味方へ集中力の150%のラウンド防壁を張ってから、追い打ちを行う。", "支援"],
   // R8 Implementation Phase 2 — pack_barrage（連撃と刻印、Stage 3）の密度。
   barrage_strike: ["連撃", "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。", "攻撃"],
   mark_strike: ["刻印撃ち", "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。", "攻撃"],
@@ -56,6 +61,17 @@ const reactiveMeta = {
   mend: ["手当て", "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。", "回復"],
   triage: ["応急手当", "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。", "回復"],
   emergency_treatment: ["応急処置", "自分が被弾した直後、RP1でその被弾量の33%を返す。", "回復"],
+  // R9 §5 — 横断pack。6つの発生源を、それぞれ別の役割の資源へ渡す。
+  spill_forward: ["余波を回す", "過剰ダメージが出たあと、RP1で最も弱った敵へ腕力の30%。掃除役へ回る。", "撃破"],
+  blocked_into_step: ["受けを順番へ", "受け構えで止めたあと、RP1で前列の最速の味方へ行動権を1渡す。", "防御"],
+  mercy_into_guard: ["手当てを備えへ", "自分が回復を与えたあと、RP1でその相手へ受け構えを1つ。", "回復"],
+  stride_into_reach: ["歩みを間合いへ", "移動したあと、RP1で最前の敵へ「隙」を付ける。", "移動"],
+  readied_relay: ["支度を渡す", "自分の準備が完了したあと、RP1で最も遅い味方へ反応権を1渡す。", "準備"],
+  wake_of_the_fallen: ["倒したあと", "敵が倒れたあと、RP1で最も傷ついた味方へ術力の100%の防壁。", "撃破"],
+  // R9 §4.1 / §9.2 — 導入 pack の接続面。別の役割が使う小さな入口と出口。
+  whetted_by_pain: ["痛みで研ぐ", "被弾したあと、RP1で「集中」を得る。守り役が刃のpackへ入る口。", "被弾"],
+  shield_handoff: ["受けの受け渡し", "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ集中力の75%の防壁。", "防御"],
+  patient_step: ["溜めの次手", "自分の準備が完了したあと、RP1で行動権を1得る。", "準備"],
   // R8 Implementation Phase 2 — pack_barrage（続き）。W・Tが既に発生させている
   // eventを読み、同じ利得先（隙の付与）へ2つの発生源からつなぐ。
   guarded_opening: ["受け止めの隙", "自分が受け構えで一撃を止めたあと、RP1でHPが最も高い敵へ「隙」を付ける。", "指揮"],
@@ -104,6 +120,12 @@ const passiveMeta = {
   foundation_ap: ["出足", "戦闘開始時に一度だけ行動権+1。毎ラウンドではない。", "基礎"],
   foundation_rp: ["備え", "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。", "基礎"],
   opening_guard: ["初手の構え", "戦闘開始時、受け構えを1つ得る。最初の一撃を受け止めるための守り。", "守り"],
+  // R9 §4.1 — 導入 pack の常設。どれも rule で、その pack の中心的な出来事を
+  // 別の結果へ変える（数値だけの上位版は作らない。R9 §4.2）。
+  first_blood: ["先手の一閃", "戦闘開始時、「集中」を1つ得る。最初の一撃を研ぐための攻め。", "攻撃"],
+  wake_reader: ["余波を読む", "過剰ダメージを出したあと、「集中」を1つ得る。余波の行き先が一つ増える。", "攻撃"],
+  held_breath: ["余りを溜める", "ラウンド終わりに行動権が余っていたら、「集中」を1つ得る。手数は増えない。", "指揮"],
+  steady_hands: ["慣れた手つき", "自分が回復を与えたあと、「集中」を1つ得る。手当てを次の仕事へつなぐ。", "支援"],
 };
 export const PASSIVE_META = passiveMeta;
 
@@ -164,4 +186,24 @@ export const SKILL_TREE_NODES = Object.freeze([
   { id: "node_found_ap", skillId: "foundation_ap", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
   { id: "node_found_rp", skillId: "foundation_rp", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
   { id: "node_opening_guard", skillId: "opening_guard", kind: "passive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
+  // R9 §4.1 / §9.2 — 導入 pack の接続面と常設。
+  // **前提は各 pack の入口技能に置く**（別 pack を経由しないと届かない形にしない）。
+  { id: "node_whetted", skillId: "whetted_by_pain", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_first_blood", skillId: "first_blood", kind: "passive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_shield_handoff", skillId: "shield_handoff", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["cover_ally"] },
+  { id: "node_patient_step", skillId: "patient_step", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
+  { id: "node_held_breath", skillId: "held_breath", kind: "passive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
+  { id: "node_shield_wounded", skillId: "shield_the_wounded", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
+  { id: "node_steady_hands", skillId: "steady_hands", kind: "passive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
+  // R9 §5 — 横断pack「余波と受け渡し」。**前提を baseline の入口へ置く**ので、
+  // どの人物でも、別 pack を経由せずに一つ目の変換へ届く（R9 §5.1）。
+  { id: "node_hand_off", skillId: "hand_off", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["bulwark"] },
+  { id: "node_overreach", skillId: "overreach", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_spill_forward", skillId: "spill_forward", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_wake_reader", skillId: "wake_reader", kind: "passive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_blocked_into_step", skillId: "blocked_into_step", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
+  { id: "node_wake_of_the_fallen", skillId: "wake_of_the_fallen", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
+  { id: "node_mercy_into_guard", skillId: "mercy_into_guard", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
+  { id: "node_readied_relay", skillId: "readied_relay", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
+  { id: "node_stride_into_reach", skillId: "stride_into_reach", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
 ]);

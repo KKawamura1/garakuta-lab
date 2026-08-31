@@ -28,6 +28,7 @@ on:
       - "ecology/**"
       - "core/build.mjs"
       - "analysis/ecology-trial.mjs"
+      - "analysis/ecology-tutorial-trial.mjs"
       - ".github/workflows/ecology-trial.yml"
 
 permissions:
@@ -109,6 +110,16 @@ jobs:
           node analysis/ecology-trial.mjs | tee /tmp/trial.log
           run_id="$(sed -n 's/^RUN_ID=//p' /tmp/trial.log | tail -1)"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      # R9 — 本編（Campaign）の入口は、上の台本（旧・自由遠征）を一度も通らない。
+      # 最初の会話・勝てない一戦・巻き戻し・2人編成・入口だけの技能ツリー・
+      # 生成装備の報酬は、ここで踏む。
+      - name: Play the tutorial opening end to end
+        shell: bash
+        env:
+          ECOLOGY_TUTORIAL_BASE: ${{ steps.resolve.outputs.url }}
+          PLAYWRIGHT_MODULE: playwright
+        run: node analysis/ecology-tutorial-trial.mjs
 
       # **「保存しました」と画面が言うことと、行があることは別。**
       # 2026-08-29、上限のずれで invalid_payload になっていたのに、

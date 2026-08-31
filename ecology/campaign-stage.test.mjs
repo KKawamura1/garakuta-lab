@@ -63,20 +63,46 @@ const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
   checks += 1;
 
   equal(MAX_CAMPAIGN_STAGE_SEQUENCE, 3, "Stage 0〜3 の4段だけを固定している");
-  equal(activePackCountForSequence(0), 1, "Stage 0 の有効パック数");
-  equal(activePackCountForSequence(1), 2, "Stage 1 の有効パック数");
-  equal(activePackCountForSequence(2), 2, "Stage 2 の有効パック数");
-  equal(activePackCountForSequence(3), 3, "Stage 3 の有効パック数");
+  // R9 §3 — 初期4 Stage は累積（1,2,3,4）。R8 §4.2 の回転式（1,2,2,3）は
+  // Stage 4 以降のために残してある。**どちらの式も、名乗った mode で引く。**
+  equal(activePackCountForSequence(0, "tutorial"), 1, "Stage 0 の有効パック数");
+  equal(activePackCountForSequence(1, "tutorial"), 2, "Stage 1 の有効パック数");
+  equal(activePackCountForSequence(2, "tutorial"), 3, "Stage 2 の有効パック数");
+  equal(activePackCountForSequence(3, "tutorial"), 4, "Stage 3 の有効パック数");
+  equal(activePackCountForSequence(2, "rotation"), 2, "R8 §4.2 の回転式も残っている");
+  equal(activePackCountForSequence(3, "rotation"), 3, "R8 §4.2 の回転式も残っている");
 
   assert.deepEqual(campaignStageDef(0).enabledPackIds, ["pack_edge"], "Stage 0 = E");
-  assert.deepEqual(campaignStageDef(1).enabledPackIds, ["pack_edge", "pack_wall"], "Stage 1 = W + E");
-  assert.deepEqual(campaignStageDef(2).enabledPackIds, ["pack_edge", "pack_tempo"], "Stage 2 = T + E");
+  assert.deepEqual(campaignStageDef(1).enabledPackIds, ["pack_edge", "pack_wall"], "Stage 1 = E + W");
+  assert.deepEqual(campaignStageDef(2).enabledPackIds, ["pack_edge", "pack_wall", "pack_tempo"], "Stage 2 = E + W + T");
   assert.deepEqual(
     campaignStageDef(3).enabledPackIds,
-    ["pack_wall", "pack_tempo", "pack_barrage"],
-    "Stage 3 = B + W + T",
+    ["pack_edge", "pack_wall", "pack_tempo", "pack_care"],
+    "Stage 3 = E + W + T + C",
   );
   checks += 4;
+
+  // R9 §2.1 — 2人から始めて、Stage ごとに1人ずつ増え、Stage 3 で5人が揃う。
+  for (const stage of CAMPAIGN_STAGES) {
+    equal(stage.partySize, stage.sequence + 2, stage.id + " の人数");
+    equal(stage.castCharacterIds.length, stage.partySize, stage.id + " の cast 人数");
+    if (stage.sequence === 0) {
+      equal(stage.joiningCharacterId, null, "Stage 0 は誰も加入しない（最初の2人）");
+    } else {
+      const previous = campaignStageDef(stage.sequence - 1);
+      const added = stage.castCharacterIds.filter((id) => !previous.castCharacterIds.includes(id));
+      assert.deepEqual(added, [stage.joiningCharacterId], stage.id + " は1人だけ加わる");
+      checks += 1;
+    }
+  }
+
+  // R9 §3.1 — 新 pack は core（入口）で入り、前 Stage の pack は full になる。
+  for (const stage of CAMPAIGN_STAGES) {
+    equal(stage.packDepths[stage.newPackId], "core", stage.id + " の新 pack は core");
+    for (const packId of stage.returningPackIds) {
+      equal(stage.packDepths[packId], "full", stage.id + " の過去 pack " + packId + " は full");
+    }
+  }
 
   // 同Stage・異seedでpack構成が一致する。seed は敵順・報酬用にしか使わない。
   const a = campaignManifestForStage(2, "seed-alpha");
@@ -98,6 +124,10 @@ const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
   equal(run.campaignStageSequence, 0, "run が campaign stage を記録する");
   assert.deepEqual(run.manifest.enabledPackIds, ["pack_edge"], "Stage 0 の run manifest");
   checks += 1;
+  // R9 §2.1 — Stage 0 は2人。5人渡しても切り詰める。
+  equal(run.roster.length, 2, "Stage 0 の遠征は2人で始まる");
+  equal(run.partySize, 2, "run が Stage の人数を持つ");
+  check(run.rosterLocked, "初回のチュートリアル Stage では編成を組み替えない");
 
   const settled = settleRun(profile, { ...run, fundLedger: { ...run.fundLedger, settled: false } }, "won");
   check(settled.ok, "campaign run を精算できる");
@@ -122,9 +152,12 @@ function syntheticResult(result, allyHpById) {
   };
 }
 
+// **人数を5人で固定して見る。**ここで見たいのは HP の持ち越しであって、
+// R9 のチュートリアル人数ではない（`freeRoster` は一度クリアした Stage の
+// 遊び直しと同じ扱いで、Stage の人数制限を外す）。
 {
   const profile = newProfile();
-  const run = newRun(profile, { runSeed: "s", runId: "hp-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const run = newRun(profile, { runSeed: "s", runId: "hp-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const fullHp = { ...run.currentHp };
   for (const id of ROSTER) check(fullHp[id] > 0, id + " は遠征開始時に満タン");
 
@@ -156,7 +189,7 @@ function syntheticResult(result, allyHpById) {
 
 {
   const profile = newProfile();
-  let run = newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 0 });
+  let run = newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const maxHp = characterStats(profile, "warden").stats.maxHp;
   run = { ...run, currentHp: { ...run.currentHp, warden: Math.floor(maxHp * 0.3) } };
   const before = run.supplies;
@@ -190,7 +223,7 @@ function syntheticResult(result, allyHpById) {
 
 {
   const profile = newProfile();
-  const run = newRun(profile, { runSeed: "s", runId: "retreat-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const run = newRun(profile, { runSeed: "s", runId: "retreat-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const retreated = settleRun(profile, run, "retreat");
   check(retreated.ok, "安全撤退を精算できる");
   equal(retreated.settlement.breakdown.outcomeBonus, 0, "安全撤退には完走ボーナスが付かない");
@@ -199,7 +232,7 @@ function syntheticResult(result, allyHpById) {
   check(BLUEPRINT_SAVE_LIMIT.retreat > BLUEPRINT_SAVE_LIMIT.lost, "安全撤退は敗北より保存上限が高い");
   check(BLUEPRINT_SAVE_LIMIT.retreat === BLUEPRINT_SAVE_LIMIT.won, "安全撤退と勝利の保存上限は同じ");
 
-  const lostRun = newRun(profile, { runSeed: "s", runId: "lost-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const lostRun = newRun(profile, { runSeed: "s", runId: "lost-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const lost = settleRun(profile, lostRun, "lost");
   equal(lost.settlement.blueprintSaveLimit, 1, "敗北のBlueprint保存上限は1");
 }
@@ -208,7 +241,7 @@ function syntheticResult(result, allyHpById) {
 
 {
   const profile = newProfile();
-  const run = newRun(profile, { runSeed: "preview-seed", runId: "preview-r1", roster: ROSTER, campaignStageSequence: 0 });
+  const run = newRun(profile, { runSeed: "preview-seed", runId: "preview-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const runWithLoadout = { ...run, loadout: freshLoadout(ROSTER) };
 
   const preview = previewNextBattle(runWithLoadout, profile, 1);
