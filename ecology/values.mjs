@@ -10,7 +10,7 @@ import { actorStat, resolveSubject, statusStacks } from "./actors.mjs";
 //
 // **商と余りに分けてから比べる。** 素直に書くと
 // `Math.floor((numerator * 2 + denominator) / (denominator * 2))` だが、
-// 分子を2倍した時点で 2^53 を越えて丸めがぶれる（phase-a.test.mjs が実測した）。
+// 分子を2倍した時点で 2^53 を越えて丸めがぶれる（R6 の大整数ケースで確認済み）。
 // 余りだけを2倍すれば、余りは必ず分母より小さいので桁が落ちない。
 // 負値はこの式では現れない（amount も stat も非負）。
 export function roundHalfUpDiv(numerator, denominator) {
