@@ -6,7 +6,7 @@
 
 - プロダクト名は「灰の遠征」。
 - 現行本編は ecology/。ルートの本番入口も ecology/ へ揃える。
-- 現行の設計正本は EXP-18 R8。R6 と R7 は判断履歴であり、単独の実装指示ではない。
+- 現行の設計正本は EXP-18 R8 と、初期4Stageについては R9 実装票。R6 と R7 は判断履歴であり、単独の実装指示ではない。
 - 実装・テスト・公開は揃いつつあるが、作者の現行版プレイ評価はまだ無い。
 
 ## 作業前に読むもの
@@ -21,7 +21,8 @@
 ## 判断の優先順位
 
 1. 実コードと、そのコードを直接検査するテスト
-2. R8_FIXED_DIFFICULTY_SYNERGY_LADDER.md
+2. R8_FIXED_DIFFICULTY_SYNERGY_LADDER.md と、初期4Stage については
+   R9_IMPLEMENTATION_TUTORIAL_STAGES.md（R8 との差分を §2 に記録してある）
 3. analysis/CURRENT.md と PROJECT_MEMORY.md
 4. R6/R7 などの履歴資料
 

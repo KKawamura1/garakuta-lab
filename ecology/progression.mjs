@@ -20,6 +20,7 @@
 //   - 永続値は 10進文字列で保存し、計算は bigint で行う（R6 §9.1）。
 
 import {
+  LIMITS,
   MANIFEST_VERSION,
   PROFILE_SCHEMA_VERSION,
   RUN_SCHEMA_VERSION,
@@ -237,6 +238,9 @@ export function newProfile() {
     },
     purchases: [],
     settledRunIds: [],
+    // R9 §8 — 物語の既読印。**Profile に置く**（遠征を捨てても、序盤の敗北を
+    // もう一度見せられては困る）。
+    storyFlags: [],
     // R8 §3.6 — Phase C。Blueprint archive は Profile 側の永続区画。
     // **所持上限は無い。**制限が掛かるのは遠征開始時の持込枠だけ。
     blueprints: newArchive(),
@@ -303,6 +307,9 @@ export function normalizeProfile(saved) {
   // R8 §3.6 — 保存した品が黙って消えるのが一番困るので、archive は
   // schemaVersion が違っても読める entry を引き継ぐ（normalizeArchive 側）。
   profile.blueprints = normalizeArchive(saved.blueprints);
+  profile.storyFlags = Array.isArray(saved.storyFlags)
+    ? saved.storyFlags.filter((flag) => typeof flag === "string").slice(0, 50)
+    : [];
   return profile;
 }
 
@@ -508,6 +515,9 @@ export function makeManifest(seed, profile) {
     regionId: REGION.id,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
     enabledPackIds: enabled,
+    // Free / Endless は Stage の学習順を持たないので、pack は常に full で出る
+    // （R9 §3.1 の core / full はチュートリアル Stage の仕組み）。
+    packDepths: Object.fromEntries(enabled.map((packId) => [packId, "full"])),
     // R8 §13.2 — Phase C。**affix family は pack から決まる。**新パックの
     // family と、どの pack にも属さない傷の family がその遠征の生成 pool になる。
     enabledAffixFamilyIds: affixFamilyIdsForPacks(enabled),
@@ -519,8 +529,10 @@ export function makeManifest(seed, profile) {
   };
 }
 
+// R9 §3.1 — manifest は pack の見せ方（core / full）も持つ。
+// **画面もツリーも run もここを通る**ので、深さの解釈が一箇所に閉じる。
 export function manifestSkillIds(manifest) {
-  return skillIdsForPacks(manifest?.enabledPackIds ?? []);
+  return skillIdsForPacks(manifest?.enabledPackIds ?? [], manifest?.packDepths ?? {});
 }
 
 // ============================================================ RunState（R6 §4.2）
@@ -549,7 +561,7 @@ function carriedItemsFor(profile) {
 
 export function newRun(profile, options = {}) {
   const rank = Math.max(0, Math.min(MAX_DIFFICULTY_RANK, Math.floor(options.difficulty ?? 0)));
-  const roster = [...(options.roster ?? [])];
+  let roster = [...(options.roster ?? [])];
   const runSeed = String(options.runSeed ?? "run");
   const isCampaign = options.campaignStageSequence !== undefined && options.campaignStageSequence !== null;
   const campaignStageSequence = isCampaign
@@ -558,6 +570,19 @@ export function newRun(profile, options = {}) {
   const manifest = isCampaign
     ? campaignManifestForStage(campaignStageSequence, runSeed)
     : makeManifest(runSeed, profile);
+  // R9 §2.1 — チュートリアル Stage は人数が決まっている。**呼び出し側が
+  // 5人渡しても、その Stage の人数へ切り詰める**（初回の学習順を守るため）。
+  // R9 §8 — 一度クリアした Stage を遊び直すときは 5人を最初から使える
+  // （`freeRoster`）。初回の物語と学習順は固定してよいが、既知になった後の
+  // 再訪でチュートリアルがランの固定税になってはいけない。
+  const rosterLocked = isCampaign && options.freeRoster !== true;
+  const partySize = rosterLocked
+    ? (manifest.partySize ?? LIMITS.maxAlliesInCampaign)
+    : LIMITS.maxAlliesInCampaign;
+  // 初回のチュートリアル Stage では、**誰が来るかは content が決める**
+  // （R9 §2.1「加入する人物」）。呼び出し側の選択は、Stage をクリアして
+  // freeRoster になってから効く。
+  roster = (rosterLocked ? [...(manifest.castCharacterIds ?? roster)] : roster).slice(0, partySize);
   const carried = carriedItemsFor(profile);
   return {
     schemaVersion: RUN_SCHEMA_VERSION,
@@ -565,6 +590,9 @@ export function newRun(profile, options = {}) {
     runSeed,
     regionId: REGION.id,
     campaignStageSequence,
+    // R9 §2.1 / §8 — この遠征の人数と、編成を組み替えてよいか。
+    partySize,
+    rosterLocked,
     difficulty: rank,
     manifest,
     encounterIndex: 1,
@@ -850,9 +878,19 @@ function addMutation(unit, mutationId) {
   return true;
 }
 
-export function composeEncounter(index, difficultyRank) {
+// R9 §3.2 —「各Stageの敵は、新しい問いを確認するための少数の配置にする。」
+//
+// チュートリアル Stage は2〜4人で進む。**同じ12戦の敵をそのまま出すと、
+// 人数が足りないという理由だけで負ける**ので、人数に合わせて敵の数と
+// threat budget を落とす。
+//
+// **5人の遠征の出力は1バイトも変えない**（contract.test.mjs が凍結と深一致を
+// 見ている）。切り詰めは partySize < 5 のときにだけ走る。
+export function composeEncounter(index, difficultyRank, options = {}) {
   const def = expeditionEncounter(index);
   const difficulty = difficultyDef(difficultyRank);
+  const fullParty = LIMITS.maxAlliesInCampaign;
+  const partySize = Math.max(1, Math.min(fullParty, Math.floor(options.partySize ?? fullParty)));
   const units = def.enemies.map((enemy, slot) => ({
     instanceId: `x${index}_${slot}`,
     enemyActorId: enemy.enemyActorId,
@@ -863,12 +901,24 @@ export function composeEncounter(index, difficultyRank) {
     reinforcement: false,
   }));
 
-  const budget = def.threatBudget + difficulty.threatBudgetDelta;
+  let budget = def.threatBudget + difficulty.threatBudgetDelta;
   let spent = def.threatBudget;
+
+  // R9 §3.2 — 少人数 Stage の切り詰め。**boss は必ず残す**（幕の問いが消える）。
+  // 後ろの枠から落とすので、前列の圧力の形は変わらない。
+  if (partySize < fullParty) {
+    while (units.length > partySize) {
+      const removable = units.map((unit, slot) => ({ unit, slot })).filter((entry) => !entry.unit.boss);
+      if (!removable.length) break;
+      units.splice(removable[removable.length - 1].slot, 1);
+    }
+    spent = units.reduce((total, unit) => total + unit.threatCost, 0);
+    budget = Math.floor(budget * partySize / fullParty);
+  }
 
   // 1. 余り budget はまず増援（枠が残っているときだけ）。
   for (const reinforcement of def.reinforcements) {
-    if (units.length >= 5) break;
+    if (units.length >= partySize) break;
     const cost = ENEMY_THREAT_COST[reinforcement.enemyActorId] ?? 0;
     if (spent + cost > budget) continue;
     units.push({

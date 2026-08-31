@@ -1210,3 +1210,14 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .blueprint-card.selected { border-color: var(--gold); background: var(--gold-dark); }
 .blueprint-card small { display: block; margin-top: 6px; }
 .blueprint-card .tiny-button { margin-top: 8px; }
+
+/* ---------------------------------------------------------------- R9 チュートリアルの物語
+ *
+ * 会話は説明画面ではないので、カードの中で読み物として落ち着かせる。
+ * **飛ばすボタンを目立たせる**（既知になった後の再訪で税にしない）。 */
+.story-card .story-lines { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 12px; }
+.story-line { margin: 0; display: flex; gap: 10px; align-items: baseline; font-size: 13px; }
+.story-line b { flex: 0 0 4.5em; color: var(--gold); font-size: 11px; }
+.story-line span { color: var(--ink); }
+.story-line.narration { color: var(--muted); font-style: italic; padding-left: calc(4.5em + 10px); }
+.story-footer { border-top: 1px solid var(--line); padding-top: 8px; }

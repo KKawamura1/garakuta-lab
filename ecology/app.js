@@ -24,6 +24,8 @@ import {
   previewNextBattle,
   componentInfo,
   registerGeneratedEquipment,
+  makePrologueBattle,
+  prologueEncounter,
 } from "./playable-battles.mjs";
 import {
   BOSS_LAWS,
@@ -32,7 +34,9 @@ import {
   EQUIPMENT_GROUPS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
   PACK_BY_ID,
+  PROLOGUE,
   REGION,
+  storyBeat,
   SKILL_PACKS,
   difficultyDef,
 } from "./content/index.mjs";
@@ -95,7 +99,7 @@ import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 R8 Campaign 0.6";
+const VERSION = "EXP-18 R8+R9 Campaign 0.7";
 const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
@@ -219,6 +223,13 @@ function fitPayload(payload) {
 
 registerSkillCosts(SKILL_TREE_NODES);
 
+// R9 §8 — その Stage を一度でもクリアしているか。**初回だけ物語と学習順を固定し、
+// 既知になった後の再訪では編成から始められるようにする**ための分岐。
+function isCampaignStageCleared(profile, sequence) {
+  const progress = profile?.campaignProgress?.[REGION.id];
+  return Boolean(progress?.clearedStageSequences?.includes(sequence));
+}
+
 function defaultFormation(roster) {
   const formation = {};
   roster.forEach((id, index) => {
@@ -228,8 +239,19 @@ function defaultFormation(roster) {
   return normalizeFormation(formation, roster);
 }
 
+// R9 §2.1 — この遠征の人数。チュートリアル Stage は2〜5人で、
+// 一度クリアした Stage を遊び直すときは5人。
+function runPartySize() {
+  return Math.max(1, Math.min(PARTY_SIZE, Math.floor(state.run?.partySize ?? PARTY_SIZE)));
+}
+
+// 初回のチュートリアル Stage では、誰が来るかは物語が決める。
+function rosterLocked() {
+  return state.run?.rosterLocked === true;
+}
+
 function partyLabel() {
-  return state.run.roster.length + " / " + PARTY_SIZE + "人";
+  return state.run.roster.length + " / " + runPartySize() + "人";
 }
 
 // 遠征を1つ作る。**技能の解禁も装備も、ここで run の中へ入る。**
@@ -238,7 +260,16 @@ function partyLabel() {
 // 渡さずに作り直すと、有効パックが気に入るまで難易度ボタンを往復すれば
 // 引き直せてしまう（R6 §5.2 は manifest を seed で決めると言っている）。
 function startRun(profile, options = {}) {
-  const roster = ensurePartySize(options.roster ?? ["warden", "mender", "lancer", "scout"]);
+  // R9 §2.1 — Campaign Stage は、初回はその Stage の cast をそのまま使う。
+  // R9 §8 — 一度クリアした Stage は5人を自由に選べる（freeRoster）。
+  const sequence = options.campaignStageSequence ?? null;
+  const stage = sequence === null ? null : CAMPAIGN_STAGES[sequence] ?? null;
+  const cleared = sequence !== null && isCampaignStageCleared(profile, sequence);
+  const freeRoster = options.freeRoster ?? cleared;
+  const size = stage && !freeRoster ? stage.partySize : PARTY_SIZE;
+  const requested = options.roster
+    ?? (stage && !freeRoster ? [...stage.castCharacterIds] : ["warden", "mender", "lancer", "scout"]);
+  const roster = ensurePartySize(requested, size);
   const runSeed = options.runSeed ?? (RUN_SEED + "-" + uuid().slice(0, 8));
   const run = newRun(profile, {
     runSeed,
@@ -249,6 +280,7 @@ function startRun(profile, options = {}) {
     // 渡さなければ従来どおり Free / Endless の random manifest になる
     // （newRun 側の分岐。content/campaign-stages.mjs）。
     campaignStageSequence: options.campaignStageSequence ?? null,
+    freeRoster,
     formation: defaultFormation(roster),
     startedAt: new Date().toISOString(),
   });
@@ -306,6 +338,9 @@ function freshUiState() {
     guildTab: "expedition",
     // Phase C — Blueprint archive の絞り込み（画面だけの状態）。
     blueprintFilter: { rarity: null, favorite: false },
+    // R9 §2 / §7 — 物語の断片。queue が空になったら after へ進む。
+    story: { queue: [], after: "camp" },
+    prologueActive: false,
     selectedCharacter: null,
     // ギルドは**遠征の編成とは別の選択**を持つ。roster の5人へ丸めると、
     // 同行していない仲間の鍛錬と第4枠が永久に買えなくなる。
@@ -672,8 +707,13 @@ function inManifest(skillId) {
   return manifestSkillIds(state.run.manifest).all.includes(skillId);
 }
 
+// R9 §3.2 — 敵の数と threat budget は、その遠征の人数に合わせて決まる。
+// **preview と正式実行が同じ引数を使う**ように、ここ一箇所で組む。
 function currentEncounter() {
-  return composeEncounter(state.run.encounterIndex, state.run.difficulty);
+  // R9 §2.1 — 序盤の敗北は12戦の梯子に属さない。**別の敵を出しているのに
+  // 第1戦の名前を出さない**（何を見ているのか分からなくなる）。
+  if (state.prologueActive) return prologueEncounter();
+  return composeEncounter(state.run.encounterIndex, state.run.difficulty, { partySize: state.run.partySize });
 }
 
 function actOfIndex(index) {
@@ -696,7 +736,7 @@ function nextActPreview() {
   const act = actOfIndex(state.run.encounterIndex) + 1;
   if (act > 3) return null;
   for (let index = state.run.encounterIndex + 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
-    const composed = composeEncounter(index, state.run.difficulty);
+    const composed = composeEncounter(index, state.run.difficulty, { partySize: state.run.partySize });
     if (composed.act === act && composed.kind !== "boss") return composed;
   }
   return null;
@@ -754,6 +794,7 @@ function render() {
   const views = {
     intro: renderIntro,
     expeditionStart: renderExpeditionStart,
+    story: renderStory,
     camp: renderCamp,
     battlePreview: renderBattlePreview,
     battle: renderBattle,
@@ -792,12 +833,12 @@ function restoreSkillTreeScroll() {
 }
 
 function renderIntro() {
-  return shell("灰の遠征", "5人を組み、3幕12戦を越え、持ち帰った活動資金でギルドを育てる", "<section class=\"hero card\">"
-    + "<div class=\"sigil\">◈</div><p class=\"lead\">5人を選び、2×3の6枠へ配置し、<br>各人の行動・反応・装備を組みます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>遠征中に得た技能点と装備はその遠征だけのもの</b>で、持ち帰るのは活動資金です。</p>"
+  return shell("灰の遠征", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
+    + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stage を越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>遠征中に得た技能点と装備はその遠征だけのもの</b>で、持ち帰るのは活動資金と、見つけた装備の設計図です。</p>"
     + button("ギルドへ", "start", false, "button primary")
-    + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>3幕12戦</b><span>4・8・12戦目にボス</span></div><div class=\"card\"><b>技能パック</b><span>4つのうち3つが有効</span></div><div class=\"card\"><b>補給3</b><span>再挑戦・引き直し・偵察</span></div></section>");
+    + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金と設計図を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
+    + "<section class=\"three-up\"><div class=\"card\"><b>2人 → 5人</b><span>Stage ごとに一人加わる</span></div><div class=\"card\"><b>技能パックは積む</b><span>前に覚えた技能は消えない</span></div><div class=\"card\"><b>設計図</b><span>拾った生成装備を次へ持ち込む</span></div></section>");
 }
 
 // ============================================================ 遠征を仕立てる（R6 §15.1）
@@ -1019,6 +1060,90 @@ function renderBlueprints() {
     + "</section>";
 }
 
+// ---------------------------------------------------------------- 物語（R9 §2, §7, §8）
+//
+// **説明画面ではない。**pack の意味を人物の行動として見せる断片を、
+// 一つずつ出す。**いつでも飛ばせる**（R9 §8：既知になった後の再訪で
+// チュートリアルがランの固定税になってはいけない）。
+function renderStory() {
+  const queue = state.story?.queue ?? [];
+  const current = queue[0];
+  if (!current) return renderCamp();
+  const lines = current.lines.map((line) => line.speaker
+    ? "<p class=\"story-line\"><b>" + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
+    : "<p class=\"story-line narration\">" + esc(line.text) + "</p>").join("");
+  const remaining = queue.length - 1;
+  return shell(current.title, "灰の遠征 · 物語", "<section class=\"card story-card\">"
+    + "<div class=\"story-lines\">" + lines + "</div>"
+    + (current.footer ? "<p class=\"muted story-footer\">" + esc(current.footer) + "</p>" : "")
+    + "<div class=\"flow-actions\">"
+    + button(remaining > 0 ? "次へ" : "先へ進む", "story-next", false, "button primary")
+    + button("この Stage の会話を飛ばす", "story-skip", false, "button")
+    + "</div>"
+    + "<p class=\"hint\">会話はいつでも飛ばせます。一度クリアした Stage では最初から出ません。</p>"
+    + "</section>");
+}
+
+// 物語の queue を積んで story 画面へ入る。**積むものが無ければ、そのまま次へ。**
+function enterStory(beats, after) {
+  const queue = beats.filter(Boolean);
+  state.story = { queue, after };
+  if (!queue.length) {
+    finishStory();
+    return;
+  }
+  state.phase = "story";
+  saveState();
+  render();
+}
+
+function finishStory() {
+  const after = state.story?.after ?? "camp";
+  state.story = { queue: [], after: "camp" };
+  if (after === "prologue") {
+    startPrologue();
+    return;
+  }
+  state.phase = "camp";
+  state.tab = "roster";
+  saveState();
+  render();
+}
+
+// R9 §2.1 — 本当に負ける配置を、本当に走らせる。
+function startPrologue() {
+  const battle = makePrologueBattle(statsFor);
+  const result = simulateBattle(battle, PLAYABLE_CONTENT, {
+    equipmentBreaks: false,
+    captureReplaySnapshots: true,
+  });
+  state.prologueActive = true;
+  state.lastResult = compactResult(result);
+  const replay = compactReplay(result);
+  state.replayEvents = replay.events;
+  state.replaySnapshots = replay.snapshots;
+  state.replayIndex = 0;
+  state.replayPlaying = true;
+  state.phase = "battle";
+  record("prologue_started", { battleId: battle.battleId, result: result.result });
+  saveState();
+  render();
+}
+
+// R9 §8 — その Stage の会話をこの遠征で出すかどうか。
+// **一度クリアした Stage では出さない。**初回だけ学習順を固定する。
+function storyBeatsForStart(sequence) {
+  const stage = CAMPAIGN_STAGES[sequence];
+  if (!stage) return { beats: [], after: "camp" };
+  if (isCampaignStageCleared(state.profile, sequence)) return { beats: [], after: "camp" };
+  if (sequence === 0) {
+    const seen = (state.profile.storyFlags ?? []).includes("prologue_seen");
+    if (seen) return { beats: [], after: "camp" };
+    return { beats: [storyBeat(stage.id, "opening")], after: "prologue" };
+  }
+  return { beats: [storyBeat(stage.id, "join")], after: "camp" };
+}
+
 function renderCamp() {
   const view = {
     roster: renderRoster,
@@ -1058,8 +1183,11 @@ function renderRoster() {
     const inParty = state.run.roster.includes(option.id);
     const selected = formationSelection === option.id;
     const stats = statsFor(option.id);
+    const locked = rosterLocked();
     const action = inParty ? "select-formation-character" : "toggle-roster";
-    const actionLabel = inParty ? (selected ? "位置選択中" : "位置を選ぶ") : "編成に入れる";
+    const actionLabel = inParty
+      ? (selected ? "位置選択中" : "位置を選ぶ")
+      : locked ? "この Stage では合流しない" : "編成に入れる";
     return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
       + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
       + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
@@ -1073,17 +1201,25 @@ function renderRoster() {
       + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
       + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
       + "</span><span>" + esc(actionLabel) + "</span></div>"
-      + (inParty ? button("外す", "toggle-roster", state.run.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"") : "")
+      + (inParty && !locked
+        ? button("外す", "toggle-roster", state.run.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"")
+        : "")
       + "</article>";
   }).join("");
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
-    + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>5人で6枠なので、必ず一枠が空きます。</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
+    + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>" + (runPartySize() >= 5 ? "5人で6枠なので、必ず一枠が空きます。" : runPartySize() + "人なので、空き枠が" + (6 - runPartySize()) + "つあります。") + "</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
     + (formationSelection ? "<span class=\"formation-selection-actions\">" + button("選択解除", "clear-formation-selection", false, "tiny-button") + "</span>" : "") + "</p></section>"
-    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → " + PARTY_SIZE, "同行する仲間を選ぶ")
-    + "<p class=\"muted\">8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。</p>"
+    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → " + runPartySize(),
+      rosterLocked() ? "この遠征に同行する仲間" : "同行する仲間を選ぶ")
+    + "<p class=\"muted\">"
+    + (rosterLocked()
+      ? "この Stage は " + runPartySize() + "人で進みます。<b>誰が来るかは物語が決めます。</b>"
+        + "一度クリアすると、次からは5人を自由に選んで挑めます。"
+      : "8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。")
+    + "</p>"
     + "<div class=\"character-grid\">" + characterCards + "</div></section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を組み、装備画面で実物を2枠に割り当ててください。</p>"
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
@@ -1332,7 +1468,7 @@ function renderEquipment() {
     + button("補給へ替える", "convert-scrap", (state.run.scrap ?? 0) < SCRAP_PER_SUPPLY
       || state.run.supplies >= MAX_SUPPLIES, "tiny-button") + "</div>"
     + "<div class=\"gear-grid\">" + inventory + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("LOADOUT / " + PARTY_SIZE + " MEMBERS", "誰に何を持たせる？")
+    + "<section class=\"card\">" + sectionHeading("LOADOUT / " + runPartySize() + " MEMBERS", "誰に何を持たせる？")
     + "<div class=\"gear-member-grid\">" + members + "</div></section>"
     + "<section class=\"card quiet\">" + sectionHeading("REWARD POOL / " + unlockedGear().length + " EQUIPMENT", "この遠征で拾える装備",
       "<span class=\"stage\">生成 " + generatedCount + "</span>")
@@ -1375,7 +1511,7 @@ function renderMap() {
   const encounter = currentEncounter();
   const progress = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
     const step = offset + 1;
-    const kind = composeEncounter(step, state.run.difficulty).kind;
+    const kind = composeEncounter(step, state.run.difficulty, { partySize: state.run.partySize }).kind;
     return "<span class=\"map-node " + (step < index ? "done" : step === index ? "current" : "")
       + " kind-" + kind + "\" title=\"" + esc({ normal: "通常", elite: "精鋭", boss: "ボス" }[kind]) + "\">"
       + (kind === "boss" ? "★" : step) + "</span>";
@@ -2091,11 +2227,14 @@ function renderResult() {
   const events = compactEvents(result.events || state.replayEvents);
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   // R6 §12.2 — **敗北で即座に遠征を破棄しない。**補給が残っていれば再挑戦へ。
-  const next = won
-    ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
-      ? button("遠征を精算する", "settle-run", false, "button primary")
-      : button("報酬を見る", "show-reward", false, "button primary")
-    : button("この先どうするか", "show-defeat", false, "button primary");
+  // R9 §2.1 — 序盤の敗北は遠征の結果に数えない。ここから巻き戻す。
+  const next = state.prologueActive
+    ? button("時間が巻き戻る", "rewind-prologue", false, "button primary")
+    : won
+      ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+        ? button("遠征を精算する", "settle-run", false, "button primary")
+        : button("報酬を見る", "show-reward", false, "button primary")
+      : button("この先どうするか", "show-defeat", false, "button primary");
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
@@ -2112,9 +2251,12 @@ function renderResult() {
       ? "装備耐久は次の戦闘へ持ち越しません（次戦は最大から）。<b>HPは持ち越します。</b>4戦目・8戦目のボスを倒したときだけ全員が全回復します（R8 §1.5）。"
       : "戦闘中のHPと装備耐久は次の戦闘へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。")
     + "</p>"
-    + "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
-    + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
-    + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p><div class=\"result-actors\">"
+    + (state.prologueActive
+      ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金も持ち越しHPも動きません。"
+        + esc(PROLOGUE.hint) + "</p>"
+      : "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
+        + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
+        + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p>") + "<div class=\"result-actors\">"
     + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section>"
     // **因果はまずアニメーションで見せる。** 文字の一覧は、見返したいときの補助に降ろした。
@@ -2242,6 +2384,22 @@ function blueprintSettlementSection(settlement) {
     + "（持込枠 " + blueprintCarryCapacity(state.profile) + "）。</p></section>";
 }
 
+// R9 §7 — Stage を越えたときだけ、次へ進む理由を短く示す。
+// **勝ったときだけ。**負けた遠征のあとに「次へ進む理由」を出しても嘘になる。
+function stageEndStorySection(settlement) {
+  if (settlement.outcome !== "won") return "";
+  const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
+  const beatDef = stage ? storyBeat(stage.id, "stageEnd") : null;
+  if (!beatDef) return "";
+  const lines = beatDef.lines.map((line) => line.speaker
+    ? "<p class=\"story-line\"><b>" + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
+    : "<p class=\"story-line narration\">" + esc(line.text) + "</p>").join("");
+  return "<section class=\"card story-card\">" + sectionHeading("STORY", esc(beatDef.title))
+    + "<div class=\"story-lines\">" + lines + "</div>"
+    + (beatDef.footer ? "<p class=\"muted story-footer\">" + esc(beatDef.footer) + "</p>" : "")
+    + "</section>";
+}
+
 // R6 §9.2 — 精算は**一度だけ**。ここが唯一の入口。
 function renderSettlement() {
   const settlement = state.lastSettlement;
@@ -2273,6 +2431,7 @@ function renderSettlement() {
     + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "）では最大" + settlement.blueprintSaveLimit
     + "件を残せます。</p></section>"
     + blueprintSettlementSection(settlement)
+    + stageEndStorySection(settlement)
     + (settlement.unlockedDifficulty !== null
       ? "<section class=\"card\"><p class=\"eyebrow\">DIFFICULTY</p><h3>難易度 "
         + settlement.unlockedDifficulty + " が開いた</h3><p class=\"muted\">"
@@ -2519,6 +2678,7 @@ function handleAction(event) {
     state.phase = "camp";
     state.tab = "roster";
     state.migrationNote = null;
+    state.prologueActive = false;
     ensureSelectedCharacter();
     state.formationSelection = state.run.roster[0] ?? null;
     record("run_started", {
@@ -2530,8 +2690,54 @@ function handleAction(event) {
       supplies: state.run.supplies,
       roster: [...state.run.roster],
     });
+    // R9 §2 — Campaign の初回だけ、物語の断片と序盤の敗北を挟む。
+    if (isCampaignRun()) {
+      const opening = storyBeatsForStart(state.run.campaignStageSequence);
+      if (opening.beats.length) {
+        enterStory(opening.beats, opening.after);
+        return;
+      }
+    }
     saveState();
     render();
+    return;
+  }
+
+  if (action === "story-next") {
+    const queue = [...(state.story?.queue ?? [])];
+    queue.shift();
+    state.story = { queue, after: state.story?.after ?? "camp" };
+    if (!queue.length) {
+      finishStory();
+      return;
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "story-skip") {
+    record("story_skipped", { after: state.story?.after ?? "camp" });
+    state.story = { queue: [], after: state.story?.after ?? "camp" };
+    finishStory();
+    return;
+  }
+
+  // R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
+  // 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
+  if (action === "rewind-prologue") {
+    state.prologueActive = false;
+    state.profile = {
+      ...state.profile,
+      storyFlags: [...new Set([...(state.profile.storyFlags ?? []), "prologue_seen"])],
+    };
+    state.lastResult = null;
+    state.replayEvents = [];
+    state.replaySnapshots = [];
+    state.replayIndex = 0;
+    state.replayPlaying = false;
+    record("prologue_rewound", { stage: state.run.campaignStageSequence });
+    enterStory([storyBeat("stage_0_edge", "prologueDefeat")], "camp");
     return;
   }
 
@@ -2589,6 +2795,11 @@ function handleAction(event) {
   if (action === "toggle-roster") {
     const id = element.dataset.character;
     if (!id || !characterInfo(id)) return;
+    if (rosterLocked()) {
+      state.error = "この Stage の同行者は物語が決めます。一度クリアすると自由に選べます。";
+      render();
+      return;
+    }
     if (state.run.roster.includes(id)) {
       if (state.run.roster.length <= 1) {
         state.error = "最低1人は残してください。";
@@ -2608,8 +2819,10 @@ function handleAction(event) {
         ensureSelectedCharacter();
         record("roster_changed", { roster: [...state.run.roster], removed: id });
       }
-    } else if (state.run.roster.length >= PARTY_SIZE) {
-      state.error = "編成は" + PARTY_SIZE + "人までです。";
+    } else if (rosterLocked()) {
+      state.error = "この Stage の同行者は物語が決めます。一度クリアすると自由に選べます。";
+    } else if (state.run.roster.length >= runPartySize()) {
+      state.error = "編成は" + runPartySize() + "人までです。";
     } else {
       state.run.roster = [...state.run.roster, id];
       // **run 側の欄も一緒に生やす。**loadout だけ足すと、
@@ -2780,8 +2993,9 @@ function handleAction(event) {
   }
 
   if (action === "begin-stage") {
-    if (state.run.roster.length !== PARTY_SIZE) {
-      state.error = "出発には" + PARTY_SIZE + "人の編成が必要です。";
+    // R9 §2.1 — 出発に必要な人数は Stage で変わる（Stage 0 は2人）。
+    if (state.run.roster.length !== runPartySize()) {
+      state.error = "出発には" + runPartySize() + "人の編成が必要です。";
       state.tab = "roster";
     } else {
       state.run.formation = normalizeFormation(state.run.formation, state.run.roster);

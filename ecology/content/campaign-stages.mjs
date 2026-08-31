@@ -20,9 +20,25 @@ import { AFFIX_FAMILIES } from "./affixes.mjs";
 import { BASELINE_ACTIVE_SKILL_IDS, PACK_BY_ID, SKILL_PACKS } from "./packs.mjs";
 import { REGION } from "./expedition.mjs";
 
-// R8 §4.2 — 有効パック数の初期式。activePackCount(sequence) = 1 + ceil(sequence / 2)。
-// Stage 0〜6 の表: 1, 2, 2, 3, 3, 4, 4。
-export function activePackCountForSequence(sequence) {
+// ---------------------------------------------------------------- ラダーの型（R8 §4.2 / R9 §3）
+//
+// **R8 と R9 で有効パック数の作り方が違う。黙って片方へ寄せない。**
+//
+//   R8 §4.2「有効パック数を徐々に増やす」… activePackCount = 1 + ceil(sequence/2)
+//     → 1, 2, 2, 3, 3, 4, 4。§4.3「過去パックは単純累積させない」で、
+//       Stage ごとに一部の過去パックを引き上げる（回転）。
+//   R9 §3「初期4Stageのチュートリアル化」… 累積。1, 2, 3, 4。
+//     → 「チュートリアル中に以前の語彙を入れ替えず、基本packを土台として
+//        少しずつ積む構成を第一候補とする」（R9 §3）。
+//
+// 初期4 Stage は R9 の累積を採る。**Stage 4 以降は R8 の回転へ戻す**ので、
+// 式そのものは両方残し、Stage 定義が `ladderMode` でどちらを名乗るかを決める。
+// 差分と影響は analysis/experiments/exp-18/R9_IMPLEMENTATION_TUTORIAL_STAGES.md。
+export const LADDER_MODES = Object.freeze(["tutorial", "rotation"]);
+export const TUTORIAL_MAX_SEQUENCE = 3;
+
+export function activePackCountForSequence(sequence, mode = "tutorial") {
+  if (mode === "tutorial") return sequence + 1;
   return 1 + Math.ceil(sequence / 2);
 }
 
@@ -39,81 +55,121 @@ const PLACEHOLDER_ACT_BOSS_IDS = Object.freeze([...REGION.actBossIds]);
 // **soft data が確定するまでは等倍のまま**にする（R8 §2.1「今は決めないもの」）。
 const UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS = 10_000;
 
+// R9 §2 — **初期4 Stage は、5人とゲームの文法を覚えるチュートリアルとして扱う。**
+// 2人で始め、Stage を一つ進むごとに1人が加わり、Stage 3で5人が揃う。
+// 加入する人物は pack の所有者ではない（`joiningCharacterId` は「その pack の
+// 分かりやすい入口を持つ人」であって、その pack を独占しない）。
+//
+// `packDepths` は R9 §3.1 の「累積させる」を実装する。新 pack はその Stage では
+// core（入口）だけ、次の Stage から full。**前に覚えた技能は消えない。**
 export const CAMPAIGN_STAGES = Object.freeze([
   Object.freeze({
     id: "stage_0_edge",
     sequence: 0,
+    ladderMode: "tutorial",
     displayName: "Stage 0 — 灰の入口",
+    question: "攻撃と防御と、ただ殴ることの違い",
+    partySize: 2,
+    castCharacterIds: Object.freeze(["lancer", "warden"]),
+    joiningCharacterId: null,
     newPackId: "pack_edge",
     returningPackIds: Object.freeze([]),
     enabledPackIds: Object.freeze(["pack_edge"]),
+    packDepths: Object.freeze({ pack_edge: "core" }),
     activePackCount: 1,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
     pressureTags: Object.freeze(["guard", "block", "small_group"]),
     learningGoals: Object.freeze([
-      "単発・多段・貫通・行/列・準備・撃破条件の基礎比較（R8 §5.1）",
+      "同じ一撃でも、誰へ・どんな受けの相手へ当てるかで結果が変わる（R9 §3）",
+      "2人しかいないので、前に立つ人と刈る人の役割差が読み取れる（R9 §2.1）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
   Object.freeze({
     id: "stage_1_wall",
     sequence: 1,
-    displayName: "Stage 1 — 防壁と隊列",
+    ladderMode: "tutorial",
+    displayName: "Stage 1 — かばう手",
+    question: "誰を守り、守った結果をどう使うか",
+    partySize: 3,
+    castCharacterIds: Object.freeze(["lancer", "warden", "guardian"]),
+    joiningCharacterId: "guardian",
     newPackId: "pack_wall",
     returningPackIds: Object.freeze(["pack_edge"]),
     enabledPackIds: Object.freeze(["pack_edge", "pack_wall"]),
+    packDepths: Object.freeze({ pack_edge: "full", pack_wall: "core" }),
     activePackCount: 2,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
     pressureTags: Object.freeze(["position", "cover", "row_column"]),
     learningGoals: Object.freeze([
-      "damage_blocked→受け返しの集中→次の単発・範囲攻撃（R8 §5.2）",
-      "位置替え→踏み固め／移動後集中→行・列・後衛狩り（R8 §5.2）",
+      "身代わり・受け構え・防壁が、被害を「消す」のではなく「移す」（R9 §3）",
+      "受け止めた結果を、集中（自分へ）か防壁（味方へ）のどちらへ渡すか",
+      "刃 pack が full になり、前 Stage の技能に新しい使い道が出る（R9 §3.1）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
   Object.freeze({
     id: "stage_2_tempo",
     sequence: 2,
-    displayName: "Stage 2 — 行動権と準備",
+    ladderMode: "tutorial",
+    displayName: "Stage 2 — 間合いと順番",
+    question: "誰がいつ動くと得か",
+    partySize: 4,
+    castCharacterIds: Object.freeze(["lancer", "warden", "guardian", "tactician"]),
+    joiningCharacterId: "tactician",
     newPackId: "pack_tempo",
-    returningPackIds: Object.freeze(["pack_edge"]),
-    enabledPackIds: Object.freeze(["pack_edge", "pack_tempo"]),
-    activePackCount: 2,
+    returningPackIds: Object.freeze(["pack_edge", "pack_wall"]),
+    enabledPackIds: Object.freeze(["pack_edge", "pack_wall", "pack_tempo"]),
+    packDepths: Object.freeze({ pack_edge: "full", pack_wall: "full", pack_tempo: "core" }),
+    activePackCount: 3,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
     pressureTags: Object.freeze(["preparation", "ap_pressure"]),
     learningGoals: Object.freeze([
-      "大溜めが、複数人物からAP/RPを集めて短時間に放つ利得先へ変わる（R8 §5.3）",
-      "止めの一突き→撃破→拾い直しという別レーンも成立させる（R8 §5.3）",
+      "行動権を渡すと、遅い構成にも大技の手番が通る（R9 §3）",
+      "準備の完了そのものが、次の一手の資源になる",
+      "壁 pack が full になり、行と列の攻めが順番の話とつながる",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
   Object.freeze({
-    id: "stage_3_barrage",
+    id: "stage_3_care",
     sequence: 3,
-    displayName: "Stage 3 — 連撃と刻印",
-    newPackId: "pack_barrage",
-    returningPackIds: Object.freeze(["pack_wall", "pack_tempo"]),
-    enabledPackIds: Object.freeze(["pack_wall", "pack_tempo", "pack_barrage"]),
-    activePackCount: 3,
+    ladderMode: "tutorial",
+    displayName: "Stage 3 — 傷を抱えて進む",
+    question: "傷・資源・状態をどう管理するか",
+    partySize: 5,
+    castCharacterIds: Object.freeze(["lancer", "warden", "guardian", "tactician", "mender"]),
+    joiningCharacterId: "mender",
+    newPackId: "pack_care",
+    returningPackIds: Object.freeze(["pack_edge", "pack_wall", "pack_tempo"]),
+    enabledPackIds: Object.freeze(["pack_edge", "pack_wall", "pack_tempo", "pack_care"]),
+    packDepths: Object.freeze({
+      pack_edge: "full", pack_wall: "full", pack_tempo: "full", pack_care: "core",
+    }),
+    activePackCount: 4,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["block_read", "onhit", "mark"]),
+    pressureTags: Object.freeze(["attrition", "carry_hp", "supply"]),
     learningGoals: Object.freeze([
-      "多段攻撃がblock chargeを一枚だけ剥がし、残りhitを通す（R8 §5.4）",
-      "Wの位置替えとrow/column制御が、多段のon-hit対象数を増やす（R8 §5.4）",
-      "TのAP追加が、mark付与→多段消費→追撃の一連へ使われる（R8 §5.4）",
-      "Eが不在でも、Bの連鎖が別種の爽快感を作れるかを人間評価する（R8 §5.4）",
+      "回復は「HPを戻す役」ではなく「損傷の連鎖を止める役」（R8 §9.4 / R9 §5）",
+      "応急処置は同じ一撃にしか効かない。待っても持ち越しHPは戻らない（R8 §8.1）",
+      "5人が揃い、配置・技能・装備の差だけで役割を作れるか（R9 §2.1）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
 ]);
+
+// R9 §2.1 — チュートリアルの人数。Stage の定義から引く一箇所。
+export function partySizeForStage(sequence) {
+  return campaignStageDef(sequence).partySize;
+}
 
 export const CAMPAIGN_STAGE_BY_SEQUENCE = Object.freeze(
   Object.fromEntries(CAMPAIGN_STAGES.map((stage) => [stage.sequence, stage])),
@@ -141,6 +197,12 @@ export function campaignManifestForStage(sequence, seed) {
     campaignStageSequence: stage.sequence,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
     enabledPackIds: [...stage.enabledPackIds],
+    // R9 §3.1 — 新 pack はその Stage では core（入口）だけを出し、
+    // 次の Stage から full になる。**前に覚えた技能は消えない。**
+    packDepths: { ...stage.packDepths },
+    ladderMode: stage.ladderMode,
+    partySize: stage.partySize,
+    castCharacterIds: [...stage.castCharacterIds],
     // R8 §13.2 — Phase C。Stage の pack が、その Stage で拾える生成装備の
     // affix family を決める。**Stage 番号では決めない**（pack が意味の単位）。
     enabledAffixFamilyIds: AFFIX_FAMILIES
@@ -185,11 +247,58 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
       problems.push(`${path}: enabledPackIds が newPackId + returningPackIds と一致しない`);
     }
 
-    // 有効pack数が登録した列 1,2,2,3,3,4,4... と一致する。
-    const expectedCount = activePackCountForSequence(stage.sequence);
+    // 有効pack数が、その Stage が名乗るラダーの式と一致する。
+    if (!LADDER_MODES.includes(stage.ladderMode)) {
+      problems.push(`${path}: ladderMode "${stage.ladderMode}" が未知`);
+    }
+    const expectedCount = activePackCountForSequence(stage.sequence, stage.ladderMode);
     if (stage.activePackCount !== expectedCount || stage.enabledPackIds.length !== expectedCount) {
       problems.push(`${path}: activePackCount が ${expectedCount} でない`
         + `（宣言 ${stage.activePackCount}、enabledPackIds.length ${stage.enabledPackIds.length}）`);
+    }
+
+    // R9 §2.1 — チュートリアルは2人から始めて Stage ごとに1人増え、Stage 3で5人。
+    if (stage.ladderMode === "tutorial") {
+      const expectedParty = Math.min(5, stage.sequence + 2);
+      if (stage.partySize !== expectedParty) {
+        problems.push(`${path}: partySize が ${expectedParty} でない（宣言 ${stage.partySize}）`);
+      }
+      if (stage.castCharacterIds.length !== stage.partySize) {
+        problems.push(`${path}: castCharacterIds の人数が partySize と合わない`);
+      }
+      if (stage.sequence > 0) {
+        if (!stage.joiningCharacterId) problems.push(`${path}: 加入する人物が宣言されていない`);
+        else if (!stage.castCharacterIds.includes(stage.joiningCharacterId)) {
+          problems.push(`${path}: 加入する人物 "${stage.joiningCharacterId}" が cast に居ない`);
+        }
+      }
+      // 累積: 前 Stage の enabledPackIds を全部持っている（入れ替えない）。
+      const previous = sorted.find((entry) => entry.sequence === stage.sequence - 1);
+      if (previous) {
+        for (const packId of previous.enabledPackIds) {
+          if (!stage.enabledPackIds.includes(packId)) {
+            problems.push(`${path}: チュートリアル中に pack "${packId}" が引き上げられている（R9 §3.1 は累積）`);
+          }
+        }
+        for (const characterId of previous.castCharacterIds) {
+          if (!stage.castCharacterIds.includes(characterId)) {
+            problems.push(`${path}: チュートリアル中に "${characterId}" が抜けている（R9 §2.1 は仲間外れを作らない）`);
+          }
+        }
+      }
+      // 新 pack は core で入り、以前の pack は full になっている。
+      if (stage.packDepths[stage.newPackId] !== "core") {
+        problems.push(`${path}: 新 pack "${stage.newPackId}" が core で入っていない`);
+      }
+      for (const packId of stage.returningPackIds) {
+        if (stage.packDepths[packId] !== "full") {
+          problems.push(`${path}: 過去 pack "${packId}" が full になっていない（R9 §3.1）`);
+        }
+      }
+      // どの Stage にも攻撃の主役が居る（累積なので pack_edge が残り続ける）。
+      const hasPrimary = stage.enabledPackIds
+        .some((packId) => PACK_BY_ID[packId]?.combatRole === "primary_offense");
+      if (!hasPrimary) problems.push(`${path}: primary_offense pack が残っていない`);
     }
 
     // future packが早いStageへ漏れない: returningPackIds は「それより前の
@@ -243,7 +352,8 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
   for (const stage of sorted) {
     const a = campaignManifestForStage(stage.sequence, "seed-a");
     const b = campaignManifestForStage(stage.sequence, "seed-b");
-    if (JSON.stringify(a.enabledPackIds) !== JSON.stringify(b.enabledPackIds)) {
+    if (JSON.stringify(a.enabledPackIds) !== JSON.stringify(b.enabledPackIds)
+      || JSON.stringify(a.packDepths) !== JSON.stringify(b.packDepths)) {
       problems.push(`${stage.id}: seed を変えると enabledPackIds が変わった（campaign は pack 選択に seed を使わない契約）`);
     }
   }

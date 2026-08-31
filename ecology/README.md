@@ -4,16 +4,20 @@ ecology/ は EXP-18 R8 の本編です。現在の公開入口は /ecology/ で�
 
 ## 現行の範囲
 
-- Campaign Stage 0〜3
-- 8人から5人を選ぶ 2×3 隊列
+- Campaign Stage 0〜3（R9 のチュートリアル構成: 2人 → 5人、pack は累積）
+- Stage 0 初回の「勝てない一戦」と巻き戻し、Stage ごとの会話（いつでも飛ばせる）
+- 一度クリアした Stage は 8人から5人を自由に選んで再訪できる
 - 行動3、反応3、常設2、装備2枠
-- 3幕12戦、4・8・12戦目のボス
+- 3幕12戦、4・8・12戦目のボス。敵の数と threat budget は遠征の人数に合わせる
 - HP 持ち越し、有限補給、報酬、野営、撤退
 - 敵の狙いと開始条件の exact preview
 - 決定的な自動戦闘リプレイと event log
+- 手続き生成装備と Blueprint archive（Phase C）
 - Profile / Run / Battle の保存と D1 送信
 
-Campaign Stage の pack は content/campaign-stages.mjs と content/packs.mjs が定義します。Stage 0 から pack_edge、pack_wall、pack_tempo、pack_barrage を順に導入し、一部の pack を返します。
+Campaign Stage の pack は content/campaign-stages.mjs と content/packs.mjs が定義します。
+Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し、**引き上げません**。
+新しい pack はその Stage では入口（core）だけ、次の Stage から全体（full）が出ます。
 
 ## 主なファイル
 
@@ -24,7 +28,9 @@ Campaign Stage の pack は content/campaign-stages.mjs と content/packs.mjs �
 | playable-battles.mjs | 現行の戦闘入力、preview、loadout |
 | progression.mjs | Profile、Run、報酬、補給、Campaign 解禁 |
 | replay-beats.mjs | イベント列をリプレイ表示へ変換 |
-| content/ | 人物、技能、装備、敵、pack、Campaign |
+| content/ | 人物、技能、装備、敵、pack、Campaign、affix、物語 |
+| equipment-gen.mjs | 手続き生成装備の決定的 generator と検査 |
+| blueprints.mjs | Blueprint archive、持込枠、再製造 |
 | sync.mjs | /api/runs への送信と端末 ID |
 | check.mjs | ecology のテスト suite runner |
 
@@ -34,18 +40,29 @@ Campaign Stage の pack は content/campaign-stages.mjs と content/packs.mjs �
     bash analysis/check-all.sh
     node analysis/ecology-anti-stall-audit.mjs
     node analysis/ecology-contract-smoke.mjs
+    node analysis/ecology-equipment-gen-smoke.mjs
     node analysis/ecology-readout-smoke.mjs
     node analysis/ecology-screens-smoke.mjs
     node analysis/ecology-test-hygiene-smoke.mjs
     node analysis/ecology-upload-smoke.mjs
 
-公開先の通しは analysis/ecology-trial.mjs です。Free mode の互換検査は analysis/ecology-expedition-smoke.mjs と analysis/ecology-decision-space-smoke.mjs です。
+画面の通しは二つあります。analysis/ecology-trial.mjs が旧・自由遠征の難易度 flow を、
+analysis/ecology-tutorial-trial.mjs が本編（Campaign）の入口——最初の会話、勝てない一戦、
+巻き戻し、2人編成、入口だけの技能ツリー、生成装備の報酬——を踏みます。
+どちらも手元では Chromium、公開先では GitHub Actions から走ります。Free mode の互換検査は analysis/ecology-expedition-smoke.mjs と analysis/ecology-decision-space-smoke.mjs です。
 
 ## 境界
 
-現行版は Stage 0〜3 までです。生成装備、Blueprint、Stage 4 以降、最終的な stage 固有の敵法則はまだありません。自動検査が通っても、作者の fun や再プレイ欲は未判定です。
+現行版は Stage 0〜3 までです。Stage 4 以降、Endless、stage 固有の敵法則、
+affix family の購入はまだありません。`pack_barrage`（連撃と刻印）と
+`pack_relay`（余波と受け渡し）は content としては存在しますが、Campaign Stage には
+入っておらず、Free mode からだけ引けます。
 
-R8 の判断と実装履歴は analysis/experiments/exp-18/ にあります。
+自動検査が通っても、作者の fun や再プレイ欲は未判定です。
+
+R8 / R9 の判断と実装履歴は analysis/experiments/exp-18/ にあります。
+直近の実装票は R8_IMPLEMENTATION_PHASE4_STATUS.md（生成装備と Blueprint）と
+R9_IMPLEMENTATION_TUTORIAL_STAGES.md（初期4Stageのチュートリアル化）です。
 ## イベントログの値
 
 engine が出力する `type` は、次の44種類に固定しています。

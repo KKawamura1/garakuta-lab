@@ -33,7 +33,12 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // affix family、生成装備の rule 文法を content 語彙として公開した。manifest の
 // enabledAffixFamilyIds が空配列固定から「その遠征で引ける affix family」へ
 // 意味を持った。**語彙が増え、既存欄の意味が変わったので上げる。**
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-7";
+// R9（初期4Stageのチュートリアル化）— 導入 pack の接続面と常設
+// （whetted_by_pain / shield_handoff / patient_step / shield_the_wounded /
+// first_blood / held_breath / steady_hands）を追加し、pack へ core / full の
+// 二段を足した。manifest に packDepths / partySize / castCharacterIds が増え、
+// composeEncounter が partySize を読むようになった。**語彙が増えたので上げる。**
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-8";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -125,8 +130,10 @@ export {
   PACKS_PER_MANIFEST,
   PACK_BY_ID,
   PACK_COMBAT_ROLES,
+  PACK_DEPTHS,
   SKILL_PACKS,
   packOfSkill,
+  packSkillIds,
   skillIdsForPacks,
 } from "./packs.mjs";
 // R8 Implementation Phase 1 — Campaign Stage 0〜3 の固定 manifest。
@@ -134,12 +141,17 @@ export {
   CAMPAIGN_STAGES,
   CAMPAIGN_STAGE_BY_ID,
   CAMPAIGN_STAGE_BY_SEQUENCE,
+  LADDER_MODES,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
+  TUTORIAL_MAX_SEQUENCE,
   activePackCountForSequence,
   auditCampaignManifestLadder,
   campaignManifestForStage,
   campaignStageDef,
+  partySizeForStage,
 } from "./campaign-stages.mjs";
+// R9 §2 / §7 — 初期4 Stage のチュートリアル物語。
+export { PROLOGUE, STORY_BEATS, storyBeat, storyBeatsForStage } from "./story.mjs";
 // R8 Implementation Phase 4（Phase C）— 生成装備の affix 目録。
 export {
   AFFIXES,

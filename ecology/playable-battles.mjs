@@ -11,6 +11,7 @@ import {
   PLAYABLE_CONTENT,
   PASSIVE_META,
   REACTIVE_META,
+  PROLOGUE,
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
@@ -76,11 +77,15 @@ export function normalizeFormation(formation, rosterIds) {
   return next;
 }
 
-// 旧 save は4人。**5人目を決定的に足す**（並び順の先頭から、まだ居ない人）。
-export function ensurePartySize(rosterIds) {
-  const roster = (rosterIds ?? []).filter((id) => characterById[id]).slice(0, PARTY_SIZE);
+// 旧 save は4人。**足りない人数を決定的に足す**（並び順の先頭から、まだ居ない人）。
+//
+// R9 §2.1 — チュートリアル Stage は2〜5人なので、埋める人数は呼び出し側が渡す。
+// 渡さなければ従来どおり5人（Free / Endless と旧 save の移行）。
+export function ensurePartySize(rosterIds, size = PARTY_SIZE) {
+  const target = Math.max(1, Math.min(PARTY_SIZE, Math.floor(size)));
+  const roster = (rosterIds ?? []).filter((id) => characterById[id]).slice(0, target);
   for (const option of CHARACTER_OPTIONS) {
-    if (roster.length >= PARTY_SIZE) break;
+    if (roster.length >= target) break;
     if (!roster.includes(option.id)) roster.push(option.id);
   }
   return roster;
@@ -468,6 +473,57 @@ export function makeExpeditionBattle(composed, rosterIds, loadout, seed, formati
   };
 }
 
+// ---------------------------------------------------------------- 序盤の敗北（R9 §2.1）
+//
+// **本当に負ける配置を、本当に走らせる。**演出で敗北を差し込まない
+// （決定的 engine で結果が確定しているので、嘘をつく必要がない）。
+// prologue の敵は12戦の梯子に属さないので、composeEncounter は通らない。
+export function prologueEncounter() {
+  return {
+    index: 0,
+    act: 0,
+    kind: "normal",
+    name: PROLOGUE.name,
+    description: PROLOGUE.description,
+    bossLawId: null,
+    bossLaw: null,
+    maxRounds: PROLOGUE.maxRounds,
+    budget: 0,
+    spentThreat: 0,
+    enemies: PROLOGUE.enemies.map((enemy) => {
+      const definition = PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId];
+      return {
+        instanceId: enemy.instanceId,
+        enemyActorId: enemy.enemyActorId,
+        position: enemy.position,
+        stats: {
+          maxHp: definition.maxHp,
+          might: definition.might ?? 0,
+          focus: definition.focus ?? 0,
+          guard: definition.guard ?? 0,
+        },
+        mutations: [],
+        boss: false,
+        reinforcement: false,
+        threatCost: 0,
+        baseStats: {
+          maxHp: definition.maxHp,
+          might: definition.might ?? 0,
+          focus: definition.focus ?? 0,
+          guard: definition.guard ?? 0,
+        },
+      };
+    }),
+  };
+}
+
+export function makePrologueBattle(statsFor, formation = PROLOGUE.formation) {
+  const roster = [...PROLOGUE.rosterIds];
+  return makeExpeditionBattle(
+    prologueEncounter(), roster, freshLoadout(roster), "prologue", formation, { statsFor },
+  );
+}
+
 export function loadoutSummary(loadout, rosterIds) {
   return rosterIds.map((characterId) => ({
     characterId,
@@ -490,7 +546,7 @@ export function allEncounters() {
 // Date も Math.random も使わない（ecology/README.md）ので、この関数は
 // **RunState を一切変更しない**。
 export function simulateNextBattle(run, profile, encounterIndex) {
-  const composed = composeEncounter(encounterIndex, run.difficulty);
+  const composed = composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
   const loadout = run.loadout ?? freshLoadout(run.roster);
   const battleInput = makeExpeditionBattle(
     composed,

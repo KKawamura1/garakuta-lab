@@ -17,6 +17,7 @@ import { simulateBattle, validateBattleInput } from "./engine.mjs";
 import { PLAYABLE_CONTENT } from "./content/index.mjs";
 import {
   BOSS_LAWS,
+  BASELINE_PASSIVE_SKILL_IDS,
   DIFFICULTIES,
   ENCOUNTERS_PER_RUN,
   ENEMY_MUTATIONS,
@@ -190,8 +191,10 @@ for (const mutation of Object.values(ENEMY_MUTATIONS)) {
 
 // ---- 技能パック（R6 §5.2 / §6.2）--------------------------------------------
 
-// R8 Implementation Phase 1 — pack_barrage（Stage 3 の新パック）を追加したので5パックになった。
-equal(SKILL_PACKS.length, 5, "技能を5パックへ分けた");
+// R8 Implementation Phase 1 — pack_barrage を追加して5パック。
+// R9 §5 — 横断pack「余波と受け渡し」（pack_relay）の試作を足して6パック。
+// **Campaign Stage 0〜3 には入れていない**（Free / Endless からだけ引ける）。
+equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
 {
   const seen = new Map();
   for (const pack of SKILL_PACKS) {
@@ -217,7 +220,16 @@ equal(SKILL_PACKS.length, 5, "技能を5パックへ分けた");
   // 作り替えたので baseline reactive になった。
   check(ids.reactive.includes("mend"), "mend は baseline reactive");
   // 常設 fallback は詰み防止なのでパックに属さず、常に取れる（R6 §6.8）。
-  equal(ids.passive.length, 7, "常設 fallback は7種とも常に取れる");
+  // **総数ではなく「7種が必ず含まれる」ことを見る**——R9 §4.1 で導入 pack が
+  // それぞれ常設を1つ持つようになったので、pack 由来の常設が上に乗る。
+  for (const id of BASELINE_PASSIVE_SKILL_IDS) {
+    check(ids.passive.includes(id), id + " は常設 fallback として常に取れる");
+  }
+  const packPassives = ids.passive.filter((id) => !BASELINE_PASSIVE_SKILL_IDS.includes(id));
+  for (const id of packPassives) {
+    check(manifest.enabledPackIds.includes(packOfSkill(id)),
+      id + " は有効パック由来の常設（外れたパックの常設は出ない）");
+  }
   const excluded = SKILL_PACKS.find((pack) => !manifest.enabledPackIds.includes(pack.id));
   for (const id of excluded.activeSkillIds) {
     check(!ids.all.includes(id), id + " は外れたパックなので出ない");
