@@ -874,11 +874,19 @@ function campaignStageCard(sequence) {
   const stage = CAMPAIGN_STAGES[sequence];
   const selected = state.selectedCampaignStageSequence === sequence;
   const newPack = PACK_BY_ID[stage.newPackId];
+  // R9 §2.1 / §8 — Stage は「難易度」ではなく「人数と問いが違う場面」。
+  // **誰が加わるのかと、この Stage で問われることを先に見せる。**
+  const cleared = isCampaignStageCleared(state.profile, sequence);
+  const joining = stage.joiningCharacterId
+    ? characterName(stage.joiningCharacterId) + " が加わる"
+    : "最初の二人";
   return "<button type=\"button\" class=\"difficulty-card " + (selected ? "selected" : "")
     + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-campaign-stage\" data-sequence=\"" + sequence
-    + "\"><b>" + esc(stage.displayName) + "</b><small>今回初登場: " + esc(newPack?.displayName ?? stage.newPackId) + "</small>"
-    + "<span class=\"difficulty-meta\">有効パック " + stage.activePackCount + " · "
-    + stage.returningPackIds.map((id) => esc(PACK_BY_ID[id]?.displayName ?? id)).join(" / ") + "</span></button>";
+    + "\"><b>" + esc(stage.displayName) + "</b><small>" + esc(stage.question) + "</small>"
+    + "<span class=\"difficulty-meta\">"
+    + (cleared ? "5人・自由編成で再訪" : stage.partySize + "人 · " + esc(joining))
+    + " · 今回初登場 " + esc(newPack?.displayName ?? stage.newPackId)
+    + " · 有効パック " + stage.activePackCount + "</span></button>";
 }
 
 function renderExpeditionStart() {
@@ -1386,9 +1394,19 @@ function renderSkillBranch(branch, characterId) {
 function renderSkills() {
   const characterId = selectedCharacter();
   const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の遠征内技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
-  const packs = state.run.manifest.enabledPackIds.map((id) => PACK_BY_ID[id]?.displayName ?? id).join(" · ");
+  // R9 §3.1 — pack ごとに「入口だけ」か「全体」かが違う。**どちらなのかを名前の
+  // 隣に書く。**書かないと、次の Stage で技能が増えたことに気づけない。
+  const depths = state.run.manifest.packDepths ?? {};
+  const packs = state.run.manifest.enabledPackIds
+    .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
+    .join(" · ");
+  const hasCore = state.run.manifest.enabledPackIds.some((id) => depths[id] === "core");
   const manifestNote = "<p class=\"muted\">この遠征で有効な技能パック: <b>" + esc(packs)
     + "</b>。<b>外れたパックの技能は今回出ません。</b>技能点も解禁も遠征が終われば消えます。</p>"
+    + (hasCore
+      ? "<p class=\"muted\">（入口）と書いたパックは、この Stage では最初の問いに絞った技能だけが出ます。"
+        + "<b>次の Stage へ進むと、同じパックの残りが加わります。</b>前に覚えた技能は消えません。</p>"
+      : "")
     + "<div class=\"flow-actions\">"
     + button("この仲間の解禁をやり直す", "reset-run-skills", false, "tiny-button",
       "data-character=\"" + characterId + "\"")
