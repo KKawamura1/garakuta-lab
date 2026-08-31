@@ -109,12 +109,18 @@ for (const [section, metaById] of Object.entries(META_BY_SECTION)) {
     }
 
     if (section === "equipment") {
-      const patterns = {
-        deal_damage: /(\d+(?:\.\d+)?)\s*ダメージ/g,
-        gain_barrier: /防壁\s*(\d+(?:\.\d+)?)/g,
-      };
       for (const effect of effects) {
-        const pattern = patterns[effect.type];
+        const pattern = effect.type === "deal_damage"
+          ? /(\d+(?:\.\d+)?)\s*ダメージ/g
+          : effect.type === "gain_barrier"
+            ? /防壁\s*(\d+(?:\.\d+)?)/g
+            : effect.type === "repair_equipment"
+              ? /(?:耐久|装備を)\s*(\d+(?:\.\d+)?)\s*(?:を)?修理/g
+              : effect.type === "gain_resource" && effect.resource === "action_points"
+                ? /行動権(?:を|\+)\s*(\d+(?:\.\d+)?)/g
+                : effect.type === "gain_resource" && effect.resource === "reaction_points"
+                  ? /反応権(?:を|\+)\s*(\d+(?:\.\d+)?)/g
+                  : null;
         if (!pattern || effect.amount?.type !== "constant") continue;
         const written = [...text.matchAll(pattern)].map((match) => Number(match[1]));
         if (!written.length) continue;
