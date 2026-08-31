@@ -199,6 +199,14 @@ assert.notEqual(
   "the starter/default build must not auto-clear the final expedition",
 );
 const waveLoadout = freshLoadout(behaviorRoster);
+// **技能を選ぶだけでは通らない。点も配る。**
+// 出荷難度を 1.2 倍へ上げた（ecology/content/enemies.mjs の SHIPPED_DIFFICULTY）。
+// 狙いは「初期編成では勝てないが、もらった点をちゃんと配れば通る」なので、
+// 意図した答えの側には常設と装備の配分まで含める。
+for (const id of behaviorRoster) {
+  waveLoadout.passives[id] = ["foundation_vitality", "foundation_ap"];
+  waveLoadout.equipment[id] = ["quickstrap", "standing_plate"];
+}
 waveLoadout.tactics.warden = ["guard_crush", "strike"];
 waveLoadout.tactics.mender = ["mend", "triage"];
 waveLoadout.tactics.lancer = ["finishing_thrust", "strike"];

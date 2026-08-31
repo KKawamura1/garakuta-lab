@@ -6,6 +6,7 @@
 // ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
 
 import { LEGACY_COMBAT_SCALE } from "./base.mjs";
+import { SHIPPED_DIFFICULTY } from "./enemies.mjs";
 
 export const ENCOUNTERS = [
   {
@@ -89,9 +90,11 @@ export const ENCOUNTERS = [
 
 // R6 §4.4 — encounter が持つ hp も連続量なので10倍する。
 // **敵定義の maxHp と同じ倍率**でないと、区画ごとに強さがずれる。
+// **出荷難度も同じ倍率で掛ける**（enemies.mjs の SHIPPED_DIFFICULTY）。
+// 定義の maxHp と初期hpがずれると、敵が上限より低いHPで湧く。
 for (const encounter of ENCOUNTERS) {
   for (const enemy of encounter.enemies) {
-    if (typeof enemy.hp === "number") enemy.hp *= LEGACY_COMBAT_SCALE;
+    if (typeof enemy.hp === "number") enemy.hp = Math.round(enemy.hp * LEGACY_COMBAT_SCALE * SHIPPED_DIFFICULTY);
   }
 }
 

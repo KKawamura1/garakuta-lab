@@ -597,11 +597,29 @@ function activateActor(state, actor) {
   });
 
   if (!state.finished && actor.alive && actor.preparation) {
-    // §11.3 — a preparing actor advances one step and the activation ends,
-    // whether or not the preparation completed.
+    // §11.3 — **準備は行動権で進める。1AP につき1段。**
+    //
+    // 以前は行動権を払わずに1段だけ進めて起動が終わっていた。そのため
+    // **準備中は行動権を何点持っていても意味が無く**（`requeueOnResourceGain` も
+    // 準備中は並び直しを拒んでいた）、行動権を増やす装備・常設が「溜め」と
+    // 噛み合わなかった。行動権で進める形にすると、AP の多い人物と行動追加の
+    // 装備が「溜めを短くする」という形で効く。
+    //
+    // 実測（2026-08-30、analysis/ecology-decision-space-smoke.mjs）:
+    // 準備を使う編成は 2.07 → 2.17 倍、準備を使わない素朴な編成4種は不変。
     runChain(state, "preparation", () => {
       const rt = makeRuntime(state);
-      advancePreparationOn(rt, preparationContext(state, actor), actor, 1);
+      while (actor.preparation && actor.actionPoints > 0) {
+        actor.actionPoints -= 1;
+        emit(state, {
+          type: "resource_spent",
+          sourceActorId: actor.instanceId,
+          targetActorIds: [actor.instanceId],
+          tags: [],
+          values: { resource: "action_points", amount: 1, after: actor.actionPoints },
+        });
+        advancePreparationOn(rt, preparationContext(state, actor), actor, 1);
+      }
     });
     finishActivation(state, actor);
     return;
@@ -898,7 +916,7 @@ function requeueOnResourceGain(state, actor) {
   if (!actor.alive) return;
   if (actor.isActivating) return;
   if (actor.inQueue) return;
-  if (actor.preparation) return;
+  // 準備中でも、行動権を得たら並び直す（その行動権で準備を進めるため）。
   if (actor.activationsThisRound === 0) return;
   if (actor.activationsThisRound >= state.options.maxActivationsPerActorPerRound) return;
   actor.inQueue = true;

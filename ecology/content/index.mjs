@@ -45,7 +45,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
   // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
-  contentVersion: "ecology-playable-full-0.5",
+  contentVersion: "ecology-playable-full-0.7",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

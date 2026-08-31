@@ -137,6 +137,7 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 | `analysis/scrapline-run-policy-smoke.mjs` | 約6秒 | 愚直方策が後半判断を消さないこと | `scrapline/engine.mjs` の報酬・損耗を触ったとき |
 | `analysis/scrapline-balance-smoke.mjs` | 約45秒 | 全順序列 × 7区画の総当たり | 車両・敵の数値を触ったとき |
 | `analysis/scrapline-seed-regression.mjs` | 長い | 256 seed の敵順回帰 | seed生成・敵順を触ったとき |
+| `analysis/ecology-decision-space-smoke.mjs` | 約6分 | 灰の遠征の選択空間の床（雑な編成が通らない）と天井（考えた編成が敵2倍を壊す） | `ecology/content/` の技能・装備・敵・区画を触ったとき |
 
 手で回すとき:
 
@@ -144,6 +145,17 @@ pkill -f ...; wait $PID             # PID を直接持つ方が確実
 node analysis/smoke-trial.mjs                  # 1本だけ
 RUN_EXHAUSTIVE=1 bash analysis/check-all.sh    # 外したものも含めて全部（約4分半）
 ```
+
+**`ecology-decision-space-smoke.mjs` は 2026-08-30 現在、意図して落ちている。**
+**床は通るようになった**（出荷難度を1.2倍へ上げた。無作為編成の中央値0.88倍）。
+落ちているのは「考えた編成 vs 素朴な編成」で、作者が挙げた編成1.80倍に対し、
+役割を配っただけの「攻撃1防御0回復4」が1.71倍あり、差が1.09倍しかない。
+**未修正の欠陥を記録している赤であって、検査の不具合ではない。**
+
+コンボの数え上げは既定で走らない（`ECOLOGY_COMBO_COUNT=1` で走る）。
+探索の天井も、山登りの揺れが大きいので関門にしていない。 経緯と数字は
+[analysis/ECOLOGY_DECISION_SPACE_20260830.md](../analysis/ECOLOGY_DECISION_SPACE_20260830.md)。
+直すまでは、この1本が赤いまま `RUN_EXHAUSTIVE=1` が落ちる。**閾値を動かして緑にしない。**
 
 **公開前は全量を回す。** [HUMAN_TEST_RELEASE.md](./HUMAN_TEST_RELEASE.md) の条件を満たす前に、
 `RUN_EXHAUSTIVE=1` を一度通しておくこと。毎pushの緑は、外した4本については何も言っていない。
