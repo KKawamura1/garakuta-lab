@@ -83,9 +83,11 @@ const FORMATION = {
 
 // ---- 版（R6 §16）-------------------------------------------------------------
 
-equal(PROFILE_SCHEMA_VERSION, "ecology-profile-1", "profile の版");
-equal(RUN_SCHEMA_VERSION, "ecology-run-1", "run の版");
-equal(MANIFEST_VERSION, "ecology-manifest-1", "manifest の版");
+// R8 Implementation Phase 1 — currentHp / campaignStageSequence / campaignProgress
+// を追加したので、profile / run / manifest の版をそれぞれ1つ上げた。
+equal(PROFILE_SCHEMA_VERSION, "ecology-profile-2", "profile の版");
+equal(RUN_SCHEMA_VERSION, "ecology-run-2", "run の版");
+equal(MANIFEST_VERSION, "ecology-manifest-2", "manifest の版");
 
 // ---- 3幕12戦（R6 §5.1）------------------------------------------------------
 
@@ -188,7 +190,8 @@ for (const mutation of Object.values(ENEMY_MUTATIONS)) {
 
 // ---- 技能パック（R6 §5.2 / §6.2）--------------------------------------------
 
-equal(SKILL_PACKS.length, 4, "24技能を4パックへ分けた");
+// R8 Implementation Phase 1 — pack_barrage（Stage 3 の新パック）を追加したので5パックになった。
+equal(SKILL_PACKS.length, 5, "技能を5パックへ分けた");
 {
   const seen = new Map();
   for (const pack of SKILL_PACKS) {
@@ -209,7 +212,10 @@ equal(SKILL_PACKS.length, 4, "24技能を4パックへ分けた");
   checks += 1;
   const ids = skillIdsForPacks(manifest.enabledPackIds);
   // baseline は必ず入る（R6 §5.2「行動不能な人物を作らない」）。
-  for (const id of ["strike", "mend", "bulwark"]) check(ids.active.includes(id), id + " は baseline");
+  for (const id of ["strike", "bulwark"]) check(ids.active.includes(id), id + " は baseline active");
+  // R8 Implementation Phase 1（続き）— mend は anti-stall 安全な reactive へ
+  // 作り替えたので baseline reactive になった。
+  check(ids.reactive.includes("mend"), "mend は baseline reactive");
   // 常設 fallback は詰み防止なのでパックに属さず、常に取れる（R6 §6.8）。
   equal(ids.passive.length, 7, "常設 fallback は7種とも常に取れる");
   const excluded = SKILL_PACKS.find((pack) => !manifest.enabledPackIds.includes(pack.id));
@@ -275,7 +281,7 @@ equal(SKILL_PACKS.length, 4, "24技能を4パックへ分けた");
 // 装着した3枠が**戦闘へ届く**こと。Phase A では slice(0, 2) で3つ目が消えていた。
 {
   const loadout = freshLoadout(ROSTER);
-  loadout.tactics.warden = ["bulwark", "strike", "mend"];
+  loadout.tactics.warden = ["bulwark", "strike", "pierce_thrust"];
   const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, loadout, "s", FORMATION, {});
   const warden = battle.allies.find((ally) => ally.characterId === "warden");
   equal(warden.tactics.length, 3, "3つ目の行動が戦闘へ届く");
@@ -286,7 +292,7 @@ equal(SKILL_PACKS.length, 4, "24技能を4パックへ分けた");
 // 4枠を買った人は4つ届く。
 {
   const loadout = freshLoadout(ROSTER);
-  loadout.tactics.warden = ["bulwark", "strike", "mend", "triage"];
+  loadout.tactics.warden = ["bulwark", "strike", "pierce_thrust", "rapid_cuts"];
   const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, loadout, "s", FORMATION, {
     limitsFor: (id) => (id === "warden" ? { active: 4 } : {}),
   });

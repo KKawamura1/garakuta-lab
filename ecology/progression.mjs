@@ -34,6 +34,7 @@ import {
   ENEMY_MUTATIONS,
   ENEMY_THREAT_COST,
   EQUIPMENT_GROUPS,
+  MAX_CAMPAIGN_STAGE_SEQUENCE,
   MAX_DIFFICULTY_RANK,
   MAX_MUTATIONS_PER_UNIT,
   MUTATION_SPEND_ORDER,
@@ -43,12 +44,14 @@ import {
   SKILL_PACKS,
   STARTER_EQUIPMENT_IDS,
   BASELINE_ACTIVE_SKILL_IDS,
+  campaignManifestForStage,
+  campaignStageDef,
   difficultyDef,
   expeditionEncounter,
   skillIdsForPacks,
 } from "./content/index.mjs";
 
-export { PROFILE_SCHEMA_VERSION, RUN_SCHEMA_VERSION, MANIFEST_VERSION };
+export { PROFILE_SCHEMA_VERSION, RUN_SCHEMA_VERSION, MANIFEST_VERSION, MAX_CAMPAIGN_STAGE_SEQUENCE };
 
 // ============================================================ 活動資金（R6 §9.1）
 //
@@ -172,6 +175,13 @@ function freshCharacterProfile(characterId) {
   };
 }
 
+function freshCampaignProgress() {
+  // R8 §1.1 / §3.2 — 「最高clear Stage」は永続する。難易度 rank とは
+  // 別の軸なので regionProgress の highestClearedDifficulty とは混ぜない
+  // （R8 Implementation Phase 0 の migration 対応表を参照）。
+  return { highestClearedStageSequence: -1, clearedStageSequences: [] };
+}
+
 export function newProfile() {
   return {
     schemaVersion: PROFILE_SCHEMA_VERSION,
@@ -183,6 +193,9 @@ export function newProfile() {
     activityFundsLifetimeEarned: "0",
     regionProgress: {
       [REGION.id]: { highestClearedDifficulty: -1, clearedRanks: [], runsFinished: 0 },
+    },
+    campaignProgress: {
+      [REGION.id]: freshCampaignProgress(),
     },
     purchases: [],
     settledRunIds: [],
@@ -228,6 +241,19 @@ export function normalizeProfile(saved) {
       : [];
     const runs = Number(progress.runsFinished);
     profile.regionProgress[REGION.id].runsFinished = Number.isFinite(runs) ? Math.max(0, Math.floor(runs)) : 0;
+  }
+  // R8 Implementation Phase 1 — campaign stage 進行。旧 save には存在しない欄
+  // なので、未クリアから始まる（difficulty rank からの自動換算はしない。
+  // R8_IMPLEMENTATION_PHASE0_FREEZE.md §2 の判断）。
+  const campaignProgress = saved.campaignProgress?.[REGION.id];
+  if (campaignProgress) {
+    const highestStage = Number(campaignProgress.highestClearedStageSequence);
+    profile.campaignProgress[REGION.id].highestClearedStageSequence = Number.isFinite(highestStage)
+      ? Math.max(-1, Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, Math.floor(highestStage)))
+      : -1;
+    profile.campaignProgress[REGION.id].clearedStageSequences = Array.isArray(campaignProgress.clearedStageSequences)
+      ? [...new Set(campaignProgress.clearedStageSequences.filter((seq) => Number.isInteger(seq) && seq >= 0))]
+      : [];
   }
   profile.purchases = Array.isArray(saved.purchases) ? saved.purchases.slice(-50) : [];
   profile.settledRunIds = Array.isArray(saved.settledRunIds)
@@ -385,6 +411,20 @@ export function isDifficultyUnlocked(profile, rank, regionId = REGION.id) {
   return availableDifficulties(profile, regionId).includes(rank);
 }
 
+// ============================================================ Campaign Stage 解禁（R8 §3.1, §4）
+//
+// R8 §3.1 — 「Campaign Stageは一つ前のStage clearで順に解禁し、活動資金で買えず、飛ばせない。」
+// availableDifficulties と同じ形にする（活動資金で買えない不変条件を共有する）。
+export function availableCampaignStages(profile, regionId = REGION.id) {
+  const highest = profile?.campaignProgress?.[regionId]?.highestClearedStageSequence ?? -1;
+  const top = Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, Math.max(0, highest + 1));
+  return Array.from({ length: top + 1 }, (_, sequence) => sequence);
+}
+
+export function isCampaignStageUnlocked(profile, sequence, regionId = REGION.id) {
+  return availableCampaignStages(profile, regionId).includes(sequence);
+}
+
 // ============================================================ Manifest（R6 §5.2）
 
 export function makeManifest(seed, profile) {
@@ -431,17 +471,29 @@ export function startingSupplies(profile, rank) {
   return Math.min(MAX_SUPPLIES, base + upgradeLevel(profile, "starting_supplies"));
 }
 
+// R8 §1.1 — Campaign は `options.campaignStageSequence` を渡して作る。
+// 渡さなければ従来どおり Free / Endless の random manifest（`makeManifest`）を使う。
+// 両経路は同じ RunState 形を返す（campaign 専用の欄を増やすだけで、
+// Free / Endless の既存出力は変えない）。
 export function newRun(profile, options = {}) {
   const rank = Math.max(0, Math.min(MAX_DIFFICULTY_RANK, Math.floor(options.difficulty ?? 0)));
   const roster = [...(options.roster ?? [])];
   const runSeed = String(options.runSeed ?? "run");
+  const isCampaign = options.campaignStageSequence !== undefined && options.campaignStageSequence !== null;
+  const campaignStageSequence = isCampaign
+    ? Math.max(0, Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, Math.floor(options.campaignStageSequence)))
+    : null;
+  const manifest = isCampaign
+    ? campaignManifestForStage(campaignStageSequence, runSeed)
+    : makeManifest(runSeed, profile);
   return {
     schemaVersion: RUN_SCHEMA_VERSION,
     runId: String(options.runId ?? runSeed),
     runSeed,
     regionId: REGION.id,
+    campaignStageSequence,
     difficulty: rank,
-    manifest: makeManifest(runSeed, profile),
+    manifest,
     encounterIndex: 1,
     act: 1,
     supplies: startingSupplies(profile, rank),
@@ -459,6 +511,12 @@ export function newRun(profile, options = {}) {
     retries: {},
     results: [],
     fundLedger: newFundLedger(rank),
+    // R8 §1.5 / §10 — HP は遠征内で持ち越す。遠征開始時は満タンから始める。
+    // 4戦目・8戦目 boss 勝利後の全回復と、通常・精鋭戦後の持ち越しは
+    // commitBattleResult が扱う。
+    currentHp: Object.fromEntries(
+      roster.map((id) => [id, characterStats(profile, id)?.stats.maxHp ?? 0]),
+    ),
     status: "active",
     startedAt: options.startedAt ?? null,
   };
@@ -529,10 +587,13 @@ function skillCostOf(run, skillId) {
 
 // ============================================================ 補給（R6 §12.1）
 
+// R8 §10.2 — 補給の四用途。retry、reward reroll、偵察、野営治療は
+// 同じ有限の補給を奪い合う（R8 §1.5 の不変条件）。
 export const SUPPLY_USES = Object.freeze({
   retry: "敗北した戦闘へ、編成を変えて再挑戦する",
   reroll: "報酬4候補を一度だけ引き直す",
   scout: "次の幕の通常戦の個体編成を先に見る",
+  camp: "野営で集中治療・全体手当・蘇生のいずれかを行う",
 });
 
 export function spendSupply(run, use) {
@@ -543,6 +604,98 @@ export function spendSupply(run, use) {
 
 export function gainSupply(run, amount = 1) {
   return { ...run, supplies: Math.min(MAX_SUPPLIES, (run.supplies ?? 0) + amount) };
+}
+
+// ============================================================ 野営治療（R8 §9.2, §10.2）
+//
+// **補給1を消費する、遠征中に自動で戻らない治療。**round経過や毎戦の
+// 全回復では戻らない（R8 §8.1 の anti-stall 不変条件）。数値は R8 §9.2 の
+// 初期比較候補をそのまま採用した未調整値（作者プレイ前の soft data）。
+export const CAMP_TREATMENTS = Object.freeze({
+  concentrated: Object.freeze({
+    id: "concentrated", displayName: "集中治療", targetCount: 1, healBps: 4_000, revive: false,
+    summary: "一人をmaxHpの40%回復する。tank・背水役等、一人へ損傷を集める構成向け。",
+  }),
+  full_party: Object.freeze({
+    id: "full_party", displayName: "全体手当", targetCount: "all", healBps: 1_200, revive: false,
+    summary: "生存者全員をmaxHpの12%回復する。damage分散構成向け。",
+  }),
+  revive: Object.freeze({
+    id: "revive", displayName: "蘇生", targetCount: 1, healBps: 2_500, revive: true,
+    summary: "戦闘不能者一人をmaxHpの25%で復帰させる。roster欠損を戻す高価値用途。",
+  }),
+});
+
+// 補給1を消費し、選んだ治療を適用する。**治療可能な損傷0の対象へは空撃ちしない**
+// （R8 §8.1「full HPまたは治療可能な損傷0の対象へ空撃ちし...技能を許可しない」と
+// 同じ理由。ここは battle engine の外なので healing_applied / excess_healing
+// イベントは無いが、無駄打ちで補給を溶かさない意味は同じ）。
+export function campTreat(run, profile, treatmentId, targetCharacterIds = []) {
+  const treatment = CAMP_TREATMENTS[treatmentId];
+  if (!treatment) return { ok: false, reason: "その治療はありません。" };
+  const targets = treatment.targetCount === "all"
+    ? [...run.roster]
+    : targetCharacterIds.slice(0, treatment.targetCount);
+  if (targets.length === 0) return { ok: false, reason: "対象がいません。" };
+
+  const currentHp = { ...run.currentHp };
+  const applicable = targets.filter((characterId) => {
+    const hp = currentHp[characterId] ?? 0;
+    const maxHp = characterStats(profile, characterId)?.stats.maxHp ?? 0;
+    return treatment.revive ? hp <= 0 : hp > 0 && hp < maxHp;
+  });
+  if (applicable.length === 0) return { ok: false, reason: "治療できる対象がいません。" };
+
+  const spend = spendSupply(run, "camp");
+  if (!spend.ok) return spend;
+
+  for (const characterId of applicable) {
+    const maxHp = characterStats(profile, characterId)?.stats.maxHp ?? 0;
+    const healAmount = roundHalfUpDiv(maxHp * treatment.healBps, BPS);
+    const before = treatment.revive ? 0 : (currentHp[characterId] ?? 0);
+    currentHp[characterId] = Math.min(maxHp, before + healAmount);
+  }
+  return { ok: true, run: { ...spend.run, currentHp }, treated: applicable };
+}
+
+// ============================================================ HP持ち越しと次戦commit（R8 §8, §10）
+
+// R8 §10.1 — 4戦目・8戦目のboss勝利後だけ拠点で全回復する。12戦目は遠征終了。
+export function isActBossFullHealIndex(encounterIndex) {
+  return encounterIndex === 4 || encounterIndex === 8;
+}
+
+function endingHpFromBattleResult(battleResult, roster) {
+  const hp = {};
+  for (const characterId of roster) {
+    const actor = battleResult.actors.find((entry) => entry.instanceId === "a_" + characterId);
+    hp[characterId] = actor ? actor.hp : 0;
+  }
+  return hp;
+}
+
+// R8 §10.4 — BattleCarrySnapshot。**勝利時だけ一度だけ commit する。**
+// 敗北時は開始前 snapshot（= 現在の run.currentHp）へ戻すだけで、何も変更しない
+// （commitBattleResult を呼ぶ前の run.currentHp は一切変更していないので、
+// 「戻す」は「何もしない」と同じ。retry も同じ理由で安全）。
+// preview（`previewNextBattle`, playable-battles.mjs）はこの関数を呼ばない。
+export function commitBattleResult(profile, run, encounterIndex, battleResult) {
+  const startingHp = { ...run.currentHp };
+  const won = battleResult.result === "win";
+  if (!won) {
+    return {
+      run,
+      snapshot: { startingHp, endingHp: startingHp, treatmentChargesSpent: 0, suppliesSpent: 0, committed: false },
+    };
+  }
+  const rawEndingHp = endingHpFromBattleResult(battleResult, run.roster);
+  const endingHp = isActBossFullHealIndex(encounterIndex)
+    ? Object.fromEntries(run.roster.map((id) => [id, characterStats(profile, id)?.stats.maxHp ?? 0]))
+    : rawEndingHp;
+  return {
+    run: { ...run, currentHp: endingHp },
+    snapshot: { startingHp, endingHp, treatmentChargesSpent: 0, suppliesSpent: 0, committed: true },
+  };
 }
 
 // R6 §10 — inventory は12品。**13品目になるときは、その場で一品を分解するか捨てる。**
@@ -788,8 +941,18 @@ export function recordEncounterCleared(run, index) {
   return { ...run, fundLedger: ledger };
 }
 
-// R6 §9.2 — 勝利・敗北・放棄のいずれかで**一度だけ**精算する。
+// R8 §10.3 — 安全撤退を敗北と区別する。Blueprint archive 自体は Phase C 未実装
+// なので、ここでは「今回の settlement は何件まで保存してよいか」という数値だけを
+// 記録する（実際の保存は Phase C の仕事。R8 Implementation Phase 1 step 4
+// 「安全撤退と敗北のBlueprint保存差を状態・精算へ追加する」の状態側だけを満たす）。
+export const BLUEPRINT_SAVE_LIMIT = Object.freeze({ won: 2, retreat: 2, lost: 1 });
+
+// R6 §9.2 / R8 §10.3 — 勝利・安全撤退・敗北のいずれかで**一度だけ**精算する。
 // 二度目は黙って通さず、settled: false と理由を返す。
+// outcome は "won" | "retreat" | "lost" のいずれか。
+// **won と retreat のどちらも完走・初clear bonusは retreat には付かない**
+// （R8 §10.3「ただし完走・初clear bonusなし」）。敗北時の活動資金没収は行わない
+// （確定済みぶんは outcome を問わず持ち帰る。R8 §3.7）。
 export function settleRun(profile, run, outcome) {
   if (run.fundLedger.settled) {
     return { ok: false, reason: "この遠征はすでに精算されています。", profile, run };
@@ -801,6 +964,7 @@ export function settleRun(profile, run, outcome) {
     ?? { highestClearedDifficulty: -1, clearedRanks: [], runsFinished: 0 };
   const won = outcome === "won";
   const ledger = { ...run.fundLedger, clearedEncounterKeys: [...run.fundLedger.clearedEncounterKeys] };
+  // R8 §3.7 — 12戦完走ボーナスも安全撤退には付かない（won 以外は全て0）。
   ledger.outcomeBonus = won ? FULL_RUN_BONUS : 0;
   const firstClear = won && !progress.clearedRanks.includes(run.difficulty);
   ledger.firstClearBonus = firstClear ? FIRST_CLEAR_BASE + FIRST_CLEAR_PER_RANK * run.difficulty : 0;
@@ -819,6 +983,20 @@ export function settleRun(profile, run, outcome) {
     // R6 §9.6 — rank N をクリアすると rank N+1 が開く。買えず、飛ばせない。
     nextProgress.clearedRanks = [...new Set([...nextProgress.clearedRanks, run.difficulty])].sort((a, b) => a - b);
     nextProgress.highestClearedDifficulty = Math.max(nextProgress.highestClearedDifficulty, run.difficulty);
+  }
+  // R8 §3.1 / §4 — campaign stage の既クリアは、difficulty rank とは別軸で進む。
+  let unlockedCampaignStage = null;
+  if (won && run.campaignStageSequence !== null && run.campaignStageSequence !== undefined) {
+    const nextCampaignProgress = nextProfile.campaignProgress[run.regionId]
+      ?? (nextProfile.campaignProgress[run.regionId] = freshCampaignProgress());
+    const alreadyCleared = nextCampaignProgress.clearedStageSequences.includes(run.campaignStageSequence);
+    nextCampaignProgress.clearedStageSequences =
+      [...new Set([...nextCampaignProgress.clearedStageSequences, run.campaignStageSequence])].sort((a, b) => a - b);
+    nextCampaignProgress.highestClearedStageSequence =
+      Math.max(nextCampaignProgress.highestClearedStageSequence, run.campaignStageSequence);
+    if (!alreadyCleared && run.campaignStageSequence < MAX_CAMPAIGN_STAGE_SEQUENCE) {
+      unlockedCampaignStage = run.campaignStageSequence + 1;
+    }
   }
   nextProfile.settledRunIds = [...(nextProfile.settledRunIds ?? []), run.runId].slice(-200);
 
@@ -844,6 +1022,9 @@ export function settleRun(profile, run, outcome) {
         && !(profile.regionProgress?.[run.regionId]?.clearedRanks ?? []).includes(run.difficulty)
         ? run.difficulty + 1
         : null,
+      unlockedCampaignStage,
+      // Phase C（Blueprint archive）実装までは「今回何件保存してよいか」の記録のみ。
+      blueprintSaveLimit: BLUEPRINT_SAVE_LIMIT[outcome] ?? BLUEPRINT_SAVE_LIMIT.lost,
     },
   };
 }

@@ -269,79 +269,6 @@
     ],
     "actionMode": "offense"
    },
-   "mend": {
-    "id": "mend",
-    "displayName": "手当て",
-    "apCost": 1,
-    "intrinsicPredicates": [
-     {
-      "type": "target_exists",
-      "op": "gte",
-      "value": 1,
-      "query": {
-       "scope": "allies",
-       "filters": [
-        {
-         "type": "alive"
-        },
-        {
-         "type": "hp_percent",
-         "op": "lt",
-         "value": 100
-        }
-       ],
-       "sort": [
-        "hp_asc"
-       ],
-       "take": "all"
-      }
-     }
-    ],
-    "targetQuery": {
-     "scope": "allies",
-     "filters": [
-      {
-       "type": "alive"
-      },
-      {
-       "type": "hp_percent",
-       "op": "lt",
-       "value": 100
-      }
-     ],
-     "sort": [
-      "hp_asc"
-     ],
-     "take": 1
-    },
-    "effects": [
-     {
-      "type": "heal",
-      "target": {
-       "scope": "event_targets",
-       "filters": [
-        {
-         "type": "alive"
-        }
-       ],
-       "take": 1
-      },
-      "amount": {
-       "type": "stat_scaled",
-       "subject": "self",
-       "scalingStat": "focus",
-       "coefficientBps": 12000
-      },
-      "tags": [
-       "care"
-      ]
-     }
-    ],
-    "tags": [
-     "care"
-    ],
-    "actionMode": "utility"
-   },
    "bulwark": {
     "id": "bulwark",
     "displayName": "防壁形成",
@@ -578,80 +505,6 @@
      "termination"
     ],
     "actionMode": "channel"
-   },
-   "triage": {
-    "id": "triage",
-    "displayName": "応急手当",
-    "apCost": 1,
-    "intrinsicPredicates": [
-     {
-      "type": "target_exists",
-      "op": "gte",
-      "value": 1,
-      "query": {
-       "scope": "allies",
-       "filters": [
-        {
-         "type": "alive"
-        },
-        {
-         "type": "hp_percent",
-         "op": "lte",
-         "value": 50
-        }
-       ],
-       "sort": [
-        "hp_asc"
-       ],
-       "take": "all"
-      }
-     }
-    ],
-    "targetQuery": {
-     "scope": "allies",
-     "filters": [
-      {
-       "type": "alive"
-      },
-      {
-       "type": "hp_percent",
-       "op": "lte",
-       "value": 50
-      }
-     ],
-     "sort": [
-      "hp_asc"
-     ],
-     "take": 1
-    },
-    "effects": [
-     {
-      "type": "heal",
-      "target": {
-       "scope": "event_targets",
-       "filters": [
-        {
-         "type": "alive"
-        }
-       ],
-       "take": 1
-      },
-      "amount": {
-       "type": "stat_scaled",
-       "subject": "self",
-       "scalingStat": "focus",
-       "coefficientBps": 12000
-      },
-      "tags": [
-       "care",
-       "triage"
-      ]
-     }
-    ],
-    "tags": [
-     "care"
-    ],
-    "actionMode": "utility"
    },
    "hunt_the_slow": {
     "id": "hunt_the_slow",
@@ -1764,6 +1617,376 @@
     "tags": [
      "guard"
     ]
+   },
+   "barrage_strike": {
+    "id": "barrage_strike",
+    "displayName": "連撃",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4500
+      },
+      "hitCount": 3,
+      "tags": [
+       "attack",
+       "weapon",
+       "onhit"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack",
+     "onhit"
+    ]
+   },
+   "mark_strike": {
+    "id": "mark_strike",
+    "displayName": "刻印撃ち",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "eq",
+         "value": 0
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "tags": [
+       "attack",
+       "weapon",
+       "mark"
+      ],
+      "reach": "melee"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "mark"
+    ]
+   },
+   "mark_break": {
+    "id": "mark_break",
+    "displayName": "刻印砕き",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "gte",
+         "value": 1
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "gte",
+       "value": 1
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 13000
+      },
+      "tags": [
+       "attack",
+       "weapon",
+       "mark",
+       "execute"
+      ],
+      "reach": "melee"
+     },
+     {
+      "type": "remove_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": "all"
+     }
+    ],
+    "tags": [
+     "attack",
+     "mark",
+     "execute"
+    ]
+   },
+   "sweeping_barrage": {
+    "id": "sweeping_barrage",
+    "displayName": "連ぎ払い",
+    "apCost": 1,
+    "actionMode": "offense",
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "front"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 2,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4000
+      },
+      "hitCount": 2,
+      "targetPattern": "row",
+      "tags": [
+       "attack",
+       "weapon",
+       "onhit"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack",
+     "onhit"
+    ]
+   },
+   "piercing_barrage": {
+    "id": "piercing_barrage",
+    "displayName": "貫き連撃",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4800
+      },
+      "hitCount": 2,
+      "targetPattern": "column",
+      "tags": [
+       "attack",
+       "weapon",
+       "onhit"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack",
+     "onhit"
+    ]
    }
   },
   "reactiveSkills": {
@@ -2693,6 +2916,335 @@
     "tags": [
      "reaction",
      "guard"
+    ]
+   },
+   "emergency_treatment": {
+    "id": "emergency_treatment",
+    "displayName": "応急処置",
+    "rule": {
+     "id": "emergency_treatment_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 150,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "heal",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 1,
+        "denominator": 3
+       },
+       "tags": [
+        "care",
+        "emergency"
+       ]
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care",
+     "emergency"
+    ]
+   },
+   "mend": {
+    "id": "mend",
+    "displayName": "手当て",
+    "rule": {
+     "id": "mend_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 160,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "heal",
+       "target": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 1,
+        "denominator": 4
+       },
+       "tags": [
+        "care"
+       ]
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care"
+    ]
+   },
+   "triage": {
+    "id": "triage",
+    "displayName": "応急手当",
+    "rule": {
+     "id": "triage_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 140,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lte",
+          "value": 50
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "heal",
+       "target": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lte",
+          "value": 50
+         }
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 1,
+        "denominator": 2
+       },
+       "tags": [
+        "care",
+        "triage"
+       ]
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care"
+    ]
+   },
+   "guarded_opening": {
+    "id": "guarded_opening",
+    "displayName": "受け止めの隙",
+    "rule": {
+     "id": "guarded_opening_rule",
+     "listenTo": "damage_blocked",
+     "timing": "after",
+     "priority": 130,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "sort": [
+         "hp_desc"
+        ],
+        "take": 1
+       },
+       "statusId": "exposed",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "mark"
+    ]
+   },
+   "seize_the_opening": {
+    "id": "seize_the_opening",
+    "displayName": "機を逃さず",
+    "rule": {
+     "id": "seize_the_opening_rule",
+     "listenTo": "resource_gained",
+     "timing": "after",
+     "priority": 130,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "sort": [
+         "hp_desc"
+        ],
+        "take": 1
+       },
+       "statusId": "exposed",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "mark"
     ]
    }
   },
@@ -4860,13 +5412,11 @@
   "arcanist": "アオ — 溜める人",
   "tactician": "トワ — つなぐ人",
   "strike": "斬撃",
-  "mend": "手当て",
   "bulwark": "防壁形成",
   "relay_order": "号令",
   "heavy_swing": "溜め突き",
   "reposition": "位置替え",
   "long_swing": "大溜め",
-  "triage": "応急手当",
   "hunt_the_slow": "準備狩り",
   "idle_shuffle": "息を整える",
   "mark_target": "隙を刻む",
@@ -4888,6 +5438,11 @@
   "finishing_thrust": "止めの一突き",
   "crack_mark": "傷口を開く",
   "brace_for_impact": "衝撃に備える",
+  "barrage_strike": "連撃",
+  "mark_strike": "刻印撃ち",
+  "mark_break": "刻印砕き",
+  "sweeping_barrage": "連ぎ払い",
+  "piercing_barrage": "貫き連撃",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -4904,6 +5459,11 @@
   "prep_spiral": "準備の螺旋",
   "block_focus": "受け返しの集中",
   "barrier_stitch": "防壁の縫い直し",
+  "emergency_treatment": "応急処置",
+  "mend": "手当て",
+  "triage": "応急手当",
+  "guarded_opening": "受け止めの隙",
+  "seize_the_opening": "機を逃さず",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -4974,12 +5534,12 @@
    "defaultPosition": "rear_left",
    "summary": "傷ついた仲間を立て直し、余った回復も無駄にしない。",
    "starterTactics": [
-    "mend",
-    "triage"
+    "strike",
+    "idle_shuffle"
    ],
    "starterReactives": [
-    "overflow_care",
-    "triage_relay"
+    "mend",
+    "triage"
    ]
   },
   {
@@ -5155,14 +5715,6 @@
     "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
     "grammar": "攻撃"
    },
-   "mend": {
-    "id": "mend",
-    "kind": "active",
-    "definitionId": "mend",
-    "label": "手当て",
-    "effect": "傷ついた味方を集中力の120%回復。対象がいなければスキップ。",
-    "grammar": "支援"
-   },
    "bulwark": {
     "id": "bulwark",
     "kind": "active",
@@ -5203,14 +5755,6 @@
     "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
     "grammar": "攻撃"
    },
-   "triage": {
-    "id": "triage",
-    "kind": "active",
-    "definitionId": "triage",
-    "label": "応急手当",
-    "effect": "HP半分以下の味方を集中力の120%回復。対象がいなければスキップ。",
-    "grammar": "支援"
-   },
    "hunt_the_slow": {
     "id": "hunt_the_slow",
     "kind": "active",
@@ -5242,6 +5786,46 @@
     "label": "狙いを澄ます",
     "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
     "grammar": "準備"
+   },
+   "barrage_strike": {
+    "id": "barrage_strike",
+    "kind": "active",
+    "definitionId": "barrage_strike",
+    "label": "連撃",
+    "effect": "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
+    "grammar": "攻撃"
+   },
+   "mark_strike": {
+    "id": "mark_strike",
+    "kind": "active",
+    "definitionId": "mark_strike",
+    "label": "刻印撃ち",
+    "effect": "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "mark_break": {
+    "id": "mark_break",
+    "kind": "active",
+    "definitionId": "mark_break",
+    "label": "刻印砕き",
+    "effect": "「隙」を持つ敵へ130%で攻撃し、隙を刈り取る。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "sweeping_barrage": {
+    "id": "sweeping_barrage",
+    "kind": "active",
+    "definitionId": "sweeping_barrage",
+    "label": "連ぎ払い",
+    "effect": "前列の敵が2体以上いるとき、同じ行を40%×2回薙ぐ。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "piercing_barrage": {
+    "id": "piercing_barrage",
+    "kind": "active",
+    "definitionId": "piercing_barrage",
+    "label": "貫き連撃",
+    "effect": "同じ列の前後を48%×2回貫く。後列を庇う列を多段で崩す。",
+    "grammar": "攻撃"
    }
   },
   "reactive": {
@@ -5356,6 +5940,46 @@
     "label": "防壁の縫い直し",
     "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
     "grammar": "防御"
+   },
+   "mend": {
+    "id": "mend",
+    "kind": "reactive",
+    "definitionId": "mend",
+    "label": "手当て",
+    "effect": "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。",
+    "grammar": "回復"
+   },
+   "triage": {
+    "id": "triage",
+    "kind": "reactive",
+    "definitionId": "triage",
+    "label": "応急手当",
+    "effect": "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。",
+    "grammar": "回復"
+   },
+   "emergency_treatment": {
+    "id": "emergency_treatment",
+    "kind": "reactive",
+    "definitionId": "emergency_treatment",
+    "label": "応急処置",
+    "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
+    "grammar": "回復"
+   },
+   "guarded_opening": {
+    "id": "guarded_opening",
+    "kind": "reactive",
+    "definitionId": "guarded_opening",
+    "label": "受け止めの隙",
+    "effect": "自分が受け構えで一撃を止めたあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+    "grammar": "指揮"
+   },
+   "seize_the_opening": {
+    "id": "seize_the_opening",
+    "kind": "reactive",
+    "definitionId": "seize_the_opening",
+    "label": "機を逃さず",
+    "effect": "自分が行動権を得たあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+    "grammar": "指揮"
    }
   },
   "passive": {
@@ -5724,14 +6348,6 @@
    "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
    "grammar": "攻撃"
   },
-  "mend": {
-   "id": "mend",
-   "kind": "active",
-   "definitionId": "mend",
-   "label": "手当て",
-   "effect": "傷ついた味方を集中力の120%回復。対象がいなければスキップ。",
-   "grammar": "支援"
-  },
   "bulwark": {
    "id": "bulwark",
    "kind": "active",
@@ -5772,14 +6388,6 @@
    "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
    "grammar": "攻撃"
   },
-  "triage": {
-   "id": "triage",
-   "kind": "active",
-   "definitionId": "triage",
-   "label": "応急手当",
-   "effect": "HP半分以下の味方を集中力の120%回復。対象がいなければスキップ。",
-   "grammar": "支援"
-  },
   "hunt_the_slow": {
    "id": "hunt_the_slow",
    "kind": "active",
@@ -5811,6 +6419,46 @@
    "label": "狙いを澄ます",
    "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
    "grammar": "準備"
+  },
+  "barrage_strike": {
+   "id": "barrage_strike",
+   "kind": "active",
+   "definitionId": "barrage_strike",
+   "label": "連撃",
+   "effect": "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
+   "grammar": "攻撃"
+  },
+  "mark_strike": {
+   "id": "mark_strike",
+   "kind": "active",
+   "definitionId": "mark_strike",
+   "label": "刻印撃ち",
+   "effect": "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "mark_break": {
+   "id": "mark_break",
+   "kind": "active",
+   "definitionId": "mark_break",
+   "label": "刻印砕き",
+   "effect": "「隙」を持つ敵へ130%で攻撃し、隙を刈り取る。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "sweeping_barrage": {
+   "id": "sweeping_barrage",
+   "kind": "active",
+   "definitionId": "sweeping_barrage",
+   "label": "連ぎ払い",
+   "effect": "前列の敵が2体以上いるとき、同じ行を40%×2回薙ぐ。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "piercing_barrage": {
+   "id": "piercing_barrage",
+   "kind": "active",
+   "definitionId": "piercing_barrage",
+   "label": "貫き連撃",
+   "effect": "同じ列の前後を48%×2回貫く。後列を庇う列を多段で崩す。",
+   "grammar": "攻撃"
   },
   "counter_blow": {
    "id": "counter_blow",
@@ -5923,6 +6571,46 @@
    "label": "防壁の縫い直し",
    "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
    "grammar": "防御"
+  },
+  "mend": {
+   "id": "mend",
+   "kind": "reactive",
+   "definitionId": "mend",
+   "label": "手当て",
+   "effect": "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。",
+   "grammar": "回復"
+  },
+  "triage": {
+   "id": "triage",
+   "kind": "reactive",
+   "definitionId": "triage",
+   "label": "応急手当",
+   "effect": "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。",
+   "grammar": "回復"
+  },
+  "emergency_treatment": {
+   "id": "emergency_treatment",
+   "kind": "reactive",
+   "definitionId": "emergency_treatment",
+   "label": "応急処置",
+   "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
+   "grammar": "回復"
+  },
+  "guarded_opening": {
+   "id": "guarded_opening",
+   "kind": "reactive",
+   "definitionId": "guarded_opening",
+   "label": "受け止めの隙",
+   "effect": "自分が受け構えで一撃を止めたあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+   "grammar": "指揮"
+  },
+  "seize_the_opening": {
+   "id": "seize_the_opening",
+   "kind": "reactive",
+   "definitionId": "seize_the_opening",
+   "label": "機を逃さず",
+   "effect": "自分が行動権を得たあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+   "grammar": "指揮"
   },
   "foundation_vitality": {
    "id": "foundation_vitality",
@@ -6216,17 +6904,20 @@
   "crack_mark",
   "brace_for_impact",
   "strike",
-  "mend",
   "bulwark",
   "relay_order",
   "heavy_swing",
   "reposition",
   "long_swing",
-  "triage",
   "hunt_the_slow",
   "idle_shuffle",
   "mark_target",
   "steady_aim",
+  "barrage_strike",
+  "mark_strike",
+  "mark_break",
+  "sweeping_barrage",
+  "piercing_barrage",
   "counter_blow",
   "cover_ally",
   "overflow_care",
@@ -6241,6 +6932,11 @@
   "prep_spiral",
   "block_focus",
   "barrier_stitch",
+  "mend",
+  "triage",
+  "emergency_treatment",
+  "guarded_opening",
+  "seize_the_opening",
   "foundation_vitality",
   "foundation_might",
   "foundation_focus",
@@ -6362,7 +7058,7 @@
   {
    "id": "node_mend",
    "skillId": "mend",
-   "kind": "active",
+   "kind": "reactive",
    "branch": "支援",
    "tier": 0,
    "cost": 0,
@@ -6371,7 +7067,18 @@
   {
    "id": "node_triage",
    "skillId": "triage",
-   "kind": "active",
+   "kind": "reactive",
+   "branch": "支援",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mend"
+   ]
+  },
+  {
+   "id": "node_emergency_treatment",
+   "skillId": "emergency_treatment",
+   "kind": "reactive",
    "branch": "支援",
    "tier": 1,
    "cost": 1,
@@ -6653,6 +7360,79 @@
    ]
   },
   {
+   "id": "node_barrage",
+   "skillId": "barrage_strike",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_mark_strike",
+   "skillId": "mark_strike",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_mark_break",
+   "skillId": "mark_break",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
+   ]
+  },
+  {
+   "id": "node_sweeping_barrage",
+   "skillId": "sweeping_barrage",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "barrage_strike"
+   ]
+  },
+  {
+   "id": "node_piercing_barrage",
+   "skillId": "piercing_barrage",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "barrage_strike"
+   ]
+  },
+  {
+   "id": "node_guarded_opening",
+   "skillId": "guarded_opening",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
+   ]
+  },
+  {
+   "id": "node_seize_the_opening",
+   "skillId": "seize_the_opening",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
+   ]
+  },
+  {
    "id": "node_found_vitality",
    "skillId": "foundation_vitality",
    "kind": "passive",
@@ -6863,9 +7643,8 @@
    "strike",
    "mend",
    "bulwark",
-   "triage",
-   "overflow_care",
-   "triage_relay"
+   "idle_shuffle",
+   "triage"
   ],
   "lancer": [
    "strike",
@@ -6924,8 +7703,8 @@
     "strike"
    ],
    "mender": [
-    "mend",
-    "triage"
+    "strike",
+    "idle_shuffle"
    ],
    "lancer": [
     "strike",
@@ -6946,8 +7725,8 @@
     "cover_ally"
    ],
    "mender": [
-    "overflow_care",
-    "triage_relay"
+    "mend",
+    "triage"
    ],
    "lancer": [
     "scavenge_ap",
@@ -7003,6 +7782,7 @@
    "id": "pack_edge",
    "displayName": "刃と撃破",
    "summary": "単発・多段・貫通で、受けの厚い相手をどう抜くかを問う。",
+   "combatRole": "primary_offense",
    "activeSkillIds": [
     "heavy_swing",
     "long_swing",
@@ -7028,14 +7808,16 @@
    "id": "pack_care",
    "displayName": "手当てと余剰",
    "summary": "溢れた回復を捨てず、削られながら立て直す。",
+   "combatRole": "support",
    "activeSkillIds": [
-    "triage",
     "idle_shuffle"
    ],
    "reactiveSkillIds": [
     "overflow_care",
     "triage_relay",
-    "brace_after_hit"
+    "brace_after_hit",
+    "emergency_treatment",
+    "triage"
    ],
    "tags": [
     "heal",
@@ -7046,6 +7828,7 @@
    "id": "pack_wall",
    "displayName": "防壁と隊列",
    "summary": "誰が前に立つかと、行・列のどちらを薙ぐかを問う。",
+   "combatRole": "offensive_hybrid",
    "activeSkillIds": [
     "reposition",
     "row_sweep",
@@ -7071,6 +7854,7 @@
    "id": "pack_tempo",
    "displayName": "行動権と準備",
    "summary": "順番そのものを作り替える。遅い構成に手番を通す。",
+   "combatRole": "offensive_hybrid",
    "activeSkillIds": [
     "relay_order",
     "mark_target",
@@ -7084,6 +7868,28 @@
    "tags": [
     "tempo",
     "preparation"
+   ]
+  },
+  {
+   "id": "pack_barrage",
+   "displayName": "連撃と刻印",
+   "summary": "多段と刻印で、受けよりblockに強い攻め筋を問う。",
+   "combatRole": "primary_offense",
+   "activeSkillIds": [
+    "barrage_strike",
+    "mark_strike",
+    "mark_break",
+    "sweeping_barrage",
+    "piercing_barrage"
+   ],
+   "reactiveSkillIds": [
+    "guarded_opening",
+    "seize_the_opening"
+   ],
+   "tags": [
+    "attack",
+    "onhit",
+    "mark"
    ]
   }
  ],
@@ -15756,18 +16562,17 @@
  },
  "manifests": {
   "frontier-1801": {
-   "manifestVersion": "ecology-manifest-1",
+   "manifestVersion": "ecology-manifest-2",
    "seed": "frontier-1801",
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
-    "mend",
     "bulwark"
    ],
    "enabledPackIds": [
     "pack_care",
     "pack_wall",
-    "pack_tempo"
+    "pack_barrage"
    ],
    "enabledAffixFamilyIds": [],
    "enemyFamilyIds": [
@@ -15787,18 +16592,17 @@
    "rewardTableId": "fixed_equipment_1"
   },
   "frontier-1801-abc12345": {
-   "manifestVersion": "ecology-manifest-1",
+   "manifestVersion": "ecology-manifest-2",
    "seed": "frontier-1801-abc12345",
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
-    "mend",
     "bulwark"
    ],
    "enabledPackIds": [
     "pack_edge",
-    "pack_care",
-    "pack_wall"
+    "pack_wall",
+    "pack_tempo"
    ],
    "enabledAffixFamilyIds": [],
    "enemyFamilyIds": [
@@ -15818,18 +16622,17 @@
    "rewardTableId": "fixed_equipment_1"
   },
   "frontier-1801-zzz": {
-   "manifestVersion": "ecology-manifest-1",
+   "manifestVersion": "ecology-manifest-2",
    "seed": "frontier-1801-zzz",
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
-    "mend",
     "bulwark"
    ],
    "enabledPackIds": [
     "pack_care",
     "pack_wall",
-    "pack_tempo"
+    "pack_barrage"
    ],
    "enabledAffixFamilyIds": [],
    "enemyFamilyIds": [
@@ -15871,7 +16674,7 @@
   }
  ],
  "freshProfile": {
-  "schemaVersion": "ecology-profile-1",
+  "schemaVersion": "ecology-profile-2",
   "profileId": null,
   "characters": {
    "warden": {
@@ -15959,7 +16762,8 @@
    "pack_edge",
    "pack_care",
    "pack_wall",
-   "pack_tempo"
+   "pack_tempo",
+   "pack_barrage"
   ],
   "metaUpgradeLevels": {},
   "activityFunds": "0",
@@ -15969,6 +16773,12 @@
     "highestClearedDifficulty": -1,
     "clearedRanks": [],
     "runsFinished": 0
+   }
+  },
+  "campaignProgress": {
+   "ash_frontier": {
+    "highestClearedStageSequence": -1,
+    "clearedStageSequences": []
    }
   },
   "purchases": [],

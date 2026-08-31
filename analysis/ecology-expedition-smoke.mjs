@@ -42,7 +42,10 @@ function build(kind) {
   if (kind === "starter") return loadout;
 
   loadout.tactics.warden = ["bulwark", "strike", "pierce_thrust"];
-  loadout.tactics.mender = ["mend", "triage", "strike"];
+  // R8 Implementation Phase 1（続き）— mend/triage は reactive へ移った
+  // ので、mender の active は strike + idle_shuffle、mend/triage は reactives へ。
+  loadout.tactics.mender = ["strike", "idle_shuffle"];
+  loadout.reactives.mender = ["mend", "triage"];
   loadout.tactics.lancer = ["strike", "heavy_swing", "rapid_cuts"];
   loadout.tactics.scout = ["mark_target", "reposition", "strike"];
   loadout.tactics.guardian = ["bulwark", "strike", "pierce_thrust"];

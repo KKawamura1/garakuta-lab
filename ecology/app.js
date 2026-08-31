@@ -21,11 +21,14 @@ import {
   PARTY_SIZE,
   ensurePartySize,
   normalizeFormation,
+  previewNextBattle,
 } from "./playable-battles.mjs";
 import {
   BOSS_LAWS,
+  CAMPAIGN_STAGES,
   ENEMY_MUTATIONS,
   EQUIPMENT_GROUPS,
+  MAX_CAMPAIGN_STAGE_SEQUENCE,
   PACK_BY_ID,
   REGION,
   SKILL_PACKS,
@@ -37,7 +40,11 @@ import {
   META_UPGRADES,
   SCRAP_PER_SUPPLY,
   SUPPLY_USES,
+  CAMP_TREATMENTS,
+  availableCampaignStages,
   availableDifficulties,
+  campTreat,
+  commitBattleResult,
   convertScrap,
   dismantle,
   characterStats,
@@ -224,6 +231,10 @@ function startRun(profile, options = {}) {
     runId: options.runId ?? uuid(),
     roster,
     difficulty: options.difficulty ?? 0,
+    // R8 Implementation Phase 1 — 渡されれば Campaign Stage の固定 manifest、
+    // 渡さなければ従来どおり Free / Endless の random manifest になる
+    // （newRun 側の分岐。content/campaign-stages.mjs）。
+    campaignStageSequence: options.campaignStageSequence ?? null,
     formation: defaultFormation(roster),
     startedAt: new Date().toISOString(),
   });
@@ -287,12 +298,19 @@ function freshUiState() {
     selectedSkillNode: null,
     selectedEquipment: null,
     selectedDifficulty: 0,
+    // R8 Implementation Phase 1 — 遠征の仕立て方。既定は "campaign"
+    // （Stage 0〜3の固定manifest）。"free" は旧・難易度rank選択（random manifest）で、
+    // 早々にcampaignへ統合予定のため格下げしてある（作者判断、2026-08-31）。
+    expeditionMode: "campaign",
+    selectedCampaignStageSequence: 0,
+    treatTargets: [],
     selectedRewardCharacter: null,
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
     lastResult: null,
     lastSettlement: null,
+    lastCarrySnapshot: null,
     replayEvents: [],
     replaySnapshots: [],
     replayIndex: 0,
@@ -313,7 +331,7 @@ function freshUiState() {
 
 function initialState() {
   const profile = newProfile();
-  return { ...freshUiState(), profile, run: startRun(profile), phase: "intro" };
+  return { ...freshUiState(), profile, run: startRun(profile, { campaignStageSequence: 0 }), phase: "intro" };
 }
 
 // R6 §16 — version 不一致を黙って読み飛ばさない。
@@ -483,7 +501,7 @@ function shell(title, subtitle, body, options = {}) {
   const headerAction = options.back
     ? button("キャンプへ", "back-camp", false, "menu-button")
     : inRun
-      ? button("遠征を放棄する", "abandon-run", false, "menu-button")
+      ? button("安全に撤退する", "abandon-run", false, "menu-button")
       : button("ギルドへ", "back-guild", false, "menu-button");
   return "<div class=\"shell\"><header class=\"header\"><div><p class=\"kicker\">" + VERSION
     + "</p><h1>" + esc(title) + "</h1><p class=\"subtitle\">" + esc(subtitle)
@@ -553,7 +571,17 @@ function funds() {
   return parseFunds(state.profile.activityFunds);
 }
 
+// R8 Implementation Phase 1 — Campaign Stage の run は `campaignStageSequence`
+// を持つ。Free / Endless（従来の難易度rank選択）はこれが null のまま。
+function isCampaignRun() {
+  return state.run.campaignStageSequence !== null && state.run.campaignStageSequence !== undefined;
+}
+
 function currentHp(characterId) {
+  if (isCampaignRun()) {
+    const hp = state.run.currentHp?.[characterId];
+    return Math.max(0, Math.min(maxHp(characterId), Number.isFinite(hp) ? hp : maxHp(characterId)));
+  }
   return Math.max(0, Math.min(maxHp(characterId), state.hp[characterId] ?? maxHp(characterId)));
 }
 
@@ -570,12 +598,21 @@ function skillPointsFor(characterId) {
   return runSkillPoints(state.run, characterId);
 }
 
-function resetBattleResources() {
-  for (const option of CHARACTER_OPTIONS) state.hp[option.id] = maxHp(option.id);
+// 装備耐久は R8 Phase 1 の対象外（持ち越しはまだ実装していない）ので、
+// Campaign / Free のどちらでも毎戦リセットする。
+function resetEquipmentDurability() {
   state.equipmentDurability = {};
   for (const id of state.run.inventory) {
     state.equipmentDurability[id] = EQUIPMENT[id]?.maxDurability ?? 1;
   }
+}
+
+// Free / Endless 用。HPも装備耐久も毎戦満タンへ戻す（従来どおり）。
+// Campaign Stage の run では呼ばない — HPは `run.currentHp` が持ち越す
+// （commitBattleResult, resetEquipmentDurabilityのみ使う）。
+function resetBattleResources() {
+  for (const option of CHARACTER_OPTIONS) state.hp[option.id] = maxHp(option.id);
+  resetEquipmentDurability();
 }
 
 function isUnlocked(characterId, skillId) {
@@ -730,9 +767,24 @@ function difficultyCard(rank) {
     + " · 補給 " + def.startingSupplies + " · " + mods + "</span></button>";
 }
 
+// R8 Implementation Phase 1 — Campaign Stage の選択カード。
+// activeなpackはmanifest（すでにStage定義から固定構成で作られている）から読む。
+function campaignStageCard(sequence) {
+  const stage = CAMPAIGN_STAGES[sequence];
+  const selected = state.selectedCampaignStageSequence === sequence;
+  const newPack = PACK_BY_ID[stage.newPackId];
+  return "<button type=\"button\" class=\"difficulty-card " + (selected ? "selected" : "")
+    + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-campaign-stage\" data-sequence=\"" + sequence
+    + "\"><b>" + esc(stage.displayName) + "</b><small>今回初登場: " + esc(newPack?.displayName ?? stage.newPackId) + "</small>"
+    + "<span class=\"difficulty-meta\">有効パック " + stage.activePackCount + " · "
+    + stage.returningPackIds.map((id) => esc(PACK_BY_ID[id]?.displayName ?? id)).join(" / ") + "</span></button>";
+}
+
 function renderExpeditionStart() {
   const manifest = state.run.manifest;
   const ranks = availableDifficulties(state.profile);
+  const campaignStages = availableCampaignStages(state.profile);
+  const isCampaign = state.expeditionMode === "campaign";
   const packs = SKILL_PACKS.map((pack) => {
     const on = manifest.enabledPackIds.includes(pack.id);
     return "<div class=\"pack-row " + (on ? "on" : "off") + "\"><b>" + esc(pack.displayName)
@@ -755,6 +807,29 @@ function renderExpeditionStart() {
         + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
         + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
     + "</nav>";
+  // R8 §1.1 — Campaign は「難易度rank」ではなく、Stageごとに固有のpack構成を持つ。
+  // 自由遠征（旧・難易度rank）は早々にキャンペーンへ統合予定なので格下げする
+  // （既定はキャンペーン、表示順も後ろへ。作者判断、2026-08-31）。
+  const modeTabs = "<nav class=\"tabs\" aria-label=\"遠征の仕立て方\">"
+    + [["campaign", "キャンペーン", "Stage 0-" + MAX_CAMPAIGN_STAGE_SEQUENCE], ["free", "自由遠征（旧仕様）", "難易度rank"]]
+      .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.expeditionMode === id ? "active" : "")
+        + "\" aria-current=\"" + (state.expeditionMode === id ? "step" : "false")
+        + "\" data-action=\"expedition-mode\" data-mode=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
+    + "</nav>";
+  const difficultySection = "<section class=\"card\">" + sectionHeading("DIFFICULTY / 0 - " + MAX_DIFFICULTY_RANK, "どの難易度で出るか",
+      "<span class=\"stage\">解禁 " + ranks.length + " / " + (MAX_DIFFICULTY_RANK + 1) + "</span>")
+    + "<p class=\"muted\">難易度は活動資金で買えません。<b>一つ前をクリアしたときだけ次が開きます。</b>報酬は難易度1つにつき+10%です。</p>"
+    + "<div class=\"difficulty-grid\">" + ranks.map(difficultyCard).join("") + "</div>";
+  const campaignSection = "<section class=\"card\">" + sectionHeading(
+      "CAMPAIGN STAGE / 0 - " + MAX_CAMPAIGN_STAGE_SEQUENCE, "どのStageへ出るか",
+      "<span class=\"stage\">解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) + "</span>")
+    + "<p class=\"muted\">Stageは活動資金で買えず、飛ばせません。<b>一つ前をクリアしたときだけ次が開きます。</b>"
+    + "pack構成はseedに関係なくStageごとに固定です（R8 §1.1-1.2）。</p>"
+    + "<div class=\"difficulty-grid\">" + campaignStages.map(campaignStageCard).join("") + "</div>"
+    + (CAMPAIGN_STAGES[state.selectedCampaignStageSequence]?.learningGoals?.length
+      ? "<ul class=\"boss-counters\">" + CAMPAIGN_STAGES[state.selectedCampaignStageSequence].learningGoals
+          .map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul>"
+      : "");
   const expeditionBody = ""
     + "<section class=\"card\">" + sectionHeading("EXPEDITION / " + esc(REGION.displayName), "この遠征に出るもの",
       "<span class=\"stage\">活動資金 " + formatFunds(funds()) + "</span>")
@@ -764,10 +839,7 @@ function renderExpeditionStart() {
     + "<section class=\"card\">" + sectionHeading("ACT BOSSES / 3", "先に見えている3つの法則")
     + "<p class=\"muted\">ボスの法則は遠征開始時から見えます。途中の報酬を「最後に向けて取る」判断ができます。</p>"
     + "<div class=\"boss-grid\">" + bosses + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("DIFFICULTY / 0 - " + MAX_DIFFICULTY_RANK, "どの難易度で出るか",
-      "<span class=\"stage\">解禁 " + ranks.length + " / " + (MAX_DIFFICULTY_RANK + 1) + "</span>")
-    + "<p class=\"muted\">難易度は活動資金で買えません。<b>一つ前をクリアしたときだけ次が開きます。</b>報酬は難易度1つにつき+10%です。</p>"
-    + "<div class=\"difficulty-grid\">" + ranks.map(difficultyCard).join("") + "</div>"
+    + modeTabs + (isCampaign ? campaignSection : difficultySection)
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
   const body = state.guildTab === "guild" ? renderGuild() : expeditionBody;
   return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う", tabs + note + body);
@@ -1167,7 +1239,7 @@ function suppliesBar(context) {
   const pips = Array.from({ length: MAX_SUPPLIES }, (_, index) =>
     "<span class=\"supply-pip " + (index < supplies ? "on" : "") + "\"></span>").join("");
   const uses = Object.entries(SUPPLY_USES)
-    .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", scout: "偵察" }[id])
+    .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", scout: "偵察", camp: "野営治療" }[id])
       + "</b> " + esc(text) + "</li>").join("");
   return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + MAX_SUPPLIES
     + "</b><span>" + esc(context ?? "3つの用途で取り合う") + "</span></div>"
@@ -1207,6 +1279,12 @@ function renderMap() {
           + "偵察で見えるのは、個体・位置・変異の組み合わせです。</p>"
           + button("補給1で次の幕を偵察する", "scout", state.run.supplies < 1, "button") + "</div>")
       + "</section>";
+  const ruleBlock = isCampaignRun()
+    ? "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">"
+      + "通常・精鋭戦後は現在HPを次の戦闘へ持ち越します（R8 §1.5）。4戦目・8戦目のボスを倒したときだけ全員が全回復します。"
+      + "<b>敵を倒さずに粘っても、有限の補給（下の野営治療）を使わない限りHPは戻りません。</b>"
+      + "負けても補給が残っていれば、編成を変えて同じ戦闘へ挑み直せます（開始前のHPへ戻ります）。</p></section>"
+    : "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">戦闘中のHPと装備耐久は、その戦闘の中だけ有効です。勝敗が決まると最大へ戻ります。<b>遠征の緊張は持ち越しHPではなく、補給・報酬・敵の重さで作ります。</b>負けても補給が残っていれば、編成を変えて同じ戦闘へ挑み直せます。</p></section>";
   return "<section class=\"card\">" + sectionHeading("EXPEDITION / 3 ACTS · " + ENCOUNTERS_PER_RUN + " BATTLES",
       "次の敵を見る", "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
     + "<div class=\"map-progress\">" + progress + "</div>"
@@ -1217,12 +1295,53 @@ function renderMap() {
     + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
     + button("この敵に挑む", "begin-stage", false, "button primary") + "</section>"
     + "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給をどこへ使う？") + suppliesBar() + "</section>"
+    + (isCampaignRun() ? campTreatmentBlock() : "")
     + scoutBlock
     + "<section class=\"card\">" + sectionHeading("TARGETING", "敵は誰を狙う？")
     + "<p class=\"muted\">敵ごとに狙いが違います。前列を守るだけでなく、後列優先・準備中優先の攻撃もあります。戦闘前に確認し、隊列とリアクティブを組み直してください。</p>"
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
       + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">戦闘中のHPと装備耐久は、その戦闘の中だけ有効です。勝敗が決まると最大へ戻ります。<b>遠征の緊張は持ち越しHPではなく、補給・報酬・敵の重さで作ります。</b>負けても補給が残っていれば、編成を変えて同じ戦闘へ挑み直せます。</p></section>";
+    + ruleBlock;
+}
+
+// R8 §9.2 / §10.2 — 野営治療。補給1で3種のうちどれか一つ。
+// 対象は自動選択する（集中治療=最もHP割合の低い生存者、全体手当=生存者全員、
+// 蘇生=最初の戦闘不能者）。simpleな一次実装であり、対象を選ぶUIはまだ無い。
+function campTreatmentBlock() {
+  const alive = state.run.roster.filter((id) => currentHp(id) > 0);
+  const defeated = state.run.roster.filter((id) => currentHp(id) <= 0);
+  const rows = Object.values(CAMP_TREATMENTS).map((treatment) => {
+    const applicable = treatment.revive ? defeated.length > 0 : alive.some((id) => currentHp(id) < maxHp(id));
+    const disabled = state.run.supplies < 1 || !applicable;
+    return "<div class=\"purchase-row\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
+      + "</b><small>" + esc(treatment.summary) + "</small></span>"
+      + button("補給1で使う", "treat", disabled, "tiny-button primary-mini", "data-treatment=\"" + esc(treatment.id) + "\"")
+      + "</div>";
+  }).join("");
+  return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営で治療する（補給を消費）")
+    + "<p class=\"muted\">戦闘外で戻せるHPは、ここで補給を払った分だけです。誰を治療するかは自動選択します"
+    + "（集中治療は最もHP割合の低い生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者）。</p>" + rows + "</section>";
+}
+
+// R8 §11 — exact preview。副作用なしで次戦を1回実行し、結果を表示する。
+// simulateアクションが実際に使うのと同じBattleInput構成経路（simulateNextBattle）
+// を通るので、ここに出る結果は実行結果と完全一致する。
+function nextBattlePreviewBlock() {
+  let preview;
+  try {
+    preview = previewNextBattle(state.run, state.profile, state.run.encounterIndex);
+  } catch {
+    return "";
+  }
+  const resultLabel = { win: "勝利", loss: "敗北", draw: "決着つかず" }[preview.result] ?? preview.result;
+  const rows = preview.perCharacter.map((entry) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
+    + esc(characterInfo(entry.characterId)?.icon ?? "・") + "</span><div><b>" + esc(characterName(entry.characterId))
+    + "</b><small>" + (entry.defeated ? "戦闘不能" : "生存") + "</small></div><span>"
+    + entry.startingHp + " → " + entry.endingHp + "</span></div>").join("");
+  return "<section class=\"card\">" + sectionHeading("EXACT PREVIEW", "この構成のまま進めた結果",
+      "<span class=\"stage\">" + resultLabel + " · " + preview.roundsUsed + "ラウンド</span>")
+    + "<p class=\"muted\">無料・副作用なしの試算です。<b>同じ構成なら「自動戦闘を再生する」と完全に同じ結果になります。</b></p>"
+    + "<div class=\"plan-list\">" + rows + "</div></section>";
 }
 
 function renderBattlePreview() {
@@ -1238,7 +1357,8 @@ function renderBattlePreview() {
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
       + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</div>"
     + button("自動戦闘を再生する", "simulate", false, "button primary")
-    + button("キャンプへ戻る", "back-camp", false, "button") + "</section>");
+    + button("キャンプへ戻る", "back-camp", false, "button") + "</section>"
+    + nextBattlePreviewBlock());
 }
 
 function actorName(id) {
@@ -1825,11 +1945,18 @@ function renderBattleError() {
 }
 
 function resultActors(result) {
-  return (result?.actors || []).filter((actor) => actor.side === "ally").map((actor) =>
-    "<div class=\"result-actor\"><span class=\"avatar small\">" + esc(characterInfo(actor.definitionId)?.icon ?? "・")
+  // R8 §1.5 — Campaign Stage は「次戦」も持ち越しHP（run.currentHp、
+  // commitBattleResultが既に確定済み）。Free / Endless は従来どおり毎戦満タン。
+  return (result?.actors || []).filter((actor) => actor.side === "ally").map((actor) => {
+    const characterId = String(actor.instanceId ?? "").replace(/^a_/, "");
+    const nextHp = isCampaignRun()
+      ? Math.max(0, Math.min(actor.maxHp, state.run.currentHp?.[characterId] ?? actor.maxHp))
+      : actor.maxHp;
+    return "<div class=\"result-actor\"><span class=\"avatar small\">" + esc(characterInfo(actor.definitionId)?.icon ?? "・")
       + "</span><div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
       + (actor.alive ? "戦闘内 HP " + actor.hp + "/" + actor.maxHp : "戦闘内 戦闘不能")
-      + " → 次戦 HP " + actor.maxHp + "/" + actor.maxHp + " · 防壁 " + actor.barrier + "</small></div></div>").join("");
+      + " → 次戦 HP " + nextHp + "/" + actor.maxHp + " · 防壁 " + actor.barrier + "</small></div></div>";
+  }).join("");
 }
 
 function renderResult() {
@@ -1857,7 +1984,10 @@ function renderResult() {
     + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
     + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div></section>"
     + "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "次の戦闘へ持ち越す状態")
-    + "<p class=\"muted\">戦闘中のHPと装備耐久は次の戦闘へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。</p>"
+    + "<p class=\"muted\">" + (isCampaignRun()
+      ? "装備耐久は次の戦闘へ持ち越しません（次戦は最大から）。<b>HPは持ち越します。</b>4戦目・8戦目のボスを倒したときだけ全員が全回復します（R8 §1.5）。"
+      : "戦闘中のHPと装備耐久は次の戦闘へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。")
+    + "</p>"
     + "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
     + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
     + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p><div class=\"result-actors\">"
@@ -1952,27 +2082,42 @@ function renderSettlement() {
   if (!settlement) return renderExpeditionStart();
   const b = settlement.breakdown;
   const won = settlement.outcome === "won";
+  // R8 §10.3 — 安全撤退は敗北ではない。完走・初clearボーナスは付かないが、
+  // 確定済み活動資金はそのまま持ち帰る（撃破ゼロ没収はしない）。
+  const retreated = settlement.outcome === "retreat";
   const rows = [
     ["撃破した戦闘", b.clearedEncounterBase],
     ["到達距離（" + state.run.fundLedger.highestClearedEncounter + "戦 × 25）", b.distance],
     ["12戦完走", b.outcomeBonus],
     ["この難易度の初回クリア", b.firstClearBonus],
   ].map(([label, value]) => "<div class=\"settle-row\"><span>" + esc(label) + "</span><b>" + value + "</b></div>").join("");
-  return shell(won ? "遠征を終えた" : "遠征は途中で終わった",
+  const title = won ? "遠征を終えた" : retreated ? "安全に撤退した" : "遠征は途中で終わった";
+  return shell(title,
     "難易度 " + state.run.difficulty + " · " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + " 戦",
     "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
-    + (won ? "✦" : "◆") + "</div><h2>活動資金 " + formatFunds(settlement.earned) + " を持ち帰った</h2>"
+    + (won ? "✦" : retreated ? "◇" : "◆") + "</div><h2>活動資金 " + formatFunds(settlement.earned) + " を持ち帰った</h2>"
     + "<p>残高 " + formatFunds(settlement.balanceBefore) + " → <b>" + formatFunds(settlement.balanceAfter) + "</b></p></section>"
     + "<section class=\"card\">" + sectionHeading("SETTLEMENT", "内訳")
     + "<div class=\"settle-list\">" + rows + "</div>"
     + "<div class=\"settle-row total\"><span>難易度倍率</span><b>×"
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
     + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
-    + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは活動資金だけです。</p></section>"
+    + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは活動資金だけです。"
+    + (isCampaignRun()
+      ? "手続き生成装備・Blueprint archive（Phase C）はまだ実装していません。今回の結果分類（"
+        + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "）では最大" + settlement.blueprintSaveLimit
+        + "件まで保存できる設計です。"
+      : "")
+    + "</p></section>"
     + (settlement.unlockedDifficulty !== null
       ? "<section class=\"card\"><p class=\"eyebrow\">DIFFICULTY</p><h3>難易度 "
         + settlement.unlockedDifficulty + " が開いた</h3><p class=\"muted\">"
         + esc(difficultyDef(settlement.unlockedDifficulty).summary) + "</p></section>"
+      : "")
+    + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
+      ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
+        + esc(CAMPAIGN_STAGES[settlement.unlockedCampaignStage]?.displayName ?? ("Stage " + settlement.unlockedCampaignStage))
+        + " が開いた</h3></section>"
       : "")
     + "<section class=\"card quiet\">"
     + button("ギルドへ戻る", "back-guild", false, "button primary")
@@ -2084,11 +2229,51 @@ function handleAction(event) {
     // 画面が「難易度0」と言いながら rank 1 を走らせる。
     const ranks = availableDifficulties(profile);
     const rank = Math.min(state.selectedDifficulty ?? 0, ranks[ranks.length - 1]);
+    // R8 Implementation Phase 1 — mode を保ち、campaign なら解禁済みStageへ丸める。
+    const mode = state.expeditionMode === "campaign" ? "campaign" : "free";
+    const campaignStages = availableCampaignStages(profile);
+    const campaignStage = Math.min(state.selectedCampaignStageSequence ?? 0, campaignStages[campaignStages.length - 1]);
     const guildCharacterId = state.guildCharacter;
-    state = { ...freshUiState(), profile, run: startRun(profile, { difficulty: rank }) };
+    state = {
+      ...freshUiState(),
+      profile,
+      run: startRun(profile, mode === "campaign" ? { campaignStageSequence: campaignStage } : { difficulty: rank }),
+    };
     state.phase = "expeditionStart";
+    state.expeditionMode = mode;
     state.selectedDifficulty = rank;
+    state.selectedCampaignStageSequence = campaignStage;
     state.guildCharacter = guildCharacterId;
+    saveState();
+    render();
+    return;
+  }
+
+  // R8 Implementation Phase 1 — 遠征の仕立て方を Free ⇔ Campaign で切り替える。
+  if (action === "expedition-mode") {
+    const mode = element.dataset.mode === "campaign" ? "campaign" : "free";
+    if (mode === state.expeditionMode) return;
+    state.expeditionMode = mode;
+    state.run = startRun(state.profile, mode === "campaign"
+      ? { campaignStageSequence: state.selectedCampaignStageSequence ?? 0, roster: state.run.roster }
+      : { difficulty: state.selectedDifficulty ?? 0, roster: state.run.roster });
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-campaign-stage") {
+    const sequence = Number(element.dataset.sequence);
+    if (!Number.isInteger(sequence) || !availableCampaignStages(state.profile).includes(sequence)) return;
+    state.selectedCampaignStageSequence = sequence;
+    // Stageはpack構成・報酬倍率を変えるのでrunを作り直すが、**seedは持ち回す**
+    // （campaignのpack選択はseedに依存しないが、敵順・報酬は依存するため）。
+    state.run = startRun(state.profile, {
+      campaignStageSequence: sequence,
+      roster: state.run.roster,
+      runSeed: state.run.runSeed,
+      runId: state.run.runId,
+    });
     saveState();
     render();
     return;
@@ -2114,6 +2299,7 @@ function handleAction(event) {
     const rank = Number(element.dataset.rank);
     if (!Number.isInteger(rank) || !availableDifficulties(state.profile).includes(rank)) return;
     state.selectedDifficulty = rank;
+    state.expeditionMode = "free";
     // 難易度は開始補給と敵編成を変えるので run を作り直すが、
     // **seed は持ち回す**（manifest を引き直させない）。
     state.run = startRun(state.profile, {
@@ -2136,6 +2322,7 @@ function handleAction(event) {
       // 買った枠と補給は、いま仕立てている遠征へすぐ効く。seed は持ち回す。
       state.run = startRun(state.profile, {
         difficulty: state.run.difficulty,
+        campaignStageSequence: state.run.campaignStageSequence,
         roster: state.run.roster,
         runSeed: state.run.runSeed,
         runId: state.run.runId,
@@ -2432,7 +2619,10 @@ function handleAction(event) {
       state.tab = "roster";
     } else {
       state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
-      resetBattleResources();
+      // R8 §1.5 / §10 — Campaign StageはHPを持ち越すので満タンへ戻さない。
+      // 装備耐久はどちらのmodeも毎戦リセット（持ち越しはまだ未実装）。
+      if (isCampaignRun()) resetEquipmentDurability();
+      else resetBattleResources();
       state.battleError = null;
       record("loadout_confirmed", {
         stage: state.run.encounterIndex,
@@ -2458,7 +2648,9 @@ function handleAction(event) {
         state.run.runSeed,
         state.run.formation,
         {
-          hp: state.hp,
+          // R8 §1.5 — Campaign Stage は run.currentHp（持ち越しHP）を渡す。
+          // Free / Endless は従来どおり state.hp（毎戦満タン）。
+          hp: isCampaignRun() ? state.run.currentHp : state.hp,
           equipmentDurability: state.equipmentDurability,
           limitsFor,
           statsFor,
@@ -2504,7 +2696,16 @@ function handleAction(event) {
         reason: result.reason,
         roundsUsed: result.roundsUsed,
       });
-      resetBattleResources();
+      // R8 §8, §10 — Campaign Stage: 勝利時だけHPをcommitする（敗北時はrunを
+      // 変更しない=retry safe）。4/8戦目boss勝利後はcommitBattleResultが全回復する。
+      if (isCampaignRun()) {
+        const commit = commitBattleResult(state.profile, state.run, state.run.encounterIndex, result);
+        state.run = commit.run;
+        state.lastCarrySnapshot = commit.snapshot;
+        resetEquipmentDurability();
+      } else {
+        resetBattleResources();
+      }
       state.phase = "battle";
     } catch (error) {
       state.error = error.message;
@@ -2527,7 +2728,10 @@ function handleAction(event) {
           recentEvents: diagnostics.recentEvents ?? [],
         },
       };
-      resetBattleResources();
+      // engineが例外を投げた場合はBattleResultが無いので、Campaign Stageでも
+      // currentHpは変更しない（validateBattleInputで事前に弾かれるのが通常経路）。
+      if (isCampaignRun()) resetEquipmentDurability();
+      else resetBattleResources();
       state.error = null;
       state.phase = "battleError";
     }
@@ -2740,12 +2944,39 @@ function handleAction(event) {
     return;
   }
 
+  // R8 §9.2 / §10.2 — 野営治療。対象は自動選択する（campTreatmentBlockのUIと対応）。
+  if (action === "treat") {
+    const treatmentId = element.dataset.treatment;
+    const treatment = CAMP_TREATMENTS[treatmentId];
+    let targets = [];
+    if (treatment?.revive) {
+      const target = state.run.roster.find((id) => currentHp(id) <= 0);
+      if (target) targets = [target];
+    } else if (treatment) {
+      const target = [...state.run.roster]
+        .filter((id) => currentHp(id) > 0 && currentHp(id) < maxHp(id))
+        .sort((a, b) => currentHp(a) / maxHp(a) - currentHp(b) / maxHp(b))[0];
+      if (target) targets = [target];
+    }
+    const result = campTreat(state.run, state.profile, treatmentId, targets);
+    if (!result.ok) {
+      state.error = result.reason;
+    } else {
+      state.run = result.run;
+      record("camp_treated", { treatmentId, targets: result.treated ?? [], supplies: state.run.supplies });
+    }
+    saveState();
+    render();
+    return;
+  }
+
   // R6 §9.2 — 精算は勝敗・放棄のいずれでも一度だけ。**ここが唯一の入口。**
   if (action === "settle-run" || action === "abandon-run") {
     const won = action === "settle-run"
       && state.run.encounterIndex >= ENCOUNTERS_PER_RUN
       && state.lastResult?.result === "win";
-    const outcome = won ? "won" : action === "abandon-run" ? "abandoned" : "lost";
+    // R8 §10.3 — 「放棄」は自発的な安全撤退として扱う（won/lostに続く3つ目のoutcome）。
+    const outcome = won ? "won" : action === "abandon-run" ? "retreat" : "lost";
     const result = settleRun(state.profile, state.run, outcome);
     if (!result.ok) {
       state.error = result.reason;

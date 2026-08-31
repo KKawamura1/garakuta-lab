@@ -10,13 +10,11 @@ import { bpsForLegacyAmount, cloneActive, renamed, scaleDefinitionAmounts } from
 
 export const ACTIVE_SKILL_NAMES = {
   strike: "斬撃",
-  mend: "手当て",
   bulwark: "防壁形成",
   relay_order: "号令",
   heavy_swing: "溜め突き",
   reposition: "位置替え",
   long_swing: "大溜め",
-  triage: "応急手当",
   hunt_the_slow: "準備狩り",
   idle_shuffle: "息を整える",
   mark_target: "隙を刻む",
@@ -33,6 +31,12 @@ export const ACTIVE_SKILL_NAMES = {
 };
 
 const activeSkills = renamed("activeSkills", ACTIVE_SKILL_NAMES);
+// R8 Implementation Phase 1（続き）— mend/triage は anti-stall 安全な reactive
+// （content/skills-reactive.mjs）へ作り替えたので、fixture 由来の active 版を
+// production content から外す。fixture-content.mjs 自体は変更しない
+// （engine/schema の witness として §15.1 が引き続き使う）。
+delete activeSkills.mend;
+delete activeSkills.triage;
 // The R5 fixture's idle_shuffle is intentionally a zero-cost infinite-loop
 // witness. It must not leak into player-facing content, including old saves
 // that may already contain the id. Keep the id as a safe compatibility alias.
@@ -86,16 +90,6 @@ activeSkills.enemy_guard = cloneActive("bulwark", "enemy_guard", ACTIVE_SKILL_NA
   }],
 });
 
-// A support action is only worth spending when it can change the board. If no
-// ally is injured, mend is not a weaker empty heal: its target query is empty
-// and the engine selects the core normal attack instead.
-activeSkills.mend.targetQuery = {
-  scope: "allies",
-  filters: [{ type: "alive" }, { type: "hp_percent", op: "lt", value: 100 }],
-  sort: ["hp_asc"],
-  take: 1,
-};
-
 // Likewise, marking an already exposed target has no tactical value. Keep the
 // effect strong on a fresh target and let the normal attack handle repeats.
 activeSkills.mark_target.targetQuery = {
@@ -112,20 +106,11 @@ activeSkills.mark_target.targetQuery = {
 export const ACTIVE_SCALING = {
   // R6 §4.4 が名指し
   strike: { stat: "might", bps: 12_000 },          // 斬撃 might 120%
-  // 手当て focus 120%。**斬撃と同じ係数**にしてある。
-  // bpsForLegacyAmount(10) は 250% であり（旧尺度の量10 → 中立 focus 40 で 2.5倍）、
-  // ミナ（focus 44、maxHp 180）の1回の回復が 110、**自分の最大HPの61%**だった。
-  // その結果「全員に回復を持たせる」だけの編成が素朴な編成の中で突出して強く
-  // （耐久1.90倍。全員攻撃1.43倍、攻撃2回復2防御1で1.55倍）、
-  // 考えて組んだ編成との差を潰していた。**1回の回復 ≒ 1回の攻撃**へ揃える。
-  mend: { stat: "focus", bps: 12_000 },
   bulwark: { stat: "focus", bps: bpsForLegacyAmount(8) }, // 防壁形成 focus 80%
   // 攻撃系 → might。溜めや条件を持つので、成立時は通常攻撃を上回る
   heavy_swing: { stat: "might", bps: bpsForLegacyAmount(22) },
   long_swing: { stat: "might", bps: bpsForLegacyAmount(40) },
   hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(12) },
-  // 支援系 → focus
-  triage: { stat: "focus", bps: 12_000 },   // 手当てと同じ理由で 120%
   // 敵の技能。basic strike は might 100%、重い一撃は might 140%
   front_strike: { stat: "might", bps: 10_000 },
   rear_strike: { stat: "might", bps: 10_000 },
@@ -345,7 +330,7 @@ activeSkills.brace_for_impact = {
 // These skills encode a board-state requirement in their target query. Keep
 // the same requirement as an explicit skill predicate so they are all handled
 // uniformly with row_sweep and other conditional tactics.
-for (const skillId of ["mend", "triage", "hunt_the_slow", "mark_target"]) {
+for (const skillId of ["hunt_the_slow", "mark_target"]) {
   activeSkills[skillId].intrinsicPredicates = [hasEligibleTarget(activeSkills[skillId].targetQuery)];
 }
 
@@ -389,8 +374,6 @@ const ACTION_MODES = {
   front_strike: "offense",
   rear_strike: "offense",
   enemy_heavy: "channel",
-  mend: "utility",
-  triage: "utility",
   bulwark: "utility",
   enemy_guard: "utility",
   relay_order: "utility",
@@ -402,5 +385,165 @@ const ACTION_MODES = {
 for (const [id, mode] of Object.entries(ACTION_MODES)) {
   if (activeSkills[id]) activeSkills[id].actionMode = mode;
 }
+
+// ---------------------------------------------------------------- pack_barrage（R8 §5.4）
+//
+// Stage 3 の新パック `pack_barrage`（連撃と刻印）。
+// Implementation Phase 1 では `barrage_strike` / `mark_strike` の2 active だけの
+// 最小限で止めていた（system migration と content 追加を混ぜない §19.4）。
+// ここは Implementation Phase 2（Stage 0〜3 probe content、1 probe batch）で、
+// R8 §6.4 の密度契約（active 4〜6、offense 3以上、発生源・変換器・利得先を
+// 各1つ以上）へ近づける。probe batch上限（active 5）を使い切る。
+//
+//   発生源: barrage_strike（多段 hit）、mark_strike（隙の付与）
+//   変換器: sweeping_barrage / piercing_barrage（行・列で対象数を稼ぐ多段）
+//   利得先: mark_break（隙を消費する高倍率の一撃）
+//
+// 新しい engine/schema 語彙は使わない（hitCount、add_status、remove_status、
+// targetPattern はすべて既存語彙）。
+activeSkills.barrage_strike = {
+  id: "barrage_strike",
+  displayName: "連撃",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 4_500 },
+    hitCount: 3,
+    tags: ["attack", "weapon", "onhit"],
+  }],
+  tags: ["attack", "onhit"],
+};
+activeSkills.mark_strike = {
+  id: "mark_strike",
+  displayName: "刻印撃ち",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [{
+    type: "target_exists",
+    op: "gte",
+    value: 1,
+    query: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "eq", value: 0 }],
+      take: "all",
+    },
+  }],
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "eq", value: 0 }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  effects: [
+    {
+      type: "deal_damage",
+      target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 10_000 },
+      tags: ["attack", "weapon", "mark"],
+    },
+    { type: "add_status", target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 }, statusId: "exposed", stacks: 1 },
+  ],
+  tags: ["attack", "mark"],
+};
+// 利得先。隙（exposed）を持つ敵だけを狙い、消費して高倍率で返す
+// （mark_strikeが作った隙をmark_breakが刈り取る、pack内で閉じた1本道）。
+activeSkills.mark_break = {
+  id: "mark_break",
+  displayName: "刻印砕き",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [{
+    type: "target_exists",
+    op: "gte",
+    value: 1,
+    query: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "gte", value: 1 }],
+      take: "all",
+    },
+  }],
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "gte", value: 1 }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  effects: [
+    {
+      type: "deal_damage",
+      target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 13_000 },
+      tags: ["attack", "weapon", "mark", "execute"],
+    },
+    { type: "remove_status", target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 }, statusId: "exposed", stacks: "all" },
+  ],
+  tags: ["attack", "mark", "execute"],
+};
+// 変換器。前列が2体以上いるときだけ、行を1hitずつ2回薙ぐ。対象がいなければ
+// 通常攻撃へ戻る（row_sweepと同じ契約）。Wの隊列操作が対象数を左右する。
+activeSkills.sweeping_barrage = {
+  id: "sweeping_barrage",
+  displayName: "連ぎ払い",
+  apCost: 1,
+  actionMode: "offense",
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  intrinsicPredicates: [{
+    type: "target_exists",
+    op: "gte",
+    value: 2,
+    query: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+      take: "all",
+    },
+  }],
+  effects: [{
+    type: "deal_damage",
+    target: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+      sort: ["position_asc"],
+      take: 1,
+    },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 4_000 },
+    hitCount: 2,
+    targetPattern: "row",
+    tags: ["attack", "weapon", "onhit"],
+  }],
+  tags: ["attack", "onhit"],
+};
+// 変換器。同じ列の前後へ1hitずつ2回。後列を庇う列を多段で崩す。
+activeSkills.piercing_barrage = {
+  id: "piercing_barrage",
+  displayName: "貫き連撃",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 4_800 },
+    hitCount: 2,
+    targetPattern: "column",
+    tags: ["attack", "weapon", "onhit"],
+  }],
+  tags: ["attack", "onhit"],
+};
+
+setDamageReach(activeSkills.barrage_strike, "melee");
+setDamageReach(activeSkills.mark_strike, "melee");
+setDamageReach(activeSkills.mark_break, "melee");
+setDamageReach(activeSkills.sweeping_barrage, "melee");
+setDamageReach(activeSkills.piercing_barrage, "melee");
 
 export const ACTIVE_SKILLS = activeSkills;
