@@ -2,7 +2,10 @@
 /core/*
   Content-Type: text/javascript; charset=utf-8
 
-/ecology/*
+/ecology/*.mjs
+  Content-Type: text/javascript; charset=utf-8
+
+/ecology/content/*.mjs
   Content-Type: text/javascript; charset=utf-8
 
 /ecology/app.js
