@@ -298,9 +298,10 @@ function freshUiState() {
     selectedSkillNode: null,
     selectedEquipment: null,
     selectedDifficulty: 0,
-    // R8 Implementation Phase 1 — 遠征の仕立て方。"free" は従来の
-    // 難易度rank選択（random manifest）、"campaign" はStage 0〜3の固定manifest。
-    expeditionMode: "free",
+    // R8 Implementation Phase 1 — 遠征の仕立て方。既定は "campaign"
+    // （Stage 0〜3の固定manifest）。"free" は旧・難易度rank選択（random manifest）で、
+    // 早々にcampaignへ統合予定のため格下げしてある（作者判断、2026-08-31）。
+    expeditionMode: "campaign",
     selectedCampaignStageSequence: 0,
     treatTargets: [],
     selectedRewardCharacter: null,
@@ -330,7 +331,7 @@ function freshUiState() {
 
 function initialState() {
   const profile = newProfile();
-  return { ...freshUiState(), profile, run: startRun(profile), phase: "intro" };
+  return { ...freshUiState(), profile, run: startRun(profile, { campaignStageSequence: 0 }), phase: "intro" };
 }
 
 // R6 §16 — version 不一致を黙って読み飛ばさない。
@@ -807,8 +808,10 @@ function renderExpeditionStart() {
         + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
     + "</nav>";
   // R8 §1.1 — Campaign は「難易度rank」ではなく、Stageごとに固有のpack構成を持つ。
+  // 自由遠征（旧・難易度rank）は早々にキャンペーンへ統合予定なので格下げする
+  // （既定はキャンペーン、表示順も後ろへ。作者判断、2026-08-31）。
   const modeTabs = "<nav class=\"tabs\" aria-label=\"遠征の仕立て方\">"
-    + [["free", "自由遠征", "難易度rank"], ["campaign", "キャンペーン", "Stage 0-" + MAX_CAMPAIGN_STAGE_SEQUENCE]]
+    + [["campaign", "キャンペーン", "Stage 0-" + MAX_CAMPAIGN_STAGE_SEQUENCE], ["free", "自由遠征（旧仕様）", "難易度rank"]]
       .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.expeditionMode === id ? "active" : "")
         + "\" aria-current=\"" + (state.expeditionMode === id ? "step" : "false")
         + "\" data-action=\"expedition-mode\" data-mode=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")

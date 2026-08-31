@@ -86,7 +86,11 @@ try {
   note("ギルド（遠征を仕立てる）に着く", /この遠征に出るもの/.test(guildText));
   note("有効な技能パックが出ている", /この遠征では出ない/.test(guildText) && /有効/.test(guildText));
   note("3体のボスと法則が先に見えている", /盾将の法則/.test(guildText) && /核の法則/.test(guildText));
-  note("難易度が出ている", /難易度 0/.test(guildText));
+  // R8 Implementation Phase 1（続き）— 既定タブはキャンペーンへ格下げされた
+  // （自由遠征は早々にキャンペーンへ統合予定）。この通しは旧・自由遠征の
+  // 難易度flowを見る経路なので、明示的にタブを切り替える。
+  await page.locator('[data-action="expedition-mode"][data-mode="free"]').click();
+  note("難易度が出ている", /難易度 0/.test(await bodyText()));
 
   // R6 §9.3 — ギルド投資。**買い物の画面が実在して、値段と残高が出るか。**
   await page.locator('[data-action="guild-tab"][data-tab="guild"]').click();
