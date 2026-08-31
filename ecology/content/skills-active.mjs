@@ -10,13 +10,11 @@ import { bpsForLegacyAmount, cloneActive, renamed, scaleDefinitionAmounts } from
 
 export const ACTIVE_SKILL_NAMES = {
   strike: "斬撃",
-  mend: "手当て",
   bulwark: "防壁形成",
   relay_order: "号令",
   heavy_swing: "溜め突き",
   reposition: "位置替え",
   long_swing: "大溜め",
-  triage: "応急手当",
   hunt_the_slow: "準備狩り",
   idle_shuffle: "息を整える",
   mark_target: "隙を刻む",
@@ -33,6 +31,12 @@ export const ACTIVE_SKILL_NAMES = {
 };
 
 const activeSkills = renamed("activeSkills", ACTIVE_SKILL_NAMES);
+// R8 Implementation Phase 1（続き）— mend/triage は anti-stall 安全な reactive
+// （content/skills-reactive.mjs）へ作り替えたので、fixture 由来の active 版を
+// production content から外す。fixture-content.mjs 自体は変更しない
+// （engine/schema の witness として §15.1 が引き続き使う）。
+delete activeSkills.mend;
+delete activeSkills.triage;
 // The R5 fixture's idle_shuffle is intentionally a zero-cost infinite-loop
 // witness. It must not leak into player-facing content, including old saves
 // that may already contain the id. Keep the id as a safe compatibility alias.
@@ -86,16 +90,6 @@ activeSkills.enemy_guard = cloneActive("bulwark", "enemy_guard", ACTIVE_SKILL_NA
   }],
 });
 
-// A support action is only worth spending when it can change the board. If no
-// ally is injured, mend is not a weaker empty heal: its target query is empty
-// and the engine selects the core normal attack instead.
-activeSkills.mend.targetQuery = {
-  scope: "allies",
-  filters: [{ type: "alive" }, { type: "hp_percent", op: "lt", value: 100 }],
-  sort: ["hp_asc"],
-  take: 1,
-};
-
 // Likewise, marking an already exposed target has no tactical value. Keep the
 // effect strong on a fresh target and let the normal attack handle repeats.
 activeSkills.mark_target.targetQuery = {
@@ -112,20 +106,11 @@ activeSkills.mark_target.targetQuery = {
 export const ACTIVE_SCALING = {
   // R6 §4.4 が名指し
   strike: { stat: "might", bps: 12_000 },          // 斬撃 might 120%
-  // 手当て focus 120%。**斬撃と同じ係数**にしてある。
-  // bpsForLegacyAmount(10) は 250% であり（旧尺度の量10 → 中立 focus 40 で 2.5倍）、
-  // ミナ（focus 44、maxHp 180）の1回の回復が 110、**自分の最大HPの61%**だった。
-  // その結果「全員に回復を持たせる」だけの編成が素朴な編成の中で突出して強く
-  // （耐久1.90倍。全員攻撃1.43倍、攻撃2回復2防御1で1.55倍）、
-  // 考えて組んだ編成との差を潰していた。**1回の回復 ≒ 1回の攻撃**へ揃える。
-  mend: { stat: "focus", bps: 12_000 },
   bulwark: { stat: "focus", bps: bpsForLegacyAmount(8) }, // 防壁形成 focus 80%
   // 攻撃系 → might。溜めや条件を持つので、成立時は通常攻撃を上回る
   heavy_swing: { stat: "might", bps: bpsForLegacyAmount(22) },
   long_swing: { stat: "might", bps: bpsForLegacyAmount(40) },
   hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(12) },
-  // 支援系 → focus
-  triage: { stat: "focus", bps: 12_000 },   // 手当てと同じ理由で 120%
   // 敵の技能。basic strike は might 100%、重い一撃は might 140%
   front_strike: { stat: "might", bps: 10_000 },
   rear_strike: { stat: "might", bps: 10_000 },
@@ -345,7 +330,7 @@ activeSkills.brace_for_impact = {
 // These skills encode a board-state requirement in their target query. Keep
 // the same requirement as an explicit skill predicate so they are all handled
 // uniformly with row_sweep and other conditional tactics.
-for (const skillId of ["mend", "triage", "hunt_the_slow", "mark_target"]) {
+for (const skillId of ["hunt_the_slow", "mark_target"]) {
   activeSkills[skillId].intrinsicPredicates = [hasEligibleTarget(activeSkills[skillId].targetQuery)];
 }
 
@@ -389,8 +374,6 @@ const ACTION_MODES = {
   front_strike: "offense",
   rear_strike: "offense",
   enemy_heavy: "channel",
-  mend: "utility",
-  triage: "utility",
   bulwark: "utility",
   enemy_guard: "utility",
   relay_order: "utility",

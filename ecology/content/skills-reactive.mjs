@@ -27,6 +27,8 @@ export const REACTIVE_SKILL_NAMES = {
   block_focus: "受け返しの集中",
   barrier_stitch: "防壁の縫い直し",
   emergency_treatment: "応急処置",
+  mend: "手当て",
+  triage: "応急手当",
 };
 
 const reactiveSkills = renamed("reactiveSkills", REACTIVE_SKILL_NAMES);
@@ -122,6 +124,83 @@ reactiveSkills.emergency_treatment = {
     limit: { scope: "chain", count: 1 },
   },
   tags: ["reaction", "care", "emergency"],
+};
+
+// R8 Implementation Phase 1（続き）— mend / triage を anti-stall 安全な reactive
+// へ作り替える（analysis/ecology-anti-stall-audit.mjs が是正前の active 版を
+// 検出していた。R8_IMPLEMENTATION_PHASE0_FREEZE.md §3、作者承認済み）。
+//
+// どちらも emergency_treatment と同じ理由で安全: `damage_taken` にだけ反応し、
+// 実回復量はその被弾量の一部（event_value_scaled）に固定される。**古い損傷へは
+// 効かない**——新しい damage_taken が起きない限り発火しようがないので、round を
+// 稼いで待つだけでは carry HP が改善しない。
+//
+//   mend   … baseline。誰の被弾でも（自分自身も含む）少量を返す安全弁。
+//   triage … pack_care。被弾後にHP50%以下になった対象へ、より大きな割合を返す。
+//            「応急手当」という名の由来どおり、危機的な一撃だけに強く反応する。
+const ALLY_IS_EVENT_TARGET = {
+  type: "target_exists",
+  query: { scope: "allies", filters: [{ type: "alive" }, { type: "is_event_primary_target" }], take: 1 },
+};
+const HIT_ALLY_TARGET = {
+  scope: "allies",
+  filters: [{ type: "alive" }, { type: "is_event_primary_target" }],
+  take: 1,
+};
+const HIT_ALLY_BELOW_HALF_QUERY = {
+  scope: "allies",
+  filters: [
+    { type: "alive" },
+    { type: "is_event_primary_target" },
+    { type: "hp_percent", op: "lte", value: 50 },
+  ],
+  take: 1,
+};
+
+reactiveSkills.mend = {
+  id: "mend",
+  displayName: REACTIVE_SKILL_NAMES.mend,
+  rule: {
+    id: "mend_rule",
+    listenTo: "damage_taken",
+    timing: "after",
+    priority: 160,
+    predicates: [ALLY_IS_EVENT_TARGET],
+    costs: [{ type: "spend_reaction_points", amount: 1 }],
+    effects: [{
+      type: "heal",
+      target: HIT_ALLY_TARGET,
+      // 被弾量の1/4だけを返す。R8 §9.1 の worked example（被弾36→応急処置12）と
+      // 同じ形の、baseline 向けに控えめな比率。
+      amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 4 },
+      tags: ["care"],
+    }],
+    limit: { scope: "chain", count: 1 },
+  },
+  tags: ["reaction", "care"],
+};
+
+reactiveSkills.triage = {
+  id: "triage",
+  displayName: REACTIVE_SKILL_NAMES.triage,
+  rule: {
+    id: "triage_rule",
+    listenTo: "damage_taken",
+    timing: "after",
+    priority: 140,
+    predicates: [{ type: "target_exists", query: HIT_ALLY_BELOW_HALF_QUERY }],
+    costs: [{ type: "spend_reaction_points", amount: 1 }],
+    effects: [{
+      type: "heal",
+      target: HIT_ALLY_BELOW_HALF_QUERY,
+      // HP半分以下まで削られた一撃にだけ強く反応する。被弾量の1/2を返す。
+      amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 2 },
+      // "triage" タグは triage_relay（既存）が event_tag 述語で読む。
+      tags: ["care", "triage"],
+    }],
+    limit: { scope: "chain", count: 1 },
+  },
+  tags: ["reaction", "care"],
 };
 
 export const REACTIVE_SKILLS = reactiveSkills;

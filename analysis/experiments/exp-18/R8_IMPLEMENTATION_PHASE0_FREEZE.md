@@ -64,7 +64,11 @@ round ごとに全回復する AP で何度でも再発動できる active heal 
    使用回数を機械的に制限する」対処は、既存の active skill 語彙の範囲では
    実装できない。
 
-**提案する修正（未実施・Sol 判断待ち）**: `mend`/`triage` を、被弾と
+**実施済み（2026-08-31、作者承認）**: 下記の提案どおり `mend`/`triage` を
+reactive へ作り替えた。詳細は
+[R8_IMPLEMENTATION_PHASE1_STATUS.md](./R8_IMPLEMENTATION_PHASE1_STATUS.md) §3。
+
+**提案した修正（実施済み）**: `mend`/`triage` を、被弾と
 同じ reaction chain 内だけで発火する reactive（`listenTo: "damage_taken"`,
 `amount: {type: "event_value_scaled", key: "amount", numerator: 1, denominator: 3}`
 のような形）へ作り替える。この形は R8 §9.1 の「応急処置」の worked example

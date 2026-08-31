@@ -22,8 +22,11 @@ export const CHARACTER_DEFINITIONS = [
     icon: "手",
     defaultPosition: "rear_left",
     summary: "傷ついた仲間を立て直し、余った回復も無駄にしない。",
-    starterTactics: ["mend", "triage"],
-    starterReactives: ["overflow_care", "triage_relay"],
+    // R8 Implementation Phase 1（続き）— mend/triage は reactive（被弾直後に
+    // その一部だけを返す）へ作り替えたので、starterReactives 側へ移した。
+    // active側は基本の攻め筋（strike）と、集中を整えるidle_shuffleを残す。
+    starterTactics: ["strike", "idle_shuffle"],
+    starterReactives: ["mend", "triage"],
   },
   {
     id: "lancer",

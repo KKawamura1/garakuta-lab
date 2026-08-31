@@ -21,7 +21,12 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // slot の構造上限が 3/3 から 4/4 になった。**語彙が増えたので上げる。**
 // R8 Implementation Phase 1 — emergency_treatment（reactive skill）、
 // pack_barrage（barrage_strike / mark_strike）、CampaignStageDef 語彙を追加した。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-4";
+// R8 Implementation Phase 1（続き）— mend/triage を active から reactive へ
+// 作り替えた（意味が変わったので追加ではなく上げる。§3.9「一度公開した意味を
+// 黙って変えない」への対応。ID と表示名はそのままで、kind だけ active から
+// reactiveSkills へ移った。ecology-contract-smoke.mjs の「別内容への再利用は
+// 禁止」検査に引っかかるので、下の RETIRED_IDS へ理由と行き先を明記する）。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-5";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -31,7 +36,25 @@ export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-4";
 //   retired_skill_id: { since: "0.4", reason: "…", replacedBy: "new_skill_id" }
 //
 // analysis/ecology-contract-smoke.mjs が、凍結済み ID との差をここで照合する。
-export const RETIRED_IDS = Object.freeze({});
+export const RETIRED_IDS = Object.freeze({
+  // R8 Implementation Phase 1（続き）— activeSkills.mend / activeSkills.triage を
+  // 引退させた。**別内容への再利用ではない**——同じ意味・同じ表示名の技能を
+  // reactiveSkills.mend / reactiveSkills.triage として作り替えたので、ID・
+  // 表示名はそのまま、content section だけが変わった。理由は
+  // analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3。
+  mend: {
+    since: "ecology-content-contract-5",
+    reason: "AP専用のactiveがHP持ち越し下でanti-stall不変条件に違反した"
+      + "（analysis/ecology-anti-stall-audit.mjs）。damage_taken反応・chain限定の"
+      + "reactiveへ作り替えた。",
+    replacedBy: "reactiveSkills.mend",
+  },
+  triage: {
+    since: "ecology-content-contract-5",
+    reason: "mend と同じ理由。",
+    replacedBy: "reactiveSkills.triage",
+  },
+});
 
 // 表示名を持つ節。DISPLAY_NAMES の作り方をここ一箇所に閉じる。
 export const NAMED_SECTIONS = Object.freeze([
@@ -91,6 +114,7 @@ export { EQUIPMENT_GROUPS, STARTER_EQUIPMENT_IDS } from "./equipment-fixed.mjs";
 export {
   BASELINE_ACTIVE_SKILL_IDS,
   BASELINE_PASSIVE_SKILL_IDS,
+  BASELINE_REACTIVE_SKILL_IDS,
   PACKS_PER_MANIFEST,
   PACK_BY_ID,
   PACK_COMBAT_ROLES,

@@ -18,13 +18,11 @@ const activeMeta = {
   crack_mark: ["傷口を開く", "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。", "攻撃"],
   brace_for_impact: ["衝撃に備える", "受け構えを1つ得てから、通常の追い打ちを行う。多段攻撃には剥がされやすい。", "守り"],
   strike: ["斬撃", "最も弱った敵へ、通常攻撃を上回る120%の単発。", "攻撃"],
-  mend: ["手当て", "傷ついた味方を集中力の120%回復。対象がいなければスキップ。", "支援"],
   bulwark: ["防壁形成", "自分に集中力の200%のラウンド防壁を張ってから、追い打ちを行う。", "守り"],
   relay_order: ["号令", "前衛の最速の味方へ行動権を1渡す。", "指揮"],
   heavy_swing: ["溜め突き", "準備1回のあと、550%の一撃。開始と準備で行動権を計2つ使う。", "攻撃"],
   reposition: ["位置替え", "後衛なら、最も傷ついた前衛と場所を替える。", "機動"],
   long_swing: ["大溜め", "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。", "攻撃"],
-  triage: ["応急手当", "HP半分以下の味方を集中力の120%回復。対象がいなければスキップ。", "支援"],
   hunt_the_slow: ["準備狩り", "準備中の敵がいるときだけ300%で狙う。対象がいなければスキップ。", "攻撃"],
   idle_shuffle: ["息を整える", "自分に集中を1つ付ける。集中中はスキップ。", "準備"],
   mark_target: ["隙を刻む", "まだ「隙」のない敵に付与する。対象がいなければスキップ。", "指揮"],
@@ -46,6 +44,12 @@ const reactiveMeta = {
   prep_spiral: ["準備の螺旋", "準備が進むたび、自分の準備をさらに1段進める。", "準備"],
   block_focus: ["受け返しの集中", "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。", "防御"],
   barrier_stitch: ["防壁の縫い直し", "防壁が壊れたあと、RP1で受け構えを1つ得る。", "防御"],
+  // R8 Implementation Phase 1（続き）— mend/triage を anti-stall 安全な reactive
+  // へ作り替えた（analysis/ecology-anti-stall-audit.mjs 是正、作者承認済み）。
+  // どれも「同じ被弾の一部だけを返す」形で、古い損傷やround稼ぎでは発火しない。
+  mend: ["手当て", "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。", "回復"],
+  triage: ["応急手当", "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。", "回復"],
+  emergency_treatment: ["応急処置", "自分が被弾した直後、RP1でその被弾量の33%を返す。", "回復"],
 };
 
 const equipmentMeta = {
@@ -102,8 +106,11 @@ export const SKILL_TREE_NODES = Object.freeze([
   { id: "node_reposition", skillId: "reposition", kind: "active", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
   { id: "node_mark", skillId: "mark_target", kind: "active", branch: "指揮", tier: 2, cost: 1, requires: ["reposition"] },
   { id: "node_aim", skillId: "steady_aim", kind: "active", branch: "指揮", tier: 2, cost: 2, requires: ["mark_target"] },
-  { id: "node_mend", skillId: "mend", kind: "active", branch: "支援", tier: 0, cost: 0, requires: [] },
-  { id: "node_triage", skillId: "triage", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
+  // R8 Implementation Phase 1（続き）— mend/triage は reactive（damage_taken に
+  // 反応する応急処置）へ作り替えた。kind だけを直し、tier・requires は変えない。
+  { id: "node_mend", skillId: "mend", kind: "reactive", branch: "支援", tier: 0, cost: 0, requires: [] },
+  { id: "node_triage", skillId: "triage", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
+  { id: "node_emergency_treatment", skillId: "emergency_treatment", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
   { id: "node_idle", skillId: "idle_shuffle", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
   { id: "node_bulwark", skillId: "bulwark", kind: "active", branch: "守り", tier: 0, cost: 0, requires: [] },
   { id: "node_counter", skillId: "counter_blow", kind: "reactive", branch: "攻撃", tier: 0, cost: 1, requires: ["strike"] },

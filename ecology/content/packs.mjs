@@ -10,8 +10,13 @@
 // ここを触ってよいのは 統合 担当だけ（種類をまたぐため）。engine・schema は変更しない。
 
 // R6 §5.2 — baseline。**どの manifest でも行動不能な人物を作らない**ために、
-// 最低限の攻撃・回復・防壁はパックに属さず常に使える。
-export const BASELINE_ACTIVE_SKILL_IDS = Object.freeze(["strike", "mend", "bulwark"]);
+// 最低限の攻撃・防壁はパックに属さず常に使える。
+export const BASELINE_ACTIVE_SKILL_IDS = Object.freeze(["strike", "bulwark"]);
+
+// R8 Implementation Phase 1（続き）— mend は anti-stall 安全な reactive へ
+// 作り替えたので baseline reactive へ移した（analysis/ecology-anti-stall-audit.mjs、
+// R8_IMPLEMENTATION_PHASE0_FREEZE.md §3、作者承認済み）。
+export const BASELINE_REACTIVE_SKILL_IDS = Object.freeze(["mend"]);
 
 // R6 §6.8 — 常設 fallback passive は詰み防止なので、パックに属さない。
 // manifest がどうであれ、7種すべていつでも取れる。
@@ -46,8 +51,8 @@ export const SKILL_PACKS = Object.freeze([
     displayName: "手当てと余剰",
     summary: "溢れた回復を捨てず、削られながら立て直す。",
     combatRole: "support",
-    activeSkillIds: Object.freeze(["triage", "idle_shuffle"]),
-    reactiveSkillIds: Object.freeze(["overflow_care", "triage_relay", "brace_after_hit", "emergency_treatment"]),
+    activeSkillIds: Object.freeze(["idle_shuffle"]),
+    reactiveSkillIds: Object.freeze(["overflow_care", "triage_relay", "brace_after_hit", "emergency_treatment", "triage"]),
     tags: Object.freeze(["heal", "overflow"]),
   }),
   Object.freeze({
@@ -96,7 +101,7 @@ export const PACK_BY_ID = Object.freeze(
 // **baseline は必ず入る。**ここが唯一の合成地点で、画面もツリーもここを読む。
 export function skillIdsForPacks(packIds) {
   const active = new Set(BASELINE_ACTIVE_SKILL_IDS);
-  const reactive = new Set();
+  const reactive = new Set(BASELINE_REACTIVE_SKILL_IDS);
   const passive = new Set(BASELINE_PASSIVE_SKILL_IDS);
   for (const packId of packIds ?? []) {
     const pack = PACK_BY_ID[packId];
@@ -121,7 +126,8 @@ export function packOfSkill(skillId) {
       || pack.reactiveSkillIds.includes(skillId)
       || (pack.passiveSkillIds ?? []).includes(skillId)) return pack.id;
   }
-  if (BASELINE_ACTIVE_SKILL_IDS.includes(skillId) || BASELINE_PASSIVE_SKILL_IDS.includes(skillId)) {
+  if (BASELINE_ACTIVE_SKILL_IDS.includes(skillId) || BASELINE_REACTIVE_SKILL_IDS.includes(skillId)
+    || BASELINE_PASSIVE_SKILL_IDS.includes(skillId)) {
     return "baseline";
   }
   return null;

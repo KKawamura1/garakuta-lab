@@ -269,79 +269,6 @@
     ],
     "actionMode": "offense"
    },
-   "mend": {
-    "id": "mend",
-    "displayName": "手当て",
-    "apCost": 1,
-    "intrinsicPredicates": [
-     {
-      "type": "target_exists",
-      "op": "gte",
-      "value": 1,
-      "query": {
-       "scope": "allies",
-       "filters": [
-        {
-         "type": "alive"
-        },
-        {
-         "type": "hp_percent",
-         "op": "lt",
-         "value": 100
-        }
-       ],
-       "sort": [
-        "hp_asc"
-       ],
-       "take": "all"
-      }
-     }
-    ],
-    "targetQuery": {
-     "scope": "allies",
-     "filters": [
-      {
-       "type": "alive"
-      },
-      {
-       "type": "hp_percent",
-       "op": "lt",
-       "value": 100
-      }
-     ],
-     "sort": [
-      "hp_asc"
-     ],
-     "take": 1
-    },
-    "effects": [
-     {
-      "type": "heal",
-      "target": {
-       "scope": "event_targets",
-       "filters": [
-        {
-         "type": "alive"
-        }
-       ],
-       "take": 1
-      },
-      "amount": {
-       "type": "stat_scaled",
-       "subject": "self",
-       "scalingStat": "focus",
-       "coefficientBps": 12000
-      },
-      "tags": [
-       "care"
-      ]
-     }
-    ],
-    "tags": [
-     "care"
-    ],
-    "actionMode": "utility"
-   },
    "bulwark": {
     "id": "bulwark",
     "displayName": "防壁形成",
@@ -578,80 +505,6 @@
      "termination"
     ],
     "actionMode": "channel"
-   },
-   "triage": {
-    "id": "triage",
-    "displayName": "応急手当",
-    "apCost": 1,
-    "intrinsicPredicates": [
-     {
-      "type": "target_exists",
-      "op": "gte",
-      "value": 1,
-      "query": {
-       "scope": "allies",
-       "filters": [
-        {
-         "type": "alive"
-        },
-        {
-         "type": "hp_percent",
-         "op": "lte",
-         "value": 50
-        }
-       ],
-       "sort": [
-        "hp_asc"
-       ],
-       "take": "all"
-      }
-     }
-    ],
-    "targetQuery": {
-     "scope": "allies",
-     "filters": [
-      {
-       "type": "alive"
-      },
-      {
-       "type": "hp_percent",
-       "op": "lte",
-       "value": 50
-      }
-     ],
-     "sort": [
-      "hp_asc"
-     ],
-     "take": 1
-    },
-    "effects": [
-     {
-      "type": "heal",
-      "target": {
-       "scope": "event_targets",
-       "filters": [
-        {
-         "type": "alive"
-        }
-       ],
-       "take": 1
-      },
-      "amount": {
-       "type": "stat_scaled",
-       "subject": "self",
-       "scalingStat": "focus",
-       "coefficientBps": 12000
-      },
-      "tags": [
-       "care",
-       "triage"
-      ]
-     }
-    ],
-    "tags": [
-     "care"
-    ],
-    "actionMode": "utility"
    },
    "hunt_the_slow": {
     "id": "hunt_the_slow",
@@ -2895,6 +2748,151 @@
      "care",
      "emergency"
     ]
+   },
+   "mend": {
+    "id": "mend",
+    "displayName": "手当て",
+    "rule": {
+     "id": "mend_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 160,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "heal",
+       "target": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 1,
+        "denominator": 4
+       },
+       "tags": [
+        "care"
+       ]
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care"
+    ]
+   },
+   "triage": {
+    "id": "triage",
+    "displayName": "応急手当",
+    "rule": {
+     "id": "triage_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 140,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lte",
+          "value": 50
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "heal",
+       "target": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lte",
+          "value": 50
+         }
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 1,
+        "denominator": 2
+       },
+       "tags": [
+        "care",
+        "triage"
+       ]
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care"
+    ]
    }
   },
   "passiveSkills": {
@@ -5061,13 +5059,11 @@
   "arcanist": "アオ — 溜める人",
   "tactician": "トワ — つなぐ人",
   "strike": "斬撃",
-  "mend": "手当て",
   "bulwark": "防壁形成",
   "relay_order": "号令",
   "heavy_swing": "溜め突き",
   "reposition": "位置替え",
   "long_swing": "大溜め",
-  "triage": "応急手当",
   "hunt_the_slow": "準備狩り",
   "idle_shuffle": "息を整える",
   "mark_target": "隙を刻む",
@@ -5108,6 +5104,8 @@
   "block_focus": "受け返しの集中",
   "barrier_stitch": "防壁の縫い直し",
   "emergency_treatment": "応急処置",
+  "mend": "手当て",
+  "triage": "応急手当",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -5178,12 +5176,12 @@
    "defaultPosition": "rear_left",
    "summary": "傷ついた仲間を立て直し、余った回復も無駄にしない。",
    "starterTactics": [
-    "mend",
-    "triage"
+    "strike",
+    "idle_shuffle"
    ],
    "starterReactives": [
-    "overflow_care",
-    "triage_relay"
+    "mend",
+    "triage"
    ]
   },
   {
@@ -5359,14 +5357,6 @@
     "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
     "grammar": "攻撃"
    },
-   "mend": {
-    "id": "mend",
-    "kind": "active",
-    "definitionId": "mend",
-    "label": "手当て",
-    "effect": "傷ついた味方を集中力の120%回復。対象がいなければスキップ。",
-    "grammar": "支援"
-   },
    "bulwark": {
     "id": "bulwark",
     "kind": "active",
@@ -5406,14 +5396,6 @@
     "label": "大溜め",
     "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
     "grammar": "攻撃"
-   },
-   "triage": {
-    "id": "triage",
-    "kind": "active",
-    "definitionId": "triage",
-    "label": "応急手当",
-    "effect": "HP半分以下の味方を集中力の120%回復。対象がいなければスキップ。",
-    "grammar": "支援"
    },
    "hunt_the_slow": {
     "id": "hunt_the_slow",
@@ -5560,6 +5542,30 @@
     "label": "防壁の縫い直し",
     "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
     "grammar": "防御"
+   },
+   "mend": {
+    "id": "mend",
+    "kind": "reactive",
+    "definitionId": "mend",
+    "label": "手当て",
+    "effect": "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。",
+    "grammar": "回復"
+   },
+   "triage": {
+    "id": "triage",
+    "kind": "reactive",
+    "definitionId": "triage",
+    "label": "応急手当",
+    "effect": "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。",
+    "grammar": "回復"
+   },
+   "emergency_treatment": {
+    "id": "emergency_treatment",
+    "kind": "reactive",
+    "definitionId": "emergency_treatment",
+    "label": "応急処置",
+    "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
+    "grammar": "回復"
    }
   },
   "passive": {
@@ -5928,14 +5934,6 @@
    "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
    "grammar": "攻撃"
   },
-  "mend": {
-   "id": "mend",
-   "kind": "active",
-   "definitionId": "mend",
-   "label": "手当て",
-   "effect": "傷ついた味方を集中力の120%回復。対象がいなければスキップ。",
-   "grammar": "支援"
-  },
   "bulwark": {
    "id": "bulwark",
    "kind": "active",
@@ -5975,14 +5973,6 @@
    "label": "大溜め",
    "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
    "grammar": "攻撃"
-  },
-  "triage": {
-   "id": "triage",
-   "kind": "active",
-   "definitionId": "triage",
-   "label": "応急手当",
-   "effect": "HP半分以下の味方を集中力の120%回復。対象がいなければスキップ。",
-   "grammar": "支援"
   },
   "hunt_the_slow": {
    "id": "hunt_the_slow",
@@ -6127,6 +6117,30 @@
    "label": "防壁の縫い直し",
    "effect": "防壁が壊れたあと、RP1で受け構えを1つ得る。",
    "grammar": "防御"
+  },
+  "mend": {
+   "id": "mend",
+   "kind": "reactive",
+   "definitionId": "mend",
+   "label": "手当て",
+   "effect": "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。",
+   "grammar": "回復"
+  },
+  "triage": {
+   "id": "triage",
+   "kind": "reactive",
+   "definitionId": "triage",
+   "label": "応急手当",
+   "effect": "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。",
+   "grammar": "回復"
+  },
+  "emergency_treatment": {
+   "id": "emergency_treatment",
+   "kind": "reactive",
+   "definitionId": "emergency_treatment",
+   "label": "応急処置",
+   "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
+   "grammar": "回復"
   },
   "foundation_vitality": {
    "id": "foundation_vitality",
@@ -6420,13 +6434,11 @@
   "crack_mark",
   "brace_for_impact",
   "strike",
-  "mend",
   "bulwark",
   "relay_order",
   "heavy_swing",
   "reposition",
   "long_swing",
-  "triage",
   "hunt_the_slow",
   "idle_shuffle",
   "mark_target",
@@ -6445,6 +6457,9 @@
   "prep_spiral",
   "block_focus",
   "barrier_stitch",
+  "mend",
+  "triage",
+  "emergency_treatment",
   "foundation_vitality",
   "foundation_might",
   "foundation_focus",
@@ -6566,7 +6581,7 @@
   {
    "id": "node_mend",
    "skillId": "mend",
-   "kind": "active",
+   "kind": "reactive",
    "branch": "支援",
    "tier": 0,
    "cost": 0,
@@ -6575,7 +6590,18 @@
   {
    "id": "node_triage",
    "skillId": "triage",
-   "kind": "active",
+   "kind": "reactive",
+   "branch": "支援",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mend"
+   ]
+  },
+  {
+   "id": "node_emergency_treatment",
+   "skillId": "emergency_treatment",
+   "kind": "reactive",
    "branch": "支援",
    "tier": 1,
    "cost": 1,
@@ -7067,9 +7093,8 @@
    "strike",
    "mend",
    "bulwark",
-   "triage",
-   "overflow_care",
-   "triage_relay"
+   "idle_shuffle",
+   "triage"
   ],
   "lancer": [
    "strike",
@@ -7128,8 +7153,8 @@
     "strike"
    ],
    "mender": [
-    "mend",
-    "triage"
+    "strike",
+    "idle_shuffle"
    ],
    "lancer": [
     "strike",
@@ -7150,8 +7175,8 @@
     "cover_ally"
    ],
    "mender": [
-    "overflow_care",
-    "triage_relay"
+    "mend",
+    "triage"
    ],
    "lancer": [
     "scavenge_ap",
@@ -7235,14 +7260,14 @@
    "summary": "溢れた回復を捨てず、削られながら立て直す。",
    "combatRole": "support",
    "activeSkillIds": [
-    "triage",
     "idle_shuffle"
    ],
    "reactiveSkillIds": [
     "overflow_care",
     "triage_relay",
     "brace_after_hit",
-    "emergency_treatment"
+    "emergency_treatment",
+    "triage"
    ],
    "tags": [
     "heal",
@@ -15986,7 +16011,6 @@
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
-    "mend",
     "bulwark"
    ],
    "enabledPackIds": [
@@ -16017,7 +16041,6 @@
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
-    "mend",
     "bulwark"
    ],
    "enabledPackIds": [
@@ -16048,7 +16071,6 @@
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
-    "mend",
     "bulwark"
    ],
    "enabledPackIds": [

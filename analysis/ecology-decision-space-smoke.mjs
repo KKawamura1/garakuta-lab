@@ -425,8 +425,9 @@ function authorLoadout() {
   loadout.tactics.guardian = ["bulwark"];
   loadout.reactives.guardian = ["cover_ally"];
   loadout.equipment.guardian = ["bastion_shell", "standing_plate"];
-  loadout.tactics.mender = ["mend"];
-  loadout.reactives.mender = ["overflow_care"];
+  // R8 Implementation Phase 1（続き）— mend は reactive へ移った。
+  loadout.tactics.mender = ["strike"];
+  loadout.reactives.mender = ["mend", "overflow_care"];
   loadout.equipment.mender = ["guard_lantern", "worn_greaves"];
   for (const id of AUTHOR_ROSTER) loadout.passives[id] = ["foundation_ap", "foundation_rp"];
   return loadout;
@@ -534,9 +535,11 @@ const ROLE_KITS = {
     passives: ["foundation_vitality", "foundation_guard"],
     equipment: ["bastion_shell", "standing_plate"],
   },
+  // R8 Implementation Phase 1（続き）— mend/triage は reactive へ移った
+  // ので、回復役の active は strike/idle_shuffle/bulwark、mend/triage は reactives へ。
   回復: {
-    tactics: ["mend", "triage", "strike"],
-    reactives: ["overflow_care", "triage_relay", "brace_after_hit"],
+    tactics: ["strike", "idle_shuffle", "bulwark"],
+    reactives: ["mend", "triage", "overflow_care"],
     passives: ["foundation_vitality", "foundation_ap"],
     equipment: ["quickstrap", "reserve_coil"],
   },
