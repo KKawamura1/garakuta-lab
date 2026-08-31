@@ -20,7 +20,7 @@ smokes=(
   analysis/ecology-upload-smoke.mjs
 )
 
-for smoke in "\${smokes[@]}"; do
+for smoke in "${smokes[@]}"; do
   echo "smoke: $smoke"
   node "$smoke"
 done
