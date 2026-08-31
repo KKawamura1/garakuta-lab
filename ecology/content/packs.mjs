@@ -82,8 +82,10 @@ export const SKILL_PACKS = Object.freeze([
     displayName: "連撃と刻印",
     summary: "多段と刻印で、受けよりblockに強い攻め筋を問う。",
     combatRole: "primary_offense",
-    activeSkillIds: Object.freeze(["barrage_strike", "mark_strike"]),
-    reactiveSkillIds: Object.freeze([]),
+    activeSkillIds: Object.freeze([
+      "barrage_strike", "mark_strike", "mark_break", "sweeping_barrage", "piercing_barrage",
+    ]),
+    reactiveSkillIds: Object.freeze(["guarded_opening", "seize_the_opening"]),
     tags: Object.freeze(["attack", "onhit", "mark"]),
   }),
 ]);

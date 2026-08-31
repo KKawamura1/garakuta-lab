@@ -26,7 +26,10 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 黙って変えない」への対応。ID と表示名はそのままで、kind だけ active から
 // reactiveSkills へ移った。ecology-contract-smoke.mjs の「別内容への再利用は
 // 禁止」検査に引っかかるので、下の RETIRED_IDS へ理由と行き先を明記する）。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-5";
+// R8 Implementation Phase 2 — pack_barrage の probe content
+// （mark_break / sweeping_barrage / piercing_barrage / guarded_opening /
+// seize_the_opening）を追加した。語彙が増えたので上げる。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-6";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

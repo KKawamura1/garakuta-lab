@@ -27,6 +27,12 @@ const activeMeta = {
   idle_shuffle: ["息を整える", "自分に集中を1つ付ける。集中中はスキップ。", "準備"],
   mark_target: ["隙を刻む", "まだ「隙」のない敵に付与する。対象がいなければスキップ。", "指揮"],
   steady_aim: ["狙いを澄ます", "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。", "準備"],
+  // R8 Implementation Phase 2 — pack_barrage（連撃と刻印、Stage 3）の密度。
+  barrage_strike: ["連撃", "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。", "攻撃"],
+  mark_strike: ["刻印撃ち", "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。", "攻撃"],
+  mark_break: ["刻印砕き", "「隙」を持つ敵へ130%で攻撃し、隙を刈り取る。対象がいなければスキップ。", "攻撃"],
+  sweeping_barrage: ["連ぎ払い", "前列の敵が2体以上いるとき、同じ行を40%×2回薙ぐ。対象がいなければスキップ。", "攻撃"],
+  piercing_barrage: ["貫き連撃", "同じ列の前後を48%×2回貫く。後列を庇う列を多段で崩す。", "攻撃"],
 };
 
 const reactiveMeta = {
@@ -50,6 +56,10 @@ const reactiveMeta = {
   mend: ["手当て", "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。", "回復"],
   triage: ["応急手当", "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。", "回復"],
   emergency_treatment: ["応急処置", "自分が被弾した直後、RP1でその被弾量の33%を返す。", "回復"],
+  // R8 Implementation Phase 2 — pack_barrage（続き）。W・Tが既に発生させている
+  // eventを読み、同じ利得先（隙の付与）へ2つの発生源からつなぐ。
+  guarded_opening: ["受け止めの隙", "自分が受け構えで一撃を止めたあと、RP1でHPが最も高い敵へ「隙」を付ける。", "指揮"],
+  seize_the_opening: ["機を逃さず", "自分が行動権を得たあと、RP1でHPが最も高い敵へ「隙」を付ける。", "指揮"],
 };
 
 const equipmentMeta = {
@@ -137,6 +147,14 @@ export const SKILL_TREE_NODES = Object.freeze([
   { id: "node_finishing", skillId: "finishing_thrust", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["strike"] },
   { id: "node_crack_mark", skillId: "crack_mark", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
   { id: "node_brace_impact", skillId: "brace_for_impact", kind: "active", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
+  // R8 §5.4（続き）— pack_barrage の probe content。
+  { id: "node_barrage", skillId: "barrage_strike", kind: "active", branch: "攻撃", tier: 0, cost: 1, requires: [] },
+  { id: "node_mark_strike", skillId: "mark_strike", kind: "active", branch: "攻撃", tier: 0, cost: 1, requires: [] },
+  { id: "node_mark_break", skillId: "mark_break", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
+  { id: "node_sweeping_barrage", skillId: "sweeping_barrage", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["barrage_strike"] },
+  { id: "node_piercing_barrage", skillId: "piercing_barrage", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["barrage_strike"] },
+  { id: "node_guarded_opening", skillId: "guarded_opening", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
+  { id: "node_seize_the_opening", skillId: "seize_the_opening", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
   // R6 §6.8 — 基礎訓練。**前提を持たない**ので、どの人物もいつでも取れる。
   { id: "node_found_vitality", skillId: "foundation_vitality", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
   { id: "node_found_might", skillId: "foundation_might", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },

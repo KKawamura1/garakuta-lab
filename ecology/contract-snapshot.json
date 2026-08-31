@@ -1760,6 +1760,233 @@
      "attack",
      "mark"
     ]
+   },
+   "mark_break": {
+    "id": "mark_break",
+    "displayName": "刻印砕き",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "gte",
+         "value": 1
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "gte",
+       "value": 1
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 13000
+      },
+      "tags": [
+       "attack",
+       "weapon",
+       "mark",
+       "execute"
+      ],
+      "reach": "melee"
+     },
+     {
+      "type": "remove_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": "all"
+     }
+    ],
+    "tags": [
+     "attack",
+     "mark",
+     "execute"
+    ]
+   },
+   "sweeping_barrage": {
+    "id": "sweeping_barrage",
+    "displayName": "連ぎ払い",
+    "apCost": 1,
+    "actionMode": "offense",
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "front"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 2,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4000
+      },
+      "hitCount": 2,
+      "targetPattern": "row",
+      "tags": [
+       "attack",
+       "weapon",
+       "onhit"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack",
+     "onhit"
+    ]
+   },
+   "piercing_barrage": {
+    "id": "piercing_barrage",
+    "displayName": "貫き連撃",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4800
+      },
+      "hitCount": 2,
+      "targetPattern": "column",
+      "tags": [
+       "attack",
+       "weapon",
+       "onhit"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack",
+     "onhit"
+    ]
    }
   },
   "reactiveSkills": {
@@ -2892,6 +3119,132 @@
     "tags": [
      "reaction",
      "care"
+    ]
+   },
+   "guarded_opening": {
+    "id": "guarded_opening",
+    "displayName": "受け止めの隙",
+    "rule": {
+     "id": "guarded_opening_rule",
+     "listenTo": "damage_blocked",
+     "timing": "after",
+     "priority": 130,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "sort": [
+         "hp_desc"
+        ],
+        "take": 1
+       },
+       "statusId": "exposed",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "mark"
+    ]
+   },
+   "seize_the_opening": {
+    "id": "seize_the_opening",
+    "displayName": "機を逃さず",
+    "rule": {
+     "id": "seize_the_opening_rule",
+     "listenTo": "resource_gained",
+     "timing": "after",
+     "priority": 130,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "sort": [
+         "hp_desc"
+        ],
+        "take": 1
+       },
+       "statusId": "exposed",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "mark"
     ]
    }
   },
@@ -5087,6 +5440,9 @@
   "brace_for_impact": "衝撃に備える",
   "barrage_strike": "連撃",
   "mark_strike": "刻印撃ち",
+  "mark_break": "刻印砕き",
+  "sweeping_barrage": "連ぎ払い",
+  "piercing_barrage": "貫き連撃",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -5106,6 +5462,8 @@
   "emergency_treatment": "応急処置",
   "mend": "手当て",
   "triage": "応急手当",
+  "guarded_opening": "受け止めの隙",
+  "seize_the_opening": "機を逃さず",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -5428,6 +5786,46 @@
     "label": "狙いを澄ます",
     "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
     "grammar": "準備"
+   },
+   "barrage_strike": {
+    "id": "barrage_strike",
+    "kind": "active",
+    "definitionId": "barrage_strike",
+    "label": "連撃",
+    "effect": "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
+    "grammar": "攻撃"
+   },
+   "mark_strike": {
+    "id": "mark_strike",
+    "kind": "active",
+    "definitionId": "mark_strike",
+    "label": "刻印撃ち",
+    "effect": "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "mark_break": {
+    "id": "mark_break",
+    "kind": "active",
+    "definitionId": "mark_break",
+    "label": "刻印砕き",
+    "effect": "「隙」を持つ敵へ130%で攻撃し、隙を刈り取る。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "sweeping_barrage": {
+    "id": "sweeping_barrage",
+    "kind": "active",
+    "definitionId": "sweeping_barrage",
+    "label": "連ぎ払い",
+    "effect": "前列の敵が2体以上いるとき、同じ行を40%×2回薙ぐ。対象がいなければスキップ。",
+    "grammar": "攻撃"
+   },
+   "piercing_barrage": {
+    "id": "piercing_barrage",
+    "kind": "active",
+    "definitionId": "piercing_barrage",
+    "label": "貫き連撃",
+    "effect": "同じ列の前後を48%×2回貫く。後列を庇う列を多段で崩す。",
+    "grammar": "攻撃"
    }
   },
   "reactive": {
@@ -5566,6 +5964,22 @@
     "label": "応急処置",
     "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
     "grammar": "回復"
+   },
+   "guarded_opening": {
+    "id": "guarded_opening",
+    "kind": "reactive",
+    "definitionId": "guarded_opening",
+    "label": "受け止めの隙",
+    "effect": "自分が受け構えで一撃を止めたあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+    "grammar": "指揮"
+   },
+   "seize_the_opening": {
+    "id": "seize_the_opening",
+    "kind": "reactive",
+    "definitionId": "seize_the_opening",
+    "label": "機を逃さず",
+    "effect": "自分が行動権を得たあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+    "grammar": "指揮"
    }
   },
   "passive": {
@@ -6006,6 +6420,46 @@
    "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
    "grammar": "準備"
   },
+  "barrage_strike": {
+   "id": "barrage_strike",
+   "kind": "active",
+   "definitionId": "barrage_strike",
+   "label": "連撃",
+   "effect": "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
+   "grammar": "攻撃"
+  },
+  "mark_strike": {
+   "id": "mark_strike",
+   "kind": "active",
+   "definitionId": "mark_strike",
+   "label": "刻印撃ち",
+   "effect": "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "mark_break": {
+   "id": "mark_break",
+   "kind": "active",
+   "definitionId": "mark_break",
+   "label": "刻印砕き",
+   "effect": "「隙」を持つ敵へ130%で攻撃し、隙を刈り取る。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "sweeping_barrage": {
+   "id": "sweeping_barrage",
+   "kind": "active",
+   "definitionId": "sweeping_barrage",
+   "label": "連ぎ払い",
+   "effect": "前列の敵が2体以上いるとき、同じ行を40%×2回薙ぐ。対象がいなければスキップ。",
+   "grammar": "攻撃"
+  },
+  "piercing_barrage": {
+   "id": "piercing_barrage",
+   "kind": "active",
+   "definitionId": "piercing_barrage",
+   "label": "貫き連撃",
+   "effect": "同じ列の前後を48%×2回貫く。後列を庇う列を多段で崩す。",
+   "grammar": "攻撃"
+  },
   "counter_blow": {
    "id": "counter_blow",
    "kind": "reactive",
@@ -6141,6 +6595,22 @@
    "label": "応急処置",
    "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
    "grammar": "回復"
+  },
+  "guarded_opening": {
+   "id": "guarded_opening",
+   "kind": "reactive",
+   "definitionId": "guarded_opening",
+   "label": "受け止めの隙",
+   "effect": "自分が受け構えで一撃を止めたあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+   "grammar": "指揮"
+  },
+  "seize_the_opening": {
+   "id": "seize_the_opening",
+   "kind": "reactive",
+   "definitionId": "seize_the_opening",
+   "label": "機を逃さず",
+   "effect": "自分が行動権を得たあと、RP1でHPが最も高い敵へ「隙」を付ける。",
+   "grammar": "指揮"
   },
   "foundation_vitality": {
    "id": "foundation_vitality",
@@ -6443,6 +6913,11 @@
   "idle_shuffle",
   "mark_target",
   "steady_aim",
+  "barrage_strike",
+  "mark_strike",
+  "mark_break",
+  "sweeping_barrage",
+  "piercing_barrage",
   "counter_blow",
   "cover_ally",
   "overflow_care",
@@ -6460,6 +6935,8 @@
   "mend",
   "triage",
   "emergency_treatment",
+  "guarded_opening",
+  "seize_the_opening",
   "foundation_vitality",
   "foundation_might",
   "foundation_focus",
@@ -6880,6 +7357,79 @@
    "cost": 1,
    "requires": [
     "bulwark"
+   ]
+  },
+  {
+   "id": "node_barrage",
+   "skillId": "barrage_strike",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_mark_strike",
+   "skillId": "mark_strike",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 0,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_mark_break",
+   "skillId": "mark_break",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
+   ]
+  },
+  {
+   "id": "node_sweeping_barrage",
+   "skillId": "sweeping_barrage",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "barrage_strike"
+   ]
+  },
+  {
+   "id": "node_piercing_barrage",
+   "skillId": "piercing_barrage",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "barrage_strike"
+   ]
+  },
+  {
+   "id": "node_guarded_opening",
+   "skillId": "guarded_opening",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
+   ]
+  },
+  {
+   "id": "node_seize_the_opening",
+   "skillId": "seize_the_opening",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
    ]
   },
   {
@@ -7327,9 +7877,15 @@
    "combatRole": "primary_offense",
    "activeSkillIds": [
     "barrage_strike",
-    "mark_strike"
+    "mark_strike",
+    "mark_break",
+    "sweeping_barrage",
+    "piercing_barrage"
    ],
-   "reactiveSkillIds": [],
+   "reactiveSkillIds": [
+    "guarded_opening",
+    "seize_the_opening"
+   ],
    "tags": [
     "attack",
     "onhit",

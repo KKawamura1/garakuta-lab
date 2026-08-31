@@ -388,17 +388,19 @@ for (const [id, mode] of Object.entries(ACTION_MODES)) {
 
 // ---------------------------------------------------------------- pack_barrage（R8 §5.4）
 //
-// Stage 3 の新パック `pack_barrage`（連撃と刻印）の最小限 content。
-// R8 Implementation Phase 1 step 1 は Stage 0〜3 を `E`, `W+E`, `T+E`, `B+W+T` へ
-// 固定することを求めるが、パックの密度（R8 §6.4: active 4〜6、offense 3以上、
-// 発生源・変換器・利得先を各1つ以上）を作り込むのは Implementation Phase 2
-// （Stage 0〜3 probe content）の仕事であり、この system migration には含めない
-// （R8 §19.4「system変更とcontent追加を同じPRへ混ぜない」）。
+// Stage 3 の新パック `pack_barrage`（連撃と刻印）。
+// Implementation Phase 1 では `barrage_strike` / `mark_strike` の2 active だけの
+// 最小限で止めていた（system migration と content 追加を混ぜない §19.4）。
+// ここは Implementation Phase 2（Stage 0〜3 probe content、1 probe batch）で、
+// R8 §6.4 の密度契約（active 4〜6、offense 3以上、発生源・変換器・利得先を
+// 各1つ以上）へ近づける。probe batch上限（active 5）を使い切る。
 //
-// ここでは `CampaignStageDef.newPackId` が参照できる、妥当だが最小限の
-// primary_offense パックだけを用意する。多段（barrage_strike）と
-// 刻印（mark_strike）という2つの軸だけを置き、既存語彙（hitCount、
-// add_status）だけで書く。新しい engine/schema 語彙は使わない。
+//   発生源: barrage_strike（多段 hit）、mark_strike（隙の付与）
+//   変換器: sweeping_barrage / piercing_barrage（行・列で対象数を稼ぐ多段）
+//   利得先: mark_break（隙を消費する高倍率の一撃）
+//
+// 新しい engine/schema 語彙は使わない（hitCount、add_status、remove_status、
+// targetPattern はすべて既存語彙）。
 activeSkills.barrage_strike = {
   id: "barrage_strike",
   displayName: "連撃",
@@ -447,7 +449,101 @@ activeSkills.mark_strike = {
   ],
   tags: ["attack", "mark"],
 };
+// 利得先。隙（exposed）を持つ敵だけを狙い、消費して高倍率で返す
+// （mark_strikeが作った隙をmark_breakが刈り取る、pack内で閉じた1本道）。
+activeSkills.mark_break = {
+  id: "mark_break",
+  displayName: "刻印砕き",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [{
+    type: "target_exists",
+    op: "gte",
+    value: 1,
+    query: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "gte", value: 1 }],
+      take: "all",
+    },
+  }],
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "gte", value: 1 }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  effects: [
+    {
+      type: "deal_damage",
+      target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 13_000 },
+      tags: ["attack", "weapon", "mark", "execute"],
+    },
+    { type: "remove_status", target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 }, statusId: "exposed", stacks: "all" },
+  ],
+  tags: ["attack", "mark", "execute"],
+};
+// 変換器。前列が2体以上いるときだけ、行を1hitずつ2回薙ぐ。対象がいなければ
+// 通常攻撃へ戻る（row_sweepと同じ契約）。Wの隊列操作が対象数を左右する。
+activeSkills.sweeping_barrage = {
+  id: "sweeping_barrage",
+  displayName: "連ぎ払い",
+  apCost: 1,
+  actionMode: "offense",
+  targetQuery: {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+    sort: ["position_asc"],
+    take: 1,
+  },
+  intrinsicPredicates: [{
+    type: "target_exists",
+    op: "gte",
+    value: 2,
+    query: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+      take: "all",
+    },
+  }],
+  effects: [{
+    type: "deal_damage",
+    target: {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+      sort: ["position_asc"],
+      take: 1,
+    },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 4_000 },
+    hitCount: 2,
+    targetPattern: "row",
+    tags: ["attack", "weapon", "onhit"],
+  }],
+  tags: ["attack", "onhit"],
+};
+// 変換器。同じ列の前後へ1hitずつ2回。後列を庇う列を多段で崩す。
+activeSkills.piercing_barrage = {
+  id: "piercing_barrage",
+  displayName: "貫き連撃",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 4_800 },
+    hitCount: 2,
+    targetPattern: "column",
+    tags: ["attack", "weapon", "onhit"],
+  }],
+  tags: ["attack", "onhit"],
+};
+
 setDamageReach(activeSkills.barrage_strike, "melee");
 setDamageReach(activeSkills.mark_strike, "melee");
+setDamageReach(activeSkills.mark_break, "melee");
+setDamageReach(activeSkills.sweeping_barrage, "melee");
+setDamageReach(activeSkills.piercing_barrage, "melee");
 
 export const ACTIVE_SKILLS = activeSkills;

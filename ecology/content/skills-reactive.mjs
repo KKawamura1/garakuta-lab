@@ -29,6 +29,8 @@ export const REACTIVE_SKILL_NAMES = {
   emergency_treatment: "応急処置",
   mend: "手当て",
   triage: "応急手当",
+  guarded_opening: "受け止めの隙",
+  seize_the_opening: "機を逃さず",
 };
 
 const reactiveSkills = renamed("reactiveSkills", REACTIVE_SKILL_NAMES);
@@ -201,6 +203,55 @@ reactiveSkills.triage = {
     limit: { scope: "chain", count: 1 },
   },
   tags: ["reaction", "care"],
+};
+
+// ---------------------------------------------------------------- pack_barrage（R8 §5.4、続き）
+//
+// R8 §6.2「新パックは昔のeventを読む」— pack_barrageが選ばれた過去パック
+// （W: 防壁と隊列、T: 行動権と準備）が既に発生させているeventを最低2種類読む。
+// どちらも「隙（exposed）を付ける」という同じ利得先へつながる、異なる発生源
+// （R8 §6.3「一つの利得先へ到達する発生源を2つ以上」）。
+const RANDOM_EXPOSABLE_ENEMY = {
+  scope: "enemies",
+  filters: [{ type: "alive" }, { type: "has_status", statusId: "exposed", op: "eq", value: 0 }],
+  sort: ["hp_desc"],
+  take: 1,
+};
+
+// 発生源: damage_blocked（Wのblock/barrier防御が実際に一撃を止めたとき）。
+// 受け止めた側が、隙を作る側へ回る。
+reactiveSkills.guarded_opening = {
+  id: "guarded_opening",
+  displayName: REACTIVE_SKILL_NAMES.guarded_opening,
+  rule: {
+    id: "guarded_opening_rule",
+    listenTo: "damage_blocked",
+    timing: "after",
+    priority: 130,
+    predicates: [SELF_IS_EVENT_TARGET],
+    costs: [{ type: "spend_reaction_points", amount: 1 }],
+    effects: [{ type: "add_status", target: RANDOM_EXPOSABLE_ENEMY, statusId: "exposed", stacks: 1 }],
+    limit: { scope: "chain", count: 1 },
+  },
+  tags: ["reaction", "mark"],
+};
+
+// 発生源: resource_gained（Tの号令・急かす・拾い直しでAP/RPが動いたとき）。
+// 得た行動権を、隙を作る機会へ変える。
+reactiveSkills.seize_the_opening = {
+  id: "seize_the_opening",
+  displayName: REACTIVE_SKILL_NAMES.seize_the_opening,
+  rule: {
+    id: "seize_the_opening_rule",
+    listenTo: "resource_gained",
+    timing: "after",
+    priority: 130,
+    predicates: [SELF_IS_EVENT_TARGET],
+    costs: [{ type: "spend_reaction_points", amount: 1 }],
+    effects: [{ type: "add_status", target: RANDOM_EXPOSABLE_ENEMY, statusId: "exposed", stacks: 1 }],
+    limit: { scope: "chain", count: 1 },
+  },
+  tags: ["reaction", "mark"],
 };
 
 export const REACTIVE_SKILLS = reactiveSkills;
