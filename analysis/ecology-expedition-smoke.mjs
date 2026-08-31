@@ -1,3 +1,7 @@
+// Legacy compatibility probe for the optional Free mode.
+// 現行の入口は Campaign Stage です。これは旧 save との互換経路を監視するための補助検査で、
+// 現行 Campaign の受入条件ではありません。詳細は ecology/PLAYABLE_RULES.md を参照してください。
+
 // **12戦の遠征が、実際に通せる形になっているか。**
 //
 // R7 §8 は「まず Difficulty 0 の reference encounter を固定し、unit 層を調整する」

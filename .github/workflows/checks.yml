@@ -1,16 +1,4 @@
-name: Checks
-
-# **関門は書いてあっただけで、誰も引いていなかった。**
-#
-# `analysis/check-all.sh` は公開前に走らせる約束だったが、走らせるのは人
-# （とエージェント）の手だけだった。2026-08-23 の `4bedc4c`（チップ対応）が
-# `core/run.mjs` に4つ目の出口を足し、報酬へ進む道から `battle: summary` を
-# 落とした。08-25 に直すまでの2日間、`analysis/smoke-core.mjs` は main の上で
-# 落ちたままで、その間ずっと「勝つたびにブラウザで例外が出る」不具合が
-# 公開されていた。**押した瞬間の戦闘の再生が、まるごと出なかった。**
-# 検査は存在していた。**発火する場所が無かっただけである。**
-#
-# AGENTS.md「散文に書いたルールは落ちる。瞬間に発火するルールは機械へ移すこと」
+name: 灰の遠征 checks
 
 on:
   push:
@@ -18,43 +6,18 @@ on:
   pull_request:
   workflow_dispatch:
 
-concurrency:
-  group: checks-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
 
-# Pull requests use the fast suite. The unchanged exhaustive train and seed checks
-# are retained in .github/workflows/exhaustive-checks.yml.
 jobs:
-  check-all:
+  current:
+    name: Current implementation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      # 検査は core/ の .mjs しか読まないので、依存の導入は要らない。
-      # 同じ入力コードに対する成功結果は、そのまま再利用する。
-      - name: Restore exact fast-check result
-        id: check-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: .ci-cache/fast-check
-          key: scrapline-check-fast-v1-${{ runner.os }}-node22-${{ hashFiles('**/*.js', '**/*.mjs', '**/*.sh', '**/*.json', 'wrangler.jsonc', '.github/workflows/checks.yml') }}
-      - name: analysis/check-all.sh
-        if: steps.check-cache.outputs.cache-hit != 'true'
+      - name: Syntax and ecology checks
         run: bash analysis/check-all.sh
-      - name: Record successful fast-check result
-        if: steps.check-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          mkdir -p .ci-cache/fast-check
-          printf '%s\n' "all fast checks passed for this exact source hash" > .ci-cache/fast-check/pass.txt
-      - name: Cache successful fast-check result
-        if: steps.check-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: .ci-cache/fast-check
-          key: scrapline-check-fast-v1-${{ runner.os }}-node22-${{ hashFiles('**/*.js', '**/*.mjs', '**/*.sh', '**/*.json', 'wrangler.jsonc', '.github/workflows/checks.yml') }}

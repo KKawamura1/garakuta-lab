@@ -1,7 +1,12 @@
-# core/ は .mjs のESモジュールだけを置く。MIMEが text/javascript でないと
-# ブラウザがimportを拒否し、ページが無言で止まるため明示する。
+# Cloudflare Pages がESモジュールを正しく配信するための明示的なMIME設定。
 /core/*
   Content-Type: text/javascript; charset=utf-8
 
-/agent-view/*
+/ecology/*
+  Content-Type: text/javascript; charset=utf-8
+
+/ecology/app.js
+  Cache-Control: no-cache
+
+/ecology/sync.mjs
   Cache-Control: no-cache
