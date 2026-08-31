@@ -15,6 +15,7 @@ smokes=(
   analysis/ecology-anti-stall-audit.mjs
   analysis/ecology-contract-smoke.mjs
   analysis/ecology-equipment-gen-smoke.mjs
+  analysis/ecology-campaign-smoke.mjs
   analysis/ecology-readout-smoke.mjs
   analysis/ecology-screens-smoke.mjs
   analysis/ecology-test-hygiene-smoke.mjs

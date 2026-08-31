@@ -7,6 +7,7 @@
 //   - 累積（R9 §3.1）: 前の Stage の pack と仲間が引き上げられない。
 //   - core / full（R9 §3.1）: 新 pack は入口だけ、以前の pack は全体。
 //   - 会話（R9 §7）: 各 Stage に断片があり、話者が実在の人物である。
+//   - 敵の規模（R9 §3.2）: 少人数 Stage では数・boss の体力・受けが人数へ合う。
 //   - 再訪（R9 §8）: 一度クリアした Stage は5人・自由編成で遊べる。
 
 import assert from "node:assert/strict";
@@ -196,6 +197,18 @@ const statsFor = (characterId) => characterStats(profile, characterId);
     check(small.budget <= full.budget, "第" + index + "戦: 少人数のほうが threat budget が高くない");
     if (full.enemies.some((enemy) => enemy.boss)) {
       check(small.enemies.some((enemy) => enemy.boss), "第" + index + "戦: boss は必ず残る");
+      // boss は数を減らせないので、体力を人数へ合わせる。
+      const smallBoss = small.enemies.find((enemy) => enemy.boss);
+      const fullBoss = full.enemies.find((enemy) => enemy.boss);
+      check(smallBoss.stats.maxHp < fullBoss.stats.maxHp,
+        "第" + index + "戦: 2人 Stage の boss は体力が下がる");
+    }
+    // 受けは一撃ごとの定額なので、手数が減るぶんだけ下げる。
+    for (const enemy of small.enemies) {
+      const same = full.enemies.find((entry) => entry.enemyActorId === enemy.enemyActorId);
+      if (!same || same.stats.guard === 0) continue;
+      check(enemy.stats.guard <= same.stats.guard,
+        "第" + index + "戦: 少人数のほうが受けが厚くない（" + enemy.enemyActorId + "）");
     }
   }
 }

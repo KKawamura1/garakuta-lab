@@ -41,6 +41,7 @@ Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し
     node analysis/ecology-anti-stall-audit.mjs
     node analysis/ecology-contract-smoke.mjs
     node analysis/ecology-equipment-gen-smoke.mjs
+    node analysis/ecology-campaign-smoke.mjs
     node analysis/ecology-readout-smoke.mjs
     node analysis/ecology-screens-smoke.mjs
     node analysis/ecology-test-hygiene-smoke.mjs

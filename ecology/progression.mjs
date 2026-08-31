@@ -968,10 +968,27 @@ export function composeEncounter(index, difficultyRank, options = {}) {
   }
 
   // 4. stat を確定する。boss law は常に載る（rank 0 でも）。
+  //
+  // R9 §3.2 — 少人数 Stage では boss の体力も人数に合わせる。**boss は数を
+  // 減らせない**（減らすと幕の問いが消える）ので、増援と違って切り詰めが効かない。
+  // 2人で5人ぶんの体力を削り切れという形にすると、「組み方」ではなく
+  // 「人数が足りない」という理由だけで詰む。
+  // **法則・行動・狙いは変えない。**削る量だけが人数に比例する。
+  const bossScalePatch = partySize < fullParty
+    ? { maxHp: { bps: Math.floor(BPS * partySize / fullParty) } }
+    : null;
+  // 受け（guard）は**一撃ごとの定額**なので、味方が減ると「総被害に占める割合」が
+  // 勝手に上がる。2人で5人ぶんの受けを削るのは、組み方ではなく手数の問題になる。
+  // 敵の数と体力を人数へ合わせたのと同じ比で、受けも合わせる。
+  const guardScalePatch = partySize < fullParty
+    ? { guard: { bps: Math.floor(BPS * partySize / fullParty) } }
+    : null;
   const law = def.bossLawId ? BOSS_LAWS[def.bossLawId] : null;
   const enemies = units.map((unit) => {
     const base = enemyBaseStats(unit.enemyActorId);
     const patches = unit.mutations.map((id) => ENEMY_MUTATIONS[id].patch);
+    if (guardScalePatch) patches.unshift(guardScalePatch);
+    if (unit.boss && bossScalePatch) patches.unshift(bossScalePatch);
     if (unit.boss && law) patches.unshift(law.patch);
     const stats = applyPatches(base, patches);
     return {
