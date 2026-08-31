@@ -281,6 +281,7 @@ try {
 } catch (error) {
   note("通しが最後まで走った", false, String(error).split("\n")[0]);
   // **落ちた場所の画面を出す。**「時間切れ」だけでは、どの経路で詰まったか分からない。
+  if (errs.length) console.log("  ブラウザエラー:", errs.slice(0, 8).join(" / "));
   try {
     const where = await page?.locator("body").innerText();
     console.log("  画面:", where.slice(0, 700).replace(/\n/g, " | "));
