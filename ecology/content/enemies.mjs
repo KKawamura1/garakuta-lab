@@ -144,11 +144,22 @@ const ENEMY_GUARD = {
   ash_core: 12,       // 核。重い一撃の代わりに受けも硬い
 };
 
+// **出荷している難度。** 1.0 のままだと、無作為に枠を埋めた編成が
+// 半分以上の確率で7区画を完走し、設計された初期編成（耐久0.86倍）より強くなる。
+// 1.2 倍にすると:
+//   初期編成そのまま 0.72 → 負ける
+//   全員へ常設2つ    0.84 → まだ負ける
+//   さらに装備2つずつ 1.14 → 通る
+//   無作為編成の中央値 0.88 → 通らない
+// **「初期編成では勝てないが、もらった点をちゃんと配れば通る」**を数で置いた値。
+// analysis/ecology-decision-space-smoke.mjs の床の関門がこれを見張る。
+export const SHIPPED_DIFFICULTY = 1.2;
+
 for (const [id, definition] of Object.entries(enemyActors)) {
-  definition.maxHp = definition.maxHp * LEGACY_COMBAT_SCALE;
-  definition.might = NEUTRAL_STAT;
-  definition.focus = NEUTRAL_STAT;
-  definition.guard = ENEMY_GUARD[id] ?? 0;
+  definition.maxHp = Math.round(definition.maxHp * LEGACY_COMBAT_SCALE * SHIPPED_DIFFICULTY);
+  definition.might = Math.round(NEUTRAL_STAT * SHIPPED_DIFFICULTY);
+  definition.focus = Math.round(NEUTRAL_STAT * SHIPPED_DIFFICULTY);
+  definition.guard = Math.round((ENEMY_GUARD[id] ?? 0) * SHIPPED_DIFFICULTY);
 }
 
 export const ENEMY_ACTORS = enemyActors;

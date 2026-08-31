@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.6",
+ "contentVersion": "ecology-playable-full-0.7",
  "content": {
   "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.6",
+  "contentVersion": "ecology-playable-full-0.7",
   "characters": {
    "warden": {
     "id": "warden",
@@ -4338,7 +4338,7 @@
    "husk": {
     "id": "husk",
     "displayName": "灰殻兵",
-    "maxHp": 100,
+    "maxHp": 120,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4353,14 +4353,14 @@
     "tags": [
      "fixture"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "husk_warden": {
     "id": "husk_warden",
     "displayName": "灰殻の見張り",
-    "maxHp": 80,
+    "maxHp": 96,
     "speed": 3,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4376,14 +4376,14 @@
      "fixture",
      "objective"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "still_husk": {
     "id": "still_husk",
     "displayName": "動かない灰殻",
-    "maxHp": 100,
+    "maxHp": 120,
     "speed": 1,
     "baseActionPoints": 0,
     "baseReactionPoints": 0,
@@ -4394,14 +4394,14 @@
      "fixture",
      "inert"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "husk_hunter": {
     "id": "husk_hunter",
     "displayName": "灰殻の狩人",
-    "maxHp": 260,
+    "maxHp": 312,
     "speed": 6,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4421,14 +4421,14 @@
      "fixture",
      "gate_e"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "husk_bulwark": {
     "id": "husk_bulwark",
     "displayName": "灰殻の盾兵",
-    "maxHp": 400,
+    "maxHp": 480,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4444,14 +4444,14 @@
      "fixture",
      "durable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "husk_echo": {
     "id": "husk_echo",
     "displayName": "灰殻の反響体",
-    "maxHp": 300,
+    "maxHp": 360,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4468,14 +4468,14 @@
     "tags": [
      "termination"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "husk_marker": {
     "id": "husk_marker",
     "displayName": "灰殻の標定手",
-    "maxHp": 300,
+    "maxHp": 360,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4490,14 +4490,14 @@
     "tags": [
      "fixture"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_scrapper": {
     "id": "gray_scrapper",
     "displayName": "灰殻の走者",
-    "maxHp": 100,
+    "maxHp": 120,
     "speed": 6,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4513,14 +4513,14 @@
      "fixture",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_runner": {
     "id": "gray_runner",
     "displayName": "灰殻の走り手",
-    "maxHp": 120,
+    "maxHp": 144,
     "speed": 9,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4536,14 +4536,14 @@
      "fixture",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_marksman": {
     "id": "gray_marksman",
     "displayName": "灰殻の後撃ち",
-    "maxHp": 120,
+    "maxHp": 144,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4559,14 +4559,14 @@
      "fixture",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_stalker": {
     "id": "gray_stalker",
     "displayName": "灰殻の潜み手",
-    "maxHp": 130,
+    "maxHp": 156,
     "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4586,14 +4586,14 @@
      "fixture",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_guard": {
     "id": "gray_guard",
     "displayName": "灰殻の守衛",
-    "maxHp": 180,
+    "maxHp": 216,
     "speed": 3,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4614,14 +4614,14 @@
      "objective",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
-    "guard": 10
+    "might": 48,
+    "focus": 48,
+    "guard": 12
    },
    "gray_breaker": {
     "id": "gray_breaker",
     "displayName": "灰殻の砕き手",
-    "maxHp": 220,
+    "maxHp": 264,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4642,14 +4642,14 @@
      "objective",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
-    "guard": 4
+    "might": 48,
+    "focus": 48,
+    "guard": 5
    },
    "gray_shelter": {
     "id": "gray_shelter",
     "displayName": "灰殻の籠り手",
-    "maxHp": 200,
+    "maxHp": 240,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4670,14 +4670,14 @@
      "objective",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
-    "guard": 8
+    "might": 48,
+    "focus": 48,
+    "guard": 10
    },
    "gray_hunter": {
     "id": "gray_hunter",
     "displayName": "灰殻の狩人",
-    "maxHp": 200,
+    "maxHp": 240,
     "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4698,14 +4698,14 @@
      "gate_e",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_harrower": {
     "id": "gray_harrower",
     "displayName": "灰殻の追い手",
-    "maxHp": 180,
+    "maxHp": 216,
     "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4730,14 +4730,14 @@
      "gate_e",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 2
    },
    "gray_echo": {
     "id": "gray_echo",
     "displayName": "灰殻の反響体",
-    "maxHp": 200,
+    "maxHp": 240,
     "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4755,14 +4755,14 @@
      "termination",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_swarm": {
     "id": "gray_swarm",
     "displayName": "灰殻の群れ",
-    "maxHp": 80,
+    "maxHp": 96,
     "speed": 10,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4778,14 +4778,14 @@
      "fixture",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
+    "might": 48,
+    "focus": 48,
     "guard": 0
    },
    "gray_bulwark": {
     "id": "gray_bulwark",
     "displayName": "灰殻の盾兵",
-    "maxHp": 320,
+    "maxHp": 384,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4806,14 +4806,14 @@
      "durable",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
-    "guard": 14
+    "might": 48,
+    "focus": 48,
+    "guard": 17
    },
    "ash_core": {
     "id": "ash_core",
     "displayName": "灰の核心",
-    "maxHp": 540,
+    "maxHp": 648,
     "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
@@ -4834,9 +4834,9 @@
      "durable",
      "playable"
     ],
-    "might": 40,
-    "focus": 40,
-    "guard": 12
+    "might": 48,
+    "focus": 48,
+    "guard": 14
    }
   },
   "coreActions": {
@@ -5160,7 +5160,7 @@
     "kind": "active",
     "definitionId": "mend",
     "label": "手当て",
-    "effect": "傷ついた味方を100%回復。対象がいなければスキップ。",
+    "effect": "傷ついた味方を集中力の120%回復。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "bulwark": {
@@ -5168,7 +5168,7 @@
     "kind": "active",
     "definitionId": "bulwark",
     "label": "防壁形成",
-    "effect": "自分に80%相当のラウンド防壁を張ってから、追い打ちを行う。",
+    "effect": "自分に集中力の200%のラウンド防壁を張ってから、追い打ちを行う。",
     "grammar": "守り"
    },
    "relay_order": {
@@ -5184,7 +5184,7 @@
     "kind": "active",
     "definitionId": "heavy_swing",
     "label": "溜め突き",
-    "effect": "準備1回のあと、通常攻撃2回分を上回る220%の一撃。",
+    "effect": "準備1回のあと、550%の一撃。開始と準備で行動権を計2つ使う。",
     "grammar": "攻撃"
    },
    "reposition": {
@@ -5200,7 +5200,7 @@
     "kind": "active",
     "definitionId": "long_swing",
     "label": "大溜め",
-    "effect": "準備3回のあと、通常攻撃4回分の400%を一撃で返す。",
+    "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
     "grammar": "攻撃"
    },
    "triage": {
@@ -5208,7 +5208,7 @@
     "kind": "active",
     "definitionId": "triage",
     "label": "応急手当",
-    "effect": "HP半分以下の味方を100%回復。対象がいなければスキップ。",
+    "effect": "HP半分以下の味方を集中力の120%回復。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "hunt_the_slow": {
@@ -5216,7 +5216,7 @@
     "kind": "active",
     "definitionId": "hunt_the_slow",
     "label": "準備狩り",
-    "effect": "準備中の敵がいるときだけ120%で狙う。対象がいなければスキップ。",
+    "effect": "準備中の敵がいるときだけ300%で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "idle_shuffle": {
@@ -5729,7 +5729,7 @@
    "kind": "active",
    "definitionId": "mend",
    "label": "手当て",
-   "effect": "傷ついた味方を100%回復。対象がいなければスキップ。",
+   "effect": "傷ついた味方を集中力の120%回復。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "bulwark": {
@@ -5737,7 +5737,7 @@
    "kind": "active",
    "definitionId": "bulwark",
    "label": "防壁形成",
-   "effect": "自分に80%相当のラウンド防壁を張ってから、追い打ちを行う。",
+   "effect": "自分に集中力の200%のラウンド防壁を張ってから、追い打ちを行う。",
    "grammar": "守り"
   },
   "relay_order": {
@@ -5753,7 +5753,7 @@
    "kind": "active",
    "definitionId": "heavy_swing",
    "label": "溜め突き",
-   "effect": "準備1回のあと、通常攻撃2回分を上回る220%の一撃。",
+   "effect": "準備1回のあと、550%の一撃。開始と準備で行動権を計2つ使う。",
    "grammar": "攻撃"
   },
   "reposition": {
@@ -5769,7 +5769,7 @@
    "kind": "active",
    "definitionId": "long_swing",
    "label": "大溜め",
-   "effect": "準備3回のあと、通常攻撃4回分の400%を一撃で返す。",
+   "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
    "grammar": "攻撃"
   },
   "triage": {
@@ -5777,7 +5777,7 @@
    "kind": "active",
    "definitionId": "triage",
    "label": "応急手当",
-   "effect": "HP半分以下の味方を100%回復。対象がいなければスキップ。",
+   "effect": "HP半分以下の味方を集中力の120%回復。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "hunt_the_slow": {
@@ -5785,7 +5785,7 @@
    "kind": "active",
    "definitionId": "hunt_the_slow",
    "label": "準備狩り",
-   "effect": "準備中の敵がいるときだけ120%で狙う。対象がいなければスキップ。",
+   "effect": "準備中の敵がいるときだけ300%で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "idle_shuffle": {
@@ -6737,13 +6737,13 @@
      "instanceId": "e_runner_1",
      "enemyActorId": "gray_runner",
      "position": "front_left",
-     "hp": 120
+     "hp": 144
     },
     {
      "instanceId": "e_runner_2",
      "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 120
+     "hp": 144
     }
    ],
    "maxRounds": 6
@@ -6757,13 +6757,13 @@
      "instanceId": "e_harrower",
      "enemyActorId": "gray_harrower",
      "position": "front_left",
-     "hp": 180
+     "hp": 216
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     }
    ],
    "maxRounds": 7
@@ -6777,13 +6777,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 220
+     "hp": 264
     }
    ],
    "maxRounds": 8
@@ -6797,19 +6797,19 @@
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_runner",
      "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 120
+     "hp": 144
     }
    ],
    "maxRounds": 8
@@ -6823,19 +6823,19 @@
      "instanceId": "e_bulwark",
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
-     "hp": 320
+     "hp": 384
     },
     {
      "instanceId": "e_harrower",
      "enemyActorId": "gray_harrower",
      "position": "front_center",
-     "hp": 180
+     "hp": 216
     },
     {
      "instanceId": "e_runner",
      "enemyActorId": "gray_runner",
      "position": "rear_right",
-     "hp": 120
+     "hp": 144
     }
    ],
    "maxRounds": 9
@@ -6849,25 +6849,25 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 96
     }
    ],
    "maxRounds": 10
@@ -6881,31 +6881,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 540
+     "hp": 648
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 220
+     "hp": 264
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 96
     }
    ],
    "maxRounds": 12
@@ -6921,13 +6921,13 @@
      "instanceId": "e_runner_1",
      "enemyActorId": "gray_runner",
      "position": "front_left",
-     "hp": 120
+     "hp": 144
     },
     {
      "instanceId": "e_runner_2",
      "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 120
+     "hp": 144
     }
    ],
    "maxRounds": 6
@@ -6941,13 +6941,13 @@
      "instanceId": "e_harrower",
      "enemyActorId": "gray_harrower",
      "position": "front_left",
-     "hp": 180
+     "hp": 216
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     }
    ],
    "maxRounds": 7
@@ -6961,13 +6961,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 220
+     "hp": 264
     }
    ],
    "maxRounds": 8
@@ -6981,19 +6981,19 @@
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_runner",
      "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 120
+     "hp": 144
     }
    ],
    "maxRounds": 8
@@ -7007,19 +7007,19 @@
      "instanceId": "e_bulwark",
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
-     "hp": 320
+     "hp": 384
     },
     {
      "instanceId": "e_harrower",
      "enemyActorId": "gray_harrower",
      "position": "front_center",
-     "hp": 180
+     "hp": 216
     },
     {
      "instanceId": "e_runner",
      "enemyActorId": "gray_runner",
      "position": "rear_right",
-     "hp": 120
+     "hp": 144
     }
    ],
    "maxRounds": 9
@@ -7033,25 +7033,25 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 96
     }
    ],
    "maxRounds": 10
@@ -7065,31 +7065,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 540
+     "hp": 648
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 220
+     "hp": 264
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 96
     }
    ],
    "maxRounds": 12
@@ -7474,13 +7474,13 @@
      "instanceId": "e_runner_1",
      "enemyActorId": "gray_runner",
      "position": "front_left",
-     "hp": 120
+     "hp": 144
     },
     {
      "instanceId": "e_runner_2",
      "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 120
+     "hp": 144
     }
    ]
   },
@@ -7603,13 +7603,13 @@
      "instanceId": "e_harrower",
      "enemyActorId": "gray_harrower",
      "position": "front_left",
-     "hp": 180
+     "hp": 216
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     }
    ]
   },
@@ -7732,13 +7732,13 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_right",
-     "hp": 220
+     "hp": 264
     }
    ]
   },
@@ -7861,19 +7861,19 @@
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_runner",
      "enemyActorId": "gray_runner",
      "position": "front_right",
-     "hp": 120
+     "hp": 144
     }
    ]
   },
@@ -7996,19 +7996,19 @@
      "instanceId": "e_bulwark",
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
-     "hp": 320
+     "hp": 384
     },
     {
      "instanceId": "e_harrower",
      "enemyActorId": "gray_harrower",
      "position": "front_center",
-     "hp": 180
+     "hp": 216
     },
     {
      "instanceId": "e_runner",
      "enemyActorId": "gray_runner",
      "position": "rear_right",
-     "hp": 120
+     "hp": 144
     }
    ]
   },
@@ -8131,25 +8131,25 @@
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_left",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_echo",
      "enemyActorId": "gray_echo",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 96
     }
    ]
   },
@@ -8272,31 +8272,31 @@
      "instanceId": "e_core",
      "enemyActorId": "ash_core",
      "position": "front_left",
-     "hp": 540
+     "hp": 648
     },
     {
      "instanceId": "e_breaker",
      "enemyActorId": "gray_breaker",
      "position": "front_center",
-     "hp": 220
+     "hp": 264
     },
     {
      "instanceId": "e_shelter",
      "enemyActorId": "gray_shelter",
      "position": "front_right",
-     "hp": 200
+     "hp": 240
     },
     {
      "instanceId": "e_stalker",
      "enemyActorId": "gray_stalker",
      "position": "rear_left",
-     "hp": 130
+     "hp": 156
     },
     {
      "instanceId": "e_swarm",
      "enemyActorId": "gray_swarm",
      "position": "rear_right",
-     "hp": 80
+     "hp": 96
     }
    ]
   }
@@ -9219,9 +9219,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9229,9 +9229,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9240,9 +9240,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9250,9 +9250,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9275,9 +9275,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9285,9 +9285,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9296,9 +9296,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9306,9 +9306,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9317,9 +9317,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9327,9 +9327,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9352,9 +9352,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9362,9 +9362,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9373,9 +9373,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9383,9 +9383,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9394,9 +9394,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9404,9 +9404,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9429,9 +9429,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9439,9 +9439,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9450,9 +9450,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9460,9 +9460,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9471,9 +9471,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9481,9 +9481,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9506,9 +9506,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9516,9 +9516,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9527,9 +9527,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9537,9 +9537,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9548,9 +9548,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9558,9 +9558,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9583,9 +9583,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9593,9 +9593,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9604,9 +9604,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9614,9 +9614,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9625,9 +9625,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9635,9 +9635,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9660,9 +9660,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9670,9 +9670,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9681,9 +9681,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9691,9 +9691,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9702,9 +9702,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9712,9 +9712,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9737,9 +9737,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -9749,9 +9749,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9760,9 +9760,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9770,9 +9770,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9781,9 +9781,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9791,9 +9791,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9816,9 +9816,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -9828,9 +9828,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9839,9 +9839,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9849,9 +9849,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9860,9 +9860,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9870,9 +9870,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9895,9 +9895,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -9907,9 +9907,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9918,9 +9918,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9928,9 +9928,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9939,9 +9939,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -9949,9 +9949,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -9974,9 +9974,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -9986,9 +9986,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -9997,9 +9997,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10007,9 +10007,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10018,9 +10018,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10028,9 +10028,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10053,9 +10053,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -10065,9 +10065,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10076,9 +10076,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10086,9 +10086,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10097,9 +10097,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10107,9 +10107,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10132,20 +10132,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10153,20 +10153,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10174,9 +10174,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10184,9 +10184,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10209,10 +10209,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10221,10 +10221,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10232,20 +10232,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10253,9 +10253,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10263,9 +10263,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10288,10 +10288,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10300,10 +10300,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10311,10 +10311,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10323,10 +10323,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10334,9 +10334,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10344,9 +10344,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10369,10 +10369,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10381,10 +10381,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10392,10 +10392,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10404,10 +10404,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10415,9 +10415,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10425,9 +10425,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10450,10 +10450,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10462,10 +10462,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10473,10 +10473,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10485,10 +10485,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10496,9 +10496,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10506,9 +10506,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10531,10 +10531,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10543,10 +10543,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10554,10 +10554,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -10566,10 +10566,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -10577,9 +10577,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "rear_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10587,9 +10587,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10630,20 +10630,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 448,
-      "might": 40,
-      "focus": 40,
-      "guard": 22
+      "maxHp": 538,
+      "might": 48,
+      "focus": 48,
+      "guard": 25
      },
      "mutations": [],
      "boss": true,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -10651,9 +10651,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10661,9 +10661,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10672,9 +10672,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10682,9 +10682,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10725,20 +10725,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 448,
-      "might": 40,
-      "focus": 40,
-      "guard": 22
+      "maxHp": 538,
+      "might": 48,
+      "focus": 48,
+      "guard": 25
      },
      "mutations": [],
      "boss": true,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -10746,9 +10746,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10756,9 +10756,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10767,9 +10767,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10777,9 +10777,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10788,9 +10788,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10798,9 +10798,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10841,20 +10841,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 448,
-      "might": 40,
-      "focus": 40,
-      "guard": 22
+      "maxHp": 538,
+      "might": 48,
+      "focus": 48,
+      "guard": 25
      },
      "mutations": [],
      "boss": true,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -10862,9 +10862,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10872,9 +10872,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10883,9 +10883,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10893,9 +10893,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10904,9 +10904,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10914,9 +10914,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -10957,20 +10957,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 448,
-      "might": 40,
-      "focus": 40,
-      "guard": 22
+      "maxHp": 538,
+      "might": 48,
+      "focus": 48,
+      "guard": 25
      },
      "mutations": [],
      "boss": true,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -10978,9 +10978,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -10988,9 +10988,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -10999,9 +10999,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11009,9 +11009,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11020,9 +11020,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11030,9 +11030,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11073,10 +11073,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 448,
-      "might": 46,
-      "focus": 40,
-      "guard": 22
+      "maxHp": 538,
+      "might": 54,
+      "focus": 48,
+      "guard": 25
      },
      "mutations": [
       "swift"
@@ -11085,10 +11085,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11096,9 +11096,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11106,9 +11106,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11117,9 +11117,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11127,9 +11127,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11138,9 +11138,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11148,9 +11148,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11191,10 +11191,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 448,
-      "might": 46,
-      "focus": 40,
-      "guard": 22
+      "maxHp": 538,
+      "might": 54,
+      "focus": 48,
+      "guard": 25
      },
      "mutations": [
       "swift"
@@ -11203,10 +11203,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11214,9 +11214,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_left",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11224,9 +11224,9 @@
      "reinforcement": false,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11235,9 +11235,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_left",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11245,9 +11245,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11256,9 +11256,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_right",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11266,9 +11266,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11291,20 +11291,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11312,9 +11312,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11322,9 +11322,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11333,9 +11333,9 @@
      "enemyActorId": "gray_echo",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11343,9 +11343,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11354,9 +11354,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11364,9 +11364,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11389,20 +11389,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11410,9 +11410,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11420,9 +11420,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11431,9 +11431,9 @@
      "enemyActorId": "gray_echo",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11441,9 +11441,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11452,9 +11452,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11462,9 +11462,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11473,9 +11473,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_center",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11483,9 +11483,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11508,20 +11508,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11529,9 +11529,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11539,9 +11539,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11550,9 +11550,9 @@
      "enemyActorId": "gray_echo",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11560,9 +11560,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11571,9 +11571,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11581,9 +11581,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11592,9 +11592,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_center",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11602,9 +11602,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11627,20 +11627,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11648,9 +11648,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11658,9 +11658,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11669,9 +11669,9 @@
      "enemyActorId": "gray_echo",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11679,9 +11679,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11690,9 +11690,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11700,9 +11700,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11711,9 +11711,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_center",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11721,9 +11721,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11746,20 +11746,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11767,9 +11767,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11777,9 +11777,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11788,9 +11788,9 @@
      "enemyActorId": "gray_echo",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11798,9 +11798,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11809,9 +11809,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11819,9 +11819,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11830,9 +11830,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_center",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11840,9 +11840,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11865,20 +11865,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -11886,9 +11886,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11896,9 +11896,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11907,9 +11907,9 @@
      "enemyActorId": "gray_echo",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11917,9 +11917,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11928,9 +11928,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11938,9 +11938,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -11949,9 +11949,9 @@
      "enemyActorId": "gray_scrapper",
      "position": "front_center",
      "stats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -11959,9 +11959,9 @@
      "reinforcement": true,
      "threatCost": 1,
      "baseStats": {
-      "maxHp": 100,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 120,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -11984,20 +11984,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12005,20 +12005,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_center",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12026,9 +12026,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12036,9 +12036,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12047,9 +12047,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12057,9 +12057,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12068,9 +12068,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12078,9 +12078,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12103,10 +12103,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -12115,10 +12115,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12126,20 +12126,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_center",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12147,9 +12147,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12157,9 +12157,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12168,9 +12168,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12178,9 +12178,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12189,9 +12189,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12199,9 +12199,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12224,10 +12224,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -12236,10 +12236,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12247,20 +12247,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_center",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12268,9 +12268,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12278,9 +12278,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12289,9 +12289,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12299,9 +12299,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12310,9 +12310,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12320,9 +12320,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12345,10 +12345,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -12357,10 +12357,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12368,20 +12368,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_center",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12389,9 +12389,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12399,9 +12399,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12410,9 +12410,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12420,9 +12420,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12431,9 +12431,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12441,9 +12441,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12466,10 +12466,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -12478,10 +12478,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12489,20 +12489,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_center",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12510,9 +12510,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12520,9 +12520,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12531,9 +12531,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12541,9 +12541,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12552,9 +12552,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12562,9 +12562,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12587,10 +12587,10 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 46,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 54,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [
       "swift"
@@ -12599,10 +12599,10 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12610,20 +12610,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_center",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -12631,9 +12631,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12641,9 +12641,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12652,9 +12652,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12662,9 +12662,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12673,9 +12673,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12683,9 +12683,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12708,20 +12708,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -12729,9 +12729,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12739,9 +12739,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12750,9 +12750,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12760,9 +12760,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12771,9 +12771,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12781,9 +12781,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12792,9 +12792,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12802,9 +12802,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12827,10 +12827,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -12839,10 +12839,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -12850,9 +12850,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12860,9 +12860,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12871,9 +12871,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12881,9 +12881,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12892,9 +12892,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12902,9 +12902,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12913,9 +12913,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -12923,9 +12923,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -12948,10 +12948,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -12960,10 +12960,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -12971,9 +12971,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -12983,9 +12983,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -12994,9 +12994,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13004,9 +13004,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13015,9 +13015,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13025,9 +13025,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13036,9 +13036,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13046,9 +13046,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -13071,10 +13071,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -13083,10 +13083,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -13094,9 +13094,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -13106,9 +13106,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13117,9 +13117,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13127,9 +13127,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13138,9 +13138,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13148,9 +13148,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13159,9 +13159,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13169,9 +13169,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -13194,10 +13194,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -13206,10 +13206,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -13217,9 +13217,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -13229,9 +13229,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13240,9 +13240,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13250,9 +13250,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13261,9 +13261,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13271,9 +13271,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13282,9 +13282,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13292,9 +13292,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -13317,10 +13317,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -13329,10 +13329,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -13340,9 +13340,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 46,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 54,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -13352,9 +13352,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13363,9 +13363,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13373,9 +13373,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13384,9 +13384,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13394,9 +13394,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13405,9 +13405,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13415,9 +13415,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -13458,9 +13458,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 300,
-      "might": 52,
-      "focus": 40,
+      "maxHp": 360,
+      "might": 62,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13468,9 +13468,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13479,20 +13479,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13500,20 +13500,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13521,9 +13521,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13531,9 +13531,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13542,9 +13542,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13552,9 +13552,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -13595,9 +13595,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 300,
-      "might": 58,
-      "focus": 40,
+      "maxHp": 360,
+      "might": 68,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -13607,9 +13607,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13618,20 +13618,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13639,20 +13639,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13660,9 +13660,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13670,9 +13670,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13681,9 +13681,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13691,9 +13691,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -13734,9 +13734,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 300,
-      "might": 58,
-      "focus": 40,
+      "maxHp": 360,
+      "might": 68,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -13746,9 +13746,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13757,20 +13757,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13778,20 +13778,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13799,9 +13799,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13809,9 +13809,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13820,9 +13820,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13830,9 +13830,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -13873,9 +13873,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 300,
-      "might": 58,
-      "focus": 40,
+      "maxHp": 360,
+      "might": 68,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [
@@ -13885,9 +13885,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13896,20 +13896,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13917,20 +13917,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -13938,9 +13938,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13948,9 +13948,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -13959,9 +13959,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -13969,9 +13969,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14012,9 +14012,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 300,
-      "might": 58,
-      "focus": 40,
+      "maxHp": 360,
+      "might": 68,
+      "focus": 48,
       "guard": 6
      },
      "mutations": [
@@ -14025,9 +14025,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14036,20 +14036,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -14057,20 +14057,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -14078,9 +14078,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14088,9 +14088,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14099,9 +14099,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14109,9 +14109,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14152,9 +14152,9 @@
      "enemyActorId": "gray_echo",
      "position": "front_center",
      "stats": {
-      "maxHp": 300,
-      "might": 58,
-      "focus": 40,
+      "maxHp": 360,
+      "might": 68,
+      "focus": 48,
       "guard": 6
      },
      "mutations": [
@@ -14165,9 +14165,9 @@
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14176,20 +14176,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -14197,20 +14197,20 @@
      "enemyActorId": "gray_guard",
      "position": "front_right",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -14218,9 +14218,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14228,9 +14228,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14239,9 +14239,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14249,9 +14249,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14274,20 +14274,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14295,20 +14295,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14316,9 +14316,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14326,9 +14326,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14337,9 +14337,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14347,9 +14347,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14358,9 +14358,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14368,9 +14368,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14393,10 +14393,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -14405,10 +14405,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14416,20 +14416,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14437,9 +14437,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14447,9 +14447,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14458,9 +14458,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14468,9 +14468,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14479,9 +14479,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14489,9 +14489,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14514,10 +14514,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -14526,10 +14526,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14537,20 +14537,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14558,9 +14558,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14568,9 +14568,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14579,9 +14579,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14589,9 +14589,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14600,9 +14600,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14610,9 +14610,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14635,10 +14635,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -14647,10 +14647,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14658,20 +14658,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14679,9 +14679,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14689,9 +14689,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14700,9 +14700,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14710,9 +14710,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14721,9 +14721,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14731,9 +14731,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14756,10 +14756,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -14768,10 +14768,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14779,20 +14779,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14800,9 +14800,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14810,9 +14810,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14821,9 +14821,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14831,9 +14831,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14842,9 +14842,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14852,9 +14852,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14877,10 +14877,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -14889,10 +14889,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14900,20 +14900,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -14921,9 +14921,9 @@
      "enemyActorId": "gray_hunter",
      "position": "front_center",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14931,9 +14931,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14942,9 +14942,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14952,9 +14952,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -14963,9 +14963,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -14973,9 +14973,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -14998,20 +14998,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15019,20 +15019,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15040,20 +15040,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15061,9 +15061,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15071,9 +15071,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15082,9 +15082,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15092,9 +15092,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15117,10 +15117,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -15129,10 +15129,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15140,20 +15140,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15161,20 +15161,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15182,9 +15182,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15192,9 +15192,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15203,9 +15203,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15213,9 +15213,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15238,10 +15238,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -15250,10 +15250,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15261,20 +15261,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15282,20 +15282,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15303,9 +15303,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15313,9 +15313,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15324,9 +15324,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15334,9 +15334,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15359,10 +15359,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -15371,10 +15371,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15382,20 +15382,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15403,20 +15403,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15424,9 +15424,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15434,9 +15434,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15445,9 +15445,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15455,9 +15455,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15480,10 +15480,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -15492,10 +15492,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15503,20 +15503,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15524,20 +15524,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15545,9 +15545,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15555,9 +15555,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15566,9 +15566,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15576,9 +15576,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15601,10 +15601,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -15613,10 +15613,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15624,20 +15624,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_center",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15645,20 +15645,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15666,9 +15666,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15676,9 +15676,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15687,9 +15687,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15697,9 +15697,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15722,20 +15722,20 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -15743,20 +15743,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15764,20 +15764,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15785,9 +15785,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15795,9 +15795,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15806,9 +15806,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15816,9 +15816,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15841,10 +15841,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 540,
-      "might": 46,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 54,
+      "focus": 48,
+      "guard": 14
      },
      "mutations": [
       "swift"
@@ -15853,10 +15853,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -15864,20 +15864,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15885,20 +15885,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -15906,9 +15906,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15916,9 +15916,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -15927,9 +15927,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -15937,9 +15937,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -15962,10 +15962,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 540,
-      "might": 46,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 54,
+      "focus": 48,
+      "guard": 14
      },
      "mutations": [
       "swift"
@@ -15974,10 +15974,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -15985,10 +15985,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -15997,10 +15997,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16008,20 +16008,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16029,9 +16029,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16039,9 +16039,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -16050,9 +16050,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16060,9 +16060,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -16085,10 +16085,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 540,
-      "might": 46,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 54,
+      "focus": 48,
+      "guard": 14
      },
      "mutations": [
       "swift"
@@ -16097,10 +16097,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -16108,10 +16108,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -16120,10 +16120,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16131,20 +16131,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16152,9 +16152,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16162,9 +16162,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -16173,9 +16173,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16183,9 +16183,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -16208,10 +16208,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 540,
-      "might": 46,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 54,
+      "focus": 48,
+      "guard": 14
      },
      "mutations": [
       "swift"
@@ -16220,10 +16220,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -16231,10 +16231,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -16243,10 +16243,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16254,20 +16254,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16275,9 +16275,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16285,9 +16285,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -16296,9 +16296,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16306,9 +16306,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -16331,10 +16331,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 540,
-      "might": 46,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 54,
+      "focus": 48,
+      "guard": 14
      },
      "mutations": [
       "swift"
@@ -16343,10 +16343,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -16354,10 +16354,10 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 46,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 54,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [
       "swift"
@@ -16366,10 +16366,10 @@
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16377,20 +16377,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16398,9 +16398,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_left",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16408,9 +16408,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     },
@@ -16419,9 +16419,9 @@
      "enemyActorId": "gray_marksman",
      "position": "rear_right",
      "stats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16429,9 +16429,9 @@
      "reinforcement": false,
      "threatCost": 2,
      "baseStats": {
-      "maxHp": 120,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 144,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -16475,20 +16475,20 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 756,
-      "might": 40,
-      "focus": 52,
-      "guard": 18
+      "maxHp": 907,
+      "might": 48,
+      "focus": 62,
+      "guard": 20
      },
      "mutations": [],
      "boss": true,
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -16496,20 +16496,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16517,20 +16517,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16538,20 +16538,20 @@
      "enemyActorId": "gray_guard",
      "position": "rear_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -16559,9 +16559,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16569,9 +16569,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -16615,10 +16615,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 756,
-      "might": 46,
-      "focus": 52,
-      "guard": 18
+      "maxHp": 907,
+      "might": 54,
+      "focus": 62,
+      "guard": 20
      },
      "mutations": [
       "swift"
@@ -16627,10 +16627,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -16638,20 +16638,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16659,20 +16659,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16680,20 +16680,20 @@
      "enemyActorId": "gray_guard",
      "position": "rear_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -16701,9 +16701,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16711,9 +16711,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -16757,10 +16757,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 756,
-      "might": 46,
-      "focus": 52,
-      "guard": 18
+      "maxHp": 907,
+      "might": 54,
+      "focus": 62,
+      "guard": 20
      },
      "mutations": [
       "swift"
@@ -16769,10 +16769,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -16780,20 +16780,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16801,20 +16801,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16822,20 +16822,20 @@
      "enemyActorId": "gray_guard",
      "position": "rear_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -16843,9 +16843,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16853,9 +16853,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -16899,10 +16899,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 756,
-      "might": 46,
-      "focus": 52,
-      "guard": 18
+      "maxHp": 907,
+      "might": 54,
+      "focus": 62,
+      "guard": 20
      },
      "mutations": [
       "swift"
@@ -16911,10 +16911,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -16922,20 +16922,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16943,20 +16943,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -16964,20 +16964,20 @@
      "enemyActorId": "gray_guard",
      "position": "rear_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -16985,9 +16985,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -16995,9 +16995,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -17041,10 +17041,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 756,
-      "might": 46,
-      "focus": 52,
-      "guard": 24
+      "maxHp": 907,
+      "might": 54,
+      "focus": 62,
+      "guard": 26
      },
      "mutations": [
       "swift",
@@ -17054,10 +17054,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -17065,20 +17065,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -17086,20 +17086,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -17107,20 +17107,20 @@
      "enemyActorId": "gray_guard",
      "position": "rear_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -17128,9 +17128,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -17138,9 +17138,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
@@ -17184,10 +17184,10 @@
      "enemyActorId": "ash_core",
      "position": "front_center",
      "stats": {
-      "maxHp": 756,
-      "might": 46,
-      "focus": 52,
-      "guard": 24
+      "maxHp": 907,
+      "might": 54,
+      "focus": 62,
+      "guard": 26
      },
      "mutations": [
       "swift",
@@ -17197,10 +17197,10 @@
      "reinforcement": false,
      "threatCost": 8,
      "baseStats": {
-      "maxHp": 540,
-      "might": 40,
-      "focus": 40,
-      "guard": 12
+      "maxHp": 648,
+      "might": 48,
+      "focus": 48,
+      "guard": 14
      }
     },
     {
@@ -17208,20 +17208,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_left",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -17229,20 +17229,20 @@
      "enemyActorId": "gray_bulwark",
      "position": "front_right",
      "stats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 5,
      "baseStats": {
-      "maxHp": 320,
-      "might": 40,
-      "focus": 40,
-      "guard": 14
+      "maxHp": 384,
+      "might": 48,
+      "focus": 48,
+      "guard": 17
      }
     },
     {
@@ -17250,20 +17250,20 @@
      "enemyActorId": "gray_guard",
      "position": "rear_left",
      "stats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      },
      "mutations": [],
      "boss": false,
      "reinforcement": false,
      "threatCost": 3,
      "baseStats": {
-      "maxHp": 180,
-      "might": 40,
-      "focus": 40,
-      "guard": 10
+      "maxHp": 216,
+      "might": 48,
+      "focus": 48,
+      "guard": 12
      }
     },
     {
@@ -17271,9 +17271,9 @@
      "enemyActorId": "gray_hunter",
      "position": "rear_right",
      "stats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      },
      "mutations": [],
@@ -17281,9 +17281,9 @@
      "reinforcement": false,
      "threatCost": 4,
      "baseStats": {
-      "maxHp": 200,
-      "might": 40,
-      "focus": 40,
+      "maxHp": 240,
+      "might": 48,
+      "focus": 48,
       "guard": 0
      }
     }
