@@ -78,6 +78,15 @@ const CEILING_GATE = 2.0;
 // 素朴な編成に対する差。**「単純なビルドが山登りに大きく負ける」**（作者指定）。
 // 「大きく」の中身は指定が無いので 1.5 倍とし、数字を見る前に決めた。
 const NAIVE_MARGIN_GATE = 1.5;
+// **大勝するコンボの数**（作者指定、2026-08-31）。
+// additive デッキに 1.5 倍で勝つ組み合わせを見つけては、その立役者の組を
+// 取り除いて探し直す。何回できるかがコンボの本数。
+// 5 本を目標にする。7区画の遠征を何度も遊ぶなら、run ごとに違う筋が見つかる
+// 程度の本数が要る。役割の数（受け・回復・火力・速度・準備）から取った。
+// **現状が 2 本と分かった後に選んだ値ではない**（2 の直上を選ぶのは、
+// 落とすための数合わせになる）。
+const COMBO_COUNT_GATE = 5;
+const COMBO_ROUNDS_MAX = 6;
 // 陰性参照の許容。全編成が同一なのだから、ちょうど 1.00 のはず。
 // 二分探索の刻みぶんだけ緩める。
 const IDENTICAL_TOLERANCE = 1.001;
@@ -408,6 +417,87 @@ function authorLoadout() {
   return loadout;
 }
 
+// **単品で強い要素だけを積んだ additive デッキ。**
+// 各要素を「他が空の土台へ1種だけ全員に持たせて」測り、枠ごとに上位を詰める。
+// **組み合わせを一切見ないので、これを大きく上回れるならそれは相互作用の分。**
+function soloScore(kind, id, multiplier) {
+  const loadout = freshLoadout(ROSTER);
+  for (const character of ROSTER) {
+    loadout.tactics[character] = ["strike"];
+    loadout.reactives[character] = [];
+    loadout.passives[character] = [];
+    loadout.equipment[character] = [];
+    if (kind === "tactics") loadout.tactics[character] = [id, "strike"];
+    else loadout[kind][character] = [id];
+  }
+  return score(loadout, multiplier);
+}
+
+function additiveDeck(banned, multiplier) {
+  const pools = poolsExcept(banned);
+  const loadout = freshLoadout(ROSTER);
+  const picks = {};
+  for (const [kind, [pool, size]] of Object.entries(pools)) {
+    picks[kind] = pool
+      .map((id) => ({ id, value: soloScore(kind, id, multiplier) }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, size)
+      .map((entry) => entry.id);
+  }
+  for (const character of ROSTER) for (const kind of Object.keys(pools)) loadout[kind][character] = [...picks[kind]];
+  return { loadout, picks };
+}
+
+function poolsExcept(banned) {
+  const keep = (ids) => ids.filter((id) => !banned.has(id));
+  return {
+    tactics: [keep(realPools.tactics[0]), 3],
+    reactives: [keep(realPools.reactives[0]), 3],
+    passives: [keep(realPools.passives[0]), 2],
+    equipment: [keep(realPools.equipment[0]), 2],
+  };
+}
+
+function withoutElements(loadout, banned) {
+  const copy = structuredClone(loadout);
+  for (const character of ROSTER) {
+    for (const kind of ["tactics", "reactives", "passives", "equipment"]) {
+      copy[kind][character] = (copy[kind][character] ?? []).filter((id) => !banned.has(id));
+    }
+  }
+  return copy;
+}
+
+function elementsOf(loadout) {
+  const ids = new Set();
+  for (const character of ROSTER) {
+    for (const kind of ["tactics", "reactives", "passives", "equipment"]) {
+      for (const id of loadout[kind][character] ?? []) ids.add(id);
+    }
+  }
+  return [...ids];
+}
+
+// **立役者の組 = 相互作用項が最大の対。**
+// 単に寄与が大きい対ではなく、`二つ同時に抜いた損失 − 片方ずつ抜いた損失の和`。
+// これが正の対だけが「二つ揃って初めて効く」＝コンボである。
+function keyPair(loadout, multiplier) {
+  const ids = elementsOf(loadout);
+  const base = score(loadout, multiplier);
+  const single = {};
+  for (const id of ids) single[id] = base - score(withoutElements(loadout, new Set([id])), multiplier);
+  let best = null;
+  for (let i = 0; i < ids.length; i += 1) {
+    for (let j = i + 1; j < ids.length; j += 1) {
+      const [a, b] = [ids[i], ids[j]];
+      const together = base - score(withoutElements(loadout, new Set([a, b])), multiplier);
+      const interaction = together - single[a] - single[b];
+      if (!best || interaction > best.interaction) best = { a, b, interaction };
+    }
+  }
+  return best;
+}
+
 // **コンボを組まない素朴な編成**（作者の指定、2026-08-30）。
 // 無作為編成は戦略ではないが、これは実在するプレイヤーの戦略。
 // **「よく考えたビルドは、パッと思いつく編成より強くあってほしい」**を関門にする。
@@ -474,6 +564,31 @@ const bestNaive = naiveRows[0];
 console.log(`    → 最良の素朴編成 ${bestNaive.tolerance.toFixed(2)} 倍（${bestNaive.name}）`
   + `　探索の天井はその ${(realRow.searched / bestNaive.tolerance).toFixed(2)} 倍`);
 
+// 大勝するコンボを数える。見つけた組を取り除いては探し直す。
+console.log("\n  大勝するコンボの数え上げ（additive デッキに " + NAIVE_MARGIN_GATE + " 倍で勝つ組を、立役者ごと除いて数え直す）:");
+const displayName = (id) => SKILLS.active[id]?.displayName ?? SKILLS.reactive[id]?.displayName
+  ?? SKILLS.passive[id]?.displayName ?? EQUIPMENT[id]?.displayName ?? id;
+const banned = new Set();
+const combos = [];
+for (let round = 1; round <= COMBO_ROUNDS_MAX; round += 1) {
+  const additive = additiveDeck(banned, SHIPPED_DIFFICULTY);
+  const additiveTolerance = tolerance(additive.loadout);
+  if (additiveTolerance <= 0) { console.log(`    第${round}周: additive デッキが完走できない。ここで打ち切る`); break; }
+  const climbAt = Math.max(additiveTolerance, SHIPPED_DIFFICULTY);
+  const climbed = climb(additive.loadout, climbAt, poolsExcept(banned), GREEDY_SWEEPS);
+  const combinedTolerance = Math.max(tolerance(climbed.best), additiveTolerance);
+  const ratio = combinedTolerance / additiveTolerance;
+  console.log(`    第${round}周: additive ${additiveTolerance.toFixed(2)} 倍 / 組み合わせ最良 ${combinedTolerance.toFixed(2)} 倍 → ${ratio.toFixed(2)} 倍`);
+  if (ratio < NAIVE_MARGIN_GATE) { console.log(`      → ${NAIVE_MARGIN_GATE} 倍に届かない。ここで打ち止め`); break; }
+  const pair = keyPair(climbed.best, climbAt);
+  if (!pair || pair.interaction <= 0) { console.log("      → 相互作用が正の対が無い（積み上げで説明できる）。打ち止め"); break; }
+  combos.push(pair);
+  console.log(`      立役者の組: ${displayName(pair.a)} ＋ ${displayName(pair.b)} → 除外して再探索`);
+  banned.add(pair.a);
+  banned.add(pair.b);
+}
+console.log(`    → 大勝するコンボ ${combos.length} 本`);
+
 console.log("\n  出荷難度をどこへ置くか（関門ではなく判断材料。天井は "
   + realRow.searched.toFixed(2) + " 倍）:");
 console.log(shippingDial(realRow));
@@ -520,6 +635,24 @@ assert.ok(
   + ` 差は ${(realRow.searched / bestNaive.tolerance).toFixed(2)} 倍で、閾値 ${NAIVE_MARGIN_GATE} に届かない。`
   + " **考え抜いた編成が、パッと思いつく編成に大きく勝てていない**",
 );
+
+// **コンボの本数は、まだ関門にしない。**
+//
+// 数え方は動くが、値が信用できない。同じ content で、探索の細部
+// （山登りの掃引数・耐久倍率の天井と刻み）を変えるだけで 2 本にも 8 本にもなる。
+// 見つかる組にも「継ぎはぎの盾＋厚い継ぎ板」（同じ効果の装備2つ）や
+// 「貫き突き＋刻み斬り」（ただの攻撃技能2つ）が混ざる。相互作用項が
+// 点数のノイズを拾っている。
+//
+// **信用できない数で緑や赤を出すより、数字だけ出して判断を人へ返す。**
+// 関門にする前に要るもの:
+//   1. 同じ content・別の探索設定で本数が変わらないこと（再現性）
+//   2. 名指しされた組が、片方だけでは説明できないことの裏取り
+//      （相互作用項が、点数の分解能に対して十分大きいか）
+//   3. 「同じ効果の2つ」を組として数えない除外規則
+if (combos.length < COMBO_COUNT_GATE) {
+  console.log(`    ※ 目標は ${COMBO_COUNT_GATE} 本。ただし本数はまだ関門にしていない（値が探索設定でぶれる）`);
+}
 
 console.log("\n決着しなかった戦闘（イベント上限）: " + eventLimitHits + " 件。"
   + "高い倍率の探り以外で出ているなら engine 側を疑うこと");
