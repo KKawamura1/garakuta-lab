@@ -1,5 +1,8 @@
 # EXP-18 R7 — 実装順序と並列コンテンツ拡張
 
+> [!IMPORTANT]
+> **履歴資料。今後の実装正本ではない。** R6〜R8の状態・経済・固定難易度・content契約・実装順序は [R8 統合実装設計](./R8_FIXED_DIFFICULTY_SYNERGY_LADDER.md) へ統合した。本票は判断経緯の参照に限り、Milestone順序を単独で実装入力にしない。
+
 作成日: 2026-08-30（UTC）  
 状態: 実装委譲票。コード変更・作者プレイによる支持はまだない。  
 前提: [R6 長期進行・生成装備・設計図](./R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS.md)、PR #49の一周可能試作、PR #50の設計変更。
