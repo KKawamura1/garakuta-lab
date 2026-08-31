@@ -190,4 +190,4 @@ node ecology/phase-b.test.mjs
 bash analysis/check-all.sh
 ~~~
 
-readout smoke は checked: 21、drifted: 0、4 section（active / reactive / passive / equipment）で通る。hygiene smoke は ecology の7 test fileを読み、literal tautology 0件で通る。phase-b.test.mjs は616 checksで通る。削除後の GitHub Actions Checks run は、実行結果をここへ追記する。今後1分を超える場合も閾値を動かさず、docs/OPERATIONS.md の pushごとの配置に従って分離する。
+readout smoke は checked: 21、drifted: 0、4 section（active / reactive / passive / equipment）で通る。hygiene smoke は ecology の7 test fileを読み、literal tautology 0件で通る。phase-b.test.mjs は616 checksで通る。削除後の GitHub Actions Checks run 33358702143（commit 4d4dd9f7d4ba0e8032534cb57df38ab9235b853d）では bash analysis/check-all.sh が実際に実行され、全体31169ms（1分以内）、ecology/check.mjs は3508msで成功した。今後1分を超える場合も閾値を動かさず、docs/OPERATIONS.md の pushごとの配置に従って分離する。
