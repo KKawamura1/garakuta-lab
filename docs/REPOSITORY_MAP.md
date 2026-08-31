@@ -26,7 +26,7 @@
 - 現在の既定入口は /play/ の SKIP 0.4 / laws-0.5 です。これは比較基準であり、面白さの勝者として確定していません。
 - 最新の独立試作は /scrapline/ の SCRAPLINE 0.7 / scrapline-build-20260829-r12 です。
 - SCRAPLINEは、機械検査と保存完全性は確認できましたが、作者プレイではfun 1〜2/5、因果の説明は成立せず、不採択です。
-- EXP-18 R5の実装と監査修正はmainにあります。現在のmainはR7 Milestone 4のPhase B（3幕12戦、4・8・12戦目がボス）まで含み、8人・21行動/14反応/8常設・24装備の遊べる版です。旧Phase Aの7区画（`content/encounters.mjs`）と対応するテスト・契約は比較・互換のため残っており、削除や現行への移行は作者判断です。
+- EXP-18 R5の実装と監査修正はmainにあります。現在のmainはR7 Milestone 4のPhase B（3幕12戦、4・8・12戦目がボス）まで含み、8人・21行動/14反応/8常設・24装備の遊べる版です。旧Phase Aの7区画（`content/encounters.mjs`）は、別担当の decision-space 移行まで互換入力として残しています。旧テスト、旧7件の contract、旧beat smoke は作者判断により削除済みで、移行完了後に旧データと `makeBattle()` adapter の削除可否を再判断します。
 
 ## 3. 判断の優先順位
 
