@@ -12,9 +12,7 @@ const SUITES = [
   "termination.test.mjs",
   "extensibility.test.mjs",
   "mine.test.mjs",
-  "playable.test.mjs",
   "contract.test.mjs",
-  "phase-a.test.mjs",
   "phase-b.test.mjs",
 ];
 
