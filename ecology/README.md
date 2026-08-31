@@ -10,7 +10,7 @@
 ## 実行
 
 ~~~sh
-node ecology/check.mjs        # 8本まとめて（exit code を検査する）
+node ecology/check.mjs        # 9本まとめて（exit code を検査する）
 node ecology/schema.test.mjs
 node ecology/engine.test.mjs
 node ecology/termination.test.mjs
@@ -18,7 +18,8 @@ node ecology/extensibility.test.mjs
 node ecology/mine.test.mjs
 node ecology/playable.test.mjs
 node ecology/contract.test.mjs  # content contract の深一致（R7 Milestone 0）
-node ecology/phase-a.test.mjs   # block / guard / 多段 / 範囲 / reach（R6 Phase A）
+node ecology/phase-a.test.mjs   # block / guard / 多段 / 範囲 / reach（旧 Phase A 由来の戦闘契約）
+node ecology/phase-b.test.mjs   # 3幕12戦、難易度、報酬、進行（現行 Phase B）
 ~~~
 
 外部依存なし。Node標準のみ。`analysis/check-all.sh` からも呼ばれる。
@@ -36,7 +37,8 @@ node ecology/phase-a.test.mjs   # block / guard / 多段 / 範囲 / reach（R6 P
 | 仲間（engine 定義） | `content/characters.mjs` |
 | 仲間（役割・図像・初期の技能） | `content/roster.mjs` |
 | 敵 unit と狙いの説明文 | `content/enemies.mjs` |
-| 区画ごとの配置 | `content/encounters.mjs` |
+| 旧 Phase A の配置 | `content/encounters.mjs` |
+| 現行 Phase B の3幕12戦 | `content/expedition.mjs` |
 | 技能ツリーと表示文 | `content/skill-tree.mjs` |
 | bundle の組み立て・contract 版・引退 ID | `content/index.mjs` |
 
