@@ -575,6 +575,10 @@ function validateRule(bag, path, rule, ctx) {
   }
   requireOneOf(bag, `${path}.limit.scope`, rule.limit.scope, LIMIT_SCOPES, "unknown_limit_scope");
   requireCount(bag, `${path}.limit.count`, rule.limit.count, { min: 1 });
+  // shared は省略可。付いていれば boolean（持ち主をまたいで予算を分け合う）。
+  if (Object.hasOwn(rule.limit, "shared") && typeof rule.limit.shared !== "boolean") {
+    bag.add(`${path}.limit.shared`, "not_a_boolean", "expected true or false");
+  }
 }
 
 function validateRules(bag, path, rules, ctx) {

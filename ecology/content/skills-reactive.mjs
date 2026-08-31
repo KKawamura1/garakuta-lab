@@ -93,4 +93,31 @@ reactiveSkills.barrier_stitch = {
   tags: ["reaction", "guard"],
 };
 
+// **一つの攻撃を庇えるのは一人。**（2026-08-31）
+//
+// 発火予算の鍵は `持ち主|規則ID` なので、既定では味方全員がそれぞれ1回ずつ
+// 同じ攻撃へ反応できる。実測では、敵がミナを狙った一撃に対して
+//
+//   スイが1RP払って   ミナ → スイ
+//   レオンが1RP払って スイ → レオン
+//   ミナが1RP払って   レオン → ミナ    ← 狙われた本人が取り返している
+//   ユウリが1RP払って ミナ → ユウリ
+//   ナギが1RP払って           → ナギ
+//
+// と標的を順に引き取り合い、**敵の一撃でパーティ全員の反応権が溶けていた**
+// （7区画で40回の付け替え）。庇う相手も庇う人も選べていない。
+//
+// `shared` を付けると持ち主をまたいで予算を一つにするので、
+// 反応するのは並び順で最初の一人だけになる（実測40回 → 8回。攻撃1回につき1人）。
+//
+// **R5 fixture 側は触らない。** あちらの cover_ally は「割り込みが順に走ること」の
+// 証人として engine.test.mjs が使っており、複数発火することに意味がある。
+reactiveSkills.cover_ally = {
+  ...reactiveSkills.cover_ally,
+  rule: {
+    ...reactiveSkills.cover_ally.rule,
+    limit: { ...reactiveSkills.cover_ally.rule.limit, shared: true },
+  },
+};
+
 export const REACTIVE_SKILLS = reactiveSkills;

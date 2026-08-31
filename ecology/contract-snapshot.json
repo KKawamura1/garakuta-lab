@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.7",
+ "contentVersion": "ecology-playable-full-0.8",
  "content": {
   "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.7",
+  "contentVersion": "ecology-playable-full-0.8",
   "characters": {
    "warden": {
     "id": "warden",
@@ -1897,7 +1897,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "shared": true
      }
     },
     "tags": [

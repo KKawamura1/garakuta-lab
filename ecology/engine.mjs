@@ -359,6 +359,12 @@ function firingKey(entry) {
   // §5.7 — "the same rule of the same owner instance fires at most once per
   // chain". Two copies of one item therefore share the budget on purpose.
   const ownerId = entry.owner ? entry.owner.instanceId : "~region";
+  // **shared な limit は、持ち主をまたいで一つの予算を分け合う。**
+  // 「一つの攻撃を庇えるのは一人」のように、盤面ぜんたいで一度きりにしたい規則がある。
+  // 持ち主ごとの予算だと、全員が同じ攻撃へ反応して**引き取り合いが起きる**
+  // （身代わりで実際に起きていた。敵の一撃にパーティ全員が1RPずつ払い、
+  // 標的が順に手渡されて最後に発火した人へ着弾していた）。
+  if (entry.rule.limit?.shared) return `~shared|${entry.rule.id}`;
   return `${ownerId}|${entry.rule.id}`;
 }
 
