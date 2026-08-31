@@ -47,7 +47,7 @@
 |---|---|
 | 場所 | ecology/fixture-content.mjs:246-267, 317-328, 513-633、ecology/content/skills-active.mjs:35-39、ecology/content/skills-reactive.mjs:31-51、ecology/content/packs.mjs:31-58、ecology/content/skill-tree.mjs |
 | 何を固定しているか | long_swing は準備再入を試す3段準備、idle_shuffle はAP0・常時使用可能な自由行動 loop、ap_loop / damage_echo / barrier_bloom / relay_front / relay_rear / prep_spiral は同 owner / 同 rule の発火上限を証明する chain / battle loop。 |
-| なぜ古い / 危険か | これらは termination タグと count:99 を持つ極端な engine witness だが、long_swing と6反応は pack / skill tree からプレイヤーが選べる。idle_shuffle は playable 側で steady_aim の互換 alias に上書きされるため挙動は軽減されているが、旧 save 互換として残り、同じ ID が fixture と production の両方に存在する。テストが「停止した」ことは、プレイヤーに提供する価値を保証しない。 |
+| なぜ古い / 危険か | これらは termination タグと count:99 を持つ極端な engine witness。うち long_swing と4反応（ap_loop / damage_echo / barrier_bloom / prep_spiral）は pack / skill tree からプレイヤーが選べ、relay_front / relay_rear は現行の技能ツリーには出ないものの playable bundle へ残る。idle_shuffle は playable 側で steady_aim の互換 alias に上書きされるため挙動は軽減されているが、旧 save 互換として残り、同じ ID が fixture と production の両方に存在する。テストが「停止した」ことは、プレイヤーに提供する価値を保証しない。 |
 | 提案 | fixture-only の ID と playable ID を分けるか、termination witness を production registry から明示的に除外する。除外できない旧 save ID は retired / compatibility policy を書き、現行 pack に出るものだけ別の playable behavior test を持つ。 |
 | 作者判断 | 要る。どの termination 用技能をゲームの意図した高リスク選択として残すかを決める必要がある。 |
 
