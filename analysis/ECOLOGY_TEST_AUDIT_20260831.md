@@ -6,7 +6,7 @@
 
 1. fixture-content.mjs は engine の能力を証明するための極端な定義なのに、content/base.mjs の renamed() と clone*() を通じて遊べる bundle の原型にもなっている。cover_ally の二重 redirect はその典型で、R5 の証人としては正しいが、遊べる content の仕様としては別の判断が必要。
 2. termination 用の技能・敵・装備が、タグや clone の形を保ったまま playable bundle、技能パック、Phase B encounter に届いている。これは「エンジンを止められるか」と「プレイヤーへ提供するか」の境界が未分離。
-3. Phase B は EXPEDITION_ENCOUNTERS と phase-b.test.mjs / ecology-expedition-smoke.mjs で検査されている一方、Phase A の7区画も playable.test.mjs、phase-a.test.mjs、contract snapshot、beat smoke に残っている。削除すれば失われる互換・比較・戦闘契約があるため、削除はしなかった。
+3. Phase B は EXPEDITION_ENCOUNTERS と phase-b.test.mjs / ecology-expedition-smoke.mjs で検査されている一方、Phase A の7区画も playable.test.mjs、phase-a.test.mjs、contract snapshot、beat smoke に残っていた。作者判断により、これらの旧テストと旧7区画の契約・beat smoke は削除した。旧データと `makeBattle()` adapter は、別担当が decision-space を Phase B へ移すまでだけ残す。
 4. 表示文は、反応5件・装備5件の明示的な数値ずれと、固定量を省略していた装備2件を確認した。係数・挙動は変えず、表示文を実効値へ揃え、readout smoke の対象を active / reactive / passive / equipment へ拡張した。
 
 この監査では、閾値・ゲーム数値・engine の仕様を変更していません。analysis/ecology-decision-space-smoke.mjs は未変更です。別担当の挙動作業と衝突する ecology/content/skills-reactive.mjs も未変更で、ecology/content/skill-tree.mjs は表示文だけを修正しました。
@@ -83,24 +83,24 @@
 
 ## 2. Phase A の遺物と、消すと失われるもの
 
-Phase B の現行経路は ecology/content/expedition.mjs の EXPEDITION_ENCOUNTERS、makeExpeditionBattle()、ecology/phase-b.test.mjs、analysis/ecology-expedition-smoke.mjs です。Phase A の7区画は消さず、依存関係を以下のように記録します。
+Phase B の現行経路は ecology/content/expedition.mjs の EXPEDITION_ENCOUNTERS、makeExpeditionBattle()、ecology/phase-b.test.mjs、analysis/ecology-expedition-smoke.mjs です。作者判断（「Phase A のテストなどはすべて消してよい」）を受け、旧テストと旧7区画のテスト契約は削除しました。残したのは、別担当が Phase B へ移行中の decision-space がまだ読む旧データ／adapter だけです。
 
 | 依存先 | Phase A への依存 | 消すと失われるもの | 提案 | 作者判断 |
 |---|---|---|---|---|
-| ecology/content/encounters.mjs | 旧7区画 ENCOUNTERS と ENEMY_TARGETING の source。 | 旧 battle input と旧表示名・敵狙いの比較基準。 | legacy-phase-a と明示して保存するか、移行表を残して retired にする。 | 要る |
-| ecology/playable-battles.mjs | makeBattle() / allEncounters() / encounterInfo() / stageRule() が旧 ENCOUNTERS を読む。makeExpeditionBattle() は Phase B 側。 | 旧 save / caller / replay adapter が使う入口。 | current entry と legacy adapter を API 上でも名前で分ける。 | 要る |
-| ecology/playable.test.mjs | for (stage = 1; stage <= 7) の validate・deterministic replay・snapshot、makeBattle(7) の Wave 1 clear / default no-clear、旧 idle_shuffle と target / durability の補助検査。 | 旧7戦を最後まで再生する互換証拠、Wave 1 の旧 final 判定、legacy alias の安全性。現行12戦の通し検査は持っていない。 | 12戦の検査は Phase B 側へ寄せ、旧7戦部分は legacy と明示するか、保存 replay 用へ分離する。 | 要る |
-| ecology/phase-a.test.mjs | 主体は custom CONTENT による block / guard / 多段 / row-column / reach / deterministic の低レベル戦闘契約。後半で current content の makeBattle(2) を一度使う。 | Phase B でも使う engine mechanics の契約。単純に削除すると、隊列・防御・射程の回帰検査が消える。 | combat-contract.test.mjs のような名前へ移し、旧 makeBattle(2) の1ケースは Phase B fixture へ移す。 | 要る |
-| ecology/contract-snapshot.mjs | STAGES = [1..7]、旧 battles / rewards / encounterInfo / stageRules を snapshot に含める。後半には Phase B 12戦も含む。 | 旧保存形式・D1 / replay の7 battle input と reward の安定した比較点。 | current contract と legacyPhaseAContract を別 section / 別 snapshot に分ける。 | 要る |
-| ecology/contract.test.mjs | frozen battles が7件、rewards が42件以上であることを明示し、全体を深一致・byte一致する。 | 旧7戦の contract が勝手に消えたことを検出する guard。 | 7件を legacy contract として意図的に残すか、migration と一緒に別 snapshot へ移す。数字を緩めるだけにはしない。 | 要る |
-| analysis/ecology-beats-smoke.mjs | makeBattle(stage) を1〜7で回し、旧7区画の実イベントを拍へ畳めることを検査。 | 旧UI replay beat の7区画実測。Phase B 12戦の beat coverage は不足する。 | makeExpeditionBattle() の12戦版へ移すか、旧比較 smoke として名前・出力を明示する。 | 要る |
+| ecology/content/encounters.mjs | 旧7区画 ENCOUNTERS と ENEMY_TARGETING の source。 | 旧 battle input と旧表示名・敵狙いの比較基準。 | decision-space の Phase B 移行完了まで legacy data として保持し、完了後に削除可否を再判断する。 | 要る |
+| ecology/playable-battles.mjs | makeBattle() / allEncounters() / encounterInfo() / stageRule() が旧 ENCOUNTERS を読む。makeExpeditionBattle() は Phase B 側。 | decision-space が現在も読む旧 adapter の入口。 | current entry と legacy adapter を API 上でも名前で分ける。 | 要る |
+| ecology/playable.test.mjs | 旧7区画の validate・deterministic replay・snapshot、makeBattle(7) の Wave 1 clear / default no-clear、旧 alias / target / durability の補助検査。 | 旧7戦の通し証拠、Wave 1 の旧 final 判定、legacy alias の安全性。 | **削除済み。** 現行12戦の通しは Phase B 側で検査する。 | なし |
+| ecology/phase-a.test.mjs | custom CONTENT による block / guard / 多段 / row-column / reach / deterministic の低レベル戦闘契約。 | Phase B でも使う engine mechanics の旧契約。 | **削除済み。** 必要になったら現行 `makeExpeditionBattle()` を入力にした combat contract として別設計する。 | その時点で要る |
+| ecology/contract-snapshot.mjs | 旧 `encounters` / `battles` / `rewards` / `encounterInfo` / `stageRules` と、Phase B 12戦を同じ snapshot に含めていた。 | 旧保存形式・D1 / replay の7 battle input と reward の比較点。 | **旧5 sectionを削除済み。** snapshot は content と現行 Phase B の expedition / composed encounter を凍結する。 | なし |
+| ecology/contract.test.mjs | frozen battles が7件、rewards が42件以上であることを明示していた。 | 旧7戦の contract を固定する stale gate。 | **7件・42件の guardを削除済み。** 現行 expedition / composed encounter が空でないことは残す。 | なし |
+| analysis/ecology-beats-smoke.mjs | makeBattle(stage) を1〜7で回し、旧7区画の実イベントを拍へ畳めることを検査。 | 旧UI replay beat の7区画実測。 | **削除済み。** Phase B 12戦の beat coverage が必要なら、現行経路を入力にする新しい smoke を別途設計する。 | 要る |
 | analysis/ecology-decision-space-smoke.mjs | 旧7区画を decision-space の測定対象にしている。 | 直近の比較基準・測定結果。 | 別担当が Phase B へ移す。今回触っていない。 | 別担当 |
 
 ### Phase A を残す理由と、現行との混同
 
-- Phase A を残す価値は、旧 save / replay / D1 contract の互換、過去の比較測定、そして Phase B が引き続き使う低レベル戦闘語彙の回帰検査です。
-- 残すことの危険は、playable.test.mjs の「7区画を通し、7戦目で Wave 1 を判定する」ことが現行遠征の合格条件に見えることです。
-- したがって、今回の安全な文書修正では ecology/PLAYABLE_RULES.md と ecology/README.md に現行 Phase B と旧 Phase A の境界を明記しました。テスト・snapshot の移動や削除は作者判断として残しています。
+- 旧データと `makeBattle()` adapter を残す価値は、decision-space の移行が終わるまで旧測定入力を壊さないことだけです。旧テスト・旧7 battle/reward contract・旧beat smokeを残す必要はありません。
+- 削除前の危険は、playable.test.mjs の「7区画を通し、7戦目で Wave 1 を判定する」ことが現行遠征の合格条件に見えることでした。削除後は、現行12戦を phase-b.test.mjs / ecology-expedition-smoke.mjs が検査します。
+- 低レベルの block / guard / 多段 / 範囲 / reach を、Phase B の現行入力で改めて固定するかは別の設計判断です。今回、旧 Phase A test の assert を名前だけ変えて移植することはしていません。
 
 ## 3. 表示文・文書の値ずれ
 
@@ -135,7 +135,7 @@ bpsForLegacyAmount(N) は N をそのまま百分率にしません。中立値4
 | 場所 | 問題 | 対応 |
 |---|---|---|
 | ecology/PLAYABLE_RULES.md | 7区画、Wave 1 の置換、Phase B は将来、報酬は「装備3候補 / 全員の技能点+2」、4枠など、Phase A の説明が現行として書かれていた。 | 現行の3幕12戦、4・8・12戦目のボス、装備2 / 技能点+2 / 補給+1、6枠を記載。旧7区画は「比較用・削除しない」の節へ移し、旧リプレイ・contract・beat smoke の依存を明記。戦闘尺度の数値は変更していない。 |
-| ecology/README.md | check.mjs を8本と記載し、Phase B test と content/expedition.mjs の導線が無かった。 | 9本へ修正し、Phase B test・現行 expedition・旧 Phase A test の位置づけを記載。 |
+| ecology/README.md | check.mjs を9本と記載し、旧 Phase A test を現行 suite として案内していた。 | 7本へ修正し、現行 Phase B test・expedition と、decision-space 移行まで残す旧配置の位置づけを記載。 |
 | docs/REPOSITORY_MAP.md | main の対象commitが 3c0790c、EXP-18が8人・24技能・18装備・7区画のdraftと記載され、現行 Phase B とずれていた。 | main の監査基準commitと、Phase B 3幕12戦 / 旧Phase A互換資産を記載。 |
 | docs/ のその他 | ecology の係数を直接表示する追加文言は検索で見つからなかった。歴史資料・実験票の旧数値は当時の証拠なので書き換えていない。 | 変更なし。 |
 
@@ -150,10 +150,10 @@ bpsForLegacyAmount(N) は N をそのまま百分率にしません。中立値4
 ### 恒真ではないが、意味を取り違えやすいもの
 
 - ecology/phase-b.test.mjs の composeEncounter(7, 3) を同じ式同士で比較する行は、同じ入力から2回独立に編成を作る決定性テストなので恒真ではない。残した。
-- ecology/contract.test.mjs の Object.keys(frozen.battles).length === 7 は恒真ではないが、現行12戦の数ではなく旧 Phase A contract の存在を固定する stale gate。数字を緩めず、残すか legacy snapshot へ分けるかを作者判断にした。
-- ecology/playable.test.mjs の skill.effect.length > 0 は表示 registry の存在検査であり、技能の挙動を検査していない。現行 Phase B の通しも starter / mid / late の一部 loadout なので、21行動・14反応すべての発火条件を実行するものではない。これは不足であって、今の assert が恒真という意味ではない。
+- ecology/contract.test.mjs の `Object.keys(frozen.battles).length === 7` は恒真ではないが、現行12戦ではなく旧 Phase A contract の存在を固定する stale gateだった。数字を緩めず、作者判断により guard ごと削除した。
+- ecology/playable.test.mjs の `skill.effect.length > 0` は表示 registry の存在検査で、技能の挙動を検査していなかった。この旧 suite は削除した。21行動・14反応すべての発火条件を現行 Phase B が実行するわけではない点は、未カバーの提案として残る。
 - analysis/ecology-contract-smoke.mjs の合成入力による self-check は、検出器自体が鳴ることを確かめるテスト。実ゲームの branch coverage と混同しない。
-- analysis/ecology-beats-smoke.mjs は各拍の対象が空にならない totalSelf > 0 / totalOther > 0 を持っており、対象 branch が全く通らない green を防いでいる。ただし対象は旧7区画である。
+- analysis/ecology-beats-smoke.mjs は旧7区画だけを対象にしていたため削除した。対象 branch の空振りを防ぐ `totalSelf` / `totalOther` の仕組みは、Phase B 版を設計する際に再利用できる。
 
 ### 未カバーとして残した提案
 
@@ -167,14 +167,16 @@ bpsForLegacyAmount(N) は N をそのまま百分率にしません。中立値4
 - analysis/ecology-readout-smoke.mjs: nested effect を読み、active / reactive の stat-scaled、event-value scale、equipment の固定量、passive の statBonus / AP / RP / block を照合するよう拡張。既存の checked >= 10 閾値は動かしていない。
 - analysis/ecology-test-hygiene-smoke.mjs: ecology test の assert.ok(true) と、同じリテラル同士の明らかな恒真比較を検出。意図的な変数同士の決定性比較は推測で禁止しない。
 - ecology/phase-b.test.mjs: 報酬引き直しの恒真比較を、前後状態の実比較へ修正。
-- ecology/contract-snapshot.json: 上記表示文の変更に伴う skills / equipment / components の凍結値だけを更新。battle 7件や Phase B の数値は変更していない。
+- ecology/phase-a.test.mjs、ecology/playable.test.mjs、analysis/ecology-beats-smoke.mjs: 作者判断により、旧 Phase A のテスト／7区画 beat smoke を削除。
+- ecology/contract-snapshot.mjs / ecology/contract.test.mjs / ecology/contract-snapshot.json: 旧7 battle・reward・encounterInfo・stageRules の凍結と stale guard を削除し、現行 Phase B の contract だけを残した。
+- ecology/check.mjs / ecology/README.md: 削除した suite を runner と実行案内から除外。
 - ecology/PLAYABLE_RULES.md、ecology/README.md、docs/REPOSITORY_MAP.md: 現行 Phase B と旧 Phase A の境界を明記。
 
 ## 実施しなかった修正
 
 - analysis/ecology-decision-space-smoke.mjs は未変更。
 - ecology/content/skills-reactive.mjs の limit.shared など、反応の発火回数・資源消費を変える挙動修正は未変更。別担当の修正と衝突するため、F-01 として提案のみ記録した。
-- Phase A の ENCOUNTERS、7 battle snapshot、Phase A test、旧 beat smoke は削除・数字の緩和をしていない。
+- ecology/content/encounters.mjs と `makeBattle()` などの旧 adapter は、decision-space の別担当が移行を終えるまで残した。今回の削除はテストと contract に限った。
 - 係数、戦闘数、敵のHP、難易度・関門の閾値は変更していない。
 
 ## 検査
@@ -188,4 +190,4 @@ node ecology/phase-b.test.mjs
 bash analysis/check-all.sh
 ~~~
 
-readout smoke は checked: 21、drifted: 0、4 section（active / reactive / passive / equipment）で通る。hygiene smoke は ecology の9 test fileを読み、literal tautology 0件で通る。phase-b.test.mjs は616 checksで通る。最終コードの GitHub Actions Checks run 33356868100（commit fdc28d626205056afa2c598042bee6cb9b20c3a3）では bash analysis/check-all.sh が実際に実行され、全 fast checks が31947ms（1分以内）で通った。readout と hygiene を含む ecology/check.mjs も成功している。今後1分を超える場合も閾値を動かさず、docs/OPERATIONS.md の pushごとの配置に従って分離する。
+readout smoke は checked: 21、drifted: 0、4 section（active / reactive / passive / equipment）で通る。hygiene smoke は ecology の7 test fileを読み、literal tautology 0件で通る。phase-b.test.mjs は616 checksで通る。削除後の GitHub Actions Checks run は、実行結果をここへ追記する。今後1分を超える場合も閾値を動かさず、docs/OPERATIONS.md の pushごとの配置に従って分離する。
