@@ -33,3 +33,53 @@ https://garakuta-lab.pages.dev/ecology/
 リポジトリ名、Cloudflare Pages のドメイン、D1 の binding 名は既存インフラの識別子として維持しています。プロダクトの表示名と現行導線は「灰の遠征」です。
 
 旧プロトタイプと旧運用資料は現行ツリーから整理しました。必要な過去の判断は Git の履歴と analysis/experiments/exp-18/ の記録で確認してください。
+## イベントログの値
+
+戦闘ログは値を持つイベント列です。現行エンジンが出力する `type` は次の44種類です。
+
+- `battle_started`
+- `round_started`
+- `actor_activated`
+- `round_ended`
+- `battle_ended`
+- `action_declared`
+- `target_selected`
+- `target_changed`
+- `action_cost_paid`
+- `action_started`
+- `action_resolved`
+- `action_skipped`
+- `action_canceled`
+- `preparation_started`
+- `preparation_advanced`
+- `preparation_completed`
+- `preparation_interrupted`
+- `damage_proposed`
+- `barrier_damaged`
+- `barrier_broken`
+- `damage_taken`
+- `excess_damage`
+- `healing_proposed`
+- `healing_applied`
+- `excess_healing`
+- `barrier_proposed`
+- `barrier_gained`
+- `barrier_expired`
+- `actor_defeated`
+- `resource_refreshed`
+- `resource_spent`
+- `resource_gained`
+- `resource_unused`
+- `actor_moved`
+- `status_added`
+- `status_removed`
+- `equipment_worn`
+- `equipment_broken`
+- `equipment_repaired`
+- `block_proposed`
+- `block_gained`
+- `damage_blocked`
+- `block_spent`
+- `pending_amount_modified`
+
+イベントの詳細な値と不変条件は `ecology/schema.mjs`、実装契約は `ecology/PLAYABLE_RULES.md` を参照してください。
