@@ -70,6 +70,11 @@ try {
   // （まだ preview の読み方を教えていない。教えるのは巻き戻したあと）。
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   note("盤面に2人だけが並ぶ", await page.locator(".battle-field .unit.ally, .unit[data-side=\"ally\"]").count() <= 3);
+  // **序盤の一戦の途中でリロードする。**この箱では、戦闘中のリロードで進行を
+  // 失う不具合が過去に出ている。物語から入る経路も同じ踏み場を通す。
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForSelector(".battle-field", { timeout: 8000 });
+  note("序盤の一戦の途中でリロードしても戻ってくる", /灰の門/.test(await bodyText()));
   await page.locator('.speed-button[data-speed="fast"]').click();
   await click("結果を見る");
   await page.waitForTimeout(300);
@@ -177,6 +182,37 @@ try {
     note("持ち込んだ品の名前が一致する",
       carriedText.includes(carriedName.replace(/\s*(並|上|希|遺物)\s*$/, "").trim()),
       carriedName);
+  }
+
+  // ---- R9 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
+  // （12戦を通すのはこの台本の仕事ではない）。
+  await page.evaluate(() => {
+    const key = "exp18-full-prototype-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved?.profile) return;
+    saved.profile.campaignProgress = saved.profile.campaignProgress || {};
+    const region = Object.keys(saved.profile.campaignProgress)[0] || "region_ashfront";
+    saved.profile.campaignProgress[region] = {
+      highestClearedStageSequence: 0, clearedStageSequences: [0],
+    };
+    saved.phase = "intro";
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await click("ギルドへ");
+  const stageCards = page.locator('[data-action="select-campaign-stage"][data-sequence="1"]');
+  note("Stage 1 が開く", await stageCards.count() > 0);
+  if (await stageCards.count()) {
+    await stageCards.first().click();
+    await page.waitForTimeout(200);
+    await click("この条件で遠征へ出る");
+    const joinText = await bodyText();
+    note("Stage 1 の加入の会話が出る", /ナギ/.test(joinText));
+    note("加入の会話も飛ばせる", await page.getByRole("button", { name: "この Stage の会話を飛ばす" }).count() > 0);
+    await click("この Stage の会話を飛ばす");
+    await page.waitForTimeout(250);
+    const stage1Camp = await bodyText();
+    note("Stage 1 は3人で始まる", /3 \/ 3人/.test(stage1Camp));
   }
 
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 3).join(" / "));

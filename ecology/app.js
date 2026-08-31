@@ -411,7 +411,16 @@ function loadState() {
     const savedRun = saved.run;
     if (savedRun && savedRun.schemaVersion === RUN_SCHEMA_VERSION && Array.isArray(savedRun.roster)) {
       next.run = savedRun;
-      next.run.roster = ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)));
+      // R9 §2.1 — **人数は遠征が持っている。**ここで既定の5人へ埋めると、
+      // 2人の Stage 0 を戦闘中にリロードしただけで5人に増える。
+      next.run.partySize = Number.isFinite(savedRun.partySize)
+        ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
+        : PARTY_SIZE;
+      next.run.rosterLocked = savedRun.rosterLocked === true;
+      next.run.roster = ensurePartySize(
+        savedRun.roster.filter((id) => characterInfo(id)),
+        next.run.partySize,
+      );
       next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
       next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
       // Phase C — **生成装備の定義は run が抱えている。**先に登録してから
