@@ -32,24 +32,15 @@ import {
   COMPONENTS,
   COMPONENT_ORDER,
   EQUIPMENT,
-  RUN_SEED,
   SKILLS,
   SKILL_TREE_NODES,
-  allEncounters,
-  encounterInfo,
   enemyInfo,
   enemyTargetingText,
   freshLoadout,
   initialUnlockedSkills,
-  makeBattle,
-  rewardOffer,
-  stageRule,
 } from "./playable-battles.mjs";
 
-const STAGES = [1, 2, 3, 4, 5, 6, 7];
-// 観測に使う固定の編成。**seed と同じで、動かしたら比較の意味が消える。**
-// PHASE A で4人から5人・2×3へ広げた。**観測点が実物と違うと、
-// 凍結が通っても遊べる版のことを何も言っていない。**
+// 現行 Phase B の参照編成。**seed と同じで、動かしたら比較の意味が消える。**
 const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
 const FORMATION = {
   warden: "front_left",
@@ -58,22 +49,8 @@ const FORMATION = {
   mender: "rear_left",
   scout: "rear_right",
 };
-const REWARD_SEEDS = [RUN_SEED, "frontier-1801-abc12345", "frontier-1801-zzz"];
-const OWNED = ["standing_plate", "field_kit"];
-
 export function contractSnapshot() {
   const loadout = freshLoadout(ROSTER);
-  const battles = {};
-  for (const stage of STAGES) {
-    battles["stage" + stage] = makeBattle(stage, ROSTER, loadout, RUN_SEED, FORMATION);
-  }
-  const rewards = {};
-  for (const seed of REWARD_SEEDS) {
-    for (const stage of STAGES) {
-      rewards[seed + "/" + stage] = rewardOffer(seed, stage, [], 3);
-      rewards[seed + "/" + stage + "/owned"] = rewardOffer(seed, stage, OWNED, 3);
-    }
-  }
   const enemyIds = Object.keys(PLAYABLE_CONTENT.enemyActors);
 
   // R7 Milestone 4（Phase B）— 遠征が外へ見せる出力。
@@ -109,15 +86,10 @@ export function contractSnapshot() {
     components: COMPONENTS,
     componentOrder: COMPONENT_ORDER,
     skillTreeNodes: SKILL_TREE_NODES,
-    encounters: allEncounters(),
-    encounterInfo: Object.fromEntries(STAGES.map((s) => [s, encounterInfo(s)])),
-    stageRules: Object.fromEntries(STAGES.map((s) => [s, stageRule(s)])),
     enemyInfo: Object.fromEntries(enemyIds.map((id) => [id, enemyInfo(id)])),
     enemyTargeting: Object.fromEntries(enemyIds.map((id) => [id, enemyTargetingText(id)])),
     initialUnlocked: Object.fromEntries(CHARACTER_OPTIONS.map((o) => [o.id, initialUnlockedSkills(o.id)])),
     freshLoadout: loadout,
-    battles,
-    rewards,
     // ---- Phase B
     region: REGION,
     skillPacks: SKILL_PACKS,
@@ -151,5 +123,4 @@ if (process.argv[1] && process.argv[1].endsWith("contract-snapshot.mjs") && proc
   writeFileSync(path, contractSnapshotJson());
   console.log("凍結を作り直した: " + path);
 }
-
 
