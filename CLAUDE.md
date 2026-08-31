@@ -1,3 +1,3 @@
-# Claude Code向け
+# 作業入口
 
-共通の作業ルールは、リポジトリ直下の [AGENTS.md](./AGENTS.md) を読んでください。
+このリポジトリの作業規約は AGENTS.md に集約しています。現在の本編は ecology/ です。

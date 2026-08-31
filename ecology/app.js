@@ -78,10 +78,10 @@ import {
 } from "./progression.mjs";
 import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
-import { deviceIdForRun, sendPayload, uuid } from "../agent-view/sync.js";
+import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 Phase B 0.5";
+const VERSION = "EXP-18 R8 Campaign 0.6";
 const SAVE_KEY = "exp18-full-prototype-v02";
 const app = document.querySelector("#app");
 const positionLabels = {
@@ -352,7 +352,7 @@ function loadState() {
       const migrated = migrateLegacyProfile(saved.meta);
       next.profile = migrated.profile;
       migrationNote = (migrated.note ? migrated.note + " " : "")
-        + "Phase B で遠征が3幕12戦になったため、途中だった7区画の進行は引き継いでいません。";
+        + "現行版では遠征が3幕12戦になったため、途中だった旧7区画の進行は引き継いでいません。";
     }
 
     // run が読めなければ作り直す。**壊れた run で camp に入らない**

@@ -47,11 +47,12 @@ const expectedBuild = (() => {
 
 let browser;
 let page;
+let errs = [];
 try {
   browser = await chromium.launch(existsSync(CHROMIUM_PATH) ? { executablePath: CHROMIUM_PATH } : {});
   // iPhone相当。**主要操作が画面外へ隠れないことを、実寸で見る。**
   page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  const errs = [];
+  errs = [];
   page.on("pageerror", (e) => errs.push(String(e)));
   // console の "Failed to load resource" はURLを持たない。下の response 側で
   // URL付きで拾っているので、ここで二重に数えない（数えると何が落ちたか分からなくなる）。
@@ -281,6 +282,7 @@ try {
 } catch (error) {
   note("通しが最後まで走った", false, String(error).split("\n")[0]);
   // **落ちた場所の画面を出す。**「時間切れ」だけでは、どの経路で詰まったか分からない。
+  if (errs.length) console.log("  ブラウザエラー:", errs.slice(0, 8).join(" / "));
   try {
     const where = await page?.locator("body").innerText();
     console.log("  画面:", where.slice(0, 700).replace(/\n/g, " | "));

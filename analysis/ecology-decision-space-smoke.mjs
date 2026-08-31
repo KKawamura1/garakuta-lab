@@ -1,3 +1,7 @@
+// Legacy compatibility probe for the optional Free mode.
+// 現行の入口は Campaign Stage です。旧7区画の入力を読む互換経路を監視するためだけに残しています。
+// 現行 Campaign の受入条件ではありません。詳細は ecology/PLAYABLE_RULES.md を参照してください。
+
 // **「考えて組むこと」が「運任せ」に勝つかを測る。**
 //
 // 2026-08-30、灰の遠征を無作為編成で回したところ、技能・反応・常設・装備を

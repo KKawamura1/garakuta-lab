@@ -1,57 +1,25 @@
-# ガラクタ・ラボ リポジトリ・インデックス
+# 灰の遠征 — リポジトリ・インデックス
 
-このページは細部を複製する索引です。現在の判断を決める資料ではありません。
-全体の分類は docs/REPOSITORY_MAP.md を見てください。
+このリポジトリの現行実装と、EXP-18 の判断記録を案内します。
 
-## 現在の正史
-
-| 役割 | ファイル |
+| 目的 | 読む場所 |
 |---|---|
-| 作業ルール | AGENTS.md |
-| 現在の結論・生の声 | PROJECT_MEMORY.md |
-| 短縮版の現在地 | analysis/CURRENT.md |
-| 全実験の判定表 | analysis/EXPERIMENT_LEDGER.md |
-| 設計の憲章 | DESIGN_CHARTER.md |
-| 新担当の手順 | docs/AGENT_ONBOARDING.md |
-| リポジトリ全体の分類 | docs/REPOSITORY_MAP.md |
+| 現在のルールと作業方針 | AGENTS.md → PROJECT_MEMORY.md → analysis/CURRENT.md |
+| プレイヤー向けの現行規則 | ecology/PLAYABLE_RULES.md |
+| 現行本編のコード | ecology/ |
+| R8 の実装正本 | analysis/experiments/exp-18/R8_FIXED_DIFFICULTY_SYNERGY_LADDER.md |
+| EXP-18 の判断履歴 | analysis/experiments/exp-18/ |
+| 運用・公開・人間テスト | docs/ |
+| D1 への保存処理 | functions/api/runs.js、migrations/ |
 
-最小読書順は、AGENTS → PROJECT_MEMORY → CURRENT → LEDGERです。個別の作業では、該当試作のREADMEと実験票だけを追加で読みます。
+## 現行の入口
 
-## 実装地図
+- /ecology/: 灰の遠征の本編
+- /: /ecology/ へのリダイレクト
+- Free mode: 旧 save との互換用。新しい設計判断の入口にはしない
 
-| 場所 | 役割 |
-|---|---|
-| core/ | 本編のルール・状態機械・シミュレーション |
-| play/ | 現在の既定UIとlaws/skip等の比較版 |
-| scrapline/ | 最新の独立試作。作者テスト不採択 |
-| kindling/、emberline/、tomori/、night-eater/ | 縦切り比較版 |
-| graft/、echo/、haul/、material/、puzzle/、control/、cycle/ | 旧独立試作 |
-| analysis/experiments/ | EXP-01〜04の依頼と回答 |
-| analysis/ | 旧ラウンド、実験票、検査、結果要約 |
-| analysis/human-runs/ | 作者・人間の再現可能なプレイ記録 |
-| analysis/agent-runs/ | エージェント代理プレイ |
-| research/ | 先行調査 |
-| docs/ | 公開・運用・D1/export |
-| .github/workflows/ | 検査・D1 export |
-| .claude/ | 旧Claude運用の再開資料 |
+## 現行コードの境界
 
-## 現在の入口
+ecology/ がゲーム本体です。core/build.mjs は公開版の build 印だけを提供し、frontier/ は EXP-18 R1 の教材・参照実装として残しています。functions/、migrations/、wrangler.jsonc は公開と D1 の基盤です。
 
-- /play/: SKIP 0.4 / laws-0.5の既定・比較基準
-- /scrapline/: SCRAPLINE 0.7 / build scrapline-build-20260829-r12。最新の作者テストは不採択
-- その他の試作は比較・履歴用です。採否はPROJECT_MEMORYとLEDGERを確認してください。
-
-## 実験・運用の入口
-
-- 実験票: analysis/experiments/README.md
-- 作者ログ: analysis/human-runs/README.md
-- SCRAPLINE次担当ランブック: analysis/SCRAPLINE_AGENT_RUNBOOK.md
-- 公開条件: docs/HUMAN_TEST_RELEASE.md
-- D1ログ取得: docs/D1_LOG_ACCESS.md
-- D1 export: docs/EXPORT.md
-- 日常運用: docs/OPERATIONS.md
-
-## 重要な扱い
-
-古い文書、失敗作、成功作、未成立の検証、未マージPRは削除しません。
-ただし、旧文書の「次にやること」は現在のキューではありません。資料が食い違うときは、AGENTSにある優先順位と、CURRENT/PROJECT_MEMORY/LEDGERの更新日を確認してください。
+EXP-18 の過去の実装報告は、当時の事実を再現するための履歴です。現在の変更判断は R8、analysis/CURRENT.md、実コードとテストの順に確認してください。

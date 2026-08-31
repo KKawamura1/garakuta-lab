@@ -1,226 +1,40 @@
-# 手順の細かいところ
+# 灰の遠征 — 運用手順
 
-`AGENTS.md` は毎ターン読む共通ルールとして短くしてある。Claude Codeも `CLAUDE.md` からそこを参照する。**一度読めば足りる細部はこちらに置く。**
+更新日: 2026-08-31（UTC）
 
-## 通知（`PushNotification`）
+## 日常の変更
 
-設定も鍵も要らない。2026-08-22 に実測で確認した。
+1. AGENTS.md、analysis/CURRENT.md、変更対象の R8 と実装を読む。
+2. 現在の branch と main の差分を確認する。
+3. 変更理由と受入条件を PR に書く。
+4. 実装後に次を実行する。
 
-- **アプリを開いていると抑制されて届かない。閉じていれば届く。**
-  「返事が無い＝読んでいない」ではない。届いていないだけのこともある。
-- `ntfy` はこの環境から使えない。代理サーバが CONNECT を 403 で拒否する
-  （公開先を読めないのと同じ egress ブロック）。どうしても要るなら GitHub Actions 側から叩く。
+    node ecology/check.mjs
+    bash analysis/check-all.sh
 
-**飛ばすのは作者の行動が要るときだけ。**
+5. 公開物を変更した場合は analysis/stamp.mjs で build 印を更新し、生成された core/build.mjs も commit する。
+6. GitHub Actions の通常 Checks が成功してから、公開先 E2E を必要に応じて実行する。
 
-| 飛ばす | 飛ばさない |
-|---|---|
-| 遊べる版を公開した（＝プレイ待ち） | 調律機を回し始めた |
-| 公開先の確認を頼みたい | 途中経過が出た |
-| 作者にしか決められない分岐に当たった | 自分で決めて進めた |
+## 作者へ渡す条件
 
-## 自分で再開する方法
+作者へ URL を渡すのは、実装、ローカル検査、公開先 E2E の未確認項目が無い場合だけです。機械検査は壊れた候補を落とすためのもので、fun、因果理解、再プレイ欲は作者の評価で決めます。
 
-turn を返すと止まる。戻れるのは3つのときだけ。
+## D1 の扱い
 
-1. 作者がメッセージを送る
-2. **自分で起動した背景タスクが終わる**（`run_in_background`。終了通知で起こされる）
-3. **`send_later` で予約した起床が発火する**
+ecology/ は終了時に、版、build、seed、Profile/Run の要約、event 列、アンケートを /api/runs へ送ります。送信失敗時も端末側の保存結果を明示し、「保存済み」と「D1 保存済み」を混同しません。
 
-`.claude/stop-check-unfinished.sh` が、着手中（`in_progress`）の作業を残したまま
-turn を返そうとすると止める。**未来の起床予約があるときだけ通す。**
+取得は Export D1 playtests workflow の読み取り専用経路を使います。自由記述をジョブログへ出す echo_to_log=true は、作者の明示的な確認がある場合だけ使用します。
 
-**予約したら `.claude/next-wakeup` に発火時刻（RFC3339）を書く。**
-hook はそれを読む。書き忘れたら止まる側に倒れるので、安全な向きに壊れる。
-作業が終わったら消す。
+## 変更時の注意
 
-```bash
-# send_later の返り値の fire_at をそのまま書く
-echo "2026-08-22T11:27:00Z" > .claude/next-wakeup
-```
+- Campaign Stage と Free mode は別の進行軸です。
+- CONTENT_CONTRACT_VERSION、Profile/Run schema、save key を変更するときは migration と古い端末データへの影響を書く。
+- 新しい content は登録、exact preview、決定性、anti-stall の検査を追加する。
+- 未実装の Phase C、Stage 4 以降を説明だけで現行化しない。
 
-**それでも捕まらない失敗がある**ので下も読むこと。
+## 障害時
 
-### hook で捕まえられない失敗
-
-2026-08-22、「高速化をやります」と言った直後にプレイ記録が届き、**turn を持ったまま**
-分析へ流れて高速化を落とした。起きられなかったのではなく、持っていたものを落とした。
-一覧に載っていなければ hook も見えない。**言ったことは `TaskCreate` に載せる。**
-
-## hook の配線（**これを忘れると、検査は全部黙る**）
-
-リポジトリの `.claude/settings.json` に置いた hook は、**この環境では呼ばれない。**
-実際に呼ばれているのは `~/.claude/launcher-settings.json` が指す
-`~/.claude/stop-hook-git-check.sh` **1本だけ**である。
-
-2026-08-22、私はそれを知らずに3つの検査を書き、**スクリプトを手で叩いて「動く」と確認した。**
-部品は動いていたが**配線されていなかった**ので、一度も鳴っていない。
-その間にツリーは3回巻き戻り、やりかけを残したまま5回止まった。**巻き戻り検査は一度も喋っていない。**
-
-**部品の動作確認は、配線の確認ではない。**
-
-### 当座の配線（コンテナ再起動のたびにやり直す）
-
-`~/.claude/stop-hook-git-check.sh` の末尾に、リポジトリ側の検査を呼ぶ数行を足してある。
-このファイルは**コンテナ再起動で作り直される**ので、消えていたら足し直す。
-
-```bash
-# 鳴るかどうかを必ず確かめる（手で叩くだけでは配線の確認にならない）
-echo '{"session_id":"<このセッションID>","stop_hook_active":false}' \
-  | bash ~/.claude/stop-hook-git-check.sh; echo "終了コード=$?"
-```
-
-恒久的にするには、**作者にプロジェクト側の hook を承認してもらう**必要がある。
-
-## 作業ツリーが巻き戻る
-
-**コンテナ再起動で、作業ディレクトリが古い commit に戻ることがある。**（2026-08-22 までに3回）
-
-3回目は、直したはずの修正が画面に出ない理由を追いかけている途中で気づいた。
-気づくのが遅れると**巻き戻った土台の上に新しい編集を重ねてしまい**、混成のまま作業が進む。
-
-`.claude/stop-check-tree.sh` が、HEAD が origin より後ろにいたら止める。
-（ターンのたびに走るので、1ターン以内に気づける）
-
-```bash
-git stash -u                                  # 手元の編集を退避
-git reset --hard origin/<branch>
-git stash pop
-```
-
-**こまめに push していれば無傷で戻せる。** 3回とも push 済みだったので何も失っていない。
-
-## 長く走るものの扱い
-
-**30分以上返ってこない作業を作らない。** 走らせている間に別の実装へ変わって、
-出てきた結果が既に古い、ということが起きる（作者の指摘、2026-08-22）。
-**特に作者が起きている時間帯は、短く刻んで様子を見る。**
-
-調律機は `--screen` 込みで約1分半まで縮んだ。それより長い形（`--noceiling` の全数など）を
-回すときは、先に `--only=` で数組だけ試して形を確かめてから。
-
-### 待ち受けを書くときの罠
-
-```bash
-until ! pgrep -f "tune-laws" >/dev/null; do sleep 10; done   # 永久に終わらない
-```
-
-**`pgrep -f` が待ち受け自身のコマンド行にマッチする。** 自分がいる限り条件が成立しないので、
-対象が終わっても待ち続ける。2026-08-22 にこれで4本が残り、最古のものは5時間53分生きていた
-（しかも1本は、二度と現れないファイルを待っていた）。
-
-こう書く：
-
-```bash
-pgrep -f "[t]une-laws" >/dev/null   # 角括弧で自分を外す
-pkill -f ...; wait $PID             # PID を直接持つ方が確実
-```
-
-**残っていないかを時々見る。** `ps -eo pid,etime,args --no-headers | grep "eval 'until"`
-
-### push ごとの検査（1分以内に保つ）
-
-**押すたびに走る検査は1分以内。** 長いもの、一度回せば十分なものは毎回走らせない。
-`analysis/check-all.sh` の `SLOW_CHECKS` に入れると、毎pushの経路から外れて
-**毎週日曜と手動実行**（`.github/workflows/exhaustive-checks.yml`）でだけ走る。
-
-予算は機械が見ている。`check-all.sh` は自分の所要時間を測り、
-`FAST_CHECK_BUDGET_MS`（既定60000）を超えたら落ちる。
-**超えたときに動かすのは予算ではなく、検査の置き場所。**
-どれが長いかは検査の出力に ms で出る。
-
-いま毎pushから外してあるもの（assertion は1つも削っていない。走る頻度だけを落としてある）:
-
-| 検査 | 実測 | 何を見ているか | いつ手で回すか |
-|---|---|---|---|
-| `analysis/smoke-trial.mjs` | 約19秒 | 対の釣り合い（詰みなし・順序が効く・両側遊べる） | `core/trial.mjs` `core/laws.mjs` を触ったとき |
-| `analysis/scrapline-run-policy-smoke.mjs` | 約6秒 | 愚直方策が後半判断を消さないこと | `scrapline/engine.mjs` の報酬・損耗を触ったとき |
-| `analysis/scrapline-balance-smoke.mjs` | 約45秒 | 全順序列 × 7区画の総当たり | 車両・敵の数値を触ったとき |
-| `analysis/scrapline-seed-regression.mjs` | 長い | 256 seed の敵順回帰 | seed生成・敵順を触ったとき |
-| `analysis/ecology-decision-space-smoke.mjs` | 約6分 | 灰の遠征の選択空間の床（雑な編成が通らない）と天井（考えた編成が敵2倍を壊す） | `ecology/content/` の技能・装備・敵・区画を触ったとき |
-
-手で回すとき:
-
-```bash
-node analysis/smoke-trial.mjs                  # 1本だけ
-RUN_EXHAUSTIVE=1 bash analysis/check-all.sh    # 外したものも含めて全部（約4分半）
-```
-
-**`ecology-decision-space-smoke.mjs` は 2026-08-30 現在、意図して落ちている。**
-**床は通るようになった**（出荷難度を1.2倍へ上げた。無作為編成の中央値0.88倍）。
-落ちているのは「考えた編成 vs 素朴な編成」で、作者が挙げた編成1.80倍に対し、
-役割を配っただけの「攻撃1防御0回復4」が1.71倍あり、差が1.09倍しかない。
-**未修正の欠陥を記録している赤であって、検査の不具合ではない。**
-
-コンボの数え上げは既定で走らない（`ECOLOGY_COMBO_COUNT=1` で走る）。
-探索の天井も、山登りの揺れが大きいので関門にしていない。 経緯と数字は
-[analysis/ECOLOGY_DECISION_SPACE_20260830.md](../analysis/ECOLOGY_DECISION_SPACE_20260830.md)。
-直すまでは、この1本が赤いまま `RUN_EXHAUSTIVE=1` が落ちる。**閾値を動かして緑にしない。**
-
-**公開前は全量を回す。** [HUMAN_TEST_RELEASE.md](./HUMAN_TEST_RELEASE.md) の条件を満たす前に、
-`RUN_EXHAUSTIVE=1` を一度通しておくこと。毎pushの緑は、外した4本については何も言っていない。
-
-## 公開
-
-**手順（この順で）**
-
-1. `node analysis/stamp.mjs` — build の印を打ち直す。**これを忘れると作者が新旧を見分けられない。**
-2. `for f in analysis/smoke-*.mjs; do node $f; done` を全部通す
-3. service worker のキャッシュ名を上げる（`sw.js` の `CACHE`）
-4. `main` へ merge して push
-5. **作者へ「上の隅が xxxxxxx になっていれば新しい版です」と印を伝える**
-
-**版を上げ忘れる件は機械に移した。** `analysis/smoke-version.mjs` が、規則の**挙動**から
-指紋を取り、前回の指紋と違うのに版が据え置きなら落ちる（コメントを直しただけでは鳴らない）。
-落ちたら `core/rules-version.mjs` を書き換え、`agent-view/sync.js` と `core/laws.mjs` の
-版も揃える。**表（敵の数値）を差し替えたときも鳴る** — 難易度が変われば別のゲームなので。
-
-指紋は記録そのものにも載る（`stats.rulesFingerprint`）。**万一すり抜けても、
-前後の記録は分けられる。**
-
-**コミット文は `printf` で作らない。** `%` が書式指定として食われて、**そこで切れる。**
-2026-08-23、「最大HPの1.5〜4%を回復」と書いた本文が「1.5〜4」で切れて main に載った。
-`git commit -F -` にヒアドキュメントを流すこと（`%` も `\` もそのまま通る）。
-
-`main` へ push すると Cloudflare Pages が公開する。**遊べる状態でないものは main に出さない。**
-**画面に関わる変更をしたら、`node analysis/browser-trial.mjs` を通す。**
-対を1組まるごと遊びきる（1本目→答え合わせ→メモ→2本目→強制選択→送信→控え）。
-**画面の中で一番長い流れで、途中で止まると遊び終えた1本目ごと無駄になる。**
-検査は通るのに画面では動かない、という欠陥が一晩で4件出ている（学び#58・#59）。
-
-**灰の遠征（`ecology/`）を触ったら、`node analysis/ecology-trial.mjs` を通す。**
-390×844 で、ギルド（遠征を仕立てる・投資）→編成→技能→装備→戦闘の盤面→デバッグログ→
-**3幕12戦をまたぐ進行**→**戦闘中のリロード**→敗北時の補給再挑戦→精算→終了アンケート送信まで
-一度に踏む。印字ではなく終了コードを見る。
-`ECOLOGY_TRIAL_BASE` を渡せば公開先も見られるが、**この箱からは pages.dev へ出られない**ので、
-公開先の通しは GitHub Actions の **Ecology trial (deployed)**（`workflow_dispatch`）から走らせる。
-`base_url` と `expect_build` を渡すと、公開先が新しい build を出しているかも一緒に見る。
-
-**巻き戻ったツリーで測らない。**コンテナ再起動で古い版へ戻ることがある。
-`browser-trial.mjs` は origin と一致しなければ測る前に止まる——
-一度、巻き戻った版を測って「対の流れが壊れている」と読みかけた。
-
-通常のpush/PRでは **`./analysis/check-all.sh`** を高速経路として通す。64,471列の
-順序付き全探索と256 seed回帰はこの経路から一時的に外しているが、検査コードとassert条件は残している。
-公開前、ruleset変更時、または全量を確認するときは **`RUN_EXHAUSTIVE=1 bash analysis/check-all.sh`**
-を通す（一つでも落ちたら 1 で終わる）。
-
-**`for f in ...; do node $f; done` で済ませない。**
-2026-08-23、その形で走らせて "FAIL smoke-play" と印字されているのに、
-**そのまま公開した。**印字は人が読む前提で、後ろの `set -e` は反応しない。
-公開してよいかの判断は、印字ではなく**終了コード**に持たせる。
-**この環境からは公開先を取得できない**（egress ブロック）ので、公開の確認は作者に頼る。
-
-ブラウザ確認は Chromium（`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`）で 390×844。
-**ラン途中のリロードを必ず含める**（作者が一度それで進行を失っている）。
-
-## プレイ記録の取り出し
-
-[`docs/EXPORT.md`](./EXPORT.md)。Claude 側から起動できる（`workflow_dispatch`）ので作者に頼まない。
-D1 を直接読むことはできない（資格情報が無く、外向き通信も遮断）。
-
-## 調律機
-
-`node analysis/tune-laws.mjs --sets=20 --cap=300 --screen`（並列4＋粗い篩で約1分半）。
-`--workers=1` で直列、`--only=a+b,c+d` で組を絞る、`--verbose` で敵ごとの内訳、
-`--noceiling` で天井を測るが落とさない。
+- 画面が空白なら、ブラウザ console、公開された module の MIME、build 印、直接 import の順に確認する。
+- 戦闘が止まるなら、同じ seed のイベント列、termination、anti-stall の結果を確認する。
+- D1 の送信が失敗するなら、payload の schema、HTTP status、functions/api/runs.js の許可 host、D1 migration を確認する。
+- 作者のプレイ結果を推測で補わず、未確認として止める。
