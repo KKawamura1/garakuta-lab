@@ -44,6 +44,10 @@ const equal = (actual, expected, message) => {
 };
 
 const profile = newProfile();
+profile.campaignProgress[REGION.id] = {
+  highestClearedStageSequence: 3,
+  clearedStageSequences: [0, 1, 2, 3],
+};
 const statsFor = (characterId) => characterStats(profile, characterId);
 
 // ---- 序盤の敗北と巻き戻し（R9 §2.1）----------------------------------------
@@ -285,12 +289,12 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   check(firstRun.rosterLocked, "初回は編成を組み替えない");
 
   const revisit = newRun(profile, {
-    runSeed: "tut2", runId: "tut2", roster: ["scout", "pivot", "arcanist", "mender", "lancer"],
+    runSeed: "tut2", runId: "tut2", roster: ["tactician", "guardian", "lancer", "mender", "warden"],
     campaignStageSequence: 0, freeRoster: true,
   });
-  equal(revisit.partySize, 5, "再訪は5人まで使える");
+  equal(revisit.partySize, 5, "再訪は登場済みの5人まで使える");
   check(!revisit.rosterLocked, "再訪では編成を自由に組める");
-  assert.deepEqual(revisit.roster, ["scout", "pivot", "arcanist", "mender", "lancer"],
+  assert.deepEqual(revisit.roster, ["tactician", "guardian", "lancer", "mender", "warden"],
     "再訪では呼び出し側の選択がそのまま通る");
   checks += 1;
 
