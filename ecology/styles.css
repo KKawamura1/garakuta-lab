@@ -1261,12 +1261,12 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   padding: 0.85rem 1rem;
   border: 1px solid var(--line);
   border-radius: 0.7rem;
-  background: var(--panel-soft);
+  background: var(--panel-2);
 }
 
 .save-slot.auto {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--panel-soft));
+  background: rgba(229, 184, 105, .08);
 }
 
 .save-slot.empty {
