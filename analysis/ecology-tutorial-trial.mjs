@@ -54,6 +54,8 @@ try {
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
+  note("Continueは初回は無効", await page.locator('[data-action="continue-game"][disabled]').count() === 1);
+  note("Load Gameへ進める", await page.getByRole("button", { name: "セーブを選ぶ" }).count() === 1);
   // R10 — New Gameは必ずCampaign Stage 0のopeningから始める。
   await click("はじめから");
 
@@ -97,6 +99,16 @@ try {
   await page.locator('nav.tabs [data-tab="roster"]').click();
   note("この Stage の同行者は固定だと書いてある",
     /物語が決めます/.test(await bodyText()));
+
+  // R10 — Campではオートセーブとは別に手動枠へ保存できる。
+  await click("セーブ / ロード");
+  note("セーブ画面へ進める", /セーブ \/ ロード/.test(await bodyText()));
+  await page.locator('[data-action="save-slot"][data-slot="1"]').click();
+  await page.waitForTimeout(200);
+  note("手動セーブ枠へ保存できる", /手動セーブ枠 1 に保存しました/.test(await bodyText()));
+  await page.locator('[data-action="load-slot"][data-slot="1"]').click();
+  await page.waitForTimeout(200);
+  note("手動セーブからCampへ戻れる", /編成|仲間/.test(await bodyText()) && /2 \/ 2人/.test(await bodyText()));
 
   // R9 §3.1 — 新 pack は入口だけ。full だけの技能はまだ出ない。
   await page.locator('nav.tabs [data-tab="skills"]').click();
