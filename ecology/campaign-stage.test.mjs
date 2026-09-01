@@ -73,9 +73,9 @@ function campaignCompleteProfile() {
 // ---- 登場済み人物だけをギルド対象にする ------------------------------
 
 {
-  const profile = campaignCompleteProfile();
+  const profile = newProfile();
   profile.activityFunds = "1000000";
-  assert.deepEqual(availableCharacterIds(profile), ["warden", "lancer"], "最初は登場済みの2人だけ");
+  assert.deepEqual(availableCharacterIds(profile), ["warden", "mender"], "最初は登場済みの2人だけ");
   checks += 1;
   check(!purchaseTraining(profile, "mender", "might").ok, "未登場の人物は鍛錬できない");
   check(!purchaseUpgrade(profile, slotUpgradeId("active", "mender")).ok, "未登場の人物は枠を買えない");
@@ -161,7 +161,7 @@ function campaignCompleteProfile() {
 // ---- Campaign Stage 解禁（R8 §3.1）------------------------------------------
 
 {
-  const profile = campaignCompleteProfile();
+  const profile = newProfile();
   assert.deepEqual(availableCampaignStages(profile), [0], "最初は Stage 0 だけ解禁");
   check(isCampaignStageUnlocked(profile, 0), "Stage 0 は解禁済み");
   check(!isCampaignStageUnlocked(profile, 1), "Stage 1 はまだ解禁されていない");
