@@ -82,7 +82,7 @@ try {
     expectedBuild ? (await bodyText()).includes(expectedBuild) : false, expectedBuild);
 
   // R6 §15.1 — 遠征開始前に、有効パック・敵family・3体のボスと法則・難易度が出る。
-  await click("ギルドへ");
+  await click("遠征を仕立てる");
   const guildText = await bodyText();
   note("ギルド（遠征を仕立てる）に着く", /この遠征に出るもの/.test(guildText));
   note("有効な技能パックが出ている", /この遠征では出ない/.test(guildText) && /有効/.test(guildText));
@@ -220,7 +220,7 @@ try {
   // 終端（アンケート）へ。まだ着いていなければ、その場から終端画面を開く。
   if (!/今回のUIについて/.test(await bodyText())) {
     await page.evaluate(() => {
-      const key = "exp18-full-prototype-v02";
+      const key = "exp18-r10-auto-v01";
       const saved = JSON.parse(localStorage.getItem(key));
       saved.phase = "complete";
       localStorage.setItem(key, JSON.stringify(saved));
@@ -263,7 +263,7 @@ try {
   }
 
   // 送信した控えに、版・seed・buildの印・主要イベントが載っているか。
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-full-prototype-v02")));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-r10-auto-v01")));
   note("控えに版が残る", Boolean(saved?.run?.runSeed) && Boolean(saved?.feedback?.savedAt));
   // R6 §4.1 — ProfileState と RunState が別に保存されている。
   note("profile と run が分かれて保存されている",
