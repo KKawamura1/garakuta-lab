@@ -573,6 +573,9 @@ function hasAutoSave() {
 
 function saveManualSlot(slot) {
   if (!Number.isInteger(slot) || slot < 1 || slot > MANUAL_SAVE_SLOTS) return;
+  const key = manualSaveKey(slot);
+  if (readStoredSnapshot(key)
+    && !window.confirm("手動セーブ枠 " + slot + " を上書きします。よろしいですか？")) return;
   const snapshot = storageSnapshot();
   snapshot.phase = "camp";
   snapshot.saveKind = "manual";
@@ -928,7 +931,7 @@ function renderIntro() {
 
 function renderSaveSlot(slot, snapshot, fromCamp) {
   const actions = fromCamp
-    ? button("この枠に保存", "save-slot", false, "tiny-button primary-mini", "data-slot=\"" + slot + "\"")
+    ? button(snapshot ? "上書き保存" : "この枠に保存", "save-slot", false, "tiny-button primary-mini", "data-slot=\"" + slot + "\"")
       + (snapshot ? button("読み込む", "load-slot", false, "tiny-button", "data-slot=\"" + slot + "\"") : "")
     : snapshot
       ? button("読み込む", "load-slot", false, "tiny-button primary-mini", "data-slot=\"" + slot + "\"")
