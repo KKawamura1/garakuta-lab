@@ -1221,3 +1221,98 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .story-line span { color: var(--ink); }
 .story-line.narration { color: var(--muted); font-style: italic; padding-left: calc(4.5em + 10px); }
 .story-footer { border-top: 1px solid var(--line); padding-top: 8px; }
+
+
+/* R10 — title screen and local save slots */
+.title-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 1.4rem 0 0.8rem;
+}
+
+.save-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.camp-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.7rem 0 1rem;
+}
+
+.save-menu-card {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.save-slot-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.save-slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: var(--panel-2);
+}
+
+.save-slot.auto {
+  border-color: var(--gold);
+  background: rgba(229, 184, 105, .08);
+}
+
+.save-slot.empty {
+  opacity: 0.68;
+}
+
+.save-slot b,
+.save-slot small {
+  display: block;
+}
+
+.save-slot small {
+  margin-top: 0.2rem;
+  color: var(--muted);
+}
+
+.save-slot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.save-notice {
+  margin: 0;
+  color: var(--gold);
+}
+
+.future-roster {
+  margin-top: 0.8rem;
+  color: var(--muted);
+}
+
+.future-roster summary {
+  cursor: pointer;
+  color: var(--ink);
+}
+
+@media (max-width: 560px) {
+  .save-slot {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .save-slot-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

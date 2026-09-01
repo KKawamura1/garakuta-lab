@@ -59,7 +59,6 @@ import {
   gainSupply,
   grantRunSkillPoints,
   manifestSkillIds,
-  migrateLegacyProfile,
   newProfile,
   newRun,
   normalizeProfile,
@@ -99,8 +98,11 @@ import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 R8+R9 Campaign 0.7";
-const SAVE_KEY = "exp18-full-prototype-v02";
+const VERSION = "EXP-18 R10 Campaign 0.8";
+const SAVE_FORMAT_VERSION = 1;
+const SAVE_KEY = "exp18-r10-auto-v01";
+const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v01-";
+const MANUAL_SAVE_SLOTS = 3;
 const app = document.querySelector("#app");
 const positionLabels = {
   front_left: "前列左",
@@ -340,6 +342,8 @@ function freshUiState() {
     blueprintFilter: { rarity: null, favorite: false },
     // R9 §2 / §7 — 物語の断片。queue が空になったら after へ進む。
     story: { queue: [], after: "camp" },
+    saveMenuReturn: "intro",
+    saveNotice: null,
     prologueActive: false,
     selectedCharacter: null,
     // ギルドは**遠征の編成とは別の選択**を持つ。roster の5人へ丸めると、
@@ -385,91 +389,84 @@ function initialState() {
   return { ...freshUiState(), profile, run: startRun(profile, { campaignStageSequence: 0 }), phase: "intro" };
 }
 
-// R6 §16 — version 不一致を黙って読み飛ばさない。
-// 旧 save（Phase A の平たい meta）は **profile を持たない**ので、そこで見分ける。
+// R10 — 旧セーブとの互換は切る。新しい保存キーと形式だけを読む。
+function readStoredSnapshot(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== "object") return null;
+    if (saved.saveFormatVersion !== SAVE_FORMAT_VERSION) return null;
+    if (!saved.profile || !saved.run
+      || saved.run.schemaVersion !== RUN_SCHEMA_VERSION
+      || !Array.isArray(saved.run.roster)) return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+function hydrateState(saved) {
+  if (!saved) return initialState();
+  const fresh = initialState();
+  const next = { ...fresh, ...saved };
+  next.profile = normalizeProfile(saved.profile);
+
+  // 保存時点のRunを復元する。形式が違うデータは readStoredSnapshot で
+  // 入口から弾いているため、Free Runを勝手に作って続行しない。
+  const savedRun = saved.run;
+  next.run = savedRun;
+  next.run.partySize = Number.isFinite(savedRun.partySize)
+    ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
+    : PARTY_SIZE;
+  next.run.rosterLocked = savedRun.rosterLocked === true;
+  next.run.roster = ensurePartySize(
+    savedRun.roster.filter((id) => characterInfo(id)),
+    next.run.partySize,
+  );
+  next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
+  next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
+  next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
+    ? savedRun.generatedEquipment
+    : {};
+  next.run.carriedBlueprintIds = Array.isArray(savedRun.carriedBlueprintIds)
+    ? savedRun.carriedBlueprintIds
+    : [];
+  registerGeneratedEquipment(next.run.generatedEquipment);
+  next.run.inventory = Array.isArray(savedRun.inventory)
+    ? savedRun.inventory.filter((id) => componentInfo(id)).slice(0, INVENTORY_LIMIT)
+    : [];
+  next.run.supplies = Math.max(0, Math.min(MAX_SUPPLIES, Math.floor(savedRun.supplies ?? 0)));
+  next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
+
+  next.migrationNote = null;
+  const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
+  const savedFormationSelection = hasFormationSelection ? saved.formationSelection : next.selectedCharacter;
+  next.formationSelection = next.run.roster.includes(savedFormationSelection) ? savedFormationSelection : null;
+  // 戦闘内の値（HP・装備耐久）はBattleState。保存から戻るときは満タンへ戻す。
+  next.hp = Object.fromEntries(
+    CHARACTER_OPTIONS.map((option) => [option.id, characterStats(next.profile, option.id).stats.maxHp]),
+  );
+  next.equipmentDurability = {};
+  next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
+  next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
+  next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
+  next.replaySnapshots = Array.isArray(next.replaySnapshots) ? next.replaySnapshots : [];
+  next.skillTreeScroll = next.skillTreeScroll && typeof next.skillTreeScroll === "object" && !Array.isArray(next.skillTreeScroll)
+    ? next.skillTreeScroll
+    : {};
+  next.selectedSkillNode = next.selectedSkillNode || null;
+  next.battleError = next.battleError || null;
+  next.replaySpeed = REPLAY_SPEEDS.some((entry) => entry.id === next.replaySpeed) ? next.replaySpeed : "normal";
+  next.replayLogOpen = next.replayLogOpen === true;
+  next.saveMenuReturn = "intro";
+  next.saveNotice = null;
+  return next;
+}
+
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-    if (!saved || typeof saved !== "object") return initialState();
-    const fresh = initialState();
-    const next = { ...fresh, ...saved };
-    let migrationNote = null;
-
-    if (saved.profile) {
-      next.profile = normalizeProfile(saved.profile);
-    } else {
-      // Phase A の save。永続だったものが Phase B では run 内の資源になったので、
-      // **持ち越せる意味のあるものだけ**を移し、何をしたかを画面に出す。
-      const migrated = migrateLegacyProfile(saved.meta);
-      next.profile = migrated.profile;
-      migrationNote = (migrated.note ? migrated.note + " " : "")
-        + "現行版では遠征が3幕12戦になったため、途中だった旧7区画の進行は引き継いでいません。";
-    }
-
-    // run が読めなければ作り直す。**壊れた run で camp に入らない**
-    // （形が違うまま画面へ出すと、どこで落ちたか分からなくなる）。
-    const savedRun = saved.run;
-    if (savedRun && savedRun.schemaVersion === RUN_SCHEMA_VERSION && Array.isArray(savedRun.roster)) {
-      next.run = savedRun;
-      // R9 §2.1 — **人数は遠征が持っている。**ここで既定の5人へ埋めると、
-      // 2人の Stage 0 を戦闘中にリロードしただけで5人に増える。
-      next.run.partySize = Number.isFinite(savedRun.partySize)
-        ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
-        : PARTY_SIZE;
-      next.run.rosterLocked = savedRun.rosterLocked === true;
-      next.run.roster = ensurePartySize(
-        savedRun.roster.filter((id) => characterInfo(id)),
-        next.run.partySize,
-      );
-      next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
-      next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
-      // Phase C — **生成装備の定義は run が抱えている。**先に登録してから
-      // 持ち物を絞らないと、拾った生成装備が読み込みのたびに消える。
-      next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
-        ? savedRun.generatedEquipment
-        : {};
-      next.run.carriedBlueprintIds = Array.isArray(savedRun.carriedBlueprintIds)
-        ? savedRun.carriedBlueprintIds
-        : [];
-      registerGeneratedEquipment(next.run.generatedEquipment);
-      next.run.inventory = Array.isArray(savedRun.inventory)
-        ? savedRun.inventory.filter((id) => componentInfo(id)).slice(0, INVENTORY_LIMIT)
-        : [];
-      next.run.supplies = Math.max(0, Math.min(MAX_SUPPLIES, Math.floor(savedRun.supplies ?? 0)));
-      next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
-    } else {
-      next.run = startRun(next.profile);
-      if (savedRun) migrationNote = (migrationNote ?? "") + " 保存されていた遠征の形が古かったため、作り直しました。";
-      if (!savedRun && saved.phase && saved.phase !== "intro") next.phase = "expeditionStart";
-    }
-    next.migrationNote = migrationNote;
-    if (migrationNote && next.phase !== "intro") next.phase = "expeditionStart";
-
-    const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
-    const savedFormationSelection = hasFormationSelection ? saved.formationSelection : next.selectedCharacter;
-    next.formationSelection = next.run.roster.includes(savedFormationSelection) ? savedFormationSelection : null;
-    // 戦闘内の値（HP・装備耐久）は BattleState。読み込み時に必ず満タンへ戻す。
-    //
-    // **ここで maxHp() を呼ばない。** maxHp は state.profile を読むが、
-    // state はまだ代入されていない（`let state = loadState()` の途中）。
-    // 呼ぶと ReferenceError になり、下の catch が**保存を丸ごと捨てて**
-    // intro へ戻す。2026-08-30、戦闘中のリロードがそれで進行を失っていた。
-    next.hp = Object.fromEntries(
-      CHARACTER_OPTIONS.map((option) => [option.id, characterStats(next.profile, option.id).stats.maxHp]),
-    );
-    next.equipmentDurability = {};
-    next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
-    next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
-    next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
-    next.replaySnapshots = Array.isArray(next.replaySnapshots) ? next.replaySnapshots : [];
-    next.skillTreeScroll = next.skillTreeScroll && typeof next.skillTreeScroll === "object" && !Array.isArray(next.skillTreeScroll)
-      ? next.skillTreeScroll
-      : {};
-    next.selectedSkillNode = next.selectedSkillNode || null;
-    next.battleError = next.battleError || null;
-    next.replaySpeed = REPLAY_SPEEDS.some((entry) => entry.id === next.replaySpeed) ? next.replaySpeed : "normal";
-    next.replayLogOpen = next.replayLogOpen === true;
-    return next;
+    return hydrateState(readStoredSnapshot(SAVE_KEY));
   } catch {
     return initialState();
   }
@@ -482,7 +479,12 @@ let state = loadState();
 // an exception here used to happen before render(), leaving the user on the
 // "自動戦闘を再生する" screen even though simulation had completed.
 function persistableState() {
-  const persisted = { ...state };
+  const persisted = { ...state, saveFormatVersion: SAVE_FORMAT_VERSION };
+  // 保存メニューは一時画面なので、Continueでそこへ戻さない。
+  if (state.phase === "saveMenu") {
+    persisted.phase = state.saveMenuReturn === "camp" ? "camp" : "intro";
+    persisted.saveMenuReturn = "intro";
+  }
   if (state.lastResult && typeof state.lastResult === "object") {
     // Copy only the object that we trim; the live state remains untouched.
     persisted.lastResult = { ...state.lastResult };
@@ -492,27 +494,21 @@ function persistableState() {
   return persisted;
 }
 
-function isRecoverableStorageError(error) {
-  return [
-    "QuotaExceededError",
-    "NS_ERROR_DOM_QUOTA_REACHED",
-    "SecurityError",
-  ].includes(error?.name);
+function storageSnapshot() {
+  const snapshot = persistableState();
+  snapshot.savedAt = new Date().toISOString();
+  return snapshot;
 }
 
-function saveState() {
-  // Keep the live replay in memory, but do not block the battle when the
-  // device's Web Storage quota is exhausted. The fallback progressively drops
-  // reconstructible data while retaining profile/run progress.
-  const snapshot = persistableState();
+function writeSnapshot(key, snapshot) {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot));
-    return true;
+    localStorage.setItem(key, JSON.stringify(snapshot));
+    return { ok: true, compacted: false };
   } catch (error) {
     if (!isRecoverableStorageError(error)) throw error;
   }
 
-  const minimal = persistableState();
+  const minimal = clone(snapshot);
   const shed = [
     () => {
       const events = Array.isArray(minimal.runEvents) ? minimal.runEvents : [];
@@ -529,17 +525,87 @@ function saveState() {
   for (const drop of shed) {
     drop();
     try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(minimal));
-      return false;
+      localStorage.setItem(key, JSON.stringify(minimal));
+      return { ok: true, compacted: true };
     } catch (retryError) {
       if (!isRecoverableStorageError(retryError)) throw retryError;
     }
   }
-  // Persistence is best-effort; the in-memory UI and the current battle remain
-  // usable even when no checkpoint fits on the device.
-  state.error = "端末の保存枠が足りません。記録を送ってから、新しい遠征を始めてください。";
-  return false;
+  return { ok: false, compacted: false };
 }
+
+function saveState() {
+  // Keep the live replay in memory, but do not block the battle when the
+  // device's Web Storage quota is exhausted. The fallback progressively drops
+  // reconstructible data while retaining profile/run progress.
+  const result = writeSnapshot(SAVE_KEY, storageSnapshot());
+  if (!result.ok) {
+    state.error = "端末の保存枠が足りません。記録を送ってから、新しい遠征を始めてください。";
+    return false;
+  }
+  return !result.compacted;
+}
+
+function manualSaveKey(slot) {
+  return MANUAL_SAVE_PREFIX + String(slot);
+}
+
+function formatSaveDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "日時不明"
+    : date.toLocaleString("ja-JP", { dateStyle: "short", timeStyle: "short" });
+}
+
+function saveSummary(snapshot) {
+  if (!snapshot?.run) return "空き枠";
+  const run = snapshot.run;
+  const mode = run.campaignStageSequence === null || run.campaignStageSequence === undefined
+    ? "Free"
+    : "Campaign Stage " + run.campaignStageSequence;
+  const party = Array.isArray(run.roster) ? run.roster.length : 0;
+  return mode + " · " + party + "人 · " + formatSaveDate(snapshot.savedAt);
+}
+
+function hasAutoSave() {
+  return Boolean(readStoredSnapshot(SAVE_KEY));
+}
+
+function saveManualSlot(slot) {
+  if (!Number.isInteger(slot) || slot < 1 || slot > MANUAL_SAVE_SLOTS) return;
+  const key = manualSaveKey(slot);
+  if (readStoredSnapshot(key)
+    && !window.confirm("手動セーブ枠 " + slot + " を上書きします。よろしいですか？")) return;
+  const snapshot = storageSnapshot();
+  snapshot.phase = "camp";
+  snapshot.saveKind = "manual";
+  snapshot.saveSlot = slot;
+  const result = writeSnapshot(manualSaveKey(slot), snapshot);
+  if (!result.ok) {
+    state.error = "このセーブ枠へ保存できませんでした。端末の保存容量を確認してください。";
+  } else {
+    state.saveNotice = "手動セーブ枠 " + slot + " に保存しました。";
+    state.error = null;
+    saveState();
+  }
+  render();
+}
+
+function loadSavedGame(key) {
+  const snapshot = readStoredSnapshot(key);
+  if (!snapshot) {
+    state.error = "このセーブデータは読み込めないか、存在しません。";
+    render();
+    return;
+  }
+  state = hydrateState(snapshot);
+  state.saveNotice = key === SAVE_KEY ? "オートセーブから再開しました。" : "手動セーブから再開しました。";
+  state.error = null;
+  // Continue後も、読み込んだ状態を現在のオートセーブとして保持する。
+  saveState();
+  render();
+}
+
 
 function clone(value) {
   return structuredClone(value);
@@ -567,11 +633,13 @@ function shell(title, subtitle, body, options = {}) {
   // だから run の最中は「放棄」で、精算画面を必ず通す。
   const inRun = ["camp", "battlePreview", "battle", "battleError", "result", "reward", "defeat"]
     .includes(state.phase);
-  const headerAction = options.back
-    ? button("キャンプへ", "back-camp", false, "menu-button")
-    : inRun
-      ? button("安全に撤退する", "abandon-run", false, "menu-button")
-      : button("ギルドへ", "back-guild", false, "menu-button");
+  const headerAction = options.hideHeaderAction
+    ? ""
+    : options.back
+      ? button(options.backLabel ?? "キャンプへ", options.backAction ?? "back-camp", false, "menu-button")
+      : inRun
+        ? button("安全に撤退する", "abandon-run", false, "menu-button")
+        : button("ギルドへ", "back-guild", false, "menu-button");
   return "<div class=\"shell\"><header class=\"header\"><div><p class=\"kicker\">" + VERSION
     + "</p><h1>" + esc(title) + "</h1><p class=\"subtitle\">" + esc(subtitle)
     + "</p></div>" + headerAction + "</header>" + body + error
@@ -792,7 +860,9 @@ function campNav() {
     "<button type=\"button\" class=\"tab " + (state.tab === id ? "active" : "")
       + "\" aria-label=\"" + label + "\" aria-current=\"" + (state.tab === id ? "step" : "false")
       + "\" data-action=\"tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + meta + "</small></button>").join("")
-    + "</nav>";
+    + "</nav><div class=\"camp-tools\">"
+    + button("セーブ / ロード", "open-save-menu", false, "tiny-button", "data-return=\"camp\"")
+    + "</div>";
 }
 
 function render() {
@@ -803,6 +873,7 @@ function render() {
   const views = {
     intro: renderIntro,
     expeditionStart: renderExpeditionStart,
+    saveMenu: renderSaveMenu,
     story: renderStory,
     camp: renderCamp,
     battlePreview: renderBattlePreview,
@@ -842,14 +913,55 @@ function restoreSkillTreeScroll() {
 }
 
 function renderIntro() {
+  const auto = readStoredSnapshot(SAVE_KEY);
+  const continueLabel = auto ? saveSummary(auto) : "オートセーブはありません";
   return shell("灰の遠征", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
-    + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stage を越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>遠征中に得た技能点と装備はその遠征だけのもの</b>で、持ち帰るのは活動資金と、見つけた装備の設計図です。</p>"
-    + button("ギルドへ", "start", false, "button primary")
+    + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stageを越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をレオンとユウリの2人から始めます。</b></p>"
+    + "<div class=\"title-actions\">"
+    + button("つづきから", "continue-game", !auto, "button primary")
+    + button("はじめから", "new-game", false, "button")
+    + button("遠征を仕立てる", "start", false, "button")
+    + button("セーブを選ぶ", "open-save-menu", false, "button", "data-return=\"intro\"")
+    + "</div>"
+    + "<p class=\"save-summary\"><b>Continue</b> · " + esc(continueLabel) + "</p>"
     + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金と設計図を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>2人 → 5人</b><span>Stage ごとに一人加わる</span></div><div class=\"card\"><b>技能パックは積む</b><span>前に覚えた技能は消えない</span></div><div class=\"card\"><b>設計図</b><span>拾った生成装備を次へ持ち込む</span></div></section>");
+    + "<section class=\"three-up\"><div class=\"card\"><b>2人 → 5人</b><span>Stageごとに一人加わる</span></div><div class=\"card\"><b>技能パックは積む</b><span>前に覚えた技能は消えない</span></div><div class=\"card\"><b>設計図</b><span>拾った生成装備を次へ持ち込む</span></div></section>", { hideHeaderAction: true });
 }
 
+function renderSaveSlot(slot, snapshot, fromCamp) {
+  const actions = fromCamp
+    ? button(snapshot ? "上書き保存" : "この枠に保存", "save-slot", false, "tiny-button primary-mini", "data-slot=\"" + slot + "\"")
+      + (snapshot ? button("読み込む", "load-slot", false, "tiny-button", "data-slot=\"" + slot + "\"") : "")
+    : snapshot
+      ? button("読み込む", "load-slot", false, "tiny-button primary-mini", "data-slot=\"" + slot + "\"")
+      : "";
+  return "<article class=\"save-slot " + (snapshot ? "" : "empty") + "\"><div><b>手動セーブ " + slot
+    + "</b><small>" + esc(saveSummary(snapshot)) + "</small></div><div class=\"save-slot-actions\">" + actions + "</div></article>";
+}
+
+function renderSaveMenu() {
+  const fromCamp = state.saveMenuReturn === "camp";
+  const auto = readStoredSnapshot(SAVE_KEY);
+  const manual = Array.from({ length: MANUAL_SAVE_SLOTS }, (_, index) => {
+    const slot = index + 1;
+    return renderSaveSlot(slot, readStoredSnapshot(manualSaveKey(slot)), fromCamp);
+  }).join("");
+  const autoActions = fromCamp
+    ? button("オートセーブを読み込む", "load-auto", !auto, "tiny-button", "")
+    : button("つづきから", "continue-game", !auto, "button primary-mini", "");
+  const notice = state.saveNotice
+    ? "<p class=\"save-notice\" role=\"status\">" + esc(state.saveNotice) + "</p>"
+    : "";
+  return shell(fromCamp ? "セーブ / ロード" : "ロードゲーム",
+    fromCamp ? "安全な地点で進行を保存する" : "再開する進行を選ぶ",
+    "<section class=\"card save-menu-card\"><p class=\"muted\">オートセーブは常に最新の安全な状態を保持します。手動セーブは3枠あり、New Gameを始めても残ります。</p>"
+    + "<article class=\"save-slot auto\"><div><b>オートセーブ</b><small>" + esc(auto ? saveSummary(auto) : "まだありません") + "</small></div><div class=\"save-slot-actions\">" + autoActions + "</div></article>"
+    + "<div class=\"save-slot-list\">" + manual + "</div>" + notice + "</section>",
+    { back: true, backAction: fromCamp ? "back-camp" : "back-title", backLabel: fromCamp ? "キャンプへ" : "タイトルへ" });
+}
+
+// ============================================================ 遠征を仕立てる
 // ============================================================ 遠征を仕立てる（R6 §15.1）
 //
 // **遠征開始前に全部を表示する。**有効パック、敵family、3体のボスと法則、
@@ -1196,15 +1308,17 @@ function renderRoster() {
       + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
       + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
   }).join("");
-  const characterCards = CHARACTER_OPTIONS.map((option) => {
+  const characterCards = (rosterLocked()
+    ? CHARACTER_OPTIONS.filter((option) => state.run.roster.includes(option.id))
+    : CHARACTER_OPTIONS
+  ).map((option) => {
     const inParty = state.run.roster.includes(option.id);
     const selected = formationSelection === option.id;
-    const stats = statsFor(option.id);
-    const locked = rosterLocked();
     const action = inParty ? "select-formation-character" : "toggle-roster";
     const actionLabel = inParty
       ? (selected ? "位置選択中" : "位置を選ぶ")
-      : locked ? "この Stage では合流しない" : "編成に入れる";
+      : "編成に入れる";
+    const stats = statsFor(option.id);
     return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
       + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
       + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
@@ -1217,27 +1331,30 @@ function renderRoster() {
       + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
       + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
       + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
-      + "</span><span>" + esc(actionLabel) + "</span></div>"
-      + (inParty && !locked
-        ? button("外す", "toggle-roster", state.run.roster.length <= 1, "tiny-button", "data-character=\"" + option.id + "\"")
-        : "")
-      + "</article>";
+      + "</span><span>" + esc(actionLabel) + "</span></div></article>";
   }).join("");
+  const future = rosterLocked()
+    ? CHARACTER_OPTIONS.filter((option) => !state.run.roster.includes(option.id))
+        .map((option) => esc(characterName(option.id)) + "（" + esc(option.role) + "）").join("、")
+    : "";
+  const futureBlock = future
+    ? "<details class=\"future-roster\"><summary>後で加入する仲間（" + (CHARACTER_OPTIONS.length - state.run.roster.length) + "人）</summary><p class=\"muted\">"
+      + future + "</p></details>"
+    : "";
+  const rosterHeading = rosterLocked() ? "ROSTER / " + runPartySize() : "ROSTER / 8 → " + runPartySize();
+  const rosterCopy = rosterLocked()
+    ? "今回は" + runPartySize() + "人で進みます。<b>同行者は物語が決めます。</b>Stageをクリアすると、次の仲間が加わります。"
+    : "8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。";
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
     + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>" + (runPartySize() >= 5 ? "5人で6枠なので、必ず一枠が空きます。" : runPartySize() + "人なので、空き枠が" + (6 - runPartySize()) + "つあります。") + "</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
     + (formationSelection ? "<span class=\"formation-selection-actions\">" + button("選択解除", "clear-formation-selection", false, "tiny-button") + "</span>" : "") + "</p></section>"
-    + "<section class=\"card\">" + sectionHeading("ROSTER / 8 → " + runPartySize(),
-      rosterLocked() ? "この遠征に同行する仲間" : "同行する仲間を選ぶ")
-    + "<p class=\"muted\">"
-    + (rosterLocked()
-      ? "この Stage は " + runPartySize() + "人で進みます。<b>誰が来るかは物語が決めます。</b>"
-        + "一度クリアすると、次からは5人を自由に選んで挑めます。"
-      : "8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。")
-    + "</p>"
-    + "<div class=\"character-grid\">" + characterCards + "</div></section>"
+    + "<section class=\"card\">" + sectionHeading(rosterHeading,
+      rosterLocked() ? "今回の同行者" : "同行する仲間を選ぶ")
+    + "<p class=\"muted\">" + rosterCopy + "</p>"
+    + "<div class=\"character-grid\">" + characterCards + "</div>" + futureBlock + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を組み、装備画面で実物を2枠に割り当ててください。</p>"
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
@@ -2563,6 +2680,76 @@ function handleAction(event) {
   const action = element.dataset.action;
   captureSkillTreeScroll();
   state.error = null;
+
+  if (action === "new-game") {
+    if (hasAutoSave() && !window.confirm("現在のオートセーブを新しいGameで置き換えます。手動セーブ枠は残ります。")) return;
+    const profile = newProfile();
+    const run = startRun(profile, { campaignStageSequence: 0 });
+    state = {
+      ...freshUiState(),
+      profile,
+      run,
+      phase: "story",
+      expeditionMode: "campaign",
+      selectedCampaignStageSequence: 0,
+      runId: run.runId,
+      startedAt: run.startedAt,
+      formationSelection: run.roster[0] ?? null,
+    };
+    record("run_started", {
+      runId: state.run.runId,
+      seed: state.run.runSeed,
+      version: VERSION,
+      difficulty: state.run.difficulty,
+      packs: [...state.run.manifest.enabledPackIds],
+      supplies: state.run.supplies,
+      roster: [...state.run.roster],
+    });
+    enterStory([storyBeat("stage_0_edge", "opening")], "prologue");
+    return;
+  }
+
+  if (action === "continue-game") {
+    loadSavedGame(SAVE_KEY);
+    return;
+  }
+
+  if (action === "load-auto") {
+    loadSavedGame(SAVE_KEY);
+    return;
+  }
+
+  if (action === "open-save-menu") {
+    state.saveMenuReturn = element.dataset.return === "camp" ? "camp" : "intro";
+    state.saveNotice = null;
+    state.error = null;
+    state.phase = "saveMenu";
+    render();
+    return;
+  }
+
+  if (action === "back-title") {
+    state.phase = "intro";
+    state.saveMenuReturn = "intro";
+    state.saveNotice = null;
+    state.error = null;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "save-slot") {
+    saveManualSlot(Number(element.dataset.slot));
+    return;
+  }
+
+  if (action === "load-slot") {
+    const slot = Number(element.dataset.slot);
+    if (Number.isInteger(slot) && slot >= 1 && slot <= MANUAL_SAVE_SLOTS) {
+      loadSavedGame(manualSaveKey(slot));
+    }
+    return;
+  }
 
   if (action === "reset") {
     state = initialState();
