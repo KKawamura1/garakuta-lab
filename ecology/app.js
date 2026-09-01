@@ -517,6 +517,22 @@ function storageSnapshot() {
   return snapshot;
 }
 
+// 端末の保存枠が尽きたときの例外か。**尽きたなら削って書き直す。壊れたなら投げる。**
+//
+// 140aa36（R10 の New Game / セーブ枠）が saveState を storageSnapshot +
+// writeSnapshot へ書き直したとき、この関数だけが消えて呼び出しが2箇所残った。
+// 保存枠が尽きるまで踏まれない経路なので `node --check` も単体テストも通り、
+// 公開先の通し（analysis/ecology-trial.mjs）が長い遠征のときだけ
+// ReferenceError で落ちていた。**消えたら気づけるよう、
+// analysis/ecology-screens-smoke.mjs が未定義の呼び先を見るようにしてある。**
+function isRecoverableStorageError(error) {
+  return [
+    "QuotaExceededError",
+    "NS_ERROR_DOM_QUOTA_REACHED",
+    "SecurityError",
+  ].includes(error?.name);
+}
+
 function writeSnapshot(key, snapshot) {
   try {
     localStorage.setItem(key, JSON.stringify(snapshot));
