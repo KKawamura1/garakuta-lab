@@ -58,7 +58,7 @@ const equal = (actual, expected, message) => {
   checks += 1;
 };
 
-const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
+const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 
 function campaignCompleteProfile() {
   const profile = newProfile();
