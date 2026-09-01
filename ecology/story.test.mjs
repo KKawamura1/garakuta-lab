@@ -22,6 +22,7 @@ import {
   PORTRAITS,
   PORTRAIT_IDS,
   PROLOGUE,
+  REGION,
   SECTION_NAMES,
   campaignStageDef,
   castOnStage,
