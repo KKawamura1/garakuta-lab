@@ -28,6 +28,9 @@ export const ACTIVE_SKILL_NAMES = {
   finishing_thrust: "止めの一突き",
   crack_mark: "傷口を開く",
   brace_for_impact: "衝撃に備える",
+  // R11 §5 — Stage 0 の安定攻撃。武器と技を一つずつ、同じ形で置く。
+  steady_cut: "確かな斬り",
+  aimed_shot: "狙い撃ち",
 };
 
 const activeSkills = renamed("activeSkills", ACTIVE_SKILL_NAMES);
@@ -113,7 +116,9 @@ export const ACTIVE_SCALING = {
   hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(12) },
   // 敵の技能。basic strike は might 100%、重い一撃は might 140%
   front_strike: { stat: "might", bps: 10_000 },
-  rear_strike: { stat: "might", bps: 10_000 },
+  // R11 — 後列から撃つ敵の一撃は technique 扱い。**後列の武器減衰を受けない。**
+  // 敵の might と focus はどちらも同じ値なので、威力は動かない（enemies.mjs）。
+  rear_strike: { stat: "focus", bps: 10_000 },
   enemy_heavy: { stat: "might", bps: bpsForLegacyAmount(14) },
   enemy_guard: { stat: "focus", bps: bpsForLegacyAmount(4) },
 };
@@ -197,6 +202,21 @@ activeSkills.rapid_cuts = archetype("rapid_cuts", "刻み斬り", 5_000, {
 // 貫き。単発115%で通常攻撃を上回り、guard を6割無視する。
 activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 11_500, {
   effectPatch: { guardPierceBps: 6_000 },
+});
+
+// R11 §5 — **Stage 0 の「安定」二本。**条件も準備も持たない。
+//
+// 教えたいのは威力の差ではなく、**どこから出すかで結果が変わる**ことである。
+// 確かな斬りは武器なので後列から出すと 40% になり、狙い撃ちは技なので落ちない。
+// 同じ盤面で二つを見比べれば、might と focus の違いが説明文なしで分かる。
+activeSkills.steady_cut = archetype("steady_cut", ACTIVE_SKILL_NAMES.steady_cut, 13_000);
+activeSkills.aimed_shot = archetype("aimed_shot", ACTIVE_SKILL_NAMES.aimed_shot, 12_500, {
+  // 弱った相手から確実に減らす。前列が生きていても後列へ通る（技だから）。
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  effectPatch: {
+    target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    reach: "ranged",
+  },
 });
 // 薙ぎ。前列の敵が2体以上いるときだけ、同じ行へ80%ずつ。
 // 1体しかいない行は通常攻撃へ戻すので、単体時も択の損にならない。
@@ -352,6 +372,8 @@ for (const [id, skill] of Object.entries(activeSkills)) {
 }
 setDamageReach(activeSkills.rear_strike, "ranged");
 setDamageReach(activeSkills.rear_hunt, "ranged");
+// R11 §5 — 技は後列からでも届く。**この一行が「狙い撃ち」を技たらしめている。**
+setDamageReach(activeSkills.aimed_shot, "ranged");
 
 // R6 §6.4 — active 技能の静的な種別。**skill tag だけで分類し、
 // 人物 ID や個別敵 ID による例外を作らない。**
@@ -608,6 +630,7 @@ activeSkills.overreach = {
   tags: ["attack", "playable"],
 };
 
+setDamageReach(activeSkills.steady_cut, "melee");
 setDamageReach(activeSkills.overreach, "melee");
 setDamageReach(activeSkills.barrage_strike, "melee");
 setDamageReach(activeSkills.mark_strike, "melee");
@@ -644,6 +667,7 @@ export const TECHNIQUE_SKILL_IDS = Object.freeze([
   "crack_mark",    // 傷口を開く — 隙を刻む
   "mark_strike",   // 刻印撃ち
   "mark_break",    // 刻印砕き
+  "aimed_shot",    // 狙い撃ち — Stage 0 の安定した技
 ]);
 
 // 敵側の技能（enemy_heavy など）は対象にしない。**敵の攻撃は might のままである。**

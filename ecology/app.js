@@ -353,6 +353,10 @@ function freshUiState() {
     saveMenuReturn: "intro",
     saveNotice: null,
     prologueActive: false,
+    // R11 §5 — 序盤の一戦は2段構え。"first" は負ける一戦、"retry" は巻き戻したあと。
+    // 巻き戻しても prologueActive は true のままなので、camp から「戦闘へ」を押すと
+    // 本編1戦目ではなく**同じ門の盤面**へ戻る（currentEncounter が prologueEncounter を返す）。
+    prologueStage: null,
     selectedCharacter: null,
     // ギルドは**遠征の編成とは別の選択**を持つ。roster の5人へ丸めると、
     // 同行していない仲間の鍛錬と第4枠が永久に買えなくなる。
@@ -817,13 +821,19 @@ function inManifest(skillId) {
   return manifestSkillIds(state.run.manifest).all.includes(skillId);
 }
 
+// R9 §3.2 — 敵の数と threat budget は、その遠征の人数で決まる。
+// **preview と正式実行が同じ引数を使う**ように、組み立てはこの一箇所に閉じる。
+function encounterOptions() {
+  return { partySize: state.run.partySize };
+}
+
 // R9 §3.2 — 敵の数と threat budget は、その遠征の人数に合わせて決まる。
 // **preview と正式実行が同じ引数を使う**ように、ここ一箇所で組む。
 function currentEncounter() {
   // R9 §2.1 — 序盤の敗北は12戦の梯子に属さない。**別の敵を出しているのに
   // 第1戦の名前を出さない**（何を見ているのか分からなくなる）。
   if (state.prologueActive) return prologueEncounter();
-  return composeEncounter(state.run.encounterIndex, state.run.difficulty, { partySize: state.run.partySize });
+  return composeEncounter(state.run.encounterIndex, state.run.difficulty, encounterOptions());
 }
 
 function actOfIndex(index) {
@@ -846,7 +856,7 @@ function nextActPreview() {
   const act = actOfIndex(state.run.encounterIndex) + 1;
   if (act > 3) return null;
   for (let index = state.run.encounterIndex + 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
-    const composed = composeEncounter(index, state.run.difficulty, { partySize: state.run.partySize });
+    const composed = composeEncounter(index, state.run.difficulty, encounterOptions());
     if (composed.act === act && composed.kind !== "boss") return composed;
   }
   return null;
@@ -1476,10 +1486,55 @@ function finishStory() {
     startPrologue();
     return;
   }
+  // R11 §5 — 倒れた会話のあとで、巻き戻しのボタンを持つ画面へ出る。
+  if (after === "prologueResult") {
+    state.phase = "result";
+    saveState();
+    render();
+    return;
+  }
+  // R11 §5 — 二度目を勝って、序盤の演出を終える。**ここで初めて既読印を押す。**
+  if (after === "prologueClear") {
+    state.prologueActive = false;
+    state.prologueStage = null;
+    state.profile = {
+      ...state.profile,
+      storyFlags: [...new Set([...(state.profile.storyFlags ?? []), "prologue_seen"])],
+    };
+    state.lastResult = null;
+    state.replayEvents = [];
+    state.replaySnapshots = [];
+    state.replayIndex = 0;
+    state.replayPlaying = false;
+    record("prologue_cleared", { stage: state.run.campaignStageSequence });
+    state.phase = "camp";
+    state.tab = "map";
+    saveState();
+    render();
+    return;
+  }
   state.phase = "camp";
   state.tab = "roster";
   saveState();
   render();
+}
+
+// R11 §5 — **一戦目は「誰かが倒れた瞬間」で見せ終える。**
+//
+// engine は最後まで走らせて本当の敗北を出している（story.test.mjs が確かめる）。
+// だが、まだルールを知らない一戦目に時間切れまで見せると、何が悪かったのか
+// 分からないまま長い。倒れた拍で切って、そのまま巻き戻しの会話へ渡す。
+//
+// **切るのは表示だけ。**勝敗も因果も engine が出したものをそのまま使う。
+function truncateAtFall(replay, characterId) {
+  const target = "a_" + characterId;
+  const index = replay.events.findIndex((event) => event.type === "actor_defeated"
+    && [event.sourceActorId, ...(event.targetActorIds ?? [])].filter(Boolean).includes(target));
+  if (index < 0) return replay;
+  return {
+    events: replay.events.slice(0, index + 1),
+    snapshots: replay.snapshots.slice(0, index + 1),
+  };
 }
 
 // R9 §2.1 — 本当に負ける配置を、本当に走らせる。
@@ -1490,8 +1545,10 @@ function startPrologue() {
     captureReplaySnapshots: true,
   });
   state.prologueActive = true;
+  state.prologueStage = "first";
   state.lastResult = compactResult(result);
-  const replay = compactReplay(result);
+  // 既定配置では、ナズナが2ラウンド目に倒れる。そこで見せ終える。
+  const replay = truncateAtFall(compactReplay(result), "mender");
   state.replayEvents = replay.events;
   state.replaySnapshots = replay.snapshots;
   state.replayIndex = 0;
@@ -1898,7 +1955,7 @@ function renderMap() {
   const encounter = currentEncounter();
   const progress = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
     const step = offset + 1;
-    const kind = composeEncounter(step, state.run.difficulty, { partySize: state.run.partySize }).kind;
+    const kind = composeEncounter(step, state.run.difficulty, encounterOptions()).kind;
     return "<span class=\"map-node " + (step < index ? "done" : step === index ? "current" : "")
       + " kind-" + kind + "\" title=\"" + esc({ normal: "通常", elite: "精鋭", boss: "ボス" }[kind]) + "\">"
       + (kind === "boss" ? "★" : step) + "</span>";
@@ -1998,11 +2055,21 @@ function renderBattlePreview() {
     + esc(positionText(state.run.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
     + esc((state.run.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
     + "</span></div>").join("");
-  return shell("第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN, encounter.name + " · 戦闘前の最終確認", "<section class=\"card\">"
+  // R9 §2.1 / R11 §5 — 序盤の一戦は12戦の梯子に属さない。**第1戦と名乗らせない。**
+  const previewTitle = state.prologueActive
+    ? "灰の門（遠征の外）"
+    : "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN;
+  return shell(previewTitle, encounter.name + " · 戦闘前の最終確認", "<section class=\"card\">"
     + sectionHeading("AUTO BATTLE / PLAN", "この構成で試す") + "<p class=\"muted\">戦闘中の操作はありません。行動の優先順、リアクティブの条件、敵の狙いをR5エンジンが決定的に解決します。</p>"
     + "<div class=\"plan-list\"><h3>味方の構成</h3>" + allies + "</div><div class=\"plan-list\"><h3>敵の狙い</h3>"
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
       + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</div>"
+    // R11 §5 — 巻き戻したあとの一戦だけ、見るべき軸を名指しで出す。
+    + (state.prologueActive && state.prologueStage === "retry"
+      ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
+        + "腕力で振る武器は後列から出すと大きく落ち、集中で通す技は落ちない。"
+        + "ナズナを後列へ、シキを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
+      : "")
     + button("自動戦闘を再生する", "simulate", false, "button primary")
     + button("キャンプへ戻る", "back-camp", false, "button") + "</section>"
     + nextBattlePreviewBlock());
@@ -2616,7 +2683,10 @@ function renderResult() {
   // R6 §12.2 — **敗北で即座に遠征を破棄しない。**補給が残っていれば再挑戦へ。
   // R9 §2.1 — 序盤の敗北は遠征の結果に数えない。ここから巻き戻す。
   const next = state.prologueActive
-    ? button("時間が巻き戻る", "rewind-prologue", false, "button primary")
+    ? state.prologueStage === "retry"
+      // 二度目で負けたとき。**巻き戻しは一度きり**なので、編成へ戻すだけにする。
+      ? button("編成を見直す", "back-camp", false, "button primary")
+      : button("時間が巻き戻る", "rewind-prologue", false, "button primary")
     : won
       ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
         ? button("遠征を精算する", "settle-run", false, "button primary")
@@ -2640,7 +2710,7 @@ function renderResult() {
     + "</p>"
     + (state.prologueActive
       ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金も持ち越しHPも動きません。"
-        + esc(PROLOGUE.hint) + "</p>"
+        + esc(state.prologueStage === "retry" ? PROLOGUE.retryHint : PROLOGUE.hint) + "</p>"
       : "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
         + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
         + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p>") + "<div class=\"result-actors\">"
@@ -2893,6 +2963,15 @@ function scheduleReplayBeat() {
   const index = clampReplayIndex();
   if (index >= beats.length - 1) {
     state.replayPlaying = false;
+    // R11 §5 — 序盤の一戦だけは、再生の終わりがそのまま会話の始まりになる。
+    if (state.prologueActive && state.prologueStage === "first") {
+      enterStory([storyBeat("stage_0_edge", "prologueDefeat")], "prologueResult");
+      return;
+    }
+    if (state.prologueActive && state.prologueStage === "retry" && state.lastResult?.result === "win") {
+      enterStory([storyBeat("stage_0_edge", "prologueWin")], "prologueClear");
+      return;
+    }
     saveState();
     updateReplayControls(index, beats);
     return;
@@ -3214,18 +3293,17 @@ function handleAction(event) {
   // R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
   // 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
   if (action === "rewind-prologue") {
-    state.prologueActive = false;
-    state.profile = {
-      ...state.profile,
-      storyFlags: [...new Set([...(state.profile.storyFlags ?? []), "prologue_seen"])],
-    };
+    // R11 §5 — **巻き戻しても prologueActive は落とさない。**同じ門の盤面を、
+    // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
+    // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
+    state.prologueStage = "retry";
     state.lastResult = null;
     state.replayEvents = [];
     state.replaySnapshots = [];
     state.replayIndex = 0;
     state.replayPlaying = false;
     record("prologue_rewound", { stage: state.run.campaignStageSequence });
-    enterStory([storyBeat("stage_0_edge", "prologueDefeat")], "camp");
+    enterStory([storyBeat("stage_0_edge", "prologueRewound")], "camp");
     return;
   }
 
@@ -3568,7 +3646,11 @@ function handleAction(event) {
       });
       // R8 §8, §10 — Campaign Stage: 勝利時だけHPをcommitする（敗北時はrunを
       // 変更しない=retry safe）。4/8戦目boss勝利後はcommitBattleResultが全回復する。
-      if (isCampaignRun()) {
+      // R9 §2.1 / R11 §5 — **序盤の一戦は遠征に数えない。**
+      // 活動資金も持ち越しHPも動かさない（勝っても負けても run は無傷）。
+      if (state.prologueActive) {
+        resetEquipmentDurability();
+      } else if (isCampaignRun()) {
         const commit = commitBattleResult(state.profile, state.run, state.run.encounterIndex, result);
         state.run = commit.run;
         state.lastCarrySnapshot = commit.snapshot;

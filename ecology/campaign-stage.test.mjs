@@ -72,13 +72,15 @@ const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
   equal(activePackCountForSequence(2, "rotation"), 2, "R8 §4.2 の回転式も残っている");
   equal(activePackCountForSequence(3, "rotation"), 3, "R8 §4.2 の回転式も残っている");
 
-  assert.deepEqual(campaignStageDef(0).enabledPackIds, ["pack_edge"], "Stage 0 = E");
-  assert.deepEqual(campaignStageDef(1).enabledPackIds, ["pack_edge", "pack_wall"], "Stage 1 = E + W");
-  assert.deepEqual(campaignStageDef(2).enabledPackIds, ["pack_edge", "pack_wall", "pack_tempo"], "Stage 2 = E + W + T");
+  // R11 §5 — ラダーを組み替えた。**導入は「構えと手当て」で、刃は次の Stage。**
+  // 問題（紙の火力をどこに置くか）を出してから、その解決（庇う手）を渡す順にしてある。
+  assert.deepEqual(campaignStageDef(0).enabledPackIds, ["pack_care"], "Stage 0 = C");
+  assert.deepEqual(campaignStageDef(1).enabledPackIds, ["pack_care", "pack_edge"], "Stage 1 = C + E");
+  assert.deepEqual(campaignStageDef(2).enabledPackIds, ["pack_care", "pack_edge", "pack_wall"], "Stage 2 = C + E + W");
   assert.deepEqual(
     campaignStageDef(3).enabledPackIds,
-    ["pack_edge", "pack_wall", "pack_tempo", "pack_care"],
-    "Stage 3 = E + W + T + C",
+    ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
+    "Stage 3 = C + E + W + T",
   );
   checks += 4;
 
@@ -122,7 +124,7 @@ const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
 
   const run = newRun(profile, { runSeed: "s", runId: "camp-r0", roster: ROSTER, campaignStageSequence: 0 });
   equal(run.campaignStageSequence, 0, "run が campaign stage を記録する");
-  assert.deepEqual(run.manifest.enabledPackIds, ["pack_edge"], "Stage 0 の run manifest");
+  assert.deepEqual(run.manifest.enabledPackIds, ["pack_care"], "Stage 0 の run manifest");
   checks += 1;
   // R9 §2.1 — Stage 0 は2人。5人渡しても切り詰める。
   equal(run.roster.length, 2, "Stage 0 の遠征は2人で始まる");

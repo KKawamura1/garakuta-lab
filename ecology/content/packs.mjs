@@ -65,14 +65,16 @@ export const SKILL_PACKS = Object.freeze([
   }),
   Object.freeze({
     id: "pack_care",
-    displayName: "手当てと余剰",
-    summary: "溢れた回復を捨てず、削られながら立て直す。",
-    combatRole: "support",
-    activeSkillIds: Object.freeze(["idle_shuffle", "shield_the_wounded"]),
+    displayName: "構えと手当て",
+    summary: "条件のない一撃を武器と技で一本ずつ持ち、傷の連鎖を止める。",
+    // R11 §5 — Stage 0 の導入 pack。**offensive_hybrid の3本目は baseline の斬撃が担う**
+    // （この pack が単独で有効になるのは Stage 0 だけで、そこでは strike も必ず引ける）。
+    combatRole: "offensive_hybrid",
+    activeSkillIds: Object.freeze(["steady_cut", "aimed_shot", "idle_shuffle", "shield_the_wounded"]),
     reactiveSkillIds: Object.freeze(["overflow_care", "triage_relay", "brace_after_hit", "emergency_treatment", "triage"]),
     passiveSkillIds: Object.freeze(["steady_hands"]),
-    // 問い:「傷そのものではなく、傷の連鎖をどこで止めるか」。
-    coreActiveSkillIds: Object.freeze(["idle_shuffle", "shield_the_wounded"]),
+    // 問い:「同じ一撃でも、武器か技かで、置ける場所が変わる」。
+    coreActiveSkillIds: Object.freeze(["steady_cut", "aimed_shot", "shield_the_wounded"]),
     coreReactiveSkillIds: Object.freeze(["emergency_treatment", "triage", "brace_after_hit", "overflow_care"]),
     corePassiveSkillIds: Object.freeze(["steady_hands"]),
     tags: Object.freeze(["heal", "overflow"]),

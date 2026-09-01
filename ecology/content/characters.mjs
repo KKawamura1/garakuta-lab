@@ -81,12 +81,17 @@ characters.tactician = {
 // 本編に出ない3人（トキ/ヨリ/アカリ）も同じ物差しで置き直した。アカリは集中52で、
 // technique 攻撃の主になる（R6 が「準備攻撃」と呼んでいた役が、ここで初めて成立する）。
 export const CHARACTER_STATS = {
-  // ---- Campaign 本編の5人 ----
+  // ---- Campaign 本編の5人。加入順に並べてある ----
+  // シキ … 落ちない前衛。武器攻撃なので前に置いて初めて火力が出る
   warden:    { maxHp: 280, might: 38, focus: 20, guard: 7,  speed: 5,  baseActionPoints: 1, baseReactionPoints: 2 },
-  lancer:    { maxHp: 170, might: 52, focus: 14, guard: 2,  speed: 9,  baseActionPoints: 1, baseReactionPoints: 2 },
-  guardian:  { maxHp: 220, might: 16, focus: 26, guard: 18, speed: 2,  baseActionPoints: 1, baseReactionPoints: 2 },
-  tactician: { maxHp: 160, might: 20, focus: 30, guard: 3,  speed: 11, baseActionPoints: 1, baseReactionPoints: 3 },
+  // ナズナ … やや脆いが、技も回復も同じ集中で伸びる。後列でも火力が落ちない万能
   mender:    { maxHp: 180, might: 14, focus: 48, guard: 4,  speed: 6,  baseActionPoints: 1, baseReactionPoints: 2 },
+  // カイ … 隊の火力そのもの。**紙。**前に置けば落ち、後ろに置けば武器が40%になる
+  lancer:    { maxHp: 130, might: 52, focus: 14, guard: 1,  speed: 9,  baseActionPoints: 1, baseReactionPoints: 2 },
+  // スミ … HPは低いが受けが桁違い。生半可な多段は最低保証まで落ちて通らない
+  guardian:  { maxHp: 180, might: 16, focus: 26, guard: 26, speed: 2,  baseActionPoints: 1, baseReactionPoints: 2 },
+  // レイ … 攻守とも低いが、**行動権も反応点も一つ多い。**何をさせても形になる
+  tactician: { maxHp: 150, might: 18, focus: 26, guard: 3,  speed: 11, baseActionPoints: 2, baseReactionPoints: 3 },
   // ---- 本編に出ない同業者（Free / Endless） ----
   scout:     { maxHp: 170, might: 34, focus: 24, guard: 3,  speed: 10, baseActionPoints: 1, baseReactionPoints: 2 },
   pivot:     { maxHp: 200, might: 26, focus: 28, guard: 6,  speed: 5,  baseActionPoints: 2, baseReactionPoints: 2 },

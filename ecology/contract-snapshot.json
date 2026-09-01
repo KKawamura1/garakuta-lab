@@ -39,7 +39,7 @@
    "lancer": {
     "id": "lancer",
     "displayName": "カイ — 抜ける人",
-    "maxHp": 170,
+    "maxHp": 130,
     "speed": 9,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -50,7 +50,7 @@
     ],
     "might": 52,
     "focus": 14,
-    "guard": 2
+    "guard": 1
    },
    "scout": {
     "id": "scout",
@@ -173,7 +173,7 @@
    "guardian": {
     "id": "guardian",
     "displayName": "スミ — 受け止める人",
-    "maxHp": 220,
+    "maxHp": 180,
     "speed": 2,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -185,7 +185,7 @@
     ],
     "might": 16,
     "focus": 26,
-    "guard": 18
+    "guard": 26
    },
    "arcanist": {
     "id": "arcanist",
@@ -207,9 +207,9 @@
    "tactician": {
     "id": "tactician",
     "displayName": "レイ — 渡す人",
-    "maxHp": 160,
+    "maxHp": 150,
     "speed": 11,
-    "baseActionPoints": 1,
+    "baseActionPoints": 2,
     "baseReactionPoints": 3,
     "signatureRules": [],
     "tags": [
@@ -217,8 +217,8 @@
      "rear",
      "tempo"
     ],
-    "might": 20,
-    "focus": 30,
+    "might": 18,
+    "focus": 26,
     "guard": 3
    }
   },
@@ -799,7 +799,7 @@
       "amount": {
        "type": "stat_scaled",
        "subject": "self",
-       "scalingStat": "might",
+       "scalingStat": "focus",
        "coefficientBps": 10000
       },
       "reach": "ranged",
@@ -1202,6 +1202,106 @@
       ],
       "guardPierceBps": 6000,
       "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "steady_cut": {
+    "id": "steady_cut",
+    "displayName": "確かな斬り",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 13000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "aimed_shot": {
+    "id": "aimed_shot",
+    "displayName": "狙い撃ち",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 12500
+      },
+      "tags": [
+       "attack",
+       "technique"
+      ],
+      "reach": "ranged"
      }
     ],
     "tags": [
@@ -6308,6 +6408,8 @@
   "fallback_strike_ranged": "追い射ち",
   "rapid_cuts": "刻み斬り",
   "pierce_thrust": "貫き突き",
+  "steady_cut": "確かな斬り",
+  "aimed_shot": "狙い撃ち",
   "row_sweep": "薙ぎ払い",
   "column_thrust": "突き通し",
   "guard_crush": "受け崩し",
@@ -6408,12 +6510,12 @@
    "defaultPosition": "front_left",
    "summary": "隊で一番倒れにくい。受けた痛みを、そのまま返す側へ回す。",
    "starterTactics": [
-    "bulwark",
-    "strike"
+    "steady_cut",
+    "bulwark"
    ],
    "starterReactives": [
-    "counter_blow",
-    "whetted_by_pain"
+    "brace_after_hit",
+    "mend"
    ]
   },
   {
@@ -6427,8 +6529,8 @@
     "finishing_thrust"
    ],
    "starterReactives": [
-    "scavenge_ap",
-    "counter_blow"
+    "counter_blow",
+    "scavenge_ap"
    ]
   },
   {
@@ -6468,7 +6570,7 @@
    "defaultPosition": "rear_right",
    "summary": "傷の連鎖を止める。集中が高いので、技でも削れるし、厚い防壁も張れる。",
    "starterTactics": [
-    "crack_mark",
+    "aimed_shot",
     "shield_the_wounded"
    ],
    "starterReactives": [
@@ -6602,6 +6704,22 @@
     "definitionId": "strike",
     "label": "斬撃",
     "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
+    "grammar": "攻撃"
+   },
+   "steady_cut": {
+    "id": "steady_cut",
+    "kind": "active",
+    "definitionId": "steady_cut",
+    "label": "確かな斬り",
+    "effect": "条件も準備もない、腕力130%の一撃。武器なので後列から出すと40%まで落ちる。",
+    "grammar": "攻撃"
+   },
+   "aimed_shot": {
+    "id": "aimed_shot",
+    "kind": "active",
+    "definitionId": "aimed_shot",
+    "label": "狙い撃ち",
+    "effect": "最も弱った敵へ集中力125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
     "grammar": "攻撃"
    },
    "bulwark": {
@@ -7365,6 +7483,22 @@
    "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
    "grammar": "攻撃"
   },
+  "steady_cut": {
+   "id": "steady_cut",
+   "kind": "active",
+   "definitionId": "steady_cut",
+   "label": "確かな斬り",
+   "effect": "条件も準備もない、腕力130%の一撃。武器なので後列から出すと40%まで落ちる。",
+   "grammar": "攻撃"
+  },
+  "aimed_shot": {
+   "id": "aimed_shot",
+   "kind": "active",
+   "definitionId": "aimed_shot",
+   "label": "狙い撃ち",
+   "effect": "最も弱った敵へ集中力125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
+   "grammar": "攻撃"
+  },
   "bulwark": {
    "id": "bulwark",
    "kind": "active",
@@ -8049,6 +8183,8 @@
   "crack_mark",
   "brace_for_impact",
   "strike",
+  "steady_cut",
+  "aimed_shot",
   "bulwark",
   "relay_order",
   "heavy_swing",
@@ -8266,6 +8402,28 @@
    "tier": 0,
    "cost": 0,
    "requires": []
+  },
+  {
+   "id": "node_steady_cut",
+   "skillId": "steady_cut",
+   "kind": "active",
+   "branch": "攻撃",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_aimed_shot",
+   "skillId": "aimed_shot",
+   "kind": "active",
+   "branch": "支援",
+   "tier": 1,
+   "cost": 1,
+   "requires": [
+    "mend"
+   ]
   },
   {
    "id": "node_counter",
@@ -8973,8 +9131,8 @@
    "strike",
    "mend",
    "bulwark",
-   "counter_blow",
-   "whetted_by_pain"
+   "steady_cut",
+   "brace_after_hit"
   ],
   "lancer": [
    "strike",
@@ -8982,8 +9140,8 @@
    "bulwark",
    "pierce_thrust",
    "finishing_thrust",
-   "scavenge_ap",
-   "counter_blow"
+   "counter_blow",
+   "scavenge_ap"
   ],
   "guardian": [
    "strike",
@@ -9006,7 +9164,7 @@
    "strike",
    "mend",
    "bulwark",
-   "crack_mark",
+   "aimed_shot",
    "shield_the_wounded",
    "triage",
    "emergency_treatment"
@@ -9040,11 +9198,11 @@
  "freshLoadout": {
   "tactics": {
    "warden": [
-    "bulwark",
-    "strike"
+    "steady_cut",
+    "bulwark"
    ],
    "mender": [
-    "crack_mark",
+    "aimed_shot",
     "shield_the_wounded"
    ],
    "lancer": [
@@ -9062,16 +9220,16 @@
   },
   "reactives": {
    "warden": [
-    "counter_blow",
-    "whetted_by_pain"
+    "brace_after_hit",
+    "mend"
    ],
    "mender": [
     "triage",
     "emergency_treatment"
    ],
    "lancer": [
-    "scavenge_ap",
-    "counter_blow"
+    "counter_blow",
+    "scavenge_ap"
    ],
    "scout": [
     "guard_step",
@@ -9165,10 +9323,12 @@
   },
   {
    "id": "pack_care",
-   "displayName": "手当てと余剰",
-   "summary": "溢れた回復を捨てず、削られながら立て直す。",
-   "combatRole": "support",
+   "displayName": "構えと手当て",
+   "summary": "条件のない一撃を武器と技で一本ずつ持ち、傷の連鎖を止める。",
+   "combatRole": "offensive_hybrid",
    "activeSkillIds": [
+    "steady_cut",
+    "aimed_shot",
     "idle_shuffle",
     "shield_the_wounded"
    ],
@@ -9183,7 +9343,8 @@
     "steady_hands"
    ],
    "coreActiveSkillIds": [
-    "idle_shuffle",
+    "steady_cut",
+    "aimed_shot",
     "shield_the_wounded"
    ],
    "coreReactiveSkillIds": [

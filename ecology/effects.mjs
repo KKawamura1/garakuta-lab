@@ -238,8 +238,30 @@ function afterGuard(rawAmount, target, guardPierceBps) {
   return Math.max(floor, rawAmount - effectiveGuard);
 }
 
+// R11 §5 — **武器は後列から届かない。技は届く。**
+//
+// might で伸びる攻撃を後列から出すと、この係数まで落ちる。focus で伸びる攻撃は
+// 落ちない。これが might と focus の違いを、説明文ではなく**隊列の話**にする。
+//
+//   前列に置く … 武器攻撃が全力で出る。代わりに殴られる
+//   後列に置く … 殴られにくい。代わりに武器攻撃が 40% になる
+//
+// **どちらの側にも同じように掛かる。**味方だけ得をする規則にはしない。
+// 後列から撃つ敵（灰殻の後撃ち）は rear_strike が technique なので落ちない。
+//
+// 対象の届き方（reach: melee が前列しか狙えないこと）とは別の軸である。
+// あちらは「誰を狙えるか」、こちらは「どこから出したか」。
+export const REAR_WEAPON_BPS = 4_000;
+
+function afterRearFalloff(rawAmount, ctx, effect) {
+  if (effect.amount?.scalingStat !== "might") return rawAmount;
+  const owner = ctx.owner;
+  if (!owner || POSITION_ROW[owner.position] !== "rear") return rawAmount;
+  return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
+}
+
 function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
-  const proposed = evaluateValue(rt.state, ctx, effect.amount);
+  const proposed = afterRearFalloff(evaluateValue(rt.state, ctx, effect.amount), ctx, effect);
   const tags = effect.tags ?? [];
   const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
   const event = rt.emit(

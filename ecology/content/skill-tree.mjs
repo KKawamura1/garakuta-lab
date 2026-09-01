@@ -18,6 +18,9 @@ const activeMeta = {
   crack_mark: ["傷口を開く", "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。", "攻撃"],
   brace_for_impact: ["衝撃に備える", "受け構えを1つ得てから、通常の追い打ちを行う。多段攻撃には剥がされやすい。", "守り"],
   strike: ["斬撃", "最も弱った敵へ、通常攻撃を上回る120%の単発。", "攻撃"],
+  // R11 §5 — Stage 0 の安定した二本。**違いは威力ではなく、出せる場所。**
+  steady_cut: ["確かな斬り", "条件も準備もない、腕力130%の一撃。武器なので後列から出すと40%まで落ちる。", "攻撃"],
+  aimed_shot: ["狙い撃ち", "最も弱った敵へ集中力125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。", "攻撃"],
   bulwark: ["防壁形成", "自分に集中力の200%のラウンド防壁を張ってから、追い打ちを行う。", "守り"],
   relay_order: ["号令", "前衛の最速の味方へ行動権を1渡す。", "指揮"],
   heavy_swing: ["溜め突き", "準備1回のあと、550%の一撃。開始と準備で行動権を計2つ使う。", "攻撃"],
@@ -145,6 +148,8 @@ export const SKILL_TREE_NODES = Object.freeze([
   { id: "node_emergency_treatment", skillId: "emergency_treatment", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
   { id: "node_idle", skillId: "idle_shuffle", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
   { id: "node_bulwark", skillId: "bulwark", kind: "active", branch: "守り", tier: 0, cost: 0, requires: [] },
+  { id: "node_steady_cut", skillId: "steady_cut", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
+  { id: "node_aimed_shot", skillId: "aimed_shot", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
   { id: "node_counter", skillId: "counter_blow", kind: "reactive", branch: "攻撃", tier: 0, cost: 1, requires: ["strike"] },
   { id: "node_echo", skillId: "damage_echo", kind: "reactive", branch: "攻撃", tier: 1, cost: 2, requires: ["counter_blow"] },
   { id: "node_scavenge", skillId: "scavenge_ap", kind: "reactive", branch: "指揮", tier: 0, cost: 1, requires: ["strike"] },

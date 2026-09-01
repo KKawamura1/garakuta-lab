@@ -26,8 +26,8 @@ export const CHARACTER_DEFINITIONS = [
     summary: "隊で一番倒れにくい。受けた痛みを、そのまま返す側へ回す。",
     // 受けて返す。counter_blow も whetted_by_pain も腕力を読むので、
     // **被弾がそのまま火力になる**。防壁は薄い（集中20）。
-    starterTactics: ["bulwark", "strike"],
-    starterReactives: ["counter_blow", "whetted_by_pain"],
+    starterTactics: ["steady_cut", "bulwark"],
+    starterReactives: ["brace_after_hit", "mend"],
   },
   {
     id: "lancer",
@@ -37,7 +37,7 @@ export const CHARACTER_DEFINITIONS = [
     summary: "隊の火力そのもの。受けは無いに等しく、長くは立てない。",
     // 貫いて仕留める。両方とも腕力を読む weapon 攻撃。
     starterTactics: ["pierce_thrust", "finishing_thrust"],
-    starterReactives: ["scavenge_ap", "counter_blow"],
+    starterReactives: ["counter_blow", "scavenge_ap"],
   },
   {
     id: "guardian",
@@ -69,7 +69,7 @@ export const CHARACTER_DEFINITIONS = [
     // R11 — **支援役が攻撃に参加できるようになった最初の人。**
     // crack_mark は technique 攻撃（集中48で読む）、shield_the_wounded も集中。
     // どちらも同じ数値が伸ばす。
-    starterTactics: ["crack_mark", "shield_the_wounded"],
+    starterTactics: ["aimed_shot", "shield_the_wounded"],
     starterReactives: ["triage", "emergency_treatment"],
   },
   // ---- 本編に出ない同業者。Free / Endless から引ける ----
