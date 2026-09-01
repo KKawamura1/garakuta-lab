@@ -54,10 +54,10 @@ try {
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
-  await click("ギルドへ");
+  // R10 — New Gameは必ずCampaign Stage 0のopeningから始める。
+  await click("はじめから");
 
   // R9 §2.1 — 最初の2人の会話。**説明ではなく、考え方の違いを見せる。**
-  await click("この条件で遠征へ出る");
   const openingText = await bodyText();
   note("最初の会話が出る", /レオン/.test(openingText) && /ユウリ/.test(openingText));
   note("会話は飛ばせる", await page.getByRole("button", { name: "この Stage の会話を飛ばす" }).count() > 0);
@@ -187,7 +187,7 @@ try {
   // ---- R9 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
   // （12戦を通すのはこの台本の仕事ではない）。
   await page.evaluate(() => {
-    const key = "exp18-full-prototype-v02";
+    const key = "exp18-r10-auto-v01";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.profile) return;
     saved.profile.campaignProgress = saved.profile.campaignProgress || {};
@@ -195,11 +195,12 @@ try {
     saved.profile.campaignProgress[region] = {
       highestClearedStageSequence: 0, clearedStageSequences: [0],
     };
-    saved.phase = "intro";
+    saved.phase = "expeditionStart";
+    saved.expeditionMode = "campaign";
+    saved.selectedCampaignStageSequence = 0;
     localStorage.setItem(key, JSON.stringify(saved));
   });
   await page.reload({ waitUntil: "networkidle" });
-  await click("ギルドへ");
   const stageCards = page.locator('[data-action="select-campaign-stage"][data-sequence="1"]');
   note("Stage 1 が開く", await stageCards.count() > 0);
   if (await stageCards.count()) {
