@@ -97,11 +97,11 @@ pack は累積します。新しい pack はその Stage では入口（7〜10�
 - 装備耐久は現状、戦闘ごとにリセットされる。
 - 野営治療の対象選択は自動です。
 - Free mode は旧仕様として残るが、旧 save migration は廃止した。新しい保存キーでは旧セーブを読まず、New Game は必ず Campaign Stage 0 の2人開始へ入る。
-- `analysis/ecology-campaign-smoke.mjs` は **Stage 2 で非ゼロ終了する**
-  （`bash analysis/check-all.sh` が exit 1）。「120通りの build で最良 11 / 12 戦」。
-  ただしこの smoke は**隊列を一度も変えず**、装備の配り先も選ばない。隊列は R11 で
-  中心のメカニクスになったので、この判定は当てにならない。作者が遊んで判断するまで
-  赤のまま残す（R11 §9.1 に、試して採らなかった手も含めて記録）。
+- `analysis/ecology-campaign-smoke.mjs` は削除した。**隊列を一度も変えず**、
+  装備の配り先も選ばず、技能点の使い方も真似ない状態で「Stage 2 が12戦通せない」
+  と言っていたが、隊列は R11 で中心のメカニクスになったので、この探索範囲の
+  「通せない」は smoke ではなく測る内容自体が的外れだった。作者判断で消し、
+  Stage 0〜3 の build 到達可否は作者が遊んで判断する（R11 §9.1 に経緯を記録）。
 - `analysis/ecology-decision-space-smoke.mjs`（Free mode の意思決定空間の診断）は
   「考えた編成が素朴な編成に大きく勝てていない」で非ゼロ終了します。R8 以前からの
   既知の診断で、check-all.sh の fast path には載せていません。
@@ -118,8 +118,6 @@ pack は累積します。新しい pack はその Stage では入口（7〜10�
 
 ## 機械検査で分かっていること
 
-- Stage 0〜3 のいずれにも、12戦を通せる build が少なくとも一つある
-  （`analysis/ecology-campaign-smoke.mjs`）。素の初期構成では通せない。
 - 少人数 Stage では、敵の数・threat budget・boss の体力・受けが人数の比で下がる。
   5人の遠征の出力は変わらない。数値は未調律。
 - 本編の入口（会話・勝てない一戦・巻き戻し・2人編成・生成装備の報酬・
