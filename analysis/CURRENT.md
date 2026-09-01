@@ -48,7 +48,7 @@ pack は累積します。新しい pack はその Stage では入口（7〜10�
 
 ## 現行の技術境界
 
-- ecology/ が UI、content、engine、進行、replay、local save の本体。
+- ecology/ が UI、content、engine、進行、replay、local save の本体。タイトル画面に New Game / Continue / Load Game があり、Camp から手動セーブへ進める。
 - Profile は遠征をまたぐ資金・解禁・人物状態・Blueprint archive・物語の既読印を持つ。
 - Run は遠征内の資源と構成、そして**その遠征で拾った生成装備の定義そのもの**を持つ。
 - Battle は一戦の再生状態を持つ。
@@ -65,10 +65,20 @@ pack は累積します。新しい pack はその Stage では入口（7〜10�
 - Stage 4 以降と Endless は未実装。
 - 装備耐久は現状、戦闘ごとにリセットされる。
 - 野営治療の対象選択は自動です。
-- Free mode と旧 save migration は互換用で、Campaign の評価対象ではありません。
+- Free mode は旧仕様として残るが、旧 save migration は廃止した。新しい保存キーでは旧セーブを読まず、New Game は必ず Campaign Stage 0 の2人開始へ入る。
 - `analysis/ecology-decision-space-smoke.mjs`（Free mode の意思決定空間の診断）は
   「考えた編成が素朴な編成に大きく勝てていない」で非ゼロ終了します。R8 以前からの
   既知の診断で、check-all.sh の fast path には載せていません。
+
+## R10のセーブ導線
+
+- セーブ形式を更新し、旧 save key / 旧 save schema との互換は持たない。
+- Continue は最新のオートセーブ、Load Game は手動セーブ枠またはオートセーブを読む。
+- New Game はProfileも新規にし、Campaign Stage 0をレオン＋ユウリの2人から開始する。
+- 手動セーブは3枠を候補とし、Campなど安全地点から保存する。
+- 手動セーブはProfile、Run、物語フラグ、Blueprint、生成装備を一体として持つ。
+- New Gameでオートセーブは置き換えるが、手動セーブ枠は残す。
+- R10実装後も、作者による初回導線と面白さの評価は未実施。
 
 ## 機械検査で分かっていること
 
