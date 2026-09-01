@@ -53,6 +53,17 @@ for (const action of actions) {
   if (!handled.has(action)) problems.push(`ボタン "${action}" を受ける handleAction が無い（押しても何も起きない）`);
 }
 
+// 2b. button() を通さず data-action を直接書いた要素も同じ受け皿へ。
+//     会話画面の「舞台を叩いて進む」のように、押せるのがボタンとは限らない。
+const rawActions = new Set([...app.matchAll(/data-action=\\"([a-z0-9-]+)\\"/g)].map((m) => m[1]));
+if (rawActions.size < 5) {
+  console.error(`ecology-screens smoke: data-action を${rawActions.size}件しか取り出せなかった。検査の書き方が古い。`);
+  process.exit(1);
+}
+for (const action of rawActions) {
+  if (!handled.has(action)) problems.push(`data-action "${action}" を受ける handleAction が無い（触っても何も起きない）`);
+}
+
 // 3. 参照点。**片側だけでなく、鳴ることも確かめられる形にしておく。**
 //    存在しない名前を混ぜたら必ず引っかかることを、ここで自己確認する。
 if (defined.has("__surely_missing__")) {
@@ -66,4 +77,4 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`ecology-screens smoke: 画面${mapped}件とボタン${actions.size}件の行き先がすべて存在する`);
+console.log(`ecology-screens smoke: 画面${mapped}件・ボタン${actions.size}件・data-action ${rawActions.size}件の行き先がすべて存在する`);

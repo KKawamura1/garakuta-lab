@@ -36,6 +36,9 @@ import {
   PACK_BY_ID,
   PROLOGUE,
   REGION,
+  castOnStage,
+  portraitAccent,
+  portraitSvg,
   storyBeat,
   SKILL_PACKS,
   difficultyDef,
@@ -103,6 +106,10 @@ const SAVE_FORMAT_VERSION = 1;
 const SAVE_KEY = "exp18-r10-auto-v01";
 const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v01-";
 const MANUAL_SAVE_SLOTS = 3;
+// R9 §7 の会話画面（立ち絵つきの一行送り）。**使う場所は下の「物語」の節。**
+const STORY_TYPE_MS = 26;          // 一文字あたりの送り速度
+const STORY_AUTO_HOLD_MS = 1500;   // AUTO で読み終えてから次の行までの待ち
+const STORY_LOG_LIMIT = 60;        // 履歴に残す行数
 const app = document.querySelector("#app");
 const positionLabels = {
   front_left: "前列左",
@@ -341,7 +348,8 @@ function freshUiState() {
     // Phase C — Blueprint archive の絞り込み（画面だけの状態）。
     blueprintFilter: { rarity: null, favorite: false },
     // R9 §2 / §7 — 物語の断片。queue が空になったら after へ進む。
-    story: { queue: [], after: "camp" },
+    // lineIndex は断片の中の何行目か。auto は自動送り、log は履歴。
+    story: { queue: [], after: "camp", lineIndex: 0, auto: false, log: [], logOpen: false },
     saveMenuReturn: "intro",
     saveNotice: null,
     prologueActive: false,
@@ -456,6 +464,15 @@ function hydrateState(saved) {
     ? next.skillTreeScroll
     : {};
   next.selectedSkillNode = next.selectedSkillNode || null;
+  // 旧いオートセーブには story.lineIndex / log が無い。**足りない欄を補って読む。**
+  next.story = {
+    queue: Array.isArray(saved.story?.queue) ? saved.story.queue.filter(Boolean) : [],
+    after: saved.story?.after ?? "camp",
+    lineIndex: Number.isFinite(saved.story?.lineIndex) ? Math.max(0, Math.floor(saved.story.lineIndex)) : 0,
+    auto: saved.story?.auto === true,
+    log: Array.isArray(saved.story?.log) ? saved.story.log.slice(-STORY_LOG_LIMIT) : [],
+    logOpen: false,
+  };
   next.battleError = next.battleError || null;
   next.replaySpeed = REPLAY_SPEEDS.some((entry) => entry.id === next.replaySpeed) ? next.replaySpeed : "normal";
   next.replayLogOpen = next.replayLogOpen === true;
@@ -867,6 +884,7 @@ function campNav() {
 
 function render() {
   stopReplayTimer();
+  stopStoryTimers();
   // Phase C — **今の遠征が抱えている生成装備だけを、装備画面の語彙にする。**
   // 遠征が変われば表も入れ替わる（前の遠征の品が残らない）。
   registerGeneratedEquipment(state.run?.generatedEquipment ?? {});
@@ -891,6 +909,7 @@ function render() {
   });
   restoreSkillTreeScroll();
   if (state.phase === "battle") mountBattleView();
+  if (state.phase === "story") mountStoryView();
 }
 
 function captureSkillTreeScroll() {
@@ -1192,43 +1211,251 @@ function renderBlueprints() {
 // ---------------------------------------------------------------- 物語（R9 §2, §7, §8）
 //
 // **説明画面ではない。**pack の意味を人物の行動として見せる断片を、
-// 一つずつ出す。**いつでも飛ばせる**（R9 §8：既知になった後の再訪で
+// 一行ずつ出す。**いつでも飛ばせる**（R9 §8：既知になった後の再訪で
 // チュートリアルがランの固定税になってはいけない）。
+//
+// 見せ方は近年のスマホゲームの対話に合わせてある。
+//
+//   立ち絵      … 舞台に立つ人物を描き、**喋っている人だけを前へ出す**。
+//                  表情は行ごとに切り替わる（content/portraits.mjs）。
+//   一行送り     … 断片をまとめて出さず、一行ずつ流す。画面のどこを叩いても進む。
+//   文字送り     … 表示中に叩くと即座に全部出る。二度叩けば次の行へ。
+//   AUTO / SKIP  … 自動送りと、この Stage の会話を丸ごと飛ばす。
+//   履歴        … 直前まで読んだ行を後から読み返せる。
+//
+// **演出は進行を止めない。**文字送りも自動送りも、叩けば必ず追い越せる。
+
+// 送り速度・AUTO の待ち・履歴の長さは、ファイル冒頭の定数群に置いてある
+// （hydrateState が保存の履歴を切り詰めるのに使うので、宣言はそれより前でなければ
+// ならない。ここへ書き戻すと、読み込みが TDZ で落ちて題名画面へ戻る）。
+
+let storyTypeTimer = null;
+let storyAutoTimer = null;
+// **文字送りの途中かどうか。**途中なら、叩いても行は進めず全文を出す。
+let storyTypingDone = true;
+// 最後に読み終えた行。**AUTO の切り替えや履歴を閉じたときに、
+// 同じ行をもう一度打ち直さない**（読んだ文が消えるのは進行の逆戻りに見える）。
+let storyShownLine = null;
+
+function stopStoryTimers() {
+  if (storyTypeTimer) clearTimeout(storyTypeTimer);
+  if (storyAutoTimer) clearTimeout(storyAutoTimer);
+  storyTypeTimer = null;
+  storyAutoTimer = null;
+}
+
+function currentStoryBeat() {
+  return state.story?.queue?.[0] ?? null;
+}
+
+function storyLineIndex() {
+  const beat = currentStoryBeat();
+  if (!beat) return 0;
+  const raw = Number(state.story?.lineIndex ?? 0);
+  const index = Number.isFinite(raw) ? Math.floor(raw) : 0;
+  return Math.max(0, Math.min(beat.lines.length - 1, index));
+}
+
+const STORY_PLACEMENTS = { left: 0, center: 1, right: 2 };
+
+// その人物がこの行までに見せた最後の表情。**地の文でも顔は残る。**
+function storyExpressionFor(beat, characterId, upTo) {
+  for (let index = Math.min(upTo, beat.lines.length - 1); index >= 0; index -= 1) {
+    const line = beat.lines[index];
+    if (line.who === characterId && line.emotion) return line.emotion;
+  }
+  return "neutral";
+}
+
+// 名前欄に出す人物。地の文の行では、直前に喋っていた人を残さず空にする。
+function storySpeaker(beat, index) {
+  return beat.lines[index]?.who ?? null;
+}
+
+// 地の文の行で、直前に喋っていた人。**舞台を一度に暗くしない。**
+function storyAttentive(beat, index) {
+  for (let cursor = index; cursor >= 0; cursor -= 1) {
+    if (beat.lines[cursor]?.who) return beat.lines[cursor].who;
+  }
+  return null;
+}
+
+function storyFigure(beat, entry, index) {
+  const speaking = storySpeaker(beat, index) === entry.who;
+  const attentive = !storySpeaker(beat, index) && storyAttentive(beat, index) === entry.who;
+  const expression = speaking
+    ? (beat.lines[index].emotion ?? "neutral")
+    : storyExpressionFor(beat, entry.who, index);
+  const entering = (entry.since ?? 0) === index;
+  return "<div class=\"vn-figure " + (speaking ? "speaking" : "muted-figure")
+    + (attentive ? " attentive" : "")
+    + (entering ? " entering" : "") + " at-" + esc(entry.at) + "\""
+    + " style=\"--accent:" + esc(portraitAccent(entry.who)) + "\""
+    + " data-character=\"" + esc(entry.who) + "\">"
+    + portraitSvg(entry.who, expression, { uid: beat.id + "-" + entry.who })
+    + "</div>";
+}
+
+function storyBacklog() {
+  const entries = state.story?.log ?? [];
+  const rows = entries.length
+    ? entries.map((entry) => "<p class=\"vn-log-line" + (entry.speaker ? "" : " narration") + "\">"
+      + (entry.speaker
+        ? "<b style=\"color:" + esc(portraitAccent(entry.who)) + "\">" + esc(entry.speaker) + "</b>"
+        : "")
+      + "<span>" + esc(entry.text) + "</span></p>").join("")
+    : "<p class=\"muted\">まだ履歴がありません。</p>";
+  return "<div class=\"vn-log\" role=\"dialog\" aria-label=\"会話の履歴\">"
+    + "<div class=\"vn-log-head\"><b>履歴</b>"
+    + button("閉じる", "story-log", false, "tiny-button") + "</div>"
+    + "<div class=\"vn-log-body\">" + rows + "</div></div>";
+}
+
 function renderStory() {
-  const queue = state.story?.queue ?? [];
-  const current = queue[0];
-  if (!current) return renderCamp();
-  const lines = current.lines.map((line) => line.speaker
-    ? "<p class=\"story-line\"><b>" + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
-    : "<p class=\"story-line narration\">" + esc(line.text) + "</p>").join("");
-  const remaining = queue.length - 1;
-  return shell(current.title, "灰の遠征 · 物語", "<section class=\"card story-card\">"
-    + "<div class=\"story-lines\">" + lines + "</div>"
-    + (current.footer ? "<p class=\"muted story-footer\">" + esc(current.footer) + "</p>" : "")
-    + "<div class=\"flow-actions\">"
-    + button(remaining > 0 ? "次へ" : "先へ進む", "story-next", false, "button primary")
-    + button("この Stage の会話を飛ばす", "story-skip", false, "button")
-    + "</div>"
-    + "<p class=\"hint\">会話はいつでも飛ばせます。一度クリアした Stage では最初から出ません。</p>"
-    + "</section>");
+  const beat = currentStoryBeat();
+  if (!beat) return renderCamp();
+  const index = storyLineIndex();
+  const line = beat.lines[index];
+  const speakerId = storySpeaker(beat, index);
+  const figures = [...castOnStage(beat, index)]
+    .sort((a, b) => (STORY_PLACEMENTS[a.at] ?? 1) - (STORY_PLACEMENTS[b.at] ?? 1))
+    .map((entry) => storyFigure(beat, entry, index))
+    .join("");
+  const lastLine = index >= beat.lines.length - 1;
+  const remaining = (state.story?.queue?.length ?? 1) - 1;
+  const auto = state.story?.auto === true;
+
+  const nameplate = line.speaker
+    ? "<div class=\"vn-name\" style=\"--accent:" + esc(portraitAccent(speakerId)) + "\">"
+      + esc(line.speaker) + "</div>"
+    : "";
+
+  // **進行のボタンは舞台の外に置く。**舞台のどこを叩いても進むので、
+  // AUTO や 履歴 が「進める」つもりの指に巻き込まれない。
+  const controls = "<div class=\"vn-controls\">"
+    + button("履歴", "story-log", (state.story?.log?.length ?? 0) === 0, "vn-chip")
+    + button(auto ? "AUTO 停止" : "AUTO", "story-auto", false, "vn-chip" + (auto ? " on" : ""))
+    + button("スキップ", "story-skip", false, "vn-chip")
+    + "</div>";
+
+  const scene = "<section class=\"vn\" data-mood=\"" + esc(beat.mood ?? "ash") + "\">"
+    + "<div class=\"vn-stage" + (line.fx === "impact" ? " impact" : "") + "\""
+    + " data-action=\"story-advance\" role=\"button\" tabindex=\"0\""
+    + " aria-label=\"会話を進める\">"
+    + "<div class=\"vn-sky\"></div><div class=\"vn-haze\"></div>"
+    + "<div class=\"vn-place\"><b>" + esc(beat.title) + "</b>"
+    + (beat.place ? "<span>" + esc(beat.place) + "</span>" : "") + "</div>"
+    + "<div class=\"vn-figures\">" + figures + "</div>"
+    + "<div class=\"vn-box" + (line.speaker ? "" : " narration") + "\">"
+    + nameplate
+    + "<p class=\"vn-text\" aria-live=\"polite\" data-full=\"" + esc(line.text) + "\"></p>"
+    + "<span class=\"vn-caret\" aria-hidden=\"true\">▼</span>"
+    + "<span class=\"vn-progress\">" + (index + 1) + " / " + beat.lines.length
+    + (remaining > 0 ? " · 続き " + remaining : "") + "</span>"
+    + "</div></div>"
+    + (lastLine && beat.footer
+      ? "<p class=\"vn-note\">" + esc(beat.footer) + "</p>"
+      : "")
+    + controls
+    + "<p class=\"hint vn-hint\">画面を叩くと進みます。文字送りの途中なら、一度目の操作で全文が出ます。"
+    + "会話はいつでも飛ばせ、一度クリアした Stage では最初から出ません。</p>"
+    + (state.story?.logOpen ? storyBacklog() : "")
+    + "</section>";
+
+  return shell(beat.title, "灰の遠征 · 物語", scene, { hideHeaderAction: true });
+}
+
+// 文字送り。**表示は DOM 側で進める。**state を一文字ごとに書き換えない
+// （保存が毎フレーム走ると端末の保存枠を無駄に削る）。
+function mountStoryView() {
+  stopStoryTimers();
+  const scene = app.querySelector(".vn");
+  const target = scene?.querySelector(".vn-text");
+  if (!scene || !target) return;
+  const full = target.dataset.full ?? "";
+  const beat = currentStoryBeat();
+  const key = (beat?.id ?? "") + ":" + storyLineIndex();
+  // 舞台は button ではないので、Enter / Space を自分で拾う。
+  scene.querySelector(".vn-stage")?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    event.preventDefault();
+    event.currentTarget.click();
+  });
+  const settle = () => {
+    target.textContent = full;
+    storyTypingDone = true;
+    storyShownLine = key;
+    scene.classList.add("typed");
+    if (state.story?.auto && !state.story?.logOpen) {
+      storyAutoTimer = setTimeout(() => { advanceStoryLine(); }, STORY_AUTO_HOLD_MS);
+    }
+  };
+  if (state.story?.logOpen || storyShownLine === key) { settle(); return; }
+  storyTypingDone = false;
+  scene.classList.remove("typed");
+  target.textContent = "";
+  let cursor = 0;
+  const step = () => {
+    cursor += 1;
+    target.textContent = full.slice(0, cursor);
+    if (cursor >= full.length) { settle(); return; }
+    storyTypeTimer = setTimeout(step, STORY_TYPE_MS);
+  };
+  if (!full.length) settle();
+  else storyTypeTimer = setTimeout(step, STORY_TYPE_MS);
+}
+
+// 表示中の一行を履歴へ積む。**同じ行を二度積まない。**
+function pushStoryLog(beat, index) {
+  const line = beat?.lines?.[index];
+  if (!line) return;
+  const log = [...(state.story?.log ?? [])];
+  const key = beat.id + ":" + index;
+  if (log.length && log[log.length - 1].key === key) return;
+  log.push({ key, who: line.who, speaker: line.speaker, text: line.text });
+  state.story = { ...state.story, log: log.slice(-STORY_LOG_LIMIT) };
+}
+
+// 一行進める。**断片を跨いだら次の断片の一行目へ。**積むものが尽きたら after へ。
+function advanceStoryLine() {
+  stopStoryTimers();
+  const beat = currentStoryBeat();
+  if (!beat) { finishStory(); return; }
+  const index = storyLineIndex();
+  if (index + 1 < beat.lines.length) {
+    state.story = { ...state.story, lineIndex: index + 1 };
+    pushStoryLog(beat, index + 1);
+    saveState();
+    render();
+    return;
+  }
+  const queue = [...(state.story.queue ?? [])];
+  queue.shift();
+  state.story = { ...state.story, queue, lineIndex: 0 };
+  if (!queue.length) { finishStory(); return; }
+  pushStoryLog(queue[0], 0);
+  saveState();
+  render();
 }
 
 // 物語の queue を積んで story 画面へ入る。**積むものが無ければ、そのまま次へ。**
 function enterStory(beats, after) {
   const queue = beats.filter(Boolean);
-  state.story = { queue, after };
+  state.story = { queue, after, lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (!queue.length) {
     finishStory();
     return;
   }
+  pushStoryLog(queue[0], 0);
   state.phase = "story";
   saveState();
   render();
 }
 
 function finishStory() {
+  stopStoryTimers();
   const after = state.story?.after ?? "camp";
-  state.story = { queue: [], after: "camp" };
+  state.story = { queue: [], after: "camp", lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (after === "prologue") {
     startPrologue();
     return;
@@ -2535,10 +2762,19 @@ function stageEndStorySection(settlement) {
   const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
   const beatDef = stage ? storyBeat(stage.id, "stageEnd") : null;
   if (!beatDef) return "";
+  // **精算画面では読み返しとして出す。**一行送りにはしない
+  // （ここは進行ではなく記録なので、まとめて読めるほうがよい）。
   const lines = beatDef.lines.map((line) => line.speaker
-    ? "<p class=\"story-line\"><b>" + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
+    ? "<p class=\"story-line\"><b style=\"color:" + esc(portraitAccent(line.who)) + "\">"
+      + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
     : "<p class=\"story-line narration\">" + esc(line.text) + "</p>").join("");
+  const figures = [...castOnStage(beatDef)]
+    .map((entry) => "<div class=\"story-bust\" style=\"--accent:" + esc(portraitAccent(entry.who)) + "\">"
+      + portraitSvg(entry.who, storyExpressionFor(beatDef, entry.who, beatDef.lines.length - 1),
+        { uid: "end-" + beatDef.id + "-" + entry.who })
+      + "</div>").join("");
   return "<section class=\"card story-card\">" + sectionHeading("STORY", esc(beatDef.title))
+    + "<div class=\"story-busts\">" + figures + "</div>"
     + "<div class=\"story-lines\">" + lines + "</div>"
     + (beatDef.footer ? "<p class=\"muted story-footer\">" + esc(beatDef.footer) + "</p>" : "")
     + "</section>";
@@ -2917,22 +3153,44 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "story-next") {
-    const queue = [...(state.story?.queue ?? [])];
-    queue.shift();
-    state.story = { queue, after: state.story?.after ?? "camp" };
-    if (!queue.length) {
-      finishStory();
+  // 舞台を叩いた。**文字送りの途中なら、まず全文を出す。**
+  // 読み終えている行でだけ、次の行へ進む。
+  if (action === "story-advance") {
+    if (state.story?.logOpen) return;
+    if (!storyTypingDone) {
+      stopStoryTimers();
+      const target = app.querySelector(".vn-text");
+      if (target) {
+        target.textContent = target.dataset.full ?? "";
+        storyTypingDone = true;
+        storyShownLine = (currentStoryBeat()?.id ?? "") + ":" + storyLineIndex();
+        app.querySelector(".vn")?.classList.add("typed");
+        if (state.story?.auto) {
+          storyAutoTimer = setTimeout(() => { advanceStoryLine(); }, STORY_AUTO_HOLD_MS);
+        }
+      }
       return;
     }
+    advanceStoryLine();
+    return;
+  }
+
+  if (action === "story-auto") {
+    state.story = { ...state.story, auto: !(state.story?.auto === true) };
     saveState();
+    render();
+    return;
+  }
+
+  if (action === "story-log") {
+    state.story = { ...state.story, logOpen: !(state.story?.logOpen === true) };
     render();
     return;
   }
 
   if (action === "story-skip") {
     record("story_skipped", { after: state.story?.after ?? "camp" });
-    state.story = { queue: [], after: state.story?.after ?? "camp" };
+    state.story = { ...state.story, queue: [], after: state.story?.after ?? "camp", logOpen: false };
     finishStory();
     return;
   }

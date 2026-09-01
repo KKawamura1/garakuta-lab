@@ -151,7 +151,20 @@ export {
   partySizeForStage,
 } from "./campaign-stages.mjs";
 // R9 §2 / §7 — 初期4 Stage のチュートリアル物語。
-export { PROLOGUE, STORY_BEATS, storyBeat, storyBeatsForStage } from "./story.mjs";
+export { PROLOGUE, STORY_BEATS, castOnStage, storyBeat, storyBeatsForStage } from "./story.mjs";
+// 会話画面の立ち絵。**見た目だけを持つ**（engine・schema には出ない）。
+export {
+  DEFAULT_EXPRESSION,
+  EXPRESSIONS,
+  EXPRESSION_KEYS,
+  PORTRAITS,
+  PORTRAIT_IDS,
+  PORTRAIT_VIEWBOX,
+  portraitAccent,
+  portraitDef,
+  portraitName,
+  portraitSvg,
+} from "./portraits.mjs";
 // R8 Implementation Phase 4（Phase C）— 生成装備の affix 目録。
 export {
   AFFIXES,
