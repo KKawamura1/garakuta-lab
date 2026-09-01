@@ -16,12 +16,18 @@ import { validateBattleInput } from "./validate.mjs";
 import {
   CAMPAIGN_STAGES,
   CHARACTER_DEFINITIONS,
+  EXPRESSIONS,
   PACK_BY_ID,
   PLAYABLE_CONTENT,
+  PORTRAITS,
+  PORTRAIT_IDS,
   PROLOGUE,
   SECTION_NAMES,
   campaignStageDef,
+  castOnStage,
   packSkillIds,
+  portraitAccent,
+  portraitSvg,
   storyBeat,
 } from "./content/index.mjs";
 import { makePrologueBattle, prologueEncounter } from "./playable-battles.mjs";
@@ -155,12 +161,85 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       check(!seenBeatIds.has(beat.id), beat.id + " は一意");
       seenBeatIds.add(beat.id);
       check(beat.lines.length >= 2, beat.id + " は2行以上");
+      // **立ち絵を足しても行数は増やさない。**R9 §7 の「説明文にしない」を保つ。
       check(beat.lines.length <= 6, beat.id + " は6行以下（説明文にしない）");
       for (const line of beat.lines) {
         check(typeof line.text === "string" && line.text.length > 0, beat.id + " の行に本文がある");
-        if (line.speaker === null) continue;
+        if (line.speaker === null) {
+          check(line.who === null, beat.id + ": 地の文は話者を持たない");
+          continue;
+        }
         check(names.has(line.speaker), beat.id + ": 話者 " + line.speaker + " が実在の仲間");
       }
+    }
+  }
+}
+
+// ---- 立ち絵と演出（会話画面）------------------------------------------------
+//
+// **立ち絵は engine ではなく見た目だが、欠けると会話画面が壊れる。**
+// 話者・配役・表情がすべて実在の語彙を指していることを、ここで見る。
+
+{
+  const characterIds = new Set(CHARACTER_DEFINITIONS.map((option) => option.id));
+  const placements = new Set(["left", "center", "right"]);
+
+  // 仲間は全員ぶんの立ち絵を持つ。**会話に出す前に欠けを見つける。**
+  for (const option of CHARACTER_DEFINITIONS) {
+    check(Boolean(PORTRAITS[option.id]), option.id + " の立ち絵がある");
+  }
+  equal(PORTRAIT_IDS.length, CHARACTER_DEFINITIONS.length, "立ち絵の数が仲間の数と揃う");
+
+  // 表情差分は同じ骨格から作る。**同じ引数からは同じ markup。**
+  for (const characterId of PORTRAIT_IDS) {
+    for (const expression of Object.keys(EXPRESSIONS)) {
+      const svg = portraitSvg(characterId, expression);
+      check(svg.startsWith("<svg") && svg.endsWith("</svg>"), characterId + "/" + expression + " が SVG を返す");
+      equal(portraitSvg(characterId, expression), svg, characterId + "/" + expression + " は決定的");
+      check(!svg.includes("undefined") && !svg.includes("NaN"),
+        characterId + "/" + expression + " に未解決の値が残っていない");
+    }
+    check(/^#[0-9a-f]{6}$/i.test(portraitAccent(characterId)), characterId + " の差し色が色として読める");
+  }
+  equal(portraitSvg("no_such_character"), "", "知らない人物では立ち絵を作らない");
+
+  for (const stage of CAMPAIGN_STAGES) {
+    const keys = stage.sequence === 0 ? ["opening", "prologueDefeat", "stageEnd"] : ["join", "stageEnd"];
+    for (const key of keys) {
+      const beat = storyBeat(stage.id, key);
+      if (!beat) continue;
+      check(typeof beat.mood === "string" && beat.mood.length > 0, beat.id + " に背景の色調がある");
+      check(beat.cast.length >= 1 && beat.cast.length <= 3, beat.id + " の配役は1〜3人（画面に収まる）");
+
+      const seenPlacements = new Set();
+      for (const entry of beat.cast) {
+        check(characterIds.has(entry.who), beat.id + ": 配役 " + entry.who + " が実在の仲間");
+        check(Boolean(PORTRAITS[entry.who]), beat.id + ": 配役 " + entry.who + " に立ち絵がある");
+        check(placements.has(entry.at), beat.id + ": 立ち位置 " + entry.at + " が left/center/right");
+        check(!seenPlacements.has(entry.at), beat.id + ": 立ち位置 " + entry.at + " が重なっていない");
+        seenPlacements.add(entry.at);
+        check(Number.isInteger(entry.since) && entry.since >= 0 && entry.since < beat.lines.length,
+          beat.id + ": " + entry.who + " の登場行が断片の中にある");
+      }
+
+      const cast = new Set(beat.cast.map((entry) => entry.who));
+      for (const [index, line] of beat.lines.entries()) {
+        if (line.who === null) {
+          equal(line.emotion, null, beat.id + " 行" + index + ": 地の文は表情を持たない");
+          continue;
+        }
+        // **喋る人は必ず舞台に立っている。**名前だけ出て絵が無い行を作らない。
+        check(cast.has(line.who), beat.id + " 行" + index + ": 話者 " + line.who + " が配役にいる");
+        check(Boolean(EXPRESSIONS[line.emotion]), beat.id + " 行" + index + ": 表情 " + line.emotion + " が実在する");
+        const entry = beat.cast.find((member) => member.who === line.who);
+        check((entry?.since ?? 0) <= index, beat.id + " 行" + index + ": 登場前に喋らない");
+        check(line.fx === null || line.fx === "impact", beat.id + " 行" + index + ": 演出 id が既知");
+      }
+
+      // 一行目の時点で舞台に立つのは since 0 の配役だけ。
+      const opening = castOnStage(beat, 0);
+      for (const entry of opening) equal(entry.since, 0, beat.id + ": 一行目の配役は since 0");
+      equal(castOnStage(beat).length, beat.cast.length, beat.id + ": 最後には配役が全員そろう");
     }
   }
 }

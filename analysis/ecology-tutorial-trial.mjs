@@ -51,6 +51,30 @@ try {
     .first().click();
   const bodyText = () => page.locator("body").innerText();
 
+  // 会話は一行送りになった。**舞台を叩くと進む**（文字送りの途中なら、
+  // 一度目の操作で全文が出る）。画面が変わるまで叩き続ける。
+  const tapStory = async () => {
+    const stage = page.locator(".vn-stage");
+    if (await stage.count() === 0) return false;
+    await stage.first().click({ position: { x: 12, y: 12 } });
+    await page.waitForTimeout(140);
+    return true;
+  };
+  const advanceStory = async (limit = 30) => {
+    for (let index = 0; index < limit; index += 1) {
+      if (!(await tapStory())) return;
+    }
+  };
+  // 条件を満たすまで叩く。**文字送りの速さに検査を依存させない**
+  // （一度目の操作で全文が出るので、叩く回数は行の長さで変わる）。
+  const tapUntil = async (predicate, limit = 12) => {
+    for (let index = 0; index < limit; index += 1) {
+      if (await predicate()) return true;
+      if (!(await tapStory())) return predicate();
+    }
+    return predicate();
+  };
+
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
@@ -60,12 +84,22 @@ try {
   await click("はじめから");
 
   // R9 §2.1 — 最初の2人の会話。**説明ではなく、考え方の違いを見せる。**
+  await page.waitForSelector(".vn-stage", { timeout: 8000 });
   const openingText = await bodyText();
-  note("最初の会話が出る", /レオン/.test(openingText) && /ユウリ/.test(openingText));
-  note("会話は飛ばせる", await page.getByRole("button", { name: "この Stage の会話を飛ばす" }).count() > 0);
+  note("最初の会話が出る", /レオン/.test(openingText));
+  note("会話は飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
+
+  // 立ち絵つきの一行送り。**喋っている人だけが前に出る。**
+  note("立ち絵が出る", await page.locator(".vn-figure .portrait-svg").count() >= 2);
+  note("喋っている人が前に出ている", await page.locator(".vn-figure.speaking").count() === 1);
+  note("話者の名前が出る", /レオン/.test(await page.locator(".vn-name").innerText()));
+  note("一行ずつ進む", /1 \/ \d/.test(await page.locator(".vn-progress").innerText()));
+  note("次の行へ進む", await tapUntil(async () => await page.locator(".vn-name").count() > 0
+    && /ユウリ/.test(await page.locator(".vn-name").innerText())));
+  note("履歴に前の行が残る", await page.locator('[data-action="story-log"]:not([disabled])').count() === 1);
 
   // R9 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
-  await click(/先へ進む|次へ/);
+  await advanceStory();
   const prologueText = await bodyText();
   note("序盤の一戦へ入る", /灰の門/.test(prologueText));
   // **序盤の一戦は、会話から途切れずにそのまま始まる。**preview を挟まない
@@ -89,8 +123,10 @@ try {
   await click("時間が巻き戻る");
   const rewindText = await bodyText();
   note("巻き戻しの会話が出る", /届かなかった/.test(rewindText));
-  note("戦闘予測の使い方を示す", /戦闘予測/.test(rewindText));
-  await click(/先へ進む|次へ/);
+  // 学びの一言は断片の最後の行で出る。**そこまで進めてから見る。**
+  const sawNote = await tapUntil(async () => await page.locator(".vn-note").count() > 0);
+  note("戦闘予測の使い方を示す", sawNote && /戦闘予測/.test(await bodyText()));
+  await advanceStory();
 
   // R9 §2.1 — 2人編成。**誰が来るかは物語が決める。**
   const campText = await bodyText();
@@ -221,8 +257,9 @@ try {
     await click("この条件で遠征へ出る");
     const joinText = await bodyText();
     note("Stage 1 の加入の会話が出る", /ナギ/.test(joinText));
-    note("加入の会話も飛ばせる", await page.getByRole("button", { name: "この Stage の会話を飛ばす" }).count() > 0);
-    await click("この Stage の会話を飛ばす");
+    note("加入の会話も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
+    note("加入する人物の立ち絵が出る", await page.locator('.vn-figure[data-character="guardian"]').count() === 1);
+    await click("スキップ");
     await page.waitForTimeout(250);
     const stage1Camp = await bodyText();
     note("Stage 1 は3人で始まる", /3 \/ 3人/.test(stage1Camp));
