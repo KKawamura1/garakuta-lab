@@ -1265,7 +1265,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 
 .save-slot.auto {
-  border-color: var(--accent);
+  border-color: var(--gold);
   background: rgba(229, 184, 105, .08);
 }
 
@@ -1292,7 +1292,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 
 .save-notice {
   margin: 0;
-  color: var(--accent);
+  color: var(--gold);
 }
 
 .future-roster {
