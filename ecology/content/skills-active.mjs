@@ -28,6 +28,9 @@ export const ACTIVE_SKILL_NAMES = {
   finishing_thrust: "止めの一突き",
   crack_mark: "傷口を開く",
   brace_for_impact: "衝撃に備える",
+  // R11 §5 — Stage 0 の安定攻撃。武器と技を一つずつ、同じ形で置く。
+  steady_cut: "確かな斬り",
+  aimed_shot: "狙い撃ち",
 };
 
 const activeSkills = renamed("activeSkills", ACTIVE_SKILL_NAMES);
@@ -113,7 +116,9 @@ export const ACTIVE_SCALING = {
   hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(12) },
   // 敵の技能。basic strike は might 100%、重い一撃は might 140%
   front_strike: { stat: "might", bps: 10_000 },
-  rear_strike: { stat: "might", bps: 10_000 },
+  // R11 — 後列から撃つ敵の一撃は technique 扱い。**後列の武器減衰を受けない。**
+  // 敵の might と focus はどちらも同じ値なので、威力は動かない（enemies.mjs）。
+  rear_strike: { stat: "focus", bps: 10_000 },
   enemy_heavy: { stat: "might", bps: bpsForLegacyAmount(14) },
   enemy_guard: { stat: "focus", bps: bpsForLegacyAmount(4) },
 };
@@ -197,6 +202,21 @@ activeSkills.rapid_cuts = archetype("rapid_cuts", "刻み斬り", 5_000, {
 // 貫き。単発115%で通常攻撃を上回り、guard を6割無視する。
 activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 11_500, {
   effectPatch: { guardPierceBps: 6_000 },
+});
+
+// R11 §5 — **Stage 0 の「安定」二本。**条件も準備も持たない。
+//
+// 教えたいのは威力の差ではなく、**どこから出すかで結果が変わる**ことである。
+// 確かな斬りは武器なので後列から出すと 40% になり、狙い撃ちは技なので落ちない。
+// 同じ盤面で二つを見比べれば、might と focus の違いが説明文なしで分かる。
+activeSkills.steady_cut = archetype("steady_cut", ACTIVE_SKILL_NAMES.steady_cut, 13_000);
+activeSkills.aimed_shot = archetype("aimed_shot", ACTIVE_SKILL_NAMES.aimed_shot, 12_500, {
+  // 弱った相手から確実に減らす。前列が生きていても後列へ通る（技だから）。
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  effectPatch: {
+    target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    reach: "ranged",
+  },
 });
 // 薙ぎ。前列の敵が2体以上いるときだけ、同じ行へ80%ずつ。
 // 1体しかいない行は通常攻撃へ戻すので、単体時も択の損にならない。
@@ -352,6 +372,8 @@ for (const [id, skill] of Object.entries(activeSkills)) {
 }
 setDamageReach(activeSkills.rear_strike, "ranged");
 setDamageReach(activeSkills.rear_hunt, "ranged");
+// R11 §5 — 技は後列からでも届く。**この一行が「狙い撃ち」を技たらしめている。**
+setDamageReach(activeSkills.aimed_shot, "ranged");
 
 // R6 §6.4 — active 技能の静的な種別。**skill tag だけで分類し、
 // 人物 ID や個別敵 ID による例外を作らない。**
@@ -608,11 +630,69 @@ activeSkills.overreach = {
   tags: ["attack", "playable"],
 };
 
+setDamageReach(activeSkills.steady_cut, "melee");
 setDamageReach(activeSkills.overreach, "melee");
 setDamageReach(activeSkills.barrage_strike, "melee");
 setDamageReach(activeSkills.mark_strike, "melee");
 setDamageReach(activeSkills.mark_break, "melee");
 setDamageReach(activeSkills.sweeping_barrage, "melee");
 setDamageReach(activeSkills.piercing_barrage, "melee");
+
+// ---------------------------------------------------------------- 武器と技
+//
+// R11 — **攻めの軸を2本にする。**
+//
+// R6 §4.4 は「全員が might と focus を持つ。だから weapon 役にも支援技能を、
+// 支援役にも technique 攻撃を付けられる」と宣言していた。だが実装は片側しか
+// 作っていない。数えると、ダメージ28件が全部 might で、focus は防壁8件にしか
+// 効かない（回復は被ダメージ量でスケールするので focus と無関係）。
+//
+// **攻めの軸が1本しか無いと、攻撃役は「might が高い人」しか作れない。**
+// 守りには防壁(focus)と軽減(guard)の2軸があるので、編成は必ず守りへ偏る。
+// arcanist が「準備攻撃」役でありながら might 16（全体最下位）なのも、
+// mender の focus 44 が初期構成で一切読まれないのも、同じ穴から出ている。
+//
+// 効果の tag には最初から "weapon" が入っている。ここでは、その対になる
+// "technique" を実際に働かせる。**分け方は威力ではなく、成立のさせ方で決める。**
+//
+//   weapon    … 直接当てる。刃と力で、前から。         → might
+//   technique … 準備・条件・届きを使う。後ろからでも効く。→ focus
+//
+// engine は触らない。scalingStat を読むのは effects.mjs の既存経路のままである。
+export const TECHNIQUE_SKILL_IDS = Object.freeze([
+  "heavy_swing",   // 溜め突き — 準備1回を代償にする
+  "long_swing",    // 大溜め   — 準備3回を代償にする
+  "hunt_the_slow", // 準備狩り — 敵の準備を読んで割り込む
+  "rear_hunt",     // 後衛狩り — 後列へ届かせる（reach: ranged）
+  "crack_mark",    // 傷口を開く — 隙を刻む
+  "mark_strike",   // 刻印撃ち
+  "mark_break",    // 刻印砕き
+  "aimed_shot",    // 狙い撃ち — Stage 0 の安定した技
+]);
+
+// 敵側の技能（enemy_heavy など）は対象にしない。**敵の攻撃は might のままである。**
+// 味方の focus を上げても敵が強くならないようにしておく。
+function retuneAsTechnique(node, counter) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    for (const entry of node) retuneAsTechnique(entry, counter);
+    return;
+  }
+  if (node.type === "deal_damage" && node.amount?.type === "stat_scaled") {
+    node.amount = { ...node.amount, scalingStat: "focus" };
+    node.tags = [...(node.tags ?? []).filter((tag) => tag !== "weapon"), "technique"];
+    counter.converted += 1;
+  }
+  for (const value of Object.values(node)) retuneAsTechnique(value, counter);
+}
+
+for (const id of TECHNIQUE_SKILL_IDS) {
+  const definition = activeSkills[id];
+  if (!definition) throw new Error("technique: 未知の技能 " + id);
+  const counter = { converted: 0 };
+  retuneAsTechnique(definition, counter);
+  // **黙って何もしないのを許さない。**係数の持ち方が変わったら、ここで落ちる。
+  if (counter.converted === 0) throw new Error("technique: " + id + " に stat_scaled な damage が無い");
+}
 
 export const ACTIVE_SKILLS = activeSkills;

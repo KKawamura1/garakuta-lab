@@ -120,25 +120,28 @@ function sideTail(side, colors) {
 // **役割の読み取りやすさを優先する。**前で受ける人は肩が広く、
 // 後ろから支える人は襟が高い、という程度の差を付ける。
 export const PORTRAITS = Object.freeze({
+  // シキ — 短い暗髪。隊で一番肩と背が厚い。受ける腕に当て革を重ねている。
   warden: Object.freeze({
     accent: "#91cbd5", skin: SKIN.mid,
-    hair: Object.freeze({ base: "#3f5a63", shade: "#2c4149", light: "#5d7f89" }),
+    hair: Object.freeze({ base: "#33424a", shade: "#212d33", light: "#526a74" }),
     garb: Object.freeze({ cloak: "#27414a", trim: "#91cbd5", inner: "#16272d" }),
-    fringe: "parted", back: "medium", tail: null, shoulder: 1.06, collar: "high",
+    fringe: "parted", back: "short", tail: null, shoulder: 1.10, collar: "high",
     accessory: "pauldron",
   }),
+  // ナズナ — 柔らかい茶髪を後ろで結ぶ。荷物が多い。片眼にレンズ。
   mender: Object.freeze({
     accent: "#9bd69e", skin: SKIN.light,
-    hair: Object.freeze({ base: "#6d5a44", shade: "#4d3f2f", light: "#8e7859" }),
+    hair: Object.freeze({ base: "#7b6549", shade: "#584734", light: "#9c8563" }),
     garb: Object.freeze({ cloak: "#2c3a2c", trim: "#9bd69e", inner: "#1a231a" }),
-    fringe: "blunt", back: "short", tail: null, shoulder: 0.92, collar: "shawl",
+    fringe: "swept", back: "short", tail: "right", shoulder: 0.92, collar: "shawl",
     accessory: "kerchief",
   }),
+  // カイ — 跳ねた赤茶の髪。細くて速い。襟を開けている。
   lancer: Object.freeze({
     accent: "#e5a26b", skin: SKIN.tan,
     hair: Object.freeze({ base: "#8a3f2c", shade: "#5f2a1d", light: "#b45c3f" }),
     garb: Object.freeze({ cloak: "#3a2a24", trim: "#e5a26b", inner: "#221814" }),
-    fringe: "spiky", back: "none", tail: null, shoulder: 1.0, collar: "open",
+    fringe: "spiky", back: "none", tail: null, shoulder: 0.96, collar: "open",
     accessory: "strap",
   }),
   scout: Object.freeze({
@@ -155,11 +158,14 @@ export const PORTRAITS = Object.freeze({
     fringe: "wave", back: "medium", tail: null, shoulder: 1.02, collar: "shawl",
     accessory: "satchel",
   }),
+  // スミ — 隊で一番小さい。目の上で切り揃えた黒髪。
+  // **持ち物が全部協会の支給品で、体格に合っていない。**肩幅を隊で最も狭く取り、
+  // その上に大きすぎる盾板とフードを載せる。差し色も一人だけ彩度を持たない。
   guardian: Object.freeze({
     accent: "#a8b6bb", skin: SKIN.tan,
-    hair: Object.freeze({ base: "#48575b", shade: "#2c3639", light: "#6c7d81" }),
+    hair: Object.freeze({ base: "#2a2f33", shade: "#181c1f", light: "#4a5257" }),
     garb: Object.freeze({ cloak: "#2b3538", trim: "#a8b6bb", inner: "#1a2224" }),
-    fringe: "veil", back: "short", tail: null, shoulder: 1.12, collar: "hood",
+    fringe: "blunt", back: "short", tail: null, shoulder: 0.82, collar: "hood",
     accessory: "pauldron",
   }),
   arcanist: Object.freeze({
@@ -169,11 +175,12 @@ export const PORTRAITS = Object.freeze({
     fringe: "veil", back: "long", tail: null, shoulder: 0.88, collar: "high",
     accessory: "circlet",
   }),
+  // レイ — 明るい亜麻色の髪をきちんと分ける。姿勢がいい。元・協会の記録係。
   tactician: Object.freeze({
-    accent: "#d8d18a", skin: SKIN.light,
-    hair: Object.freeze({ base: "#a08a4f", shade: "#75633a", light: "#c4ad6c" }),
+    accent: "#d8d18a", skin: SKIN.pale,
+    hair: Object.freeze({ base: "#bda869", shade: "#8d7c4a", light: "#d8c68d" }),
     garb: Object.freeze({ cloak: "#33372a", trim: "#d8d18a", inner: "#1e211a" }),
-    fringe: "parted", back: "short", tail: "right", shoulder: 0.94, collar: "high",
+    fringe: "parted", back: "short", tail: null, shoulder: 0.94, collar: "high",
     accessory: "sash",
   }),
 });

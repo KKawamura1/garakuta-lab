@@ -22,7 +22,7 @@ Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し
 
 ## タイトルと保存
 
-- **New Game** は既存のオートセーブを確認のうえ、新しい Profile と Campaign Stage 0 を作り、レオンとユウリの2人・オープニング会話から始めます。手動セーブ枠は残します。
+- **New Game** は既存のオートセーブを確認のうえ、新しい Profile と Campaign Stage 0 を作り、カイとシキの2人・オープニング会話から始めます。手動セーブ枠は残します。
 - **Continue** は最新のオートセーブから再開します。タイトルの **Load Game** ではオートセーブと3つの手動セーブ枠を選べます。
 - 手動セーブは Camp の安全な地点で作成でき、枠を上書きするときは確認を出します。
 - 保存形式は R10 専用です。旧形式・旧キーのセーブは移行せず、読み込めないデータとして扱います。
@@ -49,7 +49,6 @@ Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し
     node analysis/ecology-anti-stall-audit.mjs
     node analysis/ecology-contract-smoke.mjs
     node analysis/ecology-equipment-gen-smoke.mjs
-    node analysis/ecology-campaign-smoke.mjs
     node analysis/ecology-readout-smoke.mjs
     node analysis/ecology-screens-smoke.mjs
     node analysis/ecology-test-hygiene-smoke.mjs

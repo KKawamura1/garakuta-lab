@@ -10,6 +10,7 @@
 | R8 の実装正本 | analysis/experiments/exp-18/R8_FIXED_DIFFICULTY_SYNERGY_LADDER.md |
 | R9（初期4Stageのチュートリアル化）の案と実装票 | analysis/experiments/exp-18/R9_EARLY_STAGES_AND_PACK_SCOPE_PROPOSAL.md / R9_IMPLEMENTATION_TUTORIAL_STAGES.md |
 | Phase C（生成装備と Blueprint）の実装票 | analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE4_STATUS.md |
+| 本編5人のキャラクター設計案（R11、未実装） | analysis/experiments/exp-18/R11_CHARACTER_DESIGN_FIVE.md |
 | EXP-18 の判断履歴 | analysis/experiments/exp-18/ |
 | 運用・公開・人間テスト | docs/ |
 | D1 への保存処理 | functions/api/runs.js、migrations/ |

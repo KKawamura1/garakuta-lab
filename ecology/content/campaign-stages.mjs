@@ -63,27 +63,33 @@ const UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS = 10_000;
 // `packDepths` は R9 §3.1 の「累積させる」を実装する。新 pack はその Stage では
 // core（入口）だけ、次の Stage から full。**前に覚えた技能は消えない。**
 export const CAMPAIGN_STAGES = Object.freeze([
+  // R11 §5 — 加入順を組み替えた。**問題を出してから、その解決を渡す。**
+  //   0 シキ＋ナズナ … 武器と技の違い（＝立つ場所の違い）を、安定した二本で見せる
+  //   1 ＋カイ       … 火力は来たが紙。前に置けば落ち、後ろに置けば武器が40%になる
+  //   2 ＋スミ       … その二択を壊す。庇う手と位置替えが来る
+  //   3 ＋レイ       … 順番そのものを触れるようになり、選択肢が一気に広がる
   Object.freeze({
     id: "stage_0_edge",
     sequence: 0,
     ladderMode: "tutorial",
     displayName: "Stage 0 — 灰の入口",
-    question: "攻撃と防御と、ただ殴ることの違い",
+    question: "武器と技の違いは、立つ場所の違い",
     partySize: 2,
-    castCharacterIds: Object.freeze(["lancer", "warden"]),
+    castCharacterIds: Object.freeze(["warden", "mender"]),
     joiningCharacterId: null,
-    newPackId: "pack_edge",
+    newPackId: "pack_care",
     returningPackIds: Object.freeze([]),
-    enabledPackIds: Object.freeze(["pack_edge"]),
-    packDepths: Object.freeze({ pack_edge: "core" }),
+    enabledPackIds: Object.freeze(["pack_care"]),
+    packDepths: Object.freeze({ pack_care: "core" }),
     activePackCount: 1,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
     pressureTags: Object.freeze(["guard", "block", "small_group"]),
     learningGoals: Object.freeze([
-      "同じ一撃でも、誰へ・どんな受けの相手へ当てるかで結果が変わる（R9 §3）",
-      "2人しかいないので、前に立つ人と刈る人の役割差が読み取れる（R9 §2.1）",
+      "武器（腕力）の攻撃は後列から出すと大きく落ち、技（集中）は落ちない（R11 §5）",
+      "だから前列と後列の選択は、守りの話であると同時に火力の話でもある",
+      "回復は「HPを戻す役」ではなく「損傷の連鎖を止める役」（R8 §9.4）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
@@ -91,24 +97,24 @@ export const CAMPAIGN_STAGES = Object.freeze([
     id: "stage_1_wall",
     sequence: 1,
     ladderMode: "tutorial",
-    displayName: "Stage 1 — かばう手",
-    question: "誰を守り、守った結果をどう使うか",
+    displayName: "Stage 1 — 抜ける刃",
+    question: "リスクを取った火力を、どこに置くか",
     partySize: 3,
-    castCharacterIds: Object.freeze(["lancer", "warden", "guardian"]),
-    joiningCharacterId: "guardian",
-    newPackId: "pack_wall",
-    returningPackIds: Object.freeze(["pack_edge"]),
-    enabledPackIds: Object.freeze(["pack_edge", "pack_wall"]),
-    packDepths: Object.freeze({ pack_edge: "full", pack_wall: "core" }),
+    castCharacterIds: Object.freeze(["warden", "mender", "lancer"]),
+    joiningCharacterId: "lancer",
+    newPackId: "pack_edge",
+    returningPackIds: Object.freeze(["pack_care"]),
+    enabledPackIds: Object.freeze(["pack_care", "pack_edge"]),
+    packDepths: Object.freeze({ pack_care: "full", pack_edge: "core" }),
     activePackCount: 2,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["position", "cover", "row_column"]),
+    pressureTags: Object.freeze(["position", "burst", "row_column"]),
     learningGoals: Object.freeze([
-      "身代わり・受け構え・防壁が、被害を「消す」のではなく「移す」（R9 §3）",
-      "受け止めた結果を、集中（自分へ）か防壁（味方へ）のどちらへ渡すか",
-      "刃 pack が full になり、前 Stage の技能に新しい使い道が出る（R9 §3.1）",
+      "溜め・条件・貫通は、成立すれば安定した一撃を大きく上回る（R9 §3）",
+      "だが担い手は紙で、前に置けば落ちる。後ろに置けば武器が40%になる",
+      "**この二択はこの Stage では解けない。**解く手は次の Stage で来る",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
@@ -116,24 +122,24 @@ export const CAMPAIGN_STAGES = Object.freeze([
     id: "stage_2_tempo",
     sequence: 2,
     ladderMode: "tutorial",
-    displayName: "Stage 2 — 間合いと順番",
-    question: "誰がいつ動くと得か",
+    displayName: "Stage 2 — かばう手",
+    question: "誰を守り、守った結果をどう使うか",
     partySize: 4,
-    castCharacterIds: Object.freeze(["lancer", "warden", "guardian", "tactician"]),
-    joiningCharacterId: "tactician",
-    newPackId: "pack_tempo",
-    returningPackIds: Object.freeze(["pack_edge", "pack_wall"]),
-    enabledPackIds: Object.freeze(["pack_edge", "pack_wall", "pack_tempo"]),
-    packDepths: Object.freeze({ pack_edge: "full", pack_wall: "full", pack_tempo: "core" }),
+    castCharacterIds: Object.freeze(["warden", "mender", "lancer", "guardian"]),
+    joiningCharacterId: "guardian",
+    newPackId: "pack_wall",
+    returningPackIds: Object.freeze(["pack_care", "pack_edge"]),
+    enabledPackIds: Object.freeze(["pack_care", "pack_edge", "pack_wall"]),
+    packDepths: Object.freeze({ pack_care: "full", pack_edge: "full", pack_wall: "core" }),
     activePackCount: 3,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["preparation", "ap_pressure"]),
+    pressureTags: Object.freeze(["cover", "position", "row_column"]),
     learningGoals: Object.freeze([
-      "行動権を渡すと、遅い構成にも大技の手番が通る（R9 §3）",
-      "準備の完了そのものが、次の一手の資源になる",
-      "壁 pack が full になり、行と列の攻めが順番の話とつながる",
+      "身代わり・受け構え・防壁が、被害を「消す」のではなく「移す」（R9 §3）",
+      "前 Stage の二択が解ける。守られて初めて、紙の火力を前で使える",
+      "刃 pack が full になり、前 Stage の技能に新しい使い道が出る（R9 §3.1）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
@@ -141,25 +147,25 @@ export const CAMPAIGN_STAGES = Object.freeze([
     id: "stage_3_care",
     sequence: 3,
     ladderMode: "tutorial",
-    displayName: "Stage 3 — 傷を抱えて進む",
-    question: "傷・資源・状態をどう管理するか",
+    displayName: "Stage 3 — 間合いと順番",
+    question: "誰がいつ動くと得か",
     partySize: 5,
-    castCharacterIds: Object.freeze(["lancer", "warden", "guardian", "tactician", "mender"]),
-    joiningCharacterId: "mender",
-    newPackId: "pack_care",
-    returningPackIds: Object.freeze(["pack_edge", "pack_wall", "pack_tempo"]),
-    enabledPackIds: Object.freeze(["pack_edge", "pack_wall", "pack_tempo", "pack_care"]),
+    castCharacterIds: Object.freeze(["warden", "mender", "lancer", "guardian", "tactician"]),
+    joiningCharacterId: "tactician",
+    newPackId: "pack_tempo",
+    returningPackIds: Object.freeze(["pack_care", "pack_edge", "pack_wall"]),
+    enabledPackIds: Object.freeze(["pack_care", "pack_edge", "pack_wall", "pack_tempo"]),
     packDepths: Object.freeze({
-      pack_edge: "full", pack_wall: "full", pack_tempo: "full", pack_care: "core",
+      pack_care: "full", pack_edge: "full", pack_wall: "full", pack_tempo: "core",
     }),
     activePackCount: 4,
     enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["attrition", "carry_hp", "supply"]),
+    pressureTags: Object.freeze(["preparation", "ap_pressure", "attrition"]),
     learningGoals: Object.freeze([
-      "回復は「HPを戻す役」ではなく「損傷の連鎖を止める役」（R8 §9.4 / R9 §5）",
-      "応急処置は同じ一撃にしか効かない。待っても持ち越しHPは戻らない（R8 §8.1）",
+      "行動権を渡すと、遅い構成にも大技の手番が通る（R9 §3）",
+      "割り込みと準備の前倒しで、同じ編成から別の結果が出る",
       "5人が揃い、配置・技能・装備の差だけで役割を作れるか（R9 §2.1）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
@@ -296,9 +302,20 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
         }
       }
       // どの Stage にも攻撃の主役が居る（累積なので pack_edge が残り続ける）。
+      //
+      // **例外は導入 Stage（sequence 0）だけ。**この検査のすぐ下のコメントが
+      // 「stage_0 のように新規導入 Stage が hybrid のとき」を想定と書いているのに、
+      // 判定側がそれを許していなかった。R11 §5 で Stage 0 は「条件のない一撃を
+      // 武器と技で一本ずつ」に絞った導入になり、primary_offense はカイと一緒に
+      // Stage 1 で来る。baseline の斬撃・防壁・応急は manifest に関わらず必ず
+      // 引けるので（packs.mjs の BASELINE_*）、行動不能な人物は作られない。
       const hasPrimary = stage.enabledPackIds
         .some((packId) => PACK_BY_ID[packId]?.combatRole === "primary_offense");
-      if (!hasPrimary) problems.push(`${path}: primary_offense pack が残っていない`);
+      const hasHybrid = stage.enabledPackIds
+        .some((packId) => PACK_BY_ID[packId]?.combatRole === "offensive_hybrid");
+      if (!hasPrimary && !(stage.sequence === 0 && hasHybrid)) {
+        problems.push(`${path}: primary_offense pack が残っていない`);
+      }
     }
 
     // future packが早いStageへ漏れない: returningPackIds は「それより前の

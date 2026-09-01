@@ -63,19 +63,44 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(first.result, "loss", "既定の配置（前列に二人並ぶ）では勝てない");
 
   // **一手変えると本当に勝つ。**R9 §2.1「編成を変え、予測どおりに勝利する」。
-  const fixes = [
-    { lancer: "rear_left", warden: "front_left" },
-    { lancer: "front_left", warden: "rear_left" },
-    { lancer: "rear_left", warden: "rear_right" },
-  ];
-  for (const formation of fixes) {
-    const fixed = makePrologueBattle(statsFor, formation);
-    assert.deepEqual(validateBattleInput(fixed, PLAYABLE_CONTENT), [], "変更後も BattleInput が通る");
+  //
+  // R11 §5 — この一戦だけで、武器と技の違いの**両側**を教える。
+  // 4通りすべての結果をここで固定する。どれか一つでも動けば、教える内容が変わる。
+  //
+  //   両方前（既定）… 負ける。ナズナが2ラウンド目に落ちる
+  //   ナズナを後列  … **勝つ。誰も落ちない。**これが正解
+  //   シキを後列    … 負ける。武器攻撃が後列から40%になり、倒しきれない
+  //   両方後列      … 負ける。前で受ける者がいないうえ、武器も落ちる
+  const outcome = (formation) => {
+    const input = makePrologueBattle(statsFor, formation);
+    assert.deepEqual(validateBattleInput(input, PLAYABLE_CONTENT), [], "変更後も BattleInput が通る");
     checks += 1;
-    const result = simulateBattle(fixed, PLAYABLE_CONTENT);
-    equal(result.result, "win", JSON.stringify(formation) + " なら勝てる");
-    check(result.roundsUsed <= PROLOGUE.maxRounds, "round 上限の中で決着する");
-  }
+    const result = simulateBattle(input, PLAYABLE_CONTENT);
+    const allies = result.actors.filter((actor) => actor.instanceId.startsWith("a_"));
+    return {
+      result: result.result,
+      rounds: result.roundsUsed,
+      survivors: allies.filter((actor) => actor.alive).length,
+    };
+  };
+
+  const correct = outcome({ warden: "front_left", mender: "rear_left" });
+  equal(correct.result, "win", "ナズナを後列へ下げれば勝てる");
+  equal(correct.survivors, 2, "**そのとき誰も落ちない。**これが正解の手");
+  check(correct.rounds <= PROLOGUE.maxRounds, "round 上限の中で決着する");
+
+  equal(outcome({ mender: "front_left", warden: "rear_left" }).result, "loss",
+    "シキを後列へ下げると勝てない（武器攻撃が後列から40%になる）");
+  equal(outcome({ warden: "rear_left", mender: "rear_right" }).result, "loss",
+    "二人とも後列でも勝てない（前で受ける者がいないうえ、武器も落ちる）");
+
+  // **既定の配置では、ナズナが2ラウンド目に落ちる。**
+  // ecology/app.js はこの拍で再生を打ち切って巻き戻しの会話へ渡すので、
+  // 「誰が」「何ラウンド目に」倒れるかは演出の前提そのものである。
+  const firstFall = first.events.find((event) => event.type === "actor_defeated"
+    && [event.sourceActorId, ...(event.targetActorIds ?? [])].filter(Boolean).includes("a_mender"));
+  check(Boolean(firstFall), "既定の配置ではナズナが倒れる");
+  check((firstFall?.round ?? 99) <= 2, "ナズナは2ラウンド目までに倒れる（打ち切りの拍）");
 
   // prologue の敵は12戦の梯子に属さない（index 0）。
   const encounter = prologueEncounter();
@@ -153,7 +178,10 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   const names = new Set(Object.values(SECTION_NAMES.characters).map((name) => name.split(" ")[0]));
   const seenBeatIds = new Set();
   for (const stage of CAMPAIGN_STAGES) {
-    const keys = stage.sequence === 0 ? ["opening", "prologueDefeat", "stageEnd"] : ["join", "stageEnd"];
+    // R11 §5 — Stage 0 は「拾う → 倒れる → 巻き戻る → 勝つ」の4拍を持つ。
+    const keys = stage.sequence === 0
+      ? ["opening", "prologueDefeat", "prologueRewound", "prologueWin", "stageEnd"]
+      : ["join", "stageEnd"];
     for (const key of keys) {
       const beat = storyBeat(stage.id, key);
       check(Boolean(beat), stage.id + " に " + key + " の断片がある");
