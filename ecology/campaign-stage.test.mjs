@@ -77,8 +77,8 @@ function campaignCompleteProfile() {
   profile.activityFunds = "1000000";
   assert.deepEqual(availableCharacterIds(profile), ["warden", "mender"], "最初は登場済みの2人だけ");
   checks += 1;
-  check(!purchaseTraining(profile, "mender", "might").ok, "未登場の人物は鍛錬できない");
-  check(!purchaseUpgrade(profile, slotUpgradeId("active", "mender")).ok, "未登場の人物は枠を買えない");
+  check(!purchaseTraining(profile, "lancer", "might").ok, "未登場の人物は鍛錬できない");
+  check(!purchaseUpgrade(profile, slotUpgradeId("active", "lancer")).ok, "未登場の人物は枠を買えない");
 
   profile.campaignProgress[REGION.id] = {
     highestClearedStageSequence: 2,
