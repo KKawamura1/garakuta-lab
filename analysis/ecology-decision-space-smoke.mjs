@@ -420,7 +420,7 @@ assert.ok(
 const AUTHOR_ROSTER = ["pivot", "lancer", "scout", "guardian", "mender"];
 function authorLoadout() {
   const loadout = freshLoadout(AUTHOR_ROSTER);
-  // カイ・レオン・スイ: 大溜めのみ＋急かす・準備の螺旋、行動追加の装備
+  // ヨリ・カイ・トキ: 大溜めのみ＋急かす・準備の螺旋、行動追加の装備
   for (const id of ["pivot", "lancer", "scout"]) {
     loadout.tactics[id] = ["long_swing"];
     loadout.reactives[id] = ["urging", "prep_spiral"];

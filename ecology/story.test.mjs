@@ -63,19 +63,37 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(first.result, "loss", "既定の配置（前列に二人並ぶ）では勝てない");
 
   // **一手変えると本当に勝つ。**R9 §2.1「編成を変え、予測どおりに勝利する」。
-  const fixes = [
+  //
+  // R11 — 人物の数値を作り直したので、教える内容が一段具体的になった。
+  // **前後へ散らせば勝てる。固めれば、前でも後ろでも負ける。**
+  // 「後列を狙う敵がいるから前に固まるな。ただし後列も安全ではない」を、
+  // 4通りの配置の結果そのもので示す。
+  const split = [
     { lancer: "rear_left", warden: "front_left" },
     { lancer: "front_left", warden: "rear_left" },
-    { lancer: "rear_left", warden: "rear_right" },
   ];
-  for (const formation of fixes) {
+  for (const formation of split) {
     const fixed = makePrologueBattle(statsFor, formation);
     assert.deepEqual(validateBattleInput(fixed, PLAYABLE_CONTENT), [], "変更後も BattleInput が通る");
     checks += 1;
     const result = simulateBattle(fixed, PLAYABLE_CONTENT);
-    equal(result.result, "win", JSON.stringify(formation) + " なら勝てる");
+    equal(result.result, "win", JSON.stringify(formation) + "（前後に散らす）なら勝てる");
     check(result.roundsUsed <= PROLOGUE.maxRounds, "round 上限の中で決着する");
   }
+
+  // **後列へ固めても勝てない。**前で受ける者がいなくなる。
+  const bothRear = simulateBattle(
+    makePrologueBattle(statsFor, { lancer: "rear_left", warden: "rear_right" }),
+    PLAYABLE_CONTENT,
+  );
+  equal(bothRear.result, "loss", "二人とも後列でも勝てない（前で受ける者がいない）");
+
+  // **最良手は「シキを後ろ」だけ。**カイを後ろへ下げても勝てるが、彼が落ちる。
+  // 勝敗の裏に「誰が生きて帰ったか」の差があることを、ここで固定しておく。
+  const survivors = (formation) => simulateBattle(makePrologueBattle(statsFor, formation), PLAYABLE_CONTENT)
+    .actors.filter((actor) => actor.instanceId.startsWith("a_") && actor.alive).length;
+  equal(survivors({ lancer: "front_left", warden: "rear_left" }), 2, "シキを後列にすると二人とも生き残る");
+  equal(survivors({ lancer: "rear_left", warden: "front_left" }), 1, "カイを後列にすると勝てるが彼が落ちる");
 
   // prologue の敵は12戦の梯子に属さない（index 0）。
   const encounter = prologueEncounter();

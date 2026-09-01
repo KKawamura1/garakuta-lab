@@ -86,16 +86,16 @@ try {
   // R9 §2.1 — 最初の2人の会話。**説明ではなく、考え方の違いを見せる。**
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
   const openingText = await bodyText();
-  note("最初の会話が出る", /レオン/.test(openingText));
+  note("最初の会話が出る", /カイ/.test(openingText));
   note("会話は飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
 
   // 立ち絵つきの一行送り。**喋っている人だけが前に出る。**
   note("立ち絵が出る", await page.locator(".vn-figure .portrait-svg").count() >= 2);
   note("喋っている人が前に出ている", await page.locator(".vn-figure.speaking").count() === 1);
-  note("話者の名前が出る", /レオン/.test(await page.locator(".vn-name").innerText()));
+  note("話者の名前が出る", /カイ/.test(await page.locator(".vn-name").innerText()));
   note("一行ずつ進む", /1 \/ \d/.test(await page.locator(".vn-progress").innerText()));
   note("次の行へ進む", await tapUntil(async () => await page.locator(".vn-name").count() > 0
-    && /ユウリ/.test(await page.locator(".vn-name").innerText())));
+    && /シキ/.test(await page.locator(".vn-name").innerText())));
   note("履歴に前の行が残る", await page.locator('[data-action="story-log"]:not([disabled])').count() === 1);
 
   // R9 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
@@ -256,7 +256,7 @@ try {
     await page.waitForTimeout(200);
     await click("この条件で遠征へ出る");
     const joinText = await bodyText();
-    note("Stage 1 の加入の会話が出る", /ナギ/.test(joinText));
+    note("Stage 1 の加入の会話が出る", /スミ/.test(joinText));
     note("加入の会話も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
     note("加入する人物の立ち絵が出る", await page.locator('.vn-figure[data-character="guardian"]').count() === 1);
     await click("スキップ");

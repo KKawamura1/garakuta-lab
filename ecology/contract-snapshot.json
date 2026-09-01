@@ -6,9 +6,9 @@
   "characters": {
    "warden": {
     "id": "warden",
-    "displayName": "ユウリ — 守る人",
-    "maxHp": 260,
-    "speed": 4,
+    "displayName": "シキ — 受けて返す人",
+    "maxHp": 280,
+    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -16,13 +16,13 @@
      "fixture",
      "front"
     ],
-    "might": 32,
-    "focus": 24,
-    "guard": 10
+    "might": 38,
+    "focus": 20,
+    "guard": 7
    },
    "mender": {
     "id": "mender",
-    "displayName": "ミナ — 手当てする人",
+    "displayName": "ナズナ — 止める人",
     "maxHp": 180,
     "speed": 6,
     "baseActionPoints": 1,
@@ -32,15 +32,15 @@
      "fixture",
      "support"
     ],
-    "might": 18,
-    "focus": 44,
-    "guard": 3
+    "might": 14,
+    "focus": 48,
+    "guard": 4
    },
    "lancer": {
     "id": "lancer",
-    "displayName": "レオン — 切り込む人",
-    "maxHp": 200,
-    "speed": 8,
+    "displayName": "カイ — 抜ける人",
+    "maxHp": 170,
+    "speed": 9,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -48,14 +48,14 @@
      "fixture",
      "strike"
     ],
-    "might": 46,
-    "focus": 18,
-    "guard": 4
+    "might": 52,
+    "focus": 14,
+    "guard": 2
    },
    "scout": {
     "id": "scout",
-    "displayName": "スイ — 先を読む人",
-    "maxHp": 160,
+    "displayName": "トキ — 先を読む人",
+    "maxHp": 170,
     "speed": 10,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
@@ -99,14 +99,14 @@
      "fixture",
      "fast"
     ],
-    "might": 36,
-    "focus": 26,
-    "guard": 2
+    "might": 34,
+    "focus": 24,
+    "guard": 3
    },
    "pivot": {
     "id": "pivot",
-    "displayName": "カイ — 余りを活かす人",
-    "maxHp": 220,
+    "displayName": "ヨリ — 余りを活かす人",
+    "maxHp": 200,
     "speed": 5,
     "baseActionPoints": 2,
     "baseReactionPoints": 2,
@@ -166,15 +166,15 @@
      "fixture",
      "gate_e"
     ],
-    "might": 32,
-    "focus": 32,
+    "might": 26,
+    "focus": 28,
     "guard": 6
    },
    "guardian": {
     "id": "guardian",
-    "displayName": "ナギ — かばう人",
-    "maxHp": 260,
-    "speed": 3,
+    "displayName": "スミ — 受け止める人",
+    "maxHp": 220,
+    "speed": 2,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -183,15 +183,15 @@
      "front",
      "guard"
     ],
-    "might": 26,
-    "focus": 24,
-    "guard": 12
+    "might": 16,
+    "focus": 26,
+    "guard": 18
    },
    "arcanist": {
     "id": "arcanist",
-    "displayName": "アオ — 溜める人",
-    "maxHp": 160,
-    "speed": 5,
+    "displayName": "アカリ — 溜める人",
+    "maxHp": 150,
+    "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -200,25 +200,25 @@
      "rear",
      "attack"
     ],
-    "might": 16,
-    "focus": 50,
+    "might": 12,
+    "focus": 52,
     "guard": 2
    },
    "tactician": {
     "id": "tactician",
-    "displayName": "トワ — つなぐ人",
-    "maxHp": 170,
-    "speed": 7,
+    "displayName": "レイ — 渡す人",
+    "maxHp": 160,
+    "speed": 11,
     "baseActionPoints": 1,
-    "baseReactionPoints": 2,
+    "baseReactionPoints": 3,
     "signatureRules": [],
     "tags": [
      "playable",
      "rear",
      "tempo"
     ],
-    "might": 24,
-    "focus": 40,
+    "might": 20,
+    "focus": 30,
     "guard": 3
    }
   },
@@ -382,12 +382,13 @@
        "amount": {
         "type": "stat_scaled",
         "subject": "self",
-        "scalingStat": "might",
+        "scalingStat": "focus",
         "coefficientBps": 55000
        },
        "tags": [
         "attack",
-        "heavy"
+        "heavy",
+        "technique"
        ],
        "reach": "melee"
       }
@@ -488,12 +489,13 @@
        "amount": {
         "type": "stat_scaled",
         "subject": "self",
-        "scalingStat": "might",
+        "scalingStat": "focus",
         "coefficientBps": 100000
        },
        "tags": [
         "attack",
-        "heavy"
+        "heavy",
+        "technique"
        ],
        "reach": "melee"
       }
@@ -564,12 +566,13 @@
       "amount": {
        "type": "stat_scaled",
        "subject": "self",
-       "scalingStat": "might",
+       "scalingStat": "focus",
        "coefficientBps": 30000
       },
       "tags": [
        "attack",
-       "hunt"
+       "hunt",
+       "technique"
       ],
       "reach": "melee"
      }
@@ -1436,11 +1439,12 @@
       "amount": {
        "type": "stat_scaled",
        "subject": "self",
-       "scalingStat": "might",
+       "scalingStat": "focus",
        "coefficientBps": 12000
       },
       "tags": [
-       "attack"
+       "attack",
+       "technique"
       ],
       "reach": "ranged"
      }
@@ -1562,12 +1566,13 @@
       "amount": {
        "type": "stat_scaled",
        "subject": "self",
-       "scalingStat": "might",
+       "scalingStat": "focus",
        "coefficientBps": 11000
       },
       "tags": [
        "attack",
-       "debuff"
+       "debuff",
+       "technique"
       ],
       "reach": "melee"
      },
@@ -1731,13 +1736,13 @@
       "amount": {
        "type": "stat_scaled",
        "subject": "self",
-       "scalingStat": "might",
+       "scalingStat": "focus",
        "coefficientBps": 10000
       },
       "tags": [
        "attack",
-       "weapon",
-       "mark"
+       "mark",
+       "technique"
       ],
       "reach": "melee"
      },
@@ -1821,14 +1826,14 @@
       "amount": {
        "type": "stat_scaled",
        "subject": "self",
-       "scalingStat": "might",
+       "scalingStat": "focus",
        "coefficientBps": 13000
       },
       "tags": [
        "attack",
-       "weapon",
        "mark",
-       "execute"
+       "execute",
+       "technique"
       ],
       "reach": "melee"
      },
@@ -6275,14 +6280,14 @@
   }
  },
  "displayNames": {
-  "warden": "ユウリ — 守る人",
-  "mender": "ミナ — 手当てする人",
-  "lancer": "レオン — 切り込む人",
-  "scout": "スイ — 先を読む人",
-  "pivot": "カイ — 余りを活かす人",
-  "guardian": "ナギ — かばう人",
-  "arcanist": "アオ — 溜める人",
-  "tactician": "トワ — つなぐ人",
+  "warden": "シキ — 受けて返す人",
+  "mender": "ナズナ — 止める人",
+  "lancer": "カイ — 抜ける人",
+  "scout": "トキ — 先を読む人",
+  "pivot": "ヨリ — 余りを活かす人",
+  "guardian": "スミ — 受け止める人",
+  "arcanist": "アカリ — 溜める人",
+  "tactician": "レイ — 渡す人",
   "strike": "斬撃",
   "bulwark": "防壁形成",
   "relay_order": "号令",
@@ -6398,32 +6403,17 @@
  "characterOptions": [
   {
    "id": "warden",
-   "role": "守護",
+   "role": "重装",
    "icon": "盾",
    "defaultPosition": "front_left",
-   "summary": "被弾を受け止め、仲間が動く時間を作る。",
+   "summary": "隊で一番倒れにくい。受けた痛みを、そのまま返す側へ回す。",
    "starterTactics": [
     "bulwark",
     "strike"
    ],
    "starterReactives": [
-    "brace_after_hit",
-    "cover_ally"
-   ]
-  },
-  {
-   "id": "mender",
-   "role": "治療",
-   "icon": "手",
-   "defaultPosition": "rear_left",
-   "summary": "傷ついた仲間を立て直し、余った回復も無駄にしない。",
-   "starterTactics": [
-    "strike",
-    "idle_shuffle"
-   ],
-   "starterReactives": [
-    "mend",
-    "triage"
+    "counter_blow",
+    "whetted_by_pain"
    ]
   },
   {
@@ -6431,14 +6421,59 @@
    "role": "攻撃",
    "icon": "槍",
    "defaultPosition": "front_right",
-   "summary": "弱った敵を仕留め、撃破から次の行動を引き出す。",
+   "summary": "隊の火力そのもの。受けは無いに等しく、長くは立てない。",
    "starterTactics": [
-    "strike",
-    "heavy_swing"
+    "pierce_thrust",
+    "finishing_thrust"
    ],
    "starterReactives": [
     "scavenge_ap",
     "counter_blow"
+   ]
+  },
+  {
+   "id": "guardian",
+   "role": "庇護",
+   "icon": "庇",
+   "defaultPosition": "front_center",
+   "summary": "標的を引き受け、一撃ずつ削り取る。**攻撃の行動を持たない。**",
+   "starterTactics": [
+    "bulwark",
+    "brace_for_impact"
+   ],
+   "starterReactives": [
+    "cover_ally",
+    "guard_step"
+   ]
+  },
+  {
+   "id": "tactician",
+   "role": "指揮",
+   "icon": "旗",
+   "defaultPosition": "rear_left",
+   "summary": "誰より速く動き、順番と準備を仲間へ渡す。自分では削らない。",
+   "starterTactics": [
+    "relay_order",
+    "mark_target"
+   ],
+   "starterReactives": [
+    "urging",
+    "ap_loop"
+   ]
+  },
+  {
+   "id": "mender",
+   "role": "治療",
+   "icon": "手",
+   "defaultPosition": "rear_right",
+   "summary": "傷の連鎖を止める。集中が高いので、技でも削れるし、厚い防壁も張れる。",
+   "starterTactics": [
+    "crack_mark",
+    "shield_the_wounded"
+   ],
+   "starterReactives": [
+    "triage",
+    "emergency_treatment"
    ]
   },
   {
@@ -6461,7 +6496,7 @@
    "role": "蓄積",
    "icon": "環",
    "defaultPosition": "rear_left",
-   "summary": "余った行動権を防壁に変え、長期戦を支える。",
+   "summary": "行動権を2つ持つ。余った権利を防壁へ変え、長期戦を支える。",
    "starterTactics": [
     "strike",
     "bulwark"
@@ -6472,26 +6507,11 @@
    ]
   },
   {
-   "id": "guardian",
-   "role": "庇護",
-   "icon": "庇",
-   "defaultPosition": "front_right",
-   "summary": "標的を引き受け、守りを攻撃へつなげる。",
-   "starterTactics": [
-    "bulwark",
-    "strike"
-   ],
-   "starterReactives": [
-    "cover_ally",
-    "brace_after_hit"
-   ]
-  },
-  {
    "id": "arcanist",
    "role": "準備攻撃",
    "icon": "灯",
    "defaultPosition": "rear_right",
-   "summary": "時間のかかる大技を、仲間の反応で完成させる。",
+   "summary": "時間のかかる大技を、後列から通す。集中が隊で最も高い。",
    "starterTactics": [
     "heavy_swing",
     "steady_aim"
@@ -6499,21 +6519,6 @@
    "starterReactives": [
     "urging",
     "prep_spiral"
-   ]
-  },
-  {
-   "id": "tactician",
-   "role": "指揮",
-   "icon": "旗",
-   "defaultPosition": "rear_left",
-   "summary": "仲間へ行動権を渡し、遅い構成にも順番を作る。",
-   "starterTactics": [
-    "relay_order",
-    "mark_target"
-   ],
-   "starterReactives": [
-    "guard_step",
-    "triage_relay"
    ]
   }
  ],
@@ -8968,23 +8973,43 @@
    "strike",
    "mend",
    "bulwark",
-   "brace_after_hit",
-   "cover_ally"
-  ],
-  "mender": [
-   "strike",
-   "mend",
-   "bulwark",
-   "idle_shuffle",
-   "triage"
+   "counter_blow",
+   "whetted_by_pain"
   ],
   "lancer": [
    "strike",
    "mend",
    "bulwark",
-   "heavy_swing",
+   "pierce_thrust",
+   "finishing_thrust",
    "scavenge_ap",
    "counter_blow"
+  ],
+  "guardian": [
+   "strike",
+   "mend",
+   "bulwark",
+   "brace_for_impact",
+   "cover_ally",
+   "guard_step"
+  ],
+  "tactician": [
+   "strike",
+   "mend",
+   "bulwark",
+   "relay_order",
+   "mark_target",
+   "urging",
+   "ap_loop"
+  ],
+  "mender": [
+   "strike",
+   "mend",
+   "bulwark",
+   "crack_mark",
+   "shield_the_wounded",
+   "triage",
+   "emergency_treatment"
   ],
   "scout": [
    "strike",
@@ -9002,13 +9027,6 @@
    "guard_step",
    "scavenge_ap"
   ],
-  "guardian": [
-   "strike",
-   "mend",
-   "bulwark",
-   "cover_ally",
-   "brace_after_hit"
-  ],
   "arcanist": [
    "strike",
    "mend",
@@ -9017,15 +9035,6 @@
    "steady_aim",
    "urging",
    "prep_spiral"
-  ],
-  "tactician": [
-   "strike",
-   "mend",
-   "bulwark",
-   "relay_order",
-   "mark_target",
-   "guard_step",
-   "triage_relay"
   ]
  },
  "freshLoadout": {
@@ -9035,12 +9044,12 @@
     "strike"
    ],
    "mender": [
-    "strike",
-    "idle_shuffle"
+    "crack_mark",
+    "shield_the_wounded"
    ],
    "lancer": [
-    "strike",
-    "heavy_swing"
+    "pierce_thrust",
+    "finishing_thrust"
    ],
    "scout": [
     "mark_target",
@@ -9048,17 +9057,17 @@
    ],
    "guardian": [
     "bulwark",
-    "strike"
+    "brace_for_impact"
    ]
   },
   "reactives": {
    "warden": [
-    "brace_after_hit",
-    "cover_ally"
+    "counter_blow",
+    "whetted_by_pain"
    ],
    "mender": [
-    "mend",
-    "triage"
+    "triage",
+    "emergency_treatment"
    ],
    "lancer": [
     "scavenge_ap",
@@ -9070,7 +9079,7 @@
    ],
    "guardian": [
     "cover_ally",
-    "brace_after_hit"
+    "guard_step"
    ]
   },
   "passives": {

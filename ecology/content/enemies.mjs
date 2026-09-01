@@ -136,7 +136,7 @@ enemyActors.ash_core = cloneEnemy("husk_bulwark", "ash_core", ENEMY_NAMES.ash_co
 // 敵だけ 20〜30 にすると「敵は同じ小規則で構成する」（R6 §11.1）が嘘になる。
 // 実測でも 20 だと might 18 の反撃が最低保証まで落ちて、役割ごと無効になっていた。
 const ENEMY_GUARD = {
-  gray_guard: 10,     // 衛。前で受ける。ユウリと同じ硬さ
+  gray_guard: 10,     // 衛。前で受ける。シキより硬く、スミより柔らかい
   gray_breaker: 4,    // 砕き手。重い一撃を優先するので受けは薄い
   gray_shelter: 8,    // 籠り手。防壁で時間を稼ぐ
   gray_harrower: 2,   // 追い手。後衛を追う代わりに受けは薄い

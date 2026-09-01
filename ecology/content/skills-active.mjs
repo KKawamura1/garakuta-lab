@@ -615,4 +615,60 @@ setDamageReach(activeSkills.mark_break, "melee");
 setDamageReach(activeSkills.sweeping_barrage, "melee");
 setDamageReach(activeSkills.piercing_barrage, "melee");
 
+// ---------------------------------------------------------------- 武器と技
+//
+// R11 — **攻めの軸を2本にする。**
+//
+// R6 §4.4 は「全員が might と focus を持つ。だから weapon 役にも支援技能を、
+// 支援役にも technique 攻撃を付けられる」と宣言していた。だが実装は片側しか
+// 作っていない。数えると、ダメージ28件が全部 might で、focus は防壁8件にしか
+// 効かない（回復は被ダメージ量でスケールするので focus と無関係）。
+//
+// **攻めの軸が1本しか無いと、攻撃役は「might が高い人」しか作れない。**
+// 守りには防壁(focus)と軽減(guard)の2軸があるので、編成は必ず守りへ偏る。
+// arcanist が「準備攻撃」役でありながら might 16（全体最下位）なのも、
+// mender の focus 44 が初期構成で一切読まれないのも、同じ穴から出ている。
+//
+// 効果の tag には最初から "weapon" が入っている。ここでは、その対になる
+// "technique" を実際に働かせる。**分け方は威力ではなく、成立のさせ方で決める。**
+//
+//   weapon    … 直接当てる。刃と力で、前から。         → might
+//   technique … 準備・条件・届きを使う。後ろからでも効く。→ focus
+//
+// engine は触らない。scalingStat を読むのは effects.mjs の既存経路のままである。
+export const TECHNIQUE_SKILL_IDS = Object.freeze([
+  "heavy_swing",   // 溜め突き — 準備1回を代償にする
+  "long_swing",    // 大溜め   — 準備3回を代償にする
+  "hunt_the_slow", // 準備狩り — 敵の準備を読んで割り込む
+  "rear_hunt",     // 後衛狩り — 後列へ届かせる（reach: ranged）
+  "crack_mark",    // 傷口を開く — 隙を刻む
+  "mark_strike",   // 刻印撃ち
+  "mark_break",    // 刻印砕き
+]);
+
+// 敵側の技能（enemy_heavy など）は対象にしない。**敵の攻撃は might のままである。**
+// 味方の focus を上げても敵が強くならないようにしておく。
+function retuneAsTechnique(node, counter) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    for (const entry of node) retuneAsTechnique(entry, counter);
+    return;
+  }
+  if (node.type === "deal_damage" && node.amount?.type === "stat_scaled") {
+    node.amount = { ...node.amount, scalingStat: "focus" };
+    node.tags = [...(node.tags ?? []).filter((tag) => tag !== "weapon"), "technique"];
+    counter.converted += 1;
+  }
+  for (const value of Object.values(node)) retuneAsTechnique(value, counter);
+}
+
+for (const id of TECHNIQUE_SKILL_IDS) {
+  const definition = activeSkills[id];
+  if (!definition) throw new Error("technique: 未知の技能 " + id);
+  const counter = { converted: 0 };
+  retuneAsTechnique(definition, counter);
+  // **黙って何もしないのを許さない。**係数の持ち方が変わったら、ここで落ちる。
+  if (counter.converted === 0) throw new Error("technique: " + id + " に stat_scaled な damage が無い");
+}
+
 export const ACTIVE_SKILLS = activeSkills;

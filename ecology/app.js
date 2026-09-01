@@ -952,7 +952,7 @@ function renderIntro() {
   const continueLabel = auto ? saveSummary(auto) : "オートセーブはありません";
   return shell("灰の遠征", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
     + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stageを越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をレオンとユウリの2人から始めます。</b></p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をカイとシキの2人から始めます。</b></p>"
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")
@@ -2174,7 +2174,7 @@ function eventSkillName(event) {
 
 // サブ行動やパッシブは、どの技能が起こしたのかが分からないと読めない。
 // ただし固有の性質（sourceDefinitionId が本人）は名前を出さない。
-// 「スイ に防壁1（スイ — 先を読む人）」は、箱の上に浮いている時点で分かっている。
+// 「トキ に防壁1（トキ — 先を読む人）」は、箱の上に浮いている時点で分かっている。
 function eventCauseName(event) {
   const id = event?.ruleId ? event.sourceDefinitionId : null;
   if (!id) return null;
@@ -2525,7 +2525,7 @@ function syncBattleView(options = {}) {
 }
 
 // 拍の一行。同時に出したものは「＋」で並べる（並列に出したことが読めるように）。
-// **同じことを二度言わない。** 「レオンの斬撃が始まる ＋ レオン → 敵に5ダメージ」は
+// **同じことを二度言わない。** 「カイの斬撃が始まる ＋ カイ → 敵に5ダメージ」は
 // 二行ぶんの場所を取って一行ぶんしか伝えない。
 function beatText_(beat) {
   const head = beat.events[0];

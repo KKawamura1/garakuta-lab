@@ -40,17 +40,23 @@ import { EXPRESSIONS, PORTRAITS } from "./portraits.mjs";
 //
 // **わざと負ける演出ではない。**決定的 engine で本当に負ける配置を初期値として
 // 渡し、プレイヤーが一手だけ変えると本当に勝てるようにしてある。
-// どちらも ecology/story.test.mjs が実際に走らせて確かめている。
+// どれも ecology/story.test.mjs が実際に走らせて確かめている。
 //
-//   既定（前列に二人並ぶ）        … 8 round で決着がつかず敗北。レオンが落ちる。
-//   どちらかを後列へ下げる        … 7 round で勝利。
+// R11 — 人物の数値を作り直したので、この盤面も測り直した。**教える内容が一段
+// 具体的になっている。**以前は「誰かを後ろへ下げれば勝てる」だったが、いまは
+// 「前後へ散らせば勝てる。固めれば、前でも後ろでも負ける」になる。
 //
-// 「後列狙いの敵がいるとき、前列に固まると二人とも同じ圧を受ける」という、
-// この盤面でしか成立しない一つの問いに絞ってある。
+//   両方を前列（既定）… 5 round で**全滅**。二人とも同じ圧を受ける。
+//   カイを後列        … 4 round で勝利。ただし**カイは落ちる**（後列も狙われる）。
+//   シキを後列        … 4 round で勝利。**誰も落ちない。**これが最良手。
+//   両方を後列        … 5 round で全滅。前で受ける者がいない。
+//
+// 「後列を狙う敵がいるとき、前列に固まると二人とも同じ圧を受ける。かといって
+// 後列は安全でもない」という、この盤面でしか成立しない一つの問いに絞ってある。
 export const PROLOGUE = Object.freeze({
   id: "prologue_ash_gate",
   name: "灰の門",
-  description: "灰の中から、遠くを狙う影と、前を塞ぐ影が出てくる。",
+  description: "灰の中から、遠くを狙う影と、前を砕く影が出てくる。",
   maxRounds: 8,
   rosterIds: Object.freeze(["lancer", "warden"]),
   // **初期配置がそのまま「まだ勝てない編成」。**巻き戻したあと、
@@ -58,7 +64,7 @@ export const PROLOGUE = Object.freeze({
   formation: Object.freeze({ lancer: "front_left", warden: "front_right" }),
   enemies: Object.freeze([
     Object.freeze({ instanceId: "prologue_marksman", enemyActorId: "gray_marksman", position: "rear_left" }),
-    Object.freeze({ instanceId: "prologue_guard", enemyActorId: "gray_guard", position: "front_center" }),
+    Object.freeze({ instanceId: "prologue_breaker", enemyActorId: "gray_breaker", position: "front_center" }),
   ]),
   hint: "後列を狙う影がいる。前列に二人並ぶと、二人とも同じ圧を受ける。",
 });
@@ -102,32 +108,32 @@ export const STORY_BEATS = Object.freeze({
       place: "灰の門の手前",
       cast: [stand("lancer", "left"), stand("warden", "right")],
       lines: [
-        say("lancer", "先に行く。灰は待ってくれない。", "firm"),
-        say("warden", "待って。何が出てくるか見てから決めたい。", "worry"),
-        say("lancer", "見てるあいだに囲まれる。斬れば減る。それだけだ。", "wry"),
-        say("warden", "減らないものもある。……行くなら、私が前に出る。", "firm"),
+        say("lancer", "借りてきた分だけ持って帰る。それ以上は要らない。", "firm"),
+        say("warden", "ええ。今日は入口だけ。地図のある範囲で足りる。", "neutral"),
+        say("lancer", "……その言い方だと、地図の無い所に用があるみたいだな。", "wry"),
+        say("warden", "気のせい。補給は四つ。三つ使ったら戻る。", "firm"),
       ],
-      footer: "二人の考え方は違う。どちらが正しいかは、盤面が決める。",
+      footer: "二人の目的は違う。どちらが正しいかは、盤面が決める。",
     }),
     prologueDefeat: beat("stage_0_prologue_defeat", "届かなかった", {
       mood: "defeat",
       place: "灰の門",
       cast: [stand("lancer", "left"), stand("warden", "right")],
       lines: [
-        say("lancer", "……硬い。刃が滑る。", "hurt"),
-        say("warden", "後ろから来てる。二人とも前に出すぎた。", "shock", "impact"),
-        narrate("灰が渦を巻き、門の前に戻される。もう一度、同じ影が立っている。"),
+        say("lancer", "……前が重い。抜けない。", "hurt"),
+        say("warden", "後ろからも来てる。二人とも前に出すぎた。", "shock", "impact"),
+        narrate("灰が渦を巻き、門の前に戻される。同じ影が、同じ場所に立っている。"),
       ],
-      footer: "戦闘予測を開くと、次の一戦の結果が先に読める。編成を一つ変えて、予測がどう動くか見てほしい。",
+      footer: "戦闘予測を開くと、次の一戦の結果が先に読める。立ち位置を一つ変えて、予測がどう動くか見てほしい。",
     }),
     stageEnd: beat("stage_0_end", "門を抜けた", {
       mood: "dawn",
       place: "灰の門の先",
       cast: [stand("warden", "left"), stand("lancer", "right")],
       lines: [
-        say("warden", "抜けた。あなたの言うとおり、斬れば減るものもあった。", "smile"),
-        say("lancer", "お前が前に立ってなきゃ、俺の刃は届いてない。", "wry"),
-        say("warden", "……次は、誰かを守りながら進むことになる。", "calm"),
+        say("warden", "抜けた。……あなたを前に置いたままにして、悪かった。", "calm"),
+        say("lancer", "置き方の話だろ。俺が前、あんたが後ろ。それだけだ。", "wry"),
+        say("warden", "覚えておく。次は、かばえる人が要る。", "neutral"),
       ],
       footer: "次の Stage では「かばう」という出来事が増える。",
     }),
@@ -139,10 +145,11 @@ export const STORY_BEATS = Object.freeze({
       cast: [stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right")],
       lines: [
         say("guardian", "そこ、危ない。", "shock"),
-        narrate("ナギが割り込み、レオンへ飛んだ一撃を肩で受ける。", "impact"),
+        narrate("小柄な影が割り込み、カイへ飛んだ一撃を盾板で受ける。灰が跳ねた。", "impact"),
         say("lancer", "……なんで受けた。避ければよかっただろ。", "worry"),
         say("guardian", "受けた側は、次に何が来るか分かる。避けた側は分からない。", "calm"),
-        say("warden", "受けることが、情報になる。", "neutral"),
+        say("warden", "その盾、詰所の備品でしょう。返す当てはあるの。", "wry"),
+        say("guardian", "ない。だから、連れて行って。", "neutral"),
       ],
       footer: "受け止めた結果は、集中（自分へ）か防壁（味方へ）のどちらかへ渡せる。",
     }),
@@ -161,13 +168,14 @@ export const STORY_BEATS = Object.freeze({
     join: beat("stage_2_join", "間合いと順番", {
       mood: "ash",
       place: "灰の谷",
-      cast: [stand("tactician", "center"), stand("lancer", "left"), stand("guardian", "right")],
+      cast: [stand("tactician", "center"), stand("lancer", "left"), stand("warden", "right")],
       lines: [
         say("tactician", "三、二、……いま。", "firm"),
-        narrate("トワの合図で、レオンの溜めが一拍早く完成する。", "impact"),
+        narrate("レイの合図で、カイの踏み込みが一拍早く入る。", "impact"),
         say("lancer", "早い。何をした。", "shock"),
-        say("tactician", "あなたの番を、私の番と入れ替えた。増えてはいない。前に来ただけ。", "smile"),
-        say("guardian", "……順番は、増やすものじゃなく、渡すもの。", "calm"),
+        say("tactician", "あなたの番を、私の番と入れ替えました。増えてはいない。前に来ただけです。", "smile"),
+        say("warden", "……協会の記録係が、なぜ灰の中に。", "worry"),
+        say("tactician", "何百と読みました。読んだものを、一度でいいから自分の目で。", "calm"),
       ],
       footer: "行動権は総量が増えない。誰へいつ渡すかだけが問題になる。",
     }),
@@ -176,7 +184,7 @@ export const STORY_BEATS = Object.freeze({
       place: "谷の終わり",
       cast: [stand("tactician", "left"), stand("warden", "right")],
       lines: [
-        say("tactician", "渡せるのは順番だけじゃない。傷も渡せる。", "neutral"),
+        say("tactician", "渡せるのは順番だけではありません。傷も渡せる。", "neutral"),
         say("warden", "……それは、渡された側が持たなきゃいけない。", "worry"),
       ],
       footer: "次の Stage では、傷そのものが遠征をまたいで残る意味を持つ。",
@@ -192,7 +200,7 @@ export const STORY_BEATS = Object.freeze({
         say("lancer", "は？ 治すのがあんたの仕事だろ。", "shock"),
         say("mender", "戻せるのは、いま受けたぶんだけ。古い傷は、次の一撃を減らすほうが早い。", "firm"),
         say("guardian", "……止めるのと、戻すのは違う。", "neutral"),
-        say("mender", "そう。私は連鎖を止める役。", "smile"),
+        say("mender", "そう。わたしは連鎖を止める役。それと、外では見えないものを見に来た。", "smile"),
       ],
       footer: "応急処置は同じ一撃にしか効かない。待っても持ち越しHPは戻らない。",
     }),
@@ -201,9 +209,9 @@ export const STORY_BEATS = Object.freeze({
       place: "灰の縁",
       cast: [stand("warden", "left"), stand("lancer", "center"), stand("mender", "right")],
       lines: [
-        say("warden", "五人。もう、誰かを外して進む必要はない。", "smile"),
+        say("warden", "五人。これで、置いていく人を選ばなくて済む。", "smile"),
         say("lancer", "全員が同じことをするわけじゃない。置き場所と持ち物で変わる。", "wry"),
-        say("mender", "……次は、私たちの誰かが、まだ知らない使い方を見つける番。", "calm"),
+        say("mender", "……次は、誰かがまだ知らない使い方を見つける番。", "calm"),
       ],
       footer: "ここから先は、配置・技能・装備の差だけで役割を作る。",
     }),
