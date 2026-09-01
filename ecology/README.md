@@ -1,6 +1,6 @@
 # ecology — 灰の遠征の現行実装
 
-ecology/ は EXP-18 R8 の本編です。現在の公開入口は /ecology/ で、ルートはここへリダイレクトします。
+ecology/ は EXP-18 R8 の本編を土台にした R10 Campaign です。現在の公開入口は /ecology/ で、ルートはここへリダイレクトします。
 
 ## 現行の範囲
 
@@ -14,10 +14,18 @@ ecology/ は EXP-18 R8 の本編です。現在の公開入口は /ecology/ で�
 - 決定的な自動戦闘リプレイと event log
 - 手続き生成装備と Blueprint archive（Phase C）
 - Profile / Run / Battle の保存と D1 送信
+- New Game / Continue / Load Game。オートセーブと3つの手動セーブ枠を分離
 
 Campaign Stage の pack は content/campaign-stages.mjs と content/packs.mjs が定義します。
 Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し、**引き上げません**。
 新しい pack はその Stage では入口（core）だけ、次の Stage から全体（full）が出ます。
+
+## タイトルと保存
+
+- **New Game** は既存のオートセーブを確認のうえ、新しい Profile と Campaign Stage 0 を作り、レオンとユウリの2人・オープニング会話から始めます。手動セーブ枠は残します。
+- **Continue** は最新のオートセーブから再開します。タイトルの **Load Game** ではオートセーブと3つの手動セーブ枠を選べます。
+- 手動セーブは Camp の安全な地点で作成でき、枠を上書きするときは確認を出します。
+- 保存形式は R10 専用です。旧形式・旧キーのセーブは移行せず、読み込めないデータとして扱います。
 
 ## 主なファイル
 
