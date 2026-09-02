@@ -1644,6 +1644,27 @@ function renderRoster() {
       ? CHARACTER_OPTIONS.filter((option) => unlockedIds.has(option.id))
       : CHARACTER_OPTIONS;
   const characterCards = rosterOptions.map((option) => {
+    const inParty = state.run.roster.includes(option.id);
+    const selected = formationSelection === option.id;
+    const action = inParty ? "select-formation-character" : "toggle-roster";
+    const actionLabel = inParty
+      ? (selected ? "位置選択中" : "位置を選ぶ")
+      : "編成に入れる";
+    const stats = statsFor(option.id);
+    return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
+      + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
+      + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
+      + esc(option.icon) + "</span><span class=\"character-copy\"><b>" + esc(characterName(option.id))
+      + "</b><small>" + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
+      + (inParty ? "✓" : "＋") + "</span></button><div class=\"character-stats\"><span>HP "
+      + stats.stats.maxHp + trainedMark(stats, "vitality") + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
+      + "</span><span>術力 " + stats.stats.focus + trainedMark(stats, "focus")
+      + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
+      + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
+      + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
+      + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
+      + "</span><span>" + esc(actionLabel) + "</span></div></article>";
+  }).join("");
   const futureOptions = rosterLocked()
     ? CHARACTER_OPTIONS.filter((option) => !state.run.roster.includes(option.id))
     : isCampaignRun()
