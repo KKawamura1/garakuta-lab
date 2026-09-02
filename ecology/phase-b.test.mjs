@@ -76,10 +76,10 @@ const equal = (actual, expected, message) => {
   checks += 1;
 };
 
-const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
+const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 const FORMATION = {
   warden: "front_left", lancer: "front_center", guardian: "front_right",
-  mender: "rear_left", scout: "rear_right",
+  mender: "rear_left", tactician: "rear_right",
 };
 
 // ---- 版（R6 §16）-------------------------------------------------------------

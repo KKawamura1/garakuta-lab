@@ -328,6 +328,84 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   gap: 8px;
   overflow-x: auto;
 }
+/* R12 — 名簿（ギルドカード）。読み物なので、行間を戦闘画面より広く取る。 */
+.dossier-card {
+  border: 1px solid var(--line, rgba(255,255,255,.12));
+  border-left: 3px solid var(--accent, #91cbd5);
+  border-radius: 10px;
+  padding: 14px 14px 12px;
+  margin-top: 12px;
+  background: rgba(255,255,255,.02);
+}
+.dossier-head { display: flex; align-items: center; gap: 12px; }
+.dossier-bust {
+  flex: 0 0 62px;
+  width: 62px;
+  height: 74px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(0,0,0,.22);
+}
+.dossier-bust .portrait-svg { display: block; width: 100%; height: 118px; margin-top: -6px; }
+.dossier-name b { display: block; color: var(--accent, #91cbd5); font-size: 1.02em; }
+.dossier-name small { display: block; margin-top: 2px; color: var(--muted); }
+.dossier-body { margin-top: 10px; }
+.dossier-section { margin-top: 12px; }
+.dossier-section > b {
+  display: block;
+  margin-bottom: 4px;
+  font-size: .74em;
+  letter-spacing: .12em;
+  color: var(--muted);
+}
+.dossier-section p { margin: 0 0 4px; line-height: 1.85; }
+.dossier-section.bonds p {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 10px;
+  margin-bottom: 8px;
+  border-left: 1px solid var(--line, rgba(255,255,255,.12));
+}
+.dossier-section.bonds i { font-style: normal; font-size: .86em; }
+.dossier-sealed {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line, rgba(255,255,255,.14));
+  font-size: .84em;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* R12 — 精算の締めの一行。数字の下に、拾い屋の側の言い方を置く。 */
+.settle-closing {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line, rgba(255,255,255,.12));
+  font-size: .9em;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* R12 — 設計図の由来。archive を「持ち物一覧」から「遠征の記録」へ寄せる。 */
+.blueprint-origin {
+  margin: 4px 0 0;
+  font-size: .82em;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* R12 — 敵カードの「拾い屋のあいだで言われていること」。
+   規則（狙い）と混ざらないように、字を落として傾ける。 */
+.enemy-lore {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line, rgba(255,255,255,.14));
+  font-size: .82em;
+  font-style: italic;
+  color: var(--muted);
+}
+
 .skill-node {
   min-height: 168px;
   padding: 10px;
@@ -1163,8 +1241,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .scrap-line b { color: var(--ink); }
 .scrap-line .tiny-button { margin: 0; }
 
-.skill-node.out-of-manifest { opacity: .38; }
-.skill-node.out-of-manifest .node-status { color: var(--muted); }
 .character-stats .trained { color: var(--gold); font-style: normal; }
 
 /* ---------------------------------------------------------------- Phase C 生成装備と Blueprint
@@ -1295,7 +1371,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .vn-place b { font-size: 12px; letter-spacing: .04em; }
 .vn-place span { color: var(--muted); font-size: 10px; }
 
-/* 立ち絵の並び。中央・左・右の三枠。 */
+/* 立ち絵の並び。中央・左・右に、外側の二枠を足した五枠（R12）。
+   **外の二枠は一回り小さく、奥に立つ。**5人が横に並んでも、
+   誰が手前で喋っているかが読めるようにするため。 */
 .vn-figures {
   position: absolute;
   left: 0;
@@ -1322,6 +1400,13 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .vn-figure.at-left { transform: translateX(6%); }
 .vn-figure.at-right { transform: translateX(-6%); }
 .vn-figure.at-center { z-index: 1; }
+/* 外側の二枠。奥行きを出すため縮めて沈める。 */
+.vn-figure.at-far_left,
+.vn-figure.at-far_right { flex: 0 1 30%; max-width: 168px; z-index: 0; opacity: .92; }
+.vn-figure.at-far_left { transform: translateX(14%) scale(.88); transform-origin: 50% 100%; }
+.vn-figure.at-far_right { transform: translateX(-14%) scale(.88); transform-origin: 50% 100%; }
+.vn-figure.at-far_left.speaking { transform: translateX(14%) translateY(-6px) scale(.95); }
+.vn-figure.at-far_right.speaking { transform: translateX(-14%) translateY(-6px) scale(.95); }
 
 /* **喋っている人だけを前へ出す。**他は暗く沈める（消さない）。 */
 .vn-figure.speaking { z-index: 2; filter: drop-shadow(0 8px 18px rgba(0,0,0,.5)); }

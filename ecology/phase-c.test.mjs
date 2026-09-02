@@ -72,7 +72,7 @@ const equal = (actual, expected, message) => {
   checks += 1;
 };
 
-const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
+const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 
 // ---- affix 目録の形（R8 §3.5, §13.2）----------------------------------------
 

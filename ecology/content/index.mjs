@@ -120,7 +120,19 @@ export const SECTION_NAMES = Object.freeze({
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
 export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
-export { ENCOUNTERS, ENEMY_TARGETING } from "./encounters.mjs";
+export { ENCOUNTERS, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
+// R12 §4.A — 読める設定（ギルドカード）。engine には出ない、表示だけの content。
+export {
+  DOSSIERS,
+  DOSSIER_IDS,
+  DOSSIER_SECTIONS,
+  DOSSIER_SECTION_HEADINGS,
+  dossierFor,
+  dossierName,
+  dossierRevealLevel,
+  revealedBonds,
+  revealedDossierSections,
+} from "./dossiers.mjs";
 export { EQUIPMENT_GROUPS, STARTER_EQUIPMENT_IDS } from "./equipment-fixed.mjs";
 // R7 Milestone 4（Phase B）— 遠征、技能パック、難易度。
 export {

@@ -144,20 +144,6 @@ export const PORTRAITS = Object.freeze({
     fringe: "spiky", back: "none", tail: null, shoulder: 0.96, collar: "open",
     accessory: "strap",
   }),
-  scout: Object.freeze({
-    accent: "#c0a7e5", skin: SKIN.light,
-    hair: Object.freeze({ base: "#4a4460", shade: "#332f45", light: "#6c6488" }),
-    garb: Object.freeze({ cloak: "#2a2637", trim: "#c0a7e5", inner: "#171522" }),
-    fringe: "swept", back: "short", tail: null, shoulder: 0.9, collar: "open",
-    accessory: "visor",
-  }),
-  pivot: Object.freeze({
-    accent: "#e5b869", skin: SKIN.mid,
-    hair: Object.freeze({ base: "#7a6236", shade: "#564427", light: "#9c8049" }),
-    garb: Object.freeze({ cloak: "#3a3220", trim: "#e5b869", inner: "#221d13" }),
-    fringe: "wave", back: "medium", tail: null, shoulder: 1.02, collar: "shawl",
-    accessory: "satchel",
-  }),
   // スミ — 隊で一番小さい。目の上で切り揃えた黒髪。
   // **持ち物が全部協会の支給品で、体格に合っていない。**肩幅を隊で最も狭く取り、
   // その上に大きすぎる盾板とフードを載せる。差し色も一人だけ彩度を持たない。
@@ -167,13 +153,6 @@ export const PORTRAITS = Object.freeze({
     garb: Object.freeze({ cloak: "#2b3538", trim: "#a8b6bb", inner: "#1a2224" }),
     fringe: "blunt", back: "short", tail: null, shoulder: 0.82, collar: "hood",
     accessory: "pauldron",
-  }),
-  arcanist: Object.freeze({
-    accent: "#8fa8e5", skin: SKIN.pale,
-    hair: Object.freeze({ base: "#2b3f6b", shade: "#1c2b4b", light: "#455f95" }),
-    garb: Object.freeze({ cloak: "#232b42", trim: "#8fa8e5", inner: "#151a29" }),
-    fringe: "veil", back: "long", tail: null, shoulder: 0.88, collar: "high",
-    accessory: "circlet",
   }),
   // レイ — 明るい亜麻色の髪をきちんと分ける。姿勢がいい。元・協会の記録係。
   tactician: Object.freeze({

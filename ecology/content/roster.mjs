@@ -72,34 +72,4 @@ export const CHARACTER_DEFINITIONS = [
     starterTactics: ["aimed_shot", "shield_the_wounded"],
     starterReactives: ["triage", "emergency_treatment"],
   },
-  // ---- 本編に出ない同業者。Free / Endless から引ける ----
-  {
-    id: "scout",
-    role: "機動",
-    icon: "目",
-    defaultPosition: "rear_right",
-    summary: "敵の準備を読み、位置を変えて前線を整える。",
-    starterTactics: ["mark_target", "reposition"],
-    starterReactives: ["guard_step", "urging"],
-  },
-  {
-    id: "pivot",
-    role: "蓄積",
-    icon: "環",
-    defaultPosition: "rear_left",
-    summary: "行動権を2つ持つ。余った権利を防壁へ変え、長期戦を支える。",
-    starterTactics: ["strike", "bulwark"],
-    starterReactives: ["guard_step", "scavenge_ap"],
-  },
-  {
-    id: "arcanist",
-    role: "準備攻撃",
-    icon: "灯",
-    defaultPosition: "rear_right",
-    summary: "時間のかかる大技を、後列から通す。集中が隊で最も高い。",
-    // R11 — 溜め系は technique 攻撃（集中）へ移った。**この人の役割は
-    // ここで初めて数値的に成立する**（従来は腕力16で溜めていた）。
-    starterTactics: ["heavy_swing", "steady_aim"],
-    starterReactives: ["urging", "prep_spiral"],
-  },
 ];

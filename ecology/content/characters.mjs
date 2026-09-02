@@ -10,25 +10,27 @@
 import { renamed, scaleDefinitionAmounts } from "./base.mjs";
 
 // R11 — 本編5人を作り直した（analysis/experiments/exp-18/R11_CHARACTER_DESIGN_FIVE.md）。
-// Campaign Stage 0〜3 に出るのは warden / lancer / guardian / tactician / mender の5人。
-// 残る3人は Free / Endless に残っている同業者で、本編には出ない。
+// **仲間はこの5人だけである。**R12 で、本編に出ない同業者3人（トキ/ヨリ/アカリ）と
+// Free / Endless を削除した。来歴を持たない人物を編成画面に並べておくと、
+// 「後で加入する仲間」として未公開の加入者と区別できず、物語の先が割れる（R12 §4.E-1、作者判断）。
 export const CHARACTER_NAMES = {
   warden: "シキ — 受けて返す人",
   mender: "ナズナ — 止める人",
   lancer: "カイ — 抜ける人",
-  scout: "トキ — 先を読む人",
-  pivot: "ヨリ — 余りを活かす人",
   guardian: "スミ — 受け止める人",
-  arcanist: "アカリ — 溜める人",
   tactician: "レイ — 渡す人",
 };
 
-const characters = renamed("characters", CHARACTER_NAMES);
+// R12 — fixture の characters は engine 用の骨格なので、本編に居ない人物
+// （fixture 側の scout / pivot）まで運んでくる。**CHARACTER_NAMES に無い者は
+// ここで落とす。**落とさないと編成画面と契約 snapshot に、来歴の無い人物が残る。
+const characters = Object.fromEntries(
+  Object.entries(renamed("characters", CHARACTER_NAMES))
+    .filter(([id]) => Object.hasOwn(CHARACTER_NAMES, id)),
+);
 Object.assign(characters.warden, { maxHp: 28, speed: 5, baseReactionPoints: 2 });
 Object.assign(characters.mender, { maxHp: 18, speed: 6, baseReactionPoints: 2 });
 Object.assign(characters.lancer, { maxHp: 17, speed: 9, baseReactionPoints: 2 });
-Object.assign(characters.scout, { maxHp: 17, speed: 10, baseReactionPoints: 2 });
-Object.assign(characters.pivot, { maxHp: 20, speed: 5, baseActionPoints: 2, baseReactionPoints: 2 });
 characters.guardian = {
   id: "guardian",
   displayName: CHARACTER_NAMES.guardian,
@@ -38,16 +40,6 @@ characters.guardian = {
   baseReactionPoints: 2,
   signatureRules: [],
   tags: ["playable", "front", "guard"],
-};
-characters.arcanist = {
-  id: "arcanist",
-  displayName: CHARACTER_NAMES.arcanist,
-  maxHp: 15,
-  speed: 4,
-  baseActionPoints: 1,
-  baseReactionPoints: 2,
-  signatureRules: [],
-  tags: ["playable", "rear", "attack"],
 };
 characters.tactician = {
   id: "tactician",
@@ -78,8 +70,7 @@ characters.tactician = {
 // guard は hit ごとの固定軽減なので（effects.mjs §damage）、**受けの高いスミは多段に強く、
 // HP の厚いシキは単発大威力に強い**。同じ「硬い」でも通る攻撃が違う。
 //
-// 本編に出ない3人（トキ/ヨリ/アカリ）も同じ物差しで置き直した。アカリは集中52で、
-// technique 攻撃の主になる（R6 が「準備攻撃」と呼んでいた役が、ここで初めて成立する）。
+// R12 — 同業者3人を削除したので、この表は本編5人だけを持つ。
 export const CHARACTER_STATS = {
   // ---- Campaign 本編の5人。加入順に並べてある ----
   // シキ … 落ちない前衛。武器攻撃なので前に置いて初めて火力が出る
@@ -92,10 +83,6 @@ export const CHARACTER_STATS = {
   guardian:  { maxHp: 180, might: 16, focus: 26, guard: 26, speed: 2,  baseActionPoints: 1, baseReactionPoints: 2 },
   // レイ … 攻守とも低いが、**行動権も反応点も一つ多い。**何をさせても形になる
   tactician: { maxHp: 150, might: 18, focus: 26, guard: 3,  speed: 11, baseActionPoints: 2, baseReactionPoints: 3 },
-  // ---- 本編に出ない同業者（Free / Endless） ----
-  scout:     { maxHp: 170, might: 34, focus: 24, guard: 3,  speed: 10, baseActionPoints: 1, baseReactionPoints: 2 },
-  pivot:     { maxHp: 200, might: 26, focus: 28, guard: 6,  speed: 5,  baseActionPoints: 2, baseReactionPoints: 2 },
-  arcanist:  { maxHp: 150, might: 12, focus: 52, guard: 2,  speed: 4,  baseActionPoints: 1, baseReactionPoints: 2 },
 };
 // R6 §6.4 — 届き方は技能側の effect.reach で決める。
 // playable の通常攻撃は全員 melee とし、後衛の仲間だから自動的に遠隔にはしない。
@@ -106,7 +93,7 @@ for (const [id, stats] of Object.entries(CHARACTER_STATS)) {
 }
 
 // 固有の性質が持つ量も、その人の focus で伸びるようにする
-// （scout の「先を読む」防壁など）。持ち主が育てば固有も伸びる。
+// （固有規則が量を持つ場合）。持ち主が育てば固有も伸びる。
 for (const definition of Object.values(characters)) {
   scaleDefinitionAmounts(definition, { stat: "focus" });
 }

@@ -6,7 +6,7 @@ ecology/ は EXP-18 R8 の本編を土台にした R10 Campaign です。現在�
 
 - Campaign Stage 0〜3（R9 のチュートリアル構成: 2人 → 5人、pack は累積）
 - Stage 0 初回の「勝てない一戦」と巻き戻し、Stage ごとの会話（立ち絵つきの一行送り。いつでも飛ばせる）
-- 一度クリアした Stage は 8人から5人を自由に選んで再訪できる
+- 一度クリアした Stage は、揃っている仲間から5人を選んで再訪できる
 - 行動3、反応3、常設2、装備2枠
 - 3幕12戦、4・8・12戦目のボス。敵の数と threat budget は遠征の人数に合わせる
 - HP 持ち越し、有限補給、報酬、野営、撤退
@@ -54,17 +54,17 @@ Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し
     node analysis/ecology-test-hygiene-smoke.mjs
     node analysis/ecology-upload-smoke.mjs
 
-画面の通しは二つあります。analysis/ecology-trial.mjs が旧・自由遠征の難易度 flow を、
+画面の通しは二つあります。analysis/ecology-trial.mjs が12戦の長い流れと精算・投資を、
 analysis/ecology-tutorial-trial.mjs が本編（Campaign）の入口——最初の会話、勝てない一戦、
 巻き戻し、2人編成、入口だけの技能ツリー、生成装備の報酬——を踏みます。
-どちらも手元では Chromium、公開先では GitHub Actions から走ります。Free mode の互換検査は analysis/ecology-expedition-smoke.mjs と analysis/ecology-decision-space-smoke.mjs です。
+どちらも手元では Chromium、公開先では GitHub Actions から走ります。R12 で Free mode を削除したので、その互換検査（ecology-expedition-smoke.mjs / ecology-decision-space-smoke.mjs）も一緒に消しました。
 
 ## 境界
 
 現行版は Stage 0〜3 までです。Stage 4 以降、Endless、stage 固有の敵法則、
 affix family の購入はまだありません。`pack_barrage`（連撃と刻印）と
 `pack_relay`（余波と受け渡し）は content としては存在しますが、Campaign Stage には
-入っておらず、Free mode からだけ引けます。
+入っておらず、Campaign には出てきません。
 
 自動検査が通っても、作者の fun や再プレイ欲は未判定です。
 

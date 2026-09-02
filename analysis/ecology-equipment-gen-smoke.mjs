@@ -21,7 +21,7 @@ import { newProfile, newRun, rewardOffer, runContentBundle } from "../ecology/pr
 import { freshLoadout, makeBattle } from "../ecology/playable-battles.mjs";
 
 const problems = [];
-const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
+const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 const STAGE_POOLS = [
   ["family_edge", "family_scar"],
   ["family_edge", "family_wall", "family_scar"],

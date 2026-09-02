@@ -6,6 +6,7 @@ import {
   CHARACTER_DEFINITIONS,
   DISPLAY_NAMES,
   ENCOUNTERS,
+  ENEMY_LORE,
   ENEMY_TARGETING,
   EQUIPMENT_META,
   PLAYABLE_CONTENT,
@@ -331,12 +332,19 @@ export function enemyTargetingText(enemyActorId) {
   return ENEMY_TARGETING[enemyActorId] ?? "前列を優先して狙う。";
 }
 
+// R12 §4.B — 拾い屋のあいだで言われていること。**無ければ黙る**
+// （既定文を作ると、書いていない敵にも世界の声があるように見える）。
+export function enemyLoreText(enemyActorId) {
+  return ENEMY_LORE[enemyActorId] ?? null;
+}
+
 export function enemyInfo(enemyActorId) {
   const definition = PLAYABLE_CONTENT.enemyActors[enemyActorId];
   return {
     id: enemyActorId,
     label: DISPLAY_NAMES[enemyActorId] ?? definition?.displayName ?? enemyActorId,
     targeting: enemyTargetingText(enemyActorId),
+    lore: enemyLoreText(enemyActorId),
   };
 }
 
@@ -416,7 +424,7 @@ function allyInput(characterId, position, loadout, options = {}) {
 
 export function makeBattle(
   stage,
-  rosterIds = ["warden", "mender", "lancer", "scout", "guardian"],
+  rosterIds = ["warden", "mender", "lancer", "guardian", "tactician"],
   loadout = freshLoadout(rosterIds),
   seed = RUN_SEED,
   formation = {},

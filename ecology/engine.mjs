@@ -605,7 +605,7 @@ function activateActor(state, actor) {
     // 噛み合わなかった。行動権で進める形にすると、AP の多い人物と行動追加の
     // 装備が「溜めを短くする」という形で効く。
     //
-    // 実測（2026-08-30、analysis/ecology-decision-space-smoke.mjs）:
+    // 実測（2026-08-30、当時の analysis/ecology-decision-space-smoke.mjs。R12 で削除）:
     // 準備を使う編成は 2.07 → 2.17 倍、準備を使わない素朴な編成4種は不変。
     runChain(state, "preparation", () => {
       const rt = makeRuntime(state);

@@ -87,7 +87,14 @@ const say = (who, text, emotion = "neutral", fx = null) => {
 // 地の文。話者を持たない。**名前欄を出さずに、真ん中へ置く。**
 const narrate = (text, fx = null) => Object.freeze({ who: null, speaker: null, text, emotion: null, fx });
 
-// 立ち位置。at は left / center / right。since はその行から舞台に現れる。
+// 立ち位置。at は far_left / left / center / right / far_right。
+// since はその行から舞台に現れる。
+//
+// R12 — **隊にいる人は、その場面に立っている。**加入の断片で舞台に出るのは
+// 「喋る人」ではなく「そこに居る全員」である。3枠しか無かったころは、
+// 4人目・5人目が配役ごと落ちて、加入済みの仲間が場面から消えていた
+// （ナズナが Stage 2・3 の join から居なくなっていた。作者判断で修正）。
+// 外側の2枠は一回り小さく、奥に立つ。**行数は増やさない。**
 const stand = (who, at, since = 0) => {
   if (!PORTRAITS[who]) throw new Error("story: 立ち絵の無い配役 " + who);
   return Object.freeze({ who, at, since });
@@ -107,6 +114,38 @@ const beat = (id, title, options) => Object.freeze({
 
 export const STORY_BEATS = Object.freeze({
   stage_0_edge: Object.freeze({
+    // ---- 幕の切れ目（R12 §4.C）。4・8・12戦目の前に置く ----
+    act1: beat("stage_0_act1", "帳面のはじめ", {
+      mood: "ash",
+      place: "浅い層の休み場",
+      cast: [stand("warden", "left"), stand("mender", "right")],
+      lines: [
+        narrate("ナズナが荷を下ろし、小さな帳面を開く。"),
+        say("mender", "腕の上がり方が、朝より二寸浅い。……座ってください。", "neutral"),
+        say("warden", "そこまで見なくていい。", "wry"),
+        say("mender", "見るのが仕事です。器材は返しますが、体は返せませんから。", "calm"),
+      ],
+    }),
+    act2: beat("stage_0_act2", "四つ目の話", {
+      mood: "dusk",
+      place: "灰の斜面",
+      cast: [stand("mender", "left"), stand("warden", "right")],
+      lines: [
+        say("mender", "地図はここまででしたね。この先は。", "neutral"),
+        say("warden", "三つ目の門までは台帳にある。四つ目から先は、誰も書いていない。", "neutral"),
+        narrate("そこから先を、シキは少し長く喋った。ナズナは帳面に何も書かなかった。"),
+      ],
+    }),
+    act3: beat("stage_0_act3", "返しに行く", {
+      mood: "ember",
+      place: "灰の門の内側",
+      cast: [stand("warden", "left"), stand("mender", "right")],
+      lines: [
+        say("warden", "抜けたら詰所。器材を返して、それから帰る。", "neutral"),
+        say("mender", "順番を間違えないでくださいね。前は先に寝ました。", "wry"),
+        say("warden", "……覚えてない。", "calm"),
+      ],
+    }),
     opening: beat("stage_0_opening", "灰の入口", {
       mood: "ash",
       place: "灰の門の手前",
@@ -170,6 +209,38 @@ export const STORY_BEATS = Object.freeze({
     }),
   }),
   stage_1_wall: Object.freeze({
+    act1: beat("stage_1_act1", "前に出たがる", {
+      mood: "ash",
+      place: "崩れた階段の下",
+      cast: [stand("lancer", "left"), stand("warden", "center"), stand("mender", "right")],
+      lines: [
+        say("lancer", "次、俺が先に入る。", "firm"),
+        say("warden", "わたしが先。あなたはその後ろ。", "neutral"),
+        say("lancer", "……遅くならないか、それ。", "wry"),
+        say("warden", "遅い分は、あなたが立っていられる時間で戻る。", "calm"),
+      ],
+    }),
+    act2: beat("stage_1_act2", "軽い、の中身", {
+      mood: "dusk",
+      place: "回廊の窪み",
+      cast: [stand("mender", "left"), stand("lancer", "right")],
+      lines: [
+        narrate("カイの脇腹に、浅いが長い裂け目がある。"),
+        say("mender", "その傷、いま塞ぐ意味はない。", "neutral"),
+        say("lancer", "だろ。だから言ってない。", "wry"),
+        say("mender", "言わないのと、気づかれないのは、別です。", "calm"),
+      ],
+    }),
+    act3: beat("stage_1_act3", "口に出さない", {
+      mood: "ember",
+      place: "灰の吹きだまり",
+      cast: [stand("warden", "left"), stand("lancer", "right")],
+      lines: [
+        say("lancer", "……あんた、なんで毎回そこに立つんだ。", "neutral"),
+        say("warden", "そこが空いているから。", "neutral"),
+        narrate("カイはそれ以上聞かなかった。理由はもう分かっていた。"),
+      ],
+    }),
     join: beat("stage_1_join", "抜ける刃", {
       mood: "ash",
       place: "詰所の裏手",
@@ -196,17 +267,59 @@ export const STORY_BEATS = Object.freeze({
     }),
   }),
   stage_2_tempo: Object.freeze({
+    act1: beat("stage_2_act1", "拾う手", {
+      mood: "ash",
+      place: "回廊の脇",
+      cast: [
+        stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right"),
+        stand("mender", "far_right"),
+      ],
+      lines: [
+        narrate("スミが屈んで、割れた把手を拾い、布に包んで懐へ入れる。"),
+        say("lancer", "それ、金にならないぞ。", "neutral"),
+        say("guardian", "売らない。", "calm"),
+      ],
+    }),
+    act2: beat("stage_2_act2", "受けた回数", {
+      mood: "dusk",
+      place: "崩れた回廊",
+      cast: [stand("lancer", "left"), stand("guardian", "right")],
+      lines: [
+        say("lancer", "今日、七回だ。数えてた。", "worry"),
+        say("guardian", "八回。最初のは、あなたが見ていない。", "neutral"),
+        say("lancer", "……次からは見る。", "wry"),
+      ],
+    }),
+    act3: beat("stage_2_act3", "一枚", {
+      mood: "ember",
+      place: "回廊の出口",
+      cast: [
+        stand("guardian", "center"), stand("warden", "left"), stand("mender", "far_left"),
+        stand("lancer", "right"),
+      ],
+      lines: [
+        say("warden", "スミ。保証人の欄、書き足しておいた。", "neutral"),
+        narrate("スミは何も言わずに、少しだけ笑った。隊の誰も、その顔を見たことがなかった。"),
+        say("mender", "……帳面に書いておきます。", "smile"),
+      ],
+    }),
     join: beat("stage_2_join", "かばう手", {
       mood: "ash",
       place: "崩れた回廊",
-      cast: [stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right")],
+      // R12 — 4人目が加わる場面なので、舞台に立つのも4人。
+      cast: [
+        stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right"),
+        stand("mender", "far_right"),
+      ],
       lines: [
         say("guardian", "そこ、危ない。", "shock"),
         narrate("小柄な影が割り込み、カイへ飛んだ一撃を盾板で受ける。灰が跳ねた。", "impact"),
         say("lancer", "……なんで受けた。避ければよかっただろ。", "worry"),
         say("guardian", "受けた側は、次に何が来るか分かる。避けた側は分からない。", "calm"),
-        say("warden", "その盾、詰所の備品でしょう。返す当てはあるの。", "wry"),
-        say("guardian", "ない。だから、連れて行って。", "neutral"),
+        // ナズナは人を数える側（R11 §5 レイ⇄ナズナ／シキ⇄ナズナ）。
+        // **庇う理屈そのものではなく、その理屈が何度使われたかを見ている。**
+        say("mender", "その理屈で、あなたは何度受けたんです。", "worry"),
+        say("warden", "……その盾、詰所の備品でしょう。返す当てが無いなら、保証人はわたしが書く。", "wry"),
       ],
       footer: "受け止めた結果は、集中（自分へ）か防壁（味方へ）のどちらかへ渡せる。",
     }),
@@ -222,10 +335,50 @@ export const STORY_BEATS = Object.freeze({
     }),
   }),
   stage_3_care: Object.freeze({
+    act1: beat("stage_3_act1", "二冊の帳面", {
+      mood: "ash",
+      place: "灰の谷の縁",
+      cast: [stand("tactician", "left"), stand("mender", "right")],
+      lines: [
+        narrate("焚き火の両側で、二人が別々の帳面を開いている。"),
+        say("mender", "あなたも付けるんですね。", "neutral"),
+        say("tactician", "出来事のほうを。何が起きて、何番目だったか。", "calm"),
+        say("mender", "わたしは人のほうです。同じ火を囲んでいるのに、残るものが違う。", "wry"),
+      ],
+    }),
+    act2: beat("stage_3_act2", "四つ目より奥", {
+      mood: "dusk",
+      place: "谷底の風下",
+      cast: [stand("warden", "left"), stand("tactician", "right")],
+      lines: [
+        say("tactician", "潜行等級の申請、通しておきました。四つ目の門まで。", "neutral"),
+        say("warden", "……頼んでいない。", "shock"),
+        say("tactician", "ええ。ですが、あなたは奥が見たいのでしょう。稼ぎは、そのための手段だ。", "calm"),
+        say("warden", "……台帳には書かないで。", "worry"),
+      ],
+    }),
+    act3: beat("stage_3_act3", "六枠に五人", {
+      mood: "ember",
+      place: "灰の縁",
+      cast: [
+        stand("warden", "center"), stand("lancer", "left"), stand("guardian", "far_left"),
+        stand("tactician", "right"), stand("mender", "far_right"),
+      ],
+      lines: [
+        say("lancer", "一枠、余ってるな。ずっと。", "neutral"),
+        say("guardian", "空いていたほうがいい。誰かが動ける。", "calm"),
+        say("tactician", "同意します。埋まった隊は、そこから動けない。", "smile"),
+      ],
+    }),
     join: beat("stage_3_join", "間合いと順番", {
       mood: "ash",
       place: "灰の谷",
-      cast: [stand("tactician", "center"), stand("lancer", "left"), stand("warden", "right")],
+      // R12 — 5人が揃う場面。**加入済みの全員が立つ。**
+      // 台詞は増やさない（R9 §7）。スミとナズナは表情で応じる。
+      cast: [
+        stand("tactician", "center"), stand("lancer", "left"), stand("warden", "right"),
+        stand("guardian", "far_left"), stand("mender", "far_right"),
+      ],
       lines: [
         say("tactician", "三、二、……いま。", "firm"),
         narrate("レイの合図で、カイの踏み込みが一拍早く入る。", "impact"),

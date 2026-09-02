@@ -9,6 +9,7 @@
 //   - 会話（R9 §7）: 各 Stage に断片があり、話者が実在の人物である。
 //   - 敵の規模（R9 §3.2）: 少人数 Stage では数・boss の体力・受けが人数へ合う。
 //   - 再訪（R9 §8）: 一度クリアした Stage は5人・自由編成で遊べる。
+//   - 名簿（R12 §4.A）: 読める設定が5人ぶんあり、**一度に全部は開かない**。
 
 import assert from "node:assert/strict";
 import { simulateBattle } from "./engine.mjs";
@@ -16,6 +17,10 @@ import { validateBattleInput } from "./validate.mjs";
 import {
   CAMPAIGN_STAGES,
   CHARACTER_DEFINITIONS,
+  DOSSIERS,
+  DOSSIER_IDS,
+  DOSSIER_SECTIONS,
+  DOSSIER_SECTION_HEADINGS,
   EXPRESSIONS,
   PACK_BY_ID,
   PLAYABLE_CONTENT,
@@ -29,6 +34,9 @@ import {
   portraitAccent,
   portraitSvg,
   storyBeat,
+  dossierRevealLevel,
+  revealedBonds,
+  revealedDossierSections,
 } from "./content/index.mjs";
 import { makePrologueBattle, prologueEncounter } from "./playable-battles.mjs";
 import { characterStats, manifestSkillIds, newProfile, newRun } from "./progression.mjs";
@@ -179,9 +187,11 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   const seenBeatIds = new Set();
   for (const stage of CAMPAIGN_STAGES) {
     // R11 §5 — Stage 0 は「拾う → 倒れる → 巻き戻る → 勝つ」の4拍を持つ。
+    // R12 §4.C — どの Stage も、4・8・12戦目の幕の断片を3つ持つ。
+    const acts = ["act1", "act2", "act3"];
     const keys = stage.sequence === 0
-      ? ["opening", "prologueDefeat", "prologueRewound", "prologueWin", "stageEnd"]
-      : ["join", "stageEnd"];
+      ? ["opening", "prologueDefeat", "prologueRewound", "prologueWin", ...acts, "stageEnd"]
+      : ["join", ...acts, "stageEnd"];
     for (const key of keys) {
       const beat = storyBeat(stage.id, key);
       check(Boolean(beat), stage.id + " に " + key + " の断片がある");
@@ -210,7 +220,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 
 {
   const characterIds = new Set(CHARACTER_DEFINITIONS.map((option) => option.id));
-  const placements = new Set(["left", "center", "right"]);
+  const placements = new Set(["far_left", "left", "center", "right", "far_right"]);
 
   // 仲間は全員ぶんの立ち絵を持つ。**会話に出す前に欠けを見つける。**
   for (const option of CHARACTER_DEFINITIONS) {
@@ -232,18 +242,20 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(portraitSvg("no_such_character"), "", "知らない人物では立ち絵を作らない");
 
   for (const stage of CAMPAIGN_STAGES) {
-    const keys = stage.sequence === 0 ? ["opening", "prologueDefeat", "stageEnd"] : ["join", "stageEnd"];
+    const keys = stage.sequence === 0
+      ? ["opening", "prologueDefeat", "act1", "act2", "act3", "stageEnd"]
+      : ["join", "act1", "act2", "act3", "stageEnd"];
     for (const key of keys) {
       const beat = storyBeat(stage.id, key);
       if (!beat) continue;
       check(typeof beat.mood === "string" && beat.mood.length > 0, beat.id + " に背景の色調がある");
-      check(beat.cast.length >= 1 && beat.cast.length <= 3, beat.id + " の配役は1〜3人（画面に収まる）");
+      check(beat.cast.length >= 1 && beat.cast.length <= 5, beat.id + " の配役は1〜5人（画面に収まる）");
 
       const seenPlacements = new Set();
       for (const entry of beat.cast) {
         check(characterIds.has(entry.who), beat.id + ": 配役 " + entry.who + " が実在の仲間");
         check(Boolean(PORTRAITS[entry.who]), beat.id + ": 配役 " + entry.who + " に立ち絵がある");
-        check(placements.has(entry.at), beat.id + ": 立ち位置 " + entry.at + " が left/center/right");
+        check(placements.has(entry.at), beat.id + ": 立ち位置 " + entry.at + " が五枠のどれか");
         check(!seenPlacements.has(entry.at), beat.id + ": 立ち位置 " + entry.at + " が重なっていない");
         seenPlacements.add(entry.at);
         check(Number.isInteger(entry.since) && entry.since >= 0 && entry.since < beat.lines.length,
@@ -272,11 +284,73 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   }
 }
 
+// ---- 加入済みの仲間は場面から消えない（R12）------------------------------------
+//
+// **途中離脱は無い。**Stage を越えるごとに一人ずつ増えて5人になる。
+// だから「新しい仲間が加わる場面」に、既にいる仲間が居ないのはおかしい。
+// 立ち位置の枠が3つしか無かったころ、ナズナが Stage 2・3 の join から
+// 配役ごと落ちていた（作者判断で修正）。**枠の都合で仲間を消さない。**
+//
+// 台詞までは求めない。R9 §7 の「1断片2〜6行」を守ったまま、
+// 立って表情で応じることを presence とする（R11 §1「投資先は立ち絵の情報量」）。
+
+{
+  for (const stage of CAMPAIGN_STAGES) {
+    const key = stage.sequence === 0 ? "opening" : "join";
+    const beat = storyBeat(stage.id, key);
+    if (!beat) continue;
+    const onStage = new Set(beat.cast.map((entry) => entry.who));
+    for (const characterId of stage.castCharacterIds) {
+      check(onStage.has(characterId),
+        beat.id + ": この Stage の " + characterId + " が舞台に立っている（加入済みは消えない）");
+    }
+    equal(beat.cast.length, stage.castCharacterIds.length,
+      beat.id + ": 配役の数がその Stage の人数と一致する");
+  }
+}
+
+// ---- まだ加入していない人物を、会話へ先に出さない（R12）------------------------
+//
+// **物語が渡していない人物は、どの画面にも出ない。**編成・ギルド投資・Stage 選択
+// カードは app.js の metCharacterIds が塞いだが、会話そのものが漏らしては意味がない。
+// その Stage の cast の外にいる人物は、配役にも話者にも現れてはいけない。
+
+{
+  const actKeys = ["act1", "act2", "act3"];
+  for (const stage of CAMPAIGN_STAGES) {
+    const allowed = new Set(stage.castCharacterIds);
+    const keys = stage.sequence === 0
+      ? ["opening", "prologueDefeat", "prologueRewound", "prologueWin", ...actKeys, "stageEnd"]
+      : ["join", ...actKeys, "stageEnd"];
+    for (const key of keys) {
+      const beat = storyBeat(stage.id, key);
+      if (!beat) continue;
+      for (const entry of beat.cast) {
+        check(allowed.has(entry.who),
+          beat.id + ": 配役 " + entry.who + " はこの Stage に加入している");
+      }
+      for (const line of beat.lines) {
+        if (!line.who) continue;
+        check(allowed.has(line.who),
+          beat.id + ": 話者 " + line.who + " はこの Stage に加入している");
+      }
+    }
+
+    // 幕の断片は短い。**pack の説明ではなく、幕の切れ目の一拍である。**
+    for (const key of actKeys) {
+      const beat = storyBeat(stage.id, key);
+      check(Boolean(beat), stage.id + " に " + key + " の断片がある");
+      if (beat) check(beat.lines.length >= 2 && beat.lines.length <= 4,
+        beat.id + " は2〜4行（幕の切れ目に長い会話を置かない）");
+    }
+  }
+}
+
 // ---- 初回と再訪（R9 §8）----------------------------------------------------
 
 {
   const firstRun = newRun(profile, {
-    runSeed: "tut", runId: "tut", roster: ["scout", "pivot", "arcanist"], campaignStageSequence: 0,
+    runSeed: "tut", runId: "tut", roster: ["lancer", "guardian", "tactician"], campaignStageSequence: 0,
   });
   assert.deepEqual(firstRun.roster, [...campaignStageDef(0).castCharacterIds],
     "初回は Stage の cast がそのまま来る（呼び出し側の選択は効かない）");
@@ -285,12 +359,12 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   check(firstRun.rosterLocked, "初回は編成を組み替えない");
 
   const revisit = newRun(profile, {
-    runSeed: "tut2", runId: "tut2", roster: ["scout", "pivot", "arcanist", "mender", "lancer"],
+    runSeed: "tut2", runId: "tut2", roster: ["tactician", "guardian", "warden", "mender", "lancer"],
     campaignStageSequence: 0, freeRoster: true,
   });
   equal(revisit.partySize, 5, "再訪は5人まで使える");
   check(!revisit.rosterLocked, "再訪では編成を自由に組める");
-  assert.deepEqual(revisit.roster, ["scout", "pivot", "arcanist", "mender", "lancer"],
+  assert.deepEqual(revisit.roster, ["tactician", "guardian", "warden", "mender", "lancer"],
     "再訪では呼び出し側の選択がそのまま通る");
   checks += 1;
 
@@ -316,6 +390,99 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       if (!same || same.stats.guard === 0) continue;
       check(enemy.stats.guard <= same.stats.guard,
         "第" + index + "戦: 少人数のほうが受けが厚くない（" + enemy.enemyActorId + "）");
+    }
+  }
+}
+
+
+
+// ---- 名簿 / 読める設定（R12 §4.A）--------------------------------------------
+//
+// **一度に全部を語らない**のがこの機能の核なので、そこを固定する。
+// 中身の良し悪しは測れない（AGENTS.md）。測れるのは開く順と、漏れの有無だけである。
+
+{
+  const finalStageSequence = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1].sequence;
+  const partyIds = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1].castCharacterIds;
+
+  // 本編の5人ぶんある。**余りも欠けも無い。**
+  assert.deepEqual([...DOSSIER_IDS].sort(), [...partyIds].sort(),
+    "名簿は本編の5人ぶんちょうどある");
+  checks += 1;
+
+  for (const characterId of DOSSIER_IDS) {
+    const entry = DOSSIERS[characterId];
+
+    // 加入 Stage が Campaign の定義と食い違っていない。
+    const joinStage = CAMPAIGN_STAGES.find((stage) => stage.castCharacterIds.includes(characterId));
+    equal(entry.joinStageSequence, joinStage.sequence,
+      characterId + ": 名簿の加入 Stage が Campaign 側と一致する");
+
+    // 4つの節がすべて書かれている。**空の節を「開いた」と言わない。**
+    for (const key of DOSSIER_SECTIONS) {
+      check(Array.isArray(entry.sections[key]) && entry.sections[key].length > 0,
+        characterId + ": " + key + " の節に本文がある");
+      check(Boolean(DOSSIER_SECTION_HEADINGS[key]), key + " に見出しがある");
+    }
+
+    // 関係の相手が実在し、自分自身を指していない。
+    for (const bond of entry.bonds) {
+      check(DOSSIER_IDS.includes(bond.with), characterId + ": 関係の相手 " + bond.with + " が実在する");
+      check(bond.with !== characterId, characterId + ": 自分との関係を書いていない");
+      check(bond.lines.length > 0, characterId + "⇄" + bond.with + " に本文がある");
+    }
+  }
+
+  // ---- 開く順。**会っていなければ 0、揃うまで will は出ない。** ----
+  const met = new Set(partyIds);
+  for (const characterId of DOSSIER_IDS) {
+    equal(dossierRevealLevel(characterId, 3, { met: false, finalStageSequence }), 0,
+      characterId + ": 会っていない人物の欄は出ない");
+
+    // 加入した直後（その Stage をまだ越えていない）は佇まいだけ。
+    const joined = DOSSIERS[characterId].joinStageSequence;
+    const atJoin = dossierRevealLevel(characterId, joined - 1, { met: true, finalStageSequence });
+    equal(atJoin, 1, characterId + ": 加入した時点では佇まいだけが読める");
+    assert.deepEqual(revealedDossierSections(atJoin), ["figure"],
+      characterId + ": 加入直後に開くのは figure だけ");
+    checks += 1;
+  }
+
+  // will は5人が揃うまで開かない。**Stage 3 を越える前に誰の will も読めない。**
+  for (let highest = -1; highest < finalStageSequence; highest += 1) {
+    for (const characterId of DOSSIER_IDS) {
+      const level = dossierRevealLevel(characterId, highest, { met: true, finalStageSequence });
+      check(!revealedDossierSections(level).includes("will"),
+        characterId + ": Stage " + highest + " 時点では will が開いていない");
+    }
+  }
+  for (const characterId of DOSSIER_IDS) {
+    const level = dossierRevealLevel(characterId, finalStageSequence, { met: true, finalStageSequence });
+    equal(level, DOSSIER_SECTIONS.length, characterId + ": 5人が揃えば全節が開く");
+  }
+
+  // 節は必ず順番に開く。**飛ばして will だけ開くことはない。**
+  for (const characterId of DOSSIER_IDS) {
+    let previous = 0;
+    for (let highest = -1; highest <= finalStageSequence; highest += 1) {
+      const level = dossierRevealLevel(characterId, highest, { met: true, finalStageSequence });
+      check(level >= previous, characterId + ": 開いた節が閉じ直さない");
+      previous = level;
+    }
+  }
+
+  // ---- 関係。**相手に会う前は出ない。** ----
+  for (const characterId of DOSSIER_IDS) {
+    equal(revealedBonds(characterId, finalStageSequence, new Set([characterId])).length, 0,
+      characterId + ": 相手に会っていなければ関係は出ない");
+    for (const bond of DOSSIERS[characterId].bonds) {
+      const later = Math.max(DOSSIERS[characterId].joinStageSequence, DOSSIERS[bond.with].joinStageSequence);
+      const before = revealedBonds(characterId, later - 1, met).map((row) => row.with);
+      check(!before.includes(bond.with),
+        characterId + "⇄" + bond.with + ": 遅いほうの Stage を越えるまで出ない");
+      const after = revealedBonds(characterId, later, met).map((row) => row.with);
+      check(after.includes(bond.with),
+        characterId + "⇄" + bond.with + ": 越えたら出る");
     }
   }
 }
