@@ -962,7 +962,7 @@ function renderIntro() {
   const continueLabel = auto ? saveSummary(auto) : "オートセーブはありません";
   return shell("灰の遠征", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
     + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stageを越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をカイとシキの2人から始めます。</b></p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をシキとナズナの2人から始めます。</b></p>"
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")

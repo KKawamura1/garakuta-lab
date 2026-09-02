@@ -110,7 +110,7 @@ pack は累積します。新しい pack はその Stage では入口（7〜10�
 
 - セーブ形式を更新し、旧 save key / 旧 save schema との互換は持たない。
 - Continue は最新のオートセーブ、Load Game は手動セーブ枠またはオートセーブを読む。
-- New Game はProfileも新規にし、Campaign Stage 0をカイ＋シキの2人から開始する。
+- New Game はProfileも新規にし、Campaign Stage 0をシキ＋ナズナの2人から開始する。
 - 手動セーブは3枠を候補とし、Campなど安全地点から保存する。
 - 手動セーブはProfile、Run、物語フラグ、Blueprint、生成装備を一体として持つ。
 - New Gameでオートセーブは置き換えるが、手動セーブ枠は残す。
