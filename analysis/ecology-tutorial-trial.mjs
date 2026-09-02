@@ -86,8 +86,8 @@ try {
   // R11 §2.1 — 最初の2人の会話。**シキとナズナの考え方の違いを見せる。**
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
   const openingText = await bodyText();
-  note("最初の会話が出る", /灰の入口/.test(openingText)
-    && /シキ/.test(openingText) && /ナズナ/.test(openingText));
+  note("最初の会話が出る", /シキ/.test(openingText) && /ナズナ/.test(openingText)
+    && await page.locator(".vn-text").count() === 1);
   note("会話は飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
 
   // 立ち絵つきの一行送り。**喋っている人だけが前に出る。**
@@ -158,11 +158,11 @@ try {
 
   // R11 §2.1 — 巻き戻し後は、同じ序盤戦の再戦を通って本編へ戻る。
   await page.locator('nav.tabs [data-tab="map"]').click();
-  const retryMapText = await bodyText();
-  note("戦闘予測の使い方を示す",
-    /戦闘予測/.test(retryMapText)
-      && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない/.test(retryMapText));
   await click("この敵に挑む");
+  const retryPreviewText = await bodyText();
+  note("戦闘予測の使い方を示す",
+    /戦闘予測/.test(retryPreviewText)
+      && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない/.test(retryPreviewText));
   await click("自動戦闘を再生する");
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   await page.locator('.speed-button[data-speed="fast"]').click();
@@ -276,9 +276,9 @@ try {
     await page.waitForTimeout(200);
     await click("この条件で遠征へ出る");
     const joinText = await bodyText();
-    note("Stage 1 の加入の会話が出る", /スミ/.test(joinText));
+    note("Stage 1 の加入の会話が出る", /カイ/.test(joinText));
     note("加入の会話も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
-    note("加入する人物の立ち絵が出る", await page.locator('.vn-figure[data-character="guardian"]').count() === 1);
+    note("加入する人物の立ち絵が出る", await page.locator('.vn-figure[data-character="lancer"]').count() === 1);
     await click("スキップ");
     await page.waitForTimeout(250);
     const stage1Camp = await bodyText();
