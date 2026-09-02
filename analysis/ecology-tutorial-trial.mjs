@@ -1,7 +1,7 @@
-// **R9 のチュートリアル経路を、画面の中で通しで踏む。**
+// **R11 のチュートリアル経路を、画面の中で通しで踏む。**
 //
 // analysis/ecology-trial.mjs は旧・自由遠征（Free mode）の難易度 flow を見ている。
-// R9 で本編に入った経路——最初の会話、勝てない一戦、巻き戻し、2人編成、
+// R11 で本編に入った経路——最初の会話、勝てない一戦、巻き戻し、2人編成、
 // pack の入口だけが出る技能ツリー、生成装備の報酬——は、そこを一度も通らない。
 // **単体テストが通っても画面では動かない**という欠陥がこの箱で何度も出ているので、
 // 新しい画面経路にはその踏み場を用意する。
@@ -83,19 +83,20 @@ try {
   // R10 — New Gameは必ずCampaign Stage 0のopeningから始める。
   await click("はじめから");
 
-  // R9 §2.1 — 最初の2人の会話。**説明ではなく、考え方の違いを見せる。**
+  // R11 §2.1 — 最初の2人の会話。**シキとナズナの考え方の違いを見せる。**
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
   const openingText = await bodyText();
-  note("最初の会話が出る", /カイ/.test(openingText));
+  note("最初の会話が出る", /灰の入口/.test(openingText)
+    && /シキ/.test(openingText) && /ナズナ/.test(openingText));
   note("会話は飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
 
   // 立ち絵つきの一行送り。**喋っている人だけが前に出る。**
   note("立ち絵が出る", await page.locator(".vn-figure .portrait-svg").count() >= 2);
   note("喋っている人が前に出ている", await page.locator(".vn-figure.speaking").count() === 1);
-  note("話者の名前が出る", /カイ/.test(await page.locator(".vn-name").innerText()));
+  note("話者の名前が出る", /シキ/.test(await page.locator(".vn-name").innerText()));
   note("一行ずつ進む", /1 \/ \d/.test(await page.locator(".vn-progress").innerText()));
   note("次の行へ進む", await tapUntil(async () => await page.locator(".vn-name").count() > 0
-    && /シキ/.test(await page.locator(".vn-name").innerText())));
+    && /ナズナ/.test(await page.locator(".vn-name").innerText())));
   note("履歴に前の行が残る", await page.locator('[data-action="story-log"]:not([disabled])').count() === 1);
 
   // R9 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
@@ -119,16 +120,18 @@ try {
     || (await page.getByRole("button", { name: "時間が巻き戻る" }).count()) > 0);
   note("この一戦は遠征に数えないと書いてある", /この一戦は遠征に数えません/.test(resultText));
 
-  // R9 §2.1 — 巻き戻し。
+  // R11 §2.1 — 巻き戻し。敗北後は「もう一度、門の前」へ戻る。
   await click("時間が巻き戻る");
   const rewindText = await bodyText();
-  note("巻き戻しの会話が出る", /届かなかった/.test(rewindText));
-  // 学びの一言は断片の最後の行で出る。**そこまで進めてから見る。**
-  const sawNote = await tapUntil(async () => await page.locator(".vn-note").count() > 0);
-  note("戦闘予測の使い方を示す", sawNote && /戦闘予測/.test(await bodyText()));
-  await advanceStory();
+  note("巻き戻しの会話が出る", /もう一度、門の前/.test(rewindText));
+  // 巻き戻し後の再戦画面で、隊列と戦闘予測の説明が出る。
+  note("戦闘予測の使い方を示す",
+    /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない/.test(rewindText)
+      || /戦闘予測/.test(rewindText));
+  await click("スキップ");
+  await page.waitForTimeout(250);
 
-  // R9 §2.1 — 2人編成。**誰が来るかは物語が決める。**
+  // R11 §2.1 — 2人編成。**誰が来るかは物語が決める。**
   const campText = await bodyText();
   note("キャンプに着く", /編成|仲間/.test(campText));
   note("2人で始まる", /2 \/ 2人/.test(campText));
@@ -155,6 +158,22 @@ try {
   // **出ていないことではなく、取れないことを見る。**
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
   note("full だけの技能はまだ取れない", outOfManifest > 0, `manifest 外 ${outOfManifest} 節`);
+
+  // R11 §2.1 — 巻き戻し後は、同じ序盤戦の再戦を通って本編へ戻る。
+  await page.locator('nav.tabs [data-tab="map"]').click();
+  await click("この敵に挑む");
+  await click("自動戦闘を再生する");
+  await page.waitForSelector(".battle-field", { timeout: 8000 });
+  await page.locator('.speed-button[data-speed="fast"]').click();
+  await page.waitForSelector(".vn-stage", { timeout: 12000 });
+  const retryStoryText = await bodyText();
+  note("巻き戻し後の再戦が勝利へ進む", /同じ影、違う結果/.test(retryStoryText));
+  await click("スキップ");
+  await page.waitForTimeout(250);
+  const mainCampText = await bodyText();
+  note("序盤演出を終えて本編へ戻る",
+    /出発前のキャンプ|第1戦 \/ 12/.test(mainCampText)
+      && !/この一戦は遠征に数えません/.test(mainCampText));
 
   // 第1戦を通し、生成装備の報酬まで見る。
   await page.locator('nav.tabs [data-tab="map"]').click();
