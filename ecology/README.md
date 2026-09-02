@@ -36,7 +36,7 @@ Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し
 | playable-battles.mjs | 現行の戦闘入力、preview、loadout |
 | progression.mjs | Profile、Run、報酬、補給、Campaign 解禁 |
 | replay-beats.mjs | イベント列をリプレイ表示へ変換 |
-| content/ | 人物、技能、装備、敵、pack、Campaign、affix、物語 |
+| content/ | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城 |
 | equipment-gen.mjs | 手続き生成装備の決定的 generator と検査 |
 | blueprints.mjs | Blueprint archive、持込枠、再製造 |
 | sync.mjs | /api/runs への送信と端末 ID |
@@ -56,7 +56,7 @@ Stage 0 から pack_edge、pack_wall、pack_tempo、pack_care を順に導入し
 
 画面の通しは二つあります。analysis/ecology-trial.mjs が12戦の長い流れと精算・投資を、
 analysis/ecology-tutorial-trial.mjs が本編（Campaign）の入口——最初の会話、勝てない一戦、
-巻き戻し、2人編成、入口だけの技能ツリー、生成装備の報酬——を踏みます。
+巻き戻し、2人編成、入口だけの技能ツリー、生成装備の報酬、根城と名簿、図鑑——を踏みます。
 どちらも手元では Chromium、公開先では GitHub Actions から走ります。R12 で Free mode を削除したので、その互換検査（ecology-expedition-smoke.mjs / ecology-decision-space-smoke.mjs）も一緒に消しました。
 
 ## 境界

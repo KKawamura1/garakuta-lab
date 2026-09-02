@@ -46,6 +46,13 @@ import {
   dossierRevealLevel,
   revealedBonds,
   revealedDossierSections,
+  ENEMY_CODEX,
+  homesteadFlag,
+  homesteadScene,
+  nextHomesteadScene,
+  revealedFixtures,
+  seenHomesteadIds,
+  seenHomesteadScenes,
   SKILL_PACKS,
 } from "./content/index.mjs";
 import {
@@ -57,6 +64,7 @@ import {
   availableCampaignStages,
   availableCharacterIds,
   campTreat,
+  recordBestiary,
   commitBattleResult,
   convertScrap,
   dismantle,
@@ -969,6 +977,7 @@ function render() {
     reward: renderReward,
     defeat: renderDefeat,
     settlement: renderSettlement,
+    homestead: renderHomestead,
     complete: renderComplete,
   };
   app.innerHTML = (views[state.phase] ?? renderIntro)();
@@ -1108,8 +1117,11 @@ function renderExpeditionStart() {
       ["blueprints", "Blueprint", (state.profile.blueprints?.entries?.length ?? 0)
         + "件 · 持込 " + (state.profile.blueprints?.carrySelection?.length ?? 0)
         + "/" + blueprintCarryCapacity(state.profile)],
-      // R12 §4.A — 読める設定。**戦闘には効かない**ので、投資や設計図の後ろに置く。
-      ["dossiers", "名簿", metCharacterIds().size + "人"],
+      // R12 §4.A — 読める設定と、R11 §2.4 の根城。**戦闘には効かない**ので、
+      // 投資や設計図の後ろに置く。精算のあとは、ここを必ず一度通る。
+      ["homestead", "根城", metCharacterIds().size + "人"],
+      // R8 §3.2 の図鑑。会った敵だけが載る。
+      ["codex", "図鑑", bestiaryEntries().length + "体"],
     ]
       .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.guildTab === id ? "active" : "")
         + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
@@ -1139,7 +1151,7 @@ function renderExpeditionStart() {
     + "<div class=\"boss-grid\">" + bosses + "</div></section>"
     + campaignSection
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
-  const body = { guild: renderGuild, blueprints: renderBlueprints, dossiers: renderDossiers }[state.guildTab]?.()
+  const body = { guild: renderGuild, blueprints: renderBlueprints, homestead: homesteadBody, codex: renderBestiary }[state.guildTab]?.()
     ?? expeditionBody;
   return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う",
     "<div class=\"camp-tools guild-tools\">" + button("タイトルへ", "back-title", false, "tiny-button") + "</div>"
@@ -1270,6 +1282,131 @@ function renderDossiers() {
     + "<p class=\"muted\">詰所へ出す申請の控えです。<b>灰へ何度も一緒に入るほど、書ける欄が増えます。</b>"
     + "戦闘の役には影響しません。</p>"
     + (cards || "<p class=\"muted\">まだ誰の欄も書けていません。</p>")
+    + "</section>";
+}
+
+// ---------------------------------------------------------------- 根城（R11 §2.4 / §9.4）
+//
+// **帰る場所。**これまで画面は「灰の中」か「詰所（ギルド）」しか無く、
+// R11 §2.4 が「日常の場面と設定の厚みはここに置く」と決めた家が、どこにも無かった。
+//
+// 根城は精算のあとに必ず通る。**遠征と遠征のあいだの、灰が出てこない一枚**である。
+// 名簿（R12 §4.A）もここへ移した。詰所の投資画面の奥タブに置くより、
+// 帰り道に必ず通る場所へ置いたほうが読まれる（R12 §7.6 の懸念への答え）。
+
+function homesteadContext() {
+  return {
+    highestClearedStageSequence: highestClearedStage(),
+    met: metCharacterIds(),
+    blueprintCount: state.profile.blueprints?.entries?.length ?? 0,
+  };
+}
+
+// 会話のあとに戻る先。**入ってきた画面へ返す**（下の finishStory が受ける）。
+function homesteadReturnPhase() {
+  return state.phase === "expeditionStart" ? "guildHomestead" : "homestead";
+}
+
+// まだ見ていない日常の場面。**帰った時に一つだけ出す。**
+function pendingHomesteadScene() {
+  return nextHomesteadScene(homesteadContext(), seenHomesteadIds(state.profile.storyFlags));
+}
+
+function fixtureCards() {
+  const open = revealedFixtures(homesteadContext());
+  if (!open.length) return "";
+  return "<div class=\"fixture-list\">" + open.map((entry) => "<article class=\"fixture-card\">"
+    + "<b>" + esc(entry.label) + "</b>"
+    + entry.lines.map((line) => "<p>" + esc(line) + "</p>").join("")
+    + "</article>").join("") + "</div>";
+}
+
+// 読み返せる日常の場面。**もう一度見るのは自由**（既読印は消えない）。
+function homesteadSceneList() {
+  const seen = seenHomesteadScenes(seenHomesteadIds(state.profile.storyFlags));
+  if (!seen.length) return "";
+  return "<section class=\"card\">" + sectionHeading("EVENINGS / " + seen.length, "根城での場面")
+    + "<p class=\"muted\">一度見た場面は、ここから読み返せます。</p>"
+    + "<div class=\"scene-list\">" + seen.map((entry) => "<button type=\"button\" class=\"scene-row\""
+      + " data-action=\"replay-homestead\" data-scene=\"" + esc(entry.id) + "\"><b>"
+      + esc(entry.beat.title) + "</b><small>" + esc(entry.beat.place) + "</small></button>").join("")
+    + "</div></section>";
+}
+
+function homesteadBody() {
+  const open = revealedFixtures(homesteadContext()).length;
+  const pending = pendingHomesteadScene();
+  return "<section class=\"card\">" + sectionHeading("HOMESTEAD / " + open, "根城",
+      "<span class=\"stage\">" + metCharacterIds().size + " 人</span>")
+    + "<p class=\"muted\">灰の縁から外れた廃屋を直して使っています。<b>拾ってきたもので少しずつ増えます。</b>"
+    + "戦闘には影響しません。</p>"
+    + fixtureCards()
+    + (pending
+      ? "<div class=\"flow-actions\">" + button("今夜の場面を見る", "enter-homestead-scene", false, "button primary")
+        + "</div>"
+      : "")
+    + "</section>"
+    + homesteadSceneList()
+    + renderDossiers();
+}
+
+function renderHomestead() {
+  return shell("根城", "遠征と遠征のあいだ",
+    homesteadBody()
+    + "<section class=\"card quiet\">"
+    + button("ギルドへ", "back-guild", false, "button primary")
+    + button("記録を送る", "complete", false, "button") + "</section>",
+    { hideHeaderAction: true });
+}
+
+// ---------------------------------------------------------------- 図鑑（R8 §3.2）
+//
+// R8 §3.2 は ProfileState に「図鑑」を挙げていたが、R12 の時点でも未実装だった
+// （app.js の codex は装備の未入手一覧で、図鑑ではない）。ここがその実装である。
+//
+// **段階開示にする。**名簿と同じ考え方で、会っただけの相手には狙いしか書けない。
+//
+//   1回でも見た … 名前と狙い（戦闘前の敵カードと同じ情報）
+//   1回倒した   … 拾い屋の噂（ENEMY_LORE）
+//   5回倒した   … 図鑑の一節（ENEMY_CODEX）。何度も見た者にしか書けないこと
+//
+// **会っていない敵は名前も出さない**（R12 §4.E-1 と同じ線）。
+const CODEX_DEEP_THRESHOLD = 5;
+
+function bestiaryEntries() {
+  const bestiary = state.profile.bestiary ?? {};
+  return Object.keys(PLAYABLE_CONTENT.enemyActors)
+    .filter((id) => (bestiary[id]?.seen ?? 0) > 0)
+    .map((id) => ({ id, ...bestiary[id] }));
+}
+
+function bestiaryCard(entry) {
+  const info = enemyInfo(entry.id);
+  const deep = entry.defeated >= CODEX_DEEP_THRESHOLD;
+  const codex = deep ? (ENEMY_CODEX[entry.id] ?? []) : [];
+  const sealed = !deep && (ENEMY_CODEX[entry.id] ?? []).length > 0;
+  return "<article class=\"codex-card\"><div class=\"codex-head\"><b>" + esc(info.label) + "</b>"
+    + "<small>見た " + entry.seen + " · 倒した " + entry.defeated + "</small></div>"
+    + "<p class=\"codex-targeting\">" + esc(info.targeting) + "</p>"
+    + (entry.defeated > 0 && info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
+    + codex.map((line) => "<p class=\"codex-line\">" + esc(line) + "</p>").join("")
+    + (sealed
+      ? "<p class=\"dossier-sealed\">あと " + (CODEX_DEEP_THRESHOLD - entry.defeated)
+        + " 体倒すと、書き足せることがある。</p>"
+      : "")
+    + "</article>";
+}
+
+function renderBestiary() {
+  const entries = bestiaryEntries();
+  const deep = entries.filter((entry) => entry.defeated >= CODEX_DEEP_THRESHOLD).length;
+  return "<section class=\"card\">" + sectionHeading("FIELD CODEX / " + entries.length, "会った灰殻の記録",
+      "<span class=\"stage\">書き足せた " + deep + "</span>")
+    + "<p class=\"muted\">詰所へ出す控えの写しです。<b>遠征を捨てても消えません</b>"
+    + "（会ったことは、負けても取り消されないので）。灰殻が何なのかは、ここにも書いてありません。</p>"
+    + (entries.length
+      ? "<div class=\"codex-grid\">" + entries.map(bestiaryCard).join("") + "</div>"
+      : "<p class=\"muted\">まだ一体も記録がありません。灰へ入ると増えます。</p>")
     + "</section>";
 }
 
@@ -1603,6 +1740,16 @@ function finishStory() {
   state.story = { queue: [], after: "camp", lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (after === "prologue") {
     startPrologue();
+    return;
+  }
+  // 根城の日常場面のあとは、**入ってきた画面へ戻す。**
+  // 精算から来たときは根城の一枚へ、ギルドの根城タブから来たときはそのタブへ。
+  // （戻り先を一つに決めると、タブから読み返した人が遠征の仕立てから弾かれる。）
+  if (after === "homestead" || after === "guildHomestead") {
+    state.phase = after === "homestead" ? "homestead" : "expeditionStart";
+    if (after === "guildHomestead") state.guildTab = "homestead";
+    saveState();
+    render();
     return;
   }
   // R12 §4.C — 幕の断片のあとは、そのまま次の戦闘の予測画面へ渡す。
@@ -2191,7 +2338,11 @@ function campTreatmentBlock() {
   }).join("");
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営で治療する（補給を消費）")
     + "<p class=\"muted\">戦闘外で戻せるHPは、ここで補給を払った分だけです。誰を治療するかは自動選択します"
-    + "（集中治療は最もHP割合の低い生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者）。</p>" + rows + "</section>";
+    + "（集中治療は最もHP割合の低い生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者）。</p>"
+    // R11 §4 — ナズナは「戻せるのは、いま受けたぶんだけ」と言う人である。
+    // **野営の画面は、その一行があるだけで手当ての意味が変わる。**
+    + "<p class=\"world-voice\">戻せるのは、いま受けたぶんだけ。灰でついた古い傷は、外の手当てでは戻らない。</p>"
+    + rows + "</section>";
 }
 
 // R8 §11 — exact preview。副作用なしで次戦を1回実行し、結果を表示する。
@@ -2902,6 +3053,71 @@ function renderResult() {
 
 // R6 §5.3 — 通常戦勝利後は4候補から1つ。
 // **活動資金はこの4候補に入らない。**補給や技能点を選んでも資金は減らない。
+// ---------------------------------------------------------------- 世界の声（R12 §4.B の続き）
+//
+// R12 は敵カード・設計図・精算の三か所へ世界の声を載せた。残っていたのが
+// **報酬・野営・敗北**である。どれもプレイヤーが必ず止まる画面なのに、全文が
+// システム文だった（R12 §3「増やすべきは会話量ではなく、会話以外の器である」）。
+//
+// **会話ではない。**誰かの台詞にすると R9 §7 の断片の勘定に入ってしまうので、
+// 地の文——詰所の言い方、拾い屋の言い習わし——として置く。
+// **決定性を守る。**戦闘数や結果から引くので、同じ状況では同じ一行が出る。
+
+const REWARD_VOICES = Object.freeze([
+  "持てるだけ持って帰るのが拾い屋ではない。持って帰れるものを選ぶのが拾い屋である。",
+  "詰所の買取は品を見ない。重さと等級しか見ない。選ぶ意味は、こちら側にしかない。",
+  "拾わなかったものは灰へ戻る。戻ったものが次にどこへ出るかは、誰も知らない。",
+  "同じ幕で二度同じ品を見た者はいる。持ち帰れた者はいない。",
+]);
+
+function rewardVoice() {
+  return REWARD_VOICES[(state.run.encounterIndex - 1 + REWARD_VOICES.length) % REWARD_VOICES.length];
+}
+
+const DEFEAT_VOICES = Object.freeze([
+  "退がるのに理由は要らない。進むほうに理由が要る。",
+  "台帳の「未達」の欄は、達しなかったことだけを書く。何があったかは書かない。",
+  "補給を残して戻った隊は、たいてい次も戻ってくる。",
+]);
+
+function defeatVoice() {
+  return DEFEAT_VOICES[(state.run.fundLedger.highestClearedEncounter + DEFEAT_VOICES.length)
+    % DEFEAT_VOICES.length];
+}
+
+// R8 §3.1 —「愛着の主語は人物、偶然性の主語は装備」。R12 §3 は、生成装備が
+// rule 文しか持たないので偶然性が物語になっていないと書いた。設計図には由来を
+// 付けたので、**拾った瞬間のほうにも一行を置く。**
+//
+// **品そのものから決まる**（affix の本数と耐久）ので、同じ品なら同じ一行が出る。
+// 効果の言い換えは書かない（それは readout の仕事で、二重に書くとずれる）。
+const GENERATED_VOICES = Object.freeze({
+  common: [
+    "外の工房でも作れそうな形をしている。灰の中に落ちていたことだけが説明できない。",
+    "使い込まれている。前に持っていた者の握りの癖が、まだ残っている。",
+  ],
+  rare: [
+    "継ぎ目が見当たらない。一枚から起こしたにしては、厚みが均一すぎる。",
+    "灰を払うと下から別の色が出た。塗ったのではなく、そういう地らしい。",
+  ],
+  epic: [
+    "詰所の買取に出すと、等級の欄で手が止まる。様式に無い形をしている。",
+    "同じものを見たという報告が二件ある。どちらも別の幕の、別の隊からである。",
+  ],
+  legendary: [
+    "台帳に載せる欄が無い。載せない、と決めた者がいたのかもしれない。",
+    "手に持っているあいだ、灰の音が少しだけ遠い。気のせいだと全員が言う。",
+  ],
+});
+
+function generatedVoice(item) {
+  const lines = GENERATED_VOICES[item?.rarity] ?? [];
+  if (!lines.length) return "";
+  const affixes = (item.provenance?.affixIds ?? []).length;
+  const durability = item.definition?.maxDurability ?? 0;
+  return lines[(affixes + durability) % lines.length];
+}
+
 function renderReward() {
   const rewardCharacter = state.selectedRewardCharacter && state.run.roster.includes(state.selectedRewardCharacter)
     ? state.selectedRewardCharacter
@@ -2918,6 +3134,8 @@ function renderReward() {
       const body = item
         ? (item.readout?.lines ?? []).map((line) => "<p>" + esc(line) + "</p>").join("")
           + (item.readout?.keystone ? "<p class=\"keystone-line\">" + esc(item.readout.keystone) + "</p>" : "")
+          // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
+          + (generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
         : "<p>" + esc(info?.effect ?? "") + "</p>";
       return "<article class=\"reward-card" + (item ? " generated" : "") + "\"><div class=\"reward-kind kind-equipment\">"
         + (item ? "生成装備" : "装備") + "</div><h3>"
@@ -2958,6 +3176,7 @@ function renderReward() {
       ? "<p class=\"muted\">目利き Lv" + appraisalLevel(state.profile)
         + "：生成装備の等級を " + (appraisalLevel(state.profile) + 1) + " 回引いて良い方を採っています。</p>"
       : "")
+    + "<p class=\"world-voice\">" + esc(rewardVoice()) + "</p>"
     + "<div class=\"reward-grid\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
     + button("補給1で4候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
@@ -2971,6 +3190,8 @@ function renderDefeat() {
   return shell("足を止めた", currentEncounter().name + " · 補給 " + state.run.supplies, "<section class=\"card verdict loss\">"
     + "<div class=\"verdict-mark\">×</div><h2>この組み合わせでは届かなかった</h2>"
     + "<p>敵は強化されません。報酬も変わりません。<b>補給1で編成・位置・技能・装備を変えて、同じ戦闘へもう一度挑めます。</b></p>"
+    // R11 §2.2 — 撤退は敗北ではなく判断である。**その言い方を、負けた画面にも置く。**
+    + "<p class=\"world-voice\">" + esc(defeatVoice()) + "</p>"
     + "</section>"
     + "<section class=\"card\">" + sectionHeading("SUPPLIES", "残っている手")
     + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた") + "</section>"
@@ -3093,7 +3314,9 @@ function renderSettlement() {
         + " が開いた</h3></section>"
       : "")
     + "<section class=\"card quiet\">"
-    + button("ギルドへ戻る", "back-guild", false, "button primary")
+    // R11 §2.4 — 器材を詰所へ返して、それから根城へ帰る。**精算の次は家である。**
+    + button("根城へ帰る", "go-homestead", false, "button primary")
+    + button("ギルドへ戻る", "back-guild", false, "button")
     + button("記録を送る", "complete", false, "button") + "</section>");
 }
 
@@ -3319,8 +3542,50 @@ function handleAction(event) {
     return;
   }
 
+  // ---- 根城（R11 §2.4 / §9.4）
+  //
+  // 精算の次はここ。**新しい場面があれば先に会話へ入り、無ければ家の画面へ出る。**
+  if (action === "go-homestead") {
+    const scene = pendingHomesteadScene();
+    if (scene) {
+      // **既読印は入った時点で押す。**途中で閉じても、同じ夜を二度は出さない
+      // （読み返しは根城の画面から自由にできる）。
+      state.profile = {
+        ...state.profile,
+        storyFlags: [...new Set([...(state.profile.storyFlags ?? []), homesteadFlag(scene.id)])],
+      };
+      record("homestead_scene", { scene: scene.id });
+      enterStory([scene.beat], "homestead");
+      return;
+    }
+    state.phase = "homestead";
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "enter-homestead-scene") {
+    const scene = pendingHomesteadScene();
+    if (!scene) return;
+    state.profile = {
+      ...state.profile,
+      storyFlags: [...new Set([...(state.profile.storyFlags ?? []), homesteadFlag(scene.id)])],
+    };
+    record("homestead_scene", { scene: scene.id });
+    enterStory([scene.beat], homesteadReturnPhase());
+    return;
+  }
+
+  // 一度見た場面の読み返し。**既読印は動かさない。**
+  if (action === "replay-homestead") {
+    const scene = homesteadScene(element.dataset.scene);
+    if (!scene || !seenHomesteadIds(state.profile.storyFlags).includes(scene.id)) return;
+    enterStory([scene.beat], homesteadReturnPhase());
+    return;
+  }
+
   if (action === "guild-tab") {
-    state.guildTab = ["guild", "blueprints", "dossiers"].includes(element.dataset.tab)
+    state.guildTab = ["guild", "blueprints", "homestead", "codex"].includes(element.dataset.tab)
       ? element.dataset.tab
       : "expedition";
     saveState();
@@ -3814,6 +4079,13 @@ function handleAction(event) {
         reason: result.reason,
         roundsUsed: result.roundsUsed,
       });
+      // R8 §3.2 の図鑑。**会ったことは Profile に残る。**遠征を捨てても、
+      // 序盤の一戦でも残す（会ったという事実は、勝敗で取り消されない）。
+      state.profile = recordBestiary(
+        state.profile,
+        (composed.enemies ?? []).map((enemy) => enemy.enemyActorId),
+        { defeated: result.result === "win" },
+      );
       // R8 §8, §10 — Campaign Stage: 勝利時だけHPをcommitする（敗北時はrunを
       // 変更しない=retry safe）。4/8戦目boss勝利後はcommitBattleResultが全回復する。
       // R9 §2.1 / R11 §5 — **序盤の一戦は遠征に数えない。**

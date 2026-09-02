@@ -12,6 +12,7 @@
 | Phase C（生成装備と Blueprint）の実装票 | analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE4_STATUS.md |
 | 本編5人のキャラクター設計（R11、実装済み） | analysis/experiments/exp-18/R11_CHARACTER_DESIGN_FIVE.md |
 | 物語まわりの評価と実装（R12、実装済み） | analysis/experiments/exp-18/R12_STORYTELLING_REVIEW.md |
+| 根城・図鑑・世界の声（R13、実装済み） | analysis/experiments/exp-18/R13_HOMESTEAD_AND_CODEX.md |
 | EXP-18 の判断履歴 | analysis/experiments/exp-18/ |
 | 運用・公開・人間テスト | docs/ |
 | D1 への保存処理 | functions/api/runs.js、migrations/ |

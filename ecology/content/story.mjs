@@ -30,8 +30,7 @@
 //
 // ここを触ってよいのは 物語 担当だけ。engine・schema・content 契約は変更しない。
 
-import { CHARACTER_NAMES } from "./characters.mjs";
-import { EXPRESSIONS, PORTRAITS } from "./portraits.mjs";
+import { beat, castOnStage, narrate, say, stand } from "./beat.mjs";
 
 // ---------------------------------------------------------------- 序盤の敗北（R9 §2.1 / R11 §5）
 //
@@ -74,41 +73,9 @@ export const PROLOGUE = Object.freeze({
 });
 
 // ---------------------------------------------------------------- 断片の組み立て
-
-const shortName = (characterId) => String(CHARACTER_NAMES[characterId] ?? characterId).split(" — ")[0];
-
-// 台詞。**表示名は表から引く。**ここで綴ると、人物の改名に追随できない。
-const say = (who, text, emotion = "neutral", fx = null) => {
-  if (!PORTRAITS[who]) throw new Error("story: 立ち絵の無い話者 " + who);
-  if (!EXPRESSIONS[emotion]) throw new Error("story: 未知の表情 " + emotion);
-  return Object.freeze({ who, speaker: shortName(who), text, emotion, fx });
-};
-
-// 地の文。話者を持たない。**名前欄を出さずに、真ん中へ置く。**
-const narrate = (text, fx = null) => Object.freeze({ who: null, speaker: null, text, emotion: null, fx });
-
-// 立ち位置。at は far_left / left / center / right / far_right。
-// since はその行から舞台に現れる。
 //
-// R12 — **隊にいる人は、その場面に立っている。**加入の断片で舞台に出るのは
-// 「喋る人」ではなく「そこに居る全員」である。3枠しか無かったころは、
-// 4人目・5人目が配役ごと落ちて、加入済みの仲間が場面から消えていた
-// （ナズナが Stage 2・3 の join から居なくなっていた。作者判断で修正）。
-// 外側の2枠は一回り小さく、奥に立つ。**行数は増やさない。**
-const stand = (who, at, since = 0) => {
-  if (!PORTRAITS[who]) throw new Error("story: 立ち絵の無い配役 " + who);
-  return Object.freeze({ who, at, since });
-};
-
-const beat = (id, title, options) => Object.freeze({
-  id,
-  title,
-  mood: options.mood ?? "ash",
-  place: options.place ?? "",
-  cast: Object.freeze((options.cast ?? []).map((entry) => entry)),
-  lines: Object.freeze(options.lines.map((line) => line)),
-  footer: options.footer ?? null,
-});
+// say / narrate / stand / beat は content/beat.mjs にある。**根城の日常場面
+// （homestead.mjs）も同じ画面で出す**ので、組み立ての道具は共有してある。
 
 // ---------------------------------------------------------------- Stage ごとの断片
 
@@ -412,8 +379,5 @@ export function storyBeat(stageId, key) {
   return storyBeatsForStage(stageId)[key] ?? null;
 }
 
-// 断片の何行目までを見たとき、舞台に誰が立っているか。
-// **since を過ぎた配役だけを返す。**途中で現れる人物を作れるようにしてある。
-export function castOnStage(beat, lineIndex = Number.MAX_SAFE_INTEGER) {
-  return (beat?.cast ?? []).filter((entry) => (entry.since ?? 0) <= lineIndex);
-}
+// 舞台に誰が立っているかの判定は beat.mjs にある。**呼び先を変えずに再輸出する。**
+export { castOnStage };

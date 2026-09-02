@@ -10,6 +10,9 @@
 //   - 敵の規模（R9 §3.2）: 少人数 Stage では数・boss の体力・受けが人数へ合う。
 //   - 再訪（R9 §8）: 一度クリアした Stage は5人・自由編成で遊べる。
 //   - 名簿（R12 §4.A）: 読める設定が5人ぶんあり、**一度に全部は開かない**。
+//   - 根城（R13 / R11 §2.4 §9.4）: 家にあるものと日常の場面が、進行に追随して開く。
+//   - 図鑑（R13 / R8 §3.2）: 会った敵だけが載り、倒した数で開く。**engine には出ない**。
+//   - 台詞量（R12 §5.3）: スミとレイの薄さが、根城の場面で埋まっている。
 
 import assert from "node:assert/strict";
 import { simulateBattle } from "./engine.mjs";
@@ -38,9 +41,28 @@ import {
   dossierRevealLevel,
   revealedBonds,
   revealedDossierSections,
+  ENEMY_CODEX,
+  ENEMY_LORE,
+  HOMESTEAD_FIXTURES,
+  HOMESTEAD_SCENES,
+  STORY_BEATS,
+  homesteadFlag,
+  homesteadScene,
+  nextHomesteadScene,
+  revealedFixtures,
+  seenHomesteadIds,
+  seenHomesteadScenes,
 } from "./content/index.mjs";
 import { makePrologueBattle, prologueEncounter } from "./playable-battles.mjs";
-import { characterStats, manifestSkillIds, newProfile, newRun } from "./progression.mjs";
+import {
+  characterStats,
+  manifestSkillIds,
+  newProfile,
+  newRun,
+  normalizeBestiary,
+  normalizeProfile,
+  recordBestiary,
+} from "./progression.mjs";
 
 let checks = 0;
 const check = (condition, message) => {
@@ -490,6 +512,213 @@ const statsFor = (characterId) => characterStats(profile, characterId);
         characterId + "⇄" + bond.with + ": 越えたら出る");
     }
   }
+}
+
+// ---- 根城（R13 / R11 §2.4・§9.4）---------------------------------------------
+//
+// **帰る場所。**R11 §2.4 が「日常の場面と設定の厚みはここに置く」と決めたのに、
+// R12 の時点でどこからも見えていなかった面である。見るのは三つ。
+//
+//   1. 家にあるものが、進行に追随して増える（閉じ直さない）
+//   2. 場面が決定的な順で一つずつ出る（引かない）
+//   3. 場面に立つ人物が、その時点で必ず加入済みである
+
+{
+  const CAST_IDS = new Set(Object.keys(PLAYABLE_CONTENT.characters));
+  const ALL_MET = new Set(["warden", "mender", "lancer", "guardian", "tactician"]);
+  const names = new Set(Object.values(SECTION_NAMES.characters).map((name) => name.split(" ")[0]));
+
+  check(HOMESTEAD_SCENES.length >= 4, "根城の場面が4つ以上ある");
+  check(HOMESTEAD_FIXTURES.length >= 6, "家にあるものが6つ以上ある");
+
+  // ---- 場面そのもの ----
+  const seenIds = new Set();
+  for (const scene of HOMESTEAD_SCENES) {
+    check(!seenIds.has(scene.id), scene.id + " は一意");
+    seenIds.add(scene.id);
+    check(scene.beat.lines.length >= 3, scene.id + " は3行以上");
+    // **ここは行数を絞らない**（R9 §7 は Stage の断片の縛りで、根城は学習の外）。
+    check(scene.beat.lines.length <= 12, scene.id + " は12行以下（読み切れる長さ）");
+    for (const line of scene.beat.lines) {
+      check(typeof line.text === "string" && line.text.length > 0, scene.id + " の行に本文がある");
+      if (line.speaker === null) {
+        check(line.who === null, scene.id + ": 地の文は話者を持たない");
+        continue;
+      }
+      check(names.has(line.speaker), scene.id + ": 話者 " + line.speaker + " が実在の仲間");
+      check(EXPRESSIONS[line.emotion], scene.id + ": " + line.emotion + " は実在の表情");
+    }
+    // **舞台に立つ人物は、その場面の条件で必ず加入済みである。**
+    // 条件に無い人物を立たせると、まだ会っていない人が家に居ることになる。
+    const guaranteed = new Set([
+      ...CAMPAIGN_STAGES.filter((stage) => stage.sequence <= scene.requires.clearedStage)
+        .flatMap((stage) => stage.castCharacterIds),
+      ...scene.requires.met,
+    ]);
+    for (const entry of scene.beat.cast) {
+      check(CAST_IDS.has(entry.who), scene.id + ": 配役 " + entry.who + " が実在の人物");
+      check(guaranteed.has(entry.who),
+        scene.id + ": " + entry.who + " は、この場面が開く時点で必ず加入している");
+      check(PORTRAIT_IDS.includes(entry.who), scene.id + ": " + entry.who + " に立ち絵がある");
+    }
+    // 喋る人は、舞台に立っている。
+    const onStage = new Set(castOnStage(scene.beat).map((entry) => entry.who));
+    for (const line of scene.beat.lines) {
+      if (line.who === null) continue;
+      check(onStage.has(line.who), scene.id + ": 喋る " + line.who + " が舞台に立っている");
+    }
+  }
+
+  // ---- 家にあるものは、進行に追随して増える。**閉じ直さない。** ----
+  let previousCount = 0;
+  for (let highest = -1; highest <= 3; highest += 1) {
+    const met = new Set(CAMPAIGN_STAGES.filter((stage) => stage.sequence <= highest + 1)
+      .flatMap((stage) => stage.castCharacterIds));
+    const open = revealedFixtures({
+      highestClearedStageSequence: highest, met, blueprintCount: 0,
+    });
+    check(open.length >= previousCount, "Stage " + highest + ": 家にあるものが減らない");
+    previousCount = open.length;
+  }
+  check(previousCount > revealedFixtures({
+    highestClearedStageSequence: -1, met: new Set(), blueprintCount: 0,
+  }).length, "進めると家にあるものが増える");
+
+  // 設計図が要るものは、設計図が無ければ出ない。
+  const wallId = "blueprint_wall";
+  const withoutBlueprints = revealedFixtures({
+    highestClearedStageSequence: 3, met: ALL_MET, blueprintCount: 0,
+  }).map((entry) => entry.id);
+  const withBlueprints = revealedFixtures({
+    highestClearedStageSequence: 3, met: ALL_MET, blueprintCount: 9,
+  }).map((entry) => entry.id);
+  check(!withoutBlueprints.includes(wallId), "設計図が無ければ壁の写しは出ない");
+  check(withBlueprints.includes(wallId), "設計図が貯まると壁の写しが出る");
+
+  // ---- 場面は、条件を満たした順に一つずつ出る。**引かない。** ----
+  equal(nextHomesteadScene({ highestClearedStageSequence: -1, met: new Set() }, []), null,
+    "Stage 0 を越える前は根城の場面が無い");
+  const context = { highestClearedStageSequence: 3, met: ALL_MET, blueprintCount: 0 };
+  const order = [];
+  const seen = [];
+  for (let step = 0; step < HOMESTEAD_SCENES.length + 1; step += 1) {
+    const next = nextHomesteadScene(context, seen);
+    if (!next) break;
+    order.push(next.id);
+    seen.push(next.id);
+  }
+  equal(order.length, HOMESTEAD_SCENES.length, "条件を満たせば、全ての場面がいずれ出る");
+  assert.deepEqual(order, HOMESTEAD_SCENES.map((scene) => scene.id),
+    "場面は定義順に出る（同じ進行なら同じ順）");
+  checks += 1;
+  equal(nextHomesteadScene(context, seen), null, "全部見たら、もう出ない");
+
+  // 既読印は storyFlags に乗り、そこから読み返せる。
+  const flags = HOMESTEAD_SCENES.slice(0, 2).map((scene) => homesteadFlag(scene.id));
+  assert.deepEqual(seenHomesteadIds([...flags, "prologue_seen"]),
+    HOMESTEAD_SCENES.slice(0, 2).map((scene) => scene.id),
+    "既読印から根城の場面だけを拾える");
+  checks += 1;
+  equal(seenHomesteadScenes(seenHomesteadIds(flags)).length, 2, "見た場面は読み返せる");
+  check(homesteadScene(HOMESTEAD_SCENES[0].id) === HOMESTEAD_SCENES[0], "id から場面を引ける");
+  equal(homesteadScene("no_such_scene"), null, "無い場面は null");
+
+  // 既読印が 200 件まで残る（Stage が増えても根城の印が押し出されない）。
+  const many = normalizeProfile({
+    ...newProfile(),
+    storyFlags: [...Array(120)].map((_, index) => "homestead:filler_" + index),
+  });
+  equal(many.storyFlags.length, 120, "既読印は 120 件でも切り捨てられない");
+}
+
+// ---- 台詞量（R12 §5.3）------------------------------------------------------
+//
+// R12 は「スミ4行・レイ3行」を数で足りていないと書き、幕の断片で 6行・7行 まで
+// 増やしたうえで「まだ薄い」と残した。根城の場面はその続きなので、**数を固定する。**
+// 減らす変更をしたら、ここが落ちる。
+
+{
+  const count = (who) => {
+    let lines = 0;
+    for (const stage of Object.values(STORY_BEATS)) {
+      for (const beat of Object.values(stage)) {
+        lines += beat.lines.filter((line) => line.who === who).length;
+      }
+    }
+    for (const scene of HOMESTEAD_SCENES) {
+      lines += scene.beat.lines.filter((line) => line.who === who).length;
+    }
+    return lines;
+  };
+  // R12 §4.5.6 の表に、根城のぶんを足した下限。
+  check(count("guardian") >= 12, "スミの台詞が12行以上ある（R12 時点は6行）");
+  check(count("tactician") >= 13, "レイの台詞が13行以上ある（R12 時点は7行）");
+  // **薄い二人を厚くしたのであって、全員を厚くしたのではない。**
+  check(count("guardian") >= 12 && count("tactician") >= 13, "薄かった二人が下限を満たす");
+}
+
+// ---- 図鑑（R13 / R8 §3.2）---------------------------------------------------
+//
+// R8 §3.2 は ProfileState に「図鑑」を挙げていたが、R12 の時点でも未実装だった。
+// **engine には出ない。**遠征をまたいで残る、会った敵の記録だけを見る。
+
+{
+  const enemyIds = Object.keys(PLAYABLE_CONTENT.enemyActors);
+
+  // 噂（敵カード）と図鑑（根城）は別の層だが、**書いてある敵の集合は揃える。**
+  for (const id of Object.keys(ENEMY_LORE)) {
+    check(Array.isArray(ENEMY_CODEX[id]) && ENEMY_CODEX[id].length > 0,
+      id + ": 噂があるなら図鑑の節もある");
+  }
+  for (const id of Object.keys(ENEMY_CODEX)) {
+    check(enemyIds.includes(id), id + ": 図鑑の節が実在の敵を指す");
+    // **規則の言い換えを書かない**（狙いは ENEMY_TARGETING の仕事）。
+    for (const line of ENEMY_CODEX[id]) {
+      check(typeof line === "string" && line.length > 0, id + ": 図鑑の行に本文がある");
+      // **噂と図鑑で同じことを二度書かない。**図鑑のカードは噂の下に節を継ぐので、
+      // 重ねると同じ文が二段に並ぶ（実装中に一度そうなった）。
+      const lore = ENEMY_LORE[id];
+      check(!lore || (line !== lore && !line.includes(lore) && !lore.includes(line)),
+        id + ": 図鑑の節が噂を繰り返していない");
+    }
+  }
+
+  // 図鑑は engine の語彙に混ざらない。
+  for (const definition of Object.values(PLAYABLE_CONTENT.enemyActors)) {
+    check(!("lore" in definition) && !("codex" in definition),
+      "敵の定義に物語の欄が混ざっていない");
+  }
+
+  // ---- 数え方。**同じ戦闘に何体いても、その敵種は一回。** ----
+  const fresh = newProfile();
+  assert.deepEqual(fresh.bestiary, {}, "新しい Profile の図鑑は空");
+  checks += 1;
+  const once = recordBestiary(fresh, ["husk", "husk", "gray_marksman"], { defeated: true });
+  equal(once.bestiary.husk.seen, 1, "同じ戦闘の同じ敵種は1回だけ数える");
+  equal(once.bestiary.husk.defeated, 1, "勝った戦闘は倒した数に入る");
+  equal(once.bestiary.gray_marksman.seen, 1, "別の敵種も数える");
+  const twice = recordBestiary(once, ["husk"], { defeated: false });
+  equal(twice.bestiary.husk.seen, 2, "会った数は負けても増える");
+  equal(twice.bestiary.husk.defeated, 1, "負けた戦闘は倒した数に入らない");
+  assert.deepEqual(fresh.bestiary, {}, "recordBestiary は元の Profile を書き換えない");
+  checks += 1;
+
+  // 未知の敵と壊れた値は落とす。**倒した数が会った数を超えない。**
+  const cleaned = normalizeBestiary({
+    husk: { seen: 3, defeated: 9 },
+    not_an_enemy: { seen: 5, defeated: 5 },
+    gray_swarm: { seen: "2", defeated: -4 },
+    still_husk: { seen: 0, defeated: 0 },
+  });
+  equal(cleaned.husk.defeated, 3, "倒した数は会った数を超えない");
+  equal(cleaned.not_an_enemy, undefined, "実在しない敵は落とす");
+  equal(cleaned.gray_swarm.seen, 2, "数字の文字列は読む");
+  equal(cleaned.gray_swarm.defeated, 0, "負の値は 0 になる");
+  equal(cleaned.still_husk, undefined, "一度も会っていない欄は残さない");
+
+  // save を読み直しても残る（遠征を捨てても消えない）。
+  const restored = normalizeProfile({ ...newProfile(), bestiary: twice.bestiary });
+  equal(restored.bestiary.husk.seen, 2, "図鑑は save から戻る");
 }
 
 console.log(`story.test.mjs: ${checks} checks passed`);

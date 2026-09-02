@@ -223,6 +223,8 @@ try {
     await click("報酬を見る");
     const rewardText = await bodyText();
     note("報酬に生成装備が出る", /生成装備/.test(rewardText));
+    // R13 — 報酬画面にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
+    note("報酬画面に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
     note("生成装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
     // 生成装備を拾い、装備画面と保存の往復まで見る。
     const generated = page.locator(".reward-card.generated").first();
@@ -251,7 +253,16 @@ try {
   note("設計図として残した品が出る", /設計図として残した品/.test(settleText));
   note("残した件数が出ている", /新しく残した|取得履歴を追加|残せる品がありません/.test(settleText));
 
-  await click("ギルドへ戻る");
+  // R13 / R11 §2.4 — **精算の次は家である。**器材を返して、それから根城へ帰る。
+  note("精算から根城へ帰れる", await page.getByRole("button", { name: "根城へ帰る" }).count() === 1);
+  note("精算の締めの一行がある", /拾い屋の撤退は敗北ではない|台帳にはそう書く|詰所へ返し/.test(settleText));
+  await click("根城へ帰る");
+  await page.waitForTimeout(300);
+  const homesteadText = await bodyText();
+  note("根城の一枚に着く", /根城/.test(homesteadText) && /直しかけの家/.test(homesteadText));
+  note("根城に名簿がある", /隊の名簿/.test(homesteadText));
+  await click("ギルドへ");
+  await page.waitForTimeout(250);
   await page.locator('[data-action="guild-tab"][data-tab="blueprints"]').click();
   await page.waitForTimeout(200);
   const archiveText = await bodyText();
@@ -309,16 +320,43 @@ try {
   note("未解禁の pack を名前で出さない", !/この遠征では出ない/.test(guildText));
   note("本編に出ない同業者が消えている", !/トキ|ヨリ|アカリ/.test(guildText));
 
-  // ---- R12 §4.A — 名簿（読める設定）。**一度に全部は開かない。**
-  await page.locator('[data-action="guild-tab"][data-tab="dossiers"]').click();
+  // ---- R13 / R12 §4.A — 根城（家にあるもの）と名簿（読める設定）。
+  // **名簿は根城の中にある。**一度に全部は開かない。
+  await page.locator('[data-action="guild-tab"][data-tab="homestead"]').click();
   await page.waitForTimeout(200);
-  const dossierText = await bodyText();
-  note("名簿の画面がある", /隊の名簿/.test(dossierText));
-  note("加入した人物の欄が読める", /シキ/.test(dossierText) && /ナズナ/.test(dossierText));
-  note("まだ会っていない人物の欄は出ない", !/レイ/.test(dossierText));
-  note("開いていない節があると分かる", /まだ書かれていない節/.test(dossierText));
-  note("will はまだ開いていない", !/この人が求めているもの/.test(dossierText));
-  note("Stage 0 を越えた分だけ節が開く", /灰の中では/.test(dossierText));
+  const homeText = await bodyText();
+  note("根城の画面がある", /根城/.test(homeText) && /直しかけの家/.test(homeText));
+  note("家にあるものが読める", /帳簿と目録/.test(homeText));
+  note("まだ増えていないものは出ない", !/棚の規則|壁の写し/.test(homeText));
+  note("名簿の画面がある", /隊の名簿/.test(homeText));
+  note("加入した人物の欄が読める", /シキ/.test(homeText) && /ナズナ/.test(homeText));
+  note("まだ会っていない人物の欄は出ない", !/レイ/.test(homeText));
+  note("開いていない節があると分かる", /まだ書かれていない節/.test(homeText));
+  note("will はまだ開いていない", !/この人が求めているもの/.test(homeText));
+  note("Stage 0 を越えた分だけ節が開く", /灰の中では/.test(homeText));
+
+  // 根城の日常場面。**Stage 0 を越えたので、一つ目が出ている。**
+  const sceneButton = page.getByRole("button", { name: "今夜の場面を見る" });
+  note("根城の場面へ入れる", await sceneButton.count() === 1);
+  if (await sceneButton.count()) {
+    await sceneButton.first().click();
+    await page.waitForSelector(".vn-stage", { timeout: 8000 });
+    note("根城の場面が会話として出る", /帰る場所のほう|土間/.test(await bodyText()));
+    await click("スキップ");
+    await page.waitForTimeout(250);
+    const afterScene = await bodyText();
+    note("場面のあとは根城へ戻る", /根城/.test(afterScene));
+    note("見た場面を読み返せる", /根城での場面/.test(afterScene));
+    note("同じ夜は二度出ない", await page.getByRole("button", { name: "今夜の場面を見る" }).count() === 0);
+  }
+
+  // ---- R13 / R8 §3.2 — 図鑑。**会った敵だけが載る。**
+  await page.locator('[data-action="guild-tab"][data-tab="codex"]').click();
+  await page.waitForTimeout(200);
+  const codexText = await bodyText();
+  note("図鑑の画面がある", /会った灰殻の記録/.test(codexText));
+  note("会った敵が載っている", /灰殻/.test(codexText) && /見た \d/.test(codexText));
+  note("まだ倒していない敵の噂は出ない", !/幕の奥に一つだけある/.test(codexText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
   await page.waitForTimeout(200);
   if (await stageCards.count()) {

@@ -18224,7 +18224,8 @@
    "schemaVersion": "ecology-blueprint-1",
    "entries": [],
    "carrySelection": []
-  }
+  },
+  "bestiary": {}
  },
  "runRewards": {
   "frontier-1801/1/0": [

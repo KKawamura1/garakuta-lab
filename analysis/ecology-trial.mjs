@@ -292,6 +292,39 @@ try {
     Boolean(saved?.run?.runSkillPoints) && !("skillPoints" in (saved?.profile ?? {})));
   note("控えに主要行動列が残る", (saved?.runEvents || []).some((e) => e.type === "battle_completed"));
 
+  // ---- R13 / R11 §2.4 / R8 §3.2 — 精算の次の一枚（根城）と、図鑑。
+  //
+  // **控えの検査より後に置く。**ギルドへ戻ると次の遠征の run が作られて
+  // runEvents が入れ替わるので、先に踏むと上の「控えに主要行動列が残る」が落ちる。
+  // この台本は8戦前後まで進むので、同じ敵種を何度も倒している。
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v01";
+    const stored = JSON.parse(localStorage.getItem(key));
+    stored.phase = "settlement";
+    localStorage.setItem(key, JSON.stringify(stored));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(250);
+  note("精算から根城へ帰れる", await page.getByRole("button", { name: "根城へ帰る" }).count() === 1);
+  await click("根城へ帰る");
+  await page.waitForTimeout(300);
+  // まだ見ていない日常の場面があれば、根城の一枚より先に会話が入る。
+  // **ここで見たいのは図鑑なので、場面は飛ばして通す。**
+  if (await page.locator(".vn-stage").count() > 0) {
+    note("根城の日常場面が入る", /根城/.test(await bodyText()));
+    await click("スキップ");
+    await page.waitForTimeout(300);
+  }
+  note("根城の一枚に着く", /直しかけの家/.test(await bodyText()));
+  await click("ギルドへ");
+  await page.waitForTimeout(250);
+  await page.locator('[data-action="guild-tab"][data-tab="codex"]').click();
+  await page.waitForTimeout(250);
+  const codexText = await bodyText();
+  note("図鑑に会った敵が載る", /会った灰殻の記録/.test(codexText) && /見た \d/.test(codexText));
+  note("倒した数で図鑑の節が開く",
+    /書き足せた [1-9]/.test(codexText) || /あと \d 体倒すと/.test(codexText));
+
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 4).join(" / "));
 
   // 送った run を後から D1 で照合できるように、id を1行で出す。
