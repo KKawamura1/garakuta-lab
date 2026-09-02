@@ -99,7 +99,7 @@ try {
     && /ナズナ/.test(await page.locator(".vn-name").innerText())));
   note("履歴に前の行が残る", await page.locator('[data-action="story-log"]:not([disabled])').count() === 1);
 
-  // R9 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
+  // R11 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
   await advanceStory();
   const prologueText = await bodyText();
   note("序盤の一戦へ入る", /灰の門/.test(prologueText));
@@ -124,10 +124,7 @@ try {
   await click("時間が巻き戻る");
   const rewindText = await bodyText();
   note("巻き戻しの会話が出る", /もう一度、門の前/.test(rewindText));
-  // 巻き戻し後の再戦画面で、隊列と戦闘予測の説明が出る。
-  note("戦闘予測の使い方を示す",
-    /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない/.test(rewindText)
-      || /戦闘予測/.test(rewindText));
+  // 巻き戻し後の説明は、再戦のマップ画面に表示される。
   await click("スキップ");
   await page.waitForTimeout(250);
 
@@ -149,7 +146,7 @@ try {
   await page.waitForTimeout(200);
   note("手動セーブからCampへ戻れる", /編成|仲間/.test(await bodyText()) && /2 \/ 2人/.test(await bodyText()));
 
-  // R9 §3.1 — 新 pack は入口だけ。full だけの技能はまだ出ない。
+  // R11 §3.1 — 新 pack は入口だけ。full だけの技能はまだ出ない。
   await page.locator('nav.tabs [data-tab="skills"]').click();
   const skillText = await bodyText();
   note("入口の技能が出ている", /溜め突き/.test(skillText));
@@ -161,6 +158,10 @@ try {
 
   // R11 §2.1 — 巻き戻し後は、同じ序盤戦の再戦を通って本編へ戻る。
   await page.locator('nav.tabs [data-tab="map"]').click();
+  const retryMapText = await bodyText();
+  note("戦闘予測の使い方を示す",
+    /戦闘予測/.test(retryMapText)
+      && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない/.test(retryMapText));
   await click("この敵に挑む");
   await click("自動戦闘を再生する");
   await page.waitForSelector(".battle-field", { timeout: 8000 });
@@ -251,7 +252,7 @@ try {
       carriedName);
   }
 
-  // ---- R9 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
+  // ---- R11 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
   // （12戦を通すのはこの台本の仕事ではない）。
   await page.evaluate(() => {
     const key = "exp18-r10-auto-v01";
