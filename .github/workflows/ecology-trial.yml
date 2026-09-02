@@ -68,10 +68,11 @@ jobs:
           const errors = [];
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-          page.on("pageerror", (error) => errors.push(String(error)));
+          page.on("pageerror", (error) => errors.push(error.stack || String(error)));
           page.on("console", (message) => {
             if (message.type() === "error" && !/Failed to load resource/.test(message.text())) {
-              errors.push(message.text());
+              const location = message.location();
+              errors.push(message.text() + " @ " + JSON.stringify(location));
             }
           });
           await page.goto("http://127.0.0.1:8947/ecology/", { waitUntil: "networkidle" });
