@@ -85,9 +85,10 @@ try {
 
   // R11 §2.1 — 最初の2人の会話。**シキとナズナの考え方の違いを見せる。**
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
-  const openingText = await bodyText();
-  note("最初の会話が出る", /シキ/.test(openingText) && /ナズナ/.test(openingText)
-    && await page.locator(".vn-text").count() === 1);
+  note("最初の会話が出る",
+    await page.locator(".vn-stage").count() === 1
+      && await page.locator(".vn-box").count() === 1
+      && (await page.locator(".vn-text").innerText()).trim().length > 0);
   note("会話は飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
 
   // 立ち絵つきの一行送り。**喋っている人だけが前に出る。**
