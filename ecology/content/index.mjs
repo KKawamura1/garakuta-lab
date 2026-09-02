@@ -120,7 +120,19 @@ export const SECTION_NAMES = Object.freeze({
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
 export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
-export { ENCOUNTERS, ENEMY_TARGETING } from "./encounters.mjs";
+export { ENCOUNTERS, ENEMY_CODEX, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
+// R12 §4.A — 読める設定（ギルドカード）。engine には出ない、表示だけの content。
+export {
+  DOSSIERS,
+  DOSSIER_IDS,
+  DOSSIER_SECTIONS,
+  DOSSIER_SECTION_HEADINGS,
+  dossierFor,
+  dossierName,
+  dossierRevealLevel,
+  revealedBonds,
+  revealedDossierSections,
+} from "./dossiers.mjs";
 export { EQUIPMENT_GROUPS, STARTER_EQUIPMENT_IDS } from "./equipment-fixed.mjs";
 // R7 Milestone 4（Phase B）— 遠征、技能パック、難易度。
 export {
@@ -152,6 +164,20 @@ export {
 } from "./campaign-stages.mjs";
 // R9 §2 / §7 — 初期4 Stage のチュートリアル物語。
 export { PROLOGUE, STORY_BEATS, castOnStage, storyBeat, storyBeatsForStage } from "./story.mjs";
+// 会話の断片を組み立てる道具。**story と homestead が同じ定義を使う。**
+export { beat, narrate, say, stand } from "./beat.mjs";
+// R11 §2.4 / §9.4 — 根城。遠征と遠征のあいだの、日常の場面と家にあるもの。
+export {
+  HOMESTEAD_FIXTURES,
+  HOMESTEAD_FLAG_PREFIX,
+  HOMESTEAD_SCENES,
+  homesteadFlag,
+  homesteadScene,
+  nextHomesteadScene,
+  revealedFixtures,
+  seenHomesteadIds,
+  seenHomesteadScenes,
+} from "./homestead.mjs";
 // 会話画面の立ち絵。**見た目だけを持つ**（engine・schema には出ない）。
 export {
   DEFAULT_EXPRESSION,

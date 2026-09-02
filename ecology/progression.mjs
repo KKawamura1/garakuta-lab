@@ -283,7 +283,45 @@ export function newProfile() {
     // R8 §3.6 — Phase C。Blueprint archive は Profile 側の永続区画。
     // **所持上限は無い。**制限が掛かるのは遠征開始時の持込枠だけ。
     blueprints: newArchive(),
+    // R8 §3.2 の「図鑑」。**遠征をまたいで残る、会った敵の記録。**
+    // 遠征内の戦績（run.results）とは別物で、こちらは捨てた遠征のぶんも残る
+    // （会ったことは、負けても取り消されない）。
+    bestiary: {},
   };
+}
+
+// ---------------------------------------------------------------- 図鑑（R8 §3.2）
+//
+// **数えるのは二つだけ。**「何度見たか」と「何度倒したか」。
+// 見た数と倒した数で、根城の図鑑がどこまで開くかが決まる（content/encounters.mjs の
+// ENEMY_LORE / ENEMY_CODEX）。engine には出ないので、戦闘の決定性には触れない。
+export function normalizeBestiary(saved) {
+  const bestiary = {};
+  if (!saved || typeof saved !== "object") return bestiary;
+  for (const [id, entry] of Object.entries(saved)) {
+    if (!PLAYABLE_CONTENT.enemyActors[id]) continue;
+    const seen = Math.max(0, Math.floor(Number(entry?.seen) || 0));
+    const defeated = Math.max(0, Math.floor(Number(entry?.defeated) || 0));
+    if (!seen && !defeated) continue;
+    bestiary[id] = { seen, defeated: Math.min(defeated, seen) };
+  }
+  return bestiary;
+}
+
+// 一戦ぶんを足す。**同じ戦闘に何体いても、その敵種は「一戦で一回」数える。**
+// 個体数で数えると、群れの敵だけが極端に早く開く。
+export function recordBestiary(profile, enemyActorIds, options = {}) {
+  const defeatedAll = options.defeated === true;
+  const bestiary = { ...(profile.bestiary ?? {}) };
+  for (const id of new Set(enemyActorIds ?? [])) {
+    if (!PLAYABLE_CONTENT.enemyActors[id]) continue;
+    const before = bestiary[id] ?? { seen: 0, defeated: 0 };
+    bestiary[id] = {
+      seen: before.seen + 1,
+      defeated: before.defeated + (defeatedAll ? 1 : 0),
+    };
+  }
+  return { ...profile, bestiary };
 }
 
 // **未知の欄は落とし、足りない欄は生やす。**version 不一致を黙って読み飛ばさない
@@ -349,9 +387,12 @@ export function normalizeProfile(saved) {
   // R8 §3.6 — 保存した品が黙って消えるのが一番困るので、archive は
   // schemaVersion が違っても読める entry を引き継ぐ（normalizeArchive 側）。
   profile.blueprints = normalizeArchive(saved.blueprints);
+  // 既読印は物語の側の記録なので、根城の場面（homestead:*）もここに乗る。
+  // 上限を 50 から 200 へ上げた（Stage が増えるほど印も増えるため）。
   profile.storyFlags = Array.isArray(saved.storyFlags)
-    ? saved.storyFlags.filter((flag) => typeof flag === "string").slice(0, 50)
+    ? saved.storyFlags.filter((flag) => typeof flag === "string").slice(0, 200)
     : [];
+  profile.bestiary = normalizeBestiary(saved.bestiary);
   return profile;
 }
 

@@ -52,124 +52,6 @@
     "focus": 14,
     "guard": 1
    },
-   "scout": {
-    "id": "scout",
-    "displayName": "トキ — 先を読む人",
-    "maxHp": 170,
-    "speed": 10,
-    "baseActionPoints": 1,
-    "baseReactionPoints": 2,
-    "signatureRules": [
-     {
-      "id": "scout_reads_the_room",
-      "listenTo": "round_started",
-      "timing": "after",
-      "priority": 200,
-      "predicates": [
-       {
-        "type": "round_number",
-        "op": "eq",
-        "value": 1
-       }
-      ],
-      "costs": [],
-      "effects": [
-       {
-        "type": "gain_barrier",
-        "target": {
-         "scope": "self",
-         "take": 1
-        },
-        "amount": {
-         "type": "stat_scaled",
-         "subject": "self",
-         "scalingStat": "focus",
-         "coefficientBps": 2500
-        },
-        "duration": "round"
-       }
-      ],
-      "limit": {
-       "scope": "battle",
-       "count": 1
-      }
-     }
-    ],
-    "tags": [
-     "fixture",
-     "fast"
-    ],
-    "might": 34,
-    "focus": 24,
-    "guard": 3
-   },
-   "pivot": {
-    "id": "pivot",
-    "displayName": "ヨリ — 余りを活かす人",
-    "maxHp": 200,
-    "speed": 5,
-    "baseActionPoints": 2,
-    "baseReactionPoints": 2,
-    "signatureRules": [
-     {
-      "id": "pivot_banks_the_rest",
-      "listenTo": "resource_unused",
-      "timing": "after",
-      "priority": 100,
-      "predicates": [
-       {
-        "type": "target_exists",
-        "query": {
-         "scope": "self",
-         "filters": [
-          {
-           "type": "is_event_primary_target"
-          }
-         ],
-         "take": 1
-        }
-       },
-       {
-        "type": "event_tag",
-        "tag": "action_points",
-        "value": true
-       },
-       {
-        "type": "event_value",
-        "key": "amount",
-        "op": "gte",
-        "value": 1
-       }
-      ],
-      "costs": [],
-      "effects": [
-       {
-        "type": "gain_barrier",
-        "target": {
-         "scope": "self",
-         "take": 1
-        },
-        "amount": {
-         "type": "event_value_scaled",
-         "key": "amount"
-        },
-        "duration": "round"
-       }
-      ],
-      "limit": {
-       "scope": "round",
-       "count": 1
-      }
-     }
-    ],
-    "tags": [
-     "fixture",
-     "gate_e"
-    ],
-    "might": 26,
-    "focus": 28,
-    "guard": 6
-   },
    "guardian": {
     "id": "guardian",
     "displayName": "スミ — 受け止める人",
@@ -186,23 +68,6 @@
     "might": 16,
     "focus": 26,
     "guard": 26
-   },
-   "arcanist": {
-    "id": "arcanist",
-    "displayName": "アカリ — 溜める人",
-    "maxHp": 150,
-    "speed": 4,
-    "baseActionPoints": 1,
-    "baseReactionPoints": 2,
-    "signatureRules": [],
-    "tags": [
-     "playable",
-     "rear",
-     "attack"
-    ],
-    "might": 12,
-    "focus": 52,
-    "guard": 2
    },
    "tactician": {
     "id": "tactician",
@@ -6383,10 +6248,7 @@
   "warden": "シキ — 受けて返す人",
   "mender": "ナズナ — 止める人",
   "lancer": "カイ — 抜ける人",
-  "scout": "トキ — 先を読む人",
-  "pivot": "ヨリ — 余りを活かす人",
   "guardian": "スミ — 受け止める人",
-  "arcanist": "アカリ — 溜める人",
   "tactician": "レイ — 渡す人",
   "strike": "斬撃",
   "bulwark": "防壁形成",
@@ -6576,51 +6438,6 @@
    "starterReactives": [
     "triage",
     "emergency_treatment"
-   ]
-  },
-  {
-   "id": "scout",
-   "role": "機動",
-   "icon": "目",
-   "defaultPosition": "rear_right",
-   "summary": "敵の準備を読み、位置を変えて前線を整える。",
-   "starterTactics": [
-    "mark_target",
-    "reposition"
-   ],
-   "starterReactives": [
-    "guard_step",
-    "urging"
-   ]
-  },
-  {
-   "id": "pivot",
-   "role": "蓄積",
-   "icon": "環",
-   "defaultPosition": "rear_left",
-   "summary": "行動権を2つ持つ。余った権利を防壁へ変え、長期戦を支える。",
-   "starterTactics": [
-    "strike",
-    "bulwark"
-   ],
-   "starterReactives": [
-    "guard_step",
-    "scavenge_ap"
-   ]
-  },
-  {
-   "id": "arcanist",
-   "role": "準備攻撃",
-   "icon": "灯",
-   "defaultPosition": "rear_right",
-   "summary": "時間のかかる大技を、後列から通す。集中が隊で最も高い。",
-   "starterTactics": [
-    "heavy_swing",
-    "steady_aim"
-   ],
-   "starterReactives": [
-    "urging",
-    "prep_spiral"
    ]
   }
  ],
@@ -9006,102 +8823,122 @@
   "husk": {
    "id": "husk",
    "label": "灰殻兵",
-   "targeting": "前列を優先して狙う。"
+   "targeting": "前列を優先して狙う。",
+   "lore": "台帳ではこれを「兵」と数えない。「一体」と書く。"
   },
   "husk_warden": {
    "id": "husk_warden",
    "label": "灰殻の見張り",
-   "targeting": "前列を優先して狙う。"
+   "targeting": "前列を優先して狙う。",
+   "lore": "門の内側に立っていることが多い。誰の門なのかは、誰も知らない。"
   },
   "still_husk": {
    "id": "still_husk",
    "label": "動かない灰殻",
-   "targeting": "前列を優先して狙う。"
+   "targeting": "前列を優先して狙う。",
+   "lore": "動かないものには手を出すな、と教わる。理由は教わらない。"
   },
   "husk_hunter": {
    "id": "husk_hunter",
    "label": "灰殻の狩人",
-   "targeting": "前列を優先して狙う。"
+   "targeting": "前列を優先して狙う。",
+   "lore": "こちらが何かを構えたときだけ、まっすぐ来る。"
   },
   "husk_bulwark": {
    "id": "husk_bulwark",
    "label": "灰殻の盾兵",
-   "targeting": "前列を優先して狙う。"
+   "targeting": "前列を優先して狙う。",
+   "lore": "殴った音が、金属でも石でもない。"
   },
   "husk_echo": {
    "id": "husk_echo",
    "label": "灰殻の反響体",
-   "targeting": "前列を優先して狙う。"
+   "targeting": "前列を優先して狙う。",
+   "lore": "殴ると、殴った側が同じところを痛める。新人はここで一度辞める。"
   },
   "husk_marker": {
    "id": "husk_marker",
    "label": "灰殻の標定手",
-   "targeting": "前列を優先して狙う。"
+   "targeting": "前列を優先して狙う。",
+   "lore": "見られた、と思ったら、もう囲まれている。"
   },
   "gray_scrapper": {
    "id": "gray_scrapper",
    "label": "灰殻の走者",
-   "targeting": "前列の生存者を、左から狙う。"
+   "targeting": "前列の生存者を、左から狙う。",
+   "lore": "灰の浅いところに一番多い。数だけはいくらでもいる。"
   },
   "gray_runner": {
    "id": "gray_runner",
    "label": "灰殻の走り手",
-   "targeting": "前列の生存者を、速い順に狙う。"
+   "targeting": "前列の生存者を、速い順に狙う。",
+   "lore": "足音がしない。振り向いたときには間合いの内側にいる。"
   },
   "gray_marksman": {
    "id": "gray_marksman",
    "label": "灰殻の後撃ち",
-   "targeting": "後列の生存者を優先して狙う。"
+   "targeting": "後列の生存者を優先して狙う。",
+   "lore": "後ろに置いた者から減る。だから新人には前を任せる、と言う先達がいる。"
   },
   "gray_stalker": {
    "id": "gray_stalker",
    "label": "灰殻の潜み手",
-   "targeting": "まず後列を狙い、後列がいなければ前列を狙う。"
+   "targeting": "まず後列を狙い、後列がいなければ前列を狙う。",
+   "lore": "隊列の後ろを覚えている、という言い方をする者がいる。"
   },
   "gray_guard": {
    "id": "gray_guard",
    "label": "灰殻の守衛",
-   "targeting": "前列を狙い、最初の行動で防壁を張る。"
+   "targeting": "前列を狙い、最初の行動で防壁を張る。",
+   "lore": "最初の一手をいつも守りに使う。急いでいる相手ほど嫌がる。"
   },
   "gray_breaker": {
    "id": "gray_breaker",
    "label": "灰殻の砕き手",
-   "targeting": "重い一撃を準備して前列へ放ち、その後は前列を狙う。"
+   "targeting": "重い一撃を準備して前列へ放ち、その後は前列を狙う。",
+   "lore": "溜めているあいだは静かで、そのぶん派手に来る。"
   },
   "gray_shelter": {
    "id": "gray_shelter",
    "label": "灰殻の籠り手",
-   "targeting": "最初に防壁を張り、その後は前列を狙う。"
+   "targeting": "最初に防壁を張り、その後は前列を狙う。",
+   "lore": "先に殻を張る。剥がすまでのあいだが、こちらの持ち時間になる。"
   },
   "gray_hunter": {
    "id": "gray_hunter",
    "label": "灰殻の狩人",
-   "targeting": "準備中の味方を見つければ先に狙う。いなければ前列。"
+   "targeting": "準備中の味方を見つければ先に狙う。いなければ前列。",
+   "lore": "こちらの溜めを嫌う。準備している者から順に潰しに来る。"
   },
   "gray_harrower": {
    "id": "gray_harrower",
    "label": "灰殻の追い手",
-   "targeting": "準備中の味方を追い、後列、前列の順に狙う。"
+   "targeting": "準備中の味方を追い、後列、前列の順に狙う。",
+   "lore": "追う。逃げた先で待っていることがある、というのは噂のほう。"
   },
   "gray_echo": {
    "id": "gray_echo",
    "label": "灰殻の反響体",
-   "targeting": "前列を殴り、受けたダメージを反響する。"
+   "targeting": "前列を殴り、受けたダメージを反響する。",
+   "lore": "反響体と呼ぶのは協会の呼び方で、拾い屋は「返す奴」と言う。"
   },
   "gray_swarm": {
    "id": "gray_swarm",
    "label": "灰殻の群れ",
-   "targeting": "速く動き、前列の生存者を狙う。"
+   "targeting": "速く動き、前列の生存者を狙う。",
+   "lore": "一体ずつは軽い。軽いものが同時に来ると、重い一撃より効く。"
   },
   "gray_bulwark": {
    "id": "gray_bulwark",
    "label": "灰殻の盾兵",
-   "targeting": "防壁を張り直しながら前列を狙う。"
+   "targeting": "防壁を張り直しながら前列を狙う。",
+   "lore": "壊しても張り直す。持久の勝負になると、たいてい先に人が折れる。"
   },
   "ash_core": {
    "id": "ash_core",
    "label": "灰の核心",
-   "targeting": "重い一撃を準備し、完成したら前列へ放つ。"
+   "targeting": "重い一撃を準備し、完成したら前列へ放つ。",
+   "lore": "幕の奥に一つだけある。持ち帰った者はいるが、何だったかは書かれていない。"
   }
  },
  "enemyTargeting": {
@@ -9168,31 +9005,6 @@
    "shield_the_wounded",
    "triage",
    "emergency_treatment"
-  ],
-  "scout": [
-   "strike",
-   "mend",
-   "bulwark",
-   "mark_target",
-   "reposition",
-   "guard_step",
-   "urging"
-  ],
-  "pivot": [
-   "strike",
-   "mend",
-   "bulwark",
-   "guard_step",
-   "scavenge_ap"
-  ],
-  "arcanist": [
-   "strike",
-   "mend",
-   "bulwark",
-   "heavy_swing",
-   "steady_aim",
-   "urging",
-   "prep_spiral"
   ]
  },
  "freshLoadout": {
@@ -9209,13 +9021,13 @@
     "pierce_thrust",
     "finishing_thrust"
    ],
-   "scout": [
-    "mark_target",
-    "reposition"
-   ],
    "guardian": [
     "bulwark",
     "brace_for_impact"
+   ],
+   "tactician": [
+    "relay_order",
+    "mark_target"
    ]
   },
   "reactives": {
@@ -9231,28 +9043,28 @@
     "counter_blow",
     "scavenge_ap"
    ],
-   "scout": [
-    "guard_step",
-    "urging"
-   ],
    "guardian": [
     "cover_ally",
     "guard_step"
+   ],
+   "tactician": [
+    "urging",
+    "ap_loop"
    ]
   },
   "passives": {
    "warden": [],
    "mender": [],
    "lancer": [],
-   "scout": [],
-   "guardian": []
+   "guardian": [],
+   "tactician": []
   },
   "equipment": {
    "warden": [],
    "mender": [],
    "lancer": [],
-   "scout": [],
-   "guardian": []
+   "guardian": [],
+   "tactician": []
   }
  },
  "region": {
@@ -18356,38 +18168,8 @@
     },
     "storyFlags": []
    },
-   "scout": {
-    "characterId": "scout",
-    "trainingLevels": {
-     "might": 0,
-     "focus": 0,
-     "guard": 0,
-     "vitality": 0
-    },
-    "storyFlags": []
-   },
-   "pivot": {
-    "characterId": "pivot",
-    "trainingLevels": {
-     "might": 0,
-     "focus": 0,
-     "guard": 0,
-     "vitality": 0
-    },
-    "storyFlags": []
-   },
    "guardian": {
     "characterId": "guardian",
-    "trainingLevels": {
-     "might": 0,
-     "focus": 0,
-     "guard": 0,
-     "vitality": 0
-    },
-    "storyFlags": []
-   },
-   "arcanist": {
-    "characterId": "arcanist",
     "trainingLevels": {
      "might": 0,
      "focus": 0,
@@ -18442,7 +18224,8 @@
    "schemaVersion": "ecology-blueprint-1",
    "entries": [],
    "carrySelection": []
-  }
+  },
+  "bestiary": {}
  },
  "runRewards": {
   "frontier-1801/1/0": [

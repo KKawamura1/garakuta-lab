@@ -216,7 +216,7 @@ function syntheticResult(result, allyHpById) {
   checks += 1;
 
   // 同じ戦闘に負けたら、開始前 snapshot から何も変えない（retry safe）。
-  const loss1 = commitBattleResult(profile, run, 1, syntheticResult("loss", { warden: 0, mender: 5, lancer: 0, scout: 3, guardian: 0 }));
+  const loss1 = commitBattleResult(profile, run, 1, syntheticResult("loss", { warden: 0, mender: 5, lancer: 0, guardian: 3, tactician: 0 }));
   check(!loss1.snapshot.committed, "敗北は commit されない");
   assert.deepEqual(loss1.run.currentHp, run.currentHp, "敗北後は run が変更されない（そのまま retry できる）");
   checks += 1;

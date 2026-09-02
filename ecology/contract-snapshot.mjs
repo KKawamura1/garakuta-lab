@@ -41,7 +41,7 @@ import {
 } from "./playable-battles.mjs";
 
 // 現行 Phase B の参照編成。**seed と同じで、動かしたら比較の意味が消える。**
-const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
+const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 export function contractSnapshot() {
   const loadout = freshLoadout(ROSTER);
   const enemyIds = Object.keys(PLAYABLE_CONTENT.enemyActors);

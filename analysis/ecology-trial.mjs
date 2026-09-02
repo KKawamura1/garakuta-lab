@@ -81,17 +81,16 @@ try {
   note("build の印が画面に出ている",
     expectedBuild ? (await bodyText()).includes(expectedBuild) : false, expectedBuild);
 
-  // R6 §15.1 — 遠征開始前に、有効パック・敵family・3体のボスと法則・難易度が出る。
+  // R6 §15.1 — 遠征開始前に、有効パック・敵family・3体のボスと法則が出る。
+  // R12 — 自由遠征（旧・難易度rank）は削除した。遠征の仕立ては Campaign Stage だけ。
   await click("遠征を仕立てる");
   const guildText = await bodyText();
   note("ギルド（遠征を仕立てる）に着く", /この遠征に出るもの/.test(guildText));
-  note("有効な技能パックが出ている", /この遠征では出ない/.test(guildText) && /有効/.test(guildText));
+  note("有効な技能パックが出ている", /この遠征に出る技能パック/.test(guildText));
+  note("未解禁の pack を出していない", !/この遠征では出ない/.test(guildText));
   note("3体のボスと法則が先に見えている", /盾将の法則/.test(guildText) && /核の法則/.test(guildText));
-  // R8 Implementation Phase 1（続き）— 既定タブはキャンペーンへ格下げされた
-  // （自由遠征は早々にキャンペーンへ統合予定）。この通しは旧・自由遠征の
-  // 難易度flowを見る経路なので、明示的にタブを切り替える。
-  await page.locator('[data-action="expedition-mode"][data-mode="free"]').click();
-  note("難易度が出ている", /難易度 0/.test(await bodyText()));
+  note("Campaign Stage が出ている", /どのStageへ出るか/.test(guildText));
+  note("難易度rankの選択が残っていない", !/どの難易度で出るか/.test(guildText));
 
   // R6 §9.3 — ギルド投資。**買い物の画面が実在して、値段と残高が出るか。**
   await page.locator('[data-action="guild-tab"][data-tab="guild"]').click();
@@ -100,6 +99,26 @@ try {
   note("鍛錬に費用と丸め後statが出る", /鍛錬（上限なし）/.test(investText) && /基礎/.test(investText));
   note("第4枠が人物ごとに売られている", /第4枠/.test(investText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
+
+  // R12 — **この台本が見るのは12戦の長い流れであって、序盤のチュートリアルではない。**
+  // 序盤の会話・勝てない一戦・巻き戻しは analysis/ecology-tutorial-trial.mjs の担当なので、
+  // ここでは Stage 0 を踏破済みの Profile へ差し替えて、その先だけを踏む。
+  // （Free mode を消したので、以前のように「難易度タブへ逃げて物語を回避する」ができない）
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v01";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved?.profile) return;
+    saved.profile.campaignProgress = saved.profile.campaignProgress || {};
+    const region = Object.keys(saved.profile.campaignProgress)[0] || "region_ashfront";
+    saved.profile.campaignProgress[region] = {
+      highestClearedStageSequence: 0, clearedStageSequences: [0],
+    };
+    saved.profile.storyFlags = ["prologue_seen"];
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(300);
+  note("踏破済みStageの再訪では会話が出ない", await page.locator(".vn-stage").count() === 0);
 
   await click("この条件で遠征へ出る");
   note("編成タブ", /編成|仲間/.test(await bodyText()));
@@ -214,7 +233,7 @@ try {
   // R6 §9.2 — 精算は一度だけ。内訳と残高が画面に出る。
   const settleText = await bodyText();
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
-  note("精算の内訳が出ている", /到達距離/.test(settleText) && /難易度倍率/.test(settleText));
+  note("精算の内訳が出ている", /到達距離/.test(settleText) && /報酬倍率/.test(settleText));
   if (/記録を送る/.test(settleText)) await click("記録を送る");
 
   // 終端（アンケート）へ。まだ着いていなければ、その場から終端画面を開く。
@@ -272,6 +291,39 @@ try {
   note("遠征内の技能点は run にだけある",
     Boolean(saved?.run?.runSkillPoints) && !("skillPoints" in (saved?.profile ?? {})));
   note("控えに主要行動列が残る", (saved?.runEvents || []).some((e) => e.type === "battle_completed"));
+
+  // ---- R13 / R11 §2.4 / R8 §3.2 — 精算の次の一枚（根城）と、図鑑。
+  //
+  // **控えの検査より後に置く。**ギルドへ戻ると次の遠征の run が作られて
+  // runEvents が入れ替わるので、先に踏むと上の「控えに主要行動列が残る」が落ちる。
+  // この台本は8戦前後まで進むので、同じ敵種を何度も倒している。
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v01";
+    const stored = JSON.parse(localStorage.getItem(key));
+    stored.phase = "settlement";
+    localStorage.setItem(key, JSON.stringify(stored));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(250);
+  note("精算から根城へ帰れる", await page.getByRole("button", { name: "根城へ帰る" }).count() === 1);
+  await click("根城へ帰る");
+  await page.waitForTimeout(300);
+  // まだ見ていない日常の場面があれば、根城の一枚より先に会話が入る。
+  // **ここで見たいのは図鑑なので、場面は飛ばして通す。**
+  if (await page.locator(".vn-stage").count() > 0) {
+    note("根城の日常場面が入る", /根城/.test(await bodyText()));
+    await click("スキップ");
+    await page.waitForTimeout(300);
+  }
+  note("根城の一枚に着く", /直しかけの家/.test(await bodyText()));
+  await click("ギルドへ");
+  await page.waitForTimeout(250);
+  await page.locator('[data-action="guild-tab"][data-tab="codex"]').click();
+  await page.waitForTimeout(250);
+  const codexText = await bodyText();
+  note("図鑑に会った敵が載る", /会った灰殻の記録/.test(codexText) && /見た \d/.test(codexText));
+  note("倒した数で図鑑の節が開く",
+    /書き足せた [1-9]/.test(codexText) || /あと \d 体倒すと/.test(codexText));
 
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 4).join(" / "));
 

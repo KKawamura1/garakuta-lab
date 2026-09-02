@@ -9,10 +9,10 @@
 // R11 — 本編5人を作り直した。**初期技能は、その人物が加入する Stage で
 // 実際に引ける語彙だけで組む**（baseline ＋ その Stage までの pack core）。
 //
-//   Stage 0  baseline ＋ pack_edge core   … シキ・カイ
-//   Stage 1  ＋ pack_wall core            … スミ
-//   Stage 2  ＋ pack_tempo core           … レイ
-//   Stage 3  ＋ pack_care core（pack_edge は full）… ナズナ
+//   Stage 0  baseline ＋ pack_care core   … シキ・ナズナ
+//   Stage 1  ＋ pack_edge core            … カイ
+//   Stage 2  ＋ pack_wall core            … スミ
+//   Stage 3  ＋ pack_tempo core           … レイ
 //
 // **5人が別々の軸を持つ**ようにしてある（characters.mjs の CHARACTER_STATS 参照）。
 // 特にシキとスミは、どちらも硬いが通る攻撃が違う。シキは HP が厚いので単発大威力に、
@@ -45,7 +45,7 @@ export const CHARACTER_DEFINITIONS = [
     icon: "庇",
     defaultPosition: "front_center",
     summary: "標的を引き受け、一撃ずつ削り取る。**攻撃の行動を持たない。**",
-    // **攻め手を一つも持たせない。**受けが18あるので多段が通らず、
+    // **攻め手を一つも持たせない。**受けが26あるので多段が通らず、
     // 腕力16なので殴っても意味がない。この人の仕事は受けることだけである。
     starterTactics: ["bulwark", "brace_for_impact"],
     starterReactives: ["cover_ally", "guard_step"],
@@ -67,39 +67,9 @@ export const CHARACTER_DEFINITIONS = [
     defaultPosition: "rear_right",
     summary: "傷の連鎖を止める。集中が高いので、技でも削れるし、厚い防壁も張れる。",
     // R11 — **支援役が攻撃に参加できるようになった最初の人。**
-    // crack_mark は technique 攻撃（集中48で読む）、shield_the_wounded も集中。
+    // aimed_shot は technique 攻撃（集中48で読む）、shield_the_wounded も集中。
     // どちらも同じ数値が伸ばす。
     starterTactics: ["aimed_shot", "shield_the_wounded"],
     starterReactives: ["triage", "emergency_treatment"],
-  },
-  // ---- 本編に出ない同業者。Free / Endless から引ける ----
-  {
-    id: "scout",
-    role: "機動",
-    icon: "目",
-    defaultPosition: "rear_right",
-    summary: "敵の準備を読み、位置を変えて前線を整える。",
-    starterTactics: ["mark_target", "reposition"],
-    starterReactives: ["guard_step", "urging"],
-  },
-  {
-    id: "pivot",
-    role: "蓄積",
-    icon: "環",
-    defaultPosition: "rear_left",
-    summary: "行動権を2つ持つ。余った権利を防壁へ変え、長期戦を支える。",
-    starterTactics: ["strike", "bulwark"],
-    starterReactives: ["guard_step", "scavenge_ap"],
-  },
-  {
-    id: "arcanist",
-    role: "準備攻撃",
-    icon: "灯",
-    defaultPosition: "rear_right",
-    summary: "時間のかかる大技を、後列から通す。集中が隊で最も高い。",
-    // R11 — 溜め系は technique 攻撃（集中）へ移った。**この人の役割は
-    // ここで初めて数値的に成立する**（従来は腕力16で溜めていた）。
-    starterTactics: ["heavy_swing", "steady_aim"],
-    starterReactives: ["urging", "prep_spiral"],
   },
 ];

@@ -19,7 +19,7 @@
 - ecology-upload-smoke.mjs: D1 payload と受け側の整合
 - ecology-trial.mjs: 公開先 E2E 台本
 
-ecology-expedition-smoke.mjs と ecology-decision-space-smoke.mjs は、互換用 Free mode の補助検査です。Campaign の現行受入条件ではありません。
+R12 で Free mode を削除したので、その補助検査だった ecology-expedition-smoke.mjs と ecology-decision-space-smoke.mjs も削除しました。
 
 ## EXP-18
 

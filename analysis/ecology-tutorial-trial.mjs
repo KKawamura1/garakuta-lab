@@ -85,6 +85,7 @@ try {
 
   // R11 §2.1 — 最初の2人の会話。**シキとナズナの考え方の違いを見せる。**
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
+  // 画面の構造で見る。**台詞の中身ではなく、一行送りの箱が立っているか。**
   note("最初の会話が出る",
     await page.locator(".vn-stage").count() === 1
       && await page.locator(".vn-box").count() === 1
@@ -114,8 +115,17 @@ try {
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   note("序盤の一戦の途中でリロードしても戻ってくる", /灰の門/.test(await bodyText()));
   await page.locator('.speed-button[data-speed="fast"]').click();
+  // R11 §8.6 — 序盤は4拍で進む。
+  //   打ち切り → 会話「届かなかった」 → 結果画面の［時間が巻き戻る］
+  //   → 会話「もう一度、門の前」 → キャンプ → **同じ盤面をもう一度** → 勝利
+  //
+  // R12 — 倒れた会話は**再生を飛ばしても入る**。［結果を見る］で打ち切っても
+  // 結果画面より先にここへ来る（以前は再生が流れきったときにしか入らなかった）。
   await click("結果を見る");
   await page.waitForTimeout(300);
+  note("倒れた拍で会話が入る", /届かなかった/.test(await bodyText()));
+  await advanceStory();
+  await page.waitForTimeout(200);
   const resultText = await bodyText();
   note("序盤の一戦で負ける", /届かなかった|足を止めた|突破できなかった|巻き戻/.test(resultText)
     || (await page.getByRole("button", { name: "時間が巻き戻る" }).count()) > 0);
@@ -125,9 +135,11 @@ try {
   await click("時間が巻き戻る");
   const rewindText = await bodyText();
   note("巻き戻しの会話が出る", /もう一度、門の前/.test(rewindText));
-  // 巻き戻し後の説明は、再戦のマップ画面に表示される。
-  await click("スキップ");
-  await page.waitForTimeout(250);
+  // 学びの一言は断片の最後の行で出る。**そこまで進めてから見る。**
+  // R11 §8.6 — ここで渡すのは「武器と技の違いは立つ場所の違い」である。
+  const sawNote = await tapUntil(async () => await page.locator(".vn-note").count() > 0);
+  note("武器と技の違いを渡す", sawNote && /後列/.test(await bodyText()));
+  await advanceStory();
 
   // R11 §2.1 — 2人編成。**誰が来るかは物語が決める。**
   const campText = await bodyText();
@@ -147,35 +159,53 @@ try {
   await page.waitForTimeout(200);
   note("手動セーブからCampへ戻れる", /編成|仲間/.test(await bodyText()) && /2 \/ 2人/.test(await bodyText()));
 
-  // R11 §3.1 — 新 pack は入口だけ。full だけの技能はまだ出ない。
+  // R9 §3.1 / R11 §8.5 — Stage 0 の入口は pack_care「構えと手当て」。
+  // **武器と技を一本ずつ**持つ二本が、この Stage の問いそのものである。
   await page.locator('nav.tabs [data-tab="skills"]').click();
   const skillText = await bodyText();
-  note("入口の技能が出ている", /溜め突き/.test(skillText));
-  note("入口の接続面が出ている", /痛みで研ぐ|先手の一閃/.test(skillText));
-  // 技能ツリーは manifest 外の節も薄く出す（何がこの遠征に無いかを見せる）。
-  // **出ていないことではなく、取れないことを見る。**
+  note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
+  note("入口の接続面が出ている", /応急|傷の見立て|かばう|受け身/.test(skillText));
+  // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
+  // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
-  note("full だけの技能はまだ取れない", outOfManifest > 0, `manifest 外 ${outOfManifest} 節`);
+  note("未解禁の技能を名前でも出さない", outOfManifest === 0, `manifest 外 ${outOfManifest} 節`);
 
-  // R11 §2.1 — 巻き戻し後は、同じ序盤戦の再戦を通って本編へ戻る。
+  // ---- R11 §8.6 — 巻き戻したあとの再戦。**同じ盤面をもう一度戦う。**
+  //
+  // ここがチュートリアルの山である。engine は決定的なので、**隊列を直さなければ
+  // 何度やっても同じように負ける。**ナズナを後列へ下げた一手だけが勝ちに変わる。
+  // 会話が渡した「柔らかい技は後ろ、硬い武器は前」を、実際に操作して確かめる。
+  await page.locator('nav.tabs [data-tab="roster"]').click();
+  await page.locator('[data-action="select-formation-character"][data-character="mender"]').click();
+  await page.waitForTimeout(150);
+  await page.locator('[data-action="place-character"][data-position="rear_right"]').click();
+  await page.waitForTimeout(200);
+  const placedText = await bodyText();
+  note("ナズナを後列へ下げられる", /後列/.test(placedText));
+
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");
+  // 再戦は予測画面を挟む。**巻き戻したあとに初めて preview の読み方を教える**ので、
+  // ここで武器と技の違いがもう一度渡っているかを見る。
   const retryPreviewText = await bodyText();
   note("戦闘予測の使い方を示す",
     /戦闘予測/.test(retryPreviewText)
-      && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない/.test(retryPreviewText));
+      && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない|後列/.test(retryPreviewText));
   await click("自動戦闘を再生する");
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   await page.locator('.speed-button[data-speed="fast"]').click();
-  await page.waitForSelector(".vn-stage", { timeout: 12000 });
-  const retryStoryText = await bodyText();
-  note("巻き戻し後の再戦が勝利へ進む", /同じ影、違う結果/.test(retryStoryText));
-  await click("スキップ");
-  await page.waitForTimeout(250);
+  await click("結果を見る");
+  await page.waitForTimeout(300);
+  // 勝つと「同じ影、違う結果」の会話が入る。**結果画面より先にここへ来る。**
+  note("隊列を直すと同じ盤面に勝てる", /同じ影、違う結果/.test(await bodyText()));
+  await advanceStory();
+  await page.waitForTimeout(200);
+  await page.waitForSelector('nav.tabs [data-tab="map"]', { timeout: 8000 });
+  // **序盤の演出はここで終わる。**以降は本編の第1戦なので、
+  // 「この一戦は遠征に数えません」が消えていることまで見る。
   const mainCampText = await bodyText();
-  note("序盤演出を終えて本編へ戻る",
-    /出発前のキャンプ|第1戦 \/ 12/.test(mainCampText)
-      && !/この一戦は遠征に数えません/.test(mainCampText));
+  note("序盤の演出が終わってキャンプへ出る", /編成|仲間|出発前/.test(mainCampText));
+  note("序盤演出を終えて本編へ戻る", !/この一戦は遠征に数えません/.test(mainCampText));
 
   // 第1戦を通し、生成装備の報酬まで見る。
   await page.locator('nav.tabs [data-tab="map"]').click();
@@ -193,6 +223,8 @@ try {
     await click("報酬を見る");
     const rewardText = await bodyText();
     note("報酬に生成装備が出る", /生成装備/.test(rewardText));
+    // R13 — 報酬画面にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
+    note("報酬画面に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
     note("生成装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
     // 生成装備を拾い、装備画面と保存の往復まで見る。
     const generated = page.locator(".reward-card.generated").first();
@@ -221,7 +253,16 @@ try {
   note("設計図として残した品が出る", /設計図として残した品/.test(settleText));
   note("残した件数が出ている", /新しく残した|取得履歴を追加|残せる品がありません/.test(settleText));
 
-  await click("ギルドへ戻る");
+  // R13 / R11 §2.4 — **精算の次は家である。**器材を返して、それから根城へ帰る。
+  note("精算から根城へ帰れる", await page.getByRole("button", { name: "根城へ帰る" }).count() === 1);
+  note("精算の締めの一行がある", /拾い屋の撤退は敗北ではない|台帳にはそう書く|詰所へ返し/.test(settleText));
+  await click("根城へ帰る");
+  await page.waitForTimeout(300);
+  const homesteadText = await bodyText();
+  note("根城の一枚に着く", /根城/.test(homesteadText) && /直しかけの家/.test(homesteadText));
+  note("根城に名簿がある", /隊の名簿/.test(homesteadText));
+  await click("ギルドへ");
+  await page.waitForTimeout(250);
   await page.locator('[data-action="guild-tab"][data-tab="blueprints"]').click();
   await page.waitForTimeout(200);
   const archiveText = await bodyText();
@@ -265,13 +306,59 @@ try {
       highestClearedStageSequence: 0, clearedStageSequences: [0],
     };
     saved.phase = "expeditionStart";
-    saved.expeditionMode = "campaign";
     saved.selectedCampaignStageSequence = 0;
     localStorage.setItem(key, JSON.stringify(saved));
   });
   await page.reload({ waitUntil: "networkidle" });
   const stageCards = page.locator('[data-action="select-campaign-stage"][data-sequence="1"]');
   note("Stage 1 が開く", await stageCards.count() > 0);
+
+  // ---- R12 §4.E-1 — 未公開の情報を出していないか（作者判断）
+  const guildText = await bodyText();
+  note("自由遠征の選択が残っていない", !/自由遠征|どの難易度で出るか/.test(guildText));
+  note("次の加入者の名前を先に出さない", !/スミ が加わる|レイ が加わる/.test(guildText));
+  note("未解禁の pack を名前で出さない", !/この遠征では出ない/.test(guildText));
+  note("本編に出ない同業者が消えている", !/トキ|ヨリ|アカリ/.test(guildText));
+
+  // ---- R13 / R12 §4.A — 根城（家にあるもの）と名簿（読める設定）。
+  // **名簿は根城の中にある。**一度に全部は開かない。
+  await page.locator('[data-action="guild-tab"][data-tab="homestead"]').click();
+  await page.waitForTimeout(200);
+  const homeText = await bodyText();
+  note("根城の画面がある", /根城/.test(homeText) && /直しかけの家/.test(homeText));
+  note("家にあるものが読める", /帳簿と目録/.test(homeText));
+  note("まだ増えていないものは出ない", !/棚の規則|壁の写し/.test(homeText));
+  note("名簿の画面がある", /隊の名簿/.test(homeText));
+  note("加入した人物の欄が読める", /シキ/.test(homeText) && /ナズナ/.test(homeText));
+  note("まだ会っていない人物の欄は出ない", !/レイ/.test(homeText));
+  note("開いていない節があると分かる", /まだ書かれていない節/.test(homeText));
+  note("will はまだ開いていない", !/この人が求めているもの/.test(homeText));
+  note("Stage 0 を越えた分だけ節が開く", /灰の中では/.test(homeText));
+
+  // 根城の日常場面。**Stage 0 を越えたので、一つ目が出ている。**
+  const sceneButton = page.getByRole("button", { name: "今夜の場面を見る" });
+  note("根城の場面へ入れる", await sceneButton.count() === 1);
+  if (await sceneButton.count()) {
+    await sceneButton.first().click();
+    await page.waitForSelector(".vn-stage", { timeout: 8000 });
+    note("根城の場面が会話として出る", /帰る場所のほう|土間/.test(await bodyText()));
+    await click("スキップ");
+    await page.waitForTimeout(250);
+    const afterScene = await bodyText();
+    note("場面のあとは根城へ戻る", /根城/.test(afterScene));
+    note("見た場面を読み返せる", /根城での場面/.test(afterScene));
+    note("同じ夜は二度出ない", await page.getByRole("button", { name: "今夜の場面を見る" }).count() === 0);
+  }
+
+  // ---- R13 / R8 §3.2 — 図鑑。**会った敵だけが載る。**
+  await page.locator('[data-action="guild-tab"][data-tab="codex"]').click();
+  await page.waitForTimeout(200);
+  const codexText = await bodyText();
+  note("図鑑の画面がある", /会った灰殻の記録/.test(codexText));
+  note("会った敵が載っている", /灰殻/.test(codexText) && /見た \d/.test(codexText));
+  note("まだ倒していない敵の噂は出ない", !/幕の奥に一つだけある/.test(codexText));
+  await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
+  await page.waitForTimeout(200);
   if (await stageCards.count()) {
     await stageCards.first().click();
     await page.waitForTimeout(200);
@@ -284,6 +371,36 @@ try {
     await page.waitForTimeout(250);
     const stage1Camp = await bodyText();
     note("Stage 1 は3人で始まる", /3 \/ 3人/.test(stage1Camp));
+
+    // ---- R12 §4.E-1 — 編成画面が「後で加入する仲間」を出していないこと。
+    await page.locator('nav.tabs [data-tab="roster"]').click();
+    await page.waitForTimeout(150);
+    const rosterText = await bodyText();
+    note("後で加入する仲間を出さない", !/後で加入する仲間/.test(rosterText));
+
+    // ---- R12 §4.B — 敵カードの「拾い屋のあいだで言われていること」。
+    await page.locator('nav.tabs [data-tab="map"]').click();
+    await page.waitForTimeout(150);
+    note("敵カードに拾い屋の言い分が出る", await page.locator(".enemy-lore").count() > 0);
+
+    // ---- R12 §4.C — 幕の断片。第4戦の前に一度だけ入る。
+    await page.evaluate(() => {
+      const key = "exp18-r10-auto-v01";
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      if (!saved?.run) return;
+      saved.run.encounterIndex = 4;
+      localStorage.setItem(key, JSON.stringify(saved));
+    });
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    await page.locator('nav.tabs [data-tab="map"]').click();
+    await click("この敵に挑む");
+    await page.waitForTimeout(300);
+    note("幕の切れ目で会話が入る", await page.locator(".vn-stage").count() > 0);
+    note("幕の断片も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
+    await click("スキップ");
+    await page.waitForTimeout(250);
+    note("幕の会話のあとは戦闘予測へ渡す", /自動戦闘を再生する|戦闘予測|この戦闘/.test(await bodyText()));
   }
 
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 3).join(" / "));

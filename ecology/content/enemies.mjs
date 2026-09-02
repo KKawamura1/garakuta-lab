@@ -152,7 +152,8 @@ const ENEMY_GUARD = {
 //   さらに装備2つずつ 1.14 → 通る
 //   無作為編成の中央値 0.88 → 通らない
 // **「初期編成では勝てないが、もらった点をちゃんと配れば通る」**を数で置いた値。
-// analysis/ecology-decision-space-smoke.mjs の床の関門がこれを見張る。
+// この値を置いたときは analysis/ecology-decision-space-smoke.mjs が床を見張っていたが、
+// R12 で Free mode ごと削除した。**いま自動で見張っているものは無い。**
 export const SHIPPED_DIFFICULTY = 1.2;
 
 for (const [id, definition] of Object.entries(enemyActors)) {

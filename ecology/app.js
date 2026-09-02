@@ -30,6 +30,8 @@ import {
 import {
   BOSS_LAWS,
   CAMPAIGN_STAGES,
+  CAMPAIGN_STAGE_BY_ID,
+  DOSSIER_SECTION_HEADINGS,
   ENEMY_MUTATIONS,
   EQUIPMENT_GROUPS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
@@ -40,20 +42,29 @@ import {
   portraitAccent,
   portraitSvg,
   storyBeat,
+  dossierFor,
+  dossierRevealLevel,
+  revealedBonds,
+  revealedDossierSections,
+  ENEMY_CODEX,
+  homesteadFlag,
+  homesteadScene,
+  nextHomesteadScene,
+  revealedFixtures,
+  seenHomesteadIds,
+  seenHomesteadScenes,
   SKILL_PACKS,
-  difficultyDef,
 } from "./content/index.mjs";
 import {
   ENCOUNTERS_PER_RUN,
-  MAX_DIFFICULTY_RANK,
   META_UPGRADES,
   SCRAP_PER_SUPPLY,
   SUPPLY_USES,
   CAMP_TREATMENTS,
   availableCampaignStages,
   availableCharacterIds,
-  availableDifficulties,
   campTreat,
+  recordBestiary,
   commitBattleResult,
   convertScrap,
   dismantle,
@@ -82,7 +93,6 @@ import {
   unlockRunSkill,
   upgradeCost,
   upgradeLevel,
-  isCharacterUnlocked,
   INVENTORY_LIMIT,
   MAX_SUPPLIES,
   appraisalLevel,
@@ -292,7 +302,7 @@ function startRun(profile, options = {}) {
   const availableCount = stage && freeRoster ? availableCharacterIds(profile).length : PARTY_SIZE;
   const size = stage && !freeRoster ? stage.partySize : Math.min(PARTY_SIZE, availableCount);
   const requested = options.roster
-    ?? (stage && !freeRoster ? [...stage.castCharacterIds] : ["warden", "mender", "lancer", "scout"]);
+    ?? (stage && !freeRoster ? [...stage.castCharacterIds] : ["warden", "mender", "lancer", "guardian"]);
   const roster = stage && freeRoster
     ? ensureCampaignPartySize(requested, size, profile)
     : ensurePartySize(requested, size);
@@ -381,11 +391,8 @@ function freshUiState() {
     formationSelection: null,
     selectedSkillNode: null,
     selectedEquipment: null,
-    selectedDifficulty: 0,
-    // R8 Implementation Phase 1 — 遠征の仕立て方。既定は "campaign"
-    // （Stage 0〜3の固定manifest）。"free" は旧・難易度rank選択（random manifest）で、
-    // 早々にcampaignへ統合予定のため格下げしてある（作者判断、2026-08-31）。
-    expeditionMode: "campaign",
+    // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
+    // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
     selectedCampaignStageSequence: 0,
     treatTargets: [],
     selectedRewardCharacter: null,
@@ -619,9 +626,7 @@ function formatSaveDate(value) {
 function saveSummary(snapshot) {
   if (!snapshot?.run) return "空き枠";
   const run = snapshot.run;
-  const mode = run.campaignStageSequence === null || run.campaignStageSequence === undefined
-    ? "Free"
-    : "Campaign Stage " + run.campaignStageSequence;
+  const mode = "Campaign Stage " + (run.campaignStageSequence ?? 0);
   const party = Array.isArray(run.roster) ? run.roster.length : 0;
   return mode + " · " + party + "人 · " + formatSaveDate(snapshot.savedAt);
 }
@@ -767,8 +772,9 @@ function funds() {
   return parseFunds(state.profile.activityFunds);
 }
 
-// R8 Implementation Phase 1 — Campaign Stage の run は `campaignStageSequence`
-// を持つ。Free / Endless（従来の難易度rank選択）はこれが null のまま。
+// R8 Implementation Phase 1 — Campaign Stage の run は `campaignStageSequence` を持つ。
+// R12 で Free / Endless を削除したので、本編の run はこれを必ず持つ。**古い保存を
+// 読んだときだけ null が来る**ので、判定そのものは残す。
 function isCampaignRun() {
   return state.run.campaignStageSequence !== null && state.run.campaignStageSequence !== undefined;
 }
@@ -894,11 +900,31 @@ function selectedCharacter() {
   return state.run.roster[0];
 }
 
-// ギルド画面の選択。**登場済みの人物だけが対象**（同行中かどうかは問わない）。
+// R12 — **物語がまだ出していない人物を、どの画面にも出さない。**
+//
+// 加入の判定は progression.mjs の `availableCharacterIds`（Campaign の進行から
+// 再構成する engine 側の唯一の規則）に任せる。画面側で二つ目の判定を持つと、
+// いつか片方だけずれる。**いま出ている遠征の同行者は必ず「会った人」に含める**
+// ので、古い保存から入っても名簿と編成が食い違わない。
+function metCharacterIds(profile = state.profile, run = state.run) {
+  const met = new Set(availableCharacterIds(profile));
+  for (const id of run?.roster ?? []) met.add(id);
+  return met;
+}
+
+// 会ったことのある人物だけの CHARACTER_OPTIONS。順番は roster.mjs の並びを保つ。
+function metCharacterOptions() {
+  const met = metCharacterIds();
+  return CHARACTER_OPTIONS.filter((option) => met.has(option.id));
+}
+
+// ギルド画面の選択。**会ったことのある仲間が対象**（永続投資は同行の有無に
+// 関係しないが、まだ加入していない人物を鍛えられるのはおかしい。R12 §4.E-1）。
 function guildCharacter() {
+  const options = metCharacterOptions();
+  const fallback = options[0] ?? CHARACTER_OPTIONS[0];
   const id = state.guildCharacter;
-  const available = availableCharacterIds(state.profile);
-  return available.includes(id) ? id : available[0] ?? CHARACTER_OPTIONS[0].id;
+  return options.some((option) => option.id === id) ? id : fallback.id;
 }
 
 function selectedFormationCharacter() {
@@ -951,6 +977,7 @@ function render() {
     reward: renderReward,
     defeat: renderDefeat,
     settlement: renderSettlement,
+    homestead: renderHomestead,
     complete: renderComplete,
   };
   app.innerHTML = (views[state.phase] ?? renderIntro)();
@@ -986,7 +1013,7 @@ function renderIntro() {
   const continueLabel = auto ? saveSummary(auto) : "オートセーブはありません";
   return shell("灰の遠征", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
     + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stageを越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をカイとシキの2人から始めます。</b></p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をシキとナズナの2人から始めます。</b></p>"
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")
@@ -1033,21 +1060,11 @@ function renderSaveMenu() {
 // ============================================================ 遠征を仕立てる
 // ============================================================ 遠征を仕立てる（R6 §15.1）
 //
-// **遠征開始前に全部を表示する。**有効パック、敵family、3体のボスと法則、
-// 難易度modifier、開始補給。個体編成だけは伏せてよい（偵察で開く）。
-
-function difficultyCard(rank) {
-  const def = difficultyDef(rank);
-  const selected = state.selectedDifficulty === rank;
-  const mods = def.encounterModifiers.length
-    ? def.encounterModifiers.length + "件の変更"
-    : "変更なし";
-  return "<button type=\"button\" class=\"difficulty-card " + (selected ? "selected" : "")
-    + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-difficulty\" data-rank=\"" + rank
-    + "\"><b>難易度 " + rank + "</b><small>" + esc(def.summary) + "</small>"
-    + "<span class=\"difficulty-meta\">報酬 ×" + (def.rank ? (1 + rank * 0.1).toFixed(1) : "1.0")
-    + " · 補給 " + def.startingSupplies + " · " + mods + "</span></button>";
-}
+// **遠征開始前に全部を表示する。**有効パック、敵family、3体のボスと法則、開始補給。
+// 個体編成だけは伏せてよい（偵察で開く）。
+//
+// R12 — ただし「全部」は**この遠征に出るもの**であって、まだ物語が公開していない
+// ものではない。未解禁の pack と、次に加わる人物の名前は出さない（作者判断）。
 
 // R8 Implementation Phase 1 — Campaign Stage の選択カード。
 // activeなpackはmanifest（すでにStage定義から固定構成で作られている）から読む。
@@ -1058,8 +1075,10 @@ function campaignStageCard(sequence) {
   // R9 §2.1 / §8 — Stage は「難易度」ではなく「人数と問いが違う場面」。
   // **誰が加わるのかと、この Stage で問われることを先に見せる。**
   const cleared = isCampaignStageCleared(state.profile, sequence);
+  // R12 — **まだクリアしていない Stage の加入者は、名前を出さない。**
+  // 誰が来るかは join の会話が渡すものなので、選択カードで先に割らない。
   const joining = stage.joiningCharacterId
-    ? characterName(stage.joiningCharacterId) + " が加わる"
+    ? (cleared ? characterName(stage.joiningCharacterId) + " が加わる" : "新しい仲間が加わる")
     : "最初の二人";
   return "<button type=\"button\" class=\"difficulty-card " + (selected ? "selected" : "")
     + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-campaign-stage\" data-sequence=\"" + sequence
@@ -1072,14 +1091,14 @@ function campaignStageCard(sequence) {
 
 function renderExpeditionStart() {
   const manifest = state.run.manifest;
-  const ranks = availableDifficulties(state.profile);
   const campaignStages = availableCampaignStages(state.profile);
-  const isCampaign = state.expeditionMode === "campaign";
-  const packs = SKILL_PACKS.map((pack) => {
-    const on = manifest.enabledPackIds.includes(pack.id);
-    return "<div class=\"pack-row " + (on ? "on" : "off") + "\"><b>" + esc(pack.displayName)
-      + "</b><small>" + esc(pack.summary) + "</small><span>" + (on ? "有効" : "この遠征では出ない") + "</span></div>";
-  }).join("");
+  // R12 — **この遠征で有効な pack だけを並べる。**以前は全 pack を出して
+  // 未解禁のものへ「この遠征では出ない」と書いていたが、それは Campaign が
+  // まだ配っていない語彙（pack_barrage / pack_relay）の名前を先に見せていた。
+  const packs = SKILL_PACKS.filter((pack) => manifest.enabledPackIds.includes(pack.id))
+    .map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
+      + "</b><small>" + esc(pack.summary) + "</small><span>"
+      + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
   const bosses = manifest.actBossLawIds.map((lawId, index) => {
     const law = BOSS_LAWS[lawId];
     return "<article class=\"boss-card\"><div class=\"boss-top\"><span class=\"enemy-mark\">◆</span><div><b>第"
@@ -1098,24 +1117,18 @@ function renderExpeditionStart() {
       ["blueprints", "Blueprint", (state.profile.blueprints?.entries?.length ?? 0)
         + "件 · 持込 " + (state.profile.blueprints?.carrySelection?.length ?? 0)
         + "/" + blueprintCarryCapacity(state.profile)],
+      // R12 §4.A — 読める設定と、R11 §2.4 の根城。**戦闘には効かない**ので、
+      // 投資や設計図の後ろに置く。精算のあとは、ここを必ず一度通る。
+      ["homestead", "根城", metCharacterIds().size + "人"],
+      // R8 §3.2 の図鑑。会った敵だけが載る。
+      ["codex", "図鑑", bestiaryEntries().length + "体"],
     ]
       .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.guildTab === id ? "active" : "")
         + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
         + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
     + "</nav>";
   // R8 §1.1 — Campaign は「難易度rank」ではなく、Stageごとに固有のpack構成を持つ。
-  // 自由遠征（旧・難易度rank）は早々にキャンペーンへ統合予定なので格下げする
-  // （既定はキャンペーン、表示順も後ろへ。作者判断、2026-08-31）。
-  const modeTabs = "<nav class=\"tabs\" aria-label=\"遠征の仕立て方\">"
-    + [["campaign", "キャンペーン", "Stage 0-" + MAX_CAMPAIGN_STAGE_SEQUENCE], ["free", "自由遠征（旧仕様）", "難易度rank"]]
-      .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.expeditionMode === id ? "active" : "")
-        + "\" aria-current=\"" + (state.expeditionMode === id ? "step" : "false")
-        + "\" data-action=\"expedition-mode\" data-mode=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
-    + "</nav>";
-  const difficultySection = "<section class=\"card\">" + sectionHeading("DIFFICULTY / 0 - " + MAX_DIFFICULTY_RANK, "どの難易度で出るか",
-      "<span class=\"stage\">解禁 " + ranks.length + " / " + (MAX_DIFFICULTY_RANK + 1) + "</span>")
-    + "<p class=\"muted\">難易度は活動資金で買えません。<b>一つ前をクリアしたときだけ次が開きます。</b>報酬は難易度1つにつき+10%です。</p>"
-    + "<div class=\"difficulty-grid\">" + ranks.map(difficultyCard).join("") + "</div>";
+  // R12 — 自由遠征（旧・難易度rank）を削除した。遠征の仕立て方は Stage 選択だけになる。
   const campaignSection = "<section class=\"card\">" + sectionHeading(
       "CAMPAIGN STAGE / 0 - " + MAX_CAMPAIGN_STAGE_SEQUENCE, "どのStageへ出るか",
       "<span class=\"stage\">解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) + "</span>")
@@ -1131,13 +1144,15 @@ function renderExpeditionStart() {
       "<span class=\"stage\">活動資金 " + formatFunds(funds()) + "</span>")
     + "<p class=\"muted\">" + esc(REGION.summary) + " 敵family: " + esc(REGION.enemyFamilyText)
     + "。<b>個体の並びと変異は、その幕を偵察するまで伏せられます。</b></p>"
+    + "<h3 class=\"training-heading\">この遠征に出る技能パック</h3>"
     + "<div class=\"pack-list\">" + packs + "</div></section>"
     + "<section class=\"card\">" + sectionHeading("ACT BOSSES / 3", "先に見えている3つの法則")
     + "<p class=\"muted\">ボスの法則は遠征開始時から見えます。途中の報酬を「最後に向けて取る」判断ができます。</p>"
     + "<div class=\"boss-grid\">" + bosses + "</div></section>"
-    + modeTabs + (isCampaign ? campaignSection : difficultySection)
+    + campaignSection
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
-  const body = { guild: renderGuild, blueprints: renderBlueprints }[state.guildTab]?.() ?? expeditionBody;
+  const body = { guild: renderGuild, blueprints: renderBlueprints, homestead: homesteadBody, codex: renderBestiary }[state.guildTab]?.()
+    ?? expeditionBody;
   return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う",
     "<div class=\"camp-tools guild-tools\">" + button("タイトルへ", "back-title", false, "tiny-button") + "</div>"
     + tabs + note + body, { hideHeaderAction: true });
@@ -1185,9 +1200,9 @@ function renderGuild() {
       + button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
         "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"") + "</div>";
   }).join("");
-  const availableIds = new Set(availableCharacterIds(state.profile));
+  const metOptions = metCharacterOptions();
   const memberTabsHtml = "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">"
-    + CHARACTER_OPTIONS.filter((option) => availableIds.has(option.id)).map((option) => "<button type=\"button\" class=\"member-tab "
+    + metOptions.map((option) => "<button type=\"button\" class=\"member-tab "
       + (option.id === characterId ? "active" : "") + "\" data-action=\"select-guild-character\" data-character=\""
       + option.id + "\"><span class=\"avatar small\">" + esc(option.icon) + "</span><span>"
       + characterName(option.id) + "<small>" + esc(option.role) + "</small></span></button>").join("") + "</div>";
@@ -1195,19 +1210,230 @@ function renderGuild() {
       "<span class=\"stage\">" + formatFunds(funds()) + "</span>")
     + "<p class=\"muted\">活動資金は遠征の勝敗を問わず、遠征が終わるたびに一度だけ精算されます。<b>購入は取り消せません。</b>買った品は報酬 pool へ加わりますが、どの遠征にも必ず出るわけではありません。</p>"
     + "<div class=\"purchase-list\">" + upgrades + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("PER CHARACTER / " + availableIds.size + " / " + CHARACTER_OPTIONS.length, "誰を先に複雑にするか")
+    + "<section class=\"card\">" + sectionHeading("PER CHARACTER / " + metOptions.length, "誰を先に複雑にするか")
     + memberTabsHtml
-    + "<p class=\"muted\">Campaignで登場した仲間だけが強化対象です。未登場の仲間は、Stageを進めるとここへ加わります。</p>"
+    // R12 §4.E-1 — **まだ会っていない人の数を、ここで割らない。**
+    // 「あと何人来るか」は物語が渡すものなので、投資画面は隊にいる人だけを数える。
+    + "<p class=\"muted\">いま隊にいる仲間だけが強化対象です。新しい仲間は、加入したときにここへ加わります。</p>"
     + "<div class=\"purchase-list\">" + slots + "</div>"
     + "<h3 class=\"training-heading\">鍛錬（上限なし）</h3>"
     + "<p class=\"muted\">1段で +0.1%。速度・行動権・枠数・発火回数は鍛錬で上がりません。</p>"
     + "<div class=\"purchase-list\">" + trainingRows + "</div></section>";
 }
 
+// ---------------------------------------------------------------- 名簿（R12 §4.A）
+//
+// **読める設定。**R11 §2・§4・§5 に書いてある人物の中身を、ここで初めて画面へ出す。
+// 愛着の源として作者が選んだ「設定の厚み」は、これまでどこからも読めなかった。
+//
+// **一度に全部は語らない。**節はその人と何度灰へ入ったかで開き、will（その人が
+// 何を求めているか）は5人が揃うまで開かない。関係は、相手が加入していて、
+// 遅いほうの加入 Stage を越えたときだけ出る。判定は content/dossiers.mjs に置いてある
+// （画面側で二つ目の判定を持つと、いつか片方だけずれる）。
+
+const DOSSIER_SECTIONS_TOTAL = Object.keys(DOSSIER_SECTION_HEADINGS).length;
+
+function highestClearedStage(profile = state.profile) {
+  return profile?.campaignProgress?.[REGION.id]?.highestClearedStageSequence ?? -1;
+}
+
+function dossierCard(characterId, met) {
+  const entry = dossierFor(characterId);
+  if (!entry) return "";
+  const highest = highestClearedStage();
+  const options = { met: met.has(characterId), finalStageSequence: MAX_CAMPAIGN_STAGE_SEQUENCE };
+  const level = dossierRevealLevel(characterId, highest, options);
+  if (level === 0) return "";
+  const open = revealedDossierSections(level);
+  const sections = open.map((key) => "<div class=\"dossier-section\"><b>"
+    + esc(DOSSIER_SECTION_HEADINGS[key] ?? key) + "</b>"
+    + entry.sections[key].map((line) => "<p>" + esc(line) + "</p>").join("")
+    + "</div>").join("");
+  const bonds = revealedBonds(characterId, highest, met);
+  const bondRows = bonds.length
+    ? "<div class=\"dossier-section bonds\"><b>関係</b>"
+      + bonds.map((bond) => "<p><i style=\"color:" + esc(portraitAccent(bond.with)) + "\">"
+        + esc(characterName(bond.with)) + "</i>"
+        + bond.lines.map((line) => "<span>" + esc(line) + "</span>").join("") + "</p>").join("")
+      + "</div>"
+    : "";
+  // **まだ開いていない節は、数だけ見せて中身を出さない。**
+  // 「この先がある」と分かることと、先を読めてしまうことは別である。
+  const sealed = DOSSIER_SECTIONS_TOTAL - open.length;
+  const sealedNote = sealed > 0
+    ? "<p class=\"dossier-sealed\">まだ書かれていない節が " + sealed
+      + " つある。この人と、もう少し灰へ入ること。</p>"
+    : "";
+  const info = characterInfo(characterId);
+  return "<article class=\"dossier-card\" style=\"--accent:" + esc(portraitAccent(characterId)) + "\">"
+    + "<div class=\"dossier-head\"><div class=\"dossier-bust\">"
+    + portraitSvg(characterId, level >= 4 ? "calm" : "neutral", { uid: "dossier-" + characterId })
+    + "</div><div class=\"dossier-name\"><b>" + esc(characterName(characterId)) + "</b>"
+    + "<small>" + esc(info?.role ?? "") + " · " + esc(entry.age) + " · " + esc(entry.origin) + "</small>"
+    + "</div></div>"
+    + "<div class=\"dossier-body\">" + sections + bondRows + sealedNote + "</div></article>";
+}
+
+function renderDossiers() {
+  const met = metCharacterIds();
+  const cards = CHARACTER_OPTIONS.map((option) => dossierCard(option.id, met)).filter(Boolean).join("");
+  return "<section class=\"card\">" + sectionHeading("ROSTER FILE", "隊の名簿",
+      "<span class=\"stage\">" + met.size + " 人</span>")
+    + "<p class=\"muted\">詰所へ出す申請の控えです。<b>灰へ何度も一緒に入るほど、書ける欄が増えます。</b>"
+    + "戦闘の役には影響しません。</p>"
+    + (cards || "<p class=\"muted\">まだ誰の欄も書けていません。</p>")
+    + "</section>";
+}
+
+// ---------------------------------------------------------------- 根城（R11 §2.4 / §9.4）
+//
+// **帰る場所。**これまで画面は「灰の中」か「詰所（ギルド）」しか無く、
+// R11 §2.4 が「日常の場面と設定の厚みはここに置く」と決めた家が、どこにも無かった。
+//
+// 根城は精算のあとに必ず通る。**遠征と遠征のあいだの、灰が出てこない一枚**である。
+// 名簿（R12 §4.A）もここへ移した。詰所の投資画面の奥タブに置くより、
+// 帰り道に必ず通る場所へ置いたほうが読まれる（R12 §7.6 の懸念への答え）。
+
+function homesteadContext() {
+  return {
+    highestClearedStageSequence: highestClearedStage(),
+    met: metCharacterIds(),
+    blueprintCount: state.profile.blueprints?.entries?.length ?? 0,
+  };
+}
+
+// 会話のあとに戻る先。**入ってきた画面へ返す**（下の finishStory が受ける）。
+function homesteadReturnPhase() {
+  return state.phase === "expeditionStart" ? "guildHomestead" : "homestead";
+}
+
+// まだ見ていない日常の場面。**帰った時に一つだけ出す。**
+function pendingHomesteadScene() {
+  return nextHomesteadScene(homesteadContext(), seenHomesteadIds(state.profile.storyFlags));
+}
+
+function fixtureCards() {
+  const open = revealedFixtures(homesteadContext());
+  if (!open.length) return "";
+  return "<div class=\"fixture-list\">" + open.map((entry) => "<article class=\"fixture-card\">"
+    + "<b>" + esc(entry.label) + "</b>"
+    + entry.lines.map((line) => "<p>" + esc(line) + "</p>").join("")
+    + "</article>").join("") + "</div>";
+}
+
+// 読み返せる日常の場面。**もう一度見るのは自由**（既読印は消えない）。
+function homesteadSceneList() {
+  const seen = seenHomesteadScenes(seenHomesteadIds(state.profile.storyFlags));
+  if (!seen.length) return "";
+  return "<section class=\"card\">" + sectionHeading("EVENINGS / " + seen.length, "根城での場面")
+    + "<p class=\"muted\">一度見た場面は、ここから読み返せます。</p>"
+    + "<div class=\"scene-list\">" + seen.map((entry) => "<button type=\"button\" class=\"scene-row\""
+      + " data-action=\"replay-homestead\" data-scene=\"" + esc(entry.id) + "\"><b>"
+      + esc(entry.beat.title) + "</b><small>" + esc(entry.beat.place) + "</small></button>").join("")
+    + "</div></section>";
+}
+
+function homesteadBody() {
+  const open = revealedFixtures(homesteadContext()).length;
+  const pending = pendingHomesteadScene();
+  return "<section class=\"card\">" + sectionHeading("HOMESTEAD / " + open, "根城",
+      "<span class=\"stage\">" + metCharacterIds().size + " 人</span>")
+    + "<p class=\"muted\">灰の縁から外れた廃屋を直して使っています。<b>拾ってきたもので少しずつ増えます。</b>"
+    + "戦闘には影響しません。</p>"
+    + fixtureCards()
+    + (pending
+      ? "<div class=\"flow-actions\">" + button("今夜の場面を見る", "enter-homestead-scene", false, "button primary")
+        + "</div>"
+      : "")
+    + "</section>"
+    + homesteadSceneList()
+    + renderDossiers();
+}
+
+function renderHomestead() {
+  return shell("根城", "遠征と遠征のあいだ",
+    homesteadBody()
+    + "<section class=\"card quiet\">"
+    + button("ギルドへ", "back-guild", false, "button primary")
+    + button("記録を送る", "complete", false, "button") + "</section>",
+    { hideHeaderAction: true });
+}
+
+// ---------------------------------------------------------------- 図鑑（R8 §3.2）
+//
+// R8 §3.2 は ProfileState に「図鑑」を挙げていたが、R12 の時点でも未実装だった
+// （app.js の codex は装備の未入手一覧で、図鑑ではない）。ここがその実装である。
+//
+// **段階開示にする。**名簿と同じ考え方で、会っただけの相手には狙いしか書けない。
+//
+//   1回でも見た … 名前と狙い（戦闘前の敵カードと同じ情報）
+//   1回倒した   … 拾い屋の噂（ENEMY_LORE）
+//   5回倒した   … 図鑑の一節（ENEMY_CODEX）。何度も見た者にしか書けないこと
+//
+// **会っていない敵は名前も出さない**（R12 §4.E-1 と同じ線）。
+const CODEX_DEEP_THRESHOLD = 5;
+
+function bestiaryEntries() {
+  const bestiary = state.profile.bestiary ?? {};
+  return Object.keys(PLAYABLE_CONTENT.enemyActors)
+    .filter((id) => (bestiary[id]?.seen ?? 0) > 0)
+    .map((id) => ({ id, ...bestiary[id] }));
+}
+
+function bestiaryCard(entry) {
+  const info = enemyInfo(entry.id);
+  const deep = entry.defeated >= CODEX_DEEP_THRESHOLD;
+  const codex = deep ? (ENEMY_CODEX[entry.id] ?? []) : [];
+  const sealed = !deep && (ENEMY_CODEX[entry.id] ?? []).length > 0;
+  return "<article class=\"codex-card\"><div class=\"codex-head\"><b>" + esc(info.label) + "</b>"
+    + "<small>見た " + entry.seen + " · 倒した " + entry.defeated + "</small></div>"
+    + "<p class=\"codex-targeting\">" + esc(info.targeting) + "</p>"
+    + (entry.defeated > 0 && info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
+    + codex.map((line) => "<p class=\"codex-line\">" + esc(line) + "</p>").join("")
+    + (sealed
+      ? "<p class=\"dossier-sealed\">あと " + (CODEX_DEEP_THRESHOLD - entry.defeated)
+        + " 体倒すと、書き足せることがある。</p>"
+      : "")
+    + "</article>";
+}
+
+function renderBestiary() {
+  const entries = bestiaryEntries();
+  const deep = entries.filter((entry) => entry.defeated >= CODEX_DEEP_THRESHOLD).length;
+  return "<section class=\"card\">" + sectionHeading("FIELD CODEX / " + entries.length, "会った灰殻の記録",
+      "<span class=\"stage\">書き足せた " + deep + "</span>")
+    + "<p class=\"muted\">詰所へ出す控えの写しです。<b>遠征を捨てても消えません</b>"
+    + "（会ったことは、負けても取り消されないので）。灰殻が何なのかは、ここにも書いてありません。</p>"
+    + (entries.length
+      ? "<div class=\"codex-grid\">" + entries.map(bestiaryCard).join("") + "</div>"
+      : "<p class=\"muted\">まだ一体も記録がありません。灰へ入ると増えます。</p>")
+    + "</section>";
+}
+
 // ---------------------------------------------------------------- Blueprint archive（R8 §3.6）
 //
 // **archive に所持上限は無い。**制限が掛かるのは遠征開始時の持込枠だけなので、
 // 画面も「何件持っているか」ではなく「今回どれを持ち込むか」を主役にする。
+// R12 §4.B — 設計図の由来。**acquisitions は既に持っている**（blueprints.mjs の
+// saveBlueprint が runId / encounterIndex / campaignStageId / outcome を残す）ので、
+// 新しい状態は足さず、機械の id を人の言葉へ写すだけにする。
+const BLUEPRINT_OUTCOME_TEXT = Object.freeze({
+  won: "遠征を終えて",
+  retreat: "撤退のさなかに",
+  lost: "退きながら",
+});
+
+function blueprintOriginText(origin) {
+  if (!origin) return "";
+  const stage = CAMPAIGN_STAGE_BY_ID[origin.campaignStageId]?.displayName ?? null;
+  const where = stage
+    ? (origin.encounterIndex ? stage + " の第" + origin.encounterIndex + "戦" : stage)
+    : (origin.encounterIndex ? "第" + origin.encounterIndex + "戦" : null);
+  if (!where) return "";
+  const how = BLUEPRINT_OUTCOME_TEXT[origin.outcome] ?? null;
+  return how ? where + "で拾い、" + how + "持ち帰った。" : where + "で拾った。";
+}
+
 function renderBlueprints() {
   const archive = state.profile.blueprints ?? { entries: [], carrySelection: [] };
   const capacity = blueprintCarryCapacity(state.profile);
@@ -1236,9 +1462,11 @@ function renderBlueprints() {
       + "<h3>" + esc(entry.definition.displayName) + rarityChip(entry.rarity) + "</h3>"
       + lines
       + (entry.readout?.keystone ? "<p class=\"keystone-line\">" + esc(entry.readout.keystone) + "</p>" : "")
-      + "<small>耐久 " + entry.definition.maxDurability + " · 取得 " + entry.acquisitions.length + "回"
-      + (origin.campaignStageId ? " · " + esc(origin.campaignStageId) : "")
-      + (origin.outcome ? " · " + esc(origin.outcome) : "") + "</small>"
+      + "<small>耐久 " + entry.definition.maxDurability + " · 取得 " + entry.acquisitions.length + "回</small>"
+      // R12 §4.B — **設計図は遠征をまたいで残る唯一の物である。**
+      // どの遠征のどこで拾ったのかを人の言葉で残すと、archive が記録になる。
+      + (blueprintOriginText(origin) ? "<p class=\"blueprint-origin\">"
+        + esc(blueprintOriginText(origin)) + "</p>" : "")
       + (verdict.ok
         ? button(chosen ? "持込を外す" : "この遠征へ持ち込む", "toggle-blueprint-carry",
           !chosen && carried.length >= capacity, "tiny-button primary-mini",
@@ -1514,6 +1742,23 @@ function finishStory() {
     startPrologue();
     return;
   }
+  // 根城の日常場面のあとは、**入ってきた画面へ戻す。**
+  // 精算から来たときは根城の一枚へ、ギルドの根城タブから来たときはそのタブへ。
+  // （戻り先を一つに決めると、タブから読み返した人が遠征の仕立てから弾かれる。）
+  if (after === "homestead" || after === "guildHomestead") {
+    state.phase = after === "homestead" ? "homestead" : "expeditionStart";
+    if (after === "guildHomestead") state.guildTab = "homestead";
+    saveState();
+    render();
+    return;
+  }
+  // R12 §4.C — 幕の断片のあとは、そのまま次の戦闘の予測画面へ渡す。
+  if (after === "battlePreview") {
+    state.phase = "battlePreview";
+    saveState();
+    render();
+    return;
+  }
   // R11 §5 — 倒れた会話のあとで、巻き戻しのボタンを持つ画面へ出る。
   if (after === "prologueResult") {
     state.phase = "result";
@@ -1589,6 +1834,25 @@ function startPrologue() {
 
 // R9 §8 — その Stage の会話をこの遠征で出すかどうか。
 // **一度クリアした Stage では出さない。**初回だけ学習順を固定する。
+// R12 §4.C — **幕の切れ目に短い断片を置く。**
+//
+// 4・8・12戦目は act boss で、プレイヤーが必ず一度止まる点である。ここに置けば
+// 新しい導線を作らずに済む。12戦のあいだが完全な無音だったのを埋めるための枠で、
+// **pack の説明はしない**（説明は opening / join / stageEnd が既に持っている）。
+//
+// 出す条件は join と同じ。**その Stage をまだクリアしていないあいだは出る。**
+// 2回目以降を黙らせないのは作者判断で、読み飛ばしたい人には スキップ がある。
+const ACT_BOSS_ENCOUNTERS = Object.freeze({ 4: "act1", 8: "act2", 12: "act3" });
+
+function actStoryBeatForEncounter(sequence, encounterIndex) {
+  const key = ACT_BOSS_ENCOUNTERS[encounterIndex];
+  if (!key) return null;
+  const stage = CAMPAIGN_STAGES[sequence];
+  if (!stage) return null;
+  if (isCampaignStageCleared(state.profile, sequence)) return null;
+  return storyBeat(stage.id, key);
+}
+
 function storyBeatsForStart(sequence) {
   const stage = CAMPAIGN_STAGES[sequence];
   if (!stage) return { beats: [], after: "camp" };
@@ -1637,12 +1901,10 @@ function renderRoster() {
       + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
       + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
   }).join("");
-  const unlockedIds = new Set(availableCharacterIds(state.profile));
+  const metOptions = metCharacterOptions();
   const rosterOptions = rosterLocked()
     ? CHARACTER_OPTIONS.filter((option) => state.run.roster.includes(option.id))
-    : isCampaignRun()
-      ? CHARACTER_OPTIONS.filter((option) => unlockedIds.has(option.id))
-      : CHARACTER_OPTIONS;
+    : metOptions;
   const characterCards = rosterOptions.map((option) => {
     const inParty = state.run.roster.includes(option.id);
     const selected = formationSelection === option.id;
@@ -1665,29 +1927,18 @@ function renderRoster() {
       + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
       + "</span><span>" + esc(actionLabel) + "</span></div></article>";
   }).join("");
-  const futureOptions = rosterLocked()
-    ? CHARACTER_OPTIONS.filter((option) => !state.run.roster.includes(option.id))
-    : isCampaignRun()
-      ? CHARACTER_OPTIONS.filter((option) => !unlockedIds.has(option.id))
-      : [];
-  const future = futureOptions
-    .map((option) => esc(characterName(option.id)) + "（" + esc(option.role) + "）").join("、");
-  const futureBlock = future
-    ? "<details class=\"future-roster\"><summary>" + (rosterLocked() ? "後で加入する仲間" : "まだ登場していない仲間")
-      + "（" + futureOptions.length + "人）</summary><p class=\"muted\">"
-      + future + "</p></details>"
-    : "";
+  // R12 §4.E-1 — **まだ加入していない人物を、名前でも人数でも出さない。**
+  // 以前はここに「後で加入する仲間（6人）」を出し、本編に来ない同業者まで
+  // 名前で並べていた（作者判断）。加入は物語の側の出来事なので、
+  // 会話が渡すまでこの画面は黙る。全体人数（8人）も割らない。
+  const metCount = metOptions.length;
   const rosterHeading = rosterLocked()
     ? "ROSTER / " + runPartySize()
-    : isCampaignRun()
-      ? "ROSTER / 解放 " + unlockedIds.size + " / 8 → " + runPartySize()
-      : "ROSTER / 8 → " + runPartySize();
+    : "ROSTER / " + metCount + " → " + runPartySize();
   const rosterCopy = rosterLocked()
     ? "今回は" + runPartySize() + "人で進みます。<b>同行者は物語が決めます。</b>Stageをクリアすると、次の仲間が加わります。"
-    : isCampaignRun()
-      ? "このStageはクリア済みです。登場済みの" + unlockedIds.size + "人から最大" + runPartySize()
-        + "人を選べます。まだ会っていない仲間は、登場するまで選べません。"
-      : "8人全員に固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。";
+    : "このStageはクリア済みです。いま隊にいる" + metCount + "人から最大" + runPartySize()
+      + "人を選べます。それぞれ固有の初期技能があり、技能ツリーで別の役割へ伸ばせます。";
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
     + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>" + (runPartySize() >= 5 ? "5人で6枠なので、必ず一枠が空きます。" : runPartySize() + "人なので、空き枠が" + (6 - runPartySize()) + "つあります。") + "</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
@@ -1697,7 +1948,7 @@ function renderRoster() {
     + "<section class=\"card\">" + sectionHeading(rosterHeading,
       rosterLocked() ? "今回の同行者" : "同行する仲間を選ぶ")
     + "<p class=\"muted\">" + rosterCopy + "</p>"
-    + "<div class=\"character-grid\">" + characterCards + "</div>" + futureBlock + "</section>"
+    + "<div class=\"character-grid\">" + characterCards + "</div></section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を組み、装備画面で実物を2枠に割り当ててください。</p>"
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
@@ -1786,17 +2037,22 @@ function skillNodeIcon(node) {
   return (node.kind === "reactive" ? "↳" : branchIcons[node.branch] ?? "·");
 }
 
+// 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
+const SKILL_TREE_BRANCHES = ["攻撃", "指揮", "支援", "守り", "基礎"];
+
+// R12 — manifest に無い技能ノードは**出さない**。
+//
+// R6 §5.2 は「灰色にして残す。消すと今回は出ないことが分からなくなる」と言っていた。
+// それは Free / Endless の random manifest（毎回どれかの系統が欠ける）の話である。
+// Campaign の pack は累積するので、**manifest に無い＝まだ物語が配っていない語彙**に
+// なった。灰色で名前だけ見せると、未解禁 pack と次 Stage の技能が先に割れる。
+// Free mode を削除した R12 では、灰色に残す理由そのものが無い（作者判断）。
+function visibleSkillNodes(branch) {
+  return SKILL_TREE_NODES.filter((node) => node.branch === branch && inManifest(node.skillId));
+}
+
 function renderSkillNode(node, characterId) {
   const info = COMPONENTS[node.skillId];
-  // R6 §5.2 — この遠征の manifest に入っていない技能は触れない。
-  // **灰色にして残す。**消すと「今回は出ない」ことが分からなくなる。
-  if (!inManifest(node.skillId)) {
-    return "<article class=\"skill-node out-of-manifest\"><button type=\"button\" class=\"skill-node-button\""
-      + " disabled data-action=\"select-skill-node\" data-skill=\"" + node.skillId + "\">"
-      + "<span class=\"node-icon\">" + esc(skillNodeIcon(node)) + "</span><span class=\"node-copy\"><b>"
-      + esc(info?.label ?? node.skillId) + "</b><small>" + kindText(node.kind) + " · T" + (node.tier + 1)
-      + "</small></span><span class=\"node-status\">今回は出ない</span></button></article>";
-  }
   const unlocked = isUnlocked(characterId, node.skillId);
   const equipped = installedSkill(characterId, node.skillId, node.kind);
   const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
@@ -1841,7 +2097,7 @@ function renderSkillNode(node, characterId) {
 }
 
 function renderSkillBranch(branch, characterId) {
-  const nodes = SKILL_TREE_NODES.filter((node) => node.branch === branch);
+  const nodes = visibleSkillNodes(branch);
   const tiers = [0, 1, 2].map((tier) => {
     const tierNodes = nodes.filter((node) => node.tier === tier).sort((a, b) => a.id.localeCompare(b.id));
     return "<div class=\"skill-tier\"><span class=\"tier-label\">T" + (tier + 1) + "</span><div class=\"tier-nodes\">"
@@ -1871,9 +2127,8 @@ function renderSkills() {
     + button("この仲間の解禁をやり直す", "reset-run-skills", false, "tiny-button",
       "data-character=\"" + characterId + "\"")
     + "</div>";
-  // 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
-  const branches = ["攻撃", "指揮", "支援", "守り", "基礎"].map((branch) => renderSkillBranch(branch, characterId)).join("");
-  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_NODES.length + " NODES", "誰を伸ばす？", pointsBadge)
+  const branches = SKILL_TREE_BRANCHES.map((branch) => renderSkillBranch(branch, characterId)).join("");
+  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_BRANCHES.reduce((sum, branch) => sum + visibleSkillNodes(branch).length, 0) + " NODES", "誰を伸ばす？", pointsBadge)
     + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
     + manifestNote
     + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
@@ -1972,6 +2227,8 @@ function renderEnemy(enemy) {
     + "<p>" + esc(info.targeting) + "</p>"
     + (mutations.length ? "<p class=\"muted small\">" + esc((enemy.mutations ?? [])
       .map((id) => ENEMY_MUTATIONS[id]?.previewText ?? "").join(" ")) + "</p>" : "")
+    // R12 §4.B — 狙いの下に、拾い屋の言い分を一行。**規則ではない**ので見た目で分ける。
+    + (info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
     + "</article>";
 }
 
@@ -2081,7 +2338,11 @@ function campTreatmentBlock() {
   }).join("");
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営で治療する（補給を消費）")
     + "<p class=\"muted\">戦闘外で戻せるHPは、ここで補給を払った分だけです。誰を治療するかは自動選択します"
-    + "（集中治療は最もHP割合の低い生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者）。</p>" + rows + "</section>";
+    + "（集中治療は最もHP割合の低い生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者）。</p>"
+    // R11 §4 — ナズナは「戻せるのは、いま受けたぶんだけ」と言う人である。
+    // **野営の画面は、その一行があるだけで手当ての意味が変わる。**
+    + "<p class=\"world-voice\">戻せるのは、いま受けたぶんだけ。灰でついた古い傷は、外の手当てでは戻らない。</p>"
+    + rows + "</section>";
 }
 
 // R8 §11 — exact preview。副作用なしで次戦を1回実行し、結果を表示する。
@@ -2792,6 +3053,71 @@ function renderResult() {
 
 // R6 §5.3 — 通常戦勝利後は4候補から1つ。
 // **活動資金はこの4候補に入らない。**補給や技能点を選んでも資金は減らない。
+// ---------------------------------------------------------------- 世界の声（R12 §4.B の続き）
+//
+// R12 は敵カード・設計図・精算の三か所へ世界の声を載せた。残っていたのが
+// **報酬・野営・敗北**である。どれもプレイヤーが必ず止まる画面なのに、全文が
+// システム文だった（R12 §3「増やすべきは会話量ではなく、会話以外の器である」）。
+//
+// **会話ではない。**誰かの台詞にすると R9 §7 の断片の勘定に入ってしまうので、
+// 地の文——詰所の言い方、拾い屋の言い習わし——として置く。
+// **決定性を守る。**戦闘数や結果から引くので、同じ状況では同じ一行が出る。
+
+const REWARD_VOICES = Object.freeze([
+  "持てるだけ持って帰るのが拾い屋ではない。持って帰れるものを選ぶのが拾い屋である。",
+  "詰所の買取は品を見ない。重さと等級しか見ない。選ぶ意味は、こちら側にしかない。",
+  "拾わなかったものは灰へ戻る。戻ったものが次にどこへ出るかは、誰も知らない。",
+  "同じ幕で二度同じ品を見た者はいる。持ち帰れた者はいない。",
+]);
+
+function rewardVoice() {
+  return REWARD_VOICES[(state.run.encounterIndex - 1 + REWARD_VOICES.length) % REWARD_VOICES.length];
+}
+
+const DEFEAT_VOICES = Object.freeze([
+  "退がるのに理由は要らない。進むほうに理由が要る。",
+  "台帳の「未達」の欄は、達しなかったことだけを書く。何があったかは書かない。",
+  "補給を残して戻った隊は、たいてい次も戻ってくる。",
+]);
+
+function defeatVoice() {
+  return DEFEAT_VOICES[(state.run.fundLedger.highestClearedEncounter + DEFEAT_VOICES.length)
+    % DEFEAT_VOICES.length];
+}
+
+// R8 §3.1 —「愛着の主語は人物、偶然性の主語は装備」。R12 §3 は、生成装備が
+// rule 文しか持たないので偶然性が物語になっていないと書いた。設計図には由来を
+// 付けたので、**拾った瞬間のほうにも一行を置く。**
+//
+// **品そのものから決まる**（affix の本数と耐久）ので、同じ品なら同じ一行が出る。
+// 効果の言い換えは書かない（それは readout の仕事で、二重に書くとずれる）。
+const GENERATED_VOICES = Object.freeze({
+  common: [
+    "外の工房でも作れそうな形をしている。灰の中に落ちていたことだけが説明できない。",
+    "使い込まれている。前に持っていた者の握りの癖が、まだ残っている。",
+  ],
+  rare: [
+    "継ぎ目が見当たらない。一枚から起こしたにしては、厚みが均一すぎる。",
+    "灰を払うと下から別の色が出た。塗ったのではなく、そういう地らしい。",
+  ],
+  epic: [
+    "詰所の買取に出すと、等級の欄で手が止まる。様式に無い形をしている。",
+    "同じものを見たという報告が二件ある。どちらも別の幕の、別の隊からである。",
+  ],
+  legendary: [
+    "台帳に載せる欄が無い。載せない、と決めた者がいたのかもしれない。",
+    "手に持っているあいだ、灰の音が少しだけ遠い。気のせいだと全員が言う。",
+  ],
+});
+
+function generatedVoice(item) {
+  const lines = GENERATED_VOICES[item?.rarity] ?? [];
+  if (!lines.length) return "";
+  const affixes = (item.provenance?.affixIds ?? []).length;
+  const durability = item.definition?.maxDurability ?? 0;
+  return lines[(affixes + durability) % lines.length];
+}
+
 function renderReward() {
   const rewardCharacter = state.selectedRewardCharacter && state.run.roster.includes(state.selectedRewardCharacter)
     ? state.selectedRewardCharacter
@@ -2808,6 +3134,8 @@ function renderReward() {
       const body = item
         ? (item.readout?.lines ?? []).map((line) => "<p>" + esc(line) + "</p>").join("")
           + (item.readout?.keystone ? "<p class=\"keystone-line\">" + esc(item.readout.keystone) + "</p>" : "")
+          // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
+          + (generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
         : "<p>" + esc(info?.effect ?? "") + "</p>";
       return "<article class=\"reward-card" + (item ? " generated" : "") + "\"><div class=\"reward-kind kind-equipment\">"
         + (item ? "生成装備" : "装備") + "</div><h3>"
@@ -2848,6 +3176,7 @@ function renderReward() {
       ? "<p class=\"muted\">目利き Lv" + appraisalLevel(state.profile)
         + "：生成装備の等級を " + (appraisalLevel(state.profile) + 1) + " 回引いて良い方を採っています。</p>"
       : "")
+    + "<p class=\"world-voice\">" + esc(rewardVoice()) + "</p>"
     + "<div class=\"reward-grid\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
     + button("補給1で4候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
@@ -2861,6 +3190,8 @@ function renderDefeat() {
   return shell("足を止めた", currentEncounter().name + " · 補給 " + state.run.supplies, "<section class=\"card verdict loss\">"
     + "<div class=\"verdict-mark\">×</div><h2>この組み合わせでは届かなかった</h2>"
     + "<p>敵は強化されません。報酬も変わりません。<b>補給1で編成・位置・技能・装備を変えて、同じ戦闘へもう一度挑めます。</b></p>"
+    // R11 §2.2 — 撤退は敗北ではなく判断である。**その言い方を、負けた画面にも置く。**
+    + "<p class=\"world-voice\">" + esc(defeatVoice()) + "</p>"
     + "</section>"
     + "<section class=\"card\">" + sectionHeading("SUPPLIES", "残っている手")
     + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた") + "</section>"
@@ -2868,7 +3199,7 @@ function renderDefeat() {
     + "<p class=\"muted\">撃破した戦闘と到達距離は、負けても持ち帰ります。</p>"
     + "<p class=\"fund-line\"><b>" + formatFunds(state.run.fundLedger.provisionalTotal) + "</b>"
     + "<small>撃破 " + state.run.fundLedger.clearedEncounterBase + " · 到達 "
-    + state.run.fundLedger.highestClearedEncounter + " 戦 · 難易度 ×"
+    + state.run.fundLedger.highestClearedEncounter + " 戦 · 倍率 ×"
     + (state.run.fundLedger.difficultyMultiplierBps / 10000).toFixed(1) + "</small></p>"
     + (canRetry
       ? button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
@@ -2923,6 +3254,26 @@ function stageEndStorySection(settlement) {
     + "</section>";
 }
 
+// R12 §4.B — 精算の締めの一行。
+//
+// **「撤退は敗北ではなく判断である」**（R11 §2.2）は世界観の中心なのに、
+// これまで画面のどこにも書かれていなかった。結果分類と到達戦数は既に持っているので、
+// 数字の下へ拾い屋の側の言い方を一行だけ置く。**慰めない。**評価もしない。
+function settlementClosingLine(settlement) {
+  const reached = state.run.fundLedger.highestClearedEncounter;
+  if (settlement.outcome === "won") {
+    return "十二戦を抜けた。器材を詰所へ返し、それから根城へ帰る。";
+  }
+  if (settlement.outcome === "retreat") {
+    return reached > 0
+      ? "第" + reached + "戦まで進んで、戻ると決めた。拾い屋の撤退は敗北ではない。危なければ戻り、戻ってまた入る。"
+      : "入ってすぐ引き返した。台帳にはそう書く。それだけのことだ。";
+  }
+  return reached > 0
+    ? "第" + reached + "戦で灰に押し返された。確定した分は持ち帰る。器材は返し、傷は数えて帳面に載せる。"
+    : "灰の入口で押し返された。持ち帰るものは無い。それでも器材は返しに行く。";
+}
+
 // R6 §9.2 — 精算は**一度だけ**。ここが唯一の入口。
 function renderSettlement() {
   const settlement = state.lastSettlement;
@@ -2936,17 +3287,19 @@ function renderSettlement() {
     ["撃破した戦闘", b.clearedEncounterBase],
     ["到達距離（" + state.run.fundLedger.highestClearedEncounter + "戦 × 25）", b.distance],
     ["12戦完走", b.outcomeBonus],
-    ["この難易度の初回クリア", b.firstClearBonus],
+    ["この Stage の初回クリア", b.firstClearBonus],
   ].map(([label, value]) => "<div class=\"settle-row\"><span>" + esc(label) + "</span><b>" + value + "</b></div>").join("");
   const title = won ? "遠征を終えた" : retreated ? "安全に撤退した" : "遠征は途中で終わった";
   return shell(title,
-    "難易度 " + state.run.difficulty + " · " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + " 戦",
+    (CAMPAIGN_STAGES[state.run.campaignStageSequence]?.displayName ?? "遠征")
+      + " · " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + " 戦",
     "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
     + (won ? "✦" : retreated ? "◇" : "◆") + "</div><h2>活動資金 " + formatFunds(settlement.earned) + " を持ち帰った</h2>"
-    + "<p>残高 " + formatFunds(settlement.balanceBefore) + " → <b>" + formatFunds(settlement.balanceAfter) + "</b></p></section>"
+    + "<p>残高 " + formatFunds(settlement.balanceBefore) + " → <b>" + formatFunds(settlement.balanceAfter) + "</b></p>"
+    + "<p class=\"settle-closing\">" + esc(settlementClosingLine(settlement)) + "</p></section>"
     + "<section class=\"card\">" + sectionHeading("SETTLEMENT", "内訳")
     + "<div class=\"settle-list\">" + rows + "</div>"
-    + "<div class=\"settle-row total\"><span>難易度倍率</span><b>×"
+    + "<div class=\"settle-row total\"><span>報酬倍率</span><b>×"
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
     + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
     + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは"
@@ -2955,18 +3308,15 @@ function renderSettlement() {
     + "件を残せます。</p></section>"
     + blueprintSettlementSection(settlement)
     + stageEndStorySection(settlement)
-    + (settlement.unlockedDifficulty !== null
-      ? "<section class=\"card\"><p class=\"eyebrow\">DIFFICULTY</p><h3>難易度 "
-        + settlement.unlockedDifficulty + " が開いた</h3><p class=\"muted\">"
-        + esc(difficultyDef(settlement.unlockedDifficulty).summary) + "</p></section>"
-      : "")
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
       ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
         + esc(CAMPAIGN_STAGES[settlement.unlockedCampaignStage]?.displayName ?? ("Stage " + settlement.unlockedCampaignStage))
         + " が開いた</h3></section>"
       : "")
     + "<section class=\"card quiet\">"
-    + button("ギルドへ戻る", "back-guild", false, "button primary")
+    // R11 §2.4 — 器材を詰所へ返して、それから根城へ帰る。**精算の次は家である。**
+    + button("根城へ帰る", "go-homestead", false, "button primary")
+    + button("ギルドへ戻る", "back-guild", false, "button")
     + button("記録を送る", "complete", false, "button") + "</section>");
 }
 
@@ -3013,6 +3363,21 @@ function saveStateSoon() {
   }, 700);
 }
 
+// R11 §5 / R12 — 序盤の一戦の、再生後に入る会話。**判定はここ一箇所にしかない。**
+// 再生が流れきった場合と、［結果を見る］で打ち切った場合の両方から呼ぶ。
+function enterPrologueBeatIfDue() {
+  if (!state.prologueActive) return false;
+  if (state.prologueStage === "first") {
+    enterStory([storyBeat("stage_0_edge", "prologueDefeat")], "prologueResult");
+    return true;
+  }
+  if (state.prologueStage === "retry" && state.lastResult?.result === "win") {
+    enterStory([storyBeat("stage_0_edge", "prologueWin")], "prologueClear");
+    return true;
+  }
+  return false;
+}
+
 function scheduleReplayBeat() {
   stopReplayTimer();
   if (state.phase !== "battle" || !state.replayPlaying) return;
@@ -3021,14 +3386,7 @@ function scheduleReplayBeat() {
   if (index >= beats.length - 1) {
     state.replayPlaying = false;
     // R11 §5 — 序盤の一戦だけは、再生の終わりがそのまま会話の始まりになる。
-    if (state.prologueActive && state.prologueStage === "first") {
-      enterStory([storyBeat("stage_0_edge", "prologueDefeat")], "prologueResult");
-      return;
-    }
-    if (state.prologueActive && state.prologueStage === "retry" && state.lastResult?.result === "win") {
-      enterStory([storyBeat("stage_0_edge", "prologueWin")], "prologueClear");
-      return;
-    }
+    if (enterPrologueBeatIfDue()) return;
     saveState();
     updateReplayControls(index, beats);
     return;
@@ -3078,7 +3436,6 @@ function handleAction(event) {
       profile,
       run,
       phase: "story",
-      expeditionMode: "campaign",
       selectedCampaignStageSequence: 0,
       runId: run.runId,
       startedAt: run.startedAt,
@@ -3149,39 +3506,20 @@ function handleAction(event) {
   // intro からも精算後からも、まずギルド（遠征を仕立てる画面）へ入る。
   if (action === "start" || action === "new-expedition" || action === "back-guild") {
     const profile = state.profile;
-    // **rank は state を差し替える前に決める。**あとで決めると、
+    // **Stage は state を差し替える前に決める。**あとで決めると、
     // clamp は新しい state（常に0）を読み、run は前の選択で作られて、
-    // 画面が「難易度0」と言いながら rank 1 を走らせる。
-    const ranks = availableDifficulties(profile);
-    const rank = Math.min(state.selectedDifficulty ?? 0, ranks[ranks.length - 1]);
-    // R8 Implementation Phase 1 — mode を保ち、campaign なら解禁済みStageへ丸める。
-    const mode = state.expeditionMode === "campaign" ? "campaign" : "free";
+    // 画面が「Stage 0」と言いながら別の Stage を走らせる。
     const campaignStages = availableCampaignStages(profile);
     const campaignStage = Math.min(state.selectedCampaignStageSequence ?? 0, campaignStages[campaignStages.length - 1]);
     const guildCharacterId = state.guildCharacter;
     state = {
       ...freshUiState(),
       profile,
-      run: startRun(profile, mode === "campaign" ? { campaignStageSequence: campaignStage } : { difficulty: rank }),
+      run: startRun(profile, { campaignStageSequence: campaignStage }),
     };
     state.phase = "expeditionStart";
-    state.expeditionMode = mode;
-    state.selectedDifficulty = rank;
     state.selectedCampaignStageSequence = campaignStage;
     state.guildCharacter = guildCharacterId;
-    saveState();
-    render();
-    return;
-  }
-
-  // R8 Implementation Phase 1 — 遠征の仕立て方を Free ⇔ Campaign で切り替える。
-  if (action === "expedition-mode") {
-    const mode = element.dataset.mode === "campaign" ? "campaign" : "free";
-    if (mode === state.expeditionMode) return;
-    state.expeditionMode = mode;
-    state.run = startRun(state.profile, mode === "campaign"
-      ? { campaignStageSequence: state.selectedCampaignStageSequence ?? 0, roster: state.run.roster }
-      : { difficulty: state.selectedDifficulty ?? 0, roster: state.run.roster });
     saveState();
     render();
     return;
@@ -3204,8 +3542,50 @@ function handleAction(event) {
     return;
   }
 
+  // ---- 根城（R11 §2.4 / §9.4）
+  //
+  // 精算の次はここ。**新しい場面があれば先に会話へ入り、無ければ家の画面へ出る。**
+  if (action === "go-homestead") {
+    const scene = pendingHomesteadScene();
+    if (scene) {
+      // **既読印は入った時点で押す。**途中で閉じても、同じ夜を二度は出さない
+      // （読み返しは根城の画面から自由にできる）。
+      state.profile = {
+        ...state.profile,
+        storyFlags: [...new Set([...(state.profile.storyFlags ?? []), homesteadFlag(scene.id)])],
+      };
+      record("homestead_scene", { scene: scene.id });
+      enterStory([scene.beat], "homestead");
+      return;
+    }
+    state.phase = "homestead";
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "enter-homestead-scene") {
+    const scene = pendingHomesteadScene();
+    if (!scene) return;
+    state.profile = {
+      ...state.profile,
+      storyFlags: [...new Set([...(state.profile.storyFlags ?? []), homesteadFlag(scene.id)])],
+    };
+    record("homestead_scene", { scene: scene.id });
+    enterStory([scene.beat], homesteadReturnPhase());
+    return;
+  }
+
+  // 一度見た場面の読み返し。**既読印は動かさない。**
+  if (action === "replay-homestead") {
+    const scene = homesteadScene(element.dataset.scene);
+    if (!scene || !seenHomesteadIds(state.profile.storyFlags).includes(scene.id)) return;
+    enterStory([scene.beat], homesteadReturnPhase());
+    return;
+  }
+
   if (action === "guild-tab") {
-    state.guildTab = ["guild", "blueprints"].includes(element.dataset.tab)
+    state.guildTab = ["guild", "blueprints", "homestead", "codex"].includes(element.dataset.tab)
       ? element.dataset.tab
       : "expedition";
     saveState();
@@ -3215,26 +3595,8 @@ function handleAction(event) {
 
   if (action === "select-guild-character") {
     const id = element.dataset.character;
-    if (!CHARACTER_OPTIONS.some((option) => option.id === id) || !isCharacterUnlocked(state.profile, id)) return;
+    if (!metCharacterOptions().some((option) => option.id === id)) return;
     state.guildCharacter = id;
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "select-difficulty") {
-    const rank = Number(element.dataset.rank);
-    if (!Number.isInteger(rank) || !availableDifficulties(state.profile).includes(rank)) return;
-    state.selectedDifficulty = rank;
-    state.expeditionMode = "free";
-    // 難易度は開始補給と敵編成を変えるので run を作り直すが、
-    // **seed は持ち回す**（manifest を引き直させない）。
-    state.run = startRun(state.profile, {
-      difficulty: rank,
-      roster: state.run.roster,
-      runSeed: state.run.runSeed,
-      runId: state.run.runId,
-    });
     saveState();
     render();
     return;
@@ -3418,8 +3780,10 @@ function handleAction(event) {
   if (action === "toggle-roster") {
     const id = element.dataset.character;
     if (!id || !characterInfo(id)) return;
-    if (isCampaignRun() && !rosterLocked() && !isCharacterUnlocked(state.profile, id)) {
-      state.error = "まだ登場していない仲間は、このCampaignの編成に入れられません。";
+    // R12 — 判定は metCharacterIds ひとつに寄せる（画面と engine で別々に
+    // 判定すると、いつか片方だけずれる）。
+    if (!rosterLocked() && !metCharacterIds().has(id)) {
+      state.error = "まだ会っていない仲間は、編成に入れられません。";
       render();
       return;
     }
@@ -3638,6 +4002,15 @@ function handleAction(event) {
         formation: clone(state.run.formation),
         loadout: clone(state.run.loadout),
       });
+      // R12 §4.C — act boss の前で一度だけ会話を挟む。**prologue 中は挟まない**
+      // （序盤の4拍が既に会話で埋まっているので、そこへ足すと長い）。
+      const actBeat = state.prologueActive
+        ? null
+        : actStoryBeatForEncounter(state.run.campaignStageSequence, state.run.encounterIndex);
+      if (actBeat) {
+        enterStory([actBeat], "battlePreview");
+        return;
+      }
       state.phase = "battlePreview";
     }
     saveState();
@@ -3706,6 +4079,13 @@ function handleAction(event) {
         reason: result.reason,
         roundsUsed: result.roundsUsed,
       });
+      // R8 §3.2 の図鑑。**会ったことは Profile に残る。**遠征を捨てても、
+      // 序盤の一戦でも残す（会ったという事実は、勝敗で取り消されない）。
+      state.profile = recordBestiary(
+        state.profile,
+        (composed.enemies ?? []).map((enemy) => enemy.enemyActorId),
+        { defeated: result.result === "win" },
+      );
       // R8 §8, §10 — Campaign Stage: 勝利時だけHPをcommitする（敗北時はrunを
       // 変更しない=retry safe）。4/8戦目boss勝利後はcommitBattleResultが全回復する。
       // R9 §2.1 / R11 §5 — **序盤の一戦は遠征に数えない。**
@@ -3805,6 +4185,13 @@ function handleAction(event) {
 
   if (action === "replay-result") {
     state.replayPlaying = false;
+    // R12 — **再生を飛ばしても、序盤の会話を飛び越えない。**
+    // 以前はこの分岐が scheduleReplayBeat（再生が最後まで流れきった場合）にしか
+    // 無かったので、［結果を見る］で再生を打ち切ると prologueClear が起きず、
+    // 既読印が押されないまま prologueActive が真のまま残った。**門の一戦から
+    // 出られなくなる**（結果画面は「編成を見直す」しか出さないので、
+    // 何度勝っても同じ盤面へ戻る）。分岐をここへ寄せて、両方の経路で通す。
+    if (enterPrologueBeatIfDue()) return;
     state.phase = "result";
     saveState();
     render();
