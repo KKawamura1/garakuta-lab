@@ -68,6 +68,11 @@ jobs:
           const errors = [];
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+          const cdp = await page.context().newCDPSession(page);
+          await cdp.send("Runtime.enable");
+          cdp.on("Runtime.exceptionThrown", ({ exceptionDetails }) => {
+            console.log("RUNTIME_EXCEPTION " + JSON.stringify(exceptionDetails));
+          });
           page.on("pageerror", (error) => errors.push(error.stack || String(error)));
           page.on("console", (message) => {
             if (message.type() === "error" && !/Failed to load resource/.test(message.text())) {
