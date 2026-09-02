@@ -1139,7 +1139,7 @@ function renderExpeditionStart() {
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
   const body = { guild: renderGuild, blueprints: renderBlueprints }[state.guildTab]?.() ?? expeditionBody;
   return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う",
-    "<div class="camp-tools guild-tools">" + button("タイトルへ", "back-title", false, "tiny-button") + "</div>"
+    "<div class=\"camp-tools guild-tools\">" + button("タイトルへ", "back-title", false, "tiny-button") + "</div>"
     + tabs + note + body, { hideHeaderAction: true });
 }
 
