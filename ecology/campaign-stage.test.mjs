@@ -18,7 +18,7 @@
 // （analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3）。
 
 import assert from "node:assert/strict";
-import { PLAYABLE_CONTENT } from "./content/index.mjs";
+import { PLAYABLE_CONTENT, REGION } from "./content/index.mjs";
 import {
   CAMPAIGN_STAGES,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
@@ -32,6 +32,7 @@ import {
   CAMP_TREATMENTS,
   MAX_SUPPLIES,
   availableCampaignStages,
+  availableCharacterIds,
   campTreat,
   characterStats,
   commitBattleResult,
@@ -39,7 +40,11 @@ import {
   isCampaignStageUnlocked,
   newProfile,
   newRun,
+  normalizeProfile,
+  purchaseTraining,
+  purchaseUpgrade,
   settleRun,
+  slotUpgradeId,
 } from "./progression.mjs";
 import { freshLoadout, previewNextBattle, simulateNextBattle } from "./playable-battles.mjs";
 
@@ -53,7 +58,47 @@ const equal = (actual, expected, message) => {
   checks += 1;
 };
 
-const ROSTER = ["warden", "mender", "lancer", "scout", "guardian"];
+const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
+
+function campaignCompleteProfile() {
+  const profile = newProfile();
+  profile.campaignProgress[REGION.id] = {
+    highestClearedStageSequence: MAX_CAMPAIGN_STAGE_SEQUENCE,
+    clearedStageSequences: Array.from({ length: MAX_CAMPAIGN_STAGE_SEQUENCE + 1 }, (_, index) => index),
+  };
+  profile.unlockedCharacterIds = availableCharacterIds(profile);
+  return profile;
+}
+
+// ---- 登場済み人物だけをギルド対象にする ------------------------------
+
+{
+  const profile = newProfile();
+  profile.activityFunds = "1000000";
+  assert.deepEqual(availableCharacterIds(profile), ["warden", "mender"], "最初は登場済みの2人だけ");
+  checks += 1;
+  check(!purchaseTraining(profile, "lancer", "might").ok, "未登場の人物は鍛錬できない");
+  check(!purchaseUpgrade(profile, slotUpgradeId("active", "lancer")).ok, "未登場の人物は枠を買えない");
+
+  profile.campaignProgress[REGION.id] = {
+    highestClearedStageSequence: 2,
+    clearedStageSequences: [0, 1, 2],
+  };
+  profile.unlockedCharacterIds = availableCharacterIds(profile);
+  assert.deepEqual(profile.unlockedCharacterIds, ["warden", "mender", "lancer", "guardian", "tactician"],
+    "Stage 2 までで5人が登場済み");
+  checks += 1;
+  check(purchaseTraining(profile, "mender", "might").ok, "登場済みの人物は鍛錬できる");
+  check(!purchaseTraining(profile, "scout", "might").ok, "残りの未登場人物は鍛錬できない");
+  equal(availableCharacterIds(profile).length, 5, "最大でも8人中5人だけがギルド対象");
+  const reloaded = normalizeProfile({
+    ...JSON.parse(JSON.stringify(profile)),
+    unlockedCharacterIds: ["scout", "pivot", "arcanist"],
+  });
+  assert.deepEqual(reloaded.unlockedCharacterIds, profile.unlockedCharacterIds,
+    "セーブ内の解放欄が水増しされても進行から再構成する");
+  checks += 1;
+}
 
 // ---- manifestラダー（R8 §16.1）----------------------------------------------
 
@@ -158,7 +203,7 @@ function syntheticResult(result, allyHpById) {
 // R9 のチュートリアル人数ではない（`freeRoster` は一度クリアした Stage の
 // 遊び直しと同じ扱いで、Stage の人数制限を外す）。
 {
-  const profile = newProfile();
+  const profile = campaignCompleteProfile();
   const run = newRun(profile, { runSeed: "s", runId: "hp-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const fullHp = { ...run.currentHp };
   for (const id of ROSTER) check(fullHp[id] > 0, id + " は遠征開始時に満タン");
@@ -190,7 +235,7 @@ function syntheticResult(result, allyHpById) {
 // ---- 野営治療（R8 §9.2）------------------------------------------------------
 
 {
-  const profile = newProfile();
+  const profile = campaignCompleteProfile();
   let run = newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const maxHp = characterStats(profile, "warden").stats.maxHp;
   run = { ...run, currentHp: { ...run.currentHp, warden: Math.floor(maxHp * 0.3) } };
@@ -224,7 +269,7 @@ function syntheticResult(result, allyHpById) {
 // ---- 安全撤退（R8 §10.3）------------------------------------------------------
 
 {
-  const profile = newProfile();
+  const profile = campaignCompleteProfile();
   const run = newRun(profile, { runSeed: "s", runId: "retreat-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const retreated = settleRun(profile, run, "retreat");
   check(retreated.ok, "安全撤退を精算できる");
@@ -242,7 +287,7 @@ function syntheticResult(result, allyHpById) {
 // ---- exact preview（R8 §11）---------------------------------------------------
 
 {
-  const profile = newProfile();
+  const profile = campaignCompleteProfile();
   const run = newRun(profile, { runSeed: "preview-seed", runId: "preview-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
   const runWithLoadout = { ...run, loadout: freshLoadout(ROSTER) };
 
