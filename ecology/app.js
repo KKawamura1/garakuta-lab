@@ -55,6 +55,7 @@ import {
   SUPPLY_USES,
   CAMP_TREATMENTS,
   availableCampaignStages,
+  availableCharacterIds,
   campTreat,
   commitBattleResult,
   convertScrap,
@@ -104,7 +105,7 @@ import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 R10 Campaign 0.8";
+const VERSION = "EXP-18 R10 Campaign 0.9";
 const SAVE_FORMAT_VERSION = 1;
 const SAVE_KEY = "exp18-r10-auto-v01";
 const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v01-";
@@ -271,17 +272,32 @@ function partyLabel() {
 // `runSeed` を渡せるのは、**難易度を選び直しても manifest を引き直させない**ため。
 // 渡さずに作り直すと、有効パックが気に入るまで難易度ボタンを往復すれば
 // 引き直せてしまう（R6 §5.2 は manifest を seed で決めると言っている）。
+function ensureCampaignPartySize(rosterIds, size, profile) {
+  const available = availableCharacterIds(profile);
+  const allowed = new Set(available);
+  const target = Math.max(1, Math.min(PARTY_SIZE, Math.floor(size)));
+  const roster = (rosterIds ?? []).filter((id) => allowed.has(id)).slice(0, target);
+  for (const id of available) {
+    if (roster.length >= target) break;
+    if (!roster.includes(id)) roster.push(id);
+  }
+  return roster;
+}
+
 function startRun(profile, options = {}) {
   // R9 §2.1 — Campaign Stage は、初回はその Stage の cast をそのまま使う。
-  // R9 §8 — 一度クリアした Stage は5人を自由に選べる（freeRoster）。
+  // R9 §8 — 一度クリアした Stage は、登場済みの仲間から編成を選べる。
   const sequence = options.campaignStageSequence ?? null;
   const stage = sequence === null ? null : CAMPAIGN_STAGES[sequence] ?? null;
   const cleared = sequence !== null && isCampaignStageCleared(profile, sequence);
   const freeRoster = options.freeRoster ?? cleared;
-  const size = stage && !freeRoster ? stage.partySize : PARTY_SIZE;
+  const availableCount = stage && freeRoster ? availableCharacterIds(profile).length : PARTY_SIZE;
+  const size = stage && !freeRoster ? stage.partySize : Math.min(PARTY_SIZE, availableCount);
   const requested = options.roster
     ?? (stage && !freeRoster ? [...stage.castCharacterIds] : ["warden", "mender", "lancer", "guardian"]);
-  const roster = ensurePartySize(requested, size);
+  const roster = stage && freeRoster
+    ? ensureCampaignPartySize(requested, size, profile)
+    : ensurePartySize(requested, size);
   const runSeed = options.runSeed ?? (RUN_SEED + "-" + uuid().slice(0, 8));
   const run = newRun(profile, {
     runSeed,
@@ -432,10 +448,15 @@ function hydrateState(saved) {
     ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
     : PARTY_SIZE;
   next.run.rosterLocked = savedRun.rosterLocked === true;
-  next.run.roster = ensurePartySize(
-    savedRun.roster.filter((id) => characterInfo(id)),
-    next.run.partySize,
-  );
+  const savedCampaignFree = savedRun.campaignStageSequence !== null
+    && savedRun.campaignStageSequence !== undefined
+    && !next.run.rosterLocked;
+  if (savedCampaignFree) {
+    next.run.partySize = Math.min(next.run.partySize, availableCharacterIds(next.profile).length);
+  }
+  next.run.roster = savedCampaignFree
+    ? ensureCampaignPartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize, next.profile)
+    : ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize);
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
@@ -871,20 +892,15 @@ function selectedCharacter() {
   return state.run.roster[0];
 }
 
-// ギルド画面の選択。**会ったことのある仲間が対象**（永続投資は同行の有無に関係しないが、
-// まだ加入していない人物を鍛えられるのはおかしい。R12 §4.E-1）。
 // R12 — **物語がまだ出していない人物を、どの画面にも出さない。**
 //
-// 加入は Campaign Stage の cast で決まる（campaign-stages.mjs の castCharacterIds）。
-// 「いま出ている遠征の cast」と「これまでクリアした Stage の cast」の和が、
-// プレイヤーが会ったことのある全員である。**ここが唯一の判定**で、
-// 編成・ギルド投資・名簿は全部これを読む（別々に判定すると、いつか片方だけ漏れる）。
+// 加入の判定は progression.mjs の `availableCharacterIds`（Campaign の進行から
+// 再構成する engine 側の唯一の規則）に任せる。画面側で二つ目の判定を持つと、
+// いつか片方だけずれる。**いま出ている遠征の同行者は必ず「会った人」に含める**
+// ので、古い保存から入っても名簿と編成が食い違わない。
 function metCharacterIds(profile = state.profile, run = state.run) {
-  const met = new Set(run?.roster ?? []);
-  const highest = profile?.campaignProgress?.[REGION.id]?.highestClearedStageSequence ?? -1;
-  for (const stage of CAMPAIGN_STAGES) {
-    if (stage.sequence <= highest) for (const id of stage.castCharacterIds) met.add(id);
-  }
+  const met = new Set(availableCharacterIds(profile));
+  for (const id of run?.roster ?? []) met.add(id);
   return met;
 }
 
@@ -894,6 +910,8 @@ function metCharacterOptions() {
   return CHARACTER_OPTIONS.filter((option) => met.has(option.id));
 }
 
+// ギルド画面の選択。**会ったことのある仲間が対象**（永続投資は同行の有無に
+// 関係しないが、まだ加入していない人物を鍛えられるのはおかしい。R12 §4.E-1）。
 function guildCharacter() {
   const options = metCharacterOptions();
   const fallback = options[0] ?? CHARACTER_OPTIONS[0];
@@ -920,7 +938,8 @@ function campNav() {
     ["roster", "編成", partyLabel()],
     ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
     ["equipment", "装備", state.run.roster.reduce((total, id) => total + (state.run.loadout.equipment?.[id] || []).length, 0) + "/" + (state.run.roster.length * 2)],
-    ["map", "戦闘", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN + " · 補給" + state.run.supplies],
+    ["supplies", "補給", state.run.supplies + "/" + MAX_SUPPLIES],
+    ["map", "戦闘", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN],
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) =>
     "<button type=\"button\" class=\"tab " + (state.tab === id ? "active" : "")
@@ -1122,7 +1141,9 @@ function renderExpeditionStart() {
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
   const body = { guild: renderGuild, blueprints: renderBlueprints, dossiers: renderDossiers }[state.guildTab]?.()
     ?? expeditionBody;
-  return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う", tabs + note + body);
+  return shell("ギルド", "遠征を仕立てて、持ち帰った資金を使う",
+    "<div class=\"camp-tools guild-tools\">" + button("タイトルへ", "back-title", false, "tiny-button") + "</div>"
+    + tabs + note + body, { hideHeaderAction: true });
 }
 
 // ---------------------------------------------------------------- ギルド投資（R6 §9.3）
@@ -1167,8 +1188,9 @@ function renderGuild() {
       + button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
         "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"") + "</div>";
   }).join("");
+  const metOptions = metCharacterOptions();
   const memberTabsHtml = "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">"
-    + metCharacterOptions().map((option) => "<button type=\"button\" class=\"member-tab "
+    + metOptions.map((option) => "<button type=\"button\" class=\"member-tab "
       + (option.id === characterId ? "active" : "") + "\" data-action=\"select-guild-character\" data-character=\""
       + option.id + "\"><span class=\"avatar small\">" + esc(option.icon) + "</span><span>"
       + characterName(option.id) + "<small>" + esc(option.role) + "</small></span></button>").join("") + "</div>";
@@ -1176,8 +1198,11 @@ function renderGuild() {
       "<span class=\"stage\">" + formatFunds(funds()) + "</span>")
     + "<p class=\"muted\">活動資金は遠征の勝敗を問わず、遠征が終わるたびに一度だけ精算されます。<b>購入は取り消せません。</b>買った品は報酬 pool へ加わりますが、どの遠征にも必ず出るわけではありません。</p>"
     + "<div class=\"purchase-list\">" + upgrades + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("PER CHARACTER", "誰を先に複雑にするか")
+    + "<section class=\"card\">" + sectionHeading("PER CHARACTER / " + metOptions.length, "誰を先に複雑にするか")
     + memberTabsHtml
+    // R12 §4.E-1 — **まだ会っていない人の数を、ここで割らない。**
+    // 「あと何人来るか」は物語が渡すものなので、投資画面は隊にいる人だけを数える。
+    + "<p class=\"muted\">いま隊にいる仲間だけが強化対象です。新しい仲間は、加入したときにここへ加わります。</p>"
     + "<div class=\"purchase-list\">" + slots + "</div>"
     + "<h3 class=\"training-heading\">鍛錬（上限なし）</h3>"
     + "<p class=\"muted\">1段で +0.1%。速度・行動権・枠数・発火回数は鍛錬で上がりません。</p>"
@@ -1698,8 +1723,9 @@ function renderCamp() {
     roster: renderRoster,
     skills: renderSkills,
     equipment: renderEquipment,
+    supplies: renderSupplies,
     map: renderMap,
-  }[state.tab]();
+  }[state.tab]?.() ?? renderMap();
   const title = state.tab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
   const subtitle = "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN
     + " · " + currentEncounter().name + " · " + partyLabel();
@@ -1728,10 +1754,11 @@ function renderRoster() {
       + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
       + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
   }).join("");
-  const characterCards = (rosterLocked()
+  const metOptions = metCharacterOptions();
+  const rosterOptions = rosterLocked()
     ? CHARACTER_OPTIONS.filter((option) => state.run.roster.includes(option.id))
-    : metCharacterOptions()
-  ).map((option) => {
+    : metOptions;
+  const characterCards = rosterOptions.map((option) => {
     const inParty = state.run.roster.includes(option.id);
     const selected = formationSelection === option.id;
     const action = inParty ? "select-formation-character" : "toggle-roster";
@@ -1753,17 +1780,18 @@ function renderRoster() {
       + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
       + "</span><span>" + esc(actionLabel) + "</span></div></article>";
   }).join("");
-  // R12 — **まだ加入していない人物を、名前でも人数でも出さない。**
+  // R12 §4.E-1 — **まだ加入していない人物を、名前でも人数でも出さない。**
   // 以前はここに「後で加入する仲間（6人）」を出し、本編に来ない同業者まで
-  // 名前で並べていた（R12 §4.E-1、作者判断）。加入は物語の側の出来事なので、
-  // 会話が渡すまでこの画面は黙る。
-  const metCount = metCharacterOptions().length;
+  // 名前で並べていた（作者判断）。加入は物語の側の出来事なので、
+  // 会話が渡すまでこの画面は黙る。全体人数（8人）も割らない。
+  const metCount = metOptions.length;
   const rosterHeading = rosterLocked()
     ? "ROSTER / " + runPartySize()
     : "ROSTER / " + metCount + " → " + runPartySize();
   const rosterCopy = rosterLocked()
     ? "今回は" + runPartySize() + "人で進みます。<b>同行者は物語が決めます。</b>Stageをクリアすると、次の仲間が加わります。"
-    : "いま隊にいる" + metCount + "人には、それぞれ固有の初期技能があります。好きな仲間を選び、技能ツリーで別の役割へ伸ばせます。";
+    : "このStageはクリア済みです。いま隊にいる" + metCount + "人から最大" + runPartySize()
+      + "人を選べます。それぞれ固有の初期技能があり、技能ツリーで別の役割へ伸ばせます。";
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
     + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>" + (runPartySize() >= 5 ? "5人で6枠なので、必ず一枠が空きます。" : runPartySize() + "人なので、空き枠が" + (6 - runPartySize()) + "つあります。") + "</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
@@ -2030,10 +2058,6 @@ function renderEquipment() {
     + memberTabs(characterId) + memberContext(characterId, "equipment")
     + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? gear(selected)?.label ?? selected : "なし")
     + "</b> · " + (selected ? "下の枠をタップして装着" : "上の装備をタップ") + "</p>"
-    + "<div class=\"scrap-line\"><span>分解の屑 <b>" + (state.run.scrap ?? 0) + "</b>（"
-    + SCRAP_PER_SUPPLY + "で補給1）</span>"
-    + button("補給へ替える", "convert-scrap", (state.run.scrap ?? 0) < SCRAP_PER_SUPPLY
-      || state.run.supplies >= MAX_SUPPLIES, "tiny-button") + "</div>"
     + "<div class=\"gear-grid\">" + inventory + "</div></section>"
     + "<section class=\"card\">" + sectionHeading("LOADOUT / " + runPartySize() + " MEMBERS", "誰に何を持たせる？")
     + "<div class=\"gear-member-grid\">" + members + "</div></section>"
@@ -2075,6 +2099,26 @@ function suppliesBar(context) {
     + "<div class=\"supply-pips\">" + pips + "</div><ul class=\"supply-uses\">" + uses + "</ul></div>";
 }
 
+function renderSupplies() {
+  const scrap = state.run.scrap ?? 0;
+  const treatment = isCampaignRun()
+    ? campTreatmentBlock()
+    : "<section class=\"card quiet\"><p class=\"eyebrow\">CAMP TREATMENT</p><p class=\"muted\">野営治療はCampaignの持ち越しHP用です。自由遠征では戦闘ごとにHPが全回復します。</p></section>";
+  return "<section class=\"card\">" + sectionHeading("SUPPLIES / " + MAX_SUPPLIES, "補給の使い道",
+      "<span class=\"stage\">" + state.run.supplies + " / " + MAX_SUPPLIES + "</span>")
+    + "<p class=\"muted\">補給は遠征中の有限資源です。再挑戦・報酬の引き直し・偵察・野営治療から、いま必要な用途を選びます。</p>"
+    + suppliesBar("4つの用途で取り合う")
+    + "<div class=\"scrap-line\"><span>分解の屑 <b>" + scrap + "</b>（" + SCRAP_PER_SUPPLY + "で補給1）</span>"
+    + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= MAX_SUPPLIES, "tiny-button")
+    + "</div></section>"
+    + treatment
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">QUICK LINKS</p><p class=\"muted\">偵察は戦闘タブ、報酬の引き直しは報酬画面、再挑戦は敗北画面から行います。</p>"
+    + "<div class=\"flow-actions\">"
+    + button("戦闘タブへ", "tab", false, "button", "data-tab=\"map\"")
+    + button("編成を開く", "tab", false, "button", "data-tab=\"roster\"")
+    + "</div></section>";
+}
+
 function renderMap() {
   const index = state.run.encounterIndex;
   const encounter = currentEncounter();
@@ -2111,7 +2155,7 @@ function renderMap() {
   const ruleBlock = isCampaignRun()
     ? "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">"
       + "通常・精鋭戦後は現在HPを次の戦闘へ持ち越します（R8 §1.5）。4戦目・8戦目のボスを倒したときだけ全員が全回復します。"
-      + "<b>敵を倒さずに粘っても、有限の補給（下の野営治療）を使わない限りHPは戻りません。</b>"
+      + "<b>敵を倒さずに粘っても、有限の補給（補給タブの野営治療）を使わない限りHPは戻りません。</b>"
       + "負けても補給が残っていれば、編成を変えて同じ戦闘へ挑み直せます（開始前のHPへ戻ります）。</p></section>"
     : "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">戦闘中のHPと装備耐久は、その戦闘の中だけ有効です。勝敗が決まると最大へ戻ります。<b>遠征の緊張は持ち越しHPではなく、補給・報酬・敵の重さで作ります。</b>負けても補給が残っていれば、編成を変えて同じ戦闘へ挑み直せます。</p></section>";
   return "<section class=\"card\">" + sectionHeading("EXPEDITION / 3 ACTS · " + ENCOUNTERS_PER_RUN + " BATTLES",
@@ -2123,8 +2167,6 @@ function renderMap() {
     + law + enemyBlock
     + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
     + button("この敵に挑む", "begin-stage", false, "button primary") + "</section>"
-    + "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給をどこへ使う？") + suppliesBar() + "</section>"
-    + (isCampaignRun() ? campTreatmentBlock() : "")
     + scoutBlock
     + "<section class=\"card\">" + sectionHeading("TARGETING", "敵は誰を狙う？")
     + "<p class=\"muted\">敵ごとに狙いが違います。前列を守るだけでなく、後列優先・準備中優先の攻撃もあります。戦闘前に確認し、隊列とリアクティブを組み直してください。</p>"
@@ -3473,6 +3515,13 @@ function handleAction(event) {
   if (action === "toggle-roster") {
     const id = element.dataset.character;
     if (!id || !characterInfo(id)) return;
+    // R12 — 判定は metCharacterIds ひとつに寄せる（画面と engine で別々に
+    // 判定すると、いつか片方だけずれる）。
+    if (!rosterLocked() && !metCharacterIds().has(id)) {
+      state.error = "まだ会っていない仲間は、編成に入れられません。";
+      render();
+      return;
+    }
     if (rosterLocked()) {
       state.error = "この Stage の同行者は物語が決めます。一度クリアすると自由に選べます。";
       render();

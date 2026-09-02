@@ -1,7 +1,7 @@
-// **R9 のチュートリアル経路を、画面の中で通しで踏む。**
+// **R11 のチュートリアル経路を、画面の中で通しで踏む。**
 //
 // analysis/ecology-trial.mjs は旧・自由遠征（Free mode）の難易度 flow を見ている。
-// R9 で本編に入った経路——最初の会話、勝てない一戦、巻き戻し、2人編成、
+// R11 で本編に入った経路——最初の会話、勝てない一戦、巻き戻し、2人編成、
 // pack の入口だけが出る技能ツリー、生成装備の報酬——は、そこを一度も通らない。
 // **単体テストが通っても画面では動かない**という欠陥がこの箱で何度も出ているので、
 // 新しい画面経路にはその踏み場を用意する。
@@ -83,10 +83,13 @@ try {
   // R10 — New Gameは必ずCampaign Stage 0のopeningから始める。
   await click("はじめから");
 
-  // R9 §2.1 — 最初の2人の会話。**説明ではなく、考え方の違いを見せる。**
+  // R11 §2.1 — 最初の2人の会話。**シキとナズナの考え方の違いを見せる。**
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
-  const openingText = await bodyText();
-  note("最初の会話が出る", /シキ/.test(openingText));
+  // 画面の構造で見る。**台詞の中身ではなく、一行送りの箱が立っているか。**
+  note("最初の会話が出る",
+    await page.locator(".vn-stage").count() === 1
+      && await page.locator(".vn-box").count() === 1
+      && (await page.locator(".vn-text").innerText()).trim().length > 0);
   note("会話は飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
 
   // 立ち絵つきの一行送り。**喋っている人だけが前に出る。**
@@ -98,7 +101,7 @@ try {
     && /ナズナ/.test(await page.locator(".vn-name").innerText())));
   note("履歴に前の行が残る", await page.locator('[data-action="story-log"]:not([disabled])').count() === 1);
 
-  // R9 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
+  // R11 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
   await advanceStory();
   const prologueText = await bodyText();
   note("序盤の一戦へ入る", /灰の門/.test(prologueText));
@@ -128,6 +131,7 @@ try {
     || (await page.getByRole("button", { name: "時間が巻き戻る" }).count()) > 0);
   note("この一戦は遠征に数えないと書いてある", /この一戦は遠征に数えません/.test(resultText));
 
+  // R11 §2.1 — 巻き戻し。敗北後は「もう一度、門の前」へ戻る。
   await click("時間が巻き戻る");
   const rewindText = await bodyText();
   note("巻き戻しの会話が出る", /もう一度、門の前/.test(rewindText));
@@ -137,7 +141,7 @@ try {
   note("武器と技の違いを渡す", sawNote && /後列/.test(await bodyText()));
   await advanceStory();
 
-  // R9 §2.1 — 2人編成。**誰が来るかは物語が決める。**
+  // R11 §2.1 — 2人編成。**誰が来るかは物語が決める。**
   const campText = await bodyText();
   note("キャンプに着く", /編成|仲間/.test(campText));
   note("2人で始まる", /2 \/ 2人/.test(campText));
@@ -181,6 +185,12 @@ try {
 
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");
+  // 再戦は予測画面を挟む。**巻き戻したあとに初めて preview の読み方を教える**ので、
+  // ここで武器と技の違いがもう一度渡っているかを見る。
+  const retryPreviewText = await bodyText();
+  note("戦闘予測の使い方を示す",
+    /戦闘予測/.test(retryPreviewText)
+      && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない|後列/.test(retryPreviewText));
   await click("自動戦闘を再生する");
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   await page.locator('.speed-button[data-speed="fast"]').click();
@@ -191,7 +201,11 @@ try {
   await advanceStory();
   await page.waitForTimeout(200);
   await page.waitForSelector('nav.tabs [data-tab="map"]', { timeout: 8000 });
-  note("序盤の演出が終わってキャンプへ出る", /編成|仲間|出発前/.test(await bodyText()));
+  // **序盤の演出はここで終わる。**以降は本編の第1戦なので、
+  // 「この一戦は遠征に数えません」が消えていることまで見る。
+  const mainCampText = await bodyText();
+  note("序盤の演出が終わってキャンプへ出る", /編成|仲間|出発前/.test(mainCampText));
+  note("序盤演出を終えて本編へ戻る", !/この一戦は遠征に数えません/.test(mainCampText));
 
   // 第1戦を通し、生成装備の報酬まで見る。
   await page.locator('nav.tabs [data-tab="map"]').click();
@@ -269,7 +283,7 @@ try {
       carriedName);
   }
 
-  // ---- R9 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
+  // ---- R11 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
   // （12戦を通すのはこの台本の仕事ではない）。
   await page.evaluate(() => {
     const key = "exp18-r10-auto-v01";

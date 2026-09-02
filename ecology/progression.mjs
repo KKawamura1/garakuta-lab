@@ -177,6 +177,13 @@ export function slotUpgradeId(kind, characterId) {
   return SLOT_UPGRADE_PREFIX[kind] + "." + characterId;
 }
 
+function characterIdFromSlotUpgrade(id) {
+  for (const prefix of Object.values(SLOT_UPGRADE_PREFIX)) {
+    if (id.startsWith(prefix + ".")) return id.slice(prefix.length + 1);
+  }
+  return null;
+}
+
 const META_UPGRADE_BY_ID = Object.fromEntries(META_UPGRADES.map((upgrade) => [upgrade.id, upgrade]));
 
 export function metaUpgradeDef(id) {
@@ -189,6 +196,8 @@ export function upgradeLevel(profile, id) {
 
 // 次の一段の費用。買い切ったら null（「買えない」と「0で買える」を混ぜない）。
 export function upgradeCost(profile, id) {
+  const characterId = characterIdFromSlotUpgrade(id);
+  if (characterId && !isCharacterUnlocked(profile, characterId)) return null;
   if (id.startsWith(SLOT_UPGRADE_PREFIX.active)) {
     return upgradeLevel(profile, id) >= 1 ? null : parseFunds(SLOT_UPGRADE_COSTS.active);
   }
@@ -205,6 +214,32 @@ export function upgradeCost(profile, id) {
 // ============================================================ ProfileState（R6 §4.1）
 
 const CHARACTER_IDS = Object.keys(PLAYABLE_CONTENT.characters);
+
+// R9 §2.1 — Campaign では、最初の二人から始めて Stage を一つクリアする
+// たびに次の人物が一人だけ登場する。画面で全8人を定義していることと、
+// プレイヤーが出会った人物を混ぜない。
+const INITIAL_CAMPAIGN_CHARACTER_IDS = Object.freeze([
+  ...campaignStageDef(0).castCharacterIds,
+]);
+
+export function availableCharacterIds(profile, regionId = REGION.id) {
+  const progress = profile?.campaignProgress?.[regionId];
+  const highest = Number.isFinite(Number(progress?.highestClearedStageSequence))
+    ? Math.floor(Number(progress.highestClearedStageSequence))
+    : -1;
+  const introduced = new Set(INITIAL_CAMPAIGN_CHARACTER_IDS);
+  // Stage N をクリアすると、次の Stage の joiningCharacterId が解禁される。
+  const through = Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, highest + 1);
+  for (let sequence = 1; sequence <= through; sequence += 1) {
+    const joining = campaignStageDef(sequence).joiningCharacterId;
+    if (joining) introduced.add(joining);
+  }
+  return CHARACTER_IDS.filter((id) => introduced.has(id));
+}
+
+export function isCharacterUnlocked(profile, characterId, regionId = REGION.id) {
+  return availableCharacterIds(profile, regionId).includes(characterId);
+}
 
 function freshCharacterProfile(characterId) {
   return {
@@ -236,6 +271,10 @@ export function newProfile() {
     campaignProgress: {
       [REGION.id]: freshCampaignProgress(),
     },
+    // R9 §2.1 — 初期2人だけが登場済み。残りは Stage の進行で増える。
+    // normalizeProfile でも campaignProgress から再計算するので、旧R10 save
+    // （この欄を持たない）も同じ解放状態へ戻せる。
+    unlockedCharacterIds: [...INITIAL_CAMPAIGN_CHARACTER_IDS],
     purchases: [],
     settledRunIds: [],
     // R9 §8 — 物語の既読印。**Profile に置く**（遠征を捨てても、序盤の敗北を
@@ -300,6 +339,9 @@ export function normalizeProfile(saved) {
       ? [...new Set(campaignProgress.clearedStageSequences.filter((seq) => Number.isInteger(seq) && seq >= 0))]
       : [];
   }
+  // 人物解放は save の自由入力を信用せず、Campaign の既存進行から再構成する。
+  // 未登場の人物が古い/不整合な save に残っていても、ギルドの鍛錬対象へ戻らない。
+  profile.unlockedCharacterIds = availableCharacterIds(profile);
   profile.purchases = Array.isArray(saved.purchases) ? saved.purchases.slice(-50) : [];
   profile.settledRunIds = Array.isArray(saved.settledRunIds)
     ? saved.settledRunIds.filter((id) => typeof id === "string").slice(-200)
@@ -419,6 +461,10 @@ export function unlockedEquipmentIds(profile) {
 // R6 §9.3 の MetaPurchase。**残高・前後・費用を1件で残す。**
 // 「買ったのに増えていない」を後から追えるようにする。
 export function purchaseUpgrade(profile, upgradeId, options = {}) {
+  const characterId = characterIdFromSlotUpgrade(upgradeId);
+  if (characterId && !isCharacterUnlocked(profile, characterId)) {
+    return { ok: false, reason: "まだ出会っていない仲間は強化できません。" };
+  }
   const cost = upgradeCost(profile, upgradeId);
   if (cost === null) return { ok: false, reason: "これ以上は買えません。" };
   const balance = parseFunds(profile.activityFunds);
@@ -446,6 +492,9 @@ export function purchaseUpgrade(profile, upgradeId, options = {}) {
 // （R6 §4.1）。購入の記録の形は上と同じにする。
 export function purchaseTraining(profile, characterId, axis) {
   if (!TRAINABLE_STATS.includes(axis)) return { ok: false, reason: "その能力は鍛錬できません。" };
+  if (!isCharacterUnlocked(profile, characterId)) {
+    return { ok: false, reason: "まだ出会っていない仲間は鍛錬できません。" };
+  }
   const character = profile.characters?.[characterId];
   if (!character) return { ok: false, reason: "その仲間が見つかりません。" };
   const fromLevel = Math.max(0, Math.floor(character.trainingLevels[axis] ?? 0));
@@ -572,17 +621,31 @@ export function newRun(profile, options = {}) {
     : makeManifest(runSeed, profile);
   // R9 §2.1 — チュートリアル Stage は人数が決まっている。**呼び出し側が
   // 5人渡しても、その Stage の人数へ切り詰める**（初回の学習順を守るため）。
-  // R9 §8 — 一度クリアした Stage を遊び直すときは 5人を最初から使える
-  // （`freeRoster`）。初回の物語と学習順は固定してよいが、既知になった後の
-  // 再訪でチュートリアルがランの固定税になってはいけない。
+  // R9 §8 — 一度クリアした Stage を遊び直すときは、登場済みの仲間を
+  // 最初から選べる（`freeRoster`）。Stage 3 まで進めると5人になる。
+  // 初回の物語と学習順は固定してよいが、既知になった後の再訪で
+  // チュートリアルがランの固定税になってはいけない。
   const rosterLocked = isCampaign && options.freeRoster !== true;
+  const availableCount = isCampaign && options.freeRoster === true
+    ? availableCharacterIds(profile).length
+    : LIMITS.maxAlliesInCampaign;
   const partySize = rosterLocked
     ? (manifest.partySize ?? LIMITS.maxAlliesInCampaign)
-    : LIMITS.maxAlliesInCampaign;
+    : Math.min(LIMITS.maxAlliesInCampaign, availableCount);
   // 初回のチュートリアル Stage では、**誰が来るかは content が決める**
   // （R9 §2.1「加入する人物」）。呼び出し側の選択は、Stage をクリアして
   // freeRoster になってから効く。
-  roster = (rosterLocked ? [...(manifest.castCharacterIds ?? roster)] : roster).slice(0, partySize);
+  roster = rosterLocked ? [...(manifest.castCharacterIds ?? roster)] : roster;
+  if (isCampaign && options.freeRoster === true) {
+    const available = availableCharacterIds(profile);
+    const allowed = new Set(available);
+    roster = roster.filter((id) => allowed.has(id));
+    for (const id of available) {
+      if (roster.length >= partySize) break;
+      if (!roster.includes(id)) roster.push(id);
+    }
+  }
+  roster = roster.slice(0, partySize);
   const carried = carriedItemsFor(profile);
   return {
     schemaVersion: RUN_SCHEMA_VERSION,
@@ -1254,6 +1317,9 @@ export function settleRun(profile, run, outcome) {
       unlockedCampaignStage = run.campaignStageSequence + 1;
     }
   }
+  // 解放欄は campaignProgress から必ず再計算する。既存 save に残っている
+  // 未登場人物や、途中で不整合になった値をギルドへ流さない。
+  nextProfile.unlockedCharacterIds = availableCharacterIds(nextProfile, run.regionId);
   nextProfile.settledRunIds = [...(nextProfile.settledRunIds ?? []), run.runId].slice(-200);
 
   // R8 §3.6 / §10.3 — Phase C。遠征終了時に、この run で見つけた生成装備を

@@ -18213,6 +18213,10 @@
     "clearedStageSequences": []
    }
   },
+  "unlockedCharacterIds": [
+   "warden",
+   "mender"
+  ],
   "purchases": [],
   "settledRunIds": [],
   "storyFlags": [],
