@@ -55,6 +55,34 @@ jobs:
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
 
+      - name: Boot the checked-out game in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8947 >/tmp/ecology-local-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          node --input-type=module <<'NODE'
+          import { chromium } from "playwright";
+
+          const errors = [];
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+          page.on("pageerror", (error) => errors.push(String(error)));
+          page.on("console", (message) => {
+            if (message.type() === "error" && !/Failed to load resource/.test(message.text())) {
+              errors.push(message.text());
+            }
+          });
+          await page.goto("http://127.0.0.1:8947/ecology/", { waitUntil: "networkidle" });
+          await page.evaluate(() => localStorage.clear());
+          await page.reload({ waitUntil: "networkidle" });
+          const text = await page.locator("body").innerText();
+          console.log(JSON.stringify({ text: text.slice(0, 300), errors }));
+          await browser.close();
+          if (!/灰の遠征/.test(text) || errors.length) process.exit(1);
+          NODE
+
       - name: Wait for the deployment to serve this build
         id: resolve
         shell: bash
