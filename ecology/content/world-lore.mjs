@@ -3,8 +3,8 @@
 // **世界観設定の正本。**地域、敵、根城に関する観察・説明文を
 // 戦闘や進行のロジックから分離してここへ集約する。
 //
-// encounters.mjs / expedition.mjs / homestead.mjs は、構造・条件・
-// ルールだけを持つ。設定本文を変更するときは、このファイルだけを編集する。
+// expedition.mjs / homestead.mjs は、構造・条件・ルールだけを持つ。
+// encounters.mjs は既存 content API と敵本文の正本なので、ここからまとめて参照する。
 // ただし敵の噂・図鑑は、既存 content API の互換性を保つため encounters.mjs の
 // 正本をここからまとめて参照する。
 
