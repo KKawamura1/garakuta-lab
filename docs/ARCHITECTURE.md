@@ -29,7 +29,8 @@
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
-| `content/world-lore.mjs` | 世界観設定の正本（地域・敵・根城の備品本文）。世界観本文の編集先 |
+| `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
+| `content/encounters.mjs` | 敵の配置・狙い・敵本文（既存 content API の正本） |
 | `equipment-gen.mjs` | 手続き生成装備の決定的 generator と検査 |
 | `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
 | `mine.mjs` | イベント連鎖の採掘 |
