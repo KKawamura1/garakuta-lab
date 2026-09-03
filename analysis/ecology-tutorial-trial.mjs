@@ -115,6 +115,9 @@ try {
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   note("序盤の一戦の途中でリロードしても戻ってくる", /灰の門/.test(await bodyText()));
   await page.locator('.speed-button[data-speed="fast"]').click();
+  // R14 §1.1 — **巻き戻す前の一戦には戦闘予測を出さない。**まだ巻き戻す力を
+  // 持っていないので、読めても直せない。
+  note("巻き戻す前の一戦には予測を出さない", await page.locator(".forecast-bar").count() === 0);
   // R11 §8.6 — 序盤は4拍で進む。
   //   打ち切り → 会話「届かなかった」 → 結果画面の［時間が巻き戻る］
   //   → 会話「もう一度、門の前」 → キャンプ → **同じ盤面をもう一度** → 勝利
@@ -149,6 +152,19 @@ try {
   note("この Stage の同行者は固定だと書いてある",
     /物語が決めます/.test(await bodyText()));
 
+  // R14 §1 — 巻き戻したあとは、camp の上端に戦闘予測が常設される。
+  // **予測が指すのは「灰の門」**である（12戦の第1戦ではない。同じ盤面をもう一度戦う）。
+  note("巻き戻したあとは予測が出る", await page.locator(".camp-top .forecast-bar").count() === 1);
+  note("予測は同じ盤面（灰の門）を指す", /戦闘予測 · 灰の門/.test(await bodyText()));
+  note("各メンバーのHPと減少量が出ている",
+    await page.locator(".forecast-member .forecast-hp-values").count() === 2
+      && await page.locator(".forecast-member .forecast-delta").count() === 2);
+  // タブを変えても消えない（組み替えながら見るための帯である）。
+  await page.locator('nav.tabs [data-tab="equipment"]').click();
+  await page.waitForTimeout(150);
+  note("装備タブでも予測が消えない", await page.locator(".camp-top .forecast-bar").count() === 1);
+  note("装備は自由に付け外しできると書いてある", /装備は何度でも付け外しできます/.test(await bodyText()));
+
   // R10 — Campではオートセーブとは別に手動枠へ保存できる。
   await click("セーブ / ロード");
   note("セーブ画面へ進める", /セーブ \/ ロード/.test(await bodyText()));
@@ -170,18 +186,41 @@ try {
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
   note("未解禁の技能を名前でも出さない", outOfManifest === 0, `manifest 外 ${outOfManifest} 節`);
 
+  // R14 §2 — 技能は取り直せない。**外す操作も、解禁のやり直しも画面に無い。**
+  note("技能を外すボタンが無い", await page.locator('[data-action="remove-skill"]').count() === 0);
+  note("解禁のやり直しが無い", await page.locator('[data-action="reset-run-skills"]').count() === 0);
+  note("取り直せないと書いてある", /技能は取り直せません/.test(skillText));
+  note("装着済みの技能に固定の印がある", await page.locator(".installed-row .locked-mark").count() > 0);
+
   // ---- R11 §8.6 — 巻き戻したあとの再戦。**同じ盤面をもう一度戦う。**
   //
   // ここがチュートリアルの山である。engine は決定的なので、**隊列を直さなければ
   // 何度やっても同じように負ける。**ナズナを後列へ下げた一手だけが勝ちに変わる。
   // 会話が渡した「柔らかい技は後ろ、硬い武器は前」を、実際に操作して確かめる。
   await page.locator('nav.tabs [data-tab="roster"]').click();
+  // R14 §1 — **予測は隊列を動かした瞬間に付いてくる。**
+  //
+  // まずナズナを前列へ出す（シキと入れ替わる）。content/story.mjs が言うとおり、
+  // 柔らかい技の担い手を前に置き、武器を後ろへ下げた形は負ける。
+  // ここが「勝利」のままなら、予測は別の盤面を走らせている
+  // （R14 以前は、この画面の予測が12戦の第1戦を試算していた）。
+  const verdict = async () => (await page.locator(".forecast-verdict").first().innerText());
+  await page.locator('[data-action="select-formation-character"][data-character="mender"]').click();
+  await page.waitForTimeout(150);
+  await page.locator('[data-action="place-character"][data-position="front_left"]').click();
+  await page.waitForTimeout(200);
+  const wrongVerdict = await verdict();
+  note("柔らかいほうを前へ出すと予測が敗北へ変わる", /敗北/.test(wrongVerdict), wrongVerdict);
+
   await page.locator('[data-action="select-formation-character"][data-character="mender"]').click();
   await page.waitForTimeout(150);
   await page.locator('[data-action="place-character"][data-position="rear_right"]').click();
   await page.waitForTimeout(200);
   const placedText = await bodyText();
   note("ナズナを後列へ下げられる", /後列/.test(placedText));
+  // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
+  const rightVerdict = await verdict();
+  note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
 
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");

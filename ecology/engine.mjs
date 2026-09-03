@@ -216,6 +216,10 @@ function addActor(state, fields) {
   const actor = {
     ...fields,
     alive: fields.hp > 0,
+    // R14 §1 — 戦闘に入った時点の HP。**passive の max_hp 補正を足したあとの値**
+    // なので、開始 HP を知りたい側が withPassiveBonuses を再現しなくてよい
+    // （画面の戦闘予測が「いくつ減るか」を出すのに使う）。
+    startingHp: fields.hp,
     actionPoints: 0,
     reactionPoints: 0,
     // R6 §4.4 / §6.7 — PHASE A. 定義が持たなければ 0。
@@ -1089,6 +1093,7 @@ function buildResult(state, content) {
     position: actor.position,
     hp: actor.hp,
     maxHp: actor.maxHp,
+    startingHp: actor.startingHp,
     speed: actor.speed,
     // R6 §9.5 — PHASE B. The rounded stat, the base it came from and the levels
     // that moved it, so the result can say *why* this ally hits for what it does

@@ -716,9 +716,6 @@ export function newRun(profile, options = {}) {
     // （R8 §3.5「50 attemptで生成不能なら...診断errorにする」）。
     generatorDiagnostics: [],
     scrap: 0,
-    // R6 §12.1 — 偵察は**次の幕**を開ける。いまいる幕は補給なしで見えるので、
-    // ここは空で始まる（第1幕が入っていると、第2幕が最初から見える意味になる）。
-    scoutedActs: [],
     rerollsUsed: {},
     retries: {},
     results: [],
@@ -771,40 +768,28 @@ export function unlockRunSkill(run, characterId, node) {
   return { ok: true, run: next };
 }
 
-// R6 §17.2 — run skill reset。**使った点をそのまま戻す**（罰を付けない）。
-// 遠征の途中で構成を組み替えられないと、報酬で得た技能が死に札になる。
-export function resetRunSkills(run, characterId, initialSkills) {
-  const unlocked = run.runUnlockedSkills?.[characterId] ?? [];
-  const base = new Set(initialSkills ?? []);
-  const spent = unlocked
-    .filter((skillId) => !base.has(skillId))
-    .reduce((total, skillId) => total + (skillCostOf(run, skillId) ?? 0), 0);
-  const next = {
-    ...run,
-    runSkillPoints: { ...run.runSkillPoints },
-    runUnlockedSkills: { ...run.runUnlockedSkills },
-  };
-  next.runSkillPoints[characterId] = runSkillPoints(run, characterId) + spent;
-  next.runUnlockedSkills[characterId] = [...base];
-  return { run: next, refunded: spent };
-}
-
-let skillCostLookup = null;
-export function registerSkillCosts(nodes) {
-  skillCostLookup = Object.fromEntries(nodes.map((node) => [node.skillId, node.cost]));
-}
-function skillCostOf(run, skillId) {
-  return skillCostLookup?.[skillId] ?? 0;
-}
+// R14 §2 — 解禁のやり直し（resetRunSkills）は消した。
+//
+// R6 §17.2 は「使った点をそのまま戻す（罰を付けない）」と言っていた。次の一戦の
+// 結果が完全に読めるようになると、それは**予測を見ながら技能を出し入れして
+// 最適解を探す作業**になり、「いま強くするか、将来へ取っておくか」という
+// 遠征のあいだの賭けが消える。技能点の使い道は一度きりにし、都度の調整は
+// 装備（自由に付け外しできる）に持たせた。
+//
+// 解禁も装着も、撤退するか12戦を突破して遠征が終わるまで戻せない。
+// 払い戻しが無くなったので、技能の値段表（registerSkillCosts）も一緒に消えた。
+// 解禁の可否と値段は、そのつど呼び出し側が渡す node.cost で足りる。
 
 // ============================================================ 補給（R6 §12.1）
 
-// R8 §10.2 — 補給の四用途。retry、reward reroll、偵察、野営治療は
+// R8 §10.2 / R14 §3 — 補給の三用途。retry、reward reroll、野営治療は
 // 同じ有限の補給を奪い合う（R8 §1.5 の不変条件）。
+//
+// **偵察（次の幕の個体編成を先に見る）は消した。**次の一戦は戦闘予測が
+// 完全に見せるようになったので、補給を払って先を覗く枠に値段がつかない。
 export const SUPPLY_USES = Object.freeze({
   retry: "敗北した戦闘へ、編成を変えて再挑戦する",
   reroll: "報酬4候補を一度だけ引き直す",
-  scout: "次の幕の通常戦の個体編成を先に見る",
   camp: "野営で集中治療・全体手当・蘇生のいずれかを行う",
 });
 

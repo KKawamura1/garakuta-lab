@@ -261,22 +261,17 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   const list = next[listKey][characterId] ?? [];
   if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
   if (list.length >= limitsOf(limitsFor, characterId)[kind]) {
-    return { ok: false, reason: "その枠は埋まっています。先に技能を外してください。" };
+    // R14 §2 — 技能は装着したら遠征中は外せない。**枠が埋まったらそこで終わり**なので、
+    // 「外してください」とは言わない（できないことを勧めない）。
+    return { ok: false, reason: "その枠はこの遠征では埋まりきっています。" };
   }
   next[listKey][characterId] = [skillId, ...list];
   return { ok: true, loadout: next };
 }
 
-export function removeSkill(loadout, characterId, skillId, kind, limitsFor) {
-  const next = normalizeLoadout(loadout, [characterId], limitsFor);
-  const listKey = LOADOUT_KEYS[kind];
-  if (!listKey) return { ok: false, reason: "その枠はありません。" };
-  const list = next[listKey][characterId] ?? [];
-  // どの種類の技能も0個まで外せる。行動が空でも、engine が通常攻撃へ戻す。
-  // 反応・常設が空なら、その種類の追加効果なしとして解決する。
-  next[listKey][characterId] = list.filter((id) => id !== skillId);
-  return { ok: true, loadout: next };
-}
+// R14 §2 — 技能の取り外しは無くなった。**一度取った技能は、撤退するか12戦を
+// 突破するまで外せない**（「いま強くするか、将来へ取っておくか」を選ばせるため）。
+// 装備だけが自由に付け外しできる。removeSkill / resetRunSkills はここで消した。
 
 export function equipEquipment(loadout, characterId, equipmentId, slot = 0, limitsFor) {
   const component = componentInfo(equipmentId);
@@ -553,8 +548,13 @@ export function allEncounters() {
 // 渡すかどうかだけである。simulateBattle 自体は input/content を変更せず、
 // Date も Math.random も使わない（ecology/README.md）ので、この関数は
 // **RunState を一切変更しない**。
-export function simulateNextBattle(run, profile, encounterIndex) {
-  const composed = composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
+//
+// R14 §1 — **どの盤面を予測するかは呼び出し側が渡せる。**序盤の「灰の門」は
+// 12戦の梯子に属さないので composeEncounter からは出てこない（prologueEncounter が
+// 出す）。渡されなければ従来どおり encounterIndex から組む。
+export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
+  const composed = options.composed
+    ?? composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
   const loadout = run.loadout ?? freshLoadout(run.roster);
   const battleInput = makeExpeditionBattle(
     composed,
@@ -576,10 +576,18 @@ export function simulateNextBattle(run, profile, encounterIndex) {
 function battleResultSummary(run, result) {
   const perCharacter = run.roster.map((characterId) => {
     const actor = result.actors.find((entry) => entry.instanceId === "a_" + characterId);
+    // R14 §1 — 開始 HP も上限も **engine が返した値をそのまま使う**。
+    // passive の max_hp 補正は engine の中で乗るので、ここで run.currentHp を
+    // 読み直すと「満タンで入った回」の開始 HP が上限より低く出る。
+    const startingHp = actor ? actor.startingHp : (run.currentHp?.[characterId] ?? 0);
+    const endingHp = actor ? actor.hp : 0;
     return {
       characterId,
-      startingHp: run.currentHp?.[characterId] ?? 0,
-      endingHp: actor ? actor.hp : 0,
+      maxHp: actor ? actor.maxHp : 0,
+      startingHp,
+      endingHp,
+      // 予測の主役は残量ではなく**減少量**である（負なら回復して終わる）。
+      hpLost: startingHp - endingHp,
       defeated: actor ? !actor.alive : true,
     };
   });
@@ -593,8 +601,8 @@ function battleResultSummary(run, result) {
 }
 
 // 無料・副作用なしの preview（R8 §11.1）。RunState を一切変更しない。
-export function previewNextBattle(run, profile, encounterIndex) {
-  const { result } = simulateNextBattle(run, profile, encounterIndex);
+export function previewNextBattle(run, profile, encounterIndex, options = {}) {
+  const { result } = simulateNextBattle(run, profile, encounterIndex, options);
   return battleResultSummary(run, result);
 }
 

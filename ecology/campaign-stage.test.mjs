@@ -18,7 +18,7 @@
 // （analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3）。
 
 import assert from "node:assert/strict";
-import { PLAYABLE_CONTENT, REGION } from "./content/index.mjs";
+import { PLAYABLE_CONTENT, PROLOGUE, REGION } from "./content/index.mjs";
 import {
   CAMPAIGN_STAGES,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
@@ -46,7 +46,7 @@ import {
   settleRun,
   slotUpgradeId,
 } from "./progression.mjs";
-import { freshLoadout, previewNextBattle, simulateNextBattle } from "./playable-battles.mjs";
+import { freshLoadout, previewNextBattle, prologueEncounter, simulateNextBattle } from "./playable-battles.mjs";
 
 let checks = 0;
 const check = (condition, message) => {
@@ -301,8 +301,12 @@ function syntheticResult(result, allyHpById) {
       const actor = executed.actors.find((entry) => entry.instanceId === "a_" + characterId);
       return {
         characterId,
-        startingHp: runWithLoadout.currentHp[characterId] ?? 0,
+        // R14 §1 — 開始HPも上限も engine が返す値をそのまま読む。**画面の
+        // 「いくつ減るか」はこの差である。**
+        maxHp: actor ? actor.maxHp : 0,
+        startingHp: actor ? actor.startingHp : 0,
         endingHp: actor ? actor.hp : 0,
+        hpLost: actor ? actor.startingHp - actor.hp : 0,
         defeated: actor ? !actor.alive : true,
       };
     }),
@@ -320,6 +324,30 @@ function syntheticResult(result, allyHpById) {
   // 同じ入力なら preview は決定的（何度呼んでも同じ）。
   const previewAgain = previewNextBattle(runWithLoadout, profile, 1);
   assert.deepEqual(preview, previewAgain, "preview は同じ入力に対して決定的");
+  checks += 1;
+
+  // R14 §1 — **持ち越しHPの減少量が予測に出る。**画面の帯はこの値を描く。
+  const hurt = {
+    ...runWithLoadout,
+    currentHp: { ...runWithLoadout.currentHp, warden: 40 },
+  };
+  const hurtPreview = previewNextBattle(hurt, profile, 1);
+  const wardenLine = hurtPreview.perCharacter.find((entry) => entry.characterId === "warden");
+  equal(wardenLine.startingHp, 40, "持ち越しHPが開始HPとして出る");
+  equal(wardenLine.hpLost, wardenLine.startingHp - wardenLine.endingHp, "減少量は開始と終了の差");
+
+  // R14 §1 — **12戦の梯子の外の盤面も、同じ経路で予測できる。**
+  // 序盤の「灰の門」は composeEncounter からは出てこない（prologueEncounter が出す）。
+  const gate = prologueEncounter();
+  const gateRun = { ...runWithLoadout, roster: [...PROLOGUE.rosterIds] };
+  const gatePreview = previewNextBattle(gateRun, profile, 1, { composed: gate });
+  equal(gatePreview.perCharacter.length, PROLOGUE.rosterIds.length, "渡した盤面の味方だけが並ぶ");
+  const { result: gateExecuted } = simulateNextBattle(gateRun, profile, 1, { composed: gate });
+  assert.deepEqual(
+    gateExecuted.actors.filter((actor) => actor.side === "enemy").map((actor) => actor.instanceId),
+    PROLOGUE.enemies.map((enemy) => enemy.instanceId),
+    "予測が走らせたのは渡した盤面である（12戦の第1戦ではない）",
+  );
   checks += 1;
 }
 
