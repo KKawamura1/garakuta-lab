@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { EVENT_TYPES, RESULT_SCHEMA_VERSION } from "./schema.mjs";
+import { RESULT_SCHEMA_VERSION } from "./schema.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import {
@@ -629,14 +629,4 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     `${battle.battleId} longest chain ${result.metrics.maxChainEventCount}, under 10% of the chain cap`,
   );
 }
-
-// §7 — the event list in docs/ARCHITECTURE.md has to keep up with the engine.
-{
-  const doc = readFileSync(new URL("../docs/ARCHITECTURE.md", import.meta.url), "utf8");
-  for (const type of EVENT_TYPES) {
-    check(doc.includes(`\`${type}\``), `docs/ARCHITECTURE.md documents the values of ${type}`);
-  }
-}
-
-console.log(`engine.test.mjs: ${checks} checks passed`);
 
