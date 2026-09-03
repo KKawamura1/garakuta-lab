@@ -35,6 +35,7 @@ import {
   SECTION_NAMES,
   campaignStageDef,
   castOnStage,
+  castFor,
   packSkillIds,
   portraitAccent,
   portraitSvg,
@@ -256,8 +257,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(DIALOGUE_IDS.length, beatIds.length, "中央会話の件数が断片と一致");
   for (const entry of beatEntries) {
     check(DIALOGUE_IDS.includes(entry.id), entry.id + " は中央会話に登録される");
-    assert.deepEqual(entry.lines, dialogueFor(entry.id), entry.id + " は中央会話を使う");
-    checks += 1;
+    equal(entry.lines, dialogueFor(entry.id), entry.id + " は中央会話を直接使う");
+    equal(entry.cast, castFor(entry.id), entry.id + " は中央配役を直接使う");
   }
   for (const id of DIALOGUE_IDS) {
     check(beatIds.includes(id), id + " は未使用の中央会話ではない");
