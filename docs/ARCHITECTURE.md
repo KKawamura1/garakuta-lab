@@ -10,14 +10,10 @@
 | `functions/api/runs.js` | プレイ記録の受け取りと検証（Cloudflare Pages Functions） |
 | `migrations/` | D1 schema |
 | `wrangler.jsonc`、`_headers`、`index.html`、`404.html` | 公開設定とルート導線 |
-| `frontier/` | 実行可能な参照実装（UI 無し）。**現行本編の実行経路ではない** |
 | `docs/` | この資料 |
 
 公開の入口は `/ecology/`（本編）、`/`（`/ecology/` へリダイレクト）、`/api/runs`（D1 保存）です。
 
-`frontier/` は「意図した対比が存在すること」だけを証明する教材です。最初の隊が群れを、
-別々の二隊が要塞を解き、二正面ではその両方が要ることを構造検査で示します。
-面白いことは証明していません。`node frontier/core.test.mjs` で走ります。
 
 ## 2. `ecology/` の主なファイル
 
@@ -48,15 +44,11 @@
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、生成装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
-- preview は RunState を変更しない。
-- 勝利結果は一度だけ commit する。retry は開始前 HP へ戻り、補給だけを一度消費する。
-- reload しても committed HP と未 commit preview を混同しない。
-- HP0 の人物は、蘇生または明示された例外なしに出撃できない。
 
 ## 4. 決定性
 
 - Manifest、Encounter、Reward offer、生成装備 instance、compiled EquipmentDef、
-  Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON 深一致します。
+  Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON の内容が完全に一致します。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
 
@@ -70,69 +62,17 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 - 戦闘値は整数で表示し、effect 確定時に round-half-up します。AP、RP、hit 数、block 回数、
   round、charge は小整数を保ちます。
 
-## 5. イベントログの値
+## 5. イベント列
 
-engine が出力する `type` は次の44種類に固定しています。
-
-- `battle_started`
-- `round_started`
-- `actor_activated`
-- `round_ended`
-- `battle_ended`
-- `action_declared`
-- `target_selected`
-- `target_changed`
-- `action_cost_paid`
-- `action_started`
-- `action_resolved`
-- `action_skipped`
-- `action_canceled`
-- `preparation_started`
-- `preparation_advanced`
-- `preparation_completed`
-- `preparation_interrupted`
-- `damage_proposed`
-- `barrier_damaged`
-- `barrier_broken`
-- `damage_taken`
-- `excess_damage`
-- `healing_proposed`
-- `healing_applied`
-- `excess_healing`
-- `barrier_proposed`
-- `barrier_gained`
-- `barrier_expired`
-- `actor_defeated`
-- `resource_refreshed`
-- `resource_spent`
-- `resource_gained`
-- `resource_unused`
-- `actor_moved`
-- `status_added`
-- `status_removed`
-- `equipment_worn`
-- `equipment_broken`
-- `equipment_repaired`
-- `block_proposed`
-- `block_gained`
-- `damage_blocked`
-- `block_spent`
-- `pending_amount_modified`
-
-イベントの値と不変条件は `ecology/schema.mjs` と `ecology/validate.mjs` が定義します。
-**この一覧は `ecology/engine.test.mjs` §7 が照合しています。**engine に type を足したら
-ここも足してください。
+UI・replay・検査は、engine が出した同じイベント列を読みます。
+新しい event を追加する場合は、schema、validator、engine テスト、表示・replay も同時に更新します。
+未知の event、effect、predicate、scope、tag などは無視せず validator error にします。
 
 ## 6. content の hard contract
 
-- definition ID は永続・一意。削除後も別内容へ再利用しない。改名は alias か migration を持つ。
-- event、effect、predicate、scope、tag、position、数値単位、丸め地点の意味を黙って変えない。
 - 新語彙は schema version を上げ、additive に追加する。
-- 2×3 の canonical position ID を保存し、表示語だけを保存しない。
-- event の事実と表示文を分離する。
 - save、D1、replay へ content version と definition ID を残す。
 - unknown 語彙を無視せず validator error にする。
-- 個別の人物 / skill / equipment ID を相方条件にしない。
 
 係数、cost、cooldown、発火上限、enemy parameter、threat cost、encounter、Stage law、
 reward / rarity weight、技能点価格、power budget は調律可能な soft data です。ただし
