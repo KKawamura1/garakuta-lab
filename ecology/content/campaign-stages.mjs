@@ -33,7 +33,7 @@ import { REGION } from "./expedition.mjs";
 //
 // 初期4 Stage は R9 の累積を採る。**Stage 4 以降は R8 の回転へ戻す**ので、
 // 式そのものは両方残し、Stage 定義が `ladderMode` でどちらを名乗るかを決める。
-// 差分と影響は analysis/experiments/exp-18/R9_IMPLEMENTATION_TUTORIAL_STAGES.md。
+// 差分と影響は docs/HISTORY.md §3.2。
 export const LADDER_MODES = Object.freeze(["tutorial", "rotation"]);
 export const TUTORIAL_MAX_SEQUENCE = 3;
 

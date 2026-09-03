@@ -1,0 +1,156 @@
+# 技術契約とコードの地図
+
+## 1. リポジトリの地図
+
+| パス | 役割 |
+|---|---|
+| `ecology/` | **本編。**UI、content、engine、進行、replay、local save |
+| `analysis/` | 検査。`check-all.sh` と `ecology-*.mjs`（smoke・公開先 E2E）、`stamp.mjs`（build 印） |
+| `core/build.mjs` | 公開版の build 印だけを持つ生成物。`analysis/stamp.mjs` が作る |
+| `functions/api/runs.js` | プレイ記録の受け取りと検証（Cloudflare Pages Functions） |
+| `migrations/` | D1 schema |
+| `wrangler.jsonc`、`_headers`、`index.html`、`404.html` | 公開設定とルート導線 |
+| `frontier/` | 実行可能な参照実装（UI 無し）。**現行本編の実行経路ではない** |
+| `docs/` | この資料 |
+
+公開の入口は `/ecology/`（本編）、`/`（`/ecology/` へリダイレクト）、`/api/runs`（D1 保存）です。
+
+`frontier/` は「意図した対比が存在すること」だけを証明する教材です。最初の隊が群れを、
+別々の二隊が要塞を解き、二正面ではその両方が要ることを構造検査で示します。
+面白いことは証明していません。`node frontier/core.test.mjs` で走ります。
+
+## 2. `ecology/` の主なファイル
+
+| ファイル | 役割 |
+|---|---|
+| `app.js` | UI、local save、進行、送信 payload |
+| `engine.mjs` | 決定的な戦闘解決 |
+| `schema.mjs` / `validate.mjs` | イベント・状態の定義と不変条件 |
+| `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順 |
+| `playable-battles.mjs` | 現行の戦闘入力、preview、loadout |
+| `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁 |
+| `replay-beats.mjs` | イベント列をリプレイ表示へ変換 |
+| `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
+| `equipment-gen.mjs` | 手続き生成装備の決定的 generator と検査 |
+| `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
+| `mine.mjs` | イベント連鎖の採掘 |
+| `sync.mjs` | `/api/runs` への送信と端末 ID |
+| `check.mjs` | `ecology/*.test.mjs` の runner |
+
+## 3. 状態は三層
+
+| 層 | 永続期間 | 主な内容 |
+|---|---|---|
+| ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、隊、formation、run 技能点・技能、**その遠征で拾った生成装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
+| BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、開始 HP snapshot、preview / commit 状態 |
+
+遠征終了で消えるもの: run 技能点と run 中に解禁した技能、生成装備の実物（選んだものだけ
+Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
+
+- preview は RunState を変更しない。
+- 勝利結果は一度だけ commit する。retry は開始前 HP へ戻り、補給だけを一度消費する。
+- reload しても committed HP と未 commit preview を混同しない。
+- HP0 の人物は、蘇生または明示された例外なしに出撃できない。
+
+## 4. 決定性
+
+- Manifest、Encounter、Reward offer、生成装備 instance、compiled EquipmentDef、
+  Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON 深一致します。
+- `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
+- 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
+
+      runSeed:manifest:stageId
+      runSeed:encounter:encounterIndex
+      runSeed:reward:encounterIndex:rerollIndex:slot
+      runSeed:item:dropIndex:attempt
+
+- profile / run / battle / content / manifest / generator / Blueprint の version を保存し、
+  不一致を黙って読み飛ばしません。
+- 戦闘値は整数で表示し、effect 確定時に round-half-up します。AP、RP、hit 数、block 回数、
+  round、charge は小整数を保ちます。
+
+## 5. イベントログの値
+
+engine が出力する `type` は次の44種類に固定しています。
+
+- `battle_started`
+- `round_started`
+- `actor_activated`
+- `round_ended`
+- `battle_ended`
+- `action_declared`
+- `target_selected`
+- `target_changed`
+- `action_cost_paid`
+- `action_started`
+- `action_resolved`
+- `action_skipped`
+- `action_canceled`
+- `preparation_started`
+- `preparation_advanced`
+- `preparation_completed`
+- `preparation_interrupted`
+- `damage_proposed`
+- `barrier_damaged`
+- `barrier_broken`
+- `damage_taken`
+- `excess_damage`
+- `healing_proposed`
+- `healing_applied`
+- `excess_healing`
+- `barrier_proposed`
+- `barrier_gained`
+- `barrier_expired`
+- `actor_defeated`
+- `resource_refreshed`
+- `resource_spent`
+- `resource_gained`
+- `resource_unused`
+- `actor_moved`
+- `status_added`
+- `status_removed`
+- `equipment_worn`
+- `equipment_broken`
+- `equipment_repaired`
+- `block_proposed`
+- `block_gained`
+- `damage_blocked`
+- `block_spent`
+- `pending_amount_modified`
+
+イベントの値と不変条件は `ecology/schema.mjs` と `ecology/validate.mjs` が定義します。
+**この一覧は `ecology/engine.test.mjs` §7 が照合しています。**engine に type を足したら
+ここも足してください。
+
+## 6. content の hard contract
+
+- definition ID は永続・一意。削除後も別内容へ再利用しない。改名は alias か migration を持つ。
+- event、effect、predicate、scope、tag、position、数値単位、丸め地点の意味を黙って変えない。
+- 新語彙は schema version を上げ、additive に追加する。
+- 2×3 の canonical position ID を保存し、表示語だけを保存しない。
+- event の事実と表示文を分離する。
+- save、D1、replay へ content version と definition ID を残す。
+- unknown 語彙を無視せず validator error にする。
+- 個別の人物 / skill / equipment ID を相方条件にしない。
+
+係数、cost、cooldown、発火上限、enemy parameter、threat cost、encounter、Stage law、
+reward / rarity weight、技能点価格、power budget は調律可能な soft data です。ただし
+変更ごとに build / content version を上げ、測定済み run と混同しません。
+
+引退した ID は `ecology/content/index.mjs` の `RETIRED_IDS` に理由付きで残し、
+`analysis/ecology-contract-smoke.mjs` が凍結済み ID との差を照合します。
+
+## 7. D1 とプレイ記録
+
+`ecology/` は遠征終了時に、版、build 印、seed、Profile / Run の要約、event 列、
+アンケート、感情マーカーを `/api/runs` へ送ります。送信失敗時も端末側の保存結果を
+明示し、「保存済み」と「D1 保存済み」を混同しません。受け側は
+`functions/api/runs.js`、schema は `migrations/`。取り出し方は `docs/OPERATIONS.md`。
+
+## 8. 障害時に見る順
+
+- 画面が空白: ブラウザ console → 公開された module の MIME → build 印 → 直接 import。
+- 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
+- D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。
+- 作者のプレイ結果を推測で補わず、未確認として止める。

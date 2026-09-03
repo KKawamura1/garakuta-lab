@@ -546,7 +546,7 @@ export function allEncounters() {
 // 同じ simulateBattle を呼ぶ。**（R8 §11.1「同じ入力の正式実行と完全一致させる」）
 // 呼び出し側の違いは、この結果を `commitBattleResult`（progression.mjs）へ
 // 渡すかどうかだけである。simulateBattle 自体は input/content を変更せず、
-// Date も Math.random も使わない（ecology/README.md）ので、この関数は
+// Date も Math.random も使わない（docs/ARCHITECTURE.md §4）ので、この関数は
 // **RunState を一切変更しない**。
 //
 // R14 §1 — **どの盤面を予測するかは呼び出し側が渡せる。**序盤の「灰の門」は

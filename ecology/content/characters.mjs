@@ -9,7 +9,7 @@
 
 import { renamed, scaleDefinitionAmounts } from "./base.mjs";
 
-// R11 — 本編5人を作り直した（analysis/experiments/exp-18/R11_CHARACTER_DESIGN_FIVE.md）。
+// R11 — 本編5人を作り直した（経緯は docs/HISTORY.md §3.3）。
 // **仲間はこの5人だけである。**R12 で、本編に出ない同業者3人（トキ/ヨリ/アカリ）と
 // Free / Endless を削除した。来歴を持たない人物を編成画面に並べておくと、
 // 「後で加入する仲間」として未公開の加入者と区別できず、物語の先が割れる（R12 §4.E-1、作者判断）。

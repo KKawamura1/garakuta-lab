@@ -58,7 +58,7 @@ function passesFilter(state, ctx, filter, actor) {
     case "not_previous_target":
       // "previous" is the target set of the most recent effect resolution in
       // this chain, which is what makes an overflow rule hand its leftover to
-      // somebody else (README §not_previous_target).
+      // somebody else.
       return !state.chain.lastResolvedTargets.includes(actor.instanceId);
     case "is_event_primary_target":
       return Boolean(ctx.event) && ctx.event.targetActorIds[0] === actor.instanceId;

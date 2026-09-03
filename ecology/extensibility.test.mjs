@@ -5,9 +5,10 @@
 // No file the engine runs on changed while adding them: between ab83135 and
 // ea27f90, engine.mjs, effects.mjs, predicates.mjs, selectors.mjs, values.mjs,
 // event-queue.mjs, schema.mjs, validate.mjs and actors.mjs are byte identical.
-// GATE_RESULTS.md carries that diff. (Engine files did change later, for the
-// audit fixes in PREFLIGHT §14 to §19; the Gate E evidence is those two
-// commits, and this file re-checks that the four items still behave.)
+// (Engine files did change later, for the R5 audit fixes; the Gate E evidence
+// is those two commits, and this file re-checks that the four items still
+// behave. The original R5 gate records are no longer in the tree; see
+// docs/HISTORY.md.)
 
 import assert from "node:assert/strict";
 import { simulateBattle } from "./engine.mjs";
