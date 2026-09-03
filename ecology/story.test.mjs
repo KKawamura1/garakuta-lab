@@ -24,6 +24,7 @@ import {
   DOSSIER_IDS,
   DOSSIER_SECTIONS,
   DOSSIER_SECTION_HEADINGS,
+  DIALOGUE_IDS,
   EXPRESSIONS,
   PACK_BY_ID,
   PLAYABLE_CONTENT,
@@ -38,6 +39,7 @@ import {
   portraitAccent,
   portraitSvg,
   storyBeat,
+  dialogueFor,
   dossierRevealLevel,
   revealedBonds,
   revealedDossierSections,
@@ -239,6 +241,29 @@ const statsFor = (characterId) => characterStats(profile, characterId);
     }
   }
 }
+
+// ---- 会話本文の集約（協働用の境界）--------------------------------------------
+// story / homestead は舞台と進行だけを持ち、実際の台詞・地の文は
+// dialogue.mjs から参照する。ここで対応漏れや余分な断片を検出する。
+
+{
+  const beatEntries = [
+    ...Object.values(STORY_BEATS).flatMap((stage) => Object.values(stage)),
+    ...HOMESTEAD_SCENES.map((scene) => scene.beat),
+  ];
+  const beatIds = beatEntries.map((entry) => entry.id);
+  equal(new Set(beatIds).size, beatIds.length, "会話断片の id は一意");
+  equal(DIALOGUE_IDS.length, beatIds.length, "中央会話の件数が断片と一致");
+  for (const entry of beatEntries) {
+    check(DIALOGUE_IDS.includes(entry.id), entry.id + " は中央会話に登録される");
+    assert.deepEqual(entry.lines, dialogueFor(entry.id), entry.id + " は中央会話を使う");
+    checks += 1;
+  }
+  for (const id of DIALOGUE_IDS) {
+    check(beatIds.includes(id), id + " は未使用の中央会話ではない");
+  }
+}
+
 
 // ---- 立ち絵と演出（会話画面）------------------------------------------------
 //
