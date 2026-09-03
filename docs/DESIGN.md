@@ -13,25 +13,18 @@ AGENTS.md の「守ること」の**理由**と、その具体的な形をここ
 3. ルールは読める形で提示する。次の戦闘の条件と敵の狙いは、開始前に確認できる。
 4. 戦闘は決定的に再生できる。同じ入力と seed は同じイベント列を返す。
 5. 新しい面白さは、既存のイベント語彙を組み合わせる content の追加から育てる。
-   engine へ人物固有の分岐を増やさない。
 6. 遠征内の消耗と遠征をまたぐ成長を分け、再挑戦と長期的な愛着を両立させる。
 7. 面白さは作者の自発的な行動で判断する。機械検査は壊れた候補を落とし、観測可能性を
    確認するために使う。
 
-変更は一つの因果仮説に結びつけます。仕様変更・数値調整・表示修正を同じ変更へ曖昧に
-まとめず、実装前に受入条件と未確認事項を書きます。作者評価が必要な関門を、代理指標で
-通過扱いにしません。
 
 ## 2. 不変条件
 
 - 人物は永続し、遠征ごとに消えない。**愛着の主語は人物、偶然性の主語は装備。**
 - 同じ入力・seed・content / generator version から同じイベント列を返す。
-- 人物名、特定 skill ID、特定 equipment ID をコンボ条件として engine へ埋め込まない。
 - 新要素は共有 event、predicate、cost、effect、target relation で接続する。
-- player profile に応じた不可視の敵補正を行わない。強い Blueprint や鍛錬は実際に強くする。
+- 完全上位互換を作らない。作る場合は明確な代償を付ける。
 - Campaign Stage は一つ前の clear で順に解禁し、活動資金で買えず、飛ばせない。
-- 機械検査は決定性・破綻・発火不能・支配性候補を検出する。fun の証明には使わない。
-- 一度公開した ID・event・effect・target の意味を黙って変更しない。
 - 通常行動には攻撃手段を保証する。技能未装備・全 skill skip 時は通常攻撃、純支援 active
   解決後は威力50%の追撃。明示された準備だけを例外にする。
 
@@ -79,55 +72,11 @@ pack は `primary_offense` / `offensive_hybrid` / `support` の役割を宣言�
 （`ecology/content/packs.mjs` の `combatRole`、`campaign-stages.mjs` の manifest ラダー
 検査が読む）。全 manifest に `primary_offense` を一つ以上（新規導入 Stage の幕1だけは
 十分な攻撃力のある `offensive_hybrid` で代替可）、有効 pack 4以上では二つ以上。
-**攻撃 pack を増やすとは、同名倍率違いの攻撃技能を増やすことではなく、敵を倒すまでの
-event 経路と画面上の気持ちよさを増やすことです。**
 
 ## 4. anti-stall — 時間から HP を作らせない
 
-通常戦後の HP を持ち越すので、「時間だけを払って次戦へ持ち越す HP を生成できる経路」を
-塞ぎます。削除するのは回復 event ではなく、その経路です。
-
 > 敵を一体残して追加 round を経過させても、補給や遠征中に戻らない治療 charge を
 > 消費しない限り、次戦へ持ち越す HP・補給・装備状態は改善しない。
-
-**許可する回復**
-
-- `damage_taken` と同じ reaction chain 内で発火し、実回復量がその被弾量以下の応急処置。
-- 補給、または補給から変換した、遠征中に戻らない治療 charge を消費する回復。
-- `once_per_expedition`、消耗品、遠征中に再充填されない装備 charge。
-- 4・8戦目の boss 後の拠点全回復。
-- 撃破・過剰 damage 等の有限 event を読む希少な sustain（通常 content では一戦の上限を持つ）。
-
-**許可しない回復**
-
-- round ごとに戻る AP / RP だけを払い、任意の過去損傷を戻す active。
-- cooldown 完了まで敵を残せば再使用できる回復。
-- 一戦ごとに無料で戻る `once_per_battle` heal を勝利直前まで温存して使う通常技能。
-- 戦闘終了時に全回復する装備耐久だけを払って古い損傷を戻す通常技能。
-- full HP へ空撃ちして `excess_healing` だけを出す技能。
-- 小 damage の敵を残し、lifesteal 等で古い損傷を回収する通常 engine。
-- round 経過だけで治療 charge を再生成する rule。
-
-敵を round ごとに強化する・固定 turn limit を置く、は主解決にしません。「回復利益と
-追加被害の比較」という別の待機最適化を作り、回復役へ毎戦同じ時間税を課すからです。
-
-### ヒーラーは HP 生成役ではなく損傷制御役
-
-| 役割 | プレイヤーの問い |
-|---|---|
-| 応急処置 | どの被弾へ RP を使うか |
-| 被害集中 | 誰へ攻撃を集め、集中治療を効率化するか |
-| 予防 | barrier / block / 弱体解除で永続損傷を防ぐ |
-| 治療効率 | 補給1を単体・全体・蘇生のどれへ変えるか |
-| 損傷転嫁 | recoil や低 HP を誰に負担させるか |
-| 回復変換 | 有限に発生した healing を攻撃・AP・mark へ戻す |
-
-良いヒーラー build は一幕4戦で失う HP を減らし、その結果として補給を reroll へ回せます。
-戦闘終了直前に全員を満タンにする作業員にはしません。
-
-`excess_healing` は、実回復1以上が発生した同じ effect で支払済みの回復量が余った場合
-だけ出します。治療可能な損傷0なら heal skill は skip し、`healing_applied` も
-`excess_healing` も出しません。
 
 ## 5. 次戦結果の完全開示
 
@@ -177,7 +126,6 @@ ablation 表示で「何を変えたから結果が変わったか」を返し�
 | Campaign Stage 初回 clear | Stage 定義の固定 bonus |
 
 `activityFundsEarned = floor(baseTotal * stage.activityFundMultiplierBps / 10_000)`。
-報酬倍率を Stage 番号の一次式にはしません（Stage 固有の報酬・law が無いあいだは等倍）。
 
 | 投資 | 初期仕様 |
 |---|---|
@@ -188,52 +136,23 @@ ablation 表示で「何を変えたから結果が変わったか」を返し�
 | 新人物 / signature | 一件 10,000〜50,000 |
 | 目利き | 15,000 / 45,000 / 120,000 / 300,000 / 750,000 |
 | active / reactive 第4枠 | 人物ごとに 30,000 / 60,000 |
-| 人物鍛錬 | might / focus / guard / vitality を人物別・上限なし |
 
-人物鍛錬は一 level につき base stat +10bps。speed、AP、RP、slot、発火回数は上げません。
-常に base へ合計倍率を掛け、購入順による複利差を作りません。
-
-    cost = 2_000n + 100n * (level / 10n);
-    trainedStat = roundHalfUp(baseStat * (10_000 + 10 * level) / 10_000);
 
 ## 8. 生成装備の生成契約
 
 一つの完結 rule は `trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜2 -> limit ->
 durability / charge`。不完全な trigger だけ・effect だけ・発火不能・無料無限循環は生成しません。
 
-| rarity | 完結 rule 数 | 総 affix 目安 | power budget |
-|---|---:|---:|---:|
-| common | 1 | 1〜2 | 2 |
-| rare | 1〜2 | 2〜4 | 4 |
-| epic | 2〜3 | 4〜7 | 7 |
-| legendary | 3〜4 + keystone 0〜1 | 6〜10 | 10 |
+| rarity | 完結 rule 数 | 総 affix 目安 |
+|---|---:|---:|
+| common | 1 | 1〜2 |
+| rare | 1〜2 | 2〜4 |
+| epic | 2〜3 | 4〜7 |
+| legendary | 3〜4 + keystone 0〜1 | 6〜10 |
 
-複数 rule でも item 全体の power budget は一つで、rule 数倍しません。高 rarity は確定
-上位互換ではなく、複数文脈または大きな代償を持つ品にします。**技能は意図して選ぶ
-主構築、装備は現在構成を壊して再評価させる副構築**です。
 
-## 9. 変更の作法（停止条件つき）
 
-- system 変更と content 追加を同じ PR へ混ぜない。
-- 技能・敵・encounter・固定装備・生成装備を一つの content PR へ混ぜない。
-- Stage 調整で unit / encounter / Stage の二層以上を同時に動かさない。
-- 新語彙が要る content は先行実装せず、用途・反例・必要な三 family 以上を記録して
-  mechanics 変更を先に通す。召喚・復活・属性・地形等の未決定語彙を空実装しない。
-- 完全上位互換は削除するか、明示的な代償を付ける。
-
-**次のいずれかが起きたら止めて記録する**（依存していた契約、影響する content ID、
-最小修正案、破棄可能な作業）。
-
-- migration 前後で、意図した差以外の同一 seed 出力が変わる。
-- content 追加のため engine へ個別 ID 分岐が必要になる。
-- 複数層を同時変更し、差分の原因を分離できない。
-- 新 mechanics を二系統以上同時に追加する。
-- fast check が一分を超え、slow へ分離できない。
-- preview と正式実行が一致しない。
-- 検査の高勝率や fingerprint 数を fun の証拠として扱いそうになる。
-- 作者が支持しなかった方向を content 量で延命しようとする。
-
-## 10. 採らなかった案（再提案する前に読む）
+## 9. 採らなかった案（再提案する前に読む）
 
 全過去 pack を毎回累積する／Stage ごとに pack を全交換する／pack は固定するが新 pack を
 保証しない／敵数値だけを大幅に上げる／新 pack だけを極端に強くする／Stage ごとに正解
