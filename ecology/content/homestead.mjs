@@ -32,8 +32,8 @@
 //
 // ここは根城の構造・解禁条件・演出メタデータだけを持つ。会話本文は dialogue.mjs に集約する。
 
-import { beat, stand } from "./beat.mjs";
-import { dialogueFor } from "./dialogue.mjs";
+import { beat } from "./beat.mjs";
+import { castFor, dialogueFor } from "./dialogue.mjs";
 
 // ---------------------------------------------------------------- 家にあるもの
 //
@@ -120,7 +120,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     clearedStage: 0,
     mood: "dusk",
     place: "根城 · 土間",
-    cast: [stand("warden", "left"), stand("mender", "right")],
+    cast: castFor("homestead_first_night"),
     lines: dialogueFor("homestead_first_night"),
     footer: "帰る場所があると、撤退が判断になる。無ければ、ただの失敗になる。",
   }),
@@ -131,7 +131,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     met: ["lancer"],
     mood: "dawn",
     place: "根城 · 裏庭",
-    cast: [stand("lancer", "left"), stand("warden", "right"), stand("mender", "far_right")],
+    cast: castFor("homestead_morning_fire"),
     lines: dialogueFor("homestead_morning_fire"),
   }),
 
@@ -141,9 +141,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     met: ["guardian"],
     mood: "dusk",
     place: "根城 · 奥の棚",
-    cast: [
-      stand("guardian", "center"), stand("lancer", "left"), stand("mender", "right"),
-    ],
+    cast: castFor("homestead_shelf_rules"),
     lines: dialogueFor("homestead_shelf_rules"),
     footer: "拾った物には、拾った順という記録がある。売ると値段だけが残る。",
   }),
@@ -154,7 +152,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     met: ["tactician"],
     mood: "dusk",
     place: "根城 · 火のそば",
-    cast: [stand("tactician", "left"), stand("guardian", "right")],
+    cast: castFor("homestead_thick_book"),
     lines: dialogueFor("homestead_thick_book"),
     footer: "協会の記録には、誰がどこで戻らなかったかが書いてある。何を考えていたかは書いていない。",
   }),
@@ -166,7 +164,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     met: ["tactician", "mender"],
     mood: "dawn",
     place: "詰所から根城への道",
-    cast: [stand("tactician", "left"), stand("mender", "right")],
+    cast: castFor("homestead_wrong_turn"),
     lines: dialogueFor("homestead_wrong_turn"),
     footer: "数えられるものと、数にならないものがある。どちらも記録には残る。",
   }),
@@ -177,10 +175,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     met: ["warden", "mender", "lancer", "guardian", "tactician"],
     mood: "ember",
     place: "根城 · 卓",
-    cast: [
-      stand("warden", "center"), stand("lancer", "left"), stand("guardian", "far_left"),
-      stand("mender", "right"), stand("tactician", "far_right"),
-    ],
+    cast: castFor("homestead_six_chairs"),
     lines: dialogueFor("homestead_six_chairs"),
     footer: "六枠に五人。空きは足りなさではなく、動ける余地である。",
   }),
