@@ -5,7 +5,7 @@
 // 途中リロード・アンケート送信を一度も踏んでいない。**ここがその踏み場。
 //
 // 見るのは印字ではなく**終了コード**。1つでも踏めなければ 1 で終わる。
-// 作者へURLを渡す前に、docs/HUMAN_TEST_RELEASE.md の「本番E2E」の
+// 作者へURLを渡す前に、docs/OPERATIONS.md の「作者へ URL を渡す前に」の
 // 画面経路ぶんをここで先に潰す（公開先そのものへはこの環境から出られない）。
 
 import { spawn, execSync } from "node:child_process";

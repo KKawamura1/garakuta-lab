@@ -25,7 +25,7 @@
 // 現状は `mend`（baseline）と `triage`（pack_care）が (1) にも (2) にも
 // 当たらない active heal として検出される。これは意図的に緩めていない
 // ——本票は「通った」ことを報告するのではなく、直すべき箇所を報告する。
-// 詳細と提案は analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3。
+// anti-stall 不変条件と、許可する回復・しない回復は docs/DESIGN.md §4。
 //
 // **鳴ることを確かめてある**（末尾の自己検査）。
 
@@ -135,7 +135,7 @@ if (violations.length) {
     "\nこれは意図的に非ゼロで終了する診断である。ファイル名を `*smoke*` にしていないのは"
     + "意図的で、analysis/check-all.sh の `ls analysis/*smoke*.mjs` 自動収集（push ごとの"
     + "fast path）に載せず、直すまで毎pushを赤くしないため。"
-    + "\n詳細と修正案は analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3。",
+    + "\n anti-stall 不変条件は docs/DESIGN.md §4。",
   );
   process.exit(1);
 }

@@ -1,7 +1,8 @@
 # 創発的ルール生態系と長期拡張可能なゲーム設計
 
 更新日: 2026-08-30（UTC）  
-位置づけ: ガラクタ・ラボの複数実験とEXP-18 R2〜R5から抽出した一般設計メモ。個別ゲーム仕様ではない。
+位置づけ: ガラクタ・ラボの複数実験とEXP-18 R2〜R5から抽出した**一般設計メモ**。個別ゲーム仕様ではない。
+現行の仕様は `docs/GAME.md`、採用済みの契約は `docs/DESIGN.md` が正本。
 
 ## 0. この文書の証拠水準
 
@@ -694,13 +695,8 @@ AP / RPのような閾値資源を毎round増やすpassiveは、単なるfallbac
 
 しかし、局所的に読める要素を安全に増やし、新しい規則によって古い資産の意味を変え続けたい場合には、有力な基盤になる。
 
-## 19. 関連するプロジェクト資料
+## 19. 関連する資料
 
-- [DESIGN_CHARTER](../DESIGN_CHARTER.md)
-- [ランダム性を材料として使う整理](./randomness_as_material_survey.md)
-- [難易度・複雑さ・面白さ](./difficulty_complexity_fun.md)
-- [EXP-18 R2](../analysis/experiments/exp-18/R2_CORE_REJECTION_AND_SYSTEM_SCALE.md)
-- [EXP-18 R3](../analysis/experiments/exp-18/R3_CHARACTER_FIRST_CONTEXT.md)
-- [EXP-18 R4](../analysis/experiments/exp-18/R4_EMERGENT_RULE_ECOLOGY_AND_LONG_TERM_EXPANSION.md)
-- [EXP-18 R5](../analysis/experiments/exp-18/R5_EMERGENT_RULE_ENGINE_IMPLEMENTATION_HANDOFF.md)
-- [EXP-18 R6](../analysis/experiments/exp-18/R6_LONG_TERM_PROGRESSION_PROCEDURAL_LOOT_AND_BLUEPRINTS.md)
+- 設計思想と恒久的な契約: `docs/DESIGN.md`
+- 現行のゲーム仕様: `docs/GAME.md`
+- ここへ至った経緯: `docs/HISTORY.md`

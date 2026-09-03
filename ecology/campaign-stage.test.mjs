@@ -10,12 +10,10 @@
 //   - exact preview（R8 §11）: preview と実行が同じ経路（simulateNextBattle）を
 //     通るので、同じ引数なら同じ結果になる。
 //
-// **round を稼ぐと carry HP が伸びるか**という本来の anti-stall 機械検査
-// （R8 §16.6）は、ここには**まだ入れていない**。現行の `mend`/`triage` が
-// その検査に通らないことは analysis/ecology-anti-stall-smoke.mjs が既に
-// 診断していて（意図的に非ゼロ終了、check-all.sh の fast path 対象外）、
-// 直すまでは push ごとに走るこのファイルを赤くしない
-// （analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3）。
+// **round を稼ぐと carry HP が伸びるか**という本来の anti-stall 機械検査は、
+// ここには**まだ入れていない**。現在は content 側を静的に見る
+// analysis/ecology-anti-stall-audit.mjs が代わりに走っている（違反なし）。
+// anti-stall 不変条件は docs/DESIGN.md §4、残っている穴は OPEN_ISSUES.md。
 
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT, PROLOGUE, REGION } from "./content/index.mjs";

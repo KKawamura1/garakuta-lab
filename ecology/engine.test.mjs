@@ -630,11 +630,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
-// §7 — the values table in the README has to keep up with the engine.
+// §7 — the event list in docs/ARCHITECTURE.md has to keep up with the engine.
 {
-  const readme = readFileSync(new URL("README.md", import.meta.url), "utf8");
+  const doc = readFileSync(new URL("../docs/ARCHITECTURE.md", import.meta.url), "utf8");
   for (const type of EVENT_TYPES) {
-    check(readme.includes(`\`${type}\``), `README documents the values of ${type}`);
+    check(doc.includes(`\`${type}\``), `docs/ARCHITECTURE.md documents the values of ${type}`);
   }
 }
 

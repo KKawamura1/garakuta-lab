@@ -673,7 +673,7 @@ function finishActivation(state, actor) {
   actor.isActivating = false;
   state.currentActorId = null;
   // §12.4 note on duration: a "turn" status lasts until the end of the holder's
-  // activation (README §status duration).
+  // activation.
   const expiring = actor.statuses.filter((status) => status.duration === "turn");
   if (expiring.length > 0) {
     runChain(state, "status_expiry", () => {

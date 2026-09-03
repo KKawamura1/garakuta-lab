@@ -53,7 +53,7 @@ export const RETIRED_IDS = Object.freeze({
   // 引退させた。**別内容への再利用ではない**——同じ意味・同じ表示名の技能を
   // reactiveSkills.mend / reactiveSkills.triage として作り替えたので、ID・
   // 表示名はそのまま、content section だけが変わった。理由は
-  // analysis/experiments/exp-18/R8_IMPLEMENTATION_PHASE0_FREEZE.md §3。
+  // anti-stall 契約は docs/DESIGN.md §4。
   mend: {
     since: "ecology-content-contract-5",
     reason: "AP専用のactiveがHP持ち越し下でanti-stall不変条件に違反した"

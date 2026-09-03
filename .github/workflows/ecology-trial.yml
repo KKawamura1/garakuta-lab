@@ -2,7 +2,7 @@ name: Ecology trial (deployed)
 
 # **公開先で通しを踏むための経路。**
 # Claude が動く箱からは pages.dev へ出られない（egress ブロック）ので、
-# docs/HUMAN_TEST_RELEASE.md の「本番E2E」は、同じ台本をここから走らせて満たす。
+# docs/OPERATIONS.md の「作者へ URL を渡す前に」は、同じ台本をここから走らせて満たす。
 # 台本は analysis/ecology-trial.mjs（手元では localhost、ここでは公開先を見る）。
 #
 # **push でも走らせる。** workflow_dispatch は既定ブランチに置かれるまで叩けず、
