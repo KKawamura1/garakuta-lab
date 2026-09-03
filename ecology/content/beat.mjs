@@ -1,7 +1,7 @@
 // ecology/content/beat.mjs
 //
 // **会話の断片を組み立てる道具。**本編と根城が同じ一行送りの画面を使うため、
-// 話者・表情・立ち位置の検査をここへ集める。本文の正本は dialogue.mjs に置く。
+// 話者・表情・立ち位置の検査をここへ集める。本文と配役の正本は dialogue.mjs に置く。
 //
 // **二つ目の定義を作らない。**表示名の引き方・立ち絵の検査・立ち位置の語彙が
 // 二重になると、片方だけ人物の改名や表情の追加に追随しなくなる。
@@ -44,13 +44,17 @@ export const stand = (who, at, since = 0) => {
   return Object.freeze({ who, at, since });
 };
 
+const frozenList = (entries) => Object.isFrozen(entries)
+  ? entries
+  : Object.freeze(entries.map((entry) => entry));
+
 export const beat = (id, title, options) => Object.freeze({
   id,
   title,
   mood: options.mood ?? "ash",
   place: options.place ?? "",
-  cast: Object.freeze((options.cast ?? []).map((entry) => entry)),
-  lines: Object.freeze(options.lines.map((line) => line)),
+  cast: frozenList(options.cast ?? []),
+  lines: frozenList(options.lines),
   footer: options.footer ?? null,
 });
 
