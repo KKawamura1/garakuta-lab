@@ -107,6 +107,90 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font-weight: 750;
 }
 .button.primary { border-color: var(--gold); background: var(--gold); color: #1d211f; }
+/* R14 §1 — 戦闘予測とタブは一つの塊で上端に貼りつく。
+   予測を見ながら技能・装備・隊列を触るのが、この遠征の中心の操作である。 */
+.camp-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -2px 12px;
+  padding: 4px 2px 0;
+  background: rgba(14, 20, 22, .95);
+  backdrop-filter: blur(10px);
+}
+.camp-top .tabs {
+  position: static;
+  margin: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+.forecast-bar {
+  margin: 0 0 6px;
+  padding: 8px 10px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.forecast-bar.loss { border-color: rgba(231, 137, 128, .7); }
+.forecast-bar.win { border-color: rgba(155, 214, 158, .45); }
+.forecast-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.forecast-title { color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+.forecast-verdict { color: var(--gold); font-size: 11px; font-weight: 750; white-space: nowrap; }
+.forecast-bar.loss .forecast-verdict { color: var(--bad); }
+.forecast-bar.win .forecast-verdict { color: var(--good); }
+/* 5人ぶんが 390px 幅に収まるよう、枠は等分して縮む（それ以上増えたら横へ流す）。 */
+.forecast-members {
+  display: flex;
+  gap: 4px;
+  margin-top: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.forecast-members::-webkit-scrollbar { display: none; }
+.forecast-member {
+  flex: 1 1 0;
+  min-width: 60px;
+  padding: 4px 5px 5px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-2);
+  text-align: center;
+}
+.forecast-member.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
+.forecast-member-head { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.forecast-member-head b {
+  overflow: hidden;
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.forecast-member-head .avatar.small { flex: none; width: 16px; height: 16px; font-size: 9px; }
+.forecast-hp-bar {
+  display: flex;
+  height: 5px;
+  margin: 5px 0 4px;
+  border-radius: 3px;
+  background: #10191b;
+  overflow: hidden;
+}
+.forecast-hp-end { background: var(--good); }
+.forecast-hp-loss { background: var(--bad); }
+.forecast-hp-values { color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.forecast-hp-values b { color: var(--ink); font-size: 10px; }
+.forecast-hp-values small { color: var(--muted); font-size: 9px; }
+.forecast-delta { font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.forecast-delta.down { color: var(--bad); }
+.forecast-delta.up { color: var(--good); }
+.forecast-delta.flat { color: var(--muted); }
+.forecast-delta.fatal { color: var(--bad); }
+.forecast-note { margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.forecast-note b { color: var(--ink); }
+
 .tabs {
   position: sticky;
   top: 0;
@@ -312,7 +396,28 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .installed-copy small { color: var(--muted); font-size: 10px; }
 .reorder { display: flex; gap: 3px; }
 .icon-button { width: 26px; padding: 4px 2px; }
-.icon-button.remove { width: auto; padding: 4px 6px; color: var(--bad); }
+/* R14 §2 — 技能は装着したら遠征中は外せない。外す操作の代わりに、固定の印を置く。 */
+.locked-mark {
+  flex: none;
+  padding: 3px 6px;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.node-locked {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+.rule-note {
+  padding: 8px 10px;
+  border-left: 2px solid var(--gold);
+  border-radius: 0 8px 8px 0;
+  background: rgba(229, 184, 105, .07);
+}
 .skill-branch { margin-top: 16px; }
 .branch-title {
   display: flex;
@@ -1249,16 +1354,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .map-node.kind-boss { border-color: rgba(231,137,128,.6); color: var(--bad); }
 .map-node.kind-elite { border-color: var(--orange); }
 .map-node.done { background: #2a4936; color: var(--good); }
-.scout-veil {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px dashed var(--line);
-  border-radius: 10px;
-  background: var(--panel-2);
-}
-.scout-veil p { margin: 0 0 8px; color: var(--muted); font-size: 11px; line-height: 1.6; }
-.scout-veil b { color: var(--ink); }
-
 .enemy-card.boss { border-color: var(--gold); background: rgba(90, 68, 26, .3); }
 .enemy-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .enemy-badges .badge {

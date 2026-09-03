@@ -34,6 +34,7 @@ import {
   ENCOUNTER_BASE_FUNDS,
   MAX_SUPPLIES,
   SCRAP_PER_SUPPLY,
+  SUPPLY_USES,
   availableDifficulties,
   characterStats,
   composeEncounter,
@@ -50,8 +51,6 @@ import {
   purchaseTraining,
   purchaseUpgrade,
   recordEncounterCleared,
-  registerSkillCosts,
-  resetRunSkills,
   rewardOffer,
   runSkillPoints,
   settleRun,
@@ -63,8 +62,6 @@ import {
   unlockRunSkill,
   upgradeCost,
 } from "./progression.mjs";
-
-registerSkillCosts(SKILL_TREE_NODES);
 
 let checks = 0;
 const check = (condition, message) => {
@@ -260,11 +257,9 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     equal(ok.ok, true, "前提と点数が揃えば解禁できる");
     run = ok.run;
     equal(runSkillPoints(run, "warden"), 1, "点数が減っている");
-    // reset は使った点をそのまま戻す（罰を付けない）。
-    const reset = resetRunSkills(run, "warden", ["strike"]);
-    equal(reset.refunded, 1, "reset は使った点を戻す");
-    equal(runSkillPoints(reset.run, "warden"), 2, "戻したあとの残り");
-    assert.deepEqual(reset.run.runUnlockedSkills.warden, ["strike"]);
+    // R14 §2 — 解禁は取り消せない。**払い戻しの経路そのものが無い。**
+    equal(unlockRunSkill(run, "warden", heavy).ok, false, "同じ技能を二度は解禁できない");
+    assert.deepEqual(run.runUnlockedSkills.warden, ["strike", "heavy_swing"]);
     checks += 1;
   }
 }
@@ -494,9 +489,9 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   const run = newRun(profile, { runSeed: "s", runId: "r9", roster: ROSTER });
   equal(run.supplies, 3, "開始補給3");
   equal(MAX_SUPPLIES, 5, "上限5");
-  // R6 §12.1 — 偵察は**次の幕**を開ける。いまいる幕は補給なしで見える。
-  // ここが [1] で始まっていると、第2幕が最初から見える意味になる。
-  assert.deepEqual(run.scoutedActs, []);
+  // R14 §3 — 偵察は消えた。**補給の用途は三つだけ**で、その三つが同じ数を取り合う。
+  assert.deepEqual(Object.keys(SUPPLY_USES), ["retry", "reroll", "camp"]);
+  equal(spendSupply(run, "scout").ok, false, "偵察という用途はもう無い");
   checks += 1;
   const retry = spendSupply(run, "retry");
   equal(retry.run.supplies, 2, "再挑戦で1減る");
@@ -505,7 +500,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   // 3用途が同じ数を取り合う（R6 §12.1 のトレードオフ）。
   const rerolled = spendSupply(retry.run, "reroll");
   equal(rerolled.run.supplies, 1, "引き直しは再挑戦の余地を減らす");
-  equal(spendSupply(rerolled.run, "scout").run.supplies, 0, "偵察も同じ数から引く");
+  equal(spendSupply(rerolled.run, "camp").run.supplies, 0, "野営治療も同じ数から引く");
 
   // 開始補給の購入は上限5を超えない。
   let rich = { ...profile, activityFunds: "1000000" };

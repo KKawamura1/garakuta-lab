@@ -11,6 +11,8 @@ ecology/ は EXP-18 R8 の本編を土台にした R10 Campaign です。現在�
 - 3幕12戦、4・8・12戦目のボス。敵の数と threat budget は遠征の人数に合わせる
 - HP 持ち越し、有限補給、報酬、野営、撤退
 - 敵の狙いと開始条件の exact preview
+- キャンプの画面上部に常設する次戦の戦闘予測（各メンバーの予測HPと減少量）
+- 技能は遠征中は取り直し不可、装備は自由に付け外し可能
 - 決定的な自動戦闘リプレイと event log
 - 手続き生成装備と Blueprint archive（Phase C）
 - Profile / Run / Battle の保存と D1 送信
@@ -69,8 +71,9 @@ affix family の購入はまだありません。`pack_barrage`（連撃と刻�
 自動検査が通っても、作者の fun や再プレイ欲は未判定です。
 
 R8 / R9 の判断と実装履歴は analysis/experiments/exp-18/ にあります。
-直近の実装票は R8_IMPLEMENTATION_PHASE4_STATUS.md（生成装備と Blueprint）と
-R9_IMPLEMENTATION_TUTORIAL_STAGES.md（初期4Stageのチュートリアル化）です。
+直近の実装票は R8_IMPLEMENTATION_PHASE4_STATUS.md（生成装備と Blueprint）、
+R9_IMPLEMENTATION_TUTORIAL_STAGES.md（初期4Stageのチュートリアル化）、
+R14_ALWAYS_ON_FORECAST_AND_LOADOUT_COSTS.md（常設する戦闘予測と組み替えの値段）です。
 ## イベントログの値
 
 engine が出力する `type` は、次の44種類に固定しています。

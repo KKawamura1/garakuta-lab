@@ -16,7 +16,6 @@ import {
   initialUnlockedSkills,
   makeExpeditionBattle,
   removeEquipment,
-  removeSkill,
   reorderTactic,
   PARTY_SIZE,
   ensurePartySize,
@@ -81,8 +80,6 @@ import {
   purchaseTraining,
   purchaseUpgrade,
   recordEncounterCleared,
-  registerSkillCosts,
-  resetRunSkills,
   STARTING_RUN_SKILL_POINTS,
   rewardOffer,
   runSkillPoints,
@@ -241,8 +238,6 @@ function fitPayload(payload) {
 //
 // **profile へ遠征内のものを入れない。**入れた瞬間に「遠征を捨てても残る」に
 // なって、補給と再挑戦のトレードオフ（R6 §12.1）が消える。
-
-registerSkillCosts(SKILL_TREE_NODES);
 
 // R9 §8 — その Stage を一度でもクリアしているか。**初回だけ物語と学習順を固定し、
 // 既知になった後の再訪では編成から始められるようにする**ための分岐。
@@ -868,27 +863,12 @@ function actOfIndex(index) {
   return index <= 4 ? 1 : index <= 8 ? 2 : 3;
 }
 
-// R6 §12.1 — 偵察が見せるのは**次の幕**の通常戦の個体編成である。
+// R14 §3 — 偵察（補給1で次の幕の個体編成を先に見る）は消した。
 //
-// いま挑む戦闘は補給を使わずに全部見える（見えないと隊列も技能も組めない）。
-// 伏せられているのは先の幕の並びと変異で、そこを1つ前倒しで見るのが偵察。
-// 法則・敵family・各幕のボスは、偵察しなくても遠征開始時から見える（R6 §5.2）。
-function isScouted(index) {
-  const act = actOfIndex(index);
-  if (act <= actOfIndex(state.run.encounterIndex)) return true;
-  return (state.run.scoutedActs ?? []).includes(act);
-}
-
-// 次の幕の先頭の通常戦。**無ければ null**（第3幕にいるとき）。
-function nextActPreview() {
-  const act = actOfIndex(state.run.encounterIndex) + 1;
-  if (act > 3) return null;
-  for (let index = state.run.encounterIndex + 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
-    const composed = composeEncounter(index, state.run.difficulty, encounterOptions());
-    if (composed.act === act && composed.kind !== "boss") return composed;
-  }
-  return null;
-}
+// R6 §12.1 は「いま挑む戦闘は補給なしで全部見える。伏せられているのは先の幕の
+// 並びと変異で、そこを1つ前倒しで見るのが偵察」と言っていた。**次の一戦の結果
+// そのものが常時見えるようになった今、その一枠は買う理由を失った**（作者判断）。
+// 補給は再挑戦・報酬の引き直し・野営治療の三つで取り合う。
 
 function installedSkill(characterId, skillId, kind) {
   const key = SLOT_KEYS[kind];
@@ -953,7 +933,11 @@ function campNav() {
     "<button type=\"button\" class=\"tab " + (state.tab === id ? "active" : "")
       + "\" aria-label=\"" + label + "\" aria-current=\"" + (state.tab === id ? "step" : "false")
       + "\" data-action=\"tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + meta + "</small></button>").join("")
-    + "</nav><div class=\"camp-tools\">"
+    + "</nav>";
+}
+
+function campTools() {
+  return "<div class=\"camp-tools\">"
     + button("セーブ / ロード", "open-save-menu", false, "tiny-button", "data-return=\"camp\"")
     + "</div>";
 }
@@ -1061,7 +1045,7 @@ function renderSaveMenu() {
 // ============================================================ 遠征を仕立てる（R6 §15.1）
 //
 // **遠征開始前に全部を表示する。**有効パック、敵family、3体のボスと法則、開始補給。
-// 個体編成だけは伏せてよい（偵察で開く）。
+// 先の幕の個体編成だけは伏せる（挑む一戦は戦闘タブと戦闘予測が全部見せる）。
 //
 // R12 — ただし「全部」は**この遠征に出るもの**であって、まだ物語が公開していない
 // ものではない。未解禁の pack と、次に加わる人物の名前は出さない（作者判断）。
@@ -1143,7 +1127,7 @@ function renderExpeditionStart() {
     + "<section class=\"card\">" + sectionHeading("EXPEDITION / " + esc(REGION.displayName), "この遠征に出るもの",
       "<span class=\"stage\">活動資金 " + formatFunds(funds()) + "</span>")
     + "<p class=\"muted\">" + esc(REGION.summary) + " 敵family: " + esc(REGION.enemyFamilyText)
-    + "。<b>個体の並びと変異は、その幕を偵察するまで伏せられます。</b></p>"
+    + "。<b>いま挑む一戦の個体・並び・変異と、その戦闘結果は常に見えます。先の幕の並びだけが伏せられます。</b></p>"
     + "<h3 class=\"training-heading\">この遠征に出る技能パック</h3>"
     + "<div class=\"pack-list\">" + packs + "</div></section>"
     + "<section class=\"card\">" + sectionHeading("ACT BOSSES / 3", "先に見えている3つの法則")
@@ -1876,7 +1860,10 @@ function renderCamp() {
   const title = state.tab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
   const subtitle = "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN
     + " · " + currentEncounter().name + " · " + partyLabel();
-  return shell(title, subtitle, campNav() + view);
+  // R14 §1 — 予測とタブは一つの塊で上端に貼りつく。**どのタブで何を触っても、
+  // 各メンバーのHPと減少量が視界から出ない。**
+  return shell(title, subtitle,
+    "<div class=\"camp-top\">" + forecastBar() + campNav() + "</div>" + campTools() + view);
 }
 
 // R6 §15.2 — base 値・永続鍛錬・run 内補正を分けて表示する。
@@ -1973,11 +1960,14 @@ function skillSlotRows(characterId, kind) {
     return "<div class=\"installed-row\"><span class=\"" + (kind === "active" ? "order" : kind === "passive" ? "bullet passive" : "bullet") + "\">"
       + (kind === "active" ? index + 1 : "↳") + "</span><span class=\"installed-copy\"><b>"
       + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span>"
-      + moveButtons + button("外す", "remove-skill", false, "icon-button remove", "data-character=\"" + characterId
-        + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"") + "</div>";
+      // R14 §2 — 技能を外す操作は無い。**この遠征のあいだ、装着は確定である。**
+      + moveButtons + "<span class=\"locked-mark\" title=\"この遠征では外せません\">固定</span></div>";
   }).join("");
+  const limit = limitsFor(characterId)[kind];
+  const full = list.length >= limit;
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " / " + limitsFor(characterId)[kind] + "</small></div>" + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
+    + list.length + " / " + limit + (full ? " · 埋まりきり" : "") + "</small></div>"
+    + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。装着すると、この遠征のあいだは外せません。</p>") + "</div>";
 }
 
 function memberTabs(characterId) {
@@ -2058,19 +2048,28 @@ function renderSkillNode(node, characterId) {
   const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
   const selected = state.selectedSkillNode === node.skillId;
+  // R14 §2 — 技能は取り直せない。**枠が埋まっていれば、解禁済みでも装着できない。**
+  // 「あとで入れ替えればいい」が無くなったので、その事実を押す前に見せる。
+  const slotKey = SLOT_KEYS[node.kind];
+  const slotUsed = (state.run.loadout[slotKey]?.[characterId] || []).length;
+  const slotMax = limitsFor(characterId)[node.kind];
+  const slotFull = slotUsed >= slotMax;
   let status = "ロック";
   let action = "";
   if (equipped) {
-    status = "装着中";
-    action = button("装着中 · 外す", "remove-skill", false, "tiny-button", "data-character=\"" + characterId
-      + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"");
+    status = "装着中 · 固定";
+    action = "<p class=\"node-locked\">この遠征では外せません。撤退するか12戦を突破すると戻ります。</p>";
+  } else if (unlocked && slotFull) {
+    status = "枠が埋まりきり";
+    action = "<p class=\"node-locked\">" + kindText(node.kind) + "枠は " + slotUsed + " / " + slotMax
+      + " で埋まりきっています。この遠征では入れ替えられません。</p>";
   } else if (unlocked) {
     status = "解禁済み";
-    action = button("枠へ装着", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
+    action = button("枠へ装着（外せません）", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
       + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"");
   } else if (canUnlock) {
     status = "解禁可能 · " + node.cost + "pt";
-    action = button("解禁（" + node.cost + "点）", "unlock-skill", false, "tiny-button primary-mini", "data-character=\"" + characterId
+    action = button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini", "data-character=\"" + characterId
       + "\" data-skill=\"" + node.skillId + "\"");
   } else {
     status = !prereqsMet ? "前提待ち" : "点数不足";
@@ -2123,10 +2122,11 @@ function renderSkills() {
       ? "<p class=\"muted\">（入口）と書いたパックは、この Stage では最初の問いに絞った技能だけが出ます。"
         + "<b>次の Stage へ進むと、同じパックの残りが加わります。</b>前に覚えた技能は消えません。</p>"
       : "")
-    + "<div class=\"flow-actions\">"
-    + button("この仲間の解禁をやり直す", "reset-run-skills", false, "tiny-button",
-      "data-character=\"" + characterId + "\"")
-    + "</div>";
+    // R14 §2 — 取り直しが無いことを、ツリーを触る前に一度言う。
+    + "<p class=\"muted rule-note\"><b>技能は取り直せません。</b>一度解禁した技能点は戻らず、"
+    + "一度枠へ装着した技能は、撤退するか12戦を突破するまで外せません。"
+    + "いま強くするか、先の戦いのために枠と点を残すかを、そのつど決めてください。"
+    + "<b>戦闘ごとの調整は装備で行います</b>（装備はいつでも自由に付け外しできます）。</p>";
   const branches = SKILL_TREE_BRANCHES.map((branch) => renderSkillBranch(branch, characterId)).join("");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_BRANCHES.reduce((sum, branch) => sum + visibleSkillNodes(branch).length, 0) + " NODES", "誰を伸ばす？", pointsBadge)
     + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
@@ -2202,6 +2202,10 @@ function renderEquipment() {
     + equipmentSlotHtml(id, 0) + equipmentSlotHtml(id, 1) + "</div></article>").join("");
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT / 2 SLOTS EACH", "実物を組み替える", "<span class=\"stage\">"
     + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>") + "<p class=\"muted\">装備はこの遠征の持ち物です（上限" + INVENTORY_LIMIT + "品）。選択してから仲間の枠をタップすると移動します。戦闘中に耐久が減り、0になるとその装備の効果が止まります。破損はせず、戦闘終了後に最大へ戻ります。<b>遠征が終わると手放します。</b></p>"
+    // R14 §2 — 装備と技能の役割の違いを、装備画面でも一度言う。
+    + "<p class=\"muted rule-note\"><b>装備は何度でも付け外しできます。</b>上の戦闘予測を見ながら、"
+    + "この敵に特に効く一品へ毎戦組み替えるか、どの敵にも通る一品を固定して安定させるか。"
+    + "技能と違って、ここでの選択はいつでも取り消せます。</p>"
     + memberTabs(characterId) + memberContext(characterId, "equipment")
     + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? gear(selected)?.label ?? selected : "なし")
     + "</b> · " + (selected ? "下の枠をタップして装着" : "上の装備をタップ") + "</p>"
@@ -2239,7 +2243,7 @@ function suppliesBar(context) {
   const pips = Array.from({ length: MAX_SUPPLIES }, (_, index) =>
     "<span class=\"supply-pip " + (index < supplies ? "on" : "") + "\"></span>").join("");
   const uses = Object.entries(SUPPLY_USES)
-    .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", scout: "偵察", camp: "野営治療" }[id])
+    .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", camp: "野営治療" }[id])
       + "</b> " + esc(text) + "</li>").join("");
   return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + MAX_SUPPLIES
     + "</b><span>" + esc(context ?? "3つの用途で取り合う") + "</span></div>"
@@ -2253,13 +2257,13 @@ function renderSupplies() {
     : "<section class=\"card quiet\"><p class=\"eyebrow\">CAMP TREATMENT</p><p class=\"muted\">野営治療はCampaignの持ち越しHP用です。自由遠征では戦闘ごとにHPが全回復します。</p></section>";
   return "<section class=\"card\">" + sectionHeading("SUPPLIES / " + MAX_SUPPLIES, "補給の使い道",
       "<span class=\"stage\">" + state.run.supplies + " / " + MAX_SUPPLIES + "</span>")
-    + "<p class=\"muted\">補給は遠征中の有限資源です。再挑戦・報酬の引き直し・偵察・野営治療から、いま必要な用途を選びます。</p>"
-    + suppliesBar("4つの用途で取り合う")
+    + "<p class=\"muted\">補給は遠征中の有限資源です。再挑戦・報酬の引き直し・野営治療から、いま必要な用途を選びます。</p>"
+    + suppliesBar("3つの用途で取り合う")
     + "<div class=\"scrap-line\"><span>分解の屑 <b>" + scrap + "</b>（" + SCRAP_PER_SUPPLY + "で補給1）</span>"
     + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= MAX_SUPPLIES, "tiny-button")
     + "</div></section>"
     + treatment
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">QUICK LINKS</p><p class=\"muted\">偵察は戦闘タブ、報酬の引き直しは報酬画面、再挑戦は敗北画面から行います。</p>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">QUICK LINKS</p><p class=\"muted\">報酬の引き直しは報酬画面、再挑戦は敗北画面、野営治療はこの画面から行います。</p>"
     + "<div class=\"flow-actions\">"
     + button("戦闘タブへ", "tab", false, "button", "data-tab=\"map\"")
     + button("編成を開く", "tab", false, "button", "data-tab=\"roster\"")
@@ -2287,18 +2291,6 @@ function renderMap() {
     : "";
   // いま挑む戦闘は常に全部見える。伏せられているのは先の幕である。
   const enemyBlock = "<div class=\"enemy-grid\">" + encounter.enemies.map(renderEnemy).join("") + "</div>";
-  const preview = nextActPreview();
-  const scoutBlock = preview === null
-    ? ""
-    : "<section class=\"card\">" + sectionHeading("SCOUT / 次の幕", "先に見ておくか")
-      + (isScouted(preview.index)
-        ? "<p class=\"muted\">第" + preview.act + "幕の通常戦。偵察済みなので、個体と変異が見えています。</p>"
-          + "<div class=\"enemy-grid\">" + preview.enemies.map(renderEnemy).join("") + "</div>"
-        : "<div class=\"scout-veil\"><p><b>第" + preview.act + "幕はまだ偵察していません。</b>"
-          + "敵family（" + esc(REGION.enemyFamilyText) + "）と各幕のボスは最初から見えています。"
-          + "偵察で見えるのは、個体・位置・変異の組み合わせです。</p>"
-          + button("補給1で次の幕を偵察する", "scout", state.run.supplies < 1, "button") + "</div>")
-      + "</section>";
   const ruleBlock = isCampaignRun()
     ? "<section class=\"card quiet\"><p class=\"eyebrow\">CAMPAIGN RULE</p><p class=\"muted\">"
       + "通常・精鋭戦後は現在HPを次の戦闘へ持ち越します（R8 §1.5）。4戦目・8戦目のボスを倒したときだけ全員が全回復します。"
@@ -2314,7 +2306,6 @@ function renderMap() {
     + law + enemyBlock
     + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
     + button("この敵に挑む", "begin-stage", false, "button primary") + "</section>"
-    + scoutBlock
     + "<section class=\"card\">" + sectionHeading("TARGETING", "敵は誰を狙う？")
     + "<p class=\"muted\">敵ごとに狙いが違います。前列を守るだけでなく、後列優先・準備中優先の攻撃もあります。戦闘前に確認し、隊列とリアクティブを組み直してください。</p>"
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
@@ -2348,23 +2339,110 @@ function campTreatmentBlock() {
 // R8 §11 — exact preview。副作用なしで次戦を1回実行し、結果を表示する。
 // simulateアクションが実際に使うのと同じBattleInput構成経路（simulateNextBattle）
 // を通るので、ここに出る結果は実行結果と完全一致する。
-function nextBattlePreviewBlock() {
-  let preview;
-  try {
-    preview = previewNextBattle(state.run, state.profile, state.run.encounterIndex);
-  } catch {
-    return "";
-  }
-  const resultLabel = { win: "勝利", loss: "敗北", draw: "決着つかず" }[preview.result] ?? preview.result;
-  const rows = preview.perCharacter.map((entry) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
-    + esc(characterInfo(entry.characterId)?.icon ?? "・") + "</span><div><b>" + esc(characterName(entry.characterId))
-    + "</b><small>" + (entry.defeated ? "戦闘不能" : "生存") + "</small></div><span>"
-    + entry.startingHp + " → " + entry.endingHp + "</span></div>").join("");
-  return "<section class=\"card\">" + sectionHeading("EXACT PREVIEW", "この構成のまま進めた結果",
-      "<span class=\"stage\">" + resultLabel + " · " + preview.roundsUsed + "ラウンド</span>")
-    + "<p class=\"muted\">無料・副作用なしの試算です。<b>同じ構成なら「自動戦闘を再生する」と完全に同じ結果になります。</b></p>"
-    + "<div class=\"plan-list\">" + rows + "</div></section>";
+// R14 §1 — **戦闘予測は、組み替えている画面の上に常に出す。**
+//
+// R8 §11 の exact preview は「戦闘前の最終確認」画面にしか無かった。技能や装備を
+// 触るたびに一度そこまで出て、戻って、また触る——という往復になっていて、
+// 「次の一戦が完全に読める」というこの遠征の中心が、組み替えの手元に無かった。
+// だから camp の全タブの上端へ、同じ試算をそのまま常設する。
+//
+// **ここも simulateNextBattle を通る。**preview 専用の計算は持たない
+// （持った瞬間に、いつか片方だけが正しくなる）。
+//
+// R14 §1.1 — 出さない一点。**巻き戻す前のチュートリアル1戦目には出さない。**
+// あの一戦は「予測どおりに負ける」ためにあり、プレイヤーはまだ巻き戻す力を
+// 持っていない。読めても直せない予測は、脅しにしかならない。
+function forecastVisible() {
+  if (!state.run?.roster?.length) return false;
+  return !(state.prologueActive && state.prologueStage === "first");
 }
+
+// 予測は毎 render で戦闘を1回まわす。**入力が変わっていなければ前回の答えを使う。**
+// 決定的 engine なので、同じ入力なら同じ結果になる（この cache は結果を変えない）。
+let forecastCache = { key: null, value: null };
+
+function forecastKey(composed) {
+  return JSON.stringify([
+    composed?.index ?? null,
+    composed?.enemies?.map((enemy) => [enemy.instanceId, enemy.enemyActorId, enemy.position, enemy.stats, enemy.mutations]) ?? null,
+    composed?.maxRounds ?? null,
+    state.run.roster,
+    state.run.formation,
+    state.run.loadout,
+    state.run.currentHp,
+    Object.keys(state.run.generatedEquipment ?? {}),
+    state.run.partySize,
+    // 鍛錬と枠の購入は遠征の外で動くが、味方の stat を変える。**run だけを見て
+    // 鍵にすると、ギルドで鍛えて戻った回に古い予測が残る。**
+    state.profile.characters,
+    state.profile.metaUpgradeLevels,
+  ]);
+}
+
+// 次の一戦の試算。**読めなければ null**（画面は黙って予測を出さない）。
+function battleForecast() {
+  if (!forecastVisible()) return null;
+  let composed;
+  try {
+    composed = currentEncounter();
+  } catch {
+    return null;
+  }
+  const key = forecastKey(composed);
+  if (forecastCache.key === key) return forecastCache.value;
+  let value = null;
+  try {
+    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, { composed });
+  } catch {
+    value = null;
+  }
+  forecastCache = { key, value };
+  return value;
+}
+
+const FORECAST_RESULT_LABEL = { win: "勝利", loss: "敗北", draw: "決着つかず" };
+
+function forecastMemberChip(entry) {
+  const ceiling = Math.max(1, entry.maxHp || maxHp(entry.characterId) || 1);
+  const ending = Math.max(0, Math.min(ceiling, entry.endingHp));
+  const starting = Math.max(ending, Math.min(ceiling, entry.startingHp));
+  const pct = (value) => Math.max(0, Math.min(100, Math.round((value / ceiling) * 1000) / 10));
+  // 減少量が主役。**±0 と回復（＋）を別の色で出す**（装備を替えた効きが一目で分かる）。
+  const lost = entry.hpLost;
+  const deltaText = lost > 0 ? "−" + lost : lost < 0 ? "＋" + Math.abs(lost) : "±0";
+  const deltaClass = entry.defeated ? "fatal" : lost > 0 ? "down" : lost < 0 ? "up" : "flat";
+  // 5人ぶんが 390px 幅に横並びで収まる形にしてある。**減少量を先に、残るHPを次に。**
+  // 「いくつ減るか」が装備を替えたときにいちばん動く数字である。
+  return "<div class=\"forecast-member " + (entry.defeated ? "defeated" : "") + "\">"
+    + "<div class=\"forecast-member-head\"><span class=\"avatar small\">"
+    + esc(characterInfo(entry.characterId)?.icon ?? "・") + "</span><b>"
+    + esc(characterName(entry.characterId)) + "</b></div>"
+    + "<div class=\"forecast-hp-bar\" role=\"img\" aria-label=\"HP " + starting + " から " + ending
+    + "（" + (entry.defeated ? "戦闘不能" : deltaText) + "）\">"
+    + "<span class=\"forecast-hp-end\" style=\"width:" + pct(ending) + "%\"></span>"
+    + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span></div>"
+    + "<div class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</div>"
+    + "<div class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></div>"
+    + "</div>";
+}
+
+// camp の上端に貼りつく帯。**予測が出せないときは何も描かない**
+// （空の枠だけ残ると、予測が壊れているのか出ない場面なのか読めない）。
+function forecastBar() {
+  const forecast = battleForecast();
+  if (!forecast) return "";
+  const label = FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result;
+  const target = state.prologueActive ? "灰の門" : "第" + state.run.encounterIndex + "戦";
+  return "<section class=\"forecast-bar " + esc(forecast.result) + "\" aria-live=\"polite\">"
+    + "<div class=\"forecast-head\"><span class=\"forecast-title\">戦闘予測 · " + esc(target) + "</span>"
+    + "<span class=\"forecast-verdict\">" + esc(label) + " · " + forecast.roundsUsed + "ラウンド</span></div>"
+    + "<div class=\"forecast-members\">" + forecast.perCharacter.map(forecastMemberChip).join("") + "</div>"
+    + "<p class=\"forecast-note\">この構成のままなら、この通りに終わります。"
+    + "<b>装備は付け替え自由。</b></p></section>";
+}
+
+// R14 §1 — 戦闘前の確認画面が持っていた EXACT PREVIEW カードは消した。
+// **同じ数字を同じ画面で二度出さない。**上端の帯がそれを常時出している。
 
 function renderBattlePreview() {
   const encounter = currentEncounter();
@@ -2377,8 +2455,11 @@ function renderBattlePreview() {
   const previewTitle = state.prologueActive
     ? "灰の門（遠征の外）"
     : "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN;
-  return shell(previewTitle, encounter.name + " · 戦闘前の最終確認", "<section class=\"card\">"
-    + sectionHeading("AUTO BATTLE / PLAN", "この構成で試す") + "<p class=\"muted\">戦闘中の操作はありません。行動の優先順、リアクティブの条件、敵の狙いをR5エンジンが決定的に解決します。</p>"
+  return shell(previewTitle, encounter.name + " · 戦闘前の最終確認",
+    "<div class=\"camp-top\">" + forecastBar() + "</div>"
+    + "<section class=\"card\">"
+    + sectionHeading("AUTO BATTLE / PLAN", "この構成で試す") + "<p class=\"muted\">戦闘中の操作はありません。行動の優先順、リアクティブの条件、敵の狙いをR5エンジンが決定的に解決します。"
+    + "<b>上の戦闘予測は無料・副作用なしの試算で、同じ構成ならこの再生と完全に同じ結果になります。</b></p>"
     + "<div class=\"plan-list\"><h3>味方の構成</h3>" + allies + "</div><div class=\"plan-list\"><h3>敵の狙い</h3>"
     + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
       + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</div>"
@@ -2389,8 +2470,7 @@ function renderBattlePreview() {
         + "ナズナを後列へ、シキを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
       : "")
     + button("自動戦闘を再生する", "simulate", false, "button primary")
-    + button("キャンプへ戻る", "back-camp", false, "button") + "</section>"
-    + nextBattlePreviewBlock());
+    + button("キャンプへ戻る", "back-camp", false, "button") + "</section>");
 }
 
 function actorName(id) {
@@ -3160,7 +3240,7 @@ function renderReward() {
         + button("この仲間へ配る", "take-reward", false, "button", "data-offer=\"" + index + "\"") + "</article>";
     }
     return "<article class=\"reward-card special\"><div class=\"reward-kind kind-passive\">補給</div><h3>補給 +"
-      + offer.amount + "</h3><p>再挑戦・報酬の引き直し・偵察に使う。上限 " + MAX_SUPPLIES + "。現在 "
+      + offer.amount + "</h3><p>再挑戦・報酬の引き直し・野営治療に使う。上限 " + MAX_SUPPLIES + "。現在 "
       + state.run.supplies + "。</p>"
       + button("補給を受け取る", "take-reward", state.run.supplies >= MAX_SUPPLIES, "button",
         "data-offer=\"" + index + "\"") + "</article>";
@@ -3866,6 +3946,7 @@ function handleAction(event) {
   }
 
   // R6 §5.3 — 解禁は遠征内。遠征が終われば消える。
+  // R14 §2 — **やり直しは無い。**払い戻しの経路（resetRunSkills）はここから消えた。
   if (action === "unlock-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
@@ -3881,24 +3962,6 @@ function handleAction(event) {
     return;
   }
 
-  // R6 §17.2 — run skill reset。**使った点をそのまま戻す**（罰を付けない）。
-  if (action === "reset-run-skills") {
-    const characterId = element.dataset.character;
-    const { run, refunded } = resetRunSkills(state.run, characterId, initialUnlockedSkills(characterId)
-      .filter((skillId) => inManifest(skillId)));
-    state.run = run;
-    // 装着済みからも、解禁を失った技能を外す。**装着したまま戦闘へ入らない。**
-    const unlocked = new Set(state.run.runUnlockedSkills[characterId] ?? []);
-    for (const key of ["tactics", "reactives", "passives"]) {
-      state.run.loadout[key][characterId] = (state.run.loadout[key][characterId] ?? [])
-        .filter((skillId) => unlocked.has(skillId));
-    }
-    record("run_skills_reset", { characterId, refunded });
-    saveState();
-    render();
-    return;
-  }
-
   if (action === "equip-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
@@ -3908,21 +3971,6 @@ function handleAction(event) {
     else {
       state.run.loadout = result.loadout;
       record("skill_equipped", { characterId, skillId, kind });
-    }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "remove-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const kind = element.dataset.kind;
-    const result = removeSkill(state.run.loadout, characterId, skillId, kind, limitsFor);
-    if (!result.ok) state.error = result.reason;
-    else {
-      state.run.loadout = result.loadout;
-      record("skill_removed", { characterId, skillId, kind });
     }
     saveState();
     render();
@@ -4398,21 +4446,6 @@ function handleAction(event) {
       state.replayEvents = [];
       state.replaySnapshots = [];
       record("encounter_retried", { encounter: state.run.encounterIndex, supplies: state.run.supplies });
-    }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "scout") {
-    const spent = spendSupply(state.run, "scout");
-    if (!spent.ok) {
-      state.error = spent.reason;
-    } else {
-      // 偵察が開けるのは**次の幕**。いまの幕は補給なしで見えている。
-      const act = actOfIndex(state.run.encounterIndex) + 1;
-      state.run = { ...spent.run, scoutedActs: [...new Set([...(spent.run.scoutedActs ?? []), act])] };
-      record("act_scouted", { act, supplies: state.run.supplies });
     }
     saveState();
     render();

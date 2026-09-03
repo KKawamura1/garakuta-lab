@@ -149,11 +149,16 @@ try {
   for (; stage <= 12; stage += 1) {
     await page.locator('nav.tabs [data-tab="map"]').click();
     if (stage === 1) {
-      // R6 §11.2 / §12.1 — 敵の重さと偵察の枠は戦闘前に見えている。
+      // R6 §11.2 / R14 §1 — 敵の重さと、次の一戦の結果は戦闘前に見えている。
       // **中身を見ずに ok と言わない。**
       const mapText = await bodyText();
       note("戦闘前に threat と幕が出ている", /threat \d+ \/ \d+/.test(mapText) && /第1幕/.test(mapText));
-      note("次の幕の偵察の枠がある", /まだ偵察していません|偵察済み/.test(mapText));
+      // R14 §3 — 偵察は消えた。買って先を覗く枠はもう無い。
+      note("偵察の枠が残っていない", !/偵察/.test(mapText));
+      // R14 §1 — 戦闘予測は camp の上端に常設される（タブを変えても消えない）。
+      note("戦闘予測が画面上部に出ている", await page.locator(".camp-top .forecast-bar").count() === 1);
+      note("予測に各メンバーの減少量が出ている",
+        await page.locator(".forecast-member .forecast-delta").count() > 0);
     }
     await click("この敵に挑む");
     await click("自動戦闘を再生する");
