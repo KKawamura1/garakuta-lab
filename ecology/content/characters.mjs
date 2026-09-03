@@ -1,6 +1,6 @@
 // ecology/content/characters.mjs
 //
-// **仲間の engine 定義。編成画面向けの役割・図像は roster.mjs。**
+// **仲間の engine 定義。人物設定は character-lore.mjs、編成画面向けの役割・図像は roster.mjs。**
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
 // 種類別へ分離した。**挙動は1バイトも変えていない**（ecology/contract.test.mjs が
 // 分離前の出力と深一致を見る）。
@@ -8,18 +8,18 @@
 // ここを触ってよいのは 人物 担当だけ。engine・schema・共通registryは変更しない。
 
 import { renamed, scaleDefinitionAmounts } from "./base.mjs";
-
+import { CHARACTER_NAMES } from "./character-lore.mjs";
 // R11 — 本編5人を作り直した（経緯は docs/HISTORY.md §3.3）。
 // **仲間はこの5人だけである。**R12 で、本編に出ない同業者3人（トキ/ヨリ/アカリ）と
 // Free / Endless を削除した。来歴を持たない人物を編成画面に並べておくと、
 // 「後で加入する仲間」として未公開の加入者と区別できず、物語の先が割れる（R12 §4.E-1、作者判断）。
-export const CHARACTER_NAMES = {
-  warden: "シキ — 受けて返す人",
-  mender: "ナズナ — 止める人",
-  lancer: "カイ — 抜ける人",
-  guardian: "スミ — 受け止める人",
-  tactician: "レイ — 渡す人",
-};
+export { CHARACTER_NAMES };
+
+
+
+
+
+
 
 // R12 — fixture の characters は engine 用の骨格なので、本編に居ない人物
 // （fixture 側の scout / pivot）まで運んでくる。**CHARACTER_NAMES に無い者は

@@ -20,6 +20,7 @@ import { validateBattleInput } from "./validate.mjs";
 import {
   CAMPAIGN_STAGES,
   CHARACTER_DEFINITIONS,
+  CHARACTER_LORE,
   DOSSIERS,
   DOSSIER_IDS,
   DOSSIER_SECTIONS,
@@ -32,10 +33,12 @@ import {
   PORTRAIT_IDS,
   PROLOGUE,
   REGION,
+  REGION_LORE,
   SECTION_NAMES,
   campaignStageDef,
   castOnStage,
   castFor,
+  characterLoreFor,
   packSkillIds,
   portraitAccent,
   portraitSvg,
@@ -47,6 +50,7 @@ import {
   ENEMY_CODEX,
   ENEMY_LORE,
   HOMESTEAD_FIXTURES,
+  HOMESTEAD_FIXTURE_LORE,
   HOMESTEAD_SCENES,
   STORY_BEATS,
   homesteadFlag,
@@ -55,6 +59,7 @@ import {
   revealedFixtures,
   seenHomesteadIds,
   seenHomesteadScenes,
+  WORLD_LORE,
 } from "./content/index.mjs";
 import { makePrologueBattle, prologueEncounter } from "./playable-battles.mjs";
 import {
@@ -263,6 +268,46 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   for (const id of DIALOGUE_IDS) {
     check(beatIds.includes(id), id + " は未使用の中央会話ではない");
   }
+}
+
+
+// ---- 設定本文の集約（協働用の境界）----------------------------------------------
+// 人物・地域・根城の備品本文は専用の lore ファイルを正本にし、
+// 敵本文は既存の encounters.mjs を正本として world-lore から集約参照する。
+// 構造や開示条件が本文を複製しないことを、公開 API の参照関係で確かめる。
+
+{
+  const characterIds = Object.keys(CHARACTER_LORE);
+  equal(characterIds.length, DOSSIER_IDS.length, "中央人物設定の件数が名簿と一致");
+  for (const id of DOSSIER_IDS) {
+    const lore = characterLoreFor(id);
+    check(Boolean(lore), id + " の中央人物設定がある");
+    equal(SECTION_NAMES.characters[id], lore.name + " — " + lore.epithet,
+      id + " の表示名は中央人物設定から作られる");
+    const rosterEntry = CHARACTER_DEFINITIONS.find((entry) => entry.id === id);
+    equal(rosterEntry.summary, lore.summary, id + " の人物紹介は中央人物設定を使う");
+    for (const section of DOSSIER_SECTIONS) {
+      equal(DOSSIERS[id].sections[section], lore[section],
+        id + " の名簿本文 " + section + " は中央人物設定を使う");
+    }
+    equal(DOSSIERS[id].bonds, lore.bonds, id + " の関係本文は中央人物設定を使う");
+  }
+  equal(characterLoreFor("no_such_character"), null, "知らない人物の設定は null");
+  for (const fixture of HOMESTEAD_FIXTURES) {
+    const lore = HOMESTEAD_FIXTURE_LORE[fixture.id];
+    check(Boolean(lore), fixture.id + " の根城備品設定がある");
+    equal(fixture.label, lore.label, fixture.id + " の備品名は中央世界観設定を使う");
+    equal(fixture.lines, lore.lines, fixture.id + " の備品説明は中央世界観設定を使う");
+  }
+  equal(REGION.displayName, REGION_LORE[REGION.id].displayName, "地域名は中央世界観設定を使う");
+  equal(REGION.summary, REGION_LORE[REGION.id].summary, "地域概要は中央世界観設定を使う");
+  equal(REGION.enemyFamilyText, REGION_LORE[REGION.id].enemyFamilyText,
+    "敵集団の説明は中央世界観設定を使う");
+  equal(WORLD_LORE.region, REGION_LORE, "地域設定は world-lore の集約から参照できる");
+  equal(WORLD_LORE.enemies.lore, ENEMY_LORE, "敵の噂は world-lore の集約から参照できる");
+  equal(WORLD_LORE.enemies.codex, ENEMY_CODEX, "敵図鑑は world-lore の集約から参照できる");
+  equal(WORLD_LORE.homestead.fixtures, HOMESTEAD_FIXTURE_LORE,
+    "根城備品設定は world-lore の集約から参照できる");
 }
 
 

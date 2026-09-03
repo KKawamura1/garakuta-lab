@@ -7,7 +7,9 @@
 // 一度出したら変えない。変えるときは schema version を上げ、migration を書く。
 
 import { FIXTURE_CONTENT } from "../fixture-content.mjs";
-import { CHARACTERS, CHARACTER_NAMES } from "./characters.mjs";
+import { CHARACTERS } from "./characters.mjs";
+import { CHARACTER_LORE, CHARACTER_NAMES, characterLoreFor } from "./character-lore.mjs";
+import { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE } from "./world-lore.mjs";
 import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES } from "./skills-active.mjs";
 import { REACTIVE_SKILLS, REACTIVE_SKILL_NAMES } from "./skills-reactive.mjs";
 import { PASSIVE_SKILLS } from "./skills-passive.mjs";
@@ -117,6 +119,10 @@ export const SECTION_NAMES = Object.freeze({
   statuses: STATUS_NAMES,
   enemyActors: ENEMY_NAMES,
 });
+
+// 設定本文の正本。表示・開示ロジックから直接参照できるよう公開する。
+export { CHARACTER_LORE, CHARACTER_NAMES, characterLoreFor };
+export { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE };
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
 export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";

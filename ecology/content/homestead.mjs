@@ -30,10 +30,12 @@
 // 場面は「その時点で条件を満たしている、まだ見ていない最初のもの」を一つだけ出す。
 // **ランダムに引かない。**同じ進行なら同じ順で同じ場面が出る（決定性）。
 //
-// ここは根城の構造・解禁条件・演出メタデータだけを持つ。会話本文は dialogue.mjs に集約する。
+// ここは根城の構造・解禁条件・演出メタデータだけを持つ。会話本文は dialogue.mjs、
+// 家にあるものの名前と説明は world-lore.mjs に集約する。
 
 import { beat } from "./beat.mjs";
 import { castFor, dialogueFor } from "./dialogue.mjs";
+import { HOMESTEAD_FIXTURE_LORE } from "./world-lore.mjs";
 
 // ---------------------------------------------------------------- 家にあるもの
 //
@@ -43,55 +45,32 @@ import { castFor, dialogueFor } from "./dialogue.mjs";
 //   requires.met          … その人物が隊にいる
 //   requires.blueprints   … 設計図の archive がその件数以上ある
 
-const fixture = (id, label, lines, requires = {}) => Object.freeze({
-  id,
-  label,
-  lines: Object.freeze([...lines]),
-  requires: Object.freeze({
-    clearedStage: requires.clearedStage ?? -1,
-    met: Object.freeze([...(requires.met ?? [])]),
-    blueprints: requires.blueprints ?? 0,
-  }),
-});
+const fixture = (id, requires = {}) => {
+  const lore = HOMESTEAD_FIXTURE_LORE[id];
+  if (!lore) throw new Error("homestead: 未登録の備品設定 " + id);
+  return Object.freeze({
+    id,
+    label: lore.label,
+    lines: lore.lines,
+    requires: Object.freeze({
+      clearedStage: requires.clearedStage ?? -1,
+      met: Object.freeze([...(requires.met ?? [])]),
+      blueprints: requires.blueprints ?? 0,
+    }),
+  });
+};
+
 
 export const HOMESTEAD_FIXTURES = Object.freeze([
-  fixture("house", "直しかけの家", [
-    "灰の縁から二筋ぶん外れた廃屋。屋根の半分は元のままで、半分は拾ってきた板である。",
-    "詰所からは遠い。遠いぶん、誰も見に来ない。",
-  ]),
-  fixture("ledger", "帳簿と目録", [
-    "シキの帳簿。借りた器材、返した器材、残った借り。数字しか書いていない。",
-    "同じ綴じの最後のほうに、拾った物の目録がある。",
-  ]),
-  fixture("records", "体調の記録", [
-    "ナズナの記録帳。誰が何時間寝たか、何を食べたか、腕がどこまで上がるか。",
-    "訊くと「観察です」と言う。訊かなければ何も言わない。",
-  ], { clearedStage: 0 }),
-  fixture("hearth", "朝の火", [
-    "一番先に起きた者が火を起こす決まりは無い。ただ、いつも同じ人が起こしている。",
-    "カイは火の番が長い。座っていられないので、薪を割りに行ってしまう。",
-  ], { met: ["lancer"] }),
-  fixture("shelf", "棚", [
-    "スミが拾ってきた物が並んでいる。割れた把手、色の褪せた札、片方だけの留め金。",
-    "並べ方に本人しか分からない規則がある。誰かが動かすと、黙って直す。",
-    "棚は増えていく。今は三段ある。",
-  ], { met: ["guardian"] }),
-  fixture("two_books", "二冊の帳面", [
-    "レイの帳面は二冊ある。協会へ出す用と、自分用。",
-    "厚いほうが自分用である。中身を見せてくれと言った者は、まだいない。",
-  ], { met: ["tactician"] }),
-  fixture("gear_return", "返す物の籠", [
-    "玄関の内側に、返す器材をまとめる籠がある。",
-    "帰ったらまず籠、それから寝る。順番を間違えた者が一人だけいる。",
-  ], { clearedStage: 0 }),
-  fixture("blueprint_wall", "壁の写し", [
-    "拾った物の作りを写した紙が、壁に貼られていく。同じ物を二度拾えるとは限らないので、",
-    "形のほうを残しておく。レイが言い出して、シキが場所を空けた。",
-  ], { blueprints: 3 }),
-  fixture("empty_seat", "空いた席", [
-    "卓は六人ぶんある。拾ってきた椅子の数がたまたま六だっただけで、誰も理由を訊かない。",
-    "一つは空いたままである。",
-  ], { clearedStage: 3 }),
+  fixture("house"),
+  fixture("ledger"),
+  fixture("records", { clearedStage: 0 }),
+  fixture("hearth", { met: ["lancer"] }),
+  fixture("shelf", { met: ["guardian"] }),
+  fixture("two_books", { met: ["tactician"] }),
+  fixture("gear_return", { clearedStage: 0 }),
+  fixture("blueprint_wall", { blueprints: 3 }),
+  fixture("empty_seat", { clearedStage: 3 }),
 ]);
 
 // ---------------------------------------------------------------- 日常の場面

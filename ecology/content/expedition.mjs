@@ -8,8 +8,8 @@
 // R7 §5 Milestone 4 は「Phase A で固定済みの語彙だけ」を並列拡張の条件にしていて、
 // 作者 Gate の前に敵を量産することを禁じている（R7 §11 の停止条件）。
 //
-// ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
-
+// ここを触ってよいのは 敵・encounter 担当だけ。地域の世界観本文は world-lore.mjs に置く。
+import { REGION_LORE } from "./world-lore.mjs";
 // ---------------------------------------------------------------- threat cost
 //
 // R6 §11.2 — chassis、追加個体、mutation、boss law が budget を消費する。
@@ -295,10 +295,10 @@ export const ACT_BOSS_INDEXES = Object.freeze([4, 8, 12]);
 // ---------------------------------------------------------------- 地域
 export const REGION = Object.freeze({
   id: "ash_frontier",
-  displayName: "灰の辺境",
-  summary: "3幕12戦。4・8・12戦目にボスが立つ。",
+  displayName: REGION_LORE.ash_frontier.displayName,
+  summary: REGION_LORE.ash_frontier.summary,
   enemyFamilyIds: Object.freeze(["husk"]),
-  enemyFamilyText: "灰殻（husk）— 走者・後撃ち・守衛・狩人・反響体・盾兵・核",
+  enemyFamilyText: REGION_LORE.ash_frontier.enemyFamilyText,
   // R6 §5.2 の regionLawIds。**Phase B では法則を1つも足していない**ので空にする。
   // 空の実装や架空 id を先に置かない（R7 §4.3）。
   regionLawIds: Object.freeze([]),
