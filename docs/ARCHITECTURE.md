@@ -27,7 +27,7 @@
 | `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁 |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換 |
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
-| `content/dialogue.mjs` | 会話画面の本文（本編・序盤・根城）。会話文言の編集先 |
+| `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `equipment-gen.mjs` | 手続き生成装備の決定的 generator と検査 |
 | `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
 | `mine.mjs` | イベント連鎖の採掘 |
