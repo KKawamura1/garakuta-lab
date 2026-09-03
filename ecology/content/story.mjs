@@ -30,8 +30,8 @@
 //
 // ここは物語の構造と演出メタデータだけを持つ。会話本文は dialogue.mjs に集約する。
 
-import { beat, castOnStage, stand } from "./beat.mjs";
-import { dialogueFor } from "./dialogue.mjs";
+import { beat, castOnStage } from "./beat.mjs";
+import { castFor, dialogueFor } from "./dialogue.mjs";
 
 // ---------------------------------------------------------------- 序盤の敗北（R9 §2.1 / R11 §5）
 //
@@ -85,53 +85,53 @@ export const STORY_BEATS = Object.freeze({
     act1: beat("stage_0_act1", "帳面のはじめ", {
       mood: "ash",
       place: "浅い層の休み場",
-      cast: [stand("warden", "left"), stand("mender", "right")],
+      cast: castFor("stage_0_act1"),
       lines: dialogueFor("stage_0_act1"),
     }),
     act2: beat("stage_0_act2", "四つ目の話", {
       mood: "dusk",
       place: "灰の斜面",
-      cast: [stand("mender", "left"), stand("warden", "right")],
+      cast: castFor("stage_0_act2"),
       lines: dialogueFor("stage_0_act2"),
     }),
     act3: beat("stage_0_act3", "返しに行く", {
       mood: "ember",
       place: "灰の門の内側",
-      cast: [stand("warden", "left"), stand("mender", "right")],
+      cast: castFor("stage_0_act3"),
       lines: dialogueFor("stage_0_act3"),
     }),
     opening: beat("stage_0_opening", "灰の入口", {
       mood: "ash",
       place: "灰の門の手前",
-      cast: [stand("warden", "left"), stand("mender", "right")],
+      cast: castFor("stage_0_opening"),
       lines: dialogueFor("stage_0_opening"),
       footer: "拾い屋の遠征は、器材を借りて、拾って帰り、器材を返すところまでが一往復。",
     }),
     prologueDefeat: beat("stage_0_prologue_defeat", "届かなかった", {
       mood: "defeat",
       place: "灰の門",
-      cast: [stand("mender", "left"), stand("warden", "right")],
+      cast: castFor("stage_0_prologue_defeat"),
       lines: dialogueFor("stage_0_prologue_defeat"),
       footer: "灰から拾ったものが、拾った者の時間を巻き戻すことがある。詰所の台帳に、その報告は無い。",
     }),
     prologueRewound: beat("stage_0_prologue_rewound", "もう一度、門の前", {
       mood: "ash",
       place: "灰の門の手前",
-      cast: [stand("warden", "left"), stand("mender", "right")],
+      cast: castFor("stage_0_prologue_rewound"),
       lines: dialogueFor("stage_0_prologue_rewound"),
       footer: "腕力で振る武器は、後列から出すと大きく落ちる。集中で通す技は、後列からでも落ちない。",
     }),
     prologueWin: beat("stage_0_prologue_win", "同じ影、違う結果", {
       mood: "dawn",
       place: "灰の門",
-      cast: [stand("mender", "left"), stand("warden", "right")],
+      cast: castFor("stage_0_prologue_win"),
       lines: dialogueFor("stage_0_prologue_win"),
       footer: "同じ盤面でも、誰をどちらの列に置くかで結果が変わる。ここから先も、変えられるのはそこだけ。",
     }),
     stageEnd: beat("stage_0_end", "門を抜けた", {
       mood: "dawn",
       place: "灰の門の先",
-      cast: [stand("warden", "left"), stand("mender", "right")],
+      cast: castFor("stage_0_end"),
       lines: dialogueFor("stage_0_end"),
       footer: "次の Stage では、条件と引き換えに大きく伸びる攻め筋が増える。",
     }),
@@ -140,32 +140,32 @@ export const STORY_BEATS = Object.freeze({
     act1: beat("stage_1_act1", "前に出たがる", {
       mood: "ash",
       place: "崩れた階段の下",
-      cast: [stand("lancer", "left"), stand("warden", "center"), stand("mender", "right")],
+      cast: castFor("stage_1_act1"),
       lines: dialogueFor("stage_1_act1"),
     }),
     act2: beat("stage_1_act2", "軽い、の中身", {
       mood: "dusk",
       place: "回廊の窪み",
-      cast: [stand("mender", "left"), stand("lancer", "right")],
+      cast: castFor("stage_1_act2"),
       lines: dialogueFor("stage_1_act2"),
     }),
     act3: beat("stage_1_act3", "口に出さない", {
       mood: "ember",
       place: "灰の吹きだまり",
-      cast: [stand("warden", "left"), stand("lancer", "right")],
+      cast: castFor("stage_1_act3"),
       lines: dialogueFor("stage_1_act3"),
     }),
     join: beat("stage_1_join", "抜ける刃", {
       mood: "ash",
       place: "詰所の裏手",
-      cast: [stand("lancer", "center"), stand("warden", "left"), stand("mender", "right")],
+      cast: castFor("stage_1_join"),
       lines: dialogueFor("stage_1_join"),
       footer: "溜めや条件を満たした一撃は、安定した一撃を大きく上回る。担い手が立っていられるあいだは。",
     }),
     stageEnd: beat("stage_1_end", "軽い刃", {
       mood: "dusk",
       place: "崩れた回廊",
-      cast: [stand("lancer", "left"), stand("warden", "center"), stand("mender", "right")],
+      cast: castFor("stage_1_end"),
       lines: dialogueFor("stage_1_end"),
       footer: "前に置けば落ち、後ろに置けば刃が鈍る。この二択は、次の Stage で解ける。",
     }),
@@ -174,42 +174,33 @@ export const STORY_BEATS = Object.freeze({
     act1: beat("stage_2_act1", "拾う手", {
       mood: "ash",
       place: "回廊の脇",
-      cast: [
-        stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right"),
-        stand("mender", "far_right"),
-      ],
+      cast: castFor("stage_2_act1"),
       lines: dialogueFor("stage_2_act1"),
     }),
     act2: beat("stage_2_act2", "受けた回数", {
       mood: "dusk",
       place: "崩れた回廊",
-      cast: [stand("lancer", "left"), stand("guardian", "right")],
+      cast: castFor("stage_2_act2"),
       lines: dialogueFor("stage_2_act2"),
     }),
     act3: beat("stage_2_act3", "一枚", {
       mood: "ember",
       place: "回廊の出口",
-      cast: [
-        stand("guardian", "center"), stand("warden", "left"), stand("mender", "far_left"),
-        stand("lancer", "right"),
-      ],
+      cast: castFor("stage_2_act3"),
       lines: dialogueFor("stage_2_act3"),
     }),
     join: beat("stage_2_join", "かばう手", {
       mood: "ash",
       place: "崩れた回廊",
       // R12 — 4人目が加わる場面なので、舞台に立つのも4人。
-      cast: [
-        stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right"),
-        stand("mender", "far_right"),
-      ],
+      cast: castFor("stage_2_join"),
       lines: dialogueFor("stage_2_join"),
       footer: "受け止めた結果は、集中（自分へ）か防壁（味方へ）のどちらかへ渡せる。",
     }),
     stageEnd: beat("stage_2_end", "誰を守るか", {
       mood: "dusk",
       place: "回廊の出口",
-      cast: [stand("guardian", "left"), stand("lancer", "right")],
+      cast: castFor("stage_2_end"),
       lines: dialogueFor("stage_2_end"),
       footer: "次の Stage では「順番」そのものを動かせるようになる。",
     }),
@@ -218,22 +209,19 @@ export const STORY_BEATS = Object.freeze({
     act1: beat("stage_3_act1", "二冊の帳面", {
       mood: "ash",
       place: "灰の谷の縁",
-      cast: [stand("tactician", "left"), stand("mender", "right")],
+      cast: castFor("stage_3_act1"),
       lines: dialogueFor("stage_3_act1"),
     }),
     act2: beat("stage_3_act2", "四つ目より奥", {
       mood: "dusk",
       place: "谷底の風下",
-      cast: [stand("warden", "left"), stand("tactician", "right")],
+      cast: castFor("stage_3_act2"),
       lines: dialogueFor("stage_3_act2"),
     }),
     act3: beat("stage_3_act3", "六枠に五人", {
       mood: "ember",
       place: "灰の縁",
-      cast: [
-        stand("warden", "center"), stand("lancer", "left"), stand("guardian", "far_left"),
-        stand("tactician", "right"), stand("mender", "far_right"),
-      ],
+      cast: castFor("stage_3_act3"),
       lines: dialogueFor("stage_3_act3"),
     }),
     join: beat("stage_3_join", "間合いと順番", {
@@ -241,17 +229,14 @@ export const STORY_BEATS = Object.freeze({
       place: "灰の谷",
       // R12 — 5人が揃う場面。**加入済みの全員が立つ。**
       // 台詞は増やさない（R9 §7）。スミとナズナは表情で応じる。
-      cast: [
-        stand("tactician", "center"), stand("lancer", "left"), stand("warden", "right"),
-        stand("guardian", "far_left"), stand("mender", "far_right"),
-      ],
+      cast: castFor("stage_3_join"),
       lines: dialogueFor("stage_3_join"),
       footer: "行動権は総量が増えない。誰へいつ渡すかだけが問題になる。",
     }),
     stageEnd: beat("stage_3_end", "五人になった", {
       mood: "dawn",
       place: "灰の縁",
-      cast: [stand("warden", "left"), stand("lancer", "center"), stand("mender", "right")],
+      cast: castFor("stage_3_end"),
       lines: dialogueFor("stage_3_end"),
       footer: "ここから先は、配置・技能・装備の差だけで役割を作る。",
     }),
