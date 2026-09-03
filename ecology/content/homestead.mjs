@@ -30,9 +30,10 @@
 // 場面は「その時点で条件を満たしている、まだ見ていない最初のもの」を一つだけ出す。
 // **ランダムに引かない。**同じ進行なら同じ順で同じ場面が出る（決定性）。
 //
-// ここを触ってよいのは 物語 担当だけ。engine・schema・content 契約は変更しない。
+// ここは根城の構造・解禁条件・演出メタデータだけを持つ。会話本文は dialogue.mjs に集約する。
 
-import { beat, narrate, say, stand } from "./beat.mjs";
+import { beat, stand } from "./beat.mjs";
+import { dialogueFor } from "./dialogue.mjs";
 
 // ---------------------------------------------------------------- 家にあるもの
 //
@@ -95,7 +96,7 @@ export const HOMESTEAD_FIXTURES = Object.freeze([
 
 // ---------------------------------------------------------------- 日常の場面
 //
-// **灰が出てこない場面だけを置く。**戦い方の説明もしない。
+// **灰が出てこない場面だけを置く。**戦い方の説明もしない。会話本文は dialogue.mjs に置く。
 // R12 §5.3 が「数で足りていない」と名指しした スミ と レイ を厚くしてある。
 
 const scene = (id, title, options) => Object.freeze({
@@ -120,14 +121,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     mood: "dusk",
     place: "根城 · 土間",
     cast: [stand("warden", "left"), stand("mender", "right")],
-    lines: [
-      narrate("籠に器材を入れ、二人ぶんの椅子を出す。屋根の半分から、まだ風が入る。"),
-      say("mender", "板、足りませんでしたね。", "neutral"),
-      say("warden", "次で足りる。……たぶん。", "wry"),
-      say("mender", "その「たぶん」を、わたしは三回聞きました。", "calm"),
-      say("warden", "……三回とも直ってる。", "smile"),
-      say("mender", "半分ずつ。ええ、直っています。", "smile"),
-    ],
+    lines: dialogueFor("homestead_first_night"),
     footer: "帰る場所があると、撤退が判断になる。無ければ、ただの失敗になる。",
   }),
 
@@ -138,16 +132,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     mood: "dawn",
     place: "根城 · 裏庭",
     cast: [stand("lancer", "left"), stand("warden", "right"), stand("mender", "far_right")],
-    lines: [
-      narrate("外がまだ暗いうちから、規則正しい音がしている。"),
-      say("warden", "……カイ。火はもう起きてる。", "neutral"),
-      say("lancer", "分かってる。手が空くと、考えるから。", "wry"),
-      say("warden", "何を。", "neutral"),
-      say("lancer", "……別に。灰の中でも同じだ。止まると、考える。", "worry"),
-      narrate("シキは何も言わず、割った薪を運んだ。二往復ぶん、カイの手が空いた。"),
-      say("mender", "腕、上がりすぎです。明日は割らせません。", "firm"),
-      say("lancer", "……分かったよ。", "smile"),
-    ],
+    lines: dialogueFor("homestead_morning_fire"),
   }),
 
   // ---- スミ加入後。**台詞の薄い人物を、ここで厚くする（R12 §5.3）。**
@@ -159,18 +144,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     cast: [
       stand("guardian", "center"), stand("lancer", "left"), stand("mender", "right"),
     ],
-    lines: [
-      narrate("スミが棚の前にいる。割れた把手を、少しだけ動かして戻した。"),
-      say("lancer", "……それ、さっきと同じ場所じゃないか？", "neutral"),
-      say("guardian", "違う。二寸ずれてた。", "neutral"),
-      say("lancer", "誰が決めたんだ、その二寸。", "wry"),
-      say("guardian", "拾った順。左から。", "calm"),
-      say("mender", "では、その一番左は。", "neutral"),
-      say("guardian", "詰所の裏で拾った札。等級の申請を出した日に、落ちてた。", "neutral"),
-      narrate("スミはそれ以上言わなかった。ナズナは記録帳に、日付だけを書いた。"),
-      say("lancer", "……売らないんだったな。", "worry"),
-      say("guardian", "うん。売ったら、順番が消える。", "smile"),
-    ],
+    lines: dialogueFor("homestead_shelf_rules"),
     footer: "拾った物には、拾った順という記録がある。売ると値段だけが残る。",
   }),
 
@@ -181,17 +155,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     mood: "dusk",
     place: "根城 · 火のそば",
     cast: [stand("tactician", "left"), stand("guardian", "right")],
-    lines: [
-      narrate("レイが厚いほうの帳面を開いている。スミが横に座った。"),
-      say("guardian", "それ、なに。", "neutral"),
-      say("tactician", "戻らなかった人の記録です。協会の控えから、名前だけ写してある。", "calm"),
-      say("guardian", "……何人。", "shock"),
-      say("tactician", "四百十二。読んだのは、その倍あります。", "neutral"),
-      narrate("スミは数を繰り返さなかった。帳面の縁を、指で押さえただけだった。"),
-      say("tactician", "机の上では、全員が同じ大きさの字でした。", "worry"),
-      say("guardian", "いまは。", "neutral"),
-      say("tactician", "……違います。それが分かっただけでも、来た甲斐がある。", "smile"),
-    ],
+    lines: dialogueFor("homestead_thick_book"),
     footer: "協会の記録には、誰がどこで戻らなかったかが書いてある。何を考えていたかは書いていない。",
   }),
 
@@ -203,18 +167,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
     mood: "dawn",
     place: "詰所から根城への道",
     cast: [stand("tactician", "left"), stand("mender", "right")],
-    lines: [
-      narrate("器材を返して、四つ角を折れる。レイが先に立って、右へ曲がった。"),
-      say("mender", "そちらは詰所へ戻ります。", "neutral"),
-      say("tactician", "……ええ。確認のために一度戻ろうかと。", "calm"),
-      say("mender", "四回目です。", "wry"),
-      say("tactician", "三回目です。", "shock"),
-      say("mender", "四回目。記録がありますので。", "calm"),
-      narrate("レイは何か言いかけて、やめた。歩数は数えられるのに、曲がる方向だけが数にならない。"),
-      say("tactician", "……その帳面、私の分は何が書いてあるんです。", "worry"),
-      say("mender", "「よく数える。よく間違える。両方とも減らない」。", "smile"),
-      say("tactician", "……正確ですね。", "wry"),
-    ],
+    lines: dialogueFor("homestead_wrong_turn"),
     footer: "数えられるものと、数にならないものがある。どちらも記録には残る。",
   }),
 
@@ -228,15 +181,7 @@ export const HOMESTEAD_SCENES = Object.freeze([
       stand("warden", "center"), stand("lancer", "left"), stand("guardian", "far_left"),
       stand("mender", "right"), stand("tactician", "far_right"),
     ],
-    lines: [
-      narrate("卓に椅子が六つ。五人が座って、一つ余っている。"),
-      say("lancer", "誰か来るのか。", "neutral"),
-      say("warden", "予定は無い。", "neutral"),
-      say("tactician", "空けておくのは悪くありません。隊も卓も、埋まると動けなくなる。", "smile"),
-      say("mender", "……六枠に五人、と同じ話ですね。", "wry"),
-      say("guardian", "うん。空いてるほうがいい。", "calm"),
-      narrate("シキは目録の最後のページを開きかけて、閉じた。誰も何も言わなかった。"),
-    ],
+    lines: dialogueFor("homestead_six_chairs"),
     footer: "六枠に五人。空きは足りなさではなく、動ける余地である。",
   }),
 ]);
