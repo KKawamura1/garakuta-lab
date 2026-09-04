@@ -67,6 +67,7 @@ export const PROLOGUE = Object.freeze({
     Object.freeze({ instanceId: "prologue_marksman", enemyActorId: "gray_marksman", position: "rear_left" }),
     Object.freeze({ instanceId: "prologue_husk_a", enemyActorId: "husk", position: "front_center" }),
     Object.freeze({ instanceId: "prologue_husk_b", enemyActorId: "husk", position: "front_left" }),
+    Object.freeze({ instanceId: "prologue_husk_c", enemyActorId: "husk", position: "front_right" }),
   ]),
   hint: "後列を狙う影がいる。だが前に二人並べば、柔らかいほうから崩れる。",
   // 巻き戻したあとに出す一行。**答えは書かず、見る場所だけ示す。**
