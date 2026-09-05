@@ -10187,7 +10187,7 @@
     "kind": "active",
     "definitionId": "flurry_finish",
     "label": "刻み止め",
-    "effect": "最も弱った敵へ30%を5回。受け構えを剥がす速さは随一で、受けの厚い相手には最も弱い。",
+    "effect": "最も弱った敵へ30%を5回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
     "grammar": "攻撃"
    },
    "mark_spread": {
@@ -11388,7 +11388,7 @@
    "kind": "active",
    "definitionId": "flurry_finish",
    "label": "刻み止め",
-   "effect": "最も弱った敵へ30%を5回。受け構えを剥がす速さは随一で、受けの厚い相手には最も弱い。",
+   "effect": "最も弱った敵へ30%を5回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
    "grammar": "攻撃"
   },
   "mark_spread": {
