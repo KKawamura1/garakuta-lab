@@ -14,6 +14,8 @@
   --blue: #91cbd5;
   --violet: #c0a7e5;
   --orange: #e5a26b;
+  --tree-col-width: 208px;
+  --tree-col-gap: 46px;
 }
 * { box-sizing: border-box; }
 body {
@@ -959,8 +961,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   line-height: 1.35;
 }
 /* R19（issue #137）— 技能ツリー。**節を tier の箱へ並べるのをやめ、requires から
-   組んだ森を、左の線で見せる。**線が左にあるものが前提で、右へ行くほど深い。
-   行は上から順（y）、列は前提からの深さ（x）。iPhone では縦に読めば route を辿れる。 */
+   組んだ森を、実座標の格子に置く。**列（x）は前提からの深さそのもの、行（y）は
+   組み方から出た順。前提と派生は、列の間に引いた実線で結ぶ（インデントの目分量に
+   頼らない）。列は固定幅にして、深いツリーほど横スクロールで場所を取る。 */
 .tree-tabs { display: flex; gap: 6px; margin: 12px 0 8px; }
 .tree-tab {
   flex: 1;
@@ -979,48 +982,46 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tree-summary b { color: var(--gold); }
 .tree-focus { margin: 0 0 8px; font-size: 10px; line-height: 1.5; }
 .tree-focus .tiny-button { margin: 0 0 0 6px; }
-.skill-tree-scroll { overflow-x: auto; padding-bottom: 4px; }
-.skill-tree-forest { display: grid; gap: 4px; min-width: 288px; }
-.tree-row { display: flex; align-items: stretch; }
-.tree-rails { display: flex; flex: 0 0 auto; }
-.tree-rails .rail, .tree-rails .elbow { position: relative; flex: 0 0 14px; }
-/* 祖先の縦線。**まだ下に兄弟が残っている段だけ引く。**引きっぱなしにすると、
-   終わった枝の下にも線が伸びて、どこで分岐が終わったのか読めなくなる。 */
-.tree-rails .rail.on::before,
-.tree-rails .elbow::before {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 6px;
-  border-left: 1px solid #4d5b57;
-  content: "";
+/* 横スクロールできる帯。**列を固定幅にするので、深いツリーほど横に長くなる。**
+   これが「もっと広く場所を取る」の実体である（縮めて収めない）。 */
+.skill-tree-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; }
+/* align-items:start が無いと、既定の stretch で同じ行の節が全部同じ高さへ
+   伸ばされる。**最初の子は親と同じ行を継ぐ**ので、選択中の節（説明が開いて高い）
+   と同じ行に短い節が並ぶことがあり、stretch のままだと形が崩れ、
+   layoutSkillTreeConnectors() が測る中心もズレる。 */
+.skill-tree-forest {
+  position: relative;
+  display: grid;
+  align-items: start;
+  column-gap: var(--tree-col-gap);
+  row-gap: 10px;
+  padding: 6px 4px;
 }
-/* 末子は縦線をここで止め、横棒で節へ入る。 */
-.tree-rails .elbow.last::before { bottom: auto; height: 30px; }
-.tree-rails .elbow::after {
-  position: absolute;
-  top: 30px;
-  right: 0;
-  left: 6px;
-  border-top: 1px solid #62725c;
-  content: "";
-}
-.tree-row > .skill-node { flex: 1 1 auto; min-width: 0; }
+/* 前提 → 派生の実線。**列の間の余白（column-gap）に、実際の節どうしを結ぶ
+   直角線を引く。**どこと繋がっているかを、目分量のインデントではなく線そのもので見せる。 */
+/* svgは幅・高さの指定が無いと既定の300×150に収まる（inset:0だけでは広がらない）。
+   width/height を明示して初めて、forest 全体に重なる。 */
+.tree-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.tree-line { fill: none; stroke: #4d5b57; stroke-width: 1.5px; }
+.tree-cell { position: relative; min-width: 0; }
 /* 選択したとき、前提ルート（上流）と派生先（下流）だけを残す。 */
-.tree-row.faded { opacity: .32; }
-.tree-row.on-path > .skill-node { border-color: var(--blue); box-shadow: inset 3px 0 0 var(--blue); }
-.tree-row.derived > .skill-node { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
-.tree-row.on-path .rail.on::before, .tree-row.on-path .elbow::before,
-.tree-row.on-path .elbow::after { border-color: var(--blue); }
-.tree-row.derived .rail.on::before, .tree-row.derived .elbow::before,
-.tree-row.derived .elbow::after { border-color: var(--good); }
+.tree-cell.faded { opacity: .32; }
+.tree-cell.on-path > .skill-node { border-color: var(--blue); box-shadow: inset 3px 0 0 var(--blue); }
+.tree-cell.derived > .skill-node { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
+.tree-line.on-path { stroke: var(--blue); stroke-width: 2px; }
+.tree-line.derived { stroke: var(--good); stroke-width: 2px; }
+.tree-line.faded { stroke: #35403d; opacity: .5; }
 .skill-node { min-height: 0; padding: 0; overflow: hidden; }
+/* align-items:start（center ではない）。**バッジの数で1行にも2行にも
+   なる node-copy** のせいで center だと丸印の高さが節ごとにブレる。
+   start にして丸印を常にボタン上端の同じ位置へ固定し、同じ行に並ぶ節の
+   線の高さ（layoutSkillTreeConnectors() が .node-icon の中心を測る）を揃える。 */
 .skill-node-button {
   display: grid;
   grid-template-columns: 29px minmax(0, 1fr) auto;
   width: 100%;
   min-height: 62px;
-  align-items: center;
+  align-items: start;
   gap: 7px;
   padding: 8px;
   border: 0;
@@ -1113,8 +1114,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 @media (max-width: 520px) {
   .tab { font-size: 11px; }
   .tab small { font-size: 8px; }
-  .skill-tree-forest { min-width: 258px; }
-  .tree-rails .rail, .tree-rails .elbow { flex-basis: 11px; }
+  :root { --tree-col-width: 176px; --tree-col-gap: 34px; }
 }
 
 @media (max-width: 380px) {

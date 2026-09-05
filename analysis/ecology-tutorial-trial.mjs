@@ -193,7 +193,7 @@ try {
 
   // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
   note("行動／反応／常設を切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
-  note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-rails .elbow").count() > 0);
+  note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-lines path").count() > 0);
   await page.locator('[data-action="select-skill-kind"][data-kind="reactive"]').click();
   await page.waitForTimeout(150);
   const reactiveTreeText = await bodyText();
@@ -206,7 +206,7 @@ try {
   await secondNode.click();
   await page.waitForTimeout(150);
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
-  note("前提ルート以外を落として見せる", await page.locator(".tree-row.faded").count() > 0);
+  note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
 
   // R19（issue #137）— 技能レベル。**上位互換を別技能として増やさない**代わりに、
   // 一つの節が何段まで伸びるのかを節の上で読める。
