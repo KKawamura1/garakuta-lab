@@ -181,7 +181,6 @@ try {
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
   note("入口の接続面が出ている", /応急|傷の見立て|かばう|受け身/.test(skillText));
-  note("応急手当が自分以外と明記される", /自分以外の味方/.test(skillText));
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
   // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
