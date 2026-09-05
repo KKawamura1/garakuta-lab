@@ -37,7 +37,7 @@ export const narrate = (text, fx = null) => Object.freeze({ who: null, speaker: 
 // R12 — **隊にいる人は、その場面に立っている。**加入の断片で舞台に出るのは
 // 「喋る人」ではなく「そこに居る全員」である。3枠しか無かったころは、
 // 4人目・5人目が配役ごと落ちて、加入済みの仲間が場面から消えていた
-// （ナズナが Stage 2・3 の join から居なくなっていた。作者判断で修正）。
+// （mender が Stage 2・3 の join から居なくなっていた。作者判断で修正）。
 // 外側の2枠は一回り小さく、奥に立つ。**行数は増やさない。**
 export const stand = (who, at, since = 0) => {
   if (!PORTRAITS[who]) throw new Error("story: 立ち絵の無い配役 " + who);

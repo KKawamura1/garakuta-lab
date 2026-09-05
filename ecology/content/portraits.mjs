@@ -120,44 +120,44 @@ function sideTail(side, colors) {
 // **役割の読み取りやすさを優先する。**前で受ける人は肩が広く、
 // 後ろから支える人は襟が高い、という程度の差を付ける。
 export const PORTRAITS = Object.freeze({
-  // シキ — 短い暗髪。隊で一番肩と背が厚い。受ける腕に当て革を重ねている。
+  // ゴウ — 短い暗髪。**隊で一番大柄。**歩くとうるさい。襟は開けたまま。
   warden: Object.freeze({
     accent: "#91cbd5", skin: SKIN.mid,
     hair: Object.freeze({ base: "#33424a", shade: "#212d33", light: "#526a74" }),
     garb: Object.freeze({ cloak: "#27414a", trim: "#91cbd5", inner: "#16272d" }),
-    fringe: "parted", back: "short", tail: null, shoulder: 1.10, collar: "high",
+    fringe: "swept", back: "short", tail: null, shoulder: 1.10, collar: "open",
     accessory: "pauldron",
   }),
-  // ナズナ — 柔らかい茶髪を後ろで結ぶ。荷物が多い。片眼にレンズ。
+  // ツグミ — 十五歳。小柄。**支給の外套が大きすぎて、袖を二回折っている。**
+  // 体格に合っていない支給品を着る役はこの人へ移した（旧 guardian の扱い）。
   mender: Object.freeze({
     accent: "#9bd69e", skin: SKIN.light,
     hair: Object.freeze({ base: "#7b6549", shade: "#584734", light: "#9c8563" }),
     garb: Object.freeze({ cloak: "#2c3a2c", trim: "#9bd69e", inner: "#1a231a" }),
-    fringe: "swept", back: "short", tail: "right", shoulder: 0.92, collar: "shawl",
+    fringe: "swept", back: "short", tail: "right", shoulder: 0.86, collar: "hood",
     accessory: "kerchief",
   }),
-  // カイ — 跳ねた赤茶の髪。細くて速い。襟を開けている。
+  // ナギ — 中背。**前で受ける人なので肩を厚めに取る。**語尾が下がる。
   lancer: Object.freeze({
     accent: "#e5a26b", skin: SKIN.tan,
     hair: Object.freeze({ base: "#8a3f2c", shade: "#5f2a1d", light: "#b45c3f" }),
     garb: Object.freeze({ cloak: "#3a2a24", trim: "#e5a26b", inner: "#221814" }),
-    fringe: "spiky", back: "none", tail: null, shoulder: 0.96, collar: "open",
-    accessory: "strap",
-  }),
-  // スミ — 隊で一番小さい。目の上で切り揃えた黒髪。
-  // **持ち物が全部協会の支給品で、体格に合っていない。**肩幅を隊で最も狭く取り、
-  // その上に大きすぎる盾板とフードを載せる。差し色も一人だけ彩度を持たない。
-  guardian: Object.freeze({
-    accent: "#a8b6bb", skin: SKIN.tan,
-    hair: Object.freeze({ base: "#2a2f33", shade: "#181c1f", light: "#4a5257" }),
-    garb: Object.freeze({ cloak: "#2b3538", trim: "#a8b6bb", inner: "#1a2224" }),
-    fringe: "blunt", back: "short", tail: null, shoulder: 0.82, collar: "hood",
+    fringe: "swept", back: "short", tail: null, shoulder: 1.00, collar: "high",
     accessory: "pauldron",
   }),
-  // レイ — 明るい亜麻色の髪をきちんと分ける。姿勢がいい。元・協会の記録係。
+  // ヒバナ — 十一歳。**隊で一番小さい。**速い。よく笑い、よく怒る。
+  // 肩幅を隊で最も狭く取る。**差し色だけは一人だけ強い**（考えたことが全部顔に出る）。
+  guardian: Object.freeze({
+    accent: "#f2c14e", skin: SKIN.tan,
+    hair: Object.freeze({ base: "#2a2f33", shade: "#181c1f", light: "#4a5257" }),
+    garb: Object.freeze({ cloak: "#2b3538", trim: "#a8b6bb", inner: "#1a2224" }),
+    fringe: "blunt", back: "short", tail: null, shoulder: 0.82, collar: "open",
+    accessory: "strap",
+  }),
+  // ゲンゾウ — 七十一歳。**白髪をきちんと分ける。**完璧な物腰。元・協会の記録係。
   tactician: Object.freeze({
     accent: "#d8d18a", skin: SKIN.pale,
-    hair: Object.freeze({ base: "#bda869", shade: "#8d7c4a", light: "#d8c68d" }),
+    hair: Object.freeze({ base: "#b9bcc0", shade: "#8c9095", light: "#d8dbde" }),
     garb: Object.freeze({ cloak: "#33372a", trim: "#d8d18a", inner: "#1e211a" }),
     fringe: "parted", back: "short", tail: null, shoulder: 0.94, collar: "high",
     accessory: "sash",

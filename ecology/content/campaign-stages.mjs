@@ -63,11 +63,17 @@ const UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS = 10_000;
 // `packDepths` は R9 §3.1 の「累積させる」を実装する。新 pack はその Stage では
 // core（入口）だけ、次の Stage から full。**前に覚えた技能は消えない。**
 export const CAMPAIGN_STAGES = Object.freeze([
-  // R11 §5 — 加入順を組み替えた。**問題を出してから、その解決を渡す。**
-  //   0 シキ＋ナズナ … 武器と技の違い（＝立つ場所の違い）を、安定した二本で見せる
-  //   1 ＋カイ       … 火力は来たが紙。前に置けば落ち、後ろに置けば武器が40%になる
-  //   2 ＋スミ       … その二択を壊す。庇う手と位置替えが来る
-  //   3 ＋レイ       … 順番そのものを触れるようになり、選択肢が一気に広がる
+  // R13 — 人物を差し替えた。**pack の解禁順（care → edge → wall → tempo）は動かない。**
+  // 動かせない理由は、この下の検査が「sequence 0 以外は primary_offense pack が
+  // 残っていること」を要求していて、campaign の primary_offense は pack_edge 一つ
+  // しか無いからである。**だから直したのは問い（誰が何を教えるか）のほうだけ。**
+  //
+  //   0 ゴウ＋ツグミ … 武器（腕力）と技（集中）の違い＝立つ場所の違い
+  //   1 ＋ナギ       … **問題は Stage 0 で既に出ている。**ゴウは受け1で細かい攻撃が
+  //                    全部通り、ツグミは主火力なのに紙。前に立てる人が来て、刃が届く
+  //   2 ＋ヒバナ     … 行動権2の遊撃。隊列を動かすこと自体は割に合わず、
+  //                    寄せて行・列で薙ぐと初めて得になる
+  //   3 ＋ゲンゾウ   … 順番そのものを触れるようになり、選択肢が一気に広がる
   Object.freeze({
     id: "stage_0_edge",
     sequence: 0,
@@ -89,6 +95,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
     learningGoals: Object.freeze([
       "武器（腕力）の攻撃は後列から出すと大きく落ち、技（集中）は落ちない（R11 §5）",
       "だから前列と後列の選択は、守りの話であると同時に火力の話でもある",
+      "**主火力のツグミが一番柔らかい。**この一点が、以降3 Stage の問題になる",
       "回復は「HPを戻す役」ではなく「損傷の連鎖を止める役」（R8 §9.4）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
@@ -98,7 +105,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
     sequence: 1,
     ladderMode: "tutorial",
     displayName: "Stage 1 — 抜ける刃",
-    question: "リスクを取った火力を、どこに置くか",
+    question: "誰が前に立つと、誰が振り抜けるか",
     partySize: 3,
     castCharacterIds: Object.freeze(["warden", "mender", "lancer"]),
     joiningCharacterId: "lancer",
@@ -113,8 +120,8 @@ export const CAMPAIGN_STAGES = Object.freeze([
     pressureTags: Object.freeze(["position", "burst", "row_column"]),
     learningGoals: Object.freeze([
       "溜め・条件・貫通は、成立すれば安定した一撃を大きく上回る（R9 §3）",
-      "だが担い手は紙で、前に置けば落ちる。後ろに置けば武器が40%になる",
-      "**この二択はこの Stage では解けない。**解く手は次の Stage で来る",
+      "ナギは受けが桁違いで、hit ごとの固定軽減なので**多段がそのまま止まる**",
+      "**庇う技はまだ来ない。**前に立つ人が居るという事実だけで、後列の技が通り続ける",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
@@ -122,8 +129,8 @@ export const CAMPAIGN_STAGES = Object.freeze([
     id: "stage_2_tempo",
     sequence: 2,
     ladderMode: "tutorial",
-    displayName: "Stage 2 — かばう手",
-    question: "誰を守り、守った結果をどう使うか",
+    displayName: "Stage 2 — 動く隊列",
+    question: "隊列を動かして、何を得るか",
     partySize: 4,
     castCharacterIds: Object.freeze(["warden", "mender", "lancer", "guardian"]),
     joiningCharacterId: "guardian",
@@ -138,7 +145,8 @@ export const CAMPAIGN_STAGES = Object.freeze([
     pressureTags: Object.freeze(["cover", "position", "row_column"]),
     learningGoals: Object.freeze([
       "身代わり・受け構え・防壁が、被害を「消す」のではなく「移す」（R9 §3）",
-      "前 Stage の二択が解ける。守られて初めて、紙の火力を前で使える",
+      "**位置替えそれ自体は割に合わない。**必ず誰かと入れ替わり、前列は先に狙われる",
+      "ヒバナは行動権が二つあるので往復できる。寄せて行・列で薙ぐと初めて得になる",
       "刃 pack が full になり、前 Stage の技能に新しい使い道が出る（R9 §3.1）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
@@ -165,6 +173,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
     pressureTags: Object.freeze(["preparation", "ap_pressure", "attrition"]),
     learningGoals: Object.freeze([
       "行動権を渡すと、遅い構成にも大技の手番が通る（R9 §3）",
+      "ゲンゾウは反応点が二つ多い。**自分から動かず、読んでから何度も割り込める**",
       "割り込みと準備の前倒しで、同じ編成から別の結果が出る",
       "5人が揃い、配置・技能・装備の差だけで役割を作れるか（R9 §2.1）",
     ]),
@@ -306,7 +315,7 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
       // **例外は導入 Stage（sequence 0）だけ。**この検査のすぐ下のコメントが
       // 「stage_0 のように新規導入 Stage が hybrid のとき」を想定と書いているのに、
       // 判定側がそれを許していなかった。R11 §5 で Stage 0 は「条件のない一撃を
-      // 武器と技で一本ずつ」に絞った導入になり、primary_offense はカイと一緒に
+      // 武器と技で一本ずつ」に絞った導入になり、primary_offense はナギと一緒に
       // Stage 1 で来る。baseline の斬撃・防壁・応急は manifest に関わらず必ず
       // 引けるので（packs.mjs の BASELINE_*）、行動不能な人物は作られない。
       const hasPrimary = stage.enabledPackIds

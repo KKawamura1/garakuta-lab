@@ -995,9 +995,9 @@ function restoreSkillTreeScroll() {
 function renderIntro() {
   const auto = readStoredSnapshot(SAVE_KEY);
   const continueLabel = auto ? saveSummary(auto) : "オートセーブはありません";
-  return shell("灰の遠征", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
+  return shell("One Battle Ahead", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
     + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stageを越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をシキとナズナの2人から始めます。</b></p>"
+    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をゴウとツグミの2人から始めます。</b></p>"
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")
@@ -1628,7 +1628,7 @@ function renderStory() {
     + (state.story?.logOpen ? storyBacklog() : "")
     + "</section>";
 
-  return shell(beat.title, "灰の遠征 · 物語", scene, { hideHeaderAction: true });
+  return shell(beat.title, "One Battle Ahead · 物語", scene, { hideHeaderAction: true });
 }
 
 // 文字送り。**表示は DOM 側で進める。**state を一文字ごとに書き換えない
@@ -1804,7 +1804,7 @@ function startPrologue() {
   state.prologueActive = true;
   state.prologueStage = "first";
   state.lastResult = compactResult(result);
-  // 既定配置では、ナズナが2ラウンド目に倒れる。そこで見せ終える。
+  // 既定配置では、ツグミが2ラウンド目に倒れる。そこで見せ終える。
   const replay = truncateAtFall(compactReplay(result), "mender");
   state.replayEvents = replay.events;
   state.replaySnapshots = replay.snapshots;
@@ -2330,7 +2330,7 @@ function campTreatmentBlock() {
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営で治療する（補給を消費）")
     + "<p class=\"muted\">戦闘外で戻せるHPは、ここで補給を払った分だけです。誰を治療するかは自動選択します"
     + "（集中治療は最もHP割合の低い生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者）。</p>"
-    // R11 §4 — ナズナは「戻せるのは、いま受けたぶんだけ」と言う人である。
+    // R13 — ツグミは「戻せるのは、いま受けたぶんだけ」と言う人である。
     // **野営の画面は、その一行があるだけで手当ての意味が変わる。**
     + "<p class=\"world-voice\">戻せるのは、いま受けたぶんだけ。灰でついた古い傷は、外の手当てでは戻らない。</p>"
     + rows + "</section>";
@@ -2467,7 +2467,7 @@ function renderBattlePreview() {
     + (state.prologueActive && state.prologueStage === "retry"
       ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
         + "腕力で振る武器は後列から出すと大きく落ち、集中で通す技は落ちない。"
-        + "ナズナを後列へ、シキを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
+        + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
       : "")
     + button("自動戦闘を再生する", "simulate", false, "button primary")
     + button("キャンプへ戻る", "back-camp", false, "button") + "</section>");
@@ -2990,7 +2990,7 @@ function syncBattleView(options = {}) {
 }
 
 // 拍の一行。同時に出したものは「＋」で並べる（並列に出したことが読めるように）。
-// **同じことを二度言わない。** 「カイの斬撃が始まる ＋ カイ → 敵に5ダメージ」は
+// **同じことを二度言わない。** 「ゴウの斬撃が始まる ＋ ゴウ → 敵に5ダメージ」は
 // 二行ぶんの場所を取って一行ぶんしか伝えない。
 function beatText_(beat) {
   const head = beat.events[0];

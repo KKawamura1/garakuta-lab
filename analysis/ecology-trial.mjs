@@ -1,4 +1,4 @@
-// **灰の遠征（EXP-18）を、画面の中で一番長い流れで通しで遊びきる。**
+// **One Battle Ahead（EXP-18）を、画面の中で一番長い流れで通しで遊びきる。**
 //
 // 検査は通るのに画面では動かない、という欠陥が一晩で4件出ている（学び#58・#59）。
 // 単体テストは engine を見ているだけで、**盤面・アニメーション・タブ移動・
@@ -77,7 +77,7 @@ try {
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
-  note("初期表示", /灰の遠征/.test(await bodyText()));
+  note("初期表示", /One Battle Ahead/.test(await bodyText()));
   note("build の印が画面に出ている",
     expectedBuild ? (await bodyText()).includes(expectedBuild) : false, expectedBuild);
 

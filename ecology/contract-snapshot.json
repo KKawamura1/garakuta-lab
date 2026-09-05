@@ -6,9 +6,9 @@
   "characters": {
    "warden": {
     "id": "warden",
-    "displayName": "シキ — 受けて返す人",
-    "maxHp": 280,
-    "speed": 5,
+    "displayName": "ゴウ — 引き受ける人",
+    "maxHp": 300,
+    "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -16,15 +16,15 @@
      "fixture",
      "front"
     ],
-    "might": 38,
-    "focus": 20,
-    "guard": 7
+    "might": 50,
+    "focus": 6,
+    "guard": 1
    },
    "mender": {
     "id": "mender",
-    "displayName": "ナズナ — 止める人",
-    "maxHp": 180,
-    "speed": 6,
+    "displayName": "ツグミ — 見つける人",
+    "maxHp": 110,
+    "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -32,15 +32,15 @@
      "fixture",
      "support"
     ],
-    "might": 14,
-    "focus": 48,
-    "guard": 4
+    "might": 8,
+    "focus": 52,
+    "guard": 2
    },
    "lancer": {
     "id": "lancer",
-    "displayName": "カイ — 抜ける人",
-    "maxHp": 130,
-    "speed": 9,
+    "displayName": "ナギ — 断れない人",
+    "maxHp": 210,
+    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -48,16 +48,16 @@
      "fixture",
      "strike"
     ],
-    "might": 52,
-    "focus": 14,
-    "guard": 1
+    "might": 16,
+    "focus": 30,
+    "guard": 24
    },
    "guardian": {
     "id": "guardian",
-    "displayName": "スミ — 受け止める人",
-    "maxHp": 180,
-    "speed": 2,
-    "baseActionPoints": 1,
+    "displayName": "ヒバナ — 走る人",
+    "maxHp": 120,
+    "speed": 9,
+    "baseActionPoints": 2,
     "baseReactionPoints": 2,
     "signatureRules": [],
     "tags": [
@@ -65,26 +65,26 @@
      "front",
      "guard"
     ],
-    "might": 16,
-    "focus": 26,
-    "guard": 26
+    "might": 14,
+    "focus": 14,
+    "guard": 3
    },
    "tactician": {
     "id": "tactician",
-    "displayName": "レイ — 渡す人",
-    "maxHp": 150,
-    "speed": 11,
-    "baseActionPoints": 2,
-    "baseReactionPoints": 3,
+    "displayName": "ゲンゾウ — 書いてきた人",
+    "maxHp": 160,
+    "speed": 7,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 4,
     "signatureRules": [],
     "tags": [
      "playable",
      "rear",
      "tempo"
     ],
-    "might": 18,
-    "focus": 26,
-    "guard": 3
+    "might": 20,
+    "focus": 22,
+    "guard": 10
    }
   },
   "activeSkills": {
@@ -6245,11 +6245,11 @@
   }
  },
  "displayNames": {
-  "warden": "シキ — 受けて返す人",
-  "mender": "ナズナ — 止める人",
-  "lancer": "カイ — 抜ける人",
-  "guardian": "スミ — 受け止める人",
-  "tactician": "レイ — 渡す人",
+  "warden": "ゴウ — 引き受ける人",
+  "mender": "ツグミ — 見つける人",
+  "lancer": "ナギ — 断れない人",
+  "guardian": "ヒバナ — 走る人",
+  "tactician": "ゲンゾウ — 書いてきた人",
   "strike": "斬撃",
   "bulwark": "防壁形成",
   "relay_order": "号令",
@@ -6367,70 +6367,24 @@
  "characterOptions": [
   {
    "id": "warden",
-   "role": "重装",
-   "icon": "盾",
+   "role": "強打",
+   "icon": "拳",
    "defaultPosition": "front_left",
-   "summary": "隊で一番倒れにくい。受けた痛みを、そのまま返す側へ回す。",
+   "summary": "隊で一番倒れにくく、一番強く殴る。ただし細かい攻撃が全部通る。",
    "starterTactics": [
-    "steady_cut",
-    "bulwark"
+    "steady_cut"
    ],
    "starterReactives": [
-    "brace_after_hit",
-    "mend"
-   ]
-  },
-  {
-   "id": "lancer",
-   "role": "攻撃",
-   "icon": "槍",
-   "defaultPosition": "front_right",
-   "summary": "隊の火力そのもの。受けは無いに等しく、長くは立てない。",
-   "starterTactics": [
-    "pierce_thrust",
-    "finishing_thrust"
-   ],
-   "starterReactives": [
-    "counter_blow",
-    "scavenge_ap"
-   ]
-  },
-  {
-   "id": "guardian",
-   "role": "庇護",
-   "icon": "庇",
-   "defaultPosition": "front_center",
-   "summary": "標的を引き受け、一撃ずつ削り取る。**攻撃の行動を持たない。**",
-   "starterTactics": [
-    "bulwark",
-    "brace_for_impact"
-   ],
-   "starterReactives": [
-    "cover_ally",
-    "guard_step"
-   ]
-  },
-  {
-   "id": "tactician",
-   "role": "指揮",
-   "icon": "旗",
-   "defaultPosition": "rear_left",
-   "summary": "誰より速く動き、順番と準備を仲間へ渡す。自分では削らない。",
-   "starterTactics": [
-    "relay_order",
-    "mark_target"
-   ],
-   "starterReactives": [
-    "urging",
-    "ap_loop"
+    "mend",
+    "overflow_care"
    ]
   },
   {
    "id": "mender",
-   "role": "治療",
+   "role": "医術",
    "icon": "手",
    "defaultPosition": "rear_right",
-   "summary": "傷の連鎖を止める。集中が高いので、技でも削れるし、厚い防壁も張れる。",
+   "summary": "隊の主火力。人体を誰より知っているので、殺すのも治すのも速い。",
    "starterTactics": [
     "aimed_shot",
     "shield_the_wounded"
@@ -6438,6 +6392,51 @@
    "starterReactives": [
     "triage",
     "emergency_treatment"
+   ]
+  },
+  {
+   "id": "lancer",
+   "role": "庇護",
+   "icon": "盾",
+   "defaultPosition": "front_center",
+   "summary": "受けが隊で最も高い。庇って、受けて、自分で治す。",
+   "starterTactics": [
+    "heavy_swing",
+    "rear_hunt"
+   ],
+   "starterReactives": [
+    "shield_handoff",
+    "triage"
+   ]
+  },
+  {
+   "id": "guardian",
+   "role": "遊撃",
+   "icon": "風",
+   "defaultPosition": "rear_center",
+   "summary": "殴らない。走って、拾って、引っ張る。隊で唯一、戦闘中に隊列を動かせる。",
+   "starterTactics": [
+    "reposition",
+    "column_thrust"
+   ],
+   "starterReactives": [
+    "scavenge_ap",
+    "brace_after_hit"
+   ]
+  },
+  {
+   "id": "tactician",
+   "role": "指揮",
+   "icon": "筆",
+   "defaultPosition": "rear_left",
+   "summary": "自分の手番では動かない。他人の手番に割り込んで、当て物を置く。",
+   "starterTactics": [
+    "relay_order",
+    "mark_target"
+   ],
+   "starterReactives": [
+    "patient_step",
+    "block_focus"
    ]
   }
  ],
@@ -8969,33 +8968,7 @@
    "mend",
    "bulwark",
    "steady_cut",
-   "brace_after_hit"
-  ],
-  "lancer": [
-   "strike",
-   "mend",
-   "bulwark",
-   "pierce_thrust",
-   "finishing_thrust",
-   "counter_blow",
-   "scavenge_ap"
-  ],
-  "guardian": [
-   "strike",
-   "mend",
-   "bulwark",
-   "brace_for_impact",
-   "cover_ally",
-   "guard_step"
-  ],
-  "tactician": [
-   "strike",
-   "mend",
-   "bulwark",
-   "relay_order",
-   "mark_target",
-   "urging",
-   "ap_loop"
+   "overflow_care"
   ],
   "mender": [
    "strike",
@@ -9005,25 +8978,51 @@
    "shield_the_wounded",
    "triage",
    "emergency_treatment"
+  ],
+  "lancer": [
+   "strike",
+   "mend",
+   "bulwark",
+   "heavy_swing",
+   "rear_hunt",
+   "shield_handoff",
+   "triage"
+  ],
+  "guardian": [
+   "strike",
+   "mend",
+   "bulwark",
+   "reposition",
+   "column_thrust",
+   "scavenge_ap",
+   "brace_after_hit"
+  ],
+  "tactician": [
+   "strike",
+   "mend",
+   "bulwark",
+   "relay_order",
+   "mark_target",
+   "patient_step",
+   "block_focus"
   ]
  },
  "freshLoadout": {
   "tactics": {
    "warden": [
-    "steady_cut",
-    "bulwark"
+    "steady_cut"
    ],
    "mender": [
     "aimed_shot",
     "shield_the_wounded"
    ],
    "lancer": [
-    "pierce_thrust",
-    "finishing_thrust"
+    "heavy_swing",
+    "rear_hunt"
    ],
    "guardian": [
-    "bulwark",
-    "brace_for_impact"
+    "reposition",
+    "column_thrust"
    ],
    "tactician": [
     "relay_order",
@@ -9032,24 +9031,24 @@
   },
   "reactives": {
    "warden": [
-    "brace_after_hit",
-    "mend"
+    "mend",
+    "overflow_care"
    ],
    "mender": [
     "triage",
     "emergency_treatment"
    ],
    "lancer": [
-    "counter_blow",
-    "scavenge_ap"
+    "shield_handoff",
+    "triage"
    ],
    "guardian": [
-    "cover_ally",
-    "guard_step"
+    "scavenge_ap",
+    "brace_after_hit"
    ],
    "tactician": [
-    "urging",
-    "ap_loop"
+    "patient_step",
+    "block_focus"
    ]
   },
   "passives": {

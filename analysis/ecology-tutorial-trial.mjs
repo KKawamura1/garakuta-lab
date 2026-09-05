@@ -83,7 +83,7 @@ try {
   // R10 — New Gameは必ずCampaign Stage 0のopeningから始める。
   await click("はじめから");
 
-  // R11 §2.1 — 最初の2人の会話。**シキとナズナの考え方の違いを見せる。**
+  // R13 — 最初の2人の会話。**ゴウとツグミの考え方の違いを見せる。**
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
   // 画面の構造で見る。**台詞の中身ではなく、一行送りの箱が立っているか。**
   note("最初の会話が出る",
@@ -95,10 +95,10 @@ try {
   // 立ち絵つきの一行送り。**喋っている人だけが前に出る。**
   note("立ち絵が出る", await page.locator(".vn-figure .portrait-svg").count() >= 2);
   note("喋っている人が前に出ている", await page.locator(".vn-figure.speaking").count() === 1);
-  note("話者の名前が出る", /シキ/.test(await page.locator(".vn-name").innerText()));
+  note("話者の名前が出る", /ゴウ/.test(await page.locator(".vn-name").innerText()));
   note("一行ずつ進む", /1 \/ \d/.test(await page.locator(".vn-progress").innerText()));
   note("次の行へ進む", await tapUntil(async () => await page.locator(".vn-name").count() > 0
-    && /ナズナ/.test(await page.locator(".vn-name").innerText())));
+    && /ツグミ/.test(await page.locator(".vn-name").innerText())));
   note("履歴に前の行が残る", await page.locator('[data-action="story-log"]:not([disabled])').count() === 1);
 
   // R11 §2.1 — 勝てない一戦。**演出ではなく、本当に負ける。**
@@ -195,12 +195,12 @@ try {
   // ---- R11 §8.6 — 巻き戻したあとの再戦。**同じ盤面をもう一度戦う。**
   //
   // ここがチュートリアルの山である。engine は決定的なので、**隊列を直さなければ
-  // 何度やっても同じように負ける。**ナズナを後列へ下げた一手だけが勝ちに変わる。
+  // 何度やっても同じように負ける。**ツグミを後列へ下げた一手だけが勝ちに変わる。
   // 会話が渡した「柔らかい技は後ろ、硬い武器は前」を、実際に操作して確かめる。
   await page.locator('nav.tabs [data-tab="roster"]').click();
   // R14 §1 — **予測は隊列を動かした瞬間に付いてくる。**
   //
-  // まずナズナを前列へ出す（シキと入れ替わる）。content/story.mjs が言うとおり、
+  // まずツグミを前列へ出す（ゴウと入れ替わる）。content/story.mjs が言うとおり、
   // 柔らかい技の担い手を前に置き、武器を後ろへ下げた形は負ける。
   // ここが「勝利」のままなら、予測は別の盤面を走らせている
   // （R14 以前は、この画面の予測が12戦の第1戦を試算していた）。
@@ -217,7 +217,7 @@ try {
   await page.locator('[data-action="place-character"][data-position="rear_right"]').click();
   await page.waitForTimeout(200);
   const placedText = await bodyText();
-  note("ナズナを後列へ下げられる", /後列/.test(placedText));
+  note("ツグミを後列へ下げられる", /後列/.test(placedText));
   // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
   const rightVerdict = await verdict();
   note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
@@ -355,7 +355,7 @@ try {
   // ---- R12 §4.E-1 — 未公開の情報を出していないか（作者判断）
   const guildText = await bodyText();
   note("自由遠征の選択が残っていない", !/自由遠征|どの難易度で出るか/.test(guildText));
-  note("次の加入者の名前を先に出さない", !/スミ が加わる|レイ が加わる/.test(guildText));
+  note("次の加入者の名前を先に出さない", !/ヒバナ が加わる|ゲンゾウ が加わる/.test(guildText));
   note("未解禁の pack を名前で出さない", !/この遠征では出ない/.test(guildText));
   note("本編に出ない同業者が消えている", !/トキ|ヨリ|アカリ/.test(guildText));
 
@@ -368,8 +368,8 @@ try {
   note("家にあるものが読める", /帳簿と目録/.test(homeText));
   note("まだ増えていないものは出ない", !/棚の規則|壁の写し/.test(homeText));
   note("名簿の画面がある", /隊の名簿/.test(homeText));
-  note("加入した人物の欄が読める", /シキ/.test(homeText) && /ナズナ/.test(homeText));
-  note("まだ会っていない人物の欄は出ない", !/レイ/.test(homeText));
+  note("加入した人物の欄が読める", /ゴウ/.test(homeText) && /ツグミ/.test(homeText));
+  note("まだ会っていない人物の欄は出ない", !/ゲンゾウ/.test(homeText));
   note("開いていない節があると分かる", /まだ書かれていない節/.test(homeText));
   note("will はまだ開いていない", !/この人が求めているもの/.test(homeText));
   note("Stage 0 を越えた分だけ節が開く", /灰の中では/.test(homeText));
@@ -403,7 +403,7 @@ try {
     await page.waitForTimeout(200);
     await click("この条件で遠征へ出る");
     const joinText = await bodyText();
-    note("Stage 1 の加入の会話が出る", /カイ/.test(joinText));
+    note("Stage 1 の加入の会話が出る", /ナギ/.test(joinText));
     note("加入の会話も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
     note("加入する人物の立ち絵が出る", await page.locator('.vn-figure[data-character="lancer"]').count() === 1);
     await click("スキップ");
