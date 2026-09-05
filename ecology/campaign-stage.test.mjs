@@ -13,7 +13,7 @@
 // **round を稼ぐと carry HP が伸びるか**という本来の anti-stall 機械検査は、
 // ここには**まだ入れていない**。現在は content 側を静的に見る
 // analysis/ecology-anti-stall-audit.mjs が代わりに走っている（違反なし）。
-// anti-stall 不変条件は docs/DESIGN.md §4、残っている穴は OPEN_ISSUES.md。
+// anti-stall 不変条件は docs/DESIGN.md §4、残っている穴は GitHub Issues で管理する。
 
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT, PROLOGUE, REGION } from "./content/index.mjs";
