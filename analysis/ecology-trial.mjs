@@ -81,9 +81,43 @@ try {
   note("build の印が画面に出ている",
     expectedBuild ? (await bodyText()).includes(expectedBuild) : false, expectedBuild);
 
+  note("タイトル画面の開始導線が整理されている",
+    await page.getByRole("button", { name: "はじめから" }).count() === 1
+      && await page.getByRole("button", { name: "ロードゲーム" }).count() === 1
+      && await page.getByRole("button", { name: "遠征を仕立てる" }).count() === 0);
+
   // R6 §15.1 — 遠征開始前に、有効パック・敵family・3体のボスと法則が出る。
   // R12 — 自由遠征（旧・難易度rank）は削除した。遠征の仕立ては Campaign Stage だけ。
-  await click("遠征を仕立てる");
+  // 長い遠征の検査は序盤の会話を別の台本に任せるため、まず New Game で
+  // 正式なオートセーブを作り、テスト用に Stage 0 踏破後の入口へ進める。
+  await click("はじめから");
+  await page.waitForSelector(".vn-stage", { timeout: 8000 });
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved?.profile) return;
+    saved.phase = "expeditionStart";
+    saved.story = {
+      ...(saved.story || {}),
+      queue: [],
+      after: "camp",
+      lineIndex: 0,
+      auto: false,
+      log: [],
+      logOpen: false,
+    };
+    saved.prologueActive = false;
+    saved.prologueStage = null;
+    saved.profile.campaignProgress = saved.profile.campaignProgress || {};
+    const region = Object.keys(saved.profile.campaignProgress)[0] || "region_ashfront";
+    saved.profile.campaignProgress[region] = {
+      highestClearedStageSequence: 0, clearedStageSequences: [0],
+    };
+    saved.profile.storyFlags = ["prologue_seen"];
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(300);
   const guildText = await bodyText();
   note("ギルド（遠征を仕立てる）に着く", /この遠征に出るもの/.test(guildText));
   note("有効な技能パックが出ている", /この遠征に出る技能パック/.test(guildText));
