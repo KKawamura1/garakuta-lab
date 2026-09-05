@@ -24,6 +24,7 @@ import {
   componentInfo,
   registerGeneratedEquipment,
   makePrologueBattle,
+  prologueLoadout,
   prologueEncounter,
 } from "./playable-battles.mjs";
 import {
@@ -992,6 +993,14 @@ function currentEncounter() {
   // 第1戦の名前を出さない**（何を見ているのか分からなくなる）。
   if (state.prologueActive) return prologueEncounter();
   return composeEncounter(state.run.encounterIndex, state.run.difficulty, encounterOptions());
+}
+
+// 通常遠征は run.loadout を使うが、序盤の「灰の門」は脚本が指定した初期技能だけを使う。
+// 予測・確認画面・正式実行の全てで同じ loadout を選び、物語の固定盤面を守る。
+function currentBattleLoadout() {
+  return state.prologueActive
+    ? prologueLoadout(state.run.roster)
+    : state.run.loadout;
 }
 
 function actOfIndex(index) {
@@ -2483,7 +2492,7 @@ function forecastKey(composed) {
     composed?.maxRounds ?? null,
     state.run.roster,
     state.run.formation,
-    state.run.loadout,
+    currentBattleLoadout(),
     state.run.currentHp,
     Object.keys(state.run.generatedEquipment ?? {}),
     state.run.partySize,
@@ -2507,7 +2516,10 @@ function battleForecast() {
   if (forecastCache.key === key) return forecastCache.value;
   let value = null;
   try {
-    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, { composed });
+    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, {
+      composed,
+      loadout: currentBattleLoadout(),
+    });
   } catch {
     value = null;
   }
@@ -2564,7 +2576,7 @@ function renderBattlePreview() {
   const allies = state.run.roster.map((id) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
     + esc(characterInfo(id)?.icon ?? "・") + "</span><div><b>" + esc(characterName(id)) + "</b><small>"
     + esc(positionText(state.run.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
-    + esc((state.run.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
+    + esc((currentBattleLoadout().tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
     + "</span></div>").join("");
   // R9 §2.1 / R11 §5 — 序盤の一戦は12戦の梯子に属さない。**第1戦と名乗らせない。**
   const previewTitle = state.prologueActive
@@ -4187,7 +4199,7 @@ function handleAction(event) {
         stage: state.run.encounterIndex,
         roster: [...state.run.roster],
         formation: clone(state.run.formation),
-        loadout: clone(state.run.loadout),
+        loadout: clone(currentBattleLoadout()),
       });
       // R12 §4.C — act boss の前で一度だけ会話を挟む。**prologue 中は挟まない**
       // （序盤の4拍が既に会話で埋まっているので、そこへ足すと長い）。
@@ -4212,7 +4224,7 @@ function handleAction(event) {
       battle = makeExpeditionBattle(
         composed,
         state.run.roster,
-        state.run.loadout,
+        currentBattleLoadout(),
         state.run.runSeed,
         state.run.formation,
         {
