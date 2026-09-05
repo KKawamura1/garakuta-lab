@@ -481,7 +481,13 @@ export function makeExpeditionBattle(composed, rosterIds, loadout, seed, formati
 // **本当に負ける配置を、本当に走らせる。**演出で敗北を差し込まない
 // （決定的 engine で結果が確定しているので、嘘をつく必要がない）。
 // prologue の敵は12戦の梯子に属さないので、composeEncounter は通らない。
+const scalePrologueEnemyStat = (value, bps = 10_000) => Math.max(
+  0,
+  Math.round(value * bps / 10_000),
+);
+
 export function prologueEncounter() {
+  const scaling = PROLOGUE.enemyScaling ?? {};
   return {
     index: 0,
     act: 0,
@@ -495,25 +501,23 @@ export function prologueEncounter() {
     spentThreat: 0,
     enemies: PROLOGUE.enemies.map((enemy) => {
       const definition = PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId];
+      const stats = {
+        maxHp: Math.max(1, scalePrologueEnemyStat(definition.maxHp, scaling.maxHpBps)),
+        might: scalePrologueEnemyStat(definition.might ?? 0, scaling.offenseBps),
+        focus: scalePrologueEnemyStat(definition.focus ?? 0, scaling.offenseBps),
+        guard: definition.guard ?? 0,
+      };
       return {
         instanceId: enemy.instanceId,
         enemyActorId: enemy.enemyActorId,
         position: enemy.position,
-        stats: {
-          maxHp: definition.maxHp,
-          might: definition.might ?? 0,
-          focus: definition.focus ?? 0,
-          guard: definition.guard ?? 0,
-        },
+        stats,
         mutations: [],
         boss: false,
         reinforcement: false,
         threatCost: 0,
         baseStats: {
-          maxHp: definition.maxHp,
-          might: definition.might ?? 0,
-          focus: definition.focus ?? 0,
-          guard: definition.guard ?? 0,
+          ...stats,
         },
       };
     }),
