@@ -10,7 +10,7 @@
 - 変更対象のコードとテストを読む。
 - 必要に応じて `docs/GAME.md`、`docs/ARCHITECTURE.md`、`docs/DESIGN.md`、
   `docs/OPERATIONS.md`、`docs/HISTORY.md`、`docs/RULE_ECOLOGY.md` を読む。
-- `OPEN_ISSUES.md` は現在の作業キューとして確認し、解決済み項目はその場で削除する。
+- GitHub Issues（https://github.com/KKawamura1/garakuta-lab/issues）を現在の作業キューとして確認し、解決済み項目は閉じる。
 - `CLAUDE.md` はこのファイルを読むよう指示するだけで、追加ルールはない。
 - 実装変更時は `GAME.md` と `ARCHITECTURE.md` を現在形に更新する。
   設計判断を変更したときは `DESIGN.md` と `HISTORY.md` を更新する。
