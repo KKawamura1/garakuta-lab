@@ -211,6 +211,10 @@ let saveTimer = null;
 let battleLayoutKey = null;
 let battleBeats = [];
 let battleBeatsSource = null;
+// 画面（phase）が切り替わった render() だけ、ページ先頭へ戻す。**同じ画面内の
+// 操作（タブ選択・技能選択・報酬引き直しなど）では動かさない**——毎回動かすと
+// スクロール位置を保ったまま組み替えたい操作まで壊れる。
+let lastRenderedPhase = null;
 
 // **上限は functions/api/runs.js と同じ数にする。**
 // 4000件で切って送っていたが、サーバは2000件で弾く（invalid_payload）。
@@ -1117,6 +1121,8 @@ function render() {
     homestead: renderHomestead,
     complete: renderComplete,
   };
+  const phaseChanged = state.phase !== lastRenderedPhase;
+  lastRenderedPhase = state.phase;
   app.innerHTML = (views[state.phase] ?? renderIntro)();
   app.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
@@ -1124,6 +1130,10 @@ function render() {
   restoreSkillTreeScroll();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
+  // issue #138 — 「この敵に挑む」で戦闘へ入ったとき、キャンプ画面を下の方まで
+  // スクロールしていると、盤面（画面の先頭）が見えず冒頭の動きを見落とす。
+  // 画面（phase）が変わった render() だけ、ページ先頭へ戻す。
+  if (phaseChanged) window.scrollTo(0, 0);
 }
 
 function captureSkillTreeScroll() {

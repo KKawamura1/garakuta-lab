@@ -194,9 +194,19 @@ try {
       note("予測に各メンバーの減少量が出ている",
         await page.locator(".forecast-member .forecast-delta").count() > 0);
     }
+    if (stage === 1) {
+      // issue #138 追補 — キャンプを下までスクロールした状態から挑むと、盤面
+      // （画面の先頭）が見えず冒頭の動きを見落とすと報告された。挑む前に下まで
+      // スクロールしておき、戦闘へ入った瞬間に先頭へ戻ることを確かめる。
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      note("挑む前に下までスクロールしている", (await page.evaluate(() => window.scrollY)) > 0);
+    }
     // issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まず自動戦闘へ進む。
     await click("この敵に挑む");
     await page.waitForSelector(".battle-field", { timeout: 8000 });
+    if (stage === 1) {
+      note("戦闘へ入ると画面の先頭（盤面）へ戻る", (await page.evaluate(() => window.scrollY)) === 0);
+    }
 
     if (stage === 1) {
       note("盤面に味方と敵の箱が出る", await page.locator(".unit").count() >= 4);
