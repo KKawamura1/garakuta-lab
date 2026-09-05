@@ -72,11 +72,11 @@ const EFFECT_RARITY_WEIGHTS = Object.freeze([64, 24, 8, 3, 1, 1]);
 // 生成不能にしない代わりに、等級ごとの最低 power は守る。
 const MIN_POWER = Object.freeze({
   common: 2,
-  rare: 4,
-  epic: 6,
-  legendary: 8,
-  mythic: 10,
-  oopart: 12,
+  rare: 2,
+  epic: 4,
+  legendary: 6,
+  mythic: 8,
+  oopart: 10,
 });
 
 export class EquipmentGenerationError extends Error {
