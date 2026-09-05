@@ -148,15 +148,19 @@ ablation 表示で「何を変えたから結果が変わったか」を返し�
 
 ## 8. 装備の生成契約
 
-一つの完結 rule は `trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜2 -> limit ->
-durability / charge`。不完全な trigger だけ・effect だけ・発火不能・無料無限循環は生成しません。
+一つの完結 rule は `trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜3 -> limit →
+durability / charge`。item rarity と effect rarity は別軸で、前者は組み合わせの幅、後者は
+個々の payoff の量・発動上限を決めます。不完全な trigger だけ・effect だけ・発火不能・
+無料無限循環は生成しません。
 
-| rarity | 完結 rule 数 | 総 affix 目安 |
-|---|---:|---:|
-| common | 1 | 1〜2 |
-| rare | 1〜2 | 2〜4 |
-| epic | 2〜3 | 4〜7 |
-| legendary | 3〜4 + keystone 0〜1 | 6〜10 |
+| rarity | 完結 rule 数 | 総 affix 目安 | 効果品質上限 |
+|---|---:|---:|---|
+| common | 1 | 1〜3 | 並 |
+| rare | 1〜2 | 2〜5 | 上 |
+| epic | 1〜3 | 3〜8 | 希 |
+| legendary | 1〜4 + keystone 0〜1 | 4〜12 | 遺物 |
+| mythic | 2〜5 + keystone 0〜1 | 6〜16 | 神話 |
+| oopart | 2〜6 + keystone 0〜1 | 8〜20 | オーパーツ |
 
 
 
