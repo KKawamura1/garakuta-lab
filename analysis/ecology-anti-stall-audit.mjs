@@ -22,10 +22,9 @@
 //   2. RunState 側の有限資源（supplies）を消費する camp 治療。これは
 //      battle engine の外（progression.mjs）で完結するので、この検査の対象外。
 //
-// 現状は `mend`（baseline）と `triage`（pack_care）が (1) にも (2) にも
-// 当たらない active heal として検出される。これは意図的に緩めていない
-// ——本票は「通った」ことを報告するのではなく、直すべき箇所を報告する。
-// anti-stall 不変条件と、許可する回復・しない回復は docs/DESIGN.md §4。
+// `mend`（baseline）と `triage`（pack_care）は、上の (1) の安全な reactive
+// として扱われる。過去に active heal だった時期の説明をここへ残さず、現在の
+// anti-stall 不変条件と、許可する回復・しない回復は docs/DESIGN.md §4 に合わせる。
 //
 // **鳴ることを確かめてある**（末尾の自己検査）。
 
