@@ -70,6 +70,7 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 
 UI・replay・検査は、engine が出した同じイベント列を読みます。
 新しい event を追加する場合は、schema、validator、engine テスト、表示・replay も同時に更新します。
+ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
 未知の event、effect、predicate、scope、tag などは無視せず validator error にします。
 
 ## 6. content の hard contract
