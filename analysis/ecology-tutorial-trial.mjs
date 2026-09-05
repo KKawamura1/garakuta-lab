@@ -79,7 +79,10 @@ try {
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
   note("Continueは初回は無効", await page.locator('[data-action="continue-game"][disabled]').count() === 1);
-  note("Load Gameへ進める", await page.getByRole("button", { name: "セーブを選ぶ" }).count() === 1);
+  note("タイトル画面はメニューだけを表示する",
+    await page.locator(".title-screen").count() === 1
+      && !/戦闘は自動で進みます|Stageを越えるたび|活動資金と設計図/.test(await bodyText()));
+  note("Load Gameへ進める", await page.getByRole("button", { name: "ロードゲーム" }).count() === 1);
   // R10 — New Gameは必ずCampaign Stage 0のopeningから始める。
   await click("はじめから");
 
