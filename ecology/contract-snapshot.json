@@ -18465,10 +18465,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -18622,10 +18618,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -18633,7 +18625,7 @@
   "frontier-1801/5/0": [
    {
     "type": "equipment",
-    "equipmentId": "bastion_shell"
+    "equipmentId": "standing_plate"
    },
    {
     "type": "equipment",
@@ -18830,10 +18822,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -18841,7 +18829,7 @@
   "frontier-1801/5/1": [
    {
     "type": "equipment",
-    "equipmentId": "shard_hilt"
+    "equipmentId": "splinter_edge"
    },
    {
     "type": "equipment",
@@ -18982,10 +18970,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -18993,7 +18977,7 @@
   "frontier-1801/11/0": [
    {
     "type": "equipment",
-    "equipmentId": "anchor_boots"
+    "equipmentId": "focus_band"
    },
    {
     "type": "equipment",
@@ -19117,10 +19101,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -19128,7 +19108,7 @@
   "frontier-1801/11/1": [
    {
     "type": "equipment",
-    "equipmentId": "signal_lens"
+    "equipmentId": "anchor_boots"
    },
    {
     "type": "equipment",
@@ -19272,10 +19252,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -19283,7 +19259,7 @@
   "frontier-1801-abc12345/1/0": [
    {
     "type": "equipment",
-    "equipmentId": "reserve_coil"
+    "equipmentId": "tempo_buckle"
    },
    {
     "type": "equipment",
@@ -19408,10 +19384,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -19419,7 +19391,7 @@
   "frontier-1801-abc12345/1/1": [
    {
     "type": "equipment",
-    "equipmentId": "momentum_rig"
+    "equipmentId": "thorn_clasp"
    },
    {
     "type": "equipment",
@@ -19539,10 +19511,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -19550,7 +19518,7 @@
   "frontier-1801-abc12345/5/0": [
    {
     "type": "equipment",
-    "equipmentId": "focus_band"
+    "equipmentId": "momentum_rig"
    },
    {
     "type": "equipment",
@@ -19665,10 +19633,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -19676,7 +19640,7 @@
   "frontier-1801-abc12345/5/1": [
    {
     "type": "equipment",
-    "equipmentId": "splinter_edge"
+    "equipmentId": "tempo_buckle"
    },
    {
     "type": "equipment",
@@ -19801,10 +19765,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -19812,7 +19772,7 @@
   "frontier-1801-abc12345/11/0": [
    {
     "type": "equipment",
-    "equipmentId": "focus_band"
+    "equipmentId": "momentum_rig"
    },
    {
     "type": "equipment",
@@ -19945,10 +19905,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -19956,7 +19912,7 @@
   "frontier-1801-abc12345/11/1": [
    {
     "type": "equipment",
-    "equipmentId": "momentum_rig"
+    "equipmentId": "thorn_clasp"
    },
    {
     "type": "equipment",
@@ -20068,10 +20024,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -20079,7 +20031,7 @@
   "frontier-1801-zzz/1/0": [
    {
     "type": "equipment",
-    "equipmentId": "shard_hilt"
+    "equipmentId": "thorn_clasp"
    },
    {
     "type": "equipment",
@@ -20211,10 +20163,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -20222,7 +20170,7 @@
   "frontier-1801-zzz/1/1": [
    {
     "type": "equipment",
-    "equipmentId": "reserve_coil"
+    "equipmentId": "tempo_buckle"
    },
    {
     "type": "equipment",
@@ -20554,10 +20502,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -20565,7 +20509,7 @@
   "frontier-1801-zzz/5/0": [
    {
     "type": "equipment",
-    "equipmentId": "bastion_shell"
+    "equipmentId": "standing_plate"
    },
    {
     "type": "equipment",
@@ -20718,10 +20662,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -20729,7 +20669,7 @@
   "frontier-1801-zzz/5/1": [
    {
     "type": "equipment",
-    "equipmentId": "bastion_shell"
+    "equipmentId": "standing_plate"
    },
    {
     "type": "equipment",
@@ -20953,10 +20893,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -20964,7 +20900,7 @@
   "frontier-1801-zzz/11/0": [
    {
     "type": "equipment",
-    "equipmentId": "thorn_clasp"
+    "equipmentId": "reserve_coil"
    },
    {
     "type": "equipment",
@@ -21096,10 +21032,6 @@
     }
    },
    {
-    "type": "skill_points",
-    "amount": 2
-   },
-   {
     "type": "supplies",
     "amount": 1
    }
@@ -21107,7 +21039,7 @@
   "frontier-1801-zzz/11/1": [
    {
     "type": "equipment",
-    "equipmentId": "thorn_clasp"
+    "equipmentId": "reserve_coil"
    },
    {
     "type": "equipment",
@@ -21236,10 +21168,6 @@
       ]
      }
     }
-   },
-   {
-    "type": "skill_points",
-    "amount": 2
    },
    {
     "type": "supplies",

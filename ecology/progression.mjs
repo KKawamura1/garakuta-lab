@@ -56,7 +56,6 @@ import {
   PLAYABLE_CONTENT,
   REGION,
   SKILL_PACKS,
-  STARTER_EQUIPMENT_IDS,
   BASELINE_ACTIVE_SKILL_IDS,
   campaignManifestForStage,
   campaignStageDef,
@@ -629,10 +628,10 @@ export function manifestSkillIds(manifest) {
 
 export const MAX_SUPPLIES = 5;
 export const INVENTORY_LIMIT = 12;
-export const RUN_SKILL_POINTS_PER_REWARD = 2;
-// R6 §5.3 — 遠征開始時の技能点。0 から始めると第1戦の構成が組めないので、
-// **開始時に一人2点**配る。遠征終了時に消える（R6 §5.3）。
-export const STARTING_RUN_SKILL_POINTS = 2;
+export const RUN_SKILL_POINTS_PER_REWARD = 1;
+// R15 — 新規遠征は技能点0から始め、通常戦の勝利時に現在の編成全員へ
+// 一律1点を自動で加える。遠征終了時に消える。
+export const STARTING_RUN_SKILL_POINTS = 0;
 
 export function startingSupplies(profile, rank) {
   const base = difficultyDef(rank).startingSupplies;
@@ -707,7 +706,8 @@ export function newRun(profile, options = {}) {
     runSkillPoints: Object.fromEntries(roster.map((id) => [id, STARTING_RUN_SKILL_POINTS])),
     runUnlockedSkills: { ...(options.unlockedSkills ?? {}) },
     loadout: options.loadout ?? null,
-    inventory: [...STARTER_EQUIPMENT_IDS, ...carried.map((item) => item.definition.id)],
+    // R15 — 固定の初期装備は持たせない。出発前に明示的に選んだ Blueprint だけを持ち込む。
+    inventory: carried.map((item) => item.definition.id),
     // R8 §3.5 / §3.6 — Phase C。**生成装備は content bundle に無い**ので、
     // 定義そのものを run が持つ。戦闘・preview・保存は全部この一箇所を読む。
     generatedEquipment: Object.fromEntries(carried.map((item) => [item.definition.id, item])),
@@ -740,6 +740,18 @@ export function runSkillPoints(run, characterId) {
 export function grantRunSkillPoints(run, characterId, amount = RUN_SKILL_POINTS_PER_REWARD) {
   const next = { ...run, runSkillPoints: { ...run.runSkillPoints } };
   next.runSkillPoints[characterId] = runSkillPoints(run, characterId) + amount;
+  return next;
+}
+
+export function grantRunSkillPointsToAll(run, amount = RUN_SKILL_POINTS_PER_REWARD) {
+  const characterIds = [...new Set([
+    ...(Array.isArray(run?.roster) ? run.roster : []),
+    ...Object.keys(run?.runSkillPoints ?? {}),
+  ])];
+  let next = run;
+  for (const characterId of characterIds) {
+    next = grantRunSkillPoints(next, characterId, amount);
+  }
   return next;
 }
 
@@ -789,7 +801,7 @@ export function unlockRunSkill(run, characterId, node) {
 // 完全に見せるようになったので、補給を払って先を覗く枠に値段がつかない。
 export const SUPPLY_USES = Object.freeze({
   retry: "敗北した戦闘へ、編成を変えて再挑戦する",
-  reroll: "報酬4候補を一度だけ引き直す",
+  reroll: "報酬3候補を一度だけ引き直す",
   camp: "野営で集中治療・全体手当・蘇生のいずれかを行う",
 });
 
@@ -1115,8 +1127,8 @@ export function composeEncounter(index, difficultyRank, options = {}) {
 
 // ============================================================ 報酬（R6 §5.3）
 //
-// 通常戦勝利後は4候補から1つ。**活動資金はこの4候補に入らない**
-// （補給や技能点を選んでも、資金の獲得量は減らない）。
+// 通常戦勝利後は3候補から1つ。**活動資金はこの3候補に入らない**
+// （補給を選んでも、資金の獲得量は減らない）。
 
 export const REWARD_EQUIPMENT_SLOTS = 2;
 
@@ -1168,14 +1180,14 @@ export function generatedRewardCandidate(run, profile, encounterIndex, rerollInd
 
 // ============================================================ 報酬（R6 §5.3）
 //
-// 通常戦勝利後は4候補から1つ。**活動資金はこの4候補に入らない**
-// （補給や技能点を選んでも、資金の獲得量は減りません）。
+// 通常戦勝利後は3候補から1つ。**活動資金はこの3候補に入らない**
+// （補給を選んでも、資金の獲得量は減りません）。
 //
 // R8 §13.2 — Phase C。装備2枠のうち**一つは生成装備**にする。固定装備は
 // 比較基準として残し、報酬の主食にはしない（R8 §13.1）。まだ拾っていない
 // 固定装備が尽きた遠征後半では、両枠とも生成装備になる。
 //
-// 「報酬4候補が全て同じroleにならない」（R8 §13.2）は、装備2・技能点・補給という
+// 「報酬3候補が全て同じroleにならない」（R8 §13.2）は、装備2・補給という
 // 構成そのものが満たしている。装備どうしが同じ役割に寄る場合だけ、
 // 生成側を隣の drop 列へずらして払い先の種類を変える。
 export function rewardOffer(run, profile, encounterIndex, rerollIndex = 0) {
@@ -1205,7 +1217,6 @@ export function rewardOffer(run, profile, encounterIndex, rerollIndex = 0) {
     offers.push(candidate);
   }
 
-  offers.push({ type: "skill_points", amount: RUN_SKILL_POINTS_PER_REWARD });
   offers.push({ type: "supplies", amount: 1 });
   return offers;
 }

@@ -48,6 +48,8 @@
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、生成装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
+`newRun` は新規遠征の技能点を0にし、固定の初期装備を `inventory` へ入れません。出発前に選んだ Blueprint の持込品だけは例外です。通常戦の勝利は `app.js` の一つの処理経路で、現在の `RunState.roster` 全員へ技能点1を自動付与します。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
+
 序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。
 
 ## 4. 決定性

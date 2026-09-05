@@ -7,7 +7,7 @@
 //   1. Stage 0〜3 の pool で、全 rarity が 50 attempt 以内に作れるか。
 //   2. 生成した品を実際の戦闘へ着けたとき、**一度も発火し得ない trigger** が
 //      残っていないか（構造上は正しいのに、盤面では絶対に起きない形）。
-//   3. 報酬候補が同じ払い先ばかりに寄っていないか（R8 §13.2「報酬4候補が
+//   3. 報酬候補が同じ払い先ばかりに寄っていないか（R8 §13.2「報酬3候補が
 //      全て同じroleにならない」）。
 //
 // **fun の証明ではない。**「拾っても何も起きない品」を作っていないことだけを見る。
@@ -93,7 +93,7 @@ for (const [sourceId, seen] of seenBySource) {
 // ---- 3. 報酬候補の払い先が同じ役割へ寄らない --------------------------------
 
 const profile = newProfile();
-let sameTagOffers = 0;
+let invalidRewardOffers = 0;
 let offersChecked = 0;
 for (let sequence = 0; sequence <= 3; sequence += 1) {
   const run = newRun(profile, {
@@ -103,8 +103,12 @@ for (let sequence = 0; sequence <= 3; sequence += 1) {
   for (let index = 1; index <= 11; index += 1) {
     const offers = rewardOffer(run, profile, index, 0);
     const kinds = new Set(offers.map((offer) => offer.type));
+    const equipmentCount = offers.filter((offer) => offer.type === "equipment").length;
+    const suppliesCount = offers.filter((offer) => offer.type === "supplies").length;
     offersChecked += 1;
-    if (kinds.size < 3) sameTagOffers += 1;
+    if (offers.length !== 3 || kinds.size < 2 || equipmentCount !== 2 || suppliesCount !== 1) {
+      invalidRewardOffers += 1;
+    }
     for (const offer of offers) {
       if (offer.type !== "equipment" || !offer.generated) continue;
       if (!offer.item.readout.lines.length) problems.push(`報酬の生成装備に説明文が無い（${offer.equipmentId}）`);
@@ -114,7 +118,7 @@ for (let sequence = 0; sequence <= 3; sequence += 1) {
     }
   }
 }
-if (sameTagOffers > 0) problems.push(`報酬候補の種類が3種未満だった回が ${sameTagOffers} / ${offersChecked}`);
+if (invalidRewardOffers > 0) problems.push(`報酬候補の構成が想定外だった回が ${invalidRewardOffers} / ${offersChecked}`);
 
 // ---- 4. 参照点。**この検査が本当に鳴るのかを確かめる。** ---------------------
 {

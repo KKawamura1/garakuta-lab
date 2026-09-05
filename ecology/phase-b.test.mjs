@@ -41,7 +41,7 @@ import {
   convertScrap,
   dismantle,
   formatFunds,
-  grantRunSkillPoints,
+  grantRunSkillPointsToAll,
   makeManifest,
   migrateLegacyProfile,
   newProfile,
@@ -241,7 +241,10 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   check(!("skillPoints" in profile), "profile が技能点を持たない");
   check(!("unlocked" in profile), "profile が解禁を持たない");
   check(!("inventory" in profile), "profile が装備を持たない");
-  equal(runSkillPoints(run, "warden"), 2, "遠征開始時の技能点");
+  equal(runSkillPoints(run, "warden"), 0, "遠征開始時の技能点");
+  equal(run.inventory.length, 0, "遠征開始時の装備");
+  run = grantRunSkillPointsToAll(run);
+  for (const id of ROSTER) equal(runSkillPoints(run, id), 1, id + "へ勝利報酬の技能点");
 
   // manifest に無い技能は解禁できない。
   const outside = SKILL_PACKS.find((pack) => !run.manifest.enabledPackIds.includes(pack.id));
@@ -517,7 +520,10 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
 
 {
   const profile = newProfile();
-  const run = newRun(profile, { runSeed: "s", runId: "rc", roster: ROSTER });
+  const run = {
+    ...newRun(profile, { runSeed: "s", runId: "rc", roster: ROSTER }),
+    inventory: ["standing_plate", "worn_greaves"],
+  };
   const held = run.inventory[0];
   const broken = dismantle(run, held);
   equal(broken.ok, true, "持っている品は分解できる");
@@ -538,9 +544,9 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "seed-x", runId: "rd", roster: ROSTER });
   const offer = rewardOffer(run, profile, 1, 0);
-  equal(offer.length, 4, "4候補");
+  equal(offer.length, 3, "3候補");
   equal(offer.filter((o) => o.type === "equipment").length, 2, "装備2");
-  equal(offer.filter((o) => o.type === "skill_points").length, 1, "技能点1");
+  equal(offer.filter((o) => o.type === "skill_points").length, 0, "技能点は自動付与");
   equal(offer.filter((o) => o.type === "supplies").length, 1, "補給1");
   check(!offer.some((o) => o.type === "activity_funds"), "**活動資金は報酬候補に入らない**");
   for (const entry of offer.filter((o) => o.type === "equipment")) {
@@ -552,7 +558,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   const nextEncounterBefore = composeEncounter(2, 0);
   const rerolled = rewardOffer(run, profile, 1, 1);
   check(
-    JSON.stringify(rerolled) !== JSON.stringify(offer) || rerolled.length < 4,
+    JSON.stringify(rerolled) !== JSON.stringify(offer) || rerolled.length < 3,
     "引き直すと候補が変わる",
   );
   // **報酬の引き直しは後続の敵を動かさない。**
@@ -563,10 +569,9 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
     "報酬の引き直しは後続の敵編成を動かさない",
   );
   checks += 1;
-  // 技能点は選んだ一人だけに入る（R6 §5.3 が全員配布を削除した）。
-  const granted = grantRunSkillPoints(run, "lancer", 2);
-  equal(runSkillPoints(granted, "lancer"), 4, "選んだ人が増える");
-  equal(runSkillPoints(granted, "warden"), 2, "他の人は増えない");
+  // 通常戦の勝利報酬は、現在の編成全員へ一律に入る。
+  const granted = grantRunSkillPointsToAll(run);
+  for (const id of ROSTER) equal(runSkillPoints(granted, id), 1, id + "が増える");
 }
 
 // ---- 旧 save の移行（R6 §17.2）---------------------------------------------
