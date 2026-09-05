@@ -23,10 +23,10 @@ import { freshLoadout, makeBattle } from "../ecology/playable-battles.mjs";
 const problems = [];
 const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 const STAGE_POOLS = [
-  ["family_edge", "family_scar"],
-  ["family_edge", "family_wall", "family_scar"],
-  ["family_edge", "family_tempo", "family_scar"],
-  ["family_wall", "family_tempo", "family_barrage", "family_scar"],
+  ["family_care", "family_scar"],
+  ["family_edge", "family_care", "family_scar"],
+  ["family_edge", "family_wall", "family_care", "family_scar"],
+  ["family_edge", "family_wall", "family_tempo", "family_care", "family_scar"],
 ];
 
 // ---- 1. Stage の pool で全 rarity が作れる ---------------------------------
@@ -128,7 +128,7 @@ if (invalidRewardOffers > 0) problems.push(`報酬候補の構成が想定外だ
 {
   let threw = false;
   try {
-    generateEquipment({ seed: "impossible", dropIndex: 0, rarity: "legendary", familyIds: ["family_care"] });
+    generateEquipment({ seed: "impossible", dropIndex: 0, rarity: "legendary", familyIds: ["family_unknown"] });
   } catch {
     threw = true;
   }
@@ -150,3 +150,4 @@ console.log("ecology-equipment-gen smoke: "
     triggers: seenBySource.size,
     rewardOffers: offersChecked,
   }));
+

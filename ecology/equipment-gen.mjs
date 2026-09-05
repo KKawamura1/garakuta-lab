@@ -22,6 +22,7 @@ import {
   AFFIX_FAMILY_IDS,
   AFFIXES_BY_ROLE,
   COST_AFFIX_IDS,
+  EQUIPMENT_IMPLICITS,
   ITEM_NOUNS,
   RARITIES,
   RARITY_BUDGET,
@@ -31,7 +32,7 @@ import {
 
 // **版を上げたら、古い Blueprint は disabled 表示になる。**黙って別物を作らない
 // （R8 §3.6「互換不能な古いBlueprintを削除せず、disabledReasonを表示する」）。
-export const GENERATOR_VERSION = "ecology-equipment-gen-2";
+export const GENERATOR_VERSION = "ecology-equipment-gen-3";
 
 // R8 §3.5 —「50 attemptで生成不能なら既定品へ黙ってfallbackせず、診断errorにする。」
 export const GENERATOR_MAX_ATTEMPTS = 50;
@@ -45,7 +46,7 @@ const BASE_DURABILITY = Object.freeze({
   mythic: 4,
   oopart: 5,
 });
-const MAX_CONVERTERS_PER_RULE = 2;
+const MAX_CONVERTERS_PER_RULE = 1;
 const MAX_PAYOFFS_PER_RULE = 3;
 const MAX_TIER = 2;
 
@@ -67,16 +68,28 @@ const EFFECT_LIMIT_BONUS = Object.freeze({
   mythic: 2,
   oopart: 3,
 });
-const EFFECT_RARITY_WEIGHTS = Object.freeze([64, 24, 8, 3, 1, 1]);
+// 高位 item の追加効果が common だらけにならないよう、品質の下限を段階的に上げる。
+// common / rare の規格外品だけは、重い代償と引き換えに item より最大2段上へ飛べる。
+const EFFECT_RARITY_FLOOR = Object.freeze({
+  common: "common",
+  rare: "common",
+  epic: "rare",
+  legendary: "epic",
+  mythic: "legendary",
+  oopart: "mythic",
+});
+const EFFECT_RARITY_WEIGHTS = Object.freeze([50, 30, 14, 6]);
+const RISK_COST_CHANCE = Object.freeze({ common: 0.12, rare: 0.08, epic: 0, legendary: 0, mythic: 0, oopart: 0 });
+const KEYSTONE_CHANCE = Object.freeze({ common: 0, rare: 0, epic: 0, legendary: 0.7, mythic: 0.9, oopart: 1 });
 // 狭い family pool では item rarity の目標予算を満額使えないことがある。
 // 生成不能にしない代わりに、等級ごとの最低 power は守る。
 const MIN_POWER = Object.freeze({
-  common: 2,
-  rare: 2,
-  epic: 4,
-  legendary: 6,
-  mythic: 8,
-  oopart: 10,
+  common: 4,
+  rare: 6,
+  epic: 9,
+  legendary: 14,
+  mythic: 20,
+  oopart: 28,
 });
 
 export class EquipmentGenerationError extends Error {
@@ -118,20 +131,25 @@ export function affixPool(familyIds = AFFIX_FAMILY_IDS) {
 }
 
 const satisfies = (requires, provides) => (requires ?? []).every((tag) => provides.includes(tag));
-const converterFitsSource = (converter, source) => {
+const sharesTheme = (left = [], right = []) => left.some((tag) => right.includes(tag));
+const payoffFitsSource = (payoff, source) => satisfies(payoff.requires, source.provides ?? [])
+  && sharesTheme(source.supports ?? [], payoff.payoffTags ?? []);
+const converterFitsSource = (converter, source, payoff) => {
   const valueKeys = source.valueKeys ?? [];
   return satisfies(converter.requires, source.provides ?? [])
+    && sharesTheme(converter.supports ?? [], payoff.payoffTags ?? [])
     && (converter.predicates ?? []).every((predicate) =>
       predicate.type !== "event_value" || valueKeys.includes(predicate.key));
 };
 
 // ---------------------------------------------------------------- 組み立て
 
-function rollEffectRarity(rng, maxRarity) {
-  const maxIndex = Math.max(0, RARITIES.indexOf(maxRarity));
-  const candidates = RARITIES.slice(0, maxIndex + 1);
+function rollEffectRarity(rng, minRarity, maxRarity) {
+  const minIndex = Math.max(0, RARITIES.indexOf(minRarity));
+  const maxIndex = Math.max(minIndex, RARITIES.indexOf(maxRarity));
+  const candidates = RARITIES.slice(minIndex, maxIndex + 1);
   const total = candidates.reduce(
-    (sum, rarity, index) => sum + (EFFECT_RARITY_WEIGHTS[index] ?? 1),
+    (sum, _rarity, index) => sum + (EFFECT_RARITY_WEIGHTS[index] ?? 1),
     0,
   );
   let roll = rng() * total;
@@ -145,17 +163,24 @@ function rollEffectRarity(rng, maxRarity) {
 function assignEffectRarities(rng, draft) {
   const slots = draft.rules.flatMap((rule) => rule.payoffs.map((payoff) => ({ rule, payoff })));
   if (!slots.length) return;
-  // item rarity は少なくとも一つの「その等級の効果」を保証する。
-  // 残りは下位効果も混ざるため、同じ等級でも毎回違う組み合わせになる。
+  const floor = EFFECT_RARITY_FLOOR[draft.rarity] ?? "common";
+  // 基礎効果とは別に、追加効果にも item と同じ品質を一つ保証する。
   const guaranteedIndex = pickIndex(rng, slots.length);
   slots.forEach(({ payoff }, index) => {
     payoff.effectRarity = index === guaranteedIndex
       ? draft.rarity
-      : rollEffectRarity(rng, draft.rarity);
+      : rollEffectRarity(rng, floor, draft.rarity);
   });
+  // common / rare の低確率品は、重い代償のある rule に限って最大2段上の効果を持つ。
+  const risky = slots.filter(({ rule }) => rule.cost?.risky);
+  if (risky.length) {
+    const promoted = pick(rng, risky);
+    const itemIndex = RARITIES.indexOf(draft.rarity);
+    promoted.payoff.effectRarity = RARITIES[Math.min(RARITIES.length - 1, itemIndex + 2)];
+  }
 }
 
-function buildRuleDraft(rng, pool, budget, sourceIdsUsed) {
+function buildRuleDraft(rng, rarity, pool, budget, sourceIdsUsed, riskUsed) {
   // 同じ trigger を二度使うと「同じ出来事の二重取り」になり、rule が別々である
   // 意味が消える。**item の中で trigger は重複させない。**
   const sources = pool.source.filter((affix) => !sourceIdsUsed.has(affix.id));
@@ -163,7 +188,7 @@ function buildRuleDraft(rng, pool, budget, sourceIdsUsed) {
   const source = pick(rng, sources);
   const provides = source.provides ?? [];
 
-  const payoffCandidates = pool.payoff.filter((affix) => satisfies(affix.requires, provides));
+  const payoffCandidates = pool.payoff.filter((affix) => payoffFitsSource(affix, source));
   if (!payoffCandidates.length) return null;
   const payoff = pick(rng, payoffCandidates);
 
@@ -175,12 +200,17 @@ function buildRuleDraft(rng, pool, budget, sourceIdsUsed) {
     return true;
   });
   const needsCost = Boolean(payoff.needsFiniteCost || payoff.needsAnyCost);
+  const safeCosts = costCandidates.filter((affix) => !affix.risky);
+  const riskyCosts = costCandidates.filter((affix) => affix.risky);
   let cost = null;
-  if (needsCost) {
-    cost = pick(rng, costCandidates);
+  const wantsRisk = !riskUsed && riskyCosts.length > 0 && rng() < (RISK_COST_CHANCE[rarity] ?? 0);
+  if (wantsRisk) {
+    cost = pick(rng, riskyCosts);
+  } else if (needsCost) {
+    cost = pick(rng, safeCosts);
     if (!cost) return null;
-  } else if (costCandidates.length && rng() < 0.5) {
-    cost = pick(rng, costCandidates);
+  } else if (safeCosts.length && rng() < 0.35) {
+    cost = pick(rng, safeCosts);
   }
 
   let power = payoff.power + (cost?.power ?? 0);
@@ -194,8 +224,8 @@ function buildRuleDraft(rng, pool, budget, sourceIdsUsed) {
 
   const converters = [];
   const usedGroups = new Set();
-  const converterCandidates = pool.converter.filter((affix) => converterFitsSource(affix, source));
-  const wanted = pickInt(rng, 0, MAX_CONVERTERS_PER_RULE);
+  const converterCandidates = pool.converter.filter((affix) => converterFitsSource(affix, source, payoff));
+  const wanted = rng() < 0.32 ? 1 : 0;
   for (let index = 0; index < wanted; index += 1) {
     const options = converterCandidates.filter(
       (affix) => !usedGroups.has(affix.group) && !converters.includes(affix),
@@ -207,7 +237,11 @@ function buildRuleDraft(rng, pool, budget, sourceIdsUsed) {
   }
 
   const reentrant = (payoff.emits ?? []).includes(source.listenTo);
-  const scope = reentrant ? "chain" : pick(rng, ["chain", "round", "round", "battle"]);
+  const scope = reentrant || payoff.chainOnly ? "chain"
+    : source.listenTo === "battle_started" ? "battle"
+      : source.listenTo === "round_started" ? "round"
+        : source.timing === "interrupt" ? pick(rng, ["chain", "round", "round"])
+          : pick(rng, ["chain", "round", "round"]);
   return {
     source,
     converters,
@@ -237,24 +271,52 @@ function affixCount(draft) {
   return count;
 }
 
+function keystoneFitsDraft(keystone, draft) {
+  // 発火回数を増やす keystone は、同じ被弾 chain に一度しか許されない回復や、
+  // 自分の trigger を出し直す rule へ付くと、keystone 自体が audit で無効になる。
+  if (keystone.limitBonusAll && draft.rules.some((rule) =>
+    rule.payoffs.some((payoff) => payoff.affix.chainOnly
+      || (payoff.affix.emits ?? []).includes(rule.source.listenTo)))) return false;
+  const required = keystone.requiresEffectTypes ?? [];
+  if (!required.length) return true;
+  const effectTypes = draft.rules.flatMap((rule) =>
+    rule.payoffs.map((payoff) => payoff.affix.effect(1).type));
+  return required.some((type) => effectTypes.includes(type));
+}
+
+function chooseImplicit(rng, draft) {
+  const tags = draft.rules.flatMap((rule) =>
+    rule.payoffs.flatMap((payoff) => payoff.affix.payoffTags ?? []));
+  const coherent = EQUIPMENT_IMPLICITS.filter((implicit) => sharesTheme(implicit.payoffTags, tags));
+  return pick(rng, coherent.length ? coherent : EQUIPMENT_IMPLICITS);
+}
+
 function buildDraft(rng, rarity, pool) {
   const spec = RARITY_BUDGET[rarity];
-  const draft = { rarity, keystone: null, shapes: [], rules: [] };
-
-  if (spec.keystones > 0 && pool.keystone.length && rng() < 0.6) {
-    draft.keystone = pick(rng, pool.keystone);
-  }
+  const draft = { rarity, implicit: null, keystone: null, shapes: [], rules: [] };
+  const wantsKeystone = spec.keystones > 0
+    && pool.keystone.length > 0
+    && rng() < (KEYSTONE_CHANCE[rarity] ?? 0);
+  const keystoneReserve = wantsKeystone ? Math.max(...pool.keystone.map((affix) => affix.power)) : 0;
 
   const ruleCount = pickInt(rng, spec.rules[0], spec.rules[1]);
   const sourceIdsUsed = new Set();
+  let riskUsed = false;
   for (let index = 0; index < ruleCount; index += 1) {
-    const remaining = spec.power - draftPower(draft);
-    const rule = buildRuleDraft(rng, pool, remaining, sourceIdsUsed);
+    const remaining = spec.power - keystoneReserve - draftPower(draft);
+    const rule = buildRuleDraft(rng, rarity, pool, remaining, sourceIdsUsed, riskUsed);
     if (!rule) return null;
     sourceIdsUsed.add(rule.source.id);
     draft.rules.push(rule);
+    riskUsed ||= Boolean(rule.cost?.risky);
   }
   if (!draft.rules.length) return null;
+
+  if (wantsKeystone) {
+    const compatible = pool.keystone.filter((affix) => keystoneFitsDraft(affix, draft));
+    if (!compatible.length && rarity === "oopart") return null;
+    if (compatible.length) draft.keystone = pick(rng, compatible);
+  }
 
   // ---- 予算の使い切り。**余った予算を捨てない**（rarity が意味を持たなくなる）。
   for (let guard = 0; guard < 24; guard += 1) {
@@ -273,9 +335,12 @@ function buildDraft(rng, rarity, pool) {
         const provides = rule.source.provides ?? [];
         for (const affix of pool.payoff) {
           if (rule.payoffs.some((entry) => entry.affix.id === affix.id)) continue;
-          if (!satisfies(affix.requires, provides)) continue;
+          if (!payoffFitsSource(affix, rule.source)) continue;
+          if (!rule.converters.every((converter) => sharesTheme(converter.supports ?? [], affix.payoffTags ?? []))) continue;
           if (affix.needsFiniteCost && !rule.cost?.finite) continue;
           if (affix.needsAnyCost && !rule.cost) continue;
+          if (affix.chainOnly && rule.limit.scope !== "chain") continue;
+          if ((affix.emits ?? []).includes(rule.source.listenTo) && rule.limit.scope !== "chain") continue;
           if ((affix.forbidsCostTypes ?? []).includes(rule.cost?.cost?.type)) continue;
           if (affix.power > remaining) continue;
           options.push({ kind: "payoff", rule, affix });
@@ -294,24 +359,10 @@ function buildDraft(rng, rarity, pool) {
     else draft.shapes.push(choice.affix);
   }
 
-  // ---- affix 数の下限を converter（power 0）で埋める。
-  for (let guard = 0; guard < 24 && affixCount(draft) < spec.affixes[0]; guard += 1) {
-    let added = false;
-    for (const rule of draft.rules) {
-      if (rule.converters.length >= MAX_CONVERTERS_PER_RULE) continue;
-      const usedGroups = new Set(rule.converters.map((affix) => affix.group));
-      const provides = rule.source.provides ?? [];
-      const options = pool.converter.filter(
-        (affix) => converterFitsSource(affix, rule.source) && !usedGroups.has(affix.group),
-      );
-      if (!options.length) continue;
-      rule.converters.push(pick(rng, options));
-      added = true;
-      if (affixCount(draft) >= spec.affixes[0]) break;
-    }
-    if (!added) break;
-  }
-
+  // 条件は affix 数合わせに使わない。下限へ届かない draft は捨て、次の attempt で
+  // payoff / shape が十分に揃う組み合わせを作る。
+  if (affixCount(draft) < spec.affixes[0]) return null;
+  draft.implicit = chooseImplicit(rng, draft);
   assignEffectRarities(rng, draft);
   return draft;
 }
@@ -329,8 +380,10 @@ function hash64(value) {
   return (a.toString(16).padStart(8, "0") + b.toString(16).padStart(8, "0"));
 }
 
-function magnitudeOf(payoff, converters, fallbackRarity = "common") {
-  const bonus = converters.reduce((total, affix) => total + (affix.magnitudeBonus ?? 0), 0);
+function magnitudeOf(payoff, rule, fallbackRarity = "common") {
+  const conditionBonus = rule.converters.reduce((total, affix) => total + (affix.magnitudeBonus ?? 0), 0);
+  const limitBonus = rule.limit.scope === "battle" ? 2 : rule.limit.scope === "round" ? 1 : 0;
+  const bonus = conditionBonus + limitBonus;
   const tier = Math.min(MAX_TIER, payoff.tier + bonus);
   const effectRarity = payoff.effectRarity ?? fallbackRarity;
   const baseAmount = payoff.affix.magnitudes[tier];
@@ -341,12 +394,18 @@ function magnitudeOf(payoff, converters, fallbackRarity = "common") {
   return { tier, amount, effectRarity };
 }
 
+function implicitAmountOf(draft) {
+  const base = draft.implicit.amounts[draft.rarity];
+  const bps = draft.keystone?.implicitBonusBps ?? 10_000;
+  return Math.max(1, Math.floor((base * bps + 5_000) / 10_000));
+}
+
 export function canonicalDescriptor(draft, durability) {
   const rules = draft.rules.map((rule) => {
     const converters = rule.converters.map((affix) => affix.id).join("+") || "-";
     const payoffs = rule.payoffs
       .map((payoff) => {
-        const magnitude = magnitudeOf(payoff, rule.converters, draft.rarity);
+        const magnitude = magnitudeOf(payoff, rule, draft.rarity);
         return `${payoff.affix.id}@${magnitude.effectRarity}@${magnitude.amount}`;
       })
       .join("+");
@@ -356,6 +415,7 @@ export function canonicalDescriptor(draft, durability) {
   return [
     GENERATOR_VERSION,
     draft.rarity,
+    `${draft.implicit.id}@${draft.rarity}@${implicitAmountOf(draft)}`,
     `dur${durability}`,
     draft.keystone?.id ?? "-",
     draft.shapes.map((affix) => affix.id).join("+") || "-",
@@ -398,13 +458,13 @@ function displayNameOf(draft, itemId) {
 
 // **画面用の一文。**effect の中身ではなく「何をきっかけに、何を払い、何が起きるか」を
 // affix の summary から組む。生成物の説明を engine の event 名で書かない。
-export function ruleText(draft, rule) {
+export function ruleText(draft, rule, effectOffset = 0) {
   const when = [rule.source.summary, ...rule.converters.map((affix) => affix.summary)].join("・");
   const paid = rule.cost ? `${rule.cost.summary}を払い、` : "";
   const done = rule.payoffs
     .map((payoff, index) => {
-      const magnitude = magnitudeOf(payoff, rule.converters, draft.rarity);
-      const slot = index === 0 ? "基礎効果" : `効果${index}`;
+      const magnitude = magnitudeOf(payoff, rule, draft.rarity);
+      const slot = `追加効果${effectOffset + index + 1}`;
       const label = RARITY_LABEL[magnitude.effectRarity] ?? magnitude.effectRarity;
       return `${slot}（${label}）：${payoff.affix.summary}（${magnitude.amount}）`;
     })
@@ -420,20 +480,21 @@ export function draftToDefinition(draft) {
   const itemId = "gen_" + hash64(descriptor);
   const rules = draft.rules.map((rule, index) => {
     const effects = rule.payoffs.map((payoff) => {
-      const magnitude = magnitudeOf(payoff, rule.converters, draft.rarity);
-      return payoff.affix.effect(magnitude.amount);
+      const magnitude = magnitudeOf(payoff, rule, draft.rarity);
+      const effect = payoff.affix.effect(magnitude.amount);
+      return draft.keystone?.transformEffect ? draft.keystone.transformEffect(effect) : effect;
     });
     if (draft.keystone?.extraEffect) effects.push(draft.keystone.extraEffect());
     return {
       id: `${itemId}_r${index}`,
       listenTo: rule.source.listenTo,
-      timing: "after",
+      timing: rule.source.timing ?? "after",
       priority: 100,
       predicates: [...rule.source.predicates, ...rule.converters.flatMap((affix) => affix.predicates)],
       costs: rule.cost ? [{ ...rule.cost.cost }] : [],
       effects,
       effectRarities: rule.payoffs.map((payoff) => (
-        magnitudeOf(payoff, rule.converters, draft.rarity).effectRarity
+        magnitudeOf(payoff, rule, draft.rarity).effectRarity
       )),
       limit: limitOf(draft, rule),
     };
@@ -442,6 +503,7 @@ export function draftToDefinition(draft) {
     id: itemId,
     displayName: displayNameOf(draft, itemId),
     maxDurability: durability,
+    statBonus: { [draft.implicit.stat]: implicitAmountOf(draft) },
     rules,
     tags: ["generated", draft.rarity],
   };
@@ -461,6 +523,16 @@ export function auditDraft(draft, definition) {
   const power = draftPower(draft);
   const count = affixCount(draft);
 
+  if (!draft.implicit || !EQUIPMENT_IMPLICITS.includes(draft.implicit)) {
+    problems.push("無条件の基礎効果が無い");
+  } else {
+    const amount = implicitAmountOf(draft);
+    if (definition.statBonus?.[draft.implicit.stat] !== amount
+      || Object.keys(definition.statBonus ?? {}).length !== 1) {
+      problems.push("基礎効果と EquipmentDef.statBonus が一致しない");
+    }
+  }
+
   if (power > spec.power) problems.push(`power budget 超過（${power} > ${spec.power}）`);
   const minimumPower = Math.min(spec.power - 1, MIN_POWER[draft.rarity] ?? 0);
   if (power < minimumPower) {
@@ -472,10 +544,14 @@ export function auditDraft(draft, definition) {
   if (draft.rules.length < spec.rules[0] || draft.rules.length > spec.rules[1]) {
     problems.push(`rule 数が範囲外（${draft.rules.length}）`);
   }
-  if (!draft.keystone && spec.keystones > 0) {
+  if (!draft.keystone && draft.rarity === "oopart") {
+    problems.push("oopart は体験を変える keystone を必ず持つ");
+  } else if (!draft.keystone && spec.keystones > 0) {
     // keystone は 0〜1。無くてよい。
   } else if (draft.keystone && spec.keystones === 0) {
     problems.push(`${draft.rarity} は keystone を持てない`);
+  } else if (draft.keystone && !keystoneFitsDraft(draft.keystone, draft)) {
+    problems.push(`keystone "${draft.keystone.id}" が追加効果へ作用しない`);
   }
 
   const seenSources = new Set();
@@ -488,11 +564,20 @@ export function auditDraft(draft, definition) {
     if (!rule.payoffs.length) problems.push(`${at}: effect の無い rule`);
     for (const payoff of rule.payoffs) {
       const effectRarity = payoff.effectRarity ?? draft.rarity;
-      if (!RARITIES.includes(effectRarity) || RARITIES.indexOf(effectRarity) > RARITIES.indexOf(draft.rarity)) {
-        problems.push(`${at}: effect rarity "${effectRarity}" が item rarity と整合しない`);
+      const effectIndex = RARITIES.indexOf(effectRarity);
+      const itemIndex = RARITIES.indexOf(draft.rarity);
+      const floorIndex = RARITIES.indexOf(EFFECT_RARITY_FLOOR[draft.rarity] ?? "common");
+      if (effectIndex < floorIndex) {
+        problems.push(`${at}: effect rarity "${effectRarity}" が品質下限を下回る`);
+      }
+      if (effectIndex > itemIndex && (!rule.cost?.risky || effectIndex > itemIndex + 2)) {
+        problems.push(`${at}: effect rarity "${effectRarity}" が代償なしで item rarity を超える`);
       }
       if (!satisfies(payoff.affix.requires, provides)) {
         problems.push(`${at}: payoff "${payoff.affix.id}" が trigger の提供しないものを要求している`);
+      }
+      if (!sharesTheme(rule.source.supports ?? [], payoff.affix.payoffTags ?? [])) {
+        problems.push(`${at}: trigger と payoff "${payoff.affix.id}" のテーマが繋がらない`);
       }
       if (payoff.affix.needsFiniteCost && !FINITE_COST_TYPES.has(rule.cost?.cost?.type)) {
         problems.push(`${at}: payoff "${payoff.affix.id}" は有限コストを要する（無料無限循環になる）`);
@@ -513,10 +598,16 @@ export function auditDraft(draft, definition) {
     }
 
     const groups = rule.converters.map((affix) => affix.group);
+    if (rule.converters.length > MAX_CONVERTERS_PER_RULE) problems.push(`${at}: condition が多すぎる`);
     if (new Set(groups).size !== groups.length) problems.push(`${at}: 同じ軸の condition が二つある`);
     for (const converter of rule.converters) {
       if (!satisfies(converter.requires, provides)) {
         problems.push(`${at}: condition "${converter.id}" が trigger の提供しないものを要求している`);
+      }
+      if (!rule.payoffs.every((payoff) => sharesTheme(
+        converter.supports ?? [], payoff.affix.payoffTags ?? [],
+      ))) {
+        problems.push(`${at}: condition "${converter.id}" と効果のテーマが繋がらない`);
       }
       for (const predicate of converter.predicates) {
         if (predicate.type !== "event_value") continue;
@@ -613,6 +704,27 @@ export function generateEquipment(options = {}) {
       attempts.push({ attempt, problems });
       continue;
     }
+    const implicitAmount = implicitAmountOf(draft);
+    let effectOffset = 0;
+    const additionalEffects = [];
+    const ruleLines = [];
+    for (const [ruleIndex, rule] of draft.rules.entries()) {
+      ruleLines.push(ruleText(draft, rule, effectOffset));
+      for (const payoff of rule.payoffs) {
+        const magnitude = magnitudeOf(payoff, rule, draft.rarity);
+        additionalEffects.push({
+          slot: `effect${effectOffset + 1}`,
+          ruleIndex,
+          affixId: payoff.affix.id,
+          rarity: magnitude.effectRarity,
+          rarityLabel: RARITY_LABEL[magnitude.effectRarity] ?? magnitude.effectRarity,
+          summary: payoff.affix.summary,
+          amount: magnitude.amount,
+        });
+        effectOffset += 1;
+      }
+    }
+    const riskCost = draft.rules.map((rule) => rule.cost).find((cost) => cost?.risky) ?? null;
     return {
       definition,
       descriptor,
@@ -626,6 +738,7 @@ export function generateEquipment(options = {}) {
         familyIds,
         attempt,
         descriptor,
+        implicitId: draft.implicit.id,
         affixIds: [
           ...(draft.keystone ? [draft.keystone.id] : []),
           ...draft.shapes.map((affix) => affix.id),
@@ -638,14 +751,15 @@ export function generateEquipment(options = {}) {
         ],
         resolvedParameters: {
           maxDurability: definition.maxDurability,
+          statBonus: { ...definition.statBonus },
           rules: draft.rules.map((rule) => ({
             listenTo: rule.source.listenTo,
             limit: limitOf(draft, rule),
             effectRarities: rule.payoffs.map((payoff) => (
-              magnitudeOf(payoff, rule.converters, draft.rarity).effectRarity
+              magnitudeOf(payoff, rule, draft.rarity).effectRarity
             )),
             amounts: rule.payoffs.map((payoff) => (
-              magnitudeOf(payoff, rule.converters, draft.rarity).amount
+              magnitudeOf(payoff, rule, draft.rarity).amount
             )),
           })),
         },
@@ -654,22 +768,24 @@ export function generateEquipment(options = {}) {
       readout: {
         rarity,
         familyIds: [...new Set(draft.rules.map((rule) => rule.source.familyId))],
-        payoffTags: [...new Set(draft.rules.flatMap((rule) =>
-          rule.payoffs.flatMap((payoff) => payoff.affix.payoffTags ?? [])))],
+        payoffTags: [...new Set([
+          ...draft.implicit.payoffTags,
+          ...draft.rules.flatMap((rule) =>
+            rule.payoffs.flatMap((payoff) => payoff.affix.payoffTags ?? [])),
+        ])],
         keystone: draft.keystone ? draft.keystone.summary : null,
-        effects: draft.rules.flatMap((rule, ruleIndex) => rule.payoffs.map((payoff, effectIndex) => {
-          const magnitude = magnitudeOf(payoff, rule.converters, draft.rarity);
-          return {
-            slot: effectIndex === 0 ? "base" : `effect${effectIndex}`,
-            ruleIndex,
-            affixId: payoff.affix.id,
-            rarity: magnitude.effectRarity,
-            rarityLabel: RARITY_LABEL[magnitude.effectRarity] ?? magnitude.effectRarity,
-            summary: payoff.affix.summary,
-            amount: magnitude.amount,
-          };
-        })),
-        lines: draft.rules.map((rule) => ruleText(draft, rule)),
+        risk: riskCost ? riskCost.riskSummary : null,
+        effects: [{
+          slot: "implicit",
+          ruleIndex: -1,
+          affixId: draft.implicit.id,
+          rarity,
+          rarityLabel: RARITY_LABEL[rarity] ?? rarity,
+          summary: draft.implicit.summary,
+          amount: implicitAmount,
+          unconditional: true,
+        }, ...additionalEffects],
+        lines: ruleLines,
       },
     };
   }
@@ -681,3 +797,4 @@ export function generateEquipment(options = {}) {
     { seed, dropIndex, rarity, familyIds, attempts: worst },
   );
 }
+

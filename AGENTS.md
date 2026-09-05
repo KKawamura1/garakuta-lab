@@ -62,3 +62,4 @@ node analysis/ecology-trial.mjs
 `node analysis/stamp.mjs` を実行し、生成された `core/build.mjs` も commit する。
 preview と本番の build 印・content contract を一致させ、検査結果・未確認事項・変更理由・
 変更範囲を PR に残す。失敗した経路が一つでもあれば、作者へ URL を渡さない。
+

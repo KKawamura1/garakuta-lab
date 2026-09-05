@@ -116,6 +116,7 @@ import {
 } from "./blueprints.mjs";
 import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
 import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
+import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
@@ -794,7 +795,14 @@ function statsFor(characterId) {
 }
 
 function maxHp(characterId) {
-  return statsFor(characterId)?.stats.maxHp ?? PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
+  const base = statsFor(characterId)?.stats.maxHp ?? PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
+  const passiveSkillIds = (state.run?.loadout?.passives?.[characterId] ?? [])
+    .filter((id) => !skillDisabled(characterId, id));
+  const equipment = (state.run?.loadout?.equipment?.[characterId] ?? []).map((equipmentId) => ({
+    equipmentId,
+    broken: equipmentDurability(equipmentId) === 0,
+  }));
+  return maxHpWithStaticBonuses(base, runContentBundle(state.run), passiveSkillIds, equipment);
 }
 
 function limitsFor(characterId) {
@@ -888,6 +896,7 @@ function effectRarityBadge(rarity, label = null) {
 }
 
 function effectSlotLabel(slot) {
+  if (slot === "implicit") return "基礎効果・常時";
   if (slot === "base") return "基礎効果";
   const match = /^effect(\d+)$/.exec(String(slot ?? ""));
   return match ? "追加効果" + match[1] : "効果";
@@ -899,6 +908,9 @@ function equipmentReadoutHtml(item, { compact = false } = {}) {
   const effects = Array.isArray(readout?.effects)
     ? readout.effects.map((effect, index) => ({ effect, index }))
       .sort((a, b) => {
+        if (a.effect.slot === "implicit" || b.effect.slot === "implicit") {
+          return a.effect.slot === "implicit" ? -1 : 1;
+        }
         const rarityDiff = (RARITY_RANK[b.effect.rarity] ?? 0) - (RARITY_RANK[a.effect.rarity] ?? 0);
         return rarityDiff || a.index - b.index;
       })
@@ -909,23 +921,40 @@ function equipmentReadoutHtml(item, { compact = false } = {}) {
   const keystone = readout?.keystone
     ? "<p class=\"keystone-line\">" + esc(readout.keystone) + "</p>"
     : "";
-  if (!effects.length) return ruleLines + keystone;
+  const risk = readout?.risk
+    ? "<p class=\"risk-line\"><b>規格外の代償：</b>" + esc(readout.risk) + "</p>"
+    : "";
+  if (!effects.length) return ruleLines + risk + keystone;
 
   const details = effects.map((effect) => {
-    const amount = effect.amount == null ? "" : "（" + esc(effect.amount) + "）";
+    const amount = effect.amount == null ? ""
+      : effect.unconditional ? " +" + esc(effect.amount) : "（" + esc(effect.amount) + "）";
     return "<div class=\"equipment-effect-detail\">"
       + "<span class=\"effect-detail-label\">" + esc(effectSlotLabel(effect.slot)) + "</span>"
       + effectRarityBadge(effect.rarity, effect.rarityLabel)
       + "<span class=\"effect-detail-summary\">" + esc(effect.summary) + amount + "</span></div>";
   }).join("");
-  return (compact ? "" : "<div class=\"equipment-effect-details\">" + details + "</div>")
-    + ruleLines + keystone;
+  const compactDetails = effects.filter((effect) => effect.slot === "implicit").map((effect) => {
+    const amount = effect.amount == null ? "" : " +" + esc(effect.amount);
+    return "<div class=\"equipment-effect-detail\"><span class=\"effect-detail-label\">基礎効果・常時</span>"
+      + effectRarityBadge(effect.rarity, effect.rarityLabel)
+      + "<span class=\"effect-detail-summary\">" + esc(effect.summary) + amount + "</span></div>";
+  }).join("");
+  return "<div class=\"equipment-effect-details\">" + (compact ? compactDetails : details) + "</div>"
+    + ruleLines + risk + keystone;
 }
 
 function equipmentRarityCallout(item) {
   const rarity = item?.rarity;
   const rank = RARITY_RANK[rarity] ?? 0;
   const effects = Array.isArray(item?.readout?.effects) ? item.readout.effects : [];
+  const highest = effects.reduce((max, effect) => Math.max(max, RARITY_RANK[effect.rarity] ?? 0), 0);
+  if (highest > rank) {
+    const highRarity = RARITIES[highest - 1] ?? rarity;
+    return "<p class=\"rarity-callout rarity-" + esc(highRarity) + "\">"
+      + "<span class=\"rarity-callout-mark\">✦</span>規格外 — "
+      + esc(RARITY_LABEL[highRarity] ?? highRarity) + "効果</p>";
+  }
   if (rank < 4 || !effects.length) return "";
   const sameRank = effects.filter((effect) => (RARITY_RANK[effect.rarity] ?? 0) === rank).length;
   const safe = RARITY_RANK[rarity] ? rarity : "common";
