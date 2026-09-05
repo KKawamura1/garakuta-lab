@@ -60,6 +60,10 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
   Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON の内容が完全に一致します。
 - 生成装備は item rarity と各 payoff の effect rarity、解決済み数値を descriptor / provenance に含め、
   Blueprint はその効果品質まで exact に保持します。
+- 装備の意味を表示する責務は app.js に閉じる。装備バッジは格番号＋名称、効果欄は
+  基礎／追加のスロットごとの格番号＋名称を表示し、効果レアリティの高い順に並べる。
+  同格の効果は readout.effects の元順を保ち、生成品が持つ readout.effects と readout.lines は
+  同じ item から読み、表示だけで rarity を再計算しない。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
 
@@ -86,6 +90,10 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 未知の event、effect、predicate、scope、tag などは無視せず validator error にします。
 
 ## 6. content の hard contract
+
+### 6.1 表示用語
+
+`focus` は内部 ID を維持し、画面上は「技術」と表示する。`focused` は状態異常なので、画面上は「集中」と表示する。能力値と状態異常を混同しない。
 
 - 新語彙は schema version を上げ、additive に追加する。
 - save、D1、replay へ content version と definition ID を残す。

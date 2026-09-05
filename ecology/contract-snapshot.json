@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.9",
+ "contentVersion": "ecology-playable-full-0.10",
  "content": {
   "schemaVersion": "ecology-content-3",
-  "contentVersion": "ecology-playable-full-0.9",
+  "contentVersion": "ecology-playable-full-0.10",
   "characters": {
    "warden": {
     "id": "warden",
@@ -6783,7 +6783,7 @@
    },
    "foundation_focus": {
     "id": "foundation_focus",
-    "displayName": "集中力",
+    "displayName": "技術",
     "statBonus": {
      "focus": 2
     },
@@ -9887,7 +9887,7 @@
     "kind": "active",
     "definitionId": "aimed_shot",
     "label": "狙い撃ち",
-    "effect": "最も弱った敵へ集中力125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
+    "effect": "最も弱った敵へ技術125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
     "grammar": "攻撃"
    },
    "bulwark": {
@@ -9895,7 +9895,7 @@
     "kind": "active",
     "definitionId": "bulwark",
     "label": "防壁形成",
-    "effect": "自分に集中力の200%のラウンド防壁を張ってから、追い打ちを行う。",
+    "effect": "自分に技術の200%のラウンド防壁を張ってから、追い打ちを行う。",
     "grammar": "守り"
    },
    "relay_order": {
@@ -9983,7 +9983,7 @@
     "kind": "active",
     "definitionId": "shield_the_wounded",
     "label": "傷へ盾を",
-    "effect": "最も傷ついた味方へ集中力の150%のラウンド防壁を張ってから、追い打ちを行う。",
+    "effect": "最も傷ついた味方へ技術の150%のラウンド防壁を張ってから、追い打ちを行う。",
     "grammar": "支援"
    },
    "barrage_strike": {
@@ -10103,7 +10103,7 @@
     "kind": "active",
     "definitionId": "shield_wall",
     "label": "盾の列",
-    "effect": "前列の味方**全員**へ集中力70%のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
+    "effect": "前列の味方**全員**へ技術70%のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
     "grammar": "守り"
    },
    "rally_line": {
@@ -10119,7 +10119,7 @@
     "kind": "active",
     "definitionId": "bulwark_of_will",
     "label": "意地の壁",
-    "effect": "**開幕2ラウンドだけ**、自分へ最大HPの10%の戦闘中防壁。術力ではなく体で張る。",
+    "effect": "**開幕2ラウンドだけ**、自分へ最大HPの10%の戦闘中防壁。技術ではなく体で張る。",
     "grammar": "守り"
    },
    "spread_the_guard": {
@@ -10143,7 +10143,7 @@
     "kind": "active",
     "definitionId": "field_dressing",
     "label": "まとめて手当て",
-    "effect": "HP50%以下の味方**全員**へ集中力60%のラウンド防壁。対象がいなければスキップ。",
+    "effect": "HP50%以下の味方**全員**へ技術60%のラウンド防壁。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "steady_breath": {
@@ -10167,7 +10167,7 @@
     "kind": "active",
     "definitionId": "precise_cut",
     "label": "静かな一手",
-    "effect": "このラウンド一度も被弾していないときだけ、集中力150%。技なので後列からでも落ちない。",
+    "effect": "このラウンド一度も被弾していないときだけ、技術150%。技なので後列からでも落ちない。",
     "grammar": "攻撃"
    },
    "sustaining_ward": {
@@ -10175,7 +10175,7 @@
     "kind": "active",
     "definitionId": "sustaining_ward",
     "label": "長く守る",
-    "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ集中力90%の戦闘中防壁。薄いが消えない。",
+    "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ技術90%の戦闘中防壁。薄いが消えない。",
     "grammar": "支援"
    },
    "cleansing_step": {
@@ -10239,7 +10239,7 @@
     "kind": "active",
     "definitionId": "shatter_point",
     "label": "積もる刻印",
-    "effect": "「隙」1段につき45を受け無視で叩き込み、隙を全部刈り取る。腕力も術力も読まない。",
+    "effect": "「隙」1段につき45を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
     "grammar": "攻撃"
    },
    "take_the_wound": {
@@ -10297,7 +10297,7 @@
     "kind": "reactive",
     "definitionId": "guard_step",
     "label": "踏み固め",
-    "effect": "移動したあと、集中力の50%のラウンド防壁を得る。",
+    "effect": "移動したあと、技術の50%のラウンド防壁を得る。",
     "grammar": "移動"
    },
    "urging": {
@@ -10313,7 +10313,7 @@
     "kind": "reactive",
     "definitionId": "brace_after_hit",
     "label": "受け流し",
-    "effect": "被弾後、RP1で集中力の50%のラウンド防壁を得る。",
+    "effect": "被弾後、RP1で技術の50%のラウンド防壁を得る。",
     "grammar": "被弾"
    },
    "triage_relay": {
@@ -10345,7 +10345,7 @@
     "kind": "reactive",
     "definitionId": "barrier_bloom",
     "label": "防壁の花",
-    "effect": "防壁を得たとき、さらに集中力の25%の防壁。",
+    "effect": "防壁を得たとき、さらに技術の25%の防壁。",
     "grammar": "防壁"
    },
    "prep_spiral": {
@@ -10441,7 +10441,7 @@
     "kind": "reactive",
     "definitionId": "wake_of_the_fallen",
     "label": "倒したあと",
-    "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ術力の100%の防壁。",
+    "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ技術の100%の防壁。",
     "grammar": "撃破"
    },
    "whetted_by_pain": {
@@ -10457,7 +10457,7 @@
     "kind": "reactive",
     "definitionId": "shield_handoff",
     "label": "受けの受け渡し",
-    "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ集中力の75%の防壁。",
+    "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ技術の75%の防壁。",
     "grammar": "防御"
    },
    "patient_step": {
@@ -10529,7 +10529,7 @@
     "kind": "reactive",
     "definitionId": "last_stand",
     "label": "背水",
-    "effect": "被弾してHP30%以下になったとき、RP1で集中力150%のラウンド防壁。戦闘に1回きり。",
+    "effect": "被弾してHP30%以下になったとき、RP1で技術150%のラウンド防壁。戦闘に1回きり。",
     "grammar": "被弾"
    },
    "counterweight": {
@@ -10537,7 +10537,7 @@
     "kind": "reactive",
     "definitionId": "counterweight",
     "label": "支え直す",
-    "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ集中力50%のラウンド防壁。",
+    "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ技術50%のラウンド防壁。",
     "grammar": "移動"
    },
    "shared_pain": {
@@ -10658,8 +10658,8 @@
     "id": "foundation_focus",
     "kind": "passive",
     "definitionId": "foundation_focus",
-    "label": "集中力",
-    "effect": "術力が2増える。技術・治療・防壁の量が上がる。",
+    "label": "技術",
+    "effect": "技術が2増える。技術・治療・防壁の量が上がる。",
     "grammar": "基礎"
    },
    "foundation_guard": {
@@ -11096,7 +11096,7 @@
    "kind": "active",
    "definitionId": "aimed_shot",
    "label": "狙い撃ち",
-   "effect": "最も弱った敵へ集中力125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
+   "effect": "最も弱った敵へ技術125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
    "grammar": "攻撃"
   },
   "bulwark": {
@@ -11104,7 +11104,7 @@
    "kind": "active",
    "definitionId": "bulwark",
    "label": "防壁形成",
-   "effect": "自分に集中力の200%のラウンド防壁を張ってから、追い打ちを行う。",
+   "effect": "自分に技術の200%のラウンド防壁を張ってから、追い打ちを行う。",
    "grammar": "守り"
   },
   "relay_order": {
@@ -11192,7 +11192,7 @@
    "kind": "active",
    "definitionId": "shield_the_wounded",
    "label": "傷へ盾を",
-   "effect": "最も傷ついた味方へ集中力の150%のラウンド防壁を張ってから、追い打ちを行う。",
+   "effect": "最も傷ついた味方へ技術の150%のラウンド防壁を張ってから、追い打ちを行う。",
    "grammar": "支援"
   },
   "barrage_strike": {
@@ -11312,7 +11312,7 @@
    "kind": "active",
    "definitionId": "shield_wall",
    "label": "盾の列",
-   "effect": "前列の味方**全員**へ集中力70%のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
+   "effect": "前列の味方**全員**へ技術70%のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
    "grammar": "守り"
   },
   "rally_line": {
@@ -11328,7 +11328,7 @@
    "kind": "active",
    "definitionId": "bulwark_of_will",
    "label": "意地の壁",
-   "effect": "**開幕2ラウンドだけ**、自分へ最大HPの10%の戦闘中防壁。術力ではなく体で張る。",
+   "effect": "**開幕2ラウンドだけ**、自分へ最大HPの10%の戦闘中防壁。技術ではなく体で張る。",
    "grammar": "守り"
   },
   "spread_the_guard": {
@@ -11352,7 +11352,7 @@
    "kind": "active",
    "definitionId": "field_dressing",
    "label": "まとめて手当て",
-   "effect": "HP50%以下の味方**全員**へ集中力60%のラウンド防壁。対象がいなければスキップ。",
+   "effect": "HP50%以下の味方**全員**へ技術60%のラウンド防壁。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "steady_breath": {
@@ -11376,7 +11376,7 @@
    "kind": "active",
    "definitionId": "precise_cut",
    "label": "静かな一手",
-   "effect": "このラウンド一度も被弾していないときだけ、集中力150%。技なので後列からでも落ちない。",
+   "effect": "このラウンド一度も被弾していないときだけ、技術150%。技なので後列からでも落ちない。",
    "grammar": "攻撃"
   },
   "sustaining_ward": {
@@ -11384,7 +11384,7 @@
    "kind": "active",
    "definitionId": "sustaining_ward",
    "label": "長く守る",
-   "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ集中力90%の戦闘中防壁。薄いが消えない。",
+   "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ技術90%の戦闘中防壁。薄いが消えない。",
    "grammar": "支援"
   },
   "cleansing_step": {
@@ -11448,7 +11448,7 @@
    "kind": "active",
    "definitionId": "shatter_point",
    "label": "積もる刻印",
-   "effect": "「隙」1段につき45を受け無視で叩き込み、隙を全部刈り取る。腕力も術力も読まない。",
+   "effect": "「隙」1段につき45を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
    "grammar": "攻撃"
   },
   "take_the_wound": {
@@ -11504,7 +11504,7 @@
    "kind": "reactive",
    "definitionId": "guard_step",
    "label": "踏み固め",
-   "effect": "移動したあと、集中力の50%のラウンド防壁を得る。",
+   "effect": "移動したあと、技術の50%のラウンド防壁を得る。",
    "grammar": "移動"
   },
   "urging": {
@@ -11520,7 +11520,7 @@
    "kind": "reactive",
    "definitionId": "brace_after_hit",
    "label": "受け流し",
-   "effect": "被弾後、RP1で集中力の50%のラウンド防壁を得る。",
+   "effect": "被弾後、RP1で技術の50%のラウンド防壁を得る。",
    "grammar": "被弾"
   },
   "triage_relay": {
@@ -11552,7 +11552,7 @@
    "kind": "reactive",
    "definitionId": "barrier_bloom",
    "label": "防壁の花",
-   "effect": "防壁を得たとき、さらに集中力の25%の防壁。",
+   "effect": "防壁を得たとき、さらに技術の25%の防壁。",
    "grammar": "防壁"
   },
   "prep_spiral": {
@@ -11648,7 +11648,7 @@
    "kind": "reactive",
    "definitionId": "wake_of_the_fallen",
    "label": "倒したあと",
-   "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ術力の100%の防壁。",
+   "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ技術の100%の防壁。",
    "grammar": "撃破"
   },
   "whetted_by_pain": {
@@ -11664,7 +11664,7 @@
    "kind": "reactive",
    "definitionId": "shield_handoff",
    "label": "受けの受け渡し",
-   "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ集中力の75%の防壁。",
+   "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ技術の75%の防壁。",
    "grammar": "防御"
   },
   "patient_step": {
@@ -11736,7 +11736,7 @@
    "kind": "reactive",
    "definitionId": "last_stand",
    "label": "背水",
-   "effect": "被弾してHP30%以下になったとき、RP1で集中力150%のラウンド防壁。戦闘に1回きり。",
+   "effect": "被弾してHP30%以下になったとき、RP1で技術150%のラウンド防壁。戦闘に1回きり。",
    "grammar": "被弾"
   },
   "counterweight": {
@@ -11744,7 +11744,7 @@
    "kind": "reactive",
    "definitionId": "counterweight",
    "label": "支え直す",
-   "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ集中力50%のラウンド防壁。",
+   "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ技術50%のラウンド防壁。",
    "grammar": "移動"
   },
   "shared_pain": {
@@ -11863,8 +11863,8 @@
    "id": "foundation_focus",
    "kind": "passive",
    "definitionId": "foundation_focus",
-   "label": "集中力",
-   "effect": "術力が2増える。技術・治療・防壁の量が上がる。",
+   "label": "技術",
+   "effect": "技術が2増える。技術・治療・防壁の量が上がる。",
    "grammar": "基礎"
   },
   "foundation_guard": {
@@ -14406,7 +14406,7 @@
      "bps": 13000
     }
    },
-   "previewText": "腕力・術力が3割増える。受け切るより先に落とす。"
+   "previewText": "腕力・技術が3割増える。受け切るより先に落とす。"
   },
   "resilient": {
    "id": "resilient",
@@ -23270,7 +23270,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -23337,7 +23337,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -23346,7 +23346,7 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 25
        },
@@ -23355,13 +23355,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果[希]前列の味方へ受け止め（1）、効果1[上]仕掛けてきた敵へダメージ（25）、効果2[並]最も傷ついた味方へ防壁（6）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果（エピック）：前列の味方へ受け止め（1）、効果1（レア）：仕掛けてきた敵へダメージ（25）、効果2（コモン）：最も傷ついた味方へ防壁（6）。一連の解決につき1回。"
       ]
      }
     }
@@ -23473,7 +23473,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -23541,7 +23541,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        },
@@ -23550,7 +23550,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -23559,13 +23559,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ反応点",
         "amount": 1
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果[並]最も傷ついた味方へ防壁（18）、効果1[並]自分へ行動点（1）、効果2[希]自分へ反応点（1）。1 roundにつき2回。"
+       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果（コモン）：最も傷ついた味方へ防壁（18）、効果1（コモン）：自分へ行動点（1）、効果2（エピック）：自分へ反応点（1）。1 roundにつき2回。"
       ]
      }
     }
@@ -23673,7 +23673,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -23738,7 +23738,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -23747,13 +23747,13 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果[上]自分へ反応点（1）、効果1[並]前列の味方へ受け止め（1）。1 roundにつき1回。"
+       "自分の防壁が割れたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果（レア）：自分へ反応点（1）、効果1（コモン）：前列の味方へ受け止め（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -23842,7 +23842,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -23899,13 +23899,13 @@
         "ruleIndex": 0,
         "affixId": "pay_echo_strike",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "その相手へ追加ダメージ",
         "amount": 8
        }
       ],
       "lines": [
-       "自分の攻撃が敵のHPを削ったとき、基礎効果[並]その相手へ追加ダメージ（8）。一連の解決につき1回。"
+       "自分の攻撃が敵のHPを削ったとき、基礎効果（コモン）：その相手へ追加ダメージ（8）。一連の解決につき1回。"
       ]
      }
     }
@@ -24018,7 +24018,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -24081,7 +24081,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -24090,13 +24090,13 @@
         "ruleIndex": 0,
         "affixId": "pay_cull",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "最も弱った敵へダメージ",
         "amount": 7
        }
       ],
       "lines": [
-       "自分の攻撃が敵のHPを削ったとき、耐久1を払い、基礎効果[並]自分へ行動点（1）、効果1[上]最も弱った敵へダメージ（7）。一連の解決につき1回。"
+       "自分の攻撃が敵のHPを削ったとき、耐久1を払い、基礎効果（コモン）：自分へ行動点（1）、効果1（レア）：最も弱った敵へダメージ（7）。一連の解決につき1回。"
       ]
      }
     }
@@ -24204,7 +24204,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 503,
       "rarity": "common",
@@ -24265,7 +24265,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        },
@@ -24274,13 +24274,13 @@
         "ruleIndex": 0,
         "affixId": "pay_echo_strike",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "その相手へ追加ダメージ",
         "amount": 14
        }
       ],
       "lines": [
-       "自分の攻撃が敵のHPを削ったとき・その量が15以上のとき、基礎効果[並]自分へ防壁（14）、効果1[並]その相手へ追加ダメージ（14）。1 roundにつき1回。"
+       "自分の攻撃が敵のHPを削ったとき・その量が15以上のとき、基礎効果（コモン）：自分へ防壁（14）、効果1（コモン）：その相手へ追加ダメージ（14）。1 roundにつき1回。"
       ]
      }
     }
@@ -24403,7 +24403,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -24468,7 +24468,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -24477,7 +24477,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -24486,13 +24486,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき、HP3を払い、基礎効果[並]自分へ行動点（1）、効果1[上]前列の味方へ受け止め（1）、効果2[並]最も傷ついた味方へ防壁（6）。1 roundにつき1回。"
+       "自分の防壁が割れたとき、HP3を払い、基礎効果（コモン）：自分へ行動点（1）、効果1（レア）：前列の味方へ受け止め（1）、効果2（コモン）：最も傷ついた味方へ防壁（6）。1 roundにつき1回。"
       ]
      }
     }
@@ -24564,7 +24564,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -24623,13 +24623,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の準備が完了したとき、耐久1を払い、基礎効果[並]自分へ反応点（1）。1 roundにつき1回。"
+       "自分の準備が完了したとき、耐久1を払い、基礎効果（コモン）：自分へ反応点（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -24736,7 +24736,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -24798,7 +24798,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        },
@@ -24807,13 +24807,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・2 round 目まで・自分のHPが70%以上のとき、基礎効果[並]自分へ防壁（22）、効果1[並]仕掛けてきた敵へダメージ（22）。1戦につき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・2 round 目まで・自分のHPが70%以上のとき、基礎効果（コモン）：自分へ防壁（22）、効果1（コモン）：仕掛けてきた敵へダメージ（22）。1戦につき1回。"
       ]
      }
     }
@@ -24904,7 +24904,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -24966,7 +24966,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -24975,13 +24975,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき・自分が前列にいるとき、HP3を払い、基礎効果[並]自分へ反応点（1）、効果1[並]自分へ防壁（22）。一連の解決につき1回。"
+       "自分の防壁が割れたとき・自分が前列にいるとき、HP3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（コモン）：自分へ防壁（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -25060,7 +25060,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -25117,13 +25117,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        }
       ],
       "lines": [
-       "自分が動いたとき・自分が後列にいるとき、基礎効果[並]自分へ防壁（22）。1戦につき1回。"
+       "自分が動いたとき・自分が後列にいるとき、基礎効果（コモン）：自分へ防壁（22）。1戦につき1回。"
       ]
      }
     }
@@ -25241,7 +25241,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -25307,7 +25307,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        },
@@ -25316,7 +25316,7 @@
         "ruleIndex": 0,
         "affixId": "pay_cull",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "最も弱った敵へダメージ",
         "amount": 15
        },
@@ -25325,13 +25325,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき・反応点が1以上残っているとき、基礎効果[並]最も傷ついた味方へ防壁（18）、効果1[希]最も弱った敵へダメージ（15）、効果2[並]自分へ防壁（22）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき・反応点が1以上残っているとき、基礎効果（コモン）：最も傷ついた味方へ防壁（18）、効果1（エピック）：最も弱った敵へダメージ（15）、効果2（コモン）：自分へ防壁（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -25434,7 +25434,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -25495,7 +25495,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        },
@@ -25504,13 +25504,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 14
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・自分に集中が付いているとき、基礎効果[並]自分へ防壁（14）、効果1[並]仕掛けてきた敵へダメージ（14）。1 roundにつき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・自分に集中が付いているとき、基礎効果（コモン）：自分へ防壁（14）、効果1（コモン）：仕掛けてきた敵へダメージ（14）。1 roundにつき1回。"
       ]
      }
     }
@@ -25600,7 +25600,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -25662,7 +25662,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -25671,13 +25671,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分が動いたとき、反応点1を払い、基礎効果[並]自分へ集中（1）、効果1[並]最も傷ついた味方へ防壁（11）。1戦につき1回。"
+       "自分が動いたとき、反応点1を払い、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：最も傷ついた味方へ防壁（11）。1戦につき1回。"
       ]
      }
     }
@@ -25795,7 +25795,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -25862,7 +25862,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -25871,7 +25871,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -25880,13 +25880,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分の準備が完了したとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果[並]自分へ反応点（1）、効果1[上]自分へ行動点（1）、効果2[並]最も傷ついた味方へ防壁（11）。1 roundにつき1回。"
+       "自分の準備が完了したとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（レア）：自分へ行動点（1）、効果2（コモン）：最も傷ついた味方へ防壁（11）。1 roundにつき1回。"
       ]
      }
     }
@@ -25979,7 +25979,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 115,
       "rarity": "rare",
@@ -26043,7 +26043,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -26052,13 +26052,13 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の行動が解決したとき、反応点1を払い、基礎効果[並]自分へ集中（1）、効果1[上]前列の味方へ受け止め（1）。一連の解決につき1回。"
+       "自分の行動が解決したとき、反応点1を払い、基礎効果（コモン）：自分へ集中（1）、効果1（レア）：前列の味方へ受け止め（1）。一連の解決につき1回。"
       ]
      }
     }
@@ -26165,7 +26165,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -26227,7 +26227,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -26236,13 +26236,13 @@
         "ruleIndex": 0,
         "affixId": "pay_breach",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も硬い敵へダメージ",
         "amount": 18
        }
       ],
       "lines": [
-       "自分の準備が完了したとき・自分のHPが70%以上のとき・この round に自分が2回以上行動したあと、基礎効果[並]自分へ集中（1）、効果1[並]最も硬い敵へダメージ（18）。一連の解決につき1回。"
+       "自分の準備が完了したとき・自分のHPが70%以上のとき・この round に自分が2回以上行動したあと、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：最も硬い敵へダメージ（18）。一連の解決につき1回。"
       ]
      }
     }
@@ -26413,7 +26413,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -26496,7 +26496,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -26505,7 +26505,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -26514,7 +26514,7 @@
         "ruleIndex": 1,
         "affixId": "pay_ward",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ防壁",
         "amount": 30
        },
@@ -26523,14 +26523,14 @@
         "ruleIndex": 1,
         "affixId": "pay_riposte",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 16
        }
       ],
       "lines": [
-       "自分が敵へ状態を刻んだとき、基礎効果[並]自分へ集中（1）、効果1[並]前列の味方へ受け止め（1）。一連の解決につき1回。",
-       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが50%以下のとき、基礎効果[希]自分へ防壁（30）、効果1[上]仕掛けてきた敵へダメージ（16）。1戦につき1回。"
+       "自分が敵へ状態を刻んだとき、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：前列の味方へ受け止め（1）。一連の解決につき1回。",
+       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが50%以下のとき、基礎効果（エピック）：自分へ防壁（30）、効果1（レア）：仕掛けてきた敵へダメージ（16）。1戦につき1回。"
       ]
      }
     }
@@ -26608,7 +26608,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -26666,13 +26666,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        }
       ],
       "lines": [
-       "自分が動いたとき、防壁3を払い、基礎効果[並]自分へ行動点（1）。一連の解決につき1回。"
+       "自分が動いたとき、防壁3を払い、基礎効果（コモン）：自分へ行動点（1）。一連の解決につき1回。"
       ]
      }
     }
@@ -26766,7 +26766,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -26827,7 +26827,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        },
@@ -26836,13 +26836,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        }
       ],
       "lines": [
-       "自分が動いたとき・自分が前列にいるとき、基礎効果[並]最も傷ついた味方へ防壁（11）、効果1[並]自分へ防壁（14）。一連の解決につき1回。"
+       "自分が動いたとき・自分が前列にいるとき、基礎効果（コモン）：最も傷ついた味方へ防壁（11）、効果1（コモン）：自分へ防壁（14）。一連の解決につき1回。"
       ]
      }
     }
@@ -26949,7 +26949,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -27011,7 +27011,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        },
@@ -27020,13 +27020,13 @@
         "ruleIndex": 0,
         "affixId": "pay_breach",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も硬い敵へダメージ",
         "amount": 11
        }
       ],
       "lines": [
-       "自分の準備が完了したとき・自分が後列にいるとき、反応点1を払い、基礎効果[並]自分へ防壁（22）、効果1[並]最も硬い敵へダメージ（11）。一連の解決につき1回。"
+       "自分の準備が完了したとき・自分が後列にいるとき、反応点1を払い、基礎効果（コモン）：自分へ防壁（22）、効果1（コモン）：最も硬い敵へダメージ（11）。一連の解決につき1回。"
       ]
      }
     }
@@ -27119,7 +27119,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -27181,7 +27181,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        },
@@ -27190,13 +27190,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        }
       ],
       "lines": [
-       "自分が動いたとき、HP3を払い、基礎効果[並]最も傷ついた味方へ防壁（6）、効果1[並]自分へ防壁（8）。一連の解決につき1回。"
+       "自分が動いたとき、HP3を払い、基礎効果（コモン）：最も傷ついた味方へ防壁（6）、効果1（コモン）：自分へ防壁（8）。一連の解決につき1回。"
       ]
      }
     }
@@ -27301,7 +27301,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -27363,7 +27363,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -27372,13 +27372,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・自分が後列にいるとき・自分のHPが50%以下のとき、基礎効果[並]自分へ集中（1）、効果1[並]仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・自分が後列にいるとき・自分のHPが50%以下のとき、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -27503,7 +27503,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -27570,7 +27570,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -27579,7 +27579,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -27588,13 +27588,13 @@
         "ruleIndex": 0,
         "affixId": "pay_breach",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も硬い敵へダメージ",
         "amount": 18
        }
       ],
       "lines": [
-       "自分が動いたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果[並]前列の味方へ受け止め（1）、効果1[上]自分へ反応点（1）、効果2[並]最も硬い敵へダメージ（18）。1戦につき1回。"
+       "自分が動いたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果（コモン）：前列の味方へ受け止め（1）、効果1（レア）：自分へ反応点（1）、効果2（コモン）：最も硬い敵へダメージ（18）。1戦につき1回。"
       ]
      }
     }
@@ -27694,7 +27694,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -27754,7 +27754,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        },
@@ -27763,13 +27763,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき・自分のHPが70%以上のとき、基礎効果[並]自分へ防壁（14）、効果1[並]最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
+       "自分の防壁が割れたとき・自分のHPが70%以上のとき、基礎効果（コモン）：自分へ防壁（14）、効果1（コモン）：最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
       ]
      }
     }
@@ -27857,7 +27857,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -27916,7 +27916,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        },
@@ -27925,13 +27925,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        }
       ],
       "lines": [
-       "自分の準備が完了したとき、基礎効果[並]最も傷ついた味方へ防壁（6）、効果1[並]自分へ防壁（8）。一連の解決につき1回。"
+       "自分の準備が完了したとき、基礎効果（コモン）：最も傷ついた味方へ防壁（6）、効果1（コモン）：自分へ防壁（8）。一連の解決につき1回。"
       ]
      }
     }
@@ -28043,7 +28043,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -28109,7 +28109,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "legendary",
-        "rarityLabel": "遺物",
+        "rarityLabel": "レジェンダリー",
         "summary": "自分へ行動点",
         "amount": 2
        },
@@ -28118,7 +28118,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "legendary",
-        "rarityLabel": "遺物",
+        "rarityLabel": "レジェンダリー",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 29
        },
@@ -28127,13 +28127,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ防壁",
         "amount": 25
        }
       ],
       "lines": [
-       "自分の準備が完了したとき、防壁3を払い、基礎効果[遺物]自分へ行動点（2）、効果1[遺物]最も傷ついた味方へ防壁（29）、効果2[上]自分へ防壁（25）。一連の解決につき2回。"
+       "自分の準備が完了したとき、防壁3を払い、基礎効果（レジェンダリー）：自分へ行動点（2）、効果1（レジェンダリー）：最も傷ついた味方へ防壁（29）、効果2（レア）：自分へ防壁（25）。一連の解決につき2回。"
       ]
      }
     }
@@ -28390,7 +28390,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -28489,7 +28489,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "legendary",
-        "rarityLabel": "遺物",
+        "rarityLabel": "レジェンダリー",
         "summary": "自分へ行動点",
         "amount": 2
        },
@@ -28498,7 +28498,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        },
@@ -28507,7 +28507,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -28516,7 +28516,7 @@
         "ruleIndex": 1,
         "affixId": "pay_ward",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ防壁",
         "amount": 16
        },
@@ -28525,7 +28525,7 @@
         "ruleIndex": 2,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -28534,15 +28534,15 @@
         "ruleIndex": 2,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果[遺物]自分へ行動点（2）、効果1[並]最も傷ついた味方へ防壁（6）、効果2[上]前列の味方へ受け止め（1）。1戦につき2回。",
-       "自分が動いたとき、基礎効果[上]自分へ防壁（16）。一連の解決につき1回。",
-       "自分の準備が完了したとき、防壁3を払い、基礎効果[並]自分へ反応点（1）、効果1[並]前列の味方へ受け止め（1）。1 roundにつき1回。"
+       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果（レジェンダリー）：自分へ行動点（2）、効果1（コモン）：最も傷ついた味方へ防壁（6）、効果2（レア）：前列の味方へ受け止め（1）。1戦につき2回。",
+       "自分が動いたとき、基礎効果（レア）：自分へ防壁（16）。一連の解決につき1回。",
+       "自分の準備が完了したとき、防壁3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（コモン）：前列の味方へ受け止め（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -28650,7 +28650,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -28713,7 +28713,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -28722,13 +28722,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果[上]前列の味方へ受け止め（1）、効果1[並]自分へ防壁（14）。一連の解決につき1回。"
+       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果（レア）：前列の味方へ受け止め（1）、効果1（コモン）：自分へ防壁（14）。一連の解決につき1回。"
       ]
      }
     }
@@ -28823,7 +28823,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 504,
       "rarity": "common",
@@ -28884,7 +28884,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        },
@@ -28893,13 +28893,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 8
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき、反応点1を払い、基礎効果[並]自分へ防壁（8）、効果1[並]仕掛けてきた敵へダメージ（8）。1 roundにつき1回。"
+       "自分がHPダメージを受けたとき、反応点1を払い、基礎効果（コモン）：自分へ防壁（8）、効果1（コモン）：仕掛けてきた敵へダメージ（8）。1 roundにつき1回。"
       ]
      }
     }
@@ -29114,7 +29114,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -29213,7 +29213,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29222,7 +29222,7 @@
         "ruleIndex": 1,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -29231,7 +29231,7 @@
         "ruleIndex": 1,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29240,7 +29240,7 @@
         "ruleIndex": 2,
         "affixId": "pay_relay_rp",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -29249,15 +29249,15 @@
         "ruleIndex": 2,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき、HP3を払い、基礎効果[並]自分へ行動点（1）。1 roundにつき1回。",
-       "自分の準備が完了したとき、防壁3を払い、基礎効果[並]自分へ反応点（1）、効果1[並]自分へ行動点（1）。一連の解決につき1回。",
-       "round 終わりに行動権が余っていたとき・自分が前列にいるとき、HP3を払い、基礎効果[希]自分へ反応点（1）、効果1[並]前列の味方へ受け止め（1）。1 roundにつき2回。"
+       "自分の防壁が割れたとき、HP3を払い、基礎効果（コモン）：自分へ行動点（1）。1 roundにつき1回。",
+       "自分の準備が完了したとき、防壁3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（コモン）：自分へ行動点（1）。一連の解決につき1回。",
+       "round 終わりに行動権が余っていたとき・自分が前列にいるとき、HP3を払い、基礎効果（エピック）：自分へ反応点（1）、効果1（コモン）：前列の味方へ受け止め（1）。1 roundにつき2回。"
       ]
      }
     }
@@ -29329,7 +29329,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -29386,13 +29386,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果[並]自分へ行動点（1）。1 roundにつき1回。"
+       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果（コモン）：自分へ行動点（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -29488,7 +29488,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -29546,13 +29546,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき・反応点が1以上残っているとき・自分が後列にいるとき、基礎効果[並]仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき・反応点が1以上残っているとき・自分が後列にいるとき、基礎効果（コモン）：仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -29637,7 +29637,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -29699,7 +29699,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29708,13 +29708,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果[上]自分へ行動点（1）、効果1[並]自分へ防壁（8）。1 roundにつき1回。"
+       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果（レア）：自分へ行動点（1）、効果1（コモン）：自分へ防壁（8）。1 roundにつき1回。"
       ]
      }
     }
@@ -29819,7 +29819,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -29881,7 +29881,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29890,13 +29890,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき・自分が後列にいるとき、耐久1を払い、基礎効果[並]自分へ行動点（1）、効果1[並]最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき・自分が後列にいるとき、耐久1を払い、基礎効果（コモン）：自分へ行動点（1）、効果1（コモン）：最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
       ]
      }
     }
@@ -30085,7 +30085,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-10",
+      "contentContractVersion": "ecology-content-contract-11",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1115,
       "rarity": "epic",
@@ -30170,7 +30170,7 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        },
@@ -30179,7 +30179,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ行動点",
         "amount": 2
        },
@@ -30188,7 +30188,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        },
@@ -30197,14 +30197,14 @@
         "ruleIndex": 1,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが70%以上のとき・3 round 目以降、防壁3を払い、基礎効果[並]仕掛けてきた敵へダメージ（22）、効果1[希]自分へ行動点（2）、効果2[並]最も傷ついた味方へ防壁（18）。一連の解決につき1回。",
-       "自分の防壁が割れたとき・自分のHPが70%以上のとき・自分が後列にいるとき、基礎効果[並]最も傷ついた味方へ防壁（18）。1戦につき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが70%以上のとき・3 round 目以降、防壁3を払い、基礎効果（コモン）：仕掛けてきた敵へダメージ（22）、効果1（エピック）：自分へ行動点（2）、効果2（コモン）：最も傷ついた味方へ防壁（18）。一連の解決につき1回。",
+       "自分の防壁が割れたとき・自分のHPが70%以上のとき・自分が後列にいるとき、基礎効果（コモン）：最も傷ついた味方へ防壁（18）。1戦につき1回。"
       ]
      }
     }

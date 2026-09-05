@@ -826,9 +826,74 @@ function generatedItem(equipmentId) {
   return state.run?.generatedEquipment?.[equipmentId] ?? null;
 }
 
+const RARITY_RANK = Object.freeze(
+  Object.fromEntries(RARITIES.map((rarity, index) => [rarity, index + 1])),
+);
+
 function rarityChip(rarity) {
   if (!rarity) return "";
-  return "<span class=\"rarity-chip rarity-" + esc(rarity) + "\">" + esc(RARITY_LABEL[rarity] ?? rarity) + "</span>";
+  const safe = RARITY_RANK[rarity] ? rarity : "common";
+  const label = RARITY_LABEL[rarity] ?? rarity;
+  const rank = RARITY_RANK[rarity] ?? 1;
+  return "<span class=\"rarity-chip rarity-" + esc(safe)
+    + "\" title=\"装備レアリティ: " + esc(label) + "（格 " + rank + "/" + RARITIES.length + "）\">"
+    + "<span class=\"rarity-rank\">" + rank + "</span><span>" + esc(label) + "</span></span>";
+}
+
+function effectRarityBadge(rarity, label = null) {
+  const safe = RARITY_RANK[rarity] ? rarity : "common";
+  const display = label ?? RARITY_LABEL[rarity] ?? rarity;
+  const rank = RARITY_RANK[rarity] ?? 1;
+  return "<span class=\"effect-rarity rarity-" + esc(safe)
+    + "\" title=\"効果のレアリティ: " + esc(display) + "（格 " + rank + "/" + RARITIES.length + "）\">"
+    + "<span class=\"effect-rarity-rank\">" + rank + "</span>" + esc(display) + "</span>";
+}
+
+function effectSlotLabel(slot) {
+  if (slot === "base") return "基礎効果";
+  const match = /^effect(\d+)$/.exec(String(slot ?? ""));
+  return match ? "追加効果" + match[1] : "効果";
+}
+
+function equipmentReadoutHtml(item, { compact = false } = {}) {
+  const readout = item?.readout;
+  // 表示用コピーだけを並べ替える。保存データの effect 順と descriptor は変更しない。
+  const effects = Array.isArray(readout?.effects)
+    ? readout.effects.map((effect, index) => ({ effect, index }))
+      .sort((a, b) => {
+        const rarityDiff = (RARITY_RANK[b.effect.rarity] ?? 0) - (RARITY_RANK[a.effect.rarity] ?? 0);
+        return rarityDiff || a.index - b.index;
+      })
+      .map(({ effect }) => effect)
+    : [];
+  const lines = Array.isArray(readout?.lines) ? readout.lines : [];
+  const ruleLines = lines.map((line) => "<p class=\"equipment-rule-line\">" + esc(line) + "</p>").join("");
+  const keystone = readout?.keystone
+    ? "<p class=\"keystone-line\">" + esc(readout.keystone) + "</p>"
+    : "";
+  if (!effects.length) return ruleLines + keystone;
+
+  const details = effects.map((effect) => {
+    const amount = effect.amount == null ? "" : "（" + esc(effect.amount) + "）";
+    return "<div class=\"equipment-effect-detail\">"
+      + "<span class=\"effect-detail-label\">" + esc(effectSlotLabel(effect.slot)) + "</span>"
+      + effectRarityBadge(effect.rarity, effect.rarityLabel)
+      + "<span class=\"effect-detail-summary\">" + esc(effect.summary) + amount + "</span></div>";
+  }).join("");
+  return (compact ? "" : "<div class=\"equipment-effect-details\">" + details + "</div>")
+    + ruleLines + keystone;
+}
+
+function equipmentRarityCallout(item) {
+  const rarity = item?.rarity;
+  const rank = RARITY_RANK[rarity] ?? 0;
+  const effects = Array.isArray(item?.readout?.effects) ? item.readout.effects : [];
+  if (rank < 4 || !effects.length) return "";
+  const sameRank = effects.filter((effect) => (RARITY_RANK[effect.rarity] ?? 0) === rank).length;
+  const safe = RARITY_RANK[rarity] ? rarity : "common";
+  return "<p class=\"rarity-callout rarity-" + esc(safe) + "\">"
+    + "<span class=\"rarity-callout-mark\">✦</span>"
+    + esc(RARITY_LABEL[rarity] ?? rarity) + "級 — 最高格の効果 " + sameRank + "件</p>";
 }
 
 function gearLines(equipmentId) {
@@ -1198,7 +1263,7 @@ function renderGuild() {
   // R6 §9.5 — 上限なしの鍛錬。**現在の合計bonus、丸め後stat、次に整数が増えるlevelを出す。**
   // 効果が見えないことを隠さない。
   const trainingRows = Object.entries(stats.detail).map(([axis, detail]) => {
-    const axisLabel = { might: "腕力", focus: "術力", guard: "受け", vitality: "体力" }[axis];
+    const axisLabel = { might: "腕力", focus: "技術", guard: "受け", vitality: "体力" }[axis];
     const nextText = detail.nextVisibleLevel === null
       ? "これ以上は表示が変わりません"
       : detail.nextVisibleLevel === detail.level + 1
@@ -1465,14 +1530,15 @@ function renderBlueprints() {
   const cards = entries.map((entry) => {
     const verdict = blueprintCompatibility(entry);
     const chosen = carried.includes(entry.blueprintId);
-    const lines = (entry.readout?.lines ?? []).map((line) => "<p>" + esc(line) + "</p>").join("");
+    const readout = equipmentReadoutHtml({ readout: entry.readout }, { compact: false });
     const origin = entry.acquisitions[0] ?? {};
-    return "<article class=\"reward-card blueprint-card" + (chosen ? " selected" : "")
+    return "<article class=\"reward-card blueprint-card rarity-card-" + esc(entry.rarity ?? "common")
+      + (chosen ? " selected" : "")
       + (verdict.ok ? "" : " disabled") + "\">"
       + "<div class=\"reward-kind kind-equipment\">Blueprint</div>"
       + "<h3>" + esc(entry.definition.displayName) + rarityChip(entry.rarity) + "</h3>"
-      + lines
-      + (entry.readout?.keystone ? "<p class=\"keystone-line\">" + esc(entry.readout.keystone) + "</p>" : "")
+      + equipmentRarityCallout({ rarity: entry.rarity, readout: entry.readout })
+      + readout
       + "<small>耐久 " + entry.definition.maxDurability + " · 取得 " + entry.acquisitions.length + "回</small>"
       // R12 §4.B — **設計図は遠征をまたいで残る唯一の物である。**
       // どの遠征のどこで拾ったのかを人の言葉で残すと、archive が記録になる。
@@ -1934,7 +2000,7 @@ function renderRoster() {
       + "</b><small>" + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
       + (inParty ? "✓" : "＋") + "</span></button><div class=\"character-stats\"><span>HP "
       + stats.stats.maxHp + trainedMark(stats, "vitality") + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
-      + "</span><span>術力 " + stats.stats.focus + trainedMark(stats, "focus")
+      + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
       + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
       + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
       + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
@@ -2195,14 +2261,14 @@ function renderEquipment() {
     const max = info?.maxDurability ?? 1;
     const durability = equipmentDurability(id);
     const item = generatedItem(id);
-    const lines = gearLines(id);
+    const readout = item
+      ? equipmentReadoutHtml(item, { compact: true })
+      : "<small>" + esc(info?.effect ?? "") + "</small>";
     return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " depleted" : "")
-      + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
+      + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
       + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(info?.label ?? id)
       + rarityChip(item?.rarity) + (item?.carried ? "<span class=\"carried-chip\">持込</span>" : "")
-      + "</b>" + (lines.length
-        ? lines.map((line) => "<small>" + esc(line) + "</small>").join("")
-        : "<small>" + esc(info?.effect ?? "") + "</small>")
+      + "</b>" + readout
       + "</span><span class=\"gear-state\">"
       + (owner ? characterName(owner) : "手元") + "<br>戦闘耐久 " + durability + "/" + max + "</span></button>"
       + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
@@ -2486,7 +2552,7 @@ function renderBattlePreview() {
     // R11 §5 — 巻き戻したあとの一戦だけ、見るべき軸を名指しで出す。
     + (state.prologueActive && state.prologueStage === "retry"
       ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
-        + "腕力で振る武器は後列から出すと大きく落ち、集中で通す技は落ちない。"
+        + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
         + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
         + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
       : "")
@@ -3238,15 +3304,16 @@ function renderReward() {
       // 良くするもので、読める量を売る仕組みにはしない（R8 §11 の完全開示）。
       const item = offer.item ?? null;
       const info = item
-        ? { label: item.definition.displayName, effect: "", grammar: "等級 · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
+        ? { label: item.definition.displayName, effect: "", grammar: "装備レアリティ · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
         : EQUIPMENT[offer.equipmentId];
       const body = item
-        ? (item.readout?.lines ?? []).map((line) => "<p>" + esc(line) + "</p>").join("")
-          + (item.readout?.keystone ? "<p class=\"keystone-line\">" + esc(item.readout.keystone) + "</p>" : "")
+        ? equipmentRarityCallout(item)
+          + equipmentReadoutHtml(item, { compact: false })
           // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
           + (generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
         : "<p>" + esc(info?.effect ?? "") + "</p>";
-      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
+      return "<article class=\"reward-card equipment-reward"
+        + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
         + esc(info?.label ?? offer.equipmentId) + rarityChip(item?.rarity) + "</h3>" + body + "<small>"
         + esc(info?.grammar ?? "") + " · 戦闘耐久 " + (info?.maxDurability ?? 1) + "</small>"
         + (full ? "<p class=\"muted\">持ち物が" + INVENTORY_LIMIT + "品で一杯です。装備画面で一品を分解してください。</p>" : "")
