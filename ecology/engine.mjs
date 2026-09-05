@@ -391,16 +391,10 @@ function ruleSourceIntact(state, entry) {
   return true;
 }
 
-// §5.7 — deterministic rule order. A player's reactive order is the first
-// tie-break among that actor's reactive skills for one trigger window; the
-// remaining keys keep cross-actor and non-reactive rules deterministic.
+// §5.7 — deterministic base rule order. The reactive loadout order is applied
+// in a separate grouping pass below; keeping this comparator unchanged and
+// total avoids making Array#sort depend on the engine version.
 function compareRuleEntries(a, b) {
-  if (a.ownerId === b.ownerId
-      && a.ruleSource === "reactive_skill"
-      && b.ruleSource === "reactive_skill"
-      && a.skillOrder !== b.skillOrder) {
-    return a.skillOrder - b.skillOrder;
-  }
   if (a.rule.priority !== b.rule.priority) return a.rule.priority - b.rule.priority;
   if (a.initiativeRank !== b.initiativeRank) return a.initiativeRank - b.initiativeRank;
   if (a.positionRank !== b.positionRank) return a.positionRank - b.positionRank;
@@ -414,6 +408,45 @@ function compareRuleEntries(a, b) {
   const equipmentB = b.equipmentInstanceId ?? "";
   if (equipmentA !== equipmentB) return equipmentA < equipmentB ? -1 : 1;
   return 0;
+}
+
+// A dispatch call already narrows candidates to one event type and timing.
+// Use that trigger window as the grouping key so all reactive skills owned by
+// one actor are kept together, then impose the player's top-to-bottom order
+// inside that block. This is deliberately a post-sort pass: a pairwise
+// comparator that sometimes ignores priority for reactive entries is not
+// transitive when signature/equipment rules are mixed in the same actor.
+function reactiveGroupKey(entry) {
+  if (entry.ruleSource !== "reactive_skill" || !entry.ownerId) return null;
+  return entry.ownerId + "\u0000" + entry.rule.listenTo + "\u0000" + entry.rule.timing;
+}
+
+function orderRuleCandidates(candidates) {
+  const sorted = [...candidates].sort(compareRuleEntries);
+  const groups = new Map();
+  for (const entry of sorted) {
+    const key = reactiveGroupKey(entry);
+    if (key === null) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(entry);
+  }
+  for (const entries of groups.values()) {
+    entries.sort((a, b) => a.skillOrder - b.skillOrder);
+  }
+
+  const output = [];
+  const emitted = new Set();
+  for (const entry of sorted) {
+    const key = reactiveGroupKey(entry);
+    if (key === null) {
+      output.push(entry);
+      continue;
+    }
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    output.push(...groups.get(key));
+  }
+  return output;
 }
 
 function dispatchRules(state, event, timing, pendingFrame) {
@@ -430,8 +463,7 @@ function dispatchRules(state, event, timing, pendingFrame) {
       ownerId: entry.owner ? entry.owner.instanceId : "~region",
     });
   }
-  candidates.sort(compareRuleEntries);
-  for (const candidate of candidates) {
+  for (const candidate of orderRuleCandidates(candidates)) {
     fireRule(state, event, candidate, pendingFrame);
   }
 }
