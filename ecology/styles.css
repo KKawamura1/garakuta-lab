@@ -1535,39 +1535,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   line-height: 1.1;
   white-space: nowrap;
 }
-.effect-quality-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 4px;
-  border-radius: 5px;
-  background: rgba(14,20,22,.42);
-}
-.effect-quality-slot {
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-}
-.equipment-quality {
-  display: grid;
-  gap: 4px;
-  margin: 6px 0 7px;
-  padding: 5px 6px;
-  border: 1px solid rgba(58,77,79,.7);
-  border-radius: 7px;
-  background: rgba(14,20,22,.28);
-}
-.equipment-quality-label {
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .08em;
-}
-.effect-quality-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
 .equipment-effect-details {
   display: grid;
   gap: 4px;
