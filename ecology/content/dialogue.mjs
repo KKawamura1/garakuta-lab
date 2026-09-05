@@ -248,7 +248,7 @@ export const DIALOGUE = Object.freeze({
   stage_2_act1: Object.freeze({
     cast: Object.freeze([stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right")]),
     lines: Object.freeze([
-      narrate("崩れた回廊の脇。小さい影が屈んで、割れた把手を布に包んでいる。"),
+      narrate("崩れた回廊の脇。ヒバナが屈んで、割れた把手を布に包んでいる。"),
       say("guardian", "見て見て！ これ光るんだよ、こうやって傾けると！ ほら！", "smile"),
       say("lancer", "……光っては、ないです。", "neutral"),
       say("guardian", "光るってば！ さっきは光ったもん！", "firm"),
@@ -287,6 +287,10 @@ export const DIALOGUE = Object.freeze({
       say("warden", "……いま、当たる位置だったな。", "neutral"),
       say("guardian", "でしょ！ あたし、わかるの！", "smile"),
       say("mender", "説明になっていません。ですが、合っています。", "wry"),
+      say("warden", "名前は。", "neutral"),
+      say("guardian", "ヒバナ！", "smile"),
+      say("mender", "照会は。", "neutral"),
+      say("warden", "出ない。詰所にも協会にも、この歳の子の記録が一件も無い。拾われた記録も、生まれた記録もだ。", "calm"),
     ]),
   }),
 
@@ -295,10 +299,6 @@ export const DIALOGUE = Object.freeze({
       stand("guardian", "center"), stand("warden", "left"), stand("mender", "right"),
     ]),
     lines: Object.freeze([
-      say("warden", "名前は。", "neutral"),
-      say("guardian", "ヒバナ！", "smile"),
-      say("mender", "照会は。", "neutral"),
-      say("warden", "出ない。詰所にも協会にも、この歳の子の記録が一件も無い。拾われた記録も、生まれた記録もだ。", "calm"),
       say("guardian", "……ないの？ あたしの、ない？", "worry"),
       say("warden", "ないな。", "neutral"),
       say("warden", "じゃあ今日から作る。名前と、歳と、拾った日と。全部こっちで書く。", "smile"),
