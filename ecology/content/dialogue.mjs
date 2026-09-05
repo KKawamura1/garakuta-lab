@@ -72,6 +72,20 @@ export const DIALOGUE = Object.freeze({
   // R13 の初稿はここで兄の失踪を出していた。**開幕の一枚が喪失の場面になり、
   // ゴウが最初から寡黙になっていた**（作者評価・R15）。兄はゲンゾウが Stage 3 で
   // 出すので、伏線を Stage 0 に置く必要はない。
+  //
+  // ---- 「三分」は消さない（R15・作者指摘）------------------------------------
+  //
+  // 画面は**巻き戻す前の1戦目にだけ戦闘予測を出さない**（`app.js` の
+  // `forecastVisible`「読めても直せない予測は、脅しにしかならない」）。
+  // つまり一戦目は先見機が無い。**会話はその理由を持たなければならない。**
+  //
+  //   opening  … 校正まであと三分。ゴウは座るが、一分で立って先に行く
+  //   defeat   … 読めないまま入ったので、ツグミが落ちる
+  //   rewound  … 「今日は、三分待つ。」——ここで先見機が手に入る
+  //   win      … 予測を見て立つ場所を変えると、同じ盤面が別の結果になる
+  //
+  // **負けたのはゴウが待たなかったからで、勝てるのは予測を見たからである。**
+  // 三分・一分・「三分待つ」の三点を外すと、**理由の無い敗北**に戻る。
   stage_0_act1: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
@@ -112,13 +126,13 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
       say("warden", "よし行くぞ！ 今日は当たりだ、勘が言ってる。先見機は？", "smile"),
-      say("mender", "座ってください。", "firm"),
-      say("warden", "いや、先見機。あれが無いと、次に何が出るか読めねえだろ。", "wry"),
-      say("mender", "校正中です。あと三分。——昨日、宿の階段で右足をかばってましたよね。二段目から下、ぜんぶ。三分あるので座ってください。", "firm"),
+      say("mender", "校正中です。あと三分。", "firm"),
+      say("warden", "三分？ 待ってられるか。無くたって入れるだろ、今までそうしてきた。", "wry"),
+      say("mender", "その今までで、指を二本折って、肋を一本やっています。座ってください。昨日も右足をかばってましたよね。宿の階段、二段目から下、ぜんぶ。", "firm"),
       say("warden", "……見てんじゃねえよ。", "wry"),
       say("mender", "見るのが仕事です。", "firm"),
-      narrate("坑の口から、ぬるい風が上がってくる。ゴウは籠を下ろした。"),
       say("warden", "……はい。", "calm"),
+      narrate("坑の口から、ぬるい風が上がってくる。ゴウは座った。——一分で立って、先に行った。"),
     ]),
   }),
 
@@ -135,11 +149,12 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
       narrate("同じ朝。同じ光。ツグミが電極を持って背伸びしている。"),
-      say("mender", "校正、終わりました！ ですから座ってくださいって、さっきから何度も——", "firm"),
+      say("mender", "校正、あと三分です。ですから座ってくださいって、さっきから何度も——", "firm"),
       say("warden", "……杭、使った。", "worry"),
       say("mender", "……え。わたし、どうなりました。", "shock"),
       say("warden", "死んだ。", "calm"),
       say("mender", "……そうですか。覚えていないことでは泣けませんので、先に直します。先見機、貸してください。", "firm"),
+      say("warden", "……ああ。今日は、三分待つ。", "calm"),
     ]),
   }),
 
