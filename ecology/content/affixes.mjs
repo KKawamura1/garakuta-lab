@@ -34,12 +34,12 @@ export const AFFIX_ROLES = Object.freeze(["source", "converter", "payoff", "stab
 // 旧4等級の ID は残し、新たに mythic / oopart を追加して Blueprint の既存記録を読めるようにする。
 export const RARITIES = Object.freeze(["common", "rare", "epic", "legendary", "mythic", "oopart"]);
 export const RARITY_BUDGET = Object.freeze({
-  common: Object.freeze({ rules: [1, 1], affixes: [1, 3], power: 4, keystones: 0 }),
-  rare: Object.freeze({ rules: [1, 2], affixes: [2, 5], power: 7, keystones: 0 }),
-  epic: Object.freeze({ rules: [1, 3], affixes: [3, 8], power: 11, keystones: 0 }),
-  legendary: Object.freeze({ rules: [1, 4], affixes: [4, 12], power: 16, keystones: 1 }),
-  mythic: Object.freeze({ rules: [2, 5], affixes: [6, 16], power: 22, keystones: 1 }),
-  oopart: Object.freeze({ rules: [2, 6], affixes: [8, 20], power: 24, keystones: 1 }),
+  common: Object.freeze({ rules: [1, 1], affixes: [1, 4], power: 4, keystones: 0 }),
+  rare: Object.freeze({ rules: [1, 2], affixes: [2, 6], power: 7, keystones: 0 }),
+  epic: Object.freeze({ rules: [1, 3], affixes: [3, 10], power: 11, keystones: 0 }),
+  legendary: Object.freeze({ rules: [1, 4], affixes: [4, 14], power: 16, keystones: 1 }),
+  mythic: Object.freeze({ rules: [2, 5], affixes: [6, 18], power: 22, keystones: 1 }),
+  oopart: Object.freeze({ rules: [2, 6], affixes: [8, 22], power: 24, keystones: 1 }),
 });
 
 // 引退した affix id。**別内容への再利用は禁止。**
