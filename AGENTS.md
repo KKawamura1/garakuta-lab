@@ -17,7 +17,7 @@
 
 ## ChatGPT Work
 
-- 実装時は最新 `main` からタスク専用の branch / git worktree を作り、他の Work と作業領域を共有しない。別 Work の差分を見つけたら触らず、専用 worktree を作り直して自分の変更だけを PR にする。
+- 実装ごとに最新 `main` から専用 branch / git worktree を作り、他の Work と共有しない。別 Work の差分を見つけたら触らず、自分の worktree を作り直す。
 
 ## 守ること
 
