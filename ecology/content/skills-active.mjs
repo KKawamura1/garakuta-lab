@@ -834,7 +834,7 @@ activeSkills.rally_line.intrinsicPredicates = [
   hasEligibleTarget(ALLY_REAR_HEALTHIEST),
 ];
 
-// **最大HPで伸びる唯一の量。**術力の低い前衛でも、体そのもので壁になれる。
+// **最大HPで伸びる唯一の量。**技術の低い前衛でも、体そのもので壁になれる。
 // 戦闘防壁なのでラウンドで消えない代わりに、量は小さい。
 //
 // **開幕2ラウンドに限る。**戦闘防壁はラウンドで消えないので、条件を付けないと

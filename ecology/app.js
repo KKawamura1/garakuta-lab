@@ -1198,7 +1198,7 @@ function renderGuild() {
   // R6 §9.5 — 上限なしの鍛錬。**現在の合計bonus、丸め後stat、次に整数が増えるlevelを出す。**
   // 効果が見えないことを隠さない。
   const trainingRows = Object.entries(stats.detail).map(([axis, detail]) => {
-    const axisLabel = { might: "腕力", focus: "術力", guard: "受け", vitality: "体力" }[axis];
+    const axisLabel = { might: "腕力", focus: "技術", guard: "受け", vitality: "体力" }[axis];
     const nextText = detail.nextVisibleLevel === null
       ? "これ以上は表示が変わりません"
       : detail.nextVisibleLevel === detail.level + 1
@@ -1934,7 +1934,7 @@ function renderRoster() {
       + "</b><small>" + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
       + (inParty ? "✓" : "＋") + "</span></button><div class=\"character-stats\"><span>HP "
       + stats.stats.maxHp + trainedMark(stats, "vitality") + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
-      + "</span><span>術力 " + stats.stats.focus + trainedMark(stats, "focus")
+      + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
       + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
       + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
       + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
@@ -2486,7 +2486,7 @@ function renderBattlePreview() {
     // R11 §5 — 巻き戻したあとの一戦だけ、見るべき軸を名指しで出す。
     + (state.prologueActive && state.prologueStage === "retry"
       ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
-        + "腕力で振る武器は後列から出すと大きく落ち、集中で通す技は落ちない。"
+        + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
         + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
         + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
       : "")

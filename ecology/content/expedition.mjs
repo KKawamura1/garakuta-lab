@@ -52,7 +52,7 @@ export const ENEMY_MUTATIONS = Object.freeze({
   heavy_hand: Object.freeze({
     id: "heavy_hand", displayName: "重手", threatCost: 2,
     patch: Object.freeze({ might: { bps: 13_000 }, focus: { bps: 13_000 } }),
-    previewText: "腕力・術力が3割増える。受け切るより先に落とす。",
+    previewText: "腕力・技術が3割増える。受け切るより先に落とす。",
   }),
   resilient: Object.freeze({
     id: "resilient", displayName: "厚み", threatCost: 3,

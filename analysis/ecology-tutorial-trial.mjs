@@ -230,7 +230,7 @@ try {
   const retryPreviewText = await bodyText();
   note("戦闘予測の使い方を示す",
     /戦闘予測/.test(retryPreviewText)
-      && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない|後列/.test(retryPreviewText));
+      && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(retryPreviewText));
   note("ツグミが自分ではなくゴウを手当てすると示す",
     /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(retryPreviewText));
   await click("自動戦闘を再生する");
