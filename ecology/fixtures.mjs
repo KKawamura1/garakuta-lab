@@ -257,6 +257,24 @@ export const INERT_BATTLE = battle("fixture_inert", {
   enemies: [enemy("e_still", "still_husk", "front_left")],
 });
 
+// §11.2 the action queue is formation-driven, not speed-driven. Every actor
+// occupies a distinct position and has no usable action, so this fixture only
+// observes the first activation order.
+export const POSITION_ORDER_BATTLE = battle("fixture_position_order", {
+  maxRounds: 1,
+  objective: { type: "survive_rounds", rounds: 1 },
+  allies: [
+    ally("a_front_center", "warden", "front_center", { tactics: [] }),
+    ally("a_front_right", "warden", "front_right", { tactics: [] }),
+    ally("a_rear_left", "warden", "rear_left", { tactics: [] }),
+  ],
+  enemies: [
+    enemy("e_front_left", "still_husk", "front_left"),
+    enemy("e_rear_center", "still_husk", "rear_center"),
+    enemy("e_rear_right", "still_husk", "rear_right"),
+  ],
+});
+
 // The counter-example that removed the stalemate rule. Waiting is a legal
 // tactic: nothing changes for two rounds and then the skill becomes usable. A
 // stalemate check over hp, barrier, preparation, status and durability would
@@ -521,6 +539,7 @@ export const ALL_FIXTURE_BATTLES = [
   FIELD_KIT_BATTLE,
   IMMEDIATE_BATTLE,
   INERT_BATTLE,
+  POSITION_ORDER_BATTLE,
   WAITING_TACTIC_BATTLE,
   BROKEN_KIT_BATTLE,
   FOCUSED_BARRIER_BATTLE,

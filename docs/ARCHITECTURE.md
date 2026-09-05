@@ -72,6 +72,8 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
   不一致を黙って読み飛ばしません。
 - 戦闘値は整数で表示し、effect 確定時に round-half-up します。AP、RP、hit 数、block 回数、
   round、charge は小整数を保ちます。
+- 行動 queue は `POSITION_ORDER` の隊列順（前列の左→中央→右、後列の左→中央→右）で
+  初期化し、`speed` は initiative には使いません。同位置の actor は instance ID で決着します。
 
 ## 5. イベント列
 

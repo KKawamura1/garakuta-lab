@@ -544,15 +544,14 @@ function startRound(state) {
     emit(state, { type: "round_started", tags: [], values: { round: state.round } });
   });
 
-  // §11.2 — speed descending, ties broken by position then instance id. Side is
-  // never part of the key, so neither side gets an implicit head start.
+  // §11.2 — the action queue follows the formation: front row before rear row,
+  // then left to right within each row. The side is not a key, so a shared
+  // position is resolved by instance id like every other deterministic tie.
   const living = allActors(state).filter((actor) => actor.alive);
   living.sort((a, b) => {
-    if (a.speed !== b.speed) return b.speed - a.speed;
-    if (POSITION_ORDER[a.position] !== POSITION_ORDER[b.position]) {
-      return POSITION_ORDER[a.position] - POSITION_ORDER[b.position];
-    }
-    return a.instanceId < b.instanceId ? -1 : 1;
+    const byPosition = POSITION_ORDER[a.position] - POSITION_ORDER[b.position];
+    if (byPosition !== 0) return byPosition;
+    return a.instanceId < b.instanceId ? -1 : a.instanceId > b.instanceId ? 1 : 0;
   });
   state.queue = living.map((actor) => actor.instanceId);
   living.forEach((actor, index) => {

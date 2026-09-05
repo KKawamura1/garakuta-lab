@@ -27,6 +27,7 @@ import {
   INERT_BATTLE,
   MOVE_BATTLE,
   PREPARATION_BATTLE,
+  POSITION_ORDER_BATTLE,
   REGION_BATTLE,
   REQUEUE_BATTLE,
   ROUND_LIMIT_BATTLE,
@@ -202,10 +203,10 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const result = run(COVER_BATTLE);
   const changes = of(result, "target_changed").filter((event) => event.round === 1);
   equal(changes.length, 2, "both covers fired on one action");
-  // Equal priority, so the tie-break is initiative rank: the lancer (speed 8)
-  // moves before the warden (speed 4).
-  equal(changes[0].sourceActorId, "a_lancer");
-  equal(changes[1].sourceActorId, "a_warden");
+  // Equal priority, so the tie-break follows formation order: the warden is
+  // in front_left, before the lancer in front_right.
+  equal(changes[0].sourceActorId, "a_warden");
+  equal(changes[1].sourceActorId, "a_lancer");
   equal(changes[0].values.from, "a_mender");
   equal(changes[1].values.from, "a_lancer");
   const started = of(result, "action_started").find((event) => event.sourceActorId === "e_husk");
@@ -598,20 +599,40 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
-// ---- §11.2 initiative ------------------------------------------------------------
+// ---- §11.2 formation initiative ---------------------------------------------------
 
 {
-  const result = run(FULL_PARTY_BATTLE);
-  // First activations only: a requeue appends to the tail and is checked
-  // separately, and an actor defeated before its turn never activates.
-  const roundOne = of(result, "actor_activated")
-    .filter((event) => event.round === 1 && event.values.activation === 1)
-    .map((event) => event.sourceActorId);
-  const byInitiative = ["a_scout", "a_lancer", "e_marker", "a_mender", "e_husk", "e_husk_b", "a_warden", "e_warden"];
+  const positionOrder = (content) =>
+    simulateBattle(POSITION_ORDER_BATTLE, content).events
+      .filter((event) => event.type === "actor_activated"
+        && event.round === 1
+        && event.values.activation === 1)
+      .map((event) => event.sourceActorId);
+  const expected = [
+    "e_front_left",
+    "a_front_center",
+    "a_front_right",
+    "a_rear_left",
+    "e_rear_center",
+    "e_rear_right",
+  ];
+
   assert.deepEqual(
-    roundOne,
-    byInitiative.filter((instanceId) => roundOne.includes(instanceId)),
-    "speed descending, then position, then instance id, with no side bias",
+    positionOrder(FIXTURE_CONTENT),
+    expected,
+    "formation order is front row, then rear row, left to right",
+  );
+  checks += 1;
+
+  // Speed remains available to content that explicitly targets the fastest or
+  // slowest actor, but it must not change the action queue.
+  const speedChanged = structuredClone(FIXTURE_CONTENT);
+  speedChanged.characters.warden.speed = 100;
+  speedChanged.enemyActors.still_husk.speed = 0;
+  assert.deepEqual(
+    positionOrder(speedChanged),
+    expected,
+    "speed does not affect initiative",
   );
   checks += 1;
 }
