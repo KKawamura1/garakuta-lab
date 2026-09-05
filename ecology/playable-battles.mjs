@@ -539,10 +539,11 @@ export function prologueEncounter() {
     spentThreat: 0,
     enemies: PROLOGUE.enemies.map((enemy) => {
       const definition = PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId];
+      const offenseBps = enemy.offenseBps ?? scaling.offenseBps;
       const stats = {
         maxHp: Math.max(1, scalePrologueEnemyStat(definition.maxHp, scaling.maxHpBps)),
-        might: scalePrologueEnemyStat(definition.might ?? 0, scaling.offenseBps),
-        focus: scalePrologueEnemyStat(definition.focus ?? 0, scaling.offenseBps),
+        might: scalePrologueEnemyStat(definition.might ?? 0, offenseBps),
+        focus: scalePrologueEnemyStat(definition.focus ?? 0, offenseBps),
         guard: definition.guard ?? 0,
       };
       return {
@@ -650,3 +651,4 @@ export function previewNextBattle(run, profile, encounterIndex, options = {}) {
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。
 export { ENEMY_TARGETING as enemyTargeting, SKILL_TREE_NODES, CHARACTER_DEFINITIONS };
+

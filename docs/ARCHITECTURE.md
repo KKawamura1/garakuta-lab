@@ -45,14 +45,15 @@
 | RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、隊、formation、run 技能点・取得技能・装着順・一時停止状態、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、開始 HP snapshot、preview / commit 状態 |
 
+技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
+
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
 `newRun` は新規遠征の技能点を0にし、固定の初期装備を `inventory` へ入れません。出発前に選んだ Blueprint の持込品だけは例外です。通常戦の勝利は `app.js` の一つの処理経路で、現在の `RunState.roster` 全員へ技能点1を自動付与します。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
-技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。`allyInput` がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
 初回の本編第1戦の報酬後だけ、`app.js` がキャンプの補給タブを開きます。案内の完了印は `ProfileState.storyFlags` に保存し、治療の実処理は既存の `progression.mjs` の `campTreat` を通します。
 
-序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・攻撃（`might` / `focus`）50%だけを適用し、通常戦の難易度や敵定義は変えません。
+序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
 
 ## 4. 決定性
@@ -78,6 +79,11 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
   不一致を黙って読み飛ばしません。
 - 戦闘値は整数で表示し、effect 確定時に round-half-up します。AP、RP、hit 数、block 回数、
   round、charge は小整数を保ちます。
+- 行動 queue は round 内に味方フェーズ→敵フェーズを交互に作ります。各フェーズでは
+  その側の living actor が隊列順（前列の左→中央→右、後列の左→中央→右）に一回だけ
+  起動し、AP2 の actor は次の自軍フェーズへ戻ります。round 開始時の initiativeRank は
+  味方を先に、次に敵を置きます。同じ側・同じ位置だけ instance ID で決着し、`speed` は
+  initiative に使いません。
 
 ## 5. イベント列
 
@@ -116,3 +122,4 @@ reward / rarity weight、技能点価格、power budget は調律可能な soft 
 - 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
 - D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。
 - 作者のプレイ結果を推測で補わず、未確認として止める。
+
