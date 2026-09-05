@@ -52,6 +52,7 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 初回の本編第1戦の報酬後だけ、`app.js` がキャンプの補給タブを開きます。案内の完了印は `ProfileState.storyFlags` に保存し、治療の実処理は既存の `progression.mjs` の `campTreat` を通します。
 
 序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・攻撃（`might` / `focus`）50%だけを適用し、通常戦の難易度や敵定義は変えません。
+巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
 
 ## 4. 決定性
 
