@@ -15,10 +15,20 @@
 // 人物が5人とも入れ替わったので、28本すべてを書き直している
 // （設計は `analysis/CAST_REBOOT_TWELVE_TOMORROWS.md`）。
 //
-// **台詞は長く、会話は短く。**旧稿は往復が多く、一往復あたりの中身が薄かった。
-// 一人の台詞に情報を二つ三つ積み、往復の数を減らす。とくに序盤は、早くゲームを
-// 触りたい人を待たせない。**「もう終わり？ もっと読みたいのに」で切り上げるのが正しい。**
-// story.test.mjs の 2〜6行という縛りは、この方針とそのまま噛み合う。
+// **台詞は長く、会話は短く。**往復を増やさずに、一人の台詞へ情報を二つ三つ積む。
+// 短い応酬だけで組むと、読み味は軽いが**何も伝わらない会話**になる。
+//
+// **行数のハードリミットは置かない（R13・作者判断）。**数で縛ると、一行に情報を
+// 詰められない場面まで一律に切り詰めることになり、「短いが伝わっていない」が通る。
+//
+// 代わりに**厚みの勾配**を置く。**プレイヤーは物語を読みに来たのではなく、
+// ゲームをしに来ている。**
+//
+//   Stage 0   … 一番薄い。まだ何も分かっていない人を待たせない
+//   Stage 1〜3 … 人が増えるぶん厚くする。ここで初めて関係が動く
+//   根城       … 一番厚い。**読みに行った人だけが開く場面**なので、長くてよい
+//
+// 「もう終わり？ もっと読みたいのに」で切り上げるのが正しいのは、序盤の話である。
 //
 // **属性を台詞で説明しない。**「私は賢いです」を言わせない。ヒバナは話す速度で、
 // ツグミは観察の細かさで、ナギは手が止まらないことで、ゲンゾウは間の長さで見せる。
@@ -49,9 +59,10 @@ export const DIALOGUE = Object.freeze({
   stage_0_act3: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("warden", "抜けたら詰所な。器材返して、それから帰る。", "neutral"),
-      say("mender", "順番を間違えないでくださいね。前は先に寝ました。", "wry"),
+      say("warden", "抜けたら詰所な。器材返して、借りを消して、それから帰る。順番は変えられない。", "neutral"),
+      say("mender", "前は先に寝ましたよね。籠の前で、立ったまま。", "wry"),
       say("warden", "……覚えてない。", "calm"),
+      say("mender", "わたしが起こしました。ですので、覚えていなくて結構です。", "calm"),
     ]),
   }),
 
@@ -91,8 +102,8 @@ export const DIALOGUE = Object.freeze({
   stage_0_prologue_win: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
-      say("mender", "……誰も落ちていません。さっきと同じ影なのに。", "shock"),
-      say("warden", "立つ場所を変えただけだ。それだけで、こうなる。", "calm"),
+      say("mender", "……誰も落ちていません。敵の数も、並びも、さっきと同じなのに。", "shock"),
+      say("warden", "立つ場所を変えた。それだけだ。条件が同じなら結果も同じで、変えたから、こうなる。", "calm"),
       say("mender", "「さっき」。やっぱり、何かありましたね。", "wry"),
       say("warden", "……台帳には書かない。", "worry"),
     ]),
@@ -101,9 +112,9 @@ export const DIALOGUE = Object.freeze({
   stage_0_end: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("warden", "抜けた。この先は、二人だと手が足りないな。", "neutral"),
+      say("warden", "抜けた。この先は二人だと足りない。数じゃなくて、前で受ける役がいない。", "neutral"),
       say("mender", "心当たりが？", "neutral"),
-      say("warden", "ひとり。頼むと断れない人がいる。", "wry"),
+      say("warden", "ひとり。頼むと断れない人がいる。腕は立つのに、断り方だけ知らない。", "wry"),
       say("mender", "……それ、褒めてます？", "worry"),
     ]),
   }),
@@ -114,8 +125,8 @@ export const DIALOGUE = Object.freeze({
     lines: Object.freeze([
       say("warden", "ナギ、前。", "neutral"),
       say("lancer", "えっ。あの、わたし、後ろのほうが……。", "shock"),
-      say("mender", "後ろだと届きません。それと、いまこの隊で一番硬いのはあなたです。", "calm"),
-      say("lancer", "…………はい。", "worry"),
+      say("mender", "後ろだと手が届きません。それと、あなたの受けは一発ごとに引きます。細かいのが何度も来る相手なら、前に立って一番減らないのはあなたです。", "calm"),
+      say("lancer", "…………はい。理屈は、わかりました。", "worry"),
     ]),
   }),
 
@@ -125,7 +136,7 @@ export const DIALOGUE = Object.freeze({
       narrate("ナギの肩当てに、浅いが長い裂け目がある。"),
       say("mender", "その傷、いま塞ぐ意味はありません。", "neutral"),
       say("lancer", "ですよね。だから言ってません。", "worry"),
-      say("mender", "言わないのと、気づかれないのは別です。", "calm"),
+      say("mender", "言わないのと、気づかれないのは別です。次に開いたら縫いますので、それまでは庇わないでください。", "calm"),
     ]),
   }),
 
@@ -143,7 +154,7 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("lancer", "center"), stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
       say("lancer", "えっ。あの、わたしですか。火力とか、無いですけど……。", "shock"),
-      say("warden", "いらねえよ。三発ぶん立っててくれれば、それでいい。", "wry"),
+      say("warden", "いらねえよ。削るのはツグミがやる。お前は三発ぶん立っててくれれば、それでいい。", "wry"),
       say("mender", "傷は診ます。ただし戻せるのは、いま受けたぶんだけです。", "calm"),
       say("lancer", "……断る理由を考えてるんですけど、出てこないです。", "worry"),
       say("warden", "じゃあ決まりだ。", "smile"),
@@ -153,10 +164,10 @@ export const DIALOGUE = Object.freeze({
   stage_1_end: Object.freeze({
     cast: Object.freeze([stand("lancer", "center"), stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("lancer", "うう……今日だけで、何発……。", "hurt"),
+      say("lancer", "うう……今日だけで、何発受けたと思ってるんですか……。", "hurt"),
       say("warden", "十一だ。数えてた。", "smile"),
       say("lancer", "数えてないで庇ってください！", "firm"),
-      say("mender", "同意します。", "calm"),
+      say("mender", "同意します。ちなみに十三です。二発は、本人が気づいていません。", "calm"),
     ]),
   }),
 
@@ -164,30 +175,30 @@ export const DIALOGUE = Object.freeze({
   stage_2_act1: Object.freeze({
     cast: Object.freeze([stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right")]),
     lines: Object.freeze([
-      narrate("崩れた回廊の脇。小さい影が屈んで、割れた把手を布に包んだ。"),
-      say("guardian", "見て見て！ これ、光る！", "smile"),
-      say("lancer", "……光ってないです。", "neutral"),
-      say("guardian", "光るってば！", "firm"),
+      narrate("崩れた回廊の脇。小さい影が屈んで、割れた把手を布に包んでいる。"),
+      say("guardian", "見て見て！ これ光るんだよ、こうやって傾けると！ ほら！", "smile"),
+      say("lancer", "……光っては、ないです。", "neutral"),
+      say("guardian", "光るってば！ さっきは光ったもん！", "firm"),
     ]),
   }),
 
   stage_2_act2: Object.freeze({
     cast: Object.freeze([stand("guardian", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("guardian", "ねえ、なんであたしが先に行くと、みんな早くなるの？", "neutral"),
-      say("mender", "……なってますね。理屈は。", "worry"),
+      say("guardian", "ねえねえ、なんであたしが先に行くと、みんな早くなるの？", "neutral"),
+      say("mender", "……なっていますね。あなたが入ると敵の狙いがそちらへずれて、後ろが一手ぶん得をします。理屈は、合っています。", "worry"),
       say("guardian", "りくつ？", "neutral"),
-      say("mender", "……いえ。合ってます。", "calm"),
+      say("mender", "……いえ。合っている、と言いました。", "calm"),
     ]),
   }),
 
   stage_2_act3: Object.freeze({
     cast: Object.freeze([stand("guardian", "left"), stand("lancer", "right")]),
     lines: Object.freeze([
-      say("lancer", "ヒバナちゃん、そっち危ないです。", "worry"),
+      say("lancer", "ヒバナちゃん、そっちは危ないです。灰が薄いところは、下が抜けますから。", "worry"),
       say("guardian", "はーい！", "smile"),
       narrate("三歩で戻ってきて、また同じところへ走っていった。"),
-      say("lancer", "……うう。聞いてない。", "hurt"),
+      say("lancer", "……うう。聞いてはいるんです。聞いてはいるんですけど。", "hurt"),
     ]),
   }),
 
@@ -213,10 +224,11 @@ export const DIALOGUE = Object.freeze({
     lines: Object.freeze([
       say("warden", "名前は。", "neutral"),
       say("guardian", "ヒバナ！", "smile"),
-      say("mender", "記録は。", "neutral"),
-      say("warden", "無い。照会したが、一件も出ない。", "calm"),
-      say("guardian", "……ないの？", "worry"),
-      say("warden", "ないな。じゃあ今日から作る。", "smile"),
+      say("mender", "照会は。", "neutral"),
+      say("warden", "出ない。詰所にも協会にも、この歳の子の記録が一件も無い。拾われた記録も、生まれた記録もだ。", "calm"),
+      say("guardian", "……ないの？ あたしの、ない？", "worry"),
+      say("warden", "ないな。", "neutral"),
+      say("warden", "じゃあ今日から作る。名前と、歳と、拾った日と。全部こっちで書く。", "smile"),
     ]),
   }),
 
@@ -227,7 +239,7 @@ export const DIALOGUE = Object.freeze({
       narrate("焚き火の両側で、二人が別々の帳面を開いている。"),
       say("mender", "あなたも付けるんですね。", "neutral"),
       say("tactician", "出来事のほうを。何が起きて、何番目だったかを。", "calm"),
-      say("mender", "わたしは人のほうです。同じ火を囲んでいるのに、残るものが違う。", "wry"),
+      say("mender", "わたしは人のほうです。誰が何時間寝て、何を食べて、どこまで腕が上がったか。……同じ火を囲んでいるのに、残るものが違いますね。", "wry"),
     ]),
   }),
 
@@ -236,7 +248,7 @@ export const DIALOGUE = Object.freeze({
     lines: Object.freeze([
       say("tactician", "お兄様は、ご存命ですよ。", "calm"),
       say("warden", "……どこだ。", "shock"),
-      say("tactician", "記録にございません。ですが、死亡もございません。", "calm"),
+      say("tactician", "記録にございません。ですが、死亡の記録もございません。四十年ぶんの名簿は、わたくしが書き写しました。無い、ということだけは確かでございます。", "calm"),
       say("mender", "……それ、根拠になっていませんが。", "worry"),
     ]),
   }),
@@ -246,8 +258,8 @@ export const DIALOGUE = Object.freeze({
     lines: Object.freeze([
       say("guardian", "ゲンゾウのおじいちゃん、なんで殴らないの？", "neutral"),
       say("tactician", "持っておりませんので。", "calm"),
-      say("guardian", "じゃあ、なに持ってるの。", "neutral"),
-      say("tactician", "盾と、名簿を。", "calm"),
+      say("guardian", "じゃあ、なに持ってるの！", "firm"),
+      say("tactician", "盾と、名簿を。……どちらも、数を減らさないための物でございます。", "calm"),
     ]),
   }),
 
@@ -286,22 +298,28 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
       narrate("籠に器材を入れ、二人ぶんの椅子を出す。屋根の半分から、まだ風が入る。"),
-      say("mender", "板、足りませんでしたね。", "neutral"),
+      say("mender", "板、足りませんでしたね。あと二枚あれば、こちら側は塞がりました。", "neutral"),
       say("warden", "次で足りる。……たぶん。", "wry"),
-      say("mender", "その「たぶん」を、わたしは三回聞きました。", "calm"),
+      say("mender", "その「たぶん」を、わたしは三回聞きました。一回目が雨漏り、二回目が壁、三回目がここです。", "calm"),
       say("warden", "……三回とも直ってるだろ。", "smile"),
       say("mender", "半分ずつ。ええ、直っています。", "smile"),
+      narrate("詰所は遠い。遠いぶん、誰も見に来ない。"),
+      say("warden", "帰る場所があると、引き返すのが判断になる。無えと、ただの失敗だ。", "calm"),
+      say("mender", "……それ、帳面に書いておきます。", "neutral"),
     ]),
   }),
 
   homestead_morning_fire: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      narrate("外がまだ暗いうちから、いい匂いがしている。"),
+      narrate("外がまだ暗いうちから、いい匂いがしている。火は既に熾きていて、鍋の位置が二度、直された跡がある。"),
       say("mender", "……なんですか、これは。", "shock"),
-      say("warden", "飯。", "neutral"),
-      say("mender", "字はあんなに汚いのに。", "worry"),
+      say("warden", "飯。火の番はナギが長いからな。起きたやつが先に炊く決まりだ。", "neutral"),
+      say("mender", "決まりは無いはずですが。それに、いつも起きているのはあなたです。", "neutral"),
+      say("warden", "決まりにしたら守らなきゃならんだろ。面倒だ。", "wry"),
+      say("mender", "……帳簿の字はあんなに汚いのに、塩は狂わないんですね。", "worry"),
       say("warden", "関係あるか。", "wry"),
+      say("mender", "あります。手が正確な人は、大体どこか一つだけ雑です。", "calm"),
       say("mender", "……おかわりします。", "calm"),
     ]),
   }),
@@ -310,11 +328,14 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("lancer", "left"), stand("guardian", "right")]),
     lines: Object.freeze([
       narrate("ナギが棚の前にいる。割れた把手を、少しだけ動かして戻した。"),
-      say("guardian", "それ、さっきと同じとこじゃない？", "neutral"),
-      say("lancer", "違います。二寸ずれてました。", "neutral"),
-      say("guardian", "だれが決めたの、その二寸。", "firm"),
-      say("lancer", "……わたし、だと思うんですけど。覚えてないんです。", "worry"),
+      say("guardian", "それ、さっきと同じとこじゃない？ 動かして、戻してる！", "neutral"),
+      say("lancer", "違います。二寸ずれてました。ここは留め金、ここは札、と決まっているので。", "neutral"),
+      say("guardian", "だれが決めたの、その二寸！", "firm"),
+      say("lancer", "……わたし、だと思うんですけど。", "worry"),
+      say("lancer", "決めた日のことは、覚えてないんです。手だけが場所を知っていて、勝手に直してしまうので。", "hurt"),
       narrate("棚の奥の札に、ナギの字で「絶対に捨てるな」と書いてある。日付は、どれも古い。"),
+      say("guardian", "……じゃあ、いま決めたことにすれば？", "neutral"),
+      say("lancer", "……そうします。今日、わたしが決めました。二寸です。", "smile"),
     ]),
   }),
 
@@ -323,10 +344,14 @@ export const DIALOGUE = Object.freeze({
     lines: Object.freeze([
       narrate("ゲンゾウが厚いほうの帳面を開いている。ヒバナが横に座った。"),
       say("guardian", "それ、なに。", "neutral"),
-      say("tactician", "戻らなかった方の記録です。名前だけ写してございます。", "calm"),
+      say("tactician", "戻らなかった方の記録です。協会へ出す用には数だけを、こちらには名前だけを写してございます。", "calm"),
       say("guardian", "……なんにん。", "shock"),
       say("tactician", "四百十二。読んだのは、その倍ございます。", "neutral"),
       say("guardian", "……ヒバナの名前は、ない？", "worry"),
+      narrate("ゲンゾウは、ずいぶん長く黙っていた。"),
+      say("tactician", "ございません。こちらには、戻らなかった方しか書きませんので。", "calm"),
+      say("tactician", "あなたの名前は、薄いほうにございます。先月、わたくしが書き足しました。歳のところは、まだ空けてございますが。", "smile"),
+      say("guardian", "じゅういち！ たぶん！", "firm"),
     ]),
   }),
 
@@ -338,7 +363,9 @@ export const DIALOGUE = Object.freeze({
       say("warden", "……ああ。確認のために、一回戻ろうかと。", "wry"),
       say("mender", "四回目です。", "calm"),
       say("warden", "三回目だ。", "firm"),
-      say("mender", "四回目。記録がありますので。", "calm"),
+      say("mender", "四回目。日付も、そのとき何と言ったかも書いてあります。一回目が「確認のために」、二回目も「確認のために」でした。", "calm"),
+      say("warden", "……こういうのは、書かなくていいんだよ。", "worry"),
+      say("mender", "書きます。数にならないものだけ、消えてしまうので。", "neutral"),
     ]),
   }),
 
@@ -353,6 +380,7 @@ export const DIALOGUE = Object.freeze({
       say("lancer", "……荷物を置くのに、ちょうどいいんですよね。", "worry"),
       say("guardian", "えー！ もったいない！", "firm"),
       say("tactician", "もったいのうございますか。", "calm"),
+      narrate("ゲンゾウは、六つ目の椅子に載った自分の鞄を、少しだけ端へ寄せた。"),
       say("tactician", "では、そのうち埋まるということで。", "smile"),
     ]),
   }),

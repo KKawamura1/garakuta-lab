@@ -233,9 +233,12 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       if (!beat) continue;
       check(!seenBeatIds.has(beat.id), beat.id + " は一意");
       seenBeatIds.add(beat.id);
-      check(beat.lines.length >= 2, beat.id + " は2行以上");
-      // **立ち絵を足しても行数は増やさない。**R9 §7 の「説明文にしない」を保つ。
-      check(beat.lines.length <= 6, beat.id + " は6行以下（説明文にしない）");
+      // **行数のハードリミットは置かない（R13・作者判断）。**
+      // 上限を数で縛ると、一行に情報を詰められない場面まで一律に切り詰めることになり、
+      // 「短いが何も伝わっていない会話」が通ってしまう。長さは書き手が場面ごとに決める。
+      // **代わりに置く方針**（dialogue.mjs の頭にある）: 序盤ほど短く、終盤と根城ほど厚く。
+      // プレイヤーは物語を読みに来たのではなく、ゲームをしに来ている。
+      check(beat.lines.length >= 1, beat.id + " に行がある");
       for (const line of beat.lines) {
         check(typeof line.text === "string" && line.text.length > 0, beat.id + " の行に本文がある");
         if (line.speaker === null) {
@@ -434,12 +437,11 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       }
     }
 
-    // 幕の断片は短い。**pack の説明ではなく、幕の切れ目の一拍である。**
+    // 幕の断片は、pack の説明ではなく幕の切れ目の一拍である。
+    // **行数では縛らない（R13）。**縛ると「短いが伝わらない」が通る。
     for (const key of actKeys) {
       const beat = storyBeat(stage.id, key);
       check(Boolean(beat), stage.id + " に " + key + " の断片がある");
-      if (beat) check(beat.lines.length >= 2 && beat.lines.length <= 4,
-        beat.id + " は2〜4行（幕の切れ目に長い会話を置かない）");
     }
   }
 }
@@ -607,9 +609,9 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   for (const scene of HOMESTEAD_SCENES) {
     check(!seenIds.has(scene.id), scene.id + " は一意");
     seenIds.add(scene.id);
+    // 根城は学習の外で、**読みに行った人だけが開く場面**なので一番厚くてよい。
+    // 上限は置かない（R13・作者判断）。
     check(scene.beat.lines.length >= 3, scene.id + " は3行以上");
-    // **ここは行数を絞らない**（R9 §7 は Stage の断片の縛りで、根城は学習の外）。
-    check(scene.beat.lines.length <= 12, scene.id + " は12行以下（読み切れる長さ）");
     for (const line of scene.beat.lines) {
       check(typeof line.text === "string" && line.text.length > 0, scene.id + " の行に本文がある");
       if (line.speaker === null) {
