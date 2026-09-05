@@ -1,4 +1,4 @@
-# AGENTS.md — 灰の遠征
+# AGENTS.md — One Battle Ahead
 
 作者自身が iPhone で繰り返し遊びたい自動戦闘遠征ゲームを作るリポジトリです。
 本編は `ecology/`。公開先は https://garakuta-lab.pages.dev/ecology/ 、ルートは

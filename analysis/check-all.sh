@@ -26,4 +26,4 @@ for smoke in "${smokes[@]}"; do
   node "$smoke"
 done
 
-echo "灰の遠征 checks: ok"
+echo "One Battle Ahead checks: ok"

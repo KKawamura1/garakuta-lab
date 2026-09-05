@@ -44,14 +44,14 @@ import { castFor, dialogueFor } from "./dialogue.mjs";
 //
 // R11 §5 — この一戦だけで、武器と技の違いの**両側**を教える。
 //
-//   両方を前列（既定）… ナズナが 2 round で落ちる。柔らかい技の担い手を前に置かない
-//   ナズナを後列      … **誰も落ちずに勝つ。**これが正解
-//   シキを後列        … 負ける。武器攻撃が後列から 40% になり、倒しきれない
+//   両方を前列（既定）… ツグミが 2 round で落ちる。柔らかい技の担い手を前に置かない
+//   ツグミを後列      … **誰も落ちずに勝つ。**これが正解
+//   ゴウを後列        … 負ける。武器攻撃が後列から 40% になり、倒しきれない
 //   両方を後列        … 負ける。前で受ける者がいないうえ、武器も落ちる
 //
 // 「柔らかい技は後ろ、硬い武器は前」が、説明文ではなく4通りの結果として出る。
 //
-// **表示は「ナズナが倒れた瞬間」で打ち切る**（ecology/app.js の truncateAtFall）。
+// **表示は「ツグミが倒れた瞬間」で打ち切る**（ecology/app.js の truncateAtFall）。
 // engine は最後まで走らせて本当に敗北を出しているが、プレイヤーには
 // 時間切れまで見せない。ルールを知らない一戦目のテンポを守るため。
 export const PROLOGUE = Object.freeze({
@@ -60,7 +60,7 @@ export const PROLOGUE = Object.freeze({
   description: "灰の中から、遠くを狙う影と、前を塞ぐ影が出てくる。",
   maxRounds: 5,
   rosterIds: Object.freeze(["warden", "mender"]),
-  // **初期配置がそのまま「まだ勝てない編成」。**ナズナが front_left なので
+  // **初期配置がそのまま「まだ勝てない編成」。**ツグミが front_left なので
   // 先に狙われる。巻き戻したあと、プレイヤーはここを触る。
   formation: Object.freeze({ mender: "front_left", warden: "front_right" }),
   enemies: Object.freeze([
@@ -229,7 +229,7 @@ export const STORY_BEATS = Object.freeze({
       mood: "ash",
       place: "灰の谷",
       // R12 — 5人が揃う場面。**加入済みの全員が立つ。**
-      // 台詞は増やさない（R9 §7）。スミとナズナは表情で応じる。
+      // 台詞は増やさない（R9 §7）。ヒバナとツグミは表情で応じる。
       cast: castFor("stage_3_join"),
       lines: dialogueFor("stage_3_join"),
       footer: "行動権は総量が増えない。誰へいつ渡すかだけが問題になる。",

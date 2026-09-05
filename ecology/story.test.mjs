@@ -12,7 +12,7 @@
 //   - 名簿（R12 §4.A）: 読める設定が5人ぶんあり、**一度に全部は開かない**。
 //   - 根城（R13 / R11 §2.4 §9.4）: 家にあるものと日常の場面が、進行に追随して開く。
 //   - 図鑑（R13 / R8 §3.2）: 会った敵だけが載り、倒した数で開く。**engine には出ない**。
-//   - 台詞量（R12 §5.3）: スミとレイの薄さが、根城の場面で埋まっている。
+//   - 台詞量（R12 §5.3）: ヒバナとゲンゾウの薄さが、根城の場面で埋まっている。
 
 import assert from "node:assert/strict";
 import { simulateBattle } from "./engine.mjs";
@@ -110,9 +110,9 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   // R11 §5 — この一戦だけで、武器と技の違いの**両側**を教える。
   // 4通りすべての結果をここで固定する。どれか一つでも動けば、教える内容が変わる。
   //
-  //   両方前（既定）… 負ける。ナズナが2ラウンド目に落ちる
-  //   ナズナを後列  … **勝つ。誰も落ちない。**これが正解
-  //   シキを後列    … 負ける。武器攻撃が後列から40%になり、倒しきれない
+  //   両方前（既定）… 負ける。ツグミが2ラウンド目に落ちる
+  //   ツグミを後列  … **勝つ。誰も落ちない。**これが正解
+  //   ゴウを後列    … 負ける。武器攻撃が後列から40%になり、倒しきれない
   //   両方後列      … 負ける。前で受ける者がいないうえ、武器も落ちる
   const outcome = (formation) => {
     const input = makePrologueBattle(statsFor, formation);
@@ -128,22 +128,22 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   };
 
   const correct = outcome({ warden: "front_left", mender: "rear_left" });
-  equal(correct.result, "win", "ナズナを後列へ下げれば勝てる");
+  equal(correct.result, "win", "ツグミを後列へ下げれば勝てる");
   equal(correct.survivors, 2, "**そのとき誰も落ちない。**これが正解の手");
   check(correct.rounds <= PROLOGUE.maxRounds, "round 上限の中で決着する");
 
   equal(outcome({ mender: "front_left", warden: "rear_left" }).result, "loss",
-    "シキを後列へ下げると勝てない（武器攻撃が後列から40%になる）");
+    "ゴウを後列へ下げると勝てない（武器攻撃が後列から40%になる）");
   equal(outcome({ warden: "rear_left", mender: "rear_right" }).result, "loss",
     "二人とも後列でも勝てない（前で受ける者がいないうえ、武器も落ちる）");
 
-  // **既定の配置では、ナズナが2ラウンド目に落ちる。**
+  // **既定の配置では、ツグミが2ラウンド目に落ちる。**
   // ecology/app.js はこの拍で再生を打ち切って巻き戻しの会話へ渡すので、
   // 「誰が」「何ラウンド目に」倒れるかは演出の前提そのものである。
   const firstFall = first.events.find((event) => event.type === "actor_defeated"
     && [event.sourceActorId, ...(event.targetActorIds ?? [])].filter(Boolean).includes("a_mender"));
-  check(Boolean(firstFall), "既定の配置ではナズナが倒れる");
-  check((firstFall?.round ?? 99) <= 2, "ナズナは2ラウンド目までに倒れる（打ち切りの拍）");
+  check(Boolean(firstFall), "既定の配置ではツグミが倒れる");
+  check((firstFall?.round ?? 99) <= 2, "ツグミは2ラウンド目までに倒れる（打ち切りの拍）");
 
   // prologue の敵は12戦の梯子に属さない（index 0）。
   const encounter = prologueEncounter();
@@ -386,7 +386,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 //
 // **途中離脱は無い。**Stage を越えるごとに一人ずつ増えて5人になる。
 // だから「新しい仲間が加わる場面」に、既にいる仲間が居ないのはおかしい。
-// 立ち位置の枠が3つしか無かったころ、ナズナが Stage 2・3 の join から
+// 立ち位置の枠が3つしか無かったころ、mender が Stage 2・3 の join から
 // 配役ごと落ちていた（作者判断で修正）。**枠の都合で仲間を消さない。**
 //
 // 台詞までは求めない。R9 §7 の「1断片2〜6行」を守ったまま、
@@ -704,7 +704,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 
 // ---- 台詞量（R12 §5.3）------------------------------------------------------
 //
-// R12 は「スミ4行・レイ3行」を数で足りていないと書き、幕の断片で 6行・7行 まで
+// R12 は「guardian 4行・tactician 3行」を数で足りていないと書き、幕の断片で 6行・7行 まで
 // 増やしたうえで「まだ薄い」と残した。根城の場面はその続きなので、**数を固定する。**
 // 減らす変更をしたら、ここが落ちる。
 
@@ -722,8 +722,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
     return lines;
   };
   // R12 §4.5.6 の表に、根城のぶんを足した下限。
-  check(count("guardian") >= 12, "スミの台詞が12行以上ある（R12 時点は6行）");
-  check(count("tactician") >= 13, "レイの台詞が13行以上ある（R12 時点は7行）");
+  check(count("guardian") >= 12, "ヒバナの台詞が12行以上ある（R12 時点は6行）");
+  check(count("tactician") >= 13, "ゲンゾウの台詞が13行以上ある（R12 時点は7行）");
   // **薄い二人を厚くしたのであって、全員を厚くしたのではない。**
   check(count("guardian") >= 12 && count("tactician") >= 13, "薄かった二人が下限を満たす");
 }
