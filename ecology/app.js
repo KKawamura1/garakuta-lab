@@ -855,24 +855,17 @@ function effectSlotLabel(slot) {
   return match ? "追加効果" + match[1] : "効果";
 }
 
-function effectSlotShortLabel(slot) {
-  if (slot === "base") return "基礎";
-  const match = /^effect(\d+)$/.exec(String(slot ?? ""));
-  return match ? "追加" + match[1] : "効果";
-}
-
-function equipmentQualityStrip(effects) {
-  const items = effects.map((effect) => "<span class=\"effect-quality-item\">"
-    + "<span class=\"effect-quality-slot\">" + esc(effectSlotShortLabel(effect.slot)) + "</span>"
-    + effectRarityBadge(effect.rarity, effect.rarityLabel) + "</span>").join("");
-  return "<div class=\"equipment-quality\" aria-label=\"効果ごとのレアリティ\">"
-    + "<span class=\"equipment-quality-label\">効果の格</span>"
-    + "<div class=\"effect-quality-list\">" + items + "</div></div>";
-}
-
 function equipmentReadoutHtml(item, { compact = false } = {}) {
   const readout = item?.readout;
-  const effects = Array.isArray(readout?.effects) ? readout.effects : [];
+  // 表示用コピーだけを並べ替える。保存データの effect 順と descriptor は変更しない。
+  const effects = Array.isArray(readout?.effects)
+    ? readout.effects.map((effect, index) => ({ effect, index }))
+      .sort((a, b) => {
+        const rarityDiff = (RARITY_RANK[b.effect.rarity] ?? 0) - (RARITY_RANK[a.effect.rarity] ?? 0);
+        return rarityDiff || a.index - b.index;
+      })
+      .map(({ effect }) => effect)
+    : [];
   const lines = Array.isArray(readout?.lines) ? readout.lines : [];
   const ruleLines = lines.map((line) => "<p class=\"equipment-rule-line\">" + esc(line) + "</p>").join("");
   const keystone = readout?.keystone
@@ -887,8 +880,7 @@ function equipmentReadoutHtml(item, { compact = false } = {}) {
       + effectRarityBadge(effect.rarity, effect.rarityLabel)
       + "<span class=\"effect-detail-summary\">" + esc(effect.summary) + amount + "</span></div>";
   }).join("");
-  return equipmentQualityStrip(effects)
-    + (compact ? "" : "<div class=\"equipment-effect-details\">" + details + "</div>")
+  return (compact ? "" : "<div class=\"equipment-effect-details\">" + details + "</div>")
     + ruleLines + keystone;
 }
 
