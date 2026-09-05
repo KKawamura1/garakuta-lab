@@ -7,7 +7,7 @@
 // **行動回数を毎 round 増やす passive は作らない。**恒常的に手数が増える効果は、
 // 多くの面白い skill より強くなりやすい（R6 §6.8）。開始時1回だけにする。
 //
-// ここを触ってよいのは 技能 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
 
 import { LEGACY_COMBAT_SCALE } from "./base.mjs";
 

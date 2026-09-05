@@ -28,6 +28,8 @@ import {
   INTERRUPT_ONLY_EFFECT_TYPES,
   LIMITS,
   LIMIT_SCOPES,
+  MAX_SKILL_LEVEL,
+  MIN_SKILL_LEVEL,
   NON_LISTENABLE_EVENT_TYPES,
   OBJECTIVE_TYPES,
   OVERRIDABLE_STATS,
@@ -915,6 +917,7 @@ export function validateBattleInput(input, bundle) {
       validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
       validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, ally.reactiveSkillIds, bundle);
       validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
+      validateSkillLevels(bag, `${path}.skillLevels`, ally.skillLevels, bundle);
       validateEquipmentInputs(bag, `${path}.equipment`, ally.equipment, bundle, claimInstance);
     });
   }
@@ -1000,6 +1003,27 @@ function validateTrainingRecord(bag, path, training) {
   }
 }
 
+// R19（issue #137）— 技能レベル。**未知の技能 ID を黙って無視しない**
+// （綴り違いが「レベル1のまま」に見えると、威力が上がらない理由が画面から消える）。
+// 範囲外のレベルも同じで、丸めずに error にする。
+function validateSkillLevels(bag, path, skillLevels, bundle) {
+  if (skillLevels === undefined) return;
+  if (!isPlainObject(skillLevels)) {
+    bag.add(path, "not_an_object", "expected a skill level map");
+    return;
+  }
+  for (const [skillId, level] of Object.entries(skillLevels)) {
+    const known = bundle.activeSkills?.[skillId]
+      ?? bundle.reactiveSkills?.[skillId]
+      ?? bundle.passiveSkills?.[skillId];
+    if (!known) {
+      bag.add(`${path}.${skillId}`, "dangling_reference", `no such skill: ${skillId}`);
+      continue;
+    }
+    requireCount(bag, `${path}.${skillId}`, level, { min: MIN_SKILL_LEVEL, max: MAX_SKILL_LEVEL });
+  }
+}
+
 // R6 §11.2 / §13.2 — the visible mutation ids a difficulty rank added to this
 // unit. Also a record: the numbers they produced are already in `stats`, and the
 // preview text comes from the mutation definition, not from the save.
@@ -1017,6 +1041,7 @@ function validateMutationRecord(bag, path, mutations) {
 const ALLY_INPUT_KEYS = Object.freeze([
   "instanceId", "characterId", "position", "hp", "tactics",
   "reactiveSkillIds", "passiveSkillIds", "equipment", "stats", "training",
+  "skillLevels",
 ]);
 const ENEMY_INPUT_KEYS = Object.freeze([
   "instanceId", "enemyActorId", "position", "hp", "stats", "mutations",

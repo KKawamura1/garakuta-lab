@@ -9,7 +9,7 @@
 // emit(spec, pendingFrame) records the event and, when a pending frame is given,
 // runs the interrupt window for it before returning.
 
-import { POSITION_COLUMN, POSITION_ROW } from "./schema.mjs";
+import { POSITION_COLUMN, POSITION_ROW, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
 import {
   actorsOnSide,
   bumpHistory,
@@ -253,6 +253,26 @@ function afterGuard(rawAmount, target, guardPierceBps) {
 // あちらは「誰を狙えるか」、こちらは「どこから出したか」。
 export const REAR_WEAPON_BPS = 4_000;
 
+// R19（issue #137）— 技能レベル。**同じ効果の上位互換を別技能で増やさず、
+// 一つの技能を段階的に強くする。**
+//
+// 掛かるのは連続量（damage / heal / barrier とその増減）だけで、AP・RP・段数・
+// 回数・耐久といった離散量には掛からない（schema.mjs の SKILL_LEVEL_STEP_BPS を見よ）。
+// **engine は技能 ID で分岐しない。**掛かるかどうかは「その actor がその技能に
+// レベルを持っているか」だけで決まり、持っていなければ掛け算そのものが起きない。
+//
+// 装備の rule は対象外である。装備は持ち主の技能レベルで強くならない
+// （R6 §4.4「装備の flat roll は parameter 非依存」と同じ理由）。
+function afterSkillLevel(rawAmount, ctx) {
+  const owner = ctx.owner;
+  if (!owner || !owner.skillLevels) return rawAmount;
+  if (ctx.equipmentInstanceId) return rawAmount;
+  const skillId = ctx.skillId ?? ctx.sourceDefinitionId;
+  const level = owner.skillLevels[skillId];
+  if (!Number.isInteger(level) || level <= 1) return rawAmount;
+  return roundHalfUpDiv(rawAmount * (BPS + (level - 1) * SKILL_LEVEL_STEP_BPS), BPS);
+}
+
 function afterRearFalloff(rawAmount, ctx, effect) {
   if (effect.amount?.scalingStat !== "might") return rawAmount;
   const owner = ctx.owner;
@@ -261,7 +281,9 @@ function afterRearFalloff(rawAmount, ctx, effect) {
 }
 
 function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
-  const proposed = afterRearFalloff(evaluateValue(rt.state, ctx, effect.amount), ctx, effect);
+  const proposed = afterRearFalloff(
+    afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), ctx, effect,
+  );
   const tags = effect.tags ?? [];
   const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
   const event = rt.emit(
@@ -418,7 +440,7 @@ function applyHealing(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     // §12.2-6 — a 0 HP actor is not a healing target in v1; revival is not implemented.
     if (!target.alive) continue;
-    const proposed = evaluateValue(rt.state, ctx, effect.amount);
+    const proposed = afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx);
     const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
     const event = rt.emit(
       {
@@ -467,7 +489,7 @@ function applyHealing(rt, ctx, effect) {
 function gainBarrier(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
-    const proposed = evaluateValue(rt.state, ctx, effect.amount);
+    const proposed = afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx);
     const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
     const event = rt.emit(
       {
@@ -772,7 +794,7 @@ function wearEquipmentEffect(rt, ctx, effect) {
 function modifyPendingAmount(rt, ctx, effect) {
   const frame = ctx.pending;
   if (!frame || frame.kind !== "amount") return;
-  const amount = evaluateValue(rt.state, ctx, effect.amount);
+  const amount = afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx);
   const before = frame.amount;
   if (effect.operation === "set") frame.amount = amount;
   else if (effect.operation === "decrease") frame.amount = Math.max(0, before - amount);

@@ -12359,365 +12359,63 @@
    "skillId": "strike",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 0,
+   "x": 1,
    "cost": 0,
    "requires": []
   },
   {
-   "id": "node_heavy",
-   "skillId": "heavy_swing",
+   "id": "node_overreach",
+   "skillId": "overreach",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 2,
    "cost": 1,
    "requires": [
     "strike"
    ]
-  },
-  {
-   "id": "node_long",
-   "skillId": "long_swing",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "heavy_swing"
-   ]
-  },
-  {
-   "id": "node_hunt",
-   "skillId": "hunt_the_slow",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "heavy_swing"
-   ]
-  },
-  {
-   "id": "node_relay",
-   "skillId": "relay_order",
-   "kind": "active",
-   "branch": "指揮",
-   "tier": 0,
-   "cost": 0,
-   "requires": []
-  },
-  {
-   "id": "node_reposition",
-   "skillId": "reposition",
-   "kind": "active",
-   "branch": "指揮",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_mark",
-   "skillId": "mark_target",
-   "kind": "active",
-   "branch": "指揮",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "reposition"
-   ]
-  },
-  {
-   "id": "node_aim",
-   "skillId": "steady_aim",
-   "kind": "active",
-   "branch": "指揮",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "mark_target"
-   ]
-  },
-  {
-   "id": "node_mend",
-   "skillId": "mend",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 0,
-   "cost": 0,
-   "requires": []
-  },
-  {
-   "id": "node_triage",
-   "skillId": "triage",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_emergency_treatment",
-   "skillId": "emergency_treatment",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_idle",
-   "skillId": "idle_shuffle",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_bulwark",
-   "skillId": "bulwark",
-   "kind": "active",
-   "branch": "守り",
-   "tier": 0,
-   "cost": 0,
-   "requires": []
   },
   {
    "id": "node_steady_cut",
    "skillId": "steady_cut",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 2,
    "cost": 1,
    "requires": [
     "strike"
    ]
   },
   {
-   "id": "node_aimed_shot",
-   "skillId": "aimed_shot",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_counter",
-   "skillId": "counter_blow",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 0,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_echo",
-   "skillId": "damage_echo",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 2,
-   "requires": [
-    "counter_blow"
-   ]
-  },
-  {
-   "id": "node_scavenge",
-   "skillId": "scavenge_ap",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 0,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_step",
-   "skillId": "guard_step",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "scavenge_ap"
-   ]
-  },
-  {
-   "id": "node_cover",
-   "skillId": "cover_ally",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 0,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_brace",
-   "skillId": "brace_after_hit",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_bloom",
-   "skillId": "barrier_bloom",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "brace_after_hit"
-   ]
-  },
-  {
-   "id": "node_overflow",
-   "skillId": "overflow_care",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 0,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_triage_relay",
-   "skillId": "triage_relay",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "overflow_care"
-   ]
-  },
-  {
-   "id": "node_urging",
-   "skillId": "urging",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 0,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_prep_spiral",
-   "skillId": "prep_spiral",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 2,
-   "requires": [
-    "urging"
-   ]
-  },
-  {
-   "id": "node_ap_loop",
-   "skillId": "ap_loop",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 1,
-   "cost": 2,
-   "requires": [
-    "scavenge_ap"
-   ]
-  },
-  {
-   "id": "node_block_focus",
-   "skillId": "block_focus",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "brace_after_hit"
-   ]
-  },
-  {
-   "id": "node_barrier_stitch",
-   "skillId": "barrier_stitch",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "barrier_bloom"
-   ]
-  },
-  {
-   "id": "node_rapid",
-   "skillId": "rapid_cuts",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_pierce",
+   "id": "node_pierce_thrust",
    "skillId": "pierce_thrust",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 3,
    "cost": 1,
    "requires": [
-    "strike"
+    "steady_cut"
    ]
   },
   {
-   "id": "node_row",
-   "skillId": "row_sweep",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "rapid_cuts"
-   ]
-  },
-  {
-   "id": "node_column",
+   "id": "node_column_thrust",
    "skillId": "column_thrust",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 2,
+   "x": 4,
    "cost": 1,
    "requires": [
     "pierce_thrust"
    ]
   },
   {
-   "id": "node_guard_crush",
-   "skillId": "guard_crush",
+   "id": "node_row_sweep",
+   "skillId": "row_sweep",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 5,
    "cost": 1,
    "requires": [
-    "strike"
+    "column_thrust"
    ]
   },
   {
@@ -12725,399 +12423,21 @@
    "skillId": "rear_hunt",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 2,
+   "x": 4,
    "cost": 1,
    "requires": [
-    "strike"
+    "pierce_thrust"
    ]
   },
   {
-   "id": "node_finishing",
-   "skillId": "finishing_thrust",
+   "id": "node_rapid_cuts",
+   "skillId": "rapid_cuts",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 2,
+   "x": 5,
    "cost": 1,
    "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_crack_mark",
-   "skillId": "crack_mark",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_brace_impact",
-   "skillId": "brace_for_impact",
-   "kind": "active",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_barrage",
-   "skillId": "barrage_strike",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_mark_strike",
-   "skillId": "mark_strike",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_mark_break",
-   "skillId": "mark_break",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mark_strike"
-   ]
-  },
-  {
-   "id": "node_sweeping_barrage",
-   "skillId": "sweeping_barrage",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "barrage_strike"
-   ]
-  },
-  {
-   "id": "node_piercing_barrage",
-   "skillId": "piercing_barrage",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "barrage_strike"
-   ]
-  },
-  {
-   "id": "node_guarded_opening",
-   "skillId": "guarded_opening",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mark_strike"
-   ]
-  },
-  {
-   "id": "node_seize_the_opening",
-   "skillId": "seize_the_opening",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mark_strike"
-   ]
-  },
-  {
-   "id": "node_found_vitality",
-   "skillId": "foundation_vitality",
-   "kind": "passive",
-   "branch": "基礎",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_found_might",
-   "skillId": "foundation_might",
-   "kind": "passive",
-   "branch": "基礎",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_found_focus",
-   "skillId": "foundation_focus",
-   "kind": "passive",
-   "branch": "基礎",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_found_guard",
-   "skillId": "foundation_guard",
-   "kind": "passive",
-   "branch": "基礎",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_found_speed",
-   "skillId": "foundation_speed",
-   "kind": "passive",
-   "branch": "基礎",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_found_ap",
-   "skillId": "foundation_ap",
-   "kind": "passive",
-   "branch": "基礎",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_found_rp",
-   "skillId": "foundation_rp",
-   "kind": "passive",
-   "branch": "基礎",
-   "tier": 0,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_opening_guard",
-   "skillId": "opening_guard",
-   "kind": "passive",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_whetted",
-   "skillId": "whetted_by_pain",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_first_blood",
-   "skillId": "first_blood",
-   "kind": "passive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_shield_handoff",
-   "skillId": "shield_handoff",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "cover_ally"
-   ]
-  },
-  {
-   "id": "node_patient_step",
-   "skillId": "patient_step",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "relay_order"
-   ]
-  },
-  {
-   "id": "node_held_breath",
-   "skillId": "held_breath",
-   "kind": "passive",
-   "branch": "指揮",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "relay_order"
-   ]
-  },
-  {
-   "id": "node_shield_wounded",
-   "skillId": "shield_the_wounded",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_steady_hands",
-   "skillId": "steady_hands",
-   "kind": "passive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_hand_off",
-   "skillId": "hand_off",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_overreach",
-   "skillId": "overreach",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_spill_forward",
-   "skillId": "spill_forward",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_wake_reader",
-   "skillId": "wake_reader",
-   "kind": "passive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_blocked_into_step",
-   "skillId": "blocked_into_step",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_wake_of_the_fallen",
-   "skillId": "wake_of_the_fallen",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_mercy_into_guard",
-   "skillId": "mercy_into_guard",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_readied_relay",
-   "skillId": "readied_relay",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "relay_order"
-   ]
-  },
-  {
-   "id": "node_stride_into_reach",
-   "skillId": "stride_into_reach",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "relay_order"
-   ]
-  },
-  {
-   "id": "node_hamstring",
-   "skillId": "hamstring",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_rend",
-   "skillId": "rend",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "hamstring"
-   ]
-  },
-  {
-   "id": "node_double_back",
-   "skillId": "double_back",
-   "kind": "active",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
+    "rear_hunt"
    ]
   },
   {
@@ -13125,32 +12445,43 @@
    "skillId": "spread_cut",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 6,
    "cost": 1,
    "requires": [
-    "strike"
+    "rapid_cuts"
    ]
   },
   {
-   "id": "node_opening_stab",
-   "skillId": "opening_stab",
+   "id": "node_crack_mark",
+   "skillId": "crack_mark",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 7,
    "cost": 1,
    "requires": [
-    "strike"
+    "spread_cut"
    ]
   },
   {
-   "id": "node_bloodied_charge",
-   "skillId": "bloodied_charge",
+   "id": "node_rend",
+   "skillId": "rend",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 2,
+   "x": 8,
    "cost": 1,
    "requires": [
-    "strike"
+    "crack_mark"
+   ]
+  },
+  {
+   "id": "node_double_back",
+   "skillId": "double_back",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 9,
+   "cost": 1,
+   "requires": [
+    "rend"
    ]
   },
   {
@@ -13158,10 +12489,98 @@
    "skillId": "reckless_swing",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 2,
-   "cost": 2,
+   "x": 10,
+   "cost": 1,
    "requires": [
-    "strike"
+    "double_back"
+   ]
+  },
+  {
+   "id": "node_bloodied_charge",
+   "skillId": "bloodied_charge",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 10,
+   "cost": 1,
+   "requires": [
+    "double_back"
+   ]
+  },
+  {
+   "id": "node_guard_crush",
+   "skillId": "guard_crush",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "rear_hunt"
+   ]
+  },
+  {
+   "id": "node_heavy_swing",
+   "skillId": "heavy_swing",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "steady_cut"
+   ]
+  },
+  {
+   "id": "node_long_swing",
+   "skillId": "long_swing",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "heavy_swing"
+   ]
+  },
+  {
+   "id": "node_hunt_the_slow",
+   "skillId": "hunt_the_slow",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "long_swing"
+   ]
+  },
+  {
+   "id": "node_opening_stab",
+   "skillId": "opening_stab",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "long_swing"
+   ]
+  },
+  {
+   "id": "node_finishing_thrust",
+   "skillId": "finishing_thrust",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "steady_cut"
+   ]
+  },
+  {
+   "id": "node_hamstring",
+   "skillId": "hamstring",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "finishing_thrust"
    ]
   },
   {
@@ -13169,95 +12588,27 @@
    "skillId": "execute_low",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "finishing_thrust"
-   ]
-  },
-  {
-   "id": "node_opportunist",
-   "skillId": "opportunist",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 1,
+   "x": 5,
    "cost": 1,
    "requires": [
-    "strike"
+    "hamstring"
    ]
   },
   {
-   "id": "node_vengeful_step",
-   "skillId": "vengeful_step",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "counter_blow"
-   ]
-  },
-  {
-   "id": "node_finish_the_wounded",
-   "skillId": "finish_the_wounded",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_edge_honed",
-   "skillId": "edge_honed",
-   "kind": "passive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "strike"
-   ]
-  },
-  {
-   "id": "node_drag_forward",
-   "skillId": "drag_forward",
+   "id": "node_bulwark",
+   "skillId": "bulwark",
    "kind": "active",
    "branch": "守り",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "reposition"
-   ]
+   "x": 1,
+   "cost": 0,
+   "requires": []
   },
   {
-   "id": "node_shield_wall",
-   "skillId": "shield_wall",
+   "id": "node_hand_off",
+   "skillId": "hand_off",
    "kind": "active",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_rally_line",
-   "skillId": "rally_line",
-   "kind": "active",
-   "branch": "守り",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "reposition"
-   ]
-  },
-  {
-   "id": "node_bulwark_of_will",
-   "skillId": "bulwark_of_will",
-   "kind": "active",
-   "branch": "守り",
-   "tier": 1,
+   "branch": "支援",
+   "x": 2,
    "cost": 1,
    "requires": [
     "bulwark"
@@ -13268,10 +12619,43 @@
    "skillId": "spread_the_guard",
    "kind": "active",
    "branch": "守り",
-   "tier": 1,
+   "x": 2,
    "cost": 1,
    "requires": [
     "bulwark"
+   ]
+  },
+  {
+   "id": "node_brace_for_impact",
+   "skillId": "brace_for_impact",
+   "kind": "active",
+   "branch": "守り",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "spread_the_guard"
+   ]
+  },
+  {
+   "id": "node_bulwark_of_will",
+   "skillId": "bulwark_of_will",
+   "kind": "active",
+   "branch": "守り",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "brace_for_impact"
+   ]
+  },
+  {
+   "id": "node_shield_wall",
+   "skillId": "shield_wall",
+   "kind": "active",
+   "branch": "守り",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "bulwark_of_will"
    ]
   },
   {
@@ -13279,186 +12663,54 @@
    "skillId": "bracing_thrust",
    "kind": "active",
    "branch": "守り",
-   "tier": 1,
+   "x": 5,
    "cost": 1,
    "requires": [
-    "bulwark"
+    "bulwark_of_will"
    ]
   },
   {
-   "id": "node_absorb_shock",
-   "skillId": "absorb_shock",
-   "kind": "reactive",
+   "id": "node_reposition",
+   "skillId": "reposition",
+   "kind": "active",
+   "branch": "指揮",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "spread_the_guard"
+   ]
+  },
+  {
+   "id": "node_rally_line",
+   "skillId": "rally_line",
+   "kind": "active",
    "branch": "守り",
-   "tier": 1,
+   "x": 4,
    "cost": 1,
    "requires": [
-    "bulwark"
+    "reposition"
    ]
   },
   {
-   "id": "node_guard_the_marked",
-   "skillId": "guard_the_marked",
-   "kind": "reactive",
+   "id": "node_drag_forward",
+   "skillId": "drag_forward",
+   "kind": "active",
    "branch": "守り",
-   "tier": 2,
+   "x": 5,
    "cost": 1,
    "requires": [
-    "cover_ally"
+    "rally_line"
    ]
   },
   {
-   "id": "node_last_stand",
-   "skillId": "last_stand",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_counterweight",
-   "skillId": "counterweight",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "guard_step"
-   ]
-  },
-  {
-   "id": "node_wall_reader",
-   "skillId": "wall_reader",
-   "kind": "passive",
-   "branch": "守り",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "bulwark"
-   ]
-  },
-  {
-   "id": "node_field_dressing",
-   "skillId": "field_dressing",
+   "id": "node_relay_order",
+   "skillId": "relay_order",
    "kind": "active",
-   "branch": "支援",
-   "tier": 1,
+   "branch": "指揮",
+   "x": 5,
    "cost": 1,
    "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_steady_breath",
-   "skillId": "steady_breath",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_ward_ally",
-   "skillId": "ward_ally",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_precise_cut",
-   "skillId": "precise_cut",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "aimed_shot"
-   ]
-  },
-  {
-   "id": "node_sustaining_ward",
-   "skillId": "sustaining_ward",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "ward_ally"
-   ]
-  },
-  {
-   "id": "node_cleansing_step",
-   "skillId": "cleansing_step",
-   "kind": "active",
-   "branch": "支援",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "ward_ally"
-   ]
-  },
-  {
-   "id": "node_shared_pain",
-   "skillId": "shared_pain",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "triage"
-   ]
-  },
-  {
-   "id": "node_watchful_care",
-   "skillId": "watchful_care",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_steady_under_fire",
-   "skillId": "steady_under_fire",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_second_wind",
-   "skillId": "second_wind",
-   "kind": "reactive",
-   "branch": "支援",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "overflow_care"
-   ]
-  },
-  {
-   "id": "node_patient_hands",
-   "skillId": "patient_hands",
-   "kind": "passive",
-   "branch": "支援",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mend"
+    "rally_line"
    ]
   },
   {
@@ -13466,21 +12718,32 @@
    "skillId": "hasten_ally",
    "kind": "active",
    "branch": "指揮",
-   "tier": 1,
+   "x": 6,
    "cost": 1,
    "requires": [
     "relay_order"
    ]
   },
   {
-   "id": "node_call_the_slow",
-   "skillId": "call_the_slow",
+   "id": "node_mark_target",
+   "skillId": "mark_target",
    "kind": "active",
    "branch": "指揮",
-   "tier": 2,
+   "x": 6,
    "cost": 1,
    "requires": [
     "relay_order"
+   ]
+  },
+  {
+   "id": "node_steady_aim",
+   "skillId": "steady_aim",
+   "kind": "active",
+   "branch": "指揮",
+   "x": 7,
+   "cost": 1,
+   "requires": [
+    "mark_target"
    ]
   },
   {
@@ -13488,10 +12751,10 @@
    "skillId": "feint",
    "kind": "active",
    "branch": "指揮",
-   "tier": 2,
+   "x": 8,
    "cost": 1,
    "requires": [
-    "mark_target"
+    "steady_aim"
    ]
   },
   {
@@ -13499,84 +12762,102 @@
    "skillId": "set_the_pace",
    "kind": "active",
    "branch": "指揮",
-   "tier": 2,
+   "x": 8,
    "cost": 1,
    "requires": [
     "steady_aim"
    ]
   },
   {
-   "id": "node_read_the_charge",
-   "skillId": "read_the_charge",
-   "kind": "reactive",
+   "id": "node_call_the_slow",
+   "skillId": "call_the_slow",
+   "kind": "active",
    "branch": "指揮",
-   "tier": 1,
+   "x": 9,
    "cost": 1,
    "requires": [
-    "relay_order"
+    "set_the_pace"
    ]
   },
   {
-   "id": "node_break_the_charge",
-   "skillId": "break_the_charge",
-   "kind": "reactive",
+   "id": "node_pass_the_edge",
+   "skillId": "pass_the_edge",
+   "kind": "active",
    "branch": "指揮",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "read_the_charge"
-   ]
-  },
-  {
-   "id": "node_counter_order",
-   "skillId": "counter_order",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 2,
+   "x": 10,
    "cost": 1,
    "requires": [
-    "relay_order"
+    "call_the_slow"
    ]
   },
   {
-   "id": "node_stall_the_blow",
-   "skillId": "stall_the_blow",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 2,
-   "cost": 2,
-   "requires": [
-    "counter_order"
-   ]
-  },
-  {
-   "id": "node_first_order",
-   "skillId": "first_order",
-   "kind": "passive",
-   "branch": "指揮",
-   "tier": 1,
+   "id": "node_barrage_strike",
+   "skillId": "barrage_strike",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 1,
    "cost": 1,
-   "requires": [
-    "relay_order"
-   ]
+   "requires": []
   },
   {
    "id": "node_flurry_finish",
    "skillId": "flurry_finish",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 2,
    "cost": 1,
    "requires": [
     "barrage_strike"
    ]
   },
   {
+   "id": "node_sweeping_barrage",
+   "skillId": "sweeping_barrage",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "barrage_strike"
+   ]
+  },
+  {
+   "id": "node_piercing_barrage",
+   "skillId": "piercing_barrage",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "barrage_strike"
+   ]
+  },
+  {
+   "id": "node_mark_strike",
+   "skillId": "mark_strike",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
    "id": "node_mark_spread",
    "skillId": "mark_spread",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 1,
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
+   ]
+  },
+  {
+   "id": "node_mark_break",
+   "skillId": "mark_break",
+   "kind": "active",
+   "branch": "攻撃",
+   "x": 2,
    "cost": 1,
    "requires": [
     "mark_strike"
@@ -13587,32 +12868,10 @@
    "skillId": "shatter_point",
    "kind": "active",
    "branch": "攻撃",
-   "tier": 2,
-   "cost": 2,
+   "x": 3,
+   "cost": 1,
    "requires": [
     "mark_break"
-   ]
-  },
-  {
-   "id": "node_echo_of_the_mark",
-   "skillId": "echo_of_the_mark",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "tier": 2,
-   "cost": 1,
-   "requires": [
-    "mark_strike"
-   ]
-  },
-  {
-   "id": "node_mark_reader",
-   "skillId": "mark_reader",
-   "kind": "passive",
-   "branch": "攻撃",
-   "tier": 1,
-   "cost": 1,
-   "requires": [
-    "mark_strike"
    ]
   },
   {
@@ -13620,43 +12879,349 @@
    "skillId": "take_the_wound",
    "kind": "active",
    "branch": "支援",
-   "tier": 1,
+   "x": 2,
    "cost": 1,
    "requires": [
     "mend"
    ]
   },
   {
-   "id": "node_pass_the_edge",
-   "skillId": "pass_the_edge",
+   "id": "node_aimed_shot",
+   "skillId": "aimed_shot",
    "kind": "active",
-   "branch": "指揮",
-   "tier": 1,
+   "branch": "支援",
+   "x": 2,
    "cost": 1,
    "requires": [
-    "relay_order"
+    "mend"
    ]
   },
   {
-   "id": "node_stagger_relay",
-   "skillId": "stagger_relay",
-   "kind": "reactive",
-   "branch": "指揮",
-   "tier": 2,
+   "id": "node_shield_the_wounded",
+   "skillId": "shield_the_wounded",
+   "kind": "active",
+   "branch": "支援",
+   "x": 3,
    "cost": 1,
    "requires": [
-    "relay_order"
+    "aimed_shot"
    ]
   },
   {
-   "id": "node_warded_into_edge",
-   "skillId": "warded_into_edge",
-   "kind": "reactive",
-   "branch": "守り",
-   "tier": 2,
+   "id": "node_field_dressing",
+   "skillId": "field_dressing",
+   "kind": "active",
+   "branch": "支援",
+   "x": 4,
    "cost": 1,
    "requires": [
-    "bulwark"
+    "shield_the_wounded"
+   ]
+  },
+  {
+   "id": "node_precise_cut",
+   "skillId": "precise_cut",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "field_dressing"
+   ]
+  },
+  {
+   "id": "node_idle_shuffle",
+   "skillId": "idle_shuffle",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "field_dressing"
+   ]
+  },
+  {
+   "id": "node_ward_ally",
+   "skillId": "ward_ally",
+   "kind": "active",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "aimed_shot"
+   ]
+  },
+  {
+   "id": "node_sustaining_ward",
+   "skillId": "sustaining_ward",
+   "kind": "active",
+   "branch": "支援",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "ward_ally"
+   ]
+  },
+  {
+   "id": "node_cleansing_step",
+   "skillId": "cleansing_step",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "sustaining_ward"
+   ]
+  },
+  {
+   "id": "node_steady_breath",
+   "skillId": "steady_breath",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "sustaining_ward"
+   ]
+  },
+  {
+   "id": "node_mend",
+   "skillId": "mend",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 1,
+   "cost": 0,
+   "requires": []
+  },
+  {
+   "id": "node_triage",
+   "skillId": "triage",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "mend"
+   ]
+  },
+  {
+   "id": "node_overflow_care",
+   "skillId": "overflow_care",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "triage"
+   ]
+  },
+  {
+   "id": "node_emergency_treatment",
+   "skillId": "emergency_treatment",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "overflow_care"
+   ]
+  },
+  {
+   "id": "node_triage_relay",
+   "skillId": "triage_relay",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "emergency_treatment"
+   ]
+  },
+  {
+   "id": "node_second_wind",
+   "skillId": "second_wind",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 6,
+   "cost": 1,
+   "requires": [
+    "triage_relay"
+   ]
+  },
+  {
+   "id": "node_shared_pain",
+   "skillId": "shared_pain",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 7,
+   "cost": 1,
+   "requires": [
+    "second_wind"
+   ]
+  },
+  {
+   "id": "node_urging",
+   "skillId": "urging",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 8,
+   "cost": 1,
+   "requires": [
+    "shared_pain"
+   ]
+  },
+  {
+   "id": "node_prep_spiral",
+   "skillId": "prep_spiral",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 9,
+   "cost": 1,
+   "requires": [
+    "urging"
+   ]
+  },
+  {
+   "id": "node_mercy_into_guard",
+   "skillId": "mercy_into_guard",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 10,
+   "cost": 1,
+   "requires": [
+    "prep_spiral"
+   ]
+  },
+  {
+   "id": "node_steady_under_fire",
+   "skillId": "steady_under_fire",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "emergency_treatment"
+   ]
+  },
+  {
+   "id": "node_watchful_care",
+   "skillId": "watchful_care",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "triage"
+   ]
+  },
+  {
+   "id": "node_counter_blow",
+   "skillId": "counter_blow",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_opportunist",
+   "skillId": "opportunist",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "counter_blow"
+   ]
+  },
+  {
+   "id": "node_whetted_by_pain",
+   "skillId": "whetted_by_pain",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "opportunist"
+   ]
+  },
+  {
+   "id": "node_damage_echo",
+   "skillId": "damage_echo",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "whetted_by_pain"
+   ]
+  },
+  {
+   "id": "node_vengeful_step",
+   "skillId": "vengeful_step",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 6,
+   "cost": 1,
+   "requires": [
+    "damage_echo"
+   ]
+  },
+  {
+   "id": "node_guard_step",
+   "skillId": "guard_step",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 7,
+   "cost": 1,
+   "requires": [
+    "vengeful_step"
+   ]
+  },
+  {
+   "id": "node_ap_loop",
+   "skillId": "ap_loop",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 8,
+   "cost": 1,
+   "requires": [
+    "guard_step"
+   ]
+  },
+  {
+   "id": "node_read_the_charge",
+   "skillId": "read_the_charge",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 9,
+   "cost": 1,
+   "requires": [
+    "ap_loop"
+   ]
+  },
+  {
+   "id": "node_break_the_charge",
+   "skillId": "break_the_charge",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 10,
+   "cost": 1,
+   "requires": [
+    "read_the_charge"
+   ]
+  },
+  {
+   "id": "node_finish_the_wounded",
+   "skillId": "finish_the_wounded",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "whetted_by_pain"
    ]
   },
   {
@@ -13664,10 +13229,359 @@
    "skillId": "bleed_into_wake",
    "kind": "reactive",
    "branch": "攻撃",
-   "tier": 2,
+   "x": 6,
    "cost": 1,
    "requires": [
-    "strike"
+    "finish_the_wounded"
+   ]
+  },
+  {
+   "id": "node_spill_forward",
+   "skillId": "spill_forward",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 7,
+   "cost": 1,
+   "requires": [
+    "bleed_into_wake"
+   ]
+  },
+  {
+   "id": "node_scavenge_ap",
+   "skillId": "scavenge_ap",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "counter_blow"
+   ]
+  },
+  {
+   "id": "node_patient_step",
+   "skillId": "patient_step",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "scavenge_ap"
+   ]
+  },
+  {
+   "id": "node_counter_order",
+   "skillId": "counter_order",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "patient_step"
+   ]
+  },
+  {
+   "id": "node_stall_the_blow",
+   "skillId": "stall_the_blow",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 6,
+   "cost": 1,
+   "requires": [
+    "counter_order"
+   ]
+  },
+  {
+   "id": "node_stagger_relay",
+   "skillId": "stagger_relay",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 7,
+   "cost": 1,
+   "requires": [
+    "stall_the_blow"
+   ]
+  },
+  {
+   "id": "node_readied_relay",
+   "skillId": "readied_relay",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 8,
+   "cost": 1,
+   "requires": [
+    "stagger_relay"
+   ]
+  },
+  {
+   "id": "node_stride_into_reach",
+   "skillId": "stride_into_reach",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "patient_step"
+   ]
+  },
+  {
+   "id": "node_brace_after_hit",
+   "skillId": "brace_after_hit",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "bulwark"
+   ]
+  },
+  {
+   "id": "node_cover_ally",
+   "skillId": "cover_ally",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "brace_after_hit"
+   ]
+  },
+  {
+   "id": "node_shield_handoff",
+   "skillId": "shield_handoff",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "cover_ally"
+   ]
+  },
+  {
+   "id": "node_guard_the_marked",
+   "skillId": "guard_the_marked",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "shield_handoff"
+   ]
+  },
+  {
+   "id": "node_barrier_bloom",
+   "skillId": "barrier_bloom",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 6,
+   "cost": 1,
+   "requires": [
+    "guard_the_marked"
+   ]
+  },
+  {
+   "id": "node_barrier_stitch",
+   "skillId": "barrier_stitch",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 7,
+   "cost": 1,
+   "requires": [
+    "barrier_bloom"
+   ]
+  },
+  {
+   "id": "node_wake_of_the_fallen",
+   "skillId": "wake_of_the_fallen",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 8,
+   "cost": 1,
+   "requires": [
+    "barrier_stitch"
+   ]
+  },
+  {
+   "id": "node_warded_into_edge",
+   "skillId": "warded_into_edge",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 9,
+   "cost": 1,
+   "requires": [
+    "wake_of_the_fallen"
+   ]
+  },
+  {
+   "id": "node_blocked_into_step",
+   "skillId": "blocked_into_step",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 10,
+   "cost": 1,
+   "requires": [
+    "warded_into_edge"
+   ]
+  },
+  {
+   "id": "node_last_stand",
+   "skillId": "last_stand",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "shield_handoff"
+   ]
+  },
+  {
+   "id": "node_absorb_shock",
+   "skillId": "absorb_shock",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "brace_after_hit"
+   ]
+  },
+  {
+   "id": "node_block_focus",
+   "skillId": "block_focus",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "absorb_shock"
+   ]
+  },
+  {
+   "id": "node_counterweight",
+   "skillId": "counterweight",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "block_focus"
+   ]
+  },
+  {
+   "id": "node_guarded_opening",
+   "skillId": "guarded_opening",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
+   ]
+  },
+  {
+   "id": "node_seize_the_opening",
+   "skillId": "seize_the_opening",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "guarded_opening"
+   ]
+  },
+  {
+   "id": "node_echo_of_the_mark",
+   "skillId": "echo_of_the_mark",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "guarded_opening"
+   ]
+  },
+  {
+   "id": "node_foundation_vitality",
+   "skillId": "foundation_vitality",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_foundation_might",
+   "skillId": "foundation_might",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_foundation_focus",
+   "skillId": "foundation_focus",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_foundation_guard",
+   "skillId": "foundation_guard",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_foundation_speed",
+   "skillId": "foundation_speed",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_foundation_ap",
+   "skillId": "foundation_ap",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_foundation_rp",
+   "skillId": "foundation_rp",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_steady_hands",
+   "skillId": "steady_hands",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "mend"
+   ]
+  },
+  {
+   "id": "node_patient_hands",
+   "skillId": "patient_hands",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "steady_hands"
    ]
   },
   {
@@ -13675,13 +13589,236 @@
    "skillId": "relay_reader",
    "kind": "passive",
    "branch": "支援",
-   "tier": 1,
+   "x": 3,
    "cost": 1,
    "requires": [
-    "mend"
+    "steady_hands"
+   ]
+  },
+  {
+   "id": "node_first_blood",
+   "skillId": "first_blood",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_edge_honed",
+   "skillId": "edge_honed",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "first_blood"
+   ]
+  },
+  {
+   "id": "node_wake_reader",
+   "skillId": "wake_reader",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "first_blood"
+   ]
+  },
+  {
+   "id": "node_opening_guard",
+   "skillId": "opening_guard",
+   "kind": "passive",
+   "branch": "守り",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "bulwark"
+   ]
+  },
+  {
+   "id": "node_wall_reader",
+   "skillId": "wall_reader",
+   "kind": "passive",
+   "branch": "守り",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "opening_guard"
+   ]
+  },
+  {
+   "id": "node_held_breath",
+   "skillId": "held_breath",
+   "kind": "passive",
+   "branch": "指揮",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "relay_order"
+   ]
+  },
+  {
+   "id": "node_first_order",
+   "skillId": "first_order",
+   "kind": "passive",
+   "branch": "指揮",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "held_breath"
+   ]
+  },
+  {
+   "id": "node_mark_reader",
+   "skillId": "mark_reader",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "mark_strike"
    ]
   }
  ],
+ "skillLevelCaps": {
+  "strike": 10,
+  "bulwark": 10,
+  "relay_order": 1,
+  "heavy_swing": 10,
+  "reposition": 1,
+  "long_swing": 10,
+  "hunt_the_slow": 10,
+  "idle_shuffle": 1,
+  "mark_target": 1,
+  "steady_aim": 1,
+  "front_strike": 10,
+  "rear_strike": 10,
+  "enemy_heavy": 10,
+  "enemy_guard": 10,
+  "basic_strike_melee": 10,
+  "fallback_strike_melee": 10,
+  "basic_strike_ranged": 10,
+  "fallback_strike_ranged": 10,
+  "rapid_cuts": 10,
+  "pierce_thrust": 10,
+  "steady_cut": 10,
+  "aimed_shot": 10,
+  "row_sweep": 10,
+  "column_thrust": 10,
+  "guard_crush": 10,
+  "rear_hunt": 10,
+  "finishing_thrust": 10,
+  "crack_mark": 10,
+  "brace_for_impact": 1,
+  "barrage_strike": 10,
+  "mark_strike": 10,
+  "mark_break": 10,
+  "sweeping_barrage": 10,
+  "piercing_barrage": 10,
+  "shield_the_wounded": 10,
+  "hand_off": 1,
+  "overreach": 10,
+  "reckless_swing": 10,
+  "double_back": 10,
+  "spread_cut": 10,
+  "opening_stab": 10,
+  "bloodied_charge": 10,
+  "hamstring": 10,
+  "execute_low": 10,
+  "rend": 10,
+  "drag_forward": 1,
+  "shield_wall": 10,
+  "rally_line": 1,
+  "bulwark_of_will": 10,
+  "spread_the_guard": 1,
+  "bracing_thrust": 10,
+  "field_dressing": 10,
+  "steady_breath": 1,
+  "ward_ally": 1,
+  "precise_cut": 10,
+  "sustaining_ward": 10,
+  "cleansing_step": 1,
+  "hasten_ally": 1,
+  "call_the_slow": 1,
+  "feint": 1,
+  "set_the_pace": 1,
+  "flurry_finish": 10,
+  "mark_spread": 1,
+  "shatter_point": 10,
+  "take_the_wound": 1,
+  "pass_the_edge": 1,
+  "counter_blow": 10,
+  "cover_ally": 1,
+  "overflow_care": 10,
+  "scavenge_ap": 1,
+  "guard_step": 10,
+  "urging": 1,
+  "brace_after_hit": 10,
+  "triage_relay": 10,
+  "ap_loop": 1,
+  "damage_echo": 10,
+  "barrier_bloom": 10,
+  "relay_front": 1,
+  "relay_rear": 1,
+  "prep_spiral": 1,
+  "block_focus": 1,
+  "barrier_stitch": 1,
+  "emergency_treatment": 10,
+  "mend": 10,
+  "triage": 10,
+  "guarded_opening": 1,
+  "seize_the_opening": 1,
+  "whetted_by_pain": 1,
+  "shield_handoff": 10,
+  "patient_step": 1,
+  "spill_forward": 10,
+  "blocked_into_step": 1,
+  "mercy_into_guard": 1,
+  "stride_into_reach": 1,
+  "readied_relay": 1,
+  "wake_of_the_fallen": 10,
+  "opportunist": 10,
+  "vengeful_step": 10,
+  "finish_the_wounded": 10,
+  "absorb_shock": 10,
+  "guard_the_marked": 1,
+  "last_stand": 10,
+  "counterweight": 10,
+  "shared_pain": 10,
+  "watchful_care": 1,
+  "steady_under_fire": 1,
+  "second_wind": 1,
+  "read_the_charge": 1,
+  "break_the_charge": 1,
+  "counter_order": 1,
+  "stall_the_blow": 1,
+  "echo_of_the_mark": 10,
+  "stagger_relay": 1,
+  "warded_into_edge": 1,
+  "bleed_into_wake": 1,
+  "foundation_vitality": 1,
+  "foundation_might": 1,
+  "foundation_focus": 1,
+  "foundation_guard": 1,
+  "foundation_speed": 1,
+  "foundation_ap": 1,
+  "foundation_rp": 1,
+  "first_blood": 1,
+  "held_breath": 1,
+  "steady_hands": 1,
+  "wake_reader": 1,
+  "opening_guard": 1,
+  "edge_honed": 1,
+  "wall_reader": 1,
+  "patient_hands": 1,
+  "first_order": 1,
+  "mark_reader": 1,
+  "relay_reader": 1
+ },
  "enemyInfo": {
   "husk": {
    "id": "husk",
@@ -13829,45 +13966,62 @@
  "initialUnlocked": {
   "warden": [
    "strike",
-   "mend",
-   "bulwark",
    "steady_cut",
+   "bulwark",
+   "mend",
+   "triage",
    "overflow_care"
   ],
   "mender": [
    "strike",
-   "mend",
    "bulwark",
    "aimed_shot",
    "shield_the_wounded",
+   "mend",
    "triage",
+   "overflow_care",
    "emergency_treatment"
   ],
   "lancer": [
    "strike",
-   "mend",
-   "bulwark",
-   "heavy_swing",
+   "steady_cut",
+   "pierce_thrust",
    "rear_hunt",
-   "shield_handoff",
-   "triage"
+   "heavy_swing",
+   "bulwark",
+   "mend",
+   "triage",
+   "brace_after_hit",
+   "cover_ally",
+   "shield_handoff"
   ],
   "guardian": [
    "strike",
-   "mend",
-   "bulwark",
-   "reposition",
+   "steady_cut",
+   "pierce_thrust",
    "column_thrust",
+   "bulwark",
+   "spread_the_guard",
+   "reposition",
+   "mend",
+   "counter_blow",
    "scavenge_ap",
    "brace_after_hit"
   ],
   "tactician": [
    "strike",
-   "mend",
    "bulwark",
+   "spread_the_guard",
+   "reposition",
+   "rally_line",
    "relay_order",
    "mark_target",
+   "mend",
+   "counter_blow",
+   "scavenge_ap",
    "patient_step",
+   "brace_after_hit",
+   "absorb_shock",
    "block_focus"
   ]
  },
@@ -23270,7 +23424,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -23473,7 +23627,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -23673,7 +23827,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -23842,7 +23996,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -24018,7 +24172,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -24204,7 +24358,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 503,
       "rarity": "common",
@@ -24403,7 +24557,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -24564,7 +24718,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -24736,7 +24890,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -24904,7 +25058,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -25060,7 +25214,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -25241,7 +25395,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -25434,7 +25588,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -25600,7 +25754,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -25795,7 +25949,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -25979,7 +26133,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 115,
       "rarity": "rare",
@@ -26165,7 +26319,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -26413,7 +26567,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -26608,7 +26762,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -26766,7 +26920,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -26949,7 +27103,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -27119,7 +27273,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -27301,7 +27455,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -27503,7 +27657,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -27694,7 +27848,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -27857,7 +28011,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -28043,7 +28197,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -28390,7 +28544,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -28650,7 +28804,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -28823,7 +28977,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 504,
       "rarity": "common",
@@ -29114,7 +29268,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -29329,7 +29483,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -29488,7 +29642,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -29637,7 +29791,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -29819,7 +29973,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -30085,7 +30239,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-11",
+      "contentContractVersion": "ecology-content-contract-12",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1115,
       "rarity": "epic",

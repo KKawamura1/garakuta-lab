@@ -203,6 +203,13 @@ try {
   await page.waitForTimeout(150);
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
   note("前提ルート以外を落として見せる", await page.locator(".tree-row.faded").count() > 0);
+
+  // R19（issue #137）— 技能レベル。**上位互換を別技能として増やさない**代わりに、
+  // 一つの節が何段まで伸びるのかを節の上で読める。
+  note("節に現在レベル／最大レベルが出る", await page.locator(".badge-level").count() > 0);
+  note("レベルを持たない技能はそう書く", await page.locator(".badge-level.flat").count() > 0);
+  const levelText = await bodyText();
+  note("レベルの上げ方が書いてある", /1段ごとに威力|Lv \d+ へ上げる|レベルを持ちません/.test(levelText));
   await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
   await page.waitForTimeout(150);
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、

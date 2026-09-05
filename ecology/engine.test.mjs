@@ -6,7 +6,8 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { RESULT_SCHEMA_VERSION } from "./schema.mjs";
+import { RESULT_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
+import { BPS, roundHalfUpDiv } from "./values.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import {
@@ -684,6 +685,55 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     )[1].values.activation,
     2,
   );
+}
+
+// ---- R19（issue #137）技能レベル ------------------------------------------------
+//
+// **同じ効果の上位互換を別技能として増やさず、一つの技能を段階的に強くする。**
+// engine が見るのは ally.skillLevels の表だけで、技能 ID では分岐しない。
+{
+  const damageOf = (battle) => of(run(battle), "damage_proposed")
+    .filter((event) => event.sourceActorId === "a_warden")
+    .map((event) => event.values.amount);
+
+  const base = damageOf(CORE_BATTLE);
+  check(base.length > 0, "参照の一戦に a_warden の damage が出ている");
+
+  // Lv1 は掛け算そのものが起きない。**レベルを知らない入力と1バイトも変わらない。**
+  const atLevelOne = structuredClone(CORE_BATTLE);
+  const wardenSkills = atLevelOne.allies
+    .find((ally) => ally.instanceId === "a_warden").tactics
+    .map((tactic) => tactic.activeSkillId);
+  atLevelOne.allies.find((ally) => ally.instanceId === "a_warden").skillLevels =
+    Object.fromEntries(wardenSkills.map((skillId) => [skillId, 1]));
+  assert.deepEqual(damageOf(atLevelOne), base, "Lv1 は既定と同じ結果になる");
+  checks += 1;
+
+  // 段が上がるぶんだけ、連続量だけが上がる。
+  const lifted = structuredClone(CORE_BATTLE);
+  lifted.allies.find((ally) => ally.instanceId === "a_warden").skillLevels =
+    Object.fromEntries(wardenSkills.map((skillId) => [skillId, 5]));
+  const raised = damageOf(lifted);
+  check(
+    raised.length > 0 && raised[0] > base[0],
+    `Lv5 で damage が上がる（${base[0]} → ${raised[0]}）`,
+  );
+  // 係数は 1 + 0.12 × (level - 1)。round-half-up は values.mjs の一箇所だけで行う。
+  equal(raised[0], roundHalfUpDiv(base[0] * (BPS + 4 * SKILL_LEVEL_STEP_BPS), BPS));
+
+  // **掛かるのは、その actor が実際に出したその技能だけ。**使っていない技能へ
+  // 段を積んでも、出来事の列は1バイトも変わらない（engine が技能 ID で分岐して
+  // いないことの witness でもある）。
+  const unused = Object.keys(FIXTURE_CONTENT.activeSkills)
+    .find((skillId) => !wardenSkills.includes(skillId));
+  check(Boolean(unused), "warden が使っていない技能が fixture にある");
+  const elsewhere = structuredClone(CORE_BATTLE);
+  elsewhere.allies.find((ally) => ally.instanceId === "a_warden").skillLevels = { [unused]: 10 };
+  assert.deepEqual(
+    run(elsewhere).events, run(CORE_BATTLE).events,
+    "使っていない技能のレベルは出来事の列を変えない",
+  );
+  checks += 1;
 }
 
 // ---- §14 the ordinary fixtures stay far below the caps --------------------------

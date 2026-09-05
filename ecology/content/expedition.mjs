@@ -8,7 +8,7 @@
 // R7 §5 Milestone 4 は「Phase A で固定済みの語彙だけ」を並列拡張の条件にしていて、
 // 作者 Gate の前に敵を量産することを禁じている（R7 §11 の停止条件）。
 //
-// ここを触ってよいのは 敵・encounter 担当だけ。地域の世界観本文は world-lore.mjs に置く。
+// 地域の世界観本文は world-lore.mjs に置く。
 import { REGION_LORE } from "./world-lore.mjs";
 // ---------------------------------------------------------------- threat cost
 //

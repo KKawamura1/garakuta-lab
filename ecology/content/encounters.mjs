@@ -3,7 +3,7 @@
 // **区画ごとの敵の配置。threat budget は Phase B まで入れない。**
 // R7 Milestone 0 で playable-battles.mjs から分離した。Wave 1 の難度調整もここで行う。
 //
-// ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
 
 import { LEGACY_COMBAT_SCALE } from "./base.mjs";
 import { SHIPPED_DIFFICULTY } from "./enemies.mjs";

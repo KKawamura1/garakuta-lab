@@ -53,6 +53,8 @@ import {
   seenHomesteadIds,
   seenHomesteadScenes,
   SKILL_PACKS,
+  SKILL_LEVEL_CAPS,
+  SKILL_LEVEL_COST,
   // R19（issue #137）— 技能ツリーの座標と表示語彙。
   BRANCH_BUILDS,
   SCOPE_LABELS,
@@ -90,6 +92,8 @@ import {
   STARTING_RUN_SKILL_POINTS,
   rewardOffer,
   runSkillPoints,
+  runSkillLevel,
+  levelUpRunSkill,
   settleRun,
   slotLimits,
   spendSupply,
@@ -343,6 +347,8 @@ function joinRun(run, characterId) {
     ...run,
     runSkillPoints: { ...run.runSkillPoints },
     runUnlockedSkills: { ...run.runUnlockedSkills },
+    // R19（issue #137）— レベルは取得と同じで、離脱・再加入では戻らない。
+    runSkillLevels: { ...run.runSkillLevels },
     loadout: {
       ...run.loadout,
       tactics: { ...run.loadout?.tactics },
@@ -956,6 +962,17 @@ function resetBattleResources() {
 
 function isUnlocked(characterId, skillId) {
   return (state.run.runUnlockedSkills?.[characterId] || []).includes(skillId);
+}
+
+// R19（issue #137）— 技能レベル。**取得＝Lv1。**未取得は 0 を返す。
+function skillLevelOf(characterId, skillId) {
+  return runSkillLevel(state.run, characterId, skillId);
+}
+
+// その技能が持てる最大レベル。連続する量を持たない技能は Lv1 止まりで、
+// **画面はそれを「レベルなし」と書く**（強くならないものへ点を払わせない）。
+function skillLevelCapOf(skillId) {
+  return SKILL_LEVEL_CAPS[skillId] ?? 1;
 }
 
 // この遠征の manifest が有効にした技能かどうか。**外れた技能はツリーで触れない。**
@@ -2231,6 +2248,38 @@ function skillRouteChip(skillId) {
     + "<small>" + esc(kindText(node.kind)) + "</small></button>";
 }
 
+// R19（issue #137）— 現在レベル／最大レベル。**上位互換を別技能で増やさないので、
+// 同じ節が何段まで伸びるのかを節の上で読めるようにする。**
+function levelBadge(node, characterId) {
+  const cap = skillLevelCapOf(node.skillId);
+  if (cap <= 1) return "<i class=\"badge-level flat\">レベルなし</i>";
+  const level = skillLevelOf(characterId, node.skillId);
+  const shown = level > 0 ? level : "—";
+  return "<i class=\"badge-level" + (level >= cap ? " maxed" : "") + "\">Lv " + shown + "/" + cap + "</i>";
+}
+
+// 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
+// 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
+function levelUpAction(node, characterId, nodeState) {
+  const cap = skillLevelCapOf(node.skillId);
+  if (cap <= 1) {
+    return "<p class=\"node-locked\">この技能はレベルを持ちません（威力や治療量のような"
+      + "連続する量を持たないため、段を積んでも何も変わりません）。</p>";
+  }
+  if (!nodeState.unlocked) {
+    return "<p class=\"node-locked\">解禁すると Lv 1 で手に入り、そこから 1点ずつ "
+      + cap + " まで上げられます。</p>";
+  }
+  const level = skillLevelOf(characterId, node.skillId);
+  if (level >= cap) return "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。</p>";
+  const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
+  return button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
+    "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
+    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+    + "<p class=\"node-locked\">1段ごとに威力・治療量・防壁が 12% ずつ上がります"
+    + "（AP / RP や段数・回数は変わりません）。</p>";
+}
+
 function renderSkillDetail(row, node, characterId, nodeState) {
   const info = COMPONENTS[node.skillId];
   const derived = row.children
@@ -2258,7 +2307,8 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     + "<span class=\"route-line\"><b>派生先</b>"
     + (derived.length ? derived.map(skillRouteChip).join("") : "<small>ここが終点</small>") + "</span></div>"
     + "<p class=\"route-build\">" + esc(BRANCH_BUILDS[node.branch] ?? "") + "</p>"
-    + "<div class=\"node-action\">" + action + "</div></div>";
+    + "<div class=\"node-action\">" + action + "</div>"
+    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
 }
 
 function layoutSkillId(key) {
@@ -2301,7 +2351,7 @@ function renderSkillRow(row, characterId, tone) {
     + "<small class=\"node-badges\"><i class=\"kind kind-" + node.kind + "\">" + esc(kindText(node.kind)) + "</i>"
     + "<i class=\"badge-cost\">" + esc(skillCostText(node)) + "</i>"
     + "<i class=\"badge-when\">" + esc(skillConditionText(node)) + "</i>"
-    + "<i class=\"badge-depth\">x=" + row.x + "</i>" + fork + "</small></span>"
+    + "<i class=\"badge-depth\">x=" + row.x + "</i>" + levelBadge(node, characterId) + fork + "</small></span>"
     + "<span class=\"node-status\">" + esc(nodeState.status) + "</span></button>"
     + detail + "</article></div>";
 }
@@ -4089,6 +4139,21 @@ function handleAction(event) {
     // **飛び先のツリーへ切り替えないと、選んだ節が画面に出ない。**
     const target = skillId ? SKILL_TREE_NODES.find((entry) => entry.skillId === skillId) : null;
     if (target && state.selectedSkillNode) state.skillTreeKind = target.kind;
+    saveState();
+    render();
+    return;
+  }
+
+  // R19（issue #137）— 取得済み技能を1段上げる。解禁と同じで払い戻しは無い。
+  if (action === "level-up-skill") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const result = levelUpRunSkill(state.run, characterId, skillId, skillLevelCapOf(skillId));
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.run = result.run;
+      record("skill_leveled", { characterId, skillId, level: result.level, cost: SKILL_LEVEL_COST });
+    }
     saveState();
     render();
     return;

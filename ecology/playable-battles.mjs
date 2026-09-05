@@ -18,7 +18,7 @@ import { RARITY_LABEL } from "./content/affixes.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
-import { characterStats, composeEncounter, runContentBundle } from "./progression.mjs";
+import { characterStats, composeEncounter, runContentBundle, runSkillLevelsFor } from "./progression.mjs";
 
 export const RUN_SEED = "frontier-1801";
 
@@ -190,16 +190,36 @@ export function skillNode(skillId) {
   return nodeBySkill[skillId] ?? null;
 }
 
+// R19（issue #137）— ツリーが一本道になったので、**持っている技能の前提も持っている**
+// ことを保つ。starter が x=5 の節なら、そこまでの道も一緒に開いている。
+//
+// 開けないと、画面には「取得済みの節が、前提待ちの節の右にぶら下がっている」形が出る。
+// 線を辿れるようにしたのに、線の途中が欠けているのは嘘である。**前提の閉包を取る。**
+function withPrerequisites(skillIds) {
+  const open = [...skillIds];
+  const seen = new Set(open);
+  while (open.length) {
+    const skillId = open.pop();
+    for (const required of nodeBySkill[skillId]?.requires ?? []) {
+      if (seen.has(required)) continue;
+      seen.add(required);
+      open.push(required);
+    }
+  }
+  // 並びは SKILL_TREE_NODES の宣言順（＝ツリーを上から下へ読む順）に揃える。
+  return SKILL_TREE_NODES.filter((node) => seen.has(node.skillId)).map((node) => node.skillId);
+}
+
 export function initialUnlockedSkills(characterId) {
   const character = characterById[characterId];
   if (!character) return [];
-  return [...new Set([
+  return withPrerequisites([...new Set([
     "strike",
     "mend",
     "bulwark",
     ...character.starterTactics,
     ...character.starterReactives,
-  ])];
+  ])]);
 }
 
 // R18 — 取得済み技能は、行動・反応・常設を問わずすべて装着できる。
@@ -442,6 +462,15 @@ function allyInput(characterId, position, loadout, options = {}) {
       options.content ?? PLAYABLE_CONTENT,
     ),
   };
+  // R19（issue #137）— 技能レベル。**取得＝Lv1** なので、Lv1 しか無い編成では
+  // 欄そのものを渡さない（渡しても結果は同じだが、入力に無駄な欄を増やさない）。
+  const skillLevels = options.skillLevelsFor?.(characterId) ?? null;
+  if (skillLevels) {
+    const leveled = Object.fromEntries(
+      Object.entries(skillLevels).filter(([, level]) => Number.isInteger(level) && level > 1),
+    );
+    if (Object.keys(leveled).length) ally.skillLevels = leveled;
+  }
   // R6 §9.5 — PHASE B. 鍛錬後の stat と、その level。**engine は鍛錬を知らない**
   // ので、丸め済みの値と記録の両方をここで渡す。
   const trained = options.statsFor?.(characterId) ?? null;
@@ -608,6 +637,8 @@ export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
     {
       hp: run.currentHp,
       statsFor: (characterId) => characterStats(profile, characterId),
+      // R19（issue #137）— **予測と本番は同じ経路**なので、技能レベルもここで一度だけ渡す。
+      skillLevelsFor: (characterId) => runSkillLevelsFor(run, characterId),
       content: runContentBundle(run),
     },
   );

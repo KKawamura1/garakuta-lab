@@ -4,7 +4,7 @@
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
 // 種類別へ分離した。敵の役割に合わせたHP帯の調整もここで管理する。
 //
-// ここを触ってよいのは 敵・encounter 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
 
 import { LEGACY_COMBAT_SCALE, NEUTRAL_STAT, cloneEnemy, renamed } from "./base.mjs";
 

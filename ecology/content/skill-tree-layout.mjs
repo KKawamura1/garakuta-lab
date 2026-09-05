@@ -26,7 +26,7 @@
 // 「橋渡し ← 斬撃（行動）」という節が立ち、そこから反撃たちが生える。
 // 前提が別のツリーに居ることが、線を辿るだけで分かる。
 //
-// ここを触ってよいのは 統合 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
 
 import { SKILL_TREE_NODES } from "./skill-tree.mjs";
 
@@ -107,11 +107,13 @@ function branchRank(branch) {
   return index === -1 ? BRANCH_ORDER.length : index;
 }
 
-// **並び順は一意に決める。**同じ入力から同じ座標が出ないと、画面が毎回踊る。
+// **並び順は宣言順そのもの。**R19（issue #137）で森を入れ子で書くようにしたので、
+// skill-tree.mjs に書いた形が、そのまま上から下への並びになる。
+// （以前は系統と tier で並べ替えていたが、それだと「設計者が意図した道の順」が消えた。）
+const DECLARED_ORDER = new Map(SKILL_TREE_NODES.map((node, index) => [node.skillId, index]));
+const declaredIndex = (skillId) => DECLARED_ORDER.get(skillId) ?? Number.MAX_SAFE_INTEGER;
 function orderNodes(a, b) {
-  if (branchRank(a.branch) !== branchRank(b.branch)) return branchRank(a.branch) - branchRank(b.branch);
-  if (a.tier !== b.tier) return a.tier - b.tier;
-  return a.skillId.localeCompare(b.skillId);
+  return declaredIndex(a.skillId) - declaredIndex(b.skillId);
 }
 
 const bridgeKey = (requireId) => "bridge:" + requireId;
@@ -160,10 +162,7 @@ function buildGroup(group, nodes, allBySkill) {
   // 橋渡しは本物の根のあと。**「まずこのツリーだけで始められる節」を先に見せる。**
   const anchors = [
     ...roots.sort((a, b) => orderNodes(a.node, b.node)),
-    ...[...bridges.values()].sort((a, b) => {
-      if (branchRank(a.branch) !== branchRank(b.branch)) return branchRank(a.branch) - branchRank(b.branch);
-      return a.requireId.localeCompare(b.requireId);
-    }),
+    ...[...bridges.values()].sort((a, b) => declaredIndex(a.children[0]) - declaredIndex(b.children[0])),
   ];
 
   const childrenOf = new Map();
@@ -218,11 +217,12 @@ function buildGroup(group, nodes, allBySkill) {
     }
     return row;
   };
+  // R19（issue #137）— x は 1 から数える（issue の「x=1: 基本スキル」に合わせる）。
   anchors.forEach((anchor, index) => {
-    walk(anchor.key, 0, [], index === anchors.length - 1, null, []);
+    walk(anchor.key, 1, [], index === anchors.length - 1, null, []);
   });
 
-  const depth = rows.reduce((max, row) => Math.max(max, row.x), 0);
+  const depth = rows.reduce((max, row) => Math.max(max, row.x), 1);
   const forks = rows.filter((row) => row.children.length >= 2).length;
   return {
     kind: group.kind,
@@ -257,9 +257,16 @@ export const SKILL_TREE_LAYOUT = buildSkillTreeLayout(SKILL_TREE_NODES);
 // analysis/ecology-skill-tree-smoke.mjs が呼び、鳴ることも確かめてある。
 
 // 分岐（子を2つ以上持つ節）の下限。**行動と反応は、役割の違う道が選べないと意味が無い。**
-// 常設は前提を持たない棚なので分岐を求めない（issue #137 の x=3 / x=5 での大分岐は、
-// 現行 content の深さが最大 4 列なので、content 側の再設計を待つ）。
+// 常設は前提を持たない棚（詰み防止の基礎訓練）なので分岐も深さも求めない。
 const MIN_FORKS = { active: 2, reactive: 2, passive: 0 };
+
+// issue #137 §深さと分岐 — **x=3 と x=5 で主要ルートが2方向以上へ分かれ、
+// x=10 に複数の最終到達点がある。**数だけの深さは、役割の違う道が無ければ意味が無い。
+const FORK_COLUMNS = [3, 5];
+const FINAL_COLUMN = 10;
+const MIN_FINAL_NODES = 2;
+// 深さを求めるツリー。常設は棚なので外す。
+const DEEP_KINDS = new Set(["active", "reactive"]);
 // 複数前提の合流は特別な連携技能に限る。**普通の派生に混ぜない。**
 const MAX_MERGE_NODES = 8;
 
@@ -305,7 +312,7 @@ export function validateSkillTreeLayout(layout, nodes = SKILL_TREE_NODES, { requ
     // 2. 前提の x 列。**子は必ず親の1列右。**
     for (const row of group.rows) {
       if (row.parentKey === null) {
-        if (row.x !== 0) problems.push(`${at}: 根 ${row.key} が x=${row.x} に居る（根は x=0）`);
+        if (row.x !== 1) problems.push(`${at}: 根 ${row.key} が x=${row.x} に居る（根は x=1）`);
         continue;
       }
       const parent = group.byKey.get(row.parentKey);
@@ -340,12 +347,40 @@ export function validateSkillTreeLayout(layout, nodes = SKILL_TREE_NODES, { requ
       }
     }
 
-    // 4. 分岐数。役割の違う道が選べること。
+    // 4. 宣言した座標と、組み直した座標が一致すること。
+    //    **content が持つ x は、森から出た値の写しである。**ずれたら、どちらかが嘘になる。
+    for (const row of group.rows) {
+      if (row.type !== "node") continue;
+      const declared = row.node?.x;
+      if (declared === undefined) continue;
+      if (declared !== row.x) {
+        problems.push(`${at}: ${row.key} の宣言 x=${declared} と、森から出た x=${row.x} が違う`);
+      }
+    }
+
+    // 5. 分岐数。役割の違う道が選べること。
     const need = requireForks ? (MIN_FORKS[group.kind] ?? 0) : 0;
     if (group.forks < need) {
       problems.push(`${at}: 分岐（子を2つ以上持つ節）が ${group.forks} 件しかない（${need} 件以上ほしい）`);
     }
     if (!group.rows.length) problems.push(`${at}: 節が一つも無い`);
+
+    // 6. issue #137 §深さと分岐 — x=3 と x=5 の大分岐、x=10 の複数到達点。
+    //    部分森（Stage ごと）では見ない。まだ pack が来ていないだけなので。
+    if (!requireForks || !DEEP_KINDS.has(group.kind)) continue;
+    for (const column of FORK_COLUMNS) {
+      const forked = group.rows.some((row) => row.x === column
+        && (group.byKey.get(row.parentKey)?.children.length ?? 0) >= 2);
+      if (!forked) {
+        problems.push(`${at}: x=${column} で主要ルートが2方向へ分かれていない`
+          + `（issue #137 §深さと分岐：x=3 が1回目、x=5 が2回目の役割分岐）`);
+      }
+    }
+    const finals = group.rows.filter((row) => row.x === FINAL_COLUMN);
+    if (finals.length < MIN_FINAL_NODES) {
+      problems.push(`${at}: x=${FINAL_COLUMN} の最終到達点が ${finals.length} 件しかない`
+        + `（${MIN_FINAL_NODES} 件以上。複数の到達点からビルドを選べること）`);
+    }
   }
 
   return problems;

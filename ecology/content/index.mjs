@@ -13,6 +13,7 @@ import { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE } from "./world-lore.mj
 import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES } from "./skills-active.mjs";
 import { REACTIVE_SKILLS, REACTIVE_SKILL_NAMES } from "./skills-reactive.mjs";
 import { PASSIVE_SKILLS } from "./skills-passive.mjs";
+import { skillLevelCaps } from "./skill-levels.mjs";
 import { FIXED_EQUIPMENT, EQUIPMENT_NAMES } from "./equipment-fixed.mjs";
 import { STATUSES, STATUS_NAMES } from "./statuses.mjs";
 import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
@@ -46,7 +47,12 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 技能を54本（active 29・reactive 19・passive 6）足した。**engine と schema の語彙は
 // 1つも増やしていない**（既存の event・effect・predicate・target だけで書けている）。
 // R17 — `focus` の表示語彙を「技術」へ統一した。内部 ID と状態 `focused` の表示「集中」は変えない。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-11";
+// R19（issue #137）— 技能レベルを足し、ツリーの節を組み替えた。**技能も pack も
+// 1本たりとも増減していない**（123 節のまま）が、(1) 既存の技能が Lv1〜Lv10 を持ち、
+// `skillLevelCaps` を公開した。battle input が `skillLevels` を受ける。
+// (2) 節が `tier`（0/1/2）ではなく `x`（前提からの深さ、1〜10）を持ち、`requires` が
+// 「tier ごとの箱」から「一本の道」へ並び替わった。**既存欄の意味が変わったので上げる。**
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-12";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -106,6 +112,11 @@ export const PLAYABLE_CONTENT = Object.freeze({
     fallbackStrike: Object.freeze({ melee: "fallback_strike_melee", ranged: "fallback_strike_ranged" }),
   }),
 });
+
+// R19（issue #137）— 技能レベルの上限。**PLAYABLE_CONTENT が組み上がってから引く**
+// ので、定義を書き換えれば上限もついてくる（手書きの表がずれることがない）。
+export const SKILL_LEVEL_CAPS = skillLevelCaps(PLAYABLE_CONTENT);
+export { SKILL_LEVEL_COST, skillLevelCap } from "./skill-levels.mjs";
 
 export const DISPLAY_NAMES = Object.freeze(
   Object.fromEntries(

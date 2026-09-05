@@ -1089,6 +1089,12 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .badge-when { color: var(--muted); }
 .badge-depth { color: var(--blue); }
 .node-fork { color: var(--good); font-weight: 800; }
+/* R19（issue #137）— 現在レベル／最大レベル。上位互換を別技能で増やさないので、
+   「この節がどこまで伸びるのか」を節の上で読ませる。 */
+.badge-level { color: var(--violet); font-weight: 800; }
+.badge-level.maxed { color: var(--gold); }
+.badge-level.flat { color: #6d7c77; font-weight: 400; }
+.level-action { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(224, 195, 116, .16); }
 /* 前提と派生先は押せる。**横スクロールしなくても route を辿れる。** */
 .skill-route { display: grid; gap: 5px; margin: 7px 0 0; }
 .route-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }

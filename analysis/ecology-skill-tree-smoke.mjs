@@ -12,6 +12,10 @@
 //   3. 線の交差     同じ親の子が連続した行に入り、部分木が重なっていないか
 //   4. 循環         前提が輪になっていないか
 //   5. 分岐数不足   役割の違う道が選べるだけの分岐があるか
+//   6. 深さと分岐   x=3 と x=5 で2方向へ分かれ、x=10 に複数の到達点があるか
+//
+// **さらに「その到達点へ本当に届くのか」を見る。**x=10 の節が全部 campaign に
+// 出ない pack に居たら、それは設計図であって遊べる形ではない。
 //
 // **Stage ごとの部分森でも見る。**manifest から pack が外れると節が減るので、
 // 「全部あるときは正しいが、Stage 1 では親を失う」形が起きうる。
@@ -46,6 +50,24 @@ for (const stage of CAMPAIGN_STAGES) {
   }
 }
 
+// **x=10 の到達点へ、campaign で届くこと。**最終 Stage の manifest から出る節だけで
+// 根から x=10 まで繋がる道が、行動と反応のそれぞれに一本はあること。
+{
+  const lastStage = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1];
+  const available = new Set(skillIdsForPacks(lastStage.enabledPackIds, lastStage.packDepths).all);
+  const visible = SKILL_TREE_NODES.filter((node) => available.has(node.skillId));
+  const layout = buildSkillTreeLayout(visible);
+  for (const group of layout) {
+    if (!["active", "reactive"].includes(group.kind)) continue;
+    const reachable = group.rows.filter((row) => row.x === 10);
+    if (!reachable.length) {
+      const deepest = group.rows.reduce((max, row) => Math.max(max, row.x), 0);
+      problems.push(`${lastStage.id}: ${group.label}ツリーは最終 Stage でも x=${deepest} までしか届かない`
+        + "（x=10 の到達点が、campaign に出ない pack にしか無い）");
+    }
+  }
+}
+
 // 参照点。**この検査が本当に引っかかるのかを、ここで確かめる。**
 {
   const broken = [
@@ -57,6 +79,7 @@ for (const stage of CAMPAIGN_STAGES) {
   const checks = [
     ["循環", detected.some((line) => line.includes("循環"))],
     ["分岐数不足", detected.some((line) => line.includes("分岐"))],
+    ["x=10 の到達点不足", detected.some((line) => line.includes("最終到達点"))],
   ];
   // 座標側も鳴らす。**組み上がった森を手で壊して見せる。**
   const layout = buildSkillTreeLayout(SKILL_TREE_NODES);
@@ -69,6 +92,7 @@ for (const stage of CAMPAIGN_STAGES) {
   const coordinateProblems = validateSkillTreeLayout(layout, SKILL_TREE_NODES);
   checks.push(["x 列違反", coordinateProblems.some((line) => line.includes("1列右ではない"))]);
   checks.push(["座標重複", coordinateProblems.some((line) => line.includes("重なっている"))]);
+  checks.push(["宣言座標のずれ", coordinateProblems.some((line) => line.includes("森から出た x"))]);
 
   for (const [what, ok] of checks) {
     if (!ok) {
