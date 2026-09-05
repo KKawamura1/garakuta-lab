@@ -2067,7 +2067,6 @@ function renderRoster() {
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
 
-const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 const SLOT_TITLES = {
   active: "行動（優先順）",
   reactive: "リアクティブ（条件発火）",
@@ -2075,7 +2074,7 @@ const SLOT_TITLES = {
 };
 
 function skillSlotRows(characterId, kind) {
-  const key = SLOT_KEYS[kind];
+  const key = SKILL_LIST_KEYS[kind];
   const list = state.run.loadout[key]?.[characterId] || [];
   const title = SLOT_TITLES[kind];
   const rows = list.map((skillId, index) => {
@@ -2087,8 +2086,8 @@ function skillSlotRows(characterId, kind) {
       : "";
     const markerClass = kind === "passive" ? "bullet passive" : "order";
     const marker = kind === "passive" ? "↳" : index + 1;
-    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
-      + marker + "</span><span class=\"installed-copy\"><b>"
+    return "<div class=\"skill-list-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
+      + marker + "</span><span class=\"skill-list-copy\"><b>"
       + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span>"
       + moveButtons
       + button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
@@ -2097,8 +2096,8 @@ function skillSlotRows(characterId, kind) {
       + (disabled ? "オフ" : "有効") + "</span></div>";
   }).join("");
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " · 無制限</small></div>"
-    + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。装着後はここでオン/オフを切り替えられます。</p>") + "</div>";
+    + "取得済み " + list.length + " · 上限なし</small></div>"
+    + (rows || "<p class=\"empty-slot\">技能を取得すると、ここへ自動で追加されます。ここでオン/オフを切り替えられます。</p>") + "</div>";
 }
 
 function memberTabs(characterId) {
@@ -2139,14 +2138,14 @@ function skillBuildSummary(characterId) {
   const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
   const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
-  const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
-  const slotLabel = selectedNode?.kind === "active" ? "行動枠"
-    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "常設枠";
-  const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
+  const listKey = selectedNode ? SKILL_LIST_KEYS[selectedNode.kind] : null;
+  const listLabel = selectedNode?.kind === "active" ? "行動の優先順"
+    : selectedNode?.kind === "reactive" ? "リアクティブの優先順" : "常設一覧";
+  const listCount = selectedNode ? (state.run.loadout[listKey]?.[characterId] || []).length : 0;
   const target = selectedNode
-    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
-      + " · " + slotLabel + "（" + slotCount + " · 無制限）"
-    : "技能を選択すると、ここに装着先を表示";
+    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 反映先: " + characterName(characterId)
+      + " · " + listLabel + "（取得済み " + listCount + " · 上限なし）"
+    : "技能を選択すると、ここに反映先を表示";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
     + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
@@ -2180,23 +2179,18 @@ function visibleSkillNodes(branch) {
 function renderSkillNode(node, characterId) {
   const info = COMPONENTS[node.skillId];
   const unlocked = isUnlocked(characterId, node.skillId);
-  const equipped = installedSkill(characterId, node.skillId, node.kind);
-  const disabled = equipped && skillDisabled(characterId, node.skillId);
+  const disabled = unlocked && skillDisabled(characterId, node.skillId);
   const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
   const selected = state.selectedSkillNode === node.skillId;
-  // R18 — 取得済み技能は忘れず、装着済み技能だけを一時的にオフにできる。
+  // R18 — 取得済み技能は忘れず、取得と同時に該当一覧へ自動で反映する。
   let status = "ロック";
   let action = "";
-  if (equipped) {
-    status = disabled ? "装着中 · オフ" : "装着中";
+  if (unlocked) {
+    status = disabled ? "取得済み · オフ" : "取得済み";
     action = button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
       + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>";
-  } else if (unlocked) {
-    status = "取得済み";
-    action = button("装着する", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
-      + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"");
   } else if (canUnlock) {
     status = "解禁可能 · " + node.cost + "pt";
     action = button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini", "data-character=\"" + characterId
@@ -2204,15 +2198,13 @@ function renderSkillNode(node, characterId) {
   } else {
     status = !prereqsMet ? "前提待ち" : "点数不足";
   }
-  const stateClass = equipped
-    ? "equipped" + (disabled ? " disabled" : "")
-    : unlocked
-      ? "unlocked"
-      : canUnlock
-        ? "available"
-        : !prereqsMet
-          ? "prerequisite"
-          : "locked";
+  const stateClass = unlocked
+    ? "unlocked" + (disabled ? " disabled" : "")
+    : canUnlock
+      ? "available"
+      : !prereqsMet
+        ? "prerequisite"
+        : "locked";
   const detail = selected
     ? "<div class=\"skill-detail\"><p>" + esc(info?.effect ?? "") + "</p><small>前提: "
       + (node.requires.length ? esc(node.requires.map((id) => COMPONENTS[id]?.label ?? id).join(" / ")) : "なし")
