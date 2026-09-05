@@ -45,13 +45,12 @@ const WEAKEST_ENEMY = { scope: "enemies", filters: [ALIVE], sort: ["hp_asc"], ta
 const EVENT_SOURCE_ACTOR = { scope: "event_source", filters: [ALIVE], take: 1 };
 
 const characters = {
-  // A slow front-line body. Its signature rule is deliberately empty so that
+  // A front-line body. Its signature rule is deliberately empty so that
   // "a character with no signature" is also covered by the schema tests.
   warden: {
     id: "warden",
     displayName: "Warden (fixture)",
     maxHp: 20,
-    speed: 4,
     baseActionPoints: 1,
     baseReactionPoints: 1,
     signatureRules: [],
@@ -63,7 +62,6 @@ const characters = {
     id: "mender",
     displayName: "Mender (fixture)",
     maxHp: 14,
-    speed: 6,
     baseActionPoints: 1,
     baseReactionPoints: 1,
     signatureRules: [],
@@ -73,19 +71,17 @@ const characters = {
     id: "lancer",
     displayName: "Lancer (fixture)",
     maxHp: 16,
-    speed: 8,
     baseActionPoints: 1,
     baseReactionPoints: 1,
     signatureRules: [],
     tags: ["fixture", "strike"],
   },
-  // Fast, and carries a signature rule so "rules can come from the character
+  // Carries a signature rule so "rules can come from the character
   // itself, not only from slotted skills" has a witness.
   scout: {
     id: "scout",
     displayName: "Scout (fixture)",
     maxHp: 12,
-    speed: 10,
     baseActionPoints: 1,
     baseReactionPoints: 1,
     signatureRules: [
@@ -100,7 +96,7 @@ const characters = {
         limit: { scope: "battle", count: 1 },
       },
     ],
-    tags: ["fixture", "fast"],
+    tags: ["fixture", "scout"],
   },
   // ---- Gate E (§16 E) --------------------------------------------------------
   // Added after the engine was finished, as data only. "Turn the action points
@@ -109,7 +105,6 @@ const characters = {
     id: "pivot",
     displayName: "Pivot (fixture, Gate E)",
     maxHp: 18,
-    speed: 5,
     baseActionPoints: 2,
     baseReactionPoints: 1,
     signatureRules: [
@@ -195,7 +190,7 @@ const activeSkills = {
     displayName: "Relay Order (fixture)",
     apCost: 1,
     intrinsicPredicates: [],
-    targetQuery: { scope: "allies", filters: [ALIVE, { type: "row_is", row: "front" }], sort: ["speed_desc"], take: 1 },
+    targetQuery: { scope: "allies", filters: [ALIVE, { type: "row_is", row: "front" }], sort: ["position_asc"], take: 1 },
     effects: [
       {
         type: "gain_resource",
@@ -856,7 +851,6 @@ const enemyActors = {
     id: "husk",
     displayName: "Husk (fixture)",
     maxHp: 10,
-    speed: 5,
     baseActionPoints: 1,
     baseReactionPoints: 0,
     tactics: [{ activeSkillId: "strike", useWhen: [] }],
@@ -870,7 +864,6 @@ const enemyActors = {
     id: "husk_warden",
     displayName: "Husk Warden (fixture)",
     maxHp: 8,
-    speed: 3,
     baseActionPoints: 1,
     baseReactionPoints: 0,
     tactics: [{ activeSkillId: "strike", useWhen: [] }],
@@ -884,7 +877,6 @@ const enemyActors = {
     id: "still_husk",
     displayName: "Still Husk (fixture)",
     maxHp: 10,
-    speed: 1,
     baseActionPoints: 0,
     baseReactionPoints: 0,
     tactics: [],
@@ -897,7 +889,6 @@ const enemyActors = {
     id: "husk_hunter",
     displayName: "Husk Hunter (fixture, Gate E)",
     maxHp: 26,
-    speed: 6,
     baseActionPoints: 1,
     baseReactionPoints: 0,
     tactics: [
@@ -914,7 +905,6 @@ const enemyActors = {
     id: "husk_bulwark",
     displayName: "Husk Bulwark (fixture)",
     maxHp: 40,
-    speed: 5,
     baseActionPoints: 1,
     baseReactionPoints: 0,
     tactics: [{ activeSkillId: "strike", useWhen: [] }],
@@ -927,7 +917,6 @@ const enemyActors = {
     id: "husk_echo",
     displayName: "Husk Echo (termination fixture)",
     maxHp: 30,
-    speed: 5,
     baseActionPoints: 1,
     baseReactionPoints: 0,
     tactics: [{ activeSkillId: "strike", useWhen: [] }],
@@ -941,7 +930,6 @@ const enemyActors = {
     id: "husk_marker",
     displayName: "Husk Marker (fixture)",
     maxHp: 30,
-    speed: 7,
     baseActionPoints: 1,
     baseReactionPoints: 0,
     tactics: [{ activeSkillId: "mark_target", useWhen: [] }],

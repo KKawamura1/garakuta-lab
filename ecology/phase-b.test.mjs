@@ -94,7 +94,7 @@ const FORMATION = {
 // R8 Implementation Phase 1 — currentHp / campaignStageSequence / campaignProgress
 // を追加したので、profile / run / manifest の版をそれぞれ1つ上げた。
 equal(PROFILE_SCHEMA_VERSION, "ecology-profile-2", "profile の版");
-equal(RUN_SCHEMA_VERSION, "ecology-run-2", "run の版");
+equal(RUN_SCHEMA_VERSION, "ecology-run-3", "run の版");
 equal(MANIFEST_VERSION, "ecology-manifest-2", "manifest の版");
 
 // ---- 3幕12戦（R6 §5.1）------------------------------------------------------
@@ -418,7 +418,7 @@ equal(trainedStat(3, 1), 3, "小さい stat は一段では整数が動かない
   const reloaded = normalizeProfile(JSON.parse(JSON.stringify(profile)));
   equal(characterStats(reloaded, "warden").stats.might, stats.stats.might, "save/load で差が出ない");
 
-  // **鍛錬は行動回数を上げない。**speed / AP / RP は base のまま。
+  // **鍛錬は行動回数を上げない。**AP / RP は base のまま。
   const definition = PLAYABLE_CONTENT.characters.warden;
   for (const axis of TRAINABLE_STATS) check(["might", "focus", "guard", "vitality"].includes(axis), axis);
   const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, freshLoadout(ROSTER), "s", FORMATION, {
@@ -427,7 +427,7 @@ equal(trainedStat(3, 1), 3, "小さい stat は一段では整数が動かない
   const warden = battle.allies.find((ally) => ally.characterId === "warden");
   equal(warden.stats.might, stats.stats.might, "鍛錬後の腕力が BattleInput に載る");
   equal(warden.training.might, 50, "鍛錬 level も載る（R6 §9.5 の因果 log 要件）");
-  check(!("speed" in warden.stats), "speed は上書きできない");
+  check(!("speed" in warden.stats), "削除済みの速度は上書きできない");
   check(!("baseActionPoints" in warden.stats), "AP は上書きできない");
   assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), []);
   checks += 1;
@@ -435,15 +435,15 @@ equal(trainedStat(3, 1), 3, "小さい stat は一段では整数が動かない
   const actor = result.actors.find((a) => a.definitionId === "warden");
   equal(actor.might, stats.stats.might, "engine が鍛錬後の値で戦う");
   equal(actor.baseStats.might, definition.might, "結果 log に base が残る");
-  equal(actor.speed, definition.speed, "速度は動かない");
+  check(!("speed" in actor), "結果に速度を含めない");
 }
 
-// validator は鍛錬できない stat の上書きを拒否する。
+// validator は削除済み／鍛錬できない stat の上書きを拒否する。
 {
   const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, freshLoadout(ROSTER), "s", FORMATION, {});
   battle.allies[0].stats = { speed: 99 };
   const errors = validateBattleInput(battle, PLAYABLE_CONTENT);
-  check(errors.some((error) => error.code === "unknown_stat"), "speed の上書きは拒否される");
+  check(errors.some((error) => error.code === "unknown_stat"), "削除済みの速度上書きは拒否される");
   battle.allies[0].stats = { might: 40 };
   battle.allies[0].nonsense = 1;
   check(

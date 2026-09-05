@@ -42,12 +42,6 @@ export const PASSIVE_SKILLS = {
     statBonus: { guard: 1 },
     tags: ["foundation", "playable"],
   },
-  foundation_speed: {
-    id: "foundation_speed",
-    displayName: "速さ",
-    statBonus: { speed: 1 },
-    tags: ["foundation", "playable"],
-  },
   // **開始時に一度だけ。**毎 round ではない。
   //
   // listenTo は battle_started ではなく round_started。**battle_started で足すと、
@@ -285,7 +279,7 @@ Object.assign(PASSIVE_SKILLS, {
         target: {
           scope: "allies",
           filters: [{ type: "alive" }, { type: "not_self" }, { type: "row_is", row: "front" }],
-          sort: ["speed_desc"],
+          sort: ["position_asc"],
           take: 1,
         },
         resource: "action_points",

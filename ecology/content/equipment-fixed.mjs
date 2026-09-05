@@ -167,7 +167,7 @@ for (const definition of Object.values(equipment)) scaleFlatAmounts(definition);
 export const FIXED_EQUIPMENT = equipment;
 
 // 旧 R6 の固定装備 pool の記録。現行の報酬はこの群を参照しない。
-// 群の切り方は旧 save / 検査で参照される「役割」欄（守り・速度・機動・攻撃・修理）と同じ。
+// 群の切り方は旧 save / 検査で参照される「役割」欄（守り・手数・機動・攻撃・修理）と同じ。
 //
 // 固定装備は全部で18品しかなく、一遠征で報酬を選べる機会は11回ある。
 // これは過去の報酬 pool の構成を読み解くための互換情報である。
@@ -182,7 +182,7 @@ export const EQUIPMENT_GROUPS = Object.freeze([
     equipmentIds: Object.freeze(["standing_plate", "guard_lantern", "bastion_shell"]),
   }),
   Object.freeze({
-    id: "group_tempo", displayName: "速さの品", startsUnlocked: true, cost: "0",
+    id: "group_tempo", displayName: "手数の品", startsUnlocked: true, cost: "0",
     equipmentIds: Object.freeze(["worn_greaves", "tempo_buckle", "quickstrap", "reserve_coil"]),
   }),
   Object.freeze({

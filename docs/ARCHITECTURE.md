@@ -85,8 +85,8 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 - 行動 queue は round 内に味方フェーズ→敵フェーズを交互に作ります。各フェーズでは
   その側の living actor が隊列順（前列の左→中央→右、後列の左→中央→右）に一回だけ
   起動し、AP2 の actor は次の自軍フェーズへ戻ります。round 開始時の initiativeRank は
-  味方を先に、次に敵を置きます。同じ側・同じ位置だけ instance ID で決着し、`speed` は
-  initiative に使いません。
+  味方を先に、次に敵を置きます。同じ側・同じ位置だけ instance ID で決着し、隊列以外の
+  能力値は initiative に介入しません。
 
 ## 5. イベント列
 

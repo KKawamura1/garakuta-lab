@@ -1333,7 +1333,7 @@ function renderGuild() {
     // 「あと何人来るか」は物語が渡すものなので、投資画面は隊にいる人だけを数える。
     + "<p class=\"muted\">いま隊にいる仲間だけが強化対象です。新しい仲間は、加入したときにここへ加わります。取得済みの技能は人数制限なしで装着できます。</p>"
     + "<h3 class=\"training-heading\">鍛錬（上限なし）</h3>"
-    + "<p class=\"muted\">1段で +0.1%。速度・行動権・技能の装着数・発火回数は鍛錬で上がりません。</p>"
+    + "<p class=\"muted\">1段で +0.1%。行動権・技能の装着数・発火回数は鍛錬で上がりません。</p>"
     + "<div class=\"purchase-list\">" + trainingRows + "</div></section>";
 }
 
@@ -2042,7 +2042,6 @@ function renderRoster() {
       + stats.stats.maxHp + trainedMark(stats, "vitality") + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
       + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
       + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
-      + "</span><span>速度 " + (PLAYABLE_CONTENT.characters[option.id]?.speed ?? "-")
       + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
       + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
       + "</span><span>" + esc(actionLabel) + "</span></div></article>";

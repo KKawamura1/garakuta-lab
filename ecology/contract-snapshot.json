@@ -1,14 +1,13 @@
 {
- "contentVersion": "ecology-playable-full-0.10",
+ "contentVersion": "ecology-playable-full-0.11",
  "content": {
-  "schemaVersion": "ecology-content-3",
-  "contentVersion": "ecology-playable-full-0.10",
+  "schemaVersion": "ecology-content-4",
+  "contentVersion": "ecology-playable-full-0.11",
   "characters": {
    "warden": {
     "id": "warden",
     "displayName": "ゴウ — 引き受ける人",
     "maxHp": 300,
-    "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -24,7 +23,6 @@
     "id": "mender",
     "displayName": "ツグミ — 見つける人",
     "maxHp": 110,
-    "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -40,7 +38,6 @@
     "id": "lancer",
     "displayName": "ナギ — 断れない人",
     "maxHp": 210,
-    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -56,7 +53,6 @@
     "id": "guardian",
     "displayName": "ヒバナ — 走る人",
     "maxHp": 120,
-    "speed": 9,
     "baseActionPoints": 2,
     "baseReactionPoints": 2,
     "signatureRules": [],
@@ -73,7 +69,6 @@
     "id": "tactician",
     "displayName": "ゲンゾウ — 書いてきた人",
     "maxHp": 160,
-    "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 4,
     "signatureRules": [],
@@ -181,7 +176,7 @@
       }
      ],
      "sort": [
-      "speed_desc"
+      "position_asc"
      ],
      "take": 1
     },
@@ -3051,7 +3046,7 @@
         }
        ],
        "sort": [
-        "speed_asc"
+        "position_desc"
        ],
        "take": 1
       },
@@ -3256,7 +3251,7 @@
         }
        ],
        "sort": [
-        "speed_asc"
+        "position_desc"
        ],
        "take": 1
       },
@@ -3345,7 +3340,7 @@
         }
        ],
        "sort": [
-        "speed_desc"
+        "position_asc"
        ],
        "take": "all"
       }
@@ -3359,7 +3354,7 @@
       }
      ],
      "sort": [
-      "speed_desc"
+      "position_asc"
      ],
      "take": 1
     },
@@ -3374,7 +3369,7 @@
         }
        ],
        "sort": [
-        "speed_desc"
+        "position_asc"
        ],
        "take": 1
       },
@@ -3709,7 +3704,7 @@
         }
        ],
        "sort": [
-        "speed_desc"
+        "position_asc"
        ],
        "take": "all"
       }
@@ -3734,7 +3729,7 @@
         }
        ],
        "sort": [
-        "speed_desc"
+        "position_asc"
        ],
        "take": 1
       },
@@ -5285,7 +5280,7 @@
          }
         ],
         "sort": [
-         "speed_desc"
+         "position_asc"
         ],
         "take": 1
        },
@@ -5464,7 +5459,7 @@
          }
         ],
         "sort": [
-         "speed_asc"
+         "position_desc"
         ],
         "take": 1
        },
@@ -6803,17 +6798,6 @@
      "playable"
     ]
    },
-   "foundation_speed": {
-    "id": "foundation_speed",
-    "displayName": "速さ",
-    "statBonus": {
-     "speed": 1
-    },
-    "tags": [
-     "foundation",
-     "playable"
-    ]
-   },
    "foundation_ap": {
     "id": "foundation_ap",
     "displayName": "出足",
@@ -7294,7 +7278,7 @@
          }
         ],
         "sort": [
-         "speed_desc"
+         "position_asc"
         ],
         "take": 1
        },
@@ -9034,7 +9018,6 @@
     "id": "husk",
     "displayName": "灰殻兵",
     "maxHp": 120,
-    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9056,7 +9039,6 @@
     "id": "husk_warden",
     "displayName": "灰殻の見張り",
     "maxHp": 96,
-    "speed": 3,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9079,7 +9061,6 @@
     "id": "still_husk",
     "displayName": "動かない灰殻",
     "maxHp": 120,
-    "speed": 1,
     "baseActionPoints": 0,
     "baseReactionPoints": 0,
     "tactics": [],
@@ -9097,7 +9078,6 @@
     "id": "husk_hunter",
     "displayName": "灰殻の狩人",
     "maxHp": 312,
-    "speed": 6,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9124,7 +9104,6 @@
     "id": "husk_bulwark",
     "displayName": "灰殻の盾兵",
     "maxHp": 480,
-    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9147,7 +9126,6 @@
     "id": "husk_echo",
     "displayName": "灰殻の反響体",
     "maxHp": 360,
-    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9171,7 +9149,6 @@
     "id": "husk_marker",
     "displayName": "灰殻の標定手",
     "maxHp": 360,
-    "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9193,7 +9170,6 @@
     "id": "gray_scrapper",
     "displayName": "灰殻の走者",
     "maxHp": 120,
-    "speed": 6,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9216,7 +9192,6 @@
     "id": "gray_runner",
     "displayName": "灰殻の走り手",
     "maxHp": 144,
-    "speed": 9,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9239,7 +9214,6 @@
     "id": "gray_marksman",
     "displayName": "灰殻の後撃ち",
     "maxHp": 144,
-    "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9262,7 +9236,6 @@
     "id": "gray_stalker",
     "displayName": "灰殻の潜み手",
     "maxHp": 156,
-    "speed": 7,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9289,7 +9262,6 @@
     "id": "gray_guard",
     "displayName": "灰殻の守衛",
     "maxHp": 216,
-    "speed": 3,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9317,7 +9289,6 @@
     "id": "gray_breaker",
     "displayName": "灰殻の砕き手",
     "maxHp": 264,
-    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9345,7 +9316,6 @@
     "id": "gray_shelter",
     "displayName": "灰殻の籠り手",
     "maxHp": 240,
-    "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9373,7 +9343,6 @@
     "id": "gray_hunter",
     "displayName": "灰殻の狩人",
     "maxHp": 240,
-    "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9401,7 +9370,6 @@
     "id": "gray_harrower",
     "displayName": "灰殻の追い手",
     "maxHp": 216,
-    "speed": 8,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9433,7 +9401,6 @@
     "id": "gray_echo",
     "displayName": "灰殻の反響体",
     "maxHp": 240,
-    "speed": 5,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9458,7 +9425,6 @@
     "id": "gray_swarm",
     "displayName": "灰殻の群れ",
     "maxHp": 96,
-    "speed": 10,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9481,7 +9447,6 @@
     "id": "gray_bulwark",
     "displayName": "灰殻の盾兵",
     "maxHp": 384,
-    "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9509,7 +9474,6 @@
     "id": "ash_core",
     "displayName": "灰の核心",
     "maxHp": 648,
-    "speed": 4,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9903,7 +9867,7 @@
     "kind": "active",
     "definitionId": "relay_order",
     "label": "号令",
-    "effect": "前衛の最速の味方へ行動権を1渡す。",
+    "effect": "前列の先頭の味方へ行動権を1渡す。",
     "grammar": "指揮"
    },
    "heavy_swing": {
@@ -10151,7 +10115,7 @@
     "kind": "active",
     "definitionId": "steady_breath",
     "label": "息を合わせる",
-    "effect": "最も遅い味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
+    "effect": "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
     "grammar": "支援"
    },
    "ward_ally": {
@@ -10191,7 +10155,7 @@
     "kind": "active",
     "definitionId": "hasten_ally",
     "label": "背を押す",
-    "effect": "最も遅い味方へ行動権を1渡す。号令（前衛の最速へ）と逆向き。",
+    "effect": "隊列の最後の味方へ行動権を1渡す。号令（前列の先頭へ）と逆向き。",
     "grammar": "指揮"
    },
    "call_the_slow": {
@@ -10207,7 +10171,7 @@
     "kind": "active",
     "definitionId": "feint",
     "label": "誘い",
-    "effect": "最も速い敵へ「怯み」を1つ。先に動く相手ほど軽くする価値がある。",
+    "effect": "最前の敵へ「怯み」を1つ。先に動く相手ほど軽くする価値がある。",
     "grammar": "指揮"
    },
    "set_the_pace": {
@@ -10409,7 +10373,7 @@
     "kind": "reactive",
     "definitionId": "blocked_into_step",
     "label": "受けを順番へ",
-    "effect": "受け構えで止めたあと、RP1で前列の最速の味方へ行動権を1渡す。",
+    "effect": "受け構えで止めたあと、RP1で前列の先頭の味方へ行動権を1渡す。",
     "grammar": "防御"
    },
    "mercy_into_guard": {
@@ -10433,7 +10397,7 @@
     "kind": "reactive",
     "definitionId": "readied_relay",
     "label": "支度を渡す",
-    "effect": "自分の準備が完了したあと、RP1で最も遅い味方へ反応権を1渡す。",
+    "effect": "自分の準備が完了したあと、RP1で隊列の最後の味方へ反応権を1渡す。",
     "grammar": "準備"
    },
    "wake_of_the_fallen": {
@@ -10670,14 +10634,6 @@
     "effect": "受けが1増える。一撃ごとの被害を減らす。",
     "grammar": "基礎"
    },
-   "foundation_speed": {
-    "id": "foundation_speed",
-    "kind": "passive",
-    "definitionId": "foundation_speed",
-    "label": "速さ",
-    "effect": "速度が1増える。速度順の対象選択に影響する。",
-    "grammar": "基礎"
-   },
    "foundation_ap": {
     "id": "foundation_ap",
     "kind": "passive",
@@ -10791,7 +10747,7 @@
    "definitionId": "worn_greaves",
    "label": "踏み込みの靴",
    "effect": "ラウンド最初の発動後、行動権を1得る。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 2
   },
   "splinter_edge": {
@@ -10863,7 +10819,7 @@
    "definitionId": "tempo_buckle",
    "label": "拍子の留め具",
    "effect": "ラウンド最初の発動後、行動権を得る。耐久1。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 1
   },
   "quickstrap": {
@@ -10872,7 +10828,7 @@
    "definitionId": "quickstrap",
    "label": "軽い締め具",
    "effect": "発動後の行動権を狙う。耐久が高い。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 3
   },
   "reserve_coil": {
@@ -10881,7 +10837,7 @@
    "definitionId": "reserve_coil",
    "label": "予備のばね",
    "effect": "ラウンド最初の発動後、行動権を得る。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 4
   },
   "focus_band": {
@@ -11112,7 +11068,7 @@
    "kind": "active",
    "definitionId": "relay_order",
    "label": "号令",
-   "effect": "前衛の最速の味方へ行動権を1渡す。",
+   "effect": "前列の先頭の味方へ行動権を1渡す。",
    "grammar": "指揮"
   },
   "heavy_swing": {
@@ -11360,7 +11316,7 @@
    "kind": "active",
    "definitionId": "steady_breath",
    "label": "息を合わせる",
-   "effect": "最も遅い味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
+   "effect": "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
    "grammar": "支援"
   },
   "ward_ally": {
@@ -11400,7 +11356,7 @@
    "kind": "active",
    "definitionId": "hasten_ally",
    "label": "背を押す",
-   "effect": "最も遅い味方へ行動権を1渡す。号令（前衛の最速へ）と逆向き。",
+   "effect": "隊列の最後の味方へ行動権を1渡す。号令（前列の先頭へ）と逆向き。",
    "grammar": "指揮"
   },
   "call_the_slow": {
@@ -11416,7 +11372,7 @@
    "kind": "active",
    "definitionId": "feint",
    "label": "誘い",
-   "effect": "最も速い敵へ「怯み」を1つ。先に動く相手ほど軽くする価値がある。",
+   "effect": "最前の敵へ「怯み」を1つ。先に動く相手ほど軽くする価値がある。",
    "grammar": "指揮"
   },
   "set_the_pace": {
@@ -11616,7 +11572,7 @@
    "kind": "reactive",
    "definitionId": "blocked_into_step",
    "label": "受けを順番へ",
-   "effect": "受け構えで止めたあと、RP1で前列の最速の味方へ行動権を1渡す。",
+   "effect": "受け構えで止めたあと、RP1で前列の先頭の味方へ行動権を1渡す。",
    "grammar": "防御"
   },
   "mercy_into_guard": {
@@ -11640,7 +11596,7 @@
    "kind": "reactive",
    "definitionId": "readied_relay",
    "label": "支度を渡す",
-   "effect": "自分の準備が完了したあと、RP1で最も遅い味方へ反応権を1渡す。",
+   "effect": "自分の準備が完了したあと、RP1で隊列の最後の味方へ反応権を1渡す。",
    "grammar": "準備"
   },
   "wake_of_the_fallen": {
@@ -11875,14 +11831,6 @@
    "effect": "受けが1増える。一撃ごとの被害を減らす。",
    "grammar": "基礎"
   },
-  "foundation_speed": {
-   "id": "foundation_speed",
-   "kind": "passive",
-   "definitionId": "foundation_speed",
-   "label": "速さ",
-   "effect": "速度が1増える。速度順の対象選択に影響する。",
-   "grammar": "基礎"
-  },
   "foundation_ap": {
    "id": "foundation_ap",
    "kind": "passive",
@@ -11993,7 +11941,7 @@
    "definitionId": "worn_greaves",
    "label": "踏み込みの靴",
    "effect": "ラウンド最初の発動後、行動権を1得る。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 2
   },
   "splinter_edge": {
@@ -12065,7 +12013,7 @@
    "definitionId": "tempo_buckle",
    "label": "拍子の留め具",
    "effect": "ラウンド最初の発動後、行動権を得る。耐久1。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 1
   },
   "quickstrap": {
@@ -12074,7 +12022,7 @@
    "definitionId": "quickstrap",
    "label": "軽い締め具",
    "effect": "発動後の行動権を狙う。耐久が高い。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 3
   },
   "reserve_coil": {
@@ -12083,7 +12031,7 @@
    "definitionId": "reserve_coil",
    "label": "予備のばね",
    "effect": "ラウンド最初の発動後、行動権を得る。",
-   "grammar": "速度",
+   "grammar": "手数",
    "maxDurability": 4
   },
   "focus_band": {
@@ -12314,7 +12262,6 @@
   "foundation_might",
   "foundation_focus",
   "foundation_guard",
-  "foundation_speed",
   "foundation_ap",
   "foundation_rp",
   "opening_guard",
@@ -13536,15 +13483,6 @@
    "requires": []
   },
   {
-   "id": "node_foundation_speed",
-   "skillId": "foundation_speed",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "requires": []
-  },
-  {
    "id": "node_foundation_ap",
    "skillId": "foundation_ap",
    "kind": "passive",
@@ -13804,7 +13742,6 @@
   "foundation_might": 1,
   "foundation_focus": 1,
   "foundation_guard": 1,
-  "foundation_speed": 1,
   "foundation_ap": 1,
   "foundation_rp": 1,
   "first_blood": 1,
@@ -23424,7 +23361,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -23627,7 +23564,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -23827,7 +23764,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -23996,7 +23933,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -24172,7 +24109,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -24358,7 +24295,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 503,
       "rarity": "common",
@@ -24557,7 +24494,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -24718,7 +24655,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -24890,7 +24827,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -25058,7 +24995,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -25214,7 +25151,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -25395,7 +25332,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -25588,7 +25525,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -25754,7 +25691,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -25949,7 +25886,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -26133,7 +26070,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 115,
       "rarity": "rare",
@@ -26319,7 +26256,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -26567,7 +26504,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -26762,7 +26699,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -26920,7 +26857,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -27103,7 +27040,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -27273,7 +27210,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -27455,7 +27392,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -27657,7 +27594,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -27848,7 +27785,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -28011,7 +27948,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -28197,7 +28134,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -28544,7 +28481,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -28804,7 +28741,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -28977,7 +28914,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 504,
       "rarity": "common",
@@ -29268,7 +29205,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -29483,7 +29420,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -29642,7 +29579,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -29791,7 +29728,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -29973,7 +29910,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -30239,7 +30176,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-2",
-      "contentContractVersion": "ecology-content-contract-12",
+      "contentContractVersion": "ecology-content-contract-13",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1115,
       "rarity": "epic",

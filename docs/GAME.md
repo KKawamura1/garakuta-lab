@@ -140,7 +140,7 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
 
 **数値は未検証です。**`analysis/ecology-trial.mjs` での通し調整が要ります。
 
-- 基礎 parameter は maxHp、might、focus、guard、speed、AP、RP。
+- 基礎 parameter は maxHp、might、focus、guard、AP、RP。
 - **攻めの軸は2本。**`might` は武器攻撃、`focus`（技術）は技攻撃と防壁を伸ばします。
 - **武器と技の違いは隊列で表します。**腕力で伸びる攻撃を後列から出すと 40% まで
   落ち、技術で伸びる攻撃は落ちません（`effects.mjs` の `afterRearFalloff`、
@@ -156,8 +156,8 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
   一人一行動します。どちらかに実行可能な行動が残る限り、味方→敵を繰り返します。
   AP2 の actor も一回行動したら次の自軍フェーズまで待ちます。全員に行動可能な
   AP がなくなったら round end です。同じ側で同じ位置にいる actor だけは instance ID
-  を最終タイブレークに使います。速度は `speed_asc` / `speed_desc` を明示した技能の
-  対象選択など、行動順以外の用途にだけ使われます。
+  を最終タイブレークに使います。対象選択で隊列を使う技能は `position_asc` /
+  `position_desc` を明示します。
 - 同じ入力と seed は同じ結果とイベント列を返します。
 - 行動は priority と condition に従い、条件を満たさない行動は飛ばされます。
   すべて飛ばされた場合は basic strike。純支援 active の解決後は威力50%の追撃。

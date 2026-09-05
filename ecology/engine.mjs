@@ -115,7 +115,6 @@ function buildState(input, content, options) {
       displayName: definition.displayName,
       maxHp: allyStats.maxHp,
       hp: ally.hp ?? allyStats.maxHp,
-      speed: definition.speed,
       might: allyStats.might,
       focus: allyStats.focus,
       guard: allyStats.guard,
@@ -154,7 +153,6 @@ function buildState(input, content, options) {
       displayName: definition.displayName,
       maxHp: enemyStats.maxHp,
       hp: enemy.hp ?? enemyStats.maxHp,
-      speed: definition.speed,
       might: enemyStats.might,
       focus: enemyStats.focus,
       guard: enemyStats.guard,
@@ -210,7 +208,6 @@ function withPassiveBonuses(content, fields, passiveSkillIds) {
     if (bonus.might) next.might = (next.might ?? 0) + bonus.might;
     if (bonus.focus) next.focus = (next.focus ?? 0) + bonus.focus;
     if (bonus.guard) next.guard = (next.guard ?? 0) + bonus.guard;
-    if (bonus.speed) next.speed += bonus.speed;
   }
   // 満タンで来た人は、上限が上がったぶんも満たして始める。
   // 途中の HP を持ち越している人（Phase B の補給）は、その値のまま。
@@ -1214,7 +1211,6 @@ function buildResult(state, content) {
     hp: actor.hp,
     maxHp: actor.maxHp,
     startingHp: actor.startingHp,
-    speed: actor.speed,
     // R6 §9.5 — PHASE B. The rounded stat, the base it came from and the levels
     // that moved it, so the result can say *why* this ally hits for what it does
     // without the reader redoing the rounding.
