@@ -68,6 +68,16 @@ const EFFECT_LIMIT_BONUS = Object.freeze({
   oopart: 3,
 });
 const EFFECT_RARITY_WEIGHTS = Object.freeze([64, 24, 8, 3, 1, 1]);
+// 狭い family pool では item rarity の目標予算を満額使えないことがある。
+// 生成不能にしない代わりに、等級ごとの最低 power は守る。
+const MIN_POWER = Object.freeze({
+  common: 2,
+  rare: 4,
+  epic: 6,
+  legendary: 8,
+  mythic: 10,
+  oopart: 12,
+});
 
 export class EquipmentGenerationError extends Error {
   constructor(message, diagnostics) {
@@ -108,6 +118,12 @@ export function affixPool(familyIds = AFFIX_FAMILY_IDS) {
 }
 
 const satisfies = (requires, provides) => (requires ?? []).every((tag) => provides.includes(tag));
+const converterFitsSource = (converter, source) => {
+  const valueKeys = source.valueKeys ?? [];
+  return satisfies(converter.requires, source.provides ?? [])
+    && (converter.predicates ?? []).every((predicate) =>
+      predicate.type !== "event_value" || valueKeys.includes(predicate.key));
+};
 
 // ---------------------------------------------------------------- 組み立て
 
@@ -178,7 +194,7 @@ function buildRuleDraft(rng, pool, budget, sourceIdsUsed) {
 
   const converters = [];
   const usedGroups = new Set();
-  const converterCandidates = pool.converter.filter((affix) => satisfies(affix.requires, provides));
+  const converterCandidates = pool.converter.filter((affix) => converterFitsSource(affix, source));
   const wanted = pickInt(rng, 0, MAX_CONVERTERS_PER_RULE);
   for (let index = 0; index < wanted; index += 1) {
     const options = converterCandidates.filter(
@@ -286,7 +302,7 @@ function buildDraft(rng, rarity, pool) {
       const usedGroups = new Set(rule.converters.map((affix) => affix.group));
       const provides = rule.source.provides ?? [];
       const options = pool.converter.filter(
-        (affix) => satisfies(affix.requires, provides) && !usedGroups.has(affix.group),
+        (affix) => converterFitsSource(affix, rule.source) && !usedGroups.has(affix.group),
       );
       if (!options.length) continue;
       rule.converters.push(pick(rng, options));
@@ -446,7 +462,10 @@ export function auditDraft(draft, definition) {
   const count = affixCount(draft);
 
   if (power > spec.power) problems.push(`power budget 超過（${power} > ${spec.power}）`);
-  if (power < spec.power - 1) problems.push(`power budget 未使用（${power} < ${spec.power - 1}）`);
+  const minimumPower = Math.min(spec.power - 1, MIN_POWER[draft.rarity] ?? 0);
+  if (power < minimumPower) {
+    problems.push(`最低 power 未達（${power} < ${minimumPower}、目標 ${spec.power}）`);
+  }
   if (count < spec.affixes[0] || count > spec.affixes[1]) {
     problems.push(`affix 数が範囲外（${count} ∉ [${spec.affixes[0]}, ${spec.affixes[1]}]）`);
   }
