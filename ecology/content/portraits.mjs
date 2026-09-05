@@ -13,7 +13,6 @@
 // ここが持つのは**見た目だけ**である。engine・schema・content 契約には触れない。
 // 人物設定は character-lore.mjs、人物の能力は characters.mjs、編成画面での役割は roster.mjs にある。
 //
-// ここを触ってよいのは 人物 / 物語 担当だけ。
 
 import { CHARACTER_NAMES } from "./character-lore.mjs";
 

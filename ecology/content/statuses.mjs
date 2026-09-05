@@ -20,7 +20,7 @@
 // **どれも round で消える。**待って積み上げる形にはしていない（AGENTS.md の
 // anti-stall）。裂傷は「置いた round の終わりに一度」しか刻まない。
 //
-// ここを触ってよいのは 統合 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
 
 import { renamed, scaleFlatAmounts } from "./base.mjs";
 

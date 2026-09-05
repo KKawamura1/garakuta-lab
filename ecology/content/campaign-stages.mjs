@@ -13,7 +13,7 @@
 // このファイルと独立に存在し続ける。campaign 専用の固定 manifest だけを
 // ここで作る（R8 §1.2「seedはcampaignのpack選択には使わない」）。
 //
-// ここを触ってよいのは Campaign Stage 担当だけ。engine・schema は変更しない。
+// engine・schema は変更しない。
 
 import { MANIFEST_VERSION } from "../schema.mjs";
 import { AFFIX_FAMILIES } from "./affixes.mjs";

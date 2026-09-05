@@ -17,6 +17,7 @@ import {
   PLAYABLE_CONTENT,
   DISPLAY_NAMES,
   REGION,
+  SKILL_LEVEL_CAPS,
   SKILL_PACKS,
 } from "./content/index.mjs";
 import {
@@ -79,6 +80,9 @@ export function contractSnapshot() {
     components: COMPONENTS,
     componentOrder: COMPONENT_ORDER,
     skillTreeNodes: SKILL_TREE_NODES,
+    // R19（issue #137）— 技能レベルの上限。**上位互換を別技能として増やさない**
+    // 代わりに、どの技能が何段まで伸びるのかを公開する。
+    skillLevelCaps: SKILL_LEVEL_CAPS,
     enemyInfo: Object.fromEntries(enemyIds.map((id) => [id, enemyInfo(id)])),
     enemyTargeting: Object.fromEntries(enemyIds.map((id) => [id, enemyTargetingText(id)])),
     initialUnlocked: Object.fromEntries(CHARACTER_OPTIONS.map((o) => [o.id, initialUnlockedSkills(o.id)])),

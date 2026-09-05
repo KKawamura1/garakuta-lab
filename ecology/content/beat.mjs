@@ -13,7 +13,7 @@
 //   beat.cast    … その断片で舞台に立つ人物と、その立ち位置。
 //   beat.mood    … 背景の色調 id。
 //
-// ここを触ってよいのは 物語 担当だけ。engine・schema・content 契約は変更しない。
+// engine・schema・content 契約は変更しない。
 
 import { CHARACTER_NAMES } from "./characters.mjs";
 import { EXPRESSIONS, PORTRAITS } from "./portraits.mjs";

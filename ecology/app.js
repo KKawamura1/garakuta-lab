@@ -53,6 +53,14 @@ import {
   seenHomesteadIds,
   seenHomesteadScenes,
   SKILL_PACKS,
+  SKILL_LEVEL_CAPS,
+  SKILL_LEVEL_COST,
+  // R19（issue #137）— 技能ツリーの座標と表示語彙。
+  BRANCH_BUILDS,
+  SCOPE_LABELS,
+  SKILL_TREE_GROUPS,
+  TRIGGER_LABELS,
+  buildSkillTreeLayout,
 } from "./content/index.mjs";
 import {
   ENCOUNTERS_PER_RUN,
@@ -84,6 +92,8 @@ import {
   STARTING_RUN_SKILL_POINTS,
   rewardOffer,
   runSkillPoints,
+  runSkillLevel,
+  levelUpRunSkill,
   settleRun,
   slotLimits,
   spendSupply,
@@ -337,6 +347,8 @@ function joinRun(run, characterId) {
     ...run,
     runSkillPoints: { ...run.runSkillPoints },
     runUnlockedSkills: { ...run.runUnlockedSkills },
+    // R19（issue #137）— レベルは取得と同じで、離脱・再加入では戻らない。
+    runSkillLevels: { ...run.runSkillLevels },
     loadout: {
       ...run.loadout,
       tactics: { ...run.loadout?.tactics },
@@ -403,6 +415,8 @@ function freshUiState() {
     guildCharacter: null,
     formationSelection: null,
     selectedSkillNode: null,
+    // R19（issue #137）— ツリーは種別（行動 / 反応 / 常設）で切り替える。
+    skillTreeKind: "active",
     selectedEquipment: null,
     // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
@@ -509,6 +523,7 @@ function hydrateState(saved) {
     ? next.skillTreeScroll
     : {};
   next.selectedSkillNode = next.selectedSkillNode || null;
+  next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
   // 旧いオートセーブには story.lineIndex / log が無い。**足りない欄を補って読む。**
   next.story = {
     queue: Array.isArray(saved.story?.queue) ? saved.story.queue.filter(Boolean) : [],
@@ -949,6 +964,17 @@ function isUnlocked(characterId, skillId) {
   return (state.run.runUnlockedSkills?.[characterId] || []).includes(skillId);
 }
 
+// R19（issue #137）— 技能レベル。**取得＝Lv1。**未取得は 0 を返す。
+function skillLevelOf(characterId, skillId) {
+  return runSkillLevel(state.run, characterId, skillId);
+}
+
+// その技能が持てる最大レベル。連続する量を持たない技能は Lv1 止まりで、
+// **画面はそれを「レベルなし」と書く**（強くならないものへ点を払わせない）。
+function skillLevelCapOf(skillId) {
+  return SKILL_LEVEL_CAPS[skillId] ?? 1;
+}
+
 // この遠征の manifest が有効にした技能かどうか。**外れた技能はツリーで触れない。**
 function inManifest(skillId) {
   return manifestSkillIds(state.run.manifest).all.includes(skillId);
@@ -1090,7 +1116,7 @@ function render() {
 function captureSkillTreeScroll() {
   if (state.phase !== "camp" || state.tab !== "skills") return;
   const scroll = { ...(state.skillTreeScroll || {}) };
-  app.querySelectorAll(".skill-branch[data-branch]").forEach((element) => {
+  app.querySelectorAll(".skill-tree-scroll[data-branch]").forEach((element) => {
     const value = Number(element.scrollLeft);
     if (Number.isFinite(value)) scroll[element.dataset.branch] = value;
   });
@@ -1100,7 +1126,7 @@ function captureSkillTreeScroll() {
 function restoreSkillTreeScroll() {
   if (state.phase !== "camp" || state.tab !== "skills") return;
   const scroll = state.skillTreeScroll || {};
-  app.querySelectorAll(".skill-branch[data-branch]").forEach((element) => {
+  app.querySelectorAll(".skill-tree-scroll[data-branch]").forEach((element) => {
     const value = Number(scroll[element.dataset.branch]);
     if (Number.isFinite(value)) element.scrollLeft = value;
   });
@@ -2140,11 +2166,12 @@ function skillBuildSummary(characterId) {
     + esc(target) + "</div></aside>";
 }
 function skillNodeIcon(node) {
-  return (node.kind === "reactive" ? "↳" : branchIcons[node.branch] ?? "·");
+  return branchIcons[node.branch] ?? "·";
 }
 
-// 「基礎」は最後。**詰み防止の棚であって、最初に見せる棚ではない。**
-const SKILL_TREE_BRANCHES = ["攻撃", "指揮", "支援", "守り", "基礎"];
+// R19（issue #137）— ツリーは種別で三つに分かれる。**AP を払う行動と RP を払う反応が
+// 同じ枝に混ざっていると、どちらの資源を伸ばす話なのかが読めない。**
+const SKILL_TREE_KINDS = SKILL_TREE_GROUPS.map((group) => group.kind);
 
 // R12 — manifest に無い技能ノードは**出さない**。
 //
@@ -2153,67 +2180,209 @@ const SKILL_TREE_BRANCHES = ["攻撃", "指揮", "支援", "守り", "基礎"];
 // Campaign の pack は累積するので、**manifest に無い＝まだ物語が配っていない語彙**に
 // なった。灰色で名前だけ見せると、未解禁 pack と次 Stage の技能が先に割れる。
 // Free mode を削除した R12 では、灰色に残す理由そのものが無い（作者判断）。
-function visibleSkillNodes(branch) {
-  return SKILL_TREE_NODES.filter((node) => node.branch === branch && inManifest(node.skillId));
+function visibleSkillNodes() {
+  return SKILL_TREE_NODES.filter((node) => inManifest(node.skillId));
 }
 
-function renderSkillNode(node, characterId) {
-  const info = COMPONENTS[node.skillId];
+// **森は毎回組み直す。**pack が変われば出る節が変わり、座標も変わる。
+// 座標を保存して使い回すと、外れた pack のぶんだけ穴が空いた森になる。
+function skillTreeLayout() {
+  return buildSkillTreeLayout(visibleSkillNodes());
+}
+
+function selectedSkillKind() {
+  const requested = state.skillTreeKind;
+  return SKILL_TREE_KINDS.includes(requested) ? requested : "active";
+}
+
+// 消費と、いつ出るのか。**節の上で読めないと、取ってから初めて分かることになる。**
+function skillCostText(node) {
+  const definition = PLAYABLE_CONTENT.activeSkills?.[node.skillId]
+    ?? PLAYABLE_CONTENT.reactiveSkills?.[node.skillId]
+    ?? PLAYABLE_CONTENT.passiveSkills?.[node.skillId];
+  if (!definition) return "—";
+  if (node.kind === "active") return "AP" + (definition.apCost ?? 0);
+  if (node.kind === "reactive") {
+    const rp = (definition.rule?.costs ?? []).find((cost) => cost.type === "spend_reaction_points");
+    const hp = (definition.rule?.costs ?? []).find((cost) => cost.type === "lose_hp");
+    return (rp ? "RP" + rp.amount : "RP0") + (hp ? " · HP" + hp.amount : "");
+  }
+  return "常時";
+}
+
+function skillConditionText(node) {
+  const definition = PLAYABLE_CONTENT.activeSkills?.[node.skillId]
+    ?? PLAYABLE_CONTENT.reactiveSkills?.[node.skillId]
+    ?? PLAYABLE_CONTENT.passiveSkills?.[node.skillId];
+  if (!definition) return "";
+  if (node.kind === "reactive") return TRIGGER_LABELS[definition.rule?.listenTo] ?? definition.rule?.listenTo ?? "";
+  if (node.kind === "active") return (SCOPE_LABELS[definition.targetQuery?.scope] ?? "") + "へ";
+  return definition.statBonus ? "基礎値を上げる" : "条件を満たす限り";
+}
+
+// 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
+function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
   const equipped = installedSkill(characterId, node.skillId, node.kind);
   const disabled = equipped && skillDisabled(characterId, node.skillId);
   const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
-  const selected = state.selectedSkillNode === node.skillId;
-  // R18 — 取得済み技能は忘れず、装着済み技能だけを一時的にオフにできる。
-  let status = "ロック";
-  let action = "";
-  if (equipped) {
-    status = disabled ? "装着中 · オフ" : "装着中";
-    action = button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
-      + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>";
-  } else if (unlocked) {
-    status = "取得済み";
-    action = button("装着する", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
-      + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"");
-  } else if (canUnlock) {
-    status = "解禁可能 · " + node.cost + "pt";
-    action = button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini", "data-character=\"" + characterId
-      + "\" data-skill=\"" + node.skillId + "\"");
-  } else {
-    status = !prereqsMet ? "前提待ち" : "点数不足";
-  }
   const stateClass = equipped
     ? "equipped" + (disabled ? " disabled" : "")
-    : unlocked
-      ? "unlocked"
-      : canUnlock
-        ? "available"
-        : !prereqsMet
-          ? "prerequisite"
-          : "locked";
-  const detail = selected
-    ? "<div class=\"skill-detail\"><p>" + esc(info?.effect ?? "") + "</p><small>前提: "
-      + (node.requires.length ? esc(node.requires.map((id) => COMPONENTS[id]?.label ?? id).join(" / ")) : "なし")
-      + "</small><div class=\"node-action\">" + action + "</div></div>"
-    : "";
-  return "<article class=\"skill-node " + stateClass + (selected ? " selected" : "") + "\"><button type=\"button\" class=\"skill-node-button\""
-    + " aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-skill-node\" data-skill=\"" + node.skillId + "\">"
-    + "<span class=\"node-icon\">" + esc(skillNodeIcon(node)) + "</span><span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId)
-    + "</b><small>" + kindText(node.kind) + " · T" + (node.tier + 1) + "</small></span><span class=\"node-status\">"
-    + esc(status) + "</span></button>" + detail + "</article>";
+    : unlocked ? "unlocked" : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
+  const status = equipped
+    ? (disabled ? "装着中 · オフ" : "装着中")
+    : unlocked ? "取得済み"
+      : canUnlock ? "解禁可能 · " + node.cost + "pt"
+        : !prereqsMet ? "前提待ち · " + node.cost + "pt" : "点数不足 · " + node.cost + "pt";
+  return { unlocked, equipped, disabled, prereqsMet, canUnlock, stateClass, status };
 }
 
-function renderSkillBranch(branch, characterId) {
-  const nodes = visibleSkillNodes(branch);
-  const tiers = [0, 1, 2].map((tier) => {
-    const tierNodes = nodes.filter((node) => node.tier === tier).sort((a, b) => a.id.localeCompare(b.id));
-    return "<div class=\"skill-tier\"><span class=\"tier-label\">T" + (tier + 1) + "</span><div class=\"tier-nodes\">"
-      + (tierNodes.length ? tierNodes.map((node) => renderSkillNode(node, characterId)).join("") : "<span class=\"tier-empty\">—</span>") + "</div></div>";
+// **前提と派生先は、押せる形で出す。**iPhone ではここを叩いて route を辿る
+// （横スクロールしなくても、前提へ戻る・派生先へ進むができる）。
+function skillRouteChip(skillId) {
+  const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+  if (!node) return "";
+  return "<button type=\"button\" class=\"route-chip\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
+    + "\"><span>" + esc(branchIcons[node.branch] ?? "·") + "</span>" + esc(COMPONENTS[skillId]?.label ?? skillId)
+    + "<small>" + esc(kindText(node.kind)) + "</small></button>";
+}
+
+// R19（issue #137）— 現在レベル／最大レベル。**上位互換を別技能で増やさないので、
+// 同じ節が何段まで伸びるのかを節の上で読めるようにする。**
+function levelBadge(node, characterId) {
+  const cap = skillLevelCapOf(node.skillId);
+  if (cap <= 1) return "<i class=\"badge-level flat\">レベルなし</i>";
+  const level = skillLevelOf(characterId, node.skillId);
+  const shown = level > 0 ? level : "—";
+  return "<i class=\"badge-level" + (level >= cap ? " maxed" : "") + "\">Lv " + shown + "/" + cap + "</i>";
+}
+
+// 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
+// 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
+function levelUpAction(node, characterId, nodeState) {
+  const cap = skillLevelCapOf(node.skillId);
+  if (cap <= 1) {
+    return "<p class=\"node-locked\">この技能はレベルを持ちません（威力や治療量のような"
+      + "連続する量を持たないため、段を積んでも何も変わりません）。</p>";
+  }
+  if (!nodeState.unlocked) {
+    return "<p class=\"node-locked\">解禁すると Lv 1 で手に入り、そこから 1点ずつ "
+      + cap + " まで上げられます。</p>";
+  }
+  const level = skillLevelOf(characterId, node.skillId);
+  if (level >= cap) return "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。</p>";
+  const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
+  return button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
+    "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
+    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+    + "<p class=\"node-locked\">1段ごとに威力・治療量・防壁が 12% ずつ上がります"
+    + "（AP / RP や段数・回数は変わりません）。</p>";
+}
+
+function renderSkillDetail(row, node, characterId, nodeState) {
+  const info = COMPONENTS[node.skillId];
+  const derived = row.children
+    .map((key) => layoutSkillId(key))
+    .filter(Boolean);
+  const requires = node.requires;
+  const action = nodeState.equipped
+    ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
+      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
+      + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
+    : nodeState.unlocked
+      ? button("装着する", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
+        + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
+      : nodeState.canUnlock
+        ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
+          "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+        : "<p class=\"node-locked\">"
+          + (nodeState.prereqsMet
+            ? "技能点が足りません（必要 " + node.cost + "点 / 手持ち " + skillPointsFor(characterId) + "点）。"
+            : "先に前提を解禁してください。")
+          + "</p>";
+  return "<div class=\"skill-detail\"><p>" + esc(info?.effect ?? "") + "</p>"
+    + "<div class=\"skill-route\"><span class=\"route-line\"><b>前提</b>"
+    + (requires.length ? requires.map(skillRouteChip).join("") : "<small>なし（いつでも取れる）</small>") + "</span>"
+    + "<span class=\"route-line\"><b>派生先</b>"
+    + (derived.length ? derived.map(skillRouteChip).join("") : "<small>ここが終点</small>") + "</span></div>"
+    + "<p class=\"route-build\">" + esc(BRANCH_BUILDS[node.branch] ?? "") + "</p>"
+    + "<div class=\"node-action\">" + action + "</div>"
+    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
+}
+
+function layoutSkillId(key) {
+  return String(key).startsWith("bridge:") ? null : key;
+}
+
+function renderSkillRails(row) {
+  const rails = row.rails
+    .map((on) => "<i class=\"rail" + (on ? " on" : "") + "\"></i>")
+    .join("");
+  const elbow = row.x > 0 ? "<i class=\"elbow" + (row.last ? " last" : "") + "\"></i>" : "";
+  return "<span class=\"tree-rails\" aria-hidden=\"true\">" + rails + elbow + "</span>";
+}
+
+// 橋渡しの節。**別のツリーに居る前提を、線の続きとして見せる。**
+function renderBridgeRow(row, tone) {
+  const source = SKILL_TREE_NODES.find((entry) => entry.skillId === row.requireId);
+  const label = COMPONENTS[row.requireId]?.label ?? row.requireId;
+  const fromKind = source ? kindText(source.kind) : "";
+  return "<div class=\"tree-row bridge" + tone + "\" data-row=\"" + esc(row.key) + "\">" + renderSkillRails(row)
+    + "<button type=\"button\" class=\"bridge-node\" data-action=\"select-skill-node\" data-skill=\"" + esc(row.requireId)
+    + "\"><span class=\"node-icon bridge-icon\">⇥</span><span class=\"node-copy\"><b>橋渡し ← " + esc(label)
+    + "</b><small>" + esc(fromKind) + "ツリーの節を前提にする。押すとそちらへ移ります。</small></span></button></div>";
+}
+
+function renderSkillRow(row, characterId, tone) {
+  const node = row.node;
+  const info = COMPONENTS[node.skillId];
+  const nodeState = skillNodeState(node, characterId);
+  const selected = state.selectedSkillNode === node.skillId;
+  const fork = row.children.length >= 2 ? "<span class=\"node-fork\">分岐 " + row.children.length + "</span>" : "";
+  const detail = selected ? renderSkillDetail(row, node, characterId, nodeState) : "";
+  return "<div class=\"tree-row" + tone + (selected ? " selected" : "") + "\" data-row=\"" + esc(row.key) + "\">"
+    + renderSkillRails(row)
+    + "<article class=\"skill-node " + nodeState.stateClass + (selected ? " selected" : "") + "\">"
+    + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
+    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
+    + "<span class=\"node-icon\">" + esc(skillNodeIcon(node)) + "</span>"
+    + "<span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
+    + "<small class=\"node-badges\"><i class=\"kind kind-" + node.kind + "\">" + esc(kindText(node.kind)) + "</i>"
+    + "<i class=\"badge-cost\">" + esc(skillCostText(node)) + "</i>"
+    + "<i class=\"badge-when\">" + esc(skillConditionText(node)) + "</i>"
+    + "<i class=\"badge-depth\">x=" + row.x + "</i>" + levelBadge(node, characterId) + fork + "</small></span>"
+    + "<span class=\"node-status\">" + esc(nodeState.status) + "</span></button>"
+    + detail + "</article></div>";
+}
+
+function renderSkillTree(characterId) {
+  const kind = selectedSkillKind();
+  const groups = skillTreeLayout();
+  const group = groups.find((entry) => entry.kind === kind) ?? groups[0];
+  const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
+  const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
+  const derived = new Set(selectedRow ? selectedRow.descendants : []);
+  const tabs = groups.map((entry) => "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
+    + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false") + "\" data-action=\"select-skill-kind\" data-kind=\""
+    + entry.kind + "\"><b>" + esc(entry.label) + "</b><small>" + entry.nodeCount + "</small></button>").join("");
+  const rows = group.rows.map((row) => {
+    const tone = !selectedRow
+      ? ""
+      : row.key === selectedRow.key ? ""
+        : onPath.has(row.key) ? " on-path"
+          : derived.has(row.key) ? " derived" : " faded";
+    return row.type === "bridge" ? renderBridgeRow(row, tone) : renderSkillRow(row, characterId, tone);
   }).join("");
-  return "<section class=\"skill-branch\" data-branch=\"" + esc(branch) + "\"><div class=\"branch-title\"><b><span class=\"branch-icon\">" + esc(branchIcons[branch] ?? "·")
-    + "</span>" + branch + "</b><small>" + nodes.length + " ノード</small></div><div class=\"skill-tree-map\">" + tiers + "</div></section>";
+  const legend = selectedRow
+    ? "<p class=\"tree-focus\">選択中の前提ルートと派生先だけを強調しています。"
+      + button("強調を解除", "select-skill-node", false, "tiny-button", "data-skill=\"\"") + "</p>"
+    : "<p class=\"muted tree-focus\">節を押すと、そこまでの前提ルートと、そこから伸びる派生先が強調されます。</p>";
+  return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
+    + "<p class=\"tree-summary\"><b>" + esc(group.label) + "ツリー</b> · " + esc(group.summary)
+    + " · 最深 x=" + group.depth + " · 分岐 " + group.forks + "箇所</p>"
+    + legend
+    + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\">" + rows + "</div></div>";
 }
 
 function renderSkills() {
@@ -2237,16 +2406,18 @@ function renderSkills() {
     + "取得済みの技能はすべて装着できます（技能数の上限なし）。"
     + "装着後は上から順に判定され、必要ない技能はここで一時的にオフにできます。"
     + "オフでも取得状態や前提は失われません。<b>装備もいつでも自由に付け外しできます。</b></p>";
-  const branches = SKILL_TREE_BRANCHES.map((branch) => renderSkillBranch(branch, characterId)).join("");
-  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_BRANCHES.reduce((sum, branch) => sum + visibleSkillNodes(branch).length, 0) + " NODES", "誰を伸ばす？", pointsBadge)
+  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + visibleSkillNodes().length + " NODES", "誰を伸ばす？", pointsBadge)
     + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
     + manifestNote
     + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
-    + "<p class=\"muted\">同じツリーでも、誰に装着するか・どの順番で試すかで役割が変わります。アイコンを選び、説明を必要な時だけ開いてください。</p>"
+    // R19（issue #137）— 行動／反応／常設を切り替え、線で前提と派生を辿る。
+    + "<p class=\"muted\">左の線が<b>派生の向き</b>です。左にある節が前提で、右へ行くほど深くなります"
+    + "（<b>x</b> がその深さ）。種別を切り替えると、AP を払う行動・RP を払う反応・資源を払わない常設を"
+    + "別々のツリーとして見られます。別の種別を前提にする節は「橋渡し」としてまとめてあります。</p>"
     + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 上から順に試す</span><span><i class=\"kind kind-reactive\">反応</i> 同じ条件は上から順に発火</span>"
     + "<span><i class=\"kind kind-passive\">常設</i> いつでも効く</span></div>"
-    + skillBuildSummary(characterId) + branches + "</section>"
+    + skillBuildSummary(characterId) + renderSkillTree(characterId) + "</section>"
     + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">枠が決まったら、同じ仲間の装備と耐久を確認します。</p>"
     + "<div class=\"flow-actions\">" + button("編成へ戻る", "tab", false, "button", "data-tab=\"roster\"")
     + button("装備へ進む", "tab", false, "button primary", "data-tab=\"equipment\"") + "</div></section>";
@@ -3962,7 +4133,36 @@ function handleAction(event) {
   }
 
   if (action === "select-skill-node") {
-    state.selectedSkillNode = element.dataset.skill || null;
+    const skillId = element.dataset.skill || null;
+    state.selectedSkillNode = state.selectedSkillNode === skillId ? null : skillId;
+    // R19（issue #137）— 橋渡しの節や派生先の札から、別の種別の節へ飛べる。
+    // **飛び先のツリーへ切り替えないと、選んだ節が画面に出ない。**
+    const target = skillId ? SKILL_TREE_NODES.find((entry) => entry.skillId === skillId) : null;
+    if (target && state.selectedSkillNode) state.skillTreeKind = target.kind;
+    saveState();
+    render();
+    return;
+  }
+
+  // R19（issue #137）— 取得済み技能を1段上げる。解禁と同じで払い戻しは無い。
+  if (action === "level-up-skill") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const result = levelUpRunSkill(state.run, characterId, skillId, skillLevelCapOf(skillId));
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.run = result.run;
+      record("skill_leveled", { characterId, skillId, level: result.level, cost: SKILL_LEVEL_COST });
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-skill-kind") {
+    const kind = element.dataset.kind;
+    if (!["active", "reactive", "passive"].includes(kind)) return;
+    state.skillTreeKind = kind;
     saveState();
     render();
     return;

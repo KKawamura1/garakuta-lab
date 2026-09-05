@@ -28,12 +28,14 @@ import {
   expeditionEncounter,
   packOfSkill,
   skillIdsForPacks,
+  skillLevelCap,
 } from "./content/index.mjs";
 import {
   SKILL_TREE_NODES,
   freshLoadout,
   makeExpeditionBattle,
   reorderSkill,
+  simulateNextBattle,
   toggleSkill,
 } from "./playable-battles.mjs";
 import {
@@ -59,6 +61,8 @@ import {
   recordEncounterCleared,
   rewardOffer,
   runSkillPoints,
+  runSkillLevel,
+  levelUpRunSkill,
   settleRun,
   slotLimits,
   slotUpgradeId,
@@ -326,6 +330,60 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   const on = toggleSkill(off.loadout, "warden", active[0]);
   equal(on.enabled, true, "同じトグルで再びオンにできる");
   check(!on.loadout.disabled, "オンに戻すと不要なオフ欄を残さない");
+}
+
+// ---- R19（issue #137）技能レベルが、取得・技能点・予測の一本道を通る ------------
+//
+// **上位互換を別技能として増やさない**代わりに、一つの技能を段階的に上げる。
+// 取得＝Lv1、そこから 1点ずつ。払い戻しは解禁と同じで無い。
+{
+  const profile = newProfile();
+  const base = newRun(profile, { seed: "frontier-1801", roster: ROSTER });
+  base.loadout = freshLoadout(ROSTER);
+  base.formation = { ...FORMATION };
+  base.runUnlockedSkills = { warden: ["steady_cut"] };
+  base.runSkillPoints = { ...base.runSkillPoints, warden: 3 };
+
+  equal(runSkillLevel(base, "warden", "steady_cut"), 1, "取得した技能は Lv1 から始まる");
+  equal(runSkillLevel(base, "warden", "execute_low"), 0, "未取得の技能はレベルを持たない");
+
+  // 連続する量を持たない技能は上げられない。**払わせておいて何も返さない、を作らない。**
+  equal(skillLevelCap("relay_order" in PLAYABLE_CONTENT.activeSkills
+    ? PLAYABLE_CONTENT.activeSkills.relay_order : {}), 1, "号令のような技能はレベルを持たない");
+  const refused = levelUpRunSkill(base, "warden", "steady_cut", 1);
+  equal(refused.ok, false, "上限が Lv1 の技能は上げられない");
+
+  const before = runSkillPoints(base, "warden");
+  const up = levelUpRunSkill(base, "warden", "steady_cut", 10);
+  equal(up.ok, true, "取得済みの技能を1段上げられる");
+  equal(up.level, 2, "1段だけ上がる");
+  equal(runSkillPoints(up.run, "warden"), before - 1, "1段につき技能点を1点払う");
+  check(runSkillPoints(base, "warden") === before, "元の run を書き換えない");
+
+  const capped = { ...base, runSkillLevels: { warden: { steady_cut: 10 } } };
+  equal(levelUpRunSkill(capped, "warden", "steady_cut", 10).ok, false, "最大レベルからは上げられない");
+  const broke = { ...base, runSkillPoints: { ...base.runSkillPoints, warden: 0 } };
+  equal(levelUpRunSkill(broke, "warden", "steady_cut", 10).ok, false, "技能点が無ければ上げられない");
+
+  // **予測と本番は同じ経路**なので、レベルは exact preview にもそのまま乗る。
+  const lifted = { ...base, runSkillLevels: { warden: { steady_cut: 7 } } };
+  const plain = simulateNextBattle(base, profile, 1);
+  const strong = simulateNextBattle(lifted, profile, 1);
+  const wardenInput = strong.battleInput.allies.find((ally) => ally.characterId === "warden");
+  assert.deepEqual(wardenInput.skillLevels, { steady_cut: 7 }, "レベルが戦闘入力へ届く");
+  check(
+    !plain.battleInput.allies.find((ally) => ally.characterId === "warden").skillLevels,
+    "Lv1 だけの編成は skillLevels の欄そのものを持たない",
+  );
+  assert.deepEqual(validateBattleInput(strong.battleInput, PLAYABLE_CONTENT), []);
+  const firstDamage = (outcome) => outcome.result.events
+    .filter((event) => event.type === "damage_proposed" && event.sourceActorId === "a_warden")
+    .map((event) => event.values.amount)[0];
+  check(
+    firstDamage(strong) > firstDamage(plain),
+    `Lv7 の予測が Lv1 より重い（${firstDamage(plain)} → ${firstDamage(strong)}）`,
+  );
+  checks += 1;
 }
 
 // ---- 鍛錬（R6 §9.5）---------------------------------------------------------

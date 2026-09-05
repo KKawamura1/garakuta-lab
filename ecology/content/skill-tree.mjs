@@ -1,10 +1,12 @@
 // ecology/content/skill-tree.mjs
 //
-// **技能ツリーの節と、技能・装備の表示文。種類をまたぐので統合担当が持つ。**
-// R7 Milestone 0 で playable-battles.mjs から分離した。**挙動は変えていない**
-// （ecology/contract.test.mjs が分離前の出力と深一致を見る）。
+// **技能ツリーの節と、技能・装備の表示文。種類をまたぐので、ここに集める。**
+// R7 Milestone 0 で playable-battles.mjs から分離した。
+// R19（issue #137）で、節の並びを tier の平面から**入れ子の森**へ書き換えた。
 //
-// ここを触ってよいのは 統合 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
+
+import { BASELINE_ACTIVE_SKILL_IDS, BASELINE_REACTIVE_SKILL_IDS } from "./packs.mjs";
 
 const activeMeta = {
   // R6 §17.1 — Phase A の攻撃 archetype。**説明に「何に強くて何に弱いか」を書く。**
@@ -201,156 +203,348 @@ const passiveMeta = {
 };
 export const PASSIVE_META = passiveMeta;
 
+// ---------------------------------------------------------------- 技能ツリーの森（R19 / issue #137）
+//
+// **書いた形が、そのまま画面の形になる。**
+//
+// R18 までのツリーは「系統 × tier（0/1/2）」の平らな並びだった。
+// 節がどこから生えるのかは requires を目で追わないと分からず、深さ（tier）は
+// 0/1/2 の三段しか無かったので、**取得方針が立たない**（issue #137 の出発点）。
+//
+// ここでは森を入れ子で書く。字下げがそのまま x（前提からの深さ）になり、
+// 親が前提、子が派生である。x は書いた形から出るので、**手で座標を書かない**。
+//
+//   node(id, ...children)  … その技能の節。子は必ず1列右に来る。
+//   from(id, ...children)  … 橋渡し。**別の種別のツリーに居る前提**から生やす
+//                            （反応の「反撃」が行動の「斬撃」を前提にする、など）。
+//
+// ## 深さの意味（issue #137 §深さと分岐）
+//
+//   x=1      入口。前提を持たない基本技能
+//   x=2      基本の使いやすさ・効率の強化
+//   x=3      1回目の大きな役割分岐
+//   x=4      分岐方向の強化
+//   x=5      2回目の大きな役割分岐
+//   x=6〜9   コンボや専門性の強化
+//   x=10     最終ビルドの到達点
+//
+// ## 並べるときの決まり
+//
+// **子は必ず親と同じか後ろの pack に置く。** pack は Stage ごとに増えるので、
+// 前提が後の pack に居ると「画面に出ているのに永久に解禁できない節」になる
+// （analysis/ecology-skill-catalog-smoke.mjs が Stage ごとに見る）。
+// 順番は baseline → 構えと手当て → 刃と撃破 → 防壁と隊列 → 行動権と準備 で、
+// 同じ pack の中では core（入口）が先、full が後である。
+//
+// **campaign で x=10 まで届く道を、各ツリーに一本は通す。**届かない到達点は
+// 設計図であって、遊べる形ではない。行動ツリーは「薙ぎ払い」（防壁と隊列 full ＝
+// Stage 3）、反応ツリーは「手当てを備えへ」まで、実際に取り切れる。
+
+const node = (skillId, ...children) => ({ skillId, children });
+const from = (requireId, ...children) => ({ requireId, children });
+
+// 系統（役割）。**ツリーの構造ではなく、節に付く色である。**
+// どの資源を払うか（行動 / 反応 / 常設）はツリーの大分類、どの役割かはこの表。
+const BRANCH_OF = {
+  strike: "攻撃",
+  heavy_swing: "攻撃",
+  long_swing: "攻撃",
+  hunt_the_slow: "攻撃",
+  relay_order: "指揮",
+  reposition: "指揮",
+  mark_target: "指揮",
+  steady_aim: "指揮",
+  mend: "支援",
+  triage: "支援",
+  emergency_treatment: "支援",
+  idle_shuffle: "支援",
+  bulwark: "守り",
+  steady_cut: "攻撃",
+  aimed_shot: "支援",
+  counter_blow: "攻撃",
+  damage_echo: "攻撃",
+  scavenge_ap: "指揮",
+  guard_step: "指揮",
+  cover_ally: "守り",
+  brace_after_hit: "守り",
+  barrier_bloom: "守り",
+  overflow_care: "支援",
+  triage_relay: "支援",
+  urging: "支援",
+  prep_spiral: "支援",
+  ap_loop: "指揮",
+  block_focus: "守り",
+  barrier_stitch: "守り",
+  rapid_cuts: "攻撃",
+  pierce_thrust: "攻撃",
+  row_sweep: "攻撃",
+  column_thrust: "攻撃",
+  guard_crush: "攻撃",
+  rear_hunt: "攻撃",
+  finishing_thrust: "攻撃",
+  crack_mark: "攻撃",
+  brace_for_impact: "守り",
+  barrage_strike: "攻撃",
+  mark_strike: "攻撃",
+  mark_break: "攻撃",
+  sweeping_barrage: "攻撃",
+  piercing_barrage: "攻撃",
+  guarded_opening: "攻撃",
+  seize_the_opening: "攻撃",
+  foundation_vitality: "基礎",
+  foundation_might: "基礎",
+  foundation_focus: "基礎",
+  foundation_guard: "基礎",
+  foundation_speed: "基礎",
+  foundation_ap: "基礎",
+  foundation_rp: "基礎",
+  opening_guard: "守り",
+  whetted_by_pain: "攻撃",
+  first_blood: "攻撃",
+  shield_handoff: "守り",
+  patient_step: "指揮",
+  held_breath: "指揮",
+  shield_the_wounded: "支援",
+  steady_hands: "支援",
+  hand_off: "支援",
+  overreach: "攻撃",
+  spill_forward: "攻撃",
+  wake_reader: "攻撃",
+  blocked_into_step: "守り",
+  wake_of_the_fallen: "守り",
+  mercy_into_guard: "支援",
+  readied_relay: "指揮",
+  stride_into_reach: "指揮",
+  hamstring: "攻撃",
+  rend: "攻撃",
+  double_back: "攻撃",
+  spread_cut: "攻撃",
+  opening_stab: "攻撃",
+  bloodied_charge: "攻撃",
+  reckless_swing: "攻撃",
+  execute_low: "攻撃",
+  opportunist: "攻撃",
+  vengeful_step: "攻撃",
+  finish_the_wounded: "攻撃",
+  edge_honed: "攻撃",
+  drag_forward: "守り",
+  shield_wall: "守り",
+  rally_line: "守り",
+  bulwark_of_will: "守り",
+  spread_the_guard: "守り",
+  bracing_thrust: "守り",
+  absorb_shock: "守り",
+  guard_the_marked: "守り",
+  last_stand: "守り",
+  counterweight: "守り",
+  wall_reader: "守り",
+  field_dressing: "支援",
+  steady_breath: "支援",
+  ward_ally: "支援",
+  precise_cut: "支援",
+  sustaining_ward: "支援",
+  cleansing_step: "支援",
+  shared_pain: "支援",
+  watchful_care: "支援",
+  steady_under_fire: "支援",
+  second_wind: "支援",
+  patient_hands: "支援",
+  hasten_ally: "指揮",
+  call_the_slow: "指揮",
+  feint: "指揮",
+  set_the_pace: "指揮",
+  read_the_charge: "指揮",
+  break_the_charge: "指揮",
+  counter_order: "指揮",
+  stall_the_blow: "指揮",
+  first_order: "指揮",
+  flurry_finish: "攻撃",
+  mark_spread: "攻撃",
+  shatter_point: "攻撃",
+  echo_of_the_mark: "攻撃",
+  mark_reader: "攻撃",
+  take_the_wound: "支援",
+  pass_the_edge: "指揮",
+  stagger_relay: "指揮",
+  warded_into_edge: "守り",
+  bleed_into_wake: "攻撃",
+  relay_reader: "支援",
+};
+
+const ACTIVE_FOREST = [
+  node("strike",  // 斬撃
+    node("overreach"),  // 無理を通す
+    node("steady_cut",  // 確かな斬り
+      node("pierce_thrust",  // 貫き突き
+        node("column_thrust",  // 突き通し
+          node("row_sweep")),  // 薙ぎ払い
+        node("rear_hunt",  // 後衛狩り
+          node("rapid_cuts",  // 刻み斬り
+            node("spread_cut",  // 散らし斬り
+              node("crack_mark",  // 傷口を開く
+                node("rend",  // 抉る
+                  node("double_back",  // 二の太刀
+                    node("reckless_swing"),  // 捨て身の一振り
+                    node("bloodied_charge")))))),  // 手負いの突撃
+          node("guard_crush"))),  // 受け崩し
+      node("heavy_swing",  // 溜め突き
+        node("long_swing",  // 大溜め
+          node("hunt_the_slow"),  // 準備狩り
+          node("opening_stab"))),  // 先の一刺し
+      node("finishing_thrust",  // 止めの一突き
+        node("hamstring",  // 足を払う
+          node("execute_low"))))),  // 首を落とす
+  node("bulwark",  // 防壁形成
+    node("hand_off"),  // 引き継ぐ
+    node("spread_the_guard",  // 構えを配る
+      node("brace_for_impact",  // 衝撃に備える
+        node("bulwark_of_will",  // 意地の壁
+          node("shield_wall"),  // 盾の列
+          node("bracing_thrust"))),  // 受けながらの突き
+      node("reposition",  // 位置替え
+        node("rally_line",  // 陣を組み直す
+          node("drag_forward"),  // 引きずり出す
+          node("relay_order",  // 号令
+            node("hasten_ally"),  // 背を押す
+            node("mark_target",  // 隙を刻む
+              node("steady_aim",  // 狙いを澄ます
+                node("feint"),  // 誘い
+                node("set_the_pace",  // 拍を作る
+                  node("call_the_slow",  // 後詰めを呼ぶ
+                    node("pass_the_edge")))))))))),  // 刃を渡す
+  node("barrage_strike",  // 連撃
+    node("flurry_finish"),  // 刻み止め
+    node("sweeping_barrage"),  // 連ぎ払い
+    node("piercing_barrage")),  // 貫き連撃
+  node("mark_strike",  // 刻印撃ち
+    node("mark_spread"),  // 刻印を散らす
+    node("mark_break",  // 刻印砕き
+      node("shatter_point"))),  // 積もる刻印
+  from("mend",
+    node("take_the_wound"),  // 傷を引き受ける
+    node("aimed_shot",  // 狙い撃ち
+      node("shield_the_wounded",  // 傷へ盾を
+        node("field_dressing",  // まとめて手当て
+          node("precise_cut"),  // 静かな一手
+          node("idle_shuffle"))),  // 息を整える
+      node("ward_ally",  // 守勢を渡す
+        node("sustaining_ward",  // 長く守る
+          node("cleansing_step"),  // 払いのける
+          node("steady_breath"))))),  // 息を合わせる
+];
+
+const REACTIVE_FOREST = [
+  node("mend",  // 手当て
+    node("triage",  // 応急手当
+      node("overflow_care",  // 余剰治療
+        node("emergency_treatment",  // 応急処置
+          node("triage_relay",  // 連携治療
+            node("second_wind",  // 二の息
+              node("shared_pain",  // 痛みを分ける
+                node("urging",  // 急かす
+                  node("prep_spiral",  // 準備の螺旋
+                    node("mercy_into_guard")))))),  // 手当てを備えへ
+          node("steady_under_fire"))),  // 揺れない手
+      node("watchful_care"))),  // 目を離さない
+  from("strike",
+    node("counter_blow",  // 反撃
+      node("opportunist",  // 隙に応じる
+        node("whetted_by_pain",  // 痛みで研ぐ
+          node("damage_echo",  // 痛みの反響
+            node("vengeful_step",  // 意趣返し
+              node("guard_step",  // 踏み固め
+                node("ap_loop",  // 行動権の循環
+                  node("read_the_charge",  // 溜めを読む
+                    node("break_the_charge")))))),  // 溜めを崩す
+          node("finish_the_wounded",  // 止めを促す
+            node("bleed_into_wake",  // 裂傷の余波
+              node("spill_forward"))))),  // 余波を回す
+      node("scavenge_ap",  // 拾い直し
+        node("patient_step",  // 溜めの次手
+          node("counter_order",  // 差し込む号令
+            node("stall_the_blow",  // 出鼻を挫く
+              node("stagger_relay",  // 怯みを回す
+                node("readied_relay")))),  // 支度を渡す
+          node("stride_into_reach"))))),  // 歩みを間合いへ
+  from("bulwark",
+    node("brace_after_hit",  // 受け流し
+      node("cover_ally",  // 身代わり
+        node("shield_handoff",  // 受けの受け渡し
+          node("guard_the_marked",  // 狙われた者へ
+            node("barrier_bloom",  // 防壁の花
+              node("barrier_stitch",  // 防壁の縫い直し
+                node("wake_of_the_fallen",  // 倒したあと
+                  node("warded_into_edge",  // 守勢を刃へ
+                    node("blocked_into_step")))))),  // 受けを順番へ
+          node("last_stand"))),  // 背水
+      node("absorb_shock",  // 衝撃を殺す
+        node("block_focus",  // 受け返しの集中
+          node("counterweight"))))),  // 支え直す
+  from("mark_strike",
+    node("guarded_opening",  // 受け止めの隙
+      node("seize_the_opening"),  // 機を逃さず
+      node("echo_of_the_mark"))),  // 刻印の残響
+];
+
+const PASSIVE_FOREST = [
+  node("foundation_vitality"),  // foundation_vitality
+  node("foundation_might"),  // foundation_might
+  node("foundation_focus"),  // foundation_focus
+  node("foundation_guard"),  // foundation_guard
+  node("foundation_speed"),  // foundation_speed
+  node("foundation_ap"),  // foundation_ap
+  node("foundation_rp"),  // foundation_rp
+  from("mend",
+    node("steady_hands",  // steady_hands
+      node("patient_hands"),  // patient_hands
+      node("relay_reader"))),  // relay_reader
+  from("strike",
+    node("first_blood",  // first_blood
+      node("edge_honed"),  // edge_honed
+      node("wake_reader"))),  // wake_reader
+  from("bulwark",
+    node("opening_guard",  // opening_guard
+      node("wall_reader"))),  // wall_reader
+  from("relay_order",
+    node("held_breath",  // held_breath
+      node("first_order"))),  // first_order
+  from("mark_strike",
+    node("mark_reader")),  // mark_reader
+];
+
+// **値段は深さそのものが決める。**1節 1点で、x=10 の到達点までは 9点かかる
+// （遠征1回で配られる技能点とほぼ同じ）。baseline の入口だけ 0点で、
+// 誰でも最初から一つは出せる（R6 §5.2 の詰み防止）。
+const FREE_ENTRY_SKILL_IDS = new Set([
+  ...BASELINE_ACTIVE_SKILL_IDS,
+  ...BASELINE_REACTIVE_SKILL_IDS,
+]);
+
+function flattenForest(forest, kind, out) {
+  const walk = (entry, requires, x) => {
+    if (entry.requireId !== undefined) {
+      for (const child of entry.children) walk(child, [entry.requireId], 2);
+      return;
+    }
+    out.push(Object.freeze({
+      id: "node_" + entry.skillId,
+      skillId: entry.skillId,
+      kind,
+      branch: BRANCH_OF[entry.skillId] ?? "基礎",
+      // R19 — **座標を data として持つ。**組み方から出た値をここへ焼き、
+      // content/skill-tree-layout.mjs が組み直した x と一致するかを検査する。
+      x,
+      cost: requires.length === 0 && FREE_ENTRY_SKILL_IDS.has(entry.skillId) ? 0 : 1,
+      requires: Object.freeze([...requires]),
+    }));
+    for (const child of entry.children) walk(child, [entry.skillId], x + 1);
+  };
+  for (const entry of forest) walk(entry, [], 1);
+  return out;
+}
+
 export const SKILL_TREE_NODES = Object.freeze([
-  { id: "node_strike", skillId: "strike", kind: "active", branch: "攻撃", tier: 0, cost: 0, requires: [] },
-  { id: "node_heavy", skillId: "heavy_swing", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_long", skillId: "long_swing", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["heavy_swing"] },
-  { id: "node_hunt", skillId: "hunt_the_slow", kind: "active", branch: "攻撃", tier: 2, cost: 2, requires: ["heavy_swing"] },
-  { id: "node_relay", skillId: "relay_order", kind: "active", branch: "指揮", tier: 0, cost: 0, requires: [] },
-  // R16 — 前提を baseline へ移した。**reposition は pack_wall、relay_order は pack_tempo** なので、
-  // pack_wall が入って pack_tempo がまだ来ていない Stage 2 では、画面に出たまま永久に解禁できなかった
-  // （analysis/ecology-skill-catalog-smoke.mjs が検出）。R9 §9.2「前提は各 pack の入口技能に置く」。
-  { id: "node_reposition", skillId: "reposition", kind: "active", branch: "指揮", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_mark", skillId: "mark_target", kind: "active", branch: "指揮", tier: 2, cost: 1, requires: ["reposition"] },
-  { id: "node_aim", skillId: "steady_aim", kind: "active", branch: "指揮", tier: 2, cost: 2, requires: ["mark_target"] },
-  // R8 Implementation Phase 1（続き）— mend/triage は reactive（damage_taken に
-  // 反応する応急処置）へ作り替えた。kind だけを直し、tier・requires は変えない。
-  { id: "node_mend", skillId: "mend", kind: "reactive", branch: "支援", tier: 0, cost: 0, requires: [] },
-  { id: "node_triage", skillId: "triage", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_emergency_treatment", skillId: "emergency_treatment", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_idle", skillId: "idle_shuffle", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_bulwark", skillId: "bulwark", kind: "active", branch: "守り", tier: 0, cost: 0, requires: [] },
-  { id: "node_steady_cut", skillId: "steady_cut", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_aimed_shot", skillId: "aimed_shot", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_counter", skillId: "counter_blow", kind: "reactive", branch: "攻撃", tier: 0, cost: 1, requires: ["strike"] },
-  { id: "node_echo", skillId: "damage_echo", kind: "reactive", branch: "攻撃", tier: 1, cost: 2, requires: ["counter_blow"] },
-  { id: "node_scavenge", skillId: "scavenge_ap", kind: "reactive", branch: "指揮", tier: 0, cost: 1, requires: ["strike"] },
-  { id: "node_step", skillId: "guard_step", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["scavenge_ap"] },
-  { id: "node_cover", skillId: "cover_ally", kind: "reactive", branch: "守り", tier: 0, cost: 1, requires: ["bulwark"] },
-  // R16 — 同じ理由で baseline へ。**brace_after_hit は pack_care、cover_ally は pack_wall** なので、
-  // Stage 0・1 では前提が来ていなかった。
-  { id: "node_brace", skillId: "brace_after_hit", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_bloom", skillId: "barrier_bloom", kind: "reactive", branch: "守り", tier: 2, cost: 2, requires: ["brace_after_hit"] },
-  { id: "node_overflow", skillId: "overflow_care", kind: "reactive", branch: "支援", tier: 0, cost: 1, requires: ["mend"] },
-  { id: "node_triage_relay", skillId: "triage_relay", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["overflow_care"] },
-  { id: "node_urging", skillId: "urging", kind: "reactive", branch: "支援", tier: 0, cost: 1, requires: ["mend"] },
-  { id: "node_prep_spiral", skillId: "prep_spiral", kind: "reactive", branch: "支援", tier: 1, cost: 2, requires: ["urging"] },
-  { id: "node_ap_loop", skillId: "ap_loop", kind: "reactive", branch: "指揮", tier: 1, cost: 2, requires: ["scavenge_ap"] },
-  { id: "node_block_focus", skillId: "block_focus", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["brace_after_hit"] },
-  { id: "node_barrier_stitch", skillId: "barrier_stitch", kind: "reactive", branch: "守り", tier: 2, cost: 1, requires: ["barrier_bloom"] },
-  // R6 §17.1 — Phase A の攻撃 archetype。攻撃系統の T1/T2 へ置く。
-  { id: "node_rapid", skillId: "rapid_cuts", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_pierce", skillId: "pierce_thrust", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_row", skillId: "row_sweep", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["rapid_cuts"] },
-  { id: "node_column", skillId: "column_thrust", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["pierce_thrust"] },
-  { id: "node_guard_crush", skillId: "guard_crush", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  // R16 — 同じ理由で baseline へ。**rear_hunt は pack_edge の core、guard_crush は full** なので、
-  // pack_edge が core で入る Stage 1 では前提が来ていなかった。
-  { id: "node_rear_hunt", skillId: "rear_hunt", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["strike"] },
-  { id: "node_finishing", skillId: "finishing_thrust", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["strike"] },
-  { id: "node_crack_mark", skillId: "crack_mark", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_brace_impact", skillId: "brace_for_impact", kind: "active", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  // R8 §5.4（続き）— pack_barrage の probe content。
-  { id: "node_barrage", skillId: "barrage_strike", kind: "active", branch: "攻撃", tier: 0, cost: 1, requires: [] },
-  { id: "node_mark_strike", skillId: "mark_strike", kind: "active", branch: "攻撃", tier: 0, cost: 1, requires: [] },
-  { id: "node_mark_break", skillId: "mark_break", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
-  { id: "node_sweeping_barrage", skillId: "sweeping_barrage", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["barrage_strike"] },
-  { id: "node_piercing_barrage", skillId: "piercing_barrage", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["barrage_strike"] },
-  { id: "node_guarded_opening", skillId: "guarded_opening", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
-  { id: "node_seize_the_opening", skillId: "seize_the_opening", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
-  // R6 §6.8 — 基礎訓練。**前提を持たない**ので、どの人物もいつでも取れる。
-  { id: "node_found_vitality", skillId: "foundation_vitality", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
-  { id: "node_found_might", skillId: "foundation_might", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
-  { id: "node_found_focus", skillId: "foundation_focus", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
-  { id: "node_found_guard", skillId: "foundation_guard", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
-  { id: "node_found_speed", skillId: "foundation_speed", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
-  { id: "node_found_ap", skillId: "foundation_ap", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
-  { id: "node_found_rp", skillId: "foundation_rp", kind: "passive", branch: "基礎", tier: 0, cost: 1, requires: [] },
-  { id: "node_opening_guard", skillId: "opening_guard", kind: "passive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  // R9 §4.1 / §9.2 — 導入 pack の接続面と常設。
-  // **前提は各 pack の入口技能に置く**（別 pack を経由しないと届かない形にしない）。
-  { id: "node_whetted", skillId: "whetted_by_pain", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_first_blood", skillId: "first_blood", kind: "passive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_shield_handoff", skillId: "shield_handoff", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["cover_ally"] },
-  { id: "node_patient_step", skillId: "patient_step", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  { id: "node_held_breath", skillId: "held_breath", kind: "passive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  { id: "node_shield_wounded", skillId: "shield_the_wounded", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_steady_hands", skillId: "steady_hands", kind: "passive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  // R9 §5 — 横断pack「余波と受け渡し」。**前提を baseline の入口へ置く**ので、
-  // どの人物でも、別 pack を経由せずに一つ目の変換へ届く（R9 §5.1）。
-  { id: "node_hand_off", skillId: "hand_off", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_overreach", skillId: "overreach", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_spill_forward", skillId: "spill_forward", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_wake_reader", skillId: "wake_reader", kind: "passive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_blocked_into_step", skillId: "blocked_into_step", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_wake_of_the_fallen", skillId: "wake_of_the_fallen", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_mercy_into_guard", skillId: "mercy_into_guard", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_readied_relay", skillId: "readied_relay", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  { id: "node_stride_into_reach", skillId: "stride_into_reach", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  // ---------------------------------------------------------------- R16 — 大量追加の節
-  //
-  // **前提は各 pack の入口技能に置く**（別 pack を経由しないと届かない形にしない）。
-  // baseline の strike / bulwark / mend と、その pack の core 技能だけを前提にする。
-  // 深いものだけ、同じ pack の中で一段の連なりを作ってある。
-  //
-  // 刃と撃破（pack_edge）→ 攻撃系統
-  { id: "node_hamstring", skillId: "hamstring", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_rend", skillId: "rend", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["hamstring"] },
-  { id: "node_double_back", skillId: "double_back", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_spread_cut", skillId: "spread_cut", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_opening_stab", skillId: "opening_stab", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_bloodied_charge", skillId: "bloodied_charge", kind: "active", branch: "攻撃", tier: 2, cost: 1, requires: ["strike"] },
-  { id: "node_reckless_swing", skillId: "reckless_swing", kind: "active", branch: "攻撃", tier: 2, cost: 2, requires: ["strike"] },
-  { id: "node_execute_low", skillId: "execute_low", kind: "active", branch: "攻撃", tier: 2, cost: 2, requires: ["finishing_thrust"] },
-  { id: "node_opportunist", skillId: "opportunist", kind: "reactive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  { id: "node_vengeful_step", skillId: "vengeful_step", kind: "reactive", branch: "攻撃", tier: 2, cost: 1, requires: ["counter_blow"] },
-  { id: "node_finish_the_wounded", skillId: "finish_the_wounded", kind: "reactive", branch: "攻撃", tier: 2, cost: 1, requires: ["strike"] },
-  { id: "node_edge_honed", skillId: "edge_honed", kind: "passive", branch: "攻撃", tier: 1, cost: 1, requires: ["strike"] },
-  // 防壁と隊列（pack_wall）→ 守り系統
-  { id: "node_drag_forward", skillId: "drag_forward", kind: "active", branch: "守り", tier: 2, cost: 2, requires: ["reposition"] },
-  { id: "node_shield_wall", skillId: "shield_wall", kind: "active", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_rally_line", skillId: "rally_line", kind: "active", branch: "守り", tier: 2, cost: 1, requires: ["reposition"] },
-  { id: "node_bulwark_of_will", skillId: "bulwark_of_will", kind: "active", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_spread_the_guard", skillId: "spread_the_guard", kind: "active", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_bracing_thrust", skillId: "bracing_thrust", kind: "active", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_absorb_shock", skillId: "absorb_shock", kind: "reactive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  { id: "node_guard_the_marked", skillId: "guard_the_marked", kind: "reactive", branch: "守り", tier: 2, cost: 1, requires: ["cover_ally"] },
-  { id: "node_last_stand", skillId: "last_stand", kind: "reactive", branch: "守り", tier: 2, cost: 2, requires: ["bulwark"] },
-  { id: "node_counterweight", skillId: "counterweight", kind: "reactive", branch: "守り", tier: 2, cost: 1, requires: ["guard_step"] },
-  { id: "node_wall_reader", skillId: "wall_reader", kind: "passive", branch: "守り", tier: 1, cost: 1, requires: ["bulwark"] },
-  // 構えと手当て（pack_care）→ 支援系統
-  { id: "node_field_dressing", skillId: "field_dressing", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_steady_breath", skillId: "steady_breath", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_ward_ally", skillId: "ward_ally", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_precise_cut", skillId: "precise_cut", kind: "active", branch: "支援", tier: 2, cost: 1, requires: ["aimed_shot"] },
-  { id: "node_sustaining_ward", skillId: "sustaining_ward", kind: "active", branch: "支援", tier: 2, cost: 1, requires: ["ward_ally"] },
-  { id: "node_cleansing_step", skillId: "cleansing_step", kind: "active", branch: "支援", tier: 2, cost: 1, requires: ["ward_ally"] },
-  { id: "node_shared_pain", skillId: "shared_pain", kind: "reactive", branch: "支援", tier: 2, cost: 2, requires: ["triage"] },
-  { id: "node_watchful_care", skillId: "watchful_care", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_steady_under_fire", skillId: "steady_under_fire", kind: "reactive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_second_wind", skillId: "second_wind", kind: "reactive", branch: "支援", tier: 2, cost: 1, requires: ["overflow_care"] },
-  { id: "node_patient_hands", skillId: "patient_hands", kind: "passive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  // 行動権と準備（pack_tempo）→ 指揮系統
-  { id: "node_hasten_ally", skillId: "hasten_ally", kind: "active", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  { id: "node_call_the_slow", skillId: "call_the_slow", kind: "active", branch: "指揮", tier: 2, cost: 1, requires: ["relay_order"] },
-  { id: "node_feint", skillId: "feint", kind: "active", branch: "指揮", tier: 2, cost: 1, requires: ["mark_target"] },
-  { id: "node_set_the_pace", skillId: "set_the_pace", kind: "active", branch: "指揮", tier: 2, cost: 1, requires: ["steady_aim"] },
-  { id: "node_read_the_charge", skillId: "read_the_charge", kind: "reactive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  { id: "node_break_the_charge", skillId: "break_the_charge", kind: "reactive", branch: "指揮", tier: 2, cost: 2, requires: ["read_the_charge"] },
-  { id: "node_counter_order", skillId: "counter_order", kind: "reactive", branch: "指揮", tier: 2, cost: 1, requires: ["relay_order"] },
-  { id: "node_stall_the_blow", skillId: "stall_the_blow", kind: "reactive", branch: "指揮", tier: 2, cost: 2, requires: ["counter_order"] },
-  { id: "node_first_order", skillId: "first_order", kind: "passive", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  // 連撃と刻印（pack_barrage）→ 攻撃系統
-  { id: "node_flurry_finish", skillId: "flurry_finish", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["barrage_strike"] },
-  { id: "node_mark_spread", skillId: "mark_spread", kind: "active", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
-  { id: "node_shatter_point", skillId: "shatter_point", kind: "active", branch: "攻撃", tier: 2, cost: 2, requires: ["mark_break"] },
-  { id: "node_echo_of_the_mark", skillId: "echo_of_the_mark", kind: "reactive", branch: "攻撃", tier: 2, cost: 1, requires: ["mark_strike"] },
-  { id: "node_mark_reader", skillId: "mark_reader", kind: "passive", branch: "攻撃", tier: 1, cost: 1, requires: ["mark_strike"] },
-  // 余波と受け渡し（pack_relay）→ 出す先の役割に合わせて系統を散らす
-  { id: "node_take_the_wound", skillId: "take_the_wound", kind: "active", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
-  { id: "node_pass_the_edge", skillId: "pass_the_edge", kind: "active", branch: "指揮", tier: 1, cost: 1, requires: ["relay_order"] },
-  { id: "node_stagger_relay", skillId: "stagger_relay", kind: "reactive", branch: "指揮", tier: 2, cost: 1, requires: ["relay_order"] },
-  { id: "node_warded_into_edge", skillId: "warded_into_edge", kind: "reactive", branch: "守り", tier: 2, cost: 1, requires: ["bulwark"] },
-  { id: "node_bleed_into_wake", skillId: "bleed_into_wake", kind: "reactive", branch: "攻撃", tier: 2, cost: 1, requires: ["strike"] },
-  { id: "node_relay_reader", skillId: "relay_reader", kind: "passive", branch: "支援", tier: 1, cost: 1, requires: ["mend"] },
+  ...flattenForest(ACTIVE_FOREST, "active", []),
+  ...flattenForest(REACTIVE_FOREST, "reactive", []),
+  ...flattenForest(PASSIVE_FOREST, "passive", []),
 ]);

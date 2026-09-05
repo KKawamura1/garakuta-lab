@@ -4,7 +4,7 @@
 // R7 Milestone 0 で playable-battles.mjs から分離した。**挙動は変えていない**
 // （ecology/contract.test.mjs が分離前の出力と深一致を見る）。
 //
-// ここを触ってよいのは 人物 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
 import { CHARACTER_LORE } from "./character-lore.mjs";
 // R13 — 新5人（ゴウ／ツグミ／ナギ／ヒバナ／ゲンゾウ）へ差し替えた。**engine の id は
 // 据え置きなので、id の語義と中身は一致しない**（`lancer` が受け役、`guardian` が遊撃役）。

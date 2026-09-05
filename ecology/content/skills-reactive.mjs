@@ -5,7 +5,7 @@
 // 種類別へ分離した。**挙動は1バイトも変えていない**（ecology/contract.test.mjs が
 // 分離前の出力と深一致を見る）。
 //
-// ここを触ってよいのは 技能 担当だけ。engine・schema・共通registryは変更しない。
+// engine・schema・共通registryは変更しない。
 
 import { bpsForLegacyAmount, renamed, scaleDefinitionAmounts } from "./base.mjs";
 

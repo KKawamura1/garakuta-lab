@@ -25,7 +25,7 @@
 // 関係（bonds）は R11 §5。**相手が加入していて、遅いほうの加入 Stage を越えたとき**に開く。
 // 誰と組んだかで読めるものが変わる、という形にしてある。
 //
-// ここを触ってよいのは 名簿 / 物語 担当だけ。設定本文は character-lore.mjs で編集する。
+// 設定本文は character-lore.mjs で編集する。
 
 import { CHARACTER_LORE, CHARACTER_NAMES } from "./character-lore.mjs";
 

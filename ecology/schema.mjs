@@ -15,7 +15,12 @@ export const CONTENT_SCHEMA_VERSION = "ecology-content-3";
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
 // but a reader that does not know the field would silently drop the training,
 // so the version says out loud that the shape grew.
-export const BATTLE_SCHEMA_VERSION = "ecology-battle-3";
+// R19（issue #137）— battle input gained an optional `skillLevels` map on allies
+// (skill id -> level). It is additive: an input without it, or one whose every
+// level is 1, resolves byte-for-byte as ecology-battle-3 did. A reader that does
+// not know the field would silently drop the levels — which changes damage — so
+// the version says out loud that the shape grew.
+export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
 export const RESULT_SCHEMA_VERSION = "ecology-result-1";
 export const MINING_VERSION = "ecology-mining-1";
 
@@ -373,6 +378,21 @@ export const ENCOUNTER_KINDS = freeze(["normal", "elite", "boss"]);
 // 多くの面白い skill より強くなりやすい（R6 §6.8）。開始時1回だけなら
 // gain_resource の rule で書けるので、語彙を増やさずに済む。
 export const PASSIVE_STAT_BONUSES = freeze(["max_hp", "might", "focus", "guard", "speed"]);
+
+// R19（issue #137）— 技能レベル。**同じ効果の上位互換を別技能として増やさず、
+// 一つの技能を段階的に強くする。**
+//
+// レベルが上げるのは**連続量だけ**である（damage / heal / barrier と、その増減）。
+// AP・RP・行動権・段数・回数・耐久は離散量なので触らない。「1段上げたら手数が
+// 増える」は、多くの面白い技能より強くなりやすい（R6 §6.8 の passive と同じ理由）。
+//
+// Lv1 は係数 1.0 ちょうどで、**掛け算そのものが起きない**。レベルを知らない
+// 入力・保存・replay は、これまでと1バイトも変わらない結果を出す。
+export const MIN_SKILL_LEVEL = 1;
+export const MAX_SKILL_LEVEL = 10;
+// 1段ごとに +12%。Lv10 で 2.08 倍になる。**上位互換を別技能で作るより緩やかにする**
+// （別技能なら装着枠を食うが、レベルは食わないので、同じ倍率だと強すぎる）。
+export const SKILL_LEVEL_STEP_BPS = 1_200;
 
 export const DURATIONS = freeze(["turn", "round", "battle"]);
 export const BARRIER_DURATIONS = freeze(["round", "battle"]);

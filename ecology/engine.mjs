@@ -121,6 +121,10 @@ function buildState(input, content, options) {
       guard: allyStats.guard,
       baseStats: baseStatsOf(definition),
       training: ally.training ? { ...ally.training } : null,
+      // R19（issue #137）— 技能レベル。**engine は「どの技能か」で分岐しない**：
+      // この表に載っている技能の連続量へ、段数ぶんの係数を掛けるだけである
+      // （effects.mjs の afterSkillLevel）。載っていなければ掛け算も起きない。
+      skillLevels: ally.skillLevels ? { ...ally.skillLevels } : null,
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
