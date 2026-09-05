@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.7",
+ "contentVersion": "ecology-playable-full-0.8",
  "content": {
-  "schemaVersion": "ecology-content-2",
-  "contentVersion": "ecology-playable-full-0.7",
+  "schemaVersion": "ecology-content-3",
+  "contentVersion": "ecology-playable-full-0.8",
   "characters": {
    "warden": {
     "id": "warden",
@@ -3182,6 +3182,9 @@
           "type": "alive"
          },
          {
+          "type": "not_self"
+         },
+         {
           "type": "is_event_primary_target"
          },
          {
@@ -3208,6 +3211,9 @@
         "filters": [
          {
           "type": "alive"
+         },
+         {
+          "type": "not_self"
          },
          {
           "type": "is_event_primary_target"
@@ -6390,8 +6396,7 @@
     "shield_the_wounded"
    ],
    "starterReactives": [
-    "triage",
-    "emergency_treatment"
+    "triage"
    ]
   },
   {
@@ -6801,7 +6806,7 @@
     "kind": "reactive",
     "definitionId": "triage",
     "label": "応急手当",
-    "effect": "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。",
+    "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の50%を返す。自分は対象にしない。",
     "grammar": "回復"
    },
    "emergency_treatment": {
@@ -9035,8 +9040,7 @@
     "overflow_care"
    ],
    "mender": [
-    "triage",
-    "emergency_treatment"
+    "triage"
    ],
    "lancer": [
     "shield_handoff",
