@@ -758,10 +758,28 @@ export function unlockRunSkill(run, characterId, node) {
   if (runSkillPoints(run, characterId) < node.cost) {
     return { ok: false, reason: "技能点が足りません。" };
   }
+  const loadout = run.loadout ?? {};
+  const loadoutWithSkillLists = {
+    ...loadout,
+    tactics: { ...(loadout.tactics ?? {}) },
+    reactives: { ...(loadout.reactives ?? {}) },
+    passives: { ...(loadout.passives ?? {}) },
+    equipment: { ...(loadout.equipment ?? {}) },
+    ...(loadout.disabled && typeof loadout.disabled === "object"
+      ? { disabled: { ...loadout.disabled } }
+      : {}),
+  };
+  const listKey = { active: "tactics", reactive: "reactives", passive: "passives" }[node.kind];
+  if (listKey) {
+    loadoutWithSkillLists[listKey][characterId] = [
+      ...new Set([...(loadoutWithSkillLists[listKey][characterId] ?? []), node.skillId]),
+    ];
+  }
   const next = {
     ...run,
-    runSkillPoints: { ...run.runSkillPoints },
-    runUnlockedSkills: { ...run.runUnlockedSkills },
+    runSkillPoints: { ...(run.runSkillPoints ?? {}) },
+    runUnlockedSkills: { ...(run.runUnlockedSkills ?? {}) },
+    loadout: loadoutWithSkillLists,
   };
   next.runSkillPoints[characterId] = runSkillPoints(run, characterId) - node.cost;
   next.runUnlockedSkills[characterId] = [...unlocked, node.skillId];
