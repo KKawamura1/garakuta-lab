@@ -40,7 +40,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // first_blood / held_breath / steady_hands）を追加し、pack へ core / full の
 // 二段を足した。manifest に packDepths / partySize / castCharacterIds が増え、
 // composeEncounter が partySize を読むようになった。**語彙が増えたので上げる。**
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-8";
+// R15 — triage が自分以外の味方だけを対象にする `not_self` フィルタを追加し、
+// Stage 0 のツグミを「自分を治す人」から「前衛をつなぐ人」へ明示した。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-9";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -84,7 +86,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
   // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
-  contentVersion: "ecology-playable-full-0.7",
+  contentVersion: "ecology-playable-full-0.8",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
