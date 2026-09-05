@@ -113,6 +113,13 @@ expectRejected(
   "unknown target filter",
 );
 
+expectValid(
+  content((bundle) => {
+    bundle.activeSkills.strike.targetQuery.filters = [{ type: "not_self" }];
+  }),
+  "not_self target filter",
+);
+
 expectRejected(
   content((bundle) => {
     bundle.activeSkills.strike.targetQuery.sort = ["hp_random"];
