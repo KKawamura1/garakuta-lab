@@ -32,7 +32,7 @@ export const PASSIVE_SKILLS = {
   },
   foundation_focus: {
     id: "foundation_focus",
-    displayName: "集中力",
+    displayName: "技術",
     statBonus: { focus: 2 },
     tags: ["foundation", "playable"],
   },

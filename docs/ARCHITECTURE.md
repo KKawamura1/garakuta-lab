@@ -82,6 +82,10 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 
 ## 6. content の hard contract
 
+### 6.1 表示用語
+
+`focus` は内部 ID を維持し、画面上は「技術」と表示する。`focused` は状態異常なので、画面上は「集中」と表示する。能力値と状態異常を混同しない。
+
 - 新語彙は schema version を上げ、additive に追加する。
 - save、D1、replay へ content version と definition ID を残す。
 - unknown 語彙を無視せず validator error にする。

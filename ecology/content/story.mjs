@@ -123,7 +123,7 @@ export const STORY_BEATS = Object.freeze({
       place: "灰の門の手前",
       cast: castFor("stage_0_prologue_rewound"),
       lines: dialogueFor("stage_0_prologue_rewound"),
-      footer: "腕力で振る武器は、後列から出すと大きく落ちる。集中で通す技は、後列からでも落ちない。ツグミの応急手当は自分には効かず、前で被るゴウを後ろから支える。",
+      footer: "腕力で振る武器は、後列から出すと大きく落ちる。技術で通す技は、後列からでも落ちない。ツグミの応急手当は自分には効かず、前で被るゴウを後ろから支える。",
     }),
     prologueWin: beat("stage_0_prologue_win", "同じ影、違う結果", {
       mood: "dawn",
