@@ -33,6 +33,16 @@
 // **属性を台詞で説明しない。**「私は賢いです」を言わせない。ヒバナは話す速度で、
 // ツグミは観察の細かさで、ナギは手が止まらないことで、ゲンゾウは間の長さで見せる。
 //
+// **深さにも勾配を置く（R15・作者判断）。**厚み（行数）とは別の軸である。
+// 望み・秘密・過去・後悔は**五人が揃ってから**出す。Stage 0 でそれを出すと、
+// まだ誰のことも知らない読み手に重さだけが渡り、**人物の調子が沈む。**
+// 立ち上がりで沈んだゴウは「無口で頼れる人」に読めるが、**それは別人である**
+// （設定は「声がでかい。ガサツで、口が上手くて、調子がいい」）。
+//
+//   Stage 0   … 二人の**調子**だけ。掘らない
+//   Stage 1〜3 … 関係が動く。ここから望みに触れてよい
+//   根城       … 一番深い。秘密と過去はここに置く
+//
 // **人物はゲームのシステムを知らない。**彼らはそこに生きているだけで、
 // 腕力・集中・受け・行動権・反応点・隊列・後列減衰・手番といった語は、
 // **一人も知らないし、一度も使わない。**知っているのは坑の側の事実だけである
@@ -52,43 +62,62 @@ import { narrate, say, stand } from "./beat.mjs";
 
 export const DIALOGUE = Object.freeze({
   // ============================================================ Stage 0 — ゴウとツグミ
+  //
+  // **ここは掘らない（R15・作者判断）。**兄も、記憶の速さも、言い過ぎた後悔も、
+  // 五人が揃ってから出す。Stage 0 が渡すのは二人の**調子**だけである。
+  //
+  //   ゴウ   … 声がでかい。減らず口。都合が悪いと逸らし、逸らしきれないと「……はい」
+  //   ツグミ … 早口。被せる。丁寧語のまま容赦がない。数えて突きつける
+  //
+  // R13 の初稿はここで兄の失踪を出していた。**開幕の一枚が喪失の場面になり、
+  // ゴウが最初から寡黙になっていた**（作者評価・R15）。兄はゲンゾウが Stage 3 で
+  // 出すので、伏線を Stage 0 に置く必要はない。
   stage_0_act1: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
-      narrate("浅いところの休み場。ツグミが小さな帳面を開く。"),
-      say("mender", "腕の上がり方が、朝より二寸浅いです。座ってください。", "neutral"),
-      say("warden", "そこまで見なくていいって。", "wry"),
-      say("mender", "見るのが仕事です。器材は返せますが、体は返せませんので。", "calm"),
+      narrate("浅いところの休み場。ゴウが腰を下ろすより先に、ツグミが帳面を開いて前へ回り込む。"),
+      say("mender", "腕、上がってません。朝より二寸浅いです。座ってください。", "firm"),
+      say("warden", "元気だなお前。ほら、上がる。上がってんだろ？", "smile"),
+      say("mender", "上がってません。二寸です。", "firm"),
+      say("warden", "……二寸なんか誤差だろ。", "wry"),
+      say("mender", "誤差で死にます。器材は返せますが、体は返せませんので。", "calm"),
     ]),
   }),
 
   stage_0_act2: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
-      say("mender", "地図はここまででしたね。この先は。", "neutral"),
-      say("warden", "三つ目の門までは台帳にある。四つ目から先は、誰も書いてない。", "neutral"),
-      narrate("そこから先を、ゴウは少し長く喋った。ツグミは帳面に何も書かなかった。"),
+      narrate("灰の斜面。ゴウが台帳を開いて、途中で放り出すように閉じた。"),
+      say("warden", "地図はここまでだ。三つ目の門までは台帳にある。四つ目から先は、どいつも書いてねえ。", "neutral"),
+      say("mender", "困りましたね。", "neutral"),
+      say("warden", "何がだよ。誰も書いてねえってことは、そこにある物はまだ誰の物でもねえってことだろ。", "smile"),
+      say("mender", "誰の物でもないのは、誰も持って帰れていないからです。", "firm"),
+      say("warden", "じゃあ俺が一番だな。", "smile"),
     ]),
   }),
 
   stage_0_act3: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("warden", "抜けたら詰所な。器材返して、借りを消して、それから帰る。順番は変えられない。", "neutral"),
+      say("warden", "抜けたら詰所だ。器材返して、借り消して、それから帰る。順番は変えられん。", "neutral"),
       say("mender", "前は先に寝ましたよね。籠の前で、立ったまま。", "wry"),
       say("warden", "……覚えてない。", "calm"),
-      say("mender", "わたしが起こしました。ですので、覚えていなくて結構です。", "calm"),
+      say("mender", "わたしが起こしました。三回ゆすって、駄目だったので頬を叩きました。", "wry"),
+      say("warden", "叩いたのかよ！", "shock"),
+      say("mender", "起きなかったので。覚えていなくて結構です。", "calm"),
     ]),
   }),
 
   stage_0_opening: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("warden", "よし行くぞ。先見機は？", "neutral"),
+      say("warden", "よし行くぞ！ 今日は当たりだ、勘が言ってる。先見機は？", "smile"),
       say("mender", "座ってください。", "firm"),
-      say("warden", "いや、先見機。", "wry"),
-      say("mender", "校正中です。あと三分。——それと、お兄さんの記録が出てから睡眠一時間減、朝食半分、脈が二。三分あるので座ってください。", "firm"),
-      narrate("坑の口から、ぬるい風が上がってくる。ゴウは黙って座った。"),
+      say("warden", "いや、先見機。あれが無いと、次に何が出るか読めねえだろ。", "wry"),
+      say("mender", "校正中です。あと三分。——昨日、宿の階段で右足をかばってましたよね。二段目から下、ぜんぶ。三分あるので座ってください。", "firm"),
+      say("warden", "……見てんじゃねえよ。", "wry"),
+      say("mender", "見るのが仕事です。", "firm"),
+      narrate("坑の口から、ぬるい風が上がってくる。ゴウは籠を下ろした。"),
       say("warden", "……はい。", "calm"),
     ]),
   }),
@@ -97,7 +126,7 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
       say("mender", "……前に、出すぎ、ました。", "hurt"),
-      say("warden", "ツグミ！", "shock", "impact"),
+      say("warden", "ツグミ！ おい、目ぇ開けろ、こっち向け！", "shock", "impact"),
       narrate("腰の杭が鳴った。備蓄が一息で空になり、坑が来た道を逆にたどっていく。"),
     ]),
   }),
@@ -106,9 +135,9 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
       narrate("同じ朝。同じ光。ツグミが電極を持って背伸びしている。"),
-      say("mender", "座ってくださいって言って——", "firm"),
+      say("mender", "校正、終わりました！ ですから座ってくださいって、さっきから何度も——", "firm"),
       say("warden", "……杭、使った。", "worry"),
-      say("mender", "……わたし、どうなりました。", "shock"),
+      say("mender", "……え。わたし、どうなりました。", "shock"),
       say("warden", "死んだ。", "calm"),
       say("mender", "……そうですか。覚えていないことでは泣けませんので、先に直します。先見機、貸してください。", "firm"),
     ]),
@@ -118,8 +147,10 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
       say("mender", "……誰も落ちていません。敵の数も、並びも、さっきと同じなのに。", "shock"),
-      say("warden", "立つ場所を変えた。それだけだ。……同じ形で入れば、同じように終わる。", "calm"),
-      say("mender", "「さっき」。やっぱり、何かありましたね。", "wry"),
+      say("warden", "だろ？ 立つ場所を変えた。それだけだ。同じ形で入れば、同じように終わる。", "smile"),
+      say("mender", "「さっき」。", "neutral"),
+      say("warden", "言ってねえ。", "wry"),
+      say("mender", "言いました。二回。やっぱり、何かありましたね。", "firm"),
       say("warden", "……台帳には書かない。", "worry"),
     ]),
   }),
@@ -127,9 +158,11 @@ export const DIALOGUE = Object.freeze({
   stage_0_end: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("warden", "抜けた。この先は二人だと足りない。数じゃなくて、前で受ける役がいない。", "neutral"),
-      say("mender", "心当たりが？", "neutral"),
-      say("warden", "ひとり。頼むと断れない人がいる。腕は立つのに、断り方だけ知らない。", "wry"),
+      say("warden", "抜けたな！ 見たか、俺の勘。当たりだって言っただろ。", "smile"),
+      say("mender", "勘ではありません。立つ場所を変えたからです。", "firm"),
+      say("warden", "それを勘って言うんだよ。", "smile"),
+      say("mender", "言いません。", "firm"),
+      say("warden", "……ま、いい。この先は二人だと足りん。数じゃなくて、前で受ける役がいねえ。ひとり心当たりがある。頼むと断れねえ奴だ。腕は立つのに、断り方だけ知らねえんだよ。", "wry"),
       say("mender", "……それ、褒めてます？", "worry"),
     ]),
   }),
