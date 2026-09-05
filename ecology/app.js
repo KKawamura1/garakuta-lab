@@ -11,7 +11,6 @@ import {
   enemyInfo,
   enemyTargetingText,
   equipEquipment,
-  equipSkill,
   freshLoadout,
   initialUnlockedSkills,
   makeExpeditionBattle,
@@ -326,58 +325,83 @@ function startRun(profile, options = {}) {
 // 一人を遠征へ入れる。**開始時も途中加入も同じ規則を通す。**
 //
 //   - 遠征内技能点を配る（0で始めると、その仲間だけ何も解禁できない）
-//   - 解禁表を starter 技能で埋める（空だと外した技能を戻せない）
-//   - manifest から外れた技能は解禁表からも装着欄からも落とす
+//   - 取得履歴と技能一覧を同じ規則で同期する
+//   - manifest から外れた技能は解禁表と技能一覧から落とす
 //     （画面に「今回は出ない」と書いたものが戦闘へ入る、を作らない）
-function joinRun(run, characterId) {
-  const available = new Set(manifestSkillIds(run.manifest).all);
-  const fresh = freshLoadout([characterId]);
-  const keep = (list) => (list ?? []).filter((skillId) => available.has(skillId));
+const SKILL_LIST_KEYS = Object.freeze({ active: "tactics", reactive: "reactives", passive: "passives" });
+
+function cloneLoadoutForSkillSync(loadout) {
+  return {
+    ...(loadout ?? {}),
+    tactics: { ...(loadout?.tactics ?? {}) },
+    reactives: { ...(loadout?.reactives ?? {}) },
+    passives: { ...(loadout?.passives ?? {}) },
+    equipment: { ...(loadout?.equipment ?? {}) },
+    ...(loadout?.disabled && typeof loadout.disabled === "object"
+      ? { disabled: { ...loadout.disabled } }
+      : {}),
+  };
+}
+
+function synchronizeRunSkills(run, characterIds = run?.roster ?? []) {
+  const available = new Set(run?.manifest
+    ? manifestSkillIds(run.manifest).all
+    : Object.keys(COMPONENTS));
+  const keep = (list) => (Array.isArray(list) ? list : []).filter((skillId) => available.has(skillId));
   const next = {
     ...run,
-    runSkillPoints: { ...run.runSkillPoints },
-    runUnlockedSkills: { ...run.runUnlockedSkills },
-    loadout: {
-      ...run.loadout,
-      tactics: { ...run.loadout?.tactics },
-      reactives: { ...run.loadout?.reactives },
-      passives: { ...run.loadout?.passives },
-      equipment: { ...run.loadout?.equipment },
-      ...(run.loadout?.disabled && typeof run.loadout.disabled === "object"
-        ? { disabled: { ...run.loadout.disabled } }
-        : {}),
-    },
+    runSkillPoints: { ...(run?.runSkillPoints ?? {}) },
+    runUnlockedSkills: { ...(run?.runUnlockedSkills ?? {}) },
+    loadout: cloneLoadoutForSkillSync(run?.loadout),
+  };
+  for (const characterId of [...new Set(characterIds)]) {
+    if (!characterInfo(characterId)) continue;
+    const unlocked = [...new Set([
+      ...keep(run?.runUnlockedSkills?.[characterId]),
+      ...keep(initialUnlockedSkills(characterId)),
+    ])];
+    next.runUnlockedSkills[characterId] = unlocked;
+    for (const [kind, key] of Object.entries(SKILL_LIST_KEYS)) {
+      const current = keep(run?.loadout?.[key]?.[characterId])
+        .filter((skillId) => unlocked.includes(skillId) && COMPONENTS[skillId]?.kind === kind);
+      const missing = unlocked.filter((skillId) => COMPONENTS[skillId]?.kind === kind && !current.includes(skillId));
+      next.loadout[key][characterId] = [...current, ...missing];
+    }
+    next.loadout.equipment[characterId] = Array.isArray(run?.loadout?.equipment?.[characterId])
+      ? [...run.loadout.equipment[characterId]]
+      : [];
+    const listed = new Set([
+      ...next.loadout.tactics[characterId],
+      ...next.loadout.reactives[characterId],
+      ...next.loadout.passives[characterId],
+    ]);
+    const savedDisabled = run?.loadout?.disabled?.[characterId];
+    const disabled = Array.isArray(savedDisabled)
+      ? [...new Set(savedDisabled)].filter((skillId) => listed.has(skillId))
+      : [];
+    if (disabled.length) {
+      next.loadout.disabled ??= {};
+      next.loadout.disabled[characterId] = disabled;
+    } else if (next.loadout.disabled) {
+      delete next.loadout.disabled[characterId];
+      if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
+    }
+  }
+  return next;
+}
+
+function joinRun(run, characterId) {
+  const next = {
+    ...run,
+    runSkillPoints: { ...(run.runSkillPoints ?? {}) },
+    runUnlockedSkills: { ...(run.runUnlockedSkills ?? {}) },
   };
   // **初期化するのは初回だけ。**離脱と再加入で点を戻さないので、
   // 外して入れ直しても技能点を増やせない。
   next.runSkillPoints[characterId] = Object.hasOwn(run.runSkillPoints ?? {}, characterId)
     ? runSkillPoints(run, characterId)
     : STARTING_RUN_SKILL_POINTS;
-  next.runUnlockedSkills[characterId] = [...new Set([
-    ...keep(run.runUnlockedSkills?.[characterId]),
-    ...keep(initialUnlockedSkills(characterId)),
-  ])];
-  next.loadout.tactics[characterId] = keep(run.loadout?.tactics?.[characterId] ?? fresh.tactics[characterId]);
-  next.loadout.reactives[characterId] = keep(run.loadout?.reactives?.[characterId] ?? fresh.reactives[characterId]);
-  next.loadout.passives[characterId] = keep(run.loadout?.passives?.[characterId]);
-  next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
-  const savedDisabled = run.loadout?.disabled?.[characterId];
-  if (Array.isArray(savedDisabled)) {
-    const installed = new Set([
-      ...next.loadout.tactics[characterId],
-      ...next.loadout.reactives[characterId],
-      ...next.loadout.passives[characterId],
-    ]);
-    const disabled = [...new Set(savedDisabled)].filter((skillId) => installed.has(skillId));
-    if (disabled.length) next.loadout.disabled[characterId] = disabled;
-    else {
-      delete next.loadout.disabled[characterId];
-      if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
-    }
-  }
-  // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
-  // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
-  return next;
+  return synchronizeRunSkills(next, [characterId]);
 }
 
 function freshUiState() {
@@ -479,6 +503,7 @@ function hydrateState(saved) {
     : ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize);
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
+  next.run = synchronizeRunSkills(next.run);
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
     ? savedRun.generatedEquipment
     : {};
@@ -979,11 +1004,6 @@ function actOfIndex(index) {
 // 並びと変異で、そこを1つ前倒しで見るのが偵察」と言っていた。**次の一戦の結果
 // そのものが常時見えるようになった今、その一枠は買う理由を失った**（作者判断）。
 // 補給は再挑戦・報酬の引き直し・野営治療の三つで取り合う。
-
-function installedSkill(characterId, skillId, kind) {
-  const key = SLOT_KEYS[kind];
-  return (state.run.loadout[key]?.[characterId] || []).includes(skillId);
-}
 
 function skillDisabled(characterId, skillId) {
   return (state.run.loadout.disabled?.[characterId] || []).includes(skillId);
@@ -4007,6 +4027,7 @@ function handleAction(event) {
           }
         }
         state.run.loadout = nextLoadout;
+        state.run = synchronizeRunSkills(state.run);
         state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
         if (state.formationSelection === id) {
           state.formationSelection = state.run.roster[0] ?? null;
