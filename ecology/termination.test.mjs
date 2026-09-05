@@ -6,11 +6,11 @@
 //     may only fire once per chain for one owner, or because an actor has used
 //     its eight activations for the round. Nothing is dropped; the leftovers
 //     show up in the event列.
-//   * a diagnostic error — the engine genuinely cannot finish, so it throws
-//     with enough state to find the loop, and never returns a partial result.
+//   * a diagnostic error — the engine genuinely cannot finish, or a free action
+//     reaches its safety cap, so it throws with enough state to find the loop.
 //
-// PREFLIGHT §6 found that all five loops R5 names fall into the first class, so
-// the second class needs its own witness: a free, always usable action.
+// PREFLIGHT §6 keeps a free, always usable action as the diagnostic witness;
+// with one action per side phase it reaches the per-round activation cap.
 
 import assert from "node:assert/strict";
 import { DEFAULT_OPTIONS } from "./schema.mjs";
@@ -157,9 +157,14 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 }
 
 {
-  // PREFLIGHT §6 — apCost 0 with an always usable target: the activation loop in
-  // §11.3-7 has no ceiling of its own, so only the battle cap ends this.
-  const error = expectRuntimeError(FREE_ACTION_BATTLE, {}, "maxEventsPerBattle", "a free repeatable action");
+  // PREFLIGHT §6 — apCost 0 with an always usable target: one action is allowed
+  // per side pass, so the per-round activation ceiling is now the safety stop.
+  const error = expectRuntimeError(
+    FREE_ACTION_BATTLE,
+    {},
+    "maxActivationsPerActorPerRound",
+    "a free repeatable action",
+  );
   equal(error.diagnostics.currentActorId, "a_scout", "the diagnostic names the actor that is looping");
   check(error.diagnostics.round === 1, "and the round it is looping in");
 }
@@ -188,7 +193,8 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 }
 
 // A rule that is mid firing when the cap trips leaves its own frame behind, so
-// the diagnostic points at the rule rather than only at the event count.
+// the diagnostic points at the rule rather than only at the event count. The
+// ally-first phases make the overflow-care reaction blow the active frame here.
 {
   let thrown = null;
   try {
@@ -222,4 +228,3 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 
 void PREP;
 console.log(`termination.test.mjs: ${checks} checks passed`);
-

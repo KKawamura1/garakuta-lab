@@ -10675,7 +10675,7 @@
     "kind": "passive",
     "definitionId": "foundation_speed",
     "label": "速さ",
-    "effect": "速度が1増える。行動順が早くなる。",
+    "effect": "速度が1増える。速度順の対象選択に影響する。",
     "grammar": "基礎"
    },
    "foundation_ap": {
@@ -11880,7 +11880,7 @@
    "kind": "passive",
    "definitionId": "foundation_speed",
    "label": "速さ",
-   "effect": "速度が1増える。行動順が早くなる。",
+   "effect": "速度が1増える。速度順の対象選択に影響する。",
    "grammar": "基礎"
   },
   "foundation_ap": {

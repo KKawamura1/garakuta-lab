@@ -27,9 +27,11 @@ import {
   INERT_BATTLE,
   MOVE_BATTLE,
   PREPARATION_BATTLE,
+  POSITION_ORDER_BATTLE,
   REGION_BATTLE,
   REQUEUE_BATTLE,
   ROUND_LIMIT_BATTLE,
+  SIDE_PHASE_BATTLE,
   STATUS_BATTLE,
   WAITING_TACTIC_BATTLE,
 } from "./fixtures.mjs";
@@ -135,7 +137,9 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const proposed = first(result, "damage_proposed");
   const absorbed = first(result, "barrier_damaged");
   const broken = first(result, "barrier_broken");
-  const taken = first(result, "damage_taken");
+  const taken = of(result, "damage_taken").find(
+    (event) => event.sourceActorId === "e_husk" && event.targetActorIds[0] === "a_warden",
+  );
   equal(proposed.values.amount, 4);
   equal(absorbed.values.amount, 2, "the barrier ate what it could");
   check(broken.sequence > absorbed.sequence, "the packet breaks after it is emptied");
@@ -175,7 +179,13 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 // ---- §12.2 healing and overflow ----------------------------------------------
 
 {
-  const result = run(CORE_BATTLE);
+  // Keep this witness focused on the healing pipeline: the mender is placed
+  // before the enemy, so formation initiative cannot damage the actor before
+  // its full-health mend produces the intended overflow.
+  const healingBattle = structuredClone(CORE_BATTLE);
+  healingBattle.allies.find((actor) => actor.instanceId === "a_mender").position = "front_left";
+  healingBattle.allies.find((actor) => actor.instanceId === "a_warden").position = "rear_left";
+  const result = run(healingBattle);
   const proposed = first(result, "healing_proposed");
   const applied = first(result, "healing_applied");
   const excess = first(result, "excess_healing");
@@ -202,16 +212,16 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const result = run(COVER_BATTLE);
   const changes = of(result, "target_changed").filter((event) => event.round === 1);
   equal(changes.length, 2, "both covers fired on one action");
-  // Equal priority, so the tie-break is initiative rank: the lancer (speed 8)
-  // moves before the warden (speed 4).
-  equal(changes[0].sourceActorId, "a_lancer");
-  equal(changes[1].sourceActorId, "a_warden");
+  // Equal priority, so the tie-break follows formation order: the warden is
+  // in front_left, before the lancer in front_right.
+  equal(changes[0].sourceActorId, "a_warden");
+  equal(changes[1].sourceActorId, "a_lancer");
   equal(changes[0].values.from, "a_mender");
-  equal(changes[1].values.from, "a_lancer");
+  equal(changes[1].values.from, "a_warden");
   const started = of(result, "action_started").find((event) => event.sourceActorId === "e_husk");
-  equal(started.targetActorIds[0], "a_warden", "the action resolves against the final target");
+  equal(started.targetActorIds[0], "a_lancer", "the action resolves against the final target");
   const taken = of(result, "damage_taken").find((event) => event.sourceActorId === "e_husk");
-  equal(taken.targetActorIds[0], "a_warden");
+  equal(taken.targetActorIds[0], "a_lancer");
   const declared = of(result, "action_declared").find((event) => event.sourceActorId === "e_husk");
   check(changes[0].sequence > declared.sequence, "the redirect happens inside the action");
   check(changes[1].sequence < started.sequence, "and before the action starts");
@@ -271,11 +281,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(activations[1].values.activation, 2);
   const gain = of(result, "resource_gained").find((event) => event.skillId === "relay_order");
   check(gain.sequence < activations[1].sequence, "the requeue follows the gain");
-  // The requeue is once, at the tail: the enemy acted in between.
+  // The gain happens after the ally phase, so the enemy phase comes in between.
   const husk = of(result, "actor_activated").find(
     (event) => event.sourceActorId === "e_husk" && event.round === 1,
   );
-  check(husk.sequence < activations[1].sequence, "the requeued actor went to the back of the queue");
+  check(husk.sequence < activations[1].sequence, "the gained point waits for the next ally phase");
 }
 
 // ---- §5.6 a broken item stops supplying its rule ------------------------------
@@ -368,7 +378,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 // ---- §11.6 round end ordering (PREFLIGHT §4) ---------------------------------
 
 {
-  const result = run(FIELD_KIT_BATTLE);
+  // Let the enemy act before the warden in this witness, leaving the round
+  // barrier intact so the expiry phase has an observable packet to remove.
+  const fieldKitBattle = structuredClone(FIELD_KIT_BATTLE);
+  fieldKitBattle.allies[0].position = "front_right";
+  const result = run(fieldKitBattle);
   const unused = of(result, "resource_unused").find((event) => event.values.resource === "reaction_points");
   const spent = of(result, "resource_spent").find((event) => event.ruleId === "field_kit_rule");
   const repaired = of(result, "equipment_repaired").find((event) => event.ruleId === "field_kit_rule");
@@ -598,22 +612,61 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
-// ---- §11.2 initiative ------------------------------------------------------------
+// ---- §11.2 side phases and formation order ----------------------------------------
 
 {
-  const result = run(FULL_PARTY_BATTLE);
-  // First activations only: a requeue appends to the tail and is checked
-  // separately, and an actor defeated before its turn never activates.
-  const roundOne = of(result, "actor_activated")
-    .filter((event) => event.round === 1 && event.values.activation === 1)
-    .map((event) => event.sourceActorId);
-  const byInitiative = ["a_scout", "a_lancer", "e_marker", "a_mender", "e_husk", "e_husk_b", "a_warden", "e_warden"];
+  const positionOrder = (content) =>
+    simulateBattle(POSITION_ORDER_BATTLE, content).events
+      .filter((event) => event.type === "actor_activated"
+        && event.round === 1
+        && event.values.activation === 1)
+      .map((event) => event.sourceActorId);
+  const expected = [
+    "a_front_center",
+    "a_front_right",
+    "a_rear_left",
+    "e_front_left",
+    "e_rear_center",
+    "e_rear_right",
+  ];
+
   assert.deepEqual(
-    roundOne,
-    byInitiative.filter((instanceId) => roundOne.includes(instanceId)),
-    "speed descending, then position, then instance id, with no side bias",
+    positionOrder(FIXTURE_CONTENT),
+    expected,
+    "formation order is front row, then rear row, left to right",
   );
   checks += 1;
+
+  // Speed remains available to content that explicitly targets the fastest or
+  // slowest actor, but it must not change the action queue.
+  const speedChanged = structuredClone(FIXTURE_CONTENT);
+  speedChanged.characters.warden.speed = 100;
+  speedChanged.enemyActors.husk_bulwark.speed = 0;
+  assert.deepEqual(
+    positionOrder(speedChanged),
+    expected,
+    "speed does not affect initiative",
+  );
+  checks += 1;
+}
+
+{
+  const result = run(SIDE_PHASE_BATTLE);
+  const activations = of(result, "actor_activated")
+    .filter((event) => event.round === 1)
+    .map((event) => event.sourceActorId);
+  assert.deepEqual(
+    activations,
+    ["a_pivot", "a_warden", "e_front", "e_rear", "a_pivot"],
+    "AP 2 returns on the next ally pass after the enemy phase",
+  );
+  checks += 1;
+  equal(
+    of(result, "actor_activated").filter(
+      (event) => event.sourceActorId === "a_pivot" && event.round === 1,
+    )[1].values.activation,
+    2,
+  );
 }
 
 // ---- §14 the ordinary fixtures stay far below the caps --------------------------
@@ -629,4 +682,3 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     `${battle.battleId} longest chain ${result.metrics.maxChainEventCount}, under 10% of the chain cap`,
   );
 }
-

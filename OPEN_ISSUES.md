@@ -123,16 +123,6 @@ Stage 0 は書き直しました（`docs/HISTORY.md` §3.8）。**以下は同�
 ので落としました（`pack_wall` に `reposition` / `column_thrust` / `drag_forward` /
 `rally_line` が入り、ヒバナの加入 Stage と一致しています）。
 
-### 8.1 speed がまだ行動順を決めている
-
-`ecology/engine.mjs:551` は**いまも speed の降順**で並べています。設計 §12.3 は
-speed を廃止し、**行動順を隊列（前列→後列、同列は左→中→右）から決める**としています。
-
-speed は round 内の並び替えキーにしか使われていないので、**相手より1速いかどうかだけが
-効く閾値**です。廃止すると、隊列という既に毎回いじる決定に「行動順」という意味が
-一つ増えます。**ノブは増えません**（行動ゲージ制や「手番をずらせる幅」は、
-`docs/DESIGN.md` §5 の失敗条件を踏むので設計段階で退けています）。
-
 ### 8.2 防壁が能力値依存の active のまま
 
 `ecology/content/skills-active.mjs:112` の `bulwark` は `{ stat: "focus" }` を読んでいます。
