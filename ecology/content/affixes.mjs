@@ -5,16 +5,16 @@
 // affix は装備そのものではない。**一つの完結 rule を組み立てるための部品**で、
 // R8 §3.5 が決めた文法
 //
-//   trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜2 -> limit -> durability / charge
+//   trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜3 -> limit -> durability / charge
 //
 // のどの位置に入るかを `role` が宣言する。role は R8 §13.2 の四種と、
-// legendary だけが持つ keystone を足した五種である。
+// legendary 以上が持つ keystone を足した六種である。
 //
 //   source     … trigger。どの event を読むか。
 //   converter  … condition。読んだ event をどの状況へ絞るか。
 //   payoff     … effect。何が起きるか。
 //   stabilizer … cost / durability / limit。代償と発火回数。
-//   keystone   … 品全体の形を一段変える。legendary だけ、最大1つ。
+//   keystone   … 品全体の形を一段変える。legendary 以上、最大1つ。
 //
 // **ここは目録だけを持ち、組み立ては ecology/equipment-gen.mjs が行う。**
 // 目録と組み立てを分けたのは、affix family を content wave として増やすとき、
