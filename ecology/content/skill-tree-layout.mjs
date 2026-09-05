@@ -10,11 +10,14 @@
 // ここは `SKILL_TREE_NODES` の `requires` **だけ**から森を組み、各節へ
 //
 //   x = 前提からの深さ（前提の1列右）
-//   y = 上から数えた行（同じ親の子は連続した行に入る）
+//   y = 行。**最初の子は親と同じ行を継ぐ**（線がまっすぐ伸びる）。
+//       二人目以降の子だけが新しい行へ下りる（前の兄弟の部分木の直後）。
 //
-// を与える。**座標は手で書かない。**手で書くと `requires` を直したときに黙ってずれる。
-// 代わりに、座標が満たすべき決まりを `validateSkillTreeLayout()` が機械で見る
-// （analysis/ecology-skill-tree-smoke.mjs）。
+// を与える。一人目まで下げると、枝分かれしていない一本道が無駄に段を食い、
+// 「まっすぐ伸びる一本」と「実際に分かれる場所」の区別が付かない
+// （report by 作者、2026-09-05）。**座標は手で書かない。**手で書くと `requires` を
+// 直したときに黙ってずれる。代わりに、座標が満たすべき決まりを
+// `validateSkillTreeLayout()` が機械で見る（analysis/ecology-skill-tree-smoke.mjs）。
 //
 // ## 三つのツリー
 //
@@ -152,21 +155,26 @@ function buildGroup(group, nodes) {
     list.sort((a, b) => orderNodes(structure.get(a).node, structure.get(b).node));
   }
 
-  // 深さ優先で上から並べる。**y は行番号そのもの**にする。こうすると
+  // 深さ優先で上から並べる。**最初の子だけ親と同じ y を継ぐ**（枝分かれしていない
+  // 一本道が、そのまままっすぐ右へ伸びる）。二人目以降の子は、前の兄弟の部分木が
+  // 使い切った行の直後（`nextY`）に新しい行を取る。この組み方から
   //   - 同じ列で y が重ならない
-  //   - 同じ親の子が連続した y に入る
+  //   - 実際に分かれる場所だけが新しい行を生む
   //   - 線が交差しない
-  // の三つが組み方から出てくる（あとから座標を直して壊す余地が無い）。
+  // の三つが出てくる（あとから座標を直して壊す余地が無い）。`nextY` は
+  // forEach の外側にある単一の可変カウンタで、再帰の中で消費されるたびに進む
+  // ——だから「前の兄弟の部分木がどこまで使ったか」を、そのまま次の兄弟が引き継げる。
   const rows = [];
   const byKey = new Map();
-  const walk = (key, x, rails, isLast, parentKey, ancestors) => {
+  let nextY = 0;
+  const walk = (key, x, y, rails, isLast, parentKey, ancestors) => {
     const entry = structure.get(key);
     const children = childrenOf.get(key) ?? [];
     const row = {
       type: "node",
       key,
       x,
-      y: rows.length,
+      y,
       rails: [...rails],
       last: isLast,
       parentKey,
@@ -182,7 +190,8 @@ function buildGroup(group, nodes) {
     byKey.set(key, row);
     const nextAncestors = [...ancestors, key];
     children.forEach((child, index) => {
-      walk(child, x + 1, [...rails, !isLast], index === children.length - 1, key, nextAncestors);
+      const childY = index === 0 ? y : nextY++;
+      walk(child, x + 1, childY, [...rails, !isLast], index === children.length - 1, key, nextAncestors);
     });
     for (const child of children) {
       row.descendants.push(child, ...byKey.get(child).descendants);
@@ -190,9 +199,18 @@ function buildGroup(group, nodes) {
     return row;
   };
   // R19（issue #137）— x は 1 から数える（issue の「x=1: 基本スキル」に合わせる）。
+  // 根も「新しい行を取る側」として nextY から引く（根どうしは行を共有しない）。
   anchors.forEach((anchor, index) => {
-    walk(anchor.node.skillId, 1, [], index === anchors.length - 1, null, []);
+    walk(anchor.node.skillId, 1, nextY++, [], index === anchors.length - 1, null, []);
   });
+
+  // 部分木が実際に使い切った最終行（`maxY`）。**子の数だけ増える `descendants.length`
+  // ではもう数えられない**（最初の子は行を増やさないため）。配列は親が子より先に
+  // 入っているので、逆順に見れば子の `maxY` から先に求まる。
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index];
+    row.maxY = row.children.reduce((max, child) => Math.max(max, byKey.get(child).maxY), row.y);
+  }
 
   const depth = rows.reduce((max, row) => Math.max(max, row.x), 1);
   const forks = rows.filter((row) => row.children.length >= 2).length;
@@ -294,24 +312,32 @@ export function validateSkillTreeLayout(layout, nodes = SKILL_TREE_NODES, { requ
       }
     }
 
-    // 3. 線の交差。同じ親の子が連続した y 範囲に入り、部分木どうしが重ならないこと。
-    //    親→子の線が交差するのは、この二つのどちらかが破れたときだけである。
+    // 3. 線の交差。**最初の子だけ親と同じ行を継いでよい**（まっすぐ伸びる一本道）。
+    //    二人目以降の子は必ず親より下の行に居て、部分木どうしが重ならないこと。
+    //    親→子の線が交差するのは、このどれかが破れたときだけである。
     for (const row of group.rows) {
       if (!row.children.length) continue;
       const childRows = row.children.map((key) => group.byKey.get(key));
-      for (const child of childRows) {
-        if (child.y <= row.y) problems.push(`${at}: ${child.key} が親 ${row.key} より上に居る（線が戻る）`);
-      }
+      childRows.forEach((child, index) => {
+        if (index === 0) {
+          if (child.y !== row.y) {
+            problems.push(`${at}: 最初の子 ${child.key} が親 ${row.key} と同じ行を継いでいない`
+              + `（親 y=${row.y}、子 y=${child.y}）`);
+          }
+        } else if (child.y <= row.y) {
+          problems.push(`${at}: ${child.key} が親 ${row.key} より上か同じ行に居る（線が戻る）`);
+        }
+      });
       const span = (key) => {
         const target = group.byKey.get(key);
-        return [target.y, target.y + target.descendants.length];
+        return [target.y, target.maxY];
       };
       for (let index = 1; index < row.children.length; index += 1) {
         const [, previousEnd] = span(row.children[index - 1]);
         const [start] = span(row.children[index]);
         if (start !== previousEnd + 1) {
-          problems.push(`${at}: ${row.key} の子 ${row.children[index]} が連続した行に入っていない`
-            + `（前の部分木は y=${previousEnd} で終わり、この子は y=${start}）`);
+          problems.push(`${at}: ${row.key} の子 ${row.children[index]} が前の部分木の直後から`
+            + `始まっていない（前の部分木は y=${previousEnd} で終わり、この子は y=${start}）`);
         }
       }
     }

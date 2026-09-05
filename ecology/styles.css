@@ -985,9 +985,14 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* 横スクロールできる帯。**列を固定幅にするので、深いツリーほど横に長くなる。**
    これが「もっと広く場所を取る」の実体である（縮めて収めない）。 */
 .skill-tree-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; }
+/* align-items:start が無いと、既定の stretch で同じ行の節が全部同じ高さへ
+   伸ばされる。**最初の子は親と同じ行を継ぐ**ので、選択中の節（説明が開いて高い）
+   と同じ行に短い節が並ぶことがあり、stretch のままだと形が崩れ、
+   layoutSkillTreeConnectors() が測る中心もズレる。 */
 .skill-tree-forest {
   position: relative;
   display: grid;
+  align-items: start;
   column-gap: var(--tree-col-gap);
   row-gap: 10px;
   padding: 6px 4px;
