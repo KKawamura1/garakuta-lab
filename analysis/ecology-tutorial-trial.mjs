@@ -2,7 +2,7 @@
 //
 // analysis/ecology-trial.mjs は旧・自由遠征（Free mode）の難易度 flow を見ている。
 // R11 で本編に入った経路——最初の会話、勝てない一戦、巻き戻し、2人編成、
-// pack の入口だけが出る技能ツリー、生成装備の報酬——は、そこを一度も通らない。
+// pack の入口だけが出る技能ツリー、装備の報酬——は、そこを一度も通らない。
 // **単体テストが通っても画面では動かない**という欠陥がこの箱で何度も出ているので、
 // 新しい画面経路にはその踏み場を用意する。
 //
@@ -244,7 +244,7 @@ try {
   note("序盤の演出が終わってキャンプへ出る", /編成|仲間|出発前/.test(mainCampText));
   note("序盤演出を終えて本編へ戻る", !/この一戦は遠征に数えません/.test(mainCampText));
 
-  // 第1戦を通し、生成装備の報酬まで見る。
+  // 第1戦を通し、装備の報酬まで見る。
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");
   await click("自動戦闘を再生する");
@@ -259,23 +259,24 @@ try {
   if (won) {
     await click("報酬を見る");
     const rewardText = await bodyText();
-    note("報酬に生成装備が出る", /生成装備/.test(rewardText));
+    note("報酬に装備が出る", /装備/.test(rewardText) && !/生成装備/.test(rewardText));
     // R13 — 報酬画面にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
     note("報酬画面に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
-    note("生成装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
-    // 生成装備を拾い、装備画面と保存の往復まで見る。
-    const generated = page.locator(".reward-card.generated").first();
-    note("生成装備の候補を選べる", await generated.count() > 0);
-    if (await generated.count()) {
-      await generated.getByRole("button", { name: "拾って次へ" }).click();
+    note("装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
+    // 装備を拾い、装備画面と保存の往復まで見る。
+    const equipmentButton = page.locator('.reward-card:has(.reward-kind.kind-equipment) button[data-action="take-reward"]').first();
+    note("装備の候補を選べる", await equipmentButton.count() > 0);
+    if (await equipmentButton.count()) {
+      await equipmentButton.click();
       await page.waitForTimeout(200);
       await page.locator('nav.tabs [data-tab="equipment"]').click();
       const gearText = await bodyText();
-      note("拾った生成装備が持ち物に並ぶ", /生成 \d+/.test(gearText) || (await page.locator(".gear-card.generated").count()) > 0);
+      note("拾った装備が持ち物に並ぶ", (await page.locator(".gear-card").count()) > 0
+        && !/生成装備|生成 [1-9]/.test(gearText));
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(300);
-      note("リロードしても生成装備が残る", (await page.locator(".gear-card.generated").count()) > 0
-        || /生成 [1-9]/.test(await bodyText()));
+      note("リロードしても装備が残る", (await page.locator(".gear-card").count()) > 0
+        && !/生成装備|生成 [1-9]/.test(await bodyText()));
     }
   }
 

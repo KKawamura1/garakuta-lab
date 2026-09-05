@@ -146,7 +146,7 @@ ablation 表示で「何を変えたから結果が変わったか」を返し�
 | active / reactive 第4枠 | 人物ごとに 30,000 / 60,000 |
 
 
-## 8. 生成装備の生成契約
+## 8. 装備の生成契約
 
 一つの完結 rule は `trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜2 -> limit ->
 durability / charge`。不完全な trigger だけ・effect だけ・発火不能・無料無限循環は生成しません。

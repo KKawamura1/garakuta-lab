@@ -47,7 +47,6 @@ import {
   ENCOUNTERS_PER_RUN,
   ENEMY_MUTATIONS,
   ENEMY_THREAT_COST,
-  EQUIPMENT_GROUPS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
   MAX_DIFFICULTY_RANK,
   MAX_MUTATIONS_PER_UNIT,
@@ -147,7 +146,7 @@ export const META_UPGRADES = Object.freeze([
     describeLevel: (level) => `遠征開始時に持ち込める Blueprint ${carryCapacity(level)}件（上限 ${BLUEPRINT_MAX_CAPACITY}）`,
   }),
   // R8 §3.7 — 目利き。**情報を隠して売り直す仕組みにはしない**（R8 §11 の完全開示と
-  // 衝突する）。生成装備の rarity roll を level+1 回引いて良い方を採る、
+  // 衝突する）。装備の rarity roll を level+1 回引いて良い方を採る、
   // 「良い品を見つける目」として実装した。報酬の中身は最初から全部読める。
   Object.freeze({
     id: APPRAISAL_UPGRADE_ID,
@@ -155,18 +154,13 @@ export const META_UPGRADES = Object.freeze([
     displayName: "目利き",
     maxLevel: APPRAISAL_COSTS.length,
     costs: APPRAISAL_COSTS,
-    describeLevel: (level) => `生成装備の等級を ${level + 1} 回引いて良い方を採る`,
+    describeLevel: (level) => `装備の等級を ${level + 1} 回引いて良い方を採る`,
   }),
-  ...EQUIPMENT_GROUPS.filter((group) => !group.startsUnlocked).map((group) => Object.freeze({
-    id: "equipment_pool." + group.id,
-    category: "equipment_pool",
-    displayName: group.displayName,
-    maxLevel: 1,
-    costs: Object.freeze([group.cost]),
-    unlocks: group.equipmentIds,
-    describeLevel: () => group.equipmentIds.length + "品が報酬 pool へ加わる",
-  })),
 ]);
+
+// 旧 save が持つ固定装備 pool の購入履歴は、読み込み時だけ保持する。
+// 現行の報酬経路では固定装備を提示しないため、購入対象としては再公開しない。
+const LEGACY_META_UPGRADE_IDS = Object.freeze(["equipment_pool.group_repair"]);
 
 // R6 §6.6 — 第4枠は**人物ごとの**永続投資。全小隊が一度に複雑化しないようにする。
 export const SLOT_UPGRADE_COSTS = Object.freeze({ active: "30000", reactive: "60000" });
@@ -345,6 +339,7 @@ export function normalizeProfile(saved) {
   if (saved.metaUpgradeLevels && typeof saved.metaUpgradeLevels === "object") {
     for (const [id, level] of Object.entries(saved.metaUpgradeLevels)) {
       const known = metaUpgradeDef(id)
+        || LEGACY_META_UPGRADE_IDS.includes(id)
         || id.startsWith(SLOT_UPGRADE_PREFIX.active)
         || id.startsWith(SLOT_UPGRADE_PREFIX.reactive);
       if (!known) continue;
@@ -486,14 +481,10 @@ export function slotLimits(profile, characterId) {
   };
 }
 
-// 報酬 pool に入っている装備。買った群だけが加わる。
-export function unlockedEquipmentIds(profile) {
-  const ids = [];
-  for (const group of EQUIPMENT_GROUPS) {
-    const unlocked = group.startsUnlocked || upgradeLevel(profile, "equipment_pool." + group.id) > 0;
-    if (unlocked) ids.push(...group.equipmentIds);
-  }
-  return ids;
+// 現行の装備報酬はすべて遠征ごとの手続き生成品である。
+// 名前を残した旧 API は、固定装備を新しい報酬へ混ぜないため空配列を返す。
+export function unlockedEquipmentIds(_profile) {
+  return [];
 }
 
 // ---------------------------------------------------------------- 購入 transaction
@@ -708,7 +699,7 @@ export function newRun(profile, options = {}) {
     loadout: options.loadout ?? null,
     // R15 — 固定の初期装備は持たせない。出発前に明示的に選んだ Blueprint だけを持ち込む。
     inventory: carried.map((item) => item.definition.id),
-    // R8 §3.5 / §3.6 — Phase C。**生成装備は content bundle に無い**ので、
+    // R8 §3.5 / §3.6 — **遠征ごとの装備は content bundle に無い**ので、
     // 定義そのものを run が持つ。戦闘・preview・保存は全部この一箇所を読む。
     generatedEquipment: Object.fromEntries(carried.map((item) => [item.definition.id, item])),
     carriedBlueprintIds: carried.map((item) => item.provenance.carriedFromBlueprintId).filter(Boolean),
@@ -922,7 +913,7 @@ export function dismantle(run, equipmentId) {
     loadout: structuredClone(run.loadout ?? {}),
     generatedEquipment: { ...(run.generatedEquipment ?? {}) },
   };
-  // 分解した生成装備の定義は run から落とす。**save を無限に太らせない**
+  // 分解した装備の定義は run から落とす。**save を無限に太らせない**
   // （Blueprint に残すかどうかは遠征終了時の判断で、持ち物とは別）。
   delete next.generatedEquipment[equipmentId];
   for (const characterId of Object.keys(next.loadout.equipment ?? {})) {
@@ -1132,7 +1123,7 @@ export function composeEncounter(index, difficultyRank, options = {}) {
 
 export const REWARD_EQUIPMENT_SLOTS = 2;
 
-// ---------------------------------------------------------------- 生成装備の drop（R8 §13.2）
+// ---------------------------------------------------------------- 装備の drop（R8 §13.2）
 
 // **drop 列の鍵。** 同じ遠征・同じ戦闘・同じ引き直し回数・同じ枠なら同じ品が出る。
 // 100 / 10 の桁分けは、引き直しと枠が互いの列を動かさないためのもの。
@@ -1152,7 +1143,7 @@ function appraisedRarity(run, dropIndex, level) {
 }
 
 // 一品ぶんの生成。**失敗を握りつぶさない。**戻り値は
-// { type: "generated_equipment", item } か { type: "generator_error", message }。
+// { type: "equipment", item } か { type: "generator_error", message }。
 export function generatedRewardCandidate(run, profile, encounterIndex, rerollIndex, slot) {
   const dropIndex = dropIndexFor(encounterIndex, rerollIndex, slot);
   const rarity = appraisedRarity(run, dropIndex, appraisalLevel(profile));
@@ -1169,8 +1160,8 @@ export function generatedRewardCandidate(run, profile, encounterIndex, rerollInd
         encounterIndex,
       },
     });
-    // 固定装備と同じ `type: "equipment"` を名乗る。**画面が「装備の候補」を
-    // 二種類に分けて扱わずに済む**（生成かどうかは generated と item で分かる）。
+    // 報酬の分類は通常の装備だけにする。内部の generated / item は、
+    // 保存・復元と完全開示のために残す。
     return { type: "equipment", generated: true, equipmentId: item.definition.id, item };
   } catch (error) {
     if (!(error instanceof EquipmentGenerationError)) throw error;
@@ -1183,35 +1174,38 @@ export function generatedRewardCandidate(run, profile, encounterIndex, rerollInd
 // 通常戦勝利後は3候補から1つ。**活動資金はこの3候補に入らない**
 // （補給を選んでも、資金の獲得量は減りません）。
 //
-// R8 §13.2 — Phase C。装備2枠のうち**一つは生成装備**にする。固定装備は
-// 比較基準として残し、報酬の主食にはしない（R8 §13.1）。まだ拾っていない
-// 固定装備が尽きた遠征後半では、両枠とも生成装備になる。
+// R8 §13.2 — 装備2枠はどちらも遠征ごとの手続き生成品にする。
+// 固定装備の報酬 pool は廃止し、報酬の構成を装備2・補給1へ固定する。
 //
 // 「報酬3候補が全て同じroleにならない」（R8 §13.2）は、装備2・補給という
 // 構成そのものが満たしている。装備どうしが同じ役割に寄る場合だけ、
-// 生成側を隣の drop 列へずらして払い先の種類を変える。
+// 次の drop 列へずらして払い先の種類を変える。
 export function rewardOffer(run, profile, encounterIndex, rerollIndex = 0) {
   const owned = new Set(run.inventory ?? []);
-  const pool = unlockedEquipmentIds(profile).filter((id) => !owned.has(id));
   const offers = [];
-  const fixedKey = seedKey(run.runSeed, "reward", encounterIndex, rerollIndex, 0);
-  if (pool.length) {
-    offers.push({ type: "equipment", equipmentId: pool[Math.floor(makeRng(fixedKey)() * pool.length)] });
-  }
-
-  const wantedGenerated = REWARD_EQUIPMENT_SLOTS - offers.length;
+  const offeredIds = new Set(owned);
   const takenTags = new Set();
-  for (let slot = 0; slot < wantedGenerated; slot += 1) {
+  for (let slot = 0; slot < REWARD_EQUIPMENT_SLOTS; slot += 1) {
     let candidate = null;
+    let fallback = null;
     for (let nudge = 0; nudge < 3; nudge += 1) {
-      candidate = generatedRewardCandidate(run, profile, encounterIndex, rerollIndex, slot * 3 + nudge);
-      if (candidate.type !== "equipment") break;
-      if (owned.has(candidate.equipmentId)) continue;
-      const tags = candidate.item.readout.payoffTags;
-      if (!tags.length || tags.some((tag) => !takenTags.has(tag))) break;
+      const next = generatedRewardCandidate(run, profile, encounterIndex, rerollIndex, slot * 3 + nudge);
+      if (next.type !== "equipment") {
+        candidate = next;
+        break;
+      }
+      if (offeredIds.has(next.equipmentId)) continue;
+      fallback ??= next;
+      const tags = next.item.readout.payoffTags;
+      if (!tags.length || tags.some((tag) => !takenTags.has(tag))) {
+        candidate = next;
+        break;
+      }
     }
+    candidate ??= fallback;
     if (!candidate) continue;
     if (candidate.type === "equipment") {
+      offeredIds.add(candidate.equipmentId);
       for (const tag of candidate.item.readout.payoffTags) takenTags.add(tag);
     }
     offers.push(candidate);
@@ -1221,7 +1215,7 @@ export function rewardOffer(run, profile, encounterIndex, rerollIndex = 0) {
   return offers;
 }
 
-// 生成装備を遠征の持ち物へ入れる。**定義そのものを run が抱える**ので、
+// 遠征ごとの装備を持ち物へ入れる。**定義そのものを run が抱える**ので、
 // 戦闘・preview・保存・送信は run.generatedEquipment だけを読めばよい。
 export function takeGeneratedEquipment(run, item) {
   const id = item.definition.id;
@@ -1239,13 +1233,13 @@ export function takeGeneratedEquipment(run, item) {
   };
 }
 
-// 遠征中に見つけた生成装備のうち、まだ Blueprint に残していないもの。
+// 遠征中に見つけた装備のうち、まだ Blueprint に残していないもの。
 // **持込品（carried）は既に archive にあるので候補にしない。**
 export function newGeneratedItems(run) {
   return Object.values(run.generatedEquipment ?? {}).filter((item) => !item.carried);
 }
 
-// 生成装備の定義を混ぜた content bundle。engine も validator もこれを読む。
+// 遠征ごとの装備定義を混ぜた content bundle。engine も validator もこれを読む。
 export function runContentBundle(run) {
   const generated = run?.generatedEquipment ?? {};
   const ids = Object.keys(generated);
@@ -1359,7 +1353,7 @@ export function settleRun(profile, run, outcome) {
   nextProfile.unlockedCharacterIds = availableCharacterIds(nextProfile, run.regionId);
   nextProfile.settledRunIds = [...(nextProfile.settledRunIds ?? []), run.runId].slice(-200);
 
-  // R8 §3.6 / §10.3 — Phase C。遠征終了時に、この run で見つけた生成装備を
+  // R8 §3.6 / §10.3 — Phase C。遠征終了時に、この run で見つけた装備を
   // Blueprint archive へ exact に残す。件数は確定結果で変わる
   // （勝利2 / 安全撤退2 / 敗北1）。**持込品は既に archive にあるので数えない。**
   // 選ぶ順は「rarity が高い順 → 表示名 → id」で決定的にする。取得順に依らせると、

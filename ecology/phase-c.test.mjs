@@ -1,4 +1,4 @@
-// ecology/phase-c.test.mjs — R8 Implementation Phase 4（Phase C: 生成装備と Blueprint）。
+// ecology/phase-c.test.mjs — R8 Implementation Phase 4（Phase C: 装備と Blueprint）。
 //
 // **見るのは generator 契約と archive 契約であり、fun ではない。**
 //   - 決定性（R8 §3.5）: 同じ seed / dropIndex / rarity / family から同じ品が出る。
@@ -9,7 +9,7 @@
 //   - Blueprint（R8 §3.6）: immutable、上限なし archive、持込枠 1〜5、exact 再製造、
 //     互換不能でも消さず disabledReason を出す。
 //   - 保存件数（R8 §10.3）: 勝利2 / 安全撤退2 / 敗北1。
-//   - 遠征経路（R8 §13.2）: 生成装備が preview と正式実行の両方へ同じ形で入る。
+//   - 遠征経路（R8 §13.2）: 装備が preview と正式実行の両方へ同じ形で入る。
 
 import assert from "node:assert/strict";
 import { validateBattleInput, validateContentBundle } from "./validate.mjs";
@@ -216,7 +216,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   }
 }
 
-// ---- 生成装備が戦闘へ入る（R8 §13.2）----------------------------------------
+// ---- 装備が戦闘へ入る（R8 §13.2）--------------------------------------------
 
 {
   const item = generateEquipment({ seed: "battle", dropIndex: 2, rarity: "rare" });
@@ -224,7 +224,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
     generatedEquipment: { [item.definition.id]: item },
   };
   const bundle = runContentBundle(run);
-  check(Boolean(bundle.equipment[item.definition.id]), "run の content bundle が生成装備を持つ");
+  check(Boolean(bundle.equipment[item.definition.id]), "run の content bundle が装備を持つ");
   check(!PLAYABLE_CONTENT.equipment[item.definition.id], "固定 content 側は汚れていない");
 
   const loadout = freshLoadout(ROSTER);
@@ -235,22 +235,22 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
     ] },
     ROSTER, loadout, "seed", {}, { content: bundle },
   );
-  assert.deepEqual(validateBattleInput(battle, bundle), [], "生成装備入りの BattleInput が通る");
+  assert.deepEqual(validateBattleInput(battle, bundle), [], "装備入りの BattleInput が通る");
   checks += 1;
   const worn = battle.allies.find((ally) => ally.characterId === "warden").equipment;
-  equal(worn.length, 1, "生成装備が装備欄へ入る");
+  equal(worn.length, 1, "装備が装備欄へ入る");
   equal(worn[0].durability, item.definition.maxDurability, "耐久は定義どおりに始まる");
 
   const first = simulateBattle(battle, bundle);
   const again = simulateBattle(battle, bundle);
-  assert.deepEqual(first.events, again.events, "生成装備を入れても戦闘は決定的");
+  assert.deepEqual(first.events, again.events, "装備を入れても戦闘は決定的");
   checks += 1;
 
   // **固定 content だけでは同じ入力が通らない。**bundle を渡し忘れると落ちる、が
   // 黙って落ちないことを確かめる（装備が無かったことにされない）。
   const missing = validateBattleInput(battle, PLAYABLE_CONTENT);
   check(missing.some((error) => error.code === "dangling_reference"),
-    "生成装備を知らない content では dangling_reference になる（黙って落ちない）");
+    "装備を知らない content では dangling_reference になる（黙って落ちない）");
 }
 
 // ---- 装備画面の metadata（生成品も装着できる）--------------------------------
@@ -263,7 +263,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   const info = componentInfo(item.definition.id);
   check(Boolean(info) && info.kind === "equipment", "登録後は装備として引ける");
   equal(info.label, item.definition.displayName, "表示名は定義のもの");
-  check(info.generated === true, "生成品だと分かる印がある");
+  check(info.generated === true, "内部の由来情報を持つ");
 
   const equipped = equipEquipment(freshLoadout(ROSTER), "warden", item.definition.id, 0);
   check(equipped.ok, "生成品を装備枠へ入れられる");
@@ -281,10 +281,10 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   equal(offer.length, 3, "候補は3件");
   const equipmentOffers = offer.filter((entry) => entry.type === "equipment");
   equal(equipmentOffers.length, 2, "装備候補は2件");
-  equal(equipmentOffers.filter((entry) => entry.generated).length, 1, "うち1件が生成装備");
-  const generatedOffer = equipmentOffers.find((entry) => entry.generated);
-  check(Array.isArray(generatedOffer.item.readout.lines) && generatedOffer.item.readout.lines.length >= 1,
-    "生成装備は最初から全 rule を読める（R8 §11 の完全開示と衝突させない）");
+  equal(equipmentOffers.filter((entry) => entry.generated).length, 2, "装備候補はすべて手続き生成品");
+  check(equipmentOffers.every((entry) => Array.isArray(entry.item?.readout?.lines)
+    && entry.item.readout.lines.length >= 1),
+  "装備は最初から全 rule を読める（R8 §11 の完全開示と衝突させない）");
   assert.deepEqual(rewardOffer(run, profile, 1, 0), offer, "同じ鍵なら同じ候補");
   checks += 1;
   const rerolled = rewardOffer(run, profile, 1, 1);
@@ -318,14 +318,14 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   let run = newRun(profile, { runSeed: "inv", runId: "inv", roster: ROSTER, campaignStageSequence: 0 });
   const item = rewardOffer(run, profile, 1, 0).find((entry) => entry.generated).item;
   const taken = takeGeneratedEquipment(run, item);
-  check(taken.ok, "生成装備を拾える");
+  check(taken.ok, "装備を拾える");
   run = taken.run;
   check(run.inventory.includes(item.definition.id), "持ち物へ入る");
   check(Boolean(run.generatedEquipment[item.definition.id]), "定義も run が抱える");
   equal(takeGeneratedEquipment(run, item).ok, false, "同じ品は二度拾えない");
 
   const scrapped = dismantle(run, item.definition.id);
-  check(scrapped.ok, "生成装備も分解できる");
+  check(scrapped.ok, "装備も分解できる");
   check(!scrapped.run.inventory.includes(item.definition.id), "持ち物から消える");
   check(!scrapped.run.generatedEquipment[item.definition.id], "定義も落として save を太らせない");
 }
@@ -502,7 +502,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   equal(again.settlement.savedBlueprints.length, 0, "持込品は保存候補に数えない");
 }
 
-// ---- preview と正式実行が同じ生成装備を見る（R8 §11, §13.2）-----------------
+// ---- preview と正式実行が同じ装備を見る（R8 §11, §13.2）---------------------
 
 {
   const profile = newProfile();
@@ -511,7 +511,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   run = takeGeneratedEquipment(run, found.item).run;
   run = { ...run, loadout: freshLoadout(ROSTER) };
   const beforeRegister = equipEquipment(run.loadout, "warden", found.item.definition.id, 0);
-  equal(beforeRegister.ok, false, "登録前は生成装備を装備できない（黙って装着済みにしない）");
+  equal(beforeRegister.ok, false, "登録前は遠征装備を装備できない（黙って装着済みにしない）");
   registerGeneratedEquipment(run.generatedEquipment);
   const withItem = equipEquipment(run.loadout, "warden", found.item.definition.id, 0);
   check(withItem.ok, "登録後は装備できる");
@@ -519,16 +519,16 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 
   const first = simulateNextBattle(run, profile, 1);
   const second = simulateNextBattle(run, profile, 1);
-  assert.deepEqual(first.result.events, second.result.events, "生成装備込みの preview は決定的");
+  assert.deepEqual(first.result.events, second.result.events, "装備込みの preview は決定的");
   checks += 1;
   check(Boolean(first.content.equipment[found.item.definition.id]),
-    "preview の content bundle が生成装備を含む");
+    "preview の content bundle が装備を含む");
   assert.deepEqual(validateBattleInput(first.battleInput, first.content), [],
     "preview の BattleInput が通る");
   checks += 1;
   const worn = first.battleInput.allies.find((ally) => ally.characterId === "warden").equipment;
   check(worn.some((entry) => entry.equipmentId === found.item.definition.id),
-    "装着した生成装備が BattleInput に入っている");
+    "装着した装備が BattleInput に入っている");
   registerGeneratedEquipment({});
 }
 

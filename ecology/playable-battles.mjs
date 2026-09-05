@@ -1,5 +1,4 @@
 import { BATTLE_SCHEMA_VERSION, POSITIONS, POSITION_ROW } from "./schema.mjs";
-import { seededShuffle } from "./seeded.mjs";
 import { simulateBattle } from "./engine.mjs";
 import {
   ACTIVE_META,
@@ -141,9 +140,9 @@ export function characterInfo(characterId) {
   return characterById[characterId] ?? null;
 }
 
-// ---------------------------------------------------------------- 生成装備の metadata
+// ---------------------------------------------------------------- 遠征装備の metadata
 //
-// **Phase C の生成装備は COMPONENTS に居ない。**COMPONENTS は凍結した content 契約
+// **遠征ごとの装備は COMPONENTS に居ない。**COMPONENTS は凍結した content 契約
 // （contract.test.mjs が分離前の出力と深一致を見ている）なので、実行時に品を
 // 差し込まない。代わりに、いま遊んでいる遠征が抱えている定義から作った
 // 別表をここへ置き、`componentInfo` が両方を見る。
@@ -162,7 +161,7 @@ export function registerGeneratedEquipment(generated = {}) {
       definitionId: id,
       label: item.definition.displayName,
       effect: (item.readout?.lines ?? []).join(" "),
-      grammar: "生成 · " + (RARITY_LABEL[item.rarity] ?? item.rarity),
+      grammar: "等級 · " + (RARITY_LABEL[item.rarity] ?? item.rarity),
       maxDurability: item.definition.maxDurability,
       generated: true,
       rarity: item.rarity,
@@ -301,14 +300,6 @@ export function installComponent(loadout, componentId, characterId, limitsFor) {
   return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
 }
 
-export function rewardOffer(seed, stage, ownedEquipment = [], count = 3) {
-  const owned = new Set(ownedEquipment);
-  const candidates = Object.keys(EQUIPMENT).filter((id) => !owned.has(id) && id !== "hungry_plate");
-  return seededShuffle(candidates, seed + ":reward:" + stage).slice(0, count);
-}
-
-
-
 export function encounterInfo(stage) {
   return ENCOUNTERS[Math.max(0, Math.min(ENCOUNTERS.length - 1, stage - 1))];
 }
@@ -356,9 +347,9 @@ const TACTIC_USE_WHEN = Object.freeze({
   relay_order: [{ type: "history_count", subject: "self", metric: "active_actions", window: "round", op: "eq", value: 0 }],
 });
 
-// **装備の定義は content bundle から引く。**Phase C の生成装備は
+// **装備の定義は content bundle から引く。**遠征ごとの装備は
 // PLAYABLE_CONTENT に無く、遠征ごとの bundle（progression.runContentBundle）
-// にしか居ないので、ここで固定 content を直接読むと生成装備が黙って落ちる。
+// にしか居ないので、ここで固定 content を直接読むと拾った装備が黙って落ちる。
 function equipmentInput(characterId, equipmentIds, durability = {}, content = PLAYABLE_CONTENT) {
   return equipmentIds.filter((id) => content.equipment[id]).map((equipmentId, index) => ({
     instanceId: "e_" + characterId + "_" + equipmentId + "_" + index,

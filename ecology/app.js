@@ -32,7 +32,6 @@ import {
   CAMPAIGN_STAGE_BY_ID,
   DOSSIER_SECTION_HEADINGS,
   ENEMY_MUTATIONS,
-  EQUIPMENT_GROUPS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
   PACK_BY_ID,
   PROLOGUE,
@@ -786,10 +785,9 @@ function equipmentOwner(equipmentId) {
   return state.run.roster.find((characterId) => (state.run.loadout.equipment?.[characterId] || []).includes(equipmentId)) ?? null;
 }
 
-// **装備の表示情報は一箇所から引く。**固定装備は EQUIPMENT に、Phase C の
-// 生成装備は run が抱えている定義から作った別表に居る（playable-battles の
-// registerGeneratedEquipment）。画面が EQUIPMENT を直接読むと、生成装備が
-// 名前も効果も空のまま並ぶ。
+// **装備の表示情報は一箇所から引く。**遠征ごとの装備は run が抱えている定義から
+// 作った別表に居る（playable-battles の registerGeneratedEquipment）。画面が
+// EQUIPMENT を直接読むと、拾った装備が名前も効果も空のまま並ぶ。
 function gear(equipmentId) {
   return componentInfo(equipmentId) ?? null;
 }
@@ -945,7 +943,7 @@ function campTools() {
 function render() {
   stopReplayTimer();
   stopStoryTimers();
-  // Phase C — **今の遠征が抱えている生成装備だけを、装備画面の語彙にする。**
+  // Phase C — **今の遠征が抱えている装備だけを、装備画面の語彙にする。**
   // 遠征が変われば表も入れ替わる（前の遠征の品が残らない）。
   registerGeneratedEquipment(state.run?.generatedEquipment ?? {});
   const views = {
@@ -1006,7 +1004,7 @@ function renderIntro() {
     + "</div>"
     + "<p class=\"save-summary\"><b>Continue</b> · " + esc(continueLabel) + "</p>"
     + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金と設計図を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>2人 → 5人</b><span>Stageごとに一人加わる</span></div><div class=\"card\"><b>技能パックは積む</b><span>前に覚えた技能は消えない</span></div><div class=\"card\"><b>設計図</b><span>拾った生成装備を次へ持ち込む</span></div></section>", { hideHeaderAction: true });
+    + "<section class=\"three-up\"><div class=\"card\"><b>2人 → 5人</b><span>Stageごとに一人加わる</span></div><div class=\"card\"><b>技能パックは積む</b><span>前に覚えた技能は消えない</span></div><div class=\"card\"><b>設計図</b><span>拾った装備を次へ持ち込む</span></div></section>", { hideHeaderAction: true });
 }
 
 function renderSaveSlot(slot, snapshot, fromCamp) {
@@ -1192,7 +1190,7 @@ function renderGuild() {
       + characterName(option.id) + "<small>" + esc(option.role) + "</small></span></button>").join("") + "</div>";
   return "<section class=\"card\">" + sectionHeading("ACTIVITY FUNDS", "持ち帰った資金を使う",
       "<span class=\"stage\">" + formatFunds(funds()) + "</span>")
-    + "<p class=\"muted\">活動資金は遠征の勝敗を問わず、遠征が終わるたびに一度だけ精算されます。<b>購入は取り消せません。</b>買った品は報酬 pool へ加わりますが、どの遠征にも必ず出るわけではありません。</p>"
+    + "<p class=\"muted\">活動資金は遠征の勝敗を問わず、遠征が終わるたびに一度だけ精算されます。<b>購入は取り消せません。</b>技能の枠、Blueprint 持込枠、目利き、開始補給、鍛錬を長期的に整えます。</p>"
     + "<div class=\"purchase-list\">" + upgrades + "</div></section>"
     + "<section class=\"card\">" + sectionHeading("PER CHARACTER / " + metOptions.length, "誰を先に複雑にするか")
     + memberTabsHtml
@@ -1463,14 +1461,14 @@ function renderBlueprints() {
 
   return "<section class=\"card\">" + sectionHeading("BLUEPRINT ARCHIVE", "残した品の設計図",
       "<span class=\"stage\">持込 " + carried.length + " / " + capacity + "</span>")
-    + "<p class=\"muted\">遠征で見つけた生成装備は、遠征が終わるときに設計図として残ります"
+    + "<p class=\"muted\">遠征で見つけた装備は、遠征が終わるときに設計図として残ります"
     + "（勝利2件・安全撤退2件・敗北1件）。<b>設計図そのものに所持上限はありません。</b>"
     + "遠征開始時に持ち込めるのは持込枠のぶんだけで、持ち込んだ品は"
     + "その遠征の affix family の外でもそのまま動きます。</p>"
     + "<div class=\"flow-actions\">" + rarityFilters + "</div>"
     + (entries.length
       ? "<div class=\"reward-grid\">" + cards + "</div>"
-      : "<p class=\"muted\">まだ設計図がありません。遠征で生成装備を拾い、遠征を終えると残ります。</p>")
+      : "<p class=\"muted\">まだ設計図がありません。遠征で装備を拾い、遠征を終えると残ります。</p>")
     + "</section>";
 }
 
@@ -2158,20 +2156,10 @@ function equipmentSlotHtml(characterId, slot) {
       + "\" data-equipment=\"" + equipmentId + "\"") : "") + "</div>";
 }
 
-// 報酬 pool に入っている装備。**買っていない群は、まだ拾えないと分かるように出さない。**
-function unlockedGear() {
-  const ids = [];
-  for (const group of EQUIPMENT_GROUPS) {
-    const on = group.startsUnlocked || upgradeLevel(state.profile, "equipment_pool." + group.id) > 0;
-    if (on) ids.push(...group.equipmentIds);
-  }
-  return ids;
-}
-
 function renderEquipment() {
   const characterId = selectedCharacter();
   const selected = state.selectedEquipment;
-  const inventory = state.run.inventory.map((id) => {
+  const inventoryCards = state.run.inventory.map((id) => {
     const owner = equipmentOwner(id);
     const isSelected = selected === id;
     const info = gear(id);
@@ -2180,8 +2168,8 @@ function renderEquipment() {
     const item = generatedItem(id);
     const lines = gearLines(id);
     return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " depleted" : "")
-      + (item ? " generated" : "") + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
-      + "\"><span class=\"gear-icon\">" + (item ? "❖" : "◆") + "</span><span class=\"gear-copy\"><b>" + esc(info?.label ?? id)
+      + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
+      + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(info?.label ?? id)
       + rarityChip(item?.rarity) + (item?.carried ? "<span class=\"carried-chip\">持込</span>" : "")
       + "</b>" + (lines.length
         ? lines.map((line) => "<small>" + esc(line) + "</small>").join("")
@@ -2191,10 +2179,6 @@ function renderEquipment() {
       + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
       + "</article>";
   }).join("");
-  const codex = unlockedGear().filter((id) => !state.run.inventory.includes(id)).map((id) =>
-    "<span class=\"codex-chip locked\"><b>" + esc(EQUIPMENT[id].label) + "</b><small>未入手 · "
-      + esc(EQUIPMENT[id].grammar) + "</small></span>").join("");
-  const generatedCount = Object.keys(state.run.generatedEquipment ?? {}).length;
   const memberIds = [characterId, ...state.run.roster.filter((id) => id !== characterId)];
   const members = memberIds.map((id) => "<article class=\"gear-member " + (id === characterId ? "selected" : "") + "\"><button type=\"button\" class=\"member-head member-head-button\" data-action=\"select-character\" data-character=\"" + id + "\"><span class=\"avatar\">"
     + esc(characterInfo(id)?.icon ?? "・") + "</span><span><b>" + esc(characterName(id)) + "</b><small>"
@@ -2209,12 +2193,11 @@ function renderEquipment() {
     + memberTabs(characterId) + memberContext(characterId, "equipment")
     + "<p class=\"selection-note\">選択中: <b>" + esc(selected ? gear(selected)?.label ?? selected : "なし")
     + "</b> · " + (selected ? "下の枠をタップして装着" : "上の装備をタップ") + "</p>"
-    + "<div class=\"gear-grid\">" + inventory + "</div></section>"
+    + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>") + "</div></section>"
     + "<section class=\"card\">" + sectionHeading("LOADOUT / " + runPartySize() + " MEMBERS", "誰に何を持たせる？")
     + "<div class=\"gear-member-grid\">" + members + "</div></section>"
-    + "<section class=\"card quiet\">" + sectionHeading("REWARD POOL / " + unlockedGear().length + " EQUIPMENT", "この遠征で拾える装備",
-      "<span class=\"stage\">生成 " + generatedCount + "</span>")
-    + "<div class=\"codex-list\">" + (codex || "<p class=\"muted\">すべて入手済みです。</p>") + "</div>"
+    + "<section class=\"card quiet\">" + sectionHeading("EQUIPMENT / RULES", "装備について")
+    + "<p class=\"muted\">現在の報酬から拾う装備は、報酬のたびにその場で組み上がります。拾う前に、きっかけ・条件・代償・効果・回数・耐久をすべて読めます。装備は何度でも付け外しでき、戦闘予測を見ながら持たせる相手を変えられます。</p>"
     + "<div class=\"flow-actions\">" + button("スキルへ戻る", "tab", false, "button", "data-tab=\"skills\"")
     + button("戦闘前確認へ", "tab", false, "button primary", "data-tab=\"map\"") + "</div></section>";
 }
@@ -2644,7 +2627,7 @@ function eventSkillName(event) {
 function eventCauseName(event) {
   const id = event?.ruleId ? event.sourceDefinitionId : null;
   if (!id) return null;
-  const known = SKILLS.reactive?.[id] || SKILLS.active?.[id] || EQUIPMENT[id];
+  const known = SKILLS.reactive?.[id] || SKILLS.active?.[id] || componentInfo(id) || EQUIPMENT[id];
   return known ? shortName(nameFor(id)) : null;
 }
 
@@ -3169,7 +3152,7 @@ function defeatVoice() {
     % DEFEAT_VOICES.length];
 }
 
-// R8 §3.1 —「愛着の主語は人物、偶然性の主語は装備」。R12 §3 は、生成装備が
+// R8 §3.1 —「愛着の主語は人物、偶然性の主語は装備」。R12 §3 は、装備が
 // rule 文しか持たないので偶然性が物語になっていないと書いた。設計図には由来を
 // 付けたので、**拾った瞬間のほうにも一行を置く。**
 //
@@ -3206,11 +3189,11 @@ function renderReward() {
   const full = state.run.inventory.length >= INVENTORY_LIMIT;
   const cards = state.rewardOffer.map((offer, index) => {
     if (offer.type === "equipment") {
-      // R8 §13.2 — 生成装備は**最初から全 rule を読める**。目利きは等級の引きを
+      // R8 §13.2 — 装備は**最初から全 rule を読める**。目利きは等級の引きを
       // 良くするもので、読める量を売る仕組みにはしない（R8 §11 の完全開示）。
       const item = offer.item ?? null;
       const info = item
-        ? { label: item.definition.displayName, effect: "", grammar: "生成 · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
+        ? { label: item.definition.displayName, effect: "", grammar: "等級 · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
         : EQUIPMENT[offer.equipmentId];
       const body = item
         ? (item.readout?.lines ?? []).map((line) => "<p>" + esc(line) + "</p>").join("")
@@ -3218,8 +3201,7 @@ function renderReward() {
           // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
           + (generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
         : "<p>" + esc(info?.effect ?? "") + "</p>";
-      return "<article class=\"reward-card" + (item ? " generated" : "") + "\"><div class=\"reward-kind kind-equipment\">"
-        + (item ? "生成装備" : "装備") + "</div><h3>"
+      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
         + esc(info?.label ?? offer.equipmentId) + rarityChip(item?.rarity) + "</h3>" + body + "<small>"
         + esc(info?.grammar ?? "") + " · 戦闘耐久 " + (info?.maxDurability ?? 1) + "</small>"
         + (full ? "<p class=\"muted\">持ち物が" + INVENTORY_LIMIT + "品で一杯です。装備画面で一品を分解してください。</p>" : "")
@@ -3227,7 +3209,7 @@ function renderReward() {
     }
     // R8 §3.5 — 生成に失敗したら既定品へ黙って落とさず、診断をそのまま出す。
     if (offer.type === "generator_error") {
-      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">生成できず</div>"
+      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">候補なし</div>"
         + "<h3>装備の候補が作れませんでした</h3><p>" + esc(offer.message) + "</p>"
         + "<small>この候補は選べません。ほかの候補を選ぶか、補給1で引き直してください。</small></article>";
     }
@@ -3242,11 +3224,11 @@ function renderReward() {
     + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
     + "<p class=\"muted\">3候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>。戦闘勝利時の技能点は編成中の全員へ自動で加わります。</p>"
     + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
-      ? "<p class=\"muted\">装備の候補が減っています。生成が失敗した場合は理由が候補欄に出ます。</p>"
+      ? "<p class=\"muted\">装備の候補が減っています。用意できない場合は理由が候補欄に出ます。</p>"
       : "")
     + (appraisalLevel(state.profile) > 0
       ? "<p class=\"muted\">目利き Lv" + appraisalLevel(state.profile)
-        + "：生成装備の等級を " + (appraisalLevel(state.profile) + 1) + " 回引いて良い方を採っています。</p>"
+        + "：装備の等級を " + (appraisalLevel(state.profile) + 1) + " 回引いて良い方を採っています。</p>"
       : "")
     + "<p class=\"world-voice\">" + esc(rewardVoice()) + "</p>"
     + "<div class=\"reward-grid\">" + cards + "</div>"
@@ -3294,7 +3276,7 @@ function blueprintSettlementSection(settlement) {
       ? "<div class=\"settle-list\">" + cards + "</div>"
       : "<p class=\"muted\">今回は残せる品がありませんでした。</p>")
     + (found > saved.length
-      ? "<p class=\"muted\">この遠征で見つけた生成装備 " + found + " 品のうち、等級の高い "
+      ? "<p class=\"muted\">この遠征で見つけた装備 " + found + " 品のうち、等級の高い "
         + saved.length + " 品だけを残しました。</p>"
       : "")
     + "<p class=\"muted\">設計図はギルドの Blueprint 画面から、次の遠征へ持ち込めます"
@@ -4078,7 +4060,7 @@ function handleAction(event) {
           equipmentDurability: state.equipmentDurability,
           limitsFor,
           statsFor,
-          // Phase C — 生成装備の定義を含む content bundle を渡す。
+          // Phase C — 遠征ごとの装備定義を含む content bundle を渡す。
           content: runContentBundle(state.run),
         },
       );
@@ -4387,7 +4369,7 @@ function handleAction(event) {
         return;
       }
       if (offer.item) {
-        // Phase C — 生成装備は定義ごと run へ入れる（content bundle に無い品なので）。
+        // Phase C — 遠征ごとの装備は定義ごと run へ入れる（content bundle に無い品なので）。
         const taken = takeGeneratedEquipment(state.run, offer.item);
         if (!taken.ok) {
           state.error = taken.reason;
@@ -4399,7 +4381,7 @@ function handleAction(event) {
         registerGeneratedEquipment(state.run.generatedEquipment);
         record("reward_taken", {
           encounter: state.run.encounterIndex,
-          reward: "generated_equipment",
+          reward: "equipment",
           equipmentId: offer.equipmentId,
           rarity: offer.item.rarity,
           descriptor: offer.item.descriptor,
@@ -4535,7 +4517,7 @@ function handleAction(event) {
         formation: state.run.formation,
         loadout: state.run.loadout,
         ownedEquipment: state.run.inventory,
-        // Phase C — 生成装備は content 版だけでは復元できない。**descriptor と
+        // Phase C — 遠征ごとの装備は content 版だけでは復元できない。**descriptor と
         // 来歴を控えへ入れる**（後から「どんな品を持っていたか」を照合するため）。
         generatedEquipment: Object.values(state.run.generatedEquipment ?? {}).map((item) => ({
           equipmentId: item.definition.id,

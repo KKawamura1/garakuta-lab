@@ -218,7 +218,7 @@ export function campaignManifestForStage(sequence, seed) {
     ladderMode: stage.ladderMode,
     partySize: stage.partySize,
     castCharacterIds: [...stage.castCharacterIds],
-    // R8 §13.2 — Phase C。Stage の pack が、その Stage で拾える生成装備の
+    // R8 §13.2 — Phase C。Stage の pack が、その Stage で拾える装備の
     // affix family を決める。**Stage 番号では決めない**（pack が意味の単位）。
     enabledAffixFamilyIds: AFFIX_FAMILIES
       .filter((family) => family.packId === null || stage.enabledPackIds.includes(family.packId))

@@ -1,6 +1,6 @@
 // ecology/equipment-gen.mjs
 //
-// **Phase C の生成装備 generator。R8 §3.5、§13.2、Implementation Phase 4 step 1〜2。**
+// **Phase C の装備 generator。R8 §3.5、§13.2、Implementation Phase 4 step 1〜2。**
 //
 // 契約（ここを壊したら Phase C は成立しない）
 //

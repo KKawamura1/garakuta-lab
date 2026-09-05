@@ -31,7 +31,7 @@
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
 | `content/encounters.mjs` | 敵の配置・狙い・敵本文（既存 content API の正本） |
-| `equipment-gen.mjs` | 手続き生成装備の決定的 generator と検査 |
+| `equipment-gen.mjs` | 装備を手続きで組み立てる決定的 generator と検査 |
 | `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
 | `mine.mjs` | イベント連鎖の採掘 |
 | `sync.mjs` | `/api/runs` への送信と端末 ID |
@@ -42,10 +42,10 @@
 | 層 | 永続期間 | 主な内容 |
 |---|---|---|
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
-| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、隊、formation、run 技能点・技能、**その遠征で拾った生成装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、隊、formation、run 技能点・技能、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、開始 HP snapshot、preview / commit 状態 |
 
-遠征終了で消えるもの: run 技能点と run 中に解禁した技能、生成装備の実物（選んだものだけ
+遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
 `newRun` は新規遠征の技能点を0にし、固定の初期装備を `inventory` へ入れません。出発前に選んだ Blueprint の持込品だけは例外です。通常戦の勝利は `app.js` の一つの処理経路で、現在の `RunState.roster` 全員へ技能点1を自動付与します。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
@@ -54,7 +54,7 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 
 ## 4. 決定性
 
-- Manifest、Encounter、Reward offer、生成装備 instance、compiled EquipmentDef、
+- Manifest、Encounter、Reward offer、装備 instance、compiled EquipmentDef、
   Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON の内容が完全に一致します。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。

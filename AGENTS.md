@@ -21,7 +21,7 @@
 - 同じ入力・seed・content version・generator version から、同じ結果とイベント列を返す。
   `Date` と `Math.random` を engine やゲーム内容の計算経路へ入れない。
 - 乱数 key を用途別に分け、reward reroll で後続の敵や drop を変えない。
-- Manifest、Encounter、Reward、生成装備、compiled equipment、Blueprint、再製造品の
+- Manifest、Encounter、Reward、装備、compiled equipment、Blueprint、再製造品の
   JSON 内容を完全に一致させる。
 - preview と本番は同じ経路を使い、UI・replay・検査は engine の同じイベント列を読む。
 - 新しい event は schema、validator、engine テスト、表示・replay と同時に更新する。
@@ -36,7 +36,7 @@
 - 敵は特定技能を要求せず、速度・対象数・guard・block・位置・継続時間・資源圧力などの
   性能軸を変える。新 pack は既存 event を読み、単独でも現在価値のある技能を作る。
 - 完全上位互換を作らない。作る場合は明確な代償を付ける。
-- 生成装備は `trigger → condition 0〜2個 → cost 0〜1個 → effect 1〜2個 → limit →
+- 装備の生成処理は `trigger → condition 0〜2個 → cost 0〜1個 → effect 1〜2個 → limit →
   durability/charge` の形にし、発火不能・無料無限循環・説明不能なものは生成バグとして拒否する。
   rule は拾う前から全文を読めるようにし、50回試行して生成できなければ診断を表示する。
 - 遠征中の活動資金は ledger に仮計上し、勝利・安全撤退・敗北時に一度だけ精算する。

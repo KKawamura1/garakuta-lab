@@ -32,7 +32,7 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // （mark_break / sweeping_barrage / piercing_barrage / guarded_opening /
 // seize_the_opening）を追加した。語彙が増えたので上げる。
 // R8 Implementation Phase 4（Phase C）— affix 目録（content/affixes.mjs）、
-// affix family、生成装備の rule 文法を content 語彙として公開した。manifest の
+// affix family、装備の rule 文法を content 語彙として公開した。manifest の
 // enabledAffixFamilyIds が空配列固定から「その遠征で引ける affix family」へ
 // 意味を持った。**語彙が増え、既存欄の意味が変わったので上げる。**
 // R9（初期4Stageのチュートリアル化）— 導入 pack の接続面と常設
@@ -201,7 +201,7 @@ export {
   portraitName,
   portraitSvg,
 } from "./portraits.mjs";
-// R8 Implementation Phase 4（Phase C）— 生成装備の affix 目録。
+// R8 Implementation Phase 4（Phase C）— 装備の affix 目録。
 export {
   AFFIXES,
   AFFIX_BY_ID,

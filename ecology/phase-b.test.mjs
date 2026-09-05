@@ -549,6 +549,8 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   equal(offer.filter((o) => o.type === "skill_points").length, 0, "技能点は自動付与");
   equal(offer.filter((o) => o.type === "supplies").length, 1, "補給1");
   check(!offer.some((o) => o.type === "activity_funds"), "**活動資金は報酬候補に入らない**");
+  check(offer.filter((o) => o.type === "equipment").every((o) => o.generated && o.item),
+    "装備候補はすべて遠征ごとの手続き生成品");
   for (const entry of offer.filter((o) => o.type === "equipment")) {
     check(!run.inventory.includes(entry.equipmentId), "既に持っている品は出ない");
   }

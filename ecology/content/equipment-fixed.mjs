@@ -1,6 +1,6 @@
 // ecology/content/equipment-fixed.mjs
 //
-// **固定装備の定義。生成装備は Phase C まで作らない。**
+// **旧来の固定装備の定義。**通常の報酬は equipment-gen.mjs が組み立てる。
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
 // 種類別へ分離した。**挙動は1バイトも変えていない**（ecology/contract.test.mjs が
 // 分離前の出力と深一致を見る）。
@@ -166,14 +166,13 @@ for (const definition of Object.values(equipment)) scaleFlatAmounts(definition);
 
 export const FIXED_EQUIPMENT = equipment;
 
-// R6 §9.3 — PHASE B. 報酬 pool は群単位で増える。**購入は pool を増やすだけで、
-// 全遠征へ必ず出現させない**（買った瞬間に強くなる買い物にしない）。
-// 群の切り方は表示文の「役割」欄（守り・速度・機動・攻撃・修理）と同じ。
+// 旧 R6 の固定装備 pool の記録。現行の報酬はこの群を参照しない。
+// 群の切り方は旧 save / 検査で参照される「役割」欄（守り・速度・機動・攻撃・修理）と同じ。
 //
-// **買える群を1つだけにしてある。** 固定装備は全部で18品しかなく、
-// 一遠征で報酬を選べる機会は11回ある。群を後ろに残しすぎると、
-// 遠征の後半で「拾える装備がもう無い」状態になる（実測で第5戦だった）。
-// 品数そのものが増えるのは Phase C の生成装備で、R6 §17.3 がそこへ置いている。
+// 固定装備は全部で18品しかなく、一遠征で報酬を選べる機会は11回ある。
+// これは過去の報酬 pool の構成を読み解くための互換情報である。
+// 現行の通常報酬は手続き生成品へ移った。ここは旧 save・検査・replay の
+// 参照を壊さないために残す。
 //
 // `hungry_plate` はどの群にも入れない。摩耗を誘発するだけの品で、
 // 報酬として出すと「拾わない」以外の答えが無い（Phase A から報酬 pool 外）。
@@ -200,9 +199,7 @@ export const EQUIPMENT_GROUPS = Object.freeze([
   }),
 ]);
 
-// 遠征開始時に手元にある品。**買い物の対象ではなく、初期条件**。
-// 5人が2枠ずつ持てるので、最初から10枠を埋められる量は渡さない。
+// 旧仕様の遠征開始時に手元にあった品。現行の newRun は固定の初期装備を渡さない。
 export const STARTER_EQUIPMENT_IDS = Object.freeze([
   "standing_plate", "worn_greaves", "guard_lantern", "tempo_buckle",
 ]);
-
