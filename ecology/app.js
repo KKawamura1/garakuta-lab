@@ -698,12 +698,15 @@ function shell(title, subtitle, body, options = {}) {
       : inRun
         ? button("安全に撤退する", "abandon-run", false, "menu-button")
         : button("ギルドへ", "back-guild", false, "menu-button");
-  return "<div class=\"shell\"><header class=\"header\"><div><p class=\"kicker\">" + VERSION
+  const headerClass = options.titleScreen ? "header title-header" : "header";
+  const footer = options.hideFooter
+    ? ""
+    : "<footer>遠征 " + esc(String(state.run.runId).slice(0, 8)) + " · seed " + esc(state.run.runSeed)
+      + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion)
+      + "<br>build " + esc(BUILD) + "</footer>";
+  return "<div class=\"shell\"><header class=\"" + headerClass + "\"><div><p class=\"kicker\">" + VERSION
     + "</p><h1>" + esc(title) + "</h1><p class=\"subtitle\">" + esc(subtitle)
-    + "</p></div>" + headerAction + "</header>" + body + error
-    + "<footer>遠征 " + esc(String(state.run.runId).slice(0, 8)) + " · seed " + esc(state.run.runSeed)
-    + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion)
-    + "<br>build " + esc(BUILD) + "</footer></div>";
+    + "</p></div>" + headerAction + "</header>" + body + error + footer + "</div>";
 }
 
 // **控えは端末の保存枠に収まる量で切る。**
@@ -993,20 +996,20 @@ function restoreSkillTreeScroll() {
 function renderIntro() {
   const auto = readStoredSnapshot(SAVE_KEY);
   const continueLabel = auto ? saveSummary(auto) : "オートセーブはありません";
-  return shell("One Battle Ahead", "二人から始め、5人を揃え、3幕12戦を越える", "<section class=\"hero card\">"
-    + "<div class=\"sigil\">◈</div><p class=\"lead\">最初は二人。Stageを越えるたびに一人加わり、<br>5人で2×3の6枠を埋めます。</p>"
-    + "<p class=\"intro-copy\">戦闘は自動で進みます。プレイヤーが作るのは、敵の狙いに対して誰を前へ出し、どの技能を優先し、どの装備を消耗させるかという準備です。<b>New Gameでは、必ずCampaign Stage 0をゴウとツグミの2人から始めます。</b></p>"
+  const saveStatus = auto
+    ? "<p class=\"save-summary\"><span>オートセーブ</span> · " + esc(continueLabel) + "</p>"
+    : "";
+  return shell("One Battle Ahead", "", "<section class=\"title-screen\" aria-label=\"メインメニュー\">"
+    + "<div class=\"sigil\" aria-hidden=\"true\">◈</div>"
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")
     + button("遠征を仕立てる", "start", false, "button")
-    + button("セーブを選ぶ", "open-save-menu", false, "button", "data-return=\"intro\"")
+    + button("ロードゲーム", "open-save-menu", false, "button", "data-return=\"intro\"")
     + "</div>"
-    + "<p class=\"save-summary\"><b>Continue</b> · " + esc(continueLabel) + "</p>"
-    + "<div class=\"loop\"><span><b>1</b>遠征を仕立てる</span><span><b>2</b>3幕12戦</span><span><b>3</b>活動資金と設計図を持ち帰る</span><span><b>4</b>鍛錬と枠を買う</span></div></section>"
-    + "<section class=\"three-up\"><div class=\"card\"><b>2人 → 5人</b><span>Stageごとに一人加わる</span></div><div class=\"card\"><b>技能パックは積む</b><span>前に覚えた技能は消えない</span></div><div class=\"card\"><b>設計図</b><span>拾った装備を次へ持ち込む</span></div></section>", { hideHeaderAction: true });
+    + saveStatus
+    + "</section>", { hideHeaderAction: true, titleScreen: true, hideFooter: true });
 }
-
 function renderSaveSlot(slot, snapshot, fromCamp) {
   const actions = fromCamp
     ? button(snapshot ? "上書き保存" : "この枠に保存", "save-slot", false, "tiny-button primary-mini", "data-slot=\"" + slot + "\"")
