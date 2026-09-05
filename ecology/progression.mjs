@@ -1359,7 +1359,7 @@ export function settleRun(profile, run, outcome) {
   // 選ぶ順は「rarity が高い順 → 表示名 → id」で決定的にする。取得順に依らせると、
   // 同じ遠征を同じように遊んでも残る品が変わる。
   const saveLimit = BLUEPRINT_SAVE_LIMIT[outcome] ?? BLUEPRINT_SAVE_LIMIT.lost;
-  const rarityRank = { legendary: 0, epic: 1, rare: 2, common: 3 };
+  const rarityRank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
   const candidates = newGeneratedItems(run)
     .sort((a, b) => (rarityRank[a.rarity] ?? 9) - (rarityRank[b.rarity] ?? 9)
       || a.definition.displayName.localeCompare(b.definition.displayName, "ja")
