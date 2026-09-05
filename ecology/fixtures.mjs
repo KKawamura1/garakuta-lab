@@ -102,8 +102,8 @@ export const EXTERNAL_ADVANCE_BATTLE = battle("fixture_external_advance", {
   enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
 });
 
-// §11.3 an actor that gains an action point after its activation goes back to
-// the tail of the queue exactly once.
+// §11.3 an actor that gains an action point after its activation acts on the
+// next eligible side phase, never twice in the same phase.
 export const REQUEUE_BATTLE = battle("fixture_requeue", {
   maxRounds: 2,
   objective: { type: "survive_rounds", rounds: 2 },
@@ -214,7 +214,9 @@ export const FIELD_KIT_BATTLE = battle("fixture_field_kit", {
       hp: 15,
     }),
   ],
-  enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
+  // The enemy is inert so the round barrier remains available for the expiry
+  // assertion even though the ally side always acts first now.
+  enemies: [enemy("e_husk", "still_husk", "front_left")],
 });
 
 // §5.6 — a kit that is already broken supplies no rules, so it cannot mend
@@ -257,21 +259,37 @@ export const INERT_BATTLE = battle("fixture_inert", {
   enemies: [enemy("e_still", "still_husk", "front_left")],
 });
 
-// §11.2 the action queue is formation-driven, not speed-driven. Every actor
-// occupies a distinct position and has no usable action, so this fixture only
-// observes the first activation order.
+// §11.2 the action phases are side-driven, with formation order within each
+// side. Every actor occupies a distinct position and has one ordinary action,
+// so this fixture observes the first activation order without a same-position
+// tie.
 export const POSITION_ORDER_BATTLE = battle("fixture_position_order", {
   maxRounds: 1,
   objective: { type: "survive_rounds", rounds: 1 },
   allies: [
-    ally("a_front_center", "warden", "front_center", { tactics: [] }),
-    ally("a_front_right", "warden", "front_right", { tactics: [] }),
-    ally("a_rear_left", "warden", "rear_left", { tactics: [] }),
+    ally("a_front_center", "warden", "front_center", { tactics: ["strike"] }),
+    ally("a_front_right", "warden", "front_right", { tactics: ["strike"] }),
+    ally("a_rear_left", "warden", "rear_left", { tactics: ["strike"] }),
   ],
   enemies: [
-    enemy("e_front_left", "still_husk", "front_left"),
-    enemy("e_rear_center", "still_husk", "rear_center"),
-    enemy("e_rear_right", "still_husk", "rear_right"),
+    enemy("e_front_left", "husk_bulwark", "front_left", { hp: 40 }),
+    enemy("e_rear_center", "husk_bulwark", "rear_center", { hp: 40 }),
+    enemy("e_rear_right", "husk_bulwark", "rear_right", { hp: 40 }),
+  ],
+});
+
+// §11.2 one action per side pass. Pivot has two AP, but its second action must
+// wait until after the enemy phase rather than following its first action.
+export const SIDE_PHASE_BATTLE = battle("fixture_side_phase", {
+  maxRounds: 1,
+  objective: { type: "survive_rounds", rounds: 1 },
+  allies: [
+    ally("a_pivot", "pivot", "front_right", { tactics: ["strike"] }),
+    ally("a_warden", "warden", "rear_left", { tactics: ["strike"] }),
+  ],
+  enemies: [
+    enemy("e_front", "husk_bulwark", "front_left", { hp: 40 }),
+    enemy("e_rear", "husk_bulwark", "rear_right", { hp: 40 }),
   ],
 });
 
@@ -415,8 +433,8 @@ export const ACTIVATION_CAP_BATTLE = battle("fixture_activation_cap", {
   enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
 });
 
-// PREFLIGHT §6 — a free, always usable action. §11.3 puts no ceiling on the
-// number of actions inside one activation, so only the event cap stops this.
+// PREFLIGHT §6 — a free, always usable action. One action per side phase means
+// the per-round activation cap is what stops this loop.
 export const FREE_ACTION_BATTLE = battle("fixture_free_action", {
   maxRounds: 1,
   objective: { type: "survive_rounds", rounds: 1 },
@@ -542,6 +560,7 @@ export const ALL_FIXTURE_BATTLES = [
   IMMEDIATE_BATTLE,
   INERT_BATTLE,
   POSITION_ORDER_BATTLE,
+  SIDE_PHASE_BATTLE,
   WAITING_TACTIC_BATTLE,
   BROKEN_KIT_BATTLE,
   FOCUSED_BARRIER_BATTLE,
@@ -551,4 +570,3 @@ export const ALL_FIXTURE_BATTLES = [
   FULL_PARTY_BATTLE,
   ...GATE_E_BATTLES,
 ];
-

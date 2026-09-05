@@ -51,7 +51,7 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 `newRun` は新規遠征の技能点を0にし、固定の初期装備を `inventory` へ入れません。出発前に選んだ Blueprint の持込品だけは例外です。通常戦の勝利は `app.js` の一つの処理経路で、現在の `RunState.roster` 全員へ技能点1を自動付与します。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
 初回の本編第1戦の報酬後だけ、`app.js` がキャンプの補給タブを開きます。案内の完了印は `ProfileState.storyFlags` に保存し、治療の実処理は既存の `progression.mjs` の `campTreat` を通します。
 
-序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・攻撃（`might` / `focus`）50%だけを適用し、通常戦の難易度や敵定義は変えません。
+序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
 
 ## 4. 決定性
@@ -72,8 +72,11 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
   不一致を黙って読み飛ばしません。
 - 戦闘値は整数で表示し、effect 確定時に round-half-up します。AP、RP、hit 数、block 回数、
   round、charge は小整数を保ちます。
-- 行動 queue は `POSITION_ORDER` の隊列順（前列の左→中央→右、後列の左→中央→右）で
-  初期化し、`speed` は initiative には使いません。同位置の actor は instance ID で決着します。
+- 行動 queue は round 内に味方フェーズ→敵フェーズを交互に作ります。各フェーズでは
+  その側の living actor が隊列順（前列の左→中央→右、後列の左→中央→右）に一回だけ
+  起動し、AP2 の actor は次の自軍フェーズへ戻ります。round 開始時の initiativeRank は
+  味方を先に、次に敵を置きます。同じ側・同じ位置だけ instance ID で決着し、`speed` は
+  initiative に使いません。
 
 ## 5. イベント列
 

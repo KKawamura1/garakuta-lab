@@ -92,7 +92,8 @@ equal(
 
 {
   // idle_shuffle costs nothing and is always usable, so every battle it appears
-  // in ends in the event cap. The mining run must say so rather than skip it.
+  // in reaches the per-round activation cap. The mining run must say so rather
+  // than skip it.
   const brokenPool = structuredClone(MINING_POOL);
   brokenPool.activeSkillIds = ["strike", "idle_shuffle"];
   brokenPool.reactiveSkillIds = ["counter_blow"];

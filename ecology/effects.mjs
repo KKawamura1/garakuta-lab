@@ -521,8 +521,8 @@ function gainResource(rt, ctx, effect) {
       tags: [effect.resource],
       values: { resource: effect.resource, amount, before, after: target[key] },
     });
-    // §11.3 — gaining action points after an activation can put an actor back in
-    // the queue. engine.mjs owns that rule; effects only report the gain.
+    // §11.3 — engine.mjs makes a gained action point available on the next
+    // eligible side phase; effects only report the gain.
     if (effect.resource === "action_points") rt.onResourceGained(target);
   }
 }

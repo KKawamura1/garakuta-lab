@@ -31,6 +31,7 @@ import {
   REGION_BATTLE,
   REQUEUE_BATTLE,
   ROUND_LIMIT_BATTLE,
+  SIDE_PHASE_BATTLE,
   STATUS_BATTLE,
   WAITING_TACTIC_BATTLE,
 } from "./fixtures.mjs";
@@ -280,11 +281,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(activations[1].values.activation, 2);
   const gain = of(result, "resource_gained").find((event) => event.skillId === "relay_order");
   check(gain.sequence < activations[1].sequence, "the requeue follows the gain");
-  // The requeue is once, at the tail: the enemy acted in between.
+  // The gain happens after the ally phase, so the enemy phase comes in between.
   const husk = of(result, "actor_activated").find(
     (event) => event.sourceActorId === "e_husk" && event.round === 1,
   );
-  check(husk.sequence < activations[1].sequence, "the requeued actor went to the back of the queue");
+  check(husk.sequence < activations[1].sequence, "the gained point waits for the next ally phase");
 }
 
 // ---- §5.6 a broken item stops supplying its rule ------------------------------
@@ -611,7 +612,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
-// ---- §11.2 formation initiative ---------------------------------------------------
+// ---- §11.2 side phases and formation order ----------------------------------------
 
 {
   const positionOrder = (content) =>
@@ -621,10 +622,10 @@ for (const battle of ALL_FIXTURE_BATTLES) {
         && event.values.activation === 1)
       .map((event) => event.sourceActorId);
   const expected = [
-    "e_front_left",
     "a_front_center",
     "a_front_right",
     "a_rear_left",
+    "e_front_left",
     "e_rear_center",
     "e_rear_right",
   ];
@@ -640,13 +641,32 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   // slowest actor, but it must not change the action queue.
   const speedChanged = structuredClone(FIXTURE_CONTENT);
   speedChanged.characters.warden.speed = 100;
-  speedChanged.enemyActors.still_husk.speed = 0;
+  speedChanged.enemyActors.husk_bulwark.speed = 0;
   assert.deepEqual(
     positionOrder(speedChanged),
     expected,
     "speed does not affect initiative",
   );
   checks += 1;
+}
+
+{
+  const result = run(SIDE_PHASE_BATTLE);
+  const activations = of(result, "actor_activated")
+    .filter((event) => event.round === 1)
+    .map((event) => event.sourceActorId);
+  assert.deepEqual(
+    activations,
+    ["a_pivot", "a_warden", "e_front", "e_rear", "a_pivot"],
+    "AP 2 returns on the next ally pass after the enemy phase",
+  );
+  checks += 1;
+  equal(
+    of(result, "actor_activated").filter(
+      (event) => event.sourceActorId === "a_pivot" && event.round === 1,
+    )[1].values.activation,
+    2,
+  );
 }
 
 // ---- §14 the ordinary fixtures stay far below the caps --------------------------
@@ -662,4 +682,3 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     `${battle.battleId} longest chain ${result.metrics.maxChainEventCount}, under 10% of the chain cap`,
   );
 }
-
