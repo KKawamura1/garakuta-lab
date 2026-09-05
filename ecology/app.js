@@ -700,7 +700,7 @@ function shell(title, subtitle, body, options = {}) {
         : button("ギルドへ", "back-guild", false, "menu-button");
   const headerClass = options.titleScreen ? "header title-header" : "header";
   const footer = options.hideFooter
-    ? ""
+    ? "<span class=\"build-stamp\" aria-hidden=\"true\">build " + esc(BUILD) + "</span>"
     : "<footer>遠征 " + esc(String(state.run.runId).slice(0, 8)) + " · seed " + esc(state.run.runSeed)
       + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion)
       + "<br>build " + esc(BUILD) + "</footer>";
