@@ -19,7 +19,7 @@
 |---|---|
 | `ecology-anti-stall-audit.mjs` | 回復・反応の停止性監査 |
 | `ecology-contract-smoke.mjs` | content 契約と凍結 ID の照合 |
-| `ecology-equipment-gen-smoke.mjs` | 手続き生成装備の決定性と完結性 |
+| `ecology-equipment-gen-smoke.mjs` | 装備の手続き生成の決定性と完結性 |
 | `ecology-readout-smoke.mjs` | 表示値と content の照合 |
 | `ecology-screens-smoke.mjs` | 画面と主要操作の接続 |
 | `ecology-test-hygiene-smoke.mjs` | 明らかな恒真 assert の検出 |
@@ -28,7 +28,7 @@
 画面の通し（Playwright / Chromium）は二本あります。`check-all.sh` には入っていないので、
 画面に触れたときは手で走らせます。
 
-    node analysis/ecology-tutorial-trial.mjs   # 本編の入口（会話・灰の門・巻き戻し・予測・生成装備・根城・図鑑）
+    node analysis/ecology-tutorial-trial.mjs   # 本編の入口（会話・灰の門・巻き戻し・予測・装備・根城・図鑑）
     node analysis/ecology-trial.mjs            # 12戦の長い流れと精算・投資
 
 公開先に対しては GitHub Actions の「Ecology trial (deployed)」から同じ台本を走らせます。

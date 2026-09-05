@@ -302,7 +302,7 @@ export const REGION = Object.freeze({
   // R6 §5.2 の regionLawIds。**Phase B では法則を1つも足していない**ので空にする。
   // 空の実装や架空 id を先に置かない（R7 §4.3）。
   regionLawIds: Object.freeze([]),
-  rewardTableId: "fixed_equipment_1",
+  rewardTableId: "equipment_1",
   actBossIds: Object.freeze(["gray_bulwark", "gray_echo", "ash_core"]),
   actBossLawIds: Object.freeze(["law_bulwark_wall", "law_echo_return", "law_core_charge"]),
 });

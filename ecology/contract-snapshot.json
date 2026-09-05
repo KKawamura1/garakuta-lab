@@ -9081,7 +9081,7 @@
   ],
   "enemyFamilyText": "灰殻（husk）— 走者・後撃ち・守衛・狩人・反響体・盾兵・核",
   "regionLawIds": [],
-  "rewardTableId": "fixed_equipment_1",
+  "rewardTableId": "equipment_1",
   "actBossIds": [
    "gray_bulwark",
    "gray_echo",
@@ -18011,7 +18011,7 @@
     "law_core_charge"
    ],
    "regionLawIds": [],
-   "rewardTableId": "fixed_equipment_1"
+   "rewardTableId": "equipment_1"
   },
   "frontier-1801-abc12345": {
    "manifestVersion": "ecology-manifest-2",
@@ -18051,7 +18051,7 @@
     "law_core_charge"
    ],
    "regionLawIds": [],
-   "rewardTableId": "fixed_equipment_1"
+   "rewardTableId": "equipment_1"
   },
   "frontier-1801-zzz": {
    "manifestVersion": "ecology-manifest-2",
@@ -18090,7 +18090,7 @@
     "law_core_charge"
    ],
    "regionLawIds": [],
-   "rewardTableId": "fixed_equipment_1"
+   "rewardTableId": "equipment_1"
   }
  },
  "metaUpgrades": [
@@ -18127,15 +18127,6 @@
     "120000",
     "300000",
     "750000"
-   ]
-  },
-  {
-   "id": "equipment_pool.group_repair",
-   "category": "equipment_pool",
-   "displayName": "修理の品",
-   "maxLevel": 1,
-   "costs": [
-    "12000"
    ]
   }
  ],
@@ -18234,10 +18225,6 @@
  },
  "runRewards": {
   "frontier-1801/1/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "anchor_boots"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -18465,15 +18452,232 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_f3deb5a2d9611fd2",
+    "item": {
+     "definition": {
+      "id": "gen_f3deb5a2d9611fd2",
+      "displayName": "仕留めの受け止めの小盾",
+      "maxDurability": 3,
+      "rules": [
+       {
+        "id": "gen_f3deb5a2d9611fd2_r0",
+        "listenTo": "actor_defeated",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "enemies",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "hp_percent",
+          "subject": "self",
+          "op": "gte",
+          "value": 70
+         }
+        ],
+        "costs": [
+         {
+          "type": "consume_barrier",
+          "amount": 3
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_block",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            },
+            {
+             "type": "row_is",
+             "row": "front"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         },
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 22
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       },
+       {
+        "id": "gen_f3deb5a2d9611fd2_r1",
+        "listenTo": "damage_blocked",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [
+         {
+          "type": "lose_hp",
+          "amount": 3
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_block",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            },
+            {
+             "type": "row_is",
+             "row": "front"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "epic"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|epic|dur3|-|-|src_execute/cnv_unhurt/cst_shield_toll/pay_brace@1+pay_ward@22/chainx1;src_blocked/-/cst_blood/pay_brace@1/chainx1",
+     "rarity": "epic",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801",
+      "dropIndex": 103,
+      "rarity": "epic",
+      "familyIds": [
+       "family_edge",
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 0,
+      "descriptor": "ecology-equipment-gen-1|epic|dur3|-|-|src_execute/cnv_unhurt/cst_shield_toll/pay_brace@1+pay_ward@22/chainx1;src_blocked/-/cst_blood/pay_brace@1/chainx1",
+      "affixIds": [
+       "src_execute",
+       "cnv_unhurt",
+       "cst_shield_toll",
+       "pay_brace",
+       "pay_ward",
+       "src_blocked",
+       "cst_blood",
+       "pay_brace"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 3,
+       "rules": [
+        {
+         "listenTo": "actor_defeated",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1,
+          22
+         ]
+        },
+        {
+         "listenTo": "damage_blocked",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 1
+      }
+     },
+     "readout": {
+      "rarity": "epic",
+      "familyIds": [
+       "family_edge",
+       "family_wall"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "敵が倒れたとき・自分のHPが70%以上のとき、防壁3を払い、前列の味方へ受け止め（1）、自分へ防壁（22）。一連の解決につき1回。",
+       "自分が受け止め（block）で攻撃を止めたとき、HP3を払い、前列の味方へ受け止め（1）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801/1/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "signal_lens"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -18618,15 +18822,141 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_8c0c388091cc7ac4",
+    "item": {
+     "definition": {
+      "id": "gen_8c0c388091cc7ac4",
+      "displayName": "余りの護符",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_8c0c388091cc7ac4_r0",
+        "listenTo": "resource_unused",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [
+         {
+          "type": "lose_hp",
+          "amount": 3
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_block",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            },
+            {
+             "type": "row_is",
+             "row": "front"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/-/cst_blood/pay_brace@1/chainx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801",
+      "dropIndex": 113,
+      "rarity": "common",
+      "familyIds": [
+       "family_edge",
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 1,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/-/cst_blood/pay_brace@1/chainx1",
+      "affixIds": [
+       "src_leftover",
+       "cst_blood",
+       "pay_brace"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "resource_unused",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 1
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "round 終わりに行動権が余っていたとき、HP3を払い、前列の味方へ受け止め（1）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801/5/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "standing_plate"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -18822,15 +19152,139 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_72278561e0351187",
+    "item": {
+     "definition": {
+      "id": "gen_72278561e0351187",
+      "displayName": "満ちた杖頭",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_72278561e0351187_r0",
+        "listenTo": "preparation_completed",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_source"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "hp_percent",
+          "subject": "self",
+          "op": "lte",
+          "value": 50
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 11
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_drawn/cnv_desperate/-/pay_shelter@11/roundx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801",
+      "dropIndex": 503,
+      "rarity": "common",
+      "familyIds": [
+       "family_edge",
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 8,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_drawn/cnv_desperate/-/pay_shelter@11/roundx1",
+      "affixIds": [
+       "src_drawn",
+       "cnv_desperate",
+       "pay_shelter"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "preparation_completed",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          11
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 5
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分の準備が完了したとき・自分のHPが50%以下のとき、最も傷ついた味方へ防壁（11）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801/5/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "splinter_edge"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -18970,15 +19424,139 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_87e2884f5e1bec76",
+    "item": {
+     "definition": {
+      "id": "gen_87e2884f5e1bec76",
+      "displayName": "余りの手甲",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_87e2884f5e1bec76_r0",
+        "listenTo": "resource_unused",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "position",
+          "subject": "self",
+          "op": "eq",
+          "row": "rear"
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 11
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/cnv_rearguard/-/pay_shelter@11/chainx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801",
+      "dropIndex": 514,
+      "rarity": "common",
+      "familyIds": [
+       "family_edge",
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 6,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/cnv_rearguard/-/pay_shelter@11/chainx1",
+      "affixIds": [
+       "src_leftover",
+       "cnv_rearguard",
+       "pay_shelter"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "resource_unused",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          11
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 5
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "round 終わりに行動権が余っていたとき・自分が後列にいるとき、最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801/11/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "focus_band"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -19101,15 +19679,139 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_70019e42e98f16bf",
+    "item": {
+     "definition": {
+      "id": "gen_70019e42e98f16bf",
+      "displayName": "踏み出しの護符",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_70019e42e98f16bf_r0",
+        "listenTo": "actor_moved",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "round_number",
+          "op": "gte",
+          "value": 3
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "deal_damage",
+          "target": {
+           "scope": "enemies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 11
+          },
+          "tags": [
+           "affix"
+          ]
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_stride/cnv_late/-/pay_cull@11/roundx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801",
+      "dropIndex": 1103,
+      "rarity": "common",
+      "familyIds": [
+       "family_edge",
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 2,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_stride/cnv_late/-/pay_cull@11/roundx1",
+      "affixIds": [
+       "src_stride",
+       "cnv_late",
+       "pay_cull"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "actor_moved",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          11
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 11
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "damage"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が動いたとき・3 round 目以降、最も弱った敵へダメージ（11）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801/11/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "anchor_boots"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -19252,15 +19954,210 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_255318ede05ff353",
+    "item": {
+     "definition": {
+      "id": "gen_255318ede05ff353",
+      "displayName": "満ちた庇いの灯",
+      "maxDurability": 3,
+      "rules": [
+       {
+        "id": "gen_255318ede05ff353_r0",
+        "listenTo": "preparation_completed",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_source"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "round_number",
+          "op": "lte",
+          "value": 2
+         },
+         {
+          "type": "resource",
+          "subject": "self",
+          "resource": "reaction_points",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "costs": [
+         {
+          "type": "lose_hp",
+          "amount": 3
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 18
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       },
+       {
+        "id": "gen_255318ede05ff353_r1",
+        "listenTo": "resource_unused",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "round_number",
+          "op": "lte",
+          "value": 2
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 22
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "epic"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|epic|dur3|-|-|src_drawn/cnv_opening+cnv_reserved/cst_blood/pay_shelter@18/roundx1;src_leftover/cnv_opening/-/pay_ward@22/roundx1",
+     "rarity": "epic",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801",
+      "dropIndex": 1113,
+      "rarity": "epic",
+      "familyIds": [
+       "family_edge",
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 0,
+      "descriptor": "ecology-equipment-gen-1|epic|dur3|-|-|src_drawn/cnv_opening+cnv_reserved/cst_blood/pay_shelter@18/roundx1;src_leftover/cnv_opening/-/pay_ward@22/roundx1",
+      "affixIds": [
+       "src_drawn",
+       "cnv_opening",
+       "cnv_reserved",
+       "cst_blood",
+       "pay_shelter",
+       "src_leftover",
+       "cnv_opening",
+       "pay_ward"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 3,
+       "rules": [
+        {
+         "listenTo": "preparation_completed",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          18
+         ]
+        },
+        {
+         "listenTo": "resource_unused",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          22
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 11
+      }
+     },
+     "readout": {
+      "rarity": "epic",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分の準備が完了したとき・2 round 目まで・反応点が1以上残っているとき、HP3を払い、最も傷ついた味方へ防壁（18）。1 roundにつき1回。",
+       "round 終わりに行動権が余っていたとき・2 round 目まで、自分へ防壁（22）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-abc12345/1/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "tempo_buckle"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -19384,15 +20281,132 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_2e6688a68fb3ae76",
+    "item": {
+     "definition": {
+      "id": "gen_2e6688a68fb3ae76",
+      "displayName": "踏み出しの首飾り",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_2e6688a68fb3ae76_r0",
+        "listenTo": "actor_moved",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 6
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_stride/-/-/pay_shelter@6/roundx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-abc12345",
+      "dropIndex": 103,
+      "rarity": "common",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar",
+       "family_barrage"
+      ],
+      "attempt": 1,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_stride/-/-/pay_shelter@6/roundx1",
+      "affixIds": [
+       "src_stride",
+       "pay_shelter"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "actor_moved",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          6
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-abc12345",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 1
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が動いたとき、最も傷ついた味方へ防壁（6）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-abc12345/1/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "thorn_clasp"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -19511,15 +20525,161 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_00540bf63ff68b63",
+    "item": {
+     "definition": {
+      "id": "gen_00540bf63ff68b63",
+      "displayName": "踏み出しの鎖",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_00540bf63ff68b63_r0",
+        "listenTo": "actor_moved",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "round_number",
+          "op": "gte",
+          "value": 3
+         },
+         {
+          "type": "history_count",
+          "subject": "self",
+          "metric": "active_actions",
+          "window": "round",
+          "op": "gte",
+          "value": 2
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 22
+          },
+          "duration": "round"
+         },
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 18
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "rare"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|rare|dur2|-|-|src_stride/cnv_late+cnv_relentless/-/pay_ward@22+pay_shelter@18/chainx1",
+     "rarity": "rare",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-abc12345",
+      "dropIndex": 113,
+      "rarity": "rare",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar",
+       "family_barrage"
+      ],
+      "attempt": 3,
+      "descriptor": "ecology-equipment-gen-1|rare|dur2|-|-|src_stride/cnv_late+cnv_relentless/-/pay_ward@22+pay_shelter@18/chainx1",
+      "affixIds": [
+       "src_stride",
+       "cnv_late",
+       "cnv_relentless",
+       "pay_ward",
+       "pay_shelter"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "actor_moved",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          22,
+          18
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-abc12345",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 1
+      }
+     },
+     "readout": {
+      "rarity": "rare",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が動いたとき・3 round 目以降・この round に自分が2回以上行動したあと、自分へ防壁（22）、最も傷ついた味方へ防壁（18）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-abc12345/5/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "momentum_rig"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -19633,15 +20793,236 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_3dbe11fab53d1d94",
+    "item": {
+     "definition": {
+      "id": "gen_3dbe11fab53d1d94",
+      "displayName": "受けの防壁の鈴",
+      "maxDurability": 3,
+      "rules": [
+       {
+        "id": "gen_3dbe11fab53d1d94_r0",
+        "listenTo": "damage_blocked",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "has_status",
+          "subject": "self",
+          "statusId": "focused",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 14
+          },
+          "duration": "round"
+         },
+         {
+          "type": "gain_block",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            },
+            {
+             "type": "row_is",
+             "row": "front"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       },
+       {
+        "id": "gen_3dbe11fab53d1d94_r1",
+        "listenTo": "damage_taken",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "has_status",
+          "subject": "self",
+          "statusId": "focused",
+          "op": "gte",
+          "value": 1
+         },
+         {
+          "type": "hp_percent",
+          "subject": "self",
+          "op": "gte",
+          "value": 70
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "deal_damage",
+          "target": {
+           "scope": "enemies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_desc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 18
+          },
+          "tags": [
+           "affix"
+          ]
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "epic"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|epic|dur3|-|-|src_blocked/cnv_focused/-/pay_ward@14+pay_brace@1/roundx1;src_wounded/cnv_focused+cnv_unhurt/-/pay_breach@18/chainx1",
+     "rarity": "epic",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-abc12345",
+      "dropIndex": 503,
+      "rarity": "epic",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar",
+       "family_barrage"
+      ],
+      "attempt": 2,
+      "descriptor": "ecology-equipment-gen-1|epic|dur3|-|-|src_blocked/cnv_focused/-/pay_ward@14+pay_brace@1/roundx1;src_wounded/cnv_focused+cnv_unhurt/-/pay_breach@18/chainx1",
+      "affixIds": [
+       "src_blocked",
+       "cnv_focused",
+       "pay_ward",
+       "pay_brace",
+       "src_wounded",
+       "cnv_focused",
+       "cnv_unhurt",
+       "pay_breach"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 3,
+       "rules": [
+        {
+         "listenTo": "damage_blocked",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          14,
+          1
+         ]
+        },
+        {
+         "listenTo": "damage_taken",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          18
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-abc12345",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 5
+      }
+     },
+     "readout": {
+      "rarity": "epic",
+      "familyIds": [
+       "family_wall",
+       "family_scar"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff",
+       "damage"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が受け止め（block）で攻撃を止めたとき・自分に集中が付いているとき、自分へ防壁（14）、前列の味方へ受け止め（1）。1 roundにつき1回。",
+       "自分がHPダメージを受けたとき・自分に集中が付いているとき・自分のHPが70%以上のとき、最も硬い敵へダメージ（18）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-abc12345/5/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "tempo_buckle"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -19765,15 +21146,161 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_1712678b2bbb3da3",
+    "item": {
+     "definition": {
+      "id": "gen_1712678b2bbb3da3",
+      "displayName": "踏み出しの鞘",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_1712678b2bbb3da3_r0",
+        "listenTo": "actor_moved",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "has_status",
+          "subject": "self",
+          "statusId": "focused",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "costs": [
+         {
+          "type": "consume_barrier",
+          "amount": 3
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_resource",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "resource": "action_points",
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         },
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 11
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "rare"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|rare|dur2|-|-|src_stride/cnv_focused/cst_shield_toll/pay_relay_ap@1+pay_shelter@11/chainx1",
+     "rarity": "rare",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-abc12345",
+      "dropIndex": 514,
+      "rarity": "rare",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar",
+       "family_barrage"
+      ],
+      "attempt": 1,
+      "descriptor": "ecology-equipment-gen-1|rare|dur2|-|-|src_stride/cnv_focused/cst_shield_toll/pay_relay_ap@1+pay_shelter@11/chainx1",
+      "affixIds": [
+       "src_stride",
+       "cnv_focused",
+       "cst_shield_toll",
+       "pay_relay_ap",
+       "pay_shelter"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "actor_moved",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1,
+          11
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-abc12345",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 5
+      }
+     },
+     "readout": {
+      "rarity": "rare",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "tempo",
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が動いたとき・自分に集中が付いているとき、防壁3を払い、自分へ行動点（1）、最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-abc12345/11/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "momentum_rig"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -19905,15 +21432,127 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_094400eb5a558d6a",
+    "item": {
+     "definition": {
+      "id": "gen_094400eb5a558d6a",
+      "displayName": "踏み出しの杖頭",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_094400eb5a558d6a_r0",
+        "listenTo": "actor_moved",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "position",
+          "subject": "self",
+          "op": "eq",
+          "row": "front"
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "add_status",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "statusId": "focused",
+          "stacks": 1
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_stride/cnv_vanguard/-/pay_sharpen@1/chainx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-abc12345",
+      "dropIndex": 1103,
+      "rarity": "common",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar",
+       "family_barrage"
+      ],
+      "attempt": 1,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_stride/cnv_vanguard/-/pay_sharpen@1/chainx1",
+      "affixIds": [
+       "src_stride",
+       "cnv_vanguard",
+       "pay_sharpen"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "actor_moved",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-abc12345",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 11
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "setup"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が動いたとき・自分が前列にいるとき、自分へ集中（1）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-abc12345/11/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "thorn_clasp"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -20024,15 +21663,166 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_eb3331efd808b2c4",
+    "item": {
+     "definition": {
+      "id": "gen_eb3331efd808b2c4",
+      "displayName": "踏み出しの外套",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_eb3331efd808b2c4_r0",
+        "listenTo": "actor_moved",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [
+         {
+          "type": "lose_hp",
+          "amount": 3
+         }
+        ],
+        "effects": [
+         {
+          "type": "deal_damage",
+          "target": {
+           "scope": "enemies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_desc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 6
+          },
+          "tags": [
+           "affix"
+          ]
+         },
+         {
+          "type": "gain_block",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            },
+            {
+             "type": "row_is",
+             "row": "front"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "rare"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|rare|dur2|-|-|src_stride/-/cst_blood/pay_breach@6+pay_brace@1/roundx1",
+     "rarity": "rare",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-abc12345",
+      "dropIndex": 1113,
+      "rarity": "rare",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar",
+       "family_barrage"
+      ],
+      "attempt": 0,
+      "descriptor": "ecology-equipment-gen-1|rare|dur2|-|-|src_stride/-/cst_blood/pay_breach@6+pay_brace@1/roundx1",
+      "affixIds": [
+       "src_stride",
+       "cst_blood",
+       "pay_breach",
+       "pay_brace"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "actor_moved",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          6,
+          1
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-abc12345",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 11
+      }
+     },
+     "readout": {
+      "rarity": "rare",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "damage",
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が動いたとき、HP3を払い、最も硬い敵へダメージ（6）、前列の味方へ受け止め（1）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-zzz/1/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "thorn_clasp"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -20163,15 +21953,129 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_7bb0b03758afd5ce",
+    "item": {
+     "definition": {
+      "id": "gen_7bb0b03758afd5ce",
+      "displayName": "余りの肩当て",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_7bb0b03758afd5ce_r0",
+        "listenTo": "resource_unused",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "position",
+          "subject": "self",
+          "op": "eq",
+          "row": "front"
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 14
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/cnv_vanguard/-/pay_ward@14/roundx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-zzz",
+      "dropIndex": 103,
+      "rarity": "common",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 2,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/cnv_vanguard/-/pay_ward@14/roundx1",
+      "affixIds": [
+       "src_leftover",
+       "cnv_vanguard",
+       "pay_ward"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "resource_unused",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          14
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-zzz",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 1
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense"
+      ],
+      "keystone": null,
+      "lines": [
+       "round 終わりに行動権が余っていたとき・自分が前列にいるとき、自分へ防壁（14）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-zzz/1/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "tempo_buckle"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -20502,15 +22406,312 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_87f311e9925079a2",
+    "item": {
+     "definition": {
+      "id": "gen_87f311e9925079a2",
+      "displayName": "傷の受け止めの灯",
+      "maxDurability": 3,
+      "rules": [
+       {
+        "id": "gen_87f311e9925079a2_r0",
+        "listenTo": "damage_taken",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "resource",
+          "subject": "self",
+          "resource": "reaction_points",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_block",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            },
+            {
+             "type": "row_is",
+             "row": "front"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       },
+       {
+        "id": "gen_87f311e9925079a2_r1",
+        "listenTo": "actor_moved",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         },
+         {
+          "type": "position",
+          "subject": "self",
+          "op": "eq",
+          "row": "rear"
+         },
+         {
+          "type": "resource",
+          "subject": "self",
+          "resource": "reaction_points",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "costs": [
+         {
+          "type": "lose_hp",
+          "amount": 3
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_resource",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "resource": "action_points",
+          "amount": {
+           "type": "constant",
+           "value": 2
+          }
+         },
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 18
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "battle",
+         "count": 1
+        }
+       },
+       {
+        "id": "gen_87f311e9925079a2_r2",
+        "listenTo": "damage_blocked",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [
+         {
+          "type": "wear_equipment",
+          "amount": 1
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_resource",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "resource": "reaction_points",
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         },
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 8
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "legendary"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|legendary|dur3|-|-|src_wounded/cnv_reserved/-/pay_brace@1/chainx1;src_stride/cnv_rearguard+cnv_reserved/cst_blood/pay_relay_ap@2+pay_shelter@18/battlex1;src_blocked/-/cst_wear/pay_relay_rp@1+pay_ward@8/chainx1",
+     "rarity": "legendary",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-zzz",
+      "dropIndex": 113,
+      "rarity": "legendary",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 0,
+      "descriptor": "ecology-equipment-gen-1|legendary|dur3|-|-|src_wounded/cnv_reserved/-/pay_brace@1/chainx1;src_stride/cnv_rearguard+cnv_reserved/cst_blood/pay_relay_ap@2+pay_shelter@18/battlex1;src_blocked/-/cst_wear/pay_relay_rp@1+pay_ward@8/chainx1",
+      "affixIds": [
+       "src_wounded",
+       "cnv_reserved",
+       "pay_brace",
+       "src_stride",
+       "cnv_rearguard",
+       "cnv_reserved",
+       "cst_blood",
+       "pay_relay_ap",
+       "pay_shelter",
+       "src_blocked",
+       "cst_wear",
+       "pay_relay_rp",
+       "pay_ward"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 3,
+       "rules": [
+        {
+         "listenTo": "damage_taken",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1
+         ]
+        },
+        {
+         "listenTo": "actor_moved",
+         "limit": {
+          "scope": "battle",
+          "count": 1
+         },
+         "amounts": [
+          2,
+          18
+         ]
+        },
+        {
+         "listenTo": "damage_blocked",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1,
+          8
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-zzz",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 1
+      }
+     },
+     "readout": {
+      "rarity": "legendary",
+      "familyIds": [
+       "family_scar",
+       "family_tempo",
+       "family_wall"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff",
+       "tempo"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分がHPダメージを受けたとき・反応点が1以上残っているとき、前列の味方へ受け止め（1）。一連の解決につき1回。",
+       "自分が動いたとき・自分が後列にいるとき・反応点が1以上残っているとき、HP3を払い、自分へ行動点（2）、最も傷ついた味方へ防壁（18）。1戦につき1回。",
+       "自分が受け止め（block）で攻撃を止めたとき、耐久1を払い、自分へ反応点（1）、自分へ防壁（8）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-zzz/5/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "standing_plate"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -20662,15 +22863,122 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_8991e3b72f94a43e",
+    "item": {
+     "definition": {
+      "id": "gen_8991e3b72f94a43e",
+      "displayName": "余りの腕輪",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_8991e3b72f94a43e_r0",
+        "listenTo": "resource_unused",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 8
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/-/-/pay_ward@8/roundx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-zzz",
+      "dropIndex": 503,
+      "rarity": "common",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 5,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_leftover/-/-/pay_ward@8/roundx1",
+      "affixIds": [
+       "src_leftover",
+       "pay_ward"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "resource_unused",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          8
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-zzz",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 5
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense"
+      ],
+      "keystone": null,
+      "lines": [
+       "round 終わりに行動権が余っていたとき、自分へ防壁（8）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-zzz/5/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "standing_plate"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -20893,15 +23201,122 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_04aa1aae624722c6",
+    "item": {
+     "definition": {
+      "id": "gen_04aa1aae624722c6",
+      "displayName": "満ちた留め具",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_04aa1aae624722c6_r0",
+        "listenTo": "preparation_completed",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_source"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [],
+        "effects": [
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 8
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_drawn/-/-/pay_ward@8/roundx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-zzz",
+      "dropIndex": 513,
+      "rarity": "common",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 5,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_drawn/-/-/pay_ward@8/roundx1",
+      "affixIds": [
+       "src_drawn",
+       "pay_ward"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "preparation_completed",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          8
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-zzz",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 5
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_tempo"
+      ],
+      "payoffTags": [
+       "defense"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分の準備が完了したとき、自分へ防壁（8）。1 roundにつき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-zzz/11/0": [
-   {
-    "type": "equipment",
-    "equipmentId": "reserve_coil"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -21032,15 +23447,144 @@
     }
    },
    {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_333731133e33456b",
+    "item": {
+     "definition": {
+      "id": "gen_333731133e33456b",
+      "displayName": "傷の手袋",
+      "maxDurability": 3,
+      "rules": [
+       {
+        "id": "gen_333731133e33456b_r0",
+        "listenTo": "damage_taken",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [
+         {
+          "type": "wear_equipment",
+          "amount": 1
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_resource",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "resource": "reaction_points",
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         },
+         {
+          "type": "gain_barrier",
+          "target": {
+           "scope": "self",
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 8
+          },
+          "duration": "round"
+         }
+        ],
+        "limit": {
+         "scope": "chain",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "rare"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|rare|dur3|-|stb_tough|src_wounded/-/cst_wear/pay_relay_rp@1+pay_ward@8/chainx1",
+     "rarity": "rare",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-zzz",
+      "dropIndex": 1103,
+      "rarity": "rare",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 2,
+      "descriptor": "ecology-equipment-gen-1|rare|dur3|-|stb_tough|src_wounded/-/cst_wear/pay_relay_rp@1+pay_ward@8/chainx1",
+      "affixIds": [
+       "stb_tough",
+       "src_wounded",
+       "cst_wear",
+       "pay_relay_rp",
+       "pay_ward"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 3,
+       "rules": [
+        {
+         "listenTo": "damage_taken",
+         "limit": {
+          "scope": "chain",
+          "count": 1
+         },
+         "amounts": [
+          1,
+          8
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-zzz",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 11
+      }
+     },
+     "readout": {
+      "rarity": "rare",
+      "familyIds": [
+       "family_scar"
+      ],
+      "payoffTags": [
+       "tempo",
+       "defense"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分がHPダメージを受けたとき、耐久1を払い、自分へ反応点（1）、自分へ防壁（8）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
     "type": "supplies",
     "amount": 1
    }
   ],
   "frontier-1801-zzz/11/1": [
-   {
-    "type": "equipment",
-    "equipmentId": "reserve_coil"
-   },
    {
     "type": "equipment",
     "generated": true,
@@ -21165,6 +23709,135 @@
       "keystone": null,
       "lines": [
        "自分が受け止め（block）で攻撃を止めたとき・自分が前列にいるとき、仕掛けてきた敵へダメージ（14）。一連の解決につき1回。"
+      ]
+     }
+    }
+   },
+   {
+    "type": "equipment",
+    "generated": true,
+    "equipmentId": "gen_e42daab565a2f329",
+    "item": {
+     "definition": {
+      "id": "gen_e42daab565a2f329",
+      "displayName": "受けの外套",
+      "maxDurability": 2,
+      "rules": [
+       {
+        "id": "gen_e42daab565a2f329_r0",
+        "listenTo": "damage_blocked",
+        "timing": "after",
+        "priority": 100,
+        "predicates": [
+         {
+          "type": "target_exists",
+          "query": {
+           "scope": "self",
+           "filters": [
+            {
+             "type": "is_event_primary_target"
+            }
+           ],
+           "take": 1
+          }
+         }
+        ],
+        "costs": [
+         {
+          "type": "wear_equipment",
+          "amount": 1
+         }
+        ],
+        "effects": [
+         {
+          "type": "gain_block",
+          "target": {
+           "scope": "allies",
+           "filters": [
+            {
+             "type": "alive"
+            },
+            {
+             "type": "row_is",
+             "row": "front"
+            }
+           ],
+           "sort": [
+            "hp_asc"
+           ],
+           "take": 1
+          },
+          "amount": {
+           "type": "constant",
+           "value": 1
+          }
+         }
+        ],
+        "limit": {
+         "scope": "round",
+         "count": 1
+        }
+       }
+      ],
+      "tags": [
+       "generated",
+       "common"
+      ]
+     },
+     "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_blocked/-/cst_wear/pay_brace@1/roundx1",
+     "rarity": "common",
+     "provenance": {
+      "generatorVersion": "ecology-equipment-gen-1",
+      "contentContractVersion": "ecology-content-contract-9",
+      "seed": "frontier-1801-zzz",
+      "dropIndex": 1113,
+      "rarity": "common",
+      "familyIds": [
+       "family_wall",
+       "family_tempo",
+       "family_scar"
+      ],
+      "attempt": 5,
+      "descriptor": "ecology-equipment-gen-1|common|dur2|-|-|src_blocked/-/cst_wear/pay_brace@1/roundx1",
+      "affixIds": [
+       "src_blocked",
+       "cst_wear",
+       "pay_brace"
+      ],
+      "resolvedParameters": {
+       "maxDurability": 2,
+       "rules": [
+        {
+         "listenTo": "damage_blocked",
+         "limit": {
+          "scope": "round",
+          "count": 1
+         },
+         "amounts": [
+          1
+         ]
+        }
+       ]
+      },
+      "origin": {
+       "runId": "frontier-1801-zzz",
+       "regionId": "ash_frontier",
+       "campaignStageId": null,
+       "encounterIndex": 11
+      }
+     },
+     "readout": {
+      "rarity": "common",
+      "familyIds": [
+       "family_wall"
+      ],
+      "payoffTags": [
+       "defense",
+       "handoff"
+      ],
+      "keystone": null,
+      "lines": [
+       "自分が受け止め（block）で攻撃を止めたとき、耐久1を払い、前列の味方へ受け止め（1）。1 roundにつき1回。"
       ]
      }
     }

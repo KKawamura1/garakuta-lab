@@ -1,6 +1,6 @@
 // ecology/content/affixes.mjs
 //
-// **Phase C の affix 目録。R8 §3.5「手続き生成装備」と §13.2「Phase C生成装備」。**
+// **Phase C の affix 目録。装備を手続きで組み立てるための語彙。**
 //
 // affix は装備そのものではない。**一つの完結 rule を組み立てるための部品**で、
 // R8 §3.5 が決めた文法

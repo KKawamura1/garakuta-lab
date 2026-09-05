@@ -1408,10 +1408,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 
 .character-stats .trained { color: var(--gold); font-style: normal; }
 
-/* ---------------------------------------------------------------- Phase C 生成装備と Blueprint
+/* ---------------------------------------------------------------- 遠征装備と Blueprint
  *
- * 生成装備は固定装備と同じ枠に並ぶ。**別の場所へ隔離しない**（同じ2枠を取り合う
- * ものなので、見比べられないと選べない）。等級だけを色で分ける。 */
+ * 遠征で拾う装備も、通常の装備として同じ枠に並べる。等級だけを色で分ける。 */
 .rarity-chip {
   display: inline-block;
   margin-left: 6px;
@@ -1438,12 +1437,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   vertical-align: middle;
 }
 
-.gear-card.generated { border-left: 2px solid var(--violet); }
-.gear-card.generated .gear-icon { color: var(--violet); }
 .gear-card .gear-copy small + small { margin-top: 3px; }
 
-.reward-card.generated { border-color: #4d4066; }
-.reward-card.generated p { min-height: 0; }
 .reward-card.disabled { opacity: .55; }
 .keystone-line { color: var(--gold); font-size: 11px; }
 

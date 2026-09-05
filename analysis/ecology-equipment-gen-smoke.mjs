@@ -1,4 +1,4 @@
-// **生成装備が「形として正しい」だけでなく「実際に鳴る」かを見る診断。**
+// **装備の生成処理が「形として正しい」だけでなく「実際に鳴る」かを見る診断。**
 // R8 §3.5 / §13.2 / Implementation Phase 4 step 2。
 //
 // ecology/phase-c.test.mjs は契約（決定性・budget・完結 rule）を見る。ここは
@@ -31,7 +31,7 @@ const STAGE_POOLS = [
 
 // ---- 1. Stage の pool で全 rarity が作れる ---------------------------------
 
-let generatedCount = 0;
+let equipmentCount = 0;
 const items = [];
 for (const [stage, familyIds] of STAGE_POOLS.entries()) {
   for (const rarity of RARITIES) {
@@ -39,7 +39,7 @@ for (const [stage, familyIds] of STAGE_POOLS.entries()) {
       try {
         const item = generateEquipment({ seed: "smoke-" + stage, dropIndex, rarity, familyIds });
         items.push(item);
-        generatedCount += 1;
+        equipmentCount += 1;
       } catch (error) {
         problems.push(`stage ${stage} / ${rarity} / drop ${dropIndex}: ${error.message}`);
       }
@@ -110,8 +110,12 @@ for (let sequence = 0; sequence <= 3; sequence += 1) {
       invalidRewardOffers += 1;
     }
     for (const offer of offers) {
-      if (offer.type !== "equipment" || !offer.generated) continue;
-      if (!offer.item.readout.lines.length) problems.push(`報酬の生成装備に説明文が無い（${offer.equipmentId}）`);
+      if (offer.type !== "equipment") continue;
+      if (!offer.generated || !offer.item) {
+        problems.push("報酬の装備に遠征ごとの定義が無い（" + offer.equipmentId + "）");
+      } else if (!offer.item.readout.lines.length) {
+        problems.push("報酬の装備に説明文が無い（" + offer.equipmentId + "）");
+      }
     }
     if (offers.some((offer) => offer.type === "generator_error")) {
       problems.push(`stage ${sequence} 第${index}戦の報酬で生成に失敗した`);
@@ -142,7 +146,7 @@ if (problems.length) {
 
 console.log("ecology-equipment-gen smoke: "
   + JSON.stringify({
-    generated: generatedCount,
+    equipment: equipmentCount,
     triggers: seenBySource.size,
     rewardOffers: offersChecked,
   }));
