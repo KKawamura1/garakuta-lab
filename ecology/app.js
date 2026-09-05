@@ -1115,6 +1115,7 @@ function render() {
     element.addEventListener("click", handleAction);
   });
   restoreSkillTreeScroll();
+  layoutSkillTreeConnectors();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
 }
@@ -2310,14 +2311,6 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
 }
 
-function renderSkillRails(row) {
-  const rails = row.rails
-    .map((on) => "<i class=\"rail" + (on ? " on" : "") + "\"></i>")
-    .join("");
-  const elbow = row.x > 0 ? "<i class=\"elbow" + (row.last ? " last" : "") + "\"></i>" : "";
-  return "<span class=\"tree-rails\" aria-hidden=\"true\">" + rails + elbow + "</span>";
-}
-
 function renderSkillRow(row, characterId, tone) {
   const node = row.node;
   const info = COMPONENTS[node.skillId];
@@ -2325,8 +2318,10 @@ function renderSkillRow(row, characterId, tone) {
   const selected = state.selectedSkillNode === node.skillId;
   const fork = row.children.length >= 2 ? "<span class=\"node-fork\">分岐 " + row.children.length + "</span>" : "";
   const detail = selected ? renderSkillDetail(row, node, characterId, nodeState) : "";
-  return "<div class=\"tree-row" + tone + (selected ? " selected" : "") + "\" data-row=\"" + esc(row.key) + "\">"
-    + renderSkillRails(row)
+  // **座標は格子のマス目そのもの。**インデントの目分量ではなく、実際の列（x）・行（y）に
+  // 置き、前提・派生の線は layoutSkillTreeConnectors() が節どうしの実位置を測って引く。
+  return "<div class=\"tree-cell" + tone + (selected ? " selected" : "") + "\" data-node=\"" + esc(row.key)
+    + "\" style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
     + "<article class=\"skill-node " + nodeState.stateClass + (selected ? " selected" : "") + "\">"
     + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
     + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
@@ -2340,10 +2335,15 @@ function renderSkillRow(row, characterId, tone) {
     + detail + "</article></div>";
 }
 
+// render() 直後に layoutSkillTreeConnectors() が読む。**線は節の実位置を測ってから
+// 引くので、直前に描いた森がどれだったかをここで覚えておく。**
+let skillTreeConnectorGroup = null;
+
 function renderSkillTree(characterId) {
   const kind = selectedSkillKind();
   const groups = skillTreeLayout();
   const group = groups.find((entry) => entry.kind === kind) ?? groups[0];
+  skillTreeConnectorGroup = group;
   const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
   const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
   const derived = new Set(selectedRow ? selectedRow.descendants : []);
@@ -2361,12 +2361,55 @@ function renderSkillTree(characterId) {
   const legend = selectedRow
     ? "<p class=\"tree-focus\">選択中の前提ルートと派生先だけを強調しています。"
       + button("強調を解除", "select-skill-node", false, "tiny-button", "data-skill=\"\"") + "</p>"
-    : "<p class=\"muted tree-focus\">節を押すと、そこまでの前提ルートと、そこから伸びる派生先が強調されます。</p>";
+    : "<p class=\"muted tree-focus\">節を押すと、そこまでの前提ルートと、そこから伸びる派生先が強調されます。線は前提→派生の向きに引かれています。</p>";
+  const columns = "repeat(" + Math.max(group.depth, 1) + ", var(--tree-col-width))";
   return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
     + "<p class=\"tree-summary\"><b>" + esc(group.label) + "ツリー</b> · " + esc(group.summary)
     + " · 最深 x=" + group.depth + " · 分岐 " + group.forks + "箇所</p>"
     + legend
-    + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\">" + rows + "</div></div>";
+    + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\" data-branch=\""
+    + kind + "\" style=\"grid-template-columns:" + columns + "\">"
+    + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>";
+}
+
+// **線は前提→派生を実座標で結ぶ。**インデントの目分量ではなく、節の実際の位置
+// （offsetLeft/offsetTop、スクロール量に左右されない）を測ってから、列の間に
+// 直角線を引く。render() が innerHTML を差し替えた直後に呼ぶ。
+function layoutSkillTreeConnectors() {
+  const group = skillTreeConnectorGroup;
+  if (!group) return;
+  const forest = app.querySelector(".skill-tree-forest[data-branch=\"" + group.kind + "\"]");
+  const svg = forest?.querySelector(".tree-lines");
+  if (!forest || !svg) return;
+  const nodeEls = new Map();
+  forest.querySelectorAll("[data-node]").forEach((element) => nodeEls.set(element.dataset.node, element));
+  const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
+  const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
+  const derived = new Set(selectedRow ? [selectedRow.key, ...selectedRow.descendants] : []);
+  const edgeTone = (childKey) => {
+    if (!selectedRow) return "";
+    if (childKey === selectedRow.key || onPath.has(childKey)) return " on-path";
+    if (derived.has(childKey)) return " derived";
+    return " faded";
+  };
+  const paths = [];
+  for (const row of group.rows) {
+    if (!row.children.length) continue;
+    const parentElement = nodeEls.get(row.key);
+    if (!parentElement) continue;
+    const startX = parentElement.offsetLeft + parentElement.offsetWidth;
+    const startY = parentElement.offsetTop + parentElement.offsetHeight / 2;
+    for (const childKey of row.children) {
+      const childElement = nodeEls.get(childKey);
+      if (!childElement) continue;
+      const endX = childElement.offsetLeft;
+      const endY = childElement.offsetTop + childElement.offsetHeight / 2;
+      const busX = startX + (endX - startX) / 2;
+      const d = "M " + startX + " " + startY + " H " + busX + " V " + endY + " H " + endX;
+      paths.push("<path class=\"tree-line" + edgeTone(childKey) + "\" d=\"" + d + "\"></path>");
+    }
+  }
+  svg.innerHTML = paths.join("");
 }
 
 function renderSkills() {
