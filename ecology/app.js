@@ -119,6 +119,7 @@ const MANUAL_SAVE_SLOTS = 3;
 const STORY_TYPE_MS = 26;          // 一文字あたりの送り速度
 const STORY_AUTO_HOLD_MS = 1500;   // AUTO で読み終えてから次の行までの待ち
 const STORY_LOG_LIMIT = 60;        // 履歴に残す行数
+const SUPPLY_TUTORIAL_FLAG = "supply_tutorial_seen";
 const app = document.querySelector("#app");
 const positionLabels = {
   front_left: "前列左",
@@ -771,6 +772,32 @@ function funds() {
 // 読んだときだけ null が来る**ので、判定そのものは残す。
 function isCampaignRun() {
   return state.run.campaignStageSequence !== null && state.run.campaignStageSequence !== undefined;
+}
+
+function hasStoryFlag(flag) {
+  return (state.profile.storyFlags ?? []).includes(flag);
+}
+
+// 初回の本編戦闘後にだけ補給の使い方を案内する。序盤の一戦は遠征外なので対象にしない。
+function firstOrdinaryBattleWon() {
+  return isCampaignRun()
+    && state.run.campaignStageSequence === 0
+    && !state.prologueActive
+    && Array.isArray(state.run.results)
+    && state.run.results.some((entry) => entry.encounter === 1 && entry.result === "win");
+}
+
+function shouldShowSupplyTutorialAfterReward() {
+  return firstOrdinaryBattleWon()
+    && state.run.encounterIndex === 1
+    && state.lastResult?.result === "win"
+    && !hasStoryFlag(SUPPLY_TUTORIAL_FLAG);
+}
+
+function supplyTutorialVisible() {
+  return firstOrdinaryBattleWon()
+    && state.run.encounterIndex >= 2
+    && !hasStoryFlag(SUPPLY_TUTORIAL_FLAG);
 }
 
 function currentHp(characterId) {
@@ -2300,23 +2327,31 @@ function renderMap() {
 // 対象は自動選択する（集中治療=最もHP割合の低い生存者、全体手当=生存者全員、
 // 蘇生=最初の戦闘不能者）。simpleな一次実装であり、対象を選ぶUIはまだ無い。
 function campTreatmentBlock() {
+  const tutorial = supplyTutorialVisible();
   const alive = state.run.roster.filter((id) => currentHp(id) > 0);
   const defeated = state.run.roster.filter((id) => currentHp(id) <= 0);
   const rows = Object.values(CAMP_TREATMENTS).map((treatment) => {
     const applicable = treatment.revive ? defeated.length > 0 : alive.some((id) => currentHp(id) < maxHp(id));
     const disabled = state.run.supplies < 1 || !applicable;
-    return "<div class=\"purchase-row\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
+    const focus = tutorial && treatment.id === "concentrated";
+    return "<div class=\"purchase-row" + (focus ? " tutorial-focus" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
       + "</b><small>" + esc(treatment.summary) + "</small></span>"
       + button("補給1で使う", "treat", disabled, "tiny-button primary-mini", "data-treatment=\"" + esc(treatment.id) + "\"")
       + "</div>";
   }).join("");
+  const tutorialGuide = tutorial
+    ? "<div class=\"supply-tutorial\" role=\"status\"><p class=\"eyebrow\">補給チュートリアル</p>"
+      + "<h3>次の戦いに備えましょう</h3>"
+      + "<p>勝てました。でも、傷は残っています。次の戦いへ進む前に、補給で手当てしてみましょう。</p>"
+      + "<p class=\"muted\">まずは「集中治療」を使ってみましょう。補給を1つ使い、最も傷ついた仲間を回復します。</p></div>"
+    : "";
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営で治療する（補給を消費）")
     + "<p class=\"muted\">戦闘外で戻せるHPは、ここで補給を払った分だけです。誰を治療するかは自動選択します"
     + "（集中治療は最もHP割合の低い生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者）。</p>"
     // R13 — ツグミは「戻せるのは、いま受けたぶんだけ」と言う人である。
     // **野営の画面は、その一行があるだけで手当ての意味が変わる。**
     + "<p class=\"world-voice\">戻せるのは、いま受けたぶんだけ。灰でついた古い傷は、外の手当てでは戻らない。</p>"
-    + rows + "</section>";
+    + tutorialGuide + rows + "</section>";
 }
 
 // R8 §11 — exact preview。副作用なしで次戦を1回実行し、結果を表示する。
@@ -3455,6 +3490,8 @@ function scheduleReplayBeat() {
 }
 
 function advanceAfterReward() {
+  const completedEncounter = state.run.encounterIndex;
+  const showSupplyTutorial = shouldShowSupplyTutorialAfterReward();
   state.run.encounterIndex += 1;
   state.rewardOffer = [];
   state.lastResult = null;
@@ -3463,10 +3500,13 @@ function advanceAfterReward() {
   state.replayIndex = 0;
   state.replayPlaying = false;
   state.phase = "camp";
-  state.tab = "map";
+  state.tab = showSupplyTutorial ? "supplies" : "map";
   state.error = null;
   state.run.act = actOfIndex(state.run.encounterIndex);
   record("stage_advanced", { encounter: state.run.encounterIndex, act: state.run.act });
+  if (showSupplyTutorial) {
+    record("supply_tutorial_presented", { encounter: completedEncounter });
+  }
   saveState();
   render();
 }
@@ -4428,6 +4468,7 @@ function handleAction(event) {
   if (action === "treat") {
     const treatmentId = element.dataset.treatment;
     const treatment = CAMP_TREATMENTS[treatmentId];
+    const tutorialVisible = supplyTutorialVisible();
     let targets = [];
     if (treatment?.revive) {
       const target = state.run.roster.find((id) => currentHp(id) <= 0);
@@ -4444,6 +4485,12 @@ function handleAction(event) {
     } else {
       state.run = result.run;
       record("camp_treated", { treatmentId, targets: result.treated ?? [], supplies: state.run.supplies });
+      if (tutorialVisible) {
+        const flags = new Set(Array.isArray(state.profile.storyFlags) ? state.profile.storyFlags : []);
+        flags.add(SUPPLY_TUTORIAL_FLAG);
+        state.profile = { ...state.profile, storyFlags: [...flags] };
+        record("supply_tutorial_completed", { treatmentId });
+      }
     }
     saveState();
     render();
