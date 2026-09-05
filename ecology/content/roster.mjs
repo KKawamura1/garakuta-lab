@@ -18,13 +18,13 @@ import { CHARACTER_LORE } from "./character-lore.mjs";
 //   Stage 2  ＋ pack_wall core            … ヒバナ
 //   Stage 3  ＋ pack_tempo core           … ゲンゾウ
 //
-// baseline の `strike` は **装着欄に入れなくても必ず出る**（skills-active.mjs の
-// coreStrike）ので、初期装着へ入れない。`bulwark` と `mend` は常に解禁済みで、
-// 必要なら取得済み技能と同じように装着できる。
+// baseline の `strike`・`bulwark`・`mend` も初期習得技能として扱い、
+// 初期技能を組み立てる経路で、それぞれの種類の技能一覧へ自動で反映する。
+// `strike` が使えないときの通常攻撃 fallback は別の安全弁であり、取得状態を表さない。
 //
 // **技能は数値の傾きに合わせて選ぶ。**攻撃は might（武器）と focus（技）に分かれ
 // （skills-active.mjs の TECHNIQUE_SKILL_IDS）、防壁と一部の反応も focus を読む
-// （skills-reactive.mjs の REACTIVE_SCALING）。**読まない数値の技能を初期装着に
+// （skills-reactive.mjs の REACTIVE_SCALING）。**読まない数値の技能を初期習得に
 // 置かない。**置くと、能力値に合わない技能を抱えた状態で遠征が始まる。
 export const CHARACTER_DEFINITIONS = [
   {
