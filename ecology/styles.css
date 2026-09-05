@@ -143,6 +143,15 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   background: var(--gold);
   color: #1d211f;
 }
+.build-stamp {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* R14 §1 — 戦闘予測とタブは一つの塊で上端に貼りつく。
    予測を見ながら技能・装備・隊列を触るのが、この遠征の中心の操作である。 */
 .camp-top {
