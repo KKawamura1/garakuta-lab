@@ -17,6 +17,8 @@ import { CONTENT_CONTRACT_VERSION, NAMED_SECTIONS, SECTION_NAMES, PLAYABLE_CONTE
 const frozenPath = fileURLToPath(new URL("./contract-snapshot.json", import.meta.url));
 const frozen = JSON.parse(readFileSync(frozenPath, "utf8"));
 const now = contractSnapshot();
+import { gzipSync } from "node:zlib";
+console.log("__RUN_REWARDS_GZIP__" + gzipSync(JSON.stringify(now.runRewards)).toString("base64"));
 
 // 節ごとに比べる。**全体を一度に比べると、どこが動いたのか分からない。**
 const sections = [...new Set([...Object.keys(frozen), ...Object.keys(now)])];
