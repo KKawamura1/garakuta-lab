@@ -45,7 +45,7 @@ import { castFor, dialogueFor } from "./dialogue.mjs";
 // R11 §5 — この一戦だけで、武器と技の違いの**両側**を教える。
 //
 //   両方を前列（既定）… ツグミが 2 round で落ちる。柔らかい技の担い手を前に置かない
-//   ツグミを後列      … **誰も落ちずに勝つ。**これが正解。後列からゴウを応急手当できる
+//   ツグミを後列      … **余裕を残して勝つ。**これが正解。後列からゴウを応急手当できる
 //   ゴウを後列        … 負ける。武器攻撃が後列から 40% になり、倒しきれない
 //   両方を後列        … 負ける。前で受ける者がいないうえ、武器も落ちる
 //
@@ -60,6 +60,9 @@ export const PROLOGUE = Object.freeze({
   description: "灰の中から、遠くを狙う影と、前を塞ぐ影が出てくる。",
   maxRounds: 5,
   rosterIds: Object.freeze(["warden", "mender"]),
+  // 位置の読み替えを主役にするため、12戦用の敵定義は変えず、この一戦だけ敵を軽くする。
+  // HP 60%、攻撃（might / focus）50%なら、初期配置の敗北を残したまま、正解配置が余裕を持って勝つ。
+  enemyScaling: Object.freeze({ maxHpBps: 6_000, offenseBps: 5_000 }),
   // **初期配置がそのまま「まだ勝てない編成」。**ツグミが front_left なので
   // 先に狙われる。巻き戻したあと、プレイヤーはここを触る。
   formation: Object.freeze({ mender: "front_left", warden: "front_right" }),
