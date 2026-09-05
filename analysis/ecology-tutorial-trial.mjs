@@ -114,6 +114,9 @@ try {
   // （まだ preview の読み方を教えていない。教えるのは巻き戻したあと）。
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   note("盤面に2人だけが並ぶ", await page.locator(".battle-field .unit.ally, .unit[data-side=\"ally\"]").count() <= 3);
+  // R11 §5 改 — チュートリアルのあいだはタイトルへ戻る・撤退する導線を出さない。
+  note("序盤の一戦のあいだは撤退できない",
+    await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
   // **序盤の一戦の途中でリロードする。**この箱では、戦闘中のリロードで進行を
   // 失う不具合が過去に出ている。物語から入る経路も同じ踏み場を通す。
   await page.reload({ waitUntil: "networkidle" });
@@ -271,25 +274,18 @@ try {
   note("隊列を直すと同じ盤面に勝てる", /同じ影、違う結果/.test(await bodyText()));
   await advanceStory();
   await page.waitForTimeout(200);
-  await page.waitForSelector('nav.tabs [data-tab="map"]', { timeout: 8000 });
-  // **序盤の演出はここで終わる。**以降は本編の第1戦なので、
+  // R11 §5 改 — **序盤の演出はここで終わる。**巻き戻したあとの勝利は、そのまま
+  // 本編第1戦の結果画面になる（以前はここで一度キャンプへ戻し、フルスペックの
+  // 「灰の入口」をもう一度戦わせてから報酬を出していた）。
   // 「この一戦は遠征に数えません」が消えていることまで見る。
-  const mainCampText = await bodyText();
-  note("序盤の演出が終わってキャンプへ出る", /編成|仲間|出発前/.test(mainCampText));
-  note("序盤演出を終えて本編へ戻る", !/この一戦は遠征に数えません/.test(mainCampText));
-
-  // 第1戦を通し、装備の報酬まで見る。
-  await page.locator('nav.tabs [data-tab="map"]').click();
-  await click("この敵に挑む");
-  await click("自動戦闘を再生する");
-  await page.waitForSelector(".battle-field", { timeout: 8000 });
-  await page.locator('.speed-button[data-speed="fast"]').click();
-  await click("結果を見る");
-  await page.waitForTimeout(300);
-  const battleText = await bodyText();
-  note("第1戦は遠征に数える", !/この一戦は遠征に数えません/.test(battleText));
+  const resultAfterWinText = await bodyText();
+  note("巻き戻しての勝利がそのまま本編第1戦の結果画面になる",
+    !/この一戦は遠征に数えません/.test(resultAfterWinText));
   const won = /突破した/.test(await page.locator("h1").textContent() ?? "");
   note("第1戦を突破する", won);
+  // 報酬を受け取るまでは、まだこの一戦の後始末が済んでいないので撤退できない。
+  note("結果画面でもまだ撤退できない",
+    await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
   if (won) {
     await click("報酬を見る");
     const rewardText = await bodyText();
@@ -297,6 +293,8 @@ try {
     // R13 — 報酬画面にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
     note("報酬画面に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
     note("装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
+    note("報酬画面でもまだ撤退できない",
+      await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
     // 装備を拾い、装備画面と保存の往復まで見る。
     const equipmentButton = page.locator('.reward-card:has(.reward-kind.kind-equipment) button[data-action="take-reward"]').first();
     note("装備の候補を選べる", await equipmentButton.count() > 0);
@@ -304,9 +302,11 @@ try {
       await equipmentButton.click();
       await page.waitForTimeout(200);
       const supplyTutorialText = await bodyText();
-      note("初回本編戦闘後に補給タブが開く",
+      note("最初の敵を倒した直後（報酬を受け取った直後）に補給タブが開く",
         await page.locator('nav.tabs [data-tab="supplies"].active').count() === 1
           && await page.locator(".supply-tutorial").count() === 1);
+      note("報酬を受け取り次の戦闘へ進むと撤退できるようになる",
+        await page.getByRole("button", { name: "安全に撤退する" }).count() === 1);
       note("集中治療を補給チュートリアルで案内する",
         await page.locator('[data-action="treat"][data-treatment="concentrated"]:not([disabled])').count() === 1
           && /集中治療/.test(supplyTutorialText));
