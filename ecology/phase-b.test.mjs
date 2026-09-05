@@ -32,6 +32,7 @@ import {
 import {
   SKILL_TREE_NODES,
   freshLoadout,
+  initialUnlockedSkills,
   makeExpeditionBattle,
   reorderSkill,
   toggleSkill,
@@ -266,6 +267,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     equal(ok.ok, true, "前提と点数が揃えば解禁できる");
     run = ok.run;
     equal(runSkillPoints(run, "warden"), 1, "点数が減っている");
+    check(run.loadout?.tactics?.warden?.includes("heavy_swing"), "解禁した行動技能が自動で一覧へ入る");
     // R14 §2 — 解禁は取り消せない。**払い戻しの経路そのものが無い。**
     equal(unlockRunSkill(run, "warden", heavy).ok, false, "同じ技能を二度は解禁できない");
     assert.deepEqual(run.runUnlockedSkills.warden, ["strike", "heavy_swing"]);
@@ -273,7 +275,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   }
 }
 
-// ---- 技能の装着・順番・一時停止（R18）---------------------------------------
+// ---- 技能の自動反映・順番・一時停止（R18）---------------------------------------
 
 {
   const profile = newProfile();
@@ -294,7 +296,23 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   ).ok, "旧第4枠投資の購入導線が閉じている");
 }
 
-// 取得済み技能を何本でも装着でき、オフにした技能だけが BattleInput から外れる。
+// 初期習得技能は、取得履歴と同じ種類の一覧へ漏れなく自動反映される。
+{
+  const loadout = freshLoadout(ROSTER);
+  for (const characterId of ROSTER) {
+    const acquired = new Set(initialUnlockedSkills(characterId));
+    const listed = [
+      ...(loadout.tactics[characterId] ?? []),
+      ...(loadout.reactives[characterId] ?? []),
+      ...(loadout.passives[characterId] ?? []),
+    ];
+    equal(listed.length, acquired.size, characterId + " の初期技能数");
+    check(listed.every((skillId) => acquired.has(skillId)), characterId + " の初期技能がすべて一覧にある");
+  }
+  checks += 1;
+}
+
+// 取得済み技能を何本でも有効化でき、オフにした技能だけが BattleInput から外れる。
 {
   const loadout = freshLoadout(ROSTER);
   const active = Object.keys(PLAYABLE_CONTENT.activeSkills).slice(0, 6);
@@ -317,7 +335,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   equal(reversedReactive.reactives.warden[0], reactive[1], "反応の上から順を入れ替えられる");
 
   const off = toggleSkill(loadout, "warden", active[0]);
-  equal(off.ok, true, "装着済み技能をオフにできる");
+  equal(off.ok, true, "取得済み技能をオフにできる");
   equal(off.enabled, false, "オフ状態が返る");
   equal(off.loadout.disabled.warden[0], active[0], "オフ状態を保存する");
   const offBattle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, off.loadout, "s", FORMATION, {});
