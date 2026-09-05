@@ -19,7 +19,7 @@
 
 | ファイル | 役割 |
 |---|---|
-| `app.js` | UI、local save、進行、送信 payload |
+| `app.js` | UI（タイトル画面を含む）、local save、進行、送信 payload |
 | `engine.mjs` | 決定的な戦闘解決 |
 | `schema.mjs` / `validate.mjs` | イベント・状態の定義と不変条件 |
 | `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順 |
