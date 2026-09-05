@@ -1,7 +1,7 @@
 # One Battle Ahead — 現行のゲーム仕様
 
 いま `ecology/` が実装しているものだけを書きます。将来案は混ぜません。
-未実装・未調律の項目は OPEN_ISSUES.md にあります。
+未実装・未調律の項目は GitHub Issues にあります。
 
 ## 0. 形
 
