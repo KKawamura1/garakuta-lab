@@ -417,7 +417,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   }
 }
 
-// ---- Stage 2 の加入会話の順序（OPEN_ISSUES §5）------------------------------
+// ---- Stage 2 の加入会話の順序 ----------------------------------------------
 //
 // Stage 2 の join で初めて名前と記録を確認し、stageEnd ではその後の応答を置く。
 // act3 ですでに「ヒバナちゃん」と呼んでいるため、stageEnd で名前を尋ね直さない。
