@@ -40,8 +40,8 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // first_blood / held_breath / steady_hands）を追加し、pack へ core / full の
 // 二段を足した。manifest に packDepths / partySize / castCharacterIds が増え、
 // composeEncounter が partySize を読むようになった。**語彙が増えたので上げる。**
-// R15 — triage が自分以外の味方だけを対象にする `not_self` フィルタを追加し、
-// Stage 0 のツグミを「自分を治す人」から「前衛をつなぐ人」へ明示した。
+// R15 — triage / emergency_treatment が自分以外の味方だけを対象にする `not_self`
+// フィルタを追加し、Stage 0 のツグミを「自分を治す人」から「前衛をつなぐ人」へ明示した。
 export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-9";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
