@@ -2281,9 +2281,7 @@ function levelUpAction(node, characterId, nodeState) {
 
 function renderSkillDetail(row, node, characterId, nodeState) {
   const info = COMPONENTS[node.skillId];
-  const derived = row.children
-    .map((key) => layoutSkillId(key))
-    .filter(Boolean);
+  const derived = row.children;
   const requires = node.requires;
   const action = nodeState.equipped
     ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
@@ -2310,27 +2308,12 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
 }
 
-function layoutSkillId(key) {
-  return String(key).startsWith("bridge:") ? null : key;
-}
-
 function renderSkillRails(row) {
   const rails = row.rails
     .map((on) => "<i class=\"rail" + (on ? " on" : "") + "\"></i>")
     .join("");
   const elbow = row.x > 0 ? "<i class=\"elbow" + (row.last ? " last" : "") + "\"></i>" : "";
   return "<span class=\"tree-rails\" aria-hidden=\"true\">" + rails + elbow + "</span>";
-}
-
-// 橋渡しの節。**別のツリーに居る前提を、線の続きとして見せる。**
-function renderBridgeRow(row, tone) {
-  const source = SKILL_TREE_NODES.find((entry) => entry.skillId === row.requireId);
-  const label = COMPONENTS[row.requireId]?.label ?? row.requireId;
-  const fromKind = source ? kindText(source.kind) : "";
-  return "<div class=\"tree-row bridge" + tone + "\" data-row=\"" + esc(row.key) + "\">" + renderSkillRails(row)
-    + "<button type=\"button\" class=\"bridge-node\" data-action=\"select-skill-node\" data-skill=\"" + esc(row.requireId)
-    + "\"><span class=\"node-icon bridge-icon\">⇥</span><span class=\"node-copy\"><b>橋渡し ← " + esc(label)
-    + "</b><small>" + esc(fromKind) + "ツリーの節を前提にする。押すとそちらへ移ります。</small></span></button></div>";
 }
 
 function renderSkillRow(row, characterId, tone) {
@@ -2371,7 +2354,7 @@ function renderSkillTree(characterId) {
       : row.key === selectedRow.key ? ""
         : onPath.has(row.key) ? " on-path"
           : derived.has(row.key) ? " derived" : " faded";
-    return row.type === "bridge" ? renderBridgeRow(row, tone) : renderSkillRow(row, characterId, tone);
+    return renderSkillRow(row, characterId, tone);
   }).join("");
   const legend = selectedRow
     ? "<p class=\"tree-focus\">選択中の前提ルートと派生先だけを強調しています。"
@@ -2413,7 +2396,7 @@ function renderSkills() {
     // R19（issue #137）— 行動／反応／常設を切り替え、線で前提と派生を辿る。
     + "<p class=\"muted\">左の線が<b>派生の向き</b>です。左にある節が前提で、右へ行くほど深くなります"
     + "（<b>x</b> がその深さ）。種別を切り替えると、AP を払う行動・RP を払う反応・資源を払わない常設を"
-    + "別々のツリーとして見られます。別の種別を前提にする節は「橋渡し」としてまとめてあります。</p>"
+    + "別々のツリーとして見られます。前提は必ず同じ種別の中に置くので、種別をまたいで前提を辿ることはありません。</p>"
     + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 上から順に試す</span><span><i class=\"kind kind-reactive\">反応</i> 同じ条件は上から順に発火</span>"
     + "<span><i class=\"kind kind-passive\">常設</i> いつでも効く</span></div>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId) + "</section>"
@@ -4134,8 +4117,8 @@ function handleAction(event) {
   if (action === "select-skill-node") {
     const skillId = element.dataset.skill || null;
     state.selectedSkillNode = state.selectedSkillNode === skillId ? null : skillId;
-    // R19（issue #137）— 橋渡しの節や派生先の札から、別の種別の節へ飛べる。
-    // **飛び先のツリーへ切り替えないと、選んだ節が画面に出ない。**
+    // R19（issue #137）— 前提・派生先の札を押したとき、選んだ節が画面に出るよう
+    // **そのツリーへ切り替える。**
     const target = skillId ? SKILL_TREE_NODES.find((entry) => entry.skillId === skillId) : null;
     if (target && state.selectedSkillNode) state.skillTreeKind = target.kind;
     saveState();

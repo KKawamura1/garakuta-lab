@@ -13,6 +13,7 @@
 //   4. 循環         前提が輪になっていないか
 //   5. 分岐数不足   役割の違う道が選べるだけの分岐があるか
 //   6. 深さと分岐   x=3 と x=5 で2方向へ分かれ、x=10 に複数の到達点があるか
+//   7. 種別またぎの前提   行動 / 反応 / 常設をまたいで前提にしていないか
 //
 // **さらに「その到達点へ本当に届くのか」を見る。**x=10 の節が全部 campaign に
 // 出ない pack に居たら、それは設計図であって遊べる形ではない。
@@ -31,8 +32,28 @@ import {
   validateSkillTreeLayout,
 } from "../ecology/content/index.mjs";
 
-const problems = validateSkillTreeLayout(SKILL_TREE_LAYOUT, SKILL_TREE_NODES)
-  .map((line) => "全節: " + line);
+// 種別またぎの前提を禁じる。**行動 / 反応 / 常設をまたぐ前提は「どの資源を伸ばす
+// 話なのか」を読めなくする**（旧 R19 の「橋渡し」は分かりにくいので廃止した）。
+// skill-tree.mjs は node() だけで森を書くので普通は起きないが、
+// 静かに戻らないよう毎回ここで見る。検査と自己検査（末尾）が同じ関数を使う。
+function crossKindRequireProblems(nodes) {
+  const bySkill = Object.fromEntries(nodes.map((node) => [node.skillId, node]));
+  const found = [];
+  for (const node of nodes) {
+    for (const requiredId of node.requires) {
+      const required = bySkill[requiredId];
+      if (required && required.kind !== node.kind) {
+        found.push(`種別またぎの前提: ${node.skillId}（${node.kind}）が ${requiredId}（${required.kind}）を前提にしている`);
+      }
+    }
+  }
+  return found;
+}
+
+const problems = [
+  ...validateSkillTreeLayout(SKILL_TREE_LAYOUT, SKILL_TREE_NODES).map((line) => "全節: " + line),
+  ...crossKindRequireProblems(SKILL_TREE_NODES),
+];
 
 // Stage ごとの部分森。**画面が実際に組むのはこちら。**
 for (const stage of CAMPAIGN_STAGES) {
@@ -81,6 +102,13 @@ for (const stage of CAMPAIGN_STAGES) {
     ["分岐数不足", detected.some((line) => line.includes("分岐"))],
     ["x=10 の到達点不足", detected.some((line) => line.includes("最終到達点"))],
   ];
+
+  // 種別またぎの前提も、ここで実際に検出できることを確かめる。
+  const crossed = [
+    { id: "n_d", skillId: "d", kind: "active", branch: "攻撃", tier: 0, cost: 0, requires: [] },
+    { id: "n_e", skillId: "e", kind: "reactive", branch: "攻撃", tier: 0, cost: 0, requires: ["d"] },
+  ];
+  checks.push(["種別またぎの前提", crossKindRequireProblems(crossed).length > 0]);
   // 座標側も鳴らす。**組み上がった森を手で壊して見せる。**
   const layout = buildSkillTreeLayout(SKILL_TREE_NODES);
   const group = layout[0];
@@ -108,9 +136,9 @@ if (problems.length) {
 }
 
 const shape = SKILL_TREE_LAYOUT
-  .map((group) => `${group.label} ${group.nodeCount}節・最深 x=${group.depth}・分岐 ${group.forks}・橋渡し ${group.bridges.length}`)
+  .map((group) => `${group.label} ${group.nodeCount}節・最深 x=${group.depth}・分岐 ${group.forks}`)
   .join(" / ");
 console.log(
   `ecology-skill-tree smoke: ${shape} — `
-  + `座標重複・x列違反・線の交差・循環・分岐数不足なし（全${CAMPAIGN_STAGES.length} Stage の部分森でも同じ）`,
+  + `座標重複・x列違反・線の交差・循環・分岐数不足・種別またぎの前提なし（全${CAMPAIGN_STAGES.length} Stage の部分森でも同じ）`,
 );

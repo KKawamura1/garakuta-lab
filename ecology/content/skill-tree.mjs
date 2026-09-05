@@ -214,8 +214,11 @@ export const PASSIVE_META = passiveMeta;
 // 親が前提、子が派生である。x は書いた形から出るので、**手で座標を書かない**。
 //
 //   node(id, ...children)  … その技能の節。子は必ず1列右に来る。
-//   from(id, ...children)  … 橋渡し。**別の種別のツリーに居る前提**から生やす
-//                            （反応の「反撃」が行動の「斬撃」を前提にする、など）。
+//
+// **前提は必ず同じ種別（行動 / 反応 / 常設）の中に置く。**種別をまたぐ前提は
+// 「これは何の資源を伸ばす話なのか」を読めなくするので使わない
+// （旧 R19 は `from()` という種別またぎの橋渡しを試したが、分かりにくいので廃止した。
+// analysis/ecology-skill-tree-smoke.mjs が種別またぎの前提を検出する）。
 //
 // ## 深さの意味（issue #137 §深さと分岐）
 //
@@ -240,7 +243,6 @@ export const PASSIVE_META = passiveMeta;
 // Stage 3）、反応ツリーは「手当てを備えへ」まで、実際に取り切れる。
 
 const node = (skillId, ...children) => ({ skillId, children });
-const from = (requireId, ...children) => ({ requireId, children });
 
 // 系統（役割）。**ツリーの構造ではなく、節に付く色である。**
 // どの資源を払うか（行動 / 反応 / 常設）はツリーの大分類、どの役割かはこの表。
@@ -391,9 +393,19 @@ const ACTIVE_FOREST = [
           node("opening_stab"))),  // 先の一刺し
       node("finishing_thrust",  // 止めの一突き
         node("hamstring",  // 足を払う
-          node("execute_low"))))),  // 首を落とす
+          node("execute_low")))),  // 首を落とす
+    node("aimed_shot",  // 狙い撃ち
+      node("shield_the_wounded",  // 傷へ盾を
+        node("field_dressing",  // まとめて手当て
+          node("precise_cut"),  // 静かな一手
+          node("idle_shuffle"))),  // 息を整える
+      node("ward_ally",  // 守勢を渡す
+        node("sustaining_ward",  // 長く守る
+          node("cleansing_step"),  // 払いのける
+          node("steady_breath"))))),  // 息を合わせる
   node("bulwark",  // 防壁形成
     node("hand_off"),  // 引き継ぐ
+    node("take_the_wound"),  // 傷を引き受ける
     node("spread_the_guard",  // 構えを配る
       node("brace_for_impact",  // 衝撃に備える
         node("bulwark_of_will",  // 意地の壁
@@ -418,17 +430,6 @@ const ACTIVE_FOREST = [
     node("mark_spread"),  // 刻印を散らす
     node("mark_break",  // 刻印砕き
       node("shatter_point"))),  // 積もる刻印
-  from("mend",
-    node("take_the_wound"),  // 傷を引き受ける
-    node("aimed_shot",  // 狙い撃ち
-      node("shield_the_wounded",  // 傷へ盾を
-        node("field_dressing",  // まとめて手当て
-          node("precise_cut"),  // 静かな一手
-          node("idle_shuffle"))),  // 息を整える
-      node("ward_ally",  // 守勢を渡す
-        node("sustaining_ward",  // 長く守る
-          node("cleansing_step"),  // 払いのける
-          node("steady_breath"))))),  // 息を合わせる
 ];
 
 const REACTIVE_FOREST = [
@@ -443,8 +444,7 @@ const REACTIVE_FOREST = [
                   node("prep_spiral",  // 準備の螺旋
                     node("mercy_into_guard")))))),  // 手当てを備えへ
           node("steady_under_fire"))),  // 揺れない手
-      node("watchful_care"))),  // 目を離さない
-  from("strike",
+      node("watchful_care")),  // 目を離さない
     node("counter_blow",  // 反撃
       node("opportunist",  // 隙に応じる
         node("whetted_by_pain",  // 痛みで研ぐ
@@ -463,8 +463,7 @@ const REACTIVE_FOREST = [
             node("stall_the_blow",  // 出鼻を挫く
               node("stagger_relay",  // 怯みを回す
                 node("readied_relay")))),  // 支度を渡す
-          node("stride_into_reach"))))),  // 歩みを間合いへ
-  from("bulwark",
+          node("stride_into_reach")))),  // 歩みを間合いへ
     node("brace_after_hit",  // 受け流し
       node("cover_ally",  // 身代わり
         node("shield_handoff",  // 受けの受け渡し
@@ -477,8 +476,7 @@ const REACTIVE_FOREST = [
           node("last_stand"))),  // 背水
       node("absorb_shock",  // 衝撃を殺す
         node("block_focus",  // 受け返しの集中
-          node("counterweight"))))),  // 支え直す
-  from("mark_strike",
+          node("counterweight")))),  // 支え直す
     node("guarded_opening",  // 受け止めの隙
       node("seize_the_opening"),  // 機を逃さず
       node("echo_of_the_mark"))),  // 刻印の残響
@@ -486,27 +484,22 @@ const REACTIVE_FOREST = [
 
 const PASSIVE_FOREST = [
   node("foundation_vitality"),  // foundation_vitality
-  node("foundation_might"),  // foundation_might
-  node("foundation_focus"),  // foundation_focus
-  node("foundation_guard"),  // foundation_guard
-  node("foundation_ap"),  // foundation_ap
-  node("foundation_rp"),  // foundation_rp
-  from("mend",
+  node("foundation_might",  // foundation_might
+    node("first_blood",  // first_blood
+      node("edge_honed"),  // edge_honed
+      node("wake_reader")),  // wake_reader
+    node("mark_reader")),  // mark_reader
+  node("foundation_focus",  // foundation_focus
     node("steady_hands",  // steady_hands
       node("patient_hands"),  // patient_hands
       node("relay_reader"))),  // relay_reader
-  from("strike",
-    node("first_blood",  // first_blood
-      node("edge_honed"),  // edge_honed
-      node("wake_reader"))),  // wake_reader
-  from("bulwark",
+  node("foundation_guard",  // foundation_guard
     node("opening_guard",  // opening_guard
       node("wall_reader"))),  // wall_reader
-  from("relay_order",
+  node("foundation_ap",  // foundation_ap
     node("held_breath",  // held_breath
       node("first_order"))),  // first_order
-  from("mark_strike",
-    node("mark_reader")),  // mark_reader
+  node("foundation_rp"),  // foundation_rp
 ];
 
 // **値段は深さそのものが決める。**1節 1点で、x=10 の到達点までは 9点かかる
@@ -519,10 +512,6 @@ const FREE_ENTRY_SKILL_IDS = new Set([
 
 function flattenForest(forest, kind, out) {
   const walk = (entry, requires, x) => {
-    if (entry.requireId !== undefined) {
-      for (const child of entry.children) walk(child, [entry.requireId], 2);
-      return;
-    }
     out.push(Object.freeze({
       id: "node_" + entry.skillId,
       skillId: entry.skillId,

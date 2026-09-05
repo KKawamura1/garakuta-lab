@@ -1014,23 +1014,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tree-row.on-path .elbow::after { border-color: var(--blue); }
 .tree-row.derived .rail.on::before, .tree-row.derived .elbow::before,
 .tree-row.derived .elbow::after { border-color: var(--good); }
-/* 橋渡し。**別のツリーに居る前提を、線の続きとして立てる。** */
-.bridge-node {
-  display: grid;
-  grid-template-columns: 29px minmax(0, 1fr);
-  flex: 1 1 auto;
-  min-width: 0;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 8px;
-  border: 1px dashed #62725c;
-  border-radius: 10px;
-  background: rgba(110, 140, 160, .07);
-  color: var(--ink);
-  text-align: left;
-}
-.bridge-node .node-copy small { white-space: normal; }
-.node-icon.bridge-icon { border-color: var(--blue); background: #1d2429; color: var(--blue); }
 .skill-node { min-height: 0; padding: 0; overflow: hidden; }
 .skill-node-button {
   display: grid;

@@ -16,15 +16,15 @@
 // 代わりに、座標が満たすべき決まりを `validateSkillTreeLayout()` が機械で見る
 // （analysis/ecology-skill-tree-smoke.mjs）。
 //
-// ## 三つのツリーと橋渡し
+// ## 三つのツリー
 //
 // 節は種別（行動 / 反応 / 常設）で三つのツリーに分かれる。AP を払う行動と RP を払う
 // 反応が同じ枝に混ざっていると、「どっちの資源を伸ばす話なのか」が読めないためである。
 //
-// 種別をまたぐ前提（例: 反応の「反撃」は行動の「斬撃」を前提にする）は、普通の派生に
-// 混ぜず、**橋渡しの節（bridge anchor）**として明示する。反応ツリーの左端に
-// 「橋渡し ← 斬撃（行動）」という節が立ち、そこから反撃たちが生える。
-// 前提が別のツリーに居ることが、線を辿るだけで分かる。
+// **前提は必ず同じ種別の中に置く。**種別をまたぐ前提（旧 R19 の「橋渡し」）は
+// 分かりにくいので廃止した。`buildGroup()` は同じ種別に居ない前提を無視するので、
+// 万一 skill-tree.mjs が種別をまたぐ前提を書いても、その節は前提なしの根として
+// 扱われる（analysis/ecology-skill-tree-smoke.mjs が種別またぎの前提そのものを検出する）。
 //
 // engine・schema・共通registryは変更しない。
 
@@ -116,12 +116,13 @@ function orderNodes(a, b) {
   return declaredIndex(a.skillId) - declaredIndex(b.skillId);
 }
 
-const bridgeKey = (requireId) => "bridge:" + requireId;
-
 // 一つの種別ぶんの森を組む。`nodes` はその時点で画面に出す節だけでよい
 // （manifest から外れた pack の節は渡ってこない）。前提は必ず同じ manifest に居ることを
 // analysis/ecology-skill-catalog-smoke.mjs が保証しているので、親を失った子は出ない。
-function buildGroup(group, nodes, allBySkill) {
+// **前提は必ず同じ種別の中に置く**（analysis/ecology-skill-tree-smoke.mjs が種別またぎの
+// 前提を検出する）。ここは念のため、種別をまたぐ前提を「前提なしの根」として黙って
+// 無視する（このツリーには存在しない節を親として辿らない、という安全側の扱い）。
+function buildGroup(group, nodes) {
   const groupNodes = nodes.filter((node) => node.kind === group.kind).sort(orderNodes);
   const present = new Set(groupNodes.map((node) => node.skillId));
 
@@ -129,41 +130,16 @@ function buildGroup(group, nodes, allBySkill) {
   const structure = new Map();
   for (const node of groupNodes) {
     const inside = node.requires.filter((id) => present.has(id));
-    const outside = node.requires.filter((id) => !present.has(id));
-    structure.set(node.skillId, { node, parent: inside[0] ?? null, extraRequires: [...inside.slice(1), ...outside.slice(1)], bridgeFrom: inside.length ? null : (outside[0] ?? null) });
+    structure.set(node.skillId, { node, parent: inside[0] ?? null, extraRequires: inside.slice(1) });
   }
 
-  // 根は二種類。前提を持たない本物の根と、種別をまたぐ前提を束ねる橋渡しの節。
   const roots = [];
-  const bridges = new Map();
   for (const node of groupNodes) {
     const entry = structure.get(node.skillId);
     if (entry.parent) continue;
-    if (!entry.bridgeFrom) {
-      roots.push({ type: "node", key: node.skillId, node, branch: node.branch, tier: node.tier });
-      continue;
-    }
-    const key = bridgeKey(entry.bridgeFrom);
-    if (!bridges.has(key)) {
-      const source = allBySkill[entry.bridgeFrom] ?? null;
-      bridges.set(key, {
-        type: "bridge",
-        key,
-        requireId: entry.bridgeFrom,
-        fromKind: source?.kind ?? null,
-        branch: source?.branch ?? node.branch,
-        tier: -1,
-        children: [],
-      });
-    }
-    bridges.get(key).children.push(node.skillId);
+    roots.push({ node, branch: node.branch, tier: node.tier });
   }
-
-  // 橋渡しは本物の根のあと。**「まずこのツリーだけで始められる節」を先に見せる。**
-  const anchors = [
-    ...roots.sort((a, b) => orderNodes(a.node, b.node)),
-    ...[...bridges.values()].sort((a, b) => declaredIndex(a.children[0]) - declaredIndex(b.children[0])),
-  ];
+  const anchors = roots.sort((a, b) => orderNodes(a.node, b.node));
 
   const childrenOf = new Map();
   for (const node of groupNodes) {
@@ -184,11 +160,10 @@ function buildGroup(group, nodes, allBySkill) {
   const rows = [];
   const byKey = new Map();
   const walk = (key, x, rails, isLast, parentKey, ancestors) => {
-    const bridge = bridges.get(key);
-    const entry = bridge ? null : structure.get(key);
-    const children = bridge ? bridge.children : (childrenOf.get(key) ?? []);
+    const entry = structure.get(key);
+    const children = childrenOf.get(key) ?? [];
     const row = {
-      type: bridge ? "bridge" : "node",
+      type: "node",
       key,
       x,
       y: rows.length,
@@ -198,13 +173,10 @@ function buildGroup(group, nodes, allBySkill) {
       ancestors,
       children: [...children],
       descendants: [],
-      node: entry?.node ?? null,
-      skillId: bridge ? null : key,
-      requireId: bridge ? bridge.requireId : null,
-      fromKind: bridge ? bridge.fromKind : null,
-      branch: bridge ? bridge.branch : entry.node.branch,
-      bridgeFrom: entry?.bridgeFrom ?? null,
-      extraRequires: entry?.extraRequires ?? [],
+      node: entry.node,
+      skillId: key,
+      branch: entry.node.branch,
+      extraRequires: entry.extraRequires,
     };
     rows.push(row);
     byKey.set(key, row);
@@ -219,7 +191,7 @@ function buildGroup(group, nodes, allBySkill) {
   };
   // R19（issue #137）— x は 1 から数える（issue の「x=1: 基本スキル」に合わせる）。
   anchors.forEach((anchor, index) => {
-    walk(anchor.key, 1, [], index === anchors.length - 1, null, []);
+    walk(anchor.node.skillId, 1, [], index === anchors.length - 1, null, []);
   });
 
   const depth = rows.reduce((max, row) => Math.max(max, row.x), 1);
@@ -234,16 +206,13 @@ function buildGroup(group, nodes, allBySkill) {
     rows,
     byKey,
     anchors: anchors.length,
-    bridges: [...bridges.values()].map((bridge) => bridge.requireId),
     nodeCount: groupNodes.length,
   };
 }
 
 // **入口。**画面はこれを呼ぶ。`nodes` を絞れば、その範囲だけの森が出る。
 export function buildSkillTreeLayout(nodes = SKILL_TREE_NODES) {
-  const allBySkill = Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
-  for (const node of nodes) allBySkill[node.skillId] = node;
-  return SKILL_TREE_GROUPS.map((group) => buildGroup(group, nodes, allBySkill));
+  return SKILL_TREE_GROUPS.map((group) => buildGroup(group, nodes));
 }
 
 // 全節ぶんの正準座標。**検査と、Stage をまたいだ話をするときはこれを見る。**

@@ -410,3 +410,22 @@ campaign からの到達可能性・宣言した座標と組み直した座標�
 character / enemy の定義、結果 log、速度順ソート、速度依存の技能・装備表示を削除した。
 隊列を使う対象選択は `position_asc` / `position_desc` へ移し、保存済み run と結果の
 schema version を更新した。戦闘 replay の再生速度は演出設定として別機能なので維持する。
+
+### 3.26 種別をまたぐ前提（橋渡し）を廃止した（2026-09-05）
+
+3.23（R19）は種別（行動 / 反応 / 常設）をまたぐ前提を「橋渡しの節」として明示する形を
+試した。実際に説明すると「橋渡し ← 手当て」が何を意味するのか一目では読めず、
+`from()` という別構文を覚えないと前提を辿れないため、分かりにくいと判断して廃止した。
+
+前提をまたいでいた9箇所を、同じ種別の中の別スキルの派生として繋ぎ直した
+（`aimed_shot` 系は行動の `strike` 配下、`counter_blow`／`brace_after_hit`／
+`guarded_opening` 系は反応の `mend` 配下、`steady_hands`・`first_blood`・`mark_reader`・
+`opening_guard`・`held_breath` は常設の対応する `foundation_*` 配下）。深さ（x）と
+費用は変えていない——橋渡しの直下の子は元々 x=2 だったので、同じ種別内の根の直下へ
+繋ぎ直しても座標は一致する。
+
+`skill-tree.mjs` から `from()` を削除し、種別をまたぐ前提そのものを書けなくした。
+`skill-tree-layout.mjs` の橋渡し表示（bridge anchor）と、`app.js` / `styles.css` の
+橋渡し用UI（「橋渡し ← X」の節・押すとツリーを切り替える導線）も削除した。
+`analysis/ecology-skill-tree-smoke.mjs` に、種別をまたぐ前提が無いことを見る検査を足し、
+自己検査（末尾）で実際に検出できることも確かめている。
