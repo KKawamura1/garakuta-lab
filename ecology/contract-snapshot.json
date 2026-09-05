@@ -13874,21 +13874,31 @@
  "freshLoadout": {
   "tactics": {
    "warden": [
+    "strike",
+    "bulwark",
     "steady_cut"
    ],
    "mender": [
+    "strike",
+    "bulwark",
     "aimed_shot",
     "shield_the_wounded"
    ],
    "lancer": [
+    "strike",
+    "bulwark",
     "heavy_swing",
     "rear_hunt"
    ],
    "guardian": [
+    "strike",
+    "bulwark",
     "reposition",
     "column_thrust"
    ],
    "tactician": [
+    "strike",
+    "bulwark",
     "relay_order",
     "mark_target"
    ]
@@ -13899,18 +13909,22 @@
     "overflow_care"
    ],
    "mender": [
+    "mend",
     "triage",
     "emergency_treatment"
    ],
    "lancer": [
+    "mend",
     "shield_handoff",
     "triage"
    ],
    "guardian": [
+    "mend",
     "scavenge_ap",
     "brace_after_hit"
    ],
    "tactician": [
+    "mend",
     "patient_step",
     "block_focus"
    ]
