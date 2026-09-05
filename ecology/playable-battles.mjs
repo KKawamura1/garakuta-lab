@@ -234,6 +234,24 @@ export function freshLoadout(rosterIds) {
   return { tactics, reactives, passives, equipment };
 }
 
+// プロローグは通常遠征とは別の固定脚本盤面。物語の勝敗契約を変えないため、
+// 本編の初期習得技能を自動反映する loadout ではなく、脚本が指定した starter だけを使う。
+function prologueLoadout(rosterIds) {
+  const tactics = {};
+  const reactives = {};
+  const passives = {};
+  const equipment = {};
+  for (const characterId of rosterIds) {
+    const option = characterById[characterId];
+    if (!option) continue;
+    tactics[characterId] = [...option.starterTactics];
+    reactives[characterId] = [...option.starterReactives];
+    passives[characterId] = [];
+    equipment[characterId] = [];
+  }
+  return { tactics, reactives, passives, equipment };
+}
+
 function normalizeLoadout(loadout, rosterIds, limitsFor) {
   const next = clone(loadout ?? freshLoadout(rosterIds));
   // 旧 save には passives が無い。**足りない鍵はここで生やす**
@@ -548,7 +566,7 @@ export function prologueEncounter() {
 export function makePrologueBattle(statsFor, formation = PROLOGUE.formation) {
   const roster = [...PROLOGUE.rosterIds];
   return makeExpeditionBattle(
-    prologueEncounter(), roster, freshLoadout(roster), "prologue", formation, { statsFor },
+    prologueEncounter(), roster, prologueLoadout(roster), "prologue", formation, { statsFor },
   );
 }
 
