@@ -3051,14 +3051,8 @@
       {
        "type": "target_exists",
        "query": {
-        "scope": "allies",
+        "scope": "self",
         "filters": [
-         {
-          "type": "alive"
-         },
-         {
-          "type": "not_self"
-         },
          {
           "type": "is_event_primary_target"
          }
@@ -3077,18 +3071,7 @@
       {
        "type": "heal",
        "target": {
-        "scope": "allies",
-        "filters": [
-         {
-          "type": "alive"
-         },
-         {
-          "type": "not_self"
-         },
-         {
-          "type": "is_event_primary_target"
-         }
-        ],
+        "scope": "self",
         "take": 1
        },
        "amount": {
@@ -6832,7 +6815,7 @@
     "kind": "reactive",
     "definitionId": "emergency_treatment",
     "label": "応急処置",
-    "effect": "自分以外の味方が被弾した直後、RP1でその被弾量の33%を返す。自分は対象にしない。",
+    "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
     "grammar": "回復"
    },
    "spill_forward": {
@@ -7607,7 +7590,7 @@
    "kind": "reactive",
    "definitionId": "emergency_treatment",
    "label": "応急処置",
-   "effect": "自分以外の味方が被弾した直後、RP1でその被弾量の33%を返す。自分は対象にしない。",
+   "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
    "grammar": "回復"
   },
   "spill_forward": {
