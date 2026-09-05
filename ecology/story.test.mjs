@@ -400,6 +400,38 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   }
 }
 
+// ---- Stage 2 の加入会話の順序（OPEN_ISSUES §5）------------------------------
+//
+// Stage 2 の join で初めて名前と記録を確認し、stageEnd ではその後の応答を置く。
+// act3 ですでに「ヒバナちゃん」と呼んでいるため、stageEnd で名前を尋ね直さない。
+// 地の文も加入済みの人物を「小さい影」と呼ばず、名前で指す。
+//
+{
+  const joinTexts = dialogueFor("stage_2_join").map((line) => line.text);
+  const endTexts = dialogueFor("stage_2_end").map((line) => line.text);
+
+  assert.deepEqual(joinTexts.slice(-4), [
+    "名前は。",
+    "ヒバナ！",
+    "照会は。",
+    "出ない。詰所にも協会にも、この歳の子の記録が一件も無い。拾われた記録も、生まれた記録もだ。",
+  ], "Stage 2 の名前照会は加入場面の末尾にある");
+  checks += 1;
+
+  assert.deepEqual(endTexts, [
+    "……ないの？ あたしの、ない？",
+    "ないな。",
+    "じゃあ今日から作る。名前と、歳と、拾った日と。全部こっちで書く。",
+  ], "Stage 2 の stageEnd は名前確認後の応答だけを扱う");
+  checks += 1;
+
+  equal(
+    dialogueFor("stage_2_act1")[0].text,
+    "崩れた回廊の脇。ヒバナが屈んで、割れた把手を布に包んでいる。",
+    "Stage 2 act1 は加入済みのヒバナを地の文で指す",
+  );
+}
+
 // ---- 加入済みの仲間は場面から消えない（R12）------------------------------------
 //
 // **途中離脱は無い。**Stage を越えるごとに一人ずつ増えて5人になる。
