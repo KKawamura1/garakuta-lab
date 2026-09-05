@@ -49,19 +49,6 @@ const SELF_IS_EVENT_TARGET = {
   type: "target_exists",
   query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
 };
-const OTHER_ALLY_IS_EVENT_TARGET = {
-  type: "target_exists",
-  query: {
-    scope: "allies",
-    filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
-    take: 1,
-  },
-};
-const OTHER_ALLY_TARGET = {
-  scope: "allies",
-  filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
-  take: 1,
-};
 
 // R6 §4.4 — Phase A の係数。反応技能も同じ決め方。
 // 反撃は殴られた側の might、防壁と治療は focus。
@@ -120,7 +107,7 @@ reactiveSkills.barrier_stitch = {
   tags: ["reaction", "guard"],
 };
 
-// R8 §9.1 — 応急処置。自分以外の味方の被弾にだけ反応し、同じ chain 内で発火する。実回復量は
+// R8 §9.1 — 応急処置。被弾と同じ chain 内だけで発火し、実回復量は
 // その被弾量の1/3を超えない。古い損傷へは効かない
 // （新しい damage_taken が起きない限り発火しようがない）ので、
 // round を稼いで待つだけでは carry HP が改善しない
@@ -136,12 +123,12 @@ reactiveSkills.emergency_treatment = {
     priority: 150,
     predicates: [{
       type: "target_exists",
-      query: OTHER_ALLY_IS_EVENT_TARGET.query,
+      query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
     }],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{
       type: "heal",
-      target: OTHER_ALLY_TARGET,
+      target: SELF_TARGET,
       amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 3 },
       tags: ["care", "emergency"],
     }],
