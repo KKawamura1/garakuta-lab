@@ -42,7 +42,11 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // composeEncounter が partySize を読むようになった。**語彙が増えたので上げる。**
 // R15 — triage が自分以外の味方だけを対象にする `not_self` フィルタを追加し、
 // Stage 0 のツグミに「前衛をつなぐ人」という別の仕事を明示した。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-9";
+// R16（技能の大量追加）— 状態を3つ（怯み staggered / 守勢 warded / 裂傷 bleeding）、
+// 技能を54本（active 29・reactive 19・passive 6）足した。**engine と schema の語彙は
+// 1つも増やしていない**（既存の event・effect・predicate・target だけで書けている）。
+// 既存 ID の意味は一つも変えていないが、**語彙が増えたので上げる。**
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-10";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -86,7 +90,8 @@ export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
   // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
-  contentVersion: "ecology-playable-full-0.8",
+  // R16 で技能54本・状態3つを足した。soft data ではなく語彙の追加なので印を進める。
+  contentVersion: "ecology-playable-full-0.9",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

@@ -198,3 +198,140 @@ export const PASSIVE_SKILLS = {
     },
   },
 };
+
+// ---------------------------------------------------------------- R16 — 常設の追加
+//
+// **常設は「数値を押し上げるもの」と「出来事を別の結果へ変えるもの」の二種類がある。**
+// 基礎訓練（地力・膂力…）が前者で、R9 以降に足しているのは後者である。
+// R16 の6本も全部が後者で、**手数は一つも増やさない**（R6 §6.8）。
+// 増えるのは、既に起きている出来事の行き先だけ。
+//
+// どれも反応権を払わない代わりに、round か battle で一度に止まる。
+Object.assign(PASSIVE_SKILLS, {
+  // pack_edge — 倒した拍で刃が研がれる。拾い直し（行動権）と同じ出来事の別の出口。
+  edge_honed: {
+    id: "edge_honed",
+    displayName: "研ぎ澄ます",
+    tags: ["passive", "playable", "attack"],
+    rule: {
+      id: "edge_honed_rule",
+      listenTo: "actor_defeated",
+      timing: "after",
+      predicates: [
+        { type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 } },
+        { type: "target_exists", query: { scope: "enemies", filters: [{ type: "is_event_primary_target" }], take: 1 } },
+      ],
+      costs: [],
+      effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
+      limit: { scope: "round", count: 1 },
+      priority: 100,
+    },
+  },
+  // pack_wall — **使われずに消えた防壁**が、次の受け構えになる。
+  // 張りすぎた防壁が完全な無駄にならない、という一点だけを変える。
+  wall_reader: {
+    id: "wall_reader",
+    displayName: "崩れを読む",
+    tags: ["passive", "playable", "guard"],
+    rule: {
+      id: "wall_reader_rule",
+      listenTo: "barrier_expired",
+      timing: "after",
+      predicates: [{
+        type: "target_exists",
+        query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
+      }],
+      costs: [],
+      effects: [{ type: "gain_block", target: self, amount: { type: "constant", value: 1 } }],
+      limit: { scope: "round", count: 1 },
+      priority: 100,
+    },
+  },
+  // pack_care — 開幕、一番傷ついている者へ守勢。**遠征の途中から始まる戦闘**
+  // （前の戦闘の傷を持ち越している）ほど効く。
+  patient_hands: {
+    id: "patient_hands",
+    displayName: "先に手を打つ",
+    tags: ["passive", "playable", "care"],
+    rule: {
+      id: "patient_hands_rule",
+      listenTo: "round_started",
+      timing: "after",
+      predicates: [{ type: "round_number", op: "eq", value: 1 }],
+      costs: [],
+      effects: [{
+        type: "add_status",
+        target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+        statusId: "warded",
+        stacks: 1,
+      }],
+      limit: { scope: "battle", count: 1 },
+      priority: 100,
+    },
+  },
+  // pack_tempo — 出足（自分に行動権）の、他人向け版。**毎ラウンドではない。**
+  first_order: {
+    id: "first_order",
+    displayName: "初手の号令",
+    tags: ["passive", "playable", "tempo"],
+    rule: {
+      id: "first_order_rule",
+      listenTo: "round_started",
+      timing: "after",
+      predicates: [{ type: "round_number", op: "eq", value: 1 }],
+      costs: [],
+      effects: [{
+        type: "gain_resource",
+        target: {
+          scope: "allies",
+          filters: [{ type: "alive" }, { type: "not_self" }, { type: "row_is", row: "front" }],
+          sort: ["speed_desc"],
+          take: 1,
+        },
+        resource: "action_points",
+        amount: { type: "constant", value: 1 },
+      }],
+      limit: { scope: "battle", count: 1 },
+      priority: 100,
+    },
+  },
+  // pack_barrage — 自分が隙を付けた拍で集中を得る。刻印を配る手が、次の一撃を研ぐ。
+  mark_reader: {
+    id: "mark_reader",
+    displayName: "刻印を読む",
+    tags: ["passive", "playable", "mark"],
+    rule: {
+      id: "mark_reader_rule",
+      listenTo: "status_added",
+      timing: "after",
+      predicates: [
+        { type: "event_value", key: "statusId", op: "eq", value: "exposed" },
+        { type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 } },
+      ],
+      costs: [],
+      effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
+      limit: { scope: "round", count: 1 },
+      priority: 100,
+    },
+  },
+  // pack_relay — 防壁を**受け取った**拍を、次の一手の集中へ。
+  // 防壁の花（さらに防壁）と同じ出来事から、守り以外の出口を作る。
+  relay_reader: {
+    id: "relay_reader",
+    displayName: "渡りを読む",
+    tags: ["passive", "playable", "relay"],
+    rule: {
+      id: "relay_reader_rule",
+      listenTo: "barrier_gained",
+      timing: "after",
+      predicates: [{
+        type: "target_exists",
+        query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
+      }],
+      costs: [],
+      effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
+      limit: { scope: "round", count: 1 },
+      priority: 100,
+    },
+  },
+});

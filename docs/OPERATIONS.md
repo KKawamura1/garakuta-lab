@@ -13,7 +13,7 @@
 ## 2. 検査の中身
 
 `bash analysis/check-all.sh` は、`ecology/` の構文検査 → `node ecology/check.mjs`
-（`ecology/*.test.mjs`）→ smoke 7本を順に走らせます。
+（`ecology/*.test.mjs`）→ smoke 8本を順に走らせます。
 
 | smoke | 見るもの |
 |---|---|
@@ -21,6 +21,7 @@
 | `ecology-contract-smoke.mjs` | content 契約と凍結 ID の照合 |
 | `ecology-equipment-gen-smoke.mjs` | 装備の手続き生成の決定性と完結性 |
 | `ecology-readout-smoke.mjs` | 表示値と content の照合 |
+| `ecology-skill-catalog-smoke.mjs` | 技能の定義・パック・ツリーの節・説明文の四点照合と、前提の到達可能性 |
 | `ecology-screens-smoke.mjs` | 画面と主要操作の接続 |
 | `ecology-test-hygiene-smoke.mjs` | 明らかな恒真 assert の検出 |
 | `ecology-upload-smoke.mjs` | D1 payload と受け側の整合 |
