@@ -39,7 +39,7 @@ export const RARITY_BUDGET = Object.freeze({
   epic: Object.freeze({ rules: [1, 3], affixes: [3, 8], power: 11, keystones: 0 }),
   legendary: Object.freeze({ rules: [1, 4], affixes: [4, 12], power: 16, keystones: 1 }),
   mythic: Object.freeze({ rules: [2, 5], affixes: [6, 16], power: 22, keystones: 1 }),
-  oopart: Object.freeze({ rules: [2, 6], affixes: [8, 20], power: 30, keystones: 1 }),
+  oopart: Object.freeze({ rules: [2, 6], affixes: [8, 20], power: 24, keystones: 1 }),
 });
 
 // 引退した affix id。**別内容への再利用は禁止。**
