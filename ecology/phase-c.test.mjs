@@ -146,6 +146,8 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
       check(definition.rules.length >= spec.rules[0] && definition.rules.length <= spec.rules[1],
         `${rarity} の rule 数が範囲内`);
       check(definition.maxDurability >= 1, `${rarity} の耐久が1以上`);
+      check(item.readout?.effects?.some((effect) => effect.rarity === rarity),
+        `${rarity} は少なくとも1つ同じ等級の効果を持つ`);
 
       const affixIds = item.provenance.affixIds;
       const counted = affixIds.filter((id) => AFFIX_BY_ID[id]?.role !== "source").length;
@@ -156,12 +158,12 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
       check(power <= spec.power + 4,
         `${rarity} の affix 素の power ${power} が budget ${spec.power} から離れすぎない`);
 
-      // keystone は legendary だけ、最大1つ。
+      // keystone は legendary 以上の等級だけ、最大1つ。
       const keystones = affixIds.filter((id) => AFFIX_BY_ID[id]?.role === "keystone");
       check(keystones.length <= spec.keystones, `${rarity} の keystone 数 ${keystones.length}`);
 
       for (const rule of definition.rules) {
-        check(rule.effects.length >= 1 && rule.effects.length <= 3, "各 rule は effect を1〜3持つ");
+        check(rule.effects.length >= 1 && rule.effects.length <= 4, "各 rule は payoff effect を1〜3＋keystone bonus まで持つ");
         check(rule.costs.length <= 1, "各 rule の cost は 0〜1");
         check(rule.limit.count >= 1, "各 rule は1回以上発火できる");
         // 無料無限循環を作らない。
@@ -299,7 +301,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   }
   equal(appraisalLevel(rich), 5, "目利きは5段まで");
   equal(purchaseUpgrade(rich, "appraisal").ok, false, "6段目は無い");
-  const rank = { common: 0, rare: 1, epic: 2, legendary: 3 };
+  const rank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, index]));
   let plain = 0;
   let appraised = 0;
   for (let index = 1; index <= 12; index += 1) {
@@ -463,7 +465,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
     equal(settled.settlement.savedBlueprints.length, limit, `${outcome} は ${limit} 件だけ残る`);
     equal(settled.profile.blueprints.entries.length, limit, `archive も ${limit} 件`);
     // 良い等級から残す（取得順ではない）。
-    const rank = { legendary: 0, epic: 1, rare: 2, common: 3 };
+    const rank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
     const saved = settled.settlement.savedBlueprints.map((entry) => rank[entry.rarity]);
     assert.deepEqual(saved, [...saved].sort((a, b) => a - b), "等級の高い順に残す");
     checks += 1;
