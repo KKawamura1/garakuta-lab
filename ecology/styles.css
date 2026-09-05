@@ -69,23 +69,53 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   background: linear-gradient(145deg, rgba(32, 45, 48, .97), rgba(21, 29, 31, .97));
   box-shadow: 0 12px 30px rgba(0,0,0,.16);
 }
-.hero { padding: 30px 19px 22px; text-align: center; }
-.sigil { margin-bottom: 8px; color: var(--gold); font-size: 46px; }
-.lead { font-size: 17px; line-height: 1.7; }
-.lead-small { color: var(--ink); font-size: 15px; }
-.intro-copy { color: var(--muted); line-height: 1.7; }
-.three-up { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.three-up .card { margin: 0; padding: 14px 10px; }
-.three-up b, .three-up span { display: block; }
-.three-up span { margin-top: 5px; color: var(--muted); font-size: 11px; }
-.loop {
-  display: grid;
-  gap: 7px;
-  margin-top: 18px;
-  text-align: left;
+.title-header {
+  display: block;
+  padding: clamp(64px, 18vh, 150px) 2px 8px;
+  text-align: center;
 }
-.loop span { display: flex; align-items: center; gap: 8px; color: var(--muted); }
-.loop b, .build-trail i {
+
+.title-header .kicker {
+  margin-bottom: 10px;
+}
+
+.title-header h1 {
+  margin-bottom: 0;
+  font-size: clamp(30px, 8vw, 40px);
+}
+
+.title-header .subtitle:empty {
+  display: none;
+}
+
+.title-screen {
+  width: min(100%, 340px);
+  margin: 14px auto 0;
+  text-align: center;
+}
+
+.title-screen .sigil {
+  margin-bottom: 26px;
+  color: var(--gold);
+  font-size: 42px;
+}
+
+.title-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.title-actions .button {
+  margin-top: 0;
+}
+
+.title-screen .save-summary {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.build-trail i {
   display: grid;
   flex: 0 0 auto;
   place-items: center;
@@ -97,6 +127,7 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font-style: normal;
   font-size: 12px;
 }
+
 .button {
   width: 100%;
   margin-top: 13px;
@@ -106,7 +137,12 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   background: var(--panel-3);
   font-weight: 750;
 }
-.button.primary { border-color: var(--gold); background: var(--gold); color: #1d211f; }
+
+.button.primary {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1d211f;
+}
 /* R14 §1 — 戦闘予測とタブは一つの塊で上端に貼りつく。
    予測を見ながら技能・装備・隊列を触るのが、この遠征の中心の操作である。 */
 .camp-top {
