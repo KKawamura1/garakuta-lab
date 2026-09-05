@@ -17,6 +17,7 @@ smokes=(
   analysis/ecology-equipment-gen-smoke.mjs
   analysis/ecology-readout-smoke.mjs
   analysis/ecology-skill-catalog-smoke.mjs
+  analysis/ecology-skill-tree-smoke.mjs
   analysis/ecology-screens-smoke.mjs
   analysis/ecology-test-hygiene-smoke.mjs
   analysis/ecology-upload-smoke.mjs

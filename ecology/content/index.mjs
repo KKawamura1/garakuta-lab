@@ -133,6 +133,18 @@ export { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE };
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
 export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
+// R19（issue #137）— 節の座標。`requires` から組んだ森なので、ここを読めば
+// 「どの節がどの節から生えるのか」が線として引ける。
+export {
+  BRANCH_BUILDS,
+  BRANCH_ORDER,
+  SCOPE_LABELS,
+  SKILL_TREE_GROUPS,
+  SKILL_TREE_LAYOUT,
+  TRIGGER_LABELS,
+  buildSkillTreeLayout,
+  validateSkillTreeLayout,
+} from "./skill-tree-layout.mjs";
 export { ENCOUNTERS, ENEMY_CODEX, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
 // R12 §4.A — 読める設定（ギルドカード）。engine には出ない、表示だけの content。
 export {

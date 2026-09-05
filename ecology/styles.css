@@ -465,21 +465,6 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   border-radius: 0 8px 8px 0;
   background: rgba(229, 184, 105, .07);
 }
-.skill-branch { margin-top: 16px; }
-.branch-title {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 7px;
-  color: var(--gold);
-  font-size: 13px;
-}
-.branch-title small { color: var(--muted); font-size: 10px; }
-.skill-tree-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(160px, 1fr));
-  gap: 8px;
-  overflow-x: auto;
-}
 /* R12 — 名簿（ギルドカード）。読み物なので、行間を戦闘画面より広く取る。 */
 .dossier-card {
   border: 1px solid var(--line, rgba(255,255,255,.12));
@@ -879,7 +864,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .shell { padding-left: 10px; padding-right: 10px; }
   .card { padding: 14px; }
   .character-grid, .gear-grid, .enemy-grid, .reward-grid { grid-template-columns: 1fr; }
-  .skill-tree-row { grid-template-columns: repeat(3, minmax(190px, 1fr)); }
 }
 @media (max-width: 380px) {
   h1 { font-size: 25px; }
@@ -974,27 +958,79 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 9px;
   line-height: 1.35;
 }
-.skill-tree-map {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(155px, 1fr));
-  gap: 10px;
-  min-width: 495px;
-  overflow: visible;
+/* R19（issue #137）— 技能ツリー。**節を tier の箱へ並べるのをやめ、requires から
+   組んだ森を、左の線で見せる。**線が左にあるものが前提で、右へ行くほど深い。
+   行は上から順（y）、列は前提からの深さ（x）。iPhone では縦に読めば route を辿れる。 */
+.tree-tabs { display: flex; gap: 6px; margin: 12px 0 8px; }
+.tree-tab {
+  flex: 1;
+  padding: 7px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #172124;
+  color: var(--muted);
+  text-align: center;
 }
-.skill-branch { overflow-x: auto; padding-bottom: 4px; }
-.skill-tier { position: relative; min-width: 0; }
-.skill-tier:not(:first-child)::before {
+.tree-tab b { display: block; font-size: 12px; }
+.tree-tab small { font-size: 9px; }
+.tree-tab.active { border-color: var(--gold); background: var(--gold-dark); color: var(--ink); }
+.tree-tab.active b { color: var(--gold); }
+.tree-summary { margin: 0 0 6px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.tree-summary b { color: var(--gold); }
+.tree-focus { margin: 0 0 8px; font-size: 10px; line-height: 1.5; }
+.tree-focus .tiny-button { margin: 0 0 0 6px; }
+.skill-tree-scroll { overflow-x: auto; padding-bottom: 4px; }
+.skill-tree-forest { display: grid; gap: 4px; min-width: 288px; }
+.tree-row { display: flex; align-items: stretch; }
+.tree-rails { display: flex; flex: 0 0 auto; }
+.tree-rails .rail, .tree-rails .elbow { position: relative; flex: 0 0 14px; }
+/* 祖先の縦線。**まだ下に兄弟が残っている段だけ引く。**引きっぱなしにすると、
+   終わった枝の下にも線が伸びて、どこで分岐が終わったのか読めなくなる。 */
+.tree-rails .rail.on::before,
+.tree-rails .elbow::before {
   position: absolute;
-  top: 20px;
-  left: -10px;
-  width: 10px;
+  top: 0;
+  bottom: 0;
+  left: 6px;
+  border-left: 1px solid #4d5b57;
+  content: "";
+}
+/* 末子は縦線をここで止め、横棒で節へ入る。 */
+.tree-rails .elbow.last::before { bottom: auto; height: 30px; }
+.tree-rails .elbow::after {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  left: 6px;
   border-top: 1px solid #62725c;
   content: "";
 }
-.tier-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .1em; }
-.tier-nodes { display: grid; gap: 6px; }
-.tier-empty { display: block; padding: 12px 0; color: #4b5d5a; text-align: center; }
-.branch-icon { display: inline-grid; place-items: center; width: 19px; height: 19px; margin-right: 5px; border: 1px solid currentColor; border-radius: 50%; font-size: 11px; }
+.tree-row > .skill-node { flex: 1 1 auto; min-width: 0; }
+/* 選択したとき、前提ルート（上流）と派生先（下流）だけを残す。 */
+.tree-row.faded { opacity: .32; }
+.tree-row.on-path > .skill-node { border-color: var(--blue); box-shadow: inset 3px 0 0 var(--blue); }
+.tree-row.derived > .skill-node { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
+.tree-row.on-path .rail.on::before, .tree-row.on-path .elbow::before,
+.tree-row.on-path .elbow::after { border-color: var(--blue); }
+.tree-row.derived .rail.on::before, .tree-row.derived .elbow::before,
+.tree-row.derived .elbow::after { border-color: var(--good); }
+/* 橋渡し。**別のツリーに居る前提を、線の続きとして立てる。** */
+.bridge-node {
+  display: grid;
+  grid-template-columns: 29px minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border: 1px dashed #62725c;
+  border-radius: 10px;
+  background: rgba(110, 140, 160, .07);
+  color: var(--ink);
+  text-align: left;
+}
+.bridge-node .node-copy small { white-space: normal; }
+.node-icon.bridge-icon { border-color: var(--blue); background: #1d2429; color: var(--blue); }
 .skill-node { min-height: 0; padding: 0; overflow: hidden; }
 .skill-node-button {
   display: grid;
@@ -1045,6 +1081,31 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-detail > small { display: block; min-height: 0; color: var(--blue); font-size: 9px; line-height: 1.35; }
 .skill-detail .node-action { margin-top: 7px; }
 .skill-detail .tiny-button { margin-top: 0; }
+/* 節の上で読める札。**種別・消費・いつ出るか・深さを、開かずに見せる。** */
+.node-copy .node-badges { display: flex; flex-wrap: wrap; gap: 4px; white-space: normal; }
+.node-badges i { font-style: normal; }
+.node-badges .kind { padding: 1px 4px; font-size: 8px; }
+.badge-cost { color: var(--gold); font-weight: 800; }
+.badge-when { color: var(--muted); }
+.badge-depth { color: var(--blue); }
+.node-fork { color: var(--good); font-weight: 800; }
+/* 前提と派生先は押せる。**横スクロールしなくても route を辿れる。** */
+.skill-route { display: grid; gap: 5px; margin: 7px 0 0; }
+.route-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }
+.route-line > b { color: var(--blue); font-size: 9px; }
+.route-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #1b2528;
+  color: var(--ink);
+  font-size: 10px;
+}
+.route-chip small { color: var(--muted); font-size: 8px; }
+.route-build { margin: 6px 0 0; color: var(--gold); font-size: 9px; line-height: 1.45; }
 .member-head-button {
   width: 100%;
   padding: 0;
@@ -1063,7 +1124,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 @media (max-width: 520px) {
   .tab { font-size: 11px; }
   .tab small { font-size: 8px; }
-  .skill-tree-map { min-width: 465px; grid-template-columns: repeat(3, minmax(145px, 1fr)); }
+  .skill-tree-forest { min-width: 258px; }
+  .tree-rails .rail, .tree-rails .elbow { flex-basis: 11px; }
 }
 
 @media (max-width: 380px) {

@@ -187,7 +187,24 @@ try {
   await page.locator('nav.tabs [data-tab="skills"]').click();
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
-  note("入口の接続面が出ている", /応急|傷の見立て|かばう|受け身/.test(skillText));
+
+  // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
+  note("行動／反応／常設を切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
+  note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-rails .elbow").count() > 0);
+  await page.locator('[data-action="select-skill-kind"][data-kind="reactive"]').click();
+  await page.waitForTimeout(150);
+  const reactiveTreeText = await bodyText();
+  note("入口の接続面が出ている", /応急|傷の見立て|かばう|受け身/.test(reactiveTreeText));
+  note("別の種別を前提にする節は橋渡しになる", await page.locator(".bridge-node").count() > 0);
+
+  // 節を押すと、前提ルートと派生先が強調され、そこから route を辿れる。
+  const firstNode = page.locator('.skill-tree-forest [data-action="select-skill-node"]').first();
+  await firstNode.click();
+  await page.waitForTimeout(150);
+  note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
+  note("前提ルート以外を落として見せる", await page.locator(".tree-row.faded").count() > 0);
+  await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
+  await page.waitForTimeout(150);
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
   // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();

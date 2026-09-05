@@ -31,6 +31,7 @@
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
 | `content/encounters.mjs` | 敵の配置・狙い・敵本文（既存 content API の正本） |
+| `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
 | `equipment-gen.mjs` | 装備を手続きで組み立てる決定的 generator と検査 |
 | `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
 | `mine.mjs` | イベント連鎖の採掘 |
