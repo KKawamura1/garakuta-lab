@@ -193,12 +193,12 @@ try {
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
   note("未解禁の技能を名前でも出さない", outOfManifest === 0, `manifest 外 ${outOfManifest} 節`);
 
-  // R18 — 取得は取り消せず、装着後は順番とオン／オフを調整できる。
+  // R18 — 取得は取り消せず、取得後は順番とオン／オフを調整できる。
   note("技能を外すボタンが無い", await page.locator('[data-action="remove-skill"]').count() === 0);
   note("解禁のやり直しが無い", await page.locator('[data-action="reset-run-skills"]').count() === 0);
   note("取得を忘れられないと書いてある", /一度取得した技能は忘れません/.test(skillText));
   note("技能数の上限が無いと書いてある", /技能数の上限なし/.test(skillText));
-  note("装着済み技能をオン／オフできる", await page.locator('[data-action="toggle-skill"]').count() > 0);
+  note("取得済み技能をオン／オフできる", await page.locator('[data-action="toggle-skill"]').count() > 0);
   note("行動と反応の順番を変えられる",
     await page.locator('[data-action="move-skill"][data-kind="active"]').count() > 0
       && await page.locator('[data-action="move-skill"][data-kind="reactive"]').count() > 0);
