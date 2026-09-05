@@ -482,11 +482,17 @@ R14（3.6）は完全予測をキャンプ全タブの上端へ常設したが�
   `simulateAndEnterBattle()`（旧 `simulate` action の中身）へ進む。** act boss 前の会話
   がある戦闘は、`enterStory` の `after` を `"battlePreview"` から `"battle"` に変え、
   会話終了後の `finishStory` から同じ `simulateAndEnterBattle()` を呼ぶ。
-- **`battlePreview` 画面と `renderBattlePreview` 自体は消していない。**灰の門を巻き戻した
+- **`battlePreview` 画面と `renderBattlePreview` は消した。**当初は灰の門を巻き戻した
   あとの再戦（隊列の直し方を実際に教える一戦。R11 §5 のチュートリアル）と、戦闘エンジンが
-  安全弁で停止したあとの構成見直し（`back-battle-preview`）にはまだ使う。「勝敗条件で
-  別ルートを増やさない」（issue の方針）ので、判定は `state.prologueActive` の一点だけで
-  分岐させ、予測結果や勝敗そのものでは分岐させていない。
+  安全弁で停止したあとの構成見直しにだけ残していたが、作者から「チュートリアルも含め、
+  常に即戦闘開始でいい」と指摘を受け、`begin-stage` の `state.prologueActive` 分岐ごと消して
+  例外を無くした。巻き戻したあとの再戦だけが持っていた手がかり（「同じ影、同じ数。違うのは
+  立ち位置だけ」）は、隊列を直す画面（`renderRoster`、編成タブ）へ移した——ちょうど
+  プレイヤーがツグミを後列へ動かす、その画面の上に出るようにした。戦闘エンジンの安全弁で
+  止まったあとの「戦闘前へ戻る」（`back-battle-preview`）も、確認画面を経由せず直接
+  `camp` / `map` タブへ戻すだけにした。「勝敗条件で別ルートを増やさない」（issue の方針）は
+  変わらず守っている——分岐点が無くなっただけで、残っていた唯一の分岐（`prologueActive`）も
+  勝敗では条件分けしていなかった。
 - **リプレイが最後の拍まで進んだら、`scheduleReplayBeat` が結果画面へ自動で遷移する。**
   以前は自動再生が終わっても `state.phase` を `"battle"` のまま止め、「結果を見る」を
   押すまで動かなかった。最後の拍を表示したあと、その拍と同じ長さだけ間を置いてから
@@ -501,7 +507,8 @@ R14（3.6）は完全予測をキャンプ全タブの上端へ常設したが�
   `take-reward` / `reroll-reward` の handler は phase を見ていなかったので変更不要だった。
   最終戦（12戦目）の勝利だけは、以前どおり報酬を出さず精算へ進む。旧いオートセーブが
   ちょうど `reward` phase で保存されていた場合に備え、`hydrateState` で `"reward"` を
-  `"result"` へ読み替える一行だけ足した。
+  `"result"` へ読み替える一行だけ足した。同様に、`battlePreview` を廃止したあとの
+  `hydrateState` にも `"battlePreview"` を `"camp"`（map タブ）へ読み替える一行を足した。
 
 `analysis/ecology-trial.mjs`・`analysis/ecology-tutorial-trial.mjs` の両方を新しい経路
 （「この敵に挑む」から直接 `.battle-field` を待つ、勝利の結果画面に報酬3択が同居する、

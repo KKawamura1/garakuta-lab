@@ -475,6 +475,12 @@ function hydrateState(saved) {
   // issue #138 — 「報酬を見る」の中間画面を廃止した。結果画面が報酬選択を兼ねるので、
   // 旧いオートセーブがちょうどその画面で保存されていても結果画面へ戻す。
   if (next.phase === "reward") next.phase = "result";
+  // issue #138 — 戦闘前確認の画面（battlePreview）も廃止した。旧いオートセーブが
+  // ちょうどその画面で保存されていてもキャンプへ戻す。
+  if (next.phase === "battlePreview") {
+    next.phase = "camp";
+    next.tab = "map";
+  }
   next.profile = normalizeProfile(saved.profile);
 
   // 保存時点のRunを復元する。形式が違うデータは readStoredSnapshot で
@@ -557,7 +563,7 @@ let state = loadState();
 // Keep the live replay in memory, but avoid persisting the same snapshots twice.
 // Safari can hit its Web Storage quota around the sixth, event-heavy battle;
 // an exception here used to happen before render(), leaving the user on the
-// "自動戦闘を再生する" screen even though simulation had completed.
+// pre-battle camp screen even though simulation had completed.
 function persistableState() {
   const persisted = { ...state, saveFormatVersion: SAVE_FORMAT_VERSION };
   // 保存メニューは一時画面なので、Continueでそこへ戻さない。
@@ -725,7 +731,7 @@ function shell(title, subtitle, body, options = {}) {
   // R6 §9.2 / §12.2 — 遠征は勝利・敗北・**放棄**のいずれでも一度だけ精算する。
   // 途中の遠征をボタン一つで捨てると、そこまでの活動資金が消える。
   // だから run の最中は「放棄」で、精算画面を必ず通す。
-  const inRun = ["camp", "battlePreview", "battle", "battleError", "result", "defeat"]
+  const inRun = ["camp", "battle", "battleError", "result", "defeat"]
     .includes(state.phase);
   // R11 §5 改 — チュートリアル（灰の門）の最中はタイトルへ戻る・撤退する導線を
   // 出さない。負ける一戦目も、巻き戻したあとの結果画面（報酬選択を兼ねる）も、
@@ -1103,7 +1109,6 @@ function render() {
     saveMenu: renderSaveMenu,
     story: renderStory,
     camp: renderCamp,
-    battlePreview: renderBattlePreview,
     battle: renderBattle,
     battleError: renderBattleError,
     result: renderResult,
@@ -2061,8 +2066,17 @@ function renderRoster() {
     ? "今回は" + runPartySize() + "人で進みます。<b>同行者は物語が決めます。</b>Stageをクリアすると、次の仲間が加わります。"
     : "このStageはクリア済みです。いま隊にいる" + metCount + "人から最大" + runPartySize()
       + "人を選べます。それぞれ固有の初期技能があり、技能ツリーで別の役割へ伸ばせます。";
+  // R11 §5 — 巻き戻したあとの一戦だけ、見るべき軸を名指しで出す。
+  // issue #138 — 戦闘前確認の画面を無くしたので、ここ（隊列を直す画面）へ移した。
+  const rewindTutorialNote = state.prologueActive && state.prologueStage === "retry"
+    ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
+      + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
+      + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
+      + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
+    : "";
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
     + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>" + (runPartySize() >= 5 ? "5人で6枠なので、必ず一枠が空きます。" : runPartySize() + "人なので、空き枠が" + (6 - runPartySize()) + "つあります。") + "</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
+    + rewindTutorialNote
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
@@ -2703,38 +2717,6 @@ function forecastBar() {
 // R14 §1 — 戦闘前の確認画面が持っていた EXACT PREVIEW カードは消した。
 // **同じ数字を同じ画面で二度出さない。**上端の帯がそれを常時出している。
 
-function renderBattlePreview() {
-  const encounter = currentEncounter();
-  const allies = state.run.roster.map((id) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
-    + esc(characterInfo(id)?.icon ?? "・") + "</span><div><b>" + esc(characterName(id)) + "</b><small>"
-    + esc(positionText(state.run.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
-    + esc((state.run.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
-    + "</span></div>").join("");
-  // R9 §2.1 / R11 §5 改 — 盤面そのもの（敵構成）は12戦の梯子に属さないので、
-  // 戦う前の画面はまだ「灰の門」と名乗る。勝てば本編1戦目として commit される
-  // （renderResult / advanceAfterReward）。
-  const previewTitle = state.prologueActive
-    ? "灰の門（遠征の外）"
-    : "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN;
-  return shell(previewTitle, encounter.name + " · 戦闘前の最終確認",
-    "<div class=\"camp-top\">" + forecastBar() + "</div>"
-    + "<section class=\"card\">"
-    + sectionHeading("AUTO BATTLE / PLAN", "この構成で試す") + "<p class=\"muted\">戦闘中の操作はありません。行動の優先順、リアクティブの条件、敵の狙いをR5エンジンが決定的に解決します。"
-    + "<b>上の戦闘予測は無料・副作用なしの試算で、同じ構成ならこの再生と完全に同じ結果になります。</b></p>"
-    + "<div class=\"plan-list\"><h3>味方の構成</h3>" + allies + "</div><div class=\"plan-list\"><h3>敵の狙い</h3>"
-    + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
-      + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</div>"
-    // R11 §5 — 巻き戻したあとの一戦だけ、見るべき軸を名指しで出す。
-    + (state.prologueActive && state.prologueStage === "retry"
-      ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
-        + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
-        + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
-        + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
-      : "")
-    + button("自動戦闘を再生する", "simulate", false, "button primary")
-    + button("キャンプへ戻る", "back-camp", false, "button") + "</section>");
-}
-
 function actorName(id) {
   const actor = state.lastResult?.actors?.find((entry) => entry.instanceId === id);
   return String(actor?.displayName ?? nameFor(id)).split(" — ")[0];
@@ -3315,7 +3297,7 @@ function renderBattleError() {
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
     + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やすリアクティブをオフにして再試行してください。</p>"
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
-    + button("戦闘前へ戻る", "back-battle-preview", false, "button") + "</div></section>");
+    + button("キャンプへ戻る", "back-battle-preview", false, "button") + "</div></section>");
 }
 
 function resultActors(result) {
@@ -3778,9 +3760,8 @@ function scheduleReplayBeat() {
 }
 
 // R8 §11 の simulateNextBattle と同じ BattleInput 構成経路を通る本番実行。
-// issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まずここへ入る
-// （以前は「自動戦闘を再生する」ボタンの handler だった。ボタン自体は
-// battlePreview 画面にまだあるので、simulate action からも呼ぶ）。
+// issue #138 — チュートリアルも含め、「この敵に挑む」から戦闘前確認を挟まず
+// 常にここへ入る（以前は「自動戦闘を再生する」ボタンの handler だった）。
 function simulateAndEnterBattle() {
   let battle;
   try {
@@ -4557,27 +4538,16 @@ function handleAction(event) {
       formation: clone(state.run.formation),
       loadout: clone(state.run.loadout),
     });
-    // issue #138 — 灰の門（チュートリアル）だけは、隊列の直し方を教える
-    // 戦闘前確認の画面（battlePreview）を維持する。
-    if (state.prologueActive) {
-      state.phase = "battlePreview";
-      saveState();
-      render();
-      return;
-    }
-    // issue #138 — 通常戦は、キャンプの予測・敵の狙いと重複する戦闘前確認を
-    // 挟まず、そのまま自動戦闘へ進む。act boss の前で一度だけ会話を挟む戦闘は、
+    // issue #138 — チュートリアル（灰の門）も含め、常に戦闘前確認を挟まず
+    // そのまま自動戦闘へ進む。act boss の前で一度だけ会話を挟む戦闘は、
     // 会話のあとに続けて自動戦闘へ入る（会話自体は物語上必要なので残す）。
-    const actBeat = actStoryBeatForEncounter(state.run.campaignStageSequence, state.run.encounterIndex);
+    const actBeat = state.prologueActive
+      ? null
+      : actStoryBeatForEncounter(state.run.campaignStageSequence, state.run.encounterIndex);
     if (actBeat) {
       enterStory([actBeat], "battle");
       return;
     }
-    simulateAndEnterBattle();
-    return;
-  }
-
-  if (action === "simulate") {
     simulateAndEnterBattle();
     return;
   }
@@ -4651,8 +4621,10 @@ function handleAction(event) {
     return;
   }
 
+  // issue #138 — 戦闘前確認の画面（battlePreview）を廃止したので、キャンプへ戻す。
   if (action === "back-battle-preview") {
-    state.phase = "battlePreview";
+    state.phase = "camp";
+    state.tab = "map";
     state.battleError = null;
     saveState();
     render();

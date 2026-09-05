@@ -254,18 +254,17 @@ try {
   // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
   const rightVerdict = await verdict();
   note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
+  // issue #138 — 戦闘前確認の画面（battlePreview）を無くしたので、隊列を直す
+  // この画面（roster タブ）で武器と技の違いをもう一度渡す。
+  note("戦闘予測の使い方を示す",
+    /戦闘予測/.test(placedText)
+      && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(placedText));
+  note("ツグミが自分ではなくゴウを手当てすると示す",
+    /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(placedText));
 
+  // issue #138 — チュートリアルの再戦も含め、常に戦闘前確認を挟まず自動戦闘へ進む。
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");
-  // 再戦は予測画面を挟む。**巻き戻したあとに初めて preview の読み方を教える**ので、
-  // ここで武器と技の違いがもう一度渡っているかを見る。
-  const retryPreviewText = await bodyText();
-  note("戦闘予測の使い方を示す",
-    /戦闘予測/.test(retryPreviewText)
-      && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(retryPreviewText));
-  note("ツグミが自分ではなくゴウを手当てすると示す",
-    /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(retryPreviewText));
-  await click("自動戦闘を再生する");
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   await page.locator('.speed-button[data-speed="fast"]').click();
   await click("結果を見る");
