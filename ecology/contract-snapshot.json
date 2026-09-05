@@ -10171,7 +10171,7 @@
     "kind": "active",
     "definitionId": "feint",
     "label": "誘い",
-    "effect": "最前の敵へ「怯み」を1つ。先に動く相手ほど軽くする価値がある。",
+    "effect": "最前の敵へ「怯み」を1つ。次に動く相手ほど軽くする価値がある。",
     "grammar": "指揮"
    },
    "set_the_pace": {
@@ -11372,7 +11372,7 @@
    "kind": "active",
    "definitionId": "feint",
    "label": "誘い",
-   "effect": "最前の敵へ「怯み」を1つ。先に動く相手ほど軽くする価値がある。",
+   "effect": "最前の敵へ「怯み」を1つ。次に動く相手ほど軽くする価値がある。",
    "grammar": "指揮"
   },
   "set_the_pace": {
