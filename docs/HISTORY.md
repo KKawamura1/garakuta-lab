@@ -429,3 +429,41 @@ schema version を更新した。戦闘 replay の再生速度は演出設定と
 橋渡し用UI（「橋渡し ← X」の節・押すとツリーを切り替える導線）も削除した。
 `analysis/ecology-skill-tree-smoke.mjs` に、種別をまたぐ前提が無いことを見る検査を足し、
 自己検査（末尾）で実際に検出できることも確かめている。
+
+### 3.27 巻き戻したあとの一戦を、本編第1戦として commit する（2026-09-05）
+
+R11 §5 は「巻き戻したあとの勝利は本編1戦目」と DESIGN.md 6.4 の文面では既に書いていた
+（「戦闘1後の観察」）が、`app.js` の実装は `prologueActive` が真のあいだ全部（本当に
+負ける一回・巻き戻したあとの一回の両方）を「遠征外」として扱っていた。その結果、
+巻き戻して勝っても持ち越し HP が commit されず（次戦は毎回全回復）、技能点も報酬候補も
+出ないまま、そのあと別途フルスペックの本編第1戦（「灰の入口」）をもう一度戦わされていた。
+実際に遊んだ作者から「巻き戻ったあとの一戦が1戦目として扱われていない」と指摘され、
+文面どおりに直した。
+
+**本当に負ける一回だけ**は `startPrologue()` が `simulate` action を経由せず直接
+`simulateBattle` を呼ぶので、run を一切変更しない。**巻き戻したあとの一回**は通常の
+`camp → battlePreview → simulate` を通るので、`simulate` handler から `prologueActive`
+の特別扱いを外し、勝てば `recordEncounterCleared` / `grantRunSkillPointsToAll` /
+`commitBattleResult` を通常戦と同じ経路で呼ぶ（encounterIndex は最初から 1 なので、
+新しい index を発行する必要はない）。結果画面・報酬画面をそのまま出すため、
+`prologueActive` を落とすのは `advanceAfterReward`（報酬を受け取り、次の戦闘へ進む瞬間）
+まで遅らせた。ここで落とすまでは `currentEncounter()` が「灰の門」を指し続けるので、
+結果・報酬画面のタイトルも正しいまま出る。
+
+これにより、フルスペックの「灰の入口」を初回プレイでは戦わなくなった（2周目以降は
+`prologue_seen` フラグにより従来どおり第1戦として出る）。功績・活動資金は
+`recordEncounterCleared(run, 1)` が `expeditionEncounter(1)` の `kind`（"normal"）から
+引くので、実際に戦った敵構成と無関係に、通常の第1戦クリアと同額になる。
+
+補給チュートリアル（DESIGN.md 6.2）の表示条件は変えていない。`shouldShowSupplyTutorialAfterReward`
+は encounter 1 の勝利を見ているだけなので、その勝利が巻き戻したあとの一戦へ前倒しに
+なったことで、案内も自動的に「最初の敵を倒した直後」（＝本編第1戦の報酬を受け取った
+直後）へ前倒しになる。
+
+あわせて、`prologueActive` のあいだは画面ヘッダーの「安全に撤退する」導線を出さないように
+した（`shell()`）。以前はチュートリアルの最中でもこのボタンが出ており、隊列を直しきる前に
+遠征を放棄できてしまっていた。`abandon-run` / `back-title` の action handler 側にも同じ
+条件の早期 return を足し、ボタンを消すだけでなく経路そのものも塞いだ。
+
+`analysis/ecology-tutorial-trial.mjs` を新しい経路（巻き戻して勝った直後に結果・報酬画面が
+出て、そのまま補給チュートリアルへ続く）に合わせて更新した。

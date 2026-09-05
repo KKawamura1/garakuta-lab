@@ -724,7 +724,10 @@ function shell(title, subtitle, body, options = {}) {
   // だから run の最中は「放棄」で、精算画面を必ず通す。
   const inRun = ["camp", "battlePreview", "battle", "battleError", "result", "reward", "defeat"]
     .includes(state.phase);
-  const headerAction = options.hideHeaderAction
+  // R11 §5 改 — チュートリアル（灰の門）の最中はタイトルへ戻る・撤退する導線を
+  // 出さない。負ける一戦目も、巻き戻したあとの結果・報酬画面も、
+  // まだ隊列を直しきる前に離脱されると「一手直せば勝てる」導入が成立しない。
+  const headerAction = options.hideHeaderAction || state.prologueActive
     ? ""
     : options.back
       ? button(options.backLabel ?? "キャンプへ", options.backAction ?? "back-camp", false, "menu-button")
@@ -813,7 +816,10 @@ function hasStoryFlag(flag) {
   return (state.profile.storyFlags ?? []).includes(flag);
 }
 
-// 初回の本編戦闘後にだけ補給の使い方を案内する。序盤の一戦は遠征外なので対象にしない。
+// 初回の本編戦闘（encounter 1）に勝った後にだけ補給の使い方を案内する。
+// R11 §5 改 — 巻き戻したあとの勝利がそのまま encounter 1 の勝利になるので、
+// `!state.prologueActive` は advanceAfterReward が既に prologueActive を
+// 落としたあとにしか呼ばれない（結果・報酬画面の表示中はまだ真のまま）。
 function firstOrdinaryBattleWon() {
   return isCampaignRun()
     && state.run.campaignStageSequence === 0
@@ -1883,22 +1889,18 @@ function finishStory() {
     render();
     return;
   }
-  // R11 §5 — 二度目を勝って、序盤の演出を終える。**ここで初めて既読印を押す。**
+  // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。**ここで
+  // 既読印は押すが、prologueActive は落とさない。**結果画面・報酬画面を
+  // 通常の勝利と同じ経路で見せたあと、次の戦闘へ進むとき（advanceAfterReward）に
+  // 初めて落とす。ここで落とすと、結果・報酬画面が currentEncounter() 経由で
+  // 「灰の入口」（12戦の第1戦）の名を誤って出してしまう。
   if (after === "prologueClear") {
-    state.prologueActive = false;
-    state.prologueStage = null;
     state.profile = {
       ...state.profile,
       storyFlags: [...new Set([...(state.profile.storyFlags ?? []), "prologue_seen"])],
     };
-    state.lastResult = null;
-    state.replayEvents = [];
-    state.replaySnapshots = [];
-    state.replayIndex = 0;
-    state.replayPlaying = false;
     record("prologue_cleared", { stage: state.run.campaignStageSequence });
-    state.phase = "camp";
-    state.tab = "map";
+    state.phase = "result";
     saveState();
     render();
     return;
@@ -2707,7 +2709,9 @@ function renderBattlePreview() {
     + esc(positionText(state.run.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
     + esc((state.run.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
     + "</span></div>").join("");
-  // R9 §2.1 / R11 §5 — 序盤の一戦は12戦の梯子に属さない。**第1戦と名乗らせない。**
+  // R9 §2.1 / R11 §5 改 — 盤面そのもの（敵構成）は12戦の梯子に属さないので、
+  // 戦う前の画面はまだ「灰の門」と名乗る。勝てば本編1戦目として commit される
+  // （renderResult / advanceAfterReward）。
   const previewTitle = state.prologueActive
     ? "灰の門（遠征の外）"
     : "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN;
@@ -3336,8 +3340,11 @@ function renderResult() {
   const events = compactEvents(result.events || state.replayEvents);
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   // R6 §12.2 — **敗北で即座に遠征を破棄しない。**補給が残っていれば再挑戦へ。
-  // R9 §2.1 — 序盤の敗北は遠征の結果に数えない。ここから巻き戻す。
-  const next = state.prologueActive
+  // R11 §5 改 — 巻き戻したあとに**勝った**場合は、もう「序盤の敗北」ではなく
+  // 本編1戦目の勝利そのもの。通常の勝利と同じ「報酬を見る」へ渡す
+  // （prologueActive はまだ真だが、advanceAfterReward で落とすまでの経過措置）。
+  const prologueUnresolved = state.prologueActive && !(state.prologueStage === "retry" && won);
+  const next = prologueUnresolved
     ? state.prologueStage === "retry"
       // 二度目で負けたとき。**巻き戻しは一度きり**なので、編成へ戻すだけにする。
       ? button("編成を見直す", "back-camp", false, "button primary")
@@ -3363,13 +3370,13 @@ function renderResult() {
       ? "装備耐久は次の戦闘へ持ち越しません（次戦は最大から）。<b>HPは持ち越します。</b>4戦目・8戦目のボスを倒したときだけ全員が全回復します（R8 §1.5）。"
       : "戦闘中のHPと装備耐久は次の戦闘へ持ち越しません。次の戦闘は、全員HP最大・装備耐久最大から始まります。")
     + "</p>"
-    + (state.prologueActive
+    + (prologueUnresolved
       ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金も持ち越しHPも動きません。"
         + esc(state.prologueStage === "retry" ? PROLOGUE.retryHint : PROLOGUE.hint) + "</p>"
       : "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
         + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
         + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p>")
-    + (!state.prologueActive && won
+    + (!prologueUnresolved && won
       ? "<p class=\"muted\"><b>勝利報酬:</b> この遠征の編成全員に技能点 +" + RUN_SKILL_POINTS_PER_REWARD + "。</p>"
       : "") + "<div class=\"result-actors\">"
     + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
@@ -3737,6 +3744,14 @@ function scheduleReplayBeat() {
 }
 
 function advanceAfterReward() {
+  // R11 §5 改 — 巻き戻したあとの勝利（本編1戦目）は、報酬を受け取ってここへ来た
+  // 時点で本当に序盤の演出を終える。prologueClear では落とさなかった
+  // prologueActive / prologueStage をここで落とす（結果・報酬画面の名称表示は
+  // もう済んでいるので、次戦以降の currentEncounter() は通常のladderへ戻る）。
+  if (state.prologueActive) {
+    state.prologueActive = false;
+    state.prologueStage = null;
+  }
   const completedEncounter = state.run.encounterIndex;
   const showSupplyTutorial = shouldShowSupplyTutorialAfterReward();
   state.run.encounterIndex += 1;
@@ -3815,6 +3830,9 @@ function handleAction(event) {
   }
 
   if (action === "back-title") {
+    // R11 §5 改 — チュートリアル中はタイトルへ戻れない（画面上のボタンは既に
+    // 隠しているが、経路として二重に塞ぐ）。
+    if (state.prologueActive) return;
     state.phase = "intro";
     state.saveMenuReturn = "intro";
     state.saveNotice = null;
@@ -4435,8 +4453,11 @@ function handleAction(event) {
       }];
       // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
       // retry しても同じ encounter の撃破 base は一度だけ。
-      // R15 — プロローグは遠征外。通常戦の勝利時だけ、現在の編成全員へ技能点を配る。
-      if (result.result === "win" && !state.prologueActive) {
+      // R11 §5 改 — 巻き戻したあとの一戦は、本編1戦目（encounterIndex 1）そのものと
+      // して扱う。**この handler に来る時点で prologueActive が真なら、それは必ず
+      // retry（本当に負ける一戦目は startPrologue() がここを通らず直接 simulate する）**
+      // なので、通常戦と同じく勝利時に技能点を配る。
+      if (result.result === "win") {
         state.run = recordEncounterCleared(state.run, state.run.encounterIndex);
         state.run = grantRunSkillPointsToAll(state.run);
         record("battle_skill_points_granted", {
@@ -4468,11 +4489,9 @@ function handleAction(event) {
       );
       // R8 §8, §10 — Campaign Stage: 勝利時だけHPをcommitする（敗北時はrunを
       // 変更しない=retry safe）。4/8戦目boss勝利後はcommitBattleResultが全回復する。
-      // R9 §2.1 / R11 §5 — **序盤の一戦は遠征に数えない。**
-      // 活動資金も持ち越しHPも動かさない（勝っても負けても run は無傷）。
-      if (state.prologueActive) {
-        resetEquipmentDurability();
-      } else if (isCampaignRun()) {
+      // R11 §5 改 — 巻き戻したあとの一戦もこの経路で HP を commit する。
+      // もう「遠征に数えない」演習ではない。
+      if (isCampaignRun()) {
         const commit = commitBattleResult(state.profile, state.run, state.run.encounterIndex, result);
         state.run = commit.run;
         state.lastCarrySnapshot = commit.snapshot;
@@ -4804,7 +4823,10 @@ function handleAction(event) {
   }
 
   // R6 §9.2 — 精算は勝敗・放棄のいずれでも一度だけ。**ここが唯一の入口。**
+  // R11 §5 改 — チュートリアル中は撤退できない（画面上のボタンは既に隠しているが、
+  // 経路として二重に塞ぐ）。
   if (action === "settle-run" || action === "abandon-run") {
+    if (state.prologueActive) return;
     const won = action === "settle-run"
       && state.run.encounterIndex >= ENCOUNTERS_PER_RUN
       && state.lastResult?.result === "win";
