@@ -147,8 +147,8 @@ reactiveSkills.emergency_treatment = {
 // 稼いで待つだけでは carry HP が改善しない。
 //
 //   mend   … baseline。誰の被弾でも（自分自身も含む）少量を返す安全弁。
-//   triage … pack_care。被弾後にHP50%以下になった対象へ、より大きな割合を返す。
-//            「応急手当」という名の由来どおり、危機的な一撃だけに強く反応する。
+//   triage … pack_care。被弾後にHP50%以下になった自分以外の味方へ、より大きな割合を返す。
+//            自分は対象にせず、後列の支援役が前衛をつなぐための応急手当。
 const ALLY_IS_EVENT_TARGET = {
   type: "target_exists",
   query: { scope: "allies", filters: [{ type: "alive" }, { type: "is_event_primary_target" }], take: 1 },
@@ -162,6 +162,7 @@ const HIT_ALLY_BELOW_HALF_QUERY = {
   scope: "allies",
   filters: [
     { type: "alive" },
+    { type: "not_self" },
     { type: "is_event_primary_target" },
     { type: "hp_percent", op: "lte", value: 50 },
   ],
@@ -204,7 +205,7 @@ reactiveSkills.triage = {
     effects: [{
       type: "heal",
       target: HIT_ALLY_BELOW_HALF_QUERY,
-      // HP半分以下まで削られた一撃にだけ強く反応する。被弾量の1/2を返す。
+      // 自分以外の味方がHP半分以下まで削られた一撃にだけ強く反応する。被弾量の1/2を返す。
       amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 2 },
       // "triage" タグは triage_relay（既存）が event_tag 述語で読む。
       tags: ["care", "triage"],
