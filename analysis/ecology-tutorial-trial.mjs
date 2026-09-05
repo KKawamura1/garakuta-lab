@@ -274,6 +274,27 @@ try {
     if (await equipmentButton.count()) {
       await equipmentButton.click();
       await page.waitForTimeout(200);
+      const supplyTutorialText = await bodyText();
+      note("初回本編戦闘後に補給タブが開く",
+        await page.locator('nav.tabs [data-tab="supplies"].active').count() === 1
+          && await page.locator(".supply-tutorial").count() === 1);
+      note("集中治療を補給チュートリアルで案内する",
+        await page.locator('[data-action="treat"][data-treatment="concentrated"]:not([disabled])').count() === 1
+          && /集中治療/.test(supplyTutorialText));
+      const suppliesBefore = Number((await page.locator(".supplies-head b").innerText()).match(/補給 (\d+)/)?.[1] ?? -1);
+      const treatmentButton = page.locator('[data-action="treat"][data-treatment="concentrated"]:not([disabled])');
+      if (await treatmentButton.count()) {
+        await treatmentButton.click();
+        await page.waitForTimeout(200);
+        const suppliesAfter = Number((await page.locator(".supplies-head b").innerText()).match(/補給 (\d+)/)?.[1] ?? -1);
+        note("補給を1つ消費する", suppliesBefore >= 1 && suppliesAfter === suppliesBefore - 1);
+        note("補給チュートリアルを完了すると案内が消える",
+          await page.locator(".supply-tutorial").count() === 0);
+        await page.reload({ waitUntil: "networkidle" });
+        await page.waitForTimeout(250);
+        note("補給チュートリアル完了が保存される",
+          await page.locator(".supply-tutorial").count() === 0);
+      }
       await page.locator('nav.tabs [data-tab="equipment"]').click();
       const gearText = await bodyText();
       note("拾った装備が持ち物に並ぶ", (await page.locator(".gear-card").count()) > 0
