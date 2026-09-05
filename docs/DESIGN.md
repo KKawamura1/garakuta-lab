@@ -155,12 +155,12 @@ durability / charge`。item rarity と effect rarity は別軸で、前者は組
 
 | rarity | 完結 rule 数 | 総 affix 目安 | 効果品質上限 |
 |---|---:|---:|---|
-| common | 1 | 1〜3 | 並 |
-| rare | 1〜2 | 2〜5 | 上 |
-| epic | 1〜3 | 3〜8 | 希 |
-| legendary | 1〜4 + keystone 0〜1 | 4〜12 | 遺物 |
-| mythic | 2〜5 + keystone 0〜1 | 6〜16 | 神話 |
-| oopart | 2〜6 + keystone 0〜1 | 8〜20 | オーパーツ |
+| common | 1 | 1〜4 | 並 |
+| rare | 1〜2 | 2〜6 | 上 |
+| epic | 1〜3 | 3〜10 | 希 |
+| legendary | 1〜4 + keystone 0〜1 | 4〜14 | 遺物 |
+| mythic | 2〜5 + keystone 0〜1 | 6〜18 | 神話 |
+| oopart | 2〜6 + keystone 0〜1 | 8〜22 | オーパーツ |
 
 
 
