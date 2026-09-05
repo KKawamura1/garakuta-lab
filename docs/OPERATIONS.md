@@ -7,7 +7,7 @@
 3. 公開物を変えたら `node analysis/stamp.mjs` で build 印を更新し、生成された
    `core/build.mjs` も commit する。
 4. GitHub Actions の通常 Checks が成功してから、必要なら公開先 E2E を実行する。
-5. 検査結果と未確認事項を PR に残す。やり残しは OPEN_ISSUES.md へ。
+5. 検査結果と未確認事項を PR に残す。やり残しは GitHub Issues へ。
 
 
 ## 2. 検査の中身
