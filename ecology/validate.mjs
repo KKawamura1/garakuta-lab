@@ -585,6 +585,11 @@ function validateRules(bag, path, rules, ctx) {
   rules.forEach((rule, index) => validateRule(bag, `${path}[${index}]`, rule, ctx));
 }
 
+function rejectRemovedSpeedKey(bag, path, definition) {
+  if (Object.hasOwn(definition, "speed")) {
+    bag.add(`${path}.speed`, "unknown_key", "speed was removed from actor definitions");
+  }
+}
 // ------------------------------------------------------------- content bundle
 
 export function validateContentBundle(bundle) {
