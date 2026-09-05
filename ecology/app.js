@@ -3312,7 +3312,7 @@ function renderReward() {
       // 良くするもので、読める量を売る仕組みにはしない（R8 §11 の完全開示）。
       const item = offer.item ?? null;
       const info = item
-        ? { label: item.definition.displayName, effect: "", grammar: "等級 · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
+        ? { label: item.definition.displayName, effect: "", grammar: "装備レアリティ · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
         : EQUIPMENT[offer.equipmentId];
       const body = item
         ? equipmentRarityCallout(item)
