@@ -15,6 +15,10 @@
 - 実装変更時は `GAME.md` と `ARCHITECTURE.md` を現在形に更新する。
   設計判断を変更したときは `DESIGN.md` と `HISTORY.md` を更新する。
 
+## ChatGPT Work
+
+- 実装ごとに最新 `main` から専用 branch / git worktree を作り、他の Work と共有しない。別 Work の差分を見つけたら触らず、自分の worktree を作り直す。
+
 ## 守ること
 
 - `Profile` / `Run` / `Battle` の三層を分離する。
