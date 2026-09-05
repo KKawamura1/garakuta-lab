@@ -117,8 +117,8 @@ for (let sequence = 0; sequence <= 3; sequence += 1) {
         problems.push("報酬の装備に説明文が無い（" + offer.equipmentId + "）");
       }
     }
-    if (offers.some((offer) => offer.type === "generator_error")) {
-      problems.push(`stage ${sequence} 第${index}戦の報酬で生成に失敗した`);
+    for (const offer of offers.filter((entry) => entry.type === "generator_error")) {
+      problems.push(`stage ${sequence} 第${index}戦の報酬で生成に失敗した: ${JSON.stringify(offer.diagnostics)}`);
     }
   }
 }
