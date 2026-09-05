@@ -15,14 +15,12 @@
 - 実装変更時は `GAME.md` と `ARCHITECTURE.md` を現在形に更新する。
   設計判断を変更したときは `DESIGN.md` と `HISTORY.md` を更新する。
 
+## ChatGPT Work
+
+- 実装時は最新 `main` からタスク専用の branch / git worktree を作り、他の Work と作業領域を共有しない。別 Work の差分を見つけたら触らず、専用 worktree を作り直して自分の変更だけを PR にする。
+
 ## 守ること
 
-- 複数のエージェント / Work が同時に動く前提で、実装作業は必ず最新 `main` から
-  タスク専用の branch と git worktree を作って開始する。既存の作業ディレクトリや
-  他タスクの worktree を使い回さず、`main` へ直接 push しない。
-- 自分の worktree に他タスク由来の変更を見つけても、stash / reset / clean / checkout / rebase / commit などで
-  触らない。競合や混入を検知したら最新 `main` から自分専用 worktree を作り直し、
-  自タスクの変更だけを移して PR にする。
 - `Profile` / `Run` / `Battle` の三層を分離する。
 - 同じ入力・seed・content version・generator version から、同じ結果とイベント列を返す。
   `Date` と `Math.random` を engine やゲーム内容の計算経路へ入れない。
