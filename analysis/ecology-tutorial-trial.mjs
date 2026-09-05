@@ -181,6 +181,7 @@ try {
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
   note("入口の接続面が出ている", /応急|傷の見立て|かばう|受け身/.test(skillText));
+  note("応急手当が自分以外と明記される", /自分以外の味方/.test(skillText));
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
   // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
@@ -230,6 +231,8 @@ try {
   note("戦闘予測の使い方を示す",
     /戦闘予測/.test(retryPreviewText)
       && /腕力で振る武器は後列から出すと大きく落ち|集中で通す技は落ちない|後列/.test(retryPreviewText));
+  note("ツグミが自分ではなくゴウを手当てすると示す",
+    /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(retryPreviewText));
   await click("自動戦闘を再生する");
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   await page.locator('.speed-button[data-speed="fast"]').click();
