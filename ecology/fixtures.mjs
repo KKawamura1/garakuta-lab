@@ -451,7 +451,9 @@ export const TRIAGE_BATTLE = battle("fixture_triage", {
     }),
     ally("a_lancer", "lancer", "front_left", { tactics: ["strike"], hp: 15 }),
   ],
-  enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
+  // Keep the enemy after the healer in the formation queue so this fixture
+  // remains a pure healing-overflow witness.
+  enemies: [enemy("e_husk", "husk_bulwark", "rear_right")],
 });
 
 export const MOMENTUM_BATTLE = battle("fixture_momentum", {

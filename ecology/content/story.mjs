@@ -61,8 +61,8 @@ export const PROLOGUE = Object.freeze({
   maxRounds: 5,
   rosterIds: Object.freeze(["warden", "mender"]),
   // 位置の読み替えを主役にするため、12戦用の敵定義は変えず、この一戦だけ敵を軽くする。
-  // HP 60%、攻撃（might / focus）50%なら、初期配置の敗北を残したまま、正解配置が余裕を持って勝つ。
-  enemyScaling: Object.freeze({ maxHpBps: 6_000, offenseBps: 5_000 }),
+  // HP 60%、攻撃（might / focus）60%なら、初期配置の敗北を残したまま、正解配置が余裕を持って勝つ。
+  enemyScaling: Object.freeze({ maxHpBps: 6_000, offenseBps: 6_000 }),
   // **初期配置がそのまま「まだ勝てない編成」。**ツグミが front_left なので
   // 先に狙われる。巻き戻したあと、プレイヤーはここを触る。
   formation: Object.freeze({ mender: "front_left", warden: "front_right" }),

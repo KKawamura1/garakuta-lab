@@ -188,7 +188,8 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 }
 
 // A rule that is mid firing when the cap trips leaves its own frame behind, so
-// the diagnostic points at the rule rather than only at the event count.
+// the diagnostic points at the rule rather than only at the event count. The
+// formation queue makes the mender's counter blow the active frame here.
 {
   let thrown = null;
   try {
@@ -199,9 +200,9 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
   check(thrown !== null, "the tightened chain cap throws");
   const stack = thrown.diagnostics.ruleActivationStack;
   equal(stack.length, 1, "the rule that was running is on the stack");
-  equal(stack[0].ruleId, "overflow_care_rule");
+  equal(stack[0].ruleId, "counter_blow_rule");
   equal(stack[0].ownerId, "a_mender");
-  equal(stack[0].listenTo, "excess_healing");
+  equal(stack[0].listenTo, "damage_taken");
   check(stack[0].triggeredByEventId.startsWith("evt_"), "and the event that triggered it");
 }
 

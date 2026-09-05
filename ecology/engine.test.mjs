@@ -136,7 +136,9 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const proposed = first(result, "damage_proposed");
   const absorbed = first(result, "barrier_damaged");
   const broken = first(result, "barrier_broken");
-  const taken = first(result, "damage_taken");
+  const taken = of(result, "damage_taken").find(
+    (event) => event.sourceActorId === "e_husk" && event.targetActorIds[0] === "a_warden",
+  );
   equal(proposed.values.amount, 4);
   equal(absorbed.values.amount, 2, "the barrier ate what it could");
   check(broken.sequence > absorbed.sequence, "the packet breaks after it is emptied");
@@ -176,7 +178,13 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 // ---- §12.2 healing and overflow ----------------------------------------------
 
 {
-  const result = run(CORE_BATTLE);
+  // Keep this witness focused on the healing pipeline: the mender is placed
+  // before the enemy, so formation initiative cannot damage the actor before
+  // its full-health mend produces the intended overflow.
+  const healingBattle = structuredClone(CORE_BATTLE);
+  healingBattle.allies.find((actor) => actor.instanceId === "a_mender").position = "front_left";
+  healingBattle.allies.find((actor) => actor.instanceId === "a_warden").position = "rear_left";
+  const result = run(healingBattle);
   const proposed = first(result, "healing_proposed");
   const applied = first(result, "healing_applied");
   const excess = first(result, "excess_healing");
@@ -208,11 +216,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(changes[0].sourceActorId, "a_warden");
   equal(changes[1].sourceActorId, "a_lancer");
   equal(changes[0].values.from, "a_mender");
-  equal(changes[1].values.from, "a_lancer");
+  equal(changes[1].values.from, "a_warden");
   const started = of(result, "action_started").find((event) => event.sourceActorId === "e_husk");
-  equal(started.targetActorIds[0], "a_warden", "the action resolves against the final target");
+  equal(started.targetActorIds[0], "a_lancer", "the action resolves against the final target");
   const taken = of(result, "damage_taken").find((event) => event.sourceActorId === "e_husk");
-  equal(taken.targetActorIds[0], "a_warden");
+  equal(taken.targetActorIds[0], "a_lancer");
   const declared = of(result, "action_declared").find((event) => event.sourceActorId === "e_husk");
   check(changes[0].sequence > declared.sequence, "the redirect happens inside the action");
   check(changes[1].sequence < started.sequence, "and before the action starts");
@@ -369,7 +377,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 // ---- §11.6 round end ordering (PREFLIGHT §4) ---------------------------------
 
 {
-  const result = run(FIELD_KIT_BATTLE);
+  // Let the enemy act before the warden in this witness, leaving the round
+  // barrier intact so the expiry phase has an observable packet to remove.
+  const fieldKitBattle = structuredClone(FIELD_KIT_BATTLE);
+  fieldKitBattle.allies[0].position = "front_right";
+  const result = run(fieldKitBattle);
   const unused = of(result, "resource_unused").find((event) => event.values.resource === "reaction_points");
   const spent = of(result, "resource_spent").find((event) => event.ruleId === "field_kit_rule");
   const repaired = of(result, "equipment_repaired").find((event) => event.ruleId === "field_kit_rule");
