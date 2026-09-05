@@ -236,7 +236,7 @@ export function freshLoadout(rosterIds) {
 
 // プロローグは通常遠征とは別の固定脚本盤面。物語の勝敗契約を変えないため、
 // 本編の初期習得技能を自動反映する loadout ではなく、脚本が指定した starter だけを使う。
-function prologueLoadout(rosterIds) {
+export function prologueLoadout(rosterIds) {
   const tactics = {};
   const reactives = {};
   const passives = {};
@@ -598,7 +598,7 @@ export function allEncounters() {
 export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
   const composed = options.composed
     ?? composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
-  const loadout = run.loadout ?? freshLoadout(run.roster);
+  const loadout = options.loadout ?? run.loadout ?? freshLoadout(run.roster);
   const battleInput = makeExpeditionBattle(
     composed,
     run.roster,
