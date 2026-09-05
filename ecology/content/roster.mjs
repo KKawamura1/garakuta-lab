@@ -52,7 +52,8 @@ export const CHARACTER_DEFINITIONS = [
     // 後列からでも威力が落ちず、shield_the_wounded の防壁も同じ数値で伸びる。
     // HP110・受け2なので、前へ出すと本当に落ちる（序章がそれを教える）。
     starterTactics: ["aimed_shot", "shield_the_wounded"],
-    starterReactives: ["triage", "emergency_treatment"],
+    // 応急手当は自分以外の味方だけを治す。後列から前衛を支えるため、自己回復は初期装備に置かない。
+    starterReactives: ["triage"],
   },
   {
     id: "lancer",
