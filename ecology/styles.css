@@ -1012,12 +1012,16 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tree-line.derived { stroke: var(--good); stroke-width: 2px; }
 .tree-line.faded { stroke: #35403d; opacity: .5; }
 .skill-node { min-height: 0; padding: 0; overflow: hidden; }
+/* align-items:start（center ではない）。**バッジの数で1行にも2行にも
+   なる node-copy** のせいで center だと丸印の高さが節ごとにブレる。
+   start にして丸印を常にボタン上端の同じ位置へ固定し、同じ行に並ぶ節の
+   線の高さ（layoutSkillTreeConnectors() が .node-icon の中心を測る）を揃える。 */
 .skill-node-button {
   display: grid;
   grid-template-columns: 29px minmax(0, 1fr) auto;
   width: 100%;
   min-height: 62px;
-  align-items: center;
+  align-items: start;
   gap: 7px;
   padding: 8px;
   border: 0;

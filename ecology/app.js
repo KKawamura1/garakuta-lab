@@ -2392,20 +2392,35 @@ function layoutSkillTreeConnectors() {
     if (derived.has(childKey)) return " derived";
     return " faded";
   };
+  // **高さの基準は丸印（.node-icon）の中心。**カード全体の中心にすると、
+  // バッジが1行で収まる節と2行に折り返す節とで高さが違い、同じ行（＝最初の子として
+  // まっすぐ継いだ節）どうしでも線がわずかに曲がって見える（作者からの指摘）。
+  // 丸印はどの節でもボタン左上の同じ位置に固定なので、そこを測れば行が同じ節は
+  // 必ず同じ高さになる。
+  const forestRect = forest.getBoundingClientRect();
+  const anchorOf = (element) => {
+    const icon = element.querySelector(".node-icon");
+    const cellRect = element.getBoundingClientRect();
+    const iconRect = icon ? icon.getBoundingClientRect() : cellRect;
+    return {
+      left: cellRect.left - forestRect.left,
+      right: cellRect.right - forestRect.left,
+      centerY: iconRect.top - forestRect.top + iconRect.height / 2,
+    };
+  };
   const paths = [];
   for (const row of group.rows) {
     if (!row.children.length) continue;
     const parentElement = nodeEls.get(row.key);
     if (!parentElement) continue;
-    const startX = parentElement.offsetLeft + parentElement.offsetWidth;
-    const startY = parentElement.offsetTop + parentElement.offsetHeight / 2;
+    const parentAnchor = anchorOf(parentElement);
     for (const childKey of row.children) {
       const childElement = nodeEls.get(childKey);
       if (!childElement) continue;
-      const endX = childElement.offsetLeft;
-      const endY = childElement.offsetTop + childElement.offsetHeight / 2;
-      const busX = startX + (endX - startX) / 2;
-      const d = "M " + startX + " " + startY + " H " + busX + " V " + endY + " H " + endX;
+      const childAnchor = anchorOf(childElement);
+      const busX = parentAnchor.right + (childAnchor.left - parentAnchor.right) / 2;
+      const d = "M " + parentAnchor.right + " " + parentAnchor.centerY + " H " + busX
+        + " V " + childAnchor.centerY + " H " + childAnchor.left;
       paths.push("<path class=\"tree-line" + edgeTone(childKey) + "\" d=\"" + d + "\"></path>");
     }
   }
