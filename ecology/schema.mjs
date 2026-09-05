@@ -401,14 +401,12 @@ export const LIMITS = freeze({
   minAlliesInBattle: 1,
   maxEnemiesInBattle: 5,
   minEnemiesInBattle: 1,
-  // R6 §6.6 — 基本 3 active / 3 reactive / 2 passive、最大 4 / 4 / 2。
-  // PHASE B: the fourth active and reactive slot is a per-character purchase, so
-  // the structural ceiling here is 4 and the *granted* count lives in the
-  // profile. 第5枠は R6 では追加しない。
-  maxTactics: 4,
+  // R18 — 技能の装着数にゲーム上の上限は設けない。ここは配列を壊すような
+  // 極端な入力を早期に止めるための構造上限で、画面や loadout の枠数ではない。
+  maxTactics: Number.MAX_SAFE_INTEGER,
   maxUseWhen: 2,
-  maxReactiveSkills: 4,
-  maxPassiveSkills: 2,
+  maxReactiveSkills: Number.MAX_SAFE_INTEGER,
+  maxPassiveSkills: Number.MAX_SAFE_INTEGER,
   maxEquipment: 2,
   minPreparationSteps: 1,
   maxPreparationSteps: 3,
@@ -449,5 +447,4 @@ export function compareOp(op, left, right) {
     default: throw new Error(`unknown comparison operator: ${op}`);
   }
 }
-
 

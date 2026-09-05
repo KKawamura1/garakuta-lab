@@ -18,14 +18,14 @@ import { CHARACTER_LORE } from "./character-lore.mjs";
 //   Stage 2  ＋ pack_wall core            … ヒバナ
 //   Stage 3  ＋ pack_tempo core           … ゲンゾウ
 //
-// baseline の `strike` は **skill slot を消費せず必ず出る**（skills-active.mjs の
-// coreStrike）ので、初期装着へ入れない。`bulwark` と `mend` は常に解禁済みだが、
-// 装着すると枠を一つ使う。
+// baseline の `strike` は **装着欄に入れなくても必ず出る**（skills-active.mjs の
+// coreStrike）ので、初期装着へ入れない。`bulwark` と `mend` は常に解禁済みで、
+// 必要なら取得済み技能と同じように装着できる。
 //
 // **技能は数値の傾きに合わせて選ぶ。**攻撃は might（武器）と focus（技）に分かれ
 // （skills-active.mjs の TECHNIQUE_SKILL_IDS）、防壁と一部の反応も focus を読む
 // （skills-reactive.mjs の REACTIVE_SCALING）。**読まない数値の技能を初期装着に
-// 置かない。**置くと、枠を一つ潰した状態で遠征が始まる。
+// 置かない。**置くと、能力値に合わない技能を抱えた状態で遠征が始まる。
 export const CHARACTER_DEFINITIONS = [
   {
     id: "warden",
@@ -36,7 +36,7 @@ export const CHARACTER_DEFINITIONS = [
     // ゴウ … 腕力50・技術6。**技を持たない人。**
     // Stage 0 に腕力で読む技能は steady_cut しか無く、他（bulwark・aimed_shot・
     // shield_the_wounded）は全部 focus を読むので、**active は一本だけにしてある。**
-    // 枠を埋めるより空けておくほうが強い。腕力の攻撃は `strike` が枠外で出る。
+    // 技能欄を埋めるより空けておくほうが強い。腕力の攻撃は `strike` が欄外で出る。
     starterTactics: ["steady_cut"],
     // 受けが1なので細かい攻撃が全部通る。**受けた瞬間に自分を繋ぎ、余った分は隣へ渡す。**
     // どちらも focus を読まない（回復は受けたダメージ比・R11 §4）。

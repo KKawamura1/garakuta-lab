@@ -237,6 +237,23 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(braces.length, 0, "the later rule could not pay and did not fire");
 }
 
+{
+  // R18 — the player's reactive order is stronger than content priority for
+  // two reactions owned by the same actor and listening to the same trigger.
+  // Reversing the fixture list must make the former lower-priority counter wait.
+  const reversed = structuredClone(COST_CONTEST_BATTLE);
+  reversed.allies[0].reactiveSkillIds.reverse();
+  const result = run(reversed);
+  const ordered = result.events.filter((event) =>
+    event.ruleId === "brace_after_hit_rule" || event.ruleId === "counter_blow_rule");
+  equal(ordered[0]?.ruleId, "brace_after_hit_rule", "reactive skills fire from top to bottom");
+  equal(
+    of(result, "damage_proposed").filter((event) => event.ruleId === "counter_blow_rule").length,
+    0,
+    "the lower reactive skill waits after the first one spends RP",
+  );
+}
+
 // ---- §12.4 preparation --------------------------------------------------------
 
 {
@@ -682,3 +699,4 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     `${battle.battleId} longest chain ${result.metrics.maxChainEventCount}, under 10% of the chain cap`,
   );
 }
+

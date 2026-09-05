@@ -299,12 +299,13 @@ function ruleEntriesFor(state, actor) {
   for (const rule of intrinsic) {
     entries.push({ rule, owner: actor, sourceDefinitionId: actor.definitionId, ruleSource: "signature" });
   }
-  for (const skillId of actor.reactiveSkillIds) {
+  for (const [skillOrder, skillId] of actor.reactiveSkillIds.entries()) {
     entries.push({
       rule: state.content.reactiveSkills[skillId].rule,
       owner: actor,
       sourceDefinitionId: skillId,
       ruleSource: "reactive_skill",
+      skillOrder,
     });
   }
   // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
@@ -410,6 +411,45 @@ function compareRuleEntries(a, b) {
   return 0;
 }
 
+// A dispatch call already narrows candidates to one event type and timing.
+// Use that trigger window as the grouping key so all reactive skills owned by
+// one actor are kept together, then impose the player's top-to-bottom order
+// inside that block. This is deliberately a post-sort pass: a pairwise
+// comparator that sometimes ignores priority for reactive entries is not
+// transitive when signature/equipment rules are mixed in the same actor.
+function reactiveGroupKey(entry) {
+  if (entry.ruleSource !== "reactive_skill" || !entry.ownerId) return null;
+  return entry.ownerId + "\u0000" + entry.rule.listenTo + "\u0000" + entry.rule.timing;
+}
+
+function orderRuleCandidates(candidates) {
+  const sorted = [...candidates].sort(compareRuleEntries);
+  const groups = new Map();
+  for (const entry of sorted) {
+    const key = reactiveGroupKey(entry);
+    if (key === null) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(entry);
+  }
+  for (const entries of groups.values()) {
+    entries.sort((a, b) => a.skillOrder - b.skillOrder);
+  }
+
+  const output = [];
+  const emitted = new Set();
+  for (const entry of sorted) {
+    const key = reactiveGroupKey(entry);
+    if (key === null) {
+      output.push(entry);
+      continue;
+    }
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    output.push(...groups.get(key));
+  }
+  return output;
+}
+
 function dispatchRules(state, event, timing, pendingFrame) {
   const candidates = [];
   for (const entry of allRuleEntries(state)) {
@@ -424,8 +464,7 @@ function dispatchRules(state, event, timing, pendingFrame) {
       ownerId: entry.owner ? entry.owner.instanceId : "~region",
     });
   }
-  candidates.sort(compareRuleEntries);
-  for (const candidate of candidates) {
+  for (const candidate of orderRuleCandidates(candidates)) {
     fireRule(state, event, candidate, pendingFrame);
   }
 }
@@ -1254,3 +1293,4 @@ function maxChainEventCount(state) {
   }
   return counts.size === 0 ? 0 : Math.max(...counts.values());
 }
+

@@ -23,7 +23,7 @@
 | `engine.mjs` | 決定的な戦闘解決 |
 | `schema.mjs` / `validate.mjs` | イベント・状態の定義と不変条件 |
 | `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順 |
-| `playable-battles.mjs` | 現行の戦闘入力、preview、loadout |
+| `playable-battles.mjs` | 現行の戦闘入力、preview、loadout（技能の装着順・一時停止を含む） |
 | `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁 |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換 |
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
@@ -42,8 +42,10 @@
 | 層 | 永続期間 | 主な内容 |
 |---|---|---|
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
-| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、隊、formation、run 技能点・技能、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、隊、formation、run 技能点・取得技能・装着順・一時停止状態、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、開始 HP snapshot、preview / commit 状態 |
+
+技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
 
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
@@ -66,6 +68,7 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
   同じ item から読み、表示だけで rarity を再計算しない。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
+- 同じ actor の reactive skill は loadout の上から順に候補を処理し、active skill は配列順に最初の使用可能なものを選びます。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。
 
       runSeed:manifest:stageId
       runSeed:encounter:encounterIndex
@@ -119,3 +122,4 @@ reward / rarity weight、技能点価格、power budget は調律可能な soft 
 - 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
 - D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。
 - 作者のプレイ結果を推測で補わず、未確認として止める。
+

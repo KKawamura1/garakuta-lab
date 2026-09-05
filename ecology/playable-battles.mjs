@@ -202,11 +202,16 @@ export function initialUnlockedSkills(characterId) {
   ])];
 }
 
-// R6 §6.6 — 基本 3 active / 3 reactive / 2 passive。
-// **PHASE B: 第4枠は人物ごとの永続購入**なので、実際の上限は人物ごとに違う。
-// 呼び出し側は progression.slotLimits(profile, characterId) を渡す。
-// 渡さなかったときは基本値で、Phase A と同じ振る舞いになる。
-export const SLOT_LIMITS = Object.freeze({ active: 3, reactive: 3, passive: 2, equipment: 2 });
+// R18 — 取得済み技能は、行動・反応・常設を問わずすべて装着できる。
+// ここでいう「無制限」はゲーム上の枠を設けないという意味で、BattleInput の
+// validator にだけ、壊れた入力を早期に止めるための安全上限を置く。
+// 装備だけは従来どおり2枠。
+export const SLOT_LIMITS = Object.freeze({
+  active: Number.MAX_SAFE_INTEGER,
+  reactive: Number.MAX_SAFE_INTEGER,
+  passive: Number.MAX_SAFE_INTEGER,
+  equipment: 2,
+});
 const LOADOUT_KEYS = Object.freeze({ active: "tactics", reactive: "reactives", passive: "passives" });
 
 export function freshLoadout(rosterIds) {
@@ -231,18 +236,39 @@ function normalizeLoadout(loadout, rosterIds, limitsFor) {
   const next = clone(loadout ?? freshLoadout(rosterIds));
   // 旧 save には passives が無い。**足りない鍵はここで生やす**
   // （呼び出し側それぞれで面倒を見ると、いつか一箇所が忘れる）。
+  next.tactics = next.tactics ?? {};
+  next.reactives = next.reactives ?? {};
   next.passives = next.passives ?? {};
+  next.equipment = next.equipment ?? {};
   for (const characterId of rosterIds) {
     const limits = limitsOf(limitsFor, characterId);
-    next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])].slice(0, limits.active);
-    next.reactives[characterId] = [...new Set(next.reactives?.[characterId] ?? [])].slice(0, limits.reactive);
-    next.passives[characterId] = [...new Set(next.passives?.[characterId] ?? [])].slice(0, limits.passive);
+    // 技能は上限なし。旧 save の重複だけはここで正規化する。
+    next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])];
+    next.reactives[characterId] = [...new Set(next.reactives?.[characterId] ?? [])];
+    next.passives[characterId] = [...new Set(next.passives?.[characterId] ?? [])];
     next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, limits.equipment);
+  }
+  // disabled は後方互換のため optional。無い save は全技能を有効として扱う。
+  // 既に装着されている技能だけをオフにできるよう、対象 character 分だけ掃除する。
+  if (next.disabled && typeof next.disabled === "object") {
+    next.disabled = { ...next.disabled };
+    for (const characterId of rosterIds) {
+      const installed = new Set([
+        ...(next.tactics[characterId] ?? []),
+        ...(next.reactives[characterId] ?? []),
+        ...(next.passives[characterId] ?? []),
+      ]);
+      const disabled = [...new Set(Array.isArray(next.disabled[characterId]) ? next.disabled[characterId] : [])]
+        .filter((skillId) => installed.has(skillId));
+      if (disabled.length) next.disabled[characterId] = disabled;
+      else delete next.disabled[characterId];
+    }
+    if (!Object.keys(next.disabled).length) delete next.disabled;
   }
   return next;
 }
 
-// 枠の上限をここ一箇所で解く。関数でも表でも渡せる（人物ごとに違うので）。
+// 装備の上限など、人物ごとの loadout 設定をここ一箇所で解く。関数でも表でも渡せる。
 function limitsOf(limitsFor, characterId) {
   if (typeof limitsFor === "function") return { ...SLOT_LIMITS, ...limitsFor(characterId) };
   if (limitsFor && typeof limitsFor === "object") return { ...SLOT_LIMITS, ...limitsFor };
@@ -259,18 +285,37 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
   if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
-  if (list.length >= limitsOf(limitsFor, characterId)[kind]) {
-    // R14 §2 — 技能は装着したら遠征中は外せない。**枠が埋まったらそこで終わり**なので、
-    // 「外してください」とは言わない（できないことを勧めない）。
-    return { ok: false, reason: "その枠はこの遠征では埋まりきっています。" };
-  }
   next[listKey][characterId] = [skillId, ...list];
   return { ok: true, loadout: next };
 }
 
-// R14 §2 — 技能の取り外しは無くなった。**一度取った技能は、撤退するか12戦を
-// 突破するまで外せない**（「いま強くするか、将来へ取っておくか」を選ばせるため）。
-// 装備だけが自由に付け外しできる。removeSkill / resetRunSkills はここで消した。
+function installedSkillIds(loadout, characterId) {
+  return [
+    ...(loadout?.tactics?.[characterId] ?? []),
+    ...(loadout?.reactives?.[characterId] ?? []),
+    ...(loadout?.passives?.[characterId] ?? []),
+  ];
+}
+
+// R18 — 取得状態は変えず、装着済み技能の効果だけを一時停止する。
+// disabled を別欄に置くことで、オフにしても技能点や前提の解禁状態は失わない。
+export function toggleSkill(loadout, characterId, skillId, limitsFor) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
+  if (!installedSkillIds(next, characterId).includes(skillId)) {
+    return { ok: false, reason: "その技能は装着されていません。" };
+  }
+  const disabled = new Set(next.disabled?.[characterId] ?? []);
+  const enabled = disabled.has(skillId);
+  if (enabled) disabled.delete(skillId);
+  else disabled.add(skillId);
+  next.disabled = { ...(next.disabled ?? {}) };
+  if (disabled.size) next.disabled[characterId] = [...disabled];
+  else {
+    delete next.disabled[characterId];
+    if (!Object.keys(next.disabled).length) delete next.disabled;
+  }
+  return { ok: true, loadout: next, enabled };
+}
 
 export function equipEquipment(loadout, characterId, equipmentId, slot = 0, limitsFor) {
   const component = componentInfo(equipmentId);
@@ -334,13 +379,21 @@ export function enemyInfo(enemyActorId) {
   };
 }
 
-export function reorderTactic(loadout, characterId, index, direction, limitsFor) {
+export function reorderSkill(loadout, characterId, kind, index, direction, limitsFor) {
   const next = normalizeLoadout(loadout, [characterId], limitsFor);
-  const tactics = next.tactics[characterId] ?? [];
+  const listKey = LOADOUT_KEYS[kind];
+  if (!listKey || !["active", "reactive"].includes(kind)) return next;
+  const skills = next[listKey][characterId] ?? [];
   const otherIndex = index + direction;
-  if (index < 0 || index >= tactics.length || otherIndex < 0 || otherIndex >= tactics.length) return next;
-  [tactics[index], tactics[otherIndex]] = [tactics[otherIndex], tactics[index]];
+  if (!Number.isInteger(index) || !Number.isInteger(direction)
+      || index < 0 || index >= skills.length || otherIndex < 0 || otherIndex >= skills.length) return next;
+  [skills[index], skills[otherIndex]] = [skills[otherIndex], skills[index]];
   return next;
+}
+
+// 旧 caller との互換入口。active の並び替えも同じ実装へ集約する。
+export function reorderTactic(loadout, characterId, index, direction, limitsFor) {
+  return reorderSkill(loadout, characterId, "active", index, direction, limitsFor);
 }
 
 const TACTIC_USE_WHEN = Object.freeze({
@@ -358,14 +411,9 @@ function equipmentInput(characterId, equipmentIds, durability = {}, content = PL
   }));
 }
 
-// **装着した行動枠を、そのまま戦闘へ渡す。**
-//
-// ここは長く `slice(0, 2)` だった。v1 の枠数が2だった頃の名残で、Phase A が
-// 枠を3へ増やしたあとも残っていたため、**3つ目に置いた行動が戦闘に入らず
-// 黙って消えていた**（画面には装着済みと出る）。Phase B で第4枠を売る前に直す。
-// 上限は validate.mjs の LIMITS.maxTactics が拒否する。
-function usableTactics(ids, limit = SLOT_LIMITS.active) {
-  return ids.filter((id) => PLAYABLE_CONTENT.activeSkills[id]).slice(0, limit).map((activeSkillId) => ({
+// **装着した行動を、そのまま戦闘へ渡す。**技能数にゲーム上の枠はない。
+function usableTactics(ids) {
+  return ids.filter((id) => PLAYABLE_CONTENT.activeSkills[id]).map((activeSkillId) => ({
     activeSkillId,
     useWhen: TACTIC_USE_WHEN[activeSkillId] ?? [],
   }));
@@ -374,20 +422,19 @@ function usableTactics(ids, limit = SLOT_LIMITS.active) {
 // 味方1人ぶんの battle input。**編成・技能・装備・鍛錬をここでだけ組む。**
 // 7区画の試作（makeBattle）と12戦の遠征（makeExpeditionBattle）が同じ関数を通る。
 function allyInput(characterId, position, loadout, options = {}) {
-  const limits = options.limitsFor
-    ? { ...SLOT_LIMITS, ...(typeof options.limitsFor === "function" ? options.limitsFor(characterId) : options.limitsFor) }
-    : SLOT_LIMITS;
   const option = characterById[characterId];
   const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
   const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
+  const disabled = new Set(loadout.disabled?.[characterId] ?? []);
+  const enabled = (ids) => ids.filter((id) => !disabled.has(id));
   const ally = {
     instanceId: "a_" + characterId,
     characterId,
     position,
-    tactics: usableTactics(tactics, limits.active),
-    reactiveSkillIds: reactives.filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]).slice(0, limits.reactive),
-    passiveSkillIds: (loadout.passives?.[characterId] ?? [])
-      .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]).slice(0, limits.passive),
+    tactics: usableTactics(enabled(tactics)),
+    reactiveSkillIds: enabled(reactives).filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]),
+    passiveSkillIds: enabled(loadout.passives?.[characterId] ?? [])
+      .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]),
     equipment: equipmentInput(
       characterId,
       loadout.equipment?.[characterId] ?? [],

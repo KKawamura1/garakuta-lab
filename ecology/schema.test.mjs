@@ -268,9 +268,8 @@ expectRejected(
 
 // ---- loadout limits (§5.3) --------------------------------------------------
 
-// PHASE B: R6 §6.6 の構造上限は 4（第4枠は人物ごとの永続購入）。
-// **3 で拒否していないことも見る。**上限を上げたのに purchase 側だけ増えて
-// validator が3のままだと、買った枠が戦闘へ入る手前で黙って落ちる。
+// R18 — 技能の装着数にはゲーム上の上限を設けない。validator の値は
+// 配列を壊す極端な入力を止めるための安全上限であり、通常の loadout 枠ではない。
 expectAccepted(
   input((battle) => {
     battle.allies[0].tactics = [
@@ -280,10 +279,10 @@ expectAccepted(
       { activeSkillId: "triage", useWhen: [] },
     ];
   }),
-  "four active tactics (Phase B の第4枠)",
+  "four active tactics (技能数に上限なし)",
 );
 
-expectRejected(
+expectAccepted(
   input((battle) => {
     battle.allies[0].tactics = [
       { activeSkillId: "strike", useWhen: [] },
@@ -293,8 +292,7 @@ expectRejected(
       { activeSkillId: "heavy_swing", useWhen: [] },
     ];
   }),
-  "too_many",
-  "five active tactics",
+  "five active tactics (技能数に上限なし)",
 );
 
 expectRejected(
@@ -318,17 +316,16 @@ expectAccepted(
   input((battle) => {
     battle.allies[0].reactiveSkillIds = ["counter_blow", "guard_step", "scavenge_ap", "urging"];
   }),
-  "four reactive skills (Phase B の第4枠)",
+  "four reactive skills (技能数に上限なし)",
 );
 
-expectRejected(
+expectAccepted(
   input((battle) => {
     battle.allies[0].reactiveSkillIds = [
       "counter_blow", "guard_step", "scavenge_ap", "urging", "cover_ally",
     ];
   }),
-  "too_many",
-  "five reactive skills",
+  "five reactive skills (技能数に上限なし)",
 );
 
 expectRejected(
@@ -673,5 +670,3 @@ expectRejected(
 );
 
 console.log(`schema.test.mjs: ${checks} checks passed`);
-
-

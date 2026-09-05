@@ -127,7 +127,7 @@ for (const [id, scaling] of Object.entries(ACTIVE_SCALING)) {
   scaleDefinitionAmounts(activeSkills[id], scaling);
 }
 
-// R6 §6.4 — 攻撃テンポを保証する中核の行動。**skill slot を消費しない。**
+// R6 §6.4 — 攻撃テンポを保証する中核の行動。**技能欄とは別に必ず出る。**
 // 技能を持たない、全部が不発、有効対象なしのときに basic、
 // utility の解決後に fallback が一度だけ走る。
 //
@@ -166,7 +166,7 @@ for (const reach of ["melee", "ranged"]) {
 // R6 §6.7 / §17.1 — Phase A の6 archetype。**同じ名前の係数違いを量産しない。**
 // それぞれが guard / block / formation / risk の少なくとも一軸で評価を変える。
 //
-//   basic   … 技能枠を使わない通常攻撃（might 100%、単発）
+//   basic   … 技能欄を使わない通常攻撃（might 100%、単発）
 //   heavy   … 既存の溜め突き（溜めが代償）
 //   rapid   … 多段。総係数は basic 以上だが **guard に弱い**
 //   pierce  … guard を半分無視。単発係数も basic を上回る

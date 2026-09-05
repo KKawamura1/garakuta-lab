@@ -16,7 +16,7 @@
 //   - 同じ runId を二度精算しない（R6 §9.2）。
 //   - retry しても同じ encounter の撃破 base は一度だけ（R6 §9.2）。
 //   - 難易度は活動資金で買えず、一つ前の rank のクリアだけで開く（R6 §9.6）。
-//   - 鍛錬は speed / AP / RP / 枠数 / 発火回数 / 優先順を上げない（R6 §9.5）。
+//   - 鍛錬は speed / AP / RP / 技能の装着数 / 発火回数 / 優先順を上げない（R6 §9.5）。
 //   - 永続値は 10進文字列で保存し、計算は bigint で行う（R6 §9.1）。
 
 import {
@@ -162,7 +162,8 @@ export const META_UPGRADES = Object.freeze([
 // 現行の報酬経路では固定装備を提示しないため、購入対象としては再公開しない。
 const LEGACY_META_UPGRADE_IDS = Object.freeze(["equipment_pool.group_repair"]);
 
-// R6 §6.6 — 第4枠は**人物ごとの**永続投資。全小隊が一度に複雑化しないようにする。
+// R18 — 技能の装着枠は廃止した。旧 save の購入履歴を読めるように ID と
+// 定数は残すが、現行の購入画面へは戻さない。
 export const SLOT_UPGRADE_COSTS = Object.freeze({ active: "30000", reactive: "60000" });
 export const SLOT_UPGRADE_PREFIX = Object.freeze({ active: "slot_active_4", reactive: "slot_reactive_4" });
 
@@ -190,13 +191,9 @@ export function upgradeLevel(profile, id) {
 // 次の一段の費用。買い切ったら null（「買えない」と「0で買える」を混ぜない）。
 export function upgradeCost(profile, id) {
   const characterId = characterIdFromSlotUpgrade(id);
-  if (characterId && !isCharacterUnlocked(profile, characterId)) return null;
-  if (id.startsWith(SLOT_UPGRADE_PREFIX.active)) {
-    return upgradeLevel(profile, id) >= 1 ? null : parseFunds(SLOT_UPGRADE_COSTS.active);
-  }
-  if (id.startsWith(SLOT_UPGRADE_PREFIX.reactive)) {
-    return upgradeLevel(profile, id) >= 1 ? null : parseFunds(SLOT_UPGRADE_COSTS.reactive);
-  }
+  // R18 — active / reactive の旧「第4枠」投資は、技能数無制限への移行後は
+  // 新たに購入できない。値を保持するのは古い Profile の読み込み互換のため。
+  if (characterId) return null;
   const def = metaUpgradeDef(id);
   if (!def) return null;
   const level = upgradeLevel(profile, id);
@@ -471,12 +468,12 @@ export function characterStats(profile, characterId) {
   return { base, stats, training: Object.fromEntries(TRAINABLE_STATS.map((a) => [a, detail[a].level])), detail };
 }
 
-// R6 §6.6 — 基本 3/3/2、購入で active と reactive だけ4へ。
-export function slotLimits(profile, characterId) {
+// R18 — 技能は無制限。equipment だけは2枠を維持する。
+export function slotLimits(_profile, _characterId) {
   return {
-    active: 3 + upgradeLevel(profile, slotUpgradeId("active", characterId)),
-    reactive: 3 + upgradeLevel(profile, slotUpgradeId("reactive", characterId)),
-    passive: 2,
+    active: Number.MAX_SAFE_INTEGER,
+    reactive: Number.MAX_SAFE_INTEGER,
+    passive: Number.MAX_SAFE_INTEGER,
     equipment: 2,
   };
 }
@@ -777,11 +774,13 @@ export function unlockRunSkill(run, characterId, node) {
 // 結果が完全に読めるようになると、それは**予測を見ながら技能を出し入れして
 // 最適解を探す作業**になり、「いま強くするか、将来へ取っておくか」という
 // 遠征のあいだの賭けが消える。技能点の使い道は一度きりにし、都度の調整は
-// 装備（自由に付け外しできる）に持たせた。
+// 装備と loadout のオン／オフ・順番に持たせる。
 //
-// 解禁も装着も、撤退するか12戦を突破して遠征が終わるまで戻せない。
-// 払い戻しが無くなったので、技能の値段表（registerSkillCosts）も一緒に消えた。
-// 解禁の可否と値段は、そのつど呼び出し側が渡す node.cost で足りる。
+// 解禁は遠征内で一度だけで、撤退するか12戦を突破して遠征が終わるまで戻せない。
+// 装着は取得済み技能を無制限に追加でき、装着後は playable-battles 側で
+// 一時停止と順番変更を扱う。払い戻しが無くなったので、技能の値段表
+// （registerSkillCosts）も一緒に消えた。解禁の可否と値段は、そのつど呼び出し側が
+// 渡す node.cost で足りる。
 
 // ============================================================ 補給（R6 §12.1）
 

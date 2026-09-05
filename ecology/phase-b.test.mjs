@@ -29,7 +29,13 @@ import {
   packOfSkill,
   skillIdsForPacks,
 } from "./content/index.mjs";
-import { SKILL_TREE_NODES, freshLoadout, makeExpeditionBattle } from "./playable-battles.mjs";
+import {
+  SKILL_TREE_NODES,
+  freshLoadout,
+  makeExpeditionBattle,
+  reorderSkill,
+  toggleSkill,
+} from "./playable-battles.mjs";
 import {
   ENCOUNTER_BASE_FUNDS,
   MAX_SUPPLIES,
@@ -267,48 +273,59 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   }
 }
 
-// ---- 枠（R6 §6.6）-----------------------------------------------------------
+// ---- 技能の装着・順番・一時停止（R18）---------------------------------------
 
 {
   const profile = newProfile();
-  assert.deepEqual(slotLimits(profile, "warden"), { active: 3, reactive: 3, passive: 2, equipment: 2 });
+  assert.deepEqual(slotLimits(profile, "warden"), {
+    active: Number.MAX_SAFE_INTEGER,
+    reactive: Number.MAX_SAFE_INTEGER,
+    passive: Number.MAX_SAFE_INTEGER,
+    equipment: 2,
+  });
   checks += 1;
-  equal(LIMITS.maxTactics, 4, "構造上限は4");
-  equal(LIMITS.maxReactiveSkills, 4, "反応の構造上限も4");
-  equal(LIMITS.maxPassiveSkills, 2, "常設の第3枠は R6 では追加しない");
+  equal(LIMITS.maxTactics, Number.MAX_SAFE_INTEGER, "行動技能は人数制限なし");
+  equal(LIMITS.maxReactiveSkills, Number.MAX_SAFE_INTEGER, "反応技能は人数制限なし");
+  equal(LIMITS.maxPassiveSkills, Number.MAX_SAFE_INTEGER, "常設技能は人数制限なし");
 
-  const bought = purchaseUpgrade(
+  equal(upgradeCost(profile, slotUpgradeId("active", "warden")), null, "旧第4枠投資は新規購入できない");
+  check(!purchaseUpgrade(
     { ...profile, activityFunds: "100000" }, slotUpgradeId("active", "warden"),
-  );
-  equal(bought.ok, true, "第4枠を買える");
-  equal(slotLimits(bought.profile, "warden").active, 4, "買った人だけ4枠");
-  equal(slotLimits(bought.profile, "lancer").active, 3, "**買っていない人は3枠のまま**");
-  equal(upgradeCost(bought.profile, slotUpgradeId("active", "warden")), null, "二度は買えない");
-  equal(bought.purchase.balanceBefore, "100000", "購入前の残高が残る");
-  equal(bought.purchase.balanceAfter, "70000", "購入後の残高が残る");
+  ).ok, "旧第4枠投資の購入導線が閉じている");
 }
 
-// 装着した3枠が**戦闘へ届く**こと。Phase A では slice(0, 2) で3つ目が消えていた。
+// 取得済み技能を何本でも装着でき、オフにした技能だけが BattleInput から外れる。
 {
   const loadout = freshLoadout(ROSTER);
-  loadout.tactics.warden = ["bulwark", "strike", "pierce_thrust"];
+  const active = Object.keys(PLAYABLE_CONTENT.activeSkills).slice(0, 6);
+  const reactive = Object.keys(PLAYABLE_CONTENT.reactiveSkills).slice(0, 6);
+  const passive = Object.keys(PLAYABLE_CONTENT.passiveSkills).slice(0, 3);
+  loadout.tactics.warden = active;
+  loadout.reactives.warden = reactive;
+  loadout.passives.warden = passive;
   const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, loadout, "s", FORMATION, {});
   const warden = battle.allies.find((ally) => ally.characterId === "warden");
-  equal(warden.tactics.length, 3, "3つ目の行動が戦闘へ届く");
+  equal(warden.tactics.length, active.length, "上限なしの行動技能が戦闘へ届く");
+  equal(warden.reactiveSkillIds.length, reactive.length, "上限なしの反応技能が戦闘へ届く");
+  equal(warden.passiveSkillIds.length, passive.length, "上限なしの常設技能が戦闘へ届く");
   assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), []);
   checks += 1;
-}
 
-// 4枠を買った人は4つ届く。
-{
-  const loadout = freshLoadout(ROSTER);
-  loadout.tactics.warden = ["bulwark", "strike", "pierce_thrust", "rapid_cuts"];
-  const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, loadout, "s", FORMATION, {
-    limitsFor: (id) => (id === "warden" ? { active: 4 } : {}),
-  });
-  equal(battle.allies.find((a) => a.characterId === "warden").tactics.length, 4, "第4枠も届く");
-  assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), []);
-  checks += 1;
+  const reversedActive = reorderSkill(loadout, "warden", "active", 0, 1);
+  equal(reversedActive.tactics.warden[0], active[1], "行動の上から順を入れ替えられる");
+  const reversedReactive = reorderSkill(loadout, "warden", "reactive", 0, 1);
+  equal(reversedReactive.reactives.warden[0], reactive[1], "反応の上から順を入れ替えられる");
+
+  const off = toggleSkill(loadout, "warden", active[0]);
+  equal(off.ok, true, "装着済み技能をオフにできる");
+  equal(off.enabled, false, "オフ状態が返る");
+  equal(off.loadout.disabled.warden[0], active[0], "オフ状態を保存する");
+  const offBattle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, off.loadout, "s", FORMATION, {});
+  equal(offBattle.allies.find((ally) => ally.characterId === "warden").tactics.length, active.length - 1,
+    "オフにした行動の効果だけ戦闘から外れる");
+  const on = toggleSkill(off.loadout, "warden", active[0]);
+  equal(on.enabled, true, "同じトグルで再びオンにできる");
+  check(!on.loadout.disabled, "オンに戻すと不要なオフ欄を残さない");
 }
 
 // ---- 鍛錬（R6 §9.5）---------------------------------------------------------
