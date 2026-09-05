@@ -172,6 +172,20 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   }
 }
 
+// ---- 巻き戻しの秘密（R15追補）-----------------------------------------------
+// 敗北の直後、ゴウはツグミへ「杭を使った」「死んだ」と伝えない。
+// 戦闘1後の会話でツグミ自身が違和感を拾うため、ここで先に答えを明かさない。
+{
+  const rewound = dialogueFor("stage_0_prologue_rewound");
+  const wardenTexts = rewound
+    .filter((line) => line.who === "warden")
+    .map((line) => line.text);
+  check(!wardenTexts.some((text) => /杭|死ん/.test(text)),
+    "巻き戻し直後、ゴウは杭とツグミの死を伝えない");
+  check(wardenTexts.some((text) => text.includes("先見機")),
+    "巻き戻し直後、ゴウは先見機へ話を進める");
+}
+
 // ---- 加入と累積（R9 §2.1, §3.1）--------------------------------------------
 
 {
