@@ -3797,6 +3797,9 @@ function handleAction(event) {
     // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
     // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
     state.prologueStage = "retry";
+    // R15 — 負けた配置をそのまま引き継ぐ。defaultFormation へ戻すと、
+    // 何も変えずに勝ててしまい「一手直して勝つ」導入が成立しない。
+    state.run.formation = normalizeFormation(PROLOGUE.formation, state.run.roster);
     state.lastResult = null;
     state.replayEvents = [];
     state.replaySnapshots = [];

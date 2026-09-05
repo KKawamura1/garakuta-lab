@@ -156,6 +156,8 @@ try {
   // **予測が指すのは「灰の門」**である（12戦の第1戦ではない。同じ盤面をもう一度戦う）。
   note("巻き戻したあとは予測が出る", await page.locator(".camp-top .forecast-bar").count() === 1);
   note("予測は同じ盤面（灰の門）を指す", /戦闘予測 · 灰の門/.test(await bodyText()));
+  const rewoundVerdict = await page.locator(".camp-top .forecast-verdict").first().innerText();
+  note("巻き戻し直後は負けた配置を引き継ぐ", /敗北/.test(rewoundVerdict), rewoundVerdict);
   note("各メンバーのHPと減少量が出ている",
     await page.locator(".forecast-member .forecast-hp-values").count() === 2
       && await page.locator(".forecast-member .forecast-delta").count() === 2);
@@ -200,17 +202,11 @@ try {
   await page.locator('nav.tabs [data-tab="roster"]').click();
   // R14 §1 — **予測は隊列を動かした瞬間に付いてくる。**
   //
-  // まずツグミを前列へ出す（ゴウと入れ替わる）。content/story.mjs が言うとおり、
-  // 柔らかい技の担い手を前に置き、武器を後ろへ下げた形は負ける。
-  // ここが「勝利」のままなら、予測は別の盤面を走らせている
-  // （R14 以前は、この画面の予測が12戦の第1戦を試算していた）。
+  // 巻き戻した直後は、最初に負けた配置（ツグミもゴウも前列）を引き継ぐ。
+  // ここで既に「勝利」が出ていたら、何も変えずに勝てる抜け道が残っている。
   const verdict = async () => (await page.locator(".forecast-verdict").first().innerText());
-  await page.locator('[data-action="select-formation-character"][data-character="mender"]').click();
-  await page.waitForTimeout(150);
-  await page.locator('[data-action="place-character"][data-position="front_left"]').click();
-  await page.waitForTimeout(200);
   const wrongVerdict = await verdict();
-  note("柔らかいほうを前へ出すと予測が敗北へ変わる", /敗北/.test(wrongVerdict), wrongVerdict);
+  note("負けた配置のままでは予測が敗北", /敗北/.test(wrongVerdict), wrongVerdict);
 
   await page.locator('[data-action="select-formation-character"][data-character="mender"]').click();
   await page.waitForTimeout(150);
