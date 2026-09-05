@@ -40,6 +40,26 @@ export const REACTIVE_SKILL_NAMES = {
   wake_of_the_fallen: "倒したあと",
   guarded_opening: "受け止めの隙",
   seize_the_opening: "機を逃さず",
+  // R16 — 大量追加分。**読む出来事ごとに名前を分けてある。**
+  opportunist: "隙に応じる",
+  vengeful_step: "意趣返し",
+  finish_the_wounded: "止めを促す",
+  absorb_shock: "衝撃を殺す",
+  guard_the_marked: "狙われた者へ",
+  last_stand: "背水",
+  counterweight: "支え直す",
+  shared_pain: "痛みを分ける",
+  watchful_care: "目を離さない",
+  steady_under_fire: "揺れない手",
+  second_wind: "二の息",
+  read_the_charge: "溜めを読む",
+  break_the_charge: "溜めを崩す",
+  counter_order: "差し込む号令",
+  stall_the_blow: "出鼻を挫く",
+  echo_of_the_mark: "刻印の残響",
+  stagger_relay: "怯みを回す",
+  warded_into_edge: "守勢を刃へ",
+  bleed_into_wake: "裂傷の余波",
 };
 
 const reactiveSkills = renamed("reactiveSkills", REACTIVE_SKILL_NAMES);
@@ -488,5 +508,330 @@ reactiveSkills.wake_of_the_fallen = {
   },
   tags: ["reaction", "relay", "guard"],
 };
+
+// ---------------------------------------------------------------- R16 — 技能の大量追加（反応）
+//
+// **反応技能は「どの出来事を読むか」で決まる。**R16 の 19 本は、これまで
+// player content が一度も読んでいなかった出来事を読みに行く。
+//
+//   status_added / status_removed … 状態が付いた・消えた瞬間
+//   preparation_started / _advanced … **敵の**溜めの始まりと進み
+//   action_declared（interrupt）  … 敵が行動を宣言した瞬間（潰す・鈍らせる）
+//   damage_proposed（interrupt）  … 自分に飛んでくる数字そのもの
+//
+// **どれも反応権を払い、round か chain で止まる**（AGENTS.md の anti-stall）。
+// 回復を出すものは damage_taken だけを読み、chain 1 に閉じてある
+// （analysis/ecology-anti-stall-audit.mjs が形で検査する）。
+
+const EVENT_TARGET_IS_ENEMY = {
+  type: "target_exists",
+  query: { scope: "enemies", filters: [{ type: "is_event_primary_target" }], take: 1 },
+};
+const EVENT_SOURCE_IS_ENEMY = {
+  type: "target_exists",
+  query: { scope: "enemies", filters: [{ type: "is_event_source" }, { type: "alive" }], take: 1 },
+};
+const HIT_ENEMY_TARGET = {
+  scope: "enemies", filters: [{ type: "alive" }, { type: "is_event_primary_target" }], take: 1,
+};
+const NEAR_DEAD_HIT_ENEMY = {
+  scope: "enemies",
+  filters: [
+    { type: "alive" }, { type: "is_event_primary_target" }, { type: "hp_percent", op: "lte", value: 25 },
+  ],
+  take: 1,
+};
+const HURT_ALLY_NOT_SELF = {
+  scope: "allies",
+  filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
+  take: 1,
+};
+const MOVED_ALLY = {
+  scope: "allies",
+  filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
+  take: 1,
+};
+const EXPOSED_EVENT_ALLY = {
+  scope: "allies",
+  filters: [
+    { type: "alive" }, { type: "is_event_primary_target" },
+    { type: "has_status", statusId: "exposed", op: "gte", value: 1 },
+  ],
+  take: 1,
+};
+
+// 「いま付いた（消えた）のはこの状態か」。status_added / status_removed の
+// values.statusId を読む。**状態ごとに別の rule を作らずに済む唯一の書き方。**
+const statusIs = (statusId) => ({ type: "event_value", key: "statusId", op: "eq", value: statusId });
+const spendRp = (amount = 1) => [{ type: "spend_reaction_points", amount }];
+const mightDamage = (coefficientBps) => ({
+  type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps,
+});
+const focusBarrier = (coefficientBps) => ({
+  type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps,
+});
+
+function reaction(id, displayName, rule, tags) {
+  return { id, displayName, rule: { id: id + "_rule", ...rule }, tags };
+}
+
+// ---- 刃と撃破（pack_edge）----
+
+// 隙が付いた瞬間に刺す。**誰が付けたかを問わない**ので、
+// 指揮役の「隙を刻む」でも、連撃役の「刻印撃ち」でも、同じように起きる。
+reactiveSkills.opportunist = reaction("opportunist", REACTIVE_SKILL_NAMES.opportunist, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 110,
+  predicates: [statusIs("exposed"), EVENT_TARGET_IS_ENEMY],
+  costs: spendRp(),
+  effects: [{
+    type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(4_500),
+    reach: "unrestricted", tags: ["attack", "mark"],
+  }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "attack", "mark"]);
+
+// 仲間が倒れた拍。**戦闘に一度きりではなく二度まで**——立て直しの余地を残す。
+reactiveSkills.vengeful_step = reaction("vengeful_step", REACTIVE_SKILL_NAMES.vengeful_step, {
+  listenTo: "actor_defeated",
+  timing: "after",
+  priority: 110,
+  predicates: [{
+    type: "target_exists",
+    query: { scope: "allies", filters: [{ type: "is_event_primary_target" }], take: 1 },
+  }],
+  costs: spendRp(),
+  effects: [{
+    type: "deal_damage", target: FRONTMOST_ENEMY, amount: mightDamage(6_000),
+    reach: "melee", tags: ["attack"],
+  }],
+  limit: { scope: "battle", count: 2 },
+}, ["reaction", "attack"]);
+
+// 敵が瀕死になった一撃に重ねる。**自分が殴った一撃でなくてもよい**ので、
+// 前衛が削り、後衛が止めを促す、という分業になる。
+reactiveSkills.finish_the_wounded = reaction(
+  "finish_the_wounded", REACTIVE_SKILL_NAMES.finish_the_wounded, {
+    listenTo: "damage_taken",
+    timing: "after",
+    priority: 105,
+    predicates: [{ type: "target_exists", query: NEAR_DEAD_HIT_ENEMY }],
+    costs: spendRp(),
+    effects: [{
+      type: "deal_damage", target: NEAR_DEAD_HIT_ENEMY, amount: mightDamage(5_500),
+      reach: "unrestricted", tags: ["attack", "execute"],
+    }],
+    limit: { scope: "chain", count: 1 },
+  }, ["reaction", "attack", "execute"],
+);
+
+// ---- 防壁と隊列（pack_wall）----
+
+// **飛んでくる数字そのものを削る。**防壁（総量）でも受け構え（回数）でもない、
+// 三つ目の守り方。大きい一撃ほど、削り取れる割合は小さい。
+reactiveSkills.absorb_shock = reaction("absorb_shock", REACTIVE_SKILL_NAMES.absorb_shock, {
+  listenTo: "damage_proposed",
+  timing: "interrupt",
+  priority: 60,
+  predicates: [SELF_IS_EVENT_TARGET],
+  costs: spendRp(),
+  effects: [{ type: "modify_pending_amount", operation: "decrease", amount: { type: "constant", value: 12 } }],
+  limit: { scope: "round", count: 1 },
+}, ["reaction", "guard"]);
+
+// 身代わりは自分が引き受ける。こちらは**狙われた本人を厚くする**。
+// 引き受けられない編成（後衛しか残っていない等）でも守りが出せる。
+reactiveSkills.guard_the_marked = reaction("guard_the_marked", REACTIVE_SKILL_NAMES.guard_the_marked, {
+  listenTo: "target_selected",
+  timing: "interrupt",
+  priority: 20,
+  predicates: [EVENT_SOURCE_IS_ENEMY, ALLY_IS_EVENT_TARGET],
+  costs: spendRp(),
+  effects: [{ type: "add_status", target: HIT_ALLY_TARGET, statusId: "warded", stacks: 1 }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "guard"]);
+
+// 30%を切った一撃にだけ、戦闘に一度だけ厚い防壁。**保険であって、常設の壁ではない。**
+reactiveSkills.last_stand = reaction("last_stand", REACTIVE_SKILL_NAMES.last_stand, {
+  listenTo: "damage_taken",
+  timing: "after",
+  priority: 145,
+  predicates: [SELF_IS_EVENT_TARGET, { type: "hp_percent", subject: "self", op: "lte", value: 30 }],
+  costs: spendRp(),
+  effects: [{ type: "gain_barrier", target: SELF_TARGET, amount: focusBarrier(15_000), duration: "round" }],
+  limit: { scope: "battle", count: 1 },
+}, ["reaction", "guard"]);
+
+// 踏み固めは「動いた自分」に防壁。こちらは**動いた仲間**へ。
+// 位置替え・引きずり出し・陣の組み直しが、そのまま守りの合図になる。
+reactiveSkills.counterweight = reaction("counterweight", REACTIVE_SKILL_NAMES.counterweight, {
+  listenTo: "actor_moved",
+  timing: "after",
+  priority: 115,
+  predicates: [{ type: "target_exists", query: MOVED_ALLY }],
+  costs: spendRp(),
+  effects: [{ type: "gain_barrier", target: MOVED_ALLY, amount: focusBarrier(5_000), duration: "round" }],
+  limit: { scope: "round", count: 1 },
+}, ["reaction", "guard", "move"]);
+
+// ---- 構えと手当て（pack_care）----
+
+// **自分のHPを削って、仲間の傷の半分を返す。**HP を支払う唯一の技能。
+// 反応権だけでは出せないので、round を稼いでも持ち越しHPの合計は増えない。
+reactiveSkills.shared_pain = reaction("shared_pain", REACTIVE_SKILL_NAMES.shared_pain, {
+  listenTo: "damage_taken",
+  timing: "after",
+  priority: 135,
+  predicates: [{ type: "target_exists", query: HURT_ALLY_NOT_SELF }],
+  costs: [{ type: "spend_reaction_points", amount: 1 }, { type: "lose_hp", amount: 30 }],
+  effects: [{
+    type: "heal",
+    target: HURT_ALLY_NOT_SELF,
+    amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 2 },
+    tags: ["care", "sacrifice"],
+  }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "care"]);
+
+// **状態を消す唯一の反応。**隙が付いた仲間から、付いた直後に払い落とす。
+reactiveSkills.watchful_care = reaction("watchful_care", REACTIVE_SKILL_NAMES.watchful_care, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 110,
+  predicates: [statusIs("exposed"), { type: "target_exists", query: EXPOSED_EVENT_ALLY }],
+  costs: spendRp(),
+  effects: [{ type: "remove_status", target: EXPOSED_EVENT_ALLY, statusId: "exposed", stacks: "all" }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "care"]);
+
+// 受け流しは防壁を張る。こちらは守勢。**削り切られない代わりに、薄い。**
+reactiveSkills.steady_under_fire = reaction(
+  "steady_under_fire", REACTIVE_SKILL_NAMES.steady_under_fire, {
+    listenTo: "damage_taken",
+    timing: "after",
+    priority: 118,
+    predicates: [SELF_IS_EVENT_TARGET],
+    costs: spendRp(),
+    effects: [{ type: "add_status", target: SELF_TARGET, statusId: "warded", stacks: 1 }],
+    limit: { scope: "round", count: 1 },
+  }, ["reaction", "care", "guard"],
+);
+
+// 余った回復を、次の一手の集中へ。余剰治療（別の負傷者へ回す）の裏の出口。
+reactiveSkills.second_wind = reaction("second_wind", REACTIVE_SKILL_NAMES.second_wind, {
+  listenTo: "excess_healing",
+  timing: "after",
+  priority: 112,
+  predicates: [SELF_IS_EVENT_SOURCE],
+  costs: spendRp(),
+  effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
+  limit: { scope: "round", count: 1 },
+}, ["reaction", "care", "tempo"]);
+
+// ---- 行動権と準備（pack_tempo）----
+
+// **敵が溜め始めた瞬間**に隙を刻む。急かす（味方の準備を進める）と同じ出来事の裏面。
+reactiveSkills.read_the_charge = reaction("read_the_charge", REACTIVE_SKILL_NAMES.read_the_charge, {
+  listenTo: "preparation_started",
+  timing: "after",
+  priority: 128,
+  predicates: [EVENT_TARGET_IS_ENEMY],
+  costs: spendRp(),
+  effects: [{ type: "add_status", target: HIT_ENEMY_TARGET, statusId: "exposed", stacks: 1 }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "tempo", "mark"]);
+
+// **敵の溜めを叩き落とす。**戦闘に一度きり。大技一発の相手に対する答えで、
+// 数を出してくる相手には効かない。
+reactiveSkills.break_the_charge = reaction("break_the_charge", REACTIVE_SKILL_NAMES.break_the_charge, {
+  listenTo: "preparation_advanced",
+  timing: "after",
+  priority: 128,
+  predicates: [EVENT_TARGET_IS_ENEMY],
+  costs: spendRp(),
+  effects: [{ type: "interrupt_preparation", target: HIT_ENEMY_TARGET }],
+  limit: { scope: "battle", count: 1 },
+}, ["reaction", "tempo"]);
+
+// 宣言に割り込んで、その一撃を鈍らせる。**潰さないぶん、何度でも使える。**
+reactiveSkills.counter_order = reaction("counter_order", REACTIVE_SKILL_NAMES.counter_order, {
+  listenTo: "action_declared",
+  timing: "interrupt",
+  priority: 30,
+  predicates: [EVENT_SOURCE_IS_ENEMY],
+  costs: spendRp(),
+  effects: [{
+    type: "add_status",
+    target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+    statusId: "staggered",
+    stacks: 1,
+  }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "tempo", "debuff"]);
+
+// **敵の攻撃宣言そのものを消す。**反応権2と、戦闘に一度きりが代償。
+// 号令や急かしと違い、これは「順番を作る」のではなく「順番を奪う」。
+reactiveSkills.stall_the_blow = reaction("stall_the_blow", REACTIVE_SKILL_NAMES.stall_the_blow, {
+  listenTo: "action_declared",
+  timing: "interrupt",
+  priority: 25,
+  predicates: [EVENT_SOURCE_IS_ENEMY, { type: "event_tag", tag: "attack", value: true }],
+  costs: spendRp(2),
+  effects: [{ type: "cancel_pending_action" }],
+  limit: { scope: "battle", count: 1 },
+}, ["reaction", "tempo"]);
+
+// ---- 連撃と刻印（pack_barrage）----
+
+// **隙が消える瞬間**に一撃。刻印砕きが刈り取ったあとにも、
+// ラウンド終わりに自然消滅したときにも起きる。
+reactiveSkills.echo_of_the_mark = reaction("echo_of_the_mark", REACTIVE_SKILL_NAMES.echo_of_the_mark, {
+  listenTo: "status_removed",
+  timing: "after",
+  priority: 108,
+  predicates: [statusIs("exposed"), EVENT_TARGET_IS_ENEMY],
+  costs: spendRp(),
+  effects: [{
+    type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(5_000),
+    reach: "unrestricted", tags: ["attack", "mark"],
+  }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "attack", "mark"]);
+
+// ---- 余波と受け渡し（pack_relay）----
+
+// 怯みが付いた拍で、最前の敵にも怯みを移す。**一体を鈍らせる手が、面へ広がる。**
+reactiveSkills.stagger_relay = reaction("stagger_relay", REACTIVE_SKILL_NAMES.stagger_relay, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 106,
+  predicates: [statusIs("staggered"), EVENT_TARGET_IS_ENEMY],
+  costs: spendRp(),
+  effects: [{ type: "add_status", target: FRONTMOST_ENEMY, statusId: "staggered", stacks: 1 }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "relay", "debuff"]);
+
+// 守勢を受け取った拍を、攻めの集中へ変える。**守られた者が刃になる。**
+reactiveSkills.warded_into_edge = reaction("warded_into_edge", REACTIVE_SKILL_NAMES.warded_into_edge, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 106,
+  predicates: [statusIs("warded"), SELF_IS_EVENT_TARGET],
+  costs: spendRp(),
+  effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
+  limit: { scope: "round", count: 1 },
+}, ["reaction", "relay", "buff"]);
+
+// 裂傷が入った相手へ隙も重ねる。**細い傷を、束ねて太くする。**
+reactiveSkills.bleed_into_wake = reaction("bleed_into_wake", REACTIVE_SKILL_NAMES.bleed_into_wake, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 106,
+  predicates: [statusIs("bleeding"), EVENT_TARGET_IS_ENEMY],
+  costs: spendRp(),
+  effects: [{ type: "add_status", target: HIT_ENEMY_TARGET, statusId: "exposed", stacks: 1 }],
+  limit: { scope: "chain", count: 1 },
+}, ["reaction", "relay", "mark"]);
 
 export const REACTIVE_SKILLS = reactiveSkills;
