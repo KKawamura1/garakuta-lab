@@ -71,7 +71,7 @@ import {
   composeEncounter,
   formatFunds,
   gainSupply,
-  grantRunSkillPoints,
+  grantRunSkillPointsToAll,
   manifestSkillIds,
   newProfile,
   newRun,
@@ -80,6 +80,7 @@ import {
   purchaseTraining,
   purchaseUpgrade,
   recordEncounterCleared,
+  RUN_SKILL_POINTS_PER_REWARD,
   STARTING_RUN_SKILL_POINTS,
   rewardOffer,
   runSkillPoints,
@@ -112,8 +113,8 @@ import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
 const VERSION = "EXP-18 R10 Campaign 0.9";
 const SAVE_FORMAT_VERSION = 1;
-const SAVE_KEY = "exp18-r10-auto-v01";
-const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v01-";
+const SAVE_KEY = "exp18-r10-auto-v02";
+const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v02-";
 const MANUAL_SAVE_SLOTS = 3;
 // R9 §7 の会話画面（立ち絵つきの一行送り）。**使う場所は下の「物語」の節。**
 const STORY_TYPE_MS = 26;          // 一文字あたりの送り速度
@@ -344,8 +345,8 @@ function joinRun(run, characterId) {
       equipment: { ...run.loadout?.equipment },
     },
   };
-  // **配るのは初回だけ。**離脱と再加入で配り直すと、点を使い切ってから
-  // 外して入れ直せば無限に解禁できる。
+  // **初期化するのは初回だけ。**離脱と再加入で点を戻さないので、
+  // 外して入れ直しても技能点を増やせない。
   next.runSkillPoints[characterId] = Object.hasOwn(run.runSkillPoints ?? {}, characterId)
     ? runSkillPoints(run, characterId)
     : STARTING_RUN_SKILL_POINTS;
@@ -390,7 +391,6 @@ function freshUiState() {
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
     selectedCampaignStageSequence: 0,
     treatTargets: [],
-    selectedRewardCharacter: null,
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
@@ -3112,7 +3112,10 @@ function renderResult() {
         + esc(state.prologueStage === "retry" ? PROLOGUE.retryHint : PROLOGUE.hint) + "</p>"
       : "<p class=\"muted\">この遠征の仮計上: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
         + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
-        + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p>") + "<div class=\"result-actors\">"
+        + "）。<b>負けても、ここまで確定した分は持ち帰ります。</b></p>")
+    + (!state.prologueActive && won
+      ? "<p class=\"muted\"><b>勝利報酬:</b> この遠征の編成全員に技能点 +" + RUN_SKILL_POINTS_PER_REWARD + "。</p>"
+      : "") + "<div class=\"result-actors\">"
     + resultActors(result) + "</div><div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section>"
     // **因果はまずアニメーションで見せる。** 文字の一覧は、見返したいときの補助に降ろした。
@@ -3132,8 +3135,8 @@ function renderResult() {
     + next);
 }
 
-// R6 §5.3 — 通常戦勝利後は4候補から1つ。
-// **活動資金はこの4候補に入らない。**補給や技能点を選んでも資金は減らない。
+// R15 — 通常戦勝利時に技能点は全員へ自動付与する。報酬は3候補から1つ。
+// **活動資金はこの3候補に入らない。**
 // ---------------------------------------------------------------- 世界の声（R12 §4.B の続き）
 //
 // R12 は敵カード・設計図・精算の三か所へ世界の声を載せた。残っていたのが
@@ -3200,9 +3203,6 @@ function generatedVoice(item) {
 }
 
 function renderReward() {
-  const rewardCharacter = state.selectedRewardCharacter && state.run.roster.includes(state.selectedRewardCharacter)
-    ? state.selectedRewardCharacter
-    : state.run.roster[0];
   const full = state.run.inventory.length >= INVENTORY_LIMIT;
   const cards = state.rewardOffer.map((offer, index) => {
     if (offer.type === "equipment") {
@@ -3231,15 +3231,6 @@ function renderReward() {
         + "<h3>装備の候補が作れませんでした</h3><p>" + esc(offer.message) + "</p>"
         + "<small>この候補は選べません。ほかの候補を選ぶか、補給1で引き直してください。</small></article>";
     }
-    if (offer.type === "skill_points") {
-      const picker = state.run.roster.map((id) => "<button type=\"button\" class=\"reward-pick "
-        + (id === rewardCharacter ? "selected" : "") + "\" data-action=\"select-reward-character\" data-character=\""
-        + id + "\">" + esc(characterName(id)) + "</button>").join("");
-      return "<article class=\"reward-card special\"><div class=\"reward-kind kind-active\">成長</div><h3>技能点 +"
-        + offer.amount + "</h3><p>選んだ一人の遠征内技能点が " + offer.amount + " 増える。<b>遠征が終わると消えます。</b></p>"
-        + "<div class=\"reward-picker\">" + picker + "</div>"
-        + button("この仲間へ配る", "take-reward", false, "button", "data-offer=\"" + index + "\"") + "</article>";
-    }
     return "<article class=\"reward-card special\"><div class=\"reward-kind kind-passive\">補給</div><h3>補給 +"
       + offer.amount + "</h3><p>再挑戦・報酬の引き直し・野営治療に使う。上限 " + MAX_SUPPLIES + "。現在 "
       + state.run.supplies + "。</p>"
@@ -3248,8 +3239,8 @@ function renderReward() {
   }).join("");
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
   return shell("報酬を選ぶ", currentEncounter().name + "を突破 · 次の戦闘へ", "<section class=\"card\">"
-    + sectionHeading("REWARD / 4 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + "<p class=\"muted\">4候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>（補給や技能点を選んでも、持ち帰る資金は減りません）。</p>"
+    + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
+    + "<p class=\"muted\">3候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>。戦闘勝利時の技能点は編成中の全員へ自動で加わります。</p>"
     + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
       ? "<p class=\"muted\">装備の候補が減っています。生成が失敗した場合は理由が候補欄に出ます。</p>"
       : "")
@@ -3260,7 +3251,7 @@ function renderReward() {
     + "<p class=\"world-voice\">" + esc(rewardVoice()) + "</p>"
     + "<div class=\"reward-grid\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
-    + button("補給1で4候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
+    + button("補給1で3候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
     + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "引き直しは1戦闘につき一度だけ。使うと再挑戦の余地が減ります。")
     + "</small></div></section>");
 }
@@ -4116,7 +4107,16 @@ function handleAction(event) {
       }];
       // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
       // retry しても同じ encounter の撃破 base は一度だけ。
-      if (result.result === "win") state.run = recordEncounterCleared(state.run, state.run.encounterIndex);
+      // R15 — プロローグは遠征外。通常戦の勝利時だけ、現在の編成全員へ技能点を配る。
+      if (result.result === "win" && !state.prologueActive) {
+        state.run = recordEncounterCleared(state.run, state.run.encounterIndex);
+        state.run = grantRunSkillPointsToAll(state.run);
+        record("battle_skill_points_granted", {
+          stage: state.run.encounterIndex,
+          amount: RUN_SKILL_POINTS_PER_REWARD,
+          characterIds: [...state.run.roster],
+        });
+      }
       for (const combatEvent of result.events || []) {
         pushRunEvent({
           at: new Date().toISOString(),
@@ -4270,7 +4270,6 @@ function handleAction(event) {
   if (action === "show-reward") {
     const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
     state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, rerolls);
-    state.selectedRewardCharacter = state.run.roster[0] ?? null;
     record("reward_presented", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
     state.phase = "reward";
     saveState();
@@ -4318,13 +4317,6 @@ function handleAction(event) {
       state.run = result.run;
       record("scrap_converted", { scrap: state.run.scrap, supplies: state.run.supplies });
     }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "select-reward-character") {
-    state.selectedRewardCharacter = element.dataset.character || null;
     saveState();
     render();
     return;
@@ -4416,12 +4408,6 @@ function handleAction(event) {
         state.run.inventory = [...state.run.inventory, offer.equipmentId];
         record("reward_taken", { encounter: state.run.encounterIndex, reward: "equipment", equipmentId: offer.equipmentId });
       }
-    } else if (offer.type === "skill_points") {
-      const target = state.run.roster.includes(state.selectedRewardCharacter)
-        ? state.selectedRewardCharacter
-        : state.run.roster[0];
-      state.run = grantRunSkillPoints(state.run, target, offer.amount);
-      record("reward_taken", { encounter: state.run.encounterIndex, reward: "skill_points", characterId: target, amount: offer.amount });
     } else {
       state.run = gainSupply(state.run, offer.amount);
       record("reward_taken", { encounter: state.run.encounterIndex, reward: "supplies", amount: offer.amount });

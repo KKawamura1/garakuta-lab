@@ -334,7 +334,7 @@ try {
   // ---- R11 §2.1 — Stage 1 の加入。Stage 0 をクリアした Profile を差し込んで見る
   // （12戦を通すのはこの台本の仕事ではない）。
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v01";
+    const key = "exp18-r10-auto-v02";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.profile) return;
     saved.profile.campaignProgress = saved.profile.campaignProgress || {};
@@ -422,7 +422,7 @@ try {
 
     // ---- R12 §4.C — 幕の断片。第4戦の前に一度だけ入る。
     await page.evaluate(() => {
-      const key = "exp18-r10-auto-v01";
+      const key = "exp18-r10-auto-v02";
       const saved = JSON.parse(localStorage.getItem(key) || "null");
       if (!saved?.run) return;
       saved.run.encounterIndex = 4;

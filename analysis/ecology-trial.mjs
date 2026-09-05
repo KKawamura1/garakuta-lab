@@ -105,7 +105,7 @@ try {
   // ここでは Stage 0 を踏破済みの Profile へ差し替えて、その先だけを踏む。
   // （Free mode を消したので、以前のように「難易度タブへ逃げて物語を回避する」ができない）
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v01";
+    const key = "exp18-r10-auto-v02";
     const saved = JSON.parse(localStorage.getItem(key) || "null");
     if (!saved?.profile) return;
     saved.profile.campaignProgress = saved.profile.campaignProgress || {};
@@ -219,7 +219,7 @@ try {
       note(`第${stage}戦の報酬選択`, /報酬を選ぶ/.test(await bodyText()));
       // R6 §12.1 — 引き直しは補給1。一度だけ踏む。
       if (!rerolled) {
-        const reroll = page.getByRole("button", { name: "補給1で4候補を引き直す" });
+        const reroll = page.getByRole("button", { name: "補給1で3候補を引き直す" });
         if (await reroll.count() && !(await reroll.first().isDisabled())) {
           await reroll.first().click();
           note("補給1で報酬を引き直せる", true);
@@ -228,7 +228,11 @@ try {
       }
       const gear = page.getByRole("button", { name: "拾って次へ" });
       if (await gear.count() && !(await gear.first().isDisabled())) await gear.first().click();
-      else await click("この仲間へ配る");
+      else {
+        const supplies = page.getByRole("button", { name: "補給を受け取る" });
+        if (await supplies.count() && !(await supplies.first().isDisabled())) await supplies.first().click();
+        else throw new Error("報酬候補に選べる品がありません");
+      }
     } else {
       await click("遠征を精算する");
     }
@@ -244,7 +248,7 @@ try {
   // 終端（アンケート）へ。まだ着いていなければ、その場から終端画面を開く。
   if (!/今回のUIについて/.test(await bodyText())) {
     await page.evaluate(() => {
-      const key = "exp18-r10-auto-v01";
+      const key = "exp18-r10-auto-v02";
       const saved = JSON.parse(localStorage.getItem(key));
       saved.phase = "complete";
       localStorage.setItem(key, JSON.stringify(saved));
@@ -287,7 +291,7 @@ try {
   }
 
   // 送信した控えに、版・seed・buildの印・主要イベントが載っているか。
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-r10-auto-v01")));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("exp18-r10-auto-v02")));
   note("控えに版が残る", Boolean(saved?.run?.runSeed) && Boolean(saved?.feedback?.savedAt));
   // R6 §4.1 — ProfileState と RunState が別に保存されている。
   note("profile と run が分かれて保存されている",
@@ -303,7 +307,7 @@ try {
   // runEvents が入れ替わるので、先に踏むと上の「控えに主要行動列が残る」が落ちる。
   // この台本は8戦前後まで進むので、同じ敵種を何度も倒している。
   await page.evaluate(() => {
-    const key = "exp18-r10-auto-v01";
+    const key = "exp18-r10-auto-v02";
     const stored = JSON.parse(localStorage.getItem(key));
     stored.phase = "settlement";
     localStorage.setItem(key, JSON.stringify(stored));

@@ -278,7 +278,7 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "rw", runId: "rw", roster: ROSTER, campaignStageSequence: 3 });
   const offer = rewardOffer(run, profile, 1, 0);
-  equal(offer.length, 4, "候補は4件");
+  equal(offer.length, 3, "候補は3件");
   const equipmentOffers = offer.filter((entry) => entry.type === "equipment");
   equal(equipmentOffers.length, 2, "装備候補は2件");
   equal(equipmentOffers.filter((entry) => entry.generated).length, 1, "うち1件が生成装備");
