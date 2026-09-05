@@ -33,6 +33,7 @@ import {
 import {
   SKILL_TREE_NODES,
   freshLoadout,
+  initialUnlockedSkills,
   makeExpeditionBattle,
   reorderSkill,
   simulateNextBattle,
@@ -270,6 +271,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     equal(ok.ok, true, "前提と点数が揃えば解禁できる");
     run = ok.run;
     equal(runSkillPoints(run, "warden"), 1, "点数が減っている");
+    check(run.loadout.tactics.warden.includes("heavy_swing"), "解禁した行動技能が自動で一覧へ加わる");
     // R14 §2 — 解禁は取り消せない。**払い戻しの経路そのものが無い。**
     equal(unlockRunSkill(run, "warden", heavy).ok, false, "同じ技能を二度は解禁できない");
     assert.deepEqual(run.runUnlockedSkills.warden, ["strike", "heavy_swing"]);
@@ -298,7 +300,23 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   ).ok, "旧第4枠投資の購入導線が閉じている");
 }
 
-// 取得済み技能を何本でも装着でき、オフにした技能だけが BattleInput から外れる。
+// 初期習得技能は、種別に応じた一覧へ最初から自動で加わる。
+{
+  const loadout = freshLoadout(ROSTER);
+  for (const characterId of ROSTER) {
+    const expected = { active: [], reactive: [], passive: [] };
+    for (const skillId of initialUnlockedSkills(characterId)) {
+      const kind = SKILL_TREE_NODES.find((node) => node.skillId === skillId)?.kind;
+      if (kind) expected[kind].push(skillId);
+    }
+    assert.deepEqual(loadout.tactics[characterId], expected.active, characterId + " の初期行動技能");
+    assert.deepEqual(loadout.reactives[characterId], expected.reactive, characterId + " の初期反応技能");
+    assert.deepEqual(loadout.passives[characterId], expected.passive, characterId + " の初期常設技能");
+    checks += 3;
+  }
+}
+
+// 取得した技能は、解禁時に対応する一覧へ自動で加わる。
 {
   const loadout = freshLoadout(ROSTER);
   const active = Object.keys(PLAYABLE_CONTENT.activeSkills).slice(0, 6);
@@ -321,7 +339,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   equal(reversedReactive.reactives.warden[0], reactive[1], "反応の上から順を入れ替えられる");
 
   const off = toggleSkill(loadout, "warden", active[0]);
-  equal(off.ok, true, "装着済み技能をオフにできる");
+  equal(off.ok, true, "取得済み技能をオフにできる");
   equal(off.enabled, false, "オフ状態が返る");
   equal(off.loadout.disabled.warden[0], active[0], "オフ状態を保存する");
   const offBattle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, off.loadout, "s", FORMATION, {});

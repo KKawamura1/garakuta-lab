@@ -131,7 +131,7 @@ try {
   const investText = await bodyText();
   note("ギルド投資の画面がある", /持ち帰った資金を使う/.test(investText));
   note("鍛錬に費用と丸め後statが出る", /鍛錬（上限なし）/.test(investText) && /基礎/.test(investText));
-  note("技能数の制限が無いと分かる", /人数制限なしで装着できます/.test(investText));
+  note("取得技能が一覧へ自動で加わる", /対応する一覧へ自動で加わります/.test(investText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
 
   // R12 — **この台本が見るのは12戦の長い流れであって、序盤のチュートリアルではない。**
@@ -164,7 +164,7 @@ try {
   }
   note("タブが画面内に収まる", await onScreen("nav.tabs"));
 
-  // 技能を1つ解禁して装着する（スキルツリーの経路を踏む）。
+  // 技能を1つ解禁し、対応する一覧へ自動反映される経路を踏む。
   await page.locator('nav.tabs [data-tab="skills"]').click();
   const node = page.locator(".skill-node.available").first();
   if (await node.count()) {
@@ -173,6 +173,7 @@ try {
     if (await unlock.count()) await unlock.click();
   }
   note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
+  note("技能に手動の装着操作が無い", await page.locator('[data-action="equip-skill"]').count() === 0);
 
   let stage = 1;
   let reloaded = false;

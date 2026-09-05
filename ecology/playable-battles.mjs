@@ -222,7 +222,7 @@ export function initialUnlockedSkills(characterId) {
   ])]);
 }
 
-// R18 — 取得済み技能は、行動・反応・常設を問わずすべて装着できる。
+// R18 — 取得した技能は、行動・反応・常設の対応する一覧へ自動で加わる。
 // ここでいう「無制限」はゲーム上の枠を設けないという意味で、BattleInput の
 // validator にだけ、壊れた入力を早期に止めるための安全上限を置く。
 // 装備だけは従来どおり2枠。
@@ -240,17 +240,38 @@ export function freshLoadout(rosterIds) {
   const passives = {};
   const equipment = {};
   for (const characterId of rosterIds) {
+    if (!characterById[characterId]) continue;
+    const skillsByKind = { active: [], reactive: [], passive: [] };
+    for (const skillId of initialUnlockedSkills(characterId)) {
+      const kind = nodeBySkill[skillId]?.kind;
+      if (kind && skillsByKind[kind]) skillsByKind[kind].push(skillId);
+    }
+    tactics[characterId] = skillsByKind.active;
+    reactives[characterId] = skillsByKind.reactive;
+    passives[characterId] = skillsByKind.passive;
+    equipment[characterId] = [];
+  }
+  return { tactics, reactives, passives, equipment };
+}
+
+// プロローグは通常遠征とは別の固定脚本盤面。物語の勝敗契約を変えないため、
+// 本編の初期習得技能を自動反映する loadout ではなく、脚本が指定した starter だけを使う。
+export function prologueLoadout(rosterIds) {
+  const tactics = {};
+  const reactives = {};
+  const passives = {};
+  const equipment = {};
+  for (const characterId of rosterIds) {
     const option = characterById[characterId];
     if (!option) continue;
     tactics[characterId] = [...option.starterTactics];
     reactives[characterId] = [...option.starterReactives];
-    // **常設は空から始める。**基礎訓練は詰み防止であって、既定の答えではない
-    // （最初から入れておくと「他に欲しいものが無かった」の信号が消える）。
     passives[characterId] = [];
     equipment[characterId] = [];
   }
   return { tactics, reactives, passives, equipment };
 }
+
 
 function normalizeLoadout(loadout, rosterIds, limitsFor) {
   const next = clone(loadout ?? freshLoadout(rosterIds));
@@ -269,17 +290,17 @@ function normalizeLoadout(loadout, rosterIds, limitsFor) {
     next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, limits.equipment);
   }
   // disabled は後方互換のため optional。無い save は全技能を有効として扱う。
-  // 既に装着されている技能だけをオフにできるよう、対象 character 分だけ掃除する。
+  // 取得済み一覧に載っている技能だけをオフにできるよう、対象 character 分だけ掃除する。
   if (next.disabled && typeof next.disabled === "object") {
     next.disabled = { ...next.disabled };
     for (const characterId of rosterIds) {
-      const installed = new Set([
+      const listed = new Set([
         ...(next.tactics[characterId] ?? []),
         ...(next.reactives[characterId] ?? []),
         ...(next.passives[characterId] ?? []),
       ]);
       const disabled = [...new Set(Array.isArray(next.disabled[characterId]) ? next.disabled[characterId] : [])]
-        .filter((skillId) => installed.has(skillId));
+        .filter((skillId) => listed.has(skillId));
       if (disabled.length) next.disabled[characterId] = disabled;
       else delete next.disabled[characterId];
     }
@@ -295,21 +316,7 @@ function limitsOf(limitsFor, characterId) {
   return SLOT_LIMITS;
 }
 
-export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
-  const component = componentInfo(skillId);
-  if (!component || component.kind !== kind || !characterById[characterId]) {
-    return { ok: false, reason: "技能か仲間が見つかりません。" };
-  }
-  const next = normalizeLoadout(loadout, [characterId], limitsFor);
-  const listKey = LOADOUT_KEYS[kind];
-  if (!listKey) return { ok: false, reason: "その枠はありません。" };
-  const list = next[listKey][characterId] ?? [];
-  if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
-  next[listKey][characterId] = [skillId, ...list];
-  return { ok: true, loadout: next };
-}
-
-function installedSkillIds(loadout, characterId) {
+function listedSkillIds(loadout, characterId) {
   return [
     ...(loadout?.tactics?.[characterId] ?? []),
     ...(loadout?.reactives?.[characterId] ?? []),
@@ -317,12 +324,12 @@ function installedSkillIds(loadout, characterId) {
   ];
 }
 
-// R18 — 取得状態は変えず、装着済み技能の効果だけを一時停止する。
+// R18 — 取得状態は変えず、取得済み一覧にある技能の効果だけを一時停止する。
 // disabled を別欄に置くことで、オフにしても技能点や前提の解禁状態は失わない。
 export function toggleSkill(loadout, characterId, skillId, limitsFor) {
   const next = normalizeLoadout(loadout, [characterId], limitsFor);
-  if (!installedSkillIds(next, characterId).includes(skillId)) {
-    return { ok: false, reason: "その技能は装着されていません。" };
+  if (!listedSkillIds(next, characterId).includes(skillId)) {
+    return { ok: false, reason: "その技能は取得済み一覧にありません。" };
   }
   const disabled = new Set(next.disabled?.[characterId] ?? []);
   const enabled = disabled.has(skillId);
@@ -356,13 +363,6 @@ export function removeEquipment(loadout, characterId, equipmentId, limitsFor) {
   const next = normalizeLoadout(loadout, Object.keys(loadout?.tactics ?? {}), limitsFor);
   next.equipment[characterId] = (next.equipment[characterId] ?? []).filter((id) => id !== equipmentId);
   return next;
-}
-
-export function installComponent(loadout, componentId, characterId, limitsFor) {
-  const component = componentInfo(componentId);
-  if (!component) return { ok: false, reason: "部材が見つかりません。" };
-  if (component.kind === "equipment") return equipEquipment(loadout, characterId, componentId, 0, limitsFor);
-  return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
 }
 
 export function encounterInfo(stage) {
@@ -443,8 +443,9 @@ function usableTactics(ids) {
 // 7区画の試作（makeBattle）と12戦の遠征（makeExpeditionBattle）が同じ関数を通る。
 function allyInput(characterId, position, loadout, options = {}) {
   const option = characterById[characterId];
-  const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
-  const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
+  const initial = freshLoadout([characterId]);
+  const tactics = loadout.tactics?.[characterId] ?? initial.tactics[characterId];
+  const reactives = loadout.reactives?.[characterId] ?? initial.reactives[characterId];
   const disabled = new Set(loadout.disabled?.[characterId] ?? []);
   const enabled = (ids) => ids.filter((id) => !disabled.has(id));
   const ally = {
@@ -453,7 +454,7 @@ function allyInput(characterId, position, loadout, options = {}) {
     position,
     tactics: usableTactics(enabled(tactics)),
     reactiveSkillIds: enabled(reactives).filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]),
-    passiveSkillIds: enabled(loadout.passives?.[characterId] ?? [])
+    passiveSkillIds: enabled(loadout.passives?.[characterId] ?? initial.passives[characterId])
       .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]),
     equipment: equipmentInput(
       characterId,
@@ -501,7 +502,14 @@ export function makeBattle(
     characterId,
     placed[characterId] ?? characterById[characterId].defaultPosition,
     loadout,
-    { hp: persistent.hp, equipmentDurability: persistent.equipmentDurability, limitsFor: persistent.limitsFor, statsFor: persistent.statsFor },
+    {
+      hp: persistent.hp,
+      equipmentDurability: persistent.equipmentDurability,
+      limitsFor: persistent.limitsFor,
+      statsFor: persistent.statsFor,
+      skillLevelsFor: persistent.skillLevelsFor,
+      content: persistent.content,
+    },
   ));
   return {
     schemaVersion: BATTLE_SCHEMA_VERSION,
@@ -595,7 +603,7 @@ export function prologueEncounter() {
 export function makePrologueBattle(statsFor, formation = PROLOGUE.formation) {
   const roster = [...PROLOGUE.rosterIds];
   return makeExpeditionBattle(
-    prologueEncounter(), roster, freshLoadout(roster), "prologue", formation, { statsFor },
+    prologueEncounter(), roster, prologueLoadout(roster), "prologue", formation, { statsFor },
   );
 }
 
@@ -627,7 +635,8 @@ export function allEncounters() {
 export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
   const composed = options.composed
     ?? composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
-  const loadout = run.loadout ?? freshLoadout(run.roster);
+  const loadout = options.loadout ?? run.loadout ?? freshLoadout(run.roster);
+  const skillLevelsFor = options.skillLevelsFor ?? ((characterId) => runSkillLevelsFor(run, characterId));
   const battleInput = makeExpeditionBattle(
     composed,
     run.roster,
@@ -638,7 +647,7 @@ export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
       hp: run.currentHp,
       statsFor: (characterId) => characterStats(profile, characterId),
       // R19（issue #137）— **予測と本番は同じ経路**なので、技能レベルもここで一度だけ渡す。
-      skillLevelsFor: (characterId) => runSkillLevelsFor(run, characterId),
+      skillLevelsFor,
       content: runContentBundle(run),
     },
   );

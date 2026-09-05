@@ -14028,21 +14028,39 @@
  "freshLoadout": {
   "tactics": {
    "warden": [
-    "steady_cut"
+    "strike",
+    "steady_cut",
+    "bulwark"
    ],
    "mender": [
+    "strike",
+    "bulwark",
     "aimed_shot",
     "shield_the_wounded"
    ],
    "lancer": [
+    "strike",
+    "steady_cut",
+    "pierce_thrust",
+    "rear_hunt",
     "heavy_swing",
-    "rear_hunt"
+    "bulwark"
    ],
    "guardian": [
-    "reposition",
-    "column_thrust"
+    "strike",
+    "steady_cut",
+    "pierce_thrust",
+    "column_thrust",
+    "bulwark",
+    "spread_the_guard",
+    "reposition"
    ],
    "tactician": [
+    "strike",
+    "bulwark",
+    "spread_the_guard",
+    "reposition",
+    "rally_line",
     "relay_order",
     "mark_target"
    ]
@@ -14050,22 +14068,35 @@
   "reactives": {
    "warden": [
     "mend",
+    "triage",
     "overflow_care"
    ],
    "mender": [
+    "mend",
     "triage",
+    "overflow_care",
     "emergency_treatment"
    ],
    "lancer": [
-    "shield_handoff",
-    "triage"
+    "mend",
+    "triage",
+    "brace_after_hit",
+    "cover_ally",
+    "shield_handoff"
    ],
    "guardian": [
+    "mend",
+    "counter_blow",
     "scavenge_ap",
     "brace_after_hit"
    ],
    "tactician": [
+    "mend",
+    "counter_blow",
+    "scavenge_ap",
     "patient_step",
+    "brace_after_hit",
+    "absorb_shock",
     "block_focus"
    ]
   },

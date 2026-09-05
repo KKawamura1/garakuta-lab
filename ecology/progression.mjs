@@ -764,60 +764,34 @@ export function unlockRunSkill(run, characterId, node) {
   if (runSkillPoints(run, characterId) < node.cost) {
     return { ok: false, reason: "技能点が足りません。" };
   }
+  const loadout = run.loadout ?? {};
+  const loadoutWithSkillLists = {
+    ...loadout,
+    tactics: { ...(loadout.tactics ?? {}) },
+    reactives: { ...(loadout.reactives ?? {}) },
+    passives: { ...(loadout.passives ?? {}) },
+    equipment: { ...(loadout.equipment ?? {}) },
+    ...(loadout.disabled && typeof loadout.disabled === "object"
+      ? { disabled: { ...loadout.disabled } }
+      : {}),
+  };
+  const listKey = { active: "tactics", reactive: "reactives", passive: "passives" }[node.kind];
+  if (listKey) {
+    loadoutWithSkillLists[listKey][characterId] = [
+      ...new Set([...(loadoutWithSkillLists[listKey][characterId] ?? []), node.skillId]),
+    ];
+  }
   const next = {
     ...run,
-    runSkillPoints: { ...run.runSkillPoints },
-    runUnlockedSkills: { ...run.runUnlockedSkills },
+    runSkillPoints: { ...(run.runSkillPoints ?? {}) },
+    runUnlockedSkills: { ...(run.runUnlockedSkills ?? {}) },
+    runSkillLevels: { ...(run.runSkillLevels ?? {}) },
+    loadout: loadoutWithSkillLists,
   };
   next.runSkillPoints[characterId] = runSkillPoints(run, characterId) - node.cost;
   next.runUnlockedSkills[characterId] = [...unlocked, node.skillId];
   return { ok: true, run: next };
 }
-
-// ---------------------------------------------------------------- 技能レベル（R19 / issue #137）
-//
-// **同じ効果の上位互換を別技能として増やさず、一つの技能を段階的に強くする。**
-// 取得は Lv1 で、そこから 1点ずつ上げる。解禁と同じで払い戻しは無い。
-//
-// 深く伸ばす（新しい役割を得る）か、いま持っている技能を厚くするかを、
-// 同じ通貨の同じ値段で選ばせるので、値段は深さによらず1点固定である。
-export function runSkillLevel(run, characterId, skillId) {
-  const unlocked = run?.runUnlockedSkills?.[characterId] ?? [];
-  if (!unlocked.includes(skillId)) return 0;
-  const stored = run?.runSkillLevels?.[characterId]?.[skillId];
-  return Number.isInteger(stored) && stored >= MIN_SKILL_LEVEL ? stored : MIN_SKILL_LEVEL;
-}
-
-// その遠征のその人物の、全取得技能のレベル表。戦闘入力へそのまま渡す。
-export function runSkillLevelsFor(run, characterId) {
-  const levels = {};
-  for (const skillId of run?.runUnlockedSkills?.[characterId] ?? []) {
-    levels[skillId] = runSkillLevel(run, characterId, skillId);
-  }
-  return levels;
-}
-
-export function levelUpRunSkill(run, characterId, skillId, cap) {
-  const current = runSkillLevel(run, characterId, skillId);
-  if (current === 0) return { ok: false, reason: "まだ取得していません。" };
-  const ceiling = Math.min(Number.isInteger(cap) ? cap : MAX_SKILL_LEVEL, MAX_SKILL_LEVEL);
-  if (ceiling <= MIN_SKILL_LEVEL) {
-    return { ok: false, reason: "この技能はレベルを持ちません（連続する量を持たないため）。" };
-  }
-  if (current >= ceiling) return { ok: false, reason: "すでに最大レベルです。" };
-  if (runSkillPoints(run, characterId) < SKILL_LEVEL_COST) {
-    return { ok: false, reason: "技能点が足りません。" };
-  }
-  const next = {
-    ...run,
-    runSkillPoints: { ...run.runSkillPoints },
-    runSkillLevels: { ...run.runSkillLevels, [characterId]: { ...(run.runSkillLevels?.[characterId] ?? {}) } },
-  };
-  next.runSkillPoints[characterId] = runSkillPoints(run, characterId) - SKILL_LEVEL_COST;
-  next.runSkillLevels[characterId][skillId] = current + 1;
-  return { ok: true, run: next, level: current + 1 };
-}
-
 // R14 §2 — 解禁のやり直し（resetRunSkills）は消した。
 //
 // R6 §17.2 は「使った点をそのまま戻す（罰を付けない）」と言っていた。次の一戦の
@@ -827,7 +801,7 @@ export function levelUpRunSkill(run, characterId, skillId, cap) {
 // 装備と loadout のオン／オフ・順番に持たせる。
 //
 // 解禁は遠征内で一度だけで、撤退するか12戦を突破して遠征が終わるまで戻せない。
-// 装着は取得済み技能を無制限に追加でき、装着後は playable-battles 側で
+// 取得時に技能一覧へ自動追加し、取得後は playable-battles 側で
 // 一時停止と順番変更を扱う。払い戻しが無くなったので、技能の値段表
 // （registerSkillCosts）も一緒に消えた。解禁の可否と値段は、そのつど呼び出し側が
 // 渡す node.cost で足りる。

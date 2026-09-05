@@ -11,7 +11,6 @@ import {
   enemyInfo,
   enemyTargetingText,
   equipEquipment,
-  equipSkill,
   freshLoadout,
   initialUnlockedSkills,
   makeExpeditionBattle,
@@ -25,6 +24,7 @@ import {
   componentInfo,
   registerGeneratedEquipment,
   makePrologueBattle,
+  prologueLoadout,
   prologueEncounter,
 } from "./playable-battles.mjs";
 import {
@@ -93,6 +93,7 @@ import {
   rewardOffer,
   runSkillPoints,
   runSkillLevel,
+  runSkillLevelsFor,
   levelUpRunSkill,
   settleRun,
   slotLimits,
@@ -339,57 +340,84 @@ function startRun(profile, options = {}) {
 //   - 解禁表を starter 技能で埋める（空だと外した技能を戻せない）
 //   - manifest から外れた技能は解禁表からも装着欄からも落とす
 //     （画面に「今回は出ない」と書いたものが戦闘へ入る、を作らない）
-function joinRun(run, characterId) {
-  const available = new Set(manifestSkillIds(run.manifest).all);
-  const fresh = freshLoadout([characterId]);
-  const keep = (list) => (list ?? []).filter((skillId) => available.has(skillId));
+function cloneLoadoutForSkillSync(loadout) {
+  return {
+    ...(loadout ?? {}),
+    tactics: { ...(loadout?.tactics ?? {}) },
+    reactives: { ...(loadout?.reactives ?? {}) },
+    passives: { ...(loadout?.passives ?? {}) },
+    equipment: { ...(loadout?.equipment ?? {}) },
+    ...(loadout?.disabled && typeof loadout.disabled === "object"
+      ? { disabled: { ...loadout.disabled } }
+      : {}),
+  };
+}
+
+function synchronizeRunSkills(run, characterIds = run?.roster ?? []) {
+  const available = new Set(run?.manifest
+    ? manifestSkillIds(run.manifest).all
+    : Object.keys(COMPONENTS));
+  const keep = (list) => (Array.isArray(list) ? list : []).filter((skillId) => available.has(skillId));
   const next = {
     ...run,
-    runSkillPoints: { ...run.runSkillPoints },
-    runUnlockedSkills: { ...run.runUnlockedSkills },
+    runSkillPoints: { ...(run?.runSkillPoints ?? {}) },
+    runUnlockedSkills: { ...(run?.runUnlockedSkills ?? {}) },
     // R19（issue #137）— レベルは取得と同じで、離脱・再加入では戻らない。
-    runSkillLevels: { ...run.runSkillLevels },
-    loadout: {
-      ...run.loadout,
-      tactics: { ...run.loadout?.tactics },
-      reactives: { ...run.loadout?.reactives },
-      passives: { ...run.loadout?.passives },
-      equipment: { ...run.loadout?.equipment },
-      ...(run.loadout?.disabled && typeof run.loadout.disabled === "object"
-        ? { disabled: { ...run.loadout.disabled } }
-        : {}),
-    },
+    runSkillLevels: { ...(run?.runSkillLevels ?? {}) },
+    loadout: cloneLoadoutForSkillSync(run?.loadout),
+  };
+  for (const characterId of [...new Set(characterIds)]) {
+    if (!characterInfo(characterId)) continue;
+    if (!Object.hasOwn(next.runSkillPoints, characterId)) {
+      next.runSkillPoints[characterId] = STARTING_RUN_SKILL_POINTS;
+    }
+    const unlocked = [...new Set([
+      ...keep(run?.runUnlockedSkills?.[characterId]),
+      ...keep(initialUnlockedSkills(characterId)),
+    ])];
+    next.runUnlockedSkills[characterId] = unlocked;
+    for (const [kind, key] of Object.entries(SKILL_LIST_KEYS)) {
+      const current = keep(run?.loadout?.[key]?.[characterId])
+        .filter((skillId) => unlocked.includes(skillId) && COMPONENTS[skillId]?.kind === kind);
+      const missing = unlocked.filter((skillId) => COMPONENTS[skillId]?.kind === kind && !current.includes(skillId));
+      next.loadout[key][characterId] = [...current, ...missing];
+    }
+    next.loadout.equipment[characterId] = Array.isArray(run?.loadout?.equipment?.[characterId])
+      ? [...run.loadout.equipment[characterId]]
+      : [];
+    const listed = new Set([
+      ...next.loadout.tactics[characterId],
+      ...next.loadout.reactives[characterId],
+      ...next.loadout.passives[characterId],
+    ]);
+    const savedDisabled = run?.loadout?.disabled?.[characterId];
+    const disabled = Array.isArray(savedDisabled)
+      ? [...new Set(savedDisabled)].filter((skillId) => listed.has(skillId))
+      : [];
+    if (disabled.length) {
+      next.loadout.disabled ??= {};
+      next.loadout.disabled[characterId] = disabled;
+    } else if (next.loadout.disabled) {
+      delete next.loadout.disabled[characterId];
+      if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
+    }
+  }
+  return next;
+}
+
+function joinRun(run, characterId) {
+  const next = {
+    ...run,
+    runSkillPoints: { ...(run.runSkillPoints ?? {}) },
+    runUnlockedSkills: { ...(run.runUnlockedSkills ?? {}) },
+    runSkillLevels: { ...(run.runSkillLevels ?? {}) },
   };
   // **初期化するのは初回だけ。**離脱と再加入で点を戻さないので、
   // 外して入れ直しても技能点を増やせない。
   next.runSkillPoints[characterId] = Object.hasOwn(run.runSkillPoints ?? {}, characterId)
     ? runSkillPoints(run, characterId)
     : STARTING_RUN_SKILL_POINTS;
-  next.runUnlockedSkills[characterId] = [...new Set([
-    ...keep(run.runUnlockedSkills?.[characterId]),
-    ...keep(initialUnlockedSkills(characterId)),
-  ])];
-  next.loadout.tactics[characterId] = keep(run.loadout?.tactics?.[characterId] ?? fresh.tactics[characterId]);
-  next.loadout.reactives[characterId] = keep(run.loadout?.reactives?.[characterId] ?? fresh.reactives[characterId]);
-  next.loadout.passives[characterId] = keep(run.loadout?.passives?.[characterId]);
-  next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
-  const savedDisabled = run.loadout?.disabled?.[characterId];
-  if (Array.isArray(savedDisabled)) {
-    const installed = new Set([
-      ...next.loadout.tactics[characterId],
-      ...next.loadout.reactives[characterId],
-      ...next.loadout.passives[characterId],
-    ]);
-    const disabled = [...new Set(savedDisabled)].filter((skillId) => installed.has(skillId));
-    if (disabled.length) next.loadout.disabled[characterId] = disabled;
-    else {
-      delete next.loadout.disabled[characterId];
-      if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
-    }
-  }
-  // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
-  // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
-  return next;
+  return synchronizeRunSkills(next, [characterId]);
 }
 
 function freshUiState() {
@@ -493,6 +521,7 @@ function hydrateState(saved) {
     : ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize);
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
+  next.run = synchronizeRunSkills(next.run);
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
     ? savedRun.generatedEquipment
     : {};
@@ -990,9 +1019,21 @@ function encounterOptions() {
 // **preview と正式実行が同じ引数を使う**ように、ここ一箇所で組む。
 function currentEncounter() {
   // R9 §2.1 — 序盤の敗北は12戦の梯子に属さない。**別の敵を出しているのに
-  // 第1戦の名前を出さない**（何を見ているのか分からなくなる）。
+  // 第1戦の名前を出さない**（何を見ているのか分からない）。
   if (state.prologueActive) return prologueEncounter();
   return composeEncounter(state.run.encounterIndex, state.run.difficulty, encounterOptions());
+}
+
+// 通常遠征は run.loadout を使うが、序盤の「灰の門」は脚本が指定した初期技能だけを使う。
+// 予測・確認画面・正式実行の全てで同じ loadout を選び、物語の固定盤面を守る。
+function currentBattleLoadout() {
+  return state.prologueActive
+    ? prologueLoadout(state.run.roster)
+    : state.run.loadout;
+}
+
+function currentBattleSkillLevelsFor(characterId) {
+  return state.prologueActive ? null : runSkillLevelsFor(state.run, characterId);
 }
 
 function actOfIndex(index) {
@@ -1005,11 +1046,6 @@ function actOfIndex(index) {
 // 並びと変異で、そこを1つ前倒しで見るのが偵察」と言っていた。**次の一戦の結果
 // そのものが常時見えるようになった今、その一枠は買う理由を失った**（作者判断）。
 // 補給は再挑戦・報酬の引き直し・野営治療の三つで取り合う。
-
-function installedSkill(characterId, skillId, kind) {
-  const key = SLOT_KEYS[kind];
-  return (state.run.loadout[key]?.[characterId] || []).includes(skillId);
-}
 
 function skillDisabled(characterId, skillId) {
   return (state.run.loadout.disabled?.[characterId] || []).includes(skillId);
@@ -1331,7 +1367,7 @@ function renderGuild() {
     + memberTabsHtml
     // R12 §4.E-1 — **まだ会っていない人の数を、ここで割らない。**
     // 「あと何人来るか」は物語が渡すものなので、投資画面は隊にいる人だけを数える。
-    + "<p class=\"muted\">いま隊にいる仲間だけが強化対象です。新しい仲間は、加入したときにここへ加わります。取得済みの技能は人数制限なしで装着できます。</p>"
+    + "<p class=\"muted\">いま隊にいる仲間だけが強化対象です。新しい仲間は、加入したときにここへ加わります。取得済みの技能は対応する一覧へ自動で加わります（人数制限なし）。</p>"
     + "<h3 class=\"training-heading\">鍛錬（上限なし）</h3>"
     + "<p class=\"muted\">1段で +0.1%。速度・行動権・技能の装着数・発火回数は鍛錬で上がりません。</p>"
     + "<div class=\"purchase-list\">" + trainingRows + "</div></section>";
@@ -2073,7 +2109,7 @@ function renderRoster() {
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
 
-const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
+const SKILL_LIST_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 const SLOT_TITLES = {
   active: "行動（優先順）",
   reactive: "リアクティブ（条件発火）",
@@ -2081,7 +2117,7 @@ const SLOT_TITLES = {
 };
 
 function skillSlotRows(characterId, kind) {
-  const key = SLOT_KEYS[kind];
+  const key = SKILL_LIST_KEYS[kind];
   const list = state.run.loadout[key]?.[characterId] || [];
   const title = SLOT_TITLES[kind];
   const rows = list.map((skillId, index) => {
@@ -2093,8 +2129,8 @@ function skillSlotRows(characterId, kind) {
       : "";
     const markerClass = kind === "passive" ? "bullet passive" : "order";
     const marker = kind === "passive" ? "↳" : index + 1;
-    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
-      + marker + "</span><span class=\"installed-copy\"><b>"
+    return "<div class=\"skill-list-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
+      + marker + "</span><span class=\"skill-list-copy\"><b>"
       + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span>"
       + moveButtons
       + button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
@@ -2103,8 +2139,8 @@ function skillSlotRows(characterId, kind) {
       + (disabled ? "オフ" : "有効") + "</span></div>";
   }).join("");
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " · 無制限</small></div>"
-    + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。装着後はここでオン/オフを切り替えられます。</p>") + "</div>";
+    + "取得済み " + list.length + " · 上限なし</small></div>"
+    + (rows || "<p class=\"empty-slot\">技能を取得すると、ここへ自動で追加されます。ここでオン/オフを切り替えられます。</p>") + "</div>";
 }
 
 function memberTabs(characterId) {
@@ -2145,14 +2181,14 @@ function skillBuildSummary(characterId) {
   const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
   const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
-  const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
-  const slotLabel = selectedNode?.kind === "active" ? "行動枠"
-    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "常設枠";
-  const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
+  const listKey = selectedNode ? SKILL_LIST_KEYS[selectedNode.kind] : null;
+  const listLabel = selectedNode?.kind === "active" ? "行動一覧"
+    : selectedNode?.kind === "reactive" ? "リアクティブ一覧" : "常設一覧";
+  const listCount = selectedNode ? (state.run.loadout[listKey]?.[characterId] || []).length : 0;
   const target = selectedNode
-    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
-      + " · " + slotLabel + "（" + slotCount + " · 無制限）"
-    : "技能を選択すると、ここに装着先を表示";
+    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 反映先: " + characterName(characterId)
+      + " · " + listLabel + "（取得済み " + listCount + " · 上限なし）"
+    : "技能を選択すると、ここに反映先を表示";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
     + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
@@ -2220,22 +2256,20 @@ function skillConditionText(node) {
   return definition.statBonus ? "基礎値を上げる" : "条件を満たす限り";
 }
 
-// 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
+// 節の状態。**取得・有効／オフ・解禁可否は四箇所で使うので一箇所で出す。**
 function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
-  const equipped = installedSkill(characterId, node.skillId, node.kind);
-  const disabled = equipped && skillDisabled(characterId, node.skillId);
+  const disabled = unlocked && skillDisabled(characterId, node.skillId);
   const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
-  const stateClass = equipped
-    ? "equipped" + (disabled ? " disabled" : "")
-    : unlocked ? "unlocked" : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
-  const status = equipped
-    ? (disabled ? "装着中 · オフ" : "装着中")
-    : unlocked ? "取得済み"
-      : canUnlock ? "解禁可能 · " + node.cost + "pt"
-        : !prereqsMet ? "前提待ち · " + node.cost + "pt" : "点数不足 · " + node.cost + "pt";
-  return { unlocked, equipped, disabled, prereqsMet, canUnlock, stateClass, status };
+  const stateClass = unlocked
+    ? "unlocked" + (disabled ? " disabled" : "")
+    : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
+  const status = unlocked
+    ? (disabled ? "取得済み · オフ" : "取得済み")
+    : canUnlock ? "解禁可能 · " + node.cost + "pt"
+      : !prereqsMet ? "前提待ち · " + node.cost + "pt" : "点数不足 · " + node.cost + "pt";
+  return { unlocked, disabled, prereqsMet, canUnlock, stateClass, status };
 }
 
 // **前提と派生先は、押せる形で出す。**iPhone ではここを叩いて route を辿る
@@ -2286,13 +2320,10 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     .map((key) => layoutSkillId(key))
     .filter(Boolean);
   const requires = node.requires;
-  const action = nodeState.equipped
+  const action = nodeState.unlocked
     ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
-      + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
-    : nodeState.unlocked
-      ? button("装着する", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
-        + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
+      + "<p class=\"node-locked\">取得済みの技能は一覧から外せません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
       : nodeState.canUnlock
         ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
           "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
@@ -2401,13 +2432,13 @@ function renderSkills() {
       ? "<p class=\"muted\">（入口）と書いたパックは、この Stage では最初の問いに絞った技能だけが出ます。"
         + "<b>次の Stage へ進むと、同じパックの残りが加わります。</b>前に覚えた技能は消えません。</p>"
       : "")
-    // R18 — 取得と装着を分け、取得後の調整はオン／オフと順番で行う。
+    // R18 — 取得した技能は自動で一覧へ加わり、取得後の調整はオン／オフと順番で行う。
     + "<p class=\"muted rule-note\"><b>一度取得した技能は忘れません。</b>使った技能点は戻らず、"
-    + "取得済みの技能はすべて装着できます（技能数の上限なし）。"
-    + "装着後は上から順に判定され、必要ない技能はここで一時的にオフにできます。"
+    + "取得した技能は対応する一覧へ自動で加わり、すべて有効になります（技能数の上限なし）。"
+    + "行動とリアクティブは上から順に判定され、必要ない技能はここで一時的にオフにできます。"
     + "オフでも取得状態や前提は失われません。<b>装備もいつでも自由に付け外しできます。</b></p>";
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + visibleSkillNodes().length + " NODES", "誰を伸ばす？", pointsBadge)
-    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
+    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と、取得後のオン／オフ操作が開きます。</p>"
     + manifestNote
     + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
@@ -2418,7 +2449,7 @@ function renderSkills() {
     + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 上から順に試す</span><span><i class=\"kind kind-reactive\">反応</i> 同じ条件は上から順に発火</span>"
     + "<span><i class=\"kind kind-passive\">常設</i> いつでも効く</span></div>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId) + "</section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">枠が決まったら、同じ仲間の装備と耐久を確認します。</p>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">技能の優先順が決まったら、同じ仲間の装備と耐久を確認します。</p>"
     + "<div class=\"flow-actions\">" + button("編成へ戻る", "tab", false, "button", "data-tab=\"roster\"")
     + button("装備へ進む", "tab", false, "button primary", "data-tab=\"equipment\"") + "</div></section>";
 }
@@ -2642,7 +2673,8 @@ function forecastKey(composed) {
     composed?.maxRounds ?? null,
     state.run.roster,
     state.run.formation,
-    state.run.loadout,
+    currentBattleLoadout(),
+    state.run.runSkillLevels,
     state.run.currentHp,
     Object.keys(state.run.generatedEquipment ?? {}),
     state.run.partySize,
@@ -2666,7 +2698,11 @@ function battleForecast() {
   if (forecastCache.key === key) return forecastCache.value;
   let value = null;
   try {
-    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, { composed });
+    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, {
+      composed,
+      loadout: currentBattleLoadout(),
+      skillLevelsFor: currentBattleSkillLevelsFor,
+    });
   } catch {
     value = null;
   }
@@ -3326,7 +3362,7 @@ function renderBattleError() {
       + esc(diagnosticEventText(event, actorLabels)) + "</span></li>").join("") + "</ol>"
     + (stack.length ? "<details><summary>発火中のリアクティブ</summary><pre>" + esc(JSON.stringify(stack, null, 2)) + "</pre></details>" : "")
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
-    + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やすリアクティブをオフにして再試行してください。</p>"
+    + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に取得した0コスト行動や、準備・行動権を互いに増やすリアクティブをオフにして再試行してください。</p>"
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
     + button("戦闘前へ戻る", "back-battle-preview", false, "button") + "</div></section>");
 }
@@ -4207,6 +4243,7 @@ function handleAction(event) {
           }
         }
         state.run.loadout = nextLoadout;
+        state.run = synchronizeRunSkills(state.run);
         state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
         if (state.formationSelection === id) {
           state.formationSelection = state.run.roster[0] ?? null;
@@ -4269,7 +4306,7 @@ function handleAction(event) {
   }
 
   // R6 §5.3 — 取得は遠征内。遠征が終われば消える。
-  // R18 — 取得の払い戻し経路は無く、装着後は順番とオン／オフだけを変えられる。
+  // R18 — 取得の払い戻し経路は無く、取得後は順番とオン／オフだけを変えられる。
   if (action === "unlock-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
@@ -4279,21 +4316,6 @@ function handleAction(event) {
     else {
       state.run = result.run;
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
-    }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "equip-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const kind = element.dataset.kind;
-    const result = equipSkill(state.run.loadout, characterId, skillId, kind, limitsFor);
-    if (!result.ok) state.error = result.reason;
-    else {
-      state.run.loadout = result.loadout;
-      record("skill_equipped", { characterId, skillId, kind });
     }
     saveState();
     render();
@@ -4389,7 +4411,7 @@ function handleAction(event) {
         stage: state.run.encounterIndex,
         roster: [...state.run.roster],
         formation: clone(state.run.formation),
-        loadout: clone(state.run.loadout),
+        loadout: clone(currentBattleLoadout()),
       });
       // R12 §4.C — act boss の前で一度だけ会話を挟む。**prologue 中は挟まない**
       // （序盤の4拍が既に会話で埋まっているので、そこへ足すと長い）。
@@ -4414,7 +4436,7 @@ function handleAction(event) {
       battle = makeExpeditionBattle(
         composed,
         state.run.roster,
-        state.run.loadout,
+        currentBattleLoadout(),
         state.run.runSeed,
         state.run.formation,
         {
@@ -4424,6 +4446,7 @@ function handleAction(event) {
           equipmentDurability: state.equipmentDurability,
           limitsFor,
           statsFor,
+          skillLevelsFor: currentBattleSkillLevelsFor,
           // Phase C — 遠征ごとの装備定義を含む content bundle を渡す。
           content: runContentBundle(state.run),
         },
