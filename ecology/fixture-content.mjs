@@ -314,9 +314,9 @@ const activeSkills = {
     ],
     tags: ["attack"],
   },
-  // PREFLIGHT §6 — a真の無限ループ: costs nothing and is always usable. The
-  // one-action side phases reach the per-round activation cap, and it must stop
-  // loudly.
+  // PREFLIGHT §6 — a真の無限ループ: costs nothing, is always usable, and the
+  // activation loop in §11.3 has no action cap of its own. Only the event cap
+  // stops it, and it must stop it loudly.
   idle_shuffle: {
     id: "idle_shuffle",
     displayName: "Idle Shuffle (termination fixture)",
@@ -462,9 +462,9 @@ const reactiveSkills = {
     },
     tags: ["reaction", "tempo"],
   },
-  // §16 C — a second reaction on the same event with a lower priority, so the
-  // "an earlier reaction spent the resource the later one needed" case has a
-  // witness.
+  // §16 C — a second reaction on the same event. The default fixture lists
+  // counter_blow first, while engine.test.mjs reverses the list to witness that
+  // the player's same-actor loadout order wins over content priority.
   brace_after_hit: {
     id: "brace_after_hit",
     displayName: "Brace After Hit (fixture)",
@@ -565,8 +565,7 @@ const reactiveSkills = {
     tags: ["termination"],
   },
   // PREFLIGHT §5 — a pair that hands the action point back and forth, so the
-  // "eight activations per actor per round" ceiling actually gets reached even
-  // though actions are interleaved by side phase.
+  // "eight activations per actor per round" ceiling actually gets reached.
   relay_front: {
     id: "relay_front",
     displayName: "Relay Front (termination fixture)",
@@ -640,8 +639,7 @@ const equipment = {
   // the same thing: a point that goes unused can be banked by a rule such as
   // the pivot signature, while a discount that is never taken buys nothing
   // (PREFLIGHT §3). So this item is not a stand-in for a discount. It is what
-  // it says: one extra action point when its holder activates, usable on a later
-  // side phase.
+  // it says: one extra action point when its holder activates.
   worn_greaves: {
     id: "worn_greaves",
     displayName: "Worn Greaves — an extra action point on activation (fixture)",
@@ -1011,27 +1009,27 @@ export const FIXTURE_COVERAGE = deepFreeze({
   strike: "§15.1 single target damage; §12.1 damage pipeline",
   mend: "§15.1 healing and excess_healing; §12.2",
   bulwark: "§15.1 round barrier; §12.3",
-  relay_order: "§15.1 giving an ally action points; §11.3 next eligible side phase",
+  relay_order: "§15.1 giving an ally action points; §11.3 requeue",
   heavy_swing: "§15.1 one step preparation then a large hit; §12.4",
   reposition: "§15.1 same side position swap; §12.5",
   mark_target: "status arriving from content rather than from the battle input",
   steady_aim: "§15.4 a data driven way to put the positive status on an actor",
   long_swing: "§14 a three step preparation for the advance loop",
-  idle_shuffle: "PREFLIGHT §6 free action loop; §14 activation cap must error",
+  idle_shuffle: "PREFLIGHT §6 free action loop; §14 event cap must error",
   counter_blow: "§15.2 counter after damage_taken; history_count(chain)",
   cover_ally: "§15.2 cover and redirect on target_selected; §16C target_changed",
   overflow_care: "§15.2 excess_healing handed to another ally; not_previous_target",
   scavenge_ap: "§15.2 action point on actor_defeated; §13 outcome after the reaction",
   guard_step: "§15.2 barrier after actor_moved",
   urging: "§15.2 external preparation advance (ordering witness only)",
-  brace_after_hit: "§16C a later reaction losing its cost to an earlier one",
+  brace_after_hit: "§16C same-actor reactive order wins over content priority",
   ap_loop: "§14 two rules feeding each other action points",
   damage_echo: "§14 two rules answering damage_taken with damage",
   barrier_bloom: "§14 a rule answering barrier_gained with barrier",
   prep_spiral: "§14 a rule re-firing preparation_advanced on itself",
   relay_front: "PREFLIGHT §5 activation ceiling, half of the ping pong",
   relay_rear: "PREFLIGHT §5 activation ceiling, the other half",
-  worn_greaves: "§15.3 an extra action point for the next eligible side phase (PREFLIGHT §3, not a cost discount)",
+  worn_greaves: "§15.3 an extra action point on activation (PREFLIGHT §3, not a cost discount)",
   splinter_edge: "§15.3 excess_damage read by equipment; §5.6 broken stops supplying",
   field_kit: "§15.3 spends an unused reaction point to repair itself; clamps at maxDurability",
   standing_plate: "§15.3 battle duration barrier",

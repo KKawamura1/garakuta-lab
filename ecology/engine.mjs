@@ -89,8 +89,6 @@ function buildState(input, content, options) {
     actors: new Map(),
     actorOrder: [],
     queue: [],
-    phaseSide: null,
-    phaseVisited: new Set(),
     ruleStack: [],
     currentActorId: null,
     currentPendingAction: null,
@@ -299,12 +297,13 @@ function ruleEntriesFor(state, actor) {
   for (const rule of intrinsic) {
     entries.push({ rule, owner: actor, sourceDefinitionId: actor.definitionId, ruleSource: "signature" });
   }
-  for (const skillId of actor.reactiveSkillIds) {
+  for (const [skillOrder, skillId] of actor.reactiveSkillIds.entries()) {
     entries.push({
       rule: state.content.reactiveSkills[skillId].rule,
       owner: actor,
       sourceDefinitionId: skillId,
       ruleSource: "reactive_skill",
+      skillOrder,
     });
   }
   // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
@@ -392,9 +391,16 @@ function ruleSourceIntact(state, entry) {
   return true;
 }
 
-// §5.7 — the five step tie-break. Nothing below it may depend on Map iteration
-// order, array order or side.
+// §5.7 — deterministic rule order. A player's reactive order is the first
+// tie-break among that actor's reactive skills for one trigger window; the
+// remaining keys keep cross-actor and non-reactive rules deterministic.
 function compareRuleEntries(a, b) {
+  if (a.ownerId === b.ownerId
+      && a.ruleSource === "reactive_skill"
+      && b.ruleSource === "reactive_skill"
+      && a.skillOrder !== b.skillOrder) {
+    return a.skillOrder - b.skillOrder;
+  }
   if (a.rule.priority !== b.rule.priority) return a.rule.priority - b.rule.priority;
   if (a.initiativeRank !== b.initiativeRank) return a.initiativeRank - b.initiativeRank;
   if (a.positionRank !== b.positionRank) return a.positionRank - b.positionRank;
@@ -521,9 +527,6 @@ function startRound(state) {
     resetHistoryWindow(actor, "round");
     actor.inQueue = false;
   }
-  state.queue = [];
-  state.phaseSide = null;
-  state.phaseVisited = new Set();
   state.roundFirings = new Map();
 
   runChain(state, "round_started", () => {
@@ -549,15 +552,20 @@ function startRound(state) {
     emit(state, { type: "round_started", tags: [], values: { round: state.round } });
   });
 
-  // §11.2 — initiative is fixed for the round and gives the ally side the
-  // opening phase. Within each side, formation order is front row before rear
-  // row, left to right. A shared position is an internal tie only.
-  const living = [
-    ...actorsInPhaseOrder(state, "ally"),
-    ...actorsInPhaseOrder(state, "enemy"),
-  ];
+  // §11.2 — speed descending, ties broken by position then instance id. Side is
+  // never part of the key, so neither side gets an implicit head start.
+  const living = allActors(state).filter((actor) => actor.alive);
+  living.sort((a, b) => {
+    if (a.speed !== b.speed) return b.speed - a.speed;
+    if (POSITION_ORDER[a.position] !== POSITION_ORDER[b.position]) {
+      return POSITION_ORDER[a.position] - POSITION_ORDER[b.position];
+    }
+    return a.instanceId < b.instanceId ? -1 : 1;
+  });
+  state.queue = living.map((actor) => actor.instanceId);
   living.forEach((actor, index) => {
     actor.initiativeRank = index;
+    actor.inQueue = true;
   });
 }
 
@@ -565,104 +573,14 @@ function orderedActors(state) {
   return allActors(state);
 }
 
-function compareFormationActors(a, b) {
-  const byPosition = POSITION_ORDER[a.position] - POSITION_ORDER[b.position];
-  if (byPosition !== 0) return byPosition;
-  return a.instanceId < b.instanceId ? -1 : a.instanceId > b.instanceId ? 1 : 0;
-}
-
-function actorsInPhaseOrder(state, side) {
-  return livingOnSide(state, side).sort(compareFormationActors);
-}
-
 function runActivations(state) {
-  // One pass is one action per living actor on a side. AP 2 therefore means
-  // that the actor returns on the next ally/enemy pass, never that it takes two
-  // consecutive actions before the opposing side gets a turn.
-  do {
-    runSidePhase(state, "ally");
-    if (state.finished) break;
-    runSidePhase(state, "enemy");
-  } while (!state.finished && hasUsableActionAnywhere(state));
-
-  state.queue = [];
-  state.phaseSide = null;
-  state.phaseVisited = new Set();
-  for (const actor of allActors(state)) {
-    actor.inQueue = false;
-  }
-}
-
-function runSidePhase(state, side) {
-  state.phaseSide = side;
-  state.phaseVisited = new Set();
-  const phaseActors = actorsInPhaseOrder(state, side);
-  state.queue = phaseActors.map((actor) => actor.instanceId);
-  phaseActors.forEach((actor) => {
-    actor.inQueue = true;
-  });
-
   while (state.queue.length > 0 && !state.finished) {
     const instanceId = state.queue.shift();
     const actor = getActor(state, instanceId);
-    if (actor) actor.inQueue = false;
-    state.phaseVisited.add(instanceId);
-    if (!actor || !actor.alive) continue;
-    if (actor.activationsThisRound >= state.options.maxActivationsPerActorPerRound) {
-      // A zero-cost action has no AP exhaustion to stop it. Keep the diagnostic
-      // behavior for that pathological content instead of silently turning the
-      // action into a normal round-end skip.
-      if (hasFreeActionAtActivationCap(state, actor)) {
-        state.currentActorId = actor.instanceId;
-        throw runtimeError(state, "actor activation limit reached", {
-          limit: "maxActivationsPerActorPerRound",
-          limitValue: state.options.maxActivationsPerActorPerRound,
-          actorId: actor.instanceId,
-        });
-      }
-      continue;
-    }
-
-    // AP-bearing actors get one activation even when all their tactics are
-    // unavailable, so the existing action_skipped event remains observable.
-    // A zero-cost action is the only exception: it may activate without AP.
-    if (actor.actionPoints > 0 || hasUsableAction(state, actor)) {
-      activateActor(state, actor);
-    }
-  }
-
-  for (const actor of phaseActors) {
     actor.inQueue = false;
+    if (!actor.alive) continue;
+    activateActor(state, actor);
   }
-  state.queue = [];
-}
-
-function hasUsableActionAnywhere(state) {
-  return allActors(state).some(
-    (actor) => hasUsableAction(state, actor) || hasFreeActionAtActivationCap(state, actor),
-  );
-}
-
-function hasUsableAction(state, actor) {
-  if (!actor.alive) return false;
-  if (actor.activationsThisRound >= state.options.maxActivationsPerActorPerRound) return false;
-  if (actor.preparation) return actor.actionPoints > 0;
-  const choice = findActionChoice(state, actor);
-  return choice !== null;
-}
-
-function findActionChoice(state, actor) {
-  return chooseTactic(state, actor) ?? coreActionChoice(state, actor, "basicStrike");
-}
-
-function hasFreeActionAtActivationCap(state, actor) {
-  if (!actor.alive || actor.preparation) return false;
-  if (actor.activationsThisRound < state.options.maxActivationsPerActorPerRound) return false;
-  const choice = findActionChoice(state, actor);
-  if (!choice) return false;
-  return choice.costs
-    .filter((cost) => cost.type === "spend_action_points")
-    .reduce((total, cost) => total + cost.amount, 0) === 0;
 }
 
 function activateActor(state, actor) {
@@ -691,16 +609,19 @@ function activateActor(state, actor) {
   });
 
   if (!state.finished && actor.alive && actor.preparation) {
-    // §11.3 — **準備は行動権で進める。1起動につき1AP、1段だけ。**
+    // §11.3 — **準備は行動権で進める。1AP につき1段。**
     //
-    // AP を複数持つ actor でも、残りは次の自軍フェーズまで保持する。
-    // これで準備中の人物も、通常行動と同じ「一人一行動」のテンポに入る。
+    // 以前は行動権を払わずに1段だけ進めて起動が終わっていた。そのため
+    // **準備中は行動権を何点持っていても意味が無く**（`requeueOnResourceGain` も
+    // 準備中は並び直しを拒んでいた）、行動権を増やす装備・常設が「溜め」と
+    // 噛み合わなかった。行動権で進める形にすると、AP の多い人物と行動追加の
+    // 装備が「溜めを短くする」という形で効く。
     //
     // 実測（2026-08-30、当時の analysis/ecology-decision-space-smoke.mjs。R12 で削除）:
     // 準備を使う編成は 2.07 → 2.17 倍、準備を使わない素朴な編成4種は不変。
     runChain(state, "preparation", () => {
       const rt = makeRuntime(state);
-      if (actor.preparation && actor.actionPoints > 0) {
+      while (actor.preparation && actor.actionPoints > 0) {
         actor.actionPoints -= 1;
         emit(state, {
           type: "resource_spent",
@@ -716,27 +637,37 @@ function activateActor(state, actor) {
     return;
   }
 
-  let choice = chooseTactic(state, actor);
-  // R6 §6.4 — 技能未装備、全技能が不発、または有効対象なしなら basic strike。
-  if (!choice) choice = coreActionChoice(state, actor, "basicStrike");
-  if (!choice) {
-    // §11.3-8 — one action_skipped for an activation that produced nothing.
-    // The leftover AP is reported at round end.
-    runChain(state, "action_skipped", () => {
-      emit(state, {
-        type: "action_skipped",
-        sourceActorId: actor.instanceId,
-        targetActorIds: [actor.instanceId],
-        sourceDefinitionId: actor.definitionId,
-        tags: [],
-        values: { actionPoints: actor.actionPoints, reason: "no_usable_tactic" },
-      });
-    });
-  } else {
+  let actionsTaken = 0;
+  while (!state.finished && actor.alive) {
+    let choice = chooseTactic(state, actor);
+    // R6 §6.4 — 技能未装備、全技能が不発、または有効対象なしなら basic strike。
+    // **一度の起動につき一度だけ。**ここで繰り返すと、行動権を持たない actor が
+    // 回り続ける。
+    if (!choice && actionsTaken === 0) choice = coreActionChoice(state, actor, "basicStrike");
+    if (!choice) {
+      // §11.3-8 — one action_skipped for an activation that produced nothing.
+      // An activation that already acted and then ran out of action points is
+      // not "skipped"; the leftover shows up as resource_unused at round end.
+      if (actionsTaken === 0) {
+        runChain(state, "action_skipped", () => {
+          emit(state, {
+            type: "action_skipped",
+            sourceActorId: actor.instanceId,
+            targetActorIds: [actor.instanceId],
+            sourceDefinitionId: actor.definitionId,
+            tags: [],
+            values: { actionPoints: actor.actionPoints, reason: "no_usable_tactic" },
+          });
+        });
+      }
+      break;
+    }
+    actionsTaken += 1;
     const mode = choice.skill.actionMode ?? "offense";
     runChain(state, "action", () => performAction(state, actor, choice));
     // R6 §6.4 — utility の全 rule を解決した後、威力50%の追撃を一度だけ。
-    // 追撃は選択した一行動の結果であり、次の通常行動は次の味方フェーズまで待つ。
+    // **追撃を作る判定は rule effect ではなく、ここ（action resolver）が一度だけ行う。**
+    // だから追撃から別の追撃は生まれない。
     if (mode === "utility" && actor.alive && !state.finished) {
       const followUp = coreActionChoice(state, actor, "fallbackStrike");
       if (followUp) runChain(state, "action", () => performAction(state, actor, followUp));
@@ -990,16 +921,16 @@ function cancelAction(state, actor, skill, frame, reason) {
   return undefined;
 }
 
-// §11.3 — gaining action points never grants a second action in the current
-// side phase. The next side pass naturally sees the new point. The queue hook
-// remains for a gain to an actor that has not yet been visited in this phase.
+// §11.3 — gaining action points after an activation puts an actor back at the
+// tail of the queue once. This is the base mechanism a "kill grants another
+// action" rule is built from; the engine has no such rule of its own.
 function requeueOnResourceGain(state, actor) {
   if (!actor.alive) return;
   if (actor.isActivating) return;
   if (actor.inQueue) return;
+  // 準備中でも、行動権を得たら並び直す（その行動権で準備を進めるため）。
+  if (actor.activationsThisRound === 0) return;
   if (actor.activationsThisRound >= state.options.maxActivationsPerActorPerRound) return;
-  if (state.phaseSide !== actor.side) return;
-  if (state.phaseVisited.has(actor.instanceId)) return;
   actor.inQueue = true;
   state.queue.push(actor.instanceId);
 }

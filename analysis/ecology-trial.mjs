@@ -131,7 +131,7 @@ try {
   const investText = await bodyText();
   note("ギルド投資の画面がある", /持ち帰った資金を使う/.test(investText));
   note("鍛錬に費用と丸め後statが出る", /鍛錬（上限なし）/.test(investText) && /基礎/.test(investText));
-  note("第4枠が人物ごとに売られている", /第4枠/.test(investText));
+  note("技能数の制限が無いと分かる", /人数制限なしで装着できます/.test(investText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
 
   // R12 — **この台本が見るのは12戦の長い流れであって、序盤のチュートリアルではない。**
