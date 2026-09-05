@@ -7599,7 +7599,7 @@
    "kind": "reactive",
    "definitionId": "triage",
    "label": "応急手当",
-   "effect": "被弾後にHP半分以下になった味方へ、RP1でその被弾量の50%を返す。",
+   "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の50%を返す。自分は対象にしない。",
    "grammar": "回復"
   },
   "emergency_treatment": {
@@ -7607,7 +7607,7 @@
    "kind": "reactive",
    "definitionId": "emergency_treatment",
    "label": "応急処置",
-   "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
+   "effect": "自分以外の味方が被弾した直後、RP1でその被弾量の33%を返す。自分は対象にしない。",
    "grammar": "回復"
   },
   "spill_forward": {
