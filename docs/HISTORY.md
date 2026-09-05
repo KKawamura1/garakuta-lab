@@ -467,3 +467,42 @@ R11 §5 は「巻き戻したあとの勝利は本編1戦目」と DESIGN.md 6.4
 
 `analysis/ecology-tutorial-trial.mjs` を新しい経路（巻き戻して勝った直後に結果・報酬画面が
 出て、そのまま補給チュートリアルへ続く）に合わせて更新した。
+
+### 3.28 戦闘から報酬までの標準導線を整理した（issue #138、2026-09-05）
+
+R14（3.6）は完全予測をキャンプ全タブの上端へ常設したが、「戦闘前の最終確認」画面
+（battlePreview）自体は残っていた。そこにあった EXACT PREVIEW カードは既に消して
+あった（同じ数字を二度出さないため）ものの、残った「AUTO BATTLE / PLAN」の内容
+——味方の構成、敵の狙い——は、キャンプの戦闘タブ（`renderMap`）が既に出しているものと
+そのまま重複していた。加えて、リプレイが最後まで流れきったあとの「結果を見る」、
+結果表示のあとの「報酬を見る」という、次へ進むためだけのクリックが毎戦二回必要だった。
+勝てる戦闘を繰り返すほど、勝利の手応えより画面遷移の手続きのほうが目立っていた。
+
+- **通常戦は `begin-stage`（「この敵に挑む」）から `battlePreview` を経由せず、直接
+  `simulateAndEnterBattle()`（旧 `simulate` action の中身）へ進む。** act boss 前の会話
+  がある戦闘は、`enterStory` の `after` を `"battlePreview"` から `"battle"` に変え、
+  会話終了後の `finishStory` から同じ `simulateAndEnterBattle()` を呼ぶ。
+- **`battlePreview` 画面と `renderBattlePreview` 自体は消していない。**灰の門を巻き戻した
+  あとの再戦（隊列の直し方を実際に教える一戦。R11 §5 のチュートリアル）と、戦闘エンジンが
+  安全弁で停止したあとの構成見直し（`back-battle-preview`）にはまだ使う。「勝敗条件で
+  別ルートを増やさない」（issue の方針）ので、判定は `state.prologueActive` の一点だけで
+  分岐させ、予測結果や勝敗そのものでは分岐させていない。
+- **リプレイが最後の拍まで進んだら、`scheduleReplayBeat` が結果画面へ自動で遷移する。**
+  以前は自動再生が終わっても `state.phase` を `"battle"` のまま止め、「結果を見る」を
+  押すまで動かなかった。最後の拍を表示したあと、その拍と同じ長さだけ間を置いてから
+  `goToBattleResult()`（旧 `replay-result` handler の中身）を呼ぶよう変えた。**自動再生
+  だけの特権にはしていない**——一手ずつ進めて末尾に着いたときも同じタイマーで結果へ
+  進む（`scheduleReplayBeat` の「index が末尾」判定を、`state.replayPlaying` の真偽で
+  ガードしないようにした）。途中で「結果を見る」を押した場合も同じ `goToBattleResult()`
+  を通るので、経路は一本のまま増えていない。
+- **通常戦の勝利は、結果画面がそのまま報酬3択を兼ねる。**「報酬を見る」ボタンと
+  `reward` phase は廃止し、`renderResult()` が `ensureResultReward()` で報酬候補を
+  用意してから `rewardSectionHtml()`（旧 `renderReward()` の中身）をそのまま埋め込む。
+  `take-reward` / `reroll-reward` の handler は phase を見ていなかったので変更不要だった。
+  最終戦（12戦目）の勝利だけは、以前どおり報酬を出さず精算へ進む。旧いオートセーブが
+  ちょうど `reward` phase で保存されていた場合に備え、`hydrateState` で `"reward"` を
+  `"result"` へ読み替える一行だけ足した。
+
+`analysis/ecology-trial.mjs`・`analysis/ecology-tutorial-trial.mjs` の両方を新しい経路
+（「この敵に挑む」から直接 `.battle-field` を待つ、勝利の結果画面に報酬3択が同居する、
+「報酬を見る」ボタンが存在しないことを確認する）に合わせて更新した。

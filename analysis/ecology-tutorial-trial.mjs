@@ -287,14 +287,13 @@ try {
   note("結果画面でもまだ撤退できない",
     await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
   if (won) {
-    await click("報酬を見る");
-    const rewardText = await bodyText();
+    // issue #138 — 勝利の結果画面が報酬選択を兼ねる。「報酬を見る」の中間クリックは無い。
+    const rewardText = resultAfterWinText;
+    note("結果画面に報酬3択も一緒に出る", /何を持ち帰る？/.test(rewardText));
     note("報酬に装備が出る", /装備/.test(rewardText) && !/生成装備/.test(rewardText));
-    // R13 — 報酬画面にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
-    note("報酬画面に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
+    // R13 — 報酬にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
+    note("報酬に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
     note("装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
-    note("報酬画面でもまだ撤退できない",
-      await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
     // 装備を拾い、装備画面と保存の往復まで見る。
     const equipmentButton = page.locator('.reward-card:has(.reward-kind.kind-equipment) button[data-action="take-reward"]').first();
     note("装備の候補を選べる", await equipmentButton.count() > 0);
@@ -492,8 +491,9 @@ try {
     note("幕の切れ目で会話が入る", await page.locator(".vn-stage").count() > 0);
     note("幕の断片も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
     await click("スキップ");
-    await page.waitForTimeout(250);
-    note("幕の会話のあとは戦闘予測へ渡す", /自動戦闘を再生する|戦闘予測|この戦闘/.test(await bodyText()));
+    // issue #138 — 幕の会話のあとも、戦闘前確認を挟まずそのまま自動戦闘へ進む。
+    await page.waitForSelector(".battle-field", { timeout: 8000 });
+    note("幕の会話のあとは戦闘前確認を挟まず自動戦闘へ渡す", await page.locator(".battle-field").count() > 0);
   }
 
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 3).join(" / "));
