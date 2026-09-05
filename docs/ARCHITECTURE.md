@@ -57,6 +57,8 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 
 - Manifest、Encounter、Reward offer、装備 instance、compiled EquipmentDef、
   Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON の内容が完全に一致します。
+- 生成装備は item rarity と各 payoff の effect rarity、解決済み数値を descriptor / provenance に含め、
+  Blueprint はその効果品質まで exact に保持します。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
 

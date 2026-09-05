@@ -218,6 +218,7 @@ export {
   RARITIES,
   RARITY_BUDGET,
   RARITY_LABEL,
+  EFFECT_RARITY_LABEL,
   RETIRED_AFFIX_IDS,
 } from "./affixes.mjs";
 export {

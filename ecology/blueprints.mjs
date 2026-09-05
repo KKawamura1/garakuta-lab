@@ -16,6 +16,7 @@
 
 import { validateContentBundle } from "./validate.mjs";
 import { PLAYABLE_CONTENT } from "./content/index.mjs";
+import { RARITIES } from "./content/affixes.mjs";
 import { GENERATOR_VERSION } from "./equipment-gen.mjs";
 
 export const BLUEPRINT_ARCHIVE_VERSION = "ecology-blueprint-1";
@@ -206,7 +207,7 @@ export function searchBlueprints(archive, filters = {}) {
   });
   // 表示順は favorite → rarity → 表示名。**取得順に依らない**ので、
   // 同じ archive はいつ開いても同じ並びになる。
-  const rank = { legendary: 0, epic: 1, rare: 2, common: 3 };
+  const rank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
   return [...entries].sort((a, b) =>
     (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0)
     || (rank[a.rarity] ?? 9) - (rank[b.rarity] ?? 9)

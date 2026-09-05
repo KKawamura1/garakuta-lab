@@ -104,7 +104,7 @@ import {
   setCarrySelection,
   toggleFavorite,
 } from "./blueprints.mjs";
-import { RARITY_LABEL } from "./content/affixes.mjs";
+import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
 import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
@@ -1455,7 +1455,7 @@ function renderBlueprints() {
     favorite: filter.favorite || undefined,
   });
 
-  const rarityFilters = [["", "すべて"], ["legendary", "遺物"], ["epic", "希"], ["rare", "上"], ["common", "並"]]
+  const rarityFilters = [["", "すべて"], ...[...RARITIES].reverse().map((rarity) => [rarity, RARITY_LABEL[rarity] ?? rarity])]
     .map(([value, label]) => "<button type=\"button\" class=\"tiny-button "
       + ((filter.rarity ?? "") === value ? "primary-mini" : "") + "\" data-action=\"blueprint-filter\" data-rarity=\""
       + value + "\">" + esc(label) + "</button>").join("")
@@ -3211,6 +3211,14 @@ const GENERATED_VOICES = Object.freeze({
   legendary: [
     "台帳に載せる欄が無い。載せない、と決めた者がいたのかもしれない。",
     "手に持っているあいだ、灰の音が少しだけ遠い。気のせいだと全員が言う。",
+  ],
+  mythic: [
+    "古い記録のどれにも一致しない。見つけたことだけが、記録に残っている。",
+    "灯りを近づけると、装備のほうが先にこちらを見ている気がした。",
+  ],
+  oopart: [
+    "拾ったのではない。灰が一度だけ、これをこちらへ返した。",
+    "使い方を知っている者が、もういない。それでも手は迷わなかった。",
   ],
 });
 

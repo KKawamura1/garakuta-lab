@@ -5,16 +5,16 @@
 // affix は装備そのものではない。**一つの完結 rule を組み立てるための部品**で、
 // R8 §3.5 が決めた文法
 //
-//   trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜2 -> limit -> durability / charge
+//   trigger -> condition 0〜2 -> cost 0〜1 -> effect 1〜3 -> limit -> durability / charge
 //
 // のどの位置に入るかを `role` が宣言する。role は R8 §13.2 の四種と、
-// legendary だけが持つ keystone を足した五種である。
+// legendary 以上が持つ keystone を足した六種である。
 //
 //   source     … trigger。どの event を読むか。
 //   converter  … condition。読んだ event をどの状況へ絞るか。
 //   payoff     … effect。何が起きるか。
 //   stabilizer … cost / durability / limit。代償と発火回数。
-//   keystone   … 品全体の形を一段変える。legendary だけ、最大1つ。
+//   keystone   … 品全体の形を一段変える。legendary 以上、最大1つ。
 //
 // **ここは目録だけを持ち、組み立ては ecology/equipment-gen.mjs が行う。**
 // 目録と組み立てを分けたのは、affix family を content wave として増やすとき、
@@ -29,12 +29,17 @@ export const AFFIX_ROLES = Object.freeze(["source", "converter", "payoff", "stab
 
 // R8 §3.5 — rarity ごとの完結rule数、総affix目安、total power budget。
 // **複数ruleでもitem全体のpower budgetは一つとし、rule数倍しない。**
-export const RARITIES = Object.freeze(["common", "rare", "epic", "legendary"]);
+// 装備全体の等級。個々の rule も同じ語彙で effectRarity を持つが、
+// 装備等級は「効果数・最低品質・組み合わせ予算」の保証として使う。
+// 旧4等級の ID は残し、新たに mythic / oopart を追加して Blueprint の既存記録を読めるようにする。
+export const RARITIES = Object.freeze(["common", "rare", "epic", "legendary", "mythic", "oopart"]);
 export const RARITY_BUDGET = Object.freeze({
-  common: Object.freeze({ rules: [1, 1], affixes: [1, 2], power: 2, keystones: 0 }),
-  rare: Object.freeze({ rules: [1, 2], affixes: [2, 4], power: 4, keystones: 0 }),
-  epic: Object.freeze({ rules: [2, 3], affixes: [4, 7], power: 7, keystones: 0 }),
-  legendary: Object.freeze({ rules: [3, 4], affixes: [6, 10], power: 10, keystones: 1 }),
+  common: Object.freeze({ rules: [1, 1], affixes: [1, 4], power: 4, keystones: 0 }),
+  rare: Object.freeze({ rules: [1, 2], affixes: [2, 6], power: 7, keystones: 0 }),
+  epic: Object.freeze({ rules: [1, 3], affixes: [3, 10], power: 11, keystones: 0 }),
+  legendary: Object.freeze({ rules: [1, 4], affixes: [4, 14], power: 16, keystones: 1 }),
+  mythic: Object.freeze({ rules: [2, 5], affixes: [6, 18], power: 22, keystones: 1 }),
+  oopart: Object.freeze({ rules: [2, 6], affixes: [8, 22], power: 24, keystones: 1 }),
 });
 
 // 引退した affix id。**別内容への再利用は禁止。**
@@ -492,5 +497,12 @@ export const ITEM_NOUNS = Object.freeze([
   "指輪", "鞘", "肩当て", "手袋", "鎖", "護符", "杖頭", "鈴",
 ]);
 export const RARITY_LABEL = Object.freeze({
-  common: "並", rare: "上", epic: "希", legendary: "遺物",
+  // 旧IDの表示名は維持し、新しい上位層だけを追加する。
+  common: "並",
+  rare: "上",
+  epic: "希",
+  legendary: "遺物",
+  mythic: "神話",
+  oopart: "オーパーツ",
 });
+export const EFFECT_RARITY_LABEL = RARITY_LABEL;
