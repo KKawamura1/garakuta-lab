@@ -585,6 +585,11 @@ function validateRules(bag, path, rules, ctx) {
   rules.forEach((rule, index) => validateRule(bag, `${path}[${index}]`, rule, ctx));
 }
 
+function rejectRemovedSpeedKey(bag, path, definition) {
+  if (Object.hasOwn(definition, "speed")) {
+    bag.add(`${path}.speed`, "unknown_key", "speed was removed from actor definitions");
+  }
+}
 // ------------------------------------------------------------- content bundle
 
 export function validateContentBundle(bundle) {
@@ -646,9 +651,9 @@ export function validateContentBundle(bundle) {
 
   for (const [id, character] of Object.entries(bundle.characters)) {
     const path = `characters.${id}`;
+    rejectRemovedSpeedKey(bag, path, character);
     requireDisplayName(bag, `${path}.displayName`, character.displayName);
     requireCount(bag, `${path}.maxHp`, character.maxHp, { min: 1 });
-    requireCount(bag, `${path}.speed`, character.speed, { min: 0 });
     requireCount(bag, `${path}.baseActionPoints`, character.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, character.baseReactionPoints, { min: 0 });
     requireTags(bag, `${path}.tags`, character.tags);
@@ -757,9 +762,9 @@ export function validateContentBundle(bundle) {
 
   for (const [id, enemy] of Object.entries(bundle.enemyActors)) {
     const path = `enemyActors.${id}`;
+    rejectRemovedSpeedKey(bag, path, enemy);
     requireDisplayName(bag, `${path}.displayName`, enemy.displayName);
     requireCount(bag, `${path}.maxHp`, enemy.maxHp, { min: 1 });
-    requireCount(bag, `${path}.speed`, enemy.speed, { min: 0 });
     requireCount(bag, `${path}.baseActionPoints`, enemy.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, enemy.baseReactionPoints, { min: 0 });
     requireTags(bag, `${path}.tags`, enemy.tags);
@@ -963,9 +968,9 @@ export function validateBattleInput(input, bundle) {
 
 // R6 §9.5 / §11 — PHASE B. A per-instance stat override: permanent training on
 // an ally, a difficulty mutation on an enemy. **Only the four continuous stats
-// may be overridden.** Letting an override reach speed, AP or RP would buy extra
-// turns, which R6 §9.5 forbids outright, and letting it reach tactics or rules
-// would put content vocabulary in a save file.
+// may be overridden.** Letting an override reach AP or RP would buy extra turns,
+// which R6 §9.5 forbids outright, and letting it reach tactics or rules would put
+// content vocabulary in a save file.
 //
 // Returns the overridden maxHp when there is one, so the caller can use it as
 // the ceiling for a carried-over hp.

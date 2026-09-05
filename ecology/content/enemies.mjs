@@ -34,22 +34,18 @@ export const ENEMY_NAMES = {
 const enemyActors = renamed("enemyActors", ENEMY_NAMES);
 enemyActors.gray_scrapper = cloneEnemy("husk", "gray_scrapper", ENEMY_NAMES.gray_scrapper, {
   maxHp: 10,
-  speed: 6,
   tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
 });
 enemyActors.gray_runner = cloneEnemy("husk", "gray_runner", ENEMY_NAMES.gray_runner, {
   maxHp: 12,
-  speed: 9,
   tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
 });
 enemyActors.gray_marksman = cloneEnemy("husk", "gray_marksman", ENEMY_NAMES.gray_marksman, {
   maxHp: 12,
-  speed: 7,
   tactics: [{ activeSkillId: "rear_strike", useWhen: [] }],
 });
 enemyActors.gray_stalker = cloneEnemy("husk", "gray_stalker", ENEMY_NAMES.gray_stalker, {
   maxHp: 13,
-  speed: 7,
   tactics: [
     { activeSkillId: "rear_strike", useWhen: [] },
     { activeSkillId: "front_strike", useWhen: [] },
@@ -57,7 +53,6 @@ enemyActors.gray_stalker = cloneEnemy("husk", "gray_stalker", ENEMY_NAMES.gray_s
 });
 enemyActors.gray_guard = cloneEnemy("husk_warden", "gray_guard", ENEMY_NAMES.gray_guard, {
   maxHp: 18,
-  speed: 3,
   tactics: [
     { activeSkillId: "enemy_guard", useWhen: [] },
     { activeSkillId: "front_strike", useWhen: [] },
@@ -65,7 +60,6 @@ enemyActors.gray_guard = cloneEnemy("husk_warden", "gray_guard", ENEMY_NAMES.gra
 });
 enemyActors.gray_breaker = cloneEnemy("husk_warden", "gray_breaker", ENEMY_NAMES.gray_breaker, {
   maxHp: 22,
-  speed: 5,
   tactics: [
     { activeSkillId: "enemy_heavy", useWhen: [] },
     { activeSkillId: "front_strike", useWhen: [] },
@@ -73,7 +67,6 @@ enemyActors.gray_breaker = cloneEnemy("husk_warden", "gray_breaker", ENEMY_NAMES
 });
 enemyActors.gray_shelter = cloneEnemy("husk_warden", "gray_shelter", ENEMY_NAMES.gray_shelter, {
   maxHp: 20,
-  speed: 4,
   tactics: [
     { activeSkillId: "enemy_guard", useWhen: [] },
     { activeSkillId: "front_strike", useWhen: [] },
@@ -81,7 +74,6 @@ enemyActors.gray_shelter = cloneEnemy("husk_warden", "gray_shelter", ENEMY_NAMES
 });
 enemyActors.gray_hunter = cloneEnemy("husk_hunter", "gray_hunter", ENEMY_NAMES.gray_hunter, {
   maxHp: 20,
-  speed: 8,
   tactics: [
     { activeSkillId: "hunt_the_slow", useWhen: [] },
     { activeSkillId: "front_strike", useWhen: [] },
@@ -89,7 +81,6 @@ enemyActors.gray_hunter = cloneEnemy("husk_hunter", "gray_hunter", ENEMY_NAMES.g
 });
 enemyActors.gray_harrower = cloneEnemy("husk_hunter", "gray_harrower", ENEMY_NAMES.gray_harrower, {
   maxHp: 18,
-  speed: 8,
   tactics: [
     { activeSkillId: "hunt_the_slow", useWhen: [] },
     { activeSkillId: "rear_strike", useWhen: [] },
@@ -98,17 +89,14 @@ enemyActors.gray_harrower = cloneEnemy("husk_hunter", "gray_harrower", ENEMY_NAM
 });
 enemyActors.gray_echo = cloneEnemy("husk_echo", "gray_echo", ENEMY_NAMES.gray_echo, {
   maxHp: 20,
-  speed: 5,
   tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
 });
 enemyActors.gray_swarm = cloneEnemy("husk", "gray_swarm", ENEMY_NAMES.gray_swarm, {
   maxHp: 8,
-  speed: 10,
   tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
 });
 enemyActors.gray_bulwark = cloneEnemy("husk_bulwark", "gray_bulwark", ENEMY_NAMES.gray_bulwark, {
   maxHp: 32,
-  speed: 4,
   tactics: [
     { activeSkillId: "enemy_guard", useWhen: [] },
     { activeSkillId: "front_strike", useWhen: [] },
@@ -116,7 +104,6 @@ enemyActors.gray_bulwark = cloneEnemy("husk_bulwark", "gray_bulwark", ENEMY_NAME
 });
 enemyActors.ash_core = cloneEnemy("husk_bulwark", "ash_core", ENEMY_NAMES.ash_core, {
   maxHp: 54,
-  speed: 4,
   tactics: [
     { activeSkillId: "enemy_heavy", useWhen: [] },
     { activeSkillId: "front_strike", useWhen: [] },

@@ -22,7 +22,7 @@ export const BASELINE_REACTIVE_SKILL_IDS = Object.freeze(["mend"]);
 // manifest がどうであれ、7種すべていつでも取れる。
 export const BASELINE_PASSIVE_SKILL_IDS = Object.freeze([
   "foundation_vitality", "foundation_might", "foundation_focus",
-  "foundation_guard", "foundation_speed", "foundation_ap", "foundation_rp",
+  "foundation_guard", "foundation_ap", "foundation_rp",
 ]);
 
 // R8 §6.5 — パックが攻撃の主役を担えるかどうかの宣言。

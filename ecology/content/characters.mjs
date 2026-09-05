@@ -28,14 +28,13 @@ const characters = Object.fromEntries(
   Object.entries(renamed("characters", CHARACTER_NAMES))
     .filter(([id]) => Object.hasOwn(CHARACTER_NAMES, id)),
 );
-Object.assign(characters.warden, { maxHp: 28, speed: 5, baseReactionPoints: 2 });
-Object.assign(characters.mender, { maxHp: 18, speed: 6, baseReactionPoints: 2 });
-Object.assign(characters.lancer, { maxHp: 17, speed: 9, baseReactionPoints: 2 });
+Object.assign(characters.warden, { maxHp: 28, baseReactionPoints: 2 });
+Object.assign(characters.mender, { maxHp: 18, baseReactionPoints: 2 });
+Object.assign(characters.lancer, { maxHp: 17, baseReactionPoints: 2 });
 characters.guardian = {
   id: "guardian",
   displayName: CHARACTER_NAMES.guardian,
   maxHp: 22,
-  speed: 2,
   baseActionPoints: 1,
   baseReactionPoints: 2,
   signatureRules: [],
@@ -45,7 +44,6 @@ characters.tactician = {
   id: "tactician",
   displayName: CHARACTER_NAMES.tactician,
   maxHp: 16,
-  speed: 11,
   baseActionPoints: 1,
   baseReactionPoints: 2,
   signatureRules: [],
@@ -77,15 +75,15 @@ characters.tactician = {
 export const CHARACTER_STATS = {
   // ---- Campaign 本編の5人。加入順に並べてある ----
   // ゴウ … 落ちない前衛かつ最大火力。武器攻撃なので前に置いて初めて火力が出る
-  warden:    { maxHp: 300, might: 50, focus: 6,  guard: 1,  speed: 4,  baseActionPoints: 1, baseReactionPoints: 2 },
+  warden:    { maxHp: 300, might: 50, focus: 6,  guard: 1,  baseActionPoints: 1, baseReactionPoints: 2 },
   // ツグミ … 隊の主火力。技攻撃なので後列でも威力が落ちない。**紙。**
-  mender:    { maxHp: 110, might: 8,  focus: 52, guard: 2,  speed: 8,  baseActionPoints: 1, baseReactionPoints: 2 },
+  mender:    { maxHp: 110, might: 8,  focus: 52, guard: 2,  baseActionPoints: 1, baseReactionPoints: 2 },
   // ナギ … 受けが桁違い。生半可な多段は最低保証まで落ちて通らない。治療も出す
-  lancer:    { maxHp: 210, might: 16, focus: 30, guard: 24, speed: 5,  baseActionPoints: 1, baseReactionPoints: 2 },
+  lancer:    { maxHp: 210, might: 16, focus: 30, guard: 24,  baseActionPoints: 1, baseReactionPoints: 2 },
   // ヒバナ … 一撃は隊で最弱。**行動権が一つ多い。**入って、戻れるのはこの人だけ
-  guardian:  { maxHp: 120, might: 14, focus: 14, guard: 3,  speed: 9,  baseActionPoints: 2, baseReactionPoints: 2 },
+  guardian:  { maxHp: 120, might: 14, focus: 14, guard: 3,  baseActionPoints: 2, baseReactionPoints: 2 },
   // ゲンゾウ … 攻守とも中庸。**反応点が二つ多い。**一巡に何度も割り込める
-  tactician: { maxHp: 160, might: 20, focus: 22, guard: 10, speed: 7,  baseActionPoints: 1, baseReactionPoints: 4 },
+  tactician: { maxHp: 160, might: 20, focus: 22, guard: 10,  baseActionPoints: 1, baseReactionPoints: 4 },
 };
 // R6 §6.4 — 届き方は技能側の effect.reach で決める。
 // playable の通常攻撃は全員 melee とし、後衛の仲間だから自動的に遠隔にはしない。

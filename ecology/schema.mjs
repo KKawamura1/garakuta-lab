@@ -9,7 +9,7 @@
 
 const freeze = (value) => Object.freeze(value);
 
-export const CONTENT_SCHEMA_VERSION = "ecology-content-3";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-4";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -21,7 +21,7 @@ export const CONTENT_SCHEMA_VERSION = "ecology-content-3";
 // not know the field would silently drop the levels — which changes damage — so
 // the version says out loud that the shape grew.
 export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
-export const RESULT_SCHEMA_VERSION = "ecology-result-1";
+export const RESULT_SCHEMA_VERSION = "ecology-result-2";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -31,7 +31,7 @@ export const MINING_VERSION = "ecology-mining-1";
 // `campaignStageId`/`campaignStageSequence` provenance and a fixed (non-random)
 // construction path for campaign mode. All three versions move up one.
 export const PROFILE_SCHEMA_VERSION = "ecology-profile-2";
-export const RUN_SCHEMA_VERSION = "ecology-run-2";
+export const RUN_SCHEMA_VERSION = "ecology-run-3";
 export const MANIFEST_VERSION = "ecology-manifest-2";
 
 // R6 §5.4 — the six positions of the 2x3 field. The listed order is also the
@@ -247,9 +247,8 @@ export const TARGET_SORT_TYPES = freeze([
   "hp_desc",
   "barrier_asc",
   "barrier_desc",
-  "speed_asc",
-  "speed_desc",
   "position_asc",
+  "position_desc",
   "instance_id_asc",
 ]);
 // §9 — appended to every sort so no tie survives into take: 1.
@@ -337,7 +336,6 @@ export const ACTOR_STATS = freeze([
   "barrier",
   "action_points",
   "reaction_points",
-  "speed",
   // R6 §4.4 — PHASE A. might drives weapon damage, focus drives technique
   // damage, healing and barrier, guard is flat per-hit reduction of direct
   // damage. Every actor carries all three, so a support role still has an
@@ -354,7 +352,7 @@ export const ACTOR_STATS = freeze([
 export const SCALING_STATS = freeze(["might", "focus", "max_hp"]);
 
 // R6 §9.5 — PHASE B. The four axes permanent training may raise, and the actor
-// stat each one lands on. **speed, AP, RP, slot counts, firing limits and target
+// stat each one lands on. **AP, RP, slot counts, firing limits and target
 // priority are deliberately absent**: training must not buy extra turns.
 export const TRAINABLE_STATS = freeze(["might", "focus", "guard", "vitality"]);
 export const TRAINING_STAT_TARGET = freeze({
@@ -366,8 +364,8 @@ export const TRAINING_STAT_TARGET = freeze({
 
 // R6 §4.3 / §11 — PHASE B. The stats a battle input may override per instance.
 // Allies use it for permanent training, enemies for the difficulty mutations.
-// Everything else (speed, AP, RP, tactics, rules) stays with the definition, so
-// an override can change how hard a hit lands but never how often anyone acts.
+// AP, RP, tactics and rules stay with the definition, so an override can change
+// how hard a hit lands but never how often anyone acts.
 export const OVERRIDABLE_STATS = freeze(["maxHp", "might", "focus", "guard"]);
 
 // R6 §5.1 / §11.2 — PHASE B. What one encounter of an expedition is.
@@ -377,7 +375,7 @@ export const ENCOUNTER_KINDS = freeze(["normal", "elite", "boss"]);
 // **行動回数（AP/RP）はここに無い。**毎 round の行動回数を恒常的に増やす効果は、
 // 多くの面白い skill より強くなりやすい（R6 §6.8）。開始時1回だけなら
 // gain_resource の rule で書けるので、語彙を増やさずに済む。
-export const PASSIVE_STAT_BONUSES = freeze(["max_hp", "might", "focus", "guard", "speed"]);
+export const PASSIVE_STAT_BONUSES = freeze(["max_hp", "might", "focus", "guard"]);
 
 // R19（issue #137）— 技能レベル。**同じ効果の上位互換を別技能として増やさず、
 // 一つの技能を段階的に強くする。**

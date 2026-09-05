@@ -368,14 +368,14 @@ reactiveSkills.patient_step = {
 //   - どの発生源も、その出来事を起こせる人なら誰でも読める（人物IDを条件にしない）。
 //   - どれも単独で価値があり、A＋B の固定レシピを要求しない。
 //   - **待機だけでは何も増えない。**すべて RP1 を払い、round か chain で止まる。
-const FASTEST_FRONT_ALLY = {
+const FRONTMOST_ALLY = {
   scope: "allies",
   filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
-  sort: ["speed_desc"],
+  sort: ["position_asc"],
   take: 1,
 };
-const SLOWEST_ALLY = {
-  scope: "allies", filters: [{ type: "alive" }], sort: ["speed_asc"], take: 1,
+const LAST_IN_FORMATION_ALLY = {
+  scope: "allies", filters: [{ type: "alive" }], sort: ["position_desc"], take: 1,
 };
 const FRONTMOST_ENEMY = {
   scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1,
@@ -422,7 +422,7 @@ reactiveSkills.blocked_into_step = {
     predicates: [SELF_IS_EVENT_TARGET],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{
-      type: "gain_resource", target: FASTEST_FRONT_ALLY, resource: "action_points",
+      type: "gain_resource", target: FRONTMOST_ALLY, resource: "action_points",
       amount: { type: "constant", value: 1 },
     }],
     limit: { scope: "round", count: 1 },
@@ -464,7 +464,7 @@ reactiveSkills.stride_into_reach = {
   tags: ["reaction", "relay", "mark"],
 };
 
-// 準備を完了した → 遅い仲間の反応。準備役が、自分の外側へ効果を出す。
+// 準備を完了した → 隊列の最後の仲間の反応。準備役が、自分の外側へ効果を出す。
 reactiveSkills.readied_relay = {
   id: "readied_relay",
   displayName: REACTIVE_SKILL_NAMES.readied_relay,
@@ -476,7 +476,7 @@ reactiveSkills.readied_relay = {
     predicates: [SELF_IS_EVENT_SOURCE],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{
-      type: "gain_resource", target: SLOWEST_ALLY, resource: "reaction_points",
+      type: "gain_resource", target: LAST_IN_FORMATION_ALLY, resource: "reaction_points",
       amount: { type: "constant", value: 1 },
     }],
     limit: { scope: "round", count: 1 },

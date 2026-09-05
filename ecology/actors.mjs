@@ -91,7 +91,6 @@ export function actorStat(actor, stat) {
     case "barrier": return totalBarrier(actor);
     case "action_points": return actor.actionPoints;
     case "reaction_points": return actor.reactionPoints;
-    case "speed": return actor.speed;
     // R6 §4.4 / §6.7 — PHASE A.
     case "might": return actor.might ?? 0;
     case "focus": return actor.focus ?? 0;

@@ -79,9 +79,8 @@ function sortValue(actor, sortType) {
     case "hp_desc": return -actor.hp;
     case "barrier_asc": return totalBarrier(actor);
     case "barrier_desc": return -totalBarrier(actor);
-    case "speed_asc": return actor.speed;
-    case "speed_desc": return -actor.speed;
     case "position_asc": return positionIndex(actor);
+    case "position_desc": return -positionIndex(actor);
     default: return 0;
   }
 }

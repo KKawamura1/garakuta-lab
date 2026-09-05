@@ -655,15 +655,10 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
   checks += 1;
 
-  // Speed remains available to content that explicitly targets the fastest or
-  // slowest actor, but it must not change the action queue.
-  const speedChanged = structuredClone(FIXTURE_CONTENT);
-  speedChanged.characters.warden.speed = 100;
-  speedChanged.enemyActors.husk_bulwark.speed = 0;
-  assert.deepEqual(
-    positionOrder(speedChanged),
-    expected,
-    "speed does not affect initiative",
+  const result = simulateBattle(POSITION_ORDER_BATTLE, FIXTURE_CONTENT);
+  assert.ok(
+    result.actors.every((actor) => !Object.hasOwn(actor, "speed")),
+    "battle results do not expose the removed speed stat",
   );
   checks += 1;
 }

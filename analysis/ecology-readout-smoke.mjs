@@ -139,7 +139,7 @@ for (const [section, metaById] of Object.entries(META_BY_SECTION)) {
     }
 
     if (section === "passiveSkills") {
-      const labels = { max_hp: "最大HP", might: "腕力", focus: "技術", guard: "受け", speed: "速度" };
+      const labels = { max_hp: "最大HP", might: "腕力", focus: "技術", guard: "受け" };
       for (const [stat, expected] of Object.entries(definition.statBonus ?? {})) {
         const label = labels[stat];
         if (!label) continue;

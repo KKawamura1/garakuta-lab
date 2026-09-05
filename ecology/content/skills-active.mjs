@@ -665,19 +665,18 @@ const SELF = { scope: "self", take: 1 };
 const ALIVE_ONLY = [{ type: "alive" }];
 const ENEMY_FRONT_FIRST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["position_asc"], take: 1 };
 const ENEMY_WEAKEST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["hp_asc"], take: 1 };
-const ENEMY_FASTEST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["speed_desc"], take: 1 };
 const ALLY_WEAKEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["hp_asc"], take: 1 };
-const ALLY_SLOWEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["speed_asc"], take: 1 };
+const ALLY_LATEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["position_desc"], take: 1 };
 const ALLY_FRONT_ALL = {
   scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], take: "all",
 };
 const ALLY_REAR_ALL = {
   scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "rear" }], take: "all",
 };
-const ALLY_FASTEST_FRONT = {
+const ALLY_FRONT_FIRST = {
   scope: "allies",
   filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
-  sort: ["speed_desc"],
+  sort: ["position_asc"],
   take: 1,
 };
 
@@ -874,9 +873,9 @@ activeSkills.field_dressing = support("field_dressing", "まとめて手当て",
 }], { tags: ["care", "guard"] });
 activeSkills.field_dressing.intrinsicPredicates = [hasEligibleTarget(ALLY_WOUNDED_ALL)];
 
-// 集中を**自分ではなく、一番遅い仲間へ**。狙いを澄ますの逆向き。
+// 集中を**自分ではなく、隊列の最後の仲間へ**。狙いを澄ますの逆向き。
 activeSkills.steady_breath = support("steady_breath", "息を合わせる", [{
-  type: "add_status", target: ALLY_SLOWEST, statusId: "focused", stacks: 1,
+  type: "add_status", target: ALLY_LATEST, statusId: "focused", stacks: 1,
 }], { tags: ["care", "buff"] });
 
 // 一撃ごとに薄くする守り。**防壁と違い、削り切られない。**
@@ -919,9 +918,9 @@ activeSkills.cleansing_step = support("cleansing_step", "払いのける", [
 
 // ---- 行動権と準備（pack_tempo）— 順番の触り方を増やす ----
 
-// 号令は前衛の最速へ渡す。こちらは**一番遅い者へ**。まだ動いていない側を押す。
+// 号令は前列の先頭へ渡す。こちらは**一番遅い者へ**。まだ動いていない側を押す。
 activeSkills.hasten_ally = support("hasten_ally", "背を押す", [{
-  type: "gain_resource", target: ALLY_SLOWEST, resource: "action_points",
+  type: "gain_resource", target: ALLY_LATEST, resource: "action_points",
   amount: { type: "constant", value: 1 },
 }], { tags: ["tempo"] });
 
@@ -932,11 +931,11 @@ activeSkills.call_the_slow = support("call_the_slow", "後詰めを呼ぶ", [{
 }], { tags: ["tempo"] });
 activeSkills.call_the_slow.intrinsicPredicates = [hasEligibleTarget(ALLY_REAR_ALL)];
 
-// 一番速い敵に怯みを付ける。**先に動く相手ほど、軽くする価値がある。**
+// 最前の敵に怯みを付ける。**先に動く相手ほど、軽くする価値がある。**
 activeSkills.feint = support("feint", "誘い", [{
-  type: "add_status", target: ENEMY_FASTEST, statusId: "staggered", stacks: 1, reach: "unrestricted",
-}], { tags: ["tempo", "debuff"], targetQuery: ENEMY_FASTEST });
-activeSkills.feint.intrinsicPredicates = [hasEligibleTarget(ENEMY_FASTEST)];
+  type: "add_status", target: ENEMY_FRONT_FIRST, statusId: "staggered", stacks: 1, reach: "unrestricted",
+}], { tags: ["tempo", "debuff"], targetQuery: ENEMY_FRONT_FIRST });
+activeSkills.feint.intrinsicPredicates = [hasEligibleTarget(ENEMY_FRONT_FIRST)];
 
 // 準備を1回挟んで、行動権と集中を取り戻す。**手数は増えない**
 // （開始と準備で2つ払い、1つ返る）。増えるのは次の一手の質。
@@ -960,7 +959,7 @@ activeSkills.set_the_pace = {
 
 // ---- 連撃と刻印（pack_barrage）— 刻印を「数」として読む ----
 
-// 5回刻む。**受け構えを剥がす速さは随一で、受けの厚い相手には最も弱い。**
+// 5回刻む。**受け構えを剥がしやすく、受けの厚い相手には最も弱い。**
 activeSkills.flurry_finish = strikeWith("flurry_finish", "刻み止め", 3_000, [], {
   targetQuery: ENEMY_WEAKEST,
   tags: ["attack", "onhit"],
@@ -1021,9 +1020,9 @@ activeSkills.take_the_wound = support("take_the_wound", "傷を引き受ける",
 
 // 前列の最速へ集中を渡す。**自分の一手を、他人の一手に変える。**
 activeSkills.pass_the_edge = support("pass_the_edge", "刃を渡す", [{
-  type: "add_status", target: ALLY_FASTEST_FRONT, statusId: "focused", stacks: 1,
+  type: "add_status", target: ALLY_FRONT_FIRST, statusId: "focused", stacks: 1,
 }], { tags: ["handoff", "buff"] });
-activeSkills.pass_the_edge.intrinsicPredicates = [hasEligibleTarget(ALLY_FASTEST_FRONT)];
+activeSkills.pass_the_edge.intrinsicPredicates = [hasEligibleTarget(ALLY_FRONT_FIRST)];
 
 // ---------------------------------------------------------------- 武器と技
 //

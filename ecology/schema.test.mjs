@@ -442,8 +442,8 @@ expectRejected(
   content((bundle) => {
     bundle.characters.warden.speed = 1.5;
   }),
-  "not_an_integer",
-  "fractional speed",
+  "unknown_key",
+  "removed speed key",
 );
 
 expectRejected(

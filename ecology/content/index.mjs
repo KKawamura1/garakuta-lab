@@ -52,7 +52,8 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // `skillLevelCaps` を公開した。battle input が `skillLevels` を受ける。
 // (2) 節が `tier`（0/1/2）ではなく `x`（前提からの深さ、1〜10）を持ち、`requires` が
 // 「tier ごとの箱」から「一本の道」へ並び替わった。**既存欄の意味が変わったので上げる。**
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-12";
+// R20 — 速度能力値と速度依存の対象選択を削除し、隊列を使う対象選択へ置き換えた。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-13";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -80,6 +81,10 @@ export const RETIRED_IDS = Object.freeze({
     reason: "mend と同じ理由。",
     replacedBy: "reactiveSkills.triage",
   },
+  foundation_speed: {
+    since: "ecology-content-contract-13",
+    reason: "速度能力値を削除し、隊列順を行動順と対象選択の基準にしたため",
+  },
 });
 
 // 表示名を持つ節。DISPLAY_NAMES の作り方をここ一箇所に閉じる。
@@ -96,8 +101,8 @@ export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
   // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
-  // R16 で技能54本・状態3つを足した。soft data ではなく語彙の追加なので印を進める。
-  contentVersion: "ecology-playable-full-0.10",
+  // R16 で技能54本・状態3つを足した。R20 で速度能力値を削除した。
+  contentVersion: "ecology-playable-full-0.11",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
