@@ -111,7 +111,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   // 4通りすべての結果をここで固定する。どれか一つでも動けば、教える内容が変わる。
   //
   //   両方前（既定）… 負ける。ツグミが2ラウンド目に落ちる
-  //   ツグミを後列  … **勝つ。誰も落ちない。**これが正解
+  //   ツグミを後列  … **余裕を残して勝つ。誰も落ちない。**これが正解
   //   ゴウを後列    … 負ける。武器攻撃が後列から40%になり、倒しきれない
   //   両方後列      … 負ける。前で受ける者がいないうえ、武器も落ちる
   const outcome = (formation) => {
@@ -124,12 +124,15 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       result: result.result,
       rounds: result.roundsUsed,
       survivors: allies.filter((actor) => actor.alive).length,
+      endingHp: Object.fromEntries(allies.map((actor) => [actor.instanceId, actor.hp])),
     };
   };
 
   const correct = outcome({ warden: "front_left", mender: "rear_left" });
   equal(correct.result, "win", "ツグミを後列へ下げれば勝てる");
   equal(correct.survivors, 2, "**そのとき誰も落ちない。**これが正解の手");
+  check(correct.endingHp.a_warden >= 150, "正解配置ではゴウが余裕を残して勝つ");
+  check(correct.endingHp.a_mender >= 60, "正解配置ではツグミが余裕を残して勝つ");
   check(correct.rounds <= PROLOGUE.maxRounds, "round 上限の中で決着する");
 
   const correctResult = simulateBattle(
