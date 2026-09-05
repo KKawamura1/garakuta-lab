@@ -1004,7 +1004,6 @@ function renderIntro() {
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")
-    + button("遠征を仕立てる", "start", false, "button")
     + button("ロードゲーム", "open-save-menu", false, "button", "data-return=\"intro\"")
     + "</div>"
     + saveStatus
