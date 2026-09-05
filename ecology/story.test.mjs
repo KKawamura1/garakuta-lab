@@ -132,6 +132,21 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(correct.survivors, 2, "**そのとき誰も落ちない。**これが正解の手");
   check(correct.rounds <= PROLOGUE.maxRounds, "round 上限の中で決着する");
 
+  const correctResult = simulateBattle(
+    makePrologueBattle(statsFor, { warden: "front_left", mender: "rear_left" }),
+    PLAYABLE_CONTENT,
+  );
+  const allyTriage = correctResult.events.find((event) => event.type === "healing_applied"
+    && event.ruleId === "triage_rule"
+    && event.sourceActorId === "a_mender"
+    && event.targetActorIds?.[0] === "a_warden");
+  check(Boolean(allyTriage), "後列のツグミが前衛のゴウを応急手当する");
+  const selfTriage = first.events.find((event) => event.type === "healing_applied"
+    && event.ruleId === "triage_rule"
+    && event.sourceActorId === "a_mender"
+    && event.targetActorIds?.[0] === "a_mender");
+  check(!selfTriage, "応急手当はツグミ自身を対象にしない");
+
   equal(outcome({ mender: "front_left", warden: "rear_left" }).result, "loss",
     "ゴウを後列へ下げると勝てない（武器攻撃が後列から40%になる）");
   equal(outcome({ warden: "rear_left", mender: "rear_right" }).result, "loss",

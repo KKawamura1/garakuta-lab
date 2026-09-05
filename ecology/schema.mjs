@@ -9,7 +9,7 @@
 
 const freeze = (value) => Object.freeze(value);
 
-export const CONTENT_SCHEMA_VERSION = "ecology-content-2";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-3";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -234,6 +234,8 @@ export const TARGET_FILTER_TYPES = freeze([
   // Without it, "the actor who caused this event is me" is unwritable in v1 and
   // the §15.4 empowering status double-applies when two actors hold it.
   "is_event_source",
+  // A rule owner can target an event ally without selecting itself.
+  "not_self",
 ]);
 export const TARGET_SORT_TYPES = freeze([
   "hp_asc",

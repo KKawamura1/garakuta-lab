@@ -2467,6 +2467,7 @@ function renderBattlePreview() {
     + (state.prologueActive && state.prologueStage === "retry"
       ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
         + "腕力で振る武器は後列から出すと大きく落ち、集中で通す技は落ちない。"
+        + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
         + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
       : "")
     + button("自動戦闘を再生する", "simulate", false, "button primary")

@@ -60,6 +60,9 @@ function passesFilter(state, ctx, filter, actor) {
       // this chain, which is what makes an overflow rule hand its leftover to
       // somebody else.
       return !state.chain.lastResolvedTargets.includes(actor.instanceId);
+    case "not_self":
+      // Ownerless region rules have no self, so the filter is a no-op there.
+      return !ctx.owner || actor.instanceId !== ctx.owner.instanceId;
     case "is_event_primary_target":
       return Boolean(ctx.event) && ctx.event.targetActorIds[0] === actor.instanceId;
     case "is_event_source":

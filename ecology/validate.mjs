@@ -253,6 +253,7 @@ function validateTargetFilter(bag, path, filter, ctx) {
       }
       break;
     case "not_previous_target":
+    case "not_self":
     case "is_event_primary_target":
     case "is_event_source":
       break;
