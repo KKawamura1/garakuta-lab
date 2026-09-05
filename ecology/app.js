@@ -1325,9 +1325,9 @@ function renderGuild() {
     + memberTabsHtml
     // R12 §4.E-1 — **まだ会っていない人の数を、ここで割らない。**
     // 「あと何人来るか」は物語が渡すものなので、投資画面は隊にいる人だけを数える。
-    + "<p class=\"muted\">いま隊にいる仲間だけが強化対象です。新しい仲間は、加入したときにここへ加わります。取得済みの技能は人数制限なしで装着できます。</p>"
+    + "<p class=\"muted\">いま隊にいる仲間だけが強化対象です。新しい仲間は、加入したときにここへ加わります。取得した技能はすべて自動で有効になります（技能数の上限なし）。</p>"
     + "<h3 class=\"training-heading\">鍛錬（上限なし）</h3>"
-    + "<p class=\"muted\">1段で +0.1%。速度・行動権・技能の装着数・発火回数は鍛錬で上がりません。</p>"
+    + "<p class=\"muted\">1段で +0.1%。速度・行動権・技能の数・発火回数は鍛錬で上がりません。</p>"
     + "<div class=\"purchase-list\">" + trainingRows + "</div></section>";
 }
 
@@ -2063,7 +2063,7 @@ function renderRoster() {
       rosterLocked() ? "今回の同行者" : "同行する仲間を選ぶ")
     + "<p class=\"muted\">" + rosterCopy + "</p>"
     + "<div class=\"character-grid\">" + characterCards + "</div></section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を組み、装備画面で実物を2枠に割り当ててください。</p>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT</p><h3>次にやること</h3><p class=\"muted\">スキルツリーで技能を取得し、必要なら優先順とオン／オフを調整します。装備画面では実物を2枠に割り当てます。</p>"
     + button("スキルツリーを見る", "tab", false, "button", "data-tab=\"skills\"") + "</section>";
 }
 
@@ -2244,22 +2244,22 @@ function renderSkills() {
       ? "<p class=\"muted\">（入口）と書いたパックは、この Stage では最初の問いに絞った技能だけが出ます。"
         + "<b>次の Stage へ進むと、同じパックの残りが加わります。</b>前に覚えた技能は消えません。</p>"
       : "")
-    // R18 — 取得と装着を分け、取得後の調整はオン／オフと順番で行う。
+    // R18 — 取得と有効化を分けず、取得後の調整はオン／オフと順番だけにする。
     + "<p class=\"muted rule-note\"><b>一度取得した技能は忘れません。</b>使った技能点は戻らず、"
-    + "取得済みの技能はすべて装着できます（技能数の上限なし）。"
-    + "装着後は上から順に判定され、必要ない技能はここで一時的にオフにできます。"
+    + "取得した技能は種類に応じた一覧へ自動で加わり、すべて有効になります（技能数の上限なし）。"
+    + "行動とリアクティブは上から順に判定され、必要ない技能はここで一時的にオフにできます。"
     + "オフでも取得状態や前提は失われません。<b>装備もいつでも自由に付け外しできます。</b></p>";
   const branches = SKILL_TREE_BRANCHES.map((branch) => renderSkillBranch(branch, characterId)).join("");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILL TREE / " + SKILL_TREE_BRANCHES.reduce((sum, branch) => sum + visibleSkillNodes(branch).length, 0) + " NODES", "誰を伸ばす？", pointsBadge)
-    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と装着操作が開きます。</p>"
+    + "<p class=\"muted\">仲間を切り替えながら、現在の行動・リアクティブ・常設・装備と基礎値を確認できます。技能ノードをタップすると説明と取得操作が開きます。</p>"
     + manifestNote
     + memberTabs(characterId) + memberContext(characterId, "skills") + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("COMMON TREE", "技能を解禁する")
-    + "<p class=\"muted\">同じツリーでも、誰に装着するか・どの順番で試すかで役割が変わります。アイコンを選び、説明を必要な時だけ開いてください。</p>"
+    + "<p class=\"muted\">同じツリーでも、誰に取得させるか・どの順番で試すかで役割が変わります。取得した技能は自動で反映されます。アイコンを選び、説明を必要な時だけ開いてください。</p>"
     + "<div class=\"tree-legend\"><span><i class=\"kind kind-active\">行動</i> 上から順に試す</span><span><i class=\"kind kind-reactive\">反応</i> 同じ条件は上から順に発火</span>"
     + "<span><i class=\"kind kind-passive\">常設</i> いつでも効く</span></div>"
     + skillBuildSummary(characterId) + branches + "</section>"
-    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">枠が決まったら、同じ仲間の装備と耐久を確認します。</p>"
+    + "<section class=\"card quiet\"><p class=\"eyebrow\">NEXT / 2</p><p class=\"muted\">技能の優先順が決まったら、同じ仲間の装備と耐久を確認します。</p>"
     + "<div class=\"flow-actions\">" + button("編成へ戻る", "tab", false, "button", "data-tab=\"roster\"")
     + button("装備へ進む", "tab", false, "button primary", "data-tab=\"equipment\"") + "</div></section>";
 }
@@ -3167,7 +3167,7 @@ function renderBattleError() {
       + esc(diagnosticEventText(event, actorLabels)) + "</span></li>").join("") + "</ol>"
     + (stack.length ? "<details><summary>発火中のリアクティブ</summary><pre>" + esc(JSON.stringify(stack, null, 2)) + "</pre></details>" : "")
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
-    + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やすリアクティブをオフにして再試行してください。</p>"
+    + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に取得した0コスト行動や、準備・行動権を互いに増やすリアクティブをオフにして再試行してください。</p>"
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
     + button("戦闘前へ戻る", "back-battle-preview", false, "button") + "</div></section>");
 }
@@ -4082,7 +4082,7 @@ function handleAction(event) {
   }
 
   // R6 §5.3 — 取得は遠征内。遠征が終われば消える。
-  // R18 — 取得の払い戻し経路は無く、装着後は順番とオン／オフだけを変えられる。
+  // R18 — 取得の払い戻し経路は無く、取得後は順番とオン／オフだけを変えられる。
   if (action === "unlock-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
@@ -4092,21 +4092,6 @@ function handleAction(event) {
     else {
       state.run = result.run;
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
-    }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "equip-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const kind = element.dataset.kind;
-    const result = equipSkill(state.run.loadout, characterId, skillId, kind, limitsFor);
-    if (!result.ok) state.error = result.reason;
-    else {
-      state.run.loadout = result.loadout;
-      record("skill_equipped", { characterId, skillId, kind });
     }
     saveState();
     render();
