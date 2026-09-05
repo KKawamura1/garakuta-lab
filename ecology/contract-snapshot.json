@@ -23337,7 +23337,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -23346,7 +23346,7 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 25
        },
@@ -23355,13 +23355,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果[希]前列の味方へ受け止め（1）、効果1[上]仕掛けてきた敵へダメージ（25）、効果2[並]最も傷ついた味方へ防壁（6）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果（エピック）：前列の味方へ受け止め（1）、効果1（レア）：仕掛けてきた敵へダメージ（25）、効果2（コモン）：最も傷ついた味方へ防壁（6）。一連の解決につき1回。"
       ]
      }
     }
@@ -23541,7 +23541,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        },
@@ -23550,7 +23550,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -23559,13 +23559,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ反応点",
         "amount": 1
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果[並]最も傷ついた味方へ防壁（18）、効果1[並]自分へ行動点（1）、効果2[希]自分へ反応点（1）。1 roundにつき2回。"
+       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果（コモン）：最も傷ついた味方へ防壁（18）、効果1（コモン）：自分へ行動点（1）、効果2（エピック）：自分へ反応点（1）。1 roundにつき2回。"
       ]
      }
     }
@@ -23738,7 +23738,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -23747,13 +23747,13 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果[上]自分へ反応点（1）、効果1[並]前列の味方へ受け止め（1）。1 roundにつき1回。"
+       "自分の防壁が割れたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果（レア）：自分へ反応点（1）、効果1（コモン）：前列の味方へ受け止め（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -23899,13 +23899,13 @@
         "ruleIndex": 0,
         "affixId": "pay_echo_strike",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "その相手へ追加ダメージ",
         "amount": 8
        }
       ],
       "lines": [
-       "自分の攻撃が敵のHPを削ったとき、基礎効果[並]その相手へ追加ダメージ（8）。一連の解決につき1回。"
+       "自分の攻撃が敵のHPを削ったとき、基礎効果（コモン）：その相手へ追加ダメージ（8）。一連の解決につき1回。"
       ]
      }
     }
@@ -24081,7 +24081,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -24090,13 +24090,13 @@
         "ruleIndex": 0,
         "affixId": "pay_cull",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "最も弱った敵へダメージ",
         "amount": 7
        }
       ],
       "lines": [
-       "自分の攻撃が敵のHPを削ったとき、耐久1を払い、基礎効果[並]自分へ行動点（1）、効果1[上]最も弱った敵へダメージ（7）。一連の解決につき1回。"
+       "自分の攻撃が敵のHPを削ったとき、耐久1を払い、基礎効果（コモン）：自分へ行動点（1）、効果1（レア）：最も弱った敵へダメージ（7）。一連の解決につき1回。"
       ]
      }
     }
@@ -24265,7 +24265,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        },
@@ -24274,13 +24274,13 @@
         "ruleIndex": 0,
         "affixId": "pay_echo_strike",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "その相手へ追加ダメージ",
         "amount": 14
        }
       ],
       "lines": [
-       "自分の攻撃が敵のHPを削ったとき・その量が15以上のとき、基礎効果[並]自分へ防壁（14）、効果1[並]その相手へ追加ダメージ（14）。1 roundにつき1回。"
+       "自分の攻撃が敵のHPを削ったとき・その量が15以上のとき、基礎効果（コモン）：自分へ防壁（14）、効果1（コモン）：その相手へ追加ダメージ（14）。1 roundにつき1回。"
       ]
      }
     }
@@ -24468,7 +24468,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -24477,7 +24477,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -24486,13 +24486,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき、HP3を払い、基礎効果[並]自分へ行動点（1）、効果1[上]前列の味方へ受け止め（1）、効果2[並]最も傷ついた味方へ防壁（6）。1 roundにつき1回。"
+       "自分の防壁が割れたとき、HP3を払い、基礎効果（コモン）：自分へ行動点（1）、効果1（レア）：前列の味方へ受け止め（1）、効果2（コモン）：最も傷ついた味方へ防壁（6）。1 roundにつき1回。"
       ]
      }
     }
@@ -24623,13 +24623,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の準備が完了したとき、耐久1を払い、基礎効果[並]自分へ反応点（1）。1 roundにつき1回。"
+       "自分の準備が完了したとき、耐久1を払い、基礎効果（コモン）：自分へ反応点（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -24798,7 +24798,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        },
@@ -24807,13 +24807,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・2 round 目まで・自分のHPが70%以上のとき、基礎効果[並]自分へ防壁（22）、効果1[並]仕掛けてきた敵へダメージ（22）。1戦につき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・2 round 目まで・自分のHPが70%以上のとき、基礎効果（コモン）：自分へ防壁（22）、効果1（コモン）：仕掛けてきた敵へダメージ（22）。1戦につき1回。"
       ]
      }
     }
@@ -24966,7 +24966,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -24975,13 +24975,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき・自分が前列にいるとき、HP3を払い、基礎効果[並]自分へ反応点（1）、効果1[並]自分へ防壁（22）。一連の解決につき1回。"
+       "自分の防壁が割れたとき・自分が前列にいるとき、HP3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（コモン）：自分へ防壁（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -25117,13 +25117,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        }
       ],
       "lines": [
-       "自分が動いたとき・自分が後列にいるとき、基礎効果[並]自分へ防壁（22）。1戦につき1回。"
+       "自分が動いたとき・自分が後列にいるとき、基礎効果（コモン）：自分へ防壁（22）。1戦につき1回。"
       ]
      }
     }
@@ -25307,7 +25307,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        },
@@ -25316,7 +25316,7 @@
         "ruleIndex": 0,
         "affixId": "pay_cull",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "最も弱った敵へダメージ",
         "amount": 15
        },
@@ -25325,13 +25325,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき・反応点が1以上残っているとき、基礎効果[並]最も傷ついた味方へ防壁（18）、効果1[希]最も弱った敵へダメージ（15）、効果2[並]自分へ防壁（22）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき・反応点が1以上残っているとき、基礎効果（コモン）：最も傷ついた味方へ防壁（18）、効果1（エピック）：最も弱った敵へダメージ（15）、効果2（コモン）：自分へ防壁（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -25495,7 +25495,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        },
@@ -25504,13 +25504,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 14
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・自分に集中が付いているとき、基礎効果[並]自分へ防壁（14）、効果1[並]仕掛けてきた敵へダメージ（14）。1 roundにつき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・自分に集中が付いているとき、基礎効果（コモン）：自分へ防壁（14）、効果1（コモン）：仕掛けてきた敵へダメージ（14）。1 roundにつき1回。"
       ]
      }
     }
@@ -25662,7 +25662,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -25671,13 +25671,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分が動いたとき、反応点1を払い、基礎効果[並]自分へ集中（1）、効果1[並]最も傷ついた味方へ防壁（11）。1戦につき1回。"
+       "自分が動いたとき、反応点1を払い、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：最も傷ついた味方へ防壁（11）。1戦につき1回。"
       ]
      }
     }
@@ -25862,7 +25862,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -25871,7 +25871,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -25880,13 +25880,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分の準備が完了したとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果[並]自分へ反応点（1）、効果1[上]自分へ行動点（1）、効果2[並]最も傷ついた味方へ防壁（11）。1 roundにつき1回。"
+       "自分の準備が完了したとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（レア）：自分へ行動点（1）、効果2（コモン）：最も傷ついた味方へ防壁（11）。1 roundにつき1回。"
       ]
      }
     }
@@ -26043,7 +26043,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -26052,13 +26052,13 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の行動が解決したとき、反応点1を払い、基礎効果[並]自分へ集中（1）、効果1[上]前列の味方へ受け止め（1）。一連の解決につき1回。"
+       "自分の行動が解決したとき、反応点1を払い、基礎効果（コモン）：自分へ集中（1）、効果1（レア）：前列の味方へ受け止め（1）。一連の解決につき1回。"
       ]
      }
     }
@@ -26227,7 +26227,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -26236,13 +26236,13 @@
         "ruleIndex": 0,
         "affixId": "pay_breach",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も硬い敵へダメージ",
         "amount": 18
        }
       ],
       "lines": [
-       "自分の準備が完了したとき・自分のHPが70%以上のとき・この round に自分が2回以上行動したあと、基礎効果[並]自分へ集中（1）、効果1[並]最も硬い敵へダメージ（18）。一連の解決につき1回。"
+       "自分の準備が完了したとき・自分のHPが70%以上のとき・この round に自分が2回以上行動したあと、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：最も硬い敵へダメージ（18）。一連の解決につき1回。"
       ]
      }
     }
@@ -26496,7 +26496,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -26505,7 +26505,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -26514,7 +26514,7 @@
         "ruleIndex": 1,
         "affixId": "pay_ward",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ防壁",
         "amount": 30
        },
@@ -26523,14 +26523,14 @@
         "ruleIndex": 1,
         "affixId": "pay_riposte",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 16
        }
       ],
       "lines": [
-       "自分が敵へ状態を刻んだとき、基礎効果[並]自分へ集中（1）、効果1[並]前列の味方へ受け止め（1）。一連の解決につき1回。",
-       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが50%以下のとき、基礎効果[希]自分へ防壁（30）、効果1[上]仕掛けてきた敵へダメージ（16）。1戦につき1回。"
+       "自分が敵へ状態を刻んだとき、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：前列の味方へ受け止め（1）。一連の解決につき1回。",
+       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが50%以下のとき、基礎効果（エピック）：自分へ防壁（30）、効果1（レア）：仕掛けてきた敵へダメージ（16）。1戦につき1回。"
       ]
      }
     }
@@ -26666,13 +26666,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        }
       ],
       "lines": [
-       "自分が動いたとき、防壁3を払い、基礎効果[並]自分へ行動点（1）。一連の解決につき1回。"
+       "自分が動いたとき、防壁3を払い、基礎効果（コモン）：自分へ行動点（1）。一連の解決につき1回。"
       ]
      }
     }
@@ -26827,7 +26827,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        },
@@ -26836,13 +26836,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        }
       ],
       "lines": [
-       "自分が動いたとき・自分が前列にいるとき、基礎効果[並]最も傷ついた味方へ防壁（11）、効果1[並]自分へ防壁（14）。一連の解決につき1回。"
+       "自分が動いたとき・自分が前列にいるとき、基礎効果（コモン）：最も傷ついた味方へ防壁（11）、効果1（コモン）：自分へ防壁（14）。一連の解決につき1回。"
       ]
      }
     }
@@ -27011,7 +27011,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 22
        },
@@ -27020,13 +27020,13 @@
         "ruleIndex": 0,
         "affixId": "pay_breach",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も硬い敵へダメージ",
         "amount": 11
        }
       ],
       "lines": [
-       "自分の準備が完了したとき・自分が後列にいるとき、反応点1を払い、基礎効果[並]自分へ防壁（22）、効果1[並]最も硬い敵へダメージ（11）。一連の解決につき1回。"
+       "自分の準備が完了したとき・自分が後列にいるとき、反応点1を払い、基礎効果（コモン）：自分へ防壁（22）、効果1（コモン）：最も硬い敵へダメージ（11）。一連の解決につき1回。"
       ]
      }
     }
@@ -27181,7 +27181,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        },
@@ -27190,13 +27190,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        }
       ],
       "lines": [
-       "自分が動いたとき、HP3を払い、基礎効果[並]最も傷ついた味方へ防壁（6）、効果1[並]自分へ防壁（8）。一連の解決につき1回。"
+       "自分が動いたとき、HP3を払い、基礎効果（コモン）：最も傷ついた味方へ防壁（6）、効果1（コモン）：自分へ防壁（8）。一連の解決につき1回。"
       ]
      }
     }
@@ -27363,7 +27363,7 @@
         "ruleIndex": 0,
         "affixId": "pay_sharpen",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ集中",
         "amount": 1
        },
@@ -27372,13 +27372,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・自分が後列にいるとき・自分のHPが50%以下のとき、基礎効果[並]自分へ集中（1）、効果1[並]仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・自分が後列にいるとき・自分のHPが50%以下のとき、基礎効果（コモン）：自分へ集中（1）、効果1（コモン）：仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -27570,7 +27570,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -27579,7 +27579,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_rp",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -27588,13 +27588,13 @@
         "ruleIndex": 0,
         "affixId": "pay_breach",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も硬い敵へダメージ",
         "amount": 18
        }
       ],
       "lines": [
-       "自分が動いたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果[並]前列の味方へ受け止め（1）、効果1[上]自分へ反応点（1）、効果2[並]最も硬い敵へダメージ（18）。1戦につき1回。"
+       "自分が動いたとき・自分のHPが70%以上のとき、HP3を払い、基礎効果（コモン）：前列の味方へ受け止め（1）、効果1（レア）：自分へ反応点（1）、効果2（コモン）：最も硬い敵へダメージ（18）。1戦につき1回。"
       ]
      }
     }
@@ -27754,7 +27754,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        },
@@ -27763,13 +27763,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき・自分のHPが70%以上のとき、基礎効果[並]自分へ防壁（14）、効果1[並]最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
+       "自分の防壁が割れたとき・自分のHPが70%以上のとき、基礎効果（コモン）：自分へ防壁（14）、効果1（コモン）：最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
       ]
      }
     }
@@ -27916,7 +27916,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        },
@@ -27925,13 +27925,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        }
       ],
       "lines": [
-       "自分の準備が完了したとき、基礎効果[並]最も傷ついた味方へ防壁（6）、効果1[並]自分へ防壁（8）。一連の解決につき1回。"
+       "自分の準備が完了したとき、基礎効果（コモン）：最も傷ついた味方へ防壁（6）、効果1（コモン）：自分へ防壁（8）。一連の解決につき1回。"
       ]
      }
     }
@@ -28109,7 +28109,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "legendary",
-        "rarityLabel": "遺物",
+        "rarityLabel": "レジェンダリー",
         "summary": "自分へ行動点",
         "amount": 2
        },
@@ -28118,7 +28118,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "legendary",
-        "rarityLabel": "遺物",
+        "rarityLabel": "レジェンダリー",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 29
        },
@@ -28127,13 +28127,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ防壁",
         "amount": 25
        }
       ],
       "lines": [
-       "自分の準備が完了したとき、防壁3を払い、基礎効果[遺物]自分へ行動点（2）、効果1[遺物]最も傷ついた味方へ防壁（29）、効果2[上]自分へ防壁（25）。一連の解決につき2回。"
+       "自分の準備が完了したとき、防壁3を払い、基礎効果（レジェンダリー）：自分へ行動点（2）、効果1（レジェンダリー）：最も傷ついた味方へ防壁（29）、効果2（レア）：自分へ防壁（25）。一連の解決につき2回。"
       ]
      }
     }
@@ -28489,7 +28489,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "legendary",
-        "rarityLabel": "遺物",
+        "rarityLabel": "レジェンダリー",
         "summary": "自分へ行動点",
         "amount": 2
        },
@@ -28498,7 +28498,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 6
        },
@@ -28507,7 +28507,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -28516,7 +28516,7 @@
         "ruleIndex": 1,
         "affixId": "pay_ward",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ防壁",
         "amount": 16
        },
@@ -28525,7 +28525,7 @@
         "ruleIndex": 2,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -28534,15 +28534,15 @@
         "ruleIndex": 2,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果[遺物]自分へ行動点（2）、効果1[並]最も傷ついた味方へ防壁（6）、効果2[上]前列の味方へ受け止め（1）。1戦につき2回。",
-       "自分が動いたとき、基礎効果[上]自分へ防壁（16）。一連の解決につき1回。",
-       "自分の準備が完了したとき、防壁3を払い、基礎効果[並]自分へ反応点（1）、効果1[並]前列の味方へ受け止め（1）。1 roundにつき1回。"
+       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果（レジェンダリー）：自分へ行動点（2）、効果1（コモン）：最も傷ついた味方へ防壁（6）、効果2（レア）：前列の味方へ受け止め（1）。1戦につき2回。",
+       "自分が動いたとき、基礎効果（レア）：自分へ防壁（16）。一連の解決につき1回。",
+       "自分の準備が完了したとき、防壁3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（コモン）：前列の味方へ受け止め（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -28713,7 +28713,7 @@
         "ruleIndex": 0,
         "affixId": "pay_brace",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        },
@@ -28722,13 +28722,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 14
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果[上]前列の味方へ受け止め（1）、効果1[並]自分へ防壁（14）。一連の解決につき1回。"
+       "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき、防壁3を払い、基礎効果（レア）：前列の味方へ受け止め（1）、効果1（コモン）：自分へ防壁（14）。一連の解決につき1回。"
       ]
      }
     }
@@ -28884,7 +28884,7 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        },
@@ -28893,13 +28893,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 8
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき、反応点1を払い、基礎効果[並]自分へ防壁（8）、効果1[並]仕掛けてきた敵へダメージ（8）。1 roundにつき1回。"
+       "自分がHPダメージを受けたとき、反応点1を払い、基礎効果（コモン）：自分へ防壁（8）、効果1（コモン）：仕掛けてきた敵へダメージ（8）。1 roundにつき1回。"
       ]
      }
     }
@@ -29213,7 +29213,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29222,7 +29222,7 @@
         "ruleIndex": 1,
         "affixId": "pay_relay_rp",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -29231,7 +29231,7 @@
         "ruleIndex": 1,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29240,7 +29240,7 @@
         "ruleIndex": 2,
         "affixId": "pay_relay_rp",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ反応点",
         "amount": 1
        },
@@ -29249,15 +29249,15 @@
         "ruleIndex": 2,
         "affixId": "pay_brace",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "前列の味方へ受け止め",
         "amount": 1
        }
       ],
       "lines": [
-       "自分の防壁が割れたとき、HP3を払い、基礎効果[並]自分へ行動点（1）。1 roundにつき1回。",
-       "自分の準備が完了したとき、防壁3を払い、基礎効果[並]自分へ反応点（1）、効果1[並]自分へ行動点（1）。一連の解決につき1回。",
-       "round 終わりに行動権が余っていたとき・自分が前列にいるとき、HP3を払い、基礎効果[希]自分へ反応点（1）、効果1[並]前列の味方へ受け止め（1）。1 roundにつき2回。"
+       "自分の防壁が割れたとき、HP3を払い、基礎効果（コモン）：自分へ行動点（1）。1 roundにつき1回。",
+       "自分の準備が完了したとき、防壁3を払い、基礎効果（コモン）：自分へ反応点（1）、効果1（コモン）：自分へ行動点（1）。一連の解決につき1回。",
+       "round 終わりに行動権が余っていたとき・自分が前列にいるとき、HP3を払い、基礎効果（エピック）：自分へ反応点（1）、効果1（コモン）：前列の味方へ受け止め（1）。1 roundにつき2回。"
       ]
      }
     }
@@ -29386,13 +29386,13 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        }
       ],
       "lines": [
-       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果[並]自分へ行動点（1）。1 roundにつき1回。"
+       "round 終わりに行動権が余っていたとき、防壁3を払い、基礎効果（コモン）：自分へ行動点（1）。1 roundにつき1回。"
       ]
      }
     }
@@ -29546,13 +29546,13 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき・反応点が1以上残っているとき・自分が後列にいるとき、基礎効果[並]仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき・反応点が1以上残っているとき・自分が後列にいるとき、基礎効果（コモン）：仕掛けてきた敵へダメージ（22）。一連の解決につき1回。"
       ]
      }
     }
@@ -29699,7 +29699,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "rare",
-        "rarityLabel": "上",
+        "rarityLabel": "レア",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29708,13 +29708,13 @@
         "ruleIndex": 0,
         "affixId": "pay_ward",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ防壁",
         "amount": 8
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果[上]自分へ行動点（1）、効果1[並]自分へ防壁（8）。1 roundにつき1回。"
+       "自分がHPダメージを受けたとき、防壁3を払い、基礎効果（レア）：自分へ行動点（1）、効果1（コモン）：自分へ防壁（8）。1 roundにつき1回。"
       ]
      }
     }
@@ -29881,7 +29881,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "自分へ行動点",
         "amount": 1
        },
@@ -29890,13 +29890,13 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 11
        }
       ],
       "lines": [
-       "自分がHPダメージを受けたとき・自分が後列にいるとき、耐久1を払い、基礎効果[並]自分へ行動点（1）、効果1[並]最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
+       "自分がHPダメージを受けたとき・自分が後列にいるとき、耐久1を払い、基礎効果（コモン）：自分へ行動点（1）、効果1（コモン）：最も傷ついた味方へ防壁（11）。一連の解決につき1回。"
       ]
      }
     }
@@ -30170,7 +30170,7 @@
         "ruleIndex": 0,
         "affixId": "pay_riposte",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "仕掛けてきた敵へダメージ",
         "amount": 22
        },
@@ -30179,7 +30179,7 @@
         "ruleIndex": 0,
         "affixId": "pay_relay_ap",
         "rarity": "epic",
-        "rarityLabel": "希",
+        "rarityLabel": "エピック",
         "summary": "自分へ行動点",
         "amount": 2
        },
@@ -30188,7 +30188,7 @@
         "ruleIndex": 0,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        },
@@ -30197,14 +30197,14 @@
         "ruleIndex": 1,
         "affixId": "pay_shelter",
         "rarity": "common",
-        "rarityLabel": "並",
+        "rarityLabel": "コモン",
         "summary": "最も傷ついた味方へ防壁",
         "amount": 18
        }
       ],
       "lines": [
-       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが70%以上のとき・3 round 目以降、防壁3を払い、基礎効果[並]仕掛けてきた敵へダメージ（22）、効果1[希]自分へ行動点（2）、効果2[並]最も傷ついた味方へ防壁（18）。一連の解決につき1回。",
-       "自分の防壁が割れたとき・自分のHPが70%以上のとき・自分が後列にいるとき、基礎効果[並]最も傷ついた味方へ防壁（18）。1戦につき1回。"
+       "自分が受け止め（block）で攻撃を止めたとき・自分のHPが70%以上のとき・3 round 目以降、防壁3を払い、基礎効果（コモン）：仕掛けてきた敵へダメージ（22）、効果1（エピック）：自分へ行動点（2）、効果2（コモン）：最も傷ついた味方へ防壁（18）。一連の解決につき1回。",
+       "自分の防壁が割れたとき・自分のHPが70%以上のとき・自分が後列にいるとき、基礎効果（コモン）：最も傷ついた味方へ防壁（18）。1戦につき1回。"
       ]
      }
     }

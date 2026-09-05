@@ -497,12 +497,12 @@ export const ITEM_NOUNS = Object.freeze([
   "指輪", "鞘", "肩当て", "手袋", "鎖", "護符", "杖頭", "鈴",
 ]);
 export const RARITY_LABEL = Object.freeze({
-  // 旧IDの表示名は維持し、新しい上位層だけを追加する。
-  common: "並",
-  rare: "上",
-  epic: "希",
-  legendary: "遺物",
-  mythic: "神話",
+  // 内部 ID は保存互換のため維持し、画面は順序が一目で分かる一般的な呼称に揃える。
+  common: "コモン",
+  rare: "レア",
+  epic: "エピック",
+  legendary: "レジェンダリー",
+  mythic: "ミシック",
   oopart: "オーパーツ",
 });
 export const EFFECT_RARITY_LABEL = RARITY_LABEL;

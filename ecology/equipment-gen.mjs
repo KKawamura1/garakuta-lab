@@ -406,7 +406,7 @@ export function ruleText(draft, rule) {
       const magnitude = magnitudeOf(payoff, rule.converters, draft.rarity);
       const slot = index === 0 ? "基礎効果" : `効果${index}`;
       const label = RARITY_LABEL[magnitude.effectRarity] ?? magnitude.effectRarity;
-      return `${slot}[${label}]${payoff.affix.summary}（${magnitude.amount}）`;
+      return `${slot}（${label}）：${payoff.affix.summary}（${magnitude.amount}）`;
     })
     .join("、");
   const limit = limitOf(draft, rule);
