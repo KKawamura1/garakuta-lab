@@ -17,6 +17,12 @@
 
 ## 守ること
 
+- 複数のエージェント / Work が同時に動く前提で、実装作業は必ず最新 `main` から
+  タスク専用の branch と git worktree を作って開始する。既存の作業ディレクトリや
+  他タスクの worktree を使い回さず、`main` へ直接 push しない。
+- 自分の worktree に他タスク由来の変更を見つけても、stash / reset / clean / checkout / rebase / commit などで
+  触らない。競合や混入を検知したら最新 `main` から自分専用 worktree を作り直し、
+  自タスクの変更だけを移して PR にする。
 - `Profile` / `Run` / `Battle` の三層を分離する。
 - 同じ入力・seed・content version・generator version から、同じ結果とイベント列を返す。
   `Date` と `Math.random` を engine やゲーム内容の計算経路へ入れない。
