@@ -86,7 +86,7 @@ jobs:
           const text = await page.locator("body").innerText();
           console.log(JSON.stringify({ text: text.slice(0, 300), errors }));
           await browser.close();
-          if (!/灰の遠征/.test(text) || errors.length) process.exit(1);
+          if (!/One Battle Ahead|灰の遠征/.test(text) || errors.length) process.exit(1);
           NODE
 
       - name: Wait for the deployment to serve this build
