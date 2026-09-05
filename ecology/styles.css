@@ -415,7 +415,7 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font-size: 11px;
 }
 .slot-heading small { color: var(--gold); }
-.installed-row {
+.skill-list-row {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -423,7 +423,7 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   padding: 5px 0;
   border-top: 1px solid rgba(58,77,79,.55);
 }
-.installed-row.disabled { opacity: .55; }
+.skill-list-row.disabled { opacity: .55; }
 .order, .bullet {
   display: grid;
   flex: 0 0 auto;
@@ -436,10 +436,10 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font-size: 11px;
 }
 .bullet { background: var(--violet); }
-.installed-copy { min-width: 0; flex: 1; }
-.installed-copy b, .installed-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.installed-copy b { font-size: 12px; }
-.installed-copy small { color: var(--muted); font-size: 10px; }
+.skill-list-copy { min-width: 0; flex: 1; }
+.skill-list-copy b, .skill-list-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-list-copy b { font-size: 12px; }
+.skill-list-copy small { color: var(--muted); font-size: 10px; }
 .reorder { display: flex; gap: 3px; }
 .icon-button { width: 26px; padding: 4px 2px; }
 .skill-toggle { margin: 0; }
@@ -452,7 +452,7 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font-size: 9px;
   white-space: nowrap;
 }
-.installed-row.disabled .skill-state { color: var(--muted); }
+.skill-list-row.disabled .skill-state { color: var(--muted); }
 .node-locked {
   margin: 6px 0 0;
   color: var(--muted);
@@ -635,18 +635,16 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   border-radius: 10px;
   background: #172124;
 }
-/* 解禁可能は案内として残すが、装着中より目立たせない。 */
-.skill-node.unlocked { border-color: #66836e; background: rgba(102, 131, 110, .08); }
-.skill-node.available { border-color: #8a7d50; background: rgba(138, 125, 80, .08); }
-.skill-node.prerequisite { border-color: #53635f; opacity: .68; }
-.skill-node.locked { border-color: #4b5a57; opacity: .58; }
-/* 装着中は現在の編成を示す最優先状態。 */
-.skill-node.equipped {
+/* 取得済みは現在の技能一覧を示す最優先状態。 */
+.skill-node.unlocked {
   border-color: var(--gold);
   background: var(--gold-dark);
   box-shadow: 0 0 0 1px var(--gold), 0 0 0 3px rgba(229, 184, 105, .2);
 }
-.skill-node.equipped.disabled { opacity: .62; }
+.skill-node.available { border-color: #8a7d50; background: rgba(138, 125, 80, .08); }
+.skill-node.prerequisite { border-color: #53635f; opacity: .68; }
+.skill-node.locked { border-color: #4b5a57; opacity: .58; }
+.skill-node.unlocked.disabled { opacity: .62; }
 .node-top {
   display: flex;
   justify-content: space-between;
