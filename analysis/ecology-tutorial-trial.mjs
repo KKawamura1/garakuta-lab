@@ -195,11 +195,12 @@ try {
   await page.waitForTimeout(150);
   const reactiveTreeText = await bodyText();
   note("入口の接続面が出ている", /応急|傷の見立て|かばう|受け身/.test(reactiveTreeText));
-  note("別の種別を前提にする節は橋渡しになる", await page.locator(".bridge-node").count() > 0);
 
   // 節を押すと、前提ルートと派生先が強調され、そこから route を辿れる。
-  const firstNode = page.locator('.skill-tree-forest [data-action="select-skill-node"]').first();
-  await firstNode.click();
+  // **根（mend）ではなく、その子（triage）を選ぶ。**根を選ぶと反応ツリー全体が
+  // 派生先になり、落ちる節が無くなるため。
+  const secondNode = page.locator('.skill-tree-forest [data-action="select-skill-node"]').nth(1);
+  await secondNode.click();
   await page.waitForTimeout(150);
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
   note("前提ルート以外を落として見せる", await page.locator(".tree-row.faded").count() > 0);

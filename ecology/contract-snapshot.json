@@ -12542,6 +12542,105 @@
    ]
   },
   {
+   "id": "node_aimed_shot",
+   "skillId": "aimed_shot",
+   "kind": "active",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "strike"
+   ]
+  },
+  {
+   "id": "node_shield_the_wounded",
+   "skillId": "shield_the_wounded",
+   "kind": "active",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "aimed_shot"
+   ]
+  },
+  {
+   "id": "node_field_dressing",
+   "skillId": "field_dressing",
+   "kind": "active",
+   "branch": "支援",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "shield_the_wounded"
+   ]
+  },
+  {
+   "id": "node_precise_cut",
+   "skillId": "precise_cut",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "field_dressing"
+   ]
+  },
+  {
+   "id": "node_idle_shuffle",
+   "skillId": "idle_shuffle",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "field_dressing"
+   ]
+  },
+  {
+   "id": "node_ward_ally",
+   "skillId": "ward_ally",
+   "kind": "active",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "aimed_shot"
+   ]
+  },
+  {
+   "id": "node_sustaining_ward",
+   "skillId": "sustaining_ward",
+   "kind": "active",
+   "branch": "支援",
+   "x": 4,
+   "cost": 1,
+   "requires": [
+    "ward_ally"
+   ]
+  },
+  {
+   "id": "node_cleansing_step",
+   "skillId": "cleansing_step",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "sustaining_ward"
+   ]
+  },
+  {
+   "id": "node_steady_breath",
+   "skillId": "steady_breath",
+   "kind": "active",
+   "branch": "支援",
+   "x": 5,
+   "cost": 1,
+   "requires": [
+    "sustaining_ward"
+   ]
+  },
+  {
    "id": "node_bulwark",
    "skillId": "bulwark",
    "kind": "active",
@@ -12553,6 +12652,17 @@
   {
    "id": "node_hand_off",
    "skillId": "hand_off",
+   "kind": "active",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "bulwark"
+   ]
+  },
+  {
+   "id": "node_take_the_wound",
+   "skillId": "take_the_wound",
    "kind": "active",
    "branch": "支援",
    "x": 2,
@@ -12822,116 +12932,6 @@
    ]
   },
   {
-   "id": "node_take_the_wound",
-   "skillId": "take_the_wound",
-   "kind": "active",
-   "branch": "支援",
-   "x": 2,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_aimed_shot",
-   "skillId": "aimed_shot",
-   "kind": "active",
-   "branch": "支援",
-   "x": 2,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_shield_the_wounded",
-   "skillId": "shield_the_wounded",
-   "kind": "active",
-   "branch": "支援",
-   "x": 3,
-   "cost": 1,
-   "requires": [
-    "aimed_shot"
-   ]
-  },
-  {
-   "id": "node_field_dressing",
-   "skillId": "field_dressing",
-   "kind": "active",
-   "branch": "支援",
-   "x": 4,
-   "cost": 1,
-   "requires": [
-    "shield_the_wounded"
-   ]
-  },
-  {
-   "id": "node_precise_cut",
-   "skillId": "precise_cut",
-   "kind": "active",
-   "branch": "支援",
-   "x": 5,
-   "cost": 1,
-   "requires": [
-    "field_dressing"
-   ]
-  },
-  {
-   "id": "node_idle_shuffle",
-   "skillId": "idle_shuffle",
-   "kind": "active",
-   "branch": "支援",
-   "x": 5,
-   "cost": 1,
-   "requires": [
-    "field_dressing"
-   ]
-  },
-  {
-   "id": "node_ward_ally",
-   "skillId": "ward_ally",
-   "kind": "active",
-   "branch": "支援",
-   "x": 3,
-   "cost": 1,
-   "requires": [
-    "aimed_shot"
-   ]
-  },
-  {
-   "id": "node_sustaining_ward",
-   "skillId": "sustaining_ward",
-   "kind": "active",
-   "branch": "支援",
-   "x": 4,
-   "cost": 1,
-   "requires": [
-    "ward_ally"
-   ]
-  },
-  {
-   "id": "node_cleansing_step",
-   "skillId": "cleansing_step",
-   "kind": "active",
-   "branch": "支援",
-   "x": 5,
-   "cost": 1,
-   "requires": [
-    "sustaining_ward"
-   ]
-  },
-  {
-   "id": "node_steady_breath",
-   "skillId": "steady_breath",
-   "kind": "active",
-   "branch": "支援",
-   "x": 5,
-   "cost": 1,
-   "requires": [
-    "sustaining_ward"
-   ]
-  },
-  {
    "id": "node_mend",
    "skillId": "mend",
    "kind": "reactive",
@@ -13069,7 +13069,7 @@
    "x": 2,
    "cost": 1,
    "requires": [
-    "strike"
+    "mend"
    ]
   },
   {
@@ -13278,7 +13278,7 @@
    "x": 2,
    "cost": 1,
    "requires": [
-    "bulwark"
+    "mend"
    ]
   },
   {
@@ -13421,7 +13421,7 @@
    "x": 2,
    "cost": 1,
    "requires": [
-    "mark_strike"
+    "mend"
    ]
   },
   {
@@ -13465,75 +13465,6 @@
    "requires": []
   },
   {
-   "id": "node_foundation_focus",
-   "skillId": "foundation_focus",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_foundation_guard",
-   "skillId": "foundation_guard",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_foundation_ap",
-   "skillId": "foundation_ap",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_foundation_rp",
-   "skillId": "foundation_rp",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "requires": []
-  },
-  {
-   "id": "node_steady_hands",
-   "skillId": "steady_hands",
-   "kind": "passive",
-   "branch": "支援",
-   "x": 2,
-   "cost": 1,
-   "requires": [
-    "mend"
-   ]
-  },
-  {
-   "id": "node_patient_hands",
-   "skillId": "patient_hands",
-   "kind": "passive",
-   "branch": "支援",
-   "x": 3,
-   "cost": 1,
-   "requires": [
-    "steady_hands"
-   ]
-  },
-  {
-   "id": "node_relay_reader",
-   "skillId": "relay_reader",
-   "kind": "passive",
-   "branch": "支援",
-   "x": 3,
-   "cost": 1,
-   "requires": [
-    "steady_hands"
-   ]
-  },
-  {
    "id": "node_first_blood",
    "skillId": "first_blood",
    "kind": "passive",
@@ -13541,7 +13472,7 @@
    "x": 2,
    "cost": 1,
    "requires": [
-    "strike"
+    "foundation_might"
    ]
   },
   {
@@ -13567,6 +13498,68 @@
    ]
   },
   {
+   "id": "node_mark_reader",
+   "skillId": "mark_reader",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "foundation_might"
+   ]
+  },
+  {
+   "id": "node_foundation_focus",
+   "skillId": "foundation_focus",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
+   "id": "node_steady_hands",
+   "skillId": "steady_hands",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "requires": [
+    "foundation_focus"
+   ]
+  },
+  {
+   "id": "node_patient_hands",
+   "skillId": "patient_hands",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "steady_hands"
+   ]
+  },
+  {
+   "id": "node_relay_reader",
+   "skillId": "relay_reader",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "requires": [
+    "steady_hands"
+   ]
+  },
+  {
+   "id": "node_foundation_guard",
+   "skillId": "foundation_guard",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
    "id": "node_opening_guard",
    "skillId": "opening_guard",
    "kind": "passive",
@@ -13574,7 +13567,7 @@
    "x": 2,
    "cost": 1,
    "requires": [
-    "bulwark"
+    "foundation_guard"
    ]
   },
   {
@@ -13589,6 +13582,15 @@
    ]
   },
   {
+   "id": "node_foundation_ap",
+   "skillId": "foundation_ap",
+   "kind": "passive",
+   "branch": "基礎",
+   "x": 1,
+   "cost": 1,
+   "requires": []
+  },
+  {
    "id": "node_held_breath",
    "skillId": "held_breath",
    "kind": "passive",
@@ -13596,7 +13598,7 @@
    "x": 2,
    "cost": 1,
    "requires": [
-    "relay_order"
+    "foundation_ap"
    ]
   },
   {
@@ -13611,15 +13613,13 @@
    ]
   },
   {
-   "id": "node_mark_reader",
-   "skillId": "mark_reader",
+   "id": "node_foundation_rp",
+   "skillId": "foundation_rp",
    "kind": "passive",
-   "branch": "攻撃",
-   "x": 2,
+   "branch": "基礎",
+   "x": 1,
    "cost": 1,
-   "requires": [
-    "mark_strike"
-   ]
+   "requires": []
   }
  ],
  "skillLevelCaps": {
@@ -13911,9 +13911,9 @@
   ],
   "mender": [
    "strike",
-   "bulwark",
    "aimed_shot",
    "shield_the_wounded",
+   "bulwark",
    "mend",
    "triage",
    "overflow_care",
