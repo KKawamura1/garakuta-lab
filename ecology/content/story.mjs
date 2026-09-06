@@ -122,7 +122,11 @@ export const STORY_BEATS = Object.freeze({
       place: "灰の門",
       cast: castFor("stage_0_prologue_defeat"),
       lines: dialogueFor("stage_0_prologue_defeat"),
-      footer: "灰から拾ったものが、拾った者の時間を巻き戻すことがある。詰所の台帳に、その報告は無い。",
+      // R16追補（作者指摘）— **杭は公的に存在する備品である。**そうでないと、この直後に
+      // ツグミが「『杭』、使いました？」と名指しできない。初稿は「灰から拾ったもの」
+      // 「詰所の台帳に、その報告は無い」と書いており、**誰も知らない品**になっていた。
+      // 伏せるのは品物ではなく、戻ったあとに何を見たかのほうである。
+      footer: "杭は詰所が貸し出す備品である。隊から死者が出たとき、備蓄を食い尽くして、その一戦の前まで時間を巻き戻す。戻ったあとに何を見たかを書き残した者は、まだ一人もいない。",
     }),
     prologueRewound: beat("stage_0_prologue_rewound", "もう一度、門の前", {
       mood: "ash",
