@@ -42,7 +42,7 @@ export const DEFAULT_EXPRESSION = "neutral";
 //
 // accent … UI の差し色。image … `docs/art/bustup_v0/` 以下の暫定バストアップ。
 export const PORTRAITS = Object.freeze({
-  warden: Object.freeze({ accent: "#91cbd5", image: "gou.png", imageScaleX: 0.86 }), // ゴウ。縦は維持し、横だけ詰める
+  warden: Object.freeze({ accent: "#91cbd5", image: "gou.png" }), // ゴウ
   mender: Object.freeze({ accent: "#9bd69e", image: "tsugumi.png" }), // ツグミ
   lancer: Object.freeze({ accent: "#e5a26b", image: "nagi.png" }), // ナギ
   guardian: Object.freeze({ accent: "#f2c14e", image: "hibana.png" }), // ヒバナ
@@ -76,15 +76,9 @@ export function portraitSvg(characterId, expression = DEFAULT_EXPRESSION, option
   void options;
   const label = portraitName(characterId);
   const src = PORTRAIT_IMAGE_BASE + def.image;
-  // ゴウの腕が横の表示枠から切れないよう、縦320は維持して横幅だけ調整する。
-  const imageScaleX = def.imageScaleX ?? 1;
-  const imageWidth = 240 * imageScaleX;
-  const imageX = (240 - imageWidth) / 2;
-  const imagePreserveAspectRatio = imageScaleX === 1 ? "xMidYMin slice" : "none";
-
   return "<svg class=\"portrait-svg\" viewBox=\"" + PORTRAIT_VIEWBOX + "\" role=\"img\""
     + " aria-label=\"" + label + "\" preserveAspectRatio=\"xMidYMin slice\" focusable=\"false\">"
-    + "<image href=\"" + src + "\" x=\"" + imageX + "\" y=\"0\" width=\"" + imageWidth + "\" height=\"320\""
-    + " preserveAspectRatio=\"" + imagePreserveAspectRatio + "\"/>"
+    + "<image href=\"" + src + "\" x=\"0\" y=\"0\" width=\"240\" height=\"320\""
+    + " preserveAspectRatio=\"xMidYMin slice\"/>"
     + "</svg>";
 }
