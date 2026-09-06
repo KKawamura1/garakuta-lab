@@ -248,9 +248,12 @@ export const SKILL_TREE_LAYOUT = buildSkillTreeLayout(SKILL_TREE_NODES);
 const MIN_FORKS = { active: 2, reactive: 2, passive: 0 };
 
 // issue #137 §深さと分岐 — **x=3 と x=5 で主要ルートが2方向以上へ分かれ、
-// x=10 に複数の最終到達点がある。**数だけの深さは、役割の違う道が無ければ意味が無い。
+// 行動ツリーは x=10、リアクティブツリーは x=9 に複数の最終到達点がある。**
+// issue #130 で termination fixture のリアクティブを本編から除外したため、
+// リアクティブ側だけfixture由来の4節ぶん浅くなる。数だけの深さは、役割の違う道が
+// 無ければ意味が無い。
 const FORK_COLUMNS = [3, 5];
-const FINAL_COLUMN = 10;
+const FINAL_COLUMNS = Object.freeze({ active: 10, reactive: 9 });
 const MIN_FINAL_NODES = 2;
 // 深さを求めるツリー。常設は棚なので外す。
 const DEEP_KINDS = new Set(["active", "reactive"]);
@@ -371,9 +374,10 @@ export function validateSkillTreeLayout(layout, nodes = SKILL_TREE_NODES, { requ
           + `（issue #137 §深さと分岐：x=3 が1回目、x=5 が2回目の役割分岐）`);
       }
     }
-    const finals = group.rows.filter((row) => row.x === FINAL_COLUMN);
+    const finalColumn = FINAL_COLUMNS[group.kind];
+    const finals = group.rows.filter((row) => row.x === finalColumn);
     if (finals.length < MIN_FINAL_NODES) {
-      problems.push(`${at}: x=${FINAL_COLUMN} の最終到達点が ${finals.length} 件しかない`
+      problems.push(`${at}: x=${finalColumn} の最終到達点が ${finals.length} 件しかない`
         + `（${MIN_FINAL_NODES} 件以上。複数の到達点からビルドを選べること）`);
     }
   }

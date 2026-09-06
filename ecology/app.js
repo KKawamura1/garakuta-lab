@@ -14,7 +14,6 @@ import {
   equipSkill,
   freshLoadout,
   initialUnlockedSkills,
-  makeExpeditionBattle,
   removeEquipment,
   reorderSkill,
   toggleSkill,
@@ -25,6 +24,7 @@ import {
   componentInfo,
   registerGeneratedEquipment,
   makePrologueBattle,
+  simulateExpeditionBattle,
   prologueEncounter,
 } from "./playable-battles.mjs";
 import {
@@ -77,6 +77,7 @@ import {
   dismantle,
   characterStats,
   composeEncounter,
+  runContentBundle,
   formatFunds,
   gainSupply,
   grantRunSkillPointsToAll,
@@ -105,7 +106,6 @@ import {
   appraisalLevel,
   blueprintCarryCapacity,
   newGeneratedItems,
-  runContentBundle,
   takeGeneratedEquipment,
 } from "./progression.mjs";
 import {
@@ -116,6 +116,7 @@ import {
 } from "./blueprints.mjs";
 import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
 import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
+import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
@@ -807,7 +808,14 @@ function statsFor(characterId) {
 }
 
 function maxHp(characterId) {
-  return statsFor(characterId)?.stats.maxHp ?? PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
+  const base = statsFor(characterId)?.stats.maxHp ?? PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
+  const passiveSkillIds = (state.run?.loadout?.passives?.[characterId] ?? [])
+    .filter((id) => !skillDisabled(characterId, id));
+  const equipment = (state.run?.loadout?.equipment?.[characterId] ?? []).map((equipmentId) => ({
+    equipmentId,
+    broken: equipmentDurability(equipmentId) === 0,
+  }));
+  return maxHpWithStaticBonuses(base, runContentBundle(state.run), passiveSkillIds, equipment);
 }
 
 function limitsFor(characterId) {
@@ -901,6 +909,7 @@ function effectRarityBadge(rarity, label = null) {
 }
 
 function effectSlotLabel(slot) {
+  if (slot === "implicit") return "基礎効果・常時";
   if (slot === "base") return "基礎効果";
   const match = /^effect(\d+)$/.exec(String(slot ?? ""));
   return match ? "追加効果" + match[1] : "効果";
@@ -912,6 +921,9 @@ function equipmentReadoutHtml(item, { compact = false } = {}) {
   const effects = Array.isArray(readout?.effects)
     ? readout.effects.map((effect, index) => ({ effect, index }))
       .sort((a, b) => {
+        if (a.effect.slot === "implicit" || b.effect.slot === "implicit") {
+          return a.effect.slot === "implicit" ? -1 : 1;
+        }
         const rarityDiff = (RARITY_RANK[b.effect.rarity] ?? 0) - (RARITY_RANK[a.effect.rarity] ?? 0);
         return rarityDiff || a.index - b.index;
       })
@@ -922,23 +934,40 @@ function equipmentReadoutHtml(item, { compact = false } = {}) {
   const keystone = readout?.keystone
     ? "<p class=\"keystone-line\">" + esc(readout.keystone) + "</p>"
     : "";
-  if (!effects.length) return ruleLines + keystone;
+  const risk = readout?.risk
+    ? "<p class=\"risk-line\"><b>規格外の代償：</b>" + esc(readout.risk) + "</p>"
+    : "";
+  if (!effects.length) return ruleLines + risk + keystone;
 
   const details = effects.map((effect) => {
-    const amount = effect.amount == null ? "" : "（" + esc(effect.amount) + "）";
+    const amount = effect.amount == null ? ""
+      : effect.unconditional ? " +" + esc(effect.amount) : "（" + esc(effect.amount) + "）";
     return "<div class=\"equipment-effect-detail\">"
       + "<span class=\"effect-detail-label\">" + esc(effectSlotLabel(effect.slot)) + "</span>"
       + effectRarityBadge(effect.rarity, effect.rarityLabel)
       + "<span class=\"effect-detail-summary\">" + esc(effect.summary) + amount + "</span></div>";
   }).join("");
-  return (compact ? "" : "<div class=\"equipment-effect-details\">" + details + "</div>")
-    + ruleLines + keystone;
+  const compactDetails = effects.filter((effect) => effect.slot === "implicit").map((effect) => {
+    const amount = effect.amount == null ? "" : " +" + esc(effect.amount);
+    return "<div class=\"equipment-effect-detail\"><span class=\"effect-detail-label\">基礎効果・常時</span>"
+      + effectRarityBadge(effect.rarity, effect.rarityLabel)
+      + "<span class=\"effect-detail-summary\">" + esc(effect.summary) + amount + "</span></div>";
+  }).join("");
+  return "<div class=\"equipment-effect-details\">" + (compact ? compactDetails : details) + "</div>"
+    + ruleLines + risk + keystone;
 }
 
 function equipmentRarityCallout(item) {
   const rarity = item?.rarity;
   const rank = RARITY_RANK[rarity] ?? 0;
   const effects = Array.isArray(item?.readout?.effects) ? item.readout.effects : [];
+  const highest = effects.reduce((max, effect) => Math.max(max, RARITY_RANK[effect.rarity] ?? 0), 0);
+  if (highest > rank) {
+    const highRarity = RARITIES[highest - 1] ?? rarity;
+    return "<p class=\"rarity-callout rarity-" + esc(highRarity) + "\">"
+      + "<span class=\"rarity-callout-mark\">✦</span>規格外 — "
+      + esc(RARITY_LABEL[highRarity] ?? highRarity) + "効果</p>";
+  }
   if (rank < 4 || !effects.length) return "";
   const sameRank = effects.filter((effect) => (RARITY_RANK[effect.rarity] ?? 0) === rank).length;
   const safe = RARITY_RANK[rarity] ? rarity : "common";
@@ -2707,10 +2736,15 @@ function forecastKey(composed) {
     composed?.index ?? null,
     composed?.enemies?.map((enemy) => [enemy.instanceId, enemy.enemyActorId, enemy.position, enemy.stats, enemy.mutations]) ?? null,
     composed?.maxRounds ?? null,
+    state.run.runSeed,
+    state.run.difficulty,
     state.run.roster,
     state.run.formation,
     state.run.loadout,
     state.run.currentHp,
+    state.run.runSkillLevels,
+    state.equipmentDurability,
+    state.hp,
     Object.keys(state.run.generatedEquipment ?? {}),
     state.run.partySize,
     // 鍛錬と枠の購入は遠征の外で動くが、味方の stat を変える。**run だけを見て
@@ -2733,7 +2767,11 @@ function battleForecast() {
   if (forecastCache.key === key) return forecastCache.value;
   let value = null;
   try {
-    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, { composed });
+    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, {
+      composed,
+      hp: isCampaignRun() ? state.run.currentHp : state.hp,
+      equipmentDurability: state.equipmentDurability,
+    });
   } catch {
     value = null;
   }
@@ -3834,23 +3872,19 @@ function simulateAndEnterBattle() {
   let battle;
   try {
     const composed = currentEncounter();
-    battle = makeExpeditionBattle(
-      composed,
-      state.run.roster,
-      state.run.loadout,
-      state.run.runSeed,
-      state.run.formation,
+    const simulation = simulateExpeditionBattle(
+      state.run,
+      state.profile,
+      state.run.encounterIndex,
       {
-        // R8 §1.5 — Campaign Stage は run.currentHp（持ち越しHP）を渡す。
-        // Free / Endless は従来どおり state.hp（毎戦満タン）。
+        composed,
         hp: isCampaignRun() ? state.run.currentHp : state.hp,
         equipmentDurability: state.equipmentDurability,
         limitsFor,
-        statsFor,
-        // Phase C — 遠征ごとの装備定義を含む content bundle を渡す。
-        content: runContentBundle(state.run),
+        simulationOptions: { captureReplaySnapshots: true },
       },
     );
+    battle = simulation.battleInput;
     record("battle_started", {
       encounter: state.run.encounterIndex,
       kind: composed.kind,
@@ -3858,10 +3892,7 @@ function simulateAndEnterBattle() {
       threat: composed.spentThreat,
       battleId: battle.battleId,
     });
-    const result = simulateBattle(battle, runContentBundle(state.run), {
-      equipmentBreaks: false,
-      captureReplaySnapshots: true,
-    });
+    const result = simulation.result;
     state.lastResult = compactResult(result);
     const replay = compactReplay(result);
     state.replayEvents = replay.events;

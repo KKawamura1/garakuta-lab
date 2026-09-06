@@ -18,6 +18,12 @@ import { EcologyRuntimeError, EcologyValidationError } from "./errors.mjs";
 import { simulateBattle } from "./engine.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import {
+  PLAYABLE_CONTENT,
+  SKILL_PACKS,
+  SKILL_TREE_NODES,
+} from "./content/index.mjs";
+import { freshLoadout, makeBattle } from "./playable-battles.mjs";
+import {
   ACTIVATION_CAP_BATTLE,
   AP_LOOP_BATTLE,
   BARRIER_BLOOM_BATTLE,
@@ -42,6 +48,43 @@ const equal = (actual, expected, message) => {
 };
 
 const run = (battle, options) => simulateBattle(battle, FIXTURE_CONTENT, options);
+
+const TERMINATION_FIXTURE_IDS = Object.freeze([
+  "ap_loop",
+  "damage_echo",
+  "barrier_bloom",
+  "relay_front",
+  "relay_rear",
+  "prep_spiral",
+]);
+
+function issue130StressBattle() {
+  const roster = ["warden", "mender", "lancer", "guardian", "tactician"];
+  const loadout = freshLoadout(roster);
+  const reactiveIds = ["counter_blow", "guard_step", "urging", "scavenge_ap"];
+  for (const characterId of roster) loadout.reactives[characterId] = [...reactiveIds];
+
+  const battle = makeBattle(
+    7,
+    roster,
+    loadout,
+    "issue_130_event_budget",
+    {},
+    {
+      statsFor: () => ({
+        stats: { maxHp: 10000, might: 20, focus: 20, guard: 0 },
+        training: {},
+      }),
+    },
+  );
+  battle.maxRounds = 11;
+  battle.objective = { type: "survive_rounds", rounds: 11 };
+  for (const enemy of battle.enemies) {
+    enemy.stats = { maxHp: 10000, might: 0, focus: 0, guard: 0 };
+    enemy.hp = 10000;
+  }
+  return battle;
+}
 
 // One firing of each of these rules emits exactly one event of the named type,
 // so counting those events per chain per owner counts firings.
@@ -83,6 +126,51 @@ for (const { battle, ruleId, eventType } of SAFETY_CASES) {
   );
 }
 
+// Issue 130 — termination witnesses are fixture-only. Keep a legal five-ally
+// build under the original event budget, and assert that the old leaked IDs
+// cannot enter the playable content, tree, pack, or enemy definitions.
+{
+  const terminationIds = new Set(TERMINATION_FIXTURE_IDS);
+  check(
+    TERMINATION_FIXTURE_IDS.every((id) => !PLAYABLE_CONTENT.reactiveSkills[id]),
+    "issue 130 termination reactives are absent from playable content",
+  );
+  check(
+    SKILL_TREE_NODES.every((node) => !terminationIds.has(node.skillId)),
+    "issue 130 termination reactives are absent from the skill tree",
+  );
+  check(
+    SKILL_PACKS.every((pack) => [
+      ...(pack.activeSkillIds ?? []),
+      ...(pack.reactiveSkillIds ?? []),
+      ...(pack.passiveSkillIds ?? []),
+    ].every((id) => !terminationIds.has(id))),
+    "issue 130 termination reactives are absent from skill packs",
+  );
+  check(
+    Object.values(PLAYABLE_CONTENT.enemyActors).every((enemy) =>
+      !(enemy.tags ?? []).includes("termination")
+      && !(enemy.reactiveSkillIds ?? []).some((id) => terminationIds.has(id))),
+    "issue 130 termination reactives are absent from playable enemies",
+  );
+
+  const battle = issue130StressBattle();
+  const result = simulateBattle(battle, PLAYABLE_CONTENT, {
+    maxEventsPerBattle: DEFAULT_OPTIONS.maxEventsPerBattle,
+  });
+  check(
+    battle.allies.every((ally) => ally.reactiveSkillIds.length === 4),
+    "issue 130 legal stress input fills four playable reactive slots for every ally",
+  );
+  check(
+    result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle,
+    "issue 130 legal stress input finishes below the battle cap",
+  );
+  check(
+    result.metrics.maxChainEventCount < DEFAULT_OPTIONS.maxEventsPerChain,
+    "issue 130 legal stress input still stays inside the chain cap",
+  );
+}
 // The echo pair really does bounce: both sides answered a damage_taken.
 {
   const result = run(DAMAGE_ECHO_BATTLE);

@@ -53,7 +53,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // (2) 節が `tier`（0/1/2）ではなく `x`（前提からの深さ、1〜10）を持ち、`requires` が
 // 「tier ごとの箱」から「一本の道」へ並び替わった。**既存欄の意味が変わったので上げる。**
 // R20 — 速度能力値と速度依存の対象選択を削除し、隊列を使う対象選択へ置き換えた。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-13";
+// R21 — EquipmentDef に装着中だけ加算する statBonus を追加し、すべての新規生成品が
+// item rarity と同格の無条件基礎効果を持つようにした。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-14";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -85,6 +87,30 @@ export const RETIRED_IDS = Object.freeze({
     since: "ecology-content-contract-13",
     reason: "速度能力値を削除し、隊列順を行動順と対象選択の基準にしたため",
   },
+  ap_loop: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  damage_echo: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  barrier_bloom: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  relay_front: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  relay_rear: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  prep_spiral: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
 });
 
 // 表示名を持つ節。DISPLAY_NAMES の作り方をここ一箇所に閉じる。
@@ -101,8 +127,9 @@ export const PLAYABLE_CONTENT = Object.freeze({
   ...FIXTURE_CONTENT,
   // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
-  // R16 で技能54本・状態3つを足した。R20 で速度能力値を削除した。
-  contentVersion: "ecology-playable-full-0.11",
+  // R16 で技能54本・状態3つを足した。R20 で速度能力値を削除し、R21 で装備の
+  // 無条件 statBonus を追加した。
+  contentVersion: "ecology-playable-full-0.12",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

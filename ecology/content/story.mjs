@@ -92,9 +92,9 @@ export const PROLOGUE = Object.freeze({
 export const STORY_BEATS = Object.freeze({
   stage_0_edge: Object.freeze({
     // ---- 幕の切れ目（R12 §4.C）。4・8・12戦目の前に置く ----
-    act1: beat("stage_0_act1", "帳面のはじめ", {
+    act1: beat("stage_0_act1", "腕を借りる", {
       mood: "ash",
-      place: "浅い層の休み場",
+      place: "門を抜けて最初の休み場",
       cast: castFor("stage_0_act1"),
       lines: dialogueFor("stage_0_act1"),
     }),
@@ -104,7 +104,7 @@ export const STORY_BEATS = Object.freeze({
       cast: castFor("stage_0_act2"),
       lines: dialogueFor("stage_0_act2"),
     }),
-    act3: beat("stage_0_act3", "返しに行く", {
+    act3: beat("stage_0_act3", "帰り支度", {
       mood: "ember",
       place: "灰の門の内側",
       cast: castFor("stage_0_act3"),
@@ -122,32 +122,43 @@ export const STORY_BEATS = Object.freeze({
       place: "灰の門",
       cast: castFor("stage_0_prologue_defeat"),
       lines: dialogueFor("stage_0_prologue_defeat"),
-      footer: "灰から拾ったものが、拾った者の時間を巻き戻すことがある。詰所の台帳に、その報告は無い。",
+      // R16追補（作者稿）— **杭は公的に存在する備品である。**そうでないと、この直後に
+      // ツグミが「「杭」、使いました？」と名指しできない。初稿は「灰から拾ったもの」
+      // 「詰所の台帳に、その報告は無い」と書いており、**誰も知らない品**になっていた。
+      //
+      // **引くのは持ち主で、死んだから戻るのではない**（作者指摘）。ゴウは巻き戻したいと
+      // 思って引いた。平時の利用が許可されていないので、彼の「台帳にも書かねえ」は
+      // 隠しごとであり、同時に拾い屋がみなやっていることでもある。
+      footer: "杭は詰所が貸し出す備品である。坑の中で稀に採取できるが、安定した生産方法は確立されておらず、平時の利用は許可されていない。",
     }),
     prologueRewound: beat("stage_0_prologue_rewound", "もう一度、門の前", {
       mood: "ash",
       place: "灰の門の手前",
       cast: castFor("stage_0_prologue_rewound"),
       lines: dialogueFor("stage_0_prologue_rewound"),
-      footer: "腕力で振る武器は、後列から出すと大きく落ちる。技術で通す技は、後列からでも落ちない。ツグミの応急手当は自分には効かず、前で被るゴウを後ろから支える。",
+      // R16追補（作者稿）— 初稿は「ツグミの応急手当は自分には効かず」まで書いていたが、
+      // ここで渡したい指示は**ツグミを後ろへ下げること**である。手当ての向きは
+      // `prologueWin` の footer が結果として見せる。
+      // 語は画面の表記へ揃えた（スキル→技能、技術力→技術、行えない→届かない）。
+      footer: "多くの攻撃は前列にしか届かない。後列に下がれば生存率は高まるが、腕力を参照する技能の威力は激減する。技術を参照する技能は、後列でも威力が落ちない。",
     }),
     prologueWin: beat("stage_0_prologue_win", "同じ影、違う結果", {
       mood: "dawn",
       place: "灰の門",
       cast: castFor("stage_0_prologue_win"),
       lines: dialogueFor("stage_0_prologue_win"),
-      footer: "同じ盤面でも、誰をどちらの列に置くかで結果が変わる。ツグミは自分ではなくゴウを手当てし、隊列の選択が生き残り方につながる。ここから先も、変えられるのはそこだけ。",
+      footer: "同じ状況でも、隊列が変われば結果が変わる。ツグミは後列に下がってゴウを治療し、ゴウは前列に出て敵の攻撃を受け止めた。未来が見えれば、結果は変えられる。",
     }),
-    stageEnd: beat("stage_0_end", "門を抜けた", {
+    stageEnd: beat("stage_0_end", "今日はここまで", {
       mood: "dawn",
-      place: "灰の門の先",
+      place: "引き返す前の広間",
       cast: castFor("stage_0_end"),
       lines: dialogueFor("stage_0_end"),
-      footer: "次の Stage では、条件と引き換えに大きく伸びる攻め筋が増える。",
+      footer: "この先には、条件と引き換えに大きく伸びる攻め筋がある。",
     }),
   }),
   stage_1_wall: Object.freeze({
-    act1: beat("stage_1_act1", "前に出たがる", {
+    act1: beat("stage_1_act1", "四度目の前", {
       mood: "ash",
       place: "崩れた階段の下",
       cast: castFor("stage_1_act1"),
@@ -177,7 +188,7 @@ export const STORY_BEATS = Object.freeze({
       place: "崩れた回廊",
       cast: castFor("stage_1_end"),
       lines: dialogueFor("stage_1_end"),
-      footer: "前に置けば落ち、後ろに置けば刃が鈍る。この二択は、次の Stage で解ける。",
+      footer: "前で受ける者がいると、後ろの一撃が最後まで振り抜ける。誰が立つかで、誰が振れるかが決まる。",
     }),
   }),
   stage_2_tempo: Object.freeze({
@@ -187,13 +198,13 @@ export const STORY_BEATS = Object.freeze({
       cast: castFor("stage_2_act1"),
       lines: dialogueFor("stage_2_act1"),
     }),
-    act2: beat("stage_2_act2", "受けた回数", {
+    act2: beat("stage_2_act2", "先に行くと", {
       mood: "dusk",
       place: "崩れた回廊",
       cast: castFor("stage_2_act2"),
       lines: dialogueFor("stage_2_act2"),
     }),
-    act3: beat("stage_2_act3", "一枚", {
+    act3: beat("stage_2_act3", "明かりが行った", {
       mood: "ember",
       place: "回廊の出口",
       cast: castFor("stage_2_act3"),
@@ -205,14 +216,17 @@ export const STORY_BEATS = Object.freeze({
       // R12 — 4人目が加わる場面なので、舞台に立つのも4人。
       cast: castFor("stage_2_join"),
       lines: dialogueFor("stage_2_join"),
-      footer: "受け止めた結果は、集中（自分へ）か防壁（味方へ）のどちらかへ渡せる。",
+      // R16追補（作者指摘）— 初稿の「受け止めた結果は、集中か防壁へ渡せる」は、
+      // **この場面（ヒバナがナギを引いた）とも Stage 2 の問い（隊列を動かして何を得るか）
+      // とも噛み合っていなかった。**いま画面で起きたことを、そのまま指す。
+      footer: "隊列は戦闘中にも入れ替わる。誰が前に立っているかで、狙われる者が変わる。",
     }),
-    stageEnd: beat("stage_2_end", "誰を守るか", {
+    stageEnd: beat("stage_2_end", "紙の上にいない", {
       mood: "dusk",
-      place: "回廊の出口",
+      place: "詰所の窓口",
       cast: castFor("stage_2_end"),
       lines: dialogueFor("stage_2_end"),
-      footer: "次の Stage では「順番」そのものを動かせるようになる。",
+      footer: "この先では「順番」そのものを動かせるようになる。",
     }),
   }),
   stage_3_care: Object.freeze({
@@ -228,20 +242,20 @@ export const STORY_BEATS = Object.freeze({
       cast: castFor("stage_3_act2"),
       lines: dialogueFor("stage_3_act2"),
     }),
-    act3: beat("stage_3_act3", "六枠に五人", {
+    act3: beat("stage_3_act3", "ばーん", {
       mood: "ember",
       place: "灰の縁",
       cast: castFor("stage_3_act3"),
       lines: dialogueFor("stage_3_act3"),
     }),
-    join: beat("stage_3_join", "間合いと順番", {
+    join: beat("stage_3_join", "戸を叩く", {
       mood: "ash",
-      place: "灰の谷",
+      place: "根城の戸口",
       // R12 — 5人が揃う場面。**加入済みの全員が立つ。**
       // 台詞は増やさない（R9 §7）。ヒバナとツグミは表情で応じる。
       cast: castFor("stage_3_join"),
       lines: dialogueFor("stage_3_join"),
-      footer: "行動権は総量が増えない。誰へいつ渡すかだけが問題になる。",
+      footer: "坑へ入った者の名は、帰ってきた欄と、戻らなかった欄に分かれて残る。どちらの欄も、増えるばかりで減ることがない。",
     }),
     stageEnd: beat("stage_3_end", "五人になった", {
       mood: "dawn",

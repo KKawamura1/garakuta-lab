@@ -56,6 +56,7 @@ import {
   VALUE_TYPES,
   isValidId,
 } from "./schema.mjs";
+import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 
 class ErrorBag {
   constructor() {
@@ -747,6 +748,16 @@ export function validateContentBundle(bundle) {
     requireDisplayName(bag, `${path}.displayName`, item.displayName);
     requireCount(bag, `${path}.maxDurability`, item.maxDurability, { min: 1 });
     requireTags(bag, `${path}.tags`, item.tags);
+    if (item.statBonus !== undefined) {
+      if (!isPlainObject(item.statBonus)) {
+        bag.add(`${path}.statBonus`, "not_an_object", "expected a stat bonus record");
+      } else {
+        for (const [stat, value] of Object.entries(item.statBonus)) {
+          requireOneOf(bag, `${path}.statBonus.${stat}`, stat, PASSIVE_STAT_BONUSES, "unknown_equipment_stat");
+          requireCount(bag, `${path}.statBonus.${stat}`, value, { min: 1, max: 1_000 });
+        }
+      }
+    }
     validateRules(bag, `${path}.rules`, item.rules, { ...baseCtx, fromEquipment: true });
   }
 
@@ -912,8 +923,16 @@ export function validateBattleInput(input, bundle) {
       }
       // PHASE B: training raises maxHp, so the ceiling on a carried-over hp is
       // the overridden maxHp when there is one — not the definition's.
-      const allyMaxHp = validateStatOverride(bag, `${path}.stats`, ally.stats)
+      const allyBaseMaxHp = validateStatOverride(bag, `${path}.stats`, ally.stats)
         ?? character?.maxHp;
+      const allyMaxHp = Number.isFinite(allyBaseMaxHp)
+        ? maxHpWithStaticBonuses(
+          allyBaseMaxHp,
+          bundle,
+          ally.passiveSkillIds,
+          ally.equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })),
+        )
+        : allyBaseMaxHp;
       validateTrainingRecord(bag, `${path}.training`, ally.training);
       if (ally.hp !== undefined && Number.isFinite(allyMaxHp)) {
         requireCount(bag, `${path}.hp`, ally.hp, { min: 0, max: allyMaxHp });

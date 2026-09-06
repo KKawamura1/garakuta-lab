@@ -15,6 +15,7 @@ import {
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
+import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
@@ -443,24 +444,27 @@ function usableTactics(ids) {
 // 7区画の試作（makeBattle）と12戦の遠征（makeExpeditionBattle）が同じ関数を通る。
 function allyInput(characterId, position, loadout, options = {}) {
   const option = characterById[characterId];
+  const content = options.content ?? PLAYABLE_CONTENT;
   const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
   const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
   const disabled = new Set(loadout.disabled?.[characterId] ?? []);
   const enabled = (ids) => ids.filter((id) => !disabled.has(id));
+  const passiveSkillIds = enabled(loadout.passives?.[characterId] ?? [])
+    .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]);
+  const equipment = equipmentInput(
+    characterId,
+    loadout.equipment?.[characterId] ?? [],
+    options.equipmentDurability ?? {},
+    content,
+  );
   const ally = {
     instanceId: "a_" + characterId,
     characterId,
     position,
     tactics: usableTactics(enabled(tactics)),
     reactiveSkillIds: enabled(reactives).filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]),
-    passiveSkillIds: enabled(loadout.passives?.[characterId] ?? [])
-      .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]),
-    equipment: equipmentInput(
-      characterId,
-      loadout.equipment?.[characterId] ?? [],
-      options.equipmentDurability ?? {},
-      options.content ?? PLAYABLE_CONTENT,
-    ),
+    passiveSkillIds,
+    equipment,
   };
   // R19（issue #137）— 技能レベル。**取得＝Lv1** なので、Lv1 しか無い編成では
   // 欄そのものを渡さない（渡しても結果は同じだが、入力に無駄な欄を増やさない）。
@@ -479,7 +483,9 @@ function allyInput(characterId, position, loadout, options = {}) {
     ally.training = { ...trained.training };
   }
   const hp = options.hp?.[characterId];
-  const ceiling = ally.stats?.maxHp ?? PLAYABLE_CONTENT.characters[characterId].maxHp;
+  const baseMaxHp = ally.stats?.maxHp ?? PLAYABLE_CONTENT.characters[characterId].maxHp;
+  const ceiling = maxHpWithStaticBonuses(baseMaxHp, content, passiveSkillIds,
+    equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })));
   if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(ceiling, hp));
   return ally;
 }
@@ -624,10 +630,14 @@ export function allEncounters() {
 // R14 §1 — **どの盤面を予測するかは呼び出し側が渡せる。**序盤の「灰の門」は
 // 12戦の梯子に属さないので composeEncounter からは出てこない（prologueEncounter が
 // 出す）。渡されなければ従来どおり encounterIndex から組む。
-export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
+const EXPEDITION_SIMULATION_OPTIONS = Object.freeze({ equipmentBreaks: false });
+
+// preview と本番が、BattleInput の構成と simulateBattle の固定オプションを共有する唯一の入口。
+export function simulateExpeditionBattle(run, profile, encounterIndex, options = {}) {
   const composed = options.composed
     ?? composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
   const loadout = run.loadout ?? freshLoadout(run.roster);
+  const content = runContentBundle(run);
   const battleInput = makeExpeditionBattle(
     composed,
     run.roster,
@@ -635,18 +645,30 @@ export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
     run.runSeed,
     run.formation,
     {
-      hp: run.currentHp,
+      hp: options.hp ?? run.currentHp,
+      equipmentDurability: options.equipmentDurability,
+      limitsFor: options.limitsFor,
       statsFor: (characterId) => characterStats(profile, characterId),
-      // R19（issue #137）— **予測と本番は同じ経路**なので、技能レベルもここで一度だけ渡す。
       skillLevelsFor: (characterId) => runSkillLevelsFor(run, characterId),
-      content: runContentBundle(run),
+      content,
     },
   );
-  const content = runContentBundle(run);
-  const result = simulateBattle(battleInput, content);
+  const result = simulateBattle(
+    battleInput,
+    content,
+    {
+      ...EXPEDITION_SIMULATION_OPTIONS,
+      ...(options.simulationOptions ?? {}),
+      // 装備破損の扱いは、予測と本番で必ず同じにする。
+      equipmentBreaks: false,
+    },
+  );
   return { composed, battleInput, result, content };
 }
 
+export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
+  return simulateExpeditionBattle(run, profile, encounterIndex, options);
+}
 function battleResultSummary(run, result) {
   const perCharacter = run.roster.map((characterId) => {
     const actor = result.actors.find((entry) => entry.instanceId === "a_" + characterId);
@@ -682,4 +704,3 @@ export function previewNextBattle(run, profile, encounterIndex, options = {}) {
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。
 export { ENEMY_TARGETING as enemyTargeting, SKILL_TREE_NODES, CHARACTER_DEFINITIONS };
-

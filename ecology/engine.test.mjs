@@ -63,6 +63,7 @@ for (const file of [
   "event-queue.mjs",
   "validate.mjs",
   "actors.mjs",
+  "static-bonuses.mjs",
 ]) {
   const source = readFileSync(new URL(file, import.meta.url), "utf8");
   check(!source.includes("Math.random"), `${file} must not use Math.random`);
