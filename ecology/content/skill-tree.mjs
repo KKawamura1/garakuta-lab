@@ -94,10 +94,6 @@ const reactiveMeta = {
   urging: ["急かす", "味方の準備開始時、RP1で準備を1進める。", "準備"],
   brace_after_hit: ["受け流し", "被弾後、RP1で技術の50%のラウンド防壁を得る。", "被弾"],
   triage_relay: ["連携治療", "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。", "回復"],
-  ap_loop: ["行動権の循環", "行動権を得たとき、RP1で前衛へもう一度渡す。", "資源"],
-  damage_echo: ["痛みの反響", "被弾した敵へ、RP1で腕力の25%ダメージを返す。", "被弾"],
-  barrier_bloom: ["防壁の花", "防壁を得たとき、RP1でさらに技術の25%の防壁。", "防壁"],
-  prep_spiral: ["準備の螺旋", "準備が進むたび、RP1で自分の準備をさらに1段進める。", "準備"],
   block_focus: ["受け返しの集中", "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。", "防御"],
   barrier_stitch: ["防壁の縫い直し", "防壁が壊れたあと、RP1で受け構えを1つ得る。", "防御"],
   // R8 Implementation Phase 1（続き）— mend/triage を anti-stall 安全な reactive
@@ -263,17 +259,13 @@ const BRANCH_OF = {
   steady_cut: "攻撃",
   aimed_shot: "支援",
   counter_blow: "攻撃",
-  damage_echo: "攻撃",
   scavenge_ap: "指揮",
   guard_step: "指揮",
   cover_ally: "守り",
   brace_after_hit: "守り",
-  barrier_bloom: "守り",
   overflow_care: "支援",
   triage_relay: "支援",
   urging: "支援",
-  prep_spiral: "支援",
-  ap_loop: "指揮",
   block_focus: "守り",
   barrier_stitch: "守り",
   rapid_cuts: "攻撃",
@@ -441,19 +433,16 @@ const REACTIVE_FOREST = [
             node("second_wind",  // 二の息
               node("shared_pain",  // 痛みを分ける
                 node("urging",  // 急かす
-                  node("prep_spiral",  // 準備の螺旋
-                    node("mercy_into_guard")))))),  // 手当てを備えへ
+                    node("mercy_into_guard"))))),  // 手当てを備えへ
           node("steady_under_fire"))),  // 揺れない手
       node("watchful_care")),  // 目を離さない
     node("counter_blow",  // 反撃
       node("opportunist",  // 隙に応じる
         node("whetted_by_pain",  // 痛みで研ぐ
-          node("damage_echo",  // 痛みの反響
             node("vengeful_step",  // 意趣返し
               node("guard_step",  // 踏み固め
-                node("ap_loop",  // 行動権の循環
                   node("read_the_charge",  // 溜めを読む
-                    node("break_the_charge")))))),  // 溜めを崩す
+                    node("break_the_charge")))),  // 溜めを崩す
           node("finish_the_wounded",  // 止めを促す
             node("bleed_into_wake",  // 裂傷の余波
               node("spill_forward"))))),  // 余波を回す
@@ -468,11 +457,10 @@ const REACTIVE_FOREST = [
       node("cover_ally",  // 身代わり
         node("shield_handoff",  // 受けの受け渡し
           node("guard_the_marked",  // 狙われた者へ
-            node("barrier_bloom",  // 防壁の花
               node("barrier_stitch",  // 防壁の縫い直し
                 node("wake_of_the_fallen",  // 倒したあと
                   node("warded_into_edge",  // 守勢を刃へ
-                    node("blocked_into_step")))))),  // 受けを順番へ
+                    node("blocked_into_step"))))),  // 受けを順番へ
           node("last_stand"))),  // 背水
       node("absorb_shock",  // 衝撃を殺す
         node("block_focus",  // 受け返しの集中

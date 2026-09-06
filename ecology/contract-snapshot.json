@@ -4260,348 +4260,6 @@
      "care"
     ]
    },
-   "ap_loop": {
-    "id": "ap_loop",
-    "displayName": "行動権の循環",
-    "rule": {
-     "id": "ap_loop_rule",
-     "listenTo": "resource_gained",
-     "timing": "after",
-     "priority": 100,
-     "predicates": [
-      {
-       "type": "event_tag",
-       "tag": "action_points",
-       "value": true
-      }
-     ],
-     "costs": [
-      {
-       "type": "spend_reaction_points",
-       "amount": 1
-      }
-     ],
-     "effects": [
-      {
-       "type": "gain_resource",
-       "target": {
-        "scope": "allies",
-        "filters": [
-         {
-          "type": "alive"
-         },
-         {
-          "type": "row_is",
-          "row": "front"
-         }
-        ],
-        "take": 1
-       },
-       "resource": "action_points",
-       "amount": {
-        "type": "constant",
-        "value": 1
-       }
-      }
-     ],
-     "limit": {
-      "scope": "battle",
-      "count": 99
-     }
-    },
-    "tags": [
-     "termination"
-    ]
-   },
-   "damage_echo": {
-    "id": "damage_echo",
-    "displayName": "痛みの反響",
-    "rule": {
-     "id": "damage_echo_rule",
-     "listenTo": "damage_taken",
-     "timing": "after",
-     "priority": 100,
-     "predicates": [
-      {
-       "type": "target_exists",
-       "query": {
-        "scope": "self",
-        "filters": [
-         {
-          "type": "is_event_primary_target"
-         }
-        ],
-        "take": 1
-       }
-      }
-     ],
-     "costs": [
-      {
-       "type": "spend_reaction_points",
-       "amount": 1
-      }
-     ],
-     "effects": [
-      {
-       "type": "deal_damage",
-       "target": {
-        "scope": "event_source",
-        "filters": [
-         {
-          "type": "alive"
-         }
-        ],
-        "take": 1
-       },
-       "amount": {
-        "type": "stat_scaled",
-        "subject": "self",
-        "scalingStat": "might",
-        "coefficientBps": 2500
-       },
-       "tags": [
-        "echo"
-       ]
-      }
-     ],
-     "limit": {
-      "scope": "battle",
-      "count": 99
-     }
-    },
-    "tags": [
-     "termination"
-    ]
-   },
-   "barrier_bloom": {
-    "id": "barrier_bloom",
-    "displayName": "防壁の花",
-    "rule": {
-     "id": "barrier_bloom_rule",
-     "listenTo": "barrier_gained",
-     "timing": "after",
-     "priority": 100,
-     "predicates": [
-      {
-       "type": "target_exists",
-       "query": {
-        "scope": "self",
-        "filters": [
-         {
-          "type": "is_event_primary_target"
-         }
-        ],
-        "take": 1
-       }
-      }
-     ],
-     "costs": [
-      {
-       "type": "spend_reaction_points",
-       "amount": 1
-      }
-     ],
-     "effects": [
-      {
-       "type": "gain_barrier",
-       "target": {
-        "scope": "self",
-        "take": 1
-       },
-       "amount": {
-        "type": "stat_scaled",
-        "subject": "self",
-        "scalingStat": "focus",
-        "coefficientBps": 2500
-       },
-       "duration": "round"
-      }
-     ],
-     "limit": {
-      "scope": "battle",
-      "count": 99
-     }
-    },
-    "tags": [
-     "termination"
-    ]
-   },
-   "relay_front": {
-    "id": "relay_front",
-    "displayName": "前列への号令",
-    "rule": {
-     "id": "relay_front_rule",
-     "listenTo": "action_resolved",
-     "timing": "after",
-     "priority": 100,
-     "predicates": [
-      {
-       "type": "target_exists",
-       "query": {
-        "scope": "self",
-        "filters": [
-         {
-          "type": "is_event_source"
-         }
-        ],
-        "take": 1
-       }
-      }
-     ],
-     "costs": [
-      {
-       "type": "spend_reaction_points",
-       "amount": 1
-      }
-     ],
-     "effects": [
-      {
-       "type": "gain_resource",
-       "target": {
-        "scope": "allies",
-        "filters": [
-         {
-          "type": "alive"
-         },
-         {
-          "type": "row_is",
-          "row": "front"
-         }
-        ],
-        "take": 1
-       },
-       "resource": "action_points",
-       "amount": {
-        "type": "constant",
-        "value": 1
-       }
-      }
-     ],
-     "limit": {
-      "scope": "battle",
-      "count": 99
-     }
-    },
-    "tags": [
-     "termination"
-    ]
-   },
-   "relay_rear": {
-    "id": "relay_rear",
-    "displayName": "後列への号令",
-    "rule": {
-     "id": "relay_rear_rule",
-     "listenTo": "action_resolved",
-     "timing": "after",
-     "priority": 100,
-     "predicates": [
-      {
-       "type": "target_exists",
-       "query": {
-        "scope": "self",
-        "filters": [
-         {
-          "type": "is_event_source"
-         }
-        ],
-        "take": 1
-       }
-      }
-     ],
-     "costs": [
-      {
-       "type": "spend_reaction_points",
-       "amount": 1
-      }
-     ],
-     "effects": [
-      {
-       "type": "gain_resource",
-       "target": {
-        "scope": "allies",
-        "filters": [
-         {
-          "type": "alive"
-         },
-         {
-          "type": "row_is",
-          "row": "rear"
-         }
-        ],
-        "take": 1
-       },
-       "resource": "action_points",
-       "amount": {
-        "type": "constant",
-        "value": 1
-       }
-      }
-     ],
-     "limit": {
-      "scope": "battle",
-      "count": 99
-     }
-    },
-    "tags": [
-     "termination"
-    ]
-   },
-   "prep_spiral": {
-    "id": "prep_spiral",
-    "displayName": "準備の螺旋",
-    "rule": {
-     "id": "prep_spiral_rule",
-     "listenTo": "preparation_advanced",
-     "timing": "after",
-     "priority": 100,
-     "predicates": [
-      {
-       "type": "target_exists",
-       "query": {
-        "scope": "self",
-        "filters": [
-         {
-          "type": "is_event_primary_target"
-         }
-        ],
-        "take": 1
-       }
-      }
-     ],
-     "costs": [
-      {
-       "type": "spend_reaction_points",
-       "amount": 1
-      }
-     ],
-     "effects": [
-      {
-       "type": "advance_preparation",
-       "target": {
-        "scope": "self",
-        "filters": [
-         {
-          "type": "is_preparing",
-          "value": true
-         }
-        ],
-        "take": 1
-       },
-       "amount": {
-        "type": "constant",
-        "value": 1
-       }
-      }
-     ],
-     "limit": {
-      "scope": "battle",
-      "count": 99
-     }
-    },
-    "tags": [
-     "termination"
-    ]
-   },
    "block_focus": {
     "id": "block_focus",
     "displayName": "受け返しの集中",
@@ -9164,13 +8822,9 @@
       "useWhen": []
      }
     ],
-    "reactiveSkillIds": [
-     "damage_echo"
-    ],
+    "reactiveSkillIds": [],
     "intrinsicRules": [],
-    "tags": [
-     "termination"
-    ],
+    "tags": [],
     "might": 48,
     "focus": 48,
     "guard": 0
@@ -9439,12 +9093,9 @@
       "useWhen": []
      }
     ],
-    "reactiveSkillIds": [
-     "damage_echo"
-    ],
+    "reactiveSkillIds": [],
     "intrinsicRules": [],
     "tags": [
-     "termination",
      "playable"
     ],
     "might": 48,
@@ -9619,12 +9270,6 @@
   "urging": "急かす",
   "brace_after_hit": "受け流し",
   "triage_relay": "連携治療",
-  "ap_loop": "行動権の循環",
-  "damage_echo": "痛みの反響",
-  "barrier_bloom": "防壁の花",
-  "relay_front": "前列への号令",
-  "relay_rear": "後列への号令",
-  "prep_spiral": "準備の螺旋",
   "block_focus": "受け返しの集中",
   "barrier_stitch": "防壁の縫い直し",
   "emergency_treatment": "応急処置",
@@ -10317,38 +9962,6 @@
     "label": "連携治療",
     "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
     "grammar": "回復"
-   },
-   "ap_loop": {
-    "id": "ap_loop",
-    "kind": "reactive",
-    "definitionId": "ap_loop",
-    "label": "行動権の循環",
-    "effect": "行動権を得たとき、RP1で前衛へもう一度渡す。",
-    "grammar": "資源"
-   },
-   "damage_echo": {
-    "id": "damage_echo",
-    "kind": "reactive",
-    "definitionId": "damage_echo",
-    "label": "痛みの反響",
-    "effect": "被弾した敵へ、RP1で腕力の25%ダメージを返す。",
-    "grammar": "被弾"
-   },
-   "barrier_bloom": {
-    "id": "barrier_bloom",
-    "kind": "reactive",
-    "definitionId": "barrier_bloom",
-    "label": "防壁の花",
-    "effect": "防壁を得たとき、RP1でさらに技術の25%の防壁。",
-    "grammar": "防壁"
-   },
-   "prep_spiral": {
-    "id": "prep_spiral",
-    "kind": "reactive",
-    "definitionId": "prep_spiral",
-    "label": "準備の螺旋",
-    "effect": "準備が進むたび、RP1で自分の準備をさらに1段進める。",
-    "grammar": "準備"
    },
    "block_focus": {
     "id": "block_focus",
@@ -11517,38 +11130,6 @@
    "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
    "grammar": "回復"
   },
-  "ap_loop": {
-   "id": "ap_loop",
-   "kind": "reactive",
-   "definitionId": "ap_loop",
-   "label": "行動権の循環",
-   "effect": "行動権を得たとき、RP1で前衛へもう一度渡す。",
-   "grammar": "資源"
-  },
-  "damage_echo": {
-   "id": "damage_echo",
-   "kind": "reactive",
-   "definitionId": "damage_echo",
-   "label": "痛みの反響",
-   "effect": "被弾した敵へ、RP1で腕力の25%ダメージを返す。",
-   "grammar": "被弾"
-  },
-  "barrier_bloom": {
-   "id": "barrier_bloom",
-   "kind": "reactive",
-   "definitionId": "barrier_bloom",
-   "label": "防壁の花",
-   "effect": "防壁を得たとき、RP1でさらに技術の25%の防壁。",
-   "grammar": "防壁"
-  },
-  "prep_spiral": {
-   "id": "prep_spiral",
-   "kind": "reactive",
-   "definitionId": "prep_spiral",
-   "label": "準備の螺旋",
-   "effect": "準備が進むたび、RP1で自分の準備をさらに1段進める。",
-   "grammar": "準備"
-  },
   "block_focus": {
    "id": "block_focus",
    "kind": "reactive",
@@ -12249,10 +11830,6 @@
   "urging",
   "brace_after_hit",
   "triage_relay",
-  "ap_loop",
-  "damage_echo",
-  "barrier_bloom",
-  "prep_spiral",
   "block_focus",
   "barrier_stitch",
   "mend",
@@ -13048,25 +12625,14 @@
    ]
   },
   {
-   "id": "node_prep_spiral",
-   "skillId": "prep_spiral",
+   "id": "node_mercy_into_guard",
+   "skillId": "mercy_into_guard",
    "kind": "reactive",
    "branch": "支援",
    "x": 9,
    "cost": 1,
    "requires": [
     "urging"
-   ]
-  },
-  {
-   "id": "node_mercy_into_guard",
-   "skillId": "mercy_into_guard",
-   "kind": "reactive",
-   "branch": "支援",
-   "x": 10,
-   "cost": 1,
-   "requires": [
-    "prep_spiral"
    ]
   },
   {
@@ -13125,8 +12691,8 @@
    ]
   },
   {
-   "id": "node_damage_echo",
-   "skillId": "damage_echo",
+   "id": "node_vengeful_step",
+   "skillId": "vengeful_step",
    "kind": "reactive",
    "branch": "攻撃",
    "x": 5,
@@ -13136,36 +12702,14 @@
    ]
   },
   {
-   "id": "node_vengeful_step",
-   "skillId": "vengeful_step",
-   "kind": "reactive",
-   "branch": "攻撃",
-   "x": 6,
-   "cost": 1,
-   "requires": [
-    "damage_echo"
-   ]
-  },
-  {
    "id": "node_guard_step",
    "skillId": "guard_step",
    "kind": "reactive",
    "branch": "指揮",
-   "x": 7,
+   "x": 6,
    "cost": 1,
    "requires": [
     "vengeful_step"
-   ]
-  },
-  {
-   "id": "node_ap_loop",
-   "skillId": "ap_loop",
-   "kind": "reactive",
-   "branch": "指揮",
-   "x": 8,
-   "cost": 1,
-   "requires": [
-    "guard_step"
    ]
   },
   {
@@ -13173,10 +12717,10 @@
    "skillId": "read_the_charge",
    "kind": "reactive",
    "branch": "指揮",
-   "x": 9,
+   "x": 7,
    "cost": 1,
    "requires": [
-    "ap_loop"
+    "guard_step"
    ]
   },
   {
@@ -13184,7 +12728,7 @@
    "skillId": "break_the_charge",
    "kind": "reactive",
    "branch": "指揮",
-   "x": 10,
+   "x": 8,
    "cost": 1,
    "requires": [
     "read_the_charge"
@@ -13345,8 +12889,8 @@
    ]
   },
   {
-   "id": "node_barrier_bloom",
-   "skillId": "barrier_bloom",
+   "id": "node_barrier_stitch",
+   "skillId": "barrier_stitch",
    "kind": "reactive",
    "branch": "守り",
    "x": 6,
@@ -13356,22 +12900,11 @@
    ]
   },
   {
-   "id": "node_barrier_stitch",
-   "skillId": "barrier_stitch",
-   "kind": "reactive",
-   "branch": "守り",
-   "x": 7,
-   "cost": 1,
-   "requires": [
-    "barrier_bloom"
-   ]
-  },
-  {
    "id": "node_wake_of_the_fallen",
    "skillId": "wake_of_the_fallen",
    "kind": "reactive",
    "branch": "守り",
-   "x": 8,
+   "x": 7,
    "cost": 1,
    "requires": [
     "barrier_stitch"
@@ -13382,7 +12915,7 @@
    "skillId": "warded_into_edge",
    "kind": "reactive",
    "branch": "守り",
-   "x": 9,
+   "x": 8,
    "cost": 1,
    "requires": [
     "wake_of_the_fallen"
@@ -13393,7 +12926,7 @@
    "skillId": "blocked_into_step",
    "kind": "reactive",
    "branch": "守り",
-   "x": 10,
+   "x": 9,
    "cost": 1,
    "requires": [
     "warded_into_edge"
@@ -13727,12 +13260,6 @@
   "urging": 1,
   "brace_after_hit": 10,
   "triage_relay": 10,
-  "ap_loop": 1,
-  "damage_echo": 10,
-  "barrier_bloom": 10,
-  "relay_front": 1,
-  "relay_rear": 1,
-  "prep_spiral": 1,
   "block_focus": 1,
   "barrier_stitch": 1,
   "emergency_treatment": 10,
@@ -14099,7 +13626,6 @@
    ],
    "reactiveSkillIds": [
     "counter_blow",
-    "damage_echo",
     "scavenge_ap",
     "whetted_by_pain",
     "opportunist",
@@ -14204,7 +13730,6 @@
    "reactiveSkillIds": [
     "cover_ally",
     "guard_step",
-    "barrier_bloom",
     "block_focus",
     "barrier_stitch",
     "shield_handoff",
@@ -14254,8 +13779,6 @@
    ],
    "reactiveSkillIds": [
     "urging",
-    "ap_loop",
-    "prep_spiral",
     "patient_step",
     "read_the_charge",
     "break_the_charge",
@@ -14274,7 +13797,6 @@
    ],
    "coreReactiveSkillIds": [
     "urging",
-    "ap_loop",
     "patient_step",
     "read_the_charge",
     "break_the_charge"

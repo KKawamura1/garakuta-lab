@@ -60,7 +60,7 @@ export const SKILL_PACKS = Object.freeze([
     //   盤面を読む: opening_stab（1ラウンド目）/ execute_low（瀕死が居るか）
     //   倒さずに削る: hamstring（怯み）/ rend（裂傷。受けを無視する）
     activeSkillIds: Object.freeze(["heavy_swing", "long_swing", "hunt_the_slow", "rapid_cuts", "pierce_thrust", "guard_crush", "rear_hunt", "finishing_thrust", "crack_mark", "reckless_swing", "double_back", "spread_cut", "opening_stab", "bloodied_charge", "hamstring", "execute_low", "rend"]),
-    reactiveSkillIds: Object.freeze(["counter_blow", "damage_echo", "scavenge_ap", "whetted_by_pain", "opportunist", "vengeful_step", "finish_the_wounded"]),
+    reactiveSkillIds: Object.freeze(["counter_blow", "scavenge_ap", "whetted_by_pain", "opportunist", "vengeful_step", "finish_the_wounded"]),
     passiveSkillIds: Object.freeze(["first_blood", "edge_honed"]),
     // 問い:「同じ一撃でも、誰へ、どんな受けの相手へ当てるかで結果が変わる」。
     coreActiveSkillIds: Object.freeze(["heavy_swing", "pierce_thrust", "finishing_thrust", "rear_hunt", "hamstring"]),
@@ -99,7 +99,7 @@ export const SKILL_PACKS = Object.freeze([
     //   面の守り: shield_wall / spread_the_guard / 体で張る: bulwark_of_will
     //   飛んでくる数字を削る: absorb_shock / 狙われた本人を厚くする: guard_the_marked
     activeSkillIds: Object.freeze(["reposition", "row_sweep", "column_thrust", "brace_for_impact", "drag_forward", "shield_wall", "rally_line", "bulwark_of_will", "spread_the_guard", "bracing_thrust"]),
-    reactiveSkillIds: Object.freeze(["cover_ally", "guard_step", "barrier_bloom", "block_focus", "barrier_stitch", "shield_handoff", "absorb_shock", "guard_the_marked", "last_stand", "counterweight"]),
+    reactiveSkillIds: Object.freeze(["cover_ally", "guard_step", "block_focus", "barrier_stitch", "shield_handoff", "absorb_shock", "guard_the_marked", "last_stand", "counterweight"]),
     passiveSkillIds: Object.freeze(["opening_guard", "wall_reader"]),
     // 問い:「誰を守り、守った結果をどう使うか」（R9 §3 の Stage 1）。
     coreActiveSkillIds: Object.freeze(["reposition", "brace_for_impact", "column_thrust", "spread_the_guard"]),
@@ -118,11 +118,11 @@ export const SKILL_PACKS = Object.freeze([
     //   宣言に割り込む: counter_order（鈍らせる）/ stall_the_blow（消す・戦闘1回）
     //   味方側: hasten_ally（遅い者へ）/ call_the_slow（後列へ反応権）/ set_the_pace
     activeSkillIds: Object.freeze(["relay_order", "mark_target", "steady_aim", "hasten_ally", "call_the_slow", "feint", "set_the_pace"]),
-    reactiveSkillIds: Object.freeze(["urging", "ap_loop", "prep_spiral", "patient_step", "read_the_charge", "break_the_charge", "counter_order", "stall_the_blow"]),
+    reactiveSkillIds: Object.freeze(["urging", "patient_step", "read_the_charge", "break_the_charge", "counter_order", "stall_the_blow"]),
     passiveSkillIds: Object.freeze(["held_breath", "first_order"]),
     // 問い:「誰がいつ動くと得か」（R9 §3 の Stage 2）。
     coreActiveSkillIds: Object.freeze(["relay_order", "steady_aim", "mark_target", "hasten_ally"]),
-    coreReactiveSkillIds: Object.freeze(["urging", "ap_loop", "patient_step", "read_the_charge", "break_the_charge"]),
+    coreReactiveSkillIds: Object.freeze(["urging", "patient_step", "read_the_charge", "break_the_charge"]),
     corePassiveSkillIds: Object.freeze(["held_breath"]),
     tags: Object.freeze(["tempo", "preparation"]),
   }),

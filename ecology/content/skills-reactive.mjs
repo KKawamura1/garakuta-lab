@@ -18,12 +18,6 @@ export const REACTIVE_SKILL_NAMES = {
   urging: "急かす",
   brace_after_hit: "受け流し",
   triage_relay: "連携治療",
-  ap_loop: "行動権の循環",
-  damage_echo: "痛みの反響",
-  barrier_bloom: "防壁の花",
-  relay_front: "前列への号令",
-  relay_rear: "後列への号令",
-  prep_spiral: "準備の螺旋",
   block_focus: "受け返しの集中",
   barrier_stitch: "防壁の縫い直し",
   emergency_treatment: "応急処置",
@@ -84,16 +78,9 @@ for (const [id, scaling] of Object.entries(REACTIVE_SCALING)) {
   scaleDefinitionAmounts(reactiveSkills[id], scaling);
 }
 
-// R5 termination witnesses are also kept as compatibility definitions in the
-// playable bundle.  They must not remain free production rules: each one can
-// turn a normal event into another resource/damage/preparation event, and five
-// actors carrying four of them can fan out across many chains.  The fixture
-// still exercises the free forms; player-facing copies pay the same finite RP
-// budget as every other resource-producing reaction.
-for (const definition of Object.values(reactiveSkills)) {
-  if (!(definition.tags ?? []).includes("termination")) continue;
-  definition.rule.costs = [{ type: "spend_reaction_points", amount: 1 }];
-}
+// R5 termination witnesses are test-only. They remain available through
+// FIXTURE_CONTENT for termination.test.mjs, but are removed from the playable
+// export below so self-triggering safety probes cannot become player skills.
 
 // 余剰治療は汎用、連携治療は応急手当専用。汎用側を無償にすると
 // 後者の完全な上位互換になるため、両方ともRP1を払い、専用側だけ
@@ -845,4 +832,10 @@ reactiveSkills.bleed_into_wake = reaction("bleed_into_wake", REACTIVE_SKILL_NAME
   limit: { scope: "chain", count: 1 },
 }, ["reaction", "relay", "mark"]);
 
-export const REACTIVE_SKILLS = reactiveSkills;
+const playableReactiveSkills = Object.fromEntries(
+  Object.entries(reactiveSkills).filter(
+    ([, definition]) => !(definition.tags ?? []).includes("termination"),
+  ),
+);
+
+export const REACTIVE_SKILLS = playableReactiveSkills;
