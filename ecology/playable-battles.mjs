@@ -630,10 +630,14 @@ export function allEncounters() {
 // R14 §1 — **どの盤面を予測するかは呼び出し側が渡せる。**序盤の「灰の門」は
 // 12戦の梯子に属さないので composeEncounter からは出てこない（prologueEncounter が
 // 出す）。渡されなければ従来どおり encounterIndex から組む。
-export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
+const EXPEDITION_SIMULATION_OPTIONS = Object.freeze({ equipmentBreaks: false });
+
+// preview と本番が、BattleInput の構成と simulateBattle の固定オプションを共有する唯一の入口。
+export function simulateExpeditionBattle(run, profile, encounterIndex, options = {}) {
   const composed = options.composed
     ?? composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
   const loadout = run.loadout ?? freshLoadout(run.roster);
+  const content = runContentBundle(run);
   const battleInput = makeExpeditionBattle(
     composed,
     run.roster,
@@ -641,18 +645,30 @@ export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
     run.runSeed,
     run.formation,
     {
-      hp: run.currentHp,
+      hp: options.hp ?? run.currentHp,
+      equipmentDurability: options.equipmentDurability,
+      limitsFor: options.limitsFor,
       statsFor: (characterId) => characterStats(profile, characterId),
-      // R19（issue #137）— **予測と本番は同じ経路**なので、技能レベルもここで一度だけ渡す。
       skillLevelsFor: (characterId) => runSkillLevelsFor(run, characterId),
-      content: runContentBundle(run),
+      content,
     },
   );
-  const content = runContentBundle(run);
-  const result = simulateBattle(battleInput, content);
+  const result = simulateBattle(
+    battleInput,
+    content,
+    {
+      ...EXPEDITION_SIMULATION_OPTIONS,
+      ...(options.simulationOptions ?? {}),
+      // 装備破損の扱いは、予測と本番で必ず同じにする。
+      equipmentBreaks: false,
+    },
+  );
   return { composed, battleInput, result, content };
 }
 
+export function simulateNextBattle(run, profile, encounterIndex, options = {}) {
+  return simulateExpeditionBattle(run, profile, encounterIndex, options);
+}
 function battleResultSummary(run, result) {
   const perCharacter = run.roster.map((characterId) => {
     const actor = result.actors.find((entry) => entry.instanceId === "a_" + characterId);
@@ -688,4 +704,3 @@ export function previewNextBattle(run, profile, encounterIndex, options = {}) {
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。
 export { ENEMY_TARGETING as enemyTargeting, SKILL_TREE_NODES, CHARACTER_DEFINITIONS };
-

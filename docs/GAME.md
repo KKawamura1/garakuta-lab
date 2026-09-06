@@ -63,9 +63,10 @@ Stage 0 を初めて遊ぶときだけ、**本当に負ける配置**で始ま�
 メンバーの予測 HP と減少量、勝敗、要したラウンド数です。技能・装備・隊列を触るたびに
 その場で組み直されます。
 
-- **予測と本番は同じ経路（`previewNextBattle` → `simulateNextBattle` →
-  `makeExpeditionBattle` → `simulateBattle`）を通ります。**構成を変えずに再生すれば、
-  予測と完全に同じ結果になります。preview 専用の試算は持ちません。
+- **予測と本番は、共有関数 `simulateExpeditionBattle` → `makeExpeditionBattle` →
+  `simulateBattle` の同じ経路を通ります。** `previewNextBattle` / `simulateNextBattle` と
+  本番の戦闘開始は、隊列・技能・技能レベル・HP・装備耐久・content・戦闘オプションを
+  同じ入力として渡すため、予測と完全に同じ結果・イベント列になります。
 - 出ないのは灰の門の一戦だけです。
 
 ## 4. 技能は取得を忘れない、装着は自由
