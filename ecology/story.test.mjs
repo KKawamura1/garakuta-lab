@@ -527,7 +527,15 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   //
   // dialogue.mjs 冒頭の規約。**いまは偶然守れているだけで、検査が無かった。**
   // 地の文はゲーム側の語りなので、ここでは台詞だけを見る。
-  const systemWords = /腕力|集中値|受け値|行動権|反応点|隊列|後列|前列|手番|ラウンド/;
+  // R16追補（作者指摘）— 語彙一覧が能力値と盤面の語しか見ておらず、**同じ意味の
+  // 言い換え**を通していた（ナギ「火力とか、無いですけど」）。数量や仕様を指す言葉も
+  // 落とす。ただし検査できるのは語だけで、「戻せるのは、いま受けたぶんだけです」の
+  // ような言い回しは拾えない。**規約（dialogue.mjs 冒頭）のほうが検査より広い。**
+  const systemWords = new RegExp([
+    "腕力", "集中値", "受け値", "行動権", "反応点", "隊列", "後列", "前列", "手番", "ラウンド",
+    "火力", "威力", "命中率", "回復量", "耐久値", "射程", "確率", "レベル", "スキル",
+    "ステータス", "バフ", "デバフ", "ターン",
+  ].join("|"));
   for (const [beatId, entry] of Object.entries(DIALOGUE)) {
     for (const line of entry.lines) {
       if (!line.who) continue;
