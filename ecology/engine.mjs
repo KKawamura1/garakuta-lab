@@ -39,6 +39,7 @@ import {
 } from "./effects.mjs";
 import { validateBattleInput as validateInput, validateContentBundle } from "./validate.mjs";
 import { EcologyValidationError, formatValidationErrors } from "./errors.mjs";
+import { withStaticStatBonuses } from "./static-bonuses.mjs";
 
 export { validateContentBundle };
 
@@ -108,7 +109,14 @@ function buildState(input, content, options) {
     // instance. **The engine does not know what training is**: it reads a stat
     // override and keeps the levels only as a record for the causal log.
     const allyStats = statsOf(definition, ally.stats);
-    addActor(state, withPassiveBonuses(content, {
+    const allyEquipment = ally.equipment.map((item) => ({
+      instanceId: item.instanceId,
+      equipmentId: item.equipmentId,
+      durability: item.durability,
+      maxDurability: content.equipment[item.equipmentId].maxDurability,
+      broken: item.durability === 0 && options.equipmentBreaks !== false,
+    }));
+    addActor(state, withStaticStatBonuses(content, {
       instanceId: ally.instanceId,
       side: "ally",
       definitionId: ally.characterId,
@@ -130,14 +138,8 @@ function buildState(input, content, options) {
       tactics: ally.tactics.map((tactic) => ({ ...tactic })),
       reactiveSkillIds: [...ally.reactiveSkillIds],
       passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
-      equipment: ally.equipment.map((item) => ({
-        instanceId: item.instanceId,
-        equipmentId: item.equipmentId,
-        durability: item.durability,
-        maxDurability: content.equipment[item.equipmentId].maxDurability,
-        broken: item.durability === 0 && options.equipmentBreaks !== false,
-      })),
-    }, ally.passiveSkillIds));
+      equipment: allyEquipment,
+    }, ally.passiveSkillIds, allyEquipment));
   }
 
   for (const enemy of input.enemies) {
@@ -146,7 +148,7 @@ function buildState(input, content, options) {
     // from the other side: a visible, pre-battle stat override plus the ids that
     // produced it. No engine branch on an individual enemy id.
     const enemyStats = statsOf(definition, enemy.stats);
-    addActor(state, withPassiveBonuses(content, {
+    addActor(state, withStaticStatBonuses(content, {
       instanceId: enemy.instanceId,
       side: "enemy",
       definitionId: enemy.enemyActorId,
@@ -165,7 +167,7 @@ function buildState(input, content, options) {
       reactiveSkillIds: [...definition.reactiveSkillIds],
       passiveSkillIds: [...(definition.passiveSkillIds ?? [])],
       equipment: [],
-    }, definition.passiveSkillIds));
+    }, definition.passiveSkillIds, []));
   }
 
   return state;
@@ -193,26 +195,6 @@ function baseStatsOf(definition) {
     focus: definition.focus ?? 0,
     guard: definition.guard ?? 0,
   };
-}
-
-// R6 §6.8 — passive の statBonus を足し込む。**maxHp を先に決めてから hp を決める**
-// （順番を逆にすると、地力を取った回の開始 HP が上限より低くなる）。
-function withPassiveBonuses(content, fields, passiveSkillIds) {
-  const next = { ...fields };
-  // 満タンで入ってきたのかを、上げる前に覚えておく。
-  const startedFull = next.hp >= next.maxHp;
-  for (const id of passiveSkillIds ?? []) {
-    const bonus = content.passiveSkills?.[id]?.statBonus;
-    if (!bonus) continue;
-    if (bonus.max_hp) next.maxHp += bonus.max_hp;
-    if (bonus.might) next.might = (next.might ?? 0) + bonus.might;
-    if (bonus.focus) next.focus = (next.focus ?? 0) + bonus.focus;
-    if (bonus.guard) next.guard = (next.guard ?? 0) + bonus.guard;
-  }
-  // 満タンで来た人は、上限が上がったぶんも満たして始める。
-  // 途中の HP を持ち越している人（Phase B の補給）は、その値のまま。
-  if (startedFull) next.hp = next.maxHp;
-  return next;
 }
 
 function addActor(state, fields) {
@@ -1293,4 +1275,3 @@ function maxChainEventCount(state) {
   }
   return counts.size === 0 ? 0 : Math.max(...counts.values());
 }
-
