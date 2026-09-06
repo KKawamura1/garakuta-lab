@@ -751,3 +751,34 @@ DESIGN.md §6.4.2 に五つ目として書き、`ecology/story.test.mjs` が検�
 「三つとも初めて聞きました」「なぜ怪我をした人と同じ数字になるんですか」は、
 作者が R15 で承認した開幕の「もう、ゴウ！ あと二分くらい待てたでしょう！」と
 **同じ人物に読めない。**
+
+### 3.32 立ち絵を、生成 SVG から暫定バストアップ画像へ差し替えた（PR #143 続き、2026-09-06）
+
+PR #143 で、会話UI向けの暫定バストアップ5枚（ゴウ／ツグミ／ナギ／ヒバナ／ゲンゾウ、
+`docs/art/bustup_v0/*.png`）と、その視覚方向をまとめた `docs/art/CHARACTER_ART.md` が
+用意された。以前の立ち絵（`ecology/content/portraits.mjs`）は、決定的・オフライン・
+表情差分を安く増やせることを理由に、髪・肌・装いを座標で組み立てる SVG 生成だった
+（`docs/DESIGN.md` §10 参照）。作者からの指示で、この見た目の作り込みより実際の
+絵の質を優先する方針へ切り替え、生成 SVG をやめて実際の画像を参照する形にした。
+
+- `docs/art/bustup_v0/*.png`（PR #143 の成果物）をそのまま参照する。新しい画像置き場は
+  作らず、既存のパスを正本にした。
+- `PORTRAITS` から、SVG 生成専用だった `skin` / `hair` / `garb` / `fringe` / `back` /
+  `tail` / `shoulder` / `collar` / `accessory` を削除し、`accent`（UI の差し色）と
+  `image`（`docs/art/bustup_v0/` 内のファイル名）だけを残した。あわせて `hairMass`、
+  `backHair`、`sideTail`、`shoulders`、`collar`、`accessory`、`eyes`、`brows`、
+  `mouth`、`blush`、`head` など、SVG のパスを座標計算で組み立てていた内部関数を
+  まとめて削除した——使う先が無くなったため。
+- `portraitSvg()` は `<svg class="portrait-svg" viewBox="0 0 240 320">` の中に
+  `<image>` を1枚敷くだけの薄い関数になった。**呼び出し側との契約は変えていない**
+  ——引数の形も、返り値が `<svg ...>` で始まり `</svg>` で終わる決定的な文字列である
+  ことも同じなので、`app.js` 側の3箇所（名簿カード、会話画面、もう1つの会話画面）も
+  `story.test.mjs` の形状検査もそのまま通る。
+- **表情差分は今回作っていない。**表情ごとの絵がまだ無いため、`expression` 引数は
+  受け取るが無視し、`EXPRESSIONS` の8キーすべてが同じ1枚を指す。`EXPRESSIONS` 自体は
+  「表情 id が実在するか」を検証する側（`beat.mjs`）がまだ使っているため、キーの集合
+  だけ残し、中身は空オブジェクトにした。表情ごとの絵が揃ったら、`PORTRAITS` の画像
+  参照を表情別の map に分けて対応する。
+- `docs/GAME.md` の立ち絵の記述と `ecology/content/portraits.mjs` 冒頭のコメントを、
+  画像参照であることが分かる内容に更新した。設計判断そのものの変更点は
+  `docs/DESIGN.md` §10 に置いた。
