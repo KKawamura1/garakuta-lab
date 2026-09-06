@@ -1323,7 +1323,7 @@ function renderExpeditionStart() {
   const campaignSection = "<section class=\"card\">" + sectionHeading(
       "CAMPAIGN STAGE", "行き先を選ぶ",
       "<span class=\"stage\">解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) + "</span>")
-    + "<p class=\"operation-note\">Stageは前のStageをクリアした順に解禁され、飛ばせません。</p>"
+    + "<p class=\"operation-note\">区画は前の区画をクリアした順に解禁され、飛ばせません。</p>"
     + "<div class=\"difficulty-grid\">" + campaignStages.map(campaignStageCard).join("") + "</div>"
     + (CAMPAIGN_STAGES[state.selectedCampaignStageSequence]?.learningGoals?.length
       ? "<ul class=\"boss-counters\">" + CAMPAIGN_STAGES[state.selectedCampaignStageSequence].learningGoals
@@ -1645,7 +1645,7 @@ function renderBlueprints() {
     return "<article class=\"reward-card blueprint-card rarity-card-" + esc(entry.rarity ?? "common")
       + (chosen ? " selected" : "")
       + (verdict.ok ? "" : " disabled") + "\">"
-      + "<div class=\"reward-kind kind-equipment\">Blueprint</div>"
+      + "<div class=\"reward-kind kind-equipment\">設計図</div>"
       + "<h3>" + esc(entry.definition.displayName) + rarityChip(entry.rarity) + "</h3>"
       + equipmentRarityCallout({ rarity: entry.rarity, readout: entry.readout })
       + readout
@@ -1669,7 +1669,7 @@ function renderBlueprints() {
     + "<p class=\"muted\">遠征で見つけた装備は、遠征が終わるときに設計図として残ります"
     + "（勝利2件・安全撤退2件・敗北1件）。<b>設計図そのものに所持上限はありません。</b>"
     + "遠征開始時に持ち込めるのは持込枠のぶんだけで、持ち込んだ品は"
-    + "その遠征の affix family の外でもそのまま動きます。</p>"
+    + "その遠征で選ばれた装備の系統の外でも、そのまま動きます。</p>"
     + "<div class=\"flow-actions\">" + rarityFilters + "</div>"
     + (entries.length
       ? "<div class=\"reward-grid\">" + cards + "</div>"
@@ -2131,7 +2131,7 @@ function renderRoster() {
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 const SLOT_TITLES = {
   active: "行動（優先順）",
-  reactive: "リアクティブ（条件発火）",
+  reactive: "反応",
   passive: "常設（いつでも効く）",
 };
 
@@ -2205,7 +2205,7 @@ function skillBuildSummary(characterId) {
   const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
   const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
   const slotLabel = selectedNode?.kind === "active" ? "行動枠"
-    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "常設枠";
+    : selectedNode?.kind === "reactive" ? "反応枠" : "常設枠";
   const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
     ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
@@ -3383,12 +3383,12 @@ function renderBattleError() {
     + esc(actorLabels[diagnostics.currentActorId] ?? diagnostics.currentActorId ?? "—") + "</b><small>実行中</small></span><span><b>"
     + esc(diagnostics.chainId ?? "—") + "</b><small>チェーン</small></span><span><b>" + recent.length + "</b><small>直前ログ</small></span></div></section>"
     + "<section class=\"card\">" + sectionHeading("DIAGNOSTICS", "直前のイベント")
-    + "<p class=\"muted\">技能やリアクティブの組み合わせで、同じイベントが繰り返されていないか確認できます。</p><ol class=\"events diagnostic-events\">"
+    + "<p class=\"muted\">技能や反応の組み合わせで、同じイベントが繰り返されていないか確認できます。</p><ol class=\"events diagnostic-events\">"
     + recent.map((event) => "<li class=\"event\"><span class=\"event-round\">R" + (event.round ?? "-") + "</span><span>"
       + esc(diagnosticEventText(event, actorLabels)) + "</span></li>").join("") + "</ol>"
-    + (stack.length ? "<details><summary>発火中のリアクティブ</summary><pre>" + esc(JSON.stringify(stack, null, 2)) + "</pre></details>" : "")
+    + (stack.length ? "<details><summary>発火中の反応</summary><pre>" + esc(JSON.stringify(stack, null, 2)) + "</pre></details>" : "")
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
-    + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やすリアクティブをオフにして再試行してください。</p>"
+    + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やす反応をオフにして再試行してください。</p>"
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
     + button("キャンプへ戻る", "back-battle-preview", false, "button") + "</div></section>");
 }
@@ -3649,7 +3649,7 @@ function blueprintSettlementSection(settlement) {
       ? "<p class=\"muted\">この遠征で見つけた装備 " + found + " 品のうち、等級の高い "
         + saved.length + " 品だけを残しました。</p>"
       : "")
-    + "<p class=\"muted\">設計図はギルドの Blueprint 画面から、次の遠征へ持ち込めます"
+    + "<p class=\"muted\">設計図はギルドの設計図画面から、次の遠征へ持ち込めます"
     + "（持込枠 " + blueprintCarryCapacity(state.profile) + "）。</p></section>";
 }
 
@@ -3711,7 +3711,7 @@ function renderSettlement() {
     ["撃破した戦闘", b.clearedEncounterBase],
     ["到達距離（" + state.run.fundLedger.highestClearedEncounter + "戦 × 25）", b.distance],
     ["12戦完走", b.outcomeBonus],
-    ["この Stage の初回クリア", b.firstClearBonus],
+    ["この区画の初回クリア", b.firstClearBonus],
   ].map(([label, value]) => "<div class=\"settle-row\"><span>" + esc(label) + "</span><b>" + value + "</b></div>").join("");
   const title = won ? "遠征を終えた" : retreated ? "安全に撤退した" : "遠征は途中で終わった";
   return shell(title,
@@ -3734,7 +3734,7 @@ function renderSettlement() {
     + stageEndStorySection(settlement)
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
       ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
-        + esc(CAMPAIGN_STAGES[settlement.unlockedCampaignStage]?.displayName ?? ("Stage " + settlement.unlockedCampaignStage))
+        + esc(CAMPAIGN_STAGES[settlement.unlockedCampaignStage]?.displayName ?? ("区画 " + settlement.unlockedCampaignStage))
         + " が開いた</h3></section>"
       : "")
     + "<section class=\"card quiet\">"
@@ -4400,7 +4400,7 @@ function handleAction(event) {
       return;
     }
     if (rosterLocked()) {
-      state.error = "この Stage の同行者は物語が決めます。一度クリアすると自由に選べます。";
+      state.error = "この区画の同行者は物語が決めます。一度クリアすると自由に選べます。";
       render();
       return;
     }
@@ -4436,7 +4436,7 @@ function handleAction(event) {
         record("roster_changed", { roster: [...state.run.roster], removed: id });
       }
     } else if (rosterLocked()) {
-      state.error = "この Stage の同行者は物語が決めます。一度クリアすると自由に選べます。";
+      state.error = "この区画の同行者は物語が決めます。一度クリアすると自由に選べます。";
     } else if (state.run.roster.length >= runPartySize()) {
       state.error = "編成は" + runPartySize() + "人までです。";
     } else {
