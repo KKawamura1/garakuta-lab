@@ -1814,8 +1814,13 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .vn-figure[data-character="warden"] {
   --portrait-scale: 1.4;
-  /* 1.2倍で頭頂部が上端へ寄るため、下側を台詞窓へ逃がして頭を見せる。 */
+  /* 1.4倍で頭頂部が上端へ寄るため、下側を台詞窓へ逃がして頭を見せる。 */
   --portrait-y: 70px;
+}
+
+.vn-figure[data-character="lancer"],
+.vn-figure[data-character="tactician"] {
+  --portrait-scale: 1.1;
 }
 .vn-figure .portrait-svg { display: block; width: 100%; height: 100%; }
 .vn-figure.at-left { transform: translateX(6%) translateY(var(--portrait-y)) scale(var(--portrait-scale)); }
