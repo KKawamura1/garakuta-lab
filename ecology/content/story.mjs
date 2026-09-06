@@ -92,9 +92,9 @@ export const PROLOGUE = Object.freeze({
 export const STORY_BEATS = Object.freeze({
   stage_0_edge: Object.freeze({
     // ---- 幕の切れ目（R12 §4.C）。4・8・12戦目の前に置く ----
-    act1: beat("stage_0_act1", "帳面のはじめ", {
+    act1: beat("stage_0_act1", "腕を借りる", {
       mood: "ash",
-      place: "浅い層の休み場",
+      place: "門を抜けて最初の休み場",
       cast: castFor("stage_0_act1"),
       lines: dialogueFor("stage_0_act1"),
     }),
@@ -122,25 +122,32 @@ export const STORY_BEATS = Object.freeze({
       place: "灰の門",
       cast: castFor("stage_0_prologue_defeat"),
       lines: dialogueFor("stage_0_prologue_defeat"),
-      // R16追補（作者指摘）— **杭は公的に存在する備品である。**そうでないと、この直後に
-      // ツグミが「『杭』、使いました？」と名指しできない。初稿は「灰から拾ったもの」
+      // R16追補（作者稿）— **杭は公的に存在する備品である。**そうでないと、この直後に
+      // ツグミが「「杭」、使いました？」と名指しできない。初稿は「灰から拾ったもの」
       // 「詰所の台帳に、その報告は無い」と書いており、**誰も知らない品**になっていた。
-      // 伏せるのは品物ではなく、戻ったあとに何を見たかのほうである。
-      footer: "杭は詰所が貸し出す備品である。隊から死者が出たとき、備蓄を食い尽くして、その一戦の前まで時間を巻き戻す。戻ったあとに何を見たかを書き残した者は、まだ一人もいない。",
+      //
+      // **引くのは持ち主で、死んだから戻るのではない**（作者指摘）。ゴウは巻き戻したいと
+      // 思って引いた。平時の利用が許可されていないので、彼の「台帳にも書かねえ」は
+      // 隠しごとであり、同時に拾い屋がみなやっていることでもある。
+      footer: "杭は詰所が貸し出す備品である。坑の中で稀に採取できるが、安定した生産方法は確立されておらず、平時の利用は許可されていない。",
     }),
     prologueRewound: beat("stage_0_prologue_rewound", "もう一度、門の前", {
       mood: "ash",
       place: "灰の門の手前",
       cast: castFor("stage_0_prologue_rewound"),
       lines: dialogueFor("stage_0_prologue_rewound"),
-      footer: "腕力で振る武器は、後列から出すと大きく落ちる。技術で通す技は、後列からでも落ちない。ツグミの応急手当は自分には効かず、前で被るゴウを後ろから支える。",
+      // R16追補（作者稿）— 初稿は「ツグミの応急手当は自分には効かず」まで書いていたが、
+      // ここで渡したい指示は**ツグミを後ろへ下げること**である。手当ての向きは
+      // `prologueWin` の footer が結果として見せる。
+      // 語は画面の表記へ揃えた（スキル→技能、技術力→技術、行えない→届かない）。
+      footer: "多くの攻撃は前列にしか届かない。後列に下がれば生存率は高まるが、腕力を参照する技能の威力は激減する。技術を参照する技能は、後列でも威力が落ちない。",
     }),
     prologueWin: beat("stage_0_prologue_win", "同じ影、違う結果", {
       mood: "dawn",
       place: "灰の門",
       cast: castFor("stage_0_prologue_win"),
       lines: dialogueFor("stage_0_prologue_win"),
-      footer: "同じ盤面でも、誰をどちらの列に置くかで結果が変わる。ツグミは自分ではなくゴウを手当てし、隊列の選択が生き残り方につながる。ここから先も、変えられるのはそこだけ。",
+      footer: "同じ状況でも、隊列が変われば結果が変わる。ツグミは後列に下がってゴウを治療し、ゴウは前列に出て敵の攻撃を受け止めた。未来が見えれば、結果は変えられる。",
     }),
     stageEnd: beat("stage_0_end", "門を抜けた", {
       mood: "dawn",
