@@ -129,7 +129,7 @@ const CHARACTER_LORE_RAW = {
   guardian: {
     name: "ヒバナ",
     epithet: "走る人",
-    summary: "殴らない。走って、拾って、引っ張る。隊で唯一、戦闘中に隊列を動かせる。",
+    summary: "一撃は隊で一番弱い。走って、拾って、引っ張る。隊で唯一、戦闘中に隊列を動かせる。",
     age: "十一歳",
     origin: "坑の中で拾われた",
     figure: [
@@ -160,7 +160,7 @@ const CHARACTER_LORE_RAW = {
   tactician: {
     name: "ゲンゾウ",
     epithet: "書いてきた人",
-    summary: "自分の手番では動かない。他人の手番に割り込んで、当て物を置く。",
+    summary: "自分から攻めるのは遅い。他人の手番に割り込んで、当て物を置くほうが本業である。",
     age: "七十一歳",
     origin: "中央観測院の記録主任",
     figure: [

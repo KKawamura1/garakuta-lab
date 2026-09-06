@@ -67,7 +67,9 @@ try {
   };
   // 条件を満たすまで叩く。**文字送りの速さに検査を依存させない**
   // （一度目の操作で全文が出るので、叩く回数は行の長さで変わる）。
-  const tapUntil = async (predicate, limit = 12) => {
+  // 上限は断片の行数の倍を見込む。**行が一つ増えただけで届かなくなる値にしない**
+  // （検査したいのは条件が満たされることで、何回で満たされるかではない）。
+  const tapUntil = async (predicate, limit = 24) => {
     for (let index = 0; index < limit; index += 1) {
       if (await predicate()) return true;
       if (!(await tapStory())) return predicate();

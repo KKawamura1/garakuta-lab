@@ -36,6 +36,9 @@ export const EXPRESSIONS = Object.freeze({
   hurt: Object.freeze({ eye: 0.30, browY: 2, browTilt: 13, mouth: "worry", closed: false }),
 });
 
+// R16 — **画像で作り直すときに何枚要るか**は `analysis/PORTRAIT_EXPRESSIONS.md` にある
+// （GitHub Issue #135）。台本 274 行での使用数を数えると、ゴウの `shock` が5役、
+// ゲンゾウの `smile` が7役を兼ねている。共通12＋固有33の割り方をそちらへ書いた。
 export const EXPRESSION_KEYS = Object.freeze(Object.keys(EXPRESSIONS));
 export const DEFAULT_EXPRESSION = "neutral";
 
