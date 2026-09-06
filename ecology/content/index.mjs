@@ -148,7 +148,14 @@ export const PLAYABLE_CONTENT = Object.freeze({
 // R19（issue #137）— 技能レベルの上限。**PLAYABLE_CONTENT が組み上がってから引く**
 // ので、定義を書き換えれば上限もついてくる（手書きの表がずれることがない）。
 export const SKILL_LEVEL_CAPS = skillLevelCaps(PLAYABLE_CONTENT);
-export { SKILL_LEVEL_COST, skillLevelCap } from "./skill-levels.mjs";
+export {
+  SKILL_LEVEL_COST,
+  skillLevelCap,
+  // issue #148 — 説明文の数字を、いまのレベルの値で読む。
+  skillLevelValueSteps,
+  skillTextAtLevel,
+  skillTextLevelPlan,
+} from "./skill-levels.mjs";
 
 export const DISPLAY_NAMES = Object.freeze(
   Object.fromEntries(

@@ -60,6 +60,10 @@
 （`forecastKey`、`runSkillLevels` と `runUnlockedSkills` を含む）を見張ります。
 `content/skill-levels.mjs` の `LEVELED_EFFECTS` と `effects.mjs` の `afterSkillLevel` が
 掛かる effect 型が一致しているかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
+技能の説明文は `skillTextAtLevel(text, definition, level)` がいまのレベルの数値へ書き換えて
+表示します（定義から引いた「掛かる量」と一致する字面だけを差し替え、後列減衰や発動条件の
+% は動かしません）。一致が一意でない本文は書き換えず Lv1 の値のまま出し、同じ smoke が
+落とします。
 
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。

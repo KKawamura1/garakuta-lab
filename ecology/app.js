@@ -55,6 +55,9 @@ import {
   SKILL_PACKS,
   SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
+  // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
+  skillLevelValueSteps,
+  skillTextAtLevel,
   // R19（issue #137）— 技能ツリーの座標と表示語彙。
   BRANCH_BUILDS,
   SCOPE_LABELS,
@@ -115,8 +118,7 @@ import {
   toggleFavorite,
 } from "./blueprints.mjs";
 import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
-import { POSITIONS, RUN_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
-import { BPS } from "./values.mjs";
+import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
@@ -2152,7 +2154,7 @@ function skillSlotRows(characterId, kind) {
     const marker = kind === "passive" ? "↳" : index + 1;
     return "<div class=\"installed-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
       + marker + "</span><span class=\"installed-copy\"><b>"
-      + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span>"
+      + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(skillEffectText(characterId, skillId)) + "</small></span>"
       + moveButtons
       + button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
         "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"")
@@ -2315,17 +2317,23 @@ function levelBadge(node, characterId) {
   return "<i class=\"badge-level" + (level >= cap ? " maxed" : "") + "\">Lv " + shown + "/" + cap + "</i>";
 }
 
-// issue #148 — **いまのレベルが実際に何倍にしているかを、節の上で読めるようにする。**
+// issue #148 — **説明文の数字そのものを、いまのレベルの値にする。**
 //
 // レベルが上げるのは威力・治療量・防壁という連続量だけで、AP / RP や段数は
 // 変わらない。1段（+12%）では**次の一戦の予測が動かないことのほうが多い**ので、
-// 「Lv だけ上がって何も強くなっていない」と読めてしまう。戻せない技能点を
-// 払わせる以上、買ったものは倍率そのもので見せる。
-//
-// 係数の作り方は effects.mjs の afterSkillLevel と同じ式である。
-function skillLevelMultiplierText(level) {
-  const bps = BPS + Math.max(0, level - 1) * SKILL_LEVEL_STEP_BPS;
-  return "×" + (Math.round(bps / 100) / 100).toFixed(2);
+// 倍率を別行に添えるだけでは「Lv だけ上がって何も強くなっていない」と読めてしまう。
+// 「腕力130%の一撃」が Lv2 で「腕力146%の一撃」と書かれていれば、その一行で済む
+// （作者指摘）。掛かる数と掛からない数の見分けは content/skill-levels.mjs にある。
+function skillDefinitionOf(skillId) {
+  return PLAYABLE_CONTENT.activeSkills[skillId]
+    ?? PLAYABLE_CONTENT.reactiveSkills[skillId]
+    ?? PLAYABLE_CONTENT.passiveSkills[skillId]
+    ?? null;
+}
+
+function skillEffectText(characterId, skillId) {
+  const text = COMPONENTS[skillId]?.effect ?? "";
+  return skillTextAtLevel(text, skillDefinitionOf(skillId), skillLevelOf(characterId, skillId));
 }
 
 // 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
@@ -2341,25 +2349,28 @@ function levelUpAction(node, characterId, nodeState) {
       + cap + " まで上げられます。</p>";
   }
   const level = skillLevelOf(characterId, node.skillId);
-  // **いま何倍になっているかを先に出す。**次の一戦の予測は 1段では動かないことが
-  // 多く、倍率が無いと「点だけ払って何も起きていない」と読めてしまう。
-  const now = "<p class=\"node-locked level-now\">" + (level > 1
-    ? "いまは Lv " + level + " ＝ 威力・治療量・防壁が Lv 1 の <b>"
-      + skillLevelMultiplierText(level) + "</b>。"
-    : "いまは Lv 1。威力・治療量・防壁はまだ素の値（<b>×1.00</b>）です。") + "</p>";
-  if (level >= cap) return now + "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。</p>";
+  if (level >= cap) {
+    return "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。上の説明は Lv "
+      + level + " の値で書いてあります。</p>";
+  }
   const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
-  return now + button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
+  // **1点で、上の説明のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。
+  const steps = skillLevelValueSteps(
+    COMPONENTS[node.skillId]?.effect ?? "", skillDefinitionOf(node.skillId), level,
+  );
+  const change = steps.length
+    ? "上の説明の数字が <b>"
+      + steps.map((step) => esc(step.from) + " → " + esc(step.to)).join("</b>、<b>") + "</b> になります。"
+    : "威力・治療量・防壁が 12% 上がります。";
+  return button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
     "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
     "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-    + "<p class=\"node-locked\">1段ごとに威力・治療量・防壁が 12% ずつ上がります（Lv "
-    + (level + 1) + " で " + skillLevelMultiplierText(level + 1)
-    + "）。AP / RP や段数・回数は変わりません。<b>1段では次の一戦の予測が動かないこともあります</b>"
+    + "<p class=\"node-locked level-now\">" + change
+    + "AP / RP や段数・回数は変わりません。<b>1段では次の一戦の予測が動かないこともあります</b>"
     + "（倒すのに要るラウンドが変わらなければ、残るHPも変わりません）。</p>";
 }
 
 function renderSkillDetail(row, node, characterId, nodeState) {
-  const info = COMPONENTS[node.skillId];
   const derived = row.children;
   const requires = node.requires;
   const action = nodeState.equipped
@@ -2377,7 +2388,10 @@ function renderSkillDetail(row, node, characterId, nodeState) {
             ? "技能点が足りません（必要 " + node.cost + "点 / 手持ち " + skillPointsFor(characterId) + "点）。"
             : "先に前提を解禁してください。")
           + "</p>";
-  return "<div class=\"skill-detail\"><p>" + esc(info?.effect ?? "") + "</p>"
+  // **説明文はいまのレベルの値で読む。**Lv1 では元の文のまま。
+  const level = skillLevelOf(characterId, node.skillId);
+  return "<div class=\"skill-detail\"><p>" + esc(skillEffectText(characterId, node.skillId))
+    + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + " の値</span>" : "") + "</p>"
     + "<div class=\"skill-route\"><span class=\"route-line\"><b>前提</b>"
     + (requires.length ? requires.map(skillRouteChip).join("") : "<small>なし（いつでも取れる）</small>") + "</span>"
     + "<span class=\"route-line\"><b>派生先</b>"

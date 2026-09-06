@@ -29,6 +29,13 @@ import {
   packOfSkill,
   skillIdsForPacks,
   skillLevelCap,
+  // issue #148 — 説明文の数字を、いまのレベルの値で読む。
+  skillLevelValueSteps,
+  skillTextAtLevel,
+  skillTextLevelPlan,
+  ACTIVE_META,
+  REACTIVE_META,
+  PASSIVE_META,
 } from "./content/index.mjs";
 import {
   SKILL_TREE_NODES,
@@ -392,6 +399,55 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     firstDamage(strong) > firstDamage(plain),
     `Lv7 の予測が Lv1 より重い（${firstDamage(plain)} → ${firstDamage(strong)}）`,
   );
+  checks += 1;
+}
+
+// ---- 説明文の数字が、いまのレベルの値になる（issue #148）------------------------
+//
+// **倍率を別に添えず、本文の値そのものを動かす。**「確かな斬り」は Lv1 で
+// 「腕力130%の一撃」、Lv2 で「腕力146%の一撃」。同じ文の中でも、後列減衰の 40% や
+// 発動条件の % は**掛からない数**なので動かない——ここがずれると、画面が嘘の数を出す。
+{
+  const textOf = (id, level) => {
+    const definition = PLAYABLE_CONTENT.activeSkills[id]
+      ?? PLAYABLE_CONTENT.reactiveSkills[id] ?? PLAYABLE_CONTENT.passiveSkills[id];
+    return skillTextAtLevel(ACTIVE_META[id]?.[1] ?? REACTIVE_META[id]?.[1], definition, level);
+  };
+
+  equal(textOf("steady_cut", 1), ACTIVE_META.steady_cut[1], "Lv1 は元の文字列そのまま");
+  const lifted = textOf("steady_cut", 2);
+  check(lifted.includes("腕力146%"), `Lv2 で係数が 130% → 146% になる（${lifted}）`);
+  check(lifted.includes("40%まで落ちる"), "後列減衰の 40% は動かない（レベルが掛からない量）");
+  check(
+    textOf("execute_low", 3).includes("HP30%以下"),
+    "発動条件の % は動かない（掛かるのは係数だけ）",
+  );
+
+  // 多段は「1発ぶんを丸めてから回数を掛ける」。読み手が掛け算しても合う。
+  const barrage = textOf("barrage_strike", 2);
+  check(
+    barrage.includes("50%を3回") && barrage.includes("合計150%"),
+    `多段の1発と合計が食い違わない（${barrage}）`,
+  );
+
+  // 「1点で何がどうなるか」も同じ表から出す。
+  const steps = skillLevelValueSteps(ACTIVE_META.steady_cut[1],
+    PLAYABLE_CONTENT.activeSkills.steady_cut, 1);
+  assert.deepEqual(steps, [{ from: "130%", to: "146%" }], "1点ぶんの変化を数字で出せる");
+  checks += 1;
+
+  // レベルを持つ技能の本文は、**書き換え先が一意に決まる**こと。決まらない本文は
+  // 画面が Lv1 の値のまま出してしまうので、analysis 側の smoke と同じ不変条件をここでも見る。
+  const ambiguous = [];
+  for (const [section, meta] of [
+    ["activeSkills", ACTIVE_META], ["reactiveSkills", REACTIVE_META], ["passiveSkills", PASSIVE_META],
+  ]) {
+    for (const [id, definition] of Object.entries(PLAYABLE_CONTENT[section] ?? {})) {
+      if (!meta[id] || skillLevelCap(definition) <= 1) continue;
+      if (skillTextLevelPlan(String(meta[id][1]), definition).ambiguous.length) ambiguous.push(id);
+    }
+  }
+  assert.deepEqual(ambiguous, [], "係数と条件が同じ数になっている説明文がある: " + ambiguous.join(", "));
   checks += 1;
 }
 

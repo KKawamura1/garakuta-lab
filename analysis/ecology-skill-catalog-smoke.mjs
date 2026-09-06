@@ -23,7 +23,7 @@
 // **鳴ることを確かめてある**（末尾の自己検査）。
 
 import { readFileSync } from "node:fs";
-import { LEVELED_EFFECTS } from "../ecology/content/skill-levels.mjs";
+import { LEVELED_EFFECTS, skillLevelCap, skillTextLevelPlan } from "../ecology/content/skill-levels.mjs";
 import {
   ACTIVE_META,
   CAMPAIGN_STAGES,
@@ -207,6 +207,31 @@ for (const type of declared) {
   }
 }
 
+// ---- 説明文の数字を、いまのレベルの値へ書き換えられるか（issue #148）----
+//
+// 画面は「腕力130%の一撃」を Lv2 で「腕力146%の一撃」と出す。掛かる数だけを
+// 定義から引いて、その数と一致する字面だけを書き換える仕組みなので、**係数と
+// 発動条件が同じ数になった瞬間（「HP50%以下の敵へ腕力50%」）、どちらを掛けるか
+// 字面からは決められない。**そのときは画面が Lv1 の値のまま出す——嘘の数を
+// 出さないための安全側だが、黙って据え置かれると気づけないのでここで落とす。
+// **直し方は本文の書き直しである**（条件と係数を同じ数にしない、単位を書く）。
+const notRewritable = [];
+for (const node of SKILL_TREE_NODES) {
+  const section = SECTION_OF_KIND[node.kind];
+  const definition = PLAYABLE_CONTENT[section]?.[node.skillId];
+  const meta = META_OF_KIND[node.kind]?.[node.skillId];
+  if (!definition || !meta) continue;
+  if (skillLevelCap(definition) <= 1) continue;
+  const plan = skillTextLevelPlan(String(meta[1]), definition);
+  if (plan.ambiguous.length) {
+    problems.push(`${node.skillId}「${meta[0]}」の説明文は、レベルの掛かる数と同じ字面が`
+      + `複数ある（${JSON.stringify(plan.ambiguous)}）。どれを伸ばすか決められないので`
+      + "画面は Lv1 の値のまま出す。条件と係数が同じ数にならないよう書き直すこと");
+  } else if (!plan.tokens.length) {
+    notRewritable.push(node.skillId);
+  }
+}
+
 if (problems.length) {
   console.error("ecology-skill-catalog smoke:\n  " + problems.join("\n  "));
   process.exit(1);
@@ -221,5 +246,7 @@ console.log(
   `ecology-skill-catalog smoke: 節 ${SKILL_TREE_NODES.length}件`
   + `（行動 ${counts.active}・反応 ${counts.reactive}・常設 ${counts.passive}）— `
   + `定義・パック・説明文・前提が揃っている。`
+  + `説明文の数値をレベルで書き換えられない技能は ${notRewritable.length}件`
+  + `${notRewritable.length ? "（" + notRewritable.join("・") + " — 本文に数値が無い）" : ""}。`
   + `最終 Stage（${lastStage.id}）から引けるのは ${reachableNodes}件`,
 );
