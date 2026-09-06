@@ -22,11 +22,11 @@
 
 | 人物 | ファイル | サイズ | Drive側ファイル名 |
 |---|---|---:|---|
-| ゴウ | [`gou.png`](./gou.png) | 1086×1448 | `F464254E-F66A-4090-91F1-7E32CD08911E.PNG` |
+| ゴウ | [`gou.png`](./gou.png) | 1086×1448 | `C47CD254-8F5B-485D-A88C-E6839B12C1AC.PNG` |
 | ツグミ | [`tsugumi.png`](./tsugumi.png) | 1024×1536 | `A2300A64-4BAB-401A-B969-0B19B86AD20F.PNG` |
-| ナギ | [`nagi.png`](./nagi.png) | 1086×1448 | `8EB7DCF0-C9F1-4B71-BDAB-F831488C38BC.PNG` |
+| ナギ | [`nagi.png`](./nagi.png) | 1086×1448 | `48829A3C-E325-41C8-9795-6464DD564221.PNG` |
 | ヒバナ | [`hibana.png`](./hibana.png) | 1086×1448 | `426076BB-E35B-4E3D-B168-D2ED1D262B7D.PNG` |
-| ゲンゾウ | [`genzou.png`](./genzou.png) | 1086×1448 | `150FA4BD-BC04-4349-98A9-6729678011BA.PNG` |
+| ゲンゾウ | [`genzou.png`](./genzou.png) | 1086×1448 | `1E9E7720-9A24-41C1-A47F-4372CF0142FB.PNG` |
 
 ## 元生成画像
 
