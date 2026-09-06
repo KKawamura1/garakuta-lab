@@ -115,7 +115,8 @@ import {
   toggleFavorite,
 } from "./blueprints.mjs";
 import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
-import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
+import { POSITIONS, RUN_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
+import { BPS } from "./values.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
@@ -2314,6 +2315,19 @@ function levelBadge(node, characterId) {
   return "<i class=\"badge-level" + (level >= cap ? " maxed" : "") + "\">Lv " + shown + "/" + cap + "</i>";
 }
 
+// issue #148 — **いまのレベルが実際に何倍にしているかを、節の上で読めるようにする。**
+//
+// レベルが上げるのは威力・治療量・防壁という連続量だけで、AP / RP や段数は
+// 変わらない。1段（+12%）では**次の一戦の予測が動かないことのほうが多い**ので、
+// 「Lv だけ上がって何も強くなっていない」と読めてしまう。戻せない技能点を
+// 払わせる以上、買ったものは倍率そのもので見せる。
+//
+// 係数の作り方は effects.mjs の afterSkillLevel と同じ式である。
+function skillLevelMultiplierText(level) {
+  const bps = BPS + Math.max(0, level - 1) * SKILL_LEVEL_STEP_BPS;
+  return "×" + (Math.round(bps / 100) / 100).toFixed(2);
+}
+
 // 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
 // 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
 function levelUpAction(node, characterId, nodeState) {
@@ -2327,13 +2341,21 @@ function levelUpAction(node, characterId, nodeState) {
       + cap + " まで上げられます。</p>";
   }
   const level = skillLevelOf(characterId, node.skillId);
-  if (level >= cap) return "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。</p>";
+  // **いま何倍になっているかを先に出す。**次の一戦の予測は 1段では動かないことが
+  // 多く、倍率が無いと「点だけ払って何も起きていない」と読めてしまう。
+  const now = "<p class=\"node-locked level-now\">" + (level > 1
+    ? "いまは Lv " + level + " ＝ 威力・治療量・防壁が Lv 1 の <b>"
+      + skillLevelMultiplierText(level) + "</b>。"
+    : "いまは Lv 1。威力・治療量・防壁はまだ素の値（<b>×1.00</b>）です。") + "</p>";
+  if (level >= cap) return now + "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。</p>";
   const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
-  return button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
+  return now + button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
     "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
     "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-    + "<p class=\"node-locked\">1段ごとに威力・治療量・防壁が 12% ずつ上がります"
-    + "（AP / RP や段数・回数は変わりません）。</p>";
+    + "<p class=\"node-locked\">1段ごとに威力・治療量・防壁が 12% ずつ上がります（Lv "
+    + (level + 1) + " で " + skillLevelMultiplierText(level + 1)
+    + "）。AP / RP や段数・回数は変わりません。<b>1段では次の一戦の予測が動かないこともあります</b>"
+    + "（倒すのに要るラウンドが変わらなければ、残るHPも変わりません）。</p>";
 }
 
 function renderSkillDetail(row, node, characterId, nodeState) {
@@ -2727,10 +2749,30 @@ function forecastVisible() {
   return !(state.prologueActive && state.prologueStage === "first");
 }
 
+// R14 §1 / issue #148 — **予測と本番へ渡す盤面の外の入力は、この一箇所で組む。**
+//
+// simulateExpeditionBattle が BattleInput と simulateBattle のオプションを一本化
+// しても、**呼び出し側が違う options を渡せば予測と本番はまたずれる。**
+// 実際、技能レベルが本番へ渡らず「予測どおりに強くならない」不具合はここで起きた
+// （issue #148 / PR #156）。だから preview も本番もこの関数の戻り値をそのまま使い、
+// 本番が足してよいのは結果を変えない simulationOptions だけにする。
+function expeditionBattleOptions(composed) {
+  return {
+    composed,
+    // R8 §1.5 — Campaign Stage は run.currentHp（持ち越しHP）。
+    // Free / Endless は従来どおり state.hp（毎戦満タン）。
+    hp: isCampaignRun() ? state.run.currentHp : state.hp,
+    equipmentDurability: state.equipmentDurability,
+    limitsFor,
+  };
+}
+
 // 予測は毎 render で戦闘を1回まわす。**入力が変わっていなければ前回の答えを使う。**
 // 決定的 engine なので、同じ入力なら同じ結果になる（この cache は結果を変えない）。
 let forecastCache = { key: null, value: null };
 
+// **鍵は、戦闘が読む入力を全部数える。**数え落とした欄は「変えたのに予測が動かない」
+// になり、予測が壊れているのか変わらないのかを画面から区別できなくなる。
 function forecastKey(composed) {
   return JSON.stringify([
     composed?.index ?? null,
@@ -2743,6 +2785,9 @@ function forecastKey(composed) {
     state.run.loadout,
     state.run.currentHp,
     state.run.runSkillLevels,
+    // 技能レベル表は runUnlockedSkills を辿って組まれる（runSkillLevelsFor）。
+    // **レベルだけを鍵にすると、取得表の側が動いた回に古い予測が残る。**
+    state.run.runUnlockedSkills,
     state.equipmentDurability,
     state.hp,
     Object.keys(state.run.generatedEquipment ?? {}),
@@ -2767,11 +2812,9 @@ function battleForecast() {
   if (forecastCache.key === key) return forecastCache.value;
   let value = null;
   try {
-    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, {
-      composed,
-      hp: isCampaignRun() ? state.run.currentHp : state.hp,
-      equipmentDurability: state.equipmentDurability,
-    });
+    value = previewNextBattle(
+      state.run, state.profile, state.run.encounterIndex, expeditionBattleOptions(composed),
+    );
   } catch {
     value = null;
   }
@@ -3877,10 +3920,9 @@ function simulateAndEnterBattle() {
       state.profile,
       state.run.encounterIndex,
       {
-        composed,
-        hp: isCampaignRun() ? state.run.currentHp : state.hp,
-        equipmentDurability: state.equipmentDurability,
-        limitsFor,
+        // **予測と同じ options をそのまま使う。**足してよいのは再生用の
+        // snapshot 収集だけで、これは出来事の列も結果も変えない。
+        ...expeditionBattleOptions(composed),
         simulationOptions: { captureReplaySnapshots: true },
       },
     );

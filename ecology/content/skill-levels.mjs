@@ -17,7 +17,10 @@ import { MAX_SKILL_LEVEL, MIN_SKILL_LEVEL } from "../schema.mjs";
 
 // effects.mjs の afterSkillLevel が掛かる effect と同じ表でなければならない。
 // ここがずれると「レベルは上がるのに強くならない」か、その逆が起きる。
-const LEVELED_EFFECTS = new Set(["deal_damage", "heal", "gain_barrier", "modify_pending_amount"]);
+// **外へ出しておく。**analysis/ecology-skill-catalog-smoke.mjs が、この表と
+// effects.mjs の afterSkillLevel が掛かる effect 型が一致しているかを見張る
+// （ずれると「Lv だけ上がって何も強くならない」技能が黙って生まれる）。
+export const LEVELED_EFFECTS = new Set(["deal_damage", "heal", "gain_barrier", "modify_pending_amount"]);
 
 function hasLeveledAmount(node) {
   if (Array.isArray(node)) return node.some(hasLeveledAmount);

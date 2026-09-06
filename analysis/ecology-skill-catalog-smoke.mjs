@@ -16,8 +16,14 @@
 // 無いと、A は画面に出ているのに永久に解禁できない（R12 で manifest に無い節を
 // 非表示にしたので、前提だけが見えない形になり得る）。
 //
+// **レベルの表も見る。**「どの effect がレベルで伸びるか」は content/skill-levels.mjs
+// と effects.mjs の afterSkillLevel の二箇所にあり、ずれると「Lv だけ上がって
+// 何も強くならない」技能が黙って生まれる（issue #148）。
+//
 // **鳴ることを確かめてある**（末尾の自己検査）。
 
+import { readFileSync } from "node:fs";
+import { LEVELED_EFFECTS } from "../ecology/content/skill-levels.mjs";
 import {
   ACTIVE_META,
   CAMPAIGN_STAGES,
@@ -126,6 +132,78 @@ for (const stage of CAMPAIGN_STAGES) {
       console.error(`ecology-skill-catalog smoke: 参照点が壊れている（${what} を検出できない）。`);
       process.exit(1);
     }
+  }
+}
+
+// ---- レベルを持つ技能と、engine が実際に掛ける効果が一致しているか（issue #148）----
+//
+// `content/skill-levels.mjs` は「effects.mjs の afterSkillLevel が掛かる effect と
+// 同じ表でなければならない」と書いてあるが、**それを見張るものが無かった。**
+// ずれると、片方向では「Lv だけ上がって何も強くならない」——戻せない技能点を
+// 払わせておいて何も返さない罠——になり、逆方向では「上げられないのに engine では
+// 掛かる」死んだ効果になる。どちらも画面には何も出ない。
+//
+// engine 側の真実は switch の対応表から引く。afterSkillLevel を直接呼ぶ関数と、
+// その関数を呼ぶ関数（deal_damage → dealDamage → dealOneInstance）まで辿る。
+const effectsSource = readFileSync("ecology/effects.mjs", "utf8");
+
+function functionBodies(text) {
+  const bodies = new Map();
+  const pattern = /function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g;
+  let match;
+  while ((match = pattern.exec(text))) {
+    let depth = 1;
+    let index = pattern.lastIndex;
+    while (index < text.length && depth > 0) {
+      const char = text[index];
+      if (char === "{") depth += 1;
+      else if (char === "}") depth -= 1;
+      index += 1;
+    }
+    bodies.set(match[1], text.slice(pattern.lastIndex, index - 1));
+  }
+  return bodies;
+}
+
+const bodies = functionBodies(effectsSource);
+if (bodies.size < 20) {
+  console.error("ecology-skill-catalog smoke: effects.mjs の関数を取り出せなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+// afterSkillLevel へ辿り着く関数を、呼び出しをたどって閉じる。
+const scaling = new Set([...bodies].filter(([, body]) => /\bafterSkillLevel\s*\(/.test(body)).map(([name]) => name));
+// **辿るのは「その effect 自身の量」を渡した先だけ。**engine は準備の完了から
+// 本来の攻撃も呼ぶので、素朴に呼び出しを辿ると advance_preparation まで
+// 「レベルが掛かる」に見えてしまう（掛かるのは準備した技能の側の量である）。
+// effect を引数に渡している呼び出しだけを、同じ量の続きとみなす。
+for (let pass = 0; pass < bodies.size; pass += 1) {
+  const before = scaling.size;
+  for (const [name, body] of bodies) {
+    if (scaling.has(name)) continue;
+    for (const called of scaling) {
+      const call = new RegExp("\\b" + called + "\\s*\\(([^)]*)\\)").exec(body);
+      if (call && /\beffect\b/.test(call[1])) { scaling.add(name); break; }
+    }
+  }
+  if (scaling.size === before) break;
+}
+const dispatch = [...effectsSource.matchAll(/case "([a-z_]+)":\s*return\s+([A-Za-z_$][\w$]*)\(/g)];
+if (dispatch.length < 10) {
+  console.error("ecology-skill-catalog smoke: applyEffect の対応表を取り出せなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+const scaledByEngine = new Set(dispatch.filter(([, , handler]) => scaling.has(handler)).map(([, type]) => type));
+const declared = new Set(LEVELED_EFFECTS);
+for (const type of scaledByEngine) {
+  if (!declared.has(type)) {
+    problems.push(`effect "${type}" は engine が技能レベルで掛けるのに、`
+      + "content/skill-levels.mjs の表に無い（その効果しか持たない技能は Lv1 止まりのまま）");
+  }
+}
+for (const type of declared) {
+  if (!scaledByEngine.has(type)) {
+    problems.push(`effect "${type}" は content/skill-levels.mjs がレベルありと数えているのに、`
+      + "engine は掛けない（技能点を払っても何も強くならない）");
   }
 }
 

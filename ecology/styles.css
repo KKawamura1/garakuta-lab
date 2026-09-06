@@ -1079,6 +1079,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .badge-level.maxed { color: var(--gold); }
 .badge-level.flat { color: #6d7c77; font-weight: 400; }
 .level-action { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(224, 195, 116, .16); }
+/* いまのレベルが実際に何倍にしているか。**買ったものは倍率そのもので見せる。** */
+.level-now { margin-bottom: 5px; }
+.level-now b { color: var(--violet); font-weight: 800; }
 /* 前提と派生先は押せる。**横スクロールしなくても route を辿れる。** */
 .skill-route { display: grid; gap: 5px; margin: 7px 0 0; }
 .route-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }
