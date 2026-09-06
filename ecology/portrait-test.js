@@ -4,7 +4,7 @@ const CHARACTERS = [
   { id: "warden", name: "ゴウ", role: "大槌・前衛", scale: "1.4倍" },
   { id: "lancer", name: "ナギ", role: "槍・前衛", scale: "1.1倍" },
   { id: "mender", name: "ツグミ", role: "支援", scale: "1倍" },
-  { id: "guardian", name: "ヒバナ", role: "守り", scale: "1倍" },
+  { id: "guardian", name: "ヒバナ", role: "守り", scale: "0.9倍" },
   { id: "tactician", name: "ゲンゾウ", role: "参謀", scale: "1.1倍" },
 ];
 
