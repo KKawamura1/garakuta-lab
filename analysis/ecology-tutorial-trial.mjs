@@ -175,6 +175,8 @@ try {
   await page.locator('nav.tabs [data-tab="equipment"]').click();
   await page.waitForTimeout(150);
   note("装備タブでも予測が消えない", await page.locator(".camp-top .forecast-bar").count() === 1);
+  const equipmentHelp = page.locator('details[data-help="equipment-rules"]');
+  if (await equipmentHelp.count()) await equipmentHelp.locator("summary").click();
   note("装備は自由に付け外しできると書いてある", /装備は何度でも付け外しできます/.test(await bodyText()));
 
   // R10 — Campではオートセーブとは別に手動枠へ保存できる。
@@ -190,6 +192,8 @@ try {
   // R9 §3.1 / R11 §8.5 — Stage 0 の入口は pack_care「構えと手当て」。
   // **武器と技を一本ずつ**持つ二本が、この Stage の問いそのものである。
   await page.locator('nav.tabs [data-tab="skills"]').click();
+  const skillHelp = page.locator('details[data-help="skill-rules"]');
+  if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
 
@@ -215,7 +219,7 @@ try {
   note("節に現在レベル／最大レベルが出る", await page.locator(".badge-level").count() > 0);
   note("レベルを持たない技能はそう書く", await page.locator(".badge-level.flat").count() > 0);
   const levelText = await bodyText();
-  note("レベルの上げ方が書いてある", /1段ごとに威力|Lv \d+ へ上げる|レベルを持ちません/.test(levelText));
+  note("レベルの上げ方が書いてある", /技能点1点|Lv\d+へ上げる|威力・治療量・防壁/.test(levelText));
   await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
   await page.waitForTimeout(150);
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
