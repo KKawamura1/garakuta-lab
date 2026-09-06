@@ -18,15 +18,15 @@
 
 ## 透過版
 
-上の画像は、今回添付されたJPEGの外周に接続する白背景を除去した、会話UI向けの暫定透過PNGです。人物内部の白い服・髪などは保持しています。元のJPEGは比較用に残しています。
+上の画像は、今回添付されたJPEGの外周に接続する白背景と、人物の輪郭内に残っていた明らかな白背景の島を除去した、会話UI向けの暫定透過PNGです。人物内部の白い服・髪・ぬいぐるみなどは保持しています。元のJPEGは比較用に残しています。
 
 | 人物 | ファイル | サイズ | SHA-256 |
 |---|---|---:|---|
-| ゴウ | [`gou.png`](./gou.png) | 1086×1448 | `3bd58bd42fffcbc277cdc9334168125f95ccd47cb812549e9f7b145c941dce67` |
-| ツグミ | [`tsugumi.png`](./tsugumi.png) | 1024×1536 | `672ef0d45abce1a10bd6e7213cc6f3783e0eae049793533deecc49ab275b8fc7` |
-| ナギ | [`nagi.png`](./nagi.png) | 1086×1448 | `c2a3a2635b90b4884ad200b76372f189316f5288999bc4f961d55c5b4680613b` |
-| ヒバナ | [`hibana.png`](./hibana.png) | 1086×1448 | `552b584ef0952074f350003de0b8162fec673850f3365102e2c081c3d7b0b50c` |
-| ゲンゾウ | [`genzou.png`](./genzou.png) | 1086×1448 | `d2e7bb4489ab0b6cfd561776bd35a6f0b85be52f0eb61b7975d3275020054d80` |
+| ゴウ | [`gou.png`](./gou.png) | 1086×1448 | `92a646fa5a6308f8fb203e3b7b8401b87ebc4ee1e2a30555bb2a3b14558a0866` |
+| ツグミ | [`tsugumi.png`](./tsugumi.png) | 1024×1536 | `94373eb8c558c86b6f3e4fb349fe7cf5926dfadfe3c29abdf8b84a0071f030a9` |
+| ナギ | [`nagi.png`](./nagi.png) | 1086×1448 | `7236c55d676c08b8bd6481689460baf043f6631b7137dc4d4c70c3864ac6619d` |
+| ヒバナ | [`hibana.png`](./hibana.png) | 1086×1448 | `a7d2ce86d50be03b82eadc92e2e71046a51d0f8a30c408ccdebd98fa4cfb3401` |
+| ゲンゾウ | [`genzou.png`](./genzou.png) | 1086×1448 | `6d42887d9700f6b41e0af2e2f70b63f978855d6f213bb02115b1635bce8b8f7c` |
 
 ## 元生成画像
 
