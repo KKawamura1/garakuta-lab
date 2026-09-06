@@ -87,6 +87,30 @@ export const RETIRED_IDS = Object.freeze({
     since: "ecology-content-contract-13",
     reason: "速度能力値を削除し、隊列順を行動順と対象選択の基準にしたため",
   },
+  ap_loop: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  damage_echo: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  barrier_bloom: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  relay_front: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  relay_rear: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
+  prep_spiral: {
+    since: "issue-130",
+    reason: "R5 termination fixture は無限イベント連鎖の検証専用であり、本編コンテンツから除外した",
+  },
 });
 
 // 表示名を持つ節。DISPLAY_NAMES の作り方をここ一箇所に閉じる。

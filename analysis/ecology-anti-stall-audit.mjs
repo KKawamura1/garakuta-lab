@@ -83,8 +83,37 @@ function auditReactiveSkills(bundle) {
   return violations;
 }
 
+// Termination witnesses are fixture-only. A playable bundle must not contain
+// a self-triggering safety probe even when it has a finite RP cost: the probe
+// belongs in FIXTURE_CONTENT and termination.test.mjs, not in the player catalog.
+function auditPlayableTerminationWitnesses(bundle) {
+  const violations = [];
+  for (const [id, skill] of Object.entries(bundle.reactiveSkills ?? {})) {
+    if (!(skill.tags ?? []).includes("termination")) continue;
+    violations.push({
+      id,
+      kind: "reactive",
+      reason: "termination witness が playable content に残っている。"
+        + "fixture専用の定義を本編へ出さないこと",
+    });
+  }
+  for (const [id, enemy] of Object.entries(bundle.enemyActors ?? {})) {
+    if (!(enemy.tags ?? []).includes("termination")) continue;
+    violations.push({
+      id,
+      kind: "enemy",
+      reason: "termination fixture の敵が playable content に残っている。"
+        + "fixture専用の定義を本編へ出さないこと",
+    });
+  }
+  return violations;
+}
 function audit(bundle) {
-  return [...auditActiveSkills(bundle), ...auditReactiveSkills(bundle)];
+  return [
+    ...auditActiveSkills(bundle),
+    ...auditReactiveSkills(bundle),
+    ...auditPlayableTerminationWitnesses(bundle),
+  ];
 }
 
 const violations = audit(PLAYABLE_CONTENT);
@@ -104,6 +133,11 @@ const violations = audit(PLAYABLE_CONTENT);
           limit: { scope: "battle", count: 99 },
         },
       },
+      termination_fixture: {
+        id: "free_termination",
+        tags: ["termination"],
+        rule: { costs: [{ type: "spend_reaction_points", amount: 1 }], limit: { scope: "battle", count: 99 } },
+      },
       proper_emergency: {
         id: "proper_emergency",
         rule: {
@@ -117,6 +151,7 @@ const violations = audit(PLAYABLE_CONTENT);
   const selfCheck = audit(badBundle);
   const flaggedIds = selfCheck.map((v) => v.id);
   const ok = flaggedIds.includes("free_heal") && flaggedIds.includes("unbounded_heal")
+    && flaggedIds.includes("termination_fixture")
     && !flaggedIds.includes("proper_emergency");
   if (!ok) {
     console.error("ecology-anti-stall audit: 参照点が壊れている（既知の違反を検出できない、"

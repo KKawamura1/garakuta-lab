@@ -6,6 +6,7 @@
 //
 // engine・schema・共通registryは変更しない。
 
+import { FIXTURE_CONTENT } from "../fixture-content.mjs";
 import { LEGACY_COMBAT_SCALE, NEUTRAL_STAT, cloneEnemy, renamed } from "./base.mjs";
 
 export const ENEMY_NAMES = {
@@ -148,6 +149,18 @@ for (const [id, definition] of Object.entries(enemyActors)) {
   definition.might = Math.round(NEUTRAL_STAT * SHIPPED_DIFFICULTY);
   definition.focus = Math.round(NEUTRAL_STAT * SHIPPED_DIFFICULTY);
   definition.guard = Math.round((ENEMY_GUARD[id] ?? 0) * SHIPPED_DIFFICULTY);
+}
+
+const terminationReactiveIds = new Set(
+  Object.entries(FIXTURE_CONTENT.reactiveSkills)
+    .filter(([, definition]) => (definition.tags ?? []).includes("termination"))
+    .map(([id]) => id),
+);
+
+for (const definition of Object.values(enemyActors)) {
+  definition.reactiveSkillIds = (definition.reactiveSkillIds ?? [])
+    .filter((id) => !terminationReactiveIds.has(id));
+  definition.tags = (definition.tags ?? []).filter((tag) => tag !== "termination");
 }
 
 export const ENEMY_ACTORS = enemyActors;
