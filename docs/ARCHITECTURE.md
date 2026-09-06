@@ -34,6 +34,7 @@
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
 | `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |
 | `equipment-gen.mjs` | 装備を手続きで組み立てる決定的 generator と検査 |
+| `static-bonuses.mjs` | passive と装備の常時能力を戦闘・検証・preview・UIで同じように合算 |
 | `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
 | `mine.mjs` | イベント連鎖の採掘 |
 | `sync.mjs` | `/api/runs` への送信と端末 ID |
@@ -63,11 +64,13 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 
 - Manifest、Encounter、Reward offer、装備 instance、compiled EquipmentDef、
   Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON の内容が完全に一致します。
-- 生成装備は item rarity と各 payoff の effect rarity、解決済み数値を descriptor / provenance に含め、
+- 生成装備は item rarity、無条件 stat の種類と値、各 payoff の effect rarity、解決済み数値を descriptor / provenance に含め、
   Blueprint はその効果品質まで exact に保持します。
+- 回復 payoff は tier 0 / 1 / 2 の基準値 3 / 5 / 12 を持ち、effect rarity 倍率後に整数化します。
+  generator は回復に任意の上限を設けず、自分のHP消費コストと自分専用回復の同一装備内共存だけを拒否します。
 - 装備の意味を表示する責務は app.js に閉じる。装備バッジは格番号＋名称、効果欄は
-  基礎／追加のスロットごとの格番号＋名称を表示し、効果レアリティの高い順に並べる。
-  同格の効果は readout.effects の元順を保ち、生成品が持つ readout.effects と readout.lines は
+  常時基礎／追加のスロットごとの格番号＋名称を表示する。常時基礎を先頭へ固定し、追加効果を
+  効果レアリティの高い順に並べる。同格の効果は readout.effects の元順を保ち、生成品が持つ readout.effects と readout.lines は
   同じ item から読み、表示だけで rarity を再計算しない。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
@@ -125,4 +128,3 @@ reward / rarity weight、技能点価格、power budget は調律可能な soft 
 - 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
 - D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。
 - 作者のプレイ結果を推測で補わず、未確認として止める。
-

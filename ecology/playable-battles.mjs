@@ -15,6 +15,7 @@ import {
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
+import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
@@ -443,24 +444,27 @@ function usableTactics(ids) {
 // 7区画の試作（makeBattle）と12戦の遠征（makeExpeditionBattle）が同じ関数を通る。
 function allyInput(characterId, position, loadout, options = {}) {
   const option = characterById[characterId];
+  const content = options.content ?? PLAYABLE_CONTENT;
   const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
   const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
   const disabled = new Set(loadout.disabled?.[characterId] ?? []);
   const enabled = (ids) => ids.filter((id) => !disabled.has(id));
+  const passiveSkillIds = enabled(loadout.passives?.[characterId] ?? [])
+    .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]);
+  const equipment = equipmentInput(
+    characterId,
+    loadout.equipment?.[characterId] ?? [],
+    options.equipmentDurability ?? {},
+    content,
+  );
   const ally = {
     instanceId: "a_" + characterId,
     characterId,
     position,
     tactics: usableTactics(enabled(tactics)),
     reactiveSkillIds: enabled(reactives).filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]),
-    passiveSkillIds: enabled(loadout.passives?.[characterId] ?? [])
-      .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]),
-    equipment: equipmentInput(
-      characterId,
-      loadout.equipment?.[characterId] ?? [],
-      options.equipmentDurability ?? {},
-      options.content ?? PLAYABLE_CONTENT,
-    ),
+    passiveSkillIds,
+    equipment,
   };
   // R19（issue #137）— 技能レベル。**取得＝Lv1** なので、Lv1 しか無い編成では
   // 欄そのものを渡さない（渡しても結果は同じだが、入力に無駄な欄を増やさない）。
@@ -479,7 +483,9 @@ function allyInput(characterId, position, loadout, options = {}) {
     ally.training = { ...trained.training };
   }
   const hp = options.hp?.[characterId];
-  const ceiling = ally.stats?.maxHp ?? PLAYABLE_CONTENT.characters[characterId].maxHp;
+  const baseMaxHp = ally.stats?.maxHp ?? PLAYABLE_CONTENT.characters[characterId].maxHp;
+  const ceiling = maxHpWithStaticBonuses(baseMaxHp, content, passiveSkillIds,
+    equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })));
   if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(ceiling, hp));
   return ally;
 }

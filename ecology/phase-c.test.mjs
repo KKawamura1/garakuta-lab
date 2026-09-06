@@ -20,6 +20,7 @@ import {
   AFFIX_BY_ID,
   AFFIX_FAMILY_IDS,
   AFFIX_ROLES,
+  EQUIPMENT_IMPLICITS,
   RARITIES,
   RARITY_BUDGET,
 } from "./content/affixes.mjs";
@@ -73,6 +74,14 @@ const equal = (actual, expected, message) => {
 };
 
 const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
+const EFFECT_FLOOR = Object.freeze({
+  common: "common",
+  rare: "common",
+  epic: "rare",
+  legendary: "epic",
+  mythic: "legendary",
+  oopart: "mythic",
+});
 
 // ---- affix 目録の形（R8 §3.5, §13.2）----------------------------------------
 
@@ -96,6 +105,11 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
       check(allProvides.has(tag), `payoff ${affix.id} が要求する "${tag}" を出す trigger がある`);
     }
   }
+  check(AFFIXES.filter((entry) => entry.role === "source").length >= 15,
+    "装備 trigger は15種類以上ある");
+  check(AFFIXES.filter((entry) => entry.role === "payoff").length >= 25,
+    "装備 payoff は25種類以上ある");
+  equal(EQUIPMENT_IMPLICITS.length, 4, "無条件基礎効果は4能力から選ぶ");
 }
 
 // ---- 決定性（R8 §3.5, §3.9）-------------------------------------------------
@@ -146,8 +160,20 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
       check(definition.rules.length >= spec.rules[0] && definition.rules.length <= spec.rules[1],
         `${rarity} の rule 数が範囲内`);
       check(definition.maxDurability >= 1, `${rarity} の耐久が1以上`);
-      check(item.readout?.effects?.some((effect) => effect.rarity === rarity),
-        `${rarity} は少なくとも1つ同じ等級の効果を持つ`);
+      const [implicit, ...additionalEffects] = item.readout?.effects ?? [];
+      equal(implicit?.slot, "implicit", `${rarity} の先頭は無条件基礎効果`);
+      equal(implicit?.rarity, rarity, `${rarity} の基礎効果は item と同格`);
+      equal(implicit?.unconditional, true, `${rarity} の基礎効果は無条件`);
+      const statBonus = Object.entries(definition.statBonus ?? {});
+      equal(statBonus.length, 1, `${rarity} は常時能力をちょうど一つ持つ`);
+      check(Number.isInteger(statBonus[0]?.[1]) && statBonus[0][1] > 0,
+        `${rarity} の常時能力は正の整数`);
+      equal(implicit?.amount, statBonus[0]?.[1], `${rarity} の表示値と戦闘値が一致する`);
+      check(additionalEffects.some((effect) => effect.rarity === rarity),
+        `${rarity} は追加効果にも少なくとも1つ同じ等級を持つ`);
+      const floorIndex = RARITIES.indexOf(EFFECT_FLOOR[rarity]);
+      check(additionalEffects.every((effect) => RARITIES.indexOf(effect.rarity) >= floorIndex),
+        `${rarity} の追加効果は品質下限 ${EFFECT_FLOOR[rarity]} 以上`);
 
       const affixIds = item.provenance.affixIds;
       const counted = affixIds.filter((id) => AFFIX_BY_ID[id]?.role !== "source").length;
@@ -161,6 +187,9 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
       // keystone は legendary 以上の等級だけ、最大1つ。
       const keystones = affixIds.filter((id) => AFFIX_BY_ID[id]?.role === "keystone");
       check(keystones.length <= spec.keystones, `${rarity} の keystone 数 ${keystones.length}`);
+      if (rarity === "oopart") equal(keystones.length, 1, "オーパーツは keystone を必ず持つ");
+      const conditions = affixIds.filter((id) => AFFIX_BY_ID[id]?.role === "converter");
+      check(conditions.length <= definition.rules.length, "追加 condition は1 ruleにつき最大1つ");
 
       for (const rule of definition.rules) {
         check(rule.effects.length >= 1 && rule.effects.length <= 4, "各 rule は payoff effect を1〜3＋keystone bonus まで持つ");
@@ -187,14 +216,37 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   check(seen.size > generated / 2, `生成物が十分に散らばる（${seen.size}/${generated}）`);
 }
 
+// ---- 低レアの規格外品（強い効果と重い代償）----------------------------------
+
+{
+  let riskyItems = 0;
+  for (const rarity of ["common", "rare"]) {
+    const itemRank = RARITIES.indexOf(rarity);
+    for (let dropIndex = 0; dropIndex < 300; dropIndex += 1) {
+      const item = generateEquipment({ seed: "risky-outlier", dropIndex, rarity });
+      const overRank = item.readout.effects.slice(1)
+        .some((effect) => RARITIES.indexOf(effect.rarity) > itemRank);
+      if (!overRank) continue;
+      riskyItems += 1;
+      check(typeof item.readout.risk === "string" && item.readout.risk.length > 0,
+        "格上効果には画面へ出る重い代償がある");
+      check(item.definition.rules.some((rule) => rule.costs.some((cost) =>
+        (cost.type === "wear_equipment" && cost.amount >= 2)
+        || (cost.type === "lose_hp" && cost.amount >= 15))),
+      "規格外品は耐久2またはHP15の重い代償を実際に払う");
+    }
+  }
+  check(riskyItems >= 10, `低レアにまれな規格外品が生成される（600件中${riskyItems}件）`);
+}
+
 // ---- 診断 error（R8 §3.5）---------------------------------------------------
 
 {
-  // 手当ての family だけでは、必要な代償 affix が pool に無く rule を閉じられない。
+  // 未知の family しかない pool では trigger も effect も無く、rule を閉じられない。
   // **既定品へ黙って落ちず、error を投げる**ことをここで確かめる。
   let thrown = null;
   try {
-    generateEquipment({ seed: "impossible", dropIndex: 0, rarity: "common", familyIds: ["family_care"] });
+    generateEquipment({ seed: "impossible", dropIndex: 0, rarity: "common", familyIds: ["family_unknown"] });
   } catch (error) {
     thrown = error;
   }
@@ -205,10 +257,10 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 
   // 実際に遊ぶ pool（Stage 0〜3 の manifest）では全 rarity が作れる。
   const stagePools = [
-    ["family_edge", "family_scar"],
-    ["family_edge", "family_wall", "family_scar"],
-    ["family_edge", "family_tempo", "family_scar"],
-    ["family_wall", "family_tempo", "family_barrage", "family_scar"],
+    ["family_care", "family_scar"],
+    ["family_edge", "family_care", "family_scar"],
+    ["family_edge", "family_wall", "family_care", "family_scar"],
+    ["family_edge", "family_wall", "family_tempo", "family_care", "family_scar"],
   ];
   for (const familyIds of stagePools) {
     for (const rarity of RARITIES) {
@@ -247,6 +299,24 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
   const again = simulateBattle(battle, bundle);
   assert.deepEqual(first.events, again.events, "装備を入れても戦闘は決定的");
   checks += 1;
+  const actor = first.actors.find((entry) => entry.definitionId === "warden");
+  const [bonusStat, bonusAmount] = Object.entries(item.definition.statBonus)[0];
+  const actorStat = { max_hp: "maxHp", might: "might", focus: "focus", guard: "guard" }[bonusStat];
+  const baseStat = PLAYABLE_CONTENT.characters.warden[actorStat];
+  equal(actor[actorStat], baseStat + bonusAmount, "装備の無条件基礎効果が戦闘 actor へ加算される");
+
+  const brokenBattle = structuredClone(battle);
+  brokenBattle.allies.find((entry) => entry.characterId === "warden").equipment[0].durability = 0;
+  const brokenActor = simulateBattle(brokenBattle, bundle).actors
+    .find((entry) => entry.definitionId === "warden");
+  equal(brokenActor[actorStat], baseStat, "壊れた装備は無条件基礎効果も停止する");
+
+  const invalidDefinition = { ...item.definition, statBonus: { action_points: 1 } };
+  const invalidErrors = validateContentBundle({
+    ...PLAYABLE_CONTENT, equipment: { [invalidDefinition.id]: invalidDefinition },
+  });
+  check(invalidErrors.some((error) => error.code === "unknown_equipment_stat"),
+    "装備でAPなど未許可の常時能力は作れない");
 
   // **固定 content だけでは同じ入力が通らない。**bundle を渡し忘れると落ちる、が
   // 黙って落ちないことを確かめる（装備が無かったことにされない）。
@@ -549,3 +619,4 @@ const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 }
 
 console.log(`phase-c.test.mjs: ${checks} checks passed`);
+
