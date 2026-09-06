@@ -616,13 +616,13 @@ R14（3.6）は完全予測をキャンプ全タブの上端へ常設したが�
 ### 3.32 立ち絵を、生成 SVG から暫定バストアップ画像へ差し替えた（PR #143 続き、2026-09-06）
 
 PR #143 で、会話UI向けの暫定バストアップ5枚（ゴウ／ツグミ／ナギ／ヒバナ／ゲンゾウ、
-`docs/art/bustup_v0/*.jpg`）と、その視覚方向をまとめた `docs/art/CHARACTER_ART.md` が
+`docs/art/bustup_v0/*.png`）と、その視覚方向をまとめた `docs/art/CHARACTER_ART.md` が
 用意された。以前の立ち絵（`ecology/content/portraits.mjs`）は、決定的・オフライン・
 表情差分を安く増やせることを理由に、髪・肌・装いを座標で組み立てる SVG 生成だった
 （`docs/DESIGN.md` §10 参照）。作者からの指示で、この見た目の作り込みより実際の
 絵の質を優先する方針へ切り替え、生成 SVG をやめて実際の画像を参照する形にした。
 
-- `docs/art/bustup_v0/*.jpg`（PR #143 の成果物）をそのまま参照する。新しい画像置き場は
+- `docs/art/bustup_v0/*.png`（PR #143 の成果物）をそのまま参照する。新しい画像置き場は
   作らず、既存のパスを正本にした。
 - `PORTRAITS` から、SVG 生成専用だった `skin` / `hair` / `garb` / `fringe` / `back` /
   `tail` / `shoulder` / `collar` / `accessory` を削除し、`accent`（UI の差し色）と

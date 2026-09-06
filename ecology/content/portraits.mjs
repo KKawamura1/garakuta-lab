@@ -7,7 +7,7 @@
 // 「別画像」ではなく「同じ骨格の parameter 差」として持っていた。
 //
 // PR #143 で会話UI向けの暫定バストアップ（`docs/art/bustup_v0/`）ができたため、
-// この関数はそちらの JPEG を参照する形へ切り替えた（設計判断の変更。経緯は
+// この関数はそちらの透過PNGを参照する形へ切り替えた（設計判断の変更。経緯は
 // `docs/HISTORY.md` 3.32、方針は `docs/DESIGN.md` §10）。表情ごとの絵はまだ無いため、
 // 現状は人物ごとに1枚の画像を全表情で共有する。表情差分ができたら、PORTRAITS の
 // 画像参照を表情別の map に分ければよい。
@@ -42,11 +42,11 @@ export const DEFAULT_EXPRESSION = "neutral";
 //
 // accent … UI の差し色。image … `docs/art/bustup_v0/` 以下の暫定バストアップ。
 export const PORTRAITS = Object.freeze({
-  warden: Object.freeze({ accent: "#91cbd5", image: "gou.jpg" }), // ゴウ
-  mender: Object.freeze({ accent: "#9bd69e", image: "tsugumi.jpg" }), // ツグミ
-  lancer: Object.freeze({ accent: "#e5a26b", image: "nagi.jpg" }), // ナギ
-  guardian: Object.freeze({ accent: "#f2c14e", image: "hibana.jpg" }), // ヒバナ
-  tactician: Object.freeze({ accent: "#d8d18a", image: "genzou.jpg" }), // ゲンゾウ
+  warden: Object.freeze({ accent: "#91cbd5", image: "gou.png" }), // ゴウ
+  mender: Object.freeze({ accent: "#9bd69e", image: "tsugumi.png" }), // ツグミ
+  lancer: Object.freeze({ accent: "#e5a26b", image: "nagi.png" }), // ナギ
+  guardian: Object.freeze({ accent: "#f2c14e", image: "hibana.png" }), // ヒバナ
+  tactician: Object.freeze({ accent: "#d8d18a", image: "genzou.png" }), // ゲンゾウ
 });
 
 export const PORTRAIT_IDS = Object.freeze(Object.keys(PORTRAITS));
