@@ -73,6 +73,11 @@ try {
     const box = element.getBoundingClientRect();
     return box.left >= -1 && box.right <= window.innerWidth + 1 && box.width > 0 && box.height > 0;
   });
+  const readBeatCount = async () => {
+    const text = await page.locator(".beat-count").textContent();
+    const match = text?.match(/([0-9]+)\s*\/\s*([0-9]+)/);
+    return match ? { current: Number(match[1]), total: Number(match[2]) } : null;
+  };
 
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
@@ -176,6 +181,7 @@ try {
 
   let stage = 1;
   let reloaded = false;
+  let forecastAtStage1 = null;
   let sawAnimation = false;
   let retried = false;
   let rerolled = false;
@@ -193,6 +199,17 @@ try {
       note("戦闘予測が画面上部に出ている", await page.locator(".camp-top .forecast-bar").count() === 1);
       note("予測に各メンバーの減少量が出ている",
         await page.locator(".forecast-member .forecast-delta").count() > 0);
+      // 予測カードの表示値を保存し、同じ戦闘のアニメーション最終フレームと突き合わせる。
+      forecastAtStage1 = await page.locator(".forecast-bar").evaluate((bar) => ({
+        result: ["win", "loss", "draw"].find((value) => bar.classList.contains(value)) ?? "",
+        verdict: bar.querySelector(".forecast-verdict")?.textContent?.trim() ?? "",
+        members: [...bar.querySelectorAll(".forecast-member")].map((member) => ({
+          name: member.querySelector(".forecast-member-head b")?.textContent?.trim() ?? "",
+          endingHp: Number(member.querySelector(".forecast-hp-values b")?.textContent?.trim() ?? "NaN"),
+          maxHp: Number(member.querySelector(".forecast-hp-values small")?.textContent?.replace("/", "") ?? "NaN"),
+          defeated: member.classList.contains("defeated"),
+        })),
+      }));
     }
     if (stage === 1) {
       // issue #138 追補 — キャンプを下までスクロールした状態から挑むと、盤面
@@ -220,9 +237,64 @@ try {
       note("ダメージ値が対象の上に浮かぶ", sawAnimation);
       await page.locator("details.debug-log summary").click();
       note("デバッグログを開ける", await page.locator(".debug-log .event").count() > 0);
+
+      // 自動再生を止めて最後の拍まで手送りし、盤面に表示された最終HPを読む。
+      // これで「予測が合っている」だけでなく、「実績を描くUIが同じ値を出す」ことを検査する。
+      const toggle = page.locator('[data-role="replay-toggle"]');
+      if (await toggle.count()) {
+        const toggleLabel = await toggle.textContent();
+        if (toggleLabel?.trim() === "一時停止") await toggle.click();
+      }
+      let beat = await readBeatCount();
+      let manualSteps = 0;
+      while (beat && beat.current < beat.total && manualSteps < 1200) {
+        const stepButton = page.locator('[data-role="replay-step"]');
+        if (await stepButton.count() === 0 || await stepButton.isDisabled()) break;
+        await stepButton.click();
+        manualSteps += 1;
+        beat = await readBeatCount();
+      }
+      const animationAtEnd = Boolean(beat && beat.total > 0 && beat.current === beat.total);
+      note("アニメーションを最後の拍まで進められる",
+        animationAtEnd,
+        beat ? String(beat.current) + " / " + String(beat.total) : "拍数なし");
+
+      const fieldCount = await page.locator(".battle-field").count();
+      const animationSnapshot = fieldCount
+        ? await page.locator(".battle-field").evaluate((field) => ({
+          beatText: field.querySelector(".beat-text")?.textContent?.trim() ?? "",
+          beatRound: field.querySelector(".beat-round")?.textContent?.trim() ?? "",
+          members: [...field.querySelectorAll('.battle-side[data-side="ally"] .unit')].map((unit) => {
+            const hpText = unit.querySelector(".unit-hp")?.textContent?.trim() ?? "";
+            const hp = hpText.match(/^([0-9]+)\/([0-9]+)$/);
+            return {
+              name: unit.querySelector(".unit-name")?.textContent?.trim() ?? "",
+              endingHp: hp ? Number(hp[1]) : 0,
+              maxHp: hp ? Number(hp[2]) : null,
+              defeated: hpText === "戦闘不能",
+            };
+          }),
+        }))
+        : { beatText: "", beatRound: "", members: [] };
+      const animationHpParity = animationAtEnd
+        && Boolean(forecastAtStage1?.members?.length)
+        && forecastAtStage1.members.every((expected) => {
+          const actual = animationSnapshot.members.find((entry) => entry.name === expected.name);
+          return Boolean(actual)
+            && actual.endingHp === expected.endingHp
+            && actual.defeated === expected.defeated
+            && (expected.defeated || actual.maxHp === expected.maxHp);
+        });
+      note("上部の予測とアニメーション終了時の実績HPが一致する",
+        animationHpParity,
+        animationHpParity ? "" : JSON.stringify({
+          forecast: forecastAtStage1,
+          animation: animationSnapshot.members,
+        }));
     }
 
-    await page.locator('.speed-button[data-speed="fast"]').click();
+    const fastSpeed = page.locator('.speed-button[data-speed="fast"]');
+    if (await fastSpeed.count()) await fastSpeed.click();
 
     // **ラン途中のリロード。**作者が一度これで進行を失っている。
     if (stage === 3 && !reloaded) {
@@ -234,9 +306,19 @@ try {
       reloaded = true;
     }
 
-    await click("結果を見る");
+    if (await page.locator(".battle-field").count()) await click("結果を見る");
+    else await page.waitForSelector("h1", { timeout: 8000 });
     await page.waitForTimeout(200);
-    const verdict = await page.locator("h1").textContent();
+    const verdict = (await page.locator("h1").textContent())?.trim() ?? "";
+    if (stage === 1 && forecastAtStage1) {
+      const resultText = await bodyText();
+      const forecastRounds = forecastAtStage1.verdict.match(/([0-9]+)ラウンド/)?.[1] ?? "";
+      const actualRounds = resultText.match(/·\s*([0-9]+)ラウンド/)?.[1] ?? "";
+      const expectedVerdict = forecastAtStage1.result === "win" ? "突破した" : "足を止めた";
+      note("予測と結果画面の勝敗・ラウンドが一致する",
+        verdict === expectedVerdict && forecastRounds === actualRounds,
+        forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
+    }
     if (stage === 1) {
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
