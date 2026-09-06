@@ -2121,7 +2121,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   align-items: flex-end;
   justify-content: center;
   gap: 0;
-  padding: 0;
+  padding: 0 40px;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(180deg, #000 84%, rgba(0,0,0,0) 100%);
   mask-image: linear-gradient(180deg, #000 84%, rgba(0,0,0,0) 100%);
