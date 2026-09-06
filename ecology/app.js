@@ -14,7 +14,6 @@ import {
   equipSkill,
   freshLoadout,
   initialUnlockedSkills,
-  makeExpeditionBattle,
   removeEquipment,
   reorderSkill,
   toggleSkill,
@@ -25,6 +24,7 @@ import {
   componentInfo,
   registerGeneratedEquipment,
   makePrologueBattle,
+  simulateExpeditionBattle,
   prologueEncounter,
 } from "./playable-battles.mjs";
 import {
@@ -105,7 +105,6 @@ import {
   appraisalLevel,
   blueprintCarryCapacity,
   newGeneratedItems,
-  runContentBundle,
   takeGeneratedEquipment,
 } from "./progression.mjs";
 import {
@@ -2707,10 +2706,15 @@ function forecastKey(composed) {
     composed?.index ?? null,
     composed?.enemies?.map((enemy) => [enemy.instanceId, enemy.enemyActorId, enemy.position, enemy.stats, enemy.mutations]) ?? null,
     composed?.maxRounds ?? null,
+    state.run.runSeed,
+    state.run.difficulty,
     state.run.roster,
     state.run.formation,
     state.run.loadout,
     state.run.currentHp,
+    state.run.runSkillLevels,
+    state.equipmentDurability,
+    state.hp,
     Object.keys(state.run.generatedEquipment ?? {}),
     state.run.partySize,
     // 鍛錬と枠の購入は遠征の外で動くが、味方の stat を変える。**run だけを見て
@@ -2718,6 +2722,7 @@ function forecastKey(composed) {
     state.profile.characters,
     state.profile.metaUpgradeLevels,
   ]);
+}
 }
 
 // 次の一戦の試算。**読めなければ null**（画面は黙って予測を出さない）。
@@ -2733,7 +2738,11 @@ function battleForecast() {
   if (forecastCache.key === key) return forecastCache.value;
   let value = null;
   try {
-    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, { composed });
+    value = previewNextBattle(state.run, state.profile, state.run.encounterIndex, {
+      composed,
+      hp: isCampaignRun() ? state.run.currentHp : state.hp,
+      equipmentDurability: state.equipmentDurability,
+    });
   } catch {
     value = null;
   }
@@ -3834,23 +3843,19 @@ function simulateAndEnterBattle() {
   let battle;
   try {
     const composed = currentEncounter();
-    battle = makeExpeditionBattle(
-      composed,
-      state.run.roster,
-      state.run.loadout,
-      state.run.runSeed,
-      state.run.formation,
+    const simulation = simulateExpeditionBattle(
+      state.run,
+      state.profile,
+      state.run.encounterIndex,
       {
-        // R8 §1.5 — Campaign Stage は run.currentHp（持ち越しHP）を渡す。
-        // Free / Endless は従来どおり state.hp（毎戦満タン）。
+        composed,
         hp: isCampaignRun() ? state.run.currentHp : state.hp,
         equipmentDurability: state.equipmentDurability,
         limitsFor,
-        statsFor,
-        // Phase C — 遠征ごとの装備定義を含む content bundle を渡す。
-        content: runContentBundle(state.run),
+        simulationOptions: { captureReplaySnapshots: true },
       },
     );
+    battle = simulation.battleInput;
     record("battle_started", {
       encounter: state.run.encounterIndex,
       kind: composed.kind,
@@ -3858,10 +3863,7 @@ function simulateAndEnterBattle() {
       threat: composed.spentThreat,
       battleId: battle.battleId,
     });
-    const result = simulateBattle(battle, runContentBundle(state.run), {
-      equipmentBreaks: false,
-      captureReplaySnapshots: true,
-    });
+    const result = simulation.result;
     state.lastResult = compactResult(result);
     const replay = compactReplay(result);
     state.replayEvents = replay.events;
