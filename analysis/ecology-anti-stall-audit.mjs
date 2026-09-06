@@ -106,6 +106,7 @@ function auditPlayableTerminationWitnesses(bundle) {
         + "fixture専用の定義を本編へ出さないこと",
     });
   }
+  return violations;
 }
 function audit(bundle) {
   return [
