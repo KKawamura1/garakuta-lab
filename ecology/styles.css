@@ -1813,8 +1813,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   transform-origin: 50% 100%;
 }
 .vn-figure[data-character="warden"] {
-  --portrait-scale: 1.2;
-  /* 1.2倍で頭頂部が上端へ寄るため、下側を台詞窓へ逃がして頭を見せる。 */
+  --portrait-scale: 1.5;
+  /* 1.5倍で頭頂部が上端へ寄るため、下側を台詞窓へ逃がして頭を見せる。 */
   --portrait-y: 40px;
 }
 .vn-figure .portrait-svg { display: block; width: 100%; height: 100%; }
