@@ -483,6 +483,19 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   check(menderWin.some((line) => line.text === "三回目です。"),
     "ツグミは自分の記憶ではなく、ゴウの口を数える");
 
+  // ---- 5. 先見機が読めた内容に驚かない ----
+  //
+  // 予測は次の一戦の個体・並び・**結果まで**見せる（`PROLOGUE.retryHint`、`app.js` の
+  // 「その戦闘結果は常に見えます」）。巻き戻したあとの一戦には予測が出るので、
+  // **校正した本人であるツグミは、終わり方まで知って入っている。**戦闘後の彼女が
+  // 驚けるのは、盤面の外で起きたことだけである（作者指摘・R16追補）。
+  check(menderWin.every((line) => line.emotion !== "shock"),
+    "予測を読んだツグミは、読めていた結果に驚かない");
+  // **一戦目だけは予測が出ない**（app.js の forecastVisible）。だからそこでは驚ける。
+  // この対比が消えると、敗北が「理由の無い敗北」に戻る。
+  check(dialogueFor("stage_0_prologue_defeat").some((line) => line.emotion === "shock"),
+    "予測の出ない一戦目では、結果に驚く");
+
   // ---- 2. ヒバナの歳は本人の申告 ----
   //
   // 設定は「名前も歳も本人の申告である」。**先に誰かが言えば、それは知り得ない。**
