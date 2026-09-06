@@ -25,6 +25,7 @@ import {
   DOSSIER_IDS,
   DOSSIER_SECTIONS,
   DOSSIER_SECTION_HEADINGS,
+  DIALOGUE,
   DIALOGUE_IDS,
   EXPRESSIONS,
   PACK_BY_ID,
@@ -419,7 +420,11 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 
 // ---- Stage 2 の加入会話の順序 ----------------------------------------------
 //
-// Stage 2 の join で初めて名前と記録を確認し、stageEnd ではその後の応答を置く。
+// Stage 2 の join で名前を聞き、照会は投げるだけにする。**紙に訊いた答えは
+// 坑の中では返らない**ので、結果は詰所へ戻る stageEnd で渡す（R16）。
+// R13 は「名前は。」の三行あとに照会結果を返しており、しかもまだ聞いていない
+// 歳を「この歳の子」と言っていた（作者評価「知らないはずの情報」）。
+//
 // act3 ですでに「ヒバナちゃん」と呼んでいるため、stageEnd で名前を尋ね直さない。
 // 地の文も加入済みの人物を「小さい影」と呼ばず、名前で指す。
 //
@@ -427,26 +432,152 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   const joinTexts = dialogueFor("stage_2_join").map((line) => line.text);
   const endTexts = dialogueFor("stage_2_end").map((line) => line.text);
 
-  assert.deepEqual(joinTexts.slice(-4), [
-    "名前は。",
-    "ヒバナ！",
-    "照会は。",
-    "出ない。詰所にも協会にも、この歳の子の記録が一件も無い。拾われた記録も、生まれた記録もだ。",
-  ], "Stage 2 の名前照会は加入場面の末尾にある");
-  checks += 1;
+  check(joinTexts.includes("名前は。") && joinTexts.includes("ヒバナ！"),
+    "Stage 2 の加入場面で名前を聞く");
+  check(joinTexts.some((text) => text.includes("照会")),
+    "Stage 2 の加入場面で照会を投げる");
+  check(!joinTexts.some((text) => /出ない|出ねえ|一件も無い/.test(text)),
+    "Stage 2 の加入場面では照会の結果が返っていない");
 
-  assert.deepEqual(endTexts, [
-    "……ないの？ あたしの、ない？",
-    "ないな。",
-    "じゃあ今日から作る。名前と、歳と、拾った日と。全部こっちで書く。",
-  ], "Stage 2 の stageEnd は名前確認後の応答だけを扱う");
-  checks += 1;
+  check(endTexts.some((text) => /出ねえ|出ない/.test(text)),
+    "Stage 2 の stageEnd で照会の結果が返る");
+  check(endTexts.includes("……ないの？ あたしの、ない？") && endTexts.includes("ないな。"),
+    "Stage 2 の stageEnd は記録が無いことへの応答を扱う");
+  check(endTexts.some((text) => text.includes("今日から作る")),
+    "Stage 2 の stageEnd で名簿を自分たちで作る");
 
   equal(
     dialogueFor("stage_2_act1")[0].text,
     "崩れた回廊の脇。ヒバナが屈んで、割れた把手を布に包んでいる。",
     "Stage 2 act1 は加入済みのヒバナを地の文で指す",
   );
+}
+
+// ---- 誰が何を知っているか（R16）----------------------------------------------
+//
+// **知識の矛盾は「性格の崩れ」と同じ原因から出る。**書く順ではなく人物の側の都合で
+// 情報を置くと、両方が同時に壊れる。R16 で直した4件を、ここで固定する。
+// 規約の本文は dialogue.mjs 冒頭にある。
+//
+{
+  // ---- 1. 巻き戻りを覚えているのはゴウだけ ----
+  //
+  // R13 の `stage_0_prologue_win` は、ツグミが自分から「さっきと同じ」と言い、
+  // そのうえで**ゴウが一度も言っていない「さっき」**を「言いました。二回。」と
+  // 数えていた。彼女が引用していたのは自分の台詞である。
+  const winLines = dialogueFor("stage_0_prologue_win");
+  const rewoundLines = dialogueFor("stage_0_prologue_rewound");
+  const menderWin = winLines.filter((line) => line.who === "mender");
+  const wardenWin = winLines.filter((line) => line.who === "warden");
+
+  check(!/さっき|二回目|もう一度|前の/.test(menderWin[0].text),
+    "巻き戻し後の一行目で、ツグミは巻き戻り前を指さない");
+  check(wardenWin.some((line) => line.text.includes("さっき")),
+    "巻き戻し後、ゴウが自分から「さっき」を漏らす");
+
+  // ツグミが数える回数は、実際にゴウが漏らした回数と合っていなければならない。
+  const wardenSlips = [...rewoundLines, ...winLines]
+    .filter((line) => line.who === "warden")
+    .reduce((total, line) => total + (line.text.match(/さっき/g) ?? []).length, 0);
+  equal(wardenSlips, 3, "ゴウの「さっき」は、ツグミが数える「三回目」と一致する");
+  check(menderWin.some((line) => line.text === "三回目です。"),
+    "ツグミは自分の記憶ではなく、ゴウの口を数える");
+
+  // ---- 2. ヒバナの歳は本人の申告 ----
+  //
+  // 設定は「名前も歳も本人の申告である」。**先に誰かが言えば、それは知り得ない。**
+  // （「十一」単体は受けた回数などにも出るので、歳として言う形だけを見る）
+  for (const [beatId, entry] of Object.entries(DIALOGUE)) {
+    for (const line of entry.lines) {
+      if (!/じゅういち|十一歳/.test(line.text)) continue;
+      equal(line.who, "guardian", beatId + ": ヒバナの歳を言うのは本人だけ");
+    }
+  }
+  const beforeDeclaration = Object.entries(DIALOGUE)
+    .filter(([id]) => id.startsWith("stage_2") || id.startsWith("stage_3"))
+    .flatMap(([, entry]) => entry.lines);
+  check(!beforeDeclaration.some((line) => line.who && /この歳の子|歳は.*十/.test(line.text)),
+    "本人が申告するまで、誰もヒバナの歳を前提にしない");
+
+  // ---- 3. ゲンゾウは照会を読んで来た ----
+  //
+  // 加入前の彼がヒバナを知っている根拠は、Stage 2 で十三号室が投げた照会にしかない。
+  // 根城の「先月、書き足しました」もここから来る。
+  const genzoJoin = dialogueFor("stage_3_join").map((line) => line.text).join("\n");
+  check(/照会/.test(genzoJoin), "ゲンゾウは自分が照会を受け取ったことを名乗る");
+  check(/五年前/.test(genzoJoin), "ゲンゾウは兄の件も同じ照会から持ってくる");
+  check(dialogueFor("homestead_thick_book").some((line) => /照会/.test(line.text)),
+    "根城の「先月」は、その照会の月として根拠を持つ");
+
+  // ---- 4. 人物はゲームのシステムを知らない ----
+  //
+  // dialogue.mjs 冒頭の規約。**いまは偶然守れているだけで、検査が無かった。**
+  // 地の文はゲーム側の語りなので、ここでは台詞だけを見る。
+  const systemWords = /腕力|集中値|受け値|行動権|反応点|隊列|後列|前列|手番|ラウンド/;
+  for (const [beatId, entry] of Object.entries(DIALOGUE)) {
+    for (const line of entry.lines) {
+      if (!line.who) continue;
+      check(!systemWords.test(line.text), beatId + ": 台詞に盤面の語が出ない（" + line.text.slice(0, 12) + "）");
+    }
+  }
+}
+
+// ---- 人物の調子（R16）--------------------------------------------------------
+//
+// R15 は「調子」の直しを Stage 0 の8断片にしか当てておらず、Stage 1〜3 のゴウは
+// 「ナギ、前。」「名前は。」「照会は。」「ないな。」だけの**寡黙で有能な隊長**に
+// 戻っていた。設定は「声がでかい。ガサツで、口が上手くて、調子がいい。だいたい
+// 何か言いながら前に出る」である。**同じ乖離を二度起こさないための検査。**
+//
+{
+  const linesOf = (who) => Object.values(DIALOGUE)
+    .flatMap((entry) => entry.lines)
+    .filter((line) => line.who === who);
+
+  // ゴウは、どの Stage でも短く切り続けない。
+  for (const stage of ["stage_0", "stage_1", "stage_2", "stage_3"]) {
+    const texts = Object.entries(DIALOGUE)
+      .filter(([id]) => id.startsWith(stage))
+      .flatMap(([, entry]) => entry.lines)
+      .filter((line) => line.who === "warden")
+      .map((line) => line.text);
+    if (texts.length === 0) continue;
+    check(texts.some((text) => text.length >= 30),
+      stage + ": ゴウが一度は長く喋る（何か言いながら前に出る人である）");
+  }
+
+  // 「……」始まりが一種類の「間」に偏らない（GitHub Issue #122）。
+  // ナギは19行中9行（47%）が「……」始まりで、5人が同じ呼吸に見えていた。
+  for (const who of ["lancer", "mender", "guardian", "tactician"]) {
+    const texts = linesOf(who).map((line) => line.text);
+    const dots = texts.filter((text) => text.startsWith("……")).length;
+    check(dots * 3 <= texts.length,
+      who + ": 「……」始まりが台詞の三分の一を超えない（" + dots + "/" + texts.length + "）");
+  }
+
+  // 表情が一つに張り付かない。ゲンゾウは16行中12行が calm だった（Issue #120）。
+  for (const who of ["warden", "mender", "lancer", "guardian", "tactician"]) {
+    const emotions = linesOf(who).map((line) => line.emotion);
+    const top = Math.max(...[...new Set(emotions)].map((emotion) =>
+      emotions.filter((entry) => entry === emotion).length));
+    check(top * 2 <= emotions.length,
+      who + ": 一つの表情が台詞の半分を超えない（" + top + "/" + emotions.length + "）");
+  }
+}
+
+// ---- 加入場面の一行目は、加入する人物が喋る（R16）-------------------------------
+//
+// 会話画面の名前欄は、その行の話者しか出さない。**地の文で始めると、誰が加わるのかが
+// 一拍遅れる**（`analysis/ecology-tutorial-trial.mjs` の「Stage 1 の加入の会話が出る」が
+// これで落ちた）。地の文を置きたいときは二行目からにする。
+{
+  for (const stage of CAMPAIGN_STAGES) {
+    if (stage.sequence === 0) continue;
+    const beat = storyBeat(stage.id, "join");
+    if (!beat) continue;
+    const joined = stage.castCharacterIds[stage.castCharacterIds.length - 1];
+    equal(beat.lines[0].who, joined, beat.id + ": 一行目は加入する " + joined + " が喋る");
+  }
 }
 
 // ---- 加入済みの仲間は場面から消えない（R12）------------------------------------

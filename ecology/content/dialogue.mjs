@@ -57,6 +57,50 @@
 //
 // **数値と仕様を書く場所は台詞ではない。**名簿（character-lore.mjs の field）、
 // footer / hint、技能説明はゲームがプレイヤーへ直接話す欄なので、そちらで書く。
+//
+// ---------------------------------------------------------------- R16 で Stage 1〜3 と根城を張り直した
+//
+// R15 は「調子」の直しを **Stage 0 の8断片にしか適用していなかった**（HISTORY §3.8 / §3.10）。
+// 残り21断片は R13 のままで、作者評価は「性格に合っていない／知らないはずの情報を
+// 知っている」だった。数えると出る。
+//
+//   ゴウ  Stage 0 … 22行・平均24字      ← R15 で直した側
+//   ゴウ  Stage 1 …  6行・平均13字（うち5行が12字以下）
+//   ゴウ  Stage 3 …  3行・平均14字
+//
+// 「ナギ、前。」「断らないから。」「名前は。」「照会は。」「ないな。」は、**R15 が
+// 消したはずの寡黙で有能な隊長**である。設定は「だいたい何か言いながら前に出る」。
+// 同じ形で、ナギは19行中9行が「……」始まりで worry / hurt / shock しか持たず、
+// ゲンゾウは16行中12行が calm だった。**一面だけが実装されていた。**
+//
+// **人物ごとに「毎回出る癖」を一つ決めて、全断片へ通す。**
+//
+//   ゴウ    … 短く切らない。何か言いながら動く。困ると逸らす。押し切られたら「へいへい」。
+//             **素直になるのは、流した先で誰かが傷ついたときだけ**（滅多に無い）
+//   ツグミ  … 「——」で被せる。言い過ぎて、その場で後悔する（「……あ。すみません、言い方が」）
+//   ナギ    … 愚痴りながら**手だけは止まらない**。褒められると壊れる
+//   ヒバナ  … 返事を待たない。全部感嘆。前の場面を忘れている
+//   ゲンゾウ… 敬称と間。ただし calm 以外も混ぜる。甘いもの。若者言葉に必ず失敗する
+//
+// ---- 誰がいつ何を知っているか（R16）----------------------------------------
+//
+// **知識の矛盾は「性格の崩れ」と同じ原因から出る。**書く順ではなく、人物の側の
+// 都合で情報を置くと、両方が同時に壊れる。R16 で直した4件を、そのまま規約にする。
+//
+//   1. **巻き戻りを覚えているのはゴウだけ。**ツグミは「さっき」を先に言わない。
+//      彼女が拾えるのは、**ゴウが漏らした語だけ**である（`stage_0_prologue_win`）。
+//   2. **ヒバナの歳は本人の申告。**誰かが先に「十一」と言えば、それは知り得ない。
+//      申告は根城の `homestead_thick_book` にある。
+//   3. **照会は坑の中では返らない。**紙に訊いて、紙が返るまで一往復かかる。
+//      投げるのが `stage_2_join`、返るのが `stage_2_end`（詰所）である。
+//   4. **ゲンゾウはその照会を読んで来た。**十三号室からの二件——記録の無い子と、
+//      五年前に戻らなかった者——が、彼が戸を叩く理由であり、`stage_3_act2` の
+//      「お兄様は、ご存命ですよ」と `homestead_thick_book` の「先月」の根拠でもある。
+//
+// 助走は `stage_1_act3` に一拍だけ置く（GitHub Issue #118）。**名前も事情も出さない。**
+// ゴウが茶化さない一箇所がある、とだけ分かればよい。
+//
+// これらは `ecology/story.test.mjs` の「誰が何を知っているか」節が検査する。
 
 import { narrate, say, stand } from "./beat.mjs";
 
@@ -158,27 +202,42 @@ export const DIALOGUE = Object.freeze({
     ]),
   }),
 
+  // R16 — **ここで一度目の「さっき」を漏らす。**`stage_0_prologue_win` でツグミが
+  // 数えるのは、この一回と向こうの一回である。R15 の初稿はゴウが一度も言わないまま
+  // ツグミに「言いました。二回。」と数えさせていた（作者評価「知らないはずの情報」）。
+  //
+  // ツグミが遮られる形も直した。設定は「早口で、遮られると被せてくる」側なので、
+  // **ゴウが言葉で被せると癖が逆になる。**遮るのは、ゴウが黙って座ったという事実にする。
+  //
+  // 敗因（立つ場所）は**ツグミに言わせない。**まだ何も起きていない時点で、
+  // これからプレイヤーが学ぶ答えを人物が先に口にすることになる。
   stage_0_prologue_rewound: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
       narrate("同じ朝。同じ光。ツグミが電極を持って背伸びしている。"),
       say("mender", "校正、あと三分です。ですから座ってくださいって、さっきから何度も——", "firm"),
+      narrate("ゴウが座った。ツグミの手が、電極を持ったまま止まる。"),
       say("warden", "……待つ。三分だろ。", "calm"),
-      say("mender", "……急に聞き分けがよくなりましたね。具合でも悪いんですか？", "shock"),
-      say("warden", "うるせえな。先見機が使えるなら、先に中を見ろ。", "wry"),
-      say("mender", "まだ校正の途中です。あと三分待てば、次の中身を読めます。ひとりで先に行って、立つ場所を間違えるよりは、そのほうがいいでしょう。", "firm"),
+      say("mender", "いま、なんて。三分。待つ。あなたが。三つとも初めて聞きました。具合でも悪いんですか？", "shock"),
+      say("warden", "うるせえな。さっきの——いや。先見機の校正が済んだら、先に中を見せろ。それだけだ。", "wry"),
+      say("mender", "見せますけど。あと三分で、次の一戦の中身がそのまま読めます。数も、並びも、終わり方も。", "firm"),
       say("warden", "……ああ。今日は、三分待つ。", "calm"),
     ]),
   }),
 
+  // R16 — **ツグミは巻き戻りを覚えていない。**彼女に渡すのは先見機が読んだ内容だけで、
+  // 「さっき」はゴウの口からしか出ない。ゴウは減らず口で塗り潰そうとして、
+  // 塗り潰すたびに一つ増える。**数えるのはツグミの癖である**（根城の「四回目です」と同じ形）。
   stage_0_prologue_win: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("warden", "right")]),
     lines: Object.freeze([
-      say("mender", "……誰も落ちていません。敵の数も、並びも、さっきと同じなのに。", "shock"),
-      say("warden", "だろ？ 立つ場所を変えた。それだけだ。同じ形で入れば、同じように終わる。", "smile"),
+      say("mender", "……誰も落ちていません。数も、並びも、先見機が読んだとおりだったのに。", "shock"),
+      say("warden", "だろ？ さっきは前に二人で並んじまったからな。今度は立つ場所を変えた。それだけだ。", "smile"),
       say("mender", "「さっき」。", "neutral"),
       say("warden", "言ってねえ。", "wry"),
-      say("mender", "言いました。二回。やっぱり、何かありましたね。", "firm"),
+      say("mender", "言いました。いま一度。門の手前でも一度。", "firm"),
+      say("warden", "そりゃお前、さっきってのは物の言い方であって、別に何がどうってわけじゃ——", "wry"),
+      say("mender", "三回目です。", "calm"),
       say("warden", "……台帳には書かない。", "worry"),
     ]),
   }),
@@ -196,44 +255,74 @@ export const DIALOGUE = Object.freeze({
   }),
 
   // ============================================================ Stage 1 — ナギ
+  //
+  // R16 — **加入の交渉を三度やらない（GitHub Issue #117）。**幕の断片は 4・8・12戦目の
+  // 前に出るので、`act1` は join の**三戦あと**である。そこでナギが「後ろのほうが……」と
+  // 渋り直すと、**人物の状態が逆行する。**act1 は「もう前に立っている」前提へ振り替えた。
+  //
+  // ナギは「愚痴が多い」だけの人ではない。**訴えるが、手だけは絶対に止まらない。**
+  // 断片ごとに、口では嫌がりながら体は先に動いている絵を一つ置く。
   stage_1_act1: Object.freeze({
     cast: Object.freeze([stand("lancer", "center"), stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("warden", "ナギ、前。", "neutral"),
-      say("lancer", "えっ。あの、わたし、後ろのほうが……。", "shock"),
-      say("mender", "後ろだと手が届きません。それと、あなたは細かいのを何発もらっても、傷が浅い。数えました。前に立って一番減らないのは、あなたです。", "calm"),
-      say("lancer", "…………はい。理屈は、わかりました。", "worry"),
+      narrate("崩れた階段の下。三度目の波が引いて、ナギが肩で息をしている。前へ出たのは、今日でもう四度目である。"),
+      say("warden", "見たか今の。全部お前んとこで止まってんだよ。俺なんか一発も届いてねえ。なあ、すげえだろ。自分でもすげえと思ってるだろ。", "smile"),
+      say("lancer", "えっ。あ、いえ、そんな、止めたというか、勝手に当たっただけで、その、", "shock"),
+      say("mender", "顔が赤いです。脈も上がっています。褒められただけで、なぜ怪我をした人と同じ数字になるんですか。", "neutral"),
+      say("lancer", "言わないでください！ もう、二人とも向こう行っててください！", "firm"),
+      narrate("そう言いながら、ナギは次の波の前へ、また一歩出た。"),
     ]),
   }),
 
+  // R16 — ツグミの「言い過ぎて、その場ですぐ後悔する」をここで一度出す。
+  // 設定にあって台詞に一度も無かった癖である。
   stage_1_act2: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("lancer", "right")]),
     lines: Object.freeze([
-      narrate("ナギの肩当てに、浅いが長い裂け目がある。"),
+      narrate("回廊の窪み。ナギの肩当てに、浅いが長い裂け目がある。気づかないふりで、火の位置を直している。"),
       say("mender", "その傷、いま塞ぐ意味はありません。", "neutral"),
       say("lancer", "ですよね。だから言ってません。", "worry"),
-      say("mender", "言わないのと、気づかれないのは別です。次に開いたら縫いますので、それまでは庇わないでください。", "calm"),
+      say("mender", "言わないのと、気づかれないのは別です。あなたは黙って開くので、こちらは毎回、開いてから知るんです。次に開いたら縫いますから、それまでは庇わないで——", "firm"),
+      say("mender", "……あ。すみません、言い方が。", "worry"),
+      say("lancer", "いえ。怒られるほうが、まだ楽なので。", "smile"),
+      say("mender", "楽にしないでください。それは、こちらの仕事です。", "calm"),
     ]),
   }),
 
+  // R16 — **兄への助走（GitHub Issue #118）。**名前も事情も出さない。
+  // ゴウが一度だけ茶化さない、それだけを見せる。掘るのは Stage 3 のゲンゾウである。
+  // ナギが証人なのは、**踏み込まない人だから**である。
   stage_1_act3: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("lancer", "right")]),
     lines: Object.freeze([
       say("lancer", "……あの。なんで、毎回わたしなんでしょうか。", "worry"),
-      say("warden", "断らないから。", "neutral"),
+      say("warden", "断らねえから。断らねえうえに、断らなかった顔もしねえ。得だろ、そんなの。", "neutral"),
       say("lancer", "そこは嘘でもいいので、頼りにしてる、とか言ってください。", "worry"),
       say("warden", "頼りにしてる。", "neutral"),
+      say("lancer", "うう、まったく心がこもってない……。", "hurt"),
+      say("warden", "こもってるっての。ほら、十数えたら行くぞ。九、八、", "smile"),
+      narrate("そう言いながら、ゴウは帳簿を開いて、灰に濡れた頁を指で伸ばした。目録でも、借りの欄でもない、ずっと後ろのほうである。"),
+      say("lancer", "そこ、いつも同じところを見てますよね。名前しか書いてない頁。", "neutral"),
+      narrate("ゴウは数を止めた。それから、帳簿を閉じた。"),
+      say("warden", "……そろそろ行くぞ。灰が上がってきた。", "calm"),
+      say("lancer", "はい。", "worry"),
+      narrate("ゴウは何も茶化さなかった。ナギも、それきり訊かなかった。"),
     ]),
   }),
 
   stage_1_join: Object.freeze({
     cast: Object.freeze([stand("lancer", "center"), stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("lancer", "えっ。あの、わたしですか。火力とか、無いですけど……。", "shock"),
-      say("warden", "いらねえよ。削るのはツグミがやる。お前は三発ぶん立っててくれれば、それでいい。", "wry"),
-      say("mender", "傷は診ます。ただし戻せるのは、いま受けたぶんだけです。", "calm"),
-      say("lancer", "……断る理由を考えてるんですけど、出てこないです。", "worry"),
+      say("lancer", "はい、そこ置いてください。そこじゃなくて、そっちの——ああもう、いいです、わたしが持ちます。", "worry"),
+      narrate("詰所の裏手。荷を三つ抱えたまま、ナギが四つ目に手を伸ばしている。"),
+      say("warden", "ナギ！ 探したぞ。おい、四つ目まで持つな。話があんだよ。", "smile"),
+      say("lancer", "置くと、誰かが持つので。……それで、話って何ですか。嫌な予感しかしないんですけど。", "worry"),
+      say("warden", "灰の門の先まで行く。二人だと前が足りねえ。お前が三発ぶん立っててくれりゃ、それでいい。削るのはツグミがやる。", "smile"),
+      say("lancer", "えっ。あの、わたしですか。火力とか、無いですけど……。それに三発って、なんですか三発って。数え方がもう嫌です。", "shock"),
+      say("mender", "傷は診ます。ただし戻せるのは、いま受けたぶんだけです。前の遠征で残したぶんは戻りません。", "calm"),
+      say("lancer", "うう……断る理由を考えてるんですけど、出てこないです。ずるいですよ、二人がかりは。", "worry"),
       say("warden", "じゃあ決まりだ。", "smile"),
+      narrate("ナギは愚痴りながら、四つ目の荷を担いだ。"),
     ]),
   }),
 
@@ -241,39 +330,63 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("lancer", "center"), stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
       say("lancer", "うう……今日だけで、何発受けたと思ってるんですか……。", "hurt"),
-      say("warden", "十一だ。数えてた。", "smile"),
-      say("lancer", "数えてないで庇ってください！", "firm"),
+      say("warden", "十一。数えてた。ちゃんと数えてたぞ、俺は。", "smile"),
+      say("lancer", "数えてないで庇ってください！ 数える余裕があるなら手を出してください！", "firm"),
       say("mender", "同意します。ちなみに十三です。二発は、本人が気づいていません。", "calm"),
+      say("lancer", "十三！？", "shock"),
+      say("warden", "……二発ぶん、俺が見てなかったってことだな。悪い。次は俺が前に出る。", "calm"),
+      say("lancer", "えっ。あ、いえ、そんな、謝られると、その、こまる、ので、", "shock"),
+      say("warden", "こまってろ。", "smile"),
     ]),
   }),
 
   // ============================================================ Stage 2 — ヒバナ
+  //
+  // R16 — **照会は坑の中では返らない。**R13 は「名前は。」「ヒバナ！」「照会は。」
+  // 「出ない。」と、名を聞いた次の行に照会結果を返していた。崩れた回廊の只中である。
+  // しかも**まだ歳を聞いていないのに「この歳の子」**と言っていた（設定では名前も歳も
+  // 本人の申告で、申告は根城の `homestead_thick_book` にある）。
+  //
+  // 投げるのが join、返るのが stageEnd（詰所）。**一往復かかる。**
+  // そしてその紙が、Stage 3 でゲンゾウを連れてくる。
   stage_2_act1: Object.freeze({
     cast: Object.freeze([stand("guardian", "center"), stand("lancer", "left"), stand("warden", "right")]),
     lines: Object.freeze([
       narrate("崩れた回廊の脇。ヒバナが屈んで、割れた把手を布に包んでいる。"),
       say("guardian", "見て見て！ これ光るんだよ、こうやって傾けると！ ほら！", "smile"),
       say("lancer", "……光っては、ないです。", "neutral"),
-      say("guardian", "光るってば！ さっきは光ったもん！", "firm"),
+      say("guardian", "光るってば！ さっきは光ったもん！ ねえゴウ、光ったよね！？", "firm"),
+      say("warden", "光った光った。おら、そういうのはナギに渡しとけ。あいつの棚に置いときゃ、無くならねえからな。", "smile"),
+      say("lancer", "勝手に決めないでください。……いえ、預かりますけど。三段目が空いてるので。", "worry"),
     ]),
   }),
 
   stage_2_act2: Object.freeze({
     cast: Object.freeze([stand("guardian", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      say("guardian", "ねえねえ、なんであたしが先に行くと、みんな早くなるの？", "neutral"),
-      say("mender", "……なっていますね。あなたが飛び込むと、灰殻が揃ってそちらを向きます。その隙に、後ろが動けています。……理屈は、合っています。", "worry"),
+      say("guardian", "ねえねえツグミお姉ちゃん、なんであたしが先に行くと、みんな早くなるの？", "neutral"),
+      say("mender", "お姉ちゃんはやめてください。……なっていますね。あなたが飛び込むと、灰殻が揃ってそちらを向きます。その隙に、後ろが動けています。理屈は、合っています。", "worry"),
       say("guardian", "りくつ？", "neutral"),
       say("mender", "……いえ。合っている、と言いました。", "calm"),
+      say("guardian", "じゃあ、あってるってことだね！ ツグミお姉ちゃんが言うなら！", "smile"),
+      say("mender", "お姉ちゃんはやめてください。", "firm"),
     ]),
   }),
 
+  // R16 — **ゴウの暗所恐怖（GitHub Issue #121）。**設定にあって、坑を舞台にしながら
+  // 一度も出ていなかった。説明はしない。**明かりが行って、戻ってくるだけ。**
+  // 誰も指摘しないので、ゴウは認めずに済み、読み手にだけ伝わる。
   stage_2_act3: Object.freeze({
-    cast: Object.freeze([stand("guardian", "left"), stand("lancer", "right")]),
+    cast: Object.freeze([stand("guardian", "left"), stand("warden", "center"), stand("lancer", "right")]),
     lines: Object.freeze([
       say("lancer", "ヒバナちゃん、そっちは危ないです。灰が薄いところは、下が抜けますから。", "worry"),
-      say("guardian", "はーい！", "smile"),
-      narrate("三歩で戻ってきて、また同じところへ走っていった。"),
+      say("guardian", "はーい！ あっ、奥になんかある！", "smile"),
+      narrate("返事の途中で、ヒバナが灯りごと走っていった。回廊の出口が、一息で黒くなる。"),
+      say("warden", "——待て。おい。待てって、ヒバナ。", "shock"),
+      say("lancer", "ゴウさん？", "neutral"),
+      say("warden", "……いや。何でもねえ。灰が上がってるから、離れんなって言っただけだ。", "wry"),
+      narrate("灯りが戻ってきた。ゴウは、それから一度も出口に背を向けなかった。"),
+      say("guardian", "なんにも無かった！ 見て、なんにも無かったよ！", "smile"),
       say("lancer", "……うう。聞いてはいるんです。聞いてはいるんですけど。", "hurt"),
     ]),
   }),
@@ -287,28 +400,50 @@ export const DIALOGUE = Object.freeze({
       say("guardian", "こっち！ はやくはやく！", "firm"),
       narrate("小さい影が割り込み、ナギの襟をつかんで一歩ぶん引いた。灰が跳ねた。", "impact"),
       say("lancer", "えっ、えっ。", "shock"),
-      say("warden", "……いま、当たる位置だったな。", "neutral"),
+      say("warden", "……いま、当たる位置だったな。おい、危ねえだろ。危ねえけど助かった。両方言わせろ、両方だ。", "neutral"),
       say("guardian", "でしょ！ あたし、わかるの！", "smile"),
       say("mender", "説明になっていません。ですが、合っています。", "wry"),
       say("warden", "名前は。", "neutral"),
       say("guardian", "ヒバナ！", "smile"),
-      say("mender", "照会は。", "neutral"),
-      say("warden", "出ない。詰所にも協会にも、この歳の子の記録が一件も無い。拾われた記録も、生まれた記録もだ。", "calm"),
+      say("mender", "……こんな深さに、一人で。照会しますか。", "worry"),
+      say("warden", "帰ったらな。詰所と協会、両方に投げる。だが期待すんな。この深さで子供を落とした隊があるなら、俺の耳に先に入ってる。", "calm"),
+      say("guardian", "しょうかいって、なに！", "firm"),
+      say("warden", "お前がどこの誰かを、紙に訊くことだ。……ま、いい。ついてこい。飯は出る。", "smile"),
     ]),
   }),
 
   stage_2_end: Object.freeze({
     cast: Object.freeze([
       stand("guardian", "center"), stand("warden", "left"), stand("mender", "right"),
+      stand("lancer", "far_left"),
     ]),
     lines: Object.freeze([
+      narrate("詰所の窓口。ゴウが紙を二枚受け取って、二枚とも同じ顔で読んだ。"),
+      say("guardian", "ねえ、どうだった！ どうだった！", "firm"),
+      say("warden", "出ねえ。詰所も協会も、この背丈の子を落とした隊が一つも無い。拾われた記録も、生まれた記録もだ。", "neutral"),
       say("guardian", "……ないの？ あたしの、ない？", "worry"),
       say("warden", "ないな。", "neutral"),
-      say("warden", "じゃあ今日から作る。名前と、歳と、拾った日と。全部こっちで書く。", "smile"),
+      say("mender", "書式が古いだけかもしれません。別の綴りでもう一度、地方の分も含めて出し直せば——", "firm"),
+      say("warden", "ツグミ。いい。", "calm"),
+      say("warden", "じゃあ今日から作る。名前と、拾った日と。全部こっちで書く。字は汚えぞ。", "smile"),
+      say("mender", "わたしが書きます。", "calm"),
+      say("warden", "歳はどうする。", "neutral"),
+      say("guardian", "わかんない！", "smile"),
+      say("warden", "そこは空けとくか。埋まるまで、こっちで預かっとく。", "smile"),
     ]),
   }),
 
   // ============================================================ Stage 3 — ゲンゾウ
+  //
+  // R16 — **ゲンゾウが来る理由を、彼自身の口から一行で出す。**Stage 2 で十三号室が
+  // 投げた照会が、中央観測院の記録主任の机に届いた。記録の無い子と、五年前に
+  // 戻らなかった者。**二件とも、彼が四十年やめられなかった仕事そのものである。**
+  //
+  // これで三つが同時に立つ。彼が戸を叩く理由、`act2` の「お兄様は、ご存命ですよ」、
+  // 根城の `homestead_thick_book` の「先月、書き足しました」。
+  //
+  // また `join` の舞台を根城の戸口にした。R13 は `place` が「灰の谷」なのに
+  // 「扉から。鍵が壊れておりましたので」と言っており、**谷に扉と鍵が無かった。**
   stage_3_act1: Object.freeze({
     cast: Object.freeze([stand("tactician", "left"), stand("mender", "right")]),
     lines: Object.freeze([
@@ -316,6 +451,10 @@ export const DIALOGUE = Object.freeze({
       say("mender", "あなたも付けるんですね。", "neutral"),
       say("tactician", "出来事のほうを。何が起きて、何番目だったかを。", "calm"),
       say("mender", "わたしは人のほうです。誰が何時間寝て、何を食べて、どこまで腕が上がったか。……同じ火を囲んでいるのに、残るものが違いますね。", "wry"),
+      say("tactician", "違いましょうか。", "neutral"),
+      say("mender", "違います。あなたのほうは、その人が居なくなっても続きます。わたしのほうは——", "firm"),
+      narrate("ゲンゾウは、ずいぶん長く待った。ツグミは、続きを言わなかった。"),
+      say("tactician", "……では、両方あったほうがよろしゅうございますね。", "calm"),
     ]),
   }),
 
@@ -326,6 +465,10 @@ export const DIALOGUE = Object.freeze({
       say("warden", "……どこだ。", "shock"),
       say("tactician", "記録にございません。ですが、死亡の記録もございません。四十年ぶんの名簿は、わたくしが書き写しました。無い、ということだけは確かでございます。", "calm"),
       say("mender", "……それ、根拠になっていませんが。", "worry"),
+      say("warden", "じいさん。四つ目の門の先は、どの台帳にも無えんだ。誰も書いてねえところに人が居るってのは、そういう意味か。", "neutral"),
+      say("tactician", "そういう意味でございます。……申し訳ございません。もっと早く申し上げるべきでした。", "worry"),
+      say("warden", "いや。……ああ、いや。助かった。助かったんだよ、じいさん。", "calm"),
+      narrate("それからゴウは、いつもの倍の声で、いつもの半分の話をした。ツグミは帳面を開いて、何も書かずに閉じた。"),
     ]),
   }),
 
@@ -333,9 +476,15 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("guardian", "left"), stand("tactician", "right")]),
     lines: Object.freeze([
       say("guardian", "ゲンゾウのおじいちゃん、なんで殴らないの？", "neutral"),
-      say("tactician", "持っておりませんので。", "calm"),
+      say("tactician", "持っておりませんので。", "wry"),
       say("guardian", "じゃあ、なに持ってるの！", "firm"),
-      say("tactician", "盾と、名簿を。……どちらも、数を減らさないための物でございます。", "calm"),
+      say("tactician", "盾と、名簿を。……どちらも、数を減らさないための物でございます。", "neutral"),
+      say("guardian", "ふーん。……ねえ、さっきのすごかったよ！ ばーんって！ ばーんって出たもん！", "smile"),
+      say("tactician", "ばーん、でございましたか。", "smile"),
+      say("guardian", "ばーん！", "firm"),
+      say("tactician", "では次も、ばーんと。……いえ、ばーんに、でございましょうか。", "worry"),
+      say("guardian", "どっちでもいいよ！", "smile"),
+      say("tactician", "……難しゅうございますね。", "smile"),
     ]),
   }),
 
@@ -346,26 +495,41 @@ export const DIALOGUE = Object.freeze({
     ]),
     lines: Object.freeze([
       say("tactician", "失礼いたします。中央観測院、記録主任のゲンゾウと申します。", "calm"),
-      say("warden", "……じいさん、どっから入った。", "shock"),
-      say("tactician", "扉から。鍵が壊れておりましたので、直しておきました。", "calm"),
-      narrate("ゲンゾウが帽子を取って、丁寧に頭を下げる。"),
+      narrate("根城の戸口。閉めたはずの戸が、内側から開いている。"),
+      say("warden", "……じいさん、どっから入った。ここ、鍵かけたぞ。かけたよな？ かけた。俺がかけた。", "shock"),
+      say("tactician", "扉から。鍵が壊れておりましたので、直しておきました。", "neutral"),
+      say("guardian", "なおるの、あれ！", "firm"),
+      say("tactician", "直りました。……先月、こちらから照会が二件まいりました。一件は、記録の無いお子様のこと。", "neutral"),
+      say("guardian", "あたし！", "smile"),
+      say("tactician", "はい。もう一件は、五年前に戻らなかった方のことでございました。", "calm"),
+      narrate("ゴウは何も言わなかった。ゲンゾウが帽子を取って、丁寧に頭を下げる。"),
       say("tactician", "四十年、戻らなかった方の名前を書いてまいりました。もう、増やしたくないのです。こちらの欄も、あちらの欄も。", "calm"),
       say("lancer", "……あの。泣いていいですか。", "hurt"),
+      say("mender", "だめです。荷物を運んでください。", "firm"),
+      say("lancer", "運びながら泣きます。", "hurt"),
     ]),
   }),
 
+  // R16 — 六つ目の椅子は根城の `homestead_six_chairs` が持つ（家にある物の話なので）。
+  // ここで同じネタを先に消費すると、根城の場面で全員が二度目の初見をやることになる。
+  // stageEnd は**五人になったことそのもの**を締める。ナギを配役から落とさない
+  // （R13 は stage_2_end / stage_3_end の両方で、加入済みのナギが消えていた）。
   stage_3_end: Object.freeze({
     cast: Object.freeze([
       stand("warden", "center"), stand("guardian", "left"), stand("mender", "right"),
-      stand("tactician", "far_right"),
+      stand("lancer", "far_left"), stand("tactician", "far_right"),
     ]),
     lines: Object.freeze([
       say("warden", "五人。これで、置いていく奴を選ばなくて済む。", "smile"),
-      say("guardian", "六人！ 椅子、六つあるもん！", "firm"),
-      say("mender", "五人です。", "calm"),
-      say("guardian", "えー。", "worry"),
-      say("tactician", "六つ目は、わたくしの荷物が使っております。", "calm"),
-      say("tactician", "……歳を取ると、荷物が増えますので。", "smile"),
+      say("mender", "選ばずに済むのと、全員が帰れるのは別です。", "calm"),
+      say("warden", "同じことにする。俺が決めるんだからな。", "smile"),
+      say("guardian", "あたし、いちばん前！ いちばん前がいい！", "firm"),
+      say("lancer", "だめです。前はわたしです。", "firm"),
+      narrate("言ってから、ナギは自分の口を押さえた。"),
+      say("lancer", "……うう。なんで自分で言ったんでしょう、わたし。", "hurt"),
+      say("tactician", "お見事でございました。", "smile"),
+      say("lancer", "褒めないでください！", "firm"),
+      narrate("五人ぶんの影が、灰の縁で一度だけ揃った。"),
     ]),
   }),
 
@@ -396,7 +560,12 @@ export const DIALOGUE = Object.freeze({
       say("mender", "……帳簿の字はあんなに汚いのに、塩は狂わないんですね。", "worry"),
       say("warden", "関係あるか。", "wry"),
       say("mender", "あります。手が正確な人は、大体どこか一つだけ雑です。", "calm"),
-      say("mender", "……おかわりします。", "calm"),
+      narrate("ゴウが、椀の横に紙包みを一つ置いた。"),
+      say("mender", "……これは。", "neutral"),
+      say("warden", "詰所の裏で買った。甘いぞ。いらねえなら俺が食う。", "smile"),
+      say("mender", "いります。……いえ、いただきます。業務の合間に糖分を摂るのは、判断の質を保つうえで——", "firm"),
+      say("warden", "何も訊いてねえよ。", "smile"),
+      say("mender", "……おかわりします。飯のほうもです。", "calm"),
     ]),
   }),
 
@@ -412,9 +581,13 @@ export const DIALOGUE = Object.freeze({
       narrate("棚の奥の札に、ナギの字で「絶対に捨てるな」と書いてある。日付は、どれも古い。"),
       say("guardian", "……じゃあ、いま決めたことにすれば？", "neutral"),
       say("lancer", "……そうします。今日、わたしが決めました。二寸です。", "smile"),
+      say("guardian", "じゃあ三段目、あたしが決める！ ここ、光るやつ置くとこ！", "firm"),
+      say("lancer", "光ってません。……いえ、いいです。そこにしましょう。", "smile"),
     ]),
   }),
 
+  // R16 — 「先月」は Stage 2 の照会が届いた月である（`stage_3_join` で本人が言う）。
+  // R13 はここだけが根拠を持たず、**加入前のゲンゾウがヒバナを知っていた**ことになっていた。
   homestead_thick_book: Object.freeze({
     cast: Object.freeze([stand("tactician", "left"), stand("guardian", "right")]),
     lines: Object.freeze([
@@ -426,8 +599,10 @@ export const DIALOGUE = Object.freeze({
       say("guardian", "……ヒバナの名前は、ない？", "worry"),
       narrate("ゲンゾウは、ずいぶん長く黙っていた。"),
       say("tactician", "ございません。こちらには、戻らなかった方しか書きませんので。", "calm"),
-      say("tactician", "あなたの名前は、薄いほうにございます。先月、わたくしが書き足しました。歳のところは、まだ空けてございますが。", "smile"),
+      say("tactician", "あなたの名前は、薄いほうにございます。先月、こちらの照会を受け取った日に書き足しました。歳のところは、まだ空けてございますが。", "smile"),
       say("guardian", "じゅういち！ たぶん！", "firm"),
+      say("tactician", "たぶん、と書き添えてよろしゅうございますか。", "smile"),
+      say("guardian", "いいよ！ たぶんでいい！", "smile"),
     ]),
   }),
 
@@ -445,19 +620,30 @@ export const DIALOGUE = Object.freeze({
     ]),
   }),
 
+  // R16 — 六つ目の椅子はここだけで扱う（`stage_3_end` から外した）。
+  // ゲンゾウの「甘いものに目がない」を、彼自身の癖の裏返しとして置く。
+  // **全部数える人が、自分の数だけ合わない。**
   homestead_six_chairs: Object.freeze({
     cast: Object.freeze([
       stand("warden", "center"), stand("guardian", "left"), stand("lancer", "far_left"),
       stand("tactician", "right"),
     ]),
     lines: Object.freeze([
+      narrate("卓に椅子が六つ。五人が座って、一つだけ余っている。"),
       say("guardian", "ねえ、椅子が六つある！ だれか来るの？", "neutral"),
-      say("warden", "予定は無い。拾ってきた椅子が、たまたま六だっただけだ。", "neutral"),
-      say("lancer", "……荷物を置くのに、ちょうどいいんですよね。", "worry"),
-      say("guardian", "えー！ もったいない！", "firm"),
+      say("warden", "予定は無え。拾ってきたのがたまたま六だっただけだ。四つ拾って、二つ後から拾って、数えたら六。それだけの話だぞ。", "neutral"),
+      say("lancer", "荷物を置くのに、ちょうどいいんですよね。……うう、自分で言っておいて、急に寂しくなってきました。", "worry"),
+      say("guardian", "えー！ もったいない！ ねえゲンゾウのおじいちゃん、もったいなくない！？", "firm"),
       say("tactician", "もったいのうございますか。", "calm"),
-      narrate("ゲンゾウは、六つ目の椅子に載った自分の鞄を、少しだけ端へ寄せた。"),
-      say("tactician", "では、そのうち埋まるということで。", "smile"),
+      narrate("ゲンゾウは、六つ目の椅子に載った自分の鞄を、少しだけ端へ寄せた。鞄の口から、包み紙が一つ落ちた。"),
+      say("guardian", "あっ！ あまいやつ！", "firm"),
+      say("tactician", "……落ちましたか。", "worry"),
+      say("warden", "じいさん、それ三つ目だろ。今日の。", "wry"),
+      say("tactician", "二つ目でございます。", "firm"),
+      say("warden", "三つ目だ。俺は見てたぞ。", "smile"),
+      say("tactician", "……歳を取りますと、数が合わなくなりますので。", "smile"),
+      say("lancer", "全部数える人が言うと、説得力がすごいですね。", "neutral"),
+      say("tactician", "では、そのうち埋まるということで。椅子のほうも、包みのほうも。", "smile"),
     ]),
   }),
 

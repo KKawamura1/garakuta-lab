@@ -147,7 +147,7 @@ export const STORY_BEATS = Object.freeze({
     }),
   }),
   stage_1_wall: Object.freeze({
-    act1: beat("stage_1_act1", "前に出たがる", {
+    act1: beat("stage_1_act1", "四度目の前", {
       mood: "ash",
       place: "崩れた階段の下",
       cast: castFor("stage_1_act1"),
@@ -187,13 +187,13 @@ export const STORY_BEATS = Object.freeze({
       cast: castFor("stage_2_act1"),
       lines: dialogueFor("stage_2_act1"),
     }),
-    act2: beat("stage_2_act2", "受けた回数", {
+    act2: beat("stage_2_act2", "先に行くと", {
       mood: "dusk",
       place: "崩れた回廊",
       cast: castFor("stage_2_act2"),
       lines: dialogueFor("stage_2_act2"),
     }),
-    act3: beat("stage_2_act3", "一枚", {
+    act3: beat("stage_2_act3", "明かりが行った", {
       mood: "ember",
       place: "回廊の出口",
       cast: castFor("stage_2_act3"),
@@ -207,9 +207,9 @@ export const STORY_BEATS = Object.freeze({
       lines: dialogueFor("stage_2_join"),
       footer: "受け止めた結果は、集中（自分へ）か防壁（味方へ）のどちらかへ渡せる。",
     }),
-    stageEnd: beat("stage_2_end", "誰を守るか", {
+    stageEnd: beat("stage_2_end", "紙の上にいない", {
       mood: "dusk",
-      place: "回廊の出口",
+      place: "詰所の窓口",
       cast: castFor("stage_2_end"),
       lines: dialogueFor("stage_2_end"),
       footer: "次の Stage では「順番」そのものを動かせるようになる。",
@@ -228,15 +228,15 @@ export const STORY_BEATS = Object.freeze({
       cast: castFor("stage_3_act2"),
       lines: dialogueFor("stage_3_act2"),
     }),
-    act3: beat("stage_3_act3", "六枠に五人", {
+    act3: beat("stage_3_act3", "ばーん", {
       mood: "ember",
       place: "灰の縁",
       cast: castFor("stage_3_act3"),
       lines: dialogueFor("stage_3_act3"),
     }),
-    join: beat("stage_3_join", "間合いと順番", {
+    join: beat("stage_3_join", "戸を叩く", {
       mood: "ash",
-      place: "灰の谷",
+      place: "根城の戸口",
       // R12 — 5人が揃う場面。**加入済みの全員が立つ。**
       // 台詞は増やさない（R9 §7）。ヒバナとツグミは表情で応じる。
       cast: castFor("stage_3_join"),
