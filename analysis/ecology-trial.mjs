@@ -124,19 +124,19 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(300);
   const guildText = await bodyText();
-  note("ギルド（遠征を仕立てる）に着く", /この遠征に出るもの/.test(guildText));
-  note("有効な技能パックが出ている", /この遠征に出る技能パック/.test(guildText));
+  note("ギルド（遠征の準備）に着く", /今回の遠征/.test(guildText));
+  note("有効な技能パックが出ている", /有効な技能パック/.test(guildText));
   note("未解禁の pack を出していない", !/この遠征では出ない/.test(guildText));
   note("3体のボスと法則が先に見えている", /盾将の法則/.test(guildText) && /核の法則/.test(guildText));
-  note("Campaign Stage が出ている", /どのStageへ出るか/.test(guildText));
+  note("行き先の選択が出ている", /行き先を選ぶ/.test(guildText));
   note("難易度rankの選択が残っていない", !/どの難易度で出るか/.test(guildText));
 
   // R6 §9.3 — ギルド投資。**買い物の画面が実在して、値段と残高が出るか。**
   await page.locator('[data-action="guild-tab"][data-tab="guild"]').click();
   const investText = await bodyText();
-  note("ギルド投資の画面がある", /持ち帰った資金を使う/.test(investText));
-  note("鍛錬に費用と丸め後statが出る", /鍛錬（上限なし）/.test(investText) && /基礎/.test(investText));
-  note("技能数の制限が無いと分かる", /人数制限なしで装着できます/.test(investText));
+  note("ギルド投資の画面がある", /資金を使う/.test(investText));
+  note("鍛錬に費用と現在値が出る", /仲間を鍛える/.test(investText) && /基礎/.test(investText));
+  note("投資の取り消し不可が分かる", /購入は取り消せません/.test(investText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
 
   // R12 — **この台本が見るのは12戦の長い流れであって、序盤のチュートリアルではない。**
@@ -163,7 +163,7 @@ try {
   note("編成タブ", /編成|仲間/.test(await bodyText()));
 
   // 4つのタブを踏む。各画面の主要操作が画面内にあることも見る。
-  for (const [tab, needle] of [["roster", "編成"], ["skills", "遠征内技能点"], ["equipment", "装備"], ["map", "この敵に挑む"]]) {
+  for (const [tab, needle] of [["roster", "編成"], ["skills", "技能点"], ["equipment", "装備"], ["map", "この敵に挑む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
     note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
   }
@@ -171,6 +171,14 @@ try {
 
   // 技能を1つ解禁して装着する（スキルツリーの経路を踏む）。
   await page.locator('nav.tabs [data-tab="skills"]').click();
+  const skillHelp = page.locator('details[data-help="skill-rules"]');
+  if (await skillHelp.count()) {
+    await skillHelp.locator("summary").click();
+    note("技能数の制限が無いと分かる", /すべて装着できます/.test(await bodyText()));
+    await page.locator('nav.tabs [data-tab="roster"]').click();
+    await page.locator('nav.tabs [data-tab="skills"]').click();
+    note("ヘルプの開閉状態を保つ", await page.locator('details[data-help="skill-rules"]').evaluate((element) => element.open));
+  }
   const node = page.locator(".skill-node.available").first();
   if (await node.count()) {
     await node.click();
@@ -235,7 +243,7 @@ try {
         else await page.waitForTimeout(100);
       }
       note("ダメージ値が対象の上に浮かぶ", sawAnimation);
-      await page.locator("details.debug-log summary").click();
+      await page.locator("details.battle-history.debug-log > summary").click();
       note("デバッグログを開ける", await page.locator(".debug-log .event").count() > 0);
 
       // 自動再生を止めて最後の拍まで手送りし、盤面に表示された最終HPを読む。
