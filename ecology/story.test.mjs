@@ -460,37 +460,38 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 // 規約の本文は dialogue.mjs 冒頭にある。
 //
 {
-  // ---- 1. 巻き戻りを覚えているのはゴウだけ ----
+  // ---- 1. 巻き戻りを覚えているのはゴウだけ。到達するのはツグミである ----
+  //
+  // DESIGN.md §6.4 — 巻き戻し直後のゴウは何も説明せず、**戦闘1後にツグミ自身が
+  // 到達する。**到達の手がかりは言葉尻ではなく、**ゴウの様子**である
+  // （いつもなら憎まれ口を叩く人が、礼を言う）。
   //
   // R13 の `stage_0_prologue_win` は、ツグミが自分から「さっきと同じ」と言い、
   // そのうえで**ゴウが一度も言っていない「さっき」**を「言いました。二回。」と
   // 数えていた。彼女が引用していたのは自分の台詞である。
   const winLines = dialogueFor("stage_0_prologue_win");
-  const rewoundLines = dialogueFor("stage_0_prologue_rewound");
   const menderWin = winLines.filter((line) => line.who === "mender");
   const wardenWin = winLines.filter((line) => line.who === "warden");
 
   check(!/さっき|二回目|もう一度|前の/.test(menderWin[0].text),
     "巻き戻し後の一行目で、ツグミは巻き戻り前を指さない");
-  check(wardenWin.some((line) => line.text.includes("さっき")),
-    "巻き戻し後、ゴウが自分から「さっき」を漏らす");
-
-  // ツグミが数える回数は、実際にゴウが漏らした回数と合っていなければならない。
-  const wardenSlips = [...rewoundLines, ...winLines]
-    .filter((line) => line.who === "warden")
-    .reduce((total, line) => total + (line.text.match(/さっき/g) ?? []).length, 0);
-  equal(wardenSlips, 3, "ゴウの「さっき」は、ツグミが数える「三回目」と一致する");
-  check(menderWin.some((line) => line.text === "三回目です。"),
-    "ツグミは自分の記憶ではなく、ゴウの口を数える");
+  check(menderWin.some((line) => /杭/.test(line.text) && /死/.test(line.text)),
+    "ツグミは自分から到達して、訊く");
+  // **巻き戻し直後は言わず、ここで認める。**この対が情報の分け方そのものである。
+  check(wardenWin.some((line) => /杭/.test(line.text) && /死ん|死んだ|お前は死/.test(line.text)),
+    "戦闘1後、ゴウは訊かれて認める");
 
   // ---- 5. 先見機が読めた内容に驚かない ----
   //
   // 予測は次の一戦の個体・並び・**結果まで**見せる（`PROLOGUE.retryHint`、`app.js` の
   // 「その戦闘結果は常に見えます」）。巻き戻したあとの一戦には予測が出るので、
-  // **校正した本人であるツグミは、終わり方まで知って入っている。**戦闘後の彼女が
-  // 驚けるのは、盤面の外で起きたことだけである（作者指摘・R16追補）。
-  check(menderWin.every((line) => line.emotion !== "shock"),
+  // **校正した本人であるツグミは、終わり方まで知って入っている。**だから一行目は
+  // 驚きではなく確認になる（作者指摘・R16追補）。彼女が驚くのは、そのあと
+  // **盤面の外で起きたこと**——巻き戻り——に到達したときである。
+  equal(menderWin[0].emotion !== "shock", true,
     "予測を読んだツグミは、読めていた結果に驚かない");
+  check(/先見機/.test(menderWin[0].text),
+    "一行目は、当てた側の確認になっている");
   // **一戦目だけは予測が出ない**（app.js の forecastVisible）。だからそこでは驚ける。
   // この対比が消えると、敗北が「理由の無い敗北」に戻る。
   check(dialogueFor("stage_0_prologue_defeat").some((line) => line.emotion === "shock"),
