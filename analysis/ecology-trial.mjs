@@ -91,7 +91,7 @@ try {
       && await page.getByRole("button", { name: "ロードゲーム" }).count() === 1
       && await page.getByRole("button", { name: "遠征を仕立てる" }).count() === 0);
 
-  // R6 §15.1 — 遠征開始前に、有効パック・敵family・3体のボスと法則が出る。
+  // R6 §15.1 — 遠征開始前に、有効パック・敵情報・3体のボスと法則が出る。
   // R12 — 自由遠征（旧・難易度rank）は削除した。遠征の仕立ては Campaign Stage だけ。
   // 長い遠征の検査は序盤の会話を別の台本に任せるため、まず New Game で
   // 正式なオートセーブを作り、テスト用に Stage 0 踏破後の入口へ進める。
@@ -192,7 +192,7 @@ try {
       // R6 §11.2 / R14 §1 — 敵の重さと、次の一戦の結果は戦闘前に見えている。
       // **中身を見ずに ok と言わない。**
       const mapText = await bodyText();
-      note("戦闘前に threat と幕が出ている", /threat \d+ \/ \d+/.test(mapText) && /第1幕/.test(mapText));
+      note("戦闘前に threat と幕が出ている", /危険度 \d+ \/ \d+/.test(mapText) && /第1幕/.test(mapText));
       // R14 §3 — 偵察は消えた。買って先を覗く枠はもう無い。
       note("偵察の枠が残っていない", !/偵察/.test(mapText));
       // R14 §1 — 戦闘予測は camp の上端に常設される（タブを変えても消えない）。
