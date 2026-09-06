@@ -188,7 +188,7 @@ export const STORY_BEATS = Object.freeze({
       place: "崩れた回廊",
       cast: castFor("stage_1_end"),
       lines: dialogueFor("stage_1_end"),
-      footer: "前に置けば落ち、後ろに置けば刃が鈍る。この二択は、この先で解ける。",
+      footer: "前で受ける者がいると、後ろの一撃が最後まで振り抜ける。誰が立つかで、誰が振れるかが決まる。",
     }),
   }),
   stage_2_tempo: Object.freeze({
@@ -255,7 +255,7 @@ export const STORY_BEATS = Object.freeze({
       // 台詞は増やさない（R9 §7）。ヒバナとツグミは表情で応じる。
       cast: castFor("stage_3_join"),
       lines: dialogueFor("stage_3_join"),
-      footer: "行動権は総量が増えない。誰へいつ渡すかだけが問題になる。",
+      footer: "坑へ入った者の名は、帰ってきた欄と、戻らなかった欄に分かれて残る。どちらの欄も、増えるばかりで減ることがない。",
     }),
     stageEnd: beat("stage_3_end", "五人になった", {
       mood: "dawn",
