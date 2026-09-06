@@ -443,7 +443,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
     "Stage 2 の stageEnd で照会の結果が返る");
   check(endTexts.includes("……ないの？ あたしの、ない？") && endTexts.includes("ないな。"),
     "Stage 2 の stageEnd は記録が無いことへの応答を扱う");
-  check(endTexts.some((text) => text.includes("今日から作る")),
+  // **文面ではなく意図を見る。**「今日から作る」「無ければ作ればいいだろ」のどちらでも通る。
+  check(endTexts.some((text) => /作れ|作る/.test(text) && /名前/.test(text)),
     "Stage 2 の stageEnd で名簿を自分たちで作る");
 
   equal(

@@ -9730,7 +9730,7 @@
    "role": "遊撃",
    "icon": "風",
    "defaultPosition": "rear_center",
-   "summary": "殴らない。走って、拾って、引っ張る。隊で唯一、戦闘中に隊列を動かせる。",
+   "summary": "一撃は隊で一番弱い。走って、拾って、引っ張る。隊で唯一、戦闘中に隊列を動かせる。",
    "starterTactics": [
     "reposition",
     "column_thrust"
@@ -9745,7 +9745,7 @@
    "role": "指揮",
    "icon": "筆",
    "defaultPosition": "rear_left",
-   "summary": "自分の手番では動かない。他人の手番に割り込んで、当て物を置く。",
+   "summary": "自分から攻めるのは遅い。他人の手番に割り込んで、当て物を置くほうが本業である。",
    "starterTactics": [
     "relay_order",
     "mark_target"

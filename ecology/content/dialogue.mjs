@@ -118,7 +118,7 @@
 //      投げるのが `stage_2_join`、返るのが `stage_2_end`（詰所）である。
 //   4. **ゲンゾウはその照会を読んで来た。**十三号室からの二件——記録の無い子と、
 //      五年前に戻らなかった者——が、彼が戸を叩く理由であり、`stage_3_act2` の
-//      「お兄様は、ご存命ですよ」と `homestead_thick_book` の「先月」の根拠でもある。
+//      「お兄様は、ご存命ですよ」と `homestead_thick_book` の「先日」の根拠でもある。
 //   5. **先見機が読めた内容に、人物は驚かない。**予測は次の一戦の個体・並び・
 //      **結果まで**見せる。読んでから入った者にとって、戦闘後に新しい情報は
 //      「盤面の外で起きたこと」だけである。
@@ -183,7 +183,7 @@ export const DIALOGUE = Object.freeze({
       say("warden", "腕？ ほら、上がる。上がってんだろ。", "wry"),
       say("mender", "上がってません。朝は耳まで来ていました。いま、肩で止まっています。", "firm"),
       say("warden", "そんくらい、日によるだろ。", "wry"),
-      say("mender", "日によります。日によるかどうかを見るのが、わたしの仕事です。……はい、貸してください。すぐ済みますから。", "smile"),
+      say("mender", "ええ、日によります。それを見るのが、わたしの仕事ですから。……はい、貸してください。すぐ済みますから。", "smile"),
     ]),
   }),
 
@@ -202,8 +202,8 @@ export const DIALOGUE = Object.freeze({
   stage_0_act3: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),
     lines: Object.freeze([
-      narrate("帰り支度。ゴウが籠へ器材を放り込んでいく。"),
-      say("warden", "終わりだ終わり！ 帰るぞ。返して、借り消して、寝る。", "smile"),
+      narrate("灰の門の内側。ゴウが籠の口を縛りながら、まだ奥を見ている。"),
+      say("warden", "あと一つだ。こいつを片付けたら帰るぞ。返して、借り消して、寝る。", "smile"),
       say("mender", "その順番、前は守れませんでしたよね。籠の前で、立ったまま寝ていました。", "wry"),
       say("warden", "……覚えてない。", "calm"),
       say("mender", "わたしが起こしました。ゆすっても駄目だったので、頬を叩きました。", "wry"),
@@ -341,18 +341,26 @@ export const DIALOGUE = Object.freeze({
     ]),
   }),
 
-  // R16 — ツグミの「言い過ぎて、その場ですぐ後悔する」をここで一度出す。
-  // 設定にあって台詞に一度も無かった癖である。
+  // R16追補（作者指摘）— **丸ごと書き直した。**初稿は「言わないのと、気づかれないのは
+  // 別です」「楽にしないでください」と、**ツグミが厳しいだけの場面**になっていた。
+  //
+  // 手当ての場面で見せたいのは、彼女の厳しさではなく**ナギが手当てを受け取れないこと**
+  // である（設定「褒められると挙動不審になる。甘やかされ慣れていない」）。
+  // ツグミの「言い過ぎて、その場ですぐ後悔する」癖は、ゴウを雑に扱うところで出す。
   stage_1_act2: Object.freeze({
     cast: Object.freeze([stand("mender", "left"), stand("lancer", "right")]),
     lines: Object.freeze([
-      narrate("回廊の窪み。ナギの肩当てに、浅いが長い裂け目がある。気づかないふりで、火の位置を直している。"),
-      say("mender", "その傷、いま塞いでも無駄です。次にあなたが庇った瞬間、同じところが開きますから。", "neutral"),
-      say("lancer", "ですよね。だから言ってません。", "worry"),
-      say("mender", "言わないのと、気づかれないのは別です。あなたは黙って開くので、こちらは毎回、開いてから知るんです。次の休みで縫いますから、それまでは庇わないで——", "firm"),
-      say("mender", "……あ。すみません、言い方が。", "worry"),
-      say("lancer", "いえ。怒られるほうが、まだ楽なので。", "smile"),
-      say("mender", "楽にしないでください。それは、こちらの仕事です。", "calm"),
+      narrate("回廊の窪み。ナギの肩当てに、浅いが長い裂け目がある。気づかないふりをして、火の位置を直している。"),
+      say("mender", "ナギさん。手、止めてください。", "calm"),
+      say("lancer", "えっ。あ、これですか。これは平気です。血も止まってますし。", "worry"),
+      say("mender", "止まっています。ですから、いま縫えます。座ってください、すぐ済みますから。", "smile"),
+      say("lancer", "……あの、順番が。ゴウさんのほうが深かったと思うんですけど。", "worry"),
+      say("mender", "あの人は放っておいても治ります。丈夫なだけが取り柄——", "calm"),
+      say("mender", "……あ。いまのは、言い過ぎました。", "worry"),
+      say("lancer", "……ふふ。いえ、合ってます。", "smile"),
+      say("mender", "痛かったら言ってください。我慢されると、こちらが下手なのかと思うので。", "smile"),
+      say("lancer", "……痛いです。", "hurt"),
+      say("mender", "はい。上手ですね。", "smile"),
     ]),
   }),
 
@@ -363,7 +371,7 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("lancer", "right")]),
     lines: Object.freeze([
       say("lancer", "……あの。なんで、毎回わたしなんでしょうか。", "worry"),
-      say("warden", "断らねえから。断らねえうえに、断らなかった顔もしねえ。得だろ、そんなの。", "neutral"),
+      say("warden", "断らねえからだ。しかも、引き受けたあとに恨みがましい顔もしねえ。そんな奴、そういねえんだよ。", "neutral"),
       say("lancer", "そこは嘘でもいいので、頼りにしてる、とか言ってください。", "worry"),
       say("warden", "頼りにしてる。", "neutral"),
       say("lancer", "うう、まったく心がこもってない……。", "hurt"),
@@ -432,10 +440,10 @@ export const DIALOGUE = Object.freeze({
     cast: Object.freeze([stand("guardian", "left"), stand("mender", "right")]),
     lines: Object.freeze([
       say("guardian", "ねえねえツグミお姉ちゃん、なんであたしが先に行くと、みんな殴られないの？", "neutral"),
-      say("mender", "お姉ちゃんはやめてください。……殴られていませんね。あなたが飛び込むと、灰殻が揃ってそちらを向きます。その間、誰も後ろを見ていません。……理屈は、合っています。", "worry"),
-      say("guardian", "りくつ？", "neutral"),
-      say("mender", "……いえ。合っている、と言いました。", "calm"),
-      say("guardian", "じゃあ、あってるってことだね！ ツグミお姉ちゃんが言うなら！", "smile"),
+      say("mender", "お姉ちゃんはやめてください。……あなたが飛び込むと、灰殻が揃ってそちらを向きます。それが囮になって、隊の被害が減っているのだと思いますよ。", "worry"),
+      say("guardian", "おとり？", "neutral"),
+      say("mender", "……いえ、すみません。いつもありがとうございます、ということです。", "calm"),
+      say("guardian", "うん、ありがとう、ツグミお姉ちゃん！", "smile"),
       say("mender", "お姉ちゃんはやめてください。", "firm"),
     ]),
   }),
@@ -449,12 +457,12 @@ export const DIALOGUE = Object.freeze({
       say("lancer", "ヒバナちゃん、そっちは危ないです。灰が薄いところは、下が抜けますから。", "worry"),
       say("guardian", "はーい！ あっ、奥になんかある！", "smile"),
       narrate("返事の途中で、ヒバナが灯りごと走っていった。回廊の出口が、一息で黒くなる。"),
-      say("warden", "——待て。おい。待てって、ヒバナ。", "shock"),
+      say("warden", "ヒバナ！", "shock"),
       say("lancer", "ゴウさん？", "neutral"),
       say("warden", "……いや。何でもねえ。灰が上がってるから、離れんなって言っただけだ。", "wry"),
       narrate("灯りが戻ってきた。ゴウは、それから一度も出口に背を向けなかった。"),
       say("guardian", "なんにも無かった！ 見て、なんにも無かったよ！", "smile"),
-      say("lancer", "……うう。聞いてはいるんです。聞いてはいるんですけど。", "hurt"),
+      say("lancer", "……うう。もう少し話を聞いてほしいです。いえ、聞いてはいるんでしょうけど……。", "hurt"),
     ]),
   }),
 
@@ -469,7 +477,7 @@ export const DIALOGUE = Object.freeze({
       say("lancer", "えっ、えっ。", "shock"),
       say("warden", "……避けてなかったら、マズかったな。おい、飛び込んでくんじゃねえよ。……助かった。", "neutral"),
       say("guardian", "でしょ！ あたし、わかるの！", "smile"),
-      say("mender", "「わかる」で済ませないでください。……ですが、合っていました。", "wry"),
+      say("mender", "「わかる」で済ませないでください。……ですが、助かりました。", "wry"),
       say("warden", "名前は。", "neutral"),
       say("guardian", "ヒバナ！", "smile"),
       say("mender", "……こんな深さに、一人で。照会しますか。", "worry"),
@@ -492,8 +500,8 @@ export const DIALOGUE = Object.freeze({
       say("warden", "ないな。", "neutral"),
       say("mender", "書式が古いだけかもしれません。別の綴りでもう一度、地方の分も含めて出し直せば——", "firm"),
       say("warden", "ツグミ。いい。", "calm"),
-      say("warden", "じゃあ今日から作る。名前と、拾った日と。全部こっちで書く。字は汚えぞ。", "smile"),
-      say("mender", "わたしが書きます。", "calm"),
+      say("warden", "無ければ作ればいいだろ。名前と、拾った日と。全部こっちで書く。俺の汚ねえ字でよければな。", "smile"),
+      say("mender", "わたしが書きますよ。", "calm"),
       say("warden", "歳はどうする。", "neutral"),
       say("guardian", "わかんない！", "smile"),
       say("warden", "そこは空けとくか。埋まるまで、こっちで預かっとく。", "smile"),
@@ -507,7 +515,7 @@ export const DIALOGUE = Object.freeze({
   // 戻らなかった者。**二件とも、彼が四十年やめられなかった仕事そのものである。**
   //
   // これで三つが同時に立つ。彼が戸を叩く理由、`act2` の「お兄様は、ご存命ですよ」、
-  // 根城の `homestead_thick_book` の「先月、書き足しました」。
+  // 根城の `homestead_thick_book` の「先日、書き足しました」。
   //
   // また `join` の舞台を根城の戸口にした。R13 は `place` が「灰の谷」なのに
   // 「扉から。鍵が壊れておりましたので」と言っており、**谷に扉と鍵が無かった。**
@@ -542,8 +550,8 @@ export const DIALOGUE = Object.freeze({
   stage_3_act3: Object.freeze({
     cast: Object.freeze([stand("guardian", "left"), stand("tactician", "right")]),
     lines: Object.freeze([
-      say("guardian", "ゲンゾウのおじいちゃん、なんで殴らないの？", "neutral"),
-      say("tactician", "持っておりませんので。", "wry"),
+      say("guardian", "ゲンゾウのおじいちゃん、なんで先に行かないの？", "neutral"),
+      say("tactician", "遅うございますので。", "wry"),
       say("guardian", "じゃあ、なに持ってるの！", "firm"),
       say("tactician", "盾と、名簿を。……どちらも、数を減らさないための物でございます。", "neutral"),
       say("guardian", "ふーん。……ねえ、さっきのすごかったよ！ ばーんって！ ばーんって出たもん！", "smile"),
@@ -564,17 +572,20 @@ export const DIALOGUE = Object.freeze({
       say("tactician", "失礼いたします。中央観測院、記録主任のゲンゾウと申します。", "calm"),
       narrate("根城の戸口。閉めたはずの戸が、内側から開いている。"),
       say("warden", "……じいさん、どっから入った。鍵、かけたよな？ ……かけたはずなんだがな。", "shock"),
-      say("tactician", "かかっておりましたよ。ただ、受けのほうが外れておりましたので、掛けても扉が開きます。直しておきました。", "neutral"),
-      say("guardian", "なおるの、あれ！", "firm"),
-      say("tactician", "直りました。……先月、こちらから照会が二件まいりました。一件は、記録の無いお子様のこと。", "neutral"),
+      say("tactician", "かかっておりました。ただ、受けのほうが外れておりましたので、掛けても開きます。直しておきました。", "neutral"),
+      say("guardian", "あっ、なおったの！？ あたし、ずっと言ってたのに！", "firm"),
+      say("warden", "……聞いてた。今度やるって言っただろ。", "wry"),
+      say("tactician", "……先日、こちらから照会が二件まいりました。一件は、記録の無いお子様のこと。", "neutral"),
       say("guardian", "あたし！", "smile"),
       say("tactician", "はい。もう一件は、五年前に戻らなかった方のことでございました。", "calm"),
       narrate("ゴウは何も言わなかった。ゲンゾウが帽子を取って、丁寧に頭を下げる。"),
       say("tactician", "四十年、戻らなかった方の名前を書いてまいりました。もう、増やしたくないのです。こちらの欄も、あちらの欄も。", "calm"),
       say("lancer", "……その帳面に、わたしの知っている人が載っている気がします。名前は、思い出せないんですけど。", "hurt"),
+      say("tactician", "そうでございますか。……よくある話でございますな。残念ながら。", "calm"),
       say("lancer", "……あの。泣いていいですか。", "hurt"),
-      say("mender", "だめです。荷物を運んでください。", "firm"),
-      say("lancer", "運びながら泣きます。", "hurt"),
+      say("mender", "……ナギさん。奥の荷を運ぶの、手伝ってもらえますか。わたしだけだと持てないので。", "calm"),
+      narrate("奥は暗い。ツグミは先に立って、みんなに背を向ける側をナギへ空けた。"),
+      say("lancer", "……はい。運びながら泣きます。", "hurt"),
     ]),
   }),
 
@@ -654,7 +665,7 @@ export const DIALOGUE = Object.freeze({
     ]),
   }),
 
-  // R16 — 「先月」は Stage 2 の照会が届いた月である（`stage_3_join` で本人が言う）。
+  // R16 — 「先日」は Stage 2 の照会が届いた日である（`stage_3_join` で本人が言う）。
   // R13 はここだけが根拠を持たず、**加入前のゲンゾウがヒバナを知っていた**ことになっていた。
   homestead_thick_book: Object.freeze({
     cast: Object.freeze([stand("tactician", "left"), stand("guardian", "right")]),
@@ -667,7 +678,7 @@ export const DIALOGUE = Object.freeze({
       say("guardian", "……ヒバナの名前は、ない？", "worry"),
       narrate("ゲンゾウは、ずいぶん長く黙っていた。"),
       say("tactician", "ございません。こちらには、戻らなかった方しか書きませんので。", "calm"),
-      say("tactician", "あなたの名前は、薄いほうにございます。先月、こちらの照会を受け取った日に書き足しました。歳のところは、まだ空けてございますが。", "smile"),
+      say("tactician", "あなたの名前は、薄いほうにございます。先日、こちらの照会を受け取った日に書き足しました。歳のところは、まだ空けてございますが。", "smile"),
       say("guardian", "じゅういち！ たぶん！", "firm"),
       say("tactician", "たぶん、と書き添えてよろしゅうございますか。", "smile"),
       say("guardian", "いいよ！ たぶんでいい！", "smile"),
