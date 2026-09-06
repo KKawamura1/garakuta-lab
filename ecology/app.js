@@ -1382,7 +1382,7 @@ function renderGuild() {
       + "（+" + (detail.bonusBps / 100).toFixed(1) + "%） · " + esc(nextText) + "</small></span>"
       + "<span class=\"purchase-cost\">" + formatFunds(detail.cost) + "</span>"
       + button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
-        "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\") + "</div>";
+        "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"") + "</div>";
   }).join("");
   const metOptions = metCharacterOptions();
   const memberTabsHtml = "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">"
