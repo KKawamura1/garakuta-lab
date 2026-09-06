@@ -71,20 +71,23 @@ for (const stage of CAMPAIGN_STAGES) {
   }
 }
 
-// **x=10 の到達点へ、campaign で届くこと。**最終 Stage の manifest から出る節だけで
-// 根から x=10 まで繋がる道が、行動と反応のそれぞれに一本はあること。
+// **本編の最終到達点へ、campaign で届くこと。**最終 Stage の manifest から出る節だけで
+// 根から、行動は x=10、リアクティブは x=8 まで繋がる道があること。
+// リアクティブの x=9 は pack_relay（Stage 4候補）側なので、本編Stage 3には出ない。
 {
+  const CAMPAIGN_FINAL_COLUMNS = { active: 10, reactive: 8 };
   const lastStage = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1];
   const available = new Set(skillIdsForPacks(lastStage.enabledPackIds, lastStage.packDepths).all);
   const visible = SKILL_TREE_NODES.filter((node) => available.has(node.skillId));
   const layout = buildSkillTreeLayout(visible);
   for (const group of layout) {
     if (!["active", "reactive"].includes(group.kind)) continue;
-    const reachable = group.rows.filter((row) => row.x === 10);
+    const finalColumn = CAMPAIGN_FINAL_COLUMNS[group.kind];
+    const reachable = group.rows.filter((row) => row.x === finalColumn);
     if (!reachable.length) {
       const deepest = group.rows.reduce((max, row) => Math.max(max, row.x), 0);
       problems.push(`${lastStage.id}: ${group.label}ツリーは最終 Stage でも x=${deepest} までしか届かない`
-        + "（x=10 の到達点が、campaign に出ない pack にしか無い）");
+        + `（x=${finalColumn} の到達点が、campaign に出ない pack にしか無い）`);
     }
   }
 }
