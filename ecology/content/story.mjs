@@ -104,7 +104,7 @@ export const STORY_BEATS = Object.freeze({
       cast: castFor("stage_0_act2"),
       lines: dialogueFor("stage_0_act2"),
     }),
-    act3: beat("stage_0_act3", "返しに行く", {
+    act3: beat("stage_0_act3", "帰り支度", {
       mood: "ember",
       place: "灰の門の内側",
       cast: castFor("stage_0_act3"),
@@ -149,12 +149,12 @@ export const STORY_BEATS = Object.freeze({
       lines: dialogueFor("stage_0_prologue_win"),
       footer: "同じ状況でも、隊列が変われば結果が変わる。ツグミは後列に下がってゴウを治療し、ゴウは前列に出て敵の攻撃を受け止めた。未来が見えれば、結果は変えられる。",
     }),
-    stageEnd: beat("stage_0_end", "門を抜けた", {
+    stageEnd: beat("stage_0_end", "今日はここまで", {
       mood: "dawn",
-      place: "灰の門の先",
+      place: "引き返す前の広間",
       cast: castFor("stage_0_end"),
       lines: dialogueFor("stage_0_end"),
-      footer: "次の Stage では、条件と引き換えに大きく伸びる攻め筋が増える。",
+      footer: "この先には、条件と引き換えに大きく伸びる攻め筋がある。",
     }),
   }),
   stage_1_wall: Object.freeze({
@@ -188,7 +188,7 @@ export const STORY_BEATS = Object.freeze({
       place: "崩れた回廊",
       cast: castFor("stage_1_end"),
       lines: dialogueFor("stage_1_end"),
-      footer: "前に置けば落ち、後ろに置けば刃が鈍る。この二択は、次の Stage で解ける。",
+      footer: "前に置けば落ち、後ろに置けば刃が鈍る。この二択は、この先で解ける。",
     }),
   }),
   stage_2_tempo: Object.freeze({
@@ -226,7 +226,7 @@ export const STORY_BEATS = Object.freeze({
       place: "詰所の窓口",
       cast: castFor("stage_2_end"),
       lines: dialogueFor("stage_2_end"),
-      footer: "次の Stage では「順番」そのものを動かせるようになる。",
+      footer: "この先では「順番」そのものを動かせるようになる。",
     }),
   }),
   stage_3_care: Object.freeze({
