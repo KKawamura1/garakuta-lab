@@ -55,7 +55,11 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // R20 — 速度能力値と速度依存の対象選択を削除し、隊列を使う対象選択へ置き換えた。
 // R21 — EquipmentDef に装着中だけ加算する statBonus を追加し、すべての新規生成品が
 // item rarity と同格の無条件基礎効果を持つようにした。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-14";
+// issue #148 — 技能の表示文が、**そのまま出せる文字列ではなくなった。**レベルで伸びる
+// 量（変動量）は本文に書かず `{amount}` / `{total}` / `{hits}` で定義を指し、表示の直前に
+// `skillTextAtLevel` が埋める。数字を二箇所に書かないので「係数を変えたのに説明文が旧値の
+// まま」が起こらない。**既存欄（*_META の説明文）の読み方が変わったので上げる。**
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-15";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -151,10 +155,11 @@ export const SKILL_LEVEL_CAPS = skillLevelCaps(PLAYABLE_CONTENT);
 export {
   SKILL_LEVEL_COST,
   skillLevelCap,
-  // issue #148 — 説明文の数字を、いまのレベルの値で読む。
+  // issue #148 — 変動量は定義側にあり、説明文は {amount} でそこを指す。
+  leveledAmountOf,
   skillLevelValueSteps,
   skillTextAtLevel,
-  skillTextLevelPlan,
+  skillTextIssues,
 } from "./skill-levels.mjs";
 
 export const DISPLAY_NAMES = Object.freeze(

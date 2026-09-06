@@ -50,133 +50,151 @@ export function skillLevelCaps(content) {
   return Object.freeze(caps);
 }
 
-// ============================================================ 説明文の数字（issue #148）
+// ============================================================ 変動量と固定量（issue #148）
 //
-// **倍率を別に書くのではなく、説明文の値そのものを、いまのレベルの値にする。**
+// **技能が持つ数のうち、レベルで伸びるのは一つだけである。**
 //
-// 「確かな斬り」は Lv1 で「腕力130%の一撃」だが、Lv2 では実際に 146% を出す。
-// 別行に「×1.12」と添えるより、本文が 146% と言うほうが読み手の手間が少ない
-// （作者指摘）。
+//   変動量 … その技能の damage / heal / barrier / 増減の amount。レベルで伸びる。
+//   固定量 … 発動条件の閾値、後列減衰、段数、耐久、AP / RP。レベルでは動かない。
 //
-// **ただし、同じ文に掛からない数字が混ざっている。**「武器なので後列から出すと
-// 40%まで落ちる」の 40% は後列減衰で、レベルとは無関係である。「HP50%以下の
-// 味方へ技術60%」の 50% は発動条件で、これも掛からない。だから**書かれた % を
-// 一律に掛けることはできない。**掛けてよい数だけを定義側から引き、その数と
-// 一致する字面だけを書き換える。
+// 説明文は**変動量を書かない。**`{amount}` と書いて定義を指す。
 //
-// **一致が一意でないときは、何も書き換えない。**係数と発動条件が同じ数
-// （「HP50%以下の敵へ腕力50%」）になった瞬間、どちらを掛けるべきか字面からは
-// 決められない。嘘の数を出すくらいなら Lv1 の値のまま出す。その状態は
-// analysis/ecology-skill-catalog-smoke.mjs が拾って落とすので、本文を書き直せば
-// 直る（黙って間違え続けることがない）。
+//   steady_cut: "条件も準備もない、腕力{amount}の一撃。武器なので後列から出すと40%まで落ちる。"
+//
+// これで「腕力130%」の 130 は定義の `coefficientBps` ただ一つになり、
+//
+//   - 係数を変えたのに説明文が旧値のまま、が起きない（2026-08-31 に6件出た壊れ方）
+//   - レベルで伸びた値を、本文のどの数字か推し当てる必要がない
+//   - 同じ文の 40%（後列減衰）や 30%（発動条件）は**ただの文字**なので、
+//     間違って一緒に伸びることがない
+//
+// の三つが同時に片づく。**固定量は文字のまま書く。**単一の出どころへ寄せる価値が
+// 変動量ほど無く、条件や単位ごとに言い回しが変わる（「6割無視する」「半分以下」）ため。
+//
+// 使える差し込み口は三つだけ:
+//
+//   {amount} … 変動量ひとつぶん。単位（% か素の数）は定義の amount 型から決まる
+//   {total}  … 変動量 × 段数。多段技能が「合計」を書くときだけ
+//   {hits}   … 段数（固定量だが、{total} と食い違わせないために定義から引く）
+//
+// **変動量を二つ以上持つ技能は作れない。**どちらを指すのか本文から決められないので、
+// 検査（phase-b.test.mjs と analysis/ecology-skill-catalog-smoke.mjs）が落とす。
 
-// 一致とみなす幅。説明文は 33.33% を「33%」と書く（readout smoke と同じ幅）。
-const MATCH_TOLERANCE = 1;
+const SLOT_PATTERN = /\{(amount|total|hits)\}/g;
 
-// レベルが掛かる量を、**説明文に書かれうる形**で集める。
-// percent … 「130%」のように % を付けて書く数
-// plain   … 「12減らす」「1段につき45」のように単位なしで書く数
-//
-// 多段の技能は1発ぶんと合計の両方を書く（「50%を3回。合計150%」）。合計は
-// **1発ぶんを丸めてから掛ける**ので、`base`（1発）と `hits`（回数）で持つ。
-// 合計だけを別に丸めると「56%を3回。合計168%」のように、読んだ人が掛け算しても
-// 合わない数が並ぶ。
-function leveledDisplayValues(node, found = { percent: [], plain: [] }) {
+// 定義の中の「レベルで伸びる量」。**一つだけあるのが正しい形。**
+function leveledEffects(node, found = []) {
   if (Array.isArray(node)) {
-    for (const item of node) leveledDisplayValues(item, found);
+    for (const item of node) leveledEffects(item, found);
     return found;
   }
   if (!node || typeof node !== "object") return found;
   if (typeof node.type === "string" && LEVELED_EFFECTS.has(node.type) && node.amount) {
-    const amount = node.amount;
-    const ratio = (amount.numerator ?? 1) / (amount.denominator ?? 1);
-    const hits = node.hitCount ?? 1;
-    const add = (bag, base) => {
-      if (!Number.isFinite(base) || base <= 0) return;
-      bag.push({ value: base, base, hits: 1 });
-      if (hits > 1) bag.push({ value: base * hits, base, hits });
-    };
-    if (amount.type === "stat_scaled") {
-      add(found.percent, (amount.coefficientBps ?? 0) / 100 * ratio);
-      add(found.plain, (amount.flat ?? 0) * ratio);
-    } else if (amount.type === "event_value_scaled" || amount.type === "actor_stat_scaled") {
-      add(found.percent, ratio * 100);
-    } else if (amount.type === "constant") {
-      add(found.plain, (amount.value ?? 0) * ratio);
-    } else if (amount.type === "status_stacks_scaled") {
-      add(found.plain, ratio);
-    }
+    found.push(node);
   }
-  for (const item of Object.values(node)) leveledDisplayValues(item, found);
+  for (const item of Object.values(node)) leveledEffects(item, found);
   return found;
 }
 
-// 説明文の中の数字を、書かれ方（% つきか否か）ごとに拾う。
-function numberTokens(text) {
-  return [...String(text).matchAll(/(\d+)(?:\.(\d+))?(\s*%)?/g)].map((match) => ({
-    index: match.index,
-    raw: match[0],
-    value: Number(match[1] + (match[2] ? "." + match[2] : "")),
-    decimals: match[2] ? match[2].length : 0,
-    percent: Boolean(match[3]),
-    suffix: match[3] ?? "",
-  }));
-}
-
-// **どの字面を書き換えるか**の下見。書き換え可能なら tokens が入り、
-// 一意に決められない字面があれば ambiguous に理由が入る（smoke がこれを読む）。
-export function skillTextLevelPlan(text, definition) {
-  const values = leveledDisplayValues(definition);
-  const tokens = numberTokens(text);
-  const matched = [];
-  const ambiguous = [];
-  for (const token of tokens) {
-    const bag = token.percent ? values.percent : values.plain;
-    const hit = bag.find((entry) => Math.abs(entry.value - token.value) < MATCH_TOLERANCE);
-    if (!hit) continue;
-    matched.push({ ...token, expected: hit.value, base: hit.base, hits: hit.hits });
+// 変動量を、丸めない有理数（n / d）と単位で返す。
+// **丸めるのはレベルを掛けたあと一度だけ**（R6 §4.4 と同じ約束）。
+function amountRational(amount) {
+  const numerator = amount.numerator ?? 1;
+  const denominator = amount.denominator ?? 1;
+  switch (amount.type) {
+    case "stat_scaled":
+      // coefficientBps 13000 は 130%。flat を併用する定義はまだ無い（増えたら検査が落ちる）。
+      return amount.flat
+        ? null
+        : { n: (amount.coefficientBps ?? 0) * numerator, d: denominator * 100, unit: "percent" };
+    case "event_value_scaled":
+    case "actor_stat_scaled":
+      return { n: 100 * numerator, d: denominator, unit: "percent" };
+    case "constant":
+      return { n: (amount.value ?? 0) * numerator, d: denominator, unit: "plain" };
+    case "status_stacks_scaled":
+      return { n: numerator, d: denominator, unit: "plain" };
+    default:
+      return null;
   }
-  // 同じ量に二つ以上の字面が当たったら、どちらが係数でどちらが条件か決められない。
-  for (const token of matched) {
-    const twins = matched.filter((other) => other.expected === token.expected);
-    if (twins.length > 1 && !ambiguous.some((entry) => entry.expected === token.expected)) {
-      ambiguous.push({ expected: token.expected, written: twins.map((entry) => entry.raw.trim()) });
-    }
-  }
-  return { tokens: ambiguous.length ? [] : matched, ambiguous, values };
 }
 
-// 一つの字面を、あるレベルの値へ。
-// 合計は**1発ぶんを丸めてから回数を掛ける**ので、読み手が掛け算しても合う。
-function liftToken(token, level) {
-  const scale = 10 ** token.decimals;
-  const factor = BPS + (Math.max(MIN_SKILL_LEVEL, level) - MIN_SKILL_LEVEL) * SKILL_LEVEL_STEP_BPS;
-  const perHit = Math.round((token.value / token.hits) * scale);
-  return (roundHalfUpDiv(perHit * factor, BPS) * token.hits / scale).toFixed(token.decimals);
+// その技能の変動量。**無い（レベルを持たない）技能では null。**
+export function leveledAmountOf(definition) {
+  const effects = definition ? leveledEffects(definition) : [];
+  if (effects.length !== 1) return null;
+  const rational = amountRational(effects[0].amount);
+  if (!rational) return null;
+  return { ...rational, hits: effects[0].hitCount ?? 1 };
 }
 
-// いまのレベルでの説明文。**Lv1 では元の文字列をそのまま返す**
-// （係数 1.0 では engine も掛け算そのものを行わない。§afterSkillLevel と同じ約束）。
+function levelFactor(level) {
+  return BPS + (Math.max(MIN_SKILL_LEVEL, level) - MIN_SKILL_LEVEL) * SKILL_LEVEL_STEP_BPS;
+}
+
+// 差し込む文字。単位は定義の amount 型が決めるので、**本文は % を書かない。**
+function slotText(name, variable, level) {
+  if (name === "hits") return String(variable.hits);
+  const one = roundHalfUpDiv(variable.n * levelFactor(level), variable.d * BPS);
+  // 合計は「1段ぶんを丸めてから段数を掛ける」。読み手が掛け算しても合う。
+  const value = name === "total" ? one * variable.hits : one;
+  return variable.unit === "percent" ? value + "%" : String(value);
+}
+
+// いまのレベルでの説明文。**Lv1 でも同じ経路を通る**（差し込み口を埋めるのは
+// レベルの有無に関わらず必要で、Lv1 は係数 1.0 になるだけ）。
 export function skillTextAtLevel(text, definition, level) {
   const source = String(text ?? "");
-  if (!Number.isInteger(level) || level <= MIN_SKILL_LEVEL || !definition) return source;
-  const plan = skillTextLevelPlan(source, definition);
-  if (!plan.tokens.length) return source;
-  let out = "";
-  let cursor = 0;
-  for (const token of plan.tokens) {
-    out += source.slice(cursor, token.index) + liftToken(token, level) + token.suffix;
-    cursor = token.index + token.raw.length;
-  }
-  return out + source.slice(cursor);
+  const variable = leveledAmountOf(definition);
+  if (!variable) return source;
+  return source.replace(SLOT_PATTERN, (raw, name) => slotText(name, variable, level));
 }
 
 // 「1点払うと、この数字がどうなるか」。**倍率ではなく、変わる数そのものを見せる。**
 export function skillLevelValueSteps(text, definition, level) {
-  if (!definition) return [];
-  const plan = skillTextLevelPlan(String(text ?? ""), definition);
-  return plan.tokens.map((token) => ({
-    from: liftToken(token, level) + token.suffix.trim(),
-    to: liftToken(token, level + 1) + token.suffix.trim(),
+  const variable = leveledAmountOf(definition);
+  if (!variable) return [];
+  const names = [...new Set([...String(text ?? "").matchAll(SLOT_PATTERN)].map((match) => match[1]))]
+    .filter((name) => name !== "hits");
+  return names.map((name) => ({
+    from: slotText(name, variable, level),
+    to: slotText(name, variable, level + 1),
   }));
+}
+
+// 検査が読む不変条件。**空なら正しい形。**
+//
+// 画面に出るまで気づけない壊れ方（差し込み口がそのまま出る／レベルが伸びる量が
+// 本文のどこにも出ない／伸びない数を伸ばして書いた）を、ここで名前にして返す。
+export function skillTextIssues(text, definition) {
+  const issues = [];
+  const source = String(text ?? "");
+  const slots = [...new Set([...source.matchAll(SLOT_PATTERN)].map((match) => match[1]))];
+  const effects = definition ? leveledEffects(definition) : [];
+  const variable = leveledAmountOf(definition);
+
+  if (effects.length > 1) {
+    issues.push(`レベルで伸びる量を${effects.length}つ持っている（本文の {amount} がどれを指すか決められない）`);
+  }
+  if (effects.length === 1 && !variable) {
+    issues.push(`レベルで伸びる量の形（${effects[0].amount.type}）を説明文へ差し込めない`);
+  }
+  if (!variable && slots.length) {
+    issues.push(`{${slots.join("}・{")}} と書いてあるが、レベルで伸びる量が無い`);
+  }
+  if (variable) {
+    if (!slots.includes("amount") && !slots.includes("total")) {
+      issues.push("レベルで伸びる量を {amount} で書いていない（Lv を上げても本文が動かない）");
+    }
+    if (variable.hits <= 1 && (slots.includes("total") || slots.includes("hits"))) {
+      issues.push("多段でないのに {total} / {hits} を使っている");
+    }
+    // 変動量を数字で直接書いてしまうと、そこだけ Lv1 のまま古びる。
+    const literal = slotText("amount", variable, MIN_SKILL_LEVEL).replace("%", "");
+    const bare = source.replace(SLOT_PATTERN, "");
+    if (new RegExp("(?<![0-9])" + literal + "\\s*%").test(bare)) {
+      issues.push(`変動量（${literal}%）を数字で直接書いている（{amount} を使うこと）`);
+    }
+  }
+  return issues;
 }
