@@ -77,6 +77,7 @@ import {
   dismantle,
   characterStats,
   composeEncounter,
+  runContentBundle,
   formatFunds,
   gainSupply,
   grantRunSkillPointsToAll,
