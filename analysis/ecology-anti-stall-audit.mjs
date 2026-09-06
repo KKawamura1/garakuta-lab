@@ -83,8 +83,35 @@ function auditReactiveSkills(bundle) {
   return violations;
 }
 
+// Termination witnesses are intentionally free in FIXTURE_CONTENT so the
+// engine tests can prove the chain and activation guards. They must never be
+// free in the playable bundle: a production build can carry the same rule on
+// five actors and fan out across many chains before any one chain looks stuck.
+function auditFreeTerminationWitnesses(bundle) {
+  const violations = [];
+  for (const [id, skill] of Object.entries(bundle.reactiveSkills ?? {})) {
+    if (!(skill.tags ?? []).includes("termination")) continue;
+    const hasReactionPointCost = (skill.rule?.costs ?? []).some(
+      (cost) => cost.type === "spend_reaction_points" && cost.amount > 0,
+    );
+    if (!hasReactionPointCost) {
+      violations.push({
+        id,
+        kind: "reactive",
+        reason: "termination witness が playable content で無料のまま残っている。"
+          + "反応点など有限の代償を付けること",
+      });
+    }
+  }
+  return violations;
+}
+
 function audit(bundle) {
-  return [...auditActiveSkills(bundle), ...auditReactiveSkills(bundle)];
+  return [
+    ...auditActiveSkills(bundle),
+    ...auditReactiveSkills(bundle),
+    ...auditFreeTerminationWitnesses(bundle),
+  ];
 }
 
 const violations = audit(PLAYABLE_CONTENT);
@@ -104,6 +131,11 @@ const violations = audit(PLAYABLE_CONTENT);
           limit: { scope: "battle", count: 99 },
         },
       },
+      free_termination: {
+        id: "free_termination",
+        tags: ["termination"],
+        rule: { costs: [], limit: { scope: "battle", count: 99 } },
+      },
       proper_emergency: {
         id: "proper_emergency",
         rule: {
@@ -117,6 +149,7 @@ const violations = audit(PLAYABLE_CONTENT);
   const selfCheck = audit(badBundle);
   const flaggedIds = selfCheck.map((v) => v.id);
   const ok = flaggedIds.includes("free_heal") && flaggedIds.includes("unbounded_heal")
+    && flaggedIds.includes("free_termination")
     && !flaggedIds.includes("proper_emergency");
   if (!ok) {
     console.error("ecology-anti-stall audit: 参照点が壊れている（既知の違反を検出できない、"

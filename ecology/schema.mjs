@@ -435,10 +435,7 @@ export const LIMITS = freeze({
 // §14 — default safety options.
 export const DEFAULT_OPTIONS = freeze({
   maxEventsPerChain: 256,
-  // A valid five-versus-five battle can fan out across four reactive slots per
-  // ally. Keep the per-chain cycle guard tight, but leave enough room for the
-  // resulting finite event log to finish instead of treating it as a loop.
-  maxEventsPerBattle: 16384,
+  maxEventsPerBattle: 4096,
   maxActivationsPerActorPerRound: 8,
 });
 

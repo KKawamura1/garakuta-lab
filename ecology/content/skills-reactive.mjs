@@ -84,6 +84,17 @@ for (const [id, scaling] of Object.entries(REACTIVE_SCALING)) {
   scaleDefinitionAmounts(reactiveSkills[id], scaling);
 }
 
+// R5 termination witnesses are also kept as compatibility definitions in the
+// playable bundle.  They must not remain free production rules: each one can
+// turn a normal event into another resource/damage/preparation event, and five
+// actors carrying four of them can fan out across many chains.  The fixture
+// still exercises the free forms; player-facing copies pay the same finite RP
+// budget as every other resource-producing reaction.
+for (const definition of Object.values(reactiveSkills)) {
+  if (!(definition.tags ?? []).includes("termination")) continue;
+  definition.rule.costs = [{ type: "spend_reaction_points", amount: 1 }];
+}
+
 // 余剰治療は汎用、連携治療は応急手当専用。汎用側を無償にすると
 // 後者の完全な上位互換になるため、両方ともRP1を払い、専用側だけ
 // 余剰量を増幅する。これで「広く薄く」と「狭く強く」の選択になる。
