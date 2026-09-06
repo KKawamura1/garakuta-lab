@@ -2243,3 +2243,77 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+/* Issue #163 — 情報を主操作の後ろへまとめる。details はiPhoneで一回のタップで開閉し、
+   開いた内容は同じ画面の再描画後も app.js が保持する。 */
+.help-details {
+  padding: 0;
+  overflow: hidden;
+}
+.help-details > summary {
+  padding: 13px 15px;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 750;
+  list-style-position: inside;
+}
+.help-details[open] > summary {
+  border-bottom: 1px solid var(--line);
+  color: var(--gold);
+}
+.help-body {
+  padding: 1px 15px 13px;
+}
+.help-body p {
+  margin: 9px 0 0;
+  line-height: 1.65;
+}
+.operation-note {
+  margin: 8px 0 0;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.context-line {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.context-line b { color: var(--ink); }
+.selected-loadout {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.selected-loadout h3 { margin-bottom: 6px; color: var(--ink); }
+.skill-detail-status, .skill-level-readout, .level-readout {
+  color: var(--blue);
+}
+.level-readout b, .skill-level-readout b { color: var(--violet); }
+.battle-hint { margin: 9px 0 0; }
+.battle-history > summary { cursor: pointer; }
+.battle-history .technical-log {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+.technical-log summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+}
+.technical-events, .technical-log pre {
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font: 9px/1.45 ui-monospace, monospace;
+}
+.character-stats {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.character-stats span { white-space: nowrap; }
