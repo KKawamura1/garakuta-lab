@@ -361,7 +361,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   }
   equal(PORTRAIT_IDS.length, CHARACTER_DEFINITIONS.length, "立ち絵の数が仲間の数と揃う");
 
-  // 表情差分は同じ骨格から作る。**同じ引数からは同じ markup。**
+  // 表情差分はまだ画像を分けていない（暫定バストアップ1枚を共有）。**同じ引数からは同じ markup。**
   for (const characterId of PORTRAIT_IDS) {
     for (const expression of Object.keys(EXPRESSIONS)) {
       const svg = portraitSvg(characterId, expression);
