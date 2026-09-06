@@ -11522,7 +11522,7 @@
    "kind": "reactive",
    "definitionId": "ap_loop",
    "label": "行動権の循環",
-   "effect": "行動権を得たとき、前衛へもう一度渡す。",
+   "effect": "行動権を得たとき、RP1で前衛へもう一度渡す。",
    "grammar": "資源"
   },
   "damage_echo": {
@@ -11530,7 +11530,7 @@
    "kind": "reactive",
    "definitionId": "damage_echo",
    "label": "痛みの反響",
-   "effect": "被弾した敵へ腕力の25%ダメージを返す。",
+   "effect": "被弾した敵へ、RP1で腕力の25%ダメージを返す。",
    "grammar": "被弾"
   },
   "barrier_bloom": {
@@ -11538,7 +11538,7 @@
    "kind": "reactive",
    "definitionId": "barrier_bloom",
    "label": "防壁の花",
-   "effect": "防壁を得たとき、さらに技術の25%の防壁。",
+   "effect": "防壁を得たとき、RP1でさらに技術の25%の防壁。",
    "grammar": "防壁"
   },
   "prep_spiral": {
@@ -11546,7 +11546,7 @@
    "kind": "reactive",
    "definitionId": "prep_spiral",
    "label": "準備の螺旋",
-   "effect": "準備が進むたび、自分の準備をさらに1段進める。",
+   "effect": "準備が進むたび、RP1で自分の準備をさらに1段進める。",
    "grammar": "準備"
   },
   "block_focus": {
