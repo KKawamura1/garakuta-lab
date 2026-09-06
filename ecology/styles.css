@@ -1799,7 +1799,14 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .vn-figure {
   flex: 0 1 38%;
-  max-width: 210px;
+  /*
+   * 画像差し替え後も、会話舞台の縦高は変えない。
+   * 横幅だけ240pxまで使えるようにし、SVGの等比表示で下側を舞台へ溶かす。
+   * これで腕を横から切らず、人物の見た目だけが小さくなるのを防ぐ。
+   */
+  max-width: 240px;
+  aspect-ratio: 3 / 4;
+  max-height: 280px;
   transition: filter .28s ease, opacity .28s ease, transform .28s ease;
   transform-origin: 50% 100%;
 }
