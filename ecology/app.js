@@ -2723,7 +2723,6 @@ function forecastKey(composed) {
     state.profile.metaUpgradeLevels,
   ]);
 }
-}
 
 // 次の一戦の試算。**読めなければ null**（画面は黙って予測を出さない）。
 function battleForecast() {
