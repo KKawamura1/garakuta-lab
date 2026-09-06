@@ -35,6 +35,7 @@ import {
   freshLoadout,
   makeExpeditionBattle,
   reorderSkill,
+  simulateExpeditionBattle,
   simulateNextBattle,
   toggleSkill,
 } from "./playable-battles.mjs";
@@ -369,6 +370,14 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   const lifted = { ...base, runSkillLevels: { warden: { steady_cut: 7 } } };
   const plain = simulateNextBattle(base, profile, 1);
   const strong = simulateNextBattle(lifted, profile, 1);
+  const production = simulateExpeditionBattle(lifted, profile, 1, {
+    composed: strong.composed,
+    hp: lifted.currentHp,
+    simulationOptions: { captureReplaySnapshots: true },
+  });
+  assert.deepEqual(production.battleInput, strong.battleInput, "予測と本番の BattleInput が一致する");
+  assert.deepEqual(production.result.events, strong.result.events, "予測と本番のイベント列が一致する");
+  checks += 2;
   const wardenInput = strong.battleInput.allies.find((ally) => ally.characterId === "warden");
   assert.deepEqual(wardenInput.skillLevels, { steady_cut: 7 }, "レベルが戦闘入力へ届く");
   check(
