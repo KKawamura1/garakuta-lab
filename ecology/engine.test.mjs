@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { RESULT_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
+import { DEFAULT_OPTIONS, RESULT_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
 import { BPS, roundHalfUpDiv } from "./values.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
@@ -737,7 +737,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 for (const battle of ALL_FIXTURE_BATTLES) {
   const result = run(battle);
   check(
-    result.metrics.eventCount < 4096 * 0.1,
+    result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle * 0.1,
     `${battle.battleId} used ${result.metrics.eventCount} events, under 10% of the battle cap`,
   );
   check(

@@ -97,6 +97,7 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 
 UI・replay・検査は、engine が出した同じイベント列を読みます。
 新しい event を追加する場合は、schema、validator、engine テスト、表示・replay も同時に更新します。
+`maxEventsPerChain` は256件の循環検出、`maxEventsPerBattle` は16384件の有限な戦闘ログ予算です。後者は5人対5体でリアクティブを多く装着した有効な構成を収めるための全体上限で、枝を途中で捨てるものではありません。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
 未知の event、effect、predicate、scope、tag などは無視せず validator error にします。
 

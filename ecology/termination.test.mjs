@@ -17,6 +17,8 @@ import { DEFAULT_OPTIONS } from "./schema.mjs";
 import { EcologyRuntimeError, EcologyValidationError } from "./errors.mjs";
 import { simulateBattle } from "./engine.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
+import { PLAYABLE_CONTENT } from "./content/index.mjs";
+import { freshLoadout, makeBattle } from "./playable-battles.mjs";
 import {
   ACTIVATION_CAP_BATTLE,
   AP_LOOP_BATTLE,
@@ -42,6 +44,34 @@ const equal = (actual, expected, message) => {
 };
 
 const run = (battle, options) => simulateBattle(battle, FIXTURE_CONTENT, options);
+
+function issue130StressBattle() {
+  const roster = ["warden", "mender", "lancer", "guardian", "tactician"];
+  const loadout = freshLoadout(roster);
+  const reactiveIds = ["relay_front", "relay_rear", "ap_loop", "damage_echo"];
+  for (const characterId of roster) loadout.reactives[characterId] = [...reactiveIds];
+
+  const battle = makeBattle(
+    7,
+    roster,
+    loadout,
+    "issue_130_event_budget",
+    {},
+    {
+      statsFor: () => ({
+        stats: { maxHp: 10000, might: 20, focus: 20, guard: 0 },
+        training: {},
+      }),
+    },
+  );
+  battle.maxRounds = 20;
+  battle.objective = { type: "survive_rounds", rounds: 20 };
+  for (const enemy of battle.enemies) {
+    enemy.stats = { maxHp: 10000, might: 0, focus: 0, guard: 0 };
+    enemy.hp = 10000;
+  }
+  return battle;
+}
 
 // One firing of each of these rules emits exactly one event of the named type,
 // so counting those events per chain per owner counts firings.
@@ -80,6 +110,27 @@ for (const { battle, ruleId, eventType } of SAFETY_CASES) {
   check(
     result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle,
     `${battle.battleId} stayed inside the battle cap`,
+  );
+}
+
+// Issue 130 — a legal five-versus-five build with four reactive skills on every
+// ally needs more than the old 4096-event battle budget. The chain cap remains
+// the loop guard; this checks that finite cross-chain traffic is not discarded.
+{
+  const battle = issue130StressBattle();
+  const result = simulateBattle(battle, PLAYABLE_CONTENT);
+  check(
+    battle.allies.every((ally) => ally.reactiveSkillIds.length === 4),
+    "issue 130 stress input fills four reactive slots for every ally",
+  );
+  check(result.metrics.eventCount > 4096, "issue 130 stress input exceeds the old battle cap");
+  check(
+    result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle,
+    "issue 130 stress input finishes below the expanded battle cap",
+  );
+  check(
+    result.metrics.maxChainEventCount < DEFAULT_OPTIONS.maxEventsPerChain,
+    "issue 130 stress input still stays inside the chain cap",
   );
 }
 
