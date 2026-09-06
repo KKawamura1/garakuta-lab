@@ -212,6 +212,10 @@ let saveTimer = null;
 let battleLayoutKey = null;
 let battleBeats = [];
 let battleBeatsSource = null;
+// 画面（phase）が切り替わった render() だけ、ページ先頭へ戻す。**同じ画面内の
+// 操作（タブ選択・技能選択・報酬引き直しなど）では動かさない**——毎回動かすと
+// スクロール位置を保ったまま組み替えたい操作まで壊れる。
+let lastRenderedPhase = null;
 
 // **上限は functions/api/runs.js と同じ数にする。**
 // 4000件で切って送っていたが、サーバは2000件で弾く（invalid_payload）。
@@ -473,6 +477,15 @@ function hydrateState(saved) {
   if (!saved) return initialState();
   const fresh = initialState();
   const next = { ...fresh, ...saved };
+  // issue #138 — 「報酬を見る」の中間画面を廃止した。結果画面が報酬選択を兼ねるので、
+  // 旧いオートセーブがちょうどその画面で保存されていても結果画面へ戻す。
+  if (next.phase === "reward") next.phase = "result";
+  // issue #138 — 戦闘前確認の画面（battlePreview）も廃止した。旧いオートセーブが
+  // ちょうどその画面で保存されていてもキャンプへ戻す。
+  if (next.phase === "battlePreview") {
+    next.phase = "camp";
+    next.tab = "map";
+  }
   next.profile = normalizeProfile(saved.profile);
 
   // 保存時点のRunを復元する。形式が違うデータは readStoredSnapshot で
@@ -555,7 +568,7 @@ let state = loadState();
 // Keep the live replay in memory, but avoid persisting the same snapshots twice.
 // Safari can hit its Web Storage quota around the sixth, event-heavy battle;
 // an exception here used to happen before render(), leaving the user on the
-// "自動戦闘を再生する" screen even though simulation had completed.
+// pre-battle camp screen even though simulation had completed.
 function persistableState() {
   const persisted = { ...state, saveFormatVersion: SAVE_FORMAT_VERSION };
   // 保存メニューは一時画面なので、Continueでそこへ戻さない。
@@ -723,10 +736,10 @@ function shell(title, subtitle, body, options = {}) {
   // R6 §9.2 / §12.2 — 遠征は勝利・敗北・**放棄**のいずれでも一度だけ精算する。
   // 途中の遠征をボタン一つで捨てると、そこまでの活動資金が消える。
   // だから run の最中は「放棄」で、精算画面を必ず通す。
-  const inRun = ["camp", "battlePreview", "battle", "battleError", "result", "reward", "defeat"]
+  const inRun = ["camp", "battle", "battleError", "result", "defeat"]
     .includes(state.phase);
   // R11 §5 改 — チュートリアル（灰の門）の最中はタイトルへ戻る・撤退する導線を
-  // 出さない。負ける一戦目も、巻き戻したあとの結果・報酬画面も、
+  // 出さない。負ける一戦目も、巻き戻したあとの結果画面（報酬選択を兼ねる）も、
   // まだ隊列を直しきる前に離脱されると「一手直せば勝てる」導入が成立しない。
   const headerAction = options.hideHeaderAction || state.prologueActive
     ? ""
@@ -1129,23 +1142,28 @@ function render() {
     saveMenu: renderSaveMenu,
     story: renderStory,
     camp: renderCamp,
-    battlePreview: renderBattlePreview,
     battle: renderBattle,
     battleError: renderBattleError,
     result: renderResult,
-    reward: renderReward,
     defeat: renderDefeat,
     settlement: renderSettlement,
     homestead: renderHomestead,
     complete: renderComplete,
   };
+  const phaseChanged = state.phase !== lastRenderedPhase;
+  lastRenderedPhase = state.phase;
   app.innerHTML = (views[state.phase] ?? renderIntro)();
   app.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
   });
   restoreSkillTreeScroll();
+  layoutSkillTreeConnectors();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
+  // issue #138 — 「この敵に挑む」で戦闘へ入ったとき、キャンプ画面を下の方まで
+  // スクロールしていると、盤面（画面の先頭）が見えず冒頭の動きを見落とす。
+  // 画面（phase）が変わった render() だけ、ページ先頭へ戻す。
+  if (phaseChanged) window.scrollTo(0, 0);
 }
 
 function captureSkillTreeScroll() {
@@ -1904,11 +1922,10 @@ function finishStory() {
     render();
     return;
   }
-  // R12 §4.C — 幕の断片のあとは、そのまま次の戦闘の予測画面へ渡す。
-  if (after === "battlePreview") {
-    state.phase = "battlePreview";
-    saveState();
-    render();
+  // R12 §4.C — issue #138 改 — 幕の断片のあとは、戦闘前確認を挟まず
+  // そのまま自動戦闘へ入る。
+  if (after === "battle") {
+    simulateAndEnterBattle();
     return;
   }
   // R11 §5 — 倒れた会話のあとで、巻き戻しのボタンを持つ画面へ出る。
@@ -1919,9 +1936,9 @@ function finishStory() {
     return;
   }
   // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。**ここで
-  // 既読印は押すが、prologueActive は落とさない。**結果画面・報酬画面を
+  // 既読印は押すが、prologueActive は落とさない。**結果画面（報酬選択を兼ねる）を
   // 通常の勝利と同じ経路で見せたあと、次の戦闘へ進むとき（advanceAfterReward）に
-  // 初めて落とす。ここで落とすと、結果・報酬画面が currentEncounter() 経由で
+  // 初めて落とす。ここで落とすと、結果画面が currentEncounter() 経由で
   // 「灰の入口」（12戦の第1戦）の名を誤って出してしまう。
   if (after === "prologueClear") {
     state.profile = {
@@ -2089,8 +2106,17 @@ function renderRoster() {
     ? "今回は" + runPartySize() + "人で進みます。<b>同行者は物語が決めます。</b>Stageをクリアすると、次の仲間が加わります。"
     : "このStageはクリア済みです。いま隊にいる" + metCount + "人から最大" + runPartySize()
       + "人を選べます。それぞれ固有の初期技能があり、技能ツリーで別の役割へ伸ばせます。";
+  // R11 §5 — 巻き戻したあとの一戦だけ、見るべき軸を名指しで出す。
+  // issue #138 — 戦闘前確認の画面を無くしたので、ここ（隊列を直す画面）へ移した。
+  const rewindTutorialNote = state.prologueActive && state.prologueStage === "retry"
+    ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
+      + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
+      + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
+      + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
+    : "";
   return "<section class=\"card\">" + sectionHeading("FORMATION / 2×3", "誰がどこに立つ？", "<span class=\"stage\">"
     + partyLabel() + "</span>") + "<p class=\"muted\">仲間をタップして位置選択。同じ仲間をもう一度タップすると解除し、選択後に別の位置枠をタップすると二人を交換します。<b>" + (runPartySize() >= 5 ? "5人で6枠なので、必ず一枠が空きます。" : runPartySize() + "人なので、空き枠が" + (6 - runPartySize()) + "つあります。") + "</b>前3後2か前2後3のどちらかにしかできません。前3は単体攻撃を分散できますが、前列を薙ぐ攻撃が3人に当たります。前2は後列に3人置けますが、前列一人あたりの被弾が増えます。</p>"
+    + rewindTutorialNote
     + "<div class=\"formation-board\">" + slots + "</div><p class=\"selection-note\">位置選択中: <b>"
     + esc(formationSelection ? characterName(formationSelection) : "なし") + "</b> · "
     + (formationSelection ? "同じ枠をタップで解除 / 別の枠をタップで交換" : "仲間または位置枠をタップして選択")
@@ -2339,14 +2365,6 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
 }
 
-function renderSkillRails(row) {
-  const rails = row.rails
-    .map((on) => "<i class=\"rail" + (on ? " on" : "") + "\"></i>")
-    .join("");
-  const elbow = row.x > 0 ? "<i class=\"elbow" + (row.last ? " last" : "") + "\"></i>" : "";
-  return "<span class=\"tree-rails\" aria-hidden=\"true\">" + rails + elbow + "</span>";
-}
-
 function renderSkillRow(row, characterId, tone) {
   const node = row.node;
   const info = COMPONENTS[node.skillId];
@@ -2354,8 +2372,10 @@ function renderSkillRow(row, characterId, tone) {
   const selected = state.selectedSkillNode === node.skillId;
   const fork = row.children.length >= 2 ? "<span class=\"node-fork\">分岐 " + row.children.length + "</span>" : "";
   const detail = selected ? renderSkillDetail(row, node, characterId, nodeState) : "";
-  return "<div class=\"tree-row" + tone + (selected ? " selected" : "") + "\" data-row=\"" + esc(row.key) + "\">"
-    + renderSkillRails(row)
+  // **座標は格子のマス目そのもの。**インデントの目分量ではなく、実際の列（x）・行（y）に
+  // 置き、前提・派生の線は layoutSkillTreeConnectors() が節どうしの実位置を測って引く。
+  return "<div class=\"tree-cell" + tone + (selected ? " selected" : "") + "\" data-node=\"" + esc(row.key)
+    + "\" style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
     + "<article class=\"skill-node " + nodeState.stateClass + (selected ? " selected" : "") + "\">"
     + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
     + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
@@ -2369,10 +2389,15 @@ function renderSkillRow(row, characterId, tone) {
     + detail + "</article></div>";
 }
 
+// render() 直後に layoutSkillTreeConnectors() が読む。**線は節の実位置を測ってから
+// 引くので、直前に描いた森がどれだったかをここで覚えておく。**
+let skillTreeConnectorGroup = null;
+
 function renderSkillTree(characterId) {
   const kind = selectedSkillKind();
   const groups = skillTreeLayout();
   const group = groups.find((entry) => entry.kind === kind) ?? groups[0];
+  skillTreeConnectorGroup = group;
   const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
   const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
   const derived = new Set(selectedRow ? selectedRow.descendants : []);
@@ -2390,12 +2415,70 @@ function renderSkillTree(characterId) {
   const legend = selectedRow
     ? "<p class=\"tree-focus\">選択中の前提ルートと派生先だけを強調しています。"
       + button("強調を解除", "select-skill-node", false, "tiny-button", "data-skill=\"\"") + "</p>"
-    : "<p class=\"muted tree-focus\">節を押すと、そこまでの前提ルートと、そこから伸びる派生先が強調されます。</p>";
+    : "<p class=\"muted tree-focus\">節を押すと、そこまでの前提ルートと、そこから伸びる派生先が強調されます。線は前提→派生の向きに引かれています。</p>";
+  const columns = "repeat(" + Math.max(group.depth, 1) + ", var(--tree-col-width))";
   return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
     + "<p class=\"tree-summary\"><b>" + esc(group.label) + "ツリー</b> · " + esc(group.summary)
     + " · 最深 x=" + group.depth + " · 分岐 " + group.forks + "箇所</p>"
     + legend
-    + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\">" + rows + "</div></div>";
+    + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\" data-branch=\""
+    + kind + "\" style=\"grid-template-columns:" + columns + "\">"
+    + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>";
+}
+
+// **線は前提→派生を実座標で結ぶ。**インデントの目分量ではなく、節の実際の位置
+// （offsetLeft/offsetTop、スクロール量に左右されない）を測ってから、列の間に
+// 直角線を引く。render() が innerHTML を差し替えた直後に呼ぶ。
+function layoutSkillTreeConnectors() {
+  const group = skillTreeConnectorGroup;
+  if (!group) return;
+  const forest = app.querySelector(".skill-tree-forest[data-branch=\"" + group.kind + "\"]");
+  const svg = forest?.querySelector(".tree-lines");
+  if (!forest || !svg) return;
+  const nodeEls = new Map();
+  forest.querySelectorAll("[data-node]").forEach((element) => nodeEls.set(element.dataset.node, element));
+  const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
+  const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
+  const derived = new Set(selectedRow ? [selectedRow.key, ...selectedRow.descendants] : []);
+  const edgeTone = (childKey) => {
+    if (!selectedRow) return "";
+    if (childKey === selectedRow.key || onPath.has(childKey)) return " on-path";
+    if (derived.has(childKey)) return " derived";
+    return " faded";
+  };
+  // **高さの基準は丸印（.node-icon）の中心。**カード全体の中心にすると、
+  // バッジが1行で収まる節と2行に折り返す節とで高さが違い、同じ行（＝最初の子として
+  // まっすぐ継いだ節）どうしでも線がわずかに曲がって見える（作者からの指摘）。
+  // 丸印はどの節でもボタン左上の同じ位置に固定なので、そこを測れば行が同じ節は
+  // 必ず同じ高さになる。
+  const forestRect = forest.getBoundingClientRect();
+  const anchorOf = (element) => {
+    const icon = element.querySelector(".node-icon");
+    const cellRect = element.getBoundingClientRect();
+    const iconRect = icon ? icon.getBoundingClientRect() : cellRect;
+    return {
+      left: cellRect.left - forestRect.left,
+      right: cellRect.right - forestRect.left,
+      centerY: iconRect.top - forestRect.top + iconRect.height / 2,
+    };
+  };
+  const paths = [];
+  for (const row of group.rows) {
+    if (!row.children.length) continue;
+    const parentElement = nodeEls.get(row.key);
+    if (!parentElement) continue;
+    const parentAnchor = anchorOf(parentElement);
+    for (const childKey of row.children) {
+      const childElement = nodeEls.get(childKey);
+      if (!childElement) continue;
+      const childAnchor = anchorOf(childElement);
+      const busX = parentAnchor.right + (childAnchor.left - parentAnchor.right) / 2;
+      const d = "M " + parentAnchor.right + " " + parentAnchor.centerY + " H " + busX
+        + " V " + childAnchor.centerY + " H " + childAnchor.left;
+      paths.push("<path class=\"tree-line" + edgeTone(childKey) + "\" d=\"" + d + "\"></path>");
+    }
+  }
+  svg.innerHTML = paths.join("");
 }
 
 function renderSkills() {
@@ -2730,38 +2813,6 @@ function forecastBar() {
 
 // R14 §1 — 戦闘前の確認画面が持っていた EXACT PREVIEW カードは消した。
 // **同じ数字を同じ画面で二度出さない。**上端の帯がそれを常時出している。
-
-function renderBattlePreview() {
-  const encounter = currentEncounter();
-  const allies = state.run.roster.map((id) => "<div class=\"battle-plan-row\"><span class=\"avatar small\">"
-    + esc(characterInfo(id)?.icon ?? "・") + "</span><div><b>" + esc(characterName(id)) + "</b><small>"
-    + esc(positionText(state.run.formation[id])) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</small></div><span>"
-    + esc((state.run.loadout.tactics?.[id] || []).map((skillId) => COMPONENTS[skillId]?.label ?? skillId).join(" → "))
-    + "</span></div>").join("");
-  // R9 §2.1 / R11 §5 改 — 盤面そのもの（敵構成）は12戦の梯子に属さないので、
-  // 戦う前の画面はまだ「灰の門」と名乗る。勝てば本編1戦目として commit される
-  // （renderResult / advanceAfterReward）。
-  const previewTitle = state.prologueActive
-    ? "灰の門（遠征の外）"
-    : "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN;
-  return shell(previewTitle, encounter.name + " · 戦闘前の最終確認",
-    "<div class=\"camp-top\">" + forecastBar() + "</div>"
-    + "<section class=\"card\">"
-    + sectionHeading("AUTO BATTLE / PLAN", "この構成で試す") + "<p class=\"muted\">戦闘中の操作はありません。行動の優先順、リアクティブの条件、敵の狙いをR5エンジンが決定的に解決します。"
-    + "<b>上の戦闘予測は無料・副作用なしの試算で、同じ構成ならこの再生と完全に同じ結果になります。</b></p>"
-    + "<div class=\"plan-list\"><h3>味方の構成</h3>" + allies + "</div><div class=\"plan-list\"><h3>敵の狙い</h3>"
-    + encounter.enemies.map((enemy) => "<div class=\"targeting-line\"><b>" + esc(enemyInfo(enemy.enemyActorId).label)
-      + "</b><span>" + esc(enemyTargetingText(enemy.enemyActorId)) + "</span></div>").join("") + "</div>"
-    // R11 §5 — 巻き戻したあとの一戦だけ、見るべき軸を名指しで出す。
-    + (state.prologueActive && state.prologueStage === "retry"
-      ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
-        + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
-        + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
-        + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
-      : "")
-    + button("自動戦闘を再生する", "simulate", false, "button primary")
-    + button("キャンプへ戻る", "back-camp", false, "button") + "</section>");
-}
 
 function actorName(id) {
   const actor = state.lastResult?.actors?.find((entry) => entry.instanceId === id);
@@ -3343,7 +3394,7 @@ function renderBattleError() {
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
     + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やすリアクティブをオフにして再試行してください。</p>"
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
-    + button("戦闘前へ戻る", "back-battle-preview", false, "button") + "</div></section>");
+    + button("キャンプへ戻る", "back-battle-preview", false, "button") + "</div></section>");
 }
 
 function resultActors(result) {
@@ -3370,9 +3421,12 @@ function renderResult() {
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   // R6 §12.2 — **敗北で即座に遠征を破棄しない。**補給が残っていれば再挑戦へ。
   // R11 §5 改 — 巻き戻したあとに**勝った**場合は、もう「序盤の敗北」ではなく
-  // 本編1戦目の勝利そのもの。通常の勝利と同じ「報酬を見る」へ渡す
+  // 本編1戦目の勝利そのもの。通常の勝利と同じ報酬選択へ渡す
   // （prologueActive はまだ真だが、advanceAfterReward で落とすまでの経過措置）。
   const prologueUnresolved = state.prologueActive && !(state.prologueStage === "retry" && won);
+  // issue #138 — 通常戦の勝利は、結果画面へ来た時点で報酬3候補を用意し、
+  // 同じ画面へ埋め込む。「報酬を見る」だけのための遷移は無くす。
+  ensureResultReward(won, prologueUnresolved);
   const next = prologueUnresolved
     ? state.prologueStage === "retry"
       // 二度目で負けたとき。**巻き戻しは一度きり**なので、編成へ戻すだけにする。
@@ -3381,7 +3435,7 @@ function renderResult() {
     : won
       ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
         ? button("遠征を精算する", "settle-run", false, "button primary")
-        : button("報酬を見る", "show-reward", false, "button primary")
+        : rewardSectionHtml()
       : button("この先どうするか", "show-defeat", false, "button primary");
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
@@ -3502,7 +3556,18 @@ function generatedVoice(item) {
   return lines[(affixes + durability) % lines.length];
 }
 
-function renderReward() {
+// issue #138 — 通常戦の勝利で結果画面に来た時点で、報酬3候補を一度だけ用意する。
+// すでに用意済み（引き直し済みも含む）なら上書きしない。
+function ensureResultReward(won, prologueUnresolved) {
+  if (!won || prologueUnresolved || state.run.encounterIndex >= ENCOUNTERS_PER_RUN) return;
+  if (state.rewardOffer.length) return;
+  const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
+  state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, rerolls);
+  record("reward_presented", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
+}
+
+// issue #138 — 結果画面に埋め込む報酬選択。以前は「報酬を見る」で別画面へ渡していた。
+function rewardSectionHtml() {
   const full = state.run.inventory.length >= INVENTORY_LIMIT;
   const cards = state.rewardOffer.map((offer, index) => {
     if (offer.type === "equipment") {
@@ -3538,7 +3603,7 @@ function renderReward() {
         "data-offer=\"" + index + "\"") + "</article>";
   }).join("");
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
-  return shell("報酬を選ぶ", currentEncounter().name + "を突破 · 次の戦闘へ", "<section class=\"card\">"
+  return "<section class=\"card\">"
     + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
     + "<p class=\"muted\">3候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>。戦闘勝利時の技能点は編成中の全員へ自動で加わります。</p>"
     + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
@@ -3553,7 +3618,7 @@ function renderReward() {
     + "<div class=\"reward-reroll\">"
     + button("補給1で3候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
     + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "引き直しは1戦闘につき一度だけ。使うと再挑戦の余地が減ります。")
-    + "</small></div></section>");
+    + "</small></div></section>";
 }
 
 // R6 §12.2 — 敗北処理。**即座に破棄しない。**
@@ -3750,9 +3815,19 @@ function enterPrologueBeatIfDue() {
   return false;
 }
 
+// issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
+// 結果画面へ進める。序盤の一戦なら会話が先に入る（enterPrologueBeatIfDue）。
+function goToBattleResult() {
+  state.replayPlaying = false;
+  if (enterPrologueBeatIfDue()) return;
+  state.phase = "result";
+  saveState();
+  render();
+}
+
 function scheduleReplayBeat() {
   stopReplayTimer();
-  if (state.phase !== "battle" || !state.replayPlaying) return;
+  if (state.phase !== "battle") return;
   const beats = replayBeats();
   const index = clampReplayIndex();
   if (index >= beats.length - 1) {
@@ -3761,8 +3836,17 @@ function scheduleReplayBeat() {
     if (enterPrologueBeatIfDue()) return;
     saveState();
     updateReplayControls(index, beats);
+    // issue #138 — 最後の拍を見せたあと、少し間を置いて結果画面へ自動で進む。
+    // 自動再生が最後まで流れきったときだけでなく、一手ずつ進めて末尾に
+    // 着いたときも同じに扱う（「結果を見る」を押さなくても戦闘画面で止まり続けない）。
+    replayTimer = setTimeout(() => {
+      replayTimer = null;
+      if (state.phase !== "battle") return;
+      goToBattleResult();
+    }, beatDurationMs(beats[index], replaySpeed().factor));
     return;
   }
+  if (!state.replayPlaying) return;
   replayTimer = setTimeout(() => {
     replayTimer = null;
     if (state.phase !== "battle" || !state.replayPlaying) return;
@@ -3770,6 +3854,134 @@ function scheduleReplayBeat() {
     saveStateSoon();
     syncBattleView();
   }, beatDurationMs(beats[index], replaySpeed().factor));
+}
+
+// R8 §11 の simulateNextBattle と同じ BattleInput 構成経路を通る本番実行。
+// issue #138 — チュートリアルも含め、「この敵に挑む」から戦闘前確認を挟まず
+// 常にここへ入る（以前は「自動戦闘を再生する」ボタンの handler だった）。
+function simulateAndEnterBattle() {
+  let battle;
+  try {
+    const composed = currentEncounter();
+    battle = makeExpeditionBattle(
+      composed,
+      state.run.roster,
+      state.run.loadout,
+      state.run.runSeed,
+      state.run.formation,
+      {
+        // R8 §1.5 — Campaign Stage は run.currentHp（持ち越しHP）を渡す。
+        // Free / Endless は従来どおり state.hp（毎戦満タン）。
+        hp: isCampaignRun() ? state.run.currentHp : state.hp,
+        equipmentDurability: state.equipmentDurability,
+        limitsFor,
+        statsFor,
+        // Phase C — 遠征ごとの装備定義を含む content bundle を渡す。
+        content: runContentBundle(state.run),
+      },
+    );
+    record("battle_started", {
+      encounter: state.run.encounterIndex,
+      kind: composed.kind,
+      difficulty: state.run.difficulty,
+      threat: composed.spentThreat,
+      battleId: battle.battleId,
+    });
+    const result = simulateBattle(battle, runContentBundle(state.run), {
+      equipmentBreaks: false,
+      captureReplaySnapshots: true,
+    });
+    state.lastResult = compactResult(result);
+    const replay = compactReplay(result);
+    state.replayEvents = replay.events;
+    state.replaySnapshots = replay.snapshots;
+    state.replayIndex = 0;
+    state.replayPlaying = true;
+    state.run.results = [...state.run.results, {
+      encounter: state.run.encounterIndex,
+      result: result.result,
+      roundsUsed: result.roundsUsed,
+      metrics: result.metrics,
+    }];
+    // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
+    // retry しても同じ encounter の撃破 base は一度だけ。
+    // R11 §5 改 — 巻き戻したあとの一戦は、本編1戦目（encounterIndex 1）そのものと
+    // して扱う。**この関数に来る時点で prologueActive が真なら、それは必ず
+    // retry（本当に負ける一戦目は startPrologue() がここを通らず直接 simulate する）**
+    // なので、通常戦と同じく勝利時に技能点を配る。
+    if (result.result === "win") {
+      state.run = recordEncounterCleared(state.run, state.run.encounterIndex);
+      state.run = grantRunSkillPointsToAll(state.run);
+      record("battle_skill_points_granted", {
+        stage: state.run.encounterIndex,
+        amount: RUN_SKILL_POINTS_PER_REWARD,
+        characterIds: [...state.run.roster],
+      });
+    }
+    for (const combatEvent of result.events || []) {
+      pushRunEvent({
+        at: new Date().toISOString(),
+        type: "combat_event",
+        stage: state.run.encounterIndex,
+        event: combatEvent,
+      });
+    }
+    record("battle_completed", {
+      stage: state.run.encounterIndex,
+      result: result.result,
+      reason: result.reason,
+      roundsUsed: result.roundsUsed,
+    });
+    // R8 §3.2 の図鑑。**会ったことは Profile に残る。**遠征を捨てても、
+    // 序盤の一戦でも残す（会ったという事実は、勝敗で取り消されない）。
+    state.profile = recordBestiary(
+      state.profile,
+      (composed.enemies ?? []).map((enemy) => enemy.enemyActorId),
+      { defeated: result.result === "win" },
+    );
+    // R8 §8, §10 — Campaign Stage: 勝利時だけHPをcommitする（敗北時はrunを
+    // 変更しない=retry safe）。4/8戦目boss勝利後はcommitBattleResultが全回復する。
+    // R11 §5 改 — 巻き戻したあとの一戦もこの経路で HP を commit する。
+    // もう「遠征に数えない」演習ではない。
+    if (isCampaignRun()) {
+      const commit = commitBattleResult(state.profile, state.run, state.run.encounterIndex, result);
+      state.run = commit.run;
+      state.lastCarrySnapshot = commit.snapshot;
+      resetEquipmentDurability();
+    } else {
+      resetBattleResources();
+    }
+    state.phase = "battle";
+  } catch (error) {
+    state.error = error.message;
+    const diagnostics = error?.diagnostics || {};
+    const actorLabels = Object.fromEntries([
+      ...(battle?.allies || []).map((actor) => [actor.instanceId, characterName(actor.characterId)]),
+      ...(battle?.enemies || []).map((actor) => [actor.instanceId, enemyInfo(actor.enemyActorId)?.label ?? actor.enemyActorId]),
+    ]);
+    state.battleError = {
+      message: error.message,
+      actorLabels,
+      diagnostics: {
+        battleId: diagnostics.battleId ?? battle?.battleId ?? null,
+        round: diagnostics.round ?? null,
+        currentActorId: diagnostics.currentActorId ?? null,
+        chainId: diagnostics.chainId ?? null,
+        eventSequence: diagnostics.eventSequence ?? null,
+        ruleActivationStack: diagnostics.ruleActivationStack ?? [],
+        chainRuleFirings: diagnostics.chainRuleFirings ?? {},
+        recentEvents: diagnostics.recentEvents ?? [],
+      },
+    };
+    // engineが例外を投げた場合はBattleResultが無いので、Campaign Stageでも
+    // currentHpは変更しない（validateBattleInputで事前に弾かれるのが通常経路）。
+    if (isCampaignRun()) resetEquipmentDurability();
+    else resetBattleResources();
+    state.error = null;
+    state.phase = "battleError";
+  }
+  saveState();
+  render();
 }
 
 function advanceAfterReward() {
@@ -4407,158 +4619,33 @@ function handleAction(event) {
     if (state.run.roster.length !== runPartySize()) {
       state.error = "出発には" + runPartySize() + "人の編成が必要です。";
       state.tab = "roster";
-    } else {
-      state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
-      // R8 §1.5 / §10 — Campaign StageはHPを持ち越すので満タンへ戻さない。
-      // 装備耐久はどちらのmodeも毎戦リセット（持ち越しはまだ未実装）。
-      if (isCampaignRun()) resetEquipmentDurability();
-      else resetBattleResources();
-      state.battleError = null;
-      record("loadout_confirmed", {
-        stage: state.run.encounterIndex,
-        roster: [...state.run.roster],
-        formation: clone(state.run.formation),
-        loadout: clone(state.run.loadout),
-      });
-      // R12 §4.C — act boss の前で一度だけ会話を挟む。**prologue 中は挟まない**
-      // （序盤の4拍が既に会話で埋まっているので、そこへ足すと長い）。
-      const actBeat = state.prologueActive
-        ? null
-        : actStoryBeatForEncounter(state.run.campaignStageSequence, state.run.encounterIndex);
-      if (actBeat) {
-        enterStory([actBeat], "battlePreview");
-        return;
-      }
-      state.phase = "battlePreview";
+      saveState();
+      render();
+      return;
     }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "simulate") {
-    let battle;
-    try {
-      const composed = currentEncounter();
-      battle = makeExpeditionBattle(
-        composed,
-        state.run.roster,
-        state.run.loadout,
-        state.run.runSeed,
-        state.run.formation,
-        {
-          // R8 §1.5 — Campaign Stage は run.currentHp（持ち越しHP）を渡す。
-          // Free / Endless は従来どおり state.hp（毎戦満タン）。
-          hp: isCampaignRun() ? state.run.currentHp : state.hp,
-          equipmentDurability: state.equipmentDurability,
-          limitsFor,
-          statsFor,
-          // Phase C — 遠征ごとの装備定義を含む content bundle を渡す。
-          content: runContentBundle(state.run),
-        },
-      );
-      record("battle_started", {
-        encounter: state.run.encounterIndex,
-        kind: composed.kind,
-        difficulty: state.run.difficulty,
-        threat: composed.spentThreat,
-        battleId: battle.battleId,
-      });
-      const result = simulateBattle(battle, runContentBundle(state.run), {
-        equipmentBreaks: false,
-        captureReplaySnapshots: true,
-      });
-      state.lastResult = compactResult(result);
-      const replay = compactReplay(result);
-      state.replayEvents = replay.events;
-      state.replaySnapshots = replay.snapshots;
-      state.replayIndex = 0;
-      state.replayPlaying = true;
-      state.run.results = [...state.run.results, {
-        encounter: state.run.encounterIndex,
-        result: result.result,
-        roundsUsed: result.roundsUsed,
-        metrics: result.metrics,
-      }];
-      // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
-      // retry しても同じ encounter の撃破 base は一度だけ。
-      // R11 §5 改 — 巻き戻したあとの一戦は、本編1戦目（encounterIndex 1）そのものと
-      // して扱う。**この handler に来る時点で prologueActive が真なら、それは必ず
-      // retry（本当に負ける一戦目は startPrologue() がここを通らず直接 simulate する）**
-      // なので、通常戦と同じく勝利時に技能点を配る。
-      if (result.result === "win") {
-        state.run = recordEncounterCleared(state.run, state.run.encounterIndex);
-        state.run = grantRunSkillPointsToAll(state.run);
-        record("battle_skill_points_granted", {
-          stage: state.run.encounterIndex,
-          amount: RUN_SKILL_POINTS_PER_REWARD,
-          characterIds: [...state.run.roster],
-        });
-      }
-      for (const combatEvent of result.events || []) {
-        pushRunEvent({
-          at: new Date().toISOString(),
-          type: "combat_event",
-          stage: state.run.encounterIndex,
-          event: combatEvent,
-        });
-      }
-      record("battle_completed", {
-        stage: state.run.encounterIndex,
-        result: result.result,
-        reason: result.reason,
-        roundsUsed: result.roundsUsed,
-      });
-      // R8 §3.2 の図鑑。**会ったことは Profile に残る。**遠征を捨てても、
-      // 序盤の一戦でも残す（会ったという事実は、勝敗で取り消されない）。
-      state.profile = recordBestiary(
-        state.profile,
-        (composed.enemies ?? []).map((enemy) => enemy.enemyActorId),
-        { defeated: result.result === "win" },
-      );
-      // R8 §8, §10 — Campaign Stage: 勝利時だけHPをcommitする（敗北時はrunを
-      // 変更しない=retry safe）。4/8戦目boss勝利後はcommitBattleResultが全回復する。
-      // R11 §5 改 — 巻き戻したあとの一戦もこの経路で HP を commit する。
-      // もう「遠征に数えない」演習ではない。
-      if (isCampaignRun()) {
-        const commit = commitBattleResult(state.profile, state.run, state.run.encounterIndex, result);
-        state.run = commit.run;
-        state.lastCarrySnapshot = commit.snapshot;
-        resetEquipmentDurability();
-      } else {
-        resetBattleResources();
-      }
-      state.phase = "battle";
-    } catch (error) {
-      state.error = error.message;
-      const diagnostics = error?.diagnostics || {};
-      const actorLabels = Object.fromEntries([
-        ...(battle?.allies || []).map((actor) => [actor.instanceId, characterName(actor.characterId)]),
-        ...(battle?.enemies || []).map((actor) => [actor.instanceId, enemyInfo(actor.enemyActorId)?.label ?? actor.enemyActorId]),
-      ]);
-      state.battleError = {
-        message: error.message,
-        actorLabels,
-        diagnostics: {
-          battleId: diagnostics.battleId ?? battle?.battleId ?? null,
-          round: diagnostics.round ?? null,
-          currentActorId: diagnostics.currentActorId ?? null,
-          chainId: diagnostics.chainId ?? null,
-          eventSequence: diagnostics.eventSequence ?? null,
-          ruleActivationStack: diagnostics.ruleActivationStack ?? [],
-          chainRuleFirings: diagnostics.chainRuleFirings ?? {},
-          recentEvents: diagnostics.recentEvents ?? [],
-        },
-      };
-      // engineが例外を投げた場合はBattleResultが無いので、Campaign Stageでも
-      // currentHpは変更しない（validateBattleInputで事前に弾かれるのが通常経路）。
-      if (isCampaignRun()) resetEquipmentDurability();
-      else resetBattleResources();
-      state.error = null;
-      state.phase = "battleError";
+    state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
+    // R8 §1.5 / §10 — Campaign StageはHPを持ち越すので満タンへ戻さない。
+    // 装備耐久はどちらのmodeも毎戦リセット（持ち越しはまだ未実装）。
+    if (isCampaignRun()) resetEquipmentDurability();
+    else resetBattleResources();
+    state.battleError = null;
+    record("loadout_confirmed", {
+      stage: state.run.encounterIndex,
+      roster: [...state.run.roster],
+      formation: clone(state.run.formation),
+      loadout: clone(state.run.loadout),
+    });
+    // issue #138 — チュートリアル（灰の門）も含め、常に戦闘前確認を挟まず
+    // そのまま自動戦闘へ進む。act boss の前で一度だけ会話を挟む戦闘は、
+    // 会話のあとに続けて自動戦闘へ入る（会話自体は物語上必要なので残す）。
+    const actBeat = state.prologueActive
+      ? null
+      : actStoryBeatForEncounter(state.run.campaignStageSequence, state.run.encounterIndex);
+    if (actBeat) {
+      enterStory([actBeat], "battle");
+      return;
     }
-    saveState();
-    render();
+    simulateAndEnterBattle();
     return;
   }
 
@@ -4612,17 +4699,13 @@ function handleAction(event) {
   }
 
   if (action === "replay-result") {
-    state.replayPlaying = false;
     // R12 — **再生を飛ばしても、序盤の会話を飛び越えない。**
     // 以前はこの分岐が scheduleReplayBeat（再生が最後まで流れきった場合）にしか
     // 無かったので、［結果を見る］で再生を打ち切ると prologueClear が起きず、
     // 既読印が押されないまま prologueActive が真のまま残った。**門の一戦から
     // 出られなくなる**（結果画面は「編成を見直す」しか出さないので、
-    // 何度勝っても同じ盤面へ戻る）。分岐をここへ寄せて、両方の経路で通す。
-    if (enterPrologueBeatIfDue()) return;
-    state.phase = "result";
-    saveState();
-    render();
+    // 何度勝っても同じ盤面へ戻る）。goToBattleResult に寄せて、両方の経路で通す。
+    goToBattleResult();
     return;
   }
 
@@ -4635,19 +4718,11 @@ function handleAction(event) {
     return;
   }
 
+  // issue #138 — 戦闘前確認の画面（battlePreview）を廃止したので、キャンプへ戻す。
   if (action === "back-battle-preview") {
-    state.phase = "battlePreview";
+    state.phase = "camp";
+    state.tab = "map";
     state.battleError = null;
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "show-reward") {
-    const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
-    state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, rerolls);
-    record("reward_presented", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
-    state.phase = "reward";
     saveState();
     render();
     return;

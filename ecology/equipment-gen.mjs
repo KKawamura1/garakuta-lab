@@ -32,7 +32,7 @@ import {
 
 // **版を上げたら、古い Blueprint は disabled 表示になる。**黙って別物を作らない
 // （R8 §3.6「互換不能な古いBlueprintを削除せず、disabledReasonを表示する」）。
-export const GENERATOR_VERSION = "ecology-equipment-gen-3";
+export const GENERATOR_VERSION = "ecology-equipment-gen-6";
 
 // R8 §3.5 —「50 attemptで生成不能なら既定品へ黙ってfallbackせず、診断errorにする。」
 export const GENERATOR_MAX_ATTEMPTS = 50;
@@ -134,6 +134,14 @@ const satisfies = (requires, provides) => (requires ?? []).every((tag) => provid
 const sharesTheme = (left = [], right = []) => left.some((tag) => right.includes(tag));
 const payoffFitsSource = (payoff, source) => satisfies(payoff.requires, source.provides ?? [])
   && sharesTheme(source.supports ?? [], payoff.payoffTags ?? []);
+// 自分のHPを消費する代償と、自分だけを回復する効果は、同じ装備に重ねない。
+// 回復の基準値が低い品では、発火しても差し引きで損をするため。
+const isSelfHealPayoff = (payoff) => {
+  const affix = payoff?.affix ?? payoff;
+  const effect = affix?.effect?.(1);
+  return effect?.type === "heal" && effect.target?.scope === "self";
+};
+const isHpCost = (affix) => affix?.cost?.type === "lose_hp";
 const converterFitsSource = (converter, source, payoff) => {
   const valueKeys = source.valueKeys ?? [];
   return satisfies(converter.requires, source.provides ?? [])
@@ -173,14 +181,17 @@ function assignEffectRarities(rng, draft) {
   });
   // common / rare の低確率品は、重い代償のある rule に限って最大2段上の効果を持つ。
   const risky = slots.filter(({ rule }) => rule.cost?.risky);
-  if (risky.length) {
-    const promoted = pick(rng, risky);
+  // 同じ slot を格上げして保証枠を消さない。低レアでも item 同格の効果を
+  // 少なくとも一つ残し、規格外効果は別 slot に載せる。
+  const promotable = risky.filter(({ payoff }) => payoff.effectRarity !== draft.rarity);
+  if (promotable.length) {
+    const promoted = pick(rng, promotable);
     const itemIndex = RARITIES.indexOf(draft.rarity);
     promoted.payoff.effectRarity = RARITIES[Math.min(RARITIES.length - 1, itemIndex + 2)];
   }
 }
 
-function buildRuleDraft(rng, rarity, pool, budget, sourceIdsUsed, riskUsed) {
+function buildRuleDraft(rng, rarity, pool, budget, sourceIdsUsed, riskUsed, hasSelfHeal, hasHpCost) {
   // 同じ trigger を二度使うと「同じ出来事の二重取り」になり、rule が別々である
   // 意味が消える。**item の中で trigger は重複させない。**
   const sources = pool.source.filter((affix) => !sourceIdsUsed.has(affix.id));
@@ -188,13 +199,15 @@ function buildRuleDraft(rng, rarity, pool, budget, sourceIdsUsed, riskUsed) {
   const source = pick(rng, sources);
   const provides = source.provides ?? [];
 
-  const payoffCandidates = pool.payoff.filter((affix) => payoffFitsSource(affix, source));
+  const payoffCandidates = pool.payoff.filter((affix) => payoffFitsSource(affix, source)
+    && (!hasHpCost || !isSelfHealPayoff(affix)));
   if (!payoffCandidates.length) return null;
   const payoff = pick(rng, payoffCandidates);
 
   const costCandidates = pool.cost.filter((affix) => {
     if ((payoff.forbidsCostTypes ?? []).includes(affix.cost.type)) return false;
     if (payoff.needsFiniteCost && !affix.finite) return false;
+    if (isHpCost(affix) && (hasSelfHeal || isSelfHealPayoff(payoff))) return false;
     // 代償が trigger と同じ出来事を出すと、払った瞬間に自分を呼び戻す。
     if ((affix.emits ?? []).includes(source.listenTo)) return false;
     return true;
@@ -299,16 +312,27 @@ function buildDraft(rng, rarity, pool) {
     && rng() < (KEYSTONE_CHANCE[rarity] ?? 0);
   const keystoneReserve = wantsKeystone ? Math.max(...pool.keystone.map((affix) => affix.power)) : 0;
 
-  const ruleCount = pickInt(rng, spec.rules[0], spec.rules[1]);
+  // family pool が狭い場合でも、存在しない数の trigger を要求して全 attempt を
+  // 使い切らないようにする。重複 trigger は引き続き禁止するので、上限は
+  // pool 内の source 数でも制限する。
+  const maxRuleCount = Math.min(spec.rules[1], pool.source.length);
+  if (maxRuleCount < spec.rules[0]) return null;
+  const ruleCount = pickInt(rng, spec.rules[0], maxRuleCount);
   const sourceIdsUsed = new Set();
   let riskUsed = false;
+  let hasSelfHeal = false;
+  let hasHpCost = false;
   for (let index = 0; index < ruleCount; index += 1) {
     const remaining = spec.power - keystoneReserve - draftPower(draft);
-    const rule = buildRuleDraft(rng, rarity, pool, remaining, sourceIdsUsed, riskUsed);
+    const rule = buildRuleDraft(
+      rng, rarity, pool, remaining, sourceIdsUsed, riskUsed, hasSelfHeal, hasHpCost,
+    );
     if (!rule) return null;
     sourceIdsUsed.add(rule.source.id);
     draft.rules.push(rule);
     riskUsed ||= Boolean(rule.cost?.risky);
+    hasSelfHeal ||= rule.payoffs.some(isSelfHealPayoff);
+    hasHpCost ||= isHpCost(rule.cost);
   }
   if (!draft.rules.length) return null;
 
@@ -339,6 +363,7 @@ function buildDraft(rng, rarity, pool) {
           if (!rule.converters.every((converter) => sharesTheme(converter.supports ?? [], affix.payoffTags ?? []))) continue;
           if (affix.needsFiniteCost && !rule.cost?.finite) continue;
           if (affix.needsAnyCost && !rule.cost) continue;
+          if ((hasHpCost || isHpCost(rule.cost)) && isSelfHealPayoff(affix)) continue;
           if (affix.chainOnly && rule.limit.scope !== "chain") continue;
           if ((affix.emits ?? []).includes(rule.source.listenTo) && rule.limit.scope !== "chain") continue;
           if ((affix.forbidsCostTypes ?? []).includes(rule.cost?.cost?.type)) continue;
@@ -388,9 +413,12 @@ function magnitudeOf(payoff, rule, fallbackRarity = "common") {
   const effectRarity = payoff.effectRarity ?? fallbackRarity;
   const baseAmount = payoff.affix.magnitudes[tier];
   const rarityIndex = Math.max(0, RARITIES.indexOf(effectRarity));
+  const effectType = payoff.affix.effect(1)?.type;
+  const scaledAmount = Math.max(1, Math.floor((baseAmount * (EFFECT_AMOUNT_BPS[effectRarity] ?? 10000)
+    + (effectType === "heal" ? 0 : 5000)) / 10000));
   const amount = payoff.affix.discrete
     ? baseAmount + Math.max(0, rarityIndex - 2)
-    : Math.max(1, Math.floor((baseAmount * (EFFECT_AMOUNT_BPS[effectRarity] ?? 10000) + 5000) / 10000));
+    : scaledAmount;
   return { tier, amount, effectRarity };
 }
 
@@ -543,6 +571,11 @@ export function auditDraft(draft, definition) {
   }
   if (draft.rules.length < spec.rules[0] || draft.rules.length > spec.rules[1]) {
     problems.push(`rule 数が範囲外（${draft.rules.length}）`);
+  }
+  const hasSelfHeal = draft.rules.some((rule) => rule.payoffs.some(isSelfHealPayoff));
+  const hasHpCost = draft.rules.some((rule) => isHpCost(rule.cost));
+  if (hasSelfHeal && hasHpCost) {
+    problems.push("HP消費コストと自分だけを回復する効果を同じ装備へ重ねている");
   }
   if (!draft.keystone && draft.rarity === "oopart") {
     problems.push("oopart は体験を変える keystone を必ず持つ");
@@ -797,4 +830,3 @@ export function generateEquipment(options = {}) {
     { seed, dropIndex, rarity, familyIds, attempts: worst },
   );
 }
-

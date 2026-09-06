@@ -193,7 +193,7 @@ try {
 
   // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
   note("行動／反応／常設を切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
-  note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-rails .elbow").count() > 0);
+  note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-lines path").count() > 0);
   await page.locator('[data-action="select-skill-kind"][data-kind="reactive"]').click();
   await page.waitForTimeout(150);
   const reactiveTreeText = await bodyText();
@@ -206,7 +206,7 @@ try {
   await secondNode.click();
   await page.waitForTimeout(150);
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
-  note("前提ルート以外を落として見せる", await page.locator(".tree-row.faded").count() > 0);
+  note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
 
   // R19（issue #137）— 技能レベル。**上位互換を別技能として増やさない**代わりに、
   // 一つの節が何段まで伸びるのかを節の上で読める。
@@ -254,18 +254,17 @@ try {
   // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
   const rightVerdict = await verdict();
   note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
+  // issue #138 — 戦闘前確認の画面（battlePreview）を無くしたので、隊列を直す
+  // この画面（roster タブ）で武器と技の違いをもう一度渡す。
+  note("戦闘予測の使い方を示す",
+    /戦闘予測/.test(placedText)
+      && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(placedText));
+  note("ツグミが自分ではなくゴウを手当てすると示す",
+    /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(placedText));
 
+  // issue #138 — チュートリアルの再戦も含め、常に戦闘前確認を挟まず自動戦闘へ進む。
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");
-  // 再戦は予測画面を挟む。**巻き戻したあとに初めて preview の読み方を教える**ので、
-  // ここで武器と技の違いがもう一度渡っているかを見る。
-  const retryPreviewText = await bodyText();
-  note("戦闘予測の使い方を示す",
-    /戦闘予測/.test(retryPreviewText)
-      && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(retryPreviewText));
-  note("ツグミが自分ではなくゴウを手当てすると示す",
-    /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(retryPreviewText));
-  await click("自動戦闘を再生する");
   await page.waitForSelector(".battle-field", { timeout: 8000 });
   await page.locator('.speed-button[data-speed="fast"]').click();
   await click("結果を見る");
@@ -287,14 +286,13 @@ try {
   note("結果画面でもまだ撤退できない",
     await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
   if (won) {
-    await click("報酬を見る");
-    const rewardText = await bodyText();
+    // issue #138 — 勝利の結果画面が報酬選択を兼ねる。「報酬を見る」の中間クリックは無い。
+    const rewardText = resultAfterWinText;
+    note("結果画面に報酬3択も一緒に出る", /何を持ち帰る？/.test(rewardText));
     note("報酬に装備が出る", /装備/.test(rewardText) && !/生成装備/.test(rewardText));
-    // R13 — 報酬画面にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
-    note("報酬画面に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
+    // R13 — 報酬にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
+    note("報酬に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
     note("装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
-    note("報酬画面でもまだ撤退できない",
-      await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
     // 装備を拾い、装備画面と保存の往復まで見る。
     const equipmentButton = page.locator('.reward-card:has(.reward-kind.kind-equipment) button[data-action="take-reward"]').first();
     note("装備の候補を選べる", await equipmentButton.count() > 0);
@@ -492,8 +490,9 @@ try {
     note("幕の切れ目で会話が入る", await page.locator(".vn-stage").count() > 0);
     note("幕の断片も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
     await click("スキップ");
-    await page.waitForTimeout(250);
-    note("幕の会話のあとは戦闘予測へ渡す", /自動戦闘を再生する|戦闘予測|この戦闘/.test(await bodyText()));
+    // issue #138 — 幕の会話のあとも、戦闘前確認を挟まずそのまま自動戦闘へ進む。
+    await page.waitForSelector(".battle-field", { timeout: 8000 });
+    note("幕の会話のあとは戦闘前確認を挟まず自動戦闘へ渡す", await page.locator(".battle-field").count() > 0);
   }
 
   note("ページエラーが無い", errs.length === 0, errs.slice(0, 3).join(" / "));

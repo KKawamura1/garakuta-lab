@@ -70,7 +70,12 @@ export const EQUIPMENT_IMPLICITS = Object.freeze([
 ]);
 
 // 引退した affix id。**別内容への再利用は禁止。**
-export const RETIRED_AFFIX_IDS = Object.freeze({});
+export const RETIRED_AFFIX_IDS = Object.freeze({
+  src_spill: Object.freeze({
+    since: "ecology-equipment-gen-6",
+    reason: "回復の溢れを発火条件にする装備効果を廃止したため",
+  }),
+});
 
 // ---------------------------------------------------------------- target query の語彙
 //
@@ -198,11 +203,11 @@ const SOURCES = [
     valueKeys: ["requested", "actual", "hpAfter"],
   },
   {
-    id: "src_spill", familyId: "family_care", role: "source", power: 0,
-    displayName: "溢れた", summary: "自分の回復が溢れたとき",
-    listenTo: "excess_healing", anchor: "self_source", predicates: [anchorSelfIsSource],
+    id: "src_received", familyId: "family_care", role: "source", power: 0,
+    displayName: "癒やしの", summary: "自分が回復を受けたとき",
+    listenTo: "healing_applied", anchor: "self_target", predicates: [anchorSelfIsTarget],
     provides: ["self_acts", "has_amount"], supports: ["care", "defense", "tempo", "handoff"],
-    valueKeys: ["amount", "requested", "actual"],
+    valueKeys: ["requested", "actual", "hpAfter"],
   },
   {
     id: "src_mark", familyId: "family_barrage", role: "source", power: 0,
@@ -550,7 +555,7 @@ const PAYOFFS = [
     // **被弾 chain の中でだけ**、有限コストを払って動く。generator の
     // dead / loop 検査が、この二条件を満たさない heal rule を落とす。
     emits: ["healing_proposed", "healing_applied", "excess_healing"],
-    requires: ["damage_chain"], magnitudes: [18, 30, 45], needsFiniteCost: true, chainOnly: true,
+    requires: ["damage_chain"], magnitudes: [3, 5, 12], needsFiniteCost: true, chainOnly: true,
     effect: (amount) => ({
       type: "heal", target: SELF, amount: { type: "constant", value: amount }, tags: ["affix"],
     }),
@@ -560,7 +565,7 @@ const PAYOFFS = [
     id: "pay_triage", familyId: "family_care", role: "payoff", power: 3,
     displayName: "応援処置", summary: "最も傷ついた味方を回復",
     emits: ["healing_proposed", "healing_applied", "excess_healing"],
-    requires: ["damage_chain"], magnitudes: [15, 26, 40], needsFiniteCost: true, chainOnly: true,
+    requires: ["damage_chain"], magnitudes: [3, 5, 12], needsFiniteCost: true, chainOnly: true,
     effect: (amount) => ({
       type: "heal", target: WEAKEST_ALLY, amount: { type: "constant", value: amount }, tags: ["affix"],
     }),

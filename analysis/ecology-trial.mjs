@@ -194,9 +194,19 @@ try {
       note("予測に各メンバーの減少量が出ている",
         await page.locator(".forecast-member .forecast-delta").count() > 0);
     }
+    if (stage === 1) {
+      // issue #138 追補 — キャンプを下までスクロールした状態から挑むと、盤面
+      // （画面の先頭）が見えず冒頭の動きを見落とすと報告された。挑む前に下まで
+      // スクロールしておき、戦闘へ入った瞬間に先頭へ戻ることを確かめる。
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      note("挑む前に下までスクロールしている", (await page.evaluate(() => window.scrollY)) > 0);
+    }
+    // issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まず自動戦闘へ進む。
     await click("この敵に挑む");
-    await click("自動戦闘を再生する");
     await page.waitForSelector(".battle-field", { timeout: 8000 });
+    if (stage === 1) {
+      note("戦闘へ入ると画面の先頭（盤面）へ戻る", (await page.evaluate(() => window.scrollY)) === 0);
+    }
 
     if (stage === 1) {
       note("盤面に味方と敵の箱が出る", await page.locator(".unit").count() >= 4);
@@ -231,6 +241,13 @@ try {
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
     }
+    if (stage === 1 && verdict === "突破した") {
+      // issue #138 — 勝利の結果と報酬3択が同じ画面に出て、「報酬を見る」の
+      // 中間クリックが要らないことを確かめる。
+      note("勝利の結果と報酬3択が同じ画面に出る",
+        /突破した/.test(verdict) && await page.locator(".reward-grid .reward-card").count() >= 2);
+      note("「報酬を見る」の中間クリックが無い", await page.getByRole("button", { name: "報酬を見る" }).count() === 0);
+    }
     if (verdict !== "突破した") {
       // R6 §12.2 — 敗北で即座に破棄しない。補給が残っていれば同じ戦闘へ挑み直す。
       await click("この先どうするか");
@@ -249,8 +266,8 @@ try {
       break;
     }
     if (stage < 12) {
-      await click("報酬を見る");
-      note(`第${stage}戦の報酬選択`, /報酬を選ぶ/.test(await bodyText()));
+      // issue #138 — 勝利の結果画面が報酬選択を兼ねる。「報酬を見る」の中間クリックは無い。
+      note(`第${stage}戦の報酬選択`, /何を持ち帰る？/.test(await bodyText()));
       // R6 §12.1 — 引き直しは補給1。一度だけ踏む。
       if (!rerolled) {
         const reroll = page.getByRole("button", { name: "補給1で3候補を引き直す" });
