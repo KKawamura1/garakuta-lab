@@ -90,7 +90,7 @@ export const PROLOGUE = Object.freeze({
 // ---------------------------------------------------------------- Stage ごとの断片
 
 export const STORY_BEATS = Object.freeze({
-  stage_0_edge: Object.freeze({
+  stage_0: Object.freeze({
     // ---- 幕の切れ目（R12 §4.C）。4・8・12戦目の前に置く ----
     act1: beat("stage_0_act1", "腕を借りる", {
       mood: "ash",
@@ -157,7 +157,7 @@ export const STORY_BEATS = Object.freeze({
       footer: "この先には、条件と引き換えに大きく伸びる攻め筋がある。",
     }),
   }),
-  stage_1_wall: Object.freeze({
+  stage_1: Object.freeze({
     act1: beat("stage_1_act1", "四度目の前", {
       mood: "ash",
       place: "崩れた階段の下",
@@ -191,7 +191,7 @@ export const STORY_BEATS = Object.freeze({
       footer: "前で受ける者がいると、後ろの一撃が最後まで振り抜ける。誰が立つかで、誰が振れるかが決まる。",
     }),
   }),
-  stage_2_tempo: Object.freeze({
+  stage_2: Object.freeze({
     act1: beat("stage_2_act1", "拾う手", {
       mood: "ash",
       place: "回廊の脇",
@@ -229,7 +229,7 @@ export const STORY_BEATS = Object.freeze({
       footer: "この先では「順番」そのものを動かせるようになる。",
     }),
   }),
-  stage_3_care: Object.freeze({
+  stage_3: Object.freeze({
     act1: beat("stage_3_act1", "二冊の帳面", {
       mood: "ash",
       place: "灰の谷の縁",

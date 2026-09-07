@@ -31,7 +31,7 @@ import {
 import {
   BOSS_LAWS,
   CAMPAIGN_STAGES,
-  CAMPAIGN_STAGE_BY_ID,
+  campaignStageDisplayNameFor,
   DOSSIER_SECTION_HEADINGS,
   ENEMY_MUTATIONS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
@@ -1629,7 +1629,10 @@ const BLUEPRINT_OUTCOME_TEXT = Object.freeze({
 
 function blueprintOriginText(origin) {
   if (!origin) return "";
-  const stage = CAMPAIGN_STAGE_BY_ID[origin.campaignStageId]?.displayName ?? null;
+  // issue #172 — Stage ID を連番へ改名したので、改名前の ID で保存された
+  // 記録（campaignStageId）でも由来表示が消えないよう、新旧どちらの ID からも
+  // displayName を引く campaignStageDisplayNameFor を通す。
+  const stage = campaignStageDisplayNameFor(origin.campaignStageId);
   const where = stage
     ? (origin.encounterIndex ? stage + " の第" + origin.encounterIndex + "戦" : stage)
     : (origin.encounterIndex ? "第" + origin.encounterIndex + "戦" : null);
@@ -3887,11 +3890,11 @@ function saveStateSoon() {
 function enterPrologueBeatIfDue() {
   if (!state.prologueActive) return false;
   if (state.prologueStage === "first") {
-    enterStory([storyBeat("stage_0_edge", "prologueDefeat")], "prologueResult");
+    enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueResult");
     return true;
   }
   if (state.prologueStage === "retry" && state.lastResult?.result === "win") {
-    enterStory([storyBeat("stage_0_edge", "prologueWin")], "prologueClear");
+    enterStory([storyBeat("stage_0", "prologueWin")], "prologueClear");
     return true;
   }
   return false;
@@ -4126,7 +4129,7 @@ function handleAction(event) {
       supplies: state.run.supplies,
       roster: [...state.run.roster],
     });
-    enterStory([storyBeat("stage_0_edge", "opening")], "prologue");
+    enterStory([storyBeat("stage_0", "opening")], "prologue");
     return;
   }
 
@@ -4404,7 +4407,7 @@ function handleAction(event) {
     state.replayIndex = 0;
     state.replayPlaying = false;
     record("prologue_rewound", { stage: state.run.campaignStageSequence });
-    enterStory([storyBeat("stage_0_edge", "prologueRewound")], "camp");
+    enterStory([storyBeat("stage_0", "prologueRewound")], "camp");
     return;
   }
 

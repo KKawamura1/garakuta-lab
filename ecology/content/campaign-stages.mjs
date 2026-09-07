@@ -62,6 +62,15 @@ const UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS = 10_000;
 //
 // `packDepths` は R9 §3.1 の「累積させる」を実装する。新 pack はその Stage では
 // core（入口）だけ、次の Stage から full。**前に覚えた技能は消えない。**
+//
+// issue #172 — `id` は旧来 `stage_0_edge` のように pack 由来の語尾（edge / wall /
+// tempo / care）を持っていたが、途中で pack の追加順（care → edge → wall → tempo）
+// を変えたときに語尾を追随させず、一つずつずれていた。pack 構成は今後も変わり得るので、
+// **ID の語尾に特定の pack を意味させない。**単純な連番 `stage_N` へ改名した。
+// 旧 ID は Blueprint 取得履歴・装備 provenance（`campaignStageId`）に保存済みなので、
+// `RETIRED_CAMPAIGN_STAGE_IDS` へ理由と displayName を残す（AGENTS.md「RETIRED_IDS は
+// 理由付きで残す」）。ゲーム進行そのもの（campaignProgress）は `campaignStageSequence`
+// という数のほうを使っており、この ID には依存しない。
 export const CAMPAIGN_STAGES = Object.freeze([
   // R13 — 人物を差し替えた。**pack の解禁順（care → edge → wall → tempo）は動かない。**
   // 動かせない理由は、この下の検査が「sequence 0 以外は primary_offense pack が
@@ -75,7 +84,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
   //                    寄せて行・列で薙ぐと初めて得になる
   //   3 ＋ゲンゾウ   … 順番そのものを触れるようになり、選択肢が一気に広がる
   Object.freeze({
-    id: "stage_0_edge",
+    id: "stage_0",
     sequence: 0,
     ladderMode: "tutorial",
     displayName: "Stage 0 — 灰の入口",
@@ -101,7 +110,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
   Object.freeze({
-    id: "stage_1_wall",
+    id: "stage_1",
     sequence: 1,
     ladderMode: "tutorial",
     displayName: "Stage 1 — 抜ける刃",
@@ -126,7 +135,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
   Object.freeze({
-    id: "stage_2_tempo",
+    id: "stage_2",
     sequence: 2,
     ladderMode: "tutorial",
     displayName: "Stage 2 — 動く隊列",
@@ -152,7 +161,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),
   Object.freeze({
-    id: "stage_3_care",
+    id: "stage_3",
     sequence: 3,
     ladderMode: "tutorial",
     displayName: "Stage 3 — 間合いと順番",
@@ -193,6 +202,36 @@ export const CAMPAIGN_STAGE_BY_ID = Object.freeze(
   Object.fromEntries(CAMPAIGN_STAGES.map((stage) => [stage.id, stage])),
 );
 export const MAX_CAMPAIGN_STAGE_SEQUENCE = CAMPAIGN_STAGES.length - 1;
+
+// issue #172 — 改名前の Stage ID。保存済みの Blueprint 取得履歴・装備 provenance
+// （`campaignStageId`）はこの ID を持ったままなので、黙って消さず displayName を
+// 残す。**別内容への再利用は禁止**（AGENTS.md「RETIRED_IDS は理由付きで残す」）。
+export const RETIRED_CAMPAIGN_STAGE_IDS = Object.freeze({
+  stage_0_edge: {
+    since: "issue-172", sequence: 0, displayName: "Stage 0 — 灰の入口",
+    reason: "ID の語尾が、その Stage で追加される pack と一つずれていた。"
+      + "pack 構成は今後も変わり得るので、ID に pack 名を持たせない連番 stage_0 へ改名した。",
+  },
+  stage_1_wall: {
+    since: "issue-172", sequence: 1, displayName: "Stage 1 — 抜ける刃",
+    reason: "stage_0_edge と同じ理由。連番 stage_1 へ改名した。",
+  },
+  stage_2_tempo: {
+    since: "issue-172", sequence: 2, displayName: "Stage 2 — 動く隊列",
+    reason: "stage_0_edge と同じ理由。連番 stage_2 へ改名した。",
+  },
+  stage_3_care: {
+    since: "issue-172", sequence: 3, displayName: "Stage 3 — 間合いと順番",
+    reason: "stage_0_edge と同じ理由。連番 stage_3 へ改名した。",
+  },
+});
+
+// 現行 ID・旧 ID のどちらからも表示名を引く。Blueprint の由来表示
+// （app.js の blueprintOriginText）が、改名前に保存された記録でも
+// 「見つからない」にならないようにするための一箇所。
+export function campaignStageDisplayNameFor(id) {
+  return CAMPAIGN_STAGE_BY_ID[id]?.displayName ?? RETIRED_CAMPAIGN_STAGE_IDS[id]?.displayName ?? null;
+}
 
 export function campaignStageDef(sequence) {
   const clamped = Math.max(0, Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, Math.floor(sequence ?? 0)));

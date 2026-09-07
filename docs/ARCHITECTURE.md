@@ -137,6 +137,9 @@ reward / rarity weight、技能点価格、power budget は調律可能な soft 
 
 引退した ID は `ecology/content/index.mjs` の `RETIRED_IDS` に理由付きで残し、
 `analysis/ecology-contract-smoke.mjs` が凍結済み ID との差を照合します。
+Campaign Stage の ID は `NAMED_SECTIONS` に含まれずこの照合の対象外なので、
+引退した Stage ID は別に `ecology/content/campaign-stages.mjs` の
+`RETIRED_CAMPAIGN_STAGE_IDS` へ理由付きで残します（issue #172）。
 
 ## 7. D1 とプレイ記録
 
