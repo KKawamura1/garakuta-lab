@@ -30,7 +30,7 @@
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
-| `content/encounters.mjs` | 敵本文の正本（狙いの説明文・噂・図鑑）。**敵配置ではない** |
+| `content/encounters.mjs` | 敵本文の正本（狙いの説明文・噂・図鑑）。**敵配置ではない**（旧7区画の `ENCOUNTERS` は issue #173 で削除。経緯は `docs/HISTORY.md` 3.38） |
 | `content/expedition.mjs` | **遠征の敵配置の正本。**3幕12戦（`EXPEDITION_ENCOUNTERS`）、threat budget、boss law。`progression.composeEncounter` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
 | `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
