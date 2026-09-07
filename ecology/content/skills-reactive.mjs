@@ -7,7 +7,7 @@
 //
 // engine・schema・共通registryは変更しない。
 
-import { bpsForLegacyAmount, renamed, scaleDefinitionAmounts } from "./base.mjs";
+import { bpsForLegacyAmount, NOT_COST_DAMAGE, renamed, scaleDefinitionAmounts } from "./base.mjs";
 
 export const REACTIVE_SKILL_NAMES = {
   counter_blow: "反撃",
@@ -831,6 +831,19 @@ reactiveSkills.bleed_into_wake = reaction("bleed_into_wake", REACTIVE_SKILL_NAME
   effects: [{ type: "add_status", target: HIT_ENEMY_TARGET, statusId: "exposed", stacks: 1 }],
   limit: { scope: "chain", count: 1 },
 }, ["reaction", "relay", "mark"]);
+
+// A cost-induced damage_taken must never be mistaken for an enemy hit. Apply
+// the guard after fixture definitions and production overrides have all been
+// assembled, so cloned legacy rules receive the same explicit declaration.
+for (const definition of Object.values(reactiveSkills)) {
+  const rule = definition.rule;
+  if (!rule || rule.listenTo !== "damage_taken") continue;
+  if (!(rule.predicates ?? []).some((predicate) => (
+    predicate.type === "event_tag" && predicate.tag === "cost" && predicate.value === false
+  ))) {
+    rule.predicates = [...(rule.predicates ?? []), NOT_COST_DAMAGE];
+  }
+}
 
 const playableReactiveSkills = Object.fromEntries(
   Object.entries(reactiveSkills).filter(

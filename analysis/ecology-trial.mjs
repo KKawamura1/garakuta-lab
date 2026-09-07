@@ -75,6 +75,7 @@ try {
 
   const click = (name) => page.getByRole("button", { name, exact: false }).first().click();
   const bodyText = () => page.locator("body").innerText();
+  const buildStampText = () => page.locator(".build-stamp, footer").first().textContent();
   // 押せるものが画面の外に出ていないか。隠れていれば作者は押せない。
   const onScreen = async (selector) => page.locator(selector).first().evaluate((element) => {
     const box = element.getBoundingClientRect();
@@ -91,7 +92,7 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   note("初期表示", /One Battle Ahead/.test(await bodyText()));
   note("build の印が画面に出ている",
-    expectedBuild ? (await bodyText()).includes(expectedBuild) : false, expectedBuild);
+    expectedBuild ? (await buildStampText()).includes(expectedBuild) : false, expectedBuild);
 
   note("タイトル画面の開始導線が整理されている",
     await page.getByRole("button", { name: "はじめから" }).count() === 1

@@ -7,7 +7,7 @@
 //
 // engine・schema・共通registryは変更しない。
 
-import { cloneEquipment, renamed, scaleFlatAmounts, setRuleEffectAmount } from "./base.mjs";
+import { cloneEquipment, NOT_COST_DAMAGE, renamed, scaleFlatAmounts, setRuleEffectAmount } from "./base.mjs";
 
 export const EQUIPMENT_NAMES = {
   worn_greaves: "踏み込みの靴",
@@ -159,6 +159,19 @@ equipment.last_bell.rules[0] = {
   effects: [{ type: "gain_resource", target: SELF_TARGET, resource: "action_points", amount: { type: "constant", value: 1 } }],
   limit: { scope: "battle", count: 1 },
 };
+
+// Fixed equipment follows the same source distinction as skills: HP paid as a
+// cost is not an enemy hit and must not silently trigger a damage reaction.
+for (const definition of Object.values(equipment)) {
+  for (const rule of definition.rules ?? []) {
+    if (rule.listenTo !== "damage_taken") continue;
+    if (!(rule.predicates ?? []).some((predicate) => (
+      predicate.type === "event_tag" && predicate.tag === "cost" && predicate.value === false
+    ))) {
+      rule.predicates = [...(rule.predicates ?? []), NOT_COST_DAMAGE];
+    }
+  }
+}
 
 // R6 §4.4 — 装備の flat roll は parameter 非依存のまま10倍する。
 // **持ち主が強くなっても装備は同じだけ効く。**耐久や行動権は離散量なので触らない。

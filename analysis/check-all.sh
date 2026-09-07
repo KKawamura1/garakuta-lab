@@ -13,6 +13,7 @@ node ecology/check.mjs
 
 smokes=(
   analysis/ecology-anti-stall-audit.mjs
+  analysis/ecology-chain-safety-audit.mjs
   analysis/ecology-contract-smoke.mjs
   analysis/ecology-equipment-gen-smoke.mjs
   analysis/ecology-readout-smoke.mjs

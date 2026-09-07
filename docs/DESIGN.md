@@ -80,6 +80,32 @@ pack は `primary_offense` / `offensive_hybrid` / `support` の役割を宣言�
 
 この原則を冒頭の学習にも使う。通常戦の敵定義は変えず、prologue だけ敵HPを60%、攻撃（`might` / `focus`）を50%に抑える。位置だけの読み替えで結果を変えられる余裕を作りつつ、初期配置が勝ってしまうほどは弱めない。Stage 0 のツグミの「応急手当」は、`damage_taken` に連動し、RP1・chain1で、自分以外の味方だけを被弾量の50%回復する。自己回復を許さないことで、前衛ゴウ／後衛ツグミという隊列の因果を作りながら、時間を稼ぐだけの無料回復にはしない。
 
+### 4.1 反応・連鎖の安全ゲート（Issue #175）
+
+anti-stall は「敵が生きているまま待つと持越しが改善しない」を見る。これとは別に、
+反応を増やす前に次の六つを機械検査する。
+
+1. AP/RP の `gain_resource` は、行動の AP または有限の支払いと結び付く。資源を読む
+   rule が資源を返す場合は RP1 と `battle/1` を必須にし、event trace でも
+   `resource_gained` の直結再生成に途中の `resource_spent` があるかを見る。
+2. 同じ owner の同じ rule は、同じ chain の同じ trigger では一度だけ。別の技能を
+   一律に止めるのではなく、rule ID と owner の組で記録する。
+3. `lose_hp` が発生させる `damage_taken` には `event_tag(cost=false)` を明記し、
+   被弾回復・反撃・生成装備が自傷支払いを敵の hit として読まない。
+4. `excess_healing` の量は同じ `healing_proposed` 配下の `healing_applied` の
+   `requested - actual` から来て、同じ overflow が一つの chain で二度消費されない。
+   元の回復量を上限として黙って二重利用しない。
+5. rule の limit は、実行主体を `actor-instance + rule` として読める形で、時間単位
+   （chain / round / battle）と有限 count を必ず宣言する。装備でも生成装備でも同じ。
+6. chain/battle の安全 cap は診断用の非常口であり、通常の anti-stall の主張ではない。
+   持越し HP・物資・装備の検査は `ecology-anti-stall-audit.mjs` に残し、二つの結果を
+   混ぜない。
+
+現行の playable pack/tree から termination witness は公開していない。四つの loop witness
+（AP の往復、被弾反響、防壁の再生成、準備の自己加速）は fixture 専用として残し、
+`chain-safety` smoke の壊れた入力検査に使う。検査は `analysis/check-all.sh` の一部で、
+現行定義・代表 trace・生成装備・意図的な壊れた定義をそれぞれ通す。
+
 ## 5. 次戦結果の完全開示
 
 戦闘が決定的で HP が持ち越されるなら、結果を隠すことは主に手計算と再試行を増やします。

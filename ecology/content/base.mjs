@@ -7,6 +7,11 @@ import { FIXTURE_CONTENT } from "../fixture-content.mjs";
 
 export const clone = (value) => structuredClone(value);
 
+// A `lose_hp` cost emits the same `damage_taken` event as an enemy hit, but it
+// is not a hit. Every reaction that reads damage must say so explicitly; this
+// shared predicate keeps fixed and generated content on the same contract.
+export const NOT_COST_DAMAGE = Object.freeze({ type: "event_tag", tag: "cost", value: false });
+
 // fixture の一節を、渡した表示名で置き換えて複製する。
 export function renamed(section, displayNames = {}) {
   return Object.fromEntries(

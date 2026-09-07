@@ -115,6 +115,7 @@ const anchorEnemyIsTarget = Object.freeze({
   type: "target_exists",
   query: { scope: "enemies", filters: [{ type: "is_event_primary_target" }], take: 1 },
 });
+const NOT_COST_DAMAGE = Object.freeze({ type: "event_tag", tag: "cost", value: false });
 
 // ---------------------------------------------------------------- source（trigger）
 //
@@ -145,7 +146,7 @@ const SOURCES = [
     id: "src_onhit", familyId: "family_edge", role: "source", power: 0,
     displayName: "手応えの", summary: "自分の攻撃が敵のHPを削ったとき",
     listenTo: "damage_taken", anchor: "self_source",
-    predicates: [anchorSelfIsSource, anchorEnemyIsTarget],
+    predicates: [anchorSelfIsSource, anchorEnemyIsTarget, NOT_COST_DAMAGE],
     provides: ["self_acts", "has_amount", "enemy_target_alive", "onhit"],
     supports: ["damage", "setup", "tempo"],
     valueKeys: ["amount", "hpBefore", "hpAfter", "proposed"],
@@ -159,7 +160,7 @@ const SOURCES = [
   {
     id: "src_wounded", familyId: "family_scar", role: "source", power: 0,
     displayName: "傷の", summary: "自分がHPダメージを受けたとき",
-    listenTo: "damage_taken", anchor: "self_target", predicates: [anchorSelfIsTarget],
+    listenTo: "damage_taken", anchor: "self_target", predicates: [anchorSelfIsTarget, NOT_COST_DAMAGE],
     provides: ["self_hurt", "has_amount", "damage_chain", "enemy_source_alive"],
     supports: ["defense", "damage", "care", "setup"],
     valueKeys: ["amount", "hpBefore", "hpAfter", "proposed"],
