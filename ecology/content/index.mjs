@@ -245,11 +245,14 @@ export {
   CAMPAIGN_STAGE_BY_SEQUENCE,
   LADDER_MODES,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
+  // issue #172 — 改名前 Stage ID の displayName 引き当て。
+  RETIRED_CAMPAIGN_STAGE_IDS,
   TUTORIAL_MAX_SEQUENCE,
   activePackCountForSequence,
   auditCampaignManifestLadder,
   campaignManifestForStage,
   campaignStageDef,
+  campaignStageDisplayNameFor,
   partySizeForStage,
 } from "./campaign-stages.mjs";
 // 会話本文はここから一箇所で参照できる。文言の編集先は dialogue.mjs。

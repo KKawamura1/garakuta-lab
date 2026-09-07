@@ -948,3 +948,39 @@ content contract の差分は `skillTreeNodes` の `requires` の形と `maxLv` 
 `ecology/contract-snapshot.json` に差分は出ていない。`ENEMY_CODEX` / `ENEMY_LORE` /
 `ENEMY_TARGETING` の参照経路（`content/index.mjs` → `content/world-lore.mjs` /
 `playable-battles.mjs`）は変更していない。
+
+### 3.39 Campaign Stage の ID を連番へ改名した（issue #172、2026-09-07）
+
+#165 の現状監査 §3.3 / §7.1-2 の指摘。`content/campaign-stages.mjs` の Stage `id`
+（`stage_0_edge` 等）は語尾が pack 名を示しているつもりだったが、途中で pack の追加順
+（care → edge → wall → tempo）を変えたときに ID を追随させず、**「その Stage で追加
+される pack」と一つずつずれていた。**書き間違いではなく更新漏れであり、段階2以降で
+Stage ごとの技能配分を触るとき、ID を手掛かりに読むと必ず間違える状態だった。
+
+issue は「(推奨) 保持して意味を持たないと明記する」と「(対案) 改名して migration を
+書く」の二案を出し、作者は対案を選んだ。**pack の追加順は今後も変わり得るので、ID に
+特定の pack を持たせたくない**という理由による。
+
+- `id` を `stage_0` 〜 `stage_3` の連番へ改名した。**表示名（灰の入口／抜ける刃／
+  動く隊列／間合いと順番）は変えていない。**
+- 改名前の ID は `RETIRED_CAMPAIGN_STAGE_IDS`（`campaign-stages.mjs`）へ理由・
+  sequence・displayName を残した。`NAMED_SECTIONS`（characters / activeSkills 等）
+  の `RETIRED_IDS` とは別の登録簿にした。Campaign Stage は `content/index.mjs` の
+  `NAMED_SECTIONS` に含まれず、`analysis/ecology-contract-smoke.mjs` の凍結 ID
+  照合（既存の `RETIRED_IDS`）の対象にもなっていないため。
+- 保存済みデータで旧 ID を持ちうるのは Blueprint 取得履歴・装備 provenance の
+  `campaignStageId` フィールドだけだった（`blueprints.mjs` の `saveBlueprint` /
+  `progression.mjs` の `generatedRewardCandidate`）。**ゲームの進行そのもの
+  （`profile.campaignProgress`、`run.campaignStageSequence`）は元々 ID ではなく
+  `sequence`（数）で保存しており、この改名の影響を受けない。**
+- 由来表示（`app.js` の `blueprintOriginText`）だけが `CAMPAIGN_STAGE_BY_ID` を
+  ID で引いていたので、新旧どちらの ID からも displayName を返す
+  `campaignStageDisplayNameFor()` を新設して差し替えた。旧 ID で保存された
+  Blueprint でも、由来の Stage 名が消えない。
+- `STORY_BEATS`（`content/story.mjs`）のキーと `app.js` の `storyBeat("stage_0", …)`
+  呼び出し4箇所も同じ連番へ揃えた。物語の会話断片 ID（`dialogue.mjs` の
+  `stage_0_act1` 等）はもともと連番プレフィックスだったので、`STORY_BEATS` の
+  キーがようやくそれと一致した形になる。
+- `ecology/contract-snapshot.json` は Campaign Stage の manifest を持たない
+  （`manifests` に載るのは Free/Endless の `frontier-*` だけで、`campaignStageId`
+  は全て `null`）ため、**差分は出ていない。**
