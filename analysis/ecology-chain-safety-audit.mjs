@@ -555,7 +555,15 @@ for (const [label, battle] of traceCases) {
   check(result.metrics.maxChainEventCount < DEFAULT_OPTIONS.maxEventsPerChain, `${label}: below chain cap`);
   check(result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle, `${label}: below battle cap`);
   check(auditRefiring(result.events).violations.length === 0, `${label}: same owner/rule re-fired`);
-  check(auditResourceTrace(result.events).violations.length === 0, `${label}: resource ledger is conserved`);
+  const resourceTraceAudit = auditResourceTrace(result.events);
+  check(
+    label === "preparation spiral"
+      ? resourceTraceAudit.violations.length > 0
+      : resourceTraceAudit.violations.length === 0,
+    `${label}: ${label === "preparation spiral"
+      ? "bad resource cycle is detected"
+      : "resource ledger is conserved"}`,
+  );
 }
 
 // Fixture content above is intentionally unsafe. Production content uses
