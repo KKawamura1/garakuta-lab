@@ -305,7 +305,7 @@ function auditResourceTrace(events) {
     const after = event.values?.after;
     const targetActorId = actorIdOf(event);
     if (!RESOURCE_TYPES.has(resource) || !(Number.isFinite(amount) && amount > 0)) {
-      violations.push(`${event.id}: malformed positive resource event`);
+      violations.push(`${event.id}: malformed positive resource event ${JSON.stringify({ type: event.type, sourceActorId: event.sourceActorId, targetActorIds: event.targetActorIds, values: event.values })}`);
       continue;
     }
     if (!Number.isFinite(after)) {
