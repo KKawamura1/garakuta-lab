@@ -6,7 +6,12 @@
 //
 // engine・schema・共通registryは変更しない。
 
+import { MIN_SKILL_LEVEL } from "../schema.mjs";
 import { BASELINE_ACTIVE_SKILL_IDS, BASELINE_REACTIVE_SKILL_IDS } from "./packs.mjs";
+import { skillLevelCap } from "./skill-levels.mjs";
+import { ACTIVE_SKILLS } from "./skills-active.mjs";
+import { REACTIVE_SKILLS } from "./skills-reactive.mjs";
+import { PASSIVE_SKILLS } from "./skills-passive.mjs";
 
 const activeMeta = {
   // R6 §17.1 — Phase A の攻撃 archetype。**説明に「何に強くて何に弱いか」を書く。**
@@ -238,7 +243,20 @@ export const PASSIVE_META = passiveMeta;
 // 設計図であって、遊べる形ではない。行動ツリーは「薙ぎ払い」（防壁と隊列 full ＝
 // Stage 3）、反応ツリーは「手当てを備えへ」まで、実際に取り切れる。
 
-const node = (skillId, ...children) => ({ skillId, children });
+// issue #168（#165 段階1）— **前提は「その技能を持っているか」ではなく
+// 「その技能が Lv いくつか」で書く。**
+//
+// 現行の全節は親 Lv1（＝取得済み）だけを要求するので、`node()` はそのまま書ける。
+// 親を伸ばして初めて意味が変わる子を作りたくなったとき、その要求を**節のデータとして**
+// 書けるようにしておく（設計 #165 の 09-growth-v3 §4.1 が推奨する形）。
+//
+//   node("child")                      … 親 Lv1（取得済み）で開く。既定。
+//   needsParentLv(3, node("child"))    … 親を Lv3 まで伸ばして初めて開く。
+//
+// **要求は辺に付くので、子の側に書く。**同じ親から生える別の子が、別の Lv を
+// 要求してよい（「Lv1 で横へ、Lv3 で深く」という複数経路を作るため）。
+const node = (skillId, ...children) => ({ skillId, children, minLv: MIN_SKILL_LEVEL });
+const needsParentLv = (minLv, entry) => ({ ...entry, minLv });
 
 // 系統（役割）。**ツリーの構造ではなく、節に付く色である。**
 // どの資源を払うか（行動 / 反応 / 常設）はツリーの大分類、どの役割かはこの表。
@@ -498,6 +516,15 @@ const FREE_ENTRY_SKILL_IDS = new Set([
   ...BASELINE_REACTIVE_SKILL_IDS,
 ]);
 
+// issue #168 — 節の最大 Lv も**節のデータにする。**前提が要求する Lv が、その技能の
+// 上限を超えていないか（＝永久に開かない子が居ないか）を、節を見るだけで検算できる。
+// 値は content/skill-levels.mjs の導出をそのまま使うので、手で書いた上限は増えない。
+const DEFINITIONS_OF_KIND = {
+  active: ACTIVE_SKILLS,
+  reactive: REACTIVE_SKILLS,
+  passive: PASSIVE_SKILLS,
+};
+
 function flattenForest(forest, kind, out) {
   const walk = (entry, requires, x) => {
     out.push(Object.freeze({
@@ -509,9 +536,14 @@ function flattenForest(forest, kind, out) {
       // content/skill-tree-layout.mjs が組み直した x と一致するかを検査する。
       x,
       cost: requires.length === 0 && FREE_ENTRY_SKILL_IDS.has(entry.skillId) ? 0 : 1,
-      requires: Object.freeze([...requires]),
+      maxLv: skillLevelCap(DEFINITIONS_OF_KIND[kind]?.[entry.skillId]),
+      // issue #168 — 前提は `{ skillId, minLv }`。ID だけ要る呼び出し元は
+      // `requiredSkillIds(node)` を通る。
+      requires: Object.freeze(requires.map((required) => Object.freeze({ ...required }))),
     }));
-    for (const child of entry.children) walk(child, [entry.skillId], x + 1);
+    for (const child of entry.children) {
+      walk(child, [{ skillId: entry.skillId, minLv: child.minLv ?? MIN_SKILL_LEVEL }], x + 1);
+    }
   };
   for (const entry of forest) walk(entry, [], 1);
   return out;
@@ -522,3 +554,28 @@ export const SKILL_TREE_NODES = Object.freeze([
   ...flattenForest(REACTIVE_FOREST, "reactive", []),
   ...flattenForest(PASSIVE_FOREST, "passive", []),
 ]);
+
+// ---------------------------------------------------------------- 前提の読み方（issue #168）
+//
+// **前提の判定はここ一つだけ。**解禁 API・画面の「前提待ち」・加入時の無償閉包・
+// 保存の復元が同じ関数を通る。別々に書くと、片方だけが Lv を見ない形へ戻る
+// （そのとき画面には「取れます」と出て、押すと断られる）。
+//
+// `levelOf(skillId)` は**未取得なら 0**、取得済みならその Lv を返すこと。
+
+export function requiredSkillIds(node) {
+  return (node?.requires ?? []).map((required) => required.skillId);
+}
+
+export function unmetPrerequisites(node, levelOf) {
+  return (node?.requires ?? []).filter((required) => {
+    const level = levelOf(required.skillId);
+    return !(Number.isInteger(level) && level >= required.minLv);
+  });
+}
+
+export function prerequisitesMet(node, levelOf) {
+  return unmetPrerequisites(node, levelOf).length === 0;
+}
+
+export { needsParentLv };

@@ -29,6 +29,10 @@ import {
   packOfSkill,
   skillIdsForPacks,
   skillLevelCap,
+  // issue #168 — 前提（技能IDと必要Lv）の判定。
+  prerequisitesMet,
+  requiredSkillIds,
+  unmetPrerequisites,
   // issue #148 — 説明文の数字を、いまのレベルの値で読む。
   skillLevelValueSteps,
   skillTextAtLevel,
@@ -38,8 +42,12 @@ import {
   PASSIVE_META,
 } from "./content/index.mjs";
 import {
+  CHARACTER_OPTIONS,
   SKILL_TREE_NODES,
   freshLoadout,
+  // issue #168 — 加入時の無償閉包と、そこへ無償で付く Lv。
+  initialSkillLevels,
+  initialUnlockedSkills,
   makeExpeditionBattle,
   reorderSkill,
   simulateExpeditionBattle,
@@ -58,6 +66,9 @@ import {
   dismantle,
   formatFunds,
   grantRunSkillPointsToAll,
+  // issue #168 — 勝利ごとの技能点。量と冪等の鍵は progression の一箇所。
+  grantRunSkillPointsForClear,
+  skillPointsForClear,
   makeManifest,
   migrateLegacyProfile,
   newProfile,
@@ -282,6 +293,105 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     equal(unlockRunSkill(run, "warden", heavy).ok, false, "同じ技能を二度は解禁できない");
     assert.deepEqual(run.runUnlockedSkills.warden, ["strike", "heavy_swing"]);
     checks += 1;
+  }
+}
+
+// ---- 前提の必要Lvと、勝利ごとの技能点（issue #168 / #165 段階1）---------------
+//
+// **静かに得をする方向を狙って書く。**同じ一戦から二度技能点が出る、前提 Lv を
+// 見ないまま解禁できる、無償閉包に入った節が前提 Lv 不足のまま置かれる、の三つ。
+{
+  const profile = newProfile();
+  let run = newRun(profile, { runSeed: "sp", runId: "sp", roster: ROSTER });
+
+  // 現行の全節は親 Lv1（取得済み）だけを要求する。**Lv を要求する形が
+  // 「書けること」と「実データにまだ無いこと」は別**なので、両方を見る。
+  check(
+    SKILL_TREE_NODES.every((node) => node.requires.every((required) => required.minLv === 1)),
+    "現行の節はどれも親 Lv1 しか要求しない",
+  );
+  check(
+    SKILL_TREE_NODES.every((node) => node.requires.every((required) => {
+      const parent = SKILL_TREE_NODES.find((entry) => entry.skillId === required.skillId);
+      return parent && required.minLv <= parent.maxLv;
+    })),
+    "必要Lvはどれも前提技能の上限以内（永久に開かない節が無い）",
+  );
+
+  // 判定そのもの。取得していなければ 0、Lv が足りなければ不足として返る。
+  const twoDeep = { skillId: "child", requires: [{ skillId: "parent", minLv: 3 }] };
+  equal(prerequisitesMet(twoDeep, () => 0), false, "未取得の前提は満たさない");
+  equal(prerequisitesMet(twoDeep, () => 2), false, "Lv2 では Lv3 の前提を満たさない");
+  equal(prerequisitesMet(twoDeep, () => 3), true, "Lv3 まで上げれば満たす");
+  equal(unmetPrerequisites(twoDeep, () => 1)[0].minLv, 3, "足りない前提は必要Lvごと返る");
+  equal(requiredSkillIds(twoDeep)[0], "parent", "ID だけの取り出し口がある");
+
+  // 解禁 API も同じ判定を通る。**Lv を要求する節を実データへ足さずに確かめる**
+  // （足すとバランスが動く。ここで見たいのは判定の側だけ）。
+  const strike = SKILL_TREE_NODES.find((node) => node.skillId === "strike");
+  const levelled = { ...strike, skillId: "steady_cut", cost: 1, requires: [{ skillId: "strike", minLv: 3 }] };
+  run = grantRunSkillPointsToAll(run, 5);
+  run.runUnlockedSkills = { warden: ["strike"] };
+  const denied = unlockRunSkill(run, "warden", levelled);
+  equal(denied.ok, false, "前提 Lv が足りなければ解禁できない");
+  equal(denied.reason, "前提技能のレベルが足りません。", "理由は「解禁されていない」と区別される");
+  run.runSkillLevels = { warden: { strike: 3 } };
+  const allowed = unlockRunSkill(run, "warden", levelled);
+  equal(allowed.ok, true, "前提を Lv3 まで上げれば解禁できる");
+}
+
+{
+  // 勝利ごとの技能点。**同じ encounter からは一度きり。**
+  const profile = newProfile();
+  let run = newRun(profile, { runSeed: "grant", runId: "grant", roster: ROSTER });
+  equal(run.grantedSkillPointKeys.length, 0, "開始時は誰の勝利も数えていない");
+
+  const first = grantRunSkillPointsForClear(run, 1);
+  equal(first.granted, true, "1戦目の勝利で配る");
+  equal(runSkillPoints(first.run, "warden"), skillPointsForClear(expeditionEncounter(1).kind), "配った量");
+  const again = grantRunSkillPointsForClear(first.run, 1);
+  equal(again.granted, false, "同じ encounter は二度配らない");
+  equal(runSkillPoints(again.run, "warden"), runSkillPoints(first.run, "warden"), "retry で技能点は増えない");
+
+  const second = grantRunSkillPointsForClear(again.run, 2);
+  equal(second.granted, true, "次の encounter は配る");
+  check(runSkillPoints(second.run, "warden") > runSkillPoints(first.run, "warden"), "別の一戦では増える");
+
+  // 12戦を通した合計。**画面の説明と実際に配る量が同じ表から出る。**
+  let full = newRun(profile, { runSeed: "full", runId: "full", roster: ROSTER });
+  let expected = 0;
+  for (let index = 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
+    full = grantRunSkillPointsForClear(full, index).run;
+    expected += skillPointsForClear(expeditionEncounter(index).kind);
+  }
+  equal(runSkillPoints(full, "warden"), expected, "12戦ぶんの合計は表の総和と一致する");
+  equal(expected, ENCOUNTERS_PER_RUN, "現行の量は据え置き（どの種別も1点）");
+}
+
+{
+  // 加入時の無償閉包（issue #168）。**閉包に入れた節が、閉包の中だけで前提を満たす。**
+  // 前提が Lv を要求するようになったので、「節は配ったが Lv は Lv1 のまま」だと
+  // 加入直後から前提 Lv 不足で子が取れない形が生まれる。無償で付く Lv も一緒に見る。
+  for (const option of CHARACTER_OPTIONS) {
+    const unlocked = new Set(initialUnlockedSkills(option.id));
+    const levels = initialSkillLevels(option.id);
+    const levelOf = (skillId) => (unlocked.has(skillId) ? (levels[skillId] ?? 1) : 0);
+    for (const skillId of unlocked) {
+      const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+      check(
+        node !== undefined && prerequisitesMet(node, levelOf),
+        option.id + " の無償閉包は " + skillId + " の前提を Lv まで満たしている",
+      );
+    }
+    // 無償で付く Lv は、閉包が実際に要求するぶんだけ。**ついでに強くしない。**
+    for (const [skillId, level] of Object.entries(levels)) {
+      const needed = SKILL_TREE_NODES
+        .filter((entry) => unlocked.has(entry.skillId))
+        .flatMap((entry) => entry.requires)
+        .filter((required) => required.skillId === skillId)
+        .reduce((max, required) => Math.max(max, required.minLv), 1);
+      equal(level, needed, option.id + " の " + skillId + " へ無償で付く Lv は要求ぶんだけ");
+    }
   }
 }
 

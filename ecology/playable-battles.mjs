@@ -1,4 +1,4 @@
-import { BATTLE_SCHEMA_VERSION, POSITIONS, POSITION_ROW } from "./schema.mjs";
+import { BATTLE_SCHEMA_VERSION, MIN_SKILL_LEVEL, POSITIONS, POSITION_ROW } from "./schema.mjs";
 import { simulateBattle } from "./engine.mjs";
 import {
   ACTIVE_META,
@@ -196,31 +196,56 @@ export function skillNode(skillId) {
 //
 // 開けないと、画面には「取得済みの節が、前提待ちの節の右にぶら下がっている」形が出る。
 // 線を辿れるようにしたのに、線の途中が欠けているのは嘘である。**前提の閉包を取る。**
-function withPrerequisites(skillIds) {
-  const open = [...skillIds];
-  const seen = new Set(open);
+//
+// issue #168（#165 段階1）— 前提が Lv を要求するようになったので、閉包は
+// **「どの節を開くか」だけでなく「その節を Lv いくつまで無償で伸ばすか」**を返す。
+// 親 Lv3 を要求する starter を無償で配りながら親を Lv1 のままにすると、
+// 加入直後から「取得済みなのに前提 Lv 不足で子が取れない」形が生まれる。
+function prerequisiteClosure(skillIds) {
+  const need = new Map();
+  const open = [];
+  const demand = (skillId, level) => {
+    if (level <= (need.get(skillId) ?? 0)) return;
+    need.set(skillId, level);
+    open.push(skillId);
+  };
+  for (const skillId of skillIds) demand(skillId, MIN_SKILL_LEVEL);
   while (open.length) {
     const skillId = open.pop();
     for (const required of nodeBySkill[skillId]?.requires ?? []) {
-      if (seen.has(required)) continue;
-      seen.add(required);
-      open.push(required);
+      demand(required.skillId, required.minLv);
     }
   }
-  // 並びは SKILL_TREE_NODES の宣言順（＝ツリーを上から下へ読む順）に揃える。
-  return SKILL_TREE_NODES.filter((node) => seen.has(node.skillId)).map((node) => node.skillId);
+  return need;
 }
 
-export function initialUnlockedSkills(characterId) {
+function starterSkillIds(characterId) {
   const character = characterById[characterId];
   if (!character) return [];
-  return withPrerequisites([...new Set([
+  return [...new Set([
     "strike",
     "mend",
     "bulwark",
     ...character.starterTactics,
     ...character.starterReactives,
-  ])]);
+  ])];
+}
+
+export function initialUnlockedSkills(characterId) {
+  const need = prerequisiteClosure(starterSkillIds(characterId));
+  // 並びは SKILL_TREE_NODES の宣言順（＝ツリーを上から下へ読む順）に揃える。
+  return SKILL_TREE_NODES.filter((node) => need.has(node.skillId)).map((node) => node.skillId);
+}
+
+// 無償閉包が Lv1 より上を要求する節だけを返す。**現行の全節は親 Lv1 しか
+// 要求しないので、いまは常に空である。**空でなくなったら、加入時にその Lv も
+// 無償で付く（app.js の joinRun がここを読む）。
+export function initialSkillLevels(characterId) {
+  const levels = {};
+  for (const [skillId, level] of prerequisiteClosure(starterSkillIds(characterId))) {
+    if (level > MIN_SKILL_LEVEL) levels[skillId] = level;
+  }
+  return levels;
 }
 
 // R18 — 取得済み技能は、行動・反応・常設を問わずすべて装着できる。
