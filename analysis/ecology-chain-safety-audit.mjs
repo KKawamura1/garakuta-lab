@@ -308,13 +308,18 @@ function auditResourceTrace(events) {
       violations.push(`${event.id}: malformed positive resource event`);
       continue;
     }
-    if (!(Number.isFinite(before) && Number.isFinite(after))) {
-      violations.push(`${event.id}: resource event must expose before/after balances`);
+    if (!Number.isFinite(after)) {
+      violations.push(`${event.id}: resource event must expose after balance`);
+    } else if (event.type === "resource_gained" && !Number.isFinite(before)) {
+      violations.push(`${event.id}: resource_gained must expose before balance`);
     } else {
       const expectedAfter = event.type === "resource_spent"
-        ? before - amount
+        ? (Number.isFinite(before) ? before - amount : after)
         : before + amount;
-      if (after !== expectedAfter) {
+      if (event.type === "resource_spent" && Number.isFinite(before) && after !== expectedAfter) {
+        violations.push(`${event.id}: resource before/after does not match amount`);
+      }
+      if (event.type === "resource_gained" && after !== expectedAfter) {
         violations.push(`${event.id}: resource before/after does not match amount`);
       }
     }
