@@ -73,7 +73,12 @@ function ruleRecordsFrom(section, definitions, include = () => true) {
   const records = [];
   for (const [definitionId, definition] of Object.entries(definitions ?? {})) {
     if (!include(section, definitionId, definition)) continue;
-    const rules = section === "equipment" ? definition.rules ?? [] : definition.rule ? [definition.rule] : [];
+    const rules = [
+      ...(definition.rule ? [definition.rule] : []),
+      ...(Array.isArray(definition.rules) ? definition.rules : []),
+      ...(Array.isArray(definition.signatureRules) ? definition.signatureRules : []),
+      ...(Array.isArray(definition.intrinsicRules) ? definition.intrinsicRules : []),
+    ];
     for (const rule of rules) {
       records.push({
         section,
@@ -198,6 +203,11 @@ function auditResourceDefinitions(activeSkills, rules) {
       if (!(Number.isSafeInteger(record.definition.apCost) && record.definition.apCost >= 1)) {
         violations.push(`${record.path}: resource creation must pay at least 1 AP`);
       }
+      const constantAmount = effect.amount?.type === "constant" ? effect.amount.value : null;
+      if (flow === "creation" && Number.isFinite(constantAmount)
+        && constantAmount > record.definition.apCost) {
+        violations.push(`${record.path}: self-created resource amount exceeds its AP cost`);
+      }
     }
   }
   for (const record of rules) {
@@ -281,7 +291,8 @@ function auditResourceTrace(events) {
   const byId = new Map(ordered.map((event) => [event.id, event]));
   const violations = [];
   const balances = new Map();
-  const transferDeltas = new Map();
+  const fundedTransferTotals = new Map();
+  const spendPools = new Map();
   let resourceEvents = 0;
   let transferEvents = 0;
   let creationEvents = 0;
@@ -292,9 +303,23 @@ function auditResourceTrace(events) {
   const balanceKey = (event, resource, actorId) => (
     `${event.round ?? 0}|${resource}|${actorId ?? "~actor"}`
   );
-  const transferKey = (event, resource) => (
-    `${event.chainId ?? "~chain"}|${event.round ?? 0}|${resource}|${event.sourceActorId ?? "~source"}`
+  const poolKey = (event, resource) => (
+    `${event.chainId ?? "~chain"}|${resource}|${event.sourceActorId ?? "~source"}`
   );
+  const roundResourceKey = (event, resource) => (
+    `${event.round ?? 0}|${resource}`
+  );
+
+  function consumeSpend(pool, amount) {
+    let remaining = amount;
+    for (const spend of pool) {
+      if (remaining <= 0) break;
+      const consumed = Math.min(spend.remaining, remaining);
+      spend.remaining -= consumed;
+      remaining -= consumed;
+    }
+    return remaining;
+  }
 
   for (const event of ordered) {
     if (event.type !== "resource_spent" && event.type !== "resource_gained") continue;
@@ -334,60 +359,51 @@ function auditResourceTrace(events) {
     balances.set(key, (balances.get(key) ?? 0)
       + (event.type === "resource_spent" ? -amount : amount));
 
-    if (event.type === "resource_spent") continue;
+    if (event.type === "resource_spent") {
+      const key = poolKey(event, resource);
+      const pool = spendPools.get(key) ?? [];
+      pool.push({ id: event.id, remaining: amount });
+      spendPools.set(key, pool);
+      continue;
+    }
+
     const parent = byId.get(event.parentEventId);
     if (parent?.type === "resource_gained" && parent.chainId === event.chainId) {
-      const hasSpendBetween = ordered.some((candidate) => (
-        candidate.chainId === event.chainId
-        && candidate.type === "resource_spent"
-        && candidate.values?.resource === resource
-        && candidate.sequence > parent.sequence
-        && candidate.sequence < event.sequence
-      ));
-      if (!hasSpendBetween) {
-        violations.push(`${event.id}: resource_gained directly re-created resource without an intervening spend`);
-      }
+      violations.push(`${event.id}: resource_gained directly re-created resource without an intervening spend`);
     }
 
     const sourceActorId = event.sourceActorId ?? null;
-    const matchingSpend = ordered
-      .filter((candidate) => (
-        candidate.chainId === event.chainId
-        && candidate.type === "resource_spent"
-        && candidate.values?.resource === resource
-        && candidate.sourceActorId === sourceActorId
-        && candidate.sequence < event.sequence
-      ))
-      .reduce((total, candidate) => total + (candidate.values?.amount ?? 0), 0);
-
-    const isTransfer = sourceActorId
-      && targetActorId
-      && sourceActorId !== targetActorId
-      && matchingSpend >= amount;
-    if (isTransfer) {
-      transferEvents += 1;
-      const key = transferKey(event, resource);
-      transferDeltas.set(key, (transferDeltas.get(key) ?? 0) + amount);
-    } else {
+    const isCrossActor = sourceActorId && targetActorId && sourceActorId !== targetActorId;
+    // A cross-actor gain is a transfer only when the trace explicitly ties it
+    // to a spend. Creation/distribution rules are audited statically by their
+    // finite action cost or rule limit and are not silently treated as spend.
+    const isFundedTransfer = isCrossActor && parent?.type === "resource_spent";
+    if (!isFundedTransfer) {
       creationEvents += 1;
-      if (sourceActorId && targetActorId && sourceActorId !== targetActorId
-        && matchingSpend > 0 && matchingSpend < amount) {
-        violations.push(`${event.id}: resource transfer exceeds the source spend (${matchingSpend} < ${amount})`);
-      }
+      continue;
+    }
+
+    transferEvents += 1;
+    const key = poolKey(event, resource);
+    const pool = spendPools.get(key) ?? [];
+    const remaining = consumeSpend(pool, amount);
+    const roundKey = roundResourceKey(event, resource);
+    fundedTransferTotals.set(roundKey, (fundedTransferTotals.get(roundKey) ?? 0) + amount);
+    if (remaining > 0) {
+      violations.push(`${event.id}: resource transfer exceeds the source spend by ${remaining}`);
     }
   }
 
-  for (const [key, amount] of transferDeltas) {
-    if (!(amount > 0)) violations.push(`${key}: resource transfer total is not positive`);
-  }
   return {
     resourceEvents,
     transferEvents,
     creationEvents,
     actorResourceRoundDeltas: Object.fromEntries(balances),
+    fundedTransferRoundTotals: Object.fromEntries(fundedTransferTotals),
     violations,
   };
 }
+
 function auditRefiring(events) {
   const byId = new Map(events.map((event) => [event.id, event]));
   const groups = new Map();
@@ -453,6 +469,12 @@ function auditHealingTrace(events) {
       if (parent?.type !== "healing_proposed") violations.push(`${event.id}: excess_healing parent is not healing_proposed`);
       const children = events.filter((candidate) => candidate.parentEventId === event.id && candidate.type === "healing_proposed");
       if (children.length > 1) violations.push(`${event.id}: one excess amount was consumed more than once`);
+      const consumers = new Set(events
+        .filter((candidate) => candidate.parentEventId === event.id && candidate.ruleId)
+        .map((candidate) => `${candidate.sourceActorId ?? "~actor"}|${candidate.ruleId}`));
+      if (consumers.size > 1) {
+        violations.push(`${event.id}: one excess amount has multiple downstream consumers`);
+      }
     }
   }
   return { applied, excess, violations };
@@ -540,6 +562,23 @@ function makeSelfCostBattle() {
 }
 
 const current = collectContent(PLAYABLE_CONTENT);
+const expectedStatusRuleCount = Object.values(PLAYABLE_CONTENT.statuses ?? {})
+  .reduce((total, definition) => total + (definition.rules?.length ?? 0), 0);
+const actualStatusRuleCount = current.rules
+  .filter(({ section }) => section === "statuses")
+  .length;
+check(expectedStatusRuleCount > 0 && actualStatusRuleCount === expectedStatusRuleCount,
+  `status rules are fully collected (${actualStatusRuleCount}/${expectedStatusRuleCount})`);
+for (const [section, key] of [[
+  "characters", "signatureRules"
+], [
+  "enemyActors", "intrinsicRules"
+]]) {
+  const expected = Object.values(PLAYABLE_CONTENT[section] ?? {})
+    .reduce((total, definition) => total + (definition[key]?.length ?? 0), 0);
+  const actual = current.rules.filter((record) => record.section === section).length;
+  check(actual === expected, `${section} rules are fully collected (${actual}/${expected})`);
+}
 const resourceAudit = auditResourceDefinitions(current.activeSkills, current.rules);
 const selfDamageViolations = auditSelfDamageRules(current.rules);
 const excessAudit = auditExcessHealingDefinitions(current.rules);
@@ -598,6 +637,27 @@ const healingTrace = auditHealingTrace(triageResult.events);
 check(healingTrace.applied > 0 && healingTrace.excess > 0, "triage trace contains applied and excess healing");
 check(healingTrace.violations.length === 0, healingTrace.violations.join("\n"));
 check(auditHealingTrace(traceWithDuplicateOverflow(triageResult.events)).violations.length > 0, "duplicate overflow child is detected");
+function traceWithDuplicateOverflowConsumer(events) {
+  const copy = structuredClone(events);
+  const overflow = copy.find((event) => event.type === EXCESS_HEALING_EVENT);
+  if (!overflow) return copy;
+  copy.push({
+    id: "deliberate_duplicate_overflow_consumer",
+    type: "status_added",
+    chainId: overflow.chainId,
+    round: overflow.round,
+    sequence: Number.MAX_SAFE_INTEGER,
+    parentEventId: overflow.id,
+    sourceActorId: "deliberate_second_consumer",
+    ruleId: "deliberate_second_consumer_rule",
+    values: { statusId: "focused" },
+  });
+  return copy;
+}
+check(
+  auditHealingTrace(traceWithDuplicateOverflowConsumer(triageResult.events)).violations.length > 0,
+  "duplicate overflow consumer is detected",
+);
 
 // AP loop is a deliberate bad fixture: it demonstrates the trace shape that
 // must be rejected when a resource output has no intervening spend.
@@ -629,6 +689,20 @@ invalidTransferTrace[1] = {
   values: { resource: "action_points", amount: 2, before: 0, after: 2 },
 };
 check(auditResourceTrace(invalidTransferTrace).violations.length > 0, "net-positive resource transfer is detected");
+
+const reusedSpendTrace = [
+  ...validTransferTrace,
+  {
+    id: "reused_gain", type: "resource_gained", chainId: "valid-transfer",
+    round: 1, sequence: 3, sourceActorId: "source", targetActorIds: ["ally-2"],
+    values: { resource: "action_points", amount: 1, before: 0, after: 1 },
+    parentEventId: "valid_spend",
+  },
+];
+check(
+  auditResourceTrace(reusedSpendTrace).violations.length > 0,
+  "one spend cannot fund two resource transfers",
+);
 
 // Self-damage must not be a hidden hit. The bad bundle is expected to heal from
 // its own lose_hp event; the guarded bundle must keep that reaction silent.
