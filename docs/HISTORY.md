@@ -911,3 +911,30 @@ SP 曲線（boss を2点にする等）と技能カタログそのものは #165
 ここで混ぜると「土台の変更で盤面が変わった」のか切り分けられなくなる。
 content contract の差分は `skillTreeNodes` の `requires` の形と `maxLv` の追加だけで、
 技能の集合・レベル上限・報酬・合成 encounter は 1 バイトも動いていないことを確かめた。
+
+
+### 3.38 旧7区画の `ENCOUNTERS` を fixture として切り離した（issue #173 / #165 段階1、2026-09-07）
+
+#165 の現状監査 §7.1-5 の指摘。遠征の敵配置が `content/encounters.mjs` の `ENCOUNTERS`
+（旧7区画）と `content/expedition.mjs` の `EXPEDITION_ENCOUNTERS`（3幕12戦）の二箇所にあり、
+`docs/ARCHITECTURE.md` は前者を「既存 content API の正本」と書いていた。実態を追うと、
+本編（`progression.composeEncounter` 以下の全経路）が読むのは12戦のほうだけで、7区画は
+`ecology/termination.test.mjs` と `analysis/ecology-equipment-gen-smoke.mjs` の二箇所しか
+読んでいない。すでに実質 fixture だったものが `content/` に本編の顔で置かれていた。
+
+`ENCOUNTERS` とその hp scaling を新設の `ecology/fixture-stage-encounters.mjs`
+（`STAGE_FIXTURE_ENCOUNTERS`）へ移した。`content/encounters.mjs` には `ENEMY_LORE` /
+`ENEMY_CODEX` / `ENEMY_TARGETING`（敵本文・狙いの正本、本編の図鑑・敵カードが読む）だけを
+残した。`playable-battles.mjs` の `makeBattle` / `encounterInfo` / `allEncounters` は
+新しい場所からデータを読むだけで、公開している関数名・呼び出し方は変えていない
+（二箇所の読み手側は無改変で通る）。
+
+**7区画を消して12戦へ寄せる案（対案B）は採らなかった。**termination.test.mjs が見るのは
+「有限に終了すること」で、遠征の敵編成に依存させると検査の意図が「遠征の今のチューニング」に
+変わってしまう。7区画は敵の役割構成（前列・後列・群れ・core）を一定に保つための独立した
+fixture として残す価値がある。
+
+`ENCOUNTERS` は content contract の凍結対象ではなく（`contract-snapshot.mjs` は
+`EXPEDITION_ENCOUNTERS` しか読まない）、`ecology/contract-snapshot.json` に差分は出ていない。
+`ENEMY_CODEX` / `ENEMY_LORE` / `ENEMY_TARGETING` の参照経路（`content/index.mjs` →
+`content/world-lore.mjs` / `playable-battles.mjs`）は変更していない。

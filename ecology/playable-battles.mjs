@@ -4,7 +4,6 @@ import {
   ACTIVE_META,
   CHARACTER_DEFINITIONS,
   DISPLAY_NAMES,
-  ENCOUNTERS,
   ENEMY_LORE,
   ENEMY_TARGETING,
   EQUIPMENT_META,
@@ -16,6 +15,9 @@ import {
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
+// issue #173 — 7区画の旧 encounter は fixture。遠征の正本は
+// content/expedition.mjs の EXPEDITION_ENCOUNTERS（makeExpeditionBattle が読む）。
+import { STAGE_FIXTURE_ENCOUNTERS } from "./fixture-stage-encounters.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
@@ -391,8 +393,11 @@ export function installComponent(loadout, componentId, characterId, limitsFor) {
   return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
 }
 
+// issue #173 — fixture-only. termination.test.mjs と
+// analysis/ecology-equipment-gen-smoke.mjs だけが（makeBattle 経由で）読む。
+// 本編は composeEncounter / makeExpeditionBattle の12戦経路を使う。
 export function encounterInfo(stage) {
-  return ENCOUNTERS[Math.max(0, Math.min(ENCOUNTERS.length - 1, stage - 1))];
+  return STAGE_FIXTURE_ENCOUNTERS[Math.max(0, Math.min(STAGE_FIXTURE_ENCOUNTERS.length - 1, stage - 1))];
 }
 
 export function encounterLabel(stage) {
@@ -515,6 +520,11 @@ function allyInput(characterId, position, loadout, options = {}) {
   return ally;
 }
 
+// issue #173 — fixture-only battle builder over STAGE_FIXTURE_ENCOUNTERS
+// (7 legacy stages). Shares allyInput with makeExpeditionBattle so the
+// fixture and the real 12戦経路 assemble allies identically, but the board
+// itself is a fixture: only termination.test.mjs and
+// analysis/ecology-equipment-gen-smoke.mjs call this.
 export function makeBattle(
   stage,
   rosterIds = ["warden", "mender", "lancer", "guardian", "tactician"],
@@ -639,8 +649,9 @@ export function loadoutSummary(loadout, rosterIds) {
   }));
 }
 
+// issue #173 — fixture-only, mirrors encounterInfo above.
 export function allEncounters() {
-  return clone(ENCOUNTERS);
+  return clone(STAGE_FIXTURE_ENCOUNTERS);
 }
 
 // ============================================================ 次戦 exact preview（R8 §11）

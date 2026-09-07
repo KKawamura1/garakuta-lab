@@ -30,7 +30,9 @@
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
-| `content/encounters.mjs` | 敵の配置・狙い・敵本文（既存 content API の正本） |
+| `content/encounters.mjs` | 敵本文の正本（狙いの説明文・噂・図鑑）。**敵配置ではない** |
+| `content/expedition.mjs` | **遠征の敵配置の正本。**3幕12戦（`EXPEDITION_ENCOUNTERS`）、threat budget、boss law。`progression.composeEncounter` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
+| `fixture-stage-encounters.mjs` | 旧7区画の敵配置。**fixture。**`ecology/termination.test.mjs` と `analysis/ecology-equipment-gen-smoke.mjs` だけが `playable-battles.makeBattle` 経由で読む |
 | `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
 | `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |
