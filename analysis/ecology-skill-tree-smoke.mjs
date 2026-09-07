@@ -107,6 +107,7 @@ for (const stage of CAMPAIGN_STAGES) {
       }
     }
   }
+}
 
 // 参照点。**この検査が本当に引っかかるのかを、ここで確かめる。**
 {
