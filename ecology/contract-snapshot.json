@@ -3816,9 +3816,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -3879,9 +3879,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -3951,9 +3951,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -3999,9 +3999,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4049,9 +4049,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4129,9 +4129,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4189,9 +4189,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4268,9 +4268,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4317,9 +4317,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     },
@@ -4369,9 +4369,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     },
@@ -4433,9 +4433,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4507,9 +4507,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4597,9 +4597,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4661,9 +4661,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4725,9 +4725,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4780,9 +4780,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4843,9 +4843,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4897,9 +4897,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -4963,9 +4963,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5029,9 +5029,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5090,9 +5090,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5149,9 +5149,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5211,9 +5211,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5275,9 +5275,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5349,9 +5349,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5416,9 +5416,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 2,
-      "owner": "actor-instance + rule"
+      "count": 2
      }
     },
     "tags": [
@@ -5501,9 +5501,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5551,9 +5551,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5627,9 +5627,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5693,9 +5693,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5765,9 +5765,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5850,9 +5850,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5929,9 +5929,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -5984,9 +5984,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6035,9 +6035,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6094,9 +6094,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6151,9 +6151,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6209,9 +6209,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6262,9 +6262,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6335,9 +6335,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6400,9 +6400,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6457,9 +6457,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6522,9 +6522,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      }
     },
     "tags": [
@@ -6607,9 +6607,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6642,9 +6642,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6681,9 +6681,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6738,9 +6738,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6784,9 +6784,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6830,9 +6830,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6871,9 +6871,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6929,9 +6929,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -6977,9 +6977,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -7024,9 +7024,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -7081,9 +7081,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -7133,9 +7133,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -7179,9 +7179,9 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
-      "count": 1,
-      "owner": "actor-instance + rule"
+      "count": 1
      },
      "priority": 100
     }
@@ -7228,9 +7228,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7293,9 +7293,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7354,9 +7354,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7395,9 +7395,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7447,9 +7447,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7481,9 +7481,9 @@
       ],
       "effects": [],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      },
      {
@@ -7513,9 +7513,9 @@
       ],
       "effects": [],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 99,
-       "owner": "actor-instance + rule"
+       "count": 99
       }
      }
     ],
@@ -7554,9 +7554,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7595,9 +7595,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7645,9 +7645,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7695,9 +7695,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7745,9 +7745,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7797,9 +7797,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7850,9 +7850,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7903,9 +7903,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -7969,9 +7969,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8034,9 +8034,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8095,9 +8095,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8156,9 +8156,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8197,9 +8197,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8252,9 +8252,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8309,9 +8309,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8376,9 +8376,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8431,9 +8431,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8486,9 +8486,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8536,9 +8536,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8593,9 +8593,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      },
      {
@@ -8638,9 +8638,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      },
      {
@@ -8683,9 +8683,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8734,9 +8734,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8786,9 +8786,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -8832,9 +8832,9 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
-       "count": 1,
-       "owner": "actor-instance + rule"
+       "count": 1
       }
      }
     ],
@@ -23446,9 +23446,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -23500,9 +23500,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        },
        {
@@ -23574,9 +23574,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        }
       ],
@@ -23620,9 +23620,9 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare"
@@ -23634,9 +23634,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "epic"
@@ -23648,9 +23648,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "rare",
@@ -23807,9 +23807,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        },
        {
@@ -23898,9 +23898,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        }
       ],
@@ -23946,9 +23946,9 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "rare",
@@ -23962,9 +23962,9 @@
         {
          "listenTo": "damage_blocked",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "rare",
@@ -24163,9 +24163,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -24210,9 +24210,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -24257,9 +24257,9 @@
         {
          "listenTo": "actor_defeated",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare",
@@ -24275,9 +24275,9 @@
         {
          "listenTo": "round_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare"
@@ -24454,9 +24454,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -24498,9 +24498,9 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -24658,9 +24658,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -24702,9 +24702,9 @@
         {
          "listenTo": "round_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare",
@@ -24835,9 +24835,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -24878,9 +24878,9 @@
         {
          "listenTo": "actor_defeated",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -25023,9 +25023,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -25065,9 +25065,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -25110,9 +25110,9 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare",
@@ -25126,9 +25126,9 @@
         {
          "listenTo": "round_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -25262,9 +25262,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -25304,9 +25304,9 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -25458,9 +25458,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -25502,9 +25502,9 @@
         {
          "listenTo": "excess_damage",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -25670,9 +25670,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        },
        {
@@ -25741,9 +25741,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -25787,9 +25787,9 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "rare",
@@ -25805,9 +25805,9 @@
         {
          "listenTo": "excess_damage",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare",
@@ -26005,9 +26005,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -26049,9 +26049,9 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -26188,9 +26188,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        },
        {
@@ -26236,9 +26236,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -26287,9 +26287,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -26335,9 +26335,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "epic",
@@ -26351,9 +26351,9 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare"
@@ -26365,9 +26365,9 @@
         {
          "listenTo": "actor_defeated",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare"
@@ -26553,9 +26553,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -26597,9 +26597,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -26772,9 +26772,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 3,
-         "owner": "actor-instance + rule"
+         "count": 3
         }
        }
       ],
@@ -26820,9 +26820,9 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 3,
-          "owner": "actor-instance + rule"
+          "count": 3
          },
          "effectRarities": [
           "rare",
@@ -26976,9 +26976,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -27031,9 +27031,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -27075,9 +27075,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -27089,9 +27089,9 @@
         {
          "listenTo": "damage_proposed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare",
@@ -27251,9 +27251,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -27330,9 +27330,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -27377,9 +27377,9 @@
         {
          "listenTo": "status_added",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -27391,9 +27391,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -27547,9 +27547,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        }
       ],
@@ -27591,9 +27591,9 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "common"
@@ -27705,9 +27705,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        },
        {
@@ -27734,9 +27734,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -27831,9 +27831,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -27879,9 +27879,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "epic"
@@ -27893,9 +27893,9 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare"
@@ -27907,9 +27907,9 @@
         {
          "listenTo": "damage_blocked",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare",
@@ -28105,9 +28105,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -28149,9 +28149,9 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -28290,9 +28290,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -28340,9 +28340,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -28384,9 +28384,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -28400,9 +28400,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -28562,9 +28562,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -28605,9 +28605,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -28744,9 +28744,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -28787,9 +28787,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -28959,9 +28959,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -29003,9 +29003,9 @@
         {
          "listenTo": "status_added",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -29154,9 +29154,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -29200,9 +29200,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -29247,9 +29247,9 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare",
@@ -29263,9 +29263,9 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -29438,9 +29438,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -29481,9 +29481,9 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -29620,9 +29620,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -29662,9 +29662,9 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -29815,9 +29815,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        },
        {
@@ -29889,9 +29889,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        }
       ],
@@ -29937,9 +29937,9 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "legendary",
@@ -29955,9 +29955,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "legendary",
@@ -30142,9 +30142,9 @@
          "legendary"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        },
        {
@@ -30239,9 +30239,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        }
       ],
@@ -30288,9 +30288,9 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "legendary",
@@ -30306,9 +30306,9 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "legendary",
@@ -30507,9 +30507,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -30542,9 +30542,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -30585,9 +30585,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -30601,9 +30601,9 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare"
@@ -30761,9 +30761,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -30804,9 +30804,9 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -30974,9 +30974,9 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 2,
-         "owner": "actor-instance + rule"
+         "count": 2
         }
        }
       ],
@@ -31019,9 +31019,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 2,
-          "owner": "actor-instance + rule"
+          "count": 2
          },
          "effectRarities": [
           "epic",
@@ -31162,9 +31162,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -31204,9 +31204,9 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -31374,9 +31374,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -31417,9 +31417,9 @@
         {
          "listenTo": "damage_proposed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -31564,9 +31564,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        },
        {
@@ -31618,9 +31618,9 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -31663,9 +31663,9 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
@@ -31677,9 +31677,9 @@
         {
          "listenTo": "damage_proposed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "rare"
@@ -31839,9 +31839,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -31881,9 +31881,9 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common",
@@ -32022,9 +32022,9 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
-         "count": 1,
-         "owner": "actor-instance + rule"
+         "count": 1
         }
        }
       ],
@@ -32065,9 +32065,9 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
-          "count": 1,
-          "owner": "actor-instance + rule"
+          "count": 1
          },
          "effectRarities": [
           "common"
