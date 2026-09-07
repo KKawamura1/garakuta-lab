@@ -247,7 +247,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   check(ids.reactive.includes("mend"), "mend は baseline reactive");
   // パッシブ fallback は詰み防止なのでパックに属さず、常に取れる（R6 §6.8）。
   // **総数ではなく「7種が必ず含まれる」ことを見る**——R9 §4.1 で導入 pack が
-  // それぞれパッシブを1つ持つようになったので、pack 由来の常設が上に乗る。
+  // それぞれパッシブを1つ持つようになったので、pack 由来のパッシブが上に乗る。
   for (const id of BASELINE_PASSIVE_SKILL_IDS) {
     check(ids.passive.includes(id), id + " はパッシブ fallback として常に取れる");
   }

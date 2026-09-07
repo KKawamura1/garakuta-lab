@@ -440,7 +440,7 @@ function freshUiState() {
     guildCharacter: null,
     formationSelection: null,
     selectedSkillNode: null,
-    // R19（issue #137）— ツリーは種別（行動 / 反応 / 常設）で切り替える。
+    // R19（issue #137）— ツリーは種別（アクティブ / リアクティブ / パッシブ）で切り替える。
     skillTreeKind: "active",
     selectedEquipment: null,
     // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
@@ -2248,7 +2248,7 @@ function skillNodeIcon(node) {
   return branchIcons[node.branch] ?? "·";
 }
 
-// R19（issue #137）— ツリーは種別で三つに分かれる。**AP を払う行動と RP を払う反応が
+// R19（issue #137）— ツリーは種別で三つに分かれる。**AP を払うアクティブと RP を払うリアクティブが
 // 同じ枝に混ざっていると、どちらの資源を伸ばす話なのかが読めない。**
 const SKILL_TREE_KINDS = SKILL_TREE_GROUPS.map((group) => group.kind);
 
