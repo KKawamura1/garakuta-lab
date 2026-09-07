@@ -78,7 +78,7 @@ statuses.staggered = {
       operation: "decrease",
       amount: perStack("staggered", 8),
     }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   }],
   tags: ["playable", "debuff"],
 };
@@ -104,7 +104,7 @@ statuses.warded = {
       operation: "decrease",
       amount: perStack("warded", 8),
     }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   }],
   tags: ["playable", "guard"],
 };
@@ -131,7 +131,7 @@ statuses.bleeding = {
       guardPierceBps: 10_000,
       tags: ["bleed"],
     }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   }],
   tags: ["playable", "debuff"],
 };
