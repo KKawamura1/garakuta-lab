@@ -1079,6 +1079,20 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .badge-level.maxed { color: var(--gold); }
 .badge-level.flat { color: #6d7c77; font-weight: 400; }
 .level-action { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(224, 195, 116, .16); }
+/* 1点で説明文のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。** */
+.level-now { margin-top: 5px; }
+.level-now b { color: var(--violet); font-weight: 800; }
+/* 説明文が Lv1 の値ではないことを、本文の末尾で一言。 */
+.level-now-tag {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(150, 120, 220, .16);
+  color: var(--violet);
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
 /* 前提と派生先は押せる。**横スクロールしなくても route を辿れる。** */
 .skill-route { display: grid; gap: 5px; margin: 7px 0 0; }
 .route-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }

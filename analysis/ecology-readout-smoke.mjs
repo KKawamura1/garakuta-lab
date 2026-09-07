@@ -15,6 +15,14 @@
 // statBonus を持つ passive もここで読む。説明文に数値が書かれている場合は、
 // 定義側の実効量と一致しなければ落とす。数値を書かない定性的な文は、別の
 // 表示設計の判断なのでこの検査では勝手に補わない。
+//
+// **技能の「レベルで伸びる量」だけは、突き合わせをやめた**（issue #148）。
+// 二つの場所に同じ数を書いておいて一致を見るより、**一箇所にしか書けなくする**
+// ほうが強い。説明文は `{amount}` と書いて定義を指し、表示のときに実際の値
+// （レベルを掛けたもの）が入る。だからここでは「一致するか」ではなく
+// **「二重に書いていないか」**を見る（content/skill-levels.mjs の skillTextIssues）。
+// 固定量——発動条件の閾値、後列減衰、AP / RP、装備の固定ダメージ——は言い回しが
+// 単位ごとに変わるので文字のままで、これまでどおり突き合わせる。
 
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "../ecology/playable-content.mjs";
@@ -24,6 +32,7 @@ import {
   PASSIVE_META,
   REACTIVE_META,
 } from "../ecology/content/skill-tree.mjs";
+import { skillTextIssues } from "../ecology/content/skill-levels.mjs";
 
 const META_BY_SECTION = {
   activeSkills: ACTIVE_META,
@@ -74,37 +83,19 @@ for (const [section, metaById] of Object.entries(META_BY_SECTION)) {
     const text = String(meta[1]);
     const effects = collectAmounts(definition);
 
-    const scaled = effects.filter((effect) => effect.amount?.type === "stat_scaled");
-    if (scaled.length) {
-      checked += 1;
-      checkedBySection.add(section);
-      const perHit = scaled.reduce((sum, effect) => sum + effect.amount.coefficientBps, 0) / 100;
-      const total = scaled.reduce(
-        (sum, effect) => sum + effect.amount.coefficientBps * effect.hitCount,
-        0,
-      ) / 100;
-      const written = writtenPercentages(text);
-      if (!written.length) {
-        row(section, id, meta, "stat_scaled の説明に係数の % がない", total, written);
-      } else if (!closeToAny(total, written) && !closeToAny(perHit, written)) {
-        row(section, id, meta, "説明文の % が係数と一致しない", { total, perHit }, written);
-      }
-    }
-
-    const eventScaled = effects.filter(
-      (effect) => effect.amount?.type === "event_value_scaled"
-        && Number.isFinite(effect.amount.numerator)
-        && Number.isFinite(effect.amount.denominator)
-        && effect.amount.denominator !== 0,
-    );
-    for (const effect of eventScaled) {
-      const expected = effect.amount.numerator / effect.amount.denominator * 100;
-      if (Math.abs(expected - 100) < 1) continue;
-      checked += 1;
-      checkedBySection.add(section);
-      const written = writtenPercentages(text);
-      if (!written.length || !closeToAny(expected, written)) {
-        row(section, id, meta, "event_value_scaled の説明に倍率がないか一致しない", expected, written);
+    // issue #148 — レベルで伸びる量は、説明文に数字で書かない。`{amount}` が定義を指す。
+    // **二つの場所に同じ数を書かせない**ので、ずれようがない。ここで見るのは、
+    // その約束から外れた書き方（数字で直接書いた／{amount} を書き忘れた／
+    // 伸びる量を二つ持っている）だけである。
+    if (section !== "equipment") {
+      const issues = skillTextIssues(text, definition);
+      if (issues.length) {
+        checked += 1;
+        checkedBySection.add(section);
+        for (const issue of issues) row(section, id, meta, issue, "{amount}", writtenPercentages(text));
+      } else if (text.includes("{amount}")) {
+        checked += 1;
+        checkedBySection.add(section);
       }
     }
 

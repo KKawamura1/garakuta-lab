@@ -9438,7 +9438,7 @@
     "kind": "active",
     "definitionId": "rapid_cuts",
     "label": "刻み斬り",
-    "effect": "50%を3回。合計150%で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
+    "effect": "{amount}を{hits}回。合計{total}で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
     "grammar": "攻撃"
    },
    "pierce_thrust": {
@@ -9446,7 +9446,7 @@
     "kind": "active",
     "definitionId": "pierce_thrust",
     "label": "貫き突き",
-    "effect": "通常攻撃を上回る115%。相手の受けを6割無視する。硬い相手向け。",
+    "effect": "通常攻撃を上回る{amount}。相手の受けを6割無視する。硬い相手向け。",
     "grammar": "攻撃"
    },
    "row_sweep": {
@@ -9454,7 +9454,7 @@
     "kind": "active",
     "definitionId": "row_sweep",
     "label": "薙ぎ払い",
-    "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。対象がいなければスキップ。",
+    "effect": "前列の敵が2体以上いるとき、同じ行を{amount}ずつ薙ぐ。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "column_thrust": {
@@ -9462,7 +9462,7 @@
     "kind": "active",
     "definitionId": "column_thrust",
     "label": "突き通し",
-    "effect": "同じ列の前後を110%ずつ貫く。後列を庇う列に効く。",
+    "effect": "同じ列の前後を{amount}ずつ貫く。後列を庇う列に効く。",
     "grammar": "攻撃"
    },
    "guard_crush": {
@@ -9470,7 +9470,7 @@
     "kind": "active",
     "definitionId": "guard_crush",
     "label": "受け崩し",
-    "effect": "通常攻撃を上回る115%。相手の受け構えと受けを完全に無視する。",
+    "effect": "通常攻撃を上回る{amount}。相手の受け構えと受けを完全に無視する。",
     "grammar": "攻撃"
    },
    "rear_hunt": {
@@ -9478,7 +9478,7 @@
     "kind": "active",
     "definitionId": "rear_hunt",
     "label": "後衛狩り",
-    "effect": "後列の生存者がいるときだけ120%で狙う。対象がいなければスキップ。",
+    "effect": "後列の生存者がいるときだけ{amount}で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "finishing_thrust": {
@@ -9486,7 +9486,7 @@
     "kind": "active",
     "definitionId": "finishing_thrust",
     "label": "止めの一突き",
-    "effect": "HP半分以下の敵がいるときだけ140%で狙う。対象がいなければスキップ。",
+    "effect": "HP半分以下の敵がいるときだけ{amount}で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "crack_mark": {
@@ -9494,7 +9494,7 @@
     "kind": "active",
     "definitionId": "crack_mark",
     "label": "傷口を開く",
-    "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+    "effect": "未露出の敵へ{amount}で攻撃し、「隙」を付ける。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "brace_for_impact": {
@@ -9510,7 +9510,7 @@
     "kind": "active",
     "definitionId": "strike",
     "label": "斬撃",
-    "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
+    "effect": "最も弱った敵へ、通常攻撃を上回る{amount}の単発。",
     "grammar": "攻撃"
    },
    "steady_cut": {
@@ -9518,7 +9518,7 @@
     "kind": "active",
     "definitionId": "steady_cut",
     "label": "確かな斬り",
-    "effect": "条件も準備もない、腕力130%の一撃。武器なので後列から出すと40%まで落ちる。",
+    "effect": "条件も準備もない、腕力{amount}の一撃。武器なので後列から出すと40%まで落ちる。",
     "grammar": "攻撃"
    },
    "aimed_shot": {
@@ -9526,7 +9526,7 @@
     "kind": "active",
     "definitionId": "aimed_shot",
     "label": "狙い撃ち",
-    "effect": "最も弱った敵へ技術125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
+    "effect": "最も弱った敵へ技術{amount}。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
     "grammar": "攻撃"
    },
    "bulwark": {
@@ -9534,7 +9534,7 @@
     "kind": "active",
     "definitionId": "bulwark",
     "label": "防壁形成",
-    "effect": "自分に技術の200%のラウンド防壁を張ってから、追い打ちを行う。",
+    "effect": "自分に技術の{amount}のラウンド防壁を張ってから、追い打ちを行う。",
     "grammar": "守り"
    },
    "relay_order": {
@@ -9550,7 +9550,7 @@
     "kind": "active",
     "definitionId": "heavy_swing",
     "label": "溜め突き",
-    "effect": "準備1回のあと、550%の一撃。開始と準備で行動権を計2つ使う。",
+    "effect": "準備1回のあと、{amount}の一撃。開始と準備で行動権を計2つ使う。",
     "grammar": "攻撃"
    },
    "reposition": {
@@ -9566,7 +9566,7 @@
     "kind": "active",
     "definitionId": "long_swing",
     "label": "大溜め",
-    "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
+    "effect": "準備3回のあと、{amount}を一撃で返す。開始と準備で行動権を計4つ使う。",
     "grammar": "攻撃"
    },
    "hunt_the_slow": {
@@ -9574,7 +9574,7 @@
     "kind": "active",
     "definitionId": "hunt_the_slow",
     "label": "準備狩り",
-    "effect": "準備中の敵がいるときだけ300%で狙う。対象がいなければスキップ。",
+    "effect": "準備中の敵がいるときだけ{amount}で狙う。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "idle_shuffle": {
@@ -9614,7 +9614,7 @@
     "kind": "active",
     "definitionId": "overreach",
     "label": "無理を通す",
-    "effect": "自分のHPが60%以上のときだけ、最も弱った敵へ165%。条件を欠いても行動は塞がらない。",
+    "effect": "自分のHPが60%以上のときだけ、最も弱った敵へ{amount}。条件を欠いても行動は塞がらない。",
     "grammar": "攻撃"
    },
    "shield_the_wounded": {
@@ -9622,7 +9622,7 @@
     "kind": "active",
     "definitionId": "shield_the_wounded",
     "label": "傷へ盾を",
-    "effect": "最も傷ついた味方へ技術の150%のラウンド防壁を張ってから、追い打ちを行う。",
+    "effect": "最も傷ついた味方へ技術の{amount}のラウンド防壁を張ってから、追い打ちを行う。",
     "grammar": "支援"
    },
    "barrage_strike": {
@@ -9630,7 +9630,7 @@
     "kind": "active",
     "definitionId": "barrage_strike",
     "label": "連撃",
-    "effect": "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
+    "effect": "{amount}を{hits}回。合計{total}で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
     "grammar": "攻撃"
    },
    "mark_strike": {
@@ -9638,7 +9638,7 @@
     "kind": "active",
     "definitionId": "mark_strike",
     "label": "刻印撃ち",
-    "effect": "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+    "effect": "隙のない敵へ{amount}で攻撃し、「隙」を付ける。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "mark_break": {
@@ -9646,7 +9646,7 @@
     "kind": "active",
     "definitionId": "mark_break",
     "label": "刻印砕き",
-    "effect": "「隙」を持つ敵へ130%で攻撃し、隙を刈り取る。対象がいなければスキップ。",
+    "effect": "「隙」を持つ敵へ{amount}で攻撃し、隙を刈り取る。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "sweeping_barrage": {
@@ -9654,7 +9654,7 @@
     "kind": "active",
     "definitionId": "sweeping_barrage",
     "label": "連ぎ払い",
-    "effect": "前列の敵が2体以上いるとき、同じ行を40%×2回薙ぐ。対象がいなければスキップ。",
+    "effect": "前列の敵が2体以上いるとき、同じ行を{amount}×{hits}回薙ぐ。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "piercing_barrage": {
@@ -9662,7 +9662,7 @@
     "kind": "active",
     "definitionId": "piercing_barrage",
     "label": "貫き連撃",
-    "effect": "同じ列の前後を48%×2回貫く。後列を庇う列を多段で崩す。",
+    "effect": "同じ列の前後を{amount}×{hits}回貫く。後列を庇う列を多段で崩す。",
     "grammar": "攻撃"
    },
    "reckless_swing": {
@@ -9670,7 +9670,7 @@
     "kind": "active",
     "definitionId": "reckless_swing",
     "label": "捨て身の一振り",
-    "effect": "最前の敵へ腕力200%。代償として自分に「隙」が1つ付き、次に受ける一撃が重くなる。",
+    "effect": "最前の敵へ腕力{amount}。代償として自分に「隙」が1つ付き、次に受ける一撃が重くなる。",
     "grammar": "攻撃"
    },
    "double_back": {
@@ -9678,7 +9678,7 @@
     "kind": "active",
     "definitionId": "double_back",
     "label": "二の太刀",
-    "effect": "同じ相手を続けて2回以上狙っていたときだけ腕力165%。相手を変えると数え直しになる。",
+    "effect": "同じ相手を続けて2回以上狙っていたときだけ腕力{amount}。相手を変えると数え直しになる。",
     "grammar": "攻撃"
    },
    "spread_cut": {
@@ -9686,7 +9686,7 @@
     "kind": "active",
     "definitionId": "spread_cut",
     "label": "散らし斬り",
-    "effect": "同じ相手を続けて狙っていないときだけ腕力135%。二の太刀とは同時に成立しない。",
+    "effect": "同じ相手を続けて狙っていないときだけ腕力{amount}。二の太刀とは同時に成立しない。",
     "grammar": "攻撃"
    },
    "opening_stab": {
@@ -9694,7 +9694,7 @@
     "kind": "active",
     "definitionId": "opening_stab",
     "label": "先の一刺し",
-    "effect": "1ラウンド目だけ腕力185%。2ラウンド目からは通常攻撃へ戻る。",
+    "effect": "1ラウンド目だけ腕力{amount}。2ラウンド目からは通常攻撃へ戻る。",
     "grammar": "攻撃"
    },
    "bloodied_charge": {
@@ -9702,7 +9702,7 @@
     "kind": "active",
     "definitionId": "bloodied_charge",
     "label": "手負いの突撃",
-    "effect": "自分のHPが50%以下のときだけ腕力205%。「無理を通す」（60%以上）の裏。",
+    "effect": "自分のHPが50%以下のときだけ腕力{amount}。「無理を通す」（60%以上）の裏。",
     "grammar": "攻撃"
    },
    "hamstring": {
@@ -9710,7 +9710,7 @@
     "kind": "active",
     "definitionId": "hamstring",
     "label": "足を払う",
-    "effect": "腕力85%と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージが1段につき8軽くなる。",
+    "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージが1段につき8軽くなる。",
     "grammar": "攻撃"
    },
    "execute_low": {
@@ -9718,7 +9718,7 @@
     "kind": "active",
     "definitionId": "execute_low",
     "label": "首を落とす",
-    "effect": "HP30%以下の敵がいるときだけ腕力200%。対象がいなければスキップ。",
+    "effect": "HP30%以下の敵がいるときだけ腕力{amount}。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
    "rend": {
@@ -9726,7 +9726,7 @@
     "kind": "active",
     "definitionId": "rend",
     "label": "抉る",
-    "effect": "腕力95%と「裂傷」2つ。裂傷はラウンド終わりに1段12、受けを完全に無視して刻む。",
+    "effect": "腕力{amount}と「裂傷」2つ。裂傷はラウンド終わりに1段12、受けを完全に無視して刻む。",
     "grammar": "攻撃"
    },
    "drag_forward": {
@@ -9742,7 +9742,7 @@
     "kind": "active",
     "definitionId": "shield_wall",
     "label": "盾の列",
-    "effect": "前列の味方**全員**へ技術70%のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
+    "effect": "前列の味方**全員**へ技術{amount}のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
     "grammar": "守り"
    },
    "rally_line": {
@@ -9758,7 +9758,7 @@
     "kind": "active",
     "definitionId": "bulwark_of_will",
     "label": "意地の壁",
-    "effect": "**開幕2ラウンドだけ**、自分へ最大HPの10%の戦闘中防壁。技術ではなく体で張る。",
+    "effect": "**開幕2ラウンドだけ**、自分へ最大HPの{amount}の戦闘中防壁。技術ではなく体で張る。",
     "grammar": "守り"
    },
    "spread_the_guard": {
@@ -9774,7 +9774,7 @@
     "kind": "active",
     "definitionId": "bracing_thrust",
     "label": "受けながらの突き",
-    "effect": "腕力105%を出しつつ、自分に「守勢」を1つ。攻守を両取りするぶん威力は控えめ。",
+    "effect": "腕力{amount}を出しつつ、自分に「守勢」を1つ。攻守を両取りするぶん威力は控えめ。",
     "grammar": "攻撃"
    },
    "field_dressing": {
@@ -9782,7 +9782,7 @@
     "kind": "active",
     "definitionId": "field_dressing",
     "label": "まとめて手当て",
-    "effect": "HP50%以下の味方**全員**へ技術60%のラウンド防壁。対象がいなければスキップ。",
+    "effect": "HP50%以下の味方**全員**へ技術{amount}のラウンド防壁。対象がいなければスキップ。",
     "grammar": "支援"
    },
    "steady_breath": {
@@ -9806,7 +9806,7 @@
     "kind": "active",
     "definitionId": "precise_cut",
     "label": "静かな一手",
-    "effect": "このラウンド一度も被弾していないときだけ、技術150%。技なので後列からでも落ちない。",
+    "effect": "このラウンド一度も被弾していないときだけ、技術{amount}。技なので後列からでも落ちない。",
     "grammar": "攻撃"
    },
    "sustaining_ward": {
@@ -9814,7 +9814,7 @@
     "kind": "active",
     "definitionId": "sustaining_ward",
     "label": "長く守る",
-    "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ技術90%の戦闘中防壁。薄いが消えない。",
+    "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ技術{amount}の戦闘中防壁。薄いが消えない。",
     "grammar": "支援"
    },
    "cleansing_step": {
@@ -9862,7 +9862,7 @@
     "kind": "active",
     "definitionId": "flurry_finish",
     "label": "刻み止め",
-    "effect": "最も弱った敵へ30%を5回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
+    "effect": "最も弱った敵へ{amount}を{hits}回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
     "grammar": "攻撃"
    },
    "mark_spread": {
@@ -9878,7 +9878,7 @@
     "kind": "active",
     "definitionId": "shatter_point",
     "label": "積もる刻印",
-    "effect": "「隙」1段につき45を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
+    "effect": "「隙」1段につき{amount}を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
     "grammar": "攻撃"
    },
    "take_the_wound": {
@@ -9904,7 +9904,7 @@
     "kind": "reactive",
     "definitionId": "counter_blow",
     "label": "反撃",
-    "effect": "敵に殴られたあと、RP1で攻撃者へ腕力の50%ダメージ。",
+    "effect": "敵に殴られたあと、RP1で攻撃者へ腕力の{amount}ダメージ。",
     "grammar": "被弾"
    },
    "cover_ally": {
@@ -9920,7 +9920,7 @@
     "kind": "reactive",
     "definitionId": "overflow_care",
     "label": "余剰治療",
-    "effect": "自分が行った回復の余剰を、RP1で別の負傷者へそのまま回す。回復手段を選ばない。",
+    "effect": "自分が行った回復の余剰の{amount}を、RP1で別の負傷者へ回す。回復手段を選ばない。",
     "grammar": "回復"
    },
    "scavenge_ap": {
@@ -9936,7 +9936,7 @@
     "kind": "reactive",
     "definitionId": "guard_step",
     "label": "踏み固め",
-    "effect": "移動したあと、技術の50%のラウンド防壁を得る。",
+    "effect": "移動したあと、技術の{amount}のラウンド防壁を得る。",
     "grammar": "移動"
    },
    "urging": {
@@ -9952,7 +9952,7 @@
     "kind": "reactive",
     "definitionId": "brace_after_hit",
     "label": "受け流し",
-    "effect": "被弾後、RP1で技術の50%のラウンド防壁を得る。",
+    "effect": "被弾後、RP1で技術の{amount}のラウンド防壁を得る。",
     "grammar": "被弾"
    },
    "triage_relay": {
@@ -9960,7 +9960,7 @@
     "kind": "reactive",
     "definitionId": "triage_relay",
     "label": "連携治療",
-    "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
+    "effect": "応急手当の余剰だけをRP1で別の負傷者へ{amount}回す。条件は狭いが、連携時の量が大きい。",
     "grammar": "回復"
    },
    "block_focus": {
@@ -9984,7 +9984,7 @@
     "kind": "reactive",
     "definitionId": "mend",
     "label": "手当て",
-    "effect": "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。",
+    "effect": "誰かが被弾した直後、RP1でその被弾量の{amount}を返す。同じ一撃を二重には治せない。",
     "grammar": "回復"
    },
    "triage": {
@@ -9992,7 +9992,7 @@
     "kind": "reactive",
     "definitionId": "triage",
     "label": "応急手当",
-    "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の50%を返す。自分は対象にしない。",
+    "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の{amount}を返す。自分は対象にしない。",
     "grammar": "回復"
    },
    "emergency_treatment": {
@@ -10000,7 +10000,7 @@
     "kind": "reactive",
     "definitionId": "emergency_treatment",
     "label": "応急処置",
-    "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
+    "effect": "自分が被弾した直後、RP1でその被弾量の{amount}を返す。",
     "grammar": "回復"
    },
    "spill_forward": {
@@ -10008,7 +10008,7 @@
     "kind": "reactive",
     "definitionId": "spill_forward",
     "label": "余波を回す",
-    "effect": "過剰ダメージが出たあと、RP1で最も弱った敵へ腕力の30%。掃除役へ回る。",
+    "effect": "過剰ダメージが出たあと、RP1で最も弱った敵へ腕力の{amount}。掃除役へ回る。",
     "grammar": "撃破"
    },
    "blocked_into_step": {
@@ -10048,7 +10048,7 @@
     "kind": "reactive",
     "definitionId": "wake_of_the_fallen",
     "label": "倒したあと",
-    "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ技術の100%の防壁。",
+    "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ技術の{amount}の防壁。",
     "grammar": "撃破"
    },
    "whetted_by_pain": {
@@ -10064,7 +10064,7 @@
     "kind": "reactive",
     "definitionId": "shield_handoff",
     "label": "受けの受け渡し",
-    "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ技術の75%の防壁。",
+    "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ技術の{amount}の防壁。",
     "grammar": "防御"
    },
    "patient_step": {
@@ -10096,7 +10096,7 @@
     "kind": "reactive",
     "definitionId": "opportunist",
     "label": "隙に応じる",
-    "effect": "敵に「隙」が付いた瞬間、RP1で腕力45%。誰が付けた隙でも読む。",
+    "effect": "敵に「隙」が付いた瞬間、RP1で腕力{amount}。誰が付けた隙でも読む。",
     "grammar": "状態"
    },
    "vengeful_step": {
@@ -10104,7 +10104,7 @@
     "kind": "reactive",
     "definitionId": "vengeful_step",
     "label": "意趣返し",
-    "effect": "味方が倒れたあと、RP1で最前の敵へ腕力60%。戦闘中2回まで。",
+    "effect": "味方が倒れたあと、RP1で最前の敵へ腕力{amount}。戦闘中2回まで。",
     "grammar": "撃破"
    },
    "finish_the_wounded": {
@@ -10112,7 +10112,7 @@
     "kind": "reactive",
     "definitionId": "finish_the_wounded",
     "label": "止めを促す",
-    "effect": "敵がHP25%以下まで削られた一撃のあと、RP1でその敵へ腕力55%。自分の一撃でなくてよい。",
+    "effect": "敵がHP25%以下まで削られた一撃のあと、RP1でその敵へ腕力{amount}。自分の一撃でなくてよい。",
     "grammar": "撃破"
    },
    "absorb_shock": {
@@ -10120,7 +10120,7 @@
     "kind": "reactive",
     "definitionId": "absorb_shock",
     "label": "衝撃を殺す",
-    "effect": "自分に飛んでくるダメージを、RP1で12減らす。ラウンド1回。大きい一撃ほど割合では小さい。",
+    "effect": "自分に飛んでくるダメージを、RP1で{amount}減らす。ラウンド1回。大きい一撃ほど割合では小さい。",
     "grammar": "被弾"
    },
    "guard_the_marked": {
@@ -10136,7 +10136,7 @@
     "kind": "reactive",
     "definitionId": "last_stand",
     "label": "背水",
-    "effect": "被弾してHP30%以下になったとき、RP1で技術150%のラウンド防壁。戦闘に1回きり。",
+    "effect": "被弾してHP30%以下になったとき、RP1で技術{amount}のラウンド防壁。戦闘に1回きり。",
     "grammar": "被弾"
    },
    "counterweight": {
@@ -10144,7 +10144,7 @@
     "kind": "reactive",
     "definitionId": "counterweight",
     "label": "支え直す",
-    "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ技術50%のラウンド防壁。",
+    "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ技術{amount}のラウンド防壁。",
     "grammar": "移動"
    },
    "shared_pain": {
@@ -10152,7 +10152,7 @@
     "kind": "reactive",
     "definitionId": "shared_pain",
     "label": "痛みを分ける",
-    "effect": "味方が被弾した直後、RP1と自分のHP30を払って、その被弾量の50%を返す。",
+    "effect": "味方が被弾した直後、RP1と自分のHP30を払って、その被弾量の{amount}を返す。",
     "grammar": "回復"
    },
    "watchful_care": {
@@ -10216,7 +10216,7 @@
     "kind": "reactive",
     "definitionId": "echo_of_the_mark",
     "label": "刻印の残響",
-    "effect": "敵の「隙」が消えた瞬間、RP1で腕力50%。刈り取っても、自然に消えても起きる。",
+    "effect": "敵の「隙」が消えた瞬間、RP1で腕力{amount}。刈り取っても、自然に消えても起きる。",
     "grammar": "状態"
    },
    "stagger_relay": {
@@ -10607,7 +10607,7 @@
    "kind": "active",
    "definitionId": "rapid_cuts",
    "label": "刻み斬り",
-   "effect": "50%を3回。合計150%で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
+   "effect": "{amount}を{hits}回。合計{total}で通常攻撃を上回るが、受けの硬い相手には通りにくい。",
    "grammar": "攻撃"
   },
   "pierce_thrust": {
@@ -10615,7 +10615,7 @@
    "kind": "active",
    "definitionId": "pierce_thrust",
    "label": "貫き突き",
-   "effect": "通常攻撃を上回る115%。相手の受けを6割無視する。硬い相手向け。",
+   "effect": "通常攻撃を上回る{amount}。相手の受けを6割無視する。硬い相手向け。",
    "grammar": "攻撃"
   },
   "row_sweep": {
@@ -10623,7 +10623,7 @@
    "kind": "active",
    "definitionId": "row_sweep",
    "label": "薙ぎ払い",
-   "effect": "前列の敵が2体以上いるとき、同じ行を80%ずつ薙ぐ。対象がいなければスキップ。",
+   "effect": "前列の敵が2体以上いるとき、同じ行を{amount}ずつ薙ぐ。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "column_thrust": {
@@ -10631,7 +10631,7 @@
    "kind": "active",
    "definitionId": "column_thrust",
    "label": "突き通し",
-   "effect": "同じ列の前後を110%ずつ貫く。後列を庇う列に効く。",
+   "effect": "同じ列の前後を{amount}ずつ貫く。後列を庇う列に効く。",
    "grammar": "攻撃"
   },
   "guard_crush": {
@@ -10639,7 +10639,7 @@
    "kind": "active",
    "definitionId": "guard_crush",
    "label": "受け崩し",
-   "effect": "通常攻撃を上回る115%。相手の受け構えと受けを完全に無視する。",
+   "effect": "通常攻撃を上回る{amount}。相手の受け構えと受けを完全に無視する。",
    "grammar": "攻撃"
   },
   "rear_hunt": {
@@ -10647,7 +10647,7 @@
    "kind": "active",
    "definitionId": "rear_hunt",
    "label": "後衛狩り",
-   "effect": "後列の生存者がいるときだけ120%で狙う。対象がいなければスキップ。",
+   "effect": "後列の生存者がいるときだけ{amount}で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "finishing_thrust": {
@@ -10655,7 +10655,7 @@
    "kind": "active",
    "definitionId": "finishing_thrust",
    "label": "止めの一突き",
-   "effect": "HP半分以下の敵がいるときだけ140%で狙う。対象がいなければスキップ。",
+   "effect": "HP半分以下の敵がいるときだけ{amount}で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "crack_mark": {
@@ -10663,7 +10663,7 @@
    "kind": "active",
    "definitionId": "crack_mark",
    "label": "傷口を開く",
-   "effect": "未露出の敵へ110%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+   "effect": "未露出の敵へ{amount}で攻撃し、「隙」を付ける。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "brace_for_impact": {
@@ -10679,7 +10679,7 @@
    "kind": "active",
    "definitionId": "strike",
    "label": "斬撃",
-   "effect": "最も弱った敵へ、通常攻撃を上回る120%の単発。",
+   "effect": "最も弱った敵へ、通常攻撃を上回る{amount}の単発。",
    "grammar": "攻撃"
   },
   "steady_cut": {
@@ -10687,7 +10687,7 @@
    "kind": "active",
    "definitionId": "steady_cut",
    "label": "確かな斬り",
-   "effect": "条件も準備もない、腕力130%の一撃。武器なので後列から出すと40%まで落ちる。",
+   "effect": "条件も準備もない、腕力{amount}の一撃。武器なので後列から出すと40%まで落ちる。",
    "grammar": "攻撃"
   },
   "aimed_shot": {
@@ -10695,7 +10695,7 @@
    "kind": "active",
    "definitionId": "aimed_shot",
    "label": "狙い撃ち",
-   "effect": "最も弱った敵へ技術125%。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
+   "effect": "最も弱った敵へ技術{amount}。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
    "grammar": "攻撃"
   },
   "bulwark": {
@@ -10703,7 +10703,7 @@
    "kind": "active",
    "definitionId": "bulwark",
    "label": "防壁形成",
-   "effect": "自分に技術の200%のラウンド防壁を張ってから、追い打ちを行う。",
+   "effect": "自分に技術の{amount}のラウンド防壁を張ってから、追い打ちを行う。",
    "grammar": "守り"
   },
   "relay_order": {
@@ -10719,7 +10719,7 @@
    "kind": "active",
    "definitionId": "heavy_swing",
    "label": "溜め突き",
-   "effect": "準備1回のあと、550%の一撃。開始と準備で行動権を計2つ使う。",
+   "effect": "準備1回のあと、{amount}の一撃。開始と準備で行動権を計2つ使う。",
    "grammar": "攻撃"
   },
   "reposition": {
@@ -10735,7 +10735,7 @@
    "kind": "active",
    "definitionId": "long_swing",
    "label": "大溜め",
-   "effect": "準備3回のあと、1000%を一撃で返す。開始と準備で行動権を計4つ使う。",
+   "effect": "準備3回のあと、{amount}を一撃で返す。開始と準備で行動権を計4つ使う。",
    "grammar": "攻撃"
   },
   "hunt_the_slow": {
@@ -10743,7 +10743,7 @@
    "kind": "active",
    "definitionId": "hunt_the_slow",
    "label": "準備狩り",
-   "effect": "準備中の敵がいるときだけ300%で狙う。対象がいなければスキップ。",
+   "effect": "準備中の敵がいるときだけ{amount}で狙う。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "idle_shuffle": {
@@ -10783,7 +10783,7 @@
    "kind": "active",
    "definitionId": "overreach",
    "label": "無理を通す",
-   "effect": "自分のHPが60%以上のときだけ、最も弱った敵へ165%。条件を欠いても行動は塞がらない。",
+   "effect": "自分のHPが60%以上のときだけ、最も弱った敵へ{amount}。条件を欠いても行動は塞がらない。",
    "grammar": "攻撃"
   },
   "shield_the_wounded": {
@@ -10791,7 +10791,7 @@
    "kind": "active",
    "definitionId": "shield_the_wounded",
    "label": "傷へ盾を",
-   "effect": "最も傷ついた味方へ技術の150%のラウンド防壁を張ってから、追い打ちを行う。",
+   "effect": "最も傷ついた味方へ技術の{amount}のラウンド防壁を張ってから、追い打ちを行う。",
    "grammar": "支援"
   },
   "barrage_strike": {
@@ -10799,7 +10799,7 @@
    "kind": "active",
    "definitionId": "barrage_strike",
    "label": "連撃",
-   "effect": "45%を3回。合計135%で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
+   "effect": "{amount}を{hits}回。合計{total}で、受けの厚い相手より、受け構え（block）を持つ相手に強い。",
    "grammar": "攻撃"
   },
   "mark_strike": {
@@ -10807,7 +10807,7 @@
    "kind": "active",
    "definitionId": "mark_strike",
    "label": "刻印撃ち",
-   "effect": "隙のない敵へ100%で攻撃し、「隙」を付ける。対象がいなければスキップ。",
+   "effect": "隙のない敵へ{amount}で攻撃し、「隙」を付ける。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "mark_break": {
@@ -10815,7 +10815,7 @@
    "kind": "active",
    "definitionId": "mark_break",
    "label": "刻印砕き",
-   "effect": "「隙」を持つ敵へ130%で攻撃し、隙を刈り取る。対象がいなければスキップ。",
+   "effect": "「隙」を持つ敵へ{amount}で攻撃し、隙を刈り取る。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "sweeping_barrage": {
@@ -10823,7 +10823,7 @@
    "kind": "active",
    "definitionId": "sweeping_barrage",
    "label": "連ぎ払い",
-   "effect": "前列の敵が2体以上いるとき、同じ行を40%×2回薙ぐ。対象がいなければスキップ。",
+   "effect": "前列の敵が2体以上いるとき、同じ行を{amount}×{hits}回薙ぐ。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "piercing_barrage": {
@@ -10831,7 +10831,7 @@
    "kind": "active",
    "definitionId": "piercing_barrage",
    "label": "貫き連撃",
-   "effect": "同じ列の前後を48%×2回貫く。後列を庇う列を多段で崩す。",
+   "effect": "同じ列の前後を{amount}×{hits}回貫く。後列を庇う列を多段で崩す。",
    "grammar": "攻撃"
   },
   "reckless_swing": {
@@ -10839,7 +10839,7 @@
    "kind": "active",
    "definitionId": "reckless_swing",
    "label": "捨て身の一振り",
-   "effect": "最前の敵へ腕力200%。代償として自分に「隙」が1つ付き、次に受ける一撃が重くなる。",
+   "effect": "最前の敵へ腕力{amount}。代償として自分に「隙」が1つ付き、次に受ける一撃が重くなる。",
    "grammar": "攻撃"
   },
   "double_back": {
@@ -10847,7 +10847,7 @@
    "kind": "active",
    "definitionId": "double_back",
    "label": "二の太刀",
-   "effect": "同じ相手を続けて2回以上狙っていたときだけ腕力165%。相手を変えると数え直しになる。",
+   "effect": "同じ相手を続けて2回以上狙っていたときだけ腕力{amount}。相手を変えると数え直しになる。",
    "grammar": "攻撃"
   },
   "spread_cut": {
@@ -10855,7 +10855,7 @@
    "kind": "active",
    "definitionId": "spread_cut",
    "label": "散らし斬り",
-   "effect": "同じ相手を続けて狙っていないときだけ腕力135%。二の太刀とは同時に成立しない。",
+   "effect": "同じ相手を続けて狙っていないときだけ腕力{amount}。二の太刀とは同時に成立しない。",
    "grammar": "攻撃"
   },
   "opening_stab": {
@@ -10863,7 +10863,7 @@
    "kind": "active",
    "definitionId": "opening_stab",
    "label": "先の一刺し",
-   "effect": "1ラウンド目だけ腕力185%。2ラウンド目からは通常攻撃へ戻る。",
+   "effect": "1ラウンド目だけ腕力{amount}。2ラウンド目からは通常攻撃へ戻る。",
    "grammar": "攻撃"
   },
   "bloodied_charge": {
@@ -10871,7 +10871,7 @@
    "kind": "active",
    "definitionId": "bloodied_charge",
    "label": "手負いの突撃",
-   "effect": "自分のHPが50%以下のときだけ腕力205%。「無理を通す」（60%以上）の裏。",
+   "effect": "自分のHPが50%以下のときだけ腕力{amount}。「無理を通す」（60%以上）の裏。",
    "grammar": "攻撃"
   },
   "hamstring": {
@@ -10879,7 +10879,7 @@
    "kind": "active",
    "definitionId": "hamstring",
    "label": "足を払う",
-   "effect": "腕力85%と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージが1段につき8軽くなる。",
+   "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージが1段につき8軽くなる。",
    "grammar": "攻撃"
   },
   "execute_low": {
@@ -10887,7 +10887,7 @@
    "kind": "active",
    "definitionId": "execute_low",
    "label": "首を落とす",
-   "effect": "HP30%以下の敵がいるときだけ腕力200%。対象がいなければスキップ。",
+   "effect": "HP30%以下の敵がいるときだけ腕力{amount}。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
   "rend": {
@@ -10895,7 +10895,7 @@
    "kind": "active",
    "definitionId": "rend",
    "label": "抉る",
-   "effect": "腕力95%と「裂傷」2つ。裂傷はラウンド終わりに1段12、受けを完全に無視して刻む。",
+   "effect": "腕力{amount}と「裂傷」2つ。裂傷はラウンド終わりに1段12、受けを完全に無視して刻む。",
    "grammar": "攻撃"
   },
   "drag_forward": {
@@ -10911,7 +10911,7 @@
    "kind": "active",
    "definitionId": "shield_wall",
    "label": "盾の列",
-   "effect": "前列の味方**全員**へ技術70%のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
+   "effect": "前列の味方**全員**へ技術{amount}のラウンド防壁。一人へ厚く張る「傷へ盾を」の面展開。",
    "grammar": "守り"
   },
   "rally_line": {
@@ -10927,7 +10927,7 @@
    "kind": "active",
    "definitionId": "bulwark_of_will",
    "label": "意地の壁",
-   "effect": "**開幕2ラウンドだけ**、自分へ最大HPの10%の戦闘中防壁。技術ではなく体で張る。",
+   "effect": "**開幕2ラウンドだけ**、自分へ最大HPの{amount}の戦闘中防壁。技術ではなく体で張る。",
    "grammar": "守り"
   },
   "spread_the_guard": {
@@ -10943,7 +10943,7 @@
    "kind": "active",
    "definitionId": "bracing_thrust",
    "label": "受けながらの突き",
-   "effect": "腕力105%を出しつつ、自分に「守勢」を1つ。攻守を両取りするぶん威力は控えめ。",
+   "effect": "腕力{amount}を出しつつ、自分に「守勢」を1つ。攻守を両取りするぶん威力は控えめ。",
    "grammar": "攻撃"
   },
   "field_dressing": {
@@ -10951,7 +10951,7 @@
    "kind": "active",
    "definitionId": "field_dressing",
    "label": "まとめて手当て",
-   "effect": "HP50%以下の味方**全員**へ技術60%のラウンド防壁。対象がいなければスキップ。",
+   "effect": "HP50%以下の味方**全員**へ技術{amount}のラウンド防壁。対象がいなければスキップ。",
    "grammar": "支援"
   },
   "steady_breath": {
@@ -10975,7 +10975,7 @@
    "kind": "active",
    "definitionId": "precise_cut",
    "label": "静かな一手",
-   "effect": "このラウンド一度も被弾していないときだけ、技術150%。技なので後列からでも落ちない。",
+   "effect": "このラウンド一度も被弾していないときだけ、技術{amount}。技なので後列からでも落ちない。",
    "grammar": "攻撃"
   },
   "sustaining_ward": {
@@ -10983,7 +10983,7 @@
    "kind": "active",
    "definitionId": "sustaining_ward",
    "label": "長く守る",
-   "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ技術90%の戦闘中防壁。薄いが消えない。",
+   "effect": "**開幕2ラウンドだけ**、最も傷ついた味方へ技術{amount}の戦闘中防壁。薄いが消えない。",
    "grammar": "支援"
   },
   "cleansing_step": {
@@ -11031,7 +11031,7 @@
    "kind": "active",
    "definitionId": "flurry_finish",
    "label": "刻み止め",
-   "effect": "最も弱った敵へ30%を5回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
+   "effect": "最も弱った敵へ{amount}を{hits}回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
    "grammar": "攻撃"
   },
   "mark_spread": {
@@ -11047,7 +11047,7 @@
    "kind": "active",
    "definitionId": "shatter_point",
    "label": "積もる刻印",
-   "effect": "「隙」1段につき45を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
+   "effect": "「隙」1段につき{amount}を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
    "grammar": "攻撃"
   },
   "take_the_wound": {
@@ -11071,7 +11071,7 @@
    "kind": "reactive",
    "definitionId": "counter_blow",
    "label": "反撃",
-   "effect": "敵に殴られたあと、RP1で攻撃者へ腕力の50%ダメージ。",
+   "effect": "敵に殴られたあと、RP1で攻撃者へ腕力の{amount}ダメージ。",
    "grammar": "被弾"
   },
   "cover_ally": {
@@ -11087,7 +11087,7 @@
    "kind": "reactive",
    "definitionId": "overflow_care",
    "label": "余剰治療",
-   "effect": "自分が行った回復の余剰を、RP1で別の負傷者へそのまま回す。回復手段を選ばない。",
+   "effect": "自分が行った回復の余剰の{amount}を、RP1で別の負傷者へ回す。回復手段を選ばない。",
    "grammar": "回復"
   },
   "scavenge_ap": {
@@ -11103,7 +11103,7 @@
    "kind": "reactive",
    "definitionId": "guard_step",
    "label": "踏み固め",
-   "effect": "移動したあと、技術の50%のラウンド防壁を得る。",
+   "effect": "移動したあと、技術の{amount}のラウンド防壁を得る。",
    "grammar": "移動"
   },
   "urging": {
@@ -11119,7 +11119,7 @@
    "kind": "reactive",
    "definitionId": "brace_after_hit",
    "label": "受け流し",
-   "effect": "被弾後、RP1で技術の50%のラウンド防壁を得る。",
+   "effect": "被弾後、RP1で技術の{amount}のラウンド防壁を得る。",
    "grammar": "被弾"
   },
   "triage_relay": {
@@ -11127,7 +11127,7 @@
    "kind": "reactive",
    "definitionId": "triage_relay",
    "label": "連携治療",
-   "effect": "応急手当の余剰だけをRP1で別の負傷者へ125%回す。条件は狭いが、連携時の量が大きい。",
+   "effect": "応急手当の余剰だけをRP1で別の負傷者へ{amount}回す。条件は狭いが、連携時の量が大きい。",
    "grammar": "回復"
   },
   "block_focus": {
@@ -11151,7 +11151,7 @@
    "kind": "reactive",
    "definitionId": "mend",
    "label": "手当て",
-   "effect": "誰かが被弾した直後、RP1でその被弾量の25%を返す。同じ一撃を二重には治せない。",
+   "effect": "誰かが被弾した直後、RP1でその被弾量の{amount}を返す。同じ一撃を二重には治せない。",
    "grammar": "回復"
   },
   "triage": {
@@ -11159,7 +11159,7 @@
    "kind": "reactive",
    "definitionId": "triage",
    "label": "応急手当",
-   "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の50%を返す。自分は対象にしない。",
+   "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の{amount}を返す。自分は対象にしない。",
    "grammar": "回復"
   },
   "emergency_treatment": {
@@ -11167,7 +11167,7 @@
    "kind": "reactive",
    "definitionId": "emergency_treatment",
    "label": "応急処置",
-   "effect": "自分が被弾した直後、RP1でその被弾量の33%を返す。",
+   "effect": "自分が被弾した直後、RP1でその被弾量の{amount}を返す。",
    "grammar": "回復"
   },
   "spill_forward": {
@@ -11175,7 +11175,7 @@
    "kind": "reactive",
    "definitionId": "spill_forward",
    "label": "余波を回す",
-   "effect": "過剰ダメージが出たあと、RP1で最も弱った敵へ腕力の30%。掃除役へ回る。",
+   "effect": "過剰ダメージが出たあと、RP1で最も弱った敵へ腕力の{amount}。掃除役へ回る。",
    "grammar": "撃破"
   },
   "blocked_into_step": {
@@ -11215,7 +11215,7 @@
    "kind": "reactive",
    "definitionId": "wake_of_the_fallen",
    "label": "倒したあと",
-   "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ技術の100%の防壁。",
+   "effect": "敵が倒れたあと、RP1で最も傷ついた味方へ技術の{amount}の防壁。",
    "grammar": "撃破"
   },
   "whetted_by_pain": {
@@ -11231,7 +11231,7 @@
    "kind": "reactive",
    "definitionId": "shield_handoff",
    "label": "受けの受け渡し",
-   "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ技術の75%の防壁。",
+   "effect": "受け構えで一撃を止めたあと、RP1で最も傷ついた味方へ技術の{amount}の防壁。",
    "grammar": "防御"
   },
   "patient_step": {
@@ -11263,7 +11263,7 @@
    "kind": "reactive",
    "definitionId": "opportunist",
    "label": "隙に応じる",
-   "effect": "敵に「隙」が付いた瞬間、RP1で腕力45%。誰が付けた隙でも読む。",
+   "effect": "敵に「隙」が付いた瞬間、RP1で腕力{amount}。誰が付けた隙でも読む。",
    "grammar": "状態"
   },
   "vengeful_step": {
@@ -11271,7 +11271,7 @@
    "kind": "reactive",
    "definitionId": "vengeful_step",
    "label": "意趣返し",
-   "effect": "味方が倒れたあと、RP1で最前の敵へ腕力60%。戦闘中2回まで。",
+   "effect": "味方が倒れたあと、RP1で最前の敵へ腕力{amount}。戦闘中2回まで。",
    "grammar": "撃破"
   },
   "finish_the_wounded": {
@@ -11279,7 +11279,7 @@
    "kind": "reactive",
    "definitionId": "finish_the_wounded",
    "label": "止めを促す",
-   "effect": "敵がHP25%以下まで削られた一撃のあと、RP1でその敵へ腕力55%。自分の一撃でなくてよい。",
+   "effect": "敵がHP25%以下まで削られた一撃のあと、RP1でその敵へ腕力{amount}。自分の一撃でなくてよい。",
    "grammar": "撃破"
   },
   "absorb_shock": {
@@ -11287,7 +11287,7 @@
    "kind": "reactive",
    "definitionId": "absorb_shock",
    "label": "衝撃を殺す",
-   "effect": "自分に飛んでくるダメージを、RP1で12減らす。ラウンド1回。大きい一撃ほど割合では小さい。",
+   "effect": "自分に飛んでくるダメージを、RP1で{amount}減らす。ラウンド1回。大きい一撃ほど割合では小さい。",
    "grammar": "被弾"
   },
   "guard_the_marked": {
@@ -11303,7 +11303,7 @@
    "kind": "reactive",
    "definitionId": "last_stand",
    "label": "背水",
-   "effect": "被弾してHP30%以下になったとき、RP1で技術150%のラウンド防壁。戦闘に1回きり。",
+   "effect": "被弾してHP30%以下になったとき、RP1で技術{amount}のラウンド防壁。戦闘に1回きり。",
    "grammar": "被弾"
   },
   "counterweight": {
@@ -11311,7 +11311,7 @@
    "kind": "reactive",
    "definitionId": "counterweight",
    "label": "支え直す",
-   "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ技術50%のラウンド防壁。",
+   "effect": "**自分以外の味方**が動いたあと、RP1でその味方へ技術{amount}のラウンド防壁。",
    "grammar": "移動"
   },
   "shared_pain": {
@@ -11319,7 +11319,7 @@
    "kind": "reactive",
    "definitionId": "shared_pain",
    "label": "痛みを分ける",
-   "effect": "味方が被弾した直後、RP1と自分のHP30を払って、その被弾量の50%を返す。",
+   "effect": "味方が被弾した直後、RP1と自分のHP30を払って、その被弾量の{amount}を返す。",
    "grammar": "回復"
   },
   "watchful_care": {
@@ -11383,7 +11383,7 @@
    "kind": "reactive",
    "definitionId": "echo_of_the_mark",
    "label": "刻印の残響",
-   "effect": "敵の「隙」が消えた瞬間、RP1で腕力50%。刈り取っても、自然に消えても起きる。",
+   "effect": "敵の「隙」が消えた瞬間、RP1で腕力{amount}。刈り取っても、自然に消えても起きる。",
    "grammar": "状態"
   },
   "stagger_relay": {
@@ -22988,7 +22988,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -23307,7 +23307,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -23615,7 +23615,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -23856,7 +23856,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -24058,7 +24058,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -24233,7 +24233,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 503,
       "rarity": "common",
@@ -24460,7 +24460,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -24654,7 +24654,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -24848,7 +24848,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -25128,7 +25128,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 1104,
       "rarity": "epic",
@@ -25389,7 +25389,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -25667,7 +25667,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -25924,7 +25924,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -26141,7 +26141,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 104,
       "rarity": "epic",
@@ -26392,7 +26392,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -26682,7 +26682,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -26896,7 +26896,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -27176,7 +27176,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -27446,7 +27446,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -27673,7 +27673,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 514,
       "rarity": "rare",
@@ -27892,7 +27892,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -28072,7 +28072,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -28285,7 +28285,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -28523,7 +28523,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -28758,7 +28758,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -28938,7 +28938,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -29199,7 +29199,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -29545,7 +29545,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -29839,7 +29839,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -30055,7 +30055,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 504,
       "rarity": "common",
@@ -30266,7 +30266,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -30452,7 +30452,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -30662,7 +30662,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -30898,7 +30898,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -31116,7 +31116,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -31297,7 +31297,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-14",
+      "contentContractVersion": "ecology-content-contract-15",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

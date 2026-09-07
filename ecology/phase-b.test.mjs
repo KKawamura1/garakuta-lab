@@ -29,6 +29,13 @@ import {
   packOfSkill,
   skillIdsForPacks,
   skillLevelCap,
+  // issue #148 — 説明文の数字を、いまのレベルの値で読む。
+  skillLevelValueSteps,
+  skillTextAtLevel,
+  skillTextIssues,
+  ACTIVE_META,
+  REACTIVE_META,
+  PASSIVE_META,
 } from "./content/index.mjs";
 import {
   SKILL_TREE_NODES,
@@ -392,6 +399,88 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     firstDamage(strong) > firstDamage(plain),
     `Lv7 の予測が Lv1 より重い（${firstDamage(plain)} → ${firstDamage(strong)}）`,
   );
+  checks += 1;
+}
+
+// ---- 変動量と固定量（issue #148）--------------------------------------------------
+//
+// **技能が持つ数のうち、レベルで伸びるのは一つだけ。**説明文はその数を書かず、
+// `{amount}` と書いて定義を指す。だから「係数を変えたのに説明文が旧値のまま」も
+// 「伸びない数（発動条件・後列減衰）まで一緒に伸ばす」も、起こしようがない。
+{
+  const definitionOf = (id) => PLAYABLE_CONTENT.activeSkills[id]
+    ?? PLAYABLE_CONTENT.reactiveSkills[id] ?? PLAYABLE_CONTENT.passiveSkills[id];
+  const metaOf = (id) => ACTIVE_META[id] ?? REACTIVE_META[id] ?? PASSIVE_META[id];
+  const textOf = (id, level) => skillTextAtLevel(metaOf(id)[1], definitionOf(id), level);
+
+  // 変動量は定義側にただ一つ。**本文には数字が無い。**
+  check(
+    ACTIVE_META.steady_cut[1].includes("{amount}") && !/130/.test(ACTIVE_META.steady_cut[1]),
+    `説明文は変動量を数字で持たない（${ACTIVE_META.steady_cut[1]}）`,
+  );
+  equal(
+    textOf("steady_cut", 1),
+    "条件も準備もない、腕力130%の一撃。武器なので後列から出すと40%まで落ちる。",
+    "Lv1 は定義の係数がそのまま入る",
+  );
+  equal(
+    textOf("steady_cut", 2),
+    "条件も準備もない、腕力146%の一撃。武器なので後列から出すと40%まで落ちる。",
+    "Lv2 で変動量だけが 130% → 146% になり、後列減衰の 40% は動かない",
+  );
+  check(textOf("execute_low", 3).includes("HP30%以下"), "発動条件の閾値は固定量なので動かない");
+
+  // 多段は「1段ぶんを丸めてから段数を掛ける」。段数も定義から引くので食い違わない。
+  const barrage = textOf("barrage_strike", 2);
+  check(
+    barrage.includes("50%を3回") && barrage.includes("合計150%"),
+    `多段の1段ぶん・段数・合計が食い違わない（${barrage}）`,
+  );
+
+  // 単位は定義の amount 型が決める。**本文は % を書かない。**
+  check(textOf("absorb_shock", 2).includes("13減らす"), "固定量の amount は % を付けずに入る");
+  check(textOf("emergency_treatment", 2).includes("37%"), "被弾量に対する割合も同じ差し込み口で入る");
+
+  // 「1点で何がどうなるか」も、同じ変動量から出す。
+  assert.deepEqual(
+    skillLevelValueSteps(ACTIVE_META.steady_cut[1], definitionOf("steady_cut"), 1),
+    [{ from: "130%", to: "146%" }],
+    "1点ぶんの変化を数字で出せる",
+  );
+  checks += 1;
+
+  // **全技能ぶんの不変条件。**差し込み口がそのまま画面へ出る／レベルで伸びる量が
+  // 本文のどこにも出ない／伸びる量を数字で直接書いた、のどれも通さない。
+  const broken = [];
+  for (const [section, meta] of [
+    ["activeSkills", ACTIVE_META], ["reactiveSkills", REACTIVE_META], ["passiveSkills", PASSIVE_META],
+  ]) {
+    for (const [id, definition] of Object.entries(PLAYABLE_CONTENT[section] ?? {})) {
+      if (!meta[id]) continue;
+      const issues = skillTextIssues(String(meta[id][1]), definition);
+      if (issues.length) broken.push(id + ": " + issues.join(" / "));
+      // 差し込み口が残ったまま画面に出ることは無い。
+      if (/\{(amount|total|hits)\}/.test(skillTextAtLevel(meta[id][1], definition, 3))) {
+        broken.push(id + ": 差し込み口が埋まらないまま表示される");
+      }
+    }
+  }
+  assert.deepEqual(broken, [], "説明文と定義の対応が壊れている技能:\n  " + broken.join("\n  "));
+  checks += 1;
+
+  // レベルを持つ技能は、必ず本文が動く。**点を払って何も変わらない技能を作らない。**
+  const inert = [];
+  for (const [section, meta] of [
+    ["activeSkills", ACTIVE_META], ["reactiveSkills", REACTIVE_META], ["passiveSkills", PASSIVE_META],
+  ]) {
+    for (const [id, definition] of Object.entries(PLAYABLE_CONTENT[section] ?? {})) {
+      if (!meta[id] || skillLevelCap(definition) <= 1) continue;
+      if (skillTextAtLevel(meta[id][1], definition, 2) === skillTextAtLevel(meta[id][1], definition, 1)) {
+        inert.push(id);
+      }
+    }
+  }
+  assert.deepEqual(inert, [], "Lv を上げても説明文が動かない技能: " + inert.join(", "));
   checks += 1;
 }
 

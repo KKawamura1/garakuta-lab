@@ -107,7 +107,58 @@ for (const target of callTargets) {
   problems.push(`${target}() を呼んでいるが、定義も import もどこにも無い（踏んだ瞬間に ReferenceError）`);
 }
 
-// 4. 参照点。**片側だけでなく、鳴ることも確かめられる形にしておく。**
+// 4. 予測と本番の入力が、同じ一箇所から出ていること（issue #148）。
+//
+//    engine を共有していても、**呼び出し側が違う options を渡せば予測と本番はずれる。**
+//    実際に起きた壊れ方がそれで、本番だけ技能レベル（skillLevelsFor）を渡していない
+//    期間があり、「予測どおりに強くならない」「予測と結果が合わない」が同時に出た
+//    （PR #156）。engine 側の単体テストは両方とも通る——ずれは app.js の
+//    **呼び出し2箇所のあいだ**にあるからである。だからここで、その2箇所が同じ
+//    options 組み立てを通っていることだけを見る。
+const forecastCall = source.match(/previewNextBattle\s*\(([\s\S]*?)\);/);
+const productionCall = source.match(/simulateExpeditionBattle\s*\(([\s\S]*?)\);/);
+if (!forecastCall || !productionCall) {
+  console.error("ecology-screens smoke: 予測と本番の呼び出しを見つけられなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+const OPTIONS_BUILDER = "expeditionBattleOptions";
+if (!source.includes("function " + OPTIONS_BUILDER)) {
+  problems.push(`予測と本番が共有する options 組み立て ${OPTIONS_BUILDER}() が無い`);
+}
+if (!forecastCall[1].includes(OPTIONS_BUILDER)) {
+  problems.push(`戦闘予測（previewNextBattle）が ${OPTIONS_BUILDER}() を通っていない`
+    + "（予測だけ違う入力で走る）");
+}
+if (!productionCall[1].includes(OPTIONS_BUILDER)) {
+  problems.push(`本番（simulateExpeditionBattle）が ${OPTIONS_BUILDER}() を通っていない`
+    + "（本番だけ違う入力で走る）");
+}
+// 本番が足してよいのは、結果を変えない再生用オプションだけ。
+const extraInProduction = productionCall[1]
+  .replace(/[\s\S]*expeditionBattleOptions\s*\([^)]*\),/, "")
+  .replace(/[{})\s,]/g, "");
+if (extraInProduction && extraInProduction !== "simulationOptions:captureReplaySnapshots:true") {
+  problems.push("本番だけが余分な戦闘入力を渡している: " + extraInProduction);
+}
+
+// 5. 予測 cache の鍵が、戦闘が読む欄を数え落としていないこと。
+//    数え落とすと「変えたのに予測が動かない」になり、予測が壊れているのか
+//    変わらないのかを画面から区別できない。
+const forecastKeyBody = source.match(/function forecastKey\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/);
+if (!forecastKeyBody) {
+  console.error("ecology-screens smoke: forecastKey() を見つけられなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+for (const field of [
+  "runSeed", "difficulty", "roster", "formation", "loadout", "currentHp",
+  "runSkillLevels", "runUnlockedSkills", "equipmentDurability", "partySize",
+]) {
+  if (!forecastKeyBody[1].includes(field)) {
+    problems.push(`forecastKey() が ${field} を数えていない（変えても予測が古いまま残る）`);
+  }
+}
+
+// 6. 参照点。**片側だけでなく、鳴ることも確かめられる形にしておく。**
 //    存在しない名前を混ぜたら必ず引っかかることを、ここで自己確認する。
 if (defined.has("__surely_missing__")) {
   console.error("ecology-screens smoke: 参照点が壊れている。");
