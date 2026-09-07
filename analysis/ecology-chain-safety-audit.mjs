@@ -384,8 +384,8 @@ function auditResourceTrace(events) {
     }
 
     transferEvents += 1;
-    const key = poolKey(event, resource);
-    const pool = spendPools.get(key) ?? [];
+    const spendKey = poolKey(event, resource);
+    const pool = spendPools.get(spendKey) ?? [];
     const remaining = consumeSpend(pool, amount);
     const roundKey = roundResourceKey(event, resource);
     fundedTransferTotals.set(roundKey, (fundedTransferTotals.get(roundKey) ?? 0) + amount);
