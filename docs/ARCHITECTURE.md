@@ -147,3 +147,12 @@ reward / rarity weight、技能点価格、power budget は調律可能な soft 
 - 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
 - D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。
 - 作者のプレイ結果を推測で補わず、未確認として止める。
+
+
+## 9. UI表示の責務
+
+`app.js` の通常画面は、主見出し、現在の選択対象、次の操作の順で構成する。装飾的な英語副見出し、
+常設の一般説明、同じタブへ戻るNEXT/QUICK LINKSは画面の主操作から外し、必要なルールを
+`details.help-details` のタップ式ヘルプへ置く。`helpOpen` が開閉状態を保持するため、同じ画面の
+再描画でも読んでいた詳細は閉じない。戦闘のプレイヤー向け履歴は「戦闘履歴」、全イベントと診断は
+その中の「技術ログ」に分ける。表示整理は予測・本番・報酬・精算の計算経路を変更しない。
