@@ -22,7 +22,7 @@ import {
   SKILL_PACKS,
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
-import { freshLoadout, makeBattle } from "./playable-battles.mjs";
+import { freshLoadout, makeExpeditionBattle } from "./playable-battles.mjs";
 import {
   ACTIVATION_CAP_BATTLE,
   AP_LOOP_BATTLE,
@@ -58,14 +58,31 @@ const TERMINATION_FIXTURE_IDS = Object.freeze([
   "prep_spiral",
 ]);
 
+// issue #130 wants five real enemies to stress the event budget against, not
+// a particular expedition stage — the enemy list below is fixed here rather
+// than read from content/expedition.mjs, so this regression never shifts
+// with expedition balance changes (issue #173).
+const ISSUE_130_ENEMIES = Object.freeze([
+  { instanceId: "e_core", enemyActorId: "ash_core", position: "front_left" },
+  { instanceId: "e_breaker", enemyActorId: "gray_breaker", position: "front_center" },
+  { instanceId: "e_shelter", enemyActorId: "gray_shelter", position: "front_right" },
+  { instanceId: "e_stalker", enemyActorId: "gray_stalker", position: "rear_left" },
+  { instanceId: "e_swarm", enemyActorId: "gray_swarm", position: "rear_right" },
+]);
+
 function issue130StressBattle() {
   const roster = ["warden", "mender", "lancer", "guardian", "tactician"];
   const loadout = freshLoadout(roster);
   const reactiveIds = ["counter_blow", "guard_step", "urging", "scavenge_ap"];
   for (const characterId of roster) loadout.reactives[characterId] = [...reactiveIds];
 
-  const battle = makeBattle(
-    7,
+  const composed = {
+    index: "issue130",
+    maxRounds: 11,
+    enemies: ISSUE_130_ENEMIES.map((enemy) => ({ ...enemy, stats: {}, mutations: [] })),
+  };
+  const battle = makeExpeditionBattle(
+    composed,
     roster,
     loadout,
     "issue_130_event_budget",

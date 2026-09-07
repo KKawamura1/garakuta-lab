@@ -3,9 +3,11 @@
 // **敵本文の正本：狙いの説明文（ENEMY_TARGETING）、噂（ENEMY_LORE）、図鑑
 // （ENEMY_CODEX）。**遠征の敵配置そのもの（何区画で何体をどう並べるか）は
 // `content/expedition.mjs` の `EXPEDITION_ENCOUNTERS`（3幕12戦）が正本で、
-// 全経路がそちらを読む。旧7区画の敵配置は issue #173 で
-// `ecology/fixture-stage-encounters.mjs` へ移した（テスト2箇所だけが読む
-// fixture）。ここに敵配置は無い。
+// 全経路がそちらを読む。旧7区画の敵配置（`ENCOUNTERS`）は issue #173 で削除した。
+// 唯一の読み手だった二つのテストは、それぞれ自前の入力を持つよう書き換えた
+// （`ecology/termination.test.mjs` は固定の5体、
+// `analysis/ecology-equipment-gen-smoke.mjs` は実際の EXPEDITION_ENCOUNTERS）。
+// ここに敵配置は無い。
 //
 // engine・schema・共通registryは変更しない。
 

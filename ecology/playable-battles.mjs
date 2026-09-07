@@ -15,9 +15,6 @@ import {
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
-// issue #173 — 7区画の旧 encounter は fixture。遠征の正本は
-// content/expedition.mjs の EXPEDITION_ENCOUNTERS（makeExpeditionBattle が読む）。
-import { STAGE_FIXTURE_ENCOUNTERS } from "./fixture-stage-encounters.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
@@ -393,23 +390,6 @@ export function installComponent(loadout, componentId, characterId, limitsFor) {
   return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
 }
 
-// issue #173 — fixture-only. termination.test.mjs と
-// analysis/ecology-equipment-gen-smoke.mjs だけが（makeBattle 経由で）読む。
-// 本編は composeEncounter / makeExpeditionBattle の12戦経路を使う。
-export function encounterInfo(stage) {
-  return STAGE_FIXTURE_ENCOUNTERS[Math.max(0, Math.min(STAGE_FIXTURE_ENCOUNTERS.length - 1, stage - 1))];
-}
-
-export function encounterLabel(stage) {
-  return encounterInfo(stage).name;
-}
-
-export function stageRule(stage) {
-  if (stage <= 1) return "初期構成を組んで、敵の狙いを確認する";
-  if (stage <= 3) return "報酬を一つ拾い、技能と装備を再配置する";
-  return "傷と装備消耗を抱えたまま、次の問いに答える";
-}
-
 export function enemyTargetingText(enemyActorId) {
   return ENEMY_TARGETING[enemyActorId] ?? "前列を優先して狙う。";
 }
@@ -471,7 +451,7 @@ function usableTactics(ids) {
 }
 
 // 味方1人ぶんの battle input。**編成・技能・装備・鍛錬をここでだけ組む。**
-// 7区画の試作（makeBattle）と12戦の遠征（makeExpeditionBattle）が同じ関数を通る。
+// makeExpeditionBattle（prologue も12戦の遠征もこれを呼ぶ）が唯一の呼び先。
 function allyInput(characterId, position, loadout, options = {}) {
   const option = characterById[characterId];
   const content = options.content ?? PLAYABLE_CONTENT;
@@ -518,40 +498,6 @@ function allyInput(characterId, position, loadout, options = {}) {
     equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })));
   if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(ceiling, hp));
   return ally;
-}
-
-// issue #173 — fixture-only battle builder over STAGE_FIXTURE_ENCOUNTERS
-// (7 legacy stages). Shares allyInput with makeExpeditionBattle so the
-// fixture and the real 12戦経路 assemble allies identically, but the board
-// itself is a fixture: only termination.test.mjs and
-// analysis/ecology-equipment-gen-smoke.mjs call this.
-export function makeBattle(
-  stage,
-  rosterIds = ["warden", "mender", "lancer", "guardian", "tactician"],
-  loadout = freshLoadout(rosterIds),
-  seed = RUN_SEED,
-  formation = {},
-  persistent = {},
-) {
-  const encounter = encounterInfo(stage);
-  const selected = rosterIds.filter((characterId) => characterById[characterId]).slice(0, PARTY_SIZE);
-  // **置き場所の規則は normalizeFormation にしかない。**ここで別に決めると、
-  // 画面が見せている隊列と戦闘に入る隊列がずれる。
-  const placed = normalizeFormation(formation, selected);
-  const allies = selected.map((characterId) => allyInput(
-    characterId,
-    placed[characterId] ?? characterById[characterId].defaultPosition,
-    loadout,
-    { hp: persistent.hp, equipmentDurability: persistent.equipmentDurability, limitsFor: persistent.limitsFor, statsFor: persistent.statsFor },
-  ));
-  return {
-    schemaVersion: BATTLE_SCHEMA_VERSION,
-    battleId: "frontier_" + String(seed).replace(/[^a-z0-9_]/gi, "_") + "_stage_" + stage,
-    maxRounds: encounter.maxRounds,
-    objective: { type: "eliminate_all_enemies" },
-    allies,
-    enemies: clone(encounter.enemies),
-  };
 }
 
 // R6 §5.1 / §11 — PHASE B. 12戦の遠征の一戦。
@@ -647,11 +593,6 @@ export function loadoutSummary(loadout, rosterIds) {
     reactives: loadout.reactives?.[characterId] ?? [],
     equipment: loadout.equipment?.[characterId] ?? [],
   }));
-}
-
-// issue #173 — fixture-only, mirrors encounterInfo above.
-export function allEncounters() {
-  return clone(STAGE_FIXTURE_ENCOUNTERS);
 }
 
 // ============================================================ 次戦 exact preview（R8 §11）
