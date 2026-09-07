@@ -85,16 +85,18 @@ pack は `primary_offense` / `offensive_hybrid` / `support` の役割を宣言�
 anti-stall は「敵が生きているまま待つと持越しが改善しない」を見る。これとは別に、
 反応を増やす前に次の六つを機械検査する。
 
-1. AP/RP の `gain_resource` は、行動の AP または有限の支払いと結び付く。資源を読む
-   rule が資源を返す場合は RP1 と `battle/1` を必須にし、event trace でも
-   `resource_gained` の直結再生成に途中の `resource_spent` があるかを見る。
+1. AP/RP の `gain_resource` は、行動の AP または有限の支払いと結び付く。監査は
+   actor × resource × round の差分表を作り、明示された `resource_spent` を容量トークンとして
+   transfer に一度だけ割り当てる。資源を読む rule が資源を返す場合は RP1 と `battle/1` を
+   必須にし、直結再生成、同じ spend の二重割当、移送総量が支出を超える入力を落とす。
 2. 同じ owner の同じ rule は、同じ chain の同じ trigger では一度だけ。別の技能を
    一律に止めるのではなく、rule ID と owner の組で記録する。
 3. `lose_hp` が発生させる `damage_taken` には `event_tag(cost=false)` を明記し、
    被弾回復・反撃・生成装備が自傷支払いを敵の hit として読まない。
 4. `excess_healing` の量は同じ `healing_proposed` 配下の `healing_applied` の
    `requested - actual` から来て、同じ overflow が一つの chain で二度消費されない。
-   元の回復量を上限として黙って二重利用しない。
+   元の回復量を上限として黙って二重利用しない。event trace では overflow の直下の
+   `ruleId` を downstream consumer として一意化し、複数 consumer も拒否する。
 5. rule の limit は、`limit.owner: actor-instance + rule` で実行主体を宣言し、時間単位
    （chain / round / battle）と有限 count を必ず宣言する。装備でも生成装備でも同じ。
 6. chain/battle の安全 cap は診断用の非常口であり、通常の anti-stall の主張ではない。
