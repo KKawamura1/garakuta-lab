@@ -96,14 +96,23 @@ for (const stage of CAMPAIGN_STAGES) {
       if (campaignGroup.depth > fullGroup.depth) {
         problems.push(lastStage.id + ": " + fullGroup.label + "ツリーの深さが全体を超えている");
       }
-      const fullFinalIds = new Set(
-        fullGroup.rows
-          .filter((row) => row.x === fullGroup.depth)
-          .map((row) => row.skillId),
-      );
+      const fullFinalRows = fullGroup.rows.filter((row) => row.x === fullGroup.depth);
+      const fullFinalIds = new Set(fullFinalRows.map((row) => row.skillId));
       const reachableFinalIds = [...fullFinalIds].filter((skillId) => available.has(skillId));
       if (kind === "active" && !reachableFinalIds.length) {
         problems.push(lastStage.id + ": " + fullGroup.label + "ツリーの全体最終到達点へ届く節が無い");
+      }
+      if (kind === "reactive") {
+        // 反応側は未導入 pack の最終到達点を将来の境界として残し、その直前の親まで
+        // campaign から辿れることを確認する。境界の列番号はデータから導出する。
+        const futureFinalRows = fullFinalRows.filter((row) => !available.has(row.skillId));
+        const hasReachableFrontier = futureFinalRows.some(
+          (row) => row.parentKey && available.has(row.parentKey),
+        );
+        if (!hasReachableFrontier) {
+          problems.push(lastStage.id + ": " + fullGroup.label
+            + "ツリーの未導入の最終到達点へつながる campaign の境界が無い");
+        }
       }
     }
   }
