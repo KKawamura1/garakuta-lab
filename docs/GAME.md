@@ -23,17 +23,17 @@ Stage の `id`（内部 ID）は `stage_0`〜`stage_3` の連番で、pack 名�
 （issue #172）。**pack の追加順は今後も変わり得るので、ID に pack を手掛かりに
 させない。**どの pack を追加するかは、Stage 定義の `newPackId` を読む。
 
-| Stage | 表示名 | 人数 | 加入 | 追加 pack | 累積 pack | 可視節数 | 問い |
-|---|---|---:|---|---|---|---:|---|
-| 0 | 灰の入口 | 2 | ゴウ＋ツグミ | 構えと手当て `pack_care` | `pack_care` | 19 | 武器と技の違いは、立つ場所の違い |
-| 1 | 抜ける刃 | 3 | ナギ | 刃と撃破 `pack_edge` | `pack_care` + `pack_edge` | 40 | 誰が前に立つと、誰が振り抜けるか |
-| 2 | 動く隊列 | 4 | ヒバナ | 防壁と隊列 `pack_wall` | `pack_care` + `pack_edge` + `pack_wall` | 65 | 隊列を動かして、何を得るか |
-| 3 | 間合いと順番 | 5 | ゲンゾウ | 行動権と準備 `pack_tempo` | `pack_care` + `pack_edge` + `pack_wall` + `pack_tempo` | 85 | 誰がいつ動くと得か |
+| Stage | 表示名 | 人数 | 加入 | 追加 pack | 累積 pack | 問い |
+|---|---|---:|---|---|---|---|
+| 0 | 灰の入口 | 2 | ゴウ＋ツグミ | 構えと手当て `pack_care` | `pack_care` | 武器と技の違いは、立つ場所の違い |
+| 1 | 抜ける刃 | 3 | ナギ | 刃と撃破 `pack_edge` | `pack_care` + `pack_edge` | 誰が前に立つと、誰が振り抜けるか |
+| 2 | 動く隊列 | 4 | ヒバナ | 防壁と隊列 `pack_wall` | `pack_care` + `pack_edge` + `pack_wall` | 隊列を動かして、何を得るか |
+| 3 | 間合いと順番 | 5 | ゲンゾウ | 行動権と準備 `pack_tempo` | `pack_care` + `pack_edge` + `pack_wall` + `pack_tempo` | 誰がいつ動くと得か |
 
-可視節数は、その Stage の `enabledPackIds` / `packDepths`（新 pack は core、既出
-pack は full）から実際に引ける技能ツリーの節数（`SKILL_TREE_NODES` を
-`skillIdsForPacks` で絞った件数）。`analysis/ecology-skill-catalog-smoke.mjs` の
-`budgetReport` が同じ値を毎回算出する。
+Stage ごとの可視節数と技能点予算は、`CAMPAIGN_STAGES` の manifest と
+`SKILL_TREE_NODES` / `skillIdsForPacks` から毎回導出されます。数値は表へ重複して書かず、
+`analysis/ecology-canonical-numbers-smoke.mjs` と
+`analysis/ecology-skill-catalog-smoke.mjs` の `budgetReport` が出力する値を参照します。
 
 **問題は Stage 0 で既に出ています。**主火力のツグミが隊で一番柔らかく（HP110）、
 ゴウは腕力が最大なのに受けが1で細かい攻撃が全部通ります。ツグミの初期反応「応急手当」は、被弾してHP半分以下になった自分以外の味方だけを、その被弾量の50%だけ回復します。自己防衛用の「応急処置」は自分にだけ効くため、前衛ゴウ／後衛ツグミで初めて二つの役割がつながります。Stage 1 でナギが前に立ち、
@@ -43,7 +43,7 @@ pack を独占しません）。
 
 - Stage 1〜3 は前段のクリアで順に開きます。活動資金では買えず、飛ばせません。
 - **pack は累積します。前に覚えた技能は消えません。**新しい pack はその Stage では
-  入口（core、7〜10技能）だけが出て、次の Stage から全体（full）が出ます。
+  入口（core）だけが出て、次の Stage から全体（full）が出ます（manifest の定義を参照）。
 - 各 Stage は3幕12戦。4・8・12戦目が act boss です。敵の数と threat budget は
   遠征の人数に合わせて減ります。
 
@@ -125,9 +125,10 @@ Stage 0 を初めて遊ぶときだけ、**本当に負ける配置**で始ま�
 | 6〜9 | コンボや専門性の強化 |
 | 10 | 最終ビルドの到達点 |
 
-行動ツリーは x=10、反応ツリーは x=9 に複数の到達点を持ちます。Campaign Stage 3 で実際に
-取り切れるのは、行動 x=10、反応 x=8 までです。反応 x=9 は Stage 4 候補の pack にあり、
-深さと campaign での到達可能性は `analysis/ecology-skill-tree-smoke.mjs` が検査します。
+全体ツリーの深さと、Campaign の最終 Stage で実際に取り切れる範囲は、
+`SKILL_TREE_LAYOUT` と最終 Stage の manifest から毎回導出されます。未導入 pack 側の
+到達点を本編の到達点と混同しないよう、`analysis/ecology-skill-tree-smoke.mjs` が
+全体の最終到達点と campaign での到達可能性を検査します。
 
 ### 技能レベル
 

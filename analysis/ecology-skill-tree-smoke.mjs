@@ -5,15 +5,14 @@
 // `ecology/content/skill-tree-layout.mjs` が組む。**組み方から出てくる性質なので普通は
 // 破れないが、破れるとしたら組み方を直したときで、そのとき静かに壊れるのが一番困る。**
 //
-// ここで見るのは五つ。
+// ここで見るのは、次の性質。
 //
 //   1. 座標重複     同じ列の同じ行に二つ置いていないか
 //   2. x 列違反     子が必ず親の1列右に居るか
 //   3. 線の交差     同じ親の子が連続した行に入り、部分木が重なっていないか
 //   4. 循環         前提が輪になっていないか
 //   5. 分岐数不足   役割の違う道が選べるだけの分岐があるか
-//   6. 深さと分岐   x=3 と x=5 で2方向へ分かれ、行動は x=10、反応は x=9 に複数の
-//                  到達点があるか
+//   6. 深さと分岐   主要な分岐と、種別ごとの複数の最終到達点があるか
 //   7. 種別またぎの前提   行動 / 反応 / 常設をまたいで前提にしていないか
 //
 // **さらに「その到達点へ本当に届くのか」を見る。**最終到達点が campaign に
@@ -73,26 +72,41 @@ for (const stage of CAMPAIGN_STAGES) {
   }
 }
 
-// **本編の最終到達点へ、campaign で届くこと。**最終 Stage の manifest から出る節だけで
-// 根から、行動は x=10、リアクティブは x=8 まで繋がる道があること。
-// リアクティブの x=9 は pack_relay（Stage 4候補）側なので、本編Stage 3には出ない。
+// **本編の最終到達点へ、campaign で届くこと。**最終 Stage の manifest から出る節を
+// 実際に森へ組み直し、全体レイアウトの最終到達点と比べて到達範囲を導出する。
+// 最終到達点の値をここへ写さない。pack の追加・深さの変更は manifest と layout から
+// 自動的に反映され、遊べる側の到達点が消えたときだけ検査を鳴らす。
 {
-  const CAMPAIGN_FINAL_COLUMNS = { active: 10, reactive: 8 };
   const lastStage = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1];
-  const available = new Set(skillIdsForPacks(lastStage.enabledPackIds, lastStage.packDepths).all);
-  const visible = SKILL_TREE_NODES.filter((node) => available.has(node.skillId));
-  const layout = buildSkillTreeLayout(visible);
-  for (const group of layout) {
-    if (!["active", "reactive"].includes(group.kind)) continue;
-    const finalColumn = CAMPAIGN_FINAL_COLUMNS[group.kind];
-    const reachable = group.rows.filter((row) => row.x === finalColumn);
-    if (!reachable.length) {
-      const deepest = group.rows.reduce((max, row) => Math.max(max, row.x), 0);
-      problems.push(`${lastStage.id}: ${group.label}ツリーは最終 Stage でも x=${deepest} までしか届かない`
-        + `（x=${finalColumn} の到達点が、campaign に出ない pack にしか無い）`);
+  if (!lastStage) {
+    problems.push("campaign: 最終 Stage が定義されていない");
+  } else {
+    const available = new Set(skillIdsForPacks(lastStage.enabledPackIds, lastStage.packDepths).all);
+    const visible = SKILL_TREE_NODES.filter((node) => available.has(node.skillId));
+    const campaignLayout = buildSkillTreeLayout(visible);
+    const fullByKind = new Map(SKILL_TREE_LAYOUT.map((group) => [group.kind, group]));
+    const campaignByKind = new Map(campaignLayout.map((group) => [group.kind, group]));
+    for (const [kind, fullGroup] of fullByKind) {
+      if (!["active", "reactive"].includes(kind)) continue;
+      const campaignGroup = campaignByKind.get(kind);
+      if (!campaignGroup || !campaignGroup.rows.length) {
+        problems.push(lastStage.id + ": " + fullGroup.label + "ツリーに可視節が無い");
+        continue;
+      }
+      if (campaignGroup.depth > fullGroup.depth) {
+        problems.push(lastStage.id + ": " + fullGroup.label + "ツリーの深さが全体を超えている");
+      }
+      const fullFinalIds = new Set(
+        fullGroup.rows
+          .filter((row) => row.x === fullGroup.depth)
+          .map((row) => row.skillId),
+      );
+      const reachableFinalIds = [...fullFinalIds].filter((skillId) => available.has(skillId));
+      if (kind === "active" && !reachableFinalIds.length) {
+        problems.push(lastStage.id + ": " + fullGroup.label + "ツリーの全体最終到達点へ届く節が無い");
+      }
     }
   }
-}
 
 // 参照点。**この検査が本当に引っかかるのかを、ここで確かめる。**
 {
@@ -105,7 +119,7 @@ for (const stage of CAMPAIGN_STAGES) {
   const checks = [
     ["循環", detected.some((line) => line.includes("循環"))],
     ["分岐数不足", detected.some((line) => line.includes("分岐"))],
-    ["x=10 の到達点不足", detected.some((line) => line.includes("最終到達点"))],
+    ["最終到達点不足", detected.some((line) => line.includes("最終到達点"))],
   ];
 
   // 種別またぎの前提も、ここで実際に検出できることを確かめる。

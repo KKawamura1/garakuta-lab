@@ -239,9 +239,10 @@ export const PASSIVE_META = passiveMeta;
 // 順番は baseline → 構えと手当て → 刃と撃破 → 防壁と隊列 → 行動権と準備 で、
 // 同じ pack の中では core（入口）が先、full が後である。
 //
-// **campaign で、行動は x=10、リアクティブは x=8 まで届く道を通す。**届かない到達点は
-// 設計図であって、遊べる形ではない。行動ツリーは「薙ぎ払い」（防壁と隊列 full ＝
-// Stage 3）、反応ツリーは「手当てを備えへ」まで、実際に取り切れる。
+// **campaign で、本編の最終 Stage まで到達できる道を各ツリーに通す。**
+// 全体の深さと最終 Stage での到達範囲は、SKILL_TREE_LAYOUT と manifest から導出し、
+// analysis/ecology-skill-tree-smoke.mjs が検査する。届かない到達点は設計図であって、
+// 遊べる形ではない。本編に出ない pack の節は、将来の Stage 候補として分けて扱う。
 
 // issue #168（#165 段階1）— **前提は「その技能を持っているか」ではなく
 // 「その技能が Lv いくつか」で書く。**
@@ -508,10 +509,10 @@ const PASSIVE_FOREST = [
   node("foundation_rp"),  // foundation_rp
 ];
 
-// **値段は深さそのものが決める。**1節 1点で、行動 x=10 の到達点までは 9点、
-// リアクティブ x=9 の到達点までは 8点かかる（遠征1回で配られる技能点とほぼ同じ）。
-// baseline の入口だけ 0点で、
-// 誰でも最初から一つは出せる（R6 §5.2 の詰み防止）。
+// **値段は深さそのものが決める。**節の解禁コストと、到達点までの必要点は
+// content の技能点ルールから導出する（analysis/ecology-skill-catalog-smoke.mjs の
+// budgetReport を参照）。baseline の入口は詰み防止のため無償で、誰でも最初から
+// 一つは出せる（R6 §5.2 の詰み防止）。
 const FREE_ENTRY_SKILL_IDS = new Set([
   ...BASELINE_ACTIVE_SKILL_IDS,
   ...BASELINE_REACTIVE_SKILL_IDS,
