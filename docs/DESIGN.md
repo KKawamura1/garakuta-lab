@@ -284,9 +284,10 @@ pack に居ると「画面に出ているのに永久に解禁できない節」
 baseline → 構えと手当て → 刃と撃破 → 防壁と隊列 → 行動権と準備 で、同じ pack の中では
 core（入口）が先、full が後である。
 
-**届かない到達点を作らない。** x=10 の節が campaign に出ない pack にしか無いなら、それは
-設計図であって遊べる形ではない。行動ツリーと反応ツリーには、最終 Stage までに実際に
-取り切れる x=10 の道を一本ずつ通し、`analysis/ecology-skill-tree-smoke.mjs` が見る。
+**届かない到達点を、本編の最終 Stage の到達点として扱わない。** 本編に出ない pack の節は
+設計図として明示する。現行の全体ツリーでは、行動ツリーは x=10、反応ツリーは x=9 が最深で、
+Campaign Stage 3 で取り切れる道はそれぞれ x=10 と x=8 まで。反応 x=9 は Stage 4 候補の pack にある。
+この深さと campaign での到達可能性は `analysis/ecology-skill-tree-smoke.mjs` が見る。
 
 **取得済み技能の前提は、必ず取得済みである。** starter が x=5 の節なら、そこまでの道も
 一緒に開く（`initialUnlockedSkills` が前提の閉包を取る）。線を辿れるようにしたのに、
