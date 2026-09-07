@@ -1,0 +1,8 @@
+# 早期主要発見（/root/audit）
+
+- `ecology/content/skill-tree.mjs` 現行 `SKILL_TREE_NODES` は **118**（active 58 / reactive 43 / passive 17）。ランタイム `skills-active.mjs` は内部/fixture 8件を含むため active定義 66、プレイヤー向けは58。各ノード cost はほぼ1SP。無料入口は active `strike`,`bulwark` と reactive `mend`。passive foundation 6件は c1（無料扱いではない）。
+- 前提は同kindのみ。action rootは strike/bulwark、reactive rootは mend、passiveは6 foundation。`x`最大は active10（3 endpoint）、reactive9（x10なし）、passive3。`docs/GAME.md`/`docs/DESIGN.md`の「active/reactive双方x10」は現状と矛盾。
+- `campaign-stages.mjs` は Stage0〜3のみ、pack開放は 1→2→3→4（care; care+edge; +wall; +tempo）。manifest可視ノード数は各段階 active/reactive/passive = **6/6/7 → 17/14/9 → 33/21/11 → 43/29/13**（計19→40→65→85）。barrage(12), relay(15), tempo未解放分(6)など計33 tree node/skill が現行Campaign Stage3でも未到達。全6packは自由/Endless `newProfile` manifest候補には入る。
+- `progression.mjs`/`app.js`: 遠征開始SP **0**、通常の勝利1回ごとに現行 roster 全員へ **+1**（12戦なら終了時12、最終戦前11）。SPはRun内のみで終了時消滅。joinRunで新加入者へ追加点なし（absent key→0）だが初期技能/前提閉包は無料自動解放。`skill-levels.mjs` は連続量系のみMAX Lv10、Lvごと+12%、レベル/解放とも1SP、上限10、返還なし。AP/RP/hit/limit/durabilityはレベル成長しない。
+- 旧issueとの区別: #150（SP再設計）、#165（全面再設計）はopenで現行課題。#107本文の123技能/34未到達は旧記録で現行計測と違う。#137はclosed履歴（x10要件等）だがreactive x10未達・cross-kind bridgeは現行仕様と不一致。`content/index.mjs` R19の「123節」は現行118と矛盾。
+- `docs/GAME.md`/`docs/DESIGN.md`の現行制約: deterministic seed/content; 3acts/12 battles; 5人まで; stage cumulative packs + new core; no skill/equipment farming/stall; baseline fallback strike and pure utility 50% follow-up; event/predicate/cost/effect shared vocab; gear grammar trigger→conditions→cost→effects→limit→durability/charge; full equipment readout; no hidden auto enemy stat growth; enemies vary axes and never require a specific skill; no complete upper upgrades without tradeoff.
