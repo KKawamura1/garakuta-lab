@@ -18,7 +18,7 @@
 | smoke | 見るもの |
 |---|---|
 | `ecology-anti-stall-audit.mjs` | 回復・反応の停止性監査 |
-| `ecology-chain-safety-audit.mjs` | AP/RP循環、再発火、自傷コスト、過剰回復、制限宣言を静的定義・event trace・生成装備で監査 |
+| `ecology-chain-safety-audit.mjs` | AP/RPの actor・resource・round 収支と一回限りの移送割当、再発火、自傷コスト、過剰回復consumer、制限宣言を静的定義・event trace・生成装備で監査 |
 | `ecology-contract-smoke.mjs` | content 契約と凍結 ID の照合 |
 | `ecology-equipment-gen-smoke.mjs` | 装備の手続き生成の決定性と完結性 |
 | `ecology-readout-smoke.mjs` | 表示値と content の照合 |
