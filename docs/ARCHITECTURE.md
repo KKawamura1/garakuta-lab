@@ -155,7 +155,7 @@ Campaign Stage の ID は `NAMED_SECTIONS` に含まれずこの照合の対象�
   反応・連鎖の安全性は `analysis/ecology-chain-safety-audit.mjs` が、到達可能な技能・
   固定／生成装備の定義と代表的な event trace を別に検査する。AP/RP の受け渡しと生成、
   同じ owner/rule の chain 内再発火、自傷コスト由来の `damage_taken`、過剰回復の
-  元 amount／親子関係、rule の owner・scope・count を個別に見る。chain/battle cap
+  元 amount／親子関係、rule の limit.owner・scope・count を個別に見る。chain/battle cap
   到達は正常停止の証拠として数えず、既存の anti-stall（持越しHP・物資・装備）とも
   別の検査結果として報告する。
 - D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。

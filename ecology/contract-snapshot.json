@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.13",
+ "contentVersion": "ecology-playable-full-0.14",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.13",
+  "contentVersion": "ecology-playable-full-0.14",
   "characters": {
    "warden": {
     "id": "warden",
@@ -3817,7 +3817,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -3879,7 +3880,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -3950,7 +3952,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -3997,7 +4000,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4046,7 +4050,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4125,7 +4130,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4184,7 +4190,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4262,7 +4269,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4310,7 +4318,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     },
@@ -4361,7 +4370,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     },
@@ -4424,7 +4434,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4497,7 +4508,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4586,7 +4598,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4649,7 +4662,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4712,7 +4726,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4766,7 +4781,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4828,7 +4844,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4881,7 +4898,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -4946,7 +4964,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5011,7 +5030,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5071,7 +5091,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5129,7 +5150,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5190,7 +5212,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5253,7 +5276,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5326,7 +5350,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5392,7 +5417,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 2
+      "count": 2,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5476,7 +5502,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5525,7 +5552,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5600,7 +5628,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5665,7 +5694,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5736,7 +5766,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5820,7 +5851,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5898,7 +5930,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -5952,7 +5985,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6002,7 +6036,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6060,7 +6095,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6116,7 +6152,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6173,7 +6210,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6225,7 +6263,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6297,7 +6336,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6361,7 +6401,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6417,7 +6458,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6481,7 +6523,8 @@
      ],
      "limit": {
       "scope": "chain",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      }
     },
     "tags": [
@@ -6565,7 +6608,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6599,7 +6643,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6637,7 +6682,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6693,7 +6739,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6738,7 +6785,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6783,7 +6831,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6823,7 +6872,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6880,7 +6930,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6927,7 +6978,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -6973,7 +7025,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -7029,7 +7082,8 @@
      ],
      "limit": {
       "scope": "battle",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -7080,7 +7134,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -7125,7 +7180,8 @@
      ],
      "limit": {
       "scope": "round",
-      "count": 1
+      "count": 1,
+      "owner": "actor-instance + rule"
      },
      "priority": 100
     }
@@ -7173,7 +7229,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7237,7 +7294,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7297,7 +7355,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7337,7 +7396,8 @@
       ],
       "limit": {
        "scope": "battle",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7388,7 +7448,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7421,7 +7482,8 @@
       "effects": [],
       "limit": {
        "scope": "battle",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      },
      {
@@ -7452,7 +7514,8 @@
       "effects": [],
       "limit": {
        "scope": "battle",
-       "count": 99
+       "count": 99,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7492,7 +7555,8 @@
       ],
       "limit": {
        "scope": "battle",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7532,7 +7596,8 @@
       ],
       "limit": {
        "scope": "battle",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7581,7 +7646,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7630,7 +7696,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7679,7 +7746,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7730,7 +7798,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7782,7 +7851,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7834,7 +7904,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7899,7 +7970,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -7963,7 +8035,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8023,7 +8096,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8083,7 +8157,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8123,7 +8198,8 @@
       ],
       "limit": {
        "scope": "battle",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8177,7 +8253,8 @@
       ],
       "limit": {
        "scope": "battle",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8233,7 +8310,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8299,7 +8377,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8353,7 +8432,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8407,7 +8487,8 @@
       ],
       "limit": {
        "scope": "battle",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8456,7 +8537,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8512,7 +8594,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      },
      {
@@ -8556,7 +8639,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      },
      {
@@ -8600,7 +8684,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8650,7 +8735,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8701,7 +8787,8 @@
       ],
       "limit": {
        "scope": "chain",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],
@@ -8746,7 +8833,8 @@
       ],
       "limit": {
        "scope": "round",
-       "count": 1
+       "count": 1,
+       "owner": "actor-instance + rule"
       }
      }
     ],

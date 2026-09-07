@@ -95,7 +95,7 @@ anti-stall は「敵が生きているまま待つと持越しが改善しない
 4. `excess_healing` の量は同じ `healing_proposed` 配下の `healing_applied` の
    `requested - actual` から来て、同じ overflow が一つの chain で二度消費されない。
    元の回復量を上限として黙って二重利用しない。
-5. rule の limit は、実行主体を `actor-instance + rule` として読める形で、時間単位
+5. rule の limit は、`limit.owner: actor-instance + rule` で実行主体を宣言し、時間単位
    （chain / round / battle）と有限 count を必ず宣言する。装備でも生成装備でも同じ。
 6. chain/battle の安全 cap は診断用の非常口であり、通常の anti-stall の主張ではない。
    持越し HP・物資・装備の検査は `ecology-anti-stall-audit.mjs` に残し、二つの結果を

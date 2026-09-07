@@ -79,7 +79,7 @@ function ruleRecordsFrom(section, definitions, include = () => true) {
         section,
         definitionId,
         path: `${section}.${definitionId}.${rule.id ?? "<missing-id>"}`,
-        ownerBasis: "actor-instance + rule",
+        ownerBasis: rule.limit?.owner ?? null,
         rule,
       });
     }
@@ -162,6 +162,7 @@ function collectContent(bundle) {
 
 function isFiniteLimit(limit) {
   return Boolean(limit)
+    && LIMIT_OWNER_BASES.has(limit.owner)
     && ["chain", "round", "battle"].includes(limit.scope)
     && Number.isSafeInteger(limit.count)
     && limit.count >= 1;
@@ -258,10 +259,15 @@ function auditLimits(rules) {
   const scopeCounts = { chain: 0, round: 0, battle: 0 };
   for (const record of rules) {
     rows.push({ path: record.path, owner: record.ownerBasis, scope: record.rule.limit?.scope });
-    if (LIMIT_OWNER_BASES.has(record.ownerBasis)) {
-      if (scopeCounts[record.rule.limit?.scope] !== undefined) scopeCounts[record.rule.limit.scope] += 1;
-    } else {
-      violations.push(`${record.path}: limit owner basis is unreadable`);
+    if (!LIMIT_OWNER_BASES.has(record.ownerBasis)) {
+      violations.push(`${record.path}: limit owner basis is missing or unreadable`);
+    }
+    if (record.rule.limit?.owner !== record.ownerBasis) {
+      violations.push(`${record.path}: limit.owner must explicitly declare ${record.ownerBasis ?? "<missing>"}`);
+    }
+    if (LIMIT_OWNER_BASES.has(record.ownerBasis)
+      && scopeCounts[record.rule.limit?.scope] !== undefined) {
+      scopeCounts[record.rule.limit.scope] += 1;
     }
     if (!isFiniteLimit(record.rule.limit)) {
       violations.push(`${record.path}: limit must declare owner=${record.ownerBasis}, unit, and finite count`);
@@ -271,30 +277,109 @@ function auditLimits(rules) {
 }
 
 function auditResourceTrace(events) {
-  const byId = new Map(events.map((event) => [event.id, event]));
+  const ordered = [...events].sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+  const byId = new Map(ordered.map((event) => [event.id, event]));
   const violations = [];
+  const balances = new Map();
+  const transferDeltas = new Map();
   let resourceEvents = 0;
-  for (const event of events) {
-    if (event.type !== "resource_gained") continue;
+  let transferEvents = 0;
+  let creationEvents = 0;
+
+  const actorIdOf = (event) => event.targetActorIds?.length === 1
+    ? event.targetActorIds[0]
+    : null;
+  const balanceKey = (event, resource, actorId) => (
+    `${event.round ?? 0}|${resource}|${actorId ?? "~actor"}`
+  );
+  const transferKey = (event, resource) => (
+    `${event.chainId ?? "~chain"}|${event.round ?? 0}|${resource}|${event.sourceActorId ?? "~source"}`
+  );
+
+  for (const event of ordered) {
+    if (event.type !== "resource_spent" && event.type !== "resource_gained") continue;
     resourceEvents += 1;
-    if (!RESOURCE_TYPES.has(event.values?.resource) || !(event.values?.amount > 0)) {
-      violations.push(`${event.id}: malformed positive resource_gained`);
+    const resource = event.values?.resource;
+    const amount = event.values?.amount;
+    const before = event.values?.before;
+    const after = event.values?.after;
+    const targetActorId = actorIdOf(event);
+    if (!RESOURCE_TYPES.has(resource) || !(Number.isFinite(amount) && amount > 0)) {
+      violations.push(`${event.id}: malformed positive resource event`);
+      continue;
     }
+    if (!(Number.isFinite(before) && Number.isFinite(after))) {
+      violations.push(`${event.id}: resource event must expose before/after balances`);
+    } else {
+      const expectedAfter = event.type === "resource_spent"
+        ? before - amount
+        : before + amount;
+      if (after !== expectedAfter) {
+        violations.push(`${event.id}: resource before/after does not match amount`);
+      }
+    }
+    if (!targetActorId) {
+      violations.push(`${event.id}: resource event must have exactly one target actor`);
+    }
+
+    const key = balanceKey(event, resource, targetActorId);
+    balances.set(key, (balances.get(key) ?? 0)
+      + (event.type === "resource_spent" ? -amount : amount));
+
+    if (event.type === "resource_spent") continue;
     const parent = byId.get(event.parentEventId);
-    if (parent?.type !== "resource_gained" || parent.chainId !== event.chainId) continue;
-    const hasSpendBetween = events.some((candidate) => (
-      candidate.chainId === event.chainId
-      && candidate.type === "resource_spent"
-      && candidate.sequence > parent.sequence
-      && candidate.sequence < event.sequence
-    ));
-    if (!hasSpendBetween) {
-      violations.push(`${event.id}: resource_gained directly re-created resource without an intervening spend`);
+    if (parent?.type === "resource_gained" && parent.chainId === event.chainId) {
+      const hasSpendBetween = ordered.some((candidate) => (
+        candidate.chainId === event.chainId
+        && candidate.type === "resource_spent"
+        && candidate.values?.resource === resource
+        && candidate.sequence > parent.sequence
+        && candidate.sequence < event.sequence
+      ));
+      if (!hasSpendBetween) {
+        violations.push(`${event.id}: resource_gained directly re-created resource without an intervening spend`);
+      }
+    }
+
+    const sourceActorId = event.sourceActorId ?? null;
+    const matchingSpend = ordered
+      .filter((candidate) => (
+        candidate.chainId === event.chainId
+        && candidate.type === "resource_spent"
+        && candidate.values?.resource === resource
+        && candidate.sourceActorId === sourceActorId
+        && candidate.sequence < event.sequence
+      ))
+      .reduce((total, candidate) => total + (candidate.values?.amount ?? 0), 0);
+
+    const isTransfer = sourceActorId
+      && targetActorId
+      && sourceActorId !== targetActorId
+      && matchingSpend >= amount;
+    if (isTransfer) {
+      transferEvents += 1;
+      const key = transferKey(event, resource);
+      transferDeltas.set(key, (transferDeltas.get(key) ?? 0) + amount);
+    } else {
+      creationEvents += 1;
+      if (sourceActorId && targetActorId && sourceActorId !== targetActorId
+        && matchingSpend > 0 && matchingSpend < amount) {
+        violations.push(`${event.id}: resource transfer exceeds the source spend (${matchingSpend} < ${amount})`);
+      }
     }
   }
-  return { resourceEvents, violations };
-}
 
+  for (const [key, amount] of transferDeltas) {
+    if (!(amount > 0)) violations.push(`${key}: resource transfer total is not positive`);
+  }
+  return {
+    resourceEvents,
+    transferEvents,
+    creationEvents,
+    actorResourceRoundDeltas: Object.fromEntries(balances),
+    violations,
+  };
+}
 function auditRefiring(events) {
   const byId = new Map(events.map((event) => [event.id, event]));
   const groups = new Map();
@@ -470,6 +555,7 @@ for (const [label, battle] of traceCases) {
   check(result.metrics.maxChainEventCount < DEFAULT_OPTIONS.maxEventsPerChain, `${label}: below chain cap`);
   check(result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle, `${label}: below battle cap`);
   check(auditRefiring(result.events).violations.length === 0, `${label}: same owner/rule re-fired`);
+  check(auditResourceTrace(result.events).violations.length === 0, `${label}: resource ledger is conserved`);
 }
 
 // Fixture content above is intentionally unsafe. Production content uses
@@ -477,14 +563,15 @@ for (const [label, battle] of traceCases) {
 // from the player bundle, so replaying those fixture inputs against production
 // would test a skill that players cannot equip.
 const productionRoster = ["warden", "mender", "lancer"];
-const productionTraceCases = [
-  ["playable battle", makeExpeditionBattle(
-    composeEncounter(1, 0, { partySize: productionRoster.length }),
+const productionTraceCases = Array.from({ length: 12 }, (_, index) => [
+  `playable battle ${index + 1}`,
+  makeExpeditionBattle(
+    composeEncounter(index + 1, 0, { partySize: productionRoster.length }),
     productionRoster,
     freshLoadout(productionRoster),
-    "issue-175",
-  )],
-];
+    `issue-175-${index + 1}`,
+  ),
+]);
 for (const [label, battle] of productionTraceCases) {
   const result = simulateBattle(battle, PLAYABLE_CONTENT);
   check(["win", "loss", "draw"].includes(result.result), `${label}: player bundle normal result`);
@@ -508,6 +595,28 @@ check(apTraceAudit.resourceEvents > 0, "AP loop witness emitted resource events"
 check(apTraceAudit.violations.length > 0, "free resource relay is detected from its trace");
 check(auditRefiring(apTrace.events).violations.length === 0, "AP loop still obeys one trigger per owner/rule/chain");
 check(auditRefiring(traceWithDuplicateRuleTrigger(apTrace.events)).violations.length > 0, "duplicate rule trigger is detected");
+
+const validTransferTrace = [
+  {
+    id: "valid_spend", type: "resource_spent", chainId: "valid-transfer",
+    round: 1, sequence: 1, sourceActorId: "source", targetActorIds: ["source"],
+    values: { resource: "action_points", amount: 1, before: 1, after: 0 },
+  },
+  {
+    id: "valid_gain", type: "resource_gained", chainId: "valid-transfer",
+    round: 1, sequence: 2, sourceActorId: "source", targetActorIds: ["ally"],
+    values: { resource: "action_points", amount: 1, before: 0, after: 1 },
+    parentEventId: "valid_spend",
+  },
+];
+check(auditResourceTrace(validTransferTrace).violations.length === 0, "conserving resource transfer is accepted");
+
+const invalidTransferTrace = structuredClone(validTransferTrace);
+invalidTransferTrace[1] = {
+  ...invalidTransferTrace[1],
+  values: { resource: "action_points", amount: 2, before: 0, after: 2 },
+};
+check(auditResourceTrace(invalidTransferTrace).violations.length > 0, "net-positive resource transfer is detected");
 
 // Self-damage must not be a hidden hit. The bad bundle is expected to heal from
 // its own lose_hp event; the guarded bundle must keep that reaction silent.

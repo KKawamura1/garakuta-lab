@@ -471,7 +471,7 @@ function limitOf(draft, rule) {
     ), 0);
     count += EFFECT_LIMIT_BONUS[RARITIES[maxEffectIndex]] ?? 0;
   }
-  return { scope: rule.limit.scope, count };
+  return { owner: "actor-instance + rule", scope: rule.limit.scope, count };
 }
 
 function displayNameOf(draft, itemId) {

@@ -13,7 +13,7 @@
 ## 2. 検査の中身
 
 `bash analysis/check-all.sh` は、`ecology/` の構文検査 → `node ecology/check.mjs`
-（`ecology/*.test.mjs`）→ smoke 9本を順に走らせます。
+（`ecology/*.test.mjs`）→ smoke 11本を順に走らせます。
 
 | smoke | 見るもの |
 |---|---|
