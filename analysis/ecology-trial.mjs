@@ -143,6 +143,7 @@ try {
   const investText = await bodyText();
   note("ギルド投資の画面がある", /資金を使う/.test(investText));
   note("鍛錬に費用と現在値が出る", /仲間を鍛える/.test(investText) && /基礎/.test(investText));
+  note("初期SPアップが永続強化に出る", /初期SPアップ/.test(investText));
   note("投資の取り消し不可が分かる", /購入は取り消せません/.test(investText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
 
