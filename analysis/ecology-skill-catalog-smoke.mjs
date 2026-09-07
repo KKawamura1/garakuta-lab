@@ -321,7 +321,7 @@ const reachable = new Set(skillIdsForPacks(lastStage.enabledPackIds, lastStage.p
 const reachableNodes = SKILL_TREE_NODES.filter((node) => reachable.has(node.skillId)).length;
 console.log(
   `ecology-skill-catalog smoke: 節 ${SKILL_TREE_NODES.length}件`
-  + `（行動 ${counts.active}・反応 ${counts.reactive}・常設 ${counts.passive}）— `
+  + `（アクティブ ${counts.active}・リアクティブ ${counts.reactive}・パッシブ ${counts.passive}）— `
   + `定義・パック・説明文・前提（技能IDと必要Lv）が揃っている。`
   + `最終 Stage（${lastStage.id}）から引けるのは ${reachableNodes}件。`
   + `技能点は一遠征 ${runSkillPointBudget}点で ${budgetReport.join("・")}`,

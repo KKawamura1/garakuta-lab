@@ -21,7 +21,7 @@
 //
 // ## 三つのツリー
 //
-// 節は種別（行動 / 反応 / 常設）で三つのツリーに分かれる。AP を払う行動と RP を払う
+// 節は種別（アクティブ / リアクティブ / パッシブ）で三つのツリーに分かれる。AP を払う行動と RP を払う
 // 反応が同じ枝に混ざっていると、「どっちの資源を伸ばす話なのか」が読めないためである。
 //
 // **前提は必ず同じ種別の中に置く。**種別をまたぐ前提（旧 R19 の「橋渡し」）は
@@ -36,23 +36,23 @@ import { SKILL_TREE_NODES, requiredSkillIds } from "./skill-tree.mjs";
 // ---------------------------------------------------------------- 表示語彙
 
 // **三つのツリー。**順番は「まず何を出すか（行動）→ 相手の手に何を返すか（反応）→
-// いつでも効く土台（常設）」。
+// いつでも効く土台（パッシブ）」。
 export const SKILL_TREE_GROUPS = Object.freeze([
   Object.freeze({
     kind: "active",
-    label: "行動",
+    label: "アクティブ",
     resource: "AP",
     summary: "自分の手番で出す。上から順に、出せる最初の一つを試す。",
   }),
   Object.freeze({
     kind: "reactive",
-    label: "反応",
+    label: "リアクティブ",
     resource: "RP",
     summary: "相手や味方の出来事へ割り込む。同じ出来事は上から順に発火する。",
   }),
   Object.freeze({
     kind: "passive",
-    label: "常設",
+    label: "パッシブ",
     resource: "—",
     summary: "資源を払わずいつでも効く。土台と、読みの補助。",
   }),
@@ -243,8 +243,8 @@ export const SKILL_TREE_LAYOUT = buildSkillTreeLayout(SKILL_TREE_NODES);
 // 出来上がった森に対して外から見る受け皿である。
 // analysis/ecology-skill-tree-smoke.mjs が呼び、鳴ることも確かめてある。
 
-// 分岐（子を2つ以上持つ節）の下限。**行動と反応は、役割の違う道が選べないと意味が無い。**
-// 常設は前提を持たない棚（詰み防止の基礎訓練）なので分岐も深さも求めない。
+// 分岐（子を2つ以上持つ節）の下限。**アクティブとリアクティブは、役割の違う道が選べないと意味が無い。**
+// パッシブは前提を持たない棚（詰み防止の基礎訓練）なので分岐も深さも求めない。
 const MIN_FORKS = { active: 2, reactive: 2, passive: 0 };
 
 // issue #137 §深さと分岐 — **x=3 と x=5 で主要ルートが2方向以上へ分かれ、
@@ -255,7 +255,7 @@ const MIN_FORKS = { active: 2, reactive: 2, passive: 0 };
 const FORK_COLUMNS = [3, 5];
 const FINAL_COLUMNS = Object.freeze({ active: 10, reactive: 9 });
 const MIN_FINAL_NODES = 2;
-// 深さを求めるツリー。常設は棚なので外す。
+// 深さを求めるツリー。パッシブは棚なので外す。
 const DEEP_KINDS = new Set(["active", "reactive"]);
 // 複数前提の合流は特別な連携技能に限る。**普通の派生に混ぜない。**
 const MAX_MERGE_NODES = 8;

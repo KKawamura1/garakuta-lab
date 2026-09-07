@@ -198,7 +198,7 @@ try {
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
 
   // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
-  note("行動／反応／常設を切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
+  note("アクティブ／リアクティブ／パッシブを切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
   note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-lines path").count() > 0);
   await page.locator('[data-action="select-skill-kind"][data-kind="reactive"]').click();
   await page.waitForTimeout(150);
