@@ -64,6 +64,7 @@ import {
   difficultyDef,
   expeditionEncounter,
   skillIdsForPacks,
+  unmetPrerequisites,
 } from "./content/index.mjs";
 
 export { PROFILE_SCHEMA_VERSION, RUN_SCHEMA_VERSION, MANIFEST_VERSION, MAX_CAMPAIGN_STAGE_SEQUENCE };
@@ -699,6 +700,8 @@ export function newRun(profile, options = {}) {
     // R19（issue #137）— 取得済み技能のレベル。**取得＝Lv1** なので、ここに欄が
     // 無い技能は Lv1 として読む（旧 save がそのまま動く）。
     runSkillLevels: { ...(options.skillLevels ?? {}) },
+    // issue #168 — 技能点を配り終えた encounter の鍵。**retry でも二度配らない。**
+    grantedSkillPointKeys: [],
     loadout: options.loadout ?? null,
     // R15 — 固定の初期装備は持たせない。出発前に明示的に選んだ Blueprint だけを持ち込む。
     inventory: carried.map((item) => item.definition.id),
@@ -749,6 +752,44 @@ export function grantRunSkillPointsToAll(run, amount = RUN_SKILL_POINTS_PER_REWA
   return next;
 }
 
+// ---------------------------------------------------------------- 勝利ごとの付与（issue #168）
+//
+// **いくら配るかは、ここ一つで決まる。**以前は app.js が勝利のたびに
+// `grantRunSkillPointsToAll(run)` を直接呼んでいたので、
+//
+//   - 戦いの種別（通常 / 精鋭 / boss）で量を変える場所が無く、
+//   - **同じ encounter を二度勝つと二度配れた**（活動資金 ledger は
+//     `recordEncounterCleared` で一度きりなのに、技能点だけ素通しだった）。
+//
+// 鍵は活動資金と同じ `region:index` にする。retry でも巻き戻しでも、
+// 一つの encounter から出る技能点は一度きりである。
+//
+// **量は現行のまま（どの種別も1点）。**曲線そのもの（boss を2点にする等）は
+// #165 で比較中の未決事項で、この issue では触らない。表だけ先に一箇所へ寄せる。
+export const SKILL_POINTS_PER_CLEAR = Object.freeze({
+  normal: RUN_SKILL_POINTS_PER_REWARD,
+  elite: RUN_SKILL_POINTS_PER_REWARD,
+  boss: RUN_SKILL_POINTS_PER_REWARD,
+});
+
+export function skillPointsForClear(kind) {
+  return SKILL_POINTS_PER_CLEAR[kind] ?? RUN_SKILL_POINTS_PER_REWARD;
+}
+
+export function skillPointClearKeys(run) {
+  return Array.isArray(run?.grantedSkillPointKeys) ? run.grantedSkillPointKeys : [];
+}
+
+// 戻り値の `granted` は「いま配ったか」。二度目は false で、run は変わらない。
+export function grantRunSkillPointsForClear(run, index) {
+  const key = `${run.regionId}:${index}`;
+  const keys = skillPointClearKeys(run);
+  const amount = skillPointsForClear(expeditionEncounter(index)?.kind);
+  if (keys.includes(key)) return { run, amount, granted: false };
+  const next = grantRunSkillPointsToAll(run, amount);
+  return { run: { ...next, grantedSkillPointKeys: [...keys, key] }, amount, granted: true };
+}
+
 // 遠征内の解禁。**manifest が有効にした技能しか解禁できない。**
 export function unlockRunSkill(run, characterId, node) {
   if (!node) return { ok: false, reason: "その技能が見つかりません。" };
@@ -758,8 +799,17 @@ export function unlockRunSkill(run, characterId, node) {
   }
   const unlocked = run.runUnlockedSkills?.[characterId] ?? [];
   if (unlocked.includes(node.skillId)) return { ok: false, reason: "すでに解禁されています。" };
-  if (!node.requires.every((required) => unlocked.includes(required))) {
-    return { ok: false, reason: "前提技能がまだ解禁されていません。" };
+  // issue #168 — 前提は Lv まで見る。判定は content/skill-tree.mjs の一箇所を通る
+  // （画面の「前提待ち」・加入時の無償閉包も同じ関数を読む）。
+  const unmet = unmetPrerequisites(node, (skillId) => runSkillLevel(run, characterId, skillId));
+  if (unmet.length) {
+    const short = unmet.some((required) => required.minLv > MIN_SKILL_LEVEL
+      && unlocked.includes(required.skillId));
+    return {
+      ok: false,
+      reason: short ? "前提技能のレベルが足りません。" : "前提技能がまだ解禁されていません。",
+      unmet,
+    };
   }
   if (runSkillPoints(run, characterId) < node.cost) {
     return { ok: false, reason: "技能点が足りません。" };

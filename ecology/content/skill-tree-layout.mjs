@@ -31,7 +31,7 @@
 //
 // engine・schema・共通registryは変更しない。
 
-import { SKILL_TREE_NODES } from "./skill-tree.mjs";
+import { SKILL_TREE_NODES, requiredSkillIds } from "./skill-tree.mjs";
 
 // ---------------------------------------------------------------- 表示語彙
 
@@ -132,7 +132,7 @@ function buildGroup(group, nodes) {
   // 構造上の親は「同じツリーに居る最初の前提」。それ以外の前提は合流として脇に置く。
   const structure = new Map();
   for (const node of groupNodes) {
-    const inside = node.requires.filter((id) => present.has(id));
+    const inside = requiredSkillIds(node).filter((id) => present.has(id));
     structure.set(node.skillId, { node, parent: inside[0] ?? null, extraRequires: inside.slice(1) });
   }
 
@@ -275,7 +275,7 @@ export function validateSkillTreeLayout(layout, nodes = SKILL_TREE_NODES, { requ
       return;
     }
     mark.set(skillId, "open");
-    for (const required of bySkill[skillId]?.requires ?? []) {
+    for (const required of requiredSkillIds(bySkill[skillId])) {
       if (bySkill[required]) visit(required, [...trail, skillId]);
     }
     mark.set(skillId, "done");

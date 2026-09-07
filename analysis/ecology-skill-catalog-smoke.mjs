@@ -23,7 +23,9 @@
 // **鳴ることを確かめてある**（末尾の自己検査）。
 
 import { readFileSync } from "node:fs";
-import { LEVELED_EFFECTS } from "../ecology/content/skill-levels.mjs";
+import { MIN_SKILL_LEVEL } from "../ecology/schema.mjs";
+import { LEVELED_EFFECTS, SKILL_LEVEL_COST } from "../ecology/content/skill-levels.mjs";
+import { skillPointsForClear } from "../ecology/progression.mjs";
 import {
   ACTIVE_META,
   CAMPAIGN_STAGES,
@@ -32,6 +34,7 @@ import {
   REACTIVE_META,
   SKILL_PACKS,
   SKILL_TREE_NODES,
+  EXPEDITION_ENCOUNTERS,
   packOfSkill,
   skillIdsForPacks,
 } from "../ecology/content/index.mjs";
@@ -88,20 +91,47 @@ const problems = audit({
 
 // 前提の到達可能性。Stage ごとの manifest で「出る節」を出し、その前提が
 // 同じ manifest から解禁できるかを見る。baseline は常に解禁済み。
+//
+// issue #168（#165 段階1）— 前提は `{ skillId, minLv }` になった。**「その節が出るか」
+// だけでなく「要求された Lv まで本当に伸ばせるか」も見る。**前提が上限 Lv3 の技能なのに
+// Lv5 を要求していたら、その子は画面に出たまま永久に開かない（技能を書いた本人にも
+// 見えない壊れ方で、遊んで初めて分かる）。
 const nodeBySkill = Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
+
+// 節そのものの整合。Stage に依らないので一度だけ見る。**検査と自己検査（末尾）が
+// 同じ関数を使う。**
+function prerequisiteProblems(nodes) {
+  const bySkill = Object.fromEntries(nodes.map((node) => [node.skillId, node]));
+  const found = [];
+  for (const node of nodes) {
+    for (const required of node.requires ?? []) {
+      const parent = bySkill[required.skillId];
+      if (!parent) {
+        found.push(`${node.skillId} の前提 ${required.skillId} に節が無い`);
+        continue;
+      }
+      if (!Number.isInteger(required.minLv) || required.minLv < MIN_SKILL_LEVEL) {
+        found.push(`${node.skillId} の前提 ${required.skillId} の必要Lvが整数でない（${required.minLv}）`);
+        continue;
+      }
+      if (required.minLv > parent.maxLv) {
+        found.push(`${node.skillId} は ${required.skillId} の Lv${required.minLv} を要求するが、`
+          + `${required.skillId} は Lv${parent.maxLv} までしか上がらない（永久に開かない）`);
+      }
+    }
+  }
+  return found;
+}
+problems.push(...prerequisiteProblems(SKILL_TREE_NODES));
+
 for (const stage of CAMPAIGN_STAGES) {
   const available = new Set(skillIdsForPacks(stage.enabledPackIds, stage.packDepths).all);
   for (const node of SKILL_TREE_NODES) {
     if (!available.has(node.skillId)) continue;
-    for (const required of node.requires) {
-      if (available.has(required)) continue;
-      problems.push(`${stage.id}: ${node.skillId} は出るのに、前提の ${required} が出ない`
+    for (const required of node.requires ?? []) {
+      if (available.has(required.skillId)) continue;
+      problems.push(`${stage.id}: ${node.skillId} は出るのに、前提の ${required.skillId} が出ない`
         + `（画面に出たまま永久に解禁できない）`);
-    }
-    for (const required of node.requires) {
-      if (!nodeBySkill[required] && !available.has(required)) {
-        problems.push(`${stage.id}: ${node.skillId} の前提 ${required} に節が無い`);
-      }
     }
   }
 }
@@ -110,21 +140,38 @@ for (const stage of CAMPAIGN_STAGES) {
 {
   const broken = audit({
     nodes: [
-      { id: "n_dup", skillId: "strike", kind: "active", requires: [] },
-      { id: "n_dup", skillId: "strike", kind: "active", requires: [] },
-      { id: "n_ghost", skillId: "no_such_skill", kind: "active", requires: [] },
+      { id: "n_dup", skillId: "strike", kind: "active", maxLv: 1, requires: [] },
+      { id: "n_dup", skillId: "strike", kind: "active", maxLv: 1, requires: [] },
+      { id: "n_ghost", skillId: "no_such_skill", kind: "active", maxLv: 1, requires: [] },
     ],
     packs: [{ id: "p", activeSkillIds: ["lonely_skill"], reactiveSkillIds: [], passiveSkillIds: [] }],
     content: { activeSkills: { strike: {} }, reactiveSkills: {}, passiveSkills: {} },
     metaOfKind: { active: { strike: ["斬撃", "…", "攻撃"] }, reactive: {}, passive: {} },
   });
   const detects = (needle) => broken.some((line) => line.includes(needle));
+  // issue #168 — 前提（技能IDと必要Lv）と技能点の予算も、**鳴ることを確かめる。**
+  const brokenPrereqs = prerequisiteProblems([
+    { skillId: "root", kind: "active", cost: 1, maxLv: 3, requires: [] },
+    { skillId: "too_deep", kind: "active", cost: 1, maxLv: 1, requires: [{ skillId: "root", minLv: 5 }] },
+    { skillId: "orphan", kind: "active", cost: 1, maxLv: 1, requires: [{ skillId: "no_such_node", minLv: 1 }] },
+    { skillId: "bad_lv", kind: "active", cost: 1, maxLv: 1, requires: [{ skillId: "root", minLv: 0 }] },
+  ]);
+  const sees = (needle) => brokenPrereqs.some((line) => line.includes(needle));
+  const ladder = Object.fromEntries([
+    { skillId: "a", cost: 0, maxLv: 10, requires: [] },
+    { skillId: "b", cost: 1, maxLv: 10, requires: [{ skillId: "a", minLv: 3 }] },
+  ].map((node) => [node.skillId, node]));
   const selfChecks = [
     ["節 ID の重複", detects("節 ID n_dup")],
     ["技能の重複", detects("節が二つ")],
     ["定義の欠落", detects("no_such_skill の定義が無い")],
     ["説明文の欠落", detects("説明文が無い")],
     ["節の無いパック技能", detects("lonely_skill にツリーの節が無い")],
+    ["上限を超える必要Lv", sees("Lv3 までしか上がらない")],
+    ["節の無い前提", sees("no_such_node に節が無い")],
+    ["整数でない必要Lv", sees("必要Lvが整数でない")],
+    // a を Lv3 へ（0点 + 2段）＋ b の 1点 = 3点。**前提の Lv も値段に入る。**
+    ["前提Lvを値段に数える", unlockBudget("b", ladder) === 3],
     ["正しい目録は通す", problems.length === 0 || true],
   ];
   for (const [what, ok] of selfChecks) {
@@ -207,6 +254,61 @@ for (const type of declared) {
   }
 }
 
+// ---- 技能点の予算（issue #168 / #165 段階1）----
+//
+// **画面に出る節は、その遠征で配られる技能点で取り切れるか。**前提が Lv を要求できる
+// ようになると、一つの節の値段は「節の値段」だけでは決まらない（親を Lv3 まで
+// 伸ばす2点も要る）。手で足し算すると必ずずれるので、機械に足させる。
+//
+// 落とすのは「一遠征ぶんの技能点を全部使っても届かない節がある」ときだけである。
+// **右端まで初周で取り切れることは要求しない**（#165 の README: 深い終点は後の
+// 進行で届いてよい）。届く／届かないの内訳は下の行に出して、設計の判断材料にする。
+const runSkillPointBudget = EXPEDITION_ENCOUNTERS
+  .reduce((total, encounter) => total + skillPointsForClear(encounter.kind), 0);
+
+// その節を取るために要る技能点。前提の閉包（要求 Lv 込み）を集めてから足す。
+// **同じ前提を二度数えない**（合流のある形でも正しい値になる）。
+function unlockBudget(skillId, bySkill = nodeBySkill) {
+  const need = new Map();
+  const open = [];
+  const demand = (id, level) => {
+    if (level <= (need.get(id) ?? 0)) return;
+    need.set(id, level);
+    open.push(id);
+  };
+  demand(skillId, MIN_SKILL_LEVEL);
+  while (open.length) {
+    const current = open.pop();
+    for (const required of bySkill[current]?.requires ?? []) demand(required.skillId, required.minLv);
+  }
+  let total = 0;
+  for (const [id, level] of need) {
+    const node = bySkill[id];
+    if (!node) continue;
+    total += node.cost + (level - MIN_SKILL_LEVEL) * SKILL_LEVEL_COST;
+  }
+  return total;
+}
+
+const budgetReport = [];
+for (const stage of CAMPAIGN_STAGES) {
+  const available = SKILL_TREE_NODES
+    .filter((node) => new Set(skillIdsForPacks(stage.enabledPackIds, stage.packDepths).all).has(node.skillId));
+  let deepest = 0;
+  let overBudget = 0;
+  for (const node of available) {
+    const budget = unlockBudget(node.skillId);
+    deepest = Math.max(deepest, budget);
+    if (budget > runSkillPointBudget) {
+      overBudget += 1;
+      problems.push(`${stage.id}: ${node.skillId} は ${budget}点かかるが、`
+        + `一遠征で配られるのは ${runSkillPointBudget}点しかない（画面に出るのに取り切れない）`);
+    }
+  }
+  budgetReport.push(`${stage.id} ${available.length}節/最深${deepest}点`
+    + (overBudget ? `/予算外${overBudget}節` : ""));
+}
+
 if (problems.length) {
   console.error("ecology-skill-catalog smoke:\n  " + problems.join("\n  "));
   process.exit(1);
@@ -220,6 +322,7 @@ const reachableNodes = SKILL_TREE_NODES.filter((node) => reachable.has(node.skil
 console.log(
   `ecology-skill-catalog smoke: 節 ${SKILL_TREE_NODES.length}件`
   + `（行動 ${counts.active}・反応 ${counts.reactive}・常設 ${counts.passive}）— `
-  + `定義・パック・説明文・前提が揃っている。`
-  + `最終 Stage（${lastStage.id}）から引けるのは ${reachableNodes}件`,
+  + `定義・パック・説明文・前提（技能IDと必要Lv）が揃っている。`
+  + `最終 Stage（${lastStage.id}）から引けるのは ${reachableNodes}件。`
+  + `技能点は一遠征 ${runSkillPointBudget}点で ${budgetReport.join("・")}`,
 );

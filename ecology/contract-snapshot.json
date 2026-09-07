@@ -11915,6 +11915,7 @@
    "branch": "攻撃",
    "x": 1,
    "cost": 0,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -11924,8 +11925,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "strike"
+    {
+     "skillId": "strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -11935,8 +11940,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "strike"
+    {
+     "skillId": "strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -11946,8 +11955,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "steady_cut"
+    {
+     "skillId": "steady_cut",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -11957,8 +11970,12 @@
    "branch": "攻撃",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "pierce_thrust"
+    {
+     "skillId": "pierce_thrust",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -11968,8 +11985,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "column_thrust"
+    {
+     "skillId": "column_thrust",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -11979,8 +12000,12 @@
    "branch": "攻撃",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "pierce_thrust"
+    {
+     "skillId": "pierce_thrust",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -11990,8 +12015,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "rear_hunt"
+    {
+     "skillId": "rear_hunt",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12001,8 +12030,12 @@
    "branch": "攻撃",
    "x": 6,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "rapid_cuts"
+    {
+     "skillId": "rapid_cuts",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12012,8 +12045,12 @@
    "branch": "攻撃",
    "x": 7,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "spread_cut"
+    {
+     "skillId": "spread_cut",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12023,8 +12060,12 @@
    "branch": "攻撃",
    "x": 8,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "crack_mark"
+    {
+     "skillId": "crack_mark",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12034,8 +12075,12 @@
    "branch": "攻撃",
    "x": 9,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "rend"
+    {
+     "skillId": "rend",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12045,8 +12090,12 @@
    "branch": "攻撃",
    "x": 10,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "double_back"
+    {
+     "skillId": "double_back",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12056,8 +12105,12 @@
    "branch": "攻撃",
    "x": 10,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "double_back"
+    {
+     "skillId": "double_back",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12067,8 +12120,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "rear_hunt"
+    {
+     "skillId": "rear_hunt",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12078,8 +12135,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "steady_cut"
+    {
+     "skillId": "steady_cut",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12089,8 +12150,12 @@
    "branch": "攻撃",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "heavy_swing"
+    {
+     "skillId": "heavy_swing",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12100,8 +12165,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "long_swing"
+    {
+     "skillId": "long_swing",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12111,8 +12180,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "long_swing"
+    {
+     "skillId": "long_swing",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12122,8 +12195,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "steady_cut"
+    {
+     "skillId": "steady_cut",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12133,8 +12210,12 @@
    "branch": "攻撃",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "finishing_thrust"
+    {
+     "skillId": "finishing_thrust",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12144,8 +12225,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "hamstring"
+    {
+     "skillId": "hamstring",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12155,8 +12240,12 @@
    "branch": "支援",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "strike"
+    {
+     "skillId": "strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12166,8 +12255,12 @@
    "branch": "支援",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "aimed_shot"
+    {
+     "skillId": "aimed_shot",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12177,8 +12270,12 @@
    "branch": "支援",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "shield_the_wounded"
+    {
+     "skillId": "shield_the_wounded",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12188,8 +12285,12 @@
    "branch": "支援",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "field_dressing"
+    {
+     "skillId": "field_dressing",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12199,8 +12300,12 @@
    "branch": "支援",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "field_dressing"
+    {
+     "skillId": "field_dressing",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12210,8 +12315,12 @@
    "branch": "支援",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "aimed_shot"
+    {
+     "skillId": "aimed_shot",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12221,8 +12330,12 @@
    "branch": "支援",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "ward_ally"
+    {
+     "skillId": "ward_ally",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12232,8 +12345,12 @@
    "branch": "支援",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "sustaining_ward"
+    {
+     "skillId": "sustaining_ward",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12243,8 +12360,12 @@
    "branch": "支援",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "sustaining_ward"
+    {
+     "skillId": "sustaining_ward",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12254,6 +12375,7 @@
    "branch": "守り",
    "x": 1,
    "cost": 0,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -12263,8 +12385,12 @@
    "branch": "支援",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "bulwark"
+    {
+     "skillId": "bulwark",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12274,8 +12400,12 @@
    "branch": "支援",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "bulwark"
+    {
+     "skillId": "bulwark",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12285,8 +12415,12 @@
    "branch": "守り",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "bulwark"
+    {
+     "skillId": "bulwark",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12296,8 +12430,12 @@
    "branch": "守り",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "spread_the_guard"
+    {
+     "skillId": "spread_the_guard",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12307,8 +12445,12 @@
    "branch": "守り",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "brace_for_impact"
+    {
+     "skillId": "brace_for_impact",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12318,8 +12460,12 @@
    "branch": "守り",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "bulwark_of_will"
+    {
+     "skillId": "bulwark_of_will",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12329,8 +12475,12 @@
    "branch": "守り",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "bulwark_of_will"
+    {
+     "skillId": "bulwark_of_will",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12340,8 +12490,12 @@
    "branch": "指揮",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "spread_the_guard"
+    {
+     "skillId": "spread_the_guard",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12351,8 +12505,12 @@
    "branch": "守り",
    "x": 4,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "reposition"
+    {
+     "skillId": "reposition",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12362,8 +12520,12 @@
    "branch": "守り",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "rally_line"
+    {
+     "skillId": "rally_line",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12373,8 +12535,12 @@
    "branch": "指揮",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "rally_line"
+    {
+     "skillId": "rally_line",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12384,8 +12550,12 @@
    "branch": "指揮",
    "x": 6,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "relay_order"
+    {
+     "skillId": "relay_order",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12395,8 +12565,12 @@
    "branch": "指揮",
    "x": 6,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "relay_order"
+    {
+     "skillId": "relay_order",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12406,8 +12580,12 @@
    "branch": "指揮",
    "x": 7,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "mark_target"
+    {
+     "skillId": "mark_target",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12417,8 +12595,12 @@
    "branch": "指揮",
    "x": 8,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "steady_aim"
+    {
+     "skillId": "steady_aim",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12428,8 +12610,12 @@
    "branch": "指揮",
    "x": 8,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "steady_aim"
+    {
+     "skillId": "steady_aim",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12439,8 +12625,12 @@
    "branch": "指揮",
    "x": 9,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "set_the_pace"
+    {
+     "skillId": "set_the_pace",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12450,8 +12640,12 @@
    "branch": "指揮",
    "x": 10,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "call_the_slow"
+    {
+     "skillId": "call_the_slow",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12461,6 +12655,7 @@
    "branch": "攻撃",
    "x": 1,
    "cost": 1,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -12470,8 +12665,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "barrage_strike"
+    {
+     "skillId": "barrage_strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12481,8 +12680,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "barrage_strike"
+    {
+     "skillId": "barrage_strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12492,8 +12695,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "barrage_strike"
+    {
+     "skillId": "barrage_strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12503,6 +12710,7 @@
    "branch": "攻撃",
    "x": 1,
    "cost": 1,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -12512,8 +12720,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "mark_strike"
+    {
+     "skillId": "mark_strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12523,8 +12735,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "mark_strike"
+    {
+     "skillId": "mark_strike",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12534,8 +12750,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "mark_break"
+    {
+     "skillId": "mark_break",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12545,6 +12765,7 @@
    "branch": "支援",
    "x": 1,
    "cost": 0,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -12554,8 +12775,12 @@
    "branch": "支援",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "mend"
+    {
+     "skillId": "mend",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12565,8 +12790,12 @@
    "branch": "支援",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "triage"
+    {
+     "skillId": "triage",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12576,8 +12805,12 @@
    "branch": "支援",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "overflow_care"
+    {
+     "skillId": "overflow_care",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12587,8 +12820,12 @@
    "branch": "支援",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "emergency_treatment"
+    {
+     "skillId": "emergency_treatment",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12598,8 +12835,12 @@
    "branch": "支援",
    "x": 6,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "triage_relay"
+    {
+     "skillId": "triage_relay",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12609,8 +12850,12 @@
    "branch": "支援",
    "x": 7,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "second_wind"
+    {
+     "skillId": "second_wind",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12620,8 +12865,12 @@
    "branch": "支援",
    "x": 8,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "shared_pain"
+    {
+     "skillId": "shared_pain",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12631,8 +12880,12 @@
    "branch": "支援",
    "x": 9,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "urging"
+    {
+     "skillId": "urging",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12642,8 +12895,12 @@
    "branch": "支援",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "emergency_treatment"
+    {
+     "skillId": "emergency_treatment",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12653,8 +12910,12 @@
    "branch": "支援",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "triage"
+    {
+     "skillId": "triage",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12664,8 +12925,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "mend"
+    {
+     "skillId": "mend",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12675,8 +12940,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "counter_blow"
+    {
+     "skillId": "counter_blow",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12686,8 +12955,12 @@
    "branch": "攻撃",
    "x": 4,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "opportunist"
+    {
+     "skillId": "opportunist",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12697,8 +12970,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "whetted_by_pain"
+    {
+     "skillId": "whetted_by_pain",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12708,8 +12985,12 @@
    "branch": "指揮",
    "x": 6,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "vengeful_step"
+    {
+     "skillId": "vengeful_step",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12719,8 +13000,12 @@
    "branch": "指揮",
    "x": 7,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "guard_step"
+    {
+     "skillId": "guard_step",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12730,8 +13015,12 @@
    "branch": "指揮",
    "x": 8,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "read_the_charge"
+    {
+     "skillId": "read_the_charge",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12741,8 +13030,12 @@
    "branch": "攻撃",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "whetted_by_pain"
+    {
+     "skillId": "whetted_by_pain",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12752,8 +13045,12 @@
    "branch": "攻撃",
    "x": 6,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "finish_the_wounded"
+    {
+     "skillId": "finish_the_wounded",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12763,8 +13060,12 @@
    "branch": "攻撃",
    "x": 7,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "bleed_into_wake"
+    {
+     "skillId": "bleed_into_wake",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12774,8 +13075,12 @@
    "branch": "指揮",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "counter_blow"
+    {
+     "skillId": "counter_blow",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12785,8 +13090,12 @@
    "branch": "指揮",
    "x": 4,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "scavenge_ap"
+    {
+     "skillId": "scavenge_ap",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12796,8 +13105,12 @@
    "branch": "指揮",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "patient_step"
+    {
+     "skillId": "patient_step",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12807,8 +13120,12 @@
    "branch": "指揮",
    "x": 6,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "counter_order"
+    {
+     "skillId": "counter_order",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12818,8 +13135,12 @@
    "branch": "指揮",
    "x": 7,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "stall_the_blow"
+    {
+     "skillId": "stall_the_blow",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12829,8 +13150,12 @@
    "branch": "指揮",
    "x": 8,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "stagger_relay"
+    {
+     "skillId": "stagger_relay",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12840,8 +13165,12 @@
    "branch": "指揮",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "patient_step"
+    {
+     "skillId": "patient_step",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12851,8 +13180,12 @@
    "branch": "守り",
    "x": 2,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "mend"
+    {
+     "skillId": "mend",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12862,8 +13195,12 @@
    "branch": "守り",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "brace_after_hit"
+    {
+     "skillId": "brace_after_hit",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12873,8 +13210,12 @@
    "branch": "守り",
    "x": 4,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "cover_ally"
+    {
+     "skillId": "cover_ally",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12884,8 +13225,12 @@
    "branch": "守り",
    "x": 5,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "shield_handoff"
+    {
+     "skillId": "shield_handoff",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12895,8 +13240,12 @@
    "branch": "守り",
    "x": 6,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "guard_the_marked"
+    {
+     "skillId": "guard_the_marked",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12906,8 +13255,12 @@
    "branch": "守り",
    "x": 7,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "barrier_stitch"
+    {
+     "skillId": "barrier_stitch",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12917,8 +13270,12 @@
    "branch": "守り",
    "x": 8,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "wake_of_the_fallen"
+    {
+     "skillId": "wake_of_the_fallen",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12928,8 +13285,12 @@
    "branch": "守り",
    "x": 9,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "warded_into_edge"
+    {
+     "skillId": "warded_into_edge",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12939,8 +13300,12 @@
    "branch": "守り",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "shield_handoff"
+    {
+     "skillId": "shield_handoff",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12950,8 +13315,12 @@
    "branch": "守り",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "brace_after_hit"
+    {
+     "skillId": "brace_after_hit",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12961,8 +13330,12 @@
    "branch": "守り",
    "x": 4,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "absorb_shock"
+    {
+     "skillId": "absorb_shock",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12972,8 +13345,12 @@
    "branch": "守り",
    "x": 5,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "block_focus"
+    {
+     "skillId": "block_focus",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12983,8 +13360,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "mend"
+    {
+     "skillId": "mend",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -12994,8 +13375,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "guarded_opening"
+    {
+     "skillId": "guarded_opening",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13005,8 +13390,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 10,
    "requires": [
-    "guarded_opening"
+    {
+     "skillId": "guarded_opening",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13016,6 +13405,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
+   "maxLv": 1,
    "requires": []
   },
   {
@@ -13025,6 +13415,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
+   "maxLv": 1,
    "requires": []
   },
   {
@@ -13034,8 +13425,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "foundation_might"
+    {
+     "skillId": "foundation_might",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13045,8 +13440,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "first_blood"
+    {
+     "skillId": "first_blood",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13056,8 +13455,12 @@
    "branch": "攻撃",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "first_blood"
+    {
+     "skillId": "first_blood",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13067,8 +13470,12 @@
    "branch": "攻撃",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "foundation_might"
+    {
+     "skillId": "foundation_might",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13078,6 +13485,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
+   "maxLv": 1,
    "requires": []
   },
   {
@@ -13087,8 +13495,12 @@
    "branch": "支援",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "foundation_focus"
+    {
+     "skillId": "foundation_focus",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13098,8 +13510,12 @@
    "branch": "支援",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "steady_hands"
+    {
+     "skillId": "steady_hands",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13109,8 +13525,12 @@
    "branch": "支援",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "steady_hands"
+    {
+     "skillId": "steady_hands",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13120,6 +13540,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
+   "maxLv": 1,
    "requires": []
   },
   {
@@ -13129,8 +13550,12 @@
    "branch": "守り",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "foundation_guard"
+    {
+     "skillId": "foundation_guard",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13140,8 +13565,12 @@
    "branch": "守り",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "opening_guard"
+    {
+     "skillId": "opening_guard",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13151,6 +13580,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
+   "maxLv": 1,
    "requires": []
   },
   {
@@ -13160,8 +13590,12 @@
    "branch": "指揮",
    "x": 2,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "foundation_ap"
+    {
+     "skillId": "foundation_ap",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13171,8 +13605,12 @@
    "branch": "指揮",
    "x": 3,
    "cost": 1,
+   "maxLv": 1,
    "requires": [
-    "held_breath"
+    {
+     "skillId": "held_breath",
+     "minLv": 1
+    }
    ]
   },
   {
@@ -13182,6 +13620,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
+   "maxLv": 1,
    "requires": []
   }
  ],

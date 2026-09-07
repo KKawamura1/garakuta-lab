@@ -13,6 +13,7 @@ import {
   equipEquipment,
   equipSkill,
   freshLoadout,
+  initialSkillLevels,
   initialUnlockedSkills,
   removeEquipment,
   reorderSkill,
@@ -64,6 +65,8 @@ import {
   SKILL_TREE_GROUPS,
   TRIGGER_LABELS,
   buildSkillTreeLayout,
+  // issue #168 — 前提（技能IDと必要Lv）の判定。解禁 API と同じ関数を読む。
+  unmetPrerequisites,
 } from "./content/index.mjs";
 import {
   ENCOUNTERS_PER_RUN,
@@ -83,7 +86,7 @@ import {
   runContentBundle,
   formatFunds,
   gainSupply,
-  grantRunSkillPointsToAll,
+  grantRunSkillPointsForClear,
   manifestSkillIds,
   newProfile,
   newRun,
@@ -92,7 +95,7 @@ import {
   purchaseTraining,
   purchaseUpgrade,
   recordEncounterCleared,
-  RUN_SKILL_POINTS_PER_REWARD,
+  skillPointsForClear,
   STARTING_RUN_SKILL_POINTS,
   rewardOffer,
   runSkillPoints,
@@ -118,7 +121,7 @@ import {
   toggleFavorite,
 } from "./blueprints.mjs";
 import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
-import { POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
+import { MIN_SKILL_LEVEL, POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
@@ -377,6 +380,18 @@ function joinRun(run, characterId) {
     ...keep(run.runUnlockedSkills?.[characterId]),
     ...keep(initialUnlockedSkills(characterId)),
   ])];
+  // issue #168 — 無償閉包が親の Lv を要求するなら、**その Lv も無償で付く。**
+  // 取得済みにしておきながら前提 Lv 不足で子が取れない形を作らない。
+  // 既に上げてある Lv は下げない（離脱・再加入で巻き戻さない）。
+  const freeLevels = Object.entries(initialSkillLevels(characterId))
+    .filter(([skillId]) => available.has(skillId));
+  if (freeLevels.length) {
+    const levels = { ...(run.runSkillLevels?.[characterId] ?? {}) };
+    for (const [skillId, level] of freeLevels) {
+      levels[skillId] = Math.max(levels[skillId] ?? 0, level);
+    }
+    next.runSkillLevels[characterId] = levels;
+  }
   next.loadout.tactics[characterId] = keep(run.loadout?.tactics?.[characterId] ?? fresh.tactics[characterId]);
   next.loadout.reactives[characterId] = keep(run.loadout?.reactives?.[characterId] ?? fresh.reactives[characterId]);
   next.loadout.passives[characterId] = keep(run.loadout?.passives?.[characterId]);
@@ -2286,7 +2301,11 @@ function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
   const equipped = installedSkill(characterId, node.skillId, node.kind);
   const disabled = equipped && skillDisabled(characterId, node.skillId);
-  const prereqsMet = node.requires.every((skillId) => isUnlocked(characterId, skillId));
+  // issue #168 — 前提は Lv まで見る。判定は content/skill-tree.mjs の一箇所
+  // （解禁 API と同じ関数）を通るので、画面が「取れます」と言ったのに押すと
+  // 断られる、が起きない。
+  const unmet = unmetPrerequisites(node, (skillId) => skillLevelOf(characterId, skillId));
+  const prereqsMet = unmet.length === 0;
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
   const stateClass = equipped
     ? "equipped" + (disabled ? " disabled" : "")
@@ -2296,17 +2315,34 @@ function skillNodeState(node, characterId) {
     : unlocked ? "取得済み"
       : canUnlock ? "解禁可能 · " + node.cost + "pt"
         : !prereqsMet ? "前提待ち · " + node.cost + "pt" : "点数不足 · " + node.cost + "pt";
-  return { unlocked, equipped, disabled, prereqsMet, canUnlock, stateClass, status };
+  return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass, status };
+}
+
+// issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
+// 二つある。**どちらなのかを書く。**「先に前提を解禁してください」とだけ出すと、
+// 解禁済みの前提を見て手が止まる。
+function prerequisiteShortfallText(characterId, unmet = []) {
+  const parts = (unmet ?? []).map((required) => {
+    const label = COMPONENTS[required.skillId]?.label ?? required.skillId;
+    const level = skillLevelOf(characterId, required.skillId);
+    return level > 0 && required.minLv > level
+      ? label + "を Lv" + required.minLv + "まで上げてください（いま Lv" + level + "）。"
+      : label + "を先に解禁してください。";
+  });
+  return parts.length ? parts.join("") : "先に前提を解禁してください。";
 }
 
 // **前提と派生先は、押せる形で出す。**iPhone ではここを叩いて route を辿る
 // （横スクロールしなくても、前提へ戻る・派生先へ進むができる）。
-function skillRouteChip(skillId) {
+function skillRouteChip(skillId, minLv = MIN_SKILL_LEVEL) {
   const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
   if (!node) return "";
+  // issue #168 — 親を伸ばして初めて開く前提なら、**必要な Lv をチップに書く。**
+  // 現行の全節は Lv1 しか要求しないので、いまはどのチップにも出ない。
+  const need = minLv > MIN_SKILL_LEVEL ? " Lv" + minLv + "以上" : "";
   return "<button type=\"button\" class=\"route-chip\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
     + "\"><span>" + esc(branchIcons[node.branch] ?? "·") + "</span>" + esc(COMPONENTS[skillId]?.label ?? skillId)
-    + "<small>" + esc(kindText(node.kind)) + "</small></button>";
+    + "<small>" + esc(kindText(node.kind) + need) + "</small></button>";
 }
 
 // R19（issue #137）— 現在レベル／最大レベル。**上位互換を別技能で増やさないので、
@@ -2393,7 +2429,7 @@ function renderSkillDetail(row, node, characterId, nodeState) {
         : "<p class=\"node-locked\">"
           + (nodeState.prereqsMet
             ? "技能点が足りません（必要 " + node.cost + "点 / 手持ち " + skillPointsFor(characterId) + "点）。"
-            : "先に前提を解禁してください。")
+            : prerequisiteShortfallText(characterId, nodeState.unmet))
           + "</p>";
   // **説明文はいまのレベルの値で読む。**Lv1 では元の文のまま。
   return "<div class=\"skill-detail\"><p>" + esc(skillEffectText(characterId, node.skillId))
@@ -2401,7 +2437,9 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     + "<p class=\"skill-detail-status\">状態: " + esc(nodeState.status) + "</p>"
     + levelSummary
     + "<div class=\"skill-route\"><span class=\"route-line\"><b>前提</b>"
-    + (requires.length ? requires.map(skillRouteChip).join("") : "<small>なし（いつでも取れる）</small>") + "</span>"
+    + (requires.length
+      ? requires.map((required) => skillRouteChip(required.skillId, required.minLv)).join("")
+      : "<small>なし（いつでも取れる）</small>") + "</span>"
     + "<span class=\"route-line\"><b>派生先</b>"
     + (derived.length ? derived.map(skillRouteChip).join("") : "<small>ここが終点</small>") + "</span></div>"
     + "<p class=\"route-build\">" + esc(BRANCH_BUILDS[node.branch] ?? "") + "</p>"
@@ -3484,8 +3522,11 @@ function renderResult() {
     + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
     + item.maxDurability + " / " + item.maxDurability + "</span></div>").join("");
+  // issue #168 — 表示する量も progression の表から引く（画面に書いた数と、
+  // 実際に配った数がずれないようにする）。
   const skillGain = !prologueUnresolved && won
-    ? "<p class=\"operation-note\">編成中の全員に技能点 +" + RUN_SKILL_POINTS_PER_REWARD + "。報酬は下で1つ選びます。</p>"
+    ? "<p class=\"operation-note\">編成中の全員に技能点 +"
+      + skillPointsForClear(currentEncounter().kind) + "。報酬は下で1つ選びます。</p>"
     : "";
   const carryText = prologueUnresolved
     ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
@@ -3944,12 +3985,17 @@ function simulateAndEnterBattle() {
     // なので、通常戦と同じく勝利時に技能点を配る。
     if (result.result === "win") {
       state.run = recordEncounterCleared(state.run, state.run.encounterIndex);
-      state.run = grantRunSkillPointsToAll(state.run);
-      record("battle_skill_points_granted", {
-        stage: state.run.encounterIndex,
-        amount: RUN_SKILL_POINTS_PER_REWARD,
-        characterIds: [...state.run.roster],
-      });
+      // issue #168 — 配る量と冪等の鍵は progression 側の一箇所で決まる。
+      // **同じ encounter を二度勝っても二度は配らない**（活動資金と同じ鍵）。
+      const grant = grantRunSkillPointsForClear(state.run, state.run.encounterIndex);
+      state.run = grant.run;
+      if (grant.granted) {
+        record("battle_skill_points_granted", {
+          stage: state.run.encounterIndex,
+          amount: grant.amount,
+          characterIds: [...state.run.roster],
+        });
+      }
     }
     for (const combatEvent of result.events || []) {
       pushRunEvent({

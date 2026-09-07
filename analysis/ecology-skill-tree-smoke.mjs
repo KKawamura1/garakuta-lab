@@ -28,6 +28,7 @@ import {
   SKILL_TREE_LAYOUT,
   SKILL_TREE_NODES,
   buildSkillTreeLayout,
+  requiredSkillIds,
   skillIdsForPacks,
   validateSkillTreeLayout,
 } from "../ecology/content/index.mjs";
@@ -40,7 +41,7 @@ function crossKindRequireProblems(nodes) {
   const bySkill = Object.fromEntries(nodes.map((node) => [node.skillId, node]));
   const found = [];
   for (const node of nodes) {
-    for (const requiredId of node.requires) {
+    for (const requiredId of requiredSkillIds(node)) {
       const required = bySkill[requiredId];
       if (required && required.kind !== node.kind) {
         found.push(`種別またぎの前提: ${node.skillId}（${node.kind}）が ${requiredId}（${required.kind}）を前提にしている`);
@@ -95,9 +96,9 @@ for (const stage of CAMPAIGN_STAGES) {
 // 参照点。**この検査が本当に引っかかるのかを、ここで確かめる。**
 {
   const broken = [
-    { id: "n_a", skillId: "a", kind: "active", branch: "攻撃", tier: 0, cost: 0, requires: [] },
-    { id: "n_b", skillId: "b", kind: "active", branch: "攻撃", tier: 0, cost: 0, requires: ["c"] },
-    { id: "n_c", skillId: "c", kind: "active", branch: "攻撃", tier: 0, cost: 0, requires: ["b"] },
+    { id: "n_a", skillId: "a", kind: "active", branch: "攻撃", tier: 0, cost: 0, maxLv: 1, requires: [] },
+    { id: "n_b", skillId: "b", kind: "active", branch: "攻撃", tier: 0, cost: 0, maxLv: 1, requires: [{ skillId: "c", minLv: 1 }] },
+    { id: "n_c", skillId: "c", kind: "active", branch: "攻撃", tier: 0, cost: 0, maxLv: 1, requires: [{ skillId: "b", minLv: 1 }] },
   ];
   const detected = validateSkillTreeLayout(buildSkillTreeLayout(broken), broken);
   const checks = [
@@ -108,8 +109,8 @@ for (const stage of CAMPAIGN_STAGES) {
 
   // 種別またぎの前提も、ここで実際に検出できることを確かめる。
   const crossed = [
-    { id: "n_d", skillId: "d", kind: "active", branch: "攻撃", tier: 0, cost: 0, requires: [] },
-    { id: "n_e", skillId: "e", kind: "reactive", branch: "攻撃", tier: 0, cost: 0, requires: ["d"] },
+    { id: "n_d", skillId: "d", kind: "active", branch: "攻撃", tier: 0, cost: 0, maxLv: 1, requires: [] },
+    { id: "n_e", skillId: "e", kind: "reactive", branch: "攻撃", tier: 0, cost: 0, maxLv: 1, requires: [{ skillId: "d", minLv: 1 }] },
   ];
   checks.push(["種別またぎの前提", crossKindRequireProblems(crossed).length > 0]);
   // 座標側も鳴らす。**組み上がった森を手で壊して見せる。**

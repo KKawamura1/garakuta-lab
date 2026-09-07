@@ -187,7 +187,17 @@ export { CHARACTER_LORE, CHARACTER_NAMES, characterLoreFor };
 export { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE };
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
-export { ACTIVE_META, REACTIVE_META, PASSIVE_META, EQUIPMENT_META, SKILL_TREE_NODES } from "./skill-tree.mjs";
+export {
+  ACTIVE_META,
+  REACTIVE_META,
+  PASSIVE_META,
+  EQUIPMENT_META,
+  SKILL_TREE_NODES,
+  // issue #168 — 前提は `{ skillId, minLv }`。判定と ID 取り出しは一箇所を通る。
+  prerequisitesMet,
+  requiredSkillIds,
+  unmetPrerequisites,
+} from "./skill-tree.mjs";
 // R19（issue #137）— 節の座標。`requires` から組んだ森なので、ここを読めば
 // 「どの節がどの節から生えるのか」が線として引ける。
 export {

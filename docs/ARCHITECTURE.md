@@ -31,6 +31,7 @@
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
 | `content/encounters.mjs` | 敵の配置・狙い・敵本文（既存 content API の正本） |
+| `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
 | `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |
 | `equipment-gen.mjs` | 装備を手続きで組み立てる決定的 generator と検査 |
@@ -73,7 +74,9 @@ barrier / 増減の amount）は各技能にちょうど一つで、説明文は
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
-`newRun` は新規遠征の技能点を0にし、固定の初期装備を `inventory` へ入れません。出発前に選んだ Blueprint の持込品だけは例外です。通常戦の勝利は `app.js` の一つの処理経路で、現在の `RunState.roster` 全員へ技能点1を自動付与します。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
+`newRun` は新規遠征の技能点を0にし、固定の初期装備を `inventory` へ入れません。出発前に選んだ Blueprint の持込品だけは例外です。勝利時の技能点は `progression.grantRunSkillPointsForClear` の一箇所で決まります。量は `SKILL_POINTS_PER_CLEAR`（encounter の種別 → 点数。現在はどの種別も1点）から引き、`region:index` を鍵に `RunState.grantedSkillPointKeys` へ記録するので、**同じ encounter からは一度しか配りません**（活動資金の撃破分と同じ鍵です）。`app.js` はこの関数を呼ぶだけで、量も冪等も持ちません。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
+
+技能の前提は `{ skillId, minLv }` で、判定は `content/skill-tree.mjs` の `prerequisitesMet` / `unmetPrerequisites` 一箇所を、解禁 API（`progression.unlockRunSkill`）・画面（`app.js` の `skillNodeState`）・加入時の無償閉包（`playable-battles.initialUnlockedSkills` と `initialSkillLevels`）が共有します。無償閉包が Lv1 より上を要求するときは、その Lv も加入時に無償で付きます（取得済みなのに前提 Lv 不足で子が取れない形を作らないため）。前提が上限 Lv を超えていないか、その Stage で出る節を一遠征ぶんの技能点で取り切れるかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
 初回の本編第1戦の報酬後だけ、`app.js` がキャンプの補給タブを開きます。案内の完了印は `ProfileState.storyFlags` に保存し、治療の実処理は既存の `progression.mjs` の `campTreat` を通します。
 
 序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
