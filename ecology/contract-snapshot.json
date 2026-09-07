@@ -23110,6 +23110,17 @@
    ]
   },
   {
+   "id": "starting_skill_points",
+   "category": "starting_skill_points",
+   "displayName": "初期SPアップ",
+   "maxLevel": 3,
+   "costs": [
+    "15000",
+    "60000",
+    "240000"
+   ]
+  },
+  {
    "id": "blueprint_capacity",
    "category": "blueprint_capacity",
    "displayName": "Blueprint 持込枠",

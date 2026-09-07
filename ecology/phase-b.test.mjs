@@ -57,6 +57,7 @@ import {
 import {
   ENCOUNTER_BASE_FUNDS,
   MAX_SUPPLIES,
+  META_UPGRADES,
   SCRAP_PER_SUPPLY,
   SUPPLY_USES,
   availableDifficulties,
@@ -69,6 +70,7 @@ import {
   // issue #168 — 勝利ごとの技能点。量と冪等の鍵は progression の一箇所。
   grantRunSkillPointsForClear,
   skillPointsForClear,
+  SKILL_POINTS_PER_CLEAR,
   makeManifest,
   migrateLegacyProfile,
   newProfile,
@@ -80,6 +82,9 @@ import {
   recordEncounterCleared,
   rewardOffer,
   runSkillPoints,
+  startingSkillPoints,
+  STARTING_RUN_SKILL_POINTS,
+  STARTING_SKILL_POINTS_UPGRADE_ID,
   runSkillLevel,
   levelUpRunSkill,
   settleRun,
@@ -266,6 +271,36 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
 
 {
   const profile = newProfile();
+  const upgrade = META_UPGRADES.find((entry) => entry.id === STARTING_SKILL_POINTS_UPGRADE_ID);
+  check(upgrade !== undefined, "初期SPアップが永続強化カタログにある");
+  equal(startingSkillPoints(profile), STARTING_RUN_SKILL_POINTS, "未購入の開始SPは基礎値");
+  if (upgrade) {
+    equal(upgrade.maxLevel, upgrade.costs.length, "初期SPアップの段数と費用の数が一致する");
+    let upgraded = { ...profile, activityFunds: "1000000" };
+    for (let level = 0; level < upgrade.maxLevel; level += 1) {
+      const purchased = purchaseUpgrade(upgraded, STARTING_SKILL_POINTS_UPGRADE_ID);
+      equal(purchased.ok, true, "初期SPアップを購入できる");
+      upgraded = purchased.profile;
+    }
+    equal(
+      startingSkillPoints(upgraded),
+      STARTING_RUN_SKILL_POINTS + upgrade.maxLevel,
+      "購入済みの初期SPアップが新規遠征の開始SPへ反映される",
+    );
+    const upgradedRun = newRun(upgraded, { runSeed: "initial-sp", runId: "initial-sp", roster: ROSTER });
+    equal(
+      runSkillPoints(upgradedRun, "warden"),
+      startingSkillPoints(upgraded),
+      "newRun は初期SPアップ後の点数で開始する",
+    );
+    equal(upgradeCost(upgraded, STARTING_SKILL_POINTS_UPGRADE_ID), null, "初期SPアップは上限で買い切りになる");
+    const restored = normalizeProfile(JSON.parse(JSON.stringify(upgraded)));
+    equal(startingSkillPoints(restored), startingSkillPoints(upgraded), "保存・読込後も初期SPアップを維持する");
+  }
+}
+
+{
+  const profile = newProfile();
   let run = newRun(profile, { runSeed: "s", runId: "r", roster: ROSTER });
   check(!("skillPoints" in profile), "profile が技能点を持たない");
   check(!("unlocked" in profile), "profile が解禁を持たない");
@@ -296,7 +331,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   }
 }
 
-// ---- 前提の必要Lvと、勝利ごとの技能点（issue #168 / #165 段階1）---------------
+// ---- 前提の必要Lvと、勝利ごとの技能点（issue #168 / #174 案b）---------------
 //
 // **静かに得をする方向を狙って書く。**同じ一戦から二度技能点が出る、前提 Lv を
 // 見ないまま解禁できる、無償閉包に入った節が前提 Lv 不足のまま置かれる、の三つ。
@@ -365,7 +400,19 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     expected += skillPointsForClear(expeditionEncounter(index).kind);
   }
   equal(runSkillPoints(full, "warden"), expected, "12戦ぶんの合計は表の総和と一致する");
-  equal(expected, ENCOUNTERS_PER_RUN, "現行の量は据え置き（どの種別も1点）");
+  equal(SKILL_POINTS_PER_CLEAR.normal, 1, "通常戦は1点");
+  equal(SKILL_POINTS_PER_CLEAR.elite, 1, "精鋭戦は通常戦と同じ1点");
+  equal(SKILL_POINTS_PER_CLEAR.boss, 2, "boss戦は2点");
+  const encounterCounts = Object.fromEntries(
+    Object.keys(SKILL_POINTS_PER_CLEAR).map((kind) => [
+      kind,
+      EXPEDITION_ENCOUNTERS.filter((encounter) => encounter.kind === kind).length,
+    ]),
+  );
+  const tableExpected = Object.entries(encounterCounts)
+    .reduce((total, [kind, count]) => total + count * skillPointsForClear(kind), 0);
+  equal(expected, tableExpected, "12戦ぶんの合計が種別ごとの表の総和と一致する");
+  equal(expected, 15, "案bの12戦合計は15点");
 }
 
 {

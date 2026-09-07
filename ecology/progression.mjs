@@ -129,6 +129,8 @@ export function nextVisibleTrainingLevel(baseStat, level) {
 // category だけ置くと、画面に「常に買えない行」が出る。6個目以降を足すときに開く。
 export const APPRAISAL_UPGRADE_ID = "appraisal";
 export const APPRAISAL_COSTS = Object.freeze(["15000", "45000", "120000", "300000", "750000"]);
+export const STARTING_SKILL_POINTS_UPGRADE_ID = "starting_skill_points";
+export const STARTING_SKILL_POINTS_UPGRADE_COSTS = Object.freeze(["15000", "60000", "240000"]);
 
 export const META_UPGRADES = Object.freeze([
   Object.freeze({
@@ -139,7 +141,16 @@ export const META_UPGRADES = Object.freeze([
     costs: Object.freeze(["12000", "60000"]),
     describeLevel: (level) => `遠征開始時の補給 ${3 + level}（上限5）`,
   }),
-  // R8 §3.7 — Blueprint 持込枠。初期1、最大5。**買えるのは枠だけで、
+  // #174 — 新規遠征の開始SPを増やす永続強化。適用されるのは遠征開始時だけで、
+  // 途中加入した仲間へ過去分を遡って付与しない。
+  Object.freeze({
+    id: STARTING_SKILL_POINTS_UPGRADE_ID,
+    category: "starting_skill_points",
+    displayName: "初期SPアップ",
+    maxLevel: STARTING_SKILL_POINTS_UPGRADE_COSTS.length,
+    costs: STARTING_SKILL_POINTS_UPGRADE_COSTS,
+    describeLevel: (level) => `遠征開始時の技能点 +${level}（上限${STARTING_SKILL_POINTS_UPGRADE_COSTS.length}）`,
+  }),  // R8 §3.7 — Blueprint 持込枠。初期1、最大5。**買えるのは枠だけで、
   // 中身（どの Blueprint を持ち込むか）は archive の選択で決める。**
   Object.freeze({
     id: BLUEPRINT_CAPACITY_UPGRADE_ID,
@@ -621,13 +632,19 @@ export function manifestSkillIds(manifest) {
 export const MAX_SUPPLIES = 5;
 export const INVENTORY_LIMIT = 12;
 export const RUN_SKILL_POINTS_PER_REWARD = 1;
-// R15 — 新規遠征は技能点0から始め、通常戦の勝利時に現在の編成全員へ
-// 一律1点を自動で加える。遠征終了時に消える。
+// R15 / #174 — 新規遠征は基礎技能点0に、Profileの「初期SPアップ」の
+// level ぶんを加えた点から始める。勝利報酬は遠征内だけに残る。
 export const STARTING_RUN_SKILL_POINTS = 0;
 
 export function startingSupplies(profile, rank) {
   const base = difficultyDef(rank).startingSupplies;
   return Math.min(MAX_SUPPLIES, base + upgradeLevel(profile, "starting_supplies"));
+}
+
+export function startingSkillPoints(profile) {
+  const def = metaUpgradeDef(STARTING_SKILL_POINTS_UPGRADE_ID);
+  const level = Math.min(def?.maxLevel ?? 0, upgradeLevel(profile, STARTING_SKILL_POINTS_UPGRADE_ID));
+  return STARTING_RUN_SKILL_POINTS + level;
 }
 
 // R8 §1.1 — Campaign は `options.campaignStageSequence` を渡して作る。
@@ -695,7 +712,7 @@ export function newRun(profile, options = {}) {
     supplies: startingSupplies(profile, rank),
     roster,
     formation: { ...(options.formation ?? {}) },
-    runSkillPoints: Object.fromEntries(roster.map((id) => [id, STARTING_RUN_SKILL_POINTS])),
+    runSkillPoints: Object.fromEntries(roster.map((id) => [id, startingSkillPoints(profile)])),
     runUnlockedSkills: { ...(options.unlockedSkills ?? {}) },
     // R19（issue #137）— 取得済み技能のレベル。**取得＝Lv1** なので、ここに欄が
     // 無い技能は Lv1 として読む（旧 save がそのまま動く）。
@@ -764,12 +781,12 @@ export function grantRunSkillPointsToAll(run, amount = RUN_SKILL_POINTS_PER_REWA
 // 鍵は活動資金と同じ `region:index` にする。retry でも巻き戻しでも、
 // 一つの encounter から出る技能点は一度きりである。
 //
-// **量は現行のまま（どの種別も1点）。**曲線そのもの（boss を2点にする等）は
-// #165 で比較中の未決事項で、この issue では触らない。表だけ先に一箇所へ寄せる。
+// **#174 案b。**通常戦と精鋭戦は同じ1点、boss戦は到達点として2点にする。
+// 表と画面の「+n」をこの一箇所から揃える。
 export const SKILL_POINTS_PER_CLEAR = Object.freeze({
   normal: RUN_SKILL_POINTS_PER_REWARD,
   elite: RUN_SKILL_POINTS_PER_REWARD,
-  boss: RUN_SKILL_POINTS_PER_REWARD,
+  boss: 2,
 });
 
 export function skillPointsForClear(kind) {
