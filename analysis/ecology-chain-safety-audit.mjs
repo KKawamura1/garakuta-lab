@@ -304,8 +304,11 @@ function auditResourceTrace(events) {
     const before = event.values?.before;
     const after = event.values?.after;
     const targetActorId = actorIdOf(event);
-    if (!RESOURCE_TYPES.has(resource) || !(Number.isFinite(amount) && amount > 0)) {
-      violations.push(`${event.id}: malformed positive resource event ${JSON.stringify({ type: event.type, sourceActorId: event.sourceActorId, targetActorIds: event.targetActorIds, values: event.values })}`);
+    const validAmount = event.type === "resource_spent"
+      ? Number.isFinite(amount) && amount >= 0
+      : Number.isFinite(amount) && amount > 0;
+    if (!RESOURCE_TYPES.has(resource) || !validAmount) {
+      violations.push(`${event.id}: malformed resource event`);
       continue;
     }
     if (!Number.isFinite(after)) {
