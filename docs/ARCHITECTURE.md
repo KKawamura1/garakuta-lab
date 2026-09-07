@@ -153,6 +153,7 @@ Campaign Stage の ID は `NAMED_SECTIONS` に含まれずこの照合の対象�
 - 画面が空白: ブラウザ console → 公開された module の MIME → build 印 → 直接 import。
 - 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
   反応・連鎖の安全性は `analysis/ecology-chain-safety-audit.mjs` が、到達可能な技能・
+AP/RP は actor × resource × round の収支と、spend 一回ごとの transfer 割当を追跡し、余剰回復は overflow 直下の consumer 多重化まで検査する。
   固定／生成装備の定義と代表的な event trace を別に検査する。AP/RP の受け渡しと生成、
   同じ owner/rule の chain 内再発火、自傷コスト由来の `damage_taken`、過剰回復の
   元 amount／親子関係、rule の limit.owner・scope・count を個別に見る。chain/battle cap
