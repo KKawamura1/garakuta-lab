@@ -583,7 +583,11 @@ for (const [label, battle] of productionTraceCases) {
   check(result.metrics.maxChainEventCount < DEFAULT_OPTIONS.maxEventsPerChain, `${label}: player bundle below chain cap`);
   check(result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle, `${label}: player bundle below battle cap`);
   check(auditRefiring(result.events).violations.length === 0, `${label}: player bundle same owner/rule re-fired`);
-  check(auditResourceTrace(result.events).violations.length === 0, `${label}: player bundle resource trace is bounded`);
+  const playerResourceTraceAudit = auditResourceTrace(result.events);
+  check(
+    playerResourceTraceAudit.violations.length === 0,
+    `${label}: player bundle resource trace is bounded: ${playerResourceTraceAudit.violations.join(" | ")}`,
+  );
 }
 
 const triageResult = simulateBattle(TRIAGE_BATTLE, FIXTURE_CONTENT);
