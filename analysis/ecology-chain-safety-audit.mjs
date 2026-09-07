@@ -659,8 +659,12 @@ const badResourceRule = {
 check(auditResourceDefinitions([], [badResourceRule]).violations.length > 0, "free resource cycle definition is detected");
 check(auditLimits([{
   ...badResourceRule,
+  ownerBasis: badResourceRule.rule.limit?.owner ?? null,
+}]).violations.length > 0, "missing limit.owner declaration is detected");
+check(auditLimits([{
+  ...badResourceRule,
   ownerBasis: "unknown-owner",
-  rule: { ...badResourceRule.rule, limit: { scope: "unknown_unit", count: 0 } },
+  rule: { ...badResourceRule.rule, limit: { owner: "unknown-owner", scope: "unknown_unit", count: 0 } },
 }]).violations.length > 0, "unreadable limit declaration is detected");
 check(auditExcessHealingDefinitions([{
   path: "audit.bad_excess_rule",
@@ -681,7 +685,7 @@ for (const [dropIndex, rarity] of RARITY_PROBES()) {
       section: "generatedEquipment",
       definitionId: item.definition.id,
       path: `generatedEquipment.${item.definition.id}.${rule.id}`,
-      ownerBasis: "actor-instance + rule",
+      ownerBasis: rule.limit?.owner ?? null,
       rule,
     });
   }
