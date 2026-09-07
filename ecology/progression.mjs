@@ -150,7 +150,8 @@ export const META_UPGRADES = Object.freeze([
     maxLevel: STARTING_SKILL_POINTS_UPGRADE_COSTS.length,
     costs: STARTING_SKILL_POINTS_UPGRADE_COSTS,
     describeLevel: (level) => `遠征開始時の技能点 +${level}（上限${STARTING_SKILL_POINTS_UPGRADE_COSTS.length}）`,
-  }),  // R8 §3.7 — Blueprint 持込枠。初期1、最大5。**買えるのは枠だけで、
+  }),
+  // R8 §3.7 — Blueprint 持込枠。初期1、最大5。**買えるのは枠だけで、
   // 中身（どの Blueprint を持ち込むか）は archive の選択で決める。**
   Object.freeze({
     id: BLUEPRINT_CAPACITY_UPGRADE_ID,
