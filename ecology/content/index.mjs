@@ -210,7 +210,7 @@ export {
   buildSkillTreeLayout,
   validateSkillTreeLayout,
 } from "./skill-tree-layout.mjs";
-export { ENCOUNTERS, ENEMY_CODEX, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
+export { ENEMY_CODEX, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
 // R12 §4.A — 読める設定（ギルドカード）。engine には出ない、表示だけの content。
 export {
   DOSSIERS,

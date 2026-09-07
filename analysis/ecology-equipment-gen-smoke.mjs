@@ -17,8 +17,8 @@ import { validateBattleInput } from "../ecology/validate.mjs";
 import { PLAYABLE_CONTENT } from "../ecology/content/index.mjs";
 import { AFFIX_BY_ID, RARITIES } from "../ecology/content/affixes.mjs";
 import { generateEquipment } from "../ecology/equipment-gen.mjs";
-import { newProfile, newRun, rewardOffer, runContentBundle } from "../ecology/progression.mjs";
-import { freshLoadout, makeBattle } from "../ecology/playable-battles.mjs";
+import { composeEncounter, newProfile, newRun, rewardOffer, runContentBundle } from "../ecology/progression.mjs";
+import { freshLoadout, makeExpeditionBattle } from "../ecology/playable-battles.mjs";
 
 const problems = [];
 const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
@@ -28,6 +28,9 @@ const STAGE_POOLS = [
   ["family_edge", "family_wall", "family_care", "family_scar"],
   ["family_edge", "family_wall", "family_tempo", "family_care", "family_scar"],
 ];
+// issue #173 — 遠征の実戦（EXPEDITION_ENCOUNTERS）から幕をまたいで拾う。
+// 序盤2体・中盤elite・最終bossで盤面の形（人数・役割・boss law）が変わる。
+const PROBE_ENCOUNTER_INDICES = [1, 7, 12];
 
 // ---- 1. Stage の pool で全 rarity が作れる ---------------------------------
 
@@ -67,9 +70,10 @@ for (const item of probeItems) {
     equipment: { ...PLAYABLE_CONTENT.equipment, [item.definition.id]: item.definition },
   };
   const ruleIds = new Set(item.definition.rules.map((rule) => rule.id));
-  for (const stage of [1, 3, 5]) {
+  for (const index of PROBE_ENCOUNTER_INDICES) {
+    const composed = composeEncounter(index, 0);
     for (let slot = 0; slot < 5; slot += 1) {
-      const battle = makeBattle(stage, ROSTER, freshLoadout(ROSTER));
+      const battle = makeExpeditionBattle(composed, ROSTER, freshLoadout(ROSTER));
       battle.allies[slot].equipment = [{
         instanceId: "e_probe",
         equipmentId: item.definition.id,

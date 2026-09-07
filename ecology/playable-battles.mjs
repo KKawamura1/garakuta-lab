@@ -4,7 +4,6 @@ import {
   ACTIVE_META,
   CHARACTER_DEFINITIONS,
   DISPLAY_NAMES,
-  ENCOUNTERS,
   ENEMY_LORE,
   ENEMY_TARGETING,
   EQUIPMENT_META,
@@ -391,20 +390,6 @@ export function installComponent(loadout, componentId, characterId, limitsFor) {
   return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
 }
 
-export function encounterInfo(stage) {
-  return ENCOUNTERS[Math.max(0, Math.min(ENCOUNTERS.length - 1, stage - 1))];
-}
-
-export function encounterLabel(stage) {
-  return encounterInfo(stage).name;
-}
-
-export function stageRule(stage) {
-  if (stage <= 1) return "初期構成を組んで、敵の狙いを確認する";
-  if (stage <= 3) return "報酬を一つ拾い、技能と装備を再配置する";
-  return "傷と装備消耗を抱えたまま、次の問いに答える";
-}
-
 export function enemyTargetingText(enemyActorId) {
   return ENEMY_TARGETING[enemyActorId] ?? "前列を優先して狙う。";
 }
@@ -466,7 +451,7 @@ function usableTactics(ids) {
 }
 
 // 味方1人ぶんの battle input。**編成・技能・装備・鍛錬をここでだけ組む。**
-// 7区画の試作（makeBattle）と12戦の遠征（makeExpeditionBattle）が同じ関数を通る。
+// makeExpeditionBattle（prologue も12戦の遠征もこれを呼ぶ）が唯一の呼び先。
 function allyInput(characterId, position, loadout, options = {}) {
   const option = characterById[characterId];
   const content = options.content ?? PLAYABLE_CONTENT;
@@ -513,35 +498,6 @@ function allyInput(characterId, position, loadout, options = {}) {
     equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })));
   if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(ceiling, hp));
   return ally;
-}
-
-export function makeBattle(
-  stage,
-  rosterIds = ["warden", "mender", "lancer", "guardian", "tactician"],
-  loadout = freshLoadout(rosterIds),
-  seed = RUN_SEED,
-  formation = {},
-  persistent = {},
-) {
-  const encounter = encounterInfo(stage);
-  const selected = rosterIds.filter((characterId) => characterById[characterId]).slice(0, PARTY_SIZE);
-  // **置き場所の規則は normalizeFormation にしかない。**ここで別に決めると、
-  // 画面が見せている隊列と戦闘に入る隊列がずれる。
-  const placed = normalizeFormation(formation, selected);
-  const allies = selected.map((characterId) => allyInput(
-    characterId,
-    placed[characterId] ?? characterById[characterId].defaultPosition,
-    loadout,
-    { hp: persistent.hp, equipmentDurability: persistent.equipmentDurability, limitsFor: persistent.limitsFor, statsFor: persistent.statsFor },
-  ));
-  return {
-    schemaVersion: BATTLE_SCHEMA_VERSION,
-    battleId: "frontier_" + String(seed).replace(/[^a-z0-9_]/gi, "_") + "_stage_" + stage,
-    maxRounds: encounter.maxRounds,
-    objective: { type: "eliminate_all_enemies" },
-    allies,
-    enemies: clone(encounter.enemies),
-  };
 }
 
 // R6 §5.1 / §11 — PHASE B. 12戦の遠征の一戦。
@@ -637,10 +593,6 @@ export function loadoutSummary(loadout, rosterIds) {
     reactives: loadout.reactives?.[characterId] ?? [],
     equipment: loadout.equipment?.[characterId] ?? [],
   }));
-}
-
-export function allEncounters() {
-  return clone(ENCOUNTERS);
 }
 
 // ============================================================ 次戦 exact preview（R8 §11）
