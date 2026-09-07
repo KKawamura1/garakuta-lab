@@ -510,7 +510,7 @@ const PASSIVE_FOREST = [
 
 // **値段は深さそのものが決める。**1節 1点で、行動 x=10 の到達点までは 9点、
 // リアクティブ x=9 の到達点までは 8点かかる（遠征1回で配られる技能点とほぼ同じ）。
-// baseline の入口だけ 0点で,
+// baseline の入口だけ 0点で、
 // 誰でも最初から一つは出せる（R6 §5.2 の詰み防止）。
 const FREE_ENTRY_SKILL_IDS = new Set([
   ...BASELINE_ACTIVE_SKILL_IDS,
