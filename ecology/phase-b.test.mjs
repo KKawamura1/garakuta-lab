@@ -245,16 +245,16 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   // R8 Implementation Phase 1（続き）— mend は anti-stall 安全な reactive へ
   // 作り替えたので baseline reactive になった。
   check(ids.reactive.includes("mend"), "mend は baseline reactive");
-  // 常設 fallback は詰み防止なのでパックに属さず、常に取れる（R6 §6.8）。
+  // パッシブ fallback は詰み防止なのでパックに属さず、常に取れる（R6 §6.8）。
   // **総数ではなく「7種が必ず含まれる」ことを見る**——R9 §4.1 で導入 pack が
-  // それぞれ常設を1つ持つようになったので、pack 由来の常設が上に乗る。
+  // それぞれパッシブを1つ持つようになったので、pack 由来のパッシブが上に乗る。
   for (const id of BASELINE_PASSIVE_SKILL_IDS) {
-    check(ids.passive.includes(id), id + " は常設 fallback として常に取れる");
+    check(ids.passive.includes(id), id + " はパッシブ fallback として常に取れる");
   }
   const packPassives = ids.passive.filter((id) => !BASELINE_PASSIVE_SKILL_IDS.includes(id));
   for (const id of packPassives) {
     check(manifest.enabledPackIds.includes(packOfSkill(id)),
-      id + " は有効パック由来の常設（外れたパックの常設は出ない）");
+      id + " は有効パック由来のパッシブ（外れたパックの常設は出ない）");
   }
   const excluded = SKILL_PACKS.find((pack) => !manifest.enabledPackIds.includes(pack.id));
   for (const id of excluded.activeSkillIds) {
@@ -406,9 +406,9 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     equipment: 2,
   });
   checks += 1;
-  equal(LIMITS.maxTactics, Number.MAX_SAFE_INTEGER, "行動技能は人数制限なし");
-  equal(LIMITS.maxReactiveSkills, Number.MAX_SAFE_INTEGER, "反応技能は人数制限なし");
-  equal(LIMITS.maxPassiveSkills, Number.MAX_SAFE_INTEGER, "常設技能は人数制限なし");
+  equal(LIMITS.maxTactics, Number.MAX_SAFE_INTEGER, "アクティブ技能は人数制限なし");
+  equal(LIMITS.maxReactiveSkills, Number.MAX_SAFE_INTEGER, "リアクティブ技能は人数制限なし");
+  equal(LIMITS.maxPassiveSkills, Number.MAX_SAFE_INTEGER, "パッシブ技能は人数制限なし");
 
   equal(upgradeCost(profile, slotUpgradeId("active", "warden")), null, "旧第4枠投資は新規購入できない");
   check(!purchaseUpgrade(
@@ -427,9 +427,9 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   loadout.passives.warden = passive;
   const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, loadout, "s", FORMATION, {});
   const warden = battle.allies.find((ally) => ally.characterId === "warden");
-  equal(warden.tactics.length, active.length, "上限なしの行動技能が戦闘へ届く");
-  equal(warden.reactiveSkillIds.length, reactive.length, "上限なしの反応技能が戦闘へ届く");
-  equal(warden.passiveSkillIds.length, passive.length, "上限なしの常設技能が戦闘へ届く");
+  equal(warden.tactics.length, active.length, "上限なしのアクティブ技能が戦闘へ届く");
+  equal(warden.reactiveSkillIds.length, reactive.length, "上限なしのリアクティブ技能が戦闘へ届く");
+  equal(warden.passiveSkillIds.length, passive.length, "上限なしのパッシブ技能が戦闘へ届く");
   assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), []);
   checks += 1;
 

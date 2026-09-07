@@ -154,7 +154,7 @@ const positionRows = {
   rear_center: "後列",
   rear_right: "後列",
 };
-const kindLabels = { active: "行動", reactive: "反応", passive: "常設", equipment: "装備" };
+const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };
 const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇", "基礎": "▣" };
 // デバッグログに残すイベント。**盤面で畳んだものもここには残る**ので、
 // 「なぜそうなったか」を文字で追える。engine が出さない型は入れない
@@ -440,7 +440,7 @@ function freshUiState() {
     guildCharacter: null,
     formationSelection: null,
     selectedSkillNode: null,
-    // R19（issue #137）— ツリーは種別（行動 / 反応 / 常設）で切り替える。
+    // R19（issue #137）— ツリーは種別（アクティブ / リアクティブ / パッシブ）で切り替える。
     skillTreeKind: "active",
     selectedEquipment: null,
     // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
@@ -2151,9 +2151,9 @@ function renderRoster() {
 
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 const SLOT_TITLES = {
-  active: "行動（優先順）",
-  reactive: "反応",
-  passive: "常設（いつでも効く）",
+  active: "アクティブ（優先順）",
+  reactive: "リアクティブ",
+  passive: "パッシブ（いつでも効く）",
 };
 
 function skillSlotRows(characterId, kind) {
@@ -2203,10 +2203,10 @@ function memberContext(characterId, emphasis = "skills") {
   const worn = (state.run.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
   const primary = emphasis === "skills"
     ? "装備 " + (worn.length ? worn.join(" · ") : "なし")
-    : "行動 " + (active.length ? active.join(" → ") : "なし");
+    : "アクティブ " + (active.length ? active.join(" → ") : "なし");
   const secondary = emphasis === "skills"
     ? "位置 " + positionText(state.run.formation[characterId]) + " · HP " + currentHp(characterId) + "/" + maxHp(characterId)
-    : "反応 " + (reactive.length ? reactive.join(" · ") : "なし");
+    : "リアクティブ " + (reactive.length ? reactive.join(" · ") : "なし");
   return "<section class=\"member-context\"><div class=\"member-context-head\"><span class=\"avatar\">"
     + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId))
     + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div></div>"
@@ -2225,8 +2225,8 @@ function skillBuildSummary(characterId) {
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
   const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
   const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
-  const slotLabel = selectedNode?.kind === "active" ? "行動枠"
-    : selectedNode?.kind === "reactive" ? "反応枠" : "常設枠";
+  const slotLabel = selectedNode?.kind === "active" ? "アクティブ枠"
+    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "パッシブ枠";
   const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
     ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
@@ -2235,9 +2235,9 @@ function skillBuildSummary(characterId) {
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
     + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
-    + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>行動</b> "
-    + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>反応</b> "
-    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span><span><b>常設</b> "
+    + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>アクティブ</b> "
+    + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>リアクティブ</b> "
+    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span><span><b>パッシブ</b> "
     + esc(passive.length ? passive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-stats\">"
     + "<span><b>HP</b> " + currentHp(characterId) + "/" + maxHp(characterId) + "</span><span><b>AP</b> "
     + (definition.baseActionPoints ?? "-") + "</span><span><b>RP</b> " + (definition.baseReactionPoints ?? "-")
@@ -2248,7 +2248,7 @@ function skillNodeIcon(node) {
   return branchIcons[node.branch] ?? "·";
 }
 
-// R19（issue #137）— ツリーは種別で三つに分かれる。**AP を払う行動と RP を払う反応が
+// R19（issue #137）— ツリーは種別で三つに分かれる。**AP を払うアクティブと RP を払うリアクティブが
 // 同じ枝に混ざっていると、どちらの資源を伸ばす話なのかが読めない。**
 const SKILL_TREE_KINDS = SKILL_TREE_GROUPS.map((group) => group.kind);
 
@@ -2582,7 +2582,7 @@ function renderSkills() {
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + helpDetails("skill-rules", "技能のルール",
       "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
-      + "<p class=\"muted\">行動と反応は上から順に判定され、不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
+      + "<p class=\"muted\">アクティブとリアクティブは上から順に判定され、不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
     + "</section>";
 }
 

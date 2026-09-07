@@ -984,3 +984,10 @@ issue は「(推奨) 保持して意味を持たないと明記する」と「(�
 - `ecology/contract-snapshot.json` は Campaign Stage の manifest を持たない
   （`manifests` に載るのは Free/Endless の `frontier-*` だけで、`campaignStageId`
   は全て `null`）ため、**差分は出ていない。**
+
+### 3.40 技能の表示分類名をアクティブ／リアクティブ／パッシブへ統一した（issue #171、2026-09-07）
+
+画面の技能分類を「アクティブ／リアクティブ／パッシブ」に統一した。「常設」は表示名から廃止し、
+ツリーのタブ、技能欄、節のバッジ、説明文、検証メッセージも同じ語彙を使う。
+一方、内部の `kind` 値（`active` / `reactive` / `passive`）、技能 ID、pack ID、
+セーブ形式、CSS クラス名は変更していない。表示名の変更と内部 ID の変更は別物として扱う。

@@ -243,8 +243,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       stage.id + ": 新 pack の入口は " + coreCount + " 技能（目安 7〜10）");
 
     // R9 §9.2 — 導入 pack には、別の役割が使う接続面が最低一つある。
-    check(core.reactive.length >= 2, stage.id + ": 入口に反応技能が2つ以上ある");
-    check(core.passive.length >= 1, stage.id + ": 入口に常設が1つある");
+    check(core.reactive.length >= 2, stage.id + ": 入口にリアクティブ技能が2つ以上ある");
+    check(core.passive.length >= 1, stage.id + ": 入口にパッシブが1つある");
   }
 }
 

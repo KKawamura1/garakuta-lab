@@ -16,6 +16,35 @@ import { readFileSync } from "node:fs";
 const app = readFileSync("ecology/app.js", "utf8");
 const problems = [];
 
+const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "utf8");
+const styles = readFileSync("ecology/styles.css", "utf8");
+const displayContracts = [
+  ["技能バッジの表示語", app, 'const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };'],
+  ["アクティブ欄の見出し", app, 'active: "アクティブ（優先順）"'],
+  ["リアクティブ欄の見出し", app, 'reactive: "リアクティブ"'],
+  ["パッシブ欄の見出し", app, 'passive: "パッシブ（いつでも効く）"'],
+  ["アクティブツリーのラベル", skillTreeLayout, 'label: "アクティブ"'],
+  ["リアクティブツリーのラベル", skillTreeLayout, 'label: "リアクティブ"'],
+  ["パッシブツリーのラベル", skillTreeLayout, 'label: "パッシブ"'],
+  ["active の CSS クラス", styles, ".kind-active"],
+  ["reactive の CSS クラス", styles, ".kind-reactive"],
+  ["passive の CSS クラス", styles, ".kind-passive"],
+];
+for (const [label, sourceText, expected] of displayContracts) {
+  if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
+}
+for (const [label, sourceText, forbidden] of [
+  ["技能バッジの旧表示語", app, 'const kindLabels = { active: "行動"'],
+  ["アクティブ欄の旧表示語", app, 'active: "行動（優先順）"'],
+  ["リアクティブ欄の旧表示語", app, 'reactive: "反応"'],
+  ["パッシブ欄の旧表示語", app, 'passive: "常設（いつでも効く）"'],
+  ["アクティブツリーの旧表示語", skillTreeLayout, 'label: "行動"'],
+  ["リアクティブツリーの旧表示語", skillTreeLayout, 'label: "反応"'],
+  ["パッシブツリーの旧表示語", skillTreeLayout, 'label: "常設"'],
+]) {
+  if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
+}
+
 const defined = new Set([...app.matchAll(/^function ([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]));
 if (defined.size < 40) {
   console.error("ecology-screens smoke: 関数定義をほとんど取り出せなかった。検査の書き方が古い。");
