@@ -48,7 +48,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 1つも増やしていない**（既存の event・effect・predicate・target だけで書けている）。
 // R17 — `focus` の表示語彙を「技術」へ統一した。内部 ID と状態 `focused` の表示「集中」は変えない。
 // R19（issue #137）— 技能レベルを足し、ツリーの節を組み替えた。**技能も pack も
-// 1本たりとも増減していない**（123 節のまま）が、(1) 既存の技能が Lv1〜Lv10 を持ち、
+// 1本たりとも増減していない**（節数は `SKILL_TREE_NODES.length`、内訳と予算は
+// `analysis/ecology-canonical-numbers-smoke.mjs` / `analysis/ecology-skill-catalog-smoke.mjs` の
+// 出力を参照）が、(1) 既存の技能が Lv1〜Lv10 を持ち、
 // `skillLevelCaps` を公開した。battle input が `skillLevels` を受ける。
 // (2) 節が `tier`（0/1/2）ではなく `x`（前提からの深さ、1〜10）を持ち、`requires` が
 // 「tier ごとの箱」から「一本の道」へ並び替わった。**既存欄の意味が変わったので上げる。**

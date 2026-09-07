@@ -3,8 +3,9 @@
 // **技能パック。R6 §6.1-6.2 — 一遠征で使える語彙を、遠征ごとに絞る箱。**
 // R7 Milestone 4（Phase B）で新設した。
 //
-// パックは「推奨完成コンボの箱」ではない。同じ event 語彙へ小規則を足す単位で、
-// **一遠征で有効になるのは4パック中3つ**なので、毎回どれかの系統が欠ける。
+// パックは「推奨完成コンボの箱」ではない。同じ event 語彙へ小規則を足す単位である。
+// Free / Endless では `SKILL_PACKS` から `PACKS_PER_MANIFEST` 個が一遠征に有効になり、
+// Campaign では Stage ごとに固定 pack が追加され、前の pack と累積する。
 // 欠けた系統を別の系統で埋める判断が、遠征ごとの問いになる。
 //
 // engine・schema は変更しない。
@@ -19,7 +20,7 @@ export const BASELINE_ACTIVE_SKILL_IDS = Object.freeze(["strike", "bulwark"]);
 export const BASELINE_REACTIVE_SKILL_IDS = Object.freeze(["mend"]);
 
 // R6 §6.8 — 常設 fallback passive は詰み防止なので、パックに属さない。
-// manifest がどうであれ、7種すべていつでも取れる。
+// manifest がどうであれ、`BASELINE_PASSIVE_SKILL_IDS` に定義した技能はすべていつでも取れる。
 export const BASELINE_PASSIVE_SKILL_IDS = Object.freeze([
   "foundation_vitality", "foundation_might", "foundation_focus",
   "foundation_guard", "foundation_ap", "foundation_rp",
