@@ -235,8 +235,8 @@ function fitPayload(payload) {
 // **profile へ遠征内のものを入れない。**入れた瞬間に「遠征を捨てても残る」に
 // なって、補給と再挑戦のトレードオフ（R6 §12.1）が消える。
 
-// R9 §8 / issue #211 — その Stage を一度でもクリアしているか。
-// 既知の会話を再訪時に省略するための分岐で、同行者数・構成は初回と同じ。
+// issue #211 — クリア済みかどうかは、Stage選択カードの解禁情報にだけ使う。
+// Campaignの物語イベントは初訪・再訪で分岐させない。
 function isCampaignStageCleared(profile, sequence) {
   const progress = profile?.campaignProgress?.[REGION.id];
   return Boolean(progress?.clearedStageSequences?.includes(sequence));
@@ -2017,16 +2017,14 @@ function startPrologue() {
   render();
 }
 
-// R9 §8 — その Stage の会話をこの遠征で出すかどうか。
-// **一度クリアした Stage では出さない。**初回だけ学習順を固定する。
+// Campaignの物語イベントは、初訪・再訪で分岐しない。
+// 同じStageでは opening / join・幕の断片・stageEnd を何度でも同じ順で表示する。
+// 読み飛ばしたいときは、会話画面のスキップを使う。
 // R12 §4.C — **幕の切れ目に短い断片を置く。**
 //
 // 4・8・12戦目は act boss で、プレイヤーが必ず一度止まる点である。ここに置けば
 // 新しい導線を作らずに済む。12戦のあいだが完全な無音だったのを埋めるための枠で、
 // **pack の説明はしない**（説明は opening / join / stageEnd が既に持っている）。
-//
-// 出す条件は join と同じ。**その Stage をまだクリアしていないあいだは出る。**
-// 2回目以降を黙らせないのは作者判断で、読み飛ばしたい人には スキップ がある。
 const ACT_BOSS_ENCOUNTERS = Object.freeze({ 4: "act1", 8: "act2", 12: "act3" });
 
 function actStoryBeatForEncounter(sequence, encounterIndex) {
@@ -2034,18 +2032,20 @@ function actStoryBeatForEncounter(sequence, encounterIndex) {
   if (!key) return null;
   const stage = CAMPAIGN_STAGES[sequence];
   if (!stage) return null;
-  if (isCampaignStageCleared(state.profile, sequence)) return null;
   return storyBeat(stage.id, key);
 }
 
 function storyBeatsForStart(sequence) {
   const stage = CAMPAIGN_STAGES[sequence];
   if (!stage) return { beats: [], after: "camp" };
-  if (isCampaignStageCleared(state.profile, sequence)) return { beats: [], after: "camp" };
   if (sequence === 0) {
     const seen = (state.profile.storyFlags ?? []).includes("prologue_seen");
-    if (seen) return { beats: [], after: "camp" };
-    return { beats: [storyBeat(stage.id, "opening")], after: "prologue" };
+    // opening は再訪でも同じ会話を表示する。序盤の敗北・巻き戻しだけは、
+    // 専用チュートリアルとして初回に限る。
+    return {
+      beats: [storyBeat(stage.id, "opening")],
+      after: seen ? "camp" : "prologue",
+    };
   }
   return { beats: [storyBeat(stage.id, "join")], after: "camp" };
 }
@@ -4374,7 +4374,8 @@ function handleAction(event) {
       supplies: state.run.supplies,
       roster: [...state.run.roster],
     });
-    // R9 §2 — Campaign の初回だけ、物語の断片と序盤の敗北を挟む。
+    // Campaign Stageの開始時（再訪を含む）に、物語の断片を挟む。
+    // Stage 0の序盤の敗北・巻き戻しだけは、専用チュートリアルとして初回に限る。
     if (isCampaignRun()) {
       const opening = storyBeatsForStart(state.run.campaignStageSequence);
       if (opening.beats.length) {
@@ -5055,11 +5056,10 @@ function handleAction(event) {
       && state.lastResult?.result === "win";
     // R8 §10.3 — 「放棄」は自発的な安全撤退として扱う（won/lostに続く3つ目のoutcome）。
     const outcome = won ? "won" : action === "abandon-run" ? "retreat" : "lost";
-    // issue #212 — settleRun() は初回クリア印を profile へ入れるため、呼ぶ前に
-    // 既読かどうかを判定する。再訪では既知の stageEnd をそのまま省略する。
+    // issue #212 follow-up — Campaign StageのstageEndは初訪・再訪を分けず、
+    // 完走するたびに同じ会話を通常の一行送りで表示する。
     const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
     const stageEndBeat = won && stage
-      && !isCampaignStageCleared(state.profile, state.run.campaignStageSequence)
       ? storyBeat(stage.id, "stageEnd")
       : null;
     const result = settleRun(state.profile, state.run, outcome);

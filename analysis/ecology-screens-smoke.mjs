@@ -70,17 +70,25 @@ for (const copy of [
   if (app.includes(copy)) problems.push("戦闘予測の冗長文が残っている: " + copy);
 }
 
-// issue #212 — stageEnd は精算カードへ複製せず、初回クリア時だけ通常の
-// enterStory() に入り、SKIP / AUTO / 再読み込み後も保存済みの精算へ戻る。
+// issue #212 follow-up — stageEnd は精算カードへ複製せず、勝利するたびに通常の
+// enterStory() へ入り、SKIP / AUTO / 再読み込み後も保存済みの精算へ戻る。
 if (app.includes("function stageEndStorySection")) {
   problems.push("Stage終了会話の精算用story-cardレンダラーが残っている");
 }
 for (const [label, expected] of [
   ["Stage終了会話の通常レンダラー入口", 'enterStory([stageEndBeat], "settlement")'],
-  ["既読Stageの会話省略判定", "!isCampaignStageCleared(state.profile, state.run.campaignStageSequence)"],
+  ["Stage終了会話の常時表示判定", "const stageEndBeat = won && stage"],
   ["会話終了後の精算復帰", 'if (after === "settlement")'],
 ]) {
   if (!app.includes(expected)) problems.push(label + "が見つからない");
+}
+for (const [label, forbidden] of [
+  ["開始会話の再訪省略", 'if (isCampaignStageCleared(state.profile, sequence)) return { beats: [], after: "camp" };'],
+  ["幕間会話の再訪省略", "if (isCampaignStageCleared(state.profile, sequence)) return null;"],
+  ["stageEndの再訪省略", "&& !isCampaignStageCleared(state.profile, state.run.campaignStageSequence)"],
+  ["開始会話の既読省略", 'if (seen) return { beats: [], after: "camp" };'],
+]) {
+  if (app.includes(forbidden)) problems.push(label + "が残っている");
 }
 // issue #211 — ギルドへ入るたび最新の解禁Stageを選び、再訪もStage定義の
 // 人数・同行者を保つ。旧「5人・自由編成」の表示とproduction経路を戻さない。

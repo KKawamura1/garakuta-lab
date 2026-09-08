@@ -85,6 +85,7 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 
 序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
+Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
 ## 4. 決定性
 
