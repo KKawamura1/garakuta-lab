@@ -46,39 +46,49 @@ delete activeSkills.triage;
 activeSkills.idle_shuffle = cloneActive("steady_aim", "idle_shuffle", "息を整える", {
   tags: ["buff", "playable"],
 });
+// issue #176 — **敵の狙い先を「行の先頭」から「届く範囲で最も HP の低い者」へ変えた。**
+//
+// `position_asc` 固定だと、殴られるのは前列左と後列左だけになる。実測では、5人の
+// Stage 3 を6戦通しても後列右のツグミ（隊の主火力かつ最も柔らかい）は一度も狙われず、
+// **前列右へ出しても被害 0** だった。前列と後列の選択が「どこに置くと安全か」ではなく
+// 「左端を避けるか」になっていて、隊列の話が成立していない。
+//
+// HP の絶対量で選ぶと、**紙の主火力は届く場所に居る限り必ず先に狙われる。**
+// melee は前列が生きているあいだ前列しか狙えない（engine の reach 契約）ので、
+// 「後列へ下げれば武器は届かないが、武器攻撃の威力も落ちる」という R11 §5 の
+// 交換がそのまま盤面に出る。
+//
+// **割合ではなく絶対量である**（作者判断）。庇う・防壁・守勢・回復の宛先は
+// 「最も傷ついた味方」＝傷の割合（hp_percent_asc）、攻撃の狙い先は
+// 「最も HP の低い相手」＝絶対量（hp_asc）で、二つを別の言葉として分ける
+//（docs/DESIGN.md 8.7.1）。倒し切るための狙いは残量そのもので決まる。
+const LOWEST_HP_TARGET = Object.freeze({
+  scope: "enemies",
+  filters: [{ type: "alive" }],
+  sort: ["hp_asc"],
+  take: 1,
+});
+const LOWEST_HP_REAR_TARGET = Object.freeze({
+  scope: "enemies",
+  filters: [{ type: "alive" }, { type: "row_is", row: "rear" }],
+  sort: ["hp_asc"],
+  take: 1,
+});
 activeSkills.front_strike = cloneActive("strike", "front_strike", ACTIVE_SKILL_NAMES.front_strike, {
-  targetQuery: {
-    scope: "enemies",
-    filters: [{ type: "alive" }],
-    sort: ["position_asc"],
-    take: 1,
-  },
+  targetQuery: { ...LOWEST_HP_TARGET },
 });
 activeSkills.rear_strike = cloneActive("strike", "rear_strike", ACTIVE_SKILL_NAMES.rear_strike, {
-  targetQuery: {
-    scope: "enemies",
-    filters: [{ type: "alive" }, { type: "row_is", row: "rear" }],
-    sort: ["position_asc"],
-    take: 1,
-  },
+  targetQuery: { ...LOWEST_HP_REAR_TARGET },
 });
 activeSkills.enemy_heavy = cloneActive("heavy_swing", "enemy_heavy", ACTIVE_SKILL_NAMES.enemy_heavy, {
-  targetQuery: {
-    scope: "enemies",
-    filters: [{ type: "alive" }],
-    sort: ["position_asc"],
-    take: 1,
-  },
+  targetQuery: { ...LOWEST_HP_TARGET },
   preparation: {
     steps: 1,
     completionEffects: [{
       type: "deal_damage",
-      target: {
-        scope: "enemies",
-        filters: [{ type: "alive" }],
-        sort: ["position_asc"],
-        take: 1,
-      },
+      // **溜め終わった一撃も、溜め始めた時点の枠ではなく、放つ瞬間に選び直す。**
+      // 途中で誰かを前へ出せば、その人が受ける。
+      target: { ...LOWEST_HP_TARGET },
       amount: { type: "constant", value: 8 },
       tags: ["attack", "heavy"],
     }],

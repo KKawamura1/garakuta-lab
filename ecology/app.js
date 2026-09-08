@@ -54,6 +54,8 @@ import {
   seenHomesteadIds,
   seenHomesteadScenes,
   SKILL_PACKS,
+  // issue #176 — 状態（バフ・デバフ）の説明。定義の隣にある一行をそのまま出す。
+  STATUS_GLOSSARY,
   SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
   // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
@@ -2156,6 +2158,32 @@ const SLOT_TITLES = {
   passive: "パッシブ（いつでも効く）",
 };
 
+// issue #176 — 状態（バフ・デバフ）の説明。**本文は content/statuses.mjs にしかない。**
+// 画面はそれを並べるだけなので、定義を変えれば説明も一緒に動く。
+function statusGlossaryHelp() {
+  const rows = STATUS_GLOSSARY.map((entry) => "<div class=\"glossary-row\">"
+    + "<b class=\"status-term " + (entry.polarity === "positive" ? "good" : "bad") + "\">"
+    + esc(entry.displayName) + "</b>"
+    + "<small>" + esc(entry.summary)
+    + "（最大" + entry.maxStacks + "段・" + esc(entry.durationText) + "）</small></div>").join("");
+  return helpDetails("status-rules", "状態（バフ・デバフ）の意味",
+    "<p class=\"muted\">技能の説明にある「守勢を1つ」などは、ここの状態を1段つけるという意味です。</p>"
+    + "<div class=\"glossary\">" + rows + "</div>"
+    + "<p class=\"muted\">防壁（総量を吸う）・受け構え（一撃を回数で無効にする）・受け（一撃ごとの固定軽減）は"
+    + "状態ではなく、それぞれ別の守りです。</p>");
+}
+
+// その行動が「無条件で出るか」。**無条件の技能を上に置くと、下の技能は出ない**ので、
+// 並べ替えの前にそれが分かるようにする（issue #176）。判定は定義だけを見る。
+function activeFiringLabel(skillId) {
+  const skill = PLAYABLE_CONTENT.activeSkills?.[skillId];
+  if (!skill) return null;
+  if ((skill.intrinsicPredicates ?? []).length) return "条件つき";
+  const filters = skill.targetQuery?.filters ?? [];
+  if (filters.some((filter) => filter.type !== "alive")) return "条件つき";
+  return "無条件";
+}
+
 function skillSlotRows(characterId, kind) {
   const key = SLOT_KEYS[kind];
   const list = state.run.loadout[key]?.[characterId] || [];
@@ -2169,9 +2197,15 @@ function skillSlotRows(characterId, kind) {
       : "";
     const markerClass = kind === "passive" ? "bullet passive" : "order";
     const marker = kind === "passive" ? "↳" : index + 1;
+    // issue #176 — 無条件／条件つきを行に出す。順番が「優先順位」であることの手掛かり。
+    const firing = kind === "active" ? activeFiringLabel(skillId) : null;
+    const firingChip = firing
+      ? "<span class=\"firing-chip " + (firing === "無条件" ? "always" : "conditional") + "\">" + firing + "</span>"
+      : "";
     return "<div class=\"installed-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
       + marker + "</span><span class=\"installed-copy\"><b>"
-      + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(skillEffectText(characterId, skillId)) + "</small></span>"
+      + esc(info?.label ?? nameFor(skillId)) + firingChip + "</b><small>"
+      + esc(skillEffectText(characterId, skillId)) + "</small></span>"
       + moveButtons
       + button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
         "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"")
@@ -2582,7 +2616,16 @@ function renderSkills() {
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + helpDetails("skill-rules", "技能のルール",
       "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
-      + "<p class=\"muted\">アクティブとリアクティブは上から順に判定され、不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
+      // issue #176 — **順番は「候補の並び」ではなく「優先順位」である。**
+      // 1番目に無条件の技能を置くと、2番目以降は永久に出ない。この一点を書いていなかった。
+      + "<p class=\"muted\"><b>アクティブは、上から見て<u>最初に使える一本</u>だけが出ます。</b>"
+      + "順番に使い回すのではありません。1番目が<b>無条件</b>なら、それが毎ラウンド出て"
+      + "2番目以降は出ません。<b>条件つき</b>の技能を上に置くと、条件が合った拍だけそれが出て、"
+      + "合わない拍は下の技能へ落ちます。</p>"
+      + "<p class=\"muted\">リアクティブも上から順に判定します。こちらは条件が別々なので複数が同じ拍に鳴りますが、"
+      + "反応点が尽きた時点で下の技能は出ません。</p>"
+      + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
+    + statusGlossaryHelp()
     + "</section>";
 }
 
@@ -3157,6 +3200,8 @@ function renderBattle() {
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯はHPを示します。</p>"
       + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
+    // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
+    + statusGlossaryHelp()
     + "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>戦闘履歴</summary>"
     + "<p class=\"muted\">再生中の位置までの出来事を新しい順に表示します。</p>"

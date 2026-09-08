@@ -342,7 +342,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   // issue #176（#165 段階2）— **前提 Lv が実データで使われるようになった。**
   // #168 で書ける形にしただけだった `needsParentLv` を、Stage 0 の
   // 「傷へ盾を Lv3 → 長く守る」が実際に使っている。ここでは形の側だけを見る
-  //（どの節がそれを使い、いつ取り切れるかは analysis/ecology-stage0-builds.mjs）。
+  //（どの節がそれを使い、いつ取り切れるかは analysis/ecology-stage3-builds.mjs）。
   check(
     SKILL_TREE_NODES.some((node) => node.requires.some((required) => required.minLv > 1)),
     "親 Lv を要求する節が実データに存在する",

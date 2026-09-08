@@ -26,6 +26,7 @@
 
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "../ecology/playable-content.mjs";
+import { STATUS_GLOSSARY } from "../ecology/content/statuses.mjs";
 import {
   ACTIVE_META,
   EQUIPMENT_META,
@@ -202,6 +203,46 @@ assert.deepEqual(
   }).join("\n")
   + "\n**bpsForLegacyAmount(N) の N はそのまま % ではない**（(10) は 250%）。実際の係数を書くこと",
 );
+
+// ---- 状態の用語集（issue #176）--------------------------------------------------
+//
+// 「守勢って何でしたっけ」が起きた原因は、状態の意味が**どこにも書かれていない**
+// ことだった。用語集を足したので、**全部の状態に一行があること**と、
+// **書いた数値が定義の数値と一致すること**をここで見る。
+{
+  const glossaryProblems = [];
+  const byId = Object.fromEntries(STATUS_GLOSSARY.map((entry) => [entry.id, entry]));
+  for (const [id, definition] of Object.entries(PLAYABLE_CONTENT.statuses ?? {})) {
+    const entry = byId[id];
+    if (!entry) {
+      glossaryProblems.push(`状態 ${id} の説明が STATUS_GLOSSARY に無い（画面に意味が出ない）`);
+      continue;
+    }
+    if (!entry.summary) glossaryProblems.push(`状態 ${id} の説明が空`);
+    if (entry.displayName !== definition.displayName) {
+      glossaryProblems.push(`状態 ${id} の表示名が定義とずれている`);
+    }
+    // 説明文に書いた「1段につきN」は、定義の効果量と一致すること。
+    const written = [...String(entry.summary).matchAll(/1段につき(\d+)/g)].map((match) => Number(match[1]));
+    if (!written.length) continue;
+    const amounts = [];
+    const walk = (node) => {
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (!node || typeof node !== "object") return;
+      if (node.type === "constant" && Number.isFinite(node.value)) amounts.push(node.value);
+      if (node.type === "status_stacks_scaled") amounts.push(node.numerator ?? 1);
+      for (const value of Object.values(node)) walk(value);
+    };
+    walk(definition.rules ?? []);
+    for (const value of written) {
+      if (!amounts.includes(value)) {
+        glossaryProblems.push(`状態 ${id} の説明が「1段につき${value}」だが、`
+          + `定義の量は ${amounts.join("・") || "(無し)"}`);
+      }
+    }
+  }
+  assert.deepEqual(glossaryProblems, [], "状態の用語集がずれている:\n  " + glossaryProblems.join("\n  "));
+}
 
 console.log(
   "ecology readout smoke ok "

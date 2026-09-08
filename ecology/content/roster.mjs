@@ -49,7 +49,7 @@ export const CHARACTER_DEFINITIONS = [
     //（ecology/story.test.mjs が4通りの配置ごと結果を固定している）。
     // active と同じで、**欄を埋めるより空けておくほうが強い。**被弾を守りへ変える
     // 「揺れない手」も、応急処置も、買う側に残す
-    //（analysis/ecology-stage0-builds.mjs の構成3の入口）。
+    //（Stage 3 の「隊列で守る」構成の入口。analysis/ecology-stage3-builds.mjs）。
     starterReactives: ["mend"],
   },
   {

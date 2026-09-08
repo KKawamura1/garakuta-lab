@@ -101,17 +101,16 @@ export const CAMPAIGN_STAGES = Object.freeze([
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
     pressureTags: Object.freeze(["guard", "block", "small_group"]),
+    // issue #176 — **Stage 0 は「単純に勝てる導入」に振る**（作者判断）。
+    // ここで複数のビルドを競わせようとすると、盤面を難しくする方向でしか差が作れず、
+    // 導入として本末転倒になる。序盤から複数の構成が立つかの検証は、5人と4 pack が
+    // 揃った Stage 3 で行う（analysis/ecology-stage3-builds.mjs）。
     learningGoals: Object.freeze([
       "武器（腕力）の攻撃は後列から出すと大きく落ち、技（技術）は落ちない（R11 §5）",
       "だから前列と後列の選択は、守りの話であると同時に火力の話でもある",
-      "**前列の敵が生きている間、ゴウの武器は後列の敵へ届かない。**後列はツグミの技だけが通る",
-      "**主火力のツグミが一番柔らかい。**後列を狙う敵が出た瞬間、数発で落ちる",
+      "**敵は届く範囲で最もHPの低い者を狙う。**前へ出した柔らかい者ほど先に殴られる",
+      "**主火力のツグミが一番柔らかい。**前に出すと本当に落ち、後ろへ下げれば武器は届かない",
       "回復は「HPを戻す役」ではなく「損傷の連鎖を止める役」（R8 §9.4）",
-      // issue #176（#165 段階2）— **同じ2人から立ち上がる三つの答え。**
-      // 三構成が同じ seed・同じ敵で違う event 列になることは
-      // analysis/ecology-stage0-builds.mjs が実際に走らせて確かめている。
-      "その傷を、防ぐ（防壁で丸ごと吸う）／直す（反応で割合を返す）／そもそも作らない"
-        + "（先に落とす）の三通りで扱える。どれを選ぶかが Stage 0 の構成である",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
   }),

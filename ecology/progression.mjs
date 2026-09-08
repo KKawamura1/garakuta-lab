@@ -24,7 +24,6 @@ import {
   MANIFEST_VERSION,
   MAX_SKILL_LEVEL,
   MIN_SKILL_LEVEL,
-  POSITION_ROW,
   PROFILE_SCHEMA_VERSION,
   RUN_SCHEMA_VERSION,
   TRAINABLE_STATS,
@@ -1115,41 +1114,24 @@ export function composeEncounter(index, difficultyRank, options = {}) {
   let spent = def.threatBudget;
 
   // R9 §3.2 — 少人数 Stage の切り詰め。**boss は必ず残す**（幕の問いが消える）。
+  // 後ろの枠から落とすので、前列の圧力の形は変わらない。
   //
-  // issue #176 — **後ろの枠から順に落とすと、その戦闘の問いごと消える。**
-  // 12戦の敵は「前で受ける者」と「後列から後衛を狙う者」で組んであるが、後ろから
-  // 落とすと後者が必ず先に消え、2人 Stage では**12戦すべてが「前から殴ってくる2体」**
-  // になっていた。結果、後列のツグミは一度も狙われず、Stage 0 の学習目標
-  //（「主火力のツグミが一番柔らかい」）が盤面に一度も出ない。守る・避ける・直すの
-  // どれを選んでも同じ盤面なので、構成の違いが生まれようがない。
+  // issue #176 — 一度「行と役割を残して選ぶ」へ変えたが、**作者判断で戻した。**
+  // 後列を狙う敵が2人 Stage へ出てくると、導入がそのぶん難しくなる。
+  // **最初の2人 Stage は単純に勝てる導入にする**方を採る。序盤から複数のビルドを
+  // 立てられるかの検証は、5人が揃った Stage 3 で行う
+  //（analysis/ecology-stage3-builds.mjs）。
   //
-  // だから落とすのではなく**選ぶ**。残す枠を、行（前列／後列）の被りが少ない方から、
-  // 次に敵の種類の被りが少ない方から、最後は元の並び順で埋める。**敵の定義も
-  // 各戦闘の編成も変えていない**——同じ編成のどこを2人に見せるかだけが変わる。
-  // 各 Stage の敵編成そのものの設計は #149 が引き続き持つ。
-  if (partySize < fullParty && units.length > partySize) {
-    const rowOf = (unit) => POSITION_ROW[unit.position] ?? unit.position;
-    const kept = units.filter((unit) => unit.boss).slice(0, partySize);
-    const rows = new Set(kept.map(rowOf));
-    const roles = new Set(kept.map((unit) => unit.enemyActorId));
-    while (kept.length < partySize) {
-      const rest = units.filter((unit) => !kept.includes(unit));
-      if (!rest.length) break;
-      const pick = rest.find((unit) => !rows.has(rowOf(unit)) && !roles.has(unit.enemyActorId))
-        ?? rest.find((unit) => !rows.has(rowOf(unit)))
-        ?? rest.find((unit) => !roles.has(unit.enemyActorId))
-        ?? rest[0];
-      kept.push(pick);
-      rows.add(rowOf(pick));
-      roles.add(pick.enemyActorId);
+  // 少人数で「前から殴ってくる敵しか出ない」ことは、いまは欠陥ではなく導入の形である。
+  // 前列と後列の選択そのものは、敵の狙い先（届く範囲で最も HP の低い味方）が担う
+  //（content/skills-active.mjs の front_strike / rear_strike）。
+  if (partySize < fullParty) {
+    while (units.length > partySize) {
+      const removable = units.map((unit, slot) => ({ unit, slot })).filter((entry) => !entry.unit.boss);
+      if (!removable.length) break;
+      units.splice(removable[removable.length - 1].slot, 1);
     }
-    // 並びは元の編成順のまま。instanceId は元の枠の番号を持ち続ける。
-    const selected = units.filter((unit) => kept.includes(unit));
-    units.length = 0;
-    units.push(...selected);
     spent = units.reduce((total, unit) => total + unit.threatCost, 0);
-    budget = Math.floor(budget * partySize / fullParty);
-  } else if (partySize < fullParty) {
     budget = Math.floor(budget * partySize / fullParty);
   }
 

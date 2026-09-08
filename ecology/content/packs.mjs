@@ -93,8 +93,7 @@ export const SKILL_PACKS = Object.freeze([
     //                   上限を超える回復が構造的に起きず、excess_healing が出ない。
     //   watchful_care … 隙を払う唯一の反応。Stage 0 の敵は隙を付けてこない。
     //
-    // 入れたのは三つ。**どれも「守り方の違い」を三通りに分けるためにある**
-    // （analysis/ecology-stage0-builds.mjs が三構成として実際に走らせている）。
+    // 入れたのは三つ。**どれも「守り方の違い」を分けるためにある。**
     //
     //   field_dressing     … 半分以下の味方が居るときだけ発火する、条件付きの守り。
     //                        無条件の shield_the_wounded と優先順位で並べ替えられる。

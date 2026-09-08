@@ -359,7 +359,7 @@ const PAYOFFS = [
   },
   {
     id: "pay_cull", familyId: "family_edge", role: "payoff", power: 2,
-    displayName: "掃除", summary: "最も弱った敵へダメージ",
+    displayName: "掃除", summary: "最もHPの低い敵へダメージ",
     emits: ["damage_proposed", "damage_taken", "excess_damage", "barrier_damaged", "barrier_broken", "damage_blocked", "block_spent", "actor_defeated"],
     requires: [], magnitudes: [16, 28, 45],
     effect: (amount) => ({
@@ -381,7 +381,7 @@ const PAYOFFS = [
   },
   {
     id: "pay_sweep", familyId: "family_edge", role: "payoff", power: 3,
-    displayName: "薙ぎ", summary: "最も弱った敵と同じ列へダメージ",
+    displayName: "薙ぎ", summary: "最もHPの低い敵と同じ列へダメージ",
     emits: ["damage_proposed", "damage_taken", "excess_damage", "barrier_damaged", "barrier_broken", "damage_blocked", "block_spent", "actor_defeated"],
     requires: [], magnitudes: [10, 18, 30],
     effect: (amount) => ({

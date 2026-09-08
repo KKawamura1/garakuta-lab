@@ -144,8 +144,9 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //
   //   1. 「最も傷ついた味方」を選ぶ query が、残りHPの小ささ（hp_asc）から
   //      傷の割合（hp_percent_asc）へ変わった。庇護・防壁・守勢・回復の宛先が動く。
-  //   2. 少人数 Stage の敵の切り詰めが「後ろから落とす」から「行と役割を残して選ぶ」
-  //      へ変わった（progression.composeEncounter）。2〜4人の Stage で出会う敵が変わる。
+  //   2. 敵の攻撃の狙い先が「行の先頭」から「届く範囲で最も HP の低い味方」へ変わった
+  //      （content/skills-active.mjs の front_strike / rear_strike / enemy_heavy）。
+  //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.14 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
   contentVersion: "ecology-playable-full-0.15",
@@ -226,6 +227,8 @@ export {
   validateSkillTreeLayout,
 } from "./skill-tree-layout.mjs";
 export { ENEMY_CODEX, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
+// issue #176 — 状態（バフ・デバフ）の意味。**定義の隣に一度だけ書いたものを画面が読む。**
+export { STATUS_GLOSSARY } from "./statuses.mjs";
 // R12 §4.A — 読める設定（ギルドカード）。engine には出ない、表示だけの content。
 export {
   DOSSIERS,
