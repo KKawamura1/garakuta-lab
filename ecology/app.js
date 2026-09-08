@@ -473,6 +473,20 @@ function freshUiState() {
   };
 }
 
+
+function startDebugCampaignStage(profile, sequence) {
+  const stage = CAMPAIGN_STAGES[sequence];
+  if (!stage) return null;
+  // 開発中の検証導線。通常の解禁順・物語・序章を飛ばし、Stage の固定 cast で
+  // キャンプから開始する。公開後に削除する前提で、管理者ガードは置かない。
+  return startRun(profile, {
+    campaignStageSequence: sequence,
+    roster: [...stage.castCharacterIds],
+    freeRoster: false,
+    runSeed: RUN_SEED + "-debug-stage-" + sequence,
+  });
+}
+
 function initialState() {
   const profile = newProfile();
   return { ...freshUiState(), profile, run: startRun(profile, { campaignStageSequence: 0 }), phase: "intro" };
@@ -1238,6 +1252,7 @@ function renderIntro() {
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")
+    + button("DEBUG: Stage 3へ（5人）", "debug-stage", false, "button", "data-sequence=\"3\"")
     + button("ロードゲーム", "open-save-menu", false, "button", "data-return=\"intro\"")
     + "</div>"
     + saveStatus
@@ -4150,6 +4165,33 @@ function handleAction(event) {
   const action = element.dataset.action;
   captureSkillTreeScroll();
   state.error = null;
+
+
+  if (action === "debug-stage") {
+    const sequence = Number(element.dataset.sequence);
+    const profile = newProfile();
+    const run = Number.isInteger(sequence) ? startDebugCampaignStage(profile, sequence) : null;
+    if (!run) return;
+    state = {
+      ...freshUiState(),
+      profile,
+      run,
+      phase: "camp",
+      selectedCampaignStageSequence: sequence,
+      selectedCharacter: run.roster[0] ?? null,
+      formationSelection: run.roster[0] ?? null,
+      runId: run.runId,
+      startedAt: run.startedAt,
+    };
+    record("debug_stage_jump", {
+      campaignStageSequence: sequence,
+      roster: [...run.roster],
+      runId: run.runId,
+    });
+    saveState();
+    render();
+    return;
+  }
 
   if (action === "new-game") {
     if (hasAutoSave() && !window.confirm("現在のオートセーブを新しいGameで置き換えます。手動セーブ枠は残ります。")) return;
