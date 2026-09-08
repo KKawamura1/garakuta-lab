@@ -73,7 +73,7 @@ const skillCases = [
   {
     id: "free_defeat_ap",
     kind: "reactive",
-    reason: "actor_defeated -> self AP with no cost",
+    reason: "actor_defeated without enemy guard or one-shot bound -> self AP",
     definition: makeFreeReactiveSkill(
       "patient_step",
       "free_defeat_ap",
@@ -164,8 +164,72 @@ assert.ok(
 assert.equal(traceAudit.creationEvents, 1, "the unbacked gain reaches the creation branch");
 checks += 2;
 
-console.log("chain-safety blind spots: PASS (" + checks + " enforcement checks)");
+
+const allowedResourceCases = [
+  {
+    id: "foundation_ap",
+    path: "passiveSkills.foundation_ap.rule",
+    rule: PLAYABLE_CONTENT.passiveSkills.foundation_ap.rule,
+    reason: "round_started + battle/1 one-shot",
+  },
+  {
+    id: "foundation_rp",
+    path: "passiveSkills.foundation_rp.rule",
+    rule: PLAYABLE_CONTENT.passiveSkills.foundation_rp.rule,
+    reason: "round_started + battle/1 one-shot",
+  },
+  {
+    id: "first_order",
+    path: "passiveSkills.first_order.rule",
+    rule: PLAYABLE_CONTENT.passiveSkills.first_order.rule,
+    reason: "round_started + battle/1 + round 1 + front ally",
+  },
+  {
+    id: "scavenge_ap",
+    path: "reactiveSkills.scavenge_ap.rule",
+    rule: PLAYABLE_CONTENT.reactiveSkills.scavenge_ap.rule,
+    reason: "enemy actor_defeated + round/1",
+  },
+  {
+    id: "worn_greaves",
+    path: "equipment.worn_greaves.rules[0]",
+    rule: PLAYABLE_CONTENT.equipment.worn_greaves.rules[0],
+    reason: "actor_activated + round/1",
+  },
+  {
+    id: "patient_step",
+    path: "reactiveSkills.patient_step.rule",
+    rule: PLAYABLE_CONTENT.reactiveSkills.patient_step.rule,
+    reason: "finite reaction-point cost",
+  },
+  {
+    id: "rescue_sachet",
+    path: "equipment.rescue_sachet.rules[0]",
+    rule: PLAYABLE_CONTENT.equipment.rescue_sachet.rules[0],
+    reason: "finite wear-equipment cost",
+  },
+];
+
+for (const item of allowedResourceCases) {
+  assert.ok(item.rule, item.id + " is present in playable content");
+  const audit = auditResourceDefinitions([], [{
+    path: item.path,
+    rule: item.rule,
+  }]);
+  assert.deepEqual(
+    audit.violations,
+    [],
+    item.id + " is an allowed resource reward: " + item.reason,
+  );
+  checks += 1;
+}
+
+console.log("chain-safety blind spots: PASS (" + checks + " checks: " + skillCases.length + " rejected, " + allowedResourceCases.length + " allowed)");
 for (const item of skillCases) {
   console.log("  " + item.id + ": " + item.reason);
 }
 console.log("  unbacked_cross_actor_gain: rejected without a spend parent");
+console.log("  allowed resource rewards:");
+for (const item of allowedResourceCases) {
+  console.log("    " + item.id + ": " + item.reason);
+}
