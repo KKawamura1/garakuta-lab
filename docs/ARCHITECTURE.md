@@ -121,6 +121,11 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 
 UI・replay・検査は、engine が出した同じイベント列を読みます。
 新しい event を追加する場合は、schema、validator、engine テスト、表示・replay も同時に更新します。
+履歴／replay の入力型は `replay-beats.mjs` の `REPLAY_EVENT_TYPES` が
+`schema.mjs` の `EVENT_TYPES` から導出するため、画面側だけの手書き whitelist を持ちません。
+防壁で吸い切った攻撃は `damage_proposed` → `barrier_damaged` / `barrier_broken` →
+`damage_absorbed`（`finalDamage: 0` を含む）、途中で対象を失った hit は `damage_skipped`、
+行動の取り消しは `action_canceled` として、HPが変わらない場合も理由を残します。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
 ターゲットクエリの並び替えは `TARGET_SORT_TYPES`（schema）が正本で、実装は `selectors.mjs` の
 `sortValue` 一箇所です。`hp_asc` / `hp_desc` は残りHPそのもの（**攻撃の狙い先**。味方側・敵側とも
