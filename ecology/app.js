@@ -476,30 +476,13 @@ function freshUiState() {
 
 
 // **一時導線の宣言。**ここに載っているものは「消す前提で入っている」ものである。
-// `analysis/ecology-screens-smoke.mjs` が、この表と docs/OPERATIONS.md §3 の削除欄が
-// 一致していることを見張る。**消し忘れは、宣言を消し忘れることでしか起きない。**
-export const TEMPORARY_DEBUG_ENTRIES = Object.freeze([
-  Object.freeze({
-    id: "debug-stage",
-    label: "DEBUG: Stage 3へ（5人）",
-    reason: "issue #176 の作者試遊。Stage 3 を直接開いて三構成を触るための導線",
-    removeBefore: "PR #186 の merge 直前",
-  }),
-]);
-
-function startDebugCampaignStage(profile, sequence) {
-  const stage = CAMPAIGN_STAGES[sequence];
-  if (!stage) return null;
-  // 開発中の検証導線。通常の解禁順・物語・序章を飛ばし、Stage の固定 cast で
-  // キャンプから開始する。公開後に削除する前提で、管理者ガードは置かない。
-  // 宣言は TEMPORARY_DEBUG_ENTRIES（この上）に一つだけ置く。
-  return startRun(profile, {
-    campaignStageSequence: sequence,
-    roster: [...stage.castCharacterIds],
-    freeRoster: false,
-    runSeed: RUN_SEED + "-debug-stage-" + sequence,
-  });
-}
+// `analysis/ecology-screens-smoke.mjs` が、この表と docs/OPERATIONS.md §3.1 の欄が
+// 一致していることを見張る。**片方だけ消しても落ちる。**
+//
+// issue #176 の作者試遊で使った Stage 3 直行の導線（`debug-stage`）は、
+// PR #186 の merge 前にここごと外した。次に一時導線を足すときは、この配列と
+// docs/OPERATIONS.md §3.1 の表へ同時に書く。
+export const TEMPORARY_DEBUG_ENTRIES = Object.freeze([]);
 
 function initialState() {
   const profile = newProfile();
@@ -1266,7 +1249,6 @@ function renderIntro() {
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
     + button("はじめから", "new-game", false, "button")
-    + button("DEBUG: Stage 3へ（5人）", "debug-stage", false, "button", "data-sequence=\"3\"")
     + button("ロードゲーム", "open-save-menu", false, "button", "data-return=\"intro\"")
     + "</div>"
     + saveStatus
@@ -4178,33 +4160,6 @@ function handleAction(event) {
   const action = element.dataset.action;
   captureSkillTreeScroll();
   state.error = null;
-
-
-  if (action === "debug-stage") {
-    const sequence = Number(element.dataset.sequence);
-    const profile = newProfile();
-    const run = Number.isInteger(sequence) ? startDebugCampaignStage(profile, sequence) : null;
-    if (!run) return;
-    state = {
-      ...freshUiState(),
-      profile,
-      run,
-      phase: "camp",
-      selectedCampaignStageSequence: sequence,
-      selectedCharacter: run.roster[0] ?? null,
-      formationSelection: run.roster[0] ?? null,
-      runId: run.runId,
-      startedAt: run.startedAt,
-    };
-    record("debug_stage_jump", {
-      campaignStageSequence: sequence,
-      roster: [...run.roster],
-      runId: run.runId,
-    });
-    saveState();
-    render();
-    return;
-  }
 
   if (action === "new-game") {
     if (hasAutoSave() && !window.confirm("現在のオートセーブを新しいGameで置き換えます。手動セーブ枠は残ります。")) return;

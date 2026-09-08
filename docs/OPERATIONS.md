@@ -59,9 +59,10 @@
 
 | id | 何のためか | いつ消すか |
 |---|---|---|
-| `debug-stage` | issue #176 の作者試遊。Stage 3 を直接開いて三構成を触るための導線 | PR #186 の merge 直前 |
+| （現在なし） | | |
 
-空にするときは、表の行と `TEMPORARY_DEBUG_ENTRIES` の要素を同じ commit で消します。
+足すときも消すときも、この表の行と `TEMPORARY_DEBUG_ENTRIES` の要素を同じ commit で動かします。
+issue #176 の作者試遊で使った Stage 3 直行の導線（`debug-stage`）は、PR #186 の merge 前に外しました。
 
 ## 4. 作者に頼む評価
 

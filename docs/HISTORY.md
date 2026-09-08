@@ -1113,6 +1113,7 @@ engine とイベント語彙に触る3件（行動権の余り・回復の重ね
 - 前列と交代する技能は一度動くと戻れず、行動権を払う意味が薄い。相手を動かす技能も、
   次の攻撃（列・行）へ繋がる形がまだ無い。
 
-一時導線（タイトル画面の `debug-stage`）は作者試遊が終わるまで残す。**消し忘れないよう、
-`ecology/app.js` の `TEMPORARY_DEBUG_ENTRIES` と `docs/OPERATIONS.md` §3.1 の表を
-`analysis/ecology-screens-smoke.mjs` が突き合わせる**（片方だけ消すと落ちる）。
+一時導線（タイトル画面の `debug-stage`）は作者試遊のあいだだけ残し、**merge 前に外した。**
+消し忘れないよう、`ecology/app.js` の `TEMPORARY_DEBUG_ENTRIES` と `docs/OPERATIONS.md`
+§3.1 の表を `analysis/ecology-screens-smoke.mjs` が突き合わせる（片方だけ消すと落ちる）。
+仕組みは空の配列と空の表として残してあるので、次に一時導線を足すときも同じ挟み方になる。
