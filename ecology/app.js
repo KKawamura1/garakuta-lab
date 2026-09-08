@@ -755,7 +755,7 @@ function shell(title, subtitle, body, options = {}) {
   const headerClass = options.titleScreen ? "header title-header" : "header";
   // Build metadata stays available to automated diagnostics without occupying
   // the normal player-facing chrome. Visible details live inside technical logs.
-  const footer = "<span class=\"build-stamp\" aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
+  const footer = "<span class=\"build-stamp\" hidden aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
   return "<div class=\"shell\"><header class=\"" + headerClass + "\"><div><h1>" + esc(title)
     + "</h1><p class=\"subtitle\">" + esc(subtitle)
     + "</p></div>" + headerAction + "</header>" + body + error + footer + "</div>";
