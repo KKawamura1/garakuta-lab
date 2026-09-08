@@ -166,9 +166,13 @@ try {
   });
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(300);
-  note("踏破済みStageの再訪では会話が出ない", await page.locator(".vn-stage").count() === 0);
+  note("再訪用の遠征準備画面に着く", await page.locator(".vn-stage").count() === 0);
 
   await click("この条件で遠征へ出る");
+  await page.waitForSelector(".vn-stage", { timeout: 8000 });
+  note("踏破済みStageの再訪でも開始会話が出る", await page.locator(".vn-stage").count() === 1);
+  await click("スキップ");
+  await page.waitForTimeout(300);
   note("編成タブ", /編成|仲間/.test(await bodyText()));
 
   // 4つのタブを踏む。各画面の主要操作が画面内にあることも見る。
@@ -236,7 +240,18 @@ try {
       note("挑む前に下までスクロールしている", (await page.evaluate(() => window.scrollY)) > 0);
     }
     // issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まず自動戦闘へ進む。
+    // Campaignの幕間会話は再訪でも出るため、該当戦では同じ通常レンダラーを閉じてから戦闘へ進む。
     await click("この敵に挑む");
+    await page.waitForFunction(
+      () => Boolean(document.querySelector(".vn-stage, .battle-field")),
+      null,
+      { timeout: 8000 },
+    );
+    if (await page.locator(".vn-stage").count() > 0) {
+      note(`第${stage}戦前の幕間会話が出る`, true);
+      await click("スキップ");
+      await page.waitForTimeout(300);
+    }
     await page.waitForSelector(".battle-field", { timeout: 8000 });
     if (stage === 1) {
       note("戦闘へ入ると画面の先頭（盤面）へ戻る", (await page.evaluate(() => window.scrollY)) === 0);
@@ -389,7 +404,7 @@ try {
   }
   note("12戦まで進めた or 敗北で止まった", stage >= 1, `到達 ${Math.min(stage, 12)}`);
 
-  // issue #212 — 初回完走時の stageEnd は、精算カードではなく通常の
+  // issue #212 — 完走時の stageEnd は、精算カードではなく通常の
   // 立ち絵つき一行送りへ入る。途中で再読み込みしても同じ行へ復帰し、
   // SKIP 後はすでに確定済みの精算へ戻る。
   if (await page.locator(".vn-stage").count() > 0) {
