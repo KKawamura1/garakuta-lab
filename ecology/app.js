@@ -26,6 +26,7 @@ import {
   registerGeneratedEquipment,
   makePrologueBattle,
   simulateExpeditionBattle,
+  tacticUseWhenFor,
   prologueEncounter,
 } from "./playable-battles.mjs";
 import {
@@ -2189,11 +2190,12 @@ function statusGlossaryHelp() {
 }
 
 // その行動が「無条件で出るか」。**無条件の技能を上に置くと、下の技能は出ない**ので、
-// 並べ替えの前にそれが分かるようにする（issue #176）。判定は定義だけを見る。
+// 並べ替えの前にそれが分かるようにする（issue #176）。固有条件と発動条件を合わせて判定する。
 function activeFiringLabel(skillId) {
   const skill = PLAYABLE_CONTENT.activeSkills?.[skillId];
   if (!skill) return null;
   if ((skill.intrinsicPredicates ?? []).length) return "条件つき";
+  if (tacticUseWhenFor(skillId).length) return "条件つき";
   const filters = skill.targetQuery?.filters ?? [];
   if (filters.some((filter) => filter.type !== "alive")) return "条件つき";
   return "無条件";
