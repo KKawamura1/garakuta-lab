@@ -121,12 +121,18 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 
 UI・replay・検査は、engine が出した同じイベント列を読みます。
 新しい event を追加する場合は、schema、validator、engine テスト、表示・replay も同時に更新します。
+`damage_absorbed` は防壁が hit を全量吸収したときの表示用・記録専用の終端 event です。
+`damage_taken` や `damage_blocked` の反応を誤発火させないため listen 対象にはできません。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
 ターゲットクエリの並び替えは `TARGET_SORT_TYPES`（schema）が正本で、実装は `selectors.mjs` の
 `sortValue` 一箇所です。`hp_asc` / `hp_desc` は残りHPそのもの（**攻撃の狙い先**。味方側・敵側とも
 「最もHPの低い相手」を指す）、`hp_percent_asc` / `hp_percent_desc` は**傷の割合**
 （**庇護・回復の宛先**。「最も傷ついた味方」）で、後者の値は `hp * 10000 / maxHp` の
 切り捨て（整数 bps）から作ります。
+melee の reach は query filter より先に適用し、候補側に生存前列が一人でもいれば前列だけへ
+絞ります。攻撃者の行は reach 判定に使わないため、後列 actor の追い打ちも敵前列へ届きます。
+前列が残る状態で `row_is: rear` を要求すると対象なしになり、別 tactic または basic strike
+へ進みます。前列全滅後は後列が候補になります。
 **浮動小数は比較経路に入りません。**同率は既定の `position_asc` → `instance_id_asc` へ落ちるので、
 `take: 1` が配列の到着順に依存することはありません。
 未知の event、effect、predicate、scope、tag などは無視せず validator error にします。
