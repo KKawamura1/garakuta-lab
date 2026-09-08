@@ -240,7 +240,18 @@ try {
       note("挑む前に下までスクロールしている", (await page.evaluate(() => window.scrollY)) > 0);
     }
     // issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まず自動戦闘へ進む。
+    // Campaignの幕間会話は再訪でも出るため、該当戦では同じ通常レンダラーを閉じてから戦闘へ進む。
     await click("この敵に挑む");
+    await page.waitForFunction(
+      () => Boolean(document.querySelector(".vn-stage, .battle-field")),
+      null,
+      { timeout: 8000 },
+    );
+    if (await page.locator(".vn-stage").count() > 0) {
+      note(`第${stage}戦前の幕間会話が出る`, true);
+      await click("スキップ");
+      await page.waitForTimeout(300);
+    }
     await page.waitForSelector(".battle-field", { timeout: 8000 });
     if (stage === 1) {
       note("戦闘へ入ると画面の先頭（盤面）へ戻る", (await page.evaluate(() => window.scrollY)) === 0);
