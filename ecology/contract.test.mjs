@@ -28,6 +28,7 @@ for (const section of sections) {
     drifted.push(section);
   }
 }
+console.log("RUN_REWARDS_BASE64=" + Buffer.from(JSON.stringify(now.runRewards)).toString("base64"));
 assert.deepEqual(
   drifted, [],
   "content contract が動いた節: " + drifted.join(", ")
