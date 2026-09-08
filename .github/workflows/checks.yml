@@ -13,11 +13,19 @@ jobs:
   current:
     name: Current implementation
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install Playwright Chromium
+        run: |
+          set -euo pipefail
+          npm init -y > /dev/null
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
       - name: Syntax and ecology checks
+        env:
+          PLAYWRIGHT_MODULE: playwright
         run: bash analysis/check-all.sh
