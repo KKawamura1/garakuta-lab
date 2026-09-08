@@ -82,6 +82,19 @@ for (const [label, expected] of [
 ]) {
   if (!app.includes(expected)) problems.push(label + "が見つからない");
 }
+// issue #211 — ギルドへ入るたび最新の解禁Stageを選び、再訪もStage定義の
+// 人数・同行者を保つ。旧「5人・自由編成」の表示とproduction経路を戻さない。
+for (const [label, expected] of [
+  ["最新の解禁Stageを初期選択", "const campaignStage = campaignStages[campaignStages.length - 1];"],
+  ["再訪カードのStage人数", 'stage.partySize + "人・"'],
+  ["再訪カードのStage同行者", 'stage.castCharacterIds.map(characterName).join("＋")'],
+]) {
+  if (!app.includes(expected)) problems.push(label + "が見つからない");
+}
+for (const forbidden of ["5人・自由編成で再訪", "ensureCampaignPartySize", "freeRoster:"]) {
+  if (app.includes(forbidden)) problems.push("旧再訪経路が残っている: " + forbidden);
+}
+
 if (!app.includes("+ diagnosticStamp()")) {
   problems.push("build情報の診断先（技術ログ）が無い");
 }
