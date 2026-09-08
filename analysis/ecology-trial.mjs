@@ -389,6 +389,22 @@ try {
   }
   note("12戦まで進めた or 敗北で止まった", stage >= 1, `到達 ${Math.min(stage, 12)}`);
 
+  // issue #212 — 初回完走時の stageEnd は、精算カードではなく通常の
+  // 立ち絵つき一行送りへ入る。途中で再読み込みしても同じ行へ復帰し、
+  // SKIP 後はすでに確定済みの精算へ戻る。
+  if (await page.locator(".vn-stage").count() > 0) {
+    const stageEndLine = await page.locator(".vn-text").getAttribute("data-full");
+    note("Stage終了会話が通常の一行送りで始まる",
+      await page.locator(".vn-figure .portrait-svg").count() > 0
+        && await page.getByRole("button", { name: "AUTO" }).count() === 1
+        && await page.getByRole("button", { name: "スキップ" }).count() === 1);
+    await page.reload({ waitUntil: "networkidle" });
+    note("Stage終了会話を再読み込みから再開できる",
+      await page.locator(".vn-stage").count() === 1
+        && await page.locator(".vn-text").getAttribute("data-full") === stageEndLine);
+    await click("スキップ");
+  }
+
   // R6 §9.2 — 精算は一度だけ。内訳と残高が画面に出る。
   const settleText = await bodyText();
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
