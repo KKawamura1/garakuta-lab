@@ -220,3 +220,7 @@ affix由来のHP・防壁・RP等の追加costとは別枠で、engineの既存�
 `statBonus` はrule列の外で `static-bonuses.mjs` が適用するため摩耗しない。戦闘中は
 `equipment_worn` のbefore/amount/afterがreplayと表示の正本であり、耐久0のinstanceは
 `engine.ruleEntriesFor` が以後のdispatch対象から外す。新しいevent語彙は追加しない。
+
+
+この変更は生成装備ruleの既存cost欄の意味を変えるため、content contractは18へ上げる。
+generator version 7より前のBlueprintは互換不能理由を表示し、現行ruleへ黙って読み替えない。

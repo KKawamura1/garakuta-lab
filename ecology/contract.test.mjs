@@ -10,7 +10,6 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { contractSnapshot, contractSnapshotJson } from "./contract-snapshot.mjs";
 import { CONTENT_CONTRACT_VERSION, NAMED_SECTIONS, SECTION_NAMES, PLAYABLE_CONTENT } from "./content/index.mjs";
@@ -27,12 +26,6 @@ for (const section of sections) {
     assert.deepEqual(now[section], frozen[section]);
   } catch {
     drifted.push(section);
-  }
-}
-{
-  const encoded = gzipSync(Buffer.from(JSON.stringify(now.runRewards))).toString("base64");
-  for (let offset = 0; offset < encoded.length; offset += 16000) {
-    console.log(`RUN_REWARDS_BASE64_${offset / 16000}=${encoded.slice(offset, offset + 16000)}`);
   }
 }
 assert.deepEqual(

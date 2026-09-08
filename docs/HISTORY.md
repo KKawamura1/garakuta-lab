@@ -1148,7 +1148,7 @@ HP減少時だけ出る既存契約に対して、吸収の事実と最終ダメ
 ### 3.47 生成装備の発火効果へ耐久消費を統一した（issue #210、2026-09-09）
 
 generatorがcostを任意選択していたため、耐久表示があっても摩耗しない生成装備が存在した。
-generator versionを7へ上げ、修理以外の全ruleへ耐久costを一つ付けた。単体・単効果は1、
+generator versionを7、content contractを18へ上げ、修理以外の全ruleへ耐久costを一つ付けた。単体・単効果は1、
 複数効果・多段・範囲は2を消費する。affixの追加costは併用でき、既存engineのatomic cost処理、
 `equipment_worn`、耐久0でrule供給を止める経路をそのまま使う。
 
