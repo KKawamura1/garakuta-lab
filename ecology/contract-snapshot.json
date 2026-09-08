@@ -14452,7 +14452,7 @@
   {
    "rank": 0,
    "threatBudgetDelta": 0,
-   "startingSupplies": 3,
+   "startingSupplies": 0,
    "eliteMutationCount": 0,
    "bossMutationCount": 0,
    "normalMaxRoundsDelta": 0,
@@ -14462,7 +14462,7 @@
   {
    "rank": 1,
    "threatBudgetDelta": 1,
-   "startingSupplies": 3,
+   "startingSupplies": 0,
    "eliteMutationCount": 0,
    "bossMutationCount": 0,
    "normalMaxRoundsDelta": 0,
@@ -14474,7 +14474,7 @@
   {
    "rank": 2,
    "threatBudgetDelta": 1,
-   "startingSupplies": 3,
+   "startingSupplies": 0,
    "eliteMutationCount": 1,
    "bossMutationCount": 0,
    "normalMaxRoundsDelta": 0,
@@ -14487,7 +14487,7 @@
   {
    "rank": 3,
    "threatBudgetDelta": 1,
-   "startingSupplies": 3,
+   "startingSupplies": 0,
    "eliteMutationCount": 1,
    "bossMutationCount": 0,
    "normalMaxRoundsDelta": -1,
@@ -14501,7 +14501,7 @@
   {
    "rank": 4,
    "threatBudgetDelta": 1,
-   "startingSupplies": 3,
+   "startingSupplies": 0,
    "eliteMutationCount": 1,
    "bossMutationCount": 1,
    "normalMaxRoundsDelta": -1,
@@ -14516,7 +14516,7 @@
   {
    "rank": 5,
    "threatBudgetDelta": 1,
-   "startingSupplies": 2,
+   "startingSupplies": 0,
    "eliteMutationCount": 1,
    "bossMutationCount": 1,
    "normalMaxRoundsDelta": -1,
@@ -14526,7 +14526,7 @@
     "normal_rounds_minus_1",
     "boss_mutation_plus_1"
    ],
-   "summary": "上に加えて、開始補給が 2 になる。"
+   "summary": "上に加えて、開始補給の基準値は0のまま。"
   }
  ],
  "bossLaws": {
