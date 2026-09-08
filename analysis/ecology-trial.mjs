@@ -389,7 +389,7 @@ try {
   }
   note("12戦まで進めた or 敗北で止まった", stage >= 1, `到達 ${Math.min(stage, 12)}`);
 
-  // issue #212 — 初回完走時の stageEnd は、精算カードではなく通常の
+  // issue #212 — 完走時の stageEnd は、精算カードではなく通常の
   // 立ち絵つき一行送りへ入る。途中で再読み込みしても同じ行へ復帰し、
   // SKIP 後はすでに確定済みの精算へ戻る。
   if (await page.locator(".vn-stage").count() > 0) {
