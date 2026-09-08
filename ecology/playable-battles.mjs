@@ -431,6 +431,10 @@ const TACTIC_USE_WHEN = Object.freeze({
   relay_order: [{ type: "history_count", subject: "self", metric: "active_actions", window: "round", op: "eq", value: 0 }],
 });
 
+export function tacticUseWhenFor(skillId) {
+  return TACTIC_USE_WHEN[skillId] ?? [];
+}
+
 // **装備の定義は content bundle から引く。**遠征ごとの装備は
 // PLAYABLE_CONTENT に無く、遠征ごとの bundle（progression.runContentBundle）
 // にしか居ないので、ここで固定 content を直接読むと拾った装備が黙って落ちる。
@@ -446,7 +450,7 @@ function equipmentInput(characterId, equipmentIds, durability = {}, content = PL
 function usableTactics(ids) {
   return ids.filter((id) => PLAYABLE_CONTENT.activeSkills[id]).map((activeSkillId) => ({
     activeSkillId,
-    useWhen: TACTIC_USE_WHEN[activeSkillId] ?? [],
+    useWhen: tacticUseWhenFor(activeSkillId),
   }));
 }
 
