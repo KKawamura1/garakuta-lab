@@ -233,10 +233,17 @@ function syntheticResult(result, allyHpById) {
 
 {
   const profile = campaignCompleteProfile();
-  let run = newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 3 });
+  let run = {
+    ...newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 3 }),
+    supplies: 1,
+  };
   const maxHp = characterStats(profile, "warden").stats.maxHp;
   run = { ...run, currentHp: { ...run.currentHp, warden: Math.floor(maxHp * 0.3) } };
   const before = run.supplies;
+
+  const omittedTarget = campTreat(run, profile, "concentrated");
+  check(!omittedTarget.ok, "対象を指定しない単体治療は実行しない");
+  equal(run.supplies, before, "対象未選択では補給を消費しない");
 
   const treated = campTreat(run, profile, "concentrated", ["warden"]);
   check(treated.ok, "集中治療が成功する");
