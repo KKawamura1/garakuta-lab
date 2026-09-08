@@ -63,7 +63,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // まま」が起こらない。**既存欄（*_META の説明文）の読み方が変わったので上げる。**
 // Issue #175 — resource cycles, refiring, self-cost damage, overflow lineage,
 // and finite rule limits are now part of the checked content contract.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-17";
+// Issue #210 — generated equipment rules now carry a mandatory durability cost;
+// repair is the documented finite-cost exception and statBonus stays outside rules.
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-18";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

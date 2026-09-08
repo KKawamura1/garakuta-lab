@@ -209,3 +209,18 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 その中の折り畳まれた「技術ログ」に分ける。通常画面の header / footer には内部版数を出さない。
 shell を共有するタイトル・キャンプ・戦闘・結果・精算の全画面と、戦闘予測の冗長文が戻らないことを
 `analysis/ecology-screens-smoke.mjs` が検査する。表示整理は予測・本番・報酬・精算の計算経路を変更しない。
+
+## 生成装備ruleの耐久契約
+
+`equipment-gen.mjs` は、修理以外の全生成ruleへ `wear_equipment` costをちょうど一つ付ける。
+消費量はruleのeffect形状から決定的に導出し、単体・単効果は1、複数効果・多段・範囲は2とする。
+affix由来のHP・防壁・RP等の追加costとは別枠で、engineの既存のatomic cost処理を共有する。
+修理effectは例外として耐久costを付けず、非耐久の有限costをgenerator監査で必須にする。
+
+`statBonus` はrule列の外で `static-bonuses.mjs` が適用するため摩耗しない。戦闘中は
+`equipment_worn` のbefore/amount/afterがreplayと表示の正本であり、耐久0のinstanceは
+`engine.ruleEntriesFor` が以後のdispatch対象から外す。新しいevent語彙は追加しない。
+
+
+この変更は生成装備ruleの既存cost欄の意味を変えるため、content contractは18へ上げる。
+generator version 7より前のBlueprintは互換不能理由を表示し、現行ruleへ黙って読み替えない。

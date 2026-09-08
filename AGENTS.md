@@ -40,8 +40,9 @@
 - 敵は特定技能を要求せず、初動・対象数・guard・block・位置・継続時間・資源圧力などの
   性能軸を変える。新 pack は既存 event を読み、単独でも現在価値のある技能を作る。
 - 完全上位互換を作らない。作る場合は明確な代償を付ける。
-- 装備の生成処理は `trigger → condition 0〜2個 → cost 0〜1個 → effect 1〜3個 → limit →
-  durability/charge` の形にし、発火不能・無料無限循環・説明不能なものは生成バグとして拒否する。
+- 装備の生成処理は `trigger → condition 0〜2個 → durability cost → additional cost 0〜1個 →
+  effect 1〜3個 → limit` の形にする。発火効果は原則として耐久を消費し、常時 stat bonus は
+  発火 rule から分離する。発火不能・無料無限循環・説明不能なものは生成バグとして拒否する。
   item rarity と各 effect の rarity を分け、rule は拾う前から全文を読めるようにする。
   50回試行して生成できなければ診断を表示する。
 - 遠征中の活動資金は ledger に仮計上し、勝利・安全撤退・敗北時に一度だけ精算する。

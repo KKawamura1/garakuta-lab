@@ -164,6 +164,9 @@ const EFFECT_FLOOR = Object.freeze({
       equal(implicit?.slot, "implicit", `${rarity} の先頭は無条件基礎効果`);
       equal(implicit?.rarity, rarity, `${rarity} の基礎効果は item と同格`);
       equal(implicit?.unconditional, true, `${rarity} の基礎効果は無条件`);
+      check(!definition.rules.some((rule) => rule.effects.some((effect) =>
+        effect.type === "stat_bonus")),
+      `${rarity} の常時能力は発火 rule と分離されている`);
       const statBonus = Object.entries(definition.statBonus ?? {});
       equal(statBonus.length, 1, `${rarity} は常時能力をちょうど一つ持つ`);
       check(Number.isInteger(statBonus[0]?.[1]) && statBonus[0][1] > 0,
@@ -193,12 +196,31 @@ const EFFECT_FLOOR = Object.freeze({
 
       for (const rule of definition.rules) {
         check(rule.effects.length >= 1 && rule.effects.length <= 4, "各 rule は payoff effect を1〜3＋keystone bonus まで持つ");
-        check(rule.costs.length <= 1, "各 rule の cost は 0〜1");
+        check(rule.costs.length >= 1 && rule.costs.length <= 2,
+          "各 rule は耐久コスト＋追加コストを最大1つ持つ");
+        const repair = rule.effects.some((effect) => effect.type === "repair_equipment");
+        const wearCosts = rule.costs.filter((cost) => cost.type === "wear_equipment");
+        if (repair) {
+          equal(wearCosts.length, 0, "修理 rule は自己相殺する耐久コストを持たない");
+          check(rule.costs.some((cost) => ["lose_hp", "consume_barrier"].includes(cost.type)),
+            "修理 rule は非耐久の有限コストを持つ");
+        } else {
+          equal(wearCosts.length, 1, "発火する生成装備 rule は耐久を必ず消費する");
+          check([1, 2].includes(wearCosts[0].amount), "耐久消費は通常1、重い効果は2");
+          const heavy = rule.effects.length > 1 || rule.effects.some((effect) =>
+            (effect.hitCount ?? 1) > 1
+              || ["row", "column"].includes(effect.targetPattern)
+              || effect.target?.take === "all");
+          equal(wearCosts[0].amount, heavy ? 2 : 1,
+            "複数効果・多段・範囲は耐久2、それ以外は耐久1");
+        }
         check(rule.limit.count >= 1, "各 rule は1回以上発火できる");
         // 無料無限循環を作らない。
         const gains = rule.effects.filter((effect) =>
           effect.type === "gain_resource" || effect.type === "heal" || effect.type === "repair_equipment");
-        if (gains.length) check(rule.costs.length === 1, "資源・HP・耐久を戻す rule は代償を持つ");
+        if (gains.length) check(rule.costs.some((cost) =>
+          ["wear_equipment", "lose_hp", "consume_barrier"].includes(cost.type)),
+        "資源・HP・耐久を戻す rule は有限の代償を持つ");
         // heal は被弾 chain の中でだけ（anti-stall）。
         if (rule.effects.some((effect) => effect.type === "heal")) {
           equal(rule.listenTo, "damage_taken", "heal は被弾に反応する");
