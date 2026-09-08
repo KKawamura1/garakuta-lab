@@ -235,8 +235,8 @@ function fitPayload(payload) {
 // **profile へ遠征内のものを入れない。**入れた瞬間に「遠征を捨てても残る」に
 // なって、補給と再挑戦のトレードオフ（R6 §12.1）が消える。
 
-// R9 §8 — その Stage を一度でもクリアしているか。**初回だけ物語と学習順を固定し、
-// 既知になった後の再訪では編成から始められるようにする**ための分岐。
+// R9 §8 / issue #211 — その Stage を一度でもクリアしているか。
+// 既知の会話を再訪時に省略するための分岐で、同行者数・構成は初回と同じ。
 function isCampaignStageCleared(profile, sequence) {
   const progress = profile?.campaignProgress?.[REGION.id];
   return Boolean(progress?.clearedStageSequences?.includes(sequence));
@@ -251,13 +251,13 @@ function defaultFormation(roster) {
   return normalizeFormation(formation, roster);
 }
 
-// R9 §2.1 — この遠征の人数。チュートリアル Stage は2〜5人で、
-// 一度クリアした Stage を遊び直すときは5人。
+// R9 §2.1 / issue #211 — この遠征の人数。Campaignは初回・再訪とも
+// Stage定義の2〜5人を使う。
 function runPartySize() {
   return Math.max(1, Math.min(PARTY_SIZE, Math.floor(state.run?.partySize ?? PARTY_SIZE)));
 }
 
-// 初回のチュートリアル Stage では、誰が来るかは物語が決める。
+// Campaign Stageでは初回・再訪とも、誰が来るかはStage定義が決める。
 function rosterLocked() {
   return state.run?.rosterLocked === true;
 }
@@ -480,19 +480,26 @@ function hydrateState(saved) {
   // 入口から弾いているため、Free Runを勝手に作って続行しない。
   const savedRun = saved.run;
   next.run = savedRun;
-  next.run.partySize = Number.isFinite(savedRun.partySize)
-    ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
-    : PARTY_SIZE;
-  next.run.rosterLocked = savedRun.rosterLocked === true;
-  const savedCampaignFree = savedRun.campaignStageSequence !== null
-    && savedRun.campaignStageSequence !== undefined
-    && !next.run.rosterLocked;
-  if (savedCampaignFree) {
-    next.run.partySize = Math.min(next.run.partySize, availableCharacterIds(next.profile).length);
+  const savedCampaignStage = savedRun.campaignStageSequence === null
+    || savedRun.campaignStageSequence === undefined
+    ? null
+    : CAMPAIGN_STAGES[savedRun.campaignStageSequence] ?? null;
+  if (savedCampaignStage) {
+    // issue #211 — 同じsave schemaで作られた旧「自由再訪」も、復元時に
+    // Stage定義の同行者・人数へ揃え、表示・敵規模との食い違いを残さない。
+    next.run.partySize = savedCampaignStage.partySize;
+    next.run.rosterLocked = true;
+    next.run.roster = [...savedCampaignStage.castCharacterIds];
+  } else {
+    next.run.partySize = Number.isFinite(savedRun.partySize)
+      ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
+      : PARTY_SIZE;
+    next.run.rosterLocked = savedRun.rosterLocked === true;
+    next.run.roster = ensurePartySize(
+      savedRun.roster.filter((id) => characterInfo(id)),
+      next.run.partySize,
+    );
   }
-  next.run.roster = savedCampaignFree
-    ? ensureCampaignPartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize, next.profile)
-    : ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize);
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
