@@ -2169,7 +2169,7 @@ function renderRoster() {
 
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 const SLOT_TITLES = {
-  active: "アクティブ（優先順）",
+  active: "アクティブ（順番）",
   reactive: "リアクティブ",
   passive: "パッシブ（いつでも効く）",
 };
@@ -2189,8 +2189,8 @@ function statusGlossaryHelp() {
     + "状態ではなく、それぞれ別の守りです。</p>");
 }
 
-// その行動が「無条件で出るか」。**無条件の技能を上に置くと、下の技能は出ない**ので、
-// 並べ替えの前にそれが分かるようにする（issue #176）。固有条件と発動条件を合わせて判定する。
+// その行動に固有条件・発動条件があるかを表示する（issue #176）。
+// 技能の順番は、現在位置からのラウンドロビン走査に使う。
 function activeFiringLabel(skillId) {
   const skill = PLAYABLE_CONTENT.activeSkills?.[skillId];
   if (!skill) return null;
@@ -2214,7 +2214,7 @@ function skillSlotRows(characterId, kind) {
       : "";
     const markerClass = kind === "passive" ? "bullet passive" : "order";
     const marker = kind === "passive" ? "↳" : index + 1;
-    // issue #176 — 無条件／条件つきを行に出す。順番が「優先順位」であることの手掛かり。
+    // issue #176 — 無条件／条件つきを行に出し、条件の読み落としを防ぐ。
     const firing = kind === "active" ? activeFiringLabel(skillId) : null;
     const firingChip = firing
       ? "<span class=\"firing-chip " + (firing === "無条件" ? "always" : "conditional") + "\">" + firing + "</span>"
@@ -2633,12 +2633,10 @@ function renderSkills() {
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + helpDetails("skill-rules", "技能のルール",
       "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
-      // issue #176 — **順番は「候補の並び」ではなく「優先順位」である。**
-      // 1番目に無条件の技能を置くと、2番目以降は永久に出ない。この一点を書いていなかった。
-      + "<p class=\"muted\"><b>アクティブは、上から見て<u>最初に使える一本</u>だけが出ます。</b>"
-      + "順番に使い回すのではありません。1番目が<b>無条件</b>なら、それが毎ラウンド出て"
-      + "2番目以降は出ません。<b>条件つき</b>の技能を上に置くと、条件が合った拍だけそれが出て、"
-      + "合わない拍は下の技能へ落ちます。</p>"
+      // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
+      + "<p class=\"muted\"><b>アクティブは現在の位置から順番に判定し、最初に使える一本だけが出ます。</b>"
+      + "選んだ技能の次から、次の activation の判定を始めます。<b>条件つき</b>の技能が未達ならスキップし、"
+      + "後ろの技能を試します。使える技能が無い activation では位置を進めません。</p>"
       + "<p class=\"muted\">リアクティブも上から順に判定します。こちらは条件が別々なので複数が同じ拍に鳴りますが、"
       + "反応点が尽きた時点で下の技能は出ません。</p>"
       + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
