@@ -32,4 +32,12 @@ for smoke in "${smokes[@]}"; do
   node "$smoke"
 done
 
+# Browser screen trials are opt-in so the normal checks job stays lightweight.
+# The deployed full-check workflow runs these trials on its own path.
+if [[ "${ECOLOGY_SCREEN_TRIALS:-0}" == "1" ]]; then
+  echo "screen: analysis/ecology-tutorial-trial.mjs"
+  node analysis/ecology-tutorial-trial.mjs
+  echo "screen: analysis/ecology-trial.mjs"
+  node analysis/ecology-trial.mjs
+fi
 echo "One Battle Ahead checks: ok"
