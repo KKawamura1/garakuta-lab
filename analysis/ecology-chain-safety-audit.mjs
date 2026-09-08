@@ -191,7 +191,7 @@ function resourceFlowKind(target) {
   return "other";
 }
 
-function auditResourceDefinitions(activeSkills, rules) {
+export function auditResourceDefinitions(activeSkills, rules) {
   const violations = [];
   const rows = [];
   const flowCounts = { creation: 0, transfer: 0, other: 0 };
@@ -286,7 +286,7 @@ function auditLimits(rules) {
   return { rows, scopeCounts, violations };
 }
 
-function auditResourceTrace(events) {
+export function auditResourceTrace(events) {
   const ordered = [...events].sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
   const byId = new Map(ordered.map((event) => [event.id, event]));
   const violations = [];
