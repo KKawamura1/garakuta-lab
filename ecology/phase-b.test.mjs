@@ -826,29 +826,36 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
 {
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "s", runId: "r9", roster: ROSTER });
-  equal(run.supplies, 3, "開始補給3");
+  equal(run.supplies, 0, "通常遠征の開始補給0");
+  const tutorialRun = newRun(profile, {
+    runSeed: "s", runId: "r9-tutorial", roster: ROSTER, campaignStageSequence: 0, tutorial: true,
+  });
+  equal(tutorialRun.supplies, 1, "Stage 0 の補給チュートリアルだけ開始補給1");
   equal(MAX_SUPPLIES, 5, "上限5");
   // R14 §3 — 偵察は消えた。**補給の用途は三つだけ**で、その三つが同じ数を取り合う。
   assert.deepEqual(Object.keys(SUPPLY_USES), ["retry", "reroll", "camp"]);
-  equal(spendSupply(run, "scout").ok, false, "偵察という用途はもう無い");
   checks += 1;
-  const retry = spendSupply(run, "retry");
-  equal(retry.run.supplies, 2, "再挑戦で1減る");
+  equal(spendSupply(run, "scout").ok, false, "偵察という用途はもう無い");
+  const retry = spendSupply(tutorialRun, "retry");
+  equal(retry.run.supplies, 0, "再挑戦で1減る");
   equal(spendSupply({ ...run, supplies: 0 }, "retry").ok, false, "0では使えない");
   equal(spendSupply(run, "nonsense").ok, false, "知らない用途は拒否する");
   // 3用途が同じ数を取り合う（R6 §12.1 のトレードオフ）。
-  const rerolled = spendSupply(retry.run, "reroll");
+  const rerolled = spendSupply({ ...tutorialRun, supplies: 2 }, "reroll");
   equal(rerolled.run.supplies, 1, "引き直しは再挑戦の余地を減らす");
   equal(spendSupply(rerolled.run, "camp").run.supplies, 0, "野営治療も同じ数から引く");
 
-  // 開始補給の購入は上限5を超えない。
+  // 開始補給の購入は基準値0から加算される。
   let rich = { ...profile, activityFunds: "1000000" };
   rich = purchaseUpgrade(rich, "starting_supplies").profile;
   rich = purchaseUpgrade(rich, "starting_supplies").profile;
-  equal(newRun(rich, { runSeed: "s", runId: "ra", roster: ROSTER }).supplies, 5, "買い切って5");
+  equal(newRun(rich, { runSeed: "s", runId: "ra", roster: ROSTER }).supplies, 2, "買い切って2");
+  equal(newRun(rich, {
+    runSeed: "s", runId: "ra-tutorial", roster: ROSTER, campaignStageSequence: 0, tutorial: true,
+  }).supplies, 1, "チュートリアル開始補給は永続強化後も1");
   equal(upgradeCost(rich, "starting_supplies"), null, "3段目は無い");
-  // rank 5 は開始補給を2へ下げるので、買っていても上限には届かない側で効く。
-  equal(newRun(profile, { runSeed: "s", runId: "rb", roster: ROSTER, difficulty: 5 }).supplies, 2,
+  // rank 5 でも通常遠征の基準値は0。
+  equal(newRun(profile, { runSeed: "s", runId: "rb", roster: ROSTER, difficulty: 5 }).supplies, 0,
     "rank 5 の開始補給");
 }
 
