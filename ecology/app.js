@@ -475,11 +475,24 @@ function freshUiState() {
 }
 
 
+// **一時導線の宣言。**ここに載っているものは「消す前提で入っている」ものである。
+// `analysis/ecology-screens-smoke.mjs` が、この表と docs/OPERATIONS.md §3 の削除欄が
+// 一致していることを見張る。**消し忘れは、宣言を消し忘れることでしか起きない。**
+export const TEMPORARY_DEBUG_ENTRIES = Object.freeze([
+  Object.freeze({
+    id: "debug-stage",
+    label: "DEBUG: Stage 3へ（5人）",
+    reason: "issue #176 の作者試遊。Stage 3 を直接開いて三構成を触るための導線",
+    removeBefore: "PR #186 の merge 直前",
+  }),
+]);
+
 function startDebugCampaignStage(profile, sequence) {
   const stage = CAMPAIGN_STAGES[sequence];
   if (!stage) return null;
   // 開発中の検証導線。通常の解禁順・物語・序章を飛ばし、Stage の固定 cast で
   // キャンプから開始する。公開後に削除する前提で、管理者ガードは置かない。
+  // 宣言は TEMPORARY_DEBUG_ENTRIES（この上）に一つだけ置く。
   return startRun(profile, {
     campaignStageSequence: sequence,
     roster: [...stage.castCharacterIds],

@@ -187,7 +187,31 @@ for (const field of [
   }
 }
 
-// 6. 参照点。**片側だけでなく、鳴ることも確かめられる形にしておく。**
+// 6. 一時導線（issue #176）。**消す前提で入っているものを、消し忘れないための片側検査。**
+//    `ecology/app.js` の TEMPORARY_DEBUG_ENTRIES と docs/OPERATIONS.md §3.1 の表を
+//    突き合わせる。片方だけ消すとここで落ちるので、**宣言だけが残ることも、
+//    導線だけが残ることも起きない。**
+{
+  const operations = readFileSync("docs/OPERATIONS.md", "utf8");
+  const declared = [...app.matchAll(/id: "([a-z0-9-]+)",\n\s*label: "[^"]*",\n\s*reason:/g)]
+    .map((match) => match[1]);
+  const documented = [...operations.matchAll(/^\| `([a-z0-9-]+)` \|/gm)].map((match) => match[1]);
+  for (const id of declared) {
+    if (!documented.includes(id)) {
+      problems.push(`一時導線 "${id}" が TEMPORARY_DEBUG_ENTRIES にあるのに docs/OPERATIONS.md §3.1 の表に無い`);
+    }
+    if (!actions.has(id) && !rawActions.has(id)) {
+      problems.push(`一時導線 "${id}" の宣言だけが残っている（画面の導線は既に消えている）`);
+    }
+  }
+  for (const id of documented) {
+    if (!declared.includes(id)) {
+      problems.push(`docs/OPERATIONS.md §3.1 の "${id}" が app.js の TEMPORARY_DEBUG_ENTRIES に無い`);
+    }
+  }
+}
+
+// 7. 参照点。**片側だけでなく、鳴ることも確かめられる形にしておく。**
 //    存在しない名前を混ぜたら必ず引っかかることを、ここで自己確認する。
 if (defined.has("__surely_missing__")) {
   console.error("ecology-screens smoke: 参照点が壊れている。");
