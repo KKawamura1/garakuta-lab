@@ -2283,6 +2283,43 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   margin: 9px 0 0;
   line-height: 1.65;
 }
+/* issue #176 — 状態（バフ・デバフ）の用語集。ヘルプの中に一覧で出す。 */
+.glossary {
+  margin: 9px 0 0;
+  display: grid;
+  gap: 8px;
+}
+.glossary-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.glossary-row .status-term {
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+.glossary-row .status-term.good { color: var(--good); }
+.glossary-row .status-term.bad { color: var(--bad); }
+.glossary-row small {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* 装着した行動が無条件で出るか。**無条件を上に置くと下は出ない**ことの手掛かり。 */
+.firing-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.firing-chip.always { color: var(--orange); }
+.firing-chip.conditional { color: var(--blue); }
+
 .operation-note {
   margin: 8px 0 0;
   color: var(--ink);

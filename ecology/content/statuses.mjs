@@ -137,3 +137,34 @@ statuses.bleeding = {
 };
 
 export const STATUSES = statuses;
+
+// ---------------------------------------------------------------- 画面へ出す説明（issue #176）
+//
+// **状態の意味は、定義の隣に一度だけ書く。**作者から「守勢って何でしたっけ」という
+// 問いが出た時点で、これは仕様ではなく欠陥である。技能の説明文には「守勢を1つ」としか
+// 書いておらず、守勢そのものが何をするかはコードにしか無かった。
+//
+// 段数・持続・向きは**定義から引く**（手で書くとずれる）。ここに書くのは一行の意味だけ。
+// `analysis/ecology-readout-smoke.mjs` が、STATUSES の全 id にこの一行があることと、
+// 書いた数値が定義の数値と一致することを見張る。
+const STATUS_SUMMARIES = {
+  exposed: "受けるダメージが1段につき10増える。付けるのも払うのも技能でできる。",
+  focused: "次に出す damage / heal / barrier が一度だけ10増え、使うと消える。",
+  staggered: "その相手が**出す**ダメージが1段につき8減る。倒さずに攻撃を細くする。",
+  warded: "その味方が**受ける**ダメージが1段につき8減る。防壁（総量）でも受け構え（回数）でもない三つ目の守りで、細かい多段に強く、大きな一撃には薄い。",
+  bleeding: "ラウンド終わりに一度だけ、1段につき12を**受けを無視して**刻む。硬い相手へ通る細い線。",
+};
+
+const DURATION_TEXT = { round: "ラウンド終わりに消える", battle: "戦闘のあいだ残る", turn: "次の手番で消える" };
+
+// 状態ひとつぶんの説明。**段数・持続・向きは定義から、意味は上の表から。**
+export const STATUS_GLOSSARY = Object.freeze(Object.entries(statuses)
+  .map(([id, definition]) => Object.freeze({
+    id,
+    displayName: definition.displayName,
+    polarity: definition.polarity,
+    maxStacks: definition.maxStacks,
+    duration: definition.duration,
+    durationText: DURATION_TEXT[definition.duration] ?? definition.duration,
+    summary: STATUS_SUMMARIES[id] ?? "",
+  })));

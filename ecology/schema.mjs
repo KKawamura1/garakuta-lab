@@ -245,6 +245,14 @@ export const TARGET_FILTER_TYPES = freeze([
 export const TARGET_SORT_TYPES = freeze([
   "hp_asc",
   "hp_desc",
+  // issue #176 — **「最も傷ついた味方」は、残りHPの小ささではない。**
+  // 最大HPが 110〜300 まで開いている隊では、hp_asc は「最大HPの小さい人」を
+  // 指し続ける（ツグミ 100/110 とゴウ 150/300 なら、無傷に近いツグミが選ばれる）。
+  // 割合で並べる鍵をここに足して、庇護の対象を**傷の深さ**で選べるようにする。
+  // 値は selectors.mjs が整数 bps（hp * 10000 / maxHp の切り捨て）で作るので、
+  // 浮動小数は経路に入らない。
+  "hp_percent_asc",
+  "hp_percent_desc",
   "barrier_asc",
   "barrier_desc",
   "position_asc",

@@ -137,7 +137,19 @@ export const PLAYABLE_CONTENT = Object.freeze({
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
   // R16 で技能54本・状態3つを足した。R20 で速度能力値を削除し、R21 で装備の
   // 無条件 statBonus を追加した。
-  contentVersion: "ecology-playable-full-0.14",
+  //
+  // issue #176（#165 段階2）で 0.15 へ上げた。**公開済み ID の意味が変わったから**である
+  // （AGENTS.md「version の不一致を黙って無視しない」）。技能も装備も ID は一つも
+  // 増減していないが、次の二つで同じ入力から違う結果が出る。
+  //
+  //   1. 「最も傷ついた味方」を選ぶ query が、残りHPの小ささ（hp_asc）から
+  //      傷の割合（hp_percent_asc）へ変わった。庇護・防壁・守勢・回復の宛先が動く。
+  //   2. 敵の攻撃の狙い先が「行の先頭」から「届く範囲で最も HP の低い味方」へ変わった
+  //      （content/skills-active.mjs の front_strike / rear_strike / enemy_heavy）。
+  //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
+  //
+  // 0.14 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
+  contentVersion: "ecology-playable-full-0.15",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
@@ -215,6 +227,8 @@ export {
   validateSkillTreeLayout,
 } from "./skill-tree-layout.mjs";
 export { ENEMY_CODEX, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
+// issue #176 — 状態（バフ・デバフ）の意味。**定義の隣に一度だけ書いたものを画面が読む。**
+export { STATUS_GLOSSARY } from "./statuses.mjs";
 // R12 §4.A — 読める設定（ギルドカード）。engine には出ない、表示だけの content。
 export {
   DOSSIERS,

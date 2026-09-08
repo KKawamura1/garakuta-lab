@@ -96,11 +96,12 @@ const WEAKEST_ENEMY = Object.freeze({
 const TOUGHEST_ENEMY = Object.freeze({
   scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_desc"], take: 1,
 });
+// issue #176 — 「最も傷ついた味方」は**傷の割合**で選ぶ（docs/DESIGN.md 8.7.1）。
 const WEAKEST_ALLY = Object.freeze({
-  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1,
+  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1,
 });
 const FRONT_ALLY = Object.freeze({
-  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_asc"], take: 1,
+  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_percent_asc"], take: 1,
 });
 const ALL_ALLIES = Object.freeze({ scope: "allies", filters: [{ type: "alive" }], take: "all" });
 const anchorSelfIsTarget = Object.freeze({
@@ -358,7 +359,7 @@ const PAYOFFS = [
   },
   {
     id: "pay_cull", familyId: "family_edge", role: "payoff", power: 2,
-    displayName: "掃除", summary: "最も弱った敵へダメージ",
+    displayName: "掃除", summary: "最もHPの低い敵へダメージ",
     emits: ["damage_proposed", "damage_taken", "excess_damage", "barrier_damaged", "barrier_broken", "damage_blocked", "block_spent", "actor_defeated"],
     requires: [], magnitudes: [16, 28, 45],
     effect: (amount) => ({
@@ -380,7 +381,7 @@ const PAYOFFS = [
   },
   {
     id: "pay_sweep", familyId: "family_edge", role: "payoff", power: 3,
-    displayName: "薙ぎ", summary: "最も弱った敵と同じ列へダメージ",
+    displayName: "薙ぎ", summary: "最もHPの低い敵と同じ列へダメージ",
     emits: ["damage_proposed", "damage_taken", "excess_damage", "barrier_damaged", "barrier_broken", "damage_blocked", "block_spent", "actor_defeated"],
     requires: [], magnitudes: [10, 18, 30],
     effect: (amount) => ({

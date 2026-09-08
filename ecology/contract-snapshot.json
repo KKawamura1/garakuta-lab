@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.14",
+ "contentVersion": "ecology-playable-full-0.15",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.14",
+  "contentVersion": "ecology-playable-full-0.15",
   "characters": {
    "warden": {
     "id": "warden",
@@ -590,7 +590,7 @@
       }
      ],
      "sort": [
-      "position_asc"
+      "hp_asc"
      ],
      "take": 1
     },
@@ -640,7 +640,7 @@
       }
      ],
      "sort": [
-      "position_asc"
+      "hp_asc"
      ],
      "take": 1
     },
@@ -686,7 +686,7 @@
       }
      ],
      "sort": [
-      "position_asc"
+      "hp_asc"
      ],
      "take": 1
     },
@@ -704,7 +704,7 @@
          }
         ],
         "sort": [
-         "position_asc"
+         "hp_asc"
         ],
         "take": 1
        },
@@ -1967,7 +1967,7 @@
       }
      ],
      "sort": [
-      "hp_asc"
+      "hp_percent_asc"
      ],
      "take": 1
     },
@@ -1982,7 +1982,7 @@
         }
        ],
        "sort": [
-        "hp_asc"
+        "hp_percent_asc"
        ],
        "take": 1
       },
@@ -2015,7 +2015,7 @@
       }
      ],
      "sort": [
-      "hp_asc"
+      "hp_percent_asc"
      ],
      "take": 1
     },
@@ -2030,7 +2030,7 @@
         }
        ],
        "sort": [
-        "hp_asc"
+        "hp_percent_asc"
        ],
        "take": 1
       },
@@ -2743,7 +2743,7 @@
         }
        ],
        "sort": [
-        "hp_asc"
+        "hp_percent_asc"
        ],
        "take": "all"
       }
@@ -2785,7 +2785,7 @@
       }
      ],
      "sort": [
-      "hp_asc"
+      "hp_percent_asc"
      ],
      "take": 1
     },
@@ -2804,7 +2804,7 @@
         }
        ],
        "sort": [
-        "hp_asc"
+        "hp_percent_asc"
        ],
        "take": 1
       },
@@ -3080,7 +3080,7 @@
         }
        ],
        "sort": [
-        "hp_asc"
+        "hp_percent_asc"
        ],
        "take": 1
       },
@@ -3177,7 +3177,7 @@
         }
        ],
        "sort": [
-        "hp_asc"
+        "hp_percent_asc"
        ],
        "take": 1
       },
@@ -3659,7 +3659,7 @@
         }
        ],
        "sort": [
-        "hp_asc"
+        "hp_percent_asc"
        ],
        "take": 1
       },
@@ -4829,7 +4829,7 @@
          }
         ],
         "sort": [
-         "hp_asc"
+         "hp_percent_asc"
         ],
         "take": 1
        },
@@ -5261,7 +5261,7 @@
          }
         ],
         "sort": [
-         "hp_asc"
+         "hp_percent_asc"
         ],
         "take": 1
        },
@@ -7015,7 +7015,7 @@
          }
         ],
         "sort": [
-         "hp_asc"
+         "hp_percent_asc"
         ],
         "take": 1
        },
@@ -9509,8 +9509,7 @@
     "steady_cut"
    ],
    "starterReactives": [
-    "mend",
-    "overflow_care"
+    "mend"
    ]
   },
   {
@@ -9653,7 +9652,7 @@
     "kind": "active",
     "definitionId": "strike",
     "label": "斬撃",
-    "effect": "最も弱った敵へ、通常攻撃を上回る{amount}の単発。",
+    "effect": "最もHPの低い敵へ、通常攻撃を上回る{amount}の単発。",
     "grammar": "攻撃"
    },
    "steady_cut": {
@@ -9669,7 +9668,7 @@
     "kind": "active",
     "definitionId": "aimed_shot",
     "label": "狙い撃ち",
-    "effect": "最も弱った敵へ技術{amount}。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
+    "effect": "最もHPの低い敵へ技術{amount}。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
     "grammar": "攻撃"
    },
    "bulwark": {
@@ -9757,7 +9756,7 @@
     "kind": "active",
     "definitionId": "overreach",
     "label": "無理を通す",
-    "effect": "自分のHPが60%以上のときだけ、最も弱った敵へ{amount}。条件を欠いても行動は塞がらない。",
+    "effect": "自分のHPが60%以上のときだけ、最もHPの低い敵へ{amount}。条件を欠いても行動は塞がらない。",
     "grammar": "攻撃"
    },
    "shield_the_wounded": {
@@ -9877,7 +9876,7 @@
     "kind": "active",
     "definitionId": "drag_forward",
     "label": "引きずり出す",
-    "effect": "敵の後列で最も弱った一体を、最前の敵と入れ替える。届かなかった刃が届くようになる。",
+    "effect": "敵の後列で最もHPの低い一体を、最前の敵と入れ替える。届かなかった刃が届くようになる。",
     "grammar": "機動"
    },
    "shield_wall": {
@@ -10005,7 +10004,7 @@
     "kind": "active",
     "definitionId": "flurry_finish",
     "label": "刻み止め",
-    "effect": "最も弱った敵へ{amount}を{hits}回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
+    "effect": "最もHPの低い敵へ{amount}を{hits}回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
     "grammar": "攻撃"
    },
    "mark_spread": {
@@ -10151,7 +10150,7 @@
     "kind": "reactive",
     "definitionId": "spill_forward",
     "label": "余波を回す",
-    "effect": "過剰ダメージが出たあと、RP1で最も弱った敵へ腕力の{amount}。掃除役へ回る。",
+    "effect": "過剰ダメージが出たあと、RP1で最もHPの低い敵へ腕力の{amount}。掃除役へ回る。",
     "grammar": "撃破"
    },
    "blocked_into_step": {
@@ -10822,7 +10821,7 @@
    "kind": "active",
    "definitionId": "strike",
    "label": "斬撃",
-   "effect": "最も弱った敵へ、通常攻撃を上回る{amount}の単発。",
+   "effect": "最もHPの低い敵へ、通常攻撃を上回る{amount}の単発。",
    "grammar": "攻撃"
   },
   "steady_cut": {
@@ -10838,7 +10837,7 @@
    "kind": "active",
    "definitionId": "aimed_shot",
    "label": "狙い撃ち",
-   "effect": "最も弱った敵へ技術{amount}。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
+   "effect": "最もHPの低い敵へ技術{amount}。技なので後列から出しても落ちず、前列が生きていても後列へ通る。",
    "grammar": "攻撃"
   },
   "bulwark": {
@@ -10926,7 +10925,7 @@
    "kind": "active",
    "definitionId": "overreach",
    "label": "無理を通す",
-   "effect": "自分のHPが60%以上のときだけ、最も弱った敵へ{amount}。条件を欠いても行動は塞がらない。",
+   "effect": "自分のHPが60%以上のときだけ、最もHPの低い敵へ{amount}。条件を欠いても行動は塞がらない。",
    "grammar": "攻撃"
   },
   "shield_the_wounded": {
@@ -11046,7 +11045,7 @@
    "kind": "active",
    "definitionId": "drag_forward",
    "label": "引きずり出す",
-   "effect": "敵の後列で最も弱った一体を、最前の敵と入れ替える。届かなかった刃が届くようになる。",
+   "effect": "敵の後列で最もHPの低い一体を、最前の敵と入れ替える。届かなかった刃が届くようになる。",
    "grammar": "機動"
   },
   "shield_wall": {
@@ -11174,7 +11173,7 @@
    "kind": "active",
    "definitionId": "flurry_finish",
    "label": "刻み止め",
-   "effect": "最も弱った敵へ{amount}を{hits}回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
+   "effect": "最もHPの低い敵へ{amount}を{hits}回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。",
    "grammar": "攻撃"
   },
   "mark_spread": {
@@ -11318,7 +11317,7 @@
    "kind": "reactive",
    "definitionId": "spill_forward",
    "label": "余波を回す",
-   "effect": "過剰ダメージが出たあと、RP1で最も弱った敵へ腕力の{amount}。掃除役へ回る。",
+   "effect": "過剰ダメージが出たあと、RP1で最もHPの低い敵へ腕力の{amount}。掃除役へ回る。",
    "grammar": "撃破"
   },
   "blocked_into_step": {
@@ -12452,21 +12451,6 @@
    ]
   },
   {
-   "id": "node_ward_ally",
-   "skillId": "ward_ally",
-   "kind": "active",
-   "branch": "支援",
-   "x": 3,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "aimed_shot",
-     "minLv": 1
-    }
-   ]
-  },
-  {
    "id": "node_sustaining_ward",
    "skillId": "sustaining_ward",
    "kind": "active",
@@ -12476,8 +12460,8 @@
    "maxLv": 10,
    "requires": [
     {
-     "skillId": "ward_ally",
-     "minLv": 1
+     "skillId": "shield_the_wounded",
+     "minLv": 3
     }
    ]
   },
@@ -12507,6 +12491,21 @@
    "requires": [
     {
      "skillId": "sustaining_ward",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_ward_ally",
+   "skillId": "ward_ally",
+   "kind": "active",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "aimed_shot",
      "minLv": 1
     }
    ]
@@ -12912,6 +12911,36 @@
    "requires": []
   },
   {
+   "id": "node_emergency_treatment",
+   "skillId": "emergency_treatment",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "mend",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_steady_under_fire",
+   "skillId": "steady_under_fire",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "emergency_treatment",
+     "minLv": 1
+    }
+   ]
+  },
+  {
    "id": "node_triage",
    "skillId": "triage",
    "kind": "reactive",
@@ -12927,13 +12956,13 @@
    ]
   },
   {
-   "id": "node_overflow_care",
-   "skillId": "overflow_care",
+   "id": "node_watchful_care",
+   "skillId": "watchful_care",
    "kind": "reactive",
    "branch": "支援",
    "x": 3,
    "cost": 1,
-   "maxLv": 10,
+   "maxLv": 1,
    "requires": [
     {
      "skillId": "triage",
@@ -12942,8 +12971,8 @@
    ]
   },
   {
-   "id": "node_emergency_treatment",
-   "skillId": "emergency_treatment",
+   "id": "node_overflow_care",
+   "skillId": "overflow_care",
    "kind": "reactive",
    "branch": "支援",
    "x": 4,
@@ -12951,7 +12980,7 @@
    "maxLv": 10,
    "requires": [
     {
-     "skillId": "overflow_care",
+     "skillId": "watchful_care",
      "minLv": 1
     }
    ]
@@ -12966,7 +12995,7 @@
    "maxLv": 10,
    "requires": [
     {
-     "skillId": "emergency_treatment",
+     "skillId": "overflow_care",
      "minLv": 1
     }
    ]
@@ -13027,36 +13056,6 @@
    "requires": [
     {
      "skillId": "urging",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_steady_under_fire",
-   "skillId": "steady_under_fire",
-   "kind": "reactive",
-   "branch": "支援",
-   "x": 5,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "emergency_treatment",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_watchful_care",
-   "skillId": "watchful_care",
-   "kind": "reactive",
-   "branch": "支援",
-   "x": 3,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "triage",
      "minLv": 1
     }
    ]
@@ -13941,79 +13940,79 @@
   "gray_scrapper": {
    "id": "gray_scrapper",
    "label": "灰殻の走者",
-   "targeting": "前列の生存者を、左から狙う。",
+   "targeting": "前列で最もHPの低い者を狙う。",
    "lore": "灰の浅いところに一番多い。数だけはいくらでもいる。"
   },
   "gray_runner": {
    "id": "gray_runner",
    "label": "灰殻の走り手",
-   "targeting": "前列の生存者を、速い順に狙う。",
+   "targeting": "前列で最もHPの低い者を、速く狙う。",
    "lore": "足音がしない。振り向いたときには間合いの内側にいる。"
   },
   "gray_marksman": {
    "id": "gray_marksman",
    "label": "灰殻の後撃ち",
-   "targeting": "後列の生存者を優先して狙う。",
+   "targeting": "後列で最もHPの低い者を優先して狙う。",
    "lore": "後ろに置いた者から減る。だから新人には前を任せる、と言う先達がいる。"
   },
   "gray_stalker": {
    "id": "gray_stalker",
    "label": "灰殻の潜み手",
-   "targeting": "まず後列を狙い、後列がいなければ前列を狙う。",
+   "targeting": "まず後列で最もHPの低い者を狙い、後列がいなければ前列を狙う。",
    "lore": "隊列の後ろを覚えている、という言い方をする者がいる。"
   },
   "gray_guard": {
    "id": "gray_guard",
    "label": "灰殻の守衛",
-   "targeting": "前列を狙い、最初の行動で防壁を張る。",
+   "targeting": "前列で最もHPの低い者を狙い、最初の行動で防壁を張る。",
    "lore": "最初の一手をいつも守りに使う。急いでいる相手ほど嫌がる。"
   },
   "gray_breaker": {
    "id": "gray_breaker",
    "label": "灰殻の砕き手",
-   "targeting": "重い一撃を準備して前列へ放ち、その後は前列を狙う。",
+   "targeting": "重い一撃を準備して放ち、その後も前列で最もHPの低い者を狙う。",
    "lore": "溜めているあいだは静かで、そのぶん派手に来る。"
   },
   "gray_shelter": {
    "id": "gray_shelter",
    "label": "灰殻の籠り手",
-   "targeting": "最初に防壁を張り、その後は前列を狙う。",
+   "targeting": "最初に防壁を張り、その後は前列で最もHPの低い者を狙う。",
    "lore": "先に殻を張る。剥がすまでのあいだが、こちらの持ち時間になる。"
   },
   "gray_hunter": {
    "id": "gray_hunter",
    "label": "灰殻の狩人",
-   "targeting": "準備中の味方を見つければ先に狙う。いなければ前列。",
+   "targeting": "準備中の味方を見つければ先に狙う。いなければ前列で最もHPの低い者。",
    "lore": "こちらの溜めを嫌う。準備している者から順に潰しに来る。"
   },
   "gray_harrower": {
    "id": "gray_harrower",
    "label": "灰殻の追い手",
-   "targeting": "準備中の味方を追い、後列、前列の順に狙う。",
+   "targeting": "準備中の味方を追い、後列、前列の順に、最もHPの低い者を狙う。",
    "lore": "追う。逃げた先で待っていることがある、というのは噂のほう。"
   },
   "gray_echo": {
    "id": "gray_echo",
    "label": "灰殻の反響体",
-   "targeting": "前列を殴り、受けたダメージを反響する。",
+   "targeting": "前列で最もHPの低い者を殴り、受けたダメージを反響する。",
    "lore": "反響体と呼ぶのは協会の呼び方で、拾い屋は「返す奴」と言う。"
   },
   "gray_swarm": {
    "id": "gray_swarm",
    "label": "灰殻の群れ",
-   "targeting": "速く動き、前列の生存者を狙う。",
+   "targeting": "速く動き、前列で最もHPの低い者を狙う。",
    "lore": "一体ずつは軽い。軽いものが同時に来ると、重い一撃より効く。"
   },
   "gray_bulwark": {
    "id": "gray_bulwark",
    "label": "灰殻の盾兵",
-   "targeting": "防壁を張り直しながら前列を狙う。",
+   "targeting": "防壁を張り直しながら、前列で最もHPの低い者を狙う。",
    "lore": "壊しても張り直す。持久の勝負になると、たいてい先に人が折れる。"
   },
   "ash_core": {
    "id": "ash_core",
    "label": "灰の核心",
-   "targeting": "重い一撃を準備し、完成したら前列へ放つ。",
+   "targeting": "重い一撃を準備し、完成したら前列で最もHPの低い者へ放つ。",
    "lore": "幕の奥に一つだけある。持ち帰った者はいるが、何だったかは書かれていない。"
   }
  },
@@ -14025,28 +14024,26 @@
   "husk_bulwark": "前列を優先して狙う。",
   "husk_echo": "前列を優先して狙う。",
   "husk_marker": "前列を優先して狙う。",
-  "gray_scrapper": "前列の生存者を、左から狙う。",
-  "gray_runner": "前列の生存者を、速い順に狙う。",
-  "gray_marksman": "後列の生存者を優先して狙う。",
-  "gray_stalker": "まず後列を狙い、後列がいなければ前列を狙う。",
-  "gray_guard": "前列を狙い、最初の行動で防壁を張る。",
-  "gray_breaker": "重い一撃を準備して前列へ放ち、その後は前列を狙う。",
-  "gray_shelter": "最初に防壁を張り、その後は前列を狙う。",
-  "gray_hunter": "準備中の味方を見つければ先に狙う。いなければ前列。",
-  "gray_harrower": "準備中の味方を追い、後列、前列の順に狙う。",
-  "gray_echo": "前列を殴り、受けたダメージを反響する。",
-  "gray_swarm": "速く動き、前列の生存者を狙う。",
-  "gray_bulwark": "防壁を張り直しながら前列を狙う。",
-  "ash_core": "重い一撃を準備し、完成したら前列へ放つ。"
+  "gray_scrapper": "前列で最もHPの低い者を狙う。",
+  "gray_runner": "前列で最もHPの低い者を、速く狙う。",
+  "gray_marksman": "後列で最もHPの低い者を優先して狙う。",
+  "gray_stalker": "まず後列で最もHPの低い者を狙い、後列がいなければ前列を狙う。",
+  "gray_guard": "前列で最もHPの低い者を狙い、最初の行動で防壁を張る。",
+  "gray_breaker": "重い一撃を準備して放ち、その後も前列で最もHPの低い者を狙う。",
+  "gray_shelter": "最初に防壁を張り、その後は前列で最もHPの低い者を狙う。",
+  "gray_hunter": "準備中の味方を見つければ先に狙う。いなければ前列で最もHPの低い者。",
+  "gray_harrower": "準備中の味方を追い、後列、前列の順に、最もHPの低い者を狙う。",
+  "gray_echo": "前列で最もHPの低い者を殴り、受けたダメージを反響する。",
+  "gray_swarm": "速く動き、前列で最もHPの低い者を狙う。",
+  "gray_bulwark": "防壁を張り直しながら、前列で最もHPの低い者を狙う。",
+  "ash_core": "重い一撃を準備し、完成したら前列で最もHPの低い者へ放つ。"
  },
  "initialUnlocked": {
   "warden": [
    "strike",
    "steady_cut",
    "bulwark",
-   "mend",
-   "triage",
-   "overflow_care"
+   "mend"
   ],
   "mender": [
    "strike",
@@ -14054,9 +14051,8 @@
    "shield_the_wounded",
    "bulwark",
    "mend",
-   "triage",
-   "overflow_care",
-   "emergency_treatment"
+   "emergency_treatment",
+   "triage"
   ],
   "lancer": [
    "strike",
@@ -14125,8 +14121,7 @@
   },
   "reactives": {
    "warden": [
-    "mend",
-    "overflow_care"
+    "mend"
    ],
    "mender": [
     "triage",
@@ -14275,14 +14270,14 @@
     "steady_cut",
     "aimed_shot",
     "shield_the_wounded",
+    "field_dressing",
+    "sustaining_ward",
     "ward_ally"
    ],
    "coreReactiveSkillIds": [
     "emergency_treatment",
-    "triage",
-    "brace_after_hit",
-    "overflow_care",
-    "watchful_care"
+    "steady_under_fire",
+    "triage"
    ],
    "corePassiveSkillIds": [
     "steady_hands"
@@ -23432,7 +23427,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -23486,7 +23481,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -23541,7 +23536,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -23774,7 +23769,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -23794,7 +23789,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -23852,7 +23847,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -24326,7 +24321,7 @@
         "affixId": "pay_cull",
         "rarity": "rare",
         "rarityLabel": "レア",
-        "summary": "最も弱った敵へダメージ",
+        "summary": "最もHPの低い敵へダメージ",
         "amount": 18
        },
        {
@@ -24353,13 +24348,13 @@
         "affixId": "pay_cull",
         "rarity": "rare",
         "rarityLabel": "レア",
-        "summary": "最も弱った敵へダメージ",
+        "summary": "最もHPの低い敵へダメージ",
         "amount": 52
        }
       ],
       "lines": [
-       "敵が倒れたとき、耐久1を払い、追加効果1（レア）：最も弱った敵へダメージ（18）、追加効果2（コモン）：自分へ行動点（1）、追加効果3（レア）：自分へ反応点（1）。一連の解決につき1回。",
-       "各 round の開始時・自分のHPが50%以下のとき、追加効果4（レア）：最も弱った敵へダメージ（52）。1 roundにつき1回。"
+       "敵が倒れたとき、耐久1を払い、追加効果1（レア）：最もHPの低い敵へダメージ（18）、追加効果2（コモン）：自分へ行動点（1）、追加効果3（レア）：自分へ反応点（1）。一連の解決につき1回。",
+       "各 round の開始時・自分のHPが50%以下のとき、追加効果4（レア）：最もHPの低い敵へダメージ（52）。1 roundにつき1回。"
       ]
      }
     }
@@ -24400,7 +24395,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -24421,7 +24416,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -24645,7 +24640,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -24754,7 +24749,7 @@
         "affixId": "pay_cull",
         "rarity": "rare",
         "rarityLabel": "レア",
-        "summary": "最も弱った敵へダメージ",
+        "summary": "最もHPの低い敵へダメージ",
         "amount": 52
        },
        {
@@ -24768,7 +24763,7 @@
        }
       ],
       "lines": [
-       "各 round の開始時・自分のHPが50%以下のとき、追加効果1（レア）：最も弱った敵へダメージ（52）、追加効果2（レア）：最も傷ついた味方へ守勢（2）。1 roundにつき1回。"
+       "各 round の開始時・自分のHPが50%以下のとき、追加効果1（レア）：最もHPの低い敵へダメージ（52）、追加効果2（レア）：最も傷ついた味方へ守勢（2）。1 roundにつき1回。"
       ]
      }
     }
@@ -24991,7 +24986,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25010,7 +25005,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25053,7 +25048,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25425,7 +25420,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25445,7 +25440,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25630,7 +25625,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25654,7 +25649,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25728,7 +25723,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25885,7 +25880,7 @@
         "affixId": "pay_cull",
         "rarity": "rare",
         "rarityLabel": "レア",
-        "summary": "最も弱った敵へダメージ",
+        "summary": "最もHPの低い敵へダメージ",
         "amount": 18
        },
        {
@@ -25900,7 +25895,7 @@
       ],
       "lines": [
        "自分の防壁が割れたとき、追加効果1（レア）：自分へ防壁（40）、追加効果2（エピック）：最も傷ついた味方へ防壁（38）、追加効果3（レア）：前列の味方へ受け止め（3）。1 roundにつき2回。",
-       "自分の攻撃が過剰ダメージを出したとき、追加効果4（レア）：最も弱った敵へダメージ（18）、追加効果5（レア）：最も傷ついた味方へ守勢（1）。一連の解決につき1回。"
+       "自分の攻撃が過剰ダメージを出したとき、追加効果4（レア）：最もHPの低い敵へダメージ（18）、追加効果5（レア）：最も傷ついた味方へ守勢（1）。一連の解決につき1回。"
       ]
      }
     }
@@ -25966,7 +25961,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -25990,7 +25985,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -26175,7 +26170,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -26272,7 +26267,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -26527,7 +26522,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -26749,7 +26744,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -27315,7 +27310,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -27532,7 +27527,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -27775,7 +27770,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -27792,7 +27787,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -28089,7 +28084,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -28731,7 +28726,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -29126,7 +29121,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -29422,7 +29417,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -29606,7 +29601,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -29787,7 +29782,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -29862,7 +29857,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -30108,7 +30103,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -30125,7 +30120,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -30187,7 +30182,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -30210,7 +30205,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -30745,7 +30740,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -30946,7 +30941,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -31147,7 +31142,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -31321,7 +31316,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -31340,7 +31335,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -31357,7 +31352,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -31552,7 +31547,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -31803,7 +31798,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -31824,7 +31819,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
@@ -32007,7 +32002,7 @@
             }
            ],
            "sort": [
-            "hp_asc"
+            "hp_percent_asc"
            ],
            "take": 1
           },
