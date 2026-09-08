@@ -136,7 +136,7 @@ import {
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
-const VERSION = "EXP-18 R10 Campaign 0.9";
+const GAME_VERSION = "EXP-18 R10 Campaign 0.9";
 const SAVE_FORMAT_VERSION = 1;
 const SAVE_KEY = "exp18-r10-auto-v02";
 const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v02-";
@@ -753,14 +753,19 @@ function shell(title, subtitle, body, options = {}) {
         ? button("安全に撤退する", "abandon-run", false, "menu-button")
         : button("ギルドへ", "back-guild", false, "menu-button");
   const headerClass = options.titleScreen ? "header title-header" : "header";
-  const footer = options.hideFooter
-    ? "<span class=\"build-stamp\" aria-hidden=\"true\">build " + esc(BUILD) + "</span>"
-    : "<footer>遠征 " + esc(String(state.run.runId).slice(0, 8)) + " · seed " + esc(state.run.runSeed)
-      + " · ルール " + esc(PLAYABLE_CONTENT.contentVersion)
-      + "<br>build " + esc(BUILD) + "</footer>";
-  return "<div class=\"shell\"><header class=\"" + headerClass + "\"><div><p class=\"kicker\">" + VERSION
-    + "</p><h1>" + esc(title) + "</h1><p class=\"subtitle\">" + esc(subtitle)
+  // Build metadata stays available to automated diagnostics without occupying
+  // the normal player-facing chrome. Visible details live inside technical logs.
+  const footer = "<span class=\"build-stamp\" aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
+  return "<div class=\"shell\"><header class=\"" + headerClass + "\"><div><h1>" + esc(title)
+    + "</h1><p class=\"subtitle\">" + esc(subtitle)
     + "</p></div>" + headerAction + "</header>" + body + error + footer + "</div>";
+}
+
+function diagnosticStamp() {
+  return "<p class=\"muted diagnostic-stamp\">build " + esc(BUILD)
+    + " · rules " + esc(PLAYABLE_CONTENT.contentVersion)
+    + " · run " + esc(String(state.run.runId).slice(0, 8))
+    + " · seed " + esc(state.run.runSeed) + "</p>";
 }
 
 // **控えは端末の保存枠に収まる量で切る。**
@@ -2915,8 +2920,7 @@ function forecastBar() {
     + "<div class=\"forecast-head\"><span class=\"forecast-title\">戦闘予測 · " + esc(target) + "</span>"
     + "<span class=\"forecast-verdict\">" + esc(label) + " · " + forecast.roundsUsed + "ラウンド</span></div>"
     + "<div class=\"forecast-members\">" + forecast.perCharacter.map(forecastMemberChip).join("") + "</div>"
-    + "<p class=\"forecast-note\">この構成のままなら、この通りに終わります。"
-    + "<b>装備は付け替え自由。</b></p></section>";
+    + "</section>";
 }
 
 // R14 §1 — 戦闘前の確認画面が持っていた EXACT PREVIEW カードは消した。
@@ -3207,6 +3211,7 @@ function renderBattle() {
     + "<p class=\"muted\">再生中の位置までの出来事を新しい順に表示します。</p>"
     + "<ol class=\"events replay-events\"></ol>"
     + "<details class=\"technical-log\"><summary>技術ログ</summary>"
+    + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre class=\"technical-events\"></pre></details></details>");
 }
@@ -3612,6 +3617,7 @@ function renderResult() {
       + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
       + "<code class=\"event-type\">" + esc(event.type) + "</code></li>").join("") + "</ol>"
     + "<details class=\"technical-log\"><summary>技術ログ</summary>"
+    + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
   return shell(won ? "突破した" : "足を止めた",
@@ -4176,7 +4182,7 @@ function handleAction(event) {
     record("run_started", {
       runId: state.run.runId,
       seed: state.run.runSeed,
-      version: VERSION,
+      version: GAME_VERSION,
       difficulty: state.run.difficulty,
       packs: [...state.run.manifest.enabledPackIds],
       supplies: state.run.supplies,
@@ -4383,7 +4389,7 @@ function handleAction(event) {
     record("run_started", {
       runId: state.run.runId,
       seed: state.run.runSeed,
-      version: VERSION,
+      version: GAME_VERSION,
       difficulty: state.run.difficulty,
       packs: [...state.run.manifest.enabledPackIds],
       supplies: state.run.supplies,
@@ -5118,7 +5124,7 @@ function handleAction(event) {
       telemetryRunId: state.run.runId,
       deviceId: deviceIdForRun(),
       schemaVersion: 4,
-      gameVersion: VERSION,
+      gameVersion: GAME_VERSION,
       startedAt: state.run.startedAt || state.startedAt || endedAt,
       endedAt,
       outcome: {
