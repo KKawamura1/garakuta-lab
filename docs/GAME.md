@@ -233,9 +233,12 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
 - 過剰回復は元の `requested - actual` だけを `excess_healing` として渡し、同じ overflow を
   一つの chain で二度使いません。
 - guard は一 hit ごとの固定軽減、block は hit 単位の無効回数、barrier は総量吸収です。
-  **barrier が一撃を吸い切ると HP は減らないので、`damage_taken` そのものが出ません。**
-  被弾を条件にする反応（手当て・応急処置）も、被弾していないことを条件にする行動
-  （静かな一手）も、この一点を共有しています。
+  barrier が一撃を吸い切ると HP は減らないので `damage_taken` は出ませんが、
+  `damage_proposed` → `barrier_damaged` / `barrier_broken` → `damage_absorbed`
+  （最終ダメージ0）の順に記録されます。受け構えで止めた場合は `damage_blocked`、
+  対象が途中で消えた多段攻撃は `damage_skipped`、行動自体が取り消された場合は
+  `action_canceled` の理由を確認できます。被弾を条件にする反応（手当て・応急処置）も、
+  被弾していないことを条件にする行動（静かな一手）も、この一点を共有しています。
 - **狙い先の言葉は二つに分かれています。**
   - **「最も傷ついた味方」＝傷の割合**（`hp_percent_asc`）。庇う・防壁・守勢・回復の宛先です。
     最大HPが110〜300まで開いているので、残りHPの小ささで選ぶと、無傷に近い小柄な人が

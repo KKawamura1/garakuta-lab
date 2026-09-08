@@ -140,12 +140,17 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const proposed = first(result, "damage_proposed");
   const absorbed = first(result, "barrier_damaged");
   const broken = first(result, "barrier_broken");
+  const absorbedResult = first(result, "damage_absorbed");
   const taken = of(result, "damage_taken").find(
     (event) => event.sourceActorId === "e_husk" && event.targetActorIds[0] === "a_warden",
   );
   equal(proposed.values.amount, 4);
   equal(absorbed.values.amount, 2, "the barrier ate what it could");
   check(broken.sequence > absorbed.sequence, "the packet breaks after it is emptied");
+  equal(absorbedResult.values.amount, 2, "the aggregate absorption is recorded");
+  equal(absorbedResult.values.finalDamage, 2, "the remainder is explicit");
+  equal(absorbedResult.values.fullyAbsorbed, false, "partial absorption is not called full");
+  check(absorbedResult.sequence < taken.sequence, "absorption precedes hp damage");
   equal(taken.values.amount, 2, "the rest reached hp");
   equal(taken.values.barrierAbsorbed, 2);
   equal(taken.values.proposed, 4);
@@ -153,8 +158,8 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
-  // §12.3 — earliest expiry first, oldest first inside one expiry, and a fully
-  // absorbed hit records no damage_taken at all (§12.1-9).
+  // §12.3 — earliest expiry first, oldest first inside one expiry. A fully
+  // absorbed hit has no damage_taken, but its zero-damage outcome is explicit.
   const result = run(BARRIER_PACKET_BATTLE);
   const absorbed = of(result, "barrier_damaged").filter((event) => event.round === 1);
   equal(absorbed.length, 2, "two packets were touched");
@@ -163,9 +168,46 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(absorbed[0].values.amount, 1, "the older round packet went first");
   equal(absorbed[1].values.amount, 3);
   equal(of(result, "damage_taken").filter((event) => event.round === 1).length, 0, "nothing reached hp");
+  const absorbedResult = of(result, "damage_absorbed").filter((event) => event.round === 1);
+  equal(absorbedResult.length, 1, "the fully absorbed hit has a result record");
+  equal(absorbedResult[0].values.amount, 4);
+  equal(absorbedResult[0].values.finalDamage, 0);
+  equal(absorbedResult[0].values.fullyAbsorbed, true);
   equal(of(result, "damage_proposed").filter((event) => event.round === 1).length, 1, "the proposal is still recorded");
   const secondRound = of(result, "barrier_damaged").filter((event) => event.round === 2);
   equal(secondRound.at(-1).values.duration, "battle", "the battle packet is spent last");
+}
+
+{
+  // Issue #192 — a later hit in one action does not retarget after its original
+  // target is defeated, but it must still explain why that hit did not happen.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.double_strike = structuredClone(bundle.activeSkills.strike);
+  bundle.activeSkills.double_strike.id = "double_strike";
+  bundle.activeSkills.double_strike.displayName = "Double Strike (fixture)";
+  bundle.activeSkills.double_strike.effects[0].hitCount = 2;
+  bundle.activeSkills.double_strike.effects[0].amount = { type: "constant", value: 6 };
+  const battle = {
+    schemaVersion: BARRIER_PACKET_BATTLE.schemaVersion,
+    battleId: "issue192_damage_skip",
+    maxRounds: 1,
+    objective: { type: "eliminate_all_enemies" },
+    allies: [{
+      instanceId: "a_warden",
+      characterId: "warden",
+      position: "front_left",
+      tactics: [{ activeSkillId: "double_strike", useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }],
+    enemies: [{ instanceId: "e_husk", enemyActorId: "husk", position: "front_left", hp: 4 }],
+  };
+  const result = simulateBattle(battle, bundle);
+  const skipped = of(result, "damage_skipped");
+  equal(skipped.length, 1, "the defeated target's second hit is logged as skipped");
+  equal(skipped[0].targetActorIds[0], "e_husk");
+  equal(skipped[0].values.hitIndex, 1);
+  equal(skipped[0].values.reason, "target_defeated");
 }
 
 {
@@ -803,4 +845,3 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     `${battle.battleId} longest chain ${result.metrics.maxChainEventCount}, under 10% of the chain cap`,
   );
 }
-

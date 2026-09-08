@@ -126,7 +126,13 @@ import {
 import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
 import { MIN_SKILL_LEVEL, POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
-import { buildBeats, beatDurationMs, eventSourceId } from "./replay-beats.mjs";
+import {
+  buildBeats,
+  beatDurationMs,
+  eventSourceId,
+  filterReplayEvents,
+  REPLAY_EVENT_TYPES,
+} from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
@@ -160,44 +166,9 @@ const positionRows = {
 const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };
 const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇", "基礎": "▣" };
 // デバッグログに残すイベント。**盤面で畳んだものもここには残る**ので、
-// 「なぜそうなったか」を文字で追える。engine が出さない型は入れない
-// （reaction_fired / rule_triggered は R5 には無い。ルール由来かは event.ruleId で分かる）。
-const replayTypes = new Set([
-  "battle_started",
-  "resource_refreshed",
-  "round_started",
-  "actor_activated",
-  "action_declared",
-  "target_selected",
-  "target_changed",
-  "action_cost_paid",
-  "action_started",
-  "action_resolved",
-  "action_skipped",
-  "preparation_started",
-  "preparation_advanced",
-  "preparation_completed",
-  "preparation_interrupted",
-  "damage_taken",
-  "excess_damage",
-  "pending_amount_modified",
-  "healing_applied",
-  "excess_healing",
-  "barrier_gained",
-  "barrier_expired",
-  "resource_gained",
-  "resource_spent",
-  "resource_unused",
-  "actor_moved",
-  "status_added",
-  "status_removed",
-  "equipment_worn",
-  "equipment_broken",
-  "equipment_repaired",
-  "actor_defeated",
-  "round_ended",
-  "battle_ended",
-]);
+// 「なぜそうなったか」を文字で追える。手書きの whitelist は engine の
+// 新しい event を敵味方どちらから出しても落とすため、schema を正本にする。
+const replayTypes = REPLAY_EVENT_TYPES;
 
 const ENEMY_ICONS = {
   gray_scrapper: "走",
@@ -2960,6 +2931,18 @@ function targetNames(ids) {
   return (ids || []).map((id) => actorName(id)).join("、");
 }
 
+function eventReasonText(reason) {
+  const labels = {
+    no_target: "有効な対象がいない",
+    cost: "資源が足りない",
+    rule: "反応で取り消し",
+    no_usable_tactic: "使える行動がない",
+    target_defeated: "対象が倒れた",
+    target_unavailable: "対象がいない",
+  };
+  return reason ? "（" + (labels[reason] ?? reason) + "）" : "";
+}
+
 function eventText(event) {
   const values = event.values || {};
   const sourceId = event.sourceActorId || event.actorId || event.ownerActorId;
@@ -2986,7 +2969,8 @@ function eventText(event) {
     target_changed: "狙いが" + targetLabel + "になった",
     action_started: source + "の" + skill + "が始まる",
     action_resolved: source + "の" + skill + "が解決した",
-    action_skipped: source + "は行動しなかった",
+    action_skipped: source + "は行動しなかった" + eventReasonText(values.reason),
+    action_canceled: source + "の" + skill + "を実行しなかった" + eventReasonText(values.reason),
     preparation_started: source + "が準備を始める",
     preparation_advanced: source + "の準備が進む",
     preparation_completed: source + "の準備が完了",
@@ -2994,6 +2978,11 @@ function eventText(event) {
     // 受けで減ったぶんは、隠すと「なぜ通らないのか」が読めなくなる。
     damage_taken: arrow + target + " に " + number + " ダメージ"
       + (values.guardApplied > 0 ? "（受けで -" + values.guardApplied + "）" : ""),
+    damage_absorbed: arrow + target + " が防壁で " + number + " 吸収"
+      + (values.finalDamage === 0 ? "（最終ダメージ0）" : "（最終 " + (values.finalDamage ?? 0) + " ダメージ）"),
+    damage_skipped: arrow + target + " へのダメージが不発" + eventReasonText(values.reason),
+    barrier_damaged: target + "の防壁が" + number + "吸収",
+    barrier_broken: target + "の防壁が壊れた",
     excess_damage: "攻撃が" + amountText + "余った",
     healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
@@ -3002,6 +2991,7 @@ function eventText(event) {
     block_gained: target + " に受け構え " + number,
     block_spent: target + " の受け構えが1つ減った",
     damage_blocked: arrow + target + " の受け構えが " + (values.proposed ?? "") + " を止めた",
+    block_proposed: arrow + target + " へ受け構え " + number + " を提案",
     resource_refreshed: target + "の" + resourceLabel(values.resource) + "が戻った",
     resource_unused: source + "は" + resourceLabel(values.resource) + "を余らせた",
     action_cost_paid: source + "が" + skill + "の代価を払った",
@@ -3030,7 +3020,7 @@ function eventText(event) {
 }
 
 function compactEvents(events) {
-  return (events || []).filter((event) => replayTypes.has(event.type));
+  return filterReplayEvents(events);
 }
 
 // 結果画面が使うぶんだけを控えへ残す。
@@ -3062,7 +3052,7 @@ function compactReplay(result) {
   const events = [];
   const snapshots = [];
   (result?.events || []).forEach((event, index) => {
-    if (!replayTypes.has(event.type)) return;
+    if (!replayTypes.has(event?.type)) return;
     events.push(event);
     snapshots.push(result.replaySnapshots?.[index] ?? null);
   });
@@ -3238,7 +3228,11 @@ function castChips(events, upTo) {
     if (!id) continue;
     if (event.type === "action_declared" || event.type === "action_started") {
       chips[id] = eventSkillName(event) ?? "行動";
-    } else if (event.type === "action_resolved" || event.type === "action_skipped") {
+    } else if (
+      event.type === "action_resolved"
+      || event.type === "action_skipped"
+      || event.type === "action_canceled"
+    ) {
       delete chips[id];
     }
   }
@@ -3254,6 +3248,10 @@ function floatsFor(event) {
   switch (event.type) {
     case "damage_taken":
       return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: tone("damage"), cause }));
+    case "damage_absorbed":
+      return targets.map((id) => ({ actorId: id, text: "◈-" + (values.amount ?? 0), tone: tone("barrier"), cause }));
+    case "damage_skipped":
+      return targets.map((id) => ({ actorId: id, text: "不発", tone: "blocked", cause }));
     case "healing_applied": {
       const amount = values.actual ?? values.amount ?? 0;
       return amount > 0 ? targets.map((id) => ({ actorId: id, text: "+" + amount, tone: tone("heal"), cause })) : [];
@@ -3444,7 +3442,7 @@ function syncBattleView(options = {}) {
         for (const id of event.targetActorIds || []) {
           const unit = unitOf(id);
           if (!unit) continue;
-          if (event.type === "damage_taken" || event.type === "actor_defeated") restartAnimation(unit, "is-hit");
+          if (event.type === "damage_taken" || event.type === "damage_absorbed" || event.type === "actor_defeated") restartAnimation(unit, "is-hit");
           else if (event.type === "healing_applied") restartAnimation(unit, "is-healed");
           else if (event.type === "barrier_gained") restartAnimation(unit, "is-shielded");
         }
