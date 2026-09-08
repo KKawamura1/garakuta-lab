@@ -33,6 +33,7 @@ const FINITE_COSTS = new Set([
   "lose_hp",
   "wear_equipment",
   "consume_barrier",
+  "spend_action_points",
   "spend_reaction_points",
 ]);
 const RESOURCE_TYPES = new Set(["action_points", "reaction_points"]);
@@ -204,7 +205,7 @@ export function auditResourceDefinitions(activeSkills, rules) {
         violations.push(`${record.path}: resource creation must pay at least 1 AP`);
       }
       const constantAmount = effect.amount?.type === "constant" ? effect.amount.value : null;
-      if (flow === "creation" && Number.isFinite(constantAmount)
+      if (Number.isFinite(constantAmount)
         && constantAmount > record.definition.apCost) {
         violations.push(`${record.path}: self-created resource amount exceeds its AP cost`);
       }
@@ -218,6 +219,11 @@ export function auditResourceDefinitions(activeSkills, rules) {
       rows.push({ path: record.path, kind: "reaction", flow, target: targetClass(effect.target) });
       if (!isFiniteLimit(record.rule.limit)) {
         violations.push(`${record.path}: resource output has no finite chain/round/battle limit`);
+      }
+      // A finite firing limit bounds frequency, but it is not a payment.
+      // Every reactive resource output must consume a finite cost first.
+      if (!hasFiniteCost(record.rule)) {
+        violations.push(`${record.path}: resource output must have a finite cost`);
       }
       if (record.rule.listenTo === "resource_gained") {
         const safePaidLoop = hasFiniteCost(record.rule)
@@ -375,9 +381,12 @@ export function auditResourceTrace(events) {
     const sourceActorId = event.sourceActorId ?? null;
     const isCrossActor = sourceActorId && targetActorId && sourceActorId !== targetActorId;
     // A cross-actor gain is a transfer only when the trace explicitly ties it
-    // to a spend. Creation/distribution rules are audited statically by their
-    // finite action cost or rule limit and are not silently treated as spend.
+    // to a spend. A limit is not enough: without the spend parent the source
+    // balance cannot be shown to fund the recipient.
     const isFundedTransfer = isCrossActor && parent?.type === "resource_spent";
+    if (isCrossActor && !isFundedTransfer) {
+      violations.push(`${event.id}: cross-actor resource gain must be funded by a resource_spent parent`);
+    }
     if (!isFundedTransfer) {
       creationEvents += 1;
       continue;
