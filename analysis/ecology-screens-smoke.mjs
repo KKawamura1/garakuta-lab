@@ -60,6 +60,9 @@ for (const [label, forbidden] of [
 ]) {
   if (shellSource[0].includes(forbidden)) problems.push(label + "が残っている");
 }
+if (!shellSource[0].includes('<span class="build-stamp" hidden aria-hidden="true">')) {
+  problems.push("E2E用build stampが視覚的に非表示になっていない");
+}
 for (const copy of [
   "この構成のままなら、この通りに終わります。",
   "装備は付け替え自由。",
