@@ -1,0 +1,1159 @@
+{
+  "version": "core-catalog-v3",
+  "title": "基礎6テーマ・36技能カタログ v3",
+  "language": "ja",
+  "scope": {
+    "intent": "Stage0の2人でも序盤から状態・隊列・順番を組み合わせ、戦6までに核が成立する最小版。Stage1以降は共有イベントで横断する。",
+    "themes": 6,
+    "skillCount": 36,
+    "stage0Party": [
+      "warden",
+      "mender"
+    ],
+    "stage0SpBudgetPerActor": 13,
+    "stage0CoreSpByBattle6": 5,
+    "freeEntry": "Stage0のA/R/P root（prerequisiteなし、releaseStage=0）から各人1技能のLv1を無償選択。無料なのはそのLv1だけで、rank2以降と別技能は1SP。",
+    "spPolicy": "A/R/PすべてLv1・各rank+1SPを基準。Pだけ一律2SPにはしない。報酬曲線（通常1/ボス2等）は別担当の経済案に接続する。"
+  },
+  "typeLabels": {
+    "A": "アクティブ: 手番に資源を払い1回行動する。条件不成立時は安全なfallbackへ戻る。",
+    "R": "リアクティブ: 明示イベント直後に判定し、RP/上限を確認して反応する。同じRの連鎖は再読しない。",
+    "P": "パッシブ: 能力・対象選択・計算・精算規則だけを変更。行動枠、追加反応候補、無料手番は増やさない。"
+  },
+  "sharedStates": {
+    "隙": "対象の次の味方直接攻撃1回が防御1単位を無視し、その開始時に消える。",
+    "裂傷": "対象が次に直接ダメージを受けた時に固定追加ダメージを1回与え、1段減る。最大3。round-endには発火しない。",
+    "毒": "round-endに最大HPの2%を1段ごとに受ける。最大3。医術で除去できる。",
+    "鈍り": "敵の次の準備進行を1段減らす。準備がなければ次の直接攻撃を10%下げて消える。",
+    "構え": "次の1hitのダメージを0にする。多段はhitごとに消費され、最大2。",
+    "守勢": "次の1攻撃から固定値を軽減して1段消える。最大2。",
+    "集中": "次に所有者が行うAの効果量を15%増し、A解決時に1消費。Rの反応を増やさない。",
+    "防壁": "残量までダメージを受ける共有シールド。防壁0になった時だけbarrier_brokenイベント。"
+  },
+  "sharedEvents": [
+    "target_selected",
+    "action_declared",
+    "prepare_started",
+    "prepare_advanced",
+    "prepare_completed",
+    "damage_proposed",
+    "damage_taken",
+    "damage_blocked",
+    "barrier_broken",
+    "guard_consumed",
+    "effective_heal",
+    "status_applied",
+    "actor_moved",
+    "actor_defeated",
+    "overkill",
+    "action_resolved",
+    "round_end"
+  ],
+  "themes": [
+    {
+      "id": "break",
+      "name": "破砕",
+      "question": "硬さ・準備・状態のどれを一撃の入口にするか。防御敵限定にせず、裂傷と隙へ戻れる。",
+      "stagePlan": "Stage0:破口/砕け目/楔打ち。Stage1:対象選択P。Stage2:深割り。Stage3:撃破後の余波。"
+    },
+    {
+      "id": "combo",
+      "name": "連撃",
+      "question": "一手のhit数競争ではなく、裂傷を作るか割るか、仕留めるかを選ぶ。",
+      "stagePlan": "Stage0:連ね/裂傷拾い/返し刃。Stage1:追い手。Stage2:仕留め。Stage3:対象選択P。"
+    },
+    {
+      "id": "guard",
+      "name": "護衛",
+      "question": "狙いを受け替え、構え・防壁・守勢の違いを攻撃者へ返す。",
+      "stagePlan": "Stage0:かばい立ち/構え直し/前衛線。Stage1:受け返し。Stage2:盾の受け渡し。Stage3:最後の盾。"
+    },
+    {
+      "id": "medicine",
+      "name": "医術",
+      "question": "実際に減ったHPと毒/裂傷を処理し、隊を再稼働させる。",
+      "stagePlan": "Stage0:応急処置/薬手/診療順。Stage1:解毒の手。Stage2:分け薬。Stage3:命綱。"
+    },
+    {
+      "id": "skirmish",
+      "name": "遊撃",
+      "question": "前後列・遮蔽・敵の移動を、対象選択と短い有利へ変える。",
+      "stagePlan": "Stage0:すり足/横槍/遮蔽ずらし。Stage1:追い足。Stage2:引き出し。Stage3:退路。"
+    },
+    {
+      "id": "command",
+      "name": "指揮",
+      "question": "AP/RPを増やさず、準備と味方の順番を組み替える。",
+      "stagePlan": "Stage0:合図/差し止め/手控え。Stage1:早駆け。Stage2:持ち替え。Stage3:拍渡し。"
+    }
+  ],
+  "skills": [
+    {
+      "id": "break_open",
+      "theme": "break",
+      "name": "破口",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "敵1（防壁/構え/守勢→準備中→前列の順、同率はID）",
+      "effect": "中威力の直接攻撃。防御状態があればその防御を1単位だけ剥がし、なければ裂傷1を付与する。",
+      "tradeoff": "防御を持たない敵にも裂傷で仕事があり、対象不在なら通常打撃へ戻る。",
+      "rankUp": {
+        "2": "防御を剥がした直後、その敵に隙1を付ける。",
+        "3": "対象が準備中なら、攻撃後に準備進行を1段戻す。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 55,
+        "when": "防御または準備中の敵がいる",
+        "target": "防御量が最大の敵"
+      }
+    },
+    {
+      "id": "break_fracture",
+      "theme": "break",
+      "name": "砕け目",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "RP1",
+      "target": "防御が壊れた敵（event target）",
+      "effect": "味方の攻撃で防壁が0になった、または構えが消費された直後、その敵に隙1を付ける。",
+      "tradeoff": "追加攻撃はしない。1つの破壊イベントにつき所有者1回なので連鎖しない。",
+      "rankUp": {
+        "2": "同じイベントで裂傷1も付ける。",
+        "3": "破壊を起こした生存者へ集中1を付ける（所有者が起点なら所有者）。"
+      },
+      "trigger": "barrier_broken または guard_consumed",
+      "limit": "round1"
+    },
+    {
+      "id": "break_wedge",
+      "theme": "break",
+      "name": "楔打ち",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "break_open",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "隙がある敵、なければ準備中の敵",
+      "effect": "隙があれば隙を消費して重い防御貫通攻撃、隙がなければ準備進行を1段戻す攻撃。隙を先に読む。",
+      "tradeoff": "隙も準備もない時は中威力攻撃へフォールバックし、空振りしない。",
+      "rankUp": {
+        "2": "攻撃後に対象へ鈍り1を付ける。",
+        "3": "所有者に集中があれば1つ消費し、防壁をさらに1単位だけ無視する。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 35,
+        "when": "隙または準備中の敵がいる",
+        "target": "隙がありHP割合の低い敵"
+      }
+    },
+    {
+      "id": "break_crack",
+      "theme": "break",
+      "name": "見切り筋",
+      "kind": "P",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "break_fracture",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 1,
+      "resource": "なし",
+      "target": "所有者の攻撃対象選択",
+      "effect": "所有者の攻撃対象候補を、防壁/構えのある敵、次に準備中の敵へ寄せる。行動や反応は追加しない。",
+      "tradeoff": "狙う敵がいない時の通常の対象選択は変えない。",
+      "rankUp": {
+        "2": "防御も準備もない場合は裂傷持ちを優先する。",
+        "3": "同条件なら脅威値の高い敵を優先する。"
+      }
+    },
+    {
+      "id": "break_depth",
+      "theme": "break",
+      "name": "深割り",
+      "kind": "A",
+      "maxLv": 5,
+      "prerequisites": [
+        {
+          "id": "break_wedge",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 2,
+      "resource": "AP1",
+      "target": "隙または裂傷がある敵、なければHP割合が低い敵",
+      "effect": "隙を優先して1つ、なければ裂傷を1つ消費し、重い単体攻撃。裂傷を消費した場合は鈍り1も付ける。",
+      "tradeoff": "状態がない時は中威力攻撃へ戻る。状態を無限に貯めず、1回の攻撃で消費する段数を上限1とする。",
+      "rankUp": {
+        "2": "隙を消費した時は防御を1単位だけ無視する。",
+        "3": "対象が準備中なら準備進行を1段戻す。",
+        "4": "対象が生存しているなら隙1を残し、次の直接攻撃へ渡す。",
+        "5": "対象を撃破した時、別の最も脅威の高い敵へ隙1を付ける。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 20,
+        "when": "状態付きまたは瀕死の敵がいる",
+        "target": "仕留められる敵"
+      }
+    },
+    {
+      "id": "break_aftershock",
+      "theme": "break",
+      "name": "砕後の余波",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "break_crack",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 3,
+      "resource": "RP1",
+      "target": "撃破/過剰ダメージを起こした敵とは別の敵",
+      "effect": "味方が敵を撃破、または過剰ダメージを出した直後、最も脅威の高い別敵へ隙1と鈍り1を付ける。",
+      "tradeoff": "1つのchainで1回、戦闘2回まで。追加攻撃ではないので連撃の追撃を再発火させない。",
+      "rankUp": {
+        "2": "撃破だけでなく過剰ダメージでも発火する。",
+        "3": "状態を受けた敵が準備中なら準備進行を1段戻し、そうでなければ次に動く味方へ集中1を付ける。"
+      },
+      "trigger": "actor_defeated または overkill",
+      "limit": "chain1/battle2"
+    },
+    {
+      "id": "combo_link",
+      "theme": "combo",
+      "name": "連ね",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "裂傷がない最前の敵→裂傷がある敵→HP割合の低い敵",
+      "effect": "一手の中で初段を当てる。対象に裂傷があれば裂傷1を消費して隙1を付け、なければ裂傷1を付ける。",
+      "tradeoff": "hit数だけを段階的に増やさない。状態を作るか割るかが主役で、対象不在なら通常打撃。",
+      "rankUp": {
+        "2": "対象に隙がある時は隙を消費せず、所有者へ集中1を付ける。",
+        "3": "対象に鈍りがある時は鈍りを消費して裂傷2を付ける。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 50,
+        "when": "裂傷/隙/鈍りを持つ敵がいる",
+        "target": "裂傷を割って隙を作れる敵"
+      }
+    },
+    {
+      "id": "combo_bleed",
+      "theme": "combo",
+      "name": "裂傷拾い",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "RP1",
+      "target": "裂傷を付けた味方または所有者",
+      "effect": "味方が敵へ裂傷を付けた直後、状態付与者（死亡/不在なら所有者）へ集中1を付ける。",
+      "tradeoff": "裂傷付与の起点だけを読む。自身の集中付与で同じRを再発火させない。",
+      "rankUp": {
+        "2": "隙が付いた直後も同じ集中を付ける。",
+        "3": "付与者と所有者が別なら、付与者へ集中1、所有者へは付けない。"
+      },
+      "trigger": "status_applied:裂傷",
+      "limit": "round1"
+    },
+    {
+      "id": "combo_turn",
+      "theme": "combo",
+      "name": "返し刃",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "combo_link",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "このラウンドに行動済み、または鈍りのある敵",
+      "effect": "行動済みの敵へ中威力攻撃し、鈍りがあれば消費して裂傷1を付ける。条件がなければ最前の敵を攻撃する。",
+      "tradeoff": "敵がまだ行動していない盤面でも安全な通常攻撃へ戻る。",
+      "rankUp": {
+        "2": "準備完了した敵も対象条件に含める。",
+        "3": "攻撃対象が準備中なら、対象の次の行動のダメージを鈍り1で下げる。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 45,
+        "when": "行動済み/準備完了/鈍りの敵がいる",
+        "target": "最も遅れている敵"
+      }
+    },
+    {
+      "id": "combo_follow",
+      "theme": "combo",
+      "name": "追い手",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "combo_bleed",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 1,
+      "resource": "RP1",
+      "target": "裂傷が付いた敵へ（event target）",
+      "effect": "味方が裂傷を持つ敵へ直接ダメージを与えた直後、その敵へ小威力の追撃を1回だけ行う。追撃はこのRを再読しない。",
+      "tradeoff": "chain1、1イベント1回。RP不足なら発火せず、元の攻撃は失敗しない。",
+      "rankUp": {
+        "2": "元の敵が追撃前に倒れた場合、最もHP割合の低い別敵へ追撃する。",
+        "3": "追撃が命中して対象が生存していれば、その対象へ隙1を付ける。"
+      },
+      "trigger": "damage_taken:target_has_裂傷",
+      "limit": "chain1"
+    },
+    {
+      "id": "combo_finish",
+      "theme": "combo",
+      "name": "仕留め",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "combo_turn",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 2,
+      "resource": "AP1",
+      "target": "HP35%以下、または裂傷2以上、または隙のある敵",
+      "effect": "裂傷をすべて（最大3）消費して重い単体攻撃。対象が隙を持つ場合は隙を消費せず仕留め条件に使う。",
+      "tradeoff": "条件がない時は通常攻撃へフォールバック。裂傷は攻撃後に残さない。",
+      "rankUp": {
+        "2": "HP45%以下でも条件成立。",
+        "3": "隙のある対象へ防御を1単位だけ追加無視する。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 15,
+        "when": "仕留め条件がある敵がいる",
+        "target": "撃破確率が最も高い敵"
+      }
+    },
+    {
+      "id": "combo_crescendo",
+      "theme": "combo",
+      "name": "終奏",
+      "kind": "P",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "combo_follow",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 3,
+      "resource": "なし",
+      "target": "所有者の攻撃対象選択",
+      "effect": "所有者の攻撃対象を、仕留め条件を満たす敵→裂傷段数が多い敵→HP割合の低い敵の順で選ぶ。",
+      "tradeoff": "対象選択規則だけを変え、追加攻撃や追加反応を作らない。",
+      "rankUp": {
+        "2": "隙を持つ敵を裂傷段数と同列の候補に含める。",
+        "3": "状態がない場合は脅威値の高い敵を優先する。"
+      }
+    },
+    {
+      "id": "guard_cover",
+      "theme": "guard",
+      "name": "かばい立ち",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "RP1",
+      "target": "敵に対象選択された味方",
+      "effect": "次の1回のダメージ提案の25%を所有者へ移し、狙われた味方へ守勢1を付ける。完全な身代わりではない。",
+      "tradeoff": "対象選択イベント1回につき1回。移したダメージは所有者の防御で別に処理する。",
+      "rankUp": {
+        "2": "移す割合を40%にする。",
+        "3": "所有者が前列なら、発火時に構え1を得る（round1）。"
+      },
+      "trigger": "target_selected:ally",
+      "limit": "chain1"
+    },
+    {
+      "id": "guard_brace",
+      "theme": "guard",
+      "name": "構え直し",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "所有者",
+      "effect": "構え1と小防壁を自分へ置く。すでに構えがある場合は構えを増やさず守勢1を置く。",
+      "tradeoff": "構えは多段攻撃の1hitだけを止め、防壁と役割が重ならない。",
+      "rankUp": {
+        "2": "防壁を小から中へ増やす。",
+        "3": "前列にいる時、同じ列の最もHP割合が低い味方にも守勢1を置く。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 30,
+        "when": "次の敵攻撃が単発または自分が狙われやすい",
+        "target": "自分"
+      }
+    },
+    {
+      "id": "guard_line",
+      "theme": "guard",
+      "name": "前衛線",
+      "kind": "P",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "guard_cover",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 0,
+      "resource": "なし",
+      "target": "所有者の被ダメージ計算",
+      "effect": "所有者が前列かつ背後に味方がいる間、自分への各ダメージ提案を固定値3だけ軽減する。",
+      "tradeoff": "イベントを読まず、前後列とダメージ計算だけを変える。軽減でHPやRPを増やさない。",
+      "rankUp": {
+        "2": "後列でも、かばい立ちで移されたダメージの固定軽減を適用する。",
+        "3": "軽減値を5にし、致死移しの提案にも適用する。"
+      }
+    },
+    {
+      "id": "guard_rebuke",
+      "theme": "guard",
+      "name": "受け返し",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "guard_brace",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 1,
+      "resource": "RP1",
+      "target": "所有者が防いだ攻撃の攻撃者",
+      "effect": "構えまたは防壁でダメージを0にした直後、攻撃者へ鈍り1を付ける。",
+      "tradeoff": "防いだ量を資源へ変換しない。多段の各hitではなく、同一攻撃chainにつき1回。",
+      "rankUp": {
+        "2": "攻撃者が準備中でなければ隙1も付ける。",
+        "3": "攻撃者が準備中なら準備進行を1段戻す。"
+      },
+      "trigger": "damage_blocked:owner",
+      "limit": "round1"
+    },
+    {
+      "id": "guard_relay",
+      "theme": "guard",
+      "name": "盾の受け渡し",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "guard_line",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 2,
+      "resource": "AP1",
+      "target": "最もHP割合の低い生存味方（同率は前列→ID）",
+      "effect": "所有者の構えがあれば1つ消費し、対象へ中防壁と守勢1を渡す。構えがなければ小防壁だけを置く。",
+      "tradeoff": "構えを持たない時も支援として成立し、空振りしない。対象のHPは回復しない。",
+      "rankUp": {
+        "2": "所有者を対象の列へ移してから付与する。",
+        "3": "HP50%以下の2人へ半量ずつ配る（対象重複なし）。"
+      },
+      "fallback": "構え直し",
+      "auto": {
+        "priority": 25,
+        "when": "HP50%以下の味方がいる",
+        "target": "最も傷ついた味方"
+      }
+    },
+    {
+      "id": "guard_lastwall",
+      "theme": "guard",
+      "name": "最後の盾",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "guard_rebuke",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 3,
+      "resource": "RP1",
+      "target": "致死になるダメージを提案された味方",
+      "effect": "ダメージ適用前、所有者の構え1を消費して提案全量を所有者へ移す。味方のHPを1に戻さず、所有者が受け切れなければそのまま倒れる。",
+      "tradeoff": "戦闘1回。医術の命綱と違い、事前の受け替えであり、HP回復・状態除去・無条件の踏みとどまりはない。",
+      "rankUp": {
+        "2": "対象がHP10%以下でも致死でなく次の一撃が致死見込みなら発火する。",
+        "3": "移した提案へ前衛線の軽減を適用し、所有者へ守勢1を付ける。"
+      },
+      "trigger": "damage_proposed:lethal",
+      "limit": "battle1"
+    },
+    {
+      "id": "med_firstaid",
+      "theme": "medicine",
+      "name": "応急処置",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "RP1",
+      "target": "実際にHPが減った味方（event target）",
+      "effect": "被弾直後、実際に減ったHPの25%だけ現HPを回復する。満タン超過は捨て、回復量を資源にしない。",
+      "tradeoff": "damage_proposedや0ダメージでは起動しない。同一damage chainで対象1回。",
+      "rankUp": {
+        "2": "回復割合を35%にする。",
+        "3": "回復割合を45%にし、対象の毒または裂傷を1段だけ除去する。"
+      },
+      "trigger": "damage_taken:hp_loss>0",
+      "limit": "chain1"
+    },
+    {
+      "id": "med_remedy",
+      "theme": "medicine",
+      "name": "薬手",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "毒/裂傷のある味方→HP割合の低い味方",
+      "effect": "中回復を行い、対象の毒1と裂傷1を可能な限り除去する。負傷者がいなければ自分へ守勢1を置く。",
+      "tradeoff": "現HPの欠損だけを回復し、古傷・過去被弾履歴・SPへは触れない。",
+      "rankUp": {
+        "2": "毒と裂傷を両方持つ対象からは各1を除去する。",
+        "3": "HP50%以下の別の味方1人へ半量の回復を追加する。"
+      },
+      "fallback": "守勢1を自分へ",
+      "auto": {
+        "priority": 10,
+        "when": "HP50%以下または毒/裂傷の味方がいる",
+        "target": "最も危険な味方"
+      }
+    },
+    {
+      "id": "med_triage",
+      "theme": "medicine",
+      "name": "診療順",
+      "kind": "P",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "med_firstaid",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 0,
+      "resource": "なし",
+      "target": "医術A/Rの対象候補",
+      "effect": "所有者の医術対象を、HP25%以下→毒持ち→裂傷持ち→HP割合の低い順に並べ、満タンを選ばない。",
+      "tradeoff": "追加回復・追加反応は生まず、対象選択だけを変える。",
+      "rankUp": {
+        "2": "HP25%以下がいなければ毒をHP割合より先に優先する。",
+        "3": "同率では次に行動する味方を優先する。"
+      }
+    },
+    {
+      "id": "med_cleanse",
+      "theme": "medicine",
+      "name": "解毒の手",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "med_remedy",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 1,
+      "resource": "RP1",
+      "target": "状態を受けた味方（event target）",
+      "effect": "味方に毒または裂傷が付いた直後、その状態を1段除去し守勢1を付ける。",
+      "tradeoff": "回復は行わず、1イベント1回。毒のround-end tickと状態付与をループさせない。",
+      "rankUp": {
+        "2": "同じ状態を2段まで除去する。",
+        "3": "対象へ集中1も付ける。"
+      },
+      "trigger": "status_applied:毒または裂傷",
+      "limit": "round1"
+    },
+    {
+      "id": "med_exchange",
+      "theme": "medicine",
+      "name": "分け薬",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "med_triage",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 2,
+      "resource": "AP1",
+      "target": "HP50%以下の味方1人（次点を選べる）",
+      "effect": "対象を回復し、所有者に集中があればそれを消費して対象へ集中1、なければ所有者の守勢を消費して対象へ小防壁を置く。どちらもなければ守勢1を対象へ置く。",
+      "tradeoff": "一手で選ぶ出口は集中→守勢の決定順。回復の余りは追加資源にならない。",
+      "rankUp": {
+        "2": "対象の毒を1段除去する。",
+        "3": "HP50%以下の別味方へ半量回復を追加する。"
+      },
+      "fallback": "守勢1を最も傷ついた味方へ",
+      "auto": {
+        "priority": 20,
+        "when": "HP50%以下の味方がいる",
+        "target": "最も危険な味方"
+      }
+    },
+    {
+      "id": "med_lifeline",
+      "theme": "medicine",
+      "name": "命綱",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "med_cleanse",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 3,
+      "resource": "RP1",
+      "target": "HPが0になった味方（致死処理中のevent target）",
+      "effect": "HP0後、撃破確定の直前に戦闘1回だけHP1へ戻し、毒をすべて、裂傷を1段除去する。防壁を作らず、ダメージを移さない。",
+      "tradeoff": "護衛の最後の盾と違い、事前の被害軽減ではなく事後の回復・状態整理。HP1からの再被弾は通常通り。",
+      "rankUp": {
+        "2": "復帰時に守勢1を付ける。",
+        "3": "対象に鈍りがあればそれも1段除去し、RP不足なら発動しない。"
+      },
+      "trigger": "actor_defeated:pending_commit",
+      "limit": "battle1"
+    },
+    {
+      "id": "move_step",
+      "theme": "skirmish",
+      "name": "すり足",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "自分と前後列が異なる生存味方、いなければ自分",
+      "effect": "自分と対象味方の前後列を入れ替える。対象がいない時は安全な通常攻撃へ戻る。",
+      "tradeoff": "移動だけでAP/RPや追撃を増やさず、列と対象関係を変える。",
+      "rankUp": {
+        "2": "自分ではなく任意の味方2人を入れ替えられる。",
+        "3": "前列へ入った者に構え1、後列へ下がった者に守勢1を付ける。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 40,
+        "when": "列を変えると対象条件が改善する",
+        "target": "HP割合の低い前列味方と後列味方"
+      }
+    },
+    {
+      "id": "move_flank",
+      "theme": "skirmish",
+      "name": "横槍",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "敵後列→準備中→前列の順",
+      "effect": "小威力攻撃後、所有者を空いている反対列へ移す。反対列がない場合は移動せず攻撃だけ行う。",
+      "tradeoff": "位置が変わるため、次の対象選択や敵の射程のリスクも変わる。",
+      "rankUp": {
+        "2": "対象が準備中なら準備進行を1段戻す。",
+        "3": "移動が成功した場合、対象へ隙1を付ける。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 45,
+        "when": "後列または準備中の敵がいる",
+        "target": "準備中の後列敵"
+      }
+    },
+    {
+      "id": "move_screen",
+      "theme": "skirmish",
+      "name": "遮蔽ずらし",
+      "kind": "P",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "move_step",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 0,
+      "resource": "なし",
+      "target": "所有者の射程と敵の対象選択",
+      "effect": "所有者が後列なら前列敵1体を越えて敵後列を対象にでき、前列なら敵の単体対象選択で最初に候補になる。",
+      "tradeoff": "移動や追加攻撃は発生させず、現在位置と対象関係だけを変える。",
+      "rankUp": {
+        "2": "後列時、敵後列の準備中対象を優先して選べる。",
+        "3": "前列時、後列味方への単体攻撃が所有者を経由する時、守勢1を対象へ付ける。"
+      }
+    },
+    {
+      "id": "move_chase",
+      "theme": "skirmish",
+      "name": "追い足",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "move_flank",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 1,
+      "resource": "RP1",
+      "target": "移動した敵（event target）",
+      "effect": "敵が前後列を移動した直後、その敵へ隙1を付ける。",
+      "tradeoff": "1ラウンド1回、移動の連鎖を起こす追加移動はしない。",
+      "rankUp": {
+        "2": "対象へ鈍り1も付ける。",
+        "3": "所有者が後列なら集中1、前列なら守勢1を自分へ付ける。"
+      },
+      "trigger": "actor_moved:enemy",
+      "limit": "round1"
+    },
+    {
+      "id": "move_pull",
+      "theme": "skirmish",
+      "name": "引き出し",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "move_screen",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 2,
+      "resource": "AP1",
+      "target": "敵後列、または準備中の敵",
+      "effect": "敵後列を前列へ移し、その敵へ隙1を付ける。後列も準備中もいなければ脅威の高い敵を攻撃する。",
+      "tradeoff": "防壁を持つ敵だけを条件にせず、単体敵でも通常攻撃へ戻る。",
+      "rankUp": {
+        "2": "前列の準備中敵も対象にし、移動の代わりに準備進行を1段戻す。",
+        "3": "移動/妨害した対象へ裂傷1を追加する。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 32,
+        "when": "敵後列または準備中の敵がいる",
+        "target": "最も脅威の高い後列/準備敵"
+      }
+    },
+    {
+      "id": "move_escape",
+      "theme": "skirmish",
+      "name": "退路",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "move_chase",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 3,
+      "resource": "RP1",
+      "target": "前列の味方が敵に対象選択された直後",
+      "effect": "空き後列があれば対象を後列へ移し、今回のダメージ提案を固定値8だけ下げ、守勢1を付ける。空きがなければ移動せず守勢1だけ付ける。",
+      "tradeoff": "ダメージを消す身代わりではなく、移動可能な時だけ被害を下げる。1ラウンド1回。",
+      "rankUp": {
+        "2": "前列/後列を問わず、敵の射程が後列へ届く場合も対象を移せる。",
+        "3": "移動成功時、所有者へ構え1を付ける。"
+      },
+      "trigger": "target_selected:front_ally",
+      "limit": "round1"
+    },
+    {
+      "id": "command_signal",
+      "theme": "command",
+      "name": "合図",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "AP1",
+      "target": "未行動でAPが最も少ない味方",
+      "effect": "所有者のAP1を支払い、対象へAP1を渡す。APの純増はなく、次に動く人物を変える。対象不在なら通常攻撃。",
+      "tradeoff": "同じ味方へ同じroundに2回渡せず、現在の手番を連続化しない。",
+      "rankUp": {
+        "2": "APを得た対象へ集中1を付ける。",
+        "3": "対象が準備中なら準備進行を1段進める。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 60,
+        "when": "未行動の味方がいて順番を変える価値がある",
+        "target": "AP最少の未行動味方"
+      }
+    },
+    {
+      "id": "command_delay",
+      "theme": "command",
+      "name": "差し止め",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [],
+      "releaseStage": 0,
+      "resource": "RP1",
+      "target": "行動宣言した敵（event source）",
+      "effect": "敵が行動を宣言した直後、その敵へ鈍り1を付ける。鈍りは準備中なら進行1段減、準備なしなら次の直接攻撃を10%下げる。",
+      "tradeoff": "行動を永続キャンセルせず、同じ宣言chainでは1回だけ。",
+      "rankUp": {
+        "2": "準備中の敵なら行動解決を味方側の次のphase後へ遅らせる。",
+        "3": "鈍りを2段にする（準備進行の減少は1段で固定）。"
+      },
+      "trigger": "action_declared:enemy",
+      "limit": "chain1"
+    },
+    {
+      "id": "command_reserve",
+      "theme": "command",
+      "name": "手控え",
+      "kind": "P",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "command_signal",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 0,
+      "resource": "なし",
+      "target": "ラウンド終了/次ラウンドの決定順",
+      "effect": "所有者がラウンド終了時に未使用APを残すと、次ラウンドの同率行動順で先に並ぶ。追加APや追加反応は作らない。",
+      "tradeoff": "資源を保存せず、待つ選択の価値を順番だけへ変換する。",
+      "rankUp": {
+        "2": "未使用RPも同じ先行判定へ加える。",
+        "3": "所有者が戦闘不能なら、その先行権をHP割合の低い生存味方へ渡す。"
+      }
+    },
+    {
+      "id": "command_hasten",
+      "theme": "command",
+      "name": "早駆け",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "command_delay",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 1,
+      "resource": "RP1",
+      "target": "味方の準備が開始/進行した対象",
+      "effect": "味方の準備開始または進行直後、その準備を1段進める。完了済みを再進行させない。",
+      "tradeoff": "準備完了を直接攻撃へ変換せず、同じ準備イベントを再発火させない。",
+      "rankUp": {
+        "2": "進行で準備が完了した場合、その味方へ集中1を付ける。",
+        "3": "対象が次に行う準備/支援の対象選択を最も危険な敵/味方へ寄せる。"
+      },
+      "trigger": "prepare_started または prepare_advanced:ally",
+      "limit": "round1"
+    },
+    {
+      "id": "command_exchange",
+      "theme": "command",
+      "name": "持ち替え",
+      "kind": "A",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "command_signal",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 2,
+      "resource": "AP1またはRP2",
+      "target": "所有者、Lv3では未行動の味方",
+      "effect": "1ラウンド1回、AP1をRP1へ変換、またはRP2をAP1へ変換する。どちらを使うかは野営時に設定し、戦闘中に変えない。",
+      "tradeoff": "資源総量を増やさず、選択した変換を同じchainで往復できない。",
+      "rankUp": {
+        "2": "AP→RPとRP→APの両方を設定なしで使えるが、同roundは1回だけ。",
+        "3": "RP→APの受け手を未行動の味方へできる。"
+      },
+      "fallback": "通常単体打撃",
+      "auto": {
+        "priority": 70,
+        "when": "次のphaseに必要な資源が不足する",
+        "target": "設定した変換先"
+      }
+    },
+    {
+      "id": "command_cadence",
+      "theme": "command",
+      "name": "拍渡し",
+      "kind": "R",
+      "maxLv": 3,
+      "prerequisites": [
+        {
+          "id": "command_hasten",
+          "minLv": 2
+        }
+      ],
+      "releaseStage": 3,
+      "resource": "RP1",
+      "target": "行動を解決した味方（event source）",
+      "effect": "味方の行動解決直後、未行動の味方を次の味方phaseの先頭へ置く。AP/RPや行動回数は増やさない。",
+      "tradeoff": "同round1回。未行動者がいない場合は次roundの先頭権へ繰り越すだけで、即時再行動しない。",
+      "rankUp": {
+        "2": "行動解決者が準備を完了させた場合、先頭に置かれた味方へ集中1を付ける。",
+        "3": "所有者が戦闘不能なら最もHP割合の低い生存味方が反応を引き継ぐ。"
+      },
+      "trigger": "action_resolved:ally",
+      "limit": "round1"
+    }
+  ],
+  "laterCrossSections": [
+    {
+      "id": "cross_defense_to_opening",
+      "releaseStage": 1,
+      "name": "防いだ一撃を開口へ",
+      "reads": [
+        "damage_blocked",
+        "barrier_broken",
+        "guard_consumed"
+      ],
+      "route": "護衛の受け返し/破砕の砕け目/連撃の裂傷拾いが同じイベントを読む。技能ID同士を前提にしない。"
+    },
+    {
+      "id": "cross_hurt_to_recovery",
+      "releaseStage": 1,
+      "name": "被弾前後を分ける",
+      "reads": [
+        "damage_proposed",
+        "damage_taken",
+        "effective_heal"
+      ],
+      "route": "護衛はdamage_proposedで受け替え、医術はdamage_taken/effective_healで回復する。最後の盾と命綱は同時に同じ救命処理をしない。"
+    },
+    {
+      "id": "cross_move_to_state",
+      "releaseStage": 2,
+      "name": "移動から裂傷/隙へ",
+      "reads": [
+        "actor_moved",
+        "target_selected"
+      ],
+      "route": "遊撃が敵を動かす、連撃/破砕が共有状態を読む。敵を盾持ちに限定しない。"
+    },
+    {
+      "id": "cross_prepare_to_order",
+      "releaseStage": 2,
+      "name": "準備から順番へ",
+      "reads": [
+        "prepare_started",
+        "prepare_advanced",
+        "action_declared",
+        "action_resolved"
+      ],
+      "route": "指揮は早駆け/差し止め、破砕は楔打ち、遊撃は横槍で同じ予兆を別の出口へ送る。"
+    },
+    {
+      "id": "cross_poison_wound",
+      "releaseStage": 2,
+      "name": "毒と裂傷の使い分け",
+      "reads": [
+        "status_applied",
+        "round_end",
+        "damage_taken"
+      ],
+      "route": "裂傷は次の直接攻撃で割れ、毒はround-endに削る。医術の解毒/応急処置は過剰回復を資源化しない。"
+    },
+    {
+      "id": "cross_cadence",
+      "releaseStage": 3,
+      "name": "三人目の拍",
+      "reads": [
+        "action_resolved",
+        "resource_refreshed",
+        "round_end"
+      ],
+      "route": "拍渡しは未行動者の順番だけを変え、AP/RP/行動回数を増やさない。"
+    }
+  ],
+  "stage0Builds": [
+    {
+      "id": "build_break_guard",
+      "name": "断ちと急場",
+      "coreSpPerActor": 5,
+      "freeSeeds": {
+        "A": "break_open Lv1",
+        "B": "guard_cover Lv1"
+      },
+      "coreByBattle6": {
+        "A": [
+          "break_open Lv2",
+          "break_wedge Lv1",
+          "break_fracture Lv1",
+          "guard_brace Lv1"
+        ],
+        "B": [
+          "guard_brace Lv1",
+          "med_firstaid Lv1",
+          "med_remedy Lv1",
+          "command_delay Lv1"
+        ]
+      },
+      "fullAt13": {
+        "A": [
+          "break_open Lv3",
+          "break_wedge Lv3",
+          "break_fracture Lv3",
+          "guard_brace Lv2",
+          "guard_cover Lv1",
+          "command_signal Lv1",
+          "move_step Lv1"
+        ],
+        "B": [
+          "guard_cover Lv3",
+          "guard_brace Lv3",
+          "med_firstaid Lv3",
+          "med_remedy Lv2",
+          "command_delay Lv2",
+          "move_step Lv1"
+        ]
+      },
+      "why": "Aが防御を剥がし、Bが対象選択と実損回復を受け持つ。破砕根を医術根へ入れ替えてもイベントが成立する。"
+    },
+    {
+      "id": "build_wound_chain",
+      "name": "裂傷をつないで仕留める",
+      "coreSpPerActor": 5,
+      "freeSeeds": {
+        "A": "combo_link Lv1",
+        "B": "med_firstaid Lv1"
+      },
+      "coreByBattle6": {
+        "A": [
+          "combo_link Lv2",
+          "combo_bleed Lv1",
+          "combo_turn Lv1",
+          "break_fracture Lv1"
+        ],
+        "B": [
+          "med_firstaid Lv2",
+          "med_remedy Lv1",
+          "med_triage Lv1",
+          "guard_cover Lv1"
+        ]
+      },
+      "fullAt13": {
+        "A": [
+          "combo_link Lv3",
+          "combo_bleed Lv3",
+          "combo_turn Lv3",
+          "break_fracture Lv3",
+          "command_signal Lv1",
+          "move_flank Lv1"
+        ],
+        "B": [
+          "med_firstaid Lv3",
+          "med_remedy Lv3",
+          "med_triage Lv3",
+          "guard_cover Lv2",
+          "command_delay Lv1",
+          "move_step Lv1"
+        ]
+      },
+      "why": "Aの裂傷をBの回復・守勢が支え、敵が単体/準備/多段で変わっても仕留め条件が変わる。追い手はStage1で後付けできる。"
+    },
+    {
+      "id": "build_step_cadence",
+      "name": "遊撃と拍",
+      "coreSpPerActor": 5,
+      "freeSeeds": {
+        "A": "move_step Lv1",
+        "B": "command_signal Lv1"
+      },
+      "coreByBattle6": {
+        "A": [
+          "move_step Lv2",
+          "move_flank Lv1",
+          "move_screen Lv1",
+          "combo_link Lv1"
+        ],
+        "B": [
+          "command_signal Lv2",
+          "command_delay Lv1",
+          "command_reserve Lv1",
+          "med_remedy Lv1"
+        ]
+      },
+      "fullAt13": {
+        "A": [
+          "move_step Lv3",
+          "move_flank Lv3",
+          "move_screen Lv3",
+          "command_signal Lv2",
+          "command_reserve Lv1",
+          "combo_link Lv1",
+          "break_fracture Lv1"
+        ],
+        "B": [
+          "command_signal Lv3",
+          "command_delay Lv3",
+          "command_reserve Lv3",
+          "guard_brace Lv2",
+          "med_remedy Lv1",
+          "med_firstaid Lv1"
+        ]
+      },
+      "why": "Aが列と対象を変え、BがAPの総量を増やさず未行動者を先にする。盾敵がいない戦闘でも横槍・合図・通常攻撃が残る。"
+    }
+  ],
+  "stage0Checks": [
+    "各人はStage0 rootから1つのLv1だけを無償選択し、同じrootを後から買い直さない。",
+    "各buildの戦6核は1人5SP以内、最終前は1人13SP以内。Stage0の6テーマ入口から自由に入れ替え可能。",
+    "Aの条件不成立は通常攻撃/安全支援へfallback、RはRP不足なら不発で元eventを壊さず、Pは追加行動を作らない。",
+    "Rはイベント1件あたり所有者1回・chain/round/battle上限を持ち、R由来の攻撃は同じRを再読しない。",
+    "医術はcurrent HPのmissingだけを回復し、overheal・過去被弾・古傷・自傷をSP/AP/RPへ変換しない。",
+    "最後の盾は事前redirect＋構え消費、命綱は事後HP1＋状態除去であり、同じ致死eventに両方の救命処理を重ねない。",
+    "対象同率は前列/後列、位置、安定ID。乱数や特定人物/特定技能ID必須条件は使わない。"
+  ],
+  "autoPriority": {
+    "A": "同一所有者内は(1)自分/味方が次の一撃で倒れる危険、(2)準備中の敵を止める、(3)仕留め条件、(4)状態を作る/割る、(5)位置・順番、(6)通常行動。数値priorityがある場合は小さい順、同率はloadout順。",
+    "R": "イベント時に(1)最後の盾など事前致死救済、(2)退路/かばい立ちなど被害形状、(3)命綱など事後救済、(4)解毒/応急、(5)準備妨害、(6)防御破壊/状態、(7)追撃/拍渡しの順で候補を比較する。候補はRP・limit・predicateを直前再確認し、同一eventのreaction budgetは2件、無料追撃は1件まで。",
+    "P": "発火順を持たず、対象選択→計算→精算の順に規則へ適用する。PでA/R候補を増やさない。",
+    "globalLimits": "一chain256 event、battle4096 eventを上限とし、同一skill/ownerはchain1回。反応が同じeventを再発火条件にしない。"
+  }
+}
