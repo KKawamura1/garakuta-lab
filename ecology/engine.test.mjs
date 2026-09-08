@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { RESULT_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
 import { BPS, roundHalfUpDiv } from "./values.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
+import { resolveTargets } from "./selectors.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import {
   ALL_FIXTURE_BATTLES,
@@ -730,6 +731,35 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     "使っていない技能のレベルは出来事の列を変えない",
   );
   checks += 1;
+}
+
+// ---- §9 hp_percent_asc — 「最も傷ついた」は割合で決まる（issue #176）-------------
+//
+// **最大HPが違う二人が並ぶと、残りHPの小ささと傷の深さは別物になる。**
+// 庇護の対象を選ぶ query は割合で並べるので、ここでその意味を固定する。
+{
+  const state = {
+    actorOrder: ["a_big", "a_small"],
+    actors: new Map([
+      ["a_big", {
+        instanceId: "a_big", side: "ally", alive: true, position: "front_left",
+        hp: 150, maxHp: 300, barriers: [], statuses: [],
+      }],
+      ["a_small", {
+        instanceId: "a_small", side: "ally", alive: true, position: "rear_left",
+        hp: 100, maxHp: 110, barriers: [], statuses: [],
+      }],
+    ]),
+  };
+  const pick = (sort) => resolveTargets(state, {}, {
+    scope: "allies", filters: [{ type: "alive" }], sort: [sort], take: 1,
+  })[0].instanceId;
+  equal(pick("hp_asc"), "a_small", "残りHPで並べると、無傷に近い小柄なほうが選ばれる");
+  equal(pick("hp_percent_asc"), "a_big", "割合で並べると、半分まで削られたほうが選ばれる");
+  equal(pick("hp_percent_desc"), "a_small", "逆順は最も無事なほうを返す");
+  // 同率のときは既定の並び（position_asc → instance_id_asc）へ落ちる。**乱れない。**
+  state.actors.get("a_small").hp = 55;
+  equal(pick("hp_percent_asc"), "a_big", "同率（どちらも50%）は前列から。take: 1 が並び順に依存しない");
 }
 
 // ---- §14 the ordinary fixtures stay far below the caps --------------------------

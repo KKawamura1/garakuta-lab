@@ -21,6 +21,7 @@ smokes=(
   analysis/ecology-skill-catalog-smoke.mjs
   analysis/ecology-canonical-numbers-smoke.mjs
   analysis/ecology-skill-tree-smoke.mjs
+  analysis/ecology-stage0-builds.mjs
   analysis/ecology-screens-smoke.mjs
   analysis/ecology-test-hygiene-smoke.mjs
   analysis/ecology-upload-smoke.mjs

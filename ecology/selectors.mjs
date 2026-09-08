@@ -13,6 +13,7 @@ import {
   statusStacks,
   totalBarrier,
 } from "./actors.mjs";
+import { BPS } from "./values.mjs";
 
 function scopePool(state, ctx, scope) {
   switch (scope) {
@@ -73,10 +74,19 @@ function passesFilter(state, ctx, filter, actor) {
   }
 }
 
+function hpPercentBps(actor) {
+  const ceiling = Math.max(1, actor.maxHp ?? 1);
+  return Math.floor(actor.hp * BPS / ceiling);
+}
+
 function sortValue(actor, sortType) {
   switch (sortType) {
     case "hp_asc": return actor.hp;
     case "hp_desc": return -actor.hp;
+    // issue #176 — 傷の深さで並べる。**整数 bps で作るので浮動小数を通さない。**
+    // 上限が 0 の actor は作られない（schema が maxHp >= 1 を要求する）。
+    case "hp_percent_asc": return hpPercentBps(actor);
+    case "hp_percent_desc": return -hpPercentBps(actor);
     case "barrier_asc": return totalBarrier(actor);
     case "barrier_desc": return -totalBarrier(actor);
     case "position_asc": return positionIndex(actor);

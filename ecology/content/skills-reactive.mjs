@@ -308,7 +308,8 @@ reactiveSkills.whetted_by_pain = {
 // pack_wall — 受け止めた結果を、自分ではなく一番傷ついた味方へ渡す。
 // block_focus（自分が集中を得る）と同じ発生源から、別の役割へ出す。
 const WEAKEST_ALLY_TARGET = {
-  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1,
+  // issue #176 — 宛先は傷の割合で選ぶ（docs/DESIGN.md 8.7.1）。
+  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1,
 };
 reactiveSkills.shield_handoff = {
   id: "shield_handoff",
@@ -379,7 +380,8 @@ const FRONTMOST_ENEMY = {
   scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1,
 };
 const WEAKEST_ALLY_QUERY = {
-  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1,
+  // issue #176 — 宛先は傷の割合で選ぶ（docs/DESIGN.md 8.7.1）。
+  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1,
 };
 const SELF_IS_EVENT_SOURCE = {
   type: "target_exists",

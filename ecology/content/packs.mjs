@@ -84,8 +84,30 @@ export const SKILL_PACKS = Object.freeze([
     reactiveSkillIds: Object.freeze(["overflow_care", "triage_relay", "brace_after_hit", "emergency_treatment", "triage", "shared_pain", "watchful_care", "steady_under_fire", "second_wind"]),
     passiveSkillIds: Object.freeze(["steady_hands", "patient_hands"]),
     // 問い:「同じ一撃でも、武器か技かで、置ける場所が変わる」。
-    coreActiveSkillIds: Object.freeze(["steady_cut", "aimed_shot", "shield_the_wounded", "ward_ally"]),
-    coreReactiveSkillIds: Object.freeze(["emergency_treatment", "triage", "brace_after_hit", "overflow_care", "watchful_care"]),
+    //
+    // issue #176 — **core は「Stage 0 の盤面で実際に鳴る節」だけにする。**
+    // 一度も発火しない節を入口に並べると、点を払った側は何が起きなかったのかを
+    // 知る手段がない。外したのは二つで、どちらも full には残っている。
+    //
+    //   overflow_care … 余剰治療。Stage 0 の回復は全部「直前の被弾量に比例」なので、
+    //                   上限を超える回復が構造的に起きず、excess_healing が出ない。
+    //   watchful_care … 隙を払う唯一の反応。Stage 0 の敵は隙を付けてこない。
+    //
+    // 入れたのは三つ。**どれも「守り方の違い」を三通りに分けるためにある**
+    // （analysis/ecology-stage0-builds.mjs が三構成として実際に走らせている）。
+    //
+    //   field_dressing     … 半分以下の味方が居るときだけ発火する、条件付きの守り。
+    //                        無条件の shield_the_wounded と優先順位で並べ替えられる。
+    //   sustaining_ward    … 開幕2ラウンドだけの戦闘防壁。shield_the_wounded Lv3 の先。
+    //   steady_under_fire  … 被弾のたびに守勢。**技術を読まない**ので、技術6のゴウでも
+    //                        自前の守りを作れる（防壁側は全部 focus で伸びる）。
+    //
+    // 入口の総数には目安がある（analysis/ecology-contract-smoke.mjs）ので、
+    // 三つ足したぶん brace_after_hit を full へ回した。**技術で伸びる自分用の防壁**は
+    // Stage 0 の二人と噛み合わない——技術6のゴウが張ると1しか出ず、技術52のツグミは
+    // そもそも狙われる回数が少ない。受け役のナギとヒバナが来る Stage 1・2 から意味を持つ。
+    coreActiveSkillIds: Object.freeze(["steady_cut", "aimed_shot", "shield_the_wounded", "field_dressing", "sustaining_ward", "ward_ally"]),
+    coreReactiveSkillIds: Object.freeze(["emergency_treatment", "steady_under_fire", "triage"]),
     corePassiveSkillIds: Object.freeze(["steady_hands"]),
     tags: Object.freeze(["heal", "overflow"]),
   }),

@@ -96,11 +96,12 @@ const WEAKEST_ENEMY = Object.freeze({
 const TOUGHEST_ENEMY = Object.freeze({
   scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_desc"], take: 1,
 });
+// issue #176 — 「最も傷ついた味方」は**傷の割合**で選ぶ（docs/DESIGN.md 8.7.1）。
 const WEAKEST_ALLY = Object.freeze({
-  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1,
+  scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1,
 });
 const FRONT_ALLY = Object.freeze({
-  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_asc"], take: 1,
+  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_percent_asc"], take: 1,
 });
 const ALL_ALLIES = Object.freeze({ scope: "allies", filters: [{ type: "alive" }], take: "all" });
 const anchorSelfIsTarget = Object.freeze({

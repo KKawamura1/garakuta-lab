@@ -569,16 +569,17 @@ activeSkills.piercing_barrage = {
 // なる（analysis/ecology-anti-stall-audit.mjs）。だから care の active は
 // 「傷を戻す」ではなく「これ以上の傷を止める」側へ置く。
 // 防壁は round で消えるので、待っても carry HP は増えない。
+// 対象は「最も傷ついた味方」＝傷の割合が最も大きい者（issue #176、docs/DESIGN.md 8.7.1）。
 activeSkills.shield_the_wounded = {
   id: "shield_the_wounded",
   displayName: "傷へ盾を",
   apCost: 1,
   actionMode: "utility",
   intrinsicPredicates: [],
-  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
   effects: [{
     type: "gain_barrier",
-    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
     amount: { type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps: 15_000 },
     duration: "round",
   }],
@@ -603,10 +604,10 @@ activeSkills.hand_off = {
   apCost: 1,
   actionMode: "utility",
   intrinsicPredicates: [],
-  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
   effects: [{
     type: "gain_block",
-    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
     amount: { type: "constant", value: 1 },
   }],
   tags: ["guard", "handoff", "playable"],
@@ -665,7 +666,10 @@ const SELF = { scope: "self", take: 1 };
 const ALIVE_ONLY = [{ type: "alive" }];
 const ENEMY_FRONT_FIRST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["position_asc"], take: 1 };
 const ENEMY_WEAKEST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["hp_asc"], take: 1 };
-const ALLY_WEAKEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["hp_asc"], take: 1 };
+// issue #176 — 「最も傷ついた味方」は**傷の割合**で選ぶ。残りHPの小ささで並べると、
+// 最大HPの小さい人が庇護され続ける（docs/DESIGN.md 8.7.1）。前列版・敵側も同じ理由で、
+// 敵は「止めを刺す相手」なので `hp_asc` のままにしてある。
+const ALLY_WEAKEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["hp_percent_asc"], take: 1 };
 const ALLY_LATEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["position_desc"], take: 1 };
 const ALLY_FRONT_ALL = {
   scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], take: "all",
@@ -817,7 +821,7 @@ activeSkills.shield_wall = support("shield_wall", "盾の列", [{
 // **自分ではなく、仲間同士を入れ替える。**位置替え（自分が入る）と違い、
 // 前へ出す人と下げる人を別々に選べる。
 const ALLY_FRONT_WEAKEST = {
-  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_asc"], take: 1,
+  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_percent_asc"], take: 1,
 };
 const ALLY_REAR_HEALTHIEST = {
   scope: "allies",

@@ -409,11 +409,14 @@ const ACTIVE_FOREST = [
       node("shield_the_wounded",  // 傷へ盾を
         node("field_dressing",  // まとめて手当て
           node("precise_cut"),  // 静かな一手
-          node("idle_shuffle"))),  // 息を整える
-      node("ward_ally",  // 守勢を渡す
-        node("sustaining_ward",  // 長く守る
+          node("idle_shuffle")),  // 息を整える
+        // issue #176 — **ここが「Lv1 で横へ、Lv3 で深く」の実データ側。**
+        // 傷へ盾を Lv1 でまとめて手当て（条件付き・面へ薄く）が開き、
+        // 同じ節を Lv3 まで厚くして初めて、戦闘のあいだ消えない壁が置ける。
+        needsParentLv(3, node("sustaining_ward",  // 長く守る
           node("cleansing_step"),  // 払いのける
-          node("steady_breath"))))),  // 息を合わせる
+          node("steady_breath")))),  // 息を合わせる
+      node("ward_ally"))),  // 守勢を渡す
   node("bulwark",  // 防壁形成
     node("hand_off"),  // 引き継ぐ
     node("take_the_wound"),  // 傷を引き受ける
@@ -445,16 +448,23 @@ const ACTIVE_FOREST = [
 
 const REACTIVE_FOREST = [
   node("mend",  // 手当て
+    // issue #176 — **応急処置を余剰治療の子から外した。**余剰治療が発火するには
+    // 「上限を超える回復」が要るが、手当て・応急手当・応急処置はどれも直前の被弾量に
+    // 比例するので、Stage 0 の語彙だけでは余剰が構造的に出ない。前提に置くと、
+    // 自分を繋ぐ一本を取るために一度も鳴らない節を買わされる。
+    node("emergency_treatment",  // 応急処置
+      node("steady_under_fire")),  // 揺れない手
     node("triage",  // 応急手当
-      node("overflow_care",  // 余剰治療
-        node("emergency_treatment",  // 応急処置
+      // **味方から目を離さない者だけが、余った手を別の負傷者へ回せる。**
+      // 応急処置を抜いたぶんの深さは、この一本がそのまま引き受ける
+      // （リアクティブツリーの最終到達点の数は content/skill-tree-layout.mjs が見る）。
+      node("watchful_care",  // 目を離さない
+        node("overflow_care",  // 余剰治療
           node("triage_relay",  // 連携治療
             node("second_wind",  // 二の息
               node("shared_pain",  // 痛みを分ける
                 node("urging",  // 急かす
-                    node("mercy_into_guard"))))),  // 手当てを備えへ
-          node("steady_under_fire"))),  // 揺れない手
-      node("watchful_care")),  // 目を離さない
+                    node("mercy_into_guard")))))))),  // 手当てを備えへ
     node("counter_blow",  // 反撃
       node("opportunist",  // 隙に応じる
         node("whetted_by_pain",  // 痛みで研ぐ
