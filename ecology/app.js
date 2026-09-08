@@ -235,8 +235,8 @@ function fitPayload(payload) {
 // **profile へ遠征内のものを入れない。**入れた瞬間に「遠征を捨てても残る」に
 // なって、補給と再挑戦のトレードオフ（R6 §12.1）が消える。
 
-// R9 §8 — その Stage を一度でもクリアしているか。**初回だけ物語と学習順を固定し、
-// 既知になった後の再訪では編成から始められるようにする**ための分岐。
+// R9 §8 / issue #211 — その Stage を一度でもクリアしているか。
+// 既知の会話を再訪時に省略するための分岐で、同行者数・構成は初回と同じ。
 function isCampaignStageCleared(profile, sequence) {
   const progress = profile?.campaignProgress?.[REGION.id];
   return Boolean(progress?.clearedStageSequences?.includes(sequence));
@@ -251,13 +251,13 @@ function defaultFormation(roster) {
   return normalizeFormation(formation, roster);
 }
 
-// R9 §2.1 — この遠征の人数。チュートリアル Stage は2〜5人で、
-// 一度クリアした Stage を遊び直すときは5人。
+// R9 §2.1 / issue #211 — この遠征の人数。Campaignは初回・再訪とも
+// Stage定義の2〜5人を使う。
 function runPartySize() {
   return Math.max(1, Math.min(PARTY_SIZE, Math.floor(state.run?.partySize ?? PARTY_SIZE)));
 }
 
-// 初回のチュートリアル Stage では、誰が来るかは物語が決める。
+// Campaign Stageでは初回・再訪とも、誰が来るかはStage定義が決める。
 function rosterLocked() {
   return state.run?.rosterLocked === true;
 }
@@ -271,32 +271,17 @@ function partyLabel() {
 // `runSeed` を渡せるのは、**難易度を選び直しても manifest を引き直させない**ため。
 // 渡さずに作り直すと、有効パックが気に入るまで難易度ボタンを往復すれば
 // 引き直せてしまう（R6 §5.2 は manifest を seed で決めると言っている）。
-function ensureCampaignPartySize(rosterIds, size, profile) {
-  const available = availableCharacterIds(profile);
-  const allowed = new Set(available);
-  const target = Math.max(1, Math.min(PARTY_SIZE, Math.floor(size)));
-  const roster = (rosterIds ?? []).filter((id) => allowed.has(id)).slice(0, target);
-  for (const id of available) {
-    if (roster.length >= target) break;
-    if (!roster.includes(id)) roster.push(id);
-  }
-  return roster;
-}
-
 function startRun(profile, options = {}) {
-  // R9 §2.1 — Campaign Stage は、初回はその Stage の cast をそのまま使う。
-  // R9 §8 — 一度クリアした Stage は、登場済みの仲間から編成を選べる。
+  // issue #211 — Campaign Stage は初回・再訪とも、その Stage の同行者と人数を使う。
+  // 5人編成の本編は Stage 3（および将来の後続Stage）に残し、導入Stageの問いを
+  // 再訪時にも同じ盤面規模で読み直せるようにする。
   const sequence = options.campaignStageSequence ?? null;
   const stage = sequence === null ? null : CAMPAIGN_STAGES[sequence] ?? null;
-  const cleared = sequence !== null && isCampaignStageCleared(profile, sequence);
-  const freeRoster = options.freeRoster ?? cleared;
-  const availableCount = stage && freeRoster ? availableCharacterIds(profile).length : PARTY_SIZE;
-  const size = stage && !freeRoster ? stage.partySize : Math.min(PARTY_SIZE, availableCount);
-  const requested = options.roster
-    ?? (stage && !freeRoster ? [...stage.castCharacterIds] : ["warden", "mender", "lancer", "guardian"]);
-  const roster = stage && freeRoster
-    ? ensureCampaignPartySize(requested, size, profile)
-    : ensurePartySize(requested, size);
+  const size = stage?.partySize ?? PARTY_SIZE;
+  const requested = stage
+    ? [...stage.castCharacterIds]
+    : (options.roster ?? ["warden", "mender", "lancer", "guardian"]);
+  const roster = ensurePartySize(requested, size);
   const runSeed = options.runSeed ?? (RUN_SEED + "-" + uuid().slice(0, 8));
   const run = newRun(profile, {
     runSeed,
@@ -307,7 +292,6 @@ function startRun(profile, options = {}) {
     // 渡さなければ従来どおり Free / Endless の random manifest になる
     // （newRun 側の分岐。content/campaign-stages.mjs）。
     campaignStageSequence: options.campaignStageSequence ?? null,
-    freeRoster,
     formation: defaultFormation(roster),
     startedAt: new Date().toISOString(),
   });
@@ -496,19 +480,26 @@ function hydrateState(saved) {
   // 入口から弾いているため、Free Runを勝手に作って続行しない。
   const savedRun = saved.run;
   next.run = savedRun;
-  next.run.partySize = Number.isFinite(savedRun.partySize)
-    ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
-    : PARTY_SIZE;
-  next.run.rosterLocked = savedRun.rosterLocked === true;
-  const savedCampaignFree = savedRun.campaignStageSequence !== null
-    && savedRun.campaignStageSequence !== undefined
-    && !next.run.rosterLocked;
-  if (savedCampaignFree) {
-    next.run.partySize = Math.min(next.run.partySize, availableCharacterIds(next.profile).length);
+  const savedCampaignStage = savedRun.campaignStageSequence === null
+    || savedRun.campaignStageSequence === undefined
+    ? null
+    : CAMPAIGN_STAGES[savedRun.campaignStageSequence] ?? null;
+  if (savedCampaignStage) {
+    // issue #211 — 同じsave schemaで作られた旧「自由再訪」も、復元時に
+    // Stage定義の同行者・人数へ揃え、表示・敵規模との食い違いを残さない。
+    next.run.partySize = savedCampaignStage.partySize;
+    next.run.rosterLocked = true;
+    next.run.roster = [...savedCampaignStage.castCharacterIds];
+  } else {
+    next.run.partySize = Number.isFinite(savedRun.partySize)
+      ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
+      : PARTY_SIZE;
+    next.run.rosterLocked = savedRun.rosterLocked === true;
+    next.run.roster = ensurePartySize(
+      savedRun.roster.filter((id) => characterInfo(id)),
+      next.run.partySize,
+    );
   }
-  next.run.roster = savedCampaignFree
-    ? ensureCampaignPartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize, next.profile)
-    : ensurePartySize(savedRun.roster.filter((id) => characterInfo(id)), next.run.partySize);
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
@@ -1291,7 +1282,9 @@ function campaignStageCard(sequence) {
     + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-campaign-stage\" data-sequence=\"" + sequence
     + "\"><b>" + esc(stage.displayName) + "</b><small>" + esc(stage.question) + "</small>"
     + "<span class=\"difficulty-meta\">"
-    + (cleared ? "5人・自由編成で再訪" : stage.partySize + "人 · " + esc(joining))
+    + (cleared
+      ? stage.partySize + "人・" + esc(stage.castCharacterIds.map(characterName).join("＋")) + "で再訪"
+      : stage.partySize + "人 · " + esc(joining))
     + " · 今回初登場 " + esc(newPack?.displayName ?? stage.newPackId)
     + " · 有効パック " + stage.activePackCount + "</span></button>";
 }
@@ -4237,7 +4230,7 @@ function handleAction(event) {
     // clamp は新しい state（常に0）を読み、run は前の選択で作られて、
     // 画面が「Stage 0」と言いながら別の Stage を走らせる。
     const campaignStages = availableCampaignStages(profile);
-    const campaignStage = Math.min(state.selectedCampaignStageSequence ?? 0, campaignStages[campaignStages.length - 1]);
+    const campaignStage = campaignStages[campaignStages.length - 1];
     const guildCharacterId = state.guildCharacter;
     state = {
       ...freshUiState(),
@@ -4924,7 +4917,6 @@ function handleAction(event) {
         roster: state.run.roster,
         runSeed: state.run.runSeed,
         runId: state.run.runId,
-        freeRoster: state.run.rosterLocked === false,
       });
       registerGeneratedEquipment(state.run.generatedEquipment);
     }

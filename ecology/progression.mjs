@@ -669,32 +669,14 @@ export function newRun(profile, options = {}) {
   const manifest = isCampaign
     ? campaignManifestForStage(campaignStageSequence, runSeed)
     : makeManifest(runSeed, profile);
-  // R9 §2.1 — チュートリアル Stage は人数が決まっている。**呼び出し側が
-  // 5人渡しても、その Stage の人数へ切り詰める**（初回の学習順を守るため）。
-  // R9 §8 — 一度クリアした Stage を遊び直すときは、登場済みの仲間を
-  // 最初から選べる（`freeRoster`）。Stage 3 まで進めると5人になる。
-  // 初回の物語と学習順は固定してよいが、既知になった後の再訪で
-  // チュートリアルがランの固定税になってはいけない。
-  const rosterLocked = isCampaign && options.freeRoster !== true;
-  const availableCount = isCampaign && options.freeRoster === true
-    ? availableCharacterIds(profile).length
-    : LIMITS.maxAlliesInCampaign;
-  const partySize = rosterLocked
+  // issue #211 — Campaign Stage は初回・再訪を問わず、定義済みの同行者と人数を使う。
+  // 少人数向けの敵調整も run.partySize を読むため、カード表示・実際の隊・敵規模が
+  // 同じ Stage 定義から決まる。5人編成は Stage 3 と将来の後続Stageで扱う。
+  const rosterLocked = isCampaign;
+  const partySize = isCampaign
     ? (manifest.partySize ?? LIMITS.maxAlliesInCampaign)
-    : Math.min(LIMITS.maxAlliesInCampaign, availableCount);
-  // 初回のチュートリアル Stage では、**誰が来るかは content が決める**
-  // （R9 §2.1「加入する人物」）。呼び出し側の選択は、Stage をクリアして
-  // freeRoster になってから効く。
-  roster = rosterLocked ? [...(manifest.castCharacterIds ?? roster)] : roster;
-  if (isCampaign && options.freeRoster === true) {
-    const available = availableCharacterIds(profile);
-    const allowed = new Set(available);
-    roster = roster.filter((id) => allowed.has(id));
-    for (const id of available) {
-      if (roster.length >= partySize) break;
-      if (!roster.includes(id)) roster.push(id);
-    }
-  }
+    : LIMITS.maxAlliesInCampaign;
+  roster = isCampaign ? [...(manifest.castCharacterIds ?? roster)] : roster;
   roster = roster.slice(0, partySize);
   const carried = carriedItemsFor(profile);
   return {
@@ -703,7 +685,7 @@ export function newRun(profile, options = {}) {
     runSeed,
     regionId: REGION.id,
     campaignStageSequence,
-    // R9 §2.1 / §8 — この遠征の人数と、編成を組み替えてよいか。
+    // R9 §2.1 / issue #211 — この遠征の人数と、編成を組み替えてよいか。
     partySize,
     rosterLocked,
     difficulty: rank,

@@ -8,7 +8,7 @@
 //   - core / full（R9 §3.1）: 新 pack は入口だけ、以前の pack は全体。
 //   - 会話（R9 §7）: 各 Stage に断片があり、話者が実在の人物である。
 //   - 敵の規模（R9 §3.2）: 少人数 Stage では数・boss の体力・受けが人数へ合う。
-//   - 再訪（R9 §8）: 一度クリアした Stage は5人・自由編成で遊べる。
+//   - 再訪（issue #211）: 各 Stage の初回同行者数・構成を保つ。
 //   - 名簿（R12 §4.A）: 読める設定が5人ぶんあり、**一度に全部は開かない**。
 //   - 根城（R13 / R11 §2.4 §9.4）: 家にあるものと日常の場面が、進行に追随して開く。
 //   - 図鑑（R13 / R8 §3.2）: 会った敵だけが載り、倒した数で開く。**engine には出ない**。
@@ -676,15 +676,22 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(firstRun.partySize, 2, "初回 Stage 0 は2人");
   check(firstRun.rosterLocked, "初回は編成を組み替えない");
 
-  const revisit = newRun(profile, {
-    runSeed: "tut2", runId: "tut2", roster: ["tactician", "guardian", "lancer", "mender", "warden"],
-    campaignStageSequence: 0, freeRoster: true,
-  });
-  equal(revisit.partySize, 5, "再訪は登場済みの5人まで使える");
-  check(!revisit.rosterLocked, "再訪では編成を自由に組める");
-  assert.deepEqual(revisit.roster, ["tactician", "guardian", "lancer", "mender", "warden"],
-    "再訪では呼び出し側の選択がそのまま通る");
-  checks += 1;
+  for (const stage of CAMPAIGN_STAGES) {
+    const revisit = newRun(profile, {
+      runSeed: "revisit-" + stage.sequence,
+      runId: "revisit-" + stage.sequence,
+      roster: ["tactician", "guardian", "lancer", "mender", "warden"],
+      campaignStageSequence: stage.sequence,
+      // 旧呼び出しが残っても、再訪だけ人数を広げない。
+      freeRoster: true,
+    });
+    equal(revisit.partySize, stage.partySize,
+      "Stage " + stage.sequence + " 再訪も初回と同じ" + stage.partySize + "人");
+    check(revisit.rosterLocked, "Stage " + stage.sequence + " 再訪も同行者を固定する");
+    assert.deepEqual(revisit.roster, [...stage.castCharacterIds],
+      "Stage " + stage.sequence + " 再訪も定義済みcastを使う");
+    checks += 1;
+  }
 
   // R9 §3.2 — 少人数 Stage では敵の数も人数に合わせる。
   const { composeEncounter } = await import("./progression.mjs");
