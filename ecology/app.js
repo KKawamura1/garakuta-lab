@@ -2994,6 +2994,8 @@ function eventText(event) {
     // 受けで減ったぶんは、隠すと「なぜ通らないのか」が読めなくなる。
     damage_taken: arrow + target + " に " + number + " ダメージ"
       + (values.guardApplied > 0 ? "（受けで -" + values.guardApplied + "）" : ""),
+    damage_absorbed: arrow + target + " への攻撃は防壁が "
+      + (values.barrierAbsorbed ?? values.proposed ?? 0) + " 吸収（0ダメージ）",
     excess_damage: "攻撃が" + amountText + "余った",
     healing_applied: arrow + target + " を " + (values.actual ?? number) + " 回復",
     excess_healing: "回復が" + amountText + "余った",
@@ -3254,6 +3256,8 @@ function floatsFor(event) {
   switch (event.type) {
     case "damage_taken":
       return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: tone("damage"), cause }));
+    case "damage_absorbed":
+      return targets.map((id) => ({ actorId: id, text: "防壁 " + (values.barrierAbsorbed ?? 0) + " / 0", tone: "blocked", cause }));
     case "healing_applied": {
       const amount = values.actual ?? values.amount ?? 0;
       return amount > 0 ? targets.map((id) => ({ actorId: id, text: "+" + amount, tone: tone("heal"), cause })) : [];
