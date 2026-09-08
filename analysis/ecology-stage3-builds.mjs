@@ -14,7 +14,7 @@
 // 見るのは次の五つ。**どれも fun の証明ではない**——「三つが同じ物になっていない」
 // ことと、「宣言した核が第4〜6戦の時点で実際に取り切れる」ことの確認である。
 //
-//   1. 取得計画が Stage 0 の manifest と技能点の予算に収まる（#169 の予算監査と同じ数え方）
+//   1. 取得計画が Stage 3 の manifest と技能点の予算に収まる（#169 の予算監査と同じ数え方）
 //   2. 宣言した核が、宣言した戦闘までに揃う（第4〜6戦まで。最終戦の報酬待ちは失格）
 //   3. 各構成に代替入口が2つ以上あり、どちらから入っても核へ届く
 //   4. 同じ seed・同じ敵に対して、三構成の event 列が**種類の水準で**違う
@@ -42,7 +42,11 @@ import { expeditionEncounter } from "../ecology/content/expedition.mjs";
 import { simulateNextBattle } from "../ecology/playable-battles.mjs";
 import { CHARACTER_DEFINITIONS } from "../ecology/content/roster.mjs";
 
-const STAGE = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1];
+const STAGE_SEQUENCE = 3;
+const STAGE = CAMPAIGN_STAGES.find((stage) => stage.sequence === STAGE_SEQUENCE);
+if (!STAGE) {
+  throw new Error("Stage 3 is not defined in campaign stages");
+}
 const ROSTER = [...STAGE.castCharacterIds];
 const SEED = "stage3-vertical-slice";
 // 見るのは第6戦まで。**核の成立は第4〜6戦**という関門がそこで閉じる。
