@@ -7,7 +7,7 @@
 //
 // engine・schema・共通registryは変更しない。
 
-import { cloneEquipment, renamed, scaleFlatAmounts, setRuleEffectAmount } from "./base.mjs";
+import { cloneEquipment, NOT_COST_DAMAGE, renamed, scaleFlatAmounts, setRuleEffectAmount } from "./base.mjs";
 
 export const EQUIPMENT_NAMES = {
   worn_greaves: "踏み込みの靴",
@@ -93,7 +93,7 @@ equipment.impact_spring.rules[0] = {
   predicates: [SELF_IS_EVENT_TARGET],
   costs: [{ type: "wear_equipment", amount: 1 }],
   effects: [{ type: "gain_barrier", target: SELF_TARGET, amount: { type: "constant", value: 1 }, duration: "round" }],
-  limit: { scope: "battle", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
 };
 equipment.wound_thread = cloneEquipment(
   "momentum_rig",
@@ -108,7 +108,7 @@ equipment.wound_thread.rules[0] = {
   predicates: [SELF_IS_EVENT_TARGET],
   costs: [{ type: "wear_equipment", amount: 1 }],
   effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
-  limit: { scope: "round", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 };
 equipment.quiet_lens = cloneEquipment(
   "field_kit",
@@ -127,7 +127,7 @@ equipment.quiet_lens.rules[0] = {
   ],
   costs: [{ type: "wear_equipment", amount: 1 }],
   effects: [{ type: "gain_barrier", target: SELF_TARGET, amount: { type: "constant", value: 1 }, duration: "round" }],
-  limit: { scope: "round", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 };
 equipment.rescue_sachet = cloneEquipment(
   "field_kit",
@@ -142,7 +142,7 @@ equipment.rescue_sachet.rules[0] = {
   predicates: [SELF_IS_EVENT_SOURCE],
   costs: [{ type: "wear_equipment", amount: 1 }],
   effects: [{ type: "gain_resource", target: SELF_TARGET, resource: "reaction_points", amount: { type: "constant", value: 1 } }],
-  limit: { scope: "round", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 };
 equipment.last_bell = cloneEquipment(
   "worn_greaves",
@@ -157,8 +157,21 @@ equipment.last_bell.rules[0] = {
   predicates: [EVENT_TARGET_IS_ENEMY],
   costs: [{ type: "wear_equipment", amount: 1 }],
   effects: [{ type: "gain_resource", target: SELF_TARGET, resource: "action_points", amount: { type: "constant", value: 1 } }],
-  limit: { scope: "battle", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
 };
+
+// Fixed equipment follows the same source distinction as skills: HP paid as a
+// cost is not an enemy hit and must not silently trigger a damage reaction.
+for (const definition of Object.values(equipment)) {
+  for (const rule of definition.rules ?? []) {
+    if (rule.listenTo !== "damage_taken") continue;
+    if (!(rule.predicates ?? []).some((predicate) => (
+      predicate.type === "event_tag" && predicate.tag === "cost" && predicate.value === false
+    ))) {
+      rule.predicates = [...(rule.predicates ?? []), NOT_COST_DAMAGE];
+    }
+  }
+}
 
 // R6 §4.4 — 装備の flat roll は parameter 非依存のまま10倍する。
 // **持ち主が強くなっても装備は同じだけ効く。**耐久や行動権は離散量なので触らない。

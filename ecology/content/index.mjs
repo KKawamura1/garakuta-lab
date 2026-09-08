@@ -61,7 +61,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 量（変動量）は本文に書かず `{amount}` / `{total}` / `{hits}` で定義を指し、表示の直前に
 // `skillTextAtLevel` が埋める。数字を二箇所に書かないので「係数を変えたのに説明文が旧値の
 // まま」が起こらない。**既存欄（*_META の説明文）の読み方が変わったので上げる。**
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-15";
+// Issue #175 — resource cycles, refiring, self-cost damage, overflow lineage,
+// and finite rule limits are now part of the checked content contract.
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-17";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -135,7 +137,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
   // R16 で技能54本・状態3つを足した。R20 で速度能力値を削除し、R21 で装備の
   // 無条件 statBonus を追加した。
-  contentVersion: "ecology-playable-full-0.12",
+  contentVersion: "ecology-playable-full-0.14",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

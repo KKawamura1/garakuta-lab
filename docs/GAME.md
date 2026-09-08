@@ -185,6 +185,8 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
 - 技能の装着数に上限はありません。行動・反応は上から順に判定され、装備だけは2枠です。
 - 回復は `focus` 連動ではなく、受けたダメージ比（`event_value_scaled`）です。
   anti-stall 設計のためで、意図的にそうしています。
+- `lose_hp` の支払いが出す `damage_taken` には `cost` タグが付き、敵の被弾として反応しません。
+  反応技能・固定装備・生成装備はこの除外を定義に持ちます。
 
 ## 6. 戦闘
 
@@ -199,6 +201,11 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
 - 行動は priority と condition に従い、条件を満たさない行動は飛ばされます。
   すべて飛ばされた場合は basic strike。純支援 active の解決後は威力50%の追撃。
 - 反応は受け取ったイベントと limit に従い、guard・block・barrier・回復・反撃を発火します。応急手当は被弾に連動し、RP1・chain1で、自分以外の味方を対象にします。
+- AP/RP を別の actor へ渡す反応は有限の cost と limit を持ち、`resource_gained` を読む
+  loop witness は fixture 専用です。本番 bundle の資源出力は有限の支払いまたは AP 行動に
+  結び付け、同じ owner の同じ rule は一つの chain の同じ trigger で一度だけです。
+- 過剰回復は元の `requested - actual` だけを `excess_healing` として渡し、同じ overflow を
+  一つの chain で二度使いません。
 - guard は一 hit ごとの固定軽減、block は hit 単位の無効回数、barrier は総量吸収です。
 - **状態は5つ**です。どれもラウンドの終わりに消えます（集中だけは使うまで残ります）。
   - **隙** … 受けるダメージが増える。付けるのも払うのも技能でできます。

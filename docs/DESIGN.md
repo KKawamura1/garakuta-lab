@@ -80,6 +80,79 @@ pack は `primary_offense` / `offensive_hybrid` / `support` の役割を宣言�
 
 この原則を冒頭の学習にも使う。通常戦の敵定義は変えず、prologue だけ敵HPを60%、攻撃（`might` / `focus`）を50%に抑える。位置だけの読み替えで結果を変えられる余裕を作りつつ、初期配置が勝ってしまうほどは弱めない。Stage 0 のツグミの「応急手当」は、`damage_taken` に連動し、RP1・chain1で、自分以外の味方だけを被弾量の50%回復する。自己回復を許さないことで、前衛ゴウ／後衛ツグミという隊列の因果を作りながら、時間を稼ぐだけの無料回復にはしない。
 
+### 4.1 反応・連鎖の安全ゲート（Issue #175）
+
+anti-stall は「敵が生きているまま待つと持越しが改善しない」を見る。これとは別に、
+反応を増やす前に次の六つを機械検査する。
+
+1. AP/RP の `gain_resource` は、行動の AP または有限の支払いと結び付く。監査は
+   actor × resource × round の差分表を作り、明示された `resource_spent` を容量トークンとして
+   transfer に一度だけ割り当てる。資源を読む rule が資源を返す場合は RP1 と `battle/1` を
+   必須にし、直結再生成、同じ spend の二重割当、移送総量が支出を超える入力を落とす。
+2. 同じ owner の同じ rule は、同じ chain の同じ trigger では一度だけ。別の技能を
+   一律に止めるのではなく、rule ID と owner の組で記録する。
+3. `lose_hp` が発生させる `damage_taken` には `event_tag(cost=false)` を明記し、
+   被弾回復・反撃・生成装備が自傷支払いを敵の hit として読まない。
+4. `excess_healing` の量は同じ `healing_proposed` 配下の `healing_applied` の
+   `requested - actual` から来て、同じ overflow が一つの chain で二度消費されない。
+   元の回復量を上限として黙って二重利用しない。event trace では overflow の直下の
+   `ruleId` を downstream consumer として一意化し、複数 consumer も拒否する。
+5. rule の limit は、`limit.owner: actor-instance + rule` で実行主体を宣言し、時間単位
+   （chain / round / battle）と有限 count を必ず宣言する。装備でも生成装備でも同じ。
+6. chain/battle の安全 cap は診断用の非常口であり、通常の anti-stall の主張ではない。
+   持越し HP・物資・装備の検査は `ecology-anti-stall-audit.mjs` に残し、二つの結果を
+   混ぜない。
+
+現行の playable pack/tree から termination witness は公開していない。四つの loop witness
+（AP の往復、被弾反響、防壁の再生成、準備の自己加速）は fixture 専用として残し、
+`chain-safety` smoke の壊れた入力検査に使う。検査は `analysis/check-all.sh` の一部で、
+現行定義・代表 trace・生成装備・意図的な壊れた定義をそれぞれ通す。
+
+
+#### 4.1.1 資源報酬の許可条件と追加手順
+
+\`gain_resource\` を含む定義を資源報酬と呼ぶ。安全ゲートは資源報酬を名前で許可する
+一覧にはせず、定義の形と event trace の因果で判定する。新しい定義は、次のいずれかを
+満たす必要がある。
+
+- **有限コスト型**: 同じ action / rule に \`spend_action_points\`、
+  \`spend_reaction_points\`、\`lose_hp\`、\`consume_barrier\`、\`wear_equipment\` のいずれかの
+  支払いがあり、支払いを上回る資源を作らない。味方への transfer もこの条件の対象であり、
+  対象が味方であることだけでは許可理由にならない。
+- **外部イベントの一回型**: \`round_started\`、\`actor_activated\`、\`actor_defeated\` のように、
+  資源獲得そのものでは再発火できない外部イベントに接続し、有限の \`limit\` と、必要な場合は
+  対象条件を持つ。例えば \`actor_defeated\` は敵を対象とする条件を必須とする。
+- **trace 上の transfer**: actor をまたぐ資源移送は、対応する支払いを event trace の親子
+  関係で示す。現在の resource-to-resource transfer は \`resource_spent\` の親を一度だけ
+  消費する形で検査する。支払いの証拠がない裸の \`resource_gained\` は許可しない。
+
+現行の許可例は、\`foundation_ap\` / \`foundation_rp\`（round 開始時、battle/1）、
+\`first_order\`（round 開始時、battle/1、round 1 の front ally）、\`scavenge_ap\`（敵を倒した時、
+round/1）、\`worn_greaves\`（actor 起動時、round/1）である。\`patient_step\` の RP 支払い、
+\`rescue_sachet\` の装備支払いは有限コスト型の例である。これらは
+\`analysis/ecology-chain-safety-blind-spots.mjs\` の陽性ケースが実際の content 定義を参照して
+監査へ渡し、許可されることを確認する。
+
+\`free_defeat_ap\` のように同じ \`actor_defeated\` を読むだけで敵条件も一回性もない定義は、
+\`scavenge_ap\` と同じ名前でないからではなく、許可条件を欠くため拒否する。
+\`action_resolved\` / \`preparation_advanced\` を起点にした無償 AP も同様である。
+
+許可例を追加する手順:
+
+1. 既存の event / predicate / cost / effect / target / limit の組み合わせで定義し、
+   engine や schema の語彙を増やさない。
+2. この節の条件に照らして、発火イベント、対象条件、支払い、\`limit.owner\`、
+   \`limit.scope\` / \`count\`、再発火できない理由を記録する。
+3. \`analysis/ecology-chain-safety-blind-spots.mjs\` の \`allowedResourceCases\` に、実際の
+   content 定義を参照する陽性ケースを追加する。ID だけを通す whitelist は作らない。
+4. その許可例の条件を一つ外した近似不正例も \`skillCases\` または trace ケースへ追加し、
+   監査を修正する前は CI が落ち、修正後は陽性・陰性の両方が通ることを確認する。
+5. \`analysis/check-all.sh\` を実行し、許可例と拒否例の件数を PR の検証結果に残す。
+
+非資源コストを使う actor 間 transfer を新しく追加する場合は、定義の陽性テストだけで
+済ませず、対応する支払いを trace で表現できるかを先に確認する。表現できない場合は、
+新しい例外名を足すのではなく、監査と event trace の契約を同じ変更で見直す。
+
 ## 5. 次戦結果の完全開示
 
 戦闘が決定的で HP が持ち越されるなら、結果を隠すことは主に手計算と再試行を増やします。

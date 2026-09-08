@@ -6,6 +6,8 @@
 |---|---|
 | `ecology/` | **本編。**UI、content、engine、進行、replay、local save |
 | `analysis/` | 検査。`check-all.sh` と `ecology-*.mjs`（smoke・公開先 E2E）、`stamp.mjs`（build 印） |
+| `analysis/ecology-chain-safety-audit.mjs` | Issue #175 の資源報酬定義・event trace・再発火・過剰回復・limit を監査する安全ゲート。 |
+| `analysis/ecology-chain-safety-blind-spots.mjs` | 安全ゲートが拒否すべき schema-valid な不正例と、許可条件を満たす既存の陽性例を実際の content から検査する smoke。 |
 | `core/build.mjs` | 公開版の build 印だけを持つ生成物。`analysis/stamp.mjs` が作る |
 | `functions/api/runs.js` | プレイ記録の受け取りと検証（Cloudflare Pages Functions） |
 | `migrations/` | D1 schema |
@@ -152,9 +154,37 @@ Campaign Stage の ID は `NAMED_SECTIONS` に含まれずこの照合の対象�
 
 - 画面が空白: ブラウザ console → 公開された module の MIME → build 印 → 直接 import。
 - 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
+  反応・連鎖の安全性は `analysis/ecology-chain-safety-audit.mjs` が、到達可能な技能・
+AP/RP は actor × resource × round の収支と、spend 一回ごとの transfer 割当を追跡し、余剰回復は overflow 直下の consumer 多重化まで検査する。
+  固定／生成装備の定義と代表的な event trace を別に検査する。AP/RP の受け渡しと生成、
+  同じ owner/rule の chain 内再発火、自傷コスト由来の `damage_taken`、過剰回復の
+  元 amount／親子関係、rule の limit.owner・scope・count を個別に見る。chain/battle cap
+  到達は正常停止の証拠として数えず、既存の anti-stall（持越しHP・物資・装備）とも
+  別の検査結果として報告する。
 - D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。
 - 作者のプレイ結果を推測で補わず、未確認として止める。
 
+
+
+### 8.1 資源報酬の許可例を追加するとき
+
+\`docs/DESIGN.md\` §4.1.1 が意味上の契約、\`analysis/ecology-chain-safety-audit.mjs\` が機械的な
+判定、\`analysis/ecology-chain-safety-blind-spots.mjs\` が追加例の実行可能な記録を担当する。
+許可例を増やすときは次の順で更新する。
+
+1. まず、既存の event / predicate / cost / effect / target / limit だけで、有限コスト型または
+   外部イベントの一回型として定義できることを確認する。
+2. \`allowedResourceCases\` に content 定義への path、発火条件、対象、支払い、上限、許可理由を
+   追加する。実装 ID の比較だけで通す条件は追加しない。
+3. 近い形で条件を一つ欠く不正例を \`skillCases\` または trace ケースに置く。例えば
+   \`scavenge_ap\`（敵条件＋round/1）を許可するなら、敵条件と一回性を欠く
+   \`free_defeat_ap\` は拒否され続けなければならない。
+4. 監査側を変更した場合は、まず不正例を拒否できず CI が落ちることを確認し、その後に最小の
+   判定を追加して、既存の許可例・新しい陽性例・近似不正例をすべて \`check-all.sh\` で確認する。
+5. PR 本文には、追加した条件と陽性／陰性の件数、CI の結果を残す。
+
+engine / schema に新しい語彙を追加する必要がある変更は、この追加手順の範囲外であり、
+別の仕様・互換性検討を先に行う。
 
 ## 9. UI表示の責務
 

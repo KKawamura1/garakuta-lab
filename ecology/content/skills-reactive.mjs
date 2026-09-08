@@ -7,7 +7,7 @@
 //
 // engine・schema・共通registryは変更しない。
 
-import { bpsForLegacyAmount, renamed, scaleDefinitionAmounts } from "./base.mjs";
+import { bpsForLegacyAmount, NOT_COST_DAMAGE, renamed, scaleDefinitionAmounts } from "./base.mjs";
 
 export const REACTIVE_SKILL_NAMES = {
   counter_blow: "反撃",
@@ -104,7 +104,7 @@ reactiveSkills.block_focus = {
     predicates: [SELF_IS_EVENT_TARGET],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
     priority: 100,
   },
   tags: ["reaction", "tempo"],
@@ -119,7 +119,7 @@ reactiveSkills.barrier_stitch = {
     predicates: [SELF_IS_EVENT_TARGET],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "gain_block", target: SELF_TARGET, amount: { type: "constant", value: 1 } }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
     priority: 100,
   },
   tags: ["reaction", "guard"],
@@ -150,7 +150,7 @@ reactiveSkills.emergency_treatment = {
       amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 3 },
       tags: ["care", "emergency"],
     }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   },
   tags: ["reaction", "care", "emergency"],
 };
@@ -205,7 +205,7 @@ reactiveSkills.mend = {
       amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 4 },
       tags: ["care"],
     }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   },
   tags: ["reaction", "care"],
 };
@@ -228,7 +228,7 @@ reactiveSkills.triage = {
       // "triage" タグは triage_relay（既存）が event_tag 述語で読む。
       tags: ["care", "triage"],
     }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   },
   tags: ["reaction", "care"],
 };
@@ -259,7 +259,7 @@ reactiveSkills.guarded_opening = {
     predicates: [SELF_IS_EVENT_TARGET],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: RANDOM_EXPOSABLE_ENEMY, statusId: "exposed", stacks: 1 }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   },
   tags: ["reaction", "mark"],
 };
@@ -277,7 +277,7 @@ reactiveSkills.seize_the_opening = {
     predicates: [SELF_IS_EVENT_TARGET],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: RANDOM_EXPOSABLE_ENEMY, statusId: "exposed", stacks: 1 }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   },
   tags: ["reaction", "mark"],
 };
@@ -300,7 +300,7 @@ reactiveSkills.whetted_by_pain = {
     predicates: [SELF_IS_EVENT_TARGET],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "attack"],
 };
@@ -326,7 +326,7 @@ reactiveSkills.shield_handoff = {
       amount: { type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps: 7_500 },
       duration: "round",
     }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "guard", "handoff"],
 };
@@ -350,7 +350,7 @@ reactiveSkills.patient_step = {
       type: "gain_resource", target: SELF_TARGET, resource: "action_points",
       amount: { type: "constant", value: 1 },
     }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "tempo"],
 };
@@ -403,7 +403,7 @@ reactiveSkills.spill_forward = {
       amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 3_000 },
       tags: ["attack", "relay"],
     }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   },
   tags: ["reaction", "relay", "attack"],
 };
@@ -423,7 +423,7 @@ reactiveSkills.blocked_into_step = {
       type: "gain_resource", target: FRONTMOST_ALLY, resource: "action_points",
       amount: { type: "constant", value: 1 },
     }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "relay", "tempo"],
 };
@@ -440,7 +440,7 @@ reactiveSkills.mercy_into_guard = {
     predicates: [SELF_IS_EVENT_SOURCE],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "gain_block", target: HIT_ALLY_TARGET, amount: { type: "constant", value: 1 } }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "relay", "care"],
 };
@@ -457,7 +457,7 @@ reactiveSkills.stride_into_reach = {
     predicates: [SELF_IS_EVENT_TARGET],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: FRONTMOST_ENEMY, statusId: "exposed", stacks: 1 }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "relay", "mark"],
 };
@@ -477,7 +477,7 @@ reactiveSkills.readied_relay = {
       type: "gain_resource", target: LAST_IN_FORMATION_ALLY, resource: "reaction_points",
       amount: { type: "constant", value: 1 },
     }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "relay", "tempo"],
 };
@@ -502,7 +502,7 @@ reactiveSkills.wake_of_the_fallen = {
       amount: { type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps: 10_000 },
       duration: "round",
     }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "relay", "guard"],
 };
@@ -587,7 +587,7 @@ reactiveSkills.opportunist = reaction("opportunist", REACTIVE_SKILL_NAMES.opport
     type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(4_500),
     reach: "unrestricted", tags: ["attack", "mark"],
   }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "attack", "mark"]);
 
 // 仲間が倒れた拍。**戦闘に一度きりではなく二度まで**——立て直しの余地を残す。
@@ -604,7 +604,7 @@ reactiveSkills.vengeful_step = reaction("vengeful_step", REACTIVE_SKILL_NAMES.ve
     type: "deal_damage", target: FRONTMOST_ENEMY, amount: mightDamage(6_000),
     reach: "melee", tags: ["attack"],
   }],
-  limit: { scope: "battle", count: 2 },
+  limit: { owner: "actor-instance + rule", scope: "battle", count: 2 },
 }, ["reaction", "attack"]);
 
 // 敵が瀕死になった一撃に重ねる。**自分が殴った一撃でなくてもよい**ので、
@@ -620,7 +620,7 @@ reactiveSkills.finish_the_wounded = reaction(
       type: "deal_damage", target: NEAR_DEAD_HIT_ENEMY, amount: mightDamage(5_500),
       reach: "unrestricted", tags: ["attack", "execute"],
     }],
-    limit: { scope: "chain", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
   }, ["reaction", "attack", "execute"],
 );
 
@@ -635,7 +635,7 @@ reactiveSkills.absorb_shock = reaction("absorb_shock", REACTIVE_SKILL_NAMES.abso
   predicates: [SELF_IS_EVENT_TARGET],
   costs: spendRp(),
   effects: [{ type: "modify_pending_amount", operation: "decrease", amount: { type: "constant", value: 12 } }],
-  limit: { scope: "round", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 }, ["reaction", "guard"]);
 
 // 身代わりは自分が引き受ける。こちらは**狙われた本人を厚くする**。
@@ -647,7 +647,7 @@ reactiveSkills.guard_the_marked = reaction("guard_the_marked", REACTIVE_SKILL_NA
   predicates: [EVENT_SOURCE_IS_ENEMY, ALLY_IS_EVENT_TARGET],
   costs: spendRp(),
   effects: [{ type: "add_status", target: HIT_ALLY_TARGET, statusId: "warded", stacks: 1 }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "guard"]);
 
 // 30%を切った一撃にだけ、戦闘に一度だけ厚い防壁。**保険であって、常設の壁ではない。**
@@ -658,7 +658,7 @@ reactiveSkills.last_stand = reaction("last_stand", REACTIVE_SKILL_NAMES.last_sta
   predicates: [SELF_IS_EVENT_TARGET, { type: "hp_percent", subject: "self", op: "lte", value: 30 }],
   costs: spendRp(),
   effects: [{ type: "gain_barrier", target: SELF_TARGET, amount: focusBarrier(15_000), duration: "round" }],
-  limit: { scope: "battle", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
 }, ["reaction", "guard"]);
 
 // 踏み固めは「動いた自分」に防壁。こちらは**動いた仲間**へ。
@@ -670,7 +670,7 @@ reactiveSkills.counterweight = reaction("counterweight", REACTIVE_SKILL_NAMES.co
   predicates: [{ type: "target_exists", query: MOVED_ALLY }],
   costs: spendRp(),
   effects: [{ type: "gain_barrier", target: MOVED_ALLY, amount: focusBarrier(5_000), duration: "round" }],
-  limit: { scope: "round", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 }, ["reaction", "guard", "move"]);
 
 // ---- 構えと手当て（pack_care）----
@@ -689,7 +689,7 @@ reactiveSkills.shared_pain = reaction("shared_pain", REACTIVE_SKILL_NAMES.shared
     amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 2 },
     tags: ["care", "sacrifice"],
   }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "care"]);
 
 // **状態を消す唯一の反応。**隙が付いた仲間から、付いた直後に払い落とす。
@@ -700,7 +700,7 @@ reactiveSkills.watchful_care = reaction("watchful_care", REACTIVE_SKILL_NAMES.wa
   predicates: [statusIs("exposed"), { type: "target_exists", query: EXPOSED_EVENT_ALLY }],
   costs: spendRp(),
   effects: [{ type: "remove_status", target: EXPOSED_EVENT_ALLY, statusId: "exposed", stacks: "all" }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "care"]);
 
 // 受け流しは防壁を張る。こちらは守勢。**削り切られない代わりに、薄い。**
@@ -712,7 +712,7 @@ reactiveSkills.steady_under_fire = reaction(
     predicates: [SELF_IS_EVENT_TARGET],
     costs: spendRp(),
     effects: [{ type: "add_status", target: SELF_TARGET, statusId: "warded", stacks: 1 }],
-    limit: { scope: "round", count: 1 },
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   }, ["reaction", "care", "guard"],
 );
 
@@ -724,7 +724,7 @@ reactiveSkills.second_wind = reaction("second_wind", REACTIVE_SKILL_NAMES.second
   predicates: [SELF_IS_EVENT_SOURCE],
   costs: spendRp(),
   effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
-  limit: { scope: "round", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 }, ["reaction", "care", "tempo"]);
 
 // ---- 行動権と準備（pack_tempo）----
@@ -737,7 +737,7 @@ reactiveSkills.read_the_charge = reaction("read_the_charge", REACTIVE_SKILL_NAME
   predicates: [EVENT_TARGET_IS_ENEMY],
   costs: spendRp(),
   effects: [{ type: "add_status", target: HIT_ENEMY_TARGET, statusId: "exposed", stacks: 1 }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "tempo", "mark"]);
 
 // **敵の溜めを叩き落とす。**戦闘に一度きり。大技一発の相手に対する答えで、
@@ -749,7 +749,7 @@ reactiveSkills.break_the_charge = reaction("break_the_charge", REACTIVE_SKILL_NA
   predicates: [EVENT_TARGET_IS_ENEMY],
   costs: spendRp(),
   effects: [{ type: "interrupt_preparation", target: HIT_ENEMY_TARGET }],
-  limit: { scope: "battle", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
 }, ["reaction", "tempo"]);
 
 // 宣言に割り込んで、その一撃を鈍らせる。**潰さないぶん、何度でも使える。**
@@ -765,7 +765,7 @@ reactiveSkills.counter_order = reaction("counter_order", REACTIVE_SKILL_NAMES.co
     statusId: "staggered",
     stacks: 1,
   }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "tempo", "debuff"]);
 
 // **敵の攻撃宣言そのものを消す。**反応権2と、戦闘に一度きりが代償。
@@ -777,7 +777,7 @@ reactiveSkills.stall_the_blow = reaction("stall_the_blow", REACTIVE_SKILL_NAMES.
   predicates: [EVENT_SOURCE_IS_ENEMY, { type: "event_tag", tag: "attack", value: true }],
   costs: spendRp(2),
   effects: [{ type: "cancel_pending_action" }],
-  limit: { scope: "battle", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
 }, ["reaction", "tempo"]);
 
 // ---- 連撃と刻印（pack_barrage）----
@@ -794,7 +794,7 @@ reactiveSkills.echo_of_the_mark = reaction("echo_of_the_mark", REACTIVE_SKILL_NA
     type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(5_000),
     reach: "unrestricted", tags: ["attack", "mark"],
   }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "attack", "mark"]);
 
 // ---- 余波と受け渡し（pack_relay）----
@@ -807,7 +807,7 @@ reactiveSkills.stagger_relay = reaction("stagger_relay", REACTIVE_SKILL_NAMES.st
   predicates: [statusIs("staggered"), EVENT_TARGET_IS_ENEMY],
   costs: spendRp(),
   effects: [{ type: "add_status", target: FRONTMOST_ENEMY, statusId: "staggered", stacks: 1 }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "relay", "debuff"]);
 
 // 守勢を受け取った拍を、攻めの集中へ変える。**守られた者が刃になる。**
@@ -818,7 +818,7 @@ reactiveSkills.warded_into_edge = reaction("warded_into_edge", REACTIVE_SKILL_NA
   predicates: [statusIs("warded"), SELF_IS_EVENT_TARGET],
   costs: spendRp(),
   effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
-  limit: { scope: "round", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 }, ["reaction", "relay", "buff"]);
 
 // 裂傷が入った相手へ隙も重ねる。**細い傷を、束ねて太くする。**
@@ -829,8 +829,21 @@ reactiveSkills.bleed_into_wake = reaction("bleed_into_wake", REACTIVE_SKILL_NAME
   predicates: [statusIs("bleeding"), EVENT_TARGET_IS_ENEMY],
   costs: spendRp(),
   effects: [{ type: "add_status", target: HIT_ENEMY_TARGET, statusId: "exposed", stacks: 1 }],
-  limit: { scope: "chain", count: 1 },
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "relay", "mark"]);
+
+// A cost-induced damage_taken must never be mistaken for an enemy hit. Apply
+// the guard after fixture definitions and production overrides have all been
+// assembled, so cloned legacy rules receive the same explicit declaration.
+for (const definition of Object.values(reactiveSkills)) {
+  const rule = definition.rule;
+  if (!rule || rule.listenTo !== "damage_taken") continue;
+  if (!(rule.predicates ?? []).some((predicate) => (
+    predicate.type === "event_tag" && predicate.tag === "cost" && predicate.value === false
+  ))) {
+    rule.predicates = [...(rule.predicates ?? []), NOT_COST_DAMAGE];
+  }
+}
 
 const playableReactiveSkills = Object.fromEntries(
   Object.entries(reactiveSkills).filter(

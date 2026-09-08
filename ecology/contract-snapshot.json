@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.12",
+ "contentVersion": "ecology-playable-full-0.14",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.12",
+  "contentVersion": "ecology-playable-full-0.14",
   "characters": {
    "warden": {
     "id": "warden",
@@ -3779,6 +3779,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -3811,6 +3816,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -3873,6 +3879,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -3944,6 +3951,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -3991,6 +3999,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -4040,6 +4049,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4119,6 +4129,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4148,6 +4159,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -4173,6 +4189,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4251,6 +4268,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4299,6 +4317,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -4350,6 +4369,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -4380,6 +4400,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -4408,6 +4433,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4441,6 +4467,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -4476,6 +4507,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4516,6 +4548,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -4560,6 +4597,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4623,6 +4661,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4686,6 +4725,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4715,6 +4755,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -4735,6 +4780,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -4797,6 +4843,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -4850,6 +4897,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -4915,6 +4963,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -4980,6 +5029,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5040,6 +5090,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5098,6 +5149,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5159,6 +5211,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5222,6 +5275,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5295,6 +5349,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -5361,6 +5416,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 2
      }
@@ -5398,6 +5454,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -5440,6 +5501,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -5489,6 +5551,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5564,6 +5627,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -5599,6 +5663,11 @@
        "subject": "self",
        "op": "lte",
        "value": 30
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -5624,6 +5693,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      }
@@ -5695,6 +5765,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5731,6 +5802,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -5774,6 +5850,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -5852,6 +5929,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -5881,6 +5959,11 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
       }
      ],
      "costs": [
@@ -5901,6 +5984,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -5951,6 +6035,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -6009,6 +6094,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -6065,6 +6151,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      }
@@ -6122,6 +6209,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -6174,6 +6262,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      }
@@ -6246,6 +6335,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -6310,6 +6400,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -6366,6 +6457,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      }
@@ -6430,6 +6522,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "chain",
       "count": 1
      }
@@ -6514,6 +6607,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      },
@@ -6548,6 +6642,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      },
@@ -6586,6 +6681,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      },
@@ -6642,6 +6738,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -6687,6 +6784,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -6732,6 +6830,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -6772,6 +6871,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      },
@@ -6829,6 +6929,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -6876,6 +6977,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -6922,6 +7024,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      },
@@ -6978,6 +7081,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "battle",
       "count": 1
      },
@@ -7029,6 +7133,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -7074,6 +7179,7 @@
       }
      ],
      "limit": {
+      "owner": "actor-instance + rule",
       "scope": "round",
       "count": 1
      },
@@ -7122,6 +7228,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7186,6 +7293,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -7246,6 +7354,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7286,6 +7395,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 1
       }
@@ -7337,6 +7447,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7370,6 +7481,7 @@
       ],
       "effects": [],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 1
       }
@@ -7401,6 +7513,7 @@
       ],
       "effects": [],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 99
       }
@@ -7441,6 +7554,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 1
       }
@@ -7481,6 +7595,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 1
       }
@@ -7530,6 +7645,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7579,6 +7695,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7628,6 +7745,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7679,6 +7797,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7731,6 +7850,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7783,6 +7903,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -7848,6 +7969,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -7912,6 +8034,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -7972,6 +8095,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -8032,6 +8156,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -8072,6 +8197,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 1
       }
@@ -8126,6 +8252,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 1
       }
@@ -8157,6 +8284,11 @@
          ],
          "take": 1
         }
+       },
+       {
+        "type": "event_tag",
+        "tag": "cost",
+        "value": false
        }
       ],
       "costs": [
@@ -8177,6 +8309,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -8243,6 +8376,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -8297,6 +8431,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -8351,6 +8486,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "battle",
        "count": 1
       }
@@ -8400,6 +8536,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -8456,6 +8593,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -8500,6 +8638,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -8544,6 +8683,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -8594,6 +8734,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -8645,6 +8786,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "chain",
        "count": 1
       }
@@ -8690,6 +8832,7 @@
        }
       ],
       "limit": {
+       "owner": "actor-instance + rule",
        "scope": "round",
        "count": 1
       }
@@ -23303,6 +23446,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -23356,6 +23500,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 2
         }
@@ -23377,6 +23522,11 @@
            ],
            "take": 1
           }
+         },
+         {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
          }
         ],
         "costs": [],
@@ -23424,6 +23574,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -23438,7 +23589,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -23469,6 +23620,7 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -23482,6 +23634,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 2
          },
@@ -23495,6 +23648,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -23653,6 +23807,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
          "count": 2
         }
@@ -23743,6 +23898,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -23757,7 +23913,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -23790,6 +23946,7 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
           "count": 2
          },
@@ -23805,6 +23962,7 @@
         {
          "listenTo": "damage_blocked",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -24005,6 +24163,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -24051,6 +24210,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -24065,7 +24225,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -24097,6 +24257,7 @@
         {
          "listenTo": "actor_defeated",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -24114,6 +24275,7 @@
         {
          "listenTo": "round_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -24292,6 +24454,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
          "count": 1
         }
@@ -24306,7 +24469,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -24335,6 +24498,7 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
           "count": 1
          },
@@ -24494,6 +24658,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -24508,7 +24673,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -24537,6 +24702,7 @@
         {
          "listenTo": "round_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -24669,6 +24835,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -24683,7 +24850,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 503,
       "rarity": "common",
@@ -24711,6 +24878,7 @@
         {
          "listenTo": "actor_defeated",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -24855,6 +25023,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -24896,6 +25065,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -24910,7 +25080,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -24940,6 +25110,7 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -24955,6 +25126,7 @@
         {
          "listenTo": "round_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -25090,6 +25262,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -25104,7 +25277,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -25131,6 +25304,7 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -25284,6 +25458,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -25298,7 +25473,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -25327,6 +25502,7 @@
         {
          "listenTo": "excess_damage",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -25494,6 +25670,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -25564,6 +25741,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -25578,7 +25756,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 1104,
       "rarity": "epic",
@@ -25609,6 +25787,7 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -25626,6 +25805,7 @@
         {
          "listenTo": "excess_damage",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -25825,6 +26005,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -25839,7 +26020,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -25868,6 +26049,7 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -26006,6 +26188,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 2
         }
@@ -26053,6 +26236,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -26103,6 +26287,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -26117,7 +26302,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -26150,6 +26335,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 2
          },
@@ -26165,6 +26351,7 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -26178,6 +26365,7 @@
         {
          "listenTo": "actor_defeated",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -26303,6 +26491,11 @@
            ],
            "take": 1
           }
+         },
+         {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
          }
         ],
         "costs": [
@@ -26360,6 +26553,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -26374,7 +26568,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -26403,6 +26597,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -26577,6 +26772,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 3
         }
@@ -26591,7 +26787,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 104,
       "rarity": "epic",
@@ -26624,6 +26820,7 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 3
          },
@@ -26743,6 +26940,11 @@
            ],
            "take": 1
           }
+         },
+         {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
          }
         ],
         "costs": [],
@@ -26774,6 +26976,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -26828,6 +27031,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -26842,7 +27046,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -26871,6 +27075,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -26884,6 +27089,7 @@
         {
          "listenTo": "damage_proposed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -27045,6 +27251,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -27066,6 +27273,11 @@
            ],
            "take": 1
           }
+         },
+         {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
          },
          {
           "type": "resource",
@@ -27118,6 +27330,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -27132,7 +27345,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -27164,6 +27377,7 @@
         {
          "listenTo": "status_added",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -27177,6 +27391,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -27332,6 +27547,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -27346,7 +27562,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -27375,6 +27591,7 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -27488,6 +27705,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -27516,6 +27734,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
          "count": 1
         }
@@ -27612,6 +27831,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -27626,7 +27846,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -27659,6 +27879,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -27672,6 +27893,7 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
           "count": 1
          },
@@ -27685,6 +27907,7 @@
         {
          "listenTo": "damage_blocked",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -27882,6 +28105,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -27896,7 +28120,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -27925,6 +28149,7 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -28065,6 +28290,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -28086,6 +28312,11 @@
            ],
            "take": 1
           }
+         },
+         {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
          }
         ],
         "costs": [],
@@ -28109,6 +28340,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -28123,7 +28355,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 514,
       "rarity": "rare",
@@ -28152,6 +28384,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -28167,6 +28400,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -28328,6 +28562,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -28342,7 +28577,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -28370,6 +28605,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -28508,6 +28744,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -28522,7 +28759,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -28550,6 +28787,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -28721,6 +28959,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -28735,7 +28974,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -28764,6 +29003,7 @@
         {
          "listenTo": "status_added",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -28914,6 +29154,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -28959,6 +29200,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -28973,7 +29215,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -29005,6 +29247,7 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -29020,6 +29263,7 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -29194,6 +29438,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -29208,7 +29453,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -29236,6 +29481,7 @@
         {
          "listenTo": "preparation_completed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -29374,6 +29620,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -29388,7 +29635,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -29415,6 +29662,7 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -29567,6 +29815,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -29588,6 +29837,11 @@
            ],
            "take": 1
           }
+         },
+         {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
          },
          {
           "type": "hp_percent",
@@ -29635,6 +29889,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -29649,7 +29904,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -29682,6 +29937,7 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -29699,6 +29955,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -29885,6 +30142,7 @@
          "legendary"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
          "count": 2
         }
@@ -29981,6 +30239,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 2
         }
@@ -29995,7 +30254,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -30029,6 +30288,7 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
           "count": 2
          },
@@ -30046,6 +30306,7 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 2
          },
@@ -30192,6 +30453,11 @@
            ],
            "take": 1
           }
+         },
+         {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
          }
         ],
         "costs": [],
@@ -30241,6 +30507,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -30275,6 +30542,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
          "count": 1
         }
@@ -30289,7 +30557,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -30317,6 +30585,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -30332,6 +30601,7 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
           "count": 1
          },
@@ -30491,6 +30761,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "battle",
          "count": 1
         }
@@ -30505,7 +30776,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 504,
       "rarity": "common",
@@ -30533,6 +30804,7 @@
         {
          "listenTo": "battle_started",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "battle",
           "count": 1
          },
@@ -30702,6 +30974,7 @@
          "epic"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 2
         }
@@ -30716,7 +30989,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -30746,6 +31019,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 2
          },
@@ -30888,6 +31162,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -30902,7 +31177,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -30929,6 +31204,7 @@
         {
          "listenTo": "resource_unused",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -31098,6 +31374,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -31112,7 +31389,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -31140,6 +31417,7 @@
         {
          "listenTo": "damage_proposed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -31252,6 +31530,11 @@
           }
          },
          {
+          "type": "event_tag",
+          "tag": "cost",
+          "value": false
+         },
+         {
           "type": "round_number",
           "op": "gte",
           "value": 3
@@ -31281,6 +31564,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -31334,6 +31618,7 @@
          "rare"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -31348,7 +31633,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -31378,6 +31663,7 @@
         {
          "listenTo": "damage_taken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
@@ -31391,6 +31677,7 @@
         {
          "listenTo": "damage_proposed",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -31552,6 +31839,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "round",
          "count": 1
         }
@@ -31566,7 +31854,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -31593,6 +31881,7 @@
         {
          "listenTo": "actor_moved",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "round",
           "count": 1
          },
@@ -31733,6 +32022,7 @@
          "common"
         ],
         "limit": {
+         "owner": "actor-instance + rule",
          "scope": "chain",
          "count": 1
         }
@@ -31747,7 +32037,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-6",
-      "contentContractVersion": "ecology-content-contract-15",
+      "contentContractVersion": "ecology-content-contract-17",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",
@@ -31775,6 +32065,7 @@
         {
          "listenTo": "barrier_broken",
          "limit": {
+          "owner": "actor-instance + rule",
           "scope": "chain",
           "count": 1
          },
