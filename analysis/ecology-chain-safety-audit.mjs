@@ -178,6 +178,28 @@ function hasFiniteCost(rule) {
   return (rule.costs ?? []).some((cost) => FINITE_COSTS.has(cost.type));
 }
 
+function hasEnemyDefeatGuard(rule) {
+  return (rule.predicates ?? []).some((predicate) => (
+    predicate.type === "target_exists"
+    && predicate.query?.scope === "enemies"
+    && (predicate.query.filters ?? []).some((filter) => filter.type === "is_event_primary_target")
+  ));
+}
+
+function isBoundedFreeResourceRule(record) {
+  const { listenTo, limit } = record.rule;
+  if (listenTo === "round_started") {
+    return limit?.scope === "battle" && limit.count === 1;
+  }
+  if (listenTo === "actor_activated") {
+    return limit?.scope === "round" && limit.count === 1;
+  }
+  if (listenTo === "actor_defeated") {
+    return limit?.count === 1 && hasEnemyDefeatGuard(record.rule);
+  }
+  return false;
+}
+
 function targetClass(target) {
   if (!target || typeof target !== "object") return "unknown";
   if (target.scope === "self") return "self";
@@ -220,10 +242,10 @@ export function auditResourceDefinitions(activeSkills, rules) {
       if (!isFiniteLimit(record.rule.limit)) {
         violations.push(`${record.path}: resource output has no finite chain/round/battle limit`);
       }
-      // A finite firing limit bounds frequency, but it is not a payment.
-      // Every reactive resource output must consume a finite cost first.
-      if (!hasFiniteCost(record.rule)) {
-        violations.push(`${record.path}: resource output must have a finite cost`);
+      // A finite limit alone is not enough for a potentially cyclic hook.
+      // Only externally progressing, one-shot rewards may remain free.
+      if (!hasFiniteCost(record.rule) && !isBoundedFreeResourceRule(record)) {
+        violations.push(`${record.path}: resource output must have a finite cost or an external one-shot guard`);
       }
       if (record.rule.listenTo === "resource_gained") {
         const safePaidLoop = hasFiniteCost(record.rule)
