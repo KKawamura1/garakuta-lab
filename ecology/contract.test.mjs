@@ -28,7 +28,12 @@ for (const section of sections) {
     drifted.push(section);
   }
 }
-console.log("RUN_REWARDS_BASE64=" + Buffer.from(JSON.stringify(now.runRewards)).toString("base64"));
+{
+  const encoded = Buffer.from(JSON.stringify(now.runRewards)).toString("base64");
+  for (let offset = 0; offset < encoded.length; offset += 16000) {
+    console.log(`RUN_REWARDS_BASE64_${offset / 16000}=${encoded.slice(offset, offset + 16000)}`);
+  }
+}
 assert.deepEqual(
   drifted, [],
   "content contract が動いた節: " + drifted.join(", ")
