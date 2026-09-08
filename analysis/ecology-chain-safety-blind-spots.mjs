@@ -1,9 +1,8 @@
 // Issue #175 — red-team cases for the chain-safety audit.
 //
-// These definitions are deliberately schema-valid but ill-formed: the current
-// contract accepts them even though they can create or distribute AP without a
-// finite payment. The assertions are intentionally green so the blind spots
-// remain reproducible until the enforcement is strengthened.
+// These definitions are deliberately schema-valid but ill-formed: they can create
+// or distribute AP without a finite payment and must be rejected by the
+// chain-safety audit. The expectations below are red until that enforcement exists.
 
 import assert from "node:assert/strict";
 import { validateContentBundle } from "../ecology/validate.mjs";
@@ -135,10 +134,9 @@ for (const item of skillCases) {
     }]
     : [];
   const audit = auditResourceDefinitions(activeSkills, rules);
-  assert.equal(
-    audit.violations.length,
-    0,
-    item.id + " is intentionally accepted by the current resource audit: " + item.reason,
+  assert.ok(
+    audit.violations.length > 0,
+    item.id + " must be rejected by the resource audit: " + item.reason,
   );
   checks += 1;
 }
@@ -159,16 +157,15 @@ const unbackedCrossActorTrace = [{
   },
 }];
 const traceAudit = auditResourceTrace(unbackedCrossActorTrace);
-assert.equal(
-  traceAudit.violations.length,
-  0,
-  "an unbacked cross-actor resource gain is classified as creation",
+assert.ok(
+  traceAudit.violations.length > 0,
+  "an unbacked cross-actor resource gain must be rejected",
 );
 assert.equal(traceAudit.creationEvents, 1, "the unbacked gain reaches the creation branch");
 checks += 2;
 
-console.log("chain-safety blind spots: PASS (" + checks + " intentional-green checks)");
+console.log("chain-safety blind spots: PASS (" + checks + " enforcement checks)");
 for (const item of skillCases) {
   console.log("  " + item.id + ": " + item.reason);
 }
-console.log("  unbacked_cross_actor_gain: accepted as creation without a spend parent");
+console.log("  unbacked_cross_actor_gain: rejected without a spend parent");
