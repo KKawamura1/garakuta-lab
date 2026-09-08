@@ -395,6 +395,34 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
+{
+  // The cursor rotates after the selected tactic, while an unmet conditional
+  // tactic is skipped without blocking the later tactics in the circle.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.enemyActors.still_husk.maxHp = 40;
+  const battle = structuredClone(INERT_BATTLE);
+  battle.maxRounds = 4;
+  battle.objective = { type: "survive_rounds", rounds: 4 };
+  battle.allies[0].tactics = [
+    {
+      activeSkillId: "strike",
+      useWhen: [{ type: "round_number", op: "gte", value: 3 }],
+    },
+    { activeSkillId: "bulwark", useWhen: [] },
+    { activeSkillId: "strike", useWhen: [] },
+  ];
+  const result = simulateBattle(battle, bundle);
+  const skills = of(result, "action_declared")
+    .filter((event) => event.sourceActorId === "a_warden")
+    .map((event) => event.skillId);
+  assert.deepEqual(
+    skills,
+    ["bulwark", "strike", "strike", "bulwark"],
+    "conditional tactics are skipped and the cursor rotates after each selection",
+  );
+  checks += 1;
+}
+
 // ---- §11.6 round end ordering (PREFLIGHT §4) ---------------------------------
 
 {
