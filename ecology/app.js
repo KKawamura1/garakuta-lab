@@ -1941,6 +1941,14 @@ function finishStory() {
     render();
     return;
   }
+  // issue #212 — Stage 終了会話のあとに、すでに一度だけ確定した精算へ戻る。
+  // lastSettlement は会話へ入る前に保存済みなので、リロードや SKIP でも二重精算しない。
+  if (after === "settlement") {
+    state.phase = "settlement";
+    saveState();
+    render();
+    return;
+  }
   // R12 §4.C — issue #138 改 — 幕の断片のあとは、戦闘前確認を挟まず
   // そのまま自動戦闘へ入る。
   if (after === "battle") {
@@ -3810,30 +3818,9 @@ function blueprintSettlementSection(settlement) {
     + "（持込枠 " + blueprintCarryCapacity(state.profile) + "）。</p></section>";
 }
 
-// R9 §7 — Stage を越えたときだけ、次へ進む理由を短く示す。
-// **勝ったときだけ。**負けた遠征のあとに「次へ進む理由」を出しても嘘になる。
-function stageEndStorySection(settlement) {
-  if (settlement.outcome !== "won") return "";
-  const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
-  const beatDef = stage ? storyBeat(stage.id, "stageEnd") : null;
-  if (!beatDef) return "";
-  // **精算画面では読み返しとして出す。**一行送りにはしない
-  // （ここは進行ではなく記録なので、まとめて読めるほうがよい）。
-  const lines = beatDef.lines.map((line) => line.speaker
-    ? "<p class=\"story-line\"><b style=\"color:" + esc(portraitAccent(line.who)) + "\">"
-      + esc(line.speaker) + "</b><span>" + esc(line.text) + "</span></p>"
-    : "<p class=\"story-line narration\">" + esc(line.text) + "</p>").join("");
-  const figures = [...castOnStage(beatDef)]
-    .map((entry) => "<div class=\"story-bust\" style=\"--accent:" + esc(portraitAccent(entry.who)) + "\">"
-      + portraitSvg(entry.who, storyExpressionFor(beatDef, entry.who, beatDef.lines.length - 1),
-        { uid: "end-" + beatDef.id + "-" + entry.who })
-      + "</div>").join("");
-  return "<section class=\"card story-card\">" + sectionHeading("STORY", esc(beatDef.title))
-    + "<div class=\"story-busts\">" + figures + "</div>"
-    + "<div class=\"story-lines\">" + lines + "</div>"
-    + (beatDef.footer ? "<p class=\"muted story-footer\">" + esc(beatDef.footer) + "</p>" : "")
-    + "</section>";
-}
+// issue #212 — Stage 終了会話も通常の一行送りへ通す。
+// 精算内にまとめた読み返しカードは置かず、初回クリア時だけ settle-run から
+// enterStory() へ入り、読み終えたら保存済みの精算画面へ戻る。
 
 // R12 §4.B — 精算の締めの一行。
 //
@@ -3888,7 +3875,6 @@ function renderSettlement() {
     + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "）では最大" + settlement.blueprintSaveLimit
     + "件を残せます。</p></section>"
     + blueprintSettlementSection(settlement)
-    + stageEndStorySection(settlement)
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
       ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
         + esc(CAMPAIGN_STAGES[settlement.unlockedCampaignStage]?.displayName ?? ("区画 " + settlement.unlockedCampaignStage))
@@ -5077,6 +5063,13 @@ function handleAction(event) {
       && state.lastResult?.result === "win";
     // R8 §10.3 — 「放棄」は自発的な安全撤退として扱う（won/lostに続く3つ目のoutcome）。
     const outcome = won ? "won" : action === "abandon-run" ? "retreat" : "lost";
+    // issue #212 — settleRun() は初回クリア印を profile へ入れるため、呼ぶ前に
+    // 既読かどうかを判定する。再訪では既知の stageEnd をそのまま省略する。
+    const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
+    const stageEndBeat = won && stage
+      && !isCampaignStageCleared(state.profile, state.run.campaignStageSequence)
+      ? storyBeat(stage.id, "stageEnd")
+      : null;
     const result = settleRun(state.profile, state.run, outcome);
     if (!result.ok) {
       state.error = result.reason;
@@ -5085,6 +5078,10 @@ function handleAction(event) {
       state.run = result.run;
       state.lastSettlement = result.settlement;
       record("run_settled", result.settlement);
+    }
+    if (result.ok && stageEndBeat) {
+      enterStory([stageEndBeat], "settlement");
+      return;
     }
     state.phase = "settlement";
     saveState();

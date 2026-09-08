@@ -69,6 +69,19 @@ for (const copy of [
 ]) {
   if (app.includes(copy)) problems.push("戦闘予測の冗長文が残っている: " + copy);
 }
+
+// issue #212 — stageEnd は精算カードへ複製せず、初回クリア時だけ通常の
+// enterStory() に入り、SKIP / AUTO / 再読み込み後も保存済みの精算へ戻る。
+if (app.includes("function stageEndStorySection")) {
+  problems.push("Stage終了会話の精算用story-cardレンダラーが残っている");
+}
+for (const [label, expected] of [
+  ["Stage終了会話の通常レンダラー入口", 'enterStory([stageEndBeat], "settlement")'],
+  ["既読Stageの会話省略判定", "!isCampaignStageCleared(state.profile, state.run.campaignStageSequence)"],
+  ["会話終了後の精算復帰", 'if (after === "settlement")'],
+]) {
+  if (!app.includes(expected)) problems.push(label + "が見つからない");
+}
 if (!app.includes("+ diagnosticStamp()")) {
   problems.push("build情報の診断先（技術ログ）が無い");
 }
