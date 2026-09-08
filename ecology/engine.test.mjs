@@ -153,8 +153,8 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
-  // §12.3 — earliest expiry first, oldest first inside one expiry, and a fully
-  // absorbed hit records no damage_taken at all (§12.1-9).
+  // §12.3 — earliest expiry first, oldest first inside one expiry. A fully
+  // absorbed hit records an explicit terminal outcome, but no damage_taken hook.
   const result = run(BARRIER_PACKET_BATTLE);
   const absorbed = of(result, "barrier_damaged").filter((event) => event.round === 1);
   equal(absorbed.length, 2, "two packets were touched");
@@ -163,6 +163,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(absorbed[0].values.amount, 1, "the older round packet went first");
   equal(absorbed[1].values.amount, 3);
   equal(of(result, "damage_taken").filter((event) => event.round === 1).length, 0, "nothing reached hp");
+  const terminal = of(result, "damage_absorbed").filter((event) => event.round === 1);
+  equal(terminal.length, 1, "the fully absorbed hit has one terminal outcome");
+  equal(terminal[0].values.amount, 0);
+  equal(terminal[0].values.barrierAbsorbed, 4);
+  equal(terminal[0].values.proposed, 4);
   equal(of(result, "damage_proposed").filter((event) => event.round === 1).length, 1, "the proposal is still recorded");
   const secondRound = of(result, "barrier_damaged").filter((event) => event.round === 2);
   equal(secondRound.at(-1).values.duration, "battle", "the battle packet is spent last");
@@ -788,6 +793,62 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   // 同率のときは既定の並び（position_asc → instance_id_asc）へ落ちる。**乱れない。**
   state.actors.get("a_small").hp = 55;
   equal(pick("hp_percent_asc"), "a_big", "同率（どちらも50%）は前列から。take: 1 が並び順に依存しない");
+}
+
+// ---- issue #193: melee target matrix -------------------------------------------
+
+{
+  const frontEnemy = {
+    instanceId: "e_front", side: "enemy", alive: true, position: "front_center",
+    hp: 20, maxHp: 20, barriers: [], statuses: [],
+  };
+  const rearEnemy = {
+    instanceId: "e_rear", side: "enemy", alive: true, position: "rear_center",
+    hp: 10, maxHp: 10, barriers: [], statuses: [],
+  };
+  const owner = {
+    instanceId: "a_follow_up", side: "ally", alive: true, position: "rear_left",
+    hp: 20, maxHp: 20, barriers: [], statuses: [],
+  };
+  const state = {
+    actorOrder: [owner.instanceId, frontEnemy.instanceId, rearEnemy.instanceId],
+    actors: new Map([
+      [owner.instanceId, owner],
+      [frontEnemy.instanceId, frontEnemy],
+      [rearEnemy.instanceId, rearEnemy],
+    ]),
+  };
+  const anyLivingEnemy = {
+    scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1,
+  };
+  const rearLivingEnemy = {
+    scope: "enemies",
+    filters: [{ type: "alive" }, { type: "row_is", row: "rear" }],
+    take: 1,
+  };
+
+  equal(
+    resolveTargets(state, { owner }, anyLivingEnemy, { reach: "melee" })[0].instanceId,
+    frontEnemy.instanceId,
+    "a rear-row ally's melee follow-up reaches the living enemy front row",
+  );
+  equal(
+    resolveTargets(state, { owner }, rearLivingEnemy, { reach: "melee" }).length,
+    0,
+    "an explicit rear-row target is invalid while an enemy front row survives",
+  );
+  owner.position = "front_left";
+  equal(
+    resolveTargets(state, { owner }, anyLivingEnemy, { reach: "melee" })[0].instanceId,
+    frontEnemy.instanceId,
+    "moving the attacker forward does not change which enemy row shields the rear",
+  );
+  frontEnemy.alive = false;
+  equal(
+    resolveTargets(state, { owner }, rearLivingEnemy, { reach: "melee" })[0].instanceId,
+    rearEnemy.instanceId,
+    "the rear row becomes a valid melee target after the enemy front row is gone",
+  );
 }
 
 // ---- §14 the ordinary fixtures stay far below the caps --------------------------
