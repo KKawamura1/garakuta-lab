@@ -292,6 +292,7 @@ function startRun(profile, options = {}) {
     // 渡さなければ従来どおり Free / Endless の random manifest になる
     // （newRun 側の分岐。content/campaign-stages.mjs）。
     campaignStageSequence: options.campaignStageSequence ?? null,
+    tutorial: options.tutorial === true,
     formation: defaultFormation(roster),
     startedAt: new Date().toISOString(),
   });
@@ -405,6 +406,8 @@ function freshUiState() {
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
     selectedCampaignStageSequence: 0,
     treatTargets: [],
+    treatmentSelection: null,
+    treatmentResult: null,
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
@@ -736,7 +739,7 @@ function shell(title, subtitle, body, options = {}) {
   // R11 §5 改 — チュートリアル（灰の門）の最中はタイトルへ戻る・撤退する導線を
   // 出さない。負ける一戦目も、巻き戻したあとの結果画面（報酬選択を兼ねる）も、
   // まだ隊列を直しきる前に離脱されると「一手直せば勝てる」導入が成立しない。
-  const headerAction = options.hideHeaderAction || state.prologueActive
+  const headerAction = options.hideHeaderAction || state.prologueActive || supplyTutorialVisible()
     ? ""
     : options.back
       ? button(options.backLabel ?? "キャンプへ", options.backAction ?? "back-camp", false, "menu-button")
@@ -1132,6 +1135,8 @@ function restoreHelpDetails() {
 
 function campNav() {
   const skillCharacter = selectedCharacter();
+  const tutorialLocked = supplyTutorialVisible();
+  const activeTab = tutorialLocked ? "supplies" : state.tab;
   const tabs = [
     ["roster", "編成", partyLabel()],
     ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
@@ -1139,11 +1144,14 @@ function campNav() {
     ["supplies", "補給", state.run.supplies + "/" + MAX_SUPPLIES],
     ["map", "戦闘", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN],
   ];
-  return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) =>
-    "<button type=\"button\" class=\"tab " + (state.tab === id ? "active" : "")
-      + "\" aria-label=\"" + label + "\" aria-current=\"" + (state.tab === id ? "step" : "false")
-      + "\" data-action=\"tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + meta + "</small></button>").join("")
-    + "</nav>";
+  return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
+    const active = activeTab === id;
+    const locked = tutorialLocked && id !== "supplies";
+    return "<button type=\"button\" class=\"tab " + (active ? "active" : "")
+      + "\" aria-label=\"" + label + "\" aria-current=\"" + (active ? "step" : "false")
+      + "\" data-action=\"tab\" data-tab=\"" + id + "\""
+      + (locked ? " disabled aria-disabled=\"true\"" : "") + "><b>" + label + "</b><small>" + meta + "</small></button>";
+  }).join("") + "</nav>";
 }
 
 function campTools() {
@@ -2051,14 +2059,16 @@ function storyBeatsForStart(sequence) {
 }
 
 function renderCamp() {
+  const tutorialLocked = supplyTutorialVisible();
+  const activeTab = tutorialLocked ? "supplies" : state.tab;
   const view = {
     roster: renderRoster,
     skills: renderSkills,
     equipment: renderEquipment,
     supplies: renderSupplies,
     map: renderMap,
-  }[state.tab]?.() ?? renderMap();
-  const title = state.tab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
+  }[activeTab]?.() ?? renderMap();
+  const title = activeTab === "map" ? "出発前のキャンプ" : "キャンプで組み替える";
   const subtitle = "第" + state.run.encounterIndex + "戦 / " + ENCOUNTERS_PER_RUN
     + " · " + currentEncounter().name + " · " + partyLabel();
   // R14 §1 — 予測とタブは一つの塊で上端に貼りつく。**どのタブで何を触っても、
@@ -2760,35 +2770,84 @@ function renderMap() {
 
 
 // R8 §9.2 / §10.2 — 野営治療。補給1で3種のうちどれか一つ。
-// 対象は自動選択する（集中治療=最もHP割合の低い生存者、全体手当=生存者全員、
-// 蘇生=最初の戦闘不能者）。simpleな一次実装であり、対象を選ぶUIはまだ無い。
+// 単体治療は #159 の対象選択へつなぐため、対象を自動で決めず、
+// 「治療を選ぶ」→「対象を選ぶ」→「補給を消費する」の順にする。
+function treatmentTargetIds(treatment) {
+  if (!treatment) return [];
+  return state.run.roster.filter((id) => {
+    const hp = currentHp(id);
+    return treatment.revive ? hp <= 0 : hp > 0 && hp < maxHp(id);
+  });
+}
+
+function treatmentResultBlock() {
+  const result = state.treatmentResult;
+  if (!result) return "";
+  const treatment = CAMP_TREATMENTS[result.treatmentId];
+  const targetNames = (result.treated ?? []).map((id) => characterName(id)).join("、") || "対象なし";
+  const complete = result.tutorialCompleted
+    ? "<p><b>補給チュートリアル完了。</b>これで次の戦闘へ進めます。</p>"
+    : "";
+  return "<div class=\"supply-treatment-result\" role=\"status\">"
+    + "<p><b>" + esc(treatment?.displayName ?? "治療") + "を実行しました。</b></p>"
+    + "<p class=\"muted\">対象: " + esc(targetNames) + " · 補給残り " + result.supplies + "</p>"
+    + complete + "</div>";
+}
+
+function treatmentTargetPicker() {
+  const treatment = CAMP_TREATMENTS[state.treatmentSelection];
+  if (!treatment || treatment.targetCount === "all") return "";
+  const candidates = treatmentTargetIds(treatment);
+  const buttons = candidates.map((id) => button(
+    characterName(id) + " · HP " + currentHp(id) + "/" + maxHp(id),
+    "select-treatment-target",
+    false,
+    "member-tab treatment-target",
+    "data-treatment=\"" + esc(treatment.id) + "\" data-character=\"" + esc(id) + "\"",
+  )).join("");
+  return "<div class=\"treatment-target-picker\" role=\"group\" aria-label=\"" + esc(treatment.displayName) + "の対象選択\">"
+    + "<p class=\"operation-note\"><b>手順 2/2</b> 回復する仲間を1人選んでください。選ぶまで補給は消費しません。</p>"
+    + "<div class=\"member-tabs treatment-targets\">" + buttons + "</div>"
+    + button("治療を選び直す", "cancel-treatment-target", false, "tiny-button")
+    + "</div>";
+}
+
 function campTreatmentBlock() {
   const tutorial = supplyTutorialVisible();
-  const alive = state.run.roster.filter((id) => currentHp(id) > 0);
-  const defeated = state.run.roster.filter((id) => currentHp(id) <= 0);
+  const selectedTreatment = state.treatmentSelection ? CAMP_TREATMENTS[state.treatmentSelection] : null;
   const rows = Object.values(CAMP_TREATMENTS).map((treatment) => {
-    const applicable = treatment.revive ? defeated.length > 0 : alive.some((id) => currentHp(id) < maxHp(id));
-    const disabled = state.run.supplies < 1 || !applicable;
+    const applicable = treatmentTargetIds(treatment).length > 0;
+    const blockedByTutorial = tutorial && treatment.id !== "concentrated";
+    const blockedBySelection = state.treatmentSelection && state.treatmentSelection !== treatment.id;
+    const disabled = blockedByTutorial || blockedBySelection || state.run.supplies < 1 || !applicable;
     const focus = tutorial && treatment.id === "concentrated";
-    return "<div class=\"purchase-row" + (focus ? " tutorial-focus" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
+    const actionLabel = treatment.targetCount === "all"
+      ? "補給1で使う"
+      : state.treatmentSelection === treatment.id
+        ? "対象を選び直す"
+        : "対象を選ぶ";
+    return "<div class=\"purchase-row" + (focus ? " tutorial-focus" : "") + (state.treatmentSelection === treatment.id ? " treatment-selected" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
       + "</b><small>" + esc(treatment.summary) + "</small></span>"
-      + button("補給1で使う", "treat", disabled, "tiny-button primary-mini", "data-treatment=\"" + esc(treatment.id) + "\"")
+      + button(actionLabel, "treat", disabled, "tiny-button primary-mini", "data-treatment=\"" + esc(treatment.id) + "\"")
       + "</div>";
   }).join("");
   const tutorialGuide = tutorial
     ? "<div class=\"supply-tutorial\" role=\"status\"><p class=\"eyebrow\">補給チュートリアル</p>"
       + "<h3>次の戦いに備えましょう</h3>"
       + "<p>勝てました。でも、傷は残っています。次の戦いへ進む前に、補給で手当てしてみましょう。</p>"
-      + "<p class=\"muted\">まずは「集中治療」を使ってみましょう。補給を1つ使い、最も傷ついた仲間を回復します。</p></div>"
+      + "<p class=\"muted\"><b>手順 1/2</b> 「集中治療」を選び、次に回復する仲間を1人選びます。必要な一手を終えるまで、他のタブと次の戦闘は閉じています。</p>"
+      + (selectedTreatment
+        ? "<p class=\"muted\"><b>手順 2/2</b> 対象を選んでください。対象を選ぶまで補給は消費しません。</p>"
+        : "")
+      + "</div>"
     : "";
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営治療",
       "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + tutorialGuide + rows
+    + tutorialGuide + treatmentResultBlock() + rows + treatmentTargetPicker()
     + helpDetails("treatment-rules", "治療の対象",
-      "<p class=\"muted\">集中治療は最も傷ついた生存者、全体手当は生存者全員、蘇生は最初の戦闘不能者を自動で選びます。</p>")
+      "<p class=\"muted\">集中治療と蘇生は治療を選んだあと、対象をプレイヤーが明示的に選びます。集中治療は負傷した生存者、蘇生は戦闘不能者だけが候補です。全体手当は生存者全員へ適用します。</p>")
     + "</section>";
 }
-
 
 // R8 §11 — exact preview。副作用なしで次戦を1回実行し、結果を表示する。
 // simulateアクションが実際に使うのと同じBattleInput構成経路（simulateNextBattle）
@@ -4124,6 +4183,9 @@ function advanceAfterReward() {
   state.replayPlaying = false;
   state.phase = "camp";
   state.tab = showSupplyTutorial ? "supplies" : "map";
+  state.treatmentSelection = null;
+  state.treatmentResult = null;
+  state.treatTargets = [];
   state.error = null;
   state.run.act = actOfIndex(state.run.encounterIndex);
   record("stage_advanced", { encounter: state.run.encounterIndex, act: state.run.act });
@@ -4147,7 +4209,7 @@ function handleAction(event) {
   if (action === "new-game") {
     if (hasAutoSave() && !window.confirm("現在のオートセーブを新しいGameで置き換えます。手動セーブ枠は残ります。")) return;
     const profile = newProfile();
-    const run = startRun(profile, { campaignStageSequence: 0 });
+    const run = startRun(profile, { campaignStageSequence: 0, tutorial: true });
     state = {
       ...freshUiState(),
       profile,
@@ -4193,7 +4255,7 @@ function handleAction(event) {
   if (action === "back-title") {
     // R11 §5 改 — チュートリアル中はタイトルへ戻れない（画面上のボタンは既に
     // 隠しているが、経路として二重に塞ぐ）。
-    if (state.prologueActive) return;
+    if (state.prologueActive || supplyTutorialVisible()) return;
     state.phase = "intro";
     state.saveMenuReturn = "intro";
     state.saveNotice = null;
@@ -4460,8 +4522,16 @@ function handleAction(event) {
   }
 
   if (action === "tab") {
+    const nextTab = element.dataset.tab || state.tab;
+    if (supplyTutorialVisible() && nextTab !== "supplies") {
+      state.tab = "supplies";
+      state.error = "補給チュートリアルを完了するまで、補給タブから移動できません。";
+      saveState();
+      render();
+      return;
+    }
     state.phase = "camp";
-    state.tab = element.dataset.tab || state.tab;
+    state.tab = nextTab;
     ensureSelectedCharacter();
     saveState();
     render();
@@ -4736,6 +4806,13 @@ function handleAction(event) {
   }
 
   if (action === "begin-stage") {
+    if (supplyTutorialVisible()) {
+      state.tab = "supplies";
+      state.error = "まず補給チュートリアルの指定操作を完了してください。";
+      saveState();
+      render();
+      return;
+    }
     // R9 §2.1 — 出発に必要な人数は Stage で変わる（Stage 0 は2人）。
     if (state.run.roster.length !== runPartySize()) {
       state.error = "出発には" + runPartySize() + "人の編成が必要です。";
@@ -5013,33 +5090,79 @@ function handleAction(event) {
     return;
   }
 
-  // R8 §9.2 / §10.2 — 野営治療。対象は自動選択する（campTreatmentBlockのUIと対応）。
+  // 補給の治療結果を一箇所で適用する。対象を選び終えるまで
+  // spendSupply は呼ばないので、#159 の明示選択と有限資源の意味を両立する。
+  function applyCampTreatment(treatmentId, targetCharacterIds, tutorialVisible) {
+    const result = campTreat(state.run, state.profile, treatmentId, targetCharacterIds);
+    if (!result.ok) {
+      state.error = result.reason;
+      return false;
+    }
+    state.run = result.run;
+    const treated = [...(result.treated ?? [])];
+    const tutorialCompleted = tutorialVisible && treatmentId === "concentrated";
+    state.treatTargets = treated;
+    state.treatmentResult = {
+      treatmentId,
+      treated,
+      supplies: state.run.supplies,
+      tutorialCompleted,
+    };
+    record("camp_treated", { treatmentId, targets: treated, supplies: state.run.supplies });
+    if (tutorialCompleted) {
+      const flags = new Set(Array.isArray(state.profile.storyFlags) ? state.profile.storyFlags : []);
+      flags.add(SUPPLY_TUTORIAL_FLAG);
+      state.profile = { ...state.profile, storyFlags: [...flags] };
+      record("supply_tutorial_completed", { treatmentId, targets: treated });
+    }
+    state.treatmentSelection = null;
+    return true;
+  }
+
+  if (action === "select-treatment-target") {
+    const treatmentId = element.dataset.treatment;
+    const treatment = CAMP_TREATMENTS[treatmentId];
+    const characterId = element.dataset.character;
+    if (!treatment || treatment.targetCount === "all" || state.treatmentSelection !== treatmentId) return;
+    if (!treatmentTargetIds(treatment).includes(characterId)) {
+      state.error = "その仲間はこの治療の対象にできません。";
+      saveState();
+      render();
+      return;
+    }
+    const tutorialVisible = supplyTutorialVisible();
+    applyCampTreatment(treatmentId, [characterId], tutorialVisible);
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "cancel-treatment-target") {
+    state.treatmentSelection = null;
+    state.treatTargets = [];
+    saveState();
+    render();
+    return;
+  }
+
   if (action === "treat") {
     const treatmentId = element.dataset.treatment;
     const treatment = CAMP_TREATMENTS[treatmentId];
     const tutorialVisible = supplyTutorialVisible();
-    let targets = [];
-    if (treatment?.revive) {
-      const target = state.run.roster.find((id) => currentHp(id) <= 0);
-      if (target) targets = [target];
-    } else if (treatment) {
-      const target = [...state.run.roster]
-        .filter((id) => currentHp(id) > 0 && currentHp(id) < maxHp(id))
-        .sort((a, b) => currentHp(a) / maxHp(a) - currentHp(b) / maxHp(b))[0];
-      if (target) targets = [target];
-    }
-    const result = campTreat(state.run, state.profile, treatmentId, targets);
-    if (!result.ok) {
-      state.error = result.reason;
-    } else {
-      state.run = result.run;
-      record("camp_treated", { treatmentId, targets: result.treated ?? [], supplies: state.run.supplies });
-      if (tutorialVisible) {
-        const flags = new Set(Array.isArray(state.profile.storyFlags) ? state.profile.storyFlags : []);
-        flags.add(SUPPLY_TUTORIAL_FLAG);
-        state.profile = { ...state.profile, storyFlags: [...flags] };
-        record("supply_tutorial_completed", { treatmentId });
+    if (!treatment) {
+      state.error = "その治療はありません。";
+    } else if (tutorialVisible && treatmentId !== "concentrated") {
+      state.error = "チュートリアル中は集中治療を完了してください。";
+    } else if (treatment.targetCount !== "all") {
+      const candidates = treatmentTargetIds(treatment);
+      if (!candidates.length) {
+        state.error = "治療できる対象がいません。";
+      } else {
+        state.treatmentSelection = treatmentId;
+        state.treatTargets = [];
       }
+    } else {
+      applyCampTreatment(treatmentId, [], tutorialVisible);
     }
     saveState();
     render();
@@ -5050,7 +5173,7 @@ function handleAction(event) {
   // R11 §5 改 — チュートリアル中は撤退できない（画面上のボタンは既に隠しているが、
   // 経路として二重に塞ぐ）。
   if (action === "settle-run" || action === "abandon-run") {
-    if (state.prologueActive) return;
+    if (state.prologueActive || supplyTutorialVisible()) return;
     const won = action === "settle-run"
       && state.run.encounterIndex >= ENCOUNTERS_PER_RUN
       && state.lastResult?.result === "win";
