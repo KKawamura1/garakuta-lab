@@ -166,8 +166,8 @@ for (const encounter of EXPEDITION_ENCOUNTERS) {
 equal(DIFFICULTIES.length, 6, "Phase B は rank 0〜5 だけ");
 equal(MAX_DIFFICULTY_RANK, 5, "上限 rank");
 equal(DIFFICULTIES[0].threatBudgetDelta, 0, "rank 0 は基準");
-equal(DIFFICULTIES[0].startingSupplies, 3, "rank 0 の開始補給は3");
-equal(DIFFICULTIES[5].startingSupplies, 2, "rank 5 の開始補給は2");
+equal(DIFFICULTIES[0].startingSupplies, 0, "rank 0 の通常開始補給は0");
+equal(DIFFICULTIES[5].startingSupplies, 0, "rank 5 の通常開始補給は0");
 for (let rank = 1; rank <= MAX_DIFFICULTY_RANK; rank += 1) {
   check(
     DIFFICULTIES[rank].encounterModifiers.length >= DIFFICULTIES[rank - 1].encounterModifiers.length,
