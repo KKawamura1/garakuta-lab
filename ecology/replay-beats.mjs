@@ -63,7 +63,14 @@ export const BEAT_MS = {
 export const EFFECT_MS = 170;
 export const IMPACT_CAP_MS = 820;
 
-const IMPACT_EFFECTS = new Set(["damage_taken", "healing_applied", "barrier_gained", "damage_blocked", "block_gained"]);
+const IMPACT_EFFECTS = new Set([
+  "damage_taken",
+  "damage_absorbed",
+  "healing_applied",
+  "barrier_gained",
+  "damage_blocked",
+  "block_gained",
+]);
 const QUIET_EFFECTS = new Set(["status_added", "equipment_worn", "equipment_repaired", "equipment_broken"]);
 
 export function eventSourceId(event) {
