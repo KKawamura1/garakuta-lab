@@ -129,6 +129,9 @@ export function nextVisibleTrainingLevel(baseStat, level) {
 // category だけ置くと、画面に「常に買えない行」が出る。6個目以降を足すときに開く。
 export const APPRAISAL_UPGRADE_ID = "appraisal";
 export const APPRAISAL_COSTS = Object.freeze(["15000", "45000", "120000", "300000", "750000"]);
+export const STARTING_SUPPLIES_BASE = 0;
+export const STARTING_SUPPLIES_UPGRADE_MAX_LEVEL = 2;
+export const TUTORIAL_STARTING_SUPPLIES = 1;
 export const STARTING_SKILL_POINTS_UPGRADE_ID = "starting_skill_points";
 export const STARTING_SKILL_POINTS_UPGRADE_COSTS = Object.freeze(["15000", "60000", "240000"]);
 
@@ -137,9 +140,9 @@ export const META_UPGRADES = Object.freeze([
     id: "starting_supplies",
     category: "starting_supplies",
     displayName: "開始補給",
-    maxLevel: 2,
+    maxLevel: STARTING_SUPPLIES_UPGRADE_MAX_LEVEL,
     costs: Object.freeze(["12000", "60000"]),
-    describeLevel: (level) => `遠征開始時の補給 ${3 + level}（上限5）`,
+    describeLevel: (level) => `遠征開始時の補給 ${STARTING_SUPPLIES_BASE + level}（上限${STARTING_SUPPLIES_BASE + STARTING_SUPPLIES_UPGRADE_MAX_LEVEL}）`,
   }),
   // #174 — 新規遠征の開始SPを増やす永続強化。適用されるのは遠征開始時だけで、
   // 途中加入した仲間へ過去分を遡って付与しない。
@@ -637,9 +640,14 @@ export const RUN_SKILL_POINTS_PER_REWARD = 1;
 // level ぶんを加えた点から始める。勝利報酬は遠征内だけに残る。
 export const STARTING_RUN_SKILL_POINTS = 0;
 
-export function startingSupplies(profile, rank) {
+export function startingSupplies(profile, rank, options = {}) {
+  if (options.tutorial === true) return TUTORIAL_STARTING_SUPPLIES;
   const base = difficultyDef(rank).startingSupplies;
-  return Math.min(MAX_SUPPLIES, base + upgradeLevel(profile, "starting_supplies"));
+  const upgrade = Math.min(
+    STARTING_SUPPLIES_UPGRADE_MAX_LEVEL,
+    upgradeLevel(profile, "starting_supplies"),
+  );
+  return Math.min(MAX_SUPPLIES, base + upgrade);
 }
 
 export function startingSkillPoints(profile) {
@@ -692,7 +700,7 @@ export function newRun(profile, options = {}) {
     manifest,
     encounterIndex: 1,
     act: 1,
-    supplies: startingSupplies(profile, rank),
+    supplies: startingSupplies(profile, rank, { tutorial: options.tutorial === true }),
     roster,
     formation: { ...(options.formation ?? {}) },
     runSkillPoints: Object.fromEntries(roster.map((id) => [id, startingSkillPoints(profile)])),
