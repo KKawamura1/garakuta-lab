@@ -105,6 +105,7 @@ try {
 
   // R13 — 最初の2人の会話。**ゴウとツグミの考え方の違いを見せる。**
   await waitForTutorialSelector(".vn-stage");
+  const openingLine = await page.locator(".vn-text").getAttribute("data-full");
   // 画面の構造で見る。**台詞の中身ではなく、一行送りの箱が立っているか。**
   note("最初の会話が出る",
     await page.locator(".vn-stage").count() === 1
@@ -393,9 +394,15 @@ try {
   // 次の遠征を始めると、持ち込んだ品が最初から手元にある。
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
   await click("この条件で遠征へ出る");
-  // 2周目の Stage 0 はまだクリアしていないので、会話と序盤の一戦は出ない
-  // （storyFlags に既読印が残っている）。
+  // Stage 0の再訪でも、openingは同じ会話として出る。序盤の一戦は
+  // 専用チュートリアルなので初回だけで、再訪では会話を飛ばしてキャンプへ戻る。
   await page.waitForTimeout(300);
+  if (await page.locator(".vn-stage").count() > 0) {
+    const revisitOpeningLine = await page.locator(".vn-text").getAttribute("data-full");
+    note("Stage 0再訪でも開始会話が同じ", revisitOpeningLine === openingLine);
+    await click("スキップ");
+    await page.waitForTimeout(300);
+  }
   await page.locator('nav.tabs [data-tab="equipment"]').click();
   await page.waitForTimeout(200);
   const carriedText = await bodyText();
@@ -495,7 +502,7 @@ try {
     await page.waitForTimeout(150);
     note("敵カードに拾い屋の言い分が出る", await page.locator(".enemy-lore").count() > 0);
 
-    // ---- R12 §4.C — 幕の断片。第4戦の前に一度だけ入る。
+    // ---- R12 §4.C — 幕の断片。第4戦の前に入る（再訪でも同じ）。
     await page.evaluate(() => {
       const key = "exp18-r10-auto-v02";
       const saved = JSON.parse(localStorage.getItem(key) || "null");
