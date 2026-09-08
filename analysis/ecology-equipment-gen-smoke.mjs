@@ -43,6 +43,17 @@ for (const [stage, familyIds] of STAGE_POOLS.entries()) {
         const item = generateEquipment({ seed: "smoke-" + stage, dropIndex, rarity, familyIds });
         items.push(item);
         equipmentCount += 1;
+        for (const rule of item.definition.rules) {
+          const repair = rule.effects.some((effect) => effect.type === "repair_equipment");
+          const wear = rule.costs.filter((cost) => cost.type === "wear_equipment");
+          if (!repair && wear.length !== 1) {
+            problems.push(`stage ${stage} / ${rarity} / drop ${dropIndex}: 耐久コストが一つではない`);
+          }
+          if (repair && (wear.length || !rule.costs.some((cost) =>
+            ["lose_hp", "consume_barrier"].includes(cost.type)))) {
+            problems.push(`stage ${stage} / ${rarity} / drop ${dropIndex}: 修理の有限コストが不正`);
+          }
+        }
       } catch (error) {
         problems.push(`stage ${stage} / ${rarity} / drop ${dropIndex}: ${error.message}`);
       }

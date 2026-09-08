@@ -577,7 +577,7 @@ const PAYOFFS = [
     id: "pay_patch", familyId: "family_care", role: "payoff", power: 2,
     displayName: "繕い", summary: "装備の耐久を戻す",
     emits: ["equipment_repaired"],
-    requires: [], magnitudes: [1, 1, 2], discrete: true, needsAnyCost: true, forbidsCostTypes: ["wear_equipment"],
+    requires: [], magnitudes: [1, 1, 2], discrete: true, needsFiniteCost: true, forbidsCostTypes: ["wear_equipment"],
     effect: (amount) => ({ type: "repair_equipment", amount: { type: "constant", value: amount } }),
     payoffTags: ["care"],
   },
