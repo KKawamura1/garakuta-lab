@@ -41,6 +41,7 @@ import { RARITIES } from "../ecology/content/affixes.mjs";
 import { expeditionEncounter } from "../ecology/content/expedition.mjs";
 import { simulateNextBattle } from "../ecology/playable-battles.mjs";
 import { CHARACTER_DEFINITIONS } from "../ecology/content/roster.mjs";
+import { PLAYABLE_CONTENT } from "../ecology/playable-content.mjs";
 
 const STAGE_SEQUENCE = 3;
 const STAGE = CAMPAIGN_STAGES.find((stage) => stage.sequence === STAGE_SEQUENCE);
@@ -197,7 +198,10 @@ const BUILDS = Object.freeze([
       Object.freeze({ before: 4, characterId: "tactician", skillId: "hasten_ally" }),
       Object.freeze({ before: 5, characterId: "tactician", skillId: "foundation_ap" }),
       Object.freeze({ before: 5, characterId: "mender", skillId: "foundation_focus" }),
-      Object.freeze({ before: 6, characterId: "tactician", skillId: "held_breath" }),
+      // **「余りを溜める」は買わない。**行動権が余る局面が engine の構造上起きないので、
+      // 点を払っても一度も鳴らない（下の silentPurchases が実際に落とした）。
+      // 到達可能性そのものは #191 で扱う。ここは溜め手を厚くする側へ点を回す。
+      Object.freeze({ before: 6, characterId: "mender", level: "heavy_swing" }),
     ]),
     // **溜めは1回まで。**大溜め（準備3回）は行動権を4つ食うので、渡す側が毎ラウンド
     // 手番を捨てても間に合わない。渡した行動権で「準備1回の大技を毎ラウンド完成させる」
@@ -385,6 +389,7 @@ function playThrough(build, snapshots, carried = null) {
     };
   }
   const rows = [];
+  const fired = new Set();
   for (let index = 1; index <= LAST_ENCOUNTER; index += 1) {
     const snapshot = snapshots.get(index);
     const loadout = loadoutFor(build, snapshot);
@@ -403,6 +408,11 @@ function playThrough(build, snapshots, carried = null) {
       const from = event.skillId ?? event.sourceDefinitionId ?? event.ruleId ?? null;
       if (from) skills.set(`${event.type}<${from}`, (skills.get(`${event.type}<${from}`) ?? 0) + 1);
     }
+    // **買った節が実際に鳴ったか。**技能は skillId、反応と常設は ruleId で数える。
+    for (const event of result.events) {
+      if (event.skillId) fired.add(event.skillId);
+      if (event.ruleId) fired.add("rule:" + event.ruleId);
+    }
     rows.push({ index, result: result.result, rounds: result.roundsUsed, kinds, skills });
     if (process.env.STAGE_BUILDS_DUMP) {
       const hp = result.actors.filter((a) => a.instanceId.startsWith("a_"))
@@ -413,7 +423,36 @@ function playThrough(build, snapshots, carried = null) {
     run = committed.run;
     if (result.result !== "win") break;
   }
+  rows.fired = fired;
   return rows;
+}
+
+// ---------------------------------------------------------------- 買ったのに鳴らない節
+//
+// **点を払わせておいて何も返さない節は、罠である**（content/skill-levels.mjs が
+// レベルについて同じことを言っている）。取得計画に書いた節は、6戦のあいだに一度は
+// 鳴らなければならない。
+//
+// 実例：「余りを溜める」は `resource_unused`（行動権）を読むが、engine のフェーズは
+// 「使える行動がある限り回る」うえ通常攻撃が常に出せるので、**行動権が余る局面が
+// 構造的に起きない**。宣言だけを見ていると気づけないので、走らせて数える。
+//
+// 能力値だけを動かす常設（rule を持たない foundation_focus 等）は event を出さないので、
+// ここでは鳴ったものとして扱う。**effect が rule で書かれている節だけ**を見る。
+function silentPurchases(build, rows) {
+  const silent = [];
+  for (const step of build.plan) {
+    const skillId = step.skillId ?? step.level;
+    const definition = PLAYABLE_CONTENT.activeSkills?.[skillId]
+      ?? PLAYABLE_CONTENT.reactiveSkills?.[skillId]
+      ?? PLAYABLE_CONTENT.passiveSkills?.[skillId];
+    if (!definition) continue;
+    const ruleId = definition.rule?.id ?? null;
+    if (!ruleId && !PLAYABLE_CONTENT.activeSkills?.[skillId]) continue; // 能力値だけの常設
+    const rang = ruleId ? rows.fired.has("rule:" + ruleId) : rows.fired.has(skillId);
+    if (!rang) silent.push(`第${step.before}戦前に ${step.characterId} が取る ${skillId}`);
+  }
+  return silent;
 }
 
 // **「倍率だけ違う」を落とすための比べ方。**
@@ -483,6 +522,10 @@ for (const build of BUILDS) {
   planOf.set(build.id, snapshots);
   const rows = playThrough(build, snapshots);
   played.set(build.id, rows);
+  for (const line of silentPurchases(build, rows)) {
+    problems.push(`${at}: ${line} は、第${LAST_ENCOUNTER}戦までに一度も鳴らない`
+      + "（点を払わせて何も返さない節を構成の核にしない）");
+  }
   const lost = rows.find((row) => row.result !== "win");
   if (lost) problems.push(`${at}: 第${lost.index}戦で ${lost.result}（紙の上だけの構成を残さない）`);
   if (rows.length < LAST_ENCOUNTER) {
@@ -622,6 +665,21 @@ if (!usedLeveled) {
     console.error("ecology-stage3-builds: 参照点が壊れている（違う集合の差を検出できない）");
     process.exit(1);
   }
+  // 買ったのに鳴らない節を、実際に検出できることを確かめる。
+  {
+    const rows = [];
+    rows.fired = new Set(["rule:foundation_ap_rule"]);
+    const probe = { ...BUILDS[0], plan: [
+      { before: 2, characterId: "tactician", skillId: "foundation_ap" },
+      { before: 3, characterId: "tactician", skillId: "held_breath" },
+    ] };
+    const silent = silentPurchases(probe, rows);
+    if (silent.length !== 1 || !silent[0].includes("held_breath")) {
+      console.error("ecology-stage3-builds: 参照点が壊れている（鳴らない節を検出できない）");
+      process.exit(1);
+    }
+  }
+
   // 取得計画の検算そのものが鳴ることを確かめる。**払えない計画は落ちる。**
   const broken = { ...BUILDS[0], id: "self-check", plan: [
     { before: 1, characterId: "warden", skillId: "foundation_might" },
