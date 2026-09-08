@@ -197,12 +197,11 @@ function syntheticResult(result, allyHpById) {
   };
 }
 
-// **人数を5人で固定して見る。**ここで見たいのは HP の持ち越しであって、
-// R9 のチュートリアル人数ではない（`freeRoster` は一度クリアした Stage の
-// 遊び直しと同じ扱いで、Stage の人数制限を外す）。
+// **人数を5人で固定して見る。**ここで見たいのは HP の持ち越しなので、
+// 5人が定義されている Stage 3 を使う。
 {
   const profile = campaignCompleteProfile();
-  const run = newRun(profile, { runSeed: "s", runId: "hp-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
+  const run = newRun(profile, { runSeed: "s", runId: "hp-r1", roster: ROSTER, campaignStageSequence: 3 });
   const fullHp = { ...run.currentHp };
   for (const id of ROSTER) check(fullHp[id] > 0, id + " は遠征開始時に満タン");
 
@@ -234,7 +233,7 @@ function syntheticResult(result, allyHpById) {
 
 {
   const profile = campaignCompleteProfile();
-  let run = newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
+  let run = newRun(profile, { runSeed: "s", runId: "camp-treat", roster: ROSTER, campaignStageSequence: 3 });
   const maxHp = characterStats(profile, "warden").stats.maxHp;
   run = { ...run, currentHp: { ...run.currentHp, warden: Math.floor(maxHp * 0.3) } };
   const before = run.supplies;
@@ -268,7 +267,7 @@ function syntheticResult(result, allyHpById) {
 
 {
   const profile = campaignCompleteProfile();
-  const run = newRun(profile, { runSeed: "s", runId: "retreat-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
+  const run = newRun(profile, { runSeed: "s", runId: "retreat-r1", roster: ROSTER, campaignStageSequence: 3 });
   const retreated = settleRun(profile, run, "retreat");
   check(retreated.ok, "安全撤退を精算できる");
   equal(retreated.settlement.breakdown.outcomeBonus, 0, "安全撤退には完走ボーナスが付かない");
@@ -277,7 +276,7 @@ function syntheticResult(result, allyHpById) {
   check(BLUEPRINT_SAVE_LIMIT.retreat > BLUEPRINT_SAVE_LIMIT.lost, "安全撤退は敗北より保存上限が高い");
   check(BLUEPRINT_SAVE_LIMIT.retreat === BLUEPRINT_SAVE_LIMIT.won, "安全撤退と勝利の保存上限は同じ");
 
-  const lostRun = newRun(profile, { runSeed: "s", runId: "lost-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
+  const lostRun = newRun(profile, { runSeed: "s", runId: "lost-r1", roster: ROSTER, campaignStageSequence: 3 });
   const lost = settleRun(profile, lostRun, "lost");
   equal(lost.settlement.blueprintSaveLimit, 1, "敗北のBlueprint保存上限は1");
 }
@@ -286,7 +285,7 @@ function syntheticResult(result, allyHpById) {
 
 {
   const profile = campaignCompleteProfile();
-  const run = newRun(profile, { runSeed: "preview-seed", runId: "preview-r1", roster: ROSTER, campaignStageSequence: 0, freeRoster: true });
+  const run = newRun(profile, { runSeed: "preview-seed", runId: "preview-r1", roster: ROSTER, campaignStageSequence: 3 });
   const runWithLoadout = { ...run, loadout: freshLoadout(ROSTER) };
 
   const preview = previewNextBattle(runWithLoadout, profile, 1);
