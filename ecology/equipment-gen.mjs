@@ -150,22 +150,26 @@ const isRepairPayoff = (payoff) => {
 // issue #210 — 発火する生成装備 rule は、追加の代償とは別に装備自身の
 // 耐久を払う。多段・範囲・複数効果は一回の発火で耐久2を使う。
 // 修理だけは「1減らして1戻す」という死に rule を避け、非耐久の有限コストを払う。
-function durabilityCostOf(rule) {
+function durabilityCostOf(draft, rule) {
   if (rule.payoffs.some(isRepairPayoff)) return 0;
   const explicitWear = rule.cost?.cost?.type === "wear_equipment"
     ? rule.cost.cost.amount
     : 0;
-  const heavy = rule.payoffs.length > 1 || rule.payoffs.some((payoff) => {
+  const effects = rule.payoffs.map((payoff) => {
     const effect = payoff.affix.effect(1);
-    return effect.type === "deal_damage"
-      && ((effect.hitCount ?? 1) > 1 || ["row", "column"].includes(effect.targetPattern));
+    return draft.keystone?.transformEffect ? draft.keystone.transformEffect(effect) : effect;
   });
+  if (draft.keystone?.extraEffect) effects.push(draft.keystone.extraEffect());
+  const heavy = effects.length > 1 || effects.some((effect) =>
+    (effect.hitCount ?? 1) > 1
+      || ["row", "column"].includes(effect.targetPattern)
+      || effect.target?.take === "all");
   return Math.max(explicitWear, heavy ? 2 : 1);
 }
 
-function costsOf(rule) {
+function costsOf(draft, rule) {
   const costs = [];
-  const wear = durabilityCostOf(rule);
+  const wear = durabilityCostOf(draft, rule);
   if (wear > 0) costs.push({ type: "wear_equipment", amount: wear });
   if (rule.cost && rule.cost.cost.type !== "wear_equipment") {
     costs.push({ ...rule.cost.cost });
@@ -467,7 +471,7 @@ export function canonicalDescriptor(draft, durability) {
         return `${payoff.affix.id}@${magnitude.effectRarity}@${magnitude.amount}`;
       })
       .join("+");
-    return [rule.source.id, converters, `${rule.cost?.id ?? "-"}+wear${durabilityCostOf(rule)}`, payoffs,
+    return [rule.source.id, converters, `${rule.cost?.id ?? "-"}+wear${durabilityCostOf(draft, rule)}`, payoffs,
       `${rule.limit.scope}x${rule.limit.count}`].join("/");
   });
   return [
@@ -519,7 +523,7 @@ function displayNameOf(draft, itemId) {
 export function ruleText(draft, rule, effectOffset = 0) {
   const when = [rule.source.summary, ...rule.converters.map((affix) => affix.summary)].join("・");
   const paidParts = [];
-  const wear = durabilityCostOf(rule);
+  const wear = durabilityCostOf(draft, rule);
   if (wear > 0) paidParts.push(`耐久${wear}`);
   if (rule.cost && rule.cost.cost.type !== "wear_equipment") paidParts.push(rule.cost.summary);
   const paid = paidParts.length ? `${paidParts.join("と")}を払い、` : "";
@@ -553,7 +557,7 @@ export function draftToDefinition(draft) {
       timing: rule.source.timing ?? "after",
       priority: 100,
       predicates: [...rule.source.predicates, ...rule.converters.flatMap((affix) => affix.predicates)],
-      costs: costsOf(rule),
+      costs: costsOf(draft, rule),
       effects,
       effectRarities: rule.payoffs.map((payoff) => (
         magnitudeOf(payoff, rule, draft.rarity).effectRarity
@@ -634,7 +638,7 @@ export function auditDraft(draft, definition) {
         problems.push(`${at}: 修理 rule は非耐久の有限コストを要する`);
       }
     } else {
-      const expectedWear = durabilityCostOf(rule);
+      const expectedWear = durabilityCostOf(draft, rule);
       if (wearCosts.length !== 1 || wearCosts[0]?.amount !== expectedWear) {
         problems.push(`${at}: 発火時の耐久消費が定義と一致しない（期待 ${expectedWear}）`);
       }
@@ -839,7 +843,7 @@ export function generateEquipment(options = {}) {
           rules: draft.rules.map((rule) => ({
             listenTo: rule.source.listenTo,
             limit: limitOf(draft, rule),
-            costs: costsOf(rule),
+            costs: costsOf(draft, rule),
             effectRarities: rule.payoffs.map((payoff) => (
               magnitudeOf(payoff, rule, draft.rarity).effectRarity
             )),

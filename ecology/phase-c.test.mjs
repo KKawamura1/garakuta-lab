@@ -208,8 +208,9 @@ const EFFECT_FLOOR = Object.freeze({
           equal(wearCosts.length, 1, "発火する生成装備 rule は耐久を必ず消費する");
           check([1, 2].includes(wearCosts[0].amount), "耐久消費は通常1、重い効果は2");
           const heavy = rule.effects.length > 1 || rule.effects.some((effect) =>
-            effect.type === "deal_damage"
-              && ((effect.hitCount ?? 1) > 1 || ["row", "column"].includes(effect.targetPattern)));
+            (effect.hitCount ?? 1) > 1
+              || ["row", "column"].includes(effect.targetPattern)
+              || effect.target?.take === "all");
           equal(wearCosts[0].amount, heavy ? 2 : 1,
             "複数効果・多段・範囲は耐久2、それ以外は耐久1");
         }
