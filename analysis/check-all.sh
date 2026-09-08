@@ -31,4 +31,10 @@ for smoke in "${smokes[@]}"; do
   node "$smoke"
 done
 
+echo "screen: analysis/ecology-tutorial-trial.mjs"
+node analysis/ecology-tutorial-trial.mjs
+
+echo "screen: analysis/ecology-trial.mjs"
+node analysis/ecology-trial.mjs
+
 echo "One Battle Ahead checks: ok"
