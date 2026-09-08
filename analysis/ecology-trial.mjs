@@ -165,8 +165,10 @@ try {
     localStorage.setItem(key, JSON.stringify(saved));
   });
   await page.reload({ waitUntil: "networkidle" });
+  await page.waitForSelector(".vn-stage", { timeout: 8000 });
+  note("踏破済みStageの再訪でも開始会話が出る", await page.locator(".vn-stage").count() === 1);
+  await click("スキップ");
   await page.waitForTimeout(300);
-  note("踏破済みStageの再訪では会話が出ない", await page.locator(".vn-stage").count() === 0);
 
   await click("この条件で遠征へ出る");
   note("編成タブ", /編成|仲間/.test(await bodyText()));
