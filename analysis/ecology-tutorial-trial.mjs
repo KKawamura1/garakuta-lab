@@ -51,6 +51,19 @@ try {
     .first().click();
   const bodyText = () => page.locator("body").innerText();
 
+  // 画面の状態遷移は、Chromium の起動速度や公開先の応答で数秒揺れる。
+  // 個別の8秒待ちだと content の変更がなくても断続的に落ちるため、
+  // selector の待機予算を一箇所へ集約する。短い環境では環境変数で調整できる。
+  const configuredSelectorTimeout = Number(process.env.ECOLOGY_TUTORIAL_SELECTOR_TIMEOUT_MS);
+  const tutorialSelectorTimeout = Number.isFinite(configuredSelectorTimeout)
+    && configuredSelectorTimeout > 0
+    ? configuredSelectorTimeout
+    : 20_000;
+  const waitForTutorialSelector = (selector) => page.waitForSelector(selector, {
+    state: "visible",
+    timeout: tutorialSelectorTimeout,
+  });
+
   // 会話は一行送りになった。**舞台を叩くと進む**（文字送りの途中なら、
   // 一度目の操作で全文が出る）。画面が変わるまで叩き続ける。
   const tapStory = async () => {
@@ -91,7 +104,7 @@ try {
   await click("はじめから");
 
   // R13 — 最初の2人の会話。**ゴウとツグミの考え方の違いを見せる。**
-  await page.waitForSelector(".vn-stage", { timeout: 8000 });
+  await waitForTutorialSelector(".vn-stage");
   // 画面の構造で見る。**台詞の中身ではなく、一行送りの箱が立っているか。**
   note("最初の会話が出る",
     await page.locator(".vn-stage").count() === 1
@@ -114,7 +127,7 @@ try {
   note("序盤の一戦へ入る", /灰の門/.test(prologueText));
   // **序盤の一戦は、会話から途切れずにそのまま始まる。**preview を挟まない
   // （まだ preview の読み方を教えていない。教えるのは巻き戻したあと）。
-  await page.waitForSelector(".battle-field", { timeout: 8000 });
+  await waitForTutorialSelector(".battle-field");
   note("盤面に2人だけが並ぶ", await page.locator(".battle-field .unit.ally, .unit[data-side=\"ally\"]").count() <= 3);
   // R11 §5 改 — チュートリアルのあいだはタイトルへ戻る・撤退する導線を出さない。
   note("序盤の一戦のあいだは撤退できない",
@@ -122,7 +135,7 @@ try {
   // **序盤の一戦の途中でリロードする。**この箱では、戦闘中のリロードで進行を
   // 失う不具合が過去に出ている。物語から入る経路も同じ踏み場を通す。
   await page.reload({ waitUntil: "networkidle" });
-  await page.waitForSelector(".battle-field", { timeout: 8000 });
+  await waitForTutorialSelector(".battle-field");
   note("序盤の一戦の途中でリロードしても戻ってくる", /灰の門/.test(await bodyText()));
   await page.locator('.speed-button[data-speed="fast"]').click();
   // R14 §1.1 — **巻き戻す前の一戦には戦闘予測を出さない。**まだ巻き戻す力を
@@ -271,7 +284,7 @@ try {
   // issue #138 — チュートリアルの再戦も含め、常に戦闘前確認を挟まず自動戦闘へ進む。
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");
-  await page.waitForSelector(".battle-field", { timeout: 8000 });
+  await waitForTutorialSelector(".battle-field");
   await page.locator('.speed-button[data-speed="fast"]').click();
   await click("結果を見る");
   await page.waitForTimeout(300);
@@ -437,7 +450,7 @@ try {
   note("根城の場面へ入れる", await sceneButton.count() === 1);
   if (await sceneButton.count()) {
     await sceneButton.first().click();
-    await page.waitForSelector(".vn-stage", { timeout: 8000 });
+    await waitForTutorialSelector(".vn-stage");
     note("根城の場面が会話として出る", /帰る場所のほう|土間/.test(await bodyText()));
     await click("スキップ");
     await page.waitForTimeout(250);
@@ -497,7 +510,7 @@ try {
     note("幕の断片も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
     await click("スキップ");
     // issue #138 — 幕の会話のあとも、戦闘前確認を挟まずそのまま自動戦闘へ進む。
-    await page.waitForSelector(".battle-field", { timeout: 8000 });
+    await waitForTutorialSelector(".battle-field");
     note("幕の会話のあとは戦闘前確認を挟まず自動戦闘へ渡す", await page.locator(".battle-field").count() > 0);
   }
 
