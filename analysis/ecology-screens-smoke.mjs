@@ -45,6 +45,31 @@ for (const [label, sourceText, forbidden] of [
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
 }
 
+
+// issue #205 — internal diagnostics must not occupy normal screen chrome.
+// shell() wraps title, camp, battle, result and settlement, so checking this
+// shared renderer covers every normal screen without duplicating assertions.
+const shellSource = app.match(/function shell\([\s\S]*?\n\}\n\nfunction diagnosticStamp/);
+if (!shellSource) {
+  console.error("ecology-screens smoke: shell() / diagnosticStamp() を見つけられなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+for (const [label, forbidden] of [
+  ["通常画面左上の内部版数", '<p class="kicker">'],
+  ["通常画面下部の内部診断 footer", "<footer>遠征 "],
+]) {
+  if (shellSource[0].includes(forbidden)) problems.push(label + "が残っている");
+}
+for (const copy of [
+  "この構成のままなら、この通りに終わります。",
+  "装備は付け替え自由。",
+]) {
+  if (app.includes(copy)) problems.push("戦闘予測の冗長文が残っている: " + copy);
+}
+if (!app.includes("+ diagnosticStamp()")) {
+  problems.push("build情報の診断先（技術ログ）が無い");
+}
+
 const defined = new Set([...app.matchAll(/^function ([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]));
 if (defined.size < 40) {
   console.error("ecology-screens smoke: 関数定義をほとんど取り出せなかった。検査の書き方が古い。");
