@@ -20,7 +20,7 @@ const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "u
 const styles = readFileSync("ecology/styles.css", "utf8");
 const displayContracts = [
   ["技能バッジの表示語", app, 'const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };'],
-  ["アクティブ欄の見出し", app, 'active: "アクティブ（優先順）"'],
+  ["アクティブ欄の見出し", app, 'active: "アクティブ（順番）"'],
   ["リアクティブ欄の見出し", app, 'reactive: "リアクティブ"'],
   ["パッシブ欄の見出し", app, 'passive: "パッシブ（いつでも効く）"'],
   ["アクティブツリーのラベル", skillTreeLayout, 'label: "アクティブ"'],
