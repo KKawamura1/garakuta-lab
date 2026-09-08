@@ -1464,6 +1464,32 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .supply-tutorial p { margin: 0; line-height: 1.6; }
 .supply-tutorial p + p { margin-top: 6px; }
 .purchase-row.tutorial-focus { border-color: var(--gold); }
+.treatment-target-picker {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid var(--gold);
+  border-radius: 9px;
+  background: rgba(58, 45, 20, .45);
+}
+.treatment-target-picker .member-tabs {
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+.treatment-target {
+  text-align: left;
+}
+.supply-treatment-result {
+  margin: 10px 0;
+  padding: 9px 10px;
+  border: 1px solid var(--good);
+  border-radius: 9px;
+  background: rgba(37, 73, 54, .35);
+}
+.supply-treatment-result p {
+  margin: 0;
+  line-height: 1.55;
+}
+.supply-treatment-result p + p { margin-top: 4px; }
 .training-heading { margin-top: 16px; color: var(--ink); font-size: 13px; }
 
 .supplies-bar { margin-top: 10px; }
