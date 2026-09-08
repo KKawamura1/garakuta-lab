@@ -13,11 +13,32 @@ jobs:
   current:
     name: Current implementation
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Light checks target 1–2 minutes; leave a short hard cap for hung jobs.
+    timeout-minutes: 3
+    env:
+      LIGHT_CI_MAX_SECONDS: "120"
     steps:
+      - name: Start light CI timer
+        shell: bash
+        run: echo "LIGHT_CI_STARTED_AT_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Test light CI duration checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          if LIGHT_CI_STARTED_AT_MS=100000 LIGHT_CI_NOW_MS=220001 bash analysis/check-light-ci-duration.sh; then
+            echo "duration checker did not reject an over-budget run" >&2
+            exit 1
+          fi
+          LIGHT_CI_STARTED_AT_MS=100000 LIGHT_CI_NOW_MS=220000 bash analysis/check-light-ci-duration.sh
       - name: Syntax and ecology checks
         run: bash analysis/check-all.sh
+      - name: Enforce light CI time budget
+        if: always()
+        env:
+          LIGHT_CI_WRITE_SUMMARY: "1"
+        shell: bash
+        run: bash analysis/check-light-ci-duration.sh
