@@ -332,6 +332,28 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
   const remaining = guarded - absorbed;
   const hpBefore = finalTarget.hp;
   const hpDamage = Math.min(hpBefore, remaining);
+  if (hpDamage === 0 && absorbed > 0) {
+    // A fully absorbed hit is still a terminal damage outcome. Keep it separate
+    // from damage_taken (HP reactions) and damage_blocked (block-charge reactions).
+    rt.emit({
+      type: "damage_absorbed",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags,
+      values: {
+        amount: 0,
+        hpBefore,
+        hpAfter: hpBefore,
+        proposed: amount,
+        afterGuard: guarded,
+        guardApplied: amount - guarded,
+        barrierAbsorbed: absorbed,
+        hitIndex,
+        hitCount,
+      },
+    });
+  }
   if (hpDamage > 0) {
     finalTarget.hp = hpBefore - hpDamage;
     bumpHistory(finalTarget, "damage_taken", hpDamage);
