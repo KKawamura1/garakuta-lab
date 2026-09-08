@@ -1115,6 +1115,16 @@ export function composeEncounter(index, difficultyRank, options = {}) {
 
   // R9 §3.2 — 少人数 Stage の切り詰め。**boss は必ず残す**（幕の問いが消える）。
   // 後ろの枠から落とすので、前列の圧力の形は変わらない。
+  //
+  // issue #176 — 一度「行と役割を残して選ぶ」へ変えたが、**作者判断で戻した。**
+  // 後列を狙う敵が2人 Stage へ出てくると、導入がそのぶん難しくなる。
+  // **最初の2人 Stage は単純に勝てる導入にする**方を採る。序盤から複数のビルドを
+  // 立てられるかの検証は、5人が揃った Stage 3 で行う
+  //（analysis/ecology-stage3-builds.mjs）。
+  //
+  // 少人数で「前から殴ってくる敵しか出ない」ことは、いまは欠陥ではなく導入の形である。
+  // 前列と後列の選択そのものは、敵の狙い先（届く範囲で最も HP の低い味方）が担う
+  //（content/skills-active.mjs の front_strike / rear_strike）。
   if (partySize < fullParty) {
     while (units.length > partySize) {
       const removable = units.map((unit, slot) => ({ unit, slot })).filter((entry) => !entry.unit.boss);

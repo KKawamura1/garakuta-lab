@@ -46,39 +46,49 @@ delete activeSkills.triage;
 activeSkills.idle_shuffle = cloneActive("steady_aim", "idle_shuffle", "息を整える", {
   tags: ["buff", "playable"],
 });
+// issue #176 — **敵の狙い先を「行の先頭」から「届く範囲で最も HP の低い者」へ変えた。**
+//
+// `position_asc` 固定だと、殴られるのは前列左と後列左だけになる。実測では、5人の
+// Stage 3 を6戦通しても後列右のツグミ（隊の主火力かつ最も柔らかい）は一度も狙われず、
+// **前列右へ出しても被害 0** だった。前列と後列の選択が「どこに置くと安全か」ではなく
+// 「左端を避けるか」になっていて、隊列の話が成立していない。
+//
+// HP の絶対量で選ぶと、**紙の主火力は届く場所に居る限り必ず先に狙われる。**
+// melee は前列が生きているあいだ前列しか狙えない（engine の reach 契約）ので、
+// 「後列へ下げれば武器は届かないが、武器攻撃の威力も落ちる」という R11 §5 の
+// 交換がそのまま盤面に出る。
+//
+// **割合ではなく絶対量である**（作者判断）。庇う・防壁・守勢・回復の宛先は
+// 「最も傷ついた味方」＝傷の割合（hp_percent_asc）、攻撃の狙い先は
+// 「最も HP の低い相手」＝絶対量（hp_asc）で、二つを別の言葉として分ける
+//（docs/DESIGN.md 8.7.1）。倒し切るための狙いは残量そのもので決まる。
+const LOWEST_HP_TARGET = Object.freeze({
+  scope: "enemies",
+  filters: [{ type: "alive" }],
+  sort: ["hp_asc"],
+  take: 1,
+});
+const LOWEST_HP_REAR_TARGET = Object.freeze({
+  scope: "enemies",
+  filters: [{ type: "alive" }, { type: "row_is", row: "rear" }],
+  sort: ["hp_asc"],
+  take: 1,
+});
 activeSkills.front_strike = cloneActive("strike", "front_strike", ACTIVE_SKILL_NAMES.front_strike, {
-  targetQuery: {
-    scope: "enemies",
-    filters: [{ type: "alive" }],
-    sort: ["position_asc"],
-    take: 1,
-  },
+  targetQuery: { ...LOWEST_HP_TARGET },
 });
 activeSkills.rear_strike = cloneActive("strike", "rear_strike", ACTIVE_SKILL_NAMES.rear_strike, {
-  targetQuery: {
-    scope: "enemies",
-    filters: [{ type: "alive" }, { type: "row_is", row: "rear" }],
-    sort: ["position_asc"],
-    take: 1,
-  },
+  targetQuery: { ...LOWEST_HP_REAR_TARGET },
 });
 activeSkills.enemy_heavy = cloneActive("heavy_swing", "enemy_heavy", ACTIVE_SKILL_NAMES.enemy_heavy, {
-  targetQuery: {
-    scope: "enemies",
-    filters: [{ type: "alive" }],
-    sort: ["position_asc"],
-    take: 1,
-  },
+  targetQuery: { ...LOWEST_HP_TARGET },
   preparation: {
     steps: 1,
     completionEffects: [{
       type: "deal_damage",
-      target: {
-        scope: "enemies",
-        filters: [{ type: "alive" }],
-        sort: ["position_asc"],
-        take: 1,
-      },
+      // **溜め終わった一撃も、溜め始めた時点の枠ではなく、放つ瞬間に選び直す。**
+      // 途中で誰かを前へ出せば、その人が受ける。
+      target: { ...LOWEST_HP_TARGET },
       amount: { type: "constant", value: 8 },
       tags: ["attack", "heavy"],
     }],
@@ -569,16 +579,17 @@ activeSkills.piercing_barrage = {
 // なる（analysis/ecology-anti-stall-audit.mjs）。だから care の active は
 // 「傷を戻す」ではなく「これ以上の傷を止める」側へ置く。
 // 防壁は round で消えるので、待っても carry HP は増えない。
+// 対象は「最も傷ついた味方」＝傷の割合が最も大きい者（issue #176、docs/DESIGN.md 8.7.1）。
 activeSkills.shield_the_wounded = {
   id: "shield_the_wounded",
   displayName: "傷へ盾を",
   apCost: 1,
   actionMode: "utility",
   intrinsicPredicates: [],
-  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
   effects: [{
     type: "gain_barrier",
-    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
     amount: { type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps: 15_000 },
     duration: "round",
   }],
@@ -603,10 +614,10 @@ activeSkills.hand_off = {
   apCost: 1,
   actionMode: "utility",
   intrinsicPredicates: [],
-  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+  targetQuery: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
   effects: [{
     type: "gain_block",
-    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+    target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
     amount: { type: "constant", value: 1 },
   }],
   tags: ["guard", "handoff", "playable"],
@@ -665,7 +676,10 @@ const SELF = { scope: "self", take: 1 };
 const ALIVE_ONLY = [{ type: "alive" }];
 const ENEMY_FRONT_FIRST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["position_asc"], take: 1 };
 const ENEMY_WEAKEST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["hp_asc"], take: 1 };
-const ALLY_WEAKEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["hp_asc"], take: 1 };
+// issue #176 — 「最も傷ついた味方」は**傷の割合**で選ぶ。残りHPの小ささで並べると、
+// 最大HPの小さい人が庇護され続ける（docs/DESIGN.md 8.7.1）。前列版・敵側も同じ理由で、
+// 敵は「止めを刺す相手」なので `hp_asc` のままにしてある。
+const ALLY_WEAKEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["hp_percent_asc"], take: 1 };
 const ALLY_LATEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["position_desc"], take: 1 };
 const ALLY_FRONT_ALL = {
   scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], take: "all",
@@ -817,7 +831,7 @@ activeSkills.shield_wall = support("shield_wall", "盾の列", [{
 // **自分ではなく、仲間同士を入れ替える。**位置替え（自分が入る）と違い、
 // 前へ出す人と下げる人を別々に選べる。
 const ALLY_FRONT_WEAKEST = {
-  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_asc"], take: 1,
+  scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_percent_asc"], take: 1,
 };
 const ALLY_REAR_HEALTHIEST = {
   scope: "allies",

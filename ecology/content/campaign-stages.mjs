@@ -101,10 +101,15 @@ export const CAMPAIGN_STAGES = Object.freeze([
     actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
     stageLawIds: Object.freeze([]),
     pressureTags: Object.freeze(["guard", "block", "small_group"]),
+    // issue #176 — **Stage 0 は「単純に勝てる導入」に振る**（作者判断）。
+    // ここで複数のビルドを競わせようとすると、盤面を難しくする方向でしか差が作れず、
+    // 導入として本末転倒になる。序盤から複数の構成が立つかの検証は、5人と4 pack が
+    // 揃った Stage 3 で行う（analysis/ecology-stage3-builds.mjs）。
     learningGoals: Object.freeze([
       "武器（腕力）の攻撃は後列から出すと大きく落ち、技（技術）は落ちない（R11 §5）",
       "だから前列と後列の選択は、守りの話であると同時に火力の話でもある",
-      "**主火力のツグミが一番柔らかい。**この一点が、以降3 Stage の問題になる",
+      "**敵は届く範囲で最もHPの低い者を狙う。**前へ出した柔らかい者ほど先に殴られる",
+      "**主火力のツグミが一番柔らかい。**前に出すと本当に落ち、後ろへ下げれば武器は届かない",
       "回復は「HPを戻す役」ではなく「損傷の連鎖を止める役」（R8 §9.4）",
     ]),
     activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,

@@ -255,7 +255,8 @@ Object.assign(PASSIVE_SKILLS, {
       costs: [],
       effects: [{
         type: "add_status",
-        target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
+        // issue #176 — 宛先は傷の割合で選ぶ（docs/DESIGN.md 8.7.1）。
+        target: { scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1 },
         statusId: "warded",
         stacks: 1,
       }],

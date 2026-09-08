@@ -26,6 +26,7 @@ import {
   registerGeneratedEquipment,
   makePrologueBattle,
   simulateExpeditionBattle,
+  tacticUseWhenFor,
   prologueEncounter,
 } from "./playable-battles.mjs";
 import {
@@ -54,6 +55,8 @@ import {
   seenHomesteadIds,
   seenHomesteadScenes,
   SKILL_PACKS,
+  // issue #176 — 状態（バフ・デバフ）の説明。定義の隣にある一行をそのまま出す。
+  STATUS_GLOSSARY,
   SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
   // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
@@ -470,6 +473,16 @@ function freshUiState() {
     startedAt: null,
   };
 }
+
+
+// **一時導線の宣言。**ここに載っているものは「消す前提で入っている」ものである。
+// `analysis/ecology-screens-smoke.mjs` が、この表と docs/OPERATIONS.md §3.1 の欄が
+// 一致していることを見張る。**片方だけ消しても落ちる。**
+//
+// issue #176 の作者試遊で使った Stage 3 直行の導線（`debug-stage`）は、
+// PR #186 の merge 前にここごと外した。次に一時導線を足すときは、この配列と
+// docs/OPERATIONS.md §3.1 の表へ同時に書く。
+export const TEMPORARY_DEBUG_ENTRIES = Object.freeze([]);
 
 function initialState() {
   const profile = newProfile();
@@ -2151,10 +2164,37 @@ function renderRoster() {
 
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 const SLOT_TITLES = {
-  active: "アクティブ（優先順）",
+  active: "アクティブ（順番）",
   reactive: "リアクティブ",
   passive: "パッシブ（いつでも効く）",
 };
+
+// issue #176 — 状態（バフ・デバフ）の説明。**本文は content/statuses.mjs にしかない。**
+// 画面はそれを並べるだけなので、定義を変えれば説明も一緒に動く。
+function statusGlossaryHelp() {
+  const rows = STATUS_GLOSSARY.map((entry) => "<div class=\"glossary-row\">"
+    + "<b class=\"status-term " + (entry.polarity === "positive" ? "good" : "bad") + "\">"
+    + esc(entry.displayName) + "</b>"
+    + "<small>" + esc(entry.summary)
+    + "（最大" + entry.maxStacks + "段・" + esc(entry.durationText) + "）</small></div>").join("");
+  return helpDetails("status-rules", "状態（バフ・デバフ）の意味",
+    "<p class=\"muted\">技能の説明にある「守勢を1つ」などは、ここの状態を1段つけるという意味です。</p>"
+    + "<div class=\"glossary\">" + rows + "</div>"
+    + "<p class=\"muted\">防壁（総量を吸う）・受け構え（一撃を回数で無効にする）・受け（一撃ごとの固定軽減）は"
+    + "状態ではなく、それぞれ別の守りです。</p>");
+}
+
+// その行動に固有条件・発動条件があるかを表示する（issue #176）。
+// 技能の順番は、現在位置からのラウンドロビン走査に使う。
+function activeFiringLabel(skillId) {
+  const skill = PLAYABLE_CONTENT.activeSkills?.[skillId];
+  if (!skill) return null;
+  if ((skill.intrinsicPredicates ?? []).length) return "条件つき";
+  if (tacticUseWhenFor(skillId).length) return "条件つき";
+  const filters = skill.targetQuery?.filters ?? [];
+  if (filters.some((filter) => filter.type !== "alive")) return "条件つき";
+  return "無条件";
+}
 
 function skillSlotRows(characterId, kind) {
   const key = SLOT_KEYS[kind];
@@ -2169,9 +2209,15 @@ function skillSlotRows(characterId, kind) {
       : "";
     const markerClass = kind === "passive" ? "bullet passive" : "order";
     const marker = kind === "passive" ? "↳" : index + 1;
+    // issue #176 — 無条件／条件つきを行に出し、条件の読み落としを防ぐ。
+    const firing = kind === "active" ? activeFiringLabel(skillId) : null;
+    const firingChip = firing
+      ? "<span class=\"firing-chip " + (firing === "無条件" ? "always" : "conditional") + "\">" + firing + "</span>"
+      : "";
     return "<div class=\"installed-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
       + marker + "</span><span class=\"installed-copy\"><b>"
-      + esc(info?.label ?? nameFor(skillId)) + "</b><small>" + esc(skillEffectText(characterId, skillId)) + "</small></span>"
+      + esc(info?.label ?? nameFor(skillId)) + firingChip + "</b><small>"
+      + esc(skillEffectText(characterId, skillId)) + "</small></span>"
       + moveButtons
       + button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
         "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"")
@@ -2582,7 +2628,14 @@ function renderSkills() {
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + helpDetails("skill-rules", "技能のルール",
       "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
-      + "<p class=\"muted\">アクティブとリアクティブは上から順に判定され、不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
+      // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
+      + "<p class=\"muted\"><b>アクティブは現在の位置から順番に判定し、最初に使える一本だけが出ます。</b>"
+      + "選んだ技能の次から、次の activation の判定を始めます。<b>条件つき</b>の技能が未達ならスキップし、"
+      + "後ろの技能を試します。使える技能が無い activation では位置を進めません。</p>"
+      + "<p class=\"muted\">リアクティブも上から順に判定します。こちらは条件が別々なので複数が同じ拍に鳴りますが、"
+      + "反応点が尽きた時点で下の技能は出ません。</p>"
+      + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
+    + statusGlossaryHelp()
     + "</section>";
 }
 
@@ -3157,6 +3210,8 @@ function renderBattle() {
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯はHPを示します。</p>"
       + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
+    // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
+    + statusGlossaryHelp()
     + "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>戦闘履歴</summary>"
     + "<p class=\"muted\">再生中の位置までの出来事を新しい順に表示します。</p>"

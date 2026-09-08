@@ -8,6 +8,7 @@
 | `analysis/` | 検査。`check-all.sh` と `ecology-*.mjs`（smoke・公開先 E2E）、`stamp.mjs`（build 印） |
 | `analysis/ecology-chain-safety-audit.mjs` | Issue #175 の資源報酬定義・event trace・再発火・過剰回復・limit を監査する安全ゲート。 |
 | `analysis/ecology-chain-safety-blind-spots.mjs` | 安全ゲートが拒否すべき schema-valid な不正例と、許可条件を満たす既存の陽性例を実際の content から検査する smoke。 |
+| `analysis/ecology-stage3-builds.mjs` | Stage 3（5人・4pack）の三構成（issue #176）を data として持ち、取得計画の予算・核の成立時点・代替入口・代表装備・同じ seed での event 列の違いを、実際に engine へ通して検査する smoke。 |
 | `core/build.mjs` | 公開版の build 印だけを持つ生成物。`analysis/stamp.mjs` が作る |
 | `functions/api/runs.js` | プレイ記録の受け取りと検証（Cloudflare Pages Functions） |
 | `migrations/` | D1 schema |
@@ -121,6 +122,13 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 UI・replay・検査は、engine が出した同じイベント列を読みます。
 新しい event を追加する場合は、schema、validator、engine テスト、表示・replay も同時に更新します。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
+ターゲットクエリの並び替えは `TARGET_SORT_TYPES`（schema）が正本で、実装は `selectors.mjs` の
+`sortValue` 一箇所です。`hp_asc` / `hp_desc` は残りHPそのもの（**攻撃の狙い先**。味方側・敵側とも
+「最もHPの低い相手」を指す）、`hp_percent_asc` / `hp_percent_desc` は**傷の割合**
+（**庇護・回復の宛先**。「最も傷ついた味方」）で、後者の値は `hp * 10000 / maxHp` の
+切り捨て（整数 bps）から作ります。
+**浮動小数は比較経路に入りません。**同率は既定の `position_asc` → `instance_id_asc` へ落ちるので、
+`take: 1` が配列の到着順に依存することはありません。
 未知の event、effect、predicate、scope、tag などは無視せず validator error にします。
 
 ## 6. content の hard contract

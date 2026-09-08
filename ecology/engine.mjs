@@ -89,6 +89,7 @@ function buildState(input, content, options) {
     replaySnapshots: [],
     actors: new Map(),
     actorOrder: [],
+    tacticCursorByActor: new Map(),
     queue: [],
     phaseSide: null,
     phaseVisited: new Set(),
@@ -741,6 +742,12 @@ function activateActor(state, actor) {
   let choice = chooseTactic(state, actor);
   // R6 §6.4 — 技能未装備、全技能が不発、または有効対象なしなら basic strike。
   if (!choice) choice = coreActionChoice(state, actor, "basicStrike");
+  // chooseTactic is also used by the phase preflight. Advance only after the
+  // real activation has accepted a tactic, so that preflight cannot consume
+  // the next slot before the action is performed.
+  if (choice && choice.tacticIndex !== undefined) {
+    advanceTacticCursor(state, actor, choice.tacticIndex);
+  }
   if (!choice) {
     // §11.3-8 — one action_skipped for an activation that produced nothing.
     // The leftover AP is reported at round end.
@@ -845,11 +852,29 @@ function coreActionChoice(state, actor, key) {
   return { skill, targets, costs, tactic: { activeSkillId: skill.id, useWhen: [] } };
 }
 
-// §11.4-1..4 — tactics are tried in the listed order and the first one whose
-// skill predicates, useWhen, targets and cost all hold is the action.
+// §11.4-1..4 — tactics are read round-robin from the actor's cursor.
+// A tactic whose predicates, useWhen, targets or cost do not hold is skipped;
+// the next tactic in the circle gets a chance.
+function tacticCursorFor(state, actor) {
+  const tactics = actor.tactics ?? [];
+  if (tactics.length === 0) return 0;
+  const cursor = state.tacticCursorByActor.get(actor.instanceId) ?? 0;
+  return Number.isInteger(cursor) && cursor >= 0 && cursor < tactics.length ? cursor : 0;
+}
+
+function advanceTacticCursor(state, actor, selectedIndex) {
+  const tactics = actor.tactics ?? [];
+  if (tactics.length === 0) return;
+  state.tacticCursorByActor.set(actor.instanceId, (selectedIndex + 1) % tactics.length);
+}
+
 function chooseTactic(state, actor) {
   const rt = makeRuntime(state);
-  for (const tactic of actor.tactics) {
+  const tactics = actor.tactics ?? [];
+  const start = tacticCursorFor(state, actor);
+  for (let offset = 0; offset < tactics.length; offset += 1) {
+    const tacticIndex = (start + offset) % tactics.length;
+    const tactic = tactics[tacticIndex];
     const skill = state.content.activeSkills[tactic.activeSkillId];
     // §5.5 — one pending preparation per actor.
     if (actor.preparation && skill.preparation) continue;
@@ -870,7 +895,7 @@ function chooseTactic(state, actor) {
     if (targets.length === 0) continue;
     const costs = [{ type: "spend_action_points", amount: skill.apCost }];
     if (!canPayCosts(rt, ctx, costs)) continue;
-    return { tactic, skill, targets, costs };
+    return { tactic, skill, targets, costs, tacticIndex };
   }
   return null;
 }
