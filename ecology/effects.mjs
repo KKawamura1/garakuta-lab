@@ -204,7 +204,16 @@ function dealDamage(rt, ctx, effect) {
     for (const instanceId of targetIds) {
       const target = getActor(rt.state, instanceId);
       // 5. 倒れていたらこの hit は失われる。別の相手へ回さない。
-      if (!target || !target.alive) continue;
+      if (!target || !target.alive) {
+        rt.emit({
+          type: "damage_skipped",
+          ...sourceFields(ctx),
+          targetActorIds: [instanceId],
+          tags: effect.tags ?? [],
+          values: { hitIndex, hitCount, reason: target ? "target_defeated" : "target_unavailable" },
+        });
+        continue;
+      }
       dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount);
     }
   }
@@ -297,7 +306,17 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
     frame,
   );
   const finalTarget = getActor(rt.state, frame.targetActorIds[0]);
-  if (!finalTarget || !finalTarget.alive) return;
+  if (!finalTarget || !finalTarget.alive) {
+    rt.emit({
+      type: "damage_skipped",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: frame.targetActorIds,
+      tags,
+      values: { amount: frame.amount, hitIndex, hitCount, reason: finalTarget ? "target_defeated" : "target_unavailable" },
+    });
+    return;
+  }
   const amount = frame.amount;
 
   // block — 一 charge で instance を丸ごと止める。
@@ -332,6 +351,25 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
   const remaining = guarded - absorbed;
   const hpBefore = finalTarget.hp;
   const hpDamage = Math.min(hpBefore, remaining);
+  if (absorbed > 0) {
+    rt.emit({
+      type: "damage_absorbed",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags,
+      values: {
+        amount: absorbed,
+        proposed: amount,
+        afterGuard: guarded,
+        finalDamage: hpDamage,
+        fullyAbsorbed: hpDamage === 0 && remaining === 0,
+        barrierRemaining: totalBarrier(finalTarget),
+        hitIndex,
+        hitCount,
+      },
+    });
+  }
   if (hpDamage > 0) {
     finalTarget.hp = hpBefore - hpDamage;
     bumpHistory(finalTarget, "damage_taken", hpDamage);
@@ -842,4 +880,3 @@ function cancelPendingAction(rt, ctx, effect) {
 }
 
 export { selectTargets, equipmentInstance, statusStacks, positionIndex };
-

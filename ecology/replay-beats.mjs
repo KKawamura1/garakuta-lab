@@ -21,6 +21,17 @@
 // エンジンには依存しない。イベントの配列だけを見る純関数なので、
 // 分析用の replay-beats smoke が本物の戦闘で性質を検査できる。
 
+import { EVENT_TYPES } from "./schema.mjs";
+
+// 履歴・結果画面が独自の手書き whitelist を持つと、engine に追加された
+// 敵の action_declared や防壁の帰結だけが画面から消える。schema の実装語彙を
+// 正本にして、既知の event は全て履歴／replay の入力へ渡す。
+export const REPLAY_EVENT_TYPES = new Set(EVENT_TYPES);
+
+export function filterReplayEvents(events) {
+  return (events || []).filter((event) => REPLAY_EVENT_TYPES.has(event?.type));
+}
+
 // 盤面に出さないもの。ログには残る。
 export const BOARD_SKIP = new Set([
   "resource_refreshed",
@@ -63,7 +74,16 @@ export const BEAT_MS = {
 export const EFFECT_MS = 170;
 export const IMPACT_CAP_MS = 820;
 
-const IMPACT_EFFECTS = new Set(["damage_taken", "healing_applied", "barrier_gained", "damage_blocked", "block_gained"]);
+const IMPACT_EFFECTS = new Set([
+  "damage_taken",
+  "damage_absorbed",
+  "barrier_damaged",
+  "barrier_broken",
+  "healing_applied",
+  "barrier_gained",
+  "damage_blocked",
+  "block_gained",
+]);
 const QUIET_EFFECTS = new Set(["status_added", "equipment_worn", "equipment_repaired", "equipment_broken"]);
 
 export function eventSourceId(event) {
@@ -138,6 +158,8 @@ export function buildBeats(events) {
         open("impact", event, index, BEAT_MS.impact);
         break;
       case "action_skipped":
+      case "action_canceled":
+      case "damage_skipped":
         open("skipped", event, index, BEAT_MS.skipped);
         current = null;
         break;
@@ -179,4 +201,3 @@ export function buildBeats(events) {
 export function beatDurationMs(beat, factor = 1) {
   return Math.max(60, Math.round((beat?.ms ?? BEAT_MS.other) * factor));
 }
-

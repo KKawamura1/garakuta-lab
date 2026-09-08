@@ -1117,3 +1117,16 @@ engine とイベント語彙に触る3件（行動権の余り・回復の重ね
 消し忘れないよう、`ecology/app.js` の `TEMPORARY_DEBUG_ENTRIES` と `docs/OPERATIONS.md`
 §3.1 の表を `analysis/ecology-screens-smoke.mjs` が突き合わせる（片方だけ消すと落ちる）。
 仕組みは空の配列と空の表として残してあるので、次に一時導線を足すときも同じ挟み方になる。
+
+### 3.45 issue #192 — 敵の行動と0ダメージの因果を戦闘履歴へ戻した（2026-09-08）
+
+作者試遊で、敵が行動しているのに戦闘履歴から `action_declared` などが見えず、防壁が攻撃を
+吸い切ると「攻撃そのものが無かった」ように見える問題が出た。前者は engine のイベント列ではなく、
+`app.js` の手書き replay whitelist が schema の一部を落としていた。後者は `damage_taken` が
+HP減少時だけ出る既存契約に対して、吸収の事実と最終ダメージ0を別イベントで表していなかった。
+
+`RESULT_SCHEMA_VERSION` を `ecology-result-3` へ上げ、`damage_absorbed` と `damage_skipped` を
+反応しない結果イベントとして追加した。履歴／replay の入力型は `EVENT_TYPES` から導出し、
+`action_canceled`、対象選択、資源消費、防壁・受け構えの記録も敵味方を問わず表示する。
+防壁吸収は `damage_proposed` → `barrier_damaged` / `barrier_broken` → `damage_absorbed`
+（`finalDamage: 0` を含む）、対象消失は `damage_skipped` の理由で追跡できる。

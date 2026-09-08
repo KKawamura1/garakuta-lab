@@ -21,7 +21,11 @@ export const CONTENT_SCHEMA_VERSION = "ecology-content-4";
 // not know the field would silently drop the levels — which changes damage — so
 // the version says out loud that the shape grew.
 export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
-export const RESULT_SCHEMA_VERSION = "ecology-result-2";
+// Issue #192 — result event streams now distinguish barrier absorption and a
+// damage instance that lost its target. These are additive records, but a
+// reader that only understands the old result shape would hide why an attack
+// produced no HP loss, so the result version moves with the vocabulary.
+export const RESULT_SCHEMA_VERSION = "ecology-result-3";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -95,6 +99,11 @@ export const EVENT_TYPES = freeze([
   "preparation_interrupted",
   // §6.4 hp and barrier
   "damage_proposed",
+  // Issue #192 — a proposed packet can be fully absorbed without producing
+  // damage_taken. The explicit result keeps that outcome observable.
+  "damage_absorbed",
+  // Issue #192 — a later hit in a multi-hit action may have lost its target.
+  "damage_skipped",
   "barrier_damaged",
   "barrier_broken",
   "damage_taken",
@@ -142,7 +151,12 @@ export const RESERVED_EVENT_TYPES = freeze([
 // listens to it could never fire, so the validator rejects it (PREFLIGHT §11).
 // A rule that listened to pending_amount_modified would react inside somebody
 // else's interrupt window, so it stays a record only, like the refresh.
-export const NON_LISTENABLE_EVENT_TYPES = freeze(["resource_refreshed", "pending_amount_modified"]);
+export const NON_LISTENABLE_EVENT_TYPES = freeze([
+  "resource_refreshed",
+  "pending_amount_modified",
+  "damage_absorbed",
+  "damage_skipped",
+]);
 
 // §11.5 — interrupt rules may only listen to events that carry a pending frame.
 export const PENDING_ACTION_EVENT_TYPES = freeze(["action_declared", "target_selected"]);
@@ -473,4 +487,3 @@ export function compareOp(op, left, right) {
     default: throw new Error(`unknown comparison operator: ${op}`);
   }
 }
-

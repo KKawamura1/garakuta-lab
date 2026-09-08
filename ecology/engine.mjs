@@ -959,7 +959,7 @@ function performAction(state, actor, choice) {
     // §11.4-8 — cancel, target and cost are all re-checked after the interrupts.
     const finalTargets = frame.targetActorIds
       .map((instanceId) => getActor(state, instanceId))
-      .filter((target) => target !== null);
+      .filter((target) => target !== null && target.alive);
     if (finalTargets.length === 0) return cancelAction(state, actor, skill, frame, "no_target");
     if (!canPayCosts(rt, baseCtx(), costs)) return cancelAction(state, actor, skill, frame, "cost");
 

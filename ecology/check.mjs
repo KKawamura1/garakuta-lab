@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 const SUITES = [
   "schema.test.mjs",
   "engine.test.mjs",
+  "replay-beats.test.mjs",
+  "replay-beats.test.mjs",
   "termination.test.mjs",
   "extensibility.test.mjs",
   "mine.test.mjs",
@@ -33,5 +35,3 @@ if (failed > 0) {
   process.exit(1);
 }
 console.log(`ecology: ${SUITES.length} suites passed.`);
-
-
