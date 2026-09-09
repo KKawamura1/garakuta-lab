@@ -371,6 +371,10 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
     });
   }
   if (hpDamage > 0) {
+    const recoveredBefore = Math.min(hpBefore, Math.max(0, finalTarget.recoveredDamage ?? 0));
+    const greenBefore = Math.max(0, hpBefore - recoveredBefore);
+    const recoveredLost = Math.max(0, hpDamage - greenBefore);
+    finalTarget.recoveredDamage = Math.max(0, recoveredBefore - recoveredLost);
     finalTarget.hp = hpBefore - hpDamage;
     const existing = rt.state.recoveryWindows.get(finalTarget.instanceId);
     const window = existing && existing.chainId === rt.state.chain.id
@@ -397,6 +401,8 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
         barrierAbsorbed: absorbed,
         hitIndex,
         hitCount,
+        recoveredDamage: finalTarget.recoveredDamage,
+        unrecoverableDamage: Math.max(0, finalTarget.maxHp - finalTarget.hp - window.remaining),
       },
     });
   }
@@ -458,6 +464,22 @@ function absorbBarrier(rt, ctx, target, amount, tags) {
 function defeatActor(rt, ctx, target, parentEventId) {
   target.alive = false;
   target.inQueue = false;
+  const window = rt.state.recoveryWindows.get(target.instanceId);
+  if (window && window.remaining > 0) {
+    rt.state.recoveryWindows.delete(target.instanceId);
+    rt.emit({
+      type: "recovery_window_closed",
+      targetActorIds: [target.instanceId],
+      tags: ["recovery_window", "actor_defeated"],
+      values: {
+        remaining: window.remaining,
+        cause: "actor_defeated",
+        attackChainId: window.chainId,
+        recoveredDamage: target.recoveredDamage ?? 0,
+        unrecoverableDamage: Math.max(0, target.maxHp - target.hp - window.remaining),
+      },
+    });
+  }
   rt.emit({
     type: "actor_defeated",
     ...sourceFields(ctx),
@@ -509,6 +531,10 @@ function applyHealing(rt, ctx, effect) {
         : finalTarget.maxHp - finalTarget.hp);
     const actual = Math.min(requested, finalTarget.maxHp - finalTarget.hp, recoverable);
     finalTarget.hp += actual;
+    finalTarget.recoveredDamage = Math.min(
+      finalTarget.hp,
+      Math.max(0, finalTarget.recoveredDamage ?? 0) + actual,
+    );
     if (window) {
       window.remaining -= actual;
       if (window.remaining <= 0) rt.state.recoveryWindows.delete(finalTarget.instanceId);
@@ -520,7 +546,18 @@ function applyHealing(rt, ctx, effect) {
       parentEventId: event.id,
       targetActorIds: [finalTarget.instanceId],
       tags: effect.tags ?? [],
-      values: { requested, actual, hpAfter: finalTarget.hp, recoverableBefore: recoverable, recoverableAfter: window?.remaining ?? 0 },
+      values: {
+        requested,
+        actual,
+        hpAfter: finalTarget.hp,
+        recoverableBefore: recoverable,
+        recoverableAfter: window?.remaining ?? 0,
+        recoveredDamage: finalTarget.recoveredDamage,
+        unrecoverableDamage: Math.max(
+          0,
+          finalTarget.maxHp - finalTarget.hp - (window?.remaining ?? 0),
+        ),
+      },
     });
     const excess = requested - actual;
     if (excess > 0) {
