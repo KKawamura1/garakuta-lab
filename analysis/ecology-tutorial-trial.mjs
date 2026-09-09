@@ -300,7 +300,7 @@ try {
   const resultAfterWinText = await bodyText();
   note("巻き戻しての勝利がそのまま本編第1戦の結果画面になる",
     !/この一戦は遠征に数えません/.test(resultAfterWinText));
-  const won = /突破した/.test(await page.locator("h1").textContent() ?? "");
+  const won = /突破した/.test(await page.locator(".verdict h2").textContent() ?? "");
   note("第1戦を突破する", won);
   // 報酬を受け取るまでは、まだこの一戦の後始末が済んでいないので撤退できない。
   note("結果画面でもまだ撤退できない",
