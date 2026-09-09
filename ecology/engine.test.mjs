@@ -301,14 +301,15 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     .find((actor) => actor.instanceId === "a_mender");
   equal(afterOverflow.recoveredDamage, 4, "the capped recovery is represented in the darker green segment");
   equal(afterOverflow.recoverableDamage, 0, "no red segment remains after a capped recovery");
-  const nextAction = overflow.events.find((event) =>
-    event.type === "action_started" && event.sequence > applied.sequence
+  const nextPhase = overflow.events.find((event) =>
+    event.sequence > applied.sequence
+      && (event.type === "action_started" || event.type === "round_ended")
   );
-  check(nextAction, "a later attack phase exists for the recovery display reset");
-  const afterNextAction = overflow.replaySnapshots[nextAction.sequence]
+  check(nextPhase, "a later attack phase or boundary exists for the recovery display reset");
+  const afterNextPhase = overflow.replaySnapshots[nextPhase.sequence]
     .find((actor) => actor.instanceId === "a_mender");
-  equal(afterNextAction.recoveredDamage, 0, "the recovered segment resets at the next attack phase");
-  equal(afterNextAction.recoverableDamage, 0, "a fully recovered window leaves no red segment");
+  equal(afterNextPhase.recoveredDamage, 0, "the recovered segment resets at the next attack phase");
+  equal(afterNextPhase.recoverableDamage, 0, "a fully recovered window leaves no red segment");
 }
 
 {
