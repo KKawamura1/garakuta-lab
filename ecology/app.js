@@ -3155,11 +3155,11 @@ function layoutKeyOf(actors) {
 }
 
 function unitHtml(actor) {
-  return "<div class=\"unit\" data-unit=\"" + esc(actor.instanceId) + "\">"
+  return "<div class=\"unit\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\">"
     + "<div class=\"unit-floats\"></div>"
     + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
     + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
-    + "</b></div><div class=\"unit-bar\"><span class=\"unit-fill\"></span></div>"
+    + "</b></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
     + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
     + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div>"
     + "<div class=\"unit-cast\"></div></div>";
@@ -3206,7 +3206,7 @@ function renderBattle() {
     + button("結果を見る", "replay-result", false, "button") + "</section>"
     + "<p class=\"hint battle-hint\">再生を止めて、一手ずつ確認できます。</p>"
     + helpDetails("battle-display", "表示の説明",
-      "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯はHPを示します。</p>"
+      "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の緑の帯はHP、上端の灰色の帯は防壁を示します。</p>"
       + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
     // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
     + statusGlossaryHelp()
@@ -3373,6 +3373,13 @@ function unitMarksHtml(actor) {
   return marks.join("");
 }
 
+function barrierPercent(actor) {
+  const maxHp = Number(actor.maxHp ?? 0);
+  const barrier = Number(actor.barrier ?? 0);
+  if (!Number.isFinite(maxHp) || maxHp <= 0 || !Number.isFinite(barrier) || barrier <= 0) return 0;
+  return Math.min(100, (barrier / maxHp) * 100);
+}
+
 function syncBattleView(options = {}) {
   if (state.phase !== "battle") return;
   const field = app.querySelector(".battle-field");
@@ -3407,6 +3414,14 @@ function syncBattleView(options = {}) {
     }
     const hp = unit.querySelector(".unit-hp");
     if (hp) hp.textContent = actor.alive ? actor.hp + "/" + actor.maxHp : "戦闘不能";
+    const barrierFill = unit.querySelector(".unit-barrier-fill");
+    if (barrierFill) barrierFill.style.width = barrierPercent(actor) + "%";
+    const bar = unit.querySelector(".unit-bar");
+    if (bar) {
+      const barrier = Number(actor.barrier ?? 0);
+      const safeBarrier = Number.isFinite(barrier) ? Math.max(0, barrier) : 0;
+      bar.setAttribute("aria-label", "HP " + actor.hp + "/" + actor.maxHp + "、防壁 " + safeBarrier);
+    }
     const marks = unit.querySelector(".unit-marks");
     if (marks) marks.innerHTML = unitMarksHtml(actor);
     const pips = unit.querySelector(".unit-pips");
