@@ -21,6 +21,28 @@
 //   5. 三構成とも第6戦まで実際に勝ち切る（紙の上だけの構成を残さない）
 //
 // **鳴ることを確かめてある**（末尾の自己検査）。
+//
+// ================================================================ issue #230
+//
+// **#176 はここまでだった。**取得計画が第6戦までしか無かったので、第7戦から先は
+// 「点を余らせたまま進む」測定になり、三構成とも第7戦で全滅していた。遠征は12戦で
+// 一つの単位なので、**取得計画も測定も12戦の長さで書く。**
+//
+// 足したのは三つ。
+//
+//   A. **通し。**一人ぶんの技能点は第12戦の開始前に13点そろう（通常1・幕ボス2）。
+//      三構成とも、その13点を 2,3,4,5,5,6,7,8,9,9,10,11,12 の順で使い切る。
+//      戦闘のあいだも本編と同じ形で通す——報酬は毎回「補給1」を取り（装備は取らない。
+//      作者試遊の装備0/10と同じ条件）、倒れた味方から順に蘇生し、生存者が7割を
+//      切ったら集中治療する。**補給は一戦に1つ・上限5**なので、有限の余白になる。
+//   B. **余白。**勝敗だけでは楽勝と辛勝が同じ形で残る。各戦闘のラウンド数・隊の
+//      残HP割合・未使用の技能点・手元の補給を持ち、上端（易しすぎ）と下端（届かない）
+//      を両方とも言えるようにした。第7戦から先の勝敗は**測る対象**であって、
+//      負けたこと自体は失敗ではない。失敗は「前に測った値と違うのに理由が無い」こと。
+//      だから各構成は `through` に実測を持ち、そこからずれたら落ちる。
+//   C. **名指しされた技能の実測。**PR #186 の作者試遊で強い／弱いと言われた
+//      号令・急かす・盾の列・隙を刻む・意趣返しが、通しで何回鳴って何を出したかを
+//      数える。直すかどうかは #150 / #189 / #128 で決める。ここは数えるところまで。
 
 import {
   CAMPAIGN_STAGES,
@@ -31,12 +53,17 @@ import {
 import { MIN_SKILL_LEVEL } from "../ecology/schema.mjs";
 import { SKILL_LEVEL_COST } from "../ecology/content/skill-levels.mjs";
 import {
+  CAMP_TREATMENTS,
+  MAX_SUPPLIES,
+  campTreat,
   commitBattleResult,
+  gainSupply,
   newProfile,
   newRun,
   rewardOffer,
   skillPointsForClear,
 } from "../ecology/progression.mjs";
+import { CHARACTER_STATS } from "../ecology/content/characters.mjs";
 import { RARITIES } from "../ecology/content/affixes.mjs";
 import { expeditionEncounter } from "../ecology/content/expedition.mjs";
 import { simulateNextBattle } from "../ecology/playable-battles.mjs";
@@ -50,10 +77,13 @@ if (!STAGE) {
 }
 const ROSTER = [...STAGE.castCharacterIds];
 const SEED = "stage3-vertical-slice";
-// 見るのは第6戦まで。**核の成立は第4〜6戦**という関門がそこで閉じる。
-// `STAGE_BUILDS_LAST` で伸ばせるが、取得計画は第6戦までしか書いていないので、
-// それ以降は「点を余らせたまま進む」測定になる（通しのバランスはここの仕事ではない）。
-const LAST_ENCOUNTER = Number(process.env.STAGE_BUILDS_LAST ?? 6);
+// **見るのは第12戦まで（issue #230）。**#176 の時点では第6戦で止めていたが、
+// そこまでしか取得計画が無いと、第7戦以降は「点を余らせたまま進む」測定になり、
+// 実際に三構成とも第7戦で全滅していた。**遠征は12戦で一つの単位**なので、
+// 取得計画も測定もその長さで書く。`STAGE_BUILDS_LAST` で短くも長くもできる。
+const LAST_ENCOUNTER = Number(process.env.STAGE_BUILDS_LAST ?? 12);
+// 核の関門（第4〜6戦）が閉じる戦闘。ここまでは #176 の関門をそのまま守る。
+const CORE_GATE_LAST = 6;
 
 const nodeBySkill = Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
 const stageSkillIds = new Set(skillIdsForPacks(STAGE.enabledPackIds, STAGE.packDepths).all);
@@ -75,6 +105,10 @@ const BUILDS = Object.freeze([
   Object.freeze({
     id: "edge",
     displayName: "刃で削る",
+    // **通しの実測**（issue #230）。目標は第12戦の完走。ここに書くのは
+    // 「いまどこまで行けるか」で、目標ではない。数値を動かしたらこの値も動くので、
+    // **動かしたら差分の理由を PR に書く**（contract-snapshot と同じ扱い）。
+    through: Object.freeze({ reaches: 9, ends: "round_limit" }),
     question: "硬い相手を抜くか、相手の出力そのものを細くするか",
     engine: Object.freeze({
       source: "当たった一撃（damage_taken を出す側）",
@@ -95,31 +129,103 @@ const BUILDS = Object.freeze([
       tactician: Object.freeze([]),
     }),
     plan: Object.freeze([
+      // **取得は配られ次第。**一人ぶんの技能点は通常戦1・幕ボス2で、第12戦の
+      // 開始前に13点そろう。だからこの表は 2,3,4,5,5,6,7,8,9,9,10,11,12 の順で
+      // 一手ずつ買う形になっている。**貯めない**（貯めた点は何もしない）。
+      //
+      // 刃で削るは「厚くする」側へ寄せる。装着した技能は毎ラウンド順送りで一本ずつ
+      // しか出ないので（`chooseTactic`）、装着を増やすほど主砲の出番が割れる。
+      // **同じ人物でも伸びる能力値が違う節は混ぜられない**——ゴウは腕力50・技術6で、
+      // 前提として通っただけの後衛狩り（技術）を装着すればその拍は7しか出ない。
+      // ナギは腕力16・技術30なので、逆に技術で伸びる後衛狩りが主砲になる。
+      // 意趣返し（弱いと言われた側）はヒバナとゲンゾウの反撃線で通しに乗せる。
       Object.freeze({ before: 2, characterId: "warden", skillId: "pierce_thrust" }),
       Object.freeze({ before: 3, characterId: "warden", skillId: "rear_hunt" }),
       Object.freeze({ before: 4, characterId: "warden", skillId: "guard_crush" }),
-      Object.freeze({ before: 4, characterId: "lancer", skillId: "finishing_thrust" }),
-      Object.freeze({ before: 5, characterId: "lancer", skillId: "hamstring" }),
-      Object.freeze({ before: 6, characterId: "warden", skillId: "foundation_might" }),
+      Object.freeze({ before: 5, characterId: "warden", skillId: "foundation_might" }),
+      Object.freeze({ before: 5, characterId: "warden", level: "guard_crush" }),
+      Object.freeze({ before: 6, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 7, characterId: "warden", level: "guard_crush" }),
+      Object.freeze({ before: 8, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 9, characterId: "warden", level: "guard_crush" }),
+      Object.freeze({ before: 9, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 10, characterId: "warden", level: "guard_crush" }),
+      Object.freeze({ before: 11, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 12, characterId: "warden", level: "guard_crush" }),
+      Object.freeze({ before: 2, characterId: "lancer", skillId: "finishing_thrust" }),
+      Object.freeze({ before: 3, characterId: "lancer", skillId: "hamstring" }),
+      Object.freeze({ before: 4, characterId: "lancer", skillId: "execute_low" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 6, characterId: "lancer", level: "execute_low" }),
+      Object.freeze({ before: 7, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 8, characterId: "lancer", level: "hamstring" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "execute_low" }),
+      Object.freeze({ before: 10, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 11, characterId: "lancer", level: "execute_low" }),
+      Object.freeze({ before: 12, characterId: "lancer", level: "hamstring" }),
+      Object.freeze({ before: 2, characterId: "mender", skillId: "foundation_focus" }),
+      Object.freeze({ before: 3, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 4, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 5, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 5, characterId: "mender", level: "emergency_treatment" }),
+      Object.freeze({ before: 6, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 7, characterId: "mender", level: "triage" }),
+      Object.freeze({ before: 8, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 9, characterId: "mender", level: "emergency_treatment" }),
+      Object.freeze({ before: 9, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 10, characterId: "mender", level: "triage" }),
+      Object.freeze({ before: 11, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 12, characterId: "mender", level: "emergency_treatment" }),
+      Object.freeze({ before: 2, characterId: "guardian", skillId: "opportunist" }),
+      Object.freeze({ before: 3, characterId: "guardian", skillId: "whetted_by_pain" }),
+      Object.freeze({ before: 4, characterId: "guardian", skillId: "vengeful_step" }),
+      Object.freeze({ before: 5, characterId: "guardian", level: "opportunist" }),
+      Object.freeze({ before: 5, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 6, characterId: "guardian", level: "opportunist" }),
+      Object.freeze({ before: 7, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 8, characterId: "guardian", level: "opportunist" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "opportunist" }),
+      Object.freeze({ before: 10, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 11, characterId: "guardian", level: "opportunist" }),
+      Object.freeze({ before: 12, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 2, characterId: "tactician", skillId: "steady_aim" }),
+      Object.freeze({ before: 3, characterId: "tactician", skillId: "opportunist" }),
+      Object.freeze({ before: 4, characterId: "tactician", skillId: "whetted_by_pain" }),
+      Object.freeze({ before: 5, characterId: "tactician", skillId: "finish_the_wounded" }),
+      Object.freeze({ before: 5, characterId: "tactician", level: "opportunist" }),
+      Object.freeze({ before: 6, characterId: "tactician", level: "finish_the_wounded" }),
+      Object.freeze({ before: 7, characterId: "tactician", level: "opportunist" }),
+      Object.freeze({ before: 8, characterId: "tactician", level: "finish_the_wounded" }),
+      Object.freeze({ before: 9, characterId: "tactician", level: "opportunist" }),
+      Object.freeze({ before: 9, characterId: "tactician", level: "finish_the_wounded" }),
+      Object.freeze({ before: 10, characterId: "tactician", level: "opportunist" }),
+      Object.freeze({ before: 11, characterId: "tactician", level: "finish_the_wounded" }),
+      Object.freeze({ before: 12, characterId: "tactician", level: "opportunist" }),
     ]),
+    // **装着は短く。**順送りなので、装着した本数だけ主砲の出番が割れる。
+    // 前提として通っただけの節は装着しない（通り道は目的地ではない）。
     tactics: Object.freeze({
-      warden: ["guard_crush", "rear_hunt", "pierce_thrust", "steady_cut"],
+      warden: ["guard_crush", "steady_cut"],
       mender: ["aimed_shot"],
-      lancer: ["hamstring", "finishing_thrust", "pierce_thrust"],
-      guardian: ["pierce_thrust", "steady_cut"],
-      tactician: ["mark_target"],
+      lancer: ["execute_low", "hamstring", "rear_hunt"],
+      guardian: ["column_thrust"],
+      tactician: ["steady_aim", "mark_target"],
     }),
     reactives: Object.freeze({
       warden: ["mend"],
       mender: ["triage", "emergency_treatment"],
       lancer: ["triage"],
-      guardian: ["counter_blow", "scavenge_ap"],
-      tactician: ["counter_blow", "scavenge_ap"],
+      guardian: ["vengeful_step", "whetted_by_pain", "opportunist", "counter_blow", "scavenge_ap"],
+      tactician: ["finish_the_wounded", "whetted_by_pain", "opportunist", "counter_blow", "scavenge_ap"],
     }),
   }),
   Object.freeze({
     id: "wall",
     displayName: "隊列で守る",
+    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
     question: "止めた回数を、次の何に変えるか",
     engine: Object.freeze({
       source: "受け構えで一撃を止めた拍（damage_blocked / block_spent）",
@@ -141,39 +247,101 @@ const BUILDS = Object.freeze([
       mender: Object.freeze(["sustaining_ward"]),
     }),
     plan: Object.freeze([
+      // **止め続けるだけでは幕3を抜けない。**第10戦だけで敵の総HPは1632ある。
+      // 守る構成にも「誰が削るのか」を決めた上で、止めた拍をその人へ渡す。
+      // 削るのはナギ（技術30）の溜め突き——技術×5.5で、準備1回を挟んで165出る。
+      // 前が保っているあいだだけ溜められる、という依存がそのまま構成の形になる。
+      // 盾の列（強すぎると言われた側）はヒバナの主軸として通しに乗せる。
+      // **前提 Lv の道**は最初の二手（傷へ盾を Lv3 → 長く守る）に残してある。
       Object.freeze({ before: 2, characterId: "guardian", skillId: "brace_for_impact" }),
       Object.freeze({ before: 3, characterId: "guardian", skillId: "bulwark_of_will" }),
-      Object.freeze({ before: 4, characterId: "lancer", skillId: "guard_the_marked" }),
-      Object.freeze({ before: 4, characterId: "tactician", skillId: "foundation_guard" }),
-      Object.freeze({ before: 5, characterId: "tactician", skillId: "opening_guard" }),
-      // **前提 Lv の道。**傷へ盾を Lv3 まで厚くして初めて、戦闘のあいだ消えない壁が置ける。
+      Object.freeze({ before: 4, characterId: "guardian", skillId: "shield_wall" }),
+      Object.freeze({ before: 5, characterId: "guardian", skillId: "bracing_thrust" }),
+      Object.freeze({ before: 5, characterId: "guardian", level: "shield_wall" }),
+      Object.freeze({ before: 6, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 7, characterId: "guardian", level: "shield_wall" }),
+      Object.freeze({ before: 8, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "shield_wall" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 10, characterId: "guardian", level: "shield_wall" }),
+      Object.freeze({ before: 11, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 12, characterId: "guardian", level: "shield_wall" }),
+      Object.freeze({ before: 2, characterId: "lancer", skillId: "guard_the_marked" }),
+      Object.freeze({ before: 3, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 4, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 6, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 7, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 8, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 10, characterId: "lancer", level: "brace_after_hit" }),
+      Object.freeze({ before: 11, characterId: "lancer", level: "brace_after_hit" }),
+      Object.freeze({ before: 12, characterId: "lancer", level: "brace_after_hit" }),
+      Object.freeze({ before: 2, characterId: "mender", level: "shield_the_wounded" }),
       Object.freeze({ before: 3, characterId: "mender", level: "shield_the_wounded" }),
-      Object.freeze({ before: 4, characterId: "mender", level: "shield_the_wounded" }),
-      Object.freeze({ before: 5, characterId: "mender", skillId: "sustaining_ward" }),
-      Object.freeze({ before: 6, characterId: "guardian", skillId: "shield_wall" }),
+      Object.freeze({ before: 4, characterId: "mender", skillId: "sustaining_ward" }),
+      Object.freeze({ before: 5, characterId: "mender", skillId: "field_dressing" }),
+      Object.freeze({ before: 5, characterId: "mender", level: "sustaining_ward" }),
+      Object.freeze({ before: 6, characterId: "mender", level: "field_dressing" }),
+      Object.freeze({ before: 7, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 8, characterId: "mender", level: "sustaining_ward" }),
+      Object.freeze({ before: 9, characterId: "mender", level: "field_dressing" }),
+      Object.freeze({ before: 9, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 10, characterId: "mender", level: "sustaining_ward" }),
+      Object.freeze({ before: 11, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 12, characterId: "mender", level: "triage" }),
+      Object.freeze({ before: 2, characterId: "tactician", skillId: "foundation_guard" }),
+      Object.freeze({ before: 3, characterId: "tactician", skillId: "opening_guard" }),
+      Object.freeze({ before: 4, characterId: "tactician", skillId: "aimed_shot" }),
+      Object.freeze({ before: 5, characterId: "tactician", skillId: "ward_ally" }),
+      Object.freeze({ before: 5, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 6, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 7, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 8, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 9, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 9, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 10, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 11, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 12, characterId: "tactician", level: "aimed_shot" }),
+      Object.freeze({ before: 2, characterId: "warden", skillId: "spread_the_guard" }),
+      Object.freeze({ before: 3, characterId: "warden", skillId: "brace_for_impact" }),
+      Object.freeze({ before: 4, characterId: "warden", skillId: "bulwark_of_will" }),
+      Object.freeze({ before: 5, characterId: "warden", skillId: "bracing_thrust" }),
+      Object.freeze({ before: 5, characterId: "warden", level: "bracing_thrust" }),
+      Object.freeze({ before: 6, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 7, characterId: "warden", level: "bracing_thrust" }),
+      Object.freeze({ before: 8, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 9, characterId: "warden", level: "bracing_thrust" }),
+      Object.freeze({ before: 9, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 10, characterId: "warden", level: "bracing_thrust" }),
+      Object.freeze({ before: 11, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 12, characterId: "warden", level: "bracing_thrust" }),
     ]),
     tactics: Object.freeze({
-      warden: ["steady_cut"],
-      mender: ["sustaining_ward", "shield_the_wounded", "aimed_shot"],
-      lancer: ["heavy_swing", "pierce_thrust"],
-      guardian: ["shield_wall", "bulwark_of_will", "brace_for_impact", "spread_the_guard"],
-      tactician: ["spread_the_guard", "relay_order"],
+      warden: ["bracing_thrust", "steady_cut"],
+      mender: ["sustaining_ward", "field_dressing", "shield_the_wounded", "aimed_shot"],
+      lancer: ["heavy_swing"],
+      guardian: ["shield_wall", "bracing_thrust", "brace_for_impact"],
+      tactician: ["ward_ally", "aimed_shot", "spread_the_guard", "relay_order"],
     }),
     reactives: Object.freeze({
       warden: ["mend"],
       mender: ["triage", "emergency_treatment"],
-      lancer: ["guard_the_marked", "cover_ally", "shield_handoff"],
-      guardian: ["brace_after_hit", "scavenge_ap"],
-      tactician: ["block_focus", "absorb_shock", "brace_after_hit"],
+      lancer: ["barrier_stitch", "guard_the_marked", "last_stand", "cover_ally", "shield_handoff"],
+      guardian: ["block_focus", "absorb_shock", "brace_after_hit", "scavenge_ap"],
+      tactician: ["counterweight", "wall_reader", "block_focus", "absorb_shock", "brace_after_hit"],
     }),
   }),
   Object.freeze({
     id: "tempo",
     displayName: "順番を作る",
+    through: Object.freeze({ reaches: 12, ends: "cleared" }),
     question: "遅い一撃に、どうやって手番を通すか",
     engine: Object.freeze({
       source: "行動権と準備（resource_gained / preparation_*）",
-      converter: "号令と背を押すが手番を渡し、狙いを澄ますが集中を積む",
+      converter: "号令と背を押すが手番を渡し、急かすが準備を一段進める",
       payoff: "大溜めのような遅い一撃が、削られる前に完成する",
       brake: "渡しただけで手数は増えない。渡した側はその round を捨てている",
     }),
@@ -193,29 +361,86 @@ const BUILDS = Object.freeze([
       tactician: Object.freeze(["hasten_ally", "foundation_ap"]),
     }),
     plan: Object.freeze([
+      // **渡す手番を増やしても手数は増えない。**増やせるのは一撃の質と、準備が
+      // 完成するまでの速さである。溜めるのは技術52のツグミひとり。
+      // ゲンゾウは**急かす**（効果に対して前提が重いと言われた側）まで7点かけて
+      // 伸ばす。急かすは準備を一段進めるので、**溜める人が居る構成でしか効かない。**
+      // ヒバナは行動点2なので、号令（強すぎると言われた側）を渡してもまだ殴れる。
       Object.freeze({ before: 2, characterId: "mender", skillId: "steady_cut" }),
       Object.freeze({ before: 3, characterId: "mender", skillId: "heavy_swing" }),
-      Object.freeze({ before: 4, characterId: "tactician", skillId: "hasten_ally" }),
-      Object.freeze({ before: 5, characterId: "tactician", skillId: "foundation_ap" }),
-      Object.freeze({ before: 5, characterId: "mender", skillId: "foundation_focus" }),
-      // **「余りを溜める」は買わない。**行動権が余る局面が engine の構造上起きないので、
-      // 点を払っても一度も鳴らない（下の silentPurchases が実際に落とした）。
-      // 到達可能性そのものは #191 で扱う。ここは溜め手を厚くする側へ点を回す。
+      Object.freeze({ before: 4, characterId: "mender", skillId: "foundation_focus" }),
+      Object.freeze({ before: 5, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 5, characterId: "mender", level: "heavy_swing" }),
       Object.freeze({ before: 6, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 7, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 8, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 9, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 9, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 10, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 11, characterId: "mender", level: "heavy_swing" }),
+      Object.freeze({ before: 12, characterId: "mender", level: "steady_cut" }),
+      Object.freeze({ before: 2, characterId: "tactician", skillId: "hasten_ally" }),
+      Object.freeze({ before: 3, characterId: "tactician", skillId: "foundation_ap" }),
+      Object.freeze({ before: 4, characterId: "tactician", skillId: "triage" }),
+      Object.freeze({ before: 5, characterId: "tactician", skillId: "watchful_care" }),
+      Object.freeze({ before: 5, characterId: "tactician", skillId: "overflow_care" }),
+      Object.freeze({ before: 6, characterId: "tactician", skillId: "triage_relay" }),
+      Object.freeze({ before: 7, characterId: "tactician", skillId: "second_wind" }),
+      Object.freeze({ before: 8, characterId: "tactician", skillId: "shared_pain" }),
+      Object.freeze({ before: 9, characterId: "tactician", skillId: "urging" }),
+      Object.freeze({ before: 9, characterId: "tactician", level: "triage" }),
+      Object.freeze({ before: 10, characterId: "tactician", level: "triage" }),
+      Object.freeze({ before: 11, characterId: "tactician", level: "triage" }),
+      Object.freeze({ before: 12, characterId: "tactician", level: "triage" }),
+      Object.freeze({ before: 2, characterId: "lancer", skillId: "long_swing" }),
+      Object.freeze({ before: 3, characterId: "lancer", skillId: "hunt_the_slow" }),
+      Object.freeze({ before: 4, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 6, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 7, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 8, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 10, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 11, characterId: "lancer", level: "rear_hunt" }),
+      Object.freeze({ before: 12, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 2, characterId: "guardian", skillId: "rally_line" }),
+      Object.freeze({ before: 3, characterId: "guardian", skillId: "relay_order" }),
+      Object.freeze({ before: 4, characterId: "guardian", skillId: "drag_forward" }),
+      Object.freeze({ before: 5, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 5, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 6, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 7, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 8, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 10, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 11, characterId: "guardian", level: "column_thrust" }),
+      Object.freeze({ before: 12, characterId: "guardian", skillId: "foundation_might" }),
+      Object.freeze({ before: 2, characterId: "warden", skillId: "foundation_might" }),
+      Object.freeze({ before: 3, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 4, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 5, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 5, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 6, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 7, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 8, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 9, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 9, characterId: "warden", level: "steady_cut" }),
+      Object.freeze({ before: 10, characterId: "warden", skillId: "first_blood" }),
+      Object.freeze({ before: 11, characterId: "warden", skillId: "edge_honed" }),
+      Object.freeze({ before: 12, characterId: "warden", skillId: "foundation_vitality" }),
     ]),
     // **溜めは1回まで。**大溜め（準備3回）は行動権を4つ食うので、渡す側が毎ラウンド
     // 手番を捨てても間に合わない。渡した行動権で「準備1回の大技を毎ラウンド完成させる」
     // ところに利得を置く。
     tactics: Object.freeze({
       warden: ["steady_cut"],
-      mender: ["heavy_swing", "aimed_shot"],
-      // **溜めるのは一人だけ。**二人が同時に溜めると、渡せる行動権が足りない。
-      // 後衛狩りは条件つきなので、後列の敵が居る拍だけ出て、居なければ貫き突きへ落ちる。
-      lancer: ["rear_hunt", "pierce_thrust"],
-      guardian: ["column_thrust", "steady_cut"],
-      // **背を押すを毎ラウンド出し続けるのがこの構成の本体。**隊列の最後＝溜めている
-      // 後衛へ行動権が渡り、準備1回の大技が毎ラウンド完成する。渡す側は手番を捨てて
-      // いるので手数は増えない。増えるのは一撃の質である。
+      mender: ["heavy_swing"],
+      // 準備狩りは条件つきで、溜めている敵が居る拍だけに出る。
+      lancer: ["hunt_the_slow", "rear_hunt"],
+      guardian: ["relay_order", "drag_forward", "rally_line", "column_thrust"],
       tactician: ["hasten_ally", "relay_order"],
     }),
     reactives: Object.freeze({
@@ -223,7 +448,10 @@ const BUILDS = Object.freeze([
       mender: ["triage", "emergency_treatment"],
       lancer: ["triage", "cover_ally"],
       guardian: ["scavenge_ap", "brace_after_hit"],
-      tactician: ["patient_step", "scavenge_ap"],
+      // **痛みを分けるは装着しない。**発動ごとにHPを30払うので、急かすへの
+      // 通り道として買うだけにする（通り道は目的地ではない）。
+      tactician: ["urging", "second_wind", "triage_relay", "overflow_care",
+        "watchful_care", "triage", "patient_step", "scavenge_ap"],
     }),
   }),
 ]);
@@ -371,6 +599,9 @@ function loadoutFor(build, snapshot) {
   };
 }
 
+// **名指しされた技能の実測**（issue #230 の item 4）。三構成の通しをまとめて数える。
+const yields = new Map();
+
 function playThrough(build, snapshots, carried = null) {
   const profile = newProfile();
   let run = newRun(profile, {
@@ -407,25 +638,119 @@ function playThrough(build, snapshots, carried = null) {
       // **「どの技能から、どの種類の出来事が出たか」**を鍵にする。量は入れない。
       const from = event.skillId ?? event.sourceDefinitionId ?? event.ruleId ?? null;
       if (from) skills.set(`${event.type}<${from}`, (skills.get(`${event.type}<${from}`) ?? 0) + 1);
+      // **名指しされた技能の実測**（issue #230 の判定対象）。強い・弱いの印象を、
+      // 「何回鳴って、何を出したか」に置き換える。反応は rule id で出るので両方見る。
+      const source = event.skillId ?? event.ruleId ?? null;
+      if (!source) continue;
+      const tally = yields.get(source) ?? { types: new Map(), amount: 0 };
+      tally.types.set(event.type, (tally.types.get(event.type) ?? 0) + 1);
+      if (["damage_taken", "healing_applied", "barrier_gained", "resource_gained",
+        "preparation_advanced", "status_added"].includes(event.type)) {
+        tally.amount += Number(event.values?.amount ?? event.values?.stacks ?? 1);
+      }
+      yields.set(source, tally);
     }
     // **買った節が実際に鳴ったか。**技能は skillId、反応と常設は ruleId で数える。
     for (const event of result.events) {
       if (event.skillId) fired.add(event.skillId);
       if (event.ruleId) fired.add("rule:" + event.ruleId);
     }
-    rows.push({ index, result: result.result, rounds: result.roundsUsed, kinds, skills });
+    // **余白。**勝ったかどうかだけでは「楽勝だった」と「あと一撃だった」が同じ形で
+    // 残る。issue #230 はその差を測るためにあるので、隊の残HP・使った round・
+    // まだ使っていない技能点・手元の補給を、その戦闘の行として持つ。
+    // **与えた／受けた量。**どちらが足りないのかを、勝敗とラウンド数だけでは
+    // 切り分けられない（間に合わなかったのか、保たなかったのか）。
+    let dealt = 0;
+    let taken = 0;
+    for (const event of result.events) {
+      if (event.type !== "damage_taken") continue;
+      const amount = Number(event.values?.amount ?? 0);
+      if ((event.targetActorIds ?? []).some((id) => String(id).startsWith("a_"))) taken += amount;
+      else dealt += amount;
+    }
+    const partyHp = ROSTER.reduce((total, id) => {
+      const actor = result.actors.find((entry) => entry.instanceId === "a_" + id);
+      return total + Math.max(0, actor?.hp ?? 0);
+    }, 0);
+    const down = ROSTER.filter((id) => {
+      const actor = result.actors.find((entry) => entry.instanceId === "a_" + id);
+      return (actor?.hp ?? 0) <= 0;
+    });
+    rows.push({
+      index,
+      result: result.result,
+      rounds: result.roundsUsed,
+      maxRounds: expeditionEncounter(index).maxRounds,
+      hpBps: Math.round((partyHp * 10_000) / PARTY_MAX_HP),
+      dealt,
+      taken,
+      down: down.length,
+      unspent: Math.max(...ROSTER.map((id) => snapshot.budget - snapshot.spent[id])),
+      supplies: run.supplies ?? 0,
+      kinds,
+      skills,
+    });
     if (process.env.STAGE_BUILDS_DUMP) {
       const hp = result.actors.filter((a) => a.instanceId.startsWith("a_"))
         .map((a) => `${a.instanceId.slice(2)} ${a.hp}/${a.maxHp}`).join(" ");
-      console.log(` [${build.id}] e${index} ${result.result} R${result.roundsUsed} ${hp}`);
+      console.log(` [${build.id}] e${index} ${result.result} R${result.roundsUsed}`
+        + ` 与${dealt} 受${taken} 補給${run.supplies ?? 0}`
+        + ` 余り[${ROSTER.map((id) => snapshot.budget - snapshot.spent[id]).join(",")}] ${hp}`);
     }
     const committed = commitBattleResult(profile, run, index, result);
     run = committed.run;
     if (result.result !== "win") break;
+    run = restBetweenBattles(run, profile, rows[rows.length - 1]);
   }
   rows.fired = fired;
   return rows;
 }
+
+// ---------------------------------------------------------------- 戦闘のあいだ
+//
+// **通しで測るなら、戦闘と戦闘のあいだも本編と同じ形で通さなければならない。**
+// 第6戦までの測定では要らなかったが、遠征のHPは持ち越しで、戻す手段は三つしかない。
+//
+//   1. 第4戦・第8戦の幕ボスに勝った後の全回復（`isActBossFullHealIndex`）
+//   2. 報酬で補給を取り、野営治療に使う（`campTreat`。上限は補給5）
+//   3. 戦闘中の回復技能
+//
+// **ここでは報酬を毎回「補給1」にする。**装備は取らない。作者試遊が装備 0/10 で
+// 第12戦まで行った条件をそのまま再現するためで、装備の効き方は別に見ている
+// （下の代表装備の節）。**取れる補給は一戦につき1つ・上限5**なので、これは
+// 無限の回復ではなく、遠征を通して数えられる有限の余白になる。
+//
+// 使い方も宣言しておく。**倒れている味方から順に蘇生し、それが済んでから、
+// 割合で一番深く傷ついた味方が半分を切っていれば集中治療する。**構成ごとに
+// 変えない（変えると、構成の差なのか看護の差なのかが分からなくなる）。
+const REVIVE_THRESHOLD_BPS = 7_000;
+function restBetweenBattles(run, profile, row) {
+  let next = gainSupply(run, 1);
+  for (const characterId of run.roster) {
+    if ((next.supplies ?? 0) < 1) break;
+    if ((next.currentHp?.[characterId] ?? 0) > 0) continue;
+    const treated = campTreat(next, profile, "revive", [characterId]);
+    if (treated.ok) next = treated.run;
+  }
+  while ((next.supplies ?? 0) >= 1) {
+    const worst = [...run.roster]
+      .filter((id) => (next.currentHp?.[id] ?? 0) > 0)
+      .sort((a, b) => hpBpsOf(next, a) - hpBpsOf(next, b))[0];
+    if (!worst || hpBpsOf(next, worst) >= REVIVE_THRESHOLD_BPS) break;
+    const treated = campTreat(next, profile, "concentrated", [worst]);
+    if (!treated.ok) break;
+    next = treated.run;
+  }
+  row.suppliesAfterRest = next.supplies ?? 0;
+  return next;
+}
+
+function hpBpsOf(run, characterId) {
+  const maxHp = CHARACTER_STATS[characterId]?.maxHp ?? 1;
+  return Math.round(((run.currentHp?.[characterId] ?? 0) * 10_000) / maxHp);
+}
+
+const PARTY_MAX_HP = ROSTER.reduce((total, id) => total + (CHARACTER_STATS[id]?.maxHp ?? 0), 0);
 
 // ---------------------------------------------------------------- 買ったのに鳴らない節
 //
@@ -441,8 +766,30 @@ function playThrough(build, snapshots, carried = null) {
 // ここでは鳴ったものとして扱う。**effect が rule で書かれている節だけ**を見る。
 function silentPurchases(build, rows) {
   const silent = [];
+  // **通り道は目的地ではない。**前提として通っただけの節は、その先の節が鳴って
+  // いれば「使われた」と数える。そうしないと、前提を鳴らすためだけに装着を増やす
+  // ことになり、順送りの `chooseTactic` では主砲の出番がそのぶん減る——
+  // **検査が、弱い構成を作る方向へ圧力をかけてしまう。**
+  // **人物ごとに数える。**同じ節でも、別の人物にとっては通り道でしかない。
+  const key = (characterId, skillId) => `${characterId}/${skillId}`;
+  const purchased = new Set(build.plan.filter((step) => step.skillId)
+    .map((step) => key(step.characterId, step.skillId)));
+  const leveled = new Set(build.plan.filter((step) => step.level)
+    .map((step) => key(step.characterId, step.level)));
+  const steppingStones = new Set();
+  for (const step of build.plan) {
+    if (!step.skillId) continue;
+    for (const required of nodeBySkill[step.skillId]?.requires ?? []) {
+      if (purchased.has(key(step.characterId, required.skillId))) {
+        steppingStones.add(key(step.characterId, required.skillId));
+      }
+    }
+  }
   for (const step of build.plan) {
     const skillId = step.skillId ?? step.level;
+    // レベルを上げた節は「使うつもり」なので、通り道の免除を受けない。
+    if (step.skillId && steppingStones.has(key(step.characterId, skillId))
+      && !leveled.has(key(step.characterId, skillId))) continue;
     const definition = PLAYABLE_CONTENT.activeSkills?.[skillId]
       ?? PLAYABLE_CONTENT.reactiveSkills?.[skillId]
       ?? PLAYABLE_CONTENT.passiveSkills?.[skillId];
@@ -475,6 +822,7 @@ const signatures = new Map();
 const played = new Map();
 const planOf = new Map();
 const equipmentReport = [];
+const margins = new Map();
 
 for (const build of BUILDS) {
   const at = build.id;
@@ -526,11 +874,37 @@ for (const build of BUILDS) {
     problems.push(`${at}: ${line} は、第${LAST_ENCOUNTER}戦までに一度も鳴らない`
       + "（点を払わせて何も返さない節を構成の核にしない）");
   }
-  const lost = rows.find((row) => row.result !== "win");
-  if (lost) problems.push(`${at}: 第${lost.index}戦で ${lost.result}（紙の上だけの構成を残さない）`);
-  if (rows.length < LAST_ENCOUNTER) {
-    problems.push(`${at}: 第${LAST_ENCOUNTER}戦まで届いていない`);
+  // ---- 通し（issue #230）
+  //
+  // **#176 の関門は第6戦で閉じる。**そこまでは「紙の上だけの構成を残さない」を
+  // そのまま守る。第7戦から先は**測るための区間**であって、勝てないこと自体は
+  // 失敗ではない——失敗は「前に測った値と違うのに、誰も理由を書いていない」ことである。
+  const wins = rows.filter((row) => row.result === "win");
+  const reached = wins.length;
+  const last = rows[rows.length - 1];
+  const ends = last.result === "win"
+    ? (reached >= LAST_ENCOUNTER ? "cleared" : "short")
+    : (last.rounds >= last.maxRounds ? "round_limit" : "wipe");
+  if (reached < CORE_GATE_LAST) {
+    problems.push(`${at}: 第${reached + 1}戦で ${last.result}。`
+      + `**核の関門（第${CORE_GATE_LAST}戦）まで届いていない**ので、紙の上だけの構成である`);
   }
+  if (reached !== build.through.reaches || ends !== build.through.ends) {
+    problems.push(`${at}: 通しの実測が記録と違う（記録 第${build.through.reaches}戦・${build.through.ends}`
+      + ` → 実測 第${reached}戦・${ends}）。`
+      + "**数値か構成を動かしたなら through を更新し、その差分の理由を PR に書く**"
+      + "（AGENTS.md「差分を見ずに更新しない」）");
+  }
+  const margin = {
+    reached,
+    ends,
+    rounds: wins.reduce((total, row) => total + row.rounds, 0),
+    minHpBps: wins.length ? Math.min(...wins.map((row) => row.hpBps)) : 0,
+    // その戦闘に持ち込んだ手持ち。完走した戦闘の後の補給は数えない。
+    supplies: last.supplies,
+    unspent: last.unspent,
+  };
+  margins.set(build.id, margin);
   signatures.set(build.id, signatureOf(rows));
 
   const spent = coreSnapshot.spent;
@@ -680,6 +1054,46 @@ if (!usedLeveled) {
     }
   }
 
+  // 通り道の免除が**人物ごと**であることを確かめる。ゴウの前提として通っただけの
+  // 節は免除され、同じ節をレベルまで上げているナギのぶんは免除されない。
+  {
+    const rows = [];
+    rows.fired = new Set();
+    const probe = { ...BUILDS[0], plan: [
+      { before: 2, characterId: "warden", skillId: "steady_cut" },
+      { before: 3, characterId: "warden", skillId: "pierce_thrust" },
+      { before: 4, characterId: "lancer", skillId: "steady_cut" },
+      { before: 5, characterId: "lancer", level: "steady_cut" },
+    ] };
+    const silent = silentPurchases(probe, rows);
+    const mentionsWardenStone = silent.some((line) => line.includes("warden") && line.includes("steady_cut"));
+    const mentionsLancerLeveled = silent.some((line) => line.includes("lancer") && line.includes("steady_cut"));
+    if (mentionsWardenStone || !mentionsLancerLeveled) {
+      console.error("ecology-stage3-builds: 参照点が壊れている（通り道の免除が人物ごとになっていない）");
+      process.exit(1);
+    }
+  }
+
+  // 戦闘のあいだの看護が実際に効くことを確かめる。**倒れた味方が戻る。**
+  {
+    const profile = newProfile();
+    const run = {
+      ...newRun(profile, {
+        campaignStageSequence: STAGE.sequence, runSeed: SEED, runId: SEED, roster: ROSTER,
+      }),
+      currentHp: { ...Object.fromEntries(ROSTER.map((id) => [id, CHARACTER_STATS[id].maxHp])), mender: 0 },
+    };
+    const rested = restBetweenBattles(run, profile, {});
+    if ((rested.currentHp.mender ?? 0) <= 0) {
+      console.error("ecology-stage3-builds: 参照点が壊れている（倒れた味方が野営で戻らない）");
+      process.exit(1);
+    }
+    if ((rested.supplies ?? 0) !== 0) {
+      console.error("ecology-stage3-builds: 参照点が壊れている（蘇生に補給を払っていない）");
+      process.exit(1);
+    }
+  }
+
   // 取得計画の検算そのものが鳴ることを確かめる。**払えない計画は落ちる。**
   const broken = { ...BUILDS[0], id: "self-check", plan: [
     { before: 1, characterId: "warden", skillId: "foundation_might" },
@@ -712,4 +1126,72 @@ console.log(
   }).join("・")
   + `。代表装備 ${equipmentReport.join("・")}`
   + `。前提 Lv を要求する節 ${leveledPrereqs.map((node) => node.skillId).join("・")} が実データで通っている`,
+);
+
+// ---------------------------------------------------------------- 名指しされた技能（issue #230）
+//
+// **試遊の「強い／弱い」を、通しの実測へ置き換える。**PR #186 の作者試遊で名前が
+// 挙がったのは、強い側が 号令・急かす・盾の列、弱い側が 隙を刻む・意趣返し。
+// ここでは三構成の通しをまとめて、**何回鳴って、何を出したか**だけを出す。
+// 判定（直すかどうか、どこで直すか）はこの数字を見て #150 / #189 / #128 で行う。
+const NAMED_SKILLS = Object.freeze([
+  Object.freeze({ id: "relay_order", label: "号令", unit: "行動権" }),
+  Object.freeze({ id: "urging", ruleId: "urging_rule", label: "急かす", unit: "準備" }),
+  Object.freeze({ id: "shield_wall", label: "盾の列", unit: "防壁" }),
+  Object.freeze({ id: "mark_target", label: "隙を刻む", unit: "隙" }),
+  Object.freeze({ id: "vengeful_step", ruleId: "vengeful_step_rule", label: "意趣返し", unit: "damage" }),
+]);
+// **一発火を一回として数える。**行動は宣言（`action_declared`）が一回、
+// 反応は反応点の支払い（`resource_spent`）が一回に当たる。
+const namedReport = NAMED_SKILLS.map((named) => {
+  const tally = yields.get(named.ruleId ?? named.id) ?? { types: new Map(), amount: 0 };
+  const fires = named.ruleId
+    ? (tally.types.get("resource_spent") ?? 0)
+    : (tally.types.get("action_declared") ?? 0);
+  return `${named.label} ${fires}回・${named.unit}${tally.amount}`;
+});
+// 「灰の核心」は技能ではなく最終戦の敵である。到達した構成の第12戦を出す。
+const finalRows = BUILDS.map((build) => played.get(build.id).find((row) => row.index === 12))
+  .filter(Boolean);
+console.log(
+  `ecology-stage3-builds 名指しの実測（三構成の通し合計）: ${namedReport.join(" / ")}`
+  + `。灰の核心（第12戦）へ届いたのは ${finalRows.length}構成で、`
+  + (finalRows.length
+    ? finalRows.map((row) => `${row.rounds}/${row.maxRounds}ラウンド・与${row.dealt}・受${row.taken}`).join("・")
+    : "実測なし"),
+);
+
+// ---------------------------------------------------------------- 通しの余白（issue #230）
+//
+// **勝敗だけでは、楽勝と辛勝が同じ形で残る。**遠征12戦を通したときに、
+// どれだけの余白（隊のHP・手元の補給・使っていない技能点）を残して終わるかを出す。
+// 上端（余白が大きすぎる＝易しすぎ）も下端（届かない）も、ここを読めば言える。
+//
+// 条件は作者試遊と同じ**装備なし**で、報酬は毎回「補給1」を取り、倒れた味方から
+// 順に蘇生、生存者が7割を切ったら集中治療、というひとつの看護方針で揃えてある。
+const CEILING_MIN_HP_BPS = 6_000;
+const CEILING_SUPPLIES = 3;
+const ENDS_TEXT = Object.freeze({
+  cleared: "完走", short: "途中で測定終了", round_limit: "時間切れ", wipe: "全滅",
+});
+const marginReport = BUILDS.map((build) => {
+  const margin = margins.get(build.id);
+  return `${build.displayName} 第${margin.reached}/${LAST_ENCOUNTER}戦（${ENDS_TEXT[margin.ends]}）`
+    + `・${margin.rounds}ラウンド・最小HP${Math.round(margin.minHpBps / 100)}%`
+    + `・残り補給${margin.supplies}・未使用${margin.unspent}点`;
+});
+const tooEasy = BUILDS.filter((build) => {
+  const margin = margins.get(build.id);
+  return margin.ends === "cleared" && margin.minHpBps >= CEILING_MIN_HP_BPS
+    && margin.supplies >= CEILING_SUPPLIES;
+});
+console.log(
+  `ecology-stage3-builds 通しの余白: ${marginReport.join(" / ")}`
+  + `。上端の目安は「完走して最小HP${CEILING_MIN_HP_BPS / 100}%以上・補給${CEILING_SUPPLIES}以上が残る」で、`
+  + (tooEasy.length
+    ? `いま ${tooEasy.map((build) => build.displayName).join("・")} がそこに入っている（易しすぎる側）`
+    : "いまそこに入る構成は無い")
+  + `。下端の目安は第${LAST_ENCOUNTER}戦の完走で、届いていないのは `
+  + (BUILDS.filter((build) => margins.get(build.id).ends !== "cleared")
+    .map((build) => `${build.displayName}（第${margins.get(build.id).reached}戦）`).join("・") || "無い"),
 );
