@@ -46,6 +46,12 @@
 | `sync.mjs` | `/api/runs` への送信と端末 ID |
 | `check.mjs` | `ecology/*.test.mjs` の runner |
 
+戦闘タブの `renderMap()` は、12個のノードを `composeEncounter(step, ...)` から生成し、
+`RunState.encounterIndex` との比較だけで `done` / `current` / `unreached` を決めます。
+精鋭・bossの種別はノード内の記号と凡例へ分離し、強い現在地枠を種別用の枠で上書きしません。
+`analysis/ecology-map-smoke.mjs` が12戦の配置とこの表示契約を、
+`analysis/ecology-trial.mjs` がiPhone幅での現在地移動を確認します。
+
 ## 3. 状態は三層
 
 | 層 | 永続期間 | 主な内容 |
