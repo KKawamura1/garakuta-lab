@@ -85,9 +85,13 @@ for (const [label, sourceText, forbidden] of [
 // issue #205 — internal diagnostics must not occupy normal screen chrome.
 // shell() wraps title, camp, battle, result and settlement, so checking this
 // shared renderer covers every normal screen without duplicating assertions.
-const shellSource = app.match(/function shell\([\s\S]*?\n\}\n\nfunction diagnosticStamp/);
+const shellStart = app.indexOf("function shell(body, options = {})");
+const titleShellStartForDiagnostics = app.indexOf("function titleShell(title, subtitle, body)", shellStart);
+const shellSource = shellStart >= 0 && titleShellStartForDiagnostics > shellStart
+  ? [app.slice(shellStart, titleShellStartForDiagnostics)]
+  : null;
 if (!shellSource) {
-  console.error("ecology-screens smoke: shell() / diagnosticStamp() を見つけられなかった。検査の書き方が古い。");
+  console.error("ecology-screens smoke: 通常用 shell() / titleShell() の境界を見つけられなかった。検査の書き方が古い。");
   process.exit(1);
 }
 for (const [label, forbidden] of [
@@ -99,6 +103,42 @@ for (const [label, forbidden] of [
 if (!shellSource[0].includes("build-stamp") || !shellSource[0].includes(" hidden aria-hidden=")) {
   problems.push("E2E用build stampが視覚的に非表示になっていない");
 }
+
+// issue #222 — normal screens no longer inherit a generic title/subtitle chrome.
+// The normal shell has no title parameters and never renders a header. The title
+// screen uses a separate titleShell, so the exception is structural rather than
+// a caller convention repeated across every normal screen.
+const normalShellStart = app.indexOf("function shell(body, options = {})");
+const titleShellStart = app.indexOf("function titleShell(title, subtitle, body)");
+const diagnosticStampStart = app.indexOf("\nfunction diagnosticStamp", titleShellStart);
+if (normalShellStart < 0 || titleShellStart < 0 || diagnosticStampStart < 0) {
+  console.error("ecology-screens smoke: shell()/titleShell() の構造を見つけられなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+const normalShellSource = app.slice(normalShellStart, titleShellStart);
+const titleShellSource = app.slice(titleShellStart, diagnosticStampStart);
+if (normalShellSource.includes("<header")) {
+  problems.push("通常画面用 shell() がヘッダーを生成している");
+}
+if (!titleShellSource.includes("<header") || !titleShellSource.includes("title-header")) {
+  problems.push("タイトル画面用 titleShell() がタイトルヘッダーを生成していない");
+}
+if (app.includes("titleScreen:") || app.includes("shell(title, subtitle")) {
+  problems.push("通常画面用 shell() にタイトル画面用の分岐または引数が戻っている");
+}
+if (!app.includes('return titleShell("One Battle Ahead", "",')) {
+  problems.push("タイトル画面が titleShell() を使っていない");
+}
+
+// 画面固有の文脈は、共通ヘッダーを消しても失わない。
+for (const [label, expected] of [
+  ["戦闘画面の遭遇名", 'sectionHeading("BATTLE", "戦闘"'],
+  ["結果画面の遭遇・ラウンド", "verdict-context"],
+  ["キャンプ予測の遭遇名", "const encounterName = currentEncounter()?.name"],
+]) {
+  if (!app.includes(expected)) problems.push(label + "が見つからない");
+}
+
 for (const copy of [
   "この構成のままなら、この通りに終わります。",
   "装備は付け替え自由。",
