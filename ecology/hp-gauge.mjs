@@ -1,44 +1,91 @@
-YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éí×]xN‹Z–‹­¦ëeŠw¬Ô¼¼•½±½ä½¡Àµ…Õ”¹µ©ÌƒŠP!C
-Ëó
-ã»¢†£’ë––GÒ(¼¼(¼¼ƒš"›¦^c
-£Ï
-ãÏ3šâ‡d!@ƒ–¢¢Ï
-KRï¦v‹¸Ó–2ë–"£’ö9!C¢¶›–F+ã–’'š>og
-/(¼¼ƒOO¼•¹¥¹”ƒ»*Ûš/
-K–’'šnÓ_«ÒSÊ/«¢†£’ëš*W–öÇ«»Ÿ’ê#šâ³ïšr³V«¸(¼¼É•Á±…äÍ¹…ÁÍ¡½Ğƒ3–B3c«
-'–B3c–2ë–"£¢¶›–F+¯«
-/((¼¼ƒ’ö9!C¢¶›–F+¿
-Ëó
-ã–»¢&Ë»š?–FÏ
-K––«
-?«
-#
-¯ó'»šzƒŸ¢†£g(¼¼ƒš¾S¢ò¿šVÓšVÀ‰…Í¥ÌÁ½¥¹ÑÌƒ¯_›ÔÔ”€¼€ÈÔ”ƒ»–ŠV3
-K–B¯
-›šÆë–ºkj¯g
-/)•áÁ½ÉĞ½¹ÍĞ!A}]I9%9}	AL€ô€ÔÔÀÀì)•áÁ½ÉĞ½¹ÍĞ!A}I%Q%1}	AL€ô€ÈÔÀÀì()•áÁ½ÉĞ½¹ÍĞ!A}1IQL€ô=‰©•Ğ¹™É••é”¡ì(€¹½Éµ…°è€‰¹½Éµ…°ˆ°(€İ…É¹¥¹œè€‰İ…É¹¥¹œˆ°(€É¥Ñ¥…°è€‰É¥Ñ¥…°ˆ°)ô¤ì()•áÁ½ÉĞ½¹ÍĞ!A}1IQ}1	1L€ô=‰©•Ğ¹™É••é”¡ì(€¹½Éµ…°è€ˆˆ°(€İ…É¹¥¹œè€‰!CšÎ£š<ˆ°(€É¥Ñ¥…°è€‰!C–6Ç¦fë–~|ˆ°)ô¤ì()•áÁ½ÉĞ½¹ÍĞ!A}U}M59Q}-eL€ô=‰©•Ğ¹™É••é”¡l(€€‰É••¸ˆ°(€€‰É•½Ù•É•ˆ°(€€‰É•½Ù•É…‰±”ˆ°(€€‰Õ¹É•½Ù•É…‰±”ˆ°)t¤ì()™Õ¹Ñ¥½¸¹½¹9•…Ñ¥Ù•¥¹¥Ñ”¡Ù…±Õ”¤ì(€½¹ÍĞ¹Õµ‰•È€ô9Õµ‰•È¡Ù…±Õ”€üü€À¤ì(€É•ÑÕÉ¸9Õµ‰•È¹¥Í¥¹¥Ñ”¡¹Õµ‰•È¤€ü5…Ñ ¹µ…à À°¹Õµ‰•È¤€è€Àì)ô((¼¼É••¹€ƒ¿>û–r¡!C»‡’î+–n{»šRïšJŸûƒ–n{–ú§_›«¦£–"(¼¼É•½Ù•É•‘€ƒ¿–B3cšRïšJŸ–n{–ú§_¦£–"É•½Ù•É…‰±•€ƒ¿ûƒ–n{–ú§Ÿ7
-,(¼¼ƒ‡ó
-ãÕ¹É•½Ù•É…‰±•€ƒ¿Šë–ºk_‡ó
-ã
-K¢†£g)•áÁ½ÉĞ™Õ¹Ñ¥½¸¡Á…Õ•MÑ…Ñ”¡…Ñ½È€ôíô¤ì(€½¹ÍĞµ…á!À€ô¹½¹9•…Ñ¥Ù•¥¹¥Ñ”¡…Ñ½È¹µ…á!À¤ì(€½¹ÍĞÕÉÉ•¹Ñ!À€ô5…Ñ ¹µ¥¸¡µ…á!À°¹½¹9•…Ñ¥Ù•¥¹¥Ñ”¡…Ñ½È¹¡À¤¤ì(€½¹ÍĞÉ•½Ù•Ë]x¶‰ËkºwµçBˆ™XÛİ™\™Yˆ™XÛİ™\˜X›Kˆ[œ™XÛİ™\˜X›KˆNÂŸB‚™^Ü[˜İ[Ûˆ[\›ÜŠXİÜˆHßJHÂˆÛÛœİÈX^İ\œ™[HHØ]YÙTİ]JXİÜŠNÂˆYˆ
-XİÜ‹˜[]™HOOH˜[ÙHX^H
-H™]\›ˆĞST•Ë››Ü›X[ÂˆÛÛœİœÈHX]™›ÛÜŠ
-İ\œ™[
-ˆL
-HÈX^
-NÂˆYˆ
-œÈHĞÔ’UPĞSĞ”ÊH™]\›ˆĞST•Ë˜Üš]XØ[ÂˆYˆ
-œÈHÕĞT“’S‘×Ğ”ÊH™]\›ˆĞST•ËØ\›š[™ÎÂˆ™]\›ˆĞST•Ë››Ü›X[ÂŸB‚™^Ü[˜İ[Ûˆ[\X™[›ÜŠ[\
-HÂˆ™]\›ˆĞST•ÓP‘SÖØ[\HÏÈĞST•ÓP‘SË››Ü›X[ÂŸB‚‹ËÈ9c.¹b!¸àk¹h ùåc8àkùc§ùbaøàj8àeøài¹æí:)ä¸àjøàfxà¢øà ¸àgøàh8àeøà xàåøàë8à©8àé8àï8àc:*«xà 8ànxàcB‹ËÈ8à#9.â¹fç¸àk¹¥.ù¤ øàk¹fç¹oªycëú ïxàj¹í`¹êëøà#xàh8àdxàkù..8à xà¢øà º-i8àc9á(xàa8àj8àcxàkøà znä¸àk‚‹ËÈ9¢bùbcxàjøà`¸à¢ù§ 9o£8àkºggºnä¹c.¹b!¸à¤¹..8à xà yaj9¤#y¦`¸àh8àdznä¸à¤¹..8à xà¢øà ‚™^Ü[˜İ[ÛˆØ]YÙPÛÜ›™\”›Û\ÊXİÜˆHßJHÂˆÛÛœİİ]HHØ]YÙTİ]JXİÜŠNÂˆÛÛœİ[[İ[ÈHÑĞUQÑWÔÑQÓQS•ÒÑVTË›X\
+// ecology/hp-gauge.mjs â€” HPã‚²ãƒ¼ã‚¸ã®è¡¨ç¤ºå¥‘ç´„ã€‚
+//
+// æˆ¦é—˜ã‚¨ãƒ³ã‚¸ãƒ³ãŒæ¸¡ã™ HP å†…è¨³ã‚’ã€ç”»é¢ã®4åŒºåˆ†ã¨ä½HPè­¦å‘Šã¸å¤‰æ›ã™ã‚‹ã€‚
+// ã“ã“ã¯ engine ã®çŠ¶æ…‹ã‚’å¤‰æ›´ã—ãªã„ç´”ç²‹ãªè¡¨ç¤ºæŠ•å½±ãªã®ã§ã€äºˆæ¸¬ãƒ»æœ¬ç•ªã®
+// replay snapshot ãŒåŒã˜ãªã‚‰åŒã˜åŒºåˆ†ã¨è­¦å‘Šã«ãªã‚‹ã€‚
 
-Ù^JHOˆİ]VÚÙ^WJNÂˆÛÛœİš\œİš\ÚX›R[™^H[[İ[Ë™š[™[™^
+// ä½HPè­¦å‘Šã¯ã‚²ãƒ¼ã‚¸å†…ã®è‰²ã®æ„å‘³ã‚’å¥ªã‚ãªã„ã‚ˆã†ã€ã‚«ãƒ¼ãƒ‰ã®æ ã§è¡¨ã™ã€‚
+// æ¯”è¼ƒã¯æ•´æ•° basis points ã«ã—ã¦ã€55% / 25% ã®å¢ƒç•Œã‚’å«ã‚ã¦æ±ºå®šçš„ã«ã™ã‚‹ã€‚
+export const HP_WARNING_BPS = 5500;
+export const HP_CRITICAL_BPS = 2500;
 
-[[İ[
-HOˆ[[İ[ˆ
-NÂˆÛÛœİš\œİš\ÚX›HHš\œİš\ÚX›R[™^HˆÈÑĞUQÑWÔÑQÓQS•ÒÑVTÖÙš\œİš\ÚX›R[™^Bˆˆ[Â‚ˆ]šYÚ›İ[™[™^HLNÂˆ›Üˆ
-][™^HÈ[™^ÑĞUQÑWÔÑQÓQS•ÒÑVTË›[™İHNÈ[™^
-ÏHJHÂˆYˆ
-[[İ[ÖÚ[™^Hˆ
-HšYÚ›İ[™[™^H[™^ÂˆBˆYˆ
-šYÚ›İ[™[™^
-HšYÚ›İ[™[™^Hš\œİš\ÚX›R[™^Â‚ˆ™]\›ˆÂˆY›İ[™ˆš\œİš\ÚX›KˆšYÚ›İ[™ˆšYÚ›İ[™[™^HÈÑĞUQÑWÔÑQÓQS•ÒÑVTÖÜšYÚ›İ[™[™^Hˆ[ˆNÂŸB
+export const HP_ALERTS = Object.freeze({
+  normal: "normal",
+  warning: "warning",
+  critical: "critical",
+});
+
+export const HP_ALERT_LABELS = Object.freeze({
+  normal: "",
+  warning: "HPæ³¨æ„",
+  critical: "HPå±é™ºåŸŸ",
+});
+
+export const HP_GAUGE_SEGMENT_KEYS = Object.freeze([
+  "green",
+  "recovered",
+  "recoverable",
+  "unrecoverable",
+]);
+
+function nonNegativeFinite(value) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? Math.max(0, number) : 0;
+}
+
+// `green` ã¯ç¾åœ¨HPã®ã†ã¡ä»Šå›ã®æ”»æ’ƒã§ã¾ã å›å¾©ã—ã¦ã„ãªã„éƒ¨åˆ†ã€
+// `recovered` ã¯åŒã˜æ”»æ’ƒã§å›å¾©ã—ãŸéƒ¨åˆ†ã€`recoverable` ã¯ã¾ã å›å¾©ã§ãã‚‹
+// ãƒ€ãƒ¡ãƒ¼ã‚¸ã€`unrecoverable` ã¯ç¢ºå®šã—ãŸãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’è¡¨ã™ã€‚
+export function hpGaugeState(actor = {}) {
+  const maxHp = nonNegativeFinite(actor.maxHp);
+  const currentHp = Math.min(maxHp, nonNegativeFinite(actor.hp));
+  const recovered = Math.min(currentHp, nonNegativeFinite(actor.recoveredDamage));
+  const recoverable = actor.alive
+    ? Math.min(maxHp - currentHp, nonNegativeFinite(actor.recoverableDamage))
+    : 0;
+  const unrecoverable = Math.max(0, maxHp - currentHp - recoverable);
+  return {
+    maxHp,
+    currentHp,
+    green: Math.max(0, currentHp - recovered),
+    recovered,
+    recoverable,
+    unrecoverable,
+  };
+}
+
+export function hpAlertFor(actor = {}) {
+  const { maxHp, currentHp } = hpGaugeState(actor);
+  if (actor.alive === false || maxHp <= 0) return HP_ALERTS.normal;
+  const hpBps = Math.floor((currentHp * 10000) / maxHp);
+  if (hpBps <= HP_CRITICAL_BPS) return HP_ALERTS.critical;
+  if (hpBps <= HP_WARNING_BPS) return HP_ALERTS.warning;
+  return HP_ALERTS.normal;
+}
+
+export function hpAlertLabelFor(alert) {
+  return HP_ALERT_LABELS[alert] ?? HP_ALERT_LABELS.normal;
+}
+
+// åŒºåˆ†ã®å¢ƒç•Œã¯åŸå‰‡ã¨ã—ã¦ç›´è§’ã«ã™ã‚‹ã€‚ãŸã ã—ã€ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒèª­ã‚€ã¹ã
+// ã€Œä»Šå›ã®æ”»æ’ƒã®å›å¾©å¯èƒ½ãªçµ‚ç«¯ã€ã ã‘ã¯ä¸¸ã‚ã‚‹ã€‚èµ¤ãŒç„¡ã„ã¨ãã¯ã€é»’ã®
+// æ‰‹å‰ã«ã‚ã‚‹æœ€å¾Œã®éé»’åŒºåˆ†ã‚’ä¸¸ã‚ã€å…¨ææ™‚ã ã‘é»’ã‚’ä¸¸ã‚ã‚‹ã€‚
+export function hpGaugeCornerRoles(actor = {}) {
+  const state = hpGaugeState(actor);
+  const amounts = HP_GAUGE_SEGMENT_KEYS.map((key) => state[key]);
+  const firstVisibleIndex = amounts.findIndex((amount) => amount > 0);
+  const firstVisible = firstVisibleIndex >= 0
+    ? HP_GAUGE_SEGMENT_KEYS[firstVisibleIndex]
+    : null;
+
+  let rightRoundIndex = -1;
+  for (let index = 0; index < HP_GAUGE_SEGMENT_KEYS.length - 1; index += 1) {
+    if (amounts[index] > 0) rightRoundIndex = index;
+  }
+  if (rightRoundIndex < 0) rightRoundIndex = firstVisibleIndex;
+
+  return {
+    leftRound: firstVisible,
+    rightRound: rightRoundIndex >= 0 ? HP_GAUGE_SEGMENT_KEYS[rightRoundIndex] : null,
+  };
+}
