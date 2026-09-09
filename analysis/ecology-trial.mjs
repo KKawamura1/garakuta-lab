@@ -8,7 +8,7 @@
 // 作者へURLを渡す前に、docs/OPERATIONS.md の「作者へ URL を渡す前に」の
 // 画面経路ぶんをここで先に潰す（公開先そのものへはこの環境から出られない）。
 
-import { spawn, execSync } from "node:child_process";
+import { spawn, execFileSync, execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
 // **同じ台本を、手元でも公開先でも走らせる。**手元はこの箱の Chromium、
@@ -23,6 +23,9 @@ const { chromium } = await import(existsSync(PLAYWRIGHT_MODULE) ? PLAYWRIGHT_MOD
 const PORT = Number(process.env.ECOLOGY_TRIAL_PORT || 8944);
 const BASE = process.env.ECOLOGY_TRIAL_BASE || `http://127.0.0.1:${PORT}/ecology/`;
 const local = BASE.startsWith("http://127.0.0.1") || BASE.startsWith("http://localhost");
+if (local && !process.env.ECOLOGY_EXPECT_BUILD) {
+  execFileSync(process.execPath, ["analysis/stamp.mjs"], { stdio: "ignore" });
+}
 
 const server = local
   ? spawn("python3", ["-m", "http.server", String(PORT)], { stdio: "ignore", detached: true })
@@ -36,7 +39,7 @@ const note = (label, ok, extra = "") => {
   console.log(`  ${ok ? "ok  " : "NG  "} ${label}${extra ? ` — ${extra}` : ""}`);
 };
 
-const expectedBuild = (() => {
+const expectedBuild = process.env.ECOLOGY_EXPECT_BUILD || (() => {
   try {
     return execSync("node -e \"import('./core/build.mjs').then(m => process.stdout.write(m.BUILD))\"")
       .toString().trim();
