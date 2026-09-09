@@ -147,7 +147,9 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 HP回復は `damage_taken` が実際に失わせたHPだけを、同じ攻撃チェーンの回復窓で戻せます。
 防壁で吸収した分は窓に入りません。次の `action_started` またはラウンド／戦闘境界で
 `recovery_window_closed` を記録し、残った未回復ダメージを確定します。リプレイ snapshot は
-`recoverableDamage` を運び、UIは現在HPを緑、その窓で戻せる量を赤で表示します。
+`recoveredDamage`・`recoverableDamage`・`unrecoverableDamage` を運び、UIは最大HPバーを
+緑（未回復の残HP）・紫（回復済み）・赤（回復可能残分）・黒（回復不能分）に分けます。
+隣接区分の境界は角丸にせず、対象が倒れた時は同じ表示拍で赤を黒へ確定します。
 
 ## 6. content の hard contract
 
