@@ -1262,7 +1262,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   transition: left .34s cubic-bezier(.2, .7, .3, 1), width .34s cubic-bezier(.2, .7, .3, 1);
 }
 .unit-fill { background: var(--good); }
-.unit-recovered { background: var(--violet); }
+.unit-recovered { background: #6fbd84; }
 .unit-recoverable { background: var(--bad); }
 .unit-unrecoverable { background: #080c0d; }
 .unit-barrier-fill {
