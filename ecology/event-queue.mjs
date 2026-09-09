@@ -42,6 +42,7 @@ function actorSnapshots(state) {
       position: actor.position,
       hp: actor.hp,
       maxHp: actor.maxHp,
+      recoverableDamage: state.recoveryWindows?.get(actor.instanceId)?.remaining ?? 0,
       alive: actor.alive,
       actionPoints: actor.actionPoints,
       reactionPoints: actor.reactionPoints,
