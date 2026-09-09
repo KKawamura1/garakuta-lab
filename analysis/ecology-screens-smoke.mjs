@@ -41,6 +41,34 @@ const displayContracts = [
 for (const [label, sourceText, expected] of displayContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
+
+const progressiveContracts = [
+  ["戦闘タブの主操作", app, "primary-action map-primary-action"],
+  ["結果画面の主操作", app, "primary-action result-primary-action"],
+  ["敗北画面の主操作", app, "primary-action defeat-primary-action"],
+  ["精算画面の主操作", app, "primary-action settlement-primary-action"],
+  ["敵情報の折り畳み", app, "progressive-details enemy-details"],
+  ["技能ツリーの折り畳み", app, "progressive-details skill-tree-details"],
+  ["装備一覧の折り畳み", app, "progressive-details equipment-inventory"],
+  ["主操作のCSS", styles, ".primary-action"],
+  ["折り畳みのCSS", styles, ".progressive-details > summary"],
+];
+for (const [label, sourceText, expected] of progressiveContracts) {
+  if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
+}
+const mapRendererStart = app.indexOf("function renderMap()");
+const mapRendererEnd = app.indexOf("\nfunction treatmentTargetIds", mapRendererStart);
+if (mapRendererStart < 0 || mapRendererEnd < 0) {
+  console.error("ecology-screens smoke: renderMap() の範囲を見つけられなかった。");
+  process.exit(1);
+}
+const mapRenderer = app.slice(mapRendererStart, mapRendererEnd);
+if (mapRenderer.indexOf("map-primary-action") > mapRenderer.indexOf("act-line")) {
+  problems.push("戦闘タブの主操作が敵の概要より後ろにある");
+}
+if (!app.includes("status + nextBlock + stateCard")) {
+  problems.push("結果画面の主操作が戦闘後詳細より前に配置されていない");
+}
 for (const [label, sourceText, forbidden] of [
   ["技能バッジの旧表示語", app, 'const kindLabels = { active: "行動"'],
   ["アクティブ欄の旧表示語", app, 'active: "行動（優先順）"'],

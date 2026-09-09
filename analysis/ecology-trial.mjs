@@ -84,6 +84,10 @@ try {
     const box = element.getBoundingClientRect();
     return box.left >= -1 && box.right <= window.innerWidth + 1 && box.width > 0 && box.height > 0;
   });
+  const appearsBefore = async (firstSelector, secondSelector) => page.locator(firstSelector).first().evaluate((first) => {
+    const second = document.querySelector(secondSelector);
+    return Boolean(second && (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING));
+  });
   const readBeatCount = async () => {
     const text = await page.locator(".beat-count").textContent();
     const match = text?.match(/([0-9]+)\s*\/\s*([0-9]+)/);
@@ -198,6 +202,14 @@ try {
   for (const [tab, needle] of [["roster", "編成"], ["skills", "技能点"], ["equipment", "装備"], ["map", "この敵に挑む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
     note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
+    if (tab === "skills") {
+      note("技能ツリーを折りたためる",
+        await page.locator("details.skill-tree-details").count() === 1);
+    }
+    if (tab === "equipment") {
+      note("装備一覧を折りたためる",
+        await page.locator("details.equipment-inventory").count() === 1);
+    }
   }
   note("タブが画面内に収まる", await onScreen("nav.tabs"));
 
@@ -240,6 +252,12 @@ try {
       note("戦闘予測が画面上部に出ている", await page.locator(".camp-top .forecast-bar").count() === 1);
       note("予測に各メンバーの減少量が出ている",
         await page.locator(".forecast-member .forecast-delta").count() > 0);
+      note("戦闘タブの主操作が画面上部にある",
+        await page.locator(".map-primary-action .button").count() === 1
+          && await onScreen(".map-primary-action .button"));
+      note("敵情報を折りたためる",
+        await page.locator("details.enemy-details").count() === 1
+          && await page.locator("details.enemy-details > summary").count() === 1);
       // 予測カードの表示値を保存し、同じ戦闘のアニメーション最終フレームと突き合わせる。
       forecastAtStage1 = await page.locator(".forecast-bar").evaluate((bar) => ({
         result: ["win", "loss", "draw"].find((value) => bar.classList.contains(value)) ?? "",
@@ -393,6 +411,10 @@ try {
     if (stage === 1) {
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
+      note("結果画面の主操作が詳細より前で見える",
+        await page.locator(".result-primary-action .primary-action-label").count() === 1
+          && await onScreen(".result-primary-action .primary-action-label")
+          && await appearsBefore(".result-primary-action", ".result-actors"));
     }
     if (stage === 1 && verdict === "突破した") {
       // issue #138 — 勝利の結果と報酬3択が同じ画面に出て、「報酬を見る」の
@@ -463,6 +485,10 @@ try {
   const settleText = await bodyText();
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
   note("精算の内訳が出ている", /到達距離/.test(settleText) && /報酬倍率/.test(settleText));
+  note("精算後の主操作が上部にある",
+    await page.locator(".settlement-primary-action .primary-action-label").count() === 1
+      && await onScreen(".settlement-primary-action .primary-action-label")
+      && await appearsBefore(".settlement-primary-action", ".settle-list"));
   if (/記録を送る/.test(settleText)) await click("記録を送る");
 
   // 終端（アンケート）へ。まだ着いていなければ、その場から終端画面を開く。
