@@ -84,10 +84,10 @@ try {
     const box = element.getBoundingClientRect();
     return box.left >= -1 && box.right <= window.innerWidth + 1 && box.width > 0 && box.height > 0;
   });
-  const appearsBefore = async (firstSelector, secondSelector) => page.locator(firstSelector).first().evaluate((first) => {
-    const second = document.querySelector(secondSelector);
+  const appearsBefore = async (firstSelector, secondSelector) => page.locator(firstSelector).first().evaluate((first, selector) => {
+    const second = document.querySelector(selector);
     return Boolean(second && (first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING));
-  });
+  }, secondSelector);
   const readBeatCount = async () => {
     const text = await page.locator(".beat-count").textContent();
     const match = text?.match(/([0-9]+)\s*\/\s*([0-9]+)/);
