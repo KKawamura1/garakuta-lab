@@ -2172,10 +2172,11 @@ function renderRoster() {
 
 
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
+// **見出しは名前だけ。**「順番」「いつでも効く」は、行の番号と目盛りが出している。
 const SLOT_TITLES = {
-  active: "アクティブ（順番）",
+  active: "アクティブ",
   reactive: "リアクティブ",
-  passive: "パッシブ（いつでも効く）",
+  passive: "パッシブ",
 };
 
 // issue #176 — 状態（バフ・デバフ）の説明。**本文は content/statuses.mjs にしかない。**
@@ -2455,7 +2456,7 @@ function skillSlotRows(characterId, kind) {
     : "";
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span>"
     + meter + total + "</div>"
-    + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
+    + (rows || "<p class=\"empty-slot\">—</p>") + "</div>";
 }
 
 function memberTabs(characterId, options = {}) {
@@ -2657,32 +2658,24 @@ function skillEffectText(characterId, skillId) {
 // 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
 function levelUpAction(node, characterId, nodeState) {
   const cap = skillLevelCapOf(node.skillId);
-  if (cap <= 1) {
-    return "<p class=\"node-locked\">この技能はレベルを持ちません。</p>";
-  }
-  if (!nodeState.unlocked) {
-    return "<p class=\"node-locked\">解禁するとLv1になり、そこから技能点1点で上げられます。</p>";
-  }
+  // **段を持たない節・まだ取っていない節には、何も書かない。**目盛りが無いことが
+  // そのまま「段を持たない」で、値段は右端の丸に出ている（issue #177）。
+  if (cap <= 1 || !nodeState.unlocked) return "";
   const level = skillLevelOf(characterId, node.skillId);
-  if (level >= cap) {
-    return "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。上の説明は Lv "
-      + level + " の値で書いてあります。</p>";
-  }
+  if (level >= cap) return "";
   const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
   // **1点で、上の説明のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。
   const steps = skillLevelValueSteps(
     COMPONENTS[node.skillId]?.effect ?? "", skillDefinitionOf(node.skillId), level,
   );
+  // **1点で変わるのは数だけ。**その数そのものを出す（規則の説明は畳んだヘルプにある）。
   const change = steps.length
-    ? "上の説明の数字が <b>"
-      + steps.map((step) => esc(step.from) + " → " + esc(step.to)).join("</b>、<b>") + "</b> になります。"
-    : "威力・治療量・防壁が 12% 上がります。";
-  return button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
+    ? "<span class=\"level-step\">" + steps.map((step) =>
+      esc(step.from) + " → <b>" + esc(step.to) + "</b>").join(" · ") + "</span>"
+    : "<span class=\"level-step\">+12%</span>";
+  return button("Lv " + (level + 1) + "（" + SKILL_LEVEL_COST + "点）",
     "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
-    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-    + "<p class=\"node-locked level-now\">" + change
-    + "AP / RP や段数・回数は変わりません。<b>1段では次の一戦の予測が動かないこともあります</b>"
-    + "（倒すのに要るラウンドが変わらなければ、残るHPも変わりません）。</p>";
+    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"") + change;
 }
 
 
@@ -2710,11 +2703,11 @@ function renderSkillDetail(row, node, characterId, nodeState) {
       : nodeState.canUnlock
         ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
           "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-        : "<p class=\"node-locked\">"
-          + (nodeState.prereqsMet
-            ? "技能点が足りません（必要 " + node.cost + "点 / 手持ち " + skillPointsFor(characterId) + "点）。"
-            : prerequisiteShortfallText(characterId, nodeState.unmet))
-          + "</p>";
+        : nodeState.prereqsMet
+          // 値段と手持ちは右端の丸と見出しに出ているので、押せない釦だけを残す。
+          ? button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
+            "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+          : "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
   // **説明文はいまのレベルの値で読む。**Lv1 では元の文のまま。
   // **文章を許すのはここだけ。**技能の説明文は「深く遊びたい人が読むところ」なので
   // 残す（作者方針）。状態・段・値段は上の印で読めるので、文では繰り返さない。

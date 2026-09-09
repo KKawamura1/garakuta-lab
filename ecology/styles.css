@@ -2759,3 +2759,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .turn-cell.branch-care { border-color: var(--branch-care); color: var(--branch-care); }
 .turn-cell.branch-order { border-color: var(--branch-order); color: var(--branch-order); }
 .turn-cell.branch-base { border-color: var(--branch-base); color: var(--branch-base); }
+.level-step { display: inline-block; margin-left: 7px; color: var(--muted); font-size: 10px; }
+.level-step b { color: var(--violet); }
+.empty-slot { color: var(--muted); font-size: 12px; }

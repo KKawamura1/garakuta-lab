@@ -247,8 +247,14 @@ try {
   const flatNodes = await page.locator(".skill-tree-forest .skill-node").evaluateAll((nodes) =>
     nodes.filter((node) => !node.querySelector(".level-meter")).length);
   note("レベルを持たない技能には目盛りが出ない", flatNodes > 0, `目盛り無し ${flatNodes} 節`);
-  const levelText = await bodyText();
-  note("レベルの上げ方が書いてある", /技能点1点|Lv ?\d+ ?へ上げる|威力・治療量・防壁/.test(levelText));
+  // 段を上げる操作は**取得済みの節にだけ**出る。値段は釦に、変わる数はその隣に。
+  // 規則そのもの（AP/RP は変わらない）は畳んだ「技能のルール」にあり、節では繰り返さない。
+  await page.locator('.skill-tree-forest [data-action="select-skill-node"]').first().click();
+  await page.waitForTimeout(150);
+  const levelButton = await page.locator('.level-action [data-action="level-up-skill"]').count();
+  const levelStep = await page.locator(".level-action .level-step").innerText().catch(() => "");
+  note("取得済みの節に段の上げ方が出る", levelButton === 1 && /→/.test(levelStep),
+    `${levelButton}件 · ${levelStep}`);
 
   // 記号の意味は畳んだ中に一度だけ。**節や装着行の上には出さない。**
   note("記号の意味が畳んで置いてある", await page.locator('details[data-help="skill-symbols"]').count() === 1);
