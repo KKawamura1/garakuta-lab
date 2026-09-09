@@ -485,8 +485,7 @@ try {
         const innerBoundariesSquare = segments.every((segment, index) => {
           if (!visible[index]) return true;
           const nextVisible = visible.slice(index + 1).some(Boolean);
-          const redEndpoint = index === 2 && visible[2];
-          return nextVisible && !redEndpoint
+          return nextVisible && index !== rightRound
             ? !radius(segment.topRight) && !radius(segment.bottomRight)
             : true;
         });
