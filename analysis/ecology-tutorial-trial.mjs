@@ -211,6 +211,15 @@ try {
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
 
+  // issue #177 — **1ラウンドに払える点**を見出しに出す。反応は上から順に払うので、
+  // 点が尽きた行は同じラウンドでは出ない（その行に印が付く）。ゴウは行動点1・反応点2。
+  const apPips = await page.locator(".slot-heading .slot-budget.ap .pips i").count();
+  const rpPips = await page.locator(".slot-heading .slot-budget.rp .pips i").count();
+  note("1ラウンドに払える点が装着の見出しに出る", apPips === 1 && rpPips === 2,
+    `行動点 ${apPips} · 反応点 ${rpPips}`);
+  note("装着した技能の消費が点で出る",
+    await page.locator(".installed-copy .row-marks .pips i").count() > 0);
+
   // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
   note("アクティブ／リアクティブ／パッシブを切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
   note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-lines path").count() > 0);
@@ -228,14 +237,46 @@ try {
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
   note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
 
-  // R19（issue #137）— 技能レベル。**上位互換を別技能として増やさない**代わりに、
-  // 一つの節が何段まで伸びるのかを節の上で読める。
-  note("節に現在レベル／最大レベルが出る", await page.locator(".badge-level").count() > 0);
-  note("レベルを持たない技能はそう書く", await page.locator(".badge-level.flat").count() > 0);
+  // R19（issue #137）／issue #177 — 段は**文字ではなく目盛り**で出す。目盛りの数が
+  // 上限、塗ってある数がいまの段。レベルを持たない節には目盛りそのものが出ない。
+  const meters = await page.locator(".skill-tree-forest .level-meter").evaluateAll((nodes) =>
+    nodes.map((node) => ({ ticks: node.querySelectorAll("i").length, on: node.querySelectorAll("i.on").length })));
+  note("節の段が目盛りで出る", meters.length > 0 && meters.every((meter) => meter.ticks > 1),
+    `目盛り ${meters.length} 件`);
+  note("塗ってある段が上限を超えない", meters.every((meter) => meter.on <= meter.ticks));
+  const flatNodes = await page.locator(".skill-tree-forest .skill-node").evaluateAll((nodes) =>
+    nodes.filter((node) => !node.querySelector(".level-meter")).length);
+  note("レベルを持たない技能には目盛りが出ない", flatNodes > 0, `目盛り無し ${flatNodes} 節`);
   const levelText = await bodyText();
-  note("レベルの上げ方が書いてある", /技能点1点|Lv\d+へ上げる|威力・治療量・防壁/.test(levelText));
+  note("レベルの上げ方が書いてある", /技能点1点|Lv ?\d+ ?へ上げる|威力・治療量・防壁/.test(levelText));
+
+  // 記号の意味は畳んだ中に一度だけ。**節や装着行の上には出さない。**
+  note("記号の意味が畳んで置いてある", await page.locator('details[data-help="skill-symbols"]').count() === 1);
+
   await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
   await page.waitForTimeout(150);
+
+  // issue #177 — **その人物の手で出る量**を長さで見せる。ゴウ（腕力50・技術6）が
+  // 技術で伸びる節を装着すると7しか出ない、が issue #230 の通しで一番効いた。
+  // 行動のツリーで見る（回復の反応は被害量に比例するので、能力値のバーを持たない）。
+  const yields = await page.locator(".skill-tree-forest .yield").evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute("aria-label") ?? ""));
+  note("誰の何で伸びるかが節に出る", yields.length > 0
+    && yields.every((label) => /(腕力|技術|受け)で伸びる/.test(label)), `量のバー ${yields.length} 件`);
+
+  // テーマ（攻撃・守り・支援・指揮・基礎）で絞れる。押すと他のテーマが沈む。
+  const branchChips = page.locator('[data-action="select-skill-branch"]');
+  const chipCount = await branchChips.count();
+  note("テーマの印で絞り込める", chipCount >= 2, `テーマ ${chipCount} 種`);
+  const beforeFilter = await page.locator(".tree-cell.faded").count();
+  await branchChips.first().click();
+  await page.waitForTimeout(150);
+  const afterFilter = await page.locator(".tree-cell.faded").count();
+  note("テーマを選ぶと他のテーマが沈む", afterFilter > beforeFilter, `${beforeFilter} → ${afterFilter}`);
+  await branchChips.first().click();
+  await page.waitForTimeout(150);
+  note("同じ印をもう一度押すと戻る", await page.locator(".tree-cell.faded").count() === beforeFilter);
+
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
   // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();

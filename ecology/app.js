@@ -70,6 +70,9 @@ import {
   // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
   skillLevelValueSteps,
   skillTextAtLevel,
+  // issue #177 — 「誰の何で伸びるのか」と、その人物が使ったときの実数。
+  leveledEffectOf,
+  leveledValueAt,
   // R19（issue #137）— 技能ツリーの座標と表示語彙。
   BRANCH_BUILDS,
   SCOPE_LABELS,
@@ -410,6 +413,8 @@ function freshUiState() {
     selectedSkillNode: null,
     // R19（issue #137）— ツリーは種別（アクティブ / リアクティブ / パッシブ）で切り替える。
     skillTreeKind: "active",
+    // issue #177 — テーマの絞り込み（null は全部）。
+    skillTreeBranch: null,
     selectedEquipment: null,
     // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
@@ -549,6 +554,7 @@ function hydrateState(saved) {
     : {};
   next.selectedSkillNode = next.selectedSkillNode || null;
   next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
+  next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
   // 旧いオートセーブには story.lineIndex / log が無い。**足りない欄を補って読む。**
   next.story = {
     queue: Array.isArray(saved.story?.queue) ? saved.story.queue.filter(Boolean) : [],
@@ -821,10 +827,6 @@ function characterDisplay(id) {
 
 function positionText(position) {
   return positionLabels[position] ?? position;
-}
-
-function kindText(kind) {
-  return kindLabels[kind] ?? kind;
 }
 
 // R6 §9.5 — 鍛錬後の値。**base ではなくこれを画面と戦闘の両方が読む。**
@@ -2203,37 +2205,257 @@ function activeFiringLabel(skillId) {
   return "無条件";
 }
 
+// ============================================================ 記号の語彙（issue #177）
+//
+// **通常のゲームシステムは、文章ではなく形と色で見せる。**文字を読ませてよいのは
+// 物語と技能の説明文だけで、「いくつ払うか」「何回に一度出るか」「誰の手で伸びるか」は
+// 一目で分かる形にする（作者方針、2026-09-09）。
+//
+// 語彙は四つしかない。
+//
+//   ● ピップ  … 数えるもの（AP・RP・HPの代償・レベル）
+//   ▬ バー    … 量。**同じ画面の中で長さを比べられる**（誰の手で何が出るか）
+//   ◔ 割      … 順番。装着した本数のうち、この一本がどれだけ出番を持つか
+//   色        … テーマ（攻撃・守り・支援・指揮・基礎）と、能力値（腕力・技術・受け）
+//
+// 意味の対応表は畳んだヘルプに一度だけ置く（`symbolLegendHelp`）。**節の上には出さない。**
+
+const BRANCH_KEYS = { "攻撃": "strike", "守り": "guard", "支援": "care", "指揮": "order", "基礎": "base" };
+const STAT_MARKS = { might: "腕", focus: "技", guard: "受" };
+const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け" };
+// 反応の起点。**一文字の印と色で、何が起きたら鳴るのかを出す。**
+// 言葉のほうは TRIGGER_LABELS（content 側の正本）を引くので、二重に書かない。
+const TRIGGER_MARKS = {
+  damage_taken: { mark: "被", tone: "bad" },
+  damage_proposed: { mark: "来", tone: "bad" },
+  damage_blocked: { mark: "止", tone: "blue" },
+  actor_defeated: { mark: "倒", tone: "gold" },
+  excess_healing: { mark: "溢", tone: "good" },
+  preparation_started: { mark: "溜", tone: "violet" },
+  preparation_completed: { mark: "放", tone: "violet" },
+  preparation_advanced: { mark: "進", tone: "violet" },
+  status_added: { mark: "印", tone: "violet" },
+  healing_applied: { mark: "癒", tone: "good" },
+  barrier_gained: { mark: "盾", tone: "blue" },
+  barrier_broken: { mark: "割", tone: "bad" },
+  actor_moved: { mark: "動", tone: "blue" },
+  action_declared: { mark: "宣", tone: "gold" },
+  action_resolved: { mark: "了", tone: "gold" },
+  excess_damage: { mark: "余", tone: "bad" },
+  resource_gained: { mark: "得", tone: "gold" },
+  status_removed: { mark: "解", tone: "muted" },
+  target_selected: { mark: "狙", tone: "gold" },
+};
+
+function triggerLabelOf(listenTo) {
+  return TRIGGER_LABELS[listenTo] ?? listenTo ?? "";
+}
+
+function pips(count, cls, cap = 6) {
+  if (!count) return "";
+  const shown = Math.min(count, cap);
+  return "<span class=\"pips " + cls + "\" aria-hidden=\"true\">"
+    + "<i></i>".repeat(shown) + (count > cap ? "<b>+" + (count - cap) + "</b>" : "") + "</span>";
+}
+
+// 消費。**AP は金の点、RP は紫の点、代償の HP は赤い点。**数はそのまま点の数。
+function costPips(node) {
+  const definition = skillDefinitionOf(node.skillId);
+  if (!definition) return "";
+  if (node.kind === "active") {
+    const ap = definition.apCost ?? 0;
+    return pips(ap, "ap") || "<span class=\"pips free\" aria-hidden=\"true\"><i></i></span>";
+  }
+  if (node.kind === "reactive") {
+    const costs = definition.rule?.costs ?? [];
+    const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
+    const hp = costs.find((cost) => cost.type === "lose_hp")?.amount ?? 0;
+    return pips(rp, "rp") + (hp ? "<span class=\"pips hp\" aria-hidden=\"true\"><i></i></span>" : "");
+  }
+  return "";
+}
+
+// 反応の起点。**何が起きたら鳴るのかを一文字で。**issue #230 の通しで、
+// 起点が自分に起きない人物へ反応を積むと点がまるごと消えることが分かっている。
+function triggerMark(node) {
+  if (node.kind !== "reactive") return "";
+  const listenTo = skillDefinitionOf(node.skillId)?.rule?.listenTo;
+  const entry = TRIGGER_MARKS[listenTo];
+  if (!entry) return "";
+  const label = triggerLabelOf(listenTo);
+  return "<i class=\"trigger-mark tone-" + entry.tone + "\" role=\"img\" aria-label=\"" + esc(label)
+    + "\" title=\"" + esc(label) + "\">" + entry.mark + "</i>";
+}
+
+// 条件つきかどうか。**塗りつぶしなら毎回出せる、白抜きなら条件が要る。**
+function firingMark(node) {
+  if (node.kind !== "active") return "";
+  const firing = activeFiringLabel(node.skillId);
+  if (!firing) return "";
+  const conditional = firing !== "無条件";
+  const label = conditional ? "条件つき（合う拍だけ出る）" : "無条件（いつでも出せる）";
+  return "<i class=\"firing-mark" + (conditional ? " conditional" : "") + "\" role=\"img\" aria-label=\""
+    + label + "\" title=\"" + label + "\"></i>";
+}
+
+function costLabel(node) {
+  const definition = skillDefinitionOf(node.skillId);
+  if (!definition) return "";
+  if (node.kind === "active") return "行動点" + (definition.apCost ?? 0);
+  if (node.kind === "reactive") {
+    const costs = definition.rule?.costs ?? [];
+    const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
+    const hp = costs.find((cost) => cost.type === "lose_hp")?.amount ?? 0;
+    return "反応点" + rp + (hp ? "・HP" + hp : "");
+  }
+  return "常時";
+}
+
+// レベル。**目盛りの数が上限、塗ってある数がいま。**「Lv 3/10」と書く代わりに、
+// 残りが何段あるかを長さで見せる（issue #137 の意図はそのまま）。
+function levelMeter(node, characterId) {
+  const cap = skillLevelCapOf(node.skillId);
+  if (cap <= 1) return "";
+  const level = skillLevelOf(characterId, node.skillId);
+  const ticks = Array.from({ length: cap }, (unused, index) =>
+    "<i class=\"" + (index < level ? "on" : "") + "\"></i>").join("");
+  return "<span class=\"level-meter" + (level >= cap ? " maxed" : "") + "\" role=\"img\" aria-label=\"レベル "
+    + (level || 0) + " / " + cap + "\" title=\"レベル " + (level || 0) + " / " + cap + "\">" + ticks + "</span>";
+}
+
+// **その人物が使ったときに出る量。**issue #230 の通しで一番効いたのがこれだった——
+// ゴウ（腕力50・技術6）が技術で伸びる節を装着すると、その拍は7しか出ない。
+// 数字を読ませるのではなく、**同じ画面の他の節と長さで比べさせる。**
+function skillYield(characterId, skillId) {
+  const definition = skillDefinitionOf(skillId);
+  const effect = leveledEffectOf(definition);
+  const amount = effect?.amount;
+  if (!amount || amount.type !== "stat_scaled") return null;
+  const stat = amount.scalingStat;
+  const base = statsFor(characterId)?.stats?.[stat];
+  if (!base && base !== 0) return null;
+  const level = Math.max(MIN_SKILL_LEVEL, skillLevelOf(characterId, skillId));
+  const value = leveledValueAt(definition, level, base);
+  if (!value) return null;
+  const kind = effect.type === "heal" ? "heal" : effect.type === "gain_barrier" ? "barrier" : "damage";
+  return { stat, kind, one: value.one, hits: value.hits, total: value.total };
+}
+
+// 森の中で一番大きい量。**バーの長さは相対でしか意味を持たない。**
+let skillYieldScale = new Map();
+function refreshSkillYieldScale(characterId, rows) {
+  const scale = new Map();
+  for (const row of rows) {
+    const yielded = skillYield(characterId, row.node.skillId);
+    if (!yielded) continue;
+    scale.set(yielded.kind, Math.max(scale.get(yielded.kind) ?? 0, yielded.total));
+  }
+  skillYieldScale = scale;
+}
+
+function yieldBar(characterId, skillId) {
+  const yielded = skillYield(characterId, skillId);
+  if (!yielded) return "";
+  const top = Math.max(1, skillYieldScale.get(yielded.kind) ?? yielded.total);
+  const width = Math.max(3, Math.round((yielded.total * 100) / top));
+  const label = STAT_LABELS[yielded.stat] + "で伸びる · この人物だと "
+    + yielded.total + (yielded.hits > 1 ? "（" + yielded.one + "×" + yielded.hits + "）" : "");
+  return "<span class=\"yield stat-" + yielded.stat + " yield-" + yielded.kind + "\" role=\"img\""
+    + " aria-label=\"" + esc(label) + "\" title=\"" + esc(label) + "\">"
+    + "<i class=\"yield-stat\">" + STAT_MARKS[yielded.stat] + "</i>"
+    + "<i class=\"yield-track\"><b style=\"width:" + width + "%\"></b></i></span>";
+}
+
+// 取得の状態。**文字を出さない。**まだ持っていない節は値段の数だけ、
+// 持っている節は形（○ 取得済み／● 装着中／◐ オフ）で分かる。
+function nodeStateMark(node, nodeState, characterId) {
+  if (nodeState.equipped) {
+    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
+      + " aria-label=\"" + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\" title=\""
+      + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\"></span>";
+  }
+  if (nodeState.unlocked) {
+    return "<span class=\"node-mark owned\" role=\"img\" aria-label=\"取得済み・未装着\""
+      + " title=\"取得済み・未装着\"></span>";
+  }
+  const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
+  const title = nodeState.prereqsMet
+    ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
+    : "前提がまだ（技能点" + node.cost + "）";
+  return "<span class=\"node-mark cost" + (affordable ? " ready" : "")
+    + (nodeState.prereqsMet ? "" : " gated") + "\" role=\"img\" aria-label=\"" + esc(title) + "\""
+    + " title=\"" + esc(title) + "\">" + node.cost + "</span>";
+}
+
 function skillSlotRows(characterId, kind) {
   const key = SLOT_KEYS[kind];
   const list = state.run.loadout[key]?.[characterId] || [];
   const title = SLOT_TITLES[kind];
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  // **一人が1ラウンドに払える点。**装着した技能の合計と並べて見せる。
+  const budget = kind === "active" ? (definition.baseActionPoints ?? 0)
+    : kind === "reactive" ? (definition.baseReactionPoints ?? 0) : 0;
+  const live = list.filter((skillId) => !skillDisabled(characterId, skillId));
+  // 順送りなので、有効な本数のうち一本ぶんが出番になる（issue #187 / #230）。
+  const turns = live.length;
+  let spent = 0;
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
+    const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
     const disabled = skillDisabled(characterId, skillId);
     const moveButtons = kind === "active" || kind === "reactive"
       ? "<span class=\"reorder\">" + button("↑", "move-skill", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-skill", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
-    const markerClass = kind === "passive" ? "bullet passive" : "order";
-    const marker = kind === "passive" ? "↳" : index + 1;
-    // issue #176 — 無条件／条件つきを行に出し、条件の読み落としを防ぐ。
-    const firing = kind === "active" ? activeFiringLabel(skillId) : null;
-    const firingChip = firing
-      ? "<span class=\"firing-chip " + (firing === "無条件" ? "always" : "conditional") + "\">" + firing + "</span>"
+    // **出番。**順送りの何本目か、を目盛りで出す。文字で「1/3」と書かない。
+    const liveIndex = disabled ? -1 : live.indexOf(skillId);
+    const share = kind === "active" && turns > 1 && liveIndex >= 0
+      ? "<span class=\"turn-share\" role=\"img\" aria-label=\"装着 " + turns + "本のうちの1本（およそ"
+        + turns + "ラウンドに1回）\" title=\"装着 " + turns + "本のうちの1本（およそ" + turns + "ラウンドに1回）\">"
+        + Array.from({ length: turns }, (unused, slot) =>
+          "<i class=\"" + (slot === liveIndex ? "on" : "") + "\"></i>").join("") + "</span>"
       : "";
-    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
-      + marker + "</span><span class=\"installed-copy\"><b>"
-      + esc(info?.label ?? nameFor(skillId)) + firingChip + "</b><small>"
-      + esc(skillEffectText(characterId, skillId)) + "</small></span>"
+    // **反応点の収支。**上の行から順に払うので、点が尽きた行は同じラウンドで出せない。
+    let overflow = "";
+    if (kind === "reactive" && node && !disabled) {
+      const costs = skillDefinitionOf(skillId)?.rule?.costs ?? [];
+      const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
+      spent += rp;
+      if (spent > budget) overflow = " over";
+    }
+    const marks = node
+      ? "<span class=\"row-marks\">" + costPips(node) + triggerMark(node) + firingMark(node)
+        + yieldBar(characterId, skillId) + levelMeter(node, characterId) + "</span>"
+      : "";
+    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + overflow + "\">"
+      + (kind === "passive"
+        ? "<span class=\"bullet passive\">↳</span>"
+        : "<span class=\"order\">" + (index + 1) + "</span>")
+      + "<span class=\"installed-copy\"><b>" + esc(info?.label ?? nameFor(skillId)) + "</b>"
+      + marks + share + "</span>"
       + moveButtons
-      + button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
-        "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"")
-      + "<span class=\"skill-state\" title=\"" + (disabled ? "効果は一時停止中です" : "効果は有効です") + "\">"
-      + (disabled ? "オフ" : "有効") + "</span></div>";
+      + button(disabled ? "○" : "●", "toggle-skill", false, "icon-button skill-toggle"
+        + (disabled ? " off" : " on"),
+        "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\""
+        + " aria-label=\"" + (disabled ? "オンにする" : "オフにする") + "\""
+        + " title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる") + "\"")
+      + "</div>";
   }).join("");
-  return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " · 無制限</small></div>"
-    + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。装着後はここでオン/オフを切り替えられます。</p>") + "</div>";
+  // 見出しは、払える点（●）と、装着で払う合計（○が足りない）を並べるだけにする。
+  const meter = budget > 0
+    ? "<span class=\"slot-budget " + (kind === "active" ? "ap" : "rp") + "\" role=\"img\" aria-label=\""
+      + (kind === "active" ? "行動点" : "反応点") + " " + budget + " · 装着 " + list.length + "件\" title=\""
+      + (kind === "active" ? "1ラウンドに払える行動点" : "1ラウンドに払える反応点") + " " + budget + "\">"
+      + pips(budget, kind === "active" ? "ap" : "rp") + "</span>"
+    : "";
+  const total = kind === "reactive" && spent > budget
+    ? "<span class=\"slot-over\" role=\"img\" aria-label=\"装着した反応の合計が反応点を超えている\""
+      + " title=\"装着した反応の合計（" + spent + "）が1ラウンドの反応点（" + budget
+      + "）を超えている。下の行は出ないことがある\">▲</span>"
+    : "";
+  return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span>"
+    + meter + total + "</div>"
+    + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。</p>") + "</div>";
 }
 
 function memberTabs(characterId, options = {}) {
@@ -2247,6 +2469,31 @@ function memberTabs(characterId, options = {}) {
 }
 
 
+// **立ち位置は前後左右の絵で出す。**「前列左」と書く代わりに、2×3の枠のどこに
+// 立っているかを塗る（武器の敵は前列が生きているあいだ前列しか届かない、という
+// 規則がそのまま見える）。issue #177。
+function formationMark(characterId) {
+  const here = state.run.formation[characterId];
+  const cells = POSITIONS.map((position) => {
+    const who = state.run.roster.find((id) => state.run.formation[id] === position);
+    const cls = position === here ? "self" : who ? "ally" : "";
+    return "<i class=\"" + cls + "\"></i>";
+  }).join("");
+  const label = "立ち位置 " + positionText(here);
+  return "<span class=\"formation-mark\" role=\"img\" aria-label=\"" + esc(label) + "\" title=\""
+    + esc(label) + "\">" + cells + "</span>";
+}
+
+// **HP は棒で出す。**盤面の HP バーと同じ読み方にする。
+function hpMark(characterId) {
+  const now = currentHp(characterId);
+  const max = maxHp(characterId);
+  const ratio = max > 0 ? Math.max(0, Math.min(100, Math.round((now * 100) / max))) : 0;
+  const label = "HP " + now + " / " + max;
+  return "<span class=\"hp-mark\" role=\"img\" aria-label=\"" + label + "\" title=\"" + label + "\">"
+    + "<i><b style=\"width:" + ratio + "%\"></b></i></span>";
+}
+
 function memberContext(characterId, emphasis = "skills") {
   const option = characterInfo(characterId);
   const active = (state.run.loadout.tactics?.[characterId] || []).map((id) =>
@@ -2254,49 +2501,55 @@ function memberContext(characterId, emphasis = "skills") {
   const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) =>
     (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
   const worn = (state.run.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
+  // **絵で出せるもの（立ち位置・HP）は絵にし、名前だけを文字で残す。**issue #177。
   const primary = emphasis === "skills"
-    ? "装備 " + (worn.length ? worn.join(" · ") : "なし")
-    : "アクティブ " + (active.length ? active.join(" → ") : "なし");
-  const secondary = emphasis === "skills"
-    ? "位置 " + positionText(state.run.formation[characterId]) + " · HP " + currentHp(characterId) + "/" + maxHp(characterId)
-    : "リアクティブ " + (reactive.length ? reactive.join(" · ") : "なし");
+    ? (worn.length ? worn.join(" · ") : "")
+    : (active.length ? active.join(" → ") : "");
+  const secondary = emphasis === "skills" ? "" : (reactive.length ? reactive.join(" · ") : "");
   return "<section class=\"member-context\"><div class=\"member-context-head\"><span class=\"avatar\">"
     + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId))
-    + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div></div>"
-    + "<div class=\"member-context-loadout\"><span><b>" + esc(primary) + "</b></span><span><b>" + esc(secondary) + "</b></span></div></section>";
+    + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
+    + "<span class=\"member-context-marks\">" + formationMark(characterId) + hpMark(characterId) + "</span></div>"
+    + (primary || secondary
+      ? "<div class=\"member-context-loadout\">"
+        + (primary ? "<span>" + esc(primary) + "</span>" : "")
+        + (secondary ? "<span>" + esc(secondary) + "</span>" : "") + "</div>"
+      : "") + "</section>";
 }
 
 
+// **ビルドの要約は、資源と装着数だけを絵で出す。**技能の名前は上の装着行と
+// ツリーに出ているので、ここで文字として繰り返さない（issue #177）。
 function skillBuildSummary(characterId) {
-  const active = (state.run.loadout.tactics?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
-  const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
-  const passive = (state.run.loadout.passives?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
   const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  const counts = [
+    { kind: "active", key: "tactics", cls: "ap" },
+    { kind: "reactive", key: "reactives", cls: "rp" },
+    { kind: "passive", key: "passives", cls: "free" },
+  ].map((slot) => {
+    const list = state.run.loadout[slot.key]?.[characterId] || [];
+    const live = list.filter((skillId) => !skillDisabled(characterId, skillId)).length;
+    const label = SLOT_TITLES[slot.kind] + " " + live + "件";
+    return "<span class=\"summary-slot\" role=\"img\" aria-label=\"" + esc(label) + "\" title=\""
+      + esc(label) + "\"><i class=\"kind-dot kind-" + slot.kind + "\"></i><b>" + live + "</b></span>";
+  }).join("");
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
-  const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
-  const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
-  const slotLabel = selectedNode?.kind === "active" ? "アクティブ枠"
-    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "パッシブ枠";
-  const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
-    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
-      + " · " + slotLabel + "（" + slotCount + " · 無制限）"
-    : "技能を選択すると、ここに装着先を表示";
-  return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
-    + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
-    + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
-    + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>アクティブ</b> "
-    + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>リアクティブ</b> "
-    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span><span><b>パッシブ</b> "
-    + esc(passive.length ? passive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-stats\">"
-    + "<span><b>HP</b> " + currentHp(characterId) + "/" + maxHp(characterId) + "</span><span><b>AP</b> "
-    + (definition.baseActionPoints ?? "-") + "</span><span><b>RP</b> " + (definition.baseReactionPoints ?? "-")
-    + "</span></div><div class=\"skill-summary-target\">"
-    + esc(target) + "</div></aside>";
+    ? "<span class=\"summary-target\"><i class=\"kind-dot kind-" + selectedNode.kind + "\"></i>"
+      + esc(COMPONENTS[selectedNode.skillId]?.label ?? selectedNode.skillId) + " → "
+      + esc(characterName(characterId)) + "</span>"
+    : "";
+  return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
+    + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
+    + formationMark(characterId) + hpMark(characterId)
+    + "<span class=\"summary-res\" role=\"img\" aria-label=\"行動点 "
+    + (definition.baseActionPoints ?? 0) + " · 反応点 " + (definition.baseReactionPoints ?? 0) + "\" title=\""
+    + "1ラウンドに払える 行動点" + (definition.baseActionPoints ?? 0)
+    + " · 反応点" + (definition.baseReactionPoints ?? 0) + "\">"
+    + pips(definition.baseActionPoints ?? 0, "ap") + pips(definition.baseReactionPoints ?? 0, "rp")
+    + "</span>" + counts + target + "</aside>";
 }
+
 function skillNodeIcon(node) {
   return branchIcons[node.branch] ?? "·";
 }
@@ -2327,31 +2580,6 @@ function selectedSkillKind() {
   return SKILL_TREE_KINDS.includes(requested) ? requested : "active";
 }
 
-// 消費と、いつ出るのか。**節の上で読めないと、取ってから初めて分かることになる。**
-function skillCostText(node) {
-  const definition = PLAYABLE_CONTENT.activeSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.reactiveSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.passiveSkills?.[node.skillId];
-  if (!definition) return "—";
-  if (node.kind === "active") return "AP" + (definition.apCost ?? 0);
-  if (node.kind === "reactive") {
-    const rp = (definition.rule?.costs ?? []).find((cost) => cost.type === "spend_reaction_points");
-    const hp = (definition.rule?.costs ?? []).find((cost) => cost.type === "lose_hp");
-    return (rp ? "RP" + rp.amount : "RP0") + (hp ? " · HP" + hp.amount : "");
-  }
-  return "常時";
-}
-
-function skillConditionText(node) {
-  const definition = PLAYABLE_CONTENT.activeSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.reactiveSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.passiveSkills?.[node.skillId];
-  if (!definition) return "";
-  if (node.kind === "reactive") return TRIGGER_LABELS[definition.rule?.listenTo] ?? definition.rule?.listenTo ?? "";
-  if (node.kind === "active") return (SCOPE_LABELS[definition.targetQuery?.scope] ?? "") + "へ";
-  return definition.statBonus ? "基礎値を上げる" : "条件を満たす限り";
-}
-
 // 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
 function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
@@ -2366,12 +2594,7 @@ function skillNodeState(node, characterId) {
   const stateClass = equipped
     ? "equipped" + (disabled ? " disabled" : "")
     : unlocked ? "unlocked" : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
-  const status = equipped
-    ? (disabled ? "装着中 · オフ" : "装着中")
-    : unlocked ? "取得済み"
-      : canUnlock ? "解禁可能 · " + node.cost + "pt"
-        : !prereqsMet ? "前提待ち · " + node.cost + "pt" : "点数不足 · " + node.cost + "pt";
-  return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass, status };
+  return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass };
 }
 
 // issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
@@ -2393,22 +2616,22 @@ function prerequisiteShortfallText(characterId, unmet = []) {
 function skillRouteChip(skillId, minLv = MIN_SKILL_LEVEL) {
   const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
   if (!node) return "";
-  // issue #168 — 親を伸ばして初めて開く前提なら、**必要な Lv をチップに書く。**
-  // 現行の全節は Lv1 しか要求しないので、いまはどのチップにも出ない。
-  const need = minLv > MIN_SKILL_LEVEL ? " Lv" + minLv + "以上" : "";
-  return "<button type=\"button\" class=\"route-chip\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
+  // issue #168 / #177 — 親を伸ばして初めて開く前提なら、**必要な段までを目盛りで出す。**
+  // 「Lv3以上」と書く代わりに、いまの段（塗り）と要る段（枠）を同じ目盛りに重ねる。
+  const cap = skillLevelCapOf(skillId);
+  const owner = selectedCharacter();
+  const level = owner ? skillLevelOf(owner, skillId) : 0;
+  const need = minLv > MIN_SKILL_LEVEL && cap > 1
+    ? "<span class=\"level-meter need\" role=\"img\" aria-label=\"この前提は Lv" + minLv + "以上が要る（いま Lv"
+      + level + "）\" title=\"この前提は Lv" + minLv + "以上が要る（いま Lv" + level + "）\">"
+      + Array.from({ length: cap }, (unused, index) =>
+        "<i class=\"" + (index < level ? "on" : "") + (index < minLv ? " want" : "") + "\"></i>").join("")
+      + "</span>"
+    : "";
+  return "<button type=\"button\" class=\"route-chip branch-" + (BRANCH_KEYS[node.branch] ?? "base")
+    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
     + "\"><span>" + esc(branchIcons[node.branch] ?? "·") + "</span>" + esc(COMPONENTS[skillId]?.label ?? skillId)
-    + "<small>" + esc(kindText(node.kind) + need) + "</small></button>";
-}
-
-// R19（issue #137）— 現在レベル／最大レベル。**上位互換を別技能で増やさないので、
-// 同じ節が何段まで伸びるのかを節の上で読めるようにする。**
-function levelBadge(node, characterId) {
-  const cap = skillLevelCapOf(node.skillId);
-  if (cap <= 1) return "<i class=\"badge-level flat\">レベルなし</i>";
-  const level = skillLevelOf(characterId, node.skillId);
-  const shown = level > 0 ? level : "—";
-  return "<i class=\"badge-level" + (level >= cap ? " maxed" : "") + "\">Lv " + shown + "/" + cap + "</i>";
+    + need + "</button>";
 }
 
 // issue #148 — **説明文の数字そのものを、いまのレベルの値にする。**
@@ -2468,10 +2691,15 @@ function renderSkillDetail(row, node, characterId, nodeState) {
   const requires = node.requires;
   const cap = skillLevelCapOf(node.skillId);
   const level = skillLevelOf(characterId, node.skillId);
-  const levelSummary = cap > 1
-    ? "<p class=\"skill-level-readout\"><b>現在 Lv" + level + " / " + cap + "</b>"
-      + (level < cap ? " · 次は Lv" + (level + 1) + "（技能点" + SKILL_LEVEL_COST + "点）" : " · 最大レベル") + "</p>"
-    : "<p class=\"skill-level-readout\">この技能はレベルなし</p>";
+  // **段はもう節の上に出ている。**ここでは、その人物の手で実際に出る量だけを添える。
+  const yielded = skillYield(characterId, node.skillId);
+  const levelSummary = yielded
+    ? "<p class=\"skill-yield-readout\"><i class=\"yield-stat stat-" + yielded.stat + "\">"
+      + STAT_MARKS[yielded.stat] + "</i>" + esc(characterName(characterId)) + "の手で <b>"
+      + yielded.total + "</b>" + (yielded.hits > 1 ? "（" + yielded.one + "×" + yielded.hits + "）" : "")
+      + "<small>" + STAT_LABELS[yielded.stat] + " " + (statsFor(characterId)?.stats?.[yielded.stat] ?? 0)
+      + " で伸びる</small></p>"
+    : "";
   const action = nodeState.equipped
     ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
@@ -2488,17 +2716,20 @@ function renderSkillDetail(row, node, characterId, nodeState) {
             : prerequisiteShortfallText(characterId, nodeState.unmet))
           + "</p>";
   // **説明文はいまのレベルの値で読む。**Lv1 では元の文のまま。
-  return "<div class=\"skill-detail\"><p>" + esc(skillEffectText(characterId, node.skillId))
-    + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + " の値</span>" : "") + "</p>"
-    + "<p class=\"skill-detail-status\">状態: " + esc(nodeState.status) + "</p>"
+  // **文章を許すのはここだけ。**技能の説明文は「深く遊びたい人が読むところ」なので
+  // 残す（作者方針）。状態・段・値段は上の印で読めるので、文では繰り返さない。
+  const scope = node.kind === "active"
+    ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
+    : "";
+  return "<div class=\"skill-detail\"><p>" + scope + esc(skillEffectText(characterId, node.skillId))
+    + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + "</span>" : "") + "</p>"
     + levelSummary
     + "<div class=\"skill-route\"><span class=\"route-line\"><b>前提</b>"
     + (requires.length
       ? requires.map((required) => skillRouteChip(required.skillId, required.minLv)).join("")
-      : "<small>なし（いつでも取れる）</small>") + "</span>"
-    + "<span class=\"route-line\"><b>派生先</b>"
-    + (derived.length ? derived.map(skillRouteChip).join("") : "<small>ここが終点</small>") + "</span></div>"
-    + "<p class=\"route-build\">" + esc(BRANCH_BUILDS[node.branch] ?? "") + "</p>"
+      : "<span class=\"route-none\">—</span>") + "</span>"
+    + "<span class=\"route-line\"><b>派生</b>"
+    + (derived.length ? derived.map(skillRouteChip).join("") : "<span class=\"route-none\">—</span>") + "</span></div>"
     + "<div class=\"node-action\">" + action + "</div>"
     + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
 }
@@ -2515,13 +2746,13 @@ function renderSkillRow(row, characterId, tone) {
     + "<article class=\"skill-node " + nodeState.stateClass + (selected ? " selected" : "") + "\">"
     + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
     + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
-    + "<span class=\"node-icon\">" + esc(skillNodeIcon(node)) + "</span>"
+    + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
+    + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
     + "<span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
-    + "<small class=\"node-badges\"><i class=\"kind kind-" + node.kind + "\">" + esc(kindText(node.kind)) + "</i>"
-    + "<i class=\"badge-cost\">" + esc(skillCostText(node)) + "</i>"
-    + "<i class=\"badge-when\">" + esc(skillConditionText(node)) + "</i>"
-    + levelBadge(node, characterId) + "</small></span>"
-    + "<span class=\"node-status\">" + esc(nodeState.status) + "</span></button>"
+    + "<small class=\"node-meters\" title=\"" + esc(costLabel(node)) + "\">"
+    + costPips(node) + triggerMark(node) + firingMark(node) + yieldBar(characterId, node.skillId)
+    + levelMeter(node, characterId) + "</small></span>"
+    + nodeStateMark(node, nodeState, characterId) + "</button>"
     + detail + "</article></div>";
 }
 
@@ -2541,25 +2772,47 @@ function renderSkillTree(characterId) {
   const tabs = groups.map((entry) => "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
     + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false") + "\" data-action=\"select-skill-kind\" data-kind=\""
     + entry.kind + "\"><b>" + esc(entry.label) + "</b><small>" + entry.nodeCount + "</small></button>").join("");
+  // **バーは相対でしか意味を持たない。**いま出している森の中で一番大きい量を先に取る。
+  refreshSkillYieldScale(characterId, group.rows);
+  const branch = state.skillTreeBranch;
   const rows = group.rows.map((row) => {
+    const dimmed = branch && row.node.branch !== branch;
     const tone = !selectedRow
-      ? ""
+      ? (dimmed ? " faded" : "")
       : row.key === selectedRow.key ? ""
         : onPath.has(row.key) ? " on-path"
           : derived.has(row.key) ? " derived" : " faded";
-    return renderSkillRow(row, characterId, tone);
+    return renderSkillRow(row, characterId, dimmed && !selectedRow ? " faded" : tone);
   }).join("");
-  const legend = selectedRow
-    ? "<p class=\"tree-focus\">前提と派生先を強調しています。"
-      + button("強調を解除", "select-skill-node", false, "tiny-button", "data-skill=\"\"") + "</p>"
-    : "<p class=\"muted tree-focus\">スキルを選ぶと詳細が開きます。</p>";
+  const clear = selectedRow
+    ? "<button type=\"button\" class=\"branch-chip clear\" data-action=\"select-skill-node\" data-skill=\"\""
+      + " aria-label=\"強調を解除\" title=\"強調を解除\">✕</button>"
+    : "";
   const columns = "repeat(" + Math.max(group.depth, 1) + ", var(--tree-col-width))";
   return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
-    + "<p class=\"tree-summary\"><b>" + esc(group.label) + "ツリー</b> · " + esc(group.summary) + "</p>"
-    + legend
+    + branchFilter(group)
+    + (clear ? "<p class=\"tree-focus\">" + clear + "</p>" : "")
     + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\" data-branch=\""
     + kind + "\" style=\"grid-template-columns:" + columns + "\">"
     + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>";
+}
+
+// **テーマは色と印で選ぶ。**#165 の方針は「分類（アクティブ／リアクティブ／パッシブ）は
+// 表示と自動実行の方法で、習得ツリーはテーマ別に混在させる」なので、テーマは
+// 絞り込みとして要る。押すとそのテーマ以外が沈む。もう一度押すと戻る。
+function branchFilter(group) {
+  const counts = new Map();
+  for (const row of group.rows) counts.set(row.node.branch, (counts.get(row.node.branch) ?? 0) + 1);
+  const chips = [...counts.entries()].map(([branch, count]) => {
+    const on = state.skillTreeBranch === branch;
+    return "<button type=\"button\" class=\"branch-chip branch-" + (BRANCH_KEYS[branch] ?? "base")
+      + (on ? " on" : "") + "\" aria-pressed=\"" + (on ? "true" : "false")
+      + "\" data-action=\"select-skill-branch\" data-branch=\"" + esc(branch) + "\""
+      + " aria-label=\"" + esc(branch) + " " + count + "件\" title=\"" + esc(branch) + "（" + count + "件）"
+      + (BRANCH_BUILDS[branch] ? " — " + esc(BRANCH_BUILDS[branch]) : "") + "\">"
+      + esc(branchIcons[branch] ?? "·") + "<small>" + count + "</small></button>";
+  }).join("");
+  return "<div class=\"branch-filter\" role=\"group\" aria-label=\"テーマで絞る\">" + chips + "</div>";
 }
 
 
@@ -2618,6 +2871,37 @@ function layoutSkillTreeConnectors() {
   svg.innerHTML = paths.join("");
 }
 
+// **記号の意味は、畳んだ中に一度だけ置く。**節や装着行の上には出さない
+// （出すと、結局そこで文章を読むことになる）。issue #177 の作者方針。
+function symbolLegendHelp() {
+  const row = (mark, text) => "<dt>" + mark + "</dt><dd>" + esc(text) + "</dd>";
+  return helpDetails("skill-symbols", "記号の意味",
+    "<dl class=\"symbol-legend\">"
+    + row(pips(1, "ap"), "行動点。点の数だけ1ラウンドに払う")
+    + row(pips(1, "rp"), "反応点。装着した反応は上から順に払い、尽きたら下は出ない")
+    + row("<span class=\"pips hp\"><i></i></span>", "代償にHPを払う")
+    + row("<i class=\"firing-mark\"></i>", "無条件。いつでも出せる")
+    + row("<i class=\"firing-mark conditional\"></i>", "条件つき。合う拍だけ出て、合わなければ次の技能へ回る")
+    + row("<span class=\"yield stat-might yield-damage\"><i class=\"yield-stat\">腕</i>"
+      + "<i class=\"yield-track\"><b style=\"width:70%\"></b></i></span>",
+      "その人物の手で出る量。色は伸びる能力値（腕=腕力・技=技術・受=受け）。"
+      + "同じツリーの中で一番大きい節を満たしとした長さ")
+    + row("<span class=\"level-meter\"><i class=\"on\"></i><i class=\"on\"></i><i></i><i></i></span>",
+      "段。目盛りの数が上限、塗ってあるのがいまの段")
+    + row("<span class=\"turn-share\"><i></i><i class=\"on\"></i><i></i></span>",
+      "出番。装着した本数のうちの一本。順送りなので、増やすほど一本あたりの出番は減る")
+    + row("<span class=\"node-mark cost ready\">1</span>", "まだ取っていない。数は要る技能点")
+    + row("<span class=\"node-mark owned\"></span>", "取得済み・未装着")
+    + row("<span class=\"node-mark equipped\"></span>", "装着中")
+    + row("<span class=\"turn-cells\"><span class=\"turn-round\">"
+      + "<i class=\"turn-cell branch-strike\">✦</i></span><span class=\"turn-round\">"
+      + "<i class=\"turn-cell idle\"></i></span></span>",
+      "戦闘のあと、誰がどのラウンドに何を出したか。点線の枠はその拍に動いていない")
+    + row("<i class=\"trigger-mark tone-bad\">被</i>",
+      "反応の起点。何が起きたら鳴るか（被=被弾・止=受け止め・倒=撃破・溜=準備・印=状態）")
+    + "</dl>");
+}
+
 function renderSkills() {
   const characterId = selectedCharacter();
   const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
@@ -2626,22 +2910,21 @@ function renderSkills() {
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
     .join(" · ");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能", pointsBadge)
-    + "<p class=\"operation-note\">対象を選び、取得済みの順序・オン/オフ・技能ツリーを確認します。</p>"
-    + "<p class=\"context-line\">有効な技能パック: <b>" + esc(packs) + "</b> · 技能点と解禁はこの遠征中のみ有効です。</p>"
+    + "<p class=\"context-line\">" + esc(packs) + "</p>"
     + memberTabs(characterId) + memberContext(characterId, "skills")
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("SKILL TREE", "技能ツリー")
-    + "<p class=\"operation-note\">スキルを選ぶと詳細が開きます。</p>"
-    + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー（選択すると詳細が開きます）</summary>"
+    + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + "</details>"
+    + symbolLegendHelp()
     + helpDetails("skill-rules", "技能のルール",
       "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
       // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
-      + "<p class=\"muted\"><b>アクティブは現在の位置から順番に判定し、最初に使える一本だけが出ます。</b>"
-      + "選んだ技能の次から、次の activation の判定を始めます。<b>条件つき</b>の技能が未達ならスキップし、"
-      + "後ろの技能を試します。使える技能が無い activation では位置を進めません。</p>"
-      + "<p class=\"muted\">リアクティブも上から順に判定します。こちらは条件が別々なので複数が同じ拍に鳴りますが、"
+      // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
+      + "<p class=\"muted\"><b>アクティブは順番に回ります。</b>いま出した技能の次から判定を始め、"
+      + "条件つきの技能が未達ならスキップして後ろを試します。<b>装着を増やすほど、一本あたりの出番は減ります。</b></p>"
+      + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
       + "反応点が尽きた時点で下の技能は出ません。</p>"
       + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
     + statusGlossaryHelp()
@@ -3763,6 +4046,60 @@ function resultActors(result) {
   }).join("");
 }
 
+// ============================================================ 順番の帯（issue #177）
+//
+// **「装着順が結果にどう効いたか」を、文ではなく帯で見せる。**
+// アクティブは装着順を順送りに回るので（#188 / #187）、装着を増やすほど一本
+// あたりの出番が減る。それが実際にどう出たのかは、ラウンドごとに何が鳴ったかを
+// 並べれば一目で分かる。色はテーマ、印はテーマの記号、押さえれば技能名が出る。
+function rotationStrip(result) {
+  const events = result?.events ?? [];
+  const nodeBySkillId = new Map(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
+  const byCharacter = new Map();
+  let lastRound = 0;
+  for (const event of events) {
+    if (event.type !== "action_declared") continue;
+    const source = String(event.sourceActorId ?? "");
+    if (!source.startsWith("a_")) continue;
+    const characterId = source.slice(2);
+    if (!state.run.roster.includes(characterId)) continue;
+    const round = Number(event.round ?? 0);
+    lastRound = Math.max(lastRound, round);
+    if (!byCharacter.has(characterId)) byCharacter.set(characterId, new Map());
+    const rounds = byCharacter.get(characterId);
+    if (!rounds.has(round)) rounds.set(round, []);
+    rounds.get(round).push(event.skillId);
+  }
+  if (!byCharacter.size) return "";
+  const rows = state.run.roster.filter((id) => byCharacter.has(id)).map((characterId) => {
+    const rounds = byCharacter.get(characterId);
+    const cells = [];
+    for (let round = 1; round <= lastRound; round += 1) {
+      const fired = rounds.get(round) ?? [];
+      if (!fired.length) {
+        cells.push("<span class=\"turn-round\"><i class=\"turn-cell idle\" title=\"" + round
+          + "ラウンド目 · 動いていない\"></i></span>");
+        continue;
+      }
+      // **ラウンドごとに束ねる。**行動点2の人物は同じラウンドに二つ出るので、
+      // 束ねないと人物ごとに拍がずれて、縦に読めなくなる。
+      cells.push("<span class=\"turn-round\">" + fired.map((skillId) => {
+        const node = nodeBySkillId.get(skillId);
+        const label = COMPONENTS[skillId]?.label ?? nameFor(skillId);
+        const branch = node ? (BRANCH_KEYS[node.branch] ?? "base") : "base";
+        return "<i class=\"turn-cell branch-" + branch + "\" title=\"" + round + "ラウンド目 · "
+          + esc(label) + "\" aria-label=\"" + round + "ラウンド目 " + esc(label) + "\">"
+          + esc(node ? (branchIcons[node.branch] ?? "·") : "·") + "</i>";
+      }).join("") + "</span>");
+    }
+    return "<div class=\"turn-row\"><span class=\"avatar small\">"
+      + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
+      + "<span class=\"turn-cells\">" + cells.join("") + "</span></div>";
+  }).join("");
+  return "<section class=\"card\">" + sectionHeading("ORDER", "出した順番")
+    + "<div class=\"turn-strip\">" + rows + "</div></section>";
+}
+
 function renderResult() {
   const result = state.lastResult;
   if (!result) return renderCamp();
@@ -3826,7 +4163,7 @@ function renderResult() {
     + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
-  return shell( status + nextBlock + stateCard + replay + history);
+  return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history);
 }
 
 
@@ -4752,6 +5089,15 @@ function handleAction(event) {
     const kind = element.dataset.kind;
     if (!["active", "reactive", "passive"].includes(kind)) return;
     state.skillTreeKind = kind;
+    saveState();
+    render();
+    return;
+  }
+
+  // issue #177 — テーマの絞り込み。**同じ印をもう一度押すと全部へ戻る。**
+  if (action === "select-skill-branch") {
+    const branch = element.dataset.branch || "";
+    state.skillTreeBranch = state.skillTreeBranch === branch ? null : branch;
     saveState();
     render();
     return;

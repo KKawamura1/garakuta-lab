@@ -530,6 +530,14 @@ try {
         forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
     }
     if (stage === 1) {
+      // issue #177 — **装着順が結果にどう出たか**を、文ではなく帯で見せる。
+      // アクティブは順送りに回るので、ラウンドごとに何が鳴ったかを並べれば読める。
+      const turnRows = await page.locator(".turn-strip .turn-row").count();
+      const turnCells = await page.locator(".turn-strip .turn-cell").evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("title") ?? ""));
+      note("誰がいつ何を出したかが帯で出る", turnRows > 0 && turnCells.length > 0
+        && turnCells.every((title) => /ラウンド目/.test(title)),
+        `${turnRows}人・${turnCells.length}拍`);
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
       note("結果画面の主操作が詳細より前で見える",

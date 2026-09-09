@@ -119,6 +119,29 @@ function amountRational(amount) {
   }
 }
 
+// **変動量を出している effect そのもの。**issue #177 の画面は、係数だけでなく
+// 「誰の何で伸びるのか」（`scalingStat`）と段数を読む。同じ一つの effect を
+// 二箇所で探すと必ずずれるので、探すのはここだけにして外へ渡す。
+export function leveledEffectOf(definition) {
+  const effects = definition ? leveledEffects(definition) : [];
+  return effects.length === 1 ? effects[0] : null;
+}
+
+// レベルを掛けたあとの実数。**掛けて丸めるのは一度だけ**（R6 §4.4）。
+// `stat` にはその人物の能力値を入れる（`stat_scaled` 以外では使わない）。
+export function leveledValueAt(definition, level, stat = null) {
+  const effect = leveledEffectOf(definition);
+  const variable = leveledAmountOf(definition);
+  if (!effect || !variable) return null;
+  const amount = effect.amount;
+  const scaled = amount?.type === "stat_scaled";
+  if (scaled && (stat === null || stat === undefined)) return null;
+  const numerator = variable.n * levelFactor(level) * (scaled ? stat : 1);
+  const denominator = variable.d * BPS * (scaled ? 100 : 1);
+  const one = roundHalfUpDiv(numerator, denominator);
+  return { one, hits: variable.hits, total: one * variable.hits, unit: scaled ? "plain" : variable.unit };
+}
+
 // その技能の変動量。**無い（レベルを持たない）技能では null。**
 export function leveledAmountOf(definition) {
   const effects = definition ? leveledEffects(definition) : [];
