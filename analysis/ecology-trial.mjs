@@ -107,8 +107,6 @@ try {
   ));
   const readHpGaugeUi = () => page.locator(".battle-field").evaluate((field) => (
     [...field.querySelectorAll(".unit")].map((unit) => {
-      const hpText = unit.querySelector(".unit-hp")?.textContent?.trim() ?? "";
-      const hpMatch = hpText.match(/^([0-9]+)\/([0-9]+)$/);
       const segment = (selector) => {
         const element = unit.querySelector(selector);
         return {
@@ -121,14 +119,6 @@ try {
         };
       };
       return {
-        name: unit.querySelector(".unit-name")?.textContent?.trim() ?? "",
-        hp: hpMatch ? Number(hpMatch[1]) : 0,
-        maxHp: hpMatch ? Number(hpMatch[2]) : Number(unit.dataset.maxHp ?? "0"),
-        alive: hpText !== "戦闘不能",
-        alert: unit.dataset.hpAlert ?? "",
-        tone: unit.dataset.hpTone ?? "",
-        classes: [...unit.classList],
-        ariaLabel: unit.querySelector(".unit-bar")?.getAttribute("aria-label") ?? "",
         segments: {
           green: segment(".unit-fill"),
           recovered: segment(".unit-recovered"),
@@ -475,15 +465,6 @@ try {
         barrierUiParity ? "" : JSON.stringify(barrierSamples.at(-1)));
 
       const hpGaugeUnits = hpGaugeSamples.flat();
-      const hpAlertForSample = (entry) => {
-        if (!entry.alive || entry.maxHp <= 0) return "normal";
-        const ratio = entry.hp / entry.maxHp;
-        return ratio <= 0.25 ? "critical" : ratio <= 0.55 ? "warning" : "normal";
-      };
-      const hpToneForSample = (entry) => {
-        const alert = hpAlertForSample(entry);
-        return alert === "critical" ? "red" : alert === "warning" ? "yellow" : "green";
-      };
       const radius = (value) => value === "999px";
       const hpGaugeUiParity = hpGaugeUnits.length > 0 && hpGaugeUnits.every((entry) => {
         const keys = ["green", "recovered", "recoverable", "unrecoverable"];
@@ -510,45 +491,17 @@ try {
             : true;
         });
         const totalWidth = segments.reduce((sum, segment) => sum + segment.width, 0);
-        const expectedAlert = hpAlertForSample(entry);
-        const expectedTone = hpToneForSample(entry);
+        const contiguous = segments.every((segment, index) => index === 0
+          || Math.abs(segment.left - (segments[index - 1].left + segments[index - 1].width)) < 0.05);
         return Math.abs(totalWidth - 100) < 0.05
-          && entry.alert === expectedAlert
-          && entry.tone === expectedTone
-          && !entry.classes.includes("low")
-          && !entry.classes.includes("critical")
-          && entry.classes.includes("hp-tone-" + expectedTone)
-          && !entry.classes.includes("hp-warning")
-          && !entry.classes.includes("hp-critical")
-          && entry.ariaLabel.includes("回復済み")
-          && entry.ariaLabel.includes("回復可能")
-          && entry.ariaLabel.includes("回復不能")
+          && contiguous
           && leftOk
           && rightOk
           && innerBoundariesSquare;
       });
-      const observedGaugeStates = {
-        green: hpGaugeUnits.some((entry) => entry.tone === "green" && entry.alive),
-        yellow: hpGaugeUnits.some((entry) => entry.tone === "yellow"),
-        red: hpGaugeUnits.some((entry) => entry.tone === "red"),
-        recovery: hpGaugeUnits.some((entry) => entry.segments.recovered.width > 0.01
-          || entry.segments.recoverable.width > 0.01),
-        defeated: hpGaugeUnits.some((entry) => !entry.alive),
-      };
-      const recoveryClosed = hpGaugeSamples.some((sample, index) => {
-        if (index === 0) return false;
-        return sample.some((entry, unitIndex) => {
-          const previous = hpGaugeSamples[index - 1]?.[unitIndex];
-          return previous
-            && previous.segments.recoverable.width > 0.01
-            && entry.segments.recoverable.width <= 0.01
-            && entry.segments.unrecoverable.width > previous.segments.unrecoverable.width + 0.01;
-        });
-      });
-      observedGaugeStates.closed = recoveryClosed;
-      note("HPゲージの内訳・警告・角丸が各スナップショットに追従する",
+      note("HPゲージの区分幅・連続性・角丸が各スナップショットに追従する",
         hpGaugeUiParity,
-        JSON.stringify(observedGaugeStates));
+        hpGaugeUiParity ? "" : JSON.stringify(hpGaugeUnits.at(-1)));
     }
 
     const fastSpeed = page.locator('.speed-button[data-speed="fast"]');

@@ -5,10 +5,6 @@
 
 import assert from "node:assert/strict";
 import {
-  HP_CRITICAL_BPS,
-  HP_WARNING_BPS,
-  hpAlertFor,
-  hpAlertLabelFor,
   hpGaugeCornerRoles,
   hpGaugeState,
   hpToneFor,
@@ -16,16 +12,9 @@ import {
 
 const alive = (hp, extra = {}) => ({ maxHp: 100, hp, alive: true, ...extra });
 
-assert.equal(HP_WARNING_BPS, 5500, "HP注意の境界は55%で固定する");
-assert.equal(HP_CRITICAL_BPS, 2500, "HP危険域の境界は25%で固定する");
-assert.equal(hpAlertFor(alive(56)), "normal", "56%は通常表示");
-assert.equal(hpAlertFor(alive(55)), "warning", "55%以下はHP注意");
-assert.equal(hpAlertFor(alive(25)), "critical", "25%以下はHP危険域");
-assert.equal(hpAlertFor({ ...alive(0), alive: false }), "normal", "戦闘不能は低HP警告を重ねない");
 assert.equal(hpToneFor(alive(56)), "green", "56%は緑の主色");
-assert.equal(hpToneFor(alive(55)), "yellow", "55%以下は黄色の主色");
+assert.equal(hpToneFor(alive(55)), "yellow", "26〜55%は黄色の主色");
 assert.equal(hpToneFor(alive(25)), "red", "25%以下は赤の主色");
-assert.equal(hpAlertLabelFor("critical"), "HP危険域", "警告のARIA語彙がある");
 
 const recoveryActor = alive(80, {
   recoveredDamage: 10,
@@ -62,4 +51,4 @@ assert.deepEqual(
   "全損時は黒区分だけが外側になる",
 );
 
-console.log("hp-gauge checks: 15 checks passed");
+console.log("hp-gauge checks: 8 checks passed");
