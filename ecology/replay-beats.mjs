@@ -45,6 +45,7 @@ export const BOARD_SKIP = new Set([
   "status_removed",
   "excess_damage",
   "excess_healing",
+  "recovery_window_closed",
   "pending_amount_modified",
   "damage_proposed",
   "healing_proposed",
