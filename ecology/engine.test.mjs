@@ -287,6 +287,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     .find((event) => event.targetActorIds.includes("a_mender") && event.values.remaining === 2);
   const afterPartialClosed = partial.replaySnapshots[partialClosed.sequence]
     .find((actor) => actor.instanceId === "a_mender");
+  equal(partialClosed.values.unrecoverableDamage, 2, "the closure event records the committed black segment");
   equal(afterPartialClosed.recoverableDamage, 0, "the red segment disappears at the boundary");
   equal(afterPartialClosed.unrecoverableDamage, 2, "the unhealed remainder becomes black");
 
