@@ -82,6 +82,10 @@ barrier / 増減の amount）は各技能にちょうど一つで、説明文は
 持っている」を検出し、`analysis/ecology-readout-smoke.mjs` と `ecology/phase-b.test.mjs` が
 それを見張ります。
 
+技能画面の効果チップは、この同じ `skillTextAtLevel` から能力値を掛ける前の係数を読む。
+人物ごとの最終値は詳細欄へ重ねず、印（腕・技・受・HP）と係数を見たプレイヤーが判断する。
+未取得節の右端は、前提コストを破線四角、取得コストを実線四角として `+` で結ぶ。
+
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 

@@ -270,16 +270,28 @@ try {
   await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
   await page.waitForTimeout(150);
 
-  // issue #177 — **その人物の手で出る量**を長さで見せる。ゴウ（腕力50・技術6）が
-  // 技術で伸びる節を装着すると7しか出ない、が issue #230 の通しで一番効いた。
-  // 行動のツリーで見る（回復の反応は被害量に比例するので、能力値のバーを持たない）。
-  // **量は数で出す。**棒だと桁が読めず、節をまたいだ比較が難しかった（作者指摘）。
+  // issue #177 — **能力値を掛ける前の技能効果量**を出す。
+  // ゴウの腕力50・技術6を先に掛けず、技能そのものの係数と能力値を見て、
+  // 「どの能力値を伸ばすか」はプレイヤーが判断できるようにする。
   const yields = await page.locator(".skill-tree-forest .yield-chip").evaluateAll((nodes) =>
     nodes.map((node) => ({ label: node.getAttribute("aria-label") ?? "", text: node.textContent ?? "" })));
-  note("誰の何でいくつ出るかが節に出る", yields.length > 0
-    && yields.every((entry) => /(腕力|技術|受け)で伸びる/.test(entry.label))
-    && yields.every((entry) => /[0-9]/.test(entry.text)),
+  note("能力値を掛ける前の技能効果量が節に出る", yields.length > 0
+    && yields.every((entry) => /(腕力|技術|受け|最大HP)で伸びる/.test(entry.label))
+    && yields.every((entry) => /効果/.test(entry.label) && /%/.test(entry.text)),
     `${yields.length} 件 · ${yields[0]?.text ?? ""}`);
+  note("詳細欄に人物別の実数を繰り返さない",
+    await page.locator(".skill-detail .skill-yield-readout").count() === 0);
+
+  // 取得コストは取得済みのチェックと同じ実線四角、前提コストは破線四角。
+  const costChains = await page.locator(".skill-tree-forest .node-cost-chain").evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      prerequisite: Boolean(node.querySelector(".prerequisite-cost")),
+      plus: Boolean(node.querySelector(".cost-plus")),
+      acquisition: Boolean(node.querySelector(".acquisition-cost")),
+    })));
+  note("前提コストと取得コストを四角とプラスで分けて出す",
+    costChains.some((entry) => entry.prerequisite && entry.plus && entry.acquisition),
+    `${costChains.length} 件`);
 
   // テーマ（攻撃・守り・支援・指揮・基礎）で絞れる。押すと他のテーマが沈む。
   const branchChips = page.locator('[data-action="select-skill-branch"]');

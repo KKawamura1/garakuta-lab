@@ -175,7 +175,7 @@ export {
   skillLevelCap,
   // issue #148 — 変動量は定義側にあり、説明文は {amount} でそこを指す。
   leveledAmountOf,
-  // issue #177 — 「誰の何で伸びるのか」と、その人物が使ったときの実数。
+  // issue #177 — 「誰の何で伸びるのか」と、その技能の効果量。
   leveledEffectOf,
   leveledValueAt,
   skillLevelValueSteps,

@@ -70,9 +70,8 @@ import {
   // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
   skillLevelValueSteps,
   skillTextAtLevel,
-  // issue #177 — 「誰の何で伸びるのか」と、その人物が使ったときの実数。
+  // issue #177 — 「誰の何で伸びるのか」と、その技能の効果量。
   leveledEffectOf,
-  leveledValueAt,
   // R19（issue #137）— 技能ツリーの座標と表示語彙。
   BRANCH_BUILDS,
   SCOPE_LABELS,
@@ -2222,13 +2221,13 @@ function activeFiringLabel(skillId) {
 // 意味の対応表は畳んだヘルプに一度だけ置く（`symbolLegendHelp`）。**節の上には出さない。**
 
 const BRANCH_KEYS = { "攻撃": "strike", "守り": "guard", "支援": "care", "指揮": "order", "基礎": "base" };
-const STAT_MARKS = { might: "腕", focus: "技", guard: "受" };
+const STAT_MARKS = { might: "腕", focus: "技", guard: "受", max_hp: "HP" };
 
 // 反応の起点の言葉は content 側の正本（TRIGGER_LABELS）を引く。二重に書かない。
 function triggerLabelOf(listenTo) {
   return TRIGGER_LABELS[listenTo] ?? listenTo ?? "";
 }
-const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け" };
+const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け", max_hp: "最大HP" };
 // **丸は「払うもの」だけに使う。**行動点・反応点・代償のHPの三つ以外へ丸を出さない
 // （同じ形が別の意味を持つと、見分けが付かなくなる。作者指摘 2026-09-09）。
 function pips(count, cls, cap = 6) {
@@ -2362,42 +2361,53 @@ function levelMeter(node, characterId) {
     + level + " / " + cap + "\">Lv" + level + "<small>/" + cap + "</small></span>";
 }
 
-// **その人物が使ったときに出る量。**issue #230 の通しで一番効いたのがこれだった——
-// ゴウ（腕力50・技術6）が技術で伸びる節を装着すると、その拍は7しか出ない。
-// 数字を読ませるのではなく、**同じ画面の他の節と長さで比べさせる。**
-function skillYield(characterId, skillId) {
+// **技能が持つ効果量。**能力値を掛ける前の係数を出す。
+// ゴウ（腕力50・技術6）で見ても「技術が低いから技術技能が弱い」という答えを
+// 画面から先に決めず、技能そのものの強さと、人物の能力値を別々に読めるようにする。
+function skillEffectAmount(characterId, skillId) {
   const definition = skillDefinitionOf(skillId);
   const effect = leveledEffectOf(definition);
   const amount = effect?.amount;
   if (!amount || amount.type !== "stat_scaled") return null;
   const stat = amount.scalingStat;
-  const base = statsFor(characterId)?.stats?.[stat];
-  if (!base && base !== 0) return null;
+  if (!STAT_LABELS[stat] || !STAT_MARKS[stat]) return null;
   const level = Math.max(MIN_SKILL_LEVEL, skillLevelOf(characterId, skillId));
-  const value = leveledValueAt(definition, level, base);
-  if (!value) return null;
+  const one = skillTextAtLevel("{amount}", definition, level);
+  if (!one) return null;
   const kind = effect.type === "heal" ? "heal" : effect.type === "gain_barrier" ? "barrier" : "damage";
-  return { stat, kind, one: value.one, hits: value.hits, total: value.total };
+  return { stat, kind, one, hits: effect.hitCount ?? 1 };
 }
 
-// **量は数で出す。**棒にすると「どちらが大きいか」は分かっても「どれくらい出るか」が
-// 読めず、節をまたいだ比較が難しかった（作者指摘）。能力値の色の小チップにして、
-// 印（腕・技・受）と数を並べる。文章にはならず、桁で比べられる。
+// **量は数で出す。**能力値との掛け算後の実数ではなく、技能の係数を表示する。
+// 印（腕・技・受・HP）と単位付きの効果量を並べ、人物ごとの能力値による差は
+// プレイヤーが自分で判断できるようにする。
 function yieldBar(characterId, skillId) {
-  const yielded = skillYield(characterId, skillId);
-  if (!yielded) return "";
-  const label = STAT_LABELS[yielded.stat] + "で伸びる · この人物だと "
-    + yielded.total + (yielded.hits > 1 ? "（" + yielded.one + "×" + yielded.hits + "）" : "");
-  return "<span class=\"yield-chip stat-" + yielded.stat + " yield-" + yielded.kind + "\" role=\"img\""
+  const effect = skillEffectAmount(characterId, skillId);
+  if (!effect) return "";
+  const label = STAT_LABELS[effect.stat] + "で伸びる · 効果 "
+    + effect.one + (effect.hits > 1 ? "（" + effect.one + "×" + effect.hits + "）" : "");
+  return "<span class=\"yield-chip stat-" + effect.stat + " yield-" + effect.kind + "\" role=\"img\""
     + " aria-label=\"" + esc(label) + "\" title=\"" + esc(label) + "\">"
-    + "<i>" + STAT_MARKS[yielded.stat] + "</i>" + yielded.total
-    + (yielded.hits > 1 ? "<small>×" + yielded.hits + "</small>" : "") + "</span>";
+    + "<i>" + STAT_MARKS[effect.stat] + "</i>" + esc(effect.one)
+    + (effect.hits > 1 ? "<small>×" + effect.hits + "</small>" : "") + "</span>";
 }
 
-// 取得の状態。**文字を出さない。**まだ持っていない節は値段の数だけ、
-// 持っている節は形（○ 取得済み／● 装着中／◐ オフ）で分かる。
+// 前提をすべて満たすまでに必要な技能点。前提の Lv もコストに含める。
+function prerequisiteCostFor(node, seen = new Set()) {
+  return (node.requires ?? []).reduce((total, required) => {
+    if (seen.has(required.skillId)) return total;
+    seen.add(required.skillId);
+    const prerequisite = SKILL_TREE_NODES.find((entry) => entry.skillId === required.skillId);
+    if (!prerequisite) return total;
+    const levelCost = Math.max(0, (required.minLv ?? MIN_SKILL_LEVEL) - MIN_SKILL_LEVEL) * SKILL_LEVEL_COST;
+    return total + prerequisiteCostFor(prerequisite, seen) + prerequisite.cost + levelCost;
+  }, 0);
+}
+
+// 取得の状態。**文字を出さない。**まだ持っていない節は、前提コストと取得コストを
+// 形の違う四角で分ける。持っている節は形（□✓ 取得済み／■✓ 装着中）で分かる。
 function nodeStateMark(node, nodeState, characterId) {
-  // **丸は値段のときだけ。**持っているかどうかは鉤（✓）で、塗りが装着中。
+  // **丸は消費だけ。**持っているかどうかは鉤（✓）で、塗りが装着中。
   if (nodeState.equipped) {
     return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
       + " aria-label=\"" + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\" title=\""
@@ -2411,9 +2421,18 @@ function nodeStateMark(node, nodeState, characterId) {
   const title = nodeState.prereqsMet
     ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
     : "前提がまだ（技能点" + node.cost + "）";
-  return "<span class=\"node-mark cost" + (affordable ? " ready" : "")
-    + (nodeState.prereqsMet ? "" : " gated") + "\" role=\"img\" aria-label=\"" + esc(title) + "\""
-    + " title=\"" + esc(title) + "\">" + node.cost + "</span>";
+  const prerequisiteCost = prerequisiteCostFor(node);
+  const chainLabel = node.requires?.length
+    ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
+    : "取得コスト" + node.cost + "点";
+  const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
+    + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
+  const prerequisite = node.requires?.length
+    ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
+      + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
+    : "";
+  return "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
+    + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
 }
 
 function skillSlotRows(characterId, kind) {
@@ -2715,15 +2734,6 @@ function renderSkillDetail(row, node, characterId, nodeState) {
   const requires = node.requires;
   const cap = skillLevelCapOf(node.skillId);
   const level = skillLevelOf(characterId, node.skillId);
-  // **段はもう節の上に出ている。**ここでは、その人物の手で実際に出る量だけを添える。
-  const yielded = skillYield(characterId, node.skillId);
-  const levelSummary = yielded
-    ? "<p class=\"skill-yield-readout\"><i class=\"yield-stat stat-" + yielded.stat + "\">"
-      + STAT_MARKS[yielded.stat] + "</i>" + esc(characterName(characterId)) + "の手で <b>"
-      + yielded.total + "</b>" + (yielded.hits > 1 ? "（" + yielded.one + "×" + yielded.hits + "）" : "")
-      + "<small>" + STAT_LABELS[yielded.stat] + " " + (statsFor(characterId)?.stats?.[yielded.stat] ?? 0)
-      + " で伸びる</small></p>"
-    : "";
   const action = nodeState.equipped
     ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
@@ -2747,7 +2757,6 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     : "";
   return "<div class=\"skill-detail\"><p>" + scope + esc(skillEffectText(characterId, node.skillId))
     + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + "</span>" : "") + "</p>"
-    + levelSummary
     + "<div class=\"skill-route\"><span class=\"route-line\"><b>前提</b>"
     + (requires.length
       ? requires.map((required) => skillRouteChip(required.skillId, required.minLv)).join("")
@@ -2902,10 +2911,12 @@ function symbolLegendHelp() {
     + row(pips(1, "ap"), "行動点。丸の数だけ1ラウンドに払う")
     + row(pips(1, "rp"), "反応点。装着した反応は上から順に払い、尽きたら下は出ない")
     + row("<span class=\"pips hp\"><i></i></span>", "代償にHPを払う")
-    + row("<span class=\"yield-chip stat-might\"><i>腕</i>65</span>",
-      "この人物の手で出る量。印は伸びる能力値（腕＝腕力・技＝技術・受＝受け）")
+    + row("<span class=\"yield-chip stat-might\"><i>腕</i>130%</span>",
+      "技能の効果量。印は掛ける能力値（腕＝腕力・技＝技術・受＝受け・HP＝最大HP）")
     + row("<span class=\"level-tag\">Lv1<small>/10</small></span>", "いまの段と上限")
-    + row("<span class=\"node-mark cost ready\">1</span>", "まだ取っていない。数は要る技能点")
+    + row("<span class=\"node-mark cost acquisition-cost\">1</span>", "この技能の取得コスト")
+    + row("<span class=\"node-cost-chain\"><span class=\"node-mark prerequisite-cost\">1</span><span class=\"cost-plus\">+</span><span class=\"node-mark acquisition-cost\">1</span></span>",
+      "前提コストと、この技能の取得コスト")
     + row("<span class=\"node-mark owned\">✓</span>", "取得済み・未装着")
     + row("<span class=\"node-mark equipped\">✓</span>", "装着中")
     + row("<span class=\"turn-share\"><i></i><i class=\"on\"></i><i></i></span>",
