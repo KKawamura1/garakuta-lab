@@ -251,6 +251,36 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
+// ---- §12.2 recovery window --------------------------------------------------
+
+{
+  const result = run(BARRIER_PARTIAL_BATTLE, { captureReplaySnapshots: true });
+  const taken = first(result, "damage_taken");
+  const afterDamage = result.replaySnapshots[taken.sequence].find((actor) => actor.instanceId === taken.targetActorIds[0]);
+  equal(afterDamage.recoverableDamage, taken.values.amount, "only HP damage opens the recovery window");
+  const closed = first(result, "recovery_window_closed");
+  equal(closed.values.remaining, taken.values.amount, "the unused window is committed at the next boundary");
+  const afterClose = result.replaySnapshots[closed.sequence].find((actor) => actor.instanceId === taken.targetActorIds[0]);
+  equal(afterClose.recoverableDamage, 0, "the red recoverable segment disappears when the window closes");
+}
+
+{
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.reactiveSkills.test_recovery = { id: "test_recovery", displayName: "Test Recovery", tags: ["reaction", "care"], rule: {
+    id: "test_recovery_rule", listenTo: "damage_taken", timing: "after", priority: 1,
+    predicates: [{ type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 } }],
+    costs: [], effects: [{ type: "heal", target: { scope: "self", filters: [{ type: "alive" }], take: 1 }, amount: { type: "constant", value: 99 }, tags: ["care"] }], limit: { scope: "chain", count: 1 },
+  }};
+  const battle = structuredClone(CORE_BATTLE);
+  battle.maxRounds = 1; battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [{ ...battle.allies.find((actor) => actor.instanceId === "a_mender"), hp: 10, position: "front_left", tactics: [{ activeSkillId: "strike", useWhen: [] }], reactiveSkillIds: ["test_recovery"] }];
+  battle.enemies = [{ ...battle.enemies[0], hp: 10, position: "front_left" }];
+  const result = simulateBattle(battle, content, { captureReplaySnapshots: true });
+  const applied = of(result, "healing_applied").find((event) => event.ruleId === "test_recovery_rule");
+  equal(applied.values.actual, 4, "a recovery larger than the hit stops at the attack damage");
+  equal(applied.values.recoverableAfter, 0, "the entire red segment is consumed by the recovery");
+}
+
 // ---- §11.5 interrupt ordering, cover, and re-evaluation ----------------------
 
 {
