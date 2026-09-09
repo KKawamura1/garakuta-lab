@@ -277,7 +277,8 @@ function closeRecoveryWindow(state, actorId, cause) {
       cause,
       attackChainId: window.chainId,
       recoveredDamage: actor?.recoveredDamage ?? 0,
-      unrecoverableDamage: unrecoverable,
+      // 窓を閉じた後は、残っていた赤も黒へ移った後の値を記録する。
+      unrecoverableDamage: actor ? Math.max(0, actor.maxHp - actor.hp) : unrecoverable,
     },
   });
 }
