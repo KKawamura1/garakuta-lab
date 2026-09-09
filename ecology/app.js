@@ -2618,7 +2618,9 @@ function renderSkills() {
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("SKILL TREE", "技能ツリー")
     + "<p class=\"operation-note\">スキルを選ぶと詳細が開きます。</p>"
+    + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー（選択すると詳細が開きます）</summary>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
+    + "</details>"
     + helpDetails("skill-rules", "技能のルール",
       "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
       // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
@@ -2674,6 +2676,10 @@ function renderEquipment() {
   }).join("");
   const slots = "<section class=\"selected-loadout\"><h3>" + esc(characterName(characterId)) + "の装備枠</h3>"
     + "<div class=\"equipment-slots\">" + equipmentSlotHtml(characterId, 0) + equipmentSlotHtml(characterId, 1) + "</div></section>";
+  const inventory = "<details class=\"progressive-details equipment-inventory\" open><summary>手元の装備（"
+    + state.run.inventory.length + "品）</summary>"
+    + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>")
+    + "</div></details>";
   const selection = selected
     ? "装着する枠を選んでください。"
     : "装備を選んでください。";
@@ -2682,7 +2688,7 @@ function renderEquipment() {
     + "<p class=\"operation-note\" role=\"status\">" + selection + "</p>"
     + memberTabs(characterId, { showSkillPoints: false }) + memberContext(characterId, "equipment")
     + slots
-    + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>") + "</div>"
+    + inventory
     + helpDetails("equipment-rules", "装備のルール",
       "<p class=\"muted\">装備は何度でも付け外しできます。生成装備の発火効果は耐久を1消費し、複数効果・多段・範囲効果は2消費します。耐久0では以後の発火効果が不発になります。</p>"
       + "<p class=\"muted\">能力値補正は装着中の常時効果なので耐久を消費しません。修理効果は自己相殺を避け、HPか防壁の有限コストを使います。</p>"
@@ -2759,19 +2765,25 @@ function renderMap() {
       + esc(encounter.bossLaw.previewText) + "</p><ul class=\"boss-counters\">"
       + encounter.bossLaw.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></div>"
     : "";
-  const enemyBlock = "<div class=\"enemy-grid\">" + encounter.enemies.map(renderEnemy).join("") + "</div>";
+  const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵の情報（"
+    + encounter.enemies.length + "体）</summary><div class=\"enemy-grid\">"
+    + encounter.enemies.map(renderEnemy).join("") + "</div></details>";
   const ruleBody = isCampaignRun()
     ? "<p class=\"muted\">通常・精鋭戦後はHPを次の戦闘へ持ち越します。4戦目・8戦目のボス後だけ全員が全回復します。敵を倒さずに待ってもHPは戻りません。</p>"
     : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>";
   return "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
       "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
     + "<div class=\"map-progress\">" + progress + "</div>"
+    + "<div class=\"primary-action map-primary-action\" data-primary-action=\"begin-stage\">"
+    + "<p class=\"primary-action-label\">次の操作</p>"
+    + button("この敵に挑む", "begin-stage", false, "button primary")
+    + "</div>"
     + "<p class=\"act-line\">第" + encounter.act + "幕 · " + kindLabel + "戦 · 危険度 " + encounter.spentThreat
     + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "ラウンド</p><h3>"
     + esc(encounter.name) + "</h3><p class=\"lead-small\">" + esc(encounter.description) + "</p>"
     + law + enemyBlock
     + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
-    + button("この敵に挑む", "begin-stage", false, "button primary") + "</section>"
+    + "</section>"
     + helpDetails("expedition-rules", "遠征のルール", ruleBody);
 }
 
@@ -3670,6 +3682,8 @@ function renderResult() {
         ? button("遠征を精算する", "settle-run", false, "button primary")
         : rewardSectionHtml()
       : button("この先どうするか", "show-defeat", false, "button primary");
+  const nextBlock = "<div class=\"primary-action result-primary-action\" data-primary-action=\"result-next\">"
+    + "<p class=\"primary-action-label\">次の操作</p>" + next + "</div>";
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
@@ -3713,7 +3727,7 @@ function renderResult() {
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
   return shell(won ? "突破した" : "足を止めた",
     currentEncounter().name + " · " + result.roundsUsed + "ラウンド",
-    status + stateCard + next + replay + history);
+    status + nextBlock + stateCard + replay + history);
 }
 
 
@@ -3860,24 +3874,27 @@ function rewardSectionHtml() {
 // R6 §12.2 — 敗北処理。**即座に破棄しない。**
 function renderDefeat() {
   const canRetry = state.run.supplies >= 1;
+  const actionCard = "<section class=\"card primary-action defeat-primary-action\" data-primary-action=\"defeat-next\">"
+    + sectionHeading("NEXT", "次の手", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
+    + "<p class=\"primary-action-label\">補給の使い道を選びます</p>"
+    + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
+    + (canRetry
+      ? button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
+      : "<p class=\"muted\">補給が0なので、この遠征はここで終わります。</p>")
+    + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary")
+    + "</section>";
   return shell("足を止めた", currentEncounter().name + " · 補給 " + state.run.supplies, "<section class=\"card verdict loss\">"
     + "<div class=\"verdict-mark\">×</div><h2>この組み合わせでは届かなかった</h2>"
     + "<p>補給1で編成・位置・技能・装備を変えて、同じ戦闘へ再挑戦できます。</p>"
     + "<p class=\"world-voice\">" + esc(defeatVoice()) + "</p></section>"
-    + "<section class=\"card\">" + sectionHeading("SUPPLIES", "残っている手")
-    + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた") + "</section>"
+    + actionCard
     + "<section class=\"card\">" + sectionHeading("CARRY HOME", "ここまでで確定した活動資金")
     + "<p class=\"muted\">撃破した戦闘と到達距離は、負けても持ち帰ります。</p>"
     + "<p class=\"fund-line\"><b>" + formatFunds(state.run.fundLedger.provisionalTotal) + "</b>"
     + "<small>撃破 " + state.run.fundLedger.clearedEncounterBase + " · 到達 "
     + state.run.fundLedger.highestClearedEncounter + " 戦 · 倍率 ×"
-    + (state.run.fundLedger.difficultyMultiplierBps / 10000).toFixed(1) + "</small></p>"
-    + (canRetry
-      ? button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
-      : "<p class=\"muted\">補給が0なので、この遠征はここで終わります。</p>")
-    + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary") + "</section>");
+    + (state.run.fundLedger.difficultyMultiplierBps / 10000).toFixed(1) + "</small></p></section>");
 }
-
 
 // R8 §3.6 / §10.3 — 遠征終了時に残った設計図。**何が残り、何が残らなかったかを
 // 両方出す。**「良い品を拾ったのに残らなかった」を黙って起こさない。
@@ -3941,6 +3958,13 @@ function renderSettlement() {
     ["この区画の初回クリア", b.firstClearBonus],
   ].map(([label, value]) => "<div class=\"settle-row\"><span>" + esc(label) + "</span><b>" + value + "</b></div>").join("");
   const title = won ? "遠征を終えた" : retreated ? "安全に撤退した" : "遠征は途中で終わった";
+  const nextAction = "<section class=\"card primary-action settlement-primary-action\" data-primary-action=\"settlement-next\">"
+    + sectionHeading("NEXT", "次の行き先")
+    + "<p class=\"primary-action-label\">精算を確認したら、帰る先を選びます。</p>"
+    + button("根城へ帰る", "go-homestead", false, "button primary")
+    + button("ギルドへ戻る", "back-guild", false, "button")
+    + button("記録を送る", "complete", false, "button")
+    + "</section>";
   return shell(title,
     (CAMPAIGN_STAGES[state.run.campaignStageSequence]?.displayName ?? "遠征")
       + " · " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + " 戦",
@@ -3948,6 +3972,7 @@ function renderSettlement() {
     + (won ? "✦" : retreated ? "◇" : "◆") + "</div><h2>活動資金 " + formatFunds(settlement.earned) + " を持ち帰った</h2>"
     + "<p>残高 " + formatFunds(settlement.balanceBefore) + " → <b>" + formatFunds(settlement.balanceAfter) + "</b></p>"
     + "<p class=\"settle-closing\">" + esc(settlementClosingLine(settlement)) + "</p></section>"
+    + nextAction
     + "<section class=\"card\">" + sectionHeading("SETTLEMENT", "内訳")
     + "<div class=\"settle-list\">" + rows + "</div>"
     + "<div class=\"settle-row total\"><span>報酬倍率</span><b>×"
@@ -3963,11 +3988,7 @@ function renderSettlement() {
         + esc(CAMPAIGN_STAGES[settlement.unlockedCampaignStage]?.displayName ?? ("区画 " + settlement.unlockedCampaignStage))
         + " が開いた</h3></section>"
       : "")
-    + "<section class=\"card quiet\">"
-    // R11 §2.4 — 器材を詰所へ返して、それから根城へ帰る。**精算の次は家である。**
-    + button("根城へ帰る", "go-homestead", false, "button primary")
-    + button("ギルドへ戻る", "back-guild", false, "button")
-    + button("記録を送る", "complete", false, "button") + "</section>");
+    );
 }
 
 function renderComplete() {
