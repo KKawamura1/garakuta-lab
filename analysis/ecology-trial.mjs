@@ -86,6 +86,18 @@ try {
     const match = text?.match(/([0-9]+)\s*\/\s*([0-9]+)/);
     return match ? { current: Number(match[1]), total: Number(match[2]) } : null;
   };
+  const readBarrierUi = () => page.locator(".battle-field").evaluate((field) => (
+    [...field.querySelectorAll(".unit")].map((unit) => {
+      const mark = unit.querySelector(".mark.barrier")?.textContent?.trim() ?? "";
+      const match = mark.match(/^◈([0-9]+)$/);
+      return {
+        maxHp: Number(unit.dataset.maxHp ?? "0"),
+        barrier: match ? Number(match[1]) : 0,
+        width: Number.parseFloat(unit.querySelector(".unit-barrier-fill")?.style.width ?? "0"),
+        hasFill: Boolean(unit.querySelector(".unit-barrier-fill")),
+      };
+    })
+  ));
 
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
@@ -206,6 +218,7 @@ try {
   let sawAnimation = false;
   let retried = false;
   let rerolled = false;
+  let barrierSamples = [];
   // R6 §5.1 — 3幕12戦。負けたら補給で再挑戦し、尽きたら精算まで進む。
   for (; stage <= 12; stage += 1) {
     await page.locator('nav.tabs [data-tab="map"]').click();
@@ -259,6 +272,9 @@ try {
 
     if (stage === 1) {
       note("盤面に味方と敵の箱が出る", await page.locator(".unit").count() >= 4);
+      barrierSamples = [await readBarrierUi()];
+      note("HPバーの上に防壁バーがある",
+        barrierSamples[0].length >= 4 && barrierSamples[0].every((entry) => entry.hasFill));
       note("再生の操作が画面内にある", await onScreen(".replay-transport"));
       note("ログは既定で閉じている", !(await page.locator("details.debug-log").first().evaluate((d) => d.open)));
       // ダメージ値が実際に浮くところまで見る（拍が進んでいる証拠）。
@@ -278,6 +294,7 @@ try {
         if (toggleLabel?.trim() === "一時停止") await toggle.click();
       }
       let beat = await readBeatCount();
+      barrierSamples.push(await readBarrierUi());
       let manualSteps = 0;
       while (beat && beat.current < beat.total && manualSteps < 1200) {
         const stepButton = page.locator('[data-role="replay-step"]');
@@ -285,6 +302,7 @@ try {
         await stepButton.click();
         manualSteps += 1;
         beat = await readBeatCount();
+        barrierSamples.push(await readBarrierUi());
       }
       const animationAtEnd = Boolean(beat && beat.total > 0 && beat.current === beat.total);
       note("アニメーションを最後の拍まで進められる",
@@ -323,6 +341,20 @@ try {
           forecast: forecastAtStage1,
           animation: animationSnapshot.members,
         }));
+      const barrierUiParity = barrierSamples.length > 0
+        && barrierSamples.every((sample) => sample.length > 0 && sample.every((entry) => {
+          const expected = entry.maxHp > 0 && entry.barrier > 0
+            ? Math.min(100, (entry.barrier / entry.maxHp) * 100)
+            : 0;
+          return entry.hasFill
+            && Number.isFinite(entry.width)
+            && entry.width >= -0.01
+            && entry.width <= 100.01
+            && Math.abs(entry.width - expected) < 0.01;
+        }));
+      note("リプレイの各スナップショットで防壁バーが追従する",
+        barrierUiParity,
+        barrierUiParity ? "" : JSON.stringify(barrierSamples.at(-1)));
     }
 
     const fastSpeed = page.locator('.speed-button[data-speed="fast"]');
