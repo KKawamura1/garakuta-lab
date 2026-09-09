@@ -234,7 +234,7 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
 - AP/RP を別の actor へ渡す反応は有限の cost と limit を持ち、`resource_gained` を読む
   loop witness は fixture 専用です。本番 bundle の資源出力は有限の支払いまたは AP 行動に
   結び付け、同じ owner の同じ rule は一つの chain の同じ trigger で一度だけです。
-- 回復は原則として直前の攻撃の実HPダメージを上限とし、攻撃単位の回復窓を越えません。防壁で吸収した分は回復対象外です。過剰回復は元の `requested - actual` だけを `excess_healing` として渡し、同じ overflow を
+- 回復は原則として直前の攻撃の実HPダメージを上限とし、攻撃単位の回復窓を越えません。防壁で吸収した分は回復対象外です。戦闘中のHPバーは最大HP幅を、緑（未回復の残HP）・紫（回復済み）・赤（回復可能残分）・黒（回復不能分）に分け、対象が倒れた時は赤をその場で黒へ確定します。過剰回復は元の `requested - actual` だけを `excess_healing` として渡し、同じ overflow を
   一つの chain で二度使いません。
 - guard は一 hit ごとの固定軽減、block は hit 単位の無効回数、barrier は総量吸収です。
   barrier が一撃を吸い切ると HP は減らないので `damage_taken` は出ませんが、
