@@ -289,6 +289,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     .find((actor) => actor.instanceId === "a_mender");
   equal(partialClosed.values.unrecoverableDamage, 2, "the closure event records the committed black segment");
   equal(afterPartialClosed.recoverableDamage, 0, "the red segment disappears at the boundary");
+  equal(afterPartialClosed.recoveredDamage, 0, "the recovered segment merges into green at the boundary");
   equal(afterPartialClosed.unrecoverableDamage, 2, "the unhealed remainder becomes black");
 
   content.reactiveSkills.test_recovery.rule.effects[0].amount.value = 99;
@@ -298,8 +299,16 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(applied.values.recoverableAfter, 0, "the entire red segment is consumed by the recovery");
   const afterOverflow = overflow.replaySnapshots[applied.sequence]
     .find((actor) => actor.instanceId === "a_mender");
-  equal(afterOverflow.recoveredDamage, 4, "the capped recovery is represented in the purple segment");
+  equal(afterOverflow.recoveredDamage, 4, "the capped recovery is represented in the darker green segment");
   equal(afterOverflow.recoverableDamage, 0, "no red segment remains after a capped recovery");
+  const nextAction = overflow.events.find((event) =>
+    event.type === "action_started" && event.sequence > applied.sequence
+  );
+  check(nextAction, "a later attack phase exists for the recovery display reset");
+  const afterNextAction = overflow.replaySnapshots[nextAction.sequence]
+    .find((actor) => actor.instanceId === "a_mender");
+  equal(afterNextAction.recoveredDamage, 0, "the recovered segment resets at the next attack phase");
+  equal(afterNextAction.recoverableDamage, 0, "a fully recovered window leaves no red segment");
 }
 
 {
