@@ -408,6 +408,10 @@ function freshUiState() {
     treatTargets: [],
     treatmentSelection: null,
     treatmentResult: null,
+    // #209 — the mandatory supply walkthrough belongs only to the New Game
+    // Stage 0 introduction. Revisited/ordinary expeditions start with zero
+    // supplies and must keep their normal, optional camp flow.
+    supplyTutorialRunId: null,
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
@@ -860,7 +864,8 @@ function shouldShowSupplyTutorialAfterReward() {
 }
 
 function supplyTutorialVisible() {
-  return firstOrdinaryBattleWon()
+  return state.supplyTutorialRunId === state.run.runId
+    && firstOrdinaryBattleWon()
     && state.run.encounterIndex >= 2
     && !hasStoryFlag(SUPPLY_TUTORIAL_FLAG);
 }
@@ -4218,6 +4223,9 @@ function handleAction(event) {
       selectedCampaignStageSequence: 0,
       runId: run.runId,
       startedAt: run.startedAt,
+      // #209 — remember which New Game run owns the mandatory first-use
+      // walkthrough. A normal/revisit run must not inherit that gate.
+      supplyTutorialRunId: run.runId,
       formationSelection: run.roster[0] ?? null,
     };
     record("run_started", {
