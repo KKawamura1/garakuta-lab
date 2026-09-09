@@ -273,7 +273,8 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   }};
   const battle = structuredClone(CORE_BATTLE);
   battle.maxRounds = 1; battle.objective = { type: "survive_rounds", rounds: 1 };
-  battle.allies = [{ ...battle.allies.find((actor) => actor.instanceId === "a_mender"), hp: 10, position: "front_left", tactics: [{ activeSkillId: "strike", useWhen: [] }], reactiveSkillIds: ["test_recovery"] }];
+  // Start at full HP so unrecoverableDamage measures only this attack's unhealed remainder.
+  battle.allies = [{ ...battle.allies.find((actor) => actor.instanceId === "a_mender"), hp: 14, position: "front_left", tactics: [{ activeSkillId: "strike", useWhen: [] }], reactiveSkillIds: ["test_recovery"] }];
   battle.enemies = [{ ...battle.enemies[0], hp: 10, position: "front_left" }];
   const partial = simulateBattle(battle, content, { captureReplaySnapshots: true });
   const partialApplied = of(partial, "healing_applied").find((event) => event.ruleId === "test_recovery_rule");
