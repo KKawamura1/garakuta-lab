@@ -464,6 +464,8 @@ function absorbBarrier(rt, ctx, target, amount, tags) {
 function defeatActor(rt, ctx, target, parentEventId) {
   target.alive = false;
   target.inQueue = false;
+  // 倒れた表示拍では、回復済み区分も通常の緑／黒へ確定する。
+  target.recoveredDamage = 0;
   const window = rt.state.recoveryWindows.get(target.instanceId);
   if (window && window.remaining > 0) {
     rt.state.recoveryWindows.delete(target.instanceId);
@@ -523,23 +525,25 @@ function applyHealing(rt, ctx, effect) {
     if (!finalTarget || !finalTarget.alive) continue;
     const requested = frame.amount;
     const window = rt.state.recoveryWindows.get(finalTarget.instanceId);
-    // Explicit active/utility healing may still treat pre-existing HP loss;
-    // reactive healing is attack-bound and may only consume this chain's window.
-    const recoverable = window?.chainId === rt.state.chain.id
+    const inCurrentRecoveryWindow = window?.chainId === rt.state.chain.id;
+    // Reactive healing is attack-bound. Active/utility healing may still treat
+    // older HP loss, but that amount is not shown as recovery of this attack.
+    const recoverable = inCurrentRecoveryWindow
       ? window.remaining
       : (ctx.ruleId && ctx.event?.type !== "excess_healing"
         ? 0
         : finalTarget.maxHp - finalTarget.hp);
     const actual = Math.min(requested, finalTarget.maxHp - finalTarget.hp, recoverable);
     finalTarget.hp += actual;
-    finalTarget.recoveredDamage = Math.min(
-      finalTarget.hp,
-      Math.max(0, finalTarget.recoveredDamage ?? 0) + actual,
-    );
-    if (window) {
+    if (inCurrentRecoveryWindow) {
+      finalTarget.recoveredDamage = Math.min(
+        finalTarget.hp,
+        Math.max(0, finalTarget.recoveredDamage ?? 0) + actual,
+      );
       window.remaining -= actual;
       if (window.remaining <= 0) rt.state.recoveryWindows.delete(finalTarget.instanceId);
     }
+    const recoverableAfter = inCurrentRecoveryWindow ? (window?.remaining ?? 0) : 0;
     if (ctx.owner) bumpHistory(ctx.owner, "healing_done", actual);
     rt.emit({
       type: "healing_applied",
@@ -552,11 +556,11 @@ function applyHealing(rt, ctx, effect) {
         actual,
         hpAfter: finalTarget.hp,
         recoverableBefore: recoverable,
-        recoverableAfter: window?.remaining ?? 0,
+        recoverableAfter,
         recoveredDamage: finalTarget.recoveredDamage,
         unrecoverableDamage: Math.max(
           0,
-          finalTarget.maxHp - finalTarget.hp - (window?.remaining ?? 0),
+          finalTarget.maxHp - finalTarget.hp - recoverableAfter,
         ),
       },
     });
