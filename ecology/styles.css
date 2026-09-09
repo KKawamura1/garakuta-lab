@@ -1267,8 +1267,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .unit-unrecoverable { background: #080c0d; }
 .unit-fill.low { background: var(--gold); }
 .unit-fill.critical { background: var(--bad); }
-.unit-fill.low { background: var(--gold); }
-.unit-fill.critical { background: var(--bad); }
 .unit-stats { display: flex; align-items: center; gap: 4px; margin-top: 4px; min-height: 12px; font-size: 9px; }
 .unit-hp { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* 防壁と状態異常。数が増えても箱の高さを変えない（動き自体が読めなくなるため）。 */
