@@ -1176,3 +1176,10 @@ generator versionを7、content contractを18へ上げ、修理以外の全rule�
 ### 3.48 防壁をHPバー上へ可視化した（issue #208、2026-09-09）
 
 戦闘中の防壁値は数値だけではHPに対する残量を読み取りにくかったため、盤面のHPバー上端へ灰色の帯を追加した。帯の幅は `barrier / maxHP` を100%で上限にし、防壁0では表示しない。数値マークは補助として残し、replay snapshotの更新をそのまま読むことで、付与・吸収・破壊・期限切れの各拍でHPと防壁を同時に確認できるようにした。
+
+
+### 3.49 build印をデプロイ時生成へ移した（2026-09-09）
+
+これまでは、公開物を変更するたびに `analysis/stamp.mjs` が時刻付きの `core/build.mjs` を生成し、そのファイルをcommitしていた。build印は公開E2Eが古いpreviewを検査しないため、またD1のプレイ記録をどの版か照合するために必要だったが、生成物をtrackedにしたことで、複数PRが同じ1ファイルを更新し続けていた。
+
+`core/build.mjs` を安定したloaderにし、Pages buildがコミットSHAだけを無視対象の `core/build.generated.mjs` へ出力する方式へ変更した。ルール契約の `FINGERPRINT` はcontent定義から直接読み、build識別子と分離した。これでbuild印の用途を残したまま、時刻差分とbuild印だけのコンフリクトをなくした。
