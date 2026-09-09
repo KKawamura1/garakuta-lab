@@ -264,9 +264,8 @@ function closeRecoveryWindow(state, actorId, cause) {
   state.recoveryWindows.delete(actorId);
   const actor = getActor(state, actorId);
   const remaining = Math.max(0, window.remaining);
-  const unrecoverable = actor
-    ? Math.max(0, actor.maxHp - actor.hp - remaining)
-    : 0;
+  // 回復済み区分は、窓が閉じた表示拍で通常の残HPへ統合する。
+  if (actor) actor.recoveredDamage = 0;
   if (remaining <= 0) return;
   pushEvent(state, {
     type: "recovery_window_closed",
@@ -276,14 +275,19 @@ function closeRecoveryWindow(state, actorId, cause) {
       remaining,
       cause,
       attackChainId: window.chainId,
-      recoveredDamage: actor?.recoveredDamage ?? 0,
+      recoveredDamage: 0,
       // 窓を閉じた後は、残っていた赤も黒へ移った後の値を記録する。
-      unrecoverableDamage: actor ? Math.max(0, actor.maxHp - actor.hp) : unrecoverable,
+      unrecoverableDamage: actor ? Math.max(0, actor.maxHp - actor.hp) : 0,
     },
   });
 }
 
 function closeRecoveryWindows(state, cause) {
+  // 回復窓を使い切って Map から消えた actor も、次の攻撃開始では
+  // 回復済み区分を通常の緑へ戻す。
+  for (const actor of allActors(state)) {
+    actor.recoveredDamage = 0;
+  }
   for (const actorId of [...state.recoveryWindows.keys()]) {
     closeRecoveryWindow(state, actorId, cause);
   }
