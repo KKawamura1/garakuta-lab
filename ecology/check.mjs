@@ -11,6 +11,7 @@ const SUITES = [
   "engine.test.mjs",
   "hp-gauge.test.mjs",
   "replay-beats.test.mjs",
+  "battle-log.test.mjs",
   "replay-beats.test.mjs",
   "termination.test.mjs",
   "extensibility.test.mjs",

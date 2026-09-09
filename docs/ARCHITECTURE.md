@@ -30,6 +30,7 @@
 | `playable-battles.mjs` | 現行の戦闘入力、preview、loadout（技能の装着順・一時停止を含む） |
 | `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁 |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換 |
+| `battle-log.mjs` | リプレイの各拍から、中央表示用の主行動・重要結果を短く投影 |
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
@@ -144,6 +145,10 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 行動の取り消しは `action_canceled` として、HPが変わらない場合も理由を残します。
 戦闘盤面の防壁バーは新しいイベントや状態を持たず、`app.js` が現在の `replaySnapshots` の actor から `barrier` と `maxHp` を読み、`min(100, barrier / maxHp * 100)` の表示幅へ変換します。数値マークとバーは同じsnapshotを読むため、付与・吸収・破壊・期限切れの表示がずれません。
 準備付き行動では `preparation_completed` の後続にあるダメージ系イベントを別の `impact` 拍へ分離します。盤面の踏み込みは `beatHasStrikeImpact()` が判定する着弾拍だけに限定し、準備開始・完了や `sub` 反応で誤って攻撃モーションを出さないようにします。
+中央の拍ログは `battle-log.mjs` の純粋な投影を使い、同じ拍の event を無条件に連結しません。主行動と
+最も重要な結果（ダメージ、回復、防壁吸収、状態付与、不発、装備反応など）を一つへ短文化し、
+敵味方で同じ語彙を使います。詳細な event 列と `eventText()` は戦闘履歴・折り畳まれた技術ログへ残し、
+中央表示の短文化で防壁の完全吸収や対象なしの不発を隠さないようにします。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
 ターゲットクエリの並び替えは `TARGET_SORT_TYPES`（schema）が正本で、実装は `selectors.mjs` の
 `sortValue` 一箇所です。`hp_asc` / `hp_desc` は残りHPそのもの（**攻撃の狙い先**。味方側・敵側とも

@@ -142,6 +142,7 @@ import {
   filterReplayEvents,
   REPLAY_EVENT_TYPES,
 } from "./replay-beats.mjs";
+import { summarizeBattleBeat } from "./battle-log.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
@@ -3056,6 +3057,24 @@ function targetNames(ids) {
   return (ids || []).map((id) => actorName(id)).join("、");
 }
 
+// 中央の拍ログは、対象を全員分列挙すると主な結果が2行目へ押し出される。
+// 同じ側の全員なら意味を保ったまま「敵全体／味方全体」、それ以外の複数対象は
+// 人数だけを出す。個別の名前が必要な詳細列は eventText() と技術ログに残る。
+function compactTargetNames(ids) {
+  const unique = [...new Set(ids || [])];
+  if (unique.length <= 1) return unique.map(actorName).join("・");
+  const actors = unique
+    .map((id) => state.lastResult?.actors?.find((actor) => actor.instanceId === id))
+    .filter(Boolean);
+  const sides = new Set(actors.map((actor) => actor.side));
+  if (sides.size === 1 && actors.length === unique.length) {
+    const side = actors[0].side;
+    const total = state.lastResult?.actors?.filter((actor) => actor.side === side).length ?? 0;
+    if (total === unique.length) return side === "enemy" ? "敵全体" : "味方全体";
+  }
+  return unique.length + "体";
+}
+
 function eventReasonText(reason) {
   const labels = {
     no_target: "有効な対象がいない",
@@ -3679,27 +3698,17 @@ function syncBattleView(options = {}) {
   scheduleReplayBeat();
 }
 
-// 拍の一行。同時に出したものは「＋」で並べる（並列に出したことが読めるように）。
-// **同じことを二度言わない。** 「ゴウの斬撃が始まる ＋ ゴウ → 敵に5ダメージ」は
-// 二行ぶんの場所を取って一行ぶんしか伝えない。
+// 拍の一行。主行動と最も重要な結果だけを短く出す。
+// 詳細なイベント列は戦闘履歴と技術ログへ残すので、中央では同時イベントを
+// 無条件に連結しない。特に防壁吸収・不発は結果を落とさない。
 function beatText_(beat) {
-  const head = beat.events[0];
-  if (beat.kind === "declare") {
-    const targets = [];
-    for (const event of beat.events) {
-      for (const id of event.targetActorIds || []) if (!targets.includes(id)) targets.push(id);
-    }
-    return actorName(eventSourceId(head)) + "：" + (eventSkillName(head) ?? "行動")
-      + (targets.length ? " → " + targets.map(actorName).join("、") : "");
-  }
-  // 着弾の拍は、結果の行があるなら「始まる」を省く。
-  const meaty = beat.events.filter((event) => event.type !== "action_started");
-  const parts = [];
-  for (const event of (meaty.length ? meaty : beat.events)) {
-    const line = eventText(event);
-    if (line && !parts.includes(line)) parts.push(line);
-  }
-  return parts.join(" ＋ ") || "戦闘開始";
+  return summarizeBattleBeat(beat, {
+    actorName,
+    skillName: nameFor,
+    statusName: (statusId) => statusInfo(statusId)?.displayName ?? "状態",
+    causeName: eventCauseName,
+    targetName: compactTargetNames,
+  });
 }
 
 function mountBattleView() {
