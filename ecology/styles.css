@@ -145,6 +145,46 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   background: var(--gold);
   color: #1d211f;
 }
+
+.primary-action {
+  margin: 0 0 14px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(57, 47, 30, .72), rgba(32, 45, 48, .94));
+}
+.primary-action-label {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.primary-action .button { margin-top: 0; }
+.primary-action > .card { margin-bottom: 0; }
+
+.progressive-details {
+  margin-top: 12px;
+}
+.progressive-details > summary {
+  cursor: pointer;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(23, 33, 36, .72);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 750;
+}
+.progressive-details[open] > summary {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.progressive-details > .enemy-grid,
+.progressive-details > .gear-grid {
+  margin-top: 9px;
+}
+
 .build-stamp {
   position: absolute;
   width: 1px;
