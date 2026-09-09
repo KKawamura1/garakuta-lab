@@ -63,8 +63,11 @@ node analysis/ecology-tutorial-trial.mjs
 node analysis/ecology-trial.mjs
 ```
 
-通常 CI 成功後に公開先 E2E を行う。公開物を変更したら
-`node analysis/stamp.mjs` を実行し、生成された `core/build.mjs` も commit する。
+通常 CI 成功後に公開先 E2E を行う。Cloudflare Pages の Build command は `npm run build`、
+出力ディレクトリは `.` とする。Pages の build 時に `CF_PAGES_COMMIT_SHA` から
+無視対象の `core/build.generated.mjs` を生成し、これは決して commit しない。
+`core/build.mjs` はその sidecar を読む tracked loader であり、`FINGERPRINT` は
+`ecology/content/index.mjs` の source-controlled なルール契約版である。
 preview と本番の build 印・content contract を一致させ、検査結果・未確認事項・変更理由・
 変更範囲を PR に残す。失敗した経路が一つでもあれば、作者へ URL を渡さない。
 

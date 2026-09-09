@@ -620,3 +620,10 @@ build を一つ登録する／回復役を削除する／自由回復を残し�
 修理は耐久を払って同量を戻す自己相殺を避け、HPまたは防壁という別の有限資源を払う例外とする。
 この区別により、耐久切れは「追加効果は止まるが、戦闘開始時から有効だった常時補正も次の
 BattleStateでは壊れた装備として停止する」という既存engine契約と整合する。
+
+
+## Build metadata
+
+公開物の識別は、ソースへ時刻付きの生成ファイルをコミットして行わない。Cloudflare Pages の build command（`npm run build`）が、Pages が注入する `CF_PAGES_COMMIT_SHA` から無視対象の `core/build.generated.mjs` を作る。
+
+`BUILD` はデプロイされたコミットを特定する運用メタデータ、`FINGERPRINT` はルール・content の互換性を表す source-controlled な契約版である。前者はpreviewの古い配信を検査で拒否し、D1のプレイ記録を版ごとに分けるために残す。後者は意味が変わったときだけ更新する。生成sidecarをPRへ含めないことで、build印だけが原因のブランチ間コンフリクトをなくす。

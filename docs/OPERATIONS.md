@@ -4,8 +4,9 @@
 
 1. AGENTS.md と、変更対象の実装・テストを読む。必要なら `docs/` の該当節。
 2. 検査を走らせる。
-3. 公開物を変えたら `node analysis/stamp.mjs` で build 印を更新し、生成された
-   `core/build.mjs` も commit する。
+3. Cloudflare Pages の Build command は `npm run build`、出力ディレクトリは `.` とする。
+   build 時に `CF_PAGES_COMMIT_SHA` から `core/build.generated.mjs` を生成する。
+   この sidecar は `.gitignore` 対象なので commit しない。
 4. GitHub Actions の通常 Checks が成功してから、必要なら公開先 E2E を実行する。
 5. 検査結果と未確認事項を PR に残す。やり残しは GitHub Issues へ。
 
@@ -46,7 +47,8 @@
   次の敵の狙いと戦闘条件を開始前に読める、自動戦闘が決着してリプレイとイベントログを
   確認できる、戦闘中の再読み込みから復旧できる、終了アンケートと D1 送信の成功・失敗を
   区別できる。
-- 画面に出る content contract と build 印が、公開先の `core/build.mjs` と一致する。
+- 画面に出る content contract と build 印が、Pages buildが生成した公開先の
+  `core/build.generated.mjs` と一致する。
 - 古い service worker や旧入口へ誘導されない。
 
 **失敗した経路があるときは URL を渡さず、失敗した経路を記録します。**

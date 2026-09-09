@@ -9,7 +9,8 @@
 | `analysis/ecology-chain-safety-audit.mjs` | Issue #175 の資源報酬定義・event trace・再発火・過剰回復・limit を監査する安全ゲート。 |
 | `analysis/ecology-chain-safety-blind-spots.mjs` | 安全ゲートが拒否すべき schema-valid な不正例と、許可条件を満たす既存の陽性例を実際の content から検査する smoke。 |
 | `analysis/ecology-stage3-builds.mjs` | Stage 3（5人・4pack）の三構成（issue #176）を data として持ち、取得計画の予算・核の成立時点・代替入口・代表装備・同じ seed での event 列の違いを、実際に engine へ通して検査する smoke。 |
-| `core/build.mjs` | 公開版の build 印だけを持つ生成物。`analysis/stamp.mjs` が作る |
+| `core/build.mjs` | build metadataのtracked loader。sidecarが無いローカルでは `unbuilt` を使う |
+| `core/build.generated.mjs` | Cloudflare Pages buildが `CF_PAGES_COMMIT_SHA` から作る無視対象sidecar |
 | `functions/api/runs.js` | プレイ記録の受け取りと検証（Cloudflare Pages Functions） |
 | `migrations/` | D1 schema |
 | `wrangler.jsonc`、`_headers`、`index.html`、`404.html` | 公開設定とルート導線 |
@@ -88,6 +89,10 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
 ## 4. 決定性
+
+- 公開版の `BUILD` はデプロイ対象のコミットSHAをPages build時に生成し、時刻を含めない。
+  ルールの意味を分ける `FINGERPRINT` は `ecology/content/index.mjs` でsource controlする。
+  生成sidecarはPRの差分へ持ち込まないため、複数ブランチ間でbuild印が衝突しない。
 
 - Manifest、Encounter、Reward offer、装備 instance、compiled EquipmentDef、
   Blueprint descriptor、Blueprint 再製造品は、同じ入力から JSON の内容が完全に一致します。

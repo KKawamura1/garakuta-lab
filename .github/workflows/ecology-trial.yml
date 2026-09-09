@@ -17,7 +17,7 @@ on:
         default: ""
         type: string
       expect_build:
-        description: "公開先が出しているべき build の印。空なら core/build.mjs から読む"
+        description: "公開先が出しているべきコミットSHA。空ならこのworkflowのGITHUB_SHAを使う"
         required: false
         default: ""
         type: string
@@ -29,6 +29,9 @@ on:
       - "core/build.mjs"
       - "analysis/ecology-trial.mjs"
       - "analysis/ecology-tutorial-trial.mjs"
+      - "analysis/build-metadata-smoke.mjs"
+      - "analysis/stamp.mjs"
+      - "package.json"
       - ".github/workflows/ecology-trial.yml"
 
 permissions:
@@ -51,7 +54,6 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           set -euo pipefail
-          npm init -y > /dev/null
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
 
@@ -99,8 +101,8 @@ jobs:
           set -uo pipefail
           expect="$EXPECT_INPUT"
           if [[ -z "$expect" ]]; then
-            # core/build.mjs の BUILD は "<短縮sha> / <日時>Z"。sha だけ見る。
-            expect="$(sed -n 's/.*BUILD = "\([^ ]*\).*/\1/p' core/build.mjs)"
+            # Pages build が CF_PAGES_COMMIT_SHA から作った sidecar と照合する。
+            expect="$GITHUB_SHA"
           fi
           echo "期待する build: $expect"
 
@@ -118,8 +120,8 @@ jobs:
           # デプロイは push と同時に始まるので、出てくるまで待つ。
           for attempt in $(seq 1 40); do
             for url in "${candidates[@]}"; do
-              served="$(curl -s --max-time 20 "${url%/ecology/}/core/build.mjs" || true)"
-              if grep -q "$expect" <<< "$served"; then
+              served="$(curl -s --max-time 20 "${url%/ecology/}/core/build.generated.mjs" || true)"
+              if grep -Fq "$expect" <<< "$served"; then
                 echo "url=$url" >> "$GITHUB_OUTPUT"
                 echo "expect=$expect" >> "$GITHUB_OUTPUT"
                 echo "公開先が $expect を出している: $url"
@@ -138,6 +140,7 @@ jobs:
         shell: bash
         env:
           ECOLOGY_TRIAL_BASE: ${{ steps.resolve.outputs.url }}
+          ECOLOGY_EXPECT_BUILD: ${{ steps.resolve.outputs.expect }}
           PLAYWRIGHT_MODULE: playwright
         run: |
           set -euo pipefail

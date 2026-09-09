@@ -12,6 +12,7 @@ echo "contract: ecology/check.mjs"
 node ecology/check.mjs
 
 smokes=(
+  analysis/build-metadata-smoke.mjs
   analysis/ecology-anti-stall-audit.mjs
   analysis/ecology-chain-safety-audit.mjs
   analysis/ecology-chain-safety-blind-spots.mjs
