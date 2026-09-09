@@ -5,6 +5,7 @@ import {
   hpAlertLabelFor,
   hpGaugeCornerRoles,
   hpGaugeState,
+  hpToneFor,
 } from "./hp-gauge.mjs";
 import {
   CHARACTER_OPTIONS,
@@ -3274,7 +3275,7 @@ function layoutKeyOf(actors) {
 }
 
 function unitHtml(actor) {
-  return "<div class=\"unit\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\">"
+  return "<div class=\"unit hp-tone-green\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
     + "<div class=\"unit-floats\"></div>"
     + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
     + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
@@ -3328,7 +3329,7 @@ function renderBattle() {
     + "<p class=\"hint battle-hint\">再生を止めて、一手ずつ確認できます。</p>"
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
-      + "<p class=\"muted\">HPが55%以下になると枠が金色のHP注意、25%以下になると枠が赤く弱く光ります。これは生存中の現在HPだけで判定し、ゲージ内の4区分の意味は変えません。</p>"
+      + "<p class=\"muted\">枠色はHPでは変えません。生存中の残りHPが56%以上なら主色は緑、26〜55%なら黄、25%以下なら赤です。残HPは主色、今回の攻撃で回復済みは主色の薄め、回復可能は主色のかなり暗め、回復不能は黒で表示します。</p>"
       + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
     // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
     + statusGlossaryHelp()
@@ -3562,9 +3563,12 @@ function syncBattleView(options = {}) {
     });
     const alert = hpAlertFor(actor);
     const alertLabel = hpAlertLabelFor(alert);
+    const tone = hpToneFor(actor);
     unit.dataset.hpAlert = alert;
-    unit.classList.toggle("hp-warning", alert === "warning");
-    unit.classList.toggle("hp-critical", alert === "critical");
+    unit.dataset.hpTone = tone;
+    unit.classList.toggle("hp-tone-green", tone === "green");
+    unit.classList.toggle("hp-tone-yellow", tone === "yellow");
+    unit.classList.toggle("hp-tone-red", tone === "red");
     const hp = unit.querySelector(".unit-hp");
     if (hp) hp.textContent = actor.alive
       ? gauge.currentHp + "/" + gauge.maxHp

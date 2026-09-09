@@ -32,13 +32,13 @@ const displayContracts = [
   ["低HP警告の判定", app, "hpAlertFor(actor)"],
   ["低HP警告のARIA語彙", app, "hpAlertLabelFor(alert)"],
   ["低HP警告のデータ属性", app, "data-hp-alert=\\\"normal\\\""],
-  ["HP区分のCSS色", styles, "--hp-current"],
-  ["回復済みは緑系", styles, "--hp-recovered"],
-  ["回復可能は赤系", styles, "--hp-recoverable"],
+  ["HP色のデータ属性", app, "data-hp-tone=\\\"green\\\""],
+  ["HP色の投影", hpGauge, "function hpToneFor(actor = {})"],
+  ["HPの主色", styles, "--hp-main"],
+  ["回復済みは主色の薄め", styles, "--hp-recovered-tone"],
+  ["回復可能は主色の暗め", styles, "--hp-recoverable-tone"],
   ["回復不能は黒系", styles, "--hp-unrecoverable"],
-  ["注意枠のCSS", styles, ".unit.hp-warning"],
-  ["危険枠のCSS", styles, ".unit.hp-critical"],
-  ["HP表示の説明", app, "ゲージ内の4区分の意味は変えません"],
+  ["HP枠色を変更しない説明", app, "枠色はHPでは変えません"],
   ["HP内訳のARIA", app, "回復済み "],
   ["HPゲージの投影", hpGauge, "function hpGaugeState(actor = {})"],
   ["HP注意閾値", hpGauge, "HP_WARNING_BPS = 5500"],
@@ -61,7 +61,12 @@ const displayContracts = [
 for (const [label, sourceText, expected] of displayContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
-for (const forbidden of [".unit-fill.low", ".unit-fill.critical"]) {
+for (const forbidden of [
+  ".unit-fill.low",
+  ".unit-fill.critical",
+  ".unit.hp-warning",
+  ".unit.hp-critical",
+]) {
   if (styles.includes(forbidden)) problems.push("HP区分へ低HP警告の色を混ぜるCSSが残っている: " + forbidden);
 }
 if (app.includes('"回復可"')) problems.push("ゲージ内に不要な「回復可」テキストが残っている");

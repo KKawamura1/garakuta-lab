@@ -163,11 +163,13 @@ HP回復は `damage_taken` が実際に失わせたHPだけを、同じ攻撃チ
 ときは赤の右端（赤／黒境界または赤の外側終端）だけを丸め、赤が無いときは黒の手前の最後の
 非黒区分を丸めます。全損時は黒が外側区分です。
 
-低HP警告も同じ投影を読み、生存中の `currentHp / maxHp` を整数 bps へ変換して55%以下を注意、
-25%以下を危険域とします。警告は `app.js` が unit の `hp-warning` / `hp-critical` クラスと
-`data-hp-alert`・ARIA語彙へ変換し、ゲージの4色を変更しません。従って赤区分は常に回復可能
-ダメージだけを意味します。回復済み区分の統合・赤の黒への確定・戦闘不能時の確定は、エンジンの
-`recovery_window_closed` と同じ snapshot の表示拍で起きます。
+低HPの色も同じ投影を読み、生存中の `currentHp / maxHp` を整数 bps へ変換して、56%以上を緑、
+26〜55%を黄、25%以下を赤とします。`app.js` は `hp-tone-green` / `hp-tone-yellow` /
+`hp-tone-red` クラスと `data-hp-tone` へ変換し、残HP区分を主色、回復済み区分を主色の薄め、
+回復可能区分を主色のかなり暗めへ揃えます。HPによって unit の枠色は変更しないため、行動・狙い・
+被弾など既存の枠表示と競合しません。`data-hp-alert` とARIA語彙は閾値の意味を補助的に伝えます。
+回復済み区分の統合・赤の黒への確定・戦闘不能時の確定は、エンジンの `recovery_window_closed`
+と同じ snapshot の表示拍で起きます。
 
 ## 6. content の hard contract
 

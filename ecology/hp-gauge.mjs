@@ -1,10 +1,9 @@
 // ecology/hp-gauge.mjs — HPゲージの表示契約。
 //
-// 戦闘エンジンが渡す HP 内訳を、画面の4区分と低HP警告へ変換する。
+// 戦闘エンジンが渡す HP 内訳を、画面の4区分とHP色へ変換する。
 // ここは engine の状態を変更しない純粋な表示投影なので、予測・本番の
-// replay snapshot が同じなら同じ区分と警告になる。
+// replay snapshot が同じなら同じ区分と色になる。
 
-// 低HP警告はゲージ内の色の意味を奪わないよう、カードの枠で表す。
 // 比較は整数 basis points にして、55% / 25% の境界を含めて決定的にする。
 export const HP_WARNING_BPS = 5500;
 export const HP_CRITICAL_BPS = 2500;
@@ -19,6 +18,12 @@ export const HP_ALERT_LABELS = Object.freeze({
   normal: "",
   warning: "HP注意",
   critical: "HP危険域",
+});
+
+export const HP_TONES = Object.freeze({
+  green: "green",
+  yellow: "yellow",
+  red: "red",
 });
 
 export const HP_GAUGE_SEGMENT_KEYS = Object.freeze([
@@ -61,6 +66,15 @@ export function hpAlertFor(actor = {}) {
   if (hpBps <= HP_CRITICAL_BPS) return HP_ALERTS.critical;
   if (hpBps <= HP_WARNING_BPS) return HP_ALERTS.warning;
   return HP_ALERTS.normal;
+}
+
+// 残りHPの色は、回復窓の内訳とは別の軸として決める。
+// `green` は通常、`yellow` は55%以下、`red` は25%以下を表す。
+export function hpToneFor(actor = {}) {
+  const alert = hpAlertFor(actor);
+  if (alert === HP_ALERTS.critical) return HP_TONES.red;
+  if (alert === HP_ALERTS.warning) return HP_TONES.yellow;
+  return HP_TONES.green;
 }
 
 export function hpAlertLabelFor(alert) {

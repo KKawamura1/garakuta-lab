@@ -1,7 +1,7 @@
 // ecology/hp-gauge.test.mjs — Issue #226.
 //
-// HP内訳の色を低HP警告へ流用しないことと、区分の角丸を表示契約として
-// 固定する。DOMを再現するテストではなく、画面が読む純粋な投影のテスト。
+// 残りHPの色とHP内訳の濃淡、区分の角丸を表示契約として固定する。
+// DOMを再現するテストではなく、画面が読む純粋な投影のテスト。
 
 import assert from "node:assert/strict";
 import {
@@ -11,6 +11,7 @@ import {
   hpAlertLabelFor,
   hpGaugeCornerRoles,
   hpGaugeState,
+  hpToneFor,
 } from "./hp-gauge.mjs";
 
 const alive = (hp, extra = {}) => ({ maxHp: 100, hp, alive: true, ...extra });
@@ -21,6 +22,9 @@ assert.equal(hpAlertFor(alive(56)), "normal", "56%は通常表示");
 assert.equal(hpAlertFor(alive(55)), "warning", "55%以下はHP注意");
 assert.equal(hpAlertFor(alive(25)), "critical", "25%以下はHP危険域");
 assert.equal(hpAlertFor({ ...alive(0), alive: false }), "normal", "戦闘不能は低HP警告を重ねない");
+assert.equal(hpToneFor(alive(56)), "green", "56%は緑の主色");
+assert.equal(hpToneFor(alive(55)), "yellow", "55%以下は黄色の主色");
+assert.equal(hpToneFor(alive(25)), "red", "25%以下は赤の主色");
 assert.equal(hpAlertLabelFor("critical"), "HP危険域", "警告のARIA語彙がある");
 
 const recoveryActor = alive(80, {
@@ -58,4 +62,4 @@ assert.deepEqual(
   "全損時は黒区分だけが外側になる",
 );
 
-console.log("hp-gauge checks: 12 checks passed");
+console.log("hp-gauge checks: 15 checks passed");

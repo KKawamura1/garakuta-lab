@@ -126,6 +126,7 @@ try {
         maxHp: hpMatch ? Number(hpMatch[2]) : Number(unit.dataset.maxHp ?? "0"),
         alive: hpText !== "戦闘不能",
         alert: unit.dataset.hpAlert ?? "",
+        tone: unit.dataset.hpTone ?? "",
         classes: [...unit.classList],
         ariaLabel: unit.querySelector(".unit-bar")?.getAttribute("aria-label") ?? "",
         segments: {
@@ -479,6 +480,10 @@ try {
         const ratio = entry.hp / entry.maxHp;
         return ratio <= 0.25 ? "critical" : ratio <= 0.55 ? "warning" : "normal";
       };
+      const hpToneForSample = (entry) => {
+        const alert = hpAlertForSample(entry);
+        return alert === "critical" ? "red" : alert === "warning" ? "yellow" : "green";
+      };
       const radius = (value) => value === "999px";
       const hpGaugeUiParity = hpGaugeUnits.length > 0 && hpGaugeUnits.every((entry) => {
         const keys = ["green", "recovered", "recoverable", "unrecoverable"];
@@ -506,15 +511,15 @@ try {
         });
         const totalWidth = segments.reduce((sum, segment) => sum + segment.width, 0);
         const expectedAlert = hpAlertForSample(entry);
+        const expectedTone = hpToneForSample(entry);
         return Math.abs(totalWidth - 100) < 0.05
           && entry.alert === expectedAlert
+          && entry.tone === expectedTone
           && !entry.classes.includes("low")
           && !entry.classes.includes("critical")
-          && (expectedAlert === "warning" ? entry.classes.includes("hp-warning") : true)
-          && (expectedAlert === "critical" ? entry.classes.includes("hp-critical") : true)
-          && (expectedAlert === "normal"
-            ? !entry.classes.includes("hp-warning") && !entry.classes.includes("hp-critical")
-            : true)
+          && entry.classes.includes("hp-tone-" + expectedTone)
+          && !entry.classes.includes("hp-warning")
+          && !entry.classes.includes("hp-critical")
           && entry.ariaLabel.includes("回復済み")
           && entry.ariaLabel.includes("回復可能")
           && entry.ariaLabel.includes("回復不能")
@@ -523,9 +528,9 @@ try {
           && innerBoundariesSquare;
       });
       const observedGaugeStates = {
-        normal: hpGaugeUnits.some((entry) => entry.alert === "normal" && entry.alive),
-        warning: hpGaugeUnits.some((entry) => entry.alert === "warning"),
-        critical: hpGaugeUnits.some((entry) => entry.alert === "critical"),
+        green: hpGaugeUnits.some((entry) => entry.tone === "green" && entry.alive),
+        yellow: hpGaugeUnits.some((entry) => entry.tone === "yellow"),
+        red: hpGaugeUnits.some((entry) => entry.tone === "red"),
         recovery: hpGaugeUnits.some((entry) => entry.segments.recovered.width > 0.01
           || entry.segments.recoverable.width > 0.01),
         defeated: hpGaugeUnits.some((entry) => !entry.alive),
