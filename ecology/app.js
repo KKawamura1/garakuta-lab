@@ -2683,8 +2683,9 @@ function renderEquipment() {
     + slots
     + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>") + "</div>"
     + helpDetails("equipment-rules", "装備のルール",
-      "<p class=\"muted\">装備は何度でも付け外しできます。戦闘中だけ耐久が減り、戦闘後に最大へ戻ります。遠征終了時は手放します。</p>"
-      + "<p class=\"muted\">所持上限は" + INVENTORY_LIMIT + "品です。所有者・耐久・レアリティ・効果は各品で確認できます。</p>")
+      "<p class=\"muted\">装備は何度でも付け外しできます。生成装備の発火効果は耐久を1消費し、複数効果・多段・範囲効果は2消費します。耐久0では以後の発火効果が不発になります。</p>"
+      + "<p class=\"muted\">能力値補正は装着中の常時効果なので耐久を消費しません。修理効果は自己相殺を避け、HPか防壁の有限コストを使います。</p>"
+      + "<p class=\"muted\">耐久は戦闘後に最大へ戻り、遠征終了時は装備を手放します。所持上限は" + INVENTORY_LIMIT + "品です。</p>")
     + "</section>";
 }
 
@@ -3076,8 +3077,10 @@ function eventText(event) {
     actor_moved: source + "が位置を替えた",
     status_added: target + "に" + (statusInfo(values.statusId)?.displayName ?? "状態")
       + (values.stacks > 1 ? values.stacks : ""),
-    equipment_worn: source + "の装備が" + amountText + "摩耗した",
-    equipment_broken: source + "の装備が壊れた",
+    equipment_worn: source + "の装備が耐久 " + values.before + "→" + values.after
+      + "（消費" + (values.amount ?? 1) + "）"
+      + (values.after === 0 ? " · 耐久切れ、以後は不発" : ""),
+    equipment_broken: source + "の装備が壊れた · 以後は不発",
     equipment_repaired: source + "の装備が" + amountText + "修理された",
     actor_defeated: target + "が倒れた",
     battle_ended: "戦闘終了 · " + (values.result || "決着"),
@@ -3434,14 +3437,14 @@ function unitMarksHtml(actor) {
   return marks.join("");
 }
 
-function syncBattleView(options = {}) {function barrierPercent(actor) {
+function barrierPercent(actor) {
   const maxHp = Number(actor.maxHp ?? 0);
   const barrier = Number(actor.barrier ?? 0);
   if (!Number.isFinite(maxHp) || maxHp <= 0 || !Number.isFinite(barrier) || barrier <= 0) return 0;
   return Math.min(100, (barrier / maxHp) * 100);
 }
 
-
+function syncBattleView(options = {}) {
   if (state.phase !== "battle") return;
   const field = app.querySelector(".battle-field");
   if (!field) return;

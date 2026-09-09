@@ -364,12 +364,14 @@ try {
       }
       await page.locator('nav.tabs [data-tab="equipment"]').click();
       const gearText = await bodyText();
-      note("拾った装備が持ち物に並ぶ", (await page.locator(".gear-card").count()) > 0
-        && !/生成装備|生成 [1-9]/.test(gearText));
+      const gearCardTexts = await page.locator(".gear-card").allTextContents();
+      note("拾った装備が持ち物に並ぶ", gearCardTexts.length > 0
+        && gearCardTexts.every((text) => !/生成装備|生成 [1-9]/.test(text)));
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(300);
-      note("リロードしても装備が残る", (await page.locator(".gear-card").count()) > 0
-        && !/生成装備|生成 [1-9]/.test(await bodyText()));
+      const reloadedGearCardTexts = await page.locator(".gear-card").allTextContents();
+      note("リロードしても装備が残る", reloadedGearCardTexts.length > 0
+        && reloadedGearCardTexts.every((text) => !/生成装備|生成 [1-9]/.test(text)));
     }
   }
 

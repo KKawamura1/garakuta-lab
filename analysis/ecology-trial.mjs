@@ -141,6 +141,8 @@ try {
       highestClearedStageSequence: 0, clearedStageSequences: [0],
     };
     saved.profile.storyFlags = ["prologue_seen"];
+    // Keep the long-run trial outside the one-time New Game walkthrough.
+    saved.supplyTutorialRunId = null;
     localStorage.setItem(key, JSON.stringify(saved));
   });
   await page.reload({ waitUntil: "networkidle" });
@@ -176,8 +178,6 @@ try {
       highestClearedStageSequence: 0, clearedStageSequences: [0],
     };
     saved.profile.storyFlags = ["prologue_seen"];
-    // Keep the long-run trial outside the one-time New Game walkthrough.
-    saved.supplyTutorialRunId = null;
     localStorage.setItem(key, JSON.stringify(saved));
   });
   await page.reload({ waitUntil: "networkidle" });
