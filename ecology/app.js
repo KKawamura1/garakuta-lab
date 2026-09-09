@@ -2811,7 +2811,7 @@ function treatmentTargetPicker() {
     "data-treatment=\"" + esc(treatment.id) + "\" data-character=\"" + esc(id) + "\"",
   )).join("");
   return "<div class=\"treatment-target-picker\" role=\"group\" aria-label=\"" + esc(treatment.displayName) + "の対象選択\">"
-    + "<p class=\"operation-note\"><b>手順 2/2</b> 回復する仲間を1人選んでください。選ぶまで補給は消費しません。</p>"
+    + "<p class=\"operation-note\"><b>手順 2/2</b> 対象を1人選んでください。選ぶまで補給は消費しません。</p>"
     + "<div class=\"member-tabs treatment-targets\">" + buttons + "</div>"
     + button("治療を選び直す", "cancel-treatment-target", false, "tiny-button")
     + "</div>";
