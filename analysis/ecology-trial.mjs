@@ -452,9 +452,9 @@ try {
     }
 
     if (await page.locator(".battle-field").count()) await click("結果を見る");
-    else await page.waitForSelector("h1", { timeout: 8000 });
+    else await page.waitForSelector(".verdict h2", { timeout: 8000 });
     await page.waitForTimeout(200);
-    const verdict = (await page.locator("h1").textContent())?.trim() ?? "";
+    const verdict = (await page.locator(".verdict h2").textContent())?.trim() ?? "";
     if (stage === 1 && forecastAtStage1) {
       const resultText = await bodyText();
       const forecastRounds = forecastAtStage1.verdict.match(/([0-9]+)ラウンド/)?.[1] ?? "";
