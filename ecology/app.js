@@ -3064,6 +3064,7 @@ function eventText(event) {
     damage_absorbed: arrow + target + " が防壁で " + number + " 吸収"
       + (values.finalDamage === 0 ? "（最終ダメージ0）" : "（最終 " + (values.finalDamage ?? 0) + " ダメージ）"),
     damage_skipped: arrow + target + " へのダメージが不発" + eventReasonText(values.reason),
+    recovery_window_closed: target + "の回復可能な窓が閉じた",
     barrier_damaged: target + "の防壁が" + number + "吸収",
     barrier_broken: target + "の防壁が壊れた",
     excess_damage: "攻撃が" + amountText + "余った",
@@ -3236,7 +3237,7 @@ function unitHtml(actor) {
     + "<div class=\"unit-floats\"></div>"
     + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
     + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
-    + "</b></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
+    + "</b></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
     + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
     + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div>"
     + "<div class=\"unit-cast\"></div></div>";
@@ -3483,21 +3484,34 @@ function syncBattleView(options = {}) {
   for (const actor of actors) {
     const unit = unitOf(actor.instanceId);
     if (!unit) continue;
-    const ratio = actor.maxHp > 0 ? Math.max(0, Math.min(1, actor.hp / actor.maxHp)) : 0;
+    const currentHp = Math.max(0, Math.min(actor.maxHp, Number(actor.hp ?? 0)));
+    const ratio = actor.maxHp > 0 ? currentHp / actor.maxHp : 0;
+    const recoverable = Math.max(0, Math.min(actor.maxHp - currentHp, Number(actor.recoverableDamage ?? 0)));
     const fill = unit.querySelector(".unit-fill");
     if (fill) {
       fill.style.width = (ratio * 100) + "%";
-      fill.className = "unit-fill" + (ratio <= 0.25 ? " critical" : ratio <= 0.55 ? " low" : "");
+      // 緑は現在HP、赤は直前の攻撃から戻せるHPに限定する。
+      fill.className = "unit-fill";
+    }
+    const recoverableFill = unit.querySelector(".unit-recoverable");
+    if (recoverableFill) {
+      recoverableFill.style.left = (ratio * 100) + "%";
+      recoverableFill.style.width = ((recoverable / actor.maxHp) * 100) + "%";
     }
     const hp = unit.querySelector(".unit-hp");
-    if (hp) hp.textContent = actor.alive ? actor.hp + "/" + actor.maxHp : "戦闘不能";
+    if (hp) hp.textContent = actor.alive
+      ? currentHp + "/" + actor.maxHp + (recoverable > 0 ? " · 回復可 " + recoverable : "")
+      : "戦闘不能";
     const barrierFill = unit.querySelector(".unit-barrier-fill");
     if (barrierFill) barrierFill.style.width = barrierPercent(actor) + "%";
     const bar = unit.querySelector(".unit-bar");
     if (bar) {
       const barrier = Number(actor.barrier ?? 0);
       const safeBarrier = Number.isFinite(barrier) ? Math.max(0, barrier) : 0;
-      bar.setAttribute("aria-label", "HP " + actor.hp + "/" + actor.maxHp + "、防壁 " + safeBarrier);
+      bar.setAttribute(
+        "aria-label",
+        "HP " + currentHp + "/" + actor.maxHp + "、回復可能 " + recoverable + "、防壁 " + safeBarrier,
+      );
     }
     const marks = unit.querySelector(".unit-marks");
     if (marks) marks.innerHTML = unitMarksHtml(actor);
