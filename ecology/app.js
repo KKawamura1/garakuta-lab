@@ -734,7 +734,7 @@ function button(label, action, disabled = false, className = "button", attribute
     + attributes + (disabled ? " disabled" : "") + ">" + esc(label) + "</button>";
 }
 
-function shell(title, subtitle, body, options = {}) {
+function shell(body, options = {}) {
   const error = state.error ? "<p class=\"error\" role=\"alert\">" + esc(state.error) + "</p>" : "";
   // R6 §9.2 / §12.2 — 遠征は勝利・敗北・**放棄**のいずれでも一度だけ精算する。
   // 途中の遠征をボタン一つで捨てると、そこまでの活動資金が消える。
@@ -751,21 +751,22 @@ function shell(title, subtitle, body, options = {}) {
       : inRun
         ? button("安全に撤退する", "abandon-run", false, "menu-button")
         : button("ギルドへ", "back-guild", false, "menu-button");
-  // 共通のタイトル・サブタイトルを残す唯一の例外はタイトル画面。
-  const titleHeader = options.titleScreen
-    ? "<header class=\"header title-header\"><div><h1>" + esc(title)
-      + "</h1><p class=\"subtitle\">" + esc(subtitle)
-      + "</p></div>" + headerAction + "</header>"
-    : "";
-  const screenActions = !options.titleScreen && headerAction
+  const screenActions = headerAction
     ? "<div class=\"screen-actions\">" + headerAction + "</div>"
     : "";
   // Build metadata stays available to automated diagnostics without occupying
   // the normal player-facing chrome. Visible details live inside technical logs.
   const footer = "<span class=\"build-stamp\" hidden aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
-  return "<div class=\"shell\">" + titleHeader + screenActions + body + error + footer + "</div>";
+  return "<div class=\"shell\">" + screenActions + body + error + footer + "</div>";
 }
 
+function titleShell(title, subtitle, body) {
+  const error = state.error ? "<p class=\"error\" role=\"alert\">" + esc(state.error) + "</p>" : "";
+  const footer = "<span class=\"build-stamp\" hidden aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
+  return "<div class=\"shell\"><header class=\"header title-header\"><div><h1>" + esc(title)
+    + "</h1><p class=\"subtitle\">" + esc(subtitle)
+    + "</p></div></header>" + body + error + footer + "</div>";
+}
 function diagnosticStamp() {
   return "<p class=\"muted diagnostic-stamp\">build " + esc(BUILD)
     + " · rules " + esc(PLAYABLE_CONTENT.contentVersion)
@@ -1231,7 +1232,7 @@ function renderIntro() {
   const saveStatus = auto
     ? "<p class=\"save-summary\"><span>オートセーブ</span> · " + esc(continueLabel) + "</p>"
     : "";
-  return shell("One Battle Ahead", "", "<section class=\"title-screen\" aria-label=\"メインメニュー\">"
+  return titleShell("One Battle Ahead", "", "<section class=\"title-screen\" aria-label=\"メインメニュー\">"
     + "<div class=\"sigil\" aria-hidden=\"true\">◈</div>"
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "button primary")
@@ -1239,7 +1240,7 @@ function renderIntro() {
     + button("ロードゲーム", "open-save-menu", false, "button", "data-return=\"intro\"")
     + "</div>"
     + saveStatus
-    + "</section>", { hideHeaderAction: true, titleScreen: true, hideFooter: true });
+    + "</section>");
 }
 function renderSaveSlot(slot, snapshot, fromCamp) {
   const actions = fromCamp
@@ -1265,7 +1266,7 @@ function renderSaveMenu() {
   const notice = state.saveNotice
     ? "<p class=\"save-notice\" role=\"status\">" + esc(state.saveNotice) + "</p>"
     : "";
-  return shell("", "",
+  return shell(
     "<section class=\"card save-menu-card\">"
     + sectionHeading("SAVE / LOAD", fromCamp ? "セーブ / ロード" : "ロードゲーム")
     + "<p class=\"operation-note\">自動保存は最新の安全な状態です。手動保存は3枠あり、New Gameの後も残ります。</p>"
@@ -1361,7 +1362,7 @@ function renderExpeditionStart() {
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
   const body = { guild: renderGuild, blueprints: renderBlueprints, homestead: homesteadBody, codex: renderBestiary }[state.guildTab]?.()
     ?? expeditionBody;
-  return shell("", "",
+  return shell(
     "<div class=\"camp-tools guild-tools\">" + button("タイトルへ", "back-title", false, "tiny-button") + "</div>"
     + tabs + note + body, { hideHeaderAction: true });
 }
@@ -1557,7 +1558,7 @@ function homesteadBody() {
 }
 
 function renderHomestead() {
-  return shell("", "",
+  return shell(
     homesteadBody()
     + "<section class=\"card quiet\">"
     + button("ギルドへ", "back-guild", false, "button primary")
@@ -1845,7 +1846,7 @@ function renderStory() {
     + "<p class=\"hint vn-hint\">タップで進みます。</p>"
     + (state.story?.logOpen ? storyBacklog() : "")
     + "</section>";
-  return shell("", "", scene, { hideHeaderAction: true });
+  return shell( scene, { hideHeaderAction: true });
 }
 
 
@@ -2082,7 +2083,7 @@ function renderCamp() {
   }[activeTab]?.() ?? renderMap();
   // R14 §1 — 予測とタブは一つの塊で上端に貼りつく。**どのタブで何を触っても、
   // 各メンバーのHPと減少量が視界から出ない。**
-  return shell("", "",
+  return shell(
     "<div class=\"camp-top\">" + forecastBar() + campNav() + "</div>" + campTools() + view);
 }
 
@@ -3273,7 +3274,7 @@ function renderBattle() {
     button(entry.label, "replay-speed", false, "speed-button" + (replaySpeed().id === entry.id ? " active" : ""),
       "data-speed=\"" + entry.id + "\"")).join("");
   const encounter = currentEncounter();
-  return shell("", "", "<section class=\"card battle-card\">"
+  return shell( "<section class=\"card battle-card\">"
     + sectionHeading("BATTLE", "戦闘", "<span class=\"stage\">" + esc(encounter.name) + "</span>")
     + "<div class=\"replay-progress\"><span class=\"replay-progress-fill\"></span></div>"
     + "<div class=\"battle-field\" aria-live=\"off\">"
@@ -3641,7 +3642,7 @@ function renderBattleError() {
   const actorLabels = failure.actorLabels || {};
   const stack = diagnostics.ruleActivationStack || [];
   const encounter = currentEncounter();
-  return shell("", "", "<section class=\"card verdict loss\">"
+  return shell( "<section class=\"card verdict loss\">"
     + sectionHeading("BATTLE ERROR", "戦闘を停止しました", "<span class=\"stage\">" + esc(encounter.name) + "</span>")
     + "<div class=\"verdict-mark\">!</div><p><b>安全弁が働きました。</b> この構成の戦闘イベントが上限を超えたため、途中結果を破棄しました。原因を確認できるよう、直前のイベントを残しています。</p>"
     + "<p class=\"error battle-error-message\">" + esc(failure.message || "battle runtime error") + "</p>"
@@ -3737,7 +3738,7 @@ function renderResult() {
     + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
-  return shell("", "", status + nextBlock + stateCard + replay + history);
+  return shell( status + nextBlock + stateCard + replay + history);
 }
 
 
@@ -3894,7 +3895,7 @@ function renderDefeat() {
       : "<p class=\"muted\">補給が0なので、この遠征はここで終わります。</p>")
     + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary")
     + "</section>";
-  return shell("", "", "<section class=\"card verdict loss\">"
+  return shell( "<section class=\"card verdict loss\">"
     + "<div class=\"verdict-mark\">×</div><h2>足を止めた</h2>"
     + "<p class=\"verdict-context\">" + esc(encounter.name) + " · 補給 " + state.run.supplies + "</p>"
     + "<p><b>この組み合わせでは届かなかった。</b> 補給1で編成・位置・技能・装備を変えて、同じ戦闘へ再挑戦できます。</p>"
@@ -3977,7 +3978,7 @@ function renderSettlement() {
     + button("ギルドへ戻る", "back-guild", false, "button")
     + button("記録を送る", "complete", false, "button")
     + "</section>";
-  return shell("", "",
+  return shell(
     "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
     + (won ? "✦" : retreated ? "◇" : "◆") + "</div><h2>" + esc(title) + "</h2>"
     + "<p class=\"verdict-context\">" + esc(CAMPAIGN_STAGES[state.run.campaignStageSequence]?.displayName ?? "遠征")
@@ -4011,7 +4012,7 @@ function renderComplete() {
   const carried = state.run.inventory.map((id) => gear(id)?.label ?? id).join("、");
   const reached = state.run.fundLedger.highestClearedEncounter;
   const settlement = state.lastSettlement;
-  return shell("", "", "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>遠征を終えた</h2><p class=\"verdict-context\">"
+  return shell( "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>遠征を終えた</h2><p class=\"verdict-context\">"
     + reached + " / " + ENCOUNTERS_PER_RUN + " 戦を見届けた</p><p>今回の仲間: "
     + esc(trail) + "<br>手元の装備: " + esc(carried || "なし")
     + (settlement ? "<br>持ち帰った活動資金: " + formatFunds(settlement.earned) : "")
