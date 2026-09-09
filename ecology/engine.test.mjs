@@ -269,16 +269,47 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   content.reactiveSkills.test_recovery = { id: "test_recovery", displayName: "Test Recovery", tags: ["reaction", "care"], rule: {
     id: "test_recovery_rule", listenTo: "damage_taken", timing: "after", priority: 1,
     predicates: [{ type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 } }],
-    costs: [], effects: [{ type: "heal", target: { scope: "self", filters: [{ type: "alive" }], take: 1 }, amount: { type: "constant", value: 99 }, tags: ["care"] }], limit: { scope: "chain", count: 1 },
+    costs: [], effects: [{ type: "heal", target: { scope: "self", filters: [{ type: "alive" }], take: 1 }, amount: { type: "constant", value: 2 }, tags: ["care"] }], limit: { scope: "chain", count: 1 },
   }};
   const battle = structuredClone(CORE_BATTLE);
   battle.maxRounds = 1; battle.objective = { type: "survive_rounds", rounds: 1 };
   battle.allies = [{ ...battle.allies.find((actor) => actor.instanceId === "a_mender"), hp: 10, position: "front_left", tactics: [{ activeSkillId: "strike", useWhen: [] }], reactiveSkillIds: ["test_recovery"] }];
   battle.enemies = [{ ...battle.enemies[0], hp: 10, position: "front_left" }];
-  const result = simulateBattle(battle, content, { captureReplaySnapshots: true });
-  const applied = of(result, "healing_applied").find((event) => event.ruleId === "test_recovery_rule");
+  const partial = simulateBattle(battle, content, { captureReplaySnapshots: true });
+  const partialApplied = of(partial, "healing_applied").find((event) => event.ruleId === "test_recovery_rule");
+  equal(partialApplied.values.actual, 2, "a partial recovery records the applied amount");
+  const afterPartial = partial.replaySnapshots[partialApplied.sequence]
+    .find((actor) => actor.instanceId === "a_mender");
+  equal(afterPartial.recoveredDamage, 2, "the healed part is carried separately");
+  equal(afterPartial.recoverableDamage, 2, "the remaining red segment is preserved");
+  equal(afterPartial.unrecoverableDamage, 0, "no part is black before the recovery window closes");
+  const partialClosed = of(partial, "recovery_window_closed")
+    .find((event) => event.targetActorIds.includes("a_mender") && event.values.remaining === 2);
+  const afterPartialClosed = partial.replaySnapshots[partialClosed.sequence]
+    .find((actor) => actor.instanceId === "a_mender");
+  equal(afterPartialClosed.recoverableDamage, 0, "the red segment disappears at the boundary");
+  equal(afterPartialClosed.unrecoverableDamage, 2, "the unhealed remainder becomes black");
+
+  content.reactiveSkills.test_recovery.rule.effects[0].amount.value = 99;
+  const overflow = simulateBattle(battle, content, { captureReplaySnapshots: true });
+  const applied = of(overflow, "healing_applied").find((event) => event.ruleId === "test_recovery_rule");
   equal(applied.values.actual, 4, "a recovery larger than the hit stops at the attack damage");
   equal(applied.values.recoverableAfter, 0, "the entire red segment is consumed by the recovery");
+  const afterOverflow = overflow.replaySnapshots[applied.sequence]
+    .find((actor) => actor.instanceId === "a_mender");
+  equal(afterOverflow.recoveredDamage, 4, "the capped recovery is represented in the purple segment");
+  equal(afterOverflow.recoverableDamage, 0, "no red segment remains after a capped recovery");
+}
+
+{
+  const defeatedBattle = structuredClone(BARRIER_PARTIAL_BATTLE);
+  defeatedBattle.allies[0].hp = 2;
+  const defeated = run(defeatedBattle, { captureReplaySnapshots: true });
+  const defeatEvent = first(defeated, "actor_defeated");
+  const defeatSnapshot = defeated.replaySnapshots[defeatEvent.sequence]
+    .find((actor) => actor.instanceId === defeatEvent.targetActorIds[0]);
+  equal(defeatSnapshot.recoverableDamage, 0, "a defeated actor has no recoverable red segment");
+  equal(defeatSnapshot.unrecoverableDamage, defeatSnapshot.maxHp, "the defeated HP loss is black at the same beat");
 }
 
 // ---- §11.5 interrupt ordering, cover, and re-evaluation ----------------------
