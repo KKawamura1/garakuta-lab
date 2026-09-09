@@ -2753,13 +2753,37 @@ function renderSupplies() {
 function renderMap() {
   const index = state.run.encounterIndex;
   const encounter = currentEncounter();
+  const kindMeta = {
+    normal: { label: "通常", marker: "" },
+    elite: { label: "精鋭", marker: "◆" },
+    boss: { label: "ボス", marker: "★" },
+  };
+  const statusLabels = {
+    done: "クリア済み",
+    current: "現在地",
+    unreached: "未到達",
+  };
   const progress = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
     const step = offset + 1;
     const kind = composeEncounter(step, state.run.difficulty, encounterOptions()).kind;
-    return "<span class=\"map-node " + (step < index ? "done" : step === index ? "current" : "")
-      + " kind-" + kind + "\" title=\"" + esc({ normal: "通常", elite: "精鋭", boss: "ボス" }[kind]) + "\">"
-      + (kind === "boss" ? "★" : step) + "</span>";
+    const status = step < index ? "done" : step === index ? "current" : "unreached";
+    const meta = kindMeta[kind];
+    const label = "第" + step + "戦・" + meta.label + "・" + statusLabels[status];
+    return "<span class=\"map-node " + status + " kind-" + kind
+      + "\" data-map-index=\"" + step + "\" data-map-kind=\"" + kind
+      + "\" data-map-status=\"" + status + "\" role=\"listitem\" aria-label=\""
+      + esc(label) + "\" aria-current=\"" + (status === "current" ? "step" : "false")
+      + "\" title=\"" + esc(label) + "\"><span class=\"map-node-number\">" + step + "</span>"
+      + (meta.marker ? "<span class=\"map-kind-badge\" aria-hidden=\"true\">" + meta.marker + "</span>" : "")
+      + "</span>";
   }).join("");
+  const mapLegend = "<div class=\"map-legend\" aria-label=\"戦闘マップの凡例\">"
+    + "<span><i class=\"map-legend-mark state-done\" aria-hidden=\"true\">✓</i>クリア済み</span>"
+    + "<span><i class=\"map-legend-mark state-current\" aria-hidden=\"true\"></i>現在地</span>"
+    + "<span><i class=\"map-legend-mark state-unreached\" aria-hidden=\"true\"></i>未到達</span>"
+    + "<span><i class=\"map-legend-symbol kind-elite\" aria-hidden=\"true\">◆</i>精鋭</span>"
+    + "<span><i class=\"map-legend-symbol kind-boss\" aria-hidden=\"true\">★</i>ボス</span>"
+    + "</div>";
   const party = state.run.roster.map((id) => "<div class=\"map-party-row\"><span class=\"avatar small\">"
     + esc(characterInfo(id)?.icon ?? "・") + "</span><b>" + esc(characterName(id)) + "</b><span>"
     + positionText(state.run.formation[id]) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</span></div>").join("");
@@ -2777,7 +2801,8 @@ function renderMap() {
     : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>";
   return "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
       "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
-    + "<div class=\"map-progress\">" + progress + "</div>"
+    + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の進行\">" + progress + "</div>"
+    + mapLegend
     + "<div class=\"primary-action map-primary-action\" data-primary-action=\"begin-stage\">"
     + "<p class=\"primary-action-label\">次の操作</p>"
     + button("この敵に挑む", "begin-stage", false, "button primary")
