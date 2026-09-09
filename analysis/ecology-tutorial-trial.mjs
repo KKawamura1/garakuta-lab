@@ -353,7 +353,7 @@ try {
           note("対象を確定すると補給を1つ消費する", suppliesBefore >= 1 && suppliesAfter === suppliesBefore - 1);
           note("治療対象と結果を表示する",
             await page.locator(".supply-treatment-result").count() === 1
-              && /補給チュートリアル完了/.test(await bodyText()));
+              && /傷ついた味方を回復できました。これで次も戦えます。/.test(await bodyText()));
           note("補給チュートリアル完了で次戦タブを戻せる", await mapTab.isEnabled());
           await page.reload({ waitUntil: "networkidle" });
           await page.waitForTimeout(250);

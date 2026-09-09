@@ -19,6 +19,14 @@ const problems = [];
 const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "utf8");
 const styles = readFileSync("ecology/styles.css", "utf8");
 const displayContracts = [
+  ["防壁バーのDOM", app, "unit-barrier-fill"],
+  ["防壁比率の計算", app, "function barrierPercent(actor)"],
+  ["防壁比率の上限", app, "Math.min(100, (barrier / maxHp) * 100)"],
+  ["防壁バーのCSS", styles, ".unit-barrier-fill"],
+  ["防壁バーをHPバー上へ配置", styles, "top: -3px"],
+  ["装備摩耗ログの残耐久", app, '"の装備が耐久 " + values.before + "→" + values.after'],
+  ["装備耐久切れの不発表示", app, '" · 耐久切れ、以後は不発"'],
+  ["装備常時効果の耐久説明", app, "能力値補正は装着中の常時効果なので耐久を消費しません"],
   ["技能バッジの表示語", app, 'const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };'],
   ["アクティブ欄の見出し", app, 'active: "アクティブ（順番）"'],
   ["リアクティブ欄の見出し", app, 'reactive: "リアクティブ"'],
