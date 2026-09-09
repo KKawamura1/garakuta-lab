@@ -63,6 +63,24 @@ if (mapRendererStart < 0 || mapRendererEnd < 0) {
   process.exit(1);
 }
 const mapRenderer = app.slice(mapRendererStart, mapRendererEnd);
+for (const [label, expected] of [
+  ["マップのノード番号", "data-map-index"],
+  ["マップの戦闘種別", "data-map-kind"],
+  ["マップの進行状態", "data-map-status"],
+  ["マップノードのアクセシブルな状態", "aria-label"],
+  ["マップの現在地指定", "aria-current"],
+  ["マップの精鋭・ボス記号", "map-kind-badge"],
+  ["マップの凡例", "map-legend"],
+  ["マップの未到達状態", "unreached"],
+]) {
+  if (!mapRenderer.includes(expected)) problems.push(label + "が無い");
+}
+for (const forbidden of [
+  ".map-node.kind-elite { border-color:",
+  ".map-node.kind-boss { border-color:",
+]) {
+  if (styles.includes(forbidden)) problems.push("種別の枠が現在地の枠と競合する定義が残っている: " + forbidden);
+}
 if (mapRenderer.indexOf("map-primary-action") > mapRenderer.indexOf("act-line")) {
   problems.push("戦闘タブの主操作が敵の概要より後ろにある");
 }

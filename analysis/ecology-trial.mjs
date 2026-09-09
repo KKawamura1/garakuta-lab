@@ -105,6 +105,27 @@ try {
       };
     })
   ));
+  const expectedMapKinds = [
+    "normal", "normal", "elite", "boss",
+    "normal", "normal", "elite", "boss",
+    "normal", "normal", "elite", "boss",
+  ];
+  const mapKindLabels = { normal: "通常", elite: "精鋭", boss: "ボス" };
+  const mapStatusLabels = { done: "クリア済み", current: "現在地", unreached: "未到達" };
+  const mapMarkers = { normal: "", elite: "◆", boss: "★" };
+  const readMap = () => page.locator(".map-progress").evaluate((map) => (
+    [...map.querySelectorAll(".map-node")].map((node) => ({
+      index: Number(node.dataset.mapIndex ?? "0"),
+      kind: node.dataset.mapKind ?? "",
+      status: node.dataset.mapStatus ?? "",
+      label: node.getAttribute("aria-label") ?? "",
+      current: node.getAttribute("aria-current") ?? "",
+      marker: node.querySelector(".map-kind-badge")?.textContent?.trim() ?? "",
+      borderWidth: getComputedStyle(node).borderTopWidth,
+      borderColor: getComputedStyle(node).borderTopColor,
+      boxShadow: getComputedStyle(node).boxShadow,
+    }))
+  ));
 
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
@@ -241,6 +262,41 @@ try {
   // R6 §5.1 — 3幕12戦。負けたら補給で再挑戦し、尽きたら精算まで進む。
   for (; stage <= 12; stage += 1) {
     await page.locator('nav.tabs [data-tab="map"]').click();
+    const mapNodes = await readMap();
+    const expectedStatuses = expectedMapKinds.map((_, offset) => {
+      const step = offset + 1;
+      return step < stage ? "done" : step === stage ? "current" : "unreached";
+    });
+    const mapLayoutOk = mapNodes.length === expectedMapKinds.length
+      && mapNodes.every((node, offset) => (
+        node.index === offset + 1
+        && node.kind === expectedMapKinds[offset]
+        && node.marker === mapMarkers[node.kind]
+        && node.status === expectedStatuses[offset]
+        && node.label.includes("第" + (offset + 1) + "戦")
+        && node.label.includes(mapKindLabels[node.kind])
+        && node.label.includes(mapStatusLabels[node.status])
+        && node.current === (node.status === "current" ? "step" : "false")
+      ));
+    note(`第${stage}戦の12戦マップ構成`, mapLayoutOk);
+    note(`第${stage}戦へ現在地が移動する`, mapNodes.filter((node) => node.status === "current").length === 1
+      && mapNodes[stage - 1]?.status === "current");
+    const currentNodes = mapNodes.filter((node) => node.status === "current");
+    const otherNodes = mapNodes.filter((node) => node.status !== "current");
+    note(`第${stage}戦の強い枠は現在地だけ`, currentNodes.length === 1
+      && currentNodes[0].borderWidth === "2px"
+      && currentNodes[0].boxShadow !== "none"
+      && otherNodes.every((node) => node.borderWidth === "1px"));
+    if (stage === 1) {
+      const legend = await page.locator(".map-legend").innerText();
+      note("進行状態と精鋭・ボスの凡例が出る",
+        /クリア済み/.test(legend) && /現在地/.test(legend) && /未到達/.test(legend)
+          && /精鋭/.test(legend) && /ボス/.test(legend));
+      note("精鋭・ボスが小さな記号で示される",
+        mapNodes[2]?.marker === "◆" && mapNodes[3]?.marker === "★"
+          && mapNodes[6]?.marker === "◆" && mapNodes[7]?.marker === "★"
+          && mapNodes[10]?.marker === "◆" && mapNodes[11]?.marker === "★");
+    }
     if (stage === 1) {
       // R6 §11.2 / R14 §1 — 敵の重さと、次の一戦の結果は戦闘前に見えている。
       // **中身を見ずに ok と言わない。**

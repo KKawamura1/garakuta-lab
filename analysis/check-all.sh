@@ -17,6 +17,7 @@ smokes=(
   analysis/ecology-chain-safety-audit.mjs
   analysis/ecology-chain-safety-blind-spots.mjs
   analysis/ecology-contract-smoke.mjs
+  analysis/ecology-map-smoke.mjs
   analysis/ecology-equipment-gen-smoke.mjs
   analysis/ecology-readout-smoke.mjs
   analysis/ecology-skill-catalog-smoke.mjs
