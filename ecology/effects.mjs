@@ -371,7 +371,17 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
     });
   }
   if (hpDamage > 0) {
+    const recoveredBefore = Math.min(hpBefore, Math.max(0, finalTarget.recoveredDamage ?? 0));
+    const greenBefore = Math.max(0, hpBefore - recoveredBefore);
+    const recoveredLost = Math.max(0, hpDamage - greenBefore);
+    finalTarget.recoveredDamage = Math.max(0, recoveredBefore - recoveredLost);
     finalTarget.hp = hpBefore - hpDamage;
+    const existing = rt.state.recoveryWindows.get(finalTarget.instanceId);
+    const window = existing && existing.chainId === rt.state.chain.id
+      ? existing
+      : { chainId: rt.state.chain.id, attackEventId: event.id, remaining: 0 };
+    window.remaining += hpDamage;
+    rt.state.recoveryWindows.set(finalTarget.instanceId, window);
     bumpHistory(finalTarget, "damage_taken", hpDamage);
     if (ctx.owner) bumpHistory(ctx.owner, "damage_dealt", hpDamage);
     rt.emit({
@@ -391,6 +401,8 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
         barrierAbsorbed: absorbed,
         hitIndex,
         hitCount,
+        recoveredDamage: finalTarget.recoveredDamage,
+        unrecoverableDamage: Math.max(0, finalTarget.maxHp - finalTarget.hp - window.remaining),
       },
     });
   }
@@ -452,6 +464,25 @@ function absorbBarrier(rt, ctx, target, amount, tags) {
 function defeatActor(rt, ctx, target, parentEventId) {
   target.alive = false;
   target.inQueue = false;
+  // 倒れた表示拍では、回復済み区分も通常の緑／黒へ確定する。
+  target.recoveredDamage = 0;
+  const window = rt.state.recoveryWindows.get(target.instanceId);
+  if (window && window.remaining > 0) {
+    rt.state.recoveryWindows.delete(target.instanceId);
+    rt.emit({
+      type: "recovery_window_closed",
+      targetActorIds: [target.instanceId],
+      tags: ["recovery_window", "actor_defeated"],
+      values: {
+        remaining: window.remaining,
+        cause: "actor_defeated",
+        attackChainId: window.chainId,
+        recoveredDamage: target.recoveredDamage ?? 0,
+        // 窓を閉じた残量も、倒れた時点では回復不能分に含める。
+        unrecoverableDamage: Math.max(0, target.maxHp - target.hp),
+      },
+    });
+  }
   rt.emit({
     type: "actor_defeated",
     ...sourceFields(ctx),
@@ -493,8 +524,26 @@ function applyHealing(rt, ctx, effect) {
     const finalTarget = getActor(rt.state, frame.targetActorIds[0]);
     if (!finalTarget || !finalTarget.alive) continue;
     const requested = frame.amount;
-    const actual = Math.min(requested, finalTarget.maxHp - finalTarget.hp);
+    const window = rt.state.recoveryWindows.get(finalTarget.instanceId);
+    const inCurrentRecoveryWindow = window?.chainId === rt.state.chain.id;
+    // Reactive healing is attack-bound. Active/utility healing may still treat
+    // older HP loss, but that amount is not shown as recovery of this attack.
+    const recoverable = inCurrentRecoveryWindow
+      ? window.remaining
+      : (ctx.ruleId && ctx.event?.type !== "excess_healing"
+        ? 0
+        : finalTarget.maxHp - finalTarget.hp);
+    const actual = Math.min(requested, finalTarget.maxHp - finalTarget.hp, recoverable);
     finalTarget.hp += actual;
+    if (inCurrentRecoveryWindow) {
+      finalTarget.recoveredDamage = Math.min(
+        finalTarget.hp,
+        Math.max(0, finalTarget.recoveredDamage ?? 0) + actual,
+      );
+      window.remaining -= actual;
+      if (window.remaining <= 0) rt.state.recoveryWindows.delete(finalTarget.instanceId);
+    }
+    const recoverableAfter = inCurrentRecoveryWindow ? (window?.remaining ?? 0) : 0;
     if (ctx.owner) bumpHistory(ctx.owner, "healing_done", actual);
     rt.emit({
       type: "healing_applied",
@@ -502,7 +551,18 @@ function applyHealing(rt, ctx, effect) {
       parentEventId: event.id,
       targetActorIds: [finalTarget.instanceId],
       tags: effect.tags ?? [],
-      values: { requested, actual, hpAfter: finalTarget.hp },
+      values: {
+        requested,
+        actual,
+        hpAfter: finalTarget.hp,
+        recoverableBefore: recoverable,
+        recoverableAfter,
+        recoveredDamage: finalTarget.recoveredDamage,
+        unrecoverableDamage: Math.max(
+          0,
+          finalTarget.maxHp - finalTarget.hp - recoverableAfter,
+        ),
+      },
     });
     const excess = requested - actual;
     if (excess > 0) {

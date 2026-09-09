@@ -107,6 +107,7 @@ export const EVENT_TYPES = freeze([
   "barrier_damaged",
   "barrier_broken",
   "damage_taken",
+  "recovery_window_closed",
   "excess_damage",
   "healing_proposed",
   "healing_applied",
@@ -156,6 +157,7 @@ export const NON_LISTENABLE_EVENT_TYPES = freeze([
   "pending_amount_modified",
   "damage_absorbed",
   "damage_skipped",
+  "recovery_window_closed",
 ]);
 
 // §11.5 — interrupt rules may only listen to events that carry a pending frame.

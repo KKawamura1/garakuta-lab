@@ -96,6 +96,7 @@ function buildState(input, content, options) {
     ruleStack: [],
     currentActorId: null,
     currentPendingAction: null,
+    recoveryWindows: new Map(),
     roundFirings: new Map(),
     battleFirings: new Map(),
     roundEndStartSequence: 0,
@@ -206,6 +207,8 @@ function addActor(state, fields) {
     // なので、開始 HP を知りたい側が withPassiveBonuses を再現しなくてよい
     // （画面の戦闘予測が「いくつ減るか」を出すのに使う）。
     startingHp: fields.hp,
+    // 回復済み量は現在HPの内訳として保持し、replay の各スナップショットへ渡す。
+    recoveredDamage: 0,
     actionPoints: 0,
     reactionPoints: 0,
     // R6 §4.4 / §6.7 — PHASE A. 定義が持たなければ 0。
@@ -239,6 +242,9 @@ function makeRuntime(state) {
 }
 
 function emit(state, spec, pendingFrame = null) {
+  if (["action_started", "round_ended", "battle_ended"].includes(spec.type)) {
+    closeRecoveryWindows(state, spec.type === "action_started" ? "next_action" : "phase_boundary");
+  }
   const event = pushEvent(state, spec);
   // §11.5 — the interrupt window for this event closes before the caller sees
   // the pending frame again, so every interrupt for it runs here and now.
@@ -247,6 +253,44 @@ function emit(state, spec, pendingFrame = null) {
     state.chain.afterQueue.push(event.id);
   }
   return event;
+}
+
+// HP damage is recoverable only until the next action/phase boundary. Keeping
+// this in the engine (rather than in individual healing skills) makes stacked
+// reactive heals obey the same rule and keeps preview/replay deterministic.
+function closeRecoveryWindow(state, actorId, cause) {
+  const window = state.recoveryWindows.get(actorId);
+  if (!window) return;
+  state.recoveryWindows.delete(actorId);
+  const actor = getActor(state, actorId);
+  const remaining = Math.max(0, window.remaining);
+  // 回復済み区分は、窓が閉じた表示拍で通常の残HPへ統合する。
+  if (actor) actor.recoveredDamage = 0;
+  if (remaining <= 0) return;
+  pushEvent(state, {
+    type: "recovery_window_closed",
+    targetActorIds: [actorId],
+    tags: ["recovery_window"],
+    values: {
+      remaining,
+      cause,
+      attackChainId: window.chainId,
+      recoveredDamage: 0,
+      // 窓を閉じた後は、残っていた赤も黒へ移った後の値を記録する。
+      unrecoverableDamage: actor ? Math.max(0, actor.maxHp - actor.hp) : 0,
+    },
+  });
+}
+
+function closeRecoveryWindows(state, cause) {
+  // 回復窓を使い切って Map から消えた actor も、次の攻撃開始では
+  // 回復済み区分を通常の緑へ戻す。
+  for (const actor of allActors(state)) {
+    actor.recoveredDamage = 0;
+  }
+  for (const actorId of [...state.recoveryWindows.keys()]) {
+    closeRecoveryWindow(state, actorId, cause);
+  }
 }
 
 // §7 — one chain per active action, per round event, per outside effect.
@@ -529,6 +573,7 @@ function runBattle(state) {
 
   const rt = makeRuntime(state);
   beginChain(state, "battle_ended");
+  closeRecoveryWindows(state, "phase_boundary");
   pushEvent(state, {
     type: "battle_ended",
     tags: [],
@@ -1231,6 +1276,12 @@ function buildResult(state, content) {
     actionPoints: actor.actionPoints,
     reactionPoints: actor.reactionPoints,
     barrier: totalBarrier(actor),
+    recoverableDamage: state.recoveryWindows.get(actor.instanceId)?.remaining ?? 0,
+    recoveredDamage: Math.min(actor.hp, actor.recoveredDamage ?? 0),
+    unrecoverableDamage: Math.max(
+      0,
+      actor.maxHp - actor.hp - (state.recoveryWindows.get(actor.instanceId)?.remaining ?? 0),
+    ),
     barriers: actor.barriers.map((packet) => ({ amount: packet.amount, duration: packet.duration })),
     statuses: actor.statuses.map((status) => ({ statusId: status.statusId, stacks: status.stacks })),
     preparation: actor.preparation
