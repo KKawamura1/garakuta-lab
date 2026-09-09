@@ -316,31 +316,31 @@ export const REGION = Object.freeze({
 // R6 §9.6 — rank は活動資金で買えず、一つ前の rank をクリアしたときだけ開く。
 export const DIFFICULTIES = Object.freeze([
   Object.freeze({
-    rank: 0, threatBudgetDelta: 0, startingSupplies: 3,
+    rank: 0, threatBudgetDelta: 0, startingSupplies: 0,
     eliteMutationCount: 0, bossMutationCount: 0, normalMaxRoundsDelta: 0,
     encounterModifiers: Object.freeze([]),
     summary: "基準。設計したままの編成で戦う。",
   }),
   Object.freeze({
-    rank: 1, threatBudgetDelta: 1, startingSupplies: 3,
+    rank: 1, threatBudgetDelta: 1, startingSupplies: 0,
     eliteMutationCount: 0, bossMutationCount: 0, normalMaxRoundsDelta: 0,
     encounterModifiers: Object.freeze(["threat_budget_plus_1"]),
     summary: "全戦闘の threat budget +1。増援か変異が一つ増える。",
   }),
   Object.freeze({
-    rank: 2, threatBudgetDelta: 1, startingSupplies: 3,
+    rank: 2, threatBudgetDelta: 1, startingSupplies: 0,
     eliteMutationCount: 1, bossMutationCount: 0, normalMaxRoundsDelta: 0,
     encounterModifiers: Object.freeze(["threat_budget_plus_1", "elite_mutation_plus_1"]),
     summary: "上に加えて、精鋭へ変異 +1。",
   }),
   Object.freeze({
-    rank: 3, threatBudgetDelta: 1, startingSupplies: 3,
+    rank: 3, threatBudgetDelta: 1, startingSupplies: 0,
     eliteMutationCount: 1, bossMutationCount: 0, normalMaxRoundsDelta: -1,
     encounterModifiers: Object.freeze(["threat_budget_plus_1", "elite_mutation_plus_1", "normal_rounds_minus_1"]),
     summary: "上に加えて、通常戦の round 上限 -1。",
   }),
   Object.freeze({
-    rank: 4, threatBudgetDelta: 1, startingSupplies: 3,
+    rank: 4, threatBudgetDelta: 1, startingSupplies: 0,
     eliteMutationCount: 1, bossMutationCount: 1, normalMaxRoundsDelta: -1,
     encounterModifiers: Object.freeze([
       "threat_budget_plus_1", "elite_mutation_plus_1", "normal_rounds_minus_1", "boss_mutation_plus_1",
@@ -348,12 +348,12 @@ export const DIFFICULTIES = Object.freeze([
     summary: "上に加えて、各ボスへ変異 +1。",
   }),
   Object.freeze({
-    rank: 5, threatBudgetDelta: 1, startingSupplies: 2,
+    rank: 5, threatBudgetDelta: 1, startingSupplies: 0,
     eliteMutationCount: 1, bossMutationCount: 1, normalMaxRoundsDelta: -1,
     encounterModifiers: Object.freeze([
       "threat_budget_plus_1", "elite_mutation_plus_1", "normal_rounds_minus_1", "boss_mutation_plus_1",
     ]),
-    summary: "上に加えて、開始補給が 2 になる。",
+    summary: "上に加えて、開始補給の基準値は0のまま。",
   }),
 ]);
 

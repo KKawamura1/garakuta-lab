@@ -133,12 +133,16 @@ try {
     };
     saved.prologueActive = false;
     saved.prologueStage = null;
+    // This fixture skips the New Game opening; it is a normal/revisit run.
+    saved.supplyTutorialRunId = null;
     saved.profile.campaignProgress = saved.profile.campaignProgress || {};
     const region = Object.keys(saved.profile.campaignProgress)[0] || "region_ashfront";
     saved.profile.campaignProgress[region] = {
       highestClearedStageSequence: 0, clearedStageSequences: [0],
     };
     saved.profile.storyFlags = ["prologue_seen"];
+    // Keep the long-run trial outside the one-time New Game walkthrough.
+    saved.supplyTutorialRunId = null;
     localStorage.setItem(key, JSON.stringify(saved));
   });
   await page.reload({ waitUntil: "networkidle" });
