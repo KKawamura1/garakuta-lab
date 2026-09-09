@@ -17,6 +17,7 @@ const app = readFileSync("ecology/app.js", "utf8");
 const problems = [];
 
 const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "utf8");
+const hpGauge = readFileSync("ecology/hp-gauge.mjs", "utf8");
 const styles = readFileSync("ecology/styles.css", "utf8");
 const displayContracts = [
   ["防壁バーのDOM", app, "unit-barrier-fill"],
@@ -24,6 +25,25 @@ const displayContracts = [
   ["防壁比率の上限", app, "Math.min(100, (barrier / maxHp) * 100)"],
   ["防壁バーのCSS", styles, ".unit-barrier-fill"],
   ["防壁バーをHPバー上へ配置", styles, "top: -3px"],
+  ["現在HP区分のDOM", app, "unit-fill"],
+  ["回復済み区分のDOM", app, "unit-recovered"],
+  ["回復可能区分のDOM", app, "unit-recoverable"],
+  ["回復不能区分のDOM", app, "unit-unrecoverable"],
+  ["低HP警告の判定", app, "hpAlertFor(actor)"],
+  ["低HP警告のARIA語彙", app, "hpAlertLabelFor(alert)"],
+  ["低HP警告のデータ属性", app, "data-hp-alert=\\\"normal\\\""],
+  ["HP区分のCSS色", styles, "--hp-current"],
+  ["回復済みは緑系", styles, "--hp-recovered"],
+  ["回復可能は赤系", styles, "--hp-recoverable"],
+  ["回復不能は黒系", styles, "--hp-unrecoverable"],
+  ["注意枠のCSS", styles, ".unit.hp-warning"],
+  ["危険枠のCSS", styles, ".unit.hp-critical"],
+  ["HP表示の説明", app, "ゲージ内の4区分の意味は変えません"],
+  ["HP内訳のARIA", app, "回復済み "],
+  ["HPゲージの投影", hpGauge, "function hpGaugeState(actor = {})"],
+  ["HP注意閾値", hpGauge, "HP_WARNING_BPS = 5500"],
+  ["HP危険域閾値", hpGauge, "HP_CRITICAL_BPS = 2500"],
+  ["HPゲージの角丸投影", hpGauge, "function hpGaugeCornerRoles(actor = {})"],
   ["装備摩耗ログの残耐久", app, '"の装備が耐久 " + values.before + "→" + values.after'],
   ["装備耐久切れの不発表示", app, '" · 耐久切れ、以後は不発"'],
   ["装備常時効果の耐久説明", app, "能力値補正は装着中の常時効果なので耐久を消費しません"],
@@ -41,6 +61,10 @@ const displayContracts = [
 for (const [label, sourceText, expected] of displayContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
+for (const forbidden of [".unit-fill.low", ".unit-fill.critical"]) {
+  if (styles.includes(forbidden)) problems.push("HP区分へ低HP警告の色を混ぜるCSSが残っている: " + forbidden);
+}
+if (app.includes('"回復可"')) problems.push("ゲージ内に不要な「回復可」テキストが残っている");
 
 const progressiveContracts = [
   ["戦闘タブの主操作", app, "primary-action map-primary-action"],

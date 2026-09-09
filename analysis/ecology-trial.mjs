@@ -105,6 +105,38 @@ try {
       };
     })
   ));
+  const readHpGaugeUi = () => page.locator(".battle-field").evaluate((field) => (
+    [...field.querySelectorAll(".unit")].map((unit) => {
+      const hpText = unit.querySelector(".unit-hp")?.textContent?.trim() ?? "";
+      const hpMatch = hpText.match(/^([0-9]+)\/([0-9]+)$/);
+      const segment = (selector) => {
+        const element = unit.querySelector(selector);
+        return {
+          width: Number.parseFloat(element?.style.width ?? "0"),
+          left: Number.parseFloat(element?.style.left ?? "0"),
+          topLeft: element?.style.borderTopLeftRadius ?? "",
+          topRight: element?.style.borderTopRightRadius ?? "",
+          bottomLeft: element?.style.borderBottomLeftRadius ?? "",
+          bottomRight: element?.style.borderBottomRightRadius ?? "",
+        };
+      };
+      return {
+        name: unit.querySelector(".unit-name")?.textContent?.trim() ?? "",
+        hp: hpMatch ? Number(hpMatch[1]) : 0,
+        maxHp: hpMatch ? Number(hpMatch[2]) : Number(unit.dataset.maxHp ?? "0"),
+        alive: hpText !== "戦闘不能",
+        alert: unit.dataset.hpAlert ?? "",
+        classes: [...unit.classList],
+        ariaLabel: unit.querySelector(".unit-bar")?.getAttribute("aria-label") ?? "",
+        segments: {
+          green: segment(".unit-fill"),
+          recovered: segment(".unit-recovered"),
+          recoverable: segment(".unit-recoverable"),
+          unrecoverable: segment(".unit-unrecoverable"),
+        },
+      };
+    })
+  ));
   const expectedMapKinds = [
     "normal", "normal", "elite", "boss",
     "normal", "normal", "elite", "boss",
@@ -259,6 +291,7 @@ try {
   let retried = false;
   let rerolled = false;
   let barrierSamples = [];
+  let hpGaugeSamples = [];
   // R6 §5.1 — 3幕12戦。負けたら補給で再挑戦し、尽きたら精算まで進む。
   for (; stage <= 12; stage += 1) {
     await page.locator('nav.tabs [data-tab="map"]').click();
@@ -354,6 +387,7 @@ try {
     if (stage === 1) {
       note("盤面に味方と敵の箱が出る", await page.locator(".unit").count() >= 4);
       barrierSamples = [await readBarrierUi()];
+      hpGaugeSamples = [await readHpGaugeUi()];
       note("HPバーの上に防壁バーがある",
         barrierSamples[0].length >= 4 && barrierSamples[0].every((entry) => entry.hasFill));
       note("再生の操作が画面内にある", await onScreen(".replay-transport"));
@@ -376,6 +410,7 @@ try {
       }
       let beat = await readBeatCount();
       barrierSamples.push(await readBarrierUi());
+      hpGaugeSamples.push(await readHpGaugeUi());
       let manualSteps = 0;
       while (beat && beat.current < beat.total && manualSteps < 1200) {
         const stepButton = page.locator('[data-role="replay-step"]');
@@ -384,6 +419,7 @@ try {
         manualSteps += 1;
         beat = await readBeatCount();
         barrierSamples.push(await readBarrierUi());
+        hpGaugeSamples.push(await readHpGaugeUi());
       }
       const animationAtEnd = Boolean(beat && beat.total > 0 && beat.current === beat.total);
       note("アニメーションを最後の拍まで進められる",
@@ -436,6 +472,78 @@ try {
       note("リプレイの各スナップショットで防壁バーが追従する",
         barrierUiParity,
         barrierUiParity ? "" : JSON.stringify(barrierSamples.at(-1)));
+
+      const hpGaugeUnits = hpGaugeSamples.flat();
+      const hpAlertForSample = (entry) => {
+        if (!entry.alive || entry.maxHp <= 0) return "normal";
+        const ratio = entry.hp / entry.maxHp;
+        return ratio <= 0.25 ? "critical" : ratio <= 0.55 ? "warning" : "normal";
+      };
+      const radius = (value) => value === "999px";
+      const hpGaugeUiParity = hpGaugeUnits.length > 0 && hpGaugeUnits.every((entry) => {
+        const keys = ["green", "recovered", "recoverable", "unrecoverable"];
+        const segments = keys.map((key) => entry.segments[key]);
+        const visible = segments.map((segment) => segment.width > 0.01);
+        const firstVisible = visible.findIndex(Boolean);
+        let rightRound = -1;
+        for (let index = 0; index < visible.length - 1; index += 1) {
+          if (visible[index]) rightRound = index;
+        }
+        if (rightRound < 0) rightRound = firstVisible;
+        const leftOk = firstVisible >= 0
+          && radius(segments[firstVisible].topLeft)
+          && radius(segments[firstVisible].bottomLeft);
+        const rightOk = rightRound >= 0
+          && radius(segments[rightRound].topRight)
+          && radius(segments[rightRound].bottomRight);
+        const innerBoundariesSquare = segments.every((segment, index) => {
+          if (!visible[index]) return true;
+          const nextVisible = visible.slice(index + 1).some(Boolean);
+          const redEndpoint = index === 2 && visible[2];
+          return nextVisible && !redEndpoint
+            ? !radius(segment.topRight) && !radius(segment.bottomRight)
+            : true;
+        });
+        const totalWidth = segments.reduce((sum, segment) => sum + segment.width, 0);
+        const expectedAlert = hpAlertForSample(entry);
+        return Math.abs(totalWidth - 100) < 0.05
+          && entry.alert === expectedAlert
+          && !entry.classes.includes("low")
+          && !entry.classes.includes("critical")
+          && (expectedAlert === "warning" ? entry.classes.includes("hp-warning") : true)
+          && (expectedAlert === "critical" ? entry.classes.includes("hp-critical") : true)
+          && (expectedAlert === "normal"
+            ? !entry.classes.includes("hp-warning") && !entry.classes.includes("hp-critical")
+            : true)
+          && entry.ariaLabel.includes("回復済み")
+          && entry.ariaLabel.includes("回復可能")
+          && entry.ariaLabel.includes("回復不能")
+          && leftOk
+          && rightOk
+          && innerBoundariesSquare;
+      });
+      const observedGaugeStates = {
+        normal: hpGaugeUnits.some((entry) => entry.alert === "normal" && entry.alive),
+        warning: hpGaugeUnits.some((entry) => entry.alert === "warning"),
+        critical: hpGaugeUnits.some((entry) => entry.alert === "critical"),
+        recovery: hpGaugeUnits.some((entry) => entry.segments.recovered.width > 0.01
+          || entry.segments.recoverable.width > 0.01),
+        defeated: hpGaugeUnits.some((entry) => !entry.alive),
+      };
+      const recoveryClosed = hpGaugeSamples.some((sample, index) => {
+        if (index === 0) return false;
+        return sample.some((entry, unitIndex) => {
+          const previous = hpGaugeSamples[index - 1]?.[unitIndex];
+          return previous
+            && previous.segments.recoverable.width > 0.01
+            && entry.segments.recoverable.width <= 0.01
+            && entry.segments.unrecoverable.width > previous.segments.unrecoverable.width + 0.01;
+        });
+      });
+      observedGaugeStates.closed = recoveryClosed;
+      note("HPゲージの内訳・警告・角丸が各スナップショットに追従する",
+        hpGaugeUiParity,
+        JSON.stringify(observedGaugeStates));
     }
 
     const fastSpeed = page.locator('.speed-button[data-speed="fast"]');

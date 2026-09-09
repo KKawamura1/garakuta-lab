@@ -1,6 +1,12 @@
 import { simulateBattle } from "./engine.mjs";
 import { PLAYABLE_CONTENT } from "./playable-content.mjs";
 import {
+  hpAlertFor,
+  hpAlertLabelFor,
+  hpGaugeCornerRoles,
+  hpGaugeState,
+} from "./hp-gauge.mjs";
+import {
   CHARACTER_OPTIONS,
   COMPONENTS,
   EQUIPMENT,
@@ -3268,7 +3274,7 @@ function layoutKeyOf(actors) {
 }
 
 function unitHtml(actor) {
-  return "<div class=\"unit\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\">"
+  return "<div class=\"unit\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\">"
     + "<div class=\"unit-floats\"></div>"
     + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
     + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
@@ -3322,6 +3328,7 @@ function renderBattle() {
     + "<p class=\"hint battle-hint\">再生を止めて、一手ずつ確認できます。</p>"
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
+      + "<p class=\"muted\">HPが55%以下になると枠が金色のHP注意、25%以下になると枠が赤く弱く光ります。これは生存中の現在HPだけで判定し、ゲージ内の4区分の意味は変えません。</p>"
       + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
     // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
     + statusGlossaryHelp()
@@ -3521,55 +3528,46 @@ function syncBattleView(options = {}) {
   for (const actor of actors) {
     const unit = unitOf(actor.instanceId);
     if (!unit) continue;
-    const maxHp = Math.max(0, Number(actor.maxHp ?? 0));
-    const currentHp = Math.max(0, Math.min(maxHp, Number(actor.hp ?? 0)));
-    const recovered = Math.max(0, Math.min(currentHp, Number(actor.recoveredDamage ?? 0)));
-    const recoverable = actor.alive
-      ? Math.max(0, Math.min(maxHp - currentHp, Number(actor.recoverableDamage ?? 0)))
-      : 0;
-    const unrecoverable = Math.max(0, maxHp - currentHp - recoverable);
-    const green = Math.max(0, currentHp - recovered);
+    const gauge = hpGaugeState(actor);
+    const corners = hpGaugeCornerRoles(actor);
     const fill = unit.querySelector(".unit-fill");
     const recoveredFill = unit.querySelector(".unit-recovered");
     const recoverableFill = unit.querySelector(".unit-recoverable");
     const unrecoverableFill = unit.querySelector(".unit-unrecoverable");
     const segments = [
-      { element: fill, amount: green },
-      { element: recoveredFill, amount: recovered },
-      { element: recoverableFill, amount: recoverable },
-      { element: unrecoverableFill, amount: unrecoverable },
+      { key: "green", element: fill, amount: gauge.green },
+      { key: "recovered", element: recoveredFill, amount: gauge.recovered },
+      { key: "recoverable", element: recoverableFill, amount: gauge.recoverable },
+      { key: "unrecoverable", element: unrecoverableFill, amount: gauge.unrecoverable },
     ];
-    const amounts = segments.map(({ amount }) => amount);
-    const firstVisibleIndex = amounts.findIndex((amount) => amount > 0);
-    let lastColoredIndex = -1;
-    for (let index = 0; index < amounts.length - 1; index += 1) {
-      if (amounts[index] > 0) lastColoredIndex = index;
-    }
-    const rightRoundIndex = lastColoredIndex >= 0 ? lastColoredIndex : firstVisibleIndex;
     let offset = 0;
-    segments.forEach(({ element, amount }, index) => {
-      const left = maxHp > 0 ? (offset / maxHp) * 100 : 0;
-      const width = maxHp > 0 ? (amount / maxHp) * 100 : 0;
+    segments.forEach(({ key, element, amount }) => {
+      const left = gauge.maxHp > 0 ? (offset / gauge.maxHp) * 100 : 0;
+      const width = gauge.maxHp > 0 ? (amount / gauge.maxHp) * 100 : 0;
       if (element) {
         element.style.left = left + "%";
         element.style.width = width + "%";
         // 隣接区分の境界は角を立て、バーの外側と赤／黒境界だけ丸める。
         element.style.borderRadius = "0";
-        if (index === firstVisibleIndex) {
+        if (key === corners.leftRound) {
           element.style.borderTopLeftRadius = "999px";
           element.style.borderBottomLeftRadius = "999px";
         }
-        if (index === rightRoundIndex) {
+        if (key === corners.rightRound) {
           element.style.borderTopRightRadius = "999px";
           element.style.borderBottomRightRadius = "999px";
         }
       }
       offset += amount;
     });
-    if (fill) fill.className = "unit-fill";
+    const alert = hpAlertFor(actor);
+    const alertLabel = hpAlertLabelFor(alert);
+    unit.dataset.hpAlert = alert;
+    unit.classList.toggle("hp-warning", alert === "warning");
+    unit.classList.toggle("hp-critical", alert === "critical");
     const hp = unit.querySelector(".unit-hp");
     if (hp) hp.textContent = actor.alive
-      ? currentHp + "/" + maxHp
+      ? gauge.currentHp + "/" + gauge.maxHp
       : "戦闘不能";
     const barrierFill = unit.querySelector(".unit-barrier-fill");
     if (barrierFill) barrierFill.style.width = barrierPercent(actor) + "%";
@@ -3579,12 +3577,13 @@ function syncBattleView(options = {}) {
       const safeBarrier = Number.isFinite(barrier) ? Math.max(0, barrier) : 0;
       bar.setAttribute(
         "aria-label",
-        "HP " + currentHp + "/" + maxHp
-          + "、回復済み " + recovered
-          + "、回復可能 " + recoverable
-          + "、回復不能 " + unrecoverable
+        "HP " + gauge.currentHp + "/" + gauge.maxHp
+          + "、回復済み " + gauge.recovered
+          + "、回復可能 " + gauge.recoverable
+          + "、回復不能 " + gauge.unrecoverable
           + "、防壁 " + safeBarrier,
       );
+      if (alertLabel) bar.setAttribute("aria-label", bar.getAttribute("aria-label") + "、" + alertLabel);
     }
     const marks = unit.querySelector(".unit-marks");
     if (marks) marks.innerHTML = unitMarksHtml(actor);
@@ -3609,7 +3608,14 @@ function syncBattleView(options = {}) {
     }
   }
 
-  field.querySelectorAll(".unit").forEach((unit) => unit.classList.remove("is-acting", "is-aimed"));
+  // 拍をまたいだ一時演出を持ち越さず、HP警告枠を常に読める状態に戻す。
+  field.querySelectorAll(".unit").forEach((unit) => unit.classList.remove(
+    "is-acting",
+    "is-aimed",
+    "is-hit",
+    "is-healed",
+    "is-shielded",
+  ));
 
   if (beat) {
     const head = beat.events[0];

@@ -157,10 +157,17 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 HP回復は `damage_taken` が実際に失わせたHPだけを、同じ攻撃チェーンの回復窓で戻せます。
 防壁で吸収した分は窓に入りません。次の `action_started` またはラウンド／戦闘境界で
 `recovery_window_closed` を記録し、残った未回復ダメージを確定します。リプレイ snapshot は
-`recoveredDamage`・`recoverableDamage`・`unrecoverableDamage` を運び、UIは最大HPバーを
-緑（未回復の残HP）・濃い緑（同じ攻撃中に回復した分）・赤（回復可能残分）・黒（回復不能分）に分けます。
-隣接区分の境界は角丸にせず、バーの左端と赤／黒境界だけを丸めます。回復済み区分は次の
-`action_started` またはラウンド／戦闘境界で緑へ統合し、対象が倒れた時は同じ表示拍で赤を黒へ確定します。
+`recoveredDamage`・`recoverableDamage`・`unrecoverableDamage` を運び、UIは `hp-gauge.mjs` の
+純粋な投影で最大HPバーを緑（未回復の残HP）・濃い緑（同じ攻撃中に回復した分）・赤（回復可能残分）・
+黒（回復不能分）に分けます。区分の隣接境界は角丸にせず、最初の区分の左端を丸めます。赤がある
+ときは赤の右端（赤／黒境界または赤の外側終端）だけを丸め、赤が無いときは黒の手前の最後の
+非黒区分を丸めます。全損時は黒が外側区分です。
+
+低HP警告も同じ投影を読み、生存中の `currentHp / maxHp` を整数 bps へ変換して55%以下を注意、
+25%以下を危険域とします。警告は `app.js` が unit の `hp-warning` / `hp-critical` クラスと
+`data-hp-alert`・ARIA語彙へ変換し、ゲージの4色を変更しません。従って赤区分は常に回復可能
+ダメージだけを意味します。回復済み区分の統合・赤の黒への確定・戦闘不能時の確定は、エンジンの
+`recovery_window_closed` と同じ snapshot の表示拍で起きます。
 
 ## 6. content の hard contract
 
