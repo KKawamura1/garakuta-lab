@@ -372,6 +372,12 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
   }
   if (hpDamage > 0) {
     finalTarget.hp = hpBefore - hpDamage;
+    const existing = rt.state.recoveryWindows.get(finalTarget.instanceId);
+    const window = existing && existing.chainId === rt.state.chain.id
+      ? existing
+      : { chainId: rt.state.chain.id, attackEventId: event.id, remaining: 0 };
+    window.remaining += hpDamage;
+    rt.state.recoveryWindows.set(finalTarget.instanceId, window);
     bumpHistory(finalTarget, "damage_taken", hpDamage);
     if (ctx.owner) bumpHistory(ctx.owner, "damage_dealt", hpDamage);
     rt.emit({
@@ -493,8 +499,20 @@ function applyHealing(rt, ctx, effect) {
     const finalTarget = getActor(rt.state, frame.targetActorIds[0]);
     if (!finalTarget || !finalTarget.alive) continue;
     const requested = frame.amount;
-    const actual = Math.min(requested, finalTarget.maxHp - finalTarget.hp);
+    const window = rt.state.recoveryWindows.get(finalTarget.instanceId);
+    // Explicit active/utility healing may still treat pre-existing HP loss;
+    // reactive healing is attack-bound and may only consume this chain's window.
+    const recoverable = window?.chainId === rt.state.chain.id
+      ? window.remaining
+      : (ctx.ruleId && ctx.event?.type !== "excess_healing"
+        ? 0
+        : finalTarget.maxHp - finalTarget.hp);
+    const actual = Math.min(requested, finalTarget.maxHp - finalTarget.hp, recoverable);
     finalTarget.hp += actual;
+    if (window) {
+      window.remaining -= actual;
+      if (window.remaining <= 0) rt.state.recoveryWindows.delete(finalTarget.instanceId);
+    }
     if (ctx.owner) bumpHistory(ctx.owner, "healing_done", actual);
     rt.emit({
       type: "healing_applied",
@@ -502,7 +520,7 @@ function applyHealing(rt, ctx, effect) {
       parentEventId: event.id,
       targetActorIds: [finalTarget.instanceId],
       tags: effect.tags ?? [],
-      values: { requested, actual, hpAfter: finalTarget.hp },
+      values: { requested, actual, hpAfter: finalTarget.hp, recoverableBefore: recoverable, recoverableAfter: window?.remaining ?? 0 },
     });
     const excess = requested - actual;
     if (excess > 0) {
