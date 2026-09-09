@@ -99,6 +99,48 @@ for (const [label, forbidden] of [
 if (!shellSource[0].includes("build-stamp") || !shellSource[0].includes(" hidden aria-hidden=")) {
   problems.push("E2E用build stampが視覚的に非表示になっていない");
 }
+
+// issue #222 — normal screens no longer inherit a generic title/subtitle chrome.
+// Each screen keeps its own actionable context in the body, while the title
+// screen remains the single exception.
+for (const [label, expected] of [
+  ["通常画面の共通ヘッダー廃止", "const titleHeader = options.titleScreen"],
+  ["通常画面の戻る操作の移設", "const screenActions = !options.titleScreen && headerAction"],
+  ["通常画面のbody配置", "screenActions + body"],
+  ["戦闘カードの見出し", 'sectionHeading("BATTLE", "戦闘"'],
+  ["会話ステージの場面見出し", '<div class=\\\"vn-place\\\"><b>'],
+  ["結果カードの遭遇・ラウンド", 'class=\\\"verdict-context\\\"'],
+  ["キャンプ予測の遭遇名", "const encounterName = currentEncounter()?.name"],
+  ["375px/390px用操作欄", ".screen-actions"],
+]) {
+  const sourceText = expected.startsWith(".") ? styles : app;
+  if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
+}
+const titleScreenCalls = (app.match(/titleScreen:\s*true/g) || []).length;
+if (titleScreenCalls !== 1) {
+  problems.push("共通ヘッダーの例外がタイトル画面以外にも増えている（titleScreen: true が "
+    + titleScreenCalls + " 箇所）");
+}
+if (shellSource[0].match(/<header/g)?.length !== 1) {
+  problems.push("shell() のヘッダー生成が条件分岐ではなくなっている");
+}
+for (const [label, functionName] of [
+  ["会話", "renderStory"],
+  ["キャンプ", "renderCamp"],
+  ["戦闘", "renderBattle"],
+  ["戦闘エラー", "renderBattleError"],
+  ["戦闘結果", "renderResult"],
+  ["敗北", "renderDefeat"],
+  ["精算", "renderSettlement"],
+  ["精算後の記録", "renderComplete"],
+]) {
+  const start = app.indexOf("function " + functionName + "(");
+  const end = app.indexOf("\nfunction ", start + 1);
+  const functionSource = app.slice(start, end < 0 ? app.length : end);
+  if (!functionSource.includes('return shell("", "",')) {
+    problems.push(label + "画面が共通タイトルを渡している");
+  }
+}
 for (const copy of [
   "この構成のままなら、この通りに終わります。",
   "装備は付け替え自由。",
