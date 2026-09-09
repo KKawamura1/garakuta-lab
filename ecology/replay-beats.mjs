@@ -86,6 +86,19 @@ const IMPACT_EFFECTS = new Set([
 ]);
 const QUIET_EFFECTS = new Set(["status_added", "equipment_worn", "equipment_repaired", "equipment_broken"]);
 
+// 踏み込みを伴うのは、行動が実際に着弾した拍だけに限る。
+// action_started 単独は、準備行動の開始や回復・補助行動でも発生する。
+export const STRIKE_IMPACT_EVENT_TYPES = new Set([
+  "damage_taken",
+  "damage_absorbed",
+  "damage_blocked",
+]);
+
+export function beatHasStrikeImpact(beat) {
+  return beat?.kind === "impact"
+    && beat.events?.some((event) => STRIKE_IMPACT_EVENT_TYPES.has(event?.type));
+}
+
 export function eventSourceId(event) {
   return event?.sourceActorId || event?.actorId || event?.ownerActorId || null;
 }
@@ -99,6 +112,7 @@ function isSelfTargeted(event) {
 export function buildBeats(events) {
   const beats = [];
   let current = null;
+  let awaitingPreparationImpact = false;
 
   const open = (kind, event, index, ms) => {
     current = { kind, ms, from: index, to: index, events: [event] };
@@ -127,24 +141,30 @@ export function buildBeats(events) {
 
   events.forEach((event, index) => {
     if (BOARD_SKIP.has(event.type)) {
-      carry(index);
+      // preparation_completed と着弾の間にある提案・精算イベントを、
+      // 準備完了拍へ戻さない。次の実体イベントで着弾拍を開く。
+      if (!awaitingPreparationImpact) carry(index);
       return;
     }
     switch (event.type) {
       case "battle_started":
         open("opening", event, index, BEAT_MS.opening);
         current = null;
+        awaitingPreparationImpact = false;
         break;
       case "round_started":
         // ラウンド頭の自己バフはこの拍に同時に乗せたいので、閉じない。
         open("round", event, index, BEAT_MS.round);
+        awaitingPreparationImpact = false;
         break;
       case "actor_activated":
         // 宣言の拍に畳む。単独では出さない。
         carry(index);
+        awaitingPreparationImpact = false;
         break;
       case "action_declared":
         open("declare", event, index, BEAT_MS.declare);
+        awaitingPreparationImpact = false;
         break;
       case "target_selected":
       case "target_changed":
@@ -153,36 +173,58 @@ export function buildBeats(events) {
         } else {
           open("declare", event, index, BEAT_MS.declare);
         }
+        awaitingPreparationImpact = false;
         break;
       case "action_started":
         open("impact", event, index, BEAT_MS.impact);
+        awaitingPreparationImpact = false;
         break;
       case "action_skipped":
       case "action_canceled":
       case "damage_skipped":
         open("skipped", event, index, BEAT_MS.skipped);
         current = null;
+        awaitingPreparationImpact = false;
         break;
       case "preparation_started":
       case "preparation_advanced":
-      case "preparation_completed":
       case "preparation_interrupted":
         open("prepare", event, index, BEAT_MS.prepare);
         current = null;
+        awaitingPreparationImpact = false;
+        break;
+      case "preparation_completed":
+        open("prepare", event, index, BEAT_MS.prepare);
+        current = null;
+        awaitingPreparationImpact = true;
         break;
       case "actor_moved":
         open("move", event, index, BEAT_MS.move);
         current = null;
+        awaitingPreparationImpact = false;
         break;
       case "actor_defeated":
         open("defeat", event, index, BEAT_MS.defeat);
         current = null;
+        awaitingPreparationImpact = false;
         break;
       case "battle_ended":
         open("ending", event, index, BEAT_MS.ending);
         current = null;
+        awaitingPreparationImpact = false;
         break;
       default:
+        if (awaitingPreparationImpact) {
+          // 完了後の実体イベントは準備完了とは別の拍にする。ダメージ系は
+          // 着弾として impact、それ以外の完了効果は通常の sub として扱う。
+          if (IMPACT_EFFECTS.has(event.type)) {
+            open("impact", event, index, BEAT_MS.impact);
+            awaitingPreparationImpact = false;
+          } else {
+            open("sub", event, index, BEAT_MS.sub);
+          }
+          break;
+        }
         if (IMPACT_EFFECTS.has(event.type)) {
           if (!event.ruleId) attach(event, index, EFFECT_MS);
           else if (isSelfTargeted(event)) attach(event, index, 0);

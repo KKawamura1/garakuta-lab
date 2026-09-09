@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { EVENT_TYPES } from "./schema.mjs";
-import { buildBeats, filterReplayEvents } from "./replay-beats.mjs";
+import { beatHasStrikeImpact, buildBeats, filterReplayEvents } from "./replay-beats.mjs";
 
 const event = (type, fields = {}) => ({
   type,
@@ -44,6 +44,37 @@ const impact = beats.find((beat) => beat.kind === "impact");
 assert.ok(declaration?.events.some((entry) => entry.type === "action_declared"), "enemy action declaration is a beat");
 assert.ok(impact?.events.some((entry) => entry.type === "damage_absorbed"), "zero-damage absorption is an impact event");
 assert.ok(impact?.events.some((entry) => entry.type === "barrier_damaged"), "barrier consumption stays with the impact");
+
+const preparedAttack = buildBeats([
+  event("action_started", { skillId: "enemy_heavy", targetActorIds: ["a_warden"] }),
+  event("preparation_started", { skillId: "enemy_heavy", targetActorIds: ["e_husk"] }),
+  event("preparation_advanced", { skillId: "enemy_heavy", targetActorIds: ["e_husk"] }),
+  event("preparation_completed", { skillId: "enemy_heavy", targetActorIds: ["e_husk"] }),
+  event("damage_proposed", { skillId: "enemy_heavy", targetActorIds: ["a_warden"], values: { amount: 8 } }),
+  event("damage_taken", { skillId: "enemy_heavy", targetActorIds: ["a_warden"], values: { amount: 8 } }),
+]);
+assert.deepEqual(
+  preparedAttack.map((beat) => beat.kind),
+  ["impact", "prepare", "prepare", "prepare", "impact"],
+  "a prepared attack separates completion from its landing",
+);
+assert.ok(
+  !beatHasStrikeImpact(preparedAttack[0]),
+  "starting a prepared action does not look like a landing",
+);
+assert.ok(
+  !beatHasStrikeImpact(preparedAttack[3]),
+  "preparation completion does not look like a landing",
+);
+assert.ok(
+  beatHasStrikeImpact(preparedAttack[4]),
+  "the prepared attack lands in an impact beat",
+);
+
+const reaction = buildBeats([
+  event("status_added", { ruleId: "reactive_rule", targetActorIds: ["a_warden"] }),
+]);
+assert.ok(!beatHasStrikeImpact(reaction[0]), "a sub reaction does not trigger a strike lunge");
 
 const canceled = buildBeats([
   event("action_declared", { skillId: "strike", targetActorIds: [] }),
