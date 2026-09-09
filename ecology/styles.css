@@ -14,6 +14,19 @@
   --blue: #91cbd5;
   --violet: #c0a7e5;
   --orange: #e5a26b;
+  --hp-green: var(--good);
+  --hp-green-light: #c8e8ca;
+  --hp-green-dark: #356d3d;
+  --hp-yellow: var(--gold);
+  --hp-yellow-light: #f3d99b;
+  --hp-yellow-dark: #765c28;
+  --hp-red: var(--bad);
+  --hp-red-light: #f1b6ae;
+  --hp-red-dark: #713936;
+  --hp-main: var(--hp-green);
+  --hp-recovered-tone: var(--hp-green-light);
+  --hp-recoverable-tone: var(--hp-green-dark);
+  --hp-unrecoverable: #080c0d;
   --tree-col-width: 208px;
   --tree-col-gap: 46px;
 }
@@ -1328,10 +1341,25 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   pointer-events: none;
   transition: left .34s cubic-bezier(.2, .7, .3, 1), width .34s cubic-bezier(.2, .7, .3, 1);
 }
-.unit-fill { background: var(--good); }
-.unit-recovered { background: #6fbd84; }
-.unit-recoverable { background: var(--bad); }
-.unit-unrecoverable { background: #080c0d; }
+.unit-fill { background: var(--hp-main); }
+.unit-recovered { background: var(--hp-recovered-tone); }
+.unit-recoverable { background: var(--hp-recoverable-tone); }
+.unit-unrecoverable { background: var(--hp-unrecoverable); }
+.unit.hp-tone-green {
+  --hp-main: var(--hp-green);
+  --hp-recovered-tone: var(--hp-green-light);
+  --hp-recoverable-tone: var(--hp-green-dark);
+}
+.unit.hp-tone-yellow {
+  --hp-main: var(--hp-yellow);
+  --hp-recovered-tone: var(--hp-yellow-light);
+  --hp-recoverable-tone: var(--hp-yellow-dark);
+}
+.unit.hp-tone-red {
+  --hp-main: var(--hp-red);
+  --hp-recovered-tone: var(--hp-red-light);
+  --hp-recoverable-tone: var(--hp-red-dark);
+}
 .unit-barrier-fill {
   position: absolute;
   z-index: 2;
@@ -1347,8 +1375,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   pointer-events: none;
   transition: width .34s cubic-bezier(.2, .7, .3, 1);
 }
-.unit-fill.low { background: var(--gold); }
-.unit-fill.critical { background: var(--bad); }
 .unit-stats { display: flex; align-items: center; gap: 4px; margin-top: 4px; min-height: 12px; font-size: 9px; }
 .unit-hp { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
 /* 防壁と状態異常。数が増えても箱の高さを変えない（動き自体が読めなくなるため）。 */
@@ -1400,6 +1426,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .unit-cast.prep { background: #23303a; color: var(--blue); }
 .unit.defeated { border-color: #4b3336; opacity: .4; }
 .unit.defeated .unit-fill { background: #5c4245; }
+/* HPの色はバー内だけに効かせ、カード枠は従来の行動・被弾状態のままにする。 */
 .unit.is-aimed { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(229, 184, 105, .3); }
 .unit.is-acting { border-color: var(--gold); box-shadow: 0 0 15px rgba(229, 184, 105, .22); }
 @keyframes unit-lunge-up {
