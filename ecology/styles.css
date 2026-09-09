@@ -1245,6 +1245,25 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   border-radius: 999px;
   background: #0d1315;
 }
+.unit-recoverable {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 0;
+  max-width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--bad);
+  box-shadow: inset 0 0 0 1px rgba(255, 238, 238, .28);
+  pointer-events: none;
+  transition: left .34s cubic-bezier(.2, .7, .3, 1), width .34s cubic-bezier(.2, .7, .3, 1);
+}
+.unit-recoverable + .unit-barrier-fill {
+  /* 防壁は赤い回復可能領域の上に重ねて常に区別する。 */
+  z-index: 2;
+}
 .unit-barrier-fill {
   position: absolute;
   z-index: 2;
@@ -1442,7 +1461,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .beat-text { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .unit, .unit-fill, .unit-barrier-fill, .beat-text, .replay-progress-fill { animation: none !important; transition: none !important; }
+  .unit, .unit-fill, .unit-recoverable, .unit-barrier-fill, .beat-text, .replay-progress-fill { animation: none !important; transition: none !important; }
   .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), -14px); }
 }
 
