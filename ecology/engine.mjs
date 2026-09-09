@@ -96,6 +96,7 @@ function buildState(input, content, options) {
     ruleStack: [],
     currentActorId: null,
     currentPendingAction: null,
+    recoveryWindows: new Map(),
     roundFirings: new Map(),
     battleFirings: new Map(),
     roundEndStartSequence: 0,
@@ -239,6 +240,9 @@ function makeRuntime(state) {
 }
 
 function emit(state, spec, pendingFrame = null) {
+  if (["action_started", "round_ended", "battle_ended"].includes(spec.type)) {
+    closeRecoveryWindows(state, spec.type === "action_started" ? "next_action" : "phase_boundary");
+  }
   const event = pushEvent(state, spec);
   // §11.5 — the interrupt window for this event closes before the caller sees
   // the pending frame again, so every interrupt for it runs here and now.
@@ -247,6 +251,24 @@ function emit(state, spec, pendingFrame = null) {
     state.chain.afterQueue.push(event.id);
   }
   return event;
+}
+
+// HP damage is recoverable only until the next action/phase boundary. Keeping
+// this in the engine (rather than in individual healing skills) makes stacked
+// reactive heals obey the same rule and keeps preview/replay deterministic.
+function closeRecoveryWindows(state, cause) {
+  if (state.recoveryWindows.size === 0) return;
+  for (const [actorId, window] of state.recoveryWindows) {
+    if (window.remaining <= 0) continue;
+    state.recoveryWindows.delete(actorId);
+    pushEvent(state, {
+      type: "recovery_window_closed",
+      targetActorIds: [actorId],
+      tags: ["recovery_window"],
+      values: { remaining: window.remaining, cause, attackChainId: window.chainId },
+    });
+  }
+  state.recoveryWindows.clear();
 }
 
 // §7 — one chain per active action, per round event, per outside effect.
@@ -529,6 +551,7 @@ function runBattle(state) {
 
   const rt = makeRuntime(state);
   beginChain(state, "battle_ended");
+  closeRecoveryWindows(state, "phase_boundary");
   pushEvent(state, {
     type: "battle_ended",
     tags: [],
@@ -1231,6 +1254,7 @@ function buildResult(state, content) {
     actionPoints: actor.actionPoints,
     reactionPoints: actor.reactionPoints,
     barrier: totalBarrier(actor),
+    recoverableDamage: state.recoveryWindows.get(actor.instanceId)?.remaining ?? 0,
     barriers: actor.barriers.map((packet) => ({ amount: packet.amount, duration: packet.duration })),
     statuses: actor.statuses.map((status) => ({ statusId: status.statusId, stacks: status.stacks })),
     preparation: actor.preparation
