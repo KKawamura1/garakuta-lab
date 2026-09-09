@@ -14,7 +14,7 @@
 ## 2. 検査の中身
 
 `bash analysis/check-all.sh` は、`ecology/` の構文検査 → `node ecology/check.mjs`
-（`ecology/*.test.mjs`）→ smoke 11本を順に走らせます。
+（`ecology/*.test.mjs`）→ smoke 12本を順に走らせます。
 
 | smoke | 見るもの |
 |---|---|
@@ -22,6 +22,7 @@
 | `ecology-chain-safety-audit.mjs` | AP/RPの actor・resource・round 収支と一回限りの移送割当、再発火、自傷コスト、過剰回復consumer、制限宣言を静的定義・event trace・生成装備で監査 |
 | `ecology-contract-smoke.mjs` | content 契約と凍結 ID の照合 |
 | `ecology-equipment-gen-smoke.mjs` | 装備の手続き生成の決定性と完結性 |
+| `ecology-map-smoke.mjs` | 12戦のマップ配置と現在地・種別表示の契約 |
 | `ecology-readout-smoke.mjs` | 表示値と content の照合 |
 | `ecology-skill-catalog-smoke.mjs` | 技能の定義・パック・ツリーの節・説明文の四点照合と、前提の到達可能性 |
 | `ecology-screens-smoke.mjs` | 画面と主要操作の接続 |
@@ -89,4 +90,3 @@ issue #176 の作者試遊で使った Stage 3 直行の導線（`debug-stage`�
 - 版と build を先に絞ってから内容を読み、過去版の記録を混ぜません。
 - migration を変えたら、取得 SQL と schema の対応を確認します。
 - トークンや D1 の内容をリポジトリへ保存しません。
-
