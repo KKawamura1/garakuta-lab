@@ -129,6 +129,7 @@ import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 import {
   buildBeats,
   beatDurationMs,
+  beatHasStrikeImpact,
   eventSourceId,
   filterReplayEvents,
   REPLAY_EVENT_TYPES,
@@ -3516,7 +3517,7 @@ function syncBattleView(options = {}) {
     const actingId = eventSourceId(head);
     const actingUnit = unitOf(actingId);
     if (actingUnit) actingUnit.classList.add("is-acting");
-    if (actingUnit && (beat.kind === "impact" || beat.kind === "sub") && !options.silent) {
+    if (actingUnit && beatHasStrikeImpact(beat) && !options.silent) {
       restartAnimation(actingUnit, "is-striking");
     }
     if (beat.kind === "declare" || beat.kind === "impact") {
@@ -3525,14 +3526,21 @@ function syncBattleView(options = {}) {
       }
     }
     if (!options.silent) {
+      const animated = new Set();
+      const restartOnce = (id, unit, className) => {
+        const key = id + ":" + className;
+        if (animated.has(key)) return;
+        animated.add(key);
+        restartAnimation(unit, className);
+      };
       let offset = 0;
       for (const event of beat.events) {
         for (const id of event.targetActorIds || []) {
           const unit = unitOf(id);
           if (!unit) continue;
-          if (event.type === "damage_taken" || event.type === "damage_absorbed" || event.type === "actor_defeated") restartAnimation(unit, "is-hit");
-          else if (event.type === "healing_applied") restartAnimation(unit, "is-healed");
-          else if (event.type === "barrier_gained") restartAnimation(unit, "is-shielded");
+          if (event.type === "damage_taken" || event.type === "damage_absorbed" || event.type === "actor_defeated") restartOnce(id, unit, "is-hit");
+          else if (event.type === "healing_applied") restartOnce(id, unit, "is-healed");
+          else if (event.type === "barrier_gained") restartOnce(id, unit, "is-shielded");
         }
         for (const spec of floatsFor(event)) {
           const unit = unitOf(spec.actorId);
