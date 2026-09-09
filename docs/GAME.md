@@ -234,7 +234,7 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
 - AP/RP を別の actor へ渡す反応は有限の cost と limit を持ち、`resource_gained` を読む
   loop witness は fixture 専用です。本番 bundle の資源出力は有限の支払いまたは AP 行動に
   結び付け、同じ owner の同じ rule は一つの chain の同じ trigger で一度だけです。
-- 過剰回復は元の `requested - actual` だけを `excess_healing` として渡し、同じ overflow を
+- 回復は原則として直前の攻撃の実HPダメージを上限とし、攻撃単位の回復窓を越えません。防壁で吸収した分は回復対象外です。過剰回復は元の `requested - actual` だけを `excess_healing` として渡し、同じ overflow を
   一つの chain で二度使いません。
 - guard は一 hit ごとの固定軽減、block は hit 単位の無効回数、barrier は総量吸収です。
   barrier が一撃を吸い切ると HP は減らないので `damage_taken` は出ませんが、
@@ -325,7 +325,7 @@ id の語義と役割は一致しません。id は技能・pack・contract の�
 - 追加 condition は一つの rule につき最大一つです。trigger・condition・payoff は
   damage / defense / care / tempo / setup / handoff の共通タグで接続し、無関係な組み合わせを生成しません。
 - 回復効果の基準値は tier 0 / 1 / 2 で **3 / 5 / 12**。effect rarity の倍率を適用し、
-  確定時に端数を切り捨てます。回復だけの上限は設けません。自分のHPを消費する代償と、
+  確定時に端数を切り捨てます。攻撃単位の回復窓を超える分は `excess_healing` になります。自分のHPを消費する代償と、
   自分だけを回復する効果は同じ装備へ組み合わせません。
 - コモンとレアには、まれに item より最大2段高い追加効果が付きます。その場合だけ、発火ごとに
   耐久2またはHP15を払う「規格外の代償」を併記します。
