@@ -110,6 +110,10 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   常時基礎／追加のスロットごとの格番号＋名称を表示する。常時基礎を先頭へ固定し、追加効果を
   効果レアリティの高い順に並べる。同格の効果は readout.effects の元順を保ち、生成品が持つ readout.effects と readout.lines は
   同じ item から読み、表示だけで rarity を再計算しない。
+- プレイヤー向けの部材名は `playable-battles.mjs` の `componentLabel` を唯一の解決経路にする。
+  固定装備は content metadata、生成装備は現在の Run から再構築した component metadata を使い、
+  内部 ID へのフォールバックは未知データの診断用に限る。これにより装備枠、報酬結果、戦闘ログ、
+  リプレイの表示が同じ名前になる。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
 - 同じ actor の reactive skill は loadout の上から順に候補を処理し、active skill は配列順に最初の使用可能なものを選びます。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。

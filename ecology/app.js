@@ -1,5 +1,5 @@
 import { simulateBattle } from "./engine.mjs";
-import { PLAYABLE_CONTENT, DISPLAY_NAMES } from "./playable-content.mjs";
+import { PLAYABLE_CONTENT } from "./playable-content.mjs";
 import {
   CHARACTER_OPTIONS,
   COMPONENTS,
@@ -23,6 +23,7 @@ import {
   normalizeFormation,
   previewNextBattle,
   componentInfo,
+  componentLabel,
   registerGeneratedEquipment,
   makePrologueBattle,
   simulateExpeditionBattle,
@@ -797,7 +798,9 @@ function record(type, details = {}) {
 }
 
 function nameFor(id) {
-  return DISPLAY_NAMES[id] ?? id ?? "不明";
+  // 固定コンテンツだけでなく、現在の Run が保持する生成装備もここを通す。
+  // 内部 ID をそのまま画面へ出すのは、未知の部材を診断するときだけに限定する。
+  return componentLabel(id) ?? "不明";
 }
 
 function characterName(id) {

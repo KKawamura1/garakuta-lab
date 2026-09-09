@@ -60,6 +60,7 @@ import {
   makeExpeditionBattle,
   registerGeneratedEquipment,
   componentInfo,
+  componentLabel,
   simulateNextBattle,
 } from "./playable-battles.mjs";
 
@@ -353,10 +354,14 @@ const EFFECT_FLOOR = Object.freeze({
   const item = generateEquipment({ seed: "ui", dropIndex: 4, rarity: "rare" });
   registerGeneratedEquipment({});
   equal(componentInfo(item.definition.id), null, "登録前は未知の部材");
+  equal(componentLabel("worn_greaves"), PLAYABLE_CONTENT.equipment.worn_greaves.displayName,
+    "固定装備の表示名は内部IDではなく定義から引く");
   registerGeneratedEquipment({ [item.definition.id]: item });
   const info = componentInfo(item.definition.id);
   check(Boolean(info) && info.kind === "equipment", "登録後は装備として引ける");
   equal(info.label, item.definition.displayName, "表示名は定義のもの");
+  equal(componentLabel(item.definition.id), item.definition.displayName,
+    "生成装備の表示名は登録した定義から引く");
   check(info.generated === true, "内部の由来情報を持つ");
 
   const equipped = equipEquipment(freshLoadout(ROSTER), "warden", item.definition.id, 0);
