@@ -207,6 +207,8 @@ function addActor(state, fields) {
     // なので、開始 HP を知りたい側が withPassiveBonuses を再現しなくてよい
     // （画面の戦闘予測が「いくつ減るか」を出すのに使う）。
     startingHp: fields.hp,
+    // 回復済み量は現在HPの内訳として保持し、replay の各スナップショットへ渡す。
+    recoveredDamage: 0,
     actionPoints: 0,
     reactionPoints: 0,
     // R6 §4.4 / §6.7 — PHASE A. 定義が持たなければ 0。
@@ -256,19 +258,34 @@ function emit(state, spec, pendingFrame = null) {
 // HP damage is recoverable only until the next action/phase boundary. Keeping
 // this in the engine (rather than in individual healing skills) makes stacked
 // reactive heals obey the same rule and keeps preview/replay deterministic.
+function closeRecoveryWindow(state, actorId, cause) {
+  const window = state.recoveryWindows.get(actorId);
+  if (!window) return;
+  state.recoveryWindows.delete(actorId);
+  const actor = getActor(state, actorId);
+  const remaining = Math.max(0, window.remaining);
+  const unrecoverable = actor
+    ? Math.max(0, actor.maxHp - actor.hp - remaining)
+    : 0;
+  if (remaining <= 0) return;
+  pushEvent(state, {
+    type: "recovery_window_closed",
+    targetActorIds: [actorId],
+    tags: ["recovery_window"],
+    values: {
+      remaining,
+      cause,
+      attackChainId: window.chainId,
+      recoveredDamage: actor?.recoveredDamage ?? 0,
+      unrecoverableDamage: unrecoverable,
+    },
+  });
+}
+
 function closeRecoveryWindows(state, cause) {
-  if (state.recoveryWindows.size === 0) return;
-  for (const [actorId, window] of state.recoveryWindows) {
-    if (window.remaining <= 0) continue;
-    state.recoveryWindows.delete(actorId);
-    pushEvent(state, {
-      type: "recovery_window_closed",
-      targetActorIds: [actorId],
-      tags: ["recovery_window"],
-      values: { remaining: window.remaining, cause, attackChainId: window.chainId },
-    });
+  for (const actorId of [...state.recoveryWindows.keys()]) {
+    closeRecoveryWindow(state, actorId, cause);
   }
-  state.recoveryWindows.clear();
 }
 
 // §7 — one chain per active action, per round event, per outside effect.
@@ -1255,6 +1272,11 @@ function buildResult(state, content) {
     reactionPoints: actor.reactionPoints,
     barrier: totalBarrier(actor),
     recoverableDamage: state.recoveryWindows.get(actor.instanceId)?.remaining ?? 0,
+    recoveredDamage: Math.min(actor.hp, actor.recoveredDamage ?? 0),
+    unrecoverableDamage: Math.max(
+      0,
+      actor.maxHp - actor.hp - (state.recoveryWindows.get(actor.instanceId)?.remaining ?? 0),
+    ),
     barriers: actor.barriers.map((packet) => ({ amount: packet.amount, duration: packet.duration })),
     statuses: actor.statuses.map((status) => ({ statusId: status.statusId, stacks: status.stacks })),
     preparation: actor.preparation
