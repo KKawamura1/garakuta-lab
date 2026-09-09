@@ -211,6 +211,15 @@ try {
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
 
+  // issue #177 — **1ラウンドに払える点**を見出しに出す。反応は上から順に払うので、
+  // 点が尽きた行は同じラウンドでは出ない（その行に印が付く）。ゴウは行動点1・反応点2。
+  const apPips = await page.locator(".slot-heading .slot-budget.ap .pips i").count();
+  const rpPips = await page.locator(".slot-heading .slot-budget.rp .pips i").count();
+  note("1ラウンドに払える点が装着の見出しに出る", apPips === 1 && rpPips === 2,
+    `行動点 ${apPips} · 反応点 ${rpPips}`);
+  note("装着した技能の消費が点で出る",
+    await page.locator(".installed-copy .row-marks .pips i").count() > 0);
+
   // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
   note("アクティブ／リアクティブ／パッシブを切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
   note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-lines path").count() > 0);
@@ -228,14 +237,75 @@ try {
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
   note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
 
-  // R19（issue #137）— 技能レベル。**上位互換を別技能として増やさない**代わりに、
-  // 一つの節が何段まで伸びるのかを節の上で読める。
-  note("節に現在レベル／最大レベルが出る", await page.locator(".badge-level").count() > 0);
-  note("レベルを持たない技能はそう書く", await page.locator(".badge-level.flat").count() > 0);
-  const levelText = await bodyText();
-  note("レベルの上げ方が書いてある", /技能点1点|Lv\d+へ上げる|威力・治療量・防壁/.test(levelText));
+  // R19（issue #137）／issue #177 — 段は**素直に文字**で出す。ほとんどの節が Lv1 なので、
+  // 目盛りにすると「1個だけ塗った10個の四角」が並んで読めなかった（作者指摘）。
+  // 上限は添え字で、いまの段を主にする。取得していない節には出ない。
+  const levels = await page.locator(".skill-tree-forest .level-tag").evaluateAll((nodes) =>
+    nodes.map((node) => ({ now: node.childNodes[0]?.textContent ?? "", cap: node.querySelector("small")?.textContent ?? "" })));
+  note("取得済みの節に段が文字で出る", levels.length > 0
+    && levels.every((entry) => /^Lv\d+$/.test(entry.now.trim()) && /^\/\d+$/.test(entry.cap.trim())),
+    `${levels.length} 件 · ${levels[0]?.now ?? ""}${levels[0]?.cap ?? ""}`);
+  const flatNodes = await page.locator(".skill-tree-forest .skill-node").evaluateAll((nodes) =>
+    nodes.filter((node) => !node.querySelector(".level-tag")).length);
+  note("未取得・レベル無しの節には段が出ない", flatNodes > 0, `段なし ${flatNodes} 節`);
+
+  // **丸は払うものだけ。**発動条件は技能名の下に短い薄字で書く（作者指摘）。
+  const circles = await page.locator(".skill-tree-forest .firing-mark, .skill-tree-forest .trigger-mark").count();
+  note("条件を表す丸や印を節に出していない", circles === 0, `${circles} 件`);
+  const whens = await page.locator(".skill-tree-forest .node-when").allInnerTexts();
+  note("発動条件が薄字の一行で読める", whens.length > 0 && whens.every((text) => text.trim().length > 0),
+    `${whens.length} 件 · ${whens[0] ?? ""}`);
+  // 段を上げる操作は**取得済みの節にだけ**出る。値段は釦に、変わる数はその隣に。
+  // 規則そのもの（AP/RP は変わらない）は畳んだ「技能のルール」にあり、節では繰り返さない。
+  await page.locator('.skill-tree-forest [data-action="select-skill-node"]').first().click();
+  await page.waitForTimeout(150);
+  const levelButton = await page.locator('.level-action [data-action="level-up-skill"]').count();
+  const levelStep = await page.locator(".level-action .level-step").innerText().catch(() => "");
+  note("取得済みの節に段の上げ方が出る", levelButton === 1 && /→/.test(levelStep),
+    `${levelButton}件 · ${levelStep}`);
+
+  // 記号の意味は畳んだ中に一度だけ。**節や装着行の上には出さない。**
+  note("記号の意味が畳んで置いてある", await page.locator('details[data-help="skill-symbols"]').count() === 1);
+
   await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
   await page.waitForTimeout(150);
+
+  // issue #177 — **能力値を掛ける前の技能効果量**を出す。
+  // ゴウの腕力50・技術6を先に掛けず、技能そのものの係数と能力値を見て、
+  // 「どの能力値を伸ばすか」はプレイヤーが判断できるようにする。
+  const yields = await page.locator(".skill-tree-forest .yield-chip").evaluateAll((nodes) =>
+    nodes.map((node) => ({ label: node.getAttribute("aria-label") ?? "", text: node.textContent ?? "" })));
+  note("能力値を掛ける前の技能効果量が節に出る", yields.length > 0
+    && yields.every((entry) => /(腕力|技術|受け|最大HP)で伸びる/.test(entry.label))
+    && yields.every((entry) => /効果/.test(entry.label) && /%/.test(entry.text)),
+    `${yields.length} 件 · ${yields[0]?.text ?? ""}`);
+  note("詳細欄に人物別の実数を繰り返さない",
+    await page.locator(".skill-detail .skill-yield-readout").count() === 0);
+
+  // 取得コストは取得済みのチェックと同じ実線四角、前提コストは破線四角。
+  const costChains = await page.locator(".skill-tree-forest .node-cost-chain").evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      prerequisite: Boolean(node.querySelector(".prerequisite-cost")),
+      plus: Boolean(node.querySelector(".cost-plus")),
+      acquisition: Boolean(node.querySelector(".acquisition-cost")),
+    })));
+  note("前提コストと取得コストを四角とプラスで分けて出す",
+    costChains.some((entry) => entry.prerequisite && entry.plus && entry.acquisition),
+    `${costChains.length} 件`);
+
+  // テーマ（攻撃・守り・支援・指揮・基礎）で絞れる。押すと他のテーマが沈む。
+  const branchChips = page.locator('[data-action="select-skill-branch"]');
+  const chipCount = await branchChips.count();
+  note("テーマの印で絞り込める", chipCount >= 2, `テーマ ${chipCount} 種`);
+  const beforeFilter = await page.locator(".tree-cell.faded").count();
+  await branchChips.first().click();
+  await page.waitForTimeout(150);
+  const afterFilter = await page.locator(".tree-cell.faded").count();
+  note("テーマを選ぶと他のテーマが沈む", afterFilter > beforeFilter, `${beforeFilter} → ${afterFilter}`);
+  await branchChips.first().click();
+  await page.waitForTimeout(150);
+  note("同じ印をもう一度押すと戻る", await page.locator(".tree-cell.faded").count() === beforeFilter);
+
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
   // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
