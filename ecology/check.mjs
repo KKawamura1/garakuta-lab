@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 const SUITES = [
   "schema.test.mjs",
   "engine.test.mjs",
+  "hp-gauge.test.mjs",
   "replay-beats.test.mjs",
   "replay-beats.test.mjs",
   "termination.test.mjs",

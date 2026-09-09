@@ -41,7 +41,6 @@ const displayContracts = [
 for (const [label, sourceText, expected] of displayContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
-
 const progressiveContracts = [
   ["戦闘タブの主操作", app, "primary-action map-primary-action"],
   ["結果画面の主操作", app, "primary-action result-primary-action"],
