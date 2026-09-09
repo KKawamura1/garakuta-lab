@@ -2223,35 +2223,14 @@ function activeFiringLabel(skillId) {
 
 const BRANCH_KEYS = { "攻撃": "strike", "守り": "guard", "支援": "care", "指揮": "order", "基礎": "base" };
 const STAT_MARKS = { might: "腕", focus: "技", guard: "受" };
-const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け" };
-// 反応の起点。**一文字の印と色で、何が起きたら鳴るのかを出す。**
-// 言葉のほうは TRIGGER_LABELS（content 側の正本）を引くので、二重に書かない。
-const TRIGGER_MARKS = {
-  damage_taken: { mark: "被", tone: "bad" },
-  damage_proposed: { mark: "来", tone: "bad" },
-  damage_blocked: { mark: "止", tone: "blue" },
-  actor_defeated: { mark: "倒", tone: "gold" },
-  excess_healing: { mark: "溢", tone: "good" },
-  preparation_started: { mark: "溜", tone: "violet" },
-  preparation_completed: { mark: "放", tone: "violet" },
-  preparation_advanced: { mark: "進", tone: "violet" },
-  status_added: { mark: "印", tone: "violet" },
-  healing_applied: { mark: "癒", tone: "good" },
-  barrier_gained: { mark: "盾", tone: "blue" },
-  barrier_broken: { mark: "割", tone: "bad" },
-  actor_moved: { mark: "動", tone: "blue" },
-  action_declared: { mark: "宣", tone: "gold" },
-  action_resolved: { mark: "了", tone: "gold" },
-  excess_damage: { mark: "余", tone: "bad" },
-  resource_gained: { mark: "得", tone: "gold" },
-  status_removed: { mark: "解", tone: "muted" },
-  target_selected: { mark: "狙", tone: "gold" },
-};
 
+// 反応の起点の言葉は content 側の正本（TRIGGER_LABELS）を引く。二重に書かない。
 function triggerLabelOf(listenTo) {
   return TRIGGER_LABELS[listenTo] ?? listenTo ?? "";
 }
-
+const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け" };
+// **丸は「払うもの」だけに使う。**行動点・反応点・代償のHPの三つ以外へ丸を出さない
+// （同じ形が別の意味を持つと、見分けが付かなくなる。作者指摘 2026-09-09）。
 function pips(count, cls, cap = 6) {
   if (!count) return "";
   const shown = Math.min(count, cap);
@@ -2276,27 +2255,86 @@ function costPips(node) {
   return "";
 }
 
-// 反応の起点。**何が起きたら鳴るのかを一文字で。**issue #230 の通しで、
-// 起点が自分に起きない人物へ反応を積むと点がまるごと消えることが分かっている。
-function triggerMark(node) {
-  if (node.kind !== "reactive") return "";
-  const listenTo = skillDefinitionOf(node.skillId)?.rule?.listenTo;
-  const entry = TRIGGER_MARKS[listenTo];
-  if (!entry) return "";
-  const label = triggerLabelOf(listenTo);
-  return "<i class=\"trigger-mark tone-" + entry.tone + "\" role=\"img\" aria-label=\"" + esc(label)
-    + "\" title=\"" + esc(label) + "\">" + entry.mark + "</i>";
+// ---------------------------------------------------------------- 発動条件（issue #177）
+//
+// **丸は消費だけに譲る。**「条件つきかどうか」を白抜きの丸で出していたが、
+// 同じ丸が行動点・反応点・代償HP・条件・取得状態を別々の意味で表していて、
+// 見分けが付かなかった（作者指摘、2026-09-09）。条件は**技能名の下に短い薄字**で書く。
+// ありなしだけでは解像度が低い——「いつ出るのか」はこの一行の値打ちがある。
+const ROW_WORDS = { front: "前列", rear: "後列" };
+const SCOPE_WORDS = { enemies: "敵", allies: "味方", self: "自分" };
+const COUNT_WORDS = { enemies: "体", allies: "人" };
+
+function filterWords(filters = []) {
+  const words = [];
+  for (const filter of filters) {
+    if (filter.type === "alive") continue;
+    if (filter.type === "row_is") words.push(ROW_WORDS[filter.row] ?? "");
+    else if (filter.type === "hp_percent") {
+      words.push("HP" + filter.value + "%" + (filter.op === "lte" ? "以下の" : "以上の"));
+    } else if (filter.type === "has_status") {
+      const name = STATUS_GLOSSARY.find((entry) => entry.id === filter.statusId)?.displayName
+        ?? filter.statusId;
+      const none = filter.op === "eq" && (filter.value ?? 0) === 0;
+      words.push(none ? name + "のついていない" : name + "のついた");
+    } else if (filter.type === "is_preparing") words.push(filter.value === false ? "溜めていない" : "溜めている");
+    else if (filter.type === "not_self") words.push("自分以外の");
+  }
+  return words.join("");
 }
 
-// 条件つきかどうか。**塗りつぶしなら毎回出せる、白抜きなら条件が要る。**
-function firingMark(node) {
-  if (node.kind !== "active") return "";
-  const firing = activeFiringLabel(node.skillId);
-  if (!firing) return "";
-  const conditional = firing !== "無条件";
-  const label = conditional ? "条件つき（合う拍だけ出る）" : "無条件（いつでも出せる）";
-  return "<i class=\"firing-mark" + (conditional ? " conditional" : "") + "\" role=\"img\" aria-label=\""
-    + label + "\" title=\"" + label + "\"></i>";
+function targetExistsText(predicate) {
+  const query = predicate.query ?? {};
+  const scope = SCOPE_WORDS[query.scope] ?? "";
+  const count = Number(predicate.value ?? 1);
+  const unit = COUNT_WORDS[query.scope] ?? "つ";
+  const many = count > 1 ? count + unit + "以上" : "";
+  return filterWords(query.filters) + scope + (many ? "が" + many : "が") + "いるとき";
+}
+
+function predicateText(predicate) {
+  switch (predicate.type) {
+    case "target_exists": return targetExistsText(predicate);
+    case "hp_percent":
+      return "自分のHPが" + predicate.value + "%" + (predicate.op === "lte" ? "以下のとき" : "以上のとき");
+    case "round_number":
+      return predicate.op === "eq" ? predicate.value + "ラウンド目だけ" : predicate.value + "ラウンド目まで";
+    case "has_status": {
+      const name = STATUS_GLOSSARY.find((entry) => entry.id === predicate.statusId)?.displayName
+        ?? predicate.statusId;
+      return (predicate.value ?? 0) === 0 ? name + "がついていないとき" : name + "がついているとき";
+    }
+    case "position": return "自分が" + (ROW_WORDS[predicate.row] ?? "") + "のとき";
+    case "history_count":
+      if (predicate.metric === "same_target_streak") {
+        return predicate.op === "lte" ? "同じ相手を続けて狙っていないとき" : "同じ相手を続けて狙ったとき";
+      }
+      if (predicate.metric === "damage_taken") return "そのラウンドに被弾していないとき";
+      return "";
+    default: return "";
+  }
+}
+
+// 節に出す一行。**空なら条件が無い**（「無条件」とわざわざ書かない）。
+function conditionText(node) {
+  const definition = skillDefinitionOf(node.skillId);
+  if (!definition) return "";
+  if (node.kind === "reactive") return triggerLabelOf(definition.rule?.listenTo);
+  if (node.kind === "passive") return "";
+  const parts = (definition.intrinsicPredicates ?? []).map(predicateText).filter(Boolean);
+  if (!parts.length) {
+    // 発動条件が無くても、対象が絞られていれば「誰へ出るのか」は条件である。
+    const target = filterWords(definition.targetQuery?.filters);
+    const scope = SCOPE_WORDS[definition.targetQuery?.scope] ?? "";
+    if (target) return target + scope + "へ";
+  }
+  return parts.join(" / ");
+}
+
+function conditionLine(node) {
+  const text = conditionText(node);
+  if (!text) return "";
+  return "<small class=\"node-when\" title=\"" + esc(text) + "\">" + esc(text) + "</small>";
 }
 
 function costLabel(node) {
@@ -2312,16 +2350,16 @@ function costLabel(node) {
   return "常時";
 }
 
-// レベル。**目盛りの数が上限、塗ってある数がいま。**「Lv 3/10」と書く代わりに、
-// 残りが何段あるかを長さで見せる（issue #137 の意図はそのまま）。
+// レベル。**素直に文字で書く。**ほとんどの節が Lv1 なので、目盛りにすると
+// 「1個だけ塗った10個の四角」が並んで、かえって読めなかった（作者指摘）。
+// 上限は添え字にして、いまの段を主にする。
 function levelMeter(node, characterId) {
   const cap = skillLevelCapOf(node.skillId);
   if (cap <= 1) return "";
   const level = skillLevelOf(characterId, node.skillId);
-  const ticks = Array.from({ length: cap }, (unused, index) =>
-    "<i class=\"" + (index < level ? "on" : "") + "\"></i>").join("");
-  return "<span class=\"level-meter" + (level >= cap ? " maxed" : "") + "\" role=\"img\" aria-label=\"レベル "
-    + (level || 0) + " / " + cap + "\" title=\"レベル " + (level || 0) + " / " + cap + "\">" + ticks + "</span>";
+  if (!level) return "";
+  return "<span class=\"level-tag" + (level >= cap ? " maxed" : "") + "\" title=\"レベル "
+    + level + " / " + cap + "\">Lv" + level + "<small>/" + cap + "</small></span>";
 }
 
 // **その人物が使ったときに出る量。**issue #230 の通しで一番効いたのがこれだった——
@@ -2342,42 +2380,32 @@ function skillYield(characterId, skillId) {
   return { stat, kind, one: value.one, hits: value.hits, total: value.total };
 }
 
-// 森の中で一番大きい量。**バーの長さは相対でしか意味を持たない。**
-let skillYieldScale = new Map();
-function refreshSkillYieldScale(characterId, rows) {
-  const scale = new Map();
-  for (const row of rows) {
-    const yielded = skillYield(characterId, row.node.skillId);
-    if (!yielded) continue;
-    scale.set(yielded.kind, Math.max(scale.get(yielded.kind) ?? 0, yielded.total));
-  }
-  skillYieldScale = scale;
-}
-
+// **量は数で出す。**棒にすると「どちらが大きいか」は分かっても「どれくらい出るか」が
+// 読めず、節をまたいだ比較が難しかった（作者指摘）。能力値の色の小チップにして、
+// 印（腕・技・受）と数を並べる。文章にはならず、桁で比べられる。
 function yieldBar(characterId, skillId) {
   const yielded = skillYield(characterId, skillId);
   if (!yielded) return "";
-  const top = Math.max(1, skillYieldScale.get(yielded.kind) ?? yielded.total);
-  const width = Math.max(3, Math.round((yielded.total * 100) / top));
   const label = STAT_LABELS[yielded.stat] + "で伸びる · この人物だと "
     + yielded.total + (yielded.hits > 1 ? "（" + yielded.one + "×" + yielded.hits + "）" : "");
-  return "<span class=\"yield stat-" + yielded.stat + " yield-" + yielded.kind + "\" role=\"img\""
+  return "<span class=\"yield-chip stat-" + yielded.stat + " yield-" + yielded.kind + "\" role=\"img\""
     + " aria-label=\"" + esc(label) + "\" title=\"" + esc(label) + "\">"
-    + "<i class=\"yield-stat\">" + STAT_MARKS[yielded.stat] + "</i>"
-    + "<i class=\"yield-track\"><b style=\"width:" + width + "%\"></b></i></span>";
+    + "<i>" + STAT_MARKS[yielded.stat] + "</i>" + yielded.total
+    + (yielded.hits > 1 ? "<small>×" + yielded.hits + "</small>" : "") + "</span>";
 }
 
 // 取得の状態。**文字を出さない。**まだ持っていない節は値段の数だけ、
 // 持っている節は形（○ 取得済み／● 装着中／◐ オフ）で分かる。
 function nodeStateMark(node, nodeState, characterId) {
+  // **丸は値段のときだけ。**持っているかどうかは鉤（✓）で、塗りが装着中。
   if (nodeState.equipped) {
     return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
       + " aria-label=\"" + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\" title=\""
-      + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\"></span>";
+      + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\">✓</span>";
   }
   if (nodeState.unlocked) {
     return "<span class=\"node-mark owned\" role=\"img\" aria-label=\"取得済み・未装着\""
-      + " title=\"取得済み・未装着\"></span>";
+      + " title=\"取得済み・未装着\">✓</span>";
   }
   const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
   const title = nodeState.prereqsMet
@@ -2425,8 +2453,8 @@ function skillSlotRows(characterId, kind) {
       if (spent > budget) overflow = " over";
     }
     const marks = node
-      ? "<span class=\"row-marks\">" + costPips(node) + triggerMark(node) + firingMark(node)
-        + yieldBar(characterId, skillId) + levelMeter(node, characterId) + "</span>"
+      ? "<span class=\"row-marks\">" + costPips(node) + yieldBar(characterId, skillId)
+        + levelMeter(node, characterId) + "</span>" + conditionLine(node)
       : "";
     return "<div class=\"installed-row" + (disabled ? " disabled" : "") + overflow + "\">"
       + (kind === "passive"
@@ -2435,11 +2463,14 @@ function skillSlotRows(characterId, kind) {
       + "<span class=\"installed-copy\"><b>" + esc(info?.label ?? nameFor(skillId)) + "</b>"
       + marks + share + "</span>"
       + moveButtons
-      + button(disabled ? "○" : "●", "toggle-skill", false, "icon-button skill-toggle"
-        + (disabled ? " off" : " on"),
-        "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\""
-        + " aria-label=\"" + (disabled ? "オンにする" : "オフにする") + "\""
-        + " title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる") + "\"")
+      // **入切は「札」ではなく「摘み」にする。**丸は払うものだけに譲ったので、
+      // 操作は動く摘みの形（スイッチ）で出す。
+      + "<button type=\"button\" class=\"skill-switch" + (disabled ? " off" : " on")
+      + "\" data-action=\"toggle-skill\" data-character=\"" + characterId + "\" data-skill=\""
+      + skillId + "\" data-kind=\"" + kind + "\" role=\"switch\" aria-checked=\""
+      + (disabled ? "false" : "true") + "\" aria-label=\"" + (disabled ? "オンにする" : "オフにする")
+      + "\" title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる")
+      + "\"><i></i></button>"
       + "</div>";
   }).join("");
   // 見出しは、払える点（●）と、装着で払う合計（○が足りない）を並べるだけにする。
@@ -2743,8 +2774,8 @@ function renderSkillRow(row, characterId, tone) {
     + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
     + "<span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
     + "<small class=\"node-meters\" title=\"" + esc(costLabel(node)) + "\">"
-    + costPips(node) + triggerMark(node) + firingMark(node) + yieldBar(characterId, node.skillId)
-    + levelMeter(node, characterId) + "</small></span>"
+    + costPips(node) + yieldBar(characterId, node.skillId)
+    + levelMeter(node, characterId) + "</small>" + conditionLine(node) + "</span>"
     + nodeStateMark(node, nodeState, characterId) + "</button>"
     + detail + "</article></div>";
 }
@@ -2765,8 +2796,6 @@ function renderSkillTree(characterId) {
   const tabs = groups.map((entry) => "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
     + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false") + "\" data-action=\"select-skill-kind\" data-kind=\""
     + entry.kind + "\"><b>" + esc(entry.label) + "</b><small>" + entry.nodeCount + "</small></button>").join("");
-  // **バーは相対でしか意味を持たない。**いま出している森の中で一番大きい量を先に取る。
-  refreshSkillYieldScale(characterId, group.rows);
   const branch = state.skillTreeBranch;
   const rows = group.rows.map((row) => {
     const dimmed = branch && row.node.branch !== branch;
@@ -2870,29 +2899,23 @@ function symbolLegendHelp() {
   const row = (mark, text) => "<dt>" + mark + "</dt><dd>" + esc(text) + "</dd>";
   return helpDetails("skill-symbols", "記号の意味",
     "<dl class=\"symbol-legend\">"
-    + row(pips(1, "ap"), "行動点。点の数だけ1ラウンドに払う")
+    + row(pips(1, "ap"), "行動点。丸の数だけ1ラウンドに払う")
     + row(pips(1, "rp"), "反応点。装着した反応は上から順に払い、尽きたら下は出ない")
     + row("<span class=\"pips hp\"><i></i></span>", "代償にHPを払う")
-    + row("<i class=\"firing-mark\"></i>", "無条件。いつでも出せる")
-    + row("<i class=\"firing-mark conditional\"></i>", "条件つき。合う拍だけ出て、合わなければ次の技能へ回る")
-    + row("<span class=\"yield stat-might yield-damage\"><i class=\"yield-stat\">腕</i>"
-      + "<i class=\"yield-track\"><b style=\"width:70%\"></b></i></span>",
-      "その人物の手で出る量。色は伸びる能力値（腕=腕力・技=技術・受=受け）。"
-      + "同じツリーの中で一番大きい節を満たしとした長さ")
-    + row("<span class=\"level-meter\"><i class=\"on\"></i><i class=\"on\"></i><i></i><i></i></span>",
-      "段。目盛りの数が上限、塗ってあるのがいまの段")
+    + row("<span class=\"yield-chip stat-might\"><i>腕</i>65</span>",
+      "この人物の手で出る量。印は伸びる能力値（腕＝腕力・技＝技術・受＝受け）")
+    + row("<span class=\"level-tag\">Lv1<small>/10</small></span>", "いまの段と上限")
+    + row("<span class=\"node-mark cost ready\">1</span>", "まだ取っていない。数は要る技能点")
+    + row("<span class=\"node-mark owned\">✓</span>", "取得済み・未装着")
+    + row("<span class=\"node-mark equipped\">✓</span>", "装着中")
     + row("<span class=\"turn-share\"><i></i><i class=\"on\"></i><i></i></span>",
       "出番。装着した本数のうちの一本。順送りなので、増やすほど一本あたりの出番は減る")
-    + row("<span class=\"node-mark cost ready\">1</span>", "まだ取っていない。数は要る技能点")
-    + row("<span class=\"node-mark owned\"></span>", "取得済み・未装着")
-    + row("<span class=\"node-mark equipped\"></span>", "装着中")
     + row("<span class=\"turn-cells\"><span class=\"turn-round\">"
       + "<i class=\"turn-cell branch-strike\">✦</i></span><span class=\"turn-round\">"
       + "<i class=\"turn-cell idle\"></i></span></span>",
       "戦闘のあと、誰がどのラウンドに何を出したか。点線の枠はその拍に動いていない")
-    + row("<i class=\"trigger-mark tone-bad\">被</i>",
-      "反応の起点。何が起きたら鳴るか（被=被弾・止=受け止め・倒=撃破・溜=準備・印=状態）")
-    + "</dl>");
+    + "</dl>"
+    + "<p class=\"muted\">丸は<b>払うもの</b>だけに使います。発動条件は技能名の下に短い薄字で書きます。</p>");
 }
 
 function renderSkills() {

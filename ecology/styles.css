@@ -2581,59 +2581,43 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .pips.rp { color: var(--violet); }
 .pips.hp { color: var(--bad); }
 .pips.free i { background: transparent; border: 1px solid var(--muted); }
-/* 段。目盛りの数が上限、塗ってある数がいま。 */
-.level-meter { display: inline-flex; align-items: center; gap: 1px; }
-.level-meter i { width: 2px; height: 8px; border-radius: 1px; background: rgba(192, 167, 229, .28); }
-.level-meter i.on { background: var(--violet); }
-.level-meter.maxed i.on { background: var(--gold); }
-.level-meter.need i.want { box-shadow: inset 0 0 0 1px var(--gold); }
-/* 量。**同じ画面の中で長さを比べる。**能力値の色でどれで伸びるかを出す。 */
-.yield { display: inline-flex; align-items: center; gap: 3px; min-width: 46px; flex: 1 1 34px; }
-.yield-stat { font-style: normal; font-size: 8px; font-weight: 800; line-height: 1; }
-.yield.stat-might .yield-stat, .yield-stat.stat-might { color: var(--stat-might); }
-.yield.stat-focus .yield-stat, .yield-stat.stat-focus { color: var(--stat-focus); }
-.yield.stat-guard .yield-stat, .yield-stat.stat-guard { color: var(--stat-guard); }
-.yield-track {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 22px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, .08);
-  overflow: hidden;
-}
-.yield-track b { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--gold); }
-.yield.yield-damage .yield-track b { background: var(--stat-might); }
-.yield.yield-heal .yield-track b { background: var(--good); }
-.yield.yield-barrier .yield-track b { background: var(--blue); }
-/* 反応の起点と、条件つきかどうか。 */
-.trigger-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 13px;
-  height: 13px;
+/* 段は素直に文字で。**ほとんどの節が Lv1 なので、目盛りは読めない。** */
+.level-tag { color: var(--violet); font-size: 9px; font-weight: 800; }
+.level-tag small { font-size: 8px; font-weight: 400; opacity: .7; }
+.level-tag.maxed { color: var(--gold); }
+/* 量は能力値の色の小チップ。印（腕・技・受）と数を並べ、桁で比べさせる。 */
+.yield-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 5px;
+  border: 1px solid currentColor;
   border-radius: 3px;
-  background: rgba(255, 255, 255, .07);
-  font-style: normal;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
+  line-height: 1.3;
 }
-.trigger-mark.tone-bad { color: var(--bad); }
-.trigger-mark.tone-good { color: var(--good); }
-.trigger-mark.tone-blue { color: var(--blue); }
-.trigger-mark.tone-gold { color: var(--gold); }
-.trigger-mark.tone-violet { color: var(--violet); }
-.trigger-mark.tone-muted { color: var(--muted); }
-.firing-mark {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border: 1px solid var(--gold);
-  border-radius: 50%;
-  background: var(--gold);
+.yield-chip i { font-style: normal; font-size: 9px; opacity: .9; }
+.yield-chip small { font-size: 8px; font-weight: 400; opacity: .8; }
+.yield-chip.stat-might { color: var(--stat-might); }
+.yield-chip.stat-focus { color: var(--stat-focus); }
+.yield-chip.stat-guard { color: var(--stat-guard); }
+.yield-stat.stat-might { color: var(--stat-might); }
+.yield-stat.stat-focus { color: var(--stat-focus); }
+.yield-stat.stat-guard { color: var(--stat-guard); }
+/* 発動条件は、名前の下に短い薄字で。**丸は消費だけに譲る。** */
+.node-when {
+  display: -webkit-box;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #7f8f89;
+  font-size: 9px;
+  line-height: 1.3;
+  /* 二行までは出す。**一行で切ると「HP50%以下の敵がい…」で終わって読めない。** */
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
-.firing-mark.conditional { background: transparent; border-style: dashed; }
-/* 取得の状態。**文字を出さない。**値段の数だけが残る。 */
+/* 取得の状態。丸は値段のときだけで、持っているかどうかは鉤で出す。 */
 .node-mark {
   display: inline-grid;
   place-items: center;
@@ -2644,9 +2628,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 9px;
   font-weight: 800;
 }
-.node-mark.equipped { border: 2px solid var(--gold); background: var(--gold); }
-.node-mark.equipped.off { border-color: var(--muted); background: transparent; box-shadow: inset 0 0 0 3px var(--muted); }
-.node-mark.owned { border: 2px solid var(--good); background: transparent; }
+.node-mark.equipped { border-radius: 4px; background: var(--gold); color: #1b201e; }
+.node-mark.equipped.off { background: transparent; box-shadow: inset 0 0 0 1px var(--muted); color: var(--muted); }
+.node-mark.owned { border-radius: 4px; box-shadow: inset 0 0 0 1px var(--good); color: var(--good); }
 .node-mark.cost { border: 1px dashed #6d7c77; color: #8fa09a; }
 .node-mark.cost.ready { border: 1px solid var(--gold); color: var(--gold); }
 .node-mark.cost.gated { border-style: dotted; opacity: .6; }
@@ -2681,16 +2665,28 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* 節の上の計器。名前の下に一列だけ。 */
 .node-copy .node-meters { display: flex; flex-wrap: nowrap; align-items: center; gap: 5px; white-space: nowrap; }
 /* 装着行。**出番は目盛り、代償は点。** */
-.installed-copy .row-marks { display: flex; align-items: center; gap: 5px; margin-top: 3px; }
+.installed-copy .row-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 3px; }
+.installed-copy .node-when { white-space: normal; }
 .turn-share { display: inline-flex; gap: 2px; margin-top: 3px; }
 .turn-share i { width: 9px; height: 3px; border-radius: 2px; background: rgba(224, 195, 116, .25); }
 .turn-share i.on { background: var(--gold); }
 .slot-heading .slot-budget { display: inline-flex; align-items: center; margin-left: auto; }
 .slot-heading .slot-over { margin-left: 5px; color: var(--bad); font-size: 11px; }
 .installed-row.over { box-shadow: inset 2px 0 0 var(--bad); }
-.installed-row .icon-button.skill-toggle { min-width: 30px; font-size: 12px; }
-.installed-row .icon-button.skill-toggle.on { color: var(--gold); }
-.installed-row .icon-button.skill-toggle.off { color: var(--muted); }
+/* 入切は摘み（スイッチ）。**丸は払うものだけに譲る。** */
+.skill-switch {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 17px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .05);
+}
+.skill-switch i { display: block; width: 11px; height: 11px; border-radius: 50%; background: var(--muted); }
+.skill-switch.on { border-color: var(--gold); background: rgba(229, 184, 105, .18); }
+.skill-switch.on i { margin-left: 13px; background: var(--gold); }
+.level-tag { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; }
 /* 詳細。文章を許すのは技能の説明文だけ。 */
 .skill-yield-readout { display: flex; align-items: baseline; gap: 5px; margin: 4px 0 6px; font-size: 10px; color: var(--muted); }
 .skill-yield-readout b { color: var(--ink); font-size: 13px; }
@@ -2728,7 +2724,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-build-summary .summary-res { display: inline-flex; align-items: center; gap: 5px; }
 .skill-build-summary .summary-slot { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; }
 .skill-build-summary .summary-slot b { font-weight: 800; }
-.kind-dot { display: inline-block; width: 7px; height: 7px; border-radius: 2px; }
+.kind-dot { display: inline-block; width: 8px; height: 8px; border-radius: 1px; }
 .kind-dot.kind-active { background: var(--gold); }
 .kind-dot.kind-reactive { background: var(--violet); }
 .kind-dot.kind-passive { background: var(--good); }

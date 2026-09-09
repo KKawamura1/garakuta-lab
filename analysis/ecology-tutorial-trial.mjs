@@ -237,16 +237,24 @@ try {
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
   note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
 
-  // R19（issue #137）／issue #177 — 段は**文字ではなく目盛り**で出す。目盛りの数が
-  // 上限、塗ってある数がいまの段。レベルを持たない節には目盛りそのものが出ない。
-  const meters = await page.locator(".skill-tree-forest .level-meter").evaluateAll((nodes) =>
-    nodes.map((node) => ({ ticks: node.querySelectorAll("i").length, on: node.querySelectorAll("i.on").length })));
-  note("節の段が目盛りで出る", meters.length > 0 && meters.every((meter) => meter.ticks > 1),
-    `目盛り ${meters.length} 件`);
-  note("塗ってある段が上限を超えない", meters.every((meter) => meter.on <= meter.ticks));
+  // R19（issue #137）／issue #177 — 段は**素直に文字**で出す。ほとんどの節が Lv1 なので、
+  // 目盛りにすると「1個だけ塗った10個の四角」が並んで読めなかった（作者指摘）。
+  // 上限は添え字で、いまの段を主にする。取得していない節には出ない。
+  const levels = await page.locator(".skill-tree-forest .level-tag").evaluateAll((nodes) =>
+    nodes.map((node) => ({ now: node.childNodes[0]?.textContent ?? "", cap: node.querySelector("small")?.textContent ?? "" })));
+  note("取得済みの節に段が文字で出る", levels.length > 0
+    && levels.every((entry) => /^Lv\d+$/.test(entry.now.trim()) && /^\/\d+$/.test(entry.cap.trim())),
+    `${levels.length} 件 · ${levels[0]?.now ?? ""}${levels[0]?.cap ?? ""}`);
   const flatNodes = await page.locator(".skill-tree-forest .skill-node").evaluateAll((nodes) =>
-    nodes.filter((node) => !node.querySelector(".level-meter")).length);
-  note("レベルを持たない技能には目盛りが出ない", flatNodes > 0, `目盛り無し ${flatNodes} 節`);
+    nodes.filter((node) => !node.querySelector(".level-tag")).length);
+  note("未取得・レベル無しの節には段が出ない", flatNodes > 0, `段なし ${flatNodes} 節`);
+
+  // **丸は払うものだけ。**発動条件は技能名の下に短い薄字で書く（作者指摘）。
+  const circles = await page.locator(".skill-tree-forest .firing-mark, .skill-tree-forest .trigger-mark").count();
+  note("条件を表す丸や印を節に出していない", circles === 0, `${circles} 件`);
+  const whens = await page.locator(".skill-tree-forest .node-when").allInnerTexts();
+  note("発動条件が薄字の一行で読める", whens.length > 0 && whens.every((text) => text.trim().length > 0),
+    `${whens.length} 件 · ${whens[0] ?? ""}`);
   // 段を上げる操作は**取得済みの節にだけ**出る。値段は釦に、変わる数はその隣に。
   // 規則そのもの（AP/RP は変わらない）は畳んだ「技能のルール」にあり、節では繰り返さない。
   await page.locator('.skill-tree-forest [data-action="select-skill-node"]').first().click();
@@ -265,10 +273,13 @@ try {
   // issue #177 — **その人物の手で出る量**を長さで見せる。ゴウ（腕力50・技術6）が
   // 技術で伸びる節を装着すると7しか出ない、が issue #230 の通しで一番効いた。
   // 行動のツリーで見る（回復の反応は被害量に比例するので、能力値のバーを持たない）。
-  const yields = await page.locator(".skill-tree-forest .yield").evaluateAll((nodes) =>
-    nodes.map((node) => node.getAttribute("aria-label") ?? ""));
-  note("誰の何で伸びるかが節に出る", yields.length > 0
-    && yields.every((label) => /(腕力|技術|受け)で伸びる/.test(label)), `量のバー ${yields.length} 件`);
+  // **量は数で出す。**棒だと桁が読めず、節をまたいだ比較が難しかった（作者指摘）。
+  const yields = await page.locator(".skill-tree-forest .yield-chip").evaluateAll((nodes) =>
+    nodes.map((node) => ({ label: node.getAttribute("aria-label") ?? "", text: node.textContent ?? "" })));
+  note("誰の何でいくつ出るかが節に出る", yields.length > 0
+    && yields.every((entry) => /(腕力|技術|受け)で伸びる/.test(entry.label))
+    && yields.every((entry) => /[0-9]/.test(entry.text)),
+    `${yields.length} 件 · ${yields[0]?.text ?? ""}`);
 
   // テーマ（攻撃・守り・支援・指揮・基礎）で絞れる。押すと他のテーマが沈む。
   const branchChips = page.locator('[data-action="select-skill-branch"]');
