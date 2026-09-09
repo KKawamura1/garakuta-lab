@@ -101,46 +101,40 @@ if (!shellSource[0].includes("build-stamp") || !shellSource[0].includes(" hidden
 }
 
 // issue #222 — normal screens no longer inherit a generic title/subtitle chrome.
-// Each screen keeps its own actionable context in the body, while the title
-// screen remains the single exception.
+// The normal shell has no title parameters and never renders a header. The title
+// screen uses a separate titleShell, so the exception is structural rather than
+// a caller convention repeated across every normal screen.
+const normalShellStart = app.indexOf("function shell(body, options = {})");
+const titleShellStart = app.indexOf("function titleShell(title, subtitle, body)");
+const diagnosticStampStart = app.indexOf("\nfunction diagnosticStamp", titleShellStart);
+if (normalShellStart < 0 || titleShellStart < 0 || diagnosticStampStart < 0) {
+  console.error("ecology-screens smoke: shell()/titleShell() の構造を見つけられなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+const normalShellSource = app.slice(normalShellStart, titleShellStart);
+const titleShellSource = app.slice(titleShellStart, diagnosticStampStart);
+if (normalShellSource.includes("<header")) {
+  problems.push("通常画面用 shell() がヘッダーを生成している");
+}
+if (!titleShellSource.includes("<header") || !titleShellSource.includes("title-header")) {
+  problems.push("タイトル画面用 titleShell() がタイトルヘッダーを生成していない");
+}
+if (app.includes("titleScreen:") || app.includes("shell(title, subtitle")) {
+  problems.push("通常画面用 shell() にタイトル画面用の分岐または引数が戻っている");
+}
+if (!app.includes('return titleShell("One Battle Ahead", "",')) {
+  problems.push("タイトル画面が titleShell() を使っていない");
+}
+
+// 画面固有の文脈は、共通ヘッダーを消しても失わない。
 for (const [label, expected] of [
-  ["通常画面の共通ヘッダー廃止", "const titleHeader = options.titleScreen"],
-  ["通常画面の戻る操作の移設", "const screenActions = !options.titleScreen && headerAction"],
-  ["通常画面のbody配置", "screenActions + body"],
-  ["戦闘カードの見出し", 'sectionHeading("BATTLE", "戦闘"'],
-  ["会話ステージの場面見出し", '<div class=\\\"vn-place\\\"><b>'],
-  ["結果カードの遭遇・ラウンド", 'class=\\\"verdict-context\\\"'],
+  ["戦闘画面の遭遇名", 'sectionHeading("BATTLE", "戦闘"'],
+  ["結果画面の遭遇・ラウンド", "verdict-context"],
   ["キャンプ予測の遭遇名", "const encounterName = currentEncounter()?.name"],
-  ["375px/390px用操作欄", ".screen-actions"],
 ]) {
-  const sourceText = expected.startsWith(".") ? styles : app;
-  if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
+  if (!app.includes(expected)) problems.push(label + "が見つからない");
 }
-const titleScreenCalls = (app.match(/titleScreen:\s*true/g) || []).length;
-if (titleScreenCalls !== 1) {
-  problems.push("共通ヘッダーの例外がタイトル画面以外にも増えている（titleScreen: true が "
-    + titleScreenCalls + " 箇所）");
-}
-if (shellSource[0].match(/<header/g)?.length !== 1) {
-  problems.push("shell() のヘッダー生成が条件分岐ではなくなっている");
-}
-for (const [label, functionName] of [
-  ["会話", "renderStory"],
-  ["キャンプ", "renderCamp"],
-  ["戦闘", "renderBattle"],
-  ["戦闘エラー", "renderBattleError"],
-  ["戦闘結果", "renderResult"],
-  ["敗北", "renderDefeat"],
-  ["精算", "renderSettlement"],
-  ["精算後の記録", "renderComplete"],
-]) {
-  const start = app.indexOf("function " + functionName + "(");
-  const end = app.indexOf("\nfunction ", start + 1);
-  const functionSource = app.slice(start, end < 0 ? app.length : end);
-  if (!functionSource.includes('return shell("", "",')) {
-    problems.push(label + "画面が共通タイトルを渡している");
-  }
-}
+
 for (const copy of [
   "この構成のままなら、この通りに終わります。",
   "装備は付け替え自由。",
