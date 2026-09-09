@@ -476,7 +476,8 @@ function defeatActor(rt, ctx, target, parentEventId) {
         cause: "actor_defeated",
         attackChainId: window.chainId,
         recoveredDamage: target.recoveredDamage ?? 0,
-        unrecoverableDamage: Math.max(0, target.maxHp - target.hp - window.remaining),
+        // 窓を閉じた残量も、倒れた時点では回復不能分に含める。
+        unrecoverableDamage: Math.max(0, target.maxHp - target.hp),
       },
     });
   }
