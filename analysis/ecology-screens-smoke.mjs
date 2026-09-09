@@ -85,9 +85,13 @@ for (const [label, sourceText, forbidden] of [
 // issue #205 — internal diagnostics must not occupy normal screen chrome.
 // shell() wraps title, camp, battle, result and settlement, so checking this
 // shared renderer covers every normal screen without duplicating assertions.
-const shellSource = app.match(/function shell\([\s\S]*?\n\}\n\nfunction diagnosticStamp/);
+const shellStart = app.indexOf("function shell(body, options = {})");
+const titleShellStartForDiagnostics = app.indexOf("function titleShell(title, subtitle, body)", shellStart);
+const shellSource = shellStart >= 0 && titleShellStartForDiagnostics > shellStart
+  ? [app.slice(shellStart, titleShellStartForDiagnostics)]
+  : null;
 if (!shellSource) {
-  console.error("ecology-screens smoke: shell() / diagnosticStamp() を見つけられなかった。検査の書き方が古い。");
+  console.error("ecology-screens smoke: 通常用 shell() / titleShell() の境界を見つけられなかった。検査の書き方が古い。");
   process.exit(1);
 }
 for (const [label, forbidden] of [
