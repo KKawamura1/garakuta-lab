@@ -3237,7 +3237,7 @@ function unitHtml(actor) {
     + "<div class=\"unit-floats\"></div>"
     + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
     + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
-    + "</b></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
+    + "</b></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
     + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
     + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div>"
     + "<div class=\"unit-cast\"></div></div>";
@@ -3284,7 +3284,7 @@ function renderBattle() {
     + button("結果を見る", "replay-result", false, "button") + "</section>"
     + "<p class=\"hint battle-hint\">再生を止めて、一手ずつ確認できます。</p>"
     + helpDetails("battle-display", "表示の説明",
-      "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の緑の帯はHP、上端の灰色の帯は防壁を示します。</p>"
+      "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、紫＝回復済み、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
       + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
     // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
     + statusGlossaryHelp()
@@ -3484,23 +3484,36 @@ function syncBattleView(options = {}) {
   for (const actor of actors) {
     const unit = unitOf(actor.instanceId);
     if (!unit) continue;
-    const currentHp = Math.max(0, Math.min(actor.maxHp, Number(actor.hp ?? 0)));
-    const ratio = actor.maxHp > 0 ? currentHp / actor.maxHp : 0;
-    const recoverable = Math.max(0, Math.min(actor.maxHp - currentHp, Number(actor.recoverableDamage ?? 0)));
+    const maxHp = Math.max(0, Number(actor.maxHp ?? 0));
+    const currentHp = Math.max(0, Math.min(maxHp, Number(actor.hp ?? 0)));
+    const recovered = Math.max(0, Math.min(currentHp, Number(actor.recoveredDamage ?? 0)));
+    const recoverable = actor.alive
+      ? Math.max(0, Math.min(maxHp - currentHp, Number(actor.recoverableDamage ?? 0)))
+      : 0;
+    const unrecoverable = Math.max(0, maxHp - currentHp - recoverable);
+    const green = Math.max(0, currentHp - recovered);
     const fill = unit.querySelector(".unit-fill");
-    if (fill) {
-      fill.style.width = (ratio * 100) + "%";
-      // 緑は現在HP、赤は直前の攻撃から戻せるHPに限定する。
-      fill.className = "unit-fill";
-    }
+    const recoveredFill = unit.querySelector(".unit-recovered");
     const recoverableFill = unit.querySelector(".unit-recoverable");
-    if (recoverableFill) {
-      recoverableFill.style.left = (ratio * 100) + "%";
-      recoverableFill.style.width = ((recoverable / actor.maxHp) * 100) + "%";
-    }
+    const unrecoverableFill = unit.querySelector(".unit-unrecoverable");
+    let offset = 0;
+    const setSegment = (segment, amount) => {
+      const left = maxHp > 0 ? (offset / maxHp) * 100 : 0;
+      const width = maxHp > 0 ? (amount / maxHp) * 100 : 0;
+      if (segment) {
+        segment.style.left = left + "%";
+        segment.style.width = width + "%";
+      }
+      offset += amount;
+    };
+    setSegment(fill, green);
+    setSegment(recoveredFill, recovered);
+    setSegment(recoverableFill, recoverable);
+    setSegment(unrecoverableFill, unrecoverable);
+    if (fill) fill.className = "unit-fill";
     const hp = unit.querySelector(".unit-hp");
     if (hp) hp.textContent = actor.alive
-      ? currentHp + "/" + actor.maxHp + (recoverable > 0 ? " · 回復可 " + recoverable : "")
+      ? currentHp + "/" + maxHp + (recoverable > 0 ? " · 回復可 " + recoverable : "")
       : "戦闘不能";
     const barrierFill = unit.querySelector(".unit-barrier-fill");
     if (barrierFill) barrierFill.style.width = barrierPercent(actor) + "%";
@@ -3510,7 +3523,11 @@ function syncBattleView(options = {}) {
       const safeBarrier = Number.isFinite(barrier) ? Math.max(0, barrier) : 0;
       bar.setAttribute(
         "aria-label",
-        "HP " + currentHp + "/" + actor.maxHp + "、回復可能 " + recoverable + "、防壁 " + safeBarrier,
+        "HP " + currentHp + "/" + maxHp
+          + "、回復済み " + recovered
+          + "、回復可能 " + recoverable
+          + "、回復不能 " + unrecoverable
+          + "、防壁 " + safeBarrier,
       );
     }
     const marks = unit.querySelector(".unit-marks");
