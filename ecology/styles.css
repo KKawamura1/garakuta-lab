@@ -234,13 +234,7 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   background: transparent;
   backdrop-filter: none;
 }
-.forecast-bar {
-  margin: 0 0 6px;
-  padding: 8px 10px 9px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
-}
+/* 予測が出ている回だけ、盤面の枠に勝敗の色が乗る（箱そのものは .party-bar）。 */
 .forecast-bar.loss { border-color: rgba(231, 137, 128, .7); }
 .forecast-bar.win { border-color: rgba(155, 214, 158, .45); }
 .forecast-head {
@@ -253,26 +247,62 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .forecast-verdict { color: var(--gold); font-size: 11px; font-weight: 750; white-space: nowrap; }
 .forecast-bar.loss .forecast-verdict { color: var(--bad); }
 .forecast-bar.win .forecast-verdict { color: var(--good); }
-/* 5人ぶんが 390px 幅に収まるよう、枠は等分して縮む（それ以上増えたら横へ流す）。 */
-.forecast-members {
-  display: flex;
-  gap: 4px;
-  margin-top: 7px;
-  overflow-x: auto;
-  scrollbar-width: none;
+/* issue #159 — 上端は仲間の共通盤面。**POSITIONS そのままの3列×2行**で、
+   戦闘中の盤面（.battle-row / .battle-units）と同じ並び・同じ読み方にする。
+   横スクロールはしない——3列が iPhone 幅（390px）に必ず収まるよう、
+   セルは等分して縮む。 */
+.party-bar {
+  margin: 0 0 6px;
+  padding: 8px 10px 9px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
 }
-.forecast-members::-webkit-scrollbar { display: none; }
-.forecast-member {
-  flex: 1 1 0;
-  min-width: 60px;
+.party-board { display: grid; gap: 4px; }
+.forecast-head + .party-board { margin-top: 7px; }
+/* 行の見出しは戦闘盤（.battle-row）と同じ位置・同じ大きさに置く。 */
+.party-row { display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 5px; }
+.party-row-label { color: var(--muted); font-size: 9px; letter-spacing: .04em; }
+.party-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.party-cell {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
   padding: 4px 5px 5px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--panel-2);
+  color: inherit;
   text-align: center;
+  font: inherit;
 }
-.forecast-member.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
-.forecast-member-head { display: flex; align-items: center; justify-content: center; gap: 3px; }
+button.party-cell { cursor: pointer; }
+.party-cell.empty { border-style: dashed; background: transparent; }
+.party-cell.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
+/* 選択中の一人。**金の枠は「いま操作の主語である」の意味だけに使う。** */
+.party-cell.selected { border-color: var(--gold); background: var(--gold-dark); }
+/* 治療の対象選択中だけ、選べる／選べないを枠で分ける。対象外も**消さずに残す**。 */
+.party-cell.pickable { border-color: var(--good); }
+.party-cell.unpickable { opacity: .38; }
+.party-empty { color: var(--muted); font-size: 15px; line-height: 1.1; }
+.party-empty-text { color: var(--muted); font-size: 9px; }
+.party-figures { display: flex; align-items: baseline; justify-content: center; gap: 5px; }
+.party-res { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 7px; }
+.party-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.party-note > span { flex: 1 1 auto; min-width: 0; }
+.party-note b { color: var(--ink); white-space: nowrap; }
+.party-note.picking { color: var(--gold); }
+.party-note .tiny-button { flex: 0 0 auto; margin-left: auto; }
+.forecast-member-head { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; }
 .forecast-member-head b {
   overflow: hidden;
   font-size: 10px;
@@ -283,7 +313,6 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .forecast-hp-bar {
   display: flex;
   height: 5px;
-  margin: 5px 0 4px;
   border-radius: 3px;
   background: #10191b;
   overflow: hidden;
@@ -293,7 +322,7 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .forecast-hp-values { color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .forecast-hp-values b { color: var(--ink); font-size: 10px; }
 .forecast-hp-values small { color: var(--muted); font-size: 9px; }
-.forecast-delta { font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.forecast-delta { font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .forecast-delta.down { color: var(--bad); }
 .forecast-delta.up { color: var(--good); }
 .forecast-delta.flat { color: var(--muted); }
@@ -339,42 +368,30 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   color: var(--muted);
   font-size: 12px;
 }
-.formation-selection-actions { display: inline-block; margin-left: 8px; }
-.formation-board {
-  display: grid;
-  /* R6 §5.4 — 2行×3列。**盤面と同じ形で見せる。**
-     枠が並んでいる形そのものが「前3後2か前2後3か」の判断材料になる。 */
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-  margin-top: 16px;
-}
-.formation-slot {
-  min-height: 84px;
-  padding: 7px;
+/* issue #159 — 隊列盤（.formation-board / .formation-slot）はここにあった。
+   **上端の .party-board が同じ盤面を持つ**ので、編成タブ側の複製は消した。 */
+/* issue #159 — 盤面で選んだ一人の中身。**盤面が出しているもの（立ち位置・顔・名前）を
+   繰り返さず、説明・役割・基礎値だけを足す。** */
+.member-detail {
+  margin-top: 14px;
+  padding: 11px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #172124;
-  text-align: left;
 }
-.formation-slot.selected { border-color: var(--gold); background: var(--gold-dark); }
-.slot-label {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--gold);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .08em;
+.member-detail-head { display: flex; align-items: center; gap: 9px; }
+.member-detail-head h3 { margin: 2px 0; font-size: 15px; }
+.member-detail-head small { display: block; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.member-detail-res { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; }
+.member-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
 }
-.slot-person {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.slot-person b, .slot-person small { display: block; }
-.formation-slot .avatar { width: 28px; height: 28px; border-radius: 8px; font-size: 12px; }
-.slot-person b { font-size: 12px; }
-.slot-person small { color: var(--muted); font-size: 10px; }
-.empty-icon { color: var(--muted); font-size: 22px; }
+.member-detail-stats span { display: grid; gap: 1px; text-align: center; }
+.member-detail-stats small { color: var(--muted); font-size: 9px; }
+.member-detail-stats b { font-size: 12px; font-variant-numeric: tabular-nums; }
 .avatar {
   display: grid;
   flex: 0 0 auto;
@@ -415,7 +432,7 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .character-copy b, .character-copy small { display: block; }
 .character-copy b { font-size: 13px; }
 .character-copy small { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.35; }
-.check { color: var(--gold); font-size: 18px; }
+.check { flex: 0 0 auto; color: var(--gold); font-size: 11px; font-weight: 750; }
 .character-stats {
   display: flex;
   justify-content: space-between;
@@ -866,16 +883,13 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font-size: 11px;
 }
 .targeting-line span { color: var(--blue); text-align: right; }
-.map-party { margin-top: 15px; }
-.map-party-row, .battle-plan-row {
+.battle-plan-row {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 7px 0;
   border-top: 1px solid rgba(58,77,79,.55);
 }
-.map-party-row b, .map-party-row span:last-child { font-size: 11px; }
-.map-party-row span:last-child { margin-left: auto; color: var(--muted); }
 .battle-plan-row > div { min-width: 105px; }
 .battle-plan-row b, .battle-plan-row small { display: block; }
 .battle-plan-row small { color: var(--muted); font-size: 10px; }
@@ -1631,20 +1645,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .supply-tutorial p { margin: 0; line-height: 1.6; }
 .supply-tutorial p + p { margin-top: 6px; }
 .purchase-row.tutorial-focus { border-color: var(--gold); }
-.treatment-target-picker {
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid var(--gold);
-  border-radius: 9px;
-  background: rgba(58, 45, 20, .45);
-}
-.treatment-target-picker .member-tabs {
-  flex-wrap: wrap;
-  margin: 8px 0;
-}
-.treatment-target {
-  text-align: left;
-}
+/* issue #159 — 治療専用の対象一覧（.treatment-target-picker）はここにあった。
+   対象は上端の共通盤面から選ぶ。 */
 .supply-treatment-result {
   margin: 10px 0;
   padding: 9px 10px;
@@ -2711,16 +2713,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .symbol-legend { display: grid; grid-template-columns: 22px 1fr; gap: 5px 8px; align-items: center; }
 .symbol-legend dt { display: grid; place-items: center; }
 .symbol-legend dd { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.35; }
-/* 立ち位置・HP・資源を、名前の隣に絵で置く（issue #177）。 */
-.formation-mark { display: inline-grid; grid-template-columns: repeat(3, 6px); gap: 2px; }
-.formation-mark i { width: 6px; height: 6px; border: 1px solid #4d5b57; border-radius: 1px; }
-.formation-mark i.ally { background: #4d5b57; }
-.formation-mark i.self { border-color: var(--gold); background: var(--gold); }
-.hp-mark { display: inline-block; width: 46px; }
-.hp-mark i { display: block; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .1); overflow: hidden; }
-.hp-mark b { display: block; height: 100%; border-radius: 2px; background: var(--hp-main); }
+/* issue #159 — 立ち位置と HP の小さな印（.formation-mark / .hp-mark）はここにあった。
+   上端の共通盤面がその二つを兼ねるので消した。 */
 .member-context-head { display: flex; align-items: center; gap: 9px; }
-.member-context-marks { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .skill-build-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .skill-build-summary .summary-res { display: inline-flex; align-items: center; gap: 5px; }
 .skill-build-summary .summary-slot { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; }
