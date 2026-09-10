@@ -83,13 +83,17 @@ barrier / 増減の amount）は各技能にちょうど一つで、説明文は
 持っている」を検出し、`analysis/ecology-readout-smoke.mjs` と `ecology/phase-b.test.mjs` が
 それを見張ります。
 
+技能画面の効果チップは、この同じ `skillTextAtLevel` から能力値を掛ける前の係数を読む。
+人物ごとの最終値は詳細欄へ重ねず、印（腕・技・受・HP）と係数を見たプレイヤーが判断する。
+未取得節の右端は、前提コストを破線四角、取得コストを実線四角として `+` で結ぶ。
+
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
 newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、基礎0へ永続強化「初期SPアップ」の段階ぶんを加える。固定の初期装備を inventory へ入れず、出発前に選んだ Blueprint の持込品だけは例外です。初期SPアップは新規遠征の開始時だけに適用し、途中加入者へ遡っては付けません。勝利時の技能点は progression.grantRunSkillPointsForClear の一箇所で決まります。量は SKILL_POINTS_PER_CLEAR（encounter の種別 → 点数。通常戦1／精鋭戦1／boss2）から引き、region:index を鍵に RunState.grantedSkillPointKeys へ記録するので、**同じ encounter からは一度しか配りません**（活動資金の撃破分と同じ鍵です）。12戦を全て勝った場合は15点、最後の戦いの直前までで13点です。app.js はこの関数を呼ぶだけで、量も冪等も持ちません。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
 
 技能の前提は `{ skillId, minLv }` で、判定は `content/skill-tree.mjs` の `prerequisitesMet` / `unmetPrerequisites` 一箇所を、解禁 API（`progression.unlockRunSkill`）・画面（`app.js` の `skillNodeState`）・加入時の無償閉包（`playable-battles.initialUnlockedSkills` と `initialSkillLevels`）が共有します。無償閉包が Lv1 より上を要求するときは、その Lv も加入時に無償で付きます（取得済みなのに前提 Lv 不足で子が取れない形を作らないため）。前提が上限 Lv を超えていないか、その Stage で出る節を一遠征ぶんの技能点で取り切れるかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
-通常の `newRun` は開始補給0から始まり、`options.tutorial === true` の Stage 0 導入だけ開始補給1を受け取ります。New Game が作る `runId` を `supplyTutorialRunId` として画面状態に保持し、その導入遠征だけを必須チュートリアルの対象にします。通常遠征・再訪・既存セーブはこの marker を持たないため、補給タブを任意に使えます。初回の本編第1戦の報酬後、`app.js` は補給タブを開き、`treatmentSelection` で集中治療を選ぶ段階を保持します。単体治療は `treatmentTargetIds()` が返す候補から `select-treatment-target` を受けるまで補給を消費せず、確定後だけ既存の `progression.mjs` の `campTreat` へ明示した target ID を渡します。結果は `treatmentResult` と `role=status` で表示し、完了印は `ProfileState.storyFlags` に保存します。`supplyTutorialVisible()` 中は nav の他タブ、`begin-stage`、撤退経路を UI と handler の両方で閉じます。
+通常の `newRun` は開始補給0から始まり、`options.tutorial === true` の Stage 0 導入だけ開始補給1を受け取ります。New Game が作る `runId` を `supplyTutorialRunId` として画面状態に保持し、その導入遠征だけを必須チュートリアルの対象にします。通常遠征・再訪・既存セーブはこの marker を持たないため、補給タブを任意に使えます。初回の本編第1戦の報酬後、`app.js` は補給タブを開き、`treatmentSelection` で集中治療を選ぶ段階を保持します。単体治療は `treatmentTargetIds()` が返す候補から `select-treatment-target` を受けるまで補給を消費せず、確定後だけ既存の `progression.mjs` の `campTreat` へ明示した target ID を渡します。対象を選ぶ画面は補給タブ専用の一覧ではなく、上端の共通盤面（`partyCellRole` の `supplies` mode）です。結果は `treatmentResult` と `role=status` で表示し、完了印は `ProfileState.storyFlags` に保存します。`supplyTutorialVisible()` 中は nav の他タブ、`begin-stage`、撤退経路を UI と handler の両方で閉じます。
 
 序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
@@ -251,6 +255,28 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 その中の折り畳まれた「技術ログ」に分ける。通常画面の header / footer には内部版数を出さない。
 shell を共有するタイトル・キャンプ・戦闘・結果・精算の全画面と、戦闘予測の冗長文が戻らないことを
 `analysis/ecology-screens-smoke.mjs` が検査する。表示整理は予測・本番・報酬・精算の計算経路を変更しない。
+
+### 仲間の共通盤面（issue #159）
+
+キャンプで仲間を選ぶ経路は `partyBar(mode)` 一つに閉じる。盤面は `POSITIONS` から
+そのまま3列×2行を組み、行の見出しと格子は戦闘中の `battleRowsHtml()` と同じ形にする。
+セルの中身は `partyCellPerson()`、セルに掛かる操作は `partyCellRole(mode, position, characterId)`
+だけが決める。mode は `renderCamp()` が渡す表示中のタブ（補給チュートリアル中は `supplies`）で、
+`roster` は `place-character`、`skills` / `equipment` は `select-character`、`supplies` は
+治療を選んでいるあいだだけ `select-treatment-target`、`map` は操作なし（`<div>`）になる。
+盤面は隊列を変える唯一の入口なので、`skills` / `equipment` / `supplies` から
+`state.run.formation` は動かない。
+
+予測は従来どおり `battleForecast()`（`previewNextBattle` → `expeditionBattleOptions`）から
+読み、`forecast.perCharacter` を characterId で引いてセルへ差し込む。**予測が無い場面でも
+盤面は描き、勝敗・ラウンド数・開始→終了HPの帯だけを落とす。**予測セルの DOM 名
+（`forecast-member` / `forecast-hp-values` / `forecast-delta`）は通しの検査が数字を読む契約なので、
+`analysis/ecology-screens-smoke.mjs` が画面と CSS の両方で存在を見る。同じ smoke が
+「キャンプのレンダラーに二つ目の仲間選択（`memberTabs` / `formation-board` / 治療専用の対象一覧）が
+戻っていないこと」と「隊列の選択が先頭の仲間で初期化されていないこと」も片側検査で塞ぐ。
+ブラウザでの実挙動（隊列交換・技能／装備の対象切替・集中治療と蘇生の対象選択）は
+`analysis/ecology-tutorial-trial.mjs`、盤面が iPhone 幅で横スクロールしないことは
+`analysis/ecology-trial.mjs` が踏む。
 
 ## 生成装備ruleの耐久契約
 

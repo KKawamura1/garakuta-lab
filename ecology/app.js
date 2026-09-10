@@ -70,6 +70,8 @@ import {
   // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
   skillLevelValueSteps,
   skillTextAtLevel,
+  // issue #177 — 「誰の何で伸びるのか」と、その技能の効果量。
+  leveledEffectOf,
   // R19（issue #137）— 技能ツリーの座標と表示語彙。
   BRANCH_BUILDS,
   SCOPE_LABELS,
@@ -272,8 +274,12 @@ function rosterLocked() {
   return state.run?.rosterLocked === true;
 }
 
+// issue #159 — 固定同行者の区画では、人数を N/M で出さない。**分母は「まだ入れられる」
+// と読めてしまう**が、その回は誰も足せない（作者指摘、2026-09-08）。
 function partyLabel() {
-  return state.run.roster.length + " / " + runPartySize() + "人";
+  return rosterLocked()
+    ? state.run.roster.length + "人"
+    : state.run.roster.length + " / " + runPartySize() + "人";
 }
 
 // 遠征を1つ作る。**技能の解禁も装備も、ここで run の中へ入る。**
@@ -411,6 +417,8 @@ function freshUiState() {
     selectedSkillNode: null,
     // R19（issue #137）— ツリーは種別（アクティブ / リアクティブ / パッシブ）で切り替える。
     skillTreeKind: "active",
+    // issue #177 — テーマの絞り込み（null は全部）。
+    skillTreeBranch: null,
     selectedEquipment: null,
     // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
@@ -533,8 +541,9 @@ function hydrateState(saved) {
   next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
 
   next.migrationNote = null;
-  const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
-  const savedFormationSelection = hasFormationSelection ? saved.formationSelection : next.selectedCharacter;
+  // issue #159 — 保存に欄が無い（この欄より古い）保存も、**誰も選んでいない状態**で開く。
+  // 選択中の人物を引き継ぐと、盤面のどこかが最初から光った状態でキャンプへ戻る。
+  const savedFormationSelection = saved.formationSelection;
   next.formationSelection = next.run.roster.includes(savedFormationSelection) ? savedFormationSelection : null;
   // 戦闘内の値（HP・装備耐久）はBattleState。保存から戻るときは満タンへ戻す。
   next.hp = Object.fromEntries(
@@ -550,6 +559,7 @@ function hydrateState(saved) {
     : {};
   next.selectedSkillNode = next.selectedSkillNode || null;
   next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
+  next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
   // 旧いオートセーブには story.lineIndex / log が無い。**足りない欄を補って読む。**
   next.story = {
     queue: Array.isArray(saved.story?.queue) ? saved.story.queue.filter(Boolean) : [],
@@ -822,10 +832,6 @@ function characterDisplay(id) {
 
 function positionText(position) {
   return positionLabels[position] ?? position;
-}
-
-function kindText(kind) {
-  return kindLabels[kind] ?? kind;
 }
 
 // R6 §9.5 — 鍛錬後の値。**base ではなくこれを画面と戦闘の両方が読む。**
@@ -1157,14 +1163,29 @@ function restoreHelpDetails() {
 }
 
 
+// issue #159 — タブの数字は、そのタブを開かずに「まだやることがあるか」を出す。
+// **選んでいる一人の残点では、他の四人が余らせていることが読めない。**
+function totalSkillPoints() {
+  return state.run.roster.reduce((total, id) => total + skillPointsFor(id), 0);
+}
+
+// 装備の分子は装着済みの総数、分母は**実際に埋められる数**——手元の総数と枠の総数の
+// 小さいほうである。所持が足りなくても枠が足りなくても、埋めきれば X/X になる。
+function equipmentFillLabel() {
+  const worn = state.run.roster.reduce((total, id) =>
+    total + (state.run.loadout.equipment?.[id] || []).length, 0);
+  const slots = state.run.roster.length * 2;
+  const owned = state.run.inventory.length;
+  return worn + "/" + Math.max(worn, Math.min(owned, slots));
+}
+
 function campNav() {
-  const skillCharacter = selectedCharacter();
   const tutorialLocked = supplyTutorialVisible();
   const activeTab = tutorialLocked ? "supplies" : state.tab;
   const tabs = [
     ["roster", "編成", partyLabel()],
-    ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
-    ["equipment", "装備", state.run.roster.reduce((total, id) => total + (state.run.loadout.equipment?.[id] || []).length, 0) + "/" + (state.run.roster.length * 2)],
+    ["skills", "スキル", totalSkillPoints() + "pt"],
+    ["equipment", "装備", equipmentFillLabel()],
     ["supplies", "補給", state.run.supplies + "/" + MAX_SUPPLIES],
     ["map", "戦闘", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN],
   ];
@@ -2092,10 +2113,10 @@ function renderCamp() {
     supplies: renderSupplies,
     map: renderMap,
   }[activeTab]?.() ?? renderMap();
-  // R14 §1 — 予測とタブは一つの塊で上端に貼りつく。**どのタブで何を触っても、
-  // 各メンバーのHPと減少量が視界から出ない。**
+  // R14 §1 / issue #159 — 盤面・予測・タブは一つの塊で上端に貼りつく。**どのタブで
+  // 何を触っても、誰がどこにいて、HPがいくつ減るかが視界から出ない。**
   return shell(
-    "<div class=\"camp-top\">" + forecastBar() + campNav() + "</div>" + campTools() + view);
+    "<div class=\"camp-top\">" + partyBar(activeTab) + campNav() + "</div>" + campTools() + view);
 }
 
 // R6 §15.2 — base 値・永続鍛錬・run 内補正を分けて表示する。
@@ -2106,75 +2127,82 @@ function trainedMark(stats, axis) {
   return "<i class=\"trained\" title=\"基礎 " + detail.base + " · 鍛錬 Lv" + detail.level + "\">＋</i>";
 }
 
+// issue #159 — 隊列盤は上端の共通盤面が持つ。**このタブが足すのは「選んでいる一人の
+// 中身」だけである。**誰がどこにいるかを二度描かない。
+function rosterMemberDetail(characterId) {
+  if (!characterId) return "";
+  const option = characterInfo(characterId);
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  const stats = statsFor(characterId);
+  const axes = [
+    ["HP", currentHp(characterId) + " / " + stats.stats.maxHp, trainedMark(stats, "vitality")],
+    ["腕力", stats.stats.might, trainedMark(stats, "might")],
+    ["技術", stats.stats.focus, trainedMark(stats, "focus")],
+    ["受け", stats.stats.guard, trainedMark(stats, "guard")],
+  ].map(([label, value, mark]) => "<span><small>" + esc(label) + "</small><b>" + value + mark + "</b></span>").join("");
+  return "<section class=\"member-detail\"><div class=\"member-detail-head\"><span class=\"avatar\">"
+    + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId)) + "</h3>"
+    + "<small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
+    + "<span class=\"member-detail-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点"
+    + (definition.baseActionPoints ?? 0) + " · 反応点" + (definition.baseReactionPoints ?? 0) + "\">"
+    + pips(definition.baseActionPoints ?? 0, "ap") + pips(definition.baseReactionPoints ?? 0, "rp")
+    + "</span></div>"
+    + "<div class=\"member-detail-stats\">" + axes + "</div></section>";
+}
+
 function renderRoster() {
-  const formationSelection = selectedFormationCharacter();
-  const slots = POSITIONS.map((position) => {
-    const owner = positionOwner(position);
-    const selected = owner && formationSelection === owner;
-    const content = owner
-      ? "<span class=\"avatar\">" + esc(characterInfo(owner)?.icon ?? "・") + "</span><span><b>"
-        + esc(characterName(owner)) + "</b><small>" + esc(characterInfo(owner)?.role ?? "")
-        + " · HP " + currentHp(owner) + "/" + maxHp(owner) + "</small></span>"
-      : "<span class=\"empty-icon\">＋</span><span><b>空き枠</b><small>選択した仲間をここへ置く</small></span>";
-    return "<button type=\"button\" class=\"formation-slot " + (selected ? "selected" : "")
-      + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
-      + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
-  }).join("");
-  const metOptions = metCharacterOptions();
-  const rosterOptions = rosterLocked()
-    ? CHARACTER_OPTIONS.filter((option) => state.run.roster.includes(option.id))
-    : metOptions;
-  const characterCards = rosterOptions.map((option) => {
-    const inParty = state.run.roster.includes(option.id);
-    const selected = formationSelection === option.id;
-    const action = inParty ? "select-formation-character" : "toggle-roster";
-    const actionLabel = inParty
-      ? (selected ? "位置選択中" : "位置を選ぶ")
-      : "編成に入れる";
-    const stats = statsFor(option.id);
-    return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
-      + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
-      + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
-      + esc(option.icon) + "</span><span class=\"character-copy\"><b>" + esc(characterName(option.id))
-      + "</b><small>" + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
-      + (inParty ? "✓" : "＋") + "</span></button><div class=\"character-stats\"><span>HP "
-      + stats.stats.maxHp + trainedMark(stats, "vitality") + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
-      + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
-      + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
-      + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
-      + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
-      + "</span><span>" + esc(actionLabel) + "</span></div></article>";
-  }).join("");
-  const instruction = formationSelection ? "移動先を選んでください。" : "仲間を選んでください。";
-  const rosterCopy = rosterLocked()
-    ? "今回は" + runPartySize() + "人で進みます。同行者は物語が決めます。"
-    : "会った仲間から" + runPartySize() + "人を選びます。";
+  // 盤面で選んだ人物をそのまま主語にする。移動を確定したあとも、直前に触った人物の
+  // 中身が下に残る（**選び直さないと何も読めない**という往復を作らない）。
+  const shown = selectedFormationCharacter() ?? selectedCharacter();
   const rewindTutorialNote = state.prologueActive && state.prologueStage === "retry"
     ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
       + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
       + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
       + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
     : "";
+  // R12 §4.E-1 / issue #211 — Campaign Stage の同行者は物語が決める。**選べないものを
+  // 「選べるように見えるカード」で出さない**（issue #159、作者指摘 2026-09-08）ので、
+  // 固定の回は候補一覧そのものを出さず、一行で理由だけを書く。
+  const swap = rosterLocked()
+    ? ""
+    : "<section class=\"card\">" + sectionHeading("ROSTER", "仲間を入れ替える")
+      + "<p class=\"operation-note\">会った仲間から" + runPartySize() + "人を選びます。</p>"
+      + "<div class=\"character-grid\">" + metCharacterOptions().map((option) => {
+        const inParty = state.run.roster.includes(option.id);
+        const stats = statsFor(option.id);
+        return "<article class=\"character-card " + (inParty ? "in-party" : "") + "\">"
+          + "<button type=\"button\" class=\"character-main\" data-action=\"toggle-roster\" data-character=\""
+          + esc(option.id) + "\"><span class=\"avatar\">" + esc(option.icon) + "</span>"
+          + "<span class=\"character-copy\"><b>" + esc(characterName(option.id)) + "</b><small>"
+          + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
+          + (inParty ? "外す" : "入れる") + "</span></button>"
+          + "<div class=\"character-stats\"><span>HP " + stats.stats.maxHp + trainedMark(stats, "vitality")
+          + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
+          + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
+          + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
+          + "</span></div></article>";
+      }).join("") + "</div></section>";
   return "<section class=\"card\">" + sectionHeading("FORMATION", "隊列",
       "<span class=\"stage\">" + partyLabel() + "</span>")
-    + "<p class=\"operation-note\" role=\"status\">" + instruction + "</p>"
-    + "<div class=\"formation-board\">" + slots + "</div>"
+    + (rosterLocked()
+      ? "<p class=\"operation-note\">この区画の同行者は物語が決めます。一度クリアすると自由に選べます。</p>"
+      : "")
+    + rosterMemberDetail(shown)
     + helpDetails("formation", "配置の説明",
       "<p class=\"muted\">前列は武器攻撃を通しやすく、後列は技術による攻撃や支援に向きます。前列の人数で狙われ方も変わります。</p>"
-      + "<p class=\"muted\">仲間を選んでから位置枠を選ぶと交換できます。同じ枠をもう一度押すと選択を解除します。</p>")
+      + "<p class=\"muted\">上の盤面で仲間を選んでから別の枠を選ぶと、移動または二人の交換をします。同じ枠をもう一度押すと選択を解除します。</p>")
     + rewindTutorialNote
     + "</section>"
-    + "<section class=\"card\">" + sectionHeading("ROSTER", rosterLocked() ? "今回の同行者" : "仲間を選ぶ")
-    + "<p class=\"operation-note\">" + rosterCopy + "</p>"
-    + "<div class=\"character-grid\">" + characterCards + "</div></section>";
+    + swap;
 }
 
 
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
+// **見出しは名前だけ。**「順番」「いつでも効く」は、行の番号と目盛りが出している。
 const SLOT_TITLES = {
-  active: "アクティブ（順番）",
+  active: "アクティブ",
   reactive: "リアクティブ",
-  passive: "パッシブ（いつでも効く）",
+  passive: "パッシブ",
 };
 
 // issue #176 — 状態（バフ・デバフ）の説明。**本文は content/statuses.mjs にしかない。**
@@ -2204,49 +2232,313 @@ function activeFiringLabel(skillId) {
   return "無条件";
 }
 
+// ============================================================ 記号の語彙（issue #177）
+//
+// **通常のゲームシステムは、文章ではなく形と色で見せる。**文字を読ませてよいのは
+// 物語と技能の説明文だけで、「いくつ払うか」「何回に一度出るか」「誰の手で伸びるか」は
+// 一目で分かる形にする（作者方針、2026-09-09）。
+//
+// 語彙は四つしかない。
+//
+//   ● ピップ  … 数えるもの（AP・RP・HPの代償・レベル）
+//   ▬ バー    … 量。**同じ画面の中で長さを比べられる**（誰の手で何が出るか）
+//   ◔ 割      … 順番。装着した本数のうち、この一本がどれだけ出番を持つか
+//   色        … テーマ（攻撃・守り・支援・指揮・基礎）と、能力値（腕力・技術・受け）
+//
+// 意味の対応表は畳んだヘルプに一度だけ置く（`symbolLegendHelp`）。**節の上には出さない。**
+
+const BRANCH_KEYS = { "攻撃": "strike", "守り": "guard", "支援": "care", "指揮": "order", "基礎": "base" };
+const STAT_MARKS = { might: "腕", focus: "技", guard: "受", max_hp: "HP" };
+
+// 反応の起点の言葉は content 側の正本（TRIGGER_LABELS）を引く。二重に書かない。
+function triggerLabelOf(listenTo) {
+  return TRIGGER_LABELS[listenTo] ?? listenTo ?? "";
+}
+const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け", max_hp: "最大HP" };
+// **丸は「払うもの」だけに使う。**行動点・反応点・代償のHPの三つ以外へ丸を出さない
+// （同じ形が別の意味を持つと、見分けが付かなくなる。作者指摘 2026-09-09）。
+function pips(count, cls, cap = 6) {
+  if (!count) return "";
+  const shown = Math.min(count, cap);
+  return "<span class=\"pips " + cls + "\" aria-hidden=\"true\">"
+    + "<i></i>".repeat(shown) + (count > cap ? "<b>+" + (count - cap) + "</b>" : "") + "</span>";
+}
+
+// 消費。**AP は金の点、RP は紫の点、代償の HP は赤い点。**数はそのまま点の数。
+function costPips(node) {
+  const definition = skillDefinitionOf(node.skillId);
+  if (!definition) return "";
+  if (node.kind === "active") {
+    const ap = definition.apCost ?? 0;
+    return pips(ap, "ap") || "<span class=\"pips free\" aria-hidden=\"true\"><i></i></span>";
+  }
+  if (node.kind === "reactive") {
+    const costs = definition.rule?.costs ?? [];
+    const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
+    const hp = costs.find((cost) => cost.type === "lose_hp")?.amount ?? 0;
+    return pips(rp, "rp") + (hp ? "<span class=\"pips hp\" aria-hidden=\"true\"><i></i></span>" : "");
+  }
+  return "";
+}
+
+// ---------------------------------------------------------------- 発動条件（issue #177）
+//
+// **丸は消費だけに譲る。**「条件つきかどうか」を白抜きの丸で出していたが、
+// 同じ丸が行動点・反応点・代償HP・条件・取得状態を別々の意味で表していて、
+// 見分けが付かなかった（作者指摘、2026-09-09）。条件は**技能名の下に短い薄字**で書く。
+// ありなしだけでは解像度が低い——「いつ出るのか」はこの一行の値打ちがある。
+const ROW_WORDS = { front: "前列", rear: "後列" };
+const SCOPE_WORDS = { enemies: "敵", allies: "味方", self: "自分" };
+const COUNT_WORDS = { enemies: "体", allies: "人" };
+
+function filterWords(filters = []) {
+  const words = [];
+  for (const filter of filters) {
+    if (filter.type === "alive") continue;
+    if (filter.type === "row_is") words.push(ROW_WORDS[filter.row] ?? "");
+    else if (filter.type === "hp_percent") {
+      words.push("HP" + filter.value + "%" + (filter.op === "lte" ? "以下の" : "以上の"));
+    } else if (filter.type === "has_status") {
+      const name = STATUS_GLOSSARY.find((entry) => entry.id === filter.statusId)?.displayName
+        ?? filter.statusId;
+      const none = filter.op === "eq" && (filter.value ?? 0) === 0;
+      words.push(none ? name + "のついていない" : name + "のついた");
+    } else if (filter.type === "is_preparing") words.push(filter.value === false ? "溜めていない" : "溜めている");
+    else if (filter.type === "not_self") words.push("自分以外の");
+  }
+  return words.join("");
+}
+
+function targetExistsText(predicate) {
+  const query = predicate.query ?? {};
+  const scope = SCOPE_WORDS[query.scope] ?? "";
+  const count = Number(predicate.value ?? 1);
+  const unit = COUNT_WORDS[query.scope] ?? "つ";
+  const many = count > 1 ? count + unit + "以上" : "";
+  return filterWords(query.filters) + scope + (many ? "が" + many : "が") + "いるとき";
+}
+
+function predicateText(predicate) {
+  switch (predicate.type) {
+    case "target_exists": return targetExistsText(predicate);
+    case "hp_percent":
+      return "自分のHPが" + predicate.value + "%" + (predicate.op === "lte" ? "以下のとき" : "以上のとき");
+    case "round_number":
+      return predicate.op === "eq" ? predicate.value + "ラウンド目だけ" : predicate.value + "ラウンド目まで";
+    case "has_status": {
+      const name = STATUS_GLOSSARY.find((entry) => entry.id === predicate.statusId)?.displayName
+        ?? predicate.statusId;
+      return (predicate.value ?? 0) === 0 ? name + "がついていないとき" : name + "がついているとき";
+    }
+    case "position": return "自分が" + (ROW_WORDS[predicate.row] ?? "") + "のとき";
+    case "history_count":
+      if (predicate.metric === "same_target_streak") {
+        return predicate.op === "lte" ? "同じ相手を続けて狙っていないとき" : "同じ相手を続けて狙ったとき";
+      }
+      if (predicate.metric === "damage_taken") return "そのラウンドに被弾していないとき";
+      return "";
+    default: return "";
+  }
+}
+
+// 節に出す一行。**空なら条件が無い**（「無条件」とわざわざ書かない）。
+function conditionText(node) {
+  const definition = skillDefinitionOf(node.skillId);
+  if (!definition) return "";
+  if (node.kind === "reactive") return triggerLabelOf(definition.rule?.listenTo);
+  if (node.kind === "passive") return "";
+  const parts = (definition.intrinsicPredicates ?? []).map(predicateText).filter(Boolean);
+  if (!parts.length) {
+    // 発動条件が無くても、対象が絞られていれば「誰へ出るのか」は条件である。
+    const target = filterWords(definition.targetQuery?.filters);
+    const scope = SCOPE_WORDS[definition.targetQuery?.scope] ?? "";
+    if (target) return target + scope + "へ";
+  }
+  return parts.join(" / ");
+}
+
+function conditionLine(node) {
+  const text = conditionText(node);
+  if (!text) return "";
+  return "<small class=\"node-when\" title=\"" + esc(text) + "\">" + esc(text) + "</small>";
+}
+
+function costLabel(node) {
+  const definition = skillDefinitionOf(node.skillId);
+  if (!definition) return "";
+  if (node.kind === "active") return "行動点" + (definition.apCost ?? 0);
+  if (node.kind === "reactive") {
+    const costs = definition.rule?.costs ?? [];
+    const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
+    const hp = costs.find((cost) => cost.type === "lose_hp")?.amount ?? 0;
+    return "反応点" + rp + (hp ? "・HP" + hp : "");
+  }
+  return "常時";
+}
+
+// レベル。**素直に文字で書く。**ほとんどの節が Lv1 なので、目盛りにすると
+// 「1個だけ塗った10個の四角」が並んで、かえって読めなかった（作者指摘）。
+// 上限は添え字にして、いまの段を主にする。
+function levelMeter(node, characterId) {
+  const cap = skillLevelCapOf(node.skillId);
+  if (cap <= 1) return "";
+  const level = skillLevelOf(characterId, node.skillId);
+  if (!level) return "";
+  return "<span class=\"level-tag" + (level >= cap ? " maxed" : "") + "\" title=\"レベル "
+    + level + " / " + cap + "\">Lv" + level + "<small>/" + cap + "</small></span>";
+}
+
+// **技能が持つ効果量。**能力値を掛ける前の係数を出す。
+// ゴウ（腕力50・技術6）で見ても「技術が低いから技術技能が弱い」という答えを
+// 画面から先に決めず、技能そのものの強さと、人物の能力値を別々に読めるようにする。
+function skillEffectAmount(characterId, skillId) {
+  const definition = skillDefinitionOf(skillId);
+  const effect = leveledEffectOf(definition);
+  const amount = effect?.amount;
+  if (!amount || amount.type !== "stat_scaled") return null;
+  const stat = amount.scalingStat;
+  if (!STAT_LABELS[stat] || !STAT_MARKS[stat]) return null;
+  const level = Math.max(MIN_SKILL_LEVEL, skillLevelOf(characterId, skillId));
+  const one = skillTextAtLevel("{amount}", definition, level);
+  if (!one) return null;
+  const kind = effect.type === "heal" ? "heal" : effect.type === "gain_barrier" ? "barrier" : "damage";
+  return { stat, kind, one, hits: effect.hitCount ?? 1 };
+}
+
+// **量は数で出す。**能力値との掛け算後の実数ではなく、技能の係数を表示する。
+// 印（腕・技・受・HP）と単位付きの効果量を並べ、人物ごとの能力値による差は
+// プレイヤーが自分で判断できるようにする。
+function yieldBar(characterId, skillId) {
+  const effect = skillEffectAmount(characterId, skillId);
+  if (!effect) return "";
+  const label = STAT_LABELS[effect.stat] + "で伸びる · 効果 "
+    + effect.one + (effect.hits > 1 ? "（" + effect.one + "×" + effect.hits + "）" : "");
+  return "<span class=\"yield-chip stat-" + effect.stat + " yield-" + effect.kind + "\" role=\"img\""
+    + " aria-label=\"" + esc(label) + "\" title=\"" + esc(label) + "\">"
+    + "<i>" + STAT_MARKS[effect.stat] + "</i>" + esc(effect.one)
+    + (effect.hits > 1 ? "<small>×" + effect.hits + "</small>" : "") + "</span>";
+}
+
+// 前提をすべて満たすまでに必要な技能点。前提の Lv もコストに含める。
+function prerequisiteCostFor(node, seen = new Set()) {
+  return (node.requires ?? []).reduce((total, required) => {
+    if (seen.has(required.skillId)) return total;
+    seen.add(required.skillId);
+    const prerequisite = SKILL_TREE_NODES.find((entry) => entry.skillId === required.skillId);
+    if (!prerequisite) return total;
+    const levelCost = Math.max(0, (required.minLv ?? MIN_SKILL_LEVEL) - MIN_SKILL_LEVEL) * SKILL_LEVEL_COST;
+    return total + prerequisiteCostFor(prerequisite, seen) + prerequisite.cost + levelCost;
+  }, 0);
+}
+
+// 取得の状態。**文字を出さない。**まだ持っていない節は、前提コストと取得コストを
+// 形の違う四角で分ける。持っている節は形（□✓ 取得済み／■✓ 装着中）で分かる。
+function nodeStateMark(node, nodeState, characterId) {
+  // **丸は消費だけ。**持っているかどうかは鉤（✓）で、塗りが装着中。
+  if (nodeState.equipped) {
+    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
+      + " aria-label=\"" + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\" title=\""
+      + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\">✓</span>";
+  }
+  if (nodeState.unlocked) {
+    return "<span class=\"node-mark owned\" role=\"img\" aria-label=\"取得済み・未装着\""
+      + " title=\"取得済み・未装着\">✓</span>";
+  }
+  const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
+  const title = nodeState.prereqsMet
+    ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
+    : "前提がまだ（技能点" + node.cost + "）";
+  const prerequisiteCost = prerequisiteCostFor(node);
+  const chainLabel = node.requires?.length
+    ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
+    : "取得コスト" + node.cost + "点";
+  const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
+    + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
+  const prerequisite = node.requires?.length
+    ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
+      + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
+    : "";
+  return "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
+    + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
+}
+
 function skillSlotRows(characterId, kind) {
   const key = SLOT_KEYS[kind];
   const list = state.run.loadout[key]?.[characterId] || [];
   const title = SLOT_TITLES[kind];
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  // **一人が1ラウンドに払える点。**装着した技能の合計と並べて見せる。
+  const budget = kind === "active" ? (definition.baseActionPoints ?? 0)
+    : kind === "reactive" ? (definition.baseReactionPoints ?? 0) : 0;
+  const live = list.filter((skillId) => !skillDisabled(characterId, skillId));
+  // 順送りなので、有効な本数のうち一本ぶんが出番になる（issue #187 / #230）。
+  const turns = live.length;
+  let spent = 0;
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
+    const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
     const disabled = skillDisabled(characterId, skillId);
     const moveButtons = kind === "active" || kind === "reactive"
       ? "<span class=\"reorder\">" + button("↑", "move-skill", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-skill", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
-    const markerClass = kind === "passive" ? "bullet passive" : "order";
-    const marker = kind === "passive" ? "↳" : index + 1;
-    // issue #176 — 無条件／条件つきを行に出し、条件の読み落としを防ぐ。
-    const firing = kind === "active" ? activeFiringLabel(skillId) : null;
-    const firingChip = firing
-      ? "<span class=\"firing-chip " + (firing === "無条件" ? "always" : "conditional") + "\">" + firing + "</span>"
+    // **出番。**順送りの何本目か、を目盛りで出す。文字で「1/3」と書かない。
+    const liveIndex = disabled ? -1 : live.indexOf(skillId);
+    const share = kind === "active" && turns > 1 && liveIndex >= 0
+      ? "<span class=\"turn-share\" role=\"img\" aria-label=\"装着 " + turns + "本のうちの1本（およそ"
+        + turns + "ラウンドに1回）\" title=\"装着 " + turns + "本のうちの1本（およそ" + turns + "ラウンドに1回）\">"
+        + Array.from({ length: turns }, (unused, slot) =>
+          "<i class=\"" + (slot === liveIndex ? "on" : "") + "\"></i>").join("") + "</span>"
       : "";
-    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + "\"><span class=\"" + markerClass + "\">"
-      + marker + "</span><span class=\"installed-copy\"><b>"
-      + esc(info?.label ?? nameFor(skillId)) + firingChip + "</b><small>"
-      + esc(skillEffectText(characterId, skillId)) + "</small></span>"
+    // **反応点の収支。**上の行から順に払うので、点が尽きた行は同じラウンドで出せない。
+    let overflow = "";
+    if (kind === "reactive" && node && !disabled) {
+      const costs = skillDefinitionOf(skillId)?.rule?.costs ?? [];
+      const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
+      spent += rp;
+      if (spent > budget) overflow = " over";
+    }
+    const marks = node
+      ? "<span class=\"row-marks\">" + costPips(node) + yieldBar(characterId, skillId)
+        + levelMeter(node, characterId) + "</span>" + conditionLine(node)
+      : "";
+    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + overflow + "\">"
+      + (kind === "passive"
+        ? "<span class=\"bullet passive\">↳</span>"
+        : "<span class=\"order\">" + (index + 1) + "</span>")
+      + "<span class=\"installed-copy\"><b>" + esc(info?.label ?? nameFor(skillId)) + "</b>"
+      + marks + share + "</span>"
       + moveButtons
-      + button(disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
-        "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-kind=\"" + kind + "\"")
-      + "<span class=\"skill-state\" title=\"" + (disabled ? "効果は一時停止中です" : "効果は有効です") + "\">"
-      + (disabled ? "オフ" : "有効") + "</span></div>";
+      // **入切は「札」ではなく「摘み」にする。**丸は払うものだけに譲ったので、
+      // 操作は動く摘みの形（スイッチ）で出す。
+      + "<button type=\"button\" class=\"skill-switch" + (disabled ? " off" : " on")
+      + "\" data-action=\"toggle-skill\" data-character=\"" + characterId + "\" data-skill=\""
+      + skillId + "\" data-kind=\"" + kind + "\" role=\"switch\" aria-checked=\""
+      + (disabled ? "false" : "true") + "\" aria-label=\"" + (disabled ? "オンにする" : "オフにする")
+      + "\" title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる")
+      + "\"><i></i></button>"
+      + "</div>";
   }).join("");
-  return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span><small>"
-    + list.length + " · 無制限</small></div>"
-    + (rows || "<p class=\"empty-slot\">技能ツリーから装着してください。装着後はここでオン/オフを切り替えられます。</p>") + "</div>";
+  // 見出しは、払える点（●）と、装着で払う合計（○が足りない）を並べるだけにする。
+  const meter = budget > 0
+    ? "<span class=\"slot-budget " + (kind === "active" ? "ap" : "rp") + "\" role=\"img\" aria-label=\""
+      + (kind === "active" ? "行動点" : "反応点") + " " + budget + " · 装着 " + list.length + "件\" title=\""
+      + (kind === "active" ? "1ラウンドに払える行動点" : "1ラウンドに払える反応点") + " " + budget + "\">"
+      + pips(budget, kind === "active" ? "ap" : "rp") + "</span>"
+    : "";
+  const total = kind === "reactive" && spent > budget
+    ? "<span class=\"slot-over\" role=\"img\" aria-label=\"装着した反応の合計が反応点を超えている\""
+      + " title=\"装着した反応の合計（" + spent + "）が1ラウンドの反応点（" + budget
+      + "）を超えている。下の行は出ないことがある\">▲</span>"
+    : "";
+  return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span>"
+    + meter + total + "</div>"
+    + (rows || "<p class=\"empty-slot\">—</p>") + "</div>";
 }
 
-function memberTabs(characterId, options = {}) {
-  const showSkillPoints = options.showSkillPoints !== false;
-  return "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">" + state.run.roster.map((id) => "<button type=\"button\" class=\"member-tab "
-    + (id === characterId ? "active" : "") + "\" aria-pressed=\"" + (id === characterId ? "true" : "false")
-    + "\" data-action=\"select-character\" data-character=\"" + id
-    + "\"><span class=\"avatar small\">" + esc(characterInfo(id)?.icon ?? "・") + "</span>"
-    + "<span>" + characterName(id) + "<small>" + positionText(state.run.formation[id])
-    + (showSkillPoints ? " · " + skillPointsFor(id) + "pt" : "") + "</small></span></button>").join("") + "</div>";
-}
-
+// issue #159 — 仲間タブ（memberTabs）と、立ち位置・HPの小さな印（formationMark /
+// hpMark）はここにあった。**上端の共通盤面がその三つを兼ねる**ので消した。
+// 盤面のセルがどこにあるかが立ち位置で、セルのHPバーがそのままHPの印である。
 
 function memberContext(characterId, emphasis = "skills") {
   const option = characterInfo(characterId);
@@ -2255,49 +2547,54 @@ function memberContext(characterId, emphasis = "skills") {
   const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) =>
     (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
   const worn = (state.run.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
+  // **絵で出せるもの（立ち位置・HP）は絵にし、名前だけを文字で残す。**issue #177。
   const primary = emphasis === "skills"
-    ? "装備 " + (worn.length ? worn.join(" · ") : "なし")
-    : "アクティブ " + (active.length ? active.join(" → ") : "なし");
-  const secondary = emphasis === "skills"
-    ? "位置 " + positionText(state.run.formation[characterId]) + " · HP " + currentHp(characterId) + "/" + maxHp(characterId)
-    : "リアクティブ " + (reactive.length ? reactive.join(" · ") : "なし");
+    ? (worn.length ? worn.join(" · ") : "")
+    : (active.length ? active.join(" → ") : "");
+  const secondary = emphasis === "skills" ? "" : (reactive.length ? reactive.join(" · ") : "");
   return "<section class=\"member-context\"><div class=\"member-context-head\"><span class=\"avatar\">"
     + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId))
-    + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div></div>"
-    + "<div class=\"member-context-loadout\"><span><b>" + esc(primary) + "</b></span><span><b>" + esc(secondary) + "</b></span></div></section>";
+    + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
+    + "</div>"
+    + (primary || secondary
+      ? "<div class=\"member-context-loadout\">"
+        + (primary ? "<span>" + esc(primary) + "</span>" : "")
+        + (secondary ? "<span>" + esc(secondary) + "</span>" : "") + "</div>"
+      : "") + "</section>";
 }
 
 
+// **ビルドの要約は、資源と装着数だけを絵で出す。**技能の名前は上の装着行と
+// ツリーに出ているので、ここで文字として繰り返さない（issue #177）。
 function skillBuildSummary(characterId) {
-  const active = (state.run.loadout.tactics?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
-  const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
-  const passive = (state.run.loadout.passives?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
   const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  const counts = [
+    { kind: "active", key: "tactics", cls: "ap" },
+    { kind: "reactive", key: "reactives", cls: "rp" },
+    { kind: "passive", key: "passives", cls: "free" },
+  ].map((slot) => {
+    const list = state.run.loadout[slot.key]?.[characterId] || [];
+    const live = list.filter((skillId) => !skillDisabled(characterId, skillId)).length;
+    const label = SLOT_TITLES[slot.kind] + " " + live + "件";
+    return "<span class=\"summary-slot\" role=\"img\" aria-label=\"" + esc(label) + "\" title=\""
+      + esc(label) + "\"><i class=\"kind-dot kind-" + slot.kind + "\"></i><b>" + live + "</b></span>";
+  }).join("");
   const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
-  const selectedInfo = selectedNode ? COMPONENTS[selectedNode.skillId] : null;
-  const slotKey = selectedNode ? SLOT_KEYS[selectedNode.kind] : null;
-  const slotLabel = selectedNode?.kind === "active" ? "アクティブ枠"
-    : selectedNode?.kind === "reactive" ? "リアクティブ枠" : "パッシブ枠";
-  const slotCount = selectedNode ? (state.run.loadout[slotKey]?.[characterId] || []).length : 0;
   const target = selectedNode
-    ? "選択中: " + (selectedInfo?.label ?? nameFor(selectedNode.skillId)) + " · 装着先: " + characterName(characterId)
-      + " · " + slotLabel + "（" + slotCount + " · 無制限）"
-    : "技能を選択すると、ここに装着先を表示";
-  return "<aside class=\"skill-build-summary\" aria-live=\"polite\"><div class=\"skill-build-summary-head\"><span class=\"avatar small\">"
-    + esc(characterInfo(characterId)?.icon ?? "・") + "</span><span><b>" + esc(characterName(characterId))
-    + "のビルド</b><small>" + esc(positionText(state.run.formation[characterId])) + " · "
-    + esc(characterInfo(characterId)?.role ?? "") + "</small></span></div><div class=\"skill-summary-slots\"><span><b>アクティブ</b> "
-    + esc(active.length ? active.join(" · ") : "なし") + "</span><span><b>リアクティブ</b> "
-    + esc(reactive.length ? reactive.join(" · ") : "なし") + "</span><span><b>パッシブ</b> "
-    + esc(passive.length ? passive.join(" · ") : "なし") + "</span></div><div class=\"skill-summary-stats\">"
-    + "<span><b>HP</b> " + currentHp(characterId) + "/" + maxHp(characterId) + "</span><span><b>AP</b> "
-    + (definition.baseActionPoints ?? "-") + "</span><span><b>RP</b> " + (definition.baseReactionPoints ?? "-")
-    + "</span></div><div class=\"skill-summary-target\">"
-    + esc(target) + "</div></aside>";
+    ? "<span class=\"summary-target\"><i class=\"kind-dot kind-" + selectedNode.kind + "\"></i>"
+      + esc(COMPONENTS[selectedNode.skillId]?.label ?? selectedNode.skillId) + " → "
+      + esc(characterName(characterId)) + "</span>"
+    : "";
+  return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
+    + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
+    + "<span class=\"summary-res\" role=\"img\" aria-label=\"行動点 "
+    + (definition.baseActionPoints ?? 0) + " · 反応点 " + (definition.baseReactionPoints ?? 0) + "\" title=\""
+    + "1ラウンドに払える 行動点" + (definition.baseActionPoints ?? 0)
+    + " · 反応点" + (definition.baseReactionPoints ?? 0) + "\">"
+    + pips(definition.baseActionPoints ?? 0, "ap") + pips(definition.baseReactionPoints ?? 0, "rp")
+    + "</span>" + counts + target + "</aside>";
 }
+
 function skillNodeIcon(node) {
   return branchIcons[node.branch] ?? "·";
 }
@@ -2328,31 +2625,6 @@ function selectedSkillKind() {
   return SKILL_TREE_KINDS.includes(requested) ? requested : "active";
 }
 
-// 消費と、いつ出るのか。**節の上で読めないと、取ってから初めて分かることになる。**
-function skillCostText(node) {
-  const definition = PLAYABLE_CONTENT.activeSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.reactiveSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.passiveSkills?.[node.skillId];
-  if (!definition) return "—";
-  if (node.kind === "active") return "AP" + (definition.apCost ?? 0);
-  if (node.kind === "reactive") {
-    const rp = (definition.rule?.costs ?? []).find((cost) => cost.type === "spend_reaction_points");
-    const hp = (definition.rule?.costs ?? []).find((cost) => cost.type === "lose_hp");
-    return (rp ? "RP" + rp.amount : "RP0") + (hp ? " · HP" + hp.amount : "");
-  }
-  return "常時";
-}
-
-function skillConditionText(node) {
-  const definition = PLAYABLE_CONTENT.activeSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.reactiveSkills?.[node.skillId]
-    ?? PLAYABLE_CONTENT.passiveSkills?.[node.skillId];
-  if (!definition) return "";
-  if (node.kind === "reactive") return TRIGGER_LABELS[definition.rule?.listenTo] ?? definition.rule?.listenTo ?? "";
-  if (node.kind === "active") return (SCOPE_LABELS[definition.targetQuery?.scope] ?? "") + "へ";
-  return definition.statBonus ? "基礎値を上げる" : "条件を満たす限り";
-}
-
 // 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
 function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
@@ -2367,12 +2639,7 @@ function skillNodeState(node, characterId) {
   const stateClass = equipped
     ? "equipped" + (disabled ? " disabled" : "")
     : unlocked ? "unlocked" : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
-  const status = equipped
-    ? (disabled ? "装着中 · オフ" : "装着中")
-    : unlocked ? "取得済み"
-      : canUnlock ? "解禁可能 · " + node.cost + "pt"
-        : !prereqsMet ? "前提待ち · " + node.cost + "pt" : "点数不足 · " + node.cost + "pt";
-  return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass, status };
+  return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass };
 }
 
 // issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
@@ -2394,22 +2661,22 @@ function prerequisiteShortfallText(characterId, unmet = []) {
 function skillRouteChip(skillId, minLv = MIN_SKILL_LEVEL) {
   const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
   if (!node) return "";
-  // issue #168 — 親を伸ばして初めて開く前提なら、**必要な Lv をチップに書く。**
-  // 現行の全節は Lv1 しか要求しないので、いまはどのチップにも出ない。
-  const need = minLv > MIN_SKILL_LEVEL ? " Lv" + minLv + "以上" : "";
-  return "<button type=\"button\" class=\"route-chip\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
+  // issue #168 / #177 — 親を伸ばして初めて開く前提なら、**必要な段までを目盛りで出す。**
+  // 「Lv3以上」と書く代わりに、いまの段（塗り）と要る段（枠）を同じ目盛りに重ねる。
+  const cap = skillLevelCapOf(skillId);
+  const owner = selectedCharacter();
+  const level = owner ? skillLevelOf(owner, skillId) : 0;
+  const need = minLv > MIN_SKILL_LEVEL && cap > 1
+    ? "<span class=\"level-meter need\" role=\"img\" aria-label=\"この前提は Lv" + minLv + "以上が要る（いま Lv"
+      + level + "）\" title=\"この前提は Lv" + minLv + "以上が要る（いま Lv" + level + "）\">"
+      + Array.from({ length: cap }, (unused, index) =>
+        "<i class=\"" + (index < level ? "on" : "") + (index < minLv ? " want" : "") + "\"></i>").join("")
+      + "</span>"
+    : "";
+  return "<button type=\"button\" class=\"route-chip branch-" + (BRANCH_KEYS[node.branch] ?? "base")
+    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
     + "\"><span>" + esc(branchIcons[node.branch] ?? "·") + "</span>" + esc(COMPONENTS[skillId]?.label ?? skillId)
-    + "<small>" + esc(kindText(node.kind) + need) + "</small></button>";
-}
-
-// R19（issue #137）— 現在レベル／最大レベル。**上位互換を別技能で増やさないので、
-// 同じ節が何段まで伸びるのかを節の上で読めるようにする。**
-function levelBadge(node, characterId) {
-  const cap = skillLevelCapOf(node.skillId);
-  if (cap <= 1) return "<i class=\"badge-level flat\">レベルなし</i>";
-  const level = skillLevelOf(characterId, node.skillId);
-  const shown = level > 0 ? level : "—";
-  return "<i class=\"badge-level" + (level >= cap ? " maxed" : "") + "\">Lv " + shown + "/" + cap + "</i>";
+    + need + "</button>";
 }
 
 // issue #148 — **説明文の数字そのものを、いまのレベルの値にする。**
@@ -2435,32 +2702,24 @@ function skillEffectText(characterId, skillId) {
 // 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
 function levelUpAction(node, characterId, nodeState) {
   const cap = skillLevelCapOf(node.skillId);
-  if (cap <= 1) {
-    return "<p class=\"node-locked\">この技能はレベルを持ちません。</p>";
-  }
-  if (!nodeState.unlocked) {
-    return "<p class=\"node-locked\">解禁するとLv1になり、そこから技能点1点で上げられます。</p>";
-  }
+  // **段を持たない節・まだ取っていない節には、何も書かない。**目盛りが無いことが
+  // そのまま「段を持たない」で、値段は右端の丸に出ている（issue #177）。
+  if (cap <= 1 || !nodeState.unlocked) return "";
   const level = skillLevelOf(characterId, node.skillId);
-  if (level >= cap) {
-    return "<p class=\"node-locked\">最大レベルです（Lv " + cap + "）。上の説明は Lv "
-      + level + " の値で書いてあります。</p>";
-  }
+  if (level >= cap) return "";
   const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
   // **1点で、上の説明のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。
   const steps = skillLevelValueSteps(
     COMPONENTS[node.skillId]?.effect ?? "", skillDefinitionOf(node.skillId), level,
   );
+  // **1点で変わるのは数だけ。**その数そのものを出す（規則の説明は畳んだヘルプにある）。
   const change = steps.length
-    ? "上の説明の数字が <b>"
-      + steps.map((step) => esc(step.from) + " → " + esc(step.to)).join("</b>、<b>") + "</b> になります。"
-    : "威力・治療量・防壁が 12% 上がります。";
-  return button("Lv " + (level + 1) + " へ上げる（" + SKILL_LEVEL_COST + "点・戻せません）",
+    ? "<span class=\"level-step\">" + steps.map((step) =>
+      esc(step.from) + " → <b>" + esc(step.to) + "</b>").join(" · ") + "</span>"
+    : "<span class=\"level-step\">+12%</span>";
+  return button("Lv " + (level + 1) + "（" + SKILL_LEVEL_COST + "点）",
     "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
-    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-    + "<p class=\"node-locked level-now\">" + change
-    + "AP / RP や段数・回数は変わりません。<b>1段では次の一戦の予測が動かないこともあります</b>"
-    + "（倒すのに要るラウンドが変わらなければ、残るHPも変わりません）。</p>";
+    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"") + change;
 }
 
 
@@ -2469,10 +2728,6 @@ function renderSkillDetail(row, node, characterId, nodeState) {
   const requires = node.requires;
   const cap = skillLevelCapOf(node.skillId);
   const level = skillLevelOf(characterId, node.skillId);
-  const levelSummary = cap > 1
-    ? "<p class=\"skill-level-readout\"><b>現在 Lv" + level + " / " + cap + "</b>"
-      + (level < cap ? " · 次は Lv" + (level + 1) + "（技能点" + SKILL_LEVEL_COST + "点）" : " · 最大レベル") + "</p>"
-    : "<p class=\"skill-level-readout\">この技能はレベルなし</p>";
   const action = nodeState.equipped
     ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
@@ -2483,23 +2738,25 @@ function renderSkillDetail(row, node, characterId, nodeState) {
       : nodeState.canUnlock
         ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
           "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-        : "<p class=\"node-locked\">"
-          + (nodeState.prereqsMet
-            ? "技能点が足りません（必要 " + node.cost + "点 / 手持ち " + skillPointsFor(characterId) + "点）。"
-            : prerequisiteShortfallText(characterId, nodeState.unmet))
-          + "</p>";
+        : nodeState.prereqsMet
+          // 値段と手持ちは右端の丸と見出しに出ているので、押せない釦だけを残す。
+          ? button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
+            "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+          : "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
   // **説明文はいまのレベルの値で読む。**Lv1 では元の文のまま。
-  return "<div class=\"skill-detail\"><p>" + esc(skillEffectText(characterId, node.skillId))
-    + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + " の値</span>" : "") + "</p>"
-    + "<p class=\"skill-detail-status\">状態: " + esc(nodeState.status) + "</p>"
-    + levelSummary
+  // **文章を許すのはここだけ。**技能の説明文は「深く遊びたい人が読むところ」なので
+  // 残す（作者方針）。状態・段・値段は上の印で読めるので、文では繰り返さない。
+  const scope = node.kind === "active"
+    ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
+    : "";
+  return "<div class=\"skill-detail\"><p>" + scope + esc(skillEffectText(characterId, node.skillId))
+    + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + "</span>" : "") + "</p>"
     + "<div class=\"skill-route\"><span class=\"route-line\"><b>前提</b>"
     + (requires.length
       ? requires.map((required) => skillRouteChip(required.skillId, required.minLv)).join("")
-      : "<small>なし（いつでも取れる）</small>") + "</span>"
-    + "<span class=\"route-line\"><b>派生先</b>"
-    + (derived.length ? derived.map(skillRouteChip).join("") : "<small>ここが終点</small>") + "</span></div>"
-    + "<p class=\"route-build\">" + esc(BRANCH_BUILDS[node.branch] ?? "") + "</p>"
+      : "<span class=\"route-none\">—</span>") + "</span>"
+    + "<span class=\"route-line\"><b>派生</b>"
+    + (derived.length ? derived.map(skillRouteChip).join("") : "<span class=\"route-none\">—</span>") + "</span></div>"
     + "<div class=\"node-action\">" + action + "</div>"
     + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
 }
@@ -2516,13 +2773,13 @@ function renderSkillRow(row, characterId, tone) {
     + "<article class=\"skill-node " + nodeState.stateClass + (selected ? " selected" : "") + "\">"
     + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
     + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
-    + "<span class=\"node-icon\">" + esc(skillNodeIcon(node)) + "</span>"
+    + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
+    + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
     + "<span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
-    + "<small class=\"node-badges\"><i class=\"kind kind-" + node.kind + "\">" + esc(kindText(node.kind)) + "</i>"
-    + "<i class=\"badge-cost\">" + esc(skillCostText(node)) + "</i>"
-    + "<i class=\"badge-when\">" + esc(skillConditionText(node)) + "</i>"
-    + levelBadge(node, characterId) + "</small></span>"
-    + "<span class=\"node-status\">" + esc(nodeState.status) + "</span></button>"
+    + "<small class=\"node-meters\" title=\"" + esc(costLabel(node)) + "\">"
+    + costPips(node) + yieldBar(characterId, node.skillId)
+    + levelMeter(node, characterId) + "</small>" + conditionLine(node) + "</span>"
+    + nodeStateMark(node, nodeState, characterId) + "</button>"
     + detail + "</article></div>";
 }
 
@@ -2542,25 +2799,45 @@ function renderSkillTree(characterId) {
   const tabs = groups.map((entry) => "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
     + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false") + "\" data-action=\"select-skill-kind\" data-kind=\""
     + entry.kind + "\"><b>" + esc(entry.label) + "</b><small>" + entry.nodeCount + "</small></button>").join("");
+  const branch = state.skillTreeBranch;
   const rows = group.rows.map((row) => {
+    const dimmed = branch && row.node.branch !== branch;
     const tone = !selectedRow
-      ? ""
+      ? (dimmed ? " faded" : "")
       : row.key === selectedRow.key ? ""
         : onPath.has(row.key) ? " on-path"
           : derived.has(row.key) ? " derived" : " faded";
-    return renderSkillRow(row, characterId, tone);
+    return renderSkillRow(row, characterId, dimmed && !selectedRow ? " faded" : tone);
   }).join("");
-  const legend = selectedRow
-    ? "<p class=\"tree-focus\">前提と派生先を強調しています。"
-      + button("強調を解除", "select-skill-node", false, "tiny-button", "data-skill=\"\"") + "</p>"
-    : "<p class=\"muted tree-focus\">スキルを選ぶと詳細が開きます。</p>";
+  const clear = selectedRow
+    ? "<button type=\"button\" class=\"branch-chip clear\" data-action=\"select-skill-node\" data-skill=\"\""
+      + " aria-label=\"強調を解除\" title=\"強調を解除\">✕</button>"
+    : "";
   const columns = "repeat(" + Math.max(group.depth, 1) + ", var(--tree-col-width))";
   return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
-    + "<p class=\"tree-summary\"><b>" + esc(group.label) + "ツリー</b> · " + esc(group.summary) + "</p>"
-    + legend
+    + branchFilter(group)
+    + (clear ? "<p class=\"tree-focus\">" + clear + "</p>" : "")
     + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\" data-branch=\""
     + kind + "\" style=\"grid-template-columns:" + columns + "\">"
     + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>";
+}
+
+// **テーマは色と印で選ぶ。**#165 の方針は「分類（アクティブ／リアクティブ／パッシブ）は
+// 表示と自動実行の方法で、習得ツリーはテーマ別に混在させる」なので、テーマは
+// 絞り込みとして要る。押すとそのテーマ以外が沈む。もう一度押すと戻る。
+function branchFilter(group) {
+  const counts = new Map();
+  for (const row of group.rows) counts.set(row.node.branch, (counts.get(row.node.branch) ?? 0) + 1);
+  const chips = [...counts.entries()].map(([branch, count]) => {
+    const on = state.skillTreeBranch === branch;
+    return "<button type=\"button\" class=\"branch-chip branch-" + (BRANCH_KEYS[branch] ?? "base")
+      + (on ? " on" : "") + "\" aria-pressed=\"" + (on ? "true" : "false")
+      + "\" data-action=\"select-skill-branch\" data-branch=\"" + esc(branch) + "\""
+      + " aria-label=\"" + esc(branch) + " " + count + "件\" title=\"" + esc(branch) + "（" + count + "件）"
+      + (BRANCH_BUILDS[branch] ? " — " + esc(BRANCH_BUILDS[branch]) : "") + "\">"
+      + esc(branchIcons[branch] ?? "·") + "<small>" + count + "</small></button>";
+  }).join("");
+  return "<div class=\"branch-filter\" role=\"group\" aria-label=\"テーマで絞る\">" + chips + "</div>";
 }
 
 
@@ -2619,30 +2896,60 @@ function layoutSkillTreeConnectors() {
   svg.innerHTML = paths.join("");
 }
 
+// **記号の意味は、畳んだ中に一度だけ置く。**節や装着行の上には出さない
+// （出すと、結局そこで文章を読むことになる）。issue #177 の作者方針。
+function symbolLegendHelp() {
+  const row = (mark, text) => "<dt>" + mark + "</dt><dd>" + esc(text) + "</dd>";
+  return helpDetails("skill-symbols", "記号の意味",
+    "<dl class=\"symbol-legend\">"
+    + row(pips(1, "ap"), "行動点。丸の数だけ1ラウンドに払う")
+    + row(pips(1, "rp"), "反応点。装着した反応は上から順に払い、尽きたら下は出ない")
+    + row("<span class=\"pips hp\"><i></i></span>", "代償にHPを払う")
+    + row("<span class=\"yield-chip stat-might\"><i>腕</i>130%</span>",
+      "技能の効果量。印は掛ける能力値（腕＝腕力・技＝技術・受＝受け・HP＝最大HP）")
+    + row("<span class=\"level-tag\">Lv1<small>/10</small></span>", "いまの段と上限")
+    + row("<span class=\"node-mark cost acquisition-cost\">1</span>", "この技能の取得コスト")
+    + row("<span class=\"node-cost-chain\"><span class=\"node-mark prerequisite-cost\">1</span><span class=\"cost-plus\">+</span><span class=\"node-mark acquisition-cost\">1</span></span>",
+      "前提コストと、この技能の取得コスト")
+    + row("<span class=\"node-mark owned\">✓</span>", "取得済み・未装着")
+    + row("<span class=\"node-mark equipped\">✓</span>", "装着中")
+    + row("<span class=\"turn-share\"><i></i><i class=\"on\"></i><i></i></span>",
+      "出番。装着した本数のうちの一本。順送りなので、増やすほど一本あたりの出番は減る")
+    + row("<span class=\"turn-cells\"><span class=\"turn-round\">"
+      + "<i class=\"turn-cell branch-strike\">✦</i></span><span class=\"turn-round\">"
+      + "<i class=\"turn-cell idle\"></i></span></span>",
+      "戦闘のあと、誰がどのラウンドに何を出したか。点線の枠はその拍に動いていない")
+    + "</dl>"
+    + "<p class=\"muted\">丸は<b>払うもの</b>だけに使います。発動条件は技能名の下に短い薄字で書きます。</p>");
+}
+
 function renderSkills() {
+  // issue #159 — 対象の人物は上端の共通盤面で選ぶ。**このタブに二つ目の仲間タブを
+  // 持たない。**残り技能点は隊全体の合計にする（一人ぶんだけでは、他の誰かが
+  // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
   const characterId = selectedCharacter();
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>残り技能点（隊全体）</small><b>"
+    + totalSkillPoints() + "</b></span>";
   const depths = state.run.manifest.packDepths ?? {};
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
     .join(" · ");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能", pointsBadge)
-    + "<p class=\"operation-note\">対象を選び、取得済みの順序・オン/オフ・技能ツリーを確認します。</p>"
-    + "<p class=\"context-line\">有効な技能パック: <b>" + esc(packs) + "</b> · 技能点と解禁はこの遠征中のみ有効です。</p>"
-    + memberTabs(characterId) + memberContext(characterId, "skills")
+    + "<p class=\"context-line\">" + esc(packs) + "</p>"
+    + memberContext(characterId, "skills")
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("SKILL TREE", "技能ツリー")
-    + "<p class=\"operation-note\">スキルを選ぶと詳細が開きます。</p>"
-    + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー（選択すると詳細が開きます）</summary>"
+    + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + "</details>"
+    + symbolLegendHelp()
     + helpDetails("skill-rules", "技能のルール",
       "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
       // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
-      + "<p class=\"muted\"><b>アクティブは現在の位置から順番に判定し、最初に使える一本だけが出ます。</b>"
-      + "選んだ技能の次から、次の activation の判定を始めます。<b>条件つき</b>の技能が未達ならスキップし、"
-      + "後ろの技能を試します。使える技能が無い activation では位置を進めません。</p>"
-      + "<p class=\"muted\">リアクティブも上から順に判定します。こちらは条件が別々なので複数が同じ拍に鳴りますが、"
+      // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
+      + "<p class=\"muted\"><b>アクティブは順番に回ります。</b>いま出した技能の次から判定を始め、"
+      + "条件つきの技能が未達ならスキップして後ろを試します。<b>装着を増やすほど、一本あたりの出番は減ります。</b></p>"
+      + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
       + "反応点が尽きた時点で下の技能は出ません。</p>"
       + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
     + statusGlossaryHelp()
@@ -2699,9 +3006,10 @@ function renderEquipment() {
     ? "装着する枠を選んでください。"
     : "装備を選んでください。";
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT", "装備",
-      "<span class=\"stage\">" + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>")
+      "<span class=\"stage\">装着 " + equipmentFillLabel() + " · 手元 "
+      + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>")
     + "<p class=\"operation-note\" role=\"status\">" + selection + "</p>"
-    + memberTabs(characterId, { showSkillPoints: false }) + memberContext(characterId, "equipment")
+    + memberContext(characterId, "equipment")
     + slots
     + inventory
     + helpDetails("equipment-rules", "装備のルール",
@@ -2795,9 +3103,6 @@ function renderMap() {
     + "<span><i class=\"map-legend-symbol kind-elite\" aria-hidden=\"true\">◆</i>精鋭</span>"
     + "<span><i class=\"map-legend-symbol kind-boss\" aria-hidden=\"true\">★</i>ボス</span>"
     + "</div>";
-  const party = state.run.roster.map((id) => "<div class=\"map-party-row\"><span class=\"avatar small\">"
-    + esc(characterInfo(id)?.icon ?? "・") + "</span><b>" + esc(characterName(id)) + "</b><span>"
-    + positionText(state.run.formation[id]) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</span></div>").join("");
   const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[encounter.kind];
   const law = encounter.bossLaw
     ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
@@ -2822,7 +3127,8 @@ function renderMap() {
     + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "ラウンド</p><p class=\"lead-small\">"
     + esc(encounter.description) + "</p>"
     + law + enemyBlock
-    + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
+    // issue #159 — 「現在の隊列」の一覧はここにあった。**上端の共通盤面が
+    // 立ち位置と現在HPを同じ形で出している**ので、敵の下で二度描かない。
     + "</section>"
     + helpDetails("expedition-rules", "遠征のルール", ruleBody);
 }
@@ -2853,23 +3159,9 @@ function treatmentResultBlock() {
     + complete + "</div>";
 }
 
-function treatmentTargetPicker() {
-  const treatment = CAMP_TREATMENTS[state.treatmentSelection];
-  if (!treatment || treatment.targetCount === "all") return "";
-  const candidates = treatmentTargetIds(treatment);
-  const buttons = candidates.map((id) => button(
-    characterName(id) + " · HP " + currentHp(id) + "/" + maxHp(id),
-    "select-treatment-target",
-    false,
-    "member-tab treatment-target",
-    "data-treatment=\"" + esc(treatment.id) + "\" data-character=\"" + esc(id) + "\"",
-  )).join("");
-  return "<div class=\"treatment-target-picker\" role=\"group\" aria-label=\"" + esc(treatment.displayName) + "の対象選択\">"
-    + "<p class=\"operation-note\"><b>手順 2/2</b> 対象を1人選んでください。選ぶまで補給は消費しません。</p>"
-    + "<div class=\"member-tabs treatment-targets\">" + buttons + "</div>"
-    + button("治療を選び直す", "cancel-treatment-target", false, "tiny-button")
-    + "</div>";
-}
+// issue #159 — 治療の対象は上端の共通盤面から選ぶ。**治療のためだけの三つ目の
+// 仲間一覧を作らない。**候補・対象外・選択中の治療名・取り消しは、すべて盤面と
+// その一行（partyCellRole / partyBoardNote）が持つので、このタブには何も足さない。
 
 function campTreatmentBlock() {
   const tutorial = supplyTutorialVisible();
@@ -2902,7 +3194,7 @@ function campTreatmentBlock() {
     : "";
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営治療",
       "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + tutorialGuide + treatmentResultBlock() + rows + treatmentTargetPicker()
+    + tutorialGuide + treatmentResultBlock() + rows
     + helpDetails("treatment-rules", "治療の対象",
       "<p class=\"muted\">集中治療と蘇生は治療を選んだあと、対象をプレイヤーが明示的に選びます。集中治療は負傷した生存者、蘇生は戦闘不能者だけが候補です。全体手当は生存者全員へ適用します。</p>")
     + "</section>";
@@ -3004,45 +3296,167 @@ function battleForecast() {
 
 const FORECAST_RESULT_LABEL = { win: "勝利", loss: "敗北", draw: "決着つかず" };
 
-function forecastMemberChip(entry) {
-  const ceiling = Math.max(1, entry.maxHp || maxHp(entry.characterId) || 1);
-  const ending = Math.max(0, Math.min(ceiling, entry.endingHp));
-  const starting = Math.max(ending, Math.min(ceiling, entry.startingHp));
-  const pct = (value) => Math.max(0, Math.min(100, Math.round((value / ceiling) * 1000) / 10));
-  // 減少量が主役。**±0 と回復（＋）を別の色で出す**（装備を替えた効きが一目で分かる）。
-  const lost = entry.hpLost;
-  const deltaText = lost > 0 ? "−" + lost : lost < 0 ? "＋" + Math.abs(lost) : "±0";
-  const deltaClass = entry.defeated ? "fatal" : lost > 0 ? "down" : lost < 0 ? "up" : "flat";
-  // 5人ぶんが 390px 幅に横並びで収まる形にしてある。**減少量を先に、残るHPを次に。**
-  // 「いくつ減るか」が装備を替えたときにいちばん動く数字である。
-  return "<div class=\"forecast-member " + (entry.defeated ? "defeated" : "") + "\">"
-    + "<div class=\"forecast-member-head\"><span class=\"avatar small\">"
-    + esc(characterInfo(entry.characterId)?.icon ?? "・") + "</span><b>"
-    + esc(characterName(entry.characterId)) + "</b></div>"
-    + "<div class=\"forecast-hp-bar\" role=\"img\" aria-label=\"HP " + starting + " から " + ending
-    + "（" + (entry.defeated ? "戦闘不能" : deltaText) + "）\">"
-    + "<span class=\"forecast-hp-end\" style=\"width:" + pct(ending) + "%\"></span>"
-    + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span></div>"
-    + "<div class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</div>"
-    + "<div class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></div>"
-    + "</div>";
+// ============================================================ 仲間の共通盤面（issue #159）
+//
+// **キャンプの主語は「誰がどこにいるか」で、それは一つしかない。**
+//
+// 以前は同じ仲間を選ぶ表示が四つあった——上端の横並び予測チップ、編成タブの隊列盤と
+// キャラクターカード、技能タブの仲間タブ、装備タブの仲間タブと対象カード。タブを移る
+// たびに「いま誰を触っているか」を探し直すことになり、予測を見ながら組み替えるという
+// この遠征の中心の操作が、画面ごとに分断されていた（作者試遊、2026-09-06）。
+//
+// だから **`POSITIONS` そのままの3列×2行を上端に一つだけ置き、タブは操作だけを
+// そこへ掛ける。**盤面の形・並び・情報項目は戦闘中の `battleRowsHtml` と同じで、
+// キャンプで見ていた並びがそのまま戦闘の盤面になる。
+//
+// **セルが持つのは五つだけ。**顔と名前、HP（予測があれば開始→終了）、減少量、
+// 残HPの数、行動点／反応点の丸（issue #177 の「丸は払うものだけ」）。
+// 立ち位置は文字で書かない——**セルが盤面のどこにあるかが、それを出している。**
+const BOARD_ROWS = [
+  { row: "front", label: "前列" },
+  { row: "rear", label: "後列" },
+];
+
+// **タブごとに変わるのはここだけ。**盤面そのものは一つで、掛かる操作が入れ替わる。
+//
+//   編成 … セル（空き枠を含む）を押して選択・移動・交換する
+//   技能／装備 … 人物を選ぶだけで、隊列は動かさない
+//   補給 … 通常は何も起きない。単体治療・蘇生を選んだあいだだけ対象選択になる
+//   戦闘 … 見るだけ
+function partyCellRole(mode, position, characterId) {
+  if (mode === "roster") {
+    return {
+      action: "place-character",
+      attrs: "data-position=\"" + esc(position) + "\"",
+      selected: Boolean(characterId) && selectedFormationCharacter() === characterId,
+    };
+  }
+  if (mode === "skills" || mode === "equipment") {
+    if (!characterId) return { action: null };
+    return {
+      action: "select-character",
+      attrs: "data-character=\"" + esc(characterId) + "\"",
+      selected: selectedCharacter() === characterId,
+    };
+  }
+  if (mode === "supplies") {
+    const treatment = CAMP_TREATMENTS[state.treatmentSelection];
+    if (!treatment || treatment.targetCount === "all" || !characterId) return { action: null };
+    return {
+      action: "select-treatment-target",
+      attrs: "data-treatment=\"" + esc(treatment.id) + "\" data-character=\"" + esc(characterId) + "\"",
+      selected: false,
+      picking: true,
+      // 対象外は**押せない状態で残す**。消すと「誰が対象になり得るのか」が読めない。
+      disabled: !treatmentTargetIds(treatment).includes(characterId),
+    };
+  }
+  return { action: null };
 }
 
-// camp の上端に貼りつく帯。**予測が出せないときは何も描かない**
-// （空の枠だけ残ると、予測が壊れているのか出ない場面なのか読めない）。
-function forecastBar() {
+// セルの中身。予測があれば開始HP→終了HPと減少量、無ければ現在HPだけを同じ形で出す。
+function partyCellPerson(characterId, entry) {
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  const ceiling = Math.max(1, entry?.maxHp || maxHp(characterId) || 1);
+  const now = Math.max(0, Math.min(ceiling, currentHp(characterId)));
+  const ending = entry ? Math.max(0, Math.min(ceiling, entry.endingHp)) : now;
+  const starting = entry ? Math.max(ending, Math.min(ceiling, entry.startingHp)) : now;
+  const pct = (value) => Math.max(0, Math.min(100, Math.round((value / ceiling) * 1000) / 10));
+  // 減少量が主役。**±0 と回復（＋）を別の色で出す**（装備を替えた効きが一目で分かる）。
+  const lost = entry ? entry.hpLost : 0;
+  const deltaText = lost > 0 ? "−" + lost : lost < 0 ? "＋" + Math.abs(lost) : "±0";
+  const deltaClass = entry?.defeated ? "fatal" : lost > 0 ? "down" : lost < 0 ? "up" : "flat";
+  const barLabel = entry
+    ? "HP " + starting + " から " + ending + "（" + (entry.defeated ? "戦闘不能" : deltaText) + "）"
+    : "HP " + now + " / " + ceiling;
+  const ap = definition.baseActionPoints ?? 0;
+  const rp = definition.baseReactionPoints ?? 0;
+  return "<span class=\"forecast-member-head\"><span class=\"avatar small\">"
+    + esc(characterInfo(characterId)?.icon ?? "・") + "</span><b>"
+    + esc(characterName(characterId)) + "</b></span>"
+    + "<span class=\"forecast-hp-bar\" role=\"img\" aria-label=\"" + esc(barLabel) + "\">"
+    + "<span class=\"forecast-hp-end\" style=\"width:" + pct(ending) + "%\"></span>"
+    + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span></span>"
+    + "<span class=\"party-figures\">"
+    + (entry
+      ? "<span class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</span>"
+      : "")
+    + "<span class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></span></span>"
+    + "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap + " · 反応点" + rp + "\">"
+    + pips(ap, "ap") + pips(rp, "rp") + "</span>";
+}
+
+function partyCell(position, mode, byCharacter) {
+  const characterId = positionOwner(position);
+  const entry = characterId ? byCharacter.get(characterId) : null;
+  const role = partyCellRole(mode, position, characterId);
+  const classes = ["party-cell"];
+  if (!characterId) classes.push("empty");
+  if (entry) classes.push("forecast-member");
+  if (entry?.defeated || (characterId && currentHp(characterId) <= 0)) classes.push("defeated");
+  if (role.selected) classes.push("selected");
+  if (role.picking) classes.push(role.disabled ? "unpickable" : "pickable");
+  const body = characterId
+    ? partyCellPerson(characterId, entry)
+    : "<span class=\"party-empty\" aria-hidden=\"true\">＋</span><span class=\"party-empty-text\">空き枠</span>";
+  const label = characterId
+    ? characterName(characterId) + " · " + positionText(position)
+    : "空き枠 · " + positionText(position);
+  if (!role.action) {
+    return "<div class=\"" + classes.join(" ") + "\" role=\"img\" aria-label=\"" + esc(label) + "\">"
+      + body + "</div>";
+  }
+  return "<button type=\"button\" class=\"" + classes.join(" ") + "\" data-action=\"" + role.action + "\" "
+    + role.attrs + " aria-label=\"" + esc(label) + "\" aria-pressed=\"" + (role.selected ? "true" : "false") + "\""
+    + (role.disabled ? " disabled aria-disabled=\"true\"" : "") + ">" + body + "</button>";
+}
+
+// 盤面の下の一行。**二手続きの操作だけが説明を要る**（編成の移動先、治療の対象）。
+// 技能・装備は選んだセルが光るだけで足りるので、何も足さない。
+function partyBoardNote(mode) {
+  if (mode === "roster") {
+    const instruction = selectedFormationCharacter()
+      ? "移動先の枠を選んでください。同じ枠をもう一度押すと解除します。"
+      : "動かす仲間のセルを選んでください。";
+    return "<p class=\"party-note\" role=\"status\"><span>" + esc(instruction) + "</span></p>";
+  }
+  if (mode === "supplies") {
+    const treatment = CAMP_TREATMENTS[state.treatmentSelection];
+    if (!treatment || treatment.targetCount === "all") return "";
+    return "<p class=\"party-note picking\" role=\"status\"><span><b>" + esc(treatment.displayName)
+      + "</b>の対象を1人選んでください。"
+      + esc(treatment.revive ? "戦闘不能の仲間" : "負傷した仲間") + "だけを選べます。"
+      + "選ぶまで補給は消費しません。</span>"
+      + button("やめる", "cancel-treatment-target", false, "tiny-button") + "</p>";
+  }
+  return "";
+}
+
+// camp の上端に貼りつく盤面。**予測が出せない場面でも盤面は出す**——隊列と現在HPは
+// 予測とは別に要る。予測の帯（勝敗・ラウンド数・開始→終了HP）だけを黙って落とす。
+function partyBar(mode) {
   const forecast = battleForecast();
-  if (!forecast) return "";
-  const label = FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result;
-  const encounterName = currentEncounter()?.name;
-  const target = state.prologueActive
-    ? "灰の門"
-    : "第" + state.run.encounterIndex + "戦" + (encounterName ? " · " + encounterName : "");
-  return "<section class=\"forecast-bar " + esc(forecast.result) + "\" aria-live=\"polite\">"
-    + "<div class=\"forecast-head\"><span class=\"forecast-title\">戦闘予測 · " + esc(target) + "</span>"
-    + "<span class=\"forecast-verdict\">" + esc(label) + " · " + forecast.roundsUsed + "ラウンド</span></div>"
-    + "<div class=\"forecast-members\">" + forecast.perCharacter.map(forecastMemberChip).join("") + "</div>"
-    + "</section>";
+  const byCharacter = new Map((forecast?.perCharacter ?? []).map((entry) => [entry.characterId, entry]));
+  const rows = BOARD_ROWS.map(({ row, label }) => {
+    const cells = POSITIONS.filter((position) => position.startsWith(row + "_"))
+      .map((position) => partyCell(position, mode, byCharacter)).join("");
+    return "<div class=\"party-row\"><span class=\"party-row-label\">" + esc(label)
+      + "</span><div class=\"party-cells\">" + cells + "</div></div>";
+  }).join("");
+  let head = "";
+  if (forecast) {
+    const label = FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result;
+    const encounterName = currentEncounter()?.name;
+    const target = state.prologueActive
+      ? "灰の門"
+      : "第" + state.run.encounterIndex + "戦" + (encounterName ? " · " + encounterName : "");
+    head = "<div class=\"forecast-head\"><span class=\"forecast-title\">戦闘予測 · " + esc(target) + "</span>"
+      + "<span class=\"forecast-verdict\">" + esc(label) + " · " + forecast.roundsUsed + "ラウンド</span></div>";
+  }
+  return "<section class=\"party-bar" + (forecast ? " forecast-bar " + esc(forecast.result) : "")
+    + "\" aria-live=\"polite\">" + head
+    + "<div class=\"party-board\" aria-label=\"隊列と戦闘予測\">" + rows + "</div>"
+    + partyBoardNote(mode) + "</section>";
 }
 
 // R14 §1 — 戦闘前の確認画面が持っていた EXACT PREVIEW カードは消した。
@@ -3772,6 +4186,60 @@ function resultActors(result) {
   }).join("");
 }
 
+// ============================================================ 順番の帯（issue #177）
+//
+// **「装着順が結果にどう効いたか」を、文ではなく帯で見せる。**
+// アクティブは装着順を順送りに回るので（#188 / #187）、装着を増やすほど一本
+// あたりの出番が減る。それが実際にどう出たのかは、ラウンドごとに何が鳴ったかを
+// 並べれば一目で分かる。色はテーマ、印はテーマの記号、押さえれば技能名が出る。
+function rotationStrip(result) {
+  const events = result?.events ?? [];
+  const nodeBySkillId = new Map(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
+  const byCharacter = new Map();
+  let lastRound = 0;
+  for (const event of events) {
+    if (event.type !== "action_declared") continue;
+    const source = String(event.sourceActorId ?? "");
+    if (!source.startsWith("a_")) continue;
+    const characterId = source.slice(2);
+    if (!state.run.roster.includes(characterId)) continue;
+    const round = Number(event.round ?? 0);
+    lastRound = Math.max(lastRound, round);
+    if (!byCharacter.has(characterId)) byCharacter.set(characterId, new Map());
+    const rounds = byCharacter.get(characterId);
+    if (!rounds.has(round)) rounds.set(round, []);
+    rounds.get(round).push(event.skillId);
+  }
+  if (!byCharacter.size) return "";
+  const rows = state.run.roster.filter((id) => byCharacter.has(id)).map((characterId) => {
+    const rounds = byCharacter.get(characterId);
+    const cells = [];
+    for (let round = 1; round <= lastRound; round += 1) {
+      const fired = rounds.get(round) ?? [];
+      if (!fired.length) {
+        cells.push("<span class=\"turn-round\"><i class=\"turn-cell idle\" title=\"" + round
+          + "ラウンド目 · 動いていない\"></i></span>");
+        continue;
+      }
+      // **ラウンドごとに束ねる。**行動点2の人物は同じラウンドに二つ出るので、
+      // 束ねないと人物ごとに拍がずれて、縦に読めなくなる。
+      cells.push("<span class=\"turn-round\">" + fired.map((skillId) => {
+        const node = nodeBySkillId.get(skillId);
+        const label = COMPONENTS[skillId]?.label ?? nameFor(skillId);
+        const branch = node ? (BRANCH_KEYS[node.branch] ?? "base") : "base";
+        return "<i class=\"turn-cell branch-" + branch + "\" title=\"" + round + "ラウンド目 · "
+          + esc(label) + "\" aria-label=\"" + round + "ラウンド目 " + esc(label) + "\">"
+          + esc(node ? (branchIcons[node.branch] ?? "·") : "·") + "</i>";
+      }).join("") + "</span>");
+    }
+    return "<div class=\"turn-row\"><span class=\"avatar small\">"
+      + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
+      + "<span class=\"turn-cells\">" + cells.join("") + "</span></div>";
+  }).join("");
+  return "<section class=\"card\">" + sectionHeading("ORDER", "出した順番")
+    + "<div class=\"turn-strip\">" + rows + "</div></section>";
+}
+
 function renderResult() {
   const result = state.lastResult;
   if (!result) return renderCamp();
@@ -3835,7 +4303,7 @@ function renderResult() {
     + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
-  return shell( status + nextBlock + stateCard + replay + history);
+  return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history);
 }
 
 
@@ -4384,7 +4852,9 @@ function handleAction(event) {
       // #209 — remember which New Game run owns the mandatory first-use
       // walkthrough. A normal/revisit run must not inherit that gate.
       supplyTutorialRunId: run.runId,
-      formationSelection: run.roster[0] ?? null,
+      // issue #159 — 隊列操作は**誰も選んでいない状態**から始める。先頭を選んだ状態で
+      // 開くと、盤面のどこかが最初から光っていて「もう一手目を打った」と読める。
+      formationSelection: null,
     };
     record("run_started", {
       runId: state.run.runId,
@@ -4592,7 +5062,7 @@ function handleAction(event) {
     state.migrationNote = null;
     state.prologueActive = false;
     ensureSelectedCharacter();
-    state.formationSelection = state.run.roster[0] ?? null;
+    state.formationSelection = null;
     record("run_started", {
       runId: state.run.runId,
       seed: state.run.runSeed,
@@ -4712,24 +5182,6 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "select-formation-character") {
-    const id = element.dataset.character;
-    if (!id || !state.run.roster.includes(id)) return;
-    state.selectedCharacter = id;
-    state.selectedSkillNode = null;
-    state.formationSelection = selectedFormationCharacter() === id ? null : id;
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "clear-formation-selection") {
-    state.formationSelection = null;
-    saveState();
-    render();
-    return;
-  }
-
   if (action === "select-skill-node") {
     const skillId = element.dataset.skill || null;
     state.selectedSkillNode = state.selectedSkillNode === skillId ? null : skillId;
@@ -4761,6 +5213,15 @@ function handleAction(event) {
     const kind = element.dataset.kind;
     if (!["active", "reactive", "passive"].includes(kind)) return;
     state.skillTreeKind = kind;
+    saveState();
+    render();
+    return;
+  }
+
+  // issue #177 — テーマの絞り込み。**同じ印をもう一度押すと全部へ戻る。**
+  if (action === "select-skill-branch") {
+    const branch = element.dataset.branch || "";
+    state.skillTreeBranch = state.skillTreeBranch === branch ? null : branch;
     saveState();
     render();
     return;
@@ -4806,9 +5267,7 @@ function handleAction(event) {
         }
         state.run.loadout = nextLoadout;
         state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
-        if (state.formationSelection === id) {
-          state.formationSelection = state.run.roster[0] ?? null;
-        }
+        if (state.formationSelection === id) state.formationSelection = null;
         ensureSelectedCharacter();
         record("roster_changed", { roster: [...state.run.roster], removed: id });
       }

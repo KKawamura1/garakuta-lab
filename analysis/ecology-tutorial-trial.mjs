@@ -171,10 +171,16 @@ try {
   // R11 §2.1 — 2人編成。**誰が来るかは物語が決める。**
   const campText = await bodyText();
   note("キャンプに着く", /編成|仲間/.test(campText));
-  note("2人で始まる", /2 \/ 2人/.test(campText));
+  // issue #159 — 固定同行者の区画では人数を N/M で出さない（分母は「まだ入れられる」
+  // と読めるが、その回は誰も足せない）。
+  note("2人で始まる", /2人/.test(campText) && !/2 \/ 2人/.test(campText));
   await page.locator('nav.tabs [data-tab="roster"]').click();
   note("この Stage の同行者は固定だと書いてある",
     /物語が決めます/.test(await bodyText()));
+  // issue #159 — 選べないものを「選べるように見えるカード」で出さない。
+  note("固定の回は同行者の候補カードを出さない",
+    await page.locator(".character-card").count() === 0
+      && !/今回の同行者/.test(await bodyText()));
 
   // R14 §1 — 巻き戻したあとは、camp の上端に戦闘予測が常設される。
   // **予測が指すのは「灰の門」**である（12戦の第1戦ではない。同じ盤面をもう一度戦う）。
@@ -185,6 +191,12 @@ try {
   note("各メンバーのHPと減少量が出ている",
     await page.locator(".forecast-member .forecast-hp-values").count() === 2
       && await page.locator(".forecast-member .forecast-delta").count() === 2);
+  // issue #159 — 上端は `POSITIONS` そのままの3列×2行。**5人未満でも空き枠を残す**
+  // ので、枠は常に6つあり、そのうち2つに人が入っている。
+  note("上端は3列×2行の隊列盤で、空き枠も残る",
+    await page.locator(".camp-top .party-board .party-row").count() === 2
+      && await page.locator(".camp-top .party-cell").count() === 6
+      && await page.locator(".camp-top .party-cell.empty").count() === 4);
   // タブを変えても消えない（組み替えながら見るための帯である）。
   await page.locator('nav.tabs [data-tab="equipment"]').click();
   await page.waitForTimeout(150);
@@ -201,7 +213,7 @@ try {
   note("手動セーブ枠へ保存できる", /手動セーブ枠 1 に保存しました/.test(await bodyText()));
   await page.locator('[data-action="load-slot"][data-slot="1"]').click();
   await page.waitForTimeout(200);
-  note("手動セーブからCampへ戻れる", /編成|仲間/.test(await bodyText()) && /2 \/ 2人/.test(await bodyText()));
+  note("手動セーブからCampへ戻れる", /編成|仲間/.test(await bodyText()) && /2人/.test(await bodyText()));
 
   // R9 §3.1 / R11 §8.5 — Stage 0 の入口は pack_care「構えと手当て」。
   // **武器と技を一本ずつ**持つ二本が、この Stage の問いそのものである。
@@ -210,6 +222,15 @@ try {
   if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
+
+  // issue #177 — **1ラウンドに払える点**を見出しに出す。反応は上から順に払うので、
+  // 点が尽きた行は同じラウンドでは出ない（その行に印が付く）。ゴウは行動点1・反応点2。
+  const apPips = await page.locator(".slot-heading .slot-budget.ap .pips i").count();
+  const rpPips = await page.locator(".slot-heading .slot-budget.rp .pips i").count();
+  note("1ラウンドに払える点が装着の見出しに出る", apPips === 1 && rpPips === 2,
+    `行動点 ${apPips} · 反応点 ${rpPips}`);
+  note("装着した技能の消費が点で出る",
+    await page.locator(".installed-copy .row-marks .pips i").count() > 0);
 
   // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
   note("アクティブ／リアクティブ／パッシブを切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
@@ -228,14 +249,75 @@ try {
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
   note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
 
-  // R19（issue #137）— 技能レベル。**上位互換を別技能として増やさない**代わりに、
-  // 一つの節が何段まで伸びるのかを節の上で読める。
-  note("節に現在レベル／最大レベルが出る", await page.locator(".badge-level").count() > 0);
-  note("レベルを持たない技能はそう書く", await page.locator(".badge-level.flat").count() > 0);
-  const levelText = await bodyText();
-  note("レベルの上げ方が書いてある", /技能点1点|Lv\d+へ上げる|威力・治療量・防壁/.test(levelText));
+  // R19（issue #137）／issue #177 — 段は**素直に文字**で出す。ほとんどの節が Lv1 なので、
+  // 目盛りにすると「1個だけ塗った10個の四角」が並んで読めなかった（作者指摘）。
+  // 上限は添え字で、いまの段を主にする。取得していない節には出ない。
+  const levels = await page.locator(".skill-tree-forest .level-tag").evaluateAll((nodes) =>
+    nodes.map((node) => ({ now: node.childNodes[0]?.textContent ?? "", cap: node.querySelector("small")?.textContent ?? "" })));
+  note("取得済みの節に段が文字で出る", levels.length > 0
+    && levels.every((entry) => /^Lv\d+$/.test(entry.now.trim()) && /^\/\d+$/.test(entry.cap.trim())),
+    `${levels.length} 件 · ${levels[0]?.now ?? ""}${levels[0]?.cap ?? ""}`);
+  const flatNodes = await page.locator(".skill-tree-forest .skill-node").evaluateAll((nodes) =>
+    nodes.filter((node) => !node.querySelector(".level-tag")).length);
+  note("未取得・レベル無しの節には段が出ない", flatNodes > 0, `段なし ${flatNodes} 節`);
+
+  // **丸は払うものだけ。**発動条件は技能名の下に短い薄字で書く（作者指摘）。
+  const circles = await page.locator(".skill-tree-forest .firing-mark, .skill-tree-forest .trigger-mark").count();
+  note("条件を表す丸や印を節に出していない", circles === 0, `${circles} 件`);
+  const whens = await page.locator(".skill-tree-forest .node-when").allInnerTexts();
+  note("発動条件が薄字の一行で読める", whens.length > 0 && whens.every((text) => text.trim().length > 0),
+    `${whens.length} 件 · ${whens[0] ?? ""}`);
+  // 段を上げる操作は**取得済みの節にだけ**出る。値段は釦に、変わる数はその隣に。
+  // 規則そのもの（AP/RP は変わらない）は畳んだ「技能のルール」にあり、節では繰り返さない。
+  await page.locator('.skill-tree-forest [data-action="select-skill-node"]').first().click();
+  await page.waitForTimeout(150);
+  const levelButton = await page.locator('.level-action [data-action="level-up-skill"]').count();
+  const levelStep = await page.locator(".level-action .level-step").innerText().catch(() => "");
+  note("取得済みの節に段の上げ方が出る", levelButton === 1 && /→/.test(levelStep),
+    `${levelButton}件 · ${levelStep}`);
+
+  // 記号の意味は畳んだ中に一度だけ。**節や装着行の上には出さない。**
+  note("記号の意味が畳んで置いてある", await page.locator('details[data-help="skill-symbols"]').count() === 1);
+
   await page.locator('[data-action="select-skill-kind"][data-kind="active"]').click();
   await page.waitForTimeout(150);
+
+  // issue #177 — **能力値を掛ける前の技能効果量**を出す。
+  // ゴウの腕力50・技術6を先に掛けず、技能そのものの係数と能力値を見て、
+  // 「どの能力値を伸ばすか」はプレイヤーが判断できるようにする。
+  const yields = await page.locator(".skill-tree-forest .yield-chip").evaluateAll((nodes) =>
+    nodes.map((node) => ({ label: node.getAttribute("aria-label") ?? "", text: node.textContent ?? "" })));
+  note("能力値を掛ける前の技能効果量が節に出る", yields.length > 0
+    && yields.every((entry) => /(腕力|技術|受け|最大HP)で伸びる/.test(entry.label))
+    && yields.every((entry) => /効果/.test(entry.label) && /%/.test(entry.text)),
+    `${yields.length} 件 · ${yields[0]?.text ?? ""}`);
+  note("詳細欄に人物別の実数を繰り返さない",
+    await page.locator(".skill-detail .skill-yield-readout").count() === 0);
+
+  // 取得コストは取得済みのチェックと同じ実線四角、前提コストは破線四角。
+  const costChains = await page.locator(".skill-tree-forest .node-cost-chain").evaluateAll((nodes) =>
+    nodes.map((node) => ({
+      prerequisite: Boolean(node.querySelector(".prerequisite-cost")),
+      plus: Boolean(node.querySelector(".cost-plus")),
+      acquisition: Boolean(node.querySelector(".acquisition-cost")),
+    })));
+  note("前提コストと取得コストを四角とプラスで分けて出す",
+    costChains.some((entry) => entry.prerequisite && entry.plus && entry.acquisition),
+    `${costChains.length} 件`);
+
+  // テーマ（攻撃・守り・支援・指揮・基礎）で絞れる。押すと他のテーマが沈む。
+  const branchChips = page.locator('[data-action="select-skill-branch"]');
+  const chipCount = await branchChips.count();
+  note("テーマの印で絞り込める", chipCount >= 2, `テーマ ${chipCount} 種`);
+  const beforeFilter = await page.locator(".tree-cell.faded").count();
+  await branchChips.first().click();
+  await page.waitForTimeout(150);
+  const afterFilter = await page.locator(".tree-cell.faded").count();
+  note("テーマを選ぶと他のテーマが沈む", afterFilter > beforeFilter, `${beforeFilter} → ${afterFilter}`);
+  await branchChips.first().click();
+  await page.waitForTimeout(150);
+  note("同じ印をもう一度押すと戻る", await page.locator(".tree-cell.faded").count() === beforeFilter);
+
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
   // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
@@ -251,6 +333,44 @@ try {
     await page.locator('[data-action="move-skill"][data-kind="active"]').count() > 0
       && await page.locator('[data-action="move-skill"][data-kind="reactive"]').count() > 0);
 
+  // ---- issue #159 — **仲間を選ぶ経路は上端の盤面ただ一つ。**技能タブ・装備タブは
+  // 自前の仲間タブを持たず、盤面のセルで対象を切り替える。押しても隊列は動かない。
+  note("技能タブに二つ目の仲間タブが無い", await page.locator(".member-tabs").count() === 0);
+  const skillTargetCells = page.locator('.camp-top [data-action="select-character"]');
+  note("技能タブでは盤面が人物選択になる", await skillTargetCells.count() === 2);
+  const skillFormationBefore = await page.locator('.camp-top .party-cell').allTextContents();
+  const otherSkillCell = page.locator('.camp-top [data-action="select-character"]:not(.selected)').first();
+  const otherSkillName = (await otherSkillCell.getAttribute("aria-label") ?? "").split(" · ")[0];
+  await otherSkillCell.click();
+  await page.waitForTimeout(200);
+  note("技能タブで対象人物を盤面から切り替えられる",
+    Boolean(otherSkillName)
+      && (await page.locator(".member-context h3").innerText()).includes(otherSkillName)
+      && (await page.locator('.camp-top .party-cell.selected').getAttribute("aria-label") ?? "")
+        .startsWith(otherSkillName));
+  note("技能タブで押しても隊列は動かない",
+    JSON.stringify(await page.locator('.camp-top .party-cell').allTextContents())
+      === JSON.stringify(skillFormationBefore));
+
+  await page.locator('nav.tabs [data-tab="equipment"]').click();
+  await page.waitForTimeout(200);
+  note("装備タブに二つ目の仲間タブが無い", await page.locator(".member-tabs").count() === 0);
+  note("装備タブは前のタブで選んだ人物を引き継ぐ",
+    (await page.locator(".selected-loadout h3").innerText()).includes(otherSkillName));
+  const equipmentOtherCell = page.locator('.camp-top [data-action="select-character"]:not(.selected)').first();
+  const equipmentOtherName = (await equipmentOtherCell.getAttribute("aria-label") ?? "").split(" · ")[0];
+  const equipmentFormationBefore = await page.locator('.camp-top .party-cell').allTextContents();
+  await equipmentOtherCell.click();
+  await page.waitForTimeout(200);
+  note("装備タブで装備対象を盤面から切り替えられる",
+    Boolean(equipmentOtherName)
+      && (await page.locator(".selected-loadout h3").innerText()).includes(equipmentOtherName));
+  note("装備タブで押しても隊列は動かない",
+    JSON.stringify(await page.locator('.camp-top .party-cell').allTextContents())
+      === JSON.stringify(equipmentFormationBefore));
+  await page.locator('nav.tabs [data-tab="skills"]').click();
+  await page.waitForTimeout(150);
+
   // ---- R11 §8.6 — 巻き戻したあとの再戦。**同じ盤面をもう一度戦う。**
   //
   // ここがチュートリアルの山である。engine は決定的なので、**隊列を直さなければ
@@ -265,12 +385,24 @@ try {
   const wrongVerdict = await verdict();
   note("負けた配置のままでは予測が敗北", /敗北/.test(wrongVerdict), wrongVerdict);
 
-  await page.locator('[data-action="select-formation-character"][data-character="mender"]').click();
+  // issue #159 — 隊列は**上端の共通盤面から**動かす。編成タブに二つ目の隊列盤も
+  // キャラクターカードも無い（同じ仲間を選ぶ表示が複数あると、どこで何を選んだのかを
+  // 画面ごとに探し直すことになる）。
+  const menderCell = page.locator('.camp-top .party-cell', { hasText: "ツグミ" }).first();
+  note("上端の盤面のセルが隊列操作そのものである",
+    await menderCell.getAttribute("data-action") === "place-character");
+  await menderCell.click();
   await page.waitForTimeout(150);
-  await page.locator('[data-action="place-character"][data-position="rear_right"]').click();
+  note("押した仲間のセルが選択状態になる",
+    await page.locator('.camp-top .party-cell.selected').count() === 1
+      && /移動先の枠を選んでください/.test(await bodyText()));
+  await page.locator('.camp-top [data-action="place-character"][data-position="rear_right"]').click();
   await page.waitForTimeout(200);
   const placedText = await bodyText();
-  note("ツグミを後列へ下げられる", /後列/.test(placedText));
+  note("ツグミを後列へ下げられる",
+    await page.locator('.camp-top .party-row').nth(1)
+      .locator('.party-cell', { hasText: "ツグミ" }).count() === 1);
+  note("移動を終えると選択が解ける", await page.locator('.camp-top .party-cell.selected').count() === 0);
   // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
   const rightVerdict = await verdict();
   note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
@@ -509,13 +641,69 @@ try {
     await click("スキップ");
     await page.waitForTimeout(250);
     const stage1Camp = await bodyText();
-    note("Stage 1 は3人で始まる", /3 \/ 3人/.test(stage1Camp));
+    note("Stage 1 は3人で始まる", /3人/.test(stage1Camp) && !/3 \/ 3人/.test(stage1Camp));
 
     // ---- R12 §4.E-1 — 編成画面が「後で加入する仲間」を出していないこと。
     await page.locator('nav.tabs [data-tab="roster"]').click();
     await page.waitForTimeout(150);
     const rosterText = await bodyText();
     note("後で加入する仲間を出さない", !/後で加入する仲間/.test(rosterText));
+
+    // ---- issue #159 — 補給タブの盤面。**通常はセルを押しても何も起きない**（誰を
+    // 選ぶ場面でもないので、押せる形にしない）。単体治療・蘇生を選んだあいだだけ
+    // 対象選択になり、対象になり得ない仲間は**押せない状態で残る**。
+    //
+    // 戦闘不能者が出る場面は通しでは滅多に来ないので、保存を直接いじって
+    // 「一人が倒れていて補給がある」状態を作る（第4戦の幕の断片と同じやり方）。
+    const revivalFixture = await page.evaluate(() => {
+      const key = "exp18-r10-auto-v02";
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      if (!saved?.run?.roster?.length || !saved.run.currentHp) return null;
+      const restore = { currentHp: { ...saved.run.currentHp }, supplies: saved.run.supplies };
+      const downed = saved.run.roster[saved.run.roster.length - 1];
+      saved.run.currentHp = { ...saved.run.currentHp, [downed]: 0 };
+      saved.run.supplies = 3;
+      localStorage.setItem(key, JSON.stringify(saved));
+      return { downed, restore };
+    });
+    if (revivalFixture) {
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(300);
+      await page.locator('nav.tabs [data-tab="supplies"]').click();
+      await page.waitForTimeout(200);
+      note("通常の補給タブでは盤面のセルを押せない",
+        await page.locator('.camp-top button.party-cell').count() === 0
+          && await page.locator('.camp-top .party-cell').count() === 6);
+      await page.locator('[data-action="treat"][data-treatment="revive"]:not([disabled])').click();
+      await page.waitForTimeout(250);
+      const pickable = page.locator('.camp-top .party-cell.pickable');
+      note("蘇生を選ぶと盤面が対象選択になる",
+        await pickable.count() === 1
+          && await page.locator('.camp-top .party-cell.unpickable').count() === 2
+          && /蘇生/.test(await page.locator(".camp-top .party-note.picking").innerText()));
+      note("対象選択中はやめる手段が出ている",
+        await page.locator('.camp-top [data-action="cancel-treatment-target"]').count() === 1);
+      const suppliesBeforeRevive = Number(
+        (await page.locator(".supplies-head b").innerText()).match(/補給 (\d+)/)?.[1] ?? -1);
+      await pickable.first().click();
+      await page.waitForTimeout(300);
+      const suppliesAfterRevive = Number(
+        (await page.locator(".supplies-head b").innerText()).match(/補給 (\d+)/)?.[1] ?? -1);
+      note("蘇生の対象を盤面から明示的に選んで確定できる",
+        await page.locator(".supply-treatment-result").count() === 1
+          && suppliesBeforeRevive >= 1 && suppliesAfterRevive === suppliesBeforeRevive - 1);
+      // 直したら元へ戻す。**後続の検査は通常の遠征状態を前提にしている。**
+      await page.evaluate((fixture) => {
+        const key = "exp18-r10-auto-v02";
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (!saved?.run) return;
+        saved.run.currentHp = fixture.restore.currentHp;
+        saved.run.supplies = fixture.restore.supplies;
+        localStorage.setItem(key, JSON.stringify(saved));
+      }, revivalFixture);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(300);
+    }
 
     // ---- R12 §4.B — 敵カードの「拾い屋のあいだで言われていること」。
     await page.locator('nav.tabs [data-tab="map"]').click();

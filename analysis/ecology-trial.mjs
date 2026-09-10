@@ -332,6 +332,19 @@ try {
       note("戦闘予測が画面上部に出ている", await page.locator(".camp-top .forecast-bar").count() === 1);
       note("予測に各メンバーの減少量が出ている",
         await page.locator(".forecast-member .forecast-delta").count() > 0);
+      // issue #159 — 上端の盤面は `POSITIONS` そのままの3列×2行で、**空き枠も残す**。
+      // iPhone 幅（390px）で横へはみ出さず、3列が画面内に収まる。
+      const boardCells = await page.locator(".camp-top .party-cell").count();
+      const boardFilled = await page.locator(".camp-top .party-cell:not(.empty)").count();
+      const rosterSize = await page.locator('.camp-top [data-action="select-character"], '
+        + '.camp-top .party-cell:not(.empty)').count();
+      note("上端は3列×2行の隊列盤で、空き枠も残す",
+        boardCells === 6 && boardFilled > 0 && boardFilled === rosterSize,
+        boardFilled + "/" + boardCells);
+      note("盤面が iPhone 幅に横スクロールせず収まる",
+        await onScreen(".camp-top .party-board")
+          && await page.locator(".camp-top .party-board").evaluate((board) =>
+            board.scrollWidth <= board.clientWidth + 1));
       note("戦闘タブの主操作が画面上部にある",
         await page.locator(".map-primary-action .button").count() === 1
           && await onScreen(".map-primary-action .button"));
@@ -530,6 +543,14 @@ try {
         forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
     }
     if (stage === 1) {
+      // issue #177 — **装着順が結果にどう出たか**を、文ではなく帯で見せる。
+      // アクティブは順送りに回るので、ラウンドごとに何が鳴ったかを並べれば読める。
+      const turnRows = await page.locator(".turn-strip .turn-row").count();
+      const turnCells = await page.locator(".turn-strip .turn-cell").evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("title") ?? ""));
+      note("誰がいつ何を出したかが帯で出る", turnRows > 0 && turnCells.length > 0
+        && turnCells.every((title) => /ラウンド目/.test(title)),
+        `${turnRows}人・${turnCells.length}拍`);
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
       note("結果画面の主操作が詳細より前で見える",
