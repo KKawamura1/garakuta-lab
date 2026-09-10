@@ -131,10 +131,11 @@ import {
   newGeneratedItems,
   takeGeneratedEquipment,
   // issue #238 — 必殺印（隊で共有・補充なし）と、いま構えている必殺技。
-  ULTIMATE_SEALS_PER_RUN,
+  ULTIMATE_USES_PER_CHARACTER,
   armedUltimates,
-  designatedUltimate,
-  ultimateSealsLeft,
+  ultimateUsesLeft,
+  ultimateUsesLeftInParty,
+  ultimatesUnlocked,
 } from "./progression.mjs";
 import {
   blueprintCompatibility,
@@ -143,7 +144,12 @@ import {
   toggleFavorite,
 } from "./blueprints.mjs";
 import { RARITIES, RARITY_LABEL } from "./content/affixes.mjs";
-import { ULTIMATE_TERMS, baseSkillIdOf, isUltimateId, ultimateTraitLabels } from "./ultimates.mjs";
+import {
+  ULTIMATE_AMOUNT_MULTIPLIER,
+  ULTIMATE_READY_HP_PERCENT,
+  baseSkillIdOf,
+  isUltimateId,
+} from "./ultimates.mjs";
 import { MIN_SKILL_LEVEL, POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 import {
@@ -547,8 +553,10 @@ function hydrateState(saved) {
     ? savedRun.inventory.filter((id) => componentInfo(id)).slice(0, INVENTORY_LIMIT)
     : [];
   next.run.supplies = Math.max(0, Math.min(MAX_SUPPLIES, Math.floor(savedRun.supplies ?? 0)));
-  // issue #238 — 欄の無い保存は「まだ一つも切っていない」として読む。
-  next.run.ultimateSeals = ultimateSealsLeft(savedRun);
+  // issue #238 — 欄の無い保存は「まだ誰も放っていない」として読む。
+  next.run.ultimatesUsed = Array.isArray(savedRun.ultimatesUsed)
+    ? savedRun.ultimatesUsed.filter((id) => typeof id === "string")
+    : [];
   next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
 
   next.migrationNote = null;
@@ -1241,6 +1249,10 @@ function render() {
   app.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
   });
+  // issue #238 — 長押しは**画面をひとつも足さずに**もう一つの操作を作る。
+  // 必殺技の指定は「たまにしか触らないが、触る場所は装着行しかない」操作なので、
+  // 常設の枠を出さず、行そのものを長く押させる。
+  bindLongPress();
   restoreHelpDetails();
   restoreSkillTreeScroll();
   layoutSkillTreeConnectors();
@@ -1249,6 +1261,47 @@ function render() {
   if (phaseChanged) window.scrollTo(0, 0);
 }
 
+
+// ---------------------------------------------------------------- 長押し（issue #238）
+//
+// **押している時間だけで、二つ目の操作を作る。**指を離す前に離れたら取り消し、
+// 動かしたら（＝スクロールだった）取り消す。iPhone の既定の選択・虫眼鏡は
+// CSS（touch-action / user-select）で止めてある。
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP = 10;
+
+function bindLongPress() {
+  app.querySelectorAll("[data-longpress]").forEach((element) => {
+    let timer = null;
+    let origin = null;
+    const cancel = () => {
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+      origin = null;
+      element.classList.remove("pressing");
+    };
+    element.addEventListener("pointerdown", (event) => {
+      if (event.button !== undefined && event.button !== 0) return;
+      origin = { x: event.clientX, y: event.clientY };
+      element.classList.add("pressing");
+      timer = setTimeout(() => {
+        timer = null;
+        element.classList.remove("pressing");
+        handleAction({ currentTarget: element, longPress: true });
+      }, LONG_PRESS_MS);
+    });
+    element.addEventListener("pointermove", (event) => {
+      if (!origin) return;
+      if (Math.abs(event.clientX - origin.x) > LONG_PRESS_SLOP
+        || Math.abs(event.clientY - origin.y) > LONG_PRESS_SLOP) cancel();
+    });
+    for (const type of ["pointerup", "pointercancel", "pointerleave"]) {
+      element.addEventListener(type, cancel);
+    }
+    // 長押しの途中で出る右クリックメニュー・選択メニューを止める。
+    element.addEventListener("contextmenu", (event) => event.preventDefault());
+  });
+}
 
 function captureSkillTreeScroll() {
   if (state.phase !== "camp" || state.tab !== "skills") return;
@@ -2513,12 +2566,21 @@ function skillSlotRows(characterId, kind) {
       ? "<span class=\"row-marks\">" + costPips(node) + yieldBar(characterId, skillId)
         + levelMeter(node, characterId) + "</span>" + conditionLine(node)
       : "";
-    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + overflow + "\">"
+    // issue #238 — 必殺技はこの行の**長押し**で指定する。専用の枠を画面へ足さない。
+    const ultimate = ultimateRowState(characterId, skillId, kind);
+    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + overflow
+      + (ultimate.designated ? " ultimate" : "")
+      + (ultimate.pressable
+        ? "\" data-longpress=\"set-ultimate\" data-character=\"" + characterId
+          + "\" data-skill=\"" + skillId + "\" title=\"" + esc(ultimate.hint)
+        : "")
+      + "\">"
       + (kind === "passive"
         ? "<span class=\"bullet passive\">↳</span>"
         : "<span class=\"order\">" + (index + 1) + "</span>")
       + "<span class=\"installed-copy\"><b>" + esc(info?.label ?? nameFor(skillId)) + "</b>"
-      + marks + share + "</span>"
+      + marks + share + ultimate.traits + "</span>"
+      + ultimate.armButton
       + moveButtons
       // **入切は「札」ではなく「摘み」にする。**丸は払うものだけに譲ったので、
       // 操作は動く摘みの形（スイッチ）で出す。
@@ -2933,96 +2995,93 @@ function symbolLegendHelp() {
     // issue #238 — 必殺印は菱形。**丸は払うものだけ**という約束を崩さずに、
     // 「隊で共有する、補充されない残り」を別の形で出す。
     + row("<span class=\"seal-pips\"><i class=\"on\"></i><i class=\"on\"></i><i></i></span>",
-      "必殺印。隊で共有し、遠征のあいだ補充されない。必殺技を放つと1つ減る")
-    + row("<span class=\"party-ultimate\">✹</span>", "その仲間はこの一戦で必殺技を構えている")
+      "必殺技を残している仲間の数。一人一遠征に一度きりで、補充されない")
+    + row("<span class=\"party-ultimate firing\">✹</span>", "必殺技。塗ってあれば「この一戦で出る」、薄ければ「構えているが条件が揃わない」")
     + "</dl>"
     + "<p class=\"muted\">丸は<b>払うもの</b>だけに使います。発動条件は技能名の下に短い薄字で書きます。</p>");
 }
 
 // ---------------------------------------------------------------- 必殺技（issue #238）
 //
-// **一人一つ「指定」し、一戦ごとに「構える」。**指定は無料でいつでも変えられるので、
-// 悩ませたいのは「有限の印を、12戦のどこで、誰に切るか」だけに絞ってある。
+// **専用の枠を画面へ置かない。**必殺技はたまにしか触らない操作なのに、常設の枠を
+// 出すと毎回そこを読み飛ばすことになる（作者指摘：「UIがダサいというか邪魔」）。
+// 触る場所は装着行しかないので、**その行を長押しすると指定・解除**にした。
+// 指定された行には ✹ が出て、押すとその一戦で構える／解く。
 //
-// 画面は文章を足さない。印の数（✹）、変換の印（量2倍・全体へ・溜め不要）、
-// 必ず付く制限の三つを、同じ形で並べる（issue #177）。
-
-function ultimateSeals() {
-  return ultimateSealsLeft(state.run);
-}
+// 残り回数は SKILLS の見出しへ小さく出すだけにする。一人一遠征に一度きりなので、
+// 「誰がまだ持っているか」は盤面の ✹ と行の ✹ で読める。
 
 function armedUltimateIds() {
   return new Set(armedUltimates(state.run).map((entry) => entry.characterId));
 }
 
-function sealPips(left, total = ULTIMATE_SEALS_PER_RUN) {
+function ultimatePips(left, total) {
   const cells = Array.from({ length: total }, (unused, index) =>
     "<i class=\"" + (index < left ? "on" : "") + "\"></i>").join("");
-  return "<span class=\"seal-pips\" role=\"img\" aria-label=\"必殺印 残り" + left + " / " + total
-    + "\" title=\"必殺印 残り" + left + " / " + total + "（遠征を通して補充されない）\">" + cells + "</span>";
+  return "<span class=\"seal-pips\" role=\"img\" aria-label=\"必殺技 残り" + left + " / " + total
+    + "人\" title=\"必殺技を残している仲間 " + left + " / " + total
+    + "人（一人一遠征に一度きり・補充なし）\">" + cells + "</span>";
 }
 
-function ultimateRow(characterId, entry, designated, armed, seals) {
-  const selected = designated === entry.skillId;
-  const marks = entry.traitLabels
-    .map((label) => "<span class=\"ultimate-trait\">" + esc(label) + "</span>").join("");
-  return "<div class=\"ultimate-row" + (selected ? " selected" : "") + "\">"
-    + "<button type=\"button\" class=\"ultimate-pick\" data-action=\"set-ultimate\" data-character=\""
-    + esc(characterId) + "\" data-skill=\"" + esc(entry.skillId) + "\" aria-pressed=\""
-    + (selected ? "true" : "false") + "\" title=\""
-    + (selected ? "指定を外す" : "この技能を必殺技にする") + "\">"
-    + "<span class=\"ultimate-mark\" aria-hidden=\"true\">✹</span>"
-    + "<span class=\"ultimate-copy\"><b>" + esc(nameFor(entry.skillId)) + "</b>"
-    + "<span class=\"ultimate-traits\"><i class=\"kind-dot kind-" + entry.kind + "\"></i>"
-    + marks + "</span></span></button>"
-    + (selected
-      ? "<button type=\"button\" class=\"skill-switch" + (armed ? " on" : " off")
-        + "\" data-action=\"toggle-ultimate-armed\" data-character=\"" + esc(characterId)
-        + "\" role=\"switch\" aria-checked=\"" + (armed ? "true" : "false")
-        + "\" aria-label=\"" + (armed ? "構えを解く" : "この一戦で構える") + "\" title=\""
-        + (armed ? "いま構えている · 押すと解く" : (seals > 0 ? "押すと構える（放てば印を1つ払う）" : "必殺印が残っていない"))
-        + "\"><i></i></button>"
-      : "")
-    + "</div>";
+// 装着行ひとつぶんの必殺の状態。**行の見た目と操作を、ここ一箇所で決める。**
+function ultimateRowState(characterId, skillId, kind) {
+  const blank = { designated: false, pressable: false, hint: "", traits: "", armButton: "" };
+  if (!ultimatesUnlocked(state.run)) return blank;
+  // パッシブは放つ瞬間を持たないので候補にならない。量も状態も動かさない技能も同じ。
+  if (kind === "passive") return blank;
+  const candidate = ultimateCandidates(state.run.loadout, characterId)
+    .find((entry) => entry.skillId === skillId);
+  if (!candidate) return blank;
+  const designated = (state.run.loadout.ultimates?.[characterId] ?? null) === skillId;
+  const left = ultimateUsesLeft(state.run, characterId);
+  const armed = armedUltimateIds().has(characterId);
+  if (!designated) {
+    return {
+      ...blank,
+      pressable: true,
+      hint: "長押しで必殺技にする（" + candidate.traitLabels.join("・") + "）",
+    };
+  }
+  // **構えたのに出ない、を黙って起こさない。**次の一戦を最後まで走らせた予測が
+  // 「本当に放つか」を知っているので、構えた時点でそれを出す。
+  const fires = armed && (battleForecast()?.ultimateFiredBy ?? []).includes(characterId);
+  const label = left <= 0
+    ? "この遠征ではもう放った"
+    : armed
+      ? (fires ? "この一戦で出る · 押すと構えを解く" : "構えているが、この一戦では条件が揃わない")
+      : "押すとこの一戦で構える";
+  return {
+    designated: true,
+    pressable: true,
+    hint: "必殺技 · 長押しで指定を外す",
+    traits: "<span class=\"ultimate-traits\">"
+      + candidate.traitLabels.map((text) => "<span class=\"ultimate-trait\">" + esc(text) + "</span>").join("")
+      + (armed && !fires ? "<span class=\"ultimate-trait idle\">この一戦では出ない</span>" : "")
+      + "</span>",
+    armButton: "<button type=\"button\" class=\"ultimate-arm" + (armed ? " armed" : "")
+      + (fires ? " firing" : "") + (left > 0 ? "" : " used")
+      + "\" data-action=\"toggle-ultimate-armed\" data-character=\""
+      + esc(characterId) + "\" aria-pressed=\"" + (armed ? "true" : "false")
+      + "\" aria-label=\"" + esc(label) + "\" title=\"" + esc(label) + "\">✹</button>",
+  };
 }
 
-function ultimateCard(characterId) {
-  const seals = ultimateSeals();
-  const armed = armedUltimateIds();
-  const candidates = ultimateCandidates(state.run.loadout, characterId);
-  const designated = state.run.loadout.ultimates?.[characterId] ?? null;
-  const live = designatedUltimate(state.run, characterId);
-  const badge = "<span class=\"skill-points-badge\"><small>必殺印（隊全体）</small>"
-    + sealPips(seals) + "</span>";
-  const armedNames = state.run.roster.filter((id) => armed.has(id))
-    .map((id) => characterName(id) + "（" + nameFor(state.run.loadout.ultimates[id]) + "）");
-  const rows = candidates.length
-    ? candidates.map((entry) => ultimateRow(characterId, entry, designated, armed.has(characterId), seals)).join("")
-    : "<p class=\"empty-slot\">量も状態も動かさない技能は必殺技にできません。</p>";
-  const stale = designated && !live
-    ? "<p class=\"party-note\" role=\"status\"><span>指定した技能をいま装着していないので、この指定は効きません。</span></p>"
-    : "";
-  return "<section class=\"card ultimate-card\">"
-    + sectionHeading("ULTIMATE", "必殺技", badge)
-    + "<p class=\"context-line\">"
-    + esc(ULTIMATE_TERMS.join(" · ")) + "</p>"
-    + rows + stale
-    + (armedNames.length
-      ? "<p class=\"party-note\" role=\"status\"><span>この一戦で構えているのは "
-        + esc(armedNames.join(" · ")) + "。放ったときだけ印を1つ払います。</span></p>"
-      : "<p class=\"party-note\" role=\"status\"><span>いま構えている仲間はいません。</span></p>")
-    + helpDetails("ultimate-rules", "必殺技のルール",
-      "<p class=\"muted\"><b>取得した技能を一つだけ必殺技に変えられます。</b>新しい技能は増えません。"
-      + "掛かる変換は三つだけです。<b>単体が全体になり</b>（自分だけを守る技能は味方全員へ）、"
-      + "<b>広がれない効果は量が2倍</b>になり、<b>溜めが消えます</b>。"
-      + "広さと太さは両立しません。AP・RP・回数・耐久・行動権も変わりません。</p>"
-      + "<p class=\"muted\">指定は無料で、いつでも変えられます。払うのは<b>必殺印</b>で、"
-      + "遠征（12戦）を通して " + ULTIMATE_SEALS_PER_RUN + " つだけ。補充されません。"
-      + "構えた仲間が<b>実際に放ったときだけ</b>1つ減ります（負けてやり直した一戦では減りません）。</p>"
-      + "<p class=\"muted\">必殺は<b>元の技能と同じ条件</b>で、その技能が最初に出る場面に出ます。"
-      + "戦闘に1回きりで、放った直後は自分へ「隙」が1段付きます。"
-      + "出るかどうかも、そのあとどうなるかも、上の戦闘予測にそのまま出ています。</p>")
-    + "</section>";
+// 必殺技の説明。**畳んだ中に置く**ので、普段は一行も画面を占めない。
+function ultimateHelp() {
+  return helpDetails("ultimate-rules", "必殺技のルール",
+    "<p class=\"muted\"><b>装着した技能を長押しすると、必殺技に指定できます。</b>"
+    + "もう一度長押しすると外れます。指定は無料で、いつでも変えられます。"
+    + "指定した行に出る ✹ を押すと、その一戦で構えます。</p>"
+    + "<p class=\"muted\">必殺技は新しい技能ではありません。掛かる変換は"
+    + "<b>単体が全体になる</b>（自分だけを守る技能は味方全員へ）・<b>量が"
+    + ULTIMATE_AMOUNT_MULTIPLIER + "倍</b>・<b>溜めが消える</b>・<b>防壁が戦闘のあいだ残る</b>・"
+    + "<b>反応点を払わない</b>（リアクティブ）です。AP・回数・耐久・行動権は変わりません。</p>"
+    + "<p class=\"muted\"><b>放てるのは一人につき一遠征（12戦）に一度きり</b>です。補充されません。"
+    + "構えても放たなければ減らず、負けてやり直した一戦でも減りません。</p>"
+    + "<p class=\"muted\"><b>隊の誰かがHP" + ULTIMATE_READY_HP_PERCENT
+    + "%未満になってからでないと出ません。</b>元の技能と同じ条件で、その技能が最初に出る"
+    + "場面に出ます。戦闘に1回きりで、放った直後は自分へ「隙」が1段付きます。"
+    + "出るかどうかも、そのあとどうなるかも、上の戦闘予測にそのまま出ています。</p>");
 }
 
 function renderSkills() {
@@ -3031,7 +3090,13 @@ function renderSkills() {
   // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
   const characterId = selectedCharacter();
   const pointsBadge = "<span class=\"skill-points-badge\"><small>残り技能点（隊全体）</small><b>"
-    + totalSkillPoints() + "</b></span>";
+    + totalSkillPoints() + "</b></span>"
+    // issue #238 — 必殺技の残りは、見出しの小さな菱形だけにする（枠を足さない）。
+    + (ultimatesUnlocked(state.run)
+      ? "<span class=\"skill-points-badge\"><small>必殺を残す仲間</small>"
+        + ultimatePips(ultimateUsesLeftInParty(state.run),
+          state.run.roster.length * ULTIMATE_USES_PER_CHARACTER) + "</span>"
+      : "");
   const depths = state.run.manifest.packDepths ?? {};
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
@@ -3040,7 +3105,6 @@ function renderSkills() {
     + "<p class=\"context-line\">" + esc(packs) + "</p>"
     + memberContext(characterId, "skills")
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
-    + ultimateCard(characterId)
     + "<section class=\"card\">" + sectionHeading("SKILL TREE", "技能ツリー")
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
@@ -3054,7 +3118,11 @@ function renderSkills() {
       + "条件つきの技能が未達ならスキップして後ろを試します。<b>装着を増やすほど、一本あたりの出番は減ります。</b></p>"
       + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
       + "反応点が尽きた時点で下の技能は出ません。</p>"
-      + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>")
+      + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>"
+      + (ultimatesUnlocked(state.run)
+        ? "<p class=\"muted\"><b>装着した技能を長押しすると、必殺技に指定できます。</b>詳しくは下の「必殺技のルール」を開いてください。</p>"
+        : ""))
+    + (ultimatesUnlocked(state.run) ? ultimateHelp() : "")
     + statusGlossaryHelp()
     + "</section>";
 }
@@ -3359,6 +3427,9 @@ function forecastKey(composed) {
     state.run.formation,
     state.run.loadout,
     state.run.currentHp,
+    // issue #238 — 放ち終えた仲間は必殺を持ち込めない。**回数表も鍵に入れる**
+    // （入れないと、放った直後に「まだ出る」と言う古い予測が残る）。
+    state.run.ultimatesUsed,
     state.run.runSkillLevels,
     // 技能レベル表は runUnlockedSkills を辿って組まれる（runSkillLevelsFor）。
     // **レベルだけを鍵にすると、取得表の側が動いた回に古い予測が残る。**
@@ -3478,10 +3549,16 @@ function partyCellPerson(characterId, entry) {
   // 盤面から読めなければならない**（技能タブを開かないと分からない、にしない）。
   const ultimateSkillId = armedUltimates(state.run)
     .find((entry) => entry.characterId === characterId)?.skillId ?? null;
+  // 構えているだけの ✹ は薄く、**この一戦で本当に出る** ✹ は塗る。
+  const ultimateFires = Boolean(ultimateSkillId)
+    && (battleForecast()?.ultimateFiredBy ?? []).includes(characterId);
+  const ultimateLabel = ultimateSkillId
+    ? "必殺 " + nameFor(ultimateSkillId) + (ultimateFires ? " · この一戦で出る" : " · この一戦では出ない")
+    : "";
   const ultimateMark = ultimateSkillId
-    ? "<span class=\"party-ultimate\" role=\"img\" aria-label=\"必殺技を構えている（"
-      + esc(nameFor(ultimateSkillId)) + "）\" title=\"必殺 " + esc(nameFor(ultimateSkillId))
-      + " を構えている\">✹</span>"
+    ? "<span class=\"party-ultimate" + (ultimateFires ? " firing" : "")
+      + "\" role=\"img\" aria-label=\"" + esc(ultimateLabel) + "\" title=\""
+      + esc(ultimateLabel) + "\">✹</span>"
     : "";
   return "<span class=\"forecast-member-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><b>"
@@ -4396,10 +4473,10 @@ function renderResult() {
   // **払った理由と残りを、払った画面で見せる。**
   const firedBy = state.lastCarrySnapshot?.ultimateFiredBy ?? [];
   const sealText = firedBy.length
-    ? "<p class=\"muted\"><b>必殺印を" + firedBy.length + "つ払いました。</b>"
+    ? "<p class=\"muted\"><b>必殺技が出ました。</b>"
       + esc(firedBy.map((id) => characterName(id)).join(" · "))
-      + " が放ちました。残り " + ultimateSealsLeft(state.run) + " / " + ULTIMATE_SEALS_PER_RUN
-      + "。補充はありません。</p>"
+      + "。この遠征ではもう放てません。必殺を残している仲間は "
+      + ultimateUsesLeftInParty(state.run) + " / " + state.run.roster.length + "人です。</p>"
     : "";
   const stateCard = "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "戦闘後の状態")
     + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
@@ -4950,7 +5027,9 @@ function ensureSelectedCharacter() {
 
 function handleAction(event) {
   const element = event.currentTarget;
-  const action = element.dataset.action;
+  // issue #238 — 同じ要素が、押した時間で別の操作になる。長押しは data-longpress。
+  const action = event.longPress ? element.dataset.longpress : element.dataset.action;
+  if (!action) return;
   captureSkillTreeScroll();
   state.error = null;
 
@@ -5508,7 +5587,7 @@ function handleAction(event) {
   if (action === "toggle-ultimate-armed") {
     const characterId = element.dataset.character;
     const result = toggleUltimateArmed(state.run.loadout, characterId, limitsFor, {
-      seals: ultimateSealsLeft(state.run),
+      uses: ultimateUsesLeft(state.run, characterId),
     });
     if (!result.ok) state.error = result.reason;
     else {

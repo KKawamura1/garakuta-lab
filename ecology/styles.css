@@ -2807,3 +2807,24 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .party-ultimate { margin-left: 4px; color: var(--gold); font-size: 11px; }
 /* 帯のなかの必殺。系統の色は残し、印と枠だけを立てる。 */
 .turn-cell.ultimate { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+/* 装着行のなかの必殺。**枠を足さず、行そのものに宿らせる。** */
+.installed-row.ultimate { box-shadow: inset 2px 0 0 var(--gold); }
+.installed-row[data-longpress] { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.installed-row.pressing { background: rgba(229, 184, 105, .08); }
+.ultimate-arm {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+}
+.ultimate-arm.armed { border-color: var(--gold); color: var(--gold); }
+.ultimate-arm.firing { background: rgba(229, 184, 105, .18); }
+.ultimate-arm.used { opacity: .35; }
+.ultimate-trait.idle { border-style: dashed; opacity: .7; }
+.party-ultimate { opacity: .4; }
+.party-ultimate.firing { opacity: 1; }

@@ -297,18 +297,29 @@ generator version 7より前のBlueprintは互換不能理由を表示し、現�
 
     RunState.loadout.ultimates      … 誰がどの技能を必殺に指定しているか
     RunState.loadout.ultimateArmed  … その一戦で誰が構えているか
-    RunState.ultimateSeals          … 隊で共有する必殺印の残り（補充なし）
+    RunState.ultimatesUsed          … この遠征でもう放った人物（一人一度きり・補充なし）
 
-`progression.armedUltimates(run)` が「指定が有効で、構えていて、残っている印の数に収まる」
-組を roster 順で返し、これが唯一の正本になる。`runContentBundle(run)` はその技能の必殺定義を
-bundle へ混ぜ、`playable-battles.allyInput` は**元の技能の一つ前**へ必殺を差し込む。
-だから必殺は元の技能と同じ条件で判定され、同じ場面に出る。予測と本番は
+`progression.armedUltimates(run)` が「Stage が解禁されていて、指定が有効で、構えていて、
+まだ放っていない」組を roster 順で返し、これが唯一の正本になる。`runContentBundle(run)` は
+その技能の必殺定義を bundle へ混ぜ、`playable-battles.allyInput` は**元の技能の一つ前**へ
+必殺を差し込む。だから必殺は元の技能と同じ条件で判定され、同じ場面に出る。予測と本番は
 `simulateExpeditionBattle` の同じ経路を通るので、構えても両者はずれない。
 
-「1戦闘に1回」は状態 `ultimate_spent`（規則を持たない記録専用の状態）で表す。必殺は
-「その状態が付いていないこと」を発動条件に持ち、放つと自分へ付ける。**engine にも schema にも
-必殺のための語彙は無い**（`ecology/ultimate.test.mjs` が両ファイルの本文を読んで確かめる）。
+必殺が必ず持つ発動条件は二つで、どちらも既存の語彙で書けている。
 
-印を払ったかどうかは戦闘のイベント列から読む（`ultimateFirings` が `status_added` の
-`ultimate_spent` を拾う）。構えただけでは払わない。`commitBattleResult` が**勝った戦闘でだけ**
-印を引き、放った者の構えを解く。負けた一戦は run を変えないので、retry で二重に取られない。
+  - 「1戦闘に1回」… 規則を持たない状態 `ultimate_spent` を自分へ付け、
+    `has_status = 0` を条件にする。
+  - 「隊の誰かが削られていること」… `target_exists` + `hp_percent`。
+
+**engine にも schema にも必殺のための語彙は無い**（`ecology/ultimate.test.mjs` が両ファイルの
+本文を読んで確かめる）。
+
+放ったかどうかは戦闘のイベント列から読む（`ultimateFirings` が `status_added` の
+`ultimate_spent` を拾う）。構えただけでは使わない。**`previewNextBattle` の返り値も
+`ultimateFiredBy` を持つ**ので、画面は「構えた必殺がこの一戦で本当に出るか」を戦う前に出せる。
+`commitBattleResult` が**勝った戦闘でだけ**その人物を `ultimatesUsed` へ入れ、構えを解く。
+負けた一戦は run を変えないので、retry で二重に取られない。
+
+UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`）の長押しが指定・解除で、
+`render()` のあとに `bindLongPress()` が pointer イベントを張る。長押しは
+`data-longpress` の action を、通常のクリックは `data-action` を `handleAction` へ渡す。

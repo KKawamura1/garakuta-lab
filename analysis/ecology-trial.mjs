@@ -235,6 +235,13 @@ try {
   await page.waitForTimeout(300);
   note("再訪用の遠征準備画面に着く", await page.locator(".vn-stage").count() === 0);
 
+  // issue #238 — **必殺技は Stage 1 から開く**ので、この台本も Stage 1 を選んで出る。
+  // Stage 0（2人の導入）を選ぶと、必殺技の経路が一つも踏めない。
+  const stage1Card = page.locator('[data-action="select-campaign-stage"][data-sequence="1"]');
+  note("Stage 1 を選べる", await stage1Card.count() === 1);
+  if (await stage1Card.count()) await stage1Card.click();
+  await page.waitForTimeout(200);
+
   await click("この条件で遠征へ出る");
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
   note("踏破済みStageの再訪でも開始会話が出る", await page.locator(".vn-stage").count() === 1);
@@ -275,28 +282,34 @@ try {
   }
   note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
 
-  // issue #238 — 必殺技。**指定して構えるところまでを、画面から踏む。**
-  // 印の残りが読め、盤面に✹が出て、放てば結果画面で払ったことが分かる。
-  const ultimateCard = page.locator("section.ultimate-card");
-  note("必殺技の枠が技能タブにある", await ultimateCard.count() === 1);
-  if (await ultimateCard.count()) {
-    note("残っている必殺印が読める", await ultimateCard.locator(".seal-pips i.on").count() > 0);
-    const pick = ultimateCard.locator('[data-action="set-ultimate"]').first();
-    note("必殺技の候補が出ている", await pick.count() > 0);
-    if (await pick.count()) {
-      await pick.click();
-      note("指定した技能が光る", await page.locator("section.ultimate-card .ultimate-row.selected").count() === 1);
-      const arm = page.locator('section.ultimate-card [data-action="toggle-ultimate-armed"]').first();
-      note("指定すると構えの摘みが出る", await arm.count() === 1);
-      if (await arm.count()) {
-        await arm.click();
-        note("構えると盤面に印が出る", await page.locator(".party-cell .party-ultimate").count() === 1);
-        note("構えている仲間が名前で出る", /この一戦で構えている/.test(await bodyText()));
-        // 構えただけでは印を払わない（払うのは放ったときだけ）。
-        const sealsAfterArming = await page.locator("section.ultimate-card .seal-pips i.on").count();
-        note("構えただけでは印が減らない", sealsAfterArming === 3, String(sealsAfterArming));
-      }
+  // issue #238 — 必殺技。**装着行の長押しで指定し、✹ で構えるところまでを画面から踏む。**
+  // 専用の枠は無いので、行そのものが押せることを確かめる。
+  const longPress = async (locator) => {
+    const box = await locator.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(700);
+    await page.mouse.up();
+  };
+  const ultimateRow = page.locator(".installed-row[data-longpress]").first();
+  note("装着行が長押しできる", await ultimateRow.count() === 1);
+  if (await ultimateRow.count()) {
+    note("必殺技の専用枠は画面に無い", await page.locator("section.ultimate-card").count() === 0);
+    note("残りの必殺が見出しに出る", await page.locator(".skill-points-badge .seal-pips i.on").count() > 0);
+    await longPress(ultimateRow);
+    note("長押しで必殺技に指定できる", await page.locator(".installed-row.ultimate").count() === 1);
+    const arm = page.locator('.installed-row.ultimate [data-action="toggle-ultimate-armed"]');
+    note("指定した行に ✹ が出る", await arm.count() === 1);
+    if (await arm.count()) {
+      await arm.click();
+      note("構えると盤面にも印が出る", await page.locator(".party-cell .party-ultimate").count() === 1);
+      // 序盤の一戦では傷の条件が揃わないので、**予測が「出ない」と先に言う。**
+      const armedTitle = await page.locator('.installed-row.ultimate [data-action="toggle-ultimate-armed"]').getAttribute("title");
+      note("構えた時点で、この一戦で出るかどうかが読める",
+        /この一戦で出る|条件が揃わない/.test(armedTitle ?? ""), armedTitle ?? "");
     }
+    await longPress(page.locator(".installed-row.ultimate").first());
+    note("もう一度の長押しで指定が外れる", await page.locator(".installed-row.ultimate").count() === 0);
   }
 
   let ultimateSpentSeen = false;
@@ -569,12 +582,11 @@ try {
     }
     // issue #238 — 放ったら、その結果画面で「印を払った」と分かる。
     if (!ultimateSpentSeen) {
-      const sealLine = (await bodyText()).match(/必殺印を([0-9]+)つ払いました。([^。]+) が放ちました。残り ([0-9]+) \/ ([0-9]+)/);
+      const sealLine = (await bodyText()).match(/必殺技が出ました。([^。]+)。この遠征ではもう放てません。必殺を残している仲間は ([0-9]+) \/ ([0-9]+)人です。/);
       if (sealLine) {
         ultimateSpentSeen = true;
-        note(`第${stage}戦で払った必殺印と残りが結果画面に出る`,
-          Number(sealLine[3]) === Number(sealLine[4]) - Number(sealLine[1]),
-          sealLine[0]);
+        note(`第${stage}戦で放った仲間と残りが結果画面に出る`,
+          Number(sealLine[2]) < Number(sealLine[3]), sealLine[0]);
       }
     }
     if (stage === 1) {

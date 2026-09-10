@@ -30,6 +30,7 @@ import {
   ascendSkill,
   baseSkillIdOf,
   isUltimateId,
+  ultimateFirings,
   ultimateTraitLabels,
 } from "./ultimates.mjs";
 
@@ -441,19 +442,16 @@ export function setUltimate(loadout, characterId, skillId, limitsFor, content = 
 // この一戦で構えるかどうか。**構えても、条件が揃わなければ出ないし、印も減らない。**
 export function toggleUltimateArmed(loadout, characterId, limitsFor, options = {}) {
   const next = normalizeLoadout(loadout, [characterId], limitsFor);
-  const content = options.content ?? PLAYABLE_CONTENT;
   const skillId = next.ultimates?.[characterId] ?? null;
   if (!skillId) return { ok: false, reason: "先に必殺技を指定してください。" };
   if (next.ultimateArmed[characterId] === true) {
     delete next.ultimateArmed[characterId];
     return { ok: true, loadout: next, armed: false };
   }
-  const seals = Number.isFinite(options.seals) ? Math.max(0, Math.floor(options.seals)) : 0;
-  const armedNow = Object.entries(next.ultimateArmed).filter(([id, on]) => (
-    on === true && Boolean(next.ultimates?.[id]) && ascendSkill(content, next.ultimates[id])
-  )).length;
-  if (armedNow >= seals) {
-    return { ok: false, reason: "必殺印が足りません。誰かの構えを解いてください。" };
+  // **枠は人物ごと。**この遠征でもう放った人物は、構え直せない。
+  const uses = Number.isFinite(options.uses) ? Math.max(0, Math.floor(options.uses)) : 0;
+  if (uses <= 0) {
+    return { ok: false, reason: "この仲間は、この遠征ではもう必殺技を放っています。" };
   }
   next.ultimateArmed[characterId] = true;
   return { ok: true, loadout: next, armed: true };
@@ -795,6 +793,12 @@ function battleResultSummary(run, result) {
     roundsUsed: result.roundsUsed,
     perCharacter,
     metrics: result.metrics,
+    // issue #238 — **構える前に「出る／出ない」が読める。**必殺は条件付きなので、
+    // 構えたのに不発、が黙って起きると賭ける意味が消える。予測は最後まで走らせて
+    // いるので、誰が本当に放つかはここで分かる。
+    ultimateFiredBy: ultimateFirings(result)
+      .map((instanceId) => instanceId.replace(/^a_/, ""))
+      .filter((characterId) => run.roster.includes(characterId)),
   };
 }
 

@@ -6,17 +6,22 @@
 // 禁じている作り方）。そうではなく、どの技能にも同じ形で掛かる規則を一つ置く。
 // 見向きもしなかった技能が、その規則を通した瞬間だけ別物になる——という形を狙う。
 //
-// 規則は三つだけ:
+// 規則は五つ:
 //
 //   1. **単体が全体になる。** 一体だけを狙う技能は全員へ、自分だけを守る技能は
 //      味方全員へ広がる。武器（melee）の必殺は前列が生きているあいだ前列しか
 //      届かないので、「腕の必殺は薙ぎ、技の必殺は全体に届く」が自然に出る。
-//   2. **広がれない効果は、量が2倍になる。** 自分を強める技能、反撃、割り込みの
-//      増減など。**広さと太さは両立させない**——両方を一度に掛けると 5体×2倍＝10倍の
-//      一手になり、一戦がそのまま終わってしまう（実測した。ecology-ultimate-smoke）。
+//   2. **量が ULTIMATE_AMOUNT_MULTIPLIER 倍になる。** 全体化と両立する。
+//      **一度は両立させずに出したが、作者が「ダメージ2倍はしょっぱい」と言った**ので
+//      両立させ、倍率も上げた。強くしたぶん敵が弱く見えるのは当然で、そちらは
+//      敵側の調整（#189 ほか）で受ける。
 //   3. **溜めが消える。** 準備が要る技能は、その場で着弾する。
+//   4. **防壁が戦闘のあいだ残る。** ラウンドをまたいで消えない。
+//   5. **リアクティブの必殺は反応点を払わない。** 反応は上から順に払うので、
+//      下の行に置いた必殺が「点が尽きて出ない」ことが起きる。一戦に一度きりの
+//      一手が資源競合で消えるのは、選択ではなく事故である。
 //
-// 変えないものも決めてある。**AP・RP・hit 数・耐久・行動権は増えない**
+// 変えないものも決めてある。**AP・hit 数・耐久・行動権は増えない**
 // （技能レベルが離散量へ掛からないのと同じ理由。手数が増える効果は、
 // 多くの面白い技能より強くなりやすい）。だから「号令の必殺技」は作れない。
 //
@@ -25,8 +30,11 @@
 //   - 1戦闘に1回。状態「必殺」(ultimate_spent) を自分へ付け、
 //     「その状態が付いていないこと」を発動条件にする。**engine と schema は
 //     変更していない**——既存の語彙だけで書ける。
-//   - 遠征を通して、隊で共有の「必殺印」ぶんだけ（ULTIMATE_SEALS_PER_RUN）。
-//     印は補充されない。誰に、どの戦闘で切るかを 12戦のあいだ悩ませる。
+//   - **一人につき、一遠征（12戦）に一度きり。**隊で共有の枠ではない。
+//     同じ人物が何度も放つと、隊の他の四人を使う理由が痩せる。
+//   - **隊の誰かが傷ついてからでないと出ない**（ULTIMATE_READY_HP_PERCENT）。
+//     1ラウンド目にいきなり必殺が出るのは絵として妙で、追い込まれてから
+//     切り返すほうが必殺技らしい。
 //   - 放った直後、自分へ「隙」が1段付く。代償はここだけで、他は取らない。
 //
 // この module は純関数だけを持つ。Date も Math.random も読まない。
@@ -37,10 +45,16 @@ import { STATUS_NAMES } from "./content/statuses.mjs";
 //
 // **遊んだあとに動かしてよい数値。**動かすと build の印が変わる。
 
-// 一遠征（12戦）で放てる回数。隊で共有する。
-export const ULTIMATE_SEALS_PER_RUN = 3;
+// 一人が一遠征（12戦）で放てる回数。**隊で共有しない。**5人いれば通しで5回。
+export const ULTIMATE_USES_PER_CHARACTER = 1;
+// 必殺技が解禁される Campaign Stage。**Stage 0（2人の導入）では出さない。**
+// 武器と技の違い・隊列・応急手当を覚える回に必殺技まで載せると、覚えることが多すぎる。
+export const ULTIMATE_MIN_STAGE_SEQUENCE = 1;
 // 量に掛かる倍率。分子だけを倍にするので、整数のまま動く。
-export const ULTIMATE_AMOUNT_MULTIPLIER = 2;
+export const ULTIMATE_AMOUNT_MULTIPLIER = 3;
+// **隊の誰かがこの割合まで削られてからでないと出ない。**
+// 「1ラウンド目にいきなり」を止め、追い込まれてから切り返す形にするための条件。
+export const ULTIMATE_READY_HP_PERCENT = 70;
 // 放った直後の代償。
 export const ULTIMATE_BACKLASH_STATUS_ID = "exposed";
 export const ULTIMATE_BACKLASH_STACKS = 1;
@@ -119,11 +133,8 @@ function widenedEffectTarget(effect, content) {
 }
 
 // effect 一つぶん。**変換した結果と、何が変わったかを一緒に返す。**
-// 画面に出す「全体へ・量2倍・溜め不要」の印は、この記録から作る（手で書くとずれる）。
-//
-// **広さと太さは両立しない。**両方を一度に掛けると、5体へ2倍＝10倍の一手になり、
-// 一戦がそのまま終わる（analysis/ecology-ultimate-smoke.mjs で実測した）。
-// 広げられる技能は広がるだけ、広げられない技能だけが太くなる。
+// 画面に出す「全体へ・量◯倍・溜め不要・消えない防壁」の印は、この記録から作る
+// （手で書くとずれる）。
 function ascendEffect(effect, content, traits) {
   const next = clone(effect);
   const widened = widenedEffectTarget(next, content);
@@ -131,7 +142,6 @@ function ascendEffect(effect, content, traits) {
     if (widened.dropPattern) delete next.targetPattern;
     next.target = widened.target;
     traits.widened = true;
-    return next;
   }
   if (AMPLIFIED_EFFECTS.has(next.type) && next.amount) {
     const amplified = amplifiedAmount(next.amount);
@@ -144,6 +154,12 @@ function ascendEffect(effect, content, traits) {
     next.stacks = (next.stacks ?? 1) * ULTIMATE_AMOUNT_MULTIPLIER;
     traits.amplified = true;
   }
+  // 防壁はラウンド終わりに消える。**必殺の防壁は戦闘のあいだ残る。**
+  // 守りの必殺が「そのラウンドだけ厚い」で終わると、攻めの必殺と釣り合わない。
+  if (next.type === "gain_barrier" && next.duration !== "battle") {
+    next.duration = "battle";
+    traits.lasting = true;
+  }
   return next;
 }
 
@@ -155,16 +171,35 @@ function selfTarget() {
   return { scope: "self", take: 1 };
 }
 
-// 必殺が必ず持つ二つ。**発動条件と代償を、変換された技能そのものへ書き込む。**
+// 必殺が必ず持つ発動条件。**代償も条件も、変換された技能そのものへ書き込む。**
 // 呼び出し側（engine・画面）に「必殺だけの分岐」を作らないためである。
 function ultimateGate() {
-  return {
-    type: "has_status",
-    subject: "self",
-    statusId: ULTIMATE_SPENT_STATUS_ID,
-    op: "eq",
-    value: 0,
-  };
+  return [
+    // この戦闘でまだ放っていないこと。
+    {
+      type: "has_status",
+      subject: "self",
+      statusId: ULTIMATE_SPENT_STATUS_ID,
+      op: "eq",
+      value: 0,
+    },
+    // **隊の誰かが削られていること。**1ラウンド目にいきなり必殺が出るのは絵として
+    // 妙なので、殴られてから切り返す形にする。無傷で終わる一戦では出ないが、
+    // そういう一戦では要らなかったのだから、回数も減らない。
+    {
+      type: "target_exists",
+      op: "gte",
+      value: 1,
+      query: {
+        scope: "allies",
+        filters: [
+          { type: "alive" },
+          { type: "hp_percent", op: "lt", value: ULTIMATE_READY_HP_PERCENT },
+        ],
+        take: "all",
+      },
+    },
+  ];
 }
 
 function ultimateSeal() {
@@ -182,7 +217,7 @@ function ultimateSeal() {
 }
 
 function newTraits() {
-  return { amplified: false, widened: false, instant: false };
+  return { amplified: false, widened: false, instant: false, lasting: false, free: false };
 }
 
 function ascendActive(definition, content) {
@@ -194,13 +229,13 @@ function ascendActive(definition, content) {
     ...(prepared ? ascendEffects(prepared.completionEffects, content, traits) : []),
   ];
   if (prepared) traits.instant = true;
-  if (!traits.amplified && !traits.widened) return null;
+  if (!traits.amplified && !traits.widened && !traits.lasting) return null;
 
   const next = {
     ...source,
     id: ultimateIdFor(source.id),
     displayName: ultimateDisplayName(source.displayName),
-    intrinsicPredicates: [...(source.intrinsicPredicates ?? []), ultimateGate()],
+    intrinsicPredicates: [...(source.intrinsicPredicates ?? []), ...ultimateGate()],
     effects: [...effects, ...ultimateSeal()],
     tags: [...new Set([...(source.tags ?? []), "ultimate"])],
   };
@@ -225,7 +260,14 @@ function ascendReactive(definition, content) {
   const rule = source.rule;
   if (!rule) return null;
   const effects = ascendEffects(rule.effects, content, traits);
-  if (!traits.amplified && !traits.widened) return null;
+  if (!traits.amplified && !traits.widened && !traits.lasting) return null;
+
+  // **反応点を払わない。**反応は装着順に上から払うので、下に置いた必殺が
+  // 「点が尽きて出なかった」で終わることがある。一戦に一度きりの一手が
+  // 資源競合で消えるのは選択ではなく事故なので、必殺だけは点の外に出す。
+  // 無限には回らない——発火は戦闘に1回、状態の印と rule の limit が二重に止める。
+  const costs = (rule.costs ?? []).filter((cost) => cost.type !== "spend_reaction_points");
+  if (costs.length !== (rule.costs ?? []).length) traits.free = true;
 
   const next = {
     ...source,
@@ -236,7 +278,8 @@ function ascendReactive(definition, content) {
       ...rule,
       // 元の rule と同じ ID のままだと、通常版と必殺版の発火回数が同じ鍵を共有する。
       id: ultimateIdFor(rule.id),
-      predicates: [...(rule.predicates ?? []), ultimateGate()],
+      predicates: [...(rule.predicates ?? []), ...ultimateGate()],
+      costs,
       effects: [...effects, ...ultimateSeal()],
       // 状態の印だけでも一度きりになるが、**回数の上限は回数として書く。**
       limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
@@ -265,15 +308,18 @@ export function ultimateTraitLabels(traits) {
   if (!traits) return [];
   const labels = [];
   if (traits.widened) labels.push("全体へ");
-  if (traits.amplified) labels.push("量2倍");
+  if (traits.amplified) labels.push("量" + ULTIMATE_AMOUNT_MULTIPLIER + "倍");
   if (traits.instant) labels.push("溜め不要");
+  if (traits.lasting) labels.push("防壁が残る");
+  if (traits.free) labels.push("反応点なし");
   return labels;
 }
 
 // 必殺が必ず背負う制限。**技能によらず同じ**なので、ここに一度だけ書く。
 export const ULTIMATE_TERMS = Object.freeze([
+  "一人一遠征に1回",
   "戦闘に1回",
-  "必殺印1",
+  `隊の誰かがHP${ULTIMATE_READY_HP_PERCENT}%未満`,
   `直後に自分へ「${STATUS_NAMES[ULTIMATE_BACKLASH_STATUS_ID]}」${ULTIMATE_BACKLASH_STACKS}`,
 ]);
 

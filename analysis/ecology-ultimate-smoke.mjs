@@ -6,26 +6,34 @@
 //   1. **目録。**取得済み技能のうち、どれが必殺になれてどれがなれないか。
 //      なれない技能が残っていることそのものが、必殺化の規則が「全部を一律に強くする
 //      装置」になっていない証拠である。
-//   2. **有限性。**12戦を通しで走らせて、放たれた回数が必殺印の数を超えないこと。
-//      同じ戦闘で二度出ないこと。印が負にならないこと。
+//   2. **有限性。**12戦を通しで走らせて、誰も自分の一回を超えて放たないこと。
+//      同じ戦闘で二度出ないこと。
 //   3. **効き。**同じ盤面を「構える／構えない」で走らせ、ラウンド数と隊のHP損失が
 //      どれだけ動くかを一戦ずつ出す。**判定はしない**——強すぎ／弱すぎを決めるのは
 //      作者で、ここは数を並べるところまで。
-//   4. **切り方の差。**同じ3つの印を「序盤から順に切る」「幕ボスへ集める」で
-//      使い分けたとき、通しの到達点が変わること。変わらないなら、
+//   4. **切り方の差。**同じ回数を「出せるところから順に切る」「幕ボスへ取っておく」で
+//      使い分けたとき、通しの形が変わること。変わらないなら、
 //      「どこで切るか」という問い自体が成立していない。
+//   5. **傷の条件。**隊が削られる前には出ないこと。序盤の楽な一戦で不発になるのは
+//      仕様であって、その一戦では回数も減らない。
 
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "../ecology/playable-content.mjs";
-import { ULTIMATE_SEALS_PER_RUN, ascendSkill, ultimateTraitLabels } from "../ecology/ultimates.mjs";
+import {
+  ULTIMATE_READY_HP_PERCENT,
+  ULTIMATE_USES_PER_CHARACTER,
+  ascendSkill,
+  ultimateTraitLabels,
+} from "../ecology/ultimates.mjs";
 import {
   ENCOUNTERS_PER_RUN,
   armedUltimates,
   commitBattleResult,
   newProfile,
   newRun,
-  ultimateSealsLeft,
-  ultimateSealsSpent,
+  ultimateUsesLeft,
+  ultimateUsesLeftInParty,
+  ultimatesFiredBy,
 } from "../ecology/progression.mjs";
 import { freshLoadout, simulateExpeditionBattle } from "../ecology/playable-battles.mjs";
 
@@ -106,7 +114,7 @@ const perEncounter = [];
 for (let index = 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
   const off = simulateExpeditionBattle(designated, profile, index);
   const on = simulateExpeditionBattle(armedAll, profile, index);
-  const fired = ultimateSealsSpent(armedAll, on.result);
+  const fired = ultimatesFiredBy(armedAll, on.result);
   perEncounter.push({
     index,
     fired: fired.length,
@@ -137,19 +145,34 @@ const moved = perEncounter.filter((entry) => (
 ));
 assert.ok(moved.length > 0, "必殺が出ているのに、盤面が一つも動いていない");
 
+// 5. 傷の条件。**楽な一戦では出ない。**全員が構えていても、隊が削られなければ
+// 必殺の出番そのものが無い（そしてその一戦では回数も減らない）。
+const quiet = perEncounter.filter((entry) => entry.fired === 0);
+assert.ok(
+  quiet.length > 0,
+  `隊が HP${ULTIMATE_READY_HP_PERCENT}% 未満まで削られない一戦が一つも無い`
+  + "（傷の条件が効いていないので、必殺が1ラウンド目から出る）",
+);
+assert.ok(
+  quiet.length < perEncounter.length,
+  "どの一戦でも出ない（傷の条件が厳しすぎて、必殺が死んでいる）",
+);
+for (const entry of quiet) {
+  assert.deepEqual(
+    entry.rounds[0], entry.rounds[1],
+    `第${entry.index}戦: 必殺が出ていないのに盤面が動いている`,
+  );
+}
+
 // ---------------------------------------------------------------- 2 と 4. 通しと切り方
 
-// 印の切り方を二つ。**同じ3つを、序盤から順に切るか、幕ボスへ集めるか。**
+// 切り方を二つ。**同じ回数を、出せるところから順に切るか、幕ボスへ取っておくか。**
+const stillHas = (run) => run.roster.filter((id) => ultimateUsesLeft(run, id) > 0);
 const POLICIES = [
+  { id: "出せるところから", armedAt: (index, run) => stillHas(run) },
   {
-    id: "早く切る",
-    armedAt: (index, run) => (ultimateSealsLeft(run) > 0 ? run.roster.slice(0, 1) : []),
-  },
-  {
-    id: "幕ボスへ集める",
-    armedAt: (index, run) => (
-      ACT_BOSSES.includes(index) ? run.roster.slice(0, ultimateSealsLeft(run)) : []
-    ),
+    id: "幕ボスへ取っておく",
+    armedAt: (index, run) => (ACT_BOSSES.includes(index) ? stillHas(run) : []),
   },
 ];
 
@@ -164,19 +187,25 @@ for (const policy of POLICIES) {
     run = { ...armFor(run, policy.armedAt(index, run)), encounterIndex: index };
     const { result } = simulateExpeditionBattle(run, profile, index);
     rounds += result.roundsUsed;
-    const spent = ultimateSealsSpent(run, result);
+    const spent = ultimatesFiredBy(run, result);
     if (result.result !== "win") break;
     fired += spent.length;
     reached = index;
     const commit = commitBattleResult(profile, run, index, result);
     run = commit.run;
-    assert.ok(ultimateSealsLeft(run) >= 0, policy.id + ": 必殺印が負になった");
+    for (const characterId of run.roster) {
+      assert.ok(
+        ultimateUsesLeft(run, characterId) >= 0,
+        policy.id + ": " + characterId + " の残り回数が負になった",
+      );
+    }
   }
+  const budget = start.roster.length * ULTIMATE_USES_PER_CHARACTER;
   assert.ok(
-    fired <= ULTIMATE_SEALS_PER_RUN,
-    `${policy.id}: 12戦で ${fired} 回放っている（印は ${ULTIMATE_SEALS_PER_RUN} つしかない）`,
+    fired <= budget,
+    `${policy.id}: 12戦で ${fired} 回放っている（${start.roster.length}人ぶんの ${budget} 回しかない）`,
   );
-  walks.push({ id: policy.id, reached, fired, rounds, sealsLeft: ultimateSealsLeft(run) });
+  walks.push({ id: policy.id, reached, fired, rounds, left: ultimateUsesLeftInParty(run) });
 }
 
 // 切り方で通しの形が変わらないなら、「どこで切るか」という問いが成立していない。
@@ -204,6 +233,6 @@ console.log(
   "ecology-ultimate smoke 切り方の差: "
   + walks.map((walk) => (
     walk.id + " 第" + walk.reached + "/" + ENCOUNTERS_PER_RUN + "戦・通算"
-    + walk.rounds + "ラウンド・放った " + walk.fired + "・残り印 " + walk.sealsLeft
+    + walk.rounds + "ラウンド・放った " + walk.fired + "・必殺を残す仲間 " + walk.left + "人"
   )).join(" / "),
 );

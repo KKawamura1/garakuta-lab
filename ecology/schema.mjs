@@ -35,10 +35,10 @@ export const MINING_VERSION = "ecology-mining-1";
 // `campaignStageId`/`campaignStageSequence` provenance and a fixed (non-random)
 // construction path for campaign mode. All three versions move up one.
 export const PROFILE_SCHEMA_VERSION = "ecology-profile-2";
-// issue #238 — RunState gained `ultimateSeals` (the party-wide, non-refilling pool
-// that pays for 必殺技) and its loadout gained `ultimates` / `ultimateArmed`. A save
-// without them would silently start the expedition with a full pool and no armed
-// ultimate, so the version says out loud that the shape grew.
+// issue #238 — RunState gained `ultimatesUsed` (who has already spent their one
+// 必殺技 this expedition) and its loadout gained `ultimates` / `ultimateArmed`. A save
+// without them would silently hand everybody a fresh ultimate, so the version says
+// out loud that the shape grew.
 export const RUN_SCHEMA_VERSION = "ecology-run-4";
 export const MANIFEST_VERSION = "ecology-manifest-2";
 
