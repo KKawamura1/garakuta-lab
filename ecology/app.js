@@ -273,8 +273,12 @@ function rosterLocked() {
   return state.run?.rosterLocked === true;
 }
 
+// issue #159 — 固定同行者の区画では、人数を N/M で出さない。**分母は「まだ入れられる」
+// と読めてしまう**が、その回は誰も足せない（作者指摘、2026-09-08）。
 function partyLabel() {
-  return state.run.roster.length + " / " + runPartySize() + "人";
+  return rosterLocked()
+    ? state.run.roster.length + "人"
+    : state.run.roster.length + " / " + runPartySize() + "人";
 }
 
 // 遠征を1つ作る。**技能の解禁も装備も、ここで run の中へ入る。**
@@ -536,8 +540,9 @@ function hydrateState(saved) {
   next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
 
   next.migrationNote = null;
-  const hasFormationSelection = Object.prototype.hasOwnProperty.call(saved, "formationSelection");
-  const savedFormationSelection = hasFormationSelection ? saved.formationSelection : next.selectedCharacter;
+  // issue #159 — 保存に欄が無い（この欄より古い）保存も、**誰も選んでいない状態**で開く。
+  // 選択中の人物を引き継ぐと、盤面のどこかが最初から光った状態でキャンプへ戻る。
+  const savedFormationSelection = saved.formationSelection;
   next.formationSelection = next.run.roster.includes(savedFormationSelection) ? savedFormationSelection : null;
   // 戦闘内の値（HP・装備耐久）はBattleState。保存から戻るときは満タンへ戻す。
   next.hp = Object.fromEntries(
@@ -1157,14 +1162,29 @@ function restoreHelpDetails() {
 }
 
 
+// issue #159 — タブの数字は、そのタブを開かずに「まだやることがあるか」を出す。
+// **選んでいる一人の残点では、他の四人が余らせていることが読めない。**
+function totalSkillPoints() {
+  return state.run.roster.reduce((total, id) => total + skillPointsFor(id), 0);
+}
+
+// 装備の分子は装着済みの総数、分母は**実際に埋められる数**——手元の総数と枠の総数の
+// 小さいほうである。所持が足りなくても枠が足りなくても、埋めきれば X/X になる。
+function equipmentFillLabel() {
+  const worn = state.run.roster.reduce((total, id) =>
+    total + (state.run.loadout.equipment?.[id] || []).length, 0);
+  const slots = state.run.roster.length * 2;
+  const owned = state.run.inventory.length;
+  return worn + "/" + Math.max(worn, Math.min(owned, slots));
+}
+
 function campNav() {
-  const skillCharacter = selectedCharacter();
   const tutorialLocked = supplyTutorialVisible();
   const activeTab = tutorialLocked ? "supplies" : state.tab;
   const tabs = [
     ["roster", "編成", partyLabel()],
-    ["skills", "スキル", characterName(skillCharacter) + " " + skillPointsFor(skillCharacter) + "pt"],
-    ["equipment", "装備", state.run.roster.reduce((total, id) => total + (state.run.loadout.equipment?.[id] || []).length, 0) + "/" + (state.run.roster.length * 2)],
+    ["skills", "スキル", totalSkillPoints() + "pt"],
+    ["equipment", "装備", equipmentFillLabel()],
     ["supplies", "補給", state.run.supplies + "/" + MAX_SUPPLIES],
     ["map", "戦闘", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN],
   ];
@@ -2092,10 +2112,10 @@ function renderCamp() {
     supplies: renderSupplies,
     map: renderMap,
   }[activeTab]?.() ?? renderMap();
-  // R14 §1 — 予測とタブは一つの塊で上端に貼りつく。**どのタブで何を触っても、
-  // 各メンバーのHPと減少量が視界から出ない。**
+  // R14 §1 / issue #159 — 盤面・予測・タブは一つの塊で上端に貼りつく。**どのタブで
+  // 何を触っても、誰がどこにいて、HPがいくつ減るかが視界から出ない。**
   return shell(
-    "<div class=\"camp-top\">" + forecastBar() + campNav() + "</div>" + campTools() + view);
+    "<div class=\"camp-top\">" + partyBar(activeTab) + campNav() + "</div>" + campTools() + view);
 }
 
 // R6 §15.2 — base 値・永続鍛錬・run 内補正を分けて表示する。
@@ -2106,67 +2126,73 @@ function trainedMark(stats, axis) {
   return "<i class=\"trained\" title=\"基礎 " + detail.base + " · 鍛錬 Lv" + detail.level + "\">＋</i>";
 }
 
+// issue #159 — 隊列盤は上端の共通盤面が持つ。**このタブが足すのは「選んでいる一人の
+// 中身」だけである。**誰がどこにいるかを二度描かない。
+function rosterMemberDetail(characterId) {
+  if (!characterId) return "";
+  const option = characterInfo(characterId);
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  const stats = statsFor(characterId);
+  const axes = [
+    ["HP", currentHp(characterId) + " / " + stats.stats.maxHp, trainedMark(stats, "vitality")],
+    ["腕力", stats.stats.might, trainedMark(stats, "might")],
+    ["技術", stats.stats.focus, trainedMark(stats, "focus")],
+    ["受け", stats.stats.guard, trainedMark(stats, "guard")],
+  ].map(([label, value, mark]) => "<span><small>" + esc(label) + "</small><b>" + value + mark + "</b></span>").join("");
+  return "<section class=\"member-detail\"><div class=\"member-detail-head\"><span class=\"avatar\">"
+    + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId)) + "</h3>"
+    + "<small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
+    + "<span class=\"member-detail-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点"
+    + (definition.baseActionPoints ?? 0) + " · 反応点" + (definition.baseReactionPoints ?? 0) + "\">"
+    + pips(definition.baseActionPoints ?? 0, "ap") + pips(definition.baseReactionPoints ?? 0, "rp")
+    + "</span></div>"
+    + "<div class=\"member-detail-stats\">" + axes + "</div></section>";
+}
+
 function renderRoster() {
-  const formationSelection = selectedFormationCharacter();
-  const slots = POSITIONS.map((position) => {
-    const owner = positionOwner(position);
-    const selected = owner && formationSelection === owner;
-    const content = owner
-      ? "<span class=\"avatar\">" + esc(characterInfo(owner)?.icon ?? "・") + "</span><span><b>"
-        + esc(characterName(owner)) + "</b><small>" + esc(characterInfo(owner)?.role ?? "")
-        + " · HP " + currentHp(owner) + "/" + maxHp(owner) + "</small></span>"
-      : "<span class=\"empty-icon\">＋</span><span><b>空き枠</b><small>選択した仲間をここへ置く</small></span>";
-    return "<button type=\"button\" class=\"formation-slot " + (selected ? "selected" : "")
-      + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"place-character\" data-position=\"" + position + "\"><span class=\"slot-label\">"
-      + positionText(position) + "</span><span class=\"slot-person\">" + content + "</span></button>";
-  }).join("");
-  const metOptions = metCharacterOptions();
-  const rosterOptions = rosterLocked()
-    ? CHARACTER_OPTIONS.filter((option) => state.run.roster.includes(option.id))
-    : metOptions;
-  const characterCards = rosterOptions.map((option) => {
-    const inParty = state.run.roster.includes(option.id);
-    const selected = formationSelection === option.id;
-    const action = inParty ? "select-formation-character" : "toggle-roster";
-    const actionLabel = inParty
-      ? (selected ? "位置選択中" : "位置を選ぶ")
-      : "編成に入れる";
-    const stats = statsFor(option.id);
-    return "<article class=\"character-card " + (inParty ? "in-party " : "") + (selected ? "selected" : "")
-      + "\"><button type=\"button\" class=\"character-main\" data-action=\"" + action
-      + "\" data-character=\"" + option.id + "\"><span class=\"avatar\">"
-      + esc(option.icon) + "</span><span class=\"character-copy\"><b>" + esc(characterName(option.id))
-      + "</b><small>" + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
-      + (inParty ? "✓" : "＋") + "</span></button><div class=\"character-stats\"><span>HP "
-      + stats.stats.maxHp + trainedMark(stats, "vitality") + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
-      + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
-      + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
-      + "</span><span>AP " + (PLAYABLE_CONTENT.characters[option.id]?.baseActionPoints ?? "-")
-      + " / RP " + (PLAYABLE_CONTENT.characters[option.id]?.baseReactionPoints ?? "-")
-      + "</span><span>" + esc(actionLabel) + "</span></div></article>";
-  }).join("");
-  const instruction = formationSelection ? "移動先を選んでください。" : "仲間を選んでください。";
-  const rosterCopy = rosterLocked()
-    ? "今回は" + runPartySize() + "人で進みます。同行者は物語が決めます。"
-    : "会った仲間から" + runPartySize() + "人を選びます。";
+  // 盤面で選んだ人物をそのまま主語にする。移動を確定したあとも、直前に触った人物の
+  // 中身が下に残る（**選び直さないと何も読めない**という往復を作らない）。
+  const shown = selectedFormationCharacter() ?? selectedCharacter();
   const rewindTutorialNote = state.prologueActive && state.prologueStage === "retry"
     ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
       + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
       + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
       + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
     : "";
+  // R12 §4.E-1 / issue #211 — Campaign Stage の同行者は物語が決める。**選べないものを
+  // 「選べるように見えるカード」で出さない**（issue #159、作者指摘 2026-09-08）ので、
+  // 固定の回は候補一覧そのものを出さず、一行で理由だけを書く。
+  const swap = rosterLocked()
+    ? ""
+    : "<section class=\"card\">" + sectionHeading("ROSTER", "仲間を入れ替える")
+      + "<p class=\"operation-note\">会った仲間から" + runPartySize() + "人を選びます。</p>"
+      + "<div class=\"character-grid\">" + metCharacterOptions().map((option) => {
+        const inParty = state.run.roster.includes(option.id);
+        const stats = statsFor(option.id);
+        return "<article class=\"character-card " + (inParty ? "in-party" : "") + "\">"
+          + "<button type=\"button\" class=\"character-main\" data-action=\"toggle-roster\" data-character=\""
+          + esc(option.id) + "\"><span class=\"avatar\">" + esc(option.icon) + "</span>"
+          + "<span class=\"character-copy\"><b>" + esc(characterName(option.id)) + "</b><small>"
+          + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
+          + (inParty ? "外す" : "入れる") + "</span></button>"
+          + "<div class=\"character-stats\"><span>HP " + stats.stats.maxHp + trainedMark(stats, "vitality")
+          + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
+          + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
+          + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
+          + "</span></div></article>";
+      }).join("") + "</div></section>";
   return "<section class=\"card\">" + sectionHeading("FORMATION", "隊列",
       "<span class=\"stage\">" + partyLabel() + "</span>")
-    + "<p class=\"operation-note\" role=\"status\">" + instruction + "</p>"
-    + "<div class=\"formation-board\">" + slots + "</div>"
+    + (rosterLocked()
+      ? "<p class=\"operation-note\">この区画の同行者は物語が決めます。一度クリアすると自由に選べます。</p>"
+      : "")
+    + rosterMemberDetail(shown)
     + helpDetails("formation", "配置の説明",
       "<p class=\"muted\">前列は武器攻撃を通しやすく、後列は技術による攻撃や支援に向きます。前列の人数で狙われ方も変わります。</p>"
-      + "<p class=\"muted\">仲間を選んでから位置枠を選ぶと交換できます。同じ枠をもう一度押すと選択を解除します。</p>")
+      + "<p class=\"muted\">上の盤面で仲間を選んでから別の枠を選ぶと、移動または二人の交換をします。同じ枠をもう一度押すと選択を解除します。</p>")
     + rewindTutorialNote
     + "</section>"
-    + "<section class=\"card\">" + sectionHeading("ROSTER", rosterLocked() ? "今回の同行者" : "仲間を選ぶ")
-    + "<p class=\"operation-note\">" + rosterCopy + "</p>"
-    + "<div class=\"character-grid\">" + characterCards + "</div></section>";
+    + swap;
 }
 
 
@@ -2509,41 +2535,9 @@ function skillSlotRows(characterId, kind) {
     + (rows || "<p class=\"empty-slot\">—</p>") + "</div>";
 }
 
-function memberTabs(characterId, options = {}) {
-  const showSkillPoints = options.showSkillPoints !== false;
-  return "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">" + state.run.roster.map((id) => "<button type=\"button\" class=\"member-tab "
-    + (id === characterId ? "active" : "") + "\" aria-pressed=\"" + (id === characterId ? "true" : "false")
-    + "\" data-action=\"select-character\" data-character=\"" + id
-    + "\"><span class=\"avatar small\">" + esc(characterInfo(id)?.icon ?? "・") + "</span>"
-    + "<span>" + characterName(id) + "<small>" + positionText(state.run.formation[id])
-    + (showSkillPoints ? " · " + skillPointsFor(id) + "pt" : "") + "</small></span></button>").join("") + "</div>";
-}
-
-
-// **立ち位置は前後左右の絵で出す。**「前列左」と書く代わりに、2×3の枠のどこに
-// 立っているかを塗る（武器の敵は前列が生きているあいだ前列しか届かない、という
-// 規則がそのまま見える）。issue #177。
-function formationMark(characterId) {
-  const here = state.run.formation[characterId];
-  const cells = POSITIONS.map((position) => {
-    const who = state.run.roster.find((id) => state.run.formation[id] === position);
-    const cls = position === here ? "self" : who ? "ally" : "";
-    return "<i class=\"" + cls + "\"></i>";
-  }).join("");
-  const label = "立ち位置 " + positionText(here);
-  return "<span class=\"formation-mark\" role=\"img\" aria-label=\"" + esc(label) + "\" title=\""
-    + esc(label) + "\">" + cells + "</span>";
-}
-
-// **HP は棒で出す。**盤面の HP バーと同じ読み方にする。
-function hpMark(characterId) {
-  const now = currentHp(characterId);
-  const max = maxHp(characterId);
-  const ratio = max > 0 ? Math.max(0, Math.min(100, Math.round((now * 100) / max))) : 0;
-  const label = "HP " + now + " / " + max;
-  return "<span class=\"hp-mark\" role=\"img\" aria-label=\"" + label + "\" title=\"" + label + "\">"
-    + "<i><b style=\"width:" + ratio + "%\"></b></i></span>";
-}
+// issue #159 — 仲間タブ（memberTabs）と、立ち位置・HPの小さな印（formationMark /
+// hpMark）はここにあった。**上端の共通盤面がその三つを兼ねる**ので消した。
+// 盤面のセルがどこにあるかが立ち位置で、セルのHPバーがそのままHPの印である。
 
 function memberContext(characterId, emphasis = "skills") {
   const option = characterInfo(characterId);
@@ -2560,7 +2554,7 @@ function memberContext(characterId, emphasis = "skills") {
   return "<section class=\"member-context\"><div class=\"member-context-head\"><span class=\"avatar\">"
     + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId))
     + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
-    + "<span class=\"member-context-marks\">" + formationMark(characterId) + hpMark(characterId) + "</span></div>"
+    + "</div>"
     + (primary || secondary
       ? "<div class=\"member-context-loadout\">"
         + (primary ? "<span>" + esc(primary) + "</span>" : "")
@@ -2592,7 +2586,6 @@ function skillBuildSummary(characterId) {
     : "";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
     + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
-    + formationMark(characterId) + hpMark(characterId)
     + "<span class=\"summary-res\" role=\"img\" aria-label=\"行動点 "
     + (definition.baseActionPoints ?? 0) + " · 反応点 " + (definition.baseReactionPoints ?? 0) + "\" title=\""
     + "1ラウンドに払える 行動点" + (definition.baseActionPoints ?? 0)
@@ -2930,15 +2923,19 @@ function symbolLegendHelp() {
 }
 
 function renderSkills() {
+  // issue #159 — 対象の人物は上端の共通盤面で選ぶ。**このタブに二つ目の仲間タブを
+  // 持たない。**残り技能点は隊全体の合計にする（一人ぶんだけでは、他の誰かが
+  // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
   const characterId = selectedCharacter();
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>" + esc(characterName(characterId)) + "の技能点</small><b>" + skillPointsFor(characterId) + "</b></span>";
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>残り技能点（隊全体）</small><b>"
+    + totalSkillPoints() + "</b></span>";
   const depths = state.run.manifest.packDepths ?? {};
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
     .join(" · ");
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能", pointsBadge)
     + "<p class=\"context-line\">" + esc(packs) + "</p>"
-    + memberTabs(characterId) + memberContext(characterId, "skills")
+    + memberContext(characterId, "skills")
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">" + sectionHeading("SKILL TREE", "技能ツリー")
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
@@ -3008,9 +3005,10 @@ function renderEquipment() {
     ? "装着する枠を選んでください。"
     : "装備を選んでください。";
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT", "装備",
-      "<span class=\"stage\">" + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>")
+      "<span class=\"stage\">装着 " + equipmentFillLabel() + " · 手元 "
+      + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>")
     + "<p class=\"operation-note\" role=\"status\">" + selection + "</p>"
-    + memberTabs(characterId, { showSkillPoints: false }) + memberContext(characterId, "equipment")
+    + memberContext(characterId, "equipment")
     + slots
     + inventory
     + helpDetails("equipment-rules", "装備のルール",
@@ -3104,9 +3102,6 @@ function renderMap() {
     + "<span><i class=\"map-legend-symbol kind-elite\" aria-hidden=\"true\">◆</i>精鋭</span>"
     + "<span><i class=\"map-legend-symbol kind-boss\" aria-hidden=\"true\">★</i>ボス</span>"
     + "</div>";
-  const party = state.run.roster.map((id) => "<div class=\"map-party-row\"><span class=\"avatar small\">"
-    + esc(characterInfo(id)?.icon ?? "・") + "</span><b>" + esc(characterName(id)) + "</b><span>"
-    + positionText(state.run.formation[id]) + " · HP " + currentHp(id) + "/" + maxHp(id) + "</span></div>").join("");
   const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[encounter.kind];
   const law = encounter.bossLaw
     ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
@@ -3131,7 +3126,8 @@ function renderMap() {
     + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "ラウンド</p><p class=\"lead-small\">"
     + esc(encounter.description) + "</p>"
     + law + enemyBlock
-    + "<div class=\"map-party\"><h3>現在の隊列</h3>" + party + "</div>"
+    // issue #159 — 「現在の隊列」の一覧はここにあった。**上端の共通盤面が
+    // 立ち位置と現在HPを同じ形で出している**ので、敵の下で二度描かない。
     + "</section>"
     + helpDetails("expedition-rules", "遠征のルール", ruleBody);
 }
@@ -3162,23 +3158,9 @@ function treatmentResultBlock() {
     + complete + "</div>";
 }
 
-function treatmentTargetPicker() {
-  const treatment = CAMP_TREATMENTS[state.treatmentSelection];
-  if (!treatment || treatment.targetCount === "all") return "";
-  const candidates = treatmentTargetIds(treatment);
-  const buttons = candidates.map((id) => button(
-    characterName(id) + " · HP " + currentHp(id) + "/" + maxHp(id),
-    "select-treatment-target",
-    false,
-    "member-tab treatment-target",
-    "data-treatment=\"" + esc(treatment.id) + "\" data-character=\"" + esc(id) + "\"",
-  )).join("");
-  return "<div class=\"treatment-target-picker\" role=\"group\" aria-label=\"" + esc(treatment.displayName) + "の対象選択\">"
-    + "<p class=\"operation-note\"><b>手順 2/2</b> 対象を1人選んでください。選ぶまで補給は消費しません。</p>"
-    + "<div class=\"member-tabs treatment-targets\">" + buttons + "</div>"
-    + button("治療を選び直す", "cancel-treatment-target", false, "tiny-button")
-    + "</div>";
-}
+// issue #159 — 治療の対象は上端の共通盤面から選ぶ。**治療のためだけの三つ目の
+// 仲間一覧を作らない。**候補・対象外・選択中の治療名・取り消しは、すべて盤面と
+// その一行（partyCellRole / partyBoardNote）が持つので、このタブには何も足さない。
 
 function campTreatmentBlock() {
   const tutorial = supplyTutorialVisible();
@@ -3211,7 +3193,7 @@ function campTreatmentBlock() {
     : "";
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営治療",
       "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + tutorialGuide + treatmentResultBlock() + rows + treatmentTargetPicker()
+    + tutorialGuide + treatmentResultBlock() + rows
     + helpDetails("treatment-rules", "治療の対象",
       "<p class=\"muted\">集中治療と蘇生は治療を選んだあと、対象をプレイヤーが明示的に選びます。集中治療は負傷した生存者、蘇生は戦闘不能者だけが候補です。全体手当は生存者全員へ適用します。</p>")
     + "</section>";
@@ -3313,45 +3295,167 @@ function battleForecast() {
 
 const FORECAST_RESULT_LABEL = { win: "勝利", loss: "敗北", draw: "決着つかず" };
 
-function forecastMemberChip(entry) {
-  const ceiling = Math.max(1, entry.maxHp || maxHp(entry.characterId) || 1);
-  const ending = Math.max(0, Math.min(ceiling, entry.endingHp));
-  const starting = Math.max(ending, Math.min(ceiling, entry.startingHp));
-  const pct = (value) => Math.max(0, Math.min(100, Math.round((value / ceiling) * 1000) / 10));
-  // 減少量が主役。**±0 と回復（＋）を別の色で出す**（装備を替えた効きが一目で分かる）。
-  const lost = entry.hpLost;
-  const deltaText = lost > 0 ? "−" + lost : lost < 0 ? "＋" + Math.abs(lost) : "±0";
-  const deltaClass = entry.defeated ? "fatal" : lost > 0 ? "down" : lost < 0 ? "up" : "flat";
-  // 5人ぶんが 390px 幅に横並びで収まる形にしてある。**減少量を先に、残るHPを次に。**
-  // 「いくつ減るか」が装備を替えたときにいちばん動く数字である。
-  return "<div class=\"forecast-member " + (entry.defeated ? "defeated" : "") + "\">"
-    + "<div class=\"forecast-member-head\"><span class=\"avatar small\">"
-    + esc(characterInfo(entry.characterId)?.icon ?? "・") + "</span><b>"
-    + esc(characterName(entry.characterId)) + "</b></div>"
-    + "<div class=\"forecast-hp-bar\" role=\"img\" aria-label=\"HP " + starting + " から " + ending
-    + "（" + (entry.defeated ? "戦闘不能" : deltaText) + "）\">"
-    + "<span class=\"forecast-hp-end\" style=\"width:" + pct(ending) + "%\"></span>"
-    + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span></div>"
-    + "<div class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</div>"
-    + "<div class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></div>"
-    + "</div>";
+// ============================================================ 仲間の共通盤面（issue #159）
+//
+// **キャンプの主語は「誰がどこにいるか」で、それは一つしかない。**
+//
+// 以前は同じ仲間を選ぶ表示が四つあった——上端の横並び予測チップ、編成タブの隊列盤と
+// キャラクターカード、技能タブの仲間タブ、装備タブの仲間タブと対象カード。タブを移る
+// たびに「いま誰を触っているか」を探し直すことになり、予測を見ながら組み替えるという
+// この遠征の中心の操作が、画面ごとに分断されていた（作者試遊、2026-09-06）。
+//
+// だから **`POSITIONS` そのままの3列×2行を上端に一つだけ置き、タブは操作だけを
+// そこへ掛ける。**盤面の形・並び・情報項目は戦闘中の `battleRowsHtml` と同じで、
+// キャンプで見ていた並びがそのまま戦闘の盤面になる。
+//
+// **セルが持つのは五つだけ。**顔と名前、HP（予測があれば開始→終了）、減少量、
+// 残HPの数、行動点／反応点の丸（issue #177 の「丸は払うものだけ」）。
+// 立ち位置は文字で書かない——**セルが盤面のどこにあるかが、それを出している。**
+const BOARD_ROWS = [
+  { row: "front", label: "前列" },
+  { row: "rear", label: "後列" },
+];
+
+// **タブごとに変わるのはここだけ。**盤面そのものは一つで、掛かる操作が入れ替わる。
+//
+//   編成 … セル（空き枠を含む）を押して選択・移動・交換する
+//   技能／装備 … 人物を選ぶだけで、隊列は動かさない
+//   補給 … 通常は何も起きない。単体治療・蘇生を選んだあいだだけ対象選択になる
+//   戦闘 … 見るだけ
+function partyCellRole(mode, position, characterId) {
+  if (mode === "roster") {
+    return {
+      action: "place-character",
+      attrs: "data-position=\"" + esc(position) + "\"",
+      selected: Boolean(characterId) && selectedFormationCharacter() === characterId,
+    };
+  }
+  if (mode === "skills" || mode === "equipment") {
+    if (!characterId) return { action: null };
+    return {
+      action: "select-character",
+      attrs: "data-character=\"" + esc(characterId) + "\"",
+      selected: selectedCharacter() === characterId,
+    };
+  }
+  if (mode === "supplies") {
+    const treatment = CAMP_TREATMENTS[state.treatmentSelection];
+    if (!treatment || treatment.targetCount === "all" || !characterId) return { action: null };
+    return {
+      action: "select-treatment-target",
+      attrs: "data-treatment=\"" + esc(treatment.id) + "\" data-character=\"" + esc(characterId) + "\"",
+      selected: false,
+      picking: true,
+      // 対象外は**押せない状態で残す**。消すと「誰が対象になり得るのか」が読めない。
+      disabled: !treatmentTargetIds(treatment).includes(characterId),
+    };
+  }
+  return { action: null };
 }
 
-// camp の上端に貼りつく帯。**予測が出せないときは何も描かない**
-// （空の枠だけ残ると、予測が壊れているのか出ない場面なのか読めない）。
-function forecastBar() {
+// セルの中身。予測があれば開始HP→終了HPと減少量、無ければ現在HPだけを同じ形で出す。
+function partyCellPerson(characterId, entry) {
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  const ceiling = Math.max(1, entry?.maxHp || maxHp(characterId) || 1);
+  const now = Math.max(0, Math.min(ceiling, currentHp(characterId)));
+  const ending = entry ? Math.max(0, Math.min(ceiling, entry.endingHp)) : now;
+  const starting = entry ? Math.max(ending, Math.min(ceiling, entry.startingHp)) : now;
+  const pct = (value) => Math.max(0, Math.min(100, Math.round((value / ceiling) * 1000) / 10));
+  // 減少量が主役。**±0 と回復（＋）を別の色で出す**（装備を替えた効きが一目で分かる）。
+  const lost = entry ? entry.hpLost : 0;
+  const deltaText = lost > 0 ? "−" + lost : lost < 0 ? "＋" + Math.abs(lost) : "±0";
+  const deltaClass = entry?.defeated ? "fatal" : lost > 0 ? "down" : lost < 0 ? "up" : "flat";
+  const barLabel = entry
+    ? "HP " + starting + " から " + ending + "（" + (entry.defeated ? "戦闘不能" : deltaText) + "）"
+    : "HP " + now + " / " + ceiling;
+  const ap = definition.baseActionPoints ?? 0;
+  const rp = definition.baseReactionPoints ?? 0;
+  return "<span class=\"forecast-member-head\"><span class=\"avatar small\">"
+    + esc(characterInfo(characterId)?.icon ?? "・") + "</span><b>"
+    + esc(characterName(characterId)) + "</b></span>"
+    + "<span class=\"forecast-hp-bar\" role=\"img\" aria-label=\"" + esc(barLabel) + "\">"
+    + "<span class=\"forecast-hp-end\" style=\"width:" + pct(ending) + "%\"></span>"
+    + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span></span>"
+    + "<span class=\"party-figures\">"
+    + (entry
+      ? "<span class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</span>"
+      : "")
+    + "<span class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></span></span>"
+    + "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap + " · 反応点" + rp + "\">"
+    + pips(ap, "ap") + pips(rp, "rp") + "</span>";
+}
+
+function partyCell(position, mode, byCharacter) {
+  const characterId = positionOwner(position);
+  const entry = characterId ? byCharacter.get(characterId) : null;
+  const role = partyCellRole(mode, position, characterId);
+  const classes = ["party-cell"];
+  if (!characterId) classes.push("empty");
+  if (entry) classes.push("forecast-member");
+  if (entry?.defeated || (characterId && currentHp(characterId) <= 0)) classes.push("defeated");
+  if (role.selected) classes.push("selected");
+  if (role.picking) classes.push(role.disabled ? "unpickable" : "pickable");
+  const body = characterId
+    ? partyCellPerson(characterId, entry)
+    : "<span class=\"party-empty\" aria-hidden=\"true\">＋</span><span class=\"party-empty-text\">空き枠</span>";
+  const label = characterId
+    ? characterName(characterId) + " · " + positionText(position)
+    : "空き枠 · " + positionText(position);
+  if (!role.action) {
+    return "<div class=\"" + classes.join(" ") + "\" role=\"img\" aria-label=\"" + esc(label) + "\">"
+      + body + "</div>";
+  }
+  return "<button type=\"button\" class=\"" + classes.join(" ") + "\" data-action=\"" + role.action + "\" "
+    + role.attrs + " aria-label=\"" + esc(label) + "\" aria-pressed=\"" + (role.selected ? "true" : "false") + "\""
+    + (role.disabled ? " disabled aria-disabled=\"true\"" : "") + ">" + body + "</button>";
+}
+
+// 盤面の下の一行。**二手続きの操作だけが説明を要る**（編成の移動先、治療の対象）。
+// 技能・装備は選んだセルが光るだけで足りるので、何も足さない。
+function partyBoardNote(mode) {
+  if (mode === "roster") {
+    const instruction = selectedFormationCharacter()
+      ? "移動先の枠を選んでください。同じ枠をもう一度押すと解除します。"
+      : "動かす仲間のセルを選んでください。";
+    return "<p class=\"party-note\" role=\"status\"><span>" + esc(instruction) + "</span></p>";
+  }
+  if (mode === "supplies") {
+    const treatment = CAMP_TREATMENTS[state.treatmentSelection];
+    if (!treatment || treatment.targetCount === "all") return "";
+    return "<p class=\"party-note picking\" role=\"status\"><span><b>" + esc(treatment.displayName)
+      + "</b>の対象を1人選んでください。"
+      + esc(treatment.revive ? "戦闘不能の仲間" : "負傷した仲間") + "だけを選べます。"
+      + "選ぶまで補給は消費しません。</span>"
+      + button("やめる", "cancel-treatment-target", false, "tiny-button") + "</p>";
+  }
+  return "";
+}
+
+// camp の上端に貼りつく盤面。**予測が出せない場面でも盤面は出す**——隊列と現在HPは
+// 予測とは別に要る。予測の帯（勝敗・ラウンド数・開始→終了HP）だけを黙って落とす。
+function partyBar(mode) {
   const forecast = battleForecast();
-  if (!forecast) return "";
-  const label = FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result;
-  const encounterName = currentEncounter()?.name;
-  const target = state.prologueActive
-    ? "灰の門"
-    : "第" + state.run.encounterIndex + "戦" + (encounterName ? " · " + encounterName : "");
-  return "<section class=\"forecast-bar " + esc(forecast.result) + "\" aria-live=\"polite\">"
-    + "<div class=\"forecast-head\"><span class=\"forecast-title\">戦闘予測 · " + esc(target) + "</span>"
-    + "<span class=\"forecast-verdict\">" + esc(label) + " · " + forecast.roundsUsed + "ラウンド</span></div>"
-    + "<div class=\"forecast-members\">" + forecast.perCharacter.map(forecastMemberChip).join("") + "</div>"
-    + "</section>";
+  const byCharacter = new Map((forecast?.perCharacter ?? []).map((entry) => [entry.characterId, entry]));
+  const rows = BOARD_ROWS.map(({ row, label }) => {
+    const cells = POSITIONS.filter((position) => position.startsWith(row + "_"))
+      .map((position) => partyCell(position, mode, byCharacter)).join("");
+    return "<div class=\"party-row\"><span class=\"party-row-label\">" + esc(label)
+      + "</span><div class=\"party-cells\">" + cells + "</div></div>";
+  }).join("");
+  let head = "";
+  if (forecast) {
+    const label = FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result;
+    const encounterName = currentEncounter()?.name;
+    const target = state.prologueActive
+      ? "灰の門"
+      : "第" + state.run.encounterIndex + "戦" + (encounterName ? " · " + encounterName : "");
+    head = "<div class=\"forecast-head\"><span class=\"forecast-title\">戦闘予測 · " + esc(target) + "</span>"
+      + "<span class=\"forecast-verdict\">" + esc(label) + " · " + forecast.roundsUsed + "ラウンド</span></div>";
+  }
+  return "<section class=\"party-bar" + (forecast ? " forecast-bar " + esc(forecast.result) : "")
+    + "\" aria-live=\"polite\">" + head
+    + "<div class=\"party-board\" aria-label=\"隊列と戦闘予測\">" + rows + "</div>"
+    + partyBoardNote(mode) + "</section>";
 }
 
 // R14 §1 — 戦闘前の確認画面が持っていた EXACT PREVIEW カードは消した。
@@ -4739,7 +4843,9 @@ function handleAction(event) {
       // #209 — remember which New Game run owns the mandatory first-use
       // walkthrough. A normal/revisit run must not inherit that gate.
       supplyTutorialRunId: run.runId,
-      formationSelection: run.roster[0] ?? null,
+      // issue #159 — 隊列操作は**誰も選んでいない状態**から始める。先頭を選んだ状態で
+      // 開くと、盤面のどこかが最初から光っていて「もう一手目を打った」と読める。
+      formationSelection: null,
     };
     record("run_started", {
       runId: state.run.runId,
@@ -4947,7 +5053,7 @@ function handleAction(event) {
     state.migrationNote = null;
     state.prologueActive = false;
     ensureSelectedCharacter();
-    state.formationSelection = state.run.roster[0] ?? null;
+    state.formationSelection = null;
     record("run_started", {
       runId: state.run.runId,
       seed: state.run.runSeed,
@@ -5067,24 +5173,6 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "select-formation-character") {
-    const id = element.dataset.character;
-    if (!id || !state.run.roster.includes(id)) return;
-    state.selectedCharacter = id;
-    state.selectedSkillNode = null;
-    state.formationSelection = selectedFormationCharacter() === id ? null : id;
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "clear-formation-selection") {
-    state.formationSelection = null;
-    saveState();
-    render();
-    return;
-  }
-
   if (action === "select-skill-node") {
     const skillId = element.dataset.skill || null;
     state.selectedSkillNode = state.selectedSkillNode === skillId ? null : skillId;
@@ -5170,9 +5258,7 @@ function handleAction(event) {
         }
         state.run.loadout = nextLoadout;
         state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
-        if (state.formationSelection === id) {
-          state.formationSelection = state.run.roster[0] ?? null;
-        }
+        if (state.formationSelection === id) state.formationSelection = null;
         ensureSelectedCharacter();
         record("roster_changed", { roster: [...state.run.roster], removed: id });
       }

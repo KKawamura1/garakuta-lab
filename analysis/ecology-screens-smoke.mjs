@@ -366,6 +366,75 @@ for (const field of [
   }
 }
 
+// 6b. 仲間の共通盤面（issue #159）。**キャンプで仲間を選ぶ経路は一つしかない。**
+//
+//     以前は同じ仲間を選ぶ表示が四つあった（上端の予測チップ・編成タブの隊列盤と
+//     キャラクターカード・技能タブの仲間タブ・装備タブの仲間タブ）。**二つ目が
+//     戻ってきても構文検査は通る**ので、ここで片側検査として塞ぐ。
+//     ブラウザでの実挙動（隊列交換・対象切替・治療の対象選択）は
+//     analysis/ecology-tutorial-trial.mjs が踏む。
+{
+  const campStart = app.indexOf("function renderCamp() {");
+  const boardStart = app.indexOf("function partyCellRole(mode, position, characterId) {");
+  const barStart = app.indexOf("function partyBar(mode) {");
+  if (campStart < 0 || boardStart < 0 || barStart < 0) {
+    console.error("ecology-screens smoke: 共通盤面（partyBar / partyCellRole）を見つけられなかった。"
+      + "検査の書き方が古い。");
+    process.exit(1);
+  }
+  for (const [label, expected] of [
+    ["キャンプ上端が共通盤面を出している", "partyBar(activeTab) + campNav()"],
+    ["盤面の並びが POSITIONS から出ている", "POSITIONS.filter((position) => position.startsWith(row"],
+    ["編成タブのセルが隊列操作", 'action: "place-character"'],
+    ["技能・装備タブのセルが人物選択", 'action: "select-character"'],
+    ["補給タブのセルが治療の対象選択", 'action: "select-treatment-target"'],
+    ["予測の勝敗・ラウンド数", "forecast.roundsUsed"],
+  ]) {
+    if (!app.includes(expected)) problems.push(label + "が見つからない");
+  }
+  // 予測が読む DOM。**通しの検査（ecology-trial）がこの名前で数字を取り出す。**
+  for (const expected of ["forecast-member-head", "forecast-hp-values", "forecast-delta", "forecast-hp-bar"]) {
+    if (!app.includes(expected) || !styles.includes("." + expected)) {
+      problems.push(`予測セルの ${expected} が画面かCSSから消えている`);
+    }
+  }
+  // 補給タブは、治療を選んでいないあいだセルを押せない（誰を選ぶ場面でもない）。
+  const roleBody = app.slice(boardStart, barStart);
+  if (!roleBody.includes('if (!treatment || treatment.targetCount === "all" || !characterId) return { action: null };')) {
+    problems.push("補給タブのセルが、治療を選んでいなくても押せる形になっている");
+  }
+  if (!roleBody.includes("treatmentTargetIds(treatment).includes(characterId)")) {
+    problems.push("治療の対象外セルが押せない状態で残る判定が無い");
+  }
+  // 二つ目の仲間選択がキャンプへ戻っていないこと。**guild 画面の仲間タブは対象外**
+  // （あちらには共通盤面が無い）ので、camp のレンダラーだけを見る。
+  const campRenderers = [
+    ["renderRoster", "function renderRoster() {", "\nconst SLOT_KEYS"],
+    ["renderSkills", "function renderSkills() {", "\nfunction equipmentSlotHtml"],
+    ["renderEquipment", "function renderEquipment() {", "\nfunction renderEnemy"],
+    ["campTreatmentBlock", "function campTreatmentBlock() {", "\n// R8 §11 — exact preview"],
+  ];
+  for (const [name, from, to] of campRenderers) {
+    const begin = app.indexOf(from);
+    const finish = app.indexOf(to, begin);
+    if (begin < 0 || finish < 0) {
+      console.error(`ecology-screens smoke: ${name}() の範囲を見つけられなかった。検査の書き方が古い。`);
+      process.exit(1);
+    }
+    const body = app.slice(begin, finish);
+    for (const forbidden of ["memberTabs(", "formation-board", "formation-slot", "treatment-target-picker"]) {
+      if (body.includes(forbidden)) {
+        problems.push(`${name}() に二つ目の仲間選択（${forbidden}）が戻っている`);
+      }
+    }
+  }
+  // 盤面は誰も選んでいない状態で開く（先頭が最初から光っていると、一手目を
+  // 打ったあとに見える）。
+  if (/formationSelection:\s*run\.roster\[0\]/.test(app) || /formationSelection = state\.run\.roster\[0\]/.test(app)) {
+    problems.push("隊列の選択が先頭の仲間で初期化されている（誰も選んでいない状態で開かない）");
+  }
+}
+
 // 7. 参照点。**片側だけでなく、鳴ることも確かめられる形にしておく。**
 //    存在しない名前を混ぜたら必ず引っかかることを、ここで自己確認する。
 if (defined.has("__surely_missing__")) {
