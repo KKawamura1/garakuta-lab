@@ -2754,3 +2754,56 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .level-step { display: inline-block; margin-left: 7px; color: var(--muted); font-size: 10px; }
 .level-step b { color: var(--violet); }
 .empty-slot { color: var(--muted); font-size: 12px; }
+
+/* ---------------------------------------------------------------- 必殺技（issue #238）
+ *
+ * **印は「払うもの」なので丸ではなく菱形（✹）で出す。**丸は行動点・反応点・
+ * 代償HPに譲ってある（issue #177）ので、同じ形を別の意味へ使わない。
+ */
+.seal-pips { display: inline-flex; gap: 3px; align-items: center; }
+.seal-pips i {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  transform: rotate(45deg);
+  opacity: .3;
+}
+.seal-pips i.on { background: var(--gold); opacity: 1; }
+.ultimate-card .context-line { color: var(--muted); font-size: 11px; }
+.ultimate-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 0;
+  border-top: 1px solid rgba(58, 77, 79, .55);
+}
+.ultimate-row.selected { box-shadow: inset 2px 0 0 var(--gold); }
+.ultimate-pick {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+.ultimate-pick .ultimate-mark { color: var(--gold); opacity: .28; font-size: 13px; }
+.ultimate-row.selected .ultimate-pick .ultimate-mark { opacity: 1; }
+.ultimate-copy { display: flex; flex-direction: column; gap: 3px; }
+.ultimate-traits { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.ultimate-trait {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.ultimate-row.selected .ultimate-trait { border-color: var(--gold); color: var(--gold); }
+/* 盤面のセル。**どの一戦に印を賭けているかは盤面から読める。** */
+.party-ultimate { margin-left: 4px; color: var(--gold); font-size: 11px; }
+/* 帯のなかの必殺。系統の色は残し、印と枠だけを立てる。 */
+.turn-cell.ultimate { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }

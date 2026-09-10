@@ -275,6 +275,31 @@ try {
   }
   note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
 
+  // issue #238 — 必殺技。**指定して構えるところまでを、画面から踏む。**
+  // 印の残りが読め、盤面に✹が出て、放てば結果画面で払ったことが分かる。
+  const ultimateCard = page.locator("section.ultimate-card");
+  note("必殺技の枠が技能タブにある", await ultimateCard.count() === 1);
+  if (await ultimateCard.count()) {
+    note("残っている必殺印が読める", await ultimateCard.locator(".seal-pips i.on").count() > 0);
+    const pick = ultimateCard.locator('[data-action="set-ultimate"]').first();
+    note("必殺技の候補が出ている", await pick.count() > 0);
+    if (await pick.count()) {
+      await pick.click();
+      note("指定した技能が光る", await page.locator("section.ultimate-card .ultimate-row.selected").count() === 1);
+      const arm = page.locator('section.ultimate-card [data-action="toggle-ultimate-armed"]').first();
+      note("指定すると構えの摘みが出る", await arm.count() === 1);
+      if (await arm.count()) {
+        await arm.click();
+        note("構えると盤面に印が出る", await page.locator(".party-cell .party-ultimate").count() === 1);
+        note("構えている仲間が名前で出る", /この一戦で構えている/.test(await bodyText()));
+        // 構えただけでは印を払わない（払うのは放ったときだけ）。
+        const sealsAfterArming = await page.locator("section.ultimate-card .seal-pips i.on").count();
+        note("構えただけでは印が減らない", sealsAfterArming === 3, String(sealsAfterArming));
+      }
+    }
+  }
+
+  let ultimateSpentSeen = false;
   let stage = 1;
   let reloaded = false;
   let forecastAtStage1 = null;
@@ -542,6 +567,16 @@ try {
         verdict === expectedVerdict && forecastRounds === actualRounds,
         forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
     }
+    // issue #238 — 放ったら、その結果画面で「印を払った」と分かる。
+    if (!ultimateSpentSeen) {
+      const sealLine = (await bodyText()).match(/必殺印を([0-9]+)つ払いました。([^。]+) が放ちました。残り ([0-9]+) \/ ([0-9]+)/);
+      if (sealLine) {
+        ultimateSpentSeen = true;
+        note(`第${stage}戦で払った必殺印と残りが結果画面に出る`,
+          Number(sealLine[3]) === Number(sealLine[4]) - Number(sealLine[1]),
+          sealLine[0]);
+      }
+    }
     if (stage === 1) {
       // issue #177 — **装着順が結果にどう出たか**を、文ではなく帯で見せる。
       // アクティブは順送りに回るので、ラウンドごとに何が鳴ったかを並べれば読める。
@@ -683,7 +718,7 @@ try {
   note("控えに版が残る", Boolean(saved?.run?.runSeed) && Boolean(saved?.feedback?.savedAt));
   // R6 §4.1 — ProfileState と RunState が別に保存されている。
   note("profile と run が分かれて保存されている",
-    saved?.profile?.schemaVersion === "ecology-profile-2" && saved?.run?.schemaVersion === "ecology-run-3");
+    saved?.profile?.schemaVersion === "ecology-profile-2" && saved?.run?.schemaVersion === "ecology-run-4");
   note("活動資金が profile に残る", typeof saved?.profile?.activityFunds === "string");
   note("遠征内の技能点は run にだけある",
     Boolean(saved?.run?.runSkillPoints) && !("skillPoints" in (saved?.profile ?? {})));

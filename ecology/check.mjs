@@ -20,6 +20,7 @@ const SUITES = [
   "campaign-stage.test.mjs",
   "phase-c.test.mjs",
   "story.test.mjs",
+  "ultimate.test.mjs",
 ];
 
 let failed = 0;

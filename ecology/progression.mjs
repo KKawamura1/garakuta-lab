@@ -66,8 +66,16 @@ import {
   skillIdsForPacks,
   unmetPrerequisites,
 } from "./content/index.mjs";
+import {
+  ULTIMATE_SEALS_PER_RUN,
+  ascendSkill,
+  ultimateFirings,
+  ultimateIdFor,
+  withUltimates,
+} from "./ultimates.mjs";
 
 export { PROFILE_SCHEMA_VERSION, RUN_SCHEMA_VERSION, MANIFEST_VERSION, MAX_CAMPAIGN_STAGE_SEQUENCE };
+export { ULTIMATE_SEALS_PER_RUN };
 
 // ============================================================ 活動資金（R6 §9.1）
 //
@@ -701,6 +709,9 @@ export function newRun(profile, options = {}) {
     encounterIndex: 1,
     act: 1,
     supplies: startingSupplies(profile, rank, { tutorial: options.tutorial === true }),
+    // issue #238 — 必殺印。**隊で共有し、遠征を通して補充されない。**
+    // 「誰の、どの技能を、どの一戦で必殺にするか」を12戦のあいだ悩ませるための有限資源。
+    ultimateSeals: ULTIMATE_SEALS_PER_RUN,
     roster,
     formation: { ...(options.formation ?? {}) },
     runSkillPoints: Object.fromEntries(roster.map((id) => [id, startingSkillPoints(profile)])),
@@ -992,16 +1003,39 @@ export function commitBattleResult(profile, run, encounterIndex, battleResult) {
   if (!won) {
     return {
       run,
-      snapshot: { startingHp, endingHp: startingHp, treatmentChargesSpent: 0, suppliesSpent: 0, committed: false },
+      snapshot: {
+        startingHp,
+        endingHp: startingHp,
+        treatmentChargesSpent: 0,
+        suppliesSpent: 0,
+        committed: false,
+        ultimateSealsSpent: 0,
+        ultimateFiredBy: [],
+      },
     };
   }
   const rawEndingHp = endingHpFromBattleResult(battleResult, run.roster);
   const endingHp = isActBossFullHealIndex(encounterIndex)
     ? Object.fromEntries(run.roster.map((id) => [id, characterStats(profile, id)?.stats.maxHp ?? 0]))
     : rawEndingHp;
+  // issue #238 — 必殺印は **勝った戦闘でだけ**減る。HP の持ち越しと同じ扱いなので、
+  // 負けて巻き戻した一戦の必殺は無かったことになる（retry で二重に取られない）。
+  const spentBy = ultimateSealsSpent(run, battleResult);
+  const ultimateSeals = Math.max(0, ultimateSealsLeft(run) - spentBy.length);
+  // 放った者の構えは解ける。**次の一戦へ黙って持ち越さない**——残りの印をどこへ
+  // 賭けるかは、そのつど選び直す決断であるべきだから。
+  const loadout = spentBy.length ? clearArmedUltimates(run.loadout, spentBy) : run.loadout;
   return {
-    run: { ...run, currentHp: endingHp },
-    snapshot: { startingHp, endingHp, treatmentChargesSpent: 0, suppliesSpent: 0, committed: true },
+    run: { ...run, currentHp: endingHp, ultimateSeals, loadout },
+    snapshot: {
+      startingHp,
+      endingHp,
+      treatmentChargesSpent: 0,
+      suppliesSpent: 0,
+      committed: true,
+      ultimateSealsSpent: spentBy.length,
+      ultimateFiredBy: spentBy,
+    },
   };
 }
 
@@ -1357,13 +1391,72 @@ export function newGeneratedItems(run) {
 }
 
 // 遠征ごとの装備定義を混ぜた content bundle。engine も validator もこれを読む。
+// issue #238 — いま構えている必殺技の定義もここで混ざる。**固定 content には居ない。**
 export function runContentBundle(run) {
   const generated = run?.generatedEquipment ?? {};
   const ids = Object.keys(generated);
-  if (!ids.length) return PLAYABLE_CONTENT;
-  const equipment = { ...PLAYABLE_CONTENT.equipment };
-  for (const id of ids) equipment[id] = generated[id].definition;
-  return { ...PLAYABLE_CONTENT, equipment };
+  const base = ids.length
+    ? { ...PLAYABLE_CONTENT, equipment: { ...PLAYABLE_CONTENT.equipment } }
+    : PLAYABLE_CONTENT;
+  for (const id of ids) base.equipment[id] = generated[id].definition;
+  return withUltimates(base, armedUltimates(run).map((entry) => entry.skillId));
+}
+
+// ============================================================ 必殺技（issue #238）
+//
+// **指定（誰のどの技能か）と構え（この一戦で持ち込むか）を分ける。**
+// 指定は無料でいつでも変えられるビルドの選択、構えは有限資源を賭ける一戦の選択である。
+// 印を実際に払うのは、戦って**本当に放ったとき**だけ（commitBattleResult）。
+
+export function ultimateSealsLeft(run) {
+  const stored = run?.ultimateSeals;
+  if (!Number.isFinite(stored)) return ULTIMATE_SEALS_PER_RUN;
+  return Math.max(0, Math.min(ULTIMATE_SEALS_PER_RUN, Math.floor(stored)));
+}
+
+// その人物がいま必殺技に指定している技能。**装着していて、有効で、変換できる**もの
+// だけを返す（指定したあとに外した・オフにした技能は、黙って効かない指定にしない）。
+export function designatedUltimate(run, characterId, content = PLAYABLE_CONTENT) {
+  const skillId = run?.loadout?.ultimates?.[characterId] ?? null;
+  if (!skillId) return null;
+  const loadout = run.loadout ?? {};
+  const installed = [
+    ...(loadout.tactics?.[characterId] ?? []),
+    ...(loadout.reactives?.[characterId] ?? []),
+  ];
+  if (!installed.includes(skillId)) return null;
+  if ((loadout.disabled?.[characterId] ?? []).includes(skillId)) return null;
+  return ascendSkill(content, skillId) ? skillId : null;
+}
+
+// この一戦へ持ち込む必殺技。**残っている印の数で頭打ちにする。**
+// 順は roster 順で決め打つので、予測と本番で同じ組が選ばれる。
+export function armedUltimates(run, content = PLAYABLE_CONTENT) {
+  const seals = ultimateSealsLeft(run);
+  if (seals <= 0) return [];
+  const armed = run?.loadout?.ultimateArmed ?? {};
+  const entries = [];
+  for (const characterId of run?.roster ?? []) {
+    if (armed[characterId] !== true) continue;
+    const skillId = designatedUltimate(run, characterId, content);
+    if (!skillId) continue;
+    entries.push({ characterId, skillId, ultimateId: ultimateIdFor(skillId) });
+    if (entries.length >= seals) break;
+  }
+  return entries;
+}
+
+export function clearArmedUltimates(loadout, characterIds = []) {
+  if (!loadout || !characterIds.length) return loadout;
+  const armed = { ...(loadout.ultimateArmed ?? {}) };
+  for (const characterId of characterIds) delete armed[characterId];
+  return { ...loadout, ultimateArmed: armed };
+}
+
+// 戦闘の出来事から「誰が放ったか」を読む。構えただけでは払わない。
+export function ultimateSealsSpent(run, battleResult) {
+  const fired = ultimateFirings(battleResult);
+  return (run?.roster ?? []).filter((characterId) => fired.includes("a_" + characterId));
 }
 
 // ============================================================ 活動資金の仮計上（R6 §9.2）

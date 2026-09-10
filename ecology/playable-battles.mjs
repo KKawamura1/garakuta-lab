@@ -18,7 +18,20 @@ import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
-import { characterStats, composeEncounter, runContentBundle, runSkillLevelsFor } from "./progression.mjs";
+import {
+  armedUltimates,
+  characterStats,
+  composeEncounter,
+  runContentBundle,
+  runSkillLevelsFor,
+} from "./progression.mjs";
+import {
+  ULTIMATE_NAME_PREFIX,
+  ascendSkill,
+  baseSkillIdOf,
+  isUltimateId,
+  ultimateTraitLabels,
+} from "./ultimates.mjs";
 
 export const RUN_SEED = "frontier-1801";
 
@@ -179,7 +192,25 @@ export function generatedComponentIds() {
 }
 
 export function componentInfo(componentId) {
-  return COMPONENTS[componentId] ?? generatedComponents[componentId] ?? null;
+  const known = COMPONENTS[componentId] ?? generatedComponents[componentId] ?? null;
+  if (known) return known;
+  // issue #238 — 必殺技は固定 content に居ない（取得済み技能から毎回作る）。
+  // **表を持たず、元の技能の表から導く。**指定を変えても表の掃除が要らない。
+  const baseId = isUltimateId(componentId) ? baseSkillIdOf(componentId) : null;
+  const base = baseId ? COMPONENTS[baseId] : null;
+  if (!base) return null;
+  const ascended = ascendSkill(PLAYABLE_CONTENT, baseId);
+  return {
+    ...base,
+    id: componentId,
+    definitionId: componentId,
+    label: ULTIMATE_NAME_PREFIX + base.label,
+    effect: base.effect,
+    ultimate: true,
+    ultimateOf: baseId,
+    traits: ascended ? ascended.traits : null,
+    traitLabels: ascended ? ultimateTraitLabels(ascended.traits) : [],
+  };
 }
 
 export function componentLabel(componentId) {
@@ -274,7 +305,8 @@ export function freshLoadout(rosterIds) {
     passives[characterId] = [];
     equipment[characterId] = [];
   }
-  return { tactics, reactives, passives, equipment };
+  // issue #238 — 必殺技は**誰も指定していない状態**で始まる。既定の答えを置かない。
+  return { tactics, reactives, passives, equipment, ultimates: {}, ultimateArmed: {} };
 }
 
 function normalizeLoadout(loadout, rosterIds, limitsFor) {
@@ -285,6 +317,9 @@ function normalizeLoadout(loadout, rosterIds, limitsFor) {
   next.reactives = next.reactives ?? {};
   next.passives = next.passives ?? {};
   next.equipment = next.equipment ?? {};
+  // issue #238 — 必殺技の指定と構え。**古い save には無い欄**なので、ここで生やす。
+  next.ultimates = next.ultimates ?? {};
+  next.ultimateArmed = next.ultimateArmed ?? {};
   for (const characterId of rosterIds) {
     const limits = limitsOf(limitsFor, characterId);
     // 技能は上限なし。旧 save の重複だけはここで正規化する。
@@ -360,6 +395,68 @@ export function toggleSkill(loadout, characterId, skillId, limitsFor) {
     if (!Object.keys(next.disabled).length) delete next.disabled;
   }
   return { ok: true, loadout: next, enabled };
+}
+
+// ---------------------------------------------------------------- 必殺技（issue #238）
+//
+// **指定は無料で、いつでも変えられる。**払うのは戦って放ったときの必殺印だけなので、
+// 「指定を変えると損」を作らない。ここは loadout を触るだけで、印には触らない。
+
+// その人物が必殺技に指定できる技能。装着していて、有効で、変換して意味が変わるもの。
+export function ultimateCandidates(loadout, characterId, content = PLAYABLE_CONTENT) {
+  const disabled = new Set(loadout?.disabled?.[characterId] ?? []);
+  const rows = [];
+  for (const [kind, key] of [["active", "tactics"], ["reactive", "reactives"]]) {
+    for (const skillId of loadout?.[key]?.[characterId] ?? []) {
+      if (disabled.has(skillId)) continue;
+      const ascended = ascendSkill(content, skillId);
+      if (!ascended) continue;
+      rows.push({ skillId, kind, traits: ascended.traits, traitLabels: ultimateTraitLabels(ascended.traits) });
+    }
+  }
+  return rows;
+}
+
+export function setUltimate(loadout, characterId, skillId, limitsFor, content = PLAYABLE_CONTENT) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
+  if (skillId === null) {
+    delete next.ultimates[characterId];
+    delete next.ultimateArmed[characterId];
+    return { ok: true, loadout: next, skillId: null };
+  }
+  const candidates = ultimateCandidates(next, characterId, content);
+  if (!candidates.some((entry) => entry.skillId === skillId)) {
+    return { ok: false, reason: "その技能は必殺技にできません。" };
+  }
+  // 同じ技能をもう一度選んだら指定を外す。**選び直しに操作を増やさない。**
+  if (next.ultimates[characterId] === skillId) {
+    delete next.ultimates[characterId];
+    delete next.ultimateArmed[characterId];
+    return { ok: true, loadout: next, skillId: null };
+  }
+  next.ultimates[characterId] = skillId;
+  return { ok: true, loadout: next, skillId };
+}
+
+// この一戦で構えるかどうか。**構えても、条件が揃わなければ出ないし、印も減らない。**
+export function toggleUltimateArmed(loadout, characterId, limitsFor, options = {}) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
+  const content = options.content ?? PLAYABLE_CONTENT;
+  const skillId = next.ultimates?.[characterId] ?? null;
+  if (!skillId) return { ok: false, reason: "先に必殺技を指定してください。" };
+  if (next.ultimateArmed[characterId] === true) {
+    delete next.ultimateArmed[characterId];
+    return { ok: true, loadout: next, armed: false };
+  }
+  const seals = Number.isFinite(options.seals) ? Math.max(0, Math.floor(options.seals)) : 0;
+  const armedNow = Object.entries(next.ultimateArmed).filter(([id, on]) => (
+    on === true && Boolean(next.ultimates?.[id]) && ascendSkill(content, next.ultimates[id])
+  )).length;
+  if (armedNow >= seals) {
+    return { ok: false, reason: "必殺印が足りません。誰かの構えを解いてください。" };
+  }
+  next.ultimateArmed[characterId] = true;
+  return { ok: true, loadout: next, armed: true };
 }
 
 export function equipEquipment(loadout, characterId, equipmentId, slot = 0, limitsFor) {
@@ -447,10 +544,11 @@ function equipmentInput(characterId, equipmentIds, durability = {}, content = PL
 }
 
 // **装着した行動を、そのまま戦闘へ渡す。**技能数にゲーム上の枠はない。
-function usableTactics(ids) {
-  return ids.filter((id) => PLAYABLE_CONTENT.activeSkills[id]).map((activeSkillId) => ({
+function usableTactics(ids, content = PLAYABLE_CONTENT) {
+  return ids.filter((id) => content.activeSkills[id]).map((activeSkillId) => ({
     activeSkillId,
-    useWhen: tacticUseWhenFor(activeSkillId),
+    // 必殺技は元の技能と同じ条件で試す。**必殺のためだけの条件を足さない。**
+    useWhen: tacticUseWhenFor(baseSkillIdOf(activeSkillId) ?? activeSkillId),
   }));
 }
 
@@ -463,8 +561,21 @@ function allyInput(characterId, position, loadout, options = {}) {
   const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
   const disabled = new Set(loadout.disabled?.[characterId] ?? []);
   const enabled = (ids) => ids.filter((id) => !disabled.has(id));
+  // issue #238 — 構えた必殺技は、**元の技能の一つ前**に入る。同じ条件で判定されるので、
+  // 「その技能が最初に出る場面」がそのまま必殺の出る場面になる。放つと状態「必殺」が
+  // 付き、以後その戦闘では条件を満たさないので、二本目からは元の技能が回る。
+  const ultimateId = options.ultimateFor?.(characterId) ?? null;
+  const ultimateBaseId = ultimateId ? baseSkillIdOf(ultimateId) : null;
+  const withUltimate = (ids, kind) => {
+    if (!ultimateId || !ultimateBaseId) return ids;
+    const at = ids.indexOf(ultimateBaseId);
+    if (at < 0) return ids;
+    if (kind === "active" && !content.activeSkills[ultimateId]) return ids;
+    if (kind === "reactive" && !content.reactiveSkills[ultimateId]) return ids;
+    return [...ids.slice(0, at), ultimateId, ...ids.slice(at)];
+  };
   const passiveSkillIds = enabled(loadout.passives?.[characterId] ?? [])
-    .filter((id) => PLAYABLE_CONTENT.passiveSkills[id]);
+    .filter((id) => content.passiveSkills[id]);
   const equipment = equipmentInput(
     characterId,
     loadout.equipment?.[characterId] ?? [],
@@ -475,8 +586,9 @@ function allyInput(characterId, position, loadout, options = {}) {
     instanceId: "a_" + characterId,
     characterId,
     position,
-    tactics: usableTactics(enabled(tactics)),
-    reactiveSkillIds: enabled(reactives).filter((id) => PLAYABLE_CONTENT.reactiveSkills[id]),
+    tactics: usableTactics(withUltimate(enabled(tactics), "active"), content),
+    reactiveSkillIds: withUltimate(enabled(reactives), "reactive")
+      .filter((id) => content.reactiveSkills[id]),
     passiveSkillIds,
     equipment,
   };
@@ -487,6 +599,11 @@ function allyInput(characterId, position, loadout, options = {}) {
     const leveled = Object.fromEntries(
       Object.entries(skillLevels).filter(([, level]) => Number.isInteger(level) && level > 1),
     );
+    // 必殺技は別 ID の定義になるが、**同じ技能の段**で伸びる。
+    // 元の技能へ払った点が、必殺にしたとたん消えるようにはしない。
+    if (ultimateId && ultimateBaseId && leveled[ultimateBaseId]) {
+      leveled[ultimateId] = leveled[ultimateBaseId];
+    }
     if (Object.keys(leveled).length) ally.skillLevels = leveled;
   }
   // R6 §9.5 — PHASE B. 鍛錬後の stat と、その level。**engine は鍛錬を知らない**
@@ -619,6 +736,9 @@ export function simulateExpeditionBattle(run, profile, encounterIndex, options =
     ?? composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
   const loadout = run.loadout ?? freshLoadout(run.roster);
   const content = runContentBundle(run);
+  // issue #238 — 構えている必殺技は run と content から導く。**予測と本番で同じ表**を
+  // 使うので、「予測では出たのに本番では出ない」が起こらない。
+  const ultimates = new Map(armedUltimates(run).map((entry) => [entry.characterId, entry.ultimateId]));
   const battleInput = makeExpeditionBattle(
     composed,
     run.roster,
@@ -631,6 +751,7 @@ export function simulateExpeditionBattle(run, profile, encounterIndex, options =
       limitsFor: options.limitsFor,
       statsFor: (characterId) => characterStats(profile, characterId),
       skillLevelsFor: (characterId) => runSkillLevelsFor(run, characterId),
+      ultimateFor: (characterId) => ultimates.get(characterId) ?? null,
       content,
     },
   );

@@ -20,6 +20,10 @@
 // **どれも round で消える。**待って積み上げる形にはしていない（AGENTS.md の
 // anti-stall）。裂傷は「置いた round の終わりに一度」しか刻まない。
 //
+// issue #238 — **記録だけの状態を一つ足した（必殺 ultimate_spent）。**規則を持たず、
+// 「この戦闘でもう放った」ことだけを覚える。積み上がらない（maxStacks 1）ので
+// anti-stall の対象にならない。
+//
 // engine・schema・共通registryは変更しない。
 
 import { renamed, scaleFlatAmounts } from "./base.mjs";
@@ -30,6 +34,7 @@ export const STATUS_NAMES = {
   staggered: "怯み",
   warded: "守勢",
   bleeding: "裂傷",
+  ultimate_spent: "必殺",
 };
 
 const statuses = renamed("statuses", STATUS_NAMES);
@@ -136,6 +141,21 @@ statuses.bleeding = {
   tags: ["playable", "debuff"],
 };
 
+// 必殺（issue #238）— **放った印。**規則を一つも持たない、記録だけの状態である。
+// 必殺技は「この状態が付いていないこと」を発動条件にし、放つと自分へ付ける。
+// これで「1戦闘に1回」が engine・schema の語彙を増やさずに書ける。
+//
+// **戦闘のあいだ残る。**ラウンドで消えると同じ戦闘で二度出てしまう。
+statuses.ultimate_spent = {
+  id: "ultimate_spent",
+  displayName: STATUS_NAMES.ultimate_spent,
+  polarity: "neutral",
+  maxStacks: 1,
+  duration: "battle",
+  rules: [],
+  tags: ["playable", "mark"],
+};
+
 export const STATUSES = statuses;
 
 // ---------------------------------------------------------------- 画面へ出す説明（issue #176）
@@ -153,6 +173,7 @@ const STATUS_SUMMARIES = {
   staggered: "その相手が**出す**ダメージが1段につき8減る。倒さずに攻撃を細くする。",
   warded: "その味方が**受ける**ダメージが1段につき8減る。防壁（総量）でも受け構え（回数）でもない三つ目の守りで、細かい多段に強く、大きな一撃には薄い。",
   bleeding: "ラウンド終わりに一度だけ、1段につき12を**受けを無視して**刻む。硬い相手へ通る細い線。",
+  ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 
 const DURATION_TEXT = { round: "ラウンド終わりに消える", battle: "戦闘のあいだ残る", turn: "次の手番で消える" };
