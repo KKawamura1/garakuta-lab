@@ -418,6 +418,8 @@ function freshUiState() {
     // 画面内ヘルプの開閉は、同じ画面を再描画しても保持する。
     helpOpen: {},
     saveMenuReturn: "intro",
+    // タイトル画面は表示だけの状態。Continue用の再開先を別に保持する。
+    resumePhase: null,
     saveNotice: null,
     prologueActive: false,
     // R11 §5 — 序盤の一戦は2段構え。"first" は負ける一戦、"retry" は巻き戻したあと。
@@ -501,10 +503,23 @@ function readStoredSnapshot(key) {
   }
 }
 
-function hydrateState(saved) {
+function hydrateState(saved, { resumeFromTitle = false } = {}) {
   if (!saved) return initialState();
   const fresh = initialState();
   const next = { ...fresh, ...saved };
+  // タイトル画面自体をオートセーブの再開先にしない。
+  // マーカーの無い旧い保存は、タイトルへ戻る直前の既定導線へ戻す。
+  if (resumeFromTitle && next.phase === "intro") {
+    const resumablePhases = [
+      "expeditionStart", "story", "camp", "battle", "battleError",
+      "result", "defeat", "settlement", "homestead", "complete",
+    ];
+    next.phase = resumablePhases.includes(saved.resumePhase)
+      ? saved.resumePhase
+      : "expeditionStart";
+  }
+  // ページを開いた直後はタイトルを表示する。Continueで復元した後は再保存時に消える。
+  next.resumePhase = null;
   // issue #138 — 「報酬を見る」の中間画面を廃止した。結果画面が報酬選択を兼ねるので、
   // 旧いオートセーブがちょうどその画面で保存されていても結果画面へ戻す。
   if (next.phase === "reward") next.phase = "result";
@@ -744,7 +759,9 @@ function loadSavedGame(key) {
     render();
     return;
   }
-  state = hydrateState(snapshot);
+  const resumeFromTitle = state.phase === "intro"
+    || (state.phase === "saveMenu" && state.saveMenuReturn !== "camp");
+  state = hydrateState(snapshot, { resumeFromTitle });
   state.saveNotice = key === SAVE_KEY ? "オートセーブから再開しました。" : "手動セーブから再開しました。";
   state.error = null;
   // Continue後も、読み込んだ状態を現在のオートセーブとして保持する。
@@ -5088,6 +5105,17 @@ function handleAction(event) {
     // R11 §5 改 — チュートリアル中はタイトルへ戻れない（画面上のボタンは既に
     // 隠しているが、経路として二重に塞ぐ）。
     if (state.prologueActive || supplyTutorialVisible()) return;
+    // タイトルのロードメニューを閉じるだけなら、オートセーブを上書きしない。
+    if (state.phase === "saveMenu") {
+      state.phase = "intro";
+      state.saveMenuReturn = "intro";
+      state.saveNotice = null;
+      state.error = null;
+      render();
+      return;
+    }
+    // タイトルへ戻る前のゲーム画面を、Continueの再開先として記録する。
+    state.resumePhase = state.phase;
     state.phase = "intro";
     state.saveMenuReturn = "intro";
     state.saveNotice = null;
