@@ -425,6 +425,10 @@ function freshUiState() {
     // R9 §2 / §7 — 物語の断片。queue が空になったら after へ進む。
     // lineIndex は断片の中の何行目か。auto は自動送り、log は履歴。
     story: { queue: [], after: "camp", lineIndex: 0, auto: false, log: [], logOpen: false },
+    // issue #200 — 巻き戻しの演出が逆走させる行（読んだ履歴の逆順）と、凍らせる舞台。
+    // **保存しない**（persistableState が落とす）。演出の途中でリロードしたら、
+    // すでに巻き戻し済みの会話から続ける。
+    rewind: null,
     // 画面内ヘルプの開閉は、同じ画面を再描画しても保持する。
     helpOpen: {},
     saveMenuReturn: "intro",
@@ -648,6 +652,10 @@ function persistableState() {
   // 盤面が組み替えの途中で開くと、人物を選ぶつもりの一押しが移動になる（#159 の
   // 「誰も選んでいない状態で開く」と同じ理由）。
   delete persisted.formationMode;
+  // issue #200 — 巻き戻しの演出は保存の再開先にしない。**状態はもう巻き戻し済み**なので、
+  // 途中でリロードしたら巻き戻し後の会話から続ける（演出だけを二度見せない）。
+  if (state.phase === "rewind") persisted.phase = "story";
+  delete persisted.rewind;
   // 保存メニューは一時画面なので、Continueでそこへ戻さない。
   if (state.phase === "saveMenu") {
     persisted.phase = state.saveMenuReturn === "camp" ? "camp" : "intro";
@@ -1262,12 +1270,14 @@ function render() {
   captureHelpDetails();
   stopReplayTimer();
   stopStoryTimers();
+  stopRewindTimers();
   registerGeneratedEquipment(state.run?.generatedEquipment ?? {});
   const views = {
     intro: renderIntro,
     expeditionStart: renderExpeditionStart,
     saveMenu: renderSaveMenu,
     story: renderStory,
+    rewind: renderRewind,
     camp: renderCamp,
     battle: renderBattle,
     battleError: renderBattleError,
@@ -1293,6 +1303,7 @@ function render() {
   layoutSkillTreeConnectors();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
+  if (state.phase === "rewind") mountRewindView();
   if (phaseChanged) window.scrollTo(0, 0);
 }
 
@@ -2115,7 +2126,11 @@ function advanceStoryLine() {
 }
 
 // 物語の queue を積んで story 画面へ入る。**積むものが無ければ、そのまま次へ。**
-function enterStory(beats, after) {
+//
+// issue #200 — `via` は、積んだ会話の**手前に一度だけ挟む場面**の phase である
+// （いまは巻き戻しの演出 `"rewind"` だけ）。会話はもう積み終わっているので、
+// 挟んだ場面が終わったら phase を `"story"` へ移すだけで続きが始まる。
+function enterStory(beats, after, { via = null } = {}) {
   const queue = beats.filter(Boolean);
   state.story = { queue, after, lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (!queue.length) {
@@ -2123,7 +2138,7 @@ function enterStory(beats, after) {
     return;
   }
   pushStoryLog(queue[0], 0);
-  state.phase = "story";
+  state.phase = via ?? "story";
   saveState();
   render();
 }
@@ -2131,6 +2146,17 @@ function enterStory(beats, after) {
 function finishStory() {
   stopStoryTimers();
   const after = state.story?.after ?? "camp";
+  // R11 §5 改 / 作者試遊 2026-09-11 — 倒れた会話のあとは、結果画面を挟まずにそのまま
+  // 巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）ので、ここへ来るのは
+  // 会話をスキップしたときだけである。
+  //
+  // issue #200 — **この枝だけは、下の初期化より前に置く。**巻き戻しの演出は読んだ行を
+  // 逆走させるので、`state.story.log` が生きているあいだに渡さなければならない
+  // （rewindPrologue() は enterStory() で story を積み直すため、初期化を飛ばしてよい）。
+  if (after === "prologueRewind") {
+    rewindPrologue();
+    return;
+  }
   state.story = { queue: [], after: "camp", lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (after === "prologue") {
     startPrologue();
@@ -2160,13 +2186,6 @@ function finishStory() {
     simulateAndEnterBattle();
     return;
   }
-  // R11 §5 改 / 作者試遊 2026-09-11 — 倒れた会話のあとは、結果画面を挟まずに
-  // そのまま巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）ので、
-  // ここへ来るのは会話をスキップしたときだけである。
-  if (after === "prologueRewind") {
-    rewindPrologue();
-    return;
-  }
   // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。**ここで
   // 既読印は押すが、prologueActive は落とさない。**結果画面（報酬選択を兼ねる）を
   // 通常の勝利と同じ経路で見せたあと、次の戦闘へ進むとき（advanceAfterReward）に
@@ -2185,6 +2204,213 @@ function finishStory() {
   }
   state.phase = "camp";
   state.tab = "map";
+  saveState();
+  render();
+}
+
+// ============================================================ 巻き戻しの演出（issue #200）
+//
+// **「押した瞬間に次の会話」では、時間は巻き戻らない。**
+//
+// PR #248 で［時間が巻き戻る］を結果画面から会話の舞台へ移したが、押した先は普通の
+// 会話遷移のままだった（作者試遊「いまは押した瞬間次の会話に遷移していて、巻き戻って
+// いる感覚がないです」）。出来事としての巻き戻しは、**戻っていく過程そのものを
+// 見せなければ**成立しない。
+//
+// そこで、押した拍では舞台をそのまま残し、**いま読んだ行を逆順に消していく。**
+//
+//   杭が鳴る … 舞台の下から一度だけ閃光（`.firing`）。このあいだは何も動かさない
+//   逆走     … 読んだ行を後ろから消す。名前と立ち絵も、行と一緒に逆へ戻る
+//   静止     … 逆走が尽きたら揺れも帯も止め（`.settled`）、白へ抜ける（`.out`）
+//   会話へ   … 巻き戻し後の会話（「もう一度、門の前」）が始まる
+//
+// **台詞は一行も足さない。**逆走に使うのは `state.story.log`（実際に読んだ行）だけで、
+// 読んでいない行は混ざらない。足せば、演出が新しい説明になる。
+//
+// **進行は止めない**（会話画面の約束と同じ）。舞台を叩けば演出を追い越せる。
+// `prefers-reduced-motion` では揺れ・帯・閃光を止め、行を短く差し替えるだけにする。
+//
+// 状態はこの演出へ入る前に**もう巻き戻し済み**である（`rewindPrologue()` が巻き戻し、
+// 巻き戻し後の会話まで積んでから phase を `"rewind"` にする）。だから途中でリロード
+// しても会話から続き、演出だけが二度出ることはない（`persistableState()` が phase を
+// `"story"` へ寄せる）。
+
+// 逆走して見せる行数の上限。倒れた会話は3行なので普段は全部が入る。**長い断片で
+// 逆走が長引かないための蓋**で、演出の長さを行数に任せない。
+const REWIND_TRACK_LIMIT = 4;
+const REWIND_FIRE_MS = 380;
+// 一行が出てから消え始めるまでの間。**読んだ行だと気づくための一拍**で、
+// これが無いと文字が消える動きだけが残る。
+const REWIND_LINE_HOLD_MS = 150;
+const REWIND_LINE_MS = 420;
+const REWIND_UNTYPE_MS = 14;
+const REWIND_LINE_GAP_MS = 90;
+const REWIND_HOLD_MS = 280;
+const REWIND_OUT_MS = 420;
+// prefers-reduced-motion。逆走は残す（何が起きたか分からなくなる）が、文字を消す
+// 動きも揺れも出さず、行を差し替えるだけにする。
+const REWIND_REDUCED_STEP_MS = 200;
+
+let rewindTimer = null;
+
+function stopRewindTimers() {
+  if (rewindTimer) clearTimeout(rewindTimer);
+  rewindTimer = null;
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+}
+
+// 逆走に使う行。**いま読んだ履歴をそのまま逆順に使う。**
+function rewindTrackFromLog() {
+  return (state.story?.log ?? [])
+    .slice(-REWIND_TRACK_LIMIT)
+    .reverse()
+    .filter((entry) => entry?.text)
+    .map((entry) => ({ who: entry.who ?? null, speaker: entry.speaker ?? null, text: entry.text }));
+}
+
+// 逆走のあいだ凍らせておく舞台。**会話の最後の拍の続きに見えなければならない**ので、
+// mood・場所・立ち絵は倒れた会話のものをそのまま使う。
+function rewindScene(beat) {
+  const track = rewindTrackFromLog();
+  if (!beat || !track.length) return null;
+  return { beat, track };
+}
+
+function renderRewind() {
+  const beat = state.rewind?.beat;
+  const track = state.rewind?.track ?? [];
+  // 材料が無ければ、積んである会話をそのまま描く（mountRewindView が先へ送る）。
+  if (!beat || !track.length) return renderStory();
+  const index = beat.lines.length - 1;
+  const figures = [...castOnStage(beat, index)]
+    .sort((a, b) => (STORY_PLACEMENTS[a.at] ?? 1) - (STORY_PLACEMENTS[b.at] ?? 1))
+    .map((entry) => storyFigure(beat, entry, index))
+    .join("");
+  const scene = "<section class=\"vn rewind\" data-mood=\"" + esc(beat.mood ?? "defeat") + "\">"
+    // 叩けば追い越せる。舞台は button ではないので、Enter / Space は mount で拾う。
+    + "<div class=\"vn-stage rewind-stage\" data-action=\"rewind-skip\" role=\"button\" tabindex=\"0\""
+    + " aria-label=\"巻き戻しの演出を飛ばす\">"
+    + "<div class=\"vn-sky\"></div><div class=\"vn-haze\"></div>"
+    + "<div class=\"vn-place\"><b>" + esc(beat.title) + "</b>"
+    + (beat.place ? "<span>" + esc(beat.place) + "</span>" : "") + "</div>"
+    + "<div class=\"vn-figures\">" + figures + "</div>"
+    + "<div class=\"rewind-bands\" aria-hidden=\"true\"></div>"
+    + "<div class=\"rewind-streaks\" aria-hidden=\"true\"><i></i><i></i><i></i><i></i></div>"
+    + "<div class=\"rewind-veil\" aria-hidden=\"true\"></div>"
+    + "<div class=\"rewind-mark\" aria-hidden=\"true\">◀◀</div>"
+    + "<div class=\"vn-box narration rewind-box\">"
+    + "<div class=\"vn-name rewind-name\" hidden></div>"
+    // 逆走中の文字は読ませるものではない（一行ずつ消えていく）。読み上げは
+    // `.rewind-status` の一言だけにする。
+    + "<p class=\"vn-text rewind-text\" aria-hidden=\"true\"></p>"
+    // 逆走の残り。通常の会話が「1 / 3」を出す位置に、**右から左へ減る帯**を置く
+    // （進む帯ではなく、戻る帯である）。
+    + "<div class=\"rewind-meter\" aria-hidden=\"true\"><span class=\"rewind-meter-fill\"></span></div>"
+    + "</div>"
+    + "<p class=\"rewind-status\" role=\"status\">時間が巻き戻る</p>"
+    + "<div class=\"rewind-out\" aria-hidden=\"true\"></div>"
+    + "</div></section>";
+  return shell(scene, { hideHeaderAction: true });
+}
+
+// 逆走を進める。**表示は DOM 側で進める**（会話の文字送りと同じ理由で、一文字ごとに
+// state を書き換えて保存を走らせない）。
+function mountRewindView() {
+  stopRewindTimers();
+  const scene = app.querySelector(".vn.rewind");
+  const stage = scene?.querySelector(".rewind-stage");
+  const text = scene?.querySelector(".rewind-text");
+  const track = state.rewind?.track ?? [];
+  // 描けなかったら黙って先へ送る。**演出のために進行を止めない。**
+  if (!scene || !stage || !text || !track.length) { finishRewind(); return; }
+  const box = scene.querySelector(".rewind-box");
+  const nameplate = scene.querySelector(".rewind-name");
+  const meter = scene.querySelector(".rewind-meter-fill");
+  const figures = [...scene.querySelectorAll(".vn-figure")];
+  const reduced = prefersReducedMotion();
+  stage.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    event.preventDefault();
+    event.currentTarget.click();
+  });
+  // 行が切り替わる拍で、舞台を一度だけ突かせる（テープが噛む感じ）。
+  const jolt = () => {
+    if (reduced) return;
+    scene.classList.remove("jolt");
+    void scene.offsetWidth;
+    scene.classList.add("jolt");
+  };
+  const showRemaining = (remaining) => {
+    if (meter) meter.style.width = Math.max(0, Math.round((remaining / track.length) * 100)) + "%";
+  };
+  // 行と一緒に、名前と立ち絵も逆へ戻す。**誰の行まで戻ったかが見えなければ、
+  // ただのノイズになる。**
+  const showEntry = (entry) => {
+    box?.classList.toggle("narration", !entry.speaker);
+    if (nameplate) {
+      nameplate.textContent = entry.speaker ?? "";
+      nameplate.hidden = !entry.speaker;
+      nameplate.style.setProperty("--accent", portraitAccent(entry.who));
+    }
+    for (const figure of figures) {
+      const speaking = Boolean(entry.who) && figure.dataset.character === entry.who;
+      figure.classList.toggle("speaking", speaking);
+      figure.classList.toggle("muted-figure", !speaking);
+    }
+  };
+  // 逆走が尽きた拍。**誰も何も言っていない時点まで戻った**ので、名前も消す。
+  const settle = () => {
+    showRemaining(0);
+    text.textContent = "";
+    if (nameplate) { nameplate.textContent = ""; nameplate.hidden = true; }
+    box?.classList.add("narration");
+    stage.classList.add("settled");
+    rewindTimer = setTimeout(() => {
+      stage.classList.add("out");
+      rewindTimer = setTimeout(() => { finishRewind(); }, reduced ? 120 : REWIND_OUT_MS);
+    }, reduced ? 120 : REWIND_HOLD_MS);
+  };
+  const step = (cursor) => {
+    if (state.phase !== "rewind") return;
+    if (cursor >= track.length) { settle(); return; }
+    const entry = track[cursor];
+    showRemaining(track.length - cursor);
+    showEntry(entry);
+    text.textContent = entry.text;
+    jolt();
+    if (reduced) {
+      rewindTimer = setTimeout(() => { step(cursor + 1); }, REWIND_REDUCED_STEP_MS);
+      return;
+    }
+    // 一行を REWIND_LINE_MS で消しきる。**長い行でも待たせない。**
+    const perTick = Math.max(1, Math.ceil((entry.text.length * REWIND_UNTYPE_MS) / REWIND_LINE_MS));
+    let shown = entry.text.length;
+    const untype = () => {
+      if (state.phase !== "rewind") return;
+      shown = Math.max(0, shown - perTick);
+      text.textContent = entry.text.slice(0, shown);
+      rewindTimer = shown > 0
+        ? setTimeout(untype, REWIND_UNTYPE_MS)
+        : setTimeout(() => { step(cursor + 1); }, REWIND_LINE_GAP_MS);
+    };
+    rewindTimer = setTimeout(untype, REWIND_LINE_HOLD_MS);
+  };
+  showRemaining(track.length);
+  // 杭が鳴る一拍。**閃光のあいだは何も動かさない。**
+  stage.classList.add("firing");
+  rewindTimer = setTimeout(() => { step(0); }, reduced ? 120 : REWIND_FIRE_MS);
+}
+
+// 演出の終わり。**状態はもう巻き戻し済み**なので、積んである会話を開くだけである。
+// 叩いて追い越したときも、流れきったときも、ここを通る。
+function finishRewind() {
+  stopRewindTimers();
+  if (state.phase !== "rewind") return;
+  state.rewind = null;
+  state.phase = "story";
   saveState();
   render();
 }
@@ -4936,6 +5162,10 @@ function enterPrologueBeatIfDue() {
 // 会話の門の釦（rewind-prologue）と、会話をスキップしたとき（after: "prologueRewind"）の
 // **両方がここを通る。**どちらから来ても同じ状態になる。
 function rewindPrologue() {
+  // issue #200 — **逆走に使う材料は、状態を巻き戻す前に取る。**読んだ行の履歴は
+  // このあと enterStory() が空にするので、ここで写しておく（門の釦から来たときは
+  // 舞台が立っており、スキップから来たときは storyBeat() で同じ断片を引き直す）。
+  const scene = rewindScene(currentStoryBeat() ?? storyBeat("stage_0", "prologueDefeat"));
   // R11 §5 — **巻き戻しても prologueActive は落とさない。**同じ門の盤面を、
   // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
   // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
@@ -4949,7 +5179,11 @@ function rewindPrologue() {
   state.replayIndex = 0;
   state.replayPlaying = false;
   record("prologue_rewound", { stage: state.run.campaignStageSequence });
-  enterStory([storyBeat("stage_0", "prologueRewound")], "camp");
+  // issue #200 — 会話へ入る前に、逆走の演出を一度だけ挟む。**状態はもう巻き戻して
+  // あるので、演出はどこで途切れても進行を失わない。**読んだ行が無ければ
+  // （逆走させるものが無ければ）そのまま会話へ入る。
+  state.rewind = scene;
+  enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null });
 }
 
 // issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
@@ -5160,6 +5394,12 @@ function handleAction(event) {
   // issue #238 — 同じ要素が、押した時間で別の操作になる。長押しは data-longpress。
   const action = event.longPress ? element.dataset.longpress : element.dataset.action;
   if (!action) return;
+  // issue #200 — **舞台に被せた操作は、舞台へ落とさない。**会話の門（`.vn-gate`）の釦は
+  // `.vn-stage`（`data-action="story-advance"`）の中にあるので、一度押すと釦と舞台の
+  // 両方が鳴る。釦が巻き戻したあとの舞台はもう「次の会話」なので、続けて鳴った
+  // 「叩いて進む」が巻き戻し後の一行目（「同じ朝。同じ光。」＝時間が戻ったことを
+  // 見せる行）を読み飛ばしていた。長押しの合成呼び出しには止める先が無いので `?.` で呼ぶ。
+  if (element.closest?.(".vn-gate")) event.stopPropagation?.();
   captureSkillTreeScroll();
   state.error = null;
 
@@ -5469,6 +5709,12 @@ function handleAction(event) {
 
   if (action === "rewind-prologue") {
     rewindPrologue();
+    return;
+  }
+
+  // issue #200 — 逆走の演出は、叩けば追い越せる（会話画面と同じ約束）。
+  if (action === "rewind-skip") {
+    finishRewind();
     return;
   }
 

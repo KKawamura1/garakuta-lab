@@ -172,10 +172,39 @@ try {
     await gateButton.count() === 1 && /届かなかった/.test(await bodyText()));
 
   // R11 §2.1 — 巻き戻し。敗北後は「もう一度、門の前」へ戻る。
+  //
+  // issue #200 — **押した瞬間に次の会話へ飛ばない。**読んだ行を逆順に消しながら
+  // 画面ごと逆走する演出が一度だけ入り、それが終わってから会話が始まる。
+  // ここで見るのは「演出が出る」「そのあいだ会話へ進んでいない」「逆走が、いま読んだ
+  // 行を後ろから消している」「放っておけば自分で会話へ渡る」の四つである。
+  const lastReadLine = await page.locator(".vn-text").getAttribute("data-full");
   await gateButton.click();
-  await page.waitForTimeout(300);
+  await waitForTutorialSelector(".vn.rewind .rewind-stage");
+  note("巻き戻しの演出が入る",
+    await page.locator(".vn.rewind .rewind-stage").count() === 1
+      && await page.locator(".rewind-mark").isVisible());
+  note("演出のあいだは次の会話へ進まない", !/もう一度、門の前/.test(await bodyText()));
+  // 逆走は末尾から消していくので、途中で捕らえた文字列は必ず読んだ行の前方一致になる。
+  // **台詞の中身に検査を縛らない**（行を書き換えても、この性質は変わらない）。
+  const reversedLine = await page.waitForFunction(() => {
+    const shown = document.querySelector(".rewind-text")?.textContent ?? "";
+    return shown.trim().length > 0 ? shown : false;
+  }, null, { timeout: tutorialSelectorTimeout }).then((handle) => handle.jsonValue());
+  note("逆走はいま読んだ行を後ろから消す",
+    typeof lastReadLine === "string" && lastReadLine.startsWith(reversedLine),
+    reversedLine);
+  // 演出が流れきれば、押さなくても巻き戻し後の会話へ渡る。
+  await page.waitForFunction(() => document.body.innerText.includes("もう一度、門の前"),
+    null, { timeout: tutorialSelectorTimeout });
   const rewindText = await bodyText();
   note("巻き戻しの会話が出る", /もう一度、門の前/.test(rewindText));
+  note("演出は一度だけで、会話には残らない", await page.locator(".vn.rewind").count() === 0);
+  // 門の釦は、その下の舞台（story-advance）も鳴らしてしまう位置にある。止めていないと
+  // 一押しで巻き戻しと「叩いて進む」が続けて起き、**時間が戻ったことを見せる一行目**
+  // （「同じ朝。同じ光。」）が読み飛ばされる。
+  note("巻き戻しの会話は一行目から始まる",
+    /(^|[^\d])1 \/ \d/.test(await page.locator(".vn-progress").innerText()),
+    await page.locator(".vn-progress").innerText());
   // 学びの一言は断片の最後の行で出る。**そこまで進めてから見る。**
   // R11 §8.6 — ここで渡すのは「武器と技の違いは立つ場所の違い」である。
   const sawNote = await tapUntil(async () => await page.locator(".vn-note").count() > 0);

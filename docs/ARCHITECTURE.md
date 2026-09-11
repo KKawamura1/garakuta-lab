@@ -291,6 +291,36 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 phase を battle から result へ寄せるため、会話を見ないまま結果画面に立つことがある。
 その保険として `resume-prologue-defeat` が倒れた会話へ戻す。
 
+### 巻き戻しの演出（phase `rewind` / issue #200）
+
+会話の門［時間が巻き戻る］を押した先は、**逆走の場面**である（押した瞬間に次の会話へ
+遷移しない）。`rewindPrologue()` の順は次のとおり。
+
+1. `rewindScene()` が、**状態を触る前に**逆走の材料を写す。舞台は倒れた会話の beat
+   （mood・場所・立ち絵をそのまま使う）、逆走する行は `state.story.log` を
+   `REWIND_TRACK_LIMIT` 件まで逆順にしたもの。**新しい台詞は足さない。**
+2. 巻き戻しそのもの（`prologueStage = "retry"`、負けた配置の引き継ぎ、`lastResult` と
+   replay の破棄、`record("prologue_rewound")`）。
+3. `enterStory([… prologueRewound …], "camp", { via: "rewind" })`。`via` は**積んだ会話の
+   手前に一度だけ挟む場面**の phase で、会話はもう積み終わっている。
+
+`renderRewind()` は会話と同じ `.vn` / `.vn-stage` を描き、`mountRewindView()` が DOM 側で
+進める（会話の文字送りと同じで、一文字ごとに state を書き換えない）。拍は
+閃光（`.firing`）→ 逆走（行ごとに `.jolt`、末尾から消す）→ 静止（`.settled`）→
+白へ抜ける（`.out`）で、`finishRewind()` が phase を `"story"` へ移す。**舞台を叩けば
+（`rewind-skip`）どこでも追い越せる**し、`prefers-reduced-motion` では行の差し替えだけに
+落ちる（揺れ・帯・筋・閃光は CSS の `@media` が止める）。
+
+演出へ入る時点で状態は**もう巻き戻し済み**なので、途中でリロードしても進行を失わない。
+`persistableState()` が phase `rewind` を `story` として保存し、再開は巻き戻し後の会話から
+続く（演出は二度出ない）。`state.rewind` は保存しない。
+
+二つの順序が効いている。**`finishStory()` の `prologueRewind` の枝は、履歴を初期化する
+前に置く**（会話をスキップして巻き戻したとき、逆走させる行が消える）。**会話の門の押しは
+下の舞台へ落とさない**（`.vn-gate` の釦は `data-action="story-advance"` の `.vn-stage` の
+中にあるので、止めないと一押しで巻き戻しと「叩いて進む」が続けて起き、巻き戻し後の
+一行目が読み飛ばされる）。どちらも `analysis/ecology-screens-smoke.mjs` が見張る。
+
 ### 技能の取得と装着（issue #236）
 
 **「取得済みだが未装着」という状態は無い。**技能枠は `SLOT_LIMITS` の
