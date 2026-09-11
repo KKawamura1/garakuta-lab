@@ -1274,31 +1274,72 @@ function bindLongPress() {
   app.querySelectorAll("[data-longpress]").forEach((element) => {
     let timer = null;
     let origin = null;
+    let pointerId = null;
+
+    const releasePointerCapture = () => {
+      const activePointerId = pointerId;
+      pointerId = null;
+      if (activePointerId === null || !element.hasPointerCapture?.(activePointerId)) return;
+      try {
+        element.releasePointerCapture(activePointerId);
+      } catch {
+        // pointerup と DOM の再描画が重なった場合は、捕捉解除済みとして扱う。
+      }
+    };
+
     const cancel = () => {
       if (timer !== null) clearTimeout(timer);
       timer = null;
       origin = null;
+      releasePointerCapture();
       element.classList.remove("pressing");
     };
+
     element.addEventListener("pointerdown", (event) => {
+      if (event.isPrimary === false) return;
       if (event.button !== undefined && event.button !== 0) return;
+
+      cancel();
       origin = { x: event.clientX, y: event.clientY };
+      pointerId = event.pointerId ?? null;
       element.classList.add("pressing");
+
+      // iPhone / WebKit の長押し文字選択を、長押し判定と競合させない。
+      // touch-action はスクロール方針を残しつつ、既定の選択は selectstart
+      // と CSS 側でも止める。
+      if (event.pointerType === "touch" || event.pointerType === "pen") {
+        event.preventDefault();
+      }
+      if (pointerId !== null && element.setPointerCapture) {
+        try {
+          element.setPointerCapture(pointerId);
+        } catch {
+          // 既にポインタが離れている場合は、通常のイベント経路で続ける。
+        }
+      }
+
       timer = setTimeout(() => {
         timer = null;
+        origin = null;
         element.classList.remove("pressing");
+        releasePointerCapture();
         handleAction({ currentTarget: element, longPress: true });
       }, LONG_PRESS_MS);
-    });
+    }, { passive: false });
+
     element.addEventListener("pointermove", (event) => {
-      if (!origin) return;
+      if (!origin || (pointerId !== null && event.pointerId !== pointerId)) return;
       if (Math.abs(event.clientX - origin.x) > LONG_PRESS_SLOP
         || Math.abs(event.clientY - origin.y) > LONG_PRESS_SLOP) cancel();
     });
-    for (const type of ["pointerup", "pointercancel", "pointerleave"]) {
+
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
       element.addEventListener(type, cancel);
     }
-    // 長押しの途中で出る右クリックメニュー・選択メニューを止める。
+
+    // 長押しの途中で出る文字選択・ドラッグ選択・右クリックメニューを止める。
+    element.addEventListener("selectstart", (event) => event.preventDefault());
+    element.addEventListener("dragstart", (event) => event.preventDefault());
     element.addEventListener("contextmenu", (event) => event.preventDefault());
   });
 }
