@@ -370,6 +370,43 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   return { ok: true, loadout: next };
 }
 
+// issue #236 — **「取得済みだが未装着」という状態を無くす。**技能枠は無制限
+// （SLOT_LIMITS の active / reactive / passive）なので、取得したものを装着できない
+// 場面は無く、この状態は「オフ」と同じことを二通りに表しているだけだった
+// （作者指摘 2026-09-11「いま特に意味のない状態があって、いらない」）。
+//
+// **engine から見れば オフ と 未装着 は同一である。**allyInput が disabled を
+// 除いてから battle input を組むので、ここで未装着だったものをオフで装着し直しても
+// 戦闘の入力は1ビットも変わらない。既存の遠征・保存の結果が動かない。
+export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
+  const next = {
+    ...loadout,
+    tactics: { ...loadout.tactics },
+    reactives: { ...loadout.reactives },
+    passives: { ...loadout.passives },
+    disabled: { ...(loadout.disabled ?? {}) },
+  };
+  const disabled = new Set(next.disabled[characterId] ?? []);
+  let added = false;
+  for (const skillId of unlockedSkillIds ?? []) {
+    const listKey = LOADOUT_KEYS[componentInfo(skillId)?.kind];
+    if (!listKey) continue;
+    const list = next[listKey][characterId] ?? [];
+    if (list.includes(skillId)) continue;
+    // **末尾へ足し、既定はオフ。**先頭へ足すと既存の巡回順が動き、オンで足すと
+    // これまで出ていなかった技能が急に回り始める。どちらも「表し方を変えるだけ」
+    // という約束を破る。
+    next[listKey][characterId] = [...list, skillId];
+    disabled.add(skillId);
+    added = true;
+  }
+  if (!added) return loadout;
+  if (disabled.size) next.disabled[characterId] = [...disabled];
+  else delete next.disabled[characterId];
+  if (!Object.keys(next.disabled).length) delete next.disabled;
+  return next;
+}
+
 function installedSkillIds(loadout, characterId) {
   return [
     ...(loadout?.tactics?.[characterId] ?? []),

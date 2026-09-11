@@ -299,16 +299,61 @@ try {
   const skillHelp = page.locator('details[data-help="skill-rules"]');
   if (await skillHelp.count()) {
     await skillHelp.locator("summary").click();
-    note("技能数の制限が無いと分かる", /すべて装着できます/.test(await bodyText()));
+    note("技能数の制限が無いと分かる", /枠の上限はありません/.test(await bodyText()));
     await page.locator('nav.tabs [data-tab="equipment"]').click();
     await page.locator('nav.tabs [data-tab="skills"]').click();
     note("ヘルプの開閉状態を保つ", await page.locator('details[data-help="skill-rules"]').evaluate((element) => element.open));
   }
-  const node = page.locator(".skill-node.available").first();
-  if (await node.count()) {
-    await node.click();
-    const unlock = page.locator('[data-action="unlock-skill"]').first();
-    if (await unlock.count()) await unlock.click();
+  // issue #236 — **取得と装着が一つの手であること**を、実際に取って確かめる。
+  //
+  // 技能点は0で始まり、戦闘をクリアして初めて貯まる（STARTING_RUN_SKILL_POINTS = 0）。
+  // この台本はキャンプに着いた直後なので、そのままでは取得できる節が一つも無く、
+  // **解禁の経路がこれまで一度も踏まれていなかった。**蘇生の検査と同じやり方で、
+  // 保存に点を入れてから踏み、終わったら元へ戻す。
+  const pointFixture = await page.evaluate(() => {
+    const key = "exp18-r10-auto-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved?.run) return null;
+    const before = { ...saved.run.runSkillPoints };
+    saved.run.runSkillPoints = Object.fromEntries(saved.run.roster.map((id) => [id, 9]));
+    localStorage.setItem(key, JSON.stringify(saved));
+    return { before };
+  });
+  if (pointFixture) {
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    await page.locator('nav.tabs [data-tab="skills"]').click();
+    await page.waitForTimeout(200);
+    const node = page.locator(".skill-node.available").first();
+    note("技能点があれば取得できる節が出る", await node.count() > 0);
+    if (await node.count()) {
+      const unlockingName = (await node.locator(".node-copy b").innerText()).trim();
+      await node.click();
+      await page.waitForTimeout(150);
+      const unlock = page.locator('[data-action="unlock-skill"]').first();
+      note("取得の釦が出る", await unlock.count() > 0);
+      if (await unlock.count()) {
+        await unlock.click();
+        await page.waitForTimeout(250);
+        // **「装着する」という二手目は無い。**取った瞬間に装着行へ並び、オンで回り始める。
+        note("取得と装着が一つの手である",
+          await page.locator('[data-action="equip-skill"]').count() === 0);
+        note("取得した技能がその場で装着行に並ぶ",
+          await page.locator(".installed-row", { hasText: unlockingName }).count() > 0, unlockingName);
+        note("取得した節は取得済みの印になる",
+          await page.locator(".skill-node.equipped", { hasText: unlockingName }).count() > 0);
+      }
+    }
+    // 直したら元へ戻す。**後続の検査は通常の遠征状態を前提にしている。**
+    await page.evaluate((fixture) => {
+      const key = "exp18-r10-auto-v02";
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      if (!saved?.run) return;
+      saved.run.runSkillPoints = fixture.before;
+      localStorage.setItem(key, JSON.stringify(saved));
+    }, pointFixture);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
   }
   note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
 
