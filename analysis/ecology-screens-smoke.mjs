@@ -462,6 +462,33 @@ for (const field of [
     problems.push("固定帯の高さを CSS へ渡す経路が無い");
   }
 
+  // 作者試遊 2026-09-11 — **「時間が巻き戻る」は会話の門にしか置かない。**
+  // 結果画面の一項目へ戻すと、物語の出来事がシステム画面の操作になる。
+  {
+    const resultStart = app.indexOf("function renderResult() {");
+    const resultEnd = app.indexOf("\nfunction renderDefeat()", resultStart);
+    const resultBody = resultStart >= 0 && resultEnd >= 0 ? app.slice(resultStart, resultEnd) : "";
+    if (!resultBody) problems.push("renderResult() の範囲を見つけられなかった");
+    else if (resultBody.includes("時間が巻き戻る")) {
+      problems.push("結果画面に「時間が巻き戻る」が戻っている（会話の門が持つ）");
+    }
+  }
+  if (app.includes('after === "prologueResult"')) {
+    problems.push("倒れた会話のあとに結果画面を挟む経路が戻っている");
+  }
+  for (const [label, expected] of [
+    ["会話の門の表", "const STORY_GATES = Object.freeze({"],
+    ["門の判定", "function storyGate() {"],
+    ["門の拍では舞台を叩いても進まない", "if (storyGate()) return;"],
+    ["倒れた会話がそのまま巻き戻しへ渡る", 'enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueRewind")'],
+    ["門の釦とスキップが同じ道を通る", "function rewindPrologue() {"],
+  ]) {
+    if (!app.includes(expected)) problems.push(label + "が見つからない");
+  }
+  if (!styles.includes(".vn.typed .vn-gate { opacity: 1; pointer-events: auto; }")) {
+    problems.push("会話の門が、文字送りの終わりを待って出る指定になっていない");
+  }
+
   // 盤面は誰も選んでいない状態で開く（先頭が最初から光っていると、一手目を
   // 打ったあとに見える）。
   if (/formationSelection:\s*run\.roster\[0\]/.test(app) || /formationSelection = state\.run\.roster\[0\]/.test(app)) {

@@ -142,24 +142,38 @@ try {
   // R14 §1.1 — **巻き戻す前の一戦には戦闘予測を出さない。**まだ巻き戻す力を
   // 持っていないので、読めても直せない。
   note("巻き戻す前の一戦には予測を出さない", await page.locator(".forecast-bar").count() === 0);
-  // R11 §8.6 — 序盤は4拍で進む。
-  //   打ち切り → 会話「届かなかった」 → 結果画面の［時間が巻き戻る］
+  // R11 §8.6 改 / 作者試遊 2026-09-11 — 序盤は3拍で進む。**結果画面を挟まない。**
+  //   打ち切り → 会話「届かなかった」の最後の拍に被さる［時間が巻き戻る］
   //   → 会話「もう一度、門の前」 → キャンプ → **同じ盤面をもう一度** → 勝利
   //
   // R12 — 倒れた会話は**再生を飛ばしても入る**。［結果を見る］で打ち切っても
-  // 結果画面より先にここへ来る（以前は再生が流れきったときにしか入らなかった）。
+  // ここへ来る（以前は再生が流れきったときにしか入らなかった）。
   await click("結果を見る");
   await page.waitForTimeout(300);
   note("倒れた拍で会話が入る", /届かなかった/.test(await bodyText()));
-  await advanceStory();
-  await page.waitForTimeout(200);
-  const resultText = await bodyText();
-  note("序盤の一戦で負ける", /届かなかった|足を止めた|突破できなかった|巻き戻/.test(resultText)
-    || (await page.getByRole("button", { name: "時間が巻き戻る" }).count()) > 0);
-  note("この一戦は遠征に数えないと書いてある", /この一戦は遠征に数えません/.test(resultText));
+  // 最後の行まで読む。**門はそこで初めて出る**（途中の行で出すと読み飛ばす釦になる）。
+  const gateButton = page.locator(".vn-gate .vn-gate-button");
+  note("会話の最後で巻き戻しの釦が出る",
+    await tapUntil(async () => await gateButton.count() > 0 && await gateButton.isVisible()));
+  note("序盤の一戦で負ける", /届かなかった/.test(await bodyText()));
+  // **システム画面の一項目にしない。**結果画面（勝敗カード）を挟まず、会話の舞台に
+  // 被せて出す。ど真ん中に一つだけで、ほかの操作を並べない。
+  note("結果画面を挟まない",
+    await page.locator(".verdict").count() === 0 && await page.locator(".vn-stage").count() === 1);
+  note("釦は舞台に被さっている",
+    await page.locator(".vn-stage .vn-gate").count() === 1
+      && await page.locator(".vn-gate .button").count() === 1);
+  note("門のあいだは進む合図を出さない",
+    await page.locator(".vn-caret").count() === 0 && await page.locator(".vn-hint").count() === 0);
+  // 舞台を叩いても越えられない。**押して越える拍である。**
+  await page.locator(".vn-stage").click();
+  await page.waitForTimeout(250);
+  note("舞台を叩いても門は越えない",
+    await gateButton.count() === 1 && /届かなかった/.test(await bodyText()));
 
   // R11 §2.1 — 巻き戻し。敗北後は「もう一度、門の前」へ戻る。
-  await click("時間が巻き戻る");
+  await gateButton.click();
+  await page.waitForTimeout(300);
   const rewindText = await bodyText();
   note("巻き戻しの会話が出る", /もう一度、門の前/.test(rewindText));
   // 学びの一言は断片の最後の行で出る。**そこまで進めてから見る。**

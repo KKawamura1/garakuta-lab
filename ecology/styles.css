@@ -2152,6 +2152,49 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 @keyframes vn-blink { 0%, 100% { transform: translateY(0); opacity: .35; } 50% { transform: translateY(3px); opacity: 1; } }
 .vn-progress { position: absolute; left: 16px; bottom: 8px; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
 
+/* 作者試遊 2026-09-11 — 会話の門（STORY_GATES）。**舞台に被せて、ど真ん中に一つだけ。**
+   「時間が巻き戻る」は物語の出来事なので、システム画面の一項目にしない。
+   文字送りが終わるまでは出さない（`.vn.typed` が出す）——最後の一行を読み終えた
+   瞬間に現れる、という間そのものが演出である。 */
+.vn-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: radial-gradient(ellipse at center, rgba(6, 10, 11, .82) 0%, rgba(6, 10, 11, .62) 55%, rgba(6, 10, 11, .28) 100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .5s ease-out;
+}
+.vn.typed .vn-gate { opacity: 1; pointer-events: auto; }
+.vn-gate-inner {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(100%, 320px);
+  transform: translateY(8px);
+  transition: transform .5s ease-out;
+}
+.vn.typed .vn-gate-inner { transform: translateY(0); }
+.vn-gate-button {
+  width: 100%;
+  padding: 16px 18px;
+  font-size: 16px;
+  letter-spacing: .08em;
+  box-shadow: 0 0 0 1px rgba(229, 184, 105, .5), 0 0 28px rgba(229, 184, 105, .28);
+  animation: vn-gate-pulse 2.6s ease-in-out infinite;
+}
+@keyframes vn-gate-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(229, 184, 105, .5), 0 0 22px rgba(229, 184, 105, .2); }
+  50% { box-shadow: 0 0 0 1px rgba(229, 184, 105, .8), 0 0 34px rgba(229, 184, 105, .42); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vn-gate, .vn-gate-inner { transition: none; }
+  .vn-gate-button { animation: none; }
+}
+
 /* 一行だけの演出。**画面を一度だけ揺らす。**繰り返さない。 */
 .vn-stage.impact { animation: vn-shake .42s ease-out 1; }
 @keyframes vn-shake {

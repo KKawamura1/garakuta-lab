@@ -1951,6 +1951,40 @@ function storyBacklog() {
     + "<div class=\"vn-log-body\">" + rows + "</div></div>";
 }
 
+// R11 §5 / 作者試遊 2026-09-11 — **「時間が巻き戻る」は物語の出来事である。**
+//
+// これまでは、倒れた会話のあとに結果画面（勝敗・損失・戦闘後の状態・履歴）を挟み、
+// その主操作としてこの釦を置いていた。だが杭を引いて時間を戻すのはゴウがその場で
+// やったことで、**システム画面の一項目にすると演出が死ぬ**（作者指摘「本来めっちゃ
+// かっこいい演出なはずなので、こんなシステム画面の一部にしてほしくない」）。
+//
+// そこで、会話の最後の行を読み終えた拍で、**舞台に被せてど真ん中に一つだけ**釦を出す。
+// ノベルゲームの選択肢と同じ置き方で、押すまで先へ進めない。
+//
+// **序盤の一戦専用である。**通常の敗北は巻き戻らず、補給で再挑戦するか撤退する
+// （作者判断 2026-09-11）。だから表は1件しかなく、増やす前提も持たない。
+const STORY_GATES = Object.freeze({
+  // **釦だけ。**「この一戦は遠征に数えません」は結果画面が言っていたが、ここで
+  // 言い添えると、演出の真ん中にシステムの断り書きが立つ。そもそもこの拍の
+  // プレイヤーは活動資金をまだ一度も見ていないので、読んでも意味が取れない。
+  // 答えは次の会話（「もう一度、門の前」）が、時間が戻ったこと自体で返す。
+  stage_0_prologue_defeat: Object.freeze({
+    action: "rewind-prologue",
+    label: "時間が巻き戻る",
+  }),
+});
+
+// いま「進む」の代わりに一つの操作だけを差し出す拍か。**最後の行で、積んだ断片も
+// 尽きているとき**にだけ門になる（途中の行で出すと、読み飛ばす釦になる）。
+function storyGate() {
+  const beat = currentStoryBeat();
+  const gate = beat ? STORY_GATES[beat.id] : null;
+  if (!gate) return null;
+  if (storyLineIndex() < beat.lines.length - 1) return null;
+  if ((state.story?.queue?.length ?? 1) > 1) return null;
+  return gate;
+}
+
 function renderStory() {
   const beat = currentStoryBeat();
   if (!beat) return renderCamp();
@@ -1962,6 +1996,7 @@ function renderStory() {
     .map((entry) => storyFigure(beat, entry, index))
     .join("");
   const lastLine = index >= beat.lines.length - 1;
+  const gate = storyGate();
   const remaining = (state.story?.queue?.length ?? 1) - 1;
   const auto = state.story?.auto === true;
   const nameplate = line.speaker
@@ -1984,13 +2019,21 @@ function renderStory() {
     + "<div class=\"vn-box" + (line.speaker ? "" : " narration") + "\">"
     + nameplate
     + "<p class=\"vn-text\" aria-live=\"polite\" data-full=\"" + esc(line.text) + "\"></p>"
-    + "<span class=\"vn-caret\" aria-hidden=\"true\">▼</span>"
+    + (gate ? "" : "<span class=\"vn-caret\" aria-hidden=\"true\">▼</span>")
     + "<span class=\"vn-progress\">" + (index + 1) + " / " + beat.lines.length
     + (remaining > 0 ? " · 続き " + remaining : "") + "</span>"
-    + "</div></div>"
+    + "</div>"
+    // 文字送りが終わるまでは出さない（CSS の `.vn.typed` が出す）。最後の一行を
+    // 読み終えた瞬間に、舞台の真ん中へ現れる。
+    + (gate
+      ? "<div class=\"vn-gate\"><div class=\"vn-gate-inner\">"
+        + button(gate.label, gate.action, false, "button primary vn-gate-button")
+        + "</div></div>"
+      : "")
+    + "</div>"
     + (lastLine && beat.footer ? "<p class=\"vn-note\">" + esc(beat.footer) + "</p>" : "")
     + controls
-    + "<p class=\"hint vn-hint\">タップで進みます。</p>"
+    + (gate ? "" : "<p class=\"hint vn-hint\">タップで進みます。</p>")
     + (state.story?.logOpen ? storyBacklog() : "")
     + "</section>";
   return shell( scene, { hideHeaderAction: true });
@@ -2018,7 +2061,8 @@ function mountStoryView() {
     storyTypingDone = true;
     storyShownLine = key;
     scene.classList.add("typed");
-    if (state.story?.auto && !state.story?.logOpen) {
+    // 門のある拍は AUTO でも越えない。**押して越える拍である。**
+    if (state.story?.auto && !state.story?.logOpen && !storyGate()) {
       storyAutoTimer = setTimeout(() => { advanceStoryLine(); }, STORY_AUTO_HOLD_MS);
     }
   };
@@ -2116,11 +2160,11 @@ function finishStory() {
     simulateAndEnterBattle();
     return;
   }
-  // R11 §5 — 倒れた会話のあとで、巻き戻しのボタンを持つ画面へ出る。
-  if (after === "prologueResult") {
-    state.phase = "result";
-    saveState();
-    render();
+  // R11 §5 改 / 作者試遊 2026-09-11 — 倒れた会話のあとは、結果画面を挟まずに
+  // そのまま巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）ので、
+  // ここへ来るのは会話をスキップしたときだけである。
+  if (after === "prologueRewind") {
+    rewindPrologue();
     return;
   }
   // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。**ここで
@@ -4507,10 +4551,12 @@ function renderResult() {
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   const prologueUnresolved = state.prologueActive && !(state.prologueStage === "retry" && won);
   ensureResultReward(won, prologueUnresolved);
+  // 作者試遊 2026-09-11 — 序盤の敗北はここへ来ない（会話の門が受ける）。
+  // 残るのは巻き戻したあとの再挑戦で負けた場合と、中断復帰の保険だけである。
   const next = prologueUnresolved
     ? state.prologueStage === "retry"
       ? button("編成を見直す", "back-camp", false, "button primary")
-      : button("時間が巻き戻る", "rewind-prologue", false, "button primary")
+      : button("続きを見る", "resume-prologue-defeat", false, "button primary")
     : won
       ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
         ? button("遠征を精算する", "settle-run", false, "button primary")
@@ -4874,7 +4920,7 @@ function saveStateSoon() {
 function enterPrologueBeatIfDue() {
   if (!state.prologueActive) return false;
   if (state.prologueStage === "first") {
-    enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueResult");
+    enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueRewind");
     return true;
   }
   if (state.prologueStage === "retry" && state.lastResult?.result === "win") {
@@ -4882,6 +4928,28 @@ function enterPrologueBeatIfDue() {
     return true;
   }
   return false;
+}
+
+// R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
+// 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
+//
+// 会話の門の釦（rewind-prologue）と、会話をスキップしたとき（after: "prologueRewind"）の
+// **両方がここを通る。**どちらから来ても同じ状態になる。
+function rewindPrologue() {
+  // R11 §5 — **巻き戻しても prologueActive は落とさない。**同じ門の盤面を、
+  // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
+  // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
+  state.prologueStage = "retry";
+  // R15 — 負けた配置をそのまま引き継ぐ。defaultFormation へ戻すと、
+  // 何も変えずに勝ててしまい「一手直して勝つ」導入が成立しない。
+  state.run.formation = normalizeFormation(PROLOGUE.formation, state.run.roster);
+  state.lastResult = null;
+  state.replayEvents = [];
+  state.replaySnapshots = [];
+  state.replayIndex = 0;
+  state.replayPlaying = false;
+  record("prologue_rewound", { stage: state.run.campaignStageSequence });
+  enterStory([storyBeat("stage_0", "prologueRewound")], "camp");
 }
 
 // issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
@@ -5367,12 +5435,14 @@ function handleAction(event) {
         storyTypingDone = true;
         storyShownLine = (currentStoryBeat()?.id ?? "") + ":" + storyLineIndex();
         app.querySelector(".vn")?.classList.add("typed");
-        if (state.story?.auto) {
+        if (state.story?.auto && !storyGate()) {
           storyAutoTimer = setTimeout(() => { advanceStoryLine(); }, STORY_AUTO_HOLD_MS);
         }
       }
       return;
     }
+    // 門のある拍では、舞台を叩いても進まない。**門の釦だけが次を持つ。**
+    if (storyGate()) return;
     advanceStoryLine();
     return;
   }
@@ -5397,23 +5467,17 @@ function handleAction(event) {
     return;
   }
 
-  // R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
-  // 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
   if (action === "rewind-prologue") {
-    // R11 §5 — **巻き戻しても prologueActive は落とさない。**同じ門の盤面を、
-    // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
-    // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
-    state.prologueStage = "retry";
-    // R15 — 負けた配置をそのまま引き継ぐ。defaultFormation へ戻すと、
-    // 何も変えずに勝ててしまい「一手直して勝つ」導入が成立しない。
-    state.run.formation = normalizeFormation(PROLOGUE.formation, state.run.roster);
-    state.lastResult = null;
-    state.replayEvents = [];
-    state.replaySnapshots = [];
-    state.replayIndex = 0;
-    state.replayPlaying = false;
-    record("prologue_rewound", { stage: state.run.campaignStageSequence });
-    enterStory([storyBeat("stage_0", "prologueRewound")], "camp");
+    rewindPrologue();
+    return;
+  }
+
+  // 作者試遊 2026-09-11 — 中断復帰の保険。**通常はここへ来ない**（序盤の敗北は
+  // 会話の門で受ける）が、保存枠が尽きたときの minimal snapshot は phase を
+  // battle から result へ寄せるので、会話を見ないまま結果画面に立つことがある。
+  // そのときは倒れた会話から見せ直す。
+  if (action === "resume-prologue-defeat") {
+    enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueRewind");
     return;
   }
 
