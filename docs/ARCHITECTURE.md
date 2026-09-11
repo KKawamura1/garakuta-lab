@@ -270,6 +270,27 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 自分の状態（「第3戦・精鋭・未到達」）を名乗る。同じ種類の敵が並ぶ回は、`enemy-lore` の一行を
 最初の1枚にだけ出す。
 
+### 会話の門（STORY_GATES）
+
+会話の最後の拍で、「進む」の代わりに**一つの操作だけ**を差し出す仕組み。`app.js` の
+`STORY_GATES` が beat の id で引ける表で、`storyGate()` が「その beat に門があり、
+最後の行で、積んだ断片も尽きている」ときだけ門を返す。
+
+門があるあいだは、`renderStory()` が舞台（`.vn-stage`）に被せて `.vn-gate` を描き、
+進む合図（`.vn-caret` / `.vn-hint`）を出さない。舞台を叩いても `advanceStoryLine()` を
+呼ばず（文字送りの早送りだけは効く）、AUTO の自動送りも仕掛けない。門そのものは
+文字送りが終わるまで出さない——CSS の `.vn.typed .vn-gate` が出すので、JS の追加は無い。
+
+いまの登録は1件、**序盤の一戦の敗北**（`stage_0_prologue_defeat` → `rewind-prologue`）
+だけである。通常の敗北は巻き戻らないので、増やす前提を持たない。
+
+`enterPrologueBeatIfDue()` が積む倒れた会話の `after` は `"prologueRewind"` で、
+`finishStory()` はそれを受けて `rewindPrologue()` を呼ぶ。**門の釦もスキップも同じ関数を
+通る**ので、どちらから来ても同じ状態になる。結果画面は序盤の敗北の経路から外れた
+（`after === "prologueResult"` は無い）。保存枠が尽きたときの minimal snapshot は
+phase を battle から result へ寄せるため、会話を見ないまま結果画面に立つことがある。
+その保険として `resume-prologue-defeat` が倒れた会話へ戻す。
+
 ### 技能の取得と装着（issue #236）
 
 **「取得済みだが未装着」という状態は無い。**技能枠は `SLOT_LIMITS` の
