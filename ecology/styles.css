@@ -38,7 +38,13 @@
  * pinch zoom は viewport 設定と touch-action の両方で抑止する。
  */
 html,
-body {
+body,
+#app {
+  touch-action: pan-x pan-y;
+}
+#app .skill-tree-scroll,
+#app .skill-node-button,
+#app .route-chip {
   touch-action: pan-x pan-y;
 }
 html,
