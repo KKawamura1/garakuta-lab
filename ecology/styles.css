@@ -223,8 +223,11 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   position: sticky;
   top: 0;
   z-index: 3;
-  margin: 0 -2px 12px;
-  padding: 4px 2px 0;
+  margin: 0 -2px 8px;
+  /* 下の余白は margin ではなく padding で取る。**margin では下をくぐる本文に効かない**
+     ——貼りついた帯の下端へ、スクロールしてきた文がそのまま接してしまう（作者試遊、
+     2026-09-11）。padding にすると、ぼかした帯そのものが下へ伸びる。 */
+  padding: 4px 2px 12px;
   background: rgba(14, 20, 22, .95);
   backdrop-filter: blur(10px);
 }
