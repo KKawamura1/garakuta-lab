@@ -4013,10 +4013,9 @@ function unitHtml(actor) {
     + "\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
     + "<div class=\"unit-floats\"></div>"
     + face
-    + top + "<div class=\"unit-info-layer\"><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
+    + top + "<div class=\"unit-info-layer\"><div class=\"unit-cast\"></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
     + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
-    + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div>"
-    + "<div class=\"unit-cast\"></div></div></div>";
+    + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div></div></div>";
 }
 
 // 盤面は 2×3 のまま見せる。**折り返して並べ替えると隊列が読めなくなる**
