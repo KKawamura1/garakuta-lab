@@ -61,6 +61,13 @@
 | RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、**必殺印**、隊、formation、run 技能点・取得技能・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、攻撃単位の回復窓、開始 HP snapshot、preview / commit 状態 |
 
+### タイトル画面とContinue
+
+タイトル画面は表示中のUIであり、ゲームの再開地点ではない。タイトルへ戻るときは、直前のゲーム画面を
+オートセーブへ記録する。ページを開いた直後はタイトルを表示し、そこからContinueを選んだときだけ
+その再開地点へ復元する。タイトルへ戻る前に作られた旧い保存に再開地点の記録が無い場合は、
+遠征準備画面へ復元する。ロードメニューを閉じるだけではオートセーブを上書きしない。
+
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
 取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡り、engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）にだけ係数を掛けます。**engine は技能 ID で分岐しません**：表に載っていない技能では掛け算そのものが起きず、Lv1 は係数 1.0 ちょうどなので旧入力と1バイトも変わりません。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
 `simulateExpeditionBattle` が予測と本番の入力構成と `equipmentBreaks: false` を共有するため、
