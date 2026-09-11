@@ -1970,7 +1970,8 @@ function storyBacklog() {
 // かっこいい演出なはずなので、こんなシステム画面の一部にしてほしくない」）。
 //
 // そこで、会話の最後の行を読み終えた拍で、**舞台に被せてど真ん中に一つだけ**釦を出す。
-// ノベルゲームの選択肢と同じ置き方で、押すまで先へ進めない。
+// ノベルゲームの選択肢と同じ置き方で、押すまで先へ進めない。**スキップも越えない**
+// （storySkipStop が門まで飛ばして止める）。
 //
 // **序盤の一戦専用である。**通常の敗北は巻き戻らず、補給で再挑戦するか撤退する
 // （作者判断 2026-09-11）。だから表は1件しかなく、増やす前提も持たない。
@@ -1994,6 +1995,43 @@ function storyGate() {
   if (storyLineIndex() < beat.lines.length - 1) return null;
   if ((state.story?.queue?.length ?? 1) > 1) return null;
   return gate;
+}
+
+// スキップの行き先。**門のある会話は、門まで飛ばす。**
+//
+// 作者試遊 2026-09-11（issue #200 の続き）— スキップは「読むのをやめる」操作であって、
+// **決める拍まで飛ばすものではない。**門は押すまで越えられない拍（STORY_GATES）なので、
+// スキップだけが越えられるのは筋が通らない。ついでに、飛ばした行も履歴へ積むので、
+// 巻き戻しの逆走は**読み飛ばした行も含めて**材料にできる。
+//
+// 積んだ断片のどれかに門があれば、その断片とその後ろを残して、門の行（＝最後の行）で
+// 止まる。門が無ければ null で、これまでどおり会話を丸ごと飛ばす。
+function storySkipStop() {
+  const queue = state.story?.queue ?? [];
+  const gateIndex = queue.findIndex((beat) => Boolean(beat && STORY_GATES[beat.id]));
+  if (gateIndex < 0) return null;
+  return { gateIndex, beat: queue[gateIndex] };
+}
+
+// 門まで飛ばす。**飛ばした行は履歴へ積む**（読み返せるし、逆走もその行を使う）。
+// いま読んでいる行は既に積まれているので、その次から積む。
+function skipStoryToGate(stop) {
+  const queue = state.story?.queue ?? [];
+  for (let index = 0; index <= stop.gateIndex; index += 1) {
+    const beat = queue[index];
+    for (let line = index === 0 ? storyLineIndex() + 1 : 0; line < beat.lines.length; line += 1) {
+      pushStoryLog(beat, line);
+    }
+  }
+  const lineIndex = stop.beat.lines.length - 1;
+  state.story = { ...state.story, queue: queue.slice(stop.gateIndex), lineIndex, logOpen: false };
+  // **飛ばした人を文字送りで待たせない。**読み終えた行として描くので、門はすぐ出る
+  // （CSS の `.vn.typed` が出す条件は mountStoryView の settle が満たす）。
+  storyTypingDone = true;
+  storyShownLine = stop.beat.id + ":" + lineIndex;
+  record("story_skipped_to_gate", { beat: stop.beat.id });
+  saveState();
+  render();
 }
 
 function renderStory() {
@@ -2147,10 +2185,14 @@ function finishStory() {
   stopStoryTimers();
   const after = state.story?.after ?? "camp";
   // R11 §5 改 / 作者試遊 2026-09-11 — 倒れた会話のあとは、結果画面を挟まずにそのまま
-  // 巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）ので、ここへ来るのは
-  // 会話をスキップしたときだけである。
+  // 巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）。
   //
-  // issue #200 — **この枝だけは、下の初期化より前に置く。**巻き戻しの演出は読んだ行を
+  // 作者試遊（issue #200 の続き）で、スキップも門で止まるようになった（storySkipStop）
+  // ので、**通常の操作でここへ来る道は無い。**門のある拍を越える手段が釦だけになった
+  // 残りの受け皿として置く（門が出ない形——queue に別の断片が続く保存など——で
+  // 最後の行を越えたとき、巻き戻さずにキャンプへ落ちないようにする）。
+  //
+  // issue #200 — **この枝は、下の初期化より前に置く。**巻き戻しの演出は読んだ行を
   // 逆走させるので、`state.story.log` が生きているあいだに渡さなければならない
   // （rewindPrologue() は enterStory() で story を積み直すため、初期化を飛ばしてよい）。
   if (after === "prologueRewind") {
@@ -5159,8 +5201,9 @@ function enterPrologueBeatIfDue() {
 // R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
 // 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
 //
-// 会話の門の釦（rewind-prologue）と、会話をスキップしたとき（after: "prologueRewind"）の
-// **両方がここを通る。**どちらから来ても同じ状態になる。
+// 会話の門の釦（rewind-prologue）と、門の無い形で会話が尽きたとき
+// （after: "prologueRewind"）の**両方がここを通る。**どちらから来ても同じ状態になる。
+// スキップは門で止まる（storySkipStop）ので、越えるのは釦だけである。
 function rewindPrologue() {
   // issue #200 — **逆走に使う材料は、状態を巻き戻す前に取る。**読んだ行の履歴は
   // このあと enterStory() が空にするので、ここで写しておく（門の釦から来たときは
@@ -5701,6 +5744,12 @@ function handleAction(event) {
   }
 
   if (action === "story-skip") {
+    // 門のある会話は、門まで飛ばして止まる。**越えるのは釦だけである。**
+    const stop = storySkipStop();
+    if (stop) {
+      skipStoryToGate(stop);
+      return;
+    }
     record("story_skipped", { after: state.story?.after ?? "camp" });
     state.story = { ...state.story, queue: [], after: state.story?.after ?? "camp", logOpen: false };
     finishStory();

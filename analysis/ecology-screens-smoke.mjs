@@ -498,6 +498,9 @@ for (const field of [
     ["演出の終わり（叩いて追い越すときも通る）", "function finishRewind() {"],
     ["逆走に使う行を読んだ履歴から取る", "function rewindTrackFromLog() {"],
     ["演出を叩いて追い越す受け皿", 'action === "rewind-skip"'],
+    ["スキップの行き先（門で止まる）", "function storySkipStop() {"],
+    ["門まで飛ばして履歴へ積む", "function skipStoryToGate(stop) {"],
+    ["スキップが門を見てから飛ぶ", "const stop = storySkipStop();"],
     ["会話の手前へ場面を一度だけ挟む口", "function enterStory(beats, after, { via = null } = {}) {"],
     ["巻き戻しの会話が演出を通って始まる",
       'enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null })'],
@@ -514,6 +517,18 @@ for (const field of [
   // が読み飛ばされる。
   if (!app.includes('if (element.closest?.(".vn-gate")) event.stopPropagation?.();')) {
     problems.push("会話の門の押しが、下の舞台へ落ちるのを止めていない");
+  }
+  // 作者試遊 2026-09-11（issue #200 の続き）— **スキップは門を越えない。**越えると、
+  // 押して決める拍がスキップだけ素通りになり、逆走の材料（読んだ行）も空になる。
+  {
+    const skipStart = app.indexOf('if (action === "story-skip") {');
+    const gateLookup = app.indexOf("const stop = storySkipStop();", skipStart);
+    const skipRecord = app.indexOf('record("story_skipped"', skipStart);
+    if (skipStart < 0 || gateLookup < 0 || skipRecord < 0) {
+      problems.push("スキップの受け皿と門の判定を見つけられなかった");
+    } else if (gateLookup > skipRecord) {
+      problems.push("スキップが門を見る前に会話を丸ごと飛ばしている");
+    }
   }
   // issue #200 — **巻き戻しの枝は、finishStory() が履歴を消すより前に無ければならない。**
   // 逆走は読んだ行を使うので、後ろに置くと（会話をスキップして巻き戻したときに）

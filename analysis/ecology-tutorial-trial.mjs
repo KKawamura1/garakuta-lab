@@ -151,10 +151,26 @@ try {
   await click("結果を見る");
   await page.waitForTimeout(300);
   note("倒れた拍で会話が入る", /届かなかった/.test(await bodyText()));
-  // 最後の行まで読む。**門はそこで初めて出る**（途中の行で出すと読み飛ばす釦になる）。
+  // **門は最後の行でしか出ない**（途中の行で出すと、読み飛ばすための釦になる）。
+  await tapStory();
   const gateButton = page.locator(".vn-gate .vn-gate-button");
-  note("会話の最後で巻き戻しの釦が出る",
-    await tapUntil(async () => await gateButton.count() > 0 && await gateButton.isVisible()));
+  note("門は途中の行では出ない",
+    await page.locator(".vn-gate").count() === 0
+      && /2 \/ 3/.test(await page.locator(".vn-progress").innerText()));
+  // 作者試遊 2026-09-11（issue #200 の続き）— **スキップは門まで飛ばして止まる。**
+  // 門は押すまで越えない拍なので、スキップだけが越えられるのは筋が通らない。
+  // 飛ばした行も履歴へ残るので、巻き戻しの逆走はその行を材料にできる。
+  await click("スキップ");
+  await page.waitForTimeout(300);
+  note("スキップは門まで飛ばして止まる（越えない）",
+    await gateButton.count() === 1 && await gateButton.isVisible()
+      && /届かなかった/.test(await bodyText())
+      && /3 \/ 3/.test(await page.locator(".vn-progress").innerText()));
+  await page.locator('[data-action="story-log"]').first().click();
+  await page.waitForTimeout(200);
+  note("スキップで飛ばした行も履歴に残る", await page.locator(".vn-log-line").count() === 3);
+  await page.locator('.vn-log [data-action="story-log"]').click();
+  await page.waitForTimeout(200);
   note("序盤の一戦で負ける", /届かなかった/.test(await bodyText()));
   // **システム画面の一項目にしない。**結果画面（勝敗カード）を挟まず、会話の舞台に
   // 被せて出す。ど真ん中に一つだけで、ほかの操作を並べない。
@@ -166,7 +182,9 @@ try {
   note("門のあいだは進む合図を出さない",
     await page.locator(".vn-caret").count() === 0 && await page.locator(".vn-hint").count() === 0);
   // 舞台を叩いても越えられない。**押して越える拍である。**
-  await page.locator(".vn-stage").click();
+  // 叩くのは舞台の隅（釦の上ではない）。門は舞台に被さっているので、隅を叩くと
+  // 門の面が受け、そのまま舞台の「叩いて進む」へ落ちる——そこで止まることを見る。
+  await tapStory();
   await page.waitForTimeout(250);
   note("舞台を叩いても門は越えない",
     await gateButton.count() === 1 && /届かなかった/.test(await bodyText()));
