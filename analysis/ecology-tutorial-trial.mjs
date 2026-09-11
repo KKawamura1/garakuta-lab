@@ -170,11 +170,12 @@ try {
 
   // R11 §2.1 — 2人編成。**誰が来るかは物語が決める。**
   const campText = await bodyText();
-  note("キャンプに着く", /編成|仲間/.test(campText));
+  note("キャンプに着く", /スキル|遠征/.test(campText));
   // issue #159 — 固定同行者の区画では人数を N/M で出さない（分母は「まだ入れられる」
   // と読めるが、その回は誰も足せない）。
   note("2人で始まる", /2人/.test(campText) && !/2 \/ 2人/.test(campText));
-  await page.locator('nav.tabs [data-tab="roster"]').click();
+  // issue #235 — 編成タブは廃止した。固定同行者の理由は遠征タブが一行で持つ。
+  await page.locator('nav.tabs [data-tab="map"]').click();
   note("この Stage の同行者は固定だと書いてある",
     /物語が決めます/.test(await bodyText()));
   // issue #159 — 選べないものを「選べるように見えるカード」で出さない。
@@ -185,7 +186,8 @@ try {
   // R14 §1 — 巻き戻したあとは、camp の上端に戦闘予測が常設される。
   // **予測が指すのは「灰の門」**である（12戦の第1戦ではない。同じ盤面をもう一度戦う）。
   note("巻き戻したあとは予測が出る", await page.locator(".camp-top .forecast-bar").count() === 1);
-  note("予測は同じ盤面（灰の門）を指す", /戦闘予測 · 灰の門/.test(await bodyText()));
+  note("予測は同じ盤面（灰の門）を指す",
+    /灰の門/.test(await page.locator(".camp-top .forecast-title").innerText()));
   const rewoundVerdict = await page.locator(".camp-top .forecast-verdict").first().innerText();
   note("巻き戻し直後は負けた配置を引き継ぐ", /敗北/.test(rewoundVerdict), rewoundVerdict);
   note("各メンバーのHPと減少量が出ている",
@@ -205,7 +207,12 @@ try {
   if (await equipmentHelp.count()) await equipmentHelp.locator("summary").click();
   note("装備は自由に付け外しできると書いてある", /装備は何度でも付け外しできます/.test(await bodyText()));
 
-  // R10 — Campではオートセーブとは別に手動枠へ保存できる。
+  // R10 / issue #235 — Campではオートセーブとは別に手動枠へ保存できる。
+  // セーブは遠征タブが持つ（**離脱ではないので、物語の最中でも触れる**）。
+  await page.locator('nav.tabs [data-tab="map"]').click();
+  await page.waitForTimeout(150);
+  note("物語の最中でも撤退はできない",
+    await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
   await click("セーブ / ロード");
   note("セーブ画面へ進める", /セーブ \/ ロード/.test(await bodyText()));
   await page.locator('[data-action="save-slot"][data-slot="1"]').click();
@@ -213,7 +220,7 @@ try {
   note("手動セーブ枠へ保存できる", /手動セーブ枠 1 に保存しました/.test(await bodyText()));
   await page.locator('[data-action="load-slot"][data-slot="1"]').click();
   await page.waitForTimeout(200);
-  note("手動セーブからCampへ戻れる", /編成|仲間/.test(await bodyText()) && /2人/.test(await bodyText()));
+  note("手動セーブからCampへ戻れる", /同行者|仲間/.test(await bodyText()) && /2人/.test(await bodyText()));
 
   // R9 §3.1 / R11 §8.5 — Stage 0 の入口は pack_care「構えと手当て」。
   // **武器と技を一本ずつ**持つ二本が、この Stage の問いそのものである。
@@ -386,7 +393,12 @@ try {
   // ここがチュートリアルの山である。engine は決定的なので、**隊列を直さなければ
   // 何度やっても同じように負ける。**ツグミを後列へ下げた一手だけが勝ちに変わる。
   // 会話が渡した「柔らかい技は後ろ、硬い武器は前」を、実際に操作して確かめる。
-  await page.locator('nav.tabs [data-tab="roster"]').click();
+  // issue #235 — 編成タブは廃止した。隊列はどのタブからでも上端の「⇅ 隊列」で入る。
+  // 巻き戻し直後に開くのは遠征タブで、手引きの一行もそこにある。
+  await page.locator('nav.tabs [data-tab="map"]').click();
+  await page.waitForTimeout(150);
+  await page.locator('.camp-top [data-action="toggle-formation-mode"]').click();
+  await page.waitForTimeout(150);
   // R14 §1 — **予測は隊列を動かした瞬間に付いてくる。**
   //
   // 巻き戻した直後は、最初に負けた配置（ツグミもゴウも前列）を引き継ぐ。
@@ -395,7 +407,7 @@ try {
   const wrongVerdict = await verdict();
   note("負けた配置のままでは予測が敗北", /敗北/.test(wrongVerdict), wrongVerdict);
 
-  // issue #159 — 隊列は**上端の共通盤面から**動かす。編成タブに二つ目の隊列盤も
+  // issue #159 / #235 — 隊列は**上端の共通盤面からしか**動かせない。二つ目の隊列盤も
   // キャラクターカードも無い（同じ仲間を選ぶ表示が複数あると、どこで何を選んだのかを
   // 画面ごとに探し直すことになる）。
   const menderCell = page.locator('.camp-top .party-cell', { hasText: "ツグミ" }).first();
@@ -405,7 +417,7 @@ try {
   await page.waitForTimeout(150);
   note("押した仲間のセルが選択状態になる",
     await page.locator('.camp-top .party-cell.selected').count() === 1
-      && /移動先の枠を選んでください/.test(await bodyText()));
+      && /移動先の枠へ/.test(await bodyText()));
   await page.locator('.camp-top [data-action="place-character"][data-position="rear_right"]').click();
   await page.waitForTimeout(200);
   const placedText = await bodyText();
@@ -416,8 +428,8 @@ try {
   // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
   const rightVerdict = await verdict();
   note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
-  // issue #138 — 戦闘前確認の画面（battlePreview）を無くしたので、隊列を直す
-  // この画面（roster タブ）で武器と技の違いをもう一度渡す。
+  // issue #138 / #235 — 戦闘前確認の画面（battlePreview）を無くしたので、巻き戻し直後に
+  // 開く遠征タブで武器と技の違いをもう一度渡す。
   note("戦闘予測の使い方を示す",
     /戦闘予測/.test(placedText)
       && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(placedText));
@@ -487,7 +499,7 @@ try {
         note("治療結果の前に対象選択を要求する",
           await targetButtons.count() > 0
             && suppliesBeforeTarget === suppliesBefore
-            && /対象を1人選んでください/.test(await bodyText()));
+            && /対象を1人/.test(await bodyText()));
         if (await targetButtons.count()) {
           await targetButtons.first().click();
           await page.waitForTimeout(200);
@@ -521,6 +533,9 @@ try {
   //
   // **画面の文言だけでなく、次の遠征の持ち物に実物が入るところまで見る。**
   // 安全撤退で精算まで一気に進む（R8 §10.3。撤退でも最大2件残る）。
+  // issue #235 — 撤退は遠征タブが持つ（上端の常設ボタンは廃止した）。
+  await page.locator('nav.tabs [data-tab="map"]').click();
+  await page.waitForTimeout(150);
   await click("安全に撤退する");
   await page.waitForTimeout(300);
   const settleText = await bodyText();
@@ -654,7 +669,7 @@ try {
     note("Stage 1 は3人で始まる", /3人/.test(stage1Camp) && !/3 \/ 3人/.test(stage1Camp));
 
     // ---- R12 §4.E-1 — 編成画面が「後で加入する仲間」を出していないこと。
-    await page.locator('nav.tabs [data-tab="roster"]').click();
+    await page.locator('nav.tabs [data-tab="map"]').click();
     await page.waitForTimeout(150);
     const rosterText = await bodyText();
     note("後で加入する仲間を出さない", !/後で加入する仲間/.test(rosterText));
