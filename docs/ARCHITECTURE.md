@@ -47,7 +47,7 @@
 | `sync.mjs` | `/api/runs` への送信と端末 ID |
 | `check.mjs` | `ecology/*.test.mjs` の runner |
 
-戦闘タブの `renderMap()` は、12個のノードを `composeEncounter(step, ...)` から生成し、
+遠征タブの `renderMap()` は、12個のノードを `composeEncounter(step, ...)` から生成し、
 `RunState.encounterIndex` との比較だけで `done` / `current` / `unreached` を決めます。
 精鋭・bossの種別はノード内の記号と凡例へ分離し、強い現在地枠を種別用の枠で上書きしません。
 `analysis/ecology-map-smoke.mjs` が12戦の配置とこの表示契約を、
@@ -249,7 +249,7 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 ## 9. UI表示の責務
 
 `app.js` の通常画面は、主見出し、現在の選択対象、次の操作の順で構成する。意思決定が済んだ画面では、次の操作を
-先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。編成・技能・装備のような選択画面では
+先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。隊列・技能・装備のような選択画面では
 選択対象→確定操作の順を維持し、敵情報・技能ツリー・装備一覧は段階表示と折り畳みで長さを制御する。
 装飾的な英語副見出し、
 常に表示する一般説明、同じタブへ戻るNEXT/QUICK LINKSは画面の主操作から外し、必要なルールを
@@ -259,16 +259,49 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 shell を共有するタイトル・キャンプ・戦闘・結果・精算の全画面と、戦闘予測の冗長文が戻らないことを
 `analysis/ecology-screens-smoke.mjs` が検査する。表示整理は予測・本番・報酬・精算の計算経路を変更しない。
 
-### 仲間の共通盤面（issue #159）
+画面本体の文章は、ストーリーと技能・装備の説明文に絞る（issue #236）。状態・数量・対象・可否は
+記号・数・棒・色・配置で出し、**同じ数を同じ画面で二度出さない**。見出しとその直下の要約が
+同じことを言っている組（「技能ツリー」の見出しと summary、「ゴウの装備枠」と直上の人物帯、
+「補給 3 / 5」の見出し札とバーの頭）は札の側を落とす。金の主ボタンは位置と色でそれ自体が
+「次の操作」なので、`primary-action-label` のような札を重ねない。押せる形になっているカードの
+一覧へ「選んでください」と書き添えず、**二手続きの操作で次の一手が要るときだけ**一行を出す
+（装備を選んだあとの「装着する枠を選ぶ」、隊列の「移動先の枠へ」、治療の対象選び）。
+戦闘マップの凡例と配置の説明は畳んだヘルプへ置き、各節は `title` と読み上げラベルで
+自分の状態（「第3戦・精鋭・未到達」）を名乗る。同じ種類の敵が並ぶ回は、`enemy-lore` の一行を
+最初の1枚にだけ出す。
 
-キャンプで仲間を選ぶ経路は `partyBar(mode)` 一つに閉じる。盤面は `POSITIONS` から
+### キャンプのタブ（issue #235）
+
+キャンプのタブは スキル・装備・補給・遠征 の4枚で、`campNav()` が出す。準備の3枚は何度も
+往復する画面、遠征タブは「次の一戦へ進む」と遠征そのものをどうするか（`rosterSwapSection()` の
+顔ぶれ・`abandon-run`・`open-save-menu`）を決める画面で、役が違う。`renderCamp()` は
+`shell(..., { hideHeaderAction: true })` を使い、**固定される上端の外に常設ボタンを置かない**
+（旧 `campTools()` と shell のヘッダー操作は、実測で iPhone 幅の第一画面 64px を占めていた）。
+
+撤退だけは `state.prologueActive` と `supplyTutorialVisible()` のあいだ出さない（隊列を直しきる
+前に離脱されると「一手直せば勝てる」導入が成立しない）。**セーブは離脱ではない**ので、
+物語の最中でも遠征タブから触れる。
+
+### 仲間の共通盤面（issue #159 / #235）
+
+キャンプで仲間を選ぶ経路は `partyBar(tab)` 一つに閉じる。盤面は `POSITIONS` から
 そのまま3列×2行を組み、行の見出しと格子は戦闘中の `battleRowsHtml()` と同じ形にする。
 セルの中身は `partyCellPerson()`、セルに掛かる操作は `partyCellRole(mode, position, characterId)`
-だけが決める。mode は `renderCamp()` が渡す表示中のタブ（補給チュートリアル中は `supplies`）で、
-`roster` は `place-character`、`skills` / `equipment` は `select-character`、`supplies` は
-治療を選んでいるあいだだけ `select-treatment-target`、`map` は操作なし（`<div>`）になる。
-盤面は隊列を変える唯一の入口なので、`skills` / `equipment` / `supplies` から
-`state.run.formation` は動かない。
+だけが決める。
+
+mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所で決める（issue #235 で
+編成タブを廃止したため）。優先順は、補給タブで単体治療・蘇生を選んでいるあいだの `treat`
+（`select-treatment-target`）、`state.formationMode` が立っているあいだの `formation`
+（`place-character`）、補給タブの既定の `none`（操作なし・`<div>`）、それ以外の `select`
+（`select-character`）。`formationMode` は予測の見出し行の「⇅ 隊列」（`toggle-formation-mode`）
+で入り、**どのタブからでも同じ一手**で隊列を組み替えられる。この状態はその場かぎりなので
+`persistableState()` が落とし、読み込みでも `false` へ戻す（盤面が組み替えの途中で開くと、
+人物を選ぶつもりの一押しが移動になる）。盤面は隊列を変える唯一の入口なので、
+`formation` 以外の mode から `state.run.formation` は動かない。
+
+セルは2行で組む。1行目が人物（アイコン・名前・必殺印）と1ラウンドの資源（AP/RP のピップ）、
+2行目が HP バーと増減で、HP の数値はバーの上へ重ねる。4行積みだった頃は 1 セル 67px・
+固定領域 234px で、iPhone 幅（390×844）の画面の3割を常時占めていた。
 
 予測は従来どおり `battleForecast()`（`previewNextBattle` → `expeditionBattleOptions`）から
 読み、`forecast.perCharacter` を characterId で引いてセルへ差し込む。**予測が無い場面でも

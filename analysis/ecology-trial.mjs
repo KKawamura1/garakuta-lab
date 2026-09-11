@@ -276,10 +276,11 @@ try {
   note("踏破済みStageの再訪でも開始会話が出る", await page.locator(".vn-stage").count() === 1);
   await click("スキップ");
   await page.waitForTimeout(300);
-  note("編成タブ", /編成|仲間/.test(await bodyText()));
+  note("キャンプに着く", /スキル|遠征/.test(await bodyText()));
 
-  // 4つのタブを踏む。各画面の主要操作が画面内にあることも見る。
-  for (const [tab, needle] of [["roster", "編成"], ["skills", "技能点"], ["equipment", "装備"], ["map", "この敵に挑む"]]) {
+  // issue #235 — タブは4枚（スキル・装備・補給・遠征）。編成タブは廃止し、隊列は
+  // どのタブからでも上端の盤面の「⇅ 隊列」で組み替える。
+  for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵に挑む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
     note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
     if (tab === "skills") {
@@ -299,7 +300,7 @@ try {
   if (await skillHelp.count()) {
     await skillHelp.locator("summary").click();
     note("技能数の制限が無いと分かる", /すべて装着できます/.test(await bodyText()));
-    await page.locator('nav.tabs [data-tab="roster"]').click();
+    await page.locator('nav.tabs [data-tab="equipment"]').click();
     await page.locator('nav.tabs [data-tab="skills"]').click();
     note("ヘルプの開閉状態を保つ", await page.locator('details[data-help="skill-rules"]').evaluate((element) => element.open));
   }
@@ -379,6 +380,13 @@ try {
       && currentNodes[0].boxShadow !== "none"
       && otherNodes.every((node) => node.borderWidth === "1px"));
     if (stage === 1) {
+      // issue #236 — 凡例は畳んだ「遠征のルール」の中へ移した。各節が aria-label と
+      // title で自分の状態を名乗るので、本文からは外してある。**消してはいない。**
+      const expeditionHelp = page.locator('details[data-help="expedition-rules"]');
+      if (await expeditionHelp.count() && !(await expeditionHelp.evaluate((element) => element.open))) {
+        await expeditionHelp.locator("summary").click();
+        await page.waitForTimeout(120);
+      }
       const legend = await page.locator(".map-legend").innerText();
       note("進行状態と精鋭・ボスの凡例が出る",
         /クリア済み/.test(legend) && /現在地/.test(legend) && /未到達/.test(legend)
@@ -630,8 +638,8 @@ try {
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
       note("結果画面の主操作が詳細より前で見える",
-        await page.locator(".result-primary-action .primary-action-label").count() === 1
-          && await onScreen(".result-primary-action .primary-action-label")
+        await page.locator(".result-primary-action .button").count() >= 1
+          && await onScreen(".result-primary-action .button")
           && await appearsBefore(".result-primary-action", ".result-actors"));
     }
     if (stage === 1 && verdict === "突破した") {
@@ -704,8 +712,8 @@ try {
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
   note("精算の内訳が出ている", /到達距離/.test(settleText) && /報酬倍率/.test(settleText));
   note("精算後の主操作が上部にある",
-    await page.locator(".settlement-primary-action .primary-action-label").count() === 1
-      && await onScreen(".settlement-primary-action .primary-action-label")
+    await page.locator(".settlement-primary-action .button.primary").count() === 1
+      && await onScreen(".settlement-primary-action .button.primary")
       && await appearsBefore(".settlement-primary-action", ".settle-list"));
   if (/記録を送る/.test(settleText)) await click("記録を送る");
 

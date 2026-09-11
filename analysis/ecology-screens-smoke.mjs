@@ -376,7 +376,7 @@ for (const field of [
 {
   const campStart = app.indexOf("function renderCamp() {");
   const boardStart = app.indexOf("function partyCellRole(mode, position, characterId) {");
-  const barStart = app.indexOf("function partyBar(mode) {");
+  const barStart = app.indexOf("function partyBar(tab) {");
   if (campStart < 0 || boardStart < 0 || barStart < 0) {
     console.error("ecology-screens smoke: 共通盤面（partyBar / partyCellRole）を見つけられなかった。"
       + "検査の書き方が古い。");
@@ -385,9 +385,12 @@ for (const field of [
   for (const [label, expected] of [
     ["キャンプ上端が共通盤面を出している", "partyBar(activeTab) + campNav()"],
     ["盤面の並びが POSITIONS から出ている", "POSITIONS.filter((position) => position.startsWith(row"],
-    ["編成タブのセルが隊列操作", 'action: "place-character"'],
-    ["技能・装備タブのセルが人物選択", 'action: "select-character"'],
-    ["補給タブのセルが治療の対象選択", 'action: "select-treatment-target"'],
+    // issue #235 — 盤面の役はタブではなく boardMode が決める。編成タブは廃止した。
+    ["盤面の役が boardMode から出ている", "function boardMode(tab)"],
+    ["隊列モードのセルが隊列操作", 'action: "place-character"'],
+    ["通常のセルが人物選択", 'action: "select-character"'],
+    ["治療中のセルが対象選択", 'action: "select-treatment-target"'],
+    ["どのタブからも隊列へ入れる", 'data-action=\\"toggle-formation-mode\\"'],
     ["予測の勝敗・ラウンド数", "forecast.roundsUsed"],
   ]) {
     if (!app.includes(expected)) problems.push(label + "が見つからない");
@@ -399,8 +402,10 @@ for (const field of [
     }
   }
   // 補給タブは、治療を選んでいないあいだセルを押せない（誰を選ぶ場面でもない）。
-  const roleBody = app.slice(boardStart, barStart);
-  if (!roleBody.includes('if (!treatment || treatment.targetCount === "all" || !characterId) return { action: null };')) {
+  // issue #235 — この判定は boardMode へ移した（役はタブではなく盤面の状態で決まる）。
+  const modeStart = app.indexOf("function boardMode(tab) {");
+  const roleBody = app.slice(modeStart, barStart);
+  if (!roleBody.includes('return tab === "supplies" ? "none" : "select";')) {
     problems.push("補給タブのセルが、治療を選んでいなくても押せる形になっている");
   }
   if (!roleBody.includes("treatmentTargetIds(treatment).includes(characterId)")) {
@@ -409,7 +414,7 @@ for (const field of [
   // 二つ目の仲間選択がキャンプへ戻っていないこと。**guild 画面の仲間タブは対象外**
   // （あちらには共通盤面が無い）ので、camp のレンダラーだけを見る。
   const campRenderers = [
-    ["renderRoster", "function renderRoster() {", "\nconst SLOT_KEYS"],
+    ["rosterSwapSection", "function rosterSwapSection() {", "\nconst SLOT_KEYS"],
     ["renderSkills", "function renderSkills() {", "\nfunction equipmentSlotHtml"],
     ["renderEquipment", "function renderEquipment() {", "\nfunction renderEnemy"],
     ["campTreatmentBlock", "function campTreatmentBlock() {", "\n// R8 §11 — exact preview"],

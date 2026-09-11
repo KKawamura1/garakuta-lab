@@ -223,8 +223,11 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   position: sticky;
   top: 0;
   z-index: 3;
-  margin: 0 -2px 12px;
-  padding: 4px 2px 0;
+  margin: 0 -2px 8px;
+  /* 下の余白は margin ではなく padding で取る。**margin では下をくぐる本文に効かない**
+     ——貼りついた帯の下端へ、スクロールしてきた文がそのまま接してしまう（作者試遊、
+     2026-09-11）。padding にすると、ぼかした帯そのものが下へ伸びる。 */
+  padding: 4px 2px 12px;
   background: rgba(14, 20, 22, .95);
   backdrop-filter: blur(10px);
 }
@@ -287,8 +290,9 @@ button.party-cell { cursor: pointer; }
 .party-cell.unpickable { opacity: .38; }
 .party-empty { color: var(--muted); font-size: 15px; line-height: 1.1; }
 .party-empty-text { color: var(--muted); font-size: 9px; }
-.party-figures { display: flex; align-items: baseline; justify-content: center; gap: 5px; }
-.party-res { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 7px; }
+/* issue #235 — セルは2行。1行目＝人物と資源、2行目＝HPバー（数値を重ねる）と増減。 */
+.party-figures { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+.party-res { display: flex; flex: none; align-items: center; gap: 3px; margin-left: 1px; }
 .party-note {
   display: flex;
   align-items: center;
@@ -310,19 +314,33 @@ button.party-cell { cursor: pointer; }
   text-overflow: ellipsis;
 }
 .forecast-member-head .avatar.small { flex: none; width: 16px; height: 16px; font-size: 9px; }
+/* **数値はバーの中に置く。**別の行にすると、同じHPの話で2行を使うことになる。 */
 .forecast-hp-bar {
+  position: relative;
   display: flex;
-  height: 5px;
-  border-radius: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 14px;
+  border-radius: 4px;
   background: #10191b;
   overflow: hidden;
 }
 .forecast-hp-end { background: var(--good); }
 .forecast-hp-loss { background: var(--bad); }
-.forecast-hp-values { color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.forecast-hp-values b { color: var(--ink); font-size: 10px; }
-.forecast-hp-values small { color: var(--muted); font-size: 9px; }
-.forecast-delta { font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.forecast-hp-values {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(6, 11, 12, .9), 0 0 3px rgba(6, 11, 12, .75);
+}
+.forecast-hp-values b { color: #fff; font-size: 10px; font-weight: 800; }
+.forecast-hp-values small { color: rgba(255, 255, 255, .8); font-size: 9px; }
+.forecast-delta { flex: none; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .forecast-delta.down { color: var(--bad); }
 .forecast-delta.up { color: var(--good); }
 .forecast-delta.flat { color: var(--muted); }
@@ -335,7 +353,8 @@ button.party-cell { cursor: pointer; }
   top: 0;
   z-index: 2;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* issue #235 — 編成タブを廃止して4枚。 */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   margin: 0 -2px 12px;
   padding: 4px;
@@ -433,7 +452,9 @@ button.party-cell { cursor: pointer; }
 .character-copy b { font-size: 13px; }
 .character-copy small { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.35; }
 .check { flex: 0 0 auto; color: var(--gold); font-size: 11px; font-weight: 750; }
-.character-stats {
+/* issue #236 — 能力値は4軸そろえて、軸名を小さく・数を大きく出す。
+   仲間カードと memberContext が**同じ形**を使う（statAxesHtml）。 */
+.character-stats, .member-context-stats {
   display: flex;
   justify-content: space-between;
   gap: 3px;
@@ -443,6 +464,27 @@ button.party-cell { cursor: pointer; }
   color: var(--blue);
   font-size: 10px;
 }
+.character-stats > span, .member-context-stats > span {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.character-stats small, .member-context-stats small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: .02em;
+}
+.character-stats b, .member-context-stats b {
+  color: var(--ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.character-stats b small, .member-context-stats b small { color: var(--muted); font-size: 9px; }
+.member-context-stats .trained { color: var(--gold); font-style: normal; }
 .tiny-button, .icon-button {
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -2201,11 +2243,40 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 0.85rem;
 }
 
-.camp-tools {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0.7rem 0 1rem;
+/* issue #235 — 盤面の役を切り替える一つのボタン。予測の見出し行に同居させ、
+   固定領域の高さを増やさない。**押している間だけ盤面が隊列の組み替えになる。** */
+.board-mode {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.3;
+  cursor: pointer;
 }
+.board-mode.active { border-color: var(--gold); background: var(--gold-dark); color: var(--gold); }
+
+/* issue #235 — 遠征タブの末尾。**離れる操作は、次へ進む操作より下にしか置かない。** */
+.expedition-tools .expedition-tool-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.expedition-tools .button.quiet {
+  background: transparent;
+  color: var(--muted);
+}
+.tutorial-note-card { border-color: rgba(212, 175, 100, .45); }
+/* 凡例はヘルプの中でだけ出す（本文からは外した）。 */
+.map-legend-help .map-legend { margin: 4px 0 0; }
 
 .save-menu-card {
   display: grid;
@@ -2555,11 +2626,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   color: var(--muted);
   font: 9px/1.45 ui-monospace, monospace;
 }
-.character-stats {
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-.character-stats span { white-space: nowrap; }
+
 
 /* ============================================================ 記号の語彙（issue #177）
    **通常のゲームシステムは、文章ではなく形と色で見せる。**
