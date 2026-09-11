@@ -1343,6 +1343,39 @@ function bindLongPress() {
     element.addEventListener("contextmenu", (event) => event.preventDefault());
   });
 }
+/*
+ * Safari の viewport / touch-action だけでは、ダブルタップ拡大が残ることがある。
+ * ゲーム画面では拡大を操作として使わないので、OS固有のジェスチャーもここで止める。
+ * 会話本文の長押し選択は維持し、ダブルタップだけを抑止する。
+ */
+const DOUBLE_TAP_ZOOM_WINDOW_MS = 350;
+
+function bindBrowserGestureGuards() {
+  let lastTouchEndAt = 0;
+  let lastTouchTarget = null;
+  const targetFor = (target) => {
+    if (!(target instanceof Element)) return app;
+    return target.closest("[data-action], button, select, textarea, input, .skill-tree-scroll") ?? app;
+  };
+  const preventGesture = (event) => event.preventDefault();
+
+  for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+    document.addEventListener(type, preventGesture, { passive: false });
+  }
+  document.addEventListener("touchmove", (event) => {
+    if (event.touches.length > 1) event.preventDefault();
+  }, { passive: false });
+  document.addEventListener("touchend", (event) => {
+    const now = performance.now();
+    const target = targetFor(event.target);
+    if (target === lastTouchTarget && now - lastTouchEndAt <= DOUBLE_TAP_ZOOM_WINDOW_MS) {
+      event.preventDefault();
+    }
+    lastTouchEndAt = now;
+    lastTouchTarget = target;
+  }, { passive: false });
+  document.addEventListener("dblclick", preventGesture, { passive: false });
+}
 
 function captureSkillTreeScroll() {
   if (state.phase !== "camp" || state.tab !== "skills") return;
@@ -6213,4 +6246,5 @@ function handleAction(event) {
   }
 }
 
+bindBrowserGestureGuards();
 render();
