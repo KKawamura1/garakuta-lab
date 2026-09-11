@@ -373,7 +373,7 @@ try {
   await page.waitForTimeout(200);
   note("装備タブに二つ目の仲間タブが無い", await page.locator(".member-tabs").count() === 0);
   note("装備タブは前のタブで選んだ人物を引き継ぐ",
-    (await page.locator(".selected-loadout h3").innerText()).includes(otherSkillName));
+    (await page.locator(".member-context h3").innerText()).includes(otherSkillName));
   const equipmentOtherCell = page.locator('.camp-top [data-action="select-character"]:not(.selected)').first();
   const equipmentOtherName = (await equipmentOtherCell.getAttribute("aria-label") ?? "").split(" · ")[0];
   const equipmentFormationBefore = await page.locator('.camp-top .party-cell').allTextContents();
@@ -381,7 +381,7 @@ try {
   await page.waitForTimeout(200);
   note("装備タブで装備対象を盤面から切り替えられる",
     Boolean(equipmentOtherName)
-      && (await page.locator(".selected-loadout h3").innerText()).includes(equipmentOtherName));
+      && (await page.locator(".member-context h3").innerText()).includes(equipmentOtherName));
   note("装備タブで押しても隊列は動かない",
     JSON.stringify(await page.locator('.camp-top .party-cell').allTextContents())
       === JSON.stringify(equipmentFormationBefore));

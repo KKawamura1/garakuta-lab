@@ -3089,7 +3089,7 @@ function renderSkills() {
   // 持たない。**残り技能点は隊全体の合計にする（一人ぶんだけでは、他の誰かが
   // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
   const characterId = selectedCharacter();
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>残り技能点（隊全体）</small><b>"
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>技能点 · 隊全体</small><b>"
     + totalSkillPoints() + "</b></span>"
     // issue #238 — 必殺技の残りは、見出しの小さな菱形だけにする（枠を足さない）。
     + (ultimatesUnlocked(state.run)
@@ -3105,7 +3105,7 @@ function renderSkills() {
     + "<p class=\"context-line\">" + esc(packs) + "</p>"
     + memberContext(characterId, "skills")
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
-    + "<section class=\"card\">" + sectionHeading("SKILL TREE", "技能ツリー")
+    + "<section class=\"card\">"
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + "</details>"
@@ -3133,9 +3133,11 @@ function equipmentSlotHtml(characterId, slot) {
   const selected = state.selectedEquipment;
   const canInstall = Boolean(selected && selected !== equipmentId);
   const label = equipmentId ? nameFor(equipmentId) : "空き枠";
+  // issue #236 — 埋まっている枠は耐久の数だけ。空き枠は「空き枠」がもう言っているので、
+  // **装備を選んでいるときだけ**「ここへ」と足す（何もないときは何も書かない）。
   const detail = equipmentId
-    ? "戦闘耐久 " + equipmentDurability(equipmentId) + " / " + (gear(equipmentId)?.maxDurability ?? 1)
-    : selected ? "選択中の装備をここへ" : "装備を選んでください";
+    ? "耐久 " + equipmentDurability(equipmentId) + " / " + (gear(equipmentId)?.maxDurability ?? 1)
+    : selected ? "ここへ" : "";
   return "<div class=\"equipment-slot\"><button type=\"button\" class=\"equip-slot-button "
     + (canInstall ? "ready" : "") + "\" data-action=\"" + (canInstall ? "equip-equipment" : "select-character")
     + "\" data-character=\"" + characterId + "\" data-slot=\"" + slot + "\"><span class=\"slot-number\">"
@@ -3167,19 +3169,19 @@ function renderEquipment() {
       + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
       + "</article>";
   }).join("");
-  const slots = "<section class=\"selected-loadout\"><h3>" + esc(characterName(characterId)) + "の装備枠</h3>"
+  // issue #236 — 主語はすぐ上の memberContext が出している。見出しで名前を繰り返さない。
+  const slots = "<section class=\"selected-loadout\"><h3>装備枠</h3>"
     + "<div class=\"equipment-slots\">" + equipmentSlotHtml(characterId, 0) + equipmentSlotHtml(characterId, 1) + "</div></section>";
-  const inventory = "<details class=\"progressive-details equipment-inventory\" open><summary>手元の装備（"
-    + state.run.inventory.length + "品）</summary>"
+  const inventory = "<details class=\"progressive-details equipment-inventory\" open><summary>手元 "
+    + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</summary>"
     + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>")
     + "</div></details>";
-  const selection = selected
-    ? "装着する枠を選んでください。"
-    : "装備を選んでください。";
+  // issue #236 — 装備を選んだあとだけ、次の一手を一行で言う。選ぶ前は
+  // カードが押せる形で並んでいるので、何も書かない。
+  const selection = selected ? "装着する枠を選ぶ" : "";
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT", "装備",
-      "<span class=\"stage\">装着 " + equipmentFillLabel() + " · 手元 "
-      + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>")
-    + "<p class=\"operation-note\" role=\"status\">" + selection + "</p>"
+      "<span class=\"stage\">装着 " + equipmentFillLabel() + "</span>")
+    + (selection ? "<p class=\"operation-note\" role=\"status\">" + selection + "</p>" : "")
     + memberContext(characterId, "equipment")
     + slots
     + inventory
@@ -3191,7 +3193,7 @@ function renderEquipment() {
 }
 
 
-function renderEnemy(enemy) {
+function renderEnemy(enemy, { withLore = true } = {}) {
   const info = enemyInfo(enemy.enemyActorId);
   const mutations = (enemy.mutations ?? []).map((id) => ENEMY_MUTATIONS[id]?.displayName ?? id);
   const badges = (enemy.boss ? ["ボス"] : []).concat(enemy.reinforcement ? ["増援"] : []).concat(mutations);
@@ -3204,7 +3206,8 @@ function renderEnemy(enemy) {
     + (mutations.length ? "<p class=\"muted small\">" + esc((enemy.mutations ?? [])
       .map((id) => ENEMY_MUTATIONS[id]?.previewText ?? "").join(" ")) + "</p>" : "")
     // R12 §4.B — 狙いの下に、拾い屋の言い分を一行。**規則ではない**ので見た目で分ける。
-    + (info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
+    // issue #236 — 同じ種類が並ぶ回は**一度だけ**出す。同じ一行を2枚3枚と重ねない。
+    + (withLore && info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
     + "</article>";
 }
 
@@ -3227,11 +3230,9 @@ function renderSupplies() {
   const treatment = isCampaignRun()
     ? campTreatmentBlock()
     : "<section class=\"card quiet\"><p class=\"muted\">この遠征では戦闘ごとにHPが全回復するため、野営治療は使いません。</p></section>";
-  return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給",
-      "<span class=\"stage\">" + state.run.supplies + " / " + MAX_SUPPLIES + "</span>")
-    + "<p class=\"operation-note\">残りの補給を、再挑戦・報酬の引き直し・野営治療に使います。</p>"
-    + suppliesBar("残り " + state.run.supplies + " 個")
-    + "<div class=\"scrap-line\"><span>分解の屑 <b>" + scrap + "</b>（" + SCRAP_PER_SUPPLY + "で補給1）</span>"
+  return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給")
+    + suppliesBar()
+    + "<div class=\"scrap-line\"><span>屑 <b>" + scrap + "</b> / " + SCRAP_PER_SUPPLY + " → 補給1</span>"
     + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= MAX_SUPPLIES, "tiny-button")
     + "</div></section>"
     + treatment
@@ -3285,9 +3286,14 @@ function renderMap() {
       + esc(encounter.bossLaw.previewText) + "</p><ul class=\"boss-counters\">"
       + encounter.bossLaw.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></div>"
     : "";
+  const loreShown = new Set();
   const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵 "
     + encounter.enemies.length + "体</summary><div class=\"enemy-grid\">"
-    + encounter.enemies.map(renderEnemy).join("") + "</div></details>";
+    + encounter.enemies.map((enemy) => {
+      const withLore = !loreShown.has(enemy.enemyActorId);
+      loreShown.add(enemy.enemyActorId);
+      return renderEnemy(enemy, { withLore });
+    }).join("") + "</div></details>";
   const ruleBody = (isCampaignRun()
     ? "<p class=\"muted\">通常・精鋭戦の後はHPを次の戦闘へ持ち越します。4戦目・8戦目のボス後だけ全員が全回復します。敵を倒さずに待ってもHPは戻りません。</p>"
     : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>")
@@ -3358,8 +3364,8 @@ function treatmentResultBlock() {
     ? "<p><b>傷ついた味方を回復できました。</b>これで次も戦えます。</p>"
     : "";
   return "<div class=\"supply-treatment-result\" role=\"status\">"
-    + "<p><b>" + esc(treatment?.displayName ?? "治療") + "を実行しました。</b></p>"
-    + "<p class=\"muted\">対象: " + esc(targetNames) + " · 補給残り " + result.supplies + "</p>"
+    + "<p><b>" + esc(treatment?.displayName ?? "治療") + "</b> " + esc(targetNames)
+    + " <span class=\"muted\">· 補給 " + result.supplies + "</span></p>"
     + complete + "</div>";
 }
 
@@ -3377,9 +3383,9 @@ function campTreatmentBlock() {
     const disabled = blockedByTutorial || blockedBySelection || state.run.supplies < 1 || !applicable;
     const focus = tutorial && treatment.id === "concentrated";
     const actionLabel = treatment.targetCount === "all"
-      ? "補給1で使う"
+      ? "補給1"
       : state.treatmentSelection === treatment.id
-        ? "対象を選び直す"
+        ? "選び直す"
         : "対象を選ぶ";
     return "<div class=\"purchase-row" + (focus ? " tutorial-focus" : "") + (state.treatmentSelection === treatment.id ? " treatment-selected" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
       + "</b><small>" + esc(treatment.summary) + "</small></span>"
@@ -3982,7 +3988,6 @@ function renderBattle() {
     + "</div>"
     + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
     + button("結果を見る", "replay-result", false, "button") + "</section>"
-    + "<p class=\"hint battle-hint\">再生を止めて、一手ずつ確認できます。</p>"
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
       + "<p class=\"muted\">枠色はHPでは変えません。生存中の残りHPが56%以上なら主色は緑、26〜55%なら黄、25%以下なら赤です。残HPは主色、今回の攻撃で回復済みは主色の薄め、回復可能は主色のかなり暗め、回復不能は黒で表示します。</p>"
@@ -3991,7 +3996,6 @@ function renderBattle() {
     + statusGlossaryHelp()
     + "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>戦闘履歴</summary>"
-    + "<p class=\"muted\">再生中の位置までの出来事を新しい順に表示します。</p>"
     + "<ol class=\"events replay-events\"></ol>"
     + "<details class=\"technical-log\"><summary>技術ログ</summary>"
     + diagnosticStamp()
@@ -4497,7 +4501,7 @@ function renderResult() {
         : rewardSectionHtml()
       : button("この先どうするか", "show-defeat", false, "button primary");
   const nextBlock = "<div class=\"primary-action result-primary-action\" data-primary-action=\"result-next\">"
-    + "<p class=\"primary-action-label\">次の操作</p>" + next + "</div>";
+    + next + "</div>";
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
@@ -4505,19 +4509,16 @@ function renderResult() {
   // issue #168 — 表示する量も progression の表から引く（画面に書いた数と、
   // 実際に配った数がずれないようにする）。
   const skillGain = !prologueUnresolved && won
-    ? "<p class=\"operation-note\">編成中の全員に技能点 +"
-      + skillPointsForClear(currentEncounter().kind) + "。報酬は下で1つ選びます。</p>"
+    ? "<p class=\"operation-note\">全員に技能点 +" + skillPointsForClear(currentEncounter().kind) + "</p>"
     : "";
   const carryText = prologueUnresolved
     ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
-    : "<p class=\"muted\">獲得予定の活動資金: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
-      + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
-      + "）。負けても、ここまで確定した分は持ち帰ります。</p>";
+    : "<p class=\"muted\">持ち帰る活動資金 <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
+      + "</b> · 到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + "</p>";
   const status = "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
     + (won ? "✓" : "×") + "</div><h2>" + (won ? "突破した" : "足を止めた")
-    + "</h2><p class=\"verdict-context\">" + esc(encounter.name) + " · " + result.roundsUsed + "ラウンド</p><p>"
-    + (won ? "この組み合わせは通りました。" : "この組み合わせでは届きませんでした。")
-    + "</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
+    + "</h2><p class=\"verdict-context\">" + esc(encounter.name) + " · " + result.roundsUsed
+    + "ラウンド</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
     + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
     + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div>"
     + skillGain + "</section>";
@@ -4525,23 +4526,19 @@ function renderResult() {
   // **払った理由と残りを、払った画面で見せる。**
   const firedBy = state.lastCarrySnapshot?.ultimateFiredBy ?? [];
   const sealText = firedBy.length
-    ? "<p class=\"muted\"><b>必殺技が出ました。</b>"
-      + esc(firedBy.map((id) => characterName(id)).join(" · "))
-      + "。この遠征ではもう放てません。必殺を残している仲間は "
-      + ultimateUsesLeftInParty(state.run) + " / " + state.run.roster.length + "人です。</p>"
+    ? "<p class=\"muted\">✹ " + esc(firedBy.map((id) => characterName(id)).join(" · "))
+      + " <span class=\"muted\">· 必殺を残す仲間 " + ultimateUsesLeftInParty(state.run)
+      + " / " + state.run.roster.length + "</span></p>"
     : "";
   const stateCard = "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "戦闘後の状態")
     + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
     + "<div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section>";
   const replay = state.replayEvents?.length
-    ? "<section class=\"card\">" + sectionHeading("REPLAY", "戦闘をもう一度見る")
-      + "<p class=\"operation-note\">同じ戦闘を同じ順で再生します。</p>"
-      + button("戦闘をもう一度見る", "replay-again", false, "button") + "</section>"
+    ? "<section class=\"card\">" + button("戦闘をもう一度見る", "replay-again", false, "button") + "</section>"
     : "";
   const history = "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>戦闘履歴</summary>"
-    + "<p class=\"muted\">アニメーションで分かりにくかった出来事を確認できます。</p>"
     + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
       + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
       + "<code class=\"event-type\">" + esc(event.type) + "</code></li>").join("") + "</ol>"
@@ -4677,7 +4674,7 @@ function rewardSectionHtml() {
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
   return "<section class=\"card\">"
     + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + "<p class=\"muted\">3候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>。戦闘勝利時の技能点は編成中の全員へ自動で加わります。</p>"
+    + "<p class=\"muted\">3候補から1つ。<b>活動資金はこの選択に含まれません。</b></p>"
     + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
       ? "<p class=\"muted\">装備の候補が減っています。用意できない場合は理由が候補欄に出ます。</p>"
       : "")
@@ -4689,7 +4686,7 @@ function rewardSectionHtml() {
     + "<div class=\"reward-grid\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
     + button("補給1で3候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
-    + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "引き直しは1戦闘につき一度だけ。使うと再挑戦の余地が減ります。")
+    + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "1戦闘に一度だけ。再挑戦の余地が減ります。")
     + "</small></div></section>";
 }
 
@@ -4699,7 +4696,6 @@ function renderDefeat() {
   const encounter = currentEncounter();
   const actionCard = "<section class=\"card primary-action defeat-primary-action\" data-primary-action=\"defeat-next\">"
     + sectionHeading("NEXT", "次の手", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + "<p class=\"primary-action-label\">補給の使い道を選びます</p>"
     + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
     + (canRetry
       ? button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
@@ -4784,7 +4780,6 @@ function renderSettlement() {
   const title = won ? "遠征を終えた" : retreated ? "安全に撤退した" : "遠征は途中で終わった";
   const nextAction = "<section class=\"card primary-action settlement-primary-action\" data-primary-action=\"settlement-next\">"
     + sectionHeading("NEXT", "次の行き先")
-    + "<p class=\"primary-action-label\">精算を確認したら、帰る先を選びます。</p>"
     + button("根城へ帰る", "go-homestead", false, "button primary")
     + button("ギルドへ戻る", "back-guild", false, "button")
     + button("記録を送る", "complete", false, "button")
@@ -4803,10 +4798,9 @@ function renderSettlement() {
     + "<div class=\"settle-row total\"><span>報酬倍率</span><b>×"
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
     + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
-    + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは"
-    + "活動資金と、下の設計図だけです。今回の結果分類（"
-    + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "）では最大" + settlement.blueprintSaveLimit
-    + "件を残せます。</p></section>"
+    + "<p class=\"muted\">持ち帰るのは活動資金と設計図だけです。技能点・解禁・装備・補給はここで消えます。"
+    + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
+    + settlement.blueprintSaveLimit + "件残せます。</p></section>"
     + blueprintSettlementSection(settlement)
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
       ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"

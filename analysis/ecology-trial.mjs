@@ -638,8 +638,8 @@ try {
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
       note("結果画面の主操作が詳細より前で見える",
-        await page.locator(".result-primary-action .primary-action-label").count() === 1
-          && await onScreen(".result-primary-action .primary-action-label")
+        await page.locator(".result-primary-action .button").count() >= 1
+          && await onScreen(".result-primary-action .button")
           && await appearsBefore(".result-primary-action", ".result-actors"));
     }
     if (stage === 1 && verdict === "突破した") {
@@ -712,8 +712,8 @@ try {
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
   note("精算の内訳が出ている", /到達距離/.test(settleText) && /報酬倍率/.test(settleText));
   note("精算後の主操作が上部にある",
-    await page.locator(".settlement-primary-action .primary-action-label").count() === 1
-      && await onScreen(".settlement-primary-action .primary-action-label")
+    await page.locator(".settlement-primary-action .button.primary").count() === 1
+      && await onScreen(".settlement-primary-action .button.primary")
       && await appearsBefore(".settlement-primary-action", ".settle-list"));
   if (/記録を送る/.test(settleText)) await click("記録を送る");
 
