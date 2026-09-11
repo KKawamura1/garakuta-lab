@@ -215,6 +215,35 @@ try {
   note("投資の取り消し不可が分かる", /購入は取り消せません/.test(investText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
 
+  // R10 — タイトル画面は表示だけで、Continueの再開先にはならない。
+  await click("タイトルへ");
+  note("タイトルへ戻れる", await page.locator(".title-screen").count() === 1);
+  note("タイトルからContinueを押せる",
+    await page.locator('[data-action="continue-game"]:not([disabled])').count() === 1);
+  await page.reload({ waitUntil: "networkidle" });
+  note("タイトルへ戻った状態をリロードしても維持する",
+    await page.locator(".title-screen").count() === 1);
+  await click("つづきから");
+  await page.waitForTimeout(300);
+  note("Continueで遠征準備へ復帰する",
+    await page.locator(".title-screen").count() === 0 && /今回の遠征/.test(await bodyText()));
+
+  // 修正前に作られた、phase=intro だけのオートセーブも救済する。
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved) return;
+    saved.phase = "intro";
+    delete saved.resumePhase;
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(300);
+  await click("つづきから");
+  await page.waitForTimeout(300);
+  note("既存のオートセーブからも遠征準備へ復帰する",
+    await page.locator(".title-screen").count() === 0 && /今回の遠征/.test(await bodyText()));
+
   // R12 — **この台本が見るのは12戦の長い流れであって、序盤のチュートリアルではない。**
   // 序盤の会話・勝てない一戦・巻き戻しは analysis/ecology-tutorial-trial.mjs の担当なので、
   // ここでは Stage 0 を踏破済みの Profile へ差し替えて、その先だけを踏む。
