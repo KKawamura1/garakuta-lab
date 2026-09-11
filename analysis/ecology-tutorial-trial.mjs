@@ -424,7 +424,8 @@ try {
   // issue #159 / #235 — 隊列は**上端の共通盤面からしか**動かせない。二つ目の隊列盤も
   // キャラクターカードも無い（同じ仲間を選ぶ表示が複数あると、どこで何を選んだのかを
   // 画面ごとに探し直すことになる）。
-  const menderCell = page.locator('.camp-top .party-cell', { hasText: "ツグミ" }).first();
+  // 名前は顔へ重ねず、隊列セルのアクセシブルなラベルに残す。
+  const menderCell = page.locator('.camp-top .party-cell[aria-label^="ツグミ"]').first();
   note("上端の盤面のセルが隊列操作そのものである",
     await menderCell.getAttribute("data-action") === "place-character");
   await menderCell.click();
@@ -437,7 +438,7 @@ try {
   const placedText = await bodyText();
   note("ツグミを後列へ下げられる",
     await page.locator('.camp-top .party-row').nth(1)
-      .locator('.party-cell', { hasText: "ツグミ" }).count() === 1);
+      .locator('.party-cell[aria-label^="ツグミ"]').count() === 1);
   note("移動を終えると選択が解ける", await page.locator('.camp-top .party-cell.selected').count() === 0);
   // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
   const rightVerdict = await verdict();
