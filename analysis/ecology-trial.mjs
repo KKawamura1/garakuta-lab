@@ -560,7 +560,11 @@ try {
             const hpText = unit.querySelector(".unit-hp")?.textContent?.trim() ?? "";
             const hp = hpText.match(/^([0-9]+)\/([0-9]+)$/);
             return {
-              name: unit.querySelector(".unit-name")?.textContent?.trim() ?? "",
+              // 味方カードでは名前を顔へ重ねない。対応付け用の名前は、表示専用の
+              // `.unit-name` ではなく、カード自身のアクセシブルなラベルから読む。
+              name: unit.getAttribute("aria-label")?.trim()
+                ?? unit.querySelector(".unit-name")?.textContent?.trim()
+                ?? "",
               endingHp: hp ? Number(hp[1]) : 0,
               maxHp: hp ? Number(hp[2]) : null,
               defeated: hpText === "戦闘不能",
