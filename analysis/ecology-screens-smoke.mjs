@@ -396,7 +396,7 @@ for (const field of [
     if (!app.includes(expected)) problems.push(label + "が見つからない");
   }
   // 予測が読む DOM。**通しの検査（ecology-trial）がこの名前で数字を取り出す。**
-  for (const expected of ["forecast-member-head", "forecast-hp-values", "forecast-delta", "forecast-hp-bar"]) {
+  for (const expected of ["forecast-member-head", "forecast-info-layer", "forecast-hp-values", "forecast-delta", "forecast-hp-bar", "unit-info-layer"]) {
     if (!app.includes(expected) || !styles.includes("." + expected)) {
       problems.push(`予測セルの ${expected} が画面かCSSから消えている`);
     }

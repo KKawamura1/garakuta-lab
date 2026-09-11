@@ -347,10 +347,10 @@ mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所
 人物を選ぶつもりの一押しが移動になる）。盤面は隊列を変える唯一の入口なので、
 `formation` 以外の mode から `state.run.formation` は動かない。
 
-セルは2行で組む。人物の顔部分は `portraitSvg(..., { crop: "face" })` で切り出した半透明の背景レイヤー、
-その前面に1行目の人物（アイコン・名前・必殺印）と1ラウンドの資源（AP/RP のピップ）、
-2行目が HP バーと増減で、HP の数値はバーの上へ重ねる。4行積みだった頃は 1 セル 67px・
-固定領域 234px で、iPhone 幅（390×844）の画面の3割を常時占めていた。
+セルは顔部分を `portraitSvg(..., { crop: "face" })` で切り出した背景レイヤーとして敷く。名前と職種アイコンは
+顔の上へ置かず、目元を残す。AP/RP のピップ、HP バー、増減は下部の `forecast-info-layer` へ集め、
+情報部分だけを濃いグラデーションで覆う。4行積みだった頃は 1 セル 67px・固定領域 234px で、
+iPhone 幅（390×844）の画面の3割を常時占めていた。
 
 予測は従来どおり `battleForecast()`（`previewNextBattle` → `expeditionBattleOptions`）から
 読み、`forecast.perCharacter` を characterId で引いてセルへ差し込む。**予測が無い場面でも
@@ -364,8 +364,9 @@ mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所
 `analysis/ecology-trial.mjs` が踏む。
 
 戦闘中の `unitHtml()` も同じ `portraitSvg(..., { crop: "face" })` を味方枠の背景へ差し込み、
-`character-face-watermark` を z-index 0、名前・HP・資源・状態を前面へ置く。敵には対応する
-人物画像がないため、既存の敵アイコンと枠を維持する。
+`character-face-watermark` を z-index 0 に置く。味方の名前・職種アイコンは描画せず、
+`unit-info-layer` に HP・資源・状態・演出を集め、下部だけを濃いグラデーションで覆う。
+敵には対応する人物画像がないため、既存の敵アイコンと枠を維持する。
 
 ## 生成装備ruleの耐久契約
 

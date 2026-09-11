@@ -476,7 +476,8 @@ try {
         result: ["win", "loss", "draw"].find((value) => bar.classList.contains(value)) ?? "",
         verdict: bar.querySelector(".forecast-verdict")?.textContent?.trim() ?? "",
         members: [...bar.querySelectorAll(".forecast-member")].map((member) => ({
-          name: member.querySelector(".forecast-member-head b")?.textContent?.trim() ?? "",
+          // 名前は顔の上へ重ねず、セルの aria-label に残す。予測値の対応確認だけは続ける。
+          name: member.closest(".party-cell")?.getAttribute("aria-label")?.split(" · ")[0] ?? "",
           endingHp: Number(member.querySelector(".forecast-hp-values b")?.textContent?.trim() ?? "NaN"),
           maxHp: Number(member.querySelector(".forecast-hp-values small")?.textContent?.replace("/", "") ?? "NaN"),
           defeated: member.classList.contains("defeated"),

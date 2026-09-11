@@ -283,29 +283,36 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font: inherit;
 }
 button.party-cell { cursor: pointer; }
+.party-cell:not(.empty) {
+  min-height: 55px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
 .character-face-watermark {
   position: absolute;
   z-index: 0;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: .22;
+  opacity: .38;
 }
 .character-face-watermark .portrait-svg {
   display: block;
   width: 100%;
   height: 100%;
-  filter: saturate(.78) contrast(.92) brightness(1.12);
+  filter: saturate(.9) contrast(1) brightness(1.06);
 }
 .party-cell > :not(.character-face-watermark),
 .unit > .unit-top,
-.unit > .unit-bar,
-.unit > .unit-stats,
-.unit > .unit-cast {
+.unit > .unit-info-layer {
   position: relative;
   z-index: 1;
 }
-.unit-character-face { opacity: .17; }
+.party-character-face { opacity: .42; }
+.unit-character-face { opacity: .29; }
 .party-cell.empty { border-style: dashed; background: transparent; }
 .party-cell.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
 /* 選択中の一人。**金の枠は「いま操作の主語である」の意味だけに使う。** */
@@ -331,7 +338,17 @@ button.party-cell { cursor: pointer; }
 .party-note b { color: var(--ink); white-space: nowrap; }
 .party-note.picking { color: var(--gold); }
 .party-note .tiny-button { flex: 0 0 auto; margin-left: auto; }
-.forecast-member-head { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; }
+.forecast-info-layer {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 5px 4px;
+  background: linear-gradient(180deg, rgba(13, 19, 21, 0) 0%, rgba(13, 19, 21, .7) 42%, rgba(13, 19, 21, .96) 100%);
+}
+.forecast-member-head { display: flex; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; min-height: 7px; }
 .forecast-member-head b {
   overflow: hidden;
   font-size: 10px;
@@ -1375,6 +1392,24 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   transition: border-color .18s ease, box-shadow .18s ease, opacity .3s ease;
 }
 .battle-side[data-side="enemy"] .unit { background: #251c1e; }
+.unit-info-layer { position: relative; z-index: 1; }
+.battle-side[data-side="ally"] .unit {
+  display: flex;
+  min-height: 84px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 6px 6px;
+  overflow: hidden;
+}
+.battle-side[data-side="ally"] .unit-info-layer {
+  width: calc(100% + 12px);
+  margin: 0 -6px -6px;
+  padding: 20px 6px 6px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(13, 19, 21, 0) 0%, rgba(13, 19, 21, .72) 43%, rgba(13, 19, 21, .96) 100%);
+}
+.battle-side[data-side="ally"] .unit-top { display: none; }
+.battle-side[data-side="ally"] .unit-bar { margin-top: 0; }
 .unit-top { display: flex; align-items: center; gap: 5px; }
 .unit-icon {
   display: grid;
