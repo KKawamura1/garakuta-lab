@@ -268,6 +268,8 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .party-row-label { color: var(--muted); font-size: 9px; letter-spacing: .04em; }
 .party-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
 .party-cell {
+  position: relative;
+  isolation: isolate;
   display: grid;
   align-content: start;
   gap: 3px;
@@ -281,6 +283,29 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font: inherit;
 }
 button.party-cell { cursor: pointer; }
+.character-face-watermark {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: .14;
+}
+.character-face-watermark .portrait-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: saturate(.72) contrast(.88);
+}
+.party-cell > :not(.character-face-watermark),
+.unit > .unit-top,
+.unit > .unit-bar,
+.unit > .unit-stats,
+.unit > .unit-cast {
+  position: relative;
+  z-index: 1;
+}
+.unit-character-face { opacity: .12; }
 .party-cell.empty { border-style: dashed; background: transparent; }
 .party-cell.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
 /* 選択中の一人。**金の枠は「いま操作の主語である」の意味だけに使う。** */

@@ -3670,7 +3670,8 @@ function partyCellPerson(characterId, entry) {
   // issue #235 — セルは**2行**。1行目に人物と1ラウンドの資源、2行目にHPと増減を置く。
   // 4行積みは1セル67px・固定領域234pxで、iPhoneの画面の3割を常時奪っていた。
   // **出す情報は一つも減らさずに**、行だけを畳む（数値はバーの上へ重ねる）。
-  return "<span class=\"forecast-member-head\"><span class=\"avatar small\">"
+  return characterFaceWatermark(characterId, "party-character-face")
+    + "<span class=\"forecast-member-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><b>"
     + esc(characterName(characterId)) + "</b>" + ultimateMark
     + "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap
@@ -3935,6 +3936,13 @@ function unitIcon(actor) {
     ?? (actor.side === "enemy" ? "◆" : "・");
 }
 
+function characterFaceWatermark(characterId, scope) {
+  const portrait = portraitSvg(characterId, "neutral", { crop: "face" });
+  if (!portrait) return "";
+  return "<span class=\"character-face-watermark " + scope + "\" aria-hidden=\"true\">"
+    + portrait + "</span>";
+}
+
 function actorDefinition(actor) {
   return actor.side === "ally"
     ? PLAYABLE_CONTENT.characters[actor.definitionId]
@@ -3997,8 +4005,12 @@ function layoutKeyOf(actors) {
 }
 
 function unitHtml(actor) {
+  const face = actor.side === "ally"
+    ? characterFaceWatermark(actor.definitionId, "unit-character-face")
+    : "";
   return "<div class=\"unit hp-tone-green\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
     + "<div class=\"unit-floats\"></div>"
+    + face
     + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
     + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
     + "</b></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
