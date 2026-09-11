@@ -489,6 +489,74 @@ for (const field of [
     problems.push("会話の門が、文字送りの終わりを待って出る指定になっていない");
   }
 
+  // issue #200 — **押した瞬間に次の会話へ遷移してはいけない。**門の釦は逆走の演出を
+  // 通って会話へ渡る。演出が消えると「巻き戻っている感覚が無い」状態へ戻るので、
+  // 経路をここで留める（ブラウザの通しは analysis/ecology-tutorial-trial.mjs）。
+  for (const [label, expected] of [
+    ["巻き戻しの演出の画面", "function renderRewind() {"],
+    ["演出を進める経路", "function mountRewindView() {"],
+    ["演出の終わり（叩いて追い越すときも通る）", "function finishRewind() {"],
+    ["逆走に使う行を読んだ履歴から取る", "function rewindTrackFromLog() {"],
+    ["演出を叩いて追い越す受け皿", 'action === "rewind-skip"'],
+    ["スキップの行き先（門で止まる）", "function storySkipStop() {"],
+    ["門まで飛ばして履歴へ積む", "function skipStoryToGate(stop) {"],
+    ["スキップが門を見てから飛ぶ", "const stop = storySkipStop();"],
+    ["会話の手前へ場面を一度だけ挟む口", "function enterStory(beats, after, { via = null } = {}) {"],
+    ["巻き戻しの会話が演出を通って始まる",
+      'enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null })'],
+    ["演出を保存の再開先にしない", 'if (state.phase === "rewind") persisted.phase = "story";'],
+    ["演出の時計を画面の切り替えで止める", "stopRewindTimers();"],
+  ]) {
+    if (!app.includes(expected)) problems.push(label + "が見つからない");
+  }
+  if (!app.includes("rewind: renderRewind,")) {
+    problems.push("巻き戻しの演出が画面の割り当て表に無い（phase rewind が題名画面へ落ちる）");
+  }
+  // issue #200 — **門の釦は、その下の舞台（story-advance）も鳴らしてしまう。**止めないと、
+  // 一押しで巻き戻しと「叩いて進む」が続けて起き、巻き戻し後の一行目（「同じ朝。同じ光。」）
+  // が読み飛ばされる。
+  if (!app.includes('if (element.closest?.(".vn-gate")) event.stopPropagation?.();')) {
+    problems.push("会話の門の押しが、下の舞台へ落ちるのを止めていない");
+  }
+  // 作者試遊 2026-09-11（issue #200 の続き）— **スキップは門を越えない。**越えると、
+  // 押して決める拍がスキップだけ素通りになり、逆走の材料（読んだ行）も空になる。
+  {
+    const skipStart = app.indexOf('if (action === "story-skip") {');
+    const gateLookup = app.indexOf("const stop = storySkipStop();", skipStart);
+    const skipRecord = app.indexOf('record("story_skipped"', skipStart);
+    if (skipStart < 0 || gateLookup < 0 || skipRecord < 0) {
+      problems.push("スキップの受け皿と門の判定を見つけられなかった");
+    } else if (gateLookup > skipRecord) {
+      problems.push("スキップが門を見る前に会話を丸ごと飛ばしている");
+    }
+  }
+  // issue #200 — **巻き戻しの枝は、finishStory() が履歴を消すより前に無ければならない。**
+  // 逆走は読んだ行を使うので、後ろに置くと（会話をスキップして巻き戻したときに）
+  // 逆走させるものが空になり、演出が黙って消える。
+  {
+    const finishStart = app.indexOf("function finishStory() {");
+    const rewindBranch = app.indexOf('if (after === "prologueRewind") {', finishStart);
+    const logReset = app.indexOf("state.story = { queue: [], after: \"camp\"", finishStart);
+    if (finishStart < 0 || rewindBranch < 0 || logReset < 0) {
+      problems.push("finishStory() の巻き戻しの枝と履歴の初期化を見つけられなかった");
+    } else if (rewindBranch > logReset) {
+      problems.push("巻き戻しの枝が履歴の初期化より後ろにある（逆走させる行が消える）");
+    }
+  }
+  for (const [label, expected] of [
+    ["逆走の揺れ", "@keyframes rewind-shudder"],
+    ["逆走の走査線", "@keyframes rewind-bands"],
+    ["杭の閃光", "@keyframes rewind-fire"],
+    ["白へ抜ける", "@keyframes rewind-out"],
+  ]) {
+    if (!styles.includes(expected)) problems.push("巻き戻しの演出の" + label + "が無い");
+  }
+  // **動きを止める人にも、逆走そのものは残す。**止めるのは揺れ・帯・筋・閃光だけ。
+  const reducedRewind = styles.slice(styles.lastIndexOf("@media (prefers-reduced-motion: reduce) {\n  .rewind-stage,"));
+  if (!reducedRewind.startsWith("@media") || !reducedRewind.includes(".rewind-bands, .rewind-streaks { display: none; }")) {
+    problems.push("巻き戻しの演出に prefers-reduced-motion の短縮が無い");
+  }
+
   // 盤面は誰も選んでいない状態で開く（先頭が最初から光っていると、一手目を
   // 打ったあとに見える）。
   if (/formationSelection:\s*run\.roster\[0\]/.test(app) || /formationSelection = state\.run\.roster\[0\]/.test(app)) {

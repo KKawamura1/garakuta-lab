@@ -151,10 +151,26 @@ try {
   await click("結果を見る");
   await page.waitForTimeout(300);
   note("倒れた拍で会話が入る", /届かなかった/.test(await bodyText()));
-  // 最後の行まで読む。**門はそこで初めて出る**（途中の行で出すと読み飛ばす釦になる）。
+  // **門は最後の行でしか出ない**（途中の行で出すと、読み飛ばすための釦になる）。
+  await tapStory();
   const gateButton = page.locator(".vn-gate .vn-gate-button");
-  note("会話の最後で巻き戻しの釦が出る",
-    await tapUntil(async () => await gateButton.count() > 0 && await gateButton.isVisible()));
+  note("門は途中の行では出ない",
+    await page.locator(".vn-gate").count() === 0
+      && /2 \/ 3/.test(await page.locator(".vn-progress").innerText()));
+  // 作者試遊 2026-09-11（issue #200 の続き）— **スキップは門まで飛ばして止まる。**
+  // 門は押すまで越えない拍なので、スキップだけが越えられるのは筋が通らない。
+  // 飛ばした行も履歴へ残るので、巻き戻しの逆走はその行を材料にできる。
+  await click("スキップ");
+  await page.waitForTimeout(300);
+  note("スキップは門まで飛ばして止まる（越えない）",
+    await gateButton.count() === 1 && await gateButton.isVisible()
+      && /届かなかった/.test(await bodyText())
+      && /3 \/ 3/.test(await page.locator(".vn-progress").innerText()));
+  await page.locator('[data-action="story-log"]').first().click();
+  await page.waitForTimeout(200);
+  note("スキップで飛ばした行も履歴に残る", await page.locator(".vn-log-line").count() === 3);
+  await page.locator('.vn-log [data-action="story-log"]').click();
+  await page.waitForTimeout(200);
   note("序盤の一戦で負ける", /届かなかった/.test(await bodyText()));
   // **システム画面の一項目にしない。**結果画面（勝敗カード）を挟まず、会話の舞台に
   // 被せて出す。ど真ん中に一つだけで、ほかの操作を並べない。
@@ -166,16 +182,47 @@ try {
   note("門のあいだは進む合図を出さない",
     await page.locator(".vn-caret").count() === 0 && await page.locator(".vn-hint").count() === 0);
   // 舞台を叩いても越えられない。**押して越える拍である。**
-  await page.locator(".vn-stage").click();
+  // 叩くのは舞台の隅（釦の上ではない）。門は舞台に被さっているので、隅を叩くと
+  // 門の面が受け、そのまま舞台の「叩いて進む」へ落ちる——そこで止まることを見る。
+  await tapStory();
   await page.waitForTimeout(250);
   note("舞台を叩いても門は越えない",
     await gateButton.count() === 1 && /届かなかった/.test(await bodyText()));
 
   // R11 §2.1 — 巻き戻し。敗北後は「もう一度、門の前」へ戻る。
+  //
+  // issue #200 — **押した瞬間に次の会話へ飛ばない。**読んだ行を逆順に消しながら
+  // 画面ごと逆走する演出が一度だけ入り、それが終わってから会話が始まる。
+  // ここで見るのは「演出が出る」「そのあいだ会話へ進んでいない」「逆走が、いま読んだ
+  // 行を後ろから消している」「放っておけば自分で会話へ渡る」の四つである。
+  const lastReadLine = await page.locator(".vn-text").getAttribute("data-full");
   await gateButton.click();
-  await page.waitForTimeout(300);
+  await waitForTutorialSelector(".vn.rewind .rewind-stage");
+  note("巻き戻しの演出が入る",
+    await page.locator(".vn.rewind .rewind-stage").count() === 1
+      && await page.locator(".rewind-mark").isVisible());
+  note("演出のあいだは次の会話へ進まない", !/もう一度、門の前/.test(await bodyText()));
+  // 逆走は末尾から消していくので、途中で捕らえた文字列は必ず読んだ行の前方一致になる。
+  // **台詞の中身に検査を縛らない**（行を書き換えても、この性質は変わらない）。
+  const reversedLine = await page.waitForFunction(() => {
+    const shown = document.querySelector(".rewind-text")?.textContent ?? "";
+    return shown.trim().length > 0 ? shown : false;
+  }, null, { timeout: tutorialSelectorTimeout }).then((handle) => handle.jsonValue());
+  note("逆走はいま読んだ行を後ろから消す",
+    typeof lastReadLine === "string" && lastReadLine.startsWith(reversedLine),
+    reversedLine);
+  // 演出が流れきれば、押さなくても巻き戻し後の会話へ渡る。
+  await page.waitForFunction(() => document.body.innerText.includes("もう一度、門の前"),
+    null, { timeout: tutorialSelectorTimeout });
   const rewindText = await bodyText();
   note("巻き戻しの会話が出る", /もう一度、門の前/.test(rewindText));
+  note("演出は一度だけで、会話には残らない", await page.locator(".vn.rewind").count() === 0);
+  // 門の釦は、その下の舞台（story-advance）も鳴らしてしまう位置にある。止めていないと
+  // 一押しで巻き戻しと「叩いて進む」が続けて起き、**時間が戻ったことを見せる一行目**
+  // （「同じ朝。同じ光。」）が読み飛ばされる。
+  note("巻き戻しの会話は一行目から始まる",
+    /(^|[^\d])1 \/ \d/.test(await page.locator(".vn-progress").innerText()),
+    await page.locator(".vn-progress").innerText());
   // 学びの一言は断片の最後の行で出る。**そこまで進めてから見る。**
   // R11 §8.6 — ここで渡すのは「武器と技の違いは立つ場所の違い」である。
   const sawNote = await tapUntil(async () => await page.locator(".vn-note").count() > 0);
