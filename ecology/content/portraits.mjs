@@ -19,7 +19,7 @@
 import { CHARACTER_NAMES } from "./character-lore.mjs";
 
 export const PORTRAIT_VIEWBOX = "0 0 240 320";
-export const PORTRAIT_FACE_VIEWBOX = "0 0 240 180";
+export const PORTRAIT_FACE_VIEWBOX = "0 0 240 150";
 
 // ---------------------------------------------------------------- 表情
 //
