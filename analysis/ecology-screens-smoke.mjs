@@ -433,6 +433,35 @@ for (const field of [
       }
     }
   }
+  // issue #236 — **「取得済みだが未装着」は復活させない。**技能枠は無制限なので、
+  // この状態は「オフ」と同じことを二通りに表しているだけだった。取得したものは
+  // 必ず装着欄へ入り、出すか出さないかは オン／オフ だけが決める。
+  for (const [label, forbidden] of [
+    ["装着する釦", '"装着する", "equip-skill"'],
+    ["equip-skill の handler", 'action === "equip-skill"'],
+    ["未装着だけの節の見た目", ".skill-node.unlocked {"],
+  ]) {
+    const haystack = forbidden.startsWith(".") ? styles : app;
+    if (haystack.includes(forbidden)) {
+      problems.push(`取得と装着を分ける経路（${label}）が戻っている`);
+    }
+  }
+  for (const [label, expected] of [
+    ["加入時に取得済みを装着欄へ揃える", "next.loadout = installUnlockedSkills("],
+    ["保存から戻すときも揃える", "next.run.loadout = installUnlockedSkills("],
+    ["解禁したらその場で装着する", "const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind"],
+  ]) {
+    if (!app.includes(expected)) problems.push(label + "経路が見つからない");
+  }
+  // issue #236 — 技能ツリーの要約帯は、画面の上端ではなく**キャンプの固定帯の下**へ貼る。
+  // `top: 8px` に戻すと、固定帯の上に乗って盤面を隠す。
+  if (!styles.includes("top: calc(var(--camp-top-h, 215px) + 6px);")) {
+    problems.push("技能要約帯が固定帯の高さを見て貼りついていない");
+  }
+  if (!app.includes("function publishCampTopHeight()") || !app.includes("--camp-top-h")) {
+    problems.push("固定帯の高さを CSS へ渡す経路が無い");
+  }
+
   // 盤面は誰も選んでいない状態で開く（先頭が最初から光っていると、一手目を
   // 打ったあとに見える）。
   if (/formationSelection:\s*run\.roster\[0\]/.test(app) || /formationSelection = state\.run\.roster\[0\]/.test(app)) {

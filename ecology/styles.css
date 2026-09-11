@@ -744,12 +744,13 @@ button.party-cell { cursor: pointer; }
   border-radius: 10px;
   background: #172124;
 }
-/* 解禁可能は案内として残すが、装着中より目立たせない。 */
-.skill-node.unlocked { border-color: #66836e; background: rgba(102, 131, 110, .08); }
+/* issue #236 — `.skill-node.unlocked`（取得済みだが未装着）はここにあった。
+   その状態そのものを廃止したので、中間の見た目も消した。 */
+/* 取得可能は案内として残すが、取得済みより目立たせない。 */
 .skill-node.available { border-color: #8a7d50; background: rgba(138, 125, 80, .08); }
 .skill-node.prerequisite { border-color: #53635f; opacity: .68; }
 .skill-node.locked { border-color: #4b5a57; opacity: .58; }
-/* 装着中は現在の編成を示す最優先状態。 */
+/* 取得済みは現在の編成を示す最優先状態。オフにすると薄くなる。 */
 .skill-node.equipped {
   border-color: var(--gold);
   background: var(--gold-dark);
@@ -1094,48 +1095,37 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tree-legend { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; }
 .tree-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .tree-legend .kind { font-size: 8px; }
+/* issue #236 — 帯は**キャンプの固定帯の真下**に貼る。`top: 8px` は画面の上端に
+   貼りつく指定で、固定帯（.camp-top、200px超）の上に乗って盤面を隠していた
+   （作者試遊 2026-09-11）。高さは回によって変わるので、app.js が実測して
+   --camp-top-h へ入れる。z-index も固定帯（3）より下にする。 */
 .skill-build-summary {
   position: sticky;
-  top: 8px;
-  z-index: 5;
-  display: grid;
-  gap: 7px;
+  top: calc(var(--camp-top-h, 215px) + 6px);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 13px 0 15px;
-  padding: 9px 10px;
+  padding: 7px 10px;
   border: 1px solid #647152;
   border-radius: 10px;
   background: rgba(23, 33, 36, .97);
   box-shadow: 0 5px 14px rgba(0, 0, 0, .2);
 }
-.skill-build-summary-head { display: flex; align-items: center; gap: 7px; }
-.skill-build-summary-head b, .skill-build-summary-head small { display: block; }
-.skill-build-summary-head b { color: var(--gold); font-size: 11px; }
-.skill-build-summary-head small { margin-top: 2px; color: var(--muted); font-size: 9px; }
-.skill-summary-slots {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
-  color: var(--blue);
-  font-size: 9px;
-  line-height: 1.35;
+.skill-build-summary .summary-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.skill-summary-slots span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.skill-summary-slots b, .skill-summary-target { color: var(--ink); }
-.skill-summary-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  color: var(--muted);
-  font-size: 9px;
-}
-.skill-summary-stats b { color: var(--ink); }
-.skill-summary-target {
-  padding-top: 6px;
-  border-top: 1px solid rgba(224, 195, 116, .2);
-  color: var(--gold);
-  font-size: 9px;
-  line-height: 1.35;
-}
+.summary-points { display: flex; flex: none; align-items: baseline; gap: 5px; }
+.summary-points small { color: var(--muted); font-size: 9px; }
+.summary-points b { color: var(--gold); font-size: 15px; font-variant-numeric: tabular-nums; }
+.summary-points .summary-party { color: var(--muted); font-size: 9px; }
 /* R19（issue #137）— 技能ツリー。**節を tier の箱へ並べるのをやめ、requires から
    組んだ森を、実座標の格子に置く。**列（x）は前提からの深さそのもの、行（y）は
    組み方から出た順。前提と派生は、列の間に引いた実線で結ぶ（インデントの目分量に
@@ -2700,7 +2690,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .node-mark.equipped { border-radius: 4px; background: var(--gold); color: #1b201e; }
 .node-mark.equipped.off { background: transparent; box-shadow: inset 0 0 0 1px var(--muted); color: var(--muted); }
-.node-mark.owned { border-radius: 4px; box-shadow: inset 0 0 0 1px var(--good); color: var(--good); }
+/* issue #236 — `.node-mark.owned`（取得済み・未装着）はここにあった。状態を廃止した。 */
 .node-mark.cost { border: 1px solid #6d7c77; border-radius: 4px; color: #8fa09a; }
 .node-mark.cost.ready { border: 1px solid var(--gold); color: var(--gold); }
 .node-mark.cost.gated { opacity: .6; }
@@ -2783,15 +2773,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* issue #159 — 立ち位置と HP の小さな印（.formation-mark / .hp-mark）はここにあった。
    上端の共通盤面がその二つを兼ねるので消した。 */
 .member-context-head { display: flex; align-items: center; gap: 9px; }
-.skill-build-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
-.skill-build-summary .summary-res { display: inline-flex; align-items: center; gap: 5px; }
-.skill-build-summary .summary-slot { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; }
-.skill-build-summary .summary-slot b { font-weight: 800; }
-.kind-dot { display: inline-block; width: 8px; height: 8px; border-radius: 1px; }
-.kind-dot.kind-active { background: var(--gold); }
-.kind-dot.kind-reactive { background: var(--violet); }
-.kind-dot.kind-passive { background: var(--good); }
-.summary-target { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted); }
 /* 段の目盛りは、数えられる密度にする。 */
 .level-meter { gap: 1.5px; }
 .level-meter i { width: 2px; height: 7px; }

@@ -40,6 +40,7 @@ import {
   setUltimate,
   toggleUltimateArmed,
   ultimateCandidates,
+  installUnlockedSkills,
 } from "./playable-battles.mjs";
 import {
   BOSS_LAWS,
@@ -400,6 +401,12 @@ function joinRun(run, characterId) {
       if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
     }
   }
+  // issue #236 — **取得済みは必ず装着欄に並ぶ。**starter の前提（無償閉包で取得済みに
+  // なる親の節）は、これまで解禁表にだけあって装着欄に無かった。その状態はオフと
+  // 同じことを二通りに表しているだけなので、ここでオフのまま装着欄へ入れる。
+  // 戦闘の入力は変わらない（allyInput が disabled を除いてから組む）。
+  next.loadout = installUnlockedSkills(
+    next.loadout, characterId, next.runUnlockedSkills[characterId]);
   // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
   // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
   return next;
@@ -560,6 +567,12 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   }
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
+  // issue #236 — 「取得済みだが未装着」を持つ古い保存も、読み込んだ時点で
+  // オフの装着済みへ揃える。**その保存の戦闘結果は変わらない。**
+  for (const characterId of next.run.roster) {
+    next.run.loadout = installUnlockedSkills(
+      next.run.loadout, characterId, next.run.runUnlockedSkills?.[characterId]);
+  }
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
     ? savedRun.generatedEquipment
     : {};
@@ -1274,6 +1287,7 @@ function render() {
   // 必殺技の指定は「たまにしか触らないが、触る場所は装着行しかない」操作なので、
   // 常設の枠を出さず、行そのものを長く押させる。
   bindLongPress();
+  publishCampTopHeight();
   restoreHelpDetails();
   restoreSkillTreeScroll();
   layoutSkillTreeConnectors();
@@ -1322,6 +1336,22 @@ function bindLongPress() {
     // 長押しの途中で出る右クリックメニュー・選択メニューを止める。
     element.addEventListener("contextmenu", (event) => event.preventDefault());
   });
+}
+
+// issue #236 — キャンプの固定帯の高さを CSS へ渡す。**その下へ貼りたいものが
+// あるのに、CSS は貼りついた兄弟の高さを知らない。**技能ツリーの要約帯が
+// `top: 8px`（＝画面の上端）で固定帯の上に乗り、盤面を隠していた。
+// 帯の高さは回によって変わる（隊列を組み替えている間は一行増える）ので、
+// 毎 render で測り直す。
+function publishCampTopHeight() {
+  const campTop = app.querySelector(".camp-top");
+  const root = document.documentElement;
+  if (!campTop) {
+    root.style.removeProperty("--camp-top-h");
+    return;
+  }
+  const height = Math.round(campTop.getBoundingClientRect().height);
+  if (height > 0) root.style.setProperty("--camp-top-h", height + "px");
 }
 
 function captureSkillTreeScroll() {
@@ -2493,17 +2523,16 @@ function prerequisiteCostFor(node, seen = new Set()) {
 }
 
 // 取得の状態。**文字を出さない。**まだ持っていない節は、前提コストと取得コストを
-// 形の違う四角で分ける。持っている節は形（□✓ 取得済み／■✓ 装着中）で分かる。
+// 形の違う四角で分ける。
+//
+// issue #236 — 持っている節の印は**一つだけ**になった。「取得済みだが未装着」を
+// 廃止したので、□✓（取得済み・未装着）と ■✓（装着中）を分ける必要が無い。
+// 残る違いはオン／オフだけで、それは同じ印の濃さで出す。
 function nodeStateMark(node, nodeState, characterId) {
-  // **丸は消費だけ。**持っているかどうかは鉤（✓）で、塗りが装着中。
-  if (nodeState.equipped) {
-    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
-      + " aria-label=\"" + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\" title=\""
-      + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\">✓</span>";
-  }
   if (nodeState.unlocked) {
-    return "<span class=\"node-mark owned\" role=\"img\" aria-label=\"取得済み・未装着\""
-      + " title=\"取得済み・未装着\">✓</span>";
+    const label = nodeState.disabled ? "取得済み・オフ" : "取得済み";
+    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
+      + " aria-label=\"" + label + "\" title=\"" + label + "\">✓</span>";
   }
   const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
   const title = nodeState.prereqsMet
@@ -2637,35 +2666,22 @@ function memberContext(characterId, emphasis = "skills") {
 }
 
 
-// **ビルドの要約は、資源と装着数だけを絵で出す。**技能の名前は上の装着行と
-// ツリーに出ているので、ここで文字として繰り返さない（issue #177）。
+// issue #236 — **帯が出すのは、ツリーを触っているあいだ画面から消えるものだけ。**
+// AP/RP は真上の盤面セルが、装着している技能の名前と順番はスロット行が、節の値段と
+// 前提と解禁釦はツリーの節そのものが既に出している。再掲を並べても読み飛ばされる
+// （作者指摘 2026-09-11「今の表示じゃ意味ない」）。
+//
+// 消えるのは二つ——**いま誰に払っているか**と、**あと何点あるか**である。
 function skillBuildSummary(characterId) {
-  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
-  const counts = [
-    { kind: "active", key: "tactics", cls: "ap" },
-    { kind: "reactive", key: "reactives", cls: "rp" },
-    { kind: "passive", key: "passives", cls: "free" },
-  ].map((slot) => {
-    const list = state.run.loadout[slot.key]?.[characterId] || [];
-    const live = list.filter((skillId) => !skillDisabled(characterId, skillId)).length;
-    const label = SLOT_TITLES[slot.kind] + " " + live + "件";
-    return "<span class=\"summary-slot\" role=\"img\" aria-label=\"" + esc(label) + "\" title=\""
-      + esc(label) + "\"><i class=\"kind-dot kind-" + slot.kind + "\"></i><b>" + live + "</b></span>";
-  }).join("");
-  const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
-  const target = selectedNode
-    ? "<span class=\"summary-target\"><i class=\"kind-dot kind-" + selectedNode.kind + "\"></i>"
-      + esc(COMPONENTS[selectedNode.skillId]?.label ?? selectedNode.skillId) + " → "
-      + esc(characterName(characterId)) + "</span>"
-    : "";
+  const points = skillPointsFor(characterId);
+  const party = totalSkillPoints();
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
     + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
-    + "<span class=\"summary-res\" role=\"img\" aria-label=\"行動点 "
-    + (definition.baseActionPoints ?? 0) + " · 反応点 " + (definition.baseReactionPoints ?? 0) + "\" title=\""
-    + "1ラウンドに払える 行動点" + (definition.baseActionPoints ?? 0)
-    + " · 反応点" + (definition.baseReactionPoints ?? 0) + "\">"
-    + pips(definition.baseActionPoints ?? 0, "ap") + pips(definition.baseReactionPoints ?? 0, "rp")
-    + "</span>" + counts + target + "</aside>";
+    + "<b class=\"summary-name\">" + esc(characterName(characterId)) + "</b>"
+    + "<span class=\"summary-points\" role=\"img\" aria-label=\"" + esc(characterName(characterId))
+    + "の技能点 " + points + " · 隊全体 " + party + "\"><small>技能点</small><b>" + points + "</b>"
+    + (party !== points ? "<small class=\"summary-party\">隊 " + party + "</small>" : "")
+    + "</span></aside>";
 }
 
 function skillNodeIcon(node) {
@@ -2709,9 +2725,12 @@ function skillNodeState(node, characterId) {
   const unmet = unmetPrerequisites(node, (skillId) => skillLevelOf(characterId, skillId));
   const prereqsMet = unmet.length === 0;
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
-  const stateClass = equipped
+  // issue #236 — **取得済みの強調は一種類だけ。**取得と装着が同じになったので、
+  // 「取得済みだが未装着」（旧 unlocked）という中間の見た目は無くなった。
+  // 残るのは 取得済み（オン／オフ）・取得できる・前提待ち・パック外 の四つ。
+  const stateClass = unlocked
     ? "equipped" + (disabled ? " disabled" : "")
-    : unlocked ? "unlocked" : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
+    : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
   return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass };
 }
 
@@ -2805,10 +2824,7 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
       + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
-    : nodeState.unlocked
-      ? button("装着する", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
-        + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
-      : nodeState.canUnlock
+    : nodeState.canUnlock
         ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
           "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
         : nodeState.prereqsMet
@@ -3111,14 +3127,14 @@ function renderSkills() {
     + "</details>"
     + symbolLegendHelp()
     + helpDetails("skill-rules", "技能のルール",
-      "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
+      "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、<b>取得した技能はその場で装着されて回り始めます</b>（枠の上限はありません）。</p>"
       // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
       // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
       + "<p class=\"muted\"><b>アクティブは順番に回ります。</b>いま出した技能の次から判定を始め、"
       + "条件つきの技能が未達ならスキップして後ろを試します。<b>装着を増やすほど、一本あたりの出番は減ります。</b></p>"
       + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
       + "反応点が尽きた時点で下の技能は出ません。</p>"
-      + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>"
+      + "<p class=\"muted\"><b>不要な技能はオフにできます。</b>オフの技能は戦闘にも予測にも現れませんが、取得状態・前提・段は失いません。starter の前提として無償で付く節は、最初からオフで並んでいます。</p>"
       + (ultimatesUnlocked(state.run)
         ? "<p class=\"muted\"><b>装着した技能を長押しすると、必殺技に指定できます。</b>詳しくは下の「必殺技のルール」を開いてください。</p>"
         : ""))
@@ -5596,22 +5612,11 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.run = result.run;
+      // issue #236 — 取得と装着を分けない。**点を払った技能はその場で回り始める。**
+      // 「取得済みだが未装着」は、オフと同じことを二通りに表しているだけだった。
+      const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind, limitsFor);
+      if (equipped.ok) state.run.loadout = equipped.loadout;
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
-    }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "equip-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const kind = element.dataset.kind;
-    const result = equipSkill(state.run.loadout, characterId, skillId, kind, limitsFor);
-    if (!result.ok) state.error = result.reason;
-    else {
-      state.run.loadout = result.loadout;
-      record("skill_equipped", { characterId, skillId, kind });
     }
     saveState();
     render();

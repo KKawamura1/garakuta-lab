@@ -270,6 +270,33 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 自分の状態（「第3戦・精鋭・未到達」）を名乗る。同じ種類の敵が並ぶ回は、`enemy-lore` の一行を
 最初の1枚にだけ出す。
 
+### 技能の取得と装着（issue #236）
+
+**「取得済みだが未装着」という状態は無い。**技能枠は `SLOT_LIMITS` の
+`active` / `reactive` / `passive` とも `Number.MAX_SAFE_INTEGER`（上限があるのは装備の2枠だけ）で、
+取得したものを装着できない場面が存在しない。この状態は「オフ」と同じことを二通りに
+表しているだけだった。
+
+不変条件は一つ。**`runUnlockedSkills[c]` に入っている技能は、必ず種別ごとの装着欄にも
+並んでいる。**出すか出さないかは `loadout.disabled` だけが決める。
+
+- `unlock-skill` は `unlockRunSkill` のあと `equipSkill` を通す（**オンで**装着され、
+  その場で回り始める）。
+- `joinRun` と保存の読み込みは `installUnlockedSkills()`（`playable-battles.mjs`）を通す。
+  こちらは**オフで**末尾へ足す。starter の無償閉包で取得済みになる親の節や、
+  旧い保存が持っている未装着の技能が対象で、**オンで足すと今まで出ていなかった技能が
+  急に回り始める**（＝過去の遠征の結果が変わる）ため。
+
+この置き換えが戦闘へ影響しないことの根拠は `allyInput()` にある。tactics・reactives・
+passives のいずれも `enabled()` で `disabled` を除いてから battle input を組むので、
+**engine から見て「オフ」と「未装着」は同一**である。必殺技も同じで、`withUltimate` は
+`enabled()` 後の列へ差し込み、`ultimateCandidates` は disabled を候補から外す。
+
+`analysis/ecology-screens-smoke.mjs` が片側検査で「装着する釦・`equip-skill` handler・
+`.skill-node.unlocked` が戻っていないこと」と「三つの経路が残っていること」を見る。
+`analysis/ecology-trial.mjs` は保存へ技能点を入れてから実際に一つ取得し、
+装着行に並ぶところまで踏む（技能点は0で始まるので、点を入れないとこの経路は踏めない）。
+
 ### キャンプのタブ（issue #235）
 
 キャンプのタブは スキル・装備・補給・遠征 の4枚で、`campNav()` が出す。準備の3枚は何度も
