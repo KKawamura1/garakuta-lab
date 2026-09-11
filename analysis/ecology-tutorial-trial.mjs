@@ -223,6 +223,16 @@ try {
   const skillText = await bodyText();
   note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
 
+  // issue #238 — **Stage 0 に必殺技は出さない。**武器と技の違い・隊列・応急手当を
+  // 覚える回に、もう一つの仕組みを載せない。長押しの入口も、残り回数も、説明も出ない。
+  note("Stage 0 では必殺技の長押しが無い",
+    await page.locator(".installed-row[data-longpress]").count() === 0);
+  note("Stage 0 では必殺技の残りを出さない",
+    await page.locator(".skill-points-badge .seal-pips").count() === 0);
+  note("Stage 0 では必殺技の説明も出さない",
+    await page.locator('details[data-help="ultimate-rules"]').count() === 0
+      && !/必殺/.test(skillText));
+
   // issue #177 — **1ラウンドに払える点**を見出しに出す。反応は上から順に払うので、
   // 点が尽きた行は同じラウンドでは出ない（その行に印が付く）。ゴウは行動点1・反応点2。
   const apPips = await page.locator(".slot-heading .slot-budget.ap .pips i").count();

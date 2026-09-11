@@ -315,6 +315,11 @@ function syntheticResult(result, allyHpById) {
       };
     }),
     metrics: executed.metrics,
+    // issue #238 — 必殺が誰から出たかも予測の一部である。ここは helper を使わず、
+    // **本番のイベント列から直に**組んで、preview 側の導出と突き合わせる。
+    ultimateFiredBy: executed.events
+      .filter((event) => event.type === "status_added" && event.values?.statusId === "ultimate_spent")
+      .map((event) => event.targetActorIds[0].replace(/^a_/, "")),
   };
   assert.deepEqual(preview, executedSummary, "previewは正式実行と完全一致する（同じ経路を通るため）");
   checks += 1;

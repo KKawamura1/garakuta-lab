@@ -28,7 +28,8 @@
 | `schema.mjs` / `validate.mjs` | イベント・状態の定義と不変条件 |
 | `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順 |
 | `playable-battles.mjs` | 現行の戦闘入力、preview、loadout（技能の装着順・一時停止を含む） |
-| `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁 |
+| `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁、必殺印の勘定 |
+| `ultimates.mjs` | 必殺技（issue #238）。取得済み技能を必殺へ変える純関数の変換規則と、遠征 bundle への混ぜ方。**engine も schema も必殺を知らない** |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換 |
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
@@ -57,7 +58,7 @@
 | 層 | 永続期間 | 主な内容 |
 |---|---|---|
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
-| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、隊、formation、run 技能点・取得技能・装着順・一時停止状態、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、**必殺印**、隊、formation、run 技能点・取得技能・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、攻撃単位の回復窓、開始 HP snapshot、preview / commit 状態 |
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
@@ -287,3 +288,38 @@ affix由来のHP・防壁・RP等の追加costとは別枠で、engineの既存�
 
 この変更は生成装備ruleの既存cost欄の意味を変えるため、content contractは18へ上げる。
 generator version 7より前のBlueprintは互換不能理由を表示し、現行ruleへ黙って読み替えない。
+
+## 必殺技の作られ方（issue #238）
+
+必殺技は content ではなく**変換規則**である。`ecology/ultimates.mjs` の `ascendSkill` が、
+取得済みの技能定義から必殺技の定義（ID は `ult_<元のID>`）を作る。純関数で、`Date` も
+`Math.random` も読まない。
+
+    RunState.loadout.ultimates      … 誰がどの技能を必殺に指定しているか
+    RunState.loadout.ultimateArmed  … その一戦で誰が構えているか
+    RunState.ultimatesUsed          … この遠征でもう放った人物（一人一度きり・補充なし）
+
+`progression.armedUltimates(run)` が「Stage が解禁されていて、指定が有効で、構えていて、
+まだ放っていない」組を roster 順で返し、これが唯一の正本になる。`runContentBundle(run)` は
+その技能の必殺定義を bundle へ混ぜ、`playable-battles.allyInput` は**元の技能の一つ前**へ
+必殺を差し込む。だから必殺は元の技能と同じ条件で判定され、同じ場面に出る。予測と本番は
+`simulateExpeditionBattle` の同じ経路を通るので、構えても両者はずれない。
+
+必殺が必ず持つ発動条件は二つで、どちらも既存の語彙で書けている。
+
+  - 「1戦闘に1回」… 規則を持たない状態 `ultimate_spent` を自分へ付け、
+    `has_status = 0` を条件にする。
+  - 「隊の誰かが削られていること」… `target_exists` + `hp_percent`。
+
+**engine にも schema にも必殺のための語彙は無い**（`ecology/ultimate.test.mjs` が両ファイルの
+本文を読んで確かめる）。
+
+放ったかどうかは戦闘のイベント列から読む（`ultimateFirings` が `status_added` の
+`ultimate_spent` を拾う）。構えただけでは使わない。**`previewNextBattle` の返り値も
+`ultimateFiredBy` を持つ**ので、画面は「構えた必殺がこの一戦で本当に出るか」を戦う前に出せる。
+`commitBattleResult` が**勝った戦闘でだけ**その人物を `ultimatesUsed` へ入れ、構えを解く。
+負けた一戦は run を変えないので、retry で二重に取られない。
+
+UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`）の長押しが指定・解除で、
+`render()` のあとに `bindLongPress()` が pointer イベントを張る。長押しは
+`data-longpress` の action を、通常のクリックは `data-action` を `handleAction` へ渡す。

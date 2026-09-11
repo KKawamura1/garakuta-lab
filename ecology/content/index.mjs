@@ -65,7 +65,11 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // and finite rule limits are now part of the checked content contract.
 // Issue #210 — generated equipment rules now carry a mandatory durability cost;
 // repair is the documented finite-cost exception and statBonus stays outside rules.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-18";
+// issue #238 — 状態の語彙が一つ増えた（必殺 ultimate_spent）。規則を持たない記録だけの
+// 状態だが、**保存済みの戦闘記録に出てこない ID が出るようになる**ので版を上げる。
+// 必殺技そのものの定義は固定 content に入れない（取得済み技能から毎回作る）ので、
+// ここの ID 表は増えない。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-19";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

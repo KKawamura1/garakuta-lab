@@ -235,6 +235,13 @@ try {
   await page.waitForTimeout(300);
   note("再訪用の遠征準備画面に着く", await page.locator(".vn-stage").count() === 0);
 
+  // issue #238 — **必殺技は Stage 1 から開く**ので、この台本も Stage 1 を選んで出る。
+  // Stage 0（2人の導入）を選ぶと、必殺技の経路が一つも踏めない。
+  const stage1Card = page.locator('[data-action="select-campaign-stage"][data-sequence="1"]');
+  note("Stage 1 を選べる", await stage1Card.count() === 1);
+  if (await stage1Card.count()) await stage1Card.click();
+  await page.waitForTimeout(200);
+
   await click("この条件で遠征へ出る");
   await page.waitForSelector(".vn-stage", { timeout: 8000 });
   note("踏破済みStageの再訪でも開始会話が出る", await page.locator(".vn-stage").count() === 1);
@@ -275,6 +282,37 @@ try {
   }
   note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
 
+  // issue #238 — 必殺技。**装着行の長押しで指定し、✹ で構えるところまでを画面から踏む。**
+  // 専用の枠は無いので、行そのものが押せることを確かめる。
+  const longPress = async (locator) => {
+    const box = await locator.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(700);
+    await page.mouse.up();
+  };
+  const ultimateRow = page.locator(".installed-row[data-longpress]").first();
+  note("装着行が長押しできる", await ultimateRow.count() === 1);
+  if (await ultimateRow.count()) {
+    note("必殺技の専用枠は画面に無い", await page.locator("section.ultimate-card").count() === 0);
+    note("残りの必殺が見出しに出る", await page.locator(".skill-points-badge .seal-pips i.on").count() > 0);
+    await longPress(ultimateRow);
+    note("長押しで必殺技に指定できる", await page.locator(".installed-row.ultimate").count() === 1);
+    const arm = page.locator('.installed-row.ultimate [data-action="toggle-ultimate-armed"]');
+    note("指定した行に ✹ が出る", await arm.count() === 1);
+    if (await arm.count()) {
+      await arm.click();
+      note("構えると盤面にも印が出る", await page.locator(".party-cell .party-ultimate").count() === 1);
+      // 序盤の一戦では傷の条件が揃わないので、**予測が「出ない」と先に言う。**
+      const armedTitle = await page.locator('.installed-row.ultimate [data-action="toggle-ultimate-armed"]').getAttribute("title");
+      note("構えた時点で、この一戦で出るかどうかが読める",
+        /この一戦で出る|条件が揃わない/.test(armedTitle ?? ""), armedTitle ?? "");
+    }
+    await longPress(page.locator(".installed-row.ultimate").first());
+    note("もう一度の長押しで指定が外れる", await page.locator(".installed-row.ultimate").count() === 0);
+  }
+
+  let ultimateSpentSeen = false;
   let stage = 1;
   let reloaded = false;
   let forecastAtStage1 = null;
@@ -542,6 +580,15 @@ try {
         verdict === expectedVerdict && forecastRounds === actualRounds,
         forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
     }
+    // issue #238 — 放ったら、その結果画面で「印を払った」と分かる。
+    if (!ultimateSpentSeen) {
+      const sealLine = (await bodyText()).match(/必殺技が出ました。([^。]+)。この遠征ではもう放てません。必殺を残している仲間は ([0-9]+) \/ ([0-9]+)人です。/);
+      if (sealLine) {
+        ultimateSpentSeen = true;
+        note(`第${stage}戦で放った仲間と残りが結果画面に出る`,
+          Number(sealLine[2]) < Number(sealLine[3]), sealLine[0]);
+      }
+    }
     if (stage === 1) {
       // issue #177 — **装着順が結果にどう出たか**を、文ではなく帯で見せる。
       // アクティブは順送りに回るので、ラウンドごとに何が鳴ったかを並べれば読める。
@@ -683,7 +730,7 @@ try {
   note("控えに版が残る", Boolean(saved?.run?.runSeed) && Boolean(saved?.feedback?.savedAt));
   // R6 §4.1 — ProfileState と RunState が別に保存されている。
   note("profile と run が分かれて保存されている",
-    saved?.profile?.schemaVersion === "ecology-profile-2" && saved?.run?.schemaVersion === "ecology-run-3");
+    saved?.profile?.schemaVersion === "ecology-profile-2" && saved?.run?.schemaVersion === "ecology-run-4");
   note("活動資金が profile に残る", typeof saved?.profile?.activityFunds === "string");
   note("遠征内の技能点は run にだけある",
     Boolean(saved?.run?.runSkillPoints) && !("skillPoints" in (saved?.profile ?? {})));
