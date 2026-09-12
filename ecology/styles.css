@@ -320,16 +320,16 @@ button.party-cell { cursor: pointer; }
 .character-face-watermark[data-character="warden"] { --face-scale: 1.4; }
 .character-face-watermark[data-character="lancer"] {
   --face-scale: 1.1;
-  --face-y: -5%;
+  --face-y: -8%;
 }
 .character-face-watermark[data-character="tactician"] { --face-scale: 1.1; }
 .character-face-watermark[data-character="mender"] {
   --face-scale: 1;
-  --face-y: -10%;
+  --face-y: -22%;
 }
 .character-face-watermark[data-character="guardian"] {
   --face-scale: .9;
-  --face-y: -10%;
+  --face-y: -30%;
 }
 .party-cell.empty { border-style: dashed; background: transparent; }
 .party-cell.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
