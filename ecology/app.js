@@ -116,6 +116,7 @@ import {
   normalizeRunSkillReservations,
   reserveRunSkill,
   skillReservationFor,
+  skillReservationLevelFor,
   newProfile,
   newRun,
   normalizeProfile,
@@ -3123,12 +3124,15 @@ function skillBuildSummary(characterId) {
   const points = skillPointsFor(characterId);
   const party = totalSkillPoints();
   const reservationId = skillReservationFor(state.run, characterId);
+  const reservationLevel = skillReservationLevelFor(state.run, characterId);
   const reservationLabel = reservationId
     ? (COMPONENTS[reservationId]?.label ?? nameFor(reservationId))
     : "";
+  const reservationTarget = reservationLevel ? "Lv" + reservationLevel + "まで" : "";
   const reservation = reservationId
-    ? "<span class=\"summary-reservation\" role=\"status\" title=\"取得予約: " + esc(reservationLabel) + "\"><small>取得予約</small><b>"
-      + esc(reservationLabel) + "</b></span>"
+    ? "<span class=\"summary-reservation\" role=\"status\" title=\"取得予約: " + esc(reservationLabel)
+      + "・" + esc(reservationTarget) + "\"><small>取得予約</small><b>"
+      + esc(reservationLabel) + "</b><small>" + esc(reservationTarget) + "</small></span>"
     : "";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
     + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
@@ -3139,7 +3143,6 @@ function skillBuildSummary(characterId) {
     + (party !== points ? "<small class=\"summary-party\">隊 " + party + "</small>" : "")
     + "</span></aside>";
 }
-
 function skillNodeIcon(node) {
   return branchIcons[node.branch] ?? "·";
 }
