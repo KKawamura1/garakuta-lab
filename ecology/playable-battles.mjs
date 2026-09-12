@@ -11,6 +11,7 @@ import {
   PASSIVE_META,
   REACTIVE_META,
   PROLOGUE,
+  ULTIMATE_LESSON,
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
@@ -494,6 +495,43 @@ export function toggleUltimateArmed(loadout, characterId, limitsFor, options = {
   return { ok: true, loadout: next, armed: true };
 }
 
+// **長押し一回で「この一戦で必殺を使う／使わない」を決める**（作者指摘 2026-09-12）。
+//
+// 指定（誰のどの技能か）と構え（この一戦で持ち込むか）は別の概念として残す——予測も
+// engine もその二つを読む——が、**操作としては一つにする。**「長押しで指定 → ✹ を押して
+// 構える」は、指定だけして構えない状態を作れる代わりに、必殺を出すたびに二手を要求して
+// いた。一人一遠征に一度きりの一手に二手を掛ける価値は無い。
+//
+//   指定も構えも無い行を長押し … その技能を指定し、同時にこの一戦で構える
+//   構えている行を長押し       … 構えを解き、指定も外す（＝元の見た目へ戻る）
+//   別の行を長押し             … 指定が移る（指定は一人一つなので、前の行は戻る）
+//   放ち終えた行を長押し       … 指定を外すだけ（この遠征では構え直せない）
+export function toggleUltimateForBattle(
+  loadout, characterId, skillId, limitsFor, options = {}, content = PLAYABLE_CONTENT,
+) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
+  const designated = (next.ultimates?.[characterId] ?? null) === skillId;
+  const armed = next.ultimateArmed?.[characterId] === true;
+  const uses = Number.isFinite(options.uses) ? Math.max(0, Math.floor(options.uses)) : 0;
+  // 同じ行をもう一度長押ししたら元へ戻す。**放ち終えた行も、押せば指定が外れる**
+  // （構え直せない行が光り続けると、押せない釦が画面に残るのと同じことになる）。
+  if (designated && (armed || uses <= 0)) {
+    delete next.ultimates[characterId];
+    delete next.ultimateArmed[characterId];
+    return { ok: true, loadout: next, skillId: null, armed: false };
+  }
+  const candidates = ultimateCandidates(next, characterId, content);
+  if (!candidates.some((entry) => entry.skillId === skillId)) {
+    return { ok: false, reason: "その技能は必殺技にできません。" };
+  }
+  if (uses <= 0) {
+    return { ok: false, reason: "この仲間は、この遠征ではもう必殺技を放っています。" };
+  }
+  next.ultimates[characterId] = skillId;
+  next.ultimateArmed[characterId] = true;
+  return { ok: true, loadout: next, skillId, armed: true };
+}
+
 export function equipEquipment(loadout, characterId, equipmentId, slot = 0, limitsFor) {
   const component = componentInfo(equipmentId);
   if (!component || component.kind !== "equipment" || !characterById[characterId]) {
@@ -686,37 +724,43 @@ export function makeExpeditionBattle(composed, rosterIds, loadout, seed, formati
   };
 }
 
-// ---------------------------------------------------------------- 序盤の敗北（R9 §2.1）
+// ---------------------------------------------------------------- 手書きの一戦（R9 §2.1 / issue #240）
 //
 // **本当に負ける配置を、本当に走らせる。**演出で敗北を差し込まない
 // （決定的 engine で結果が確定しているので、嘘をつく必要がない）。
-// prologue の敵は12戦の梯子に属さないので、composeEncounter は通らない。
-const scalePrologueEnemyStat = (value, bps = 10_000) => Math.max(
+// この形の一戦は threat budget で組まれないので、composeEncounter は通らない。
+//
+//   灰の門（`PROLOGUE`）          … 第0戦。12戦の梯子の外にある導入
+//   必殺技の一戦（`ULTIMATE_LESSON`）… Stage 1 の**第1戦そのもの**（issue #240）
+//
+// 組み立ては一つに閉じる。**二つ目の手書き一戦が現れたときに、敵の作り方が
+// 二通りに分かれないようにする**（分かれると、片方だけ直る日が来る）。
+const scaleScriptedEnemyStat = (value, bps = 10_000) => Math.max(
   0,
   Math.round(value * bps / 10_000),
 );
 
-export function prologueEncounter() {
-  const scaling = PROLOGUE.enemyScaling ?? {};
+function scriptedEncounter(definition, index, act) {
+  const scaling = definition.enemyScaling ?? {};
   return {
-    index: 0,
-    act: 0,
+    index,
+    act,
     kind: "normal",
-    name: PROLOGUE.name,
-    description: PROLOGUE.description,
+    name: definition.name,
+    description: definition.description,
     bossLawId: null,
     bossLaw: null,
-    maxRounds: PROLOGUE.maxRounds,
+    maxRounds: definition.maxRounds,
     budget: 0,
     spentThreat: 0,
-    enemies: PROLOGUE.enemies.map((enemy) => {
-      const definition = PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId];
+    enemies: definition.enemies.map((enemy) => {
+      const enemyDefinition = PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId];
       const offenseBps = enemy.offenseBps ?? scaling.offenseBps;
       const stats = {
-        maxHp: Math.max(1, scalePrologueEnemyStat(definition.maxHp, scaling.maxHpBps)),
-        might: scalePrologueEnemyStat(definition.might ?? 0, offenseBps),
-        focus: scalePrologueEnemyStat(definition.focus ?? 0, offenseBps),
-        guard: definition.guard ?? 0,
+        maxHp: Math.max(1, scaleScriptedEnemyStat(enemyDefinition.maxHp, scaling.maxHpBps)),
+        might: scaleScriptedEnemyStat(enemyDefinition.might ?? 0, offenseBps),
+        focus: scaleScriptedEnemyStat(enemyDefinition.focus ?? 0, offenseBps),
+        guard: enemyDefinition.guard ?? 0,
       };
       return {
         instanceId: enemy.instanceId,
@@ -733,6 +777,18 @@ export function prologueEncounter() {
       };
     }),
   };
+}
+
+export function prologueEncounter() {
+  return scriptedEncounter(PROLOGUE, 0, 0);
+}
+
+// issue #240 — 必殺技を教える一戦。**第1戦の席に座る**ので、勝てば普通に報酬へ進み、
+// 負ければ普通に再挑戦へ落ちる（専用の出口を作らない）。
+export const ULTIMATE_LESSON_ENCOUNTER_INDEX = ULTIMATE_LESSON.encounterIndex;
+
+export function ultimateLessonEncounter() {
+  return scriptedEncounter(ULTIMATE_LESSON, ULTIMATE_LESSON_ENCOUNTER_INDEX, 1);
 }
 
 export function makePrologueBattle(statsFor, formation = PROLOGUE.formation) {

@@ -292,7 +292,7 @@ export {
 // 会話本文はここから一箇所で参照できる。文言の編集先は dialogue.mjs。
 export { DIALOGUE, DIALOGUE_IDS, castFor, dialogueFor } from "./dialogue.mjs";
 // R9 §2 / §7 — 初期4 Stage のチュートリアル物語。
-export { PROLOGUE, STORY_BEATS, castOnStage, storyBeat, storyBeatsForStage } from "./story.mjs";
+export { PROLOGUE, STORY_BEATS, ULTIMATE_LESSON, castOnStage, storyBeat, storyBeatsForStage } from "./story.mjs";
 // 会話の断片を組み立てる道具。**story と homestead が同じ定義を使う。**
 export { beat, narrate, say, stand } from "./beat.mjs";
 // R11 §2.4 / §9.4 — 根城。遠征と遠征のあいだの、日常の場面と家にあるもの。

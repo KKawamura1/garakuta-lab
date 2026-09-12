@@ -55,6 +55,7 @@ import {
   HOMESTEAD_FIXTURE_LORE,
   HOMESTEAD_SCENES,
   STORY_BEATS,
+  ULTIMATE_LESSON,
   homesteadFlag,
   homesteadScene,
   nextHomesteadScene,
@@ -63,7 +64,15 @@ import {
   seenHomesteadScenes,
   WORLD_LORE,
 } from "./content/index.mjs";
-import { makePrologueBattle, prologueEncounter } from "./playable-battles.mjs";
+import {
+  ULTIMATE_LESSON_ENCOUNTER_INDEX,
+  freshLoadout,
+  makePrologueBattle,
+  previewNextBattle,
+  prologueEncounter,
+  simulateExpeditionBattle,
+  ultimateLessonEncounter,
+} from "./playable-battles.mjs";
 import {
   characterStats,
   manifestSkillIds,
@@ -72,7 +81,10 @@ import {
   normalizeBestiary,
   normalizeProfile,
   recordBestiary,
+  ultimatesFiredBy,
 } from "./progression.mjs";
+import { ULTIMATE_READY_HP_PERCENT, ultimateIdFor } from "./ultimates.mjs";
+import { buildBeats } from "./replay-beats.mjs";
 
 let checks = 0;
 const check = (condition, message) => {
@@ -172,6 +184,111 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   for (const enemy of encounter.enemies) {
     check(Boolean(PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId]), enemy.enemyActorId + " は実在の敵");
   }
+}
+
+// ---- 必殺技の一戦（issue #240）----------------------------------------------
+//
+// **必殺を構えないと勝てない一戦を、本当に走らせて確かめる。**
+// 演出で勝たせない。差は必殺ひとつぶんだけで、engine の同じ経路から両方の結果が出る。
+{
+  const goal = ULTIMATE_LESSON.tutorial;
+  check(Boolean(goal?.characterId && goal?.skillId), "教える一手（誰のどの技能か）が content にある");
+
+  const lessonProfile = newProfile();
+  const base = newRun(lessonProfile, {
+    runSeed: "ultimate-lesson-test",
+    campaignStageSequence: 1,
+  });
+  base.loadout = freshLoadout(base.roster);
+  check(base.roster.includes(goal.characterId),
+    "必殺を構える人物（" + goal.characterId + "）は Stage 1 の隊にいる");
+  check((base.loadout.tactics[goal.characterId] ?? [])
+    .concat(base.loadout.reactives[goal.characterId] ?? [])
+    .includes(goal.skillId), "教える技能は最初から装着されている");
+
+  const composed = ultimateLessonEncounter();
+  equal(composed.index, ULTIMATE_LESSON_ENCOUNTER_INDEX, "必殺技の一戦は第1戦の席に座る");
+  equal(composed.enemies.length, ULTIMATE_LESSON.enemies.length, "敵の数は content が決める");
+  for (const enemy of composed.enemies) {
+    check(Boolean(PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId]), enemy.enemyActorId + " は実在の敵");
+  }
+
+  const runWith = (armed) => ({
+    ...base,
+    encounterIndex: ULTIMATE_LESSON_ENCOUNTER_INDEX,
+    loadout: armed
+      ? {
+        ...base.loadout,
+        ultimates: { [goal.characterId]: goal.skillId },
+        ultimateArmed: { [goal.characterId]: true },
+      }
+      : base.loadout,
+  });
+  const outcome = (armed) => {
+    const run = runWith(armed);
+    const { result } = simulateExpeditionBattle(run, lessonProfile, ULTIMATE_LESSON_ENCOUNTER_INDEX, { composed });
+    const allies = result.actors.filter((actor) => actor.instanceId.startsWith("a_"));
+    return {
+      run,
+      result,
+      verdict: result.result,
+      rounds: result.roundsUsed,
+      survivors: allies.filter((actor) => actor.alive).length,
+      enemiesAlive: result.actors.filter((actor) => actor.side === "enemy" && actor.alive).length,
+      // 隊の誰かが「HP70%未満」へ落ちる拍。必殺の共通条件がこの一戦で満たされるか。
+      lowestPercent: Math.min(...allies.map((actor) => Math.floor(actor.hp * 100 / actor.maxHp))),
+      fired: ultimatesFiredBy(run, result),
+      cutIns: buildBeats(result.events).filter((beat) => beat.kind === "ultimate").length,
+    };
+  };
+
+  const off = outcome(false);
+  const on = outcome(true);
+
+  // 1. 構えなければ負ける。**本当に走らせた結果である。**
+  equal(off.verdict, "loss", "必殺を構えないと、この一戦は負ける");
+  check(off.enemiesAlive > 0, "構えないと敵を倒しきれない");
+  equal(off.fired.length, 0, "構えていないので必殺は出ない");
+  equal(off.cutIns, 0, "構えていないのでカットインの拍も無い");
+
+  // 2. 構えれば勝つ。**差は必殺ひとつぶんだけ**（loadout の他の欄は同じ）。
+  equal(on.verdict, "win", "必殺を構えると勝てる");
+  equal(on.enemiesAlive, 0, "構えれば敵を倒しきる");
+  equal(on.survivors, base.roster.length, "構えた側では誰も落ちない");
+  check(on.rounds < off.rounds, "構えたほうが早く終わる");
+  assert.deepEqual(on.fired, [goal.characterId], "放つのは教えた一人だけ");
+  equal(on.cutIns, 1, "必殺の拍（カットイン）が一つだけ出る");
+  equal(
+    JSON.stringify({ ...off.run.loadout, ultimates: null, ultimateArmed: null }),
+    JSON.stringify({ ...on.run.loadout, ultimates: null, ultimateArmed: null }),
+    "二つの入力の差は、必殺の指定と構えだけ",
+  );
+
+  // 3. 「隊の誰かがHP70%未満」という共通条件が、この一戦の中で自然に満たされる。
+  check(off.lowestPercent < ULTIMATE_READY_HP_PERCENT,
+    "構えない側でも、隊は必殺の条件（HP" + ULTIMATE_READY_HP_PERCENT + "%未満）まで削られる");
+  const ultimateStart = on.result.events.find((event) => event.type === "action_started"
+    && event.skillId === ultimateIdFor(goal.skillId));
+  check(Boolean(ultimateStart), "必殺は元の技能と同じ場面（action_started）で出る");
+  check((ultimateStart?.round ?? 0) >= 2, "1ラウンド目にいきなりは出ない（追い込まれてから切り返す）");
+
+  // 4. 予測が両方を先に出す。**構える／構えないで帯が変わるのが、この一戦の教材。**
+  const forecast = (armed) => previewNextBattle(
+    runWith(armed), lessonProfile, ULTIMATE_LESSON_ENCOUNTER_INDEX, { composed },
+  );
+  equal(forecast(false).result, "loss", "予測は、構えない一戦を敗北と出す");
+  equal(forecast(true).result, "win", "予測は、構えた一戦を勝利と出す");
+  assert.deepEqual(forecast(true).ultimateFiredBy, [goal.characterId],
+    "予測は「誰の必殺が出るか」まで先に出す");
+  checks += 1;
+
+  // 5. 決定的であること。同じ入力からは同じ出来事の列が出る。
+  assert.deepEqual(
+    simulateExpeditionBattle(runWith(true), lessonProfile, ULTIMATE_LESSON_ENCOUNTER_INDEX, { composed }).result.events,
+    on.result.events,
+    "必殺技の一戦は決定的",
+  );
+  checks += 1;
 }
 
 // ---- 巻き戻しの秘密（R15追補）-----------------------------------------------

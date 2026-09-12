@@ -48,6 +48,7 @@ import {
   setUltimate,
   simulateExpeditionBattle,
   toggleUltimateArmed,
+  toggleUltimateForBattle,
   ultimateCandidates,
 } from "./playable-battles.mjs";
 
@@ -475,6 +476,38 @@ function armedRun(designations, options = {}) {
   equal(disarmedAgain.armed, false, "もう一度押すと構えを解く");
   const noDesignation = toggleUltimateArmed(run.loadout, "mender", undefined, { uses: 1 });
   equal(noDesignation.ok, false, "指定していない仲間は構えられない");
+
+  // 作者指摘 2026-09-12 — **画面が使うのは長押し一回のトグル。**指定と構えを同時に
+  // 動かすので、「長押ししたのにまだ構えていない」状態が作れない。
+  const pick = candidates[0].skillId;
+  const other = candidates.find((entry) => entry.skillId !== pick)?.skillId ?? null;
+  const armedByPress = toggleUltimateForBattle(run.loadout, "warden", pick, undefined, { uses: 1 });
+  equal(armedByPress.ok, true, "長押し一回で必殺にできる");
+  equal(armedByPress.loadout.ultimates.warden, pick, "長押しで指定が入る");
+  equal(armedByPress.loadout.ultimateArmed.warden, true, "同じ長押しで構えまで入る");
+  equal(armedByPress.armed, true, "結果も「構えた」と返る");
+
+  const releasedByPress = toggleUltimateForBattle(
+    armedByPress.loadout, "warden", pick, undefined, { uses: 1 },
+  );
+  equal(releasedByPress.loadout.ultimates.warden, undefined, "もう一度の長押しで指定が外れる");
+  equal(releasedByPress.loadout.ultimateArmed.warden, undefined, "構えも一緒に外れる");
+
+  if (other) {
+    const moved = toggleUltimateForBattle(armedByPress.loadout, "warden", other, undefined, { uses: 1 });
+    equal(moved.loadout.ultimates.warden, other, "別の行を長押しすると指定が移る");
+    equal(moved.loadout.ultimateArmed.warden, true, "移った先も構えたままになる");
+  }
+
+  const spent = toggleUltimateForBattle(run.loadout, "warden", pick, undefined, { uses: 0 });
+  equal(spent.ok, false, "この遠征で放ち終えた仲間は構え直せない");
+  const spentRelease = toggleUltimateForBattle(
+    armedByPress.loadout, "warden", pick, undefined, { uses: 0 },
+  );
+  equal(spentRelease.ok, true, "放ち終えた行でも、長押しで印だけは外せる");
+  equal(spentRelease.loadout.ultimates.warden, undefined, "外すと行は元へ戻る");
+  const notCandidate = toggleUltimateForBattle(run.loadout, "warden", "relay_order", undefined, { uses: 1 });
+  equal(notCandidate.ok, false, "必殺にできない技能は長押しでも必殺にならない");
 }
 
 // 予測と本番は同じ。**構えても preview の契約は変わらない。**
