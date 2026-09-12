@@ -34,6 +34,7 @@ const displayContracts = [
   ["リアクティブ欄の見出し", app, 'reactive: "リアクティブ"'],
   ["パッシブ欄の見出し", app, 'passive: "パッシブ"'],
   ["技能取得予約の操作", app, '"reserve-skill"'],
+  ["技能点で取得と予約を切り替える判定", app, "canFulfillSkillReservation"],
   ["技能取得予約の取消", app, '"cancel-skill-reservation"'],
   ["予約技能の自動取得", app, "applyAutomaticSkillActions"],
   ["アクティブツリーのラベル", skillTreeLayout, 'label: "アクティブ"'],
