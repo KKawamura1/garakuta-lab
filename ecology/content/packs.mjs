@@ -79,7 +79,7 @@ export const SKILL_PACKS = Object.freeze([
     // R16 — 10本足した。**「HPを戻す」以外の手当ての形を並べる。**
     //   面で止める: field_dressing / 長く止める: sustaining_ward / 薄く常に: ward_ally
     //   状態を払う: cleansing_step（自分）/ watchful_care（仲間・反応）
-    //   自分の血で払う: shared_pain（HPを支払う唯一の技能）
+    //   痛みを分ける: shared_pain（被弾前に4割を自分へ移す）
     activeSkillIds: Object.freeze(["steady_cut", "aimed_shot", "idle_shuffle", "shield_the_wounded", "field_dressing", "steady_breath", "ward_ally", "precise_cut", "sustaining_ward", "cleansing_step"]),
     reactiveSkillIds: Object.freeze(["overflow_care", "triage_relay", "brace_after_hit", "emergency_treatment", "triage", "shared_pain", "watchful_care", "steady_under_fire", "second_wind"]),
     passiveSkillIds: Object.freeze(["steady_hands", "patient_hands"]),
@@ -89,8 +89,8 @@ export const SKILL_PACKS = Object.freeze([
     // 一度も発火しない節を入口に並べると、点を払った側は何が起きなかったのかを
     // 知る手段がない。外したのは二つで、どちらも full には残っている。
     //
-    //   overflow_care … 余剰治療。Stage 0 の回復は全部「直前の被弾量に比例」なので、
-    //                   上限を超える回復が構造的に起きず、excess_healing が出ない。
+    //   overflow_care … 余剰治療。固定量の回復や複数回復で生じた余りを、さらに
+    //                   別の負傷者へ回す上級連携なので Stage 0 から外す。
     //   watchful_care … 隙を払う唯一の反応。Stage 0 の敵は隙を付けてこない。
     //
     // 入れたのは三つ。**どれも「守り方の違い」を分けるためにある。**

@@ -47,7 +47,7 @@
 | `sync.mjs` | `/api/runs` への送信と端末 ID |
 | `check.mjs` | `ecology/*.test.mjs` の runner |
 
-戦闘タブの `renderMap()` は、12個のノードを `composeEncounter(step, ...)` から生成し、
+遠征タブの `renderMap()` は、12個のノードを `composeEncounter(step, ...)` から生成し、
 `RunState.encounterIndex` との比較だけで `done` / `current` / `unreached` を決めます。
 精鋭・bossの種別はノード内の記号と凡例へ分離し、強い現在地枠を種別用の枠で上書きしません。
 `analysis/ecology-map-smoke.mjs` が12戦の配置とこの表示契約を、
@@ -60,6 +60,13 @@
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
 | RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、**必殺印**、隊、formation、run 技能点・取得技能・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、攻撃単位の回復窓、開始 HP snapshot、preview / commit 状態 |
+
+### タイトル画面とContinue
+
+タイトル画面は表示中のUIであり、ゲームの再開地点ではない。タイトルへ戻るときは、直前のゲーム画面を
+オートセーブへ記録する。ページを開いた直後はタイトルを表示し、そこからContinueを選んだときだけ
+その再開地点へ復元する。タイトルへ戻る前に作られた旧い保存に再開地点の記録が無い場合は、
+遠征準備画面へ復元する。ロードメニューを閉じるだけではオートセーブを上書きしない。
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
 取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡り、engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）にだけ係数を掛けます。**engine は技能 ID で分岐しません**：表に載っていない技能では掛け算そのものが起きず、Lv1 は係数 1.0 ちょうどなので旧入力と1バイトも変わりません。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
@@ -95,7 +102,7 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 技能の前提は `{ skillId, minLv }` で、判定は `content/skill-tree.mjs` の `prerequisitesMet` / `unmetPrerequisites` 一箇所を、解禁 API（`progression.unlockRunSkill`）・画面（`app.js` の `skillNodeState`）・加入時の無償閉包（`playable-battles.initialUnlockedSkills` と `initialSkillLevels`）が共有します。無償閉包が Lv1 より上を要求するときは、その Lv も加入時に無償で付きます（取得済みなのに前提 Lv 不足で子が取れない形を作らないため）。前提が上限 Lv を超えていないか、その Stage で出る節を一遠征ぶんの技能点で取り切れるかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
 通常の `newRun` は開始補給0から始まり、`options.tutorial === true` の Stage 0 導入だけ開始補給1を受け取ります。New Game が作る `runId` を `supplyTutorialRunId` として画面状態に保持し、その導入遠征だけを必須チュートリアルの対象にします。通常遠征・再訪・既存セーブはこの marker を持たないため、補給タブを任意に使えます。初回の本編第1戦の報酬後、`app.js` は補給タブを開き、`treatmentSelection` で集中治療を選ぶ段階を保持します。単体治療は `treatmentTargetIds()` が返す候補から `select-treatment-target` を受けるまで補給を消費せず、確定後だけ既存の `progression.mjs` の `campTreat` へ明示した target ID を渡します。対象を選ぶ画面は補給タブ専用の一覧ではなく、上端の共通盤面（`partyCellRole` の `supplies` mode）です。結果は `treatmentResult` と `role=status` で表示し、完了印は `ProfileState.storyFlags` に保存します。`supplyTutorialVisible()` 中は nav の他タブ、`begin-stage`、撤退経路を UI と handler の両方で閉じます。
 
-序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
+序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。巻き戻し直後の camp は隊列チュートリアル（DESIGN.md 6.4.4）に入り、`formationTutorialStep()` が `open` / `pick` / `place` / `done` の段を返します。教える一手は content 側の `PROLOGUE.tutorial`（`characterId` / `row`）が持ち、`formationTutorialSpotSelector()` が段ごとの選択子を一箇所で作ります。`render()` の後段の `applyFormationTutorialGate()` が、その選択子に当たる要素へ `tutorial-spot`（光）を付け、`done` 以外の段では他の `[data-action]` を `tutorial-blocked` と `disabled` で塞ぎます。`handleAction` も同じ選択子で弾くので、押せる形と経路の両方が同じ判定を読みます。`campTutorialTab()` が補給チュートリアルと同じ形でタブを一枚へ閉じ込め、目標の行へ入った瞬間に錠が外れて `formationMode` も false へ戻ります（`place-character` の handler が段の前後を比べて畳みます）。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
 Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
@@ -242,7 +249,7 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 ## 9. UI表示の責務
 
 `app.js` の通常画面は、主見出し、現在の選択対象、次の操作の順で構成する。意思決定が済んだ画面では、次の操作を
-先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。編成・技能・装備のような選択画面では
+先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。隊列・技能・装備のような選択画面では
 選択対象→確定操作の順を維持し、敵情報・技能ツリー・装備一覧は段階表示と折り畳みで長さを制御する。
 装飾的な英語副見出し、
 常に表示する一般説明、同じタブへ戻るNEXT/QUICK LINKSは画面の主操作から外し、必要なルールを
@@ -252,16 +259,135 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 shell を共有するタイトル・キャンプ・戦闘・結果・精算の全画面と、戦闘予測の冗長文が戻らないことを
 `analysis/ecology-screens-smoke.mjs` が検査する。表示整理は予測・本番・報酬・精算の計算経路を変更しない。
 
-### 仲間の共通盤面（issue #159）
+画面本体の文章は、ストーリーと技能・装備の説明文に絞る（issue #236）。状態・数量・対象・可否は
+記号・数・棒・色・配置で出し、**同じ数を同じ画面で二度出さない**。見出しとその直下の要約が
+同じことを言っている組（「技能ツリー」の見出しと summary、「ゴウの装備枠」と直上の人物帯、
+「補給 3 / 5」の見出し札とバーの頭）は札の側を落とす。金の主ボタンは位置と色でそれ自体が
+「次の操作」なので、`primary-action-label` のような札を重ねない。押せる形になっているカードの
+一覧へ「選んでください」と書き添えず、**二手続きの操作で次の一手が要るときだけ**一行を出す
+（装備を選んだあとの「装着する枠を選ぶ」、隊列の「移動先の枠へ」、治療の対象選び）。
+戦闘マップの凡例と配置の説明は畳んだヘルプへ置き、各節は `title` と読み上げラベルで
+自分の状態（「第3戦・精鋭・未到達」）を名乗る。同じ種類の敵が並ぶ回は、`enemy-lore` の一行を
+最初の1枚にだけ出す。
 
-キャンプで仲間を選ぶ経路は `partyBar(mode)` 一つに閉じる。盤面は `POSITIONS` から
+### 会話の門（STORY_GATES）
+
+会話の最後の拍で、「進む」の代わりに**一つの操作だけ**を差し出す仕組み。`app.js` の
+`STORY_GATES` が beat の id で引ける表で、`storyGate()` が「その beat に門があり、
+最後の行で、積んだ断片も尽きている」ときだけ門を返す。
+
+門があるあいだは、`renderStory()` が舞台（`.vn-stage`）に被せて `.vn-gate` を描き、
+進む合図（`.vn-caret` / `.vn-hint`）を出さない。舞台を叩いても `advanceStoryLine()` を
+呼ばず（文字送りの早送りだけは効く）、AUTO の自動送りも仕掛けない。門そのものは
+文字送りが終わるまで出さない——CSS の `.vn.typed .vn-gate` が出すので、JS の追加は無い。
+
+**スキップも門を越えない**（issue #200 の続き）。`storySkipStop()` が積んだ断片から門を
+探し、見つかれば `skipStoryToGate()` が**その断片の最後の行**へ飛んで止まる。飛ばした行は
+`pushStoryLog()` で履歴へ積むので、読み返せるし、巻き戻しの逆走もその行を材料にできる。
+文字送りは終わった扱いにする（`storyShownLine` を飛び先へ合わせる）ので、門はすぐ出る。
+門の無い会話では `storySkipStop()` が null を返し、これまでどおり丸ごと飛ぶ。
+
+いまの登録は1件、**序盤の一戦の敗北**（`stage_0_prologue_defeat` → `rewind-prologue`）
+だけである。通常の敗北は巻き戻らないので、増やす前提を持たない。
+
+`enterPrologueBeatIfDue()` が積む倒れた会話の `after` は `"prologueRewind"` で、
+`finishStory()` はそれを受けて `rewindPrologue()` を呼ぶ。スキップが門で止まるように
+なったので、**通常の操作でこの枝を通る道は無い**（越える手段は門の釦だけ）。門が出ない形
+——queue に別の断片が続く保存など——で最後の行を越えたときに、巻き戻さずキャンプへ
+落ちないための受け皿として残してある。結果画面は序盤の敗北の経路から外れた
+（`after === "prologueResult"` は無い）。保存枠が尽きたときの minimal snapshot は
+phase を battle から result へ寄せるため、会話を見ないまま結果画面に立つことがある。
+その保険として `resume-prologue-defeat` が倒れた会話へ戻す。
+
+### 巻き戻しの演出（phase `rewind` / issue #200）
+
+会話の門［時間が巻き戻る］を押した先は、**逆走の場面**である（押した瞬間に次の会話へ
+遷移しない）。`rewindPrologue()` の順は次のとおり。
+
+1. `rewindScene()` が、**状態を触る前に**逆走の材料を写す。舞台は倒れた会話の beat
+   （mood・場所・立ち絵をそのまま使う）、逆走する行は `state.story.log` を
+   `REWIND_TRACK_LIMIT` 件まで逆順にしたもの。**新しい台詞は足さない。**
+2. 巻き戻しそのもの（`prologueStage = "retry"`、負けた配置の引き継ぎ、`lastResult` と
+   replay の破棄、`record("prologue_rewound")`）。
+3. `enterStory([… prologueRewound …], "camp", { via: "rewind" })`。`via` は**積んだ会話の
+   手前に一度だけ挟む場面**の phase で、会話はもう積み終わっている。
+
+`renderRewind()` は会話と同じ `.vn` / `.vn-stage` を描き、`mountRewindView()` が DOM 側で
+進める（会話の文字送りと同じで、一文字ごとに state を書き換えない）。拍は
+閃光（`.firing`）→ 逆走（行ごとに `.jolt`、末尾から消す）→ 静止（`.settled`）→
+白へ抜ける（`.out`）で、`finishRewind()` が phase を `"story"` へ移す。**舞台を叩けば
+（`rewind-skip`）どこでも追い越せる**し、`prefers-reduced-motion` では行の差し替えだけに
+落ちる（揺れ・帯・筋・閃光は CSS の `@media` が止める）。
+
+演出へ入る時点で状態は**もう巻き戻し済み**なので、途中でリロードしても進行を失わない。
+`persistableState()` が phase `rewind` を `story` として保存し、再開は巻き戻し後の会話から
+続く（演出は二度出ない）。`state.rewind` は保存しない。
+
+二つの順序が効いている。**`finishStory()` の `prologueRewind` の枝は、履歴を初期化する
+前に置く**（会話をスキップして巻き戻したとき、逆走させる行が消える）。**会話の門の押しは
+下の舞台へ落とさない**（`.vn-gate` の釦は `data-action="story-advance"` の `.vn-stage` の
+中にあるので、止めないと一押しで巻き戻しと「叩いて進む」が続けて起き、巻き戻し後の
+一行目が読み飛ばされる）。どちらも `analysis/ecology-screens-smoke.mjs` が見張る。
+
+### 技能の取得と装着（issue #236）
+
+**「取得済みだが未装着」という状態は無い。**技能枠は `SLOT_LIMITS` の
+`active` / `reactive` / `passive` とも `Number.MAX_SAFE_INTEGER`（上限があるのは装備の2枠だけ）で、
+取得したものを装着できない場面が存在しない。この状態は「オフ」と同じことを二通りに
+表しているだけだった。
+
+不変条件は一つ。**`runUnlockedSkills[c]` に入っている技能は、必ず種別ごとの装着欄にも
+並んでいる。**出すか出さないかは `loadout.disabled` だけが決める。
+
+- `unlock-skill` は `unlockRunSkill` のあと `equipSkill` を通す（**オンで**装着され、
+  その場で回り始める）。
+- `joinRun` と保存の読み込みは `installUnlockedSkills()`（`playable-battles.mjs`）を通す。
+  こちらは**オフで**末尾へ足す。starter の無償閉包で取得済みになる親の節や、
+  旧い保存が持っている未装着の技能が対象で、**オンで足すと今まで出ていなかった技能が
+  急に回り始める**（＝過去の遠征の結果が変わる）ため。
+
+この置き換えが戦闘へ影響しないことの根拠は `allyInput()` にある。tactics・reactives・
+passives のいずれも `enabled()` で `disabled` を除いてから battle input を組むので、
+**engine から見て「オフ」と「未装着」は同一**である。必殺技も同じで、`withUltimate` は
+`enabled()` 後の列へ差し込み、`ultimateCandidates` は disabled を候補から外す。
+
+`analysis/ecology-screens-smoke.mjs` が片側検査で「装着する釦・`equip-skill` handler・
+`.skill-node.unlocked` が戻っていないこと」と「三つの経路が残っていること」を見る。
+`analysis/ecology-trial.mjs` は保存へ技能点を入れてから実際に一つ取得し、
+装着行に並ぶところまで踏む（技能点は0で始まるので、点を入れないとこの経路は踏めない）。
+
+### キャンプのタブ（issue #235）
+
+キャンプのタブは スキル・装備・補給・遠征 の4枚で、`campNav()` が出す。準備の3枚は何度も
+往復する画面、遠征タブは「次の一戦へ進む」と遠征そのものをどうするか（`rosterSwapSection()` の
+顔ぶれ・`abandon-run`・`open-save-menu`）を決める画面で、役が違う。`renderCamp()` は
+`shell(..., { hideHeaderAction: true })` を使い、**固定される上端の外に常設ボタンを置かない**
+（旧 `campTools()` と shell のヘッダー操作は、実測で iPhone 幅の第一画面 64px を占めていた）。
+
+撤退だけは `state.prologueActive` と `supplyTutorialVisible()` のあいだ出さない（隊列を直しきる
+前に離脱されると「一手直せば勝てる」導入が成立しない）。**セーブは離脱ではない**ので、
+物語の最中でも遠征タブから触れる。
+
+### 仲間の共通盤面（issue #159 / #235）
+
+キャンプで仲間を選ぶ経路は `partyBar(tab)` 一つに閉じる。盤面は `POSITIONS` から
 そのまま3列×2行を組み、行の見出しと格子は戦闘中の `battleRowsHtml()` と同じ形にする。
 セルの中身は `partyCellPerson()`、セルに掛かる操作は `partyCellRole(mode, position, characterId)`
-だけが決める。mode は `renderCamp()` が渡す表示中のタブ（補給チュートリアル中は `supplies`）で、
-`roster` は `place-character`、`skills` / `equipment` は `select-character`、`supplies` は
-治療を選んでいるあいだだけ `select-treatment-target`、`map` は操作なし（`<div>`）になる。
-盤面は隊列を変える唯一の入口なので、`skills` / `equipment` / `supplies` から
-`state.run.formation` は動かない。
+だけが決める。
+
+mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所で決める（issue #235 で
+編成タブを廃止したため）。優先順は、補給タブで単体治療・蘇生を選んでいるあいだの `treat`
+（`select-treatment-target`）、`state.formationMode` が立っているあいだの `formation`
+（`place-character`）、補給タブの既定の `none`（操作なし・`<div>`）、それ以外の `select`
+（`select-character`）。`formationMode` は予測の見出し行の「⇅ 隊列」（`toggle-formation-mode`）
+で入り、**どのタブからでも同じ一手**で隊列を組み替えられる。この状態はその場かぎりなので
+`persistableState()` が落とし、読み込みでも `false` へ戻す（盤面が組み替えの途中で開くと、
+人物を選ぶつもりの一押しが移動になる）。盤面は隊列を変える唯一の入口なので、
+`formation` 以外の mode から `state.run.formation` は動かない。
+
+セルは2行で組む。1行目が人物（アイコン・名前・必殺印）と1ラウンドの資源（AP/RP のピップ）、
+2行目が HP バーと増減で、HP の数値はバーの上へ重ねる。4行積みだった頃は 1 セル 67px・
+固定領域 234px で、iPhone 幅（390×844）の画面の3割を常時占めていた。
 
 予測は従来どおり `battleForecast()`（`previewNextBattle` → `expeditionBattleOptions`）から
 読み、`forecast.perCharacter` を characterId で引いてセルへ差し込む。**予測が無い場面でも

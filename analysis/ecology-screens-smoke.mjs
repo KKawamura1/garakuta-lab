@@ -18,6 +18,8 @@ const problems = [];
 
 const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "utf8");
 const styles = readFileSync("ecology/styles.css", "utf8");
+// R11 §5 改 — 序盤の手取りチュートリアルが教える一手は content が持つ（app.js には無い）。
+const story = readFileSync("ecology/content/story.mjs", "utf8");
 const displayContracts = [
   ["防壁バーのDOM", app, "unit-barrier-fill"],
   ["防壁比率の計算", app, "function barrierPercent(actor)"],
@@ -54,6 +56,27 @@ const progressiveContracts = [
 ];
 for (const [label, sourceText, expected] of progressiveContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
+}
+
+// PR #244 — ゲーム画面では拡大と文字選択を操作にしない。
+// ただし通常の会話本文・履歴は読み返しのために選択を許す。許可を `.vn-text` の
+// ような汎用クラスへ掛けると、巻き戻し演出や新しいモーダルで同じクラスを使った
+// ときに選択が漏れるので、会話専用の `story-copy` だけを例外にする。
+for (const [label, sourceText, expected] of [
+  ["ゲームDOM全体の拡大抑止", styles, "#app,\n#app * {\n  touch-action: pan-x pan-y;"],
+  ["ゲームDOM全体の文字選択抑止", styles, "#app,\n#app * {\n  -webkit-user-select: none;"],
+  ["会話本文だけを選択許可", styles, "#app .story-copy,\n#app .story-copy *"],
+  ["会話本文の選択許可を専用クラスで指定", app, 'class=\\"vn-text story-copy\\"'],
+  ["会話履歴の選択許可を専用クラスで指定", app, 'class=\\"vn-log-body story-copy\\"'],
+]) {
+  if (!sourceText.includes(expected)) problems.push(label + "が無い");
+}
+for (const [label, sourceText, forbidden] of [
+  ["汎用vn-textの選択許可", styles, "#app .vn-text"],
+  ["汎用vn-noteの選択許可", styles, "#app .vn-note"],
+  ["汎用vn-log-bodyの選択許可", styles, "#app .vn-log-body"],
+]) {
+  if (sourceText.includes(forbidden)) problems.push(label + "が残っている（新しい画面へ選択が漏れる）");
 }
 const mapRendererStart = app.indexOf("function renderMap()");
 const mapRendererEnd = app.indexOf("\nfunction treatmentTargetIds", mapRendererStart);
@@ -376,7 +399,7 @@ for (const field of [
 {
   const campStart = app.indexOf("function renderCamp() {");
   const boardStart = app.indexOf("function partyCellRole(mode, position, characterId) {");
-  const barStart = app.indexOf("function partyBar(mode) {");
+  const barStart = app.indexOf("function partyBar(tab) {");
   if (campStart < 0 || boardStart < 0 || barStart < 0) {
     console.error("ecology-screens smoke: 共通盤面（partyBar / partyCellRole）を見つけられなかった。"
       + "検査の書き方が古い。");
@@ -385,9 +408,12 @@ for (const field of [
   for (const [label, expected] of [
     ["キャンプ上端が共通盤面を出している", "partyBar(activeTab) + campNav()"],
     ["盤面の並びが POSITIONS から出ている", "POSITIONS.filter((position) => position.startsWith(row"],
-    ["編成タブのセルが隊列操作", 'action: "place-character"'],
-    ["技能・装備タブのセルが人物選択", 'action: "select-character"'],
-    ["補給タブのセルが治療の対象選択", 'action: "select-treatment-target"'],
+    // issue #235 — 盤面の役はタブではなく boardMode が決める。編成タブは廃止した。
+    ["盤面の役が boardMode から出ている", "function boardMode(tab)"],
+    ["隊列モードのセルが隊列操作", 'action: "place-character"'],
+    ["通常のセルが人物選択", 'action: "select-character"'],
+    ["治療中のセルが対象選択", 'action: "select-treatment-target"'],
+    ["どのタブからも隊列へ入れる", 'data-action=\\"toggle-formation-mode\\"'],
     ["予測の勝敗・ラウンド数", "forecast.roundsUsed"],
   ]) {
     if (!app.includes(expected)) problems.push(label + "が見つからない");
@@ -399,8 +425,10 @@ for (const field of [
     }
   }
   // 補給タブは、治療を選んでいないあいだセルを押せない（誰を選ぶ場面でもない）。
-  const roleBody = app.slice(boardStart, barStart);
-  if (!roleBody.includes('if (!treatment || treatment.targetCount === "all" || !characterId) return { action: null };')) {
+  // issue #235 — この判定は boardMode へ移した（役はタブではなく盤面の状態で決まる）。
+  const modeStart = app.indexOf("function boardMode(tab) {");
+  const roleBody = app.slice(modeStart, barStart);
+  if (!roleBody.includes('return tab === "supplies" ? "none" : "select";')) {
     problems.push("補給タブのセルが、治療を選んでいなくても押せる形になっている");
   }
   if (!roleBody.includes("treatmentTargetIds(treatment).includes(characterId)")) {
@@ -409,7 +437,7 @@ for (const field of [
   // 二つ目の仲間選択がキャンプへ戻っていないこと。**guild 画面の仲間タブは対象外**
   // （あちらには共通盤面が無い）ので、camp のレンダラーだけを見る。
   const campRenderers = [
-    ["renderRoster", "function renderRoster() {", "\nconst SLOT_KEYS"],
+    ["rosterSwapSection", "function rosterSwapSection() {", "\nconst SLOT_KEYS"],
     ["renderSkills", "function renderSkills() {", "\nfunction equipmentSlotHtml"],
     ["renderEquipment", "function renderEquipment() {", "\nfunction renderEnemy"],
     ["campTreatmentBlock", "function campTreatmentBlock() {", "\n// R8 §11 — exact preview"],
@@ -428,6 +456,162 @@ for (const field of [
       }
     }
   }
+  // issue #236 — **「取得済みだが未装着」は復活させない。**技能枠は無制限なので、
+  // この状態は「オフ」と同じことを二通りに表しているだけだった。取得したものは
+  // 必ず装着欄へ入り、出すか出さないかは オン／オフ だけが決める。
+  for (const [label, forbidden] of [
+    ["装着する釦", '"装着する", "equip-skill"'],
+    ["equip-skill の handler", 'action === "equip-skill"'],
+    ["未装着だけの節の見た目", ".skill-node.unlocked {"],
+  ]) {
+    const haystack = forbidden.startsWith(".") ? styles : app;
+    if (haystack.includes(forbidden)) {
+      problems.push(`取得と装着を分ける経路（${label}）が戻っている`);
+    }
+  }
+  for (const [label, expected] of [
+    ["加入時に取得済みを装着欄へ揃える", "next.loadout = installUnlockedSkills("],
+    ["保存から戻すときも揃える", "next.run.loadout = installUnlockedSkills("],
+    ["解禁したらその場で装着する", "const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind"],
+  ]) {
+    if (!app.includes(expected)) problems.push(label + "経路が見つからない");
+  }
+  // issue #236 — 技能ツリーの要約帯は、画面の上端ではなく**キャンプの固定帯の下**へ貼る。
+  // `top: 8px` に戻すと、固定帯の上に乗って盤面を隠す。
+  if (!styles.includes("top: calc(var(--camp-top-h, 215px) + 6px);")) {
+    problems.push("技能要約帯が固定帯の高さを見て貼りついていない");
+  }
+  if (!app.includes("function publishCampTopHeight()") || !app.includes("--camp-top-h")) {
+    problems.push("固定帯の高さを CSS へ渡す経路が無い");
+  }
+
+  // 作者試遊 2026-09-11 — **「時間が巻き戻る」は会話の門にしか置かない。**
+  // 結果画面の一項目へ戻すと、物語の出来事がシステム画面の操作になる。
+  {
+    const resultStart = app.indexOf("function renderResult() {");
+    const resultEnd = app.indexOf("\nfunction renderDefeat()", resultStart);
+    const resultBody = resultStart >= 0 && resultEnd >= 0 ? app.slice(resultStart, resultEnd) : "";
+    if (!resultBody) problems.push("renderResult() の範囲を見つけられなかった");
+    else if (resultBody.includes("時間が巻き戻る")) {
+      problems.push("結果画面に「時間が巻き戻る」が戻っている（会話の門が持つ）");
+    }
+  }
+  if (app.includes('after === "prologueResult"')) {
+    problems.push("倒れた会話のあとに結果画面を挟む経路が戻っている");
+  }
+  for (const [label, expected] of [
+    ["会話の門の表", "const STORY_GATES = Object.freeze({"],
+    ["門の判定", "function storyGate() {"],
+    ["門の拍では舞台を叩いても進まない", "if (storyGate()) return;"],
+    ["倒れた会話がそのまま巻き戻しへ渡る", 'enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueRewind")'],
+    ["門の釦とスキップが同じ道を通る", "function rewindPrologue() {"],
+  ]) {
+    if (!app.includes(expected)) problems.push(label + "が見つからない");
+  }
+  if (!styles.includes(".vn.typed .vn-gate { opacity: 1; pointer-events: auto; }")) {
+    problems.push("会話の門が、文字送りの終わりを待って出る指定になっていない");
+  }
+
+  // issue #200 — **押した瞬間に次の会話へ遷移してはいけない。**門の釦は逆走の演出を
+  // 通って会話へ渡る。演出が消えると「巻き戻っている感覚が無い」状態へ戻るので、
+  // 経路をここで留める（ブラウザの通しは analysis/ecology-tutorial-trial.mjs）。
+  for (const [label, expected] of [
+    ["巻き戻しの演出の画面", "function renderRewind() {"],
+    ["演出を進める経路", "function mountRewindView() {"],
+    ["演出の終わり（叩いて追い越すときも通る）", "function finishRewind() {"],
+    ["逆走に使う行を読んだ履歴から取る", "function rewindTrackFromLog() {"],
+    ["演出を叩いて追い越す受け皿", 'action === "rewind-skip"'],
+    ["スキップの行き先（門で止まる）", "function storySkipStop() {"],
+    ["門まで飛ばして履歴へ積む", "function skipStoryToGate(stop) {"],
+    ["スキップが門を見てから飛ぶ", "const stop = storySkipStop();"],
+    ["会話の手前へ場面を一度だけ挟む口", "function enterStory(beats, after, { via = null } = {}) {"],
+    ["巻き戻しの会話が演出を通って始まる",
+      'enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null })'],
+    ["演出を保存の再開先にしない", 'if (state.phase === "rewind") persisted.phase = "story";'],
+    ["演出の時計を画面の切り替えで止める", "stopRewindTimers();"],
+  ]) {
+    if (!app.includes(expected)) problems.push(label + "が見つからない");
+  }
+  if (!app.includes("rewind: renderRewind,")) {
+    problems.push("巻き戻しの演出が画面の割り当て表に無い（phase rewind が題名画面へ落ちる）");
+  }
+  // issue #200 — **門の釦は、その下の舞台（story-advance）も鳴らしてしまう。**止めないと、
+  // 一押しで巻き戻しと「叩いて進む」が続けて起き、巻き戻し後の一行目（「同じ朝。同じ光。」）
+  // が読み飛ばされる。
+  if (!app.includes('if (element.closest?.(".vn-gate")) event.stopPropagation?.();')) {
+    problems.push("会話の門の押しが、下の舞台へ落ちるのを止めていない");
+  }
+  // 作者試遊 2026-09-11（issue #200 の続き）— **スキップは門を越えない。**越えると、
+  // 押して決める拍がスキップだけ素通りになり、逆走の材料（読んだ行）も空になる。
+  {
+    const skipStart = app.indexOf('if (action === "story-skip") {');
+    const gateLookup = app.indexOf("const stop = storySkipStop();", skipStart);
+    const skipRecord = app.indexOf('record("story_skipped"', skipStart);
+    if (skipStart < 0 || gateLookup < 0 || skipRecord < 0) {
+      problems.push("スキップの受け皿と門の判定を見つけられなかった");
+    } else if (gateLookup > skipRecord) {
+      problems.push("スキップが門を見る前に会話を丸ごと飛ばしている");
+    }
+  }
+  // issue #200 — **巻き戻しの枝は、finishStory() が履歴を消すより前に無ければならない。**
+  // 逆走は読んだ行を使うので、後ろに置くと（会話をスキップして巻き戻したときに）
+  // 逆走させるものが空になり、演出が黙って消える。
+  {
+    const finishStart = app.indexOf("function finishStory() {");
+    const rewindBranch = app.indexOf('if (after === "prologueRewind") {', finishStart);
+    const logReset = app.indexOf("state.story = { queue: [], after: \"camp\"", finishStart);
+    if (finishStart < 0 || rewindBranch < 0 || logReset < 0) {
+      problems.push("finishStory() の巻き戻しの枝と履歴の初期化を見つけられなかった");
+    } else if (rewindBranch > logReset) {
+      problems.push("巻き戻しの枝が履歴の初期化より後ろにある（逆走させる行が消える）");
+    }
+  }
+  for (const [label, expected] of [
+    ["逆走の揺れ", "@keyframes rewind-shudder"],
+    ["逆走の走査線", "@keyframes rewind-bands"],
+    ["杭の閃光", "@keyframes rewind-fire"],
+    ["白へ抜ける", "@keyframes rewind-out"],
+  ]) {
+    if (!styles.includes(expected)) problems.push("巻き戻しの演出の" + label + "が無い");
+  }
+  // **動きを止める人にも、逆走そのものは残す。**止めるのは揺れ・帯・筋・閃光だけ。
+  const reducedRewind = styles.slice(styles.lastIndexOf("@media (prefers-reduced-motion: reduce) {\n  .rewind-stage,"));
+  if (!reducedRewind.startsWith("@media") || !reducedRewind.includes(".rewind-bands, .rewind-streaks { display: none; }")) {
+    problems.push("巻き戻しの演出に prefers-reduced-motion の短縮が無い");
+  }
+
+  // R11 §5 改 / DESIGN.md §6.4.4（作者指摘 2026-09-12）— **並べ替えは手取りの型。**
+  // 押す場所が光り、そこしか押せない。ブラウザでの通し（三手・錠・光の位置）は
+  // analysis/ecology-tutorial-trial.mjs が踏むので、ここでは**構造が消えていない**
+  // ことだけを見る。教える一手そのものは content（PROLOGUE.tutorial）が持つ。
+  for (const [label, sourceText, expected] of [
+    ["教える一手の正本", story, "tutorial: Object.freeze({ characterId:"],
+    ["チュートリアルの段", app, "function formationTutorialStep() {"],
+    ["錠が並べ替えの三手だけに掛かる", app, 'return step !== null && step !== "done";'],
+    ["光らせる先の表", app, "function formationTutorialSpotSelector(step) {"],
+    ["錠と光を描画のあとに掛ける", app, "applyFormationTutorialGate();"],
+    ["経路側の二重の塞ぎ", app, "if (!formationTutorialAllows(element)) return;"],
+    ["段ごとの手引き", app, "function formationTutorialNote() {"],
+    ["タブの閉じ込めが一本化されている", app, "function campTutorialTab() {"],
+    ["光のCSS", styles, ".tutorial-spot {"],
+    ["錠のCSS", styles, ".tutorial-blocked {"],
+    ["手順の一覧のCSS", styles, ".tutorial-steps li.current"],
+  ]) {
+    if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
+  }
+  // **光と錠は同じ選択子から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
+  if (!app.includes("formationTutorialSpotSelector(formationTutorialStep())")) {
+    problems.push("錠の判定が、光らせる先と別の選択子を持っている");
+  }
+  // 錠の最中も盤面の数字は読ませる（この一手の理由はそこに出ている）。
+  if (!styles.includes(".party-cell.tutorial-blocked")) {
+    problems.push("錠の最中に盤面のセルまで沈める指定になっている");
+  }
+  // **動きを止める人にも、光そのものは残す。**止めるのは脈だけ。
+  if (!/@media \(prefers-reduced-motion: reduce\) \{[^}]*\.tutorial-spot \{ animation: none;/.test(styles)) {
+    problems.push("隊列チュートリアルの光に prefers-reduced-motion の短縮が無い");
+  }
+
   // 盤面は誰も選んでいない状態で開く（先頭が最初から光っていると、一手目を
   // 打ったあとに見える）。
   if (/formationSelection:\s*run\.roster\[0\]/.test(app) || /formationSelection = state\.run\.roster\[0\]/.test(app)) {

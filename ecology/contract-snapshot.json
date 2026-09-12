@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.15",
+ "contentVersion": "ecology-playable-full-0.17",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.15",
+  "contentVersion": "ecology-playable-full-0.17",
   "characters": {
    "warden": {
     "id": "warden",
@@ -4421,10 +4421,10 @@
         "take": 1
        },
        "amount": {
-        "type": "event_value_scaled",
-        "key": "amount",
-        "numerator": 1,
-        "denominator": 3
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "focus",
+        "coefficientBps": 3333
        },
        "tags": [
         "care",
@@ -4496,10 +4496,10 @@
         "take": 1
        },
        "amount": {
-        "type": "event_value_scaled",
-        "key": "amount",
-        "numerator": 1,
-        "denominator": 4
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "focus",
+        "coefficientBps": 2500
        },
        "tags": [
         "care"
@@ -4585,10 +4585,10 @@
         "take": 1
        },
        "amount": {
-        "type": "event_value_scaled",
-        "key": "amount",
-        "numerator": 1,
-        "denominator": 2
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "focus",
+        "coefficientBps": 5000
        },
        "tags": [
         "care",
@@ -5781,8 +5781,8 @@
     "displayName": "痛みを分ける",
     "rule": {
      "id": "shared_pain_rule",
-     "listenTo": "damage_taken",
-     "timing": "after",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
      "priority": 135,
      "predicates": [
       {
@@ -5805,7 +5805,7 @@
       },
       {
        "type": "event_tag",
-       "tag": "cost",
+       "tag": "shared_damage",
        "value": false
       }
      ],
@@ -5813,39 +5813,31 @@
       {
        "type": "spend_reaction_points",
        "amount": 1
-      },
-      {
-       "type": "lose_hp",
-       "amount": 30
       }
      ],
      "effects": [
       {
-       "type": "heal",
+       "type": "split_pending_damage",
        "target": {
-        "scope": "allies",
-        "filters": [
-         {
-          "type": "alive"
-         },
-         {
-          "type": "not_self"
-         },
-         {
-          "type": "is_event_primary_target"
-         }
-        ],
+        "scope": "self",
         "take": 1
        },
        "amount": {
         "type": "event_value_scaled",
         "key": "amount",
-        "numerator": 1,
-        "denominator": 2
+        "numerator": 2,
+        "denominator": 5
+       },
+       "share": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 2,
+        "denominator": 5
        },
        "tags": [
         "care",
-        "sacrifice"
+        "guard",
+        "shared_damage"
        ]
       }
      ],
@@ -5857,7 +5849,8 @@
     },
     "tags": [
      "reaction",
-     "care"
+     "care",
+     "guard"
     ]
    },
    "watchful_care": {
@@ -10139,7 +10132,7 @@
     "kind": "reactive",
     "definitionId": "mend",
     "label": "手当て",
-    "effect": "誰かが被弾した直後、RP1でその被弾量の{amount}を返す。同じ一撃を二重には治せない。",
+    "effect": "誰かが被弾した直後、RP1で技術の{amount}を回復。同じ一撃を二重には治せない。",
     "grammar": "回復"
    },
    "triage": {
@@ -10147,7 +10140,7 @@
     "kind": "reactive",
     "definitionId": "triage",
     "label": "応急手当",
-    "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の{amount}を返す。自分は対象にしない。",
+    "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1で技術の{amount}を回復。自分は対象にしない。",
     "grammar": "回復"
    },
    "emergency_treatment": {
@@ -10155,7 +10148,7 @@
     "kind": "reactive",
     "definitionId": "emergency_treatment",
     "label": "応急処置",
-    "effect": "自分が被弾した直後、RP1でその被弾量の{amount}を返す。",
+    "effect": "自分が被弾した直後、RP1で技術の{amount}を回復。",
     "grammar": "回復"
    },
    "spill_forward": {
@@ -10307,8 +10300,8 @@
     "kind": "reactive",
     "definitionId": "shared_pain",
     "label": "痛みを分ける",
-    "effect": "味方が被弾した直後、RP1と自分のHP30を払って、その被弾量の{amount}を返す。",
-    "grammar": "回復"
+    "effect": "味方が受けたダメージを、回復前に技術の{amount}ぶん軽減し、その4割を自分が受ける。RP1。",
+    "grammar": "防御"
    },
    "watchful_care": {
     "id": "watchful_care",
@@ -11306,7 +11299,7 @@
    "kind": "reactive",
    "definitionId": "mend",
    "label": "手当て",
-   "effect": "誰かが被弾した直後、RP1でその被弾量の{amount}を返す。同じ一撃を二重には治せない。",
+   "effect": "誰かが被弾した直後、RP1で技術の{amount}を回復。同じ一撃を二重には治せない。",
    "grammar": "回復"
   },
   "triage": {
@@ -11314,7 +11307,7 @@
    "kind": "reactive",
    "definitionId": "triage",
    "label": "応急手当",
-   "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1でその被弾量の{amount}を返す。自分は対象にしない。",
+   "effect": "被弾後にHP半分以下になった自分以外の味方へ、RP1で技術の{amount}を回復。自分は対象にしない。",
    "grammar": "回復"
   },
   "emergency_treatment": {
@@ -11322,7 +11315,7 @@
    "kind": "reactive",
    "definitionId": "emergency_treatment",
    "label": "応急処置",
-   "effect": "自分が被弾した直後、RP1でその被弾量の{amount}を返す。",
+   "effect": "自分が被弾した直後、RP1で技術の{amount}を回復。",
    "grammar": "回復"
   },
   "spill_forward": {
@@ -11474,8 +11467,8 @@
    "kind": "reactive",
    "definitionId": "shared_pain",
    "label": "痛みを分ける",
-   "effect": "味方が被弾した直後、RP1と自分のHP30を払って、その被弾量の{amount}を返す。",
-   "grammar": "回復"
+   "effect": "味方が受けたダメージを、回復前に技術の{amount}ぶん軽減し、その4割を自分が受ける。RP1。",
+   "grammar": "防御"
   },
   "watchful_care": {
    "id": "watchful_care",
@@ -23517,7 +23510,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -23841,7 +23834,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -24174,7 +24167,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -24399,7 +24392,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -24622,7 +24615,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -24833,7 +24826,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 503,
       "rarity": "common",
@@ -25089,7 +25082,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -25327,7 +25320,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -25544,7 +25537,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -25747,7 +25740,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -25976,7 +25969,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -26314,7 +26307,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -26580,7 +26573,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -26766,7 +26759,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -27032,7 +27025,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -27338,7 +27331,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -27576,7 +27569,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -27799,7 +27792,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 504,
       "rarity": "epic",
@@ -28013,7 +28006,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -28212,7 +28205,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -28420,7 +28413,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -28606,7 +28599,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -28806,7 +28799,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -29003,7 +28996,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -29228,7 +29221,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -29442,7 +29435,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -29863,7 +29856,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -30184,7 +30177,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 114,
       "rarity": "common",
@@ -30398,7 +30391,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -30607,7 +30600,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 503,
       "rarity": "common",
@@ -30846,7 +30839,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -31078,7 +31071,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -31297,7 +31290,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -31554,7 +31547,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -31774,7 +31767,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -31970,7 +31963,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-7",
-      "contentContractVersion": "ecology-content-contract-19",
+      "contentContractVersion": "ecology-content-contract-21",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

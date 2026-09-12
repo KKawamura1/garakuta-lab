@@ -215,6 +215,35 @@ try {
   note("投資の取り消し不可が分かる", /購入は取り消せません/.test(investText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
 
+  // R10 — タイトル画面は表示だけで、Continueの再開先にはならない。
+  await click("タイトルへ");
+  note("タイトルへ戻れる", await page.locator(".title-screen").count() === 1);
+  note("タイトルからContinueを押せる",
+    await page.locator('[data-action="continue-game"]:not([disabled])').count() === 1);
+  await page.reload({ waitUntil: "networkidle" });
+  note("タイトルへ戻った状態をリロードしても維持する",
+    await page.locator(".title-screen").count() === 1);
+  await click("つづきから");
+  await page.waitForTimeout(300);
+  note("Continueで遠征準備へ復帰する",
+    await page.locator(".title-screen").count() === 0 && /今回の遠征/.test(await bodyText()));
+
+  // 修正前に作られた、phase=intro だけのオートセーブも救済する。
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved) return;
+    saved.phase = "intro";
+    delete saved.resumePhase;
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(300);
+  await click("つづきから");
+  await page.waitForTimeout(300);
+  note("既存のオートセーブからも遠征準備へ復帰する",
+    await page.locator(".title-screen").count() === 0 && /今回の遠征/.test(await bodyText()));
+
   // R12 — **この台本が見るのは12戦の長い流れであって、序盤のチュートリアルではない。**
   // 序盤の会話・勝てない一戦・巻き戻しは analysis/ecology-tutorial-trial.mjs の担当なので、
   // ここでは Stage 0 を踏破済みの Profile へ差し替えて、その先だけを踏む。
@@ -247,10 +276,11 @@ try {
   note("踏破済みStageの再訪でも開始会話が出る", await page.locator(".vn-stage").count() === 1);
   await click("スキップ");
   await page.waitForTimeout(300);
-  note("編成タブ", /編成|仲間/.test(await bodyText()));
+  note("キャンプに着く", /スキル|遠征/.test(await bodyText()));
 
-  // 4つのタブを踏む。各画面の主要操作が画面内にあることも見る。
-  for (const [tab, needle] of [["roster", "編成"], ["skills", "技能点"], ["equipment", "装備"], ["map", "この敵に挑む"]]) {
+  // issue #235 — タブは4枚（スキル・装備・補給・遠征）。編成タブは廃止し、隊列は
+  // どのタブからでも上端の盤面の「⇅ 隊列」で組み替える。
+  for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵に挑む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
     note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
     if (tab === "skills") {
@@ -269,16 +299,61 @@ try {
   const skillHelp = page.locator('details[data-help="skill-rules"]');
   if (await skillHelp.count()) {
     await skillHelp.locator("summary").click();
-    note("技能数の制限が無いと分かる", /すべて装着できます/.test(await bodyText()));
-    await page.locator('nav.tabs [data-tab="roster"]').click();
+    note("技能数の制限が無いと分かる", /枠の上限はありません/.test(await bodyText()));
+    await page.locator('nav.tabs [data-tab="equipment"]').click();
     await page.locator('nav.tabs [data-tab="skills"]').click();
     note("ヘルプの開閉状態を保つ", await page.locator('details[data-help="skill-rules"]').evaluate((element) => element.open));
   }
-  const node = page.locator(".skill-node.available").first();
-  if (await node.count()) {
-    await node.click();
-    const unlock = page.locator('[data-action="unlock-skill"]').first();
-    if (await unlock.count()) await unlock.click();
+  // issue #236 — **取得と装着が一つの手であること**を、実際に取って確かめる。
+  //
+  // 技能点は0で始まり、戦闘をクリアして初めて貯まる（STARTING_RUN_SKILL_POINTS = 0）。
+  // この台本はキャンプに着いた直後なので、そのままでは取得できる節が一つも無く、
+  // **解禁の経路がこれまで一度も踏まれていなかった。**蘇生の検査と同じやり方で、
+  // 保存に点を入れてから踏み、終わったら元へ戻す。
+  const pointFixture = await page.evaluate(() => {
+    const key = "exp18-r10-auto-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved?.run) return null;
+    const before = { ...saved.run.runSkillPoints };
+    saved.run.runSkillPoints = Object.fromEntries(saved.run.roster.map((id) => [id, 9]));
+    localStorage.setItem(key, JSON.stringify(saved));
+    return { before };
+  });
+  if (pointFixture) {
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    await page.locator('nav.tabs [data-tab="skills"]').click();
+    await page.waitForTimeout(200);
+    const node = page.locator(".skill-node.available").first();
+    note("技能点があれば取得できる節が出る", await node.count() > 0);
+    if (await node.count()) {
+      const unlockingName = (await node.locator(".node-copy b").innerText()).trim();
+      await node.click();
+      await page.waitForTimeout(150);
+      const unlock = page.locator('[data-action="unlock-skill"]').first();
+      note("取得の釦が出る", await unlock.count() > 0);
+      if (await unlock.count()) {
+        await unlock.click();
+        await page.waitForTimeout(250);
+        // **「装着する」という二手目は無い。**取った瞬間に装着行へ並び、オンで回り始める。
+        note("取得と装着が一つの手である",
+          await page.locator('[data-action="equip-skill"]').count() === 0);
+        note("取得した技能がその場で装着行に並ぶ",
+          await page.locator(".installed-row", { hasText: unlockingName }).count() > 0, unlockingName);
+        note("取得した節は取得済みの印になる",
+          await page.locator(".skill-node.equipped", { hasText: unlockingName }).count() > 0);
+      }
+    }
+    // 直したら元へ戻す。**後続の検査は通常の遠征状態を前提にしている。**
+    await page.evaluate((fixture) => {
+      const key = "exp18-r10-auto-v02";
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      if (!saved?.run) return;
+      saved.run.runSkillPoints = fixture.before;
+      localStorage.setItem(key, JSON.stringify(saved));
+    }, pointFixture);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
   }
   note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
 
@@ -350,6 +425,13 @@ try {
       && currentNodes[0].boxShadow !== "none"
       && otherNodes.every((node) => node.borderWidth === "1px"));
     if (stage === 1) {
+      // issue #236 — 凡例は畳んだ「遠征のルール」の中へ移した。各節が aria-label と
+      // title で自分の状態を名乗るので、本文からは外してある。**消してはいない。**
+      const expeditionHelp = page.locator('details[data-help="expedition-rules"]');
+      if (await expeditionHelp.count() && !(await expeditionHelp.evaluate((element) => element.open))) {
+        await expeditionHelp.locator("summary").click();
+        await page.waitForTimeout(120);
+      }
       const legend = await page.locator(".map-legend").innerText();
       note("進行状態と精鋭・ボスの凡例が出る",
         /クリア済み/.test(legend) && /現在地/.test(legend) && /未到達/.test(legend)
@@ -601,8 +683,8 @@ try {
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
       note("結果画面の主操作が詳細より前で見える",
-        await page.locator(".result-primary-action .primary-action-label").count() === 1
-          && await onScreen(".result-primary-action .primary-action-label")
+        await page.locator(".result-primary-action .button").count() >= 1
+          && await onScreen(".result-primary-action .button")
           && await appearsBefore(".result-primary-action", ".result-actors"));
     }
     if (stage === 1 && verdict === "突破した") {
@@ -675,8 +757,8 @@ try {
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
   note("精算の内訳が出ている", /到達距離/.test(settleText) && /報酬倍率/.test(settleText));
   note("精算後の主操作が上部にある",
-    await page.locator(".settlement-primary-action .primary-action-label").count() === 1
-      && await onScreen(".settlement-primary-action .primary-action-label")
+    await page.locator(".settlement-primary-action .button.primary").count() === 1
+      && await onScreen(".settlement-primary-action .button.primary")
       && await appearsBefore(".settlement-primary-action", ".settle-list"));
   if (/記録を送る/.test(settleText)) await click("記録を送る");
 

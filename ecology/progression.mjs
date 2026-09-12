@@ -909,10 +909,11 @@ export function levelUpRunSkill(run, characterId, skillId, cap) {
 //
 // **偵察（次の幕の個体編成を先に見る）は消した。**次の一戦は戦闘予測が
 // 完全に見せるようになったので、補給を払って先を覗く枠に値段がつかない。
+// issue #236 — 画面はこの3行をそのまま並べる。**説明ではなく、用途の名札にする。**
 export const SUPPLY_USES = Object.freeze({
-  retry: "敗北した戦闘へ、編成を変えて再挑戦する",
+  retry: "負けた戦闘へ編成を変えて再挑戦",
   reroll: "報酬3候補を一度だけ引き直す",
-  camp: "野営で集中治療・全体手当・蘇生のいずれかを行う",
+  camp: "野営で治療・蘇生のどれか一つ",
 });
 
 export function spendSupply(run, use) {
@@ -933,15 +934,15 @@ export function gainSupply(run, amount = 1) {
 export const CAMP_TREATMENTS = Object.freeze({
   concentrated: Object.freeze({
     id: "concentrated", displayName: "集中治療", targetCount: 1, healBps: 4_000, revive: false,
-    summary: "一人をmaxHpの40%回復する。tank・背水役等、一人へ損傷を集める構成向け。",
+    summary: "一人を最大HPの40%回復",
   }),
   full_party: Object.freeze({
     id: "full_party", displayName: "全体手当", targetCount: "all", healBps: 1_200, revive: false,
-    summary: "生存者全員をmaxHpの12%回復する。damage分散構成向け。",
+    summary: "生存者全員を最大HPの12%回復",
   }),
   revive: Object.freeze({
     id: "revive", displayName: "蘇生", targetCount: 1, healBps: 2_500, revive: true,
-    summary: "戦闘不能者一人をmaxHpの25%で復帰させる。roster欠損を戻す高価値用途。",
+    summary: "戦闘不能の一人を最大HPの25%で復帰",
   }),
 });
 

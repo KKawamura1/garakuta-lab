@@ -309,6 +309,9 @@ export const EFFECT_TYPES = freeze([
   // item that repairs itself and §10.2 has no way to raise durability.
   "repair_equipment",
   "modify_pending_amount",
+  // 受けるダメージの一部を pending frame から所有者へ移す割り込み。
+  // 軽減量と移送量を同じ提案から別々に評価できる。
+  "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
   // R6 §6.7 — PHASE A. Block charges are a small integer, not a pool of points.
@@ -332,6 +335,7 @@ export const REACHES = freeze(["melee", "ranged", "unrestricted"]);
 // §11.4 — usable only from interrupt-timing rules.
 export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
 ]);
@@ -342,6 +346,7 @@ export const PENDING_ACTION_EFFECT_TYPES = freeze([
 ]);
 export const PENDING_AMOUNT_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "split_pending_damage",
   "redirect_pending_target",
 ]);
 

@@ -40,6 +40,7 @@ import {
   setUltimate,
   toggleUltimateArmed,
   ultimateCandidates,
+  installUnlockedSkills,
 } from "./playable-battles.mjs";
 import {
   BOSS_LAWS,
@@ -400,6 +401,12 @@ function joinRun(run, characterId) {
       if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
     }
   }
+  // issue #236 — **取得済みは必ず装着欄に並ぶ。**starter の前提（無償閉包で取得済みに
+  // なる親の節）は、これまで解禁表にだけあって装着欄に無かった。その状態はオフと
+  // 同じことを二通りに表しているだけなので、ここでオフのまま装着欄へ入れる。
+  // 戦闘の入力は変わらない（allyInput が disabled を除いてから組む）。
+  next.loadout = installUnlockedSkills(
+    next.loadout, characterId, next.runUnlockedSkills[characterId]);
   // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
   // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
   return next;
@@ -408,16 +415,25 @@ function joinRun(run, characterId) {
 function freshUiState() {
   return {
     phase: "intro",
-    tab: "roster",
+    tab: "map",
+    // issue #235 — 盤面が隊列の組み替えを受けているか。その場かぎりの役なので保存しない
+    // （persistableState が落とし、読み込みでも false へ戻す）。
+    formationMode: false,
     guildTab: "expedition",
     // Phase C — Blueprint archive の絞り込み（画面だけの状態）。
     blueprintFilter: { rarity: null, favorite: false },
     // R9 §2 / §7 — 物語の断片。queue が空になったら after へ進む。
     // lineIndex は断片の中の何行目か。auto は自動送り、log は履歴。
     story: { queue: [], after: "camp", lineIndex: 0, auto: false, log: [], logOpen: false },
+    // issue #200 — 巻き戻しの演出が逆走させる行（読んだ履歴の逆順）と、凍らせる舞台。
+    // **保存しない**（persistableState が落とす）。演出の途中でリロードしたら、
+    // すでに巻き戻し済みの会話から続ける。
+    rewind: null,
     // 画面内ヘルプの開閉は、同じ画面を再描画しても保持する。
     helpOpen: {},
     saveMenuReturn: "intro",
+    // タイトル画面は表示だけの状態。Continue用の再開先を別に保持する。
+    resumePhase: null,
     saveNotice: null,
     prologueActive: false,
     // R11 §5 — 序盤の一戦は2段構え。"first" は負ける一戦、"retry" は巻き戻したあと。
@@ -501,10 +517,23 @@ function readStoredSnapshot(key) {
   }
 }
 
-function hydrateState(saved) {
+function hydrateState(saved, { resumeFromTitle = false } = {}) {
   if (!saved) return initialState();
   const fresh = initialState();
   const next = { ...fresh, ...saved };
+  // タイトル画面自体をオートセーブの再開先にしない。
+  // マーカーの無い旧い保存は、タイトルへ戻る直前の既定導線へ戻す。
+  if (resumeFromTitle && next.phase === "intro") {
+    const resumablePhases = [
+      "expeditionStart", "story", "camp", "battle", "battleError",
+      "result", "defeat", "settlement", "homestead", "complete",
+    ];
+    next.phase = resumablePhases.includes(saved.resumePhase)
+      ? saved.resumePhase
+      : "expeditionStart";
+  }
+  // ページを開いた直後はタイトルを表示する。Continueで復元した後は再保存時に消える。
+  next.resumePhase = null;
   // issue #138 — 「報酬を見る」の中間画面を廃止した。結果画面が報酬選択を兼ねるので、
   // 旧いオートセーブがちょうどその画面で保存されていても結果画面へ戻す。
   if (next.phase === "reward") next.phase = "result";
@@ -542,6 +571,12 @@ function hydrateState(saved) {
   }
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
+  // issue #236 — 「取得済みだが未装着」を持つ古い保存も、読み込んだ時点で
+  // オフの装着済みへ揃える。**その保存の戦闘結果は変わらない。**
+  for (const characterId of next.run.roster) {
+    next.run.loadout = installUnlockedSkills(
+      next.run.loadout, characterId, next.run.runUnlockedSkills?.[characterId]);
+  }
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
     ? savedRun.generatedEquipment
     : {};
@@ -564,6 +599,7 @@ function hydrateState(saved) {
   // 選択中の人物を引き継ぐと、盤面のどこかが最初から光った状態でキャンプへ戻る。
   const savedFormationSelection = saved.formationSelection;
   next.formationSelection = next.run.roster.includes(savedFormationSelection) ? savedFormationSelection : null;
+  next.formationMode = false;
   // 戦闘内の値（HP・装備耐久）はBattleState。保存から戻るときは満タンへ戻す。
   next.hp = Object.fromEntries(
     CHARACTER_OPTIONS.map((option) => [option.id, characterStats(next.profile, option.id).stats.maxHp]),
@@ -612,6 +648,14 @@ let state = loadState();
 // pre-battle camp screen even though simulation had completed.
 function persistableState() {
   const persisted = { ...state, saveFormatVersion: SAVE_FORMAT_VERSION };
+  // issue #235 — 隊列の組み替えは**その場かぎりの役**である。保存して戻ったときに
+  // 盤面が組み替えの途中で開くと、人物を選ぶつもりの一押しが移動になる（#159 の
+  // 「誰も選んでいない状態で開く」と同じ理由）。
+  delete persisted.formationMode;
+  // issue #200 — 巻き戻しの演出は保存の再開先にしない。**状態はもう巻き戻し済み**なので、
+  // 途中でリロードしたら巻き戻し後の会話から続ける（演出だけを二度見せない）。
+  if (state.phase === "rewind") persisted.phase = "story";
+  delete persisted.rewind;
   // 保存メニューは一時画面なので、Continueでそこへ戻さない。
   if (state.phase === "saveMenu") {
     persisted.phase = state.saveMenuReturn === "camp" ? "camp" : "intro";
@@ -744,7 +788,9 @@ function loadSavedGame(key) {
     render();
     return;
   }
-  state = hydrateState(snapshot);
+  const resumeFromTitle = state.phase === "intro"
+    || (state.phase === "saveMenu" && state.saveMenuReturn !== "camp");
+  state = hydrateState(snapshot, { resumeFromTitle });
   state.saveNotice = key === SAVE_KEY ? "オートセーブから再開しました。" : "手動セーブから再開しました。";
   state.error = null;
   // Continue後も、読み込んだ状態を現在のオートセーブとして保持する。
@@ -1155,6 +1201,12 @@ function positionOwner(position) {
   return state.run.roster.find((characterId) => state.run.formation[characterId] === position) ?? null;
 }
 
+// 枠の行（"front" / "rear"）。**綴りの規則は POSITIONS の名前そのもの**で、
+// 盤面の並び（`position.startsWith(row + "_")`）と同じ読み方をここに一つだけ置く。
+function positionRow(position) {
+  return POSITIONS.includes(position) ? String(position).split("_")[0] : null;
+}
+
 function sectionHeading(eyebrow, title, right = "") {
   // 通常画面の主見出しは日本語を一つだけにする。装飾用の英語ラベルは出さない。
   void eyebrow;
@@ -1198,19 +1250,29 @@ function equipmentFillLabel() {
   return worn + "/" + Math.max(worn, Math.min(owned, slots));
 }
 
+// チュートリアルが一枚のタブへ閉じ込めている間は、そのタブ id を返す。
+// **閉じ込め方は二つあるが、閉じ込める書き方は一つにする**（補給と隊列で別々に書かない）。
+function campTutorialTab() {
+  if (supplyTutorialVisible()) return "supplies";
+  if (formationTutorialLocked()) return "map";
+  return null;
+}
+
 function campNav() {
-  const tutorialLocked = supplyTutorialVisible();
-  const activeTab = tutorialLocked ? "supplies" : state.tab;
+  const tutorialLocked = campTutorialTab();
+  const activeTab = tutorialLocked ?? state.tab;
+  // issue #235 — 編成タブは廃止した。隊列は上端の共通盤面が常に持ち、人物の中身は
+  // スキル・装備タブの memberContext が出す。**説明を読むだけのタブを一枚残さない。**
+  // 戦闘は「遠征」に改め、次の一戦・撤退・セーブという**遠征単位の操作**を集める。
   const tabs = [
-    ["roster", "編成", partyLabel()],
     ["skills", "スキル", totalSkillPoints() + "pt"],
     ["equipment", "装備", equipmentFillLabel()],
     ["supplies", "補給", state.run.supplies + "/" + MAX_SUPPLIES],
-    ["map", "戦闘", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN],
+    ["map", "遠征", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN],
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
     const active = activeTab === id;
-    const locked = tutorialLocked && id !== "supplies";
+    const locked = Boolean(tutorialLocked) && id !== tutorialLocked;
     return "<button type=\"button\" class=\"tab " + (active ? "active" : "")
       + "\" aria-label=\"" + label + "\" aria-current=\"" + (active ? "step" : "false")
       + "\" data-action=\"tab\" data-tab=\"" + id + "\""
@@ -1218,22 +1280,18 @@ function campNav() {
   }).join("") + "</nav>";
 }
 
-function campTools() {
-  return "<div class=\"camp-tools\">"
-    + button("セーブ / ロード", "open-save-menu", false, "tiny-button", "data-return=\"camp\"")
-    + "</div>";
-}
-
 function render() {
   captureHelpDetails();
   stopReplayTimer();
   stopStoryTimers();
+  stopRewindTimers();
   registerGeneratedEquipment(state.run?.generatedEquipment ?? {});
   const views = {
     intro: renderIntro,
     expeditionStart: renderExpeditionStart,
     saveMenu: renderSaveMenu,
     story: renderStory,
+    rewind: renderRewind,
     camp: renderCamp,
     battle: renderBattle,
     battleError: renderBattleError,
@@ -1253,11 +1311,15 @@ function render() {
   // 必殺技の指定は「たまにしか触らないが、触る場所は装着行しかない」操作なので、
   // 常設の枠を出さず、行そのものを長く押させる。
   bindLongPress();
+  // R11 §5 改 — 隊列チュートリアルの錠と光。**描画したあとに一度で掛ける。**
+  applyFormationTutorialGate();
+  publishCampTopHeight();
   restoreHelpDetails();
   restoreSkillTreeScroll();
   layoutSkillTreeConnectors();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
+  if (state.phase === "rewind") mountRewindView();
   if (phaseChanged) window.scrollTo(0, 0);
 }
 
@@ -1375,6 +1437,22 @@ function bindBrowserGestureGuards() {
     lastTouchTarget = target;
   }, { passive: false });
   document.addEventListener("dblclick", preventGesture, { passive: false });
+}
+
+// issue #236 — キャンプの固定帯の高さを CSS へ渡す。**その下へ貼りたいものが
+// あるのに、CSS は貼りついた兄弟の高さを知らない。**技能ツリーの要約帯が
+// `top: 8px`（＝画面の上端）で固定帯の上に乗り、盤面を隠していた。
+// 帯の高さは回によって変わる（隊列を組み替えている間は一行増える）ので、
+// 毎 render で測り直す。
+function publishCampTopHeight() {
+  const campTop = app.querySelector(".camp-top");
+  const root = document.documentElement;
+  if (!campTop) {
+    root.style.removeProperty("--camp-top-h");
+    return;
+  }
+  const height = Math.round(campTop.getBoundingClientRect().height);
+  if (height > 0) root.style.setProperty("--camp-top-h", height + "px");
 }
 
 function captureSkillTreeScroll() {
@@ -1971,7 +2049,79 @@ function storyBacklog() {
   return "<div class=\"vn-log\" role=\"dialog\" aria-label=\"会話の履歴\">"
     + "<div class=\"vn-log-head\"><b>履歴</b>"
     + button("閉じる", "story-log", false, "tiny-button") + "</div>"
-    + "<div class=\"vn-log-body\">" + rows + "</div></div>";
+    + "<div class=\"vn-log-body story-copy\">" + rows + "</div></div>";
+}
+
+// R11 §5 / 作者試遊 2026-09-11 — **「時間が巻き戻る」は物語の出来事である。**
+//
+// これまでは、倒れた会話のあとに結果画面（勝敗・損失・戦闘後の状態・履歴）を挟み、
+// その主操作としてこの釦を置いていた。だが杭を引いて時間を戻すのはゴウがその場で
+// やったことで、**システム画面の一項目にすると演出が死ぬ**（作者指摘「本来めっちゃ
+// かっこいい演出なはずなので、こんなシステム画面の一部にしてほしくない」）。
+//
+// そこで、会話の最後の行を読み終えた拍で、**舞台に被せてど真ん中に一つだけ**釦を出す。
+// ノベルゲームの選択肢と同じ置き方で、押すまで先へ進めない。**スキップも越えない**
+// （storySkipStop が門まで飛ばして止める）。
+//
+// **序盤の一戦専用である。**通常の敗北は巻き戻らず、補給で再挑戦するか撤退する
+// （作者判断 2026-09-11）。だから表は1件しかなく、増やす前提も持たない。
+const STORY_GATES = Object.freeze({
+  // **釦だけ。**「この一戦は遠征に数えません」は結果画面が言っていたが、ここで
+  // 言い添えると、演出の真ん中にシステムの断り書きが立つ。そもそもこの拍の
+  // プレイヤーは活動資金をまだ一度も見ていないので、読んでも意味が取れない。
+  // 答えは次の会話（「もう一度、門の前」）が、時間が戻ったこと自体で返す。
+  stage_0_prologue_defeat: Object.freeze({
+    action: "rewind-prologue",
+    label: "時間が巻き戻る",
+  }),
+});
+
+// いま「進む」の代わりに一つの操作だけを差し出す拍か。**最後の行で、積んだ断片も
+// 尽きているとき**にだけ門になる（途中の行で出すと、読み飛ばす釦になる）。
+function storyGate() {
+  const beat = currentStoryBeat();
+  const gate = beat ? STORY_GATES[beat.id] : null;
+  if (!gate) return null;
+  if (storyLineIndex() < beat.lines.length - 1) return null;
+  if ((state.story?.queue?.length ?? 1) > 1) return null;
+  return gate;
+}
+
+// スキップの行き先。**門のある会話は、門まで飛ばす。**
+//
+// 作者試遊 2026-09-11（issue #200 の続き）— スキップは「読むのをやめる」操作であって、
+// **決める拍まで飛ばすものではない。**門は押すまで越えられない拍（STORY_GATES）なので、
+// スキップだけが越えられるのは筋が通らない。ついでに、飛ばした行も履歴へ積むので、
+// 巻き戻しの逆走は**読み飛ばした行も含めて**材料にできる。
+//
+// 積んだ断片のどれかに門があれば、その断片とその後ろを残して、門の行（＝最後の行）で
+// 止まる。門が無ければ null で、これまでどおり会話を丸ごと飛ばす。
+function storySkipStop() {
+  const queue = state.story?.queue ?? [];
+  const gateIndex = queue.findIndex((beat) => Boolean(beat && STORY_GATES[beat.id]));
+  if (gateIndex < 0) return null;
+  return { gateIndex, beat: queue[gateIndex] };
+}
+
+// 門まで飛ばす。**飛ばした行は履歴へ積む**（読み返せるし、逆走もその行を使う）。
+// いま読んでいる行は既に積まれているので、その次から積む。
+function skipStoryToGate(stop) {
+  const queue = state.story?.queue ?? [];
+  for (let index = 0; index <= stop.gateIndex; index += 1) {
+    const beat = queue[index];
+    for (let line = index === 0 ? storyLineIndex() + 1 : 0; line < beat.lines.length; line += 1) {
+      pushStoryLog(beat, line);
+    }
+  }
+  const lineIndex = stop.beat.lines.length - 1;
+  state.story = { ...state.story, queue: queue.slice(stop.gateIndex), lineIndex, logOpen: false };
+  // **飛ばした人を文字送りで待たせない。**読み終えた行として描くので、門はすぐ出る
+  // （CSS の `.vn.typed` が出す条件は mountStoryView の settle が満たす）。
+  storyTypingDone = true;
+  storyShownLine = stop.beat.id + ":" + lineIndex;
+  record("story_skipped_to_gate", { beat: stop.beat.id });
+  saveState();
+  render();
 }
 
 function renderStory() {
@@ -1985,6 +2135,7 @@ function renderStory() {
     .map((entry) => storyFigure(beat, entry, index))
     .join("");
   const lastLine = index >= beat.lines.length - 1;
+  const gate = storyGate();
   const remaining = (state.story?.queue?.length ?? 1) - 1;
   const auto = state.story?.auto === true;
   const nameplate = line.speaker
@@ -2006,14 +2157,22 @@ function renderStory() {
     + "<div class=\"vn-figures\">" + figures + "</div>"
     + "<div class=\"vn-box" + (line.speaker ? "" : " narration") + "\">"
     + nameplate
-    + "<p class=\"vn-text\" aria-live=\"polite\" data-full=\"" + esc(line.text) + "\"></p>"
-    + "<span class=\"vn-caret\" aria-hidden=\"true\">▼</span>"
+    + "<p class=\"vn-text story-copy\" aria-live=\"polite\" data-full=\"" + esc(line.text) + "\"></p>"
+    + (gate ? "" : "<span class=\"vn-caret\" aria-hidden=\"true\">▼</span>")
     + "<span class=\"vn-progress\">" + (index + 1) + " / " + beat.lines.length
     + (remaining > 0 ? " · 続き " + remaining : "") + "</span>"
-    + "</div></div>"
-    + (lastLine && beat.footer ? "<p class=\"vn-note\">" + esc(beat.footer) + "</p>" : "")
+    + "</div>"
+    // 文字送りが終わるまでは出さない（CSS の `.vn.typed` が出す）。最後の一行を
+    // 読み終えた瞬間に、舞台の真ん中へ現れる。
+    + (gate
+      ? "<div class=\"vn-gate\"><div class=\"vn-gate-inner\">"
+        + button(gate.label, gate.action, false, "button primary vn-gate-button")
+        + "</div></div>"
+      : "")
+    + "</div>"
+    + (lastLine && beat.footer ? "<p class=\"vn-note story-copy\">" + esc(beat.footer) + "</p>" : "")
     + controls
-    + "<p class=\"hint vn-hint\">タップで進みます。</p>"
+    + (gate ? "" : "<p class=\"hint vn-hint\">タップで進みます。</p>")
     + (state.story?.logOpen ? storyBacklog() : "")
     + "</section>";
   return shell( scene, { hideHeaderAction: true });
@@ -2041,7 +2200,8 @@ function mountStoryView() {
     storyTypingDone = true;
     storyShownLine = key;
     scene.classList.add("typed");
-    if (state.story?.auto && !state.story?.logOpen) {
+    // 門のある拍は AUTO でも越えない。**押して越える拍である。**
+    if (state.story?.auto && !state.story?.logOpen && !storyGate()) {
       storyAutoTimer = setTimeout(() => { advanceStoryLine(); }, STORY_AUTO_HOLD_MS);
     }
   };
@@ -2094,7 +2254,11 @@ function advanceStoryLine() {
 }
 
 // 物語の queue を積んで story 画面へ入る。**積むものが無ければ、そのまま次へ。**
-function enterStory(beats, after) {
+//
+// issue #200 — `via` は、積んだ会話の**手前に一度だけ挟む場面**の phase である
+// （いまは巻き戻しの演出 `"rewind"` だけ）。会話はもう積み終わっているので、
+// 挟んだ場面が終わったら phase を `"story"` へ移すだけで続きが始まる。
+function enterStory(beats, after, { via = null } = {}) {
   const queue = beats.filter(Boolean);
   state.story = { queue, after, lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (!queue.length) {
@@ -2102,7 +2266,7 @@ function enterStory(beats, after) {
     return;
   }
   pushStoryLog(queue[0], 0);
-  state.phase = "story";
+  state.phase = via ?? "story";
   saveState();
   render();
 }
@@ -2110,6 +2274,21 @@ function enterStory(beats, after) {
 function finishStory() {
   stopStoryTimers();
   const after = state.story?.after ?? "camp";
+  // R11 §5 改 / 作者試遊 2026-09-11 — 倒れた会話のあとは、結果画面を挟まずにそのまま
+  // 巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）。
+  //
+  // 作者試遊（issue #200 の続き）で、スキップも門で止まるようになった（storySkipStop）
+  // ので、**通常の操作でここへ来る道は無い。**門のある拍を越える手段が釦だけになった
+  // 残りの受け皿として置く（門が出ない形——queue に別の断片が続く保存など——で
+  // 最後の行を越えたとき、巻き戻さずにキャンプへ落ちないようにする）。
+  //
+  // issue #200 — **この枝は、下の初期化より前に置く。**巻き戻しの演出は読んだ行を
+  // 逆走させるので、`state.story.log` が生きているあいだに渡さなければならない
+  // （rewindPrologue() は enterStory() で story を積み直すため、初期化を飛ばしてよい）。
+  if (after === "prologueRewind") {
+    rewindPrologue();
+    return;
+  }
   state.story = { queue: [], after: "camp", lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (after === "prologue") {
     startPrologue();
@@ -2139,13 +2318,6 @@ function finishStory() {
     simulateAndEnterBattle();
     return;
   }
-  // R11 §5 — 倒れた会話のあとで、巻き戻しのボタンを持つ画面へ出る。
-  if (after === "prologueResult") {
-    state.phase = "result";
-    saveState();
-    render();
-    return;
-  }
   // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。**ここで
   // 既読印は押すが、prologueActive は落とさない。**結果画面（報酬選択を兼ねる）を
   // 通常の勝利と同じ経路で見せたあと、次の戦闘へ進むとき（advanceAfterReward）に
@@ -2163,7 +2335,214 @@ function finishStory() {
     return;
   }
   state.phase = "camp";
-  state.tab = "roster";
+  state.tab = "map";
+  saveState();
+  render();
+}
+
+// ============================================================ 巻き戻しの演出（issue #200）
+//
+// **「押した瞬間に次の会話」では、時間は巻き戻らない。**
+//
+// PR #248 で［時間が巻き戻る］を結果画面から会話の舞台へ移したが、押した先は普通の
+// 会話遷移のままだった（作者試遊「いまは押した瞬間次の会話に遷移していて、巻き戻って
+// いる感覚がないです」）。出来事としての巻き戻しは、**戻っていく過程そのものを
+// 見せなければ**成立しない。
+//
+// そこで、押した拍では舞台をそのまま残し、**いま読んだ行を逆順に消していく。**
+//
+//   杭が鳴る … 舞台の下から一度だけ閃光（`.firing`）。このあいだは何も動かさない
+//   逆走     … 読んだ行を後ろから消す。名前と立ち絵も、行と一緒に逆へ戻る
+//   静止     … 逆走が尽きたら揺れも帯も止め（`.settled`）、白へ抜ける（`.out`）
+//   会話へ   … 巻き戻し後の会話（「もう一度、門の前」）が始まる
+//
+// **台詞は一行も足さない。**逆走に使うのは `state.story.log`（実際に読んだ行）だけで、
+// 読んでいない行は混ざらない。足せば、演出が新しい説明になる。
+//
+// **進行は止めない**（会話画面の約束と同じ）。舞台を叩けば演出を追い越せる。
+// `prefers-reduced-motion` では揺れ・帯・閃光を止め、行を短く差し替えるだけにする。
+//
+// 状態はこの演出へ入る前に**もう巻き戻し済み**である（`rewindPrologue()` が巻き戻し、
+// 巻き戻し後の会話まで積んでから phase を `"rewind"` にする）。だから途中でリロード
+// しても会話から続き、演出だけが二度出ることはない（`persistableState()` が phase を
+// `"story"` へ寄せる）。
+
+// 逆走して見せる行数の上限。倒れた会話は3行なので普段は全部が入る。**長い断片で
+// 逆走が長引かないための蓋**で、演出の長さを行数に任せない。
+const REWIND_TRACK_LIMIT = 4;
+const REWIND_FIRE_MS = 380;
+// 一行が出てから消え始めるまでの間。**読んだ行だと気づくための一拍**で、
+// これが無いと文字が消える動きだけが残る。
+const REWIND_LINE_HOLD_MS = 150;
+const REWIND_LINE_MS = 420;
+const REWIND_UNTYPE_MS = 14;
+const REWIND_LINE_GAP_MS = 90;
+const REWIND_HOLD_MS = 280;
+const REWIND_OUT_MS = 420;
+// prefers-reduced-motion。逆走は残す（何が起きたか分からなくなる）が、文字を消す
+// 動きも揺れも出さず、行を差し替えるだけにする。
+const REWIND_REDUCED_STEP_MS = 200;
+
+let rewindTimer = null;
+
+function stopRewindTimers() {
+  if (rewindTimer) clearTimeout(rewindTimer);
+  rewindTimer = null;
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+}
+
+// 逆走に使う行。**いま読んだ履歴をそのまま逆順に使う。**
+function rewindTrackFromLog() {
+  return (state.story?.log ?? [])
+    .slice(-REWIND_TRACK_LIMIT)
+    .reverse()
+    .filter((entry) => entry?.text)
+    .map((entry) => ({ who: entry.who ?? null, speaker: entry.speaker ?? null, text: entry.text }));
+}
+
+// 逆走のあいだ凍らせておく舞台。**会話の最後の拍の続きに見えなければならない**ので、
+// mood・場所・立ち絵は倒れた会話のものをそのまま使う。
+function rewindScene(beat) {
+  const track = rewindTrackFromLog();
+  if (!beat || !track.length) return null;
+  return { beat, track };
+}
+
+function renderRewind() {
+  const beat = state.rewind?.beat;
+  const track = state.rewind?.track ?? [];
+  // 材料が無ければ、積んである会話をそのまま描く（mountRewindView が先へ送る）。
+  if (!beat || !track.length) return renderStory();
+  const index = beat.lines.length - 1;
+  const figures = [...castOnStage(beat, index)]
+    .sort((a, b) => (STORY_PLACEMENTS[a.at] ?? 1) - (STORY_PLACEMENTS[b.at] ?? 1))
+    .map((entry) => storyFigure(beat, entry, index))
+    .join("");
+  const scene = "<section class=\"vn rewind\" data-mood=\"" + esc(beat.mood ?? "defeat") + "\">"
+    // 叩けば追い越せる。舞台は button ではないので、Enter / Space は mount で拾う。
+    + "<div class=\"vn-stage rewind-stage\" data-action=\"rewind-skip\" role=\"button\" tabindex=\"0\""
+    + " aria-label=\"巻き戻しの演出を飛ばす\">"
+    + "<div class=\"vn-sky\"></div><div class=\"vn-haze\"></div>"
+    + "<div class=\"vn-place\"><b>" + esc(beat.title) + "</b>"
+    + (beat.place ? "<span>" + esc(beat.place) + "</span>" : "") + "</div>"
+    + "<div class=\"vn-figures\">" + figures + "</div>"
+    + "<div class=\"rewind-bands\" aria-hidden=\"true\"></div>"
+    + "<div class=\"rewind-streaks\" aria-hidden=\"true\"><i></i><i></i><i></i><i></i></div>"
+    + "<div class=\"rewind-veil\" aria-hidden=\"true\"></div>"
+    + "<div class=\"rewind-mark\" aria-hidden=\"true\">◀◀</div>"
+    + "<div class=\"vn-box narration rewind-box\">"
+    + "<div class=\"vn-name rewind-name\" hidden></div>"
+    // 逆走中の文字は読ませるものではない（一行ずつ消えていく）。読み上げは
+    // `.rewind-status` の一言だけにする。
+    + "<p class=\"vn-text rewind-text\" aria-hidden=\"true\"></p>"
+    // 逆走の残り。通常の会話が「1 / 3」を出す位置に、**右から左へ減る帯**を置く
+    // （進む帯ではなく、戻る帯である）。
+    + "<div class=\"rewind-meter\" aria-hidden=\"true\"><span class=\"rewind-meter-fill\"></span></div>"
+    + "</div>"
+    + "<p class=\"rewind-status\" role=\"status\">時間が巻き戻る</p>"
+    + "<div class=\"rewind-out\" aria-hidden=\"true\"></div>"
+    + "</div></section>";
+  return shell(scene, { hideHeaderAction: true });
+}
+
+// 逆走を進める。**表示は DOM 側で進める**（会話の文字送りと同じ理由で、一文字ごとに
+// state を書き換えて保存を走らせない）。
+function mountRewindView() {
+  stopRewindTimers();
+  const scene = app.querySelector(".vn.rewind");
+  const stage = scene?.querySelector(".rewind-stage");
+  const text = scene?.querySelector(".rewind-text");
+  const track = state.rewind?.track ?? [];
+  // 描けなかったら黙って先へ送る。**演出のために進行を止めない。**
+  if (!scene || !stage || !text || !track.length) { finishRewind(); return; }
+  const box = scene.querySelector(".rewind-box");
+  const nameplate = scene.querySelector(".rewind-name");
+  const meter = scene.querySelector(".rewind-meter-fill");
+  const figures = [...scene.querySelectorAll(".vn-figure")];
+  const reduced = prefersReducedMotion();
+  stage.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    event.preventDefault();
+    event.currentTarget.click();
+  });
+  // 行が切り替わる拍で、舞台を一度だけ突かせる（テープが噛む感じ）。
+  const jolt = () => {
+    if (reduced) return;
+    scene.classList.remove("jolt");
+    void scene.offsetWidth;
+    scene.classList.add("jolt");
+  };
+  const showRemaining = (remaining) => {
+    if (meter) meter.style.width = Math.max(0, Math.round((remaining / track.length) * 100)) + "%";
+  };
+  // 行と一緒に、名前と立ち絵も逆へ戻す。**誰の行まで戻ったかが見えなければ、
+  // ただのノイズになる。**
+  const showEntry = (entry) => {
+    box?.classList.toggle("narration", !entry.speaker);
+    if (nameplate) {
+      nameplate.textContent = entry.speaker ?? "";
+      nameplate.hidden = !entry.speaker;
+      nameplate.style.setProperty("--accent", portraitAccent(entry.who));
+    }
+    for (const figure of figures) {
+      const speaking = Boolean(entry.who) && figure.dataset.character === entry.who;
+      figure.classList.toggle("speaking", speaking);
+      figure.classList.toggle("muted-figure", !speaking);
+    }
+  };
+  // 逆走が尽きた拍。**誰も何も言っていない時点まで戻った**ので、名前も消す。
+  const settle = () => {
+    showRemaining(0);
+    text.textContent = "";
+    if (nameplate) { nameplate.textContent = ""; nameplate.hidden = true; }
+    box?.classList.add("narration");
+    stage.classList.add("settled");
+    rewindTimer = setTimeout(() => {
+      stage.classList.add("out");
+      rewindTimer = setTimeout(() => { finishRewind(); }, reduced ? 120 : REWIND_OUT_MS);
+    }, reduced ? 120 : REWIND_HOLD_MS);
+  };
+  const step = (cursor) => {
+    if (state.phase !== "rewind") return;
+    if (cursor >= track.length) { settle(); return; }
+    const entry = track[cursor];
+    showRemaining(track.length - cursor);
+    showEntry(entry);
+    text.textContent = entry.text;
+    jolt();
+    if (reduced) {
+      rewindTimer = setTimeout(() => { step(cursor + 1); }, REWIND_REDUCED_STEP_MS);
+      return;
+    }
+    // 一行を REWIND_LINE_MS で消しきる。**長い行でも待たせない。**
+    const perTick = Math.max(1, Math.ceil((entry.text.length * REWIND_UNTYPE_MS) / REWIND_LINE_MS));
+    let shown = entry.text.length;
+    const untype = () => {
+      if (state.phase !== "rewind") return;
+      shown = Math.max(0, shown - perTick);
+      text.textContent = entry.text.slice(0, shown);
+      rewindTimer = shown > 0
+        ? setTimeout(untype, REWIND_UNTYPE_MS)
+        : setTimeout(() => { step(cursor + 1); }, REWIND_LINE_GAP_MS);
+    };
+    rewindTimer = setTimeout(untype, REWIND_LINE_HOLD_MS);
+  };
+  showRemaining(track.length);
+  // 杭が鳴る一拍。**閃光のあいだは何も動かさない。**
+  stage.classList.add("firing");
+  rewindTimer = setTimeout(() => { step(0); }, reduced ? 120 : REWIND_FIRE_MS);
+}
+
+// 演出の終わり。**状態はもう巻き戻し済み**なので、積んである会話を開くだけである。
+// 叩いて追い越したときも、流れきったときも、ここを通る。
+function finishRewind() {
+  stopRewindTimers();
+  if (state.phase !== "rewind") return;
+  state.rewind = null;
+  state.phase = "story";
   saveState();
   render();
 }
@@ -2242,10 +2621,8 @@ function storyBeatsForStart(sequence) {
 }
 
 function renderCamp() {
-  const tutorialLocked = supplyTutorialVisible();
-  const activeTab = tutorialLocked ? "supplies" : state.tab;
+  const activeTab = campTutorialTab() ?? state.tab;
   const view = {
-    roster: renderRoster,
     skills: renderSkills,
     equipment: renderEquipment,
     supplies: renderSupplies,
@@ -2253,8 +2630,11 @@ function renderCamp() {
   }[activeTab]?.() ?? renderMap();
   // R14 §1 / issue #159 — 盤面・予測・タブは一つの塊で上端に貼りつく。**どのタブで
   // 何を触っても、誰がどこにいて、HPがいくつ減るかが視界から出ない。**
+  // issue #235 — 撤退とセーブは遠征タブが持つ。**固定される上端の外に、常設の
+  // ボタンを一つも置かない**（実測で64px、iPhoneの第一画面の1割だった）。
   return shell(
-    "<div class=\"camp-top\">" + partyBar(activeTab) + campNav() + "</div>" + campTools() + view);
+    "<div class=\"camp-top\">" + partyBar(activeTab) + campNav() + "</div>" + view,
+    { hideHeaderAction: true });
 }
 
 // R6 §15.2 — base 値・永続鍛錬・run 内補正を分けて表示する。
@@ -2265,75 +2645,49 @@ function trainedMark(stats, axis) {
   return "<i class=\"trained\" title=\"基礎 " + detail.base + " · 鍛錬 Lv" + detail.level + "\">＋</i>";
 }
 
-// issue #159 — 隊列盤は上端の共通盤面が持つ。**このタブが足すのは「選んでいる一人の
-// 中身」だけである。**誰がどこにいるかを二度描かない。
-function rosterMemberDetail(characterId) {
-  if (!characterId) return "";
-  const option = characterInfo(characterId);
-  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+// issue #236 — 能力値は**どの画面でも同じ4軸・同じ並び・同じ形**で出す。編成タブが
+// 持っていた表と、仲間カードの一行が別々の書き方だったのをここへ寄せる。
+// 数字だけを大きく、軸名は小さく。鍛錬が乗っている軸にだけ ＋ が付く。
+const STAT_AXES = Object.freeze([
+  ["腕力", "might"],
+  ["技術", "focus"],
+  ["受け", "guard"],
+]);
+
+function statAxesHtml(characterId, { live = false } = {}) {
   const stats = statsFor(characterId);
-  const axes = [
-    ["HP", currentHp(characterId) + " / " + stats.stats.maxHp, trainedMark(stats, "vitality")],
-    ["腕力", stats.stats.might, trainedMark(stats, "might")],
-    ["技術", stats.stats.focus, trainedMark(stats, "focus")],
-    ["受け", stats.stats.guard, trainedMark(stats, "guard")],
-  ].map(([label, value, mark]) => "<span><small>" + esc(label) + "</small><b>" + value + mark + "</b></span>").join("");
-  return "<section class=\"member-detail\"><div class=\"member-detail-head\"><span class=\"avatar\">"
-    + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId)) + "</h3>"
-    + "<small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
-    + "<span class=\"member-detail-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点"
-    + (definition.baseActionPoints ?? 0) + " · 反応点" + (definition.baseReactionPoints ?? 0) + "\">"
-    + pips(definition.baseActionPoints ?? 0, "ap") + pips(definition.baseReactionPoints ?? 0, "rp")
-    + "</span></div>"
-    + "<div class=\"member-detail-stats\">" + axes + "</div></section>";
+  const hp = live
+    ? currentHp(characterId) + "<small>/" + stats.stats.maxHp + "</small>"
+    : String(stats.stats.maxHp);
+  const axes = STAT_AXES.map(([label, axis]) =>
+    "<span><small>" + esc(label) + "</small><b>" + stats.stats[axis] + trainedMark(stats, axis) + "</b></span>");
+  return "<span><small>HP</small><b>" + hp + trainedMark(stats, "vitality") + "</b></span>" + axes.join("");
 }
 
-function renderRoster() {
-  // 盤面で選んだ人物をそのまま主語にする。移動を確定したあとも、直前に触った人物の
-  // 中身が下に残る（**選び直さないと何も読めない**という往復を作らない）。
-  const shown = selectedFormationCharacter() ?? selectedCharacter();
-  const rewindTutorialNote = state.prologueActive && state.prologueStage === "retry"
-    ? "<p class=\"muted tutorial-note\"><b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
-      + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
-      + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
-      + "ツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。</p>"
-    : "";
-  // R12 §4.E-1 / issue #211 — Campaign Stage の同行者は物語が決める。**選べないものを
-  // 「選べるように見えるカード」で出さない**（issue #159、作者指摘 2026-09-08）ので、
-  // 固定の回は候補一覧そのものを出さず、一行で理由だけを書く。
-  const swap = rosterLocked()
-    ? ""
-    : "<section class=\"card\">" + sectionHeading("ROSTER", "仲間を入れ替える")
-      + "<p class=\"operation-note\">会った仲間から" + runPartySize() + "人を選びます。</p>"
-      + "<div class=\"character-grid\">" + metCharacterOptions().map((option) => {
-        const inParty = state.run.roster.includes(option.id);
-        const stats = statsFor(option.id);
-        return "<article class=\"character-card " + (inParty ? "in-party" : "") + "\">"
-          + "<button type=\"button\" class=\"character-main\" data-action=\"toggle-roster\" data-character=\""
-          + esc(option.id) + "\"><span class=\"avatar\">" + esc(option.icon) + "</span>"
-          + "<span class=\"character-copy\"><b>" + esc(characterName(option.id)) + "</b><small>"
-          + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
-          + (inParty ? "外す" : "入れる") + "</span></button>"
-          + "<div class=\"character-stats\"><span>HP " + stats.stats.maxHp + trainedMark(stats, "vitality")
-          + "</span><span>腕力 " + stats.stats.might + trainedMark(stats, "might")
-          + "</span><span>技術 " + stats.stats.focus + trainedMark(stats, "focus")
-          + "</span><span>受け " + stats.stats.guard + trainedMark(stats, "guard")
-          + "</span></div></article>";
-      }).join("") + "</div></section>";
-  return "<section class=\"card\">" + sectionHeading("FORMATION", "隊列",
+// issue #235 — 編成タブを廃止したので、隊列の候補一覧はここにしかない。
+// **選べない回は一覧そのものを出さない**（#159、作者指摘 2026-09-08）ので、
+// rosterLocked のときは呼ばれない。
+function rosterSwapSection() {
+  // issue #159 — 固定の回は候補一覧そのものを出さず、理由だけを一行で書く。
+  if (rosterLocked()) {
+    return "<section class=\"card quiet\">" + sectionHeading("ROSTER", "同行者",
+        "<span class=\"stage\">" + partyLabel() + "</span>")
+      + "<p class=\"muted\">この区画の同行者は物語が決めます。一度クリアすると自由に選べます。</p></section>";
+  }
+  return "<section class=\"card\">" + sectionHeading("ROSTER", "仲間を入れ替える",
       "<span class=\"stage\">" + partyLabel() + "</span>")
-    + (rosterLocked()
-      ? "<p class=\"operation-note\">この区画の同行者は物語が決めます。一度クリアすると自由に選べます。</p>"
-      : "")
-    + rosterMemberDetail(shown)
-    + helpDetails("formation", "配置の説明",
-      "<p class=\"muted\">前列は武器攻撃を通しやすく、後列は技術による攻撃や支援に向きます。前列の人数で狙われ方も変わります。</p>"
-      + "<p class=\"muted\">上の盤面で仲間を選んでから別の枠を選ぶと、移動または二人の交換をします。同じ枠をもう一度押すと選択を解除します。</p>")
-    + rewindTutorialNote
-    + "</section>"
-    + swap;
+    + "<div class=\"character-grid\">" + metCharacterOptions().map((option) => {
+      const inParty = state.run.roster.includes(option.id);
+      const stats = statsFor(option.id);
+      return "<article class=\"character-card " + (inParty ? "in-party" : "") + "\">"
+        + "<button type=\"button\" class=\"character-main\" data-action=\"toggle-roster\" data-character=\""
+        + esc(option.id) + "\"><span class=\"avatar\">" + esc(option.icon) + "</span>"
+        + "<span class=\"character-copy\"><b>" + esc(characterName(option.id)) + "</b><small>"
+        + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
+        + (inParty ? "外す" : "入れる") + "</span></button>"
+        + "<div class=\"character-stats\">" + statAxesHtml(option.id) + "</div></article>";
+    }).join("") + "</div></section>";
 }
-
 
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 // **見出しは名前だけ。**「順番」「いつでも効く」は、行の番号と目盛りが出している。
@@ -2570,17 +2924,16 @@ function prerequisiteCostFor(node, seen = new Set()) {
 }
 
 // 取得の状態。**文字を出さない。**まだ持っていない節は、前提コストと取得コストを
-// 形の違う四角で分ける。持っている節は形（□✓ 取得済み／■✓ 装着中）で分かる。
+// 形の違う四角で分ける。
+//
+// issue #236 — 持っている節の印は**一つだけ**になった。「取得済みだが未装着」を
+// 廃止したので、□✓（取得済み・未装着）と ■✓（装着中）を分ける必要が無い。
+// 残る違いはオン／オフだけで、それは同じ印の濃さで出す。
 function nodeStateMark(node, nodeState, characterId) {
-  // **丸は消費だけ。**持っているかどうかは鉤（✓）で、塗りが装着中。
-  if (nodeState.equipped) {
-    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
-      + " aria-label=\"" + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\" title=\""
-      + (nodeState.disabled ? "装着中・オフ" : "装着中") + "\">✓</span>";
-  }
   if (nodeState.unlocked) {
-    return "<span class=\"node-mark owned\" role=\"img\" aria-label=\"取得済み・未装着\""
-      + " title=\"取得済み・未装着\">✓</span>";
+    const label = nodeState.disabled ? "取得済み・オフ" : "取得済み";
+    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
+      + " aria-label=\"" + label + "\" title=\"" + label + "\">✓</span>";
   }
   const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
   const title = nodeState.prereqsMet
@@ -2699,10 +3052,13 @@ function memberContext(characterId, emphasis = "skills") {
     ? (worn.length ? worn.join(" · ") : "")
     : (active.length ? active.join(" → ") : "");
   const secondary = emphasis === "skills" ? "" : (reactive.length ? reactive.join(" · ") : "");
+  // issue #235 — 編成タブが持っていた4軸の能力値は、ここが引き取った。
+  // **人物を選ぶのは上端の盤面、その人物の中身を読むのはこの帯**、と役が一本になる。
   return "<section class=\"member-context\"><div class=\"member-context-head\"><span class=\"avatar\">"
     + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId))
     + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
     + "</div>"
+    + "<div class=\"member-context-stats\">" + statAxesHtml(characterId, { live: true }) + "</div>"
     + (primary || secondary
       ? "<div class=\"member-context-loadout\">"
         + (primary ? "<span>" + esc(primary) + "</span>" : "")
@@ -2711,35 +3067,22 @@ function memberContext(characterId, emphasis = "skills") {
 }
 
 
-// **ビルドの要約は、資源と装着数だけを絵で出す。**技能の名前は上の装着行と
-// ツリーに出ているので、ここで文字として繰り返さない（issue #177）。
+// issue #236 — **帯が出すのは、ツリーを触っているあいだ画面から消えるものだけ。**
+// AP/RP は真上の盤面セルが、装着している技能の名前と順番はスロット行が、節の値段と
+// 前提と解禁釦はツリーの節そのものが既に出している。再掲を並べても読み飛ばされる
+// （作者指摘 2026-09-11「今の表示じゃ意味ない」）。
+//
+// 消えるのは二つ——**いま誰に払っているか**と、**あと何点あるか**である。
 function skillBuildSummary(characterId) {
-  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
-  const counts = [
-    { kind: "active", key: "tactics", cls: "ap" },
-    { kind: "reactive", key: "reactives", cls: "rp" },
-    { kind: "passive", key: "passives", cls: "free" },
-  ].map((slot) => {
-    const list = state.run.loadout[slot.key]?.[characterId] || [];
-    const live = list.filter((skillId) => !skillDisabled(characterId, skillId)).length;
-    const label = SLOT_TITLES[slot.kind] + " " + live + "件";
-    return "<span class=\"summary-slot\" role=\"img\" aria-label=\"" + esc(label) + "\" title=\""
-      + esc(label) + "\"><i class=\"kind-dot kind-" + slot.kind + "\"></i><b>" + live + "</b></span>";
-  }).join("");
-  const selectedNode = SKILL_TREE_NODES.find((node) => node.skillId === state.selectedSkillNode);
-  const target = selectedNode
-    ? "<span class=\"summary-target\"><i class=\"kind-dot kind-" + selectedNode.kind + "\"></i>"
-      + esc(COMPONENTS[selectedNode.skillId]?.label ?? selectedNode.skillId) + " → "
-      + esc(characterName(characterId)) + "</span>"
-    : "";
+  const points = skillPointsFor(characterId);
+  const party = totalSkillPoints();
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
     + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
-    + "<span class=\"summary-res\" role=\"img\" aria-label=\"行動点 "
-    + (definition.baseActionPoints ?? 0) + " · 反応点 " + (definition.baseReactionPoints ?? 0) + "\" title=\""
-    + "1ラウンドに払える 行動点" + (definition.baseActionPoints ?? 0)
-    + " · 反応点" + (definition.baseReactionPoints ?? 0) + "\">"
-    + pips(definition.baseActionPoints ?? 0, "ap") + pips(definition.baseReactionPoints ?? 0, "rp")
-    + "</span>" + counts + target + "</aside>";
+    + "<b class=\"summary-name\">" + esc(characterName(characterId)) + "</b>"
+    + "<span class=\"summary-points\" role=\"img\" aria-label=\"" + esc(characterName(characterId))
+    + "の技能点 " + points + " · 隊全体 " + party + "\"><small>技能点</small><b>" + points + "</b>"
+    + (party !== points ? "<small class=\"summary-party\">隊 " + party + "</small>" : "")
+    + "</span></aside>";
 }
 
 function skillNodeIcon(node) {
@@ -2783,9 +3126,12 @@ function skillNodeState(node, characterId) {
   const unmet = unmetPrerequisites(node, (skillId) => skillLevelOf(characterId, skillId));
   const prereqsMet = unmet.length === 0;
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
-  const stateClass = equipped
+  // issue #236 — **取得済みの強調は一種類だけ。**取得と装着が同じになったので、
+  // 「取得済みだが未装着」（旧 unlocked）という中間の見た目は無くなった。
+  // 残るのは 取得済み（オン／オフ）・取得できる・前提待ち・パック外 の四つ。
+  const stateClass = unlocked
     ? "equipped" + (disabled ? " disabled" : "")
-    : unlocked ? "unlocked" : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
+    : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
   return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass };
 }
 
@@ -2879,10 +3225,7 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
       + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
-    : nodeState.unlocked
-      ? button("装着する", "equip-skill", false, "tiny-button", "data-character=\"" + characterId
-        + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
-      : nodeState.canUnlock
+    : nodeState.canUnlock
         ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
           "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
         : nodeState.prereqsMet
@@ -3163,7 +3506,7 @@ function renderSkills() {
   // 持たない。**残り技能点は隊全体の合計にする（一人ぶんだけでは、他の誰かが
   // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
   const characterId = selectedCharacter();
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>残り技能点（隊全体）</small><b>"
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>技能点 · 隊全体</small><b>"
     + totalSkillPoints() + "</b></span>"
     // issue #238 — 必殺技の残りは、見出しの小さな菱形だけにする（枠を足さない）。
     + (ultimatesUnlocked(state.run)
@@ -3179,20 +3522,20 @@ function renderSkills() {
     + "<p class=\"context-line\">" + esc(packs) + "</p>"
     + memberContext(characterId, "skills")
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
-    + "<section class=\"card\">" + sectionHeading("SKILL TREE", "技能ツリー")
+    + "<section class=\"card\">"
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + "</details>"
     + symbolLegendHelp()
     + helpDetails("skill-rules", "技能のルール",
-      "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、取得済みの技能はすべて装着できます。</p>"
+      "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、<b>取得した技能はその場で装着されて回り始めます</b>（枠の上限はありません）。</p>"
       // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
       // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
       + "<p class=\"muted\"><b>アクティブは順番に回ります。</b>いま出した技能の次から判定を始め、"
       + "条件つきの技能が未達ならスキップして後ろを試します。<b>装着を増やすほど、一本あたりの出番は減ります。</b></p>"
       + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
       + "反応点が尽きた時点で下の技能は出ません。</p>"
-      + "<p class=\"muted\">不要な技能は一時的にオフにできます。技能のレベルが上がってもAP・RP・回数は変わりません。</p>"
+      + "<p class=\"muted\"><b>不要な技能はオフにできます。</b>オフの技能は戦闘にも予測にも現れませんが、取得状態・前提・段は失いません。starter の前提として無償で付く節は、最初からオフで並んでいます。</p>"
       + (ultimatesUnlocked(state.run)
         ? "<p class=\"muted\"><b>装着した技能を長押しすると、必殺技に指定できます。</b>詳しくは下の「必殺技のルール」を開いてください。</p>"
         : ""))
@@ -3207,9 +3550,11 @@ function equipmentSlotHtml(characterId, slot) {
   const selected = state.selectedEquipment;
   const canInstall = Boolean(selected && selected !== equipmentId);
   const label = equipmentId ? nameFor(equipmentId) : "空き枠";
+  // issue #236 — 埋まっている枠は耐久の数だけ。空き枠は「空き枠」がもう言っているので、
+  // **装備を選んでいるときだけ**「ここへ」と足す（何もないときは何も書かない）。
   const detail = equipmentId
-    ? "戦闘耐久 " + equipmentDurability(equipmentId) + " / " + (gear(equipmentId)?.maxDurability ?? 1)
-    : selected ? "選択中の装備をここへ" : "装備を選んでください";
+    ? "耐久 " + equipmentDurability(equipmentId) + " / " + (gear(equipmentId)?.maxDurability ?? 1)
+    : selected ? "ここへ" : "";
   return "<div class=\"equipment-slot\"><button type=\"button\" class=\"equip-slot-button "
     + (canInstall ? "ready" : "") + "\" data-action=\"" + (canInstall ? "equip-equipment" : "select-character")
     + "\" data-character=\"" + characterId + "\" data-slot=\"" + slot + "\"><span class=\"slot-number\">"
@@ -3241,19 +3586,19 @@ function renderEquipment() {
       + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
       + "</article>";
   }).join("");
-  const slots = "<section class=\"selected-loadout\"><h3>" + esc(characterName(characterId)) + "の装備枠</h3>"
+  // issue #236 — 主語はすぐ上の memberContext が出している。見出しで名前を繰り返さない。
+  const slots = "<section class=\"selected-loadout\"><h3>装備枠</h3>"
     + "<div class=\"equipment-slots\">" + equipmentSlotHtml(characterId, 0) + equipmentSlotHtml(characterId, 1) + "</div></section>";
-  const inventory = "<details class=\"progressive-details equipment-inventory\" open><summary>手元の装備（"
-    + state.run.inventory.length + "品）</summary>"
+  const inventory = "<details class=\"progressive-details equipment-inventory\" open><summary>手元 "
+    + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</summary>"
     + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>")
     + "</div></details>";
-  const selection = selected
-    ? "装着する枠を選んでください。"
-    : "装備を選んでください。";
+  // issue #236 — 装備を選んだあとだけ、次の一手を一行で言う。選ぶ前は
+  // カードが押せる形で並んでいるので、何も書かない。
+  const selection = selected ? "装着する枠を選ぶ" : "";
   return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT", "装備",
-      "<span class=\"stage\">装着 " + equipmentFillLabel() + " · 手元 "
-      + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span>")
-    + "<p class=\"operation-note\" role=\"status\">" + selection + "</p>"
+      "<span class=\"stage\">装着 " + equipmentFillLabel() + "</span>")
+    + (selection ? "<p class=\"operation-note\" role=\"status\">" + selection + "</p>" : "")
     + memberContext(characterId, "equipment")
     + slots
     + inventory
@@ -3265,7 +3610,7 @@ function renderEquipment() {
 }
 
 
-function renderEnemy(enemy) {
+function renderEnemy(enemy, { withLore = true } = {}) {
   const info = enemyInfo(enemy.enemyActorId);
   const mutations = (enemy.mutations ?? []).map((id) => ENEMY_MUTATIONS[id]?.displayName ?? id);
   const badges = (enemy.boss ? ["ボス"] : []).concat(enemy.reinforcement ? ["増援"] : []).concat(mutations);
@@ -3278,7 +3623,8 @@ function renderEnemy(enemy) {
     + (mutations.length ? "<p class=\"muted small\">" + esc((enemy.mutations ?? [])
       .map((id) => ENEMY_MUTATIONS[id]?.previewText ?? "").join(" ")) + "</p>" : "")
     // R12 §4.B — 狙いの下に、拾い屋の言い分を一行。**規則ではない**ので見た目で分ける。
-    + (info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
+    // issue #236 — 同じ種類が並ぶ回は**一度だけ**出す。同じ一行を2枚3枚と重ねない。
+    + (withLore && info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
     + "</article>";
 }
 
@@ -3301,11 +3647,9 @@ function renderSupplies() {
   const treatment = isCampaignRun()
     ? campTreatmentBlock()
     : "<section class=\"card quiet\"><p class=\"muted\">この遠征では戦闘ごとにHPが全回復するため、野営治療は使いません。</p></section>";
-  return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給",
-      "<span class=\"stage\">" + state.run.supplies + " / " + MAX_SUPPLIES + "</span>")
-    + "<p class=\"operation-note\">残りの補給を、再挑戦・報酬の引き直し・野営治療に使います。</p>"
-    + suppliesBar("残り " + state.run.supplies + " 個")
-    + "<div class=\"scrap-line\"><span>分解の屑 <b>" + scrap + "</b>（" + SCRAP_PER_SUPPLY + "で補給1）</span>"
+  return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給")
+    + suppliesBar()
+    + "<div class=\"scrap-line\"><span>屑 <b>" + scrap + "</b> / " + SCRAP_PER_SUPPLY + " → 補給1</span>"
     + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= MAX_SUPPLIES, "tiny-button")
     + "</div></section>"
     + treatment
@@ -3314,6 +3658,9 @@ function renderSupplies() {
 }
 
 
+// issue #235 — 旧「戦闘」タブ。**準備タブ（スキル・装備・補給）と役が違う。**
+// ここは「次の一戦へ進む」と、遠征そのものをどうするか（隊列の顔ぶれ・撤退・セーブ）を
+// 決める場所で、他の三枚のように何度も往復するタブではない。
 function renderMap() {
   const index = state.run.encounterIndex;
   const encounter = currentEncounter();
@@ -3341,6 +3688,8 @@ function renderMap() {
       + (meta.marker ? "<span class=\"map-kind-badge\" aria-hidden=\"true\">" + meta.marker + "</span>" : "")
       + "</span>";
   }).join("");
+  // issue #236 — 凡例は本文から畳んだヘルプへ移した。**節の一つ一つが aria-label と title で
+  // 「第3戦・精鋭・未到達」と名乗っている**ので、読み上げにも一覧にも欠けは出ない。
   const mapLegend = "<div class=\"map-legend\" aria-label=\"戦闘マップの凡例\">"
     + "<span><i class=\"map-legend-mark state-done\" aria-hidden=\"true\">✓</i>クリア済み</span>"
     + "<span><i class=\"map-legend-mark state-current\" aria-hidden=\"true\"></i>現在地</span>"
@@ -3354,18 +3703,44 @@ function renderMap() {
       + esc(encounter.bossLaw.previewText) + "</p><ul class=\"boss-counters\">"
       + encounter.bossLaw.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></div>"
     : "";
-  const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵の情報（"
-    + encounter.enemies.length + "体）</summary><div class=\"enemy-grid\">"
-    + encounter.enemies.map(renderEnemy).join("") + "</div></details>";
-  const ruleBody = isCampaignRun()
-    ? "<p class=\"muted\">通常・精鋭戦後はHPを次の戦闘へ持ち越します。4戦目・8戦目のボス後だけ全員が全回復します。敵を倒さずに待ってもHPは戻りません。</p>"
-    : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>";
-  return "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
+  const loreShown = new Set();
+  const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵 "
+    + encounter.enemies.length + "体</summary><div class=\"enemy-grid\">"
+    + encounter.enemies.map((enemy) => {
+      const withLore = !loreShown.has(enemy.enemyActorId);
+      loreShown.add(enemy.enemyActorId);
+      return renderEnemy(enemy, { withLore });
+    }).join("") + "</div></details>";
+  const ruleBody = (isCampaignRun()
+    ? "<p class=\"muted\">通常・精鋭戦の後はHPを次の戦闘へ持ち越します。4戦目・8戦目のボス後だけ全員が全回復します。敵を倒さずに待ってもHPは戻りません。</p>"
+    : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>")
+    + "<p class=\"muted\">上の盤面の「⇅ 隊列」を押すと、どのタブからでも立ち位置を組み替えられます。前列は武器攻撃を通しやすく、後列は技術による攻撃や支援に向きます。前列の人数で狙われ方も変わります。</p>"
+    + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
+  // R11 §5 改 / issue #235 — 巻き戻し直後の手引きは、隊列を触る話なので盤面の近くに要る。
+  // だが固定領域へ入れると常時4行を奪うので、**この一度きりの場面だけ本文の頭に置く。**
+  // 作者指摘 2026-09-12 — 一段落の手引きでは「どこを押すのか」が伝わらない。段ごとに
+  // 次の一押しだけを言い、その場所を光らせる（`formationTutorialNote`）。
+  const rewindTutorialNote = formationTutorialNote();
+  // R6 §9.2 / §12.2 / issue #235 — 遠征単位の操作はこの一枚が持つ。
+  // R11 §5 改 — 止めるのは**離脱だけ**である。まだ隊列を直しきる前に撤退されると
+  // 「一手直せば勝てる」導入が成立しない。セーブは離脱ではないので、物語の最中でも残す
+  // （補給チュートリアルの最中は、そもそもこのタブへ来られない）。
+  const canRetreat = !state.prologueActive && !supplyTutorialVisible();
+  const expeditionTools = "<section class=\"card expedition-tools\">"
+    + sectionHeading("EXPEDITION", "遠征をいったん離れる")
+    + "<div class=\"expedition-tool-row\">"
+    + button("セーブ / ロード", "open-save-menu", false, "button", "data-return=\"camp\"")
+    + (canRetreat ? button("安全に撤退する", "abandon-run", false, "button quiet") : "")
+    + "</div>"
+    + (canRetreat
+      ? "<p class=\"muted\">撤退すると、ここまで確定した活動資金だけを持ち帰って遠征を終えます。</p>"
+      : "")
+    + "</section>";
+  return rewindTutorialNote
+    + "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
       "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
     + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の進行\">" + progress + "</div>"
-    + mapLegend
     + "<div class=\"primary-action map-primary-action\" data-primary-action=\"begin-stage\">"
-    + "<p class=\"primary-action-label\">次の操作</p>"
     + button("この敵に挑む", "begin-stage", false, "button primary")
     + "</div>"
     + "<p class=\"act-line\">第" + encounter.act + "幕 · " + kindLabel + "戦 · 危険度 " + encounter.spentThreat
@@ -3375,6 +3750,8 @@ function renderMap() {
     // issue #159 — 「現在の隊列」の一覧はここにあった。**上端の共通盤面が
     // 立ち位置と現在HPを同じ形で出している**ので、敵の下で二度描かない。
     + "</section>"
+    + rosterSwapSection()
+    + expeditionTools
     + helpDetails("expedition-rules", "遠征のルール", ruleBody);
 }
 
@@ -3399,8 +3776,8 @@ function treatmentResultBlock() {
     ? "<p><b>傷ついた味方を回復できました。</b>これで次も戦えます。</p>"
     : "";
   return "<div class=\"supply-treatment-result\" role=\"status\">"
-    + "<p><b>" + esc(treatment?.displayName ?? "治療") + "を実行しました。</b></p>"
-    + "<p class=\"muted\">対象: " + esc(targetNames) + " · 補給残り " + result.supplies + "</p>"
+    + "<p><b>" + esc(treatment?.displayName ?? "治療") + "</b> " + esc(targetNames)
+    + " <span class=\"muted\">· 補給 " + result.supplies + "</span></p>"
     + complete + "</div>";
 }
 
@@ -3418,9 +3795,9 @@ function campTreatmentBlock() {
     const disabled = blockedByTutorial || blockedBySelection || state.run.supplies < 1 || !applicable;
     const focus = tutorial && treatment.id === "concentrated";
     const actionLabel = treatment.targetCount === "all"
-      ? "補給1で使う"
+      ? "補給1"
       : state.treatmentSelection === treatment.id
-        ? "対象を選び直す"
+        ? "選び直す"
         : "対象を選ぶ";
     return "<div class=\"purchase-row" + (focus ? " tutorial-focus" : "") + (state.treatmentSelection === treatment.id ? " treatment-selected" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
       + "</b><small>" + esc(treatment.summary) + "</small></span>"
@@ -3571,25 +3948,31 @@ const BOARD_ROWS = [
 //   技能／装備 … 人物を選ぶだけで、隊列は動かさない
 //   補給 … 通常は何も起きない。単体治療・蘇生を選んだあいだだけ対象選択になる
 //   戦闘 … 見るだけ
+// issue #235 — 盤面の役は**タブではなく盤面の状態**で決まる。編成タブを廃止したので、
+// 隊列の組み替えはどのタブからでも「⇅ 隊列」で入れる（タブを往復させない）。
+// 治療の対象選びだけは、選び終わるまで他の役を上書きする。
+function boardMode(tab) {
+  const treatment = CAMP_TREATMENTS[state.treatmentSelection];
+  if (tab === "supplies" && treatment && treatment.targetCount !== "all") return "treat";
+  if (state.formationMode) return "formation";
+  // issue #159 — 補給タブは、治療を選ぶまで**誰を選ぶ場面でもない**。押せる形にしない。
+  return tab === "supplies" ? "none" : "select";
+}
+
 function partyCellRole(mode, position, characterId) {
-  if (mode === "roster") {
+  if (mode === "formation") {
+    // 行と居る人は**枠そのものが名乗る。**隊列チュートリアルが光らせる先も、
+    // 通しの検査が押す先も、この二つの印だけで指せる（位置の綴りを写さない）。
     return {
       action: "place-character",
-      attrs: "data-position=\"" + esc(position) + "\"",
+      attrs: "data-position=\"" + esc(position) + "\" data-row=\"" + esc(positionRow(position) ?? "")
+        + "\"" + (characterId ? " data-character=\"" + esc(characterId) + "\"" : ""),
       selected: Boolean(characterId) && selectedFormationCharacter() === characterId,
     };
   }
-  if (mode === "skills" || mode === "equipment") {
-    if (!characterId) return { action: null };
-    return {
-      action: "select-character",
-      attrs: "data-character=\"" + esc(characterId) + "\"",
-      selected: selectedCharacter() === characterId,
-    };
-  }
-  if (mode === "supplies") {
+  if (mode === "treat") {
     const treatment = CAMP_TREATMENTS[state.treatmentSelection];
-    if (!treatment || treatment.targetCount === "all" || !characterId) return { action: null };
+    if (!treatment || !characterId) return { action: null };
     return {
       action: "select-treatment-target",
       attrs: "data-treatment=\"" + esc(treatment.id) + "\" data-character=\"" + esc(characterId) + "\"",
@@ -3599,7 +3982,12 @@ function partyCellRole(mode, position, characterId) {
       disabled: !treatmentTargetIds(treatment).includes(characterId),
     };
   }
-  return { action: null };
+  if (mode === "none" || !characterId) return { action: null };
+  return {
+    action: "select-character",
+    attrs: "data-character=\"" + esc(characterId) + "\"",
+    selected: selectedCharacter() === characterId,
+  };
 }
 
 // セルの中身。予測があれば開始HP→終了HPと減少量、無ければ現在HPだけを同じ形で出す。
@@ -3634,19 +4022,23 @@ function partyCellPerson(characterId, entry) {
       + "\" role=\"img\" aria-label=\"" + esc(ultimateLabel) + "\" title=\""
       + esc(ultimateLabel) + "\">✹</span>"
     : "";
+  // issue #235 — セルは**2行**。1行目に人物と1ラウンドの資源、2行目にHPと増減を置く。
+  // 4行積みは1セル67px・固定領域234pxで、iPhoneの画面の3割を常時奪っていた。
+  // **出す情報は一つも減らさずに**、行だけを畳む（数値はバーの上へ重ねる）。
   return "<span class=\"forecast-member-head\"><span class=\"avatar small\">"
     + esc(characterInfo(characterId)?.icon ?? "・") + "</span><b>"
-    + esc(characterName(characterId)) + "</b>" + ultimateMark + "</span>"
+    + esc(characterName(characterId)) + "</b>" + ultimateMark
+    + "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap
+    + " · 反応点" + rp + "\">" + pips(ap, "ap") + pips(rp, "rp") + "</span></span>"
+    + "<span class=\"party-figures\">"
     + "<span class=\"forecast-hp-bar\" role=\"img\" aria-label=\"" + esc(barLabel) + "\">"
     + "<span class=\"forecast-hp-end\" style=\"width:" + pct(ending) + "%\"></span>"
-    + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span></span>"
-    + "<span class=\"party-figures\">"
+    + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span>"
+    + "<span class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></span></span>"
     + (entry
       ? "<span class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</span>"
       : "")
-    + "<span class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></span></span>"
-    + "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap + " · 反応点" + rp + "\">"
-    + pips(ap, "ap") + pips(rp, "rp") + "</span>";
+    + "</span>";
 }
 
 function partyCell(position, mode, byCharacter) {
@@ -3677,27 +4069,150 @@ function partyCell(position, mode, byCharacter) {
 // 盤面の下の一行。**二手続きの操作だけが説明を要る**（編成の移動先、治療の対象）。
 // 技能・装備は選んだセルが光るだけで足りるので、何も足さない。
 function partyBoardNote(mode) {
-  if (mode === "roster") {
-    const instruction = selectedFormationCharacter()
-      ? "移動先の枠を選んでください。同じ枠をもう一度押すと解除します。"
-      : "動かす仲間のセルを選んでください。";
+  if (mode === "formation") {
+    // **二手続きの操作だけが説明を要る。**選ぶ前と選んだ後で、次の一手だけを言う。
+    const instruction = selectedFormationCharacter() ? "移動先の枠へ" : "動かす仲間を選ぶ";
     return "<p class=\"party-note\" role=\"status\"><span>" + esc(instruction) + "</span></p>";
   }
-  if (mode === "supplies") {
+  if (mode === "treat") {
     const treatment = CAMP_TREATMENTS[state.treatmentSelection];
-    if (!treatment || treatment.targetCount === "all") return "";
+    if (!treatment) return "";
     return "<p class=\"party-note picking\" role=\"status\"><span><b>" + esc(treatment.displayName)
-      + "</b>の対象を1人選んでください。"
-      + esc(treatment.revive ? "戦闘不能の仲間" : "負傷した仲間") + "だけを選べます。"
-      + "選ぶまで補給は消費しません。</span>"
+      + "</b>の対象を1人"
+      + (treatment.revive ? "（戦闘不能のみ）" : "（負傷のみ）") + "</span>"
       + button("やめる", "cancel-treatment-target", false, "tiny-button") + "</p>";
   }
   return "";
 }
 
+// ============================================================ 隊列チュートリアル（R11 §5 改）
+//
+// **巻き戻したあとの並べ替えだけは、押す場所が光り、そこしか押せない。**
+//
+// 作者指摘 2026-09-12 —「最初のチュートリアル、並べ替えてツグミを後ろに下げる部分を
+// ちゃんとしたチュートリアルにしてほしい。押すべき場所が光って、そこしか押せなくなる、
+// よくあるチュートリアル」。ここは手引きの一段落しか無く、盤面もタブもセーブも全部
+// 押せた。**一手の場所を言葉で書いても、初めての人はまずどこを押すのかを探す。**
+//
+// 錠は**並べ替えの三手だけ**に掛ける（DESIGN.md §6.4.4）。教える一手が終われば錠は
+// 外れ、技能も装備も予測も自由に触れる。**教えるのは一手であって、遠征の触り方を
+// 全部禁じるのではない。**
+//
+//   open  … 「⇅ 隊列」を押す
+//   pick  … 動かす仲間のセルを押す
+//   place … 後列の空き枠を押す
+//   done  … 一手が済んだ。錠は外れ、次の一押し（この敵に挑む）だけが光る
+//
+// **教える一手は content が決める**（`PROLOGUE.tutorial`）。人物 id と行をここへ
+// 書き写さないので、content を変えれば錠と光も一緒に動く。
+const FORMATION_TUTORIAL_GOAL = PROLOGUE.tutorial ?? null;
+
+function formationTutorialStep() {
+  if (state.phase !== "camp" || !FORMATION_TUTORIAL_GOAL) return null;
+  if (!state.prologueActive || state.prologueStage !== "retry") return null;
+  const { characterId, row } = FORMATION_TUTORIAL_GOAL;
+  if (!state.run.roster.includes(characterId)) return null;
+  if (positionRow(state.run.formation?.[characterId]) === row) return "done";
+  if (!state.formationMode) return "open";
+  return selectedFormationCharacter() === characterId ? "place" : "pick";
+}
+
+// 錠が掛かるのは並べ替えの三手だけ。"done" は光らせるだけで、何も塞がない。
+function formationTutorialLocked() {
+  const step = formationTutorialStep();
+  return step !== null && step !== "done";
+}
+
+// 光らせる先。**選択子はこの表にしかない。**画面と検査が別々の綴りを持つと、
+// 盤面の書き方が変わったときに「光らない錠」だけが残る。
+function formationTutorialSpotSelector(step) {
+  const goal = FORMATION_TUTORIAL_GOAL;
+  if (!goal) return null;
+  return {
+    open: ".camp-top [data-action=\"toggle-formation-mode\"]",
+    pick: ".camp-top [data-action=\"place-character\"][data-character=\"" + goal.characterId + "\"]",
+    // 移動先は**空いている枠だけ。**人の乗った枠は入れ替えになるので光らせない。
+    place: ".camp-top [data-action=\"place-character\"][data-row=\"" + goal.row + "\"]:not([data-character])",
+    done: "[data-action=\"begin-stage\"]",
+  }[step] ?? null;
+}
+
+// **錠と光は描画のあとに一度で掛ける。**画面ごとに同じ条件を書き写すと、
+// いつか片方だけが直る（`disabled` は釦にしか効かないので、釦以外は CSS で止める）。
+function applyFormationTutorialGate() {
+  const step = formationTutorialStep();
+  if (!step) return;
+  const selector = formationTutorialSpotSelector(step);
+  const spots = selector ? [...app.querySelectorAll(selector)] : [];
+  for (const spot of spots) spot.classList.add("tutorial-spot");
+  if (!formationTutorialLocked()) return;
+  for (const element of app.querySelectorAll("[data-action]")) {
+    if (spots.some((spot) => spot === element || spot.contains(element))) continue;
+    element.classList.add("tutorial-blocked");
+    element.setAttribute("aria-disabled", "true");
+    if ("disabled" in element) element.disabled = true;
+  }
+}
+
+// 錠が掛かっている間、押してよい要素かどうか。**判定は光らせる先と同じ選択子**なので、
+// 「光っているのに押せない」「光っていないのに押せる」が構造として起きない。
+function formationTutorialAllows(element) {
+  if (!formationTutorialLocked()) return true;
+  const selector = formationTutorialSpotSelector(formationTutorialStep());
+  return Boolean(selector && element?.closest?.(selector));
+}
+
+// 手引きの札。**段ごとに、次の一押しだけを言う。**（補給チュートリアルと同じ作り）
+function formationTutorialNote() {
+  const step = formationTutorialStep();
+  if (!step || !FORMATION_TUTORIAL_GOAL) return "";
+  const name = characterName(FORMATION_TUTORIAL_GOAL.characterId);
+  const rowWord = ROW_WORDS[FORMATION_TUTORIAL_GOAL.row] ?? "後列";
+  const copy = {
+    open: {
+      title: "立ち位置を組み替える",
+      body: "<b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
+        + "上の盤面で光っている「⇅ 隊列」を押してください。",
+    },
+    pick: {
+      title: "動かす仲間を選ぶ",
+      body: "腕力で振る武器は" + rowWord + "から出すと大きく落ち、技術で通す技は落ちない。"
+        + "<b>" + esc(name) + "の攻撃は技なので、" + rowWord + "でも威力が落ちない。</b>"
+        + "光っている" + esc(name) + "のセルを押してください。",
+    },
+    place: {
+      title: rowWord + "へ下げる",
+      body: "<b>敵は届く範囲で最もHPの低い者を狙う。</b>"
+        + "前に二人並べば、柔らかいほうから崩れる。"
+        + "光っている" + rowWord + "の空き枠を押してください。",
+    },
+    done: {
+      title: "一手で、予測が変わる",
+      body: "<b>" + esc(name) + "の応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。</b>"
+        + esc(PROLOGUE.retryHint),
+    },
+  }[step];
+  const marks = [
+    ["open", "「⇅ 隊列」を押す"],
+    ["pick", esc(name) + "を押す"],
+    ["place", rowWord + "の空き枠を押す"],
+  ];
+  const order = ["open", "pick", "place", "done"];
+  const list = marks.map(([id, label], index) => {
+    const mark = order.indexOf(step) > index ? "done" : id === step ? "current" : "todo";
+    return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + label + "</li>";
+  }).join("");
+  return "<section class=\"card tutorial-note-card formation-tutorial\" role=\"status\">"
+    + "<p class=\"eyebrow\">隊列チュートリアル</p>"
+    + "<h3>" + esc(copy.title) + "</h3>"
+    + "<p class=\"tutorial-note\">" + copy.body + "</p>"
+    + "<ol class=\"tutorial-steps\">" + list + "</ol></section>";
+}
+
 // camp の上端に貼りつく盤面。**予測が出せない場面でも盤面は出す**——隊列と現在HPは
 // 予測とは別に要る。予測の帯（勝敗・ラウンド数・開始→終了HP）だけを黙って落とす。
-function partyBar(mode) {
+function partyBar(tab) {
+  const mode = boardMode(tab);
   const forecast = battleForecast();
   const byCharacter = new Map((forecast?.perCharacter ?? []).map((entry) => [entry.characterId, entry]));
   const rows = BOARD_ROWS.map(({ row, label }) => {
@@ -3706,16 +4221,24 @@ function partyBar(mode) {
     return "<div class=\"party-row\"><span class=\"party-row-label\">" + esc(label)
       + "</span><div class=\"party-cells\">" + cells + "</div></div>";
   }).join("");
-  let head = "";
-  if (forecast) {
-    const label = FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result;
-    const encounterName = currentEncounter()?.name;
-    const target = state.prologueActive
-      ? "灰の門"
-      : "第" + state.run.encounterIndex + "戦" + (encounterName ? " · " + encounterName : "");
-    head = "<div class=\"forecast-head\"><span class=\"forecast-title\">戦闘予測 · " + esc(target) + "</span>"
-      + "<span class=\"forecast-verdict\">" + esc(label) + " · " + forecast.roundsUsed + "ラウンド</span></div>";
-  }
+  const encounterName = currentEncounter()?.name;
+  // **「戦闘予測」と書かない。**盤面そのものが予測であり、勝敗とラウンドが右に出ている。
+  const target = state.prologueActive
+    ? "灰の門"
+    : "第" + state.run.encounterIndex + "戦" + (encounterName ? " · " + encounterName : "");
+  const verdict = forecast
+    ? "<span class=\"forecast-verdict\">" + esc(FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result)
+      + " · " + forecast.roundsUsed + "ラウンド</span>"
+    : "";
+  // issue #235 — 隊列の組み替えは盤面の役の切り替えで入る。**どのタブからでも同じ一手**で、
+  // 編成タブへ往復しない。治療の対象を選んでいる間は、盤面の役を奪われるので出さない。
+  const formationToggle = mode === "treat"
+    ? ""
+    : "<button type=\"button\" class=\"board-mode" + (mode === "formation" ? " active" : "")
+      + "\" data-action=\"toggle-formation-mode\" aria-pressed=\"" + (mode === "formation" ? "true" : "false")
+      + "\" title=\"隊列を組み替える\"><span aria-hidden=\"true\">⇅</span>隊列</button>";
+  const head = "<div class=\"forecast-head\"><span class=\"forecast-title\">" + esc(target) + "</span>"
+    + verdict + formationToggle + "</div>";
   return "<section class=\"party-bar" + (forecast ? " forecast-bar " + esc(forecast.result) : "")
     + "\" aria-live=\"polite\">" + head
     + "<div class=\"party-board\" aria-label=\"隊列と戦闘予測\">" + rows + "</div>"
@@ -4004,7 +4527,6 @@ function renderBattle() {
     + "</div>"
     + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
     + button("結果を見る", "replay-result", false, "button") + "</section>"
-    + "<p class=\"hint battle-hint\">再生を止めて、一手ずつ確認できます。</p>"
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
       + "<p class=\"muted\">枠色はHPでは変えません。生存中の残りHPが56%以上なら主色は緑、26〜55%なら黄、25%以下なら赤です。残HPは主色、今回の攻撃で回復済みは主色の薄め、回復可能は主色のかなり暗め、回復不能は黒で表示します。</p>"
@@ -4013,7 +4535,6 @@ function renderBattle() {
     + statusGlossaryHelp()
     + "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>戦闘履歴</summary>"
-    + "<p class=\"muted\">再生中の位置までの出来事を新しい順に表示します。</p>"
     + "<ol class=\"events replay-events\"></ol>"
     + "<details class=\"technical-log\"><summary>技術ログ</summary>"
     + diagnosticStamp()
@@ -4509,17 +5030,19 @@ function renderResult() {
   const shown = events.length > 40 ? [...events.slice(0, 30), ...events.slice(-10)] : events;
   const prologueUnresolved = state.prologueActive && !(state.prologueStage === "retry" && won);
   ensureResultReward(won, prologueUnresolved);
+  // 作者試遊 2026-09-11 — 序盤の敗北はここへ来ない（会話の門が受ける）。
+  // 残るのは巻き戻したあとの再挑戦で負けた場合と、中断復帰の保険だけである。
   const next = prologueUnresolved
     ? state.prologueStage === "retry"
       ? button("編成を見直す", "back-camp", false, "button primary")
-      : button("時間が巻き戻る", "rewind-prologue", false, "button primary")
+      : button("続きを見る", "resume-prologue-defeat", false, "button primary")
     : won
       ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
         ? button("遠征を精算する", "settle-run", false, "button primary")
         : rewardSectionHtml()
       : button("この先どうするか", "show-defeat", false, "button primary");
   const nextBlock = "<div class=\"primary-action result-primary-action\" data-primary-action=\"result-next\">"
-    + "<p class=\"primary-action-label\">次の操作</p>" + next + "</div>";
+    + next + "</div>";
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
@@ -4527,19 +5050,16 @@ function renderResult() {
   // issue #168 — 表示する量も progression の表から引く（画面に書いた数と、
   // 実際に配った数がずれないようにする）。
   const skillGain = !prologueUnresolved && won
-    ? "<p class=\"operation-note\">編成中の全員に技能点 +"
-      + skillPointsForClear(currentEncounter().kind) + "。報酬は下で1つ選びます。</p>"
+    ? "<p class=\"operation-note\">全員に技能点 +" + skillPointsForClear(currentEncounter().kind) + "</p>"
     : "";
   const carryText = prologueUnresolved
     ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
-    : "<p class=\"muted\">獲得予定の活動資金: <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
-      + "</b>（到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN
-      + "）。負けても、ここまで確定した分は持ち帰ります。</p>";
+    : "<p class=\"muted\">持ち帰る活動資金 <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
+      + "</b> · 到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + "</p>";
   const status = "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
     + (won ? "✓" : "×") + "</div><h2>" + (won ? "突破した" : "足を止めた")
-    + "</h2><p class=\"verdict-context\">" + esc(encounter.name) + " · " + result.roundsUsed + "ラウンド</p><p>"
-    + (won ? "この組み合わせは通りました。" : "この組み合わせでは届きませんでした。")
-    + "</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
+    + "</h2><p class=\"verdict-context\">" + esc(encounter.name) + " · " + result.roundsUsed
+    + "ラウンド</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
     + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
     + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div>"
     + skillGain + "</section>";
@@ -4547,23 +5067,19 @@ function renderResult() {
   // **払った理由と残りを、払った画面で見せる。**
   const firedBy = state.lastCarrySnapshot?.ultimateFiredBy ?? [];
   const sealText = firedBy.length
-    ? "<p class=\"muted\"><b>必殺技が出ました。</b>"
-      + esc(firedBy.map((id) => characterName(id)).join(" · "))
-      + "。この遠征ではもう放てません。必殺を残している仲間は "
-      + ultimateUsesLeftInParty(state.run) + " / " + state.run.roster.length + "人です。</p>"
+    ? "<p class=\"muted\">✹ " + esc(firedBy.map((id) => characterName(id)).join(" · "))
+      + " <span class=\"muted\">· 必殺を残す仲間 " + ultimateUsesLeftInParty(state.run)
+      + " / " + state.run.roster.length + "</span></p>"
     : "";
   const stateCard = "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "戦闘後の状態")
     + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
     + "<div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section>";
   const replay = state.replayEvents?.length
-    ? "<section class=\"card\">" + sectionHeading("REPLAY", "戦闘をもう一度見る")
-      + "<p class=\"operation-note\">同じ戦闘を同じ順で再生します。</p>"
-      + button("戦闘をもう一度見る", "replay-again", false, "button") + "</section>"
+    ? "<section class=\"card\">" + button("戦闘をもう一度見る", "replay-again", false, "button") + "</section>"
     : "";
   const history = "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
     + "><summary>戦闘履歴</summary>"
-    + "<p class=\"muted\">アニメーションで分かりにくかった出来事を確認できます。</p>"
     + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
       + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
       + "<code class=\"event-type\">" + esc(event.type) + "</code></li>").join("") + "</ol>"
@@ -4699,7 +5215,7 @@ function rewardSectionHtml() {
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
   return "<section class=\"card\">"
     + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + "<p class=\"muted\">3候補から1つだけ選びます。<b>活動資金はこの選択に含まれません</b>。戦闘勝利時の技能点は編成中の全員へ自動で加わります。</p>"
+    + "<p class=\"muted\">3候補から1つ。<b>活動資金はこの選択に含まれません。</b></p>"
     + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
       ? "<p class=\"muted\">装備の候補が減っています。用意できない場合は理由が候補欄に出ます。</p>"
       : "")
@@ -4711,7 +5227,7 @@ function rewardSectionHtml() {
     + "<div class=\"reward-grid\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
     + button("補給1で3候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
-    + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "引き直しは1戦闘につき一度だけ。使うと再挑戦の余地が減ります。")
+    + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "1戦闘に一度だけ。再挑戦の余地が減ります。")
     + "</small></div></section>";
 }
 
@@ -4721,7 +5237,6 @@ function renderDefeat() {
   const encounter = currentEncounter();
   const actionCard = "<section class=\"card primary-action defeat-primary-action\" data-primary-action=\"defeat-next\">"
     + sectionHeading("NEXT", "次の手", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + "<p class=\"primary-action-label\">補給の使い道を選びます</p>"
     + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
     + (canRetry
       ? button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
@@ -4806,7 +5321,6 @@ function renderSettlement() {
   const title = won ? "遠征を終えた" : retreated ? "安全に撤退した" : "遠征は途中で終わった";
   const nextAction = "<section class=\"card primary-action settlement-primary-action\" data-primary-action=\"settlement-next\">"
     + sectionHeading("NEXT", "次の行き先")
-    + "<p class=\"primary-action-label\">精算を確認したら、帰る先を選びます。</p>"
     + button("根城へ帰る", "go-homestead", false, "button primary")
     + button("ギルドへ戻る", "back-guild", false, "button")
     + button("記録を送る", "complete", false, "button")
@@ -4825,10 +5339,9 @@ function renderSettlement() {
     + "<div class=\"settle-row total\"><span>報酬倍率</span><b>×"
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
     + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
-    + "<p class=\"muted\">遠征内の技能点・解禁・装備・補給はここで消えます（R6 §5.3）。持ち帰るのは"
-    + "活動資金と、下の設計図だけです。今回の結果分類（"
-    + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "）では最大" + settlement.blueprintSaveLimit
-    + "件を残せます。</p></section>"
+    + "<p class=\"muted\">持ち帰るのは活動資金と設計図だけです。技能点・解禁・装備・補給はここで消えます。"
+    + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
+    + settlement.blueprintSaveLimit + "件残せます。</p></section>"
     + blueprintSettlementSection(settlement)
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
       ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
@@ -4886,7 +5399,7 @@ function saveStateSoon() {
 function enterPrologueBeatIfDue() {
   if (!state.prologueActive) return false;
   if (state.prologueStage === "first") {
-    enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueResult");
+    enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueRewind");
     return true;
   }
   if (state.prologueStage === "retry" && state.lastResult?.result === "win") {
@@ -4894,6 +5407,37 @@ function enterPrologueBeatIfDue() {
     return true;
   }
   return false;
+}
+
+// R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
+// 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
+//
+// 会話の門の釦（rewind-prologue）と、門の無い形で会話が尽きたとき
+// （after: "prologueRewind"）の**両方がここを通る。**どちらから来ても同じ状態になる。
+// スキップは門で止まる（storySkipStop）ので、越えるのは釦だけである。
+function rewindPrologue() {
+  // issue #200 — **逆走に使う材料は、状態を巻き戻す前に取る。**読んだ行の履歴は
+  // このあと enterStory() が空にするので、ここで写しておく（門の釦から来たときは
+  // 舞台が立っており、スキップから来たときは storyBeat() で同じ断片を引き直す）。
+  const scene = rewindScene(currentStoryBeat() ?? storyBeat("stage_0", "prologueDefeat"));
+  // R11 §5 — **巻き戻しても prologueActive は落とさない。**同じ門の盤面を、
+  // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
+  // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
+  state.prologueStage = "retry";
+  // R15 — 負けた配置をそのまま引き継ぐ。defaultFormation へ戻すと、
+  // 何も変えずに勝ててしまい「一手直して勝つ」導入が成立しない。
+  state.run.formation = normalizeFormation(PROLOGUE.formation, state.run.roster);
+  state.lastResult = null;
+  state.replayEvents = [];
+  state.replaySnapshots = [];
+  state.replayIndex = 0;
+  state.replayPlaying = false;
+  record("prologue_rewound", { stage: state.run.campaignStageSequence });
+  // issue #200 — 会話へ入る前に、逆走の演出を一度だけ挟む。**状態はもう巻き戻して
+  // あるので、演出はどこで途切れても進行を失わない。**読んだ行が無ければ
+  // （逆走させるものが無ければ）そのまま会話へ入る。
+  state.rewind = scene;
+  enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null });
 }
 
 // issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
@@ -5104,6 +5648,15 @@ function handleAction(event) {
   // issue #238 — 同じ要素が、押した時間で別の操作になる。長押しは data-longpress。
   const action = event.longPress ? element.dataset.longpress : element.dataset.action;
   if (!action) return;
+  // issue #200 — **舞台に被せた操作は、舞台へ落とさない。**会話の門（`.vn-gate`）の釦は
+  // `.vn-stage`（`data-action="story-advance"`）の中にあるので、一度押すと釦と舞台の
+  // 両方が鳴る。釦が巻き戻したあとの舞台はもう「次の会話」なので、続けて鳴った
+  // 「叩いて進む」が巻き戻し後の一行目（「同じ朝。同じ光。」＝時間が戻ったことを
+  // 見せる行）を読み飛ばしていた。長押しの合成呼び出しには止める先が無いので `?.` で呼ぶ。
+  if (element.closest?.(".vn-gate")) event.stopPropagation?.();
+  // R11 §5 改 — 隊列チュートリアルの錠は**押せる形（DOM）と経路（ここ）の両方**で掛ける。
+  // 光っていない場所は押しても何も起きない（DESIGN.md §6.4.3 の離脱経路と同じ二重の塞ぎ方）。
+  if (!formationTutorialAllows(element)) return;
   captureSkillTreeScroll();
   state.error = null;
 
@@ -5162,6 +5715,17 @@ function handleAction(event) {
     // R11 §5 改 — チュートリアル中はタイトルへ戻れない（画面上のボタンは既に
     // 隠しているが、経路として二重に塞ぐ）。
     if (state.prologueActive || supplyTutorialVisible()) return;
+    // タイトルのロードメニューを閉じるだけなら、オートセーブを上書きしない。
+    if (state.phase === "saveMenu") {
+      state.phase = "intro";
+      state.saveMenuReturn = "intro";
+      state.saveNotice = null;
+      state.error = null;
+      render();
+      return;
+    }
+    // タイトルへ戻る前のゲーム画面を、Continueの再開先として記録する。
+    state.resumePhase = state.phase;
     state.phase = "intro";
     state.saveMenuReturn = "intro";
     state.saveNotice = null;
@@ -5328,7 +5892,7 @@ function handleAction(event) {
     state.startedAt = state.run.startedAt;
     state.runId = state.run.runId;
     state.phase = "camp";
-    state.tab = "roster";
+    state.tab = "map";
     state.migrationNote = null;
     state.prologueActive = false;
     ensureSelectedCharacter();
@@ -5368,12 +5932,14 @@ function handleAction(event) {
         storyTypingDone = true;
         storyShownLine = (currentStoryBeat()?.id ?? "") + ":" + storyLineIndex();
         app.querySelector(".vn")?.classList.add("typed");
-        if (state.story?.auto) {
+        if (state.story?.auto && !storyGate()) {
           storyAutoTimer = setTimeout(() => { advanceStoryLine(); }, STORY_AUTO_HOLD_MS);
         }
       }
       return;
     }
+    // 門のある拍では、舞台を叩いても進まない。**門の釦だけが次を持つ。**
+    if (storyGate()) return;
     advanceStoryLine();
     return;
   }
@@ -5392,29 +5958,35 @@ function handleAction(event) {
   }
 
   if (action === "story-skip") {
+    // 門のある会話は、門まで飛ばして止まる。**越えるのは釦だけである。**
+    const stop = storySkipStop();
+    if (stop) {
+      skipStoryToGate(stop);
+      return;
+    }
     record("story_skipped", { after: state.story?.after ?? "camp" });
     state.story = { ...state.story, queue: [], after: state.story?.after ?? "camp", logOpen: false };
     finishStory();
     return;
   }
 
-  // R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
-  // 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
   if (action === "rewind-prologue") {
-    // R11 §5 — **巻き戻しても prologueActive は落とさない。**同じ門の盤面を、
-    // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
-    // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
-    state.prologueStage = "retry";
-    // R15 — 負けた配置をそのまま引き継ぐ。defaultFormation へ戻すと、
-    // 何も変えずに勝ててしまい「一手直して勝つ」導入が成立しない。
-    state.run.formation = normalizeFormation(PROLOGUE.formation, state.run.roster);
-    state.lastResult = null;
-    state.replayEvents = [];
-    state.replaySnapshots = [];
-    state.replayIndex = 0;
-    state.replayPlaying = false;
-    record("prologue_rewound", { stage: state.run.campaignStageSequence });
-    enterStory([storyBeat("stage_0", "prologueRewound")], "camp");
+    rewindPrologue();
+    return;
+  }
+
+  // issue #200 — 逆走の演出は、叩けば追い越せる（会話画面と同じ約束）。
+  if (action === "rewind-skip") {
+    finishRewind();
+    return;
+  }
+
+  // 作者試遊 2026-09-11 — 中断復帰の保険。**通常はここへ来ない**（序盤の敗北は
+  // 会話の門で受ける）が、保存枠が尽きたときの minimal snapshot は phase を
+  // battle から result へ寄せるので、会話を見ないまま結果画面に立つことがある。
+  // そのときは倒れた会話から見せ直す。
+  if (action === "resume-prologue-defeat") {
+    enterStory([storyBeat("stage_0", "prologueDefeat")], "prologueRewind");
     return;
   }
 
@@ -5561,9 +6133,19 @@ function handleAction(event) {
     return;
   }
 
+  // issue #235 — 盤面を隊列の組み替えへ入れる／戻す。**画面は一枚も増えない。**
+  if (action === "toggle-formation-mode") {
+    state.formationMode = !state.formationMode;
+    if (!state.formationMode) state.formationSelection = null;
+    render();
+    return;
+  }
+
   if (action === "place-character") {
     const position = element.dataset.position;
     const id = selectedFormationCharacter();
+    // R11 §5 改 — 教えている一手の前後を見る（下で、済んだら盤面を自分で畳む）。
+    const tutorialStepBefore = formationTutorialStep();
     if (!POSITIONS.includes(position)) return;
     const other = positionOwner(position);
     if (!id) {
@@ -5590,6 +6172,12 @@ function handleAction(event) {
     state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
     state.formationSelection = null;
     record("formation_changed", { characterId: id, position, swappedWith: other });
+    // 教えていた一手が済んだ。**錠を外し、盤面も自分で通常へ戻す**（教え終わった型を
+    // プレイヤーに畳ませない）。ここから先は技能も装備も予測も自由に触れる。
+    if (tutorialStepBefore === "place" && formationTutorialStep() === "done") {
+      state.formationMode = false;
+      record("formation_tutorial_completed", { characterId: id, position });
+    }
     saveState();
     render();
     return;
@@ -5605,22 +6193,11 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.run = result.run;
+      // issue #236 — 取得と装着を分けない。**点を払った技能はその場で回り始める。**
+      // 「取得済みだが未装着」は、オフと同じことを二通りに表しているだけだった。
+      const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind, limitsFor);
+      if (equipped.ok) state.run.loadout = equipped.loadout;
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
-    }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "equip-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const kind = element.dataset.kind;
-    const result = equipSkill(state.run.loadout, characterId, skillId, kind, limitsFor);
-    if (!result.ok) state.error = result.reason;
-    else {
-      state.run.loadout = result.loadout;
-      record("skill_equipped", { characterId, skillId, kind });
     }
     saveState();
     render();
@@ -5742,7 +6319,7 @@ function handleAction(event) {
     // R9 §2.1 — 出発に必要な人数は Stage で変わる（Stage 0 は2人）。
     if (state.run.roster.length !== runPartySize()) {
       state.error = "出発には" + runPartySize() + "人の編成が必要です。";
-      state.tab = "roster";
+      state.tab = "map";
       saveState();
       render();
       return;
@@ -6005,7 +6582,7 @@ function handleAction(event) {
     } else {
       state.run = { ...spent.run, retries: { ...spent.run.retries, [state.run.encounterIndex]: (spent.run.retries?.[state.run.encounterIndex] ?? 0) + 1 } };
       state.phase = "camp";
-      state.tab = "roster";
+      state.tab = "map";
       state.lastResult = null;
       state.replayEvents = [];
       state.replaySnapshots = [];
