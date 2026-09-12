@@ -18,6 +18,8 @@ const problems = [];
 
 const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "utf8");
 const styles = readFileSync("ecology/styles.css", "utf8");
+// R11 §5 改 — 序盤の手取りチュートリアルが教える一手は content が持つ（app.js には無い）。
+const story = readFileSync("ecology/content/story.mjs", "utf8");
 const displayContracts = [
   ["防壁バーのDOM", app, "unit-barrier-fill"],
   ["防壁比率の計算", app, "function barrierPercent(actor)"],
@@ -555,6 +557,38 @@ for (const field of [
   const reducedRewind = styles.slice(styles.lastIndexOf("@media (prefers-reduced-motion: reduce) {\n  .rewind-stage,"));
   if (!reducedRewind.startsWith("@media") || !reducedRewind.includes(".rewind-bands, .rewind-streaks { display: none; }")) {
     problems.push("巻き戻しの演出に prefers-reduced-motion の短縮が無い");
+  }
+
+  // R11 §5 改 / DESIGN.md §6.4.4（作者指摘 2026-09-12）— **並べ替えは手取りの型。**
+  // 押す場所が光り、そこしか押せない。ブラウザでの通し（三手・錠・光の位置）は
+  // analysis/ecology-tutorial-trial.mjs が踏むので、ここでは**構造が消えていない**
+  // ことだけを見る。教える一手そのものは content（PROLOGUE.tutorial）が持つ。
+  for (const [label, sourceText, expected] of [
+    ["教える一手の正本", story, "tutorial: Object.freeze({ characterId:"],
+    ["チュートリアルの段", app, "function formationTutorialStep() {"],
+    ["錠が並べ替えの三手だけに掛かる", app, 'return step !== null && step !== "done";'],
+    ["光らせる先の表", app, "function formationTutorialSpotSelector(step) {"],
+    ["錠と光を描画のあとに掛ける", app, "applyFormationTutorialGate();"],
+    ["経路側の二重の塞ぎ", app, "if (!formationTutorialAllows(element)) return;"],
+    ["段ごとの手引き", app, "function formationTutorialNote() {"],
+    ["タブの閉じ込めが一本化されている", app, "function campTutorialTab() {"],
+    ["光のCSS", styles, ".tutorial-spot {"],
+    ["錠のCSS", styles, ".tutorial-blocked {"],
+    ["手順の一覧のCSS", styles, ".tutorial-steps li.current"],
+  ]) {
+    if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
+  }
+  // **光と錠は同じ選択子から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
+  if (!app.includes("formationTutorialSpotSelector(formationTutorialStep())")) {
+    problems.push("錠の判定が、光らせる先と別の選択子を持っている");
+  }
+  // 錠の最中も盤面の数字は読ませる（この一手の理由はそこに出ている）。
+  if (!styles.includes(".party-cell.tutorial-blocked")) {
+    problems.push("錠の最中に盤面のセルまで沈める指定になっている");
+  }
+  // **動きを止める人にも、光そのものは残す。**止めるのは脈だけ。
+  if (!/@media \(prefers-reduced-motion: reduce\) \{[^}]*\.tutorial-spot \{ animation: none;/.test(styles)) {
+    problems.push("隊列チュートリアルの光に prefers-reduced-motion の短縮が無い");
   }
 
   // 盤面は誰も選んでいない状態で開く（先頭が最初から光っていると、一手目を

@@ -1201,6 +1201,12 @@ function positionOwner(position) {
   return state.run.roster.find((characterId) => state.run.formation[characterId] === position) ?? null;
 }
 
+// 枠の行（"front" / "rear"）。**綴りの規則は POSITIONS の名前そのもの**で、
+// 盤面の並び（`position.startsWith(row + "_")`）と同じ読み方をここに一つだけ置く。
+function positionRow(position) {
+  return POSITIONS.includes(position) ? String(position).split("_")[0] : null;
+}
+
 function sectionHeading(eyebrow, title, right = "") {
   // 通常画面の主見出しは日本語を一つだけにする。装飾用の英語ラベルは出さない。
   void eyebrow;
@@ -1244,9 +1250,17 @@ function equipmentFillLabel() {
   return worn + "/" + Math.max(worn, Math.min(owned, slots));
 }
 
+// チュートリアルが一枚のタブへ閉じ込めている間は、そのタブ id を返す。
+// **閉じ込め方は二つあるが、閉じ込める書き方は一つにする**（補給と隊列で別々に書かない）。
+function campTutorialTab() {
+  if (supplyTutorialVisible()) return "supplies";
+  if (formationTutorialLocked()) return "map";
+  return null;
+}
+
 function campNav() {
-  const tutorialLocked = supplyTutorialVisible();
-  const activeTab = tutorialLocked ? "supplies" : state.tab;
+  const tutorialLocked = campTutorialTab();
+  const activeTab = tutorialLocked ?? state.tab;
   // issue #235 — 編成タブは廃止した。隊列は上端の共通盤面が常に持ち、人物の中身は
   // スキル・装備タブの memberContext が出す。**説明を読むだけのタブを一枚残さない。**
   // 戦闘は「遠征」に改め、次の一戦・撤退・セーブという**遠征単位の操作**を集める。
@@ -1258,7 +1272,7 @@ function campNav() {
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
     const active = activeTab === id;
-    const locked = tutorialLocked && id !== "supplies";
+    const locked = Boolean(tutorialLocked) && id !== tutorialLocked;
     return "<button type=\"button\" class=\"tab " + (active ? "active" : "")
       + "\" aria-label=\"" + label + "\" aria-current=\"" + (active ? "step" : "false")
       + "\" data-action=\"tab\" data-tab=\"" + id + "\""
@@ -1297,6 +1311,8 @@ function render() {
   // 必殺技の指定は「たまにしか触らないが、触る場所は装着行しかない」操作なので、
   // 常設の枠を出さず、行そのものを長く押させる。
   bindLongPress();
+  // R11 §5 改 — 隊列チュートリアルの錠と光。**描画したあとに一度で掛ける。**
+  applyFormationTutorialGate();
   publishCampTopHeight();
   restoreHelpDetails();
   restoreSkillTreeScroll();
@@ -2531,8 +2547,7 @@ function storyBeatsForStart(sequence) {
 }
 
 function renderCamp() {
-  const tutorialLocked = supplyTutorialVisible();
-  const activeTab = tutorialLocked ? "supplies" : state.tab;
+  const activeTab = campTutorialTab() ?? state.tab;
   const view = {
     skills: renderSkills,
     equipment: renderEquipment,
@@ -3629,14 +3644,9 @@ function renderMap() {
     + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
   // R11 §5 改 / issue #235 — 巻き戻し直後の手引きは、隊列を触る話なので盤面の近くに要る。
   // だが固定領域へ入れると常時4行を奪うので、**この一度きりの場面だけ本文の頭に置く。**
-  const rewindTutorialNote = state.prologueActive && state.prologueStage === "retry"
-    ? "<section class=\"card tutorial-note-card\"><p class=\"tutorial-note\">"
-      + "<b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
-      + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
-      + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
-      + "上の「⇅ 隊列」からツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。"
-      + "</p></section>"
-    : "";
+  // 作者指摘 2026-09-12 — 一段落の手引きでは「どこを押すのか」が伝わらない。段ごとに
+  // 次の一押しだけを言い、その場所を光らせる（`formationTutorialNote`）。
+  const rewindTutorialNote = formationTutorialNote();
   // R6 §9.2 / §12.2 / issue #235 — 遠征単位の操作はこの一枚が持つ。
   // R11 §5 改 — 止めるのは**離脱だけ**である。まだ隊列を直しきる前に撤退されると
   // 「一手直せば勝てる」導入が成立しない。セーブは離脱ではないので、物語の最中でも残す
@@ -3877,9 +3887,12 @@ function boardMode(tab) {
 
 function partyCellRole(mode, position, characterId) {
   if (mode === "formation") {
+    // 行と居る人は**枠そのものが名乗る。**隊列チュートリアルが光らせる先も、
+    // 通しの検査が押す先も、この二つの印だけで指せる（位置の綴りを写さない）。
     return {
       action: "place-character",
-      attrs: "data-position=\"" + esc(position) + "\"",
+      attrs: "data-position=\"" + esc(position) + "\" data-row=\"" + esc(positionRow(position) ?? "")
+        + "\"" + (characterId ? " data-character=\"" + esc(characterId) + "\"" : ""),
       selected: Boolean(characterId) && selectedFormationCharacter() === characterId,
     };
   }
@@ -3996,6 +4009,130 @@ function partyBoardNote(mode) {
       + button("やめる", "cancel-treatment-target", false, "tiny-button") + "</p>";
   }
   return "";
+}
+
+// ============================================================ 隊列チュートリアル（R11 §5 改）
+//
+// **巻き戻したあとの並べ替えだけは、押す場所が光り、そこしか押せない。**
+//
+// 作者指摘 2026-09-12 —「最初のチュートリアル、並べ替えてツグミを後ろに下げる部分を
+// ちゃんとしたチュートリアルにしてほしい。押すべき場所が光って、そこしか押せなくなる、
+// よくあるチュートリアル」。ここは手引きの一段落しか無く、盤面もタブもセーブも全部
+// 押せた。**一手の場所を言葉で書いても、初めての人はまずどこを押すのかを探す。**
+//
+// 錠は**並べ替えの三手だけ**に掛ける（DESIGN.md §6.4.4）。教える一手が終われば錠は
+// 外れ、技能も装備も予測も自由に触れる。**教えるのは一手であって、遠征の触り方を
+// 全部禁じるのではない。**
+//
+//   open  … 「⇅ 隊列」を押す
+//   pick  … 動かす仲間のセルを押す
+//   place … 後列の空き枠を押す
+//   done  … 一手が済んだ。錠は外れ、次の一押し（この敵に挑む）だけが光る
+//
+// **教える一手は content が決める**（`PROLOGUE.tutorial`）。人物 id と行をここへ
+// 書き写さないので、content を変えれば錠と光も一緒に動く。
+const FORMATION_TUTORIAL_GOAL = PROLOGUE.tutorial ?? null;
+
+function formationTutorialStep() {
+  if (state.phase !== "camp" || !FORMATION_TUTORIAL_GOAL) return null;
+  if (!state.prologueActive || state.prologueStage !== "retry") return null;
+  const { characterId, row } = FORMATION_TUTORIAL_GOAL;
+  if (!state.run.roster.includes(characterId)) return null;
+  if (positionRow(state.run.formation?.[characterId]) === row) return "done";
+  if (!state.formationMode) return "open";
+  return selectedFormationCharacter() === characterId ? "place" : "pick";
+}
+
+// 錠が掛かるのは並べ替えの三手だけ。"done" は光らせるだけで、何も塞がない。
+function formationTutorialLocked() {
+  const step = formationTutorialStep();
+  return step !== null && step !== "done";
+}
+
+// 光らせる先。**選択子はこの表にしかない。**画面と検査が別々の綴りを持つと、
+// 盤面の書き方が変わったときに「光らない錠」だけが残る。
+function formationTutorialSpotSelector(step) {
+  const goal = FORMATION_TUTORIAL_GOAL;
+  if (!goal) return null;
+  return {
+    open: ".camp-top [data-action=\"toggle-formation-mode\"]",
+    pick: ".camp-top [data-action=\"place-character\"][data-character=\"" + goal.characterId + "\"]",
+    // 移動先は**空いている枠だけ。**人の乗った枠は入れ替えになるので光らせない。
+    place: ".camp-top [data-action=\"place-character\"][data-row=\"" + goal.row + "\"]:not([data-character])",
+    done: "[data-action=\"begin-stage\"]",
+  }[step] ?? null;
+}
+
+// **錠と光は描画のあとに一度で掛ける。**画面ごとに同じ条件を書き写すと、
+// いつか片方だけが直る（`disabled` は釦にしか効かないので、釦以外は CSS で止める）。
+function applyFormationTutorialGate() {
+  const step = formationTutorialStep();
+  if (!step) return;
+  const selector = formationTutorialSpotSelector(step);
+  const spots = selector ? [...app.querySelectorAll(selector)] : [];
+  for (const spot of spots) spot.classList.add("tutorial-spot");
+  if (!formationTutorialLocked()) return;
+  for (const element of app.querySelectorAll("[data-action]")) {
+    if (spots.some((spot) => spot === element || spot.contains(element))) continue;
+    element.classList.add("tutorial-blocked");
+    element.setAttribute("aria-disabled", "true");
+    if ("disabled" in element) element.disabled = true;
+  }
+}
+
+// 錠が掛かっている間、押してよい要素かどうか。**判定は光らせる先と同じ選択子**なので、
+// 「光っているのに押せない」「光っていないのに押せる」が構造として起きない。
+function formationTutorialAllows(element) {
+  if (!formationTutorialLocked()) return true;
+  const selector = formationTutorialSpotSelector(formationTutorialStep());
+  return Boolean(selector && element?.closest?.(selector));
+}
+
+// 手引きの札。**段ごとに、次の一押しだけを言う。**（補給チュートリアルと同じ作り）
+function formationTutorialNote() {
+  const step = formationTutorialStep();
+  if (!step || !FORMATION_TUTORIAL_GOAL) return "";
+  const name = characterName(FORMATION_TUTORIAL_GOAL.characterId);
+  const rowWord = ROW_WORDS[FORMATION_TUTORIAL_GOAL.row] ?? "後列";
+  const copy = {
+    open: {
+      title: "立ち位置を組み替える",
+      body: "<b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
+        + "上の盤面で光っている「⇅ 隊列」を押してください。",
+    },
+    pick: {
+      title: "動かす仲間を選ぶ",
+      body: "腕力で振る武器は" + rowWord + "から出すと大きく落ち、技術で通す技は落ちない。"
+        + "<b>" + esc(name) + "の攻撃は技なので、" + rowWord + "でも威力が落ちない。</b>"
+        + "光っている" + esc(name) + "のセルを押してください。",
+    },
+    place: {
+      title: rowWord + "へ下げる",
+      body: "<b>敵は届く範囲で最もHPの低い者を狙う。</b>"
+        + "前に二人並べば、柔らかいほうから崩れる。"
+        + "光っている" + rowWord + "の空き枠を押してください。",
+    },
+    done: {
+      title: "一手で、予測が変わる",
+      body: "<b>" + esc(name) + "の応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。</b>"
+        + esc(PROLOGUE.retryHint),
+    },
+  }[step];
+  const marks = [
+    ["open", "「⇅ 隊列」を押す"],
+    ["pick", esc(name) + "を押す"],
+    ["place", rowWord + "の空き枠を押す"],
+  ];
+  const order = ["open", "pick", "place", "done"];
+  const list = marks.map(([id, label], index) => {
+    const mark = order.indexOf(step) > index ? "done" : id === step ? "current" : "todo";
+    return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + label + "</li>";
+  }).join("");
+  return "<section class=\"card tutorial-note-card formation-tutorial\" role=\"status\">"
+    + "<p class=\"eyebrow\">隊列チュートリアル</p>"
+    + "<h3>" + esc(copy.title) + "</h3>"
+    + "<p class=\"tutorial-note\">" + copy.body + "</p>"
+    + "<ol class=\"tutorial-steps\">" + list + "</ol></section>";
 }
 
 // camp の上端に貼りつく盤面。**予測が出せない場面でも盤面は出す**——隊列と現在HPは
@@ -5443,6 +5580,9 @@ function handleAction(event) {
   // 「叩いて進む」が巻き戻し後の一行目（「同じ朝。同じ光。」＝時間が戻ったことを
   // 見せる行）を読み飛ばしていた。長押しの合成呼び出しには止める先が無いので `?.` で呼ぶ。
   if (element.closest?.(".vn-gate")) event.stopPropagation?.();
+  // R11 §5 改 — 隊列チュートリアルの錠は**押せる形（DOM）と経路（ここ）の両方**で掛ける。
+  // 光っていない場所は押しても何も起きない（DESIGN.md §6.4.3 の離脱経路と同じ二重の塞ぎ方）。
+  if (!formationTutorialAllows(element)) return;
   captureSkillTreeScroll();
   state.error = null;
 
@@ -5930,6 +6070,8 @@ function handleAction(event) {
   if (action === "place-character") {
     const position = element.dataset.position;
     const id = selectedFormationCharacter();
+    // R11 §5 改 — 教えている一手の前後を見る（下で、済んだら盤面を自分で畳む）。
+    const tutorialStepBefore = formationTutorialStep();
     if (!POSITIONS.includes(position)) return;
     const other = positionOwner(position);
     if (!id) {
@@ -5956,6 +6098,12 @@ function handleAction(event) {
     state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
     state.formationSelection = null;
     record("formation_changed", { characterId: id, position, swappedWith: other });
+    // 教えていた一手が済んだ。**錠を外し、盤面も自分で通常へ戻す**（教え終わった型を
+    // プレイヤーに畳ませない）。ここから先は技能も装備も予測も自由に触れる。
+    if (tutorialStepBefore === "place" && formationTutorialStep() === "done") {
+      state.formationMode = false;
+      record("formation_tutorial_completed", { characterId: id, position });
+    }
     saveState();
     render();
     return;
