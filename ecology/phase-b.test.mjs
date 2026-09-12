@@ -128,7 +128,7 @@ const FORMATION = {
 // R8 Implementation Phase 1 — currentHp / campaignStageSequence / campaignProgress
 // を追加したので、profile / run / manifest の版をそれぞれ1つ上げた。
 equal(PROFILE_SCHEMA_VERSION, "ecology-profile-2", "profile の版");
-equal(RUN_SCHEMA_VERSION, "ecology-run-4", "run の版");
+equal(RUN_SCHEMA_VERSION, "ecology-run-5", "run の版");
 equal(MANIFEST_VERSION, "ecology-manifest-2", "manifest の版");
 
 // ---- 3幕12戦（R6 §5.1）------------------------------------------------------
@@ -978,6 +978,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   for (const id of ROSTER) equal(runSkillPoints(granted, id), 1, id + "が増える");
 }
 
+
 // ---- 技能の取得予約 ----------------------------------------------------------
 
 {
@@ -1019,7 +1020,6 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   equal(cancelled.ok, true, "取得予約を取り消せる");
   equal(skillReservationFor(cancelled.run, "warden"), null, "取消後は予約が残らない");
 }
-
 
 // ---- 旧 save の移行（R6 §17.2）---------------------------------------------
 
