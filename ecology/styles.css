@@ -3652,7 +3652,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   }
 }
 
-/* ============================================================ 装備の候補（issue #255）
+/* ============================================================ 装備の候補（PR #255）
  *
  * 作者指摘 2026-09-12：「装備は2つとも画面に収める。少なくとも iPhone 16e では
  * スクロールなしで選べてほしい。ヴァンパイアサバイバーズを参考に。もし可能なら、
@@ -3773,7 +3773,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .reward-reroll .button { padding: 9px; font-size: 12px; }
 
-/* 直前の一戦の一行（issue #255）。結果画面の代わりではなく、次の一戦を決める
+/* 直前の一戦の一行（PR #255）。結果画面の代わりではなく、次の一戦を決める
  * 画面の中の「さっき何が起きたか」。 */
 .last-battle-note { padding: 12px 14px; border-left: 3px solid var(--good); }
 .last-battle-note h3 { margin: 2px 0 6px; font-size: 14px; }

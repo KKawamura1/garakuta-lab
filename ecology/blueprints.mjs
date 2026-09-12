@@ -27,7 +27,7 @@ export const BLUEPRINT_MAX_CAPACITY = 5;
 export const BLUEPRINT_CAPACITY_COSTS = Object.freeze(["4000", "20000", "100000", "500000"]);
 export const BLUEPRINT_CAPACITY_UPGRADE_ID = "blueprint_capacity";
 
-// R8 §10.3 は勝利2・安全撤退2・敗北1だった。issue #255 で装備を拾えるのが
+// R8 §10.3 は勝利2・安全撤退2・敗北1だった。PR #255 で装備を拾えるのが
 // ボス戦だけ（遠征あたり最大3品）になったので、**持ち帰りは勝って生還した
 // ときの1件だけ**にした（作者判断 2026-09-12）。
 //

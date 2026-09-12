@@ -8,7 +8,7 @@
 //   - 診断 error（R8 §3.5）: 50 attempt で作れないときに既定品へ黙って落ちない。
 //   - Blueprint（R8 §3.6）: immutable、上限なし archive、持込枠 1〜5、exact 再製造、
 //     互換不能でも消さず disabledReason を出す。
-//   - 保存件数（R8 §10.3 → issue #255）: 勝利1 / 安全撤退0 / 敗北0。
+//   - 保存件数（R8 §10.3 → PR #255）: 勝利1 / 安全撤退0 / 敗北0。
 //   - 遠征経路（R8 §13.2）: 装備が preview と正式実行の両方へ同じ形で入る。
 
 import assert from "node:assert/strict";
@@ -379,7 +379,7 @@ const EFFECT_FLOOR = Object.freeze({
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "rw", runId: "rw", roster: ROSTER, campaignStageSequence: 3 });
   const offer = rewardOffer(run, profile, 1, 0);
-  // issue #255 — 候補は装備だけの2件。補給は開始時に固定されるので混ざらない。
+  // PR #255 — 候補は装備だけの2件。補給は開始時に固定されるので混ざらない。
   equal(offer.length, 2, "候補は2件");
   const equipmentOffers = offer.filter((entry) => entry.type === "equipment");
   equal(equipmentOffers.length, 2, "装備候補は2件");
@@ -550,7 +550,7 @@ const EFFECT_FLOOR = Object.freeze({
 // ---- 遠征終了時の保存件数（R8 §10.3）----------------------------------------
 
 {
-  // issue #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・敗北0）。
+  // PR #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・敗北0）。
   const outcomes = [["won", 1], ["retreat", 0], ["lost", 0]];
   for (const [outcome, limit] of outcomes) {
     equal(BLUEPRINT_SAVE_LIMIT[outcome], limit, `${outcome} の保存上限は ${limit}`);
@@ -621,7 +621,7 @@ const EFFECT_FLOOR = Object.freeze({
     keepDescriptors: candidates.map((item) => item.descriptor),
   });
   equal(overflow.settlement.savedBlueprints.length, BLUEPRINT_SAVE_LIMIT.won, "勝利の上限を超えない");
-  // issue #255 — 撤退と敗北は0件なので、**全部選んでも一つも残らない。**
+  // PR #255 — 撤退と敗北は0件なので、**全部選んでも一つも残らない。**
   const retreatKeep = settleRun(profile, run, "retreat", {
     keepDescriptors: candidates.map((item) => item.descriptor),
   });

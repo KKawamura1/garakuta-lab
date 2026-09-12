@@ -857,7 +857,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
 {
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "s", runId: "r9", roster: ROSTER });
-  // issue #255 — 補給はシナリオ中3個で固定。報酬で足せず、遠征中に総数は動かない。
+  // PR #255 — 補給はシナリオ中3個で固定。報酬で足せず、遠征中に総数は動かない。
   equal(run.supplies, STARTING_SUPPLIES_BASE, "開始補給は固定値");
   equal(run.supplies, 3, "固定値は3");
   equal(run.suppliesMax, 3, "その遠征の総数も3（表記の分母）");
@@ -916,7 +916,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   equal(dismantle(run, "no_such_item").ok, false, "持っていない品は分解できない");
   equal(convertScrap(broken.run).ok, false, "scrap 1 では替えられない");
   const twice = dismantle(broken.run, broken.run.inventory[0]);
-  // issue #255 — 補給は開始時に満杯なので、屑で戻せるのは**使った分だけ**である。
+  // PR #255 — 補給は開始時に満杯なので、屑で戻せるのは**使った分だけ**である。
   equal(convertScrap(twice.run).ok, false, "満杯の遠征では屑を替えられない");
   const spent = { ...twice.run, supplies: twice.run.supplies - 1 };
   const converted = convertScrap(spent);
@@ -931,12 +931,12 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "seed-x", runId: "rd", roster: ROSTER });
   const offer = rewardOffer(run, profile, 1, 0);
-  // issue #255 — 候補は装備だけ。補給は遠征開始時に固定され、報酬と取り合わない。
+  // PR #255 — 候補は装備だけ。補給は遠征開始時に固定され、報酬と取り合わない。
   equal(offer.length, 2, "候補2件");
   equal(offer.filter((o) => o.type === "equipment").length, 2, "装備2");
   equal(offer.filter((o) => o.type === "skill_points").length, 0, "技能点は自動付与");
   equal(offer.filter((o) => o.type === "supplies").length, 0, "補給は候補に入らない");
-  // issue #255 — 候補が出るのはボス戦突破後だけ。
+  // PR #255 — 候補が出るのはボス戦突破後だけ。
   equal(offersRewardAfterClear(1), false, "通常戦では装備を選ばない");
   equal(offersRewardAfterClear(3), false, "精鋭戦でも装備を選ばない");
   equal(offersRewardAfterClear(4), true, "4戦目のボスで装備を選ぶ");

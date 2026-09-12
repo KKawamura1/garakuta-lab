@@ -71,7 +71,7 @@ const firedBySource = new Map();
 const seenBySource = new Map();
 // **trigger ごとに拾う。**「n 個おき」で間引くと、どの trigger が標本から
 // 漏れるかが affix 目録の変化で揺れて、「鳴らなかった」のか「試されなかった」
-// のかが分からなくなる（issue #255 で目録が増えたとき実際にそうなった）。
+// のかが分からなくなる（PR #255 で目録が増えたとき実際にそうなった）。
 // trigger ごとに上限を決めて拾えば、全 trigger が必ず盤面へ出る。
 const PROBES_PER_SOURCE = 4;
 const probeQuota = new Map();
@@ -128,7 +128,7 @@ for (let sequence = 0; sequence <= 3; sequence += 1) {
     const equipmentCount = offers.filter((offer) => offer.type === "equipment").length;
     const suppliesCount = offers.filter((offer) => offer.type === "supplies").length;
     offersChecked += 1;
-    // issue #255 — 候補は装備だけ。補給は遠征開始時に固定されるので混ざらない。
+    // PR #255 — 候補は装備だけ。補給は遠征開始時に固定されるので混ざらない。
     if (offers.length !== 2 || equipmentCount !== 2 || suppliesCount !== 0) {
       invalidRewardOffers += 1;
     }

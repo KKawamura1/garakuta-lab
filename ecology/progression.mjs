@@ -138,7 +138,7 @@ export function nextVisibleTrainingLevel(baseStat, level) {
 // category だけ置くと、画面に「常に買えない行」が出る。6個目以降を足すときに開く。
 export const APPRAISAL_UPGRADE_ID = "appraisal";
 export const APPRAISAL_COSTS = Object.freeze(["15000", "45000", "120000", "300000", "750000"]);
-// issue #255 — **補給はシナリオを通して固定**にした。報酬で足せず、遠征中に
+// PR #255 — **補給はシナリオを通して固定**にした。報酬で足せず、遠征中に
 // 増えないので、「いま使うか、後へ残すか」だけが判断になる（以前は「補給を
 // 報酬で取るか、装備を取るか」が毎戦の判断で、思考負荷の主因だった）。
 // 画面の表記も残り/その遠征の総数（3/3）にし、分母はギルドの「開始補給」で伸びる。
@@ -652,7 +652,7 @@ export const RUN_SKILL_POINTS_PER_REWARD = 1;
 // level ぶんを加えた点から始める。勝利報酬は遠征内だけに残る。
 export const STARTING_RUN_SKILL_POINTS = 0;
 
-// issue #255 — 遠征の補給はここで一度だけ決まる。**遠征中は増えない**ので、
+// PR #255 — 遠征の補給はここで一度だけ決まる。**遠征中は増えない**ので、
 // これがその遠征の総数（表記の分母）でもある。導入用の特例は置かない
 // （Stage 0 だけ1個という例外があると、「3/3」が最初の遠征で嘘になる）。
 export function startingSupplies(profile, rank) {
@@ -716,7 +716,7 @@ export function newRun(profile, options = {}) {
     encounterIndex: 1,
     act: 1,
     supplies: supplies,
-    // issue #255 — その遠征の補給総数。**画面の分母はここを読む**（`MAX_SUPPLIES`
+    // PR #255 — その遠征の補給総数。**画面の分母はここを読む**（`MAX_SUPPLIES`
     // は永続強化を積んだときの天井で、この遠征の総数とは別物）。遠征中は動かない。
     suppliesMax: supplies,
     // issue #238 — この遠征でもう必殺技を放った人物。**一人につき一遠征に一度きり**
@@ -938,7 +938,7 @@ export function runSuppliesMax(run) {
   return Math.min(MAX_SUPPLIES, Math.max(STARTING_SUPPLIES_BASE, run?.supplies ?? 0));
 }
 
-// issue #255 — **遠征中に総数を超えて増えない。** 残すのは「使った分を屑から
+// PR #255 — **遠征中に総数を超えて増えない。** 残すのは「使った分を屑から
 // 戻す」経路だけで、報酬で足す経路は廃止した。
 export function gainSupply(run, amount = 1) {
   return { ...run, supplies: Math.min(runSuppliesMax(run), (run.supplies ?? 0) + amount) };
@@ -1341,7 +1341,7 @@ export function generatedRewardCandidate(run, profile, encounterIndex, rerollInd
 
 // ============================================================ 報酬（R6 §5.3）
 //
-// issue #255 — **装備を選ぶのはボス戦を突破したときだけ。**毎戦の3択は
+// PR #255 — **装備を選ぶのはボス戦を突破したときだけ。**毎戦の3択は
 // 「装備どうしを比べる」と「装備と補給を見比べる」を同時に要求していて、
 // 12戦のあいだ判断が途切れなかった（作者指摘 2026-09-12）。ボス戦の後だけに
 // すると、通常戦・精鋭戦の後はそのままキャンプへ戻り、予測を見て次へ進める。
@@ -1647,7 +1647,7 @@ export function settleRun(profile, run, outcome, options = {}) {
 
   // R8 §3.6 / §10.3 — Phase C。遠征終了時に、この run で見つけた装備を
   // Blueprint archive へ exact に残す。件数は確定結果で変わる
-  // （issue #255 以降は勝利1 / 安全撤退0 / 敗北0）。**持込品は既に archive に
+  // （PR #255 以降は勝利1 / 安全撤退0 / 敗北0）。**持込品は既に archive に
   // あるので数えない。**
   // 選ぶ順は「rarity が高い順 → 表示名 → id」で決定的にする。取得順に依らせると、
   // 同じ遠征を同じように遊んでも残る品が変わる。

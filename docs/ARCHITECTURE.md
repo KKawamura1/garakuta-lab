@@ -97,7 +97,7 @@ barrier / 増減の amount）は各技能にちょうど一つで、説明文は
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
-### 報酬と戦闘後の行き先（issue #255）
+### 報酬と戦闘後の行き先（PR #255）
 
 装備の候補を出す戦闘は `progression.offersRewardAfterClear(index)` の一箇所が決めます。
 `REWARD_ENCOUNTER_KINDS`（いまは `["boss"]`）に含まれる種別の戦闘＝4・8・12戦目だけが
@@ -450,7 +450,7 @@ affix由来のHP・防壁・RP等の追加costとは別枠で、engineの既存�
 この変更は生成装備ruleの既存cost欄の意味を変えるため、content contractは18へ上げる。
 generator version 7より前のBlueprintは互換不能理由を表示し、現行ruleへ黙って読み替えない。
 
-### affix 目録の追加（issue #255 / generator version 8）
+### affix 目録の追加（PR #255 / generator version 8）
 
 作者指摘「ダメージ増加系の装備がない」「スキルやキャラとのコンボのワクワクが無い」
 「『回復が仲間全体につく』のに回復効果のない装備がある」に対して、目録（`content/affixes.mjs`）

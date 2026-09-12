@@ -28,7 +28,7 @@ if (server) await new Promise((resolve) => setTimeout(resolve, 900));
 
 // 作者指摘 2026-09-12 —「少なくとも iPhone 16e ではスクロールなしで選べてほしい」。
 // 実機の Safari は 390x844 の CSS viewport のうち上下のバーでおよそ 660px しか
-// 残さないので、**画面の高さではなくこの予算**で収まりを見る（issue #255）。
+// 残さないので、**画面の高さではなくこの予算**で収まりを見る（PR #255）。
 const SAFARI_VISIBLE_HEIGHT = 660;
 
 const steps = [];
@@ -569,7 +569,7 @@ try {
   // 本編第1戦の勝利になる（以前はここで一度キャンプへ戻し、フルスペックの
   // 「灰の入口」をもう一度戦わせてから報酬を出していた）。
   //
-  // issue #255 — 第1戦は通常戦なので装備の候補は出ない。**結果画面も挟まず**、
+  // PR #255 — 第1戦は通常戦なので装備の候補は出ない。**結果画面も挟まず**、
   // そのままキャンプへ戻り、直前の一戦の一行と補給チュートリアルが出る。
   const resultAfterWinText = await bodyText();
   note("巻き戻しての勝利がそのまま本編第1戦になる",
@@ -592,7 +592,7 @@ try {
           && await page.locator(".supply-tutorial").count() === 1);
       const mapTab = page.locator('nav.tabs [data-tab="map"]');
       const equipmentTab = page.locator('nav.tabs [data-tab="equipment"]');
-      // issue #255 — 補給はシナリオを通して3個で固定。表記も残り/総数（3/3）にした。
+      // PR #255 — 補給はシナリオを通して3個で固定。表記も残り/総数（3/3）にした。
       note("開始補給は固定の3個で、表記も残り/総数になっている",
         /補給 3 \/ 3/.test(await page.locator(".supplies-head b").innerText()));
       note("補給タブの札も残り/総数で出る",
@@ -632,7 +632,7 @@ try {
               && await page.locator(".supply-treatment-result").count() === 1);
         }
       }
-      // issue #255 — **装備を選ぶのはボス戦を突破したあとだけ。**第4戦（盾将の門）
+      // PR #255 — **装備を選ぶのはボス戦を突破したあとだけ。**第4戦（盾将の門）
       // まで進めて、そこで候補が出ること、iPhone 16e の画面にスクロールなしで
       // 収まること、拾った品が持ち物へ入ることを順に見る。
       await page.evaluate(() => {
@@ -714,7 +714,7 @@ try {
   //
   // **画面の文言だけでなく、次の遠征の持ち物に実物が入るところまで見る。**
   //
-  // issue #255 — 設計図を持ち帰れるのは**12戦を抜けて生還したときだけ**になった
+  // PR #255 — 設計図を持ち帰れるのは**12戦を抜けて生還したときだけ**になった
   // （勝利1・撤退0・敗北0）。ここは同時に、12戦目のボス報酬（受け取ったら次の戦闘
   // ではなく精算へ渡し、候補を作り直さない）と、issue #151 の「残す設計図を選ぶ」
   // 画面を踏む場所でもある。2人編成の Stage 0 では第12戦に実際には勝てないので、
@@ -1033,7 +1033,7 @@ try {
       await page.waitForTimeout(150);
       note("一手戻すとカットインも閉じる", await page.locator(".ultimate-cutin.show").count() === 0);
       await page.locator('.speed-button[data-speed="fast"]').click();
-      // issue #255 — 第1戦は通常戦なので、結果画面も装備の候補も挟まずキャンプへ戻る。
+      // PR #255 — 第1戦は通常戦なので、結果画面も装備の候補も挟まずキャンプへ戻る。
       await page.locator('[data-action="replay-result"]').first().click();
       await page.waitForTimeout(400);
       note("必殺を構えた第1戦に勝てる",

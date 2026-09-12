@@ -245,7 +245,7 @@ const SOURCES = [
     listenTo: "round_started", anchor: "none", predicates: [],
     provides: ["round_tick"], supports: ["damage", "setup"], valueKeys: ["round"],
   },
-  // issue #255 — **与ダメージを増やす装備の入口。** これまで damage_proposed を
+  // PR #255 — **与ダメージを増やす装備の入口。** これまで damage_proposed を
   // 読めるのは「自分が受ける直前」（src_incoming）だけで、与える側の直前を読む
   // trigger が無かった。そのため「ダメージが増える装備」が一つも作れず、装備の
   // 払い先が守り・支援・追撃へ偏っていた（作者指摘 2026-09-12）。
@@ -345,7 +345,7 @@ const CONVERTERS = [
       window: "round", op: "gte", value: 2,
     }],
   },
-  // issue #255 — **刻んだ状態を条件にする。** 隙も裂傷も技能が配るものなので、
+  // PR #255 — **刻んだ状態を条件にする。** 隙も裂傷も技能が配るものなので、
   // この条件を持つ装備は「誰かが先に刻む」構成の中でだけ強く鳴る（装備単独で
   // 完結させない）。group は cnv_focused と同じ status 軸に置き、同じ rule へ
   // 二つ入らないようにする。
@@ -455,7 +455,7 @@ const PAYOFFS = [
     }),
     payoffTags: ["damage"],
   },
-  // issue #255 — **ダメージ増加そのもの。** 追撃（別インスタンス）ではなく、
+  // PR #255 — **ダメージ増加そのもの。** 追撃（別インスタンス）ではなく、
   // いま決まろうとしている自分の一撃を太らせる。多段技なら hit ごとに判定される
   // ので、limit が実質の「何発ぶん増えるか」になる。
   {
@@ -468,7 +468,7 @@ const PAYOFFS = [
     }),
     payoffTags: ["damage"],
   },
-  // issue #255 — **隙を隊全体の得に変える。** 自分の追撃にはならないが、誰の
+  // PR #255 — **隙を隊全体の得に変える。** 自分の追撃にはならないが、誰の
   // ダメージも通るようになるので、刃・連撃・必殺と組んだときに一番鳴る。
   {
     id: "pay_rend", familyId: "family_edge", role: "payoff", power: 3,
@@ -477,7 +477,7 @@ const PAYOFFS = [
     effect: (amount) => ({ type: "add_status", target: ALL_ENEMIES, statusId: "exposed", stacks: amount }),
     payoffTags: ["setup", "damage", "handoff"],
   },
-  // issue #255 — **刻んだ相手の数だけ伸びるダメージ。** 裂傷を配る技能・装備が
+  // PR #255 — **刻んだ相手の数だけ伸びるダメージ。** 裂傷を配る技能・装備が
   // 先に要るので、単独では一体ぶんしか出ない（発生源・変換器・利得先の分離）。
   {
     id: "pay_rupture", familyId: "family_scar", role: "payoff", power: 3,
@@ -753,7 +753,7 @@ const KEYSTONES = [
       ? { ...effect, hitCount: (effect.hitCount ?? 1) + 1 }
       : effect,
   },
-  // issue #255 — 作者指摘「ダメージ増加系の装備がない」。hit を増やす双つ刃は
+  // PR #255 — 作者指摘「ダメージ増加系の装備がない」。hit を増やす双つ刃は
   // 受け（guard）に二度払うので、単発の重い rule では伸びない。**量そのものを
   // 増やす keystone**を別に置き、刃の構成に二つの伸び方を与える。
   {

@@ -280,7 +280,7 @@ function syntheticResult(result, allyHpById) {
   equal(retreated.settlement.breakdown.outcomeBonus, 0, "安全撤退には完走ボーナスが付かない");
   equal(retreated.settlement.firstClear, false, "安全撤退には初clearボーナスが付かない");
   equal(retreated.settlement.blueprintSaveLimit, BLUEPRINT_SAVE_LIMIT.retreat, "安全撤退のBlueprint保存上限");
-  // issue #255（作者判断 2026-09-12）— **設計図を持ち帰れるのは勝って生還したときだけ。**
+  // PR #255（作者判断 2026-09-12）— **設計図を持ち帰れるのは勝って生還したときだけ。**
   // 撤退と敗北は0件で、資金と Stage 解禁の側だけが撤退と敗北を区別する。
   equal(BLUEPRINT_SAVE_LIMIT.won, 1, "勝利の保存上限は1");
   equal(BLUEPRINT_SAVE_LIMIT.retreat, 0, "安全撤退では設計図が残らない");

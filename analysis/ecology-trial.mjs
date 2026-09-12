@@ -34,7 +34,7 @@ const stop = () => { if (server) { try { process.kill(-server.pid); } catch { /*
 if (server) await new Promise((resolve) => setTimeout(resolve, 900));
 
 // 作者指摘 2026-09-12 — 装備の候補は iPhone 16e でスクロールなしに選べること。
-// 実機 Safari は 390x844 のうち上下のバーで約 660px しか残さない（issue #255）。
+// 実機 Safari は 390x844 のうち上下のバーで約 660px しか残さない（PR #255）。
 const SAFARI_VISIBLE_HEIGHT = 660;
 
 const steps = [];
@@ -417,7 +417,7 @@ try {
   let sawAnimation = false;
   let retried = false;
   let rerolled = false;
-  // issue #255 — 装備の候補を出さない戦闘の勝利は、結果画面を通らずキャンプへ戻る。
+  // PR #255 — 装備の候補を出さない戦闘の勝利は、結果画面を通らずキャンプへ戻る。
   // その形は一度だけ確かめる（12戦で同じ札を何度も数えない）。
   let campReturnSeen = false;
   let rewardScreenSeen = false;
@@ -718,7 +718,7 @@ try {
       reloaded = true;
     }
 
-    // issue #255 — **結果画面は、そこで決めることがある戦闘にだけ出る。**
+    // PR #255 — **結果画面は、そこで決めることがある戦闘にだけ出る。**
     // ボス戦（4・8戦目）の勝利は装備の候補を出し、12戦目は精算へ、敗北は敗北処理へ
     // 進む。通常戦・精鋭戦の勝利はそのままキャンプへ戻るので、`.verdict` を待つと
     // 永久に待つことになる。どちらへ着いたのかで分ける。
@@ -734,7 +734,7 @@ try {
     const verdict = cameBackToCamp
       ? "突破した"
       : (await page.locator(".verdict h2, .verdict-slim-line b").first().textContent())?.trim().replace(/^✓\s*/, "") ?? "";
-    // issue #238 — 放ったら、その場で「印を払った」と分かる。issue #255 以降は
+    // issue #238 — 放ったら、その場で「印を払った」と分かる。PR #255 以降は
     // 結果画面とキャンプの一行の**どちらにも同じ文**が出るので、着いた先を問わず見る。
     const noteUltimateSeal = async (where) => {
       if (ultimateSpentSeen) return;
@@ -793,7 +793,7 @@ try {
           && await onScreen(".result-primary-action .button")
           && await appearsBefore(".result-primary-action", ".result-actors"));
     }
-    // issue #255 — **装備の候補は、ボス戦を突破した画面の中に出る。**
+    // PR #255 — **装備の候補は、ボス戦を突破した画面の中に出る。**
     // 作者指摘 2026-09-12 —「装備は2つとも画面に収める。少なくとも iPhone 16e では
     // スクロールなしで選べてほしい。」 この trial の viewport は iPhone 16e 相当なので、
     // 2枚の札と「これを拾う」が**折り返しより上に全部入っている**ことまで見る。
@@ -861,7 +861,7 @@ try {
     } else if (stage >= 12) {
       await click("遠征を精算する");
     } else {
-      // 候補の無い勝利で結果画面に残るのは中断復帰の保険だけ（issue #255）。
+      // 候補の無い勝利で結果画面に残るのは中断復帰の保険だけ（PR #255）。
       await click("キャンプへ戻る");
     }
   }
@@ -887,7 +887,7 @@ try {
   // 等級順の自動保存では、今回の構成を成立させた低レア品より使わなかった高レア品が
   // 残ってしまう。候補・上限・全文が出て、選んだ品だけが残るところまで見る。
   //
-  // issue #255 — 設計図が残るのは**12戦を抜けて生還したときだけ**（勝利1・撤退0・
+  // PR #255 — 設計図が残るのは**12戦を抜けて生還したときだけ**（勝利1・撤退0・
   // 敗北0）なので、この画面は完走した回にしか出ない。途中で終わった回は下の
   // 「持ち帰れない」表示を見る（tutorial trial は完走の側を踏む）。
   if (await page.locator(".keep-list").count() > 0) {
@@ -923,7 +923,7 @@ try {
   // R6 §9.2 — 精算は一度だけ。内訳と残高が画面に出る。
   const settleText = await bodyText();
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
-  // issue #255 — 途中で終わった遠征は設計図を持ち帰れない。**理由を書く**
+  // PR #255 — 途中で終わった遠征は設計図を持ち帰れない。**理由を書く**
   // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
   if (!/12戦を抜けた/.test(settleText) && /設計図として残した品/.test(settleText)) {
     note("完走しなかった遠征は設計図を持ち帰れないと書いてある",

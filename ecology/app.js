@@ -131,7 +131,7 @@ import {
   upgradeCost,
   upgradeLevel,
   INVENTORY_LIMIT,
-  // issue #255 — 遠征ごとの補給総数（表記の分母）と、装備候補を出す戦闘の判定。
+  // PR #255 — 遠征ごとの補給総数（表記の分母）と、装備候補を出す戦闘の判定。
   // 画面は `MAX_SUPPLIES`（永続強化を積んだときの天井）を読まない。読むのは
   // つねに**その遠征の総数**で、分母が画面ごとにずれないようにする。
   runSuppliesMax,
@@ -476,10 +476,10 @@ function freshUiState() {
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
-    // issue #255 — ボス戦以外の勝利は結果画面を挟まずキャンプへ戻るので、
+    // PR #255 — ボス戦以外の勝利は結果画面を挟まずキャンプへ戻るので、
     // 「直前の一戦で何が起きたか」をキャンプの一枚だけが預かる。
     lastBattleNote: null,
-    // issue #255 — 最終戦で装備を受け取った戦闘。**候補を作り直さない**ための印。
+    // PR #255 — 最終戦で装備を受け取った戦闘。**候補を作り直さない**ための印。
     rewardTakenAtEncounter: null,
     // issue #151 — 精算で残す設計図の選択（descriptor の配列）。
     blueprintKeep: null,
@@ -607,7 +607,7 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.run.inventory = Array.isArray(savedRun.inventory)
     ? savedRun.inventory.filter((id) => componentInfo(id)).slice(0, INVENTORY_LIMIT)
     : [];
-  // issue #255 — 遠征ごとの補給総数。**古い保存には欄が無い**ので、持っている数と
+  // PR #255 — 遠征ごとの補給総数。**古い保存には欄が無い**ので、持っている数と
   // 固定値から読み直す（`runSuppliesMax`）。読み直した総数より多くは持てない。
   next.run.suppliesMax = runSuppliesMax(savedRun);
   next.run.supplies = Math.max(0, Math.min(next.run.suppliesMax, Math.floor(savedRun.supplies ?? 0)));
@@ -2377,7 +2377,7 @@ function finishStory() {
   }
   // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。
   //
-  // issue #255 — **第1戦は通常戦なので、装備の候補は出ない。**以前は結果画面が
+  // PR #255 — **第1戦は通常戦なので、装備の候補は出ない。**以前は結果画面が
   // 報酬選択を兼ねていたので一枚挟んでいたが、選ぶものが無くなったため、会話の
   // あとはそのままキャンプへ戻る（`advanceAfterBattle` が prologueActive を落とし、
   // 技能点の付与と補給チュートリアルの提示もそこで揃う）。
@@ -2692,7 +2692,7 @@ function renderCamp() {
     "<div class=\"camp-top\">" + partyBar(activeTab) + campNav() + "</div>"
     // issue #240 — 必殺技の手引きは**どのタブでも同じ場所**に出す（構える行は技能タブ、
     // 挑む釦は遠征タブにあるので、片方のタブへ書くと段の途中で札が消える）。
-    // issue #255 — 直前の一戦の一行も同じ理由でここに出す。戻った先のタブは
+    // PR #255 — 直前の一戦の一行も同じ理由でここに出す。戻った先のタブは
     // 場面によって変わる（補給チュートリアル中は補給タブに錠が掛かる）ので、
     // 遠征タブだけに書くと「さっき何が起きたか」が読めない回ができる。
     + ultimateLessonNote() + lastBattleNoteHtml() + view,
@@ -3726,7 +3726,7 @@ function renderEnemy(enemy, { withLore = true } = {}) {
 // R6 §12.1 — 補給は3用途で共有する。**引き直しに使うと再挑戦の余地が減る。**
 // そのトレードオフを、残数と用途を同じ場所へ並べて見せる。
 //
-// issue #255 — 分母は**その遠征の総数**（既定3、ギルドの「開始補給」で伸びる）。
+// PR #255 — 分母は**その遠征の総数**（既定3、ギルドの「開始補給」で伸びる）。
 // 遠征中に増えないので、「3/3」が最初から最後まで同じ意味で読める。
 function supplyTotal() {
   return runSuppliesMax(state.run);
@@ -3764,7 +3764,7 @@ function renderSupplies() {
 }
 
 
-// issue #255 — 直前の一戦の一行。**結果画面の代わりではない。**決めることが
+// PR #255 — 直前の一戦の一行。**結果画面の代わりではない。**決めることが
 // 何も無い画面を一枚挟む代わりに、次の一戦を決める画面の中へ「さっき何が起きたか」
 // だけを置く。次の戦闘を始めた時点で消える（`simulateAndEnterBattle`）。
 function lastBattleNoteHtml() {
@@ -4836,7 +4836,7 @@ function renderBattle() {
     + button("一手 ▶", "replay-step", true, "button", "data-role=\"replay-step\"")
     + "</div>"
     + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
-    // issue #255 — 行き先が変わったので札も変える。通常戦・精鋭戦の勝利は
+    // PR #255 — 行き先が変わったので札も変える。通常戦・精鋭戦の勝利は
     // 結果画面を通らず、そのままキャンプへ戻る。
     + button(resultScreenDue() ? "結果を見る" : "キャンプへ戻る", "replay-result", false, "button") + "</section>"
     + helpDetails("battle-display", "表示の説明",
@@ -5409,7 +5409,7 @@ function renderResult() {
     : won
       ? rewardDueForCurrentEncounter() && state.rewardOffer.length
         ? rewardSectionHtml()
-        // issue #255 — 最終戦の候補を受け取り終えたら、そのまま精算へ進む。
+        // PR #255 — 最終戦の候補を受け取り終えたら、そのまま精算へ進む。
         // 候補の無い勝利で結果画面に残るのは中断復帰と古い保存だけだが、
         // そこでも「次の一手」を必ず出す。
         : state.run.encounterIndex >= ENCOUNTERS_PER_RUN
@@ -5431,7 +5431,7 @@ function renderResult() {
     ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
     : "<p class=\"muted\">持ち帰る活動資金 <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
       + "</b> · 到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + "</p>";
-  // issue #255 — **装備を選ぶ画面では、verdict を一行に畳む。**候補2枚と拾う釦を
+  // PR #255 — **装備を選ぶ画面では、verdict を一行に畳む。**候補2枚と拾う釦を
   // iPhone 16e でスクロールなしに収めるには、勝ち負けの大札（✓ と4つの指標）が
   // 入る余地が無い。指標は下の「戦闘後の状態」に残し、上端は「何に勝って、何を
   // 選ぶのか」だけにする。候補が3つに増えても同じ形で収まる。
@@ -5482,7 +5482,7 @@ function renderResult() {
     + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
-  // issue #255 — 装備を選ぶ画面では上端の「安全に撤退する」を出さない。**候補を
+  // PR #255 — 装備を選ぶ画面では上端の「安全に撤退する」を出さない。**候補を
   // 一つ拾ってから撤退できる**（先に撤退すると、選ばせておいて取り上げる形になる）。
   // 35px ぶんの一行が、2枚（将来3枚）を折り返しの上へ収めるためにも要る。
   return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history,
@@ -5565,7 +5565,7 @@ function generatedVoice(item) {
   return lines[(affixes + durability) % lines.length];
 }
 
-// issue #255 — **装備の候補を出すのはボス戦を突破したときだけ。**判定は
+// PR #255 — **装備の候補を出すのはボス戦を突破したときだけ。**判定は
 // progression 側の一箇所（`offersRewardAfterClear`）が持つので、画面と進行が
 // 別々の条件を持たない。
 function rewardDueForCurrentEncounter() {
@@ -5576,7 +5576,7 @@ function rewardDueForCurrentEncounter() {
 // すでに用意済み（引き直し済みも含む）なら上書きしない。
 function ensureResultReward(won, prologueUnresolved) {
   if (!won || prologueUnresolved || !rewardDueForCurrentEncounter()) return;
-  // issue #255 — 最終戦（12戦目）の候補を受け取ったあとは、同じ画面に留まって
+  // PR #255 — 最終戦（12戦目）の候補を受け取ったあとは、同じ画面に留まって
   // 精算へ進む。**受け取った戦闘の候補を作り直さない**（何度でも拾えてしまう）。
   if (state.rewardTakenAtEncounter === state.run.encounterIndex) return;
   if (state.rewardOffer.length) return;
@@ -5585,7 +5585,7 @@ function ensureResultReward(won, prologueUnresolved) {
   record("reward_presented", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
 }
 
-// issue #255 — **装備の2候補を、1画面に収める。**
+// PR #255 — **装備の2候補を、1画面に収める。**
 //
 // 作者指摘 2026-09-12：「装備は2つとも画面に収める。少なくとも iPhone 16e では
 // スクロールなしで選べてほしい。ヴァンパイアサバイバーズを参考に。」
@@ -5733,7 +5733,7 @@ function blueprintSettlementSection(settlement) {
   const cards = saved.map((entry) =>
     "<div class=\"settle-row\"><span>" + esc(entry.displayName) + rarityChip(entry.rarity)
     + "</span><b>" + (entry.added ? "新しく残した" : "取得履歴を追加") + "</b></div>").join("");
-  // issue #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・
+  // PR #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・
   // 敗北0）。残せないときは「残せなかった」ではなく**なぜ残らないのか**を言う
   // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
   const limit = settlement.blueprintSaveLimit;
@@ -5963,7 +5963,7 @@ function rewindPrologue() {
   enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null });
 }
 
-// issue #255 — **結果画面は、そこで決めることがある戦闘にだけ出す。**
+// PR #255 — **結果画面は、そこで決めることがある戦闘にだけ出す。**
 // 残るのは三つだけである。
 //
 //   1. 負けた（再挑戦するか、精算するかを決める）
@@ -6034,7 +6034,7 @@ function simulateAndEnterBattle() {
   // issue #240 — いま挑むのが必殺技の教材の一戦か。**戦う前に数えておく**
   // （勝つと encounterIndex が進むので、後から判定すると答えが変わる）。
   const lessonBattle = ultimateLessonActive();
-  // issue #255 — 直前の一戦の一行と、最終戦の受け取り印は、次の一戦を始めた
+  // PR #255 — 直前の一戦の一行と、最終戦の受け取り印は、次の一戦を始めた
   // 時点で役目を終える。
   state.lastBattleNote = null;
   state.rewardTakenAtEncounter = null;
@@ -6171,7 +6171,7 @@ function simulateAndEnterBattle() {
   render();
 }
 
-// issue #255 — ボス戦以外の勝利は結果画面を通らないので、「何が起きたか」は
+// PR #255 — ボス戦以外の勝利は結果画面を通らないので、「何が起きたか」は
 // ここで一度だけ写して遠征タブへ渡す。**戦闘の記録そのものではない**
 // （それは run.results と戦闘履歴が持つ）。次の一戦を始めた時点で消える。
 function captureLastBattleNote(completedEncounter) {
@@ -7184,12 +7184,12 @@ function handleAction(event) {
         record("reward_taken", { encounter: state.run.encounterIndex, reward: "equipment", equipmentId: offer.equipmentId });
       }
     } else {
-      // 旧い保存に残っている補給の候補だけがここへ来る（issue #255 以降、
+      // 旧い保存に残っている補給の候補だけがここへ来る（PR #255 以降、
       // 補給は報酬の候補に出ない）。
       state.run = gainSupply(state.run, offer.amount);
       record("reward_taken", { encounter: state.run.encounterIndex, reward: "supplies", amount: offer.amount });
     }
-    // issue #255 — **最終戦の報酬は、次の戦闘ではなく精算へつながる。**
+    // PR #255 — **最終戦の報酬は、次の戦闘ではなく精算へつながる。**
     // 12戦目もボス戦なので候補は出るが、遠征はここで終わるので encounterIndex は
     // 進めない。受け取った印を置いて、同じ画面の「遠征を精算する」へ渡す。
     if (state.run.encounterIndex >= ENCOUNTERS_PER_RUN) {
@@ -7203,7 +7203,7 @@ function handleAction(event) {
     return;
   }
 
-  // issue #255 — 候補の無い勝利から次へ進む。通常は結果画面を通らないので、
+  // PR #255 — 候補の無い勝利から次へ進む。通常は結果画面を通らないので、
   // この釦は中断復帰と古い保存のための保険である（進み方は報酬と同じ経路）。
   if (action === "advance-encounter") {
     if (state.lastResult?.result !== "win") return;
