@@ -102,7 +102,7 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 技能の前提は `{ skillId, minLv }` で、判定は `content/skill-tree.mjs` の `prerequisitesMet` / `unmetPrerequisites` 一箇所を、解禁 API（`progression.unlockRunSkill`）・画面（`app.js` の `skillNodeState`）・加入時の無償閉包（`playable-battles.initialUnlockedSkills` と `initialSkillLevels`）が共有します。無償閉包が Lv1 より上を要求するときは、その Lv も加入時に無償で付きます（取得済みなのに前提 Lv 不足で子が取れない形を作らないため）。前提が上限 Lv を超えていないか、その Stage で出る節を一遠征ぶんの技能点で取り切れるかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
 通常の `newRun` は開始補給0から始まり、`options.tutorial === true` の Stage 0 導入だけ開始補給1を受け取ります。New Game が作る `runId` を `supplyTutorialRunId` として画面状態に保持し、その導入遠征だけを必須チュートリアルの対象にします。通常遠征・再訪・既存セーブはこの marker を持たないため、補給タブを任意に使えます。初回の本編第1戦の報酬後、`app.js` は補給タブを開き、`treatmentSelection` で集中治療を選ぶ段階を保持します。単体治療は `treatmentTargetIds()` が返す候補から `select-treatment-target` を受けるまで補給を消費せず、確定後だけ既存の `progression.mjs` の `campTreat` へ明示した target ID を渡します。対象を選ぶ画面は補給タブ専用の一覧ではなく、上端の共通盤面（`partyCellRole` の `supplies` mode）です。結果は `treatmentResult` と `role=status` で表示し、完了印は `ProfileState.storyFlags` に保存します。`supplyTutorialVisible()` 中は nav の他タブ、`begin-stage`、撤退経路を UI と handler の両方で閉じます。
 
-序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
+序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。巻き戻し直後の camp は隊列チュートリアル（DESIGN.md 6.4.4）に入り、`formationTutorialStep()` が `open` / `pick` / `place` / `done` の段を返します。教える一手は content 側の `PROLOGUE.tutorial`（`characterId` / `row`）が持ち、`formationTutorialSpotSelector()` が段ごとの選択子を一箇所で作ります。`render()` の後段の `applyFormationTutorialGate()` が、その選択子に当たる要素へ `tutorial-spot`（光）を付け、`done` 以外の段では他の `[data-action]` を `tutorial-blocked` と `disabled` で塞ぎます。`handleAction` も同じ選択子で弾くので、押せる形と経路の両方が同じ判定を読みます。`campTutorialTab()` が補給チュートリアルと同じ形でタブを一枚へ閉じ込め、目標の行へ入った瞬間に錠が外れて `formationMode` も false へ戻ります（`place-character` の handler が段の前後を比べて畳みます）。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
 Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
@@ -281,15 +281,53 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 呼ばず（文字送りの早送りだけは効く）、AUTO の自動送りも仕掛けない。門そのものは
 文字送りが終わるまで出さない——CSS の `.vn.typed .vn-gate` が出すので、JS の追加は無い。
 
+**スキップも門を越えない**（issue #200 の続き）。`storySkipStop()` が積んだ断片から門を
+探し、見つかれば `skipStoryToGate()` が**その断片の最後の行**へ飛んで止まる。飛ばした行は
+`pushStoryLog()` で履歴へ積むので、読み返せるし、巻き戻しの逆走もその行を材料にできる。
+文字送りは終わった扱いにする（`storyShownLine` を飛び先へ合わせる）ので、門はすぐ出る。
+門の無い会話では `storySkipStop()` が null を返し、これまでどおり丸ごと飛ぶ。
+
 いまの登録は1件、**序盤の一戦の敗北**（`stage_0_prologue_defeat` → `rewind-prologue`）
 だけである。通常の敗北は巻き戻らないので、増やす前提を持たない。
 
 `enterPrologueBeatIfDue()` が積む倒れた会話の `after` は `"prologueRewind"` で、
-`finishStory()` はそれを受けて `rewindPrologue()` を呼ぶ。**門の釦もスキップも同じ関数を
-通る**ので、どちらから来ても同じ状態になる。結果画面は序盤の敗北の経路から外れた
+`finishStory()` はそれを受けて `rewindPrologue()` を呼ぶ。スキップが門で止まるように
+なったので、**通常の操作でこの枝を通る道は無い**（越える手段は門の釦だけ）。門が出ない形
+——queue に別の断片が続く保存など——で最後の行を越えたときに、巻き戻さずキャンプへ
+落ちないための受け皿として残してある。結果画面は序盤の敗北の経路から外れた
 （`after === "prologueResult"` は無い）。保存枠が尽きたときの minimal snapshot は
 phase を battle から result へ寄せるため、会話を見ないまま結果画面に立つことがある。
 その保険として `resume-prologue-defeat` が倒れた会話へ戻す。
+
+### 巻き戻しの演出（phase `rewind` / issue #200）
+
+会話の門［時間が巻き戻る］を押した先は、**逆走の場面**である（押した瞬間に次の会話へ
+遷移しない）。`rewindPrologue()` の順は次のとおり。
+
+1. `rewindScene()` が、**状態を触る前に**逆走の材料を写す。舞台は倒れた会話の beat
+   （mood・場所・立ち絵をそのまま使う）、逆走する行は `state.story.log` を
+   `REWIND_TRACK_LIMIT` 件まで逆順にしたもの。**新しい台詞は足さない。**
+2. 巻き戻しそのもの（`prologueStage = "retry"`、負けた配置の引き継ぎ、`lastResult` と
+   replay の破棄、`record("prologue_rewound")`）。
+3. `enterStory([… prologueRewound …], "camp", { via: "rewind" })`。`via` は**積んだ会話の
+   手前に一度だけ挟む場面**の phase で、会話はもう積み終わっている。
+
+`renderRewind()` は会話と同じ `.vn` / `.vn-stage` を描き、`mountRewindView()` が DOM 側で
+進める（会話の文字送りと同じで、一文字ごとに state を書き換えない）。拍は
+閃光（`.firing`）→ 逆走（行ごとに `.jolt`、末尾から消す）→ 静止（`.settled`）→
+白へ抜ける（`.out`）で、`finishRewind()` が phase を `"story"` へ移す。**舞台を叩けば
+（`rewind-skip`）どこでも追い越せる**し、`prefers-reduced-motion` では行の差し替えだけに
+落ちる（揺れ・帯・筋・閃光は CSS の `@media` が止める）。
+
+演出へ入る時点で状態は**もう巻き戻し済み**なので、途中でリロードしても進行を失わない。
+`persistableState()` が phase `rewind` を `story` として保存し、再開は巻き戻し後の会話から
+続く（演出は二度出ない）。`state.rewind` は保存しない。
+
+二つの順序が効いている。**`finishStory()` の `prologueRewind` の枝は、履歴を初期化する
+前に置く**（会話をスキップして巻き戻したとき、逆走させる行が消える）。**会話の門の押しは
+下の舞台へ落とさない**（`.vn-gate` の釦は `data-action="story-advance"` の `.vn-stage` の
+中にあるので、止めないと一押しで巻き戻しと「叩いて進む」が続けて起き、巻き戻し後の
+一行目が読み飛ばされる）。どちらも `analysis/ecology-screens-smoke.mjs` が見張る。
 
 ### 技能の取得と装着（issue #236）
 
@@ -349,7 +387,10 @@ mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所
 
 セルは顔部分を `portraitSvg(..., { crop: "face" })` で切り出した背景レイヤーとして敷く。名前と職種アイコンは
 顔の上へ置かず、目元を残す。AP/RP のピップ、HP バー、増減は下部の `forecast-info-layer` へ集め、
-情報部分だけを濃いグラデーションで覆う。顔はこの帯に隠れない範囲で濃く表示する。4行積みだった頃は 1 セル 67px・固定領域 234px で、
+情報部分だけを濃いグラデーションで覆う。顔はこの帯に隠れない範囲で濃く表示する。
+元画像ごとの余白差は `character-face-watermark[data-character]` の共通補正で吸収し、
+予測セルと戦闘カードの両方が同じ人物別スケールを読む。5人を同じ条件で確認する開発画面は
+`/ecology/portrait-test.html` に置く。4行積みだった頃は 1 セル 67px・固定領域 234px で、
 iPhone 幅（390×844）の画面の3割を常時占めていた。
 
 予測は従来どおり `battleForecast()`（`previewNextBattle` → `expeditionBattleOptions`）から
@@ -367,7 +408,8 @@ iPhone 幅（390×844）の画面の3割を常時占めていた。
 `character-face-watermark` を z-index 0 に置く。味方の名前・職種アイコンは描画せず、
 `unit-info-layer` に行動内容・HP・資源・状態を集める。DOM の順番は行動内容（表示時だけ高さを持つ）→
 HPバー→数値・状態で、情報帯の下側へ重ねるグラデーションが顔との境界を担う。これにより通常時は空いた行動欄ぶん
-顔を大きく見せ、行動中だけ内容をHPの上へ出せる。敵には対応する人物画像がないため、既存の敵アイコンと枠を維持する。
+顔を大きく見せ、行動中だけ内容をHPの上へ出せる。`portrait-test.html` はこの2種類の枠を同じ画面に
+並べ、目元の基準線と情報帯込みで補正を確認する。敵には対応する人物画像がないため、既存の敵アイコンと枠を維持する。
 
 ## 生成装備ruleの耐久契約
 

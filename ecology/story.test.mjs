@@ -133,8 +133,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   const correct = outcome({ warden: "front_left", mender: "rear_left" });
   equal(correct.result, "win", "ツグミを後列へ下げれば勝てる");
   equal(correct.survivors, 2, "**そのとき誰も落ちない。**これが正解の手");
-  check(correct.endingHp.a_warden >= 150, "正解配置ではゴウが余裕を残して勝つ");
-  check(correct.endingHp.a_mender >= 60, "正解配置ではツグミが余裕を残して勝つ");
+  check(correct.endingHp.a_warden >= 100, "正解配置ではゴウが残HPを残して勝つ");
+  check(correct.endingHp.a_mender >= 50, "正解配置ではツグミが残HPを残して勝つ");
   check(correct.rounds <= PROLOGUE.maxRounds, "round 上限の中で決着する");
 
   const correctResult = simulateBattle(

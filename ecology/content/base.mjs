@@ -71,6 +71,7 @@ export function setRuleEffectAmount(definition, value, effectType) {
 // 「weapon か technique か」「係数いくつか」を決める。決め方は2つだけ：
 //
 //   1. R6 §4.4 が名指しした3つ … 斬撃 might 100%、手当て focus 80%、防壁形成 focus 60%
+//      （R22 で直接治療は序盤の過剰回復を避けるため focus 40%へ再調整）
 //   2. それ以外 … **中立 parameter（might = focus = 40）で現行の相対効果量を保つ**
 //      係数から始める。現行値 V に対して coefficientBps = V × 2500
 //      （40 × V×2500 / 10_000 = V×10）
@@ -129,4 +130,3 @@ function walkEffects(node, visit) {
   if (typeof node.type === "string" && node.amount) visit(node);
   for (const value of Object.values(node)) walkEffects(value, visit);
 }
-

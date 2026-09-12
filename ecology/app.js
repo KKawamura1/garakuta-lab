@@ -425,6 +425,10 @@ function freshUiState() {
     // R9 §2 / §7 — 物語の断片。queue が空になったら after へ進む。
     // lineIndex は断片の中の何行目か。auto は自動送り、log は履歴。
     story: { queue: [], after: "camp", lineIndex: 0, auto: false, log: [], logOpen: false },
+    // issue #200 — 巻き戻しの演出が逆走させる行（読んだ履歴の逆順）と、凍らせる舞台。
+    // **保存しない**（persistableState が落とす）。演出の途中でリロードしたら、
+    // すでに巻き戻し済みの会話から続ける。
+    rewind: null,
     // 画面内ヘルプの開閉は、同じ画面を再描画しても保持する。
     helpOpen: {},
     saveMenuReturn: "intro",
@@ -648,6 +652,10 @@ function persistableState() {
   // 盤面が組み替えの途中で開くと、人物を選ぶつもりの一押しが移動になる（#159 の
   // 「誰も選んでいない状態で開く」と同じ理由）。
   delete persisted.formationMode;
+  // issue #200 — 巻き戻しの演出は保存の再開先にしない。**状態はもう巻き戻し済み**なので、
+  // 途中でリロードしたら巻き戻し後の会話から続ける（演出だけを二度見せない）。
+  if (state.phase === "rewind") persisted.phase = "story";
+  delete persisted.rewind;
   // 保存メニューは一時画面なので、Continueでそこへ戻さない。
   if (state.phase === "saveMenu") {
     persisted.phase = state.saveMenuReturn === "camp" ? "camp" : "intro";
@@ -1193,6 +1201,12 @@ function positionOwner(position) {
   return state.run.roster.find((characterId) => state.run.formation[characterId] === position) ?? null;
 }
 
+// 枠の行（"front" / "rear"）。**綴りの規則は POSITIONS の名前そのもの**で、
+// 盤面の並び（`position.startsWith(row + "_")`）と同じ読み方をここに一つだけ置く。
+function positionRow(position) {
+  return POSITIONS.includes(position) ? String(position).split("_")[0] : null;
+}
+
 function sectionHeading(eyebrow, title, right = "") {
   // 通常画面の主見出しは日本語を一つだけにする。装飾用の英語ラベルは出さない。
   void eyebrow;
@@ -1236,9 +1250,17 @@ function equipmentFillLabel() {
   return worn + "/" + Math.max(worn, Math.min(owned, slots));
 }
 
+// チュートリアルが一枚のタブへ閉じ込めている間は、そのタブ id を返す。
+// **閉じ込め方は二つあるが、閉じ込める書き方は一つにする**（補給と隊列で別々に書かない）。
+function campTutorialTab() {
+  if (supplyTutorialVisible()) return "supplies";
+  if (formationTutorialLocked()) return "map";
+  return null;
+}
+
 function campNav() {
-  const tutorialLocked = supplyTutorialVisible();
-  const activeTab = tutorialLocked ? "supplies" : state.tab;
+  const tutorialLocked = campTutorialTab();
+  const activeTab = tutorialLocked ?? state.tab;
   // issue #235 — 編成タブは廃止した。隊列は上端の共通盤面が常に持ち、人物の中身は
   // スキル・装備タブの memberContext が出す。**説明を読むだけのタブを一枚残さない。**
   // 戦闘は「遠征」に改め、次の一戦・撤退・セーブという**遠征単位の操作**を集める。
@@ -1250,7 +1272,7 @@ function campNav() {
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
     const active = activeTab === id;
-    const locked = tutorialLocked && id !== "supplies";
+    const locked = Boolean(tutorialLocked) && id !== tutorialLocked;
     return "<button type=\"button\" class=\"tab " + (active ? "active" : "")
       + "\" aria-label=\"" + label + "\" aria-current=\"" + (active ? "step" : "false")
       + "\" data-action=\"tab\" data-tab=\"" + id + "\""
@@ -1262,12 +1284,14 @@ function render() {
   captureHelpDetails();
   stopReplayTimer();
   stopStoryTimers();
+  stopRewindTimers();
   registerGeneratedEquipment(state.run?.generatedEquipment ?? {});
   const views = {
     intro: renderIntro,
     expeditionStart: renderExpeditionStart,
     saveMenu: renderSaveMenu,
     story: renderStory,
+    rewind: renderRewind,
     camp: renderCamp,
     battle: renderBattle,
     battleError: renderBattleError,
@@ -1287,12 +1311,15 @@ function render() {
   // 必殺技の指定は「たまにしか触らないが、触る場所は装着行しかない」操作なので、
   // 常設の枠を出さず、行そのものを長く押させる。
   bindLongPress();
+  // R11 §5 改 — 隊列チュートリアルの錠と光。**描画したあとに一度で掛ける。**
+  applyFormationTutorialGate();
   publishCampTopHeight();
   restoreHelpDetails();
   restoreSkillTreeScroll();
   layoutSkillTreeConnectors();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
+  if (state.phase === "rewind") mountRewindView();
   if (phaseChanged) window.scrollTo(0, 0);
 }
 
@@ -1959,7 +1986,8 @@ function storyBacklog() {
 // かっこいい演出なはずなので、こんなシステム画面の一部にしてほしくない」）。
 //
 // そこで、会話の最後の行を読み終えた拍で、**舞台に被せてど真ん中に一つだけ**釦を出す。
-// ノベルゲームの選択肢と同じ置き方で、押すまで先へ進めない。
+// ノベルゲームの選択肢と同じ置き方で、押すまで先へ進めない。**スキップも越えない**
+// （storySkipStop が門まで飛ばして止める）。
 //
 // **序盤の一戦専用である。**通常の敗北は巻き戻らず、補給で再挑戦するか撤退する
 // （作者判断 2026-09-11）。だから表は1件しかなく、増やす前提も持たない。
@@ -1983,6 +2011,43 @@ function storyGate() {
   if (storyLineIndex() < beat.lines.length - 1) return null;
   if ((state.story?.queue?.length ?? 1) > 1) return null;
   return gate;
+}
+
+// スキップの行き先。**門のある会話は、門まで飛ばす。**
+//
+// 作者試遊 2026-09-11（issue #200 の続き）— スキップは「読むのをやめる」操作であって、
+// **決める拍まで飛ばすものではない。**門は押すまで越えられない拍（STORY_GATES）なので、
+// スキップだけが越えられるのは筋が通らない。ついでに、飛ばした行も履歴へ積むので、
+// 巻き戻しの逆走は**読み飛ばした行も含めて**材料にできる。
+//
+// 積んだ断片のどれかに門があれば、その断片とその後ろを残して、門の行（＝最後の行）で
+// 止まる。門が無ければ null で、これまでどおり会話を丸ごと飛ばす。
+function storySkipStop() {
+  const queue = state.story?.queue ?? [];
+  const gateIndex = queue.findIndex((beat) => Boolean(beat && STORY_GATES[beat.id]));
+  if (gateIndex < 0) return null;
+  return { gateIndex, beat: queue[gateIndex] };
+}
+
+// 門まで飛ばす。**飛ばした行は履歴へ積む**（読み返せるし、逆走もその行を使う）。
+// いま読んでいる行は既に積まれているので、その次から積む。
+function skipStoryToGate(stop) {
+  const queue = state.story?.queue ?? [];
+  for (let index = 0; index <= stop.gateIndex; index += 1) {
+    const beat = queue[index];
+    for (let line = index === 0 ? storyLineIndex() + 1 : 0; line < beat.lines.length; line += 1) {
+      pushStoryLog(beat, line);
+    }
+  }
+  const lineIndex = stop.beat.lines.length - 1;
+  state.story = { ...state.story, queue: queue.slice(stop.gateIndex), lineIndex, logOpen: false };
+  // **飛ばした人を文字送りで待たせない。**読み終えた行として描くので、門はすぐ出る
+  // （CSS の `.vn.typed` が出す条件は mountStoryView の settle が満たす）。
+  storyTypingDone = true;
+  storyShownLine = stop.beat.id + ":" + lineIndex;
+  record("story_skipped_to_gate", { beat: stop.beat.id });
+  saveState();
+  render();
 }
 
 function renderStory() {
@@ -2115,7 +2180,11 @@ function advanceStoryLine() {
 }
 
 // 物語の queue を積んで story 画面へ入る。**積むものが無ければ、そのまま次へ。**
-function enterStory(beats, after) {
+//
+// issue #200 — `via` は、積んだ会話の**手前に一度だけ挟む場面**の phase である
+// （いまは巻き戻しの演出 `"rewind"` だけ）。会話はもう積み終わっているので、
+// 挟んだ場面が終わったら phase を `"story"` へ移すだけで続きが始まる。
+function enterStory(beats, after, { via = null } = {}) {
   const queue = beats.filter(Boolean);
   state.story = { queue, after, lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (!queue.length) {
@@ -2123,7 +2192,7 @@ function enterStory(beats, after) {
     return;
   }
   pushStoryLog(queue[0], 0);
-  state.phase = "story";
+  state.phase = via ?? "story";
   saveState();
   render();
 }
@@ -2131,6 +2200,21 @@ function enterStory(beats, after) {
 function finishStory() {
   stopStoryTimers();
   const after = state.story?.after ?? "camp";
+  // R11 §5 改 / 作者試遊 2026-09-11 — 倒れた会話のあとは、結果画面を挟まずにそのまま
+  // 巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）。
+  //
+  // 作者試遊（issue #200 の続き）で、スキップも門で止まるようになった（storySkipStop）
+  // ので、**通常の操作でここへ来る道は無い。**門のある拍を越える手段が釦だけになった
+  // 残りの受け皿として置く（門が出ない形——queue に別の断片が続く保存など——で
+  // 最後の行を越えたとき、巻き戻さずにキャンプへ落ちないようにする）。
+  //
+  // issue #200 — **この枝は、下の初期化より前に置く。**巻き戻しの演出は読んだ行を
+  // 逆走させるので、`state.story.log` が生きているあいだに渡さなければならない
+  // （rewindPrologue() は enterStory() で story を積み直すため、初期化を飛ばしてよい）。
+  if (after === "prologueRewind") {
+    rewindPrologue();
+    return;
+  }
   state.story = { queue: [], after: "camp", lineIndex: 0, auto: state.story?.auto === true, log: [], logOpen: false };
   if (after === "prologue") {
     startPrologue();
@@ -2160,13 +2244,6 @@ function finishStory() {
     simulateAndEnterBattle();
     return;
   }
-  // R11 §5 改 / 作者試遊 2026-09-11 — 倒れた会話のあとは、結果画面を挟まずに
-  // そのまま巻き戻る。**釦は会話の最後の拍に被さって出る**（STORY_GATES）ので、
-  // ここへ来るのは会話をスキップしたときだけである。
-  if (after === "prologueRewind") {
-    rewindPrologue();
-    return;
-  }
   // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。**ここで
   // 既読印は押すが、prologueActive は落とさない。**結果画面（報酬選択を兼ねる）を
   // 通常の勝利と同じ経路で見せたあと、次の戦闘へ進むとき（advanceAfterReward）に
@@ -2185,6 +2262,213 @@ function finishStory() {
   }
   state.phase = "camp";
   state.tab = "map";
+  saveState();
+  render();
+}
+
+// ============================================================ 巻き戻しの演出（issue #200）
+//
+// **「押した瞬間に次の会話」では、時間は巻き戻らない。**
+//
+// PR #248 で［時間が巻き戻る］を結果画面から会話の舞台へ移したが、押した先は普通の
+// 会話遷移のままだった（作者試遊「いまは押した瞬間次の会話に遷移していて、巻き戻って
+// いる感覚がないです」）。出来事としての巻き戻しは、**戻っていく過程そのものを
+// 見せなければ**成立しない。
+//
+// そこで、押した拍では舞台をそのまま残し、**いま読んだ行を逆順に消していく。**
+//
+//   杭が鳴る … 舞台の下から一度だけ閃光（`.firing`）。このあいだは何も動かさない
+//   逆走     … 読んだ行を後ろから消す。名前と立ち絵も、行と一緒に逆へ戻る
+//   静止     … 逆走が尽きたら揺れも帯も止め（`.settled`）、白へ抜ける（`.out`）
+//   会話へ   … 巻き戻し後の会話（「もう一度、門の前」）が始まる
+//
+// **台詞は一行も足さない。**逆走に使うのは `state.story.log`（実際に読んだ行）だけで、
+// 読んでいない行は混ざらない。足せば、演出が新しい説明になる。
+//
+// **進行は止めない**（会話画面の約束と同じ）。舞台を叩けば演出を追い越せる。
+// `prefers-reduced-motion` では揺れ・帯・閃光を止め、行を短く差し替えるだけにする。
+//
+// 状態はこの演出へ入る前に**もう巻き戻し済み**である（`rewindPrologue()` が巻き戻し、
+// 巻き戻し後の会話まで積んでから phase を `"rewind"` にする）。だから途中でリロード
+// しても会話から続き、演出だけが二度出ることはない（`persistableState()` が phase を
+// `"story"` へ寄せる）。
+
+// 逆走して見せる行数の上限。倒れた会話は3行なので普段は全部が入る。**長い断片で
+// 逆走が長引かないための蓋**で、演出の長さを行数に任せない。
+const REWIND_TRACK_LIMIT = 4;
+const REWIND_FIRE_MS = 380;
+// 一行が出てから消え始めるまでの間。**読んだ行だと気づくための一拍**で、
+// これが無いと文字が消える動きだけが残る。
+const REWIND_LINE_HOLD_MS = 150;
+const REWIND_LINE_MS = 420;
+const REWIND_UNTYPE_MS = 14;
+const REWIND_LINE_GAP_MS = 90;
+const REWIND_HOLD_MS = 280;
+const REWIND_OUT_MS = 420;
+// prefers-reduced-motion。逆走は残す（何が起きたか分からなくなる）が、文字を消す
+// 動きも揺れも出さず、行を差し替えるだけにする。
+const REWIND_REDUCED_STEP_MS = 200;
+
+let rewindTimer = null;
+
+function stopRewindTimers() {
+  if (rewindTimer) clearTimeout(rewindTimer);
+  rewindTimer = null;
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+}
+
+// 逆走に使う行。**いま読んだ履歴をそのまま逆順に使う。**
+function rewindTrackFromLog() {
+  return (state.story?.log ?? [])
+    .slice(-REWIND_TRACK_LIMIT)
+    .reverse()
+    .filter((entry) => entry?.text)
+    .map((entry) => ({ who: entry.who ?? null, speaker: entry.speaker ?? null, text: entry.text }));
+}
+
+// 逆走のあいだ凍らせておく舞台。**会話の最後の拍の続きに見えなければならない**ので、
+// mood・場所・立ち絵は倒れた会話のものをそのまま使う。
+function rewindScene(beat) {
+  const track = rewindTrackFromLog();
+  if (!beat || !track.length) return null;
+  return { beat, track };
+}
+
+function renderRewind() {
+  const beat = state.rewind?.beat;
+  const track = state.rewind?.track ?? [];
+  // 材料が無ければ、積んである会話をそのまま描く（mountRewindView が先へ送る）。
+  if (!beat || !track.length) return renderStory();
+  const index = beat.lines.length - 1;
+  const figures = [...castOnStage(beat, index)]
+    .sort((a, b) => (STORY_PLACEMENTS[a.at] ?? 1) - (STORY_PLACEMENTS[b.at] ?? 1))
+    .map((entry) => storyFigure(beat, entry, index))
+    .join("");
+  const scene = "<section class=\"vn rewind\" data-mood=\"" + esc(beat.mood ?? "defeat") + "\">"
+    // 叩けば追い越せる。舞台は button ではないので、Enter / Space は mount で拾う。
+    + "<div class=\"vn-stage rewind-stage\" data-action=\"rewind-skip\" role=\"button\" tabindex=\"0\""
+    + " aria-label=\"巻き戻しの演出を飛ばす\">"
+    + "<div class=\"vn-sky\"></div><div class=\"vn-haze\"></div>"
+    + "<div class=\"vn-place\"><b>" + esc(beat.title) + "</b>"
+    + (beat.place ? "<span>" + esc(beat.place) + "</span>" : "") + "</div>"
+    + "<div class=\"vn-figures\">" + figures + "</div>"
+    + "<div class=\"rewind-bands\" aria-hidden=\"true\"></div>"
+    + "<div class=\"rewind-streaks\" aria-hidden=\"true\"><i></i><i></i><i></i><i></i></div>"
+    + "<div class=\"rewind-veil\" aria-hidden=\"true\"></div>"
+    + "<div class=\"rewind-mark\" aria-hidden=\"true\">◀◀</div>"
+    + "<div class=\"vn-box narration rewind-box\">"
+    + "<div class=\"vn-name rewind-name\" hidden></div>"
+    // 逆走中の文字は読ませるものではない（一行ずつ消えていく）。読み上げは
+    // `.rewind-status` の一言だけにする。
+    + "<p class=\"vn-text rewind-text\" aria-hidden=\"true\"></p>"
+    // 逆走の残り。通常の会話が「1 / 3」を出す位置に、**右から左へ減る帯**を置く
+    // （進む帯ではなく、戻る帯である）。
+    + "<div class=\"rewind-meter\" aria-hidden=\"true\"><span class=\"rewind-meter-fill\"></span></div>"
+    + "</div>"
+    + "<p class=\"rewind-status\" role=\"status\">時間が巻き戻る</p>"
+    + "<div class=\"rewind-out\" aria-hidden=\"true\"></div>"
+    + "</div></section>";
+  return shell(scene, { hideHeaderAction: true });
+}
+
+// 逆走を進める。**表示は DOM 側で進める**（会話の文字送りと同じ理由で、一文字ごとに
+// state を書き換えて保存を走らせない）。
+function mountRewindView() {
+  stopRewindTimers();
+  const scene = app.querySelector(".vn.rewind");
+  const stage = scene?.querySelector(".rewind-stage");
+  const text = scene?.querySelector(".rewind-text");
+  const track = state.rewind?.track ?? [];
+  // 描けなかったら黙って先へ送る。**演出のために進行を止めない。**
+  if (!scene || !stage || !text || !track.length) { finishRewind(); return; }
+  const box = scene.querySelector(".rewind-box");
+  const nameplate = scene.querySelector(".rewind-name");
+  const meter = scene.querySelector(".rewind-meter-fill");
+  const figures = [...scene.querySelectorAll(".vn-figure")];
+  const reduced = prefersReducedMotion();
+  stage.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    event.preventDefault();
+    event.currentTarget.click();
+  });
+  // 行が切り替わる拍で、舞台を一度だけ突かせる（テープが噛む感じ）。
+  const jolt = () => {
+    if (reduced) return;
+    scene.classList.remove("jolt");
+    void scene.offsetWidth;
+    scene.classList.add("jolt");
+  };
+  const showRemaining = (remaining) => {
+    if (meter) meter.style.width = Math.max(0, Math.round((remaining / track.length) * 100)) + "%";
+  };
+  // 行と一緒に、名前と立ち絵も逆へ戻す。**誰の行まで戻ったかが見えなければ、
+  // ただのノイズになる。**
+  const showEntry = (entry) => {
+    box?.classList.toggle("narration", !entry.speaker);
+    if (nameplate) {
+      nameplate.textContent = entry.speaker ?? "";
+      nameplate.hidden = !entry.speaker;
+      nameplate.style.setProperty("--accent", portraitAccent(entry.who));
+    }
+    for (const figure of figures) {
+      const speaking = Boolean(entry.who) && figure.dataset.character === entry.who;
+      figure.classList.toggle("speaking", speaking);
+      figure.classList.toggle("muted-figure", !speaking);
+    }
+  };
+  // 逆走が尽きた拍。**誰も何も言っていない時点まで戻った**ので、名前も消す。
+  const settle = () => {
+    showRemaining(0);
+    text.textContent = "";
+    if (nameplate) { nameplate.textContent = ""; nameplate.hidden = true; }
+    box?.classList.add("narration");
+    stage.classList.add("settled");
+    rewindTimer = setTimeout(() => {
+      stage.classList.add("out");
+      rewindTimer = setTimeout(() => { finishRewind(); }, reduced ? 120 : REWIND_OUT_MS);
+    }, reduced ? 120 : REWIND_HOLD_MS);
+  };
+  const step = (cursor) => {
+    if (state.phase !== "rewind") return;
+    if (cursor >= track.length) { settle(); return; }
+    const entry = track[cursor];
+    showRemaining(track.length - cursor);
+    showEntry(entry);
+    text.textContent = entry.text;
+    jolt();
+    if (reduced) {
+      rewindTimer = setTimeout(() => { step(cursor + 1); }, REWIND_REDUCED_STEP_MS);
+      return;
+    }
+    // 一行を REWIND_LINE_MS で消しきる。**長い行でも待たせない。**
+    const perTick = Math.max(1, Math.ceil((entry.text.length * REWIND_UNTYPE_MS) / REWIND_LINE_MS));
+    let shown = entry.text.length;
+    const untype = () => {
+      if (state.phase !== "rewind") return;
+      shown = Math.max(0, shown - perTick);
+      text.textContent = entry.text.slice(0, shown);
+      rewindTimer = shown > 0
+        ? setTimeout(untype, REWIND_UNTYPE_MS)
+        : setTimeout(() => { step(cursor + 1); }, REWIND_LINE_GAP_MS);
+    };
+    rewindTimer = setTimeout(untype, REWIND_LINE_HOLD_MS);
+  };
+  showRemaining(track.length);
+  // 杭が鳴る一拍。**閃光のあいだは何も動かさない。**
+  stage.classList.add("firing");
+  rewindTimer = setTimeout(() => { step(0); }, reduced ? 120 : REWIND_FIRE_MS);
+}
+
+// 演出の終わり。**状態はもう巻き戻し済み**なので、積んである会話を開くだけである。
+// 叩いて追い越したときも、流れきったときも、ここを通る。
+function finishRewind() {
+  stopRewindTimers();
+  if (state.phase !== "rewind") return;
+  state.rewind = null;
+  state.phase = "story";
   saveState();
   render();
 }
@@ -2263,8 +2547,7 @@ function storyBeatsForStart(sequence) {
 }
 
 function renderCamp() {
-  const tutorialLocked = supplyTutorialVisible();
-  const activeTab = tutorialLocked ? "supplies" : state.tab;
+  const activeTab = campTutorialTab() ?? state.tab;
   const view = {
     skills: renderSkills,
     equipment: renderEquipment,
@@ -3361,14 +3644,9 @@ function renderMap() {
     + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
   // R11 §5 改 / issue #235 — 巻き戻し直後の手引きは、隊列を触る話なので盤面の近くに要る。
   // だが固定領域へ入れると常時4行を奪うので、**この一度きりの場面だけ本文の頭に置く。**
-  const rewindTutorialNote = state.prologueActive && state.prologueStage === "retry"
-    ? "<section class=\"card tutorial-note-card\"><p class=\"tutorial-note\">"
-      + "<b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
-      + "腕力で振る武器は後列から出すと大きく落ち、技術で通す技は落ちない。"
-      + "ツグミの応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。"
-      + "上の「⇅ 隊列」からツグミを後列へ、ゴウを前列へ置いて、上の戦闘予測がどう動くか見てほしい。"
-      + "</p></section>"
-    : "";
+  // 作者指摘 2026-09-12 — 一段落の手引きでは「どこを押すのか」が伝わらない。段ごとに
+  // 次の一押しだけを言い、その場所を光らせる（`formationTutorialNote`）。
+  const rewindTutorialNote = formationTutorialNote();
   // R6 §9.2 / §12.2 / issue #235 — 遠征単位の操作はこの一枚が持つ。
   // R11 §5 改 — 止めるのは**離脱だけ**である。まだ隊列を直しきる前に撤退されると
   // 「一手直せば勝てる」導入が成立しない。セーブは離脱ではないので、物語の最中でも残す
@@ -3609,9 +3887,12 @@ function boardMode(tab) {
 
 function partyCellRole(mode, position, characterId) {
   if (mode === "formation") {
+    // 行と居る人は**枠そのものが名乗る。**隊列チュートリアルが光らせる先も、
+    // 通しの検査が押す先も、この二つの印だけで指せる（位置の綴りを写さない）。
     return {
       action: "place-character",
-      attrs: "data-position=\"" + esc(position) + "\"",
+      attrs: "data-position=\"" + esc(position) + "\" data-row=\"" + esc(positionRow(position) ?? "")
+        + "\"" + (characterId ? " data-character=\"" + esc(characterId) + "\"" : ""),
       selected: Boolean(characterId) && selectedFormationCharacter() === characterId,
     };
   }
@@ -3725,6 +4006,130 @@ function partyBoardNote(mode) {
       + button("やめる", "cancel-treatment-target", false, "tiny-button") + "</p>";
   }
   return "";
+}
+
+// ============================================================ 隊列チュートリアル（R11 §5 改）
+//
+// **巻き戻したあとの並べ替えだけは、押す場所が光り、そこしか押せない。**
+//
+// 作者指摘 2026-09-12 —「最初のチュートリアル、並べ替えてツグミを後ろに下げる部分を
+// ちゃんとしたチュートリアルにしてほしい。押すべき場所が光って、そこしか押せなくなる、
+// よくあるチュートリアル」。ここは手引きの一段落しか無く、盤面もタブもセーブも全部
+// 押せた。**一手の場所を言葉で書いても、初めての人はまずどこを押すのかを探す。**
+//
+// 錠は**並べ替えの三手だけ**に掛ける（DESIGN.md §6.4.4）。教える一手が終われば錠は
+// 外れ、技能も装備も予測も自由に触れる。**教えるのは一手であって、遠征の触り方を
+// 全部禁じるのではない。**
+//
+//   open  … 「⇅ 隊列」を押す
+//   pick  … 動かす仲間のセルを押す
+//   place … 後列の空き枠を押す
+//   done  … 一手が済んだ。錠は外れ、次の一押し（この敵に挑む）だけが光る
+//
+// **教える一手は content が決める**（`PROLOGUE.tutorial`）。人物 id と行をここへ
+// 書き写さないので、content を変えれば錠と光も一緒に動く。
+const FORMATION_TUTORIAL_GOAL = PROLOGUE.tutorial ?? null;
+
+function formationTutorialStep() {
+  if (state.phase !== "camp" || !FORMATION_TUTORIAL_GOAL) return null;
+  if (!state.prologueActive || state.prologueStage !== "retry") return null;
+  const { characterId, row } = FORMATION_TUTORIAL_GOAL;
+  if (!state.run.roster.includes(characterId)) return null;
+  if (positionRow(state.run.formation?.[characterId]) === row) return "done";
+  if (!state.formationMode) return "open";
+  return selectedFormationCharacter() === characterId ? "place" : "pick";
+}
+
+// 錠が掛かるのは並べ替えの三手だけ。"done" は光らせるだけで、何も塞がない。
+function formationTutorialLocked() {
+  const step = formationTutorialStep();
+  return step !== null && step !== "done";
+}
+
+// 光らせる先。**選択子はこの表にしかない。**画面と検査が別々の綴りを持つと、
+// 盤面の書き方が変わったときに「光らない錠」だけが残る。
+function formationTutorialSpotSelector(step) {
+  const goal = FORMATION_TUTORIAL_GOAL;
+  if (!goal) return null;
+  return {
+    open: ".camp-top [data-action=\"toggle-formation-mode\"]",
+    pick: ".camp-top [data-action=\"place-character\"][data-character=\"" + goal.characterId + "\"]",
+    // 移動先は**空いている枠だけ。**人の乗った枠は入れ替えになるので光らせない。
+    place: ".camp-top [data-action=\"place-character\"][data-row=\"" + goal.row + "\"]:not([data-character])",
+    done: "[data-action=\"begin-stage\"]",
+  }[step] ?? null;
+}
+
+// **錠と光は描画のあとに一度で掛ける。**画面ごとに同じ条件を書き写すと、
+// いつか片方だけが直る（`disabled` は釦にしか効かないので、釦以外は CSS で止める）。
+function applyFormationTutorialGate() {
+  const step = formationTutorialStep();
+  if (!step) return;
+  const selector = formationTutorialSpotSelector(step);
+  const spots = selector ? [...app.querySelectorAll(selector)] : [];
+  for (const spot of spots) spot.classList.add("tutorial-spot");
+  if (!formationTutorialLocked()) return;
+  for (const element of app.querySelectorAll("[data-action]")) {
+    if (spots.some((spot) => spot === element || spot.contains(element))) continue;
+    element.classList.add("tutorial-blocked");
+    element.setAttribute("aria-disabled", "true");
+    if ("disabled" in element) element.disabled = true;
+  }
+}
+
+// 錠が掛かっている間、押してよい要素かどうか。**判定は光らせる先と同じ選択子**なので、
+// 「光っているのに押せない」「光っていないのに押せる」が構造として起きない。
+function formationTutorialAllows(element) {
+  if (!formationTutorialLocked()) return true;
+  const selector = formationTutorialSpotSelector(formationTutorialStep());
+  return Boolean(selector && element?.closest?.(selector));
+}
+
+// 手引きの札。**段ごとに、次の一押しだけを言う。**（補給チュートリアルと同じ作り）
+function formationTutorialNote() {
+  const step = formationTutorialStep();
+  if (!step || !FORMATION_TUTORIAL_GOAL) return "";
+  const name = characterName(FORMATION_TUTORIAL_GOAL.characterId);
+  const rowWord = ROW_WORDS[FORMATION_TUTORIAL_GOAL.row] ?? "後列";
+  const copy = {
+    open: {
+      title: "立ち位置を組み替える",
+      body: "<b>同じ影、同じ数。違うのは立ち位置だけ。</b>"
+        + "上の盤面で光っている「⇅ 隊列」を押してください。",
+    },
+    pick: {
+      title: "動かす仲間を選ぶ",
+      body: "腕力で振る武器は" + rowWord + "から出すと大きく落ち、技術で通す技は落ちない。"
+        + "<b>" + esc(name) + "の攻撃は技なので、" + rowWord + "でも威力が落ちない。</b>"
+        + "光っている" + esc(name) + "のセルを押してください。",
+    },
+    place: {
+      title: rowWord + "へ下げる",
+      body: "<b>敵は届く範囲で最もHPの低い者を狙う。</b>"
+        + "前に二人並べば、柔らかいほうから崩れる。"
+        + "光っている" + rowWord + "の空き枠を押してください。",
+    },
+    done: {
+      title: "一手で、予測が変わる",
+      body: "<b>" + esc(name) + "の応急手当は自分には効かず、被弾したゴウを後ろから手当てできる。</b>"
+        + esc(PROLOGUE.retryHint),
+    },
+  }[step];
+  const marks = [
+    ["open", "「⇅ 隊列」を押す"],
+    ["pick", esc(name) + "を押す"],
+    ["place", rowWord + "の空き枠を押す"],
+  ];
+  const order = ["open", "pick", "place", "done"];
+  const list = marks.map(([id, label], index) => {
+    const mark = order.indexOf(step) > index ? "done" : id === step ? "current" : "todo";
+    return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + label + "</li>";
+  }).join("");
+  return "<section class=\"card tutorial-note-card formation-tutorial\" role=\"status\">"
+    + "<p class=\"eyebrow\">隊列チュートリアル</p>"
+    + "<h3>" + esc(copy.title) + "</h3>"
+    + "<p class=\"tutorial-note\">" + copy.body + "</p>"
+    + "<ol class=\"tutorial-steps\">" + list + "</ol></section>";
 }
 
 // camp の上端に貼りつく盤面。**予測が出せない場面でも盤面は出す**——隊列と現在HPは
@@ -3935,7 +4340,8 @@ function unitIcon(actor) {
 function characterFaceWatermark(characterId, scope) {
   const portrait = portraitSvg(characterId, "neutral", { crop: "face" });
   if (!portrait) return "";
-  return "<span class=\"character-face-watermark " + scope + "\" aria-hidden=\"true\">"
+  return "<span class=\"character-face-watermark " + scope + "\" data-character=\""
+    + esc(characterId) + "\" aria-hidden=\"true\">"
     + portrait + "</span>";
 }
 
@@ -4944,9 +5350,14 @@ function enterPrologueBeatIfDue() {
 // R9 §2.1 — 巻き戻し。**序盤の敗北は遠征の結果に数えない。**
 // 活動資金も持ち越しHPも動かさず、同じ Stage の第1戦から本編を始める。
 //
-// 会話の門の釦（rewind-prologue）と、会話をスキップしたとき（after: "prologueRewind"）の
-// **両方がここを通る。**どちらから来ても同じ状態になる。
+// 会話の門の釦（rewind-prologue）と、門の無い形で会話が尽きたとき
+// （after: "prologueRewind"）の**両方がここを通る。**どちらから来ても同じ状態になる。
+// スキップは門で止まる（storySkipStop）ので、越えるのは釦だけである。
 function rewindPrologue() {
+  // issue #200 — **逆走に使う材料は、状態を巻き戻す前に取る。**読んだ行の履歴は
+  // このあと enterStory() が空にするので、ここで写しておく（門の釦から来たときは
+  // 舞台が立っており、スキップから来たときは storyBeat() で同じ断片を引き直す）。
+  const scene = rewindScene(currentStoryBeat() ?? storyBeat("stage_0", "prologueDefeat"));
   // R11 §5 — **巻き戻しても prologueActive は落とさない。**同じ門の盤面を、
   // 今度はプレイヤーの配置で戦い直す。ここで本編1戦目へ飛ばすと、
   // 「編成を変え、予測どおりに勝利する」（R9 §2.1）が別の盤面の話になる。
@@ -4960,7 +5371,11 @@ function rewindPrologue() {
   state.replayIndex = 0;
   state.replayPlaying = false;
   record("prologue_rewound", { stage: state.run.campaignStageSequence });
-  enterStory([storyBeat("stage_0", "prologueRewound")], "camp");
+  // issue #200 — 会話へ入る前に、逆走の演出を一度だけ挟む。**状態はもう巻き戻して
+  // あるので、演出はどこで途切れても進行を失わない。**読んだ行が無ければ
+  // （逆走させるものが無ければ）そのまま会話へ入る。
+  state.rewind = scene;
+  enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null });
 }
 
 // issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
@@ -5171,6 +5586,15 @@ function handleAction(event) {
   // issue #238 — 同じ要素が、押した時間で別の操作になる。長押しは data-longpress。
   const action = event.longPress ? element.dataset.longpress : element.dataset.action;
   if (!action) return;
+  // issue #200 — **舞台に被せた操作は、舞台へ落とさない。**会話の門（`.vn-gate`）の釦は
+  // `.vn-stage`（`data-action="story-advance"`）の中にあるので、一度押すと釦と舞台の
+  // 両方が鳴る。釦が巻き戻したあとの舞台はもう「次の会話」なので、続けて鳴った
+  // 「叩いて進む」が巻き戻し後の一行目（「同じ朝。同じ光。」＝時間が戻ったことを
+  // 見せる行）を読み飛ばしていた。長押しの合成呼び出しには止める先が無いので `?.` で呼ぶ。
+  if (element.closest?.(".vn-gate")) event.stopPropagation?.();
+  // R11 §5 改 — 隊列チュートリアルの錠は**押せる形（DOM）と経路（ここ）の両方**で掛ける。
+  // 光っていない場所は押しても何も起きない（DESIGN.md §6.4.3 の離脱経路と同じ二重の塞ぎ方）。
+  if (!formationTutorialAllows(element)) return;
   captureSkillTreeScroll();
   state.error = null;
 
@@ -5472,6 +5896,12 @@ function handleAction(event) {
   }
 
   if (action === "story-skip") {
+    // 門のある会話は、門まで飛ばして止まる。**越えるのは釦だけである。**
+    const stop = storySkipStop();
+    if (stop) {
+      skipStoryToGate(stop);
+      return;
+    }
     record("story_skipped", { after: state.story?.after ?? "camp" });
     state.story = { ...state.story, queue: [], after: state.story?.after ?? "camp", logOpen: false };
     finishStory();
@@ -5480,6 +5910,12 @@ function handleAction(event) {
 
   if (action === "rewind-prologue") {
     rewindPrologue();
+    return;
+  }
+
+  // issue #200 — 逆走の演出は、叩けば追い越せる（会話画面と同じ約束）。
+  if (action === "rewind-skip") {
+    finishRewind();
     return;
   }
 
@@ -5646,6 +6082,8 @@ function handleAction(event) {
   if (action === "place-character") {
     const position = element.dataset.position;
     const id = selectedFormationCharacter();
+    // R11 §5 改 — 教えている一手の前後を見る（下で、済んだら盤面を自分で畳む）。
+    const tutorialStepBefore = formationTutorialStep();
     if (!POSITIONS.includes(position)) return;
     const other = positionOwner(position);
     if (!id) {
@@ -5672,6 +6110,12 @@ function handleAction(event) {
     state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
     state.formationSelection = null;
     record("formation_changed", { characterId: id, position, swappedWith: other });
+    // 教えていた一手が済んだ。**錠を外し、盤面も自分で通常へ戻す**（教え終わった型を
+    // プレイヤーに畳ませない）。ここから先は技能も装備も予測も自由に触れる。
+    if (tutorialStepBefore === "place" && formationTutorialStep() === "done") {
+      state.formationMode = false;
+      record("formation_tutorial_completed", { characterId: id, position });
+    }
     saveState();
     render();
     return;

@@ -602,7 +602,34 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
 
   // 単位は定義の amount 型が決める。**本文は % を書かない。**
   check(textOf("absorb_shock", 2).includes("13減らす"), "固定量の amount は % を付けずに入る");
-  check(textOf("emergency_treatment", 2).includes("37%"), "被弾量に対する割合も同じ差し込み口で入る");
+  for (const [id, coefficientBps] of [
+    ["mend", 2_500],
+    ["triage", 5_000],
+    ["emergency_treatment", 3_333],
+  ]) {
+    const heal = definitionOf(id).rule.effects.find((effect) => effect.type === "heal");
+    equal(heal.amount.type, "stat_scaled", `${id} は固定回復量を使う`);
+    equal(heal.amount.scalingStat, "focus", `${id} は技術へ依存する`);
+    equal(heal.amount.coefficientBps, coefficientBps, `${id} は元の比率を技術固定量へ移す`);
+  }
+  check(textOf("emergency_treatment", 2).includes("37%"), "固定回復量もレベル表示へ反映される");
+
+  const shared = definitionOf("shared_pain").rule.effects.find(
+    (effect) => effect.type === "split_pending_damage",
+  );
+  equal(shared.amount.type, "event_value_scaled", "痛みを分けるの軽減量は被弾提案の割合");
+  equal(shared.amount.numerator, 2, "軽減割合の分子は2");
+  equal(shared.amount.denominator, 5, "軽減割合の分母は5");
+  equal(shared.share.type, "event_value_scaled", "転送量も被弾提案から計算する");
+  equal(shared.share.numerator, 2, "転送割合の分子は2");
+  equal(shared.share.denominator, 5, "転送割合の分母は5");
+  const sharedText = textOf("shared_pain", 2);
+  check(sharedText.includes("45%") && sharedText.includes("4割"), "軽減だけがレベルで伸び、転送は4割のまま表示される");
+  assert.deepEqual(
+    skillLevelValueSteps(REACTIVE_META.shared_pain[1], definitionOf("shared_pain"), 1),
+    [{ from: "40%", to: "45%" }],
+    "痛みを分けるのレベル表示は軽減量だけを示す",
+  );
 
   // 「1点で何がどうなるか」も、同じ変動量から出す。
   assert.deepEqual(

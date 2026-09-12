@@ -311,6 +311,192 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     .find((actor) => actor.instanceId === "a_mender");
   equal(afterNextPhase.recoveredDamage, 0, "the recovered segment resets at the next attack phase");
   equal(afterNextPhase.recoverableDamage, 0, "a fully recovered window leaves no red segment");
+
+  // The cap is party-wide, not one allowance per healing source. A large
+  // reactive heal consumes the full damage budget, so its overflow cannot
+  // heal an older wound on a different ally in the same chain.
+  const partyContent = structuredClone(content);
+  const partyBattle = structuredClone(CORE_BATTLE);
+  partyBattle.maxRounds = 1;
+  partyBattle.objective = { type: "survive_rounds", rounds: 1 };
+  partyBattle.allies = [
+    {
+      ...partyBattle.allies.find((actor) => actor.instanceId === "a_mender"),
+      hp: 14,
+      position: "front_left",
+      tactics: [{ activeSkillId: "strike", useWhen: [] }],
+      reactiveSkillIds: ["test_recovery", "overflow_care"],
+    },
+    {
+      ...partyBattle.allies.find((actor) => actor.instanceId === "a_warden"),
+      hp: 19,
+      position: "rear_left",
+      tactics: [],
+      reactiveSkillIds: [],
+    },
+  ];
+  partyBattle.enemies = [{ ...partyBattle.enemies[0], hp: 10, position: "front_left" }];
+  const partyResult = simulateBattle(partyBattle, partyContent);
+  const directPartyHeal = of(partyResult, "healing_applied").find(
+    (event) => event.ruleId === "test_recovery_rule",
+  );
+  const partyDamageChain = directPartyHeal?.chainId;
+  const partyHeal = of(partyResult, "healing_applied")
+    .filter((event) => event.chainId === partyDamageChain);
+  const partyDamage = of(partyResult, "damage_taken")
+    .filter((event) => event.chainId === partyDamageChain && !event.tags.includes("cost"))
+    .reduce((sum, event) => sum + event.values.amount, 0);
+  const partyActual = partyHeal.reduce((sum, event) => sum + event.values.actual, 0);
+  equal(partyDamage, 4, "party recovery budget is seeded by the received HP damage");
+  equal(partyActual, partyDamage, "all recovery in the chain is capped at party damage");
+  const relayedPartyHeal = partyHeal.find((event) => event.ruleId === "overflow_care_rule");
+  equal(relayedPartyHeal.values.actual, 0, "overflow cannot spend a second party-wide allowance");
+}
+
+// A pending damage split runs before the original packet is applied. The
+// mitigation amount is leveled, while the transferred share is intentionally
+// not; the transferred packet still uses the ordinary damage pipeline.
+{
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.activeSkills.heavy_split = structuredClone(content.activeSkills.strike);
+  content.activeSkills.heavy_split.id = "heavy_split";
+  content.activeSkills.heavy_split.displayName = "Heavy Split (fixture)";
+  content.activeSkills.heavy_split.effects[0].amount = { type: "constant", value: 20 };
+  content.enemyActors.split_husk = structuredClone(content.enemyActors.husk);
+  content.enemyActors.split_husk.id = "split_husk";
+  content.enemyActors.split_husk.displayName = "Split Husk (fixture)";
+  content.enemyActors.split_husk.maxHp = 100;
+  content.enemyActors.split_husk.tactics = [{ activeSkillId: "heavy_split", useWhen: [] }];
+
+  const otherAlly = {
+    type: "target_exists",
+    query: {
+      scope: "allies",
+      filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
+      take: 1,
+    },
+  };
+  content.reactiveSkills.test_split = {
+    id: "test_split",
+    displayName: "Test Split",
+    tags: ["reaction", "guard"],
+    rule: {
+      id: "test_split_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      priority: 100,
+      predicates: [otherAlly, { type: "event_tag", tag: "shared_damage", value: false }],
+      costs: [],
+      effects: [{
+        type: "split_pending_damage",
+        target: { scope: "self", take: 1 },
+        amount: { type: "event_value_scaled", key: "amount", numerator: 2, denominator: 5 },
+        share: { type: "event_value_scaled", key: "amount", numerator: 2, denominator: 5 },
+        tags: ["shared_damage"],
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+
+  const battle = {
+    schemaVersion: CORE_BATTLE.schemaVersion,
+    battleId: "issue_shared_pain_split",
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [
+      {
+        instanceId: "a_target",
+        characterId: "warden",
+        position: "front_left",
+        hp: 20,
+        tactics: [],
+        reactiveSkillIds: [],
+        equipment: [],
+      },
+      {
+        instanceId: "a_splitter",
+        characterId: "warden",
+        position: "rear_left",
+        hp: 20,
+        tactics: [],
+        reactiveSkillIds: ["test_split"],
+        equipment: [],
+      },
+    ],
+    enemies: [{
+      instanceId: "e_split",
+      enemyActorId: "split_husk",
+      position: "front_left",
+      hp: 100,
+    }],
+  };
+
+  const levelOne = simulateBattle(battle, content);
+  const levelOneModified = of(levelOne, "pending_amount_modified").find(
+    (event) => event.ruleId === "test_split_rule",
+  );
+  const levelOneTransfer = of(levelOne, "damage_taken").find(
+    (event) => event.targetActorIds[0] === "a_splitter" && event.tags.includes("shared_damage"),
+  );
+  const levelOnePrimary = of(levelOne, "damage_taken").find(
+    (event) => event.targetActorIds[0] === "a_target" && event.sourceActorId === "e_split",
+  );
+  equal(levelOneModified.values.before, 20, "分散は元の pending damage を読む");
+  equal(levelOneModified.values.after, 12, "Lv1 は元の4割を対象から軽減する");
+  equal(levelOneModified.values.splitMitigation, 8);
+  equal(levelOneModified.values.transferredDamage, 8, "転送量は元の4割");
+  equal(levelOneTransfer.values.amount, 8, "所有者へ4割の通常ダメージを送る");
+  equal(levelOnePrimary.values.amount, 12, "対象には残り6割が届く");
+  check(levelOneTransfer.sequence < levelOnePrimary.sequence, "転送は元の被弾と回復反応より先に処理される");
+
+  // The split reads the live pending frame, not the proposal's original value.
+  // This matters when another incoming-damage reaction has already reduced it.
+  content.reactiveSkills.test_pre_reduce = {
+    id: "test_pre_reduce",
+    displayName: "Test Pre-Reduce",
+    tags: ["reaction", "guard"],
+    rule: {
+      id: "test_pre_reduce_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      priority: 50,
+      predicates: [{
+        type: "target_exists",
+        query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
+      }],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "decrease", amount: { type: "constant", value: 2 } }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  };
+  const adjusted = structuredClone(battle);
+  adjusted.allies[0].reactiveSkillIds = ["test_pre_reduce"];
+  const adjustedResult = simulateBattle(adjusted, content);
+  const adjustedModified = of(adjustedResult, "pending_amount_modified").find(
+    (event) => event.ruleId === "test_split_rule",
+  );
+  equal(adjustedModified.values.before, 18, "分散は先行する軽減後の pending damage を読む");
+  equal(adjustedModified.values.splitMitigation, 7, "18の4割は7へ丸める");
+  equal(adjustedModified.values.transferredDamage, 7, "転送も現在の pending damage の4割");
+
+  const levelTwo = structuredClone(battle);
+  levelTwo.allies[1].skillLevels = { test_split: 2 };
+  const levelTwoResult = simulateBattle(levelTwo, content);
+  const levelTwoModified = of(levelTwoResult, "pending_amount_modified").find(
+    (event) => event.ruleId === "test_split_rule",
+  );
+  const levelTwoTransfer = of(levelTwoResult, "damage_taken").find(
+    (event) => event.targetActorIds[0] === "a_splitter" && event.tags.includes("shared_damage"),
+  );
+  const levelTwoPrimary = of(levelTwoResult, "damage_taken").find(
+    (event) => event.targetActorIds[0] === "a_target" && event.sourceActorId === "e_split",
+  );
+  equal(levelTwoModified.values.splitMitigation, 9, "Lv2 では軽減量だけが増える");
+  equal(levelTwoModified.values.after, 11);
+  equal(levelTwoModified.values.transferredDamage, 8, "Lv2 でも転送量は4割のまま");
+  equal(levelTwoTransfer.values.amount, 8, "Lv2 の所有者ダメージは増えない");
+  equal(levelTwoPrimary.values.amount, 11, "Lv2 の対象ダメージはさらに1減る");
+  checks += 1;
 }
 
 {
