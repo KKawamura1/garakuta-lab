@@ -89,6 +89,61 @@ export const PROLOGUE = Object.freeze({
   tutorial: Object.freeze({ characterId: "mender", row: "rear" }),
 });
 
+// ---------------------------------------------------------------- 必殺技の一戦（issue #240）
+//
+// 「**冒頭の先見機（灰の門）みたいに、負けそうになって必殺技で切り返す**」（作者要望）。
+//
+// #238 で必殺技は入ったが、**どこで覚えるのかが無かった。**Stage 1 から解禁されるだけで、
+// 画面に畳んだ説明があるだけだった。そこで Stage 1 の第1戦を、**必殺を構えないと
+// 勝てない一戦**にする。
+//
+// 灰の門との違いは二つある。
+//
+//   1. **巻き戻しは使わない。**灰の門の巻き戻しは「予測という道具がある」ことを
+//      教えるための演出である。Stage 1 ではその道具をもう持っているので、
+//      もう一度負けさせてから巻き戻すのは同じ教材を二度やることになる。
+//      **代わりに、予測そのものを教材にする**——構えない予測は「敗北」、構えた予測は
+//      「勝利」。帯が変わるのを見てから挑む。
+//   2. **12戦の梯子の中に置く。**灰の門は第0戦（遠征の外）だが、この一戦は第1戦
+//      そのものである。勝てば普通に報酬へ進み、負ければ普通に再挑戦へ落ちる
+//      （専用の出口を作らない）。
+//
+// 配置は engine で本当に走らせて決めてある（`ecology/story.test.mjs`）。
+//
+//   構えない … 7ラウンドで**時間切れの敗北**。ツグミが落ち、盾兵が一枚残る
+//   構える   … 5ラウンドで**勝つ**。誰も落ちない。差は必殺ひとつぶんだけ
+//
+// **「隊の誰かがHP70%未満」という条件は、この一戦の中で自然に満たされる。**
+// 二枚の盾兵と二つの後撃ちが前後を同時に削るので、4ラウンド目には条件が揃っている
+// （条件を教えるための一戦なので、条件が揃わないまま終わる配置にはしない）。
+export const ULTIMATE_LESSON = Object.freeze({
+  id: "ultimate_lesson_shield_pair",
+  name: "塞ぐ二枚",
+  description: "灰殻が二枚、道を塞いで立っている。後ろから二つ、撃ってくる。",
+  // 12戦の第1戦そのもの。**梯子の外に置かない。**
+  encounterIndex: 1,
+  maxRounds: 7,
+  // 盾兵は硬い。**一枚ずつ落としていては間に合わない**のが、この一戦の問いである。
+  enemyScaling: Object.freeze({ maxHpBps: 9_000, offenseBps: 10_000 }),
+  enemies: Object.freeze([
+    Object.freeze({ instanceId: "lesson_bulwark_a", enemyActorId: "gray_bulwark", position: "front_left" }),
+    Object.freeze({ instanceId: "lesson_bulwark_b", enemyActorId: "gray_bulwark", position: "front_right" }),
+    Object.freeze({ instanceId: "lesson_marksman_a", enemyActorId: "gray_marksman", position: "rear_left" }),
+    Object.freeze({ instanceId: "lesson_marksman_b", enemyActorId: "gray_marksman", position: "rear_right" }),
+  ]),
+  // **教える一手は content が決める。**人物 id と技能 id を app.js へ書き写さないので、
+  // ここを変えれば錠と光も一緒に動く（灰の門の `PROLOGUE.tutorial` と同じ作り）。
+  //
+  // ナギの溜め突きを選ぶ理由：**溜めが要るせいで使いにくい技能**が、必殺にすると
+  // 「溜め不要・全体へ・量3倍」になる。#238 が狙った「見向きもしなかった技能が、
+  // 必殺になると別物になる」がそのまま絵になる。しかも加入したばかりの本人の技能である。
+  tutorial: Object.freeze({ characterId: "lancer", skillId: "heavy_swing" }),
+  // 構える前に出す一行。**答えは書かず、見る場所を示す。**
+  hint: "盾の二枚は硬い。一枚ずつ落としていては、前が保たない。",
+  // 構えたあとに出す一行。予測の帯が変わったことを指す。
+  armedHint: "溜めが消えて、二枚へ同時に届く。上の予測がもう変わっている。",
+});
+
 // ---------------------------------------------------------------- 断片の組み立て
 //
 // beat / stand は content/beat.mjs にある。会話本文は dialogue.mjs から参照する。

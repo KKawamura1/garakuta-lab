@@ -590,19 +590,32 @@ for (const field of [
     ["チュートリアルの段", app, "function formationTutorialStep() {"],
     ["錠が並べ替えの三手だけに掛かる", app, 'return step !== null && step !== "done";'],
     ["光らせる先の表", app, "function formationTutorialSpotSelector(step) {"],
-    ["錠と光を描画のあとに掛ける", app, "applyFormationTutorialGate();"],
-    ["経路側の二重の塞ぎ", app, "if (!formationTutorialAllows(element)) return;"],
+    ["錠と光を描画のあとに掛ける", app, "applyTutorialGate();"],
+    ["経路側の二重の塞ぎ", app, "if (!tutorialAllows(element)) return;"],
     ["段ごとの手引き", app, "function formationTutorialNote() {"],
     ["タブの閉じ込めが一本化されている", app, "function campTutorialTab() {"],
     ["光のCSS", styles, ".tutorial-spot {"],
     ["錠のCSS", styles, ".tutorial-blocked {"],
     ["手順の一覧のCSS", styles, ".tutorial-steps li.current"],
+    // issue #240 — 必殺技の一戦も**同じ錠の形**で掛かる（手取りの型を二通り作らない）。
+    ["必殺技チュートリアルの段", app, "function ultimateLessonStep() {"],
+    ["必殺技チュートリアルの光らせる先", app, "function ultimateLessonSpotSelector(step) {"],
+    ["必殺技チュートリアルの手引き", app, "function ultimateLessonNote() {"],
+    ["必殺技の一戦の正本", story, "export const ULTIMATE_LESSON = Object.freeze({"],
+    ["必殺技の一戦の敵を画面が差し替える", app, "if (ultimateLessonActive()) return ultimateLessonEncounter();"],
+    ["必殺技チュートリアルのCSS", styles, ".ultimate-tutorial {"],
+    ["必殺技チュートリアルの予測の帯のCSS", styles, ".tutorial-forecast {"],
   ]) {
     if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
   }
-  // **光と錠は同じ選択子から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
-  if (!app.includes("formationTutorialSpotSelector(formationTutorialStep())")) {
-    problems.push("錠の判定が、光らせる先と別の選択子を持っている");
+  // **光と錠は一つの形から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
+  // 錠は二つあるが、掛ける側は `tutorialGate()` 一つしか読まない。
+  for (const expected of [
+    "function tutorialGate() {",
+    "const gate = tutorialGate();",
+    "return Boolean(gate.selector && element?.closest?.(gate.selector));",
+  ]) {
+    if (!app.includes(expected)) problems.push("錠の判定が、光らせる先と別の選択子を持っている");
   }
   // 錠の最中も盤面の数字は読ませる（この一手の理由はそこに出ている）。
   if (!styles.includes(".party-cell.tutorial-blocked")) {

@@ -16,6 +16,9 @@
 //      「どこで切るか」という問い自体が成立していない。
 //   5. **傷の条件。**隊が削られる前には出ないこと。序盤の楽な一戦で不発になるのは
 //      仕様であって、その一戦では回数も減らない。
+//   6. **カットインの拍**（issue #242）。放った回数とカットインの拍の数が一致すること。
+//      アクティブ（宣言の event がある）とリアクティブ（宣言が無く、効果から読む）の
+//      両方で一度ずつ出る。演出は画面の話だが、**拍はイベント列の性質**なのでここで見る。
 
 import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "../ecology/playable-content.mjs";
@@ -36,6 +39,7 @@ import {
   ultimatesFiredBy,
 } from "../ecology/progression.mjs";
 import { freshLoadout, simulateExpeditionBattle } from "../ecology/playable-battles.mjs";
+import { buildBeats } from "../ecology/replay-beats.mjs";
 
 const STAGE_SEQUENCE = 3;
 const SEED = "ultimate-smoke";
@@ -84,6 +88,18 @@ function designateAll(run) {
       ...(run.loadout.reactives[characterId] ?? []),
     ];
     const pick = installed.find((skillId) => ascendSkill(PLAYABLE_CONTENT, skillId));
+    if (pick) ultimates[characterId] = pick;
+  }
+  return { ...run, loadout: { ...run.loadout, ultimates } };
+}
+
+// 指定をリアクティブだけに寄せた版。**割り込みの必殺は宣言の event を持たない**ので、
+// カットインの拍が両方の形で出ることを確かめるには、この寄せ方が要る。
+function designateReactives(run) {
+  const ultimates = {};
+  for (const characterId of run.roster) {
+    const pick = (run.loadout.reactives[characterId] ?? [])
+      .find((skillId) => ascendSkill(PLAYABLE_CONTENT, skillId));
     if (pick) ultimates[characterId] = pick;
   }
   return { ...run, loadout: { ...run.loadout, ultimates } };
@@ -170,6 +186,41 @@ for (const entry of quiet) {
   );
 }
 
+// ---------------------------------------------------------------- 6. カットインの拍（issue #242）
+//
+// **放った数とカットインの数は、常に同じでなければならない。**多ければ同じ一撃で
+// 二度演出が出ており、少なければ出ない必殺がある。拍は `replay-beats.mjs` が
+// イベント列だけから組むので、画面を開かずにここで検査できる。
+const cutInShapes = { active: 0, reactive: 0 };
+for (const [kind, designate] of [["active", designateAll], ["reactive", designateReactives]]) {
+  const base = baseRun();
+  const armed = armFor(designate(base.run), base.run.roster);
+  for (let index = 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
+    const { result } = simulateExpeditionBattle(armed, base.profile, index);
+    const fired = ultimatesFiredBy(armed, result);
+    const beats = buildBeats(result.events);
+    const cuts = beats.filter((beat) => beat.kind === "ultimate");
+    assert.equal(
+      cuts.length, fired.length,
+      `${kind} 第${index}戦: 放った ${fired.length} 回に対してカットインが ${cuts.length} 拍`,
+    );
+    assert.equal(
+      new Set(cuts.map((beat) => beat.ultimateId)).size, cuts.length,
+      `${kind} 第${index}戦: 同じ必殺で二度カットインが出ている`,
+    );
+    for (const cut of cuts) {
+      // アクティブは宣言の拍（盤面はまだ動いていない）、リアクティブは効果の一つ前。
+      assert.equal(
+        cut.to, cut.events[0].type === "action_started" ? cut.from : cut.from - 1,
+        `${kind} 第${index}戦: カットインが見せる盤面がずれている`,
+      );
+    }
+    cutInShapes[kind] += cuts.length;
+  }
+}
+assert.ok(cutInShapes.active > 0, "アクティブの必殺でカットインの拍が出ていない");
+assert.ok(cutInShapes.reactive > 0, "リアクティブの必殺でカットインの拍が出ていない");
+
 // ---------------------------------------------------------------- 2 と 4. 通しと切り方
 
 // 切り方を二つ。**同じ回数を、出せるところから順に切るか、幕ボスへ取っておくか。**
@@ -234,6 +285,10 @@ console.log(
     + "（放った " + entry.fired + "）"
     + (entry.result[0] === entry.result[1] ? "" : "・" + entry.result[0] + "→" + entry.result[1])
   )).join(" / "),
+);
+console.log(
+  "ecology-ultimate smoke カットインの拍（放った数と一致）: アクティブ "
+  + cutInShapes.active + "拍 / リアクティブ " + cutInShapes.reactive + "拍",
 );
 console.log(
   "ecology-ultimate smoke 切り方の差: "
