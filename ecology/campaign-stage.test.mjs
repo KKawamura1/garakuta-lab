@@ -350,6 +350,27 @@ function syntheticResult(result, allyHpById) {
   const wardenLine = hurtPreview.perCharacter.find((entry) => entry.characterId === "warden");
   equal(wardenLine.startingHp, 40, "持ち越しHPが開始HPとして出る");
   equal(wardenLine.hpLost, wardenLine.startingHp - wardenLine.endingHp, "減少量は開始と終了の差");
+  // 作者指摘 2026-09-12 — 戦闘の指標の「味方HP損失」も、**この戦闘で減った量**にする。
+  // 前の戦闘から持ち越した傷を毎回数え直すと、無傷で抜けた一戦でも損失が出る。
+  {
+    const hurt = {
+      ...run,
+      currentHp: Object.fromEntries(run.roster.map((id) => [id, Math.max(1, Math.floor(
+        (characterStats(profile, id)?.stats.maxHp ?? 2) / 2,
+      ))])),
+    };
+    const carried = simulateNextBattle({ ...hurt, loadout: freshLoadout(ROSTER) }, profile, 1).result;
+    const startedShort = carried.actors
+      .filter((actor) => actor.side === "ally")
+      .reduce((sum, actor) => sum + (actor.maxHp - actor.startingHp), 0);
+    const thisBattle = carried.actors
+      .filter((actor) => actor.side === "ally")
+      .reduce((sum, actor) => sum + Math.max(0, actor.startingHp - actor.hp), 0);
+    check(startedShort > 0, "持ち越しの傷がある状態で戦っている");
+    equal(carried.metrics.allyHpLost, thisBattle, "味方HP損失は持ち越した傷を含まない");
+    check(carried.metrics.allyHpLost < startedShort + thisBattle,
+      "持ち越した傷を足し込んでいない");
+  }
 
   // R14 §1 — **12戦の梯子の外の盤面も、同じ経路で予測できる。**
   // 序盤の「灰の門」は composeEncounter からは出てこない（prologueEncounter が出す）。

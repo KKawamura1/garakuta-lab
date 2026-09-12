@@ -23505,7 +23505,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -23585,6 +23585,42 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2",
+         "防壁3"
+        ],
+        "limitText": "1 roundにつき2回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 32
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "前列の味方へ行動点",
+          "amount": 1
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ反応点",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -23845,7 +23881,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -23966,6 +24002,68 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の防壁が割れたとき",
+        "paid": [
+         "耐久1",
+         "HP3"
+        ],
+        "limitText": "1 roundにつき2回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 1
+         }
+        ]
+       },
+       {
+        "when": "自分がHPダメージを受けたとき・反応点が1以上残っているとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 28
+         }
+        ]
+       },
+       {
+        "when": "各 round の開始時",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき2回",
+        "effects": [
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "最もHPの低い敵へダメージ",
+          "amount": 32
+         },
+         {
+          "slot": "effect4",
+          "label": "追加効果4",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "最もHPの低い敵と同じ列へダメージ",
+          "amount": 24
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -24128,7 +24226,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -24196,6 +24294,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分がHPダメージを受けたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 9
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "最もHPの低い敵へダメージ",
+          "amount": 32
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -24331,7 +24456,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -24405,6 +24530,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の防壁が割れたとき",
+        "paid": [
+         "耐久2",
+         "HP3"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ反応点",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "前列の味方へ受け止め",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -24606,7 +24759,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -24701,6 +24854,50 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "round 終わりに行動権が余っていたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "最も傷ついた味方へ防壁",
+          "amount": 52
+         }
+        ]
+       },
+       {
+        "when": "自分の攻撃が過剰ダメージを出したとき・自分が後列にいるとき",
+        "paid": [
+         "耐久1"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "前列の味方へ行動点",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -24837,7 +25034,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -24902,6 +25099,25 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が敵へ与えるダメージが決まる直前",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "生存している敵全員へ隙",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -25024,7 +25240,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -25095,6 +25311,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "round 終わりに行動権が余っていたとき",
+        "paid": [
+         "耐久2",
+         "反応点1"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "自分へ防壁",
+          "amount": 63
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 28
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -25228,7 +25472,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -25298,6 +25542,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "敵が倒れたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最も傷ついた味方へ防壁",
+          "amount": 28
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 14
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -25434,7 +25705,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -25505,6 +25776,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の準備が完了したとき",
+        "paid": [
+         "耐久2",
+         "防壁3"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最もHPの低い敵へダメージ",
+          "amount": 28
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ行動点",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -25612,7 +25911,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -25676,6 +25975,25 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久1"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ防壁",
+          "amount": 55
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -25802,7 +26120,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -25868,6 +26186,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 8
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最も傷ついた味方へ防壁",
+          "amount": 16
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -26019,7 +26364,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -26094,6 +26439,41 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分へのダメージが決まる直前",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき2回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "前列の味方へ受け止め",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "自分へ受け止め",
+          "amount": 2
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "最も傷ついた味方へ防壁",
+          "amount": 22
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -26244,7 +26624,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -26311,6 +26691,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分がHPダメージを受けたとき・反応点が1以上残っているとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ受け止め",
+          "amount": 2
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最も傷ついた味方へ防壁",
+          "amount": 28
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -26418,7 +26825,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -26483,6 +26890,25 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "round 終わりに行動権が余っていたとき",
+        "paid": [
+         "耐久1"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ防壁",
+          "amount": 35
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -26631,7 +27057,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -26703,6 +27129,41 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が受け止め（block）で攻撃を止めたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "仕掛けてきた敵へダメージ",
+          "amount": 20
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "生存している味方全員へ集中",
+          "amount": 1
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最も硬い敵へダメージ",
+          "amount": 16
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -26849,7 +27310,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -26921,6 +27382,41 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "生存している味方全員へ集中",
+          "amount": 1
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ集中",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -27056,7 +27552,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -27124,6 +27620,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の防壁が割れたとき・3 round 目以降",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ受け止め",
+          "amount": 3
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ防壁",
+          "amount": 35
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -27298,7 +27821,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -27369,6 +27892,41 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が敵へ状態を刻んだとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "その相手へ裂傷",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "最も硬い敵へダメージ",
+          "amount": 38
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "裂傷を負った敵すべてへダメージ",
+          "amount": 27
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -27503,7 +28061,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -27575,6 +28133,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2",
+         "防壁3"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ行動点",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ受け止め",
+          "amount": 2
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -27703,7 +28289,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -27776,6 +28362,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2",
+         "HP3"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ受け止め",
+          "amount": 3
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -27885,7 +28499,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -27954,6 +28568,25 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "戦闘開始時・反応点が1以上残っているとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1戦につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 24
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -28051,7 +28684,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -28118,6 +28751,25 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "戦闘開始時",
+        "paid": [
+         "耐久1"
+        ],
+        "limitText": "1戦につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "前列の味方へ行動点",
+          "amount": 2
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -28236,7 +28888,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -28304,6 +28956,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 8
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ防壁",
+          "amount": 20
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -28440,7 +29119,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -28514,6 +29193,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "round 終わりに行動権が余っていたとき",
+        "paid": [
+         "耐久2",
+         "HP3"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "前列の味方へ行動点",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ防壁",
+          "amount": 55
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -28640,7 +29347,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -28714,6 +29421,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の準備が完了したとき",
+        "paid": [
+         "耐久2",
+         "防壁3"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ反応点",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ行動点",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -28850,7 +29585,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -28916,6 +29651,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の防壁が割れたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "前列の味方へ受け止め",
+          "amount": 2
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -29156,7 +29918,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -29263,6 +30025,75 @@
       ],
       "keystone": "基礎効果を60%強化し、耐久 +4",
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2",
+         "防壁3"
+        ],
+        "limitText": "1 roundにつき2回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "legendary",
+          "rarityLabel": "レジェンダリー",
+          "summary": "前列の味方へ行動点",
+          "amount": 2
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ反応点",
+          "amount": 1
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "前列の味方へ受け止め",
+          "amount": 2
+         }
+        ]
+       },
+       {
+        "when": "自分の防壁が割れたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき2回",
+        "effects": [
+         {
+          "slot": "effect4",
+          "label": "追加効果4",
+          "rarity": "legendary",
+          "rarityLabel": "レジェンダリー",
+          "summary": "自分へ防壁",
+          "amount": 56
+         },
+         {
+          "slot": "effect5",
+          "label": "追加効果5",
+          "rarity": "legendary",
+          "rarityLabel": "レジェンダリー",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 22
+         },
+         {
+          "slot": "effect6",
+          "label": "追加効果6",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ受け止め",
+          "amount": 2
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -29546,7 +30377,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -29654,6 +30485,75 @@
       ],
       "keystone": "基礎効果を60%強化し、耐久 +4",
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の準備が完了したとき",
+        "paid": [
+         "耐久2",
+         "防壁3"
+        ],
+        "limitText": "一連の解決につき2回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "legendary",
+          "rarityLabel": "レジェンダリー",
+          "summary": "自分へ反応点",
+          "amount": 2
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ行動点",
+          "amount": 1
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "legendary",
+          "rarityLabel": "レジェンダリー",
+          "summary": "前列の味方へ行動点",
+          "amount": 2
+         }
+        ]
+       },
+       {
+        "when": "自分が受け止め（block）で攻撃を止めたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき1回",
+        "effects": [
+         {
+          "slot": "effect4",
+          "label": "追加効果4",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "仕掛けてきた敵へダメージ",
+          "amount": 27
+         },
+         {
+          "slot": "effect5",
+          "label": "追加効果5",
+          "rarity": "legendary",
+          "rarityLabel": "レジェンダリー",
+          "summary": "最も傷ついた味方へ防壁",
+          "amount": 45
+         },
+         {
+          "slot": "effect6",
+          "label": "追加効果6",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -29862,7 +30762,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -29955,6 +30855,51 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の防壁が割れたとき",
+        "paid": [
+         "耐久1",
+         "HP3"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ反応点",
+          "amount": 1
+         }
+        ]
+       },
+       {
+        "when": "戦闘開始時",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1戦につき1回",
+        "effects": [
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "前列の味方へ受け止め",
+          "amount": 3
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "自分へ受け止め",
+          "amount": 3
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -30226,7 +31171,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -30350,6 +31295,76 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分がHPダメージを受けたとき",
+        "paid": [
+         "耐久2",
+         "防壁3"
+        ],
+        "limitText": "1 roundにつき2回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ防壁",
+          "amount": 47
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "前列の味方へ受け止め",
+          "amount": 2
+         }
+        ]
+       },
+       {
+        "when": "戦闘開始時・反応点が1以上残っているとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1戦につき2回",
+        "effects": [
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ防壁",
+          "amount": 74
+         },
+         {
+          "slot": "effect4",
+          "label": "追加効果4",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "前列の味方へ受け止め",
+          "amount": 3
+         }
+        ]
+       },
+       {
+        "when": "自分へのダメージが決まる直前・反応点が1以上残っているとき",
+        "paid": [
+         "耐久1"
+        ],
+        "limitText": "1 roundにつき2回",
+        "effects": [
+         {
+          "slot": "effect5",
+          "label": "追加効果5",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ受け止め",
+          "amount": 3
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -30596,7 +31611,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -30692,6 +31707,66 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "戦闘開始時",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1戦につき2回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "最も傷ついた味方へ防壁",
+          "amount": 52
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 2
+         },
+         {
+          "slot": "effect3",
+          "label": "追加効果3",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "自分へ防壁",
+          "amount": 74
+         }
+        ]
+       },
+       {
+        "when": "自分がHPダメージを受けたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "一連の解決につき2回",
+        "effects": [
+         {
+          "slot": "effect4",
+          "label": "追加効果4",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "前列の味方へ受け止め",
+          "amount": 1
+         },
+         {
+          "slot": "effect5",
+          "label": "追加効果5",
+          "rarity": "epic",
+          "rarityLabel": "エピック",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -30844,7 +31919,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -30918,6 +31993,34 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が受け止め（block）で攻撃を止めたとき",
+        "paid": [
+         "耐久2",
+         "HP3"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ行動点",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ反応点",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -31040,7 +32143,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -31110,6 +32213,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分の防壁が割れたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ行動点",
+          "amount": 1
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ反応点",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -31228,7 +32358,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -31294,6 +32424,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "戦闘開始時",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1戦につき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "自分へ防壁",
+          "amount": 63
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "rare",
+          "rarityLabel": "レア",
+          "summary": "前列の味方へ受け止め",
+          "amount": 3
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -31433,7 +32590,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -31503,6 +32660,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "自分が動いたとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "生存している味方全員へ防壁",
+          "amount": 14
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "前列の味方へ行動点",
+          "amount": 1
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",
@@ -31633,7 +32817,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-22",
+      "contentContractVersion": "ecology-content-contract-23",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",
@@ -31701,6 +32885,33 @@
       ],
       "keystone": null,
       "risk": null,
+      "rules": [
+       {
+        "when": "round 終わりに行動権が余っていたとき・自分のHPが50%以下のとき",
+        "paid": [
+         "耐久2"
+        ],
+        "limitText": "1 roundにつき1回",
+        "effects": [
+         {
+          "slot": "effect1",
+          "label": "追加効果1",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "自分へ受け止め",
+          "amount": 3
+         },
+         {
+          "slot": "effect2",
+          "label": "追加効果2",
+          "rarity": "common",
+          "rarityLabel": "コモン",
+          "summary": "最も傷ついた味方へ守勢",
+          "amount": 2
+         }
+        ]
+       }
+      ],
       "effects": [
        {
         "slot": "implicit",

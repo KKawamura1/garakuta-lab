@@ -77,7 +77,10 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 全体への隙、裂傷を読む条件と払い先、ダメージを太らせる keystone）、回復の
 // 基準値が上がった。報酬候補から補給が外れ、候補を出す戦闘がボス戦だけになった。
 // **保存済みの遠征・Blueprint に出てこない affix ID が出るようになる**ので版を上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-22";
+// PR #255 続き — 生成装備の readout が rule ごとの構造（いつ・何を払い・何回）を
+// 持つようになった。**保存済みの Blueprint は `lines` しか持たない**ので、画面は
+// どちらでも壊れないように読む。欄が増えたので版を上げる。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-23";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

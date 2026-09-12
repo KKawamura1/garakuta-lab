@@ -518,26 +518,49 @@ function displayNameOf(draft, itemId) {
   return `${keystone}${first.source.displayName}${first.payoffs[0].affix.displayName}の${noun}`;
 }
 
+// PR #255 — **一つの rule を「いつ／何を払い／何回」に分けて出す。**
+//
+// 作者試遊 2026-09-12：「結局、条件と消費も見ないと選べないです。」報酬の札が
+// 効果の要約だけを並べていて、**発火条件と代償が畳んだ全文の中にしか無かった。**
+// どちらも「拾うかどうか」を決める材料なので、文へ畳む前の形でも外へ出す。
+//
+// `ruleText` はこの構造から一文を組み立てるので、**全文と札のどちらも同じ材料**を
+// 読む（同じ rule が画面ごとに違うことを言わない）。
+export function ruleReadout(draft, rule, effectOffset = 0) {
+  const when = [rule.source.summary, ...rule.converters.map((affix) => affix.summary)].join("・");
+  const paid = [];
+  const wear = durabilityCostOf(draft, rule);
+  if (wear > 0) paid.push(`耐久${wear}`);
+  if (rule.cost && rule.cost.cost.type !== "wear_equipment") paid.push(rule.cost.summary);
+  const limit = limitOf(draft, rule);
+  const scopeText = { chain: "一連の解決", round: "1 round", battle: "1戦" }[limit.scope];
+  return {
+    when,
+    paid,
+    limitText: `${scopeText}につき${limit.count}回`,
+    effects: rule.payoffs.map((payoff, index) => {
+      const magnitude = magnitudeOf(payoff, rule, draft.rarity);
+      return {
+        slot: `effect${effectOffset + index + 1}`,
+        label: `追加効果${effectOffset + index + 1}`,
+        rarity: magnitude.effectRarity,
+        rarityLabel: RARITY_LABEL[magnitude.effectRarity] ?? magnitude.effectRarity,
+        summary: payoff.affix.summary,
+        amount: magnitude.amount,
+      };
+    }),
+  };
+}
+
 // **画面用の一文。**effect の中身ではなく「何をきっかけに、何を払い、何が起きるか」を
 // affix の summary から組む。生成物の説明を engine の event 名で書かない。
 export function ruleText(draft, rule, effectOffset = 0) {
-  const when = [rule.source.summary, ...rule.converters.map((affix) => affix.summary)].join("・");
-  const paidParts = [];
-  const wear = durabilityCostOf(draft, rule);
-  if (wear > 0) paidParts.push(`耐久${wear}`);
-  if (rule.cost && rule.cost.cost.type !== "wear_equipment") paidParts.push(rule.cost.summary);
-  const paid = paidParts.length ? `${paidParts.join("と")}を払い、` : "";
-  const done = rule.payoffs
-    .map((payoff, index) => {
-      const magnitude = magnitudeOf(payoff, rule, draft.rarity);
-      const slot = `追加効果${effectOffset + index + 1}`;
-      const label = RARITY_LABEL[magnitude.effectRarity] ?? magnitude.effectRarity;
-      return `${slot}（${label}）：${payoff.affix.summary}（${magnitude.amount}）`;
-    })
+  const readout = ruleReadout(draft, rule, effectOffset);
+  const paid = readout.paid.length ? `${readout.paid.join("と")}を払い、` : "";
+  const done = readout.effects
+    .map((effect) => `${effect.label}（${effect.rarityLabel}）：${effect.summary}（${effect.amount}）`)
     .join("、");
-  const limit = limitOf(draft, rule);
-  const scopeText = { chain: "一連の解決", round: "1 round", battle: "1戦" }[limit.scope];
-  return `${when}、${paid}${done}。${scopeText}につき${limit.count}回。`;
+  return `${readout.when}、${paid}${done}。${readout.limitText}。`;
 }
 
 export function draftToDefinition(draft) {
@@ -813,6 +836,15 @@ export function generateEquipment(options = {}) {
       }
     }
     const riskCost = draft.rules.map((rule) => rule.cost).find((cost) => cost?.risky) ?? null;
+    // PR #255 — 札が「いつ・何を払い・何回」を畳まずに出せるよう、rule ごとの
+    // 構造も readout へ載せる。`lines` は同じ材料から組んだ全文で、両方を残すのは
+    // **古い Blueprint の readout（lines しか持たない）でも表示が壊れない**ため。
+    let ruleOffset = 0;
+    const ruleReadouts = draft.rules.map((rule) => {
+      const readout = ruleReadout(draft, rule, ruleOffset);
+      ruleOffset += rule.payoffs.length;
+      return readout;
+    });
     return {
       definition,
       descriptor,
@@ -864,6 +896,7 @@ export function generateEquipment(options = {}) {
         ])],
         keystone: draft.keystone ? draft.keystone.summary : null,
         risk: riskCost ? riskCost.riskSummary : null,
+        rules: ruleReadouts,
         effects: [{
           slot: "implicit",
           ruleIndex: -1,

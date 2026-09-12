@@ -151,9 +151,9 @@ try {
   //   打ち切り → 会話「届かなかった」の最後の拍に被さる［時間が巻き戻る］
   //   → 会話「もう一度、門の前」 → キャンプ → **同じ盤面をもう一度** → 勝利
   //
-  // R12 — 倒れた会話は**再生を飛ばしても入る**。［結果を見る］で打ち切っても
+  // R12 — 倒れた会話は**再生を飛ばしても入る**。［再生をとばす］で打ち切っても
   // ここへ来る（以前は再生が流れきったときにしか入らなかった）。
-  await click("結果を見る");
+  await page.locator('[data-action="replay-result"]').first().click();
   await page.waitForTimeout(300);
   note("倒れた拍で会話が入る", /届かなかった/.test(await bodyText()));
   // **門は最後の行でしか出ない**（途中の行で出すと、読み飛ばすための釦になる）。
@@ -559,7 +559,7 @@ try {
   await click("この敵に挑む");
   await waitForTutorialSelector(".battle-field");
   await page.locator('.speed-button[data-speed="fast"]').click();
-  await click("結果を見る");
+  await page.locator('[data-action="replay-result"]').first().click();
   await page.waitForTimeout(300);
   // 勝つと「同じ影、違う結果」の会話が入る。**結果画面より先にここへ来る。**
   note("隊列を直すと同じ盤面に勝てる", /同じ影、違う結果/.test(await bodyText()));
@@ -682,7 +682,17 @@ try {
         Boolean(rewardFits) && rewardFits.scrollY === 0
           && rewardFits.bottom <= Math.min(rewardFits.viewport, SAFARI_VISIBLE_HEIGHT),
         rewardFits ? `末尾 ${rewardFits.bottom}px / 予算 ${SAFARI_VISIBLE_HEIGHT}px` : "");
-      // 条件・代償・発火回数まで入った全文は、拾う前に畳んだ段から読める。
+      // 作者試遊 2026-09-12 —「結局、条件と消費も見ないと選べないです」。
+      const ruleHeads = await page.locator(".reward-choice .reward-rule-head").allTextContents();
+      note("いつ発火するかが畳まずに出ている",
+        ruleHeads.length >= choices && ruleHeads.every((text) => /とき|直前|開始時|round/.test(text)),
+        (ruleHeads[0] ?? "").replace(/\s+/g, " ").slice(0, 60));
+      note("何を払うかと何回かが畳まずに出ている",
+        ruleHeads.some((text) => /耐久|HP|防壁|反応点/.test(text))
+          && ruleHeads.every((text) => /につき\d+回/.test(text)));
+      note("常時効果と発火効果を見分けられる",
+        await page.locator(".reward-choice .effect-always").count() === choices);
+      // 畳んだ段には全文（同じ材料から組んだ一文）が入っている。
       const rewardFull = page.locator(".reward-choice .reward-full").first();
       note("装備の全文を拾う前に読める", await rewardFull.count() > 0);
       if (await rewardFull.count()) {

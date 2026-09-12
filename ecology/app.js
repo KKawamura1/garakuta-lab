@@ -3767,8 +3767,8 @@ function renderSupplies() {
 // PR #255 — 直前の一戦の一行。**結果画面の代わりではない。**決めることが
 // 何も無い画面を一枚挟む代わりに、次の一戦を決める画面の中へ「さっき何が起きたか」
 // だけを置く。次の戦闘を始めた時点で消える（`simulateAndEnterBattle`）。
-function lastBattleNoteHtml() {
-  const note = state.lastBattleNote;
+function lastBattleNoteHtml(override = undefined) {
+  const note = override === undefined ? state.lastBattleNote : override;
   if (!note || !Number.isInteger(note.encounter)) return "";
   const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[note.kind] ?? "通常";
   const facts = [
@@ -4836,9 +4836,11 @@ function renderBattle() {
     + button("一手 ▶", "replay-step", true, "button", "data-role=\"replay-step\"")
     + "</div>"
     + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
-    // PR #255 — 行き先が変わったので札も変える。通常戦・精鋭戦の勝利は
-    // 結果画面を通らず、そのままキャンプへ戻る。
-    + button(resultScreenDue() ? "結果を見る" : "キャンプへ戻る", "replay-result", false, "button") + "</section>"
+    // PR #255 — **行き先ではなく、いま押す操作の名前にする。**「キャンプへ戻る」と
+    // 書くと、戦闘の前へ戻る（＝やり直せる）ように読めた（作者試遊 2026-09-12）。
+    // この釦がするのは再生を打ち切ることだけなので、そう名乗らせる。行き先が
+    // 場面で変わる（結果画面・キャンプ・精算）ぶん、札で行き先を約束しない。
+    + button("再生をとばす", "replay-result", false, "button") + "</section>"
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
       + "<p class=\"muted\">枠色はHPでは変えません。生存中の残りHPが56%以上なら主色は緑、26〜55%なら黄、25%以下なら赤です。残HPは主色、今回の攻撃で回復済みは主色の薄め、回復可能は主色のかなり暗め、回復不能は黒で表示します。</p>"
@@ -5431,17 +5433,9 @@ function renderResult() {
     ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
     : "<p class=\"muted\">持ち帰る活動資金 <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
       + "</b> · 到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + "</p>";
-  // PR #255 — **装備を選ぶ画面では、verdict を一行に畳む。**候補2枚と拾う釦を
-  // iPhone 16e でスクロールなしに収めるには、勝ち負けの大札（✓ と4つの指標）が
-  // 入る余地が無い。指標は下の「戦闘後の状態」に残し、上端は「何に勝って、何を
-  // 選ぶのか」だけにする。候補が3つに増えても同じ形で収まる。
   const rewardLayout = won && !prologueUnresolved
     && rewardDueForCurrentEncounter() && state.rewardOffer.length > 0;
-  const status = rewardLayout
-    ? "<section class=\"card verdict win verdict-slim\">"
-      + "<p class=\"verdict-slim-line\"><b>✓ 突破した</b><span>" + esc(encounter.name) + " · "
-      + result.roundsUsed + "ラウンド · 技能点 +" + skillPointsForClear(encounter.kind) + "</span></p></section>"
-    : "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
+  const status = "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
     + (won ? "✓" : "×") + "</div><h2>" + (won ? "突破した" : "足を止めた")
     + "</h2><p class=\"verdict-context\">" + esc(encounter.name) + " · " + result.roundsUsed
     + "ラウンド</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
@@ -5461,13 +5455,8 @@ function renderResult() {
         : "隊の全員が放ち終えました。")
       + "</p>"
     : "";
-  const metricsRow = rewardLayout
-    ? "<div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
-      + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
-      + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div>"
-    : "";
   const stateCard = "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "戦闘後の状態")
-    + metricsRow + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
+    + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
     + "<div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
     + "</div></section>";
   const replay = state.replayEvents?.length
@@ -5482,11 +5471,24 @@ function renderResult() {
     + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
-  // PR #255 — 装備を選ぶ画面では上端の「安全に撤退する」を出さない。**候補を
-  // 一つ拾ってから撤退できる**（先に撤退すると、選ばせておいて取り上げる形になる）。
-  // 35px ぶんの一行が、2枚（将来3枚）を折り返しの上へ収めるためにも要る。
-  return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history,
-    { hideHeaderAction: rewardLayout });
+  // PR #255 — **装備を選ぶ画面は、選ぶものだけを上に置く。**
+  //
+  // 作者試遊 2026-09-12 —「報酬画面の『戦闘後の状態』も複雑すぎて要らないかも。
+  // 戦闘後キャンプの『LAST BATTLE』と同じモーダルでいいです。」勝敗の大札・4つの
+  // 指標・人物ごとのHP・装備耐久の一覧を、キャンプと同じ一枚へ置き換える。
+  // 候補と拾う釦を折り返しの上へ収めるため、その一枚は**候補の下**に置く
+  // （決めるのは候補で、直前の一戦はその材料ではない）。
+  //
+  // 上端の「安全に撤退する」も出さない。**候補を一つ拾ってから撤退できる**
+  // （先に撤退すると、選ばせておいて取り上げる形になる）。
+  if (rewardLayout) {
+    return shell(
+      nextBlock + lastBattleNoteHtml(buildBattleNote(state.run.encounterIndex))
+      + rotationStrip(result) + replay + history,
+      { hideHeaderAction: true },
+    );
+  }
+  return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history);
 }
 
 
@@ -5600,25 +5602,35 @@ function ensureResultReward(won, prologueUnresolved) {
 // 量・格・耐久・発火回数は畳まずに出す。候補が3つに増えても同じ形で並ぶように、
 // 札の高さは候補数（`data-count`）から CSS が締める。
 // 候補が増えるほど、一枚に割ける高さは減る。**畳む量だけを変える**
-// （畳んだ先には必ず全文がある）。
-function rewardVisibleEffects(count) {
-  return count >= 3 ? 2 : 3;
+// （畳んだ先には必ず全文がある）。数えるのは「行」で、条件の行も効果の行も同じ1行。
+function rewardRowBudget(count) {
+  return count >= 3 ? 3 : 4;
 }
 
-function rewardEffectLine(effect) {
+function rewardEffectLine(effect, { always = false } = {}) {
   const amount = effect.amount == null ? ""
-    : effect.unconditional ? " +" + esc(effect.amount) : "（" + esc(effect.amount) + "）";
+    : always ? " +" + esc(effect.amount) : "（" + esc(effect.amount) + "）";
   // **常時効果と発火効果を見分けられるようにする。**畳んだ形では「腕力 +20」と
   // 「装備の耐久を戻す（3）」が同じ見た目で並ぶので、条件も耐久も要らない一つだけに
   // 印を付ける（全文の「基礎効果・常時」と同じことを、一文字で言う）。
-  const always = effect.unconditional
+  const mark = always
     ? "<span class=\"effect-always\" title=\"基礎効果・常時。条件も耐久も要りません\">常時</span>"
     : "";
-  return "<li>" + effectRarityBadge(effect.rarity, effect.rarityLabel) + always
+  return "<li>" + effectRarityBadge(effect.rarity, effect.rarityLabel) + mark
     + "<span>" + esc(effect.summary) + amount + "</span></li>";
 }
 
-function rewardChoiceHtml(offer, index, { full, visibleEffects }) {
+// PR #255 — **rule の見出し。**作者試遊 2026-09-12「結局、条件と消費も見ないと
+// 選べないです」。効果の要約だけでは拾うかどうかを決められないので、
+// **いつ・何を払い・何回**をその効果の真上に置く。
+function rewardRuleHeadHtml(rule) {
+  const chips = [...(rule.paid ?? []), rule.limitText]
+    .filter(Boolean)
+    .map((text) => "<span>" + esc(text) + "</span>").join("");
+  return "<p class=\"reward-rule-head\"><b>" + esc(rule.when) + "</b>" + chips + "</p>";
+}
+
+function rewardChoiceHtml(offer, index, { full, rowBudget }) {
   // R8 §3.5 — 生成に失敗したら既定品へ黙って落とさず、診断をそのまま出す。
   if (offer.type === "generator_error") {
     return "<article class=\"reward-choice disabled\"><header><h3>装備の候補が作れませんでした</h3></header>"
@@ -5629,35 +5641,54 @@ function rewardChoiceHtml(offer, index, { full, visibleEffects }) {
   const info = item ? null : EQUIPMENT[offer.equipmentId];
   const label = item ? item.definition.displayName : (info?.label ?? offer.equipmentId);
   const durability = item ? item.definition.maxDurability : (info?.maxDurability ?? 1);
-  const effects = Array.isArray(item?.readout?.effects)
-    ? item.readout.effects.map((effect, order) => ({ effect, order }))
-      .sort((a, b) => {
-        if (a.effect.slot === "implicit" || b.effect.slot === "implicit") {
-          return a.effect.slot === "implicit" ? -1 : 1;
-        }
-        return ((RARITY_RANK[b.effect.rarity] ?? 0) - (RARITY_RANK[a.effect.rarity] ?? 0)) || a.order - b.order;
-      })
-      .map(({ effect }) => effect)
-    : [];
-  const visible = effects.slice(0, visibleEffects);
-  const hidden = effects.length - visible.length;
+  const readout = item?.readout ?? null;
+  const implicit = (readout?.effects ?? []).find((effect) => effect.unconditional) ?? null;
+  // **古い readout（rule の構造を持たない Blueprint）でも壊れない。**その場合は
+  // 条件を畳んだ全文だけが持つので、rule 見出しは出さずに全文へ誘導する。
+  const rules = Array.isArray(readout?.rules) ? readout.rules : [];
+
+  // 行の予算を「常時1行 + rule ごとに（見出し1行 + 効果の行）」で使い切る。
+  // 途中で尽きたら、その先は畳んだ全文の中にある。
+  let rows = 0;
+  const blocks = [];
+  let hiddenEffects = 0;
+  if (implicit) {
+    blocks.push("<ul class=\"reward-effect-list\">"
+      + rewardEffectLine(implicit, { always: true }) + "</ul>");
+    rows += 1;
+  }
+  for (const rule of rules) {
+    const effects = rule.effects ?? [];
+    // 見出し1行ぶんと効果1行ぶんの余地が無ければ、その rule ごと畳む。**見出しだけ
+    // 出す**のは一番悪い（条件と代償を見せて、何が起きるかを隠すことになる）。
+    if (rows + 2 > rowBudget && blocks.length) {
+      hiddenEffects += effects.length;
+      continue;
+    }
+    const room = Math.max(1, rowBudget - rows - 1);
+    const shown = effects.slice(0, room);
+    hiddenEffects += effects.length - shown.length;
+    blocks.push("<div class=\"reward-rule\">" + rewardRuleHeadHtml(rule)
+      + "<ul class=\"reward-effect-list\">" + shown.map((effect) => rewardEffectLine(effect)).join("")
+      + "</ul></div>");
+    rows += 1 + shown.length;
+  }
   const banner = item
-    ? (item.readout?.keystone
-      ? "<p class=\"reward-keystone\">✦ " + esc(item.readout.keystone) + "</p>" : "")
-      + (item.readout?.risk
-        ? "<p class=\"reward-risk\">規格外の代償：" + esc(item.readout.risk) + "</p>" : "")
+    ? (readout?.keystone
+      ? "<p class=\"reward-keystone\">✦ " + esc(readout.keystone) + "</p>" : "")
+      + (readout?.risk
+        ? "<p class=\"reward-risk\">規格外の代償：" + esc(readout.risk) + "</p>" : "")
     : "";
-  const body = effects.length
-    ? "<ul class=\"reward-effect-list\">" + visible.map(rewardEffectLine).join("") + "</ul>"
-      + (hidden > 0 ? "<p class=\"reward-more\">ほか " + hidden + " 件（全文を読むと出ます）</p>" : "")
+  const body = blocks.length ? blocks.join("")
     : "<p class=\"muted\">" + esc(info?.effect ?? "") + "</p>";
-  const lines = Array.isArray(item?.readout?.lines) ? item.readout.lines : [];
+  const lines = Array.isArray(readout?.lines) ? readout.lines : [];
   // 耐久も畳まない情報なので、畳んだ段の見出しへ同じ行に載せる（行を一つ節約する）。
+  // 畳んだ残りの件数は、**それを開く行**が持つ（別の一行にすると、札の高さを
+  // 一段食ったうえで「どこを押せば読めるのか」を言わないままになる）。
   const fullText = "<details class=\"reward-full\"><summary><span class=\"reward-meta\">戦闘耐久 "
-    + durability + "</span>全文を読む（条件・代償・回数）</summary>"
-    + (effects.length > visibleEffects
-      ? "<ul class=\"reward-effect-list\">" + effects.slice(visibleEffects).map(rewardEffectLine).join("") + "</ul>"
-      : "")
+    + durability + "</span>全文を読む（"
+    + (hiddenEffects > 0 ? "ほか " + hiddenEffects + " 件・" : "")
+    + "条件・代償・回数）</summary>"
     + lines.map((line) => "<p class=\"equipment-rule-line\">" + esc(line) + "</p>").join("")
     // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
     + (item && generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
@@ -5674,9 +5705,9 @@ function rewardChoiceHtml(offer, index, { full, visibleEffects }) {
 function rewardSectionHtml() {
   const full = state.run.inventory.length >= INVENTORY_LIMIT;
   const count = Math.max(1, state.rewardOffer.length);
-  const visibleEffects = rewardVisibleEffects(count);
+  const rowBudget = rewardRowBudget(count);
   const cards = state.rewardOffer
-    .map((offer, index) => rewardChoiceHtml(offer, index, { full, visibleEffects })).join("");
+    .map((offer, index) => rewardChoiceHtml(offer, index, { full, rowBudget })).join("");
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
   return "<section class=\"card reward-card-shell\">"
     + sectionHeading("REWARD", "どちらを持ち帰る？",
@@ -6174,15 +6205,16 @@ function simulateAndEnterBattle() {
 // PR #255 — ボス戦以外の勝利は結果画面を通らないので、「何が起きたか」は
 // ここで一度だけ写して遠征タブへ渡す。**戦闘の記録そのものではない**
 // （それは run.results と戦闘履歴が持つ）。次の一戦を始めた時点で消える。
-function captureLastBattleNote(completedEncounter) {
+//
+// 作者試遊 2026-09-12 —「報酬画面の『戦闘後の状態』も複雑すぎて要らないかも。
+// 戦闘後キャンプの『LAST BATTLE』と同じモーダルでいいです。」なので、組み立ては
+// 純関数に分け、**装備を選ぶ画面とキャンプが同じ一枚を読む**ようにした。
+function buildBattleNote(completedEncounter) {
   const result = state.lastResult;
-  if (!result || result.result !== "win") {
-    state.lastBattleNote = null;
-    return;
-  }
+  if (!result || result.result !== "win") return null;
   const encounter = currentEncounter();
   const metrics = result.metrics || {};
-  state.lastBattleNote = {
+  return {
     encounter: completedEncounter,
     name: encounter?.name ?? "",
     kind: encounter?.kind ?? "normal",
@@ -6195,6 +6227,10 @@ function captureLastBattleNote(completedEncounter) {
     downed: state.run.roster.filter((id) => currentHp(id) <= 0),
     fullHealed: isCampaignRun() && (completedEncounter === 4 || completedEncounter === 8),
   };
+}
+
+function captureLastBattleNote(completedEncounter) {
+  state.lastBattleNote = buildBattleNote(completedEncounter);
 }
 
 function advanceAfterBattle() {

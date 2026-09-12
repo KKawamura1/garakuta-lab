@@ -725,15 +725,18 @@ try {
     if (await page.locator(".battle-field").count()) {
       await page.locator('[data-action="replay-result"]').first().click();
     }
+    // 着いた先は三つ。**キャンプ**（決めることが無い勝利）、**装備の候補**（ボス戦の
+    // 勝利）、**結果画面**（敗北・最終戦）である。どれを待つかを一度に書く。
     await page.waitForFunction(() =>
       document.querySelector(".verdict h2") !== null
-      || document.querySelector(".verdict-slim-line") !== null
-      || document.querySelector(".last-battle-note") !== null, null, { timeout: 8000 });
+      || document.querySelector(".reward-choices") !== null
+      || document.querySelector("nav.tabs") !== null, null, { timeout: 8000 });
     await page.waitForTimeout(200);
-    const cameBackToCamp = await page.locator(".last-battle-note").count() > 0;
-    const verdict = cameBackToCamp
+    const cameBackToCamp = await page.locator('nav.tabs [data-tab="map"]').count() > 0;
+    const onRewardScreen = await page.locator(".reward-choices").count() > 0;
+    const verdict = cameBackToCamp || onRewardScreen
       ? "突破した"
-      : (await page.locator(".verdict h2, .verdict-slim-line b").first().textContent())?.trim().replace(/^✓\s*/, "") ?? "";
+      : (await page.locator(".verdict h2").first().textContent())?.trim() ?? "";
     // issue #238 — 放ったら、その場で「印を払った」と分かる。PR #255 以降は
     // 結果画面とキャンプの一行の**どちらにも同じ文**が出るので、着いた先を問わず見る。
     const noteUltimateSeal = async (where) => {
@@ -788,10 +791,15 @@ try {
         `${turnRows}人・${turnCells.length}拍`);
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
+      // PR #255 — 装備を選ぶ画面には「戦闘後の状態」を置かなくなったので、
+      // 詳細の先頭は直前の一戦の一枚（キャンプと同じもの）になる。
+      const detailAnchor = await page.locator(".last-battle-note").count() > 0
+        ? ".last-battle-note"
+        : ".result-actors";
       note("結果画面の主操作が詳細より前で見える",
-        await page.locator(".result-primary-action .button").count() >= 1
-          && await onScreen(".result-primary-action .button")
-          && await appearsBefore(".result-primary-action", ".result-actors"));
+        await page.locator(".result-primary-action .button, .result-primary-action .reward-choice").count() >= 1
+          && await onScreen(".result-primary-action")
+          && await appearsBefore(".result-primary-action", detailAnchor));
     }
     // PR #255 — **装備の候補は、ボス戦を突破した画面の中に出る。**
     // 作者指摘 2026-09-12 —「装備は2つとも画面に収める。少なくとも iPhone 16e では
@@ -816,6 +824,17 @@ try {
           && fits.bottom <= Math.min(fits.viewport, SAFARI_VISIBLE_HEIGHT),
         fits ? `末尾 ${fits.bottom}px / 予算 ${SAFARI_VISIBLE_HEIGHT}px` : "");
       note("拾う釦が候補ごとに一つある", await takeButtons.count() === choices);
+      // 作者試遊 2026-09-12 —「結局、条件と消費も見ないと選べないです」。
+      // **発火条件と代償と発火回数は、畳まずに効果の真上に出す。**
+      const ruleHeads = await page.locator(".reward-choice .reward-rule-head").allTextContents();
+      note("いつ発火するかが畳まずに出ている",
+        ruleHeads.length >= choices && ruleHeads.every((text) => /とき|直前|開始時|round/.test(text)),
+        (ruleHeads[0] ?? "").replace(/\s+/g, " ").slice(0, 60));
+      note("何を払うかと何回かが畳まずに出ている",
+        ruleHeads.some((text) => /耐久|HP|防壁|反応点/.test(text))
+          && ruleHeads.every((text) => /につき\d+回/.test(text)));
+      note("常時効果と発火効果を見分けられる",
+        await page.locator(".reward-choice .effect-always").count() === choices);
       // 条件・代償・発火回数まで入った全文は、拾う前に畳んだ段から読める。
       const fullText = page.locator(".reward-choice .reward-full").first();
       note("装備の全文を拾う前に読める", await fullText.count() > 0);
@@ -858,6 +877,13 @@ try {
       const gear = page.locator('.reward-choice button[data-action="take-reward"]:not([disabled])');
       if (!(await gear.count())) throw new Error("装備の候補に選べる品がありません");
       await gear.first().click();
+      await page.waitForTimeout(250);
+      // PR #255 — 12戦目の候補を受け取ったら、そのまま精算へ渡る。
+      if (stage >= 12) {
+        note("最終戦の候補を受け取ると精算へ渡す",
+          await page.getByRole("button", { name: "遠征を精算する" }).count() === 1);
+        await click("遠征を精算する");
+      }
     } else if (stage >= 12) {
       await click("遠征を精算する");
     } else {
