@@ -73,7 +73,13 @@ import {
   grantRunSkillPointsToAll,
   // issue #168 — 勝利ごとの技能点。量と冪等の鍵は progression の一箇所。
   grantRunSkillPointsForClear,
+  cancelRunSkillReservation,
+  canFulfillSkillReservation,
+  fulfillSkillReservations,
+  reserveRunSkill,
   skillPointsForClear,
+  skillReservationFor,
+  skillReservationLevelFor,
   SKILL_POINTS_PER_CLEAR,
   makeManifest,
   migrateLegacyProfile,
@@ -122,7 +128,7 @@ const FORMATION = {
 // R8 Implementation Phase 1 — currentHp / campaignStageSequence / campaignProgress
 // を追加したので、profile / run / manifest の版をそれぞれ1つ上げた。
 equal(PROFILE_SCHEMA_VERSION, "ecology-profile-2", "profile の版");
-equal(RUN_SCHEMA_VERSION, "ecology-run-4", "run の版");
+equal(RUN_SCHEMA_VERSION, "ecology-run-5", "run の版");
 equal(MANIFEST_VERSION, "ecology-manifest-2", "manifest の版");
 
 // ---- 3幕12戦（R6 §5.1）------------------------------------------------------
@@ -970,6 +976,49 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   // 通常戦の勝利報酬は、現在の編成全員へ一律に入る。
   const granted = grantRunSkillPointsToAll(run);
   for (const id of ROSTER) equal(runSkillPoints(granted, id), 1, id + "が増える");
+}
+
+
+// ---- 技能の取得予約 ----------------------------------------------------------
+
+{
+  const profile = newProfile();
+  let run = newRun(profile, { runSeed: "reservation", runId: "reservation", roster: ["warden"] });
+  run = {
+    ...run,
+    manifest: { ...run.manifest, enabledPackIds: SKILL_PACKS.map((pack) => pack.id) },
+    runSkillPoints: { warden: 11 },
+    runUnlockedSkills: { warden: [] },
+    skillReservations: {},
+  };
+  equal(canFulfillSkillReservation(run, "warden", "heavy_swing", 1), true,
+    "現在の技能点でLv1まで取得可能と判定する");
+  equal(canFulfillSkillReservation({ ...run, runSkillPoints: { warden: 0 } },
+    "warden", "heavy_swing", 1), false,
+    "技能点が足りなければ予約と判定する");
+  const lv1Reserved = reserveRunSkill(run, "warden", "heavy_swing", 1);
+  equal(lv1Reserved.ok, true, "未取得の技能をLv1まで予約できる");
+  equal(skillReservationLevelFor(lv1Reserved.run, "warden"), 1, "Lv1の目標を保存する");
+  const lv1Fulfilled = fulfillSkillReservations(lv1Reserved.run);
+  equal(runSkillLevel(lv1Fulfilled.run, "warden", "heavy_swing"), 1, "Lv1予約で解禁まで進む");
+  equal(skillReservationFor(lv1Fulfilled.run, "warden"), null, "Lv1到達後に予約を完了する");
+
+  const reserved = reserveRunSkill(lv1Fulfilled.run, "warden", "heavy_swing", 10);
+  equal(reserved.ok, true, "取得済み技能を最大Lvまで予約できる");
+  equal(skillReservationFor(reserved.run, "warden"), "heavy_swing", "予約先を保存する");
+  equal(skillReservationLevelFor(reserved.run, "warden"), 10, "最大Lvの目標を保存する");
+  const fulfilled = fulfillSkillReservations(reserved.run);
+  check(fulfilled.actions.some((action) =>
+    action.type === "level" && action.skillId === "heavy_swing" && action.target === true,
+  ), "目的技能のレベルを自動取得する");
+  equal(runSkillLevel(fulfilled.run, "warden", "heavy_swing"), 10, "目的技能をSL10まで取得する");
+  equal(skillReservationFor(fulfilled.run, "warden"), null, "目的技能の取得後に予約を完了する");
+  check(runSkillPoints(fulfilled.run, "warden") < 11, "自動取得で技能点を使う");
+  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut", 10);
+  equal(switched.ok, true, "別の技能へ予約を切り替えられる");
+  const cancelled = cancelRunSkillReservation(switched.run, "warden", "steady_cut");
+  equal(cancelled.ok, true, "取得予約を取り消せる");
+  equal(skillReservationFor(cancelled.run, "warden"), null, "取消後は予約が残らない");
 }
 
 // ---- 旧 save の移行（R6 §17.2）---------------------------------------------

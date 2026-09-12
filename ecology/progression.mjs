@@ -56,8 +56,10 @@ import {
   PACKS_PER_MANIFEST,
   PLAYABLE_CONTENT,
   REGION,
+  SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
   SKILL_PACKS,
+  SKILL_TREE_NODES,
   BASELINE_ACTIVE_SKILL_IDS,
   campaignManifestForStage,
   campaignStageDef,
@@ -729,6 +731,8 @@ export function newRun(profile, options = {}) {
     // R19（issue #137）— 取得済み技能のレベル。**取得＝Lv1** なので、ここに欄が
     // 無い技能は Lv1 として読む（旧 save がそのまま動く）。
     runSkillLevels: { ...(options.skillLevels ?? {}) },
+    // 取得予約はキャラクターごとに一つ。古い/不正な値は復元時に正規化する。
+    skillReservations: { ...(options.skillReservations ?? {}) },
     // issue #168 — 技能点を配り終えた encounter の鍵。**retry でも二度配らない。**
     grantedSkillPointKeys: [],
     loadout: options.loadout ?? null,
@@ -817,6 +821,234 @@ export function grantRunSkillPointsForClear(run, index) {
   if (keys.includes(key)) return { run, amount, granted: false };
   const next = grantRunSkillPointsToAll(run, amount);
   return { run: { ...next, grantedSkillPointKeys: [...keys, key] }, amount, granted: true };
+}
+// ---------------------------------------------------------------- 技能の取得予約
+//
+// 予約は一人につき一つの目標技能を持つ。前提を自動で取る順序は
+// 「前提の前提 → 前提の解禁 → 必要Lv → 目標の解禁 → 目標のLv」の固定順で、
+// 同じ入力から同じ支出と取得列になるよう progression 側で解決する。
+// 目標以外の自動取得技能をオフにするか、目標をオンにするかは画面側の
+// loadout 更新が担い、ここは RunState の取得・レベル・SPだけを扱う。
+
+const SKILL_RESERVATION_NODES = Object.freeze(
+  Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node])),
+);
+
+function skillReservationRecordFor(run, characterId) {
+  const entry = run?.skillReservations?.[characterId];
+  if (typeof entry === "string") {
+    return {
+      skillId: entry,
+      targetLevel: SKILL_LEVEL_CAPS[entry] ?? MIN_SKILL_LEVEL,
+    };
+  }
+  if (!entry || typeof entry !== "object") return null;
+  const skillId = entry.skillId;
+  if (typeof skillId !== "string") return null;
+  return {
+    skillId,
+    targetLevel: Number.isInteger(entry.targetLevel)
+      ? entry.targetLevel
+      : SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL,
+  };
+}
+
+export function skillReservationFor(run, characterId) {
+  return skillReservationRecordFor(run, characterId)?.skillId ?? null;
+}
+
+export function skillReservationLevelFor(run, characterId) {
+  return skillReservationRecordFor(run, characterId)?.targetLevel ?? null;
+}
+
+function reservationAvailableSkillIds(run) {
+  return new Set(run?.manifest ? manifestSkillIds(run.manifest).all : []);
+}
+
+function reservationMissingPrerequisites(run, skillId) {
+  const available = reservationAvailableSkillIds(run);
+  const missing = new Set();
+  const visiting = new Set();
+  const walk = (currentId) => {
+    if (visiting.has(currentId)) return;
+    visiting.add(currentId);
+    const node = SKILL_RESERVATION_NODES[currentId];
+    for (const required of node?.requires ?? []) {
+      if (!available.has(required.skillId)) {
+        missing.add(required.skillId);
+      } else {
+        walk(required.skillId);
+      }
+    }
+  };
+  walk(skillId);
+  return [...missing];
+}
+
+export function normalizeRunSkillReservations(run) {
+  const available = reservationAvailableSkillIds(run);
+  const roster = new Set(run?.roster ?? []);
+  const normalized = {};
+  for (const characterId of roster) {
+    const reservation = skillReservationRecordFor(run, characterId);
+    if (!reservation) continue;
+    const { skillId, targetLevel } = reservation;
+    const node = SKILL_RESERVATION_NODES[skillId];
+    const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
+    if (!node || !available.has(skillId)) continue;
+    if (!Number.isInteger(targetLevel) || targetLevel < MIN_SKILL_LEVEL || targetLevel > cap) continue;
+    if (targetLevel <= runSkillLevel(run, characterId, skillId)) continue;
+    if (reservationMissingPrerequisites(run, skillId).length) continue;
+    normalized[characterId] = { skillId, targetLevel };
+  }
+  return normalized;
+}
+
+export function reserveRunSkill(run, characterId, skillId, targetLevel = null) {
+  const node = SKILL_RESERVATION_NODES[skillId];
+  if (!node) return { ok: false, reason: "その技能が見つかりません。" };
+  if (!Array.isArray(run?.roster) || !run.roster.includes(characterId)) {
+    return { ok: false, reason: "その仲間はこの遠征に参加していません。" };
+  }
+  if (!reservationAvailableSkillIds(run).has(skillId)) {
+    return { ok: false, reason: "この遠征の技能パックには入っていません。" };
+  }
+  const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
+  const requestedLevel = targetLevel === null || targetLevel === undefined ? cap : targetLevel;
+  if (!Number.isInteger(requestedLevel)
+    || requestedLevel < MIN_SKILL_LEVEL || requestedLevel > cap) {
+    return { ok: false, reason: "目標レベルが不正です。" };
+  }
+  const currentLevel = runSkillLevel(run, characterId, skillId);
+  if (requestedLevel <= currentLevel) {
+    return { ok: false, reason: "その技能は目標レベルまで取得済みです。" };
+  }
+  if (reservationMissingPrerequisites(run, skillId).length) {
+    return { ok: false, reason: "この技能に必要な前提技能が、この遠征では出ません。" };
+  }
+  const reservations = {
+    ...normalizeRunSkillReservations(run),
+    [characterId]: { skillId, targetLevel: requestedLevel },
+  };
+  return { ok: true, run: { ...run, skillReservations: reservations } };
+}
+
+export function cancelRunSkillReservation(run, characterId, skillId = null) {
+  const current = skillReservationFor(run, characterId);
+  if (!current) return { ok: true, run };
+  if (skillId !== null && current !== skillId) {
+    return { ok: false, reason: "その技能は取得予約されていません。" };
+  }
+  const reservations = { ...(run.skillReservations ?? {}) };
+  delete reservations[characterId];
+  return { ok: true, run: { ...run, skillReservations: reservations } };
+}
+
+function nextSkillReservationStep(run, characterId, targetSkillId, targetLevel) {
+  const target = SKILL_RESERVATION_NODES[targetSkillId];
+  if (!target) return null;
+  const unlocked = new Set(run?.runUnlockedSkills?.[characterId] ?? []);
+  const visit = (node) => {
+    for (const required of node.requires ?? []) {
+      const prerequisite = SKILL_RESERVATION_NODES[required.skillId];
+      if (!prerequisite) continue;
+      if (!unlocked.has(required.skillId)) {
+        const deeper = visit(prerequisite);
+        if (deeper) return deeper;
+        return {
+          type: "unlock",
+          skillId: required.skillId,
+          target: false,
+          cost: prerequisite.cost,
+        };
+      }
+      if (runSkillLevel(run, characterId, required.skillId) < required.minLv) {
+        return {
+          type: "level",
+          skillId: required.skillId,
+          target: false,
+          cost: SKILL_LEVEL_COST,
+        };
+      }
+    }
+    if (!unlocked.has(node.skillId)) {
+      return {
+        type: "unlock",
+        skillId: node.skillId,
+        target: node.skillId === targetSkillId,
+        cost: node.cost,
+      };
+    }
+    if (node.skillId === targetSkillId && runSkillLevel(run, characterId, node.skillId) < targetLevel) {
+      return {
+        type: "level",
+        skillId: node.skillId,
+        target: true,
+        cost: SKILL_LEVEL_COST,
+      };
+    }
+    return null;
+  };
+  return visit(target);
+}
+
+export function fulfillSkillReservations(run) {
+  const reservations = normalizeRunSkillReservations(run);
+  let next = { ...run, skillReservations: reservations };
+  const actions = [];
+  const completed = [];
+  const characterIds = [...new Set([
+    ...(run?.roster ?? []),
+    ...Object.keys(reservations),
+  ])].filter((characterId) => Object.hasOwn(reservations, characterId));
+  for (const characterId of characterIds) {
+    const { skillId: targetSkillId, targetLevel } = reservations[characterId];
+    while (true) {
+      const step = nextSkillReservationStep(next, characterId, targetSkillId, targetLevel);
+      if (!step) {
+        delete next.skillReservations[characterId];
+        completed.push({ characterId, skillId: targetSkillId, targetLevel });
+        break;
+      }
+      const node = SKILL_RESERVATION_NODES[step.skillId];
+      const result = step.type === "unlock"
+        ? unlockRunSkill(next, characterId, node)
+        : levelUpRunSkill(next, characterId, step.skillId, SKILL_LEVEL_CAPS[step.skillId] ?? MIN_SKILL_LEVEL);
+      if (!result.ok) break;
+      next = result.run;
+      actions.push({
+        ...step,
+        characterId,
+        targetSkillId,
+        targetLevel,
+        level: result.level ?? null,
+      });
+    }
+  }
+  return { run: next, actions, completed };
+}
+
+/**
+ * 現在のSPだけで、予約した技能を目標Lvまで完了できるか。
+ * 判定は実際の自動取得処理を試算するため、前提の解禁・必要Lv・目標技能のLv上げを
+ * 画面側で別計算せず、取得処理と同じ順序・同じコストで判定できる。
+ */
+export function canFulfillSkillReservation(run, characterId, skillId, targetLevel = null) {
+  const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
+  const requestedLevel = targetLevel === null || targetLevel === undefined ? cap : targetLevel;
+  if (!Number.isInteger(requestedLevel)
+    || requestedLevel < MIN_SKILL_LEVEL || requestedLevel > cap) {
+    return false;
+  }
+  const skillReservations = {
+    ...(run?.skillReservations ?? {}),
+    [characterId]: { skillId, targetLevel: requestedLevel },
+  };
+  const simulated = { ...run, skillReservations };
+  const result = fulfillSkillReservations(simulated);
+  return result.completed.some((entry) => entry.characterId === characterId
+    && entry.skillId === skillId
+    && entry.targetLevel === requestedLevel);
 }
 
 // 遠征内の解禁。**manifest が有効にした技能しか解禁できない。**
