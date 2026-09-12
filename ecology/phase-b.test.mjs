@@ -959,7 +959,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   run = {
     ...run,
     manifest: { ...run.manifest, enabledPackIds: SKILL_PACKS.map((pack) => pack.id) },
-    runSkillPoints: { warden: 10 },
+    runSkillPoints: { warden: 11 },
     runUnlockedSkills: { warden: [] },
     skillReservations: {},
   };
