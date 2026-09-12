@@ -40,6 +40,14 @@ const displayContracts = [
   ["アクティブツリーのラベル", skillTreeLayout, 'label: "アクティブ"'],
   ["リアクティブツリーのラベル", skillTreeLayout, 'label: "リアクティブ"'],
   ["パッシブツリーのラベル", skillTreeLayout, 'label: "パッシブ"'],
+  // 作者指摘 2026-09-13 — **説明と取得の釦は、地図の中ではなく操作盤に出す。**
+  // 列幅の中に釦を入れると、押す前に横スクロールが要る。
+  ["選んだ節の操作盤", app, "function renderSkillSheet(selectedRow, characterId)"],
+  ["操作盤を地図の後ろに置く", app, "+ renderSkillSheet(selectedRow, characterId);"],
+  ["操作盤を画面の下端へ貼る", styles, ".skill-sheet {\n  position: sticky;\n  bottom: 0;"],
+  ["操作盤の閉じる釦", app, 'class=\\"sheet-close\\"'],
+  ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
+  ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
   ["active の CSS クラス", styles, ".kind-active"],
   ["reactive の CSS クラス", styles, ".kind-reactive"],
   ["passive の CSS クラス", styles, ".kind-passive"],
@@ -122,6 +130,9 @@ for (const [label, sourceText, forbidden] of [
   ["アクティブツリーの旧表示語", skillTreeLayout, 'label: "行動"'],
   ["リアクティブツリーの旧表示語", skillTreeLayout, 'label: "反応"'],
   ["パッシブツリーの旧表示語", skillTreeLayout, 'label: "常設"'],
+  // 節の中で説明を開く形（`detail` を tree-cell へ差し込む）へ戻っていないか。
+  // 戻ると、押した節だけ背が伸びて地図が組み変わる。
+  ["節の中で説明を開く旧構造", app, '+ detail + "</article></div>"'],
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
 }

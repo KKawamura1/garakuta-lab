@@ -1371,6 +1371,7 @@ function render() {
   restoreHelpDetails();
   restoreSkillTreeScroll();
   layoutSkillTreeConnectors();
+  focusSelectedSkillNode();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
   if (state.phase === "rewind") mountRewindView();
@@ -3435,12 +3436,16 @@ function renderSkillDetail(row, node, characterId, nodeState) {
 }
 
 
+// 作者指摘 2026-09-13 — **節は地図の印であって、操作盤ではない。**説明と取得の釦を
+// 節の中で開いていたころ、(1) 釦が列幅（iPhone では 176px）の中に入るので、押す前に
+// まず横スクロールが要り、(2) 開いた節だけ背が伸びて同じ行の節と線がその場で動いて
+// いた。節が持つのは「どこに何があるか」だけにして、押した節の中身は地図の外の
+// 操作盤（`renderSkillSheet`）へ出す。**押しても地図は動かない。**
 function renderSkillRow(row, characterId, tone) {
   const node = row.node;
   const info = COMPONENTS[node.skillId];
   const nodeState = skillNodeState(node, characterId);
   const selected = state.selectedSkillNode === node.skillId;
-  const detail = selected ? renderSkillDetail(row, node, characterId, nodeState) : "";
   return "<div class=\"tree-cell" + tone + (selected ? " selected" : "") + "\" data-node=\"" + esc(row.key)
     + "\" style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
     + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "") + (selected ? " selected" : "") + "\">"
@@ -3452,8 +3457,28 @@ function renderSkillRow(row, characterId, tone) {
     + "<small class=\"node-meters\" title=\"" + esc(costLabel(node)) + "\">"
     + costPips(node) + yieldBar(characterId, node.skillId)
     + levelMeter(node, characterId) + "</small>" + conditionLine(node) + "</span>"
-    + nodeStateMark(node, nodeState, characterId) + "</button>"
-    + detail + "</article></div>";
+    + nodeStateMark(node, nodeState, characterId) + "</button></article></div>";
+}
+
+
+// **地図の下端に貼りつく操作盤。**選んだ節の説明・前提・派生・取得の釦をここだけで出す。
+// 貼りついているので、地図をどれだけ横へ動かしても、操作はいつも画面の同じ場所にある。
+function renderSkillSheet(selectedRow, characterId) {
+  if (!selectedRow) return "";
+  const node = selectedRow.node;
+  const nodeState = skillNodeState(node, characterId);
+  const info = COMPONENTS[node.skillId];
+  return "<aside class=\"skill-sheet " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "")
+    + "\" aria-live=\"polite\">"
+    + "<div class=\"skill-sheet-head\">"
+    + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
+    + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
+    + "<span class=\"sheet-title\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
+    + "<small>" + esc(node.branch) + " · 深さ " + selectedRow.x + "</small></span>"
+    + nodeStateMark(node, nodeState, characterId)
+    + "<button type=\"button\" class=\"sheet-close\" data-action=\"select-skill-node\" data-skill=\"\""
+    + " aria-label=\"閉じる\" title=\"閉じる\">✕</button></div>"
+    + renderSkillDetail(selectedRow, node, characterId, nodeState) + "</aside>";
 }
 
 
@@ -3488,17 +3513,15 @@ function renderSkillTree(characterId) {
           : ownedOnPath.has(row.key) ? "" : derived.has(row.key) ? " derived" : " faded";
     return renderSkillRow(row, characterId, dimmed && !selectedRow ? " faded" : tone);
   }).join("");
-  const clear = selectedRow
-    ? "<button type=\"button\" class=\"branch-chip clear\" data-action=\"select-skill-node\" data-skill=\"\""
-      + " aria-label=\"強調を解除\" title=\"強調を解除\">✕</button>"
-    : "";
   const columns = "repeat(" + Math.max(group.depth, 1) + ", var(--tree-col-width))";
+  // 強調を解除する ✕ は、操作盤の頭（`.sheet-close`）へ移した。地図の上に置くと、
+  // 「いま何を選んでいるか」を言う札が地図と盤の二箇所に出る。
   return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
     + branchFilter(group)
-    + (clear ? "<p class=\"tree-focus\">" + clear + "</p>" : "")
     + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\" data-branch=\""
     + kind + "\" style=\"grid-template-columns:" + columns + "\">"
-    + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>";
+    + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>"
+    + renderSkillSheet(selectedRow, characterId);
 }
 
 // **テーマは色と印で選ぶ。**#165 の方針は「分類（アクティブ／リアクティブ／パッシブ）は
@@ -3579,6 +3602,54 @@ function layoutSkillTreeConnectors() {
     }
   }
   svg.innerHTML = paths.join("");
+}
+
+
+// 作者指摘 2026-09-13 — **選んだ節を、こちらが探しに行かない。**
+//
+// 操作盤の「前提」「派生」の札は押せるが、押しても地図は前に居た場所のままだった。
+// 深いツリーの帯は 2000px を超える（iPhone の窓は 340px）ので、辿った先の節は
+// たいてい窓の外に居る。**窓の外に居るときだけ**、帯を横へ、ページを縦へ寄せる。
+// 既に見えている節を押したときは動かさない（指の下で地図が滑るのを避ける）。
+let focusedSkillNode = null;
+
+function focusSelectedSkillNode() {
+  const skillId = state.phase === "camp" && state.tab === "skills" ? state.selectedSkillNode : null;
+  if (!skillId) {
+    focusedSkillNode = null;
+    return;
+  }
+  if (skillId === focusedSkillNode) return;
+  focusedSkillNode = skillId;
+  const cell = [...app.querySelectorAll(".tree-cell")].find((element) => element.dataset.node === skillId);
+  const band = cell?.closest(".skill-tree-scroll");
+  if (!cell || !band) return;
+  const margin = 12;
+  // 動きを減らす設定では、寄せる動きも一足で終わらせる（CSS 側の方針と揃える）。
+  const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
+  const cellRect = cell.getBoundingClientRect();
+  const bandRect = band.getBoundingClientRect();
+  if (cellRect.left < bandRect.left + margin || cellRect.right > bandRect.right - margin) {
+    // 窓の中央へ寄せる。端に貼りつけると、隣の節（＝前提や派生の続き）が見えない。
+    const delta = (cellRect.left + cellRect.width / 2) - (bandRect.left + bandRect.width / 2);
+    band.scrollTo({ left: band.scrollLeft + delta, behavior });
+  }
+  // 縦に見えている範囲は、**貼りつく帯の下から操作盤の上まで**である。
+  // 起点は帯の「いまの位置」ではなく**貼りついたときの位置**（キャンプの固定帯の下に
+  // 技能点の要約帯が付く）にする。いまの位置で測ると、まだ流れの中に居る帯の真下へ
+  // 節を寄せてしまい、寄せ終わったあとに帯が上へ貼りついて、地図の見える帯が
+  // その高さぶん無駄に狭くなる。
+  const sheet = app.querySelector(".skill-sheet");
+  const summary = app.querySelector(".skill-build-summary");
+  const campBottom = app.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
+  const top = campBottom + (summary ? summary.getBoundingClientRect().height + 6 : 0) + margin;
+  const bottom = (sheet?.getBoundingClientRect().top ?? window.innerHeight) - margin;
+  if (cellRect.top < top || cellRect.bottom > bottom) {
+    // 見える帯の上寄り（1/3）へ置く。真上に貼りつけると、その節から下へ伸びる
+    // 派生先が一つも見えない。
+    const want = top + Math.max(0, (bottom - top - cellRect.height) / 3);
+    window.scrollBy({ top: cellRect.top - want, behavior });
+  }
 }
 
 // **記号の意味は、畳んだ中に一度だけ置く。**節や装着行の上には出さない

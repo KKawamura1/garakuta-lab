@@ -422,11 +422,70 @@ try {
   // 節を押すと、前提ルートと派生先が強調され、そこから route を辿れる。
   // **根（mend）ではなく、その子（triage）を選ぶ。**根を選ぶと反応ツリー全体が
   // 派生先になり、落ちる節が無くなるため。
+  // 作者指摘 2026-09-13 —「見やすいが操作しにくい」。**押す前後で地図が動いていないこと**を、
+  // 節の実座標で見る（説明を節の中で開いていたころは、押した節だけ背が伸びて、
+  // 同じ行の節も線も動いていた）。
+  const cellBoxes = () => page.locator(".skill-tree-forest .tree-cell").evaluateAll((cells) =>
+    Object.fromEntries(cells.map((cell) => [cell.dataset.node, `${cell.offsetLeft},${cell.offsetTop}`])));
+  const boxesBeforeSelect = await cellBoxes();
   const secondNode = page.locator('.skill-tree-forest [data-action="select-skill-node"]').nth(1);
   await secondNode.click();
   await page.waitForTimeout(150);
   note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
   note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
+  const boxesAfterSelect = await cellBoxes();
+  note("節を押しても地図が組み変わらない",
+    JSON.stringify(boxesBeforeSelect) === JSON.stringify(boxesAfterSelect),
+    `${Object.keys(boxesAfterSelect).length} 節`);
+
+  // **取得の操作は地図の外（下端に貼る操作盤）にある。**列幅の中に入れると、
+  // 押す前に横スクロールが要る。盤と釦が画面の横幅に収まっているかを実寸で見る。
+  const sheetFit = await page.locator(".skill-sheet").evaluate((sheet) => {
+    const box = sheet.getBoundingClientRect();
+    const column = Number.parseFloat(getComputedStyle(document.documentElement)
+      .getPropertyValue("--tree-col-width")) || 0;
+    const buttons = [...sheet.querySelectorAll(".node-action button")].map((button) => {
+      const rect = button.getBoundingClientRect();
+      return rect.left >= -1 && rect.right <= window.innerWidth + 1 && rect.width > 0;
+    });
+    return {
+      left: Math.round(box.left),
+      right: Math.round(box.right),
+      width: Math.round(box.width),
+      column,
+      inside: box.left >= -1 && box.right <= window.innerWidth + 1,
+      bottomOnScreen: Math.round(box.bottom) <= window.innerHeight + 1,
+      buttons: buttons.length,
+      buttonsInside: buttons.every(Boolean),
+    };
+  });
+  note("取得の操作盤が画面の横幅に収まる",
+    sheetFit.inside && sheetFit.bottomOnScreen && sheetFit.width > sheetFit.column,
+    `幅 ${sheetFit.width}px · 列幅 ${sheetFit.column}px`);
+  note("取得の釦を横スクロールなしで押せる",
+    sheetFit.buttons > 0 && sheetFit.buttonsInside, `${sheetFit.buttons} 件`);
+
+  // **前提・派生の札で辿ったとき、地図のほうが選んだ節へ寄る。**寄らないと、
+  // 深いツリー（帯は 2000px を超える）では辿った先が窓の外に居たままになる。
+  const routeChip = page.locator(".skill-sheet .route-line .route-chip").first();
+  if (await routeChip.count()) {
+    const routeName = (await routeChip.innerText()).trim();
+    await routeChip.click();
+    await page.waitForTimeout(700);
+    const followed = await page.locator(".tree-cell.selected").evaluate((cell) => {
+      const band = cell.closest(".skill-tree-scroll").getBoundingClientRect();
+      const box = cell.getBoundingClientRect();
+      return { node: cell.dataset.node, inside: box.left >= band.left - 1 && box.right <= band.right + 1 };
+    });
+    note("前提の札を押すと地図がその節まで寄る", followed.inside, `${routeName} → ${followed.node}`);
+  }
+  // ✕ で盤を閉じる。**閉じると地図が画面いっぱいに戻る**（ここから下の検査も、
+  // 何も選んでいない状態から始まる）。
+  await page.locator(".skill-sheet .sheet-close").click();
+  await page.waitForTimeout(200);
+  note("操作盤を閉じると地図だけに戻る",
+    await page.locator(".skill-sheet").count() === 0
+      && await page.locator(".tree-cell.selected").count() === 0);
 
   // R19（issue #137）／issue #177 — 段は**素直に文字**で出す。ほとんどの節が Lv1 なので、
   // 目盛りにすると「1個だけ塗った10個の四角」が並んで読めなかった（作者指摘）。
