@@ -111,6 +111,7 @@ import {
   gainSupply,
   grantRunSkillPointsForClear,
   cancelRunSkillReservation,
+  canFulfillSkillReservation,
   fulfillSkillReservations,
   manifestSkillIds,
   normalizeRunSkillReservations,
@@ -3343,22 +3344,28 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     : "";
   const maxLevel = skillLevelCapOf(node.skillId);
   const reservationButtons = [];
-  const reservationButton = (targetLevel, label) => button(
-    nodeState.reserved && nodeState.reservationTargetLevel === targetLevel
-      ? label + "（予約中）"
-      : label,
-    "reserve-skill",
-    nodeState.reserved && nodeState.reservationTargetLevel === targetLevel,
-    "tiny-button reservation-button",
-    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId
-      + "\" data-target-level=\"" + targetLevel + "\"",
-  );
-  // 未取得ならLv1予約を出す。レベルを持つ技能だけ、最大Lv予約も出す。
+  const reservationButton = (targetLevel) => {
+    const verb = canFulfillSkillReservation(state.run, characterId, node.skillId, targetLevel)
+      ? "取得"
+      : "予約";
+    const label = "Lv" + targetLevel + "まで" + verb;
+    return button(
+      nodeState.reserved && nodeState.reservationTargetLevel === targetLevel
+        ? label + "（予約中）"
+        : label,
+      "reserve-skill",
+      nodeState.reserved && nodeState.reservationTargetLevel === targetLevel,
+      "tiny-button reservation-button",
+      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId
+        + "\" data-target-level=\"" + targetLevel + "\"",
+    );
+  };
+  // 現在のSPで目標まで完了できるなら「取得」、足りなければ「予約」と表示する。
   if (!nodeState.unlocked) {
-    reservationButtons.push(reservationButton(MIN_SKILL_LEVEL, "Lv1まで予約"));
+    reservationButtons.push(reservationButton(MIN_SKILL_LEVEL));
   }
   if (maxLevel > MIN_SKILL_LEVEL && level < maxLevel) {
-    reservationButtons.push(reservationButton(maxLevel, "Lv" + maxLevel + "まで予約"));
+    reservationButtons.push(reservationButton(maxLevel));
   }
   const cancelReservation = nodeState.reserved
     ? button("予約を取り消す", "cancel-skill-reservation", false, "tiny-button",
