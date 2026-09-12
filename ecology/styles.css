@@ -1621,7 +1621,114 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .debug-log .event.current { color: var(--gold); }
 .debug-log .event.from-rule .event-type { color: var(--violet); }
 .event-type { margin-left: auto; color: #6d7d77; font: 9px/1.4 ui-monospace, monospace; }
+/* ---------------------------------------------------------------- 必殺のカットイン（issue #242）
+ *
+ * **必殺は一人一遠征に一度きり**なので、ここだけは盤面を止めて一拍ぶん奪う。
+ * 拍そのものは `replay-beats.mjs` が組んでいる（`kind: "ultimate"`）。この節は
+ * その一拍の絵だけを持ち、**速さや順序には触らない**（飛ばす手段は速度変更と一手送り）。
+ */
+.battle-field { position: relative; }
+.battle-field.ultimate-hold .battle-side,
+.battle-field.ultimate-hold .battle-beat {
+  filter: saturate(.5) brightness(.62);
+  transition: filter .18s ease;
+}
+.ultimate-cutin {
+  position: absolute;
+  z-index: 3;
+  display: none;
+  place-items: center;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 13px;
+  pointer-events: none;
+}
+.ultimate-cutin.show { display: grid; }
+.cutin-sheet {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  /* 斜めに走る帯。**盤面の長方形と角度を変える**ので、一枚だけで「別の層」に見える。 */
+  background:
+    linear-gradient(100deg, rgba(14, 20, 22, 0) 0%, rgba(14, 20, 22, .94) 7%,
+      rgba(44, 34, 19, .98) 50%, rgba(14, 20, 22, .94) 93%, rgba(14, 20, 22, 0) 100%);
+  border-block: 1px solid rgba(229, 184, 105, .55);
+  box-shadow: 0 0 26px -6px rgba(229, 184, 105, .55);
+}
+/* 閃光。中心から一度だけ開いて消える。 */
+.cutin-burst {
+  position: absolute;
+  inset: -40% -10%;
+  background: radial-gradient(closest-side, rgba(255, 243, 214, .5), rgba(255, 243, 214, 0) 70%);
+  opacity: 0;
+}
+.cutin-figure {
+  position: relative;
+  flex: 0 0 auto;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border: 1px solid var(--accent, var(--gold));
+  border-radius: 50%;
+  background: rgba(9, 13, 14, .85);
+  box-shadow: 0 0 14px -4px var(--accent, var(--gold));
+}
+.cutin-figure .portrait-svg { width: 100%; height: auto; }
+.cutin-copy { display: grid; gap: 2px; min-width: 0; }
+.cutin-who { color: var(--accent, var(--gold)); font-size: 10px; letter-spacing: .18em; }
+.cutin-skill {
+  color: #fff6e0;
+  font-size: 17px;
+  letter-spacing: .04em;
+  line-height: 1.2;
+  text-shadow: 0 0 12px rgba(229, 184, 105, .85), 0 1px 0 #1b1405;
+}
+.cutin-traits { display: flex; flex-wrap: wrap; gap: 4px; }
+.cutin-traits span {
+  padding: 1px 6px;
+  border: 1px solid rgba(229, 184, 105, .7);
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 9px;
+}
+/* 動きは「来た一拍」だけ。`.run` は画面側が拍の頭で付け直す。 */
+.ultimate-cutin.run .cutin-sheet { animation: cutin-sheet .34s cubic-bezier(.17, .89, .25, 1) both; }
+.ultimate-cutin.run .cutin-burst { animation: cutin-burst .62s ease-out both; }
+.ultimate-cutin.run .cutin-figure { animation: cutin-figure .46s cubic-bezier(.17, .89, .25, 1) both; }
+.ultimate-cutin.run .cutin-skill { animation: cutin-skill .4s ease-out .08s both; }
+@keyframes cutin-sheet {
+  0% { opacity: 0; transform: translateX(-14%) skewX(-7deg); }
+  100% { opacity: 1; transform: translateX(0) skewX(0); }
+}
+@keyframes cutin-burst {
+  0% { opacity: 0; transform: scale(.5); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.35); }
+}
+@keyframes cutin-figure {
+  0% { opacity: 0; transform: translateX(-18px) scale(.82); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes cutin-skill {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  100% { opacity: 1; clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* **カットインそのものは残す**（必殺が出たことが読めなくなる）。動きだけ止める。 */
+  .ultimate-cutin.run .cutin-sheet,
+  .ultimate-cutin.run .cutin-burst,
+  .ultimate-cutin.run .cutin-figure,
+  .ultimate-cutin.run .cutin-skill { animation: none; }
+  .battle-field.ultimate-hold .battle-side,
+  .battle-field.ultimate-hold .battle-beat { transition: none; }
+}
+
 @media (max-width: 380px) {
+  .cutin-figure { width: 48px; height: 48px; }
+  .cutin-skill { font-size: 15px; }
   .battle-row { grid-template-columns: 22px 1fr; }
   .battle-units { gap: 4px; }
   .unit { padding: 5px 4px 6px; }
@@ -2574,6 +2681,26 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tutorial-steps li.done { color: var(--good); text-decoration: line-through; }
 .tutorial-steps li.done > span { border-color: var(--good); color: var(--good); }
 
+/* issue #240 — 必殺技チュートリアル。**札の作りは隊列チュートリアルと同じ**にする
+   （手取りの札が二通りの見た目を持つと、同じ種類の場面だと読めなくなる）。
+   違うのは最後の一行だけで、そこには「いまの予測」を出す——構える前と後で帯が変わる
+   ことが、この一戦の教材そのものである。 */
+.ultimate-tutorial { border-color: var(--gold); background: var(--gold-dark); }
+.ultimate-tutorial h3 { margin: 4px 0 6px; font-size: 14px; }
+.ultimate-tutorial .tutorial-note { margin: 0; line-height: 1.65; }
+.tutorial-forecast {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 9px;
+  padding: 3px 9px;
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.tutorial-forecast b { color: var(--gold); font-size: 12px; }
+
 /* 光る先。**釦でもセルでも同じ光**にする（押す場所は一種類だと読めるように）。 */
 .tutorial-spot {
   position: relative;
@@ -3140,17 +3267,10 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
  *
  * **印は「払うもの」なので丸ではなく菱形（✹）で出す。**丸は行動点・反応点・
  * 代償HPに譲ってある（issue #177）ので、同じ形を別の意味へ使わない。
+ *
+ * 作者指摘 2026-09-13 — 隊全体の合計（菱形の並び）はやめた。**印は人物ごと**に、
+ * 盤面のセルの中で四段で出す（`.party-ultimate`、この節の下）。
  */
-.seal-pips { display: inline-flex; gap: 3px; align-items: center; }
-.seal-pips i {
-  width: 9px;
-  height: 9px;
-  border: 1px solid var(--gold);
-  border-radius: 2px;
-  transform: rotate(45deg);
-  opacity: .3;
-}
-.seal-pips i.on { background: var(--gold); opacity: 1; }
 .ultimate-card .context-line { color: var(--muted); font-size: 11px; }
 .ultimate-row {
   display: flex;
@@ -3188,8 +3308,78 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .party-ultimate { margin-left: 4px; color: var(--gold); font-size: 11px; }
 /* 帯のなかの必殺。系統の色は残し、印と枠だけを立てる。 */
 .turn-cell.ultimate { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
-/* 装着行のなかの必殺。**枠を足さず、行そのものに宿らせる。** */
-.installed-row.ultimate { box-shadow: inset 2px 0 0 var(--gold); }
+/* 装着行のなかの必殺。**枠を足さず、行そのものに宿らせる。**
+ *
+ * 作者要望 2026-09-12「必殺技を使おうとしている時はもっとかっこよくスキルを光らせて」。
+ * 三段に分ける。**段の差がそのまま状態の差**なので、文字を足さずに読める。
+ *
+ *   .ultimate         … 指定だけ（古い保存から来る。長押しすれば構えに上がる）
+ *   .ultimate.armed   … この一戦で構えている。金が脈打つ
+ *   .ultimate.firing  … 予測が「本当に出る」と言っている。光が走る
+ *   .ultimate.spent   … この遠征では放ち終えた。脈を止めて沈める
+ */
+.installed-row.ultimate {
+  position: relative;
+  border-radius: 0 10px 10px 0;
+  box-shadow: inset 2px 0 0 var(--gold);
+}
+.installed-row.ultimate.armed {
+  background: linear-gradient(90deg, rgba(229, 184, 105, .22), rgba(229, 184, 105, .07) 58%, transparent);
+  animation: ultimate-armed 2.4s ease-in-out infinite;
+}
+/* **印は行ごと金に寄せる。**変換の札（全体へ・量3倍…）が普段の薄字のままだと、
+   構えた行だけが持つ情報が、構えていない行と同じ重さで並ぶ。 */
+.installed-row.ultimate.armed .ultimate-trait { border-color: rgba(229, 184, 105, .8); color: var(--gold); }
+.installed-row.ultimate.armed .installed-copy > b { color: #fff3dc; }
+.installed-row.ultimate.firing .installed-copy > b { text-shadow: 0 0 11px rgba(229, 184, 105, .6); }
+.installed-row.ultimate.spent .ultimate-trait { border-color: var(--line); color: var(--muted); }
+@keyframes ultimate-armed {
+  0%, 100% {
+    box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .26),
+      0 0 10px -3px rgba(229, 184, 105, .22);
+  }
+  50% {
+    box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .58),
+      0 0 18px -3px rgba(229, 184, 105, .55);
+  }
+}
+/* 走る光。**出ると分かっている一戦だけ**に付けるので、光が「予測」を意味する。 */
+.installed-row.ultimate.firing { overflow: hidden; }
+.installed-row.ultimate.firing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(104deg, transparent 38%, rgba(255, 240, 203, .20) 50%, transparent 62%);
+  animation: ultimate-sheen 3.2s ease-in-out infinite;
+}
+@keyframes ultimate-sheen {
+  0%, 62%, 100% { transform: translateX(-125%); }
+  92% { transform: translateX(125%); }
+}
+.installed-row.ultimate.spent { animation: none; background: none; }
+/* ✹ は操作ではなく状態の印。**押す場所は行そのもの一つだけ**にした（長押し）。 */
+.ultimate-seal {
+  flex: 0 0 auto;
+  width: 22px;
+  color: var(--gold);
+  font-size: 14px;
+  line-height: 1;
+  text-align: center;
+  opacity: .42;
+}
+.installed-row.ultimate.armed .ultimate-seal { font-size: 16px; }
+.installed-row.ultimate.armed .ultimate-seal {
+  opacity: 1;
+  text-shadow: 0 0 7px rgba(229, 184, 105, .65);
+  animation: ultimate-seal-beat 2.4s ease-in-out infinite;
+}
+.installed-row.ultimate.firing .ultimate-seal { animation-duration: 1.3s; }
+.installed-row.ultimate.spent .ultimate-seal { opacity: .28; text-shadow: none; animation: none; }
+@keyframes ultimate-seal-beat {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 6px rgba(229, 184, 105, .45); }
+  50% { transform: scale(1.22); text-shadow: 0 0 13px rgba(229, 184, 105, .9); }
+}
 .installed-row[data-longpress],
 .installed-row[data-longpress] * {
   touch-action: pan-y;
@@ -3198,21 +3388,67 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
 }
-.installed-row.pressing { background: rgba(229, 184, 105, .08); }
-.ultimate-arm {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: none;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1;
+/* 長押しの手応え（作者要望 2026-09-13）。**押している時間そのものを、左から右へ
+   伸びる光の帯で出す。**右端まで届いた拍が、必殺がセットされる拍である。指を離すか
+   スクロールすると帯ごと消える（＝取り消し）。
+   帯の長さは JS が `--long-press-ms` で渡す（長押しの判定と同じ値）。 */
+.installed-row[data-longpress] { position: relative; overflow: hidden; }
+.installed-row[data-longpress].pressing::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  /* 二枚重ね。**面**（左から満ちる光）と、行の下端を走る**線**（どこまで来たか）。
+     どちらも同じ clip-path で切るので、線の先端が光の右端と必ず一致する。 */
+  background:
+    linear-gradient(90deg,
+      rgba(229, 184, 105, .10) 0%, rgba(229, 184, 105, .42) 86%,
+      rgba(255, 243, 214, .95) 100%),
+    linear-gradient(var(--gold), var(--gold)) bottom left / 100% 2px no-repeat;
+  box-shadow: 0 0 16px -2px rgba(229, 184, 105, .55);
+  clip-path: inset(0 100% 0 0);
+  animation: longpress-fill var(--long-press-ms, 450ms) linear forwards;
+  pointer-events: none;
 }
-.ultimate-arm.armed { border-color: var(--gold); color: var(--gold); }
-.ultimate-arm.firing { background: rgba(229, 184, 105, .18); }
-.ultimate-arm.used { opacity: .35; }
+/* 既に構えている行の長押しは**解く**操作なので、帯の色も変える。 */
+.installed-row[data-longpress].ultimate.armed.pressing::before {
+  background:
+    linear-gradient(90deg,
+      rgba(158, 173, 167, .06) 0%, rgba(158, 173, 167, .30) 86%,
+      rgba(237, 243, 237, .8) 100%),
+    linear-gradient(var(--muted), var(--muted)) bottom left / 100% 2px no-repeat;
+  box-shadow: none;
+}
+/* 帯の下に行の中身が隠れないようにする（帯は背景であって、覆いではない）。 */
+.installed-row[data-longpress] > * { position: relative; z-index: 1; }
+@keyframes longpress-fill {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 .ultimate-trait.idle { border-style: dashed; opacity: .7; }
-.party-ultimate { opacity: .4; }
-.party-ultimate.firing { opacity: 1; }
+/* 盤面のセルの ✹（作者指摘 2026-09-13）。**四段で、誰が残していて誰が使い終えたかを出す。**
+ *
+ *   ready  … 薄い金の ✹ … まだ残っている（構えていない）
+ *   armed  … 金の ✹    … 構えているが、この一戦では条件が揃わない
+ *   firing … 光る ✹    … この一戦で出る（予測が言っている）
+ *   spent  … 灰の ✧    … この遠征ではもう放った。補充されない
+ */
+.party-ultimate.ready { opacity: .36; }
+.party-ultimate.armed { opacity: 1; text-shadow: 0 0 6px rgba(229, 184, 105, .55); }
+.party-ultimate.firing {
+  opacity: 1;
+  text-shadow: 0 0 8px rgba(229, 184, 105, .7);
+  animation: ultimate-seal-beat 1.6s ease-in-out infinite;
+}
+.party-ultimate.spent { color: var(--muted); opacity: .55; }
+@media (prefers-reduced-motion: reduce) {
+  /* **長押しの帯だけは止めない。**あれは装飾ではなく、押している時間の目盛りである
+     （止めると「いつ離してよいか」が画面から消える）。 */
+  .installed-row.ultimate.armed,
+  .installed-row.ultimate.armed .ultimate-seal,
+  .party-ultimate.firing { animation: none; }
+  .installed-row.ultimate.firing::after { animation: none; opacity: .35; transform: none; }
+  .installed-row.ultimate.armed {
+    box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .5);
+  }
+}

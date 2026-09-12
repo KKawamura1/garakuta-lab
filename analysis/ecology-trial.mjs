@@ -191,7 +191,10 @@ try {
     saved.profile.campaignProgress[region] = {
       highestClearedStageSequence: 0, clearedStageSequences: [0],
     };
-    saved.profile.storyFlags = ["prologue_seen"];
+    // issue #240 — 必殺技チュートリアル（Stage 1 の第1戦）も**この台本の担当ではない**。
+    // ここが見るのは12戦の長い流れなので、手取りの錠は済んだものとして入る
+    // （錠そのものは analysis/ecology-tutorial-trial.mjs が踏む）。
+    saved.profile.storyFlags = ["prologue_seen", "ultimate_lesson_seen"];
     // Keep the long-run trial outside the one-time New Game walkthrough.
     saved.supplyTutorialRunId = null;
     localStorage.setItem(key, JSON.stringify(saved));
@@ -257,7 +260,8 @@ try {
     saved.profile.campaignProgress[region] = {
       highestClearedStageSequence: 0, clearedStageSequences: [0],
     };
-    saved.profile.storyFlags = ["prologue_seen"];
+    // issue #240 — 必殺技チュートリアルの錠も、この台本の担当ではない（上と同じ理由）。
+    saved.profile.storyFlags = ["prologue_seen", "ultimate_lesson_seen"];
     localStorage.setItem(key, JSON.stringify(saved));
   });
   await page.reload({ waitUntil: "networkidle" });
@@ -357,37 +361,52 @@ try {
   }
   note("スキルツリーのノードを選べる", await page.locator(".skill-node").count() > 0);
 
-  // issue #238 — 必殺技。**装着行の長押しで指定し、✹ で構えるところまでを画面から踏む。**
-  // 専用の枠は無いので、行そのものが押せることを確かめる。
+  // issue #238 / 作者指摘 2026-09-12 — 必殺技。**装着行の長押し一回で、この一戦の
+  // 必殺になる。**釦を押す二手目は無くなったので、行そのものが押せることと、
+  // もう一度の長押しで元へ戻ることを画面から踏む。
   const longPress = async (locator) => {
     const box = await locator.boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.waitForTimeout(700);
     await page.mouse.up();
+    await page.waitForTimeout(250);
   };
   const ultimateRow = page.locator(".installed-row[data-longpress]").first();
   note("装着行が長押しできる", await ultimateRow.count() === 1);
   if (await ultimateRow.count()) {
     note("必殺技の専用枠は画面に無い", await page.locator("section.ultimate-card").count() === 0);
-    note("残りの必殺が見出しに出る", await page.locator(".skill-points-badge .seal-pips i.on").count() > 0);
+    // 作者指摘 2026-09-13 — 残りは**人物ごと**に盤面のセルへ出す（隊の合計はやめた）。
+    note("誰が必殺を残しているかが盤面に出る",
+      await page.locator(".camp-top .party-ultimate.ready").count() > 0
+        && await page.locator(".skill-points-badge .seal-pips").count() === 0);
     await longPress(ultimateRow);
-    note("長押しで必殺技に指定できる", await page.locator(".installed-row.ultimate").count() === 1);
-    const arm = page.locator('.installed-row.ultimate [data-action="toggle-ultimate-armed"]');
-    note("指定した行に ✹ が出る", await arm.count() === 1);
-    if (await arm.count()) {
-      await arm.click();
-      note("構えると盤面にも印が出る", await page.locator(".party-cell .party-ultimate").count() === 1);
-      // 序盤の一戦では傷の条件が揃わないので、**予測が「出ない」と先に言う。**
-      const armedTitle = await page.locator('.installed-row.ultimate [data-action="toggle-ultimate-armed"]').getAttribute("title");
-      note("構えた時点で、この一戦で出るかどうかが読める",
-        /この一戦で出る|条件が揃わない/.test(armedTitle ?? ""), armedTitle ?? "");
-    }
+    note("長押しだけでこの一戦の必殺になる",
+      await page.locator(".installed-row.ultimate.armed").count() === 1);
+    note("行に構えの印（✹）が出て、釦は無い",
+      await page.locator(".installed-row.ultimate .ultimate-seal").count() === 1
+        && await page.locator('[data-action="toggle-ultimate-armed"]').count() === 0);
+    // 盤面の印は全員ぶん出ている（誰が残していて誰が使い終えたか）。構えた一人だけが
+    // `armed` か `firing` になる。
+    note("構えると盤面の印がその一人だけ変わる",
+      await page.locator(".party-cell .party-ultimate.armed, .party-cell .party-ultimate.firing").count() === 1
+        && await page.locator(".party-cell .party-ultimate").count() === 3);
+    // 序盤の一戦では傷の条件が揃わないので、**予測が「出ない」と先に言う。**
+    const armedTitle = await page.locator(".installed-row.ultimate").first().getAttribute("title");
+    note("構えた時点で、この一戦で出るかどうかが読める",
+      /この一戦で出る|条件が揃わない/.test(armedTitle ?? ""), armedTitle ?? "");
     await longPress(page.locator(".installed-row.ultimate").first());
-    note("もう一度の長押しで指定が外れる", await page.locator(".installed-row.ultimate").count() === 0);
+    note("もう一度の長押しで構えが解ける", await page.locator(".installed-row.ultimate").count() === 0);
+    // **構えたまま12戦へ入る。**放つ拍（カットイン、issue #242）は、条件が揃う一戦で
+    // 画面から踏む。
+    await longPress(page.locator(".installed-row[data-longpress]").first());
+    note("構えたまま遠征へ入れる", await page.locator(".installed-row.ultimate.armed").count() === 1);
   }
 
   let ultimateSpentSeen = false;
+  // issue #242 — 必殺の拍のカットイン。**予測が「この一戦で出る」と言った回**に、
+  // 自動再生を止めて一手ずつ送り、その拍で演出が出ることを確かめる。
+  let ultimateCutInSeen = false;
   let stage = 1;
   let reloaded = false;
   let forecastAtStage1 = null;
@@ -490,6 +509,9 @@ try {
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       note("挑む前に下までスクロールしている", (await page.evaluate(() => window.scrollY)) > 0);
     }
+    // issue #242 — この一戦で必殺が本当に出るかは、挑む前に盤面の ✹ が言っている。
+    const ultimateFiresThisBattle = !ultimateCutInSeen
+      && await page.locator(".camp-top .party-ultimate.firing").count() > 0;
     // issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まず自動戦闘へ進む。
     // Campaignの幕間会話は再訪でも出るため、該当戦では同じ通常レンダラーを閉じてから戦闘へ進む。
     await click("この敵に挑む");
@@ -506,6 +528,39 @@ try {
     await page.waitForSelector(".battle-field", { timeout: 8000 });
     if (stage === 1) {
       note("戦闘へ入ると画面の先頭（盤面）へ戻る", (await page.evaluate(() => window.scrollY)) === 0);
+    }
+
+    // issue #242 — 必殺の拍だけ、盤面を止めて立ち絵と技能名を出す。**拍の並びは
+    // 決定的**なので、自動再生を止めて手送りで探す（実時間の速さに依存しない）。
+    if (ultimateFiresThisBattle) {
+      const toggle = page.locator('[data-role="replay-toggle"]');
+      if ((await toggle.textContent())?.trim() === "一時停止") await toggle.click();
+      await page.waitForTimeout(120);
+      let cutInText = null;
+      for (let step = 0; step < 400 && cutInText === null; step += 1) {
+        if (await page.locator(".ultimate-cutin.show").count()) {
+          cutInText = await page.locator(".ultimate-cutin").innerText();
+          break;
+        }
+        const forward = page.locator('[data-role="replay-step"]');
+        if (await forward.count() === 0 || await forward.isDisabled()) break;
+        await forward.click();
+      }
+      ultimateCutInSeen = cutInText !== null;
+      note(`第${stage}戦の必殺の拍でカットインが出る`,
+        ultimateCutInSeen && /必殺・/.test(cutInText ?? "")
+          && await page.locator(".ultimate-cutin .cutin-traits span").count() > 0
+          && await page.locator(".battle-field.ultimate-hold").count() === 1,
+        (cutInText ?? "").replace(/\n/g, " · "));
+      // **演出は飛ばせる。**一手進めれば着弾の拍へ移り、盤面は元の明るさへ戻る。
+      const forward = page.locator('[data-role="replay-step"]');
+      if (ultimateCutInSeen && await forward.count() && !(await forward.isDisabled())) {
+        await forward.click();
+        await page.waitForTimeout(120);
+        note("カットインは一手送りで抜けられる",
+          await page.locator(".ultimate-cutin.show").count() === 0
+            && await page.locator(".battle-field.ultimate-hold").count() === 0);
+      }
     }
 
     if (stage === 1) {
@@ -664,11 +719,13 @@ try {
     }
     // issue #238 — 放ったら、その結果画面で「印を払った」と分かる。
     if (!ultimateSpentSeen) {
-      const sealLine = (await bodyText()).match(/必殺技が出ました。([^。]+)。この遠征ではもう放てません。必殺を残している仲間は ([0-9]+) \/ ([0-9]+)人です。/);
+      const sealLine = (await bodyText())
+        .match(/✹ ([^ ]+) が必殺技を放ちました。この遠征ではもう放てません。(まだ残しているのは ([^ ]+) です。|隊の全員が放ち終えました。)/);
       if (sealLine) {
         ultimateSpentSeen = true;
-        note(`第${stage}戦で放った仲間と残りが結果画面に出る`,
-          Number(sealLine[2]) < Number(sealLine[3]), sealLine[0]);
+        // **誰が放って、誰がまだ残しているか**を名前で出す（人数では誰の一回か分からない）。
+        note(`第${stage}戦で放った仲間と、残している仲間の名前が結果画面に出る`,
+          sealLine[1].length > 0 && !sealLine[1].includes(sealLine[3] ?? "\u0000"), sealLine[0]);
       }
     }
     if (stage === 1) {

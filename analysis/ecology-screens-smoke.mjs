@@ -590,19 +590,52 @@ for (const field of [
     ["チュートリアルの段", app, "function formationTutorialStep() {"],
     ["錠が並べ替えの三手だけに掛かる", app, 'return step !== null && step !== "done";'],
     ["光らせる先の表", app, "function formationTutorialSpotSelector(step) {"],
-    ["錠と光を描画のあとに掛ける", app, "applyFormationTutorialGate();"],
-    ["経路側の二重の塞ぎ", app, "if (!formationTutorialAllows(element)) return;"],
+    ["錠と光を描画のあとに掛ける", app, "applyTutorialGate();"],
+    ["経路側の二重の塞ぎ", app, "if (!tutorialAllows(element)) return;"],
     ["段ごとの手引き", app, "function formationTutorialNote() {"],
     ["タブの閉じ込めが一本化されている", app, "function campTutorialTab() {"],
     ["光のCSS", styles, ".tutorial-spot {"],
     ["錠のCSS", styles, ".tutorial-blocked {"],
     ["手順の一覧のCSS", styles, ".tutorial-steps li.current"],
+    // issue #240 — 必殺技の一戦も**同じ錠の形**で掛かる（手取りの型を二通り作らない）。
+    ["必殺技チュートリアルの段", app, "function ultimateLessonStep() {"],
+    ["必殺技チュートリアルの光らせる先", app, "function ultimateLessonSpotSelector(step) {"],
+    ["必殺技チュートリアルの手引き", app, "function ultimateLessonNote() {"],
+    ["必殺技の一戦の正本", story, "export const ULTIMATE_LESSON = Object.freeze({"],
+    ["必殺技の一戦の敵を画面が差し替える", app, "if (ultimateLessonActive()) return ultimateLessonEncounter();"],
+    ["必殺技チュートリアルのCSS", styles, ".ultimate-tutorial {"],
+    ["必殺技チュートリアルの予測の帯のCSS", styles, ".tutorial-forecast {"],
+    // 作者指摘 2026-09-13 — 三手目（遠征タブを押す）と、タブの閉じ込めを最初の二手だけに
+    // 限る判定。**構えた拍に画面を勝手に跳ばさない**ための二つ。
+    ["必殺技チュートリアルの三手目", app, "function ultimateLessonTabLocked() {"],
+    ["三手目が遠征タブを光らせる", app, "open: \"nav.tabs [data-tab=\\\"map\\\"]\","],
+    // 作者要望 2026-09-13 — 長押しの帯。**長さの正本は JS の定数ひとつ。**
+    ["長押しの帯", styles, ".installed-row[data-longpress].pressing::before {"],
+    ["長押しの帯の長さを JS から渡す", app, "--long-press-ms"],
+    ["長押しの帯の長さを CSS が受け取る", styles, "var(--long-press-ms, 450ms)"],
+    // 作者指摘 2026-09-13 — 必殺の残りは人物ごと（隊の合計はやめた）。
+    ["必殺の残りは人物ごと", app, "function ultimateCellMark(characterId) {"],
+    ["必殺の残りの四段CSS", styles, ".party-ultimate.spent {"],
   ]) {
     if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
   }
-  // **光と錠は同じ選択子から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
-  if (!app.includes("formationTutorialSpotSelector(formationTutorialStep())")) {
-    problems.push("錠の判定が、光らせる先と別の選択子を持っている");
+  // **やめたものが残っていないこと。**隊全体の合計（菱形の並び）は消したので、
+  // 画面にも CSS にも残骸を置かない。
+  for (const [label, sourceText, forbidden] of [
+    ["必殺の隊合計（画面）", app, "seal-pips"],
+    ["必殺の隊合計（CSS）", styles, ".seal-pips"],
+    ["必殺を構える釦", app, "toggle-ultimate-armed"],
+  ]) {
+    if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
+  }
+  // **光と錠は一つの形から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
+  // 錠は二つあるが、掛ける側は `tutorialGate()` 一つしか読まない。
+  for (const expected of [
+    "function tutorialGate() {",
+    "const gate = tutorialGate();",
+    "return Boolean(gate.selector && element?.closest?.(gate.selector));",
+  ]) {
+    if (!app.includes(expected)) problems.push("錠の判定が、光らせる先と別の選択子を持っている");
   }
   // 錠の最中も盤面の数字は読ませる（この一手の理由はそこに出ている）。
   if (!styles.includes(".party-cell.tutorial-blocked")) {

@@ -390,7 +390,7 @@ try {
   note("Stage 0 では必殺技の長押しが無い",
     await page.locator(".installed-row[data-longpress]").count() === 0);
   note("Stage 0 では必殺技の残りを出さない",
-    await page.locator(".skill-points-badge .seal-pips").count() === 0);
+    await page.locator(".camp-top .party-ultimate").count() === 0);
   note("Stage 0 では必殺技の説明も出さない",
     await page.locator('details[data-help="ultimate-rules"]').count() === 0
       && !/必殺/.test(skillText));
@@ -777,7 +777,143 @@ try {
     await click("スキップ");
     await page.waitForTimeout(250);
     const stage1Camp = await bodyText();
-    note("Stage 1 は3人で始まる", /3人/.test(stage1Camp) && !/3 \/ 3人/.test(stage1Camp));
+    // issue #240 — Stage 1 の camp は必殺技チュートリアルの錠が掛かった技能タブで開く。
+    // **人数は盤面で数える**（どのタブでも同じ盤面が上端に貼りついている）。
+    note("Stage 1 は3人で始まる",
+      await page.locator(".camp-top button.party-cell").count() === 3
+        && !/3 \/ 3人/.test(stage1Camp));
+
+    // ---- issue #240 — 必殺技の一戦。**Stage 1 の第1戦は、構えないと勝てない盤面。**
+    //
+    // 見るのは三段（ナギを選ぶ → 行を長押し → 挑む）と、**予測の帯が構える前後で
+    // 変わること**、そして必殺の拍でカットインが出ること（issue #242）。
+    // 盤面そのものが本当に負ける／勝つことは ecology/story.test.mjs が engine で見ている。
+    const longPress = async (locator) => {
+      const box = await locator.boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.waitForTimeout(700);
+      await page.mouse.up();
+      await page.waitForTimeout(250);
+    };
+    note("必殺技チュートリアルの札が出る", await page.locator(".ultimate-tutorial").count() === 1);
+    note("構える前の予測は敗北", /いまの予測\s*敗北/.test(await bodyText()));
+    note("錠の最中は技能タブに留まる",
+      await page.locator('nav.tabs [data-tab="skills"].active').count() === 1
+        && await page.locator('nav.tabs [data-tab="map"]').isDisabled());
+    const lessonCell = page.locator(".camp-top .party-cell.tutorial-spot");
+    note("光るのは構える仲間のセルだけ", await lessonCell.count() === 1);
+    await lessonCell.first().click();
+    await page.waitForTimeout(250);
+    const lessonRow = page.locator(".installed-row.tutorial-spot");
+    note("光るのは教える装着行だけ", await lessonRow.count() === 1);
+    note("必殺にできる行は長押しできる",
+      await page.locator(".installed-row.tutorial-spot[data-longpress]").count() === 1);
+    if (await lessonRow.count()) {
+      // 作者要望 2026-09-13 — 押しているあいだ、左から右へ光の帯が伸びる。
+      // **途中で離すと取り消し**（帯も消える）。
+      const rowBox = await lessonRow.first().boundingBox();
+      await page.mouse.move(rowBox.x + rowBox.width / 2, rowBox.y + rowBox.height / 2);
+      await page.mouse.down();
+      // **一往復で測る。**押し始めから 450ms のあいだにしか帯は無いので、待ってから
+      // 読みに行くと、遅い環境では窓を外して落ちる（測れないだけで、画面は正しい）。
+      // ブラウザの中で数フレーム続けて読み、伸びていることそのものを見る。
+      const fill = await lessonRow.first().evaluate((row) => new Promise((resolve) => {
+        const samples = [];
+        const read = () => {
+          const style = getComputedStyle(row, "::before");
+          samples.push({
+            pressing: row.classList.contains("pressing"),
+            shown: style.content !== "none",
+            // clip-path は inset(0px <残り>% 0px 0px)。残りが減る＝帯が伸びる。
+            left: Number.parseFloat((style.clipPath ?? "").match(/inset\([^ ]+ ([0-9.]+)%/)?.[1] ?? "NaN"),
+            animation: style.animationName,
+          });
+          if (samples.length < 6) requestAnimationFrame(read);
+          else resolve(samples);
+        };
+        requestAnimationFrame(read);
+      }));
+      const grew = fill.filter((entry) => entry.pressing && entry.shown && Number.isFinite(entry.left));
+      note("長押し中は左から光の帯が伸びる",
+        grew.length >= 2
+          && grew.every((entry) => entry.animation === "longpress-fill")
+          && grew.at(-1).left < grew[0].left,
+        grew.length ? `${grew[0].left}% → ${grew.at(-1).left}%` : JSON.stringify(fill[0]));
+      await page.mouse.up();
+      await page.waitForTimeout(160);
+      note("途中で離すと帯が消えて必殺にならない",
+        await page.locator(".installed-row.pressing").count() === 0
+          && await page.locator(".installed-row.ultimate").count() === 0);
+
+      await longPress(lessonRow.first());
+      note("構えると盤面にも印が出る", await page.locator(".camp-top .party-ultimate.firing").count() === 1);
+      note("構えると予測が勝利に変わる", /いまの予測\s*勝利/.test(await bodyText()));
+      // 行の見た目はその場で確かめる。**構えた拍で画面は跳ばない**（作者指摘 2026-09-13）。
+      note("構えても技能タブから動かない",
+        await page.locator('nav.tabs [data-tab="skills"].active').count() === 1);
+      note("長押しだけでこの一戦の必殺になる（釦を押さない）",
+        await page.locator(".installed-row.ultimate.armed").count() === 1
+          && await page.locator('[data-action="toggle-ultimate-armed"]').count() === 0);
+      note("構えた行に ✹ が出る", await page.locator(".installed-row.ultimate .ultimate-seal").count() === 1);
+      note("この一戦で出るなら行が強く光る",
+        await page.locator(".installed-row.ultimate.armed.firing").count() === 1);
+      // 段3。**遠征タブを開くのもプレイヤーの一手**にする。
+      const mapTabSpot = page.locator('nav.tabs [data-tab="map"].tutorial-spot');
+      note("次に光るのは遠征タブ", await mapTabSpot.count() === 1);
+      note("三手目のあいだ、遠征タブ以外は押せない",
+        await page.locator('nav.tabs [data-tab="equipment"]').isDisabled());
+      await mapTabSpot.click();
+      await page.waitForTimeout(250);
+      note("遠征タブを押すと錠が外れて次の一押しが光る",
+        await page.locator('[data-action="begin-stage"].tutorial-spot').count() === 1
+          && await page.locator('nav.tabs [data-tab="equipment"]:disabled').count() === 0);
+      note("必殺技の一戦が第1戦として出る", /塞ぐ二枚/.test(await bodyText()));
+      await click("この敵に挑む");
+      await waitForTutorialSelector(".battle-field");
+      // issue #242 — 必殺の拍のカットイン。**自動再生を止めて一手ずつ送る**ので、
+      // 拍の並び（決定的）だけを見ており、実時間の速さに依存しない。
+      await page.locator('[data-role="replay-toggle"]').click();
+      await page.waitForTimeout(150);
+      let cutInText = null;
+      for (let step = 0; step < 160 && cutInText === null; step += 1) {
+        if (await page.locator(".ultimate-cutin.show").count()) {
+          cutInText = await page.locator(".ultimate-cutin").innerText();
+          break;
+        }
+        const forward = page.locator('[data-role="replay-step"]');
+        if (await forward.isDisabled()) break;
+        await forward.click();
+        await page.waitForTimeout(40);
+      }
+      note("必殺の拍でカットインが出る", cutInText !== null && /必殺・/.test(cutInText ?? ""), cutInText ?? "");
+      note("カットインに立ち絵が出る", await page.locator(".ultimate-cutin .portrait-svg").count() === 1);
+      note("カットインに変換の印が出る", await page.locator(".ultimate-cutin .cutin-traits span").count() > 0);
+      note("カットインのあいだ盤面を沈めている",
+        await page.locator(".battle-field.ultimate-hold").count() === 1);
+      // 一手戻すと演出も戻る（拍の並びが崩れない）。
+      await page.locator('[data-role="replay-back"]').click();
+      await page.waitForTimeout(150);
+      note("一手戻すとカットインも閉じる", await page.locator(".ultimate-cutin.show").count() === 0);
+      await page.locator('.speed-button[data-speed="fast"]').click();
+      await click("結果を見る");
+      await page.waitForTimeout(400);
+      note("必殺を構えた第1戦に勝てる",
+        /突破した/.test(await page.locator(".verdict h2").textContent() ?? ""));
+      const lessonReward = page.locator('.reward-card button[data-action="take-reward"]').first();
+      if (await lessonReward.count()) {
+        await lessonReward.click();
+        await page.waitForTimeout(300);
+      }
+      note("必殺技の一戦は一度きり（次の一戦では札が出ない）",
+        await page.locator(".ultimate-tutorial").count() === 0);
+      // 作者指摘 2026-09-13 — **誰が放ち終えて、誰が残しているか**が盤面から読める。
+      note("放った仲間だけが使用済みの印になる",
+        await page.locator(".camp-top .party-ultimate.spent").count() === 1
+          && await page.locator(".camp-top .party-ultimate.ready").count() === 2);
+      note("隊全体の合計はもう出さない",
+        await page.locator(".skill-points-badge .seal-pips").count() === 0);
+    }
 
     // ---- R12 §4.E-1 — 編成画面が「後で加入する仲間」を出していないこと。
     await page.locator('nav.tabs [data-tab="map"]').click();

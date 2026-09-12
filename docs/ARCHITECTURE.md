@@ -30,7 +30,7 @@
 | `playable-battles.mjs` | 現行の戦闘入力、preview、loadout（技能の装着順・一時停止を含む） |
 | `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁、必殺印の勘定 |
 | `ultimates.mjs` | 必殺技（issue #238）。取得済み技能を必殺へ変える純関数の変換規則と、遠征 bundle への混ぜ方。**engine も schema も必殺を知らない** |
-| `replay-beats.mjs` | イベント列をリプレイ表示へ変換 |
+| `replay-beats.mjs` | イベント列をリプレイ表示へ変換。必殺の拍（issue #242 のカットイン）も、新しい event を足さずに ID の形だけで組む |
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
@@ -446,6 +446,56 @@ generator version 7より前のBlueprintは互換不能理由を表示し、現�
 `commitBattleResult` が**勝った戦闘でだけ**その人物を `ultimatesUsed` へ入れ、構えを解く。
 負けた一戦は run を変えないので、retry で二重に取られない。
 
-UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`）の長押しが指定・解除で、
-`render()` のあとに `bindLongPress()` が pointer イベントを張る。長押しは
+UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`）の長押しが**この一戦の
+必殺の入切**で、`render()` のあとに `bindLongPress()` が pointer イベントを張る。長押しは
 `data-longpress` の action を、通常のクリックは `data-action` を `handleAction` へ渡す。
+
+**操作は長押し一回に畳んである**（作者指摘 2026-09-12）。`playable-battles.toggleUltimateForBattle`
+が指定（`ultimates`）と構え（`ultimateArmed`）を同時に動かす唯一の入口で、画面に押す釦は
+無い（行の `✹` は状態の印である）。指定と構えを別々に動かす `setUltimate` /
+`toggleUltimateArmed` は model の原子操作として残り、`ecology/ultimate.test.mjs` が直接見る。
+行の見た目は三段（指定＝金の縁／構え＝脈打つ／この一戦で出る＝光が走る）で、段の差が
+そのまま状態の差である。
+
+押している時間は行の左から伸びる光の帯で出す（`.installed-row.pressing::before`）。
+**長さの正本は `LONG_PRESS_MS` ひとつ**で、`bindLongPress()` が
+`--long-press-ms` として CSS へ渡す（両方に書くと、ずれた日に「満ちたのに入らない帯」が
+できる）。誰が必殺を残しているかは盤面のセルの `ultimateCellMark()` が四段で出し、
+**隊の合計はどこにも出さない**（合計は「誰の一回か」に答えない）。
+
+## 必殺の拍とカットイン（issue #242）
+
+必殺は**新しい event を持たない**（engine も schema も必殺を知らない）。だから
+`replay-beats.buildBeats` は ID の形だけを読み、`kind: "ultimate"` の拍を一つ増やす。
+
+  - アクティブ … `action_started` の `skillId` が `ult_` で始まる拍。宣言の event が
+    あるので、盤面が動く前にカットインを置ける（`to` はその index）。
+  - リアクティブ … 割り込みは宣言の event を持たない（`fireRule` は効果だけを出す）ので、
+    `ruleId` が `ult_` で始まる**最初の効果**で拍を開き、`to` を一つ前にして
+    「効果が乗る前の盤面」を見せる。
+
+同じ firing から二度カットインしない（`sourceActorId` + `chainId` + `ruleId` で一度だけ）。
+拍の列はイベント列だけから決まるので、一時停止・一手送り・戻す・速度変更・自動再生の
+どれでも順序が変わらず、`ecology/replay-beats.test.mjs` と `analysis/ecology-ultimate-smoke.mjs`
+（放った数とカットインの拍数が一致すること）が性質として見ている。
+
+画面側は `.battle-field` の中の `.ultimate-cutin` 一枚で、`syncBattleView` が拍の
+`ultimateId` から立ち絵・技能名・変換の印を組む（画面は必殺の表を持たない）。
+
+## 必殺技の一戦（issue #240）
+
+手書きの一戦は二つあり、どちらも `composeEncounter`（threat budget）を通らない。
+`playable-battles.scriptedEncounter` が唯一の組み立てで、content の定義から敵を作る。
+
+  - 灰の門（`PROLOGUE`）… 第0戦。12戦の梯子の外
+  - 塞ぐ二枚（`ULTIMATE_LESSON`）… **Stage 1 の第1戦そのもの**
+
+画面は `ultimateLessonActive()` が真のときだけ `currentEncounter()` で差し替える。**予測も
+本番も `currentEncounter()` を通る**ので、「予測では勝てたのに本番は別の敵」が起きない。
+印は `profile.storyFlags` の `ultimate_lesson_seen` で、**勝った時点**で押す（負けた回は
+押さないので、再挑戦では同じ教材が出る）。
+
+手取りの錠は隊列チュートリアルと同じ形を共有する。`tutorialGate()` が「いま掛かっている
+段・錠・光らせる先」を一つ返し、`applyTutorialGate()` が描画のあとに光と錠を掛け、
+`tutorialAllows(element)` が経路側でも同じ選択子で塞ぐ。**光らせる先と押せる先が同じ表**
+から出るので、「光るのに押せない」が構造として起きない。
