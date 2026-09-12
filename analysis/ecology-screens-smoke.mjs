@@ -23,9 +23,19 @@ const story = readFileSync("ecology/content/story.mjs", "utf8");
 const displayContracts = [
   ["防壁バーのDOM", app, "unit-barrier-fill"],
   ["防壁比率の計算", app, "function barrierPercent(actor)"],
-  ["防壁比率の上限", app, "Math.min(100, (barrier / maxHp) * 100)"],
+  // 防壁もHPと同じ絶対尺度（1本＝HP_BAR_UNIT）で重ねる。最大HPで割らない。
+  ["防壁比率の上限", app, "Math.min(100, (barrier / HP_BAR_UNIT) * 100)"],
   ["防壁バーのCSS", styles, ".unit-barrier-fill"],
   ["防壁バーをHPバー上へ配置", styles, "top: -3px"],
+  // 絶対尺度のHPゲージ（作者要望 2026-09-12）。本の溝・控えの四角・本ごとの色。
+  ["HPバーの溝のDOM", app, "unit-bar-track"],
+  ["HPバーの溝のCSS", styles, ".unit-bar-track"],
+  ["ゲージ本数の四角のDOM", app, "function unitStackHtml(bar)"],
+  ["ゲージ本数の四角のCSS", styles, ".stack-pip"],
+  ["畳んだ本数表示", app, '"×" + bar.stockCount'],
+  ["本ごとのバー色", styles, '.unit[data-hp-tier="violet"]'],
+  ["絶対尺度の幅計算", app, "(offset / gauge.unit) * 100"],
+  ["残り割合はHP数値の色へ", styles, '.unit[data-hp-alert="critical"] .unit-hp'],
   ["装備摩耗ログの残耐久", app, '"の装備が耐久 " + values.before + "→" + values.after'],
   ["装備耐久切れの不発表示", app, '" · 耐久切れ、以後は不発"'],
   ["装備常時効果の耐久説明", app, "能力値補正は装着中の常時効果なので耐久を消費しません"],

@@ -11,6 +11,10 @@
 import { spawn, execFileSync, execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
+// 盤面のHPゲージは絶対尺度（1本＝HP_BAR_UNIT）。**期待値を写経しない**ため、
+// 画面が読むのと同じ正本をここでも読む。
+import { HP_BAR_UNIT } from "../ecology/hp-gauge.mjs";
+
 // **同じ台本を、手元でも公開先でも走らせる。**手元はこの箱の Chromium、
 // 公開先を見るときは GitHub Actions（この環境からは外へ出られないため）。
 // どちらでも動くように、playwright と Chromium の在り処は環境で差し替える。
@@ -123,6 +127,15 @@ try {
         };
       };
       return {
+        maxHp: Number(unit.dataset.maxHp ?? "0"),
+        tier: unit.dataset.hpTier ?? "",
+        alert: unit.dataset.hpAlert ?? "",
+        // 溝はその本の容量。最上位の本だけ端数になるので 100% より短い。
+        trackWidth: Number.parseFloat(unit.querySelector(".unit-bar-track")?.style.width ?? "0"),
+        // バーの実寸。**全ユニットで同じでなければ絶対尺度になっていない。**
+        barPx: Math.round((unit.querySelector(".unit-bar")?.getBoundingClientRect().width ?? 0) * 10) / 10,
+        stackPips: [...unit.querySelectorAll(".unit-stack .stack-pip")].length,
+        stackCounts: [...unit.querySelectorAll(".unit-stack .stack-count")].length,
         segments: {
           green: segment(".unit-fill"),
           recovered: segment(".unit-recovered"),
@@ -653,8 +666,9 @@ try {
         }));
       const barrierUiParity = barrierSamples.length > 0
         && barrierSamples.every((sample) => sample.length > 0 && sample.every((entry) => {
-          const expected = entry.maxHp > 0 && entry.barrier > 0
-            ? Math.min(100, (entry.barrier / entry.maxHp) * 100)
+          // 防壁もHPと同じ絶対尺度で重ねる。最大HPでは割らない。
+          const expected = entry.barrier > 0
+            ? Math.min(100, (entry.barrier / HP_BAR_UNIT) * 100)
             : 0;
           return entry.hasFill
             && Number.isFinite(entry.width)
@@ -694,12 +708,35 @@ try {
         const totalWidth = segments.reduce((sum, segment) => sum + segment.width, 0);
         const contiguous = segments.every((segment, index) => index === 0
           || Math.abs(segment.left - (segments[index - 1].left + segments[index - 1].width)) < 0.05);
-        return Math.abs(totalWidth - 100) < 0.05
+        // 絶対尺度（作者要望 2026-09-12）。4区分が埋めるのは**最大HP幅ではなく
+        // いま居る一本の容量**で、それは溝の幅と一致する。端数の本では 100% 未満。
+        const tiers = Math.max(1, Math.ceil(entry.maxHp / HP_BAR_UNIT));
+        const capacityWidth = ((entry.maxHp - (tiers - 1) * HP_BAR_UNIT) / HP_BAR_UNIT) * 100;
+        const trackOk = entry.trackWidth > 0
+          && entry.trackWidth <= 100.01
+          && Math.abs(totalWidth - entry.trackWidth) < 0.05
+          // 溝が端数になるのは最上位の本に居るときだけ
+          && (Math.abs(entry.trackWidth - 100) < 0.05
+            || Math.abs(entry.trackWidth - capacityWidth) < 0.05);
+        // 四角は「いま居る本以外」を数える。畳んだときは数の札が出ている。
+        const stackOk = entry.stackCounts > 0
+          ? entry.stackPips === entry.stackCounts
+          : entry.stackPips === tiers - 1;
+        const toneOk = ["red", "yellow", "green", "blue", "violet"].includes(entry.tier);
+        return trackOk
+          && stackOk
+          && toneOk
           && contiguous
           && leftOk
           && rightOk
           && innerBoundariesSquare;
       });
+      // **1pxが表すHPが全員で同じ**であることを、実寸で見る。
+      // ここが崩れると「同じ攻撃が人物ごとに違う長さで見える」割合ゲージへ戻る。
+      const barWidths = new Set(hpGaugeUnits.map((entry) => entry.barPx).filter((px) => px > 0));
+      const absoluteScale = hpGaugeUnits.length > 0 && barWidths.size === 1;
+      note("HPゲージのバー1本が全ユニットで同じ実寸である（絶対尺度）",
+        absoluteScale, absoluteScale ? "" : JSON.stringify([...barWidths]));
       note("HPゲージの区分幅・連続性・角丸が各スナップショットに追従する",
         hpGaugeUiParity,
         hpGaugeUiParity ? "" : JSON.stringify(hpGaugeUnits.at(-1)));

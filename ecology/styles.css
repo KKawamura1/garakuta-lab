@@ -23,6 +23,14 @@
   --hp-red: var(--bad);
   --hp-red-light: #f1b6ae;
   --hp-red-dark: #713936;
+  /* 絶対尺度のHPゲージ。4本目以降の青・紫はここで足す（0〜100赤／〜200黄／〜300緑／
+     〜400青／400〜紫）。light は同じ攻撃で回復した分、dark はまだ回復できる分。 */
+  --hp-blue: var(--blue);
+  --hp-blue-light: #d5edf2;
+  --hp-blue-dark: #2f5a63;
+  --hp-violet: var(--violet);
+  --hp-violet-light: #e3d8f5;
+  --hp-violet-dark: #4d3f6c;
   --hp-main: var(--hp-green);
   --hp-recovered-tone: var(--hp-green-light);
   --hp-recoverable-tone: var(--hp-green-dark);
@@ -1485,12 +1493,32 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .battle-side[data-side="enemy"] .unit-icon { border-color: #5e3f3d; background: #3b2726; color: var(--bad); }
 .unit-name { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+/*
+ * 絶対尺度のHPゲージ（作者要望 2026-09-12）。
+ *
+ * `.unit-bar` の幅は常に「1本ぶん（HP_BAR_UNIT）」を表す。**最大HPで割らない**ので、
+ * 同じ一撃はゴウ(300)でもツグミ(110)でも同じ幅だけ削れる。溝（`.unit-bar-track`）だけが
+ * その本の容量ぶんの長さを持ち、最上位の端数の本では短くなる。
+ */
 .unit-bar {
   position: relative;
   height: 6px;
-  margin-top: 6px;
+  margin-top: 3px;
+  background: none;
+}
+/* 溝はその本の容量そのもの。**溝が短い＝この人の最大HPが本の途中で終わる。**
+   4区分は必ず容量ぶんを覆うので、溝が直接見えるのは幅が動いている最中だけ。
+   それでも敷いておくのは、動いている途中でカードの地色が透けないようにするため。 */
+.unit-bar-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 999px;
   background: #0d1315;
+  transition: width .34s cubic-bezier(.2, .7, .3, 1);
 }
 .unit-fill,
 .unit-recovered,
@@ -1512,21 +1540,83 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .unit-recovered { background: var(--hp-recovered-tone); }
 .unit-recoverable { background: var(--hp-recoverable-tone); }
 .unit-unrecoverable { background: var(--hp-unrecoverable); }
-.unit.hp-tone-green {
-  --hp-main: var(--hp-green);
-  --hp-recovered-tone: var(--hp-green-light);
-  --hp-recoverable-tone: var(--hp-green-dark);
-}
-.unit.hp-tone-yellow {
-  --hp-main: var(--hp-yellow);
-  --hp-recovered-tone: var(--hp-yellow-light);
-  --hp-recoverable-tone: var(--hp-yellow-dark);
-}
-.unit.hp-tone-red {
+/* バーの色は「いま何本目に居るか」で決まる（『レディストーカー』）。残り割合ではない。 */
+.unit[data-hp-tier="red"] {
   --hp-main: var(--hp-red);
   --hp-recovered-tone: var(--hp-red-light);
   --hp-recoverable-tone: var(--hp-red-dark);
 }
+.unit[data-hp-tier="yellow"] {
+  --hp-main: var(--hp-yellow);
+  --hp-recovered-tone: var(--hp-yellow-light);
+  --hp-recoverable-tone: var(--hp-yellow-dark);
+}
+.unit[data-hp-tier="green"] {
+  --hp-main: var(--hp-green);
+  --hp-recovered-tone: var(--hp-green-light);
+  --hp-recoverable-tone: var(--hp-green-dark);
+}
+.unit[data-hp-tier="blue"] {
+  --hp-main: var(--hp-blue);
+  --hp-recovered-tone: var(--hp-blue-light);
+  --hp-recoverable-tone: var(--hp-blue-dark);
+}
+.unit[data-hp-tier="violet"] {
+  --hp-main: var(--hp-violet);
+  --hp-recovered-tone: var(--hp-violet-light);
+  --hp-recoverable-tone: var(--hp-violet-dark);
+}
+
+/*
+ * 控えの本を数える四角（『ミスティッククエスト』）。塗り＝まだ満タンの本、
+ * 枠だけ＝空になった本、暗い塗り＝空だが今回の攻撃でまだ戻せる本。
+ * 行は本数0でも高さを保つ。**畳むとセルの高さが揃わず、隊列が読めなくなる。**
+ */
+.unit-stack {
+  display: flex;
+  height: 8px;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 7px;
+  line-height: 1;
+}
+/* 四角は「畳んだバー1本」なので、点ではなく**短い帯**の形にする。
+   1個＝HP_BAR_UNIT ぶんであることが、形だけで読めるようにするため。 */
+.stack-pip {
+  display: block;
+  width: 9px;
+  height: 5px;
+  flex: none;
+  border: 1px solid var(--tier-tone);
+  border-radius: 1px;
+  background: var(--tier-tone);
+}
+.stack-pip.recoverable { background: var(--tier-tone-dark); }
+.stack-pip.lost {
+  border-color: #3d4a4c;
+  background: var(--hp-unrecoverable);
+}
+.stack-count {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-right: 3px;
+  color: var(--muted);
+}
+.stack-pip[data-tier-tone="red"] { --tier-tone: var(--hp-red); --tier-tone-dark: var(--hp-red-dark); }
+.stack-pip[data-tier-tone="yellow"] { --tier-tone: var(--hp-yellow); --tier-tone-dark: var(--hp-yellow-dark); }
+.stack-pip[data-tier-tone="green"] { --tier-tone: var(--hp-green); --tier-tone-dark: var(--hp-green-dark); }
+.stack-pip[data-tier-tone="blue"] { --tier-tone: var(--hp-blue); --tier-tone-dark: var(--hp-blue-dark); }
+.stack-pip[data-tier-tone="violet"] { --tier-tone: var(--hp-violet); --tier-tone-dark: var(--hp-violet-dark); }
+
+/*
+ * 残りHPの「割合」は、バーの色から外してHP数値の色へ移した（issue #226 の警告を残す）。
+ * skill の `hp_percent` が 25/30/50/60/70% を読むので、絶対量とは別の軸として要る。
+ */
+.unit[data-hp-alert="warning"] .unit-hp { color: var(--hp-yellow); }
+.unit[data-hp-alert="critical"] .unit-hp { color: var(--hp-red); font-weight: 700; }
 .unit-barrier-fill {
   position: absolute;
   z-index: 2;
@@ -1822,7 +1912,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .beat-text { font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .unit, .unit-fill, .unit-recovered, .unit-recoverable, .unit-unrecoverable, .unit-barrier-fill, .beat-text, .replay-progress-fill { animation: none !important; transition: none !important; }
+  .unit, .unit-bar-track, .unit-fill, .unit-recovered, .unit-recoverable, .unit-unrecoverable, .unit-barrier-fill, .beat-text, .replay-progress-fill { animation: none !important; transition: none !important; }
   .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), -14px); }
 }
 

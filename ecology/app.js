@@ -1,10 +1,12 @@
 import { simulateBattle } from "./engine.mjs";
 import { PLAYABLE_CONTENT } from "./playable-content.mjs";
 import {
+  HP_BAR_UNIT,
   hpAlertFor,
   hpAlertLabelFor,
-  hpGaugeCornerRoles,
-  hpGaugeState,
+  hpBarCornerRoles,
+  hpBarToneFor,
+  hpGaugeBar,
   hpToneFor,
 } from "./hp-gauge.mjs";
 import {
@@ -4917,11 +4919,19 @@ function unitHtml(actor) {
     ? ""
     : "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
       + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName)) + "</b></div>";
-  return "<div class=\"unit hp-tone-green\" role=\"group\" aria-label=\"" + esc(shortName(actor.displayName))
-    + "\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
+  const bar = hpGaugeBar(actor);
+  return "<div class=\"unit hp-tone-" + esc(hpToneFor(actor)) + "\" role=\"group\" aria-label=\"" + esc(shortName(actor.displayName))
+    + "\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0))
+    + "\" data-hp-alert=\"" + esc(hpAlertFor(actor)) + "\" data-hp-tone=\"" + esc(hpToneFor(actor))
+    + "\" data-hp-tier=\"" + esc(bar.tone) + "\">"
     + "<div class=\"unit-floats\"></div>"
     + face
-    + top + "<div class=\"unit-info-layer\"><div class=\"unit-cast\"></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
+    + top + "<div class=\"unit-info-layer\"><div class=\"unit-cast\"></div>"
+    // 絶対尺度のHPゲージ。**四角の列が「まだ控えている本」、下の一本が「いま居る本」。**
+    // `unit-bar` の幅は全ユニットで `HP_BAR_UNIT` ぶんに固定し、`unit-bar-track` が
+    // その本の容量（最上位だけ端数）を出す。
+    + "<div class=\"unit-stack\" aria-hidden=\"true\"></div>"
+    + "<div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-bar-track\" aria-hidden=\"true\"></span><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
     + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
     + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div></div></div>";
 }
@@ -5123,6 +5133,27 @@ function unitPipsHtml(actor) {
   return pips.join("");
 }
 
+// 控えている本と失った本を、バーの上の小さな四角で数える（『ミスティッククエスト』）。
+// 四角は左から本の順。塗りは「まだ満タンで控えている本」、枠だけは「空になった本」で、
+// そのうち今回の攻撃の回復窓がまだ届く本は赤（＝バーの回復可能区分と同じ意味）にする。
+function unitStackHtml(bar) {
+  const pip = (tone, state) =>
+    "<i class=\"stack-pip " + state + "\" data-tier-tone=\"" + esc(tone) + "\"></i>";
+  if (!bar.compact) return bar.markers.map((marker) => pip(marker.tone, marker.state)).join("");
+  // 本数が並びきらない相手は数で出す。**畳んでも「控え」と「失った」は混ぜない**
+  // （強敵感は控えの数が出しているので、そこだけは必ず読めるようにする）。
+  const counts = [];
+  if (bar.stockCount > 0) {
+    counts.push("<span class=\"stack-count\">" + pip(hpBarToneFor(bar.activeTier - 1), "stock")
+      + "×" + bar.stockCount + "</span>");
+  }
+  if (bar.lostCount > 0) {
+    counts.push("<span class=\"stack-count\">" + pip(hpBarToneFor(bar.tierCount - 1), "lost")
+      + "×" + bar.lostCount + "</span>");
+  }
+  return counts.join("");
+}
+
 function unitMarksHtml(actor) {
   const marks = [];
   // R6 §6.7 — 防御は3つある。**同じ「硬さ」でも問われるものが違う**ので、別々に出す。
@@ -5141,11 +5172,14 @@ function unitMarksHtml(actor) {
   return marks.join("");
 }
 
+// 防壁もHPと同じ量なので、HPバーと同じ絶対尺度で重ねる。**最大HPで割ると、
+// 同じ20の防壁がゴウでは細く、ツグミでは太く見えてしまう**（HPバーを絶対尺度へ
+// 変えた理由と同じ）。1本ぶん（`HP_BAR_UNIT`）を超える防壁は帯を振り切らせ、
+// 正確な量は `◈` の数値マークが持つ。
 function barrierPercent(actor) {
-  const maxHp = Number(actor.maxHp ?? 0);
   const barrier = Number(actor.barrier ?? 0);
-  if (!Number.isFinite(maxHp) || maxHp <= 0 || !Number.isFinite(barrier) || barrier <= 0) return 0;
-  return Math.min(100, (barrier / maxHp) * 100);
+  if (!Number.isFinite(barrier) || barrier <= 0) return 0;
+  return Math.min(100, (barrier / HP_BAR_UNIT) * 100);
 }
 
 function syncBattleView(options = {}) {
@@ -5174,12 +5208,18 @@ function syncBattleView(options = {}) {
   for (const actor of actors) {
     const unit = unitOf(actor.instanceId);
     if (!unit) continue;
-    const gauge = hpGaugeState(actor);
-    const corners = hpGaugeCornerRoles(actor);
+    // 絶対尺度（作者要望 2026-09-12）。**幅の基準は最大HPではなく `HP_BAR_UNIT`。**
+    // どの人物でもバー1本が同じHPを表すので、同じ一撃は誰の盤面でも同じ幅だけ削る。
+    const gauge = hpGaugeBar(actor);
+    const corners = hpBarCornerRoles(gauge);
     const fill = unit.querySelector(".unit-fill");
     const recoveredFill = unit.querySelector(".unit-recovered");
     const recoverableFill = unit.querySelector(".unit-recoverable");
     const unrecoverableFill = unit.querySelector(".unit-unrecoverable");
+    const track = unit.querySelector(".unit-bar-track");
+    // 最上位の本だけ容量が端数になる。**溝そのものを短く描く**ことで、
+    // 「この人の最大HPは本の途中まで」が数字を読まずに分かる。
+    if (track) track.style.width = ((gauge.capacity / gauge.unit) * 100) + "%";
     const segments = [
       { key: "green", element: fill, amount: gauge.green },
       { key: "recovered", element: recoveredFill, amount: gauge.recovered },
@@ -5188,8 +5228,8 @@ function syncBattleView(options = {}) {
     ];
     let offset = 0;
     segments.forEach(({ key, element, amount }) => {
-      const left = gauge.maxHp > 0 ? (offset / gauge.maxHp) * 100 : 0;
-      const width = gauge.maxHp > 0 ? (amount / gauge.maxHp) * 100 : 0;
+      const left = (offset / gauge.unit) * 100;
+      const width = (amount / gauge.unit) * 100;
       if (element) {
         element.style.left = left + "%";
         element.style.width = width + "%";
@@ -5211,9 +5251,15 @@ function syncBattleView(options = {}) {
     const tone = hpToneFor(actor);
     unit.dataset.hpAlert = alert;
     unit.dataset.hpTone = tone;
+    // バーの色は「いま何本目に居るか」（絶対量）、HP数値の色は「残り割合」。
+    // **同じ形に二つ目の意味を持たせない**ので、二つを別の場所へ置く。
+    // 割合は skill の `hp_percent` が 25/30/50/60/70% で読む量なので盤面に残す。
+    unit.dataset.hpTier = gauge.tone;
     unit.classList.toggle("hp-tone-green", tone === "green");
     unit.classList.toggle("hp-tone-yellow", tone === "yellow");
     unit.classList.toggle("hp-tone-red", tone === "red");
+    const stack = unit.querySelector(".unit-stack");
+    if (stack) stack.innerHTML = unitStackHtml(gauge);
     const hp = unit.querySelector(".unit-hp");
     if (hp) hp.textContent = actor.alive
       ? gauge.currentHp + "/" + gauge.maxHp
@@ -5227,6 +5273,9 @@ function syncBattleView(options = {}) {
       bar.setAttribute(
         "aria-label",
         "HP " + gauge.currentHp + "/" + gauge.maxHp
+          + "、ゲージ " + gauge.tierCount + "本中 " + (gauge.activeTier + 1) + "本目"
+          + "（1本 " + gauge.unit + "）"
+          + "、控え " + gauge.stockCount + "本"
           + "、回復済み " + gauge.recovered
           + "、回復可能 " + gauge.recoverable
           + "、回復不能 " + gauge.unrecoverable

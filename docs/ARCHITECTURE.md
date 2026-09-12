@@ -209,18 +209,34 @@ HP回復は `damage_taken` が実際に失わせたHPだけを、同じ攻撃チ
 防壁で吸収した分は窓に入りません。次の `action_started` またはラウンド／戦闘境界で
 `recovery_window_closed` を記録し、残った未回復ダメージを確定します。リプレイ snapshot は
 `recoveredDamage`・`recoverableDamage`・`unrecoverableDamage` を運び、UIは `hp-gauge.mjs` の
-純粋な投影で最大HPバーを緑（未回復の残HP）・濃い緑（同じ攻撃中に回復した分）・赤（回復可能残分）・
-黒（回復不能分）に分けます。区分の隣接境界は角丸にせず、最初の区分の左端を丸めます。赤がある
-ときは赤の右端（赤／黒境界または赤の外側終端）だけを丸め、赤が無いときは黒の手前の最後の
-非黒区分を丸めます。全損時は黒が外側区分です。
+純粋な投影だけを読みます。
 
-低HPの色も同じ投影を読み、生存中の `currentHp / maxHp` を整数 bps へ変換して、56%以上を緑、
-26〜55%を黄、25%以下を赤とします。`app.js` は `hp-tone-green` / `hp-tone-yellow` /
-`hp-tone-red` クラスと `data-hp-tone` へ変換し、残HP区分を主色、回復済み区分を主色の薄め、
-回復可能区分を主色のかなり暗めへ揃えます。HPによって unit の枠色は変更しないため、行動・狙い・
-被弾など既存の枠表示と競合しません。`data-hp-alert` とARIA語彙は閾値の意味を補助的に伝えます。
-回復済み区分の統合・赤の黒への確定・戦闘不能時の確定は、エンジンの `recovery_window_closed`
-と同じ snapshot の表示拍で起きます。
+盤面のHPゲージは**絶対尺度**です。`hpGaugeBar()` は最大HPを `HP_BAR_UNIT`（100HP）ごとの本へ割り、
+いま居る1本（`activeTier`）とその容量（`capacity`。最上位の本だけ端数）、本の中の4区分、
+上に並ぶ四角（`markers`）を返します。`app.js` は幅を **`amount / unit`** で出すので、`.unit-bar`
+の実寸は全ユニットで同じ100HPぶんを表し、同じダメージは誰の盤面でも同じ幅だけ削れます。
+`.unit-bar-track` が `capacity / unit` の溝を敷き、その上へ緑（未回復の残HP）・薄い主色
+（同じ攻撃中に回復した分）・暗い主色（回復可能残分）・黒（回復不能分）を置きます。区分の隣接
+境界は角丸にせず、最初の区分の左端を丸めます。回復可能区分があるときはその右端だけを丸め、
+無いときは黒の手前の最後の非黒区分を丸めます。全損時は黒が外側区分です。角丸の役は
+`hpBarCornerRoles()` が決めます。
+
+本の色は絶対量で決まり、`hpBarToneFor()` が 0〜100 を赤、100〜200 を黄、200〜300 を緑、
+300〜400 を青、400以上を紫（以降は色を変えない）へ写します。`app.js` はこれを
+`data-hp-tier` へ置き、CSS が `--hp-main` / `--hp-recovered-tone` / `--hp-recoverable-tone` を
+切り替えます。`markers` は `.unit-stack` の小さな四角になり、`stock`（まだ満タンの本）・
+`recoverable`（空だが回復窓が届く本）・`lost`（確定した本）の三状態を持ちます。四角が
+`HP_BAR_MARKER_LIMIT` を超える相手は `compact` になり、`unitStackHtml()` が控えと失った本を
+別々の `◼×N` へ畳みます。防壁も同じ尺度で `barrier / HP_BAR_UNIT` を帯の幅にします。
+
+残りHPの**割合**は別の軸として残します。`hpAlertFor()` / `hpToneFor()` が生存中の
+`currentHp / maxHp` を整数 bps へ変換して 56%以上を緑、26〜55%を黄、25%以下を赤とし、
+`app.js` は `data-hp-alert` と `hp-tone-*` クラスへ置きます。**これはバーの色ではなくHP数値の
+色だけを動かします**（技能の `hp_percent` が 25/30/50/60/70% を読むので、絶対量と割合の二つを
+同じ形に載せない）。HPによって unit の枠色は変更しないため、行動・狙い・被弾など既存の枠表示と
+競合しません。ARIA語彙はゲージの本数・控え・4区分・防壁・閾値を文章で伝えます。
+回復済み区分の統合・回復可能の黒への確定・戦闘不能時の確定は、エンジンの
+`recovery_window_closed` と同じ snapshot の表示拍で起きます。
 
 ## 6. content の hard contract
 
