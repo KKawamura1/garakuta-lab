@@ -3711,3 +3711,17 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 @media (max-width: 420px) {
   .summary-reservation { flex-basis: 35%; }
 }
+
+.reservation-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.reservation-buttons .reservation-button {
+  flex: 1 1 auto;
+}
+.reservation-buttons .reservation-button:disabled {
+  border-color: rgba(125, 190, 213, .42);
+  color: var(--blue);
+  opacity: .72;
+}
