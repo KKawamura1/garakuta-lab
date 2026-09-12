@@ -296,7 +296,9 @@ try {
   // issue #159 / #235 — 隊列は**上端の共通盤面からしか**動かせない。二つ目の隊列盤も
   // キャラクターカードも無い（同じ仲間を選ぶ表示が複数あると、どこで何を選んだのかを
   // 画面ごとに探し直すことになる）。
-  const menderCell = page.locator('.camp-top .party-cell', { hasText: "ツグミ" }).first();
+  // UIでは顔を主役にするため、セル内へ名前を描画しない。人物の対応付けは
+  // 表示文言ではなく、画面が持つ安定した character id で行う。
+  const menderCell = page.locator('.camp-top .party-cell[data-character="mender"]').first();
   note("上端の盤面のセルが隊列操作そのものである",
     await menderCell.getAttribute("data-action") === "place-character");
   note("手順2は動かす仲間のセルだけが光る",
@@ -319,7 +321,7 @@ try {
   const placedText = await bodyText();
   note("ツグミを後列へ下げられる",
     await page.locator('.camp-top .party-row').nth(1)
-      .locator('.party-cell', { hasText: "ツグミ" }).count() === 1);
+      .locator('.party-cell[data-character="mender"]').count() === 1);
   // 錠が外れた盤面では、同じ `selected` が「いま中身を見ている人」を指す。
   // ここで見るのは**隊列の選択**が解けたかどうかなので、置く操作の側で数える。
   note("移動を終えると隊列の選択が解ける",

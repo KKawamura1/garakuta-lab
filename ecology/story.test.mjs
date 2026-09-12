@@ -31,6 +31,7 @@ import {
   PACK_BY_ID,
   PLAYABLE_CONTENT,
   PORTRAITS,
+  PORTRAIT_FACE_VIEWBOX,
   PORTRAIT_IDS,
   PROLOGUE,
   REGION,
@@ -489,6 +490,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
         characterId + "/" + expression + " に未解決の値が残っていない");
     }
     check(/^#[0-9a-f]{6}$/i.test(portraitAccent(characterId)), characterId + " の差し色が色として読める");
+    const face = portraitSvg(characterId, "neutral", { crop: "face" });
+    check(face.includes("viewBox=\"" + PORTRAIT_FACE_VIEWBOX + "\""), characterId + " の盤面用顔切り出しがある");
   }
   equal(portraitSvg("no_such_character"), "", "知らない人物では立ち絵を作らない");
 

@@ -4077,10 +4077,11 @@ function partyCellPerson(characterId, entry) {
   // issue #235 — セルは**2行**。1行目に人物と1ラウンドの資源、2行目にHPと増減を置く。
   // 4行積みは1セル67px・固定領域234pxで、iPhoneの画面の3割を常時奪っていた。
   // **出す情報は一つも減らさずに**、行だけを畳む（数値はバーの上へ重ねる）。
-  return "<span class=\"forecast-member-head\"><span class=\"avatar small\">"
-    + esc(characterInfo(characterId)?.icon ?? "・") + "</span><b>"
-    + esc(characterName(characterId)) + "</b>" + ultimateMark
-    + "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap
+  // 顔を識別の主語にするため、狭いセルの顔の上へ名前と職種アイコンは重ねない。
+  // AP/RP と必殺印は下部の情報帯へ残し、HP と増減をそのさらに下へ置く。
+  return characterFaceWatermark(characterId, "party-character-face")
+    + "<span class=\"forecast-info-layer\"><span class=\"forecast-member-head\">"
+    + ultimateMark + "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap
     + " · 反応点" + rp + "\">" + pips(ap, "ap") + pips(rp, "rp") + "</span></span>"
     + "<span class=\"party-figures\">"
     + "<span class=\"forecast-hp-bar\" role=\"img\" aria-label=\"" + esc(barLabel) + "\">"
@@ -4090,7 +4091,7 @@ function partyCellPerson(characterId, entry) {
     + (entry
       ? "<span class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</span>"
       : "")
-    + "</span>";
+    + "</span></span>";
 }
 
 function partyCell(position, mode, byCharacter) {
@@ -4625,6 +4626,14 @@ function unitIcon(actor) {
     ?? (actor.side === "enemy" ? "◆" : "・");
 }
 
+function characterFaceWatermark(characterId, scope) {
+  const portrait = portraitSvg(characterId, "neutral", { crop: "face" });
+  if (!portrait) return "";
+  return "<span class=\"character-face-watermark " + scope + "\" data-character=\""
+    + esc(characterId) + "\" aria-hidden=\"true\">"
+    + portrait + "</span>";
+}
+
 function actorDefinition(actor) {
   return actor.side === "ally"
     ? PLAYABLE_CONTENT.characters[actor.definitionId]
@@ -4687,14 +4696,21 @@ function layoutKeyOf(actors) {
 }
 
 function unitHtml(actor) {
-  return "<div class=\"unit hp-tone-green\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
+  const isAlly = actor.side === "ally";
+  const face = isAlly
+    ? characterFaceWatermark(actor.definitionId, "unit-character-face")
+    : "";
+  const top = isAlly
+    ? ""
+    : "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
+      + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName)) + "</b></div>";
+  return "<div class=\"unit hp-tone-green\" role=\"group\" aria-label=\"" + esc(shortName(actor.displayName))
+    + "\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
     + "<div class=\"unit-floats\"></div>"
-    + "<div class=\"unit-top\"><span class=\"unit-icon\">" + esc(unitIcon(actor))
-    + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName))
-    + "</b></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
+    + face
+    + top + "<div class=\"unit-info-layer\"><div class=\"unit-cast\"></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
     + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
-    + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div>"
-    + "<div class=\"unit-cast\"></div></div>";
+    + "<span class=\"unit-marks\"></span><span class=\"unit-pips\"></span></div></div></div>";
 }
 
 // 盤面は 2×3 のまま見せる。**折り返して並べ替えると隊列が読めなくなる**

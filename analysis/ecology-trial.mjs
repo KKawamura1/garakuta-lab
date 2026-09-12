@@ -495,7 +495,8 @@ try {
         result: ["win", "loss", "draw"].find((value) => bar.classList.contains(value)) ?? "",
         verdict: bar.querySelector(".forecast-verdict")?.textContent?.trim() ?? "",
         members: [...bar.querySelectorAll(".forecast-member")].map((member) => ({
-          name: member.querySelector(".forecast-member-head b")?.textContent?.trim() ?? "",
+          // 名前は顔の上へ重ねず、セルの aria-label に残す。予測値の対応確認だけは続ける。
+          name: member.closest(".party-cell")?.getAttribute("aria-label")?.split(" · ")[0] ?? "",
           endingHp: Number(member.querySelector(".forecast-hp-values b")?.textContent?.trim() ?? "NaN"),
           maxHp: Number(member.querySelector(".forecast-hp-values small")?.textContent?.replace("/", "") ?? "NaN"),
           defeated: member.classList.contains("defeated"),
@@ -614,7 +615,11 @@ try {
             const hpText = unit.querySelector(".unit-hp")?.textContent?.trim() ?? "";
             const hp = hpText.match(/^([0-9]+)\/([0-9]+)$/);
             return {
-              name: unit.querySelector(".unit-name")?.textContent?.trim() ?? "",
+              // 味方カードでは名前を顔へ重ねない。対応付け用の名前は、表示専用の
+              // `.unit-name` ではなく、カード自身のアクセシブルなラベルから読む。
+              name: unit.getAttribute("aria-label")?.trim()
+                ?? unit.querySelector(".unit-name")?.textContent?.trim()
+                ?? "",
               endingHp: hp ? Number(hp[1]) : 0,
               maxHp: hp ? Number(hp[2]) : null,
               defeated: hpText === "戦闘不能",

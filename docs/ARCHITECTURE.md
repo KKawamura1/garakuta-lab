@@ -385,9 +385,13 @@ mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所
 人物を選ぶつもりの一押しが移動になる）。盤面は隊列を変える唯一の入口なので、
 `formation` 以外の mode から `state.run.formation` は動かない。
 
-セルは2行で組む。1行目が人物（アイコン・名前・必殺印）と1ラウンドの資源（AP/RP のピップ）、
-2行目が HP バーと増減で、HP の数値はバーの上へ重ねる。4行積みだった頃は 1 セル 67px・
-固定領域 234px で、iPhone 幅（390×844）の画面の3割を常時占めていた。
+セルは顔部分を `portraitSvg(..., { crop: "face" })` で切り出した背景レイヤーとして敷く。名前と職種アイコンは
+顔の上へ置かず、目元を残す。AP/RP のピップ、HP バー、増減は下部の `forecast-info-layer` へ集め、
+情報部分だけを濃いグラデーションで覆う。顔はこの帯に隠れない範囲で濃く表示する。
+元画像ごとの余白差は `character-face-watermark[data-character]` の共通補正で吸収し、
+予測セルと戦闘カードの両方が同じ人物別スケールを読む。5人を同じ条件で確認する開発画面は
+`/ecology/portrait-test.html` に置く。4行積みだった頃は 1 セル 67px・固定領域 234px で、
+iPhone 幅（390×844）の画面の3割を常時占めていた。
 
 予測は従来どおり `battleForecast()`（`previewNextBattle` → `expeditionBattleOptions`）から
 読み、`forecast.perCharacter` を characterId で引いてセルへ差し込む。**予測が無い場面でも
@@ -399,6 +403,13 @@ mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所
 ブラウザでの実挙動（隊列交換・技能／装備の対象切替・集中治療と蘇生の対象選択）は
 `analysis/ecology-tutorial-trial.mjs`、盤面が iPhone 幅で横スクロールしないことは
 `analysis/ecology-trial.mjs` が踏む。
+
+戦闘中の `unitHtml()` も同じ `portraitSvg(..., { crop: "face" })` を味方枠の背景へ差し込み、
+`character-face-watermark` を z-index 0 に置く。味方の名前・職種アイコンは描画せず、
+`unit-info-layer` に行動内容・HP・資源・状態を集める。DOM の順番は行動内容（表示時だけ高さを持つ）→
+HPバー→数値・状態で、情報帯の下側へ重ねるグラデーションが顔との境界を担う。これにより通常時は空いた行動欄ぶん
+顔を大きく見せ、行動中だけ内容をHPの上へ出せる。`portrait-test.html` はこの2種類の枠を同じ画面に
+並べ、目元の基準線と情報帯込みで補正を確認する。敵には対応する人物画像がないため、既存の敵アイコンと枠を維持する。
 
 ## 生成装備ruleの耐久契約
 

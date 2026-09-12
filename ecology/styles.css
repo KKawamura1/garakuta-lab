@@ -303,6 +303,8 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .party-row-label { color: var(--muted); font-size: 9px; letter-spacing: .04em; }
 .party-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
 .party-cell {
+  position: relative;
+  isolation: isolate;
   display: grid;
   align-content: start;
   gap: 3px;
@@ -316,6 +318,54 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   font: inherit;
 }
 button.party-cell { cursor: pointer; }
+.party-cell:not(.empty) {
+  min-height: 55px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.character-face-watermark {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: .38;
+}
+.character-face-watermark .portrait-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: saturate(1.05) contrast(1.04) brightness(1.04);
+  transform: translate3d(var(--face-x, 0%), var(--face-y, 0%), 0) scale(var(--face-scale, 1));
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.party-cell > :not(.character-face-watermark),
+.unit > .unit-top,
+.unit > .unit-info-layer {
+  position: relative;
+  z-index: 1;
+}
+.party-character-face { opacity: .75; }
+.unit-character-face { opacity: .62; }
+/* 顔の大きさと目元の高さは元画像の余白差を吸収する。予測と戦闘は同じ補正値を使う。 */
+.character-face-watermark[data-character="warden"] { --face-scale: 1.4; }
+.character-face-watermark[data-character="lancer"] {
+  --face-scale: 1.1;
+  --face-y: -8%;
+}
+.character-face-watermark[data-character="tactician"] { --face-scale: 1.1; }
+.character-face-watermark[data-character="mender"] {
+  --face-scale: 1;
+  --face-y: -22%;
+}
+.character-face-watermark[data-character="guardian"] {
+  --face-scale: .9;
+  --face-y: -30%;
+}
 .party-cell.empty { border-style: dashed; background: transparent; }
 .party-cell.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
 /* 選択中の一人。**金の枠は「いま操作の主語である」の意味だけに使う。** */
@@ -341,7 +391,17 @@ button.party-cell { cursor: pointer; }
 .party-note b { color: var(--ink); white-space: nowrap; }
 .party-note.picking { color: var(--gold); }
 .party-note .tiny-button { flex: 0 0 auto; margin-left: auto; }
-.forecast-member-head { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; }
+.forecast-info-layer {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 5px 4px;
+  background: linear-gradient(180deg, rgba(13, 19, 21, 0) 0%, rgba(13, 19, 21, .7) 42%, rgba(13, 19, 21, .96) 100%);
+}
+.forecast-member-head { display: flex; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; min-height: 7px; }
 .forecast-member-head b {
   overflow: hidden;
   font-size: 10px;
@@ -1385,6 +1445,32 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   transition: border-color .18s ease, box-shadow .18s ease, opacity .3s ease;
 }
 .battle-side[data-side="enemy"] .unit { background: #251c1e; }
+.unit-info-layer { position: relative; z-index: 1; }
+.battle-side[data-side="ally"] .unit {
+  display: flex;
+  min-height: 84px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 6px 6px;
+  overflow: hidden;
+}
+.battle-side[data-side="ally"] .unit-info-layer {
+  width: calc(100% + 12px);
+  margin: 0 -6px -6px;
+  padding: 20px 6px 6px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, rgba(13, 19, 21, 0) 0%, rgba(13, 19, 21, .72) 43%, rgba(13, 19, 21, .96) 100%);
+}
+.battle-side[data-side="ally"] .unit-top { display: none; }
+.battle-side[data-side="ally"] .unit-bar { margin-top: 0; }
+.battle-side[data-side="ally"] .unit-cast {
+  height: 0;
+  margin-top: 0;
+}
+.battle-side[data-side="ally"] .unit-cast.show {
+  height: 15px;
+  margin-top: 4px;
+}
 .unit-top { display: flex; align-items: center; gap: 5px; }
 .unit-icon {
   display: grid;
@@ -1501,7 +1587,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: opacity .18s ease;
+  transition: height .18s ease, margin-top .18s ease, opacity .18s ease;
 }
 .unit-cast.show { opacity: 1; }
 .unit-cast.prep { background: #23303a; color: var(--blue); }
@@ -2969,6 +3055,119 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .portrait-test-legend {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ---------------------------------------------------------------- 顔の補正確認用の開発画面 */
+.portrait-calibration-shell { width: min(100%, 1040px); }
+.portrait-calibration-page {
+  background: radial-gradient(circle at 72% -10%, #2b4445 0, var(--bg) 48%);
+}
+.portrait-calibration-header { padding-top: 18px; }
+.portrait-calibration-card { overflow: hidden; }
+.portrait-calibration-row {
+  display: grid;
+  gap: 9px;
+  margin-top: 18px;
+}
+.portrait-calibration-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.portrait-calibration-row-head h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+}
+.portrait-calibration-row-head small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.portrait-calibration-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.portrait-calibration-cell {
+  min-width: 0;
+}
+.portrait-calibration-frame {
+  position: relative;
+  isolation: isolate;
+  min-height: 68px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #101719;
+}
+.portrait-calibration-battle .portrait-calibration-frame { min-height: 92px; }
+.portrait-calibration-eye-line {
+  position: absolute;
+  top: 46%;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  border-top: 1px dashed rgba(229, 162, 107, .48);
+  pointer-events: none;
+}
+.portrait-calibration-info {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  gap: 3px;
+  padding: 18px 7px 6px;
+  background: linear-gradient(180deg, rgba(13, 19, 21, 0), rgba(13, 19, 21, .95) 68%);
+  color: var(--muted);
+  font-size: 9px;
+}
+.portrait-calibration-bar {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #0d1315;
+}
+.portrait-calibration-bar i {
+  display: block;
+  width: 72%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--good);
+}
+.portrait-calibration-label {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  text-align: center;
+}
+.portrait-calibration-label b {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portrait-calibration-label small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.portrait-calibration-note {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+@media (max-width: 700px) {
+  .portrait-calibration-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 430px) {
+  .portrait-calibration-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 

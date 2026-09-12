@@ -4,39 +4,31 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#111518">
-    <title>立ち絵サイズ確認 — EXP-18 R10</title>
+    <title>顔サイズ確認 — DEVELOPMENT VIEW</title>
     <link rel="stylesheet" href="./styles.css">
   </head>
-  <body class="portrait-test-page">
-    <main class="shell portrait-test-shell">
-      <header class="header portrait-test-header">
+  <body class="portrait-calibration-page">
+    <main class="shell portrait-calibration-shell">
+      <header class="header portrait-calibration-header">
         <div>
           <p class="kicker">DEVELOPMENT VIEW</p>
-          <h1>立ち絵サイズ確認</h1>
-          <p class="subtitle">5人を同じ舞台に並べた比較画面</p>
+          <h1>顔サイズ確認</h1>
+          <p class="subtitle">戦闘と戦闘予測で共有する5人の顔フレーム</p>
         </div>
         <a class="menu-button" href="./">ゲームへ戻る</a>
       </header>
 
-      <section class="card portrait-test-card" aria-labelledby="portrait-test-title">
+      <section class="card portrait-calibration-card" aria-labelledby="portrait-calibration-title">
         <div class="section-head">
           <div>
-            <p class="eyebrow">PORTRAIT TEST</p>
-            <h2 id="portrait-test-title">全員表示</h2>
+            <p class="eyebrow">PORTRAIT CALIBRATION</p>
+            <h2 id="portrait-calibration-title">同じ基準で比較</h2>
           </div>
           <span class="count">5人</span>
         </div>
-        <p class="muted">実際の立ち絵と同じ画像を、同じ縦横比で表示しています。現在の倍率はゴウ1.4倍、ナギ・ゲンゾウ1.1倍、ツグミ1倍、ヒバナ0.9倍です。</p>
-
-        <div class="portrait-test-stage" aria-label="ゴウ、ナギ、ツグミ、ヒバナ、ゲンゾウの立ち絵比較">
-          <div class="portrait-test-sky"></div>
-          <div class="portrait-test-haze"></div>
-          <div class="portrait-test-figures" id="portrait-test-figures"></div>
-          <div class="portrait-test-floor"></div>
-        </div>
-
-        <div class="portrait-test-legend" id="portrait-test-legend"></div>
-        <p class="portrait-test-note">開発用の確認画面です。ゲームへ戻る場合は右上のリンクを使ってください。</p>
+        <p class="muted">実際の戦闘・予測と同じ顔切り出し、キャラクター別補正、濃い情報帯を並べています。名前と職種アイコンは画像へ重ねません。</p>
+        <div id="portrait-calibration-root"></div>
+        <p class="portrait-calibration-note">水平の点線は目元の比較用ガイドです。ここで顔の大きさと目の見え方が揃っていれば、下の2画面にも同じ補正が反映されます。</p>
       </section>
     </main>
     <script type="module" src="./portrait-test.js"></script>

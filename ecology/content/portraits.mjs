@@ -19,6 +19,7 @@
 import { CHARACTER_NAMES } from "./character-lore.mjs";
 
 export const PORTRAIT_VIEWBOX = "0 0 240 320";
+export const PORTRAIT_FACE_VIEWBOX = "0 0 240 150";
 
 // ---------------------------------------------------------------- 表情
 //
@@ -71,16 +72,18 @@ export function portraitName(characterId) {
 // ---------------------------------------------------------------- 立ち絵本体
 //
 // **同じ引数からは同じ文字列が返る。**expression は表情ごとの画像ができるまでの
-// 暫定として無視し、全表情が同じ画像を指す。options（旧 uid）も同じ理由で無視する。
+// 暫定として無視し、全表情が同じ画像を指す。options の crop=face は、盤面の背景用に
+// 顔まわりだけを切り出すための表示上の指定で、画像そのものは共有する。
 export function portraitSvg(characterId, expression = DEFAULT_EXPRESSION, options = {}) {
   const def = PORTRAITS[characterId];
   if (!def) return "";
   void expression;
-  void options;
+  const viewBox = options.crop === "face" ? PORTRAIT_FACE_VIEWBOX : PORTRAIT_VIEWBOX;
+  const rootAspect = options.crop === "face" ? "xMidYMid slice" : "xMidYMin slice";
   const label = portraitName(characterId);
   const src = PORTRAIT_IMAGE_BASE + def.image;
-  return "<svg class=\"portrait-svg\" viewBox=\"" + PORTRAIT_VIEWBOX + "\" role=\"img\""
-    + " aria-label=\"" + label + "\" preserveAspectRatio=\"xMidYMin slice\" focusable=\"false\">"
+  return "<svg class=\"portrait-svg\" viewBox=\"" + viewBox + "\" role=\"img\""
+    + " aria-label=\"" + label + "\" preserveAspectRatio=\"" + rootAspect + "\" focusable=\"false\">"
     + "<image href=\"" + src + "\" x=\"0\" y=\"0\" width=\"240\" height=\"320\""
     + " preserveAspectRatio=\"xMidYMin slice\"/>"
     + "</svg>";
