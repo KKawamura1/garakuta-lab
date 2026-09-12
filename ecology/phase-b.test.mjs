@@ -982,7 +982,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   equal(runSkillLevel(fulfilled.run, "warden", "heavy_swing"), 10, "目的技能をSL10まで取得する");
   equal(skillReservationFor(fulfilled.run, "warden"), null, "目的技能の取得後に予約を完了する");
   check(runSkillPoints(fulfilled.run, "warden") < 11, "自動取得で技能点を使う");
-  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut", 1);
+  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut", 10);
   equal(switched.ok, true, "別の技能へ予約を切り替えられる");
   const cancelled = cancelRunSkillReservation(switched.run, "warden", "steady_cut");
   equal(cancelled.ok, true, "取得予約を取り消せる");
