@@ -32,7 +32,7 @@ import {
 
 // **版を上げたら、古い Blueprint は disabled 表示になる。**黙って別物を作らない
 // （R8 §3.6「互換不能な古いBlueprintを削除せず、disabledReasonを表示する」）。
-export const GENERATOR_VERSION = "ecology-equipment-gen-7";
+export const GENERATOR_VERSION = "ecology-equipment-gen-8";
 
 // R8 §3.5 —「50 attemptで生成不能なら既定品へ黙ってfallbackせず、診断errorにする。」
 export const GENERATOR_MAX_ATTEMPTS = 50;

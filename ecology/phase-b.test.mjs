@@ -57,6 +57,10 @@ import {
 import {
   ENCOUNTER_BASE_FUNDS,
   MAX_SUPPLIES,
+  STARTING_SUPPLIES_BASE,
+  runSuppliesMax,
+  gainSupply,
+  offersRewardAfterClear,
   META_UPGRADES,
   SCRAP_PER_SUPPLY,
   SUPPLY_USES,
@@ -853,36 +857,46 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
 {
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "s", runId: "r9", roster: ROSTER });
-  equal(run.supplies, 0, "通常遠征の開始補給0");
+  // issue #255 — 補給はシナリオ中3個で固定。報酬で足せず、遠征中に総数は動かない。
+  equal(run.supplies, STARTING_SUPPLIES_BASE, "開始補給は固定値");
+  equal(run.supplies, 3, "固定値は3");
+  equal(run.suppliesMax, 3, "その遠征の総数も3（表記の分母）");
+  equal(runSuppliesMax(run), 3, "総数は run から読める");
   const tutorialRun = newRun(profile, {
     runSeed: "s", runId: "r9-tutorial", roster: ROSTER, campaignStageSequence: 0, tutorial: true,
   });
-  equal(tutorialRun.supplies, 1, "Stage 0 の補給チュートリアルだけ開始補給1");
-  equal(MAX_SUPPLIES, 5, "上限5");
+  equal(tutorialRun.supplies, 3, "Stage 0 の導入も同じ3（特例を置かない）");
+  equal(MAX_SUPPLIES, 5, "永続強化を積んだときの天井は5");
+  // 欄の無い古い保存も、固定値として読める。
+  equal(runSuppliesMax({ supplies: 1 }), 3, "欄の無い保存は固定値として読む");
+  equal(runSuppliesMax({ suppliesMax: 99 }), MAX_SUPPLIES, "総数は天井を超えない");
   // R14 §3 — 偵察は消えた。**補給の用途は三つだけ**で、その三つが同じ数を取り合う。
   assert.deepEqual(Object.keys(SUPPLY_USES), ["retry", "reroll", "camp"]);
   checks += 1;
   equal(spendSupply(run, "scout").ok, false, "偵察という用途はもう無い");
-  const retry = spendSupply(tutorialRun, "retry");
-  equal(retry.run.supplies, 0, "再挑戦で1減る");
+  const retry = spendSupply(run, "retry");
+  equal(retry.run.supplies, 2, "再挑戦で1減る");
   equal(spendSupply({ ...run, supplies: 0 }, "retry").ok, false, "0では使えない");
   equal(spendSupply(run, "nonsense").ok, false, "知らない用途は拒否する");
   // 3用途が同じ数を取り合う（R6 §12.1 のトレードオフ）。
-  const rerolled = spendSupply({ ...tutorialRun, supplies: 2 }, "reroll");
+  const rerolled = spendSupply({ ...run, supplies: 2 }, "reroll");
   equal(rerolled.run.supplies, 1, "引き直しは再挑戦の余地を減らす");
   equal(spendSupply(rerolled.run, "camp").run.supplies, 0, "野営治療も同じ数から引く");
+  // 遠征中に総数を超えて増えない（報酬の補給枠は廃止、屑は使った分の戻しだけ）。
+  equal(gainSupply(run, 2).supplies, 3, "満杯の遠征では増えない");
+  equal(gainSupply({ ...run, supplies: 1 }, 5).supplies, 3, "戻せるのは総数まで");
 
-  // 開始補給の購入は基準値0から加算される。
+  // 開始補給の購入は固定値へ加算される。
   let rich = { ...profile, activityFunds: "1000000" };
   rich = purchaseUpgrade(rich, "starting_supplies").profile;
   rich = purchaseUpgrade(rich, "starting_supplies").profile;
-  equal(newRun(rich, { runSeed: "s", runId: "ra", roster: ROSTER }).supplies, 2, "買い切って2");
+  equal(newRun(rich, { runSeed: "s", runId: "ra", roster: ROSTER }).supplies, 5, "買い切って5");
   equal(newRun(rich, {
     runSeed: "s", runId: "ra-tutorial", roster: ROSTER, campaignStageSequence: 0, tutorial: true,
-  }).supplies, 1, "チュートリアル開始補給は永続強化後も1");
+  }).supplies, 5, "導入でも永続強化はそのまま効く");
   equal(upgradeCost(rich, "starting_supplies"), null, "3段目は無い");
-  // rank 5 でも通常遠征の基準値は0。
-  equal(newRun(profile, { runSeed: "s", runId: "rb", roster: ROSTER, difficulty: 5 }).supplies, 0,
+  // rank 5 でも基準値は同じ固定値。
+  equal(newRun(profile, { runSeed: "s", runId: "rb", roster: ROSTER, difficulty: 5 }).supplies, 3,
     "rank 5 の開始補給");
 }
 
@@ -902,9 +916,12 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   equal(dismantle(run, "no_such_item").ok, false, "持っていない品は分解できない");
   equal(convertScrap(broken.run).ok, false, "scrap 1 では替えられない");
   const twice = dismantle(broken.run, broken.run.inventory[0]);
-  const converted = convertScrap(twice.run);
-  equal(converted.ok, true, "scrap " + SCRAP_PER_SUPPLY + " で補給1");
-  equal(converted.run.supplies, run.supplies + 1, "補給が増える");
+  // issue #255 — 補給は開始時に満杯なので、屑で戻せるのは**使った分だけ**である。
+  equal(convertScrap(twice.run).ok, false, "満杯の遠征では屑を替えられない");
+  const spent = { ...twice.run, supplies: twice.run.supplies - 1 };
+  const converted = convertScrap(spent);
+  equal(converted.ok, true, "scrap " + SCRAP_PER_SUPPLY + " で使った分を1戻せる");
+  equal(converted.run.supplies, run.supplies, "総数までは戻る");
   equal(converted.run.scrap, 0, "scrap を使い切る");
 }
 
@@ -914,10 +931,19 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "seed-x", runId: "rd", roster: ROSTER });
   const offer = rewardOffer(run, profile, 1, 0);
-  equal(offer.length, 3, "3候補");
+  // issue #255 — 候補は装備だけ。補給は遠征開始時に固定され、報酬と取り合わない。
+  equal(offer.length, 2, "候補2件");
   equal(offer.filter((o) => o.type === "equipment").length, 2, "装備2");
   equal(offer.filter((o) => o.type === "skill_points").length, 0, "技能点は自動付与");
-  equal(offer.filter((o) => o.type === "supplies").length, 1, "補給1");
+  equal(offer.filter((o) => o.type === "supplies").length, 0, "補給は候補に入らない");
+  // issue #255 — 候補が出るのはボス戦突破後だけ。
+  equal(offersRewardAfterClear(1), false, "通常戦では装備を選ばない");
+  equal(offersRewardAfterClear(3), false, "精鋭戦でも装備を選ばない");
+  equal(offersRewardAfterClear(4), true, "4戦目のボスで装備を選ぶ");
+  equal(offersRewardAfterClear(8), true, "8戦目のボスで装備を選ぶ");
+  equal(offersRewardAfterClear(12), true, "最終戦もボス戦なので装備を選ぶ（拾った品は設計図の候補になる）");
+  equal(offersRewardAfterClear(13), false, "12戦より先は無い");
+  equal(offersRewardAfterClear(0), false, "0戦目は無い");
   check(!offer.some((o) => o.type === "activity_funds"), "**活動資金は報酬候補に入らない**");
   check(offer.filter((o) => o.type === "equipment").every((o) => o.generated && o.item),
     "装備候補はすべて遠征ごとの手続き生成品");
@@ -930,7 +956,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   const nextEncounterBefore = composeEncounter(2, 0);
   const rerolled = rewardOffer(run, profile, 1, 1);
   check(
-    JSON.stringify(rerolled) !== JSON.stringify(offer) || rerolled.length < 3,
+    JSON.stringify(rerolled) !== JSON.stringify(offer) || rerolled.length < 2,
     "引き直すと候補が変わる",
   );
   // **報酬の引き直しは後続の敵を動かさない。**

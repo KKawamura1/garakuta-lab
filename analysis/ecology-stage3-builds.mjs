@@ -57,7 +57,6 @@ import {
   MAX_SUPPLIES,
   campTreat,
   commitBattleResult,
-  gainSupply,
   newProfile,
   newRun,
   rewardOffer,
@@ -226,7 +225,11 @@ const BUILDS = Object.freeze([
   Object.freeze({
     id: "wall",
     displayName: "隊列で守る",
-    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
+    // issue #255 — 補給が遠征あたり3個で固定になり（以前はこの検査が一戦ごとに
+    // 報酬で補給1を取る前提で、遠征を通して最大11個まで使えた）、野営治療で
+    // 戻せる量が減った。到達は第6戦のままだが、終わり方が時間切れから全滅へ
+    // 変わった。**守る構成は測定区間の頭で止まる**という読みは変わらない。
+    through: Object.freeze({ reaches: 6, ends: "wipe" }),
     question: "止めた回数を、次の何に変えるか",
     engine: Object.freeze({
       source: "受け構えで一撃を止めた拍（damage_blocked / block_spent）",
@@ -432,7 +435,11 @@ const BUILDS = Object.freeze([
       Object.freeze({ before: 9, characterId: "warden", level: "steady_cut" }),
       Object.freeze({ before: 9, characterId: "warden", level: "steady_cut" }),
       Object.freeze({ before: 10, characterId: "warden", skillId: "first_blood" }),
-      Object.freeze({ before: 11, characterId: "warden", skillId: "edge_honed" }),
+      // issue #255 — **研ぎ澄ます（倒した拍で集中）をここから外した。**補給が
+      // 遠征あたり3個で固定になって第10〜12戦の展開が変わり、この構成のゴウは
+      // 止めを刺さなくなった（主砲はツグミの大溜めとナギ）。鳴らない節に点を
+      // 払わせないため、ゴウの残りの点は前列で実際に鳴っている手当て（mend）へ回す。
+      Object.freeze({ before: 11, characterId: "warden", level: "mend" }),
       Object.freeze({ before: 12, characterId: "warden", skillId: "foundation_vitality" }),
     ]),
     // **溜めは1回まで。**大溜め（準備3回）は行動権を4つ食うので、渡す側が毎ラウンド
@@ -715,20 +722,22 @@ function playThrough(build, snapshots, carried = null) {
 // 第6戦までの測定では要らなかったが、遠征のHPは持ち越しで、戻す手段は三つしかない。
 //
 //   1. 第4戦・第8戦の幕ボスに勝った後の全回復（`isActBossFullHealIndex`）
-//   2. 報酬で補給を取り、野営治療に使う（`campTreat`。上限は補給5）
+//   2. 手持ちの補給を野営治療に使う（`campTreat`）
 //   3. 戦闘中の回復技能
 //
-// **ここでは報酬を毎回「補給1」にする。**装備は取らない。作者試遊が装備 0/10 で
-// 第12戦まで行った条件をそのまま再現するためで、装備の効き方は別に見ている
-// （下の代表装備の節）。**取れる補給は一戦につき1つ・上限5**なので、これは
-// 無限の回復ではなく、遠征を通して数えられる有限の余白になる。
+// issue #255 — **補給は遠征の開始時に固定される**ようになった（既定3・報酬では
+// 増えない）。以前ここは「報酬を毎回補給1にする」と宣言して一戦ごとに足していたが、
+// それはもう本編に無い経路なので、遠征を通して3つだけを配る形へ直した。装備は
+// 取らない（作者試遊が装備 0/10 で第12戦まで行った条件の再現。装備の効き方は
+// 下の代表装備の節で別に見る）。**回復の余白は遠征で合計3回**で、これが
+// 「どこで使うか」という本編と同じ有限の判断になる。
 //
 // 使い方も宣言しておく。**倒れている味方から順に蘇生し、それが済んでから、
 // 割合で一番深く傷ついた味方が半分を切っていれば集中治療する。**構成ごとに
 // 変えない（変えると、構成の差なのか看護の差なのかが分からなくなる）。
 const REVIVE_THRESHOLD_BPS = 7_000;
 function restBetweenBattles(run, profile, row) {
-  let next = gainSupply(run, 1);
+  let next = run;
   for (const characterId of run.roster) {
     if ((next.supplies ?? 0) < 1) break;
     if ((next.currentHp?.[characterId] ?? 0) > 0) continue;

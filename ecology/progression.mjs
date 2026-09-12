@@ -138,9 +138,12 @@ export function nextVisibleTrainingLevel(baseStat, level) {
 // category だけ置くと、画面に「常に買えない行」が出る。6個目以降を足すときに開く。
 export const APPRAISAL_UPGRADE_ID = "appraisal";
 export const APPRAISAL_COSTS = Object.freeze(["15000", "45000", "120000", "300000", "750000"]);
-export const STARTING_SUPPLIES_BASE = 0;
+// issue #255 — **補給はシナリオを通して固定**にした。報酬で足せず、遠征中に
+// 増えないので、「いま使うか、後へ残すか」だけが判断になる（以前は「補給を
+// 報酬で取るか、装備を取るか」が毎戦の判断で、思考負荷の主因だった）。
+// 画面の表記も残り/その遠征の総数（3/3）にし、分母はギルドの「開始補給」で伸びる。
+export const STARTING_SUPPLIES_BASE = 3;
 export const STARTING_SUPPLIES_UPGRADE_MAX_LEVEL = 2;
-export const TUTORIAL_STARTING_SUPPLIES = 1;
 export const STARTING_SKILL_POINTS_UPGRADE_ID = "starting_skill_points";
 export const STARTING_SKILL_POINTS_UPGRADE_COSTS = Object.freeze(["15000", "60000", "240000"]);
 
@@ -649,9 +652,11 @@ export const RUN_SKILL_POINTS_PER_REWARD = 1;
 // level ぶんを加えた点から始める。勝利報酬は遠征内だけに残る。
 export const STARTING_RUN_SKILL_POINTS = 0;
 
-export function startingSupplies(profile, rank, options = {}) {
-  if (options.tutorial === true) return TUTORIAL_STARTING_SUPPLIES;
-  const base = difficultyDef(rank).startingSupplies;
+// issue #255 — 遠征の補給はここで一度だけ決まる。**遠征中は増えない**ので、
+// これがその遠征の総数（表記の分母）でもある。導入用の特例は置かない
+// （Stage 0 だけ1個という例外があると、「3/3」が最初の遠征で嘘になる）。
+export function startingSupplies(profile, rank) {
+  const base = STARTING_SUPPLIES_BASE + difficultyDef(rank).startingSupplies;
   const upgrade = Math.min(
     STARTING_SUPPLIES_UPGRADE_MAX_LEVEL,
     upgradeLevel(profile, "starting_supplies"),
@@ -696,6 +701,7 @@ export function newRun(profile, options = {}) {
   roster = isCampaign ? [...(manifest.castCharacterIds ?? roster)] : roster;
   roster = roster.slice(0, partySize);
   const carried = carriedItemsFor(profile);
+  const supplies = startingSupplies(profile, rank);
   return {
     schemaVersion: RUN_SCHEMA_VERSION,
     runId: String(options.runId ?? runSeed),
@@ -709,7 +715,10 @@ export function newRun(profile, options = {}) {
     manifest,
     encounterIndex: 1,
     act: 1,
-    supplies: startingSupplies(profile, rank, { tutorial: options.tutorial === true }),
+    supplies: supplies,
+    // issue #255 — その遠征の補給総数。**画面の分母はここを読む**（`MAX_SUPPLIES`
+    // は永続強化を積んだときの天井で、この遠征の総数とは別物）。遠征中は動かない。
+    suppliesMax: supplies,
     // issue #238 — この遠征でもう必殺技を放った人物。**一人につき一遠征に一度きり**
     // なので、残り回数ではなく「誰が使い終わったか」を持つ。補充されない。
     ultimatesUsed: [],
@@ -912,7 +921,7 @@ export function levelUpRunSkill(run, characterId, skillId, cap) {
 // issue #236 — 画面はこの3行をそのまま並べる。**説明ではなく、用途の名札にする。**
 export const SUPPLY_USES = Object.freeze({
   retry: "負けた戦闘へ編成を変えて再挑戦",
-  reroll: "報酬3候補を一度だけ引き直す",
+  reroll: "ボス戦の装備候補を一度だけ引き直す",
   camp: "野営で治療・蘇生のどれか一つ",
 });
 
@@ -922,8 +931,17 @@ export function spendSupply(run, use) {
   return { ok: true, run: { ...run, supplies: run.supplies - 1 } };
 }
 
+// その遠征の補給総数。**古い save には欄が無い**ので、持っている数と天井から読む。
+export function runSuppliesMax(run) {
+  const saved = run?.suppliesMax;
+  if (Number.isSafeInteger(saved) && saved >= 0) return Math.min(MAX_SUPPLIES, saved);
+  return Math.min(MAX_SUPPLIES, Math.max(STARTING_SUPPLIES_BASE, run?.supplies ?? 0));
+}
+
+// issue #255 — **遠征中に総数を超えて増えない。** 残すのは「使った分を屑から
+// 戻す」経路だけで、報酬で足す経路は廃止した。
 export function gainSupply(run, amount = 1) {
-  return { ...run, supplies: Math.min(MAX_SUPPLIES, (run.supplies ?? 0) + amount) };
+  return { ...run, supplies: Math.min(runSuppliesMax(run), (run.supplies ?? 0) + amount) };
 }
 
 // ============================================================ 野営治療（R8 §9.2, §10.2）
@@ -1067,7 +1085,9 @@ export function convertScrap(run) {
   if ((run.scrap ?? 0) < SCRAP_PER_SUPPLY) {
     return { ok: false, reason: "scrap が足りません（" + SCRAP_PER_SUPPLY + "で補給1）。" };
   }
-  if ((run.supplies ?? 0) >= MAX_SUPPLIES) return { ok: false, reason: "補給が上限です。" };
+  if ((run.supplies ?? 0) >= runSuppliesMax(run)) {
+    return { ok: false, reason: "この遠征の補給は満杯です。" };
+  }
   return { ok: true, run: gainSupply({ ...run, scrap: run.scrap - SCRAP_PER_SUPPLY }, 1) };
 }
 
@@ -1321,15 +1341,30 @@ export function generatedRewardCandidate(run, profile, encounterIndex, rerollInd
 
 // ============================================================ 報酬（R6 §5.3）
 //
-// 通常戦勝利後は3候補から1つ。**活動資金はこの3候補に入らない**
-// （補給を選んでも、資金の獲得量は減りません）。
+// issue #255 — **装備を選ぶのはボス戦を突破したときだけ。**毎戦の3択は
+// 「装備どうしを比べる」と「装備と補給を見比べる」を同時に要求していて、
+// 12戦のあいだ判断が途切れなかった（作者指摘 2026-09-12）。ボス戦の後だけに
+// すると、通常戦・精鋭戦の後はそのままキャンプへ戻り、予測を見て次へ進める。
 //
-// R8 §13.2 — 装備2枠はどちらも遠征ごとの手続き生成品にする。
-// 固定装備の報酬 pool は廃止し、報酬の構成を装備2・補給1へ固定する。
+// **補給は候補に入らない。**遠征の補給は開始時に固定されるので、報酬と
+// 取り合わない（`startingSupplies`）。候補は装備だけである。
 //
-// 「報酬3候補が全て同じroleにならない」（R8 §13.2）は、装備2・補給という
-// 構成そのものが満たしている。装備どうしが同じ役割に寄る場合だけ、
-// 次の drop 列へずらして払い先の種類を変える。
+// R8 §13.2 — 装備はどちらも遠征ごとの手続き生成品にする。固定装備の報酬 pool は
+// 廃止した。装備どうしが同じ役割に寄る場合だけ、次の drop 列へずらして
+// 払い先の種類を変える。**候補の数を増やしても（ギルドの強化で3つにしても）
+// この規則はそのまま働く。**
+export const REWARD_ENCOUNTER_KINDS = Object.freeze(["boss"]);
+
+// その戦闘に勝ったとき、装備の候補を出すか。**最終戦（12戦目）も出す。**
+// 12戦目もボス戦なので、ここを外すと「ボス戦突破後だけ」という規則に穴が空く。
+// 遠征はそこで終わるが、拾った品は設計図の候補（issue #151 の選択肢）になるので、
+// 選ぶ意味はちゃんと残る。
+export function offersRewardAfterClear(encounterIndex) {
+  const index = Math.floor(Number(encounterIndex));
+  if (!(index >= 1) || index > ENCOUNTERS_PER_RUN) return false;
+  return REWARD_ENCOUNTER_KINDS.includes(expeditionEncounter(index)?.kind);
+}
+
 export function rewardOffer(run, profile, encounterIndex, rerollIndex = 0) {
   const owned = new Set(run.inventory ?? []);
   const offers = [];
@@ -1361,7 +1396,6 @@ export function rewardOffer(run, profile, encounterIndex, rerollIndex = 0) {
     offers.push(candidate);
   }
 
-  offers.push({ type: "supplies", amount: 1 });
   return offers;
 }
 
@@ -1530,7 +1564,38 @@ export { BLUEPRINT_SAVE_LIMIT };
 // **won と retreat のどちらも完走・初clear bonusは retreat には付かない**
 // （R8 §10.3「ただし完走・初clear bonusなし」）。敗北時の活動資金没収は行わない
 // （確定済みぶんは outcome を問わず持ち帰る。R8 §3.7）。
-export function settleRun(profile, run, outcome) {
+// issue #151 — **遠征終了時に何を設計図として残すかは、プレイヤーが決める。**
+// 保存数には上限があるのに、これまでは等級順で自動に決まっていた。装備の
+// 組み合わせを見つけるゲームで、最後の価値判断だけがレアリティに置き換わって
+// いたので、候補と上限を外へ出して選ばせる。
+//
+// 並びは「等級の高い順 → 表示名 → id」で決定的にする（取得順に依らせると、
+// 同じ遠征を同じように遊んでも一覧の並びが変わる）。**持込品は既に archive に
+// あるので候補にしない**（`newGeneratedItems`）。
+export function blueprintSaveCandidates(run) {
+  const rarityRank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
+  return newGeneratedItems(run)
+    .slice()
+    .sort((a, b) => (rarityRank[a.rarity] ?? 9) - (rarityRank[b.rarity] ?? 9)
+      || a.definition.displayName.localeCompare(b.definition.displayName, "ja")
+      || a.definition.id.localeCompare(b.definition.id));
+}
+
+export function blueprintSaveLimitFor(outcome) {
+  return BLUEPRINT_SAVE_LIMIT[outcome] ?? BLUEPRINT_SAVE_LIMIT.lost;
+}
+
+// 選んだ descriptor を候補と上限へ丸める。**候補に無い品は入らない**ので、
+// 画面が壊れた選択を送ってきても archive は汚れない。選ばなかった品は残らない。
+export function resolveBlueprintKeeps(run, outcome, keepDescriptors) {
+  const candidates = blueprintSaveCandidates(run);
+  const limit = blueprintSaveLimitFor(outcome);
+  if (keepDescriptors === undefined || keepDescriptors === null) return candidates.slice(0, limit);
+  const wanted = new Set(Array.isArray(keepDescriptors) ? keepDescriptors : [keepDescriptors]);
+  return candidates.filter((item) => wanted.has(item.descriptor)).slice(0, limit);
+}
+
+export function settleRun(profile, run, outcome, options = {}) {
   if (run.fundLedger.settled) {
     return { ok: false, reason: "この遠征はすでに精算されています。", profile, run };
   }
@@ -1585,13 +1650,10 @@ export function settleRun(profile, run, outcome) {
   // （勝利2 / 安全撤退2 / 敗北1）。**持込品は既に archive にあるので数えない。**
   // 選ぶ順は「rarity が高い順 → 表示名 → id」で決定的にする。取得順に依らせると、
   // 同じ遠征を同じように遊んでも残る品が変わる。
-  const saveLimit = BLUEPRINT_SAVE_LIMIT[outcome] ?? BLUEPRINT_SAVE_LIMIT.lost;
-  const rarityRank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
-  const candidates = newGeneratedItems(run)
-    .sort((a, b) => (rarityRank[a.rarity] ?? 9) - (rarityRank[b.rarity] ?? 9)
-      || a.definition.displayName.localeCompare(b.definition.displayName, "ja")
-      || a.definition.id.localeCompare(b.definition.id))
-    .slice(0, saveLimit);
+  const saveLimit = blueprintSaveLimitFor(outcome);
+  // issue #151 — `options.keepDescriptors` を渡すとその選択だけが残る。渡さない
+  // 経路（既存の自動精算・テスト）は従来どおり等級の高い順に上限まで残す。
+  const candidates = resolveBlueprintKeeps(run, outcome, options.keepDescriptors);
   const savedBlueprints = [];
   let archive = nextProfile.blueprints ?? newArchive();
   for (const item of candidates) {
@@ -1636,6 +1698,10 @@ export function settleRun(profile, run, outcome) {
         : null,
       unlockedCampaignStage,
       blueprintSaveLimit: saveLimit,
+      // issue #151 — 選択画面が「見つけた N 品のうち M 件を残した」と言えるように、
+      // 候補の総数も精算結果へ載せる（画面が run を数え直さない）。
+      blueprintCandidateCount: blueprintSaveCandidates(run).length,
+      blueprintChosen: options.keepDescriptors !== undefined && options.keepDescriptors !== null,
       // 実際に archive へ残した品。added: false は「同じ descriptor が既にあり、
       // 取得履歴だけ増えた」という意味（R8 §3.6 の immutable 契約）。
       savedBlueprints,

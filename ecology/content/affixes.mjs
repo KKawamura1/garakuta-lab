@@ -104,6 +104,14 @@ const FRONT_ALLY = Object.freeze({
   scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], sort: ["hp_percent_asc"], take: 1,
 });
 const ALL_ALLIES = Object.freeze({ scope: "allies", filters: [{ type: "alive" }], take: "all" });
+const ALL_ENEMIES = Object.freeze({ scope: "enemies", filters: [{ type: "alive" }], take: "all" });
+// 刻んだ状態を「払い先の条件」として読む query。**装備が自分だけで完結しない**ので、
+// 裂傷を配る技能・装備と組み合わさって初めて全体攻撃になる（R8 §13.2 の閉じたレシピ禁止）。
+const BLEEDING_ENEMIES = Object.freeze({
+  scope: "enemies",
+  filters: [{ type: "alive" }, { type: "has_status", statusId: "bleeding", op: "gte", value: 1 }],
+  take: "all",
+});
 const anchorSelfIsTarget = Object.freeze({
   type: "target_exists",
   query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
@@ -237,6 +245,23 @@ const SOURCES = [
     listenTo: "round_started", anchor: "none", predicates: [],
     provides: ["round_tick"], supports: ["damage", "setup"], valueKeys: ["round"],
   },
+  // issue #255 — **与ダメージを増やす装備の入口。** これまで damage_proposed を
+  // 読めるのは「自分が受ける直前」（src_incoming）だけで、与える側の直前を読む
+  // trigger が無かった。そのため「ダメージが増える装備」が一つも作れず、装備の
+  // 払い先が守り・支援・追撃へ偏っていた（作者指摘 2026-09-12）。
+  //
+  // **cost の自傷は拾わない。** lose_hp は damage_taken しか出さないが、将来
+  // damage_proposed を通す cost が増えても自分を殴って増幅する事故が起きないよう、
+  // 「敵が的である」「cost ではない」を両方要求する。
+  {
+    id: "src_outgoing", familyId: "family_edge", role: "source", power: 0,
+    displayName: "研ぎの", summary: "自分が敵へ与えるダメージが決まる直前",
+    listenTo: "damage_proposed", timing: "interrupt", anchor: "self_source",
+    predicates: [anchorSelfIsSource, anchorEnemyIsTarget, NOT_COST_DAMAGE],
+    provides: ["pending_amount", "has_amount", "self_acts", "enemy_target_alive"],
+    supports: ["damage", "setup"],
+    valueKeys: ["amount", "hitIndex", "hitCount"],
+  },
   {
     id: "src_incoming", familyId: "family_wall", role: "source", power: 0,
     displayName: "逸らしの", summary: "自分へのダメージが決まる直前",
@@ -319,6 +344,24 @@ const CONVERTERS = [
       type: "history_count", subject: "self", metric: "active_actions",
       window: "round", op: "gte", value: 2,
     }],
+  },
+  // issue #255 — **刻んだ状態を条件にする。** 隙も裂傷も技能が配るものなので、
+  // この条件を持つ装備は「誰かが先に刻む」構成の中でだけ強く鳴る（装備単独で
+  // 完結させない）。group は cnv_focused と同じ status 軸に置き、同じ rule へ
+  // 二つ入らないようにする。
+  {
+    id: "cnv_exposed", familyId: "family_edge", role: "converter", power: 0, group: "status",
+    displayName: "隙を突く", summary: "その相手に隙が付いているとき", magnitudeBonus: 1,
+    supports: ["damage", "setup"],
+    requires: ["enemy_target_alive"],
+    predicates: [{ type: "has_status", subject: "event_primary_target", statusId: "exposed", op: "gte", value: 1 }],
+  },
+  {
+    id: "cnv_bleeding", familyId: "family_scar", role: "converter", power: 0, group: "status",
+    displayName: "血の跡の", summary: "その相手が裂傷を負っているとき", magnitudeBonus: 1,
+    supports: ["damage", "setup"],
+    requires: ["enemy_target_alive"],
+    predicates: [{ type: "has_status", subject: "event_primary_target", statusId: "bleeding", op: "gte", value: 1 }],
   },
   {
     id: "cnv_reserved", familyId: "family_tempo", role: "converter", power: 0, group: "resource",
@@ -409,6 +452,43 @@ const PAYOFFS = [
     effect: (amount) => ({
       type: "deal_damage", target: EVENT_ENEMY_TARGET, guardPierceBps: 7_500,
       amount: { type: "constant", value: amount }, tags: ["affix", "piercing"],
+    }),
+    payoffTags: ["damage"],
+  },
+  // issue #255 — **ダメージ増加そのもの。** 追撃（別インスタンス）ではなく、
+  // いま決まろうとしている自分の一撃を太らせる。多段技なら hit ごとに判定される
+  // ので、limit が実質の「何発ぶん増えるか」になる。
+  {
+    id: "pay_amplify", familyId: "family_edge", role: "payoff", power: 3,
+    displayName: "増幅", summary: "決まる直前の自分のダメージを増やす",
+    emits: ["pending_amount_modified"], requires: ["pending_amount"], magnitudes: [12, 22, 36],
+    effect: (amount) => ({
+      type: "modify_pending_amount", operation: "increase",
+      amount: { type: "constant", value: amount },
+    }),
+    payoffTags: ["damage"],
+  },
+  // issue #255 — **隙を隊全体の得に変える。** 自分の追撃にはならないが、誰の
+  // ダメージも通るようになるので、刃・連撃・必殺と組んだときに一番鳴る。
+  {
+    id: "pay_rend", familyId: "family_edge", role: "payoff", power: 3,
+    displayName: "総崩し", summary: "生存している敵全員へ隙",
+    emits: ["status_added"], requires: ["enemy_target_alive"], magnitudes: [1, 1, 2], discrete: true,
+    effect: (amount) => ({ type: "add_status", target: ALL_ENEMIES, statusId: "exposed", stacks: amount }),
+    payoffTags: ["setup", "damage", "handoff"],
+  },
+  // issue #255 — **刻んだ相手の数だけ伸びるダメージ。** 裂傷を配る技能・装備が
+  // 先に要るので、単独では一体ぶんしか出ない（発生源・変換器・利得先の分離）。
+  {
+    id: "pay_rupture", familyId: "family_scar", role: "payoff", power: 3,
+    displayName: "抉り", summary: "裂傷を負った敵すべてへダメージ",
+    emits: ["damage_proposed", "damage_taken", "excess_damage", "barrier_damaged", "barrier_broken", "damage_blocked", "block_spent", "actor_defeated"],
+    // **裂傷を配れない trigger へは付けない。**「刻んだ相手へ」は、刻める場面
+    // （敵を的にした出来事）の隣にしか置かないと、満たしようのない死に効果になる。
+    requires: ["enemy_target_alive"], magnitudes: [12, 20, 32],
+    effect: (amount) => ({
+      type: "deal_damage", target: BLEEDING_ENEMIES,
+      amount: { type: "constant", value: amount }, tags: ["affix", "area"],
     }),
     payoffTags: ["damage"],
   },
@@ -552,12 +632,12 @@ const PAYOFFS = [
   },
   {
     id: "pay_first_aid", familyId: "family_care", role: "payoff", power: 3,
-    displayName: "応急処置", summary: "受けた傷のぶんだけ自分を戻す",
+    displayName: "応急処置", summary: "自分を回復",
     // R8 §9.1 / analysis/ecology-anti-stall-audit.mjs — heal は
     // **被弾 chain の中でだけ**、有限コストを払って動く。generator の
     // dead / loop 検査が、この二条件を満たさない heal rule を落とす。
     emits: ["healing_proposed", "healing_applied", "excess_healing"],
-    requires: ["damage_chain"], magnitudes: [3, 5, 12], needsFiniteCost: true, chainOnly: true,
+    requires: ["damage_chain"], magnitudes: [10, 18, 30], needsFiniteCost: true, chainOnly: true,
     effect: (amount) => ({
       type: "heal", target: SELF, amount: { type: "constant", value: amount }, tags: ["affix"],
     }),
@@ -567,7 +647,7 @@ const PAYOFFS = [
     id: "pay_triage", familyId: "family_care", role: "payoff", power: 3,
     displayName: "応援処置", summary: "最も傷ついた味方を回復",
     emits: ["healing_proposed", "healing_applied", "excess_healing"],
-    requires: ["damage_chain"], magnitudes: [3, 5, 12], needsFiniteCost: true, chainOnly: true,
+    requires: ["damage_chain"], magnitudes: [10, 18, 30], needsFiniteCost: true, chainOnly: true,
     effect: (amount) => ({
       type: "heal", target: WEAKEST_ALLY, amount: { type: "constant", value: amount }, tags: ["affix"],
     }),
@@ -672,6 +752,17 @@ const KEYSTONES = [
     transformEffect: (effect) => effect.type === "deal_damage"
       ? { ...effect, hitCount: (effect.hitCount ?? 1) + 1 }
       : effect,
+  },
+  // issue #255 — 作者指摘「ダメージ増加系の装備がない」。hit を増やす双つ刃は
+  // 受け（guard）に二度払うので、単発の重い rule では伸びない。**量そのものを
+  // 増やす keystone**を別に置き、刃の構成に二つの伸び方を与える。
+  {
+    id: "key_honed", familyId: "family_edge", role: "keystone", power: 3,
+    displayName: "研ぎ澄ました", summary: "装備が与えるダメージが50%増える",
+    requiresEffectTypes: ["deal_damage"],
+    transformEffect: (effect) => (effect.type === "deal_damage" && effect.amount?.type === "constant"
+      ? { ...effect, amount: { ...effect.amount, value: Math.floor(effect.amount.value * 3 / 2) } }
+      : effect),
   },
   {
     id: "key_sanctuary", familyId: "family_wall", role: "keystone", power: 3,

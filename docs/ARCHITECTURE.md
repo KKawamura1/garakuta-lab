@@ -58,7 +58,7 @@
 | 層 | 永続期間 | 主な内容 |
 |---|---|---|
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
-| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、**必殺印**、隊、formation、run 技能点・取得技能・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給と**その遠征の補給総数**、**必殺印**、隊、formation、run 技能点・取得技能・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、攻撃単位の回復窓、開始 HP snapshot、preview / commit 状態 |
 
 ### タイトル画面とContinue
@@ -97,10 +97,34 @@ barrier / 増減の amount）は各技能にちょうど一つで、説明文は
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
 
+### 報酬と戦闘後の行き先（issue #255）
+
+装備の候補を出す戦闘は `progression.offersRewardAfterClear(index)` の一箇所が決めます。
+`REWARD_ENCOUNTER_KINDS`（いまは `["boss"]`）に含まれる種別の戦闘＝4・8・12戦目だけが
+候補を出し、候補は装備 `REWARD_EQUIPMENT_SLOTS`（2）件で、**補給は候補に入りません**。
+`app.js` の `resultScreenDue()` はこの判定と「敗北」「最終戦」「プロローグ」を見て、
+結果画面を出すかどうかを決めます。出さない勝利は `advanceAfterBattle()` が直接キャンプへ
+戻し、`captureLastBattleNote()` が直前の一戦の要約（ラウンド数・味方HP損失・技能点・
+装備摩耗・必殺の印・戦闘不能・幕ボス後の全回復）を `lastBattleNote` へ一度だけ写します。
+この一枚は `renderCamp()` がどのタブでも同じ位置に出し、次の戦闘を始めると消えます。
+12戦目の候補を受け取ったあとは `rewardTakenAtEncounter` を立てて同じ結果画面に留まり、
+「遠征を精算する」へ渡します（encounterIndex は進めません）。
+
+### 残す設計図の選択（issue #151）
+
+`settleRun(profile, run, outcome, options)` の `options.keepDescriptors` が選択です。
+候補と上限は `blueprintSaveCandidates(run)` / `blueprintSaveLimitFor(outcome)` が外へ出し、
+`resolveBlueprintKeeps` が「候補に無い descriptor を落とす」「上限へ丸める」「空なら
+何も残さない」を一箇所で行います。`keepDescriptors` を渡さない経路（既存の自動精算と
+テスト）は従来どおり等級の高い順に上限まで残します。`app.js` は候補が上限より多いときだけ
+phase `blueprintPick`（`renderBlueprintPick`）を挟み、`pendingSettlement` と `blueprintKeep`
+を持って `performSettlement()` へ渡します。精算は `performSettlement()` の一箇所だけが行い、
+選択の有無で入口が変わるだけです。
+
 newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、基礎0へ永続強化「初期SPアップ」の段階ぶんを加える。固定の初期装備を inventory へ入れず、出発前に選んだ Blueprint の持込品だけは例外です。初期SPアップは新規遠征の開始時だけに適用し、途中加入者へ遡っては付けません。勝利時の技能点は progression.grantRunSkillPointsForClear の一箇所で決まります。量は SKILL_POINTS_PER_CLEAR（encounter の種別 → 点数。通常戦1／精鋭戦1／boss2）から引き、region:index を鍵に RunState.grantedSkillPointKeys へ記録するので、**同じ encounter からは一度しか配りません**（活動資金の撃破分と同じ鍵です）。12戦を全て勝った場合は15点、最後の戦いの直前までで13点です。app.js はこの関数を呼ぶだけで、量も冪等も持ちません。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
 
 技能の前提は `{ skillId, minLv }` で、判定は `content/skill-tree.mjs` の `prerequisitesMet` / `unmetPrerequisites` 一箇所を、解禁 API（`progression.unlockRunSkill`）・画面（`app.js` の `skillNodeState`）・加入時の無償閉包（`playable-battles.initialUnlockedSkills` と `initialSkillLevels`）が共有します。無償閉包が Lv1 より上を要求するときは、その Lv も加入時に無償で付きます（取得済みなのに前提 Lv 不足で子が取れない形を作らないため）。前提が上限 Lv を超えていないか、その Stage で出る節を一遠征ぶんの技能点で取り切れるかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
-通常の `newRun` は開始補給0から始まり、`options.tutorial === true` の Stage 0 導入だけ開始補給1を受け取ります。New Game が作る `runId` を `supplyTutorialRunId` として画面状態に保持し、その導入遠征だけを必須チュートリアルの対象にします。通常遠征・再訪・既存セーブはこの marker を持たないため、補給タブを任意に使えます。初回の本編第1戦の報酬後、`app.js` は補給タブを開き、`treatmentSelection` で集中治療を選ぶ段階を保持します。単体治療は `treatmentTargetIds()` が返す候補から `select-treatment-target` を受けるまで補給を消費せず、確定後だけ既存の `progression.mjs` の `campTreat` へ明示した target ID を渡します。対象を選ぶ画面は補給タブ専用の一覧ではなく、上端の共通盤面（`partyCellRole` の `supplies` mode）です。結果は `treatmentResult` と `role=status` で表示し、完了印は `ProfileState.storyFlags` に保存します。`supplyTutorialVisible()` 中は nav の他タブ、`begin-stage`、撤退経路を UI と handler の両方で閉じます。
+`newRun` は `startingSupplies(profile, rank)` で補給を決め、同じ値を `RunState.suppliesMax`（その遠征の総数・表記の分母）へも入れます。基礎は `STARTING_SUPPLIES_BASE`（3）で、永続強化「開始補給」の段ぶん（最大 +2、天井は `MAX_SUPPLIES` = 5）が加わります。導入用の特例は持ちません（Stage 0 だけ1個という例外があると「3/3」が最初の遠征で嘘になるため）。`gainSupply` と `convertScrap` は `runSuppliesMax(run)` を上限にするので、**遠征中に総数を超えて増えません**——屑から戻せるのは使った分だけです。欄の無い古い保存は `runSuppliesMax` が基礎値として読み直します。New Game が作る `runId` を `supplyTutorialRunId` として画面状態に保持し、その導入遠征だけを必須チュートリアルの対象にします。通常遠征・再訪・既存セーブはこの marker を持たないため、補給タブを任意に使えます。初回の本編第1戦に勝ってキャンプへ戻ると、`app.js` は補給タブを開き、`treatmentSelection` で集中治療を選ぶ段階を保持します。単体治療は `treatmentTargetIds()` が返す候補から `select-treatment-target` を受けるまで補給を消費せず、確定後だけ既存の `progression.mjs` の `campTreat` へ明示した target ID を渡します。対象を選ぶ画面は補給タブ専用の一覧ではなく、上端の共通盤面（`partyCellRole` の `supplies` mode）です。結果は `treatmentResult` と `role=status` で表示し、完了印は `ProfileState.storyFlags` に保存します。`supplyTutorialVisible()` 中は nav の他タブ、`begin-stage`、撤退経路を UI と handler の両方で閉じます。
 
 序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。巻き戻し直後の camp は隊列チュートリアル（DESIGN.md 6.4.4）に入り、`formationTutorialStep()` が `open` / `pick` / `place` / `done` の段を返します。教える一手は content 側の `PROLOGUE.tutorial`（`characterId` / `row`）が持ち、`formationTutorialSpotSelector()` が段ごとの選択子を一箇所で作ります。`render()` の後段の `applyFormationTutorialGate()` が、その選択子に当たる要素へ `tutorial-spot`（光）を付け、`done` 以外の段では他の `[data-action]` を `tutorial-blocked` と `disabled` で塞ぎます。`handleAction` も同じ選択子で弾くので、押せる形と経路の両方が同じ判定を読みます。`campTutorialTab()` が補給チュートリアルと同じ形でタブを一枚へ閉じ込め、目標の行へ入った瞬間に錠が外れて `formationMode` も false へ戻ります（`place-character` の handler が段の前後を比べて畳みます）。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
@@ -262,7 +286,7 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 画面本体の文章は、ストーリーと技能・装備の説明文に絞る（issue #236）。状態・数量・対象・可否は
 記号・数・棒・色・配置で出し、**同じ数を同じ画面で二度出さない**。見出しとその直下の要約が
 同じことを言っている組（「技能ツリー」の見出しと summary、「ゴウの装備枠」と直上の人物帯、
-「補給 3 / 5」の見出し札とバーの頭）は札の側を落とす。金の主ボタンは位置と色でそれ自体が
+「補給 2 / 3」の見出し札とバーの頭）は札の側を落とす。金の主ボタンは位置と色でそれ自体が
 「次の操作」なので、`primary-action-label` のような札を重ねない。押せる形になっているカードの
 一覧へ「選んでください」と書き添えず、**二手続きの操作で次の一手が要るときだけ**一行を出す
 （装備を選んだあとの「装着する枠を選ぶ」、隊列の「移動先の枠へ」、治療の対象選び）。
@@ -425,6 +449,32 @@ affix由来のHP・防壁・RP等の追加costとは別枠で、engineの既存�
 
 この変更は生成装備ruleの既存cost欄の意味を変えるため、content contractは18へ上げる。
 generator version 7より前のBlueprintは互換不能理由を表示し、現行ruleへ黙って読み替えない。
+
+### affix 目録の追加（issue #255 / generator version 8）
+
+作者指摘「ダメージ増加系の装備がない」「スキルやキャラとのコンボのワクワクが無い」
+「『回復が仲間全体につく』のに回復効果のない装備がある」に対して、目録（`content/affixes.mjs`）
+へ次を足した。組み立て側（`equipment-gen.mjs`）の契約は変えていない。
+
+| 追加 | role / family | 何のため |
+|---|---|---|
+| `src_outgoing` 研ぎの | source / edge | **自分が与えるダメージが決まる直前**を読む trigger。これが無かったので「与ダメージが増える装備」が一つも作れなかった。cost の自傷を拾わないよう「敵が的」「cost ではない」を両方要求する |
+| `pay_amplify` 増幅 | payoff / edge | `modify_pending_amount` の increase。追撃（別インスタンス）ではなく、いま決まる一撃そのものを太らせる |
+| `pay_rend` 総崩し | payoff / edge | 生存する敵全員へ隙。自分の追撃にはならないが、隊の誰のダメージも通るようになる |
+| `pay_rupture` 抉り | payoff / scar | 裂傷を負った敵すべてへダメージ。裂傷を配る技能（抉る）・装備（裂傷）が先に要る |
+| `cnv_exposed` / `cnv_bleeding` | converter / edge・scar | 刻んだ状態を条件にする。装備単独では満たせないので、構成の中でだけ強く鳴る |
+| `key_honed` 研ぎ澄ました | keystone / edge | 装備が与えるダメージ +50%。hit を増やす `key_twin_edge` は受けに二度払うので、量そのものを増やす伸び方を別に置いた |
+
+`pay_rend` / `pay_rupture` は `requires: ["enemy_target_alive"]` を持つ。敵を的にしない
+trigger（手当てや被弾）へ付くと、隙も裂傷も配れないまま並ぶ死に効果になるためである。
+
+回復の基準値は tier 0/1/2 で 3/5/12 → **10/18/30** へ上げた。`key_overflowing`（回復が
+味方全員へ届く）は元から heal effect を要求していたが、量が barrier の 1/5 しかなく、
+「全体へ届く」と書いてあるのに実質ゼロだった。anti-stall の形（被弾 chain の中だけ・
+有限コスト・chain 1回）は変えていないので、回復量は依然その攻撃で受けた傷が上限である。
+
+目録が増えると生成物の内容が変わるので content contract は 22、generator version は 8。
+**既存の Blueprint は保存した定義そのものを持つので、版が上がっても動く。**
 
 ## 必殺技の作られ方（issue #238）
 

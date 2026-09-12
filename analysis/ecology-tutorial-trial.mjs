@@ -26,6 +26,11 @@ const server = local
 const stop = () => { if (server) { try { process.kill(-server.pid); } catch { /* 既に落ちている */ } } };
 if (server) await new Promise((resolve) => setTimeout(resolve, 900));
 
+// 作者指摘 2026-09-12 —「少なくとも iPhone 16e ではスクロールなしで選べてほしい」。
+// 実機の Safari は 390x844 の CSS viewport のうち上下のバーでおよそ 660px しか
+// 残さないので、**画面の高さではなくこの予算**で収まりを見る（issue #255）。
+const SAFARI_VISIBLE_HEIGHT = 660;
+
 const steps = [];
 const note = (label, ok, extra = "") => {
   steps.push({ label, ok });
@@ -561,39 +566,37 @@ try {
   await advanceStory();
   await page.waitForTimeout(200);
   // R11 §5 改 — **序盤の演出はここで終わる。**巻き戻したあとの勝利は、そのまま
-  // 本編第1戦の結果画面になる（以前はここで一度キャンプへ戻し、フルスペックの
+  // 本編第1戦の勝利になる（以前はここで一度キャンプへ戻し、フルスペックの
   // 「灰の入口」をもう一度戦わせてから報酬を出していた）。
-  // 「この一戦は遠征に数えません」が消えていることまで見る。
+  //
+  // issue #255 — 第1戦は通常戦なので装備の候補は出ない。**結果画面も挟まず**、
+  // そのままキャンプへ戻り、直前の一戦の一行と補給チュートリアルが出る。
   const resultAfterWinText = await bodyText();
-  note("巻き戻しての勝利がそのまま本編第1戦の結果画面になる",
+  note("巻き戻しての勝利がそのまま本編第1戦になる",
     !/この一戦は遠征に数えません/.test(resultAfterWinText));
-  const won = /突破した/.test(await page.locator(".verdict h2").textContent() ?? "");
-  note("第1戦を突破する", won);
-  // 報酬を受け取るまでは、まだこの一戦の後始末が済んでいないので撤退できない。
-  note("結果画面でもまだ撤退できない",
-    await page.getByRole("button", { name: "安全に撤退する" }).count() === 0);
+  const battleNote = await page.locator(".last-battle-note").count()
+    ? await page.locator(".last-battle-note").innerText()
+    : "";
+  const won = /突破した/.test(battleNote);
+  note("第1戦を突破する", won, battleNote.replace(/\s+/g, " ").slice(0, 80));
+  note("通常戦の勝利は結果画面を挟まずキャンプへ戻る",
+    won && await page.locator(".reward-choices").count() === 0
+      && await page.locator("nav.tabs").count() === 1);
+  note("直前の一戦の一行にラウンド数と技能点が出る",
+    /ラウンド/.test(battleNote) && /技能点/.test(battleNote));
   if (won) {
-    // issue #138 — 勝利の結果画面が報酬選択を兼ねる。「報酬を見る」の中間クリックは無い。
-    const rewardText = resultAfterWinText;
-    note("結果画面に報酬3択も一緒に出る", /何を持ち帰る？/.test(rewardText));
-    note("報酬に装備が出る", /装備/.test(rewardText) && !/生成装備/.test(rewardText));
-    // R13 — 報酬にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
-    note("報酬に世界の声がある", /拾い屋|詰所|灰へ戻る/.test(rewardText));
-    note("装備の rule が最初から読める", /とき、|につき\d+回/.test(rewardText));
-    // 装備を拾い、装備画面と保存の往復まで見る。
-    const equipmentButton = page.locator('.reward-card:has(.reward-kind.kind-equipment) button[data-action="take-reward"]').first();
-    note("装備の候補を選べる", await equipmentButton.count() > 0);
-    if (await equipmentButton.count()) {
-      await equipmentButton.click();
-      await page.waitForTimeout(200);
-      const supplyTutorialText = await bodyText();
-      note("最初の敵を倒した直後（報酬を受け取った直後）に補給タブが開く",
+    const supplyTutorialText = await bodyText();
+    {
+      note("最初の敵を倒した直後に補給タブが開く",
         await page.locator('nav.tabs [data-tab="supplies"].active').count() === 1
           && await page.locator(".supply-tutorial").count() === 1);
       const mapTab = page.locator('nav.tabs [data-tab="map"]');
       const equipmentTab = page.locator('nav.tabs [data-tab="equipment"]');
-      note("開始補給はチュートリアル導入だけ1個",
-        Number((await page.locator(".supplies-head b").innerText()).match(/補給 (\d+)/)?.[1] ?? -1) === 1);
+      // issue #255 — 補給はシナリオを通して3個で固定。表記も残り/総数（3/3）にした。
+      note("開始補給は固定の3個で、表記も残り/総数になっている",
+        /補給 3 \/ 3/.test(await page.locator(".supplies-head b").innerText()));
+      note("補給タブの札も残り/総数で出る",
+        /3\/3/.test(await page.locator('nav.tabs [data-tab="supplies"]').innerText()));
       note("次の戦闘と他タブは指定操作まで閉じる",
         await mapTab.isDisabled() && await equipmentTab.isDisabled());
       note("補給チュートリアル中は撤退できない",
@@ -629,16 +632,131 @@ try {
               && await page.locator(".supply-treatment-result").count() === 1);
         }
       }
-      await page.locator('nav.tabs [data-tab="equipment"]').click();
-      const gearText = await bodyText();
-      const gearCardTexts = await page.locator(".gear-card").allTextContents();
-      note("拾った装備が持ち物に並ぶ", gearCardTexts.length > 0
-        && gearCardTexts.every((text) => !/生成装備|生成 [1-9]/.test(text)));
+      // issue #255 — **装備を選ぶのはボス戦を突破したあとだけ。**第4戦（盾将の門）
+      // まで進めて、そこで候補が出ること、iPhone 16e の画面にスクロールなしで
+      // 収まること、拾った品が持ち物へ入ることを順に見る。
+      await page.evaluate(() => {
+        const key = "exp18-r10-auto-v02";
+        const saved = JSON.parse(localStorage.getItem(key) || "null");
+        if (!saved?.run) return;
+        saved.run.encounterIndex = 4;
+        localStorage.setItem(key, JSON.stringify(saved));
+      });
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(300);
-      const reloadedGearCardTexts = await page.locator(".gear-card").allTextContents();
-      note("リロードしても装備が残る", reloadedGearCardTexts.length > 0
-        && reloadedGearCardTexts.every((text) => !/生成装備|生成 [1-9]/.test(text)));
+      await page.locator('nav.tabs [data-tab="map"]').click();
+      await click("この敵に挑む");
+      await page.waitForTimeout(300);
+      // 第4戦の前には幕の断片が入る。飛ばしてそのまま自動戦闘へ渡る。
+      if (await page.locator(".vn-stage").count() > 0) {
+        await click("スキップ");
+        await page.waitForTimeout(200);
+      }
+      await waitForTutorialSelector(".battle-field");
+      const bossFast = page.locator('.speed-button[data-speed="fast"]');
+      if (await bossFast.count()) await bossFast.click();
+      await page.locator('[data-action="replay-result"]').first().click();
+      await waitForTutorialSelector(".reward-choices");
+      const rewardText = await bodyText();
+      const choices = await page.locator(".reward-choices .reward-choice").count();
+      note("ボス戦の突破で装備の候補が出る",
+        choices >= 2 && /どちらを持ち帰る？/.test(rewardText), `候補 ${choices} 件`);
+      note("候補は装備だけで、補給は混ざらない",
+        await page.getByRole("button", { name: "補給を受け取る" }).count() === 0);
+      // R13 — 報酬にも世界の側の声が一行ある（会話ではなく、拾い屋の言い習わし）。
+      note("報酬に世界の声がある", /拾い屋|詰所|灰へ戻る|持ち帰れた者はいない/.test(rewardText));
+      // 作者指摘 2026-09-12 — 2枚とも、スクロールなしで選べること。
+      const rewardFits = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll(".reward-choices .reward-choice")];
+        if (!cards.length) return null;
+        return {
+          bottom: Math.round(Math.max(...cards.map((card) => card.getBoundingClientRect().bottom))),
+          viewport: window.innerHeight,
+          scrollY: Math.round(window.scrollY),
+        };
+      });
+      // **iPhone 16e の実機は、CSS viewport の 844px 全部を見せない。**Safari の
+      // 上下のバーでおよそ 660px しか残らないので、そこを予算にする
+      //（trial の viewport は 390x844 なので、`window.innerHeight` では緩すぎる）。
+      note("装備の候補がスクロールなしで全部選べる",
+        Boolean(rewardFits) && rewardFits.scrollY === 0
+          && rewardFits.bottom <= Math.min(rewardFits.viewport, SAFARI_VISIBLE_HEIGHT),
+        rewardFits ? `末尾 ${rewardFits.bottom}px / 予算 ${SAFARI_VISIBLE_HEIGHT}px` : "");
+      // 条件・代償・発火回数まで入った全文は、拾う前に畳んだ段から読める。
+      const rewardFull = page.locator(".reward-choice .reward-full").first();
+      note("装備の全文を拾う前に読める", await rewardFull.count() > 0);
+      if (await rewardFull.count()) {
+        await rewardFull.locator("summary").click();
+        await page.waitForTimeout(120);
+        note("全文に条件と発火回数が書いてある", /とき|につき\d+回/.test(await rewardFull.innerText()));
+      }
+      const equipmentButton = page.locator('.reward-choice button[data-action="take-reward"]').first();
+      note("装備の候補を選べる", await equipmentButton.count() > 0);
+      if (await equipmentButton.count()) {
+        await equipmentButton.click();
+        await page.waitForTimeout(250);
+        await page.locator('nav.tabs [data-tab="equipment"]').click();
+        await page.waitForTimeout(150);
+        const gearCardTexts = await page.locator(".gear-card").allTextContents();
+        note("拾った装備が持ち物に並ぶ", gearCardTexts.length > 0
+          && gearCardTexts.every((text) => !/生成装備|生成 [1-9]/.test(text)));
+        await page.reload({ waitUntil: "networkidle" });
+        await page.waitForTimeout(300);
+        const reloadedGearCardTexts = await page.locator(".gear-card").allTextContents();
+        note("リロードしても装備が残る", reloadedGearCardTexts.length > 0
+          && reloadedGearCardTexts.every((text) => !/生成装備|生成 [1-9]/.test(text)));
+
+        // issue #255 — **12戦目もボス戦なので候補が出る。**遠征はそこで終わるので、
+        // 受け取ったあとは次の戦闘ではなく精算へ渡し、**候補を作り直さない**
+        // （作り直すと同じ戦闘から何度でも拾えてしまう）。2人編成の Stage 0 では
+        // 第12戦に勝てないので、結果画面の状態を直接置いて画面経路だけを踏む。
+        const resumeState = await page.evaluate(() => {
+          const key = "exp18-r10-auto-v02";
+          const saved = JSON.parse(localStorage.getItem(key) || "null");
+          if (!saved?.run) return null;
+          const before = { phase: saved.phase, encounterIndex: saved.run.encounterIndex };
+          saved.run.encounterIndex = 12;
+          saved.phase = "result";
+          saved.rewardOffer = [];
+          saved.rewardTakenAtEncounter = null;
+          saved.lastResult = {
+            result: "win", roundsUsed: 4, reason: "all_enemies_defeated",
+            metrics: { allyHpLost: 40, enemyHpLost: 300, reactionsFired: 2, equipmentWear: 1 },
+            actors: [], equipment: [], events: [],
+          };
+          localStorage.setItem(key, JSON.stringify(saved));
+          return before;
+        });
+        await page.reload({ waitUntil: "networkidle" });
+        await page.waitForTimeout(300);
+        note("12戦目のボスでも装備の候補が出る",
+          await page.locator(".reward-choices .reward-choice").count() >= 2
+            && /選んだ品は精算で残す設計図の候補になります/.test(await bodyText()));
+        const lastTake = page.locator('.reward-choice button[data-action="take-reward"]').first();
+        if (await lastTake.count()) {
+          await lastTake.click();
+          await page.waitForTimeout(250);
+          note("最終戦の候補は一度きりで、受け取ると精算へ渡す",
+            await page.locator(".reward-choices").count() === 0
+              && await page.getByRole("button", { name: "遠征を精算する" }).count() === 1);
+        }
+        // 遠征はまだ続けるので、踏む前の状態へ戻す。
+        if (resumeState) {
+          await page.evaluate((before) => {
+            const key = "exp18-r10-auto-v02";
+            const saved = JSON.parse(localStorage.getItem(key) || "null");
+            if (!saved?.run) return;
+            saved.run.encounterIndex = before.encounterIndex;
+            saved.phase = before.phase;
+            saved.rewardOffer = [];
+            saved.rewardTakenAtEncounter = null;
+            saved.lastResult = null;
+            localStorage.setItem(key, JSON.stringify(saved));
+          }, resumeState);
+          await page.reload({ waitUntil: "networkidle" });
+          await page.waitForTimeout(300);
+        }
+      }
     }
   }
 
@@ -898,15 +1016,13 @@ try {
       await page.waitForTimeout(150);
       note("一手戻すとカットインも閉じる", await page.locator(".ultimate-cutin.show").count() === 0);
       await page.locator('.speed-button[data-speed="fast"]').click();
-      await click("結果を見る");
+      // issue #255 — 第1戦は通常戦なので、結果画面も装備の候補も挟まずキャンプへ戻る。
+      await page.locator('[data-action="replay-result"]').first().click();
       await page.waitForTimeout(400);
       note("必殺を構えた第1戦に勝てる",
-        /突破した/.test(await page.locator(".verdict h2").textContent() ?? ""));
-      const lessonReward = page.locator('.reward-card button[data-action="take-reward"]').first();
-      if (await lessonReward.count()) {
-        await lessonReward.click();
-        await page.waitForTimeout(300);
-      }
+        /突破した/.test(await page.locator(".last-battle-note").innerText()));
+      note("必殺の一戦の後も装備の候補は出ない",
+        await page.locator(".reward-choices").count() === 0);
       note("必殺技の一戦は一度きり（次の一戦では札が出ない）",
         await page.locator(".ultimate-tutorial").count() === 0);
       // 作者指摘 2026-09-13 — **誰が放ち終えて、誰が残しているか**が盤面から読める。
