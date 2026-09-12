@@ -316,12 +316,21 @@ button.party-cell { cursor: pointer; }
 }
 .party-character-face { opacity: .75; }
 .unit-character-face { opacity: .62; }
-/* 顔の大きさは元画像の余白差を吸収する。予測と戦闘は同じ補正値を使う。 */
+/* 顔の大きさと目元の高さは元画像の余白差を吸収する。予測と戦闘は同じ補正値を使う。 */
 .character-face-watermark[data-character="warden"] { --face-scale: 1.4; }
-.character-face-watermark[data-character="lancer"],
+.character-face-watermark[data-character="lancer"] {
+  --face-scale: 1.1;
+  --face-y: -5%;
+}
 .character-face-watermark[data-character="tactician"] { --face-scale: 1.1; }
-.character-face-watermark[data-character="mender"] { --face-scale: 1; }
-.character-face-watermark[data-character="guardian"] { --face-scale: .9; }
+.character-face-watermark[data-character="mender"] {
+  --face-scale: 1;
+  --face-y: -10%;
+}
+.character-face-watermark[data-character="guardian"] {
+  --face-scale: .9;
+  --face-y: -10%;
+}
 .party-cell.empty { border-style: dashed; background: transparent; }
 .party-cell.defeated { border-color: var(--bad); background: rgba(231, 137, 128, .12); }
 /* 選択中の一人。**金の枠は「いま操作の主語である」の意味だけに使う。** */
