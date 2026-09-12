@@ -825,9 +825,31 @@ const SKILL_RESERVATION_NODES = Object.freeze(
   Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node])),
 );
 
+function skillReservationRecordFor(run, characterId) {
+  const entry = run?.skillReservations?.[characterId];
+  if (typeof entry === "string") {
+    return {
+      skillId: entry,
+      targetLevel: SKILL_LEVEL_CAPS[entry] ?? MIN_SKILL_LEVEL,
+    };
+  }
+  if (!entry || typeof entry !== "object") return null;
+  const skillId = entry.skillId;
+  if (typeof skillId !== "string") return null;
+  return {
+    skillId,
+    targetLevel: Number.isInteger(entry.targetLevel)
+      ? entry.targetLevel
+      : SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL,
+  };
+}
+
 export function skillReservationFor(run, characterId) {
-  const skillId = run?.skillReservations?.[characterId];
-  return typeof skillId === "string" ? skillId : null;
+  return skillReservationRecordFor(run, characterId)?.skillId ?? null;
+}
+
+export function skillReservationLevelFor(run, characterId) {
+  return skillReservationRecordFor(run, characterId)?.targetLevel ?? null;
 }
 
 function reservationAvailableSkillIds(run) {
@@ -858,17 +880,22 @@ export function normalizeRunSkillReservations(run) {
   const available = reservationAvailableSkillIds(run);
   const roster = new Set(run?.roster ?? []);
   const normalized = {};
-  for (const [characterId, skillId] of Object.entries(run?.skillReservations ?? {})) {
+  for (const characterId of roster) {
+    const reservation = skillReservationRecordFor(run, characterId);
+    if (!reservation) continue;
+    const { skillId, targetLevel } = reservation;
     const node = SKILL_RESERVATION_NODES[skillId];
-    if (!roster.has(characterId) || !node || !available.has(skillId)) continue;
-    if ((SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL) <= runSkillLevel(run, characterId, skillId)) continue;
+    const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
+    if (!node || !available.has(skillId)) continue;
+    if (!Number.isInteger(targetLevel) || targetLevel < MIN_SKILL_LEVEL || targetLevel > cap) continue;
+    if (targetLevel <= runSkillLevel(run, characterId, skillId)) continue;
     if (reservationMissingPrerequisites(run, skillId).length) continue;
-    normalized[characterId] = skillId;
+    normalized[characterId] = { skillId, targetLevel };
   }
   return normalized;
 }
 
-export function reserveRunSkill(run, characterId, skillId) {
+export function reserveRunSkill(run, characterId, skillId, targetLevel = null) {
   const node = SKILL_RESERVATION_NODES[skillId];
   if (!node) return { ok: false, reason: "その技能が見つかりません。" };
   if (!Array.isArray(run?.roster) || !run.roster.includes(characterId)) {
@@ -877,15 +904,22 @@ export function reserveRunSkill(run, characterId, skillId) {
   if (!reservationAvailableSkillIds(run).has(skillId)) {
     return { ok: false, reason: "この遠征の技能パックには入っていません。" };
   }
-  if ((SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL) <= runSkillLevel(run, characterId, skillId)) {
-    return { ok: false, reason: "その技能はすでに最大レベルです。" };
+  const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
+  const requestedLevel = targetLevel === null || targetLevel === undefined ? cap : targetLevel;
+  if (!Number.isInteger(requestedLevel)
+    || requestedLevel < MIN_SKILL_LEVEL || requestedLevel > cap) {
+    return { ok: false, reason: "目標レベルが不正です。" };
+  }
+  const currentLevel = runSkillLevel(run, characterId, skillId);
+  if (requestedLevel <= currentLevel) {
+    return { ok: false, reason: "その技能は目標レベルまで取得済みです。" };
   }
   if (reservationMissingPrerequisites(run, skillId).length) {
     return { ok: false, reason: "この技能に必要な前提技能が、この遠征では出ません。" };
   }
   const reservations = {
     ...normalizeRunSkillReservations(run),
-    [characterId]: skillId,
+    [characterId]: { skillId, targetLevel: requestedLevel },
   };
   return { ok: true, run: { ...run, skillReservations: reservations } };
 }
@@ -901,7 +935,7 @@ export function cancelRunSkillReservation(run, characterId, skillId = null) {
   return { ok: true, run: { ...run, skillReservations: reservations } };
 }
 
-function nextSkillReservationStep(run, characterId, targetSkillId) {
+function nextSkillReservationStep(run, characterId, targetSkillId, targetLevel) {
   const target = SKILL_RESERVATION_NODES[targetSkillId];
   if (!target) return null;
   const unlocked = new Set(run?.runUnlockedSkills?.[characterId] ?? []);
@@ -936,8 +970,7 @@ function nextSkillReservationStep(run, characterId, targetSkillId) {
         cost: node.cost,
       };
     }
-    const cap = SKILL_LEVEL_CAPS[node.skillId] ?? MIN_SKILL_LEVEL;
-    if (node.skillId === targetSkillId && runSkillLevel(run, characterId, node.skillId) < cap) {
+    if (node.skillId === targetSkillId && runSkillLevel(run, characterId, node.skillId) < targetLevel) {
       return {
         type: "level",
         skillId: node.skillId,
@@ -960,12 +993,12 @@ export function fulfillSkillReservations(run) {
     ...Object.keys(reservations),
   ])].filter((characterId) => Object.hasOwn(reservations, characterId));
   for (const characterId of characterIds) {
-    const targetSkillId = reservations[characterId];
+    const { skillId: targetSkillId, targetLevel } = reservations[characterId];
     while (true) {
-      const step = nextSkillReservationStep(next, characterId, targetSkillId);
+      const step = nextSkillReservationStep(next, characterId, targetSkillId, targetLevel);
       if (!step) {
         delete next.skillReservations[characterId];
-        completed.push({ characterId, skillId: targetSkillId });
+        completed.push({ characterId, skillId: targetSkillId, targetLevel });
         break;
       }
       const node = SKILL_RESERVATION_NODES[step.skillId];
@@ -978,6 +1011,7 @@ export function fulfillSkillReservations(run) {
         ...step,
         characterId,
         targetSkillId,
+        targetLevel,
         level: result.level ?? null,
       });
     }
