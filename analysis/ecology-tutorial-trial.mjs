@@ -706,56 +706,6 @@ try {
         note("リロードしても装備が残る", reloadedGearCardTexts.length > 0
           && reloadedGearCardTexts.every((text) => !/生成装備|生成 [1-9]/.test(text)));
 
-        // issue #255 — **12戦目もボス戦なので候補が出る。**遠征はそこで終わるので、
-        // 受け取ったあとは次の戦闘ではなく精算へ渡し、**候補を作り直さない**
-        // （作り直すと同じ戦闘から何度でも拾えてしまう）。2人編成の Stage 0 では
-        // 第12戦に勝てないので、結果画面の状態を直接置いて画面経路だけを踏む。
-        const resumeState = await page.evaluate(() => {
-          const key = "exp18-r10-auto-v02";
-          const saved = JSON.parse(localStorage.getItem(key) || "null");
-          if (!saved?.run) return null;
-          const before = { phase: saved.phase, encounterIndex: saved.run.encounterIndex };
-          saved.run.encounterIndex = 12;
-          saved.phase = "result";
-          saved.rewardOffer = [];
-          saved.rewardTakenAtEncounter = null;
-          saved.lastResult = {
-            result: "win", roundsUsed: 4, reason: "all_enemies_defeated",
-            metrics: { allyHpLost: 40, enemyHpLost: 300, reactionsFired: 2, equipmentWear: 1 },
-            actors: [], equipment: [], events: [],
-          };
-          localStorage.setItem(key, JSON.stringify(saved));
-          return before;
-        });
-        await page.reload({ waitUntil: "networkidle" });
-        await page.waitForTimeout(300);
-        note("12戦目のボスでも装備の候補が出る",
-          await page.locator(".reward-choices .reward-choice").count() >= 2
-            && /選んだ品は精算で残す設計図の候補になります/.test(await bodyText()));
-        const lastTake = page.locator('.reward-choice button[data-action="take-reward"]').first();
-        if (await lastTake.count()) {
-          await lastTake.click();
-          await page.waitForTimeout(250);
-          note("最終戦の候補は一度きりで、受け取ると精算へ渡す",
-            await page.locator(".reward-choices").count() === 0
-              && await page.getByRole("button", { name: "遠征を精算する" }).count() === 1);
-        }
-        // 遠征はまだ続けるので、踏む前の状態へ戻す。
-        if (resumeState) {
-          await page.evaluate((before) => {
-            const key = "exp18-r10-auto-v02";
-            const saved = JSON.parse(localStorage.getItem(key) || "null");
-            if (!saved?.run) return;
-            saved.run.encounterIndex = before.encounterIndex;
-            saved.phase = before.phase;
-            saved.rewardOffer = [];
-            saved.rewardTakenAtEncounter = null;
-            saved.lastResult = null;
-            localStorage.setItem(key, JSON.stringify(saved));
-          }, resumeState);
-          await page.reload({ waitUntil: "networkidle" });
-          await page.waitForTimeout(300);
-        }
       }
     }
   }
@@ -763,22 +713,90 @@ try {
   // ---- Phase C — 拾った品が設計図として残り、次の遠征へ持ち込めるか。
   //
   // **画面の文言だけでなく、次の遠征の持ち物に実物が入るところまで見る。**
-  // 安全撤退で精算まで一気に進む（R8 §10.3。撤退でも最大2件残る）。
-  // issue #235 — 撤退は遠征タブが持つ（上端の常設ボタンは廃止した）。
-  await page.locator('nav.tabs [data-tab="map"]').click();
-  await page.waitForTimeout(150);
-  await click("安全に撤退する");
+  //
+  // issue #255 — 設計図を持ち帰れるのは**12戦を抜けて生還したときだけ**になった
+  // （勝利1・撤退0・敗北0）。ここは同時に、12戦目のボス報酬（受け取ったら次の戦闘
+  // ではなく精算へ渡し、候補を作り直さない）と、issue #151 の「残す設計図を選ぶ」
+  // 画面を踏む場所でもある。2人編成の Stage 0 では第12戦に実際には勝てないので、
+  // 結果画面の状態を直接置いて画面経路だけを通す。
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved?.run) return;
+    saved.run.encounterIndex = 12;
+    saved.phase = "result";
+    saved.rewardOffer = [];
+    saved.rewardTakenAtEncounter = null;
+    saved.lastResult = {
+      result: "win", roundsUsed: 4, reason: "all_enemies_defeated",
+      metrics: { allyHpLost: 40, enemyHpLost: 300, reactionsFired: 2, equipmentWear: 1 },
+      actors: [], equipment: [], events: [],
+    };
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(300);
+  note("12戦目のボスでも装備の候補が出る",
+    await page.locator(".reward-choices .reward-choice").count() >= 2
+      && /選んだ品は精算で残す設計図の候補になります/.test(await bodyText()));
+  const lastTake = page.locator('.reward-choice button[data-action="take-reward"]').first();
+  if (await lastTake.count()) {
+    await lastTake.click();
+    await page.waitForTimeout(250);
+    note("最終戦の候補は一度きりで、受け取ると精算へ渡す",
+      await page.locator(".reward-choices").count() === 0
+        && await page.getByRole("button", { name: "遠征を精算する" }).count() === 1);
+  }
+  await click("遠征を精算する");
+  await page.waitForTimeout(350);
+
+  // issue #151 — 残せる件数（勝利1）より多く見つけているので、何を残すかを選ばせる。
+  if (await page.locator(".keep-list").count() > 0) {
+    const keepText = await bodyText();
+    const keepCards = await page.locator(".keep-card").count();
+    note("残す設計図を選ぶ画面に着く",
+      /残す設計図を選ぶ/.test(keepText) && keepCards >= 2 && /設計図は最大 1 件/.test(keepText),
+      `候補 ${keepCards} 件`);
+    note("選ばなかった品は残らないと書いてある", /選ばなかった品は残りません/.test(keepText));
+    note("候補の全文を残す前に読める",
+      await page.locator(".keep-card .reward-full").count() === keepCards);
+    note("上限ぶんが最初から選ばれている", await page.locator(".keep-card.selected").count() === 1);
+    // 押すと入れ替わる。等級順では残らない品も選べる。
+    await page.locator(".keep-card.selected .keep-main").first().click();
+    await page.waitForTimeout(150);
+    note("選択を外せる", await page.locator(".keep-card.selected").count() === 0);
+    await page.locator(".keep-card:not(.selected) .keep-main").first().click();
+    await page.waitForTimeout(150);
+    note("外した枠へ別の品を選べる", await page.locator(".keep-card.selected").count() === 1);
+    await page.locator('[data-action="confirm-blueprint-keep"]').click();
+    await page.waitForTimeout(350);
+  }
+  // 完走したので Stage 終了の会話が入る。**飛ばして確定済みの精算へ戻る。**
+  if (await page.locator(".vn-stage").count() > 0) {
+    note("完走すると Stage 終了の会話が入る", true);
+    await click("スキップ");
+    await page.waitForTimeout(350);
+  }
   const settleText = await bodyText();
   note("精算画面に着く", /安全に撤退した|遠征を終えた|遠征は途中で終わった/.test(settleText));
   note("設計図として残した品が出る", /設計図として残した品/.test(settleText));
   note("残した件数が出ている", /新しく残した|取得履歴を追加|残せる品がありません/.test(settleText));
+  note("選んだ1件だけを残したと出る", /選んだ 1 品だけを残しました/.test(settleText), 
+    (settleText.match(/この遠征で見つけた装備 \d+ 品のうち、[^。]+。/)?.[0] ?? "").slice(0, 80));
 
   // R13 / R11 §2.4 — **精算の次は家である。**器材を返して、それから根城へ帰る。
   note("精算から根城へ帰れる", await page.getByRole("button", { name: "根城へ帰る" }).count() === 1);
   note("精算の締めの一行がある", /拾い屋の撤退は敗北ではない|台帳にはそう書く|詰所へ返し/.test(settleText));
   await click("根城へ帰る");
   await page.waitForTimeout(300);
+  // R13 — 根城の日常場面。**Stage 0 を越えたので、一つ目が帰った夜に出る。**
+  // 精算から根城へ帰る一押しが、そのまま場面の入口になる（別の釦を作らない）。
+  note("完走した夜に根城の場面が入る", await page.locator(".vn-stage").count() === 1);
+  if (await page.locator(".vn-stage").count() > 0) {
+    note("根城の場面が会話として出る", /帰る場所のほう|土間/.test(await bodyText()));
+    await click("スキップ");
+    await page.waitForTimeout(350);
+  }
   const homesteadText = await bodyText();
   note("根城の一枚に着く", /根城/.test(homesteadText) && /直しかけの家/.test(homesteadText));
   note("根城に名簿がある", /隊の名簿/.test(homesteadText));
@@ -801,6 +819,15 @@ try {
 
   // 次の遠征を始めると、持ち込んだ品が最初から手元にある。
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
+  await page.waitForTimeout(200);
+  // Stage 0 を完走したので、行き先の初期選択は Stage 1 になっている。
+  // ここで見たいのは **Stage 0 の再訪**なので、明示的に選び直す。
+  const stageZero = page.locator('[data-action="select-campaign-stage"][data-sequence="0"]');
+  note("クリア済みの Stage を選び直せる", await stageZero.count() === 1);
+  if (await stageZero.count()) {
+    await stageZero.click();
+    await page.waitForTimeout(200);
+  }
   await click("この条件で遠征へ出る");
   // Stage 0の再訪でも、openingは同じ会話として出る。序盤の一戦は
   // 専用チュートリアルなので初回だけで、再訪では会話を飛ばしてキャンプへ戻る。
@@ -862,20 +889,10 @@ try {
   note("will はまだ開いていない", !/この人が求めているもの/.test(homeText));
   note("Stage 0 を越えた分だけ節が開く", /灰の中では/.test(homeText));
 
-  // 根城の日常場面。**Stage 0 を越えたので、一つ目が出ている。**
-  const sceneButton = page.getByRole("button", { name: "今夜の場面を見る" });
-  note("根城の場面へ入れる", await sceneButton.count() === 1);
-  if (await sceneButton.count()) {
-    await sceneButton.first().click();
-    await waitForTutorialSelector(".vn-stage");
-    note("根城の場面が会話として出る", /帰る場所のほう|土間/.test(await bodyText()));
-    await click("スキップ");
-    await page.waitForTimeout(250);
-    const afterScene = await bodyText();
-    note("場面のあとは根城へ戻る", /根城/.test(afterScene));
-    note("見た場面を読み返せる", /根城での場面/.test(afterScene));
-    note("同じ夜は二度出ない", await page.getByRole("button", { name: "今夜の場面を見る" }).count() === 0);
-  }
+  // 根城の日常場面は、帰った夜に一本だけ出る（上で踏んだ）。ここでは**二度目が
+  // 出ないこと**と、読み返せることを見る。
+  note("見た場面を読み返せる", /根城での場面/.test(homeText));
+  note("同じ夜は二度出ない", await page.getByRole("button", { name: "今夜の場面を見る" }).count() === 0);
 
   // ---- R13 / R8 §3.2 — 図鑑。**会った敵だけが載る。**
   await page.locator('[data-action="guild-tab"][data-tab="codex"]').click();

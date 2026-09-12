@@ -8,7 +8,7 @@
 //   - 診断 error（R8 §3.5）: 50 attempt で作れないときに既定品へ黙って落ちない。
 //   - Blueprint（R8 §3.6）: immutable、上限なし archive、持込枠 1〜5、exact 再製造、
 //     互換不能でも消さず disabledReason を出す。
-//   - 保存件数（R8 §10.3）: 勝利2 / 安全撤退2 / 敗北1。
+//   - 保存件数（R8 §10.3 → issue #255）: 勝利1 / 安全撤退0 / 敗北0。
 //   - 遠征経路（R8 §13.2）: 装備が preview と正式実行の両方へ同じ形で入る。
 
 import assert from "node:assert/strict";
@@ -550,7 +550,8 @@ const EFFECT_FLOOR = Object.freeze({
 // ---- 遠征終了時の保存件数（R8 §10.3）----------------------------------------
 
 {
-  const outcomes = [["won", 2], ["retreat", 2], ["lost", 1]];
+  // issue #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・敗北0）。
+  const outcomes = [["won", 1], ["retreat", 0], ["lost", 0]];
   for (const [outcome, limit] of outcomes) {
     equal(BLUEPRINT_SAVE_LIMIT[outcome], limit, `${outcome} の保存上限は ${limit}`);
     const profile = newProfile();
@@ -565,6 +566,9 @@ const EFFECT_FLOOR = Object.freeze({
     check(settled.ok, `${outcome} で精算できる`);
     equal(settled.settlement.savedBlueprints.length, limit, `${outcome} は ${limit} 件だけ残る`);
     equal(settled.profile.blueprints.entries.length, limit, `archive も ${limit} 件`);
+    // **見つけた品そのものは消えない**（候補の数は結果で変わらない）。残る数だけが変わる。
+    equal(settled.settlement.blueprintCandidateCount, blueprintSaveCandidates(run).length,
+      `${outcome} でも候補の総数は同じ`);
     // 良い等級から残す（取得順ではない）。
     const rank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
     const saved = settled.settlement.savedBlueprints.map((entry) => rank[entry.rarity]);
@@ -613,10 +617,19 @@ const EFFECT_FLOOR = Object.freeze({
   equal(chosen.profile.blueprints.entries.length, 1, "選ばなかった品は archive へ入らない");
 
   // 上限は守る。候補に無い descriptor は無視する。空の選択は何も残さない。
-  const overflow = settleRun(profile, run, "lost", {
+  const overflow = settleRun(profile, run, "won", {
     keepDescriptors: candidates.map((item) => item.descriptor),
   });
-  equal(overflow.settlement.savedBlueprints.length, BLUEPRINT_SAVE_LIMIT.lost, "敗北の上限を超えない");
+  equal(overflow.settlement.savedBlueprints.length, BLUEPRINT_SAVE_LIMIT.won, "勝利の上限を超えない");
+  // issue #255 — 撤退と敗北は0件なので、**全部選んでも一つも残らない。**
+  const retreatKeep = settleRun(profile, run, "retreat", {
+    keepDescriptors: candidates.map((item) => item.descriptor),
+  });
+  equal(retreatKeep.settlement.savedBlueprints.length, 0, "撤退では選んでも残らない");
+  const lostKeep = settleRun(profile, run, "lost", {
+    keepDescriptors: candidates.map((item) => item.descriptor),
+  });
+  equal(lostKeep.settlement.savedBlueprints.length, 0, "敗北でも選んで残せない");
   const bogus = settleRun(profile, run, "won", { keepDescriptors: ["not-a-descriptor"] });
   equal(bogus.settlement.savedBlueprints.length, 0, "候補に無い descriptor は残らない");
   const none = settleRun(profile, run, "won", { keepDescriptors: [] });

@@ -1647,7 +1647,8 @@ export function settleRun(profile, run, outcome, options = {}) {
 
   // R8 §3.6 / §10.3 — Phase C。遠征終了時に、この run で見つけた装備を
   // Blueprint archive へ exact に残す。件数は確定結果で変わる
-  // （勝利2 / 安全撤退2 / 敗北1）。**持込品は既に archive にあるので数えない。**
+  // （issue #255 以降は勝利1 / 安全撤退0 / 敗北0）。**持込品は既に archive に
+  // あるので数えない。**
   // 選ぶ順は「rarity が高い順 → 表示名 → id」で決定的にする。取得順に依らせると、
   // 同じ遠征を同じように遊んでも残る品が変わる。
   const saveLimit = blueprintSaveLimitFor(outcome);

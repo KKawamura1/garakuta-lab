@@ -27,8 +27,15 @@ export const BLUEPRINT_MAX_CAPACITY = 5;
 export const BLUEPRINT_CAPACITY_COSTS = Object.freeze(["4000", "20000", "100000", "500000"]);
 export const BLUEPRINT_CAPACITY_UPGRADE_ID = "blueprint_capacity";
 
-// R8 §10.3 — 勝利は最大2件、安全撤退はそのrunの新規取得候補から最大2件、敗北は最大1件。
-export const BLUEPRINT_SAVE_LIMIT = Object.freeze({ won: 2, retreat: 2, lost: 1 });
+// R8 §10.3 は勝利2・安全撤退2・敗北1だった。issue #255 で装備を拾えるのが
+// ボス戦だけ（遠征あたり最大3品）になったので、**持ち帰りは勝って生還した
+// ときの1件だけ**にした（作者判断 2026-09-12）。
+//
+// 拾える数が減った状態で保存数が2〜1のままだと、「見つけた品はだいたい残る」に
+// なって遠征の終わりの判断が消える。撤退と敗北を0にしたのは、**12戦を抜けること
+// そのものに意味を戻す**ためで、確定した活動資金を持ち帰る規則は変えていない
+// （撤退は敗北ではない、という区別は資金と Stage 解禁の側が持つ）。
+export const BLUEPRINT_SAVE_LIMIT = Object.freeze({ won: 1, retreat: 0, lost: 0 });
 
 function hash(value) {
   let a = 2166136261;

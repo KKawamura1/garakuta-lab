@@ -886,6 +886,10 @@ try {
   // issue #151 — **残せる件数より多く見つけていたら、何を残すかを選ばせる。**
   // 等級順の自動保存では、今回の構成を成立させた低レア品より使わなかった高レア品が
   // 残ってしまう。候補・上限・全文が出て、選んだ品だけが残るところまで見る。
+  //
+  // issue #255 — 設計図が残るのは**12戦を抜けて生還したときだけ**（勝利1・撤退0・
+  // 敗北0）なので、この画面は完走した回にしか出ない。途中で終わった回は下の
+  // 「持ち帰れない」表示を見る（tutorial trial は完走の側を踏む）。
   if (await page.locator(".keep-list").count() > 0) {
     const keepText = await bodyText();
     const cards = await page.locator(".keep-card").count();
@@ -919,6 +923,13 @@ try {
   // R6 §9.2 — 精算は一度だけ。内訳と残高が画面に出る。
   const settleText = await bodyText();
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
+  // issue #255 — 途中で終わった遠征は設計図を持ち帰れない。**理由を書く**
+  // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
+  if (!/12戦を抜けた/.test(settleText) && /設計図として残した品/.test(settleText)) {
+    note("完走しなかった遠征は設計図を持ち帰れないと書いてある",
+      /設計図を持ち帰れるのは12戦を抜けて生還したときだけです/.test(settleText)
+        || /設計図は残りません/.test(settleText));
+  }
   note("精算の内訳が出ている", /到達距離/.test(settleText) && /報酬倍率/.test(settleText));
   note("精算後の主操作が上部にある",
     await page.locator(".settlement-primary-action .button.primary").count() === 1

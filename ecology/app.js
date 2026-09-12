@@ -5733,12 +5733,19 @@ function blueprintSettlementSection(settlement) {
   const cards = saved.map((entry) =>
     "<div class=\"settle-row\"><span>" + esc(entry.displayName) + rarityChip(entry.rarity)
     + "</span><b>" + (entry.added ? "新しく残した" : "取得履歴を追加") + "</b></div>").join("");
+  // issue #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・
+  // 敗北0）。残せないときは「残せなかった」ではなく**なぜ残らないのか**を言う
+  // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
+  const limit = settlement.blueprintSaveLimit;
   return "<section class=\"card\">" + sectionHeading("BLUEPRINT", "設計図として残した品",
-      "<span class=\"stage\">" + saved.length + " / " + settlement.blueprintSaveLimit + "</span>")
+      "<span class=\"stage\">" + saved.length + " / " + limit + "</span>")
     + (saved.length
       ? "<div class=\"settle-list\">" + cards + "</div>"
-      : "<p class=\"muted\">今回は残せる品がありませんでした。</p>")
-    + (found > saved.length
+      : limit > 0
+        ? "<p class=\"muted\">今回は残せる品がありませんでした。</p>"
+        : "<p class=\"muted\">設計図を持ち帰れるのは<b>12戦を抜けて生還したとき</b>だけです。"
+          + "この遠征で見つけた装備 " + found + " 品は、ここで手放します。</p>")
+    + (saved.length && found > saved.length
       ? "<p class=\"muted\">この遠征で見つけた装備 " + found + " 品のうち、"
         + (settlement.blueprintChosen ? "選んだ " : "等級の高い ")
         + saved.length + " 品だけを残しました。</p>"
@@ -5853,8 +5860,11 @@ function renderSettlement() {
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
     + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
     + "<p class=\"muted\">持ち帰るのは活動資金と設計図だけです。技能点・解禁・装備・補給はここで消えます。"
-    + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
-    + settlement.blueprintSaveLimit + "件残せました。</p></section>"
+    + (settlement.blueprintSaveLimit > 0
+      ? esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
+        + settlement.blueprintSaveLimit + "件残せました。"
+      : esc(retreated ? "安全撤退" : "敗北") + "なので、設計図は残りません。")
+    + "</p></section>"
     + blueprintSettlementSection(settlement)
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
       ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
@@ -7317,11 +7327,13 @@ function handleAction(event) {
     // R8 §10.3 — 「放棄」は自発的な安全撤退として扱う（won/lostに続く3つ目のoutcome）。
     const outcome = won ? "won" : action === "abandon-run" ? "retreat" : "lost";
     // issue #151 — 残せる件数より多く見つけているときだけ、**何を残すかを選ばせる。**
-    // 選ぶ余地が無い（候補が上限以下）ときに画面を一枚増やさない。
-    if (blueprintSaveCandidates(state.run).length > blueprintSaveLimitFor(outcome)) {
+    // 選ぶ余地が無いときに画面を一枚増やさない——候補が上限以下のときと、
+    // そもそも一つも残せないとき（撤退・敗北は0件）の両方である。
+    const keepLimit = blueprintSaveLimitFor(outcome);
+    if (keepLimit > 0 && blueprintSaveCandidates(state.run).length > keepLimit) {
       state.pendingSettlement = { outcome };
       state.blueprintKeep = blueprintSaveCandidates(state.run)
-        .slice(0, blueprintSaveLimitFor(outcome))
+        .slice(0, keepLimit)
         .map((item) => item.descriptor);
       state.phase = "blueprintPick";
       saveState();
