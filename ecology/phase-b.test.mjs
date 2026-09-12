@@ -74,6 +74,7 @@ import {
   reserveRunSkill,
   skillPointsForClear,
   skillReservationFor,
+  skillReservationLevelFor,
   SKILL_POINTS_PER_CLEAR,
   makeManifest,
   migrateLegacyProfile,
@@ -963,20 +964,25 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
     runUnlockedSkills: { warden: [] },
     skillReservations: {},
   };
-  const reserved = reserveRunSkill(run, "warden", "heavy_swing");
-  equal(reserved.ok, true, "未取得の技能を予約できる");
+  const lv1Reserved = reserveRunSkill(run, "warden", "heavy_swing", 1);
+  equal(lv1Reserved.ok, true, "未取得の技能をLv1まで予約できる");
+  equal(skillReservationLevelFor(lv1Reserved.run, "warden"), 1, "Lv1の目標を保存する");
+  const lv1Fulfilled = fulfillSkillReservations(lv1Reserved.run);
+  equal(runSkillLevel(lv1Fulfilled.run, "warden", "heavy_swing"), 1, "Lv1予約で解禁まで進む");
+  equal(skillReservationFor(lv1Fulfilled.run, "warden"), null, "Lv1到達後に予約を完了する");
+
+  const reserved = reserveRunSkill(lv1Fulfilled.run, "warden", "heavy_swing", 10);
+  equal(reserved.ok, true, "取得済み技能を最大Lvまで予約できる");
   equal(skillReservationFor(reserved.run, "warden"), "heavy_swing", "予約先を保存する");
+  equal(skillReservationLevelFor(reserved.run, "warden"), 10, "最大Lvの目標を保存する");
   const fulfilled = fulfillSkillReservations(reserved.run);
   check(fulfilled.actions.some((action) =>
-    action.type === "unlock" && action.skillId === "strike" && action.target === false,
-  ), "前提技能を先に自動取得する");
-  check(fulfilled.actions.some((action) =>
-    action.type === "unlock" && action.skillId === "heavy_swing" && action.target === true,
-  ), "目的技能を自動取得する");
-  check(fulfilled.run.runUnlockedSkills.warden.includes("heavy_swing"), "目的技能が取得済みになる");
+    action.type === "level" && action.skillId === "heavy_swing" && action.target === true,
+  ), "目的技能のレベルを自動取得する");
+  equal(runSkillLevel(fulfilled.run, "warden", "heavy_swing"), 10, "目的技能をSL10まで取得する");
   equal(skillReservationFor(fulfilled.run, "warden"), null, "目的技能の取得後に予約を完了する");
-  check(runSkillPoints(fulfilled.run, "warden") < 10, "自動取得で技能点を使う");
-  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut");
+  check(runSkillPoints(fulfilled.run, "warden") < 11, "自動取得で技能点を使う");
+  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut", 1);
   equal(switched.ok, true, "別の技能へ予約を切り替えられる");
   const cancelled = cancelRunSkillReservation(switched.run, "warden", "steady_cut");
   equal(cancelled.ok, true, "取得予約を取り消せる");
