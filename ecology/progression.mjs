@@ -1019,6 +1019,29 @@ export function fulfillSkillReservations(run) {
   return { run: next, actions, completed };
 }
 
+/**
+ * 現在のSPだけで、予約した技能を目標Lvまで完了できるか。
+ * 判定は実際の自動取得処理を試算するため、前提の解禁・必要Lv・目標技能のLv上げを
+ * 画面側で別計算せず、取得処理と同じ順序・同じコストで判定できる。
+ */
+export function canFulfillSkillReservation(run, characterId, skillId, targetLevel = null) {
+  const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
+  const requestedLevel = targetLevel === null || targetLevel === undefined ? cap : targetLevel;
+  if (!Number.isInteger(requestedLevel)
+    || requestedLevel < MIN_SKILL_LEVEL || requestedLevel > cap) {
+    return false;
+  }
+  const skillReservations = {
+    ...(run?.skillReservations ?? {}),
+    [characterId]: { skillId, targetLevel: requestedLevel },
+  };
+  const simulated = { ...run, skillReservations };
+  const result = fulfillSkillReservations(simulated);
+  return result.completed.some((entry) => entry.characterId === characterId
+    && entry.skillId === skillId
+    && entry.targetLevel === requestedLevel);
+}
+
 // 遠征内の解禁。**manifest が有効にした技能しか解禁できない。**
 export function unlockRunSkill(run, characterId, node) {
   if (!node) return { ok: false, reason: "その技能が見つかりません。" };
