@@ -235,15 +235,6 @@ try {
   // issue #159 — 固定同行者の区画では人数を N/M で出さない（分母は「まだ入れられる」
   // と読めるが、その回は誰も足せない）。
   note("2人で始まる", /2人/.test(campText) && !/2 \/ 2人/.test(campText));
-  // issue #235 — 編成タブは廃止した。固定同行者の理由は遠征タブが一行で持つ。
-  await page.locator('nav.tabs [data-tab="map"]').click();
-  note("この Stage の同行者は固定だと書いてある",
-    /物語が決めます/.test(await bodyText()));
-  // issue #159 — 選べないものを「選べるように見えるカード」で出さない。
-  note("固定の回は同行者の候補カードを出さない",
-    await page.locator(".character-card").count() === 0
-      && !/今回の同行者/.test(await bodyText()));
-
   // R14 §1 — 巻き戻したあとは、camp の上端に戦闘予測が常設される。
   // **予測が指すのは「灰の門」**である（12戦の第1戦ではない。同じ盤面をもう一度戦う）。
   note("巻き戻したあとは予測が出る", await page.locator(".camp-top .forecast-bar").count() === 1);
@@ -260,6 +251,109 @@ try {
     await page.locator(".camp-top .party-board .party-row").count() === 2
       && await page.locator(".camp-top .party-cell").count() === 6
       && await page.locator(".camp-top .party-cell.empty").count() === 4);
+
+  // ---- R11 §5 改（作者指摘 2026-09-12）— **手取りの隊列チュートリアル** ----------
+  //
+  // ここがチュートリアルの山である。engine は決定的なので、**隊列を直さなければ
+  // 何度やっても同じように負ける。**ツグミを後列へ下げた一手だけが勝ちに変わる。
+  // 会話が渡した「柔らかい技は後ろ、硬い武器は前」を、実際に操作して確かめる。
+  //
+  // その一手は**押す場所が光り、そこしか押せない**形で教える。三手が終わるまで
+  // タブもセーブも押せないので、**この踏み場は camp へ着いた直後に置く**
+  // （錠が外れるまでは、他の踏み場へ寄り道できない）。
+  const blockedCount = async () => await page.locator("#app .tutorial-blocked").count();
+  const spot = () => page.locator("#app .tutorial-spot");
+  note("巻き戻し直後は隊列チュートリアルが出る",
+    await page.locator(".formation-tutorial").count() === 1
+      && /隊列チュートリアル/.test(await bodyText()));
+  note("手順1は「⇅ 隊列」だけが光る",
+    await spot().count() === 1
+      && await spot().first().getAttribute("data-action") === "toggle-formation-mode");
+  note("手順1では他のタブを押せない",
+    await page.locator('nav.tabs [data-tab="skills"]').isDisabled()
+      && await page.locator('nav.tabs [data-tab="equipment"]').isDisabled());
+  note("手順1では戦闘へ進めない",
+    await page.locator('[data-action="begin-stage"]').isDisabled()
+      && await blockedCount() > 0);
+  // 光っていない場所は押しても何も起きない（押せる形と経路の両方で塞いでいる）。
+  await page.locator('[data-action="begin-stage"]').click({ force: true }).catch(() => {});
+  await page.waitForTimeout(150);
+  note("光っていない場所を押しても戦闘は始まらない",
+    await page.locator(".battle-field").count() === 0
+      && await page.locator(".formation-tutorial").count() === 1);
+
+  // issue #235 — 編成タブは廃止した。隊列はどのタブからでも上端の「⇅ 隊列」で入る。
+  await page.locator('.camp-top [data-action="toggle-formation-mode"]').click();
+  await page.waitForTimeout(150);
+  // R14 §1 — **予測は隊列を動かした瞬間に付いてくる。**
+  //
+  // 巻き戻した直後は、最初に負けた配置（ツグミもゴウも前列）を引き継ぐ。
+  // ここで既に「勝利」が出ていたら、何も変えずに勝てる抜け道が残っている。
+  const verdict = async () => (await page.locator(".forecast-verdict").first().innerText());
+  const wrongVerdict = await verdict();
+  note("負けた配置のままでは予測が敗北", /敗北/.test(wrongVerdict), wrongVerdict);
+
+  // issue #159 / #235 — 隊列は**上端の共通盤面からしか**動かせない。二つ目の隊列盤も
+  // キャラクターカードも無い（同じ仲間を選ぶ表示が複数あると、どこで何を選んだのかを
+  // 画面ごとに探し直すことになる）。
+  const menderCell = page.locator('.camp-top .party-cell', { hasText: "ツグミ" }).first();
+  note("上端の盤面のセルが隊列操作そのものである",
+    await menderCell.getAttribute("data-action") === "place-character");
+  note("手順2は動かす仲間のセルだけが光る",
+    await spot().count() === 1
+      && await spot().first().getAttribute("data-character") === "mender");
+  note("手順2では前列のゴウを押せない",
+    await page.locator('.camp-top [data-action="place-character"][data-character="warden"]')
+      .isDisabled());
+  await menderCell.click();
+  await page.waitForTimeout(150);
+  note("押した仲間のセルが選択状態になる",
+    await page.locator('.camp-top .party-cell.selected').count() === 1
+      && /移動先の枠へ/.test(await bodyText()));
+  note("手順3は後列の空き枠だけが光る",
+    await spot().count() === 3
+      && (await spot().evaluateAll((cells) =>
+        cells.every((cell) => cell.dataset.row === "rear" && !cell.dataset.character))));
+  await page.locator('.camp-top [data-action="place-character"][data-position="rear_right"]').click();
+  await page.waitForTimeout(200);
+  const placedText = await bodyText();
+  note("ツグミを後列へ下げられる",
+    await page.locator('.camp-top .party-row').nth(1)
+      .locator('.party-cell', { hasText: "ツグミ" }).count() === 1);
+  // 錠が外れた盤面では、同じ `selected` が「いま中身を見ている人」を指す。
+  // ここで見るのは**隊列の選択**が解けたかどうかなので、置く操作の側で数える。
+  note("移動を終えると隊列の選択が解ける",
+    await page.locator('.camp-top [data-action="place-character"].selected').count() === 0
+      && !/移動先の枠へ/.test(placedText));
+  // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
+  const rightVerdict = await verdict();
+  note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
+  // 教え終わったら錠は外れる。**教えるのは一手であって、遠征の触り方ではない。**
+  note("一手が済むと錠が外れる",
+    await blockedCount() === 0
+      && !(await page.locator('nav.tabs [data-tab="skills"]').isDisabled()));
+  note("一手が済むと盤面は通常へ戻る",
+    await page.locator('.camp-top [data-action="place-character"]').count() === 0
+      && await page.locator('.camp-top [data-action="select-character"]').count() === 2);
+  note("次の一押し（この敵に挑む）が光る",
+    await spot().count() === 1
+      && await spot().first().getAttribute("data-action") === "begin-stage");
+  // issue #138 / #235 — 戦闘前確認の画面（battlePreview）を無くしたので、巻き戻し直後に
+  // 開く遠征タブで武器と技の違いをもう一度渡す。
+  note("戦闘予測の使い方を示す",
+    /戦闘予測/.test(placedText)
+      && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(placedText));
+  note("ツグミが自分ではなくゴウを手当てすると示す",
+    /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(placedText));
+
+  // issue #235 — 編成タブは廃止した。固定同行者の理由は遠征タブが一行で持つ。
+  note("この Stage の同行者は固定だと書いてある",
+    /物語が決めます/.test(await bodyText()));
+  // issue #159 — 選べないものを「選べるように見えるカード」で出さない。
+  note("固定の回は同行者の候補カードを出さない",
+    await page.locator(".character-card").count() === 0
+      && !/今回の同行者/.test(await bodyText()));
+
   // タブを変えても消えない（組み替えながら見るための帯である）。
   await page.locator('nav.tabs [data-tab="equipment"]').click();
   await page.waitForTimeout(150);
@@ -451,52 +545,8 @@ try {
 
   // ---- R11 §8.6 — 巻き戻したあとの再戦。**同じ盤面をもう一度戦う。**
   //
-  // ここがチュートリアルの山である。engine は決定的なので、**隊列を直さなければ
-  // 何度やっても同じように負ける。**ツグミを後列へ下げた一手だけが勝ちに変わる。
-  // 会話が渡した「柔らかい技は後ろ、硬い武器は前」を、実際に操作して確かめる。
-  // issue #235 — 編成タブは廃止した。隊列はどのタブからでも上端の「⇅ 隊列」で入る。
-  // 巻き戻し直後に開くのは遠征タブで、手引きの一行もそこにある。
-  await page.locator('nav.tabs [data-tab="map"]').click();
-  await page.waitForTimeout(150);
-  await page.locator('.camp-top [data-action="toggle-formation-mode"]').click();
-  await page.waitForTimeout(150);
-  // R14 §1 — **予測は隊列を動かした瞬間に付いてくる。**
-  //
-  // 巻き戻した直後は、最初に負けた配置（ツグミもゴウも前列）を引き継ぐ。
-  // ここで既に「勝利」が出ていたら、何も変えずに勝てる抜け道が残っている。
-  const verdict = async () => (await page.locator(".forecast-verdict").first().innerText());
-  const wrongVerdict = await verdict();
-  note("負けた配置のままでは予測が敗北", /敗北/.test(wrongVerdict), wrongVerdict);
-
-  // issue #159 / #235 — 隊列は**上端の共通盤面からしか**動かせない。二つ目の隊列盤も
-  // キャラクターカードも無い（同じ仲間を選ぶ表示が複数あると、どこで何を選んだのかを
-  // 画面ごとに探し直すことになる）。
-  const menderCell = page.locator('.camp-top .party-cell', { hasText: "ツグミ" }).first();
-  note("上端の盤面のセルが隊列操作そのものである",
-    await menderCell.getAttribute("data-action") === "place-character");
-  await menderCell.click();
-  await page.waitForTimeout(150);
-  note("押した仲間のセルが選択状態になる",
-    await page.locator('.camp-top .party-cell.selected').count() === 1
-      && /移動先の枠へ/.test(await bodyText()));
-  await page.locator('.camp-top [data-action="place-character"][data-position="rear_right"]').click();
-  await page.waitForTimeout(200);
-  const placedText = await bodyText();
-  note("ツグミを後列へ下げられる",
-    await page.locator('.camp-top .party-row').nth(1)
-      .locator('.party-cell', { hasText: "ツグミ" }).count() === 1);
-  note("移動を終えると選択が解ける", await page.locator('.camp-top .party-cell.selected').count() === 0);
-  // **一手戻すと、その場で予測が勝利へ変わる。**これがこの遠征の中心の操作である。
-  const rightVerdict = await verdict();
-  note("一手直すとその場で予測が勝利へ変わる", /勝利/.test(rightVerdict), rightVerdict);
-  // issue #138 / #235 — 戦闘前確認の画面（battlePreview）を無くしたので、巻き戻し直後に
-  // 開く遠征タブで武器と技の違いをもう一度渡す。
-  note("戦闘予測の使い方を示す",
-    /戦闘予測/.test(placedText)
-      && /腕力で振る武器は後列から出すと大きく落ち|技術で通す技は落ちない|後列/.test(placedText));
-  note("ツグミが自分ではなくゴウを手当てすると示す",
-    /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(placedText));
-
+  // 隊列を直す一手は、camp へ着いた直後の手取りチュートリアルで既に踏んだ。
+  // ここは**直した配置のまま、同じ盤面へ入り直す**ところだけを見る。
   // issue #138 — チュートリアルの再戦も含め、常に戦闘前確認を挟まず自動戦闘へ進む。
   await page.locator('nav.tabs [data-tab="map"]').click();
   await click("この敵に挑む");

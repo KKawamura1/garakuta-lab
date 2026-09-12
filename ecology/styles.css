@@ -2501,6 +2501,68 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   color: var(--muted);
 }
 .tutorial-note-card { border-color: rgba(212, 175, 100, .45); }
+
+/* R11 §5 改（作者指摘 2026-09-12）— 隊列チュートリアル。**押す場所が光り、
+   そこしか押せない。**光は一箇所だけに出す（二つ光ると、どちらが次か読めない）。 */
+.formation-tutorial { border-color: var(--gold); background: var(--gold-dark); }
+.formation-tutorial h3 { margin: 4px 0 6px; font-size: 14px; }
+.formation-tutorial .tutorial-note { margin: 0; line-height: 1.65; }
+.tutorial-steps {
+  display: grid;
+  gap: 4px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tutorial-steps li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.tutorial-steps li > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.tutorial-steps li.current { color: var(--ink); font-weight: 600; }
+.tutorial-steps li.current > span { border-color: var(--gold); background: var(--gold); color: #1b1a16; }
+.tutorial-steps li.done { color: var(--good); text-decoration: line-through; }
+.tutorial-steps li.done > span { border-color: var(--good); color: var(--good); }
+
+/* 光る先。**釦でもセルでも同じ光**にする（押す場所は一種類だと読めるように）。 */
+.tutorial-spot {
+  position: relative;
+  z-index: 1;
+  border-color: var(--gold) !important;
+  animation: tutorial-pulse 1.5s ease-in-out infinite;
+}
+@keyframes tutorial-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229, 184, 105, .55); }
+  50% { box-shadow: 0 0 0 5px rgba(229, 184, 105, 0); }
+}
+/* 錠。押せない場所は**残したまま沈める**（消すと、何が選べる場面なのか読めなくなる）。 */
+.tutorial-blocked {
+  opacity: .4;
+  pointer-events: none;
+  filter: saturate(.5);
+}
+/* 盤面のセルだけは沈めない。**錠の最中も、HPと予測は読ませる**（この一手の理由は
+   そこに出ている）。押せないことは、光っていないことで足りる。 */
+.party-cell.tutorial-blocked { opacity: .72; filter: none; }
+@media (prefers-reduced-motion: reduce) {
+  /* **光そのものは残す。**止めるのは脈だけ（どこを押すか分からなくなるので消せない）。 */
+  .tutorial-spot { animation: none; box-shadow: 0 0 0 2px rgba(229, 184, 105, .55); }
+}
 /* 凡例はヘルプの中でだけ出す（本文からは外した）。 */
 .map-legend-help .map-legend { margin: 4px 0 0; }
 
