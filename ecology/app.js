@@ -1361,6 +1361,13 @@ function bindLongPress() {
       if (event.isPrimary === false) return;
       if (event.button !== undefined && event.button !== 0) return;
 
+      // 行の中には、指定した必殺をこの一戦へ持ち込む ✹ や、技能のオン／オフ、
+      // 並べ替えの釦がある。そこを押したときまで親行が pointer capture すると、
+      // pointerup/click の宛先が親へ寄って、子の通常クリックを長押し経路が奪う。
+      // 長押しは行の本文だけに掛け、行内の操作部品はその部品へ渡す。
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("button, input, textarea, select, a, [data-action]")) return;
+
       cancel();
       origin = { x: event.clientX, y: event.clientY };
       pointerId = event.pointerId ?? null;

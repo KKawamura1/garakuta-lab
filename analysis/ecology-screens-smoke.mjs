@@ -68,6 +68,7 @@ for (const [label, sourceText, expected] of [
   ["会話本文だけを選択許可", styles, "#app .story-copy,\n#app .story-copy *"],
   ["会話本文の選択許可を専用クラスで指定", app, 'class=\\"vn-text story-copy\\"'],
   ["会話履歴の選択許可を専用クラスで指定", app, 'class=\\"vn-log-body story-copy\\"'],
+  ["長押し行内の通常操作を優先", app, 'target?.closest("button, input, textarea, select, a, [data-action]")'],
 ]) {
   if (!sourceText.includes(expected)) problems.push(label + "が無い");
 }
