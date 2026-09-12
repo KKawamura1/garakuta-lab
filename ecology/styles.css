@@ -3267,17 +3267,10 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
  *
  * **印は「払うもの」なので丸ではなく菱形（✹）で出す。**丸は行動点・反応点・
  * 代償HPに譲ってある（issue #177）ので、同じ形を別の意味へ使わない。
+ *
+ * 作者指摘 2026-09-13 — 隊全体の合計（菱形の並び）はやめた。**印は人物ごと**に、
+ * 盤面のセルの中で四段で出す（`.party-ultimate`、この節の下）。
  */
-.seal-pips { display: inline-flex; gap: 3px; align-items: center; }
-.seal-pips i {
-  width: 9px;
-  height: 9px;
-  border: 1px solid var(--gold);
-  border-radius: 2px;
-  transform: rotate(45deg);
-  opacity: .3;
-}
-.seal-pips i.on { background: var(--gold); opacity: 1; }
 .ultimate-card .context-line { color: var(--muted); font-size: 11px; }
 .ultimate-row {
   display: flex;
@@ -3395,17 +3388,62 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
 }
-.installed-row.pressing { background: rgba(229, 184, 105, .08); }
+/* 長押しの手応え（作者要望 2026-09-13）。**押している時間そのものを、左から右へ
+   伸びる光の帯で出す。**右端まで届いた拍が、必殺がセットされる拍である。指を離すか
+   スクロールすると帯ごと消える（＝取り消し）。
+   帯の長さは JS が `--long-press-ms` で渡す（長押しの判定と同じ値）。 */
+.installed-row[data-longpress] { position: relative; overflow: hidden; }
+.installed-row[data-longpress].pressing::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  /* 二枚重ね。**面**（左から満ちる光）と、行の下端を走る**線**（どこまで来たか）。
+     どちらも同じ clip-path で切るので、線の先端が光の右端と必ず一致する。 */
+  background:
+    linear-gradient(90deg,
+      rgba(229, 184, 105, .10) 0%, rgba(229, 184, 105, .42) 86%,
+      rgba(255, 243, 214, .95) 100%),
+    linear-gradient(var(--gold), var(--gold)) bottom left / 100% 2px no-repeat;
+  box-shadow: 0 0 16px -2px rgba(229, 184, 105, .55);
+  clip-path: inset(0 100% 0 0);
+  animation: longpress-fill var(--long-press-ms, 450ms) linear forwards;
+  pointer-events: none;
+}
+/* 既に構えている行の長押しは**解く**操作なので、帯の色も変える。 */
+.installed-row[data-longpress].ultimate.armed.pressing::before {
+  background:
+    linear-gradient(90deg,
+      rgba(158, 173, 167, .06) 0%, rgba(158, 173, 167, .30) 86%,
+      rgba(237, 243, 237, .8) 100%),
+    linear-gradient(var(--muted), var(--muted)) bottom left / 100% 2px no-repeat;
+  box-shadow: none;
+}
+/* 帯の下に行の中身が隠れないようにする（帯は背景であって、覆いではない）。 */
+.installed-row[data-longpress] > * { position: relative; z-index: 1; }
+@keyframes longpress-fill {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
 .ultimate-trait.idle { border-style: dashed; opacity: .7; }
-/* 盤面のセルの ✹。構えているだけなら薄く、この一戦で出るなら光る。 */
-.party-ultimate { opacity: .4; }
+/* 盤面のセルの ✹（作者指摘 2026-09-13）。**四段で、誰が残していて誰が使い終えたかを出す。**
+ *
+ *   ready  … 薄い金の ✹ … まだ残っている（構えていない）
+ *   armed  … 金の ✹    … 構えているが、この一戦では条件が揃わない
+ *   firing … 光る ✹    … この一戦で出る（予測が言っている）
+ *   spent  … 灰の ✧    … この遠征ではもう放った。補充されない
+ */
+.party-ultimate.ready { opacity: .36; }
+.party-ultimate.armed { opacity: 1; text-shadow: 0 0 6px rgba(229, 184, 105, .55); }
 .party-ultimate.firing {
   opacity: 1;
   text-shadow: 0 0 8px rgba(229, 184, 105, .7);
   animation: ultimate-seal-beat 1.6s ease-in-out infinite;
 }
+.party-ultimate.spent { color: var(--muted); opacity: .55; }
 @media (prefers-reduced-motion: reduce) {
-  /* **光は残し、動きだけ止める。**どこに必殺が乗っているかは読めたままにする。 */
+  /* **長押しの帯だけは止めない。**あれは装飾ではなく、押している時間の目盛りである
+     （止めると「いつ離してよいか」が画面から消える）。 */
   .installed-row.ultimate.armed,
   .installed-row.ultimate.armed .ultimate-seal,
   .party-ultimate.firing { animation: none; }

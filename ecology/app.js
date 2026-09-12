@@ -136,11 +136,9 @@ import {
   blueprintCarryCapacity,
   newGeneratedItems,
   takeGeneratedEquipment,
-  // issue #238 — 必殺印（隊で共有・補充なし）と、いま構えている必殺技。
-  ULTIMATE_USES_PER_CHARACTER,
+  // issue #238 — 必殺印（一人一遠征に一度きり・補充なし）と、いま構えている必殺技。
   armedUltimates,
   ultimateUsesLeft,
-  ultimateUsesLeftInParty,
   ultimatesUnlocked,
 } from "./progression.mjs";
 import {
@@ -1266,8 +1264,9 @@ function equipmentFillLabel() {
 function campTutorialTab() {
   if (supplyTutorialVisible()) return "supplies";
   if (formationTutorialLocked()) return "map";
-  // issue #240 — 必殺技は装着行を長押しして構えるので、錠の最中は技能タブに留める。
-  if (ultimateLessonLocked()) return "skills";
+  // issue #240 — 必殺技は装着行を長押しして構えるので、その二手のあいだは技能タブに
+  // 留める（三手目の「遠征タブを押す」は、留めたままでは打てない）。
+  if (ultimateLessonTabLocked()) return "skills";
   return null;
 }
 
@@ -1347,6 +1346,10 @@ const LONG_PRESS_MS = 450;
 const LONG_PRESS_SLOP = 10;
 
 function bindLongPress() {
+  // 作者要望 2026-09-13 — 押しているあいだ、左から光の帯が伸びて右端で満ちる。
+  // **長さの正本は JS のこの定数ひとつ**で、帯の速さも同じ値から描く（CSS 側へ
+  // 書き写すと、ずれた日に「満ちたのに反応しない帯」ができる）。
+  document.documentElement.style.setProperty("--long-press-ms", LONG_PRESS_MS + "ms");
   app.querySelectorAll("[data-longpress]").forEach((element) => {
     let timer = null;
     let origin = null;
@@ -1404,9 +1407,12 @@ function bindLongPress() {
       timer = setTimeout(() => {
         timer = null;
         origin = null;
-        element.classList.remove("pressing");
         releasePointerCapture();
+        // **満ちた帯は満ちたまま渡す。**帯が右端へ届いた拍と、必殺が入る拍を同じに
+        // する（先に消すと、満ちる直前で切れたように見える）。行はこの直後の
+        // 再描画で作り直されるので、外す `pressing` は届かない要素への後始末である。
         handleAction({ currentTarget: element, longPress: true });
+        element.classList.remove("pressing");
       }, LONG_PRESS_MS);
     }, { passive: false });
 
@@ -3434,11 +3440,10 @@ function symbolLegendHelp() {
       + "<i class=\"turn-cell branch-strike\">✦</i></span><span class=\"turn-round\">"
       + "<i class=\"turn-cell idle\"></i></span></span>",
       "戦闘のあと、誰がどのラウンドに何を出したか。点線の枠はその拍に動いていない")
-    // issue #238 — 必殺印は菱形。**丸は払うものだけ**という約束を崩さずに、
-    // 「隊で共有する、補充されない残り」を別の形で出す。
-    + row("<span class=\"seal-pips\"><i class=\"on\"></i><i class=\"on\"></i><i></i></span>",
-      "必殺技を残している仲間の数。一人一遠征に一度きりで、補充されない")
-    + row("<span class=\"party-ultimate firing\">✹</span>", "必殺技。塗ってあれば「この一戦で出る」、薄ければ「構えているが条件が揃わない」")
+    // issue #238 / 作者指摘 2026-09-13 — 必殺の残りは**人物ごと**に出す（隊の合計はやめた）。
+    + row("<span class=\"party-ultimate firing\">✹</span>",
+      "必殺技を残している仲間。薄い ✹ は「まだ残っている」、金の ✹ は「構えている」、"
+      + "光る ✹ は「この一戦で出る」、灰の ✧ は「この遠征ではもう放った」")
     + "</dl>"
     + "<p class=\"muted\">丸は<b>払うもの</b>だけに使います。発動条件は技能名の下に短い薄字で書きます。</p>");
 }
@@ -3457,12 +3462,35 @@ function armedUltimateIds() {
   return new Set(armedUltimates(state.run).map((entry) => entry.characterId));
 }
 
-function ultimatePips(left, total) {
-  const cells = Array.from({ length: total }, (unused, index) =>
-    "<i class=\"" + (index < left ? "on" : "") + "\"></i>").join("");
-  return "<span class=\"seal-pips\" role=\"img\" aria-label=\"必殺技 残り" + left + " / " + total
-    + "人\" title=\"必殺技を残している仲間 " + left + " / " + total
-    + "人（一人一遠征に一度きり・補充なし）\">" + cells + "</span>";
+// **誰が必殺を残していて、誰が使い終えたか**（作者指摘 2026-09-13）。
+//
+// 以前は技能タブの見出しに「必殺を残す仲間 ◆◆◇」という**隊の合計**だけを出していた。
+// 合計は「あと何回あるか」には答えるが、**「誰の一回か」には答えない。**一人一遠征に
+// 一度きりで隊で分け合う枠でもないのだから、合計にはそもそも意味が薄い。
+//
+// 盤面のセルは常にその人物ひとりを指しているので、印はそこへ置く。四段ある。
+//
+//   firing … 塗って光る ✹ … 構えていて、**この一戦で出る**（予測が言っている）
+//   armed  … 金の ✹      … 構えているが、この一戦では条件が揃わない
+//   ready  … 薄い ✹      … まだ残っている（構えていない）
+//   spent  … 灰の ✧      … この遠征ではもう放った（補充されない）
+function ultimateCellMark(characterId) {
+  if (!ultimatesUnlocked(state.run)) return "";
+  const left = ultimateUsesLeft(state.run, characterId);
+  const skillId = armedUltimates(state.run)
+    .find((entry) => entry.characterId === characterId)?.skillId ?? null;
+  const fires = Boolean(skillId)
+    && (battleForecast()?.ultimateFiredBy ?? []).includes(characterId);
+  const [tone, glyph, label] = left <= 0
+    ? ["spent", "✧", "必殺技 · この遠征ではもう放った"]
+    : skillId
+      ? fires
+        ? ["firing", "✹", "必殺 " + nameFor(skillId) + " · この一戦で出る"]
+        : ["armed", "✹", "必殺 " + nameFor(skillId) + " · 構えているが、この一戦では出ない"]
+      : ["ready", "✹", "必殺技 · まだ残っている（技能の行を長押しで構える）"];
+  return "<span class=\"party-ultimate " + tone + "\" role=\"img\" aria-label=\""
+    + esc(characterName(characterId)) + "の" + esc(label) + "\" title=\"" + esc(label)
+    + "\">" + glyph + "</span>";
 }
 
 // 装着行ひとつぶんの必殺の状態。**行の見た目と操作を、ここ一箇所で決める。**
@@ -3544,14 +3572,11 @@ function renderSkills() {
   // 持たない。**残り技能点は隊全体の合計にする（一人ぶんだけでは、他の誰かが
   // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
   const characterId = selectedCharacter();
+  // 作者指摘 2026-09-13 — **隊全体の合計（必殺を残す仲間 N人）は出さない。**
+  // 誰の一回かに答えないので、指す先が無い。残りは盤面のセルが一人ずつ出す
+  // （`ultimateCellMark`）。
   const pointsBadge = "<span class=\"skill-points-badge\"><small>技能点 · 隊全体</small><b>"
-    + totalSkillPoints() + "</b></span>"
-    // issue #238 — 必殺技の残りは、見出しの小さな菱形だけにする（枠を足さない）。
-    + (ultimatesUnlocked(state.run)
-      ? "<span class=\"skill-points-badge\"><small>必殺を残す仲間</small>"
-        + ultimatePips(ultimateUsesLeftInParty(state.run),
-          state.run.roster.length * ULTIMATE_USES_PER_CHARACTER) + "</span>"
-      : "");
+    + totalSkillPoints() + "</b></span>";
   const depths = state.run.manifest.packDepths ?? {};
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
@@ -4045,21 +4070,10 @@ function partyCellPerson(characterId, entry) {
     : "HP " + now + " / " + ceiling;
   const ap = definition.baseActionPoints ?? 0;
   const rp = definition.baseReactionPoints ?? 0;
-  // issue #238 — 構えている仲間には✹を出す。**どの一戦に印を賭けているかは
+  // issue #238 / 作者指摘 2026-09-13 — **誰が必殺を残していて、誰が使い終えたかは
   // 盤面から読めなければならない**（技能タブを開かないと分からない、にしない）。
-  const ultimateSkillId = armedUltimates(state.run)
-    .find((entry) => entry.characterId === characterId)?.skillId ?? null;
-  // 構えているだけの ✹ は薄く、**この一戦で本当に出る** ✹ は塗る。
-  const ultimateFires = Boolean(ultimateSkillId)
-    && (battleForecast()?.ultimateFiredBy ?? []).includes(characterId);
-  const ultimateLabel = ultimateSkillId
-    ? "必殺 " + nameFor(ultimateSkillId) + (ultimateFires ? " · この一戦で出る" : " · この一戦では出ない")
-    : "";
-  const ultimateMark = ultimateSkillId
-    ? "<span class=\"party-ultimate" + (ultimateFires ? " firing" : "")
-      + "\" role=\"img\" aria-label=\"" + esc(ultimateLabel) + "\" title=\""
-      + esc(ultimateLabel) + "\">✹</span>"
-    : "";
+  // 印は四段（残っている／構えた／この一戦で出る／もう放った）で、`ultimateCellMark` が決める。
+  const ultimateMark = ultimateCellMark(characterId);
   // issue #235 — セルは**2行**。1行目に人物と1ラウンドの資源、2行目にHPと増減を置く。
   // 4行積みは1セル67px・固定領域234pxで、iPhoneの画面の3割を常時奪っていた。
   // **出す情報は一つも減らさずに**、行だけを畳む（数値はバーの上へ重ねる）。
@@ -4284,7 +4298,9 @@ function formationTutorialNote() {
 //
 //   pick … ナギのセルを押す（技能タブは選んだ一人ぶんしか出ない）
 //   arm  … 光っている装着行を**長押し**して、この一戦の必殺にする
-//   done … 構え終わった。錠は外れ、次の一押し（この敵に挑む）だけが光る
+//   open … 光っている「遠征」タブを押す（作者指摘 2026-09-13。構えた瞬間に画面が
+//          勝手に跳ぶのではなく、**タブを開くのもプレイヤーの一手**にする）
+//   done … 錠は外れ、次の一押し（この敵に挑む）だけが光る
 //
 // **巻き戻しは使わない。予測の帯が教材である。**構える前の帯は「敗北」、構えたあとの
 // 帯は「勝利」で、その差が必殺ひとつぶんだと画面から読める（DESIGN.md §8.11）。
@@ -4310,14 +4326,25 @@ function ultimateLessonArmed() {
 
 function ultimateLessonStep() {
   if (state.phase !== "camp" || !ultimateLessonActive()) return null;
-  if (ultimateLessonArmed()) return "done";
-  return selectedCharacter() === ULTIMATE_LESSON_GOAL.characterId ? "arm" : "pick";
+  if (!ultimateLessonArmed()) {
+    return selectedCharacter() === ULTIMATE_LESSON_GOAL.characterId ? "arm" : "pick";
+  }
+  // 構え終わったら、次の一押しは**自分で遠征タブを開くこと**。構えた拍で画面を
+  // 勝手に跳ばさない（作者指摘 2026-09-13）。
+  return state.tab === "map" ? "done" : "open";
 }
 
-// 錠が掛かるのは構えるまでの二手だけ。"done" は光らせるだけで、何も塞がない。
+// 錠が掛かるのは三手のあいだだけ。"done" は光らせるだけで、何も塞がない。
 function ultimateLessonLocked() {
   const step = ultimateLessonStep();
   return step !== null && step !== "done";
+}
+
+// タブそのものを閉じ込めるのは、技能タブで打つ二手のあいだだけ。**三手目は
+// 「遠征タブを押す」なので、ここで閉じ込めると自分の一手が効かない。**
+function ultimateLessonTabLocked() {
+  const step = ultimateLessonStep();
+  return step === "pick" || step === "arm";
 }
 
 // 光らせる先。**選択子はこの表にしかない。**画面と検査が別々の綴りを持つと、
@@ -4330,6 +4357,7 @@ function ultimateLessonSpotSelector(step) {
     // 長押しの行は釦ではない。**行そのもの**が押す先で、錠もここだけを通す。
     arm: ".installed-row[data-longpress][data-character=\"" + goal.characterId
       + "\"][data-skill=\"" + goal.skillId + "\"]",
+    open: "nav.tabs [data-tab=\"map\"]",
     done: "[data-action=\"begin-stage\"]",
   }[step] ?? null;
 }
@@ -4363,9 +4391,14 @@ function ultimateLessonNote() {
         + (traits ? "必殺にすると<b>" + esc(traits) + "</b>になります。" : "必殺にすると別物になります。")
         + "光っている行を<b>長押し</b>してください。",
     },
-    done: {
+    open: {
       title: "予測が変わった",
       body: "<b>" + esc(ULTIMATE_LESSON.armedHint) + "</b>"
+        + "光っている「遠征」タブを押して、次の一戦へ進んでください。",
+    },
+    done: {
+      title: "この敵に挑む",
+      body: "<b>構えた必殺は、放たなければ減りません。</b>"
         + "放つのは<b>隊の誰かがHP" + ULTIMATE_READY_HP_PERCENT
         + "%未満になってから</b>で、放てるのは一人一遠征に一度きりです。",
     },
@@ -4373,8 +4406,9 @@ function ultimateLessonNote() {
   const marks = [
     ["pick", esc(name) + "を押す"],
     ["arm", "行を長押しする"],
+    ["open", "「遠征」タブを押す"],
   ];
-  const order = ["pick", "arm", "done"];
+  const order = ["pick", "arm", "open", "done"];
   const list = marks.map(([id, label], index) => {
     const mark = order.indexOf(step) > index ? "done" : id === step ? "current" : "todo";
     return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + label + "</li>";
@@ -5302,11 +5336,16 @@ function renderResult() {
     + skillGain + "</section>";
   // issue #238 — 必殺印は「構えたから」ではなく「放ったから」減る。
   // **払った理由と残りを、払った画面で見せる。**
+  // 作者指摘 2026-09-13 — 人数ではなく**名前**で出す。「あと2人」は誰の一回かに答えない。
   const firedBy = state.lastCarrySnapshot?.ultimateFiredBy ?? [];
+  const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
   const sealText = firedBy.length
-    ? "<p class=\"muted\">✹ " + esc(firedBy.map((id) => characterName(id)).join(" · "))
-      + " <span class=\"muted\">· 必殺を残す仲間 " + ultimateUsesLeftInParty(state.run)
-      + " / " + state.run.roster.length + "</span></p>"
+    ? "<p class=\"muted\">✹ <b>" + esc(firedBy.map((id) => characterName(id)).join(" · "))
+      + "</b> が必殺技を放ちました。この遠征ではもう放てません。"
+      + (stillHave.length
+        ? "まだ残しているのは <b>" + esc(stillHave.map((id) => characterName(id)).join(" · ")) + "</b> です。"
+        : "隊の全員が放ち終えました。")
+      + "</p>"
     : "";
   const stateCard = "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "戦闘後の状態")
     + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
@@ -6487,12 +6526,12 @@ function handleAction(event) {
     else {
       state.run.loadout = result.loadout;
       record("ultimate_toggled", { characterId, skillId: result.skillId, armed: result.armed });
-      // issue #240 — 教える一手が打てた瞬間だけを記録する（錠が外れる拍）。
-      if (lessonStepBefore === "arm" && ultimateLessonStep() === "done") {
-        // **光る場所と、見えている画面をずらさない。**次の一押し（この敵に挑む）は
-        // 遠征タブにあるので、構え終わった拍でそこへ送る（錠が外れた瞬間に、
-        // 技能タブへ留め置いたまま遠征タブの釦を光らせると、光が画面の外に出る）。
-        state.tab = "map";
+      // issue #240 — 教える一手が打てた瞬間だけを記録する。
+      // **画面は跳ばさない**（作者指摘 2026-09-13）。構えた行を見せたまま、次の一手
+      // 「遠征タブを押す」へ進む。ここで `state.tab` を技能へ揃えるのは、run の既定が
+      // 遠征タブで、揃えないと三手目が最初から済んだことになってしまうためである。
+      if (lessonStepBefore === "arm") {
+        state.tab = "skills";
         record("ultimate_lesson_armed", { characterId, skillId: result.skillId });
       }
     }
