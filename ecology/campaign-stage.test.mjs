@@ -280,12 +280,18 @@ function syntheticResult(result, allyHpById) {
   equal(retreated.settlement.breakdown.outcomeBonus, 0, "安全撤退には完走ボーナスが付かない");
   equal(retreated.settlement.firstClear, false, "安全撤退には初clearボーナスが付かない");
   equal(retreated.settlement.blueprintSaveLimit, BLUEPRINT_SAVE_LIMIT.retreat, "安全撤退のBlueprint保存上限");
-  check(BLUEPRINT_SAVE_LIMIT.retreat > BLUEPRINT_SAVE_LIMIT.lost, "安全撤退は敗北より保存上限が高い");
-  check(BLUEPRINT_SAVE_LIMIT.retreat === BLUEPRINT_SAVE_LIMIT.won, "安全撤退と勝利の保存上限は同じ");
+  // PR #255（作者判断 2026-09-12）— **設計図を持ち帰れるのは勝って生還したときだけ。**
+  // 撤退と敗北は0件で、資金と Stage 解禁の側だけが撤退と敗北を区別する。
+  equal(BLUEPRINT_SAVE_LIMIT.won, 1, "勝利の保存上限は1");
+  equal(BLUEPRINT_SAVE_LIMIT.retreat, 0, "安全撤退では設計図が残らない");
+  equal(BLUEPRINT_SAVE_LIMIT.lost, 0, "敗北でも設計図が残らない");
+  check(BLUEPRINT_SAVE_LIMIT.won > BLUEPRINT_SAVE_LIMIT.retreat, "残るのは完走した遠征だけ");
+  // 撤退と敗北の違いは設計図では出さない（確定した活動資金は撤退でも持ち帰る）。
+  check(retreated.settlement.earned >= 0, "安全撤退でも確定した活動資金は持ち帰る");
 
   const lostRun = newRun(profile, { runSeed: "s", runId: "lost-r1", roster: ROSTER, campaignStageSequence: 3 });
   const lost = settleRun(profile, lostRun, "lost");
-  equal(lost.settlement.blueprintSaveLimit, 1, "敗北のBlueprint保存上限は1");
+  equal(lost.settlement.blueprintSaveLimit, 0, "敗北のBlueprint保存上限は0");
 }
 
 // ---- exact preview（R8 §11）---------------------------------------------------
@@ -344,6 +350,27 @@ function syntheticResult(result, allyHpById) {
   const wardenLine = hurtPreview.perCharacter.find((entry) => entry.characterId === "warden");
   equal(wardenLine.startingHp, 40, "持ち越しHPが開始HPとして出る");
   equal(wardenLine.hpLost, wardenLine.startingHp - wardenLine.endingHp, "減少量は開始と終了の差");
+  // 作者指摘 2026-09-12 — 戦闘の指標の「味方HP損失」も、**この戦闘で減った量**にする。
+  // 前の戦闘から持ち越した傷を毎回数え直すと、無傷で抜けた一戦でも損失が出る。
+  {
+    const hurt = {
+      ...run,
+      currentHp: Object.fromEntries(run.roster.map((id) => [id, Math.max(1, Math.floor(
+        (characterStats(profile, id)?.stats.maxHp ?? 2) / 2,
+      ))])),
+    };
+    const carried = simulateNextBattle({ ...hurt, loadout: freshLoadout(ROSTER) }, profile, 1).result;
+    const startedShort = carried.actors
+      .filter((actor) => actor.side === "ally")
+      .reduce((sum, actor) => sum + (actor.maxHp - actor.startingHp), 0);
+    const thisBattle = carried.actors
+      .filter((actor) => actor.side === "ally")
+      .reduce((sum, actor) => sum + Math.max(0, actor.startingHp - actor.hp), 0);
+    check(startedShort > 0, "持ち越しの傷がある状態で戦っている");
+    equal(carried.metrics.allyHpLost, thisBattle, "味方HP損失は持ち越した傷を含まない");
+    check(carried.metrics.allyHpLost < startedShort + thisBattle,
+      "持ち越した傷を足し込んでいない");
+  }
 
   // R14 §1 — **12戦の梯子の外の盤面も、同じ経路で予測できる。**
   // 序盤の「灰の門」は composeEncounter からは出てこない（prologueEncounter が出す）。

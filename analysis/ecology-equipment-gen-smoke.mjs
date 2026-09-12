@@ -69,10 +69,18 @@ for (const [stage, familyIds] of STAGE_POOLS.entries()) {
 
 const firedBySource = new Map();
 const seenBySource = new Map();
-// **全 Stage pool から均等に拾う。**先頭だけを見ると、後段の pool にしか
-// 現れない trigger が「一度も鳴らなかった」ではなく「一度も試されなかった」
-// のに気づけない。
-const probeItems = items.filter((_, index) => index % 3 === 0);
+// **trigger ごとに拾う。**「n 個おき」で間引くと、どの trigger が標本から
+// 漏れるかが affix 目録の変化で揺れて、「鳴らなかった」のか「試されなかった」
+// のかが分からなくなる（PR #255 で目録が増えたとき実際にそうなった）。
+// trigger ごとに上限を決めて拾えば、全 trigger が必ず盤面へ出る。
+const PROBES_PER_SOURCE = 4;
+const probeQuota = new Map();
+const probeItems = items.filter((item) => {
+  const sources = item.provenance.affixIds.filter((id) => AFFIX_BY_ID[id]?.role === "source");
+  if (!sources.some((id) => (probeQuota.get(id) ?? 0) < PROBES_PER_SOURCE)) return false;
+  for (const id of sources) probeQuota.set(id, (probeQuota.get(id) ?? 0) + 1);
+  return true;
+});
 for (const item of probeItems) {
   const sources = item.provenance.affixIds.filter((id) => AFFIX_BY_ID[id]?.role === "source");
   for (const id of sources) seenBySource.set(id, (seenBySource.get(id) ?? 0) + 1);
@@ -117,11 +125,11 @@ for (let sequence = 0; sequence <= 3; sequence += 1) {
   });
   for (let index = 1; index <= 11; index += 1) {
     const offers = rewardOffer(run, profile, index, 0);
-    const kinds = new Set(offers.map((offer) => offer.type));
     const equipmentCount = offers.filter((offer) => offer.type === "equipment").length;
     const suppliesCount = offers.filter((offer) => offer.type === "supplies").length;
     offersChecked += 1;
-    if (offers.length !== 3 || kinds.size < 2 || equipmentCount !== 2 || suppliesCount !== 1) {
+    // PR #255 — 候補は装備だけ。補給は遠征開始時に固定されるので混ざらない。
+    if (offers.length !== 2 || equipmentCount !== 2 || suppliesCount !== 0) {
       invalidRewardOffers += 1;
     }
     for (const offer of offers) {

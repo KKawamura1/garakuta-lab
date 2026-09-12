@@ -3651,3 +3651,221 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
     box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .5);
   }
 }
+
+/* ============================================================ 装備の候補（PR #255）
+ *
+ * 作者指摘 2026-09-12：「装備は2つとも画面に収める。少なくとも iPhone 16e では
+ * スクロールなしで選べてほしい。ヴァンパイアサバイバーズを参考に。もし可能なら、
+ * 今後ギルド画面から候補を3つにするアップグレードが来ても大丈夫なようになると理想。」
+ *
+ * なので札は**横幅いっぱいの行**で縦に並べ、一枚の高さを候補数から締める。
+ * `data-count` が 3 以上になっても同じ規則で収まるよう、余白・行間・文字を
+ * 段階的に詰める（数値を JS へ持たせず、ここ一箇所で決める）。
+ */
+.reward-card-shell { padding: 11px 12px; }
+.reward-card-shell .section-head { margin-bottom: 2px; }
+.reward-card-shell .section-head h2 { font-size: 15px; }
+.verdict-slim { padding: 10px 14px; text-align: left; }
+.verdict-slim-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0;
+  font-size: 12px;
+}
+.verdict-slim-line b { color: var(--good); font-size: 14px; }
+.verdict-slim-line span { color: var(--muted); }
+
+.reward-choices {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.reward-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #172124;
+}
+.reward-choice header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: space-between;
+}
+.reward-choice h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.25;
+}
+.reward-keystone {
+  margin: 0;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: var(--gold-dark);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.reward-risk {
+  margin: 0;
+  padding: 4px 7px;
+  border-left: 3px solid #d36b64;
+  border-radius: 4px;
+  background: rgba(143, 54, 49, .18);
+  color: #f0aaa4;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.reward-effect-list {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.reward-effect-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: var(--ink);
+  font-size: 11.5px;
+  line-height: 1.3;
+}
+.reward-more, .reward-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.reward-meta { margin-right: 8px; }
+.reward-choice .reward-full { margin-top: 0; }
+.reward-choice .reward-full summary { color: var(--blue); font-size: 11px; }
+.reward-choice .reward-full .equipment-rule-line {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.reward-choice .reward-take { margin-top: 2px; padding: 10px; font-size: 13px; }
+.reward-choice.disabled { opacity: .6; }
+.reward-choices[data-count="3"] { gap: 6px; }
+.reward-choices[data-count="3"] .reward-choice { gap: 3px; padding: 7px 9px; }
+.reward-choices[data-count="3"] .reward-choice h3 { font-size: 12.5px; }
+.reward-choices[data-count="3"] .reward-effect-list li { font-size: 11px; line-height: 1.25; }
+.reward-choices[data-count="3"] .reward-rule-head { font-size: 10px; }
+.reward-choices[data-count="3"] .reward-choice .reward-full summary { font-size: 10px; }
+.reward-choices[data-count="3"] .reward-choice .reward-take { padding: 7px; font-size: 12px; }
+.reward-choices[data-count="4"] .reward-choice,
+.reward-choices[data-count="5"] .reward-choice { gap: 3px; padding: 7px 9px; }
+.reward-choice.rarity-card-epic { border-color: #66528a; }
+.reward-choice.rarity-card-legendary {
+  border-color: #8b692d;
+  background: linear-gradient(145deg, rgba(57,47,30,.98), rgba(21,29,31,.97));
+}
+.reward-choice.rarity-card-mythic {
+  border-color: #8d5069;
+  background: linear-gradient(145deg, rgba(56,34,45,.98), rgba(21,29,31,.97));
+}
+.reward-choice.rarity-card-oopart {
+  border-color: #388d91;
+  background: linear-gradient(145deg, rgba(25,59,61,.98), rgba(38,30,57,.97));
+}
+.reward-reroll .button { padding: 9px; font-size: 12px; }
+
+/* 直前の一戦の一行（PR #255）。結果画面の代わりではなく、次の一戦を決める
+ * 画面の中の「さっき何が起きたか」。 */
+.last-battle-note { padding: 12px 14px; border-left: 3px solid var(--good); }
+.last-battle-note h3 { margin: 2px 0 6px; font-size: 14px; }
+.last-battle-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 0 0 6px;
+}
+.last-battle-facts span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--panel-3);
+  color: var(--ink);
+  font-size: 11px;
+}
+
+/* 残す設計図の選択（issue #151）。 */
+.keep-list { display: grid; gap: 8px; margin-top: 10px; }
+.keep-card {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #172124;
+}
+.keep-card.selected { border-color: var(--gold); background: var(--gold-dark); }
+.keep-main {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+.keep-mark {
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--gold);
+  font-size: 13px;
+}
+.keep-card.selected .keep-mark { border-color: var(--gold); }
+.keep-name { flex: 1 1 auto; font-size: 13px; font-weight: 700; }
+.keep-card .reward-full summary { color: var(--blue); font-size: 11px; }
+.effect-always {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--good);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+/* rule の見出し（PR #255）。**いつ・何を払い・何回**を効果の真上に置く。
+ * 作者試遊 2026-09-12「結局、条件と消費も見ないと選べないです」。 */
+.reward-rule { display: grid; gap: 3px; }
+.reward-rule + .reward-rule { margin-top: 4px; }
+.reward-rule-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 5px;
+  margin: 0;
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+.reward-rule-head b { color: var(--blue); font-weight: 700; }
+.reward-rule-head span {
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.reward-effect-list li::before {
+  color: var(--muted);
+  content: "→";
+  font-size: 10px;
+}
+.reward-choice > .reward-effect-list li::before { content: none; }

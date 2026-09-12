@@ -131,7 +131,14 @@ import {
   upgradeCost,
   upgradeLevel,
   INVENTORY_LIMIT,
-  MAX_SUPPLIES,
+  // PR #255 — 遠征ごとの補給総数（表記の分母）と、装備候補を出す戦闘の判定。
+  // 画面は `MAX_SUPPLIES`（永続強化を積んだときの天井）を読まない。読むのは
+  // つねに**その遠征の総数**で、分母が画面ごとにずれないようにする。
+  runSuppliesMax,
+  offersRewardAfterClear,
+  // issue #151 — 精算で残す設計図は、候補と上限を読んでプレイヤーが選ぶ。
+  blueprintSaveCandidates,
+  blueprintSaveLimitFor,
   appraisalLevel,
   blueprintCarryCapacity,
   newGeneratedItems,
@@ -330,7 +337,6 @@ function startRun(profile, options = {}) {
     // 渡さなければ従来どおり Free / Endless の random manifest になる
     // （newRun 側の分岐。content/campaign-stages.mjs）。
     campaignStageSequence: options.campaignStageSequence ?? null,
-    tutorial: options.tutorial === true,
     formation: defaultFormation(roster),
     startedAt: new Date().toISOString(),
   });
@@ -470,6 +476,14 @@ function freshUiState() {
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
+    // PR #255 — ボス戦以外の勝利は結果画面を挟まずキャンプへ戻るので、
+    // 「直前の一戦で何が起きたか」をキャンプの一枚だけが預かる。
+    lastBattleNote: null,
+    // PR #255 — 最終戦で装備を受け取った戦闘。**候補を作り直さない**ための印。
+    rewardTakenAtEncounter: null,
+    // issue #151 — 精算で残す設計図の選択（descriptor の配列）。
+    blueprintKeep: null,
+    pendingSettlement: null,
     lastResult: null,
     lastSettlement: null,
     lastCarrySnapshot: null,
@@ -593,7 +607,10 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.run.inventory = Array.isArray(savedRun.inventory)
     ? savedRun.inventory.filter((id) => componentInfo(id)).slice(0, INVENTORY_LIMIT)
     : [];
-  next.run.supplies = Math.max(0, Math.min(MAX_SUPPLIES, Math.floor(savedRun.supplies ?? 0)));
+  // PR #255 — 遠征ごとの補給総数。**古い保存には欄が無い**ので、持っている数と
+  // 固定値から読み直す（`runSuppliesMax`）。読み直した総数より多くは持てない。
+  next.run.suppliesMax = runSuppliesMax(savedRun);
+  next.run.supplies = Math.max(0, Math.min(next.run.suppliesMax, Math.floor(savedRun.supplies ?? 0)));
   // issue #238 — 欄の無い保存は「まだ誰も放っていない」として読む。
   next.run.ultimatesUsed = Array.isArray(savedRun.ultimatesUsed)
     ? savedRun.ultimatesUsed.filter((id) => typeof id === "string")
@@ -613,6 +630,18 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.equipmentDurability = {};
   next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
   next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
+  next.lastBattleNote = next.lastBattleNote && typeof next.lastBattleNote === "object"
+    ? next.lastBattleNote
+    : null;
+  next.rewardTakenAtEncounter = Number.isInteger(next.rewardTakenAtEncounter)
+    ? next.rewardTakenAtEncounter
+    : null;
+  next.blueprintKeep = Array.isArray(next.blueprintKeep) ? next.blueprintKeep : null;
+  next.pendingSettlement = next.pendingSettlement && typeof next.pendingSettlement === "object"
+    ? next.pendingSettlement
+    : null;
+  // issue #151 — 選択の途中で中断した保存は、精算の前（結果画面）から読み直す。
+  if (next.phase === "blueprintPick" && !next.pendingSettlement) next.phase = "camp";
   next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
   next.replaySnapshots = Array.isArray(next.replaySnapshots) ? next.replaySnapshots : [];
   next.skillTreeScroll = next.skillTreeScroll && typeof next.skillTreeScroll === "object" && !Array.isArray(next.skillTreeScroll)
@@ -942,7 +971,7 @@ function hasStoryFlag(flag) {
 
 // 初回の本編戦闘（encounter 1）に勝った後にだけ補給の使い方を案内する。
 // R11 §5 改 — 巻き戻したあとの勝利がそのまま encounter 1 の勝利になるので、
-// `!state.prologueActive` は advanceAfterReward が既に prologueActive を
+// `!state.prologueActive` は advanceAfterBattle が既に prologueActive を
 // 落としたあとにしか呼ばれない（結果・報酬画面の表示中はまだ真のまま）。
 function firstOrdinaryBattleWon() {
   return isCampaignRun()
@@ -952,7 +981,7 @@ function firstOrdinaryBattleWon() {
     && state.run.results.some((entry) => entry.encounter === 1 && entry.result === "win");
 }
 
-function shouldShowSupplyTutorialAfterReward() {
+function shouldShowSupplyTutorialAfterBattle() {
   return firstOrdinaryBattleWon()
     && state.run.encounterIndex === 1
     && state.lastResult?.result === "win"
@@ -1279,7 +1308,7 @@ function campNav() {
   const tabs = [
     ["skills", "スキル", totalSkillPoints() + "pt"],
     ["equipment", "装備", equipmentFillLabel()],
-    ["supplies", "補給", state.run.supplies + "/" + MAX_SUPPLIES],
+    ["supplies", "補給", state.run.supplies + "/" + supplyTotal()],
     ["map", "遠征", state.run.encounterIndex + "/" + ENCOUNTERS_PER_RUN],
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
@@ -1309,6 +1338,7 @@ function render() {
     battleError: renderBattleError,
     result: renderResult,
     defeat: renderDefeat,
+    blueprintPick: renderBlueprintPick,
     settlement: renderSettlement,
     homestead: renderHomestead,
     complete: renderComplete,
@@ -2345,20 +2375,19 @@ function finishStory() {
     simulateAndEnterBattle();
     return;
   }
-  // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。**ここで
-  // 既読印は押すが、prologueActive は落とさない。**結果画面（報酬選択を兼ねる）を
-  // 通常の勝利と同じ経路で見せたあと、次の戦闘へ進むとき（advanceAfterReward）に
-  // 初めて落とす。ここで落とすと、結果画面が currentEncounter() 経由で
-  // 「灰の入口」（12戦の第1戦）の名を誤って出してしまう。
+  // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。
+  //
+  // PR #255 — **第1戦は通常戦なので、装備の候補は出ない。**以前は結果画面が
+  // 報酬選択を兼ねていたので一枚挟んでいたが、選ぶものが無くなったため、会話の
+  // あとはそのままキャンプへ戻る（`advanceAfterBattle` が prologueActive を落とし、
+  // 技能点の付与と補給チュートリアルの提示もそこで揃う）。
   if (after === "prologueClear") {
     state.profile = {
       ...state.profile,
       storyFlags: [...new Set([...(state.profile.storyFlags ?? []), "prologue_seen"])],
     };
     record("prologue_cleared", { stage: state.run.campaignStageSequence });
-    state.phase = "result";
-    saveState();
-    render();
+    advanceAfterBattle();
     return;
   }
   state.phase = "camp";
@@ -2663,7 +2692,10 @@ function renderCamp() {
     "<div class=\"camp-top\">" + partyBar(activeTab) + campNav() + "</div>"
     // issue #240 — 必殺技の手引きは**どのタブでも同じ場所**に出す（構える行は技能タブ、
     // 挑む釦は遠征タブにあるので、片方のタブへ書くと段の途中で札が消える）。
-    + ultimateLessonNote() + view,
+    // PR #255 — 直前の一戦の一行も同じ理由でここに出す。戻った先のタブは
+    // 場面によって変わる（補給チュートリアル中は補給タブに錠が掛かる）ので、
+    // 遠征タブだけに書くと「さっき何が起きたか」が読めない回ができる。
+    + ultimateLessonNote() + lastBattleNoteHtml() + view,
     { hideHeaderAction: true });
 }
 
@@ -3693,14 +3725,22 @@ function renderEnemy(enemy, { withLore = true } = {}) {
 
 // R6 §12.1 — 補給は3用途で共有する。**引き直しに使うと再挑戦の余地が減る。**
 // そのトレードオフを、残数と用途を同じ場所へ並べて見せる。
+//
+// PR #255 — 分母は**その遠征の総数**（既定3、ギルドの「開始補給」で伸びる）。
+// 遠征中に増えないので、「3/3」が最初から最後まで同じ意味で読める。
+function supplyTotal() {
+  return runSuppliesMax(state.run);
+}
+
 function suppliesBar(context) {
   const supplies = state.run.supplies;
-  const pips = Array.from({ length: MAX_SUPPLIES }, (_, index) =>
+  const total = supplyTotal();
+  const pips = Array.from({ length: total }, (_, index) =>
     "<span class=\"supply-pip " + (index < supplies ? "on" : "") + "\"></span>").join("");
   const uses = Object.entries(SUPPLY_USES)
     .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", camp: "野営治療" }[id])
       + "</b> " + esc(text) + "</li>").join("");
-  return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + MAX_SUPPLIES
+  return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + total
     + "</b><span>" + esc(context ?? "3つの用途で取り合う") + "</span></div>"
     + "<div class=\"supply-pips\">" + pips + "</div><ul class=\"supply-uses\">" + uses + "</ul></div>";
 }
@@ -3713,13 +3753,54 @@ function renderSupplies() {
   return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給")
     + suppliesBar()
     + "<div class=\"scrap-line\"><span>屑 <b>" + scrap + "</b> / " + SCRAP_PER_SUPPLY + " → 補給1</span>"
-    + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= MAX_SUPPLIES, "tiny-button")
+    + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= supplyTotal(), "tiny-button")
     + "</div></section>"
     + treatment
     + helpDetails("supply-rules", "補給のルール",
-      "<p class=\"muted\">補給は遠征中だけ有効な有限資源です。再挑戦と引き直しに使った分は、野営治療には使えません。</p>");
+      "<p class=\"muted\">補給はこの遠征の開始時に " + supplyTotal()
+      + " 個で固定され、報酬では増えません。再挑戦と引き直しに使った分は、野営治療には使えません。"
+      + "装備を分解して出た屑は、使った分を " + SCRAP_PER_SUPPLY
+      + " で1個だけ戻せます（総数は超えません）。総数はギルドの「開始補給」で伸びます。</p>");
 }
 
+
+// PR #255 — 直前の一戦の一行。**結果画面の代わりではない。**決めることが
+// 何も無い画面を一枚挟む代わりに、次の一戦を決める画面の中へ「さっき何が起きたか」
+// だけを置く。次の戦闘を始めた時点で消える（`simulateAndEnterBattle`）。
+function lastBattleNoteHtml(override = undefined) {
+  const note = override === undefined ? state.lastBattleNote : override;
+  if (!note || !Number.isInteger(note.encounter)) return "";
+  const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[note.kind] ?? "通常";
+  const facts = [
+    note.roundsUsed + "ラウンド",
+    "味方HP損失 " + note.allyHpLost,
+    "技能点 +" + note.skillPoints,
+  ];
+  if (note.equipmentWear > 0) facts.push("装備摩耗 " + note.equipmentWear);
+  const extra = [];
+  if (note.fullHealed) extra.push("幕が変わったので全員が全回復しました。");
+  else extra.push("このHPを次の戦闘へ持ち越します。");
+  if (note.downed.length) {
+    extra.push("戦闘不能：" + note.downed.map((id) => characterName(id)).join(" · ")
+      + "（補給の蘇生で戻せます）。");
+  }
+  // issue #238 — 必殺の印は「放ったから」減る。**結果画面と同じ文**で出す
+  // （同じ出来事を画面ごとに別の言い方で書かない）。
+  if (note.ultimateFiredBy.length) {
+    const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
+    extra.push("✹ " + note.ultimateFiredBy.map((id) => characterName(id)).join(" · ")
+      + " が必殺技を放ちました。この遠征ではもう放てません。"
+      + (stillHave.length
+        ? "まだ残しているのは " + stillHave.map((id) => characterName(id)).join(" · ") + " です。"
+        : "隊の全員が放ち終えました。"));
+  }
+  return "<section class=\"card last-battle-note\" role=\"status\">"
+    + "<p class=\"eyebrow\">LAST BATTLE</p>"
+    + "<h3>第" + note.encounter + "戦・" + kindLabel + " — 突破した</h3>"
+    + "<p class=\"last-battle-facts\">" + facts.map((text) =>
+      "<span>" + esc(text) + "</span>").join("") + "</p>"
+    + "<p class=\"muted\">" + esc(extra.join(" ")) + "</p></section>";
+}
 
 // issue #235 — 旧「戦闘」タブ。**準備タブ（スキル・装備・補給）と役が違う。**
 // ここは「次の一戦へ進む」と、遠征そのものをどうするか（隊列の顔ぶれ・撤退・セーブ）を
@@ -4755,7 +4836,11 @@ function renderBattle() {
     + button("一手 ▶", "replay-step", true, "button", "data-role=\"replay-step\"")
     + "</div>"
     + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
-    + button("結果を見る", "replay-result", false, "button") + "</section>"
+    // PR #255 — **行き先ではなく、いま押す操作の名前にする。**「キャンプへ戻る」と
+    // 書くと、戦闘の前へ戻る（＝やり直せる）ように読めた（作者試遊 2026-09-12）。
+    // この釦がするのは再生を打ち切ることだけなので、そう名乗らせる。行き先が
+    // 場面で変わる（結果画面・キャンプ・精算）ぶん、札で行き先を約束しない。
+    + button("再生をとばす", "replay-result", false, "button") + "</section>"
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
       + "<p class=\"muted\">枠色はHPでは変えません。生存中の残りHPが56%以上なら主色は緑、26〜55%なら黄、25%以下なら赤です。残HPは主色、今回の攻撃で回復済みは主色の薄め、回復可能は主色のかなり暗め、回復不能は黒で表示します。</p>"
@@ -5324,9 +5409,14 @@ function renderResult() {
       ? button("編成を見直す", "back-camp", false, "button primary")
       : button("続きを見る", "resume-prologue-defeat", false, "button primary")
     : won
-      ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
-        ? button("遠征を精算する", "settle-run", false, "button primary")
-        : rewardSectionHtml()
+      ? rewardDueForCurrentEncounter() && state.rewardOffer.length
+        ? rewardSectionHtml()
+        // PR #255 — 最終戦の候補を受け取り終えたら、そのまま精算へ進む。
+        // 候補の無い勝利で結果画面に残るのは中断復帰と古い保存だけだが、
+        // そこでも「次の一手」を必ず出す。
+        : state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+          ? button("遠征を精算する", "settle-run", false, "button primary")
+          : button("キャンプへ戻る", "advance-encounter", false, "button primary")
       : button("この先どうするか", "show-defeat", false, "button primary");
   const nextBlock = "<div class=\"primary-action result-primary-action\" data-primary-action=\"result-next\">"
     + next + "</div>";
@@ -5343,6 +5433,8 @@ function renderResult() {
     ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
     : "<p class=\"muted\">持ち帰る活動資金 <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
       + "</b> · 到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + "</p>";
+  const rewardLayout = won && !prologueUnresolved
+    && rewardDueForCurrentEncounter() && state.rewardOffer.length > 0;
   const status = "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
     + (won ? "✓" : "×") + "</div><h2>" + (won ? "突破した" : "足を止めた")
     + "</h2><p class=\"verdict-context\">" + esc(encounter.name) + " · " + result.roundsUsed
@@ -5379,12 +5471,29 @@ function renderResult() {
     + diagnosticStamp()
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
     + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
+  // PR #255 — **装備を選ぶ画面は、選ぶものだけを上に置く。**
+  //
+  // 作者試遊 2026-09-12 —「報酬画面の『戦闘後の状態』も複雑すぎて要らないかも。
+  // 戦闘後キャンプの『LAST BATTLE』と同じモーダルでいいです。」勝敗の大札・4つの
+  // 指標・人物ごとのHP・装備耐久の一覧を、キャンプと同じ一枚へ置き換える。
+  // 候補と拾う釦を折り返しの上へ収めるため、その一枚は**候補の下**に置く
+  // （決めるのは候補で、直前の一戦はその材料ではない）。
+  //
+  // 上端の「安全に撤退する」も出さない。**候補を一つ拾ってから撤退できる**
+  // （先に撤退すると、選ばせておいて取り上げる形になる）。
+  if (rewardLayout) {
+    return shell(
+      nextBlock + lastBattleNoteHtml(buildBattleNote(state.run.encounterIndex))
+      + rotationStrip(result) + replay + history,
+      { hideHeaderAction: true },
+    );
+  }
   return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history);
 }
 
 
-// R15 — 通常戦勝利時に技能点は全員へ自動付与する。報酬は3候補から1つ。
-// **活動資金はこの3候補に入らない。**
+// R15 — 戦闘の勝利で技能点は全員へ自動付与する。装備の候補はボス戦突破後だけ、
+// **装備2件のあいだの選択**として出る（活動資金も補給もこの選択に入らない）。
 // ---------------------------------------------------------------- 世界の声（R12 §4.B の続き）
 //
 // R12 は敵カード・設計図・精算の三か所へ世界の声を載せた。残っていたのが
@@ -5458,69 +5567,166 @@ function generatedVoice(item) {
   return lines[(affixes + durability) % lines.length];
 }
 
-// issue #138 — 通常戦の勝利で結果画面に来た時点で、報酬3候補を一度だけ用意する。
+// PR #255 — **装備の候補を出すのはボス戦を突破したときだけ。**判定は
+// progression 側の一箇所（`offersRewardAfterClear`）が持つので、画面と進行が
+// 別々の条件を持たない。
+function rewardDueForCurrentEncounter() {
+  return offersRewardAfterClear(state.run.encounterIndex);
+}
+
+// issue #138 — ボス戦の勝利で結果画面に来た時点で、装備候補を一度だけ用意する。
 // すでに用意済み（引き直し済みも含む）なら上書きしない。
 function ensureResultReward(won, prologueUnresolved) {
-  if (!won || prologueUnresolved || state.run.encounterIndex >= ENCOUNTERS_PER_RUN) return;
+  if (!won || prologueUnresolved || !rewardDueForCurrentEncounter()) return;
+  // PR #255 — 最終戦（12戦目）の候補を受け取ったあとは、同じ画面に留まって
+  // 精算へ進む。**受け取った戦闘の候補を作り直さない**（何度でも拾えてしまう）。
+  if (state.rewardTakenAtEncounter === state.run.encounterIndex) return;
   if (state.rewardOffer.length) return;
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
   state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, rerolls);
   record("reward_presented", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
 }
 
+// PR #255 — **装備の2候補を、1画面に収める。**
+//
+// 作者指摘 2026-09-12：「装備は2つとも画面に収める。少なくとも iPhone 16e では
+// スクロールなしで選べてほしい。ヴァンパイアサバイバーズを参考に。」
+//
+// そのために、札の形を「読む順」で三層に分けた。
+//
+//   1. 名前と等級、品全体を変える一行（keystone / 規格外の代償）
+//   2. 常時効果と、追加効果の要約（格・名前・量）を一行ずつ
+//   3. 条件・代償・発火回数まで入った全文は、畳んだ段の中
+//
+// **全文はいつでも拾う前に読める**（AGENTS.md の完全開示）。畳むのは長い文だけで、
+// 量・格・耐久・発火回数は畳まずに出す。候補が3つに増えても同じ形で並ぶように、
+// 札の高さは候補数（`data-count`）から CSS が締める。
+// 候補が増えるほど、一枚に割ける高さは減る。**畳む量だけを変える**
+// （畳んだ先には必ず全文がある）。数えるのは「行」で、条件の行も効果の行も同じ1行。
+function rewardRowBudget(count) {
+  return count >= 3 ? 3 : 4;
+}
+
+function rewardEffectLine(effect, { always = false } = {}) {
+  const amount = effect.amount == null ? ""
+    : always ? " +" + esc(effect.amount) : "（" + esc(effect.amount) + "）";
+  // **常時効果と発火効果を見分けられるようにする。**畳んだ形では「腕力 +20」と
+  // 「装備の耐久を戻す（3）」が同じ見た目で並ぶので、条件も耐久も要らない一つだけに
+  // 印を付ける（全文の「基礎効果・常時」と同じことを、一文字で言う）。
+  const mark = always
+    ? "<span class=\"effect-always\" title=\"基礎効果・常時。条件も耐久も要りません\">常時</span>"
+    : "";
+  return "<li>" + effectRarityBadge(effect.rarity, effect.rarityLabel) + mark
+    + "<span>" + esc(effect.summary) + amount + "</span></li>";
+}
+
+// PR #255 — **rule の見出し。**作者試遊 2026-09-12「結局、条件と消費も見ないと
+// 選べないです」。効果の要約だけでは拾うかどうかを決められないので、
+// **いつ・何を払い・何回**をその効果の真上に置く。
+function rewardRuleHeadHtml(rule) {
+  const chips = [...(rule.paid ?? []), rule.limitText]
+    .filter(Boolean)
+    .map((text) => "<span>" + esc(text) + "</span>").join("");
+  return "<p class=\"reward-rule-head\"><b>" + esc(rule.when) + "</b>" + chips + "</p>";
+}
+
+function rewardChoiceHtml(offer, index, { full, rowBudget }) {
+  // R8 §3.5 — 生成に失敗したら既定品へ黙って落とさず、診断をそのまま出す。
+  if (offer.type === "generator_error") {
+    return "<article class=\"reward-choice disabled\"><header><h3>装備の候補が作れませんでした</h3></header>"
+      + "<p class=\"muted\">" + esc(offer.message) + "</p>"
+      + "<p class=\"muted\">ほかの候補を選ぶか、補給1で引き直してください。</p></article>";
+  }
+  const item = offer.item ?? null;
+  const info = item ? null : EQUIPMENT[offer.equipmentId];
+  const label = item ? item.definition.displayName : (info?.label ?? offer.equipmentId);
+  const durability = item ? item.definition.maxDurability : (info?.maxDurability ?? 1);
+  const readout = item?.readout ?? null;
+  const implicit = (readout?.effects ?? []).find((effect) => effect.unconditional) ?? null;
+  // **古い readout（rule の構造を持たない Blueprint）でも壊れない。**その場合は
+  // 条件を畳んだ全文だけが持つので、rule 見出しは出さずに全文へ誘導する。
+  const rules = Array.isArray(readout?.rules) ? readout.rules : [];
+
+  // 行の予算を「常時1行 + rule ごとに（見出し1行 + 効果の行）」で使い切る。
+  // 途中で尽きたら、その先は畳んだ全文の中にある。
+  let rows = 0;
+  const blocks = [];
+  let hiddenEffects = 0;
+  if (implicit) {
+    blocks.push("<ul class=\"reward-effect-list\">"
+      + rewardEffectLine(implicit, { always: true }) + "</ul>");
+    rows += 1;
+  }
+  for (const rule of rules) {
+    const effects = rule.effects ?? [];
+    // 見出し1行ぶんと効果1行ぶんの余地が無ければ、その rule ごと畳む。**見出しだけ
+    // 出す**のは一番悪い（条件と代償を見せて、何が起きるかを隠すことになる）。
+    if (rows + 2 > rowBudget && blocks.length) {
+      hiddenEffects += effects.length;
+      continue;
+    }
+    const room = Math.max(1, rowBudget - rows - 1);
+    const shown = effects.slice(0, room);
+    hiddenEffects += effects.length - shown.length;
+    blocks.push("<div class=\"reward-rule\">" + rewardRuleHeadHtml(rule)
+      + "<ul class=\"reward-effect-list\">" + shown.map((effect) => rewardEffectLine(effect)).join("")
+      + "</ul></div>");
+    rows += 1 + shown.length;
+  }
+  const banner = item
+    ? (readout?.keystone
+      ? "<p class=\"reward-keystone\">✦ " + esc(readout.keystone) + "</p>" : "")
+      + (readout?.risk
+        ? "<p class=\"reward-risk\">規格外の代償：" + esc(readout.risk) + "</p>" : "")
+    : "";
+  const body = blocks.length ? blocks.join("")
+    : "<p class=\"muted\">" + esc(info?.effect ?? "") + "</p>";
+  const lines = Array.isArray(readout?.lines) ? readout.lines : [];
+  // 耐久も畳まない情報なので、畳んだ段の見出しへ同じ行に載せる（行を一つ節約する）。
+  // 畳んだ残りの件数は、**それを開く行**が持つ（別の一行にすると、札の高さを
+  // 一段食ったうえで「どこを押せば読めるのか」を言わないままになる）。
+  const fullText = "<details class=\"reward-full\"><summary><span class=\"reward-meta\">戦闘耐久 "
+    + durability + "</span>全文を読む（"
+    + (hiddenEffects > 0 ? "ほか " + hiddenEffects + " 件・" : "")
+    + "条件・代償・回数）</summary>"
+    + lines.map((line) => "<p class=\"equipment-rule-line\">" + esc(line) + "</p>").join("")
+    // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
+    + (item && generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
+    + "</details>";
+  return "<article class=\"reward-choice" + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\">"
+    + "<header><h3>" + esc(label) + "</h3>" + rarityChip(item?.rarity) + "</header>"
+    + banner + body + fullText
+    + (full ? "<p class=\"muted\">持ち物が" + INVENTORY_LIMIT + "品で一杯です。装備画面で一品を分解してください。</p>" : "")
+    + button("これを拾う", "take-reward", full, "button primary reward-take",
+      "data-offer=\"" + index + "\"") + "</article>";
+}
+
 // issue #138 — 結果画面に埋め込む報酬選択。以前は「報酬を見る」で別画面へ渡していた。
 function rewardSectionHtml() {
   const full = state.run.inventory.length >= INVENTORY_LIMIT;
-  const cards = state.rewardOffer.map((offer, index) => {
-    if (offer.type === "equipment") {
-      // R8 §13.2 — 装備は**最初から全 rule を読める**。目利きは等級の引きを
-      // 良くするもので、読める量を売る仕組みにはしない（R8 §11 の完全開示）。
-      const item = offer.item ?? null;
-      const info = item
-        ? { label: item.definition.displayName, effect: "", grammar: "装備レアリティ · " + (RARITY_LABEL[item.rarity] ?? item.rarity), maxDurability: item.definition.maxDurability }
-        : EQUIPMENT[offer.equipmentId];
-      const body = item
-        ? equipmentRarityCallout(item)
-          + equipmentReadoutHtml(item, { compact: false })
-          // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
-          + (generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
-        : "<p>" + esc(info?.effect ?? "") + "</p>";
-      return "<article class=\"reward-card equipment-reward"
-        + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\"><div class=\"reward-kind kind-equipment\">装備</div><h3>"
-        + esc(info?.label ?? offer.equipmentId) + rarityChip(item?.rarity) + "</h3>" + body + "<small>"
-        + esc(info?.grammar ?? "") + " · 戦闘耐久 " + (info?.maxDurability ?? 1) + "</small>"
-        + (full ? "<p class=\"muted\">持ち物が" + INVENTORY_LIMIT + "品で一杯です。装備画面で一品を分解してください。</p>" : "")
-        + button("拾って次へ", "take-reward", full, "button", "data-offer=\"" + index + "\"") + "</article>";
-    }
-    // R8 §3.5 — 生成に失敗したら既定品へ黙って落とさず、診断をそのまま出す。
-    if (offer.type === "generator_error") {
-      return "<article class=\"reward-card\"><div class=\"reward-kind kind-equipment\">候補なし</div>"
-        + "<h3>装備の候補が作れませんでした</h3><p>" + esc(offer.message) + "</p>"
-        + "<small>この候補は選べません。ほかの候補を選ぶか、補給1で引き直してください。</small></article>";
-    }
-    return "<article class=\"reward-card special\"><div class=\"reward-kind kind-passive\">補給</div><h3>補給 +"
-      + offer.amount + "</h3><p>再挑戦・報酬の引き直し・野営治療に使う。上限 " + MAX_SUPPLIES + "。現在 "
-      + state.run.supplies + "。</p>"
-      + button("補給を受け取る", "take-reward", state.run.supplies >= MAX_SUPPLIES, "button",
-        "data-offer=\"" + index + "\"") + "</article>";
-  }).join("");
+  const count = Math.max(1, state.rewardOffer.length);
+  const rowBudget = rewardRowBudget(count);
+  const cards = state.rewardOffer
+    .map((offer, index) => rewardChoiceHtml(offer, index, { full, rowBudget })).join("");
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
-  return "<section class=\"card\">"
-    + sectionHeading("REWARD / 3 → 1", "何を持ち帰る？", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + "<p class=\"muted\">3候補から1つ。<b>活動資金はこの選択に含まれません。</b></p>"
-    + (state.rewardOffer.filter((offer) => offer.type === "equipment").length < 2
-      ? "<p class=\"muted\">装備の候補が減っています。用意できない場合は理由が候補欄に出ます。</p>"
+  return "<section class=\"card reward-card-shell\">"
+    + sectionHeading("REWARD", "どちらを持ち帰る？",
+      "<span class=\"stage\">補給 " + state.run.supplies + " / " + supplyTotal() + "</span>")
+    + (state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+      ? "<p class=\"muted\">遠征はこの一戦で終わります。選んだ品は精算で残す設計図の候補になります。</p>"
       : "")
-    + (appraisalLevel(state.profile) > 0
-      ? "<p class=\"muted\">目利き Lv" + appraisalLevel(state.profile)
-        + "：装備の等級を " + (appraisalLevel(state.profile) + 1) + " 回引いて良い方を採っています。</p>"
-      : "")
-    + "<p class=\"world-voice\">" + esc(rewardVoice()) + "</p>"
-    + "<div class=\"reward-grid\">" + cards + "</div>"
+    + "<div class=\"reward-choices\" data-count=\"" + count + "\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
-    + button("補給1で3候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button")
+    + button("補給1で候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button quiet")
     + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "1戦闘に一度だけ。再挑戦の余地が減ります。")
-    + "</small></div></section>";
+    + (appraisalLevel(state.profile) > 0
+      ? " 目利き Lv" + appraisalLevel(state.profile) + "：等級を " + (appraisalLevel(state.profile) + 1)
+        + " 回引いて良い方を採っています。"
+      : "")
+    + "</small></div>"
+    // R12 §4.B — 報酬の画面にも世界の側の一行を置く。**選ぶ材料ではない**ので、
+    // 候補と引き直しのあと（画面の折り返しより下でよい位置）へ回す。
+    + "<p class=\"world-voice\">" + esc(rewardVoice()) + "</p></section>";
 }
 
 // R6 §12.2 — 敗北処理。**即座に破棄しない。**
@@ -5553,18 +5759,26 @@ function renderDefeat() {
 // 両方出す。**「良い品を拾ったのに残らなかった」を黙って起こさない。
 function blueprintSettlementSection(settlement) {
   const saved = settlement.savedBlueprints ?? [];
-  const found = newGeneratedItems(state.run).length;
+  const found = settlement.blueprintCandidateCount ?? newGeneratedItems(state.run).length;
   if (!found && !saved.length) return "";
   const cards = saved.map((entry) =>
     "<div class=\"settle-row\"><span>" + esc(entry.displayName) + rarityChip(entry.rarity)
     + "</span><b>" + (entry.added ? "新しく残した" : "取得履歴を追加") + "</b></div>").join("");
+  // PR #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・
+  // 敗北0）。残せないときは「残せなかった」ではなく**なぜ残らないのか**を言う
+  // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
+  const limit = settlement.blueprintSaveLimit;
   return "<section class=\"card\">" + sectionHeading("BLUEPRINT", "設計図として残した品",
-      "<span class=\"stage\">" + saved.length + " / " + settlement.blueprintSaveLimit + "</span>")
+      "<span class=\"stage\">" + saved.length + " / " + limit + "</span>")
     + (saved.length
       ? "<div class=\"settle-list\">" + cards + "</div>"
-      : "<p class=\"muted\">今回は残せる品がありませんでした。</p>")
-    + (found > saved.length
-      ? "<p class=\"muted\">この遠征で見つけた装備 " + found + " 品のうち、等級の高い "
+      : limit > 0
+        ? "<p class=\"muted\">今回は残せる品がありませんでした。</p>"
+        : "<p class=\"muted\">設計図を持ち帰れるのは<b>12戦を抜けて生還したとき</b>だけです。"
+          + "この遠征で見つけた装備 " + found + " 品は、ここで手放します。</p>")
+    + (saved.length && found > saved.length
+      ? "<p class=\"muted\">この遠征で見つけた装備 " + found + " 品のうち、"
+        + (settlement.blueprintChosen ? "選んだ " : "等級の高い ")
         + saved.length + " 品だけを残しました。</p>"
       : "")
     + "<p class=\"muted\">設計図はギルドの設計図画面から、次の遠征へ持ち込めます"
@@ -5593,6 +5807,51 @@ function settlementClosingLine(settlement) {
   return reached > 0
     ? "第" + reached + "戦で灰に押し返された。確定した分は持ち帰る。器材は返し、傷は数えて帳面に載せる。"
     : "灰の入口で押し返された。持ち帰るものは無い。それでも器材は返しに行く。";
+}
+
+// issue #151 — **遠征終了時に何を設計図として残すかを、プレイヤーが決める。**
+//
+// これまでは等級の高い順に自動で残していた。装備の組み合わせを見つけるゲームで、
+// 最後の価値判断だけがレアリティに置き換わっていたので（今回の構成を成立させた
+// 低レア品より、使わなかった高レア品が残る）、候補と上限を出して選ばせる。
+//
+// **条件・代償・効果・レアリティは、残す前に全文で読める**（畳んだ段の中）。
+// 選ばなかった品は残らない——埋まっていない枠を自動で埋めない。
+function renderBlueprintPick() {
+  const outcome = state.pendingSettlement?.outcome;
+  if (!outcome) return renderSettlement();
+  const limit = blueprintSaveLimitFor(outcome);
+  const candidates = blueprintSaveCandidates(state.run);
+  const chosen = new Set(Array.isArray(state.blueprintKeep) ? state.blueprintKeep : []);
+  const outcomeLabel = { won: "12戦を抜けた", retreat: "安全に撤退した", lost: "遠征は途中で終わった" }[outcome]
+    ?? "遠征が終わった";
+  const cards = candidates.map((item) => {
+    const selected = chosen.has(item.descriptor);
+    return "<article class=\"keep-card" + (selected ? " selected" : "")
+      + (item.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\">"
+      + "<button type=\"button\" class=\"keep-main\" data-action=\"toggle-blueprint-keep\""
+      + " data-descriptor=\"" + esc(item.descriptor) + "\" aria-pressed=\"" + (selected ? "true" : "false")
+      + "\"><span class=\"keep-mark\" aria-hidden=\"true\">" + (selected ? "✓" : "") + "</span>"
+      + "<span class=\"keep-name\">" + esc(item.definition.displayName) + "</span>"
+      + rarityChip(item.rarity) + "</button>"
+      + "<details class=\"reward-full\"><summary>全文を読む（条件・代償・回数）</summary>"
+      + equipmentReadoutHtml(item, { compact: false }) + "</details></article>";
+  }).join("");
+  const primary = "<section class=\"card primary-action\" data-primary-action=\"blueprint-keep\">"
+    + sectionHeading("BLUEPRINT", "残す設計図を選ぶ",
+      "<span class=\"stage\">" + chosen.size + " / " + limit + "</span>")
+    + "<p class=\"muted\">" + esc(outcomeLabel) + "ので、設計図は最大 " + limit
+    + " 件残せます。見つけたのは " + candidates.length
+    + " 品です。<b>選ばなかった品は残りません。</b></p>"
+    + button(chosen.size ? "この " + chosen.size + " 件を残して精算する" : "何も残さず精算する",
+      "confirm-blueprint-keep", false, "button primary")
+    + "</section>";
+  return shell(primary
+    + "<section class=\"card\">" + sectionHeading("CANDIDATES", "この遠征で見つけた装備")
+    + "<p class=\"muted\">押すと選択が入れ替わります。持込品は既に設計図があるので候補に出ません。</p>"
+    + "<div class=\"keep-list\">" + cards + "</div>"
+    + "<p class=\"muted\">残した設計図は、次の遠征へ持ち込む候補になります（持込枠 "
+    + blueprintCarryCapacity(state.profile) + "）。</p></section>");
 }
 
 // R6 §9.2 — 精算は**一度だけ**。ここが唯一の入口。
@@ -5632,8 +5891,11 @@ function renderSettlement() {
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
     + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
     + "<p class=\"muted\">持ち帰るのは活動資金と設計図だけです。技能点・解禁・装備・補給はここで消えます。"
-    + esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
-    + settlement.blueprintSaveLimit + "件残せます。</p></section>"
+    + (settlement.blueprintSaveLimit > 0
+      ? esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
+        + settlement.blueprintSaveLimit + "件残せました。"
+      : esc(retreated ? "安全撤退" : "敗北") + "なので、設計図は残りません。")
+    + "</p></section>"
     + blueprintSettlementSection(settlement)
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
       ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
@@ -5732,11 +5994,33 @@ function rewindPrologue() {
   enterStory([storyBeat("stage_0", "prologueRewound")], "camp", { via: scene ? "rewind" : null });
 }
 
+// PR #255 — **結果画面は、そこで決めることがある戦闘にだけ出す。**
+// 残るのは三つだけである。
+//
+//   1. 負けた（再挑戦するか、精算するかを決める）
+//   2. ボス戦を突破した（装備の候補から一つ選ぶ）
+//   3. 12戦目を突破した（精算へ進む）
+//
+// それ以外の勝利は、決めることが何も無い画面を一枚挟むだけだった。通常戦・
+// 精鋭戦の後はそのままキャンプへ戻し、「直前の一戦で何が起きたか」は遠征タブの
+// 一行（`lastBattleNote`）が預かる。予測はキャンプに揃っているので、よほど
+// 悪くなければそのまま次へ進める。
+function resultScreenDue() {
+  if (state.prologueActive) return true;
+  if (state.lastResult?.result !== "win") return true;
+  if (state.run.encounterIndex >= ENCOUNTERS_PER_RUN) return true;
+  return rewardDueForCurrentEncounter();
+}
+
 // issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
 // 結果画面へ進める。序盤の一戦なら会話が先に入る（enterPrologueBeatIfDue）。
 function goToBattleResult() {
   state.replayPlaying = false;
   if (enterPrologueBeatIfDue()) return;
+  if (!resultScreenDue()) {
+    advanceAfterBattle();
+    return;
+  }
   state.phase = "result";
   saveState();
   render();
@@ -5781,6 +6065,10 @@ function simulateAndEnterBattle() {
   // issue #240 — いま挑むのが必殺技の教材の一戦か。**戦う前に数えておく**
   // （勝つと encounterIndex が進むので、後から判定すると答えが変わる）。
   const lessonBattle = ultimateLessonActive();
+  // PR #255 — 直前の一戦の一行と、最終戦の受け取り印は、次の一戦を始めた
+  // 時点で役目を終える。
+  state.lastBattleNote = null;
+  state.rewardTakenAtEncounter = null;
   try {
     const composed = currentEncounter();
     const simulation = simulateExpeditionBattle(
@@ -5914,7 +6202,38 @@ function simulateAndEnterBattle() {
   render();
 }
 
-function advanceAfterReward() {
+// PR #255 — ボス戦以外の勝利は結果画面を通らないので、「何が起きたか」は
+// ここで一度だけ写して遠征タブへ渡す。**戦闘の記録そのものではない**
+// （それは run.results と戦闘履歴が持つ）。次の一戦を始めた時点で消える。
+//
+// 作者試遊 2026-09-12 —「報酬画面の『戦闘後の状態』も複雑すぎて要らないかも。
+// 戦闘後キャンプの『LAST BATTLE』と同じモーダルでいいです。」なので、組み立ては
+// 純関数に分け、**装備を選ぶ画面とキャンプが同じ一枚を読む**ようにした。
+function buildBattleNote(completedEncounter) {
+  const result = state.lastResult;
+  if (!result || result.result !== "win") return null;
+  const encounter = currentEncounter();
+  const metrics = result.metrics || {};
+  return {
+    encounter: completedEncounter,
+    name: encounter?.name ?? "",
+    kind: encounter?.kind ?? "normal",
+    roundsUsed: result.roundsUsed ?? 0,
+    allyHpLost: metrics.allyHpLost ?? 0,
+    enemyHpLost: metrics.enemyHpLost ?? 0,
+    equipmentWear: metrics.equipmentWear ?? 0,
+    skillPoints: skillPointsForClear(encounter?.kind),
+    ultimateFiredBy: [...(state.lastCarrySnapshot?.ultimateFiredBy ?? [])],
+    downed: state.run.roster.filter((id) => currentHp(id) <= 0),
+    fullHealed: isCampaignRun() && (completedEncounter === 4 || completedEncounter === 8),
+  };
+}
+
+function captureLastBattleNote(completedEncounter) {
+  state.lastBattleNote = buildBattleNote(completedEncounter);
+}
+
+function advanceAfterBattle() {
   // R11 §5 改 — 巻き戻したあとの勝利（本編1戦目）は、報酬を受け取ってここへ来た
   // 時点で本当に序盤の演出を終える。prologueClear では落とさなかった
   // prologueActive / prologueStage をここで落とす（結果・報酬画面の名称表示は
@@ -5924,7 +6243,8 @@ function advanceAfterReward() {
     state.prologueStage = null;
   }
   const completedEncounter = state.run.encounterIndex;
-  const showSupplyTutorial = shouldShowSupplyTutorialAfterReward();
+  const showSupplyTutorial = shouldShowSupplyTutorialAfterBattle();
+  captureLastBattleNote(completedEncounter);
   state.run.encounterIndex += 1;
   state.rewardOffer = [];
   state.lastResult = null;
@@ -5943,6 +6263,40 @@ function advanceAfterReward() {
   if (showSupplyTutorial) {
     record("supply_tutorial_presented", { encounter: completedEncounter });
   }
+  saveState();
+  render();
+}
+
+// R6 §9.2 — 精算は**一度だけ**。issue #151 で「何を残すか」の選択が前に入ったので、
+// 精算そのものはここ一箇所へ閉じ、選択の有無で入口だけが変わるようにした。
+//
+//   keepDescriptors === null … 従来どおり等級の高い順に上限まで残す
+//   配列               … その品だけを残す（選ばなかった品は残らない）
+function performSettlement(outcome, keepDescriptors) {
+  // issue #212 follow-up — Campaign StageのstageEndは初訪・再訪を分けず、
+  // 完走するたびに同じ会話を通常の一行送りで表示する。
+  const won = outcome === "won";
+  const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
+  const stageEndBeat = won && stage ? storyBeat(stage.id, "stageEnd") : null;
+  const result = settleRun(
+    state.profile, state.run, outcome,
+    keepDescriptors === null ? {} : { keepDescriptors },
+  );
+  if (!result.ok) {
+    state.error = result.reason;
+  } else {
+    state.profile = result.profile;
+    state.run = result.run;
+    state.lastSettlement = result.settlement;
+    record("run_settled", result.settlement);
+  }
+  state.pendingSettlement = null;
+  state.blueprintKeep = null;
+  if (result.ok && stageEndBeat) {
+    enterStory([stageEndBeat], "settlement");
+    return;
+  }
+  state.phase = "settlement";
   saveState();
   render();
 }
@@ -5972,7 +6326,7 @@ function handleAction(event) {
   if (action === "new-game") {
     if (hasAutoSave() && !window.confirm("現在のオートセーブを新しいGameで置き換えます。手動セーブ枠は残ります。")) return;
     const profile = newProfile();
-    const run = startRun(profile, { campaignStageSequence: 0, tutorial: true });
+    const run = startRun(profile, { campaignStageSequence: 0 });
     state = {
       ...freshUiState(),
       profile,
@@ -6866,10 +7220,30 @@ function handleAction(event) {
         record("reward_taken", { encounter: state.run.encounterIndex, reward: "equipment", equipmentId: offer.equipmentId });
       }
     } else {
+      // 旧い保存に残っている補給の候補だけがここへ来る（PR #255 以降、
+      // 補給は報酬の候補に出ない）。
       state.run = gainSupply(state.run, offer.amount);
       record("reward_taken", { encounter: state.run.encounterIndex, reward: "supplies", amount: offer.amount });
     }
-    advanceAfterReward();
+    // PR #255 — **最終戦の報酬は、次の戦闘ではなく精算へつながる。**
+    // 12戦目もボス戦なので候補は出るが、遠征はここで終わるので encounterIndex は
+    // 進めない。受け取った印を置いて、同じ画面の「遠征を精算する」へ渡す。
+    if (state.run.encounterIndex >= ENCOUNTERS_PER_RUN) {
+      state.rewardTakenAtEncounter = state.run.encounterIndex;
+      state.rewardOffer = [];
+      saveState();
+      render();
+      return;
+    }
+    advanceAfterBattle();
+    return;
+  }
+
+  // PR #255 — 候補の無い勝利から次へ進む。通常は結果画面を通らないので、
+  // この釦は中断復帰と古い保存のための保険である（進み方は報酬と同じ経路）。
+  if (action === "advance-encounter") {
+    if (state.lastResult?.result !== "win") return;
+    advanceAfterBattle();
     return;
   }
 
@@ -6988,28 +7362,47 @@ function handleAction(event) {
       && state.lastResult?.result === "win";
     // R8 §10.3 — 「放棄」は自発的な安全撤退として扱う（won/lostに続く3つ目のoutcome）。
     const outcome = won ? "won" : action === "abandon-run" ? "retreat" : "lost";
-    // issue #212 follow-up — Campaign StageのstageEndは初訪・再訪を分けず、
-    // 完走するたびに同じ会話を通常の一行送りで表示する。
-    const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
-    const stageEndBeat = won && stage
-      ? storyBeat(stage.id, "stageEnd")
-      : null;
-    const result = settleRun(state.profile, state.run, outcome);
-    if (!result.ok) {
-      state.error = result.reason;
-    } else {
-      state.profile = result.profile;
-      state.run = result.run;
-      state.lastSettlement = result.settlement;
-      record("run_settled", result.settlement);
-    }
-    if (result.ok && stageEndBeat) {
-      enterStory([stageEndBeat], "settlement");
+    // issue #151 — 残せる件数より多く見つけているときだけ、**何を残すかを選ばせる。**
+    // 選ぶ余地が無いときに画面を一枚増やさない——候補が上限以下のときと、
+    // そもそも一つも残せないとき（撤退・敗北は0件）の両方である。
+    const keepLimit = blueprintSaveLimitFor(outcome);
+    if (keepLimit > 0 && blueprintSaveCandidates(state.run).length > keepLimit) {
+      state.pendingSettlement = { outcome };
+      state.blueprintKeep = blueprintSaveCandidates(state.run)
+        .slice(0, keepLimit)
+        .map((item) => item.descriptor);
+      state.phase = "blueprintPick";
+      saveState();
+      render();
       return;
     }
-    state.phase = "settlement";
+    performSettlement(outcome, null);
+    return;
+  }
+
+  // issue #151 — 候補の選択を入れ替える。**上限を超える選択はそこで止める**
+  // （選んだつもりの品が黙って落ちるのを避ける）。
+  if (action === "toggle-blueprint-keep") {
+    const descriptor = element.dataset.descriptor;
+    const outcome = state.pendingSettlement?.outcome;
+    if (!descriptor || !outcome) return;
+    const limit = blueprintSaveLimitFor(outcome);
+    const chosen = Array.isArray(state.blueprintKeep) ? [...state.blueprintKeep] : [];
+    const at = chosen.indexOf(descriptor);
+    if (at >= 0) chosen.splice(at, 1);
+    else if (chosen.length >= limit) {
+      state.error = "残せるのは " + limit + " 件までです。外してから選んでください。";
+    } else chosen.push(descriptor);
+    state.blueprintKeep = chosen;
     saveState();
     render();
+    return;
+  }
+
+  if (action === "confirm-blueprint-keep") {
+    const outcome = state.pendingSettlement?.outcome;
+    if (!outcome) return;
+    performSettlement(outcome, Array.isArray(state.blueprintKeep) ? state.blueprintKeep : []);
     return;
   }
 
