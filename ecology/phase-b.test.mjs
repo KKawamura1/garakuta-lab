@@ -70,6 +70,7 @@ import {
   // issue #168 — 勝利ごとの技能点。量と冪等の鍵は progression の一箇所。
   grantRunSkillPointsForClear,
   cancelRunSkillReservation,
+  canFulfillSkillReservation,
   fulfillSkillReservations,
   reserveRunSkill,
   skillPointsForClear,
@@ -964,6 +965,11 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
     runUnlockedSkills: { warden: [] },
     skillReservations: {},
   };
+  equal(canFulfillSkillReservation(run, "warden", "heavy_swing", 1), true,
+    "現在の技能点でLv1まで取得可能と判定する");
+  equal(canFulfillSkillReservation({ ...run, runSkillPoints: { warden: 0 } },
+    "warden", "heavy_swing", 1), false,
+    "技能点が足りなければ予約と判定する");
   const lv1Reserved = reserveRunSkill(run, "warden", "heavy_swing", 1);
   equal(lv1Reserved.ok, true, "未取得の技能をLv1まで予約できる");
   equal(skillReservationLevelFor(lv1Reserved.run, "warden"), 1, "Lv1の目標を保存する");
