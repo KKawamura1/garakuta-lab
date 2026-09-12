@@ -3304,6 +3304,7 @@ function applyAutomaticSkillActions(actions = []) {
         cost: action.cost,
         automatic: true,
         reservationTarget: action.targetSkillId,
+        reservationTargetLevel: action.targetLevel,
         reservationTargetStep: action.target === true,
       });
     } else if (action.type === "level") {
@@ -3314,6 +3315,7 @@ function applyAutomaticSkillActions(actions = []) {
         cost: action.cost,
         automatic: true,
         reservationTarget: action.targetSkillId,
+        reservationTargetLevel: action.targetLevel,
       });
     }
   }
@@ -6465,8 +6467,11 @@ function handleAction(event) {
   if (action === "reserve-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
+    const requestedLevel = Number(element.dataset.targetLevel);
+    const targetLevel = Number.isInteger(requestedLevel) ? requestedLevel : null;
     const previous = skillReservationFor(state.run, characterId);
-    const result = reserveRunSkill(state.run, characterId, skillId);
+    const previousLevel = skillReservationLevelFor(state.run, characterId);
+    const result = reserveRunSkill(state.run, characterId, skillId, targetLevel);
     if (!result.ok) {
       state.error = result.reason;
     } else {
@@ -6474,7 +6479,9 @@ function handleAction(event) {
       record("skill_reserved", {
         characterId,
         skillId,
+        targetLevel: skillReservationLevelFor(state.run, characterId),
         replacedSkillId: previous && previous !== skillId ? previous : null,
+        replacedTargetLevel: previousLevel,
       });
       const automatic = fulfillSkillReservations(state.run);
       state.run = automatic.run;
@@ -6487,7 +6494,6 @@ function handleAction(event) {
     render();
     return;
   }
-
   if (action === "cancel-skill-reservation") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
