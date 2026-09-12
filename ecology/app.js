@@ -3183,6 +3183,7 @@ function skillNodeState(node, characterId) {
   const prereqsMet = unmet.length === 0;
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
   const reservationTarget = skillReservationFor(state.run, characterId);
+  const reservationTargetLevel = skillReservationLevelFor(state.run, characterId);
   const reserved = reservationTarget === node.skillId;
   const canReserve = !unlocked || skillLevelOf(characterId, node.skillId) < skillLevelCapOf(node.skillId);
   // issue #236 — 取得済み技能はオン／オフだけを残す。
@@ -3191,7 +3192,7 @@ function skillNodeState(node, characterId) {
     : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
   return {
     unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass,
-    reservationTarget, reserved, canReserve,
+    reservationTarget, reservationTargetLevel, reserved, canReserve,
   };
 }
 
@@ -3338,20 +3339,42 @@ function renderSkillDetail(row, node, characterId, nodeState) {
   const reservationLabel = nodeState.reservationTarget
     ? (COMPONENTS[nodeState.reservationTarget]?.label ?? nameFor(nodeState.reservationTarget))
     : "";
-  const reservationAction = nodeState.reserved
+  const maxLevel = skillLevelCapOf(node.skillId);
+  const reservationButtons = [];
+  const reservationButton = (targetLevel, label) => button(
+    nodeState.reserved && nodeState.reservationTargetLevel === targetLevel
+      ? label + "（予約中）"
+      : label,
+    "reserve-skill",
+    nodeState.reserved && nodeState.reservationTargetLevel === targetLevel,
+    "tiny-button reservation-button",
+    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId
+      + "\" data-target-level=\"" + targetLevel + "\"",
+  );
+  // 未取得ならLv1予約を出す。レベルを持つ技能だけ、最大Lv予約も出す。
+  if (!nodeState.unlocked) {
+    reservationButtons.push(reservationButton(MIN_SKILL_LEVEL, "Lv1まで予約"));
+  }
+  if (maxLevel > MIN_SKILL_LEVEL && level < maxLevel) {
+    reservationButtons.push(reservationButton(maxLevel, "Lv" + maxLevel + "まで予約"));
+  }
+  const cancelReservation = nodeState.reserved
     ? button("予約を取り消す", "cancel-skill-reservation", false, "tiny-button",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-    : nodeState.canReserve
-      ? button(nodeState.reservationTarget ? "この技能を予約" : "取得を予約", "reserve-skill", false,
-        "tiny-button reservation-button",
-        "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-      : "";
+    : "";
+  const reservationAction = reservationButtons.length || cancelReservation
+    ? "<div class=\"reservation-buttons\">" + reservationButtons.join("") + cancelReservation + "</div>"
+    : "";
+  const reservationTarget = nodeState.reservationTargetLevel
+    ? "Lv" + nodeState.reservationTargetLevel + "まで"
+    : "";
   const reservationNote = nodeState.reserved
-    ? "<p class=\"reservation-note\">技能点を得ると、前提→必要Lv→この技能の順に自動取得します。前提はオフ、目的技能はオンで入ります。</p>"
-    : nodeState.reservationTarget && nodeState.canReserve
-      ? "<p class=\"reservation-note\">現在の予約は「" + esc(reservationLabel) + "」です。この技能を予約すると切り替わります。</p>"
-      : "";
-  const scope = node.kind === "active"
+    ? "<p class=\"reservation-note\">現在の予約: " + esc(reservationTarget)
+      + "。技能点を得ると、前提→必要Lv→この技能の順に自動取得します。前提はオフ、目的技能はオンで入ります。</p>"
+    : nodeState.reservationTarget && reservationButtons.length > 0
+      ? "<p class=\"reservation-note\">現在の予約は「" + esc(reservationLabel) + "・" + esc(reservationTarget)
+        + "」です。この技能を予約すると切り替わります。</p>"
+      : "";  const scope = node.kind === "active"
     ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
     : "";
   return "<div class=\"skill-detail\"><p>" + scope + esc(skillEffectText(characterId, node.skillId))
