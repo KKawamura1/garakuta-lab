@@ -3429,6 +3429,12 @@ function renderSkillTree(characterId) {
   skillTreeConnectorGroup = group;
   const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
   const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
+  // 取得済みの根本は選択経路の強調から外し、未取得の前提だけを水色にする。
+  const pendingOnPath = new Set([...onPath].filter((key) => {
+    const row = group.byKey.get(key);
+    return row && !isUnlocked(characterId, row.skillId);
+  }));
+  const ownedOnPath = new Set([...onPath].filter((key) => !pendingOnPath.has(key)));
   const derived = new Set(selectedRow ? selectedRow.descendants : []);
   const tabs = groups.map((entry) => "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
     + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false") + "\" data-action=\"select-skill-kind\" data-kind=\""
@@ -3439,8 +3445,8 @@ function renderSkillTree(characterId) {
     const tone = !selectedRow
       ? (dimmed ? " faded" : "")
       : row.key === selectedRow.key ? ""
-        : onPath.has(row.key) ? " on-path"
-          : derived.has(row.key) ? " derived" : " faded";
+        : pendingOnPath.has(row.key) ? " on-path"
+          : ownedOnPath.has(row.key) ? "" : derived.has(row.key) ? " derived" : " faded";
     return renderSkillRow(row, characterId, dimmed && !selectedRow ? " faded" : tone);
   }).join("");
   const clear = selectedRow
@@ -3488,10 +3494,16 @@ function layoutSkillTreeConnectors() {
   forest.querySelectorAll("[data-node]").forEach((element) => nodeEls.set(element.dataset.node, element));
   const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
   const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
+  const characterId = selectedCharacter();
+  const pendingOnPath = new Set([...onPath].filter((key) => {
+    const row = group.byKey.get(key);
+    return row && !isUnlocked(characterId, row.skillId);
+  }));
+  const selectedIsPending = selectedRow && !isUnlocked(characterId, selectedRow.skillId);
   const derived = new Set(selectedRow ? [selectedRow.key, ...selectedRow.descendants] : []);
   const edgeTone = (childKey) => {
     if (!selectedRow) return "";
-    if (childKey === selectedRow.key || onPath.has(childKey)) return " on-path";
+    if ((childKey === selectedRow.key && selectedIsPending) || pendingOnPath.has(childKey)) return " on-path";
     if (derived.has(childKey)) return " derived";
     return " faded";
   };
