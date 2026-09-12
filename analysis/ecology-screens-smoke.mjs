@@ -57,6 +57,28 @@ const progressiveContracts = [
 for (const [label, sourceText, expected] of progressiveContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
+
+// PR #244 — ゲーム画面では拡大と文字選択を操作にしない。
+// ただし通常の会話本文・履歴は読み返しのために選択を許す。許可を `.vn-text` の
+// ような汎用クラスへ掛けると、巻き戻し演出や新しいモーダルで同じクラスを使った
+// ときに選択が漏れるので、会話専用の `story-copy` だけを例外にする。
+for (const [label, sourceText, expected] of [
+  ["ゲームDOM全体の拡大抑止", styles, "#app,\n#app * {\n  touch-action: pan-x pan-y;"],
+  ["ゲームDOM全体の文字選択抑止", styles, "#app,\n#app * {\n  -webkit-user-select: none;"],
+  ["会話本文だけを選択許可", styles, "#app .story-copy,\n#app .story-copy *"],
+  ["会話本文の選択許可を専用クラスで指定", app, 'class=\\"vn-text story-copy\\"'],
+  ["会話履歴の選択許可を専用クラスで指定", app, 'class=\\"vn-log-body story-copy\\"'],
+  ["長押し行内の通常操作を優先", app, 'target?.closest("button, input, textarea, select, a, [data-action]")'],
+]) {
+  if (!sourceText.includes(expected)) problems.push(label + "が無い");
+}
+for (const [label, sourceText, forbidden] of [
+  ["汎用vn-textの選択許可", styles, "#app .vn-text"],
+  ["汎用vn-noteの選択許可", styles, "#app .vn-note"],
+  ["汎用vn-log-bodyの選択許可", styles, "#app .vn-log-body"],
+]) {
+  if (sourceText.includes(forbidden)) problems.push(label + "が残っている（新しい画面へ選択が漏れる）");
+}
 const mapRendererStart = app.indexOf("function renderMap()");
 const mapRendererEnd = app.indexOf("\nfunction treatmentTargetIds", mapRendererStart);
 if (mapRendererStart < 0 || mapRendererEnd < 0) {

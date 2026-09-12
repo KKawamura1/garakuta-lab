@@ -31,6 +31,41 @@
   --tree-col-gap: 46px;
 }
 * { box-sizing: border-box; }
+
+/*
+ * 画面は操作対象であり、文章を読む画面ではない。
+ * 文字を選べるのは、通常の会話本文・会話履歴と、実際に入力する欄だけにする。
+ * ここを `.vn-text` のような汎用クラスで許可すると、巻き戻し演出や新しいモーダル
+ * に同じクラスを使ったとき選択が復活するので、許可対象は `story-copy` に絞る。
+ * pinch zoom は viewport 設定と touch-action の両方で抑止する。
+ */
+html,
+body,
+#app,
+#app * {
+  touch-action: pan-x pan-y;
+}
+html,
+body,
+#app,
+#app * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+#app .story-copy,
+#app .story-copy *,
+#app input,
+#app input *,
+#app textarea,
+#app textarea *,
+#app select,
+#app [contenteditable="true"],
+#app [contenteditable="true"] * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
 body {
   margin: 0;
   min-height: 100vh;
@@ -3155,7 +3190,14 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .turn-cell.ultimate { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
 /* 装着行のなかの必殺。**枠を足さず、行そのものに宿らせる。** */
 .installed-row.ultimate { box-shadow: inset 2px 0 0 var(--gold); }
-.installed-row[data-longpress] { touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.installed-row[data-longpress],
+.installed-row[data-longpress] * {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
 .installed-row.pressing { background: rgba(229, 184, 105, .08); }
 .ultimate-arm {
   flex: 0 0 auto;

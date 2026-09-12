@@ -1336,33 +1336,114 @@ function bindLongPress() {
   app.querySelectorAll("[data-longpress]").forEach((element) => {
     let timer = null;
     let origin = null;
+    let pointerId = null;
+
+    const releasePointerCapture = () => {
+      const activePointerId = pointerId;
+      pointerId = null;
+      if (activePointerId === null || !element.hasPointerCapture?.(activePointerId)) return;
+      try {
+        element.releasePointerCapture(activePointerId);
+      } catch {
+        // pointerup と DOM の再描画が重なった場合は、捕捉解除済みとして扱う。
+      }
+    };
+
     const cancel = () => {
       if (timer !== null) clearTimeout(timer);
       timer = null;
       origin = null;
+      releasePointerCapture();
       element.classList.remove("pressing");
     };
+
     element.addEventListener("pointerdown", (event) => {
+      if (event.isPrimary === false) return;
       if (event.button !== undefined && event.button !== 0) return;
+
+      // 行の中には、指定した必殺をこの一戦へ持ち込む ✹ や、技能のオン／オフ、
+      // 並べ替えの釦がある。そこを押したときまで親行が pointer capture すると、
+      // pointerup/click の宛先が親へ寄って、子の通常クリックを長押し経路が奪う。
+      // 長押しは行の本文だけに掛け、行内の操作部品はその部品へ渡す。
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest("button, input, textarea, select, a, [data-action]")) return;
+
+      cancel();
       origin = { x: event.clientX, y: event.clientY };
+      pointerId = event.pointerId ?? null;
       element.classList.add("pressing");
+
+      // iPhone / WebKit の長押し文字選択を、長押し判定と競合させない。
+      // touch-action はスクロール方針を残しつつ、既定の選択は selectstart
+      // と CSS 側でも止める。
+      if (event.pointerType === "touch" || event.pointerType === "pen") {
+        event.preventDefault();
+      }
+      if (pointerId !== null && element.setPointerCapture) {
+        try {
+          element.setPointerCapture(pointerId);
+        } catch {
+          // 既にポインタが離れている場合は、通常のイベント経路で続ける。
+        }
+      }
+
       timer = setTimeout(() => {
         timer = null;
+        origin = null;
         element.classList.remove("pressing");
+        releasePointerCapture();
         handleAction({ currentTarget: element, longPress: true });
       }, LONG_PRESS_MS);
-    });
+    }, { passive: false });
+
     element.addEventListener("pointermove", (event) => {
-      if (!origin) return;
+      if (!origin || (pointerId !== null && event.pointerId !== pointerId)) return;
       if (Math.abs(event.clientX - origin.x) > LONG_PRESS_SLOP
         || Math.abs(event.clientY - origin.y) > LONG_PRESS_SLOP) cancel();
     });
-    for (const type of ["pointerup", "pointercancel", "pointerleave"]) {
+
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
       element.addEventListener(type, cancel);
     }
-    // 長押しの途中で出る右クリックメニュー・選択メニューを止める。
+
+    // 長押しの途中で出る文字選択・ドラッグ選択・右クリックメニューを止める。
+    element.addEventListener("selectstart", (event) => event.preventDefault());
+    element.addEventListener("dragstart", (event) => event.preventDefault());
     element.addEventListener("contextmenu", (event) => event.preventDefault());
   });
+}
+/*
+ * Safari の viewport / touch-action だけでは、ダブルタップ拡大が残ることがある。
+ * ゲーム画面では拡大を操作として使わないので、OS固有のジェスチャーもここで止める。
+ * 会話本文の長押し選択は維持し、ダブルタップだけを抑止する。
+ */
+const DOUBLE_TAP_ZOOM_WINDOW_MS = 350;
+
+function bindBrowserGestureGuards() {
+  let lastTouchEndAt = 0;
+  let lastTouchTarget = null;
+  const targetFor = (target) => {
+    if (!(target instanceof Element)) return app;
+    return target.closest("[data-action], button, select, textarea, input, .skill-tree-scroll") ?? app;
+  };
+  const preventGesture = (event) => event.preventDefault();
+
+  for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
+    document.addEventListener(type, preventGesture, { passive: false });
+  }
+  document.addEventListener("touchmove", (event) => {
+    if (event.touches.length > 1) event.preventDefault();
+  }, { passive: false });
+  document.addEventListener("touchend", (event) => {
+    const now = performance.now();
+    const target = targetFor(event.target);
+    if (target === lastTouchTarget && now - lastTouchEndAt <= DOUBLE_TAP_ZOOM_WINDOW_MS) {
+      event.preventDefault();
+    }
+    lastTouchEndAt = now;
+    lastTouchTarget = target;
+  }, { passive: false });
+  document.addEventListener("dblclick", preventGesture, { passive: false });
 }
 
 // issue #236 — キャンプの固定帯の高さを CSS へ渡す。**その下へ貼りたいものが
@@ -1975,7 +2056,7 @@ function storyBacklog() {
   return "<div class=\"vn-log\" role=\"dialog\" aria-label=\"会話の履歴\">"
     + "<div class=\"vn-log-head\"><b>履歴</b>"
     + button("閉じる", "story-log", false, "tiny-button") + "</div>"
-    + "<div class=\"vn-log-body\">" + rows + "</div></div>";
+    + "<div class=\"vn-log-body story-copy\">" + rows + "</div></div>";
 }
 
 // R11 §5 / 作者試遊 2026-09-11 — **「時間が巻き戻る」は物語の出来事である。**
@@ -2083,7 +2164,7 @@ function renderStory() {
     + "<div class=\"vn-figures\">" + figures + "</div>"
     + "<div class=\"vn-box" + (line.speaker ? "" : " narration") + "\">"
     + nameplate
-    + "<p class=\"vn-text\" aria-live=\"polite\" data-full=\"" + esc(line.text) + "\"></p>"
+    + "<p class=\"vn-text story-copy\" aria-live=\"polite\" data-full=\"" + esc(line.text) + "\"></p>"
     + (gate ? "" : "<span class=\"vn-caret\" aria-hidden=\"true\">▼</span>")
     + "<span class=\"vn-progress\">" + (index + 1) + " / " + beat.lines.length
     + (remaining > 0 ? " · 続き " + remaining : "") + "</span>"
@@ -2096,7 +2177,7 @@ function renderStory() {
         + "</div></div>"
       : "")
     + "</div>"
-    + (lastLine && beat.footer ? "<p class=\"vn-note\">" + esc(beat.footer) + "</p>" : "")
+    + (lastLine && beat.footer ? "<p class=\"vn-note story-copy\">" + esc(beat.footer) + "</p>" : "")
     + controls
     + (gate ? "" : "<p class=\"hint vn-hint\">タップで進みます。</p>")
     + (state.story?.logOpen ? storyBacklog() : "")
@@ -6749,4 +6830,5 @@ function handleAction(event) {
   }
 }
 
+bindBrowserGestureGuards();
 render();
