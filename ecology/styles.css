@@ -3651,3 +3651,63 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
     box-shadow: inset 3px 0 0 var(--gold), 0 0 0 1px rgba(229, 184, 105, .5);
   }
 }
+
+
+/* 技能の取得予約 */
+.node-state-marks {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 24px;
+}
+.node-reservation-mark {
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+.skill-node.reserved {
+  border-color: var(--blue);
+}
+.skill-node.reserved .node-icon {
+  box-shadow: 0 0 0 2px rgba(125, 190, 213, .22);
+}
+.summary-reservation {
+  display: flex;
+  flex: 0 1 42%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+  color: var(--blue);
+  font-size: 9px;
+  line-height: 1.15;
+}
+.summary-reservation small {
+  color: var(--muted);
+  font-size: 8px;
+}
+.summary-reservation b {
+  overflow: hidden;
+  color: var(--blue);
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.reservation-action {
+  padding-top: 6px;
+  border-top: 1px dashed rgba(125, 190, 213, .22);
+}
+.reservation-button {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.reservation-note {
+  margin: 6px 0 0;
+  color: var(--blue);
+  font-size: 9px;
+  line-height: 1.45;
+}
+@media (max-width: 420px) {
+  .summary-reservation { flex-basis: 35%; }
+}

@@ -110,7 +110,12 @@ import {
   formatFunds,
   gainSupply,
   grantRunSkillPointsForClear,
+  cancelRunSkillReservation,
+  fulfillSkillReservations,
   manifestSkillIds,
+  normalizeRunSkillReservations,
+  reserveRunSkill,
+  skillReservationFor,
   newProfile,
   newRun,
   normalizeProfile,
@@ -575,6 +580,10 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
       next.run.partySize,
     );
   }
+  next.run = {
+    ...next.run,
+    skillReservations: normalizeRunSkillReservations(next.run),
+  };
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
   // issue #236 — 「取得済みだが未装着」を持つ古い保存も、読み込んだ時点で
@@ -2960,27 +2969,33 @@ function prerequisiteCostFor(node, seen = new Set()) {
 // 廃止したので、□✓（取得済み・未装着）と ■✓（装着中）を分ける必要が無い。
 // 残る違いはオン／オフだけで、それは同じ印の濃さで出す。
 function nodeStateMark(node, nodeState, characterId) {
+  const reservation = nodeState.reserved
+    ? "<span class=\"node-reservation-mark\" role=\"img\" aria-label=\"取得予約中\" title=\"取得予約中\">◎</span>"
+    : "";
+  let mark;
   if (nodeState.unlocked) {
     const label = nodeState.disabled ? "取得済み・オフ" : "取得済み";
-    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
+    mark = "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
       + " aria-label=\"" + label + "\" title=\"" + label + "\">✓</span>";
+  } else {
+    const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
+    const title = nodeState.prereqsMet
+      ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
+      : "前提がまだ（技能点" + node.cost + "）";
+    const prerequisiteCost = prerequisiteCostFor(node);
+    const chainLabel = node.requires?.length
+      ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
+      : "取得コスト" + node.cost + "点";
+    const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
+      + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
+    const prerequisite = node.requires?.length
+      ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
+        + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
+      : "";
+    mark = "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
+      + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
   }
-  const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
-  const title = nodeState.prereqsMet
-    ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
-    : "前提がまだ（技能点" + node.cost + "）";
-  const prerequisiteCost = prerequisiteCostFor(node);
-  const chainLabel = node.requires?.length
-    ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
-    : "取得コスト" + node.cost + "点";
-  const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
-    + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
-  const prerequisite = node.requires?.length
-    ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
-      + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
-    : "";
-  return "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
-    + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
+  return "<span class=\"node-state-marks\">" + reservation + mark + "</span>";
 }
 
 function skillSlotRows(characterId, kind) {
@@ -3107,9 +3122,18 @@ function memberContext(characterId, emphasis = "skills") {
 function skillBuildSummary(characterId) {
   const points = skillPointsFor(characterId);
   const party = totalSkillPoints();
+  const reservationId = skillReservationFor(state.run, characterId);
+  const reservationLabel = reservationId
+    ? (COMPONENTS[reservationId]?.label ?? nameFor(reservationId))
+    : "";
+  const reservation = reservationId
+    ? "<span class=\"summary-reservation\" role=\"status\" title=\"取得予約: " + esc(reservationLabel) + "\"><small>取得予約</small><b>"
+      + esc(reservationLabel) + "</b></span>"
+    : "";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
     + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
     + "<b class=\"summary-name\">" + esc(characterName(characterId)) + "</b>"
+    + reservation
     + "<span class=\"summary-points\" role=\"img\" aria-label=\"" + esc(characterName(characterId))
     + "の技能点 " + points + " · 隊全体 " + party + "\"><small>技能点</small><b>" + points + "</b>"
     + (party !== points ? "<small class=\"summary-party\">隊 " + party + "</small>" : "")
@@ -3151,19 +3175,21 @@ function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
   const equipped = installedSkill(characterId, node.skillId, node.kind);
   const disabled = equipped && skillDisabled(characterId, node.skillId);
-  // issue #168 — 前提は Lv まで見る。判定は content/skill-tree.mjs の一箇所
-  // （解禁 API と同じ関数）を通るので、画面が「取れます」と言ったのに押すと
-  // 断られる、が起きない。
+  // issue #168 — 前提は Lv まで見る。解禁 API と同じ関数を通る。
   const unmet = unmetPrerequisites(node, (skillId) => skillLevelOf(characterId, skillId));
   const prereqsMet = unmet.length === 0;
   const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
-  // issue #236 — **取得済みの強調は一種類だけ。**取得と装着が同じになったので、
-  // 「取得済みだが未装着」（旧 unlocked）という中間の見た目は無くなった。
-  // 残るのは 取得済み（オン／オフ）・取得できる・前提待ち・パック外 の四つ。
+  const reservationTarget = skillReservationFor(state.run, characterId);
+  const reserved = reservationTarget === node.skillId;
+  const canReserve = !unlocked || skillLevelOf(characterId, node.skillId) < skillLevelCapOf(node.skillId);
+  // issue #236 — 取得済み技能はオン／オフだけを残す。
   const stateClass = unlocked
     ? "equipped" + (disabled ? " disabled" : "")
     : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
-  return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass };
+  return {
+    unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass,
+    reservationTarget, reserved, canReserve,
+  };
 }
 
 // issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
@@ -3247,6 +3273,49 @@ function levelUpAction(node, characterId, nodeState) {
 }
 
 
+// 予約された技能を自動取得したときの loadout 反映。
+// 前提は installUnlockedSkills の既定（末尾へ追加・オフ）に任せ、
+// 目標だけは通常の取得と同じく equipSkill でオンにする。
+function applyAutomaticSkillActions(actions = []) {
+  if (!actions.length) return;
+  let loadout = state.run.loadout;
+  for (const action of actions) {
+    if (action.type === "unlock") {
+      const node = SKILL_TREE_NODES.find((entry) => entry.skillId === action.skillId);
+      if (!node) continue;
+      if (action.target) {
+        const equipped = equipSkill(loadout, action.characterId, action.skillId, node.kind, limitsFor);
+        if (equipped.ok) {
+          loadout = equipped.loadout;
+        } else if ((loadout.disabled?.[action.characterId] ?? []).includes(action.skillId)) {
+          const enabled = toggleSkill(loadout, action.characterId, action.skillId, limitsFor);
+          if (enabled.ok) loadout = enabled.loadout;
+        }
+      } else {
+        loadout = installUnlockedSkills(loadout, action.characterId, [action.skillId]);
+      }
+      record("skill_unlocked", {
+        characterId: action.characterId,
+        skillId: action.skillId,
+        cost: action.cost,
+        automatic: true,
+        reservationTarget: action.targetSkillId,
+        reservationTargetStep: action.target === true,
+      });
+    } else if (action.type === "level") {
+      record("skill_leveled", {
+        characterId: action.characterId,
+        skillId: action.skillId,
+        level: action.level,
+        cost: action.cost,
+        automatic: true,
+        reservationTarget: action.targetSkillId,
+      });
+    }
+  }
+  state.run.loadout = loadout;
+}
+
 function renderSkillDetail(row, node, characterId, nodeState) {
   const derived = row.children;
   const requires = node.requires;
@@ -3260,13 +3329,25 @@ function renderSkillDetail(row, node, characterId, nodeState) {
         ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
           "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
         : nodeState.prereqsMet
-          // 値段と手持ちは右端の丸と見出しに出ているので、押せない釦だけを残す。
           ? button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
             "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
           : "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
-  // **説明文はいまのレベルの値で読む。**Lv1 では元の文のまま。
-  // **文章を許すのはここだけ。**技能の説明文は「深く遊びたい人が読むところ」なので
-  // 残す（作者方針）。状態・段・値段は上の印で読めるので、文では繰り返さない。
+  const reservationLabel = nodeState.reservationTarget
+    ? (COMPONENTS[nodeState.reservationTarget]?.label ?? nameFor(nodeState.reservationTarget))
+    : "";
+  const reservationAction = nodeState.reserved
+    ? button("予約を取り消す", "cancel-skill-reservation", false, "tiny-button",
+      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+    : nodeState.canReserve
+      ? button(nodeState.reservationTarget ? "この技能を予約" : "取得を予約", "reserve-skill", false,
+        "tiny-button reservation-button",
+        "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+      : "";
+  const reservationNote = nodeState.reserved
+    ? "<p class=\"reservation-note\">技能点を得ると、前提→必要Lv→この技能の順に自動取得します。前提はオフ、目的技能はオンで入ります。</p>"
+    : nodeState.reservationTarget && nodeState.canReserve
+      ? "<p class=\"reservation-note\">現在の予約は「" + esc(reservationLabel) + "」です。この技能を予約すると切り替わります。</p>"
+      : "";
   const scope = node.kind === "active"
     ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
     : "";
@@ -3279,7 +3360,11 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     + "<span class=\"route-line\"><b>派生</b>"
     + (derived.length ? derived.map(skillRouteChip).join("") : "<span class=\"route-none\">—</span>") + "</span></div>"
     + "<div class=\"node-action\">" + action + "</div>"
-    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
+    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div>"
+    + (reservationAction
+      ? "<div class=\"node-action reservation-action\">" + reservationAction + reservationNote + "</div>"
+      : "")
+    + "</div>";
 }
 
 
@@ -3291,7 +3376,7 @@ function renderSkillRow(row, characterId, tone) {
   const detail = selected ? renderSkillDetail(row, node, characterId, nodeState) : "";
   return "<div class=\"tree-cell" + tone + (selected ? " selected" : "") + "\" data-node=\"" + esc(row.key)
     + "\" style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
-    + "<article class=\"skill-node " + nodeState.stateClass + (selected ? " selected" : "") + "\">"
+    + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "") + (selected ? " selected" : "") + "\">"
     + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
     + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
     + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
@@ -5847,6 +5932,12 @@ function simulateAndEnterBattle() {
           characterIds: [...state.run.roster],
         });
       }
+      const automatic = fulfillSkillReservations(state.run);
+      state.run = automatic.run;
+      applyAutomaticSkillActions(automatic.actions);
+      for (const completed of automatic.completed) {
+        record("skill_reservation_completed", completed);
+      }
     }
     for (const combatEvent of result.events || []) {
       pushRunEvent({
@@ -6340,6 +6431,47 @@ function handleAction(event) {
     // **そのツリーへ切り替える。**
     const target = skillId ? SKILL_TREE_NODES.find((entry) => entry.skillId === skillId) : null;
     if (target && state.selectedSkillNode) state.skillTreeKind = target.kind;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "reserve-skill") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const previous = skillReservationFor(state.run, characterId);
+    const result = reserveRunSkill(state.run, characterId, skillId);
+    if (!result.ok) {
+      state.error = result.reason;
+    } else {
+      state.run = result.run;
+      record("skill_reserved", {
+        characterId,
+        skillId,
+        replacedSkillId: previous && previous !== skillId ? previous : null,
+      });
+      const automatic = fulfillSkillReservations(state.run);
+      state.run = automatic.run;
+      applyAutomaticSkillActions(automatic.actions);
+      for (const completed of automatic.completed) {
+        record("skill_reservation_completed", completed);
+      }
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "cancel-skill-reservation") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const result = cancelRunSkillReservation(state.run, characterId, skillId);
+    if (!result.ok) {
+      state.error = result.reason;
+    } else {
+      state.run = result.run;
+      record("skill_reservation_cancelled", { characterId, skillId });
+    }
     saveState();
     render();
     return;

@@ -58,7 +58,7 @@
 | 層 | 永続期間 | 主な内容 |
 |---|---|---|
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
-| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、**必殺印**、隊、formation、run 技能点・取得技能・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給、**必殺印**、隊、formation、run 技能点・取得技能・取得予約・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、攻撃単位の回復窓、開始 HP snapshot、preview / commit 状態 |
 
 ### タイトル画面とContinue
@@ -76,6 +76,7 @@
 （`composed` / `hp` / `equipmentDurability` / `limitsFor`）を組み、戦闘予測
 （`previewNextBattle`）と本番（`simulateExpeditionBattle`）がその戻り値をそのまま渡します。
 本番が足すのは結果を変えない `simulationOptions: { captureReplaySnapshots: true }` だけで、
+取得予約は `progression.mjs` の `reserveRunSkill` / `cancelRunSkillReservation` が一人一目標を管理し、`fulfillSkillReservations` が同じ決定順で前提・必要Lv・目標技能を、手持ちSPの範囲だけ自動取得します。画面は自動取得の action 列を受け取り、前提をオフ、目標をオンで loadout へ反映します。`RunState.skillReservations` は保存・再開の対象です。
 `analysis/ecology-screens-smoke.mjs` がその2箇所と、予測 cache の鍵
 （`forecastKey`、`runSkillLevels` と `runUnlockedSkills` を含む）を見張ります。
 `content/skill-levels.mjs` の `LEVELED_EFFECTS` と `effects.mjs` の `afterSkillLevel` が

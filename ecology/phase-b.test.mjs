@@ -69,7 +69,11 @@ import {
   grantRunSkillPointsToAll,
   // issue #168 — 勝利ごとの技能点。量と冪等の鍵は progression の一箇所。
   grantRunSkillPointsForClear,
+  cancelRunSkillReservation,
+  fulfillSkillReservations,
+  reserveRunSkill,
   skillPointsForClear,
+  skillReservationFor,
   SKILL_POINTS_PER_CLEAR,
   makeManifest,
   migrateLegacyProfile,
@@ -944,6 +948,39 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   // 通常戦の勝利報酬は、現在の編成全員へ一律に入る。
   const granted = grantRunSkillPointsToAll(run);
   for (const id of ROSTER) equal(runSkillPoints(granted, id), 1, id + "が増える");
+}
+
+
+// ---- 技能の取得予約 ----------------------------------------------------------
+
+{
+  const profile = newProfile();
+  let run = newRun(profile, { runSeed: "reservation", runId: "reservation", roster: ["warden"] });
+  run = {
+    ...run,
+    manifest: { ...run.manifest, enabledPackIds: SKILL_PACKS.map((pack) => pack.id) },
+    runSkillPoints: { warden: 10 },
+    runUnlockedSkills: { warden: [] },
+    skillReservations: {},
+  };
+  const reserved = reserveRunSkill(run, "warden", "heavy_swing");
+  equal(reserved.ok, true, "未取得の技能を予約できる");
+  equal(skillReservationFor(reserved.run, "warden"), "heavy_swing", "予約先を保存する");
+  const fulfilled = fulfillSkillReservations(reserved.run);
+  check(fulfilled.actions.some((action) =>
+    action.type === "unlock" && action.skillId === "strike" && action.target === false,
+  ), "前提技能を先に自動取得する");
+  check(fulfilled.actions.some((action) =>
+    action.type === "unlock" && action.skillId === "heavy_swing" && action.target === true,
+  ), "目的技能を自動取得する");
+  check(fulfilled.run.runUnlockedSkills.warden.includes("heavy_swing"), "目的技能が取得済みになる");
+  equal(skillReservationFor(fulfilled.run, "warden"), null, "目的技能の取得後に予約を完了する");
+  check(runSkillPoints(fulfilled.run, "warden") < 10, "自動取得で技能点を使う");
+  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut");
+  equal(switched.ok, true, "別の技能へ予約を切り替えられる");
+  const cancelled = cancelRunSkillReservation(switched.run, "warden", "steady_cut");
+  equal(cancelled.ok, true, "取得予約を取り消せる");
+  equal(skillReservationFor(cancelled.run, "warden"), null, "取消後は予約が残らない");
 }
 
 // ---- 旧 save の移行（R6 §17.2）---------------------------------------------
