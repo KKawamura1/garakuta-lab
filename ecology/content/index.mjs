@@ -69,7 +69,11 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 状態だが、**保存済みの戦闘記録に出てこない ID が出るようになる**ので版を上げる。
 // 必殺技そのものの定義は固定 content に入れない（取得済み技能から毎回作る）ので、
 // ここの ID 表は増えない。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-19";
+// R22 — 直接回復を被弾量比例から技術40%の固定量へ変更し、同じ攻撃／反応 chain の
+// 隊全体で受けたHPダメージを回復総量の上限にした。
+// R23 — shared_pain を回復から damage_proposed の分散へ変更した。軽減量は技能レベルで
+// 伸びるが、所有者へ移す4割は固定とし、転送分にも通常の防御・被弾イベントを通す。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-21";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -142,9 +146,12 @@ export const PLAYABLE_CONTENT = Object.freeze({
   // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
   // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
   // R16 で技能54本・状態3つを足した。R20 で速度能力値を削除し、R21 で装備の
-  // 無条件 statBonus を追加した。
+  // 無条件 statBonus を追加した。R22 で直接回復量の意味を変更し、R23 で
+  // shared_pain の回復を damage 分散へ変更した。
   //
-  // issue #176（#165 段階2）で 0.15 へ上げた。**公開済み ID の意味が変わったから**である
+  // issue #176（#165 段階2）で 0.15 へ上げた。R22 の意味変更で 0.16 へ上げ、
+  // R23 の shared_pain の意味変更で 0.17 へ上げる。
+  // **公開済み ID の意味が変わったから**である
   // （AGENTS.md「version の不一致を黙って無視しない」）。技能も装備も ID は一つも
   // 増減していないが、次の二つで同じ入力から違う結果が出る。
   //
@@ -154,8 +161,8 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      （content/skills-active.mjs の front_strike / rear_strike / enemy_heavy）。
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
-  // 0.14 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.15",
+  // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
+  contentVersion: "ecology-playable-full-0.17",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

@@ -6,7 +6,7 @@
 // 装着順とオン／オフが際限なく複雑になる。代わりに一つの技能を段階的に強くする。
 //
 // **上限は手で書かない。**レベルが上げるのは連続量（damage / heal / barrier と
-// その増減）だけなので、「その技能が連続量を持っているか」で決まる。手で書くと、
+// その増減・pending damage の軽減）だけなので、「その技能が連続量を持っているか」で決まる。手で書くと、
 // 効果を書き換えたときに「レベルは上がるのに何も強くならない技能」が黙って残る
 // （点数を払わせておいて何も返さないので、罠になる）。
 //
@@ -21,7 +21,9 @@ import { BPS, roundHalfUpDiv } from "../values.mjs";
 // **外へ出しておく。**analysis/ecology-skill-catalog-smoke.mjs が、この表と
 // effects.mjs の afterSkillLevel が掛かる effect 型が一致しているかを見張る
 // （ずれると「Lv だけ上がって何も強くならない」技能が黙って生まれる）。
-export const LEVELED_EFFECTS = new Set(["deal_damage", "heal", "gain_barrier", "modify_pending_amount"]);
+export const LEVELED_EFFECTS = new Set([
+  "deal_damage", "heal", "gain_barrier", "modify_pending_amount", "split_pending_damage",
+]);
 
 function hasLeveledAmount(node) {
   if (Array.isArray(node)) return node.some(hasLeveledAmount);

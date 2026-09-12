@@ -5,7 +5,7 @@
 // 種類別へ分離した。**挙動は1バイトも変えていない**（ecology/contract.test.mjs が
 // 分離前の出力と深一致を見る）。
 //
-// engine・schema・共通registryは変更しない。
+// 共有の effect 語彙は schema / validator / engine 側で実装し、ここではデータだけを組む。
 
 import { bpsForLegacyAmount, NOT_COST_DAMAGE, renamed, scaleDefinitionAmounts } from "./base.mjs";
 
@@ -63,6 +63,17 @@ const SELF_IS_EVENT_TARGET = {
   type: "target_exists",
   query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
 };
+
+// R6 §4.4 — 直接治療は被弾量の割合ではなく、所有者の技術から決まる固定値。
+// 技能ごとに元の比率を基準に係数を定め、damage_taken は発動条件と
+// 回復窓を開く出来事としてだけ読む。実回復は effects.mjs が一撃ごとの窓と
+// 隊全体の窓の残量を同時に上限へする。
+const focusCare = (coefficientBps) => ({
+  type: "stat_scaled",
+  subject: "self",
+  scalingStat: "focus",
+  coefficientBps,
+});
 
 // R6 §4.4 — Phase A の係数。反応技能も同じ決め方。
 // 反撃は殴られた側の might、防壁と治療は focus。
@@ -126,11 +137,11 @@ reactiveSkills.barrier_stitch = {
 };
 
 // R8 §9.1 — 応急処置。被弾と同じ chain 内だけで発火し、実回復量は
-// その被弾量の1/3を超えない。古い損傷へは効かない
+// その攻撃で開いた回復窓を超えない。古い損傷へは効かない
 // （新しい damage_taken が起きない限り発火しようがない）ので、
 // round を稼いで待つだけでは carry HP が改善しない
 // （analysis/ecology-anti-stall-smoke.mjs が検査する不変条件）。
-// worked example は R8 §9.1 と一致させてある: 被弾36 → 応急処置12 → 残り損傷24。
+// 回復量は技能ごとの所有者の技術係数で固定され、被弾量には比例しない。
 reactiveSkills.emergency_treatment = {
   id: "emergency_treatment",
   displayName: REACTIVE_SKILL_NAMES.emergency_treatment,
@@ -147,7 +158,7 @@ reactiveSkills.emergency_treatment = {
     effects: [{
       type: "heal",
       target: SELF_TARGET,
-      amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 3 },
+      amount: focusCare(3_333),
       tags: ["care", "emergency"],
     }],
     limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -160,12 +171,12 @@ reactiveSkills.emergency_treatment = {
 // 検出していた。R8_IMPLEMENTATION_PHASE0_FREEZE.md §3、作者承認済み）。
 //
 // どちらも emergency_treatment と同じ理由で安全: `damage_taken` にだけ反応し、
-// 実回復量はその被弾量の一部（event_value_scaled）に固定される。**古い損傷へは
-// 効かない**——新しい damage_taken が起きない限り発火しようがないので、round を
-// 稼いで待つだけでは carry HP が改善しない。
+// 実回復量は所有者の技術係数で固定される。**古い損傷へは効かない**——新しい
+// damage_taken が起きない限り発火しようがないので、round を稼いで待つだけでは
+// carry HP が改善しない。
 //
-//   mend   … baseline。誰の被弾でも（自分自身も含む）少量を返す安全弁。
-//   triage … pack_care。被弾後にHP50%以下になった自分以外の味方へ、より大きな割合を返す。
+//   mend   … baseline。誰の被弾でも（自分自身も含む）技術値の固定量を返す安全弁。
+//   triage … pack_care。被弾後にHP50%以下になった自分以外の味方へ固定量を返す。
 //            自分は対象にせず、後列の支援役が前衛をつなぐための応急手当。
 const ALLY_IS_EVENT_TARGET = {
   type: "target_exists",
@@ -200,9 +211,8 @@ reactiveSkills.mend = {
     effects: [{
       type: "heal",
       target: HIT_ALLY_TARGET,
-      // 被弾量の1/4だけを返す。R8 §9.1 の worked example（被弾36→応急処置12）と
-      // 同じ形の、baseline 向けに控えめな比率。
-      amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 4 },
+      // 被弾量ではなく、所有者の技術25%を返す固定量。回復窓と隊全体の上限は engine 側。
+      amount: focusCare(2_500),
       tags: ["care"],
     }],
     limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -223,8 +233,8 @@ reactiveSkills.triage = {
     effects: [{
       type: "heal",
       target: HIT_ALLY_BELOW_HALF_QUERY,
-      // 自分以外の味方がHP半分以下まで削られた一撃にだけ強く反応する。被弾量の1/2を返す。
-      amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 2 },
+      // 自分以外の味方がHP半分以下まで削られた一撃にだけ反応し、技術50%を返す固定量。
+      amount: focusCare(5_000),
       // "triage" タグは triage_relay（既存）が event_tag 述語で読む。
       tags: ["care", "triage"],
     }],
@@ -541,11 +551,12 @@ const NEAR_DEAD_HIT_ENEMY = {
   ],
   take: 1,
 };
-const HURT_ALLY_NOT_SELF = {
+const OTHER_ALLY_IS_EVENT_TARGET = {
   scope: "allies",
   filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
   take: 1,
 };
+const NOT_SHARED_DAMAGE = { type: "event_tag", tag: "shared_damage", value: false };
 const MOVED_ALLY = {
   scope: "allies",
   filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
@@ -677,22 +688,27 @@ reactiveSkills.counterweight = reaction("counterweight", REACTIVE_SKILL_NAMES.co
 
 // ---- 構えと手当て（pack_care）----
 
-// **自分のHPを削って、仲間の傷の半分を返す。**HP を支払う唯一の技能。
-// 反応権だけでは出せないので、round を稼いでも持ち越しHPの合計は増えない。
+// **仲間へ飛んだ pending damage の一部を、自分へ移す。**
+// `amount` は軽減量なので技能レベルで伸び、`share` は転送量なので常に40%のまま。
+// damage_proposed の割り込みで発動するため、guard / barrier / HP適用と回復反応より前に
+// 被害の分散が確定する。転送分にも通常の damage path を通すので、自分の防御や被弾反応は働く。
 reactiveSkills.shared_pain = reaction("shared_pain", REACTIVE_SKILL_NAMES.shared_pain, {
-  listenTo: "damage_taken",
-  timing: "after",
+  listenTo: "damage_proposed",
+  timing: "interrupt",
   priority: 135,
-  predicates: [{ type: "target_exists", query: HURT_ALLY_NOT_SELF }],
-  costs: [{ type: "spend_reaction_points", amount: 1 }, { type: "lose_hp", amount: 30 }],
+  predicates: [{ type: "target_exists", query: OTHER_ALLY_IS_EVENT_TARGET }, NOT_SHARED_DAMAGE],
+  costs: [{ type: "spend_reaction_points", amount: 1 }],
   effects: [{
-    type: "heal",
-    target: HURT_ALLY_NOT_SELF,
-    amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 2 },
-    tags: ["care", "sacrifice"],
+    type: "split_pending_damage",
+    target: SELF_TARGET,
+    // 軽減はレベルで伸びる（Lv2 はグローバルの+12%により約45%）。
+    amount: { type: "event_value_scaled", key: "amount", numerator: 2, denominator: 5 },
+    // 自分へ受ける分は、レベルに関係なく40%。
+    share: { type: "event_value_scaled", key: "amount", numerator: 2, denominator: 5 },
+    tags: ["care", "guard", "shared_damage"],
   }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
-}, ["reaction", "care"]);
+}, ["reaction", "care", "guard"]);
 
 // **状態を消す唯一の反応。**隙が付いた仲間から、付いた直後に払い落とす。
 reactiveSkills.watchful_care = reaction("watchful_care", REACTIVE_SKILL_NAMES.watchful_care, {

@@ -22,6 +22,10 @@ export function beginChain(state, rootType) {
     afterQueue: [],
     ruleFirings: new Map(),
     lastResolvedTargets: [],
+    // Recovery is bounded per side so several heal sources cannot add up to
+    // more than that side's HP damage in this action/reaction chain.
+    damageTakenBySide: { ally: 0, enemy: 0 },
+    recoveryBudgetBySide: { ally: 0, enemy: 0 },
   };
   state.chain = frame;
   return frame;
@@ -153,4 +157,3 @@ export function runtimeError(state, message, extra = {}) {
   };
   return new EcologyRuntimeError(`${message} (battle ${state.battleId}, round ${state.round})`, diagnostics);
 }
-
