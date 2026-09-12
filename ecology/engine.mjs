@@ -1311,10 +1311,16 @@ function buildResult(state, content) {
     chainCount: state.chainSequence,
     eventCounts,
     reactionsFired: [...state.battleFirings.values()].reduce((sum, count) => sum + count, 0),
-    allyHpLost: allySide.reduce((sum, actor) => sum + (actor.maxHp - actor.hp), 0),
+    // **この戦闘で減った量**であって、いま欠けている量ではない。前の戦闘から
+    // 持ち越した傷（`startingHp < maxHp`）を毎回数え直すと、無傷で抜けた一戦でも
+    // 「HP損失」が出る（作者指摘 2026-09-12）。回復で開始時を上回った人物は 0 と
+    // 数え、誰かの回復で別の誰かの被害を相殺しない。
+    allyHpLost: allySide.reduce(
+      (sum, actor) => sum + Math.max(0, actor.startingHp - actor.hp), 0,
+    ),
     enemyHpLost: allActors(state)
       .filter((actor) => actor.side === "enemy")
-      .reduce((sum, actor) => sum + (actor.maxHp - actor.hp), 0),
+      .reduce((sum, actor) => sum + Math.max(0, actor.startingHp - actor.hp), 0),
     equipmentWear: equipment.reduce((sum, item) => sum + (item.maxDurability - item.durability), 0),
     actionPointsUnused: allySide.reduce(
       (sum, actor) => sum + actor.history.battle.counters.unused_action_points,

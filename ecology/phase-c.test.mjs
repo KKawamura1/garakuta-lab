@@ -8,7 +8,7 @@
 //   - 診断 error（R8 §3.5）: 50 attempt で作れないときに既定品へ黙って落ちない。
 //   - Blueprint（R8 §3.6）: immutable、上限なし archive、持込枠 1〜5、exact 再製造、
 //     互換不能でも消さず disabledReason を出す。
-//   - 保存件数（R8 §10.3）: 勝利2 / 安全撤退2 / 敗北1。
+//   - 保存件数（R8 §10.3 → PR #255）: 勝利1 / 安全撤退0 / 敗北0。
 //   - 遠征経路（R8 §13.2）: 装備が preview と正式実行の両方へ同じ形で入る。
 
 import assert from "node:assert/strict";
@@ -52,6 +52,8 @@ import {
   rewardOffer,
   runContentBundle,
   settleRun,
+  blueprintSaveCandidates,
+  blueprintSaveLimitFor,
   takeGeneratedEquipment,
 } from "./progression.mjs";
 import {
@@ -377,9 +379,11 @@ const EFFECT_FLOOR = Object.freeze({
   const profile = newProfile();
   const run = newRun(profile, { runSeed: "rw", runId: "rw", roster: ROSTER, campaignStageSequence: 3 });
   const offer = rewardOffer(run, profile, 1, 0);
-  equal(offer.length, 3, "候補は3件");
+  // PR #255 — 候補は装備だけの2件。補給は開始時に固定されるので混ざらない。
+  equal(offer.length, 2, "候補は2件");
   const equipmentOffers = offer.filter((entry) => entry.type === "equipment");
   equal(equipmentOffers.length, 2, "装備候補は2件");
+  equal(offer.filter((entry) => entry.type === "supplies").length, 0, "補給は候補に入らない");
   equal(equipmentOffers.filter((entry) => entry.generated).length, 2, "装備候補はすべて手続き生成品");
   check(equipmentOffers.every((entry) => Array.isArray(entry.item?.readout?.lines)
     && entry.item.readout.lines.length >= 1),
@@ -546,7 +550,8 @@ const EFFECT_FLOOR = Object.freeze({
 // ---- 遠征終了時の保存件数（R8 §10.3）----------------------------------------
 
 {
-  const outcomes = [["won", 2], ["retreat", 2], ["lost", 1]];
+  // PR #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・敗北0）。
+  const outcomes = [["won", 1], ["retreat", 0], ["lost", 0]];
   for (const [outcome, limit] of outcomes) {
     equal(BLUEPRINT_SAVE_LIMIT[outcome], limit, `${outcome} の保存上限は ${limit}`);
     const profile = newProfile();
@@ -561,12 +566,79 @@ const EFFECT_FLOOR = Object.freeze({
     check(settled.ok, `${outcome} で精算できる`);
     equal(settled.settlement.savedBlueprints.length, limit, `${outcome} は ${limit} 件だけ残る`);
     equal(settled.profile.blueprints.entries.length, limit, `archive も ${limit} 件`);
+    // **見つけた品そのものは消えない**（候補の数は結果で変わらない）。残る数だけが変わる。
+    equal(settled.settlement.blueprintCandidateCount, blueprintSaveCandidates(run).length,
+      `${outcome} でも候補の総数は同じ`);
     // 良い等級から残す（取得順ではない）。
     const rank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
     const saved = settled.settlement.savedBlueprints.map((entry) => rank[entry.rarity]);
     assert.deepEqual(saved, [...saved].sort((a, b) => a - b), "等級の高い順に残す");
     checks += 1;
   }
+}
+
+// ---- 残す設計図はプレイヤーが選ぶ（issue #151）-------------------------------
+
+{
+  const profile = newProfile();
+  let run = newRun(profile, { runSeed: "pick", runId: "pick", roster: ROSTER, campaignStageSequence: 3 });
+  for (let index = 1; index <= 4; index += 1) {
+    const found = rewardOffer(run, profile, index, 0).find((entry) => entry.generated);
+    const taken = takeGeneratedEquipment(run, found.item);
+    if (taken.ok) run = taken.run;
+  }
+  const candidates = blueprintSaveCandidates(run);
+  check(candidates.length >= 3, "選べる候補が上限より多い（選ぶ意味がある）");
+  equal(blueprintSaveLimitFor("won"), BLUEPRINT_SAVE_LIMIT.won, "上限は結果から引く");
+  equal(blueprintSaveLimitFor("nonsense"), BLUEPRINT_SAVE_LIMIT.lost, "知らない結果は敗北扱い");
+  // 候補の並びは決定的（等級の高い順 → 表示名 → id）。
+  assert.deepEqual(
+    blueprintSaveCandidates(run).map((item) => item.descriptor),
+    candidates.map((item) => item.descriptor),
+    "同じ run からは同じ並びの候補が出る",
+  );
+  checks += 1;
+
+  // **等級では選ばれなかった品**を名指しで残せる。
+  const lowest = candidates[candidates.length - 1];
+  const autoSaved = settleRun(profile, run, "won").settlement.savedBlueprints
+    .map((entry) => entry.descriptor);
+  check(!autoSaved.includes(lowest.descriptor), "等級順の自動保存では残らない品を選ぶ");
+  const chosen = settleRun(profile, run, "won", { keepDescriptors: [lowest.descriptor] });
+  check(chosen.ok, "選択つきでも精算できる");
+  assert.deepEqual(
+    chosen.settlement.savedBlueprints.map((entry) => entry.descriptor),
+    [lowest.descriptor],
+    "選んだ品だけが残る",
+  );
+  checks += 1;
+  equal(chosen.settlement.blueprintChosen, true, "選択した精算であることが記録される");
+  equal(chosen.settlement.blueprintCandidateCount, candidates.length, "候補の総数も精算へ載る");
+  equal(chosen.profile.blueprints.entries.length, 1, "選ばなかった品は archive へ入らない");
+
+  // 上限は守る。候補に無い descriptor は無視する。空の選択は何も残さない。
+  const overflow = settleRun(profile, run, "won", {
+    keepDescriptors: candidates.map((item) => item.descriptor),
+  });
+  equal(overflow.settlement.savedBlueprints.length, BLUEPRINT_SAVE_LIMIT.won, "勝利の上限を超えない");
+  // PR #255 — 撤退と敗北は0件なので、**全部選んでも一つも残らない。**
+  const retreatKeep = settleRun(profile, run, "retreat", {
+    keepDescriptors: candidates.map((item) => item.descriptor),
+  });
+  equal(retreatKeep.settlement.savedBlueprints.length, 0, "撤退では選んでも残らない");
+  const lostKeep = settleRun(profile, run, "lost", {
+    keepDescriptors: candidates.map((item) => item.descriptor),
+  });
+  equal(lostKeep.settlement.savedBlueprints.length, 0, "敗北でも選んで残せない");
+  const bogus = settleRun(profile, run, "won", { keepDescriptors: ["not-a-descriptor"] });
+  equal(bogus.settlement.savedBlueprints.length, 0, "候補に無い descriptor は残らない");
+  const none = settleRun(profile, run, "won", { keepDescriptors: [] });
+  equal(none.settlement.savedBlueprints.length, 0, "選ばなければ一つも自動保存されない");
+  equal(none.profile.blueprints.entries.length, 0, "archive も空のまま");
+  // 渡さない経路（既存の自動精算）は従来どおり等級順で上限まで残す。
+  equal(settleRun(profile, run, "won").settlement.savedBlueprints.length, BLUEPRINT_SAVE_LIMIT.won,
+    "選択を渡さなければ従来どおり等級順に残す");
+  equal(settleRun(profile, run, "won").settlement.blueprintChosen, false, "自動保存は選択扱いにしない");
 }
 
 // ---- 持込品は manifest の family 外でも動く（R8 §3.6）------------------------

@@ -1,6 +1,11 @@
-// ecology/progression.mjs
+  SKILL_LEVEL_CAPS,
+// PR #255 — **補給はシナリオを通して固定**にした。報酬で足せず、遠征中に
+// 増えないので、「いま使うか、後へ残すか」だけが判断になる（以前は「補給を
+// 報酬で取るか、装備を取るか」が毎戦の判断で、思考負荷の主因だった）。
+// 画面の表記も残り/その遠征の総数（3/3）にし、分母はギルドの「開始補給」で伸びる。
+export const STARTING_SUPPLIES_BASE = 3;
 //
-// **Phase B の system。状態を三層に分け、遠征と活動資金をここだけで動かす。**
+  SKILL_TREE_NODES,
 // R6 §4（三層）、§5（一遠征）、§9（活動資金）、§12（敗北と補給）、§13（難易度）。
 // R7 Milestone 4 の system 側。
 //
@@ -56,10 +61,8 @@ import {
   PACKS_PER_MANIFEST,
   PLAYABLE_CONTENT,
   REGION,
-  SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
   SKILL_PACKS,
-  SKILL_TREE_NODES,
   BASELINE_ACTIVE_SKILL_IDS,
   campaignManifestForStage,
   campaignStageDef,
@@ -511,9 +514,11 @@ export function slotLimits(_profile, _characterId) {
 // 現行の装備報酬はすべて遠征ごとの手続き生成品である。
 // 名前を残した旧 API は、固定装備を新しい報酬へ混ぜないため空配列を返す。
 export function unlockedEquipmentIds(_profile) {
-  return [];
-}
-
+// PR #255 — 遠征の補給はここで一度だけ決まる。**遠征中は増えない**ので、
+// これがその遠征の総数（表記の分母）でもある。導入用の特例は置かない
+// （Stage 0 だけ1個という例外があると、「3/3」が最初の遠征で嘘になる）。
+export function startingSupplies(profile, rank) {
+  const base = STARTING_SUPPLIES_BASE + difficultyDef(rank).startingSupplies;
 // ---------------------------------------------------------------- 購入 transaction
 //
 // R6 §9.3 の MetaPurchase。**残高・前後・費用を1件で残す。**
@@ -558,6 +563,7 @@ export function purchaseTraining(profile, characterId, axis) {
   const fromLevel = Math.max(0, Math.floor(character.trainingLevels[axis] ?? 0));
   const cost = trainingCost(fromLevel);
   const balance = parseFunds(profile.activityFunds);
+  const supplies = startingSupplies(profile, rank);
   if (balance < cost) {
     return { ok: false, reason: `活動資金が足りません（不足 ${formatFunds(cost - balance)}）。` };
   }
@@ -571,7 +577,10 @@ export function purchaseTraining(profile, characterId, axis) {
     toLevel: fromLevel + 1,
     cost: cost.toString(),
     balanceBefore: balance.toString(),
-    balanceAfter: (balance - cost).toString(),
+    supplies: supplies,
+    // PR #255 — その遠征の補給総数。**画面の分母はここを読む**（`MAX_SUPPLIES`
+    // は永続強化を積んだときの天井で、この遠征の総数とは別物）。遠征中は動かない。
+    suppliesMax: supplies,
   };
   next.purchases = [...(next.purchases ?? []), purchase].slice(-50);
   return { ok: true, profile: next, purchase };
@@ -664,6 +673,8 @@ export function startingSupplies(profile, rank, options = {}) {
 export function startingSkillPoints(profile) {
   const def = metaUpgradeDef(STARTING_SKILL_POINTS_UPGRADE_ID);
   const level = Math.min(def?.maxLevel ?? 0, upgradeLevel(profile, STARTING_SKILL_POINTS_UPGRADE_ID));
+    // 取得予約はキャラクターごとに一つ。古い/不正な値は復元時に正規化する。
+    skillReservations: { ...(options.skillReservations ?? {}) },
   return STARTING_RUN_SKILL_POINTS + level;
 }
 
@@ -722,8 +733,6 @@ export function newRun(profile, options = {}) {
     // R19（issue #137）— 取得済み技能のレベル。**取得＝Lv1** なので、ここに欄が
     // 無い技能は Lv1 として読む（旧 save がそのまま動く）。
     runSkillLevels: { ...(options.skillLevels ?? {}) },
-    // 取得予約はキャラクターごとに一つ。古い/不正な値は復元時に正規化する。
-    skillReservations: { ...(options.skillReservations ?? {}) },
     // issue #168 — 技能点を配り終えた encounter の鍵。**retry でも二度配らない。**
     grantedSkillPointKeys: [],
     loadout: options.loadout ?? null,
@@ -755,64 +764,6 @@ export function newRun(profile, options = {}) {
 // ============================================================ 技能点（R6 §5.3）
 
 export function runSkillPoints(run, characterId) {
-  return Math.max(0, Math.floor(run?.runSkillPoints?.[characterId] ?? 0));
-}
-
-export function grantRunSkillPoints(run, characterId, amount = RUN_SKILL_POINTS_PER_REWARD) {
-  const next = { ...run, runSkillPoints: { ...run.runSkillPoints } };
-  next.runSkillPoints[characterId] = runSkillPoints(run, characterId) + amount;
-  return next;
-}
-
-export function grantRunSkillPointsToAll(run, amount = RUN_SKILL_POINTS_PER_REWARD) {
-  const characterIds = [...new Set([
-    ...(Array.isArray(run?.roster) ? run.roster : []),
-    ...Object.keys(run?.runSkillPoints ?? {}),
-  ])];
-  let next = run;
-  for (const characterId of characterIds) {
-    next = grantRunSkillPoints(next, characterId, amount);
-  }
-  return next;
-}
-
-// ---------------------------------------------------------------- 勝利ごとの付与（issue #168）
-//
-// **いくら配るかは、ここ一つで決まる。**以前は app.js が勝利のたびに
-// `grantRunSkillPointsToAll(run)` を直接呼んでいたので、
-//
-//   - 戦いの種別（通常 / 精鋭 / boss）で量を変える場所が無く、
-//   - **同じ encounter を二度勝つと二度配れた**（活動資金 ledger は
-//     `recordEncounterCleared` で一度きりなのに、技能点だけ素通しだった）。
-//
-// 鍵は活動資金と同じ `region:index` にする。retry でも巻き戻しでも、
-// 一つの encounter から出る技能点は一度きりである。
-//
-// **#174 案b。**通常戦と精鋭戦は同じ1点、boss戦は到達点として2点にする。
-// 表と画面の「+n」をこの一箇所から揃える。
-export const SKILL_POINTS_PER_CLEAR = Object.freeze({
-  normal: RUN_SKILL_POINTS_PER_REWARD,
-  elite: RUN_SKILL_POINTS_PER_REWARD,
-  boss: 2,
-});
-
-export function skillPointsForClear(kind) {
-  return SKILL_POINTS_PER_CLEAR[kind] ?? RUN_SKILL_POINTS_PER_REWARD;
-}
-
-export function skillPointClearKeys(run) {
-  return Array.isArray(run?.grantedSkillPointKeys) ? run.grantedSkillPointKeys : [];
-}
-
-// 戻り値の `granted` は「いま配ったか」。二度目は false で、run は変わらない。
-export function grantRunSkillPointsForClear(run, index) {
-  const key = `${run.regionId}:${index}`;
-  const keys = skillPointClearKeys(run);
-  const amount = skillPointsForClear(expeditionEncounter(index)?.kind);
-  if (keys.includes(key)) return { run, amount, granted: false };
-  const next = grantRunSkillPointsToAll(run, amount);
-  return { run: { ...next, grantedSkillPointKeys: [...keys, key] }, amount, granted: true };
-}
 // ---------------------------------------------------------------- 技能の取得予約
 //
 // 予約は一人につき一つの目標技能を持つ。前提を自動で取る順序は
@@ -820,7 +771,7 @@ export function grantRunSkillPointsForClear(run, index) {
 // 同じ入力から同じ支出と取得列になるよう progression 側で解決する。
 // 目標以外の自動取得技能をオフにするか、目標をオンにするかは画面側の
 // loadout 更新が担い、ここは RunState の取得・レベル・SPだけを扱う。
-
+  return Math.max(0, Math.floor(run?.runSkillPoints?.[characterId] ?? 0));
 const SKILL_RESERVATION_NODES = Object.freeze(
   Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node])),
 );
@@ -1042,6 +993,73 @@ export function canFulfillSkillReservation(run, characterId, skillId, targetLeve
     && entry.targetLevel === requestedLevel);
 }
 
+}
+
+export function grantRunSkillPoints(run, characterId, amount = RUN_SKILL_POINTS_PER_REWARD) {
+  const next = { ...run, runSkillPoints: { ...run.runSkillPoints } };
+  next.runSkillPoints[characterId] = runSkillPoints(run, characterId) + amount;
+  return next;
+}
+
+export function grantRunSkillPointsToAll(run, amount = RUN_SKILL_POINTS_PER_REWARD) {
+  const characterIds = [...new Set([
+    ...(Array.isArray(run?.roster) ? run.roster : []),
+    ...Object.keys(run?.runSkillPoints ?? {}),
+  ])];
+  let next = run;
+  for (const characterId of characterIds) {
+    next = grantRunSkillPoints(next, characterId, amount);
+  }
+  return next;
+}
+
+  reroll: "ボス戦の装備候補を一度だけ引き直す",
+//
+// **いくら配るかは、ここ一つで決まる。**以前は app.js が勝利のたびに
+// `grantRunSkillPointsToAll(run)` を直接呼んでいたので、
+//
+//   - 戦いの種別（通常 / 精鋭 / boss）で量を変える場所が無く、
+//   - **同じ encounter を二度勝つと二度配れた**（活動資金 ledger は
+//     `recordEncounterCleared` で一度きりなのに、技能点だけ素通しだった）。
+//
+// 鍵は活動資金と同じ `region:index` にする。retry でも巻き戻しでも、
+// その遠征の補給総数。**古い save には欄が無い**ので、持っている数と天井から読む。
+export function runSuppliesMax(run) {
+  const saved = run?.suppliesMax;
+  if (Number.isSafeInteger(saved) && saved >= 0) return Math.min(MAX_SUPPLIES, saved);
+  return Math.min(MAX_SUPPLIES, Math.max(STARTING_SUPPLIES_BASE, run?.supplies ?? 0));
+}
+
+// PR #255 — **遠征中に総数を超えて増えない。** 残すのは「使った分を屑から
+// 戻す」経路だけで、報酬で足す経路は廃止した。
+// 一つの encounter から出る技能点は一度きりである。
+  return { ...run, supplies: Math.min(runSuppliesMax(run), (run.supplies ?? 0) + amount) };
+// **#174 案b。**通常戦と精鋭戦は同じ1点、boss戦は到達点として2点にする。
+// 表と画面の「+n」をこの一箇所から揃える。
+export const SKILL_POINTS_PER_CLEAR = Object.freeze({
+  normal: RUN_SKILL_POINTS_PER_REWARD,
+  elite: RUN_SKILL_POINTS_PER_REWARD,
+  boss: 2,
+});
+
+export function skillPointsForClear(kind) {
+  return SKILL_POINTS_PER_CLEAR[kind] ?? RUN_SKILL_POINTS_PER_REWARD;
+}
+
+export function skillPointClearKeys(run) {
+  return Array.isArray(run?.grantedSkillPointKeys) ? run.grantedSkillPointKeys : [];
+}
+
+// 戻り値の `granted` は「いま配ったか」。二度目は false で、run は変わらない。
+export function grantRunSkillPointsForClear(run, index) {
+  const key = `${run.regionId}:${index}`;
+  const keys = skillPointClearKeys(run);
+  const amount = skillPointsForClear(expeditionEncounter(index)?.kind);
+  if (keys.includes(key)) return { run, amount, granted: false };
+  const next = grantRunSkillPointsToAll(run, amount);
+  return { run: { ...next, grantedSkillPointKeys: [...keys, key] }, amount, granted: true };
+}
+
 // 遠征内の解禁。**manifest が有効にした技能しか解禁できない。**
 export function unlockRunSkill(run, characterId, node) {
   if (!node) return { ok: false, reason: "その技能が見つかりません。" };
@@ -1159,7 +1177,9 @@ export function gainSupply(run, amount = 1) {
 }
 
 // ============================================================ 野営治療（R8 §9.2, §10.2）
-//
+  if ((run.supplies ?? 0) >= runSuppliesMax(run)) {
+    return { ok: false, reason: "この遠征の補給は満杯です。" };
+  }
 // **補給1を消費する、遠征中に自動で戻らない治療。**round経過や毎戦の
 // 全回復では戻らない（R8 §8.1 の anti-stall 不変条件）。数値は R8 §9.2 の
 // 初期比較候補をそのまま採用した未調整値（作者プレイ前の soft data）。
@@ -1413,15 +1433,30 @@ export function composeEncounter(index, difficultyRank, options = {}) {
   while (added) {
     added = false;
     for (const mutationId of MUTATION_SPEND_ORDER) {
-      const cost = ENEMY_MUTATIONS[mutationId].threatCost;
-      if (spent + cost > budget) continue;
+// PR #255 — **装備を選ぶのはボス戦を突破したときだけ。**毎戦の3択は
+// 「装備どうしを比べる」と「装備と補給を見比べる」を同時に要求していて、
+// 12戦のあいだ判断が途切れなかった（作者指摘 2026-09-12）。ボス戦の後だけに
+// すると、通常戦・精鋭戦の後はそのままキャンプへ戻り、予測を見て次へ進める。
       for (const unit of units) {
-        if (!addMutation(unit, mutationId)) continue;
-        spent += cost;
+// **補給は候補に入らない。**遠征の補給は開始時に固定されるので、報酬と
+// 取り合わない（`startingSupplies`）。候補は装備だけである。
         added = true;
-        break;
-      }
-      if (added) break;
+// R8 §13.2 — 装備はどちらも遠征ごとの手続き生成品にする。固定装備の報酬 pool は
+// 廃止した。装備どうしが同じ役割に寄る場合だけ、次の drop 列へずらして
+// 払い先の種類を変える。**候補の数を増やしても（ギルドの強化で3つにしても）
+// この規則はそのまま働く。**
+export const REWARD_ENCOUNTER_KINDS = Object.freeze(["boss"]);
+
+// その戦闘に勝ったとき、装備の候補を出すか。**最終戦（12戦目）も出す。**
+// 12戦目もボス戦なので、ここを外すと「ボス戦突破後だけ」という規則に穴が空く。
+// 遠征はそこで終わるが、拾った品は設計図の候補（issue #151 の選択肢）になるので、
+// 選ぶ意味はちゃんと残る。
+export function offersRewardAfterClear(encounterIndex) {
+  const index = Math.floor(Number(encounterIndex));
+  if (!(index >= 1) || index > ENCOUNTERS_PER_RUN) return false;
+  return REWARD_ENCOUNTER_KINDS.includes(expeditionEncounter(index)?.kind);
+}
+
     }
   }
 
@@ -1453,7 +1488,6 @@ export function composeEncounter(index, difficultyRank, options = {}) {
     : null;
   // 受け（guard）は**一撃ごとの定額**なので、味方が減ると「総被害に占める割合」が
   // 勝手に上がる。2人で5人ぶんの受けを削るのは、組み方ではなく手数の問題になる。
-  // 敵の数と体力を人数へ合わせたのと同じ比で、受けも合わせる。
   const guardScalePatch = partySize < fullParty
     ? { guard: { bps: Math.floor(BPS * partySize / fullParty) } }
     : null;
@@ -1622,7 +1656,38 @@ export function newGeneratedItems(run) {
 }
 
 // 遠征ごとの装備定義を混ぜた content bundle。engine も validator もこれを読む。
-// issue #238 — いま構えている必殺技の定義もここで混ざる。**固定 content には居ない。**
+// issue #151 — **遠征終了時に何を設計図として残すかは、プレイヤーが決める。**
+// 保存数には上限があるのに、これまでは等級順で自動に決まっていた。装備の
+// 組み合わせを見つけるゲームで、最後の価値判断だけがレアリティに置き換わって
+// いたので、候補と上限を外へ出して選ばせる。
+//
+// 並びは「等級の高い順 → 表示名 → id」で決定的にする（取得順に依らせると、
+// 同じ遠征を同じように遊んでも一覧の並びが変わる）。**持込品は既に archive に
+// あるので候補にしない**（`newGeneratedItems`）。
+export function blueprintSaveCandidates(run) {
+  const rarityRank = Object.fromEntries(RARITIES.map((rarity, index) => [rarity, RARITIES.length - 1 - index]));
+  return newGeneratedItems(run)
+    .slice()
+    .sort((a, b) => (rarityRank[a.rarity] ?? 9) - (rarityRank[b.rarity] ?? 9)
+      || a.definition.displayName.localeCompare(b.definition.displayName, "ja")
+      || a.definition.id.localeCompare(b.definition.id));
+}
+
+export function blueprintSaveLimitFor(outcome) {
+  return BLUEPRINT_SAVE_LIMIT[outcome] ?? BLUEPRINT_SAVE_LIMIT.lost;
+}
+
+// 選んだ descriptor を候補と上限へ丸める。**候補に無い品は入らない**ので、
+// 画面が壊れた選択を送ってきても archive は汚れない。選ばなかった品は残らない。
+export function resolveBlueprintKeeps(run, outcome, keepDescriptors) {
+  const candidates = blueprintSaveCandidates(run);
+  const limit = blueprintSaveLimitFor(outcome);
+  if (keepDescriptors === undefined || keepDescriptors === null) return candidates.slice(0, limit);
+  const wanted = new Set(Array.isArray(keepDescriptors) ? keepDescriptors : [keepDescriptors]);
+  return candidates.filter((item) => wanted.has(item.descriptor)).slice(0, limit);
+}
+
+export function settleRun(profile, run, outcome, options = {}) {
 export function runContentBundle(run) {
   const generated = run?.generatedEquipment ?? {};
   const ids = Object.keys(generated);
@@ -1674,16 +1739,14 @@ export function designatedUltimate(run, characterId, content = PLAYABLE_CONTENT)
     ...(loadout.tactics?.[characterId] ?? []),
     ...(loadout.reactives?.[characterId] ?? []),
   ];
-  if (!installed.includes(skillId)) return null;
+  // （PR #255 以降は勝利1 / 安全撤退0 / 敗北0）。**持込品は既に archive に
+  // あるので数えない。**
   if ((loadout.disabled?.[characterId] ?? []).includes(skillId)) return null;
   return ascendSkill(content, skillId) ? skillId : null;
-}
-
-// この一戦へ持ち込む必殺技。**まだ放っていない人物だけ。**
-// 順は roster 順で決め打つので、予測と本番で同じ組が選ばれる。
-export function armedUltimates(run, content = PLAYABLE_CONTENT) {
-  if (!ultimatesUnlocked(run)) return [];
-  const armed = run?.loadout?.ultimateArmed ?? {};
+  const saveLimit = blueprintSaveLimitFor(outcome);
+  // issue #151 — `options.keepDescriptors` を渡すとその選択だけが残る。渡さない
+  // 経路（既存の自動精算・テスト）は従来どおり等級の高い順に上限まで残す。
+  const candidates = resolveBlueprintKeeps(run, outcome, options.keepDescriptors);
   const entries = [];
   for (const characterId of run?.roster ?? []) {
     if (armed[characterId] !== true) continue;
@@ -1728,6 +1791,10 @@ function newFundLedger(rank) {
     settled: false,
   };
 }
+      // issue #151 — 選択画面が「見つけた N 品のうち M 件を残した」と言えるように、
+      // 候補の総数も精算結果へ載せる（画面が run を数え直さない）。
+      blueprintCandidateCount: blueprintSaveCandidates(run).length,
+      blueprintChosen: options.keepDescriptors !== undefined && options.keepDescriptors !== null,
 
 function ledgerTotal(ledger) {
   const raw = ledger.clearedEncounterBase

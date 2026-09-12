@@ -1,4 +1,18 @@
-import { simulateBattle } from "./engine.mjs";
+  cancelRunSkillReservation,
+  canFulfillSkillReservation,
+  fulfillSkillReservations,
+  // PR #255 — 遠征ごとの補給総数（表記の分母）と、装備候補を出す戦闘の判定。
+  // 画面は `MAX_SUPPLIES`（永続強化を積んだときの天井）を読まない。読むのは
+  // つねに**その遠征の総数**で、分母が画面ごとにずれないようにする。
+  runSuppliesMax,
+  offersRewardAfterClear,
+  // issue #151 — 精算で残す設計図は、候補と上限を読んでプレイヤーが選ぶ。
+  blueprintSaveCandidates,
+  blueprintSaveLimitFor,
+  normalizeRunSkillReservations,
+  reserveRunSkill,
+  skillReservationFor,
+  skillReservationLevelFor,
 import { PLAYABLE_CONTENT } from "./playable-content.mjs";
 import {
   hpAlertFor,
@@ -110,14 +124,7 @@ import {
   formatFunds,
   gainSupply,
   grantRunSkillPointsForClear,
-  cancelRunSkillReservation,
-  canFulfillSkillReservation,
-  fulfillSkillReservations,
   manifestSkillIds,
-  normalizeRunSkillReservations,
-  reserveRunSkill,
-  skillReservationFor,
-  skillReservationLevelFor,
   newProfile,
   newRun,
   normalizeProfile,
@@ -204,7 +211,6 @@ const positionRows = {
   rear_center: "後列",
   rear_right: "後列",
 };
-const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };
 const branchIcons = { "攻撃": "✦", "指揮": "↗", "支援": "✚", "守り": "◇", "基礎": "▣" };
 // デバッグログに残すイベント。**盤面で畳んだものもここには残る**ので、
 // 「なぜそうなったか」を文字で追える。手書きの whitelist は engine の
@@ -344,6 +350,14 @@ function startRun(profile, options = {}) {
   run.loadout = freshLoadout(roster);
   run.runUnlockedSkills = {};
   let joined = run;
+    // PR #255 — ボス戦以外の勝利は結果画面を挟まずキャンプへ戻るので、
+    // 「直前の一戦で何が起きたか」をキャンプの一枚だけが預かる。
+    lastBattleNote: null,
+    // PR #255 — 最終戦で装備を受け取った戦闘。**候補を作り直さない**ための印。
+    rewardTakenAtEncounter: null,
+    // issue #151 — 精算で残す設計図の選択（descriptor の配列）。
+    blueprintKeep: null,
+    pendingSettlement: null,
   for (const id of roster) joined = joinRun(joined, id);
   return joined;
 }
@@ -467,9 +481,16 @@ function freshUiState() {
     // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
     selectedCampaignStageSequence: 0,
-    treatTargets: [],
+  // PR #255 — 遠征ごとの補給総数。**古い保存には欄が無い**ので、持っている数と
+  // 固定値から読み直す（`runSuppliesMax`）。読み直した総数より多くは持てない。
+  next.run.suppliesMax = runSuppliesMax(savedRun);
+  next.run.supplies = Math.max(0, Math.min(next.run.suppliesMax, Math.floor(savedRun.supplies ?? 0)));
     treatmentSelection: null,
     treatmentResult: null,
+  next.run = {
+    ...next.run,
+    skillReservations: normalizeRunSkillReservations(next.run),
+  };
     // #209 — the mandatory supply walkthrough belongs only to the New Game
     // Stage 0 introduction. Revisited/ordinary expeditions start with zero
     // supplies and must keep their normal, optional camp flow.
@@ -487,6 +508,18 @@ function freshUiState() {
     replaySpeed: "normal",
     replayLogOpen: false,
     skillTreeScroll: {},
+  next.lastBattleNote = next.lastBattleNote && typeof next.lastBattleNote === "object"
+    ? next.lastBattleNote
+    : null;
+  next.rewardTakenAtEncounter = Number.isInteger(next.rewardTakenAtEncounter)
+    ? next.rewardTakenAtEncounter
+    : null;
+  next.blueprintKeep = Array.isArray(next.blueprintKeep) ? next.blueprintKeep : null;
+  next.pendingSettlement = next.pendingSettlement && typeof next.pendingSettlement === "object"
+    ? next.pendingSettlement
+    : null;
+  // issue #151 — 選択の途中で中断した保存は、精算の前（結果画面）から読み直す。
+  if (next.phase === "blueprintPick" && !next.pendingSettlement) next.phase = "camp";
     runEvents: [],
     runEventsDropped: 0,
     battleError: null,
@@ -582,10 +615,6 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
       next.run.partySize,
     );
   }
-  next.run = {
-    ...next.run,
-    skillReservations: normalizeRunSkillReservations(next.run),
-  };
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
   // issue #236 — 「取得済みだが未装着」を持つ古い保存も、読み込んだ時点で
@@ -820,7 +849,7 @@ function clone(value) {
   return structuredClone(value);
 }
 
-function esc(value) {
+// `!state.prologueActive` は advanceAfterBattle が既に prologueActive を
   return String(value ?? "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;",
     "<": "&lt;",
@@ -830,7 +859,7 @@ function esc(value) {
   }[char]));
 }
 
-function button(label, action, disabled = false, className = "button", attributes = "") {
+function shouldShowSupplyTutorialAfterBattle() {
   return "<button type=\"button\" class=\"" + className + "\" data-action=\"" + esc(action) + "\" "
     + attributes + (disabled ? " disabled" : "") + ">" + esc(label) + "</button>";
 }
@@ -1157,7 +1186,7 @@ function currentEncounter() {
   if (state.prologueActive) return prologueEncounter();
   // issue #240 — 必殺技の一戦も梯子から出てこない手書きの盤面である。**予測も本番も
   // ここを通る**ので、「予測では勝てたのに本番は別の敵だった」が構造として起きない。
-  if (ultimateLessonActive()) return ultimateLessonEncounter();
+    ["supplies", "補給", state.run.supplies + "/" + supplyTotal()],
   return composeEncounter(state.run.encounterIndex, state.run.difficulty, encounterOptions());
 }
 
@@ -1187,6 +1216,7 @@ function selectedCharacter() {
 }
 
 // R12 — **物語がまだ出していない人物を、どの画面にも出さない。**
+    blueprintPick: renderBlueprintPick,
 //
 // 加入の判定は progression.mjs の `availableCharacterIds`（Campaign の進行から
 // 再構成する engine 側の唯一の規則）に任せる。画面側で二つ目の判定を持つと、
@@ -2223,20 +2253,19 @@ function mountStoryView() {
   stopStoryTimers();
   const scene = app.querySelector(".vn");
   const target = scene?.querySelector(".vn-text");
-  if (!scene || !target) return;
-  const full = target.dataset.full ?? "";
-  const beat = currentStoryBeat();
-  const key = (beat?.id ?? "") + ":" + storyLineIndex();
-  // 舞台は button ではないので、Enter / Space を自分で拾う。
+  // R11 §5 改 — 二度目の勝利は、そのまま本編1戦目の勝利として扱う。
+  //
+  // PR #255 — **第1戦は通常戦なので、装備の候補は出ない。**以前は結果画面が
+  // 報酬選択を兼ねていたので一枚挟んでいたが、選ぶものが無くなったため、会話の
+  // あとはそのままキャンプへ戻る（`advanceAfterBattle` が prologueActive を落とし、
+  // 技能点の付与と補給チュートリアルの提示もそこで揃う）。
   scene.querySelector(".vn-stage")?.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
     event.preventDefault();
     event.currentTarget.click();
   });
   const settle = () => {
-    target.textContent = full;
-    storyTypingDone = true;
-    storyShownLine = key;
+    advanceAfterBattle();
     scene.classList.add("typed");
     // 門のある拍は AUTO でも越えない。**押して越える拍である。**
     if (state.story?.auto && !state.story?.logOpen && !storyGate()) {
@@ -2541,7 +2570,10 @@ function mountRewindView() {
     rewindTimer = setTimeout(() => {
       stage.classList.add("out");
       rewindTimer = setTimeout(() => { finishRewind(); }, reduced ? 120 : REWIND_OUT_MS);
-    }, reduced ? 120 : REWIND_HOLD_MS);
+    // PR #255 — 直前の一戦の一行も同じ理由でここに出す。戻った先のタブは
+    // 場面によって変わる（補給チュートリアル中は補給タブに錠が掛かる）ので、
+    // 遠征タブだけに書くと「さっき何が起きたか」が読めない回ができる。
+    + ultimateLessonNote() + lastBattleNoteHtml() + view,
   };
   const step = (cursor) => {
     if (state.phase !== "rewind") return;
@@ -2859,27 +2891,33 @@ function predicateText(predicate) {
     case "round_number":
       return predicate.op === "eq" ? predicate.value + "ラウンド目だけ" : predicate.value + "ラウンド目まで";
     case "has_status": {
+  const reservation = nodeState.reserved
+    ? "<span class=\"node-reservation-mark\" role=\"img\" aria-label=\"取得予約中\" title=\"取得予約中\">◎</span>"
+    : "";
+  let mark;
       const name = STATUS_GLOSSARY.find((entry) => entry.id === predicate.statusId)?.displayName
         ?? predicate.statusId;
-      return (predicate.value ?? 0) === 0 ? name + "がついていないとき" : name + "がついているとき";
+    mark = "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
     }
+  } else {
+    const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
+    const title = nodeState.prereqsMet
+      ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
+      : "前提がまだ（技能点" + node.cost + "）";
+    const prerequisiteCost = prerequisiteCostFor(node);
+    const chainLabel = node.requires?.length
+      ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
+      : "取得コスト" + node.cost + "点";
+    const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
+      + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
+    const prerequisite = node.requires?.length
+      ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
+        + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
+      : "";
+    mark = "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
+      + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
     case "position": return "自分が" + (ROW_WORDS[predicate.row] ?? "") + "のとき";
-    case "history_count":
-      if (predicate.metric === "same_target_streak") {
-        return predicate.op === "lte" ? "同じ相手を続けて狙っていないとき" : "同じ相手を続けて狙ったとき";
-      }
-      if (predicate.metric === "damage_taken") return "そのラウンドに被弾していないとき";
-      return "";
-    default: return "";
-  }
-}
-
-// 節に出す一行。**空なら条件が無い**（「無条件」とわざわざ書かない）。
-function conditionText(node) {
-  const definition = skillDefinitionOf(node.skillId);
-  if (!definition) return "";
-  if (node.kind === "reactive") return triggerLabelOf(definition.rule?.listenTo);
-  if (node.kind === "passive") return "";
+  return "<span class=\"node-state-marks\">" + reservation + mark + "</span>";
   const parts = (definition.intrinsicPredicates ?? []).map(predicateText).filter(Boolean);
   if (!parts.length) {
     // 発動条件が無くても、対象が絞られていれば「誰へ出るのか」は条件である。
@@ -2971,33 +3009,27 @@ function prerequisiteCostFor(node, seen = new Set()) {
 // 廃止したので、□✓（取得済み・未装着）と ■✓（装着中）を分ける必要が無い。
 // 残る違いはオン／オフだけで、それは同じ印の濃さで出す。
 function nodeStateMark(node, nodeState, characterId) {
-  const reservation = nodeState.reserved
-    ? "<span class=\"node-reservation-mark\" role=\"img\" aria-label=\"取得予約中\" title=\"取得予約中\">◎</span>"
-    : "";
-  let mark;
   if (nodeState.unlocked) {
     const label = nodeState.disabled ? "取得済み・オフ" : "取得済み";
-    mark = "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
+    return "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
       + " aria-label=\"" + label + "\" title=\"" + label + "\">✓</span>";
-  } else {
-    const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
-    const title = nodeState.prereqsMet
-      ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
-      : "前提がまだ（技能点" + node.cost + "）";
-    const prerequisiteCost = prerequisiteCostFor(node);
-    const chainLabel = node.requires?.length
-      ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
-      : "取得コスト" + node.cost + "点";
-    const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
-      + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
-    const prerequisite = node.requires?.length
-      ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
-        + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
-      : "";
-    mark = "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
-      + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
   }
-  return "<span class=\"node-state-marks\">" + reservation + mark + "</span>";
+  const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
+  const title = nodeState.prereqsMet
+    ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
+    : "前提がまだ（技能点" + node.cost + "）";
+  const prerequisiteCost = prerequisiteCostFor(node);
+  const chainLabel = node.requires?.length
+    ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
+    : "取得コスト" + node.cost + "点";
+  const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
+    + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
+  const prerequisite = node.requires?.length
+    ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
+      + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
+    : "";
+  return "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
+    + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
 }
 
 function skillSlotRows(characterId, kind) {
@@ -3012,15 +3044,26 @@ function skillSlotRows(characterId, kind) {
   // 順送りなので、有効な本数のうち一本ぶんが出番になる（issue #187 / #230）。
   const turns = live.length;
   let spent = 0;
+  const reservationId = skillReservationFor(state.run, characterId);
+  const reservationLevel = skillReservationLevelFor(state.run, characterId);
+  const reservationLabel = reservationId
+    ? (COMPONENTS[reservationId]?.label ?? nameFor(reservationId))
+    : "";
+  const reservationTarget = reservationLevel ? "Lv" + reservationLevel + "まで" : "";
+  const reservation = reservationId
+    ? "<span class=\"summary-reservation\" role=\"status\" title=\"取得予約: " + esc(reservationLabel)
+      + "・" + esc(reservationTarget) + "\"><small>取得予約</small><b>"
+      + esc(reservationLabel) + "</b><small>" + esc(reservationTarget) + "</small></span>"
+    : "";
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
     const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+    + reservation
     const disabled = skillDisabled(characterId, skillId);
     const moveButtons = kind === "active" || kind === "reactive"
       ? "<span class=\"reorder\">" + button("↑", "move-skill", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-skill", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
-    // **出番。**順送りの何本目か、を目盛りで出す。文字で「1/3」と書かない。
     const liveIndex = disabled ? -1 : live.indexOf(skillId);
     const share = kind === "active" && turns > 1 && liveIndex >= 0
       ? "<span class=\"turn-share\" role=\"img\" aria-label=\"装着 " + turns + "本のうちの1本（およそ"
@@ -3056,19 +3099,22 @@ function skillSlotRows(characterId, kind) {
       + "<span class=\"installed-copy\"><b>" + esc(info?.label ?? nameFor(skillId)) + "</b>"
       + marks + share + ultimate.traits + "</span>"
       + ultimate.seal
-      + moveButtons
-      // **入切は「札」ではなく「摘み」にする。**丸は払うものだけに譲ったので、
-      // 操作は動く摘みの形（スイッチ）で出す。
+  // issue #168 — 前提は Lv まで見る。解禁 API と同じ関数を通る。
       + "<button type=\"button\" class=\"skill-switch" + (disabled ? " off" : " on")
       + "\" data-action=\"toggle-skill\" data-character=\"" + characterId + "\" data-skill=\""
       + skillId + "\" data-kind=\"" + kind + "\" role=\"switch\" aria-checked=\""
-      + (disabled ? "false" : "true") + "\" aria-label=\"" + (disabled ? "オンにする" : "オフにする")
-      + "\" title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる")
-      + "\"><i></i></button>"
+  const reservationTarget = skillReservationFor(state.run, characterId);
+  const reservationTargetLevel = skillReservationLevelFor(state.run, characterId);
+  const reserved = reservationTarget === node.skillId;
+  const canReserve = !unlocked || skillLevelOf(characterId, node.skillId) < skillLevelCapOf(node.skillId);
+  // issue #236 — 取得済み技能はオン／オフだけを残す。
       + "</div>";
   }).join("");
   // 見出しは、払える点（●）と、装着で払う合計（○が足りない）を並べるだけにする。
-  const meter = budget > 0
+  return {
+    unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass,
+    reservationTarget, reservationTargetLevel, reserved, canReserve,
+  };
     ? "<span class=\"slot-budget " + (kind === "active" ? "ap" : "rp") + "\" role=\"img\" aria-label=\""
       + (kind === "active" ? "行動点" : "反応点") + " " + budget + " · 装着 " + list.length + "件\" title=\""
       + (kind === "active" ? "1ラウンドに払える行動点" : "1ラウンドに払える反応点") + " " + budget + "\">"
@@ -3124,26 +3170,15 @@ function memberContext(characterId, emphasis = "skills") {
 function skillBuildSummary(characterId) {
   const points = skillPointsFor(characterId);
   const party = totalSkillPoints();
-  const reservationId = skillReservationFor(state.run, characterId);
-  const reservationLevel = skillReservationLevelFor(state.run, characterId);
-  const reservationLabel = reservationId
-    ? (COMPONENTS[reservationId]?.label ?? nameFor(reservationId))
-    : "";
-  const reservationTarget = reservationLevel ? "Lv" + reservationLevel + "まで" : "";
-  const reservation = reservationId
-    ? "<span class=\"summary-reservation\" role=\"status\" title=\"取得予約: " + esc(reservationLabel)
-      + "・" + esc(reservationTarget) + "\"><small>取得予約</small><b>"
-      + esc(reservationLabel) + "</b><small>" + esc(reservationTarget) + "</small></span>"
-    : "";
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
     + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
     + "<b class=\"summary-name\">" + esc(characterName(characterId)) + "</b>"
-    + reservation
     + "<span class=\"summary-points\" role=\"img\" aria-label=\"" + esc(characterName(characterId))
     + "の技能点 " + points + " · 隊全体 " + party + "\"><small>技能点</small><b>" + points + "</b>"
     + (party !== points ? "<small class=\"summary-party\">隊 " + party + "</small>" : "")
     + "</span></aside>";
 }
+
 function skillNodeIcon(node) {
   return branchIcons[node.branch] ?? "·";
 }
@@ -3162,121 +3197,6 @@ const SKILL_TREE_KINDS = SKILL_TREE_GROUPS.map((group) => group.kind);
 function visibleSkillNodes() {
   return SKILL_TREE_NODES.filter((node) => inManifest(node.skillId));
 }
-
-// **森は毎回組み直す。**pack が変われば出る節が変わり、座標も変わる。
-// 座標を保存して使い回すと、外れた pack のぶんだけ穴が空いた森になる。
-function skillTreeLayout() {
-  return buildSkillTreeLayout(visibleSkillNodes());
-}
-
-function selectedSkillKind() {
-  const requested = state.skillTreeKind;
-  return SKILL_TREE_KINDS.includes(requested) ? requested : "active";
-}
-
-// 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
-function skillNodeState(node, characterId) {
-  const unlocked = isUnlocked(characterId, node.skillId);
-  const equipped = installedSkill(characterId, node.skillId, node.kind);
-  const disabled = equipped && skillDisabled(characterId, node.skillId);
-  // issue #168 — 前提は Lv まで見る。解禁 API と同じ関数を通る。
-  const unmet = unmetPrerequisites(node, (skillId) => skillLevelOf(characterId, skillId));
-  const prereqsMet = unmet.length === 0;
-  const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
-  const reservationTarget = skillReservationFor(state.run, characterId);
-  const reservationTargetLevel = skillReservationLevelFor(state.run, characterId);
-  const reserved = reservationTarget === node.skillId;
-  const canReserve = !unlocked || skillLevelOf(characterId, node.skillId) < skillLevelCapOf(node.skillId);
-  // issue #236 — 取得済み技能はオン／オフだけを残す。
-  const stateClass = unlocked
-    ? "equipped" + (disabled ? " disabled" : "")
-    : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
-  return {
-    unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass,
-    reservationTarget, reservationTargetLevel, reserved, canReserve,
-  };
-}
-
-// issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
-// 二つある。**どちらなのかを書く。**「先に前提を解禁してください」とだけ出すと、
-// 解禁済みの前提を見て手が止まる。
-function prerequisiteShortfallText(characterId, unmet = []) {
-  const parts = (unmet ?? []).map((required) => {
-    const label = COMPONENTS[required.skillId]?.label ?? required.skillId;
-    const level = skillLevelOf(characterId, required.skillId);
-    return level > 0 && required.minLv > level
-      ? label + "を Lv" + required.minLv + "まで上げてください（いま Lv" + level + "）。"
-      : label + "を先に解禁してください。";
-  });
-  return parts.length ? parts.join("") : "先に前提を解禁してください。";
-}
-
-// **前提と派生先は、押せる形で出す。**iPhone ではここを叩いて route を辿る
-// （横スクロールしなくても、前提へ戻る・派生先へ進むができる）。
-function skillRouteChip(skillId, minLv = MIN_SKILL_LEVEL) {
-  const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
-  if (!node) return "";
-  // issue #168 / #177 — 親を伸ばして初めて開く前提なら、**必要な段までを目盛りで出す。**
-  // 「Lv3以上」と書く代わりに、いまの段（塗り）と要る段（枠）を同じ目盛りに重ねる。
-  const cap = skillLevelCapOf(skillId);
-  const owner = selectedCharacter();
-  const level = owner ? skillLevelOf(owner, skillId) : 0;
-  const need = minLv > MIN_SKILL_LEVEL && cap > 1
-    ? "<span class=\"level-meter need\" role=\"img\" aria-label=\"この前提は Lv" + minLv + "以上が要る（いま Lv"
-      + level + "）\" title=\"この前提は Lv" + minLv + "以上が要る（いま Lv" + level + "）\">"
-      + Array.from({ length: cap }, (unused, index) =>
-        "<i class=\"" + (index < level ? "on" : "") + (index < minLv ? " want" : "") + "\"></i>").join("")
-      + "</span>"
-    : "";
-  return "<button type=\"button\" class=\"route-chip branch-" + (BRANCH_KEYS[node.branch] ?? "base")
-    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
-    + "\"><span>" + esc(branchIcons[node.branch] ?? "·") + "</span>" + esc(COMPONENTS[skillId]?.label ?? skillId)
-    + need + "</button>";
-}
-
-// issue #148 — **説明文の数字そのものを、いまのレベルの値にする。**
-//
-// レベルが上げるのは威力・治療量・防壁という連続量だけで、AP / RP や段数は
-// 変わらない。1段（+12%）では**次の一戦の予測が動かないことのほうが多い**ので、
-// 倍率を別行に添えるだけでは「Lv だけ上がって何も強くなっていない」と読めてしまう。
-// 「腕力130%の一撃」が Lv2 で「腕力146%の一撃」と書かれていれば、その一行で済む
-// （作者指摘）。掛かる数と掛からない数の見分けは content/skill-levels.mjs にある。
-function skillDefinitionOf(skillId) {
-  return PLAYABLE_CONTENT.activeSkills[skillId]
-    ?? PLAYABLE_CONTENT.reactiveSkills[skillId]
-    ?? PLAYABLE_CONTENT.passiveSkills[skillId]
-    ?? null;
-}
-
-function skillEffectText(characterId, skillId) {
-  const text = COMPONENTS[skillId]?.effect ?? "";
-  return skillTextAtLevel(text, skillDefinitionOf(skillId), skillLevelOf(characterId, skillId));
-}
-
-// 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
-// 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
-function levelUpAction(node, characterId, nodeState) {
-  const cap = skillLevelCapOf(node.skillId);
-  // **段を持たない節・まだ取っていない節には、何も書かない。**目盛りが無いことが
-  // そのまま「段を持たない」で、値段は右端の丸に出ている（issue #177）。
-  if (cap <= 1 || !nodeState.unlocked) return "";
-  const level = skillLevelOf(characterId, node.skillId);
-  if (level >= cap) return "";
-  const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
-  // **1点で、上の説明のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。
-  const steps = skillLevelValueSteps(
-    COMPONENTS[node.skillId]?.effect ?? "", skillDefinitionOf(node.skillId), level,
-  );
-  // **1点で変わるのは数だけ。**その数そのものを出す（規則の説明は畳んだヘルプにある）。
-  const change = steps.length
-    ? "<span class=\"level-step\">" + steps.map((step) =>
-      esc(step.from) + " → <b>" + esc(step.to) + "</b>").join(" · ") + "</span>"
-    : "<span class=\"level-step\">+12%</span>";
-  return button("Lv " + (level + 1) + "（" + SKILL_LEVEL_COST + "点）",
-    "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
-    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"") + change;
-}
-
 
 // 予約された技能を自動取得したときの loadout 反映。
 // 前提は installUnlockedSkills の既定（末尾へ追加・オフ）に任せ、
@@ -3323,22 +3243,22 @@ function applyAutomaticSkillActions(actions = []) {
   state.run.loadout = loadout;
 }
 
-function renderSkillDetail(row, node, characterId, nodeState) {
-  const derived = row.children;
-  const requires = node.requires;
-  const cap = skillLevelCapOf(node.skillId);
-  const level = skillLevelOf(characterId, node.skillId);
-  const action = nodeState.equipped
-    ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
-      + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
-    : nodeState.canUnlock
-        ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
-          "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-        : nodeState.prereqsMet
-          ? button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
-            "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-          : "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
+// **森は毎回組み直す。**pack が変われば出る節が変わり、座標も変わる。
+// 座標を保存して使い回すと、外れた pack のぶんだけ穴が空いた森になる。
+function skillTreeLayout() {
+  return buildSkillTreeLayout(visibleSkillNodes());
+}
+
+function selectedSkillKind() {
+  const requested = state.skillTreeKind;
+  return SKILL_TREE_KINDS.includes(requested) ? requested : "active";
+}
+
+// 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
+function skillNodeState(node, characterId) {
+  const equipped = installedSkill(characterId, node.skillId, node.kind);
+  const disabled = equipped && skillDisabled(characterId, node.skillId);
+  // issue #168 — 前提は Lv まで見る。判定は content/skill-tree.mjs の一箇所
   const reservationLabel = nodeState.reservationTarget
     ? (COMPONENTS[nodeState.reservationTarget]?.label ?? nameFor(nodeState.reservationTarget))
     : "";
@@ -3384,6 +3304,134 @@ function renderSkillDetail(row, node, characterId, nodeState) {
       ? "<p class=\"reservation-note\">現在の予約は「" + esc(reservationLabel) + "・" + esc(reservationTarget)
         + "」です。この技能を予約すると切り替わります。</p>"
       : "";  const scope = node.kind === "active"
+  const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
+  // issue #236 — **取得済みの強調は一種類だけ。**取得と装着が同じになったので、
+  // 「取得済みだが未装着」（旧 unlocked）という中間の見た目は無くなった。
+  // 残るのは 取得済み（オン／オフ）・取得できる・前提待ち・パック外 の四つ。
+  const stateClass = unlocked
+    ? "equipped" + (disabled ? " disabled" : "")
+    : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
+  return { unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass };
+}
+
+// issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
+    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div>"
+    + (reservationAction
+      ? "<div class=\"node-action reservation-action\">" + reservationAction + reservationNote + "</div>"
+      : "")
+    + "</div>";
+// 解禁済みの前提を見て手が止まる。
+function prerequisiteShortfallText(characterId, unmet = []) {
+  const parts = (unmet ?? []).map((required) => {
+    const label = COMPONENTS[required.skillId]?.label ?? required.skillId;
+    const level = skillLevelOf(characterId, required.skillId);
+    return level > 0 && required.minLv > level
+      ? label + "を Lv" + required.minLv + "まで上げてください（いま Lv" + level + "）。"
+      : label + "を先に解禁してください。";
+  });
+  return parts.length ? parts.join("") : "先に前提を解禁してください。";
+}
+    + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "") + (selected ? " selected" : "") + "\">"
+// **前提と派生先は、押せる形で出す。**iPhone ではここを叩いて route を辿る
+// （横スクロールしなくても、前提へ戻る・派生先へ進むができる）。
+function skillRouteChip(skillId, minLv = MIN_SKILL_LEVEL) {
+  const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+  if (!node) return "";
+  // issue #168 / #177 — 親を伸ばして初めて開く前提なら、**必要な段までを目盛りで出す。**
+  // 「Lv3以上」と書く代わりに、いまの段（塗り）と要る段（枠）を同じ目盛りに重ねる。
+  const cap = skillLevelCapOf(skillId);
+  const owner = selectedCharacter();
+  const level = owner ? skillLevelOf(owner, skillId) : 0;
+  const need = minLv > MIN_SKILL_LEVEL && cap > 1
+    ? "<span class=\"level-meter need\" role=\"img\" aria-label=\"この前提は Lv" + minLv + "以上が要る（いま Lv"
+      + level + "）\" title=\"この前提は Lv" + minLv + "以上が要る（いま Lv" + level + "）\">"
+      + Array.from({ length: cap }, (unused, index) =>
+        "<i class=\"" + (index < level ? "on" : "") + (index < minLv ? " want" : "") + "\"></i>").join("")
+      + "</span>"
+    : "";
+  return "<button type=\"button\" class=\"route-chip branch-" + (BRANCH_KEYS[node.branch] ?? "base")
+    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
+    + "\"><span>" + esc(branchIcons[node.branch] ?? "·") + "</span>" + esc(COMPONENTS[skillId]?.label ?? skillId)
+    + need + "</button>";
+}
+
+// issue #148 — **説明文の数字そのものを、いまのレベルの値にする。**
+  // 取得済みの根本は選択経路の強調から外し、未取得の前提だけを水色にする。
+  const pendingOnPath = new Set([...onPath].filter((key) => {
+    const row = group.byKey.get(key);
+    return row && !isUnlocked(characterId, row.skillId);
+  }));
+  const ownedOnPath = new Set([...onPath].filter((key) => !pendingOnPath.has(key)));
+//
+// レベルが上げるのは威力・治療量・防壁という連続量だけで、AP / RP や段数は
+// 変わらない。1段（+12%）では**次の一戦の予測が動かないことのほうが多い**ので、
+// 倍率を別行に添えるだけでは「Lv だけ上がって何も強くなっていない」と読めてしまう。
+// 「腕力130%の一撃」が Lv2 で「腕力146%の一撃」と書かれていれば、その一行で済む
+// （作者指摘）。掛かる数と掛からない数の見分けは content/skill-levels.mjs にある。
+function skillDefinitionOf(skillId) {
+  return PLAYABLE_CONTENT.activeSkills[skillId]
+    ?? PLAYABLE_CONTENT.reactiveSkills[skillId]
+    ?? PLAYABLE_CONTENT.passiveSkills[skillId]
+        : pendingOnPath.has(row.key) ? " on-path"
+          : ownedOnPath.has(row.key) ? "" : derived.has(row.key) ? " derived" : " faded";
+
+function skillEffectText(characterId, skillId) {
+  const text = COMPONENTS[skillId]?.effect ?? "";
+  return skillTextAtLevel(text, skillDefinitionOf(skillId), skillLevelOf(characterId, skillId));
+}
+
+// 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
+// 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
+function levelUpAction(node, characterId, nodeState) {
+  const cap = skillLevelCapOf(node.skillId);
+  // **段を持たない節・まだ取っていない節には、何も書かない。**目盛りが無いことが
+  // そのまま「段を持たない」で、値段は右端の丸に出ている（issue #177）。
+  if (cap <= 1 || !nodeState.unlocked) return "";
+  const level = skillLevelOf(characterId, node.skillId);
+  if (level >= cap) return "";
+  const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
+  // **1点で、上の説明のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。
+  const steps = skillLevelValueSteps(
+    COMPONENTS[node.skillId]?.effect ?? "", skillDefinitionOf(node.skillId), level,
+  );
+  // **1点で変わるのは数だけ。**その数そのものを出す（規則の説明は畳んだヘルプにある）。
+  const change = steps.length
+    ? "<span class=\"level-step\">" + steps.map((step) =>
+      esc(step.from) + " → <b>" + esc(step.to) + "</b>").join(" · ") + "</span>"
+    : "<span class=\"level-step\">+12%</span>";
+  return button("Lv " + (level + 1) + "（" + SKILL_LEVEL_COST + "点）",
+    "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
+    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"") + change;
+}
+
+
+function renderSkillDetail(row, node, characterId, nodeState) {
+  const derived = row.children;
+  const requires = node.requires;
+  const cap = skillLevelCapOf(node.skillId);
+  const level = skillLevelOf(characterId, node.skillId);
+  const action = nodeState.equipped
+    ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
+      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
+      + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
+    : nodeState.canUnlock
+        ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
+          "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+        : nodeState.prereqsMet
+          // 値段と手持ちは右端の丸と見出しに出ているので、押せない釦だけを残す。
+          ? button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
+            "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
+  const characterId = selectedCharacter();
+  const pendingOnPath = new Set([...onPath].filter((key) => {
+    const row = group.byKey.get(key);
+    return row && !isUnlocked(characterId, row.skillId);
+  }));
+  const selectedIsPending = selectedRow && !isUnlocked(characterId, selectedRow.skillId);
+          : "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
+  // **説明文はいまのレベルの値で読む。**Lv1 では元の文のまま。
+  // **文章を許すのはここだけ。**技能の説明文は「深く遊びたい人が読むところ」なので
+    if ((childKey === selectedRow.key && selectedIsPending) || pendingOnPath.has(childKey)) return " on-path";
+  const scope = node.kind === "active"
     ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
     : "";
   return "<div class=\"skill-detail\"><p>" + scope + esc(skillEffectText(characterId, node.skillId))
@@ -3395,11 +3443,7 @@ function renderSkillDetail(row, node, characterId, nodeState) {
     + "<span class=\"route-line\"><b>派生</b>"
     + (derived.length ? derived.map(skillRouteChip).join("") : "<span class=\"route-none\">—</span>") + "</span></div>"
     + "<div class=\"node-action\">" + action + "</div>"
-    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div>"
-    + (reservationAction
-      ? "<div class=\"node-action reservation-action\">" + reservationAction + reservationNote + "</div>"
-      : "")
-    + "</div>";
+    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div></div>";
 }
 
 
@@ -3411,7 +3455,7 @@ function renderSkillRow(row, characterId, tone) {
   const detail = selected ? renderSkillDetail(row, node, characterId, nodeState) : "";
   return "<div class=\"tree-cell" + tone + (selected ? " selected" : "") + "\" data-node=\"" + esc(row.key)
     + "\" style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
-    + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "") + (selected ? " selected" : "") + "\">"
+    + "<article class=\"skill-node " + nodeState.stateClass + (selected ? " selected" : "") + "\">"
     + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
     + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
     + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
@@ -3436,12 +3480,6 @@ function renderSkillTree(characterId) {
   skillTreeConnectorGroup = group;
   const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
   const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
-  // 取得済みの根本は選択経路の強調から外し、未取得の前提だけを水色にする。
-  const pendingOnPath = new Set([...onPath].filter((key) => {
-    const row = group.byKey.get(key);
-    return row && !isUnlocked(characterId, row.skillId);
-  }));
-  const ownedOnPath = new Set([...onPath].filter((key) => !pendingOnPath.has(key)));
   const derived = new Set(selectedRow ? selectedRow.descendants : []);
   const tabs = groups.map((entry) => "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
     + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false") + "\" data-action=\"select-skill-kind\" data-kind=\""
@@ -3452,8 +3490,8 @@ function renderSkillTree(characterId) {
     const tone = !selectedRow
       ? (dimmed ? " faded" : "")
       : row.key === selectedRow.key ? ""
-        : pendingOnPath.has(row.key) ? " on-path"
-          : ownedOnPath.has(row.key) ? "" : derived.has(row.key) ? " derived" : " faded";
+        : onPath.has(row.key) ? " on-path"
+          : derived.has(row.key) ? " derived" : " faded";
     return renderSkillRow(row, characterId, dimmed && !selectedRow ? " faded" : tone);
   }).join("");
   const clear = selectedRow
@@ -3501,16 +3539,10 @@ function layoutSkillTreeConnectors() {
   forest.querySelectorAll("[data-node]").forEach((element) => nodeEls.set(element.dataset.node, element));
   const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
   const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
-  const characterId = selectedCharacter();
-  const pendingOnPath = new Set([...onPath].filter((key) => {
-    const row = group.byKey.get(key);
-    return row && !isUnlocked(characterId, row.skillId);
-  }));
-  const selectedIsPending = selectedRow && !isUnlocked(characterId, selectedRow.skillId);
   const derived = new Set(selectedRow ? [selectedRow.key, ...selectedRow.descendants] : []);
   const edgeTone = (childKey) => {
     if (!selectedRow) return "";
-    if ((childKey === selectedRow.key && selectedIsPending) || pendingOnPath.has(childKey)) return " on-path";
+    if (childKey === selectedRow.key || onPath.has(childKey)) return " on-path";
     if (derived.has(childKey)) return " derived";
     return " faded";
   };
@@ -3692,14 +3724,22 @@ function ultimateHelp() {
     + ULTIMATE_AMOUNT_MULTIPLIER + "倍</b>・<b>溜めが消える</b>・<b>防壁が戦闘のあいだ残る</b>・"
     + "<b>反応点を払わない</b>（リアクティブ）です。AP・回数・耐久・行動権は変わりません。</p>"
     + "<p class=\"muted\"><b>放てるのは一人につき一遠征（12戦）に一度きり</b>です。補充されません。"
+//
+// PR #255 — 分母は**その遠征の総数**（既定3、ギルドの「開始補給」で伸びる）。
+// 遠征中に増えないので、「3/3」が最初から最後まで同じ意味で読める。
+function supplyTotal() {
+  return runSuppliesMax(state.run);
+}
+
     + "構えても放たなければ減らず、負けてやり直した一戦でも減りません。</p>"
     + "<p class=\"muted\"><b>隊の誰かがHP" + ULTIMATE_READY_HP_PERCENT
-    + "%未満になってからでないと出ません。</b>元の技能と同じ条件で、その技能が最初に出る"
+  const total = supplyTotal();
+  const pips = Array.from({ length: total }, (_, index) =>
     + "場面に出ます。戦闘に1回きりで、放った直後は自分へ「隙」が1段付きます。"
     + "出るかどうかも、そのあとどうなるかも、上の戦闘予測にそのまま出ています。</p>");
 }
 
-function renderSkills() {
+  return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + total
   // issue #159 — 対象の人物は上端の共通盤面で選ぶ。**このタブに二つ目の仲間タブを
   // 持たない。**残り技能点は隊全体の合計にする（一人ぶんだけでは、他の誰かが
   // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
@@ -3712,14 +3752,55 @@ function renderSkills() {
   const depths = state.run.manifest.packDepths ?? {};
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
-    .join(" · ");
+    + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= supplyTotal(), "tiny-button")
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能", pointsBadge)
     + "<p class=\"context-line\">" + esc(packs) + "</p>"
     + memberContext(characterId, "skills")
-    + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
+      "<p class=\"muted\">補給はこの遠征の開始時に " + supplyTotal()
+      + " 個で固定され、報酬では増えません。再挑戦と引き直しに使った分は、野営治療には使えません。"
+      + "装備を分解して出た屑は、使った分を " + SCRAP_PER_SUPPLY
+      + " で1個だけ戻せます（総数は超えません）。総数はギルドの「開始補給」で伸びます。</p>");
     + "<section class=\"card\">"
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
+// PR #255 — 直前の一戦の一行。**結果画面の代わりではない。**決めることが
+// 何も無い画面を一枚挟む代わりに、次の一戦を決める画面の中へ「さっき何が起きたか」
+// だけを置く。次の戦闘を始めた時点で消える（`simulateAndEnterBattle`）。
+function lastBattleNoteHtml(override = undefined) {
+  const note = override === undefined ? state.lastBattleNote : override;
+  if (!note || !Number.isInteger(note.encounter)) return "";
+  const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[note.kind] ?? "通常";
+  const facts = [
+    note.roundsUsed + "ラウンド",
+    "味方HP損失 " + note.allyHpLost,
+    "技能点 +" + note.skillPoints,
+  ];
+  if (note.equipmentWear > 0) facts.push("装備摩耗 " + note.equipmentWear);
+  const extra = [];
+  if (note.fullHealed) extra.push("幕が変わったので全員が全回復しました。");
+  else extra.push("このHPを次の戦闘へ持ち越します。");
+  if (note.downed.length) {
+    extra.push("戦闘不能：" + note.downed.map((id) => characterName(id)).join(" · ")
+      + "（補給の蘇生で戻せます）。");
+  }
+  // issue #238 — 必殺の印は「放ったから」減る。**結果画面と同じ文**で出す
+  // （同じ出来事を画面ごとに別の言い方で書かない）。
+  if (note.ultimateFiredBy.length) {
+    const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
+    extra.push("✹ " + note.ultimateFiredBy.map((id) => characterName(id)).join(" · ")
+      + " が必殺技を放ちました。この遠征ではもう放てません。"
+      + (stillHave.length
+        ? "まだ残しているのは " + stillHave.map((id) => characterName(id)).join(" · ") + " です。"
+        : "隊の全員が放ち終えました。"));
+  }
+  return "<section class=\"card last-battle-note\" role=\"status\">"
+    + "<p class=\"eyebrow\">LAST BATTLE</p>"
+    + "<h3>第" + note.encounter + "戦・" + kindLabel + " — 突破した</h3>"
+    + "<p class=\"last-battle-facts\">" + facts.map((text) =>
+      "<span>" + esc(text) + "</span>").join("") + "</p>"
+    + "<p class=\"muted\">" + esc(extra.join(" ")) + "</p></section>";
+}
+
     + "</details>"
     + symbolLegendHelp()
     + helpDetails("skill-rules", "技能のルール",
@@ -4754,7 +4835,11 @@ function shortName(displayName) {
 
 function unitIcon(actor) {
   return characterInfo(actor.definitionId)?.icon
-    ?? ENEMY_ICONS[actor.definitionId]
+    // PR #255 — **行き先ではなく、いま押す操作の名前にする。**「キャンプへ戻る」と
+    // 書くと、戦闘の前へ戻る（＝やり直せる）ように読めた（作者試遊 2026-09-12）。
+    // この釦がするのは再生を打ち切ることだけなので、そう名乗らせる。行き先が
+    // 場面で変わる（結果画面・キャンプ・精算）ぶん、札で行き先を約束しない。
+    + button("再生をとばす", "replay-result", false, "button") + "</section>"
     ?? (actor.side === "enemy" ? "◆" : "・");
 }
 
@@ -5323,9 +5408,14 @@ function beatText_(beat) {
 function mountBattleView() {
   battleLayoutKey = null;
   const details = app.querySelector("details.debug-log");
-  if (details) {
-    details.addEventListener("toggle", () => {
-      state.replayLogOpen = details.open;
+      ? rewardDueForCurrentEncounter() && state.rewardOffer.length
+        ? rewardSectionHtml()
+        // PR #255 — 最終戦の候補を受け取り終えたら、そのまま精算へ進む。
+        // 候補の無い勝利で結果画面に残るのは中断復帰と古い保存だけだが、
+        // そこでも「次の一手」を必ず出す。
+        : state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+          ? button("遠征を精算する", "settle-run", false, "button primary")
+          : button("キャンプへ戻る", "advance-encounter", false, "button primary")
       saveState();
     });
   }
@@ -5342,6 +5432,8 @@ function diagnosticEventText(event, actorLabels) {
 }
 
 function renderBattleError() {
+  const rewardLayout = won && !prologueUnresolved
+    && rewardDueForCurrentEncounter() && state.rewardOffer.length > 0;
   const failure = state.battleError || {};
   const diagnostics = failure.diagnostics || {};
   const recent = diagnostics.recentEvents || [];
@@ -5378,12 +5470,29 @@ function resultActors(result) {
       + "</span><div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
       + (actor.alive ? "戦闘内 HP " + actor.hp + "/" + actor.maxHp : "戦闘内 戦闘不能")
       + " → 次戦 HP " + nextHp + "/" + actor.maxHp + " · 防壁 " + actor.barrier + "</small></div></div>";
+  // PR #255 — **装備を選ぶ画面は、選ぶものだけを上に置く。**
+  //
+  // 作者試遊 2026-09-12 —「報酬画面の『戦闘後の状態』も複雑すぎて要らないかも。
+  // 戦闘後キャンプの『LAST BATTLE』と同じモーダルでいいです。」勝敗の大札・4つの
+  // 指標・人物ごとのHP・装備耐久の一覧を、キャンプと同じ一枚へ置き換える。
+  // 候補と拾う釦を折り返しの上へ収めるため、その一枚は**候補の下**に置く
+  // （決めるのは候補で、直前の一戦はその材料ではない）。
+  //
+  // 上端の「安全に撤退する」も出さない。**候補を一つ拾ってから撤退できる**
+  // （先に撤退すると、選ばせておいて取り上げる形になる）。
+  if (rewardLayout) {
+    return shell(
+      nextBlock + lastBattleNoteHtml(buildBattleNote(state.run.encounterIndex))
+      + rotationStrip(result) + replay + history,
+      { hideHeaderAction: true },
+    );
+  }
   }).join("");
 }
 
 // ============================================================ 順番の帯（issue #177）
-//
-// **「装着順が結果にどう効いたか」を、文ではなく帯で見せる。**
+// R15 — 戦闘の勝利で技能点は全員へ自動付与する。装備の候補はボス戦突破後だけ、
+// **装備2件のあいだの選択**として出る（活動資金も補給もこの選択に入らない）。
 // アクティブは装着順を順送りに回るので（#188 / #187）、装着を増やすほど一本
 // あたりの出番が減る。それが実際にどう出たのかは、ラウンドごとに何が鳴ったかを
 // 並べれば一目で分かる。色はテーマ、印はテーマの記号、押さえれば技能名が出る。
@@ -5457,69 +5566,166 @@ function renderResult() {
       : button("続きを見る", "resume-prologue-defeat", false, "button primary")
     : won
       ? state.run.encounterIndex >= ENCOUNTERS_PER_RUN
-        ? button("遠征を精算する", "settle-run", false, "button primary")
+// PR #255 — **装備の候補を出すのはボス戦を突破したときだけ。**判定は
+// progression 側の一箇所（`offersRewardAfterClear`）が持つので、画面と進行が
+// 別々の条件を持たない。
+function rewardDueForCurrentEncounter() {
+  return offersRewardAfterClear(state.run.encounterIndex);
+}
+
+// issue #138 — ボス戦の勝利で結果画面に来た時点で、装備候補を一度だけ用意する。
         : rewardSectionHtml()
       : button("この先どうするか", "show-defeat", false, "button primary");
-  const nextBlock = "<div class=\"primary-action result-primary-action\" data-primary-action=\"result-next\">"
+  if (!won || prologueUnresolved || !rewardDueForCurrentEncounter()) return;
+  // PR #255 — 最終戦（12戦目）の候補を受け取ったあとは、同じ画面に留まって
+  // 精算へ進む。**受け取った戦闘の候補を作り直さない**（何度でも拾えてしまう）。
+  if (state.rewardTakenAtEncounter === state.run.encounterIndex) return;
     + next + "</div>";
   const equipment = (result.equipment || []).map((item) => "<div class=\"result-gear\"><b>"
     + esc(gear(item.equipmentId)?.label ?? item.equipmentId) + "</b><span>"
     + "戦闘内 " + item.durability + " / " + item.maxDurability + " → 次戦 "
     + item.maxDurability + " / " + item.maxDurability + "</span></div>").join("");
   // issue #168 — 表示する量も progression の表から引く（画面に書いた数と、
+// PR #255 — **装備の2候補を、1画面に収める。**
+//
+// 作者指摘 2026-09-12：「装備は2つとも画面に収める。少なくとも iPhone 16e では
+// スクロールなしで選べてほしい。ヴァンパイアサバイバーズを参考に。」
+//
+// そのために、札の形を「読む順」で三層に分けた。
+//
+//   1. 名前と等級、品全体を変える一行（keystone / 規格外の代償）
+//   2. 常時効果と、追加効果の要約（格・名前・量）を一行ずつ
+//   3. 条件・代償・発火回数まで入った全文は、畳んだ段の中
+//
+// **全文はいつでも拾う前に読める**（AGENTS.md の完全開示）。畳むのは長い文だけで、
+// 量・格・耐久・発火回数は畳まずに出す。候補が3つに増えても同じ形で並ぶように、
+// 札の高さは候補数（`data-count`）から CSS が締める。
+// 候補が増えるほど、一枚に割ける高さは減る。**畳む量だけを変える**
+// （畳んだ先には必ず全文がある）。数えるのは「行」で、条件の行も効果の行も同じ1行。
+function rewardRowBudget(count) {
+  return count >= 3 ? 3 : 4;
+}
+
+function rewardEffectLine(effect, { always = false } = {}) {
+  const amount = effect.amount == null ? ""
+    : always ? " +" + esc(effect.amount) : "（" + esc(effect.amount) + "）";
+  // **常時効果と発火効果を見分けられるようにする。**畳んだ形では「腕力 +20」と
+  // 「装備の耐久を戻す（3）」が同じ見た目で並ぶので、条件も耐久も要らない一つだけに
+  // 印を付ける（全文の「基礎効果・常時」と同じことを、一文字で言う）。
+  const mark = always
+    ? "<span class=\"effect-always\" title=\"基礎効果・常時。条件も耐久も要りません\">常時</span>"
+    : "";
+  return "<li>" + effectRarityBadge(effect.rarity, effect.rarityLabel) + mark
+    + "<span>" + esc(effect.summary) + amount + "</span></li>";
+}
+
+// PR #255 — **rule の見出し。**作者試遊 2026-09-12「結局、条件と消費も見ないと
+// 選べないです」。効果の要約だけでは拾うかどうかを決められないので、
+// **いつ・何を払い・何回**をその効果の真上に置く。
+function rewardRuleHeadHtml(rule) {
+  const chips = [...(rule.paid ?? []), rule.limitText]
+    .filter(Boolean)
+    .map((text) => "<span>" + esc(text) + "</span>").join("");
+  return "<p class=\"reward-rule-head\"><b>" + esc(rule.when) + "</b>" + chips + "</p>";
+}
+
+function rewardChoiceHtml(offer, index, { full, rowBudget }) {
+  // R8 §3.5 — 生成に失敗したら既定品へ黙って落とさず、診断をそのまま出す。
+  if (offer.type === "generator_error") {
+    return "<article class=\"reward-choice disabled\"><header><h3>装備の候補が作れませんでした</h3></header>"
+      + "<p class=\"muted\">" + esc(offer.message) + "</p>"
+      + "<p class=\"muted\">ほかの候補を選ぶか、補給1で引き直してください。</p></article>";
+  }
+  const item = offer.item ?? null;
+  const info = item ? null : EQUIPMENT[offer.equipmentId];
+  const label = item ? item.definition.displayName : (info?.label ?? offer.equipmentId);
+  const durability = item ? item.definition.maxDurability : (info?.maxDurability ?? 1);
+  const readout = item?.readout ?? null;
+  const implicit = (readout?.effects ?? []).find((effect) => effect.unconditional) ?? null;
+  // **古い readout（rule の構造を持たない Blueprint）でも壊れない。**その場合は
+  // 条件を畳んだ全文だけが持つので、rule 見出しは出さずに全文へ誘導する。
+  const rules = Array.isArray(readout?.rules) ? readout.rules : [];
+
+  // 行の予算を「常時1行 + rule ごとに（見出し1行 + 効果の行）」で使い切る。
+  // 途中で尽きたら、その先は畳んだ全文の中にある。
+  let rows = 0;
+  const blocks = [];
+  let hiddenEffects = 0;
+  if (implicit) {
+    blocks.push("<ul class=\"reward-effect-list\">"
+      + rewardEffectLine(implicit, { always: true }) + "</ul>");
+    rows += 1;
+  }
+  for (const rule of rules) {
+    const effects = rule.effects ?? [];
+    // 見出し1行ぶんと効果1行ぶんの余地が無ければ、その rule ごと畳む。**見出しだけ
+    // 出す**のは一番悪い（条件と代償を見せて、何が起きるかを隠すことになる）。
+    if (rows + 2 > rowBudget && blocks.length) {
+      hiddenEffects += effects.length;
+      continue;
+    }
+    const room = Math.max(1, rowBudget - rows - 1);
+    const shown = effects.slice(0, room);
+    hiddenEffects += effects.length - shown.length;
+    blocks.push("<div class=\"reward-rule\">" + rewardRuleHeadHtml(rule)
+      + "<ul class=\"reward-effect-list\">" + shown.map((effect) => rewardEffectLine(effect)).join("")
+      + "</ul></div>");
+    rows += 1 + shown.length;
+  }
+  const banner = item
+    ? (readout?.keystone
+      ? "<p class=\"reward-keystone\">✦ " + esc(readout.keystone) + "</p>" : "")
+      + (readout?.risk
+        ? "<p class=\"reward-risk\">規格外の代償：" + esc(readout.risk) + "</p>" : "")
+    : "";
+  const body = blocks.length ? blocks.join("")
+    : "<p class=\"muted\">" + esc(info?.effect ?? "") + "</p>";
+  const lines = Array.isArray(readout?.lines) ? readout.lines : [];
+  // 耐久も畳まない情報なので、畳んだ段の見出しへ同じ行に載せる（行を一つ節約する）。
+  // 畳んだ残りの件数は、**それを開く行**が持つ（別の一行にすると、札の高さを
+  // 一段食ったうえで「どこを押せば読めるのか」を言わないままになる）。
+  const fullText = "<details class=\"reward-full\"><summary><span class=\"reward-meta\">戦闘耐久 "
+    + durability + "</span>全文を読む（"
+    + (hiddenEffects > 0 ? "ほか " + hiddenEffects + " 件・" : "")
+    + "条件・代償・回数）</summary>"
+    + lines.map((line) => "<p class=\"equipment-rule-line\">" + esc(line) + "</p>").join("")
+    // R8 §3.1 — 偶然性の主語は装備。**拾った品が、拾われ方について一行だけ言う。**
+    + (item && generatedVoice(item) ? "<p class=\"item-voice\">" + esc(generatedVoice(item)) + "</p>" : "")
+    + "</details>";
+  return "<article class=\"reward-choice" + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\">"
+    + "<header><h3>" + esc(label) + "</h3>" + rarityChip(item?.rarity) + "</header>"
+    + banner + body + fullText
+    + (full ? "<p class=\"muted\">持ち物が" + INVENTORY_LIMIT + "品で一杯です。装備画面で一品を分解してください。</p>" : "")
+    + button("これを拾う", "take-reward", full, "button primary reward-take",
+      "data-offer=\"" + index + "\"") + "</article>";
+}
+
   // 実際に配った数がずれないようにする）。
   const skillGain = !prologueUnresolved && won
     ? "<p class=\"operation-note\">全員に技能点 +" + skillPointsForClear(currentEncounter().kind) + "</p>"
-    : "";
-  const carryText = prologueUnresolved
-    ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
-    : "<p class=\"muted\">持ち帰る活動資金 <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
-      + "</b> · 到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + "</p>";
-  const status = "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
-    + (won ? "✓" : "×") + "</div><h2>" + (won ? "突破した" : "足を止めた")
-    + "</h2><p class=\"verdict-context\">" + esc(encounter.name) + " · " + result.roundsUsed
-    + "ラウンド</p><div class=\"metrics\"><span><b>" + (metrics.allyHpLost ?? 0) + "</b><small>味方HP損失</small></span><span><b>"
-    + (metrics.enemyHpLost ?? 0) + "</b><small>敵HP損失</small></span><span><b>" + (metrics.reactionsFired ?? 0)
-    + "</b><small>反応発火</small></span><span><b>" + (metrics.equipmentWear ?? 0) + "</b><small>装備摩耗</small></span></div>"
-    + skillGain + "</section>";
-  // issue #238 — 必殺印は「構えたから」ではなく「放ったから」減る。
-  // **払った理由と残りを、払った画面で見せる。**
-  // 作者指摘 2026-09-13 — 人数ではなく**名前**で出す。「あと2人」は誰の一回かに答えない。
-  const firedBy = state.lastCarrySnapshot?.ultimateFiredBy ?? [];
-  const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
-  const sealText = firedBy.length
-    ? "<p class=\"muted\">✹ <b>" + esc(firedBy.map((id) => characterName(id)).join(" · "))
-      + "</b> が必殺技を放ちました。この遠征ではもう放てません。"
-      + (stillHave.length
-        ? "まだ残しているのは <b>" + esc(stillHave.map((id) => characterName(id)).join(" · ")) + "</b> です。"
-        : "隊の全員が放ち終えました。")
-      + "</p>"
-    : "";
-  const stateCard = "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "戦闘後の状態")
-    + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
-    + "<div class=\"result-gear-list\">" + (equipment || "<p class=\"muted\">装備なし</p>")
-    + "</div></section>";
-  const replay = state.replayEvents?.length
-    ? "<section class=\"card\">" + button("戦闘をもう一度見る", "replay-again", false, "button") + "</section>"
-    : "";
-  const history = "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
+  const count = Math.max(1, state.rewardOffer.length);
+  const rowBudget = rewardRowBudget(count);
+  const cards = state.rewardOffer
+    .map((offer, index) => rewardChoiceHtml(offer, index, { full, rowBudget })).join("");
     + "><summary>戦闘履歴</summary>"
-    + "<ol class=\"events\">" + shown.map((event) => "<li class=\"event\"><span class=\"event-round\">R"
-      + (event.round ?? "-") + "</span><span>" + esc(eventText(event)) + "</span>"
-      + "<code class=\"event-type\">" + esc(event.type) + "</code></li>").join("") + "</ol>"
-    + "<details class=\"technical-log\"><summary>技術ログ</summary>"
-    + diagnosticStamp()
+  return "<section class=\"card reward-card-shell\">"
+    + sectionHeading("REWARD", "どちらを持ち帰る？",
+      "<span class=\"stage\">補給 " + state.run.supplies + " / " + supplyTotal() + "</span>")
+    + (state.run.encounterIndex >= ENCOUNTERS_PER_RUN
+      ? "<p class=\"muted\">遠征はこの一戦で終わります。選んだ品は精算で残す設計図の候補になります。</p>"
     + "<p class=\"muted\">全イベントを診断用データとして表示します。</p>"
-    + "<pre>" + esc(JSON.stringify(result.events || state.replayEvents || [], null, 2)) + "</pre></details></details>";
-  return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history);
-}
-
-
-// R15 — 通常戦勝利時に技能点は全員へ自動付与する。報酬は3候補から1つ。
+    + "<div class=\"reward-choices\" data-count=\"" + count + "\">" + cards + "</div>"
 // **活動資金はこの3候補に入らない。**
-// ---------------------------------------------------------------- 世界の声（R12 §4.B の続き）
+    + button("補給1で候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button quiet")
 //
-// R12 は敵カード・設計図・精算の三か所へ世界の声を載せた。残っていたのが
+    + (appraisalLevel(state.profile) > 0
+      ? " 目利き Lv" + appraisalLevel(state.profile) + "：等級を " + (appraisalLevel(state.profile) + 1)
+        + " 回引いて良い方を採っています。"
+      : "")
+    + "</small></div>"
+    // R12 §4.B — 報酬の画面にも世界の側の一行を置く。**選ぶ材料ではない**ので、
+    // 候補と引き直しのあと（画面の折り返しより下でよい位置）へ回す。
+    + "<p class=\"world-voice\">" + esc(rewardVoice()) + "</p></section>";
 // **報酬・野営・敗北**である。どれもプレイヤーが必ず止まる画面なのに、全文が
 // システム文だった（R12 §3「増やすべきは会話量ではなく、会話以外の器である」）。
 //
@@ -5552,18 +5758,26 @@ function defeatVoice() {
 // R8 §3.1 —「愛着の主語は人物、偶然性の主語は装備」。R12 §3 は、装備が
 // rule 文しか持たないので偶然性が物語になっていないと書いた。設計図には由来を
 // 付けたので、**拾った瞬間のほうにも一行を置く。**
-//
+  const found = settlement.blueprintCandidateCount ?? newGeneratedItems(state.run).length;
 // **品そのものから決まる**（affix の本数と耐久）ので、同じ品なら同じ一行が出る。
 // 効果の言い換えは書かない（それは readout の仕事で、二重に書くとずれる）。
 const GENERATED_VOICES = Object.freeze({
   common: [
+  // PR #255 — 設計図を持ち帰れるのは**勝って生還したときだけ**（勝利1・撤退0・
+  // 敗北0）。残せないときは「残せなかった」ではなく**なぜ残らないのか**を言う
+  // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
+  const limit = settlement.blueprintSaveLimit;
     "外の工房でも作れそうな形をしている。灰の中に落ちていたことだけが説明できない。",
-    "使い込まれている。前に持っていた者の握りの癖が、まだ残っている。",
+      "<span class=\"stage\">" + saved.length + " / " + limit + "</span>")
   ],
   rare: [
-    "継ぎ目が見当たらない。一枚から起こしたにしては、厚みが均一すぎる。",
-    "灰を払うと下から別の色が出た。塗ったのではなく、そういう地らしい。",
-  ],
+      : limit > 0
+        ? "<p class=\"muted\">今回は残せる品がありませんでした。</p>"
+        : "<p class=\"muted\">設計図を持ち帰れるのは<b>12戦を抜けて生還したとき</b>だけです。"
+          + "この遠征で見つけた装備 " + found + " 品は、ここで手放します。</p>")
+    + (saved.length && found > saved.length
+      ? "<p class=\"muted\">この遠征で見つけた装備 " + found + " 品のうち、"
+        + (settlement.blueprintChosen ? "選んだ " : "等級の高い ")
   epic: [
     "詰所の買取に出すと、等級の欄で手が止まる。様式に無い形をしている。",
     "同じものを見たという報告が二件ある。どちらも別の幕の、別の隊からである。",
@@ -5594,6 +5808,51 @@ function generatedVoice(item) {
 // すでに用意済み（引き直し済みも含む）なら上書きしない。
 function ensureResultReward(won, prologueUnresolved) {
   if (!won || prologueUnresolved || state.run.encounterIndex >= ENCOUNTERS_PER_RUN) return;
+// issue #151 — **遠征終了時に何を設計図として残すかを、プレイヤーが決める。**
+//
+// これまでは等級の高い順に自動で残していた。装備の組み合わせを見つけるゲームで、
+// 最後の価値判断だけがレアリティに置き換わっていたので（今回の構成を成立させた
+// 低レア品より、使わなかった高レア品が残る）、候補と上限を出して選ばせる。
+//
+// **条件・代償・効果・レアリティは、残す前に全文で読める**（畳んだ段の中）。
+// 選ばなかった品は残らない——埋まっていない枠を自動で埋めない。
+function renderBlueprintPick() {
+  const outcome = state.pendingSettlement?.outcome;
+  if (!outcome) return renderSettlement();
+  const limit = blueprintSaveLimitFor(outcome);
+  const candidates = blueprintSaveCandidates(state.run);
+  const chosen = new Set(Array.isArray(state.blueprintKeep) ? state.blueprintKeep : []);
+  const outcomeLabel = { won: "12戦を抜けた", retreat: "安全に撤退した", lost: "遠征は途中で終わった" }[outcome]
+    ?? "遠征が終わった";
+  const cards = candidates.map((item) => {
+    const selected = chosen.has(item.descriptor);
+    return "<article class=\"keep-card" + (selected ? " selected" : "")
+      + (item.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\">"
+      + "<button type=\"button\" class=\"keep-main\" data-action=\"toggle-blueprint-keep\""
+      + " data-descriptor=\"" + esc(item.descriptor) + "\" aria-pressed=\"" + (selected ? "true" : "false")
+      + "\"><span class=\"keep-mark\" aria-hidden=\"true\">" + (selected ? "✓" : "") + "</span>"
+      + "<span class=\"keep-name\">" + esc(item.definition.displayName) + "</span>"
+      + rarityChip(item.rarity) + "</button>"
+      + "<details class=\"reward-full\"><summary>全文を読む（条件・代償・回数）</summary>"
+      + equipmentReadoutHtml(item, { compact: false }) + "</details></article>";
+  }).join("");
+  const primary = "<section class=\"card primary-action\" data-primary-action=\"blueprint-keep\">"
+    + sectionHeading("BLUEPRINT", "残す設計図を選ぶ",
+      "<span class=\"stage\">" + chosen.size + " / " + limit + "</span>")
+    + "<p class=\"muted\">" + esc(outcomeLabel) + "ので、設計図は最大 " + limit
+    + " 件残せます。見つけたのは " + candidates.length
+    + " 品です。<b>選ばなかった品は残りません。</b></p>"
+    + button(chosen.size ? "この " + chosen.size + " 件を残して精算する" : "何も残さず精算する",
+      "confirm-blueprint-keep", false, "button primary")
+    + "</section>";
+  return shell(primary
+    + "<section class=\"card\">" + sectionHeading("CANDIDATES", "この遠征で見つけた装備")
+    + "<p class=\"muted\">押すと選択が入れ替わります。持込品は既に設計図があるので候補に出ません。</p>"
+    + "<div class=\"keep-list\">" + cards + "</div>"
+    + "<p class=\"muted\">残した設計図は、次の遠征へ持ち込む候補になります（持込枠 "
+    + blueprintCarryCapacity(state.profile) + "）。</p></section>");
+}
+
   if (state.rewardOffer.length) return;
   const rerolls = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
   state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, rerolls);
@@ -5631,8 +5890,11 @@ function rewardSectionHtml() {
         + "<small>この候補は選べません。ほかの候補を選ぶか、補給1で引き直してください。</small></article>";
     }
     return "<article class=\"reward-card special\"><div class=\"reward-kind kind-passive\">補給</div><h3>補給 +"
-      + offer.amount + "</h3><p>再挑戦・報酬の引き直し・野営治療に使う。上限 " + MAX_SUPPLIES + "。現在 "
-      + state.run.supplies + "。</p>"
+    + (settlement.blueprintSaveLimit > 0
+      ? esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
+        + settlement.blueprintSaveLimit + "件残せました。"
+      : esc(retreated ? "安全撤退" : "敗北") + "なので、設計図は残りません。")
+    + "</p></section>"
       + button("補給を受け取る", "take-reward", state.run.supplies >= MAX_SUPPLIES, "button",
         "data-offer=\"" + index + "\"") + "</article>";
   }).join("");
@@ -5731,11 +5993,33 @@ function settlementClosingLine(settlement) {
 function renderSettlement() {
   const settlement = state.lastSettlement;
   if (!settlement) return renderExpeditionStart();
+// PR #255 — **結果画面は、そこで決めることがある戦闘にだけ出す。**
+// 残るのは三つだけである。
+//
+//   1. 負けた（再挑戦するか、精算するかを決める）
+//   2. ボス戦を突破した（装備の候補から一つ選ぶ）
+//   3. 12戦目を突破した（精算へ進む）
+//
+// それ以外の勝利は、決めることが何も無い画面を一枚挟むだけだった。通常戦・
+// 精鋭戦の後はそのままキャンプへ戻し、「直前の一戦で何が起きたか」は遠征タブの
+// 一行（`lastBattleNote`）が預かる。予測はキャンプに揃っているので、よほど
+// 悪くなければそのまま次へ進める。
+function resultScreenDue() {
+  if (state.prologueActive) return true;
+  if (state.lastResult?.result !== "win") return true;
+  if (state.run.encounterIndex >= ENCOUNTERS_PER_RUN) return true;
+  return rewardDueForCurrentEncounter();
+}
+
   const b = settlement.breakdown;
   const won = settlement.outcome === "won";
   // R8 §10.3 — 安全撤退は敗北ではない。完走・初clearボーナスは付かないが、
   // 確定済み活動資金はそのまま持ち帰る（撃破ゼロ没収はしない）。
   const retreated = settlement.outcome === "retreat";
+  if (!resultScreenDue()) {
+    advanceAfterBattle();
+    return;
+  }
   const rows = [
     ["撃破した戦闘", b.clearedEncounterBase],
     ["到達距離（" + state.run.fundLedger.highestClearedEncounter + "戦 × 25）", b.distance],
@@ -5780,6 +6064,10 @@ function renderComplete() {
   const option = (value, label, selected) => "<option value=\"" + value + "\" " + (selected ? "selected" : "") + ">" + label + "</option>";
   const trail = state.run.roster.map(characterName).join("、");
   const carried = state.run.inventory.map((id) => gear(id)?.label ?? id).join("、");
+  // PR #255 — 直前の一戦の一行と、最終戦の受け取り印は、次の一戦を始めた
+  // 時点で役目を終える。
+  state.lastBattleNote = null;
+  state.rewardTakenAtEncounter = null;
   const reached = state.run.fundLedger.highestClearedEncounter;
   const settlement = state.lastSettlement;
   return shell( "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>遠征を終えた</h2><p class=\"verdict-context\">"
@@ -5867,6 +6155,12 @@ function rewindPrologue() {
 // issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
 // 結果画面へ進める。序盤の一戦なら会話が先に入る（enterPrologueBeatIfDue）。
 function goToBattleResult() {
+      const automatic = fulfillSkillReservations(state.run);
+      state.run = automatic.run;
+      applyAutomaticSkillActions(automatic.actions);
+      for (const completed of automatic.completed) {
+        record("skill_reservation_completed", completed);
+      }
   state.replayPlaying = false;
   if (enterPrologueBeatIfDue()) return;
   state.phase = "result";
@@ -5913,7 +6207,38 @@ function simulateAndEnterBattle() {
   // issue #240 — いま挑むのが必殺技の教材の一戦か。**戦う前に数えておく**
   // （勝つと encounterIndex が進むので、後から判定すると答えが変わる）。
   const lessonBattle = ultimateLessonActive();
-  try {
+// PR #255 — ボス戦以外の勝利は結果画面を通らないので、「何が起きたか」は
+// ここで一度だけ写して遠征タブへ渡す。**戦闘の記録そのものではない**
+// （それは run.results と戦闘履歴が持つ）。次の一戦を始めた時点で消える。
+//
+// 作者試遊 2026-09-12 —「報酬画面の『戦闘後の状態』も複雑すぎて要らないかも。
+// 戦闘後キャンプの『LAST BATTLE』と同じモーダルでいいです。」なので、組み立ては
+// 純関数に分け、**装備を選ぶ画面とキャンプが同じ一枚を読む**ようにした。
+function buildBattleNote(completedEncounter) {
+  const result = state.lastResult;
+  if (!result || result.result !== "win") return null;
+  const encounter = currentEncounter();
+  const metrics = result.metrics || {};
+  return {
+    encounter: completedEncounter,
+    name: encounter?.name ?? "",
+    kind: encounter?.kind ?? "normal",
+    roundsUsed: result.roundsUsed ?? 0,
+    allyHpLost: metrics.allyHpLost ?? 0,
+    enemyHpLost: metrics.enemyHpLost ?? 0,
+    equipmentWear: metrics.equipmentWear ?? 0,
+    skillPoints: skillPointsForClear(encounter?.kind),
+    ultimateFiredBy: [...(state.lastCarrySnapshot?.ultimateFiredBy ?? [])],
+    downed: state.run.roster.filter((id) => currentHp(id) <= 0),
+    fullHealed: isCampaignRun() && (completedEncounter === 4 || completedEncounter === 8),
+  };
+}
+
+function captureLastBattleNote(completedEncounter) {
+  state.lastBattleNote = buildBattleNote(completedEncounter);
+}
+
+function advanceAfterBattle() {
     const composed = currentEncounter();
     const simulation = simulateExpeditionBattle(
       state.run,
@@ -5923,7 +6248,8 @@ function simulateAndEnterBattle() {
         // **予測と同じ options をそのまま使う。**足してよいのは再生用の
         // snapshot 収集だけで、これは出来事の列も結果も変えない。
         ...expeditionBattleOptions(composed),
-        simulationOptions: { captureReplaySnapshots: true },
+  const showSupplyTutorial = shouldShowSupplyTutorialAfterBattle();
+  captureLastBattleNote(completedEncounter);
       },
     );
     battle = simulation.battleInput;
@@ -5946,6 +6272,40 @@ function simulateAndEnterBattle() {
       result: result.result,
       roundsUsed: result.roundsUsed,
       metrics: result.metrics,
+// R6 §9.2 — 精算は**一度だけ**。issue #151 で「何を残すか」の選択が前に入ったので、
+// 精算そのものはここ一箇所へ閉じ、選択の有無で入口だけが変わるようにした。
+//
+//   keepDescriptors === null … 従来どおり等級の高い順に上限まで残す
+//   配列               … その品だけを残す（選ばなかった品は残らない）
+function performSettlement(outcome, keepDescriptors) {
+  // issue #212 follow-up — Campaign StageのstageEndは初訪・再訪を分けず、
+  // 完走するたびに同じ会話を通常の一行送りで表示する。
+  const won = outcome === "won";
+  const stage = CAMPAIGN_STAGES[state.run.campaignStageSequence];
+  const stageEndBeat = won && stage ? storyBeat(stage.id, "stageEnd") : null;
+  const result = settleRun(
+    state.profile, state.run, outcome,
+    keepDescriptors === null ? {} : { keepDescriptors },
+  );
+  if (!result.ok) {
+    state.error = result.reason;
+  } else {
+    state.profile = result.profile;
+    state.run = result.run;
+    state.lastSettlement = result.settlement;
+    record("run_settled", result.settlement);
+  }
+  state.pendingSettlement = null;
+  state.blueprintKeep = null;
+  if (result.ok && stageEndBeat) {
+    enterStory([stageEndBeat], "settlement");
+    return;
+  }
+  state.phase = "settlement";
+  saveState();
+  render();
+}
+
     }];
     // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
     // retry しても同じ encounter の撃破 base は一度だけ。
@@ -5971,19 +6331,13 @@ function simulateAndEnterBattle() {
       // issue #168 — 配る量と冪等の鍵は progression 側の一箇所で決まる。
       // **同じ encounter を二度勝っても二度は配らない**（活動資金と同じ鍵）。
       const grant = grantRunSkillPointsForClear(state.run, state.run.encounterIndex);
-      state.run = grant.run;
+    const run = startRun(profile, { campaignStageSequence: 0 });
       if (grant.granted) {
         record("battle_skill_points_granted", {
           stage: state.run.encounterIndex,
           amount: grant.amount,
           characterIds: [...state.run.roster],
         });
-      }
-      const automatic = fulfillSkillReservations(state.run);
-      state.run = automatic.run;
-      applyAutomaticSkillActions(automatic.actions);
-      for (const completed of automatic.completed) {
-        record("skill_reservation_completed", completed);
       }
     }
     for (const combatEvent of result.events || []) {
@@ -6371,6 +6725,51 @@ function handleAction(event) {
   // 読み終えている行でだけ、次の行へ進む。
   if (action === "story-advance") {
     if (state.story?.logOpen) return;
+  if (action === "reserve-skill") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const requestedLevel = Number(element.dataset.targetLevel);
+    const targetLevel = Number.isInteger(requestedLevel) ? requestedLevel : null;
+    const previous = skillReservationFor(state.run, characterId);
+    const previousLevel = skillReservationLevelFor(state.run, characterId);
+    const result = reserveRunSkill(state.run, characterId, skillId, targetLevel);
+    if (!result.ok) {
+      state.error = result.reason;
+    } else {
+      state.run = result.run;
+      record("skill_reserved", {
+        characterId,
+        skillId,
+        targetLevel: skillReservationLevelFor(state.run, characterId),
+        replacedSkillId: previous && previous !== skillId ? previous : null,
+        replacedTargetLevel: previousLevel,
+      });
+      const automatic = fulfillSkillReservations(state.run);
+      state.run = automatic.run;
+      applyAutomaticSkillActions(automatic.actions);
+      for (const completed of automatic.completed) {
+        record("skill_reservation_completed", completed);
+      }
+    }
+    saveState();
+    render();
+    return;
+  }
+  if (action === "cancel-skill-reservation") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const result = cancelRunSkillReservation(state.run, characterId, skillId);
+    if (!result.ok) {
+      state.error = result.reason;
+    } else {
+      state.run = result.run;
+      record("skill_reservation_cancelled", { characterId, skillId });
+    }
+    saveState();
+    render();
+    return;
+  }
+
     if (!storyTypingDone) {
       stopStoryTimers();
       const target = app.querySelector(".vn-text");
@@ -6478,51 +6877,6 @@ function handleAction(event) {
     // **そのツリーへ切り替える。**
     const target = skillId ? SKILL_TREE_NODES.find((entry) => entry.skillId === skillId) : null;
     if (target && state.selectedSkillNode) state.skillTreeKind = target.kind;
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "reserve-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const requestedLevel = Number(element.dataset.targetLevel);
-    const targetLevel = Number.isInteger(requestedLevel) ? requestedLevel : null;
-    const previous = skillReservationFor(state.run, characterId);
-    const previousLevel = skillReservationLevelFor(state.run, characterId);
-    const result = reserveRunSkill(state.run, characterId, skillId, targetLevel);
-    if (!result.ok) {
-      state.error = result.reason;
-    } else {
-      state.run = result.run;
-      record("skill_reserved", {
-        characterId,
-        skillId,
-        targetLevel: skillReservationLevelFor(state.run, characterId),
-        replacedSkillId: previous && previous !== skillId ? previous : null,
-        replacedTargetLevel: previousLevel,
-      });
-      const automatic = fulfillSkillReservations(state.run);
-      state.run = automatic.run;
-      applyAutomaticSkillActions(automatic.actions);
-      for (const completed of automatic.completed) {
-        record("skill_reservation_completed", completed);
-      }
-    }
-    saveState();
-    render();
-    return;
-  }
-  if (action === "cancel-skill-reservation") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const result = cancelRunSkillReservation(state.run, characterId, skillId);
-    if (!result.ok) {
-      state.error = result.reason;
-    } else {
-      state.run = result.run;
-      record("skill_reservation_cancelled", { characterId, skillId });
-    }
     saveState();
     render();
     return;
@@ -6916,13 +7270,33 @@ function handleAction(event) {
     saveState();
     render();
     return;
+      // 旧い保存に残っている補給の候補だけがここへ来る（PR #255 以降、
+      // 補給は報酬の候補に出ない）。
   }
 
   // R6 §12.1 — 報酬の引き直しは補給1。**1戦闘につき一度だけ**（R6 §10）。
-  if (action === "reroll-reward") {
+    // PR #255 — **最終戦の報酬は、次の戦闘ではなく精算へつながる。**
+    // 12戦目もボス戦なので候補は出るが、遠征はここで終わるので encounterIndex は
+    // 進めない。受け取った印を置いて、同じ画面の「遠征を精算する」へ渡す。
+    if (state.run.encounterIndex >= ENCOUNTERS_PER_RUN) {
+      state.rewardTakenAtEncounter = state.run.encounterIndex;
+      state.rewardOffer = [];
+      saveState();
+      render();
+      return;
+    }
+    advanceAfterBattle();
     const used = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
     if (used >= 1) {
       state.error = "この戦闘ではもう引き直せません。";
+  // PR #255 — 候補の無い勝利から次へ進む。通常は結果画面を通らないので、
+  // この釦は中断復帰と古い保存のための保険である（進み方は報酬と同じ経路）。
+  if (action === "advance-encounter") {
+    if (state.lastResult?.result !== "win") return;
+    advanceAfterBattle();
+    return;
+  }
+
     } else {
       const spent = spendSupply(state.run, "reroll");
       if (!spent.ok) state.error = spent.reason;
@@ -7038,31 +7412,50 @@ function handleAction(event) {
         state.run = taken.run;
         registerGeneratedEquipment(state.run.generatedEquipment);
         record("reward_taken", {
-          encounter: state.run.encounterIndex,
-          reward: "equipment",
-          equipmentId: offer.equipmentId,
-          rarity: offer.item.rarity,
-          descriptor: offer.item.descriptor,
-        });
-      } else {
-        state.run.inventory = [...state.run.inventory, offer.equipmentId];
-        record("reward_taken", { encounter: state.run.encounterIndex, reward: "equipment", equipmentId: offer.equipmentId });
-      }
-    } else {
-      state.run = gainSupply(state.run, offer.amount);
-      record("reward_taken", { encounter: state.run.encounterIndex, reward: "supplies", amount: offer.amount });
-    }
-    advanceAfterReward();
+    // issue #151 — 残せる件数より多く見つけているときだけ、**何を残すかを選ばせる。**
+    // 選ぶ余地が無いときに画面を一枚増やさない——候補が上限以下のときと、
+    // そもそも一つも残せないとき（撤退・敗北は0件）の両方である。
+    const keepLimit = blueprintSaveLimitFor(outcome);
+    if (keepLimit > 0 && blueprintSaveCandidates(state.run).length > keepLimit) {
+      state.pendingSettlement = { outcome };
+      state.blueprintKeep = blueprintSaveCandidates(state.run)
+        .slice(0, keepLimit)
+        .map((item) => item.descriptor);
+      state.phase = "blueprintPick";
+      saveState();
+      render();
+
+  // R6 §12.2 — 敗北しても即座に破棄しない。補給が残っていれば同じ戦闘へ挑み直す。
+    performSettlement(outcome, null);
     return;
   }
 
-  // R6 §12.2 — 敗北しても即座に破棄しない。補給が残っていれば同じ戦闘へ挑み直す。
-  if (action === "show-defeat") {
+  // issue #151 — 候補の選択を入れ替える。**上限を超える選択はそこで止める**
+  // （選んだつもりの品が黙って落ちるのを避ける）。
+  if (action === "toggle-blueprint-keep") {
+    const descriptor = element.dataset.descriptor;
+    const outcome = state.pendingSettlement?.outcome;
+    if (!descriptor || !outcome) return;
+    const limit = blueprintSaveLimitFor(outcome);
+    const chosen = Array.isArray(state.blueprintKeep) ? [...state.blueprintKeep] : [];
+    const at = chosen.indexOf(descriptor);
+    if (at >= 0) chosen.splice(at, 1);
+    else if (chosen.length >= limit) {
+      state.error = "残せるのは " + limit + " 件までです。外してから選んでください。";
+    } else chosen.push(descriptor);
+    state.blueprintKeep = chosen;
     state.phase = "defeat";
     saveState();
     render();
     return;
   }
+  if (action === "confirm-blueprint-keep") {
+    const outcome = state.pendingSettlement?.outcome;
+    if (!outcome) return;
+    performSettlement(outcome, Array.isArray(state.blueprintKeep) ? state.blueprintKeep : []);
+    return;
+  }
+
 
   if (action === "retry-encounter") {
     const spent = spendSupply(state.run, "retry");

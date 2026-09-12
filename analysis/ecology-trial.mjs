@@ -33,6 +33,10 @@ const server = local
 const stop = () => { if (server) { try { process.kill(-server.pid); } catch { /* 既に落ちている */ } } };
 if (server) await new Promise((resolve) => setTimeout(resolve, 900));
 
+// 作者指摘 2026-09-12 — 装備の候補は iPhone 16e でスクロールなしに選べること。
+// 実機 Safari は 390x844 のうち上下のバーで約 660px しか残さない（PR #255）。
+const SAFARI_VISIBLE_HEIGHT = 660;
+
 const steps = [];
 const note = (label, ok, extra = "") => {
   steps.push({ label, ok });
@@ -413,6 +417,11 @@ try {
   let sawAnimation = false;
   let retried = false;
   let rerolled = false;
+  // PR #255 — 装備の候補を出さない戦闘の勝利は、結果画面を通らずキャンプへ戻る。
+  // その形は一度だけ確かめる（12戦で同じ札を何度も数えない）。
+  let campReturnSeen = false;
+  let rewardScreenSeen = false;
+  let turnStripSeen = false;
   let barrierSamples = [];
   let hpGaugeSamples = [];
   // R6 §5.1 — 3幕12戦。負けたら補給で再挑戦し、尽きたら精算まで進む。
@@ -709,31 +718,69 @@ try {
       reloaded = true;
     }
 
-    if (await page.locator(".battle-field").count()) await click("結果を見る");
-    else await page.waitForSelector(".verdict h2", { timeout: 8000 });
-    await page.waitForTimeout(200);
-    const verdict = (await page.locator(".verdict h2").textContent())?.trim() ?? "";
-    if (stage === 1 && forecastAtStage1) {
-      const resultText = await bodyText();
-      const forecastRounds = forecastAtStage1.verdict.match(/([0-9]+)ラウンド/)?.[1] ?? "";
-      const actualRounds = resultText.match(/·\s*([0-9]+)ラウンド/)?.[1] ?? "";
-      const expectedVerdict = forecastAtStage1.result === "win" ? "突破した" : "足を止めた";
-      note("予測と結果画面の勝敗・ラウンドが一致する",
-        verdict === expectedVerdict && forecastRounds === actualRounds,
-        forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
+    // PR #255 — **結果画面は、そこで決めることがある戦闘にだけ出る。**
+    // ボス戦（4・8戦目）の勝利は装備の候補を出し、12戦目は精算へ、敗北は敗北処理へ
+    // 進む。通常戦・精鋭戦の勝利はそのままキャンプへ戻るので、`.verdict` を待つと
+    // 永久に待つことになる。どちらへ着いたのかで分ける。
+    if (await page.locator(".battle-field").count()) {
+      await page.locator('[data-action="replay-result"]').first().click();
     }
-    // issue #238 — 放ったら、その結果画面で「印を払った」と分かる。
-    if (!ultimateSpentSeen) {
+    // 着いた先は三つ。**キャンプ**（決めることが無い勝利）、**装備の候補**（ボス戦の
+    // 勝利）、**結果画面**（敗北・最終戦）である。どれを待つかを一度に書く。
+    await page.waitForFunction(() =>
+      document.querySelector(".verdict h2") !== null
+      || document.querySelector(".reward-choices") !== null
+      || document.querySelector("nav.tabs") !== null, null, { timeout: 8000 });
+    await page.waitForTimeout(200);
+    const cameBackToCamp = await page.locator('nav.tabs [data-tab="map"]').count() > 0;
+    const onRewardScreen = await page.locator(".reward-choices").count() > 0;
+    const verdict = cameBackToCamp || onRewardScreen
+      ? "突破した"
+      : (await page.locator(".verdict h2").first().textContent())?.trim() ?? "";
+    // issue #238 — 放ったら、その場で「印を払った」と分かる。PR #255 以降は
+    // 結果画面とキャンプの一行の**どちらにも同じ文**が出るので、着いた先を問わず見る。
+    const noteUltimateSeal = async (where) => {
+      if (ultimateSpentSeen) return;
       const sealLine = (await bodyText())
         .match(/✹ ([^ ]+) が必殺技を放ちました。この遠征ではもう放てません。(まだ残しているのは ([^ ]+) です。|隊の全員が放ち終えました。)/);
-      if (sealLine) {
-        ultimateSpentSeen = true;
-        // **誰が放って、誰がまだ残しているか**を名前で出す（人数では誰の一回か分からない）。
-        note(`第${stage}戦で放った仲間と、残している仲間の名前が結果画面に出る`,
-          sealLine[1].length > 0 && !sealLine[1].includes(sealLine[3] ?? "\u0000"), sealLine[0]);
+      if (!sealLine) return;
+      ultimateSpentSeen = true;
+      // **誰が放って、誰がまだ残しているか**を名前で出す（人数では誰の一回か分からない）。
+      note(`第${stage}戦で放った仲間と、残している仲間の名前が${where}に出る`,
+        sealLine[1].length > 0 && !sealLine[1].includes(sealLine[3] ?? "\u0000"), sealLine[0]);
+    };
+    // 予測（勝敗とラウンド数）が、着いた先の表示と一致しているか。
+    const noteForecastParity = async (where, text) => {
+      if (stage !== 1 || !forecastAtStage1) return;
+      const forecastRounds = forecastAtStage1.verdict.match(/([0-9]+)ラウンド/)?.[1] ?? "";
+      const actualRounds = text.match(/([0-9]+)ラウンド/)?.[1] ?? "";
+      const expectedVerdict = forecastAtStage1.result === "win" ? "突破した" : "足を止めた";
+      note(`予測と${where}の勝敗・ラウンドが一致する`,
+        verdict === expectedVerdict && forecastRounds === actualRounds,
+        forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
+    };
+    if (cameBackToCamp) {
+      const noteText = await page.locator(".last-battle-note").innerText();
+      if (!campReturnSeen) {
+        campReturnSeen = true;
+        // 作者指摘 2026-09-12 — ボス戦以外の後は、決めることが無い画面を挟まず
+        // キャンプへ戻る。**直前の一戦の要約はキャンプの一枚が預かる。**
+        note(`第${stage}戦の勝利はキャンプへ直接戻る`,
+          /突破した/.test(noteText) && /ラウンド/.test(noteText) && /技能点/.test(noteText),
+          noteText.replace(/\s+/g, " ").slice(0, 90));
+        note("装備の候補を出さない戦闘では報酬画面を挟まない",
+          await page.locator(".reward-choices").count() === 0);
+        note("キャンプへ戻った先で次の一戦を選べる",
+          await page.getByRole("button", { name: "この敵に挑む" }).count() === 1);
       }
+      await noteForecastParity("キャンプの一行", noteText);
+      await noteUltimateSeal("キャンプの一行");
+      continue;
     }
-    if (stage === 1) {
+    await noteForecastParity("結果画面", await bodyText());
+    await noteUltimateSeal("結果画面");
+    if (!turnStripSeen) {
+      turnStripSeen = true;
       // issue #177 — **装着順が結果にどう出たか**を、文ではなく帯で見せる。
       // アクティブは順送りに回るので、ラウンドごとに何が鳴ったかを並べれば読める。
       const turnRows = await page.locator(".turn-strip .turn-row").count();
@@ -744,17 +791,61 @@ try {
         `${turnRows}人・${turnCells.length}拍`);
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
+      // PR #255 — 装備を選ぶ画面には「戦闘後の状態」を置かなくなったので、
+      // 詳細の先頭は直前の一戦の一枚（キャンプと同じもの）になる。
+      const detailAnchor = await page.locator(".last-battle-note").count() > 0
+        ? ".last-battle-note"
+        : ".result-actors";
       note("結果画面の主操作が詳細より前で見える",
-        await page.locator(".result-primary-action .button").count() >= 1
-          && await onScreen(".result-primary-action .button")
-          && await appearsBefore(".result-primary-action", ".result-actors"));
+        await page.locator(".result-primary-action .button, .result-primary-action .reward-choice").count() >= 1
+          && await onScreen(".result-primary-action")
+          && await appearsBefore(".result-primary-action", detailAnchor));
     }
-    if (stage === 1 && verdict === "突破した") {
-      // issue #138 — 勝利の結果と報酬3択が同じ画面に出て、「報酬を見る」の
-      // 中間クリックが要らないことを確かめる。
-      note("勝利の結果と報酬3択が同じ画面に出る",
-        /突破した/.test(verdict) && await page.locator(".reward-grid .reward-card").count() >= 2);
+    // PR #255 — **装備の候補は、ボス戦を突破した画面の中に出る。**
+    // 作者指摘 2026-09-12 —「装備は2つとも画面に収める。少なくとも iPhone 16e では
+    // スクロールなしで選べてほしい。」 この trial の viewport は iPhone 16e 相当なので、
+    // 2枚の札と「これを拾う」が**折り返しより上に全部入っている**ことまで見る。
+    if (verdict === "突破した" && await page.locator(".reward-choices").count() > 0 && !rewardScreenSeen) {
+      rewardScreenSeen = true;
+      const choices = await page.locator(".reward-choices .reward-choice").count();
+      note(`第${stage}戦（ボス）の勝利に装備の候補が出る`,
+        choices >= 2 && /どちらを持ち帰る？/.test(await bodyText()), `候補 ${choices} 件`);
       note("「報酬を見る」の中間クリックが無い", await page.getByRole("button", { name: "報酬を見る" }).count() === 0);
+      const takeButtons = page.locator('.reward-choice button[data-action="take-reward"]');
+      const fits = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll(".reward-choices .reward-choice")];
+        if (!cards.length) return null;
+        const bottom = Math.max(...cards.map((card) => card.getBoundingClientRect().bottom));
+        return { bottom: Math.round(bottom), viewport: window.innerHeight, scrollY: Math.round(window.scrollY) };
+      });
+      // iPhone 16e の実機 Safari は CSS viewport 844px のうち約 660px しか見せない。
+      note("装備の候補がスクロールなしで全部選べる",
+        Boolean(fits) && fits.scrollY === 0
+          && fits.bottom <= Math.min(fits.viewport, SAFARI_VISIBLE_HEIGHT),
+        fits ? `末尾 ${fits.bottom}px / 予算 ${SAFARI_VISIBLE_HEIGHT}px` : "");
+      note("拾う釦が候補ごとに一つある", await takeButtons.count() === choices);
+      // 作者試遊 2026-09-12 —「結局、条件と消費も見ないと選べないです」。
+      // **発火条件と代償と発火回数は、畳まずに効果の真上に出す。**
+      const ruleHeads = await page.locator(".reward-choice .reward-rule-head").allTextContents();
+      note("いつ発火するかが畳まずに出ている",
+        ruleHeads.length >= choices && ruleHeads.every((text) => /とき|直前|開始時|round/.test(text)),
+        (ruleHeads[0] ?? "").replace(/\s+/g, " ").slice(0, 60));
+      note("何を払うかと何回かが畳まずに出ている",
+        ruleHeads.some((text) => /耐久|HP|防壁|反応点/.test(text))
+          && ruleHeads.every((text) => /につき\d+回/.test(text)));
+      note("常時効果と発火効果を見分けられる",
+        await page.locator(".reward-choice .effect-always").count() === choices);
+      // 条件・代償・発火回数まで入った全文は、拾う前に畳んだ段から読める。
+      const fullText = page.locator(".reward-choice .reward-full").first();
+      note("装備の全文を拾う前に読める", await fullText.count() > 0);
+      if (await fullText.count()) {
+        await fullText.locator("summary").click();
+        await page.waitForTimeout(120);
+        note("全文に条件と発火回数が書いてある", /とき|につき\d+回/.test(await fullText.innerText()));
+      }
+      // 補給の候補は無い（遠征の補給は開始時に固定される）。
+      note("報酬に補給の候補が無い",
+        await page.getByRole("button", { name: "補給を受け取る" }).count() === 0);
     }
     if (verdict !== "突破した") {
       // R6 §12.2 — 敗北で即座に破棄しない。補給が残っていれば同じ戦闘へ挑み直す。
@@ -773,27 +864,31 @@ try {
       await click("遠征を終えて精算する");
       break;
     }
-    if (stage < 12) {
-      // issue #138 — 勝利の結果画面が報酬選択を兼ねる。「報酬を見る」の中間クリックは無い。
-      note(`第${stage}戦の報酬選択`, /何を持ち帰る？/.test(await bodyText()));
+    if (await page.locator(".reward-choices").count() > 0) {
       // R6 §12.1 — 引き直しは補給1。一度だけ踏む。
       if (!rerolled) {
-        const reroll = page.getByRole("button", { name: "補給1で3候補を引き直す" });
+        const reroll = page.getByRole("button", { name: "補給1で候補を引き直す" });
         if (await reroll.count() && !(await reroll.first().isDisabled())) {
           await reroll.first().click();
-          note("補給1で報酬を引き直せる", true);
+          note("補給1で装備の候補を引き直せる", true);
           rerolled = true;
         }
       }
-      const gear = page.getByRole("button", { name: "拾って次へ" });
-      if (await gear.count() && !(await gear.first().isDisabled())) await gear.first().click();
-      else {
-        const supplies = page.getByRole("button", { name: "補給を受け取る" });
-        if (await supplies.count() && !(await supplies.first().isDisabled())) await supplies.first().click();
-        else throw new Error("報酬候補に選べる品がありません");
+      const gear = page.locator('.reward-choice button[data-action="take-reward"]:not([disabled])');
+      if (!(await gear.count())) throw new Error("装備の候補に選べる品がありません");
+      await gear.first().click();
+      await page.waitForTimeout(250);
+      // PR #255 — 12戦目の候補を受け取ったら、そのまま精算へ渡る。
+      if (stage >= 12) {
+        note("最終戦の候補を受け取ると精算へ渡す",
+          await page.getByRole("button", { name: "遠征を精算する" }).count() === 1);
+        await click("遠征を精算する");
       }
-    } else {
+    } else if (stage >= 12) {
       await click("遠征を精算する");
+    } else {
+      // 候補の無い勝利で結果画面に残るのは中断復帰の保険だけ（PR #255）。
+      await click("キャンプへ戻る");
     }
   }
   note("12戦まで進めた or 敗北で止まった", stage >= 1, `到達 ${Math.min(stage, 12)}`);
@@ -814,9 +909,53 @@ try {
     await click("スキップ");
   }
 
+  // issue #151 — **残せる件数より多く見つけていたら、何を残すかを選ばせる。**
+  // 等級順の自動保存では、今回の構成を成立させた低レア品より使わなかった高レア品が
+  // 残ってしまう。候補・上限・全文が出て、選んだ品だけが残るところまで見る。
+  //
+  // PR #255 — 設計図が残るのは**12戦を抜けて生還したときだけ**（勝利1・撤退0・
+  // 敗北0）なので、この画面は完走した回にしか出ない。途中で終わった回は下の
+  // 「持ち帰れない」表示を見る（tutorial trial は完走の側を踏む）。
+  if (await page.locator(".keep-list").count() > 0) {
+    const keepText = await bodyText();
+    const cards = await page.locator(".keep-card").count();
+    const limit = Number(keepText.match(/設計図は最大 (\d+) 件/)?.[1] ?? -1);
+    note("残す設計図を選ぶ画面に着く",
+      /残す設計図を選ぶ/.test(keepText) && cards > limit && limit >= 1,
+      `候補 ${cards} 件・上限 ${limit} 件`);
+    note("選ばなかった品は残らないと書いてある", /選ばなかった品は残りません/.test(keepText));
+    note("候補の全文を残す前に読める", await page.locator(".keep-card .reward-full").count() === cards);
+    const selectedBefore = await page.locator(".keep-card.selected").count();
+    note("上限ぶんが最初から選ばれている", selectedBefore === limit);
+    // 押すと入れ替わる。**外してから別の品を選べる。**
+    await page.locator(".keep-card.selected .keep-main").first().click();
+    await page.waitForTimeout(150);
+    note("選択を外せる", await page.locator(".keep-card.selected").count() === selectedBefore - 1);
+    const free = page.locator(".keep-card:not(.selected) .keep-main").first();
+    const freeName = await page.locator(".keep-card:not(.selected) .keep-name").first().innerText();
+    await free.click();
+    await page.waitForTimeout(150);
+    note("等級順では残らない品を選べる",
+      await page.locator(".keep-card.selected").count() === selectedBefore
+        && (await page.locator(".keep-card.selected .keep-name").allTextContents()).includes(freeName));
+    await page.locator('[data-action="confirm-blueprint-keep"]').click();
+    await page.waitForTimeout(300);
+    const afterText = await bodyText();
+    note("選んだ品だけが設計図として残る",
+      /設計図として残した品/.test(afterText) && /選んだ/.test(afterText),
+      (afterText.match(/この遠征で見つけた装備 \d+ 品のうち、[^。]+。/)?.[0] ?? "").slice(0, 80));
+  }
+
   // R6 §9.2 — 精算は一度だけ。内訳と残高が画面に出る。
   const settleText = await bodyText();
   note("精算画面に着く", /活動資金/.test(settleText) && /内訳/.test(settleText));
+  // PR #255 — 途中で終わった遠征は設計図を持ち帰れない。**理由を書く**
+  // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
+  if (!/12戦を抜けた/.test(settleText) && /設計図として残した品/.test(settleText)) {
+    note("完走しなかった遠征は設計図を持ち帰れないと書いてある",
+      /設計図を持ち帰れるのは12戦を抜けて生還したときだけです/.test(settleText)
+        || /設計図は残りません/.test(settleText));
+  }
   note("精算の内訳が出ている", /到達距離/.test(settleText) && /報酬倍率/.test(settleText));
   note("精算後の主操作が上部にある",
     await page.locator(".settlement-primary-action .button.primary").count() === 1
