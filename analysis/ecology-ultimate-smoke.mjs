@@ -67,9 +67,9 @@ assert.ok(Object.keys(byLabel).length >= 2, "必殺の変わり方が一種類�
 
 // ---------------------------------------------------------------- 走らせる道具
 
-function baseRun() {
+function baseRun(stageSequence = STAGE_SEQUENCE) {
   const profile = newProfile();
-  const run = newRun(profile, { runSeed: SEED, campaignStageSequence: STAGE_SEQUENCE });
+  const run = newRun(profile, { runSeed: SEED, campaignStageSequence: stageSequence });
   run.loadout = freshLoadout(run.roster);
   return { profile, run };
 }
@@ -146,13 +146,19 @@ const moved = perEncounter.filter((entry) => (
 assert.ok(moved.length > 0, "必殺が出ているのに、盤面が一つも動いていない");
 
 // 5. 傷の条件。**楽な一戦では出ない。**全員が構えていても、隊が削られなければ
-// 必殺の出番そのものが無い（そしてその一戦では回数も減らない）。
-const quiet = perEncounter.filter((entry) => entry.fired === 0);
-assert.ok(
-  quiet.length > 0,
-  `隊が HP${ULTIMATE_READY_HP_PERCENT}% 未満まで削られない一戦が一つも無い`
-  + "（傷の条件が効いていないので、必殺が1ラウンド目から出る）",
+// 必殺の出番そのものが無い（そしてその一戦では回数も減らない）。固定回復量の
+// 現行チューニングでは Stage 3 の12戦がすべて傷の条件へ入ることがあるため、
+// 序盤の一戦を独立した不発コントロールにする。
+const earlyQuiet = baseRun(1);
+const earlyDesignated = designateAll(earlyQuiet.run);
+const earlyArmed = armFor(earlyDesignated, earlyDesignated.roster);
+const earlyResult = simulateExpeditionBattle(earlyArmed, earlyQuiet.profile, 1);
+assert.equal(
+  ultimatesFiredBy(earlyArmed, earlyResult.result).length,
+  0,
+  "序盤の楽な一戦では、全員が構えていても必殺が出ない",
 );
+const quiet = perEncounter.filter((entry) => entry.fired === 0);
 assert.ok(
   quiet.length < perEncounter.length,
   "どの一戦でも出ない（傷の条件が厳しすぎて、必殺が死んでいる）",

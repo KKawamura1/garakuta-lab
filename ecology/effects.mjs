@@ -149,6 +149,7 @@ export function applyEffect(rt, ctx, effect) {
     case "wear_equipment": return wearEquipmentEffect(rt, ctx, effect);
     case "repair_equipment": return repairEquipmentEffect(rt, ctx, effect);
     case "modify_pending_amount": return modifyPendingAmount(rt, ctx, effect);
+    case "split_pending_damage": return splitPendingDamage(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
     default:
@@ -265,7 +266,7 @@ export const REAR_WEAPON_BPS = 4_000;
 // R19（issue #137）— 技能レベル。**同じ効果の上位互換を別技能で増やさず、
 // 一つの技能を段階的に強くする。**
 //
-// 掛かるのは連続量（damage / heal / barrier とその増減）だけで、AP・RP・段数・
+// 掛かるのは連続量（damage / heal / barrier とその増減・分散の軽減量）だけで、AP・RP・段数・
 // 回数・耐久といった離散量には掛からない（schema.mjs の SKILL_LEVEL_STEP_BPS を見よ）。
 // **engine は技能 ID で分岐しない。**掛かるかどうかは「その actor がその技能に
 // レベルを持っているか」だけで決まり、持っていなければ掛け算そのものが起きない。
@@ -289,10 +290,12 @@ function afterRearFalloff(rawAmount, ctx, effect) {
   return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
 }
 
-function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
-  const proposed = afterRearFalloff(
-    afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), ctx, effect,
-  );
+function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOverride) {
+  const proposed = proposedOverride === undefined
+    ? afterRearFalloff(
+      afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), ctx, effect,
+    )
+    : Math.max(0, proposedOverride);
   const tags = effect.tags ?? [];
   const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
   const event = rt.emit(
@@ -376,6 +379,14 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount) {
     const recoveredLost = Math.max(0, hpDamage - greenBefore);
     finalTarget.recoveredDamage = Math.max(0, recoveredBefore - recoveredLost);
     finalTarget.hp = hpBefore - hpDamage;
+    // Only actual HP damage from this path seeds the recovery budget. A
+    // lose_hp cost emits a cost-tagged damage_taken event, but it is not an
+    // attack wound and must not create healing capacity.
+    const side = finalTarget.side;
+    if (rt.state.chain?.damageTakenBySide?.[side] !== undefined) {
+      rt.state.chain.damageTakenBySide[side] += hpDamage;
+      rt.state.chain.recoveryBudgetBySide[side] += hpDamage;
+    }
     const existing = rt.state.recoveryWindows.get(finalTarget.instanceId);
     const window = existing && existing.chainId === rt.state.chain.id
       ? existing
@@ -533,8 +544,26 @@ function applyHealing(rt, ctx, effect) {
       : (ctx.ruleId && ctx.event?.type !== "excess_healing"
         ? 0
         : finalTarget.maxHp - finalTarget.hp);
-    const actual = Math.min(requested, finalTarget.maxHp - finalTarget.hp, recoverable);
+    // A chain may contain several damage packets and several heal sources.
+    // The per-actor window remains the UI-facing attribution, while this
+    // aggregate budget makes the party-wide ceiling explicit. A chain with no
+    // HP damage keeps the fixture/utility behavior for non-attack healing.
+    const side = finalTarget.side;
+    const chain = rt.state.chain;
+    const hasDamageForSide = (chain?.damageTakenBySide?.[side] ?? 0) > 0;
+    const partyRecoverable = hasDamageForSide
+      ? Math.max(0, chain.recoveryBudgetBySide[side])
+      : Number.POSITIVE_INFINITY;
+    const actual = Math.min(
+      requested,
+      finalTarget.maxHp - finalTarget.hp,
+      recoverable,
+      partyRecoverable,
+    );
     finalTarget.hp += actual;
+    if (hasDamageForSide) {
+      chain.recoveryBudgetBySide[side] = Math.max(0, chain.recoveryBudgetBySide[side] - actual);
+    }
     if (inCurrentRecoveryWindow) {
       finalTarget.recoveredDamage = Math.min(
         finalTarget.hp,
@@ -913,6 +942,73 @@ function modifyPendingAmount(rt, ctx, effect) {
       proposalEventId: ctx.event ? ctx.event.id : null,
     },
   });
+}
+
+// A damage split is one atomic interrupt: reduce the current pending packet,
+// then send a fixed share of the packet currently pending to the chosen transfer target.
+// `amount` is the leveled mitigation amount; `share` deliberately bypasses
+// afterSkillLevel so the owner's burden remains 40% at every level.
+function evaluatePendingAmount(rt, ctx, valueDef, pendingAmount) {
+  // event_value_scaled is normally based on the proposal event's immutable
+  // values. For this effect, the meaningful "received damage" is the amount
+  // still pending after earlier proposal interrupts, so the amount ratio is
+  // applied to the live frame instead.
+  if (valueDef?.type === "event_value_scaled" && valueDef.key === "amount") {
+    const numerator = valueDef.numerator ?? 1;
+    const denominator = valueDef.denominator ?? 1;
+    const scaled = Math.floor((pendingAmount * numerator) / denominator);
+    return scaled > 0 ? scaled : 0;
+  }
+  return evaluateValue(rt.state, ctx, valueDef);
+}
+
+function splitPendingDamage(rt, ctx, effect) {
+  const frame = ctx.pending;
+  if (!frame || frame.kind !== "amount") return;
+  const before = Math.max(0, frame.amount);
+  if (before <= 0) return;
+
+  const mitigation = Math.min(
+    before,
+    afterSkillLevel(evaluatePendingAmount(rt, ctx, effect.amount, before), ctx),
+  );
+  const transfer = Math.min(before, evaluatePendingAmount(rt, ctx, effect.share, before));
+
+  if (mitigation > 0) {
+    frame.amount = before - mitigation;
+    rt.emit({
+      type: "pending_amount_modified",
+      ...sourceFields(ctx),
+      targetActorIds: [...frame.targetActorIds],
+      tags: [...new Set([...(effect.tags ?? []), "split", "decrease"])],
+      values: {
+        operation: "decrease",
+        before,
+        after: frame.amount,
+        delta: frame.amount - before,
+        proposalEventId: ctx.event ? ctx.event.id : null,
+        splitMitigation: mitigation,
+        transferredDamage: transfer,
+      },
+    });
+  }
+
+  if (transfer <= 0) return;
+  const transferEffect = {
+    type: "deal_damage",
+    target: effect.target,
+    amount: { type: "constant", value: transfer },
+    reach: "unrestricted",
+    tags: [...new Set([...(effect.tags ?? []), "shared_damage"])],
+  };
+  for (const target of selectTargets(rt, ctx, transferEffect.target)) {
+    if (!target.alive) continue;
+    // The amount was already evaluated from the current proposal frame. Passing
+    // it through explicitly avoids applying the owner's skill level a second time,
+    // while still letting this normal damage instance use guard/barrier and the
+    // usual damage_proposed -> damage_taken event path.
+    dealOneInstance(rt, ctx, transferEffect, target, 0, 1, transfer);
+  }
 }
 
 function redirectPendingTarget(rt, ctx, effect) {

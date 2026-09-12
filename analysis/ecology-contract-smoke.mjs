@@ -134,6 +134,7 @@ const CONTINUOUS_EFFECTS = new Set([
   "heal",                 // heal 量
   "gain_barrier",         // barrier 量
   "modify_pending_amount", // damage / heal の増減
+  "split_pending_damage",  // pending damage の軽減量（転送量は固定割合）
 ]);
 const DISCRETE_EFFECTS = new Set([
   "gain_resource",        // AP / RP
@@ -189,4 +190,3 @@ if (problems.length) {
 
 console.log(`ecology-contract smoke: ${CONTENT_CONTRACT_VERSION} — `
   + `ID ${allIds.size}件、engine に個別分岐なし、小数なし、公開済み ID の引っ越しなし`);
-

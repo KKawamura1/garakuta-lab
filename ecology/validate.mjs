@@ -519,6 +519,14 @@ function validateEffect(bag, path, effect, ctx) {
       requireOneOf(bag, `${path}.operation`, effect.operation, PENDING_AMOUNT_OPERATIONS, "unknown_operation");
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
+    case "split_pending_damage":
+      // The transferred packet is a single, explicit target so the amount is
+      // not multiplied accidentally by a broad query.
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      validateValue(bag, `${path}.share`, effect.share, ctx);
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+      break;
     case "redirect_pending_target":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
       break;
@@ -1130,4 +1138,3 @@ function validateObjective(bag, path, objective, bundle) {
     requireCount(bag, `${path}.rounds`, objective.rounds, { min: 1 });
   }
 }
-

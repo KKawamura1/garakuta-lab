@@ -253,8 +253,10 @@ function armedRun(designations, options = {}) {
   ok(bundle.activeSkills.ult_steady_cut, "構えた必殺の定義が遠征の bundle に入る");
   ok(!bundle.activeSkills.ult_aimed_shot, "構えていない必殺の定義は入らない");
 
-  // **第1戦では出ない。**隊が無傷のまま終わる一戦には、必殺の出番そのものが無い。
-  const easy = previewNextBattle(run, profile, 1);
+  // **第1戦では出ない。**必殺未解禁の Stage 1 では、隊が少し削られても
+  // 必殺の出番そのものが無い。Stage 3 の run は下で本番発動の検証に使う。
+  const early = armedRun({ warden: "steady_cut" }, { campaignStageSequence: 1 });
+  const easy = previewNextBattle(early.run, early.profile, 1);
   assert.deepEqual(easy.ultimateFiredBy, [], "無傷で終わる一戦では必殺が出ない");
   checks += 1;
 

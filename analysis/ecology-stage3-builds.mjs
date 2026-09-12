@@ -138,7 +138,8 @@ const BUILDS = Object.freeze([
       // **同じ人物でも伸びる能力値が違う節は混ぜられない**——ゴウは腕力50・技術6で、
       // 前提として通っただけの後衛狩り（技術）を装着すればその拍は7しか出ない。
       // ナギは腕力16・技術30なので、逆に技術で伸びる後衛狩りが主砲になる。
-      // 意趣返し（弱いと言われた側）はヒバナとゲンゾウの反撃線で通しに乗せる。
+      // 固定量回復の調整後、この通しでは倒れた仲間を作らず意趣返しが鳴らない。
+      // 回復後も刃の反応線を実測できるよう、ヒバナ側は「止めを促す」を入れる。
       Object.freeze({ before: 2, characterId: "warden", skillId: "pierce_thrust" }),
       Object.freeze({ before: 3, characterId: "warden", skillId: "rear_hunt" }),
       Object.freeze({ before: 4, characterId: "warden", skillId: "guard_crush" }),
@@ -180,17 +181,17 @@ const BUILDS = Object.freeze([
       Object.freeze({ before: 12, characterId: "mender", level: "emergency_treatment" }),
       Object.freeze({ before: 2, characterId: "guardian", skillId: "opportunist" }),
       Object.freeze({ before: 3, characterId: "guardian", skillId: "whetted_by_pain" }),
-      Object.freeze({ before: 4, characterId: "guardian", skillId: "vengeful_step" }),
+      Object.freeze({ before: 4, characterId: "guardian", skillId: "finish_the_wounded" }),
       Object.freeze({ before: 5, characterId: "guardian", level: "opportunist" }),
-      Object.freeze({ before: 5, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 5, characterId: "guardian", level: "finish_the_wounded" }),
       Object.freeze({ before: 6, characterId: "guardian", level: "opportunist" }),
-      Object.freeze({ before: 7, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 7, characterId: "guardian", level: "finish_the_wounded" }),
       Object.freeze({ before: 8, characterId: "guardian", level: "opportunist" }),
-      Object.freeze({ before: 9, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "finish_the_wounded" }),
       Object.freeze({ before: 9, characterId: "guardian", level: "opportunist" }),
-      Object.freeze({ before: 10, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 10, characterId: "guardian", level: "finish_the_wounded" }),
       Object.freeze({ before: 11, characterId: "guardian", level: "opportunist" }),
-      Object.freeze({ before: 12, characterId: "guardian", level: "vengeful_step" }),
+      Object.freeze({ before: 12, characterId: "guardian", level: "finish_the_wounded" }),
       Object.freeze({ before: 2, characterId: "tactician", skillId: "steady_aim" }),
       Object.freeze({ before: 3, characterId: "tactician", skillId: "opportunist" }),
       Object.freeze({ before: 4, characterId: "tactician", skillId: "whetted_by_pain" }),
@@ -218,7 +219,7 @@ const BUILDS = Object.freeze([
       warden: ["mend"],
       mender: ["triage", "emergency_treatment"],
       lancer: ["triage"],
-      guardian: ["vengeful_step", "whetted_by_pain", "opportunist", "counter_blow", "scavenge_ap"],
+      guardian: ["finish_the_wounded", "whetted_by_pain", "opportunist", "counter_blow", "scavenge_ap"],
       tactician: ["finish_the_wounded", "whetted_by_pain", "opportunist", "counter_blow", "scavenge_ap"],
     }),
   }),
@@ -252,6 +253,8 @@ const BUILDS = Object.freeze([
       // 削るのはナギ（技術30）の溜め突き——技術×5.5で、準備1回を挟んで165出る。
       // 前が保っているあいだだけ溜められる、という依存がそのまま構成の形になる。
       // 盾の列（強すぎると言われた側）はヒバナの主軸として通しに乗せる。
+      // 回復量を固定し隊全体で上限を共有した後も、守り構成の看護を一人へ寄せないため、
+      // ゲンゾウにも baseline の手当てを持たせる。
       // **前提 Lv の道**は最初の二手（傷へ盾を Lv3 → 長く守る）に残してある。
       Object.freeze({ before: 2, characterId: "guardian", skillId: "brace_for_impact" }),
       Object.freeze({ before: 3, characterId: "guardian", skillId: "bulwark_of_will" }),
@@ -331,7 +334,7 @@ const BUILDS = Object.freeze([
       mender: ["triage", "emergency_treatment"],
       lancer: ["barrier_stitch", "guard_the_marked", "last_stand", "cover_ally", "shield_handoff"],
       guardian: ["block_focus", "absorb_shock", "brace_after_hit", "scavenge_ap"],
-      tactician: ["counterweight", "wall_reader", "block_focus", "absorb_shock", "brace_after_hit"],
+      tactician: ["counterweight", "wall_reader", "block_focus", "absorb_shock", "brace_after_hit", "mend"],
     }),
   }),
   Object.freeze({
@@ -766,6 +769,9 @@ const PARTY_MAX_HP = ROSTER.reduce((total, id) => total + (CHARACTER_STATS[id]?.
 // ここでは鳴ったものとして扱う。**effect が rule で書かれている節だけ**を見る。
 function silentPurchases(build, rows) {
   const silent = [];
+  // 敗北で通しが途中終了した場合、まだ買っていない将来の手は判定しない。
+  // その手を「買ったのに鳴らない」と数えると、未到達区間を死に技と誤認する。
+  const lastEncounter = rows.at(-1)?.index;
   // **通り道は目的地ではない。**前提として通っただけの節は、その先の節が鳴って
   // いれば「使われた」と数える。そうしないと、前提を鳴らすためだけに装着を増やす
   // ことになり、順送りの `chooseTactic` では主砲の出番がそのぶん減る——
@@ -786,6 +792,7 @@ function silentPurchases(build, rows) {
     }
   }
   for (const step of build.plan) {
+    if (lastEncounter !== undefined && step.before > lastEncounter) continue;
     const skillId = step.skillId ?? step.level;
     // レベルを上げた節は「使うつもり」なので、通り道の免除を受けない。
     if (step.skillId && steppingStones.has(key(step.characterId, skillId))
@@ -871,7 +878,8 @@ for (const build of BUILDS) {
   const rows = playThrough(build, snapshots);
   played.set(build.id, rows);
   for (const line of silentPurchases(build, rows)) {
-    problems.push(`${at}: ${line} は、第${LAST_ENCOUNTER}戦までに一度も鳴らない`
+    const lastEncounter = rows.at(-1)?.index ?? LAST_ENCOUNTER;
+    problems.push(`${at}: ${line} は、第${lastEncounter}戦までに一度も鳴らない`
       + "（点を払わせて何も返さない節を構成の核にしない）");
   }
   // ---- 通し（issue #230）
