@@ -424,6 +424,20 @@ mode は**タブではなく盤面の状態**で、`boardMode(tab)` が一箇所
 人物を選ぶつもりの一押しが移動になる）。盤面は隊列を変える唯一の入口なので、
 `formation` 以外の mode から `state.run.formation` は動かない。
 
+### 遠征側の敵盤面
+
+`renderMap()` の敵欄は `expeditionEnemyBoard()` が担当し、盤面の行・列は戦闘表示と
+`positionRowsHtml()` を共有する。敵側は戦闘と同じく `rear` → `front` の順、各行は
+`left` → `center` → `right` の3枠で、空き枠も詰めない。敵セルは
+`select-expedition-enemy` を持つ button とし、押された `instanceId` を画面状態の
+`state.selectedEnemyId` に置く。選択状態は `persistableState()` で落とすので、敵の詳細を
+途中の遠征へ保存しない。
+
+詳細本文は既存の `renderEnemy()` を選択中の一体にだけ適用し、`enemy-selection-detail` として
+盤面の直下に置く。これにより敵の位置は3×2の盤面で読み、狙い・変異・ロアは押した一体の
+詳細で読む、という二段の表示になる。同じ encounter の敵だけを handler で受け付け、
+戦闘後の `advanceAfterBattle()` では選択を解除する。
+
 セルは顔部分を `portraitSvg(..., { crop: "face" })` で切り出した背景レイヤーとして敷く。名前と職種アイコンは
 顔の上へ置かず、目元を残す。AP/RP のピップ、HP バー、増減は下部の `forecast-info-layer` へ集め、
 情報部分だけを濃いグラデーションで覆う。顔はこの帯に隠れない範囲で濃く表示する。

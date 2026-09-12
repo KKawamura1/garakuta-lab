@@ -53,10 +53,14 @@ const progressiveContracts = [
   ["敗北画面の主操作", app, "primary-action defeat-primary-action"],
   ["精算画面の主操作", app, "primary-action settlement-primary-action"],
   ["敵情報の折り畳み", app, "progressive-details enemy-details"],
+  ["敵の3列×2行盤面", app, "function expeditionEnemyBoard(encounter)"],
+  ["敵セルの選択操作", app, "select-expedition-enemy"],
+  ["選択した敵の詳細", app, "enemy-selection-detail"],
   ["技能ツリーの折り畳み", app, "progressive-details skill-tree-details"],
   ["装備一覧の折り畳み", app, "progressive-details equipment-inventory"],
   ["主操作のCSS", styles, ".primary-action"],
   ["折り畳みのCSS", styles, ".progressive-details > summary"],
+  ["敵盤面のCSS", styles, ".enemy-board"],
 ];
 for (const [label, sourceText, expected] of progressiveContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
@@ -101,6 +105,9 @@ for (const [label, expected] of [
   ["マップの未到達状態", "unreached"],
 ]) {
   if (!mapRenderer.includes(expected)) problems.push(label + "が無い");
+}
+if (mapRenderer.includes("enemy-grid")) {
+  problems.push("遠征マップが旧い敵カードの2列表示を直接使っている");
 }
 for (const forbidden of [
   ".map-node.kind-elite { border-color:",

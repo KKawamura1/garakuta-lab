@@ -463,6 +463,8 @@ function freshUiState() {
     // ギルドは**遠征の編成とは別の選択**を持つ。roster の5人へ丸めると、
     // 同行していない仲間の鍛錬が永久に買えなくなる。
     guildCharacter: null,
+    // 遠征マップで選んでいる敵。敵の詳細は画面内だけの状態なので保存しない。
+    selectedEnemyId: null,
     formationSelection: null,
     selectedSkillNode: null,
     // R19（issue #137）— ツリーは種別（アクティブ / リアクティブ / パッシブ）で切り替える。
@@ -659,6 +661,7 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
     ? next.skillTreeScroll
     : {};
   next.selectedSkillNode = next.selectedSkillNode || null;
+  next.selectedEnemyId = null;
   next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
   next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
   // 旧いオートセーブには story.lineIndex / log が無い。**足りない欄を補って読む。**
@@ -698,6 +701,8 @@ function persistableState() {
   // 盤面が組み替えの途中で開くと、人物を選ぶつもりの一押しが移動になる（#159 の
   // 「誰も選んでいない状態で開く」と同じ理由）。
   delete persisted.formationMode;
+  // 遠征マップの敵詳細の選択は、その場かぎりの表示状態として扱う。
+  delete persisted.selectedEnemyId;
   // issue #200 — 巻き戻しの演出は保存の再開先にしない。**状態はもう巻き戻し済み**なので、
   // 途中でリロードしたら巻き戻し後の会話から続ける（演出だけを二度見せない）。
   if (state.phase === "rewind") persisted.phase = "story";
@@ -3855,6 +3860,55 @@ function renderEnemy(enemy, { withLore = true } = {}) {
     + "</article>";
 }
 
+function selectedEncounterEnemy(encounter) {
+  if (!encounter?.enemies?.length) return null;
+  return encounter.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyId)
+    ?? encounter.enemies[0];
+}
+
+// 遠征の敵セルは、戦闘盤面と同じ位置を押せる小さな入口にする。
+// 狙い・変異・拾い屋の一言は、選んだ一体の詳細欄へ集約して重複を避ける。
+function expeditionEnemyCell(enemy, selectedId) {
+  if (!enemy) return "<div class=\"enemy-board-empty\" aria-hidden=\"true\"></div>";
+  const selected = enemy.instanceId === selectedId;
+  const info = enemyInfo(enemy.enemyActorId);
+  const badges = [];
+  if (enemy.boss) badges.push("★");
+  if (enemy.reinforcement) badges.push("＋");
+  if (enemy.mutations?.length) badges.push("変異" + enemy.mutations.length);
+  const accessibleName = info.label + "・" + positionText(enemy.position)
+    + "・HP " + enemy.stats.maxHp + "・受け " + enemy.stats.guard;
+  return "<button type=\"button\" class=\"enemy-board-cell"
+    + (enemy.boss ? " boss" : "") + (selected ? " selected" : "")
+    + "\" data-action=\"select-expedition-enemy\" data-enemy=\"" + esc(enemy.instanceId)
+    + "\" aria-label=\"" + esc(accessibleName) + "\" aria-pressed=\"" + (selected ? "true" : "false")
+    + "\" aria-controls=\"selected-enemy-detail\">"
+    + "<span class=\"enemy-board-cell-top\"><span class=\"enemy-board-icon\" aria-hidden=\"true\">"
+    + esc(ENEMY_ICONS[enemy.enemyActorId] ?? "◆") + "</span><b>" + esc(info.label) + "</b></span>"
+    + "<span class=\"enemy-board-cell-stats\"><span>HP " + enemy.stats.maxHp
+    + "</span><span>受け " + enemy.stats.guard + "</span></span>"
+    + (badges.length ? "<span class=\"enemy-board-badges\" aria-hidden=\"true\">"
+      + badges.map((badge) => esc(badge)).join(" ") + "</span>" : "")
+    + "</button>";
+}
+
+function expeditionEnemyBoard(encounter) {
+  const selected = selectedEncounterEnemy(encounter);
+  if (!selected) return "<p class=\"muted\">敵はいません。</p>";
+  const cells = positionRowsHtml(
+    encounter.enemies,
+    "enemy",
+    "enemy",
+    "<div class=\"enemy-board-empty\" aria-hidden=\"true\"></div>",
+    selected.instanceId,
+  );
+  return "<div class=\"enemy-board\" role=\"group\" aria-label=\"敵の隊列\">"
+    + cells + "</div>"
+    + "<div class=\"enemy-selection-detail\" id=\"selected-enemy-detail\" data-selected-enemy=\""
+    + esc(selected.instanceId) + "\" role=\"region\" aria-label=\"敵の詳細\">"
+    + renderEnemy(selected, { withLore: true }) + "</div>";
+}
+
 // R6 §12.1 — 補給は3用途で共有する。**引き直しに使うと再挑戦の余地が減る。**
 // そのトレードオフを、残数と用途を同じ場所へ並べて見せる。
 //
@@ -3979,14 +4033,8 @@ function renderMap() {
       + esc(encounter.bossLaw.previewText) + "</p><ul class=\"boss-counters\">"
       + encounter.bossLaw.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></div>"
     : "";
-  const loreShown = new Set();
   const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵 "
-    + encounter.enemies.length + "体</summary><div class=\"enemy-grid\">"
-    + encounter.enemies.map((enemy) => {
-      const withLore = !loreShown.has(enemy.enemyActorId);
-      loreShown.add(enemy.enemyActorId);
-      return renderEnemy(enemy, { withLore });
-    }).join("") + "</div></details>";
+    + encounter.enemies.length + "体</summary>" + expeditionEnemyBoard(encounter) + "</details>";
   const ruleBody = (isCampaignRun()
     ? "<p class=\"muted\">通常・精鋭戦の後はHPを次の戦闘へ持ち越します。4戦目・8戦目のボス後だけ全員が全回復します。敵を倒さずに待ってもHPは戻りません。</p>"
     : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>")
@@ -4930,18 +4978,34 @@ function unitHtml(actor) {
 // （前3後2 と 前2後3 の違いが、まさに「どの枠が空いているか」なので）。
 const BATTLE_COLUMNS = ["left", "center", "right"];
 
-function battleRowsHtml(actors, side) {
-  const mine = actors.filter((actor) => actor.side === side);
+function positionRowsHtml(
+  items,
+  side,
+  cellType = "battle",
+  emptyHtml = "<div class=\"unit-empty\" aria-hidden=\"true\"></div>",
+  selectedId = null,
+) {
+  // composeEncounter の敵は side を持たず position だけを持つ。戦闘 replay actor は
+  // side を持つので、ここで両方の入力形式を同じ3×2の枠へ寄せる。
+  const mine = (items ?? []).filter((item) =>
+    item.side === side || (side === "enemy" && item.side === undefined));
   const rowsOrder = side === "enemy" ? ["rear", "front"] : ["front", "rear"];
   const rows = rowsOrder.map((row) => {
     const cells = BATTLE_COLUMNS.map((column) => {
-      const actor = mine.find((entry) => entry.position === row + "_" + column);
-      return actor ? unitHtml(actor) : "<div class=\"unit-empty\" aria-hidden=\"true\"></div>";
+      const item = mine.find((entry) => entry.position === row + "_" + column);
+      const cell = item
+        ? (cellType === "enemy" ? expeditionEnemyCell(item, selectedId) : unitHtml(item))
+        : emptyHtml;
+      return cell;
     }).join("");
     return "<div class=\"battle-row\"><span class=\"battle-row-label\">"
       + (row === "front" ? "前列" : "後列") + "</span><div class=\"battle-units\">" + cells + "</div></div>";
   }).join("");
   return "<span class=\"battle-side-label\">" + (side === "enemy" ? "敵" : "味方") + "</span>" + rows;
+}
+
+function battleRowsHtml(actors, side) {
+  return positionRowsHtml(actors, side);
 }
 
 function renderBattle() {
@@ -6392,6 +6456,7 @@ function advanceAfterBattle() {
   state.replayPlaying = false;
   state.phase = "camp";
   state.tab = showSupplyTutorial ? "supplies" : "map";
+  state.selectedEnemyId = null;
   state.treatmentSelection = null;
   state.treatmentResult = null;
   state.treatTargets = [];
@@ -6821,6 +6886,15 @@ function handleAction(event) {
     state.selectedCharacter = element.dataset.character || state.selectedCharacter;
     state.selectedSkillNode = null;
     saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-expedition-enemy") {
+    const encounter = currentEncounter();
+    const enemyId = element.dataset.enemy;
+    if (!encounter?.enemies?.some((enemy) => enemy.instanceId === enemyId)) return;
+    state.selectedEnemyId = enemyId;
     render();
     return;
   }

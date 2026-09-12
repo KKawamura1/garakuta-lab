@@ -499,6 +499,36 @@ try {
       note("敵情報を折りたためる",
         await page.locator("details.enemy-details").count() === 1
           && await page.locator("details.enemy-details > summary").count() === 1);
+      const enemyCells = page.locator("details.enemy-details .enemy-board-cell");
+      const enemyBoardSlots = page.locator("details.enemy-details .enemy-board .battle-units > *");
+      note("敵も戦闘と同じ3列×2行の盤面で示される",
+        await enemyCells.count() > 0
+          && await page.locator("details.enemy-details .enemy-board .battle-row").count() === 2
+          && await enemyBoardSlots.count() === 6);
+      note("敵盤面が iPhone 幅に横スクロールせず収まる",
+        await onScreen("details.enemy-details .enemy-board")
+          && await page.locator("details.enemy-details .enemy-board").evaluate((board) =>
+            board.scrollWidth <= board.clientWidth + 1));
+      const selectedEnemyCell = page.locator("details.enemy-details .enemy-board-cell.selected");
+      note("敵盤面の下に選択中の1体だけ詳細が出る",
+        await selectedEnemyCell.count() === 1
+          && await page.locator(".enemy-selection-detail .enemy-card").count() === 1
+          && await page.locator(".enemy-selection-detail").getAttribute("data-selected-enemy")
+            === await selectedEnemyCell.getAttribute("data-enemy"));
+      const selectedEnemyId = await selectedEnemyCell.getAttribute("data-enemy");
+      const otherEnemyIndex = await enemyCells.evaluateAll((cells, currentId) =>
+        cells.findIndex((cell) => cell.dataset.enemy !== currentId), selectedEnemyId);
+      if (otherEnemyIndex >= 0) {
+        await enemyCells.nth(otherEnemyIndex).click();
+        const nextSelectedEnemy = page.locator("details.enemy-details .enemy-board-cell.selected");
+        note("敵セルをタップすると詳細の対象が切り替わる",
+          await nextSelectedEnemy.count() === 1
+            && await nextSelectedEnemy.getAttribute("data-enemy") !== selectedEnemyId
+            && await page.locator(".enemy-selection-detail").getAttribute("data-selected-enemy")
+              === await nextSelectedEnemy.getAttribute("data-enemy"));
+      } else {
+        note("敵セルをタップすると詳細の対象が切り替わる", false, "敵が2体未満");
+      }
       // 予測カードの表示値を保存し、同じ戦闘のアニメーション最終フレームと突き合わせる。
       forecastAtStage1 = await page.locator(".forecast-bar").evaluate((bar) => ({
         result: ["win", "loss", "draw"].find((value) => bar.classList.contains(value)) ?? "",
