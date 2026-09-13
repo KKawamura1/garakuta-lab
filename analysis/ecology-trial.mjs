@@ -295,7 +295,9 @@ try {
   // どのタブからでも上端の盤面の「⇅ 隊列」で組み替える。
   for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵との実戦へ進む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
-    note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
+    note(`タブ ${tab}`, tab === "map"
+      ? await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1
+      : new RegExp(needle).test(await bodyText()));
     if (tab === "skills") {
       note("技能ツリーを折りたためる",
         await page.locator("details.skill-tree-details").count() === 1);
@@ -861,7 +863,7 @@ try {
         note("装備の候補を出さない戦闘では報酬画面を挟まない",
           await page.locator(".reward-choices").count() === 0);
         note("キャンプへ戻った先で次の一戦を選べる",
-          await page.getByRole("button", { name: "この敵に挑む" }).count() === 1);
+          await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1);
       }
       await noteForecastParity("キャンプの一行", noteText);
       await noteUltimateSeal("キャンプの一行");
