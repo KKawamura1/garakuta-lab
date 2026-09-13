@@ -15810,7 +15810,7 @@
    "act": 2,
    "kind": "boss",
    "name": "反響体の巣",
-   "description": "第2幕のボス。返しの本体を、守衛と盾兵ごと崩す。",
+   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
    "bossLawId": "law_echo_return",
    "maxRounds": 13,
    "threatBudget": 29,
@@ -20200,7 +20200,7 @@
    "act": 2,
    "kind": "boss",
    "name": "反響体の巣",
-   "description": "第2幕のボス。返しの本体を、守衛と盾兵ごと崩す。",
+   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
    "bossLawId": "law_echo_return",
    "bossLaw": {
     "id": "law_echo_return",
@@ -20337,7 +20337,7 @@
    "act": 2,
    "kind": "boss",
    "name": "反響体の巣",
-   "description": "第2幕のボス。返しの本体を、守衛と盾兵ごと崩す。",
+   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
    "bossLawId": "law_echo_return",
    "bossLaw": {
     "id": "law_echo_return",
@@ -20476,7 +20476,7 @@
    "act": 2,
    "kind": "boss",
    "name": "反響体の巣",
-   "description": "第2幕のボス。返しの本体を、守衛と盾兵ごと崩す。",
+   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
    "bossLawId": "law_echo_return",
    "bossLaw": {
     "id": "law_echo_return",
@@ -20615,7 +20615,7 @@
    "act": 2,
    "kind": "boss",
    "name": "反響体の巣",
-   "description": "第2幕のボス。返しの本体を、守衛と盾兵ごと崩す。",
+   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
    "bossLawId": "law_echo_return",
    "bossLaw": {
     "id": "law_echo_return",
@@ -20754,7 +20754,7 @@
    "act": 2,
    "kind": "boss",
    "name": "反響体の巣",
-   "description": "第2幕のボス。返しの本体を、守衛と盾兵ごと崩す。",
+   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
    "bossLawId": "law_echo_return",
    "bossLaw": {
     "id": "law_echo_return",
@@ -20894,7 +20894,7 @@
    "act": 2,
    "kind": "boss",
    "name": "反響体の巣",
-   "description": "第2幕のボス。返しの本体を、守衛と盾兵ごと崩す。",
+   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
    "bossLawId": "law_echo_return",
    "bossLaw": {
     "id": "law_echo_return",

@@ -53,6 +53,7 @@ import {
   DOSSIER_SECTION_HEADINGS,
   ENEMY_MUTATIONS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
+  DOSSIER_FINAL_STAGE_SEQUENCE,
   PACK_BY_ID,
   PORTRAIT_IMAGE_URLS,
   PROLOGUE,
@@ -1881,7 +1882,9 @@ function dossierCard(characterId, met) {
   const entry = dossierFor(characterId);
   if (!entry) return "";
   const highest = highestClearedStage();
-  const options = { met: met.has(characterId), finalStageSequence: MAX_CAMPAIGN_STAGE_SEQUENCE };
+  // R23 — 名簿の最後の節は「隊が揃って一つ先まで行った」で開く。第一部が10 Stage に
+  // なったので、ここに最終 Stage を渡すと Stage 9 まで開かなくなる。
+  const options = { met: met.has(characterId), finalStageSequence: DOSSIER_FINAL_STAGE_SEQUENCE };
   const level = dossierRevealLevel(characterId, highest, options);
   if (level === 0) return "";
   const open = revealedDossierSections(level);

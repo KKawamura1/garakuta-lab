@@ -360,6 +360,17 @@ export const CAMPAIGN_STAGE_BY_ID = Object.freeze(
 );
 export const MAX_CAMPAIGN_STAGE_SEQUENCE = CAMPAIGN_STAGES.length - 1;
 
+// R23 — **五人が揃い、そこから一つ先まで行った Stage。**名簿の最後の節（will）は
+// ここで開く（`content/dossiers.mjs`）。以前は「最後の Stage」を渡していたが、
+// 第一部が10 Stage になった時点で、それは Stage 9 のクリアを意味する。
+// 元の意図は「隊が揃ったら開く」であり、`dossiers.mjs` のコメントも
+// 「Stage 4 以降が実装されれば、そこは自然にばらける」と書いていた。**ここがその点である。**
+export const FULL_PARTY_STAGE_SEQUENCE = CAMPAIGN_STAGES
+  .filter((stage) => stage.joiningCharacterId)
+  .reduce((latest, stage) => Math.max(latest, stage.sequence), 0);
+export const DOSSIER_FINAL_STAGE_SEQUENCE =
+  Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, FULL_PARTY_STAGE_SEQUENCE + 1);
+
 // issue #172 — 改名前の Stage ID。保存済みの Blueprint 取得履歴・装備 provenance
 // （`campaignStageId`）はこの ID を持ったままなので、黙って消さず displayName を
 // 残す。**別内容への再利用は禁止**（AGENTS.md「RETIRED_IDS は理由付きで残す」）。

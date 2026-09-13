@@ -47,6 +47,7 @@ import {
   storyBeat,
   dialogueFor,
   dossierRevealLevel,
+  DOSSIER_FINAL_STAGE_SEQUENCE,
   revealedBonds,
   revealedDossierSections,
   ENEMY_CODEX,
@@ -852,7 +853,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 // 中身の良し悪しは測れない（AGENTS.md）。測れるのは開く順と、漏れの有無だけである。
 
 {
-  const finalStageSequence = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1].sequence;
+  // R23 — 名簿の will は「隊が揃って一つ先」で開く（最後の Stage ではない）。
+  const finalStageSequence = DOSSIER_FINAL_STAGE_SEQUENCE;
   const partyIds = CAMPAIGN_STAGES[CAMPAIGN_STAGES.length - 1].castCharacterIds;
 
   // 本編の5人ぶんある。**余りも欠けも無い。**
