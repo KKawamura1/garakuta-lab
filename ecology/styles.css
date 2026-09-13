@@ -856,6 +856,10 @@ button.party-cell { cursor: pointer; }
   width: 24px;
   height: 24px;
 }
+.simulation-vision > .section-head {
+  /* 右上の投影レンズとステージ名が同じ領域を使わない。 */
+  padding-right: 34px;
+}
 .simulation-vision .battle-field { filter: saturate(.78) sepia(.05) hue-rotate(132deg) contrast(1.06); }
 .simulation-result .verdict-mark { color: var(--blue); text-shadow: 0 0 14px rgba(145, 203, 213, .55); }
 .simulation-projection { background: linear-gradient(135deg, rgba(145, 203, 213, .06), var(--panel)); }
