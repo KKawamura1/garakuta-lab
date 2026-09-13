@@ -107,7 +107,12 @@ const BUILDS = Object.freeze([
     // **通しの実測**（issue #230）。目標は第12戦の完走。ここに書くのは
     // 「いまどこまで行けるか」で、目標ではない。数値を動かしたらこの値も動くので、
     // **動かしたら差分の理由を PR に書く**（contract-snapshot と同じ扱い）。
-    through: Object.freeze({ reaches: 9, ends: "round_limit" }),
+    // R23 — **Stage 3 が自分の12戦を持つようになった。**以前の Stage 3 は Stage 0 用の
+    // 一組を人数だけ変えて遊ぶ作りで、盤面は導入 Stage のものだった
+    //（`ecology/content/expedition.mjs` の頭）。狩人・反響体（本物の返し）・潜み手が
+    // 並ぶ Stage 固有の12戦になったので、到達は第9戦から第6戦へ下がった。
+    // **関門（第6戦）には届いている**ので、構成としては生きている。
+    through: Object.freeze({ reaches: 6, ends: "wipe" }),
     question: "硬い相手を抜くか、相手の出力そのものを細くするか",
     engine: Object.freeze({
       source: "当たった一撃（damage_taken を出す側）",
@@ -227,13 +232,15 @@ const BUILDS = Object.freeze([
     displayName: "隊列で守る",
     // PR #255 — 補給が遠征あたり3個で固定になり（以前はこの検査が一戦ごとに
     // 報酬で補給1を取る前提で、遠征を通して最大11個まで使えた）、野営治療で
-    // 戻せる量が減った。到達は第6戦のままだが、終わり方が時間切れから全滅へ
-    // 変わった。**守る構成は測定区間の頭で止まる**という読みは変わらない。
-    through: Object.freeze({ reaches: 6, ends: "wipe" }),
+    // 戻せる量が減った。
+    // R23 — Stage 3 第7・8戦のHP/攻撃を上げたため、守る構成は第7戦の時間切れで
+    // 止まる。第6戦の関門までは勝ち切る。**守る構成は押し切る側が要る**という
+    // 読みは変わらない。
+    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
     question: "止めた回数を、次の何に変えるか",
     engine: Object.freeze({
       source: "受け構えで一撃を止めた拍（damage_blocked / block_spent）",
-      converter: "受けの受け渡しが盾を配り、受け返しの集中が集中へ変える",
+      converter: "受けの受け渡しが盾を配り、受けて澄ますが集中へ変える",
       payoff: "止めるほど前列が保ち、止めた拍が別の役割の資源になる",
       brake: "受け構えは回数。多段に剥がされ、反応点も止めるたびに減る",
     }),
@@ -272,17 +279,18 @@ const BUILDS = Object.freeze([
       Object.freeze({ before: 10, characterId: "guardian", level: "shield_wall" }),
       Object.freeze({ before: 11, characterId: "guardian", level: "bracing_thrust" }),
       Object.freeze({ before: 12, characterId: "guardian", level: "shield_wall" }),
-      Object.freeze({ before: 2, characterId: "lancer", skillId: "guard_the_marked" }),
-      Object.freeze({ before: 3, characterId: "lancer", level: "heavy_swing" }),
+      // `shield_handoff` はナギの初期技能ではなくなったため、Stage 2 解禁後に明示的に取得する。
+      Object.freeze({ before: 2, characterId: "lancer", skillId: "shield_handoff" }),
+      Object.freeze({ before: 3, characterId: "lancer", skillId: "guard_the_marked" }),
       Object.freeze({ before: 4, characterId: "lancer", level: "heavy_swing" }),
       Object.freeze({ before: 5, characterId: "lancer", level: "heavy_swing" }),
-      Object.freeze({ before: 5, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 6, characterId: "lancer", level: "heavy_swing" }),
       Object.freeze({ before: 6, characterId: "lancer", level: "heavy_swing" }),
       Object.freeze({ before: 7, characterId: "lancer", level: "heavy_swing" }),
       Object.freeze({ before: 8, characterId: "lancer", level: "heavy_swing" }),
       Object.freeze({ before: 9, characterId: "lancer", level: "heavy_swing" }),
-      Object.freeze({ before: 9, characterId: "lancer", level: "heavy_swing" }),
-      Object.freeze({ before: 10, characterId: "lancer", level: "brace_after_hit" }),
+      Object.freeze({ before: 10, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 10, characterId: "lancer", level: "heavy_swing" }),
       Object.freeze({ before: 11, characterId: "lancer", level: "brace_after_hit" }),
       Object.freeze({ before: 12, characterId: "lancer", level: "brace_after_hit" }),
       Object.freeze({ before: 2, characterId: "mender", level: "shield_the_wounded" }),

@@ -342,7 +342,7 @@ try {
   note("一手が済むと盤面は通常へ戻る",
     await page.locator('.camp-top [data-action="place-character"]').count() === 0
       && await page.locator('.camp-top [data-action="select-character"]').count() === 2);
-  note("次の一押し（この敵に挑む）が光る",
+  note("次の一押し（この敵との実戦へ進む）が光る",
     await spot().count() === 1
       && await spot().first().getAttribute("data-action") === "begin-stage");
   // issue #138 / #235 — 戦闘前確認の画面（battlePreview）を無くしたので、巻き戻し直後に
@@ -390,7 +390,7 @@ try {
   const skillHelp = page.locator('details[data-help="skill-rules"]');
   if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
-  note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
+  note("入口の技能が出ている", /踏み込み斬り/.test(skillText) && /狙い撃ち/.test(skillText));
 
   // issue #238 — **Stage 0 に必殺技は出さない。**武器と技の違い・隊列・応急手当を
   // 覚える回に、もう一つの仕組みを載せない。長押しの入口も、残り回数も、説明も出ない。
@@ -657,7 +657,7 @@ try {
   // ここは**直した配置のまま、同じ盤面へ入り直す**ところだけを見る。
   // issue #138 — チュートリアルの再戦も含め、常に戦闘前確認を挟まず自動戦闘へ進む。
   await page.locator('nav.tabs [data-tab="map"]').click();
-  await click("この敵に挑む");
+  await click("この敵との実戦へ進む");
   await waitForTutorialSelector(".battle-field");
   await page.locator('.speed-button[data-speed="fast"]').click();
   await page.locator('[data-action="replay-result"]').first().click();
@@ -761,7 +761,7 @@ try {
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(300);
       await page.locator('nav.tabs [data-tab="map"]').click();
-      await click("この敵に挑む");
+      await click("この敵との実戦へ進む");
       await page.waitForTimeout(300);
       // 第4戦の前には幕の断片が入る。飛ばしてそのまま自動戦闘へ渡る。
       if (await page.locator(".vn-stage").count() > 0) {
@@ -1132,7 +1132,7 @@ try {
         await page.locator('[data-action="begin-stage"].tutorial-spot').count() === 1
           && await page.locator('nav.tabs [data-tab="equipment"]:disabled').count() === 0);
       note("必殺技の一戦が第1戦として出る", /塞ぐ二枚/.test(await bodyText()));
-      await click("この敵に挑む");
+      await click("この敵との実戦へ進む");
       await waitForTutorialSelector(".battle-field");
       // issue #242 — 必殺の拍のカットイン。**自動再生を止めて一手ずつ送る**ので、
       // 拍の並び（決定的）だけを見ており、実時間の速さに依存しない。
@@ -1254,7 +1254,7 @@ try {
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(300);
     await page.locator('nav.tabs [data-tab="map"]').click();
-    await click("この敵に挑む");
+    await click("この敵との実戦へ進む");
     await page.waitForTimeout(300);
     note("幕の切れ目で会話が入る", await page.locator(".vn-stage").count() > 0);
     note("幕の断片も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);

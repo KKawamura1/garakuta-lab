@@ -18,7 +18,8 @@
 import { MANIFEST_VERSION } from "../schema.mjs";
 import { AFFIX_FAMILIES } from "./affixes.mjs";
 import { BASELINE_ACTIVE_SKILL_IDS, PACK_BY_ID, SKILL_PACKS } from "./packs.mjs";
-import { REGION } from "./expedition.mjs";
+import { REGION, actBossesForStage, enemyIdsForStage } from "./expedition.mjs";
+import { enemyFamilyOf } from "./enemies.mjs";
 
 // ---------------------------------------------------------------- ラダーの型（R8 §4.2 / R9 §3）
 //
@@ -34,26 +35,36 @@ import { REGION } from "./expedition.mjs";
 // 初期4 Stage は R9 の累積を採る。**Stage 4 以降は R8 の回転へ戻す**ので、
 // 式そのものは両方残し、Stage 定義が `ladderMode` でどちらを名乗るかを決める。
 // 差分と影響は docs/HISTORY.md §3.2。
-export const LADDER_MODES = Object.freeze(["tutorial", "rotation"]);
+export const LADDER_MODES = Object.freeze(["tutorial", "campaign"]);
 export const TUTORIAL_MAX_SEQUENCE = 3;
 
 export function activePackCountForSequence(sequence, mode = "tutorial") {
   if (mode === "tutorial") return sequence + 1;
-  return 1 + Math.ceil(sequence / 2);
+  // R23 — 第2章（Stage 4〜9）。**回転（入れ替え）は採らなかった。**
+  //
+  // R8 §4.2 の回転は「一度に扱う語彙を増やしすぎない」ための仕組みだが、
+  // 技能点は一遠征15点で固定なので、pack が増えても**同時に取れる技能の数は
+  // 増えない**（analysis/ecology-skill-catalog-smoke.mjs）。増えるのは選択肢の
+  // ほうだけである。そこから覚えた pack を取り上げると、「前の Stage で組んだ形が
+  // 今回は作れない」という理由だけの難度になり、作者が嫌う方向に寄る。
+  // だから **Stage 4・5 で残り2 pack を足し切り、以降は6 pack のまま**にして、
+  // 新しさは相手の家系（灰塵・灰織・灰炉）の側で出す。
+  return Math.min(6, sequence + 1);
 }
 
-// R8 §2 step 2 / §5.1-5.4 — Stage 0〜3 だけを固定する。
-// enemyFamilyIds / actBossIds / stageLawIds は、Stage 固有の敵・配置・law が
-// 未設計（R8 Implementation Phase 3 の仕事）なので、現行 REGION の値を
-// Phase 1 の placeholder として引き継ぐ。**固定値であり、player profile に
-// 応じて動的に変えない**（R8 §4.1 の不変条件）。
-const PLACEHOLDER_ENEMY_FAMILY_IDS = Object.freeze([...REGION.enemyFamilyIds]);
-const PLACEHOLDER_ACT_BOSS_IDS = Object.freeze([...REGION.actBossIds]);
-
-// R8 §3.7 — 「報酬倍率をStage番号の一次式にはしない」。Stage 固有の報酬・law が
-// 無い現時点では、単純な rank 一次式を代わりに作ることも禁じられた行為に当たる。
-// **soft data が確定するまでは等倍のまま**にする（R8 §2.1「今は決めないもの」）。
-const UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS = 10_000;
+// R23 — **`activityFundMultiplierBps` は Stage ごとの払いである。**
+// 以前は全 Stage が 10_000（等倍）で、しかも**どこからも読まれていなかった**。
+// いまは `progression.newRun` が遠征開始時に ledger へ写し、精算でそのまま掛かる。
+//
+// 値は Stage 番号の一次式ではなく、`analysis/ecology-campaign-curve.mjs` が測った
+// 難度指数に合わせてある（R8 §3.7「報酬倍率をStage番号の一次式にはしない」）。
+//
+//   Stage  0    1    2    3    4    5    6    7    8    9
+//   指数  931  914 1196  989 1277 1455 1611 2047 2201 2779
+//   倍率  1.0  1.7  2.4  3.3  4.4  5.9  7.9 10.5 13.8 17.5
+//
+// **危ないところほど払いが大きい。**同じ Stage を繰り返すより次へ進むほうが
+// 資金効率が良いので、稼ぎのための周回で遊びが伸びない。
 
 // R9 §2 — **初期4 Stage は、5人とゲームの文法を覚えるチュートリアルとして扱う。**
 // 2人で始め、Stage を一つ進むごとに1人が加わり、Stage 3で5人が揃う。
@@ -71,127 +82,268 @@ const UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS = 10_000;
 // `RETIRED_CAMPAIGN_STAGE_IDS` へ理由と displayName を残す（AGENTS.md「RETIRED_IDS は
 // 理由付きで残す」）。ゲーム進行そのもの（campaignProgress）は `campaignStageSequence`
 // という数のほうを使っており、この ID には依存しない。
+const stage = (definition) => Object.freeze({
+  ...definition,
+  id: "stage_" + definition.sequence,
+  castCharacterIds: Object.freeze([...definition.castCharacterIds]),
+  returningPackIds: Object.freeze([...definition.returningPackIds]),
+  enabledPackIds: Object.freeze([...definition.enabledPackIds]),
+  packDepths: Object.freeze({ ...definition.packDepths }),
+  pressureTags: Object.freeze([...definition.pressureTags]),
+  learningGoals: Object.freeze([...definition.learningGoals]),
+  // **敵・幕ボス・法則は宣言しない。その Stage の12戦から導出する**（R23）。
+  // 以前は REGION の値を placeholder として全 Stage が名乗っていたので、
+  // Stage 4 以降を作ると同時に嘘になる欄だった。
+  enemyFamilyIds: Object.freeze([...new Set(
+    enemyIdsForStage(definition.sequence).map((id) => enemyFamilyOf(id)).filter(Boolean),
+  )]),
+  actBossIds: Object.freeze(actBossesForStage(definition.sequence).map((entry) => entry.enemyActorId)),
+  actBossLawIds: Object.freeze(actBossesForStage(definition.sequence).map((entry) => entry.bossLawId)),
+  stageLawIds: Object.freeze([]),
+  newEnemyFamilyId: definition.newEnemyFamilyId ?? null,
+  newPackId: definition.newPackId ?? null,
+  joiningCharacterId: definition.joiningCharacterId ?? null,
+  activityFundMultiplierBps: definition.activityFundMultiplierBps,
+});
+
+const ALL_PACK_IDS = Object.freeze([
+  "pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage", "pack_relay",
+]);
+const FULL_CAST = Object.freeze(["warden", "mender", "lancer", "guardian", "tactician"]);
+const allFull = (ids) => Object.fromEntries(ids.map((id) => [id, "full"]));
+
 export const CAMPAIGN_STAGES = Object.freeze([
-  // R13 — 人物を差し替えた。**pack の解禁順（care → edge → wall → tempo）は動かない。**
-  // 動かせない理由は、この下の検査が「sequence 0 以外は primary_offense pack が
-  // 残っていること」を要求していて、campaign の primary_offense は pack_edge 一つ
-  // しか無いからである。**だから直したのは問い（誰が何を教えるか）のほうだけ。**
+  // ======================================== 第1章：五人が揃うまで（チュートリアル）
   //
   //   0 ゴウ＋ツグミ … 武器（腕力）と技（技術）の違い＝立つ場所の違い
-  //   1 ＋ナギ       … **問題は Stage 0 で既に出ている。**ゴウは受け1で細かい攻撃が
-  //                    全部通り、ツグミは主火力なのに紙。前に立てる人が来て、刃が届く
-  //   2 ＋ヒバナ     … 行動権2の遊撃。隊列を動かすこと自体は割に合わず、
-  //                    寄せて行・列で薙ぐと初めて得になる
-  //   3 ＋ゲンゾウ   … 順番そのものを触れるようになり、選択肢が一気に広がる
-  Object.freeze({
-    id: "stage_0",
-    sequence: 0,
-    ladderMode: "tutorial",
+  //   1 ＋ナギ       … 前に立てる人が来て、刃が届く
+  //   2 ＋ヒバナ     … 行動権2の遊撃。隊列を動かすこと自体は割に合わない
+  //   3 ＋ゲンゾウ   … 順番そのものを触れるようになる
+  stage({
+    sequence: 0, ladderMode: "tutorial",
     displayName: "Stage 0 — 灰の入口",
     question: "武器と技の違いは、立つ場所の違い",
+    newAxis: "灰殻の文法（前で受ける・後ろから撃つ）",
     partySize: 2,
-    castCharacterIds: Object.freeze(["warden", "mender"]),
+    castCharacterIds: ["warden", "mender"],
     joiningCharacterId: null,
     newPackId: "pack_care",
-    returningPackIds: Object.freeze([]),
-    enabledPackIds: Object.freeze(["pack_care"]),
-    packDepths: Object.freeze({ pack_care: "core" }),
+    returningPackIds: [],
+    enabledPackIds: ["pack_care"],
+    packDepths: { pack_care: "core" },
     activePackCount: 1,
-    enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
-    actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
-    stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["guard", "block", "small_group"]),
-    // issue #176 — **Stage 0 は「単純に勝てる導入」に振る**（作者判断）。
-    // ここで複数のビルドを競わせようとすると、盤面を難しくする方向でしか差が作れず、
-    // 導入として本末転倒になる。序盤から複数の構成が立つかの検証は、5人と4 pack が
-    // 揃った Stage 3 で行う（analysis/ecology-stage3-builds.mjs）。
-    learningGoals: Object.freeze([
+    pressureTags: ["guard", "block", "small_group"],
+    learningGoals: [
       "武器（腕力）の攻撃は後列から出すと大きく落ち、技（技術）は落ちない（R11 §5）",
       "だから前列と後列の選択は、守りの話であると同時に火力の話でもある",
       "**敵は届く範囲で最もHPの低い者を狙う。**前へ出した柔らかい者ほど先に殴られる",
       "**主火力のツグミが一番柔らかい。**前に出すと本当に落ち、後ろへ下げれば武器は届かない",
       "回復は「HPを戻す役」ではなく「損傷の連鎖を止める役」（R8 §9.4）",
-    ]),
-    activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
+    ],
+    activityFundMultiplierBps: 10_000,
   }),
-  Object.freeze({
-    id: "stage_1",
-    sequence: 1,
-    ladderMode: "tutorial",
+  stage({
+    sequence: 1, ladderMode: "tutorial",
     displayName: "Stage 1 — 抜ける刃",
     question: "誰が前に立つと、誰が振り抜けるか",
+    newAxis: "刃と撃破（pack_edge）／走り手・籠り手・砕き手",
     partySize: 3,
-    castCharacterIds: Object.freeze(["warden", "mender", "lancer"]),
+    castCharacterIds: ["warden", "mender", "lancer"],
     joiningCharacterId: "lancer",
     newPackId: "pack_edge",
-    returningPackIds: Object.freeze(["pack_care"]),
-    enabledPackIds: Object.freeze(["pack_care", "pack_edge"]),
-    packDepths: Object.freeze({ pack_care: "full", pack_edge: "core" }),
+    returningPackIds: ["pack_care"],
+    enabledPackIds: ["pack_care", "pack_edge"],
+    packDepths: { pack_care: "full", pack_edge: "core" },
     activePackCount: 2,
-    enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
-    actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
-    stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["position", "burst", "row_column"]),
-    learningGoals: Object.freeze([
+    pressureTags: ["position", "burst", "row_column"],
+    learningGoals: [
       "溜め・条件・貫通は、成立すれば安定した一撃を大きく上回る（R9 §3）",
       "ナギは受けが桁違いで、hit ごとの固定軽減なので**多段がそのまま止まる**",
-      "**庇う技はまだ来ない。**前に立つ人が居るという事実だけで、後列の技が通り続ける",
-    ]),
-    activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
+      "**走り手は一巡に二度動く。**受けの薄い人物を前へ置くと、そこだけが壊れる",
+      "**庇う技はこの Stage から来る。**ナギが狙いを引き受けるので、前に立つ人と後列の技を組み合わせる",
+    ],
+    activityFundMultiplierBps: 17_000,
   }),
-  Object.freeze({
-    id: "stage_2",
-    sequence: 2,
-    ladderMode: "tutorial",
+  stage({
+    sequence: 2, ladderMode: "tutorial",
     displayName: "Stage 2 — 動く隊列",
     question: "隊列を動かして、何を得るか",
+    newAxis: "防壁と隊列（pack_wall）／潜み手・追い手",
     partySize: 4,
-    castCharacterIds: Object.freeze(["warden", "mender", "lancer", "guardian"]),
+    castCharacterIds: ["warden", "mender", "lancer", "guardian"],
     joiningCharacterId: "guardian",
     newPackId: "pack_wall",
-    returningPackIds: Object.freeze(["pack_care", "pack_edge"]),
-    enabledPackIds: Object.freeze(["pack_care", "pack_edge", "pack_wall"]),
-    packDepths: Object.freeze({ pack_care: "full", pack_edge: "full", pack_wall: "core" }),
+    returningPackIds: ["pack_care", "pack_edge"],
+    enabledPackIds: ["pack_care", "pack_edge", "pack_wall"],
+    packDepths: { pack_care: "full", pack_edge: "full", pack_wall: "core" },
     activePackCount: 3,
-    enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
-    actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
-    stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["cover", "position", "row_column"]),
-    learningGoals: Object.freeze([
+    pressureTags: ["cover", "position", "row_column"],
+    learningGoals: [
       "身代わり・受け構え・防壁が、被害を「消す」のではなく「移す」（R9 §3）",
       "**位置替えそれ自体は割に合わない。**必ず誰かと入れ替わり、前列は先に狙われる",
+      "**追い手と潜み手は後列を追う。**後ろへ下げるだけでは安全にならない",
       "ヒバナは行動権が二つあるので往復できる。寄せて行・列で薙ぐと初めて得になる",
       "刃 pack が full になり、前 Stage の技能に新しい使い道が出る（R9 §3.1）",
-    ]),
-    activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
+    ],
+    activityFundMultiplierBps: 24_000,
   }),
-  Object.freeze({
-    id: "stage_3",
-    sequence: 3,
-    ladderMode: "tutorial",
+  stage({
+    sequence: 3, ladderMode: "tutorial",
     displayName: "Stage 3 — 間合いと順番",
     question: "誰がいつ動くと得か",
+    newAxis: "行動権と準備（pack_tempo）／狩人・反響体",
     partySize: 5,
-    castCharacterIds: Object.freeze(["warden", "mender", "lancer", "guardian", "tactician"]),
+    castCharacterIds: [...FULL_CAST],
     joiningCharacterId: "tactician",
     newPackId: "pack_tempo",
-    returningPackIds: Object.freeze(["pack_care", "pack_edge", "pack_wall"]),
-    enabledPackIds: Object.freeze(["pack_care", "pack_edge", "pack_wall", "pack_tempo"]),
-    packDepths: Object.freeze({
+    returningPackIds: ["pack_care", "pack_edge", "pack_wall"],
+    enabledPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
+    packDepths: {
       pack_care: "full", pack_edge: "full", pack_wall: "full", pack_tempo: "core",
-    }),
+    },
     activePackCount: 4,
-    enemyFamilyIds: PLACEHOLDER_ENEMY_FAMILY_IDS,
-    actBossIds: PLACEHOLDER_ACT_BOSS_IDS,
-    stageLawIds: Object.freeze([]),
-    pressureTags: Object.freeze(["preparation", "ap_pressure", "attrition"]),
-    learningGoals: Object.freeze([
+    pressureTags: ["preparation", "ap_pressure", "attrition"],
+    learningGoals: [
       "行動権を渡すと、遅い構成にも大技の手番が通る（R9 §3）",
       "ゲンゾウは反応点が二つ多い。**自分から動かず、読んでから何度も割り込める**",
-      "割り込みと準備の前倒しで、同じ編成から別の結果が出る",
+      "**反響体は殴られると殴り返す。**手数で削る構成には、返しぶんの代償が付く",
       "5人が揃い、配置・技能・装備の差だけで役割を作れるか（R9 §2.1）",
-    ]),
-    activityFundMultiplierBps: UNTUNED_ACTIVITY_FUND_MULTIPLIER_BPS,
+    ],
+    activityFundMultiplierBps: 33_000,
+  }),
+
+  // ======================================== 第2章：五人で灰の奥へ（Stage 4〜9）
+  //
+  // **人は増えない。増えるのは語彙（pack）と、相手の性能軸（家系）である。**
+  // Stage 4・5 で最後の2 pack が入り、Stage 6・8 で新しい家系が入る。
+  // Stage 7・9 は新規導入を持たず、**組み合わせだけが新しい**（`newAxis` に書く）。
+  stage({
+    sequence: 4, ladderMode: "campaign",
+    displayName: "Stage 4 — 灰塵の底",
+    question: "一人ずつ守っても間に合わないとき、何を選ぶか",
+    newAxis: "連撃と刻印（pack_barrage）／灰塵（行・列・全体）",
+    partySize: 5,
+    castCharacterIds: [...FULL_CAST],
+    newPackId: "pack_barrage",
+    newEnemyFamilyId: "dust",
+    returningPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
+    enabledPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage"],
+    packDepths: {
+      pack_care: "full", pack_edge: "full", pack_wall: "full",
+      pack_tempo: "full", pack_barrage: "full",
+    },
+    activePackCount: 5,
+    pressureTags: ["row_column", "block", "mark"],
+    learningGoals: [
+      "灰塵は行・列・全体へ同時に来る。**一人を厚くする守りが初めて足りなくなる**",
+      "多段（連撃）は受け構えを剥がすのに強く、受けの厚い相手には最も弱い",
+      "唱和が配る「隙」は、払いのけるで落とすか、配り手を先に落とすかで消える",
+      "前列へ二人並べるかどうかが、そのまま薙ぎの当たり方を決める",
+    ],
+    activityFundMultiplierBps: 44_000,
+  }),
+  stage({
+    sequence: 5, ladderMode: "campaign",
+    displayName: "Stage 5 — 数の坂",
+    question: "面で来る圧力に、面で返すか、一点で返すか",
+    newAxis: "余波と受け渡し（pack_relay）／灰塵が主役になる",
+    partySize: 5,
+    castCharacterIds: [...FULL_CAST],
+    newPackId: "pack_relay",
+    returningPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage"],
+    enabledPackIds: [...ALL_PACK_IDS],
+    packDepths: allFull(ALL_PACK_IDS),
+    activePackCount: 6,
+    pressureTags: ["row_column", "attrition", "handoff"],
+    learningGoals: [
+      "**技能の語彙はここで出揃う。**以降の Stage で増えるのは相手の性能軸だけ",
+      "余波と受け渡しは、自分の不利で他人の有利を買う。面の被害を一点へ集める形",
+      "帳の配る受け構えは、多段で剥がすか、受け崩しで無視するかの二択になる",
+      "面で受けた被害を面で戻すか、削られる前に一点を落とすか",
+    ],
+    activityFundMultiplierBps: 59_000,
+  }),
+  stage({
+    sequence: 6, ladderMode: "campaign",
+    displayName: "Stage 6 — 織りの回廊",
+    question: "置いた場所を動かされても、成り立つ配置か",
+    newAxis: "灰織（位置と状態を触る）",
+    partySize: 5,
+    castCharacterIds: [...FULL_CAST],
+    newEnemyFamilyId: "weave",
+    returningPackIds: [...ALL_PACK_IDS],
+    enabledPackIds: [...ALL_PACK_IDS],
+    packDepths: allFull(ALL_PACK_IDS),
+    activePackCount: 6,
+    pressureTags: ["position", "status", "reach"],
+    learningGoals: [
+      "**手繰りは後列で最もHPの低い者を最前へ引き出す。**隠れ場所という考え方が終わる",
+      "怯み・裂傷・隙は、それぞれ別の直し方が要る。硬さで一括には受けられない",
+      "遠手は後列へ直接届く。前を固めることの意味が、ここで一度崩れる",
+      "HPを揃えて並べると、引き出される的そのものが消える",
+    ],
+    activityFundMultiplierBps: 79_000,
+  }),
+  stage({
+    sequence: 7, ladderMode: "campaign",
+    displayName: "Stage 7 — ほどける隊列",
+    question: "状態と位置を同時に崩されたとき、何から直すか",
+    newAxis: "組み合わせ（灰織＋灰塵）。新しい語彙も新しい家系も入らない",
+    partySize: 5,
+    castCharacterIds: [...FULL_CAST],
+    returningPackIds: [...ALL_PACK_IDS],
+    enabledPackIds: [...ALL_PACK_IDS],
+    packDepths: allFull(ALL_PACK_IDS),
+    activePackCount: 6,
+    pressureTags: ["position", "status", "row_column"],
+    learningGoals: [
+      "直す手が一つしか無い round に、位置と状態のどちらを先に直すか",
+      "面（灰塵）と点（灰織）が同時に来ると、片方の対策がもう片方の隙になる",
+      "**怯みは段ごとに軽くする。**手数で押す構成ほど、重ねられた怯みで失速する",
+      "必殺をどこで切るかが、初めて「勝敗」ではなく「消耗」の問題になる",
+    ],
+    activityFundMultiplierBps: 105_000,
+  }),
+  stage({
+    sequence: 8, ladderMode: "campaign",
+    displayName: "Stage 8 — 灰炉の門",
+    question: "硬さで解けない相手を、何で解くか",
+    newAxis: "灰炉（受け無視と持久）",
+    partySize: 5,
+    castCharacterIds: [...FULL_CAST],
+    newEnemyFamilyId: "forge",
+    returningPackIds: [...ALL_PACK_IDS],
+    enabledPackIds: [...ALL_PACK_IDS],
+    packDepths: allFull(ALL_PACK_IDS),
+    activePackCount: 6,
+    pressureTags: ["guard_ignore", "attrition", "burst"],
+    learningGoals: [
+      "**槌は受けも受け構えも無視する。**減らせるのは防壁（barrier）と回復だけになる",
+      "金床は受けが最も厚い。受け崩しか貫き突きが無いと、round のほうが先に尽きる",
+      "熾は手負いを仕留めに来る。削られた人物を後ろへ下げる判断が毎 round 要る",
+      "守りを一種類だけ厚くする構成は、ここで初めて成立しなくなる",
+    ],
+    activityFundMultiplierBps: 138_000,
+  }),
+  stage({
+    sequence: 9, ladderMode: "campaign",
+    displayName: "Stage 9 — 炉の底",
+    question: "覚えた解き方を、一つの遠征の中で持ち替えられるか",
+    newAxis: "総復習（四家系が全部出る）。新しい語彙も新しい家系も入らない",
+    partySize: 5,
+    castCharacterIds: [...FULL_CAST],
+    returningPackIds: [...ALL_PACK_IDS],
+    enabledPackIds: [...ALL_PACK_IDS],
+    packDepths: allFull(ALL_PACK_IDS),
+    activePackCount: 6,
+    pressureTags: ["guard_ignore", "row_column", "position", "attrition"],
+    learningGoals: [
+      "幕ごとに家系が変わる。**同じ編成のまま12戦を通せない**",
+      "補給・必殺・持込 Blueprint を、どの幕へ残すかが最後の判断になる",
+      "第一部の最終戦は、溜めた一撃と受け無視の一撃を交互に出す",
+      "ここまでの9 Stage で作った常設の強さが、そのまま余白として効く",
+    ],
+    activityFundMultiplierBps: 175_000,
   }),
 ]);
 
@@ -207,6 +359,17 @@ export const CAMPAIGN_STAGE_BY_ID = Object.freeze(
   Object.fromEntries(CAMPAIGN_STAGES.map((stage) => [stage.id, stage])),
 );
 export const MAX_CAMPAIGN_STAGE_SEQUENCE = CAMPAIGN_STAGES.length - 1;
+
+// R23 — **五人が揃い、そこから一つ先まで行った Stage。**名簿の最後の節（will）は
+// ここで開く（`content/dossiers.mjs`）。以前は「最後の Stage」を渡していたが、
+// 第一部が10 Stage になった時点で、それは Stage 9 のクリアを意味する。
+// 元の意図は「隊が揃ったら開く」であり、`dossiers.mjs` のコメントも
+// 「Stage 4 以降が実装されれば、そこは自然にばらける」と書いていた。**ここがその点である。**
+export const FULL_PARTY_STAGE_SEQUENCE = CAMPAIGN_STAGES
+  .filter((stage) => stage.joiningCharacterId)
+  .reduce((latest, stage) => Math.max(latest, stage.sequence), 0);
+export const DOSSIER_FINAL_STAGE_SEQUENCE =
+  Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, FULL_PARTY_STAGE_SEQUENCE + 1);
 
 // issue #172 — 改名前の Stage ID。保存済みの Blueprint 取得履歴・装備 provenance
 // （`campaignStageId`）はこの ID を持ったままなので、黙って消さず displayName を
@@ -269,7 +432,7 @@ export function campaignManifestForStage(sequence, seed) {
       .map((family) => family.id),
     enemyFamilyIds: [...stage.enemyFamilyIds],
     actBossIds: [...stage.actBossIds],
-    actBossLawIds: [...REGION.actBossLawIds],
+    actBossLawIds: [...stage.actBossLawIds],
     regionLawIds: [...stage.stageLawIds],
     rewardTableId: REGION.rewardTableId,
   };
@@ -282,24 +445,56 @@ export function campaignManifestForStage(sequence, seed) {
 export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
   const problems = [];
   const introducedBy = new Map(); // packId -> 最初に newPackId として現れた sequence
+  const introducedFamilyBy = new Map(); // familyId -> 最初に出てきた sequence
   let lastPrimaryOffenseSequence = null;
 
   const sorted = [...stages].sort((a, b) => a.sequence - b.sequence);
   for (const stage of sorted) {
     const path = `${stage.id} (sequence ${stage.sequence})`;
 
-    // 各Stageに一つだけ初登場packがある。新packは必ず有効。
-    if (!stage.enabledPackIds.includes(stage.newPackId)) {
-      problems.push(`${path}: newPackId "${stage.newPackId}" が enabledPackIds に無い`);
+    // 新 pack は、あるなら一度だけ初登場し、必ず有効。**Stage 7・9 のように
+    // 新 pack を持たない Stage がある**ので、宣言そのものは任意にした。
+    // ただし「何も新しくない Stage」は作らない——`newAxis` が空の Stage は落とす。
+    if (!stage.newAxis) problems.push(`${path}: その Stage で新しくなるもの（newAxis）が宣言されていない`);
+    if (stage.newPackId) {
+      if (!stage.enabledPackIds.includes(stage.newPackId)) {
+        problems.push(`${path}: newPackId "${stage.newPackId}" が enabledPackIds に無い`);
+      }
+      if (introducedBy.has(stage.newPackId)) {
+        problems.push(`${path}: newPackId "${stage.newPackId}" は sequence ${introducedBy.get(stage.newPackId)} で既出`);
+      } else {
+        introducedBy.set(stage.newPackId, stage.sequence);
+      }
     }
-    if (introducedBy.has(stage.newPackId)) {
-      problems.push(`${path}: newPackId "${stage.newPackId}" は sequence ${introducedBy.get(stage.newPackId)} で既出`);
-    } else {
-      introducedBy.set(stage.newPackId, stage.sequence);
+    // 新しい家系も、初登場は一度きり。**その Stage の12戦に本当に出ていること**を見る
+    // （宣言だけして盤面に出ない、が起きない）。
+    if (stage.newEnemyFamilyId) {
+      if (introducedFamilyBy.has(stage.newEnemyFamilyId)) {
+        problems.push(`${path}: 家系 "${stage.newEnemyFamilyId}" は sequence ${introducedFamilyBy.get(stage.newEnemyFamilyId)} で既出`);
+      } else {
+        introducedFamilyBy.set(stage.newEnemyFamilyId, stage.sequence);
+      }
+      if (!stage.enemyFamilyIds.includes(stage.newEnemyFamilyId)) {
+        problems.push(`${path}: 家系 "${stage.newEnemyFamilyId}" を名乗っているが、12戦に1体も出ていない`);
+      }
+    }
+    // 過去に出た家系を、あとの Stage が名乗り直していない（導出しているので普通は起きない）。
+    for (const familyId of stage.enemyFamilyIds) {
+      if (familyId === stage.newEnemyFamilyId) continue;
+      const introducedAt = introducedFamilyBy.get(familyId);
+      if (introducedAt === undefined) introducedFamilyBy.set(familyId, stage.sequence);
+    }
+
+    // 幕ボスと法則は12戦から導出しているので、**空が混じっていないこと**だけ見る。
+    if (stage.actBossIds.length !== 3 || stage.actBossIds.some((id) => !id)) {
+      problems.push(`${path}: 幕ボスが3体そろっていない`);
+    }
+    if (stage.actBossLawIds.length !== 3 || stage.actBossLawIds.some((id) => !id)) {
+      problems.push(`${path}: 幕ボスの公開法則が3つそろっていない`);
     }
 
     // enabledPackIds は newPackId と returningPackIds から成る。
-    const expectedEnabled = new Set([stage.newPackId, ...stage.returningPackIds]);
+    const expectedEnabled = new Set([...(stage.newPackId ? [stage.newPackId] : []), ...stage.returningPackIds]);
     const actualEnabled = new Set(stage.enabledPackIds);
     if (expectedEnabled.size !== actualEnabled.size
       || [...expectedEnabled].some((id) => !actualEnabled.has(id))) {
@@ -371,6 +566,26 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
       }
     }
 
+    // R23 — 第2章（campaign）。人は増えず、語彙は減らない。
+    if (stage.ladderMode === "campaign") {
+      if (stage.partySize !== 5) problems.push(`${path}: 第2章の人数は5でなければならない`);
+      if (stage.joiningCharacterId) problems.push(`${path}: 第2章で新しく加入する人物は居ない`);
+      const previous = sorted.find((entry) => entry.sequence === stage.sequence - 1);
+      if (previous) {
+        for (const packId of previous.enabledPackIds) {
+          if (stage.enabledPackIds.includes(packId)) continue;
+          problems.push(`${path}: pack "${packId}" が引き上げられている（第2章は語彙を取り上げない）`);
+        }
+      }
+      for (const [packId, depth] of Object.entries(stage.packDepths)) {
+        if (depth !== "full") problems.push(`${path}: 第2章の pack "${packId}" は full で出る（core は導入 Stage だけ）`);
+      }
+      // 新 pack も新しい家系も無い Stage は、**組み合わせが新しいことを明示する**。
+      if (!stage.newPackId && !stage.newEnemyFamilyId && !/組み合わせ|総復習/.test(stage.newAxis)) {
+        problems.push(`${path}: 新 pack も新しい家系も無いのに、何が新しいのかが書かれていない`);
+      }
+    }
+
     // future packが早いStageへ漏れない: returningPackIds は「それより前の
     // sequence で newPackId として既出」のものだけ。
     for (const packId of stage.returningPackIds) {
@@ -410,7 +625,7 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
     }
 
     // primary offenseを少なくとも3Stageに一つ新規導入する。
-    if (PACK_BY_ID[stage.newPackId]?.combatRole === "primary_offense") {
+    if (stage.newPackId && PACK_BY_ID[stage.newPackId]?.combatRole === "primary_offense") {
       if (lastPrimaryOffenseSequence !== null && stage.sequence - lastPrimaryOffenseSequence > 3) {
         problems.push(`${path}: 直前の primary_offense 新規導入（sequence ${lastPrimaryOffenseSequence}）から3Stageを超えている`);
       }

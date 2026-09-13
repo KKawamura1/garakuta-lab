@@ -24,7 +24,6 @@
 - ChatGPT Work のローカル実行環境で Playwright / Chromium が起動できない場合でも、画面変更の確認を省略しない。PR 用ブランチを GitHub へ作成し、Cloudflare Pages のブランチプレビューを Cloud Browser で開いて確認する。
 - このリポジトリの Pages プロジェクトは `garakuta-lab`。ブランチ名が URL に使える文字だけで構成される場合、プレビューは `https://<branch-name>.garakuta-lab.pages.dev/ecology/` で開く。実際に使う URL は Cloudflare のデプロイ結果または PR の preview URL で確認してから使う。
 - ブラウザ確認では、Cloud Browser のブラウザ操作機能を使い、390×844 前後のモバイル表示で画面を確認する。ローカルシェルから Playwright を起動して代用しない。まず URL、見出し、操作対象を DOM で確認し、クリック後は必ず次の画面状態を読み直す。
-- 手取り型チュートリアルでは、案内文だけでなく、`tutorial-spot` が段ごとの押下対象に付くこと、`tutorial-blocked` / `disabled` で他の操作が閉じていること、光っていない場所を押しても進行しないことを確認する。補給では「集中治療」→「光る負傷者セル」、隊列では「隊列」→人物→空き枠、必殺技では人物→長押し→「遠征」の順に実際に押す。
 - プレビューがまだ生成されていない場合や Cloud Browser から開けない場合は、画面試験を成功扱いにせず、PR に未確認理由と URL / デプロイ状態を残す。
 
 ## 守ること
@@ -71,7 +70,7 @@ node analysis/ecology-tutorial-trial.mjs
 node analysis/ecology-trial.mjs
 ```
 
-ローカルのブラウザが使えない ChatGPT Work では、上の二つの自動試験を「実行済み」とは扱わず、PR の Cloudflare Pages ブランチプレビューを Cloud Browser で開いて同じ経路を手動で通す。確認できた場合は PR に実際の preview URL と確認結果を残す。
+ローカルのブラウザが使えない ChatGPT Work では、画面変更の自動試験を「実行済み」とは扱わず、PR の Cloudflare Pages ブランチプレビューを Cloud Browser で開いて対象画面を手動確認する。確認できた場合は PR に実際の preview URL と確認結果を残す。
 
 通常 CI 成功後に公開先 E2E を行う。Cloudflare Pages の Build command は `npm run build`、
 出力ディレクトリは `.` とする。Pages の build 時に `CF_PAGES_COMMIT_SHA` から

@@ -29,7 +29,7 @@ export const ACTIVE_SKILL_NAMES = {
   crack_mark: "傷口を開く",
   brace_for_impact: "衝撃に備える",
   // R11 §5 — Stage 0 の安定攻撃。武器と技を一つずつ、同じ形で置く。
-  steady_cut: "確かな斬り",
+  steady_cut: "踏み込み斬り",
   aimed_shot: "狙い撃ち",
 };
 
@@ -217,7 +217,7 @@ activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 11_500, 
 // R11 §5 — **Stage 0 の「安定」二本。**条件も準備も持たない。
 //
 // 教えたいのは威力の差ではなく、**どこから出すかで結果が変わる**ことである。
-// 確かな斬りは武器なので後列から出すと 40% になり、狙い撃ちは技なので落ちない。
+// 踏み込み斬りは武器なので後列から出すと 40% になり、狙い撃ちは技なので落ちない。
 // 同じ盤面で二つを見比べれば、might と focus の違いが説明文なしで分かる。
 activeSkills.steady_cut = archetype("steady_cut", ACTIVE_SKILL_NAMES.steady_cut, 13_000);
 activeSkills.aimed_shot = archetype("aimed_shot", ACTIVE_SKILL_NAMES.aimed_shot, 12_500, {
@@ -519,7 +519,7 @@ activeSkills.mark_break = {
 // 通常攻撃へ戻る（row_sweepと同じ契約）。Wの隊列操作が対象数を左右する。
 activeSkills.sweeping_barrage = {
   id: "sweeping_barrage",
-  displayName: "連ぎ払い",
+  displayName: "乱れ薙ぎ",
   apCost: 1,
   actionMode: "offense",
   targetQuery: {
@@ -888,7 +888,7 @@ activeSkills.field_dressing = support("field_dressing", "まとめて手当て",
 activeSkills.field_dressing.intrinsicPredicates = [hasEligibleTarget(ALLY_WOUNDED_ALL)];
 
 // 集中を**自分ではなく、隊列の最後の仲間へ**。狙いを澄ますの逆向き。
-activeSkills.steady_breath = support("steady_breath", "息を合わせる", [{
+activeSkills.steady_breath = support("steady_breath", "息を渡す", [{
   type: "add_status", target: ALLY_LATEST, statusId: "focused", stacks: 1,
 }], { tags: ["care", "buff"] });
 
@@ -1001,7 +1001,7 @@ const ENEMY_MOST_EXPOSED = {
 };
 activeSkills.shatter_point = {
   id: "shatter_point",
-  displayName: "積もる刻印",
+  displayName: "積み撃ち",
   apCost: 1,
   actionMode: "offense",
   intrinsicPredicates: [hasEligibleTarget(ENEMY_MOST_EXPOSED)],

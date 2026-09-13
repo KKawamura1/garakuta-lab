@@ -36,11 +36,14 @@
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
-| `content/encounters.mjs` | 敵本文の正本（狙いの説明文・噂・図鑑）。**敵配置ではない**（旧7区画の `ENCOUNTERS` は issue #173 で削除。経緯は `docs/HISTORY.md` 3.38） |
-| `content/expedition.mjs` | **遠征の敵配置の正本。**3幕12戦（`EXPEDITION_ENCOUNTERS`）、threat budget、boss law。`progression.composeEncounter` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
+| `content/encounters.mjs` | 敵本文の正本（噂・図鑑）と、**狙いの説明文の導出**（`ENEMY_TARGETING` は `enemies.mjs` の tactics から組み立てる。人が書かないので挙動とずれない）。**敵配置ではない** |
+| `content/expedition.mjs` | **遠征の敵配置の正本。**Stage ごとの3幕12戦（`STAGE_ENCOUNTERS`、10 Stage）、threat budget、boss law、難易度 rank。Stage 3 の第7・8戦のような幕内の明示的な `enemyStatScale` もここで宣言する。`EXPEDITION_ENCOUNTERS` は Stage 0 の12戦（Stage を渡さない呼び出しの既定）。`progression.composeEncounter(index, rank, { partySize, stageSequence })` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
+| `content/enemies.mjs` | **敵 unit の正本。**家系（`ENEMY_FAMILIES`）ごとの個体表と `FAMILY_POWER`（家系共通の出力）、`ENEMY_THREAT_COST`。家系共通でない幕内の敵倍率は `content/expedition.mjs` の明示的な指定で行う |
 | `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
 | `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |
+| `content/packs.mjs` | 技能の pack 所属と Stage ごとの core / full の入口。Stage 1 の `pack_edge` core は `cover_ally`（身代わり）までを含み、Stage 2 の `pack_wall` core は `shield_handoff`（受けの受け渡し）へ続く |
+| `content/roster.mjs` | 人物の加入時初期技能。ナギは Stage 1 で `cover_ally` を初期リアクティブに持つ |
 | `equipment-gen.mjs` | 装備を手続きで組み立てる決定的 generator と検査 |
 | `static-bonuses.mjs` | passive と装備の常時能力を戦闘・検証・preview・UIで同じように合算 |
 | `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
@@ -95,6 +98,10 @@
 （`composed` / `hp` / `equipmentDurability` / `limitsFor`）を組み、戦闘予測
 （`previewNextBattle`）と本番（`simulateExpeditionBattle`）がその戻り値をそのまま渡します。
 本番が足すのは結果を変えない `simulationOptions: { captureReplaySnapshots: true }` だけで、
+`app.js` の試映も同じ `simulateExpeditionBattle` と snapshot 収集を使います。ただし
+`previewOnly` の境界より内側では `RunState.results`、ledger、技能点、取得予約、図鑑、
+`commitBattleResult`、戦闘ログを更新しません。試映の結果は `simulationMode` により必ず専用結果へ
+入り、通常の報酬生成・進行経路を通らずキャンプへ戻ります。
 取得予約は `progression.mjs` の `reserveRunSkill` / `cancelRunSkillReservation` が一人一目標を管理し、`fulfillSkillReservations` が同じ決定順で前提・必要Lv・目標技能を、手持ちSPの範囲だけ自動取得します。画面は自動取得の action 列を受け取り、前提をオフ、目標をオンで loadout へ反映します。`RunState.skillReservations` は保存・再開の対象です。
 `analysis/ecology-screens-smoke.mjs` がその2箇所と、予測 cache の鍵
 （`forecastKey`、`runSkillLevels` と `runUnlockedSkills` を含む）を見張ります。
@@ -219,7 +226,7 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 `damage_absorbed`（`finalDamage: 0` を含む）、途中で対象を失った hit は `damage_skipped`、
 行動の取り消しは `action_canceled` として、HPが変わらない場合も理由を残します。
 戦闘盤面の防壁バーは新しいイベントや状態を持たず、`app.js` が現在の `replaySnapshots` の actor から `barrier` と `maxHp` を読み、`min(100, barrier / maxHp * 100)` の表示幅へ変換します。数値マークとバーは同じsnapshotを読むため、付与・吸収・破壊・期限切れの表示がずれません。
-準備付き行動では `preparation_completed` の後続にあるダメージ系イベントを別の `impact` 拍へ分離します。盤面の踏み込みは `beatHasStrikeImpact()` が判定する着弾拍だけに限定し、準備開始・完了や `sub` 反応で誤って攻撃モーションを出さないようにします。
+準備付き行動では `preparation_completed` の後続にあるダメージ系イベントを別の `impact` 拍へ分離します。盤面の踏み込みと、攻撃側から被弾側へ引く線は `beatHasStrikeImpact()` が判定する着弾拍だけに限定し、準備開始・完了や `sub` 反応で誤って攻撃モーションを出さないようにします。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
 ターゲットクエリの並び替えは `TARGET_SORT_TYPES`（schema）が正本で、実装は `selectors.mjs` の
 `sortValue` 一箇所です。`hp_asc` / `hp_desc` は残りHPそのもの（**攻撃の狙い先**。味方側・敵側とも
@@ -584,6 +591,29 @@ UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`
 `--long-press-ms` として CSS へ渡す（両方に書くと、ずれた日に「満ちたのに入らない帯」が
 できる）。誰が必殺を残しているかは盤面のセルの `ultimateCellMark()` が四段で出し、
 **隊の合計はどこにも出さない**（合計は「誰の一回か」に答えない）。
+
+## 盤面の手応え（戦闘アニメーション）
+
+演出は**新しい event も新しい拍も持たない**。`syncBattleView` が、いま表示している拍の
+イベント列だけから向き・重さ・種類を決め、CSS のクラスと CSS 変数へ落とす。時計も乱数も
+使わないので、同じ seed・同じ入力からは同じ演出が同じ順で出る。
+
+  - **重さの三段** … `hitLevel(amount, maxHp)` が最大HPに対する割合で 1／2／3 を返す
+    （15% 以上で 2、30% 以上で 3、撃破はその拍の 3）。段は `unit` の揺れ（`hit-2` /
+    `hit-3`）・浮く数字の大きさ（`.float.damage.heavy` / `.crush`）・盤面の揺れ
+    （`.battle-field.shake-1〜3`）の三箇所へ**同じ値**で効く。
+  - **踏み込む向き** … `lungeShiftPx()` が狙った相手との**列差**（`BATTLE_COLUMNS` の
+    index 差）を ±9px の `--lunge-x` にする。前後（味方は上・敵は下）は side の CSS が持つ。
+  - **踏み込んだ先の線** … `spawnStrikeLine()` が攻撃側と被弾側の矩形中心を結ぶ
+    `.strike-line` を一本置く。長さと角度は二つの箱の位置だけから出る。
+  - **浮く数字** … `.battle-floats`（盤面の層）へ座標で刺す。`unit` の中に置くと、味方の箱
+    （立ち絵のため `overflow: hidden`）で消え、敵では一つ上の箱の中に出て持ち主が読めない。
+  - **幕の帯** … `battleBannerFor(beat)` が拍の種類だけから言葉を決める（opening／round／
+    ending）。カットインと同じく `dataset.beat` で同じ拍へ二度書き込まないので、再描画でも
+    演出が巻き戻らない。読み上げは `.beat-text`（aria-live）が持ち、帯は `aria-hidden`。
+
+`prefers-reduced-motion` では動きだけを止める。帯・カットイン・照準・数字は**出したまま**
+なので、止めても何が起きたかは読める。
 
 ## 必殺の拍とカットイン（issue #242）
 

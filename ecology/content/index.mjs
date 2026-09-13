@@ -80,7 +80,15 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // PR #255 続き — 生成装備の readout が rule ごとの構造（いつ・何を払い・何回）を
 // 持つようになった。**保存済みの Blueprint は `lines` しか持たない**ので、画面は
 // どちらでも壊れないように読む。欄が増えたので版を上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-23";
+// R23 — 第一部10 Stage 化。**語彙を足しただけで、公開済み ID の意味は変えていない。**
+//   足した ID … 敵19体（灰塵7・灰織6・灰炉6）、boss law 9件、
+//                ギルド投資2件（装備枠・野営の手当て）、Stage 6件（stage_4〜stage_9）
+//   変えた値 … 敵の三能力と threat cost、活動資金の入り、鍛錬の段と費用
+//   変えていない … effect / predicate / event の語彙、engine、schema
+// 2026-09-13 — `cover_ally` を pack_edge の core へ移し、ナギ加入の Stage 1 で
+// 身代わりを解禁する。`shield_handoff` は pack_wall の Stage 2 に残る。
+// パック構成が変わるため、旧 manifest と混同しないよう contract version を上げる。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-25";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -287,6 +295,8 @@ export {
   CAMPAIGN_STAGE_BY_SEQUENCE,
   LADDER_MODES,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
+  DOSSIER_FINAL_STAGE_SEQUENCE,
+  FULL_PARTY_STAGE_SEQUENCE,
   // issue #172 — 改名前 Stage ID の displayName 引き当て。
   RETIRED_CAMPAIGN_STAGE_IDS,
   TUTORIAL_MAX_SEQUENCE,

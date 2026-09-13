@@ -31,6 +31,17 @@
   --tree-col-gap: 46px;
 }
 * { box-sizing: border-box; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /*
  * 画面は操作対象であり、文章を読む画面ではない。
@@ -540,10 +551,56 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .forecast-bar.loss { border-color: rgba(231, 137, 128, .7); }
 .forecast-bar.win { border-color: rgba(155, 214, 158, .45); }
 .forecast-head {
+  position: relative;
+  z-index: 2;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+}
+.forecaster-identity,
+.forecast-readout,
+.forecaster-actions { display: flex; align-items: center; min-width: 0; }
+.forecaster-identity { flex: 1 1 auto; gap: 6px; }
+.forecast-readout { flex: 0 1 auto; justify-content: flex-end; gap: 5px; }
+.forecaster-actions { flex: none; gap: 3px; }
+.forecaster-lens,
+.simulation-lens {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(145, 203, 213, .8);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(145, 203, 213, .32), inset 0 0 5px rgba(145, 203, 213, .24);
+}
+.forecaster-lens::before,
+.simulation-lens::before {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--blue);
+  border-radius: 50%;
+  content: "";
+}
+.forecaster-lens::after,
+.simulation-lens::after {
+  position: absolute;
+  inset: -3px;
+  border: 1px dashed rgba(145, 203, 213, .45);
+  border-radius: 50%;
+  content: "";
+  animation: forecaster-orbit 7s linear infinite;
+}
+.forecaster-lens i,
+.simulation-lens i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px var(--blue);
 }
 .forecast-title { color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
 .forecast-verdict { color: var(--gold); font-size: 11px; font-weight: 750; white-space: nowrap; }
@@ -554,11 +611,78 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
    横スクロールはしない——3列が iPhone 幅（390px）に必ず収まるよう、
    セルは等分して縮む。 */
 .party-bar {
+  position: relative;
+  overflow: hidden;
   margin: 0 0 6px;
   padding: 8px 10px 9px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
+}
+.forecaster-window {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(145, 203, 213, .12), transparent 34%),
+    linear-gradient(180deg, rgba(24, 38, 41, .98), rgba(18, 29, 31, .98));
+  box-shadow: inset 0 0 18px rgba(83, 153, 164, .08), 0 5px 18px rgba(0, 0, 0, .22);
+}
+.forecaster-window::before,
+.simulation-vision::before,
+.simulation-result::before {
+  position: absolute;
+  z-index: 1;
+  inset: 4px;
+  border: 1px solid rgba(145, 203, 213, .1);
+  border-radius: 9px;
+  background:
+    linear-gradient(90deg, rgba(145, 203, 213, .28) 0 7px, transparent 7px calc(100% - 7px), rgba(145, 203, 213, .28) calc(100% - 7px)) top / 100% 1px no-repeat,
+    linear-gradient(90deg, rgba(145, 203, 213, .28) 0 7px, transparent 7px calc(100% - 7px), rgba(145, 203, 213, .28) calc(100% - 7px)) bottom / 100% 1px no-repeat;
+  content: "";
+  pointer-events: none;
+}
+.forecaster-scan,
+.simulation-scan {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.forecaster-scan::after,
+.simulation-scan::after {
+  position: absolute;
+  inset: -35% 0 auto;
+  height: 34%;
+  background: linear-gradient(180deg, transparent, rgba(145, 203, 213, .08), transparent);
+  content: "";
+  animation: forecaster-sweep 5.5s ease-in-out infinite;
+}
+.forecaster-action {
+  display: grid;
+  grid-template-columns: 15px auto;
+  align-items: center;
+  gap: 2px;
+  min-height: 30px;
+  padding: 3px 7px;
+  border: 1px solid rgba(145, 203, 213, .38);
+  border-radius: 8px;
+  background: rgba(9, 18, 20, .76);
+  color: var(--blue);
+  font: inherit;
+}
+.forecaster-action small { font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.forecaster-action-icon { font-size: 12px; line-height: 1; text-shadow: 0 0 7px currentColor; }
+.forecaster-action.engage {
+  border-color: rgba(229, 184, 105, .58);
+  background: linear-gradient(180deg, rgba(80, 59, 25, .9), rgba(48, 37, 22, .94));
+  color: var(--gold);
+}
+.forecaster-action:active { transform: translateY(1px); filter: brightness(1.18); }
+@keyframes forecaster-orbit { to { transform: rotate(1turn); } }
+@keyframes forecaster-sweep {
+  0%, 18% { transform: translateY(-20%); opacity: 0; }
+  35%, 70% { opacity: 1; }
+  88%, 100% { transform: translateY(390%); opacity: 0; }
 }
 .party-board { display: grid; gap: 4px; }
 .forecast-head + .party-board { margin-top: 7px; }
@@ -706,6 +830,54 @@ button.party-cell { cursor: pointer; }
 .forecast-delta.fatal { color: var(--bad); }
 .forecast-note { margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .forecast-note b { color: var(--ink); }
+
+/* 未来の試映は文字札ではなく、青緑の投影面・走査線・レンズを戦闘から結果まで連続させる。 */
+.simulation-vision,
+.simulation-result,
+.simulation-projection { border-color: rgba(145, 203, 213, .62); }
+.simulation-vision,
+.simulation-result {
+  position: relative;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(180deg, rgba(145, 203, 213, .025) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 42%, rgba(94, 190, 202, .13), transparent 58%),
+    var(--panel);
+  box-shadow: inset 0 0 34px rgba(80, 176, 189, .1), 0 0 22px rgba(80, 176, 189, .08);
+}
+.simulation-vision > :not(.simulation-lens):not(.simulation-scan),
+.simulation-result > :not(.simulation-lens):not(.simulation-scan) { position: relative; z-index: 2; }
+.simulation-vision > .simulation-lens,
+.simulation-result > .simulation-lens {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+}
+.simulation-vision > .section-head {
+  /* 右上の投影レンズとステージ名が同じ領域を使わない。 */
+  padding-right: 34px;
+}
+.simulation-vision .battle-field { filter: saturate(.78) sepia(.05) hue-rotate(132deg) contrast(1.06); }
+.simulation-result .verdict-mark { color: var(--blue); text-shadow: 0 0 14px rgba(145, 203, 213, .55); }
+.simulation-projection { background: linear-gradient(135deg, rgba(145, 203, 213, .06), var(--panel)); }
+
+@media (max-width: 430px) {
+  .forecast-readout { gap: 3px; }
+  .forecast-verdict { font-size: 10px; }
+  .forecaster-action { grid-template-columns: 13px auto; min-height: 28px; padding: 2px 5px; }
+  .forecaster-action small { font-size: 8px; }
+  .board-mode { padding-inline: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forecaster-lens::after,
+  .simulation-lens::after,
+  .forecaster-scan::after,
+  .simulation-scan::after { animation: none; }
+}
 
 .tabs {
   position: sticky;
@@ -1788,19 +1960,59 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: var(--gold);
+  /* 端を明るくして、いまどこまで来たかを目の端で拾えるようにする。 */
+  background: linear-gradient(90deg, #8a6a2c 0%, var(--gold) 62%, #fff1cd 100%);
+  box-shadow: 0 0 9px -2px rgba(229, 184, 105, .85);
   transition: width .3s ease;
 }
 .battle-field {
+  position: relative;
   display: grid;
   gap: 9px;
   margin: 12px 0 6px;
   padding: 13px 11px;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 13px;
   background: linear-gradient(180deg, #241b1d 0%, #162022 47%, #16221f 100%);
 }
-.battle-side { display: grid; gap: 7px; }
+/* 上（敵）と下（味方）から差す光と、四隅を落とす影。**ゆっくり息をするだけ**で、
+   盤面の字には掛からない（z-index 0 に置き、箱と拍の行は 1 に上げる）。 */
+.battle-field::before,
+.battle-field::after {
+  position: absolute;
+  z-index: 0;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+}
+.battle-field::before {
+  background:
+    radial-gradient(125% 44% at 50% -8%, rgba(231, 137, 128, .17), rgba(231, 137, 128, 0) 74%),
+    radial-gradient(125% 44% at 50% 108%, rgba(155, 214, 158, .13), rgba(155, 214, 158, 0) 74%);
+  animation: field-breath 6.5s ease-in-out infinite;
+}
+.battle-field::after {
+  background: radial-gradient(132% 94% at 50% 50%, rgba(0, 0, 0, 0) 40%, rgba(4, 8, 9, .55) 100%);
+}
+@keyframes field-breath {
+  0%, 100% { opacity: .68; }
+  50% { opacity: 1; }
+}
+/* 着弾の揺れ。**重さの三段をそのまま揺れの三段にする。**盤面ごと動かすのは、
+   箱一つの揺れでは「当たった」で終わり「重かった」が出ないため。 */
+@keyframes field-shake {
+  0% { transform: translate3d(0, 0, 0); }
+  14% { transform: translate3d(calc(var(--shake) * -1), calc(var(--shake) * .42), 0); }
+  31% { transform: translate3d(var(--shake), calc(var(--shake) * -.5), 0); }
+  52% { transform: translate3d(calc(var(--shake) * -.6), calc(var(--shake) * .25), 0); }
+  74% { transform: translate3d(calc(var(--shake) * .38), 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+.battle-field.shake-1 { --shake: 2px; animation: field-shake .2s ease-out; }
+.battle-field.shake-2 { --shake: 4px; animation: field-shake .3s ease-out; }
+.battle-field.shake-3 { --shake: 7px; animation: field-shake .44s cubic-bezier(.2, .9, .3, 1); }
+.battle-side { position: relative; z-index: 1; display: grid; gap: 7px; }
 .battle-side-label {
   color: var(--muted);
   font-size: 9px;
@@ -1824,7 +2036,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--panel);
-  transition: border-color .18s ease, box-shadow .18s ease, opacity .3s ease;
+  transition: border-color .18s ease, box-shadow .18s ease, opacity .3s ease,
+    transform .2s cubic-bezier(.2, .8, .3, 1), filter .3s ease;
 }
 .battle-side[data-side="enemy"] .unit { background: #251c1e; }
 .unit-info-layer { position: relative; z-index: 1; }
@@ -1939,7 +2152,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .mark.barrier { background: rgba(145, 203, 213, .18); color: var(--blue); }
 .mark.block { background: rgba(192, 167, 229, .2); color: var(--violet); }
 .mark.guard { background: rgba(158, 173, 167, .16); color: var(--muted); }
-.float.blocked { background: rgba(192, 167, 229, .2); color: var(--violet); font-size: 11px; }
 .mark.bad { background: rgba(231, 137, 128, .2); color: var(--bad); }
 .mark.good { background: rgba(155, 214, 158, .18); color: var(--good); }
 /* 行動権（金）と反応権（青）の粒。**尽きた粒は残す**ので、
@@ -1973,83 +2185,417 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .unit-cast.show { opacity: 1; }
 .unit-cast.prep { background: #23303a; color: var(--blue); }
-.unit.defeated { border-color: #4b3336; opacity: .4; }
+/* 倒れた箱は色を抜く。**消さずに残す**ので、どこが空いたのかは盤面で読める。 */
+.unit.defeated { border-color: #4b3336; opacity: .42; filter: grayscale(.8) brightness(.85); }
 .unit.defeated .unit-fill { background: #5c4245; }
 /* HPの色はバー内だけに効かせ、カード枠は従来の行動・被弾状態のままにする。 */
 .unit.is-aimed { border-color: var(--gold); box-shadow: 0 0 0 1px rgba(229, 184, 105, .3); }
-.unit.is-acting { border-color: var(--gold); box-shadow: 0 0 15px rgba(229, 184, 105, .22); }
+/* いま動いている箱は**一段手前へ出す。**枠だけを金にしていたころは、盤面の中で
+   どれが主語なのかを枠の色差だけで探す必要があった。 */
+.unit.is-acting {
+  z-index: 2;
+  border-color: var(--gold);
+  box-shadow: 0 0 18px -2px rgba(229, 184, 105, .3), inset 0 0 20px -10px rgba(255, 226, 163, .95);
+  transform: scale(1.035);
+}
+
+/* ---------------------------------------------------------------- 手応えの層（.unit-fx）
+ *
+ * 閃き・衝撃輪・斬線・照準の四枚。**箱の中だけで動く**ので、盤面の並びは変わらない。
+ * どれも既定は透明で、拍が付ける状態クラス（is-hit / is-healed / …）だけが動かす。 */
+.unit-fx {
+  position: absolute;
+  z-index: 2;
+  overflow: hidden;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.unit-fx > i {
+  position: absolute;
+  display: block;
+  opacity: 0;
+}
+.fx-flash {
+  inset: 0;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, .85), rgba(255, 255, 255, 0) 78%);
+}
+.fx-ring {
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  color: var(--bad);
+}
+.fx-slash {
+  top: -32%;
+  left: -12%;
+  width: 124%;
+  height: 164%;
+  background: linear-gradient(104deg,
+    rgba(255, 255, 255, 0) 43%, rgba(255, 246, 224, .95) 50%, rgba(255, 255, 255, 0) 57%);
+}
+/* 狙われている箱の四隅。枠の色だけだと、隣の「行動中」の金と見分けが付きにくい。 */
+.fx-reticle {
+  inset: 2px;
+  background:
+    linear-gradient(var(--gold) 0 0) 0 0 / 8px 1px no-repeat,
+    linear-gradient(var(--gold) 0 0) 0 0 / 1px 8px no-repeat,
+    linear-gradient(var(--gold) 0 0) 100% 0 / 8px 1px no-repeat,
+    linear-gradient(var(--gold) 0 0) 100% 0 / 1px 8px no-repeat,
+    linear-gradient(var(--gold) 0 0) 0 100% / 8px 1px no-repeat,
+    linear-gradient(var(--gold) 0 0) 0 100% / 1px 8px no-repeat,
+    linear-gradient(var(--gold) 0 0) 100% 100% / 8px 1px no-repeat,
+    linear-gradient(var(--gold) 0 0) 100% 100% / 1px 8px no-repeat;
+}
+@keyframes fx-flash {
+  0% { opacity: 0; }
+  14% { opacity: .72; }
+  100% { opacity: 0; }
+}
+@keyframes fx-ring {
+  0% { opacity: .95; transform: scale(.22); }
+  100% { opacity: 0; transform: scale(3.4); }
+}
+@keyframes fx-slash {
+  0% { opacity: 0; transform: translateX(-48%) skewX(-9deg); }
+  22% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(48%) skewX(-9deg); }
+}
+@keyframes fx-reticle {
+  0% { opacity: 0; transform: scale(1.5); }
+  45% { opacity: 1; transform: scale(1); }
+  100% { opacity: .75; transform: scale(1); }
+}
+.unit.is-aimed .fx-reticle { animation: fx-reticle .42s cubic-bezier(.2, .85, .3, 1) forwards; }
+
+/* ---------------------------------------------------------------- 踏み込みと被弾
+ *
+ * 踏み込みは**溜めてから出る。**真っ直ぐ出るだけだと、同じ拍に何度も出たとき
+ * どれが新しい一撃なのか分からなくなる。左右の寄せ（--lunge-x）は画面側が
+ * 狙った相手の列から決める。 */
 @keyframes unit-lunge-up {
-  0% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  100% { transform: translateY(0); }
+  0% { transform: translate3d(0, 0, 0) scale(1.035); }
+  22% { transform: translate3d(calc(var(--lunge-x, 0px) * -.3), 5px, 0) scale(.97, 1.07); }
+  46% { transform: translate3d(var(--lunge-x, 0px), -14px, 0) scale(1.08, .96); }
+  70% { transform: translate3d(calc(var(--lunge-x, 0px) * .35), -3px, 0) scale(1.02, 1.01); }
+  100% { transform: translate3d(0, 0, 0) scale(1.035); }
 }
 @keyframes unit-lunge-down {
-  0% { transform: translateY(0); }
-  40% { transform: translateY(10px); }
-  100% { transform: translateY(0); }
+  0% { transform: translate3d(0, 0, 0) scale(1.035); }
+  22% { transform: translate3d(calc(var(--lunge-x, 0px) * -.3), -5px, 0) scale(.97, 1.07); }
+  46% { transform: translate3d(var(--lunge-x, 0px), 14px, 0) scale(1.08, .96); }
+  70% { transform: translate3d(calc(var(--lunge-x, 0px) * .35), 3px, 0) scale(1.02, 1.01); }
+  100% { transform: translate3d(0, 0, 0) scale(1.035); }
 }
-.battle-side[data-side="ally"] .unit.is-striking { animation: unit-lunge-up .32s ease; }
-.battle-side[data-side="enemy"] .unit.is-striking { animation: unit-lunge-down .32s ease; }
+.battle-side[data-side="ally"] .unit.is-striking { animation: unit-lunge-up .38s cubic-bezier(.3, .85, .25, 1); }
+.battle-side[data-side="enemy"] .unit.is-striking { animation: unit-lunge-down .38s cubic-bezier(.3, .85, .25, 1); }
+.unit.is-striking .fx-slash {
+  background: linear-gradient(104deg,
+    rgba(255, 226, 163, 0) 44%, rgba(255, 232, 183, .72) 50%, rgba(255, 226, 163, 0) 56%);
+  animation: fx-slash .3s cubic-bezier(.2, .8, .3, 1) .06s;
+}
 @keyframes unit-hit {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-5px); }
-  45% { transform: translateX(4px); }
-  70% { transform: translateX(-2px); }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0); }
+  18% { transform: translate3d(calc(var(--hit) * -1), 0, 0) rotate(calc(var(--hit-tilt) * -1)); }
+  42% { transform: translate3d(var(--hit), 0, 0) rotate(var(--hit-tilt)); }
+  66% { transform: translate3d(calc(var(--hit) * -.45), 0, 0) rotate(0); }
+  85% { transform: translate3d(calc(var(--hit) * .2), 0, 0) rotate(0); }
 }
-.unit.is-hit { border-color: var(--bad); animation: unit-hit .34s ease; }
+.unit.is-hit {
+  --hit: 4px;
+  --hit-tilt: 0deg;
+  border-color: var(--bad);
+  animation: unit-hit .3s cubic-bezier(.3, .9, .35, 1);
+}
+.unit.is-hit .fx-flash {
+  background: radial-gradient(closest-side, rgba(255, 224, 216, .92), rgba(231, 137, 128, 0) 76%);
+  animation: fx-flash .26s ease-out;
+}
+.unit.is-hit .fx-slash { animation: fx-slash .28s cubic-bezier(.2, .8, .3, 1); }
+.unit.is-hit .fx-ring { color: var(--bad); animation: fx-ring .4s cubic-bezier(.15, .85, .3, 1); }
+/* 重い一撃ほど大きく、長く揺れる。段は最大HPに対する割合で画面側が決める。 */
+.unit.hit-2 { --hit: 7px; --hit-tilt: 1deg; animation-duration: .36s; }
+.unit.hit-3 { --hit: 11px; --hit-tilt: 2.4deg; animation-duration: .46s; }
+.unit.hit-2 .fx-ring { animation-duration: .48s; }
+.unit.hit-3 .fx-ring { animation-duration: .6s; border-width: 3px; }
+.unit.hit-3 .fx-flash { animation-duration: .34s; }
+/* 倒れた瞬間だけの一拍。以後は `.defeated` の灰色がそのまま残る。 */
+@keyframes unit-downed {
+  0% { filter: brightness(2.1) saturate(.2); transform: translate3d(0, -2px, 0) rotate(0); }
+  26% { filter: brightness(1.4) saturate(.5); transform: translate3d(0, -4px, 0) rotate(-1.5deg); }
+  100% { filter: none; transform: translate3d(0, 4px, 0) rotate(2.5deg); }
+}
+.unit.is-downed { animation: unit-downed .6s cubic-bezier(.25, .8, .3, 1); }
 @keyframes unit-pulse-good {
-  0% { box-shadow: 0 0 0 0 rgba(155, 214, 158, .55); }
-  100% { box-shadow: 0 0 0 11px rgba(155, 214, 158, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(155, 214, 158, .6); }
+  100% { box-shadow: 0 0 0 12px rgba(155, 214, 158, 0); }
 }
 .unit.is-healed { border-color: var(--good); animation: unit-pulse-good .5s ease; }
+.unit.is-healed .fx-flash {
+  background: radial-gradient(closest-side, rgba(203, 243, 205, .7), rgba(155, 214, 158, 0) 74%);
+  animation: fx-flash .42s ease-out;
+}
+.unit.is-healed .fx-ring { color: var(--good); animation: fx-ring .58s cubic-bezier(.2, .8, .3, 1) reverse; }
 @keyframes unit-pulse-blue {
-  0% { box-shadow: 0 0 0 0 rgba(145, 203, 213, .55); }
-  100% { box-shadow: 0 0 0 11px rgba(145, 203, 213, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(145, 203, 213, .6); }
+  100% { box-shadow: 0 0 0 12px rgba(145, 203, 213, 0); }
 }
 .unit.is-shielded { border-color: var(--blue); animation: unit-pulse-blue .5s ease; }
-.unit-floats { position: absolute; bottom: 100%; left: 0; z-index: 4; width: 100%; height: 0; pointer-events: none; }
+.unit.is-shielded .fx-ring { color: var(--blue); animation: fx-ring .5s cubic-bezier(.2, .8, .3, 1) reverse; }
+.unit.is-shielded .fx-flash {
+  background: radial-gradient(closest-side, rgba(196, 235, 243, .6), rgba(145, 203, 213, 0) 74%);
+  animation: fx-flash .4s ease-out;
+}
+/* 止めた一撃。**受けた側は揺れず、硬く縮んで弾き返す。** */
+@keyframes unit-blocked {
+  0%, 100% { transform: scale(1); }
+  28% { transform: scale(.955); }
+  58% { transform: scale(1.025); }
+}
+.unit.is-blocked { border-color: var(--violet); animation: unit-blocked .34s cubic-bezier(.25, .9, .3, 1); }
+.unit.is-blocked .fx-ring { color: var(--violet); animation: fx-ring .38s cubic-bezier(.15, .85, .3, 1); }
+
+/* ---------------------------------------------------------------- 浮く数字
+ *
+ * 数字は盤面の層（`.battle-floats`）に置き、受けた箱の真上へ座標で刺す。
+ * 箱の中に置いていたころは、味方の箱（顔のために overflow を閉じている）で
+ * 消え、敵では一つ上の箱の中に出て持ち主が読めなかった。 */
+.battle-floats {
+  position: absolute;
+  z-index: 5;
+  overflow: hidden;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* 踏み込んだ先を結ぶ線。盤面の層に置き、二つの箱の中心を一度だけ結ぶ。 */
+.strike-line {
+  position: absolute;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    rgba(255, 226, 163, 0) 0%, rgba(255, 247, 226, .95) 46%, rgba(255, 226, 163, 0) 100%);
+  box-shadow: 0 0 10px 0 rgba(229, 184, 105, .95);
+  opacity: 0;
+  transform-origin: 0 50%;
+  animation: strike-line .36s cubic-bezier(.1, .85, .3, 1) both;
+  pointer-events: none;
+}
+@keyframes strike-line {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  20% { opacity: 1; clip-path: inset(0 0 0 0); }
+  62% { opacity: .9; clip-path: inset(0 0 0 0); }
+  100% { opacity: 0; clip-path: inset(0 0 0 72%); }
+}
 .float {
   position: absolute;
-  bottom: 0;
-  left: 50%;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
   white-space: nowrap;
-  animation: float-rise 1.1s ease-out forwards;
+  animation: float-rise 1.2s cubic-bezier(.16, .84, .3, 1) both;
 }
+.float .float-cause {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+}
+/* **出たがりの一拍**。小さく飛び出して行き過ぎ、戻ってから昇って消える。 */
 @keyframes float-rise {
-  0% { opacity: 0; transform: translate(calc(-50% + var(--float-shift, 0px)), 8px) scale(.75); }
-  16% { opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), -6px) scale(1.15); }
-  38% { transform: translate(calc(-50% + var(--float-shift, 0px)), -13px) scale(1); }
-  100% { opacity: 0; transform: translate(calc(-50% + var(--float-shift, 0px)), -32px) scale(1); }
+  0% { opacity: 0; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% + 12px)) scale(.5) rotate(-5deg); }
+  14% { opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% - 11px)) scale(1.3) rotate(2deg); }
+  30% { opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% - 17px)) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% - 40px)) scale(.95) rotate(0); }
 }
-.float.damage { color: var(--bad); }
-.float.heal { color: var(--good); }
-.float.barrier { color: var(--blue); }
-.float.defeat { background: rgba(231, 137, 128, .2); color: var(--bad); font-size: 11px; }
+/* 芯を明るく、まわりを色で光らせる。9px の盤面では、塗りつぶしの色より
+   「光っている字」のほうが遠くから読める。 */
+.float.damage {
+  color: #ffd0c8;
+  text-shadow: 0 0 12px rgba(231, 137, 128, .9), 0 2px 0 #2b1112, 0 1px 4px rgba(0, 0, 0, .95);
+}
+.float.heal {
+  color: #d6f4d7;
+  text-shadow: 0 0 12px rgba(155, 214, 158, .85), 0 2px 0 #12240f, 0 1px 4px rgba(0, 0, 0, .95);
+}
+.float.barrier {
+  color: #d3f0f6;
+  text-shadow: 0 0 12px rgba(145, 203, 213, .85), 0 2px 0 #0f2228, 0 1px 4px rgba(0, 0, 0, .95);
+}
+/* 重い一撃は字も大きい。段は `.unit` の揺れと同じ割合（15% / 30%）で決まるので、
+   **大きい字と大きい揺れが必ず一緒に出る。** */
+.float.damage.heavy { font-size: 20px; }
+.float.damage.crush {
+  color: #fff3ec;
+  font-size: 25px;
+  text-shadow: 0 0 18px rgba(231, 137, 128, 1), 0 0 6px rgba(255, 236, 230, .9), 0 2px 0 #2b1112;
+}
+.float.heal.heavy { font-size: 18px; }
+.float.heal.crush { font-size: 21px; }
+.float.blocked { background: rgba(192, 167, 229, .2); color: var(--violet); font-size: 11px; }
+.float.defeat {
+  border: 1px solid rgba(231, 137, 128, .55);
+  background: rgba(52, 18, 18, .82);
+  color: #ffd7d0;
+  font-size: 12px;
+  letter-spacing: .16em;
+}
 .float.reaction { background: rgba(192, 167, 229, .16); color: var(--violet); font-size: 10px; font-weight: 700; }
 .float.wear, .float.move { color: var(--muted); font-size: 10px; font-weight: 700; }
 .float.bad { background: rgba(231, 137, 128, .2); color: var(--bad); font-size: 10px; }
 .float.good { background: rgba(155, 214, 158, .18); color: var(--good); font-size: 10px; }
 /* サブ行動・パッシブ由来は、主行動の数字より控えめに出す。
    同時に出るので、同じ強さだと何が主だったのか読めなくなる。 */
-.float.from-rule { font-size: 11px; font-weight: 700; opacity: .92; }
+.float.from-rule { font-size: 12px; font-weight: 700; opacity: .92; text-shadow: 0 1px 3px rgba(0, 0, 0, .85); }
+
+/* ---------------------------------------------------------------- 幕の帯
+ *
+ * 戦闘の開始・ラウンドの頭・決着だけ、盤面の真ん中で一度だけ大きく言う。
+ * **拍の長さも順序も変えない**（帯は拍の中で始まり、拍の中で消える）。
+ * 読み上げは拍の行が既に持っているので、帯は aria-hidden のまま二重に読ませない。 */
+.battle-banner {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 0;
+  display: none;
+  width: 100%;
+  margin-top: -26px;
+  text-align: center;
+  pointer-events: none;
+}
+.battle-banner.show { display: block; }
+.battle-banner::before,
+.battle-banner::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  inset: -8px -6px;
+  transform: skewX(-12deg);
+}
+/* 帯の地。**盤面と角度を変える**ので、一枚だけで「別の層」に見える。 */
+.battle-banner::before {
+  background: linear-gradient(90deg,
+    rgba(10, 15, 16, 0) 0%, rgba(10, 15, 16, .9) 18%,
+    rgba(10, 15, 16, .9) 82%, rgba(10, 15, 16, 0) 100%);
+}
+/* 上下の細い線。端は溶かす（角度の付いた帯に角を作らない）。 */
+.battle-banner::after {
+  color: var(--banner-ink, var(--gold));
+  background:
+    linear-gradient(90deg, transparent, currentColor 26%, currentColor 74%, transparent) 0 0 / 100% 1px no-repeat,
+    linear-gradient(90deg, transparent, currentColor 26%, currentColor 74%, transparent) 0 100% / 100% 1px no-repeat;
+  opacity: .6;
+}
+.battle-banner b {
+  display: block;
+  color: #fff6e4;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  line-height: 1.05;
+  text-shadow: 0 0 20px var(--banner-glow, rgba(229, 184, 105, .95)), 0 2px 0 #16100a;
+}
+.battle-banner i {
+  display: block;
+  margin-top: 3px;
+  color: var(--banner-ink, var(--gold));
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .34em;
+}
+.battle-banner.win { --banner-ink: var(--good); --banner-glow: rgba(155, 214, 158, .95); }
+.battle-banner.lose { --banner-ink: var(--bad); --banner-glow: rgba(231, 137, 128, .95); }
+.battle-banner.draw { --banner-ink: var(--muted); --banner-glow: rgba(158, 173, 167, .8); }
+@keyframes banner-word {
+  0% { opacity: 0; letter-spacing: .7em; transform: scale(1.25); }
+  24% { opacity: 1; letter-spacing: .18em; transform: scale(1); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+@keyframes banner-sub {
+  0%, 12% { opacity: 0; transform: translateY(4px); }
+  34% { opacity: 1; transform: translateY(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes banner-band {
+  0% { opacity: 0; transform: skewX(-12deg) scaleX(.34); }
+  26% { opacity: .85; transform: skewX(-12deg) scaleX(1); }
+  70% { opacity: .85; }
+  100% { opacity: 0; transform: skewX(-12deg) scaleX(1.07); }
+}
+.battle-banner.run b { animation: banner-word .66s cubic-bezier(.17, .89, .25, 1) both; }
+.battle-banner.run i { animation: banner-sub .66s ease-out both; }
+.battle-banner.run::before,
+.battle-banner.run::after { animation: banner-band .66s cubic-bezier(.17, .89, .25, 1) both; }
 .battle-beat {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 9px;
   padding: 9px 11px;
+  overflow: hidden;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--gold);
+  border-left: 3px solid var(--beat-accent, var(--gold));
   border-radius: 9px;
-  background: #212a2b;
+  background: linear-gradient(100deg, #253031 0%, #1c2527 70%);
+  box-shadow: inset 0 0 22px -14px var(--beat-accent, var(--gold));
   min-height: 54px;
+  transition: border-color .2s ease;
 }
-.beat-round { color: var(--gold); font-size: 10px; font-weight: 700; }
+/* 拍の種類で左の帯の色を変える。**いま何の拍なのか**は、読む前に色で分かる。 */
+.battle-beat[data-kind="declare"] { --beat-accent: var(--gold); }
+.battle-beat[data-kind="impact"] { --beat-accent: var(--gold); }
+.battle-beat[data-kind="ultimate"] { --beat-accent: #ffd98a; }
+.battle-beat[data-kind="defeat"] { --beat-accent: var(--bad); }
+.battle-beat[data-kind="opening"],
+.battle-beat[data-kind="round"],
+.battle-beat[data-kind="prepare"] { --beat-accent: var(--blue); }
+.battle-beat[data-kind="blocked"],
+.battle-beat[data-kind="skipped"],
+.battle-beat[data-kind="sub"] { --beat-accent: var(--violet); }
+.battle-beat[data-kind="move"] { --beat-accent: var(--muted); }
+.battle-beat[data-kind="ending"] { --beat-accent: var(--good); }
+/* 拍が変わるたびに一度だけ光が横切る。**盤面ではなく行が変わった**ことの合図。 */
+.battle-beat.pulse::after {
+  position: absolute;
+  z-index: 0;
+  content: "";
+  inset: 0;
+  background: linear-gradient(100deg,
+    rgba(255, 255, 255, 0) 32%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, 0) 68%);
+  animation: beat-sweep .5s ease-out;
+  pointer-events: none;
+}
+@keyframes beat-sweep {
+  0% { opacity: 0; transform: translateX(-62%); }
+  28% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(62%); }
+}
+.beat-round, .beat-text, .beat-count { position: relative; z-index: 1; }
+.beat-round {
+  padding: 2px 5px;
+  border: 1px solid var(--beat-accent, var(--gold));
+  border-radius: 5px;
+  color: var(--beat-accent, var(--gold));
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 /* **一行と二行で高さを変えない。**拍ごとに盤面が上下すると、
    踏み込みや揺れが読めなくなる（動かしたいのは箱であって、盤面ではない）。 */
 .beat-text {
@@ -2065,10 +2611,11 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .beat-count { color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; }
 @keyframes beat-in {
-  0% { opacity: .25; transform: translateY(3px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateX(-7px); }
+  55% { opacity: 1; }
+  100% { opacity: 1; transform: translateX(0); }
 }
-.beat-text.pulse { animation: beat-in .2s ease; }
+.beat-text.pulse { animation: beat-in .26s cubic-bezier(.2, .85, .3, 1); }
 .replay-transport { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 5px; margin-top: 12px; }
 .replay-transport .button { margin-top: 0; padding: 9px 4px; font-size: 11px; }
 .replay-speed { display: flex; align-items: center; gap: 5px; margin-top: 7px; }
@@ -2098,9 +2645,12 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .battle-field { position: relative; }
 .battle-field.ultimate-hold .battle-side,
 .battle-field.ultimate-hold .battle-beat {
-  filter: saturate(.5) brightness(.62);
-  transition: filter .18s ease;
+  /* 盤面をもう一段深く沈める。**帯だけが前に出ている**ことを、明るさと彩度の
+     両方で言う（枠線の色を変えると、行動中・被弾の枠表示と混ざる）。 */
+  filter: saturate(.32) brightness(.46);
+  transition: filter .2s ease;
 }
+.battle-field.ultimate-hold .battle-side { transform: scale(.985); transition: filter .2s ease, transform .2s ease; }
 .ultimate-cutin {
   position: absolute;
   z-index: 3;
@@ -2112,6 +2662,24 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   pointer-events: none;
 }
 .ultimate-cutin.show { display: grid; }
+/* 速度線。斜めの細い線が帯より速く走り抜ける。 */
+.cutin-lines {
+  position: absolute;
+  inset: -30% -20%;
+  background: repeating-linear-gradient(100deg,
+    rgba(255, 243, 214, 0) 0 9px,
+    rgba(255, 243, 214, .16) 9px 10px,
+    rgba(255, 243, 214, 0) 10px 21px);
+  opacity: 0;
+}
+/* 斬線。帯の上を一度だけ横切る。 */
+.cutin-slash {
+  position: absolute;
+  inset: -60% -10%;
+  background: linear-gradient(102deg,
+    rgba(255, 255, 255, 0) 44%, rgba(255, 250, 235, .95) 50%, rgba(255, 255, 255, 0) 56%);
+  opacity: 0;
+}
 .cutin-sheet {
   position: relative;
   display: flex;
@@ -2167,6 +2735,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .ultimate-cutin.run .cutin-burst { animation: cutin-burst .62s ease-out both; }
 .ultimate-cutin.run .cutin-figure { animation: cutin-figure .46s cubic-bezier(.17, .89, .25, 1) both; }
 .ultimate-cutin.run .cutin-skill { animation: cutin-skill .4s ease-out .08s both; }
+.ultimate-cutin.run .cutin-lines { animation: cutin-lines .56s cubic-bezier(.1, .8, .3, 1) both; }
+.ultimate-cutin.run .cutin-slash { animation: cutin-slash .46s cubic-bezier(.2, .85, .25, 1) .1s both; }
+.ultimate-cutin.run .cutin-who { animation: cutin-who .44s ease-out .04s both; }
 @keyframes cutin-sheet {
   0% { opacity: 0; transform: translateX(-14%) skewX(-7deg); }
   100% { opacity: 1; transform: translateX(0) skewX(0); }
@@ -2184,14 +2755,32 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   0% { opacity: 0; clip-path: inset(0 100% 0 0); }
   100% { opacity: 1; clip-path: inset(0 0 0 0); }
 }
+@keyframes cutin-lines {
+  0% { opacity: 0; transform: translateX(-26%); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(26%); }
+}
+@keyframes cutin-slash {
+  0% { opacity: 0; transform: translateX(-58%) skewX(-10deg); }
+  26% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(58%) skewX(-10deg); }
+}
+@keyframes cutin-who {
+  0% { opacity: 0; letter-spacing: .52em; }
+  100% { opacity: 1; letter-spacing: .18em; }
+}
 @media (prefers-reduced-motion: reduce) {
   /* **カットインそのものは残す**（必殺が出たことが読めなくなる）。動きだけ止める。 */
   .ultimate-cutin.run .cutin-sheet,
   .ultimate-cutin.run .cutin-burst,
   .ultimate-cutin.run .cutin-figure,
-  .ultimate-cutin.run .cutin-skill { animation: none; }
+  .ultimate-cutin.run .cutin-skill,
+  .ultimate-cutin.run .cutin-lines,
+  .ultimate-cutin.run .cutin-slash,
+  .ultimate-cutin.run .cutin-who { animation: none; }
   .battle-field.ultimate-hold .battle-side,
   .battle-field.ultimate-hold .battle-beat { transition: none; }
+  .battle-field.ultimate-hold .battle-side { transform: none; transition: none; }
 }
 
 @media (max-width: 380px) {
@@ -2202,10 +2791,23 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .unit { padding: 5px 4px 6px; }
   .unit { padding: 6px; }
   .beat-text { font-size: 12px; }
+  .battle-banner b { font-size: 23px; }
+  .float.damage.crush { font-size: 22px; }
 }
+/* **動きだけを止める。**色・数字・印は動かない側にも全部残るので、何が起きたかは
+   止めても読める（帯とカットインは出したまま、走らせるのをやめる）。 */
 @media (prefers-reduced-motion: reduce) {
   .unit, .unit-fill, .unit-recovered, .unit-recoverable, .unit-unrecoverable, .unit-barrier-fill, .beat-text, .replay-progress-fill { animation: none !important; transition: none !important; }
-  .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), -14px); }
+  .battle-field, .battle-field::before, .battle-beat.pulse::after, .unit-fx > i { animation: none !important; }
+  .battle-field.ultimate-hold .battle-side { transform: none; }
+  .unit.is-acting { transform: none; }
+  .unit.is-aimed .fx-reticle { opacity: .75; }
+  .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% - 16px)); }
+  .strike-line { animation: none; opacity: .85; }
+  .battle-banner.run b,
+  .battle-banner.run i,
+  .battle-banner.run::before,
+  .battle-banner.run::after { animation: none; }
 }
 
 /* ------------------------------------------------------------------ PHASE B

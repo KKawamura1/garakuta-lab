@@ -24,7 +24,10 @@ export const BLUEPRINT_ARCHIVE_VERSION = "ecology-blueprint-1";
 // R8 §3.7 —「Blueprint持込枠 4,000 / 20,000 / 100,000 / 500,000」。初期1、最大5。
 export const BLUEPRINT_BASE_CAPACITY = 1;
 export const BLUEPRINT_MAX_CAPACITY = 5;
-export const BLUEPRINT_CAPACITY_COSTS = Object.freeze(["4000", "20000", "100000", "500000"]);
+// R23 — 第一部で入る活動資金は24万前後。**4枠目・5枠目が一生買えない額**だったので、
+// 他の投資先と同じ帯（数千〜十万）へ寄せた。5枠目は「第一部を通して一つだけ選ぶ」
+// 大きな買い物として残す。
+export const BLUEPRINT_CAPACITY_COSTS = Object.freeze(["4000", "16000", "48000", "120000"]);
 export const BLUEPRINT_CAPACITY_UPGRADE_ID = "blueprint_capacity";
 
 // R8 §10.3 は勝利2・安全撤退2・敗北1だった。PR #255 で装備を拾えるのが

@@ -326,6 +326,210 @@ export const STORY_BEATS = Object.freeze({
       footer: "ここから先は、配置・技能・装備の差だけで役割を作る。",
     }),
   }),
+
+  // ============================================================ 第2章（R23）
+  //
+  // Stage 4〜9。**人は加わらない**ので `join` は無く、代わりに `opening` を置く。
+  // 幕の断片（act1〜3）と `stageEnd` の役割は第1章と同じである。
+  stage_4: Object.freeze({
+    opening: beat("stage_4_opening", "越える門", {
+      mood: "ash",
+      place: "四つ目の門",
+      cast: castFor("stage_4_opening"),
+      lines: dialogueFor("stage_4_opening"),
+      footer: "四つ目の門の先は、どの台帳にも無い。書かれていない場所には、書かれていない理由がある。",
+    }),
+    act1: beat("stage_4_act1", "十七という数", {
+      mood: "ash",
+      place: "灰の斜面",
+      cast: castFor("stage_4_act1"),
+      lines: dialogueFor("stage_4_act1"),
+    }),
+    act2: beat("stage_4_act2", "業務中の裂傷", {
+      mood: "dusk",
+      place: "休み場",
+      cast: castFor("stage_4_act2"),
+      lines: dialogueFor("stage_4_act2"),
+    }),
+    act3: beat("stage_4_act3", "順番の問題", {
+      mood: "ash",
+      place: "灰塵の縁",
+      cast: castFor("stage_4_act3"),
+      lines: dialogueFor("stage_4_act3"),
+    }),
+    stageEnd: beat("stage_4_end", "誰も書いていない", {
+      mood: "dusk",
+      place: "詰所への道",
+      cast: castFor("stage_4_end"),
+      lines: dialogueFor("stage_4_end"),
+      footer: "書かれていないことは、起きなかったことの証拠にはならない。",
+    }),
+  }),
+  stage_5: Object.freeze({
+    opening: beat("stage_5_opening", "下るほど細かく", {
+      mood: "ash",
+      place: "数の坂",
+      cast: castFor("stage_5_opening"),
+      lines: dialogueFor("stage_5_opening"),
+    }),
+    act1: beat("stage_5_act1", "後ろにいる理由", {
+      mood: "ash",
+      place: "坂の途中",
+      cast: castFor("stage_5_act1"),
+      lines: dialogueFor("stage_5_act1"),
+    }),
+    act2: beat("stage_5_act2", "字の癖", {
+      mood: "dusk",
+      place: "坂の底",
+      cast: castFor("stage_5_act2"),
+      lines: dialogueFor("stage_5_act2"),
+    }),
+    act3: beat("stage_5_act3", "数にならないほう", {
+      mood: "ash",
+      place: "火のそば",
+      cast: castFor("stage_5_act3"),
+      lines: dialogueFor("stage_5_act3"),
+    }),
+    stageEnd: beat("stage_5_end", "上出来", {
+      mood: "dawn",
+      place: "坂の上",
+      cast: castFor("stage_5_end"),
+      lines: dialogueFor("stage_5_end"),
+      footer: "数えられるものと、数にならないもの。台帳に残るのはいつも前者だけである。",
+    }),
+  }),
+  stage_6: Object.freeze({
+    opening: beat("stage_6_opening", "動かされる", {
+      mood: "ash",
+      place: "灰の回廊",
+      cast: castFor("stage_6_opening"),
+      lines: dialogueFor("stage_6_opening"),
+    }),
+    act1: beat("stage_6_act1", "前に立てない日", {
+      mood: "dusk",
+      place: "回廊の途中",
+      cast: castFor("stage_6_act1"),
+      lines: dialogueFor("stage_6_act1"),
+    }),
+    act2: beat("stage_6_act2", "止まらない", {
+      mood: "dusk",
+      place: "回廊の奥",
+      cast: castFor("stage_6_act2"),
+      lines: dialogueFor("stage_6_act2"),
+    }),
+    act3: beat("stage_6_act3", "ひとりだった時間", {
+      mood: "ember",
+      place: "回廊の分かれ",
+      cast: castFor("stage_6_act3"),
+      lines: dialogueFor("stage_6_act3"),
+    }),
+    stageEnd: beat("stage_6_end", "三本の線", {
+      mood: "dusk",
+      place: "回廊の出口",
+      cast: castFor("stage_6_end"),
+      lines: dialogueFor("stage_6_end"),
+      footer: "隊の中だけで通じる印は、その隊が居なくなると、ただの傷になる。",
+    }),
+  }),
+  stage_7: Object.freeze({
+    opening: beat("stage_7_opening", "二通りの来かた", {
+      mood: "ash",
+      place: "壁の先",
+      cast: castFor("stage_7_opening"),
+      lines: dialogueFor("stage_7_opening"),
+    }),
+    act1: beat("stage_7_act1", "遠くしか見ていない", {
+      mood: "ash",
+      place: "休み場",
+      cast: castFor("stage_7_act1"),
+      lines: dialogueFor("stage_7_act1"),
+    }),
+    act2: beat("stage_7_act2", "同時に二つ", {
+      mood: "ember",
+      place: "崩れた場所",
+      cast: castFor("stage_7_act2"),
+      lines: dialogueFor("stage_7_act2"),
+    }),
+    act3: beat("stage_7_act3", "三通りの言い方", {
+      mood: "dusk",
+      place: "火のそば",
+      cast: castFor("stage_7_act3"),
+      lines: dialogueFor("stage_7_act3"),
+    }),
+    stageEnd: beat("stage_7_end", "空いている欄", {
+      mood: "dusk",
+      place: "帰り道",
+      cast: castFor("stage_7_end"),
+      lines: dialogueFor("stage_7_end"),
+      footer: "空いている欄は、埋めろという意味か、埋めるなという意味か。様式には書かれていない。",
+    }),
+  }),
+  stage_8: Object.freeze({
+    opening: beat("stage_8_opening", "熱くない", {
+      mood: "ash",
+      place: "灰炉の門",
+      cast: castFor("stage_8_opening"),
+      lines: dialogueFor("stage_8_opening"),
+    }),
+    act1: beat("stage_8_act1", "最初の頁", {
+      mood: "dusk",
+      place: "門の手前",
+      cast: castFor("stage_8_act1"),
+      lines: dialogueFor("stage_8_act1"),
+    }),
+    act2: beat("stage_8_act2", "示し", {
+      mood: "ash",
+      place: "門の内側",
+      cast: castFor("stage_8_act2"),
+      lines: dialogueFor("stage_8_act2"),
+    }),
+    act3: beat("stage_8_act3", "読める番号", {
+      mood: "dusk",
+      place: "門の内側",
+      cast: castFor("stage_8_act3"),
+      lines: dialogueFor("stage_8_act3"),
+    }),
+    stageEnd: beat("stage_8_end", "二本目の線", {
+      mood: "ember",
+      place: "根城への道",
+      cast: castFor("stage_8_end"),
+      lines: dialogueFor("stage_8_end"),
+      footer: "返せなかった器材は、返す気が無かった証拠にはならない。",
+    }),
+  }),
+  stage_9: Object.freeze({
+    opening: beat("stage_9_opening", "四つとも", {
+      mood: "ash",
+      place: "炉の底",
+      cast: castFor("stage_9_opening"),
+      lines: dialogueFor("stage_9_opening"),
+    }),
+    act1: beat("stage_9_act1", "六つ目の椅子", {
+      mood: "ash",
+      place: "底の途中",
+      cast: castFor("stage_9_act1"),
+      lines: dialogueFor("stage_9_act1"),
+    }),
+    act2: beat("stage_9_act2", "名簿の無い先", {
+      mood: "dusk",
+      place: "底の奥",
+      cast: castFor("stage_9_act2"),
+      lines: dialogueFor("stage_9_act2"),
+    }),
+    act3: beat("stage_9_act3", "五人で入って五人で帰る", {
+      mood: "ember",
+      place: "最後の道の手前",
+      cast: castFor("stage_9_act3"),
+      lines: dialogueFor("stage_9_act3"),
+    }),
+    stageEnd: beat("stage_9_end", "書かれはじめる", {
+      mood: "dawn",
+      place: "灰の縁",
+      cast: castFor("stage_9_end"),
+      lines: dialogueFor("stage_9_end"),
+      footer: "第一部はここで終わる。台帳のこの頁は、この日から書かれはじめる。",
+    }),
+  }),
 });
 
 // その Stage の断片。無ければ空を返す（Stage が増えても落ちない）。

@@ -25,6 +25,22 @@ const displayContracts = [
   ["防壁比率の計算", app, "function barrierPercent(actor)"],
   ["防壁比率の上限", app, "Math.min(100, (barrier / maxHp) * 100)"],
   ["防壁バーのCSS", styles, ".unit-barrier-fill"],
+  // 戦闘の手応え（作者要望 2026-09-13）。**演出は拍を増やさず、イベント列だけから出す。**
+  // 形が変われば、この節も一緒に直すこと。
+  ["浮く数字を盤面の層へ置く", app, 'const host = field.querySelector(".battle-floats");'],
+  ["浮く数字の層のCSS", styles, ".battle-floats {"],
+  ["一撃の重さを最大HP比で三段にする", app, "function hitLevel(amount, maxHp)"],
+  ["重さを盤面の揺れへ渡す", app, "function shakeField(field, level)"],
+  ["盤面の揺れのCSS", styles, ".battle-field.shake-3"],
+  ["踏み込む向きを列差から出す", app, "function lungeShiftPx(actors, actingId, beat)"],
+  ["踏み込む向きを CSS へ渡す", styles, "var(--lunge-x, 0px)"],
+  ["踏み込んだ先を線で結ぶ", app, "function spawnStrikeLine(field, fromUnit, toUnit)"],
+  ["踏み込んだ先の線のCSS", styles, ".strike-line {"],
+  ["手応えの層のDOM", app, 'class=\\"unit-fx\\"'],
+  ["手応えの層のCSS", styles, ".unit-fx {"],
+  ["幕の帯の言葉", app, "function battleBannerFor(beat)"],
+  ["幕の帯のCSS", styles, ".battle-banner {"],
+  ["決着の行を engine の語のまま出さない", app, 'const BATTLE_RESULT_LABELS = { win: "勝利", loss: "敗北", draw: "相打ち" };'],
   ["防壁バーをHPバー上へ配置", styles, "top: -3px"],
   ["装備摩耗ログの残耐久", app, '"の装備が耐久 " + values.before + "→" + values.after'],
   ["装備耐久切れの不発表示", app, '" · 耐久切れ、以後は不発"'],
@@ -62,7 +78,8 @@ for (const [label, sourceText, expected] of displayContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
 const progressiveContracts = [
-  ["戦闘タブの主操作", app, "primary-action map-primary-action"],
+  ["先見機の実戦操作", app, "forecaster-action engage"],
+  ["先見機の試映操作", app, "forecaster-action simulate"],
   ["結果画面の主操作", app, "primary-action result-primary-action"],
   ["敗北画面の主操作", app, "primary-action defeat-primary-action"],
   ["精算画面の主操作", app, "primary-action settlement-primary-action"],
@@ -129,8 +146,16 @@ for (const forbidden of [
 ]) {
   if (styles.includes(forbidden)) problems.push("種別の枠が現在地の枠と競合する定義が残っている: " + forbidden);
 }
-if (mapRenderer.indexOf("map-primary-action") > mapRenderer.indexOf("act-line")) {
-  problems.push("戦闘タブの主操作が敵の概要より後ろにある");
+if (mapRenderer.includes("map-primary-action")) {
+  problems.push("実戦操作が先見機と遠征本文に重複している");
+}
+for (const [label, expected] of [
+  ["試映は進行結果へ追加しない", "if (!previewOnly) state.run.results"],
+  ["試映は戦闘結果を確定しない", "if (!previewOnly) {\n      if (isCampaignRun())"],
+  ["試映の結果は必ず専用画面へ入る", "if (state.simulationMode) return true;"],
+  ["試映から先見機へ戻る", 'action === "return-from-simulation"'],
+]) {
+  if (!app.includes(expected)) problems.push(label + "契約が無い");
 }
 if (!app.includes("status + nextBlock + stateCard")) {
   problems.push("結果画面の主操作が戦闘後詳細より前に配置されていない");
@@ -206,7 +231,7 @@ if (!app.includes('return titleShell("One Battle Ahead", "",')) {
 
 // 画面固有の文脈は、共通ヘッダーを消しても失わない。
 for (const [label, expected] of [
-  ["戦闘画面の遭遇名", 'sectionHeading("BATTLE", "戦闘"'],
+  ["戦闘画面の見出し", 'sectionHeading("BATTLE", state.simulationMode ? "戦闘予測" : "戦闘"'],
   ["結果画面の遭遇・ラウンド", "verdict-context"],
   ["キャンプ予測の遭遇名", "const encounterName = currentEncounter()?.name"],
 ]) {
