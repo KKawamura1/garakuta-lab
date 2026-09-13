@@ -325,7 +325,16 @@ try {
   await page.waitForSelector(".battle-card.simulation-vision", { timeout: 8000 });
   note("試映の戦闘は投影演出の中で再生される",
     await page.locator(".battle-card.simulation-vision .simulation-scan").count() === 1);
-  await click("再生をとばす");
+  // 決着の帯で再生を止め、［次へ］で試映結果へ進む。自動再生が先に終わっていても進められるよう、
+  // 表示中の釦だけを対象にする（旧「再生をとばす」は決着前にしか存在しない）。
+  const rushToVerdict = page.locator('[data-action="replay-verdict"]:not([hidden])');
+  if (await rushToVerdict.count()) {
+    await rushToVerdict.first().click();
+    await page.waitForTimeout(120);
+  }
+  const nextAfterReplay = page.locator('[data-action="replay-result"]:not([hidden])');
+  await nextAfterReplay.first().waitFor({ state: "visible", timeout: 8000 });
+  await nextAfterReplay.first().click();
   await page.waitForSelector(".simulation-result", { timeout: 8000 });
   note("試映の結果も同じ投影演出で示される",
     await page.locator(".simulation-result .simulation-lens").count() === 1);
