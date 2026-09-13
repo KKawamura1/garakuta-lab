@@ -105,11 +105,15 @@ for (const stage of CAMPAIGN_STAGES) {
       if (kind === "reactive") {
         // 反応側は未導入 pack の最終到達点を将来の境界として残し、その直前の親まで
         // campaign から辿れることを確認する。境界の列番号はデータから導出する。
+        //
+        // R23 — **最終 Stage が全 pack を持つようになった。**未導入の最終到達点が
+        // 一つも無いのは「境界が切れている」のではなく「第一部で全部出し切った」
+        // という意味なので、そのときは境界の検査そのものを飛ばす。
         const futureFinalRows = fullFinalRows.filter((row) => !available.has(row.skillId));
         const hasReachableFrontier = futureFinalRows.some(
           (row) => row.parentKey && available.has(row.parentKey),
         );
-        if (!hasReachableFrontier) {
+        if (futureFinalRows.length && !hasReachableFrontier) {
           problems.push(lastStage.id + ": " + fullGroup.label
             + "ツリーの未導入の最終到達点へつながる campaign の境界が無い");
         }

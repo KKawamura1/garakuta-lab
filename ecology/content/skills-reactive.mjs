@@ -18,7 +18,7 @@ export const REACTIVE_SKILL_NAMES = {
   urging: "急かす",
   brace_after_hit: "受け流し",
   triage_relay: "連携治療",
-  block_focus: "受け返しの集中",
+  block_focus: "受けて澄ます",
   barrier_stitch: "防壁の縫い直し",
   emergency_treatment: "応急処置",
   mend: "手当て",

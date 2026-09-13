@@ -824,7 +824,10 @@ const EXPEDITION_SIMULATION_OPTIONS = Object.freeze({ equipmentBreaks: false });
 // preview と本番が、BattleInput の構成と simulateBattle の固定オプションを共有する唯一の入口。
 export function simulateExpeditionBattle(run, profile, encounterIndex, options = {}) {
   const composed = options.composed
-    ?? composeEncounter(encounterIndex, run.difficulty, { partySize: run.partySize });
+    ?? composeEncounter(encounterIndex, run.difficulty, {
+      partySize: run.partySize,
+      stageSequence: run.campaignStageSequence ?? 0,
+    });
   const loadout = run.loadout ?? freshLoadout(run.roster);
   const content = runContentBundle(run);
   // issue #238 — 構えている必殺技は run と content から導く。**予測と本番で同じ表**を

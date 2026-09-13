@@ -104,26 +104,62 @@ export function formatFunds(value) {
   return parseFunds(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// ============================================================ 鍛錬（R6 §9.5）
+// ============================================================ 鍛錬（R6 §9.5 / R23）
+//
+// **R23 で作り直した。**旧実装は「一段 +0.1%・一段 2,000」だった。腕力 50 のゴウを
+// 1 上げるのに 20 段 = 40,000 掛かり、遠征一回の実入り（当時 3,800）では**一段の
+// 効果が丸めで消える**。作者の「資金を投下しても全然強くならない」は、比喩ではなく
+// この数のことである。
+//
+// 直し方は二つある。段の効果を上げるか、段の数を減らすか。**両方やった。**
+//
+//   段の効果 … 一段 +8%（base に対する足し算。買った順で複利差を作らない）
+//   段の上限 … 12段（+96%）。**上限を置く**ので「無限に薄く延びる sink」にならない
+//   費用     … 1,000 × (L+1)。12段まで積むと 78,000
+//
+// 一人の一能力を上限まで育てると 78,000。四能力×五人で 1,560,000 になるが、
+// **第一部で入る活動資金は 64万前後**（下の ENCOUNTER_BASE_FUNDS と Stage 倍率）。
+// 全体の4割で、上限まで積めるのは数枠しかない。
+// **「どこにどのくらい投下するか」が毎 Stage の判断になる**のはこの比のためである。
+//
+// 段の効果と費用は `analysis/ecology-campaign-curve.mjs` の「投資の効き」で決めた。
+// あの検査は、第一部の資金を宣言順で使い切った隊で難度指数を測り直し、
+// **生の伸びより投資後の伸びが十分に小さい**ことを見る。ここを動かしたら必ず走らせる。
+export const TRAINING_MAX_LEVEL = 12;
+export const TRAINING_STEP_BPS = 800;
+const TRAINING_COST_STEP = 1_000n;
 
-// 費用は二次増加を採用しない。四能力×複数人物ですでに巨大な sink がある。
-//   cost = 2_000 + 100 * floor(L / 10)
 export function trainingCost(level) {
-  const current = BigInt(Math.max(0, Math.floor(level ?? 0)));
-  return 2_000n + 100n * (current / 10n);
+  const current = Math.max(0, Math.floor(level ?? 0));
+  if (current >= TRAINING_MAX_LEVEL) return null;
+  return TRAINING_COST_STEP * BigInt(current + 1);
+}
+
+// その枠を上限まで積むのに要る総額。画面が「あと何回で上限か」を言うために使う。
+export function trainingTotalCost(fromLevel = 0) {
+  let total = 0n;
+  for (let level = Math.max(0, Math.floor(fromLevel)); level < TRAINING_MAX_LEVEL; level += 1) {
+    total += trainingCost(level) ?? 0n;
+  }
+  return total;
 }
 
 // **常に base stat へ合計倍率を掛ける。**買った順や save/load で複利差を作らない。
+// 上限を超えた古い save の値は、読み込み時にここで頭打ちになる（黙って強くならない）。
 export function trainedStat(baseStat, level) {
-  const safeLevel = Math.max(0, Math.floor(level ?? 0));
-  return roundHalfUpDiv(baseStat * (BPS + 10 * safeLevel), BPS);
+  const safeLevel = Math.min(TRAINING_MAX_LEVEL, Math.max(0, Math.floor(level ?? 0)));
+  return roundHalfUpDiv(baseStat * (BPS + TRAINING_STEP_BPS * safeLevel), BPS);
 }
 
 // その能力の次の一段で、丸め後の整数が実際に増える level。
-// **効果が見えないことを隠さない**（R6 §9.5）。
+// 一段 +6% なので、**base が 8 以上ならどの一段も必ず整数が動く**。
+// それでも関数は残す——ツグミの腕力 8・ゴウの技術 6 のように、
+// 一段では動かない枠がまだあるからである（R6 §9.5「効果が見えないことを隠さない」）。
 export function nextVisibleTrainingLevel(baseStat, level) {
-  const current = trainedStat(baseStat, level);
-  for (let step = Math.max(0, Math.floor(level ?? 0)) + 1; step <= (level ?? 0) + 2_000; step += 1) {
+  const start = Math.max(0, Math.floor(level ?? 0));
+  if (start >= TRAINING_MAX_LEVEL) return null;
+  const current = trainedStat(baseStat, start);
+  for (let step = start + 1; step <= TRAINING_MAX_LEVEL; step += 1) {
     if (trainedStat(baseStat, step) > current) return step;
   }
   return null;
@@ -139,7 +175,19 @@ export function nextVisibleTrainingLevel(baseStat, level) {
 // SkillPack は4つとも最初から解禁済みにする。買える pack が無いのに
 // category だけ置くと、画面に「常に買えない行」が出る。6個目以降を足すときに開く。
 export const APPRAISAL_UPGRADE_ID = "appraisal";
-export const APPRAISAL_COSTS = Object.freeze(["15000", "45000", "120000", "300000", "750000"]);
+// R23 — 上二段が第一部の総収入（約24万）を超えていたので、帯を下げた。
+export const APPRAISAL_COSTS = Object.freeze(["10000", "30000", "80000", "200000", "450000"]);
+// R23 — **装備枠。**2枠のままだと、遠征で拾った品の価値が「2つを選ぶ」ことに
+// 集中しすぎて、3品目以降は分解する以外に使い道が無かった。ギルドの買い物で
+// 一度だけ3枠へ広げられるようにする。**枠は買えるが、中身は遠征で拾うしかない。**
+export const EQUIPMENT_SLOT_UPGRADE_ID = "equipment_slot";
+export const EQUIPMENT_SLOT_BASE = 2;
+export const EQUIPMENT_SLOT_COSTS = Object.freeze(["45000"]);
+// R23 — **野営の効き。**補給は遠征を通して3〜5しか無いので、
+// 「一つ使ったときにどれだけ戻るか」は投資先として素直な軸である。
+export const CAMP_CARE_UPGRADE_ID = "camp_care";
+export const CAMP_CARE_COSTS = Object.freeze(["8000", "24000", "64000"]);
+export const CAMP_CARE_STEP_BPS = 2_500;
 // PR #255 — **補給はシナリオを通して固定**にした。報酬で足せず、遠征中に
 // 増えないので、「いま使うか、後へ残すか」だけが判断になる（以前は「補給を
 // 報酬で取るか、装備を取るか」が毎戦の判断で、思考負荷の主因だった）。
@@ -147,7 +195,10 @@ export const APPRAISAL_COSTS = Object.freeze(["15000", "45000", "120000", "30000
 export const STARTING_SUPPLIES_BASE = 3;
 export const STARTING_SUPPLIES_UPGRADE_MAX_LEVEL = 2;
 export const STARTING_SKILL_POINTS_UPGRADE_ID = "starting_skill_points";
-export const STARTING_SKILL_POINTS_UPGRADE_COSTS = Object.freeze(["15000", "60000", "240000"]);
+// R23 — 3段目が24万で、第一部の総収入とほぼ同額だった。段を増やして帯を下げ、
+// **「技能をもう一段深く取る」を現実的な選択肢にする**（一遠征の基礎は15点）。
+export const STARTING_SKILL_POINTS_UPGRADE_COSTS =
+  Object.freeze(["6000", "18000", "45000", "100000", "200000"]);
 
 export const META_UPGRADES = Object.freeze([
   Object.freeze({
@@ -155,7 +206,7 @@ export const META_UPGRADES = Object.freeze([
     category: "starting_supplies",
     displayName: "開始補給",
     maxLevel: STARTING_SUPPLIES_UPGRADE_MAX_LEVEL,
-    costs: Object.freeze(["12000", "60000"]),
+    costs: Object.freeze(["8000", "30000"]),
     describeLevel: (level) => `遠征開始時の補給 ${STARTING_SUPPLIES_BASE + level}（上限${STARTING_SUPPLIES_BASE + STARTING_SUPPLIES_UPGRADE_MAX_LEVEL}）`,
   }),
   // #174 — 新規遠征の開始SPを増やす永続強化。適用されるのは遠征開始時だけで、
@@ -177,6 +228,24 @@ export const META_UPGRADES = Object.freeze([
     maxLevel: BLUEPRINT_CAPACITY_COSTS.length,
     costs: BLUEPRINT_CAPACITY_COSTS,
     describeLevel: (level) => `遠征開始時に持ち込める Blueprint ${carryCapacity(level)}件（上限 ${BLUEPRINT_MAX_CAPACITY}）`,
+  }),
+  // R23 — 装備枠。**買えるのは枠だけで、中身は遠征で拾う。**
+  Object.freeze({
+    id: EQUIPMENT_SLOT_UPGRADE_ID,
+    category: "equipment_slot",
+    displayName: "装備枠",
+    maxLevel: EQUIPMENT_SLOT_COSTS.length,
+    costs: EQUIPMENT_SLOT_COSTS,
+    describeLevel: (level) => `一人が装備できる品 ${EQUIPMENT_SLOT_BASE + level}枠`,
+  }),
+  // R23 — 野営の効き。補給1あたりに戻る量が増える。
+  Object.freeze({
+    id: CAMP_CARE_UPGRADE_ID,
+    category: "camp_care",
+    displayName: "野営の手当て",
+    maxLevel: CAMP_CARE_COSTS.length,
+    costs: CAMP_CARE_COSTS,
+    describeLevel: (level) => `野営治療の回復量 +${(CAMP_CARE_STEP_BPS * level) / 100}%`,
   }),
   // R8 §3.7 — 目利き。**情報を隠して売り直す仕組みにはしない**（R8 §11 の完全開示と
   // 衝突する）。装備の rarity roll を level+1 回引いて良い方を採る、
@@ -495,19 +564,29 @@ export function characterStats(profile, characterId) {
       value: stats[target],
       stat: target,
       nextVisibleLevel: nextVisibleTrainingLevel(base[target], level),
-      cost: trainingCost(level).toString(),
+      maxLevel: TRAINING_MAX_LEVEL,
+      // 買い切ったら null。**「買えない」と「0で買える」を混ぜない。**
+      cost: trainingCost(level)?.toString() ?? null,
+      remainingCost: trainingTotalCost(level).toString(),
     };
   }
   return { base, stats, training: Object.fromEntries(TRAINABLE_STATS.map((a) => [a, detail[a].level])), detail };
 }
 
-// R18 — 技能は無制限。equipment だけは2枠を維持する。
-export function slotLimits(_profile, _characterId) {
+// R18 — 技能は無制限。equipment だけ枠がある。
+// R23 — その枠数はギルドの「装備枠」で一度だけ広げられる（既定2・上限3）。
+export function equipmentSlotLimit(profile) {
+  const def = metaUpgradeDef(EQUIPMENT_SLOT_UPGRADE_ID);
+  const level = Math.min(def?.maxLevel ?? 0, upgradeLevel(profile, EQUIPMENT_SLOT_UPGRADE_ID));
+  return EQUIPMENT_SLOT_BASE + level;
+}
+
+export function slotLimits(profile, _characterId) {
   return {
     active: Number.MAX_SAFE_INTEGER,
     reactive: Number.MAX_SAFE_INTEGER,
     passive: Number.MAX_SAFE_INTEGER,
-    equipment: 2,
+    equipment: equipmentSlotLimit(profile),
   };
 }
 
@@ -560,6 +639,7 @@ export function purchaseTraining(profile, characterId, axis) {
   if (!character) return { ok: false, reason: "その仲間が見つかりません。" };
   const fromLevel = Math.max(0, Math.floor(character.trainingLevels[axis] ?? 0));
   const cost = trainingCost(fromLevel);
+  if (cost === null) return { ok: false, reason: `鍛錬は${TRAINING_MAX_LEVEL}段までです。` };
   const balance = parseFunds(profile.activityFunds);
   if (balance < cost) {
     return { ok: false, reason: `活動資金が足りません（不足 ${formatFunds(cost - balance)}）。` };
@@ -749,7 +829,11 @@ export function newRun(profile, options = {}) {
     rerollsUsed: {},
     retries: {},
     results: [],
-    fundLedger: newFundLedger(rank),
+    // R23 — Stage 固有の払い。Free / Endless（campaign でない遠征）は等倍。
+    fundLedger: newFundLedger(
+      rank,
+      isCampaign ? campaignStageDef(campaignStageSequence).activityFundMultiplierBps : BPS,
+    ),
     // R8 §1.5 / §10 — HP は遠征内で持ち越す。遠征開始時は満タンから始める。
     // 4戦目・8戦目 boss 勝利後の全回復と、通常・精鋭戦後の持ち越しは
     // commitBattleResult が扱う。
@@ -817,7 +901,7 @@ export function skillPointClearKeys(run) {
 export function grantRunSkillPointsForClear(run, index) {
   const key = `${run.regionId}:${index}`;
   const keys = skillPointClearKeys(run);
-  const amount = skillPointsForClear(expeditionEncounter(index)?.kind);
+  const amount = skillPointsForClear(expeditionEncounter(index, run?.campaignStageSequence ?? 0)?.kind);
   if (keys.includes(key)) return { run, amount, granted: false };
   const next = grantRunSkillPointsToAll(run, amount);
   return { run: { ...next, grantedSkillPointKeys: [...keys, key] }, amount, granted: true };
@@ -1219,9 +1303,15 @@ export function campTreat(run, profile, treatmentId, targetCharacterIds = []) {
   const spend = spendSupply(run, "camp");
   if (!spend.ok) return spend;
 
+  // R23 — ギルドの「野営の手当て」が、補給1あたりに戻る量を増やす。
+  const careLevel = Math.min(
+    metaUpgradeDef(CAMP_CARE_UPGRADE_ID)?.maxLevel ?? 0,
+    upgradeLevel(profile, CAMP_CARE_UPGRADE_ID),
+  );
+  const careBps = BPS + CAMP_CARE_STEP_BPS * careLevel;
   for (const characterId of applicable) {
     const maxHp = characterStats(profile, characterId)?.stats.maxHp ?? 0;
-    const healAmount = roundHalfUpDiv(maxHp * treatment.healBps, BPS);
+    const healAmount = roundHalfUpDiv(maxHp * roundHalfUpDiv(treatment.healBps * careBps, BPS), BPS);
     const before = treatment.revive ? 0 : (currentHp[characterId] ?? 0);
     currentHp[characterId] = Math.min(maxHp, before + healAmount);
   }
@@ -1371,7 +1461,9 @@ function addMutation(unit, mutationId) {
 // **5人の遠征の出力は1バイトも変えない**（contract.test.mjs が凍結と深一致を
 // 見ている）。切り詰めは partySize < 5 のときにだけ走る。
 export function composeEncounter(index, difficultyRank, options = {}) {
-  const def = expeditionEncounter(index);
+  // R23 — **12戦の中身は Stage ごとに違う。**渡さなければ Stage 0（既定）を読む。
+  // 呼び出し側（app.js の encounterOptions / preview / 検査）は run から渡す。
+  const def = expeditionEncounter(index, options.stageSequence ?? 0);
   const difficulty = difficultyDef(difficultyRank);
   const fullParty = LIMITS.maxAlliesInCampaign;
   const partySize = Math.max(1, Math.min(fullParty, Math.floor(options.partySize ?? fullParty)));
@@ -1744,13 +1836,27 @@ export function ultimatesFiredBy(run, battleResult) {
 
 // ============================================================ 活動資金の仮計上（R6 §9.2）
 
-export const ENCOUNTER_BASE_FUNDS = Object.freeze({ normal: 100, elite: 180, boss: 320 });
-export const DISTANCE_FUNDS_PER_ENCOUNTER = 25;
-export const FULL_RUN_BONUS = 600;
-export const FIRST_CLEAR_BASE = 800;
-export const FIRST_CLEAR_PER_RANK = 100;
+// R23 — **入りの額と Stage 倍率。**
+//
+// 旧値（通常100・精鋭180・ボス320・完走600・初回800）だと、rank 0 の完走で 3,800。
+// 旧鍛錬は一段 2,000 で +0.1% だったので、**一遠征の実入りが「一能力 +0.2%」**に
+// しかならなかった。片方だけ直しても釣り合わないので、入りのほうも作り直した。
+//
+// rank 0 の完走・初回クリアで 6,220（Stage 倍率 ×1.0 のとき）。
+// Stage 倍率（`CampaignStageDef.activityFundMultiplierBps`）は Stage 9 で ×9.0 まで
+// 上がるので、第一部を通しで一度ずつクリアすると **24万前後**が入る。
+// 鍛錬の一枠を上限まで積むのが 93,600 なので、**全部は買えない**。
+//
+// **倍率は Stage 番号の一次式ではない**（R8 §3.7）。
+// `analysis/ecology-campaign-curve.mjs` が出す難度指数に合わせてある
+//（指数 1379 → 3205 の Stage 3〜9 で、倍率 2.2 → 9.0）。危ないところほど払いが大きい。
+export const ENCOUNTER_BASE_FUNDS = Object.freeze({ normal: 240, elite: 450, boss: 840 });
+export const DISTANCE_FUNDS_PER_ENCOUNTER = 60;
+export const FULL_RUN_BONUS = 1_500;
+export const FIRST_CLEAR_BASE = 1_800;
+export const FIRST_CLEAR_PER_RANK = 450;
 
-function newFundLedger(rank) {
+function newFundLedger(rank, stageMultiplierBps = BPS) {
   return {
     clearedEncounterKeys: [],
     clearedEncounterBase: 0,
@@ -1758,6 +1864,9 @@ function newFundLedger(rank) {
     outcomeBonus: 0,
     firstClearBonus: 0,
     difficultyMultiplierBps: BPS + rank * 1_000,
+    // Stage 固有の払い。**倍率は遠征開始時に確定して ledger に写す**ので、
+    // 途中で content を変えても走っている遠征の精算額は動かない。
+    stageMultiplierBps,
     provisionalTotal: 0,
     settled: false,
   };
@@ -1768,13 +1877,15 @@ function ledgerTotal(ledger) {
     + ledger.highestClearedEncounter * DISTANCE_FUNDS_PER_ENCOUNTER
     + ledger.outcomeBonus
     + ledger.firstClearBonus;
-  return Math.floor((raw * ledger.difficultyMultiplierBps) / BPS);
+  const difficulty = Math.floor((raw * ledger.difficultyMultiplierBps) / BPS);
+  // 古い save には stageMultiplierBps が無い。**黙って 0 にしない**（等倍で読む）。
+  return Math.floor((difficulty * (ledger.stageMultiplierBps ?? BPS)) / BPS);
 }
 
 // **retry しても同じ encounter の撃破 base は一度だけ**（R6 §9.2）。
 // 鍵は region と encounter で作る。run の中で一意であればよい。
 export function recordEncounterCleared(run, index) {
-  const def = expeditionEncounter(index);
+  const def = expeditionEncounter(index, run?.campaignStageSequence ?? 0);
   const key = `${run.regionId}:${index}`;
   const ledger = { ...run.fundLedger, clearedEncounterKeys: [...run.fundLedger.clearedEncounterKeys] };
   if (!ledger.clearedEncounterKeys.includes(key)) {
@@ -1922,6 +2033,7 @@ export function settleRun(profile, run, outcome, options = {}) {
         outcomeBonus: ledger.outcomeBonus,
         firstClearBonus: ledger.firstClearBonus,
         difficultyMultiplierBps: ledger.difficultyMultiplierBps,
+        stageMultiplierBps: ledger.stageMultiplierBps ?? BPS,
       },
       balanceBefore: fundsToString(profile.activityFunds),
       balanceAfter: nextProfile.activityFunds,

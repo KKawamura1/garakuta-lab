@@ -313,8 +313,13 @@ function armedRun(designations, options = {}) {
 }
 
 // 構えても出なければ回数を使わない。**予測がそれを先に見せている。**
+//
+// R23 — **Stage 1 の第1戦を使う。**Stage 3 の12戦は自前の内容を持つようになり、
+// その第1戦では隊の誰かが必ず半分を切るので「応急手当が出ない一戦」にならない
+//（`content/expedition.mjs`）。ここで見たいのは「条件が揃わなければ回数は減らない」
+// という規則そのものなので、条件が揃わない盤面を選び直す。
 {
-  const { profile, run } = armedRun({ mender: "triage" });
+  const { profile, run } = armedRun({ mender: "triage" }, { campaignStageSequence: 1 });
   const preview = previewNextBattle(run, profile, 1);
   assert.deepEqual(preview.ultimateFiredBy, [], "予測が「この一戦では出ない」と言っている");
   checks += 1;
@@ -342,10 +347,15 @@ function armedRun(designations, options = {}) {
 }
 
 // 負けた一戦では減らない。**retry で二重に取られない。**
+//
+// R23 — 第11戦を使う。Stage 3 が自分の12戦を持つようになり、その第12戦は
+// 「核心＋反響体＋狩人」の四体編成になった。応急手当の必殺は隊の誰かが半分を
+// 切ってから鳴るので、**負け方によっては一度も鳴らない**。ここで見たいのは
+// 「負けた一戦では回数が減らない」ことなので、必殺が確かに鳴る負け戦を選ぶ。
 {
   const { profile, run } = armedRun({ mender: "triage" });
-  const { result } = simulateExpeditionBattle(run, profile, 12);
-  equal(result.result, "loss", "満足に育てていない隊は第12戦で負ける（この検査の前提）");
+  const { result } = simulateExpeditionBattle(run, profile, 11);
+  equal(result.result, "loss", "満足に育てていない隊は第11戦で負ける（この検査の前提）");
   ok(ultimateFirings(result).length > 0, "負けた戦闘でも必殺そのものは出ている");
   const committed = commitBattleResult(profile, run, 12, result);
   equal(

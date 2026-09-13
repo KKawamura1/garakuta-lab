@@ -14,7 +14,7 @@ import {
   TRAINABLE_STATS,
 } from "./schema.mjs";
 import { simulateBattle, validateBattleInput } from "./engine.mjs";
-import { PLAYABLE_CONTENT } from "./content/index.mjs";
+import { CAMPAIGN_STAGES, PLAYABLE_CONTENT } from "./content/index.mjs";
 import {
   BOSS_LAWS,
   BASELINE_PASSIVE_SKILL_IDS,
@@ -57,6 +57,7 @@ import {
 } from "./playable-battles.mjs";
 import {
   ENCOUNTER_BASE_FUNDS,
+  DISTANCE_FUNDS_PER_ENCOUNTER,
   MAX_SUPPLIES,
   STARTING_SUPPLIES_BASE,
   runSuppliesMax,
@@ -104,6 +105,8 @@ import {
   spendSupply,
   trainedStat,
   trainingCost,
+  trainingTotalCost,
+  TRAINING_MAX_LEVEL,
   unlockRunSkill,
   upgradeCost,
 } from "./progression.mjs";
@@ -704,32 +707,39 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
 
 // ---- 鍛錬（R6 §9.5）---------------------------------------------------------
 
-equal(trainingCost(0).toString(), "2000", "level 0 の一段");
-equal(trainingCost(10).toString(), "2100", "R6 の表：level 10 で 2,100");
-equal(trainingCost(100).toString(), "3000", "R6 の表：level 100 で 3,000");
-equal(trainingCost(300).toString(), "5000", "R6 の表：level 300 で 5,000");
-equal(trainingCost(1000).toString(), "12000", "R6 の表：level 1,000 で 12,000");
-{
-  let total = 0n;
-  for (let level = 0; level < 10; level += 1) total += trainingCost(level);
-  equal(total.toString(), "20000", "R6 の表：level 10 までの累計 20,000");
-}
-equal(trainedStat(100, 100), 110, "level 100 で +10%");
-equal(trainedStat(100, 1000), 200, "level 1,000 で +100%");
+// R23 — 一段 +8%・上限12段・費用 1,000×(L+1)。**旧値（一段 +0.1%・2,000 固定）は、
+// 遠征一回の実入りでは丸めで消えていた**（docs/HISTORY.md §3.82）。
+equal(trainingCost(0).toString(), "1000", "level 0 の一段");
+equal(trainingCost(1).toString(), "2000", "段が進むと高くなる");
+equal(trainingCost(11).toString(), "12000", "最後の一段");
+equal(trainingCost(TRAINING_MAX_LEVEL), null, "上限を超えたら買えない（0で買える、にしない）");
+equal(trainingTotalCost(0).toString(), "78000", "一枠を上限まで積む総額");
+equal(trainedStat(100, 1), 108, "一段で +8%");
+equal(trainedStat(100, TRAINING_MAX_LEVEL), 196, "上限で +96%");
+equal(trainedStat(100, 999), trainedStat(100, TRAINING_MAX_LEVEL), "古い save の過大な level は頭打ち");
 equal(trainedStat(3, 1), 3, "小さい stat は一段では整数が動かない");
+// **第一部で入る資金と、投資先の値段が同じ帯にある。**片方だけ動かさないための錨。
+{
+  const firstPartIncome = 638_172n; // 10 Stage を rank 0 で一度ずつ完走した実測
+  check(trainingTotalCost(0) * 5n < firstPartIncome,
+    "鍛錬の一枠を上限まで積む額が、第一部の総収入の五分の一より安い");
+  check(trainingTotalCost(0) * 20n > firstPartIncome * 2n,
+    "全20枠を上限まで積むには、第一部の総収入では全く足りない（選ばせる）");
+}
 
 // **買った順や save/load で複利差を作らない。**常に base へ合計倍率を掛ける。
 {
   let profile = newProfile();
   profile.activityFunds = "1000000";
-  for (let n = 0; n < 50; n += 1) {
+  for (let n = 0; n < TRAINING_MAX_LEVEL; n += 1) {
     const result = purchaseTraining(profile, "warden", "might");
     check(result.ok, "鍛錬を買えた " + n);
     profile = result.profile;
   }
+  check(!purchaseTraining(profile, "warden", "might").ok, "上限を超えては買えない");
   const stats = characterStats(profile, "warden");
-  equal(stats.detail.might.level, 50, "50段ぶん");
-  equal(stats.stats.might, trainedStat(stats.base.might, 50), "常に base から計算する");
+  equal(stats.detail.might.level, TRAINING_MAX_LEVEL, "上限まで積んだ");
+  equal(stats.stats.might, trainedStat(stats.base.might, TRAINING_MAX_LEVEL), "常に base から計算する");
   // 途中で保存して読み直しても同じ。
   const reloaded = normalizeProfile(JSON.parse(JSON.stringify(profile)));
   equal(characterStats(reloaded, "warden").stats.might, stats.stats.might, "save/load で差が出ない");
@@ -742,7 +752,7 @@ equal(trainedStat(3, 1), 3, "小さい stat は一段では整数が動かない
   });
   const warden = battle.allies.find((ally) => ally.characterId === "warden");
   equal(warden.stats.might, stats.stats.might, "鍛錬後の腕力が BattleInput に載る");
-  equal(warden.training.might, 50, "鍛錬 level も載る（R6 §9.5 の因果 log 要件）");
+  equal(warden.training.might, TRAINING_MAX_LEVEL, "鍛錬 level も載る（R6 §9.5 の因果 log 要件）");
   check(!("speed" in warden.stats), "削除済みの速度は上書きできない");
   check(!("baseActionPoints" in warden.stats), "AP は上書きできない");
   assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), []);
@@ -777,15 +787,11 @@ equal(parseFunds("9007199254740993").toString(), "9007199254740993", "2^53 を�
 equal(parseFunds("-5").toString(), "0", "負の残高は作らない");
 equal(parseFunds("abc").toString(), "0", "壊れた値は 0");
 
-equal(ENCOUNTER_BASE_FUNDS.normal, 100, "通常戦の base");
-equal(ENCOUNTER_BASE_FUNDS.elite, 180, "精鋭戦の base");
-equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
-
-// R6 §9.2 が数字で書いた例：rank 0 の12戦を通常9・boss 3 として初回クリアすると 3,560。
-{
-  const raw = 9 * 100 + 3 * 320 + 12 * 25 + 600 + 800;
-  equal(raw, 3560, "R6 §9.2 の 3,560 と式が一致する");
-}
+// R23 — 入りを作り直した。**鍛錬の値段と同じ帯へ揃えるため**（R6 §9.2 の 3,560 は、
+// 鍛錬が一段 2,000 で +0.1% だった頃の数で、いまは意味を持たない）。
+equal(ENCOUNTER_BASE_FUNDS.normal, 240, "通常戦の base");
+equal(ENCOUNTER_BASE_FUNDS.elite, 450, "精鋭戦の base");
+equal(ENCOUNTER_BASE_FUNDS.boss, 840, "ボスの base");
 
 // **retry しても同じ encounter の撃破 base は一度だけ。**
 {
@@ -797,7 +803,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   equal(run.fundLedger.clearedEncounterBase, once, "同じ戦闘を二度数えない");
   equal(run.fundLedger.highestClearedEncounter, 1, "到達距離も動かない");
   run = recordEncounterCleared(run, 2);
-  equal(run.fundLedger.clearedEncounterBase, once + 100, "別の戦闘は数える");
+  equal(run.fundLedger.clearedEncounterBase, once + ENCOUNTER_BASE_FUNDS.normal, "別の戦闘は数える");
 }
 
 // **同じ run を二度精算しない。**
@@ -807,7 +813,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   for (let index = 1; index <= 12; index += 1) run = recordEncounterCleared(run, index);
   const first = settleRun(profile, run, "won");
   equal(first.ok, true, "一度目は通る");
-  const expected = 6 * 100 + 3 * 180 + 3 * 320 + 12 * 25 + 600 + 800;
+  const expected = 6 * 240 + 3 * 450 + 3 * 840 + 12 * 60 + 1_500 + 1_800;
   equal(first.settlement.earned, expected, "内訳が式のとおり");
   equal(first.profile.activityFunds, String(expected), "残高が増える");
   const second = settleRun(first.profile, first.run, "won");
@@ -827,7 +833,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   equal(lost.settlement.breakdown.outcomeBonus, 0, "完走 bonus は付かない");
   equal(lost.settlement.breakdown.firstClearBonus, 0, "初回クリア bonus も付かない");
   check(lost.settlement.earned > 0, "それでも持ち帰る");
-  equal(lost.settlement.breakdown.distance, 7 * 25, "到達距離ぶん");
+  equal(lost.settlement.breakdown.distance, 7 * DISTANCE_FUNDS_PER_ENCOUNTER, "到達距離ぶん");
 }
 
 // 戦闘を1つも撃破していない放棄には資金を与えない（R6 §9.2）。
@@ -844,7 +850,28 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 320, "ボスの base");
   let run = newRun(profile, { runSeed: "s", runId: "r5", roster: ROSTER, difficulty: 5 });
   equal(run.fundLedger.difficultyMultiplierBps, 15_000, "rank 5 は ×1.5");
   run = recordEncounterCleared(run, 1);
-  equal(run.fundLedger.provisionalTotal, Math.floor((100 + 25) * 1.5), "仮計上にも倍率が乗る");
+  equal(run.fundLedger.provisionalTotal,
+    Math.floor((ENCOUNTER_BASE_FUNDS.normal + DISTANCE_FUNDS_PER_ENCOUNTER) * 1.5),
+    "仮計上にも倍率が乗る");
+}
+
+// R23 — **Stage 倍率。**危ないところほど払いが大きい。Campaign 以外は等倍。
+{
+  const profile = newProfile();
+  const free = newRun(profile, { runSeed: "s", runId: "rf", roster: ROSTER });
+  equal(free.fundLedger.stageMultiplierBps, 10_000, "campaign でない遠征は等倍");
+  let previous = 0;
+  for (const stage of CAMPAIGN_STAGES) {
+    let run = newRun(profile, {
+      runSeed: "s", runId: "rs" + stage.sequence,
+      roster: [...stage.castCharacterIds], campaignStageSequence: stage.sequence,
+    });
+    equal(run.fundLedger.stageMultiplierBps, stage.activityFundMultiplierBps, stage.id + " の倍率が ledger に写る");
+    for (let index = 1; index <= 12; index += 1) run = recordEncounterCleared(run, index);
+    const settled = settleRun(profile, run, "won");
+    check(settled.settlement.earned > previous, stage.id + " は前の Stage より実入りが多い");
+    previous = settled.settlement.earned;
+  }
 }
 
 // ---- 難易度の解禁（R6 §9.6）------------------------------------------------

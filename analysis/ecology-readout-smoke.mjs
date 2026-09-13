@@ -28,6 +28,11 @@ import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "../ecology/playable-content.mjs";
 import { STATUS_GLOSSARY } from "../ecology/content/statuses.mjs";
 import {
+  ENEMY_SHORT_NAMES, ENEMY_TARGETING, enemyTargetingFor,
+} from "../ecology/content/encounters.mjs";
+import { ENEMY_UNITS } from "../ecology/content/enemies.mjs";
+import { STAGE_COUNT, encountersForStage } from "../ecology/content/expedition.mjs";
+import {
   ACTIVE_META,
   EQUIPMENT_META,
   PASSIVE_META,
@@ -242,6 +247,55 @@ assert.deepEqual(
     }
   }
   assert.deepEqual(glossaryProblems, [], "状態の用語集がずれている:\n  " + glossaryProblems.join("\n  "));
+}
+
+
+// ---------------------------------------------------------------- 遠征の説明文と盤面
+//
+// R23（作者指摘）— **「敵の説明文と出てくる敵が違う」を、文を直すのではなく検査で潰す。**
+//
+// 遭遇の `description` は人が書く。**書いた敵がその戦闘に本当に出ているか**を、
+// 敵の表示名から導いた「種別の呼び名」（`灰殻の走者` → `走者`）で照合する。
+// 名指ししていない一般名詞（盤面・受け・行など）は見ない。
+{
+  const problems = [];
+  const shortNames = Object.entries(ENEMY_SHORT_NAMES)
+    // 長い呼び名から先に見る（`追い手` が `手` に食われない）。
+    .sort((a, b) => b[1].length - a[1].length);
+  for (let sequence = 0; sequence < STAGE_COUNT; sequence += 1) {
+    for (const encounter of encountersForStage(sequence)) {
+      const present = new Set([
+        ...encounter.enemies.map((enemy) => enemy.enemyActorId),
+        ...encounter.reinforcements.map((enemy) => enemy.enemyActorId),
+      ]);
+      let rest = encounter.description;
+      for (const [enemyActorId, shortName] of shortNames) {
+        if (!rest.includes(shortName)) continue;
+        rest = rest.split(shortName).join("");
+        if (present.has(enemyActorId)) continue;
+        problems.push(`stage_${sequence} 第${encounter.index}戦「${encounter.name}」: `
+          + `説明文が「${shortName}」を名指ししているが、その戦闘に出ていない`);
+      }
+    }
+  }
+  assert.deepEqual(problems, [], "遭遇の説明文が盤面とずれている:\n  " + problems.join("\n  "));
+}
+
+// **狙いの説明文は、敵の tactics から導出したものと一致する。**
+// 手で書き足した文が混じっていないか（混じると、また挙動とずれ始める）。
+{
+  const problems = [];
+  for (const unit of ENEMY_UNITS) {
+    const derived = enemyTargetingFor(unit);
+    if (ENEMY_TARGETING[unit.id] === derived) continue;
+    problems.push(`${unit.id}: 狙いの説明文が tactics からの導出と違う`);
+  }
+  // 表に載っている敵は、全部が狙いの説明文を持つ（画面の敵カードが空にならない）。
+  for (const unit of ENEMY_UNITS) {
+    if (ENEMY_TARGETING[unit.id]) continue;
+    problems.push(`${unit.id}: 狙いの説明文が無い`);
+  }
+  assert.deepEqual(problems, [], "敵の狙いがずれている:\n  " + problems.join("\n  "));
 }
 
 console.log(

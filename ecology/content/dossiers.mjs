@@ -82,8 +82,10 @@ export function dossierName(characterId) {
 //   3 … + home          そのさらに次を越えた
 //   4 … + will          5人が揃った
 //
-// 最後の Stage で加わる人物は、加入と同時に隊が揃うので一気に開く。
-// **Stage 4 以降が実装されれば、そこは自然にばらける**（cap を外す必要はない）。
+// 最後に加わる人物は、加入と同時に隊が揃うので一気に開く。
+// **R23 でそこがばらけた。**`finalStageSequence` に渡すのは「最後の Stage」ではなく
+// 「隊が揃って一つ先まで行った Stage」（`DOSSIER_FINAL_STAGE_SEQUENCE`）である。
+// 第一部が10 Stage になったので、最後の Stage を渡すと will が Stage 9 まで開かない。
 export function dossierRevealLevel(characterId, highestClearedStageSequence, options = {}) {
   const entry = DOSSIERS[characterId];
   if (!entry) return 0;
