@@ -89,7 +89,8 @@ for (const [label, sourceText, expected] of displayContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
 const progressiveContracts = [
-  ["戦闘タブの主操作", app, "primary-action map-primary-action"],
+  ["先見機の実戦操作", app, "forecaster-action engage"],
+  ["先見機の試映操作", app, "forecaster-action simulate"],
   ["結果画面の主操作", app, "primary-action result-primary-action"],
   ["敗北画面の主操作", app, "primary-action defeat-primary-action"],
   ["精算画面の主操作", app, "primary-action settlement-primary-action"],
@@ -156,8 +157,16 @@ for (const forbidden of [
 ]) {
   if (styles.includes(forbidden)) problems.push("種別の枠が現在地の枠と競合する定義が残っている: " + forbidden);
 }
-if (mapRenderer.indexOf("map-primary-action") > mapRenderer.indexOf("act-line")) {
-  problems.push("戦闘タブの主操作が敵の概要より後ろにある");
+if (mapRenderer.includes("map-primary-action")) {
+  problems.push("実戦操作が先見機と遠征本文に重複している");
+}
+for (const [label, expected] of [
+  ["試映は進行結果へ追加しない", "if (!previewOnly) state.run.results"],
+  ["試映は戦闘結果を確定しない", "if (!previewOnly) {\n      if (isCampaignRun())"],
+  ["試映の結果は必ず専用画面へ入る", "if (state.simulationMode) return true;"],
+  ["試映から先見機へ戻る", 'action === "return-from-simulation"'],
+]) {
+  if (!app.includes(expected)) problems.push(label + "契約が無い");
 }
 if (!app.includes("status + nextBlock + stateCard")) {
   problems.push("結果画面の主操作が戦闘後詳細より前に配置されていない");
@@ -237,7 +246,7 @@ if (!app.includes('return titleShell("One Battle Ahead", "",')) {
 
 // 画面固有の文脈は、共通ヘッダーを消しても失わない。
 for (const [label, expected] of [
-  ["戦闘画面の遭遇名", 'sectionHeading("BATTLE", "戦闘"'],
+  ["戦闘画面の見出し", 'sectionHeading("BATTLE", state.simulationMode ? "戦闘予測" : "戦闘"'],
   ["結果画面の遭遇・ラウンド", "verdict-context"],
   ["キャンプ予測の遭遇名", "const encounterName = currentEncounter()?.name"],
 ]) {
@@ -662,6 +671,12 @@ for (const field of [
     ["光のCSS", styles, ".tutorial-spot {"],
     ["錠のCSS", styles, ".tutorial-blocked {"],
     ["手順の一覧のCSS", styles, ".tutorial-steps li.current"],
+    // 作者指摘 2026-09-13 — 補給も**文章を読んで探す型から、光る先を押す型へ**揃える。
+    ["補給チュートリアルの段", app, "function supplyTutorialStep() {"],
+    ["補給チュートリアルの錠", app, "function supplyTutorialLocked() {"],
+    ["補給チュートリアルの光らせる先", app, "function supplyTutorialSpotSelector(step) {"],
+    ["補給チュートリアルの手引き", app, "function supplyTutorialNote() {"],
+    ["補給チュートリアルの進捗表示", app, "tutorial-progress"],
     // issue #240 — 必殺技の一戦も**同じ錠の形**で掛かる（手取りの型を二通り作らない）。
     ["必殺技チュートリアルの段", app, "function ultimateLessonStep() {"],
     ["必殺技チュートリアルの光らせる先", app, "function ultimateLessonSpotSelector(step) {"],
