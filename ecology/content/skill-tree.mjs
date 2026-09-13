@@ -588,6 +588,42 @@ export function unmetPrerequisites(node, levelOf) {
   });
 }
 
+// この技能を取得できるようになるまでに、**現在の技能レベルから追加で取るべき
+// 他技能の Lv 数**を返す。取得コスト（SP）ではなく、前提技能そのものの不足分を
+// 数える。前提がすでに満たされている技能は 0 になる。
+//
+// 直接の前提だけでなく、その前提の前提も辿る。複数の経路から同じ技能が必要に
+// なった場合は、必要Lvの大きい方だけを採用して二重に数えない。
+export function remainingPrerequisiteLevels(node, nodes, levelOf = () => 0) {
+  const bySkill = new Map((nodes ?? []).map((entry) => [entry.skillId, entry]));
+  const requiredLevels = new Map();
+  const pending = [];
+  const demand = (skillId, level) => {
+    const requiredLevel = Number.isInteger(level) && level >= MIN_SKILL_LEVEL
+      ? level : MIN_SKILL_LEVEL;
+    if (requiredLevel <= (requiredLevels.get(skillId) ?? 0)) return;
+    requiredLevels.set(skillId, requiredLevel);
+    pending.push(skillId);
+  };
+
+  for (const required of node?.requires ?? []) demand(required.skillId, required.minLv);
+  while (pending.length) {
+    const skillId = pending.pop();
+    const prerequisite = bySkill.get(skillId);
+    if (!prerequisite) continue;
+    for (const required of prerequisite.requires ?? []) demand(required.skillId, required.minLv);
+  }
+
+  let total = 0;
+  for (const [skillId, requiredLevel] of requiredLevels) {
+    const currentLevel = levelOf(skillId);
+    const current = Number.isInteger(currentLevel) && currentLevel >= MIN_SKILL_LEVEL
+      ? currentLevel : 0;
+    total += Math.max(0, requiredLevel - current);
+  }
+  return total;
+}
+
 export function prerequisitesMet(node, levelOf) {
   return unmetPrerequisites(node, levelOf).length === 0;
 }

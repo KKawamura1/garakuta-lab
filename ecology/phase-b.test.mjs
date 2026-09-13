@@ -31,6 +31,7 @@ import {
   skillLevelCap,
   // issue #168 — 前提（技能IDと必要Lv）の判定。
   prerequisitesMet,
+  remainingPrerequisiteLevels,
   requiredSkillIds,
   unmetPrerequisites,
   // issue #148 — 説明文の数字を、いまのレベルの値で読む。
@@ -376,6 +377,23 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   equal(prerequisitesMet(twoDeep, () => 3), true, "Lv3 まで上げれば満たす");
   equal(unmetPrerequisites(twoDeep, () => 1)[0].minLv, 3, "足りない前提は必要Lvごと返る");
   equal(requiredSkillIds(twoDeep)[0], "parent", "ID だけの取り出し口がある");
+
+  // 画面の破線四角はSP価格ではなく、**いまのLvから追加で必要な他技能Lv数**を
+  // 表す。無料入口の strike も、まだ取っていなければ1レベルとして数える。
+  const aimedShot = SKILL_TREE_NODES.find((node) => node.skillId === "aimed_shot");
+  const shieldTheWounded = SKILL_TREE_NODES.find((node) => node.skillId === "shield_the_wounded");
+  const sustainingWard = SKILL_TREE_NODES.find((node) => node.skillId === "sustaining_ward");
+  equal(remainingPrerequisiteLevels(aimedShot, SKILL_TREE_NODES, () => 0), 1,
+    "無料入口でも未取得なら前提のLv1を数える");
+  equal(remainingPrerequisiteLevels(aimedShot, SKILL_TREE_NODES,
+    (skillId) => skillId === "strike" ? 1 : 0), 0,
+    "すでに前提を満たす技能は前提0になる");
+  const currentSkillLevels = { strike: 1, aimed_shot: 1, shield_the_wounded: 1 };
+  const currentLevelOf = (skillId) => currentSkillLevels[skillId] ?? 0;
+  equal(remainingPrerequisiteLevels(shieldTheWounded, SKILL_TREE_NODES, currentLevelOf), 0,
+    "取得済みの前提を持つ技能は今すぐ取れるので前提0になる");
+  equal(remainingPrerequisiteLevels(sustainingWard, SKILL_TREE_NODES, currentLevelOf), 2,
+    "Lv3前提は現在Lv1との差分だけを数える");
 
   // 解禁 API も同じ判定を通る。**Lv を要求する節を実データへ足さずに確かめる**
   // （足すとバランスが動く。ここで見たいのは判定の側だけ）。

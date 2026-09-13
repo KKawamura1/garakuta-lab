@@ -574,14 +574,14 @@ try {
   note("詳細欄に人物別の実数を繰り返さない",
     await page.locator(".skill-detail .skill-yield-readout").count() === 0);
 
-  // 取得コストは取得済みのチェックと同じ実線四角、前提コストは破線四角。
+  // 取得コストは取得済みのチェックと同じ実線四角、前提の残りLv数は破線四角。
   const costChains = await page.locator(".skill-tree-forest .node-cost-chain").evaluateAll((nodes) =>
     nodes.map((node) => ({
-      prerequisite: Boolean(node.querySelector(".prerequisite-cost")),
+      prerequisite: Boolean(node.querySelector(".prerequisite-levels")),
       plus: Boolean(node.querySelector(".cost-plus")),
       acquisition: Boolean(node.querySelector(".acquisition-cost")),
     })));
-  note("前提コストと取得コストを四角とプラスで分けて出す",
+  note("前提の残りLv数と取得コストを四角とプラスで分けて出す",
     costChains.some((entry) => entry.prerequisite && entry.plus && entry.acquisition),
     `${costChains.length} 件`);
 
