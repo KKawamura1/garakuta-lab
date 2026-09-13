@@ -834,6 +834,8 @@ function saveManualSlot(slot) {
     state.error = "このセーブ枠へ保存できませんでした。端末の保存容量を確認してください。";
   } else {
     state.saveNotice = "手動セーブ枠 " + slot + " に保存しました。";
+    // issue #237 — 保存できた枠そのものも一度光る（帯の一行と枠の二箇所で返す）。
+    fx("save-slot:" + slot, "gain");
     state.error = null;
     saveState();
   }
@@ -1341,6 +1343,13 @@ function selectedFormationCharacter() {
   return state.run.roster.includes(state.formationSelection) ? state.formationSelection : null;
 }
 
+// issue #237 — 反応の宛先（`data-fx="cell:<立ち位置>"`）を人物から引く。
+// **人物ではなく枠を光らせる**ので、入れ替えたときに空いた側も鳴る。
+function cellFxKey(characterId) {
+  const position = characterId ? state.run?.formation?.[characterId] : null;
+  return position ? "cell:" + position : null;
+}
+
 function positionOwner(position) {
   return state.run.roster.find((characterId) => state.run.formation[characterId] === position) ?? null;
 }
@@ -1420,11 +1429,134 @@ function campNav() {
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
     const active = activeTab === id;
     const locked = Boolean(tutorialLocked) && id !== tutorialLocked;
+    // issue #237 — 札の中の数（技能点・装着・補給・進み）は、**このタブを開いていなくても
+    // 変わる**。読み値に印を付けておけば、どのタブから触っても数のほうが光る。
     return "<button type=\"button\" class=\"tab " + (active ? "active" : "")
       + "\" aria-label=\"" + label + "\" aria-current=\"" + (active ? "step" : "false")
-      + "\" data-action=\"tab\" data-tab=\"" + id + "\""
-      + (locked ? " disabled aria-disabled=\"true\"" : "") + "><b>" + label + "</b><small>" + meta + "</small></button>";
+      + "\" data-action=\"tab\" data-tab=\"" + id + "\" data-fx=\"tab:" + id + "\""
+      + (locked ? " disabled aria-disabled=\"true\"" : "") + "><b>" + label
+      + "</b><small data-fx-watch=\"tab-meta:" + id + "\">" + meta + "</small></button>";
   }).join("") + "</nav>";
+}
+
+// ---------------------------------------------------------------- 反応（issue #237）
+//
+// **画面は毎回まるごと描き直す。**だから「いま何が変わったか」は DOM からは読めない
+// ——描き直したあとの要素はどれも生まれたてで、前の姿を持っていない。ここは、その
+// 一回の描き直しに**短い反応をひとつだけ載せる**ための仕組みである。
+//
+//   fx(key, kind)   離散な出来事。操作した本人が「次の描画ではここが光る」と申告する。
+//                   印は `data-fx="<key>"`。同じ key の要素すべてに `fx-<kind>` が付く。
+//   data-fx-watch   数の変化。読み値そのものに印を付けておくと、前の描画と文字列が
+//                   違ったときだけ `fx-up` / `fx-down` / `fx-change` が付く。
+//
+// **数の側は申告が要らない。**装備を替えれば予測HPが動き、技能を取れば技能点が減る
+// ——どの操作がどの数へ響くかを操作の側へ書き写すと、書き漏らした経路だけが黙る。
+// 読み値に印を付けておけば、経路が増えても反応は勝手に追いつく。
+//
+// 守ること。
+//   - 反応は**描き終わってから class を足すだけ**で、待ちも段も増やさない。
+//   - 反応が出なくても、色・記号・数・ラベルで同じことが読める。
+//   - 動きの時間と曲線は styles.css の `--fx-*` にだけ書く（ここには書かない）。
+//   - 遠征が入れ替わったら読み値の記憶を捨てる。**別の遠征の数と比べない。**
+const FX_UNKNOWN_DIRECTION = "change";
+let pendingFx = new Map();
+const readoutValues = new Map();
+let fxRunId = null;
+let lastRenderedTab = null;
+let lastForecastSignature = null;
+
+function fx(key, kind) {
+  if (!key || !kind) return;
+  pendingFx.set(String(key), String(kind));
+}
+
+function applyPendingFx() {
+  if (!pendingFx.size) return;
+  // **属性の値そのものを読んで突き合わせる。**`[data-fx="…"]` という選択子を組み立てると、
+  // key に引用符が混ざった日（生成装備の id は外から来る）に選択子が壊れるか、
+  // 黙って何も光らなくなる。印の付いた要素は一画面に数十個なので、素直に舐める。
+  for (const element of app.querySelectorAll("[data-fx]")) {
+    const kind = pendingFx.get(element.dataset.fx);
+    if (kind) element.classList.add("fx-" + kind);
+  }
+  pendingFx.clear();
+}
+
+// 増えたのか減ったのか。**読み取れなければ「変わった」とだけ言う**（嘘の向きを出さない）。
+function readoutDirection(before, after) {
+  const firstNumber = (text) => {
+    const match = String(text).match(/-?[0-9]+/);
+    return match ? Number(match[0]) : null;
+  };
+  const from = firstNumber(before);
+  const to = firstNumber(after);
+  if (from === null || to === null || from === to) return FX_UNKNOWN_DIRECTION;
+  return to > from ? "up" : "down";
+}
+
+function pulseChangedReadouts() {
+  const seen = new Set();
+  for (const element of app.querySelectorAll("[data-fx-watch]")) {
+    const key = element.dataset.fxWatch;
+    if (!key) continue;
+    seen.add(key);
+    const text = (element.textContent ?? "").replace(/\s+/g, " ").trim();
+    const before = readoutValues.get(key);
+    readoutValues.set(key, text);
+    // 初めて出た読み値は光らせない。**画面へ来たことは変化ではない。**
+    if (before === undefined || before === text) continue;
+    element.classList.add("fx-" + readoutDirection(before, text));
+  }
+  // 画面から消えた読み値は忘れる。覚えたままだと、次に出たときへ
+  // 「そのあいだに変わった」という嘘の反応が出る。
+  for (const key of [...readoutValues.keys()]) {
+    if (!seen.has(key)) readoutValues.delete(key);
+  }
+}
+
+// 遠征が入れ替わったら、数の記憶ごと捨てる。新しい Game・ロード・次の遠征は
+// 「変化」ではなく別の盤である。
+function resetFxMemoryIfRunChanged() {
+  const runId = state.run?.runId ?? null;
+  if (runId === fxRunId) return;
+  fxRunId = runId;
+  readoutValues.clear();
+  pendingFx.clear();
+  lastForecastSignature = null;
+}
+
+// 予測は触るたびに計算し直される。**勝敗の文字が同じでも数は動く**（装備を替えて
+// 終了HPだけが上がる回がある）ので、見張るのは窓に出ている文字ではなく予測そのもの。
+// 一つでも動いた回だけ、窓が一度走査する（`.forecaster-window.fx-recalc`）。
+function forecastSignature() {
+  const forecast = state.phase === "camp" ? battleForecast() : null;
+  if (!forecast) return null;
+  return [forecast.result, forecast.roundsUsed]
+    .concat((forecast.perCharacter ?? []).map((entry) =>
+      entry.characterId + ":" + entry.startingHp + ":" + entry.endingHp + ":" + (entry.defeated ? "x" : "o")))
+    .join("|");
+}
+
+// 描き終えた画面へ反応を載せる。**ここだけが class を足す。**
+// タイトル・会話・巻き戻しは自前の入り方を持っているので、画面の立ち上がりを重ねない
+// （タイトルの背景は position: fixed で、祖先を transform すると 1 拍ずれる）。
+const FX_SELF_ENTERING_PHASES = new Set(["intro", "story", "rewind"]);
+
+function applyRenderFeedback({ phaseChanged, tabChanged }) {
+  const signature = forecastSignature();
+  if (signature !== null && lastForecastSignature !== null && signature !== lastForecastSignature) {
+    app.querySelector(".forecaster-window")?.classList.add("fx-recalc");
+  }
+  lastForecastSignature = signature;
+  if (state.phase === "camp") {
+    if (phaseChanged) app.querySelector(".camp-top")?.classList.add("fx-board-enter");
+    if (phaseChanged || tabChanged) app.querySelector(".camp-view")?.classList.add("fx-view-enter");
+  } else if (phaseChanged && !FX_SELF_ENTERING_PHASES.has(state.phase)) {
+    app.querySelector(".shell")?.classList.add("fx-view-enter");
+  }
+  applyPendingFx();
+  pulseChangedReadouts();
 }
 
 function render() {
@@ -1450,7 +1582,10 @@ function render() {
     complete: renderComplete,
   };
   const phaseChanged = state.phase !== lastRenderedPhase;
+  const tabChanged = state.phase === "camp" && state.tab !== lastRenderedTab;
   lastRenderedPhase = state.phase;
+  lastRenderedTab = state.phase === "camp" ? state.tab : null;
+  resetFxMemoryIfRunChanged();
   app.innerHTML = (views[state.phase] ?? renderIntro)();
   app.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
@@ -1470,6 +1605,9 @@ function render() {
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
   if (state.phase === "rewind") mountRewindView();
+  // issue #237 — 反応は**測り終えて貼り終えたあと**に載せる。先に載せると、
+  // publishCampTopHeight() が立ち上がり途中の高さを測ってしまう。
+  applyRenderFeedback({ phaseChanged, tabChanged });
   if (phaseChanged) window.scrollTo(0, 0);
 }
 
@@ -1671,7 +1809,8 @@ function renderSaveSlot(slot, snapshot, fromCamp) {
     : snapshot
       ? button("読み込む", "load-slot", false, "tiny-button primary-mini", "data-slot=\"" + slot + "\"")
       : "";
-  return "<article class=\"save-slot " + (snapshot ? "" : "empty") + "\"><div><b>手動セーブ " + slot
+  return "<article class=\"save-slot " + (snapshot ? "" : "empty") + "\" data-fx=\"save-slot:" + slot
+    + "\"><div><b>手動セーブ " + slot
     + "</b><small>" + esc(saveSummary(snapshot)) + "</small></div><div class=\"save-slot-actions\">" + actions + "</div></article>";
 }
 
@@ -1686,7 +1825,7 @@ function renderSaveMenu() {
     ? button("オートセーブを読み込む", "load-auto", !auto, "tiny-button", "")
     : button("つづきから", "continue-game", !auto, "button primary-mini", "");
   const notice = state.saveNotice
-    ? "<p class=\"save-notice\" role=\"status\">" + esc(state.saveNotice) + "</p>"
+    ? "<p class=\"save-notice fx-on\" role=\"status\">" + esc(state.saveNotice) + "</p>"
     : "";
   return shell(
     "<section class=\"card save-menu-card\">"
@@ -1795,7 +1934,8 @@ function renderExpeditionStart() {
 function purchaseRow(id, displayName, detail, cost, disabledReason) {
   const affordable = cost !== null && funds() >= cost;
   const label = cost === null ? "購入済み" : formatFunds(cost);
-  return "<div class=\"purchase-row\"><span class=\"purchase-copy\"><b>" + esc(displayName)
+  return "<div class=\"purchase-row\" data-fx=\"upgrade:" + esc(id) + "\"><span class=\"purchase-copy\"><b>"
+    + esc(displayName)
     + "</b><small>" + esc(detail) + "</small></span><span class=\"purchase-cost\">" + esc(label) + "</span>"
     + (cost === null
       ? "<span class=\"purchase-done\">✓</span>"
@@ -1832,7 +1972,8 @@ function renderGuild() {
         : detail.nextVisibleLevel === null
           ? "上限まで鍛えても表示は変わらない"
           : "次に整数が増えるのは Lv" + detail.nextVisibleLevel;
-    return "<div class=\"purchase-row\"><span class=\"purchase-copy\"><b>" + esc(axisLabel)
+    return "<div class=\"purchase-row\" data-fx=\"train:" + esc(characterId) + ":" + esc(axis)
+      + "\"><span class=\"purchase-copy\"><b>" + esc(axisLabel)
       + " Lv" + detail.level + "/" + detail.maxLevel + "</b><small>基礎 " + detail.base + " → 現在 " + detail.value
       + "（+" + (detail.bonusBps / 100).toFixed(0) + "%） · " + esc(nextText) + "</small></span>"
       + "<span class=\"purchase-cost\">" + (capped ? "上限" : formatFunds(detail.cost)) + "</span>"
@@ -1848,7 +1989,7 @@ function renderGuild() {
       + option.id + "\"><span class=\"avatar small\">" + esc(option.icon) + "</span><span>"
       + characterName(option.id) + "<small>" + esc(option.role) + "</small></span></button>").join("") + "</div>";
   return "<section class=\"card\">" + sectionHeading("ACTIVITY FUNDS", "資金を使う",
-      "<span class=\"stage\">" + formatFunds(funds()) + "</span>")
+      "<span class=\"stage\" data-fx-watch=\"funds\">" + formatFunds(funds()) + "</span>")
     + "<p class=\"operation-note\">購入は取り消せません。購入後の値と価格を確認してから選んでください。</p>"
     + "<div class=\"purchase-list\">" + upgrades + "</div>"
     + helpDetails("guild-rules", "投資のルール",
@@ -2834,7 +2975,11 @@ function renderCamp() {
     // 遠征タブだけに書くと「さっき何が起きたか」が読めない回ができる。
     // 補給チュートリアルも、必殺技と同じく**タブの中へ埋めずに上端へ置く**。
     // 段が変わっても札の位置と見た目が変わらないので、光る一手との対応を追える。
-    + supplyTutorialNote() + ultimateLessonNote() + lastBattleNoteHtml() + view,
+    // issue #237 — タブの中身は `.camp-view` にまとめる。**立ち上がりを掛けるのはここだけ**で、
+    // 上端の盤面（.camp-top）は動かさない（貼りついた盤が毎回跳ねると押し先が動く）。
+    + "<div class=\"camp-view\">"
+    + supplyTutorialNote() + ultimateLessonNote() + lastBattleNoteHtml() + view
+    + "</div>",
     { hideHeaderAction: true });
 }
 
@@ -3219,7 +3364,8 @@ function skillSlotRows(characterId, kind) {
         ? "\" data-longpress=\"toggle-ultimate\" data-character=\"" + characterId
           + "\" data-skill=\"" + skillId + "\" title=\"" + esc(ultimate.hint)
         : "")
-      + "\">"
+      // issue #237 — 地図の節と同じ key を持たせる（取得した技能が両方で光る）。
+      + "\" data-fx=\"skill:" + esc(skillId) + "\">"
       + (kind === "passive"
         ? "<span class=\"bullet passive\">↳</span>"
         : "<span class=\"order\">" + (index + 1) + "</span>")
@@ -3442,6 +3588,9 @@ function applyAutomaticSkillActions(actions = []) {
       } else {
         loadout = installUnlockedSkills(loadout, action.characterId, [action.skillId]);
       }
+      // issue #237 — 予約が勝手に取った技能も、自分で押したときと同じ反応にする。
+      // **誰かが黙って取った**ように見えるのが一番分からない。
+      fx("skill:" + action.skillId, "gain");
       record("skill_unlocked", {
         characterId: action.characterId,
         skillId: action.skillId,
@@ -3452,6 +3601,7 @@ function applyAutomaticSkillActions(actions = []) {
         reservationTargetStep: action.target === true,
       });
     } else if (action.type === "level") {
+      fx("skill:" + action.skillId, "level");
       record("skill_leveled", {
         characterId: action.characterId,
         skillId: action.skillId,
@@ -3535,8 +3685,11 @@ function renderSkillRow(row, characterId, tone) {
   const info = COMPONENTS[node.skillId];
   const nodeState = skillNodeState(node, characterId);
   const selected = state.selectedSkillNode === node.skillId;
+  // issue #237 — 反応の宛先は技能そのもの（`skill:<id>`）。地図の節と、装着した行と、
+  // **同じ技能を指すものは全部同じ key を持つ**ので、取得した一手が両方で光る。
   return "<div class=\"tree-cell" + tone + (selected ? " selected" : "") + "\" data-node=\"" + esc(row.key)
-    + "\" style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
+    + "\" data-fx=\"skill:" + esc(node.skillId) + "\""
+    + " style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
     + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "") + (selected ? " selected" : "") + "\">"
     + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
     + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
@@ -3903,8 +4056,8 @@ function renderSkills() {
   // 作者指摘 2026-09-13 — **隊全体の合計（必殺を残す仲間 N人）は出さない。**
   // 誰の一回かに答えないので、指す先が無い。残りは盤面のセルが一人ずつ出す
   // （`ultimateCellMark`）。
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>技能点 · 隊全体</small><b>"
-    + totalSkillPoints() + "</b></span>";
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>技能点 · 隊全体</small>"
+    + "<b data-fx-watch=\"skill-points\">" + totalSkillPoints() + "</b></span>";
   const depths = state.run.manifest.packDepths ?? {};
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
@@ -3950,7 +4103,8 @@ function equipmentSlotHtml(characterId, slot) {
   const detail = equipmentId
     ? "耐久 " + equipmentDurability(equipmentId) + " / " + (gear(equipmentId)?.maxDurability ?? 1)
     : selected ? "ここへ" : "";
-  return "<div class=\"equipment-slot\"><button type=\"button\" class=\"equip-slot-button "
+  return "<div class=\"equipment-slot\" data-fx=\"slot:" + esc(characterId) + ":" + slot
+    + "\"><button type=\"button\" class=\"equip-slot-button "
     + (canInstall ? "ready" : "") + "\" data-action=\"" + (canInstall ? "equip-equipment" : "select-character")
     + "\" data-character=\"" + characterId + "\" data-slot=\"" + slot + "\"><span class=\"slot-number\">"
     + (slot + 1) + "</span><span><b>" + esc(label) + "</b><small>" + esc(detail) + "</small></span></button>"
@@ -3972,20 +4126,25 @@ function renderEquipment() {
       ? equipmentReadoutHtml(item, { compact: false })
       : "<small>" + esc(info?.effect ?? "") + "</small>";
     return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " depleted" : "")
-      + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
+      + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\" data-fx=\"gear:" + esc(id) + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
       + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(info?.label ?? id)
       + rarityChip(item?.rarity) + (item?.carried ? "<span class=\"carried-chip\">持込</span>" : "")
       + "</b>" + readout
       + "</span><span class=\"gear-state\">"
-      + (owner ? characterName(owner) : "手元") + "<br>耐久 " + durability + "/" + max + "</span></button>"
+      + (owner ? characterName(owner) : "手元")
+      // issue #237 — 摩耗も破損も、戻ってきた拍でこの数が動く。数が主語なので
+      // 札そのものではなく数を光らせる（減れば赤、直れば金）。
+      + "<br><span data-fx-watch=\"gear-durability:" + esc(id) + "\">耐久 " + durability + "/" + max
+      + "</span></span></button>"
       + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
       + "</article>";
   }).join("");
   // issue #236 — 主語はすぐ上の memberContext が出している。見出しで名前を繰り返さない。
   const slots = "<section class=\"selected-loadout\"><h3>装備枠</h3>"
     + "<div class=\"equipment-slots\">" + equipmentSlotHtml(characterId, 0) + equipmentSlotHtml(characterId, 1) + "</div></section>";
-  const inventory = "<details class=\"progressive-details equipment-inventory\" open><summary>手元 "
-    + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</summary>"
+  const inventory = "<details class=\"progressive-details equipment-inventory\" open>"
+    + "<summary><span data-fx-watch=\"inventory\">手元 "
+    + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span></summary>"
     + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>")
     + "</div></details>";
   // issue #236 — 装備を選んだあとだけ、次の一手を一行で言う。選ぶ前は
@@ -4089,7 +4248,8 @@ function suppliesBar(context) {
   const uses = Object.entries(SUPPLY_USES)
     .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", camp: "野営治療" }[id])
       + "</b> " + esc(text) + "</li>").join("");
-  return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + total
+  return "<div class=\"supplies-bar\"><div class=\"supplies-head\">"
+    + "<b data-fx-watch=\"supplies\">補給 " + supplies + " / " + total
     + "</b><span>" + esc(context ?? "3つの用途で取り合う") + "</span></div>"
     + "<div class=\"supply-pips\">" + pips + "</div><ul class=\"supply-uses\">" + uses + "</ul></div>";
 }
@@ -4177,7 +4337,9 @@ function renderMap() {
       + "\" data-map-index=\"" + step + "\" data-map-kind=\"" + kind
       + "\" data-map-status=\"" + status + "\" role=\"listitem\" aria-label=\""
       + esc(label) + "\" aria-current=\"" + (status === "current" ? "step" : "false")
-      + "\" title=\"" + esc(label) + "\"><span class=\"map-node-number\">" + step + "</span>"
+      + "\" title=\"" + esc(label) + "\"><span class=\"map-node-number\""
+      // issue #237 — 現在地の番号だけを見張る。一戦終えて戻ると数が進み、そこが光る。
+      + (status === "current" ? " data-fx-watch=\"map-current\"" : "") + ">" + step + "</span>"
       + (meta.marker ? "<span class=\"map-kind-badge\" aria-hidden=\"true\">" + meta.marker + "</span>" : "")
       + "</span>";
   }).join("");
@@ -4497,7 +4659,10 @@ function partyCellPerson(characterId, entry) {
     + "<span class=\"forecast-hp-bar\" role=\"img\" aria-label=\"" + esc(barLabel) + "\">"
     + "<span class=\"forecast-hp-end\" style=\"width:" + pct(ending) + "%\"></span>"
     + "<span class=\"forecast-hp-loss\" style=\"width:" + pct(starting - ending) + "%\"></span>"
-    + "<span class=\"forecast-hp-values\"><b>" + ending + "</b><small>/" + ceiling + "</small></span></span>"
+    // issue #237 — **この数が、装備と技能を替えた効きの受け皿である。**
+    // 予測が良くなれば金、悪くなれば赤で一度光る（操作の側は何も申告しない）。
+    + "<span class=\"forecast-hp-values\" data-fx-watch=\"hp:" + esc(characterId) + "\"><b>"
+    + ending + "</b><small>/" + ceiling + "</small></span></span>"
     + (entry
       ? "<span class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</span>"
       : "")
@@ -4520,12 +4685,15 @@ function partyCell(position, mode, byCharacter) {
   const label = characterId
     ? characterName(characterId) + " · " + positionText(position)
     : "空き枠 · " + positionText(position);
+  // issue #237 — 反応の宛先は**立ち位置**にする。人物で指すと、隊列を入れ替えたときに
+  // 「動いた枠」ではなく「動いた人」しか光らず、空いた側の枠が黙る。
+  const fxKey = " data-fx=\"cell:" + esc(position) + "\"";
   if (!role.action) {
-    return "<div class=\"" + classes.join(" ") + "\" role=\"img\" aria-label=\"" + esc(label) + "\">"
+    return "<div class=\"" + classes.join(" ") + "\"" + fxKey + " role=\"img\" aria-label=\"" + esc(label) + "\">"
       + body + "</div>";
   }
   return "<button type=\"button\" class=\"" + classes.join(" ") + "\" data-action=\"" + role.action + "\" "
-    + role.attrs + " aria-label=\"" + esc(label) + "\" aria-pressed=\"" + (role.selected ? "true" : "false") + "\""
+    + role.attrs + fxKey + " aria-label=\"" + esc(label) + "\" aria-pressed=\"" + (role.selected ? "true" : "false") + "\""
     + (role.disabled ? " disabled aria-disabled=\"true\"" : "") + ">" + body + "</button>";
 }
 
@@ -4913,20 +5081,24 @@ function partyBar(tab) {
       + " · " + forecast.roundsUsed + "ラウンド</span>"
     : "";
   // 作者要望 2026-09-13 — 先見機の窓そのものから、未来を試映するか実戦へ入る。
-  // 二つの操作は既存の見出し行へ収め、固定領域の高さを新しい段で増やさない。
-  // 文字は最小限の二字に留め、意味の主役はレンズ／再生の印と色にする。
+  // 作者要望 2026-09-13（二度目）— **この二つは窓で一番大事な操作なので、窓の下へ
+  // 一段取って大きく置く。**見出し行の右端へ二字で畳んでいた頃は、指で狙うには
+  // 小さすぎた。段が一つ増えるぶんは、何をする釦かを一行で言う余地に使う。
+  // 治療の対象を選んでいるあいだは、盤面の役がそちらにあるので押させない。
   const controlsDisabled = mode === "treat";
   const disabledAttr = controlsDisabled ? " disabled aria-disabled=\"true\"" : "";
-  const forecasterActions = "<span class=\"forecaster-actions\">"
+  const forecasterActions = "<div class=\"forecaster-actions\">"
     + (forecast
       ? "<button type=\"button\" class=\"forecaster-action simulate\" data-action=\"preview-battle\""
-        + " aria-label=\"先見機で戦闘結果を試映する\" title=\"戦闘結果を試映\"" + disabledAttr + ">"
-        + "<span class=\"forecaster-action-icon\" aria-hidden=\"true\">◉</span><small>試映</small></button>"
+        + " aria-label=\"先見機で戦闘結果を試映する\"" + disabledAttr + ">"
+        + "<span class=\"forecaster-action-icon\" aria-hidden=\"true\">◉</span>"
+        + "<span class=\"forecaster-action-copy\"><b>試映</b><small>結果を先に見る</small></span></button>"
       : "")
     + "<button type=\"button\" class=\"forecaster-action engage\" data-action=\"begin-stage\""
-    + " aria-label=\"この敵との実戦へ進む\" title=\"実戦へ進む\"" + disabledAttr + ">"
-    + "<span class=\"forecaster-action-icon\" aria-hidden=\"true\">▶</span><small>実戦</small></button>"
-    + "</span>";
+    + " aria-label=\"この敵との実戦へ進む\"" + disabledAttr + ">"
+    + "<span class=\"forecaster-action-icon\" aria-hidden=\"true\">▶</span>"
+    + "<span class=\"forecaster-action-copy\"><b>実戦</b><small>この敵へ進む</small></span></button>"
+    + "</div>";
   // issue #235 — 隊列の組み替えは盤面の役の切り替えで入る。**どのタブからでも同じ一手**で、
   // 編成タブへ往復しない。治療の対象を選んでいる間は、盤面の役を奪われるので出さない。
   const formationToggle = mode === "treat"
@@ -4937,15 +5109,15 @@ function partyBar(tab) {
   const head = "<div class=\"forecast-head\"><span class=\"forecaster-identity\">"
     + "<span class=\"forecaster-lens\" aria-hidden=\"true\"><i></i></span>"
     + "<span class=\"forecast-title\">" + esc(target) + "</span></span>"
-    + "<span class=\"forecast-readout\">" + verdict + formationToggle + forecasterActions + "</span></div>";
+    + "<span class=\"forecast-readout\">" + verdict + formationToggle + "</span></div>";
   const forecastLabel = forecast
     ? "先見機による" + target + "の戦闘結果予測"
     : target + "の現在の隊列";
   return "<section class=\"party-bar forecaster-window" + (forecast ? " forecast-bar " + esc(forecast.result) : "")
     + "\" aria-label=\"" + esc(forecastLabel) + "\" aria-live=\"polite\">"
     + "<span class=\"forecaster-scan\" aria-hidden=\"true\"></span>" + head
-    + "<div class=\"party-board\" aria-label=\"隊列と戦闘予測\">" + rows + "</div>"
-    + partyBoardNote(mode) + "</section>";
+    + "<div class=\"party-board\" data-fx=\"board\" aria-label=\"隊列と戦闘予測\">" + rows + "</div>"
+    + partyBoardNote(mode) + forecasterActions + "</section>";
 }
 
 // R14 §1 — 戦闘前の確認画面が持っていた EXACT PREVIEW カードは消した。
@@ -6422,7 +6594,7 @@ function rewardSectionHtml() {
     + (state.run.encounterIndex >= ENCOUNTERS_PER_RUN
       ? "<p class=\"muted\">遠征はこの一戦で終わります。選んだ品は精算で残す設計図の候補になります。</p>"
       : "")
-    + "<div class=\"reward-choices\" data-count=\"" + count + "\">" + cards + "</div>"
+    + "<div class=\"reward-choices\" data-fx=\"rewards\" data-count=\"" + count + "\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
     + button("補給1で候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button quiet")
     + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "1戦闘に一度だけ。再挑戦の余地が減ります。")
@@ -7258,6 +7430,7 @@ function handleAction(event) {
         runSeed: state.run.runSeed,
         runId: state.run.runId,
       });
+      fx("upgrade:" + element.dataset.upgrade, "gain");
       record("meta_purchased", result.purchase);
     }
     saveState();
@@ -7270,6 +7443,7 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.profile = result.profile;
+      fx("train:" + element.dataset.character + ":" + element.dataset.axis, "level");
       record("training_purchased", result.purchase);
     }
     saveState();
@@ -7400,6 +7574,7 @@ function handleAction(event) {
     }
     state.phase = "camp";
     state.tab = nextTab;
+    fx("tab:" + nextTab, "pick");
     ensureSelectedCharacter();
     saveState();
     render();
@@ -7409,6 +7584,7 @@ function handleAction(event) {
   if (action === "select-character") {
     state.selectedCharacter = element.dataset.character || state.selectedCharacter;
     state.selectedSkillNode = null;
+    fx(cellFxKey(state.selectedCharacter), "select");
     saveState();
     render();
     return;
@@ -7447,6 +7623,7 @@ function handleAction(event) {
       state.error = result.reason;
     } else {
       state.run = result.run;
+      fx("skill:" + skillId, "select");
       record("skill_reserved", {
         characterId,
         skillId,
@@ -7473,6 +7650,7 @@ function handleAction(event) {
       state.error = result.reason;
     } else {
       state.run = result.run;
+      fx("skill:" + skillId, "off");
       record("skill_reservation_cancelled", { characterId, skillId });
     }
     saveState();
@@ -7488,6 +7666,7 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.run = result.run;
+      fx("skill:" + skillId, "level");
       record("skill_leveled", { characterId, skillId, level: result.level, cost: SKILL_LEVEL_COST });
     }
     saveState();
@@ -7581,6 +7760,7 @@ function handleAction(event) {
   if (action === "toggle-formation-mode") {
     state.formationMode = !state.formationMode;
     if (!state.formationMode) state.formationSelection = null;
+    fx("board", "mode");
     render();
     return;
   }
@@ -7597,6 +7777,7 @@ function handleAction(event) {
         state.selectedCharacter = other;
         state.formationSelection = other;
         state.selectedSkillNode = null;
+        fx("cell:" + position, "select");
         saveState();
         render();
       }
@@ -7604,6 +7785,7 @@ function handleAction(event) {
     }
     if (other === id) {
       state.formationSelection = null;
+      fx("cell:" + position, "select");
       saveState();
       render();
       return;
@@ -7615,6 +7797,9 @@ function handleAction(event) {
     state.run.formation[id] = position;
     state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
     state.formationSelection = null;
+    // 動いた枠は二つある。**空いた側も鳴らす**（片方だけだと「どこから来たか」が消える）。
+    fx("cell:" + position, "swap");
+    fx("cell:" + oldPosition, "swap");
     record("formation_changed", { characterId: id, position, swappedWith: other });
     // 教えていた一手が済んだ。**錠を外し、盤面も自分で通常へ戻す**（教え終わった型を
     // プレイヤーに畳ませない）。ここから先は技能も装備も予測も自由に触れる。
@@ -7641,6 +7826,7 @@ function handleAction(event) {
       // 「取得済みだが未装着」は、オフと同じことを二通りに表しているだけだった。
       const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind, limitsFor);
       if (equipped.ok) state.run.loadout = equipped.loadout;
+      fx("skill:" + skillId, "gain");
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
     }
     saveState();
@@ -7656,6 +7842,7 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.run.loadout = result.loadout;
+      fx("skill:" + skillId, result.enabled ? "on" : "off");
       record("skill_toggled", { characterId, skillId, kind, enabled: result.enabled });
     }
     saveState();
@@ -7676,6 +7863,9 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.run.loadout = result.loadout;
+      fx("skill:" + result.skillId, "ultimate");
+      // 構えた印は盤面のセルにも出る（`ultimateCellMark`）ので、そちらも一緒に鳴らす。
+      fx(cellFxKey(characterId), "ultimate");
       record("ultimate_toggled", { characterId, skillId: result.skillId, armed: result.armed });
       // issue #240 — 教える一手が打てた瞬間だけを記録する。
       // **画面は跳ばさない**（作者指摘 2026-09-13）。構えた行を見せたまま、次の一手
@@ -7693,6 +7883,12 @@ function handleAction(event) {
 
   if (action === "move-skill" || action === "move-tactic") {
     const kind = element.dataset.kind || "active";
+    // 動かす前に、どの技能が動くのかを控える（動かしたあとでは番号が指す先が変わる）。
+    const movedSkillId = (state.run.loadout[SLOT_KEYS[kind]]?.[element.dataset.character]
+      || [])[Number(element.dataset.index)];
+    if (movedSkillId) {
+      fx("skill:" + movedSkillId, Number(element.dataset.direction) < 0 ? "move-up" : "move-down");
+    }
     state.run.loadout = reorderSkill(
       state.run.loadout,
       element.dataset.character,
@@ -7714,6 +7910,7 @@ function handleAction(event) {
 
   if (action === "select-equipment") {
     state.selectedEquipment = element.dataset.equipment || null;
+    fx("gear:" + state.selectedEquipment, "select");
     saveState();
     render();
     return;
@@ -7731,6 +7928,7 @@ function handleAction(event) {
       else {
         state.run.loadout = result.loadout;
         state.selectedEquipment = null;
+        fx("slot:" + characterId + ":" + slot, "equip");
         record("equipment_equipped", { characterId, equipmentId, slot });
       }
     }
@@ -7742,6 +7940,9 @@ function handleAction(event) {
   if (action === "remove-equipment") {
     const characterId = element.dataset.character;
     const equipmentId = element.dataset.equipment;
+    // 外す前に枠の番号を控える。外したあとの配列にはもう居ない。
+    const slot = (state.run.loadout.equipment?.[characterId] || []).indexOf(equipmentId);
+    if (slot >= 0) fx("slot:" + characterId + ":" + slot, "unequip");
     state.run.loadout = removeEquipment(state.run.loadout, characterId, equipmentId, limitsFor);
     record("equipment_removed", { characterId, equipmentId });
     saveState();
@@ -7917,6 +8118,7 @@ function handleAction(event) {
       else {
         state.run = { ...spent.run, rerollsUsed: { ...spent.run.rerollsUsed, [state.run.encounterIndex]: used + 1 } };
         state.rewardOffer = rewardOffer(state.run, state.profile, state.run.encounterIndex, used + 1);
+        fx("rewards", "reroll");
         record("reward_rerolled", { encounter: state.run.encounterIndex, offer: clone(state.rewardOffer) });
       }
     }
@@ -8100,6 +8302,8 @@ function handleAction(event) {
     }
     state.run = result.run;
     const treated = [...(result.treated ?? [])];
+    // 誰が癒えたのかは、盤面のその枠が言う。**全体治療なら三つ同時に鳴る。**
+    for (const id of treated) fx(cellFxKey(id), "heal");
     const tutorialCompleted = tutorialVisible && treatmentId === "concentrated";
     state.treatTargets = treated;
     state.treatmentResult = {

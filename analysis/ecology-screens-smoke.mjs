@@ -81,6 +81,30 @@ const displayContracts = [
   ["予約の規則は畳んだヘルプに置く", app, "<b>取得予約は一人につき一つです。</b>"],
   ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
   ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
+  // 反応（issue #237）。**操作と結果を結ぶ層は、申告・見張り・時間の三つで立っている。**
+  // 一つでも消えると、画面は静かなまま動き続ける（構文検査も単体試験も通る）。
+  ["反応を申告する口", app, "function fx(key, kind)"],
+  ["申告した反応を描き終わってから載せる", app, "function applyPendingFx()"],
+  ["数の変化は読み値の側で見つける", app, "function pulseChangedReadouts()"],
+  ["遠征が替わったら数の記憶を捨てる", app, "function resetFxMemoryIfRunChanged()"],
+  ["予測は窓の文字でなく数そのもので見張る", app, "function forecastSignature()"],
+  ["反応を載せるのは描画の最後だけ", app, "applyRenderFeedback({ phaseChanged, tabChanged });"],
+  ["反応の時間はCSSの一箇所が持つ", styles, "  --fx-accent: "],
+  ["押した指への返事", styles, ".button:active:not(:disabled)"],
+  ["画面と段の立ち上がり", styles, "@keyframes fx-view-enter"],
+  ["得たの反応", styles, "@keyframes fx-gain"],
+  ["拒まれたの反応", styles, "@keyframes fx-deny"],
+  ["増えた数の反応", styles, "@keyframes fx-up"],
+  ["減った数の反応", styles, "@keyframes fx-down"],
+  ["予測を読み直す走査", styles, "@keyframes fx-rescan"],
+  ["危険な予測の脈", styles, "@keyframes forecast-warn"],
+  ["reduced-motion で反応を止める", styles, "  .fx-view-enter,\n  .fx-board-enter,"],
+  ["キャンプのタブの中身をひとつの箱に入れる", app, 'class=\\"camp-view\\"'],
+  // 作者要望 2026-09-13 — 試映と実戦は窓の下段に、指で狙える大きさで置く。
+  ["先見機の操作を窓の下段に置く", app, "+ partyBoardNote(mode) + forecasterActions"],
+  ["先見機の操作の下段CSS", styles, ".forecaster-actions {"],
+  ["先見機の操作が指の的を下回らない", styles, "  min-height: 44px;"],
+  ["先見機の操作が何をするか一行で言う", app, "forecaster-action-copy"],
   ["active の CSS クラス", styles, ".kind-active"],
   ["reactive の CSS クラス", styles, ".kind-reactive"],
   ["passive の CSS クラス", styles, ".kind-passive"],
@@ -191,6 +215,10 @@ for (const [label, sourceText, forbidden] of [
   ["再生の終わりで自動的に次の場面へ出る旧経路", app, "      goToBattleResult();\n    }, beatDurationMs("],
   ["旧い打ち切り釦", app, '"再生をとばす"'],
   ["入切の説明文", app, 'class=\\"node-locked\\">取得状態は変わりません'],
+  // 作者要望 2026-09-13 — 試映と実戦を見出し行の右端へ二字で畳んだ旧い形へ戻っていないか。
+  // 戻ると、この窓で一番大事な操作が一番小さい釦になる。
+  ["先見機の操作を見出し行へ畳んだ旧構造", app, "<small>試映</small>"],
+  ["先見機の操作を見出し行へ置く旧構造", app, "formationToggle + forecasterActions"],
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
 }
@@ -738,6 +766,67 @@ for (const field of [
 if (defined.has("__surely_missing__")) {
   console.error("ecology-screens smoke: 参照点が壊れている。");
   process.exit(1);
+}
+
+// 8. 反応の語（issue #237）。**語が一つ欠けると、その操作だけが黙って静かになる。**
+//
+//    `fx(key, "kind")` は class を足すだけなので、CSS 側に `.fx-kind` が無くても
+//    JS は何事もなく通る。押しても何も返ってこないことに気づくのは、その画面を
+//    実際に触ったときだけである。申告する語と、CSS が持つ語を、ここで突き合わせる。
+const FX_KINDS_FROM_RENDER = [
+  // app.js が描画のあとで直接足す語（fx() を通らない）。
+  "view-enter", "board-enter", "recalc",
+  // 読み値の見張り（pulseChangedReadouts）が足す向き。
+  "up", "down", "change",
+  // 保存できた一行が最初から着ている語。
+  "on",
+];
+const declaredFxKinds = new Set(FX_KINDS_FROM_RENDER);
+for (const line of app.split("\n")) {
+  const start = line.indexOf("fx(");
+  if (start < 0 || /[\w.$]fx\(/.test(line.slice(Math.max(0, start - 1)))) continue;
+  const call = line.slice(start + 3);
+  const tail = call.slice(call.lastIndexOf(",") + 1);
+  for (const match of tail.matchAll(/"([a-z][a-z-]*)"/g)) declaredFxKinds.add(match[1]);
+}
+if (declaredFxKinds.size < FX_KINDS_FROM_RENDER.length + 8) {
+  console.error(`ecology-screens smoke: 反応の語を${declaredFxKinds.size}件しか取り出せなかった。検査の書き方が古い。`);
+  process.exit(1);
+}
+// **止める側だけが残っていても、動いていないことは分からない**し、その逆もある。
+// `@media (prefers-reduced-motion: reduce)` の中身と外側を本当に切り分けてから、
+// 両方に語があることを見る（片側だけを見ると、もう片方の名前で検査が通る）。
+const reducedMotionBlocks = [];
+const styleRest = [];
+{
+  const marker = "@media (prefers-reduced-motion: reduce)";
+  let cursor = 0;
+  for (let at = styles.indexOf(marker); at >= 0; at = styles.indexOf(marker, cursor)) {
+    styleRest.push(styles.slice(cursor, at));
+    let depth = 0;
+    let index = styles.indexOf("{", at);
+    for (; index < styles.length; index += 1) {
+      if (styles[index] === "{") depth += 1;
+      else if (styles[index] === "}" && (depth -= 1) === 0) break;
+    }
+    reducedMotionBlocks.push(styles.slice(at, index + 1));
+    cursor = index + 1;
+  }
+  styleRest.push(styles.slice(cursor));
+}
+if (!reducedMotionBlocks.length) {
+  console.error("ecology-screens smoke: prefers-reduced-motion の塊を一つも取り出せなかった。検査の書き方が古い。");
+  process.exit(1);
+}
+const normalStyles = styleRest.join("\n");
+const reducedMotionStyles = reducedMotionBlocks.join("\n");
+for (const kind of declaredFxKinds) {
+  if (!normalStyles.includes(".fx-" + kind)) {
+    problems.push(`反応 fx-${kind} の CSS が無い（申告しても押した先が黙る）`);
+  }
+  if (!reducedMotionStyles.includes(".fx-" + kind)) {
+    problems.push(`反応 fx-${kind} を prefers-reduced-motion で止めていない`);
+  }
 }
 
 if (problems.length) {

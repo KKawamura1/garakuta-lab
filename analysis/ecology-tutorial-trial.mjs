@@ -1107,10 +1107,16 @@ try {
     // 見るのは三段（ナギを選ぶ → 行を長押し → 挑む）と、**予測の帯が構える前後で
     // 変わること**、そして必殺の拍でカットインが出ること（issue #242）。
     // 盤面そのものが本当に負ける／勝つことは ecology/story.test.mjs が engine で見ている。
-    const longPress = async (locator) => {
-      const box = await locator.boundingBox();
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    // **押す前に、押せる場所へ寄せる。**キャンプの上端は貼りついた帯（.camp-top）で、
+    // 行がその下へ潜ったまま座標だけで押すと、指は帯の上へ落ちて行へ届かない。
+    // hover() は行を画面の中ほどへ送り、覆われていないことまで確かめてから指を置く。
+    const pressDown = async (locator) => {
+      await locator.scrollIntoViewIfNeeded();
+      await locator.hover();
       await page.mouse.down();
+    };
+    const longPress = async (locator) => {
+      await pressDown(locator);
       await page.waitForTimeout(700);
       await page.mouse.up();
       await page.waitForTimeout(250);
@@ -1131,9 +1137,7 @@ try {
     if (await lessonRow.count()) {
       // 作者要望 2026-09-13 — 押しているあいだ、左から右へ光の帯が伸びる。
       // **途中で離すと取り消し**（帯も消える）。
-      const rowBox = await lessonRow.first().boundingBox();
-      await page.mouse.move(rowBox.x + rowBox.width / 2, rowBox.y + rowBox.height / 2);
-      await page.mouse.down();
+      await pressDown(lessonRow.first());
       // **一往復で測る。**押し始めから 450ms のあいだにしか帯は無いので、待ってから
       // 読みに行くと、遅い環境では窓を外して落ちる（測れないだけで、画面は正しい）。
       // ブラウザの中で数フレーム続けて読み、伸びていることそのものを見る。

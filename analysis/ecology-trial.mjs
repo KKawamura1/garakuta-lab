@@ -309,6 +309,66 @@ try {
   }
   note("タブが画面内に収まる", await onScreen("nav.tabs"));
 
+  // ---- 反応（issue #237）。**操作の結果が画面から返ってくるか**を、実物で踏む。
+  //
+  // 反応は描き終わった直後に class として載るだけなので、押した直後に読めば必ず居る
+  // （待ちを足していないので、時間で追いかける必要がない）。class が無い＝
+  // 「押したのに何も返ってこない」ことなので、ここは見た目ではなく因果の検査である。
+  const fxClasses = (selector) => page.evaluate((target) => {
+    const element = document.querySelector(target);
+    return element ? [...element.classList].filter((name) => name.startsWith("fx-")) : null;
+  }, selector);
+  await page.locator('nav.tabs [data-tab="skills"]').click();
+  note("タブを押すと押した札と中身が返事をする",
+    (await fxClasses('nav.tabs [data-tab="skills"]'))?.includes("fx-pick")
+      && (await fxClasses(".camp-view"))?.includes("fx-view-enter"));
+  // 先見機の二つの操作は、窓の見出し行ではなく**盤面の下**にある（作者要望 2026-09-13）。
+  const engageBox = await page.locator('.forecaster-window [data-action="begin-stage"]').boundingBox();
+  const boardBox = await page.locator(".forecaster-window .party-board").boundingBox();
+  note("実戦の釦が盤面の下にある", Boolean(engageBox && boardBox) && engageBox.y > boardBox.y + boardBox.height - 1,
+    engageBox ? `盤面下端 ${Math.round(boardBox.y + boardBox.height)} / 釦上端 ${Math.round(engageBox.y)}` : "");
+  note("実戦の釦が指で狙える大きさ", Boolean(engageBox) && engageBox.height >= 44,
+    engageBox ? `${Math.round(engageBox.height)}px` : "");
+  note("試映と実戦が同じ幅で並ぶ",
+    await page.locator(".forecaster-actions .forecaster-action").count() === 2
+      && await page.locator(".forecaster-actions").evaluate((row) => {
+        const [first, second] = [...row.children].map((child) => child.getBoundingClientRect().width);
+        return Math.abs(first - second) <= 1;
+      }));
+  // 人物を選ぶ・隊列を組み替える・技能を切る。**どれも盤面か行が返事をする。**
+  await page.locator(".camp-top button.party-cell").nth(1).click();
+  note("人物を選ぶと盤面の枠が締まる", await page.locator(".party-cell.fx-select").count() > 0);
+  await page.locator('[data-action="toggle-formation-mode"]').click();
+  note("盤面の役が変わると盤が入れ替わる", (await fxClasses(".party-board"))?.includes("fx-mode"));
+  await page.locator('.camp-top [data-action="place-character"]').first().click();
+  const emptySlot = page.locator('.camp-top .party-cell.empty[data-action="place-character"]').first();
+  if (await emptySlot.count()) {
+    await emptySlot.click();
+    note("隊列を入れ替えると動いた枠が二つとも着地する",
+      await page.locator(".party-cell.fx-swap").count() === 2,
+      String(await page.locator(".party-cell.fx-swap").count()));
+  }
+  await page.locator('[data-action="toggle-formation-mode"]').click();
+  const firstToggle = page.locator('.installed-row [data-action="toggle-skill"]').first();
+  if (await firstToggle.count()) {
+    await firstToggle.click();
+    note("技能を切ると行が返事をする",
+      await page.locator(".installed-row.fx-off, .installed-row.fx-on").count() > 0);
+    // 技能を切れば予測が変わる。**申告していない数のほうが勝手に光る**（data-fx-watch）。
+    note("予測の数が動くと窓が読み直す", await page.locator(".forecaster-window.fx-recalc").count() === 1);
+    note("誰の予測が動いたかが盤面の数に出る",
+      await page.locator("[data-fx-watch].fx-up, [data-fx-watch].fx-down").count() > 0);
+    await firstToggle.click();
+  }
+  // 動きを切っている人には、動きだけを出さない（色・記号・数・ラベルは残る）。
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.locator('nav.tabs [data-tab="equipment"]').click();
+  note("reduced-motion では立ち上がりを動かさない",
+    await page.locator(".camp-view").evaluate((view) =>
+      getComputedStyle(view).animationName === "none" || getComputedStyle(view).animationDuration === "0s"));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.locator('nav.tabs [data-tab="map"]').click();
+
   // 作者要望 2026-09-13 — 先見機の「試映」は同じ戦闘を最後まで見せるが、
   // Run / Profile を一切確定しない。画面の色だけを見る試験ではなく、戻った後の
   // 保存状態を丸ごと突き合わせ、HP・進行・報酬・技能点・図鑑・戦歴の漏れを防ぐ。
@@ -397,6 +457,12 @@ try {
           await page.locator(".installed-row", { hasText: unlockingName }).count() > 0, unlockingName);
         note("取得した節は取得済みの印になる",
           await page.locator(".skill-node.equipped", { hasText: unlockingName }).count() > 0);
+        // issue #237 — 取った一手は、地図の節と装着行の**両方**が返事をする。
+        note("取得した技能が地図と装着行の両方で光る",
+          await page.locator(".tree-cell.fx-gain").count() === 1
+            && await page.locator(".installed-row.fx-gain").count() === 1);
+        note("払った技能点が減って光る",
+          await page.locator("[data-fx-watch='skill-points'].fx-down").count() === 1);
       }
     }
     // 直したら元へ戻す。**後続の検査は通常の遠征状態を前提にしている。**
