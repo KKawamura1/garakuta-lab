@@ -29,6 +29,18 @@
   --hp-unrecoverable: #080c0d;
   --tree-col-width: 208px;
   --tree-col-gap: 46px;
+  /* 反応の時間と曲線（issue #237）。**段は四つしかない。迷ったら短い方を使う。**
+     --fx-tap    押した指への返事（押しているあいだだけ）
+     --fx-quick  選ぶ・切り替える（結果はもう画面に出ている）
+     --fx-step   画面や段が入れ替わる
+     --fx-accent 得た・失った・変わった（数と色が同時に動く）
+     曲線は戦闘の手応え（unit-hit / banner-word）と同じものを使い、
+     キャンプと戦闘で**同じ速さの世界**に見せる。 */
+  --fx-tap: 90ms;
+  --fx-quick: 170ms;
+  --fx-step: 260ms;
+  --fx-accent: 460ms;
+  --fx-ease: cubic-bezier(.2, .85, .3, 1);
 }
 * { box-sizing: border-box; }
 .sr-only {
@@ -550,6 +562,14 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 /* 予測が出ている回だけ、盤面の枠に勝敗の色が乗る（箱そのものは .party-bar）。 */
 .forecast-bar.loss { border-color: rgba(231, 137, 128, .7); }
 .forecast-bar.win { border-color: rgba(155, 214, 158, .45); }
+/* issue #237 — **危険な回だけ、窓の縁がゆっくり脈を打つ。**
+   このまま挑めば負ける、という状態は画面で一番強い報せなので、色（赤）の上に
+   一つだけ動きを足す。速くしない——急かす動きにすると、組み替える手が止まる。 */
+@keyframes forecast-warn {
+  0%, 100% { border-color: rgba(231, 137, 128, .45); box-shadow: inset 0 0 18px rgba(83, 153, 164, .08), 0 5px 18px rgba(0, 0, 0, .22); }
+  50% { border-color: rgba(231, 137, 128, .95); box-shadow: inset 0 0 20px rgba(231, 137, 128, .12), 0 5px 18px rgba(0, 0, 0, .22); }
+}
+.forecaster-window.forecast-bar.loss { animation: forecast-warn 2.8s ease-in-out infinite; }
 .forecast-head {
   position: relative;
   z-index: 2;
@@ -559,11 +579,9 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   gap: 6px;
 }
 .forecaster-identity,
-.forecast-readout,
-.forecaster-actions { display: flex; align-items: center; min-width: 0; }
+.forecast-readout { display: flex; align-items: center; min-width: 0; }
 .forecaster-identity { flex: 1 1 auto; gap: 6px; }
 .forecast-readout { flex: 0 1 auto; justify-content: flex-end; gap: 5px; }
-.forecaster-actions { flex: none; gap: 3px; }
 .forecaster-lens,
 .simulation-lens {
   position: relative;
@@ -657,27 +675,52 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   content: "";
   animation: forecaster-sweep 5.5s ease-in-out infinite;
 }
+/* 作者要望 2026-09-13 — 試映と実戦は**窓の下に一段取って大きく置く。**
+   見出し行の右端に二字で畳んでいた頃は、この窓で一番大事な操作なのに一番小さかった。
+   二つ並ぶ回は等分、試映が出せない回（予測が無い回）は実戦が一段を占める。
+   高さは 44px 以上——指で狙う最小の的（iOS の目安）を下回らせない。 */
+.forecaster-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
 .forecaster-action {
+  flex: 1 1 0;
   display: grid;
-  grid-template-columns: 15px auto;
+  grid-template-columns: 17px minmax(0, 1fr);
   align-items: center;
-  gap: 2px;
-  min-height: 30px;
-  padding: 3px 7px;
-  border: 1px solid rgba(145, 203, 213, .38);
-  border-radius: 8px;
+  gap: 7px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid rgba(145, 203, 213, .45);
+  border-radius: 10px;
   background: rgba(9, 18, 20, .76);
   color: var(--blue);
   font: inherit;
+  text-align: left;
 }
-.forecaster-action small { font-size: 9px; font-weight: 800; letter-spacing: .08em; }
-.forecaster-action-icon { font-size: 12px; line-height: 1; text-shadow: 0 0 7px currentColor; }
+.forecaster-action-copy { display: grid; gap: 1px; min-width: 0; }
+.forecaster-action-copy b { font-size: 13px; font-weight: 800; letter-spacing: .1em; line-height: 1.1; }
+.forecaster-action-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.forecaster-action-icon { font-size: 15px; line-height: 1; text-align: center; text-shadow: 0 0 8px currentColor; }
+/* 実戦は**この窓から出る唯一の不可逆な一手**なので、金で、盤面の側から光らせる。 */
 .forecaster-action.engage {
-  border-color: rgba(229, 184, 105, .58);
-  background: linear-gradient(180deg, rgba(80, 59, 25, .9), rgba(48, 37, 22, .94));
+  border-color: rgba(229, 184, 105, .66);
+  background: linear-gradient(180deg, rgba(80, 59, 25, .92), rgba(48, 37, 22, .96));
+  box-shadow: 0 0 14px rgba(229, 184, 105, .1), inset 0 1px 0 rgba(255, 236, 199, .12);
   color: var(--gold);
 }
-.forecaster-action:active { transform: translateY(1px); filter: brightness(1.18); }
+.forecaster-action.engage .forecaster-action-copy small { color: rgba(229, 184, 105, .68); }
 @keyframes forecaster-orbit { to { transform: rotate(1turn); } }
 @keyframes forecaster-sweep {
   0%, 18% { transform: translateY(-20%); opacity: 0; }
@@ -867,8 +910,8 @@ button.party-cell { cursor: pointer; }
 @media (max-width: 430px) {
   .forecast-readout { gap: 3px; }
   .forecast-verdict { font-size: 10px; }
-  .forecaster-action { grid-template-columns: 13px auto; min-height: 28px; padding: 2px 5px; }
-  .forecaster-action small { font-size: 8px; }
+  .forecaster-action { gap: 6px; padding: 5px 8px; }
+  .forecaster-action-copy b { font-size: 12px; }
   .board-mode { padding-inline: 6px; }
 }
 
@@ -876,7 +919,8 @@ button.party-cell { cursor: pointer; }
   .forecaster-lens::after,
   .simulation-lens::after,
   .forecaster-scan::after,
-  .simulation-scan::after { animation: none; }
+  .simulation-scan::after,
+  .forecaster-window.forecast-bar.loss { animation: none; }
 }
 
 .tabs {
@@ -4927,4 +4971,290 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   border-color: rgba(125, 190, 213, .42);
   color: var(--blue);
   opacity: .72;
+}
+
+/* ============================================================ 反応（issue #237）
+ *
+ * **操作の結果に、短い反応をひとつだけ返す。**
+ *
+ * ここは飾りの層ではなく、因果を見せるための層である。キャンプの操作は
+ * これまで静かに切り替わるだけで、押したことが通ったのか、何が変わったのかが
+ * 画面から返ってこなかった（issue #237 の観測）。
+ *
+ * 画面は毎回まるごと描き直すので、「何が変わったか」を知っているのは app.js の
+ * 反応の仕組み（`fx()` と `data-fx-watch`）だけである。あちらが class を載せ、
+ * ここがその class に共通の時間・曲線・色を一つずつ与える。
+ *
+ * 色は既存の語彙のまま使う。
+ *   金   得た・確定した・選んだ        青   先見機と装備（情報の側）
+ *   緑   癒えた・入れた                赤   拒まれた・減った
+ *   菫   必殺
+ *
+ * 守ること。
+ *   - **反応が出なくても、色・記号・数・ラベルで同じことが読める。**
+ *     反応は理解の足しであって、条件ではない（issue #237 完了条件）。
+ *   - 反応は描き終わったあとに class が付くだけで、**次の操作を待たせない。**
+ *   - 繰り返す操作ほど短くする。長い反応は「得た」「変わった」だけに使う。
+ *   - prefers-reduced-motion は、この節の最後で一括して止める。
+ */
+
+/* ---- 押した指への返事。**押しているあいだだけ沈む。**離せば戻る。 */
+.button,
+.menu-button,
+.tiny-button,
+.icon-button,
+.tab,
+button.party-cell,
+.board-mode,
+.forecaster-action,
+.character-main,
+.gear-main,
+.equip-slot-button,
+.skill-node-button,
+.sheet-close {
+  transition:
+    transform var(--fx-tap) var(--fx-ease),
+    filter var(--fx-tap) var(--fx-ease),
+    border-color var(--fx-quick) ease,
+    background-color var(--fx-quick) ease,
+    color var(--fx-quick) ease;
+}
+.button:active:not(:disabled),
+.menu-button:active:not(:disabled),
+.tiny-button:active:not(:disabled),
+.icon-button:active:not(:disabled),
+.tab:active:not(:disabled),
+button.party-cell:active:not(:disabled),
+.board-mode:active:not(:disabled),
+.character-main:active:not(:disabled),
+.gear-main:active:not(:disabled),
+.equip-slot-button:active:not(:disabled),
+.skill-node-button:active:not(:disabled),
+.sheet-close:active:not(:disabled) {
+  transform: scale(.972);
+  filter: brightness(1.12);
+}
+/* 先見機の二つの釦は主操作なので、沈みを少しだけ強く出す。 */
+.forecaster-action:active:not(:disabled) { transform: scale(.965) translateY(1px); filter: brightness(1.16); }
+
+/* ---- 画面と段の入れ替わり。**中身だけが立ち上がる。**
+   キャンプでは上端の盤面（.camp-top）を動かさない——貼りついた盤が毎回跳ねると、
+   タップ対象が動いて押し間違える（issue #237 完了条件「タップ対象の移動」）。 */
+@keyframes fx-view-enter {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+.fx-view-enter { animation: fx-view-enter var(--fx-step) var(--fx-ease); }
+/* キャンプへ入った回だけ、先見機の窓が灯るように降りてくる。 */
+@keyframes fx-board-enter {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: none; }
+}
+.fx-board-enter { animation: fx-board-enter var(--fx-step) var(--fx-ease); }
+
+/* ---- 選んだ。**枠がひと呼吸で締まる。**繰り返す操作なので一番短い段を使う。 */
+@keyframes fx-select {
+  0% { box-shadow: 0 0 0 0 rgba(229, 184, 105, .55); }
+  45% { box-shadow: 0 0 0 5px rgba(229, 184, 105, .2); }
+  100% { box-shadow: 0 0 0 0 rgba(229, 184, 105, 0); }
+}
+.fx-select { animation: fx-select var(--fx-quick) var(--fx-ease); }
+
+/* ---- タブを選んだ。押した札が入り込む。 */
+@keyframes fx-pick {
+  0% { transform: scale(.9); }
+  58% { transform: scale(1.035); }
+  100% { transform: none; }
+}
+.fx-pick { animation: fx-pick var(--fx-quick) var(--fx-ease); }
+
+/* ---- 隊列を入れ替えた。**二つの枠が同時に着地する。** */
+@keyframes fx-swap {
+  0% { transform: scale(.9); box-shadow: 0 0 0 0 rgba(229, 184, 105, .6); }
+  55% { transform: scale(1.03); box-shadow: 0 0 0 6px rgba(229, 184, 105, .18); }
+  100% { transform: none; box-shadow: 0 0 0 0 rgba(229, 184, 105, 0); }
+}
+.fx-swap { animation: fx-swap var(--fx-step) var(--fx-ease); }
+
+/* ---- 盤面の役が変わった（見るだけ ⇄ 隊列の組み替え）。 */
+@keyframes fx-mode {
+  from { opacity: .3; transform: scale(.986); }
+  to { opacity: 1; transform: none; }
+}
+.fx-mode { animation: fx-mode var(--fx-quick) var(--fx-ease); }
+
+/* ---- 得た。**金が内側から満ちて、枠の外へ一度だけ広がる。** */
+@keyframes fx-gain {
+  0% { transform: scale(.94); filter: brightness(1.85) saturate(.75); box-shadow: 0 0 0 0 rgba(229, 184, 105, .65); }
+  40% { transform: scale(1.02); filter: brightness(1.25); box-shadow: 0 0 0 7px rgba(229, 184, 105, .2); }
+  100% { transform: none; filter: none; box-shadow: 0 0 0 0 rgba(229, 184, 105, 0); }
+}
+.fx-gain { animation: fx-gain var(--fx-accent) var(--fx-ease); }
+
+/* ---- 段が上がった。得たのと同じ金だが、**下から突き上げる**ので区別できる。 */
+@keyframes fx-level {
+  0% { transform: translateY(6px); filter: brightness(1.7); }
+  46% { transform: translateY(-3px); filter: brightness(1.22); }
+  100% { transform: none; filter: none; }
+}
+.fx-level { animation: fx-level var(--fx-step) var(--fx-ease); }
+
+/* ---- 入れた／切った。入れたら緑が差し、切ったら灰が一度差す。 */
+@keyframes fx-on {
+  0% { box-shadow: inset 3px 0 0 var(--good), 0 0 0 0 rgba(155, 214, 158, .5); }
+  50% { box-shadow: inset 3px 0 0 var(--good), 0 0 0 6px rgba(155, 214, 158, .14); }
+  100% { box-shadow: inset 0 0 0 0 rgba(155, 214, 158, 0), 0 0 0 0 rgba(155, 214, 158, 0); }
+}
+.fx-on { animation: fx-on var(--fx-step) var(--fx-ease); }
+@keyframes fx-off {
+  0% { box-shadow: inset 3px 0 0 var(--muted); transform: scale(.985); }
+  100% { box-shadow: inset 0 0 0 0 transparent; transform: none; }
+}
+.fx-off { animation: fx-off var(--fx-quick) var(--fx-ease); }
+
+/* ---- 並べ替えた。**動いた向きへ入ってくる。**向きを取り違えると意味が反転するので、
+   上げたときと下げたときで別の反応にする。 */
+@keyframes fx-move-up {
+  0% { transform: translateY(9px); opacity: .45; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes fx-move-down {
+  0% { transform: translateY(-9px); opacity: .45; }
+  100% { transform: none; opacity: 1; }
+}
+.fx-move-up { animation: fx-move-up var(--fx-quick) var(--fx-ease); }
+.fx-move-down { animation: fx-move-down var(--fx-quick) var(--fx-ease); }
+
+/* ---- 装着した／外した。装備の色は青（先見機と同じ情報の側）。 */
+@keyframes fx-equip {
+  0% { transform: scale(.965); border-color: var(--blue); box-shadow: 0 0 0 0 rgba(145, 203, 213, .6); }
+  45% { transform: scale(1.015); border-color: var(--blue); box-shadow: 0 0 0 7px rgba(145, 203, 213, .16); }
+  100% { transform: none; box-shadow: 0 0 0 0 rgba(145, 203, 213, 0); }
+}
+.fx-equip { animation: fx-equip var(--fx-step) var(--fx-ease); }
+@keyframes fx-unequip {
+  0% { box-shadow: inset 0 0 20px rgba(158, 173, 167, .38); transform: scale(1.012); }
+  100% { box-shadow: inset 0 0 0 rgba(158, 173, 167, 0); transform: none; }
+}
+.fx-unequip { animation: fx-unequip var(--fx-quick) var(--fx-ease); }
+
+/* ---- 癒えた・戻ってきた。 */
+@keyframes fx-heal {
+  0% { filter: brightness(1.5); box-shadow: 0 0 0 0 rgba(155, 214, 158, .6); }
+  45% { filter: brightness(1.15); box-shadow: 0 0 0 8px rgba(155, 214, 158, .18); }
+  100% { filter: none; box-shadow: 0 0 0 0 rgba(155, 214, 158, 0); }
+}
+.fx-heal { animation: fx-heal var(--fx-accent) var(--fx-ease); }
+
+/* ---- 必殺を構えた／降ろした。菫は戦闘のカットインと同じ色。 */
+@keyframes fx-ultimate {
+  0% { filter: brightness(1.75); box-shadow: 0 0 0 0 rgba(192, 167, 229, .7); }
+  40% { filter: brightness(1.2); box-shadow: 0 0 0 9px rgba(192, 167, 229, .18); }
+  100% { filter: none; box-shadow: 0 0 0 0 rgba(192, 167, 229, 0); }
+}
+.fx-ultimate { animation: fx-ultimate var(--fx-accent) var(--fx-ease); }
+
+/* ---- 引き直した。**候補が配り直される。**取った品は画面ごと変わるので、
+   ここは引き直しだけが持つ反応である。 */
+@keyframes fx-reroll {
+  0% { opacity: .1; filter: blur(3px); transform: translateY(5px); }
+  100% { opacity: 1; filter: none; transform: none; }
+}
+.fx-reroll { animation: fx-reroll var(--fx-step) var(--fx-ease); }
+
+/* ---- 拒まれた。**画面の中で唯一、横に揺れる反応。**足りない・できないは
+   これだけが持つ（成功の反応と取り違えようがない）。 */
+@keyframes fx-deny {
+  0%, 100% { transform: translateX(0); }
+  18% { transform: translateX(-4px); }
+  42% { transform: translateX(4px); }
+  68% { transform: translateX(-2px); }
+}
+.error { animation: fx-deny 320ms var(--fx-ease); }
+
+/* ---- 数が変わった。**増えたら金、減ったら赤、どちらとも言えないなら青。**
+   読み値は `<b>` や `<small>` の中にあることが多く、inline のままでは transform が
+   効かない。色と光だけで出す（数そのものは常に読める）。 */
+@keyframes fx-up {
+  0% { filter: brightness(1.6); text-shadow: 0 0 10px var(--gold), 0 0 3px var(--gold); }
+  100% { filter: none; text-shadow: none; }
+}
+@keyframes fx-down {
+  0% { filter: brightness(1.4); text-shadow: 0 0 10px var(--bad), 0 0 3px var(--bad); }
+  100% { filter: none; text-shadow: none; }
+}
+@keyframes fx-change {
+  0% { filter: brightness(1.5); text-shadow: 0 0 9px var(--blue); }
+  100% { filter: none; text-shadow: none; }
+}
+.fx-up { animation: fx-up var(--fx-accent) var(--fx-ease); }
+.fx-down { animation: fx-down var(--fx-accent) var(--fx-ease); }
+.fx-change { animation: fx-change var(--fx-accent) var(--fx-ease); }
+
+/* ---- 予測が計算し直された。**窓そのものが一度走査する。**
+   常時ゆっくり流れている走査線（.forecaster-scan）を、速く明るく一度だけ通す。
+   別の飾りを足さずに、同じ furniture が「いま読み直した」と言う。 */
+@keyframes fx-rescan {
+  0% { transform: translateY(-40%); opacity: 0; }
+  22% { opacity: 1; }
+  100% { transform: translateY(400%); opacity: 0; }
+}
+@keyframes fx-rescan-frame {
+  0% { border-color: rgba(145, 203, 213, .75); box-shadow: inset 0 0 26px rgba(83, 153, 164, .3), 0 5px 18px rgba(0, 0, 0, .22); }
+  100% { border-color: var(--line); box-shadow: inset 0 0 18px rgba(83, 153, 164, .08), 0 5px 18px rgba(0, 0, 0, .22); }
+}
+/* 走査は、危険な回の脈（.forecast-bar.loss）より強く出す。**いま読み直した**ほうが
+   新しい報せなので、同じ数の class で後ろに置いて勝たせる。 */
+.forecaster-window.forecast-bar.fx-recalc,
+.forecaster-window.fx-recalc { animation: fx-rescan-frame var(--fx-accent) var(--fx-ease); }
+.forecaster-window.fx-recalc .forecaster-scan::after {
+  height: 46%;
+  background: linear-gradient(180deg, transparent, rgba(145, 203, 213, .26), transparent);
+  animation: fx-rescan var(--fx-accent) var(--fx-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* **動きは消すが、状態は消さない。**色・記号・数・ラベルは元から動いていない。 */
+  .fx-view-enter,
+  .fx-board-enter,
+  .fx-select,
+  .fx-pick,
+  .fx-swap,
+  .fx-mode,
+  .fx-gain,
+  .fx-level,
+  .fx-on,
+  .fx-off,
+  .fx-move-up,
+  .fx-move-down,
+  .fx-equip,
+  .fx-unequip,
+  .fx-heal,
+  .fx-ultimate,
+  .fx-reroll,
+  .fx-up,
+  .fx-down,
+  .fx-change,
+  .error,
+  .forecaster-window.forecast-bar.fx-recalc,
+  .forecaster-window.fx-recalc,
+  .forecaster-window.fx-recalc .forecaster-scan::after { animation: none; }
+  .button,
+  .menu-button,
+  .tiny-button,
+  .icon-button,
+  .tab,
+  button.party-cell,
+  .board-mode,
+  .forecaster-action,
+  .character-main,
+  .gear-main,
+  .equip-slot-button,
+  .skill-node-button,
+  .sheet-close { transition: none; }
+  .button:active:not(:disabled),
+  .tab:active:not(:disabled),
+  button.party-cell:active:not(:disabled),
+  .forecaster-action:active:not(:disabled),
+  .skill-node-button:active:not(:disabled) { transform: none; filter: brightness(1.12); }
 }
