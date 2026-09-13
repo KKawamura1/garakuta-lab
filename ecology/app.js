@@ -1634,17 +1634,24 @@ function renderIntro() {
   const saveStatus = auto
     ? "<p class=\"save-summary\"><span>オートセーブ</span>" + esc(continueLabel) + "</p>"
     : "";
-  // 入口の三択は箱で囲わず、**細い罫で区切った一枚の品書き**にする。
-  // 金は「いま押す一つ」にだけ使い、残りは同じ強さで並べる。控えが無いときは
-  // 「つづきから」が押せないので、金は「はじめから」へ移す。
+  // **入口は二つ。**「つづきから」「はじめから」だけを同じ列に置く。
+  //
+  // 以前はここへ「ロードゲーム」を同じ強さで三つ目に並べていたが、二つの理由で浮いていた。
+  // (1) 遊ぶたびに押すのは上の二つで、保存枠を選ぶのは稀にしかない操作である。
+  //     同じ大きさ・同じ間隔で三つ並べると、その頻度の違いが画面から消える。
+  // (2) 「つづきから」「はじめから」が言い回しなのに、一つだけ片仮名の名詞だった。
+  // 保存枠は消さず、控えの一行の下へ小さな一行として置く。
+  //
+  // 金は「いま押す一つ」にだけ使う。控えが無いときは「つづきから」が押せないので、
+  // 金は「はじめから」へ移す。
   return titleShell("One Battle Ahead", "", "<section class=\"title-screen\" aria-label=\"メインメニュー\">"
     + "<div class=\"title-rule\" aria-hidden=\"true\"></div>"
     + "<div class=\"title-actions\">"
     + button("つづきから", "continue-game", !auto, "title-entry" + (auto ? " lead" : ""))
     + button("はじめから", "new-game", false, "title-entry" + (auto ? "" : " lead"))
-    + button("ロードゲーム", "open-save-menu", false, "title-entry", "data-return=\"intro\"")
     + "</div>"
     + saveStatus
+    + button("セーブデータを選ぶ", "open-save-menu", false, "title-link", "data-return=\"intro\"")
     + "</section>");
 }
 function renderSaveSlot(slot, snapshot, fromCamp) {
@@ -1673,7 +1680,8 @@ function renderSaveMenu() {
     : "";
   return shell(
     "<section class=\"card save-menu-card\">"
-    + sectionHeading("SAVE / LOAD", fromCamp ? "セーブ / ロード" : "ロードゲーム")
+    // 見出しは、押してきた一行と同じ言葉にする（「ロードゲーム」という別名を作らない）。
+    + sectionHeading("SAVE / LOAD", fromCamp ? "セーブ / ロード" : "セーブデータを選ぶ")
     + "<p class=\"operation-note\">自動保存は最新の安全な状態です。手動保存は3枠あり、New Gameの後も残ります。</p>"
     + "<article class=\"save-slot auto\"><div><b>オートセーブ</b><small>" + esc(auto ? saveSummary(auto) : "まだありません") + "</small></div><div class=\"save-slot-actions\">" + autoActions + "</div></article>"
     + "<div class=\"save-slot-list\">" + manual + "</div>" + notice + "</section>",
