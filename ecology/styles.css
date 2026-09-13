@@ -621,7 +621,8 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   box-shadow: 0 0 6px 2px var(--blue);
 }
 .forecast-title { color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
-.forecast-verdict { color: var(--gold); font-size: 11px; font-weight: 750; white-space: nowrap; }
+/* 読み値は**前の値の影**（.fx-ghost）を上へ重ねられるように、自分を基準にする。 */
+.forecast-verdict { position: relative; color: var(--gold); font-size: 11px; font-weight: 750; white-space: nowrap; }
 .forecast-bar.loss .forecast-verdict { color: var(--bad); }
 .forecast-bar.win .forecast-verdict { color: var(--good); }
 /* issue #159 — 上端は仲間の共通盤面。**POSITIONS そのままの3列×2行**で、
@@ -671,9 +672,24 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   position: absolute;
   inset: -35% 0 auto;
   height: 34%;
-  background: linear-gradient(180deg, transparent, rgba(145, 203, 213, .08), transparent);
+  background: linear-gradient(180deg, transparent, rgba(145, 203, 213, .1), transparent);
   content: "";
   animation: forecaster-sweep 5.5s ease-in-out infinite;
+}
+/* 作者指摘 2026-09-13 —「走査線が消えたのでは？」。消えてはいない（上から降りる
+   一本は #266 のまま動いている）が、窓が下段の釦ぶん高くなり、一本だけでは
+   **面がブラウン管であること**が読めなくなっていた。面そのものへ横の目を敷く。
+   1px おきに 2px 空ける粗い目で、9〜13px の数字の可読性は落とさない濃さに留める。 */
+.forecaster-scan::before,
+.simulation-scan::before {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(145, 203, 213, .16) 0 1px, transparent 1px 3px);
+  content: "";
+  /* 濃さは**この一つ**で決める。読み直しの回はここを上げて戻すだけにして、
+     目の濃さそのものを class で差し替えない（差し替えると、動きが終わった後も
+     濃いままの窓が残る——class は次の描画まで外れない）。 */
+  opacity: .3;
 }
 /* 作者要望 2026-09-13 — 試映と実戦は**窓の下に一段取って大きく置く。**
    見出し行の右端に二字で畳んでいた頃は、この窓で一番大事な操作なのに一番小さかった。
@@ -866,7 +882,7 @@ button.party-cell { cursor: pointer; }
 }
 .forecast-hp-values b { color: #fff; font-size: 10px; font-weight: 800; }
 .forecast-hp-values small { color: rgba(255, 255, 255, .8); font-size: 9px; }
-.forecast-delta { flex: none; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.forecast-delta { position: relative; flex: none; font-size: 11px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .forecast-delta.down { color: var(--bad); }
 .forecast-delta.up { color: var(--good); }
 .forecast-delta.flat { color: var(--muted); }
@@ -5191,27 +5207,142 @@ button.party-cell:active:not(:disabled),
 .fx-down { animation: fx-down var(--fx-accent) var(--fx-ease); }
 .fx-change { animation: fx-change var(--fx-accent) var(--fx-ease); }
 
-/* ---- 予測が計算し直された。**窓そのものが一度走査する。**
-   常時ゆっくり流れている走査線（.forecaster-scan）を、速く明るく一度だけ通す。
-   別の飾りを足さずに、同じ furniture が「いま読み直した」と言う。 */
+/* ---- 予測が計算し直された。**窓はブラウン管で、同期が一度外れる。**
+   （作者指摘 2026-09-13「窓と数字が一瞬光るだけで、全く機械っぽさがない」）
+   光らせるのをやめ、**装置が像を作り直す様子**そのものを出す。四枚が同時に走る。
+
+     1. 像を引き直す硬い線が一度降りる（`fx-rescan`。常時の一本とは別の面に置く）
+     2. 面の横の目が濃くなって転がる（`fx-crt-roll`。垂直同期が滑っている）
+     3. 読み値の面が段で左右へ飛ぶ（`fx-crt-desync` / `fx-crt-tear`。水平同期が外れた）
+     4. 変わった数だけ色分離してブレ、**前の値が横へ千切れてから**新しい値が座る
+        （`fx-crt-value` / `fx-crt-ghost`）
+
+   曲線は `steps(1, end)` にする。**ブラウン管は補間しない。**滑らかに寄せると
+   「光った」に戻ってしまい、ジジッという当たりが消える。時間は他の反応と同じ
+   `--fx-accent` 一段で、終わるのを待たずに次を押せる長さのままにする。
+
+   **釦（.forecaster-actions）だけは動かさない。**ブレている最中に押される場所なので、
+   的が左右へ飛んではいけない（貼りついた上端を動かさないのと同じ理由）。
+
+   **class の下で静的な見た目を差し替えない。**反応の class は次の描画まで外れないので、
+   背景や濃さを塗り替えると、動きが終わったあとの窓にそれが残る。 */
 @keyframes fx-rescan {
   0% { transform: translateY(-40%); opacity: 0; }
   22% { opacity: 1; }
   100% { transform: translateY(400%); opacity: 0; }
 }
 @keyframes fx-rescan-frame {
-  0% { border-color: rgba(145, 203, 213, .75); box-shadow: inset 0 0 26px rgba(83, 153, 164, .3), 0 5px 18px rgba(0, 0, 0, .22); }
+  0% { border-color: rgba(145, 203, 213, .9); box-shadow: inset 0 0 30px rgba(83, 153, 164, .34), 0 5px 18px rgba(0, 0, 0, .22); }
+  18% { border-color: rgba(145, 203, 213, .45); box-shadow: inset 0 0 18px rgba(83, 153, 164, .1), 0 5px 18px rgba(0, 0, 0, .22); }
+  30% { border-color: rgba(145, 203, 213, .85); box-shadow: inset 0 0 26px rgba(83, 153, 164, .28), 0 5px 18px rgba(0, 0, 0, .22); }
   100% { border-color: var(--line); box-shadow: inset 0 0 18px rgba(83, 153, 164, .08), 0 5px 18px rgba(0, 0, 0, .22); }
 }
-/* 走査は、危険な回の脈（.forecast-bar.loss）より強く出す。**いま読み直した**ほうが
+/* 横の目が濃くなり、下へ一度転がる。**100% は書かない。**書かない終端は元の
+   `.forecaster-scan::before` の濃さそのものへ戻るので、戻り先が二箇所に散らない。 */
+@keyframes fx-crt-roll {
+  0% { opacity: 1; transform: translateY(-6px); }
+  35% { opacity: .8; transform: translateY(4px); }
+  60% { opacity: .55; transform: translateY(-2px); }
+}
+/* 面が段で左右へ飛ぶ。見出し行と盤面で振り幅と拍をずらす——**同じだけ動かすと
+   「窓ごと揺れた」になり、帯ごとに像がずれるブラウン管には見えない。** */
+@keyframes fx-crt-desync {
+  0% { transform: translateX(-6px) skewX(-1.4deg); filter: brightness(1.55) contrast(1.2); }
+  12% { transform: translateX(5px) skewX(1deg); }
+  24% { transform: translateX(-3px); filter: brightness(1.3); }
+  36% { transform: translateX(4px) skewX(-.6deg); }
+  48% { transform: translateX(-2px); filter: brightness(1.12); }
+  62% { transform: translateX(1px); }
+  74%, 100% { transform: none; filter: none; }
+}
+@keyframes fx-crt-tear {
+  0% { transform: translateX(4px) skewX(1.2deg); filter: brightness(1.4) contrast(1.15); }
+  12% { transform: translateX(-5px) skewX(-.9deg); }
+  26% { transform: translateX(3px); filter: brightness(1.22); }
+  40% { transform: translateX(-2px) skewX(.5deg); }
+  54% { transform: translateX(2px); filter: brightness(1.08); }
+  68%, 100% { transform: none; filter: none; }
+}
+/* 変わった数。**色が分離してから合う。**向きの色（金／赤／青）は最後の残光に残し、
+   ブレている間は赤と青緑へ割る（ブラウン管の色ずれ）。
+   黒い裏打ち（0 1px 2px …）は**どの拍でも落とさない。**落とすと、明るいHPバーの上で
+   白い数字が読めなくなる——ブレている最中も、数そのものは読めたままにする。 */
+@keyframes fx-crt-value {
+  0% { transform: translateX(-5px); text-shadow: -2px 0 rgba(231, 137, 128, .95), 2px 0 rgba(145, 203, 213, .95), 0 1px 2px rgba(6, 11, 12, .9); }
+  14% { transform: translateX(6px); text-shadow: 3px 0 rgba(231, 137, 128, .9), -3px 0 rgba(145, 203, 213, .9), 0 1px 2px rgba(6, 11, 12, .9); }
+  28% { transform: translateX(-3px); text-shadow: -2px 0 rgba(231, 137, 128, .8), 2px 0 rgba(145, 203, 213, .8), 0 1px 2px rgba(6, 11, 12, .9); }
+  42% { transform: translateX(3px); text-shadow: 1px 0 rgba(231, 137, 128, .6), -1px 0 rgba(145, 203, 213, .6), 0 1px 2px rgba(6, 11, 12, .9); }
+  56% { transform: translateX(-1px); text-shadow: 0 0 10px var(--fx-crt-tint), 0 0 3px var(--fx-crt-tint), 0 1px 2px rgba(6, 11, 12, .9); }
+  70% { text-shadow: 0 0 8px var(--fx-crt-tint), 0 1px 2px rgba(6, 11, 12, .9); }
+  100% { transform: none; }
+}
+/* 前の値。**新しい値の上へ一枚だけ重ね、横へ千切れて消える。**
+   読み値そのものは最初から新しい値である（差し替えを遅らせない——遅らせると、
+   速く押した回に古い数が残る）。消えるのは影のほうだけ。 */
+@keyframes fx-crt-ghost {
+  0% { opacity: .95; transform: translateX(-7px) scaleY(1.2); }
+  18% { opacity: .75; transform: translateX(8px) scaleY(.82); }
+  34% { opacity: .5; transform: translateX(-11px) scaleY(1.3); }
+  50% { opacity: .28; transform: translateX(15px) scaleY(.6); }
+  64%, 100% { opacity: 0; transform: translateX(22px) scaleY(.4); }
+}
+/* 変わったのが誰かは、枠そのものが一度ずれて言う。**輝度は上げない**——セルの中は
+   HPバー（明るい緑）なので、brightness を掛けると帯が白く飛んで数が読めなくなる。
+   代わりに枠の内側へ青緑の光を一度差す（面が引き直された、と枠だけが言う）。 */
+@keyframes fx-crt-cell {
+  0% { transform: translateX(-3px); box-shadow: inset 0 0 0 1px rgba(145, 203, 213, .8), inset 0 0 16px rgba(83, 153, 164, .4); }
+  16% { transform: translateX(3px); box-shadow: inset 0 0 0 1px rgba(145, 203, 213, .35), inset 0 0 10px rgba(83, 153, 164, .2); }
+  32% { transform: translateX(-2px); box-shadow: inset 0 0 0 1px rgba(145, 203, 213, .7), inset 0 0 14px rgba(83, 153, 164, .32); }
+  50% { transform: translateX(2px); box-shadow: inset 0 0 8px rgba(83, 153, 164, .18); }
+  66%, 100% { transform: none; }
+}
+/* 読み直しは、危険な回の脈（.forecast-bar.loss）より強く出す。**いま読み直した**ほうが
    新しい報せなので、同じ数の class で後ろに置いて勝たせる。 */
 .forecaster-window.forecast-bar.fx-recalc,
-.forecaster-window.fx-recalc { animation: fx-rescan-frame var(--fx-accent) var(--fx-ease); }
-.forecaster-window.fx-recalc .forecaster-scan::after {
-  height: 46%;
-  background: linear-gradient(180deg, transparent, rgba(145, 203, 213, .26), transparent);
-  animation: fx-rescan var(--fx-accent) var(--fx-ease);
+.forecaster-window.fx-recalc { animation: fx-rescan-frame var(--fx-accent) steps(1, end); }
+/* 読み直しの走査は**常時の一本とは別の面**へ置く。同じ面を class で塗り替えると、
+   動きが終わったあとも明るい線が窓の上端へ居座る（class は次の描画まで外れない）。
+   こちらは `forwards` で下へ抜けきったところに留め、常時の一本は止めない。
+   ぼかしただけの常時の帯と違い、**像を引き直している硬い線**が降りてくる。 */
+.forecaster-window.fx-recalc::after {
+  position: absolute;
+  z-index: 1;
+  inset: -18% 0 auto;
+  height: 30%;
+  background: linear-gradient(180deg,
+    transparent 0%, rgba(145, 203, 213, .2) 72%, rgba(198, 236, 243, .5) 93%, rgba(214, 245, 250, .9) 98%, transparent 100%);
+  content: "";
+  pointer-events: none;
+  animation: fx-rescan calc(var(--fx-accent) * .8) var(--fx-ease) forwards;
 }
+.forecaster-window.fx-recalc .forecaster-scan::before { animation: fx-crt-roll var(--fx-accent) steps(1, end); }
+.forecaster-window.fx-recalc .forecast-head { animation: fx-crt-desync var(--fx-accent) steps(1, end); }
+.forecaster-window.fx-recalc .party-board { animation: fx-crt-tear var(--fx-accent) steps(1, end); }
+/* 変わった数だけが、窓の中でブラウン管の差し替わり方をする。**窓の外の読み値は
+   これまでどおり色で光るだけ**（タブの札の数まで割れると、画面中が壊れて見える）。 */
+.forecaster-window [data-fx-watch].fx-up { --fx-crt-tint: var(--gold); }
+.forecaster-window [data-fx-watch].fx-down { --fx-crt-tint: var(--bad); }
+.forecaster-window [data-fx-watch].fx-change { --fx-crt-tint: var(--blue); }
+.forecaster-window [data-fx-watch].fx-up,
+.forecaster-window [data-fx-watch].fx-down,
+.forecaster-window [data-fx-watch].fx-change {
+  animation: fx-crt-value var(--fx-accent) steps(1, end);
+}
+.forecaster-window .fx-ghost {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  color: rgba(198, 236, 243, .92);
+  font: inherit;
+  white-space: nowrap;
+  text-shadow: -1px 0 rgba(231, 137, 128, .8), 1px 0 rgba(145, 203, 213, .8), 0 1px 2px rgba(6, 11, 12, .9);
+  pointer-events: none;
+  animation: fx-crt-ghost var(--fx-accent) steps(1, end);
+}
+.forecaster-window .party-cell.fx-crt { animation: fx-crt-cell var(--fx-accent) steps(1, end); }
 
 @media (prefers-reduced-motion: reduce) {
   /* **動きは消すが、状態は消さない。**色・記号・数・ラベルは元から動いていない。 */
@@ -5238,7 +5369,19 @@ button.party-cell:active:not(:disabled),
   .error,
   .forecaster-window.forecast-bar.fx-recalc,
   .forecaster-window.fx-recalc,
-  .forecaster-window.fx-recalc .forecaster-scan::after { animation: none; }
+  .forecaster-window.fx-recalc::after,
+  .forecaster-window.fx-recalc .forecaster-scan::before,
+  .forecaster-window.fx-recalc .forecast-head,
+  .forecaster-window.fx-recalc .party-board,
+  .forecaster-window [data-fx-watch].fx-up,
+  .forecaster-window [data-fx-watch].fx-down,
+  .forecaster-window [data-fx-watch].fx-change,
+  .forecaster-window .party-cell.fx-crt,
+  .forecaster-window .fx-ghost { animation: none; }
+  /* 動きを止めた回は、**置くこと自体をやめる。**止めた姿（前の値の影、上端で
+     止まった走査線）がそのまま残るほうが、動かないことより読みにくい。 */
+  .forecaster-window .fx-ghost,
+  .forecaster-window.fx-recalc::after { display: none; }
   .button,
   .menu-button,
   .tiny-button,
