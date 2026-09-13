@@ -1367,12 +1367,13 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
    176px の幅に収めるために小さいままだった）。 */
 .skill-sheet .skill-detail { padding: 9px 10px 11px; border-top: 0; background: transparent; }
 .skill-sheet .skill-detail p { font-size: 11px; line-height: 1.5; }
-.skill-sheet .node-action { display: flex; flex-wrap: wrap; gap: 6px; }
-.skill-sheet .node-action .tiny-button { flex: 1 1 auto; min-height: 36px; font-size: 11px; }
-.skill-sheet .node-action .node-locked { flex: 1 1 100%; margin: 0; }
-.skill-sheet .reservation-buttons { flex: 1 1 100%; }
-.skill-sheet .reservation-note, .skill-sheet .level-now { flex: 1 1 100%; }
-.skill-sheet .route-chip { min-height: 30px; }
+/* 取得・段上げ・予約・予約取消は**一行**。入り切らないときだけ折り返す。
+   釦は指で押す大きさ（36px）を保ち、横は内容ぶんだけ取る。 */
+.skill-sheet .node-action { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.skill-sheet .node-action .tiny-button { flex: 1 1 auto; min-height: 36px; padding: 7px 9px; font-size: 11px; }
+/* 1点で変わる数（130% → 146%）は釦の隣。行が埋まっていれば次の行へ落ちる。 */
+.skill-sheet .node-action .level-step { flex: 0 1 auto; }
+.skill-sheet .node-locked { margin: 6px 0 0; }
 .skill-detail {
   padding: 8px 9px 10px 44px;
   border-top: 1px solid rgba(224, 195, 116, .2);
@@ -1410,23 +1411,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-weight: 800;
   white-space: nowrap;
 }
-/* 前提と派生先は押せる。**横スクロールしなくても route を辿れる。** */
-.skill-route { display: grid; gap: 5px; margin: 7px 0 0; }
-.route-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }
-.route-line > b { color: var(--blue); font-size: 9px; }
-.route-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #1b2528;
-  color: var(--ink);
-  font-size: 10px;
-}
-.route-chip small { color: var(--muted); font-size: 8px; }
-.route-build { margin: 6px 0 0; color: var(--gold); font-size: 9px; line-height: 1.45; }
 .member-head-button {
   width: 100%;
   padding: 0;
@@ -3474,12 +3458,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 9px;
   font-style: normal;
 }
-.route-none { color: var(--muted); }
-.route-chip.branch-strike > span { color: var(--branch-strike); }
-.route-chip.branch-guard > span { color: var(--branch-guard); }
-.route-chip.branch-care > span { color: var(--branch-care); }
-.route-chip.branch-order > span { color: var(--branch-order); }
-.route-chip.branch-base > span { color: var(--branch-base); }
 /* 記号の意味。**一度だけ、畳んだ中に置く。** */
 .symbol-legend { display: grid; grid-template-columns: 22px 1fr; gap: 5px 8px; align-items: center; }
 .symbol-legend dt { display: grid; place-items: center; }
@@ -3487,9 +3465,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* issue #159 — 立ち位置と HP の小さな印（.formation-mark / .hp-mark）はここにあった。
    上端の共通盤面がその二つを兼ねるので消した。 */
 .member-context-head { display: flex; align-items: center; gap: 9px; }
-/* 段の目盛りは、数えられる密度にする。 */
-.level-meter { gap: 1.5px; }
-.level-meter i { width: 2px; height: 7px; }
 /* 順番の帯（issue #177）。装着順が結果にどう出たかを、ラウンド順に並べる。 */
 .turn-strip { display: grid; gap: 6px; }
 .turn-row { display: flex; align-items: center; gap: 8px; }

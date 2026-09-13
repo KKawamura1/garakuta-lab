@@ -3033,6 +3033,18 @@ function nodeStateMark(node, nodeState, characterId) {
   return "<span class=\"node-state-marks\">" + reservation + mark + "</span>";
 }
 
+// 入切の摘み。**装着行と技能ツリーの操作盤は同じ形を共有する。**同じ操作に二つの
+// 見た目を持たせない（作者指摘 2026-09-13 — 盤の「オンにする／オフにする」の釦と
+// 「取得状態は変わりません」の一行は、この摘みが形で言っていることの重複だった）。
+function skillToggleSwitch(characterId, skillId, kind, disabled) {
+  return "<button type=\"button\" class=\"skill-switch" + (disabled ? " off" : " on")
+    + "\" data-action=\"toggle-skill\" data-character=\"" + characterId + "\" data-skill=\""
+    + skillId + "\" data-kind=\"" + kind + "\" role=\"switch\" aria-checked=\""
+    + (disabled ? "false" : "true") + "\" aria-label=\"" + (disabled ? "オンにする" : "オフにする")
+    + "\" title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる")
+    + "\"><i></i></button>";
+}
+
 function skillSlotRows(characterId, kind) {
   const key = SLOT_KEYS[kind];
   const list = state.run.loadout[key]?.[characterId] || [];
@@ -3092,12 +3104,7 @@ function skillSlotRows(characterId, kind) {
       + moveButtons
       // **入切は「札」ではなく「摘み」にする。**丸は払うものだけに譲ったので、
       // 操作は動く摘みの形（スイッチ）で出す。
-      + "<button type=\"button\" class=\"skill-switch" + (disabled ? " off" : " on")
-      + "\" data-action=\"toggle-skill\" data-character=\"" + characterId + "\" data-skill=\""
-      + skillId + "\" data-kind=\"" + kind + "\" role=\"switch\" aria-checked=\""
-      + (disabled ? "false" : "true") + "\" aria-label=\"" + (disabled ? "オンにする" : "オフにする")
-      + "\" title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる")
-      + "\"><i></i></button>"
+      + skillToggleSwitch(characterId, skillId, kind, disabled)
       + "</div>";
   }).join("");
   // 見出しは、払える点（●）と、装着で払う合計（○が足りない）を並べるだけにする。
@@ -3244,28 +3251,6 @@ function prerequisiteShortfallText(characterId, unmet = []) {
   return parts.length ? parts.join("") : "先に前提を解禁してください。";
 }
 
-// **前提と派生先は、押せる形で出す。**iPhone ではここを叩いて route を辿る
-// （横スクロールしなくても、前提へ戻る・派生先へ進むができる）。
-function skillRouteChip(skillId, minLv = MIN_SKILL_LEVEL) {
-  const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
-  if (!node) return "";
-  // issue #168 / #177 — 親を伸ばして初めて開く前提なら、**必要な段までを目盛りで出す。**
-  // 「Lv3以上」と書く代わりに、いまの段（塗り）と要る段（枠）を同じ目盛りに重ねる。
-  const cap = skillLevelCapOf(skillId);
-  const owner = selectedCharacter();
-  const level = owner ? skillLevelOf(owner, skillId) : 0;
-  const need = minLv > MIN_SKILL_LEVEL && cap > 1
-    ? "<span class=\"level-meter need\" role=\"img\" aria-label=\"この前提は Lv" + minLv + "以上が要る（いま Lv"
-      + level + "）\" title=\"この前提は Lv" + minLv + "以上が要る（いま Lv" + level + "）\">"
-      + Array.from({ length: cap }, (unused, index) =>
-        "<i class=\"" + (index < level ? "on" : "") + (index < minLv ? " want" : "") + "\"></i>").join("")
-      + "</span>"
-    : "";
-  return "<button type=\"button\" class=\"route-chip branch-" + (BRANCH_KEYS[node.branch] ?? "base")
-    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(skillId)
-    + "\"><span>" + esc(branchIcons[node.branch] ?? "·") + "</span>" + esc(COMPONENTS[skillId]?.label ?? skillId)
-    + need + "</button>";
-}
 
 // issue #148 — **説明文の数字そのものを、いまのレベルの値にする。**
 //
@@ -3356,82 +3341,61 @@ function applyAutomaticSkillActions(actions = []) {
   state.run.loadout = loadout;
 }
 
-function renderSkillDetail(row, node, characterId, nodeState) {
-  const derived = row.children;
-  const requires = node.requires;
+// 作者指摘 2026-09-13 — **盤が短いほど、地図と一緒に読める。**盤は画面の下端に居るので、
+// 高いぶんだけ地図の見える帯を食う。そこで盤に残すのは「その節を取るかどうかを決める材料」
+// だけにした。
+//
+// ・入切は盤の頭の摘み（装着行と同じ形）にした。「オンにする／オフにする」の釦と
+//   「取得状態は変わりません……」の一行は、摘みが形で言っていることの重複である。
+// ・前提・派生の札は消した。**どこから来てどこへ行くかは、真上の地図が線で見せている。**
+// ・取得・段上げ・予約・予約取消は一行へまとめた。同じことを言う組（押せる「解禁」と
+//   「Lv1まで取得」）は片方だけ出す。
+// ・予約の説明文は畳んだ「技能のルール」へ移した。いまの予約先は上の要約帯が出している。
+function renderSkillDetail(node, characterId, nodeState) {
   const cap = skillLevelCapOf(node.skillId);
   const level = skillLevelOf(characterId, node.skillId);
-  const action = nodeState.equipped
-    ? button(nodeState.disabled ? "オンにする" : "オフにする", "toggle-skill", false, "tiny-button skill-toggle",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\" data-kind=\"" + node.kind + "\"")
-      + "<p class=\"node-locked\">取得状態は変わりません。オフにすると、この遠征の戦闘では効果だけを止めます。</p>"
-    : nodeState.canUnlock
-        ? button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false, "tiny-button primary-mini",
-          "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-        : nodeState.prereqsMet
-          ? button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
-            "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-          : "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
-  const reservationLabel = nodeState.reservationTarget
-    ? (COMPONENTS[nodeState.reservationTarget]?.label ?? nameFor(nodeState.reservationTarget))
-    : "";
-  const maxLevel = skillLevelCapOf(node.skillId);
-  const reservationButtons = [];
+  const actions = [];
+  let shortfall = "";
+  if (!nodeState.unlocked) {
+    if (nodeState.canUnlock) {
+      actions.push(button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false,
+        "tiny-button primary-mini",
+        "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\""));
+    } else if (nodeState.prereqsMet) {
+      actions.push(button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
+        "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\""));
+    } else {
+      shortfall = "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
+    }
+  }
+  actions.push(levelUpAction(node, characterId, nodeState));
+  // 現在のSPで目標まで完了できるなら「取得」、足りなければ「予約」。
   const reservationButton = (targetLevel) => {
+    const here = nodeState.reserved && nodeState.reservationTargetLevel === targetLevel;
     const verb = canFulfillSkillReservation(state.run, characterId, node.skillId, targetLevel)
       ? "取得"
       : "予約";
-    const label = "Lv" + targetLevel + "まで" + verb;
-    return button(
-      nodeState.reserved && nodeState.reservationTargetLevel === targetLevel
-        ? label + "（予約中）"
-        : label,
-      "reserve-skill",
-      nodeState.reserved && nodeState.reservationTargetLevel === targetLevel,
-      "tiny-button reservation-button",
+    return button("Lv" + targetLevel + "まで" + verb + (here ? " ◎" : ""),
+      "reserve-skill", here, "tiny-button reservation-button",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId
-        + "\" data-target-level=\"" + targetLevel + "\"",
-    );
+        + "\" data-target-level=\"" + targetLevel + "\"");
   };
-  // 現在のSPで目標まで完了できるなら「取得」、足りなければ「予約」と表示する。
-  if (!nodeState.unlocked) {
-    reservationButtons.push(reservationButton(MIN_SKILL_LEVEL));
+  // **いま押せる「解禁」と同じことを言う「Lv1まで取得」は出さない。**
+  // 押せないとき（点が足りない・前提がまだ）だけ、Lv1 を予約として置く。
+  if (!nodeState.unlocked && !nodeState.canUnlock) actions.push(reservationButton(MIN_SKILL_LEVEL));
+  if (cap > MIN_SKILL_LEVEL && level < cap) actions.push(reservationButton(cap));
+  if (nodeState.reserved) {
+    actions.push(button("予約取消", "cancel-skill-reservation", false, "tiny-button reservation-button",
+      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\""));
   }
-  if (maxLevel > MIN_SKILL_LEVEL && level < maxLevel) {
-    reservationButtons.push(reservationButton(maxLevel));
-  }
-  const cancelReservation = nodeState.reserved
-    ? button("予約を取り消す", "cancel-skill-reservation", false, "tiny-button",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-    : "";
-  const reservationAction = reservationButtons.length || cancelReservation
-    ? "<div class=\"reservation-buttons\">" + reservationButtons.join("") + cancelReservation + "</div>"
-    : "";
-  const reservationTarget = nodeState.reservationTargetLevel
-    ? "Lv" + nodeState.reservationTargetLevel + "まで"
-    : "";
-  const reservationNote = nodeState.reserved
-    ? "<p class=\"reservation-note\">現在の予約: " + esc(reservationTarget)
-      + "。技能点を得ると、前提→必要Lv→この技能の順に自動取得します。前提はオフ、目的技能はオンで入ります。</p>"
-    : nodeState.reservationTarget && reservationButtons.length > 0
-      ? "<p class=\"reservation-note\">現在の予約は「" + esc(reservationLabel) + "・" + esc(reservationTarget)
-        + "」です。この技能を予約すると切り替わります。</p>"
-      : "";  const scope = node.kind === "active"
+  const scope = node.kind === "active"
     ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
     : "";
+  const actionRow = actions.filter(Boolean).join("");
   return "<div class=\"skill-detail\"><p>" + scope + esc(skillEffectText(characterId, node.skillId))
     + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + "</span>" : "") + "</p>"
-    + "<div class=\"skill-route\"><span class=\"route-line\"><b>前提</b>"
-    + (requires.length
-      ? requires.map((required) => skillRouteChip(required.skillId, required.minLv)).join("")
-      : "<span class=\"route-none\">—</span>") + "</span>"
-    + "<span class=\"route-line\"><b>派生</b>"
-    + (derived.length ? derived.map(skillRouteChip).join("") : "<span class=\"route-none\">—</span>") + "</span></div>"
-    + "<div class=\"node-action\">" + action + "</div>"
-    + "<div class=\"node-action level-action\">" + levelUpAction(node, characterId, nodeState) + "</div>"
-    + (reservationAction
-      ? "<div class=\"node-action reservation-action\">" + reservationAction + reservationNote + "</div>"
-      : "")
+    + shortfall
+    + (actionRow ? "<div class=\"node-action\">" + actionRow + "</div>" : "")
     + "</div>";
 }
 
@@ -3475,10 +3439,14 @@ function renderSkillSheet(selectedRow, characterId) {
     + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
     + "<span class=\"sheet-title\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
     + "<small>" + esc(node.branch) + " · 深さ " + selectedRow.x + "</small></span>"
-    + nodeStateMark(node, nodeState, characterId)
+    // 取得済みなら、ここは状態の印ではなく**摘み**にする（装着行と同じ形）。
+    // 印は「取得済み」としか言わないが、摘みは同じ場所で入切まで済ませる。
+    + (nodeState.equipped
+      ? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)
+      : nodeStateMark(node, nodeState, characterId))
     + "<button type=\"button\" class=\"sheet-close\" data-action=\"select-skill-node\" data-skill=\"\""
     + " aria-label=\"閉じる\" title=\"閉じる\">✕</button></div>"
-    + renderSkillDetail(selectedRow, node, characterId, nodeState) + "</aside>";
+    + renderSkillDetail(node, characterId, nodeState) + "</aside>";
 }
 
 
@@ -3834,6 +3802,10 @@ function renderSkills() {
       + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
       + "反応点が尽きた時点で下の技能は出ません。</p>"
       + "<p class=\"muted\"><b>不要な技能はオフにできます。</b>オフの技能は戦闘にも予測にも現れませんが、取得状態・前提・段は失いません。starter の前提として無償で付く節は、最初からオフで並んでいます。</p>"
+      // 作者指摘 2026-09-13 — 予約の規則（自動取得の順と、入る向き）はここに一度だけ置く。
+      // 節ごとの盤で毎回繰り返すと、盤が高くなって地図が見えなくなる。
+      + "<p class=\"muted\"><b>取得予約は一人につき一つです。</b>技能点が入るたびに、前提 → 必要な段 → 目的の技能 → 目的の段の順で、払えるところまで自動で取ります。"
+      + "途中の前提はオフ、目的の技能はオンで入ります。予約先は上の帯に出ていて、別の節を予約すると切り替わります。</p>"
       + (ultimatesUnlocked(state.run)
         ? "<p class=\"muted\"><b>装着した技能を長押しすると、その一戦の必殺技になります。</b>詳しくは下の「必殺技のルール」を開いてください。</p>"
         : ""))

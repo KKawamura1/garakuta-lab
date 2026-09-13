@@ -46,6 +46,12 @@ const displayContracts = [
   ["操作盤を地図の後ろに置く", app, "+ renderSkillSheet(selectedRow, characterId);"],
   ["操作盤を画面の下端へ貼る", styles, ".skill-sheet {\n  position: sticky;\n  bottom: 0;"],
   ["操作盤の閉じる釦", app, 'class=\\"sheet-close\\"'],
+  // 作者指摘 2026-09-13 — 盤は短いほど地図と一緒に読める。入切は摘みひとつ、
+  // 取得・段上げ・予約は一行、前提と派生は地図に任せる。
+  ["入切の摘みを装着行と盤で共有する", app, "function skillToggleSwitch(characterId, skillId, kind, disabled)"],
+  ["盤の頭で取得済みを入切する", app, "? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)"],
+  ["取得・段上げ・予約を一行へ並べる", styles, ".skill-sheet .node-action { display: flex;"],
+  ["予約の規則は畳んだヘルプに置く", app, "<b>取得予約は一人につき一つです。</b>"],
   ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
   ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
   ["active の CSS クラス", styles, ".kind-active"],
@@ -133,6 +139,11 @@ for (const [label, sourceText, forbidden] of [
   // 節の中で説明を開く形（`detail` を tree-cell へ差し込む）へ戻っていないか。
   // 戻ると、押した節だけ背が伸びて地図が組み変わる。
   ["節の中で説明を開く旧構造", app, '+ detail + "</article></div>"'],
+  // 盤で前提・派生を繰り返す形（`skillRouteChip`）と、摘みと同じことを言う釦・
+  // 説明文へ戻っていないか。
+  ["盤で前提と派生を繰り返す旧構造", app, "skillRouteChip"],
+  ["摘みと重なる入切の釦", app, 'button(nodeState.disabled ? "オンにする"'],
+  ["入切の説明文", app, 'class=\\"node-locked\\">取得状態は変わりません'],
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
 }
