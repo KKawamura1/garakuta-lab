@@ -896,11 +896,27 @@ function shell(body, options = {}) {
   return "<div class=\"shell\">" + screenActions + body + error + footer + "</div>";
 }
 
+// タイトルの表題は、文字を並べただけの見出しではなく**組み文字**として置く。
+// 最後の語を下段へ落として字間を開き、上段と対比させる。装飾記号（以前の ◈）は
+// 置かない。**記号は意味を持たないので、大きく置くほど安っぽく見える。**
+function wordmarkMarkup(title) {
+  const words = String(title).split(/\s+/).filter(Boolean);
+  if (!words.length) return "<h1 class=\"wordmark\"></h1>";
+  const tail = words[words.length - 1];
+  const lead = words.slice(0, -1).join(" ");
+  return "<h1 class=\"wordmark\">"
+    + (lead ? "<span class=\"wordmark-lead\">" + esc(lead) + "</span>" : "")
+    + "<span class=\"wordmark-tail\">" + esc(tail) + "</span></h1>";
+}
+
 function titleShell(title, subtitle, body) {
   const error = state.error ? "<p class=\"error\" role=\"alert\">" + esc(state.error) + "</p>" : "";
   const footer = "<span class=\"build-stamp\" hidden aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
-  return "<div class=\"shell\"><header class=\"header title-header\"><div><h1>" + esc(title)
-    + "</h1><p class=\"subtitle\">" + esc(subtitle)
+  // 空気は画面いっぱいの層で作り、タイトル画面を出しているあいだだけ存在させる。
+  // 画像は持たない（読み込み待ちのない起動が、この画面の速さである）。
+  return "<div class=\"shell title-shell\"><div class=\"title-air\" aria-hidden=\"true\"></div>"
+    + "<header class=\"header title-header\"><div>" + wordmarkMarkup(title)
+    + "<p class=\"subtitle\">" + esc(subtitle)
     + "</p></div></header>" + body + error + footer + "</div>";
 }
 function diagnosticStamp() {
@@ -1553,14 +1569,17 @@ function renderIntro() {
   const auto = readStoredSnapshot(SAVE_KEY);
   const continueLabel = auto ? saveSummary(auto) : "オートセーブはありません";
   const saveStatus = auto
-    ? "<p class=\"save-summary\"><span>オートセーブ</span> · " + esc(continueLabel) + "</p>"
+    ? "<p class=\"save-summary\"><span>オートセーブ</span>" + esc(continueLabel) + "</p>"
     : "";
+  // 入口の三択は箱で囲わず、**細い罫で区切った一枚の品書き**にする。
+  // 金は「いま押す一つ」にだけ使い、残りは同じ強さで並べる。控えが無いときは
+  // 「つづきから」が押せないので、金は「はじめから」へ移す。
   return titleShell("One Battle Ahead", "", "<section class=\"title-screen\" aria-label=\"メインメニュー\">"
-    + "<div class=\"sigil\" aria-hidden=\"true\">◈</div>"
+    + "<div class=\"title-rule\" aria-hidden=\"true\"></div>"
     + "<div class=\"title-actions\">"
-    + button("つづきから", "continue-game", !auto, "button primary")
-    + button("はじめから", "new-game", false, "button")
-    + button("ロードゲーム", "open-save-menu", false, "button", "data-return=\"intro\"")
+    + button("つづきから", "continue-game", !auto, "title-entry" + (auto ? " lead" : ""))
+    + button("はじめから", "new-game", false, "title-entry" + (auto ? "" : " lead"))
+    + button("ロードゲーム", "open-save-menu", false, "title-entry", "data-return=\"intro\"")
     + "</div>"
     + saveStatus
     + "</section>");

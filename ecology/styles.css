@@ -129,50 +129,199 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   background: linear-gradient(145deg, rgba(32, 45, 48, .97), rgba(21, 29, 31, .97));
   box-shadow: 0 12px 30px rgba(0,0,0,.16);
 }
+/*
+ * タイトル画面。**この画面には情報が無い。**だから、置けるものは
+ * 「表題の組み方」「余白」「一筋の罫」「押せる三つ」しかない。
+ * 以前は ◈ を大きく置いて表題を一行で書いていたが、記号は意味を持たないので
+ * 大きいほど安く見える。記号を外し、表題そのものを図像として組む。
+ * 画像は使わない。空気は CSS の層だけで作り、起動に読み込み待ちを足さない。
+ */
+.title-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 画面いっぱいの空気。タイトルを出しているあいだだけ存在する。 */
+.title-air {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 68% at 50% 2%, rgba(145, 203, 213, .16) 0, rgba(145, 203, 213, 0) 62%),
+    radial-gradient(88% 52% at 50% 34%, rgba(229, 184, 105, .10) 0, rgba(229, 184, 105, 0) 70%),
+    linear-gradient(180deg, rgba(6, 10, 11, 0) 34%, rgba(4, 7, 8, .78) 100%);
+}
+
 .title-header {
   display: block;
-  padding: clamp(64px, 18vh, 150px) 2px 8px;
+  flex: 0 0 auto;
+  padding: 0 2px;
   text-align: center;
-}
-
-.title-header .kicker {
-  margin-bottom: 10px;
-}
-
-.title-header h1 {
-  margin-bottom: 0;
-  font-size: clamp(30px, 8vw, 40px);
 }
 
 .title-header .subtitle:empty {
   display: none;
 }
 
+/* 表題。上段は詰めて太く、下段は最後の語だけを字間を開けて金で置く。 */
+.wordmark {
+  margin: 0;
+  letter-spacing: normal;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.wordmark-lead,
+.wordmark-tail {
+  display: block;
+}
+
+.wordmark-lead {
+  font-size: clamp(30px, 9.4vw, 46px);
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-indent: .04em;
+  color: var(--ink);
+  text-shadow: 0 2px 26px rgba(0, 0, 0, .55);
+}
+
+.wordmark-tail {
+  margin-top: clamp(9px, 2.4vw, 13px);
+  font-size: clamp(14px, 4.4vw, 20px);
+  font-weight: 650;
+  letter-spacing: .52em;
+  /* 字間は文字の右にだけ付くので、その分だけ右に寄る。同じ量を左へ戻して中央に置く。 */
+  text-indent: .52em;
+  color: var(--gold);
+}
+
+/* 中身は上下の中央に置き、そのうえで**下へ余白を足して、少し上に寄せる**。
+   画面の真ん中に文字列が浮くより、目線の高さに標題が来るほうが落ち着く。 */
 .title-screen {
-  width: min(100%, 340px);
-  margin: 14px auto 0;
+  width: min(100%, 320px);
+  margin: clamp(26px, 7vh, 54px) auto 0;
+  padding-bottom: clamp(16px, 5vh, 48px);
   text-align: center;
 }
 
-.title-screen .sigil {
-  margin-bottom: 26px;
-  color: var(--gold);
-  font-size: 42px;
+/* 表題と品書きのあいだの一筋。端は消す。 */
+.title-rule {
+  height: 1px;
+  margin: 0 auto clamp(18px, 4.5vh, 30px);
+  background: linear-gradient(90deg,
+    rgba(229, 184, 105, 0) 0,
+    rgba(229, 184, 105, .5) 50%,
+    rgba(229, 184, 105, 0) 100%);
 }
 
 .title-actions {
   display: grid;
-  gap: 10px;
+  gap: 0;
+  margin: 0;
 }
 
-.title-actions .button {
-  margin-top: 0;
+/* 品書きの一行。箱で囲わず、罫で分ける。**指の当たりは行全体**にする。 */
+.title-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 54px;
+  margin: 0;
+  padding: 16px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-indent: .22em;
+}
+
+.title-entry + .title-entry {
+  border-top: 1px solid rgba(237, 243, 237, .08);
+}
+
+/* いま押す一つ。金の文字と、名前の左右へ添えた細い印で示す。
+   印は行の端ではなく**文字のすぐ横**に置く（端に置くと、ただの傷に見える）。 */
+.title-entry.lead {
+  color: var(--gold);
+}
+
+.title-entry.lead::before,
+.title-entry.lead::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 14px;
+  height: 1px;
+  background: var(--gold);
+  opacity: .75;
+}
+
+.title-entry:disabled { color: var(--muted); }
+.title-entry:disabled::before,
+.title-entry:disabled::after { display: none; }
+
+.title-entry:not(:disabled):active {
+  background: rgba(229, 184, 105, .12);
+}
+
+@media (hover: hover) {
+  .title-entry:not(:disabled):hover {
+    background: rgba(237, 243, 237, .04);
+  }
 }
 
 .title-screen .save-summary {
-  margin: 16px 0 0;
+  margin: clamp(18px, 4vh, 28px) 0 0;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 11px;
+  letter-spacing: .06em;
+}
+
+/* 控えの見出しは行を分ける。**中点で繋ぐと、日付の折り返しと混ざって読めない。** */
+.title-screen .save-summary span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .18em;
+  text-indent: .18em;
+}
+
+/* 立ち上がりの一呼吸。上から順に置かれる。 */
+@keyframes title-rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wordmark-lead { animation: title-rise .5s ease-out both; }
+.wordmark-tail { animation: title-rise .5s ease-out .1s both; }
+.title-rule { animation: title-rise .5s ease-out .18s both; }
+.title-actions .title-entry:nth-child(1) { animation: title-rise .5s ease-out .24s both; }
+.title-actions .title-entry:nth-child(2) { animation: title-rise .5s ease-out .3s both; }
+.title-actions .title-entry:nth-child(3) { animation: title-rise .5s ease-out .36s both; }
+.title-screen .save-summary { animation: title-rise .5s ease-out .42s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-lead,
+  .wordmark-tail,
+  .title-rule,
+  .title-actions .title-entry,
+  .title-screen .save-summary { animation: none; }
+}
+
+/* 横向き・背の低い画面では、表題の上を詰める。 */
+@media (max-height: 560px) {
+  .title-screen { margin-top: 20px; padding-bottom: 20px; }
+  .title-entry { min-height: 46px; padding: 12px 10px; }
 }
 
 .build-trail i {
@@ -2802,19 +2951,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 
 
-/* R10 — title screen and local save slots */
-.title-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  margin: 1.4rem 0 0.8rem;
-}
-
-.save-summary {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
+/* R10 — local save slots */
 
 /* issue #235 — 盤面の役を切り替える一つのボタン。予測の見出し行に同居させ、
    固定領域の高さを増やさない。**押している間だけ盤面が隊列の組み替えになる。** */

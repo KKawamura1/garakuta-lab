@@ -157,7 +157,9 @@ try {
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
-  note("初期表示", /One Battle Ahead/.test(await bodyText()));
+  // 表題は組み文字（上段「ONE BATTLE」＋下段「AHEAD」）で、CSS の大文字化と
+  // 改行が入る。**見るのは「題が出ているか」**なので、大小と改行は無視して読む。
+  note("初期表示", /one\s*battle\s*ahead/i.test((await bodyText()).replace(/\s+/g, " ")));
   note("build の印が画面に出ている",
     expectedBuild ? (await buildStampText()).includes(expectedBuild) : false, expectedBuild);
 
