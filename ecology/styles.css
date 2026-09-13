@@ -1241,8 +1241,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tree-tab.active b { color: var(--gold); }
 .tree-summary { margin: 0 0 6px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .tree-summary b { color: var(--gold); }
-.tree-focus { margin: 0 0 8px; font-size: 10px; line-height: 1.5; }
-.tree-focus .tiny-button { margin: 0 0 0 6px; }
 /* 横スクロールできる帯。**列を固定幅にするので、深いツリーほど横に長くなる。**
    これが「もっと広く場所を取る」の実体である（縮めて収めない）。 */
 .skill-tree-scroll { overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; }
@@ -1291,6 +1289,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   text-align: left;
 }
 .skill-node-button:hover, .skill-node.selected .skill-node-button { background: rgba(224, 195, 116, .09); }
+/* 説明が節の中で開かなくなったので、**いま操作盤が指している節**は地図の上で
+   分かる必要がある（開いた高さがその印だった）。 */
+.tree-cell.selected > .skill-node { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(229, 184, 105, .45); }
 .node-icon {
   display: grid;
   place-items: center;
@@ -1317,6 +1318,62 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-node.prerequisite .node-status { color: #82938b; }
 .skill-node.equipped .node-status { color: var(--gold); font-weight: 800; }
 .skill-node.equipped.disabled .node-status { color: var(--muted); }
+/* 作者指摘 2026-09-13 — **操作盤は画面の下端へ貼る。**選んだ節の説明と釦は、地図の
+   中（列幅 176px）ではなくここに出る。貼りついているので、地図を横へどれだけ動かしても
+   操作はいつも同じ場所にあり、節を押しても地図は組み変わらない。
+   z-index は技能ツリー要約帯（2）より上、キャンプの固定帯（3）より下に置く
+   （盤は要約帯の上を通ってよいが、盤面の固定帯を隠してはいけない）。 */
+.skill-sheet {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  max-height: 56vh;
+  margin-top: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  background: rgba(20, 29, 31, .98);
+  box-shadow: 0 -8px 20px rgba(0, 0, 0, .42);
+}
+.skill-sheet.available { border-color: #8a7d50; }
+.skill-sheet.locked, .skill-sheet.prerequisite { border-color: #53635f; }
+.skill-sheet.reserved { border-color: var(--blue); }
+.skill-sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border-bottom: 1px solid rgba(224, 195, 116, .2);
+  background: rgba(20, 29, 31, .98);
+}
+.sheet-title { display: grid; flex: 1 1 auto; min-width: 0; gap: 1px; }
+.sheet-title b { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-title small { color: var(--muted); font-size: 9px; }
+.sheet-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1b2528;
+  color: var(--muted);
+  font-size: 11px;
+}
+/* 盤の中では、指で押す釦をツリーの札より大きくする（列の中に居たころは、
+   176px の幅に収めるために小さいままだった）。 */
+.skill-sheet .skill-detail { padding: 9px 10px 11px; border-top: 0; background: transparent; }
+.skill-sheet .skill-detail p { font-size: 11px; line-height: 1.5; }
+/* 取得・段上げ・予約・予約取消は**一行**。入り切らないときだけ折り返す。
+   釦は指で押す大きさ（36px）を保ち、横は内容ぶんだけ取る。 */
+.skill-sheet .node-action { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.skill-sheet .node-action .tiny-button { flex: 1 1 auto; min-height: 36px; padding: 7px 9px; font-size: 11px; }
+/* 1点で変わる数（130% → 146%）は釦の隣。行が埋まっていれば次の行へ落ちる。 */
+.skill-sheet .node-action .level-step { flex: 0 1 auto; }
+.skill-sheet .node-locked { margin: 6px 0 0; }
 .skill-detail {
   padding: 8px 9px 10px 44px;
   border-top: 1px solid rgba(224, 195, 116, .2);
@@ -1354,23 +1411,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-weight: 800;
   white-space: nowrap;
 }
-/* 前提と派生先は押せる。**横スクロールしなくても route を辿れる。** */
-.skill-route { display: grid; gap: 5px; margin: 7px 0 0; }
-.route-line { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }
-.route-line > b { color: var(--blue); font-size: 9px; }
-.route-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: #1b2528;
-  color: var(--ink);
-  font-size: 10px;
-}
-.route-chip small { color: var(--muted); font-size: 8px; }
-.route-build { margin: 6px 0 0; color: var(--gold); font-size: 9px; line-height: 1.45; }
 .member-head-button {
   width: 100%;
   padding: 0;
@@ -3377,7 +3417,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .branch-chip.branch-care { color: var(--branch-care); border-color: rgba(155, 214, 158, .5); }
 .branch-chip.branch-order { color: var(--branch-order); border-color: rgba(229, 184, 105, .5); }
 .branch-chip.branch-base { color: var(--branch-base); border-color: rgba(158, 173, 167, .5); }
-.branch-chip.clear { color: var(--muted); }
 .node-icon.branch-strike { border-color: var(--branch-strike); color: var(--branch-strike); }
 .node-icon.branch-guard { border-color: var(--branch-guard); color: var(--branch-guard); }
 .node-icon.branch-care { border-color: var(--branch-care); color: var(--branch-care); }
@@ -3419,12 +3458,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 9px;
   font-style: normal;
 }
-.route-none { color: var(--muted); }
-.route-chip.branch-strike > span { color: var(--branch-strike); }
-.route-chip.branch-guard > span { color: var(--branch-guard); }
-.route-chip.branch-care > span { color: var(--branch-care); }
-.route-chip.branch-order > span { color: var(--branch-order); }
-.route-chip.branch-base > span { color: var(--branch-base); }
 /* 記号の意味。**一度だけ、畳んだ中に置く。** */
 .symbol-legend { display: grid; grid-template-columns: 22px 1fr; gap: 5px 8px; align-items: center; }
 .symbol-legend dt { display: grid; place-items: center; }
@@ -3432,9 +3465,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* issue #159 — 立ち位置と HP の小さな印（.formation-mark / .hp-mark）はここにあった。
    上端の共通盤面がその二つを兼ねるので消した。 */
 .member-context-head { display: flex; align-items: center; gap: 9px; }
-/* 段の目盛りは、数えられる密度にする。 */
-.level-meter { gap: 1.5px; }
-.level-meter i { width: 2px; height: 7px; }
 /* 順番の帯（issue #177）。装着順が結果にどう出たかを、ラウンド順に並べる。 */
 .turn-strip { display: grid; gap: 6px; }
 .turn-row { display: flex; align-items: center; gap: 8px; }

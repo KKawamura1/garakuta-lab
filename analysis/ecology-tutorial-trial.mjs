@@ -422,11 +422,112 @@ try {
   // 節を押すと、前提ルートと派生先が強調され、そこから route を辿れる。
   // **根（mend）ではなく、その子（triage）を選ぶ。**根を選ぶと反応ツリー全体が
   // 派生先になり、落ちる節が無くなるため。
+  // 作者指摘 2026-09-13 —「見やすいが操作しにくい」。**押す前後で地図が動いていないこと**を、
+  // 節の実座標で見る（説明を節の中で開いていたころは、押した節だけ背が伸びて、
+  // 同じ行の節も線も動いていた）。
+  const cellBoxes = () => page.locator(".skill-tree-forest .tree-cell").evaluateAll((cells) =>
+    Object.fromEntries(cells.map((cell) => [cell.dataset.node, `${cell.offsetLeft},${cell.offsetTop}`])));
+  const boxesBeforeSelect = await cellBoxes();
   const secondNode = page.locator('.skill-tree-forest [data-action="select-skill-node"]').nth(1);
   await secondNode.click();
   await page.waitForTimeout(150);
-  note("選んだ節の前提と派生先が出る", await page.locator(".skill-route").count() > 0);
+  // 作者指摘 2026-09-13 — **前提と派生の札は盤から降ろした。**どこから来てどこへ行くかは
+  // 真上の地図が線と色で見せているので、盤で二度言わない（盤が高いと地図が隠れる）。
   note("前提ルート以外を落として見せる", await page.locator(".tree-cell.faded").count() > 0);
+  note("盤で前提と派生を繰り返さない", await page.locator(".skill-sheet .skill-route").count() === 0);
+  const boxesAfterSelect = await cellBoxes();
+  note("節を押しても地図が組み変わらない",
+    JSON.stringify(boxesBeforeSelect) === JSON.stringify(boxesAfterSelect),
+    `${Object.keys(boxesAfterSelect).length} 節`);
+
+  // **取得の操作は地図の外（下端に貼る操作盤）にある。**列幅の中に入れると、
+  // 押す前に横スクロールが要る。盤と釦が画面の横幅に収まっているかを実寸で見る。
+  const sheetFit = await page.locator(".skill-sheet").evaluate((sheet) => {
+    const box = sheet.getBoundingClientRect();
+    const column = Number.parseFloat(getComputedStyle(document.documentElement)
+      .getPropertyValue("--tree-col-width")) || 0;
+    const buttons = [...sheet.querySelectorAll(".node-action button")].map((button) => {
+      const rect = button.getBoundingClientRect();
+      return rect.left >= -1 && rect.right <= window.innerWidth + 1 && rect.width > 0;
+    });
+    return {
+      left: Math.round(box.left),
+      right: Math.round(box.right),
+      width: Math.round(box.width),
+      column,
+      inside: box.left >= -1 && box.right <= window.innerWidth + 1,
+      bottomOnScreen: Math.round(box.bottom) <= window.innerHeight + 1,
+      buttons: buttons.length,
+      buttonsInside: buttons.every(Boolean),
+    };
+  });
+  note("取得の操作盤が画面の横幅に収まる",
+    sheetFit.inside && sheetFit.bottomOnScreen && sheetFit.width > sheetFit.column,
+    `幅 ${sheetFit.width}px · 列幅 ${sheetFit.column}px`);
+  note("取得の釦を横スクロールなしで押せる",
+    sheetFit.buttons > 0 && sheetFit.buttonsInside, `${sheetFit.buttons} 件`);
+
+  // **盤は短い。**節を選んでいるあいだも地図が読めるよう、盤に残すのは
+  // 「その節を取るかどうかを決める材料」だけにした（実測の高さも見る）。
+  const sheetShape = await page.locator(".skill-sheet").evaluate((sheet) => {
+    const tops = [...sheet.querySelectorAll(".node-action .tiny-button")]
+      .map((element) => Math.round(element.getBoundingClientRect().top));
+    return {
+      height: Math.round(sheet.getBoundingClientRect().height),
+      buttons: tops.length,
+      rows: new Set(tops).size,
+      text: sheet.innerText,
+    };
+  });
+  note("盤が地図を隠さない高さに収まる", sheetShape.height <= 200, `${sheetShape.height}px`);
+  note("取得・段上げ・予約が一行に並ぶ", sheetShape.buttons > 1 && sheetShape.rows === 1,
+    `${sheetShape.buttons} 件 · ${sheetShape.rows} 行`);
+  note("入切の説明文を盤で繰り返さない", !/取得状態は変わりません/.test(sheetShape.text));
+
+  // **帯の端で切れている節を押したら、窓の中央へ寄る。**寄らないと、押した節が
+  // 半分だけ見えたまま操作することになる（dispatchEvent は playwright の
+  // 自動スクロールを通さないので、切れている状態のまま押せる）。
+  const clippedNode = await page.evaluate(() => {
+    const band = document.querySelector(".skill-tree-scroll");
+    const edge = () => band.getBoundingClientRect().right;
+    const clipped = () => [...band.querySelectorAll(".tree-cell")].find((cell) => {
+      const box = cell.getBoundingClientRect();
+      return box.left < edge() && box.right > edge();
+    });
+    if (!clipped()) band.scrollLeft += 60;
+    return clipped()?.dataset.node ?? null;
+  });
+  if (clippedNode) {
+    await page.locator(`.tree-cell[data-node="${clippedNode}"] .skill-node-button`).dispatchEvent("click");
+    await page.waitForTimeout(700);
+    const centred = await page.locator(`.tree-cell[data-node="${clippedNode}"]`).evaluate((cell) => {
+      const band = cell.closest(".skill-tree-scroll").getBoundingClientRect();
+      const box = cell.getBoundingClientRect();
+      return box.left >= band.left - 1 && box.right <= band.right + 1;
+    });
+    note("帯の端で切れている節を押すと窓の中へ寄る", centred, clippedNode);
+  }
+
+  // 取得済みの節は、盤の頭の摘み（装着行と同じ形）で入切する。
+  const equippedNode = page.locator(".tree-cell:has(.skill-node.equipped) .skill-node-button").first();
+  if (await equippedNode.count()) {
+    await equippedNode.click();
+    await page.waitForTimeout(200);
+    const before = await page.locator(".skill-sheet .skill-switch").getAttribute("aria-checked");
+    await page.locator(".skill-sheet .skill-switch").click();
+    await page.waitForTimeout(250);
+    const after = await page.locator(".skill-sheet .skill-switch").getAttribute("aria-checked");
+    note("取得済みの節を盤の摘みで入切できる", Boolean(before) && before !== after, `${before} → ${after}`);
+    await page.locator(".skill-sheet .skill-switch").click();
+    await page.waitForTimeout(250);
+  }
+  // ✕ で盤を閉じる。**閉じると地図が画面いっぱいに戻る**（ここから下の検査も、
+  // 何も選んでいない状態から始まる）。
+  await page.locator(".skill-sheet .sheet-close").click();
+  await page.waitForTimeout(200);
+  note("操作盤を閉じると地図だけに戻る",
+    await page.locator(".skill-sheet").count() === 0
+      && await page.locator(".tree-cell.selected").count() === 0);
 
   // R19（issue #137）／issue #177 — 段は**素直に文字**で出す。ほとんどの節が Lv1 なので、
   // 目盛りにすると「1個だけ塗った10個の四角」が並んで読めなかった（作者指摘）。
@@ -450,8 +551,8 @@ try {
   // 規則そのもの（AP/RP は変わらない）は畳んだ「技能のルール」にあり、節では繰り返さない。
   await page.locator('.skill-tree-forest [data-action="select-skill-node"]').first().click();
   await page.waitForTimeout(150);
-  const levelButton = await page.locator('.level-action [data-action="level-up-skill"]').count();
-  const levelStep = await page.locator(".level-action .level-step").innerText().catch(() => "");
+  const levelButton = await page.locator('.node-action [data-action="level-up-skill"]').count();
+  const levelStep = await page.locator(".node-action .level-step").innerText().catch(() => "");
   note("取得済みの節に段の上げ方が出る", levelButton === 1 && /→/.test(levelStep),
     `${levelButton}件 · ${levelStep}`);
 
