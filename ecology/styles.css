@@ -2276,17 +2276,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .purchase-cost { color: var(--gold); font-size: 11px; font-variant-numeric: tabular-nums; }
 .purchase-done { color: var(--good); font-size: 12px; }
 .purchase-row .tiny-button { margin: 0; }
-.supply-tutorial {
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid var(--gold);
-  border-radius: 9px;
-  background: var(--gold-dark);
-}
-.supply-tutorial h3 { margin: 4px 0 6px; }
-.supply-tutorial p { margin: 0; line-height: 1.6; }
-.supply-tutorial p + p { margin-top: 6px; }
-.purchase-row.tutorial-focus { border-color: var(--gold); }
 /* issue #159 — 治療専用の対象一覧（.treatment-target-picker）はここにあった。
    対象は上端の共通盤面から選ぶ。 */
 .supply-treatment-result {
@@ -3100,11 +3089,18 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .tutorial-note-card { border-color: rgba(212, 175, 100, .45); }
 
-/* R11 §5 改（作者指摘 2026-09-12）— 隊列チュートリアル。**押す場所が光り、
-   そこしか押せない。**光は一箇所だけに出す（二つ光ると、どちらが次か読めない）。 */
-.formation-tutorial { border-color: var(--gold); background: var(--gold-dark); }
-.formation-tutorial h3 { margin: 4px 0 6px; font-size: 14px; }
-.formation-tutorial .tutorial-note { margin: 0; line-height: 1.65; }
+/* 手取りチュートリアル。**札の見た目も隊列・補給・必殺技で揃える。**
+   光る先と同じ段の説明だけを置き、操作の探し方を画面ごとに変えない。 */
+.formation-tutorial,
+.supply-tutorial,
+.ultimate-tutorial { border-color: var(--gold); background: var(--gold-dark); }
+.formation-tutorial h3,
+.supply-tutorial h3,
+.ultimate-tutorial h3 { margin: 4px 0 6px; font-size: 14px; }
+.formation-tutorial .tutorial-note,
+.supply-tutorial .tutorial-note,
+.ultimate-tutorial .tutorial-note { margin: 0; line-height: 1.65; }
+.tutorial-progress { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
 .tutorial-steps {
   display: grid;
   gap: 4px;
@@ -3137,13 +3133,10 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tutorial-steps li.done { color: var(--good); text-decoration: line-through; }
 .tutorial-steps li.done > span { border-color: var(--good); color: var(--good); }
 
-/* issue #240 — 必殺技チュートリアル。**札の作りは隊列チュートリアルと同じ**にする
+/* issue #240 — 必殺技チュートリアル。**札の作りは他の手取りチュートリアルと同じ**にする
    （手取りの札が二通りの見た目を持つと、同じ種類の場面だと読めなくなる）。
    違うのは最後の一行だけで、そこには「いまの予測」を出す——構える前と後で帯が変わる
    ことが、この一戦の教材そのものである。 */
-.ultimate-tutorial { border-color: var(--gold); background: var(--gold-dark); }
-.ultimate-tutorial h3 { margin: 4px 0 6px; font-size: 14px; }
-.ultimate-tutorial .tutorial-note { margin: 0; line-height: 1.65; }
 .tutorial-forecast {
   display: inline-flex;
   gap: 6px;

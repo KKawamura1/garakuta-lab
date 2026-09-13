@@ -2803,7 +2803,9 @@ function renderCamp() {
     // PR #255 — 直前の一戦の一行も同じ理由でここに出す。戻った先のタブは
     // 場面によって変わる（補給チュートリアル中は補給タブに錠が掛かる）ので、
     // 遠征タブだけに書くと「さっき何が起きたか」が読めない回ができる。
-    + ultimateLessonNote() + lastBattleNoteHtml() + view,
+    // 補給チュートリアルも、必殺技と同じく**タブの中へ埋めずに上端へ置く**。
+    // 段が変わっても札の位置と見た目が変わらないので、光る一手との対応を追える。
+    + supplyTutorialNote() + ultimateLessonNote() + lastBattleNoteHtml() + view,
     { hideHeaderAction: true });
 }
 
@@ -4249,30 +4251,19 @@ function campTreatmentBlock() {
     const blockedByTutorial = tutorial && treatment.id !== "concentrated";
     const blockedBySelection = state.treatmentSelection && state.treatmentSelection !== treatment.id;
     const disabled = blockedByTutorial || blockedBySelection || state.run.supplies < 1 || !applicable;
-    const focus = tutorial && treatment.id === "concentrated";
     const actionLabel = treatment.targetCount === "all"
       ? "補給1"
       : state.treatmentSelection === treatment.id
         ? "選び直す"
         : "対象を選ぶ";
-    return "<div class=\"purchase-row" + (focus ? " tutorial-focus" : "") + (state.treatmentSelection === treatment.id ? " treatment-selected" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
+    return "<div class=\"purchase-row" + (state.treatmentSelection === treatment.id ? " treatment-selected" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
       + "</b><small>" + esc(treatment.summary) + "</small></span>"
       + button(actionLabel, "treat", disabled, "tiny-button primary-mini", "data-treatment=\"" + esc(treatment.id) + "\"")
       + "</div>";
   }).join("");
-  const tutorialGuide = tutorial
-    ? "<div class=\"supply-tutorial\" role=\"status\"><p class=\"eyebrow\">補給チュートリアル</p>"
-      + "<h3>次の戦いに備えましょう</h3>"
-      + "<p>勝てました。でも、傷は残っています。次の戦いへ進む前に、補給で手当てしてみましょう。</p>"
-      + "<p class=\"muted\"><b>手順 1/2</b> 「集中治療」を選び、次に回復する仲間を1人選びます。必要な一手を終えるまで、他のタブと次の戦闘は閉じています。</p>"
-      + (selectedTreatment
-        ? "<p class=\"muted\"><b>手順 2/2</b> 対象を選んでください。対象を選ぶまで補給は消費しません。</p>"
-        : "")
-      + "</div>"
-    : "";
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営治療",
       "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + tutorialGuide + treatmentResultBlock() + rows
+    + treatmentResultBlock() + rows
     + helpDetails("treatment-rules", "治療の対象",
       "<p class=\"muted\">集中治療と蘇生は治療を選んだあと、対象をプレイヤーが明示的に選びます。集中治療は負傷した生存者、蘇生は戦闘不能者だけが候補です。全体手当は生存者全員へ適用します。</p>")
     + "</section>";
@@ -4531,6 +4522,56 @@ function partyBoardNote(mode) {
   return "";
 }
 
+// ============================================================ 補給チュートリアル（共通の手取り型）
+//
+// **文章だけで操作を探させない。**補給の導入も、隊列・必殺技と同じく
+// 「いま押す一箇所を光らせる → それ以外を錠で閉じる → 押したら次の段へ進む」
+// という形にする。
+//
+//   treatment … 「集中治療」を押す
+//   target    … 回復する仲間のセルを押す
+//
+// 集中治療の対象は複数あり得るので、target では有効なセルをすべて光らせる。
+// どれを選んでも同じ一手が完了するため、特定の人物へ画面を固定しない。
+function supplyTutorialStep() {
+  if (!supplyTutorialVisible()) return null;
+  return state.treatmentSelection === "concentrated" ? "target" : "treatment";
+}
+
+function supplyTutorialLocked() {
+  return supplyTutorialStep() !== null;
+}
+
+function supplyTutorialSpotSelector(step) {
+  return {
+    treatment: "[data-action=\"treat\"][data-treatment=\"concentrated\"]:not([disabled])",
+    target: "[data-action=\"select-treatment-target\"][data-treatment=\"concentrated\"]:not([disabled])",
+  }[step] ?? null;
+}
+
+function supplyTutorialNote() {
+  const step = supplyTutorialStep();
+  if (!step) return "";
+  const current = step === "treatment" ? 0 : 1;
+  const body = step === "treatment"
+    ? "勝てました。でも、傷は残っています。光っている「集中治療」を押してください。"
+    : "補給はまだ消費していません。光っている傷ついた仲間のセルを押してください。";
+  const marks = [
+    ["集中治療を押す", 0],
+    ["回復する仲間を押す", 1],
+  ];
+  const list = marks.map(([label, index]) => {
+    const mark = current > index ? "done" : current === index ? "current" : "todo";
+    return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + esc(label) + "</li>";
+  }).join("");
+  return "<section class=\"card tutorial-note-card supply-tutorial\" role=\"status\">"
+    + "<p class=\"eyebrow\">補給チュートリアル</p>"
+    + "<h3>次の戦いに備えましょう</h3>"
+    + "<p class=\"tutorial-note\">" + body + "</p>"
+    + "<p class=\"tutorial-progress\"><b>手順 " + (current + 1) + "/2</b></p>"
+    + "<ol class=\"tutorial-steps\">" + list + "</ol></section>";
+}
+
 // ============================================================ 隊列チュートリアル（R11 §5 改）
 //
 // **巻き戻したあとの並べ替えだけは、押す場所が光り、そこしか押せない。**
@@ -4584,7 +4625,8 @@ function formationTutorialSpotSelector(step) {
 }
 
 // いま掛かっている手取りの錠。**同時に二つは掛からない**——隊列チュートリアルは
-// Stage 0 の巻き戻し直後だけ、必殺技の一戦は Stage 1 の第1戦だけで、場面が重ならない。
+// Stage 0 の巻き戻し直後、補給チュートリアルは本編第1戦の勝利直後、必殺技の一戦は
+// Stage 1 の第1戦だけで、場面が重ならない。
 // 画面・押せる経路・通しの検査は、この一つの形（段・錠・光らせる先）だけを読む。
 function tutorialGate() {
   const formation = formationTutorialStep();
@@ -4594,6 +4636,15 @@ function tutorialGate() {
       step: formation,
       locked: formationTutorialLocked(),
       selector: formationTutorialSpotSelector(formation),
+    };
+  }
+  const supply = supplyTutorialStep();
+  if (supply) {
+    return {
+      id: "supply",
+      step: supply,
+      locked: supplyTutorialLocked(),
+      selector: supplyTutorialSpotSelector(supply),
     };
   }
   const ultimate = ultimateLessonStep();
@@ -6651,7 +6702,7 @@ function handleAction(event) {
   // 「叩いて進む」が巻き戻し後の一行目（「同じ朝。同じ光。」＝時間が戻ったことを
   // 見せる行）を読み飛ばしていた。長押しの合成呼び出しには止める先が無いので `?.` で呼ぶ。
   if (element.closest?.(".vn-gate")) event.stopPropagation?.();
-  // R11 §5 改 / issue #240 — 手取りチュートリアル（隊列・必殺技）の錠は**押せる形（DOM）と
+  // R11 §5 改 / issue #240 — 手取りチュートリアル（隊列・補給・必殺技）の錠は**押せる形（DOM）と
   // 経路（ここ）の両方**で掛ける。光っていない場所は押しても何も起きない
   // （DESIGN.md §6.4.3 の離脱経路と同じ二重の塞ぎ方）。長押しの行も同じここを通る。
   if (!tutorialAllows(element)) return;
