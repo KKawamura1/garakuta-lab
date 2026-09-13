@@ -231,7 +231,7 @@ if (!app.includes('return titleShell("One Battle Ahead", "",')) {
 
 // 画面固有の文脈は、共通ヘッダーを消しても失わない。
 for (const [label, expected] of [
-  ["戦闘画面の遭遇名", 'sectionHeading("BATTLE", "戦闘"'],
+  ["戦闘画面の見出し", 'sectionHeading("BATTLE", state.simulationMode ? "戦闘予測" : "戦闘"'],
   ["結果画面の遭遇・ラウンド", "verdict-context"],
   ["キャンプ予測の遭遇名", "const encounterName = currentEncounter()?.name"],
 ]) {
