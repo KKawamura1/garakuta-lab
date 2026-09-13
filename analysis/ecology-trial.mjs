@@ -349,8 +349,15 @@ try {
       String(await page.locator(".party-cell.fx-swap").count()));
   }
   await page.locator('[data-action="toggle-formation-mode"]').click();
-  const firstToggle = page.locator('.installed-row [data-action="toggle-skill"]').first();
-  if (await firstToggle.count()) {
+  // 隊列操作の途中で選択中の人物が移動元へ切り替わる。そこから「最初の技能」を
+  // 拾うと、技能の再調整で予測の要約（勝敗・ラウンド・味方HP）を変えない技能を
+  // 選んでしまい、実装が正しくてもこの検査だけが空振りする。Stage 1 の初期編成で
+  // 予測へ確実に効く防壁技能を、人物と技能IDで明示して切り替える。
+  await page.locator('.camp-top [data-action="select-character"][data-character="mender"]').click();
+  const forecastToggle = page.locator(
+    '.installed-row [data-action="toggle-skill"][data-character="mender"][data-skill="shield_the_wounded"]',
+  );
+  if (await forecastToggle.count()) {
     // 前の値の影（.fx-ghost）は動きが終わると自分で消えるので、**在ったこと**を
     // 押す前に仕掛けた見張りで数える（読みに行く頃には消えている回がある）。
     await page.evaluate(() => {
@@ -363,7 +370,7 @@ try {
         }
       }).observe(document.querySelector("#app"), { subtree: true, childList: true });
     });
-    await firstToggle.click();
+    await forecastToggle.click();
     note("技能を切ると行が返事をする",
       await page.locator(".installed-row.fx-off, .installed-row.fx-on").count() > 0);
     // 技能を切れば予測が変わる。**申告していない数のほうが勝手に光る**（data-fx-watch）。
@@ -396,7 +403,7 @@ try {
     note("窓の外の読み値はブラウン管にしない",
       await page.locator('nav.tabs [data-fx-watch]').first()
         .evaluate((meta) => getComputedStyle(meta).animationName !== "fx-crt-value"));
-    await firstToggle.click();
+    await forecastToggle.click();
   }
   // 動きを切っている人には、動きだけを出さない（色・記号・数・ラベルは残る）。
   await page.emulateMedia({ reducedMotion: "reduce" });

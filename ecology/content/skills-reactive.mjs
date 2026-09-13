@@ -63,6 +63,14 @@ const SELF_IS_EVENT_TARGET = {
   type: "target_exists",
   query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
 };
+const SELF_NOT_FOCUSED = {
+  type: "target_exists",
+  query: {
+    scope: "self",
+    filters: [{ type: "has_status", statusId: "focused", op: "eq", value: 0 }],
+    take: 1,
+  },
+};
 
 // R6 §4.4 — 直接治療は被弾量の割合ではなく、所有者の技術から決まる固定値。
 // 技能ごとに元の比率を基準に係数を定め、damage_taken は発動条件と
@@ -80,13 +88,29 @@ const focusCare = (coefficientBps) => ({
 export const REACTIVE_SCALING = {
   counter_blow: { stat: "might", bps: bpsForLegacyAmount(2) },
   damage_echo: { stat: "might", bps: bpsForLegacyAmount(1) },
-  guard_step: { stat: "focus", bps: bpsForLegacyAmount(2) },
-  brace_after_hit: { stat: "focus", bps: bpsForLegacyAmount(2) },
+  guard_step: { stat: "focus", bps: 6_500 },
+  brace_after_hit: { stat: "focus", bps: 7_500 },
   barrier_bloom: { stat: "focus", bps: bpsForLegacyAmount(1) },
 };
 
 for (const [id, scaling] of Object.entries(REACTIVE_SCALING)) {
   scaleDefinitionAmounts(reactiveSkills[id], scaling);
+}
+
+// 自分が狙われているときに身代わりを構えると、RPだけを払い標的が変わらない。
+// 「自分以外の味方が狙われた」ことを発動条件にも明記して空振りを防ぐ。
+if (reactiveSkills.cover_ally?.rule) {
+  reactiveSkills.cover_ally.rule.predicates = [
+    ...(reactiveSkills.cover_ally.rule.predicates ?? []),
+    {
+      type: "target_exists",
+      query: {
+        scope: "allies",
+        filters: [{ type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" }],
+        take: 1,
+      },
+    },
+  ];
 }
 
 // R5 termination witnesses are test-only. They remain available through
@@ -96,10 +120,33 @@ for (const [id, scaling] of Object.entries(REACTIVE_SCALING)) {
 // 余剰治療は汎用、連携治療は応急手当専用。汎用側を無償にすると
 // 後者の完全な上位互換になるため、両方ともRP1を払い、専用側だけ
 // 余剰量を増幅する。これで「広く薄く」と「狭く強く」の選択になる。
+const OTHER_WOUNDED_ALLY = {
+  scope: "allies",
+  filters: [
+    { type: "alive" },
+    { type: "not_self" },
+    { type: "not_previous_target" },
+    { type: "hp_percent", op: "lt", value: 100 },
+  ],
+  sort: ["hp_percent_asc"],
+  take: 1,
+};
 reactiveSkills.overflow_care.rule.costs = [{ type: "spend_reaction_points", amount: 1 }];
+reactiveSkills.overflow_care.rule.predicates = [
+  ...(reactiveSkills.overflow_care.rule.predicates ?? []),
+  { type: "target_exists", query: OTHER_WOUNDED_ALLY },
+];
+for (const effect of reactiveSkills.overflow_care.rule.effects ?? []) {
+  if (effect.type === "heal") effect.target = OTHER_WOUNDED_ALLY;
+}
+reactiveSkills.triage_relay.rule.predicates = [
+  ...(reactiveSkills.triage_relay.rule.predicates ?? []),
+  { type: "target_exists", query: OTHER_WOUNDED_ALLY },
+];
 for (const effect of reactiveSkills.triage_relay.rule.effects ?? []) {
   if (effect.type === "heal" && effect.amount?.type === "event_value_scaled") {
     effect.amount = { ...effect.amount, numerator: 5, denominator: 4 };
+    effect.target = OTHER_WOUNDED_ALLY;
   }
 }
 
@@ -112,7 +159,7 @@ reactiveSkills.block_focus = {
     id: "block_focus_rule",
     listenTo: "damage_blocked",
     timing: "after",
-    predicates: [SELF_IS_EVENT_TARGET],
+    predicates: [SELF_IS_EVENT_TARGET, SELF_NOT_FOCUSED],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
     limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
@@ -266,7 +313,7 @@ reactiveSkills.guarded_opening = {
     listenTo: "damage_blocked",
     timing: "after",
     priority: 130,
-    predicates: [SELF_IS_EVENT_TARGET],
+    predicates: [SELF_IS_EVENT_TARGET, { type: "target_exists", query: RANDOM_EXPOSABLE_ENEMY }],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: RANDOM_EXPOSABLE_ENEMY, statusId: "exposed", stacks: 1 }],
     limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -284,7 +331,7 @@ reactiveSkills.seize_the_opening = {
     listenTo: "resource_gained",
     timing: "after",
     priority: 130,
-    predicates: [SELF_IS_EVENT_TARGET],
+    predicates: [SELF_IS_EVENT_TARGET, { type: "target_exists", query: RANDOM_EXPOSABLE_ENEMY }],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: RANDOM_EXPOSABLE_ENEMY, statusId: "exposed", stacks: 1 }],
     limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -307,7 +354,7 @@ reactiveSkills.whetted_by_pain = {
     listenTo: "damage_taken",
     timing: "after",
     priority: 120,
-    predicates: [SELF_IS_EVENT_TARGET],
+    predicates: [SELF_IS_EVENT_TARGET, SELF_NOT_FOCUSED],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
     limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
@@ -389,6 +436,15 @@ const LAST_IN_FORMATION_ALLY = {
 const FRONTMOST_ENEMY = {
   scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1,
 };
+const FRONTMOST_BELOW_EXPOSED_CAP = {
+  scope: "enemies",
+  filters: [
+    { type: "alive" },
+    { type: "has_status", statusId: "exposed", op: "lt", value: 2 },
+  ],
+  sort: ["position_asc"],
+  take: 1,
+};
 const WEAKEST_ALLY_QUERY = {
   // issue #176 — 宛先は傷の割合で選ぶ（docs/DESIGN.md 8.7.1）。
   scope: "allies", filters: [{ type: "alive" }], sort: ["hp_percent_asc"], take: 1,
@@ -412,7 +468,7 @@ reactiveSkills.spill_forward = {
     effects: [{
       type: "deal_damage",
       target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
-      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 3_000 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 8_000 },
       tags: ["attack", "relay"],
     }],
     limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -466,9 +522,12 @@ reactiveSkills.stride_into_reach = {
     listenTo: "actor_moved",
     timing: "after",
     priority: 115,
-    predicates: [SELF_IS_EVENT_TARGET],
+    predicates: [
+      SELF_IS_EVENT_TARGET,
+      { type: "target_exists", query: FRONTMOST_BELOW_EXPOSED_CAP },
+    ],
     costs: [{ type: "spend_reaction_points", amount: 1 }],
-    effects: [{ type: "add_status", target: FRONTMOST_ENEMY, statusId: "exposed", stacks: 1 }],
+    effects: [{ type: "add_status", target: FRONTMOST_BELOW_EXPOSED_CAP, statusId: "exposed", stacks: 1 }],
     limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
   tags: ["reaction", "relay", "mark"],
@@ -487,7 +546,7 @@ reactiveSkills.readied_relay = {
     costs: [{ type: "spend_reaction_points", amount: 1 }],
     effects: [{
       type: "gain_resource", target: LAST_IN_FORMATION_ALLY, resource: "reaction_points",
-      amount: { type: "constant", value: 1 },
+      amount: { type: "constant", value: 2 },
     }],
     limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
   },
@@ -544,6 +603,22 @@ const EVENT_SOURCE_IS_ENEMY = {
 const HIT_ENEMY_TARGET = {
   scope: "enemies", filters: [{ type: "alive" }, { type: "is_event_primary_target" }], take: 1,
 };
+const HIT_ENEMY_BELOW_EXPOSED_CAP = {
+  scope: "enemies",
+  filters: [
+    { type: "alive" }, { type: "is_event_primary_target" },
+    { type: "has_status", statusId: "exposed", op: "lt", value: 2 },
+  ],
+  take: 1,
+};
+const HIT_ALLY_BELOW_WARD_CAP = {
+  scope: "allies",
+  filters: [
+    { type: "alive" }, { type: "is_event_primary_target" },
+    { type: "has_status", statusId: "warded", op: "lt", value: 2 },
+  ],
+  take: 1,
+};
 const NEAR_DEAD_HIT_ENEMY = {
   scope: "enemies",
   filters: [
@@ -568,6 +643,15 @@ const EXPOSED_EVENT_ALLY = {
     { type: "alive" }, { type: "is_event_primary_target" },
     { type: "has_status", statusId: "exposed", op: "gte", value: 1 },
   ],
+  take: 1,
+};
+const FRONTMOST_BELOW_STAGGER_CAP = {
+  scope: "enemies",
+  filters: [
+    { type: "alive" },
+    { type: "has_status", statusId: "staggered", op: "lt", value: 2 },
+  ],
+  sort: ["position_asc"],
   take: 1,
 };
 
@@ -597,7 +681,7 @@ reactiveSkills.opportunist = reaction("opportunist", REACTIVE_SKILL_NAMES.opport
   predicates: [statusIs("exposed"), EVENT_TARGET_IS_ENEMY],
   costs: spendRp(),
   effects: [{
-    type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(4_500),
+    type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(6_500),
     reach: "unrestricted", tags: ["attack", "mark"],
   }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -614,7 +698,7 @@ reactiveSkills.vengeful_step = reaction("vengeful_step", REACTIVE_SKILL_NAMES.ve
   }],
   costs: spendRp(),
   effects: [{
-    type: "deal_damage", target: FRONTMOST_ENEMY, amount: mightDamage(6_000),
+    type: "deal_damage", target: FRONTMOST_ENEMY, amount: mightDamage(18_000),
     reach: "melee", tags: ["attack"],
   }],
   limit: { owner: "actor-instance + rule", scope: "battle", count: 2 },
@@ -630,7 +714,7 @@ reactiveSkills.finish_the_wounded = reaction(
     predicates: [{ type: "target_exists", query: NEAR_DEAD_HIT_ENEMY }],
     costs: spendRp(),
     effects: [{
-      type: "deal_damage", target: NEAR_DEAD_HIT_ENEMY, amount: mightDamage(5_500),
+      type: "deal_damage", target: NEAR_DEAD_HIT_ENEMY, amount: mightDamage(9_000),
       reach: "unrestricted", tags: ["attack", "execute"],
     }],
     limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -639,15 +723,19 @@ reactiveSkills.finish_the_wounded = reaction(
 
 // ---- 防壁と隊列（pack_wall）----
 
-// **飛んでくる数字そのものを削る。**防壁（総量）でも受け構え（回数）でもない、
-// 三つ目の守り方。大きい一撃ほど、削り取れる割合は小さい。
+// **飛んでくる数字そのものを25%削る。**防壁（総量）でも受け構え（回数）でもない、
+// 三つ目の守り方。固定12では後半ほど空気になるため、攻撃規模に追従させる。
 reactiveSkills.absorb_shock = reaction("absorb_shock", REACTIVE_SKILL_NAMES.absorb_shock, {
   listenTo: "damage_proposed",
   timing: "interrupt",
   priority: 60,
   predicates: [SELF_IS_EVENT_TARGET],
   costs: spendRp(),
-  effects: [{ type: "modify_pending_amount", operation: "decrease", amount: { type: "constant", value: 12 } }],
+  effects: [{
+    type: "modify_pending_amount",
+    operation: "decrease",
+    amount: { type: "event_value_scaled", key: "amount", numerator: 1, denominator: 4 },
+  }],
   limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 }, ["reaction", "guard"]);
 
@@ -657,9 +745,9 @@ reactiveSkills.guard_the_marked = reaction("guard_the_marked", REACTIVE_SKILL_NA
   listenTo: "target_selected",
   timing: "interrupt",
   priority: 20,
-  predicates: [EVENT_SOURCE_IS_ENEMY, ALLY_IS_EVENT_TARGET],
+  predicates: [EVENT_SOURCE_IS_ENEMY, { type: "target_exists", query: HIT_ALLY_BELOW_WARD_CAP }],
   costs: spendRp(),
-  effects: [{ type: "add_status", target: HIT_ALLY_TARGET, statusId: "warded", stacks: 1 }],
+  effects: [{ type: "add_status", target: HIT_ALLY_BELOW_WARD_CAP, statusId: "warded", stacks: 1 }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "guard"]);
 
@@ -682,7 +770,7 @@ reactiveSkills.counterweight = reaction("counterweight", REACTIVE_SKILL_NAMES.co
   priority: 115,
   predicates: [{ type: "target_exists", query: MOVED_ALLY }],
   costs: spendRp(),
-  effects: [{ type: "gain_barrier", target: MOVED_ALLY, amount: focusBarrier(5_000), duration: "round" }],
+  effects: [{ type: "gain_barrier", target: MOVED_ALLY, amount: focusBarrier(7_500), duration: "round" }],
   limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
 }, ["reaction", "guard", "move"]);
 
@@ -727,7 +815,9 @@ reactiveSkills.steady_under_fire = reaction(
     listenTo: "damage_taken",
     timing: "after",
     priority: 118,
-    predicates: [SELF_IS_EVENT_TARGET],
+    predicates: [SELF_IS_EVENT_TARGET, {
+      type: "has_status", subject: "self", statusId: "warded", op: "lt", value: 2,
+    }],
     costs: spendRp(),
     effects: [{ type: "add_status", target: SELF_TARGET, statusId: "warded", stacks: 1 }],
     limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
@@ -739,7 +829,7 @@ reactiveSkills.second_wind = reaction("second_wind", REACTIVE_SKILL_NAMES.second
   listenTo: "excess_healing",
   timing: "after",
   priority: 112,
-  predicates: [SELF_IS_EVENT_SOURCE],
+  predicates: [SELF_IS_EVENT_SOURCE, SELF_NOT_FOCUSED],
   costs: spendRp(),
   effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
   limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
@@ -752,7 +842,7 @@ reactiveSkills.read_the_charge = reaction("read_the_charge", REACTIVE_SKILL_NAME
   listenTo: "preparation_started",
   timing: "after",
   priority: 128,
-  predicates: [EVENT_TARGET_IS_ENEMY],
+  predicates: [{ type: "target_exists", query: HIT_ENEMY_BELOW_EXPOSED_CAP }],
   costs: spendRp(),
   effects: [{ type: "add_status", target: HIT_ENEMY_TARGET, statusId: "exposed", stacks: 1 }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -775,7 +865,9 @@ reactiveSkills.counter_order = reaction("counter_order", REACTIVE_SKILL_NAMES.co
   listenTo: "action_declared",
   timing: "interrupt",
   priority: 30,
-  predicates: [EVENT_SOURCE_IS_ENEMY],
+  predicates: [EVENT_SOURCE_IS_ENEMY, {
+    type: "has_status", subject: "event_source", statusId: "staggered", op: "lt", value: 2,
+  }],
   costs: spendRp(),
   effects: [{
     type: "add_status",
@@ -809,7 +901,7 @@ reactiveSkills.echo_of_the_mark = reaction("echo_of_the_mark", REACTIVE_SKILL_NA
   predicates: [statusIs("exposed"), EVENT_TARGET_IS_ENEMY],
   costs: spendRp(),
   effects: [{
-    type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(5_000),
+    type: "deal_damage", target: HIT_ENEMY_TARGET, amount: mightDamage(6_500),
     reach: "unrestricted", tags: ["attack", "mark"],
   }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
@@ -822,9 +914,13 @@ reactiveSkills.stagger_relay = reaction("stagger_relay", REACTIVE_SKILL_NAMES.st
   listenTo: "status_added",
   timing: "after",
   priority: 106,
-  predicates: [statusIs("staggered"), EVENT_TARGET_IS_ENEMY],
+  predicates: [
+    statusIs("staggered"),
+    EVENT_TARGET_IS_ENEMY,
+    { type: "target_exists", query: FRONTMOST_BELOW_STAGGER_CAP },
+  ],
   costs: spendRp(),
-  effects: [{ type: "add_status", target: FRONTMOST_ENEMY, statusId: "staggered", stacks: 1 }],
+  effects: [{ type: "add_status", target: FRONTMOST_BELOW_STAGGER_CAP, statusId: "staggered", stacks: 1 }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "relay", "debuff"]);
 
@@ -833,7 +929,7 @@ reactiveSkills.warded_into_edge = reaction("warded_into_edge", REACTIVE_SKILL_NA
   listenTo: "status_added",
   timing: "after",
   priority: 106,
-  predicates: [statusIs("warded"), SELF_IS_EVENT_TARGET],
+  predicates: [statusIs("warded"), SELF_IS_EVENT_TARGET, SELF_NOT_FOCUSED],
   costs: spendRp(),
   effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
   limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
@@ -844,9 +940,12 @@ reactiveSkills.bleed_into_wake = reaction("bleed_into_wake", REACTIVE_SKILL_NAME
   listenTo: "status_added",
   timing: "after",
   priority: 106,
-  predicates: [statusIs("bleeding"), EVENT_TARGET_IS_ENEMY],
+  predicates: [
+    statusIs("bleeding"),
+    { type: "target_exists", query: HIT_ENEMY_BELOW_EXPOSED_CAP },
+  ],
   costs: spendRp(),
-  effects: [{ type: "add_status", target: HIT_ENEMY_TARGET, statusId: "exposed", stacks: 1 }],
+  effects: [{ type: "add_status", target: HIT_ENEMY_BELOW_EXPOSED_CAP, statusId: "exposed", stacks: 1 }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "relay", "mark"]);
 

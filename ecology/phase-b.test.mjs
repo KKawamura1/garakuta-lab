@@ -631,8 +631,8 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
     `多段の1段ぶん・段数・合計が食い違わない（${barrage}）`,
   );
 
-  // 単位は定義の amount 型が決める。**本文は % を書かない。**
-  check(textOf("absorb_shock", 2).includes("13減らす"), "固定量の amount は % を付けずに入る");
+  // 単位は定義の amount 型が決める。衝撃を殺すは後半にも追従する割合軽減。
+  check(textOf("absorb_shock", 2).includes("28%減らす"), "割合の amount は % 付きで入る");
   for (const [id, coefficientBps] of [
     ["mend", 2_500],
     ["triage", 5_000],

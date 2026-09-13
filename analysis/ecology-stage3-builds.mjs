@@ -260,7 +260,7 @@ const BUILDS = Object.freeze([
     plan: Object.freeze([
       // **止め続けるだけでは幕3を抜けない。**第10戦だけで敵の総HPは1632ある。
       // 守る構成にも「誰が削るのか」を決めた上で、止めた拍をその人へ渡す。
-      // 削るのはナギ（技術30）の溜め突き——技術×5.5で、準備1回を挟んで165出る。
+      // 削るのはナギ（技術30）の溜め突き——技術×2.4で、準備1回を挟んで72出る。
       // 前が保っているあいだだけ溜められる、という依存がそのまま構成の形になる。
       // 盾の列（強すぎると言われた側）はヒバナの主軸として通しに乗せる。
       // 回復量を固定し隊全体で上限を共有した後も、守り構成の看護を一人へ寄せないため、
@@ -351,7 +351,9 @@ const BUILDS = Object.freeze([
   Object.freeze({
     id: "tempo",
     displayName: "順番を作る",
-    through: Object.freeze({ reaches: 12, ends: "cleared" }),
+    // R26 — 溜め突きとAP移譲の突出を落とした結果、第7戦の時間切れになった。
+    // それでも第6戦の関門までは勝ち切り、準備を急かして完成させる固有の事件列は残る。
+    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
     question: "遅い一撃に、どうやって手番を通すか",
     engine: Object.freeze({
       source: "行動権と準備（resource_gained / preparation_*）",
@@ -406,19 +408,19 @@ const BUILDS = Object.freeze([
       Object.freeze({ before: 10, characterId: "tactician", level: "triage" }),
       Object.freeze({ before: 11, characterId: "tactician", level: "triage" }),
       Object.freeze({ before: 12, characterId: "tactician", level: "triage" }),
-      Object.freeze({ before: 2, characterId: "lancer", skillId: "long_swing" }),
-      Object.freeze({ before: 3, characterId: "lancer", skillId: "hunt_the_slow" }),
-      Object.freeze({ before: 4, characterId: "lancer", level: "hunt_the_slow" }),
-      Object.freeze({ before: 5, characterId: "lancer", level: "rear_hunt" }),
-      Object.freeze({ before: 5, characterId: "lancer", level: "hunt_the_slow" }),
-      Object.freeze({ before: 6, characterId: "lancer", level: "rear_hunt" }),
-      Object.freeze({ before: 7, characterId: "lancer", level: "hunt_the_slow" }),
-      Object.freeze({ before: 8, characterId: "lancer", level: "rear_hunt" }),
-      Object.freeze({ before: 9, characterId: "lancer", level: "hunt_the_slow" }),
-      Object.freeze({ before: 9, characterId: "lancer", level: "rear_hunt" }),
-      Object.freeze({ before: 10, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 2, characterId: "lancer", skillId: "foundation_focus" }),
+      Object.freeze({ before: 3, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 4, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 5, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 6, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 7, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 8, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 9, characterId: "lancer", level: "heavy_swing" }),
+      Object.freeze({ before: 10, characterId: "lancer", level: "rear_hunt" }),
       Object.freeze({ before: 11, characterId: "lancer", level: "rear_hunt" }),
-      Object.freeze({ before: 12, characterId: "lancer", level: "hunt_the_slow" }),
+      Object.freeze({ before: 12, characterId: "lancer", level: "rear_hunt" }),
       Object.freeze({ before: 2, characterId: "guardian", skillId: "rally_line" }),
       Object.freeze({ before: 3, characterId: "guardian", skillId: "relay_order" }),
       Object.freeze({ before: 4, characterId: "guardian", skillId: "drag_forward" }),
@@ -456,8 +458,8 @@ const BUILDS = Object.freeze([
     tactics: Object.freeze({
       warden: ["steady_cut"],
       mender: ["heavy_swing"],
-      // 準備狩りは条件つきで、溜めている敵が居る拍だけに出る。
-      lancer: ["hunt_the_slow", "rear_hunt"],
+      // 受け役の技術30も溜めへ回す。レベルを上げた本人が実際に使う。
+      lancer: ["heavy_swing"],
       guardian: ["relay_order", "drag_forward", "rally_line", "column_thrust"],
       tactician: ["hasten_ally", "relay_order"],
     }),
@@ -466,9 +468,9 @@ const BUILDS = Object.freeze([
       mender: ["triage", "emergency_treatment"],
       lancer: ["triage", "cover_ally"],
       guardian: ["scavenge_ap", "brace_after_hit"],
-      // **痛みを分けるは装着しない。**発動ごとにHPを30払うので、急かすへの
-      // 通り道として買うだけにする（通り道は目的地ではない）。
-      tactician: ["urging", "second_wind", "triage_relay", "overflow_care",
+      // 痛みを分けるは固定30自傷ではなくなった。先頭で4割を引き受け、後続の
+      // 手当てへ被害を分散することで、溜め役が一撃で落ちるのを防ぐ。
+      tactician: ["shared_pain", "urging", "second_wind", "triage_relay", "overflow_care",
         "watchful_care", "triage", "patient_step", "scavenge_ap"],
     }),
   }),
@@ -670,8 +672,17 @@ function playThrough(build, snapshots, carried = null) {
     }
     // **買った節が実際に鳴ったか。**技能は skillId、反応と常設は ruleId で数える。
     for (const event of result.events) {
-      if (event.skillId) fired.add(event.skillId);
-      if (event.ruleId) fired.add("rule:" + event.ruleId);
+      const sourceCharacterId = String(event.sourceActorId ?? "").startsWith("a_")
+        ? String(event.sourceActorId).slice(2)
+        : null;
+      if (event.skillId) {
+        fired.add(event.skillId);
+        if (sourceCharacterId) fired.add(keyForFire(sourceCharacterId, event.skillId));
+      }
+      if (event.ruleId) {
+        fired.add("rule:" + event.ruleId);
+        if (sourceCharacterId) fired.add(keyForFire(sourceCharacterId, "rule:" + event.ruleId));
+      }
     }
     // **余白。**勝ったかどうかだけでは「楽勝だった」と「あと一撃だった」が同じ形で
     // 残る。issue #230 はその差を測るためにあるので、隊の残HP・使った round・
@@ -795,12 +806,15 @@ function silentPurchases(build, rows) {
   // **検査が、弱い構成を作る方向へ圧力をかけてしまう。**
   // **人物ごとに数える。**同じ節でも、別の人物にとっては通り道でしかない。
   const key = (characterId, skillId) => `${characterId}/${skillId}`;
-  const purchased = new Set(build.plan.filter((step) => step.skillId)
+  const reachedPlan = build.plan.filter((step) => (
+    lastEncounter === undefined || step.before <= lastEncounter
+  ));
+  const purchased = new Set(reachedPlan.filter((step) => step.skillId)
     .map((step) => key(step.characterId, step.skillId)));
-  const leveled = new Set(build.plan.filter((step) => step.level)
+  const leveled = new Set(reachedPlan.filter((step) => step.level)
     .map((step) => key(step.characterId, step.level)));
   const steppingStones = new Set();
-  for (const step of build.plan) {
+  for (const step of reachedPlan) {
     if (!step.skillId) continue;
     for (const required of nodeBySkill[step.skillId]?.requires ?? []) {
       if (purchased.has(key(step.characterId, required.skillId))) {
@@ -820,10 +834,15 @@ function silentPurchases(build, rows) {
     if (!definition) continue;
     const ruleId = definition.rule?.id ?? null;
     if (!ruleId && !PLAYABLE_CONTENT.activeSkills?.[skillId]) continue; // 能力値だけの常設
-    const rang = ruleId ? rows.fired.has("rule:" + ruleId) : rows.fired.has(skillId);
+    const firedId = ruleId ? "rule:" + ruleId : skillId;
+    const rang = rows.fired.has(keyForFire(step.characterId, firedId));
     if (!rang) silent.push(`第${step.before}戦前に ${step.characterId} が取る ${skillId}`);
   }
   return silent;
+}
+
+function keyForFire(characterId, id) {
+  return `${characterId}/${id}`;
 }
 
 // **「倍率だけ違う」を落とすための比べ方。**
@@ -1067,7 +1086,7 @@ if (!usedLeveled) {
   // 買ったのに鳴らない節を、実際に検出できることを確かめる。
   {
     const rows = [];
-    rows.fired = new Set(["rule:foundation_ap_rule"]);
+    rows.fired = new Set([keyForFire("tactician", "rule:foundation_ap_rule")]);
     const probe = { ...BUILDS[0], plan: [
       { before: 2, characterId: "tactician", skillId: "foundation_ap" },
       { before: 3, characterId: "tactician", skillId: "held_breath" },

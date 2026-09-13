@@ -227,8 +227,9 @@ assert.deepEqual(
     if (entry.displayName !== definition.displayName) {
       glossaryProblems.push(`状態 ${id} の表示名が定義とずれている`);
     }
-    // 説明文に書いた「1段につきN」は、定義の効果量と一致すること。
-    const written = [...String(entry.summary).matchAll(/1段につき(\d+)/g)].map((match) => Number(match[1]));
+    // 説明文に書いた「1段につきN% / 最大HPのN%」は、段数1の定義と一致すること。
+    const written = [...String(entry.summary).matchAll(/1段につき(?:最大HPの)?(\d+)%/g)]
+      .map((match) => Number(match[1]));
     if (!written.length) continue;
     const amounts = [];
     const walk = (node) => {
@@ -236,12 +237,16 @@ assert.deepEqual(
       if (!node || typeof node !== "object") return;
       if (node.type === "constant" && Number.isFinite(node.value)) amounts.push(node.value);
       if (node.type === "status_stacks_scaled") amounts.push(node.numerator ?? 1);
+      if (node.type === "event_value_scaled" && node.denominator === 100) amounts.push(node.numerator ?? 1);
+      if (node.type === "actor_stat_scaled" && node.stat === "max_hp" && node.denominator === 100) {
+        amounts.push(node.numerator ?? 1);
+      }
       for (const value of Object.values(node)) walk(value);
     };
     walk(definition.rules ?? []);
     for (const value of written) {
       if (!amounts.includes(value)) {
-        glossaryProblems.push(`状態 ${id} の説明が「1段につき${value}」だが、`
+        glossaryProblems.push(`状態 ${id} の説明が「1段につき${value}%」だが、`
           + `定義の量は ${amounts.join("・") || "(無し)"}`);
       }
     }

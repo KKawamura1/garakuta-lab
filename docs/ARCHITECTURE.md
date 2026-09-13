@@ -117,6 +117,18 @@ barrier / 増減の amount）は各技能にちょうど一つで、説明文は
 持っている」を検出し、`analysis/ecology-readout-smoke.mjs` と `ecology/phase-b.test.mjs` が
 それを見張ります。
 
+取得コストと登場時期に対する強さは `analysis/ecology-skill-balance-smoke.mjs` が production
+content を直接読んで検査します。深い腕力攻撃を基礎攻撃の高Lvと比較し、技術攻撃の係数帯、
+溜め技の1行動平均、AP移譲の `channel` / `not_self` を固定します。さらに同じ content を
+小戦闘へ通し、隙・怯み・守勢が多段の全hitへ割合で掛かること、裂傷が最大HPを読むこと、
+複数行動の途中で「余りを溜める」が次の一手を集中させること、位置替えと踏み固めが連鎖すること、
+身代わりが自己標的へRPを空費しないことまでevent列で確かめます。
+
+割合状態は新しいengine語彙ではありません。`content/statuses.mjs` が段数と `hitIndex` の
+排他的な組ごとに有限の `damage_proposed` ruleを展開し、既存の
+`event_value_scaled` とchain発火上限を使います。上限はproduction contentの最大6hitに合わせ、
+balance smokeが0〜5の全hitを覆うruleを要求します。
+
 技能画面の効果チップは、この同じ `skillTextAtLevel` から能力値を掛ける前の係数を読む。
 人物ごとの最終値は詳細欄へ重ねず、印（腕・技・受・HP）と係数を見たプレイヤーが判断する。
 未取得節の右端は、現在Lvから取得可能になるまでに必要な他技能の残りLv数を破線四角、

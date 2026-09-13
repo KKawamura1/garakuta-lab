@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.17",
+ "contentVersion": "ecology-playable-full-0.18",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.17",
+  "contentVersion": "ecology-playable-full-0.18",
   "characters": {
    "warden": {
     "id": "warden",
@@ -149,7 +149,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 20000
+       "coefficientBps": 10000
       },
       "duration": "round"
      }
@@ -163,12 +163,40 @@
     "id": "relay_order",
     "displayName": "号令",
     "apCost": 1,
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "allies",
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "not_self"
       },
       {
        "type": "row_is",
@@ -202,7 +230,7 @@
     "tags": [
      "order"
     ],
-    "actionMode": "utility"
+    "actionMode": "channel"
    },
    "heavy_swing": {
     "id": "heavy_swing",
@@ -243,7 +271,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "focus",
-        "coefficientBps": 55000
+        "coefficientBps": 24000
        },
        "tags": [
         "attack",
@@ -304,10 +332,20 @@
        ],
        "take": 1
       }
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "warded",
+      "stacks": 1
      }
     ],
     "tags": [
-     "move"
+     "move",
+     "guard"
     ],
     "actionMode": "utility"
    },
@@ -350,7 +388,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "focus",
-        "coefficientBps": 100000
+        "coefficientBps": 50000
        },
        "tags": [
         "attack",
@@ -427,7 +465,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 30000
+       "coefficientBps": 14500
       },
       "tags": [
        "attack",
@@ -474,7 +512,7 @@
      "buff",
      "playable"
     ],
-    "actionMode": "utility"
+    "actionMode": "channel"
    },
    "mark_target": {
     "id": "mark_target",
@@ -570,12 +608,24 @@
       },
       "statusId": "focused",
       "stacks": 1
+     },
+     {
+      "type": "gain_resource",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "resource": "reaction_points",
+      "amount": {
+       "type": "constant",
+       "value": 1
+      }
      }
     ],
     "tags": [
      "buff"
     ],
-    "actionMode": "utility"
+    "actionMode": "channel"
    },
    "front_strike": {
     "id": "front_strike",
@@ -1054,7 +1104,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 11500
+       "coefficientBps": 12000
       },
       "tags": [
        "attack",
@@ -1155,7 +1205,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 12500
+       "coefficientBps": 9000
       },
       "tags": [
        "attack",
@@ -1327,7 +1377,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 11500
+       "coefficientBps": 15000
       },
       "tags": [
        "attack"
@@ -1400,7 +1450,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 12000
+       "coefficientBps": 11000
       },
       "tags": [
        "attack",
@@ -1475,7 +1525,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 14000
+       "coefficientBps": 15000
       },
       "tags": [
        "attack"
@@ -1527,7 +1577,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 11000
+       "coefficientBps": 9000
       },
       "tags": [
        "attack",
@@ -1697,7 +1747,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 10000
+       "coefficientBps": 9500
       },
       "tags": [
        "attack",
@@ -1787,7 +1837,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 13000
+       "coefficientBps": 12000
       },
       "tags": [
        "attack",
@@ -2090,7 +2140,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 16500
+       "coefficientBps": 18500
       },
       "tags": [
        "attack",
@@ -2138,7 +2188,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 20000
+       "coefficientBps": 27500
       },
       "reach": "melee",
       "tags": [
@@ -2204,7 +2254,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 16500
+       "coefficientBps": 24000
       },
       "reach": "melee",
       "tags": [
@@ -2260,7 +2310,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 13500
+       "coefficientBps": 19500
       },
       "reach": "melee",
       "tags": [
@@ -2313,7 +2363,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 18500
+       "coefficientBps": 20000
       },
       "reach": "melee",
       "tags": [
@@ -2367,7 +2417,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 20500
+       "coefficientBps": 28500
       },
       "reach": "melee",
       "tags": [
@@ -2414,7 +2464,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 8500
+       "coefficientBps": 10000
       },
       "reach": "melee",
       "tags": [
@@ -2504,7 +2554,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 20000
+       "coefficientBps": 22500
       },
       "reach": "melee",
       "tags": [
@@ -2552,7 +2602,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 9500
+       "coefficientBps": 11500
       },
       "reach": "melee",
       "tags": [
@@ -2674,11 +2724,26 @@
        ],
        "take": 1
       }
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
      }
     ],
     "tags": [
      "move",
-     "formation"
+     "formation",
+     "debuff"
     ]
    },
    "shield_wall": {
@@ -2781,11 +2846,14 @@
       },
       {
        "type": "row_is",
-       "row": "front"
+       "row": "rear"
+      },
+      {
+       "type": "not_self"
       }
      ],
      "sort": [
-      "hp_percent_asc"
+      "hp_desc"
      ],
      "take": 1
     },
@@ -2793,6 +2861,15 @@
      {
       "type": "swap_positions",
       "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "otherTarget": {
        "scope": "allies",
        "filters": [
         {
@@ -2807,31 +2884,27 @@
         "hp_percent_asc"
        ],
        "take": 1
-      },
-      "otherTarget": {
-       "scope": "allies",
+      }
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
        "filters": [
         {
          "type": "alive"
-        },
-        {
-         "type": "row_is",
-         "row": "rear"
-        },
-        {
-         "type": "not_self"
         }
        ],
-       "sort": [
-        "hp_desc"
-       ],
        "take": 1
-      }
+      },
+      "statusId": "warded",
+      "stacks": 1
      }
     ],
     "tags": [
      "move",
-     "formation"
+     "formation",
+     "guard"
     ]
    },
    "bulwark_of_will": {
@@ -2875,7 +2948,29 @@
     "displayName": "構えを配る",
     "apCost": 1,
     "actionMode": "utility",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
      "scope": "self",
      "take": 1
@@ -2892,6 +2987,9 @@
         {
          "type": "row_is",
          "row": "front"
+        },
+        {
+         "type": "not_self"
         }
        ],
        "take": "all"
@@ -2941,7 +3039,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 10500
+       "coefficientBps": 20000
       },
       "reach": "melee",
       "tags": [
@@ -3030,9 +3128,53 @@
     "displayName": "息を渡す",
     "apCost": 1,
     "actionMode": "utility",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        },
+        {
+         "type": "has_status",
+         "statusId": "focused",
+         "op": "eq",
+         "value": 0
+        }
+       ],
+       "sort": [
+        "position_desc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
-     "scope": "self",
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      },
+      {
+       "type": "has_status",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
      "take": 1
     },
     "effects": [
@@ -3043,6 +3185,15 @@
        "filters": [
         {
          "type": "alive"
+        },
+        {
+         "type": "not_self"
+        },
+        {
+         "type": "has_status",
+         "statusId": "focused",
+         "op": "eq",
+         "value": 0
         }
        ],
        "sort": [
@@ -3064,9 +3215,47 @@
     "displayName": "守勢を渡す",
     "apCost": 1,
     "actionMode": "utility",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "warded",
+         "op": "lt",
+         "value": 2
+        }
+       ],
+       "sort": [
+        "hp_percent_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
-     "scope": "self",
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "warded",
+       "op": "lt",
+       "value": 2
+      }
+     ],
+     "sort": [
+      "hp_percent_asc"
+     ],
      "take": 1
     },
     "effects": [
@@ -3077,6 +3266,12 @@
        "filters": [
         {
          "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "warded",
+         "op": "lt",
+         "value": 2
         }
        ],
        "sort": [
@@ -3136,7 +3331,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 15000
+       "coefficientBps": 11500
       },
       "reach": "ranged",
       "tags": [
@@ -3234,10 +3429,42 @@
     "id": "hasten_ally",
     "displayName": "背を押す",
     "apCost": 1,
-    "actionMode": "utility",
-    "intrinsicPredicates": [],
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_desc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
-     "scope": "self",
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
      "take": 1
     },
     "effects": [
@@ -3248,6 +3475,9 @@
        "filters": [
         {
          "type": "alive"
+        },
+        {
+         "type": "not_self"
         }
        ],
        "sort": [
@@ -3337,6 +3567,12 @@
        "filters": [
         {
          "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "staggered",
+         "op": "lt",
+         "value": 2
         }
        ],
        "sort": [
@@ -3351,6 +3587,12 @@
      "filters": [
       {
        "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "staggered",
+       "op": "lt",
+       "value": 2
       }
      ],
      "sort": [
@@ -3366,6 +3608,12 @@
        "filters": [
         {
          "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "staggered",
+         "op": "lt",
+         "value": 2
         }
        ],
        "sort": [
@@ -3388,7 +3636,15 @@
     "displayName": "拍を作る",
     "apCost": 1,
     "actionMode": "channel",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "has_status",
+      "subject": "self",
+      "statusId": "focused",
+      "op": "eq",
+      "value": 0
+     }
+    ],
     "targetQuery": {
      "scope": "self",
      "take": 1
@@ -3608,7 +3864,7 @@
        "type": "status_stacks_scaled",
        "subject": "selected_target",
        "statusId": "exposed",
-       "numerator": 45,
+       "numerator": 60,
        "denominator": 1
       },
       "reach": "melee",
@@ -3643,9 +3899,53 @@
     "displayName": "傷を引き受ける",
     "apCost": 1,
     "actionMode": "utility",
-    "intrinsicPredicates": [],
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "warded",
+         "op": "lt",
+         "value": 2
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "hp_percent_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
     "targetQuery": {
-     "scope": "self",
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "warded",
+       "op": "lt",
+       "value": 2
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "hp_percent_asc"
+     ],
      "take": 1
     },
     "effects": [
@@ -3656,6 +3956,15 @@
        "filters": [
         {
          "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "warded",
+         "op": "lt",
+         "value": 2
+        },
+        {
+         "type": "not_self"
         }
        ],
        "sort": [
@@ -3699,8 +4008,17 @@
          "type": "alive"
         },
         {
+         "type": "not_self"
+        },
+        {
          "type": "row_is",
          "row": "front"
+        },
+        {
+         "type": "has_status",
+         "statusId": "focused",
+         "op": "eq",
+         "value": 0
         }
        ],
        "sort": [
@@ -3711,7 +4029,28 @@
      }
     ],
     "targetQuery": {
-     "scope": "self",
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      },
+      {
+       "type": "row_is",
+       "row": "front"
+      },
+      {
+       "type": "has_status",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
      "take": 1
     },
     "effects": [
@@ -3724,8 +4063,17 @@
          "type": "alive"
         },
         {
+         "type": "not_self"
+        },
+        {
          "type": "row_is",
          "row": "front"
+        },
+        {
+         "type": "has_status",
+         "statusId": "focused",
+         "op": "eq",
+         "value": 0
         }
        ],
        "sort": [
@@ -3861,6 +4209,24 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "not_self"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -3909,6 +4275,32 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "not_self"
+         },
+         {
+          "type": "not_previous_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lt",
+          "value": 100
+         }
+        ],
+        "sort": [
+         "hp_percent_asc"
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -3927,6 +4319,9 @@
           "type": "alive"
          },
          {
+          "type": "not_self"
+         },
+         {
           "type": "not_previous_target"
          },
          {
@@ -3936,7 +4331,7 @@
          }
         ],
         "sort": [
-         "hp_asc"
+         "hp_percent_asc"
         ],
         "take": 1
        },
@@ -4043,7 +4438,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "focus",
-        "coefficientBps": 5000
+        "coefficientBps": 6500
        },
        "duration": "round"
       }
@@ -4183,7 +4578,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "focus",
-        "coefficientBps": 5000
+        "coefficientBps": 7500
        },
        "duration": "round"
       }
@@ -4224,6 +4619,32 @@
        "type": "event_tag",
        "tag": "triage",
        "value": true
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "not_self"
+         },
+         {
+          "type": "not_previous_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lt",
+          "value": 100
+         }
+        ],
+        "sort": [
+         "hp_percent_asc"
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -4242,6 +4663,9 @@
           "type": "alive"
          },
          {
+          "type": "not_self"
+         },
+         {
           "type": "not_previous_target"
          },
          {
@@ -4251,7 +4675,7 @@
          }
         ],
         "sort": [
-         "hp_asc"
+         "hp_percent_asc"
         ],
         "take": 1
        },
@@ -4293,6 +4717,21 @@
         "filters": [
          {
           "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "has_status",
+          "statusId": "focused",
+          "op": "eq",
+          "value": 0
          }
         ],
         "take": 1
@@ -4627,6 +5066,27 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "sort": [
+         "hp_desc"
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -4691,6 +5151,27 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "sort": [
+         "hp_desc"
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -4751,6 +5232,21 @@
         "filters": [
          {
           "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "has_status",
+          "statusId": "focused",
+          "op": "eq",
+          "value": 0
          }
         ],
         "take": 1
@@ -4954,7 +5450,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 3000
+        "coefficientBps": 8000
        },
        "tags": [
         "attack",
@@ -5121,6 +5617,27 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "sort": [
+         "position_asc"
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -5137,6 +5654,12 @@
         "filters": [
          {
           "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "lt",
+          "value": 2
          }
         ],
         "sort": [
@@ -5206,7 +5729,7 @@
        "resource": "reaction_points",
        "amount": {
         "type": "constant",
-        "value": 1
+        "value": 2
        }
       }
      ],
@@ -5339,7 +5862,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 4500
+        "coefficientBps": 6500
        },
        "reach": "unrestricted",
        "tags": [
@@ -5407,7 +5930,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 6000
+        "coefficientBps": 18000
        },
        "reach": "melee",
        "tags": [
@@ -5491,7 +6014,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 5500
+        "coefficientBps": 9000
        },
        "reach": "unrestricted",
        "tags": [
@@ -5545,8 +6068,10 @@
        "type": "modify_pending_amount",
        "operation": "decrease",
        "amount": {
-        "type": "constant",
-        "value": 12
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 1,
+        "denominator": 4
        }
       }
      ],
@@ -5595,6 +6120,12 @@
          },
          {
           "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "warded",
+          "op": "lt",
+          "value": 2
          }
         ],
         "take": 1
@@ -5618,6 +6149,12 @@
          },
          {
           "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "warded",
+          "op": "lt",
+          "value": 2
          }
         ],
         "take": 1
@@ -5759,7 +6296,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "focus",
-        "coefficientBps": 5000
+        "coefficientBps": 7500
        },
        "duration": "round"
       }
@@ -5954,6 +6491,13 @@
        }
       },
       {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "warded",
+       "op": "lt",
+       "value": 2
+      },
+      {
        "type": "event_tag",
        "tag": "cost",
        "value": false
@@ -6008,6 +6552,21 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "has_status",
+          "statusId": "focused",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -6054,7 +6613,16 @@
         "scope": "enemies",
         "filters": [
          {
+          "type": "alive"
+         },
+         {
           "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "lt",
+          "value": 2
          }
         ],
         "take": 1
@@ -6177,6 +6745,13 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "has_status",
+       "subject": "event_source",
+       "statusId": "staggered",
+       "op": "lt",
+       "value": 2
       }
      ],
      "costs": [
@@ -6318,7 +6893,7 @@
         "type": "stat_scaled",
         "subject": "self",
         "scalingStat": "might",
-        "coefficientBps": 5000
+        "coefficientBps": 6500
        },
        "reach": "unrestricted",
        "tags": [
@@ -6365,6 +6940,27 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "staggered",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "sort": [
+         "position_asc"
+        ],
+        "take": 1
+       }
       }
      ],
      "costs": [
@@ -6381,6 +6977,12 @@
         "filters": [
          {
           "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "staggered",
+          "op": "lt",
+          "value": 2
          }
         ],
         "sort": [
@@ -6426,6 +7028,21 @@
         "filters": [
          {
           "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "has_status",
+          "statusId": "focused",
+          "op": "eq",
+          "value": 0
          }
         ],
         "take": 1
@@ -6482,7 +7099,16 @@
         "scope": "enemies",
         "filters": [
          {
+          "type": "alive"
+         },
+         {
           "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "lt",
+          "value": 2
          }
         ],
         "take": 1
@@ -6506,6 +7132,12 @@
          },
          {
           "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "lt",
+          "value": 2
          }
         ],
         "take": 1
@@ -6691,7 +7323,7 @@
     ],
     "rule": {
      "id": "held_breath_rule",
-     "listenTo": "resource_unused",
+     "listenTo": "action_resolved",
      "timing": "after",
      "predicates": [
       {
@@ -6700,22 +7332,25 @@
         "scope": "self",
         "filters": [
          {
-          "type": "is_event_primary_target"
+          "type": "is_event_source"
          }
         ],
         "take": 1
        }
       },
       {
-       "type": "event_tag",
-       "tag": "action_points",
-       "value": true
-      },
-      {
-       "type": "event_value",
-       "key": "amount",
+       "type": "resource",
+       "subject": "self",
+       "resource": "action_points",
        "op": "gte",
        "value": 1
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
       }
      ],
      "costs": [],
@@ -6762,6 +7397,13 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
       }
      ],
      "costs": [],
@@ -6808,6 +7450,13 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
       }
      ],
      "costs": [],
@@ -6907,6 +7556,13 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
       }
      ],
      "costs": [],
@@ -7111,6 +7767,13 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
       }
      ],
      "costs": [],
@@ -7157,6 +7820,13 @@
         ],
         "take": 1
        }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
       }
      ],
      "costs": [],
@@ -8502,7 +9172,7 @@
       "id": "exposed_rule",
       "listenTo": "damage_proposed",
       "timing": "interrupt",
-      "priority": 50,
+      "priority": 45,
       "predicates": [
        {
         "type": "target_exists",
@@ -8515,6 +9185,19 @@
          ],
          "take": 1
         }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
        }
       ],
       "costs": [],
@@ -8523,8 +9206,571 @@
         "type": "modify_pending_amount",
         "operation": "increase",
         "amount": {
-         "type": "constant",
-         "value": 10
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_1_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_0_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "exposed_2_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "exposed",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
         }
        }
       ],
@@ -8536,7 +9782,8 @@
      }
     ],
     "tags": [
-     "fixture"
+     "playable",
+     "debuff"
     ]
    },
    "focused": {
@@ -8571,8 +9818,10 @@
         "type": "modify_pending_amount",
         "operation": "increase",
         "amount": {
-         "type": "constant",
-         "value": 10
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 50,
+         "denominator": 100
         }
        },
        {
@@ -8616,8 +9865,10 @@
         "type": "modify_pending_amount",
         "operation": "increase",
         "amount": {
-         "type": "constant",
-         "value": 10
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 50,
+         "denominator": 100
         }
        },
        {
@@ -8661,8 +9912,10 @@
         "type": "modify_pending_amount",
         "operation": "increase",
         "amount": {
-         "type": "constant",
-         "value": 10
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 50,
+         "denominator": 100
         }
        },
        {
@@ -8683,7 +9936,8 @@
      }
     ],
     "tags": [
-     "fixture"
+     "playable",
+     "buff"
     ]
    },
    "staggered": {
@@ -8710,6 +9964,19 @@
          ],
          "take": 1
         }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
        }
       ],
       "costs": [],
@@ -8718,11 +9985,571 @@
         "type": "modify_pending_amount",
         "operation": "decrease",
         "amount": {
-         "type": "status_stacks_scaled",
-         "subject": "self",
-         "statusId": "staggered",
-         "numerator": 8,
-         "denominator": 1
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_1_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_0_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_2_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
         }
        }
       ],
@@ -8762,6 +10589,19 @@
          ],
          "take": 1
         }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
        }
       ],
       "costs": [],
@@ -8770,11 +10610,571 @@
         "type": "modify_pending_amount",
         "operation": "decrease",
         "amount": {
-         "type": "status_stacks_scaled",
-         "subject": "self",
-         "statusId": "warded",
-         "numerator": 8,
-         "denominator": 1
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_1_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_0_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warded_2_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
         }
        }
       ],
@@ -8802,7 +11202,15 @@
       "listenTo": "round_ended",
       "timing": "after",
       "priority": 60,
-      "predicates": [],
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "bleeding",
+        "op": "eq",
+        "value": 1
+       }
+      ],
       "costs": [],
       "effects": [
        {
@@ -8812,11 +11220,93 @@
          "take": 1
         },
         "amount": {
-         "type": "status_stacks_scaled",
+         "type": "actor_stat_scaled",
          "subject": "self",
-         "statusId": "bleeding",
-         "numerator": 12,
-         "denominator": 1
+         "stat": "max_hp",
+         "numerator": 5,
+         "denominator": 100
+        },
+        "guardPierceBps": 10000,
+        "tags": [
+         "bleed"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     },
+     {
+      "id": "bleeding_2_rule",
+      "listenTo": "round_ended",
+      "timing": "after",
+      "priority": 60,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "bleeding",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "actor_stat_scaled",
+         "subject": "self",
+         "stat": "max_hp",
+         "numerator": 10,
+         "denominator": 100
+        },
+        "guardPierceBps": 10000,
+        "tags": [
+         "bleed"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     },
+     {
+      "id": "bleeding_3_rule",
+      "listenTo": "round_ended",
+      "timing": "after",
+      "priority": 60,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "bleeding",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "actor_stat_scaled",
+         "subject": "self",
+         "stat": "max_hp",
+         "numerator": 15,
+         "denominator": 100
         },
         "guardPierceBps": 10000,
         "tags": [
@@ -10232,7 +12722,7 @@
     "kind": "active",
     "definitionId": "relay_order",
     "label": "号令",
-    "effect": "前列の先頭の味方へ行動権を1渡す。",
+    "effect": "攻撃を一手休み、前列の先頭にいる自分以外の味方へ行動権を1渡す。",
     "grammar": "指揮"
    },
    "heavy_swing": {
@@ -10248,7 +12738,7 @@
     "kind": "active",
     "definitionId": "reposition",
     "label": "位置替え",
-    "effect": "後衛なら、最も傷ついた前衛と場所を替える。",
+    "effect": "後衛なら、最も傷ついた前衛と場所を替え、自分に「守勢」を1つ。移動反応を起こしつつ前を引き受ける。",
     "grammar": "機動"
    },
    "long_swing": {
@@ -10288,7 +12778,7 @@
     "kind": "active",
     "definitionId": "steady_aim",
     "label": "狙いを澄ます",
-    "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
+    "effect": "攻撃を一手休み、自分に「集中」と反応権を1つずつ得る。集中中はスキップ。",
     "grammar": "準備"
    },
    "hand_off": {
@@ -10400,7 +12890,7 @@
     "kind": "active",
     "definitionId": "hamstring",
     "label": "足を払う",
-    "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージが1段につき8軽くなる。",
+    "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージは1段につき20%減る。",
     "grammar": "攻撃"
    },
    "execute_low": {
@@ -10416,7 +12906,7 @@
     "kind": "active",
     "definitionId": "rend",
     "label": "抉る",
-    "effect": "腕力{amount}と「裂傷」2つ。裂傷はラウンド終わりに1段12、受けを完全に無視して刻む。",
+    "effect": "腕力{amount}と「裂傷」2つ。裂傷はラウンド終わりに1段あたり最大HPの5%を、受けを無視して刻む。",
     "grammar": "攻撃"
    },
    "drag_forward": {
@@ -10424,7 +12914,7 @@
     "kind": "active",
     "definitionId": "drag_forward",
     "label": "引きずり出す",
-    "effect": "敵の後列で最もHPの低い一体を、最前の敵と入れ替える。届かなかった刃が届くようになる。",
+    "effect": "敵の後列で最もHPの低い一体を最前へ引き出し、「隙」を1つ付ける。届かなかった刃を次の攻撃へつなぐ。",
     "grammar": "機動"
    },
    "shield_wall": {
@@ -10440,7 +12930,7 @@
     "kind": "active",
     "definitionId": "rally_line",
     "label": "陣を組み直す",
-    "effect": "最も傷ついた前衛と、最も無事な後衛（自分以外）を入れ替える。自分は動かない。",
+    "effect": "最も傷ついた前衛と、最も無事な後衛（自分以外）を入れ替え、前へ出た味方に「守勢」を1つ。自分は動かない。",
     "grammar": "機動"
    },
    "bulwark_of_will": {
@@ -10456,7 +12946,7 @@
     "kind": "active",
     "definitionId": "spread_the_guard",
     "label": "構えを配る",
-    "effect": "前列の味方全員へ受け構えを1つ。単発大威力に強く、多段には剥がされる。",
+    "effect": "前列にいる自分以外の味方全員へ受け構えを1つ。自分用の「衝撃に備える」と使い分ける。",
     "grammar": "守り"
    },
    "bracing_thrust": {
@@ -10480,7 +12970,7 @@
     "kind": "active",
     "definitionId": "steady_breath",
     "label": "息を渡す",
-    "effect": "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
+    "effect": "隊列の最後にいる「集中」していない味方（自分以外）へ「集中」を1つ。",
     "grammar": "支援"
    },
    "ward_ally": {
@@ -10488,7 +12978,7 @@
     "kind": "active",
     "definitionId": "ward_ally",
     "label": "守勢を渡す",
-    "effect": "最も傷ついた味方へ「守勢」を1つ。防壁と違い削り切られず、一撃ごとに8軽くする。",
+    "effect": "「守勢」が上限でない最も傷ついた味方へ1つ。受ける各hitを1段につき20%軽くする。",
     "grammar": "支援"
    },
    "precise_cut": {
@@ -10520,7 +13010,7 @@
     "kind": "active",
     "definitionId": "hasten_ally",
     "label": "背を押す",
-    "effect": "隊列の最後の味方へ行動権を1渡す。号令（前列の先頭へ）と逆向き。",
+    "effect": "攻撃を一手休み、隊列の最後にいる自分以外の味方へ行動権を1渡す。号令と逆向き。",
     "grammar": "指揮"
    },
    "call_the_slow": {
@@ -10576,7 +13066,7 @@
     "kind": "active",
     "definitionId": "take_the_wound",
     "label": "傷を引き受ける",
-    "effect": "最も傷ついた味方へ「守勢」を2つ。代償として自分に「隙」が1つ付く。",
+    "effect": "最も傷ついた自分以外の味方へ「守勢」を2つ。代償として自分に「隙」が1つ付く。",
     "grammar": "支援"
    },
    "pass_the_edge": {
@@ -10584,7 +13074,7 @@
     "kind": "active",
     "definitionId": "pass_the_edge",
     "label": "刃を渡す",
-    "effect": "前列で最も速い味方へ「集中」を1つ。自分の一手を他人の一手に変える。",
+    "effect": "前列で「集中」していない最も速い味方（自分以外）へ「集中」を1つ。自分の一手を他人の大技へ渡す。",
     "grammar": "指揮"
    }
   },
@@ -10602,7 +13092,7 @@
     "kind": "reactive",
     "definitionId": "cover_ally",
     "label": "身代わり",
-    "effect": "敵が味方を狙った瞬間、RP1で自分へ引き受ける。",
+    "effect": "敵が自分以外の味方を狙った瞬間、RP1で自分へ引き受ける。自分が狙われた時は消費しない。",
     "grammar": "標的"
    },
    "overflow_care": {
@@ -10730,7 +13220,7 @@
     "kind": "reactive",
     "definitionId": "readied_relay",
     "label": "支度を渡す",
-    "effect": "自分の準備が完了したあと、RP1で隊列の最後の味方へ反応権を1渡す。",
+    "effect": "自分の準備が完了したあと、RP1で隊列の最後の味方へ反応権を2渡す。深い受け渡しほど収支が増える。",
     "grammar": "準備"
    },
    "wake_of_the_fallen": {
@@ -10810,7 +13300,7 @@
     "kind": "reactive",
     "definitionId": "absorb_shock",
     "label": "衝撃を殺す",
-    "effect": "自分に飛んでくるダメージを、RP1で{amount}減らす。ラウンド1回。大きい一撃ほど割合では小さい。",
+    "effect": "自分に飛んでくるダメージを、RP1で{amount}減らす。ラウンド1回。攻撃規模に追従する守り。",
     "grammar": "被弾"
    },
    "guard_the_marked": {
@@ -11012,7 +13502,7 @@
     "kind": "passive",
     "definitionId": "held_breath",
     "label": "余りを溜める",
-    "effect": "ラウンド終わりに行動権が余っていたら、「集中」を1つ得る。手数は増えない。",
+    "effect": "行動後にも行動権が残っていたら、「集中」を1つ得る。複数行動の次の一手を強くする。",
     "grammar": "指揮"
    },
    "steady_hands": {
@@ -11401,7 +13891,7 @@
    "kind": "active",
    "definitionId": "relay_order",
    "label": "号令",
-   "effect": "前列の先頭の味方へ行動権を1渡す。",
+   "effect": "攻撃を一手休み、前列の先頭にいる自分以外の味方へ行動権を1渡す。",
    "grammar": "指揮"
   },
   "heavy_swing": {
@@ -11417,7 +13907,7 @@
    "kind": "active",
    "definitionId": "reposition",
    "label": "位置替え",
-   "effect": "後衛なら、最も傷ついた前衛と場所を替える。",
+   "effect": "後衛なら、最も傷ついた前衛と場所を替え、自分に「守勢」を1つ。移動反応を起こしつつ前を引き受ける。",
    "grammar": "機動"
   },
   "long_swing": {
@@ -11457,7 +13947,7 @@
    "kind": "active",
    "definitionId": "steady_aim",
    "label": "狙いを澄ます",
-   "effect": "自分に「集中」を1つ付けてから、追い打ちを行う。集中中はスキップ。",
+   "effect": "攻撃を一手休み、自分に「集中」と反応権を1つずつ得る。集中中はスキップ。",
    "grammar": "準備"
   },
   "hand_off": {
@@ -11569,7 +14059,7 @@
    "kind": "active",
    "definitionId": "hamstring",
    "label": "足を払う",
-   "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージが1段につき8軽くなる。",
+   "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージは1段につき20%減る。",
    "grammar": "攻撃"
   },
   "execute_low": {
@@ -11585,7 +14075,7 @@
    "kind": "active",
    "definitionId": "rend",
    "label": "抉る",
-   "effect": "腕力{amount}と「裂傷」2つ。裂傷はラウンド終わりに1段12、受けを完全に無視して刻む。",
+   "effect": "腕力{amount}と「裂傷」2つ。裂傷はラウンド終わりに1段あたり最大HPの5%を、受けを無視して刻む。",
    "grammar": "攻撃"
   },
   "drag_forward": {
@@ -11593,7 +14083,7 @@
    "kind": "active",
    "definitionId": "drag_forward",
    "label": "引きずり出す",
-   "effect": "敵の後列で最もHPの低い一体を、最前の敵と入れ替える。届かなかった刃が届くようになる。",
+   "effect": "敵の後列で最もHPの低い一体を最前へ引き出し、「隙」を1つ付ける。届かなかった刃を次の攻撃へつなぐ。",
    "grammar": "機動"
   },
   "shield_wall": {
@@ -11609,7 +14099,7 @@
    "kind": "active",
    "definitionId": "rally_line",
    "label": "陣を組み直す",
-   "effect": "最も傷ついた前衛と、最も無事な後衛（自分以外）を入れ替える。自分は動かない。",
+   "effect": "最も傷ついた前衛と、最も無事な後衛（自分以外）を入れ替え、前へ出た味方に「守勢」を1つ。自分は動かない。",
    "grammar": "機動"
   },
   "bulwark_of_will": {
@@ -11625,7 +14115,7 @@
    "kind": "active",
    "definitionId": "spread_the_guard",
    "label": "構えを配る",
-   "effect": "前列の味方全員へ受け構えを1つ。単発大威力に強く、多段には剥がされる。",
+   "effect": "前列にいる自分以外の味方全員へ受け構えを1つ。自分用の「衝撃に備える」と使い分ける。",
    "grammar": "守り"
   },
   "bracing_thrust": {
@@ -11649,7 +14139,7 @@
    "kind": "active",
    "definitionId": "steady_breath",
    "label": "息を渡す",
-   "effect": "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
+   "effect": "隊列の最後にいる「集中」していない味方（自分以外）へ「集中」を1つ。",
    "grammar": "支援"
   },
   "ward_ally": {
@@ -11657,7 +14147,7 @@
    "kind": "active",
    "definitionId": "ward_ally",
    "label": "守勢を渡す",
-   "effect": "最も傷ついた味方へ「守勢」を1つ。防壁と違い削り切られず、一撃ごとに8軽くする。",
+   "effect": "「守勢」が上限でない最も傷ついた味方へ1つ。受ける各hitを1段につき20%軽くする。",
    "grammar": "支援"
   },
   "precise_cut": {
@@ -11689,7 +14179,7 @@
    "kind": "active",
    "definitionId": "hasten_ally",
    "label": "背を押す",
-   "effect": "隊列の最後の味方へ行動権を1渡す。号令（前列の先頭へ）と逆向き。",
+   "effect": "攻撃を一手休み、隊列の最後にいる自分以外の味方へ行動権を1渡す。号令と逆向き。",
    "grammar": "指揮"
   },
   "call_the_slow": {
@@ -11745,7 +14235,7 @@
    "kind": "active",
    "definitionId": "take_the_wound",
    "label": "傷を引き受ける",
-   "effect": "最も傷ついた味方へ「守勢」を2つ。代償として自分に「隙」が1つ付く。",
+   "effect": "最も傷ついた自分以外の味方へ「守勢」を2つ。代償として自分に「隙」が1つ付く。",
    "grammar": "支援"
   },
   "pass_the_edge": {
@@ -11753,7 +14243,7 @@
    "kind": "active",
    "definitionId": "pass_the_edge",
    "label": "刃を渡す",
-   "effect": "前列で最も速い味方へ「集中」を1つ。自分の一手を他人の一手に変える。",
+   "effect": "前列で「集中」していない最も速い味方（自分以外）へ「集中」を1つ。自分の一手を他人の大技へ渡す。",
    "grammar": "指揮"
   },
   "counter_blow": {
@@ -11769,7 +14259,7 @@
    "kind": "reactive",
    "definitionId": "cover_ally",
    "label": "身代わり",
-   "effect": "敵が味方を狙った瞬間、RP1で自分へ引き受ける。",
+   "effect": "敵が自分以外の味方を狙った瞬間、RP1で自分へ引き受ける。自分が狙われた時は消費しない。",
    "grammar": "標的"
   },
   "overflow_care": {
@@ -11897,7 +14387,7 @@
    "kind": "reactive",
    "definitionId": "readied_relay",
    "label": "支度を渡す",
-   "effect": "自分の準備が完了したあと、RP1で隊列の最後の味方へ反応権を1渡す。",
+   "effect": "自分の準備が完了したあと、RP1で隊列の最後の味方へ反応権を2渡す。深い受け渡しほど収支が増える。",
    "grammar": "準備"
   },
   "wake_of_the_fallen": {
@@ -11977,7 +14467,7 @@
    "kind": "reactive",
    "definitionId": "absorb_shock",
    "label": "衝撃を殺す",
-   "effect": "自分に飛んでくるダメージを、RP1で{amount}減らす。ラウンド1回。大きい一撃ほど割合では小さい。",
+   "effect": "自分に飛んでくるダメージを、RP1で{amount}減らす。ラウンド1回。攻撃規模に追従する守り。",
    "grammar": "被弾"
   },
   "guard_the_marked": {
@@ -12177,7 +14667,7 @@
    "kind": "passive",
    "definitionId": "held_breath",
    "label": "余りを溜める",
-   "effect": "ラウンド終わりに行動権が余っていたら、「集中」を1つ得る。手数は増えない。",
+   "effect": "行動後にも行動権が残っていたら、「集中」を1つ得る。複数行動の次の一手を強くする。",
    "grammar": "指揮"
   },
   "steady_hands": {
@@ -24472,7 +26962,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -24848,7 +27338,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -25193,7 +27683,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -25423,7 +27913,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -25726,7 +28216,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -26001,7 +28491,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -26207,7 +28697,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -26439,7 +28929,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -26672,7 +29162,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -26878,7 +29368,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -27087,7 +29577,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -27331,7 +29821,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -27591,7 +30081,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -27792,7 +30282,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -28024,7 +30514,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -28277,7 +30767,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -28519,7 +31009,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -28788,7 +31278,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -29028,7 +31518,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -29256,7 +31746,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -29466,7 +31956,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -29651,7 +32141,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -29855,7 +32345,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -30086,7 +32576,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -30314,7 +32804,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -30552,7 +33042,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -30885,7 +33375,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -31344,7 +33834,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -31729,7 +34219,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -32138,7 +34628,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -32578,7 +35068,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -32886,7 +35376,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -33110,7 +35600,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -33325,7 +35815,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -33557,7 +36047,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -33784,7 +36274,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-25",
+      "contentContractVersion": "ecology-content-contract-26",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

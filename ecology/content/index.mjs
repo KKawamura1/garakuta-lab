@@ -88,7 +88,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 2026-09-13 — `cover_ally` を pack_edge の core へ移し、ナギ加入の Stage 1 で
 // 身代わりを解禁する。`shield_handoff` は pack_wall の Stage 2 に残る。
 // パック構成が変わるため、旧 manifest と混同しないよう contract version を上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-25";
+// issue #189 / #190 / #128 — 固定値だった状態を割合へ変え、移動・身代わり・
+// AP受け渡しの発動条件と結果も変えた。同じ入力の戦闘結果が変わるため版を上げる。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-26";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -165,7 +167,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   // shared_pain の回復を damage 分散へ変更した。
   //
   // issue #176（#165 段階2）で 0.15 へ上げた。R22 の意味変更で 0.16 へ上げ、
-  // R23 の shared_pain の意味変更で 0.17 へ上げる。
+  // R23 の shared_pain の意味変更で 0.17、状態・移動・技能収支の見直しで 0.18 へ上げる。
   // **公開済み ID の意味が変わったから**である
   // （AGENTS.md「version の不一致を黙って無視しない」）。技能も装備も ID は一つも
   // 増減していないが、次の二つで同じ入力から違う結果が出る。
@@ -177,7 +179,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.17",
+  contentVersion: "ecology-playable-full-0.18",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,

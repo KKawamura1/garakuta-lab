@@ -12,6 +12,13 @@
 import { LEGACY_COMBAT_SCALE } from "./base.mjs";
 
 const self = { scope: "self", take: 1 };
+const selfIsEventSource = {
+  type: "target_exists",
+  query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
+};
+const selfNotFocused = {
+  type: "has_status", subject: "self", statusId: "focused", op: "eq", value: 0,
+};
 
 // R6 §6.8 の表。maxHp だけは連続量なので Phase A の 10 倍尺度へ合わせる
 // （表の +5 は移行前の尺度で書かれている）。
@@ -111,20 +118,21 @@ export const PASSIVE_SKILLS = {
       priority: 100,
     },
   },
-  // pack_tempo — 使い切れなかった行動権を、次の一手の集中へ変える。
-  // **手数は増えない。**余りの行き先が一つ増えるだけ。
+  // pack_tempo — 1回動いても行動権が残る者の、次の一手を集中へ変える。
+  // round末の resource_unused までAPが残ることは通常ない（行動可能なら次の巡で
+  // 必ず使う）ため、action_resolved の直後に「まだ1以上ある」を読む。
   held_breath: {
     id: "held_breath",
     displayName: "余りを溜める",
     tags: ["passive", "playable", "tempo"],
     rule: {
       id: "held_breath_rule",
-      listenTo: "resource_unused",
+      listenTo: "action_resolved",
       timing: "after",
       predicates: [
-        { type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 } },
-        { type: "event_tag", tag: "action_points", value: true },
-        { type: "event_value", key: "amount", op: "gte", value: 1 },
+        selfIsEventSource,
+        { type: "resource", subject: "self", resource: "action_points", op: "gte", value: 1 },
+        selfNotFocused,
       ],
       costs: [],
       effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
@@ -142,10 +150,7 @@ export const PASSIVE_SKILLS = {
       id: "steady_hands_rule",
       listenTo: "healing_applied",
       timing: "after",
-      predicates: [{
-        type: "target_exists",
-        query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
-      }],
+      predicates: [selfIsEventSource, selfNotFocused],
       costs: [],
       effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
       limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
@@ -162,10 +167,7 @@ export const PASSIVE_SKILLS = {
       id: "wake_reader_rule",
       listenTo: "excess_damage",
       timing: "after",
-      predicates: [{
-        type: "target_exists",
-        query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
-      }],
+      predicates: [selfIsEventSource, selfNotFocused],
       costs: [],
       effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
       limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
@@ -212,8 +214,9 @@ Object.assign(PASSIVE_SKILLS, {
       listenTo: "actor_defeated",
       timing: "after",
       predicates: [
-        { type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 } },
+        selfIsEventSource,
         { type: "target_exists", query: { scope: "enemies", filters: [{ type: "is_event_primary_target" }], take: 1 } },
+        selfNotFocused,
       ],
       costs: [],
       effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
@@ -301,7 +304,8 @@ Object.assign(PASSIVE_SKILLS, {
       timing: "after",
       predicates: [
         { type: "event_value", key: "statusId", op: "eq", value: "exposed" },
-        { type: "target_exists", query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 } },
+        selfIsEventSource,
+        selfNotFocused,
       ],
       costs: [],
       effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
@@ -322,7 +326,7 @@ Object.assign(PASSIVE_SKILLS, {
       predicates: [{
         type: "target_exists",
         query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
-      }],
+      }, selfNotFocused],
       costs: [],
       effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
       limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
