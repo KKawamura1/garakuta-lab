@@ -293,7 +293,7 @@ try {
 
   // issue #235 — タブは4枚（スキル・装備・補給・遠征）。編成タブは廃止し、隊列は
   // どのタブからでも上端の盤面の「⇅ 隊列」で組み替える。
-  for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵に挑む"]]) {
+  for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵との実戦へ進む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
     note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
     if (tab === "skills") {
@@ -590,7 +590,7 @@ try {
       && await page.locator(".camp-top .party-ultimate.firing").count() > 0;
     // issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まず自動戦闘へ進む。
     // Campaignの幕間会話は再訪でも出るため、該当戦では同じ通常レンダラーを閉じてから戦闘へ進む。
-    await click("この敵に挑む");
+    await click("この敵との実戦へ進む");
     await page.waitForFunction(
       () => Boolean(document.querySelector(".vn-stage, .battle-field")),
       null,
