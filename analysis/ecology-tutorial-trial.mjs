@@ -390,7 +390,7 @@ try {
   const skillHelp = page.locator('details[data-help="skill-rules"]');
   if (await skillHelp.count()) await skillHelp.locator("summary").click();
   const skillText = await bodyText();
-  note("入口の技能が出ている", /確かな斬り/.test(skillText) && /狙い撃ち/.test(skillText));
+  note("入口の技能が出ている", /踏み込み斬り/.test(skillText) && /狙い撃ち/.test(skillText));
 
   // issue #238 — **Stage 0 に必殺技は出さない。**武器と技の違い・隊列・応急手当を
   // 覚える回に、もう一つの仕組みを載せない。長押しの入口も、残り回数も、説明も出ない。

@@ -1847,7 +1847,9 @@ function renderGuild() {
     + "<p class=\"operation-note\">購入は取り消せません。購入後の値と価格を確認してから選んでください。</p>"
     + "<div class=\"purchase-list\">" + upgrades + "</div>"
     + helpDetails("guild-rules", "投資のルール",
-      "<p class=\"muted\">活動資金は遠征終了時に精算されます。技能の取得、設計図の持込枠、目利き、初期SPアップ、開始補給、鍛錬を長期的に整えます。</p>")
+      "<p class=\"muted\">活動資金は遠征終了時に精算されます。実入りは Stage が進むほど大きくなります（第一部の最後は最初の9倍）。</p>"
+      + "<p class=\"muted\">投資先は二種類あります。<b>常設の強化</b>（開始補給・初期SP・設計図の持込枠・目利き・装備枠・野営の手当て）は買い切りで、<b>鍛錬</b>は仲間と能力ごとに12段まで積めます。鍛錬は一段で基礎値の6%、上限まで積むと72%増えます。</p>"
+      + "<p class=\"muted\">第一部を通して入る資金では、鍛錬を全部積むことはできません。<b>どこに積むかを毎回選びます。</b></p>")
     + "</section>"
     + "<section class=\"card\">" + sectionHeading("CHARACTER TRAINING", "仲間を鍛える",
       "<span class=\"stage\">" + metOptions.length + "人</span>")

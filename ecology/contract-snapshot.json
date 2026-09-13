@@ -1070,7 +1070,7 @@
    },
    "steady_cut": {
     "id": "steady_cut",
-    "displayName": "確かな斬り",
+    "displayName": "踏み込み斬り",
     "apCost": 1,
     "actionMode": "offense",
     "intrinsicPredicates": [],
@@ -1820,7 +1820,7 @@
    },
    "sweeping_barrage": {
     "id": "sweeping_barrage",
-    "displayName": "連ぎ払い",
+    "displayName": "乱れ薙ぎ",
     "apCost": 1,
     "actionMode": "offense",
     "targetQuery": {
@@ -3027,7 +3027,7 @@
    },
    "steady_breath": {
     "id": "steady_breath",
-    "displayName": "息を合わせる",
+    "displayName": "息を渡す",
     "apCost": 1,
     "actionMode": "utility",
     "intrinsicPredicates": [],
@@ -3546,7 +3546,7 @@
    },
    "shatter_point": {
     "id": "shatter_point",
-    "displayName": "積もる刻印",
+    "displayName": "積み撃ち",
     "apCost": 1,
     "actionMode": "offense",
     "intrinsicPredicates": [
@@ -4280,7 +4280,7 @@
    },
    "block_focus": {
     "id": "block_focus",
-    "displayName": "受け返しの集中",
+    "displayName": "受けて澄ます",
     "rule": {
      "id": "block_focus_rule",
      "listenTo": "damage_blocked",
@@ -9887,7 +9887,7 @@
   "fallback_strike_ranged": "追い射ち",
   "rapid_cuts": "刻み斬り",
   "pierce_thrust": "貫き突き",
-  "steady_cut": "確かな斬り",
+  "steady_cut": "踏み込み斬り",
   "aimed_shot": "狙い撃ち",
   "row_sweep": "薙ぎ払い",
   "column_thrust": "突き通し",
@@ -9899,7 +9899,7 @@
   "barrage_strike": "連撃",
   "mark_strike": "刻印撃ち",
   "mark_break": "刻印砕き",
-  "sweeping_barrage": "連ぎ払い",
+  "sweeping_barrage": "乱れ薙ぎ",
   "piercing_barrage": "貫き連撃",
   "shield_the_wounded": "傷へ盾を",
   "hand_off": "引き継ぐ",
@@ -9919,7 +9919,7 @@
   "spread_the_guard": "構えを配る",
   "bracing_thrust": "受けながらの突き",
   "field_dressing": "まとめて手当て",
-  "steady_breath": "息を合わせる",
+  "steady_breath": "息を渡す",
   "ward_ally": "守勢を渡す",
   "precise_cut": "静かな一手",
   "sustaining_ward": "長く守る",
@@ -9930,7 +9930,7 @@
   "set_the_pace": "拍を作る",
   "flurry_finish": "刻み止め",
   "mark_spread": "刻印を散らす",
-  "shatter_point": "積もる刻印",
+  "shatter_point": "積み撃ち",
   "take_the_wound": "傷を引き受ける",
   "pass_the_edge": "刃を渡す",
   "counter_blow": "反撃",
@@ -9941,7 +9941,7 @@
   "urging": "急かす",
   "brace_after_hit": "受け流し",
   "triage_relay": "連携治療",
-  "block_focus": "受け返しの集中",
+  "block_focus": "受けて澄ます",
   "barrier_stitch": "防壁の縫い直し",
   "emergency_treatment": "応急処置",
   "mend": "手当て",
@@ -10207,7 +10207,7 @@
     "id": "steady_cut",
     "kind": "active",
     "definitionId": "steady_cut",
-    "label": "確かな斬り",
+    "label": "踏み込み斬り",
     "effect": "条件も準備もない、腕力{amount}の一撃。武器なので後列から出すと40%まで落ちる。",
     "grammar": "攻撃"
    },
@@ -10343,7 +10343,7 @@
     "id": "sweeping_barrage",
     "kind": "active",
     "definitionId": "sweeping_barrage",
-    "label": "連ぎ払い",
+    "label": "乱れ薙ぎ",
     "effect": "前列の敵が2体以上いるとき、同じ行を{amount}×{hits}回薙ぐ。対象がいなければスキップ。",
     "grammar": "攻撃"
    },
@@ -10479,7 +10479,7 @@
     "id": "steady_breath",
     "kind": "active",
     "definitionId": "steady_breath",
-    "label": "息を合わせる",
+    "label": "息を渡す",
     "effect": "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
     "grammar": "支援"
    },
@@ -10567,7 +10567,7 @@
     "id": "shatter_point",
     "kind": "active",
     "definitionId": "shatter_point",
-    "label": "積もる刻印",
+    "label": "積み撃ち",
     "effect": "「隙」1段につき{amount}を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
     "grammar": "攻撃"
    },
@@ -10657,7 +10657,7 @@
     "id": "block_focus",
     "kind": "reactive",
     "definitionId": "block_focus",
-    "label": "受け返しの集中",
+    "label": "受けて澄ます",
     "effect": "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。",
     "grammar": "防御"
    },
@@ -11376,7 +11376,7 @@
    "id": "steady_cut",
    "kind": "active",
    "definitionId": "steady_cut",
-   "label": "確かな斬り",
+   "label": "踏み込み斬り",
    "effect": "条件も準備もない、腕力{amount}の一撃。武器なので後列から出すと40%まで落ちる。",
    "grammar": "攻撃"
   },
@@ -11512,7 +11512,7 @@
    "id": "sweeping_barrage",
    "kind": "active",
    "definitionId": "sweeping_barrage",
-   "label": "連ぎ払い",
+   "label": "乱れ薙ぎ",
    "effect": "前列の敵が2体以上いるとき、同じ行を{amount}×{hits}回薙ぐ。対象がいなければスキップ。",
    "grammar": "攻撃"
   },
@@ -11648,7 +11648,7 @@
    "id": "steady_breath",
    "kind": "active",
    "definitionId": "steady_breath",
-   "label": "息を合わせる",
+   "label": "息を渡す",
    "effect": "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。",
    "grammar": "支援"
   },
@@ -11736,7 +11736,7 @@
    "id": "shatter_point",
    "kind": "active",
    "definitionId": "shatter_point",
-   "label": "積もる刻印",
+   "label": "積み撃ち",
    "effect": "「隙」1段につき{amount}を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。",
    "grammar": "攻撃"
   },
@@ -11824,7 +11824,7 @@
    "id": "block_focus",
    "kind": "reactive",
    "definitionId": "block_focus",
-   "label": "受け返しの集中",
+   "label": "受けて澄ます",
    "effect": "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。",
    "grammar": "防御"
   },

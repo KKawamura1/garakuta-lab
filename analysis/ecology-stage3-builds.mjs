@@ -240,7 +240,7 @@ const BUILDS = Object.freeze([
     question: "止めた回数を、次の何に変えるか",
     engine: Object.freeze({
       source: "受け構えで一撃を止めた拍（damage_blocked / block_spent）",
-      converter: "受けの受け渡しが盾を配り、受け返しの集中が集中へ変える",
+      converter: "受けの受け渡しが盾を配り、受けて澄ますが集中へ変える",
       payoff: "止めるほど前列が保ち、止めた拍が別の役割の資源になる",
       brake: "受け構えは回数。多段に剥がされ、反応点も止めるたびに減る",
     }),

@@ -26,7 +26,7 @@ const activeMeta = {
   brace_for_impact: ["衝撃に備える", "受け構えを1つ得てから、通常の追い打ちを行う。多段攻撃には剥がされやすい。", "守り"],
   strike: ["斬撃", "最もHPの低い敵へ、通常攻撃を上回る{amount}の単発。", "攻撃"],
   // R11 §5 — Stage 0 の安定した二本。**違いは威力ではなく、出せる場所。**
-  steady_cut: ["確かな斬り", "条件も準備もない、腕力{amount}の一撃。武器なので後列から出すと40%まで落ちる。", "攻撃"],
+  steady_cut: ["踏み込み斬り", "条件も準備もない、腕力{amount}の一撃。武器なので後列から出すと40%まで落ちる。", "攻撃"],
   aimed_shot: ["狙い撃ち", "最もHPの低い敵へ技術{amount}。技なので後列から出しても落ちず、前列が生きていても後列へ通る。", "攻撃"],
   bulwark: ["防壁形成", "自分に技術の{amount}のラウンド防壁を張ってから、追い打ちを行う。", "守り"],
   relay_order: ["号令", "前列の先頭の味方へ行動権を1渡す。", "指揮"],
@@ -46,7 +46,7 @@ const activeMeta = {
   barrage_strike: ["連撃", "{amount}を{hits}回。合計{total}で、受けの厚い相手より、受け構え（block）を持つ相手に強い。", "攻撃"],
   mark_strike: ["刻印撃ち", "隙のない敵へ{amount}で攻撃し、「隙」を付ける。対象がいなければスキップ。", "攻撃"],
   mark_break: ["刻印砕き", "「隙」を持つ敵へ{amount}で攻撃し、隙を刈り取る。対象がいなければスキップ。", "攻撃"],
-  sweeping_barrage: ["連ぎ払い", "前列の敵が2体以上いるとき、同じ行を{amount}×{hits}回薙ぐ。対象がいなければスキップ。", "攻撃"],
+  sweeping_barrage: ["乱れ薙ぎ", "前列の敵が2体以上いるとき、同じ行を{amount}×{hits}回薙ぐ。対象がいなければスキップ。", "攻撃"],
   piercing_barrage: ["貫き連撃", "同じ列の前後を{amount}×{hits}回貫く。後列を庇う列を多段で崩す。", "攻撃"],
   // ---------------------------------------------------------------- R16 — 大量追加
   //
@@ -71,7 +71,7 @@ const activeMeta = {
   bracing_thrust: ["受けながらの突き", "腕力{amount}を出しつつ、自分に「守勢」を1つ。攻守を両取りするぶん威力は控えめ。", "攻撃"],
   // 構えと手当て（pack_care）— HPを戻す以外の手当て
   field_dressing: ["まとめて手当て", "HP50%以下の味方**全員**へ技術{amount}のラウンド防壁。対象がいなければスキップ。", "支援"],
-  steady_breath: ["息を合わせる", "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。", "支援"],
+  steady_breath: ["息を渡す", "隊列の最後の味方へ「集中」を1つ。狙いを澄ますを他人へ向けた形。", "支援"],
   ward_ally: ["守勢を渡す", "最も傷ついた味方へ「守勢」を1つ。防壁と違い削り切られず、一撃ごとに8軽くする。", "支援"],
   precise_cut: ["静かな一手", "このラウンド一度も被弾していないときだけ、技術{amount}。技なので後列からでも落ちない。", "攻撃"],
   sustaining_ward: ["長く守る", "**開幕2ラウンドだけ**、最も傷ついた味方へ技術{amount}の戦闘中防壁。薄いが消えない。", "支援"],
@@ -84,7 +84,7 @@ const activeMeta = {
   // 連撃と刻印（pack_barrage）— 刻印を「数」として読む
   flurry_finish: ["刻み止め", "最もHPの低い敵へ{amount}を{hits}回。受け構えを剥がしやすく、受けの厚い相手には最も弱い。", "攻撃"],
   mark_spread: ["刻印を散らす", "「隙」を持たない敵**全員**へ隙を1つずつ配る。対象がいなければスキップ。", "攻撃"],
-  shatter_point: ["積もる刻印", "「隙」1段につき{amount}を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。", "攻撃"],
+  shatter_point: ["積み撃ち", "「隙」1段につき{amount}を受け無視で叩き込み、隙を全部刈り取る。腕力も技術も読まない。", "攻撃"],
   // 余波と受け渡し（pack_relay）— 自分の不利で他人の有利を買う
   take_the_wound: ["傷を引き受ける", "最も傷ついた味方へ「守勢」を2つ。代償として自分に「隙」が1つ付く。", "支援"],
   pass_the_edge: ["刃を渡す", "前列で最も速い味方へ「集中」を1つ。自分の一手を他人の一手に変える。", "指揮"],
@@ -99,7 +99,7 @@ const reactiveMeta = {
   urging: ["急かす", "味方の準備開始時、RP1で準備を1進める。", "準備"],
   brace_after_hit: ["受け流し", "被弾後、RP1で技術の{amount}のラウンド防壁を得る。", "被弾"],
   triage_relay: ["連携治療", "応急手当の余剰だけをRP1で別の負傷者へ{amount}回す。条件は狭いが、連携時の量が大きい。", "回復"],
-  block_focus: ["受け返しの集中", "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。", "防御"],
+  block_focus: ["受けて澄ます", "受け構えで攻撃を止めたあと、RP1で「集中」を得る。次の一手を強くする。", "防御"],
   barrier_stitch: ["防壁の縫い直し", "防壁が壊れたあと、RP1で受け構えを1つ得る。", "防御"],
   // R8 Implementation Phase 1（続き）— mend/triage を anti-stall 安全な reactive
   // へ作り替えた（analysis/ecology-anti-stall-audit.mjs 是正、作者承認済み）。
@@ -386,7 +386,7 @@ const BRANCH_OF = {
 const ACTIVE_FOREST = [
   node("strike",  // 斬撃
     node("overreach"),  // 無理を通す
-    node("steady_cut",  // 確かな斬り
+    node("steady_cut",  // 踏み込み斬り
       node("pierce_thrust",  // 貫き突き
         node("column_thrust",  // 突き通し
           node("row_sweep")),  // 薙ぎ払い
@@ -417,7 +417,7 @@ const ACTIVE_FOREST = [
         // Stage 3 の「隊列で守る」構成がこの道を通る（analysis/ecology-stage3-builds.mjs）。
         needsParentLv(3, node("sustaining_ward",  // 長く守る
           node("cleansing_step"),  // 払いのける
-          node("steady_breath")))),  // 息を合わせる
+          node("steady_breath")))),  // 息を渡す
       node("ward_ally"))),  // 守勢を渡す
   node("bulwark",  // 防壁形成
     node("hand_off"),  // 引き継ぐ
@@ -440,12 +440,12 @@ const ACTIVE_FOREST = [
                     node("pass_the_edge")))))))))),  // 刃を渡す
   node("barrage_strike",  // 連撃
     node("flurry_finish"),  // 刻み止め
-    node("sweeping_barrage"),  // 連ぎ払い
+    node("sweeping_barrage"),  // 乱れ薙ぎ
     node("piercing_barrage")),  // 貫き連撃
   node("mark_strike",  // 刻印撃ち
     node("mark_spread"),  // 刻印を散らす
     node("mark_break",  // 刻印砕き
-      node("shatter_point"))),  // 積もる刻印
+      node("shatter_point"))),  // 積み撃ち
 ];
 
 const REACTIVE_FOREST = [
@@ -494,7 +494,7 @@ const REACTIVE_FOREST = [
                     node("blocked_into_step"))))),  // 受けを順番へ
           node("last_stand"))),  // 背水
       node("absorb_shock",  // 衝撃を殺す
-        node("block_focus",  // 受け返しの集中
+        node("block_focus",  // 受けて澄ます
           node("counterweight")))),  // 支え直す
     node("guarded_opening",  // 受け止めの隙
       node("seize_the_opening"),  // 機を逃さず
