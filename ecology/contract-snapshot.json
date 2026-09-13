@@ -10086,7 +10086,7 @@
     "rear_hunt"
    ],
    "starterReactives": [
-    "shield_handoff",
+    "cover_ally",
     "triage"
    ]
   },
@@ -14745,8 +14745,7 @@
    "mend",
    "triage",
    "brace_after_hit",
-   "cover_ally",
-   "shield_handoff"
+   "cover_ally"
   ],
   "guardian": [
    "strike",
@@ -14809,7 +14808,7 @@
     "emergency_treatment"
    ],
    "lancer": [
-    "shield_handoff",
+    "cover_ally",
     "triage"
    ],
    "guardian": [
@@ -14891,6 +14890,7 @@
     "counter_blow",
     "scavenge_ap",
     "whetted_by_pain",
+    "cover_ally",
     "opportunist",
     "vengeful_step",
     "finish_the_wounded"
@@ -14910,6 +14910,7 @@
     "counter_blow",
     "scavenge_ap",
     "whetted_by_pain",
+    "cover_ally",
     "opportunist"
    ],
    "corePassiveSkillIds": [
@@ -14991,7 +14992,6 @@
     "bracing_thrust"
    ],
    "reactiveSkillIds": [
-    "cover_ally",
     "guard_step",
     "block_focus",
     "barrier_stitch",
@@ -15012,7 +15012,6 @@
     "spread_the_guard"
    ],
    "coreReactiveSkillIds": [
-    "cover_ally",
     "guard_step",
     "block_focus",
     "shield_handoff",
@@ -24475,7 +24474,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -24851,7 +24850,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -25196,7 +25195,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -25426,7 +25425,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -25729,7 +25728,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -26004,7 +26003,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -26210,7 +26209,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -26442,7 +26441,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -26675,7 +26674,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -26881,7 +26880,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -27090,7 +27089,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -27334,7 +27333,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -27594,7 +27593,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -27795,7 +27794,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -28027,7 +28026,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -28280,7 +28279,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -28522,7 +28521,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -28791,7 +28790,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -29031,7 +29030,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -29259,7 +29258,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -29469,7 +29468,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -29654,7 +29653,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -29858,7 +29857,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -30089,7 +30088,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -30317,7 +30316,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -30555,7 +30554,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -30888,7 +30887,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -31347,7 +31346,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -31732,7 +31731,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -32141,7 +32140,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -32581,7 +32580,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -32889,7 +32888,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -33113,7 +33112,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -33328,7 +33327,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -33560,7 +33559,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -33787,7 +33786,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-24",
+      "contentContractVersion": "ecology-content-contract-25",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

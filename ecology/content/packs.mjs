@@ -69,6 +69,7 @@ export const SKILL_PACKS = Object.freeze([
     passiveSkillIds: Object.freeze(["first_blood", "edge_honed"]),
     // 問い:「同じ一撃でも、誰へ、どんな受けの相手へ当てるかで結果が変わる」。
     coreActiveSkillIds: Object.freeze(["heavy_swing", "pierce_thrust", "finishing_thrust", "rear_hunt", "hamstring"]),
+    // 入口の目安10を一つ超えるが、ナギ加入時に庇護の核を渡すための意図した例外。
     coreReactiveSkillIds: Object.freeze(["counter_blow", "scavenge_ap", "whetted_by_pain", "cover_ally", "opportunist"]),
     corePassiveSkillIds: Object.freeze(["first_blood"]),
     tags: Object.freeze(["attack", "execute"]),

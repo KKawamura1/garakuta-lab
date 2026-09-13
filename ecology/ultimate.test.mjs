@@ -354,6 +354,10 @@ function armedRun(designations, options = {}) {
 // 「負けた一戦では回数が減らない」ことなので、必殺が確かに鳴る負け戦を選ぶ。
 {
   const { profile, run } = armedRun({ mender: "triage" });
+  // この検査は「未育成隊が負ける」ことを前提に、敗北時の必殺回数を見ている。
+  // ナギの加入時に `cover_ally` を装着する変更で隊が勝てるようになるため、
+  // ここだけ庇護を外して、必殺回数の回帰条件を保つ。
+  run.loadout.reactives.lancer = run.loadout.reactives.lancer.filter((id) => id !== "cover_ally");
   const { result } = simulateExpeditionBattle(run, profile, 11);
   equal(result.result, "loss", "満足に育てていない隊は第11戦で負ける（この検査の前提）");
   ok(ultimateFirings(result).length > 0, "負けた戦闘でも必殺そのものは出ている");
