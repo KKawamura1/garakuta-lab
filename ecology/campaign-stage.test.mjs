@@ -16,7 +16,14 @@
 // anti-stall 不変条件は docs/DESIGN.md §4、残っている穴は GitHub Issues で管理する。
 
 import assert from "node:assert/strict";
-import { PLAYABLE_CONTENT, PROLOGUE, REGION, expeditionEncounter } from "./content/index.mjs";
+import {
+  CHARACTER_DEFINITIONS,
+  PLAYABLE_CONTENT,
+  PROLOGUE,
+  REGION,
+  expeditionEncounter,
+  skillIdsForPacks,
+} from "./content/index.mjs";
 import {
   CAMPAIGN_STAGES,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
@@ -146,6 +153,22 @@ function campaignCompleteProfile() {
     "Stage 3 = C + E + W + T",
   );
   checks += 4;
+
+  // Stage 1 では、ナギが加入した時点で味方を守る入口も使える。
+  // `cover_ally` が Stage 2 の pack まで遅れると、庇護役の加入と主力の解禁がずれる。
+  const stage0SkillIds = new Set(skillIdsForPacks(
+    campaignStageDef(0).enabledPackIds, campaignStageDef(0).packDepths,
+  ).all);
+  const stage1SkillIds = new Set(skillIdsForPacks(
+    campaignStageDef(1).enabledPackIds, campaignStageDef(1).packDepths,
+  ).all);
+  check(!stage0SkillIds.has("cover_ally"), "Stage 0 では身代わりをまだ出さない");
+  check(stage1SkillIds.has("cover_ally"), "Stage 1 で身代わりが解禁される");
+  const lancer = CHARACTER_DEFINITIONS.find((entry) => entry.id === "lancer");
+  check(lancer?.starterReactives.includes("cover_ally"), "ナギの初期リアクティブに身代わりがある");
+  for (const skillId of [...(lancer?.starterTactics ?? []), ...(lancer?.starterReactives ?? [])]) {
+    check(stage1SkillIds.has(skillId), `ナギの初期技能 ${skillId} は加入時のStage 1で解禁済み`);
+  }
 
   // R9 §2.1 — 2人から始めて Stage ごとに1人ずつ増え、Stage 3 で5人。以降は5人のまま。
   for (const stage of CAMPAIGN_STAGES) {

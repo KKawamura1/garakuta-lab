@@ -2086,3 +2086,15 @@ Stage 倍率を **Stage 番号の一次式にしない**のは R8 §3.7 の決�
 | `shatter_point` | 積もる刻印 | 積み撃ち | 刻印は「積もる」のではなく、積んでから叩く技 |
 | `steady_breath` | 息を合わせる | 息を渡す | 「息を整える」と一字違いで別技だった。渡す系（刃を渡す・守勢を渡す）へ寄せた |
 | `block_focus` | 受け返しの集中 | 受けて澄ます | 名詞を三つ並べた説明で、名前になっていなかった |
+
+### 3.84 ナギ加入時に「身代わり」を解禁する（作者指摘、2026-09-13）
+
+`cover_ally`（身代わり）は実装済みだったが、`pack_wall` の core に置かれていたため、
+実際に解禁されるのは Stage 2（ヒバナ加入時）でした。Stage 1で加入するナギの役割が
+「庇護」なのに、加入時の初期リアクティブは Stage 2 の `shield_handoff` で、
+味方への攻撃を直接引き受ける `cover_ally` が主力の初期装着にありませんでした。
+
+`cover_ally` を `pack_edge` の coreへ移し、Stage 1のナギ加入時から解禁・初期装着します。
+`shield_handoff` は `pack_wall` の coreに残し、Stage 2で「止めた結果を味方へ渡す」
+発展形として続けます。ツリーの `brace_after_hit → cover_ally → shield_handoff` の前提順は
+維持し、engine / schema は変更していません。manifestと初期技能の整合を検査するテストも追加しました。

@@ -73,9 +73,10 @@ export const CHARACTER_DEFINITIONS = [
     // ナギ … 受け24・技術30。**guard は hit ごとの固定軽減なので、受けは装備せずに効く。**
     // だから active は攻めに使える。どちらも technique なので技術30で読む。
     starterTactics: ["heavy_swing", "rear_hunt"],
-    // **止めた回数がそのまま仕事になる。**受けが高いほど damage_blocked が出るので、
-    // shield_handoff が回り、止めるたびに一番弱い者へ盾が渡る。庇って、受けて、治す。
-    starterReactives: ["shield_handoff", "triage"],
+    // **まず味方を狙った一撃を身代わりで自分へ引き受ける。**受け役としての仕事が
+    // 加入直後から盤面に出る。受け止めた結果を一番弱い者へ渡す
+    // shield_handoff は、Stage 2 で防壁と隊列が加わってからの発展形に残す。
+    starterReactives: ["cover_ally", "triage"],
   },
   {
     id: "guardian",

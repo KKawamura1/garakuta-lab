@@ -60,12 +60,16 @@ export const SKILL_PACKS = Object.freeze([
     //   自分を読む: bloodied_charge（手負いか）/ reckless_swing（隙を買えるか）
     //   盤面を読む: opening_stab（1ラウンド目）/ execute_low（瀕死が居るか）
     //   倒さずに削る: hamstring（怯み）/ rend（裂傷。受けを無視する）
+    //
+    // Stage 1 はナギの加入時に「味方を守る」入口まで渡す。
+    // `cover_ally` は Stage 2 の `shield_handoff` へ続く最初の庇護であり、
+    // `brace_after_hit`（pack_care の full）から無理なく到達できる。
     activeSkillIds: Object.freeze(["heavy_swing", "long_swing", "hunt_the_slow", "rapid_cuts", "pierce_thrust", "guard_crush", "rear_hunt", "finishing_thrust", "crack_mark", "reckless_swing", "double_back", "spread_cut", "opening_stab", "bloodied_charge", "hamstring", "execute_low", "rend"]),
-    reactiveSkillIds: Object.freeze(["counter_blow", "scavenge_ap", "whetted_by_pain", "opportunist", "vengeful_step", "finish_the_wounded"]),
+    reactiveSkillIds: Object.freeze(["counter_blow", "scavenge_ap", "whetted_by_pain", "cover_ally", "opportunist", "vengeful_step", "finish_the_wounded"]),
     passiveSkillIds: Object.freeze(["first_blood", "edge_honed"]),
     // 問い:「同じ一撃でも、誰へ、どんな受けの相手へ当てるかで結果が変わる」。
     coreActiveSkillIds: Object.freeze(["heavy_swing", "pierce_thrust", "finishing_thrust", "rear_hunt", "hamstring"]),
-    coreReactiveSkillIds: Object.freeze(["counter_blow", "scavenge_ap", "whetted_by_pain", "opportunist"]),
+    coreReactiveSkillIds: Object.freeze(["counter_blow", "scavenge_ap", "whetted_by_pain", "cover_ally", "opportunist"]),
     corePassiveSkillIds: Object.freeze(["first_blood"]),
     tags: Object.freeze(["attack", "execute"]),
   }),
@@ -121,11 +125,11 @@ export const SKILL_PACKS = Object.freeze([
     //   面の守り: shield_wall / spread_the_guard / 体で張る: bulwark_of_will
     //   飛んでくる数字を削る: absorb_shock / 狙われた本人を厚くする: guard_the_marked
     activeSkillIds: Object.freeze(["reposition", "row_sweep", "column_thrust", "brace_for_impact", "drag_forward", "shield_wall", "rally_line", "bulwark_of_will", "spread_the_guard", "bracing_thrust"]),
-    reactiveSkillIds: Object.freeze(["cover_ally", "guard_step", "block_focus", "barrier_stitch", "shield_handoff", "absorb_shock", "guard_the_marked", "last_stand", "counterweight"]),
+    reactiveSkillIds: Object.freeze(["guard_step", "block_focus", "barrier_stitch", "shield_handoff", "absorb_shock", "guard_the_marked", "last_stand", "counterweight"]),
     passiveSkillIds: Object.freeze(["opening_guard", "wall_reader"]),
-    // 問い:「誰を守り、守った結果をどう使うか」（R9 §3 の Stage 1）。
+    // 問い:「隊列を動かして、何を得るか」（R9 §3 の Stage 2）。
     coreActiveSkillIds: Object.freeze(["reposition", "brace_for_impact", "column_thrust", "spread_the_guard"]),
-    coreReactiveSkillIds: Object.freeze(["cover_ally", "guard_step", "block_focus", "shield_handoff", "absorb_shock"]),
+    coreReactiveSkillIds: Object.freeze(["guard_step", "block_focus", "shield_handoff", "absorb_shock"]),
     corePassiveSkillIds: Object.freeze(["opening_guard"]),
     tags: Object.freeze(["barrier", "formation"]),
   }),
