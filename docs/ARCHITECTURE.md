@@ -183,6 +183,10 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   起動し、AP2 の actor は次の自軍フェーズへ戻ります。round 開始時の initiativeRank は
   味方を先に、次に敵を置きます。同じ側・同じ位置だけ instance ID で決着し、隊列以外の
   能力値は initiative に介入しません。
+- ラウンド持続の barrier / status は `endRound` では削除しません。前ラウンドの end phase
+  開始位置を cutoff として記録し、次の `round_started` event を記録した直後に、その cutoff
+  より前に作られたものだけを削除します。これにより、replay では期限切れが最後の攻撃ではなく
+  次ラウンド開始の拍に乗り、end phase 中に作られた効果は次ラウンドを通過できます。
 
 ## 5. イベント列
 

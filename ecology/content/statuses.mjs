@@ -176,7 +176,7 @@ const STATUS_SUMMARIES = {
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 
-const DURATION_TEXT = { round: "ラウンド終わりに消える", battle: "戦闘のあいだ残る", turn: "次の手番で消える" };
+const DURATION_TEXT = { round: "次のラウンド開始時に消える", battle: "戦闘のあいだ残る", turn: "次の手番で消える" };
 
 // 状態ひとつぶんの説明。**段数・持続・向きは定義から、意味は上の表から。**
 export const STATUS_GLOSSARY = Object.freeze(Object.entries(statuses)

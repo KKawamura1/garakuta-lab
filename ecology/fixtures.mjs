@@ -196,7 +196,7 @@ export const STATUS_BATTLE = battle("fixture_status", {
   enemies: [
     enemy("e_marker", "husk_marker", "front_left"),
     // Acts after the marker in the same round, so the negative status has a
-    // damage proposal to raise before it expires at the round end.
+    // damage proposal to raise before it expires at the next round's start.
     enemy("e_husk", "husk", "front_right"),
   ],
 });

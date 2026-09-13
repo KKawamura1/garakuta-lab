@@ -45,6 +45,23 @@ assert.ok(declaration?.events.some((entry) => entry.type === "action_declared"),
 assert.ok(impact?.events.some((entry) => entry.type === "damage_absorbed"), "zero-damage absorption is an impact event");
 assert.ok(impact?.events.some((entry) => entry.type === "barrier_damaged"), "barrier consumption stays with the impact");
 
+// Round-duration expiry is emitted after the next round_started event. Because
+// expiry is a board-skipped event, that order keeps the disappearing barrier on
+// the round-opening beat instead of attaching it to the last attack.
+const roundBoundary = buildBeats([
+  event("action_started", { round: 1, sourceActorId: "e_husk" }),
+  event("damage_taken", { round: 1, sourceActorId: "e_husk" }),
+  event("round_started", { round: 2, sourceActorId: undefined }),
+  event("barrier_expired", { round: 2, sourceActorId: undefined }),
+]);
+assert.deepEqual(
+  roundBoundary.map((beat) => beat.kind),
+  ["impact", "round"],
+  "round-duration expiry is shown on the next round's opening beat",
+);
+assert.equal(roundBoundary[1].from, 2, "the opening beat starts at round_started");
+assert.equal(roundBoundary[1].to, 3, "the opening beat includes the expiry state change");
+
 const preparedAttack = buildBeats([
   event("action_started", { skillId: "enemy_heavy", targetActorIds: ["a_warden"] }),
   event("preparation_started", { skillId: "enemy_heavy", targetActorIds: ["e_husk"] }),
