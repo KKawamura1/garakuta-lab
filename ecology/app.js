@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 106726)
-Total output lines: 8281
-
 import { simulateBattle } from "./engine.mjs";
 import { PLAYABLE_CONTENT } from "./playable-content.mjs";
 import {
@@ -3868,7 +3865,402 @@ function ultimateRowState(characterId, skillId, kind) {
     fires,
     spent,
     pressable: true,
-    hint: "必殺技 · " + …6726 tokens truncated…>" + esc(treatment?.displayName ?? "治療") + "</b> " + esc(targetNames)
+    hint: "必殺技 · " + label + " · 長押しで解く",
+    traits: "<span class=\"ultimate-traits\">"
+      + candidate.traitLabels.map((text) => "<span class=\"ultimate-trait\">" + esc(text) + "</span>").join("")
+      + (spent ? "<span class=\"ultimate-trait idle\">この遠征では放った</span>" : "")
+      + (armed && !fires && !spent ? "<span class=\"ultimate-trait idle\">この一戦では出ない</span>" : "")
+      + "</span>",
+    // **印は動く。**構えているあいだは脈打ち、この一戦で本当に出るなら強く光る。
+    seal: "<span class=\"ultimate-seal\" role=\"img\" aria-label=\"必殺技 · "
+      + esc(label) + "\" title=\"" + esc(label) + "\">✹</span>",
+  };
+}
+
+// 必殺技の説明。**畳んだ中に置く**ので、普段は一行も画面を占めない。
+function ultimateHelp() {
+  return helpDetails("ultimate-rules", "必殺技のルール",
+    "<p class=\"muted\"><b>装着した技能を長押しすると、その一戦の必殺技になります。</b>"
+    + "もう一度長押しすると外れます。構えている行は金色に光り、✹ が付きます。"
+    + "指定も構えも無料で、いつでも変えられます（払うのは、戦って本当に放ったときだけ）。</p>"
+    + "<p class=\"muted\">必殺技は新しい技能ではありません。掛かる変換は"
+    + "<b>単体が全体になる</b>（自分だけを守る技能は味方全員へ）・<b>量が"
+    + ULTIMATE_AMOUNT_MULTIPLIER + "倍</b>・<b>溜めが消える</b>・<b>防壁が戦闘のあいだ残る</b>・"
+    + "<b>反応点を払わない</b>（リアクティブ）です。AP・回数・耐久・行動権は変わりません。</p>"
+    + "<p class=\"muted\"><b>放てるのは一人につき一遠征（12戦）に一度きり</b>です。補充されません。"
+    + "構えても放たなければ減らず、負けてやり直した一戦でも減りません。</p>"
+    + "<p class=\"muted\"><b>隊の誰かがHP" + ULTIMATE_READY_HP_PERCENT
+    + "%未満になってからでないと出ません。</b>元の技能と同じ条件で、その技能が最初に出る"
+    + "場面に出ます。戦闘に1回きりで、放った直後は自分へ「隙」が1段付きます。"
+    + "出るかどうかも、そのあとどうなるかも、上の戦闘予測にそのまま出ています。</p>");
+}
+
+function renderSkills() {
+  // issue #159 — 対象の人物は上端の共通盤面で選ぶ。**このタブに二つ目の仲間タブを
+  // 持たない。**残り技能点は隊全体の合計にする（一人ぶんだけでは、他の誰かが
+  // 使い残していることがこの画面から読めない。作者指摘 2026-09-08）。
+  const characterId = selectedCharacter();
+  // 作者指摘 2026-09-13 — **隊全体の合計（必殺を残す仲間 N人）は出さない。**
+  // 誰の一回かに答えないので、指す先が無い。残りは盤面のセルが一人ずつ出す
+  // （`ultimateCellMark`）。
+  const pointsBadge = "<span class=\"skill-points-badge\"><small>技能点 · 隊全体</small><b>"
+    + totalSkillPoints() + "</b></span>";
+  const depths = state.run.manifest.packDepths ?? {};
+  const packs = state.run.manifest.enabledPackIds
+    .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
+    .join(" · ");
+  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能", pointsBadge)
+    + "<p class=\"context-line\">" + esc(packs) + "</p>"
+    + memberContext(characterId, "skills")
+    + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
+    + "<section class=\"card\">"
+    + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
+    + skillBuildSummary(characterId) + renderSkillTree(characterId)
+    + "</details>"
+    + symbolLegendHelp()
+    + helpDetails("skill-rules", "技能のルール",
+      "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、<b>取得した技能はその場で装着されて回り始めます</b>（枠の上限はありません）。</p>"
+      // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
+      // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
+      + "<p class=\"muted\"><b>アクティブは順番に回ります。</b>いま出した技能の次から判定を始め、"
+      + "条件つきの技能が未達ならスキップして後ろを試します。<b>装着を増やすほど、一本あたりの出番は減ります。</b></p>"
+      + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
+      + "反応点が尽きた時点で下の技能は出ません。</p>"
+      + "<p class=\"muted\"><b>不要な技能はオフにできます。</b>オフの技能は戦闘にも予測にも現れませんが、取得状態・前提・段は失いません。starter の前提として無償で付く節は、最初からオフで並んでいます。</p>"
+      // 作者指摘 2026-09-13 — 予約の規則（自動取得の順と、入る向き）はここに一度だけ置く。
+      // 節ごとの盤で毎回繰り返すと、盤が高くなって地図が見えなくなる。
+      + "<p class=\"muted\"><b>取得予約は一人につき一つです。</b>技能点が入るたびに、前提 → 必要な段 → 目的の技能 → 目的の段の順で、払えるところまで自動で取ります。"
+      + "途中の前提はオフ、目的の技能はオンで入ります。予約先は上の帯に出ていて、別の節を予約すると切り替わります。</p>"
+      + (ultimatesUnlocked(state.run)
+        ? "<p class=\"muted\"><b>装着した技能を長押しすると、その一戦の必殺技になります。</b>詳しくは下の「必殺技のルール」を開いてください。</p>"
+        : ""))
+    + (ultimatesUnlocked(state.run) ? ultimateHelp() : "")
+    + statusGlossaryHelp()
+    + "</section>";
+}
+
+
+function equipmentSlotHtml(characterId, slot) {
+  const equipmentId = (state.run.loadout.equipment?.[characterId] || [])[slot] || null;
+  const selected = state.selectedEquipment;
+  const canInstall = Boolean(selected && selected !== equipmentId);
+  const label = equipmentId ? nameFor(equipmentId) : "空き枠";
+  // issue #236 — 埋まっている枠は耐久の数だけ。空き枠は「空き枠」がもう言っているので、
+  // **装備を選んでいるときだけ**「ここへ」と足す（何もないときは何も書かない）。
+  const detail = equipmentId
+    ? "耐久 " + equipmentDurability(equipmentId) + " / " + (gear(equipmentId)?.maxDurability ?? 1)
+    : selected ? "ここへ" : "";
+  return "<div class=\"equipment-slot\"><button type=\"button\" class=\"equip-slot-button "
+    + (canInstall ? "ready" : "") + "\" data-action=\"" + (canInstall ? "equip-equipment" : "select-character")
+    + "\" data-character=\"" + characterId + "\" data-slot=\"" + slot + "\"><span class=\"slot-number\">"
+    + (slot + 1) + "</span><span><b>" + esc(label) + "</b><small>" + esc(detail) + "</small></span></button>"
+    + (equipmentId ? button("外す", "remove-equipment", false, "tiny-button", "data-character=\"" + characterId
+      + "\" data-equipment=\"" + equipmentId + "\"") : "") + "</div>";
+}
+
+function renderEquipment() {
+  const characterId = selectedCharacter();
+  const selected = state.selectedEquipment;
+  const inventoryCards = state.run.inventory.map((id) => {
+    const owner = equipmentOwner(id);
+    const isSelected = selected === id;
+    const info = gear(id);
+    const max = info?.maxDurability ?? 1;
+    const durability = equipmentDurability(id);
+    const item = generatedItem(id);
+    const readout = item
+      ? equipmentReadoutHtml(item, { compact: false })
+      : "<small>" + esc(info?.effect ?? "") + "</small>";
+    return "<article class=\"gear-card " + (isSelected ? "selected" : "") + (durability === 0 ? " depleted" : "")
+      + (item?.rarity ? " rarity-card-" + esc(item.rarity) : "") + "\"><button type=\"button\" class=\"gear-main\" data-action=\"select-equipment\" data-equipment=\"" + id
+      + "\"><span class=\"gear-icon\">◆</span><span class=\"gear-copy\"><b>" + esc(info?.label ?? id)
+      + rarityChip(item?.rarity) + (item?.carried ? "<span class=\"carried-chip\">持込</span>" : "")
+      + "</b>" + readout
+      + "</span><span class=\"gear-state\">"
+      + (owner ? characterName(owner) : "手元") + "<br>耐久 " + durability + "/" + max + "</span></button>"
+      + button("分解", "dismantle", false, "tiny-button", "data-equipment=\"" + id + "\"")
+      + "</article>";
+  }).join("");
+  // issue #236 — 主語はすぐ上の memberContext が出している。見出しで名前を繰り返さない。
+  const slots = "<section class=\"selected-loadout\"><h3>装備枠</h3>"
+    + "<div class=\"equipment-slots\">" + equipmentSlotHtml(characterId, 0) + equipmentSlotHtml(characterId, 1) + "</div></section>";
+  const inventory = "<details class=\"progressive-details equipment-inventory\" open><summary>手元 "
+    + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</summary>"
+    + "<div class=\"gear-grid\">" + (inventoryCards || "<p class=\"muted\">まだ装備を持っていません。</p>")
+    + "</div></details>";
+  // issue #236 — 装備を選んだあとだけ、次の一手を一行で言う。選ぶ前は
+  // カードが押せる形で並んでいるので、何も書かない。
+  const selection = selected ? "装着する枠を選ぶ" : "";
+  return "<section class=\"card equipment-build-card\">" + sectionHeading("EQUIPMENT", "装備",
+      "<span class=\"stage\">装着 " + equipmentFillLabel() + "</span>")
+    + (selection ? "<p class=\"operation-note\" role=\"status\">" + selection + "</p>" : "")
+    + memberContext(characterId, "equipment")
+    + slots
+    + inventory
+    + helpDetails("equipment-rules", "装備のルール",
+      "<p class=\"muted\">装備は何度でも付け外しできます。生成装備の発火効果は耐久を1消費し、複数効果・多段・範囲効果は2消費します。耐久0では以後の発火効果が不発になります。</p>"
+      + "<p class=\"muted\">能力値補正は装着中の常時効果なので耐久を消費しません。修理効果は自己相殺を避け、HPか防壁の有限コストを使います。</p>"
+      + "<p class=\"muted\">耐久は戦闘後に最大へ戻り、遠征終了時は装備を手放します。所持上限は" + INVENTORY_LIMIT + "品です。</p>")
+    + "</section>";
+}
+
+
+function renderEnemy(enemy, { withLore = true } = {}) {
+  const info = enemyInfo(enemy.enemyActorId);
+  const mutations = (enemy.mutations ?? []).map((id) => ENEMY_MUTATIONS[id]?.displayName ?? id);
+  const badges = (enemy.boss ? ["ボス"] : []).concat(enemy.reinforcement ? ["増援"] : []).concat(mutations);
+  return "<article class=\"enemy-card" + (enemy.boss ? " boss" : "") + "\"><div class=\"enemy-top\"><span class=\"enemy-mark\">◆</span><div><b>"
+    + esc(info.label) + "</b><small>" + esc(positionText(enemy.position)) + " · HP " + enemy.stats.maxHp
+    + " · 受け " + enemy.stats.guard + "</small></div></div>"
+    + (badges.length ? "<div class=\"enemy-badges\">" + badges.map((text) =>
+      "<span class=\"badge\">" + esc(text) + "</span>").join("") + "</div>" : "")
+    + "<p>" + esc(info.targeting) + "</p>"
+    + (mutations.length ? "<p class=\"muted small\">" + esc((enemy.mutations ?? [])
+      .map((id) => ENEMY_MUTATIONS[id]?.previewText ?? "").join(" ")) + "</p>" : "")
+    // R12 §4.B — 狙いの下に、拾い屋の言い分を一行。**規則ではない**ので見た目で分ける。
+    // issue #236 — 同じ種類が並ぶ回は**一度だけ**出す。同じ一行を2枚3枚と重ねない。
+    + (withLore && info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
+    + "</article>";
+}
+
+function selectedEncounterEnemy(encounter) {
+  if (!encounter?.enemies?.length) return null;
+  return encounter.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyId)
+    ?? encounter.enemies[0];
+}
+
+// 遠征の敵セルは、戦闘盤面と同じ位置を押せる小さな入口にする。
+// 狙い・変異・拾い屋の一言は、選んだ一体の詳細欄へ集約して重複を避ける。
+function expeditionEnemyCell(enemy, selectedId) {
+  if (!enemy) return "<div class=\"enemy-board-empty\" aria-hidden=\"true\"></div>";
+  const selected = enemy.instanceId === selectedId;
+  const info = enemyInfo(enemy.enemyActorId);
+  const badges = [];
+  if (enemy.boss) badges.push("★");
+  if (enemy.reinforcement) badges.push("＋");
+  if (enemy.mutations?.length) badges.push("変異" + enemy.mutations.length);
+  const accessibleName = info.label + "・" + positionText(enemy.position)
+    + "・HP " + enemy.stats.maxHp + "・受け " + enemy.stats.guard;
+  return "<button type=\"button\" class=\"enemy-board-cell"
+    + (enemy.boss ? " boss" : "") + (selected ? " selected" : "")
+    + "\" data-action=\"select-expedition-enemy\" data-enemy=\"" + esc(enemy.instanceId)
+    + "\" aria-label=\"" + esc(accessibleName) + "\" aria-pressed=\"" + (selected ? "true" : "false")
+    + "\" aria-controls=\"selected-enemy-detail\">"
+    + "<span class=\"enemy-board-cell-top\"><span class=\"enemy-board-icon\" aria-hidden=\"true\">"
+    + esc(ENEMY_ICONS[enemy.enemyActorId] ?? "◆") + "</span><b>" + esc(info.label) + "</b></span>"
+    + "<span class=\"enemy-board-cell-stats\"><span>HP " + enemy.stats.maxHp
+    + "</span><span>受け " + enemy.stats.guard + "</span></span>"
+    + (badges.length ? "<span class=\"enemy-board-badges\" aria-hidden=\"true\">"
+      + badges.map((badge) => esc(badge)).join(" ") + "</span>" : "")
+    + "</button>";
+}
+
+function expeditionEnemyBoard(encounter) {
+  const selected = selectedEncounterEnemy(encounter);
+  if (!selected) return "<p class=\"muted\">敵はいません。</p>";
+  const cells = positionRowsHtml(
+    encounter.enemies,
+    "enemy",
+    "enemy",
+    "<div class=\"enemy-board-empty\" aria-hidden=\"true\"></div>",
+    selected.instanceId,
+  );
+  return "<div class=\"enemy-board\" role=\"group\" aria-label=\"敵の隊列\">"
+    + cells + "</div>"
+    + "<div class=\"enemy-selection-detail\" id=\"selected-enemy-detail\" data-selected-enemy=\""
+    + esc(selected.instanceId) + "\" role=\"region\" aria-label=\"敵の詳細\">"
+    + renderEnemy(selected, { withLore: true }) + "</div>";
+}
+
+// R6 §12.1 — 補給は3用途で共有する。**引き直しに使うと再挑戦の余地が減る。**
+// そのトレードオフを、残数と用途を同じ場所へ並べて見せる。
+//
+// PR #255 — 分母は**その遠征の総数**（既定3、ギルドの「開始補給」で伸びる）。
+// 遠征中に増えないので、「3/3」が最初から最後まで同じ意味で読める。
+function supplyTotal() {
+  return runSuppliesMax(state.run);
+}
+
+function suppliesBar(context) {
+  const supplies = state.run.supplies;
+  const total = supplyTotal();
+  const pips = Array.from({ length: total }, (_, index) =>
+    "<span class=\"supply-pip " + (index < supplies ? "on" : "") + "\"></span>").join("");
+  const uses = Object.entries(SUPPLY_USES)
+    .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", camp: "野営治療" }[id])
+      + "</b> " + esc(text) + "</li>").join("");
+  return "<div class=\"supplies-bar\"><div class=\"supplies-head\"><b>補給 " + supplies + " / " + total
+    + "</b><span>" + esc(context ?? "3つの用途で取り合う") + "</span></div>"
+    + "<div class=\"supply-pips\">" + pips + "</div><ul class=\"supply-uses\">" + uses + "</ul></div>";
+}
+
+function renderSupplies() {
+  const scrap = state.run.scrap ?? 0;
+  const treatment = isCampaignRun()
+    ? campTreatmentBlock()
+    : "<section class=\"card quiet\"><p class=\"muted\">この遠征では戦闘ごとにHPが全回復するため、野営治療は使いません。</p></section>";
+  return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給")
+    + suppliesBar()
+    + "<div class=\"scrap-line\"><span>屑 <b>" + scrap + "</b> / " + SCRAP_PER_SUPPLY + " → 補給1</span>"
+    + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= supplyTotal(), "tiny-button")
+    + "</div></section>"
+    + treatment
+    + helpDetails("supply-rules", "補給のルール",
+      "<p class=\"muted\">補給はこの遠征の開始時に " + supplyTotal()
+      + " 個で固定され、報酬では増えません。再挑戦と引き直しに使った分は、野営治療には使えません。"
+      + "装備を分解して出た屑は、使った分を " + SCRAP_PER_SUPPLY
+      + " で1個だけ戻せます（総数は超えません）。総数はギルドの「開始補給」で伸びます。</p>");
+}
+
+
+// PR #255 — 直前の一戦の一行。**結果画面の代わりではない。**決めることが
+// 何も無い画面を一枚挟む代わりに、次の一戦を決める画面の中へ「さっき何が起きたか」
+// だけを置く。次の戦闘を始めた時点で消える（`simulateAndEnterBattle`）。
+function lastBattleNoteHtml(override = undefined) {
+  const note = override === undefined ? state.lastBattleNote : override;
+  if (!note || !Number.isInteger(note.encounter)) return "";
+  const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[note.kind] ?? "通常";
+  const facts = [
+    note.roundsUsed + "ラウンド",
+    "味方HP損失 " + note.allyHpLost,
+    "技能点 +" + note.skillPoints,
+  ];
+  if (note.equipmentWear > 0) facts.push("装備摩耗 " + note.equipmentWear);
+  const extra = [];
+  if (note.fullHealed) extra.push("幕が変わったので全員が全回復しました。");
+  else extra.push("このHPを次の戦闘へ持ち越します。");
+  if (note.downed.length) {
+    extra.push("戦闘不能：" + note.downed.map((id) => characterName(id)).join(" · ")
+      + "（補給の蘇生で戻せます）。");
+  }
+  // issue #238 — 必殺の印は「放ったから」減る。**結果画面と同じ文**で出す
+  // （同じ出来事を画面ごとに別の言い方で書かない）。
+  if (note.ultimateFiredBy.length) {
+    const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
+    extra.push("✹ " + note.ultimateFiredBy.map((id) => characterName(id)).join(" · ")
+      + " が必殺技を放ちました。この遠征ではもう放てません。"
+      + (stillHave.length
+        ? "まだ残しているのは " + stillHave.map((id) => characterName(id)).join(" · ") + " です。"
+        : "隊の全員が放ち終えました。"));
+  }
+  return "<section class=\"card last-battle-note\" role=\"status\">"
+    + "<p class=\"eyebrow\">LAST BATTLE</p>"
+    + "<h3>第" + note.encounter + "戦・" + kindLabel + " — 突破した</h3>"
+    + "<p class=\"last-battle-facts\">" + facts.map((text) =>
+      "<span>" + esc(text) + "</span>").join("") + "</p>"
+    + "<p class=\"muted\">" + esc(extra.join(" ")) + "</p></section>";
+}
+
+// issue #235 — 旧「戦闘」タブ。**準備タブ（スキル・装備・補給）と役が違う。**
+// ここは「次の一戦へ進む」と、遠征そのものをどうするか（隊列の顔ぶれ・撤退・セーブ）を
+// 決める場所で、他の三枚のように何度も往復するタブではない。
+function renderMap() {
+  const index = state.run.encounterIndex;
+  const encounter = currentEncounter();
+  const kindMeta = {
+    normal: { label: "通常", marker: "" },
+    elite: { label: "精鋭", marker: "◆" },
+    boss: { label: "ボス", marker: "★" },
+  };
+  const statusLabels = {
+    done: "クリア済み",
+    current: "現在地",
+    unreached: "未到達",
+  };
+  const progress = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
+    const step = offset + 1;
+    const kind = composeEncounter(step, state.run.difficulty, encounterOptions()).kind;
+    const status = step < index ? "done" : step === index ? "current" : "unreached";
+    const meta = kindMeta[kind];
+    const label = "第" + step + "戦・" + meta.label + "・" + statusLabels[status];
+    return "<span class=\"map-node " + status + " kind-" + kind
+      + "\" data-map-index=\"" + step + "\" data-map-kind=\"" + kind
+      + "\" data-map-status=\"" + status + "\" role=\"listitem\" aria-label=\""
+      + esc(label) + "\" aria-current=\"" + (status === "current" ? "step" : "false")
+      + "\" title=\"" + esc(label) + "\"><span class=\"map-node-number\">" + step + "</span>"
+      + (meta.marker ? "<span class=\"map-kind-badge\" aria-hidden=\"true\">" + meta.marker + "</span>" : "")
+      + "</span>";
+  }).join("");
+  // issue #236 — 凡例は本文から畳んだヘルプへ移した。**節の一つ一つが aria-label と title で
+  // 「第3戦・精鋭・未到達」と名乗っている**ので、読み上げにも一覧にも欠けは出ない。
+  const mapLegend = "<div class=\"map-legend\" aria-label=\"戦闘マップの凡例\">"
+    + "<span><i class=\"map-legend-mark state-done\" aria-hidden=\"true\">✓</i>クリア済み</span>"
+    + "<span><i class=\"map-legend-mark state-current\" aria-hidden=\"true\"></i>現在地</span>"
+    + "<span><i class=\"map-legend-mark state-unreached\" aria-hidden=\"true\"></i>未到達</span>"
+    + "<span><i class=\"map-legend-symbol kind-elite\" aria-hidden=\"true\">◆</i>精鋭</span>"
+    + "<span><i class=\"map-legend-symbol kind-boss\" aria-hidden=\"true\">★</i>ボス</span>"
+    + "</div>";
+  const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[encounter.kind];
+  const law = encounter.bossLaw
+    ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
+      + esc(encounter.bossLaw.previewText) + "</p><ul class=\"boss-counters\">"
+      + encounter.bossLaw.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></div>"
+    : "";
+  const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵 "
+    + encounter.enemies.length + "体</summary>" + expeditionEnemyBoard(encounter) + "</details>";
+  const ruleBody = (isCampaignRun()
+    ? "<p class=\"muted\">通常・精鋭戦の後はHPを次の戦闘へ持ち越します。4戦目・8戦目のボス後だけ全員が全回復します。敵を倒さずに待ってもHPは戻りません。</p>"
+    : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>")
+    + "<p class=\"muted\">上の盤面の「⇅ 隊列」を押すと、どのタブからでも立ち位置を組み替えられます。前列は武器攻撃を通しやすく、後列は技術による攻撃や支援に向きます。前列の人数で狙われ方も変わります。</p>"
+    + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
+  // R11 §5 改 / issue #235 — 巻き戻し直後の手引きは、隊列を触る話なので盤面の近くに要る。
+  // だが固定領域へ入れると常時4行を奪うので、**この一度きりの場面だけ本文の頭に置く。**
+  // 作者指摘 2026-09-12 — 一段落の手引きでは「どこを押すのか」が伝わらない。段ごとに
+  // 次の一押しだけを言い、その場所を光らせる（`formationTutorialNote`）。
+  const rewindTutorialNote = formationTutorialNote();
+  // R6 §9.2 / §12.2 / issue #235 — 遠征単位の操作はこの一枚が持つ。
+  // R11 §5 改 — 止めるのは**離脱だけ**である。まだ隊列を直しきる前に撤退されると
+  // 「一手直せば勝てる」導入が成立しない。セーブは離脱ではないので、物語の最中でも残す
+  // （補給チュートリアルの最中は、そもそもこのタブへ来られない）。
+  const canRetreat = !state.prologueActive && !supplyTutorialVisible();
+  const expeditionTools = "<section class=\"card expedition-tools\">"
+    + sectionHeading("EXPEDITION", "遠征をいったん離れる")
+    + "<div class=\"expedition-tool-row\">"
+    + button("セーブ / ロード", "open-save-menu", false, "button", "data-return=\"camp\"")
+    + (canRetreat ? button("安全に撤退する", "abandon-run", false, "button quiet") : "")
+    + "</div>"
+    + (canRetreat
+      ? "<p class=\"muted\">撤退すると、ここまで確定した活動資金だけを持ち帰って遠征を終えます。</p>"
+      : "")
+    + "</section>";
+  return rewindTutorialNote
+    + "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
+      "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
+    + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の進行\">" + progress + "</div>"
+    + "<p class=\"act-line\">第" + encounter.act + "幕 · " + kindLabel + "戦 · 危険度 " + encounter.spentThreat
+    + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "ラウンド</p><p class=\"lead-small\">"
+    + esc(encounter.description) + "</p>"
+    + law + enemyBlock
+    // issue #159 — 「現在の隊列」の一覧はここにあった。**上端の共通盤面が
+    // 立ち位置と現在HPを同じ形で出している**ので、敵の下で二度描かない。
+    + "</section>"
+    + rosterSwapSection()
+    + expeditionTools
+    + helpDetails("expedition-rules", "遠征のルール", ruleBody);
+}
+
+
+// R8 §9.2 / §10.2 — 野営治療。補給1で3種のうちどれか一つ。
+// 単体治療は #159 の対象選択へつなぐため、対象を自動で決めず、
+// 「治療を選ぶ」→「対象を選ぶ」→「補給を消費する」の順にする。
+function treatmentTargetIds(treatment) {
+  if (!treatment) return [];
+  return state.run.roster.filter((id) => {
+    const hp = currentHp(id);
+    return treatment.revive ? hp <= 0 : hp > 0 && hp < maxHp(id);
+  });
+}
+
+function treatmentResultBlock() {
+  const result = state.treatmentResult;
+  if (!result) return "";
+  const treatment = CAMP_TREATMENTS[result.treatmentId];
+  const targetNames = (result.treated ?? []).map((id) => characterName(id)).join("、") || "対象なし";
+  const complete = result.tutorialCompleted
+    ? "<p><b>傷ついた味方を回復できました。</b>これで次も戦えます。</p>"
+    : "";
+  return "<div class=\"supply-treatment-result\" role=\"status\">"
+    + "<p><b>" + esc(treatment?.displayName ?? "治療") + "</b> " + esc(targetNames)
     + " <span class=\"muted\">· 補給 " + result.supplies + "</span></p>"
     + complete + "</div>";
 }
