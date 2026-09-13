@@ -1495,6 +1495,29 @@ function readoutDirection(before, after) {
   return to > from ? "up" : "down";
 }
 
+// 作者指摘 2026-09-13 —「先見機は窓と数字が一瞬光るだけで、全く機械っぽさがない」。
+// 先見機の窓の中だけは、数が**差し替わる瞬間そのもの**を見せる。ブラウン管の同期が
+// 外れたときのように、前の値が横へ千切れて流れ、そのあとに新しい値が座る。
+//
+// 影に入れる文字は `readoutValues` が既に持っている（前の描画の読み値）ので、
+// 新しく覚えるものは何も無い。**読み値そのものは最初から新しい値のまま**で、
+// 差し替えを遅らせない——遅らせると、速く押した回に古い数が残る。
+// 動きの時間と曲線は CSS が持ち、ここは影を一枚置いて animationend で捨てるだけ。
+function hauntWithPreviousValue(element, before) {
+  if (!before || !element.closest(".forecaster-window")) return;
+  const ghost = document.createElement("span");
+  ghost.className = "fx-ghost";
+  // 読み上げには出さない。**古い値は、読む人にとっては嘘である。**
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.textContent = before;
+  ghost.addEventListener("animationend", () => ghost.remove(), { once: true });
+  element.appendChild(ghost);
+  // 誰の予測が動いたかは、枠そのものが一度ずれて言う。ただし**その枠が既に別の
+  // 返事をしている回（選んだ・入れ替えた）は譲る**——一つの枠に二つは載せない。
+  const cell = element.closest(".party-cell");
+  if (cell && ![...cell.classList].some((name) => name.startsWith("fx-"))) cell.classList.add("fx-crt");
+}
+
 function pulseChangedReadouts() {
   const seen = new Set();
   for (const element of app.querySelectorAll("[data-fx-watch]")) {
@@ -1507,6 +1530,7 @@ function pulseChangedReadouts() {
     // 初めて出た読み値は光らせない。**画面へ来たことは変化ではない。**
     if (before === undefined || before === text) continue;
     element.classList.add("fx-" + readoutDirection(before, text));
+    hauntWithPreviousValue(element, before);
   }
   // 画面から消えた読み値は忘れる。覚えたままだと、次に出たときへ
   // 「そのあいだに変わった」という嘘の反応が出る。
@@ -4664,7 +4688,9 @@ function partyCellPerson(characterId, entry) {
     + "<span class=\"forecast-hp-values\" data-fx-watch=\"hp:" + esc(characterId) + "\"><b>"
     + ending + "</b><small>/" + ceiling + "</small></span></span>"
     + (entry
-      ? "<span class=\"forecast-delta " + deltaClass + "\">" + esc(entry.defeated ? "倒れる" : deltaText) + "</span>"
+      // 増減そのものも読み値である。**終了HPが同じでも、倒れるかどうかは変わる回がある。**
+      ? "<span class=\"forecast-delta " + deltaClass + "\" data-fx-watch=\"delta:" + esc(characterId) + "\">"
+        + esc(entry.defeated ? "倒れる" : deltaText) + "</span>"
       : "")
     + "</span></span>";
 }
@@ -5077,7 +5103,8 @@ function partyBar(tab) {
     ? "灰の門"
     : "第" + state.run.encounterIndex + "戦" + (encounterName ? " · " + encounterName : "");
   const verdict = forecast
-    ? "<span class=\"forecast-verdict\">" + esc(FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result)
+    ? "<span class=\"forecast-verdict\" data-fx-watch=\"forecast-verdict\">"
+      + esc(FORECAST_RESULT_LABEL[forecast.result] ?? forecast.result)
       + " · " + forecast.roundsUsed + "ラウンド</span>"
     : "";
   // 作者要望 2026-09-13 — 先見機の窓そのものから、未来を試映するか実戦へ入る。

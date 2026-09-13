@@ -97,6 +97,20 @@ const displayContracts = [
   ["増えた数の反応", styles, "@keyframes fx-up"],
   ["減った数の反応", styles, "@keyframes fx-down"],
   ["予測を読み直す走査", styles, "@keyframes fx-rescan"],
+  // 作者指摘 2026-09-13 — 先見機の読み直しは「光る」ではなく**ブラウン管の同期外れ**で出す。
+  // 四枚（走査バー・転がる横目・面の左右ブレ・数の色分離と前の値の影）のどれが欠けても、
+  // 窓は「一瞬光るだけ」へ戻る。
+  ["窓の横目が転がる", styles, "@keyframes fx-crt-roll"],
+  ["見出し行の水平同期が外れる", styles, "@keyframes fx-crt-desync"],
+  ["盤面の帯が別の拍でずれる", styles, "@keyframes fx-crt-tear"],
+  ["変わった数が色分離してブレる", styles, "@keyframes fx-crt-value"],
+  ["前の値が横へ千切れて消える", styles, "@keyframes fx-crt-ghost"],
+  ["変わった枠そのものがずれる", styles, "@keyframes fx-crt-cell"],
+  ["ブラウン管は補間しない", styles, "fx-crt-desync var(--fx-accent) steps(1, end)"],
+  ["面そのものに横の目が敷いてある", styles, ".forecaster-scan::before,"],
+  ["前の値の影を置くのは先見機の窓の中だけ", app, "function hauntWithPreviousValue(element, before)"],
+  ["前の値は読み上げへ出さない", app, "ghost.setAttribute(\"aria-hidden\", \"true\")"],
+  ["予測の勝敗とラウンドも読み値として見張る", app, "data-fx-watch=\\\"forecast-verdict\\\""],
   ["危険な予測の脈", styles, "@keyframes forecast-warn"],
   ["reduced-motion で反応を止める", styles, "  .fx-view-enter,\n  .fx-board-enter,"],
   ["キャンプのタブの中身をひとつの箱に入れる", app, 'class=\\"camp-view\\"'],
@@ -776,6 +790,8 @@ if (defined.has("__surely_missing__")) {
 const FX_KINDS_FROM_RENDER = [
   // app.js が描画のあとで直接足す語（fx() を通らない）。
   "view-enter", "board-enter", "recalc",
+  // 先見機の窓の中だけが着る語（ブラウン管の同期外れ）。
+  "crt", "ghost",
   // 読み値の見張り（pulseChangedReadouts）が足す向き。
   "up", "down", "change",
   // 保存できた一行が最初から着ている語。

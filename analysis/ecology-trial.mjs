@@ -358,13 +358,51 @@ try {
     '.installed-row [data-action="toggle-skill"][data-character="mender"][data-skill="shield_the_wounded"]',
   );
   if (await forecastToggle.count()) {
+    // 前の値の影（.fx-ghost）は動きが終わると自分で消えるので、**在ったこと**を
+    // 押す前に仕掛けた見張りで数える（読みに行く頃には消えている回がある）。
+    await page.evaluate(() => {
+      window.__crtGhosts = 0;
+      new MutationObserver((records) => {
+        for (const record of records) {
+          for (const node of record.addedNodes) {
+            if (node.nodeType === 1 && node.classList.contains("fx-ghost")) window.__crtGhosts += 1;
+          }
+        }
+      }).observe(document.querySelector("#app"), { subtree: true, childList: true });
+    });
     await forecastToggle.click();
     note("技能を切ると行が返事をする",
       await page.locator(".installed-row.fx-off, .installed-row.fx-on").count() > 0);
     // 技能を切れば予測が変わる。**申告していない数のほうが勝手に光る**（data-fx-watch）。
     note("予測の数が動くと窓が読み直す", await page.locator(".forecaster-window.fx-recalc").count() === 1);
     note("誰の予測が動いたかが盤面の数に出る",
-      await page.locator("[data-fx-watch].fx-up, [data-fx-watch].fx-down").count() > 0);
+      await page.locator(".forecaster-window [data-fx-watch].fx-up, .forecaster-window [data-fx-watch].fx-down").count() > 0);
+    // 作者指摘 2026-09-13 — 読み直しは「窓と数字が一瞬光る」ではなく、**ブラウン管の
+    // 同期外れ**で出す。光り方ではなく、どの面がどの keyframes を着ているかを見る。
+    note("窓の読み直しが補間しない段の動きで出る",
+      await page.locator(".forecaster-window").evaluate((box) => {
+        const style = getComputedStyle(box);
+        return style.animationName === "fx-rescan-frame" && style.animationTimingFunction.startsWith("steps");
+      }));
+    note("見出し行と盤面が別の拍で左右へずれる",
+      await page.locator(".forecaster-window .forecast-head")
+        .evaluate((head) => getComputedStyle(head).animationName === "fx-crt-desync")
+        && await page.locator(".forecaster-window .party-board")
+          .evaluate((board) => getComputedStyle(board).animationName === "fx-crt-tear"));
+    // ブレている最中に押される場所なので、**釦だけは左右へ飛ばさない。**
+    note("ブレている最中でも釦の的は動かない",
+      await page.locator(".forecaster-actions").evaluate((row) => getComputedStyle(row).animationName === "none"));
+    const changedInWindow = page.locator(".forecaster-window [data-fx-watch].fx-up,"
+      + " .forecaster-window [data-fx-watch].fx-down, .forecaster-window [data-fx-watch].fx-change");
+    note("窓の中の変わった数が色分離してブレる",
+      await changedInWindow.count() > 0
+        && await changedInWindow.first().evaluate((value) => getComputedStyle(value).animationName === "fx-crt-value"));
+    note("変わった数の上へ前の値の影が重なる", await page.evaluate(() => window.__crtGhosts) > 0,
+      String(await page.evaluate(() => window.__crtGhosts)));
+    // 窓の外の読み値は今までどおり色で光るだけ（画面中が壊れて見えないように）。
+    note("窓の外の読み値はブラウン管にしない",
+      await page.locator('nav.tabs [data-fx-watch]').first()
+        .evaluate((meta) => getComputedStyle(meta).animationName !== "fx-crt-value"));
     await forecastToggle.click();
   }
   // 動きを切っている人には、動きだけを出さない（色・記号・数・ラベルは残る）。
@@ -373,6 +411,24 @@ try {
   note("reduced-motion では立ち上がりを動かさない",
     await page.locator(".camp-view").evaluate((view) =>
       getComputedStyle(view).animationName === "none" || getComputedStyle(view).animationDuration === "0s"));
+  // 先見機の読み直しは、**止めた姿が残ってはいけない。**前の値の影と走査線は、
+  // 動きを止める回は置くこと自体をやめる（薄いまま重なった影が居座らないように）。
+  await page.locator('nav.tabs [data-tab="skills"]').click();
+  const reducedToggle = page.locator('.installed-row [data-action="toggle-skill"]').first();
+  if (await reducedToggle.count()) {
+    await reducedToggle.click();
+    note("reduced-motion では窓をブレさせない",
+      await page.locator(".forecaster-window .forecast-head")
+        .evaluate((head) => getComputedStyle(head).animationName === "none"));
+    note("reduced-motion では前の値の影も走査線も置かない",
+      await page.locator(".forecaster-window").evaluate((box) => {
+        const ghost = box.querySelector(".fx-ghost");
+        const bar = getComputedStyle(box, "::after");
+        return (!ghost || getComputedStyle(ghost).display === "none")
+          && (bar.display === "none" || bar.content === "none");
+      }));
+    await reducedToggle.click();
+  }
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.locator('nav.tabs [data-tab="map"]').click();
 

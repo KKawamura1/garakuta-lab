@@ -627,8 +627,25 @@ UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`
 
 予測だけは読み値ではなく**予測そのもの**を見張る。`forecastSignature()` が勝敗・ラウンド
 数・全員の開始／終了HP・戦闘不能を一本の文字列にし、一つでも動いた回に
-`.forecaster-window` が `fx-recalc`（走査線を一度速く通す）を受ける。窓に出ている文字だけを
+`.forecaster-window` が `fx-recalc` を受ける。窓に出ている文字だけを
 見ると、「勝利・3ラウンド」のまま終了HPだけが上がった回を取り落とす。
+
+`fx-recalc` の下で起きるのは**ブラウン管の同期外れ**である（作者指摘 2026-09-13）。
+硬い走査線が一度降り（`.forecaster-window.fx-recalc::after`。常時の一本
+`.forecaster-scan::after` とは別の面に置く）、面の横の目が濃くなって転がり
+（`.forecaster-scan::before`）、見出し行と盤面が別の拍で左右へずれる（`fx-crt-desync` /
+`fx-crt-tear`）。**釦の段（`.forecaster-actions`）は動かさない**——ブレている最中に
+押される的である。
+
+変わった読み値が窓の中にあるときは、`hauntWithPreviousValue()` が前の描画の値を
+`<span class="fx-ghost" aria-hidden="true">` として一枚重ね、`animationend` で捨てる
+（次の描画でも消える）。**読み値そのものの差し替えは遅らせない**——遅らせると、速く押した
+回に古い数が残る。流れるのは影のほうだけである。影を置いた枠（`.party-cell`）が他の反応を
+着ていなければ `fx-crt` も足し、誰の予測が動いたかを枠のずれで出す。
+
+反応の class は次の描画まで外れないので、**`.fx-recalc` の下で静的な見た目を差し替えない。**
+背景や濃さを class で塗り替えると、動きが終わったあとの窓にそれが残る。動かすのは
+opacity と transform に限り、終端の keyframe を書かずに元の値へ戻す。
 
 `applyRenderFeedback()` が反応を載せる唯一の場所で、`render()` の**最後**に呼ぶ
 （先に呼ぶと `publishCampTopHeight()` が立ち上がり途中の高さを測る）。画面の立ち上がりも
