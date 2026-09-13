@@ -54,6 +54,7 @@ import {
   ENEMY_MUTATIONS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
   PACK_BY_ID,
+  PORTRAIT_IMAGE_URLS,
   PROLOGUE,
   ULTIMATE_LESSON,
   REGION,
@@ -894,6 +895,68 @@ function shell(body, options = {}) {
   // the normal player-facing chrome. Visible details live inside technical logs.
   const footer = "<span class=\"build-stamp\" hidden aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
   return "<div class=\"shell\">" + screenActions + body + error + footer + "</div>";
+}
+
+// ---------------------------------------------------------------- 起動と読み込み
+//
+// **絵は、要る画面に入る前に読み終えておく。**立ち絵は会話が始まってから後追いで
+// 出ていた（原本の PNG が5人で 13MB あった）。配信用の WebP へ替えたうえで、
+// 起動時にタイトルの画と5人の立ち絵を先に取り、読み込み画面で待つ。
+//
+// **待ちは有限にする。**回線が細い・画像が消えている・decode に失敗するのいずれでも、
+// BOOT_TIMEOUT_MS で打ち切ってゲームを始める（絵が出ないことはあっても、
+// 入口で止まることはない）。
+const TITLE_ART_URL = "/ecology/art/title-cast.webp";
+const BOOT_TIMEOUT_MS = 7000;
+// 読み込みが速いときに読み込み画面を一瞬だけ出すと、ちらついて見える。
+// この時間より早く終わったら、読み込み画面そのものを出さない。
+const BOOT_REVEAL_DELAY_MS = 200;
+const GAME_TITLE = "One Battle Ahead";
+const bootImages = [];
+
+function preloadImage(src) {
+  const image = new Image();
+  bootImages.push(image);
+  image.src = src;
+  if (typeof image.decode === "function") {
+    return image.decode().catch(() => undefined);
+  }
+  return new Promise((resolve) => {
+    image.onload = resolve;
+    image.onerror = resolve;
+  });
+}
+
+function renderBootScreen(loaded, total) {
+  const percent = total ? Math.round((loaded / total) * 100) : 100;
+  app.innerHTML = titleShell(GAME_TITLE, "", "<section class=\"title-screen boot-screen\">"
+    + "<div class=\"boot-bar\" role=\"progressbar\" aria-label=\"読み込み中\""
+    + " aria-valuemin=\"0\" aria-valuemax=\"100\" aria-valuenow=\"" + percent + "\">"
+    + "<i style=\"width:" + percent + "%\"></i></div></section>");
+}
+
+async function boot() {
+  const sources = [TITLE_ART_URL, ...PORTRAIT_IMAGE_URLS];
+  let loaded = 0;
+  let showing = false;
+  const reveal = setTimeout(() => {
+    showing = true;
+    renderBootScreen(loaded, sources.length);
+  }, BOOT_REVEAL_DELAY_MS);
+  const loading = sources.map((src) => preloadImage(src).then(() => {
+    loaded += 1;
+    // タイトルの画は、読み終わってから一度だけ現れる（途中の帯を見せない）。
+    if (src === TITLE_ART_URL) document.documentElement.classList.add("title-art-ready");
+    if (showing) renderBootScreen(loaded, sources.length);
+  }));
+  let expired = null;
+  await Promise.race([
+    Promise.all(loading),
+    new Promise((resolve) => { expired = setTimeout(resolve, BOOT_TIMEOUT_MS); }),
+  ]);
+  clearTimeout(reveal);
+  if (expired !== null) clearTimeout(expired);
+  render();
 }
 
 // タイトルの表題は、文字を並べただけの見出しではなく**組み文字**として置く。
@@ -7841,4 +7904,4 @@ function handleAction(event) {
 }
 
 bindBrowserGestureGuards();
-render();
+boot();

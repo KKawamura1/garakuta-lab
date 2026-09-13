@@ -335,6 +335,7 @@ const ambient = new Set([
   "parseInt", "parseFloat", "isNaN", "isFinite", "structuredClone",
   "encodeURIComponent", "decodeURIComponent",
   "localStorage", "document", "window", "console", "fetch", "crypto", "navigator", "alert", "confirm",
+  "Image",
   "if", "for", "while", "switch", "catch", "return", "typeof", "function", "await", "new",
   "case", "do", "else", "of", "in", "delete", "void", "yield", "throw", "super", "import",
 ]);

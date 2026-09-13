@@ -140,27 +140,59 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
 /* 画面いっぱいの空気。タイトルを出しているあいだだけ存在する。 */
+/* 画は `analysis/art-web-assets.py` が原本から作る1枚（約 250KB）で、上3割は
+   透明の余白（表題の場所）である。**画は下端に置き、画面いっぱいには広げない。**
+   cover で広げると電話では顔だけに寄ってしまい、品書きが顔の上に乗る。
+   **読み終わるまで出さない。**途中の帯だけが見えるのは、読み込み中の見た目として
+   汚い（`html.title-art-ready` が付くまで透明のまま待ち、付いたら一度だけ現れる）。 */
 .title-air {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  background: var(--bg);
+}
+
+.title-air::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("art/title-cast.webp") center bottom / auto 62% no-repeat;
+  opacity: 0;
+  transition: opacity .7s ease-out;
+}
+
+.title-art-ready .title-air::before { opacity: 1; }
+
+/* 文字を読ませるための幕。上の光と、左右の切り口消しと、下へ落ちる暗がり。 */
+.title-air::after {
+  content: "";
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(120% 68% at 50% 2%, rgba(145, 203, 213, .16) 0, rgba(145, 203, 213, 0) 62%),
-    radial-gradient(88% 52% at 50% 34%, rgba(229, 184, 105, .10) 0, rgba(229, 184, 105, 0) 70%),
-    linear-gradient(180deg, rgba(6, 10, 11, 0) 34%, rgba(4, 7, 8, .78) 100%);
+    radial-gradient(120% 68% at 50% 2%, rgba(145, 203, 213, .14) 0, rgba(145, 203, 213, 0) 62%),
+    linear-gradient(90deg,
+      rgba(10, 15, 17, .92) 0,
+      rgba(10, 15, 17, 0) 15%,
+      rgba(10, 15, 17, 0) 85%,
+      rgba(10, 15, 17, .92) 100%),
+    linear-gradient(180deg,
+      rgba(10, 15, 17, .88) 0,
+      rgba(10, 15, 17, .70) 26%,
+      rgba(10, 15, 17, .48) 50%,
+      rgba(10, 15, 17, .20) 72%,
+      rgba(6, 10, 11, .34) 100%);
 }
 
 .title-header {
   display: block;
   flex: 0 0 auto;
-  padding: 0 2px;
+  padding: clamp(40px, 11vh, 104px) 2px 0;
   text-align: center;
 }
 
@@ -168,43 +200,38 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   display: none;
 }
 
-/* 表題。上段は詰めて太く、下段は最後の語だけを字間を開けて金で置く。 */
+/* 表題。**題は一つの言い回しなので、一行で読ませる。**
+   "One Battle Ahead" は "one step ahead" の掛けで、「次の一戦が見えている」と
+   「あと一戦だけやりたい」を同時に指す。だから ahead を小さな副題へ落とすと、
+   題の意味が「ONE BATTLE（一戦）」へずれる。二語を同じ大きさ・同じ太さで並べ、
+   意味を担う ahead にだけ金を置く。画面が狭いときは、語のあいだで自然に折り返す。 */
 .wordmark {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0 .32em;
   margin: 0;
-  letter-spacing: normal;
   text-transform: uppercase;
-  line-height: 1;
+  line-height: 1.08;
 }
 
 .wordmark-lead,
 .wordmark-tail {
-  display: block;
-}
-
-.wordmark-lead {
-  font-size: clamp(30px, 9.4vw, 46px);
+  font-size: clamp(26px, 7.8vw, 50px);
   font-weight: 800;
-  letter-spacing: .04em;
-  text-indent: .04em;
-  color: var(--ink);
-  text-shadow: 0 2px 26px rgba(0, 0, 0, .55);
+  letter-spacing: .045em;
+  text-shadow: 0 2px 26px rgba(0, 0, 0, .6);
 }
 
-.wordmark-tail {
-  margin-top: clamp(9px, 2.4vw, 13px);
-  font-size: clamp(14px, 4.4vw, 20px);
-  font-weight: 650;
-  letter-spacing: .52em;
-  /* 字間は文字の右にだけ付くので、その分だけ右に寄る。同じ量を左へ戻して中央に置く。 */
-  text-indent: .52em;
-  color: var(--gold);
-}
+.wordmark-lead { color: var(--ink); }
+.wordmark-tail { color: var(--gold); }
 
 /* 中身は上下の中央に置き、そのうえで**下へ余白を足して、少し上に寄せる**。
    画面の真ん中に文字列が浮くより、目線の高さに標題が来るほうが落ち着く。 */
 .title-screen {
   width: min(100%, 320px);
-  margin: clamp(26px, 7vh, 54px) auto 0;
+  margin: clamp(22px, 6vh, 48px) auto 0;
   padding-bottom: clamp(16px, 5vh, 48px);
   text-align: center;
 }
@@ -296,6 +323,47 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   text-indent: .18em;
 }
 
+/* 読み込み画面。**表題はそのままの位置に残し、下に細い帯だけを出す。**
+   読み終えたら同じ場所に入口が現れるので、画面が入れ替わったようには見えない。 */
+.boot-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.boot-bar {
+  width: min(100%, 190px);
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(237, 243, 237, .12);
+  overflow: hidden;
+}
+
+.boot-bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gold);
+  transition: width .25s ease-out;
+}
+
+/* app.js が届く前の静的な印。まだ進み具合が分からないので、帯を往復させる。 */
+.boot-static {
+  margin-top: 38vh;
+}
+
+.boot-static .boot-bar i {
+  width: 34%;
+  animation: boot-sweep 1.25s ease-in-out infinite alternate;
+}
+
+@keyframes boot-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(295%); }
+}
+
 /* 立ち上がりの一呼吸。上から順に置かれる。 */
 @keyframes title-rise {
   from { opacity: 0; transform: translateY(9px); }
@@ -316,12 +384,30 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   .title-rule,
   .title-actions .title-entry,
   .title-screen .save-summary { animation: none; }
+  .boot-static .boot-bar i { animation: none; width: 100%; opacity: .5; }
+  .title-air::before { transition: none; }
 }
 
 /* 横向き・背の低い画面では、表題の上を詰める。 */
 @media (max-height: 560px) {
+  .title-header { padding-top: 22px; }
   .title-screen { margin-top: 20px; padding-bottom: 20px; }
   .title-entry { min-height: 46px; padding: 12px 10px; }
+  /* 背が低い画面では、品書きと画が同じ高さに来る。**画を小さくし、幕を濃くする。** */
+  .title-air::before { background-size: auto 52%; }
+  .title-air::after {
+    background:
+      linear-gradient(90deg,
+        rgba(10, 15, 17, .92) 0,
+        rgba(10, 15, 17, 0) 15%,
+        rgba(10, 15, 17, 0) 85%,
+        rgba(10, 15, 17, .92) 100%),
+      linear-gradient(180deg,
+        rgba(10, 15, 17, .9) 0,
+        rgba(10, 15, 17, .78) 40%,
+        rgba(10, 15, 17, .66) 72%,
+        rgba(6, 10, 11, .62) 100%);
+  }
 }
 
 .build-trail i {
