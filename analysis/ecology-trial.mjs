@@ -617,11 +617,35 @@ try {
       note("再生の操作が画面内にある", await onScreen(".replay-transport"));
       note("ログは既定で閉じている", !(await page.locator("details.debug-log").first().evaluate((d) => d.open)));
       // ダメージ値が実際に浮くところまで見る（拍が進んでいる証拠）。
+      //
+      // **出ている場所も一緒に見る。**2026-09-13 まで、味方が受けた数字は一度も
+      // 画面に出ていなかった。数字を箱の中へ置いていて、味方の箱は立ち絵を切り抜く
+      // ために overflow を閉じているので、箱の外へ昇る数字がまるごと切られていた。
+      // DOM に `.float` があることだけを見ていたので、この検査は当時も通っていた。
+      let floatPlacement = null;
       for (let i = 0; i < 150 && !sawAnimation; i += 1) {
-        if (await page.locator(".float").count() > 0) sawAnimation = true;
-        else await page.waitForTimeout(100);
+        if (await page.locator(".float").count() > 0) {
+          sawAnimation = true;
+          floatPlacement = await page.locator(".battle-field").evaluate((field) => {
+            const floats = [...field.querySelectorAll(".float")];
+            const bounds = field.getBoundingClientRect();
+            return {
+              count: floats.length,
+              // 盤面の層の子であること（箱の中へ戻すと、また切られる）。
+              inLayer: floats.every((node) => node.parentElement?.classList.contains("battle-floats")),
+              insideField: floats.every((node) => {
+                const rect = node.getBoundingClientRect();
+                return rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1
+                  && rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1;
+              }),
+            };
+          });
+        } else await page.waitForTimeout(100);
       }
       note("ダメージ値が対象の上に浮かぶ", sawAnimation);
+      note("浮く数字は箱ではなく盤面の層に出る（切られない）",
+        Boolean(floatPlacement?.count) && floatPlacement.inLayer && floatPlacement.insideField,
+        JSON.stringify(floatPlacement));
       await page.locator("details.battle-history.debug-log > summary").click();
       note("デバッグログを開ける", await page.locator(".debug-log .event").count() > 0);
 
