@@ -129,50 +129,313 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
   background: linear-gradient(145deg, rgba(32, 45, 48, .97), rgba(21, 29, 31, .97));
   box-shadow: 0 12px 30px rgba(0,0,0,.16);
 }
+/*
+ * タイトル画面。**この画面には情報が無い。**だから、置けるものは
+ * 「表題の組み方」「余白」「一筋の罫」「押せる三つ」しかない。
+ * 以前は ◈ を大きく置いて表題を一行で書いていたが、記号は意味を持たないので
+ * 大きいほど安く見える。記号を外し、表題そのものを図像として組む。
+ * 画像は使わない。空気は CSS の層だけで作り、起動に読み込み待ちを足さない。
+ */
+.title-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* 画面いっぱいの空気。タイトルを出しているあいだだけ存在する。 */
+/* 画は `analysis/art-web-assets.py` が原本から作る1枚（約 250KB）で、上3割は
+   透明の余白（表題の場所）である。**画は下端に置き、画面いっぱいには広げない。**
+   cover で広げると電話では顔だけに寄ってしまい、品書きが顔の上に乗る。
+   **読み終わるまで出さない。**途中の帯だけが見えるのは、読み込み中の見た目として
+   汚い（`html.title-art-ready` が付くまで透明のまま待ち、付いたら一度だけ現れる）。 */
+.title-air {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--bg);
+}
+
+.title-air::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("art/title-cast.webp") center bottom / auto 58% no-repeat;
+  /* **絵は幕の向こうに置く。**わずかにぼかして彩度を落とすと、顔が最初に目を引かなくなる
+     （はっきり写っていると、題より先に顔へ視線が行く。作者指摘 2026-09-13）。 */
+  filter: blur(1.1px) saturate(.85);
+  opacity: 0;
+  transition: opacity .7s ease-out;
+}
+
+.title-art-ready .title-air::before { opacity: 1; }
+
+/* 文字を読ませるための幕。上の光と、左右の切り口消しと、下へ落ちる暗がり。 */
+.title-air::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    /* 題の高さに、弱い明かりを一つ置く。**画面で最初に見るのはここ。** */
+    radial-gradient(78% 30% at 50% 15%, rgba(145, 203, 213, .16) 0, rgba(145, 203, 213, 0) 100%),
+    linear-gradient(90deg,
+      rgba(10, 15, 17, .92) 0,
+      rgba(10, 15, 17, 0) 15%,
+      rgba(10, 15, 17, 0) 85%,
+      rgba(10, 15, 17, .92) 100%),
+    linear-gradient(180deg,
+      rgba(10, 15, 17, .86) 0,
+      rgba(10, 15, 17, .72) 30%,
+      rgba(10, 15, 17, .62) 56%,
+      rgba(10, 15, 17, .40) 74%,
+      rgba(6, 10, 11, .42) 100%);
+}
+
 .title-header {
   display: block;
-  padding: clamp(64px, 18vh, 150px) 2px 8px;
+  flex: 0 0 auto;
+  padding: clamp(40px, 11vh, 104px) 14px 0;
   text-align: center;
-}
-
-.title-header .kicker {
-  margin-bottom: 10px;
-}
-
-.title-header h1 {
-  margin-bottom: 0;
-  font-size: clamp(30px, 8vw, 40px);
 }
 
 .title-header .subtitle:empty {
   display: none;
 }
 
+/* 表題。**題は一つの言い回しなので、一行で読ませる。**
+   "One Battle Ahead" は "one step ahead" の掛けで、「次の一戦が見えている」と
+   「あと一戦だけやりたい」を同時に指す。だから ahead を小さな副題へ落とすと、
+   題の意味が「ONE BATTLE（一戦）」へずれる。二語を同じ大きさ・同じ太さで並べ、
+   意味を担う ahead にだけ金を置く。画面が狭いときは、語のあいだで自然に折り返す。 */
+.wordmark {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0 .32em;
+  margin: 0;
+  text-transform: uppercase;
+  line-height: 1.08;
+}
+
+.wordmark-lead,
+.wordmark-tail {
+  font-size: clamp(27px, 7.9vw, 54px);
+  font-weight: 800;
+  letter-spacing: .045em;
+  /* **題を画面で一番明るいものにする。**後ろの淡い光と、下の影。 */
+  text-shadow: 0 0 42px rgba(163, 214, 222, .28), 0 3px 30px rgba(0, 0, 0, .75);
+}
+
+.wordmark-lead { color: var(--ink); }
+.wordmark-tail { color: var(--gold); }
+
+/* 中身は上下の中央に置き、そのうえで**下へ余白を足して、少し上に寄せる**。
+   画面の真ん中に文字列が浮くより、目線の高さに標題が来るほうが落ち着く。 */
 .title-screen {
-  width: min(100%, 340px);
-  margin: 14px auto 0;
+  width: min(100%, 320px);
+  margin: clamp(22px, 6vh, 48px) auto 0;
+  padding-bottom: clamp(16px, 5vh, 48px);
   text-align: center;
 }
 
-.title-screen .sigil {
-  margin-bottom: 26px;
-  color: var(--gold);
-  font-size: 42px;
+/* 表題と品書きのあいだの一筋。端は消す。 */
+.title-rule {
+  height: 1px;
+  margin: 0 auto clamp(18px, 4.5vh, 30px);
+  background: linear-gradient(90deg,
+    rgba(229, 184, 105, 0) 0,
+    rgba(229, 184, 105, .5) 50%,
+    rgba(229, 184, 105, 0) 100%);
 }
 
 .title-actions {
   display: grid;
-  gap: 10px;
+  gap: 0;
+  margin: 0;
 }
 
-.title-actions .button {
-  margin-top: 0;
+/* 品書きの一行。箱で囲わず、罫で分ける。**指の当たりは行全体**にする。 */
+.title-entry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 56px;
+  margin: 0;
+  padding: 17px 10px;
+  border: 0;
+  background: transparent;
+  color: rgba(237, 243, 237, .88);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .22em;
+  text-indent: .22em;
+}
+
+.title-entry + .title-entry {
+  border-top: 1px solid rgba(237, 243, 237, .08);
+}
+
+/* いま押す一つ。金の文字と、名前の左右へ添えた細い印で示す。
+   印は行の端ではなく**文字のすぐ横**に置く（端に置くと、ただの傷に見える）。 */
+.title-entry.lead {
+  color: var(--gold);
+  font-size: 15px;
+}
+
+.title-entry.lead::before,
+.title-entry.lead::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 14px;
+  height: 1px;
+  background: var(--gold);
+  opacity: .75;
+}
+
+.title-entry:disabled { color: var(--muted); }
+.title-entry:disabled::before,
+.title-entry:disabled::after { display: none; }
+
+.title-entry:not(:disabled):active {
+  background: rgba(229, 184, 105, .12);
+}
+
+@media (hover: hover) {
+  .title-entry:not(:disabled):hover {
+    background: rgba(237, 243, 237, .04);
+  }
 }
 
 .title-screen .save-summary {
-  margin: 16px 0 0;
+  margin: clamp(18px, 4vh, 28px) 0 0;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 11px;
+  letter-spacing: .06em;
+}
+
+/* 控えの見出しは行を分ける。**中点で繋ぐと、日付の折り返しと混ざって読めない。** */
+.title-screen .save-summary span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .18em;
+  text-indent: .18em;
+}
+
+/* 保存枠を開く一行。入口の二つより一段下の扱いで、控えの一行の後ろに置く。 */
+.title-link {
+  display: block;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 12px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-indent: .14em;
+}
+
+.title-link:active { color: var(--ink); }
+
+@media (hover: hover) {
+  .title-link:hover { color: var(--ink); }
+}
+
+/* 読み込み画面。**表題はそのままの位置に残し、下に細い帯だけを出す。**
+   読み終えたら同じ場所に入口が現れるので、画面が入れ替わったようには見えない。 */
+.boot-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.boot-bar {
+  width: min(100%, 190px);
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(237, 243, 237, .12);
+  overflow: hidden;
+}
+
+.boot-bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gold);
+  transition: width .25s ease-out;
+}
+
+/* app.js が届く前の静的な印。まだ進み具合が分からないので、帯を往復させる。 */
+.boot-static {
+  margin-top: 38vh;
+}
+
+.boot-static .boot-bar i {
+  width: 34%;
+  animation: boot-sweep 1.25s ease-in-out infinite alternate;
+}
+
+@keyframes boot-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(295%); }
+}
+
+/* 立ち上がりの一呼吸。上から順に置かれる。 */
+@keyframes title-rise {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.wordmark-lead { animation: title-rise .5s ease-out both; }
+.wordmark-tail { animation: title-rise .5s ease-out .1s both; }
+.title-rule { animation: title-rise .5s ease-out .18s both; }
+.title-actions .title-entry:nth-child(1) { animation: title-rise .5s ease-out .24s both; }
+.title-actions .title-entry:nth-child(2) { animation: title-rise .5s ease-out .3s both; }
+.title-screen .save-summary { animation: title-rise .5s ease-out .36s both; }
+.title-link { animation: title-rise .5s ease-out .42s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-lead,
+  .wordmark-tail,
+  .title-rule,
+  .title-actions .title-entry,
+  .title-screen .save-summary,
+  .title-link { animation: none; }
+  .boot-static .boot-bar i { animation: none; width: 100%; opacity: .5; }
+  .title-air::before { transition: none; }
+}
+
+/* 横向き・背の低い画面では、表題の上を詰める。 */
+@media (max-height: 560px) {
+  .title-header { padding-top: 22px; }
+  .title-screen { margin-top: 20px; padding-bottom: 20px; }
+  .title-entry { min-height: 46px; padding: 12px 10px; }
+  /* 背が低い画面では、品書きと画が同じ高さに来る。**画を小さくし、幕を濃くする。** */
+  .title-air::before { background-size: auto 48%; }
+  .title-air::after {
+    background:
+      linear-gradient(90deg,
+        rgba(10, 15, 17, .92) 0,
+        rgba(10, 15, 17, 0) 15%,
+        rgba(10, 15, 17, 0) 85%,
+        rgba(10, 15, 17, .92) 100%),
+      linear-gradient(180deg,
+        rgba(10, 15, 17, .9) 0,
+        rgba(10, 15, 17, .78) 40%,
+        rgba(10, 15, 17, .66) 72%,
+        rgba(6, 10, 11, .62) 100%);
+  }
 }
 
 .build-trail i {
@@ -2802,19 +3065,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 
 
-/* R10 — title screen and local save slots */
-.title-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  margin: 1.4rem 0 0.8rem;
-}
-
-.save-summary {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
+/* R10 — local save slots */
 
 /* issue #235 — 盤面の役を切り替える一つのボタン。予測の見出し行に同居させ、
    固定領域の高さを増やさない。**押している間だけ盤面が隊列の組み替えになる。** */

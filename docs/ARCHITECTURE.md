@@ -32,6 +32,7 @@
 | `ultimates.mjs` | 必殺技（issue #238）。取得済み技能を必殺へ変える純関数の変換規則と、遠征 bundle への混ぜ方。**engine も schema も必殺を知らない** |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換。必殺の拍（issue #242 のカットイン）も、新しい event を足さずに ID の形だけで組む |
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
+| `art/` | **配信用の画。**タイトルの5人（`title-cast.webp`）と会話の立ち絵（`portraits/*.webp`）。原本は `docs/art/`、作り直しは `analysis/art-web-assets.py` |
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
@@ -67,6 +68,24 @@
 オートセーブへ記録する。ページを開いた直後はタイトルを表示し、そこからContinueを選んだときだけ
 その再開地点へ復元する。タイトルへ戻る前に作られた旧い保存に再開地点の記録が無い場合は、
 遠征準備画面へ復元する。ロードメニューを閉じるだけではオートセーブを上書きしない。
+
+タイトル画面だけは通常画面と別の `titleShell()` を使う。`titleShell()` は渡された題名を
+`wordmarkMarkup()` で組み（狭い画面では語のあいだで折り返す）、画面いっぱいの層
+（`.title-air`）を敷く。層は、下端に置いた5人の画と、その上の幕（光・左右の切り口消し・
+下へ落ちる暗がり）でできている。
+
+### 起動と画像の読み込み
+
+`app.js` の入口は `render()` ではなく `boot()` である。`boot()` はタイトルの画と5人の
+立ち絵（`PORTRAIT_IMAGE_URLS`）を `Image.decode()` で先に取り、読み込み画面を出してから
+`render()` する。読み込みが `BOOT_REVEAL_DELAY_MS` より速ければ読み込み画面は出さず、
+`BOOT_TIMEOUT_MS` を超えたら待たずに始める（**入口で止まらない**）。タイトルの画は
+読み終わった時点で `html.title-art-ready` が付き、そこで初めて現れる（途中の帯を見せない）。
+`index.html` は app.js が届くまでの静的な読み込み印（`.boot-static`）と、
+タイトルの画の `<link rel="preload">` を持つ。
+
+配信する画像は `ecology/art/` の WebP だけで、`docs/art/` の原本（1枚 2〜3MB）は配らない。
+`_headers` が `/ecology/art/*` を一日キャッシュする。
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
 取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡り、engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）にだけ係数を掛けます。**engine は技能 ID で分岐しません**：表に載っていない技能では掛け算そのものが起きず、Lv1 は係数 1.0 ちょうどなので旧入力と1バイトも変わりません。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。

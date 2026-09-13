@@ -104,7 +104,7 @@ try {
       && !/戦闘は自動で進みます|Stageを越えるたび|活動資金と設計図/.test(await bodyText()));
   note("タイトル画面に遠征開始ボタンを置かない",
     await page.getByRole("button", { name: "遠征を仕立てる" }).count() === 0);
-  note("Load Gameへ進める", await page.getByRole("button", { name: "ロードゲーム" }).count() === 1);
+  note("保存枠へ進める", await page.getByRole("button", { name: "セーブデータを選ぶ" }).count() === 1);
   // R10 — New Gameは必ずCampaign Stage 0のopeningから始める。
   await click("はじめから");
 

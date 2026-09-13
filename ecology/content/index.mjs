@@ -323,6 +323,7 @@ export {
   PORTRAITS,
   PORTRAIT_FACE_VIEWBOX,
   PORTRAIT_IDS,
+  PORTRAIT_IMAGE_URLS,
   PORTRAIT_VIEWBOX,
   portraitAccent,
   portraitDef,

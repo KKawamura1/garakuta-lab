@@ -157,13 +157,18 @@ try {
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
-  note("初期表示", /One Battle Ahead/.test(await bodyText()));
+  // 表題は組み文字（上段「ONE BATTLE」＋下段「AHEAD」）で、CSS の大文字化と
+  // 改行が入る。**見るのは「題が出ているか」**なので、大小と改行は無視して読む。
+  note("初期表示", /one\s*battle\s*ahead/i.test((await bodyText()).replace(/\s+/g, " ")));
   note("build の印が画面に出ている",
     expectedBuild ? (await buildStampText()).includes(expectedBuild) : false, expectedBuild);
 
+  // 入口の列は二つだけで、保存枠は一段下の小さな一行として別に置く（作者指摘 2026-09-13）。
   note("タイトル画面の開始導線が整理されている",
     await page.getByRole("button", { name: "はじめから" }).count() === 1
-      && await page.getByRole("button", { name: "ロードゲーム" }).count() === 1
+      && await page.locator(".title-actions .title-entry").count() === 2
+      && await page.locator(".title-link").count() === 1
+      && await page.getByRole("button", { name: "セーブデータを選ぶ" }).count() === 1
       && await page.getByRole("button", { name: "遠征を仕立てる" }).count() === 0);
 
   // R6 §15.1 — 遠征開始前に、有効パック・敵情報・3体のボスと法則が出る。

@@ -13,3 +13,8 @@
 
 /ecology/sync.mjs
   Cache-Control: no-cache
+
+# 配信用の画（タイトルの5人・会話の立ち絵）。**中身が変わるのは作り直したときだけ**なので、
+# 端末へ一日残す。作り直したら `analysis/art-web-assets.py` を回して差し替える。
+/ecology/art/*
+  Cache-Control: public, max-age=86400

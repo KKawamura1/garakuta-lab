@@ -44,18 +44,32 @@ export const DEFAULT_EXPRESSION = "neutral";
 
 // ---------------------------------------------------------------- 人物ごとの見た目
 //
-// accent … UI の差し色。image … `docs/art/bustup_v0/` 以下の暫定バストアップ。
+// accent … UI の差し色。image … 配信用の派生画像（`ecology/art/portraits/`）。
+// **原本は配らない。**`docs/art/bustup_v0/*.png` は 1086x1448・1枚 2.3〜3.1MB の保管用で、
+// 画面では 240x320 前後にしか出ないのに 5人で 13MB あった（会話に入ってから立ち絵が
+// 後追いで出ていたのはこれが理由である）。配信用は長辺 640px の WebP（5枚で約 360KB）で、
+// `analysis/art-web-assets.py` が原本から作り直す。
 export const PORTRAITS = Object.freeze({
-  warden: Object.freeze({ accent: "#91cbd5", image: "gou.png" }), // ゴウ
-  mender: Object.freeze({ accent: "#9bd69e", image: "tsugumi.png" }), // ツグミ
-  lancer: Object.freeze({ accent: "#e5a26b", image: "nagi.png" }), // ナギ
-  guardian: Object.freeze({ accent: "#f2c14e", image: "hibana.png" }), // ヒバナ
-  tactician: Object.freeze({ accent: "#d8d18a", image: "genzou.png" }), // ゲンゾウ
+  warden: Object.freeze({ accent: "#91cbd5", image: "gou.webp" }), // ゴウ
+  mender: Object.freeze({ accent: "#9bd69e", image: "tsugumi.webp" }), // ツグミ
+  lancer: Object.freeze({ accent: "#e5a26b", image: "nagi.webp" }), // ナギ
+  guardian: Object.freeze({ accent: "#f2c14e", image: "hibana.webp" }), // ヒバナ
+  tactician: Object.freeze({ accent: "#d8d18a", image: "genzou.webp" }), // ゲンゾウ
 });
 
 export const PORTRAIT_IDS = Object.freeze(Object.keys(PORTRAITS));
 
-const PORTRAIT_IMAGE_BASE = "/docs/art/bustup_v0/";
+const PORTRAIT_IMAGE_BASE = "/ecology/art/portraits/";
+
+// **絵は会話が始まる前に読み終えておく。**起動時の読み込み画面がこの一覧を先に取る
+// （`app.js` の preload）。ここが唯一の正本で、画面側は URL を組み立て直さない。
+export function portraitImageUrl(characterId) {
+  const def = PORTRAITS[characterId];
+  return def ? PORTRAIT_IMAGE_BASE + def.image : "";
+}
+
+export const PORTRAIT_IMAGE_URLS = Object.freeze(
+  PORTRAIT_IDS.map((id) => PORTRAIT_IMAGE_BASE + PORTRAITS[id].image));
 
 export function portraitDef(characterId) {
   return PORTRAITS[characterId] ?? null;
