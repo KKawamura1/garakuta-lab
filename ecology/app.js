@@ -5174,6 +5174,20 @@ function clampReplayIndex() {
   return Math.max(0, Math.min(state.replayIndex, beats.length - 1));
 }
 
+// 作者試遊 2026-09-13 — **決着の拍は再生の終点である。**VICTORY / DEFEAT の帯が
+// 出たところで再生を止め、そこから先は［次へ］を押すまで進まない。だから
+// 「最後の拍」ではなく「決着の拍」を終点として一箇所で決める。`battle_ended` は
+// engine の最後のイベントなので通常は末尾と同じだが、戦闘が決着の拍を持たない
+// 入力（途中まで保存された replay など）でも終点を失わないよう末尾へ落とす。
+function endingBeatIndex(beats = replayBeats()) {
+  const found = beats.findIndex((beat) => beat.kind === "ending");
+  return found >= 0 ? found : Math.max(0, beats.length - 1);
+}
+
+function atReplayEnding(index = clampReplayIndex(), beats = replayBeats()) {
+  return beats.length === 0 || index >= endingBeatIndex(beats);
+}
+
 function currentBeat() {
   return replayBeats()[clampReplayIndex()] ?? null;
 }
@@ -5253,6 +5267,9 @@ function renderBattle() {
     button(entry.label, "replay-speed", false, "speed-button" + (replaySpeed().id === entry.id ? " active" : ""),
       "data-speed=\"" + entry.id + "\"")).join("");
   const encounter = currentEncounter();
+  // 前進の釦は描き出しの時点で一つに決める（直後の updateReplayControls と同じ判定を
+  // 使うので、描き直した一瞬だけ二つ並ぶことがない）。
+  const atEnding = atReplayEnding();
   const visionClass = state.simulationMode ? " simulation-vision" : "";
   const visionLens = state.simulationMode
     ? "<span class=\"simulation-lens\" aria-hidden=\"true\"><i></i></span>"
@@ -5282,9 +5299,19 @@ function renderBattle() {
     + "<div class=\"replay-speed\"><span class=\"replay-speed-label\">速さ</span>" + speedButtons + "</div>"
     // PR #255 — **行き先ではなく、いま押す操作の名前にする。**「キャンプへ戻る」と
     // 書くと、戦闘の前へ戻る（＝やり直せる）ように読めた（作者試遊 2026-09-12）。
-    // この釦がするのは再生を打ち切ることだけなので、そう名乗らせる。行き先が
-    // 場面で変わる（結果画面・キャンプ・精算）ぶん、札で行き先を約束しない。
-    + button("再生をとばす", "replay-result", false, "button") + "</section>"
+    // 行き先が場面で変わる（結果画面・キャンプ・精算）ぶん、札で行き先を約束しない。
+    //
+    // 作者試遊 2026-09-13 — **飛ばし先を決着の帯に変えた。**「再生をとばす」は
+    // 戦闘を丸ごと畳んで次の場面へ出てしまい、勝敗の帯を見ないまま終わっていた。
+    // いまは［一気に決着へ］が VICTORY / DEFEAT の拍まで早送りして**そこで止まり**、
+    // 次の場面へ出るのは［次へ］だけである。二つは同じ場所で入れ替わるので、
+    // 「いま押せる前進」は常に一つしか出ない。
+    + "<div class=\"replay-finish\">"
+    + button("一気に決着へ ▶▶", "replay-verdict", beats.length === 0, "button",
+      "data-role=\"replay-verdict\"" + (atEnding ? " hidden" : ""))
+    + button("次へ ▶", "replay-result", false, "button primary",
+      "data-role=\"replay-next\"" + (atEnding ? "" : " hidden"))
+    + "</div></section>"
     + helpDetails("battle-display", "表示の説明",
       "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。踏み込みは狙った相手の列へ向かい、攻撃側から被弾側へ光の線が一度だけ走ります。狙われている箱には金色の四隅が付きます。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
       + "<p class=\"muted\">一撃の重さは最大HPに対する割合で三段です。15%以上で揺れと数字が一段大きくなり、30%以上（と撃破）ではさらに大きくなって盤面ごと揺れます。端末の「視差効果を減らす」を入れている場合は動きだけが止まり、帯・照準・数字はそのまま出ます。</p>"
@@ -5505,17 +5532,28 @@ function shakeField(field, level) {
 }
 
 function updateReplayControls(index, beats) {
-  const atEnd = index >= beats.length - 1;
+  const atEnd = atReplayEnding(index, beats);
   const toggle = app.querySelector("[data-role=\"replay-toggle\"]");
   if (toggle) {
     toggle.textContent = state.replayPlaying ? "一時停止" : (atEnd ? "最初から再生" : "自動再生");
-    toggle.className = "button" + (state.replayPlaying ? "" : " primary");
+    // 決着のあとで金の釦を二つ出さない。**ここで押すべきは［次へ］**で、
+    // もう一度見るのはついでなので、主役の色は一つに保つ。
+    toggle.className = "button" + (state.replayPlaying || atEnd ? "" : " primary");
     toggle.disabled = beats.length === 0;
   }
   const step = app.querySelector("[data-role=\"replay-step\"]");
   if (step) step.disabled = atEnd;
   const back = app.querySelector("[data-role=\"replay-back\"]");
   if (back) back.disabled = index <= 0;
+  // 作者試遊 2026-09-13 — 前進の釦は一度に一つ。決着の前は［一気に決着へ］、
+  // 決着の帯が出てからは［次へ］だけを出す。
+  const verdict = app.querySelector("[data-role=\"replay-verdict\"]");
+  if (verdict) {
+    verdict.hidden = atEnd;
+    verdict.disabled = beats.length === 0;
+  }
+  const next = app.querySelector("[data-role=\"replay-next\"]");
+  if (next) next.hidden = !atEnd;
   app.querySelectorAll(".speed-button[data-speed]").forEach((element) => {
     element.classList.toggle("active", element.dataset.speed === replaySpeed().id);
   });
@@ -5784,6 +5822,10 @@ function syncBattleView(options = {}) {
   const banner = field.querySelector(".battle-banner");
   if (banner) {
     const spec = battleBannerFor(beat);
+    // 決着の帯は消えずに残るので、**同じことを言う拍の行とは重ならないようにする。**
+    // 帯は盤面の真ん中（拍の行の上）に出るため、流れて消えていたころは一瞬の重なりで
+    // 済んでいた。読み上げは拍の行（aria-live）が持っているので、消すのは見た目だけ。
+    field.classList.toggle("verdict-hold", Boolean(spec?.hold));
     if (!spec) {
       banner.dataset.beat = "";
       banner.className = "battle-banner";
@@ -5791,7 +5833,10 @@ function syncBattleView(options = {}) {
     } else if (banner.dataset.beat !== String(index)) {
       banner.dataset.beat = String(index);
       banner.innerHTML = "<b>" + esc(spec.word) + "</b><i>" + esc(spec.reading) + "</i>";
-      banner.className = "battle-banner show " + spec.tone;
+      // 作者試遊 2026-09-13 — **決着の帯だけは消えずに残る。**開始とラウンドの帯は
+      // 次の拍へ場所を譲るので流れて消えるが、VICTORY / DEFEAT はそこで再生が
+      // 止まる拍なので、［次へ］を押すまで出したままにする（`hold`）。
+      banner.className = "battle-banner show " + spec.tone + (spec.hold ? " hold" : "");
       if (!options.silent) restartAnimation(banner, "run");
     }
   }
@@ -5830,10 +5875,11 @@ function battleBannerFor(beat) {
     return { word: "ROUND " + round, reading: "ラウンド" + round, tone: "round" };
   }
   if (beat.kind === "ending") {
+    // `hold` — この帯は流して消さない（再生がここで止まる）。
     const result = beat.events[0]?.values?.result;
-    if (result === "win") return { word: "VICTORY", reading: "勝利", tone: "win" };
-    if (result === "loss") return { word: "DEFEAT", reading: "敗北", tone: "lose" };
-    return { word: "DRAW", reading: "相打ち", tone: "draw" };
+    if (result === "win") return { word: "VICTORY", reading: "勝利", tone: "win", hold: true };
+    if (result === "loss") return { word: "DEFEAT", reading: "敗北", tone: "lose", hold: true };
+    return { word: "DRAW", reading: "相打ち", tone: "draw", hold: true };
   }
   return null;
 }
@@ -6674,8 +6720,12 @@ function resultScreenDue() {
   return rewardDueForCurrentEncounter();
 }
 
-// issue #138 — 再生を最後まで見終わったら、追加の「結果を見る」なしで
-// 結果画面へ進める。序盤の一戦なら会話が先に入る（enterPrologueBeatIfDue）。
+// 戦闘画面から次の場面へ出る一箇所。序盤の一戦なら会話が先に入る
+// （enterPrologueBeatIfDue）。
+//
+// issue #138 では再生が流れきったところで自動的にここへ入っていたが、作者試遊
+// 2026-09-13 で**決着の帯を読む間がない**ことが分かったので、再生はVICTORY /
+// DEFEAT の拍で止まり、ここへ入るのは［次へ］を押したときだけになった。
 function goToBattleResult() {
   state.replayPlaying = false;
   if (!state.simulationMode && enterPrologueBeatIfDue()) return;
@@ -6693,20 +6743,15 @@ function scheduleReplayBeat() {
   if (state.phase !== "battle") return;
   const beats = replayBeats();
   const index = clampReplayIndex();
-  if (index >= beats.length - 1) {
+  // 作者試遊 2026-09-13 — **決着で止まる。**issue #138 では最後の拍のあと自動で
+  // 結果画面（または序盤の会話）へ進めていたが、VICTORY / DEFEAT の帯が出た直後に
+  // 画面が入れ替わるので、勝敗を読む間がなかった。ここでは再生を閉じるだけにして、
+  // 次の場面へ渡すのは［次へ］（`replay-result`）一箇所へ寄せる。序盤の会話も
+  // 同じ釦から入る（`goToBattleResult` が `enterPrologueBeatIfDue` を通す）。
+  if (atReplayEnding(index, beats)) {
     state.replayPlaying = false;
-    // R11 §5 — 序盤の一戦だけは、再生の終わりがそのまま会話の始まりになる。
-    if (!state.simulationMode && enterPrologueBeatIfDue()) return;
     saveState();
     updateReplayControls(index, beats);
-    // issue #138 — 最後の拍を見せたあと、少し間を置いて結果画面へ自動で進む。
-    // 自動再生が最後まで流れきったときだけでなく、一手ずつ進めて末尾に
-    // 着いたときも同じに扱う（「結果を見る」を押さなくても戦闘画面で止まり続けない）。
-    replayTimer = setTimeout(() => {
-      replayTimer = null;
-      if (state.phase !== "battle") return;
-      goToBattleResult();
-    }, beatDurationMs(beats[index], replaySpeed().factor));
     return;
   }
   if (!state.replayPlaying) return;
@@ -7767,7 +7812,7 @@ function handleAction(event) {
 
   if (action === "replay-toggle") {
     if (!state.replayEvents.length) return;
-    if (state.replayIndex >= replayBeats().length - 1) {
+    if (atReplayEnding()) {
       // 最後まで見たあとは、同じ戦闘をもう一度頭から流せる。
       state.replayIndex = 0;
       state.replayPlaying = true;
@@ -7781,7 +7826,8 @@ function handleAction(event) {
 
   if (action === "replay-step") {
     state.replayPlaying = false;
-    if (state.replayIndex < replayBeats().length - 1) state.replayIndex += 1;
+    // 一手送りも決着の拍で止まる（そこから先は［次へ］が預かる）。
+    if (!atReplayEnding()) state.replayIndex = clampReplayIndex() + 1;
     saveState();
     syncBattleView();
     return;
@@ -7789,7 +7835,9 @@ function handleAction(event) {
 
   if (action === "replay-back") {
     state.replayPlaying = false;
-    if (state.replayIndex > 0) state.replayIndex -= 1;
+    // 飛ばした直後に戻すときも、いま見えている拍の一つ前へ戻る（控えの index が
+    // 画面より先に進んでいても、見えているものから数える）。
+    if (clampReplayIndex() > 0) state.replayIndex = clampReplayIndex() - 1;
     saveState();
     syncBattleView({ silent: true });
     return;
@@ -7814,13 +7862,27 @@ function handleAction(event) {
     return;
   }
 
+  // 作者試遊 2026-09-13 — ［一気に決着へ］。**次の場面へは出ない。**VICTORY /
+  // DEFEAT の拍まで再生位置を進めて、そこで止める。盤面・HP・履歴は拍から引き直す
+  // ので、飛ばしても「最後の盤面」は一手ずつ見たときと同じものになる。
+  if (action === "replay-verdict") {
+    if (!state.replayEvents.length) return;
+    state.replayPlaying = false;
+    state.replayIndex = endingBeatIndex();
+    saveState();
+    syncBattleView();
+    return;
+  }
+
+  // ［次へ］。**戦闘画面から次の場面へ出る唯一の道**である（結果画面・キャンプ・
+  // 精算・序盤の会話のどれへ行くかは `goToBattleResult` が決める）。
+  //
+  // R12 — **再生を飛ばしても、序盤の会話を飛び越えない。**以前はこの分岐が
+  // scheduleReplayBeat（再生が最後まで流れきった場合）にしか無かったので、釦で
+  // 再生を打ち切ると prologueClear が起きず、既読印が押されないまま prologueActive が
+  // 真のまま残った。**門の一戦から出られなくなる**（結果画面は「編成を見直す」しか
+  // 出さないので、何度勝っても同じ盤面へ戻る）。goToBattleResult に寄せてある。
   if (action === "replay-result") {
-    // R12 — **再生を飛ばしても、序盤の会話を飛び越えない。**
-    // 以前はこの分岐が scheduleReplayBeat（再生が最後まで流れきった場合）にしか
-    // 無かったので、［結果を見る］で再生を打ち切ると prologueClear が起きず、
-    // 既読印が押されないまま prologueActive が真のまま残った。**門の一戦から
-    // 出られなくなる**（結果画面は「編成を見直す」しか出さないので、
-    // 何度勝っても同じ盤面へ戻る）。goToBattleResult に寄せて、両方の経路で通す。
     goToBattleResult();
     return;
   }

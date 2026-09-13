@@ -95,6 +95,25 @@ try {
     return predicate();
   };
 
+  // 作者試遊 2026-09-13 — 再生は**決着の帯で止まる。**戦闘を畳むには二手を踏む。
+  //   ［一気に決着へ］… VICTORY / DEFEAT の拍まで早送りして、そこで止まる
+  //   ［次へ］        … 次の場面（結果画面・キャンプ・精算・序盤の会話）へ出る
+  // 既に決着まで見ている（自動再生が流れきった）ときは前者が出ないので、
+  // 出ているほうだけを押す。
+  const rushToVerdict = async () => {
+    const rush = page.locator('[data-action="replay-verdict"]:not([hidden])');
+    if (await rush.count() === 0) return false;
+    await rush.first().click();
+    await page.waitForTimeout(120);
+    return true;
+  };
+  const finishReplay = async () => {
+    await rushToVerdict();
+    const next = page.locator('[data-action="replay-result"]:not([hidden])');
+    await next.first().waitFor({ state: "visible", timeout: tutorialSelectorTimeout });
+    await next.first().click();
+  };
+
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: "networkidle" });
@@ -151,8 +170,28 @@ try {
   //   打ち切り → 会話「届かなかった」の最後の拍に被さる［時間が巻き戻る］
   //   → 会話「もう一度、門の前」 → キャンプ → **同じ盤面をもう一度** → 勝利
   //
-  // R12 — 倒れた会話は**再生を飛ばしても入る**。［再生をとばす］で打ち切っても
-  // ここへ来る（以前は再生が流れきったときにしか入らなかった）。
+  // R12 — 倒れた会話は**再生を飛ばしても入る**。［一気に決着へ］→［次へ］で
+  // 打ち切ってもここへ来る（以前は再生が流れきったときにしか入らなかった）。
+  //
+  // 作者試遊 2026-09-13 — **飛ばしても次の場面へは出ない。**再生は終点の拍で止まり、
+  // 会話へ渡すのは［次へ］を押したときだけである。
+  //
+  // この一戦だけは `truncateAtFall` で**倒れた拍で切ってある**（R11 §5）ので
+  // `battle_ended` が無く、DEFEAT の帯は出ない。終点は「ツグミが倒れた」である。
+  // 勝敗の帯そのものは、巻き戻したあとの勝利で見る。
+  await rushToVerdict();
+  note("飛ばした先で止まる（戦闘画面から勝手に出ない）",
+    await page.locator(".battle-field").count() === 1
+      && /届かなかった/.test(await bodyText()) === false
+      && /倒れた/.test((await page.locator(".beat-text").textContent()) ?? ""));
+  note("終点で止まったら［次へ］だけが出る",
+    await page.locator('[data-action="replay-result"]:not([hidden])').count() === 1
+      && await page.locator('[data-action="replay-verdict"]:not([hidden])').count() === 0);
+  // 押すまで待っても次の場面へ出ない（以前はここで自動的に会話へ渡っていた）。
+  await page.waitForTimeout(1400);
+  note("押さずに待っても次の場面へ進まない",
+    await page.locator(".battle-field").count() === 1
+      && await page.locator('[data-action="replay-result"]:not([hidden])').count() === 1);
   await page.locator('[data-action="replay-result"]').first().click();
   await page.waitForTimeout(300);
   note("倒れた拍で会話が入る", /届かなかった/.test(await bodyText()));
@@ -660,6 +699,23 @@ try {
   await click("この敵との実戦へ進む");
   await waitForTutorialSelector(".battle-field");
   await page.locator('.speed-button[data-speed="fast"]').click();
+  // 作者試遊 2026-09-13 — ［一気に決着へ］の行き先は **VICTORY の帯**である。
+  // そこで止まり、帯は押すまで消えない（流れて消えると勝敗を読み落とす）。
+  await rushToVerdict();
+  note("飛ばした先が VICTORY の帯になる",
+    await page.locator(".battle-banner.show.win.hold").count() === 1
+      && /VICTORY/.test(await page.locator(".battle-banner").innerText())
+      && await page.locator(".battle-field").count() === 1);
+  await page.waitForTimeout(1200);
+  note("VICTORY の帯は押すまで消えない",
+    await page.locator(".battle-banner.show.win").count() === 1
+      && await page.evaluate(() => {
+        const word = document.querySelector(".battle-banner b");
+        return word ? Number(getComputedStyle(word).opacity) > .9 : false;
+      }));
+  note("決着で止まったら前進の釦は［次へ］だけ",
+    await page.locator('[data-action="replay-result"]:not([hidden])').count() === 1
+      && await page.locator('[data-action="replay-verdict"]:not([hidden])').count() === 0);
   await page.locator('[data-action="replay-result"]').first().click();
   await page.waitForTimeout(300);
   // 勝つと「同じ影、違う結果」の会話が入る。**結果画面より先にここへ来る。**
@@ -771,7 +827,7 @@ try {
       await waitForTutorialSelector(".battle-field");
       const bossFast = page.locator('.speed-button[data-speed="fast"]');
       if (await bossFast.count()) await bossFast.click();
-      await page.locator('[data-action="replay-result"]').first().click();
+      await finishReplay();
       await waitForTutorialSelector(".reward-choices");
       const rewardText = await bodyText();
       const choices = await page.locator(".reward-choices .reward-choice").count();
@@ -1160,7 +1216,7 @@ try {
       note("一手戻すとカットインも閉じる", await page.locator(".ultimate-cutin.show").count() === 0);
       await page.locator('.speed-button[data-speed="fast"]').click();
       // PR #255 — 第1戦は通常戦なので、結果画面も装備の候補も挟まずキャンプへ戻る。
-      await page.locator('[data-action="replay-result"]').first().click();
+      await finishReplay();
       await page.waitForTimeout(400);
       note("必殺を構えた第1戦に勝てる",
         /突破した/.test(await page.locator(".last-battle-note").innerText()));

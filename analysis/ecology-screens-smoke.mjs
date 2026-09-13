@@ -40,6 +40,17 @@ const displayContracts = [
   ["手応えの層のCSS", styles, ".unit-fx {"],
   ["幕の帯の言葉", app, "function battleBannerFor(beat)"],
   ["幕の帯のCSS", styles, ".battle-banner {"],
+  // 作者試遊 2026-09-13 — **再生は決着の帯で止まり、次の場面へは［次へ］だけが渡す。**
+  // 終点を「最後の拍」に戻すと、勝敗を読む間がないまま画面が入れ替わる。
+  ["決着の拍を再生の終点にする", app, "function endingBeatIndex(beats = replayBeats())"],
+  ["決着で止まっているかの判定", app, "function atReplayEnding("],
+  ["決着まで飛ばす操作", app, 'if (action === "replay-verdict") {'],
+  ["決着まで飛ばす釦", app, 'button("一気に決着へ ▶▶", "replay-verdict"'],
+  ["次の場面へ渡す釦", app, 'button("次へ ▶", "replay-result"'],
+  ["決着の帯を残す指定", app, '(spec.hold ? " hold" : "")'],
+  ["決着の帯を残すCSS", styles, "@keyframes banner-word-hold"],
+  ["決着の帯と拍の行を重ねない", styles, ".battle-field.verdict-hold .beat-text"],
+  ["前進の釦を入れ替えるCSS", styles, ".replay-finish > .button[hidden]"],
   ["決着の行を engine の語のまま出さない", app, 'const BATTLE_RESULT_LABELS = { win: "勝利", loss: "敗北", draw: "相打ち" };'],
   ["防壁バーをHPバー上へ配置", styles, "top: -3px"],
   ["装備摩耗ログの残耐久", app, '"の装備が耐久 " + values.before + "→" + values.after'],
@@ -175,6 +186,10 @@ for (const [label, sourceText, forbidden] of [
   // 説明文へ戻っていないか。
   ["盤で前提と派生を繰り返す旧構造", app, "skillRouteChip"],
   ["摘みと重なる入切の釦", app, 'button(nodeState.disabled ? "オンにする"'],
+  // 作者試遊 2026-09-13 — 再生が流れきったら自動で次の場面へ出る形（issue #138）と、
+  // 行き先を言わない旧い打ち切り釦へ戻っていないか。
+  ["再生の終わりで自動的に次の場面へ出る旧経路", app, "      goToBattleResult();\n    }, beatDurationMs("],
+  ["旧い打ち切り釦", app, '"再生をとばす"'],
   ["入切の説明文", app, 'class=\\"node-locked\\">取得状態は変わりません'],
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
