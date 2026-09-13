@@ -5206,10 +5206,9 @@ function renderBattle() {
   const visionLens = state.simulationMode
     ? "<span class=\"simulation-lens\" aria-hidden=\"true\"><i></i></span>"
       + "<span class=\"simulation-scan\" aria-hidden=\"true\"></span>"
-      + "<span class=\"sr-only\">先見機による未来の試映です。遠征の状態は変わりません。</span>"
     : "";
   return shell( "<section class=\"card battle-card" + visionClass + "\">" + visionLens
-    + sectionHeading("BATTLE", "戦闘", "<span class=\"stage\">" + esc(encounter.name) + "</span>")
+    + sectionHeading("BATTLE", state.simulationMode ? "戦闘予測" : "戦闘", "<span class=\"stage\">" + esc(encounter.name) + "</span>")
     + "<div class=\"replay-progress\"><span class=\"replay-progress-fill\"></span></div>"
     + "<div class=\"battle-field\" aria-live=\"off\">"
     + "<div class=\"battle-side\" data-side=\"enemy\">" + battleRowsHtml(actors, "enemy") + "</div>"
@@ -5988,7 +5987,6 @@ function renderResult() {
     const status = "<section class=\"card verdict simulation-result " + (won ? "win" : "loss") + "\">"
       + "<span class=\"simulation-lens\" aria-hidden=\"true\"><i></i></span>"
       + "<span class=\"simulation-scan\" aria-hidden=\"true\"></span>"
-      + "<span class=\"sr-only\">先見機が映した未来の戦闘結果です。遠征の状態は変わっていません。</span>"
       + "<div class=\"verdict-mark\">" + (won ? "✓" : "×") + "</div><h2>"
       + (won ? "突破した" : "足を止めた") + "</h2><p class=\"verdict-context\">"
       + esc(encounter.name) + " · " + result.roundsUsed + "ラウンド</p>"
