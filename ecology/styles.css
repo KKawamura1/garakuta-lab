@@ -2368,6 +2368,28 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .battle-banner.run i { animation: banner-sub .66s ease-out both; }
 .battle-banner.run::before,
 .battle-banner.run::after { animation: banner-band .66s cubic-bezier(.17, .89, .25, 1) both; }
+/* 作者試遊 2026-09-13 — **決着の帯は残す。**開始とラウンドの帯は次の拍へ場所を
+ * 譲るので流れて消えるが、VICTORY / DEFEAT はそこで再生が止まる拍なので、
+ * 同じ入りかたをしたまま終わりだけを開いた状態で止める（`.hold`）。 */
+@keyframes banner-word-hold {
+  0% { opacity: 0; letter-spacing: .7em; transform: scale(1.25); }
+  24%, 100% { opacity: 1; letter-spacing: .18em; transform: scale(1); }
+}
+@keyframes banner-sub-hold {
+  0%, 12% { opacity: 0; transform: translateY(4px); }
+  34%, 100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes banner-band-hold {
+  0% { opacity: 0; transform: skewX(-12deg) scaleX(.34); }
+  26%, 100% { opacity: .85; transform: skewX(-12deg) scaleX(1); }
+}
+/* 帯が残っているあいだ、拍の行は場所を譲る（ラウンドと拍数は帯の外なので残す）。
+ * 消すのは見た目だけで、読み上げ（aria-live）はそのまま拍の行が持つ。 */
+.battle-field.verdict-hold .beat-text { opacity: 0; }
+.battle-banner.run.hold b { animation-name: banner-word-hold; }
+.battle-banner.run.hold i { animation-name: banner-sub-hold; }
+.battle-banner.run.hold::before,
+.battle-banner.run.hold::after { animation-name: banner-band-hold; }
 .battle-beat {
   position: relative;
   z-index: 1;
@@ -2458,6 +2480,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 10px;
 }
 .speed-button.active { border-color: var(--gold); background: var(--gold-dark); color: var(--gold); }
+/* 作者試遊 2026-09-13 — 前進の釦。［一気に決着へ］と［次へ］は同じ場所で
+ * 入れ替わるので、隠したほうは場所も取らない（`hidden` を明示的に畳む）。 */
+.replay-finish > .button[hidden] { display: none; }
 .debug-log { margin-top: 13px; }
 .debug-log summary { color: var(--muted); cursor: pointer; font-size: 11px; }
 .debug-log .replay-events { max-height: 260px; }
@@ -2632,10 +2657,16 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .unit.is-aimed .fx-reticle { opacity: .75; }
   .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% - 16px)); }
   .strike-line { animation: none; opacity: .85; }
+  /* 帯は**出したまま**にする（動きだけ止める）。決着の帯は元から止まったままなので、
+   * `.hold` も同じに扱えばよい。 */
   .battle-banner.run b,
   .battle-banner.run i,
   .battle-banner.run::before,
-  .battle-banner.run::after { animation: none; }
+  .battle-banner.run::after,
+  .battle-banner.run.hold b,
+  .battle-banner.run.hold i,
+  .battle-banner.run.hold::before,
+  .battle-banner.run.hold::after { animation: none; }
 }
 
 /* ------------------------------------------------------------------ PHASE B

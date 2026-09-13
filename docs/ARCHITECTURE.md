@@ -607,9 +607,34 @@ UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`
   - **幕の帯** … `battleBannerFor(beat)` が拍の種類だけから言葉を決める（opening／round／
     ending）。カットインと同じく `dataset.beat` で同じ拍へ二度書き込まないので、再描画でも
     演出が巻き戻らない。読み上げは `.beat-text`（aria-live）が持ち、帯は `aria-hidden`。
+    決着（ending）の帯だけは `hold` を返し、`banner-*-hold` の keyframe で開いたまま止まる
+    （再生がその拍で終わるため）。出ているあいだは `.battle-field.verdict-hold` が拍の行の
+    見た目だけを譲らせる。
 
 `prefers-reduced-motion` では動きだけを止める。帯・カットイン・照準・数字は**出したまま**
 なので、止めても何が起きたかは読める。
+
+## 再生の終点と、次の場面への渡し
+
+**リプレイの終点は「最後の拍」ではなく「決着の拍」である。**`endingBeatIndex()` が
+`kind === "ending"`（`battle_ended`）の拍を探し、無ければ末尾へ落とす。`atReplayEnding()`
+がその判定を一箇所で持ち、自動再生（`scheduleReplayBeat`）・一手送り・釦の出し分け
+（`updateReplayControls`）が同じ答えを読む。
+
+  - `scheduleReplayBeat` は終点で `replayPlaying` を落として**そこで止まる**。以前は
+    `beatDurationMs` ぶん待って `goToBattleResult()` を呼んでいたが、決着の帯が出た直後に
+    画面が入れ替わり、勝敗を読む間が無かった（issue #138 の自動送りをここで畳んだ）。
+  - `replay-verdict`（［一気に決着へ］）は `replayIndex` を終点へ動かすだけで、場面は
+    変えない。盤面・HP・履歴は拍から引き直すので、飛ばした先は一手ずつ進めた先と同じ。
+  - `replay-result`（［次へ］）だけが `goToBattleResult()` を呼び、序盤の会話
+    （`enterPrologueBeatIfDue`）・結果画面・キャンプ・精算のどれかへ渡す。**戦闘画面から
+    出る道はこの一本だけ**なので、飛ばしても会話の既読印を飛び越えない（R12）。
+  - 前進の釦は常に一つだけ出す（終点の前は［一気に決着へ］、終点からは［次へ］）。
+    出し分けは `hidden` 属性で、描き出し（`renderBattle`）と更新（`updateReplayControls`）
+    が同じ `atReplayEnding()` を読む。
+
+灰の門の一戦は `truncateAtFall` で `battle_ended` の手前まで切ってあるので ending 拍を
+持たない。終点は倒れた拍（末尾）へ落ち、帯は出ないまま［次へ］で会話へ渡る。
 
 ## 必殺の拍とカットイン（issue #242）
 

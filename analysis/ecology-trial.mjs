@@ -781,8 +781,15 @@ try {
     // ボス戦（4・8戦目）の勝利は装備の候補を出し、12戦目は精算へ、敗北は敗北処理へ
     // 進む。通常戦・精鋭戦の勝利はそのままキャンプへ戻るので、`.verdict` を待つと
     // 永久に待つことになる。どちらへ着いたのかで分ける。
+    // 作者試遊 2026-09-13 — 再生は**決着の帯で止まる**ので、戦闘を畳むには二手。
+    // ［一気に決着へ］で VICTORY / DEFEAT まで飛ばし、［次へ］で次の場面へ出る。
     if (await page.locator(".battle-field").count()) {
-      await page.locator('[data-action="replay-result"]').first().click();
+      const rush = page.locator('[data-action="replay-verdict"]:not([hidden])');
+      if (await rush.count()) {
+        await rush.first().click();
+        await page.waitForTimeout(120);
+      }
+      await page.locator('[data-action="replay-result"]:not([hidden])').first().click();
     }
     // 着いた先は三つ。**キャンプ**（決めることが無い勝利）、**装備の候補**（ボス戦の
     // 勝利）、**結果画面**（敗北・最終戦）である。どれを待つかを一度に書く。
