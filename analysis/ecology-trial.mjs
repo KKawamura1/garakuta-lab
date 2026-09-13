@@ -307,6 +307,37 @@ try {
   }
   note("タブが画面内に収まる", await onScreen("nav.tabs"));
 
+  // 作者要望 2026-09-13 — 先見機の「試映」は同じ戦闘を最後まで見せるが、
+  // Run / Profile を一切確定しない。画面の色だけを見る試験ではなく、戻った後の
+  // 保存状態を丸ごと突き合わせ、HP・進行・報酬・技能点・図鑑・戦歴の漏れを防ぐ。
+  const beforeProjection = await page.evaluate(() => {
+    const saved = Object.values(localStorage).map((raw) => {
+      try { return JSON.parse(raw); } catch { return null; }
+    }).find((entry) => entry?.run && entry?.profile);
+    return saved ? { run: saved.run, profile: saved.profile } : null;
+  });
+  note("先見機に試映と実戦の二つの操作がある",
+    await page.getByRole("button", { name: "先見機で戦闘結果を試映する" }).count() === 1
+      && await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1);
+  await page.getByRole("button", { name: "先見機で戦闘結果を試映する" }).click();
+  await page.waitForSelector(".battle-card.simulation-vision", { timeout: 8000 });
+  note("試映の戦闘は投影演出の中で再生される",
+    await page.locator(".battle-card.simulation-vision .simulation-scan").count() === 1);
+  await click("再生をとばす");
+  await page.waitForSelector(".simulation-result", { timeout: 8000 });
+  note("試映の結果も同じ投影演出で示される",
+    await page.locator(".simulation-result .simulation-lens").count() === 1);
+  await click("先見機へ戻る");
+  await page.waitForSelector(".camp-top .forecaster-window", { timeout: 8000 });
+  const afterProjection = await page.evaluate(() => {
+    const saved = Object.values(localStorage).map((raw) => {
+      try { return JSON.parse(raw); } catch { return null; }
+    }).find((entry) => entry?.run && entry?.profile);
+    return saved ? { run: saved.run, profile: saved.profile } : null;
+  });
+  note("試映して戻っても遠征とプロフィールは変わらない",
+    JSON.stringify(afterProjection) === JSON.stringify(beforeProjection));
+
   // 技能を1つ解禁して装着する（スキルツリーの経路を踏む）。
   await page.locator('nav.tabs [data-tab="skills"]').click();
   const skillHelp = page.locator('details[data-help="skill-rules"]');
@@ -498,9 +529,9 @@ try {
         await onScreen(".camp-top .party-board")
           && await page.locator(".camp-top .party-board").evaluate((board) =>
             board.scrollWidth <= board.clientWidth + 1));
-      note("戦闘タブの主操作が画面上部にある",
-        await page.locator(".map-primary-action .button").count() === 1
-          && await onScreen(".map-primary-action .button"));
+      note("先見機の実戦操作が固定ウィンドウ内にある",
+        await page.locator(".camp-top .forecaster-action.engage").count() === 1
+          && await onScreen(".camp-top .forecaster-action.engage"));
       note("敵情報を折りたためる",
         await page.locator("details.enemy-details").count() === 1
           && await page.locator("details.enemy-details > summary").count() === 1);

@@ -31,6 +31,17 @@
   --tree-col-gap: 46px;
 }
 * { box-sizing: border-box; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /*
  * 画面は操作対象であり、文章を読む画面ではない。
@@ -540,10 +551,56 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
 .forecast-bar.loss { border-color: rgba(231, 137, 128, .7); }
 .forecast-bar.win { border-color: rgba(155, 214, 158, .45); }
 .forecast-head {
+  position: relative;
+  z-index: 2;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+}
+.forecaster-identity,
+.forecast-readout,
+.forecaster-actions { display: flex; align-items: center; min-width: 0; }
+.forecaster-identity { flex: 1 1 auto; gap: 6px; }
+.forecast-readout { flex: 0 1 auto; justify-content: flex-end; gap: 5px; }
+.forecaster-actions { flex: none; gap: 3px; }
+.forecaster-lens,
+.simulation-lens {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(145, 203, 213, .8);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(145, 203, 213, .32), inset 0 0 5px rgba(145, 203, 213, .24);
+}
+.forecaster-lens::before,
+.simulation-lens::before {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--blue);
+  border-radius: 50%;
+  content: "";
+}
+.forecaster-lens::after,
+.simulation-lens::after {
+  position: absolute;
+  inset: -3px;
+  border: 1px dashed rgba(145, 203, 213, .45);
+  border-radius: 50%;
+  content: "";
+  animation: forecaster-orbit 7s linear infinite;
+}
+.forecaster-lens i,
+.simulation-lens i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px 2px var(--blue);
 }
 .forecast-title { color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
 .forecast-verdict { color: var(--gold); font-size: 11px; font-weight: 750; white-space: nowrap; }
@@ -554,11 +611,78 @@ h3 { margin-bottom: 7px; font-size: 13px; color: var(--muted); }
    横スクロールはしない——3列が iPhone 幅（390px）に必ず収まるよう、
    セルは等分して縮む。 */
 .party-bar {
+  position: relative;
+  overflow: hidden;
   margin: 0 0 6px;
   padding: 8px 10px 9px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
+}
+.forecaster-window {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(145, 203, 213, .12), transparent 34%),
+    linear-gradient(180deg, rgba(24, 38, 41, .98), rgba(18, 29, 31, .98));
+  box-shadow: inset 0 0 18px rgba(83, 153, 164, .08), 0 5px 18px rgba(0, 0, 0, .22);
+}
+.forecaster-window::before,
+.simulation-vision::before,
+.simulation-result::before {
+  position: absolute;
+  z-index: 1;
+  inset: 4px;
+  border: 1px solid rgba(145, 203, 213, .1);
+  border-radius: 9px;
+  background:
+    linear-gradient(90deg, rgba(145, 203, 213, .28) 0 7px, transparent 7px calc(100% - 7px), rgba(145, 203, 213, .28) calc(100% - 7px)) top / 100% 1px no-repeat,
+    linear-gradient(90deg, rgba(145, 203, 213, .28) 0 7px, transparent 7px calc(100% - 7px), rgba(145, 203, 213, .28) calc(100% - 7px)) bottom / 100% 1px no-repeat;
+  content: "";
+  pointer-events: none;
+}
+.forecaster-scan,
+.simulation-scan {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.forecaster-scan::after,
+.simulation-scan::after {
+  position: absolute;
+  inset: -35% 0 auto;
+  height: 34%;
+  background: linear-gradient(180deg, transparent, rgba(145, 203, 213, .08), transparent);
+  content: "";
+  animation: forecaster-sweep 5.5s ease-in-out infinite;
+}
+.forecaster-action {
+  display: grid;
+  grid-template-columns: 15px auto;
+  align-items: center;
+  gap: 2px;
+  min-height: 30px;
+  padding: 3px 7px;
+  border: 1px solid rgba(145, 203, 213, .38);
+  border-radius: 8px;
+  background: rgba(9, 18, 20, .76);
+  color: var(--blue);
+  font: inherit;
+}
+.forecaster-action small { font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.forecaster-action-icon { font-size: 12px; line-height: 1; text-shadow: 0 0 7px currentColor; }
+.forecaster-action.engage {
+  border-color: rgba(229, 184, 105, .58);
+  background: linear-gradient(180deg, rgba(80, 59, 25, .9), rgba(48, 37, 22, .94));
+  color: var(--gold);
+}
+.forecaster-action:active { transform: translateY(1px); filter: brightness(1.18); }
+@keyframes forecaster-orbit { to { transform: rotate(1turn); } }
+@keyframes forecaster-sweep {
+  0%, 18% { transform: translateY(-20%); opacity: 0; }
+  35%, 70% { opacity: 1; }
+  88%, 100% { transform: translateY(390%); opacity: 0; }
 }
 .party-board { display: grid; gap: 4px; }
 .forecast-head + .party-board { margin-top: 7px; }
@@ -706,6 +830,50 @@ button.party-cell { cursor: pointer; }
 .forecast-delta.fatal { color: var(--bad); }
 .forecast-note { margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .forecast-note b { color: var(--ink); }
+
+/* 未来の試映は文字札ではなく、青緑の投影面・走査線・レンズを戦闘から結果まで連続させる。 */
+.simulation-vision,
+.simulation-result,
+.simulation-projection { border-color: rgba(145, 203, 213, .62); }
+.simulation-vision,
+.simulation-result {
+  position: relative;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(180deg, rgba(145, 203, 213, .025) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 42%, rgba(94, 190, 202, .13), transparent 58%),
+    var(--panel);
+  box-shadow: inset 0 0 34px rgba(80, 176, 189, .1), 0 0 22px rgba(80, 176, 189, .08);
+}
+.simulation-vision > :not(.simulation-lens):not(.simulation-scan),
+.simulation-result > :not(.simulation-lens):not(.simulation-scan) { position: relative; z-index: 2; }
+.simulation-vision > .simulation-lens,
+.simulation-result > .simulation-lens {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+}
+.simulation-vision .battle-field { filter: saturate(.78) sepia(.05) hue-rotate(132deg) contrast(1.06); }
+.simulation-result .verdict-mark { color: var(--blue); text-shadow: 0 0 14px rgba(145, 203, 213, .55); }
+.simulation-projection { background: linear-gradient(135deg, rgba(145, 203, 213, .06), var(--panel)); }
+
+@media (max-width: 430px) {
+  .forecast-readout { gap: 3px; }
+  .forecast-verdict { font-size: 10px; }
+  .forecaster-action { grid-template-columns: 13px auto; min-height: 28px; padding: 2px 5px; }
+  .forecaster-action small { font-size: 8px; }
+  .board-mode { padding-inline: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forecaster-lens::after,
+  .simulation-lens::after,
+  .forecaster-scan::after,
+  .simulation-scan::after { animation: none; }
+}
 
 .tabs {
   position: sticky;
