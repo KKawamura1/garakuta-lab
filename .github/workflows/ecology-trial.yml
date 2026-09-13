@@ -88,7 +88,9 @@ jobs:
           const text = await page.locator("body").innerText();
           console.log(JSON.stringify({ text: text.slice(0, 300), errors }));
           await browser.close();
-          if (!/One Battle Ahead|灰の遠征/.test(text) || errors.length) process.exit(1);
+          // タイトルは組み文字なので、CSSの改行（ONE BATTLE\\nAHEAD）を許容する。
+          const normalizedText = text.replace(/\\s+/g, " ");
+          if (!/One Battle Ahead|灰の遠征/i.test(normalizedText) || errors.length) process.exit(1);
           NODE
 
       - name: Wait for the deployment to serve this build
