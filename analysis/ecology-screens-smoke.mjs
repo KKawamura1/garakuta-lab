@@ -656,6 +656,12 @@ for (const field of [
     ["光のCSS", styles, ".tutorial-spot {"],
     ["錠のCSS", styles, ".tutorial-blocked {"],
     ["手順の一覧のCSS", styles, ".tutorial-steps li.current"],
+    // 作者指摘 2026-09-13 — 補給も**文章を読んで探す型から、光る先を押す型へ**揃える。
+    ["補給チュートリアルの段", app, "function supplyTutorialStep() {"],
+    ["補給チュートリアルの錠", app, "function supplyTutorialLocked() {"],
+    ["補給チュートリアルの光らせる先", app, "function supplyTutorialSpotSelector(step) {"],
+    ["補給チュートリアルの手引き", app, "function supplyTutorialNote() {"],
+    ["補給チュートリアルの進捗表示", app, "tutorial-progress"],
     // issue #240 — 必殺技の一戦も**同じ錠の形**で掛かる（手取りの型を二通り作らない）。
     ["必殺技チュートリアルの段", app, "function ultimateLessonStep() {"],
     ["必殺技チュートリアルの光らせる先", app, "function ultimateLessonSpotSelector(step) {"],

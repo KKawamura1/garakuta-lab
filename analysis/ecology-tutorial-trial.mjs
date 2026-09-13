@@ -706,6 +706,16 @@ try {
         await page.locator('[data-action="treat"][data-treatment="concentrated"]:not([disabled])').count() === 1
           && /手順 1\/2/.test(supplyTutorialText)
           && /集中治療/.test(supplyTutorialText));
+      const tutorialSpot = page.locator(".tutorial-spot");
+      note("補給の手順1は光る集中治療だけを押せる",
+        await tutorialSpot.count() === 1
+          && await tutorialSpot.getAttribute("data-action") === "treat"
+          && await tutorialSpot.getAttribute("data-treatment") === "concentrated");
+      await mapTab.click({ force: true }).catch(() => {});
+      await page.waitForTimeout(120);
+      note("光っていない遠征タブを押しても補給チュートリアルに留まる",
+        await page.locator(".supply-tutorial").count() === 1
+          && await page.locator('nav.tabs [data-tab="supplies"].active').count() === 1);
       const suppliesBefore = Number((await page.locator(".supplies-head b").innerText()).match(/補給 (\d+)/)?.[1] ?? -1);
       const treatmentButton = page.locator('[data-action="treat"][data-treatment="concentrated"]:not([disabled])');
       if (await treatmentButton.count()) {
@@ -717,6 +727,11 @@ try {
           await targetButtons.count() > 0
             && suppliesBeforeTarget === suppliesBefore
             && /対象を1人/.test(await bodyText()));
+        note("補給の手順2は光る負傷者セルだけを押せる",
+          await tutorialSpot.count() > 0
+            && await tutorialSpot.evaluateAll((elements) => elements.every((element) =>
+              element.dataset.action === "select-treatment-target"
+                && element.dataset.treatment === "concentrated")));
         if (await targetButtons.count()) {
           await targetButtons.first().click();
           await page.waitForTimeout(200);
