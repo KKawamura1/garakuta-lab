@@ -631,6 +631,410 @@ export const DIALOGUE = Object.freeze({
     ]),
   }),
 
+  // ============================================================ 第2章 — 四つ目の門の先（Stage 4〜9）
+  //
+  // R23。人は増えない。増えるのは灰の側である。
+  //
+  // 筋は Stage 3 で開いた一件を引き継ぐ。**四つ目の門の先は、どの台帳にも無い。**
+  // ゴウの兄は五年前に戻らず、死亡の記録も無い。五人はそこへ入る。
+  //
+  // **灰が何なのかは、ここでも説明しない**（R11 §2.1）。分かるのは、台帳の様式に
+  // 欄が無いということだけである。
+  stage_4_opening: Object.freeze({
+    cast: Object.freeze([
+      stand("warden", "center"), stand("mender", "right"), stand("lancer", "left"),
+      stand("guardian", "far_left"), stand("tactician", "far_right"),
+    ]),
+    lines: Object.freeze([
+      narrate("四つ目の門は、門の形をしていなかった。ただ灰が急に深くなるだけだった。"),
+      say("warden", "ここから先は、誰も書いてねえ。つまり誰の責任でもねえってことだ。気が楽だろ？ 俺は楽だぞ。", "smile"),
+      say("mender", "楽ではありません。帰ってきた人の記録が無いということは、対処も伝わっていないということです。", "calm"),
+      say("guardian", "灰、立ってる！ ねえ見て、灰が立ってるよ！", "shock"),
+      narrate("足元の灰が、ひとりでに起き上がって形になった。殻ではない。粒のままで、数だけがあった。"),
+      say("tactician", "台帳には「一体」と書く欄しかございません。これは、いくつと書けばよろしいので。", "worry"),
+      say("lancer", "数えてる場合ですか。前に出ますよ、わたし。", "firm"),
+    ]),
+  }),
+
+  stage_4_act1: Object.freeze({
+    cast: Object.freeze([stand("tactician", "left"), stand("guardian", "right")]),
+    lines: Object.freeze([
+      say("guardian", "おじいちゃん、いくつだった？ 数えたんでしょ？", "neutral"),
+      say("tactician", "十七でございました。", "calm"),
+      say("guardian", "じゅうななこ！ すごい！ ……すごい？", "smile"),
+      say("tactician", "分かりませんな。十七という数に意味があるのかどうか、それを確かめる方法がございません。", "neutral"),
+      say("guardian", "じゃあ数えなくてもいいじゃん。", "neutral"),
+      say("tactician", "数えておかないと、次に十八になったときに気づけません。気づけないものは、起きなかったことになります。", "calm"),
+      narrate("ヒバナは少し黙ってから、自分の指を折って数え直しはじめた。"),
+    ]),
+  }),
+
+  stage_4_act2: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("mender", "right")]),
+    lines: Object.freeze([
+      say("mender", "ゴウさん。手を見せてください。さっき庇いましたね。", "firm"),
+      say("warden", "庇ってねえよ。たまたま前に居ただけだ。俺はいつも前に居るからな、そりゃ当たる。当たるだけだ。", "smile"),
+      say("mender", "たまたま前に居る人が、たまたま同じところに三回傷を作ることはありません。", "calm"),
+      narrate("ゴウは笑ったまま手を出した。ツグミは何も言わずに巻いた。"),
+      say("mender", "記録には「業務中の裂傷」と書いておきます。", "neutral"),
+      say("warden", "助かる。兄貴がやってた仕事も、たぶんそう書いてあったんだろうな。", "calm"),
+    ]),
+  }),
+
+  stage_4_act3: Object.freeze({
+    cast: Object.freeze([stand("lancer", "left"), stand("mender", "right")]),
+    lines: Object.freeze([
+      say("lancer", "ツグミさん。押し返すだけで、倒せた試しが無いんですけど。", "worry"),
+      say("mender", "押し返せなければ、わたしが手を出す暇もありません。順番の問題です。", "calm"),
+      say("lancer", "順番。", "neutral"),
+      say("mender", "わたしが塞げるのは、開いたばかりのものだけです。開いてから時間の経ったものは、もう塞がりません。だから、開かれるのが遅ければ遅いほど良い。", "firm"),
+      say("lancer", "じゃあ、わたしは遅らせる係ですか。", "wry"),
+      say("mender", "そう書くと業務らしく聞こえますね。記録にはそう書きます。", "smile"),
+    ]),
+  }),
+
+  stage_4_end: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("tactician", "right"), stand("mender", "left")]),
+    lines: Object.freeze([
+      say("tactician", "戻って参りました。ゴウ様。ひとつ、申し上げてよろしゅうございますか。", "neutral"),
+      say("warden", "なんだ改まって。金なら無えぞ。いや、少しはあるが、ありゃ器材を返す金だ。", "smile"),
+      say("tactician", "この先の灰は、浅いところと形が違います。形の違うものが出る場所には、たいてい人が行っております。", "calm"),
+      say("warden", "……人ってのは。", "shock"),
+      say("tactician", "書かれていないだけで、行っていない証拠にはなりません。", "calm"),
+      narrate("ゴウは何か言おうとして、やめた。その日の帳簿には、金額の欄だけが埋まっていた。"),
+    ]),
+  }),
+
+  stage_5_opening: Object.freeze({
+    cast: Object.freeze([
+      stand("warden", "center"), stand("tactician", "right"), stand("mender", "left"),
+      stand("lancer", "far_left"), stand("guardian", "far_right"),
+    ]),
+    lines: Object.freeze([
+      narrate("坂になっていた。下るほど灰が細かくなり、足音が消えた。"),
+      say("tactician", "四十一、四十二……失礼、数え直します。", "worry"),
+      say("warden", "じいさん、それ全部数える気か？ こっちは坂を下ってんだぞ。転ぶぞ。転んだら俺が拾ってやるけどな、金は取る。", "smile"),
+      say("tactician", "数えられるものは数えておきます。数えられないものが来たときに、そちらだと分かりますので。", "calm"),
+      say("mender", "わたしは、数にならないほうを付けます。", "neutral"),
+      say("tactician", "それがよろしゅうございますな。両方あったほうが。", "smile"),
+    ]),
+  }),
+
+  stage_5_act1: Object.freeze({
+    cast: Object.freeze([stand("guardian", "center"), stand("lancer", "left")]),
+    lines: Object.freeze([
+      say("guardian", "ナギ、あたし速いでしょ！ ねえ速いでしょ！", "smile"),
+      say("lancer", "速いです。速いのに、どうして毎回わたしの後ろから出てくるんですか。", "wry"),
+      say("guardian", "だってナギの後ろ、当たらないんだもん。", "neutral"),
+      narrate("ナギは何か言いかけて、口を閉じた。"),
+      say("lancer", "それ、あの人たちに聞かれたら面倒なので、わたしから言っておきます。わたしの後ろは安全です。安全にしています。", "firm"),
+      say("guardian", "うん。知ってる。", "smile"),
+    ]),
+  }),
+
+  stage_5_act2: Object.freeze({
+    cast: Object.freeze([stand("tactician", "center"), stand("warden", "left")]),
+    lines: Object.freeze([
+      say("tactician", "ゴウ様。名簿の写しに、この坂の名がございました。", "calm"),
+      say("warden", "坂に名前なんかあるのか。", "neutral"),
+      say("tactician", "ございません。書いた者が勝手に付けたのでしょう。「数の坂」と。字の癖が、五年前の隊のものでございます。", "neutral"),
+      say("warden", "……じいさん。それ、いつ気づいた。", "shock"),
+      say("tactician", "書き写したときでございます。申し上げるべきかどうか、坂を下りながら考えておりました。", "worry"),
+      say("warden", "考えてる間に四十二まで数えたのかよ。器用だな、あんた。……ありがとよ。", "wry"),
+    ]),
+  }),
+
+  stage_5_act3: Object.freeze({
+    cast: Object.freeze([stand("mender", "center"), stand("guardian", "right")]),
+    lines: Object.freeze([
+      say("guardian", "ツグミ、それ何書いてるの？", "neutral"),
+      say("mender", "誰が何時間寝たか。何を食べたか。今日は、誰が誰の後ろに立ったか。", "neutral"),
+      say("guardian", "それ、書いて意味あるの？", "neutral"),
+      say("mender", "分かりません。意味があると分かってから書きはじめると、遅いので。", "calm"),
+      say("guardian", "ふうん。じゃあ、あたしが今日ナギの後ろに三回いたって書いといて。", "smile"),
+      say("mender", "四回です。", "wry"),
+    ]),
+  }),
+
+  stage_5_end: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("lancer", "left"), stand("mender", "right")]),
+    lines: Object.freeze([
+      narrate("坂を上り返すのに、下ったときの倍かかった。"),
+      say("warden", "全員いるな。手足も全員ぶんあるな。よし、今日は上出来だ。誰か褒めろ。俺でもいい。", "smile"),
+      say("lancer", "上出来です。上出来ですから、その腕を先に見せてください。", "firm"),
+      say("warden", "見せてる見せてる。ほら、こう、ちゃんと動く。動くだろ？", "smile"),
+      say("mender", "動きますね。動くうちに来てください、と毎回言っています。", "calm"),
+      narrate("ゴウは笑って、詰所の方角へ大きく手を振った。誰も見ていなかった。"),
+    ]),
+  }),
+
+  stage_6_opening: Object.freeze({
+    cast: Object.freeze([
+      stand("lancer", "center"), stand("warden", "left"), stand("mender", "right"),
+      stand("guardian", "far_left"), stand("tactician", "far_right"),
+    ]),
+    lines: Object.freeze([
+      narrate("回廊のような場所だった。壁に見えるものは灰で、触れると指の形に残った。"),
+      say("lancer", "いま、ツグミさんが前にいませんでしたか。", "shock"),
+      say("mender", "いました。いたはずです。わたしは動いていません。", "worry"),
+      say("warden", "動いてねえのに場所が変わるってのは、動かされたってことだ。おい、これは面倒だぞ。俺の後ろに隠れとけ。俺の後ろも安全じゃねえけどな！", "firm"),
+      say("lancer", "笑うところじゃないです。", "firm"),
+      say("tactician", "台帳に「並びを崩された」と書いた者がおります。比喩だと思っておりました。", "worry"),
+    ]),
+  }),
+
+  stage_6_act1: Object.freeze({
+    cast: Object.freeze([stand("lancer", "center"), stand("warden", "left")]),
+    lines: Object.freeze([
+      say("lancer", "わたしが前に立つ意味が無いなら、わたしは何なんですか。", "hurt"),
+      say("warden", "何って、ナギだろ。", "neutral"),
+      say("lancer", "答えになっていません。", "firm"),
+      say("warden", "なってるさ。前に立てねえ日のナギも、ナギなんだよ。俺が前に立てねえ日に、俺がゴウじゃなくなるか？ ならねえだろ。声はでかいままだ。", "smile"),
+      narrate("ナギは黙って、前へ出る位置を半歩だけ変えた。"),
+      say("lancer", "半歩だけ譲ります。それ以上は嫌です。", "wry"),
+    ]),
+  }),
+
+  stage_6_act2: Object.freeze({
+    cast: Object.freeze([stand("mender", "center"), stand("tactician", "right")]),
+    lines: Object.freeze([
+      say("mender", "止まりません。浅いのに止まりません。", "worry"),
+      say("tactician", "薬でございますか。", "neutral"),
+      say("mender", "詰所の薬は全部試しました。試した順に書いてあります。止まったという行が一つもありません。", "firm"),
+      say("tactician", "では、塞ぐのではなく、間に合わせるしかございませんな。", "calm"),
+      say("mender", "それは治療ではありません。", "hurt"),
+      say("tactician", "存じております。ですが、帰ってから書ける行が一つ増えます。", "calm"),
+      narrate("ツグミは記録帳の余白に、初めて自分の手が震えた時刻を書いた。"),
+    ]),
+  }),
+
+  stage_6_act3: Object.freeze({
+    cast: Object.freeze([stand("guardian", "center"), stand("warden", "right")]),
+    lines: Object.freeze([
+      say("guardian", "ゴウ、あたし引っぱられた。", "shock"),
+      say("warden", "見てた。すぐ戻したろ。", "neutral"),
+      say("guardian", "戻したけど、戻るまでのあいだ、あたしひとりだった。", "hurt"),
+      narrate("ゴウは膝をついて、目線を合わせた。声だけは、いつもの半分だった。"),
+      say("warden", "ひとりだった時間を、俺は短くできる。無くせはしねえ。無くせるって言う奴が居たら、そいつは嘘つきだ。", "calm"),
+      say("guardian", "短いほうがいい。", "neutral"),
+      say("warden", "だろ。短くする。それが俺の仕事だ。", "smile"),
+    ]),
+  }),
+
+  stage_6_end: Object.freeze({
+    cast: Object.freeze([stand("tactician", "center"), stand("mender", "left"), stand("warden", "right")]),
+    lines: Object.freeze([
+      say("tactician", "回廊の奥に、印がございました。", "neutral"),
+      say("warden", "印。", "shock"),
+      say("tactician", "壁に指で。三本、横に。協会の様式ではございません。隊の中だけで使う印でございます。「まだ生きている」の意でございました。", "calm"),
+      say("mender", "でした、というのは。", "worry"),
+      say("tactician", "五年前までは、その意で使われておりました。いまは誰も使っておりません。使う者が居なくなりましたので。", "neutral"),
+      narrate("ゴウは何も言わずに、同じ印を自分の手で三本引いた。誰も止めなかった。"),
+    ]),
+  }),
+
+  stage_7_opening: Object.freeze({
+    cast: Object.freeze([
+      stand("guardian", "center"), stand("warden", "left"), stand("lancer", "right"),
+      stand("mender", "far_left"), stand("tactician", "far_right"),
+    ]),
+    lines: Object.freeze([
+      narrate("印のあった壁の先で、灰は二通りの来かたをした。面で来るものと、一点を選んで来るもの。"),
+      say("guardian", "速くても、追いつかないときあるんだね。", "neutral"),
+      say("warden", "あるある。俺なんか毎日追いつかねえ。追いつかねえなりに間に合わせるのが芸ってもんだ。芸だぞ、これは。", "smile"),
+      say("lancer", "芸で片付けないでください。", "firm"),
+      say("mender", "直す手が一つしかないとき、どちらを先に直すか決めておきましょう。その場で決めると、必ず遅れます。", "calm"),
+      say("tactician", "決めておいたほうを外したときに、初めて書ける行がございますな。", "calm"),
+    ]),
+  }),
+
+  stage_7_act1: Object.freeze({
+    cast: Object.freeze([stand("guardian", "center"), stand("tactician", "right")]),
+    lines: Object.freeze([
+      say("guardian", "おじいちゃんは、なんで先に行かないの？ あ、これ前にも訊いた。", "neutral"),
+      say("tactician", "訊かれました。答えも同じでございます。先に行くと、見えなくなりますので。", "calm"),
+      say("guardian", "あたしは先に行くと見えるよ。近いから。", "smile"),
+      say("tactician", "そうでございましょうな。ヒバナ様。近くで見たものは、後で誰かに話していただけますか。わたくしは遠くしか見ておりませんので。", "neutral"),
+      say("guardian", "いいよ。全部話す。ぜんぶ。長いよ？", "smile"),
+      say("tactician", "長いほうがよろしゅうございます。", "smile"),
+    ]),
+  }),
+
+  stage_7_act2: Object.freeze({
+    cast: Object.freeze([stand("lancer", "center"), stand("mender", "left"), stand("guardian", "right")]),
+    lines: Object.freeze([
+      narrate("ナギの手が、いつもの位置で止まらなかった。"),
+      say("lancer", "……いま、止めそこねました。", "hurt"),
+      say("mender", "見ていました。あなたのせいではありません。同時に二つ来ました。", "calm"),
+      say("lancer", "わたしのせいでなければ、誰のせいですか。誰のせいでもないものは、直せません。", "firm"),
+      say("guardian", "じゃあ、あたしのせいにしていいよ。", "neutral"),
+      say("lancer", "だめです。", "firm"),
+      say("guardian", "ナギ、こわい顔。", "smile"),
+      narrate("ナギは顔を戻すのに、ずいぶん時間をかけた。"),
+    ]),
+  }),
+
+  stage_7_act3: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("mender", "right")]),
+    lines: Object.freeze([
+      say("mender", "ゴウさん。今日は三回、同じ判断をしました。", "neutral"),
+      say("warden", "してねえよ。毎回ちゃんと違うことを言ってる。俺は口が上手いからな、同じことを三通りに言えるんだ。", "smile"),
+      say("mender", "言い方は三通りでした。中身は三回とも「ナギを先に直す」です。", "calm"),
+      narrate("ゴウは笑いを止めなかったが、返事はしなかった。"),
+      say("mender", "責めていません。記録です。決めておいた、ということですね。", "neutral"),
+      say("warden", "決めてた。悪いか。", "neutral"),
+      say("mender", "悪くありません。決めていることが分かっていれば、わたしは別のほうを見られます。", "calm"),
+    ]),
+  }),
+
+  stage_7_end: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("lancer", "left"), stand("tactician", "right")]),
+    lines: Object.freeze([
+      say("tactician", "この先に、熱くない火がございます。", "neutral"),
+      say("warden", "熱くない火。そりゃ火じゃねえだろ。", "wry"),
+      say("tactician", "報告にはそう書かれております。書いた者は帰っておりますが、その先の欄は空でございます。", "calm"),
+      say("lancer", "空の欄が、また増えるんですね。", "worry"),
+      say("warden", "埋めに行くんだよ。空いてる欄ってのは、埋めろって意味だ。俺の帳簿もそうだ。空いてる行があると気持ち悪い。", "smile"),
+      narrate("その晩、ゴウの帳簿には珍しく、金額ではない行が一つ足された。"),
+    ]),
+  }),
+
+  stage_8_opening: Object.freeze({
+    cast: Object.freeze([
+      stand("warden", "center"), stand("tactician", "right"), stand("lancer", "left"),
+      stand("mender", "far_right"), stand("guardian", "far_left"),
+    ]),
+    lines: Object.freeze([
+      narrate("門があった。今度は本当に門の形をしていた。熱はなかった。"),
+      say("guardian", "あつくない。あつくないのに、なんか、たってられない。", "worry"),
+      say("mender", "ヒバナ、下がって。いまのは呼吸です。呼吸が浅くなっています。", "firm"),
+      say("warden", "硬えな。見ただけで分かる。こういうのは殴っても駄目だ。殴っても駄目なもんは、殴る場所を変えるしかねえ。", "neutral"),
+      say("lancer", "止めるほうはどうすれば。", "neutral"),
+      say("warden", "止まらねえ。止まらねえなら、当たっても平気な形にするしかねえだろ。", "calm"),
+      say("tactician", "その言い方をなさる方が、五年前にもおられました。", "neutral"),
+    ]),
+  }),
+
+  stage_8_act1: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("tactician", "left")]),
+    lines: Object.freeze([
+      say("tactician", "ゴウ様。帳簿を拝見してもよろしゅうございますか。", "neutral"),
+      say("warden", "見せるほどのもんじゃねえぞ。借りた、返した、まだ返してねえ。それだけだ。", "smile"),
+      narrate("ゲンゾウは長いこと目を落としていた。"),
+      say("tactician", "最初の頁の借主が、ご本人ではございませんな。", "calm"),
+      say("warden", "兄貴のだ。器材を借りたまま戻らなかったからな。詰所は借りた奴を追う。居なけりゃ弟を追う。当たり前の話だ。", "neutral"),
+      say("tactician", "五年、お一人で返しておられたので。", "worry"),
+      say("warden", "一人じゃねえよ。いまは五人だ。おかげで早い。ありがとよ。", "smile"),
+    ]),
+  }),
+
+  stage_8_act2: Object.freeze({
+    cast: Object.freeze([stand("mender", "center"), stand("lancer", "left"), stand("guardian", "right")]),
+    lines: Object.freeze([
+      say("mender", "ナギさん。今日は何回、前で受けましたか。", "neutral"),
+      say("lancer", "数えていません。", "neutral"),
+      say("mender", "十四回です。そのうち九回は、受けなくてもよかった位置です。", "firm"),
+      say("lancer", "受けられるときに受けないと、受けられない日が来たときに、示しがつきません。", "hurt"),
+      say("guardian", "しめしってなに？", "neutral"),
+      say("lancer", "……自分に対しての、約束みたいなものです。", "worry"),
+      say("mender", "その約束の相手は、わたしが看る側になります。相談してから決めてください。", "calm"),
+    ]),
+  }),
+
+  stage_8_act3: Object.freeze({
+    cast: Object.freeze([stand("tactician", "center"), stand("mender", "right")]),
+    lines: Object.freeze([
+      say("tactician", "門の内側に、器材が置いてございました。", "neutral"),
+      say("mender", "灰になっていないんですか。", "shock"),
+      say("tactician", "なっておりません。台帳の番号が読めます。五年前の、あの隊のものでございます。", "calm"),
+      say("mender", "ゴウさんには。", "worry"),
+      say("tactician", "申し上げます。今度は、坂を下りながら考えたりはいたしません。", "firm"),
+      narrate("ツグミは記録帳を開き、日付だけを書いて閉じた。"),
+    ]),
+  }),
+
+  stage_8_end: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("mender", "left"), stand("tactician", "right")]),
+    lines: Object.freeze([
+      narrate("門は開いたままだった。開けたのが誰なのかは、誰にも分からなかった。"),
+      say("warden", "番号、合ってんだな。", "neutral"),
+      say("tactician", "合っております。", "calm"),
+      say("warden", "なあ。器材ってのは、置いていくもんじゃねえ。返すもんだ。返せなかったってことは、返す気があったってことだ。", "firm"),
+      say("mender", "そう読むこともできます。", "calm"),
+      say("warden", "そう読む。俺が決めるんだからな。", "smile"),
+      narrate("その夜、帳簿の最初の頁に、初めて二本目の線が引かれた。消すためではなかった。"),
+    ]),
+  }),
+
+  stage_9_opening: Object.freeze({
+    cast: Object.freeze([
+      stand("warden", "center"), stand("mender", "right"), stand("lancer", "left"),
+      stand("guardian", "far_left"), stand("tactician", "far_right"),
+    ]),
+    lines: Object.freeze([
+      narrate("底だった。下る道がもう無い、という意味でだけ、底だった。"),
+      say("tactician", "四つの形が、すべてここにございます。浅いところの殻も、立ち上がる粒も、人を引きずり出すものも、熱くない火も。", "calm"),
+      say("lancer", "ひとつずつなら、どれも知っています。", "neutral"),
+      say("mender", "ひとつずつ来てくれるとは限りません。", "calm"),
+      say("guardian", "ぜんぶ来たら、ぜんぶやればいいよ。あたしたち、ぜんぶ知ってるもん。", "smile"),
+      say("warden", "そうだな。知ってる。五年かかって、ようやく全部知った。行くぞ。俺が先だ。俺が先で、俺が最後だ。", "firm"),
+    ]),
+  }),
+
+  stage_9_act1: Object.freeze({
+    cast: Object.freeze([stand("guardian", "center"), stand("lancer", "left"), stand("mender", "right")]),
+    lines: Object.freeze([
+      say("guardian", "ねえ、帰ったら六つ目の椅子どうするの？", "neutral"),
+      say("lancer", "いま訊くことですか。", "wry"),
+      say("guardian", "いま訊かないと、忘れるもん。", "neutral"),
+      say("mender", "空けておきましょう。埋まるかどうかは、わたしたちが決めることではありません。", "calm"),
+      say("guardian", "じゃあ、誰が決めるの？", "neutral"),
+      say("mender", "座る人が。", "smile"),
+    ]),
+  }),
+
+  stage_9_act2: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("tactician", "left"), stand("lancer", "right")]),
+    lines: Object.freeze([
+      say("tactician", "ここから先は、名簿がございません。四十年ぶん、一枚もございません。", "neutral"),
+      say("warden", "じゃあ俺たちが最初か。景気がいいな。", "smile"),
+      say("tactician", "あるいは、書いて帰った者が居なかったか。", "neutral"),
+      say("lancer", "どちらでも同じです。わたしたちが書けばいいので。", "firm"),
+      say("warden", "おっ、言うじゃねえか。ナギ、お前いま隊長みたいだったぞ。", "smile"),
+      say("lancer", "やめてください。前に立つだけで手一杯です。", "firm"),
+    ]),
+  }),
+
+  stage_9_act3: Object.freeze({
+    cast: Object.freeze([stand("warden", "center"), stand("mender", "right")]),
+    lines: Object.freeze([
+      narrate("最後の道の手前で、ゴウは一度だけ全員を止めた。"),
+      say("warden", "ここまで来て言うことじゃねえんだが、聞け。俺は兄貴を探しに来た。お前らは付き合わされただけだ。ここから先は、帰っても何も言わねえ。", "calm"),
+      say("mender", "業務です。", "neutral"),
+      say("warden", "業務か。", "wry"),
+      say("mender", "五人で入って五人で帰る。それが業務の内容です。人数が変わると、記録の書き方が変わるので困ります。", "calm"),
+      narrate("ゴウは何か言おうとして、結局いつもの倍の声で笑った。"),
+    ]),
+  }),
+
+  stage_9_end: Object.freeze({
+    cast: Object.freeze([
+      stand("warden", "center"), stand("mender", "right"), stand("lancer", "left"),
+      stand("guardian", "far_left"), stand("tactician", "far_right"),
+    ]),
+    lines: Object.freeze([
+      narrate("底の奥には、何も無かった。何も無い、と書ける程度には、確かに何も無かった。"),
+      say("tactician", "器材が三点。印が一つ。名前はございません。", "calm"),
+      say("warden", "印は。", "neutral"),
+      say("tactician", "三本、横に。新しいものでございます。", "shock"),
+      narrate("ゴウは長いこと、その三本を見ていた。誰も急かさなかった。"),
+      say("warden", "よし。帰るぞ。器材は持って帰る。返すもんだからな。", "firm"),
+      say("guardian", "ゴウ、泣いてる？", "neutral"),
+      say("warden", "灰が入っただけだ。灰の中に居るんだから、灰が入る。当たり前だろ。", "smile"),
+      narrate("五人は上がった。台帳のその頁は、この日から書かれはじめる。"),
+    ]),
+  }),
+
   // ============================================================ 根城の日常
   homestead_first_night: Object.freeze({
     cast: Object.freeze([stand("warden", "left"), stand("mender", "right")]),

@@ -1,7 +1,7 @@
 // ecology/campaign-stage.test.mjs — R8 Implementation Phase 1 / Gate 1.
 //
 // **見るのは system の不変条件であり、fun ではない。**
-//   - manifest ラダー（R8 §16.1）: Stage 0〜3 の固定 manifest が契約を満たす。
+//   - manifest ラダー（R8 §16.1）: 第一部10 Stage の固定 manifest が契約を満たす。
 //   - HP 持ち越し（R8 §8, §10）: 勝利時だけ commit、敗北時は commit しない、
 //     4/8戦目 boss 勝利後だけ全回復。
 //   - 野営治療（R8 §9.2）: 補給を消費し、治療できない対象へは空撃ちしない。
@@ -16,7 +16,7 @@
 // anti-stall 不変条件は docs/DESIGN.md §4、残っている穴は GitHub Issues で管理する。
 
 import assert from "node:assert/strict";
-import { PLAYABLE_CONTENT, PROLOGUE, REGION } from "./content/index.mjs";
+import { PLAYABLE_CONTENT, PROLOGUE, REGION, expeditionEncounter } from "./content/index.mjs";
 import {
   CAMPAIGN_STAGES,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
@@ -102,18 +102,38 @@ function campaignCompleteProfile() {
 
 {
   const problems = auditCampaignManifestLadder(CAMPAIGN_STAGES);
-  assert.deepEqual(problems, [], "Stage 0〜3 の manifest ラダーに違反が無い");
+  assert.deepEqual(problems, [], "第一部10 Stage の manifest ラダーに違反が無い");
   checks += 1;
 
-  equal(MAX_CAMPAIGN_STAGE_SEQUENCE, 3, "Stage 0〜3 の4段だけを固定している");
-  // R9 §3 — 初期4 Stage は累積（1,2,3,4）。R8 §4.2 の回転式（1,2,2,3）は
-  // Stage 4 以降のために残してある。**どちらの式も、名乗った mode で引く。**
+  // R23 — 第一部は10 Stage。Stage 0〜3 がチュートリアル、4〜9 が本編。
+  equal(MAX_CAMPAIGN_STAGE_SEQUENCE, 9, "第一部は10 Stage");
+  equal(CAMPAIGN_STAGES.filter((stage) => stage.ladderMode === "tutorial").length, 4, "チュートリアルは4 Stage");
+  equal(CAMPAIGN_STAGES.filter((stage) => stage.ladderMode === "campaign").length, 6, "本編は6 Stage");
+  // R9 §3 — 初期4 Stage は累積（1,2,3,4）。第2章は6 pack で頭打ち。
   equal(activePackCountForSequence(0, "tutorial"), 1, "Stage 0 の有効パック数");
   equal(activePackCountForSequence(1, "tutorial"), 2, "Stage 1 の有効パック数");
   equal(activePackCountForSequence(2, "tutorial"), 3, "Stage 2 の有効パック数");
   equal(activePackCountForSequence(3, "tutorial"), 4, "Stage 3 の有効パック数");
-  equal(activePackCountForSequence(2, "rotation"), 2, "R8 §4.2 の回転式も残っている");
-  equal(activePackCountForSequence(3, "rotation"), 3, "R8 §4.2 の回転式も残っている");
+  equal(activePackCountForSequence(4, "campaign"), 5, "Stage 4 で5 pack");
+  equal(activePackCountForSequence(5, "campaign"), 6, "Stage 5 で語彙が出揃う");
+  equal(activePackCountForSequence(9, "campaign"), 6, "以降は6 pack のまま（取り上げない）");
+
+  // R23 — **Stage ごとに12戦が違う。**同じ12戦を人数で切り詰める作りに戻っていないか。
+  {
+    const names = CAMPAIGN_STAGES.map((stage) =>
+      Array.from({ length: 12 }, (unused, offset) => expeditionEncounter(offset + 1, stage.sequence).name).join("/"));
+    equal(new Set(names).size, names.length, "10 Stage の12戦は、どれ一つとして同じ並びでない");
+  }
+  // 幕ボス・家系は、その Stage の12戦から導出している（placeholder を名乗らない）。
+  for (const stage of CAMPAIGN_STAGES) {
+    for (const index of [4, 8, 12]) {
+      const encounter = expeditionEncounter(index, stage.sequence);
+      const boss = encounter.enemies.find((enemy) => enemy.boss);
+      check(Boolean(boss), stage.id + " の第" + index + "戦にボスが立っている");
+      check(stage.actBossIds.includes(boss.enemyActorId), stage.id + " の幕ボスが盤面と一致する");
+      check(stage.actBossLawIds.includes(encounter.bossLawId), stage.id + " の幕ボスの法則が盤面と一致する");
+    }
+  }
 
   // R11 §5 — ラダーを組み替えた。**導入は「構えと手当て」で、刃は次の Stage。**
   // 問題（紙の火力をどこに置くか）を出してから、その解決（庇う手）を渡す順にしてある。
@@ -127,12 +147,12 @@ function campaignCompleteProfile() {
   );
   checks += 4;
 
-  // R9 §2.1 — 2人から始めて、Stage ごとに1人ずつ増え、Stage 3 で5人が揃う。
+  // R9 §2.1 — 2人から始めて Stage ごとに1人ずつ増え、Stage 3 で5人。以降は5人のまま。
   for (const stage of CAMPAIGN_STAGES) {
-    equal(stage.partySize, stage.sequence + 2, stage.id + " の人数");
+    equal(stage.partySize, Math.min(5, stage.sequence + 2), stage.id + " の人数");
     equal(stage.castCharacterIds.length, stage.partySize, stage.id + " の cast 人数");
-    if (stage.sequence === 0) {
-      equal(stage.joiningCharacterId, null, "Stage 0 は誰も加入しない（最初の2人）");
+    if (stage.sequence === 0 || stage.ladderMode === "campaign") {
+      equal(stage.joiningCharacterId, null, stage.id + " では誰も加入しない");
     } else {
       const previous = campaignStageDef(stage.sequence - 1);
       const added = stage.castCharacterIds.filter((id) => !previous.castCharacterIds.includes(id));
@@ -141,9 +161,12 @@ function campaignCompleteProfile() {
     }
   }
 
-  // R9 §3.1 — 新 pack は core（入口）で入り、前 Stage の pack は full になる。
+  // R9 §3.1 — 導入 Stage の新 pack は core（入口）で入り、前 Stage の pack は full になる。
+  // R23 — 第2章は全部 full（取り上げも、入口だけの出し方もしない）。
   for (const stage of CAMPAIGN_STAGES) {
-    equal(stage.packDepths[stage.newPackId], "core", stage.id + " の新 pack は core");
+    if (stage.ladderMode === "tutorial") {
+      equal(stage.packDepths[stage.newPackId], "core", stage.id + " の新 pack は core");
+    }
     for (const packId of stage.returningPackIds) {
       equal(stage.packDepths[packId], "full", stage.id + " の過去 pack " + packId + " は full");
     }

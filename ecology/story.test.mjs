@@ -311,7 +311,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   const knownCharacters = new Set(CHARACTER_DEFINITIONS.map((option) => option.id));
   let previous = null;
   for (const stage of CAMPAIGN_STAGES) {
-    equal(stage.partySize, stage.sequence + 2, stage.id + " の人数は sequence + 2");
+    equal(stage.partySize, Math.min(5, stage.sequence + 2), stage.id + " の人数（5人で頭打ち）");
     equal(stage.castCharacterIds.length, stage.partySize, stage.id + " の cast が人数ぶんある");
     for (const characterId of stage.castCharacterIds) {
       check(knownCharacters.has(characterId), characterId + " は実在の仲間");
@@ -332,7 +332,9 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 // ---- core / full（R9 §3.1, §4）---------------------------------------------
 
 {
-  for (const stage of CAMPAIGN_STAGES) {
+  // R9 §4 の「入口は7〜10技能」は**導入 Stage（チュートリアル）の縛り**である。
+  // R23 の第2章は pack を core で出さないので、ここは tutorial だけを見る。
+  for (const stage of CAMPAIGN_STAGES.filter((entry) => entry.ladderMode === "tutorial")) {
     const manifest = { enabledPackIds: stage.enabledPackIds, packDepths: stage.packDepths };
     const ids = manifestSkillIds(manifest);
     const newPack = PACK_BY_ID[stage.newPackId];
@@ -374,10 +376,13 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   for (const stage of CAMPAIGN_STAGES) {
     // R11 §5 — Stage 0 は「拾う → 倒れる → 巻き戻る → 勝つ」の4拍を持つ。
     // R12 §4.C — どの Stage も、4・8・12戦目の幕の断片を3つ持つ。
+    // R23 — 第2章（Stage 4〜9）は誰も加入しないので `join` ではなく `opening` を持つ。
     const acts = ["act1", "act2", "act3"];
     const keys = stage.sequence === 0
       ? ["opening", "prologueDefeat", "prologueRewound", "prologueWin", ...acts, "stageEnd"]
-      : ["join", ...acts, "stageEnd"];
+      : stage.joiningCharacterId
+        ? ["join", ...acts, "stageEnd"]
+        : ["opening", ...acts, "stageEnd"];
     for (const key of keys) {
       const beat = storyBeat(stage.id, key);
       check(Boolean(beat), stage.id + " に " + key + " の断片がある");
@@ -678,7 +683,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
     .filter((line) => line.who === who);
 
   // ゴウは、どの Stage でも短く切り続けない。
-  for (const stage of ["stage_0", "stage_1", "stage_2", "stage_3"]) {
+  for (const stage of CAMPAIGN_STAGES.map((entry) => entry.id)) {
     const texts = Object.entries(DIALOGUE)
       .filter(([id]) => id.startsWith(stage))
       .flatMap(([, entry]) => entry.lines)

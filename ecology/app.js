@@ -138,6 +138,7 @@ import {
   spendSupply,
   unlockRunSkill,
   upgradeCost,
+  TRAINING_STEP_BPS,
   upgradeLevel,
   INVENTORY_LIMIT,
   // PR #255 — 遠征ごとの補給総数（表記の分母）と、装備候補を出す戦闘の判定。
@@ -1260,7 +1261,11 @@ function inManifest(skillId) {
 // R9 §3.2 — 敵の数と threat budget は、その遠征の人数で決まる。
 // **preview と正式実行が同じ引数を使う**ように、組み立てはこの一箇所に閉じる。
 function encounterOptions() {
-  return { partySize: state.run.partySize };
+  // R23 — 12戦の中身は Stage ごとに違う。**予測も本番も同じ引数**で組む。
+  return {
+    partySize: state.run.partySize,
+    stageSequence: state.run.campaignStageSequence ?? 0,
+  };
 }
 
 // R9 §3.2 — 敵の数と threat budget は、その遠征の人数に合わせて決まる。
@@ -1793,6 +1798,12 @@ function purchaseRow(id, displayName, detail, cost, disabledReason) {
         "data-upgrade=\"" + esc(id) + "\"")) + "</div>";
 }
 
+// R23 — 鍛錬の一段でその能力がいくつになるか。**progression の式をここで綴り直さない**
+// ように、detail が持つ base と段の効果から引く。
+function trainedStatPreview(detail) {
+  return Math.round(detail.base * (10_000 + TRAINING_STEP_BPS * (detail.level + 1)) / 10_000);
+}
+
 function renderGuild() {
   const characterId = guildCharacter();
   const stats = statsFor(characterId);
@@ -1806,17 +1817,24 @@ function renderGuild() {
   }).join("");
   const trainingRows = Object.entries(stats.detail).map(([axis, detail]) => {
     const axisLabel = { might: "腕力", focus: "技術", guard: "受け", vitality: "体力" }[axis];
-    const nextText = detail.nextVisibleLevel === null
-      ? "これ以上は表示が変わりません"
+    // R23 — 一段 +6% なので、ほとんどの枠は**次の一段で必ず整数が動く**。
+    // 動かない枠（ツグミの腕力のように base が小さいもの）だけを名指しする。
+    const capped = detail.cost === null;
+    const nextText = capped
+      ? "上限まで鍛えた"
       : detail.nextVisibleLevel === detail.level + 1
-        ? "次の一段で " + (detail.value + 1) + " になる"
-        : "次に整数が増えるのは level " + detail.nextVisibleLevel;
+        ? "次の一段で " + trainedStatPreview(detail) + " になる"
+        : detail.nextVisibleLevel === null
+          ? "上限まで鍛えても表示は変わらない"
+          : "次に整数が増えるのは Lv" + detail.nextVisibleLevel;
     return "<div class=\"purchase-row\"><span class=\"purchase-copy\"><b>" + esc(axisLabel)
-      + " Lv" + detail.level + "</b><small>基礎 " + detail.base + " → 現在 " + detail.value
-      + "（+" + (detail.bonusBps / 100).toFixed(1) + "%） · " + esc(nextText) + "</small></span>"
-      + "<span class=\"purchase-cost\">" + formatFunds(detail.cost) + "</span>"
-      + button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
-        "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"") + "</div>";
+      + " Lv" + detail.level + "/" + detail.maxLevel + "</b><small>基礎 " + detail.base + " → 現在 " + detail.value
+      + "（+" + (detail.bonusBps / 100).toFixed(0) + "%） · " + esc(nextText) + "</small></span>"
+      + "<span class=\"purchase-cost\">" + (capped ? "上限" : formatFunds(detail.cost)) + "</span>"
+      + (capped
+        ? "<span class=\"purchase-done\">✓</span>"
+        : button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
+          "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"")) + "</div>";
   }).join("");
   const metOptions = metCharacterOptions();
   const memberTabsHtml = "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">"
@@ -2781,7 +2799,9 @@ function storyBeatsForStart(sequence) {
       after: seen ? "camp" : "prologue",
     };
   }
-  return { beats: [storyBeat(stage.id, "join")], after: "camp" };
+  // R23 — 第2章（Stage 4〜9）は誰も加入しないので `join` を持たない。
+  // 代わりに `opening` があり、どちらも「その Stage へ入る一枚」である。
+  return { beats: [storyBeat(stage.id, "join") ?? storyBeat(stage.id, "opening")], after: "camp" };
 }
 
 function renderCamp() {
