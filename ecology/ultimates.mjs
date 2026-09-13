@@ -154,7 +154,7 @@ function ascendEffect(effect, content, traits) {
     next.stacks = (next.stacks ?? 1) * ULTIMATE_AMOUNT_MULTIPLIER;
     traits.amplified = true;
   }
-  // 防壁はラウンド終わりに消える。**必殺の防壁は戦闘のあいだ残る。**
+  // 通常の防壁は次のラウンド開始時に消える。**必殺の防壁は戦闘のあいだ残る。**
   // 守りの必殺が「そのラウンドだけ厚い」で終わると、攻めの必殺と釣り合わない。
   if (next.type === "gain_barrier" && next.duration !== "battle") {
     next.duration = "battle";

@@ -724,7 +724,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   checks += 1;
 }
 
-// ---- §11.6 round end ordering (PREFLIGHT §4) ---------------------------------
+// ---- §11.6 round boundary ordering (PREFLIGHT §4) -----------------------------
 
 {
   // Let the enemy act before the warden in this witness, leaving the round
@@ -749,15 +749,32 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(result.equipment[0].durability, 2);
 
   const ended = of(result, "round_ended")[0];
+  const nextStarted = of(result, "round_started").find((event) => event.round === 2);
   const expired = of(result, "barrier_expired")[0];
   check(ended.sequence < unused.sequence, "round_ended, then the unused report");
-  check(unused.sequence < expired.sequence, "then the barrier expiry");
+  check(unused.sequence < nextStarted.sequence, "the next round starts after the end-phase reports");
+  check(nextStarted.sequence < expired.sequence, "the barrier expires after the next round opens");
+  equal(expired.round, 2, "a round barrier expires in the next round, not the previous one");
+  check(
+    !of(result, "barrier_expired").some((event) => event.round === 1),
+    "the last attack's round has no expiry event",
+  );
+}
+
+{
+  // Statuses use the same next-round boundary as barriers. Their removal must
+  // not be attached to the final attack or to round_ended either.
+  const result = run(STATUS_BATTLE);
+  const nextStarted = of(result, "round_started").find((event) => event.round === 2);
+  const expiry = of(result, "status_removed").find((event) => event.values.cause === "duration");
+  check(nextStarted.sequence < expiry.sequence, "a round status expires after the next round opens");
+  equal(expiry.round, 2, "a round status expires in the next round");
 }
 
 {
   // A round barrier created during the round end phase belongs to the round
-  // about to start, not to the one being closed. Otherwise "turn the unused
-  // action points into a barrier" would expire one step after it was granted.
+  // about to start, not to the one being closed. It must therefore survive
+  // the immediately following round start and expire at the next one.
   const bundle = structuredClone(FIXTURE_CONTENT);
   bundle.characters.warden.signatureRules = [
     {
@@ -790,9 +807,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const banked = of(result, "barrier_gained").find((event) => event.ruleId === "warden_banks_the_rest");
   check(banked !== undefined, "the leftover action point became a barrier");
   const expiries = of(result, "barrier_expired").filter((event) => event.sequence > banked.sequence);
+  const nextStart = of(result, "round_started").find((event) => event.round === banked.round + 1);
   check(
-    expiries.length === 0 || expiries[0].round > banked.round,
-    "and it survived the round end that created it",
+    expiries.length === 0
+      || (expiries[0].round > banked.round && nextStart.sequence < expiries[0].sequence),
+    "and it survived the round end and the immediately following round start",
   );
 }
 

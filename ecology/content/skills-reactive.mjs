@@ -801,7 +801,7 @@ reactiveSkills.stall_the_blow = reaction("stall_the_blow", REACTIVE_SKILL_NAMES.
 // ---- 連撃と刻印（pack_barrage）----
 
 // **隙が消える瞬間**に一撃。刻印砕きが刈り取ったあとにも、
-// ラウンド終わりに自然消滅したときにも起きる。
+// 次のラウンド開始時に自然消滅したときにも起きる。
 reactiveSkills.echo_of_the_mark = reaction("echo_of_the_mark", REACTIVE_SKILL_NAMES.echo_of_the_mark, {
   listenTo: "status_removed",
   timing: "after",

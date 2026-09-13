@@ -241,7 +241,7 @@ function makeRuntime(state) {
   };
 }
 
-function emit(state, spec, pendingFrame = null) {
+function emit(state, spec, pendingFrame = null, { enqueueAfter = true } = {}) {
   if (["action_started", "round_ended", "battle_ended"].includes(spec.type)) {
     closeRecoveryWindows(state, spec.type === "action_started" ? "next_action" : "phase_boundary");
   }
@@ -249,7 +249,7 @@ function emit(state, spec, pendingFrame = null) {
   // §11.5 — the interrupt window for this event closes before the caller sees
   // the pending frame again, so every interrupt for it runs here and now.
   if (pendingFrame) dispatchRules(state, event, "interrupt", pendingFrame);
-  if (state.chain && !NON_LISTENABLE_EVENT_TYPES.includes(event.type)) {
+  if (state.chain && enqueueAfter && !NON_LISTENABLE_EVENT_TYPES.includes(event.type)) {
     state.chain.afterQueue.push(event.id);
   }
   return event;
@@ -614,7 +614,18 @@ function startRound(state) {
         },
       });
     }
-    emit(state, { type: "round_started", tags: [], values: { round: state.round } });
+    // Publish the boundary before removing the previous round's effects so
+    // replay can place expiry on the new round's opening beat. Do not dispatch
+    // the round_started reactions yet: they must observe the new round after
+    // round-duration effects have expired.
+    const roundStarted = emit(
+      state,
+      { type: "round_started", tags: [], values: { round: state.round } },
+      null,
+      { enqueueAfter: false },
+    );
+    expireRoundDurations(state);
+    state.chain.afterQueue.push(roundStarted.id);
   });
 
   // §11.2 — initiative is fixed for the round and gives the ally side the
@@ -627,6 +638,46 @@ function startRound(state) {
   living.forEach((actor, index) => {
     actor.initiativeRank = index;
   });
+}
+
+// §11.6 — round-duration effects expire at the beginning of the following
+// round. The cutoff is recorded when the previous round's end phase begins so
+// effects created by that phase belong to the round that is about to start.
+// This function runs after the round_started event is recorded but before its
+// after reactions are drained. The event order therefore gives replay a
+// distinct round-start beat without letting old effects affect new-round rules.
+function expireRoundDurations(state) {
+  for (const actor of orderedActors(state)) {
+    const expiring = actor.barriers
+      .filter(
+        (packet) => packet.duration === "round" && packet.createdSequence < state.roundEndStartSequence,
+      )
+      .sort((a, b) => a.createdSequence - b.createdSequence);
+    for (const packet of expiring) {
+      actor.barriers = actor.barriers.filter((entry) => entry !== packet);
+      emit(state, {
+        type: "barrier_expired",
+        targetActorIds: [actor.instanceId],
+        tags: ["round"],
+        values: { amount: packet.amount, duration: packet.duration, barrierTotal: totalBarrier(actor) },
+      });
+    }
+  }
+
+  for (const actor of orderedActors(state)) {
+    const expiring = actor.statuses.filter(
+      (status) => status.duration === "round" && status.addedSequence < state.roundEndStartSequence,
+    );
+    for (const status of expiring) {
+      actor.statuses = actor.statuses.filter((entry) => entry !== status);
+      emit(state, {
+        type: "status_removed",
+        targetActorIds: [actor.instanceId],
+        tags: ["round"],
+        values: { statusId: status.statusId, removed: status.stacks, remaining: 0, cause: "duration" },
+      });
+    }
+  }
 }
 
 function orderedActors(state) {
@@ -1099,10 +1150,10 @@ function requeueOnResourceGain(state, actor) {
 // §11.6 — round end. The after queue is drained after each sub step, so a rule
 // that spends an unused reaction point can still afford it (PREFLIGHT §4).
 function endRound(state) {
-  // Anything created from here on belongs to the round that is about to start,
-  // not to the one being closed. Without this, a rule that turns an unused
-  // action point into a round barrier would have the packet expire one step
-  // later, in the same phase that created it.
+  // Effects created from here on belong to the round that is about to start,
+  // not to the one being closed. The next round's start cleanup uses this
+  // cutoff, so a rule that turns an unused action point into a round barrier
+  // can carry that packet through the round it created.
   state.roundEndStartSequence = state.sequence;
   runChain(state, "round_ended", () => {
     emit(state, { type: "round_ended", tags: [], values: { round: state.round } });
@@ -1130,44 +1181,6 @@ function endRound(state) {
           targetActorIds: [actor.instanceId],
           tags: ["reaction_points"],
           values: { resource: "reaction_points", amount: actor.reactionPoints },
-        });
-      }
-    }
-  });
-  if (state.finished) return;
-
-  runChain(state, "barrier_expiry", () => {
-    for (const actor of orderedActors(state)) {
-      const expiring = actor.barriers
-        .filter(
-          (packet) => packet.duration === "round" && packet.createdSequence < state.roundEndStartSequence,
-        )
-        .sort((a, b) => a.createdSequence - b.createdSequence);
-      for (const packet of expiring) {
-        actor.barriers = actor.barriers.filter((entry) => entry !== packet);
-        emit(state, {
-          type: "barrier_expired",
-          targetActorIds: [actor.instanceId],
-          tags: ["round"],
-          values: { amount: packet.amount, duration: packet.duration, barrierTotal: totalBarrier(actor) },
-        });
-      }
-    }
-  });
-  if (state.finished) return;
-
-  runChain(state, "status_expiry", () => {
-    for (const actor of orderedActors(state)) {
-      const expiring = actor.statuses.filter(
-        (status) => status.duration === "round" && status.addedSequence < state.roundEndStartSequence,
-      );
-      for (const status of expiring) {
-        actor.statuses = actor.statuses.filter((entry) => entry !== status);
-        emit(state, {
-          type: "status_removed",
-          targetActorIds: [actor.instanceId],
-          tags: ["round"],
-          values: { statusId: status.statusId, removed: status.stacks, remaining: 0, cause: "duration" },
         });
       }
     }
