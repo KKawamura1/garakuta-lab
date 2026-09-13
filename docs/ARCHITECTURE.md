@@ -220,7 +220,7 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 `damage_absorbed`（`finalDamage: 0` を含む）、途中で対象を失った hit は `damage_skipped`、
 行動の取り消しは `action_canceled` として、HPが変わらない場合も理由を残します。
 戦闘盤面の防壁バーは新しいイベントや状態を持たず、`app.js` が現在の `replaySnapshots` の actor から `barrier` と `maxHp` を読み、`min(100, barrier / maxHp * 100)` の表示幅へ変換します。数値マークとバーは同じsnapshotを読むため、付与・吸収・破壊・期限切れの表示がずれません。
-準備付き行動では `preparation_completed` の後続にあるダメージ系イベントを別の `impact` 拍へ分離します。盤面の踏み込みは `beatHasStrikeImpact()` が判定する着弾拍だけに限定し、準備開始・完了や `sub` 反応で誤って攻撃モーションを出さないようにします。
+準備付き行動では `preparation_completed` の後続にあるダメージ系イベントを別の `impact` 拍へ分離します。盤面の踏み込みと、攻撃側から被弾側へ引く線は `beatHasStrikeImpact()` が判定する着弾拍だけに限定し、準備開始・完了や `sub` 反応で誤って攻撃モーションを出さないようにします。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。
 ターゲットクエリの並び替えは `TARGET_SORT_TYPES`（schema）が正本で、実装は `selectors.mjs` の
 `sortValue` 一箇所です。`hp_asc` / `hp_desc` は残りHPそのもの（**攻撃の狙い先**。味方側・敵側とも
@@ -585,6 +585,29 @@ UI は専用の枠を持たない。装着行（`.installed-row[data-longpress]`
 `--long-press-ms` として CSS へ渡す（両方に書くと、ずれた日に「満ちたのに入らない帯」が
 できる）。誰が必殺を残しているかは盤面のセルの `ultimateCellMark()` が四段で出し、
 **隊の合計はどこにも出さない**（合計は「誰の一回か」に答えない）。
+
+## 盤面の手応え（戦闘アニメーション）
+
+演出は**新しい event も新しい拍も持たない**。`syncBattleView` が、いま表示している拍の
+イベント列だけから向き・重さ・種類を決め、CSS のクラスと CSS 変数へ落とす。時計も乱数も
+使わないので、同じ seed・同じ入力からは同じ演出が同じ順で出る。
+
+  - **重さの三段** … `hitLevel(amount, maxHp)` が最大HPに対する割合で 1／2／3 を返す
+    （15% 以上で 2、30% 以上で 3、撃破はその拍の 3）。段は `unit` の揺れ（`hit-2` /
+    `hit-3`）・浮く数字の大きさ（`.float.damage.heavy` / `.crush`）・盤面の揺れ
+    （`.battle-field.shake-1〜3`）の三箇所へ**同じ値**で効く。
+  - **踏み込む向き** … `lungeShiftPx()` が狙った相手との**列差**（`BATTLE_COLUMNS` の
+    index 差）を ±9px の `--lunge-x` にする。前後（味方は上・敵は下）は side の CSS が持つ。
+  - **踏み込んだ先の線** … `spawnStrikeLine()` が攻撃側と被弾側の矩形中心を結ぶ
+    `.strike-line` を一本置く。長さと角度は二つの箱の位置だけから出る。
+  - **浮く数字** … `.battle-floats`（盤面の層）へ座標で刺す。`unit` の中に置くと、味方の箱
+    （立ち絵のため `overflow: hidden`）で消え、敵では一つ上の箱の中に出て持ち主が読めない。
+  - **幕の帯** … `battleBannerFor(beat)` が拍の種類だけから言葉を決める（opening／round／
+    ending）。カットインと同じく `dataset.beat` で同じ拍へ二度書き込まないので、再描画でも
+    演出が巻き戻らない。読み上げは `.beat-text`（aria-live）が持ち、帯は `aria-hidden`。
+
+`prefers-reduced-motion` では動きだけを止める。帯・カットイン・照準・数字は**出したまま**
+なので、止めても何が起きたかは読める。
 
 ## 必殺の拍とカットイン（issue #242）
 

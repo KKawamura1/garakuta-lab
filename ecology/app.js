@@ -182,6 +182,7 @@ import {
   eventSourceId,
   filterReplayEvents,
   REPLAY_EVENT_TYPES,
+  STRIKE_IMPACT_EVENT_TYPES,
 } from "./replay-beats.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
@@ -4899,6 +4900,8 @@ function eventReasonText(reason) {
   return reason ? "（" + (labels[reason] ?? reason) + "）" : "";
 }
 
+const BATTLE_RESULT_LABELS = { win: "勝利", loss: "敗北", draw: "相打ち" };
+
 function eventText(event) {
   const values = event.values || {};
   const sourceId = event.sourceActorId || event.actorId || event.ownerActorId;
@@ -4970,7 +4973,9 @@ function eventText(event) {
     equipment_broken: source + "の装備が壊れた · 以後は不発",
     equipment_repaired: source + "の装備が" + amountText + "修理された",
     actor_defeated: target + "が倒れた",
-    battle_ended: "戦闘終了 · " + (values.result || "決着"),
+    // 最後の一行だけ engine の語（win / loss / draw）がそのまま出ていた。
+    // 盤面の帯と同じ言葉に揃える。
+    battle_ended: "戦闘終了 · " + (BATTLE_RESULT_LABELS[values.result] ?? "決着"),
   };
   // ルール由来（リアクティブ・固有・装備）は、何が起こしたのかを添える。
   // 添えないと、ログでは主行動と見分けがつかない。
@@ -5124,7 +5129,11 @@ function unitHtml(actor) {
       + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName)) + "</b></div>";
   return "<div class=\"unit hp-tone-green\" role=\"group\" aria-label=\"" + esc(shortName(actor.displayName))
     + "\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
-    + "<div class=\"unit-floats\"></div>"
+    // 手応えの層。閃き・衝撃輪・斬線・照準は**この一枚の中だけ**で動くので、
+    // 箱の大きさも並びも変わらない（盤面が動くと踏み込みと揺れが読めなくなる）。
+    + "<span class=\"unit-fx\" aria-hidden=\"true\">"
+    + "<i class=\"fx-flash\"></i><i class=\"fx-ring\"></i><i class=\"fx-slash\"></i><i class=\"fx-reticle\"></i>"
+    + "</span>"
     + face
     + top + "<div class=\"unit-info-layer\"><div class=\"unit-cast\"></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
     + "<div class=\"unit-stats\"><span class=\"unit-hp\"></span>"
@@ -5182,6 +5191,11 @@ function renderBattle() {
     + "<div class=\"battle-side\" data-side=\"ally\">" + battleRowsHtml(actors, "ally") + "</div>"
     // issue #242 — 必殺のカットイン。**拍が来たときだけ中身が入る**空の枠を一つ置く。
     + "<div class=\"ultimate-cutin\" aria-hidden=\"true\"></div>"
+    // 幕の帯（開始・ラウンド・決着）と、浮く数字の層。**数字は箱の中ではなく盤面へ置く。**
+    // 箱の中に置くと、味方の箱（顔を切り抜くため overflow を閉じている）で消え、
+    // 敵では一つ上の箱の中に出て、誰が受けたのか読めなくなる。
+    + "<div class=\"battle-banner\" aria-hidden=\"true\"></div>"
+    + "<div class=\"battle-floats\" aria-hidden=\"true\"></div>"
     + "</div>"
     + "<div class=\"replay-transport\">"
     + button("◀ 一手", "replay-back", true, "button", "data-role=\"replay-back\"")
@@ -5195,7 +5209,8 @@ function renderBattle() {
     // 場面で変わる（結果画面・キャンプ・精算）ぶん、札で行き先を約束しない。
     + button("再生をとばす", "replay-result", false, "button") + "</section>"
     + helpDetails("battle-display", "表示の説明",
-      "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
+      "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。踏み込みは狙った相手の列へ向かい、攻撃側から被弾側へ光の線が一度だけ走ります。狙われている箱には金色の四隅が付きます。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
+      + "<p class=\"muted\">一撃の重さは最大HPに対する割合で三段です。15%以上で揺れと数字が一段大きくなり、30%以上（と撃破）ではさらに大きくなって盤面ごと揺れます。端末の「視差効果を減らす」を入れている場合は動きだけが止まり、帯・照準・数字はそのまま出ます。</p>"
       + "<p class=\"muted\">枠色はHPでは変えません。生存中の残りHPが56%以上なら主色は緑、26〜55%なら黄、25%以下なら赤です。残HPは主色、今回の攻撃で回復済みは主色の薄め、回復可能は主色のかなり暗め、回復不能は黒で表示します。</p>"
       + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
     // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
@@ -5245,14 +5260,15 @@ function floatsFor(event) {
   const tone = (base) => (event.ruleId ? base + " from-rule" : base);
   switch (event.type) {
     case "damage_taken":
-      return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: tone("damage"), cause }));
+      // amount は**重さを決める材料**でもある（最大HPに対する割合で字の大きさが変わる）。
+      return targets.map((id) => ({ actorId: id, text: "-" + (values.amount ?? 0), tone: tone("damage"), cause, amount: values.amount ?? 0 }));
     case "damage_absorbed":
       return targets.map((id) => ({ actorId: id, text: "◈-" + (values.amount ?? 0), tone: tone("barrier"), cause }));
     case "damage_skipped":
       return targets.map((id) => ({ actorId: id, text: "不発", tone: "blocked", cause }));
     case "healing_applied": {
       const amount = values.actual ?? values.amount ?? 0;
-      return amount > 0 ? targets.map((id) => ({ actorId: id, text: "+" + amount, tone: tone("heal"), cause })) : [];
+      return amount > 0 ? targets.map((id) => ({ actorId: id, text: "+" + amount, tone: tone("heal"), cause, amount })) : [];
     }
     case "barrier_gained":
       return targets.map((id) => ({ actorId: id, text: "◈" + (values.amount ?? 0), tone: tone("barrier"), cause }));
@@ -5281,17 +5297,134 @@ function restartAnimation(element, className) {
   element.classList.add(className);
 }
 
-function spawnFloat(unit, spec, offset) {
-  const host = unit.querySelector(".unit-floats");
+// 一撃の重さ。**最大HPに対する割合**で三段に分ける。同じ50でも、HP110の人と
+// HP300の人では起きたことの大きさが違う。割合だけで決まるので、同じイベント列
+// からは同じ重さが出る（時計も乱数も混ぜない）。
+const HIT_HEAVY_PERCENT = 15;
+const HIT_CRUSH_PERCENT = 30;
+
+function hitLevel(amount, maxHp) {
+  const hit = Number(amount ?? 0);
+  const max = Number(maxHp ?? 0);
+  if (!(hit > 0)) return 0;
+  if (!(max > 0)) return 1;
+  const percent = (hit * 100) / max;
+  if (percent >= HIT_CRUSH_PERCENT) return 3;
+  if (percent >= HIT_HEAVY_PERCENT) return 2;
+  return 1;
+}
+
+// 拍のあいだに誰がどれだけ重い一撃を受けたか。撃破はその拍で最大の重さとして扱う。
+function beatHitLevels(beat, actors) {
+  const maxHpOf = new Map((actors || []).map((actor) => [actor.instanceId, actor.maxHp ?? 0]));
+  const levels = new Map();
+  const raise = (id, level) => levels.set(id, Math.max(levels.get(id) ?? 0, level));
+  for (const event of beat?.events || []) {
+    for (const id of event.targetActorIds || []) {
+      if (event.type === "damage_taken") raise(id, hitLevel(event.values?.amount, maxHpOf.get(id)));
+      else if (event.type === "damage_absorbed") raise(id, 1);
+      else if (event.type === "actor_defeated") raise(id, 3);
+    }
+  }
+  return levels;
+}
+
+// 踏み込む向き。**狙った相手の列へ**踏み込む。盤面の列差だけで決まる。
+function lungeShiftPx(actors, actingId, beat) {
+  let targetId = null;
+  for (const event of beat?.events || []) {
+    for (const id of event.targetActorIds || []) {
+      if (id !== actingId && targetId === null) targetId = id;
+    }
+  }
+  const columnOf = (id) => {
+    const actor = (actors || []).find((entry) => entry.instanceId === id);
+    return BATTLE_COLUMNS.indexOf(String(actor?.position ?? "").split("_")[1] ?? "");
+  };
+  const from = columnOf(actingId);
+  const to = columnOf(targetId);
+  if (from < 0 || to < 0) return 0;
+  return Math.max(-1, Math.min(1, to - from)) * 9;
+}
+
+const FLOAT_SHIFTS = [0, -24, 24, -12, 12, -32, 32];
+
+function floatWeightClass(spec, unit) {
+  const level = hitLevel(spec.amount, unit?.dataset?.maxHp);
+  return level >= 3 ? " crush" : level === 2 ? " heavy" : "";
+}
+
+// 浮く数字は**盤面の層**へ置く。箱の中に置くと、味方の箱（顔を切り抜くため
+// overflow を閉じている）では消え、敵では一つ上の箱の中に出て持ち主が読めない。
+function spawnFloat(field, unit, spec, offset) {
+  const host = field.querySelector(".battle-floats");
   if (!host) return;
+  const fieldRect = field.getBoundingClientRect();
+  const rect = unit.getBoundingClientRect();
   const node = document.createElement("span");
-  node.className = "float " + spec.tone;
-  // 同じ拍で複数浮くときに重ならないように、少しずつずらす。
-  node.style.setProperty("--float-shift", (offset % 3 - 1) * 26 + "px");
+  node.className = "float " + spec.tone + floatWeightClass(spec, unit);
+  // 受けた箱の真上へ出す。盤面が揺れている最中でも、両方の矩形が同じだけ動くので
+  // 相対位置は変わらない。
+  node.style.left = (rect.left - fieldRect.left + rect.width / 2) + "px";
+  node.style.top = (rect.top - fieldRect.top + rect.height * 0.55) + "px";
+  // 同じ拍で複数浮くときに重ならないように、中央から左右へ振り分ける。
+  // **一つだけのときは必ず真ん中**に出す（誰の数字なのかが一番読める位置）。
+  node.style.setProperty("--float-shift", FLOAT_SHIFTS[offset % FLOAT_SHIFTS.length] + "px");
   node.style.animationDelay = Math.min(offset, 3) * 70 + "ms";
-  node.textContent = spec.cause ? spec.text + " " + spec.cause : spec.text;
+  node.textContent = spec.text;
+  if (spec.cause) {
+    const cause = document.createElement("i");
+    cause.className = "float-cause";
+    cause.textContent = spec.cause;
+    node.appendChild(cause);
+  }
   host.appendChild(node);
-  setTimeout(() => node.remove(), 1400);
+  setTimeout(() => node.remove(), 1500);
+}
+
+// 踏み込んだ相手を線で結ぶ。**「誰が誰を殴ったか」は盤面で一番読みたいこと**なので、
+// 箱の動きだけに任せず、行った先そのものを一度だけ描く。長さと角度は二つの箱の
+// 位置から出るので、乱数も時計も要らない。
+function strikeTargetIds(beat, actingId) {
+  const ids = [];
+  for (const event of beat?.events || []) {
+    if (!STRIKE_IMPACT_EVENT_TYPES.has(event.type)) continue;
+    for (const id of event.targetActorIds || []) {
+      if (id !== actingId && !ids.includes(id)) ids.push(id);
+    }
+  }
+  return ids;
+}
+
+function spawnStrikeLine(field, fromUnit, toUnit) {
+  const host = field.querySelector(".battle-floats");
+  if (!host || !fromUnit || !toUnit || fromUnit === toUnit) return;
+  const fieldRect = field.getBoundingClientRect();
+  const from = fromUnit.getBoundingClientRect();
+  const to = toUnit.getBoundingClientRect();
+  const x = from.left - fieldRect.left + from.width / 2;
+  const y = from.top - fieldRect.top + from.height / 2;
+  const dx = (to.left - fieldRect.left + to.width / 2) - x;
+  const dy = (to.top - fieldRect.top + to.height / 2) - y;
+  const length = Math.hypot(dx, dy);
+  if (!(length > 1)) return;
+  const node = document.createElement("i");
+  node.className = "strike-line";
+  node.style.left = x + "px";
+  node.style.top = y + "px";
+  node.style.width = length + "px";
+  node.style.transform = "rotate(" + (Math.atan2(dy, dx) * 180 / Math.PI) + "deg)";
+  host.appendChild(node);
+  setTimeout(() => node.remove(), 420);
+}
+
+// 盤面の揺れ。**重さの三段をそのまま揺れの三段にする。**三つを外してから付け直すので、
+// 同じ強さが続けて来ても毎回頭から揺れる。
+function shakeField(field, level) {
+  field.classList.remove("shake-1", "shake-2", "shake-3");
+  if (level <= 0) return;
+  void field.offsetWidth;
+  field.classList.add("shake-" + level);
 }
 
 function updateReplayControls(index, beats) {
@@ -5485,15 +5618,30 @@ function syncBattleView(options = {}) {
     "is-hit",
     "is-healed",
     "is-shielded",
+    "is-blocked",
+    "is-downed",
+    "hit-2",
+    "hit-3",
   ));
 
   if (beat) {
     const head = beat.events[0];
     const actingId = eventSourceId(head);
     const actingUnit = unitOf(actingId);
-    if (actingUnit) actingUnit.classList.add("is-acting");
+    const levels = beatHitLevels(beat, actors);
+    if (actingUnit) {
+      actingUnit.classList.add("is-acting");
+      // 踏み込む向きは狙った相手の列で決まる。左右へ寄せるぶんだけを渡し、
+      // 前後（味方は上・敵は下）は side の CSS が持つ。
+      actingUnit.style.setProperty("--lunge-x", lungeShiftPx(actors, actingId, beat) + "px");
+    }
     if (actingUnit && beatHasStrikeImpact(beat) && !options.silent) {
       restartAnimation(actingUnit, "is-striking");
+      // **線は拍の中で終わる。**数字は履歴として少し残すが、線が次の拍まで残ると
+      // 「いま誰が誰を殴ったか」を指さなくなる。多段・全体攻撃では人数ぶん出るので、
+      // 消すのはこの拍の頭で一度だけにする。
+      field.querySelectorAll(".strike-line").forEach((line) => line.remove());
+      for (const id of strikeTargetIds(beat, actingId)) spawnStrikeLine(field, actingUnit, unitOf(id));
     }
     if (beat.kind === "declare" || beat.kind === "impact") {
       for (const event of beat.events) {
@@ -5513,15 +5661,23 @@ function syncBattleView(options = {}) {
         for (const id of event.targetActorIds || []) {
           const unit = unitOf(id);
           if (!unit) continue;
-          if (event.type === "damage_taken" || event.type === "damage_absorbed" || event.type === "actor_defeated") restartOnce(id, unit, "is-hit");
-          else if (event.type === "healing_applied") restartOnce(id, unit, "is-healed");
-          else if (event.type === "barrier_gained") restartOnce(id, unit, "is-shielded");
+          if (event.type === "damage_taken" || event.type === "damage_absorbed" || event.type === "actor_defeated") {
+            // 重い一撃ほど大きく揺らす。段は付け直す前に決める（restart が消すため）。
+            const level = levels.get(id) ?? 1;
+            if (level >= 2) unit.classList.add("hit-" + level);
+            restartOnce(id, unit, "is-hit");
+            if (event.type === "actor_defeated") restartOnce(id, unit, "is-downed");
+          } else if (event.type === "healing_applied") restartOnce(id, unit, "is-healed");
+          else if (event.type === "barrier_gained" || event.type === "block_gained") restartOnce(id, unit, "is-shielded");
+          else if (event.type === "damage_blocked" || event.type === "damage_skipped") restartOnce(id, unit, "is-blocked");
         }
         for (const spec of floatsFor(event)) {
           const unit = unitOf(spec.actorId);
-          if (unit) spawnFloat(unit, spec, offset++);
+          if (unit) spawnFloat(field, unit, spec, offset++);
         }
       }
+      // 盤面そのものの揺れは、その拍で一番重かった一撃に合わせて一度だけ。
+      shakeField(field, Math.max(0, ...levels.values()));
     }
   }
 
@@ -5545,12 +5701,33 @@ function syncBattleView(options = {}) {
     }
   }
 
+  // 幕の帯。**拍が言っていることを、盤面の真ん中で一度だけ大きく言う。**
+  // 出るのは戦闘の開始・ラウンドの頭・決着だけで、拍の長さも順序も変えない。
+  // カットインと同じく、同じ拍へ二度書き込まないので再描画で巻き戻らない。
+  const banner = field.querySelector(".battle-banner");
+  if (banner) {
+    const spec = battleBannerFor(beat);
+    if (!spec) {
+      banner.dataset.beat = "";
+      banner.className = "battle-banner";
+      banner.textContent = "";
+    } else if (banner.dataset.beat !== String(index)) {
+      banner.dataset.beat = String(index);
+      banner.innerHTML = "<b>" + esc(spec.word) + "</b><i>" + esc(spec.reading) + "</i>";
+      banner.className = "battle-banner show " + spec.tone;
+      if (!options.silent) restartAnimation(banner, "run");
+    }
+  }
+
+  const slate = field.querySelector(".battle-beat");
+  if (slate) slate.dataset.kind = beat?.kind ?? "opening";
   const beatText = field.querySelector(".beat-text");
   if (beatText) {
     const text = beat ? beatText_(beat) : "戦闘開始";
     if (beatText.textContent !== text) {
       beatText.textContent = text;
       restartAnimation(beatText, "pulse");
+      if (slate) restartAnimation(slate, "pulse");
     }
   }
   const beatRound = field.querySelector(".beat-round");
@@ -5563,6 +5740,25 @@ function syncBattleView(options = {}) {
   updateReplayControls(index, beats);
   updateDebugLog(upTo, events);
   scheduleReplayBeat();
+}
+
+// 幕の帯に出す言葉。**拍の種類だけで決まる**ので、同じイベント列からは同じ帯が出る。
+// 読み上げは拍の行（`.beat-text`、aria-live）が既に担当しているので、帯は aria-hidden
+// のまま二重に読ませない。
+function battleBannerFor(beat) {
+  if (!beat) return null;
+  if (beat.kind === "opening") return { word: "BATTLE START", reading: "戦闘開始", tone: "open" };
+  if (beat.kind === "round") {
+    const round = beat.events[0]?.round ?? 1;
+    return { word: "ROUND " + round, reading: "ラウンド" + round, tone: "round" };
+  }
+  if (beat.kind === "ending") {
+    const result = beat.events[0]?.values?.result;
+    if (result === "win") return { word: "VICTORY", reading: "勝利", tone: "win" };
+    if (result === "loss") return { word: "DEFEAT", reading: "敗北", tone: "lose" };
+    return { word: "DRAW", reading: "相打ち", tone: "draw" };
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- 必殺のカットイン（issue #242）
@@ -5588,6 +5784,9 @@ function ultimateCutInHtml(beat) {
   const accent = characterId ? portraitAccent(characterId) : "var(--gold)";
   return "<div class=\"cutin-sheet\" style=\"--accent:" + esc(accent) + "\">"
     + "<span class=\"cutin-burst\"></span>"
+    // 速度線と斬線。**帯そのものより速く走る層**を重ねて、一拍の重さを出す。
+    + "<span class=\"cutin-lines\"></span>"
+    + "<span class=\"cutin-slash\"></span>"
     + (portrait ? "<span class=\"cutin-figure\">" + portrait + "</span>" : "")
     + "<span class=\"cutin-copy\">"
     + "<span class=\"cutin-who\">" + esc(actorName(actorId)) + "</span>"
