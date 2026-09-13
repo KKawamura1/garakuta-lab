@@ -152,7 +152,10 @@ const ALL_SKILL_IDS = [...ACTIVE_IDS, ...REACTIVE_IDS];
 
   // 量も状態も動かさない技能は候補に出さない。**「必殺にしたのに何も変わらない」を作らない。**
   equal(ascendSkill(PLAYABLE_CONTENT, "relay_order"), null, "行動権を渡すだけの技能は必殺にできない");
-  equal(ascendSkill(PLAYABLE_CONTENT, "reposition"), null, "位置を替えるだけの技能は必殺にできない");
+  const reposition = ascendSkill(PLAYABLE_CONTENT, "reposition");
+  ok(reposition, "位置替えは移動後の守勢まで含むため必殺にできる");
+  ok(reposition.traits.widened && reposition.traits.amplified,
+    "位置替えの必殺は移動後の守勢を味方全体へ広げる");
   equal(ascendSkill(PLAYABLE_CONTENT, "ult_steady_cut"), null, "必殺をさらに必殺にはできない");
 }
 

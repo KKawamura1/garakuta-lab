@@ -2,8 +2,8 @@
 //
 // **状態異常の表示名と規則。**
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
-// 種類別へ分離した。fixture 由来の2つ（隙・集中）は**挙動を変えていない**
-// （ecology/contract.test.mjs が分離前の出力と深一致を見る）。
+// 種類別へ分離した。fixture 由来の2つ（隙・集中）も production では割合効果へ
+// 上書きする。fixture content 自体は engine の固定値 witness として残す。
 //
 // R16 — **状態を3つ足した。**技能を大量に増やすとき、既存の「隙」「集中」だけを
 // 相方にすると、どの新技能も「隙を付ける／集中を得る」の言い換えになる。
@@ -11,11 +11,10 @@
 // （damage_proposed への interrupt と round_ended への after だけで書けている）。
 //
 //   怯み staggered … **持ち主が出す**ダメージが減る。守りを攻めの手で作る軸。
-//   守勢 warded   … **持ち主が受ける**ダメージが減る。防壁（総量）でも
-//                   受け構え（回数）でもない三つ目の守り。細かい多段に強く、
-//                   一撃の大技には弱い（減る量が固定だから）。
-//   裂傷 bleeding … ラウンド終わりに一度だけ、段数ぶんの固定ダメージ。
-//                   受けを無視するので、硬い相手へ通る細い線になる。
+//   守勢 warded   … **持ち主が受ける**各hitを割合で減らす。防壁（総量）でも
+//                   受け構え（回数）でもない三つ目の守り。
+//   裂傷 bleeding … ラウンド終わりに一度だけ、最大HPに応じたダメージ。
+//                   受けを無視するので、硬く高耐久な相手へ通る線になる。
 //
 // **どれも round で消える。**待って積み上げる形にはしていない（AGENTS.md の
 // anti-stall）。裂傷は「置いた round の終わりに一度」しか刻まない。
@@ -39,9 +38,8 @@ export const STATUS_NAMES = {
 
 const statuses = renamed("statuses", STATUS_NAMES);
 
-// 状態異常の増減も parameter 非依存の flat。隙も集中も、誰が持っても同じだけ動かす。
-// **ここは fixture 由来の2つだけに掛ける。**下で足す3つは最終値で書いてある
-// （10倍移行より後に生まれたので、旧尺度の値を持っていない）。
+// fixture 由来の値を production の10倍尺度へ一度そろえる。直後に隙・集中を
+// 割合効果として上書きするが、fixture content 自体は engine の固定値 witness として残す。
 for (const definition of Object.values(statuses)) scaleFlatAmounts(definition);
 
 const SELF_TARGET = { scope: "self", take: 1 };
@@ -54,16 +52,89 @@ const SELF_IS_EVENT_TARGET = {
   query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
 };
 
-// 段数ぶんの固定量。**持ち主の parameter は読まない**（誰が持っても同じだけ動く）。
-const perStack = (statusId, perStackAmount) => ({
-  type: "status_stacks_scaled",
-  subject: "self",
-  statusId,
-  numerator: perStackAmount,
-  denominator: 1,
+const statusStacksAre = (statusId, stacks) => ({
+  type: "has_status", subject: "self", statusId, op: "eq", value: stacks,
+});
+const pendingPercent = (percent) => ({
+  type: "event_value_scaled", key: "amount", numerator: percent, denominator: 100,
 });
 
-// 怯み — 持ち主が出すダメージが、1段につき8軽くなる。
+// 一つの status rule で「event amount × status 段数」を直接は書けず、同じruleは
+// chain安全契約により1回しか発火しない。そこで段数とhit番号の排他的な組ごとにruleを
+// 展開する。現行の最大は刻み止め5hit＋連撃affix1hitの6。有限本のまま各hitへ効かせる。
+const MAX_CONTENT_HITS = 6;
+function pendingPercentRules({ statusId, maxStacks, subjectPredicate, operation, percentPerStack }) {
+  return Array.from({ length: maxStacks }, (_, stackIndex) => (
+    Array.from({ length: MAX_CONTENT_HITS }, (_, hitIndex) => {
+      const stacks = stackIndex + 1;
+      return {
+        id: stacks === 1 && hitIndex === 0
+          ? statusId + "_rule"
+          : `${statusId}_${stacks}_${hitIndex}_rule`,
+        listenTo: "damage_proposed",
+        timing: "interrupt",
+        priority: 45,
+        predicates: [
+          subjectPredicate,
+          statusStacksAre(statusId, stacks),
+          { type: "event_value", key: "hitIndex", op: "eq", value: hitIndex },
+        ],
+        costs: [],
+        effects: [{
+          type: "modify_pending_amount",
+          operation,
+          amount: pendingPercent(percentPerStack * stacks),
+        }],
+        limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+      };
+    })
+  )).flat();
+}
+
+// 隙 — 受ける各hitを1段20%ずつ太くする。固定+10では、50〜100の一撃にも
+// 多段にも同じ一度しか効かず、深い刻印技能の利得先にならなかった。
+statuses.exposed = {
+  id: "exposed",
+  displayName: STATUS_NAMES.exposed,
+  polarity: "negative",
+  maxStacks: 2,
+  duration: "round",
+  rules: pendingPercentRules({
+    statusId: "exposed", maxStacks: 2, subjectPredicate: SELF_IS_EVENT_TARGET,
+    operation: "increase", percentPerStack: 20,
+  }),
+  tags: ["playable", "debuff"],
+};
+
+// 集中 — 次の damage / heal / barrier を50%太くして消える。
+// 一律+10では小技ほど相対的に得で、大溜めや厚い防壁へ合わせる理由がなかった。
+statuses.focused = {
+  id: "focused",
+  displayName: STATUS_NAMES.focused,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "battle",
+  rules: [
+    ["damage_proposed", "focused_damage_rule", SELF_IS_EVENT_SOURCE],
+    ["healing_proposed", "focused_healing_rule", SELF_IS_EVENT_SOURCE],
+    ["barrier_proposed", "focused_barrier_rule", SELF_IS_EVENT_SOURCE],
+  ].map(([listenTo, id, predicate]) => ({
+    id,
+    listenTo,
+    timing: "interrupt",
+    priority: 40,
+    predicates: [predicate],
+    costs: [],
+    effects: [
+      { type: "modify_pending_amount", operation: "increase", amount: pendingPercent(50) },
+      { type: "remove_status", target: SELF_TARGET, statusId: "focused", stacks: "all" },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  })),
+  tags: ["playable", "buff"],
+};
+
+// 怯み — 持ち主が出す各hitを、1段につき20%軽くする。
 // **「殴られる前に殴る」以外の止め方**を、攻め手側の語彙で作るためにある。
 statuses.staggered = {
   id: "staggered",
@@ -71,50 +142,30 @@ statuses.staggered = {
   polarity: "negative",
   maxStacks: 2,
   duration: "round",
-  rules: [{
-    id: "staggered_rule",
-    listenTo: "damage_proposed",
-    timing: "interrupt",
-    priority: 45,
-    predicates: [SELF_IS_EVENT_SOURCE],
-    costs: [],
-    effects: [{
-      type: "modify_pending_amount",
-      operation: "decrease",
-      amount: perStack("staggered", 8),
-    }],
-    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
-  }],
+  rules: pendingPercentRules({
+    statusId: "staggered", maxStacks: 2, subjectPredicate: SELF_IS_EVENT_SOURCE,
+    operation: "decrease", percentPerStack: 20,
+  }),
   tags: ["playable", "debuff"],
 };
 
-// 守勢 — 持ち主が受けるダメージが、1段につき8軽くなる。
+// 守勢 — 持ち主が受ける各hitを、1段につき20%軽くする。
 // **防壁・受け構えと三つ巴になる。**防壁は総量を、受け構えは回数を、
-// 守勢は一撃ごとの厚みを引き受ける。だから多段に強く、大技には薄い。
+// 守勢はラウンド中の全hitへ割合で追従する、削り切られない軽減を引き受ける。
 statuses.warded = {
   id: "warded",
   displayName: STATUS_NAMES.warded,
   polarity: "positive",
   maxStacks: 2,
   duration: "round",
-  rules: [{
-    id: "warded_rule",
-    listenTo: "damage_proposed",
-    timing: "interrupt",
-    priority: 45,
-    predicates: [SELF_IS_EVENT_TARGET],
-    costs: [],
-    effects: [{
-      type: "modify_pending_amount",
-      operation: "decrease",
-      amount: perStack("warded", 8),
-    }],
-    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
-  }],
+  rules: pendingPercentRules({
+    statusId: "warded", maxStacks: 2, subjectPredicate: SELF_IS_EVENT_TARGET,
+    operation: "decrease", percentPerStack: 20,
+  }),
   tags: ["playable", "guard"],
 };
 
-// 裂傷 — ラウンド終わりに一度だけ、1段につき12。**受けを完全に無視する。**
+// 裂傷 — ラウンド終わりに一度だけ、1段につき最大HPの5%。**受けを完全に無視する。**
 // round で消えるので、待つほど増える形にはならない（AGENTS.md の anti-stall）。
 statuses.bleeding = {
   id: "bleeding",
@@ -122,22 +173,28 @@ statuses.bleeding = {
   polarity: "negative",
   maxStacks: 3,
   duration: "round",
-  rules: [{
-    id: "bleeding_rule",
-    listenTo: "round_ended",
-    timing: "after",
-    priority: 60,
-    predicates: [],
-    costs: [],
-    effects: [{
-      type: "deal_damage",
-      target: SELF_TARGET,
-      amount: perStack("bleeding", 12),
-      guardPierceBps: 10_000,
-      tags: ["bleed"],
-    }],
-    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
-  }],
+  rules: Array.from({ length: 3 }, (_, index) => {
+    const stacks = index + 1;
+    return {
+      id: stacks === 1 ? "bleeding_rule" : "bleeding_" + stacks + "_rule",
+      listenTo: "round_ended",
+      timing: "after",
+      priority: 60,
+      predicates: [statusStacksAre("bleeding", stacks)],
+      costs: [],
+      effects: [{
+        type: "deal_damage",
+        target: SELF_TARGET,
+        amount: {
+          type: "actor_stat_scaled", subject: "self", stat: "max_hp",
+          numerator: 5 * stacks, denominator: 100,
+        },
+        guardPierceBps: 10_000,
+        tags: ["bleed"],
+      }],
+      limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+    };
+  }),
   tags: ["playable", "debuff"],
 };
 
@@ -168,11 +225,11 @@ export const STATUSES = statuses;
 // `analysis/ecology-readout-smoke.mjs` が、STATUSES の全 id にこの一行があることと、
 // 書いた数値が定義の数値と一致することを見張る。
 const STATUS_SUMMARIES = {
-  exposed: "受けるダメージが1段につき10増える。付けるのも払うのも技能でできる。",
-  focused: "次に出す damage / heal / barrier が一度だけ10増え、使うと消える。",
-  staggered: "その相手が**出す**ダメージが1段につき8減る。倒さずに攻撃を細くする。",
-  warded: "その味方が**受ける**ダメージが1段につき8減る。防壁（総量）でも受け構え（回数）でもない三つ目の守りで、細かい多段に強く、大きな一撃には薄い。",
-  bleeding: "ラウンド終わりに一度だけ、1段につき12を**受けを無視して**刻む。硬い相手へ通る細い線。",
+  exposed: "受けるダメージが1段につき20%増える。多段の各hitへ効き、付けるのも払うのも技能でできる。",
+  focused: "次に出す damage / heal / barrier が一度だけ50%増え、使うと消える。大きな一手ほど利得も大きい。",
+  staggered: "その相手が**出す**ダメージが1段につき20%減る。多段の各hitへ効き、倒さずに攻撃を細くする。",
+  warded: "その味方が**受ける**ダメージが1段につき20%減る。多段の各hitへ効く、防壁（総量）でも受け構え（回数）でもない三つ目の守り。",
+  bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 

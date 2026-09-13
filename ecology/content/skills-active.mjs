@@ -119,11 +119,14 @@ activeSkills.mark_target.targetQuery = {
 export const ACTIVE_SCALING = {
   // R6 §4.4 が名指し
   strike: { stat: "might", bps: 12_000 },          // 斬撃 might 120%
-  bulwark: { stat: "focus", bps: bpsForLegacyAmount(8) }, // 防壁形成 focus 80%
+  // 自分専用の基礎防壁。傷へ盾を（他人へ150%）より厚くしない。
+  bulwark: { stat: "focus", bps: 10_000 },
   // 攻撃系 → might。溜めや条件を持つので、成立時は通常攻撃を上回る
-  heavy_swing: { stat: "might", bps: bpsForLegacyAmount(22) },
-  long_swing: { stat: "might", bps: bpsForLegacyAmount(40) },
-  hunt_the_slow: { stat: "might", bps: bpsForLegacyAmount(12) },
+  // 技は後列減衰を受けず、治療・防壁と同じ能力値を伸ばせる。その利点を
+  // 素の倍率から差し引き、準備技は一撃へ集約できることを利得にする。
+  heavy_swing: { stat: "might", bps: 24_000 },
+  long_swing: { stat: "might", bps: 50_000 },
+  hunt_the_slow: { stat: "might", bps: 14_500 },
   // 敵の技能。basic strike は might 100%、重い一撃は might 140%
   front_strike: { stat: "might", bps: 10_000 },
   // R11 — 後列から撃つ敵の一撃は technique 扱い。**後列の武器減衰を受けない。**
@@ -210,7 +213,7 @@ activeSkills.rapid_cuts = archetype("rapid_cuts", "刻み斬り", 5_000, {
   effectPatch: { hitCount: 3 },
 });
 // 貫き。単発115%で通常攻撃を上回り、guard を6割無視する。
-activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 11_500, {
+activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 12_000, {
   effectPatch: { guardPierceBps: 6_000 },
 });
 
@@ -220,7 +223,7 @@ activeSkills.pierce_thrust = archetype("pierce_thrust", "貫き突き", 11_500, 
 // 踏み込み斬りは武器なので後列から出すと 40% になり、狙い撃ちは技なので落ちない。
 // 同じ盤面で二つを見比べれば、might と focus の違いが説明文なしで分かる。
 activeSkills.steady_cut = archetype("steady_cut", ACTIVE_SKILL_NAMES.steady_cut, 13_000);
-activeSkills.aimed_shot = archetype("aimed_shot", ACTIVE_SKILL_NAMES.aimed_shot, 12_500, {
+activeSkills.aimed_shot = archetype("aimed_shot", ACTIVE_SKILL_NAMES.aimed_shot, 9_000, {
   // 弱った相手から確実に減らす。前列が生きていても後列へ通る（技だから）。
   targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
   effectPatch: {
@@ -299,12 +302,12 @@ function waveAttack(id, displayName, targetQuery, coefficientBps, effectPatch = 
 activeSkills.guard_crush = waveAttack(
   "guard_crush", ACTIVE_SKILL_NAMES.guard_crush,
   { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_asc"], take: 1 },
-  11_500,
+  15_000,
   { guardPierceBps: 10_000 },
 );
 // A ranged, rear-only choice. It becomes unusable when the rear is empty, so
 // the actor falls back to its core action instead of wasting an AP.
-activeSkills.rear_hunt = waveAttack("rear_hunt", ACTIVE_SKILL_NAMES.rear_hunt, REAR_ENEMY, 12_000, { reach: "ranged" });
+activeSkills.rear_hunt = waveAttack("rear_hunt", ACTIVE_SKILL_NAMES.rear_hunt, REAR_ENEMY, 11_000, { reach: "ranged" });
 activeSkills.rear_hunt.intrinsicPredicates = [hasEligibleTarget(REAR_ENEMY)];
 // A conditional finisher: no low-health target means the tactic is skipped.
 const LOW_HEALTH_ENEMY = {
@@ -316,7 +319,7 @@ const LOW_HEALTH_ENEMY = {
 activeSkills.finishing_thrust = waveAttack(
   "finishing_thrust", ACTIVE_SKILL_NAMES.finishing_thrust,
   LOW_HEALTH_ENEMY,
-  14_000,
+  15_000,
 );
 activeSkills.finishing_thrust.intrinsicPredicates = [hasEligibleTarget(LOW_HEALTH_ENEMY)];
 // Setup is still an attack, but it must not spend an AP for a weak repeat mark:
@@ -337,7 +340,7 @@ activeSkills.crack_mark = {
     {
       type: "deal_damage",
       target: EVENT_TARGET,
-      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 11_000 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 9_000 },
       tags: ["attack", "debuff"],
     },
     { type: "add_status", target: EVENT_TARGET, statusId: "exposed", stacks: 1 },
@@ -408,15 +411,48 @@ const ACTION_MODES = {
   enemy_heavy: "channel",
   bulwark: "utility",
   enemy_guard: "utility",
-  relay_order: "utility",
+  // AP移譲だけで一手ぶんの価値を作る。ここに50%追撃まで付くと、移譲先を問わず
+  // 常に通常攻撃より得になり、編成を読む余地が消える。
+  relay_order: "channel",
   reposition: "utility",
   mark_target: "utility",
-  steady_aim: "utility",
-  idle_shuffle: "utility",
+  // 集中は次の大きな一手へ残す。utility の追い打ちを出すと、その50%攻撃が
+  // 集中を即座に消費してしまい、準備する意味が無くなる。
+  steady_aim: "channel",
+  idle_shuffle: "channel",
 };
 for (const [id, mode] of Object.entries(ACTION_MODES)) {
   if (activeSkills[id]) activeSkills[id].actionMode = mode;
 }
+
+// 自分への号令は、払ったAPをそのまま自分へ戻すだけの無限行動になる。
+// 必ず「前列の別の味方」へ渡し、誰もいなければ通常攻撃へフォールバックする。
+activeSkills.relay_order.targetQuery = {
+  scope: "allies",
+  filters: [{ type: "alive" }, { type: "not_self" }, { type: "row_is", row: "front" }],
+  sort: ["position_asc"],
+  take: 1,
+};
+activeSkills.relay_order.intrinsicPredicates = [hasEligibleTarget(activeSkills.relay_order.targetQuery)];
+
+// 後列から前へ入る一手には、その巡の被害を引き受ける意味を持たせる。
+// actor_moved は先に発生するため、踏み固め等の移動反応とも同じ一手で連鎖する。
+activeSkills.reposition.effects.push({
+  type: "add_status",
+  target: { scope: "self", take: 1 },
+  statusId: "warded",
+  stacks: 1,
+});
+activeSkills.reposition.tags = [...new Set([...(activeSkills.reposition.tags ?? []), "guard"])];
+
+// 深い「狙いを澄ます」は集中だけの「息を整える」と同じ技能にしない。
+// 攻撃を一手休む代わりに、次の大技を太くする集中と反応権を同時に整える。
+activeSkills.steady_aim.effects.push({
+  type: "gain_resource",
+  target: { scope: "self", take: 1 },
+  resource: "reaction_points",
+  amount: { type: "constant", value: 1 },
+});
 
 // ---------------------------------------------------------------- pack_barrage（R8 §5.4）
 //
@@ -474,7 +510,7 @@ activeSkills.mark_strike = {
     {
       type: "deal_damage",
       target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
-      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 10_000 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 9_500 },
       tags: ["attack", "weapon", "mark"],
     },
     { type: "add_status", target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 }, statusId: "exposed", stacks: 1 },
@@ -508,7 +544,7 @@ activeSkills.mark_break = {
     {
       type: "deal_damage",
       target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 },
-      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 13_000 },
+      amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 12_000 },
       tags: ["attack", "weapon", "mark", "execute"],
     },
     { type: "remove_status", target: { scope: "event_targets", filters: [{ type: "alive" }], take: 1 }, statusId: "exposed", stacks: "all" },
@@ -635,7 +671,7 @@ activeSkills.overreach = {
   effects: [{
     type: "deal_damage",
     target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
-    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 16_500 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 18_500 },
     tags: ["attack", "weapon"],
   }],
   tags: ["attack", "playable"],
@@ -680,18 +716,48 @@ const ENEMY_WEAKEST = { scope: "enemies", filters: ALIVE_ONLY, sort: ["hp_asc"],
 // 最大HPの小さい人が庇護され続ける（docs/DESIGN.md 8.7.1）。前列版・敵側も同じ理由で、
 // 敵は「止めを刺す相手」なので `hp_asc` のままにしてある。
 const ALLY_WEAKEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["hp_percent_asc"], take: 1 };
-const ALLY_LATEST = { scope: "allies", filters: ALIVE_ONLY, sort: ["position_desc"], take: 1 };
+const ALLY_LATEST_OTHER = {
+  scope: "allies",
+  filters: [{ type: "alive" }, { type: "not_self" }],
+  sort: ["position_desc"],
+  take: 1,
+};
+const ALLY_LATEST_UNFOCUSED_OTHER = {
+  scope: "allies",
+  filters: [
+    { type: "alive" }, { type: "not_self" },
+    { type: "has_status", statusId: "focused", op: "eq", value: 0 },
+  ],
+  sort: ["position_desc"],
+  take: 1,
+};
 const ALLY_FRONT_ALL = {
   scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }], take: "all",
 };
 const ALLY_REAR_ALL = {
   scope: "allies", filters: [{ type: "alive" }, { type: "row_is", row: "rear" }], take: "all",
 };
-const ALLY_FRONT_FIRST = {
+const ALLY_FRONT_UNFOCUSED_OTHER = {
   scope: "allies",
-  filters: [{ type: "alive" }, { type: "row_is", row: "front" }],
+  filters: [
+    { type: "alive" }, { type: "not_self" }, { type: "row_is", row: "front" },
+    { type: "has_status", statusId: "focused", op: "eq", value: 0 },
+  ],
   sort: ["position_asc"],
   take: 1,
+};
+const ALLY_WARDABLE = {
+  scope: "allies",
+  filters: [
+    { type: "alive" },
+    { type: "has_status", statusId: "warded", op: "lt", value: 2 },
+  ],
+  sort: ["hp_percent_asc"],
+  take: 1,
+};
+const OTHER_ALLY_WARDABLE = {
+  ...ALLY_WARDABLE,
+  filters: [...ALLY_WARDABLE.filters, { type: "not_self" }],
 };
 
 const might = (coefficientBps) => ({
@@ -747,34 +813,35 @@ function support(id, displayName, effects, patch = {}) {
 // 上振れを、自分の隙で買う。**次に受ける一撃が重くなる**ので、
 // 受けられる場面かどうかを先に読ませる。
 activeSkills.reckless_swing = strikeWith(
-  "reckless_swing", "捨て身の一振り", 20_000,
+  // 前提9点の到達点。Lv1の時点で斬撃Lv10（249.6%）を上回る。
+  "reckless_swing", "捨て身の一振り", 27_500,
   [{ type: "add_status", target: SELF, statusId: "exposed", stacks: 1 }],
   { tags: ["attack", "risk"] },
 );
 
 // 同じ相手を続けて狙っていたら伸びる。**集中砲火の対価。**
-activeSkills.double_back = strikeWith("double_back", "二の太刀", 16_500);
+activeSkills.double_back = strikeWith("double_back", "二の太刀", 24_000);
 activeSkills.double_back.intrinsicPredicates = [streakIs("gte", 2)];
 
 // 続けて同じ相手を狙っていないときだけ伸びる。**二の太刀の裏。**
 // どちらか片方しか成立しないので、二本挿しは択の放棄になる。
-activeSkills.spread_cut = strikeWith("spread_cut", "散らし斬り", 13_500);
+activeSkills.spread_cut = strikeWith("spread_cut", "散らし斬り", 19_500);
 activeSkills.spread_cut.intrinsicPredicates = [streakIs("lte", 1)];
 
 // 1ラウンド目だけ。**先手を取れる編成にだけ意味がある。**
-activeSkills.opening_stab = strikeWith("opening_stab", "先の一刺し", 18_500);
+activeSkills.opening_stab = strikeWith("opening_stab", "先の一刺し", 20_000);
 activeSkills.opening_stab.intrinsicPredicates = [{ type: "round_number", op: "eq", value: 1 }];
 
 // 自分が半分以下のときだけ。「無理を通す」（HP60%以上）の鏡。
 // **どちらも単独で価値があり、条件が重ならない。**
-activeSkills.bloodied_charge = strikeWith("bloodied_charge", "手負いの突撃", 20_500);
+activeSkills.bloodied_charge = strikeWith("bloodied_charge", "手負いの突撃", 28_500);
 activeSkills.bloodied_charge.intrinsicPredicates = [
   { type: "hp_percent", subject: "self", op: "lte", value: 50 },
 ];
 
 // 威力を捨てて、相手の出力を削る。**倒さずに軽くする**攻め手。
 activeSkills.hamstring = strikeWith(
-  "hamstring", "足を払う", 8_500,
+  "hamstring", "足を払う", 10_000,
   [{ type: "add_status", target: EVENT_TARGET, statusId: "staggered", stacks: 1 }],
   { tags: ["attack", "debuff"] },
 );
@@ -786,7 +853,7 @@ const NEAR_DEAD_ENEMY = {
   sort: ["hp_asc"],
   take: 1,
 };
-activeSkills.execute_low = strikeWith("execute_low", "首を落とす", 20_000, [], {
+activeSkills.execute_low = strikeWith("execute_low", "首を落とす", 22_500, [], {
   targetQuery: NEAR_DEAD_ENEMY,
   tags: ["attack", "execute"],
 });
@@ -795,7 +862,7 @@ activeSkills.execute_low.intrinsicPredicates = [hasEligibleTarget(NEAR_DEAD_ENEM
 // 受けの厚い相手へ通る細い線。**裂傷は受けを無視する**ので、
 // guard の高い敵ほど、直接の一撃より裂傷のほうが効く。
 activeSkills.rend = strikeWith(
-  "rend", "抉る", 9_500,
+  "rend", "抉る", 11_500,
   [{ type: "add_status", target: EVENT_TARGET, statusId: "bleeding", stacks: 2 }],
   { tags: ["attack", "debuff"] },
 );
@@ -817,7 +884,11 @@ activeSkills.drag_forward = support("drag_forward", "引きずり出す", [{
   // 読むので、これが無いと targetQuery が melee 扱いになり後列を選べない（実測）。
   reach: "unrestricted",
   otherTarget: ENEMY_FRONT_FIRST,
-}], { tags: ["move", "formation"], targetQuery: ENEMY_REAR_WEAKEST });
+}, {
+  // 引き出した本人が event target のままなので、移動後にも同じ相手へ隙を付けられる。
+  // 「届くようにした」だけで一手を終わらせず、次の武器攻撃へ接続する。
+  type: "add_status", target: EVENT_TARGET, statusId: "exposed", stacks: 1,
+}], { tags: ["move", "formation", "debuff"], targetQuery: ENEMY_REAR_WEAKEST });
 activeSkills.drag_forward.intrinsicPredicates = [
   hasEligibleTarget(ENEMY_REAR_WEAKEST),
   hasEligibleTarget({ scope: "enemies", filters: [{ type: "alive" }, { type: "row_is", row: "front" }] }),
@@ -840,8 +911,12 @@ const ALLY_REAR_HEALTHIEST = {
   take: 1,
 };
 activeSkills.rally_line = support("rally_line", "陣を組み直す", [{
-  type: "swap_positions", target: ALLY_FRONT_WEAKEST, otherTarget: ALLY_REAR_HEALTHIEST,
-}], { tags: ["move", "formation"], targetQuery: ALLY_FRONT_WEAKEST });
+  // action の target は、前へ出す健康な後衛。入れ替え後も event target なので
+  // 守勢を渡せる。傷ついた前衛を下げ、代わりに出た者を一巡ぶん守る。
+  type: "swap_positions", target: EVENT_TARGET, otherTarget: ALLY_FRONT_WEAKEST,
+}, {
+  type: "add_status", target: EVENT_TARGET, statusId: "warded", stacks: 1,
+}], { tags: ["move", "formation", "guard"], targetQuery: ALLY_REAR_HEALTHIEST });
 activeSkills.rally_line.intrinsicPredicates = [
   hasEligibleTarget(ALLY_FRONT_WEAKEST),
   hasEligibleTarget(ALLY_REAR_HEALTHIEST),
@@ -864,12 +939,23 @@ activeSkills.bulwark_of_will.intrinsicPredicates = [OPENING_ROUNDS];
 
 // 受け構えを前列へ配る。**一人で構える「衝撃に備える」の面展開。**
 activeSkills.spread_the_guard = support("spread_the_guard", "構えを配る", [{
-  type: "gain_block", target: ALLY_FRONT_ALL, amount: { type: "constant", value: 1 },
+  // 自分を守る「衝撃に備える」と役割を分ける。こちらは前列の仲間へ配る。
+  type: "gain_block",
+  target: {
+    scope: "allies",
+    filters: [{ type: "alive" }, { type: "row_is", row: "front" }, { type: "not_self" }],
+    take: "all",
+  },
+  amount: { type: "constant", value: 1 },
 }], { tags: ["guard", "formation"] });
+activeSkills.spread_the_guard.intrinsicPredicates = [hasEligibleTarget({
+  scope: "allies",
+  filters: [{ type: "alive" }, { type: "row_is", row: "front" }, { type: "not_self" }],
+})];
 
 // 攻めながら自分に守勢。**攻守のどちらかを捨てないぶん、威力は控えめ。**
 activeSkills.bracing_thrust = strikeWith(
-  "bracing_thrust", "受けながらの突き", 10_500,
+  "bracing_thrust", "受けながらの突き", 20_000,
   [{ type: "add_status", target: SELF, statusId: "warded", stacks: 1 }],
   { tags: ["attack", "guard"] },
 );
@@ -889,13 +975,15 @@ activeSkills.field_dressing.intrinsicPredicates = [hasEligibleTarget(ALLY_WOUNDE
 
 // 集中を**自分ではなく、隊列の最後の仲間へ**。狙いを澄ますの逆向き。
 activeSkills.steady_breath = support("steady_breath", "息を渡す", [{
-  type: "add_status", target: ALLY_LATEST, statusId: "focused", stacks: 1,
-}], { tags: ["care", "buff"] });
+  type: "add_status", target: ALLY_LATEST_UNFOCUSED_OTHER, statusId: "focused", stacks: 1,
+}], { tags: ["care", "buff"], targetQuery: ALLY_LATEST_UNFOCUSED_OTHER });
+activeSkills.steady_breath.intrinsicPredicates = [hasEligibleTarget(ALLY_LATEST_UNFOCUSED_OTHER)];
 
 // 一撃ごとに薄くする守り。**防壁と違い、削り切られない。**
 activeSkills.ward_ally = support("ward_ally", "守勢を渡す", [{
-  type: "add_status", target: ALLY_WEAKEST, statusId: "warded", stacks: 1,
-}], { tags: ["care", "guard"] });
+  type: "add_status", target: ALLY_WARDABLE, statusId: "warded", stacks: 1,
+}], { tags: ["care", "guard"], targetQuery: ALLY_WARDABLE });
+activeSkills.ward_ally.intrinsicPredicates = [hasEligibleTarget(ALLY_WARDABLE)];
 
 // **このラウンド一度も殴られていないときだけ。**後ろで静かにしていた者の一手。
 activeSkills.precise_cut = {
@@ -910,7 +998,7 @@ activeSkills.precise_cut = {
   effects: [{
     type: "deal_damage",
     target: EVENT_TARGET,
-    amount: focusAmount(15_000),
+    amount: focusAmount(11_500),
     reach: "ranged",
     tags: ["attack", "technique"],
   }],
@@ -934,9 +1022,10 @@ activeSkills.cleansing_step = support("cleansing_step", "払いのける", [
 
 // 号令は前列の先頭へ渡す。こちらは**一番遅い者へ**。まだ動いていない側を押す。
 activeSkills.hasten_ally = support("hasten_ally", "背を押す", [{
-  type: "gain_resource", target: ALLY_LATEST, resource: "action_points",
+  type: "gain_resource", target: ALLY_LATEST_OTHER, resource: "action_points",
   amount: { type: "constant", value: 1 },
-}], { tags: ["tempo"] });
+}], { tags: ["tempo"], actionMode: "channel", targetQuery: ALLY_LATEST_OTHER });
+activeSkills.hasten_ally.intrinsicPredicates = [hasEligibleTarget(ALLY_LATEST_OTHER)];
 
 // 後列全員へ反応権。**手数ではなく、割り込みの権利を配る。**
 activeSkills.call_the_slow = support("call_the_slow", "後詰めを呼ぶ", [{
@@ -947,9 +1036,15 @@ activeSkills.call_the_slow.intrinsicPredicates = [hasEligibleTarget(ALLY_REAR_AL
 
 // 最前の敵に怯みを付ける。**先に動く相手ほど、軽くする価値がある。**
 activeSkills.feint = support("feint", "誘い", [{
-  type: "add_status", target: ENEMY_FRONT_FIRST, statusId: "staggered", stacks: 1, reach: "unrestricted",
-}], { tags: ["tempo", "debuff"], targetQuery: ENEMY_FRONT_FIRST });
-activeSkills.feint.intrinsicPredicates = [hasEligibleTarget(ENEMY_FRONT_FIRST)];
+  type: "add_status", target: {
+    ...ENEMY_FRONT_FIRST,
+    filters: [...ENEMY_FRONT_FIRST.filters, { type: "has_status", statusId: "staggered", op: "lt", value: 2 }],
+  }, statusId: "staggered", stacks: 1, reach: "unrestricted",
+}], { tags: ["tempo", "debuff"], targetQuery: {
+  ...ENEMY_FRONT_FIRST,
+  filters: [...ENEMY_FRONT_FIRST.filters, { type: "has_status", statusId: "staggered", op: "lt", value: 2 }],
+} });
+activeSkills.feint.intrinsicPredicates = [hasEligibleTarget(activeSkills.feint.targetQuery)];
 
 // 準備を1回挟んで、行動権と集中を取り戻す。**手数は増えない**
 // （開始と準備で2つ払い、1つ返る）。増えるのは次の一手の質。
@@ -958,7 +1053,9 @@ activeSkills.set_the_pace = {
   displayName: "拍を作る",
   apCost: 1,
   actionMode: "channel",
-  intrinsicPredicates: [],
+  intrinsicPredicates: [{
+    type: "has_status", subject: "self", statusId: "focused", op: "eq", value: 0,
+  }],
   targetQuery: SELF,
   effects: [],
   preparation: {
@@ -1012,7 +1109,7 @@ activeSkills.shatter_point = {
       target: EVENT_TARGET,
       amount: {
         type: "status_stacks_scaled", subject: "selected_target", statusId: "exposed",
-        numerator: 45, denominator: 1,
+        numerator: 60, denominator: 1,
       },
       reach: "melee",
       guardPierceBps: 10_000,
@@ -1028,15 +1125,16 @@ activeSkills.shatter_point = {
 // 一番傷ついた者へ守勢を2つ。**代償は自分の隙。**庇うのではなく、
 // 自分が狙われやすくなることで前を通す。
 activeSkills.take_the_wound = support("take_the_wound", "傷を引き受ける", [
-  { type: "add_status", target: ALLY_WEAKEST, statusId: "warded", stacks: 2 },
+  { type: "add_status", target: OTHER_ALLY_WARDABLE, statusId: "warded", stacks: 2 },
   { type: "add_status", target: SELF, statusId: "exposed", stacks: 1 },
-], { tags: ["handoff", "guard", "risk"] });
+], { tags: ["handoff", "guard", "risk"], targetQuery: OTHER_ALLY_WARDABLE });
+activeSkills.take_the_wound.intrinsicPredicates = [hasEligibleTarget(OTHER_ALLY_WARDABLE)];
 
 // 前列の最速へ集中を渡す。**自分の一手を、他人の一手に変える。**
 activeSkills.pass_the_edge = support("pass_the_edge", "刃を渡す", [{
-  type: "add_status", target: ALLY_FRONT_FIRST, statusId: "focused", stacks: 1,
-}], { tags: ["handoff", "buff"] });
-activeSkills.pass_the_edge.intrinsicPredicates = [hasEligibleTarget(ALLY_FRONT_FIRST)];
+  type: "add_status", target: ALLY_FRONT_UNFOCUSED_OTHER, statusId: "focused", stacks: 1,
+}], { tags: ["handoff", "buff"], targetQuery: ALLY_FRONT_UNFOCUSED_OTHER });
+activeSkills.pass_the_edge.intrinsicPredicates = [hasEligibleTarget(ALLY_FRONT_UNFOCUSED_OTHER)];
 
 // ---------------------------------------------------------------- 武器と技
 //

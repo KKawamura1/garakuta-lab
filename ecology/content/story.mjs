@@ -111,7 +111,7 @@ export const PROLOGUE = Object.freeze({
 // 配置は engine で本当に走らせて決めてある（`ecology/story.test.mjs`）。
 //
 //   構えない … 7ラウンドで**時間切れの敗北**。ツグミが落ち、盾兵が一枚残る
-//   構える   … 5ラウンドで**勝つ**。誰も落ちない。差は必殺ひとつぶんだけ
+//   構える   … 6ラウンドで**勝つ**。誰も落ちない。差は必殺ひとつぶんだけ
 //
 // **「隊の誰かがHP70%未満」という条件は、この一戦の中で自然に満たされる。**
 // 二枚の盾兵と二つの後撃ちが前後を同時に削るので、4ラウンド目には条件が揃っている
@@ -124,7 +124,9 @@ export const ULTIMATE_LESSON = Object.freeze({
   encounterIndex: 1,
   maxRounds: 7,
   // 盾兵は硬い。**一枚ずつ落としていては間に合わない**のが、この一戦の問いである。
-  enemyScaling: Object.freeze({ maxHpBps: 9_000, offenseBps: 10_000 }),
+  // 溜め突き本体を550%から240%へ直した後も、「構えないと時間切れ・構えると
+  // 1ラウンド早く勝利」という教材の差が残るHP。通常版の過剰火力で帳尻は合わせない。
+  enemyScaling: Object.freeze({ maxHpBps: 8_500, offenseBps: 10_000 }),
   enemies: Object.freeze([
     Object.freeze({ instanceId: "lesson_bulwark_a", enemyActorId: "gray_bulwark", position: "front_left" }),
     Object.freeze({ instanceId: "lesson_bulwark_b", enemyActorId: "gray_bulwark", position: "front_right" }),
