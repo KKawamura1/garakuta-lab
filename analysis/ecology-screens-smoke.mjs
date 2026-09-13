@@ -78,7 +78,8 @@ for (const [label, sourceText, expected] of displayContracts) {
   if (!sourceText.includes(expected)) problems.push(label + "が見つからない");
 }
 const progressiveContracts = [
-  ["戦闘タブの主操作", app, "primary-action map-primary-action"],
+  ["先見機の実戦操作", app, "forecaster-action engage"],
+  ["先見機の試映操作", app, "forecaster-action simulate"],
   ["結果画面の主操作", app, "primary-action result-primary-action"],
   ["敗北画面の主操作", app, "primary-action defeat-primary-action"],
   ["精算画面の主操作", app, "primary-action settlement-primary-action"],
@@ -145,8 +146,16 @@ for (const forbidden of [
 ]) {
   if (styles.includes(forbidden)) problems.push("種別の枠が現在地の枠と競合する定義が残っている: " + forbidden);
 }
-if (mapRenderer.indexOf("map-primary-action") > mapRenderer.indexOf("act-line")) {
-  problems.push("戦闘タブの主操作が敵の概要より後ろにある");
+if (mapRenderer.includes("map-primary-action")) {
+  problems.push("実戦操作が先見機と遠征本文に重複している");
+}
+for (const [label, expected] of [
+  ["試映は進行結果へ追加しない", "if (!previewOnly) state.run.results"],
+  ["試映は戦闘結果を確定しない", "if (!previewOnly) {\n      if (isCampaignRun())"],
+  ["試映の結果は必ず専用画面へ入る", "if (state.simulationMode) return true;"],
+  ["試映から先見機へ戻る", 'action === "return-from-simulation"'],
+]) {
+  if (!app.includes(expected)) problems.push(label + "契約が無い");
 }
 if (!app.includes("status + nextBlock + stateCard")) {
   problems.push("結果画面の主操作が戦闘後詳細より前に配置されていない");
@@ -222,7 +231,7 @@ if (!app.includes('return titleShell("One Battle Ahead", "",')) {
 
 // 画面固有の文脈は、共通ヘッダーを消しても失わない。
 for (const [label, expected] of [
-  ["戦闘画面の遭遇名", 'sectionHeading("BATTLE", "戦闘"'],
+  ["戦闘画面の見出し", 'sectionHeading("BATTLE", state.simulationMode ? "戦闘予測" : "戦闘"'],
   ["結果画面の遭遇・ラウンド", "verdict-context"],
   ["キャンプ予測の遭遇名", "const encounterName = currentEncounter()?.name"],
 ]) {

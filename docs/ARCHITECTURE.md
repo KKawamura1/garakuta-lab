@@ -98,6 +98,10 @@
 （`composed` / `hp` / `equipmentDurability` / `limitsFor`）を組み、戦闘予測
 （`previewNextBattle`）と本番（`simulateExpeditionBattle`）がその戻り値をそのまま渡します。
 本番が足すのは結果を変えない `simulationOptions: { captureReplaySnapshots: true }` だけで、
+`app.js` の試映も同じ `simulateExpeditionBattle` と snapshot 収集を使います。ただし
+`previewOnly` の境界より内側では `RunState.results`、ledger、技能点、取得予約、図鑑、
+`commitBattleResult`、戦闘ログを更新しません。試映の結果は `simulationMode` により必ず専用結果へ
+入り、通常の報酬生成・進行経路を通らずキャンプへ戻ります。
 取得予約は `progression.mjs` の `reserveRunSkill` / `cancelRunSkillReservation` が一人一目標を管理し、`fulfillSkillReservations` が同じ決定順で前提・必要Lv・目標技能を、手持ちSPの範囲だけ自動取得します。画面は自動取得の action 列を受け取り、前提をオフ、目標をオンで loadout へ反映します。`RunState.skillReservations` は保存・再開の対象です。
 `analysis/ecology-screens-smoke.mjs` がその2箇所と、予測 cache の鍵
 （`forecastKey`、`runSkillLevels` と `runUnlockedSkills` を含む）を見張ります。

@@ -293,9 +293,11 @@ try {
 
   // issue #235 — タブは4枚（スキル・装備・補給・遠征）。編成タブは廃止し、隊列は
   // どのタブからでも上端の盤面の「⇅ 隊列」で組み替える。
-  for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵に挑む"]]) {
+  for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵との実戦へ進む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
-    note(`タブ ${tab}`, new RegExp(needle).test(await bodyText()));
+    note(`タブ ${tab}`, tab === "map"
+      ? await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1
+      : new RegExp(needle).test(await bodyText()));
     if (tab === "skills") {
       note("技能ツリーを折りたためる",
         await page.locator("details.skill-tree-details").count() === 1);
@@ -306,6 +308,37 @@ try {
     }
   }
   note("タブが画面内に収まる", await onScreen("nav.tabs"));
+
+  // 作者要望 2026-09-13 — 先見機の「試映」は同じ戦闘を最後まで見せるが、
+  // Run / Profile を一切確定しない。画面の色だけを見る試験ではなく、戻った後の
+  // 保存状態を丸ごと突き合わせ、HP・進行・報酬・技能点・図鑑・戦歴の漏れを防ぐ。
+  const beforeProjection = await page.evaluate(() => {
+    const saved = Object.values(localStorage).map((raw) => {
+      try { return JSON.parse(raw); } catch { return null; }
+    }).find((entry) => entry?.run && entry?.profile);
+    return saved ? { run: saved.run, profile: saved.profile } : null;
+  });
+  note("先見機に試映と実戦の二つの操作がある",
+    await page.getByRole("button", { name: "先見機で戦闘結果を試映する" }).count() === 1
+      && await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1);
+  await page.getByRole("button", { name: "先見機で戦闘結果を試映する" }).click();
+  await page.waitForSelector(".battle-card.simulation-vision", { timeout: 8000 });
+  note("試映の戦闘は投影演出の中で再生される",
+    await page.locator(".battle-card.simulation-vision .simulation-scan").count() === 1);
+  await click("再生をとばす");
+  await page.waitForSelector(".simulation-result", { timeout: 8000 });
+  note("試映の結果も同じ投影演出で示される",
+    await page.locator(".simulation-result .simulation-lens").count() === 1);
+  await click("先見機へ戻る");
+  await page.waitForSelector(".camp-top .forecaster-window", { timeout: 8000 });
+  const afterProjection = await page.evaluate(() => {
+    const saved = Object.values(localStorage).map((raw) => {
+      try { return JSON.parse(raw); } catch { return null; }
+    }).find((entry) => entry?.run && entry?.profile);
+    return saved ? { run: saved.run, profile: saved.profile } : null;
+  });
+  note("試映して戻っても遠征とプロフィールは変わらない",
+    JSON.stringify(afterProjection) === JSON.stringify(beforeProjection));
 
   // 技能を1つ解禁して装着する（スキルツリーの経路を踏む）。
   await page.locator('nav.tabs [data-tab="skills"]').click();
@@ -498,9 +531,9 @@ try {
         await onScreen(".camp-top .party-board")
           && await page.locator(".camp-top .party-board").evaluate((board) =>
             board.scrollWidth <= board.clientWidth + 1));
-      note("戦闘タブの主操作が画面上部にある",
-        await page.locator(".map-primary-action .button").count() === 1
-          && await onScreen(".map-primary-action .button"));
+      note("先見機の実戦操作が固定ウィンドウ内にある",
+        await page.locator(".camp-top .forecaster-action.engage").count() === 1
+          && await onScreen(".camp-top .forecaster-action.engage"));
       note("敵情報を折りたためる",
         await page.locator("details.enemy-details").count() === 1
           && await page.locator("details.enemy-details > summary").count() === 1);
@@ -559,7 +592,7 @@ try {
       && await page.locator(".camp-top .party-ultimate.firing").count() > 0;
     // issue #138 — 通常戦は「この敵に挑む」から戦闘前確認を挟まず自動戦闘へ進む。
     // Campaignの幕間会話は再訪でも出るため、該当戦では同じ通常レンダラーを閉じてから戦闘へ進む。
-    await click("この敵に挑む");
+    await click("この敵との実戦へ進む");
     await page.waitForFunction(
       () => Boolean(document.querySelector(".vn-stage, .battle-field")),
       null,
@@ -830,7 +863,7 @@ try {
         note("装備の候補を出さない戦闘では報酬画面を挟まない",
           await page.locator(".reward-choices").count() === 0);
         note("キャンプへ戻った先で次の一戦を選べる",
-          await page.getByRole("button", { name: "この敵に挑む" }).count() === 1);
+          await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1);
       }
       await noteForecastParity("キャンプの一行", noteText);
       await noteUltimateSeal("キャンプの一行");

@@ -342,7 +342,7 @@ try {
   note("一手が済むと盤面は通常へ戻る",
     await page.locator('.camp-top [data-action="place-character"]').count() === 0
       && await page.locator('.camp-top [data-action="select-character"]').count() === 2);
-  note("次の一押し（この敵に挑む）が光る",
+  note("次の一押し（この敵との実戦へ進む）が光る",
     await spot().count() === 1
       && await spot().first().getAttribute("data-action") === "begin-stage");
   // issue #138 / #235 — 戦闘前確認の画面（battlePreview）を無くしたので、巻き戻し直後に
@@ -657,7 +657,7 @@ try {
   // ここは**直した配置のまま、同じ盤面へ入り直す**ところだけを見る。
   // issue #138 — チュートリアルの再戦も含め、常に戦闘前確認を挟まず自動戦闘へ進む。
   await page.locator('nav.tabs [data-tab="map"]').click();
-  await click("この敵に挑む");
+  await click("この敵との実戦へ進む");
   await waitForTutorialSelector(".battle-field");
   await page.locator('.speed-button[data-speed="fast"]').click();
   await page.locator('[data-action="replay-result"]').first().click();
@@ -746,7 +746,7 @@ try {
       await page.reload({ waitUntil: "networkidle" });
       await page.waitForTimeout(300);
       await page.locator('nav.tabs [data-tab="map"]').click();
-      await click("この敵に挑む");
+      await click("この敵との実戦へ進む");
       await page.waitForTimeout(300);
       // 第4戦の前には幕の断片が入る。飛ばしてそのまま自動戦闘へ渡る。
       if (await page.locator(".vn-stage").count() > 0) {
@@ -1117,7 +1117,7 @@ try {
         await page.locator('[data-action="begin-stage"].tutorial-spot').count() === 1
           && await page.locator('nav.tabs [data-tab="equipment"]:disabled').count() === 0);
       note("必殺技の一戦が第1戦として出る", /塞ぐ二枚/.test(await bodyText()));
-      await click("この敵に挑む");
+      await click("この敵との実戦へ進む");
       await waitForTutorialSelector(".battle-field");
       // issue #242 — 必殺の拍のカットイン。**自動再生を止めて一手ずつ送る**ので、
       // 拍の並び（決定的）だけを見ており、実時間の速さに依存しない。
@@ -1239,7 +1239,7 @@ try {
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(300);
     await page.locator('nav.tabs [data-tab="map"]').click();
-    await click("この敵に挑む");
+    await click("この敵との実戦へ進む");
     await page.waitForTimeout(300);
     note("幕の切れ目で会話が入る", await page.locator(".vn-stage").count() > 0);
     note("幕の断片も飛ばせる", await page.getByRole("button", { name: "スキップ" }).count() > 0);
