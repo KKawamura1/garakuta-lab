@@ -113,17 +113,21 @@ export function formatFunds(value) {
 //
 // 直し方は二つある。段の効果を上げるか、段の数を減らすか。**両方やった。**
 //
-//   段の効果 … 一段 +6%（base に対する足し算。買った順で複利差を作らない）
-//   段の上限 … 12段（+72%）。**上限を置く**ので「無限に薄く延びる sink」にならない
-//   費用     … 1,200 × (L+1)。12段まで積むと 93,600
+//   段の効果 … 一段 +8%（base に対する足し算。買った順で複利差を作らない）
+//   段の上限 … 12段（+96%）。**上限を置く**ので「無限に薄く延びる sink」にならない
+//   費用     … 1,000 × (L+1)。12段まで積むと 78,000
 //
-// 一人の一能力を上限まで育てると 93,600。四能力×五人で 1,872,000 になるが、
-// **第一部で入る活動資金は 25万前後**（下の ENCOUNTER_BASE_FUNDS と Stage 倍率）。
-// つまり上限まで積めるのは二〜三枠で、残りは薄く配るしかない。
+// 一人の一能力を上限まで育てると 78,000。四能力×五人で 1,560,000 になるが、
+// **第一部で入る活動資金は 64万前後**（下の ENCOUNTER_BASE_FUNDS と Stage 倍率）。
+// 全体の4割で、上限まで積めるのは数枠しかない。
 // **「どこにどのくらい投下するか」が毎 Stage の判断になる**のはこの比のためである。
+//
+// 段の効果と費用は `analysis/ecology-campaign-curve.mjs` の「投資の効き」で決めた。
+// あの検査は、第一部の資金を宣言順で使い切った隊で難度指数を測り直し、
+// **生の伸びより投資後の伸びが十分に小さい**ことを見る。ここを動かしたら必ず走らせる。
 export const TRAINING_MAX_LEVEL = 12;
-export const TRAINING_STEP_BPS = 600;
-const TRAINING_COST_STEP = 1_200n;
+export const TRAINING_STEP_BPS = 800;
+const TRAINING_COST_STEP = 1_000n;
 
 export function trainingCost(level) {
   const current = Math.max(0, Math.floor(level ?? 0));
@@ -1846,11 +1850,11 @@ export function ultimatesFiredBy(run, battleResult) {
 // **倍率は Stage 番号の一次式ではない**（R8 §3.7）。
 // `analysis/ecology-campaign-curve.mjs` が出す難度指数に合わせてある
 //（指数 1379 → 3205 の Stage 3〜9 で、倍率 2.2 → 9.0）。危ないところほど払いが大きい。
-export const ENCOUNTER_BASE_FUNDS = Object.freeze({ normal: 160, elite: 300, boss: 560 });
-export const DISTANCE_FUNDS_PER_ENCOUNTER = 40;
-export const FULL_RUN_BONUS = 1_000;
-export const FIRST_CLEAR_BASE = 1_200;
-export const FIRST_CLEAR_PER_RANK = 300;
+export const ENCOUNTER_BASE_FUNDS = Object.freeze({ normal: 240, elite: 450, boss: 840 });
+export const DISTANCE_FUNDS_PER_ENCOUNTER = 60;
+export const FULL_RUN_BONUS = 1_500;
+export const FIRST_CLEAR_BASE = 1_800;
+export const FIRST_CLEAR_PER_RANK = 450;
 
 function newFundLedger(rank, stageMultiplierBps = BPS) {
   return {

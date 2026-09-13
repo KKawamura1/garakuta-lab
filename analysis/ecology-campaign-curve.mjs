@@ -29,20 +29,92 @@ import assert from "node:assert/strict";
 import { CAMPAIGN_STAGES } from "../ecology/content/campaign-stages.mjs";
 import { expeditionEncounter, ENCOUNTERS_PER_RUN } from "../ecology/content/expedition.mjs";
 import {
-  campTreat, commitBattleResult, newProfile, newRun,
+  META_UPGRADES, TRAINING_MAX_LEVEL, campTreat, characterStats, commitBattleResult,
+  newProfile, newRun, parseFunds, purchaseTraining, purchaseUpgrade, settleRun,
+  recordEncounterCleared, trainingCost, upgradeCost,
 } from "../ecology/progression.mjs";
-import { characterStats } from "../ecology/progression.mjs";
 import { freshLoadout, simulateNextBattle } from "../ecology/playable-battles.mjs";
 
 const SEED = "campaign-curve";
+
+// ---- 想定される投資
+//
+// **難度が上がるのは分かった。では、上がったぶんを買えるのか。**
+// 第一部を Stage 0 から順に rank 0 で一度ずつ完走した人が、その時点までに持っている
+// 資金を決まった順で使い切ったら、どれだけ強くなっているか。
+//
+// 使う順は宣言で固定する（プレイヤーの最適解ではなく、**釣り合いを測るための一本の線**）。
+//   1. 財布の1/4までを常設の強化へ。安い順に一段ずつ
+//   2. 残りは鍛錬へ。宣言した20枠を薄く、同じ段まで揃えながら積む
+//
+// **常設の強化に全部は使わない。**目利き・持込枠・初期SPは実際の遊びでは効くが、
+// この検査は「購入なし・装備なし」の基準編成で測るので盤面に出てこない。全部そちらへ
+// 流すと「投資しても効かない」という誤った読みになる。効き方の違うものを一本の線で
+// 測る以上、**盤面に出る側（鍛錬）へ寄せた線**を引く。
+const TRAINING_ORDER = Object.freeze([
+  ["mender", "focus"], ["warden", "might"], ["warden", "vitality"], ["lancer", "guard"],
+  ["lancer", "vitality"], ["tactician", "focus"], ["guardian", "might"], ["mender", "vitality"],
+  ["guardian", "vitality"], ["tactician", "vitality"], ["lancer", "focus"], ["warden", "guard"],
+  ["mender", "guard"], ["tactician", "guard"], ["guardian", "guard"], ["lancer", "might"],
+  ["tactician", "might"], ["guardian", "focus"], ["mender", "might"], ["warden", "focus"],
+]);
+const UPGRADE_SHARE_BPS = 2_500;
+
+function fundsEarnedFor(stage) {
+  const profile = newProfile();
+  let run = newRun(profile, {
+    campaignStageSequence: stage.sequence,
+    runSeed: SEED, runId: `${SEED}-funds-${stage.id}`, roster: [...stage.castCharacterIds],
+  });
+  for (let index = 1; index <= ENCOUNTERS_PER_RUN; index += 1) run = recordEncounterCleared(run, index);
+  return settleRun(profile, run, "won").settlement.earned;
+}
+
+function investedProfileFor(stages, upTo) {
+  let profile = newProfile();
+  let purse = 0n;
+  for (const stage of stages) {
+    if (stage.sequence >= upTo) break;
+    purse += BigInt(fundsEarnedFor(stage));
+  }
+  profile.activityFunds = purse.toString();
+  // 1. 常設の強化は財布の1/4まで、安い順に
+  const upgradeBudget = (purse * BigInt(UPGRADE_SHARE_BPS)) / 10_000n;
+  let spentOnUpgrades = 0n;
+  for (;;) {
+    const affordable = META_UPGRADES
+      .map((upgrade) => ({ upgrade, cost: upgradeCost(profile, upgrade.id) }))
+      .filter((entry) => entry.cost !== null && spentOnUpgrades + entry.cost <= upgradeBudget
+        && entry.cost <= parseFunds(profile.activityFunds))
+      .sort((a, b) => (a.cost < b.cost ? -1 : a.cost > b.cost ? 1 : 0));
+    if (!affordable.length) break;
+    const bought = purchaseUpgrade(profile, affordable[0].upgrade.id);
+    if (!bought.ok) break;
+    spentOnUpgrades += affordable[0].cost;
+    profile = bought.profile;
+  }
+  // 2. 残りは鍛錬へ、宣言した順で一段ずつ
+  for (let level = 0; level < TRAINING_MAX_LEVEL; level += 1) {
+    let spentThisPass = false;
+    for (const [characterId, axis] of TRAINING_ORDER) {
+      const cost = trainingCost(level);
+      if (cost === null || cost > parseFunds(profile.activityFunds)) continue;
+      const bought = purchaseTraining(profile, characterId, axis);
+      if (!bought.ok) continue;
+      profile = bought.profile;
+      spentThisPass = true;
+    }
+    if (!spentThisPass) break;
+  }
+  return profile;
+}
 
 function partyMaxHp(profile, roster) {
   return roster.reduce((total, id) => total + (characterStats(profile, id)?.stats.maxHp ?? 0), 0);
 }
 
 // ---- A. 一戦ごとの重さ（満タンから、単発で）
-function encounterWeights(stage) {
-  const profile = newProfile();
+function encounterWeights(stage, profile = newProfile()) {
   const roster = [...stage.castCharacterIds];
   const maxHp = partyMaxHp(profile, roster);
   const rows = [];
@@ -112,8 +184,13 @@ for (const stage of CAMPAIGN_STAGES) {
   const avg = (key, list = rows) => Math.round(list.reduce((t, r) => t + r[key], 0) / list.length);
   const boss = rows.filter((row) => row.kind === "boss");
   const through = playThrough(stage);
+  // **投資したあとの重さ。**その Stage までに入る資金を宣言順で使い切った隊で測り直す。
+  const investedRows = encounterWeights(stage, investedProfileFor(CAMPAIGN_STAGES, stage.sequence));
+  const investedAvg = (key) =>
+    Math.round(investedRows.reduce((total, row) => total + row[key], 0) / investedRows.length);
   report.push({
     stage,
+    invested: Math.round(investedAvg("pressureBps") * investedAvg("volumeBps") / 10_000),
     index: Math.round(avg("pressureBps") * avg("volumeBps") / 10_000),
     pressure: avg("pressureBps"),
     volume: avg("volumeBps"),
@@ -130,7 +207,8 @@ for (const row of report) {
     + ` 圧力 ${(row.pressure / 100).toFixed(1)}%/R（ボス ${(row.bossPressure / 100).toFixed(1)}）`
     + ` 分量 ${(row.volume / 100).toFixed(2)}倍（ボス ${(row.bossVolume / 100).toFixed(2)}）`
     + ` 一戦被害 ${(row.taken / 100).toFixed(0)}%`
-    + ` 基準編成の通し 第${row.through.reached}戦まで`,
+    + ` 基準編成の通し 第${row.through.reached}戦まで`
+    + ` / 投資後の指数 ${String(row.invested).padStart(4)}`,
   );
 }
 
@@ -161,6 +239,43 @@ for (let i = 1; i < early.length; i += 1) {
   assert.ok(
     early[i].volume > 0,
     `${early[i].stage.id} の分量が測れていない`,
+  );
+}
+
+// **投資が難度に追いついているか。**
+//
+// 生の難度指数は Stage 3 → 9 で 2.8 倍になる。ギルドが同じだけ効いていなければ、
+// 「調整されていない後半」が形を変えて戻ってくる。**投資後の指数**は、その Stage までに
+// 入る資金を宣言順で使い切った隊で測り直した値で、**伸びがこちらでは大きく縮む**こと
+// （＝資金が効いていること）を見る。
+{
+  const first = lateral[0];
+  const last = lateral[lateral.length - 1];
+  const rawGrowth = last.index / first.index;
+  const investedGrowth = last.invested / first.invested;
+  console.log(
+    `ecology-campaign-curve 投資の効き: Stage ${first.stage.sequence} → ${last.stage.sequence} で`
+    + ` 生の指数 ×${rawGrowth.toFixed(2)} / 投資後 ×${investedGrowth.toFixed(2)}`,
+  );
+  assert.ok(
+    investedGrowth <= rawGrowth * 0.7,
+    `投資しても難度の伸びが十分に縮んでいない`
+    + `（生 ×${rawGrowth.toFixed(2)} / 投資後 ×${investedGrowth.toFixed(2)}、目安は生の7割以下）`,
+  );
+  // **買えるものが無い、も失敗である。**第一部で入る資金が、鍛錬の総量（20枠 × 12段）の
+  // どれだけを買えるか。少なすぎれば投資が効かず、多すぎれば選ぶ余地が消える。
+  const endProfile = investedProfileFor(CAMPAIGN_STAGES, last.stage.sequence + 1);
+  const levels = Object.values(endProfile.characters ?? {})
+    .flatMap((entry) => Object.values(entry.trainingLevels ?? {}));
+  const boughtShare = levels.reduce((total, level) => total + level, 0)
+    / (levels.length * TRAINING_MAX_LEVEL);
+  console.log(
+    `ecology-campaign-curve 鍛錬の余地: 第一部の資金で買えるのは全体の`
+    + ` ${(boughtShare * 100).toFixed(0)}%（20枠 × ${TRAINING_MAX_LEVEL}段）`,
+  );
+  assert.ok(
+    boughtShare >= 0.2 && boughtShare <= 0.6,
+    `第一部の資金で鍛錬の ${(boughtShare * 100).toFixed(0)}% が買える（目安 20〜60%）`,
   );
 }
 

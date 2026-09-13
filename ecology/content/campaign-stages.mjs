@@ -60,8 +60,8 @@ export function activePackCountForSequence(sequence, mode = "tutorial") {
 // 難度指数に合わせてある（R8 §3.7「報酬倍率をStage番号の一次式にはしない」）。
 //
 //   Stage  0    1    2    3    4    5    6    7    8    9
-//   指数  924  914 1290 1379 1466 1656 1910 2374 2823 3205
-//   倍率  1.0  1.3  1.7  2.2  2.8  3.6  4.6  5.8  7.2  9.0
+//   指数  931  914 1196  989 1277 1455 1611 2047 2201 2779
+//   倍率  1.0  1.7  2.4  3.3  4.4  5.9  7.9 10.5 13.8 17.5
 //
 // **危ないところほど払いが大きい。**同じ Stage を繰り返すより次へ進むほうが
 // 資金効率が良いので、稼ぎのための周回で遊びが伸びない。
@@ -162,7 +162,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "**走り手は一巡に二度動く。**受けの薄い人物を前へ置くと、そこだけが壊れる",
       "**庇う技はまだ来ない。**前に立つ人が居るという事実だけで、後列の技が通り続ける",
     ],
-    activityFundMultiplierBps: 13_000,
+    activityFundMultiplierBps: 17_000,
   }),
   stage({
     sequence: 2, ladderMode: "tutorial",
@@ -185,7 +185,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "ヒバナは行動権が二つあるので往復できる。寄せて行・列で薙ぐと初めて得になる",
       "刃 pack が full になり、前 Stage の技能に新しい使い道が出る（R9 §3.1）",
     ],
-    activityFundMultiplierBps: 17_000,
+    activityFundMultiplierBps: 24_000,
   }),
   stage({
     sequence: 3, ladderMode: "tutorial",
@@ -209,7 +209,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "**反響体は殴られると殴り返す。**手数で削る構成には、返しぶんの代償が付く",
       "5人が揃い、配置・技能・装備の差だけで役割を作れるか（R9 §2.1）",
     ],
-    activityFundMultiplierBps: 22_000,
+    activityFundMultiplierBps: 33_000,
   }),
 
   // ======================================== 第2章：五人で灰の奥へ（Stage 4〜9）
@@ -240,7 +240,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "唱和が配る「隙」は、払いのけるで落とすか、配り手を先に落とすかで消える",
       "前列へ二人並べるかどうかが、そのまま薙ぎの当たり方を決める",
     ],
-    activityFundMultiplierBps: 28_000,
+    activityFundMultiplierBps: 44_000,
   }),
   stage({
     sequence: 5, ladderMode: "campaign",
@@ -261,7 +261,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "帳の配る受け構えは、多段で剥がすか、受け崩しで無視するかの二択になる",
       "面で受けた被害を面で戻すか、削られる前に一点を落とすか",
     ],
-    activityFundMultiplierBps: 36_000,
+    activityFundMultiplierBps: 59_000,
   }),
   stage({
     sequence: 6, ladderMode: "campaign",
@@ -282,7 +282,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "遠手は後列へ直接届く。前を固めることの意味が、ここで一度崩れる",
       "HPを揃えて並べると、引き出される的そのものが消える",
     ],
-    activityFundMultiplierBps: 46_000,
+    activityFundMultiplierBps: 79_000,
   }),
   stage({
     sequence: 7, ladderMode: "campaign",
@@ -302,7 +302,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "**怯みは段ごとに軽くする。**手数で押す構成ほど、重ねられた怯みで失速する",
       "必殺をどこで切るかが、初めて「勝敗」ではなく「消耗」の問題になる",
     ],
-    activityFundMultiplierBps: 58_000,
+    activityFundMultiplierBps: 105_000,
   }),
   stage({
     sequence: 8, ladderMode: "campaign",
@@ -323,7 +323,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "熾は手負いを仕留めに来る。削られた人物を後ろへ下げる判断が毎 round 要る",
       "守りを一種類だけ厚くする構成は、ここで初めて成立しなくなる",
     ],
-    activityFundMultiplierBps: 72_000,
+    activityFundMultiplierBps: 138_000,
   }),
   stage({
     sequence: 9, ladderMode: "campaign",
@@ -343,7 +343,7 @@ export const CAMPAIGN_STAGES = Object.freeze([
       "第一部の最終戦は、溜めた一撃と受け無視の一撃を交互に出す",
       "ここまでの9 Stage で作った常設の強さが、そのまま余白として効く",
     ],
-    activityFundMultiplierBps: 90_000,
+    activityFundMultiplierBps: 175_000,
   }),
 ]);
 

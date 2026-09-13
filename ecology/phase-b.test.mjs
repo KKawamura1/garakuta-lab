@@ -707,23 +707,23 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
 
 // ---- 鍛錬（R6 §9.5）---------------------------------------------------------
 
-// R23 — 一段 +6%・上限12段・費用 1,200×(L+1)。**旧値（一段 +0.1%・2,000 固定）は、
-// 遠征一回の実入りでは丸めで消えていた**（docs/HISTORY.md）。
-equal(trainingCost(0).toString(), "1200", "level 0 の一段");
-equal(trainingCost(1).toString(), "2400", "段が進むと高くなる");
-equal(trainingCost(11).toString(), "14400", "最後の一段");
+// R23 — 一段 +8%・上限12段・費用 1,000×(L+1)。**旧値（一段 +0.1%・2,000 固定）は、
+// 遠征一回の実入りでは丸めで消えていた**（docs/HISTORY.md §3.82）。
+equal(trainingCost(0).toString(), "1000", "level 0 の一段");
+equal(trainingCost(1).toString(), "2000", "段が進むと高くなる");
+equal(trainingCost(11).toString(), "12000", "最後の一段");
 equal(trainingCost(TRAINING_MAX_LEVEL), null, "上限を超えたら買えない（0で買える、にしない）");
-equal(trainingTotalCost(0).toString(), "93600", "一枠を上限まで積む総額");
-equal(trainedStat(100, 1), 106, "一段で +6%");
-equal(trainedStat(100, TRAINING_MAX_LEVEL), 172, "上限で +72%");
+equal(trainingTotalCost(0).toString(), "78000", "一枠を上限まで積む総額");
+equal(trainedStat(100, 1), 108, "一段で +8%");
+equal(trainedStat(100, TRAINING_MAX_LEVEL), 196, "上限で +96%");
 equal(trainedStat(100, 999), trainedStat(100, TRAINING_MAX_LEVEL), "古い save の過大な level は頭打ち");
 equal(trainedStat(3, 1), 3, "小さい stat は一段では整数が動かない");
 // **第一部で入る資金と、投資先の値段が同じ帯にある。**片方だけ動かさないための錨。
 {
-  const firstPartIncome = 243_824n; // 10 Stage を rank 0 で一度ずつ完走した実測
-  check(trainingTotalCost(0) * 2n < firstPartIncome,
-    "鍛錬の一枠を上限まで積む額が、第一部の総収入の半分より安い");
-  check(trainingTotalCost(0) * 20n > firstPartIncome * 4n,
+  const firstPartIncome = 638_172n; // 10 Stage を rank 0 で一度ずつ完走した実測
+  check(trainingTotalCost(0) * 5n < firstPartIncome,
+    "鍛錬の一枠を上限まで積む額が、第一部の総収入の五分の一より安い");
+  check(trainingTotalCost(0) * 20n > firstPartIncome * 2n,
     "全20枠を上限まで積むには、第一部の総収入では全く足りない（選ばせる）");
 }
 
@@ -789,9 +789,9 @@ equal(parseFunds("abc").toString(), "0", "壊れた値は 0");
 
 // R23 — 入りを作り直した。**鍛錬の値段と同じ帯へ揃えるため**（R6 §9.2 の 3,560 は、
 // 鍛錬が一段 2,000 で +0.1% だった頃の数で、いまは意味を持たない）。
-equal(ENCOUNTER_BASE_FUNDS.normal, 160, "通常戦の base");
-equal(ENCOUNTER_BASE_FUNDS.elite, 300, "精鋭戦の base");
-equal(ENCOUNTER_BASE_FUNDS.boss, 560, "ボスの base");
+equal(ENCOUNTER_BASE_FUNDS.normal, 240, "通常戦の base");
+equal(ENCOUNTER_BASE_FUNDS.elite, 450, "精鋭戦の base");
+equal(ENCOUNTER_BASE_FUNDS.boss, 840, "ボスの base");
 
 // **retry しても同じ encounter の撃破 base は一度だけ。**
 {
@@ -813,7 +813,7 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 560, "ボスの base");
   for (let index = 1; index <= 12; index += 1) run = recordEncounterCleared(run, index);
   const first = settleRun(profile, run, "won");
   equal(first.ok, true, "一度目は通る");
-  const expected = 6 * 160 + 3 * 300 + 3 * 560 + 12 * 40 + 1_000 + 1_200;
+  const expected = 6 * 240 + 3 * 450 + 3 * 840 + 12 * 60 + 1_500 + 1_800;
   equal(first.settlement.earned, expected, "内訳が式のとおり");
   equal(first.profile.activityFunds, String(expected), "残高が増える");
   const second = settleRun(first.profile, first.run, "won");
