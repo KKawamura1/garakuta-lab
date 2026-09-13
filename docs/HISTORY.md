@@ -2118,3 +2118,26 @@ Stage 倍率を **Stage 番号の一次式にしない**のは R8 §3.7 の決�
 `prefers-reduced-motion` では動きだけが止まり、帯・カットイン・照準・数字は出たままです。
 `analysis/ecology-trial.mjs` と `analysis/ecology-tutorial-trial.mjs` を iPhone 実寸で
 通し、横あふれが無いことも見ています。
+
+### 3.85 ナギ加入時に「身代わり」を解禁する（作者指摘、2026-09-13）
+
+`cover_ally`（身代わり）は実装済みだったが、`pack_wall` の core に置かれていたため、
+実際に解禁されるのは Stage 2（ヒバナ加入時）でした。Stage 1で加入するナギの役割が
+「庇護」なのに、加入時の初期リアクティブは Stage 2 の `shield_handoff` で、
+味方への攻撃を直接引き受ける `cover_ally` が主力の初期装着にありませんでした。
+
+`cover_ally` を `pack_edge` の coreへ移し、Stage 1のナギ加入時から解禁・初期装着します。
+`shield_handoff` は `pack_wall` の coreに残し、Stage 2で「止めた結果を味方へ渡す」
+発展形として続けます。ツリーの `brace_after_hit → cover_ally → shield_handoff` の前提順は
+維持し、engine / schema は変更していません。manifestと初期技能の整合を検査するテストも追加しました。
+
+### 3.86 庇護前倒し後の難度を敵側で再調整する（作者指摘、2026-09-13）
+
+`cover_ally` を Stage 1 から使えるようにした結果、基準編成の Stage 3 が安全側へ動き、
+難度曲線の Stage 3→4 が47%まで跳ねました。判定の上限を広げるのではなく、Stage 3 の
+第7・8戦だけ敵HPを1.6倍・攻撃を1.05倍にし、Stage 8 以降の灰炉もHP・攻撃を底上げしました。
+これで元の一段5〜30%判定は Stage 3→4 が29%、Stage 8→9が22%で通ります。
+
+同時に、Stage 1 の入口技能数は10以内へ戻しました。`opportunist` と子の
+`whetted_by_pain` は `pack_edge` の fullへ回し、ナギの `cover_ally` を残しています。
+テストの許容幅を増やさず、Stage 3の三構成の実測値だけを新しい敵配置に合わせて記録し直しました。

@@ -459,6 +459,10 @@ const STAGE_2 = stageEncounters([
 //
 // **問い「誰がいつ動くと得か」。**狩人が準備を罰し、反響体が手数を罰する。
 // 順番と一撃の大きさを両方触れるようになった5人で解く。
+// Stage 1 の `cover_ally` で前半の基準編成が安全になったぶん、第7・8戦は
+// HP と攻撃を一段上げる。第6戦までの縦切りの関門は変えず、Stage 3 の後半で
+// 「順番を作ったぶんだけ敵も長く保つ／重く返す」ことを測る。
+const STAGE_3_LATE_ENEMY_SCALE = Object.freeze({ maxHpBps: 16_000, offenseBps: 10_500 });
 const STAGE_3 = stageEncounters([
   { name: "灰の圧力", maxRounds: 9,
     description: "狩人が準備を潰す。走者が二体、その足元を固める。",
@@ -496,7 +500,11 @@ const STAGE_3 = stageEncounters([
   { name: "灰の核心", maxRounds: 15, bossLawId: "law_core_charge",
     description: "最終戦。核心の溜めを止め、反響体を残さずに厚い前列を抜く。",
     enemies: ["ash_core@FC*", "gray_bulwark@FL", "gray_echo@RL", "gray_hunter@RR"] },
-]);
+]).map((encounter) => Object.freeze({
+  ...encounter,
+  ...(encounter.index === 7 || encounter.index === 8
+    ? { enemyStatScale: STAGE_3_LATE_ENEMY_SCALE } : {}),
+}));
 
 // ================================================================ Stage 4 — 灰塵の底
 //

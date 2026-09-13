@@ -204,9 +204,16 @@ for (const [kind, designate] of [["active", designateAll], ["reactive", designat
       cuts.length, fired.length,
       `${kind} 第${index}戦: 放った ${fired.length} 回に対してカットインが ${cuts.length} 拍`,
     );
+    // 同じ技能を複数人が構えることは合法なので、技能IDだけでは重複を判定しない。
+    // 「同じ人物の同じ必殺」が二度出ていないことを確認する。
+    const cutKeys = cuts.map((beat) => {
+      const event = beat.events[0] ?? {};
+      const sourceActorId = event.sourceActorId ?? event.actorId ?? event.ownerActorId ?? "";
+      return sourceActorId + "/" + beat.ultimateId;
+    });
     assert.equal(
-      new Set(cuts.map((beat) => beat.ultimateId)).size, cuts.length,
-      `${kind} 第${index}戦: 同じ必殺で二度カットインが出ている`,
+      new Set(cutKeys).size, cuts.length,
+      `${kind} 第${index}戦: 同じ人物の同じ必殺で二度カットインが出ている`,
     );
     for (const cut of cuts) {
       // アクティブは宣言の拍（盤面はまだ動いていない）、リアクティブは効果の一つ前。

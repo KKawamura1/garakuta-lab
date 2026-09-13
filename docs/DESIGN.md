@@ -356,7 +356,9 @@ replay の列を人間が読みやすく、敵の位置と次の味方フェー�
 `content/enemies.mjs` は二層です。
 
 - **個体表** … その家系の中での役割の差（走者と盾兵の違い）を書く
-- **`FAMILY_POWER`** … 家系全体がどのくらい強いか。**Stage 帯を決める唯一のつまみ**
+- **`FAMILY_POWER`** … 家系全体がどのくらい強いか。家系共通の Stage 帯を決めるつまみ。
+  個別の幕だけを調整する必要がある場合は、`content/expedition.mjs` の encounter 側に
+  `enemyStatScale` を明示する。
 
 混ぜると「盾兵を少し硬くしたい」のたびに全 Stage の難度が動きます。
 どちらも player profile を1バイトも読まない固定値で、戦闘前の敵カードには
@@ -579,6 +581,26 @@ manifest から毎回導出し、`analysis/ecology-skill-tree-smoke.mjs` が検�
 この形は `analysis/ecology-tutorial-trial.mjs` が実寸で見る（押す前後の節の実座標が一致する・
 盤と釦が画面の横幅に収まる・盤の高さが 200px 以下・釦が一行に並ぶ・帯の端で切れている節を
 押すと窓の中へ寄る・盤の摘みで入切できる）。
+
+### 8.5.2 ナギ加入時の庇護入口（作者判断、2026-09-13）
+
+`cover_ally`（身代わり）は、敵が味方を狙った瞬間に自分へ引き受けるリアクティブである。
+これはナギの役割「庇護」の主力なので、**ナギが加入する Stage 1 から解禁する**。
+Stage 0 は2人・1 packの導入として守る語彙を増やさず、Stage 1 の `pack_edge` coreへ
+`cover_ally`を置く。`brace_after_hit` は `pack_care` の full で先に出るため、ツリーの
+前提も切れない。
+
+受け止めた結果を最も傷ついた味方へ渡す `shield_handoff` は、庇った後の発展形として
+Stage 2 の `pack_wall` coreに残す。これで、Stage 1では「狙いを自分へ移す」、
+Stage 2では「止めた結果を味方へ渡す」という学習順になる。engine / schema の語彙は
+増やさず、pack manifestとナギの初期装着だけを変更する。
+導入 pack の技能数は Stage 1でも目安10以内に保つ。`opportunist`（隙に応じる）と
+その子 `whetted_by_pain`（痛みで研ぐ）は `pack_edge` の full へ回し、Stage 2から
+解禁することで、親子の前提を切らずにナギの庇護の核を渡す。
+この初期装着で基準編成の Stage 3 が安全側へ動くため、敵側を再測定した。Stage 3 の
+第7・8戦は敵HPを1.6倍、攻撃を1.05倍にし、灰炉の家系も終盤ぶんのHPと攻撃を底上げする。
+難度曲線の Stage 3→4 は29%、Stage 8→9は22%に収めている。
+`ecology-campaign-curve.mjs` の一段5〜30%という判定は変更していない。
 
 ## 8.6 上位互換は別技能ではなくレベルにする（R19 / issue #137）
 

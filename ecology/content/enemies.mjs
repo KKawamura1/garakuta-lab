@@ -62,10 +62,11 @@ export const SHIPPED_DIFFICULTY = 1.2;
 // あの検査は10 Stage を同じ物差し（基準編成が一戦で受ける damage が隊の総HPの何割か）
 // で並べるので、**ここを動かしたら必ず走らせて、曲線を書き直す。**
 //
-//   husk  … 出荷済みの Stage 0〜3 の重さを動かさないための基準（等倍）
+//   husk  … 灰殻帯の共通基準。Stage 3 の第7・8戦だけは、配置側で明示的に
+//            HP と攻撃を上乗せする
 //   dust  … Stage 4〜。灰殻より一段上
 //   weave … Stage 6〜。さらに一段上
-//   forge … Stage 8〜。第一部でいちばん重い
+//   forge … Stage 8〜。第一部でいちばん重く、終盤のHPと攻撃を少し上乗せした
 //
 // **敵を隠れて自動強化しない**（AGENTS.md）。ここは player profile を1バイトも読まない、
 // 家系ごとの固定値である。戦闘前の敵カードには、この値を掛けた後の数がそのまま出る。
@@ -73,7 +74,7 @@ export const FAMILY_POWER = Object.freeze({
   husk: Object.freeze({ hpBps: 10_000, offenseBps: 9_200, guardBps: 10_000 }),
   dust: Object.freeze({ hpBps: 10_800, offenseBps: 10_200, guardBps: 10_000 }),
   weave: Object.freeze({ hpBps: 9_100, offenseBps: 8_600, guardBps: 10_500 }),
-  forge: Object.freeze({ hpBps: 9_400, offenseBps: 8_900, guardBps: 11_000 }),
+  forge: Object.freeze({ hpBps: 9_600, offenseBps: 9_200, guardBps: 11_000 }),
 });
 
 // ---------------------------------------------------------------- 家系
