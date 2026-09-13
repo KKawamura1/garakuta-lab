@@ -89,6 +89,7 @@ import {
   TRIGGER_LABELS,
   buildSkillTreeLayout,
   // issue #168 — 前提（技能IDと必要Lv）の判定。解禁 API と同じ関数を読む。
+  remainingPrerequisiteLevels,
   unmetPrerequisites,
 } from "./content/index.mjs";
 import {
@@ -2990,19 +2991,17 @@ function yieldBar(characterId, skillId) {
     + (effect.hits > 1 ? "<small>×" + effect.hits + "</small>" : "") + "</span>";
 }
 
-// 前提をすべて満たすまでに必要な技能点。前提の Lv もコストに含める。
-function prerequisiteCostFor(node, seen = new Set()) {
-  return (node.requires ?? []).reduce((total, required) => {
-    if (seen.has(required.skillId)) return total;
-    seen.add(required.skillId);
-    const prerequisite = SKILL_TREE_NODES.find((entry) => entry.skillId === required.skillId);
-    if (!prerequisite) return total;
-    const levelCost = Math.max(0, (required.minLv ?? MIN_SKILL_LEVEL) - MIN_SKILL_LEVEL) * SKILL_LEVEL_COST;
-    return total + prerequisiteCostFor(prerequisite, seen) + prerequisite.cost + levelCost;
-  }, 0);
+// この技能を取得できるようになるまでに、**いまの人物が追加で取るべき他技能の
+// Lv 数**。取得済みの前提は差し引くので、すでに解禁できる技能は 0 になる。
+function prerequisiteLevelsFor(node, characterId) {
+  return remainingPrerequisiteLevels(
+    node,
+    SKILL_TREE_NODES,
+    (skillId) => skillLevelOf(characterId, skillId),
+  );
 }
 
-// 取得の状態。**文字を出さない。**まだ持っていない節は、前提コストと取得コストを
+// 取得の状態。**文字を出さない。**まだ持っていない節は、前提の残りLv数と取得コストを
 // 形の違う四角で分ける。
 //
 // issue #236 — 持っている節の印は**一つだけ**になった。「取得済みだが未装着」を
@@ -3022,14 +3021,14 @@ function nodeStateMark(node, nodeState, characterId) {
     const title = nodeState.prereqsMet
       ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
       : "前提がまだ（技能点" + node.cost + "）";
-    const prerequisiteCost = prerequisiteCostFor(node);
+    const prerequisiteLevels = prerequisiteLevelsFor(node, characterId);
     const chainLabel = node.requires?.length
-      ? "前提コスト" + prerequisiteCost + "点 + 取得コスト" + node.cost + "点"
+      ? "取得までに必要な他技能の残りLv" + prerequisiteLevels + " + 取得コスト" + node.cost + "点"
       : "取得コスト" + node.cost + "点";
     const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
       + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
     const prerequisite = node.requires?.length
-      ? "<span class=\"node-mark prerequisite-cost\" aria-hidden=\"true\">" + prerequisiteCost + "</span>"
+      ? "<span class=\"node-mark prerequisite-levels\" aria-hidden=\"true\">" + prerequisiteLevels + "</span>"
         + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
       : "";
     mark = "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
@@ -3638,8 +3637,8 @@ function symbolLegendHelp() {
       "技能の効果量。印は掛ける能力値（腕＝腕力・技＝技術・受＝受け・HP＝最大HP）")
     + row("<span class=\"level-tag\">Lv1<small>/10</small></span>", "いまの段と上限")
     + row("<span class=\"node-mark cost acquisition-cost\">1</span>", "この技能の取得コスト")
-    + row("<span class=\"node-cost-chain\"><span class=\"node-mark prerequisite-cost\">1</span><span class=\"cost-plus\">+</span><span class=\"node-mark acquisition-cost\">1</span></span>",
-      "前提コストと、この技能の取得コスト")
+    + row("<span class=\"node-cost-chain\"><span class=\"node-mark prerequisite-levels\">1</span><span class=\"cost-plus\">+</span><span class=\"node-mark acquisition-cost\">1</span></span>",
+      "取得までに必要な他技能の残りLv数と、この技能の取得コスト")
     + row("<span class=\"node-mark owned\">✓</span>", "取得済み・未装着")
     + row("<span class=\"node-mark equipped\">✓</span>", "装着中")
     + row("<span class=\"turn-share\"><i></i><i class=\"on\"></i><i></i></span>",

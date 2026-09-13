@@ -3472,7 +3472,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .node-mark.cost { border: 1px solid #6d7c77; border-radius: 4px; color: #8fa09a; }
 .node-mark.cost.ready { border: 1px solid var(--gold); color: var(--gold); }
 .node-mark.cost.gated { opacity: .6; }
-.node-mark.prerequisite-cost { border: 1px dashed #6d7c77; border-radius: 4px; color: #8fa09a; }
+.node-mark.prerequisite-levels { border: 1px dashed #6d7c77; border-radius: 4px; color: #8fa09a; }
 .node-cost-chain { display: inline-flex; align-items: center; gap: 3px; align-self: start; }
 .cost-plus { color: var(--muted); font-size: 10px; line-height: 1; }
 /* テーマ。色と印だけで絞り込む。 */

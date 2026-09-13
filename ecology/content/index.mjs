@@ -234,6 +234,7 @@ export {
   SKILL_TREE_NODES,
   // issue #168 — 前提は `{ skillId, minLv }`。判定と ID 取り出しは一箇所を通る。
   prerequisitesMet,
+  remainingPrerequisiteLevels,
   requiredSkillIds,
   unmetPrerequisites,
 } from "./skill-tree.mjs";
