@@ -334,7 +334,6 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 
 {
   // R9 §4 の「入口は7〜10技能」は**導入 Stage（チュートリアル）の縛り**である。
-  // ただし Stage 1 は、ナギ加入時に役割の核 `cover_ally` を渡すため11技能を許容する。
   // R23 の第2章は pack を core で出さないので、ここは tutorial だけを見る。
   for (const stage of CAMPAIGN_STAGES.filter((entry) => entry.ladderMode === "tutorial")) {
     const manifest = { enabledPackIds: stage.enabledPackIds, packDepths: stage.packDepths };
@@ -359,11 +358,10 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       }
     }
 
-    // R9 §4 — 導入 pack の技能数は7〜10を目安にする。Stage 1だけは庇護の入口ぶん11まで。
+    // R9 §4 — 導入 pack の技能数は7〜10を目安にする。
     const coreCount = core.active.length + core.reactive.length + core.passive.length;
-    const maxCoreCount = stage.id === "stage_1" ? 11 : 10;
-    check(coreCount >= 7 && coreCount <= maxCoreCount,
-      stage.id + ": 新 pack の入口は " + coreCount + " 技能（目安 7〜" + maxCoreCount + "）");
+    check(coreCount >= 7 && coreCount <= 10,
+      stage.id + ": 新 pack の入口は " + coreCount + " 技能（目安 7〜10）");
 
     // R9 §9.2 — 導入 pack には、別の役割が使う接続面が最低一つある。
     check(core.reactive.length >= 2, stage.id + ": 入口にリアクティブ技能が2つ以上ある");

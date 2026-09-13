@@ -223,16 +223,12 @@ for (let i = 1; i < lateral.length; i += 1) {
   );
 }
 // **一段あたりの上がり幅**も見る。刻みが粗いと、投資の効果が「足りない」から
-// 「余る」へ一足飛びになる。目安は一段 5〜30%（実測の soft data）。ただし Stage 1から
-// ナギへ `cover_ally` を初期装着するため、基準編成の相対値が動く Stage 3→4 / 8→9は
-// 再測定値の上限を暫定的に広げる。敵側の再調整はこのcontent変更と分ける。
-const MAX_GROWTH_BY_STAGE = Object.freeze({ stage_4: 50, stage_9: 35 });
+// 「余る」へ一足飛びになる。目安は一段 5〜30%（実測の soft data）。
 for (let i = 1; i < lateral.length; i += 1) {
   const growth = Math.round((lateral[i].index * 100) / lateral[i - 1].index) - 100;
-  const maxGrowth = MAX_GROWTH_BY_STAGE[lateral[i].stage.id] ?? 30;
   assert.ok(
-    growth >= 5 && growth <= maxGrowth,
-    `${lateral[i].stage.id} の難度指数の伸びが ${growth}%（目安 5〜${maxGrowth}%）`,
+    growth >= 5 && growth <= 30,
+    `${lateral[i].stage.id} の難度指数の伸びが ${growth}%（目安 5〜30%）`,
   );
 }
 

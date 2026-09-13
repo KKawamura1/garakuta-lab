@@ -1570,9 +1570,18 @@ export function composeEncounter(index, difficultyRank, options = {}) {
     ? { guard: { bps: Math.floor(BPS * partySize / fullParty) } }
     : null;
   const law = def.bossLawId ? BOSS_LAWS[def.bossLawId] : null;
+  const stageScale = def.enemyStatScale ?? null;
+  const stageScalePatch = stageScale
+    ? {
+      maxHp: { bps: stageScale.maxHpBps ?? BPS },
+      might: { bps: stageScale.offenseBps ?? BPS },
+      focus: { bps: stageScale.offenseBps ?? BPS },
+    }
+    : null;
   const enemies = units.map((unit) => {
     const base = enemyBaseStats(unit.enemyActorId);
     const patches = unit.mutations.map((id) => ENEMY_MUTATIONS[id].patch);
+    if (stageScalePatch) patches.unshift(stageScalePatch);
     if (guardScalePatch) patches.unshift(guardScalePatch);
     if (unit.boss && bossScalePatch) patches.unshift(bossScalePatch);
     if (unit.boss && law) patches.unshift(law.patch);

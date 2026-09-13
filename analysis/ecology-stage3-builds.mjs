@@ -233,10 +233,10 @@ const BUILDS = Object.freeze([
     // PR #255 — 補給が遠征あたり3個で固定になり（以前はこの検査が一戦ごとに
     // 報酬で補給1を取る前提で、遠征を通して最大11個まで使えた）、野営治療で
     // 戻せる量が減った。
-    // R23 — Stage 3 が自分の12戦を持つようになった。守る構成は、厚い受けの
-    // 盾兵が減って後列を狙う個体が増えたぶん一戦ぶん先へ進み、第7戦の時間切れで
-    // 止まる。**守る構成は押し切る側が要る**という読みは変わらない。
-    through: Object.freeze({ reaches: 7, ends: "round_limit" }),
+    // R23 — Stage 3 第7・8戦のHP/攻撃を上げたため、守る構成は第7戦の時間切れで
+    // 止まる。第6戦の関門までは勝ち切る。**守る構成は押し切る側が要る**という
+    // 読みは変わらない。
+    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
     question: "止めた回数を、次の何に変えるか",
     engine: Object.freeze({
       source: "受け構えで一撃を止めた拍（damage_blocked / block_spent）",

@@ -348,20 +348,15 @@ function armedRun(designations, options = {}) {
 
 // 負けた一戦では減らない。**retry で二重に取られない。**
 //
-// R23 — 第11戦を使う。Stage 3 が自分の12戦を持つようになり、その第12戦は
-// 「核心＋反響体＋狩人」の四体編成になった。応急手当の必殺は隊の誰かが半分を
-// 切ってから鳴るので、**負け方によっては一度も鳴らない**。ここで見たいのは
+// R23 — Stage 3 の第9戦を使う。未育成の初期編成でも、ナギの庇護を含む通常の
+// 初期技能のまま敗北し、応急手当の必殺が確かに鳴る。ここで見たいのは
 // 「負けた一戦では回数が減らない」ことなので、必殺が確かに鳴る負け戦を選ぶ。
 {
   const { profile, run } = armedRun({ mender: "triage" });
-  // この検査は「未育成隊が負ける」ことを前提に、敗北時の必殺回数を見ている。
-  // ナギの加入時に `cover_ally` を装着する変更で隊が勝てるようになるため、
-  // ここだけ庇護を外して、必殺回数の回帰条件を保つ。
-  run.loadout.reactives.lancer = run.loadout.reactives.lancer.filter((id) => id !== "cover_ally");
-  const { result } = simulateExpeditionBattle(run, profile, 11);
-  equal(result.result, "loss", "満足に育てていない隊は第11戦で負ける（この検査の前提）");
+  const { result } = simulateExpeditionBattle(run, profile, 9);
+  equal(result.result, "loss", "満足に育てていない隊は第9戦で負ける（この検査の前提）");
   ok(ultimateFirings(result).length > 0, "負けた戦闘でも必殺そのものは出ている");
-  const committed = commitBattleResult(profile, run, 12, result);
+  const committed = commitBattleResult(profile, run, 10, result);
   equal(
     ultimateUsesLeft(committed.run, "mender"), ULTIMATE_USES_PER_CHARACTER,
     "負けた一戦は無かったことになる（回数も戻る）",

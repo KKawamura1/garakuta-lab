@@ -2098,3 +2098,14 @@ Stage 倍率を **Stage 番号の一次式にしない**のは R8 §3.7 の決�
 `shield_handoff` は `pack_wall` の coreに残し、Stage 2で「止めた結果を味方へ渡す」
 発展形として続けます。ツリーの `brace_after_hit → cover_ally → shield_handoff` の前提順は
 維持し、engine / schema は変更していません。manifestと初期技能の整合を検査するテストも追加しました。
+
+### 3.85 庇護前倒し後の難度を敵側で再調整する（作者指摘、2026-09-13）
+
+`cover_ally` を Stage 1 から使えるようにした結果、基準編成の Stage 3 が安全側へ動き、
+難度曲線の Stage 3→4 が47%まで跳ねました。判定の上限を広げるのではなく、Stage 3 の
+第7・8戦だけ敵HPを1.6倍・攻撃を1.05倍にし、Stage 8 以降の灰炉もHP・攻撃を底上げしました。
+これで元の一段5〜30%判定は Stage 3→4 が29%、Stage 8→9が22%で通ります。
+
+同時に、Stage 1 の入口技能数は10以内へ戻しました。`opportunist` と子の
+`whetted_by_pain` は `pack_edge` の fullへ回し、ナギの `cover_ally` を残しています。
+テストの許容幅を増やさず、Stage 3の三構成の実測値だけを新しい敵配置に合わせて記録し直しました。

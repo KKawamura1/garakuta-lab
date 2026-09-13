@@ -9682,7 +9682,7 @@
    "forge_awl": {
     "id": "forge_awl",
     "displayName": "灰炉の錐",
-    "maxHp": 293,
+    "maxHp": 300,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9702,14 +9702,14 @@
      "objective",
      "playable"
     ],
-    "might": 53,
-    "focus": 47,
+    "might": 55,
+    "focus": 49,
     "guard": 11
    },
    "forge_hammer": {
     "id": "forge_hammer",
     "displayName": "灰炉の槌",
-    "maxHp": 338,
+    "maxHp": 346,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9729,14 +9729,14 @@
      "objective",
      "playable"
     ],
-    "might": 60,
-    "focus": 45,
+    "might": 62,
+    "focus": 46,
     "guard": 13
    },
    "forge_anvil": {
     "id": "forge_anvil",
     "displayName": "灰炉の金床",
-    "maxHp": 496,
+    "maxHp": 507,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9756,14 +9756,14 @@
      "durable",
      "playable"
     ],
-    "might": 45,
-    "focus": 49,
+    "might": 46,
+    "focus": 51,
     "guard": 26
    },
    "forge_ember": {
     "id": "forge_ember",
     "displayName": "灰炉の熾",
-    "maxHp": 271,
+    "maxHp": 276,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9787,14 +9787,14 @@
      "gate_e",
      "playable"
     ],
-    "might": 56,
-    "focus": 49,
+    "might": 57,
+    "focus": 51,
     "guard": 8
    },
    "forge_bellows": {
     "id": "forge_bellows",
     "displayName": "灰炉の鞴",
-    "maxHp": 316,
+    "maxHp": 323,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9814,14 +9814,14 @@
      "durable",
      "playable"
     ],
-    "might": 34,
-    "focus": 58,
+    "might": 35,
+    "focus": 60,
     "guard": 13
    },
    "ash_furnace": {
     "id": "ash_furnace",
     "displayName": "灰炉の本体",
-    "maxHp": 699,
+    "maxHp": 714,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -9845,8 +9845,8 @@
      "durable",
      "playable"
     ],
-    "might": 60,
-    "focus": 60,
+    "might": 62,
+    "focus": 62,
     "guard": 21
    }
   },
@@ -14909,9 +14909,7 @@
    "coreReactiveSkillIds": [
     "counter_blow",
     "scavenge_ap",
-    "whetted_by_pain",
-    "cover_ally",
-    "opportunist"
+    "cover_ally"
    ],
    "corePassiveSkillIds": [
     "first_blood"
