@@ -393,8 +393,9 @@ try {
     /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(placedText));
 
   // issue #235 — 編成タブは廃止した。固定同行者の理由は遠征タブが一行で持つ。
+  const companionText = await bodyText();
   note("この Stage の同行者は固定だと書いてある",
-    /物語が決めます/.test(await bodyText()));
+    /同行者/.test(companionText) && /物語が決める/.test(companionText));
   // issue #159 — 選べないものを「選べるように見えるカード」で出さない。
   note("固定の回は同行者の候補カードを出さない",
     await page.locator(".character-card").count() === 0
@@ -406,7 +407,11 @@ try {
   note("装備タブでも予測が消えない", await page.locator(".camp-top .forecast-bar").count() === 1);
   const equipmentHelp = page.locator('details[data-help="equipment-rules"]');
   if (await equipmentHelp.count()) await equipmentHelp.locator("summary").click();
-  note("装備は自由に付け外しできると書いてある", /装備は何度でも付け外しできます/.test(await bodyText()));
+  // 作者要望 2026-09-13 — ルールは段落から記号つきの段へ移した。同じ事実を、
+  // 段の綴り（見出し「付け外し」＋値「何度でも」）で見る。
+  const equipmentRuleText = await bodyText();
+  note("装備は自由に付け外しできると書いてある",
+    /付け外し/.test(equipmentRuleText) && /何度でも/.test(equipmentRuleText));
 
   // R10 / issue #235 — Campではオートセーブとは別に手動枠へ保存できる。
   // セーブは遠征タブが持つ（**離脱ではないので、物語の最中でも触れる**）。

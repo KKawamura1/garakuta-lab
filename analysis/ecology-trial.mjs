@@ -1197,7 +1197,7 @@ try {
   note("精算後の主操作が上部にある",
     await page.locator(".settlement-primary-action .button.primary").count() === 1
       && await onScreen(".settlement-primary-action .button.primary")
-      && await appearsBefore(".settlement-primary-action", ".settle-list"));
+      && await appearsBefore(".settlement-primary-action", ".ledger"));
   if (/記録を送る/.test(settleText)) await click("記録を送る");
 
   // 終端（アンケート）へ。まだ着いていなければ、その場から終端画面を開く。
