@@ -18,6 +18,11 @@ const problems = [];
 
 const skillTreeLayout = readFileSync("ecology/content/skill-tree-layout.mjs", "utf8");
 const styles = readFileSync("ecology/styles.css", "utf8");
+// 盤面の演出（線と印）は app.js から切り出してある。切り出し先ごと消えれば、
+// 戦闘画面は無言で絵を失う（構文検査は通る）ので、ここで綴りを見る。
+const battleFx = readFileSync("ecology/battle-fx.mjs", "utf8");
+const fxTest = readFileSync("ecology/fx-test.js", "utf8");
+const fxTestHtml = readFileSync("ecology/fx-test.html", "utf8");
 // R11 §5 改 — 序盤の手取りチュートリアルが教える一手は content が持つ（app.js には無い）。
 const story = readFileSync("ecology/content/story.mjs", "utf8");
 const displayContracts = [
@@ -34,7 +39,7 @@ const displayContracts = [
   ["盤面の揺れのCSS", styles, ".battle-field.shake-3"],
   ["踏み込む向きを列差から出す", app, "function lungeShiftPx(actors, actingId, beat)"],
   ["踏み込む向きを CSS へ渡す", styles, "var(--lunge-x, 0px)"],
-  ["踏み込んだ先を線で結ぶ", app, "function spawnStrikeLine(field, fromUnit, toUnit, style)"],
+  ["踏み込んだ先を線で結ぶ", app, "spawnStrikeLine(field, actingUnit, unitOf(id), strikeStyle);"],
   ["踏み込んだ先の線のCSS", styles, ".strike-line {"],
   ["手応えの層のDOM", app, 'class=\\"unit-fx\\"'],
   ["手応えの層のCSS", styles, ".unit-fx {"],
@@ -46,7 +51,13 @@ const displayContracts = [
   ["銃撃の弾着のDOM", app, 'class=\\"fx-shot\\"'],
   // 作者試遊 2026-09-14（二度目）— **印は箱の外へ出す。**箱の中だけで描くと枠と丸角に
   // 切られて、実機では型の差が出ない。形（×と星）で分けているので、両方の綴りを見る。
-  ["着弾の印を盤面の層へ出す", app, "function spawnImpactMark(field, unit, style)"],
+  ["着弾の印を盤面の層へ出す", battleFx, "export function spawnImpactMark(field, unit, style)"],
+  ["踏み込んだ先の線も同じ層から出す", battleFx, "export function spawnStrikeLine(field, fromUnit, toUnit, style)"],
+  // 作者要望 2026-09-14（三度目）— 端末側の切り分け場。**一戦も進めずに同じ絵が出せる。**
+  ["演出の見本が本番と同じ関数を呼ぶ", fxTest, 'from "./battle-fx.mjs"'],
+  ["演出の見本が視差効果の設定を出す", fxTest, "(prefers-reduced-motion: reduce)"],
+  ["演出の見本が build の印を出す", fxTest, 'from "../core/build.mjs"'],
+  ["演出の見本の入口", fxTestHtml, "./fx-test.js"],
   ["着弾の印を被弾ごとに一つだけ出す", app, "markOnce(id, unit, hitStyle);"],
   ["斬撃の印のCSS", styles, ".impact-mark.weapon {"],
   ["銃撃の印のCSS", styles, ".impact-mark.technique {"],

@@ -2603,20 +2603,16 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   100% { opacity: 0; transform: scale(1.3) rotate(6deg); }
 }
 
-/* 銃撃の線は**引かれず、走る。**短い光が撃った側から当たった側へ一度だけ抜ける。
- * 走り出しの根元では銃口が光る（`::before` は線の原点＝撃った箱の中心にある）。 */
+/* **線の飛び方は型で変えない。**作者指摘 2026-09-14 —「相手に線が飛ぶ従来の攻撃
+ * モーションはかなりかっこいい」。光を一粒ずつ走らせる弾道も試したが、同じ距離が遅く
+ * 見えて、その速さが消える。銃撃は**同じ速さのまま細く白く**するだけにして、型の差は
+ * 着弾の印（×と星）と銃口の閃光が持つ。 */
 .strike-line.technique {
   height: 2px;
   margin-top: -1px;
   background: linear-gradient(90deg,
-    rgba(255, 226, 163, 0) 0%, rgba(255, 252, 240, 1) 60%, rgba(255, 226, 163, 0) 100%);
-  box-shadow: 0 0 8px 0 rgba(255, 226, 163, .8);
-  animation: strike-tracer .26s linear both;
-}
-@keyframes strike-tracer {
-  0% { opacity: 1; clip-path: inset(0 86% 0 0); }
-  72% { opacity: 1; clip-path: inset(0 0 0 86%); }
-  100% { opacity: 0; clip-path: inset(0 0 0 86%); }
+    rgba(255, 226, 163, 0) 0%, rgba(255, 253, 246, 1) 52%, rgba(255, 226, 163, 0) 100%);
+  box-shadow: 0 0 9px 0 rgba(255, 240, 205, .9);
 }
 /* 銃口の閃光。**線とは別の札**にする（線は clip-path で削られていくので、
  * 同じ札に乗せると閃光まで一緒に切り落とされる）。位置と角度は線と同じ計算から出る。 */
