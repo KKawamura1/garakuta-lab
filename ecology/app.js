@@ -6525,9 +6525,44 @@ function spawnStrikeLine(field, fromUnit, toUnit, style) {
   node.style.left = x + "px";
   node.style.top = y + "px";
   node.style.width = length + "px";
-  node.style.transform = "rotate(" + (Math.atan2(dy, dx) * 180 / Math.PI) + "deg)";
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  node.style.transform = "rotate(" + angle + "deg)";
   host.appendChild(node);
   setTimeout(() => node.remove(), 420);
+  // 銃口の閃光は、線の根元から少しだけ前へ出す。**線とは別の札**にする——線は
+  // clip-path で削られながら走るので、同じ札へ乗せると閃光まで切り落とされる。
+  if (style !== "technique") return;
+  const muzzle = document.createElement("i");
+  muzzle.className = "muzzle-flash";
+  muzzle.style.left = (x + (dx / length) * 26) + "px";
+  muzzle.style.top = (y + (dy / length) * 26) + "px";
+  muzzle.style.transform = "rotate(" + angle + "deg)";
+  host.appendChild(muzzle);
+  setTimeout(() => muzzle.remove(), 300);
+}
+
+// 着弾の印。**箱の中ではなく盤面の層へ、箱よりひと回り大きく出す。**
+// 作者試遊 2026-09-14 — 型の違いを箱の中（`.unit-fx`）だけで描いていたころは、
+// 100×72 の枠と丸角に切られて、実機では「どちらも光る線が一本走る」にしか見えなかった。
+// 印は枠の外へはみ出して置き、**斬撃は×、銃撃は一点で弾ける星**という形そのものを分ける。
+const IMPACT_MARK_MS = 620;
+
+function spawnImpactMark(field, unit, style) {
+  const host = field.querySelector(".battle-floats");
+  if (!host || !unit || !style) return;
+  const fieldRect = field.getBoundingClientRect();
+  const rect = unit.getBoundingClientRect();
+  const size = Math.max(88, Math.max(rect.width, rect.height) * 1.2);
+  const node = document.createElement("i");
+  node.className = "impact-mark " + style;
+  node.style.left = (rect.left - fieldRect.left + rect.width / 2) + "px";
+  node.style.top = (rect.top - fieldRect.top + rect.height / 2) + "px";
+  node.style.width = size + "px";
+  node.style.height = size + "px";
+  node.style.marginLeft = (-size / 2) + "px";
+  node.style.marginTop = (-size / 2) + "px";
+  host.appendChild(node);
+  setTimeout(() => node.remove(), IMPACT_MARK_MS);
 }
 
 // 盤面の揺れ。**重さの三段をそのまま揺れの三段にする。**三つを外してから付け直すので、
@@ -6794,6 +6829,13 @@ function syncBattleView(options = {}) {
         animated.add(key);
         restartAnimation(unit, className);
       };
+      // 多段攻撃でも印は一つ。同じ場所へ重ねて描いても、形が濃くなるだけで読めない。
+      const marked = new Set();
+      const markOnce = (id, unit, style) => {
+        if (!style || marked.has(id)) return;
+        marked.add(id);
+        spawnImpactMark(field, unit, style);
+      };
       let offset = 0;
       for (const event of beat.events) {
         for (const id of event.targetActorIds || []) {
@@ -6806,6 +6848,7 @@ function syncBattleView(options = {}) {
             // 受けた側の絵も型で分ける。斬撃は刃の線が走り、銃撃は弾着の火花が出る。
             const hitStyle = attackStyleOfEvent(ATTACK_STYLE_INDEX, event);
             if (hitStyle) unit.classList.add("hit-" + hitStyle);
+            markOnce(id, unit, hitStyle);
             restartOnce(id, unit, "is-hit");
             if (event.type === "actor_defeated") restartOnce(id, unit, "is-downed");
           } else if (event.type === "healing_applied") restartOnce(id, unit, "is-healed");

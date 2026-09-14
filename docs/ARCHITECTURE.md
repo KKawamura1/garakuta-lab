@@ -718,8 +718,14 @@ styles.css の「反応」節の末尾で一括して止める。
     表（`buildAttackStyleIndex`）は content から一度だけ組む。`syncBattleView` は
     撃つ側へ `strike-weapon` / `strike-technique`、受ける側へ `hit-weapon` /
     `hit-technique`、線へ `weapon` / `technique` を付けるだけで、絵は styles.css が持つ。
-    腕力は踏み込み＋斬線、技術は反動＋銃口の閃光＋弾着の火花と走る弾道になる。
+    腕力は踏み込み＋斬線、技術は反動＋銃口の閃光＋走る弾道になる。
     型を持たないダメージ（裂傷・装備の破片）には class が付かず、既定の絵のまま出る。
+  - **着弾の印** … `spawnImpactMark()` が `.battle-floats`（盤面の層）へ、被弾した箱より
+    ひと回り大きい `.impact-mark` を一つ置く（多段でも拍あたり一つ）。**型の差を箱の中
+    （`.unit-fx`）だけで描くと、100×72 の枠と丸角に切られて実機では読めない。**
+    分けているのは光り方ではなく形で、斬撃は交差する二本の太刀（×）、銃撃は芯から棘が
+    伸びる星になる。銃口の閃光（`.muzzle-flash`）も線とは別の札にする——線は `clip-path`
+    で削られながら走るので、同じ札に乗せると閃光まで切り落とされる。
   - **浮く数字** … `.battle-floats`（盤面の層）へ座標で刺す。`unit` の中に置くと、味方の箱
     （立ち絵のため `overflow: hidden`）で消え、敵では一つ上の箱の中に出て持ち主が読めない。
   - **幕の帯** … `battleBannerFor(beat)` が拍の種類だけから言葉を決める（opening／round／

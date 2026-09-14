@@ -44,6 +44,13 @@ const displayContracts = [
   ["攻撃の型を撃つ側へ渡す", app, 'actingUnit.classList.add("strike-" + strikeStyle)'],
   ["攻撃の型を受ける側へ渡す", app, 'unit.classList.add("hit-" + hitStyle)'],
   ["銃撃の弾着のDOM", app, 'class=\\"fx-shot\\"'],
+  // 作者試遊 2026-09-14（二度目）— **印は箱の外へ出す。**箱の中だけで描くと枠と丸角に
+  // 切られて、実機では型の差が出ない。形（×と星）で分けているので、両方の綴りを見る。
+  ["着弾の印を盤面の層へ出す", app, "function spawnImpactMark(field, unit, style)"],
+  ["着弾の印を被弾ごとに一つだけ出す", app, "markOnce(id, unit, hitStyle);"],
+  ["斬撃の印のCSS", styles, ".impact-mark.weapon {"],
+  ["銃撃の印のCSS", styles, ".impact-mark.technique {"],
+  ["銃口の閃光のCSS", styles, ".muzzle-flash {"],
   ["銃撃の反動のCSS", styles, ".unit.is-striking.strike-technique"],
   ["銃撃の弾着のCSS", styles, ".unit.is-hit.hit-technique .fx-shot"],
   ["銃撃の弾道のCSS", styles, ".strike-line.technique"],
