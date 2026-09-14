@@ -225,13 +225,16 @@ for (const [label, sourceText, forbidden] of [
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている（新しい画面へ選択が漏れる）");
 }
+const archiveRendererStart = app.indexOf("function encounterArchive(");
+const archiveRendererEnd = app.indexOf("\n// 遠征の敵セル", archiveRendererStart);
 const mapRendererStart = app.indexOf("function renderMap()");
 const mapRendererEnd = app.indexOf("\nfunction treatmentTargetIds", mapRendererStart);
-if (mapRendererStart < 0 || mapRendererEnd < 0) {
-  console.error("ecology-screens smoke: renderMap() の範囲を見つけられなかった。");
+if (archiveRendererStart < 0 || archiveRendererEnd < 0 || mapRendererStart < 0 || mapRendererEnd < 0) {
+  console.error("ecology-screens smoke: encounterArchive() / renderMap() の範囲を見つけられなかった。");
   process.exit(1);
 }
-const mapRenderer = app.slice(mapRendererStart, mapRendererEnd);
+const mapRenderer = app.slice(archiveRendererStart, archiveRendererEnd)
+  + app.slice(mapRendererStart, mapRendererEnd);
 for (const [label, expected] of [
   ["マップのノード番号", "data-map-index"],
   ["マップの戦闘種別", "data-map-kind"],
@@ -241,6 +244,11 @@ for (const [label, expected] of [
   ["マップの精鋭・ボス記号", "map-kind-badge"],
   ["マップの凡例", "map-legend"],
   ["マップの未到達状態", "unreached"],
+  ["全戦を選ぶ操作", 'data-action=\\"inspect-encounter\\"'],
+  ["全戦投影の閲覧位置", "data-inspected-encounter"],
+  ["敵の能力6軸", "enemy-stat-grid"],
+  ["敵の使用技能", "enemy-skill-row"],
+  ["敵の狙い方", "enemy-targeting"],
 ]) {
   if (!mapRenderer.includes(expected)) problems.push(label + "が無い");
 }
@@ -637,7 +645,7 @@ for (const field of [
   // （あちらには共通盤面が無い）ので、camp のレンダラーだけを見る。
   const campRenderers = [
     ["renderSkills", "function renderSkills() {", "\nfunction equipmentSlotHtml"],
-    ["renderEquipment", "function renderEquipment() {", "\nfunction renderEnemy"],
+    ["renderEquipment", "function renderEquipment() {", "\nfunction enemySkillRows"],
     ["campTreatmentBlock", "function campTreatmentBlock() {", "\n// R8 §11 — exact preview"],
   ];
   if (app.includes("rosterSwapSection") || app.includes('data-action=\\\"toggle-roster\\"')) {
