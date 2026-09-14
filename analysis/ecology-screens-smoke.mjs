@@ -225,7 +225,7 @@ for (const [label, sourceText, forbidden] of [
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている（新しい画面へ選択が漏れる）");
 }
-const archiveRendererStart = app.indexOf("function encounterArchive(");
+const archiveRendererStart = app.indexOf("function enemySkillRows(");
 const archiveRendererEnd = app.indexOf("\n// 遠征の敵セル", archiveRendererStart);
 const mapRendererStart = app.indexOf("function renderMap()");
 const mapRendererEnd = app.indexOf("\nfunction treatmentTargetIds", mapRendererStart);
