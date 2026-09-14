@@ -171,7 +171,7 @@ try {
       && await page.getByRole("button", { name: "セーブデータを選ぶ" }).count() === 1
       && await page.getByRole("button", { name: "遠征を仕立てる" }).count() === 0);
 
-  // R6 §15.1 — 遠征開始前に、有効パック・敵情報・3体のボスと法則が出る。
+  // 遠征開始前に、有効パックと全12戦の完全な敵情報が出る。
   // R12 — 自由遠征（旧・難易度rank）は削除した。遠征の仕立ては Campaign Stage だけ。
   // 長い遠征の検査は序盤の会話を別の台本に任せるため、まず New Game で
   // 正式なオートセーブを作り、テスト用に Stage 0 踏破後の入口へ進める。
@@ -218,7 +218,19 @@ try {
       && await page.locator(".guild-tools").count() === 0
       && await page.locator(".guild-actions [data-action=\"back-title\"]").count() === 1);
   note("未解禁の pack を出していない", !/この遠征では出ない/.test(guildText));
-  note("3体のボスと法則が先に見えている", /盾将の法則/.test(guildText) && /核の法則/.test(guildText));
+  const guildEncounterNodes = page.locator('.encounter-archive [data-action="inspect-encounter"]');
+  note("ギルドで全12戦を選んで見られる", await guildEncounterNodes.count() === 12);
+  await guildEncounterNodes.nth(11).click();
+  note("ギルドで最終戦の盤面まで投影できる",
+    await page.locator('.encounter-archive').getAttribute("data-inspected-encounter") === "12"
+      && await page.locator(".encounter-projection .enemy-board-cell").count() > 0);
+  note("敵の能力・使用技能・狙い方が同じ詳細に揃う",
+    await page.locator(".enemy-selection-detail .enemy-stat-grid > span").count() === 6
+      && await page.locator(".enemy-selection-detail .enemy-skill-row").count() > 0
+      && (await page.locator(".enemy-selection-detail .enemy-targeting").innerText()).trim().length > 0);
+  note("最終ボスの法則も全戦投影の中に出る",
+    /核の法則/.test(await page.locator(".encounter-projection").innerText()));
+  await guildEncounterNodes.nth(0).click();
   note("行き先の選択が出ている", /行き先を選ぶ/.test(guildText));
   note("難易度rankの選択が残っていない", !/どの難易度で出るか/.test(guildText));
 
@@ -676,6 +688,13 @@ try {
       note("先見機の実戦操作が固定ウィンドウ内にある",
         await page.locator(".camp-top .forecaster-action.engage").count() === 1
           && await onScreen(".camp-top .forecaster-action.engage"));
+      note("キャンプでも全12戦を選んで見られる",
+        await page.locator('.encounter-archive [data-action="inspect-encounter"]').count() === 12);
+      await page.locator('.encounter-archive [data-action="inspect-encounter"][data-encounter="12"]').click();
+      note("キャンプで未到達の最終戦まで投影できる",
+        await page.locator(".encounter-archive").getAttribute("data-inspected-encounter") === "12"
+          && await page.locator(".encounter-projection .enemy-board-cell").count() > 0);
+      await page.locator('.encounter-archive [data-action="inspect-encounter"][data-encounter="1"]').click();
       note("敵情報を折りたためる",
         await page.locator("details.enemy-details").count() === 1
           && await page.locator("details.enemy-details > summary").count() === 1);
@@ -690,6 +709,10 @@ try {
           && await page.locator("details.enemy-details .enemy-board").evaluate((board) =>
             board.scrollWidth <= board.clientWidth + 1));
       const selectedEnemyCell = page.locator("details.enemy-details .enemy-board-cell.selected");
+      note("敵詳細に能力6枠・使用技能・狙い方が出る",
+        await page.locator(".enemy-selection-detail .enemy-stat-grid > span").count() === 6
+          && await page.locator(".enemy-selection-detail .enemy-skill-row").count() > 0
+          && await page.locator(".enemy-selection-detail .enemy-targeting").count() === 1);
       note("敵盤面の下に選択中の1体だけ詳細が出る",
         await selectedEnemyCell.count() === 1
           && await page.locator(".enemy-selection-detail .enemy-card").count() === 1
