@@ -490,10 +490,14 @@ passives のいずれも `enabled()` で `disabled` を除いてから battle in
 ### キャンプのタブ（issue #235）
 
 キャンプのタブは スキル・装備・補給・遠征 の4枚で、`campNav()` が出す。準備の3枚は何度も
-往復する画面、遠征タブは「次の一戦へ進む」と遠征そのものをどうするか（`rosterSwapSection()` の
-顔ぶれ・`abandon-run`・`open-save-menu`）を決める画面で、役が違う。`renderCamp()` は
-`shell(..., { hideHeaderAction: true })` を使い、**固定される上端の外に常設ボタンを置かない**
-（旧 `campTools()` と shell のヘッダー操作は、実測で iPhone 幅の第一画面 64px を占めていた）。
+往復する画面、遠征タブは「次の一戦へ進む」と遠征そのものをどうするか（`abandon-run`・
+`open-save-menu`）を決める画面で、役が違う。`renderCamp()` は盤面とタブだけを上端へ固定し、
+操作は固定帯の外に置く。
+
+共通の `shell(body)` は本文を包むだけで、上部へタイトル・撤退・戻るのボタンを自動追加しない。
+ギルド画面の「タイトルへ」は各タブ内容の末尾（`guild-actions`）、セーブ画面の戻る操作は
+カード内（`save-menu-footer`）にある。戦闘・結果・精算などの画面も、操作をそれぞれの
+カード内に持つため、共通の上部ボタンでキャンプの主導線を覆わない。
 
 撤退だけは `state.prologueActive` と `supplyTutorialVisible()` のあいだ出さない（隊列を直しきる
 前に離脱されると「一手直せば勝てる」導入が成立しない）。**セーブは離脱ではない**ので、

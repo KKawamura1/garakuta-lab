@@ -902,30 +902,13 @@ function button(label, action, disabled = false, className = "button", attribute
     + attributes + (disabled ? " disabled" : "") + ">" + esc(label) + "</button>";
 }
 
-function shell(body, options = {}) {
+function shell(body) {
   const error = state.error ? "<p class=\"error\" role=\"alert\">" + esc(state.error) + "</p>" : "";
-  // R6 §9.2 / §12.2 — 遠征は勝利・敗北・**放棄**のいずれでも一度だけ精算する。
-  // 途中の遠征をボタン一つで捨てると、そこまでの活動資金が消える。
-  // だから run の最中は「放棄」で、精算画面を必ず通す。
-  const inRun = ["camp", "battle", "battleError", "result", "defeat"]
-    .includes(state.phase);
-  // R11 §5 改 — チュートリアル（灰の門）の最中はタイトルへ戻る・撤退する導線を
-  // 出さない。負ける一戦目も、巻き戻したあとの結果画面（報酬選択を兼ねる）も、
-  // まだ隊列を直しきる前に離脱されると「一手直せば勝てる」導入が成立しない。
-  const headerAction = options.hideHeaderAction || state.prologueActive || supplyTutorialVisible()
-    ? ""
-    : options.back
-      ? button(options.backLabel ?? "キャンプへ", options.backAction ?? "back-camp", false, "menu-button")
-      : inRun
-        ? button("安全に撤退する", "abandon-run", false, "menu-button")
-        : button("ギルドへ", "back-guild", false, "menu-button");
-  const screenActions = headerAction
-    ? "<div class=\"screen-actions\">" + headerAction + "</div>"
-    : "";
-  // Build metadata stays available to automated diagnostics without occupying
-  // the normal player-facing chrome. Visible details live inside technical logs.
+  // 通常画面の shell は本文を包むだけにする。タイトル・撤退・戻るの共通導線を
+  // 上端へ自動で足すと、画面ごとの主操作と競合し、キャンプのタブからも離れる。
+  // それぞれの操作は、その判断をするカードまたはタブ内容の中へ置く。
   const footer = "<span class=\"build-stamp\" hidden aria-hidden=\"true\">build " + esc(BUILD) + "</span>";
-  return "<div class=\"shell\">" + screenActions + body + error + footer + "</div>";
+  return "<div class=\"shell\">" + body + error + footer + "</div>";
 }
 
 // ---------------------------------------------------------------- 起動と読み込み
@@ -2132,6 +2115,8 @@ function renderSaveMenu() {
   const notice = state.saveNotice
     ? "<p class=\"save-notice fx-on\" role=\"status\">" + esc(state.saveNotice) + "</p>"
     : "";
+  const returnAction = fromCamp ? "back-camp" : "back-title";
+  const returnLabel = fromCamp ? "キャンプへ" : "タイトルへ";
   return shell(
     "<section class=\"card save-menu-card\">"
     // 見出しは、押してきた一行と同じ言葉にする（「ロードゲーム」という別名を作らない）。
@@ -2141,10 +2126,12 @@ function renderSaveMenu() {
       { glyph: "book", title: "手動保存", value: MANUAL_SAVE_SLOTS + " 枠", line: "New Game のあとも残ります。" },
     ], "two")
     + "<article class=\"save-slot auto\"><div><b>オートセーブ</b><small>" + esc(auto ? saveSummary(auto) : "まだありません") + "</small></div><div class=\"save-slot-actions\">" + autoActions + "</div></article>"
-    + "<div class=\"save-slot-list\">" + manual + "</div>" + notice + "</section>",
-    { back: true, backAction: fromCamp ? "back-camp" : "back-title", backLabel: fromCamp ? "キャンプへ" : "タイトルへ" });
+    + "<div class=\"save-slot-list\">" + manual + "</div>"
+    + notice
+    + "<div class=\"save-menu-footer\">"
+    + button(returnLabel, returnAction, false, "button quiet")
+    + "</div></section>");
 }
-
 
 // ============================================================ 遠征を仕立てる
 // ============================================================ 遠征を仕立てる（R6 §15.1）
@@ -2236,11 +2223,11 @@ function renderExpeditionStart() {
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
   const body = { guild: renderGuild, blueprints: renderBlueprints, homestead: homesteadBody, codex: renderBestiary }[state.guildTab]?.()
     ?? expeditionBody;
-  return shell(
-    "<div class=\"camp-tools guild-tools\">" + button("タイトルへ", "back-title", false, "tiny-button") + "</div>"
-    + tabs + note + body, { hideHeaderAction: true });
+  const guildActions = "<section class=\"card quiet guild-actions\">"
+    + button("タイトルへ", "back-title", false, "button quiet")
+    + "</section>";
+  return shell(tabs + note + body + guildActions);
 }
-
 
 // ---------------------------------------------------------------- ギルド投資（R6 §9.3）
 //
@@ -2536,8 +2523,7 @@ function renderHomestead() {
     homesteadBody()
     + "<section class=\"card quiet\">"
     + button("ギルドへ", "back-guild", false, "button primary")
-    + button("記録を送る", "complete", false, "button") + "</section>",
-    { hideHeaderAction: true });
+    + button("記録を送る", "complete", false, "button") + "</section>");
 }
 
 // ---------------------------------------------------------------- 図鑑（R8 §3.2）
@@ -2921,7 +2907,7 @@ function renderStory() {
     + (gate ? "" : "<p class=\"hint vn-hint\">タップで進みます。</p>")
     + (state.story?.logOpen ? storyBacklog() : "")
     + "</section>";
-  return shell( scene, { hideHeaderAction: true });
+  return shell(scene);
 }
 
 
@@ -3190,7 +3176,7 @@ function renderRewind() {
     + "<p class=\"rewind-status\" role=\"status\">時間が巻き戻る</p>"
     + "<div class=\"rewind-out\" aria-hidden=\"true\"></div>"
     + "</div></section>";
-  return shell(scene, { hideHeaderAction: true });
+  return shell(scene);
 }
 
 // 逆走を進める。**表示は DOM 側で進める**（会話の文字送りと同じ理由で、一文字ごとに
@@ -3398,8 +3384,7 @@ function renderCamp() {
     // 上端の盤面（.camp-top）は動かさない（貼りついた盤が毎回跳ねると押し先が動く）。
     + "<div class=\"camp-view\">"
     + tutorialNote + lastBattleNoteHtml() + view
-    + "</div>",
-    { hideHeaderAction: true });
+    + "</div>");
 }
 
 // R6 §15.2 — base 値・永続鍛錬・run 内補正を分けて表示する。
@@ -7255,9 +7240,7 @@ function renderResult() {
   if (rewardLayout) {
     return shell(
       nextBlock + lastBattleNoteHtml(buildBattleNote(state.run.encounterIndex))
-      + rotationStrip(result) + replay + history,
-      { hideHeaderAction: true },
-    );
+      + rotationStrip(result) + replay + history);
   }
   return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history);
 }
