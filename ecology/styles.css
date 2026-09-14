@@ -6432,3 +6432,150 @@ button.party-cell:active:not(:disabled),
 }
 .codex-seal .meter { flex: 1; }
 .codex-seal .meter-label { font-size: 9.5px; }
+
+
+/* 全戦投影 — 12個の節を送ると、同じ投影面にその戦闘の盤面が結像する。
+   説明文で「先の敵も見られる」と言わず、押せる節と像の切り替わりそのものに語らせる。 */
+.encounter-archive {
+  overflow: hidden;
+  border-color: rgba(145, 203, 213, .38);
+  background:
+    radial-gradient(circle at 88% 0, rgba(83, 153, 164, .13), transparent 34%),
+    linear-gradient(145deg, rgba(25, 40, 43, .98), rgba(15, 23, 25, .98));
+}
+.encounter-archive .map-progress { margin-bottom: 12px; }
+.encounter-archive .map-node {
+  padding: 0;
+  color: var(--muted);
+  font: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+.encounter-archive .map-node.available { border-color: rgba(145, 203, 213, .28); }
+.encounter-archive .map-node.inspected {
+  border: 2px solid var(--blue);
+  background: rgba(52, 103, 111, .42);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px rgba(145, 203, 213, .25), 0 0 13px rgba(83, 153, 164, .22);
+}
+.encounter-archive .map-node.current::before {
+  position: absolute;
+  top: -4px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 7px var(--gold);
+  content: "";
+}
+.encounter-projection {
+  position: relative;
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid rgba(145, 203, 213, .26);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 3px, rgba(145, 203, 213, .025) 3px 4px),
+    rgba(7, 17, 19, .72);
+  animation: future-projection-in var(--fx-step) steps(4, end);
+}
+.encounter-projection::after {
+  position: absolute;
+  inset: -35% 0 auto;
+  height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(145, 203, 213, .15), transparent);
+  content: "";
+  pointer-events: none;
+  animation: future-projection-scan var(--fx-accent) var(--fx-ease) forwards;
+}
+.encounter-projection-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.encounter-projection-head > span:last-child { min-width: 0; }
+.encounter-projection-head b,
+.encounter-projection-head small { display: block; }
+.encounter-projection-head b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.encounter-projection-head small { color: var(--blue); font-size: 9px; letter-spacing: .04em; }
+.projection-index {
+  color: var(--blue);
+  font: 800 25px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -.08em;
+  text-shadow: 0 0 12px rgba(145, 203, 213, .42);
+}
+.encounter-projection > .lead-small { margin: 0 0 10px; color: var(--muted); font-size: 10px; }
+.encounter-projection .boss-law { margin-bottom: 10px; }
+.encounter-projection .enemy-details { margin: 0; }
+.enemy-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 9px;
+}
+.enemy-stat-grid > span {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  padding: 5px 2px;
+  border: 1px solid rgba(145, 203, 213, .18);
+  border-radius: 6px;
+  background: rgba(11, 25, 27, .72);
+}
+.enemy-stat-grid small { color: var(--muted); font-size: 7px; }
+.enemy-stat-grid b { font-size: 11px; font-variant-numeric: tabular-nums; }
+.enemy-targeting {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 8px;
+  padding: 8px;
+  border-left: 2px solid var(--blue);
+  background: rgba(83, 153, 164, .09);
+}
+.enemy-card .enemy-targeting p {
+  min-height: 0;
+  margin: 0;
+  color: #c8e8ed;
+}
+.enemy-detail-mark { flex: 0 0 auto; color: var(--blue); font-size: 12px; }
+.enemy-skill-list { display: grid; gap: 5px; margin-top: 8px; }
+.enemy-skill-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 7px;
+  align-items: start;
+  padding-top: 6px;
+  border-top: 1px solid rgba(58, 77, 79, .55);
+}
+.enemy-skill-row > span:last-child,
+.enemy-skill-row b,
+.enemy-skill-row small { display: block; min-width: 0; }
+.enemy-skill-row b { color: var(--ink); font-size: 10px; }
+.enemy-skill-row small { color: var(--muted); font-size: 8px; line-height: 1.35; }
+.enemy-skill-kind {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(145, 203, 213, .45);
+  border-radius: 5px;
+  color: var(--blue);
+  font: 800 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@keyframes future-projection-in {
+  0% { opacity: .38; transform: translateX(-4px); filter: contrast(1.5) brightness(1.45); }
+  30% { opacity: .8; transform: translateX(3px); }
+  55% { transform: translateX(-1px); filter: contrast(1.15) brightness(1.1); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+@keyframes future-projection-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(450%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .encounter-projection,
+  .encounter-projection::after { animation: none; }
+  .encounter-projection::after { display: none; }
+}
