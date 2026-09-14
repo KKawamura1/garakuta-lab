@@ -396,14 +396,10 @@ try {
   note("ツグミが自分ではなくゴウを手当てすると示す",
     /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(placedText));
 
-  // issue #235 — 編成タブは廃止した。固定同行者の理由は遠征タブが一行で持つ。
-  const companionText = await bodyText();
-  note("この Stage の同行者は固定だと書いてある",
-    /同行者/.test(companionText) && /物語が決める/.test(companionText));
-  // issue #159 — 選べないものを「選べるように見えるカード」で出さない。
+  // issue #235 / 作者要望 2026-09-14 — 同行者を選べる場面がないため、欄ごと表示しない。
   note("固定の回は同行者の候補カードを出さない",
     await page.locator(".character-card").count() === 0
-      && !/今回の同行者/.test(await bodyText()));
+      && !/今回の同行者|同行者/.test(await bodyText()));
 
   // タブを変えても消えない（組み替えながら見るための帯である）。
   await page.locator('nav.tabs [data-tab="equipment"]').click();
@@ -430,7 +426,7 @@ try {
   note("手動セーブ枠へ保存できる", /手動セーブ枠 1 に保存しました/.test(await bodyText()));
   await page.locator('[data-action="load-slot"][data-slot="1"]').click();
   await page.waitForTimeout(200);
-  note("手動セーブからCampへ戻れる", /同行者|仲間/.test(await bodyText()) && /2人/.test(await bodyText()));
+  note("手動セーブからCampへ戻れる", /次の敵|戦闘予測/.test(await bodyText()) && /2人/.test(await bodyText()));
 
   // R9 §3.1 / R11 §8.5 — Stage 0 の入口は pack_care「構えと手当て」。
   // **武器と技を一本ずつ**持つ二本が、この Stage の問いそのものである。
