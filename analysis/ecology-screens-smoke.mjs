@@ -762,7 +762,10 @@ for (const field of [
     ["技能チュートリアルの錠", app, "function skillLessonLocked() {"],
     ["技能チュートリアルの光らせる先", app, "function skillLessonSpotSelector(step) {"],
     ["技能チュートリアルの手引き", app, "function skillLessonNote() {"],
-    ["技能チュートリアルのタブの閉じ込め", app, "if (skillLessonLocked()) return \"skills\";"],
+    ["技能チュートリアルのタブの閉じ込め", app, "function skillLessonTabLocked() {"],
+    ["補給チュートリアルのタブの閉じ込め", app, "function supplyTutorialTabLocked() {"],
+    // 作者指摘 2026-09-14 — 操作盤が次の節を隠す回のために、「✕」だけは通す。
+    ["光らせないが通す先", app, "function skillLessonAllowSelector(step) {"],
     ["補給を二戦目の後へ送った", app, "const SUPPLY_TUTORIAL_ENCOUNTER_INDEX = SKILL_LESSON_ENCOUNTER_INDEX + 1;"],
     // 作者指摘 2026-09-13 — 補給も**文章を読んで探す型から、光る先を押す型へ**揃える。
     ["補給チュートリアルの段", app, "function supplyTutorialStep() {"],
@@ -802,11 +805,14 @@ for (const field of [
     if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
   }
   // **光と錠は一つの形から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
-  // 錠は二つあるが、掛ける側は `tutorialGate()` 一つしか読まない。
+  // 錠は四つあるが、掛ける側は `tutorialGate()` 一つしか読まない。押してよい先も
+  // `tutorialOpenings()` 一つが作る（光る先＋光らせないが通す先）ので、画面の錠と
+  // handler の錠が別々の綴りを持つことは無い。
   for (const expected of [
     "function tutorialGate() {",
     "const gate = tutorialGate();",
-    "return Boolean(gate.selector && element?.closest?.(gate.selector));",
+    "function tutorialOpenings(gate) {",
+    "return Boolean(openings && element?.closest?.(openings));",
   ]) {
     if (!app.includes(expected)) problems.push("錠の判定が、光らせる先と別の選択子を持っている");
   }

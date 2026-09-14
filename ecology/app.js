@@ -496,6 +496,9 @@ function freshUiState() {
     // （一戦目の後）と補給（二戦目の後）が同じ印を読むので、`supply` の名前を
     // 外した（古い保存は hydrateState が読み替える）。
     tutorialRunId: null,
+    // 作者要望 2026-09-14 — 技能チュートリアルの受け渡し（もう一人を押す最後の一手）が
+    // 済んだ印。**ここから先は自由な場面**なので、画面の状態から導かずに印で覚える。
+    skillLessonHandedOff: false,
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
@@ -1667,12 +1670,12 @@ const TUTORIAL_TAB_LOCK_NOTICE = Object.freeze({
 // チュートリアルが一枚のタブへ閉じ込めている間は、そのタブ id を返す。
 // **閉じ込め方は二つあるが、閉じ込める書き方は一つにする**（補給と隊列で別々に書かない）。
 function campTutorialTab() {
-  if (supplyTutorialVisible()) return "supplies";
+  if (supplyTutorialTabLocked()) return "supplies";
   if (formationTutorialLocked()) return "map";
-  // 作者要望 2026-09-14 — 技能の取得・予約は技能タブの地図と操作盤で打つ四手。
-  // 押す先が全部この一枚の中にあるので、**錠と閉じ込めが同じ範囲**になる
-  // （"done" では両方外れる。次の一押しは盤面の「実戦」なので、錠が残ると打てない）。
-  if (skillLessonLocked()) return "skills";
+  // 作者要望 2026-09-14 — 技能の取得・予約は技能タブの地図と操作盤で打つ。
+  // **一手目（スキルタブを押す）と "done" では閉じ込めない**——前者はその一手が
+  // 打てなくなり、後者は次の一押し（盤面の「実戦」）が打てなくなる。
+  if (skillLessonTabLocked()) return "skills";
   // issue #240 — 必殺技は装着行を長押しして構えるので、その二手のあいだは技能タブに
   // 留める（三手目の「遠征タブを押す」は、留めたままでは打てない）。
   if (ultimateLessonTabLocked()) return "skills";
@@ -5274,6 +5277,11 @@ function tutorialNoteCard({ kind, eyebrow, title, body, marks, step, extra = "" 
 // `SUPPLY_TUTORIAL_ENCOUNTER_INDEX` 一箇所だけを読む。
 function supplyTutorialStep() {
   if (!supplyTutorialVisible()) return null;
+  // 作者指摘 2026-09-14 — **「補給」というものがある、から教える。**以前はキャンプが
+  // 勝手に補給タブを開いていたので、開いた先の釦だけが説明されて、**その資源が
+  // 何なのか**（遠征に持っていく数の決まった道具で、三つの用途で取り合う）は
+  // タブの中の畳んだ段にしか無かった。自分でタブを押す一手を先頭に足す。
+  if (state.tab !== "supplies") return "tab";
   return state.treatmentSelection === "concentrated" ? "target" : "treatment";
 }
 
@@ -5281,8 +5289,15 @@ function supplyTutorialLocked() {
   return supplyTutorialStep() !== null;
 }
 
+// タブを補給へ閉じ込めるのは、**タブを自分で押したあと**の段だけ（技能と同じ理由）。
+function supplyTutorialTabLocked() {
+  const step = supplyTutorialStep();
+  return step !== null && step !== "tab";
+}
+
 function supplyTutorialSpotSelector(step) {
   return {
+    tab: "nav.tabs [data-tab=\"supplies\"]",
     treatment: "[data-action=\"treat\"][data-treatment=\"concentrated\"]:not([disabled])",
     target: "[data-action=\"select-treatment-target\"][data-treatment=\"concentrated\"]:not([disabled])",
   }[step] ?? null;
@@ -5291,14 +5306,30 @@ function supplyTutorialSpotSelector(step) {
 function supplyTutorialNote() {
   const step = supplyTutorialStep();
   if (!step) return "";
+  const copy = {
+    tab: {
+      title: "補給を持っています",
+      body: "<b>補給は、この遠征へ持ってきた" + supplyTotal() + "個だけの道具です。</b>"
+        + "再挑戦・装備の引き直し・野営の治療が、この同じ" + supplyTotal()
+        + "個を取り合います（戦って増えることはありません）。"
+        + "光っている「補給」タブを押してください。",
+    },
+    treatment: {
+      title: "次の戦いに備えましょう",
+      body: "<b>傷は次の一戦へ持ち越します。</b>"
+        + "ここでは1個使って傷を戻します。光っている「集中治療」を押してください。",
+    },
+    target: {
+      title: "誰を治すかを選ぶ",
+      body: "補給はまだ消費していません。光っている傷ついた仲間のセルを押してください。",
+    },
+  }[step];
   return tutorialNoteCard({
     kind: "supply",
     eyebrow: "補給チュートリアル",
-    title: "次の戦いに備えましょう",
-    body: step === "treatment"
-      ? "<b>傷は次の一戦へ持ち越します。</b>光っている「集中治療」を押してください。"
-      : "補給はまだ消費していません。光っている傷ついた仲間のセルを押してください。",
-    marks: [["treatment", "集中治療"], ["target", "回復する仲間"]],
+    title: copy.title,
+    body: copy.body,
+    marks: [["tab", "補給タブ"], ["treatment", "集中治療"], ["target", "回復する仲間"]],
     step,
   });
 }
@@ -5316,14 +5347,19 @@ function supplyTutorialNote() {
 //   取得 … いまの1点で届く節を、いま取る（`SKILL_LESSON.unlockSkillId`）
 //   予約 … いまは前提の段が足りない節を、先に指す（`SKILL_LESSON.reserveSkillId`）
 //
-// 錠は四手のあいだだけ掛かる。**節を選ぶ二手も段に数える**——押す場所が地図の
-// 中にあるので、「どれを押すのか」が段の側に無いと、結局ツリーを探し回る。
+// 錠は最後の一手まで掛かる。**タブと人物と節を選ぶ手も段に数える**——押す場所が
+// タブの奥・盤面・地図の中に散っているので、「どれを押すのか」が段の側に無いと、
+// 結局どこかで探し回ることになる（作者指摘 2026-09-14、二度目）。
 //
+//   tab     … 「スキル」タブを押す（技能の地図はこのタブの中にある）
+//   pick    … 盤面で払う相手を押す（点は人物ごとに持つ）
 //   open    … 取得する節を押す（操作盤がその節で開く）
 //   unlock  … 操作盤の「解禁」を押す
-//   aim     … 予約する節を押す
+//   aim     … 予約する節を押す（操作盤の「✕」も押せる。下を参照）
 //   reserve … 操作盤の「Lv1まで予約」を押す
-//   done    … 錠は外れ、次の一押し（この敵に挑む）だけが光る
+//   handoff … もう一人を押す（**ここから先は自分で決める**という受け渡し）
+//   done    … 錠は外れる。**光らせる先も置かない**——ゴウの1点をどう使うかは、
+//             急かさずに悩んでもらう場面である（作者要望 2026-09-14）。
 //
 // **教える二手は content が決める**（`SKILL_LESSON.tutorial`）。技能 id をここへ
 // 書き写さないので、content を変えれば錠と光も一緒に動く。
@@ -5333,25 +5369,47 @@ function skillLessonNode(skillId) {
   return SKILL_TREE_NODES.find((node) => node.skillId === skillId) ?? null;
 }
 
+// 最後に受け渡す相手。**content は「教える側」だけを持つ**ので、受け取る側は
+// 同行者から引く（二人目が居ない編成では、この段ごと落ちる）。
+function skillLessonHandoffId() {
+  return state.run.roster.find((id) => id !== SKILL_LESSON_GOAL?.characterId) ?? null;
+}
+
 function skillLessonStep() {
   if (state.phase !== "camp" || !SKILL_LESSON_GOAL || !skillLessonVisible()) return null;
   const { characterId, unlockSkillId, reserveSkillId } = SKILL_LESSON_GOAL;
   if (!state.run.roster.includes(characterId)) return null;
   // 節が今回の manifest から外れていたら、教材そのものが無いので黙って出さない。
   if (!inManifest(unlockSkillId) || !inManifest(reserveSkillId)) return null;
+  // **受け渡しが済んだら、もう段は戻らない。**ここから先は自由に触れる場面なので、
+  // タブを移ろうと誰を選び直そうと "done" のままにする（印を持たずに画面の状態から
+  // 導くと、ツグミを選び直した拍に錠が戻り、押せる場所が一つだけの画面に落ちる）。
+  const handoffId = skillLessonHandoffId();
+  const reserved = skillReservationFor(state.run, characterId) === reserveSkillId;
+  if (state.skillLessonHandedOff || (reserved && !handoffId)) return "done";
+  if (state.tab !== "skills") return "tab";
+  // **予約まで済んだら、選んでいる人物で段を戻さない。**受け渡しの段では相手を
+  // もう一人へ変えさせるので、「教える相手が選ばれているか」を先に見ると、
+  // ゴウを押した拍に `pick` へ巻き戻ってしまう。
+  if (reserved) return selectedCharacter() === handoffId ? "done" : "handoff";
+  if (selectedCharacter() !== characterId) return "pick";
   if (!isUnlocked(characterId, unlockSkillId)) {
     return state.selectedSkillNode === unlockSkillId ? "unlock" : "open";
   }
-  if (skillReservationFor(state.run, characterId) !== reserveSkillId) {
-    return state.selectedSkillNode === reserveSkillId ? "reserve" : "aim";
-  }
-  return "done";
+  return state.selectedSkillNode === reserveSkillId ? "reserve" : "aim";
 }
 
-// 錠が掛かるのは四手だけ。"done" は光らせるだけで、何も塞がない。
+// 錠が掛かるのは受け渡しまで。"done" は何も塞がず、何も光らせない。
 function skillLessonLocked() {
   const step = skillLessonStep();
   return step !== null && step !== "done";
+}
+
+// タブを技能へ閉じ込めるのは、**タブを自分で押したあと**の段だけ。一手目は
+// 「スキルタブを押す」なので、ここで閉じ込めるとその一手が打てない。
+function skillLessonTabLocked() {
+  const step = skillLessonStep();
+  return step !== null && step !== "tab" && step !== "done";
 }
 
 // 光らせる先。**選択子はこの表にしかない。**地図の節・操作盤の釦と綴りを分けない。
@@ -5360,7 +5418,11 @@ function skillLessonSpotSelector(step) {
   if (!goal) return null;
   const node = (skillId) => ".skill-tree-forest [data-action=\"select-skill-node\"][data-skill=\""
     + skillId + "\"]";
+  const cell = (characterId) => ".camp-top [data-action=\"select-character\"][data-character=\""
+    + characterId + "\"]";
   return {
+    tab: "nav.tabs [data-tab=\"skills\"]",
+    pick: cell(goal.characterId),
     open: node(goal.unlockSkillId),
     unlock: ".skill-sheet [data-action=\"unlock-skill\"][data-character=\"" + goal.characterId
       + "\"][data-skill=\"" + goal.unlockSkillId + "\"]:not([disabled])",
@@ -5369,8 +5431,19 @@ function skillLessonSpotSelector(step) {
     // 教えるのは「届かない先を指す」ことであって、上限まで積むことではない。
     reserve: ".skill-sheet [data-action=\"reserve-skill\"][data-skill=\"" + goal.reserveSkillId
       + "\"][data-target-level=\"" + MIN_SKILL_LEVEL + "\"]",
-    done: "[data-action=\"begin-stage\"]",
+    handoff: cell(skillLessonHandoffId()),
+    done: null,
   }[step] ?? null;
+}
+
+// 光らせはしないが、**押せるようにはしておく先**（作者指摘 2026-09-14）。
+//
+// 取得した節の操作盤は地図の下端に貼りつくので、iPhone の窓では次に押す節
+// （深さ4の「長く守る」）がその裏に隠れることがある。**閉じる手を塞いだままにすると、
+// 光っている節を押せない場面が作れてしまう。**そこで「✕」だけは通す。
+// 閉じても段は進まない（次の一押しは同じ節のまま）ので、教える順は崩れない。
+function skillLessonAllowSelector(step) {
+  return step === "aim" ? ".skill-sheet [data-action=\"select-skill-node\"].sheet-close" : null;
 }
 
 // 手引きの札。**段ごとに、次の一押しだけを言う。**（隊列・補給と同じ作り）
@@ -5380,6 +5453,8 @@ function skillLessonNote() {
   const goal = SKILL_LESSON_GOAL;
   if (!step || !goal) return "";
   const name = characterName(goal.characterId);
+  const handoffId = skillLessonHandoffId();
+  const handoffName = handoffId ? characterName(handoffId) : "";
   const unlockLabel = nameFor(goal.unlockSkillId);
   const reserveLabel = nameFor(goal.reserveSkillId);
   const unlockNode = skillLessonNode(goal.unlockSkillId);
@@ -5390,11 +5465,20 @@ function skillLessonNote() {
     .map((required) => nameFor(required.skillId) + " Lv" + required.minLv)
     .join("・");
   const copy = {
-    open: {
-      title: "入った技能点を使う",
+    tab: {
+      title: "技能点が入りました",
       body: "<b>" + esc(SKILL_LESSON.pointHint) + "</b>"
-        + esc(name) + "の地図から、いま" + cost + "点で取れる「" + esc(unlockLabel)
-        + "」の節を押してください。",
+        + "使い道は「スキル」タブの中にあります。光っているタブを押してください。",
+    },
+    pick: {
+      title: "誰に払うかを選ぶ",
+      body: "<b>" + esc(SKILL_LESSON.ownerHint) + "</b>"
+        + "上の盤面で光っている" + esc(name) + "のセルを押してください。",
+    },
+    open: {
+      title: "取る技能を選ぶ",
+      body: "地図の節が" + esc(name) + "の技能です。"
+        + "いま" + cost + "点で取れる「" + esc(unlockLabel) + "」が光っています。押してください。",
     },
     unlock: {
       title: esc(unlockLabel) + "を取得する",
@@ -5406,17 +5490,25 @@ function skillLessonNote() {
       body: "<b>" + esc(SKILL_LESSON.reachHint) + "</b>"
         + "「" + esc(reserveLabel) + "」は"
         + (gate ? esc(gate) + "が要ります。" : "前提がまだ足りません。")
-        + "光っているその節を押してください。",
+        + "予約しておけば" + esc(SKILL_LESSON.meritHint)
+        + "光っているその節を押してください（操作盤が邪魔なら「✕」で閉じられます）。",
     },
     reserve: {
       title: esc(reserveLabel) + "を予約する",
       body: "<b>" + esc(SKILL_LESSON.reserveHint) + "</b>"
         + "光っている「Lv" + MIN_SKILL_LEVEL + "まで予約」を押してください。",
     },
-    done: {
-      title: "あとは、戦うたびに進む",
+    handoff: {
+      title: "ここから先は自分で決める",
       body: "<b>" + esc(SKILL_LESSON.doneHint) + "</b>"
-        + "次の一戦へ進んでください。",
+        + "光っている" + esc(handoffName) + "のセルを押してください。"
+        + esc(handoffName) + "にも1点入っています。",
+    },
+    done: {
+      title: esc(handoffName || name) + "の1点は自由です",
+      body: "<b>" + esc(SKILL_LESSON.freeHint) + "</b>"
+        + "取っても、取らずに残して予約だけしても構いません。"
+        + "決めたら、上の「実戦」で次の一戦へ進んでください。",
     },
   }[step];
   return tutorialNoteCard({
@@ -5425,10 +5517,13 @@ function skillLessonNote() {
     title: copy.title,
     body: copy.body,
     marks: [
+      ["tab", "スキル"],
+      ["pick", esc(name)],
       ["open", esc(unlockLabel)],
       ["unlock", "解禁"],
       ["aim", esc(reserveLabel)],
       ["reserve", "予約"],
+      ...(handoffId ? [["handoff", esc(handoffName)]] : []),
     ],
     step,
   });
@@ -5507,6 +5602,7 @@ function tutorialGate() {
       step: skill,
       locked: skillLessonLocked(),
       selector: skillLessonSpotSelector(skill),
+      allow: skillLessonAllowSelector(skill),
     };
   }
   const supply = supplyTutorialStep();
@@ -5538,8 +5634,10 @@ function applyTutorialGate() {
   const spots = gate.selector ? [...app.querySelectorAll(gate.selector)] : [];
   for (const spot of spots) spot.classList.add("tutorial-spot");
   if (!gate.locked) return;
+  // **光る先＋「光らせないが通す先」**が、押してよい全部である（`tutorialOpenings`）。
+  const open = gate.allow ? [...spots, ...app.querySelectorAll(gate.allow)] : spots;
   for (const element of app.querySelectorAll("[data-action]")) {
-    if (spots.some((spot) => spot === element || spot.contains(element))) continue;
+    if (open.some((allowed) => allowed === element || allowed.contains(element))) continue;
     element.classList.add("tutorial-blocked");
     element.setAttribute("aria-disabled", "true");
     if ("disabled" in element) element.disabled = true;
@@ -5566,6 +5664,8 @@ function focusTutorialSpot() {
   focusedTutorialSpot = key;
   const spot = gate.selector ? app.querySelector(gate.selector) : null;
   if (!spot) return;
+  // 貼りつく帯の中（タブ・盤面のセル）は、どこまで送っても見えている。寄せない。
+  if (spot.closest(".camp-top")) return;
   const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
   // 横の帯（技能ツリー）は帯ごと、縦はページごと寄せる。見える範囲の上端は
   // **貼りついた帯の下**——そこより上へ寄せると、札の裏に光る先が隠れる。
@@ -5598,7 +5698,15 @@ function focusTutorialSpot() {
 function tutorialAllows(element) {
   const gate = tutorialGate();
   if (!gate?.locked) return true;
-  return Boolean(gate.selector && element?.closest?.(gate.selector));
+  const openings = tutorialOpenings(gate);
+  return Boolean(openings && element?.closest?.(openings));
+}
+
+// 押してよい先の選択子。**光る先（`selector`）に、光らせないが通す先（`allow`）を足す。**
+// 足すのは「この段を進めはしないが、塞ぐと進めなくなる手」だけである（いまは技能
+// チュートリアルの操作盤の「✕」——盤が次に押す節を隠すことがある）。
+function tutorialOpenings(gate) {
+  return [gate?.selector, gate?.allow].filter(Boolean).join(", ") || null;
 }
 
 // 手引きの札。**段ごとに、次の一押しだけを言う。**（補給チュートリアルと同じ作り）
@@ -8049,16 +8157,19 @@ function advanceAfterBattle() {
   state.replayIndex = 0;
   state.replayPlaying = false;
   state.phase = "camp";
-  state.tab = showSkillLesson ? "skills" : showSupplyTutorial ? "supplies" : "map";
+  // 作者指摘 2026-09-14 — **手取りはタブを押すところから始める。**キャンプが勝手に
+  // 技能タブ・補給タブを開くと、「その画面がどこにあるのか」を教える一手が消える。
+  // どちらの手取りも一手目が「タブを押す」なので、戻る先は通常どおり遠征タブにする。
+  state.tab = "map";
   if (showSkillLesson && SKILL_LESSON_GOAL) {
-    // **払う相手はこちらで開いておく。**「誰に払うか」は盤面のセルで選べるが、
-    // それを一段目にすると、地図へ着く前に段が一つ増える。教えたいのは
-    // 取得と予約の違いなので、人物は開いた状態から始める（`memberContext` が
-    // 誰の地図を見ているかを出している）。
-    state.selectedCharacter = SKILL_LESSON_GOAL.characterId;
+    // **払う相手は、教える相手以外から始める。**「誰に払うか」を選ぶ一手を
+    // 教えるので、その相手が最初から選ばれていると段が一つ空振りする。
+    state.selectedCharacter = state.run.roster.find((id) => id !== SKILL_LESSON_GOAL.characterId)
+      ?? state.selectedCharacter;
     state.selectedSkillNode = null;
     state.skillTreeKind = skillLessonNode(SKILL_LESSON_GOAL.unlockSkillId)?.kind ?? "active";
     state.skillTreeBranch = null;
+    state.skillLessonHandedOff = false;
   }
   state.selectedEnemyId = null;
   state.treatmentSelection = null;
@@ -8496,6 +8607,12 @@ function handleAction(event) {
   }
 
   if (action === "select-character") {
+    // 作者要望 2026-09-14 — 技能チュートリアルの最後の一手（もう一人を押す）は、
+    // ここを通る。**打てた拍に印を残す**ので、このあと誰を選び直しても段は戻らない。
+    if (skillLessonStep() === "handoff") {
+      state.skillLessonHandedOff = true;
+      record("skill_lesson_handed_off", { characterId: element.dataset.character ?? null });
+    }
     state.selectedCharacter = element.dataset.character || state.selectedCharacter;
     state.selectedSkillNode = null;
     fx(cellFxKey(state.selectedCharacter), "select");
