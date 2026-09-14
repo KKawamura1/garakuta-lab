@@ -751,6 +751,22 @@ for (const field of [
     ["光のCSS", styles, ".tutorial-spot {"],
     ["錠のCSS", styles, ".tutorial-blocked {"],
     ["手順の一覧のCSS", styles, ".tutorial-steps li.current"],
+    // 作者要望 2026-09-14 — 四つの札は**一つの組み立て**から出す（見た目も進捗も揃う）。
+    ["手取りの札の共通の組み立て", app, "function tutorialNoteCard({"],
+    ["手取りの札の共通CSS", styles, ".tutorial-note-card {"],
+    ["錠の最中だけ札が貼りつく", styles, ".tutorial-note-card.pinned"],
+    ["光る先へ画面を寄せる", app, "function focusTutorialSpot() {"],
+    // 作者要望 2026-09-14 — 一戦目の後は技能の取得・予約、二戦目の後が補給。
+    ["技能チュートリアルの正本", story, "export const SKILL_LESSON = Object.freeze({"],
+    ["技能チュートリアルの段", app, "function skillLessonStep() {"],
+    ["技能チュートリアルの錠", app, "function skillLessonLocked() {"],
+    ["技能チュートリアルの光らせる先", app, "function skillLessonSpotSelector(step) {"],
+    ["技能チュートリアルの手引き", app, "function skillLessonNote() {"],
+    ["技能チュートリアルのタブの閉じ込め", app, "function skillLessonTabLocked() {"],
+    ["補給チュートリアルのタブの閉じ込め", app, "function supplyTutorialTabLocked() {"],
+    // 作者指摘 2026-09-14 — 操作盤が次の節を隠す回のために、「✕」だけは通す。
+    ["光らせないが通す先", app, "function skillLessonAllowSelector(step) {"],
+    ["補給を二戦目の後へ送った", app, "const SUPPLY_TUTORIAL_ENCOUNTER_INDEX = SKILL_LESSON_ENCOUNTER_INDEX + 1;"],
     // 作者指摘 2026-09-13 — 補給も**文章を読んで探す型から、光る先を押す型へ**揃える。
     ["補給チュートリアルの段", app, "function supplyTutorialStep() {"],
     ["補給チュートリアルの錠", app, "function supplyTutorialLocked() {"],
@@ -763,7 +779,7 @@ for (const field of [
     ["必殺技チュートリアルの手引き", app, "function ultimateLessonNote() {"],
     ["必殺技の一戦の正本", story, "export const ULTIMATE_LESSON = Object.freeze({"],
     ["必殺技の一戦の敵を画面が差し替える", app, "if (ultimateLessonActive()) return ultimateLessonEncounter();"],
-    ["必殺技チュートリアルのCSS", styles, ".ultimate-tutorial {"],
+    ["必殺技チュートリアルのCSS", styles, ".ultimate-tutorial .tutorial-steps"],
     ["必殺技チュートリアルの予測の帯のCSS", styles, ".tutorial-forecast {"],
     // 作者指摘 2026-09-13 — 三手目（遠征タブを押す）と、タブの閉じ込めを最初の二手だけに
     // 限る判定。**構えた拍に画面を勝手に跳ばさない**ための二つ。
@@ -789,11 +805,14 @@ for (const field of [
     if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
   }
   // **光と錠は一つの形から出す**（片方だけ直ると「光るのに押せない」枠が生まれる）。
-  // 錠は二つあるが、掛ける側は `tutorialGate()` 一つしか読まない。
+  // 錠は四つあるが、掛ける側は `tutorialGate()` 一つしか読まない。押してよい先も
+  // `tutorialOpenings()` 一つが作る（光る先＋光らせないが通す先）ので、画面の錠と
+  // handler の錠が別々の綴りを持つことは無い。
   for (const expected of [
     "function tutorialGate() {",
     "const gate = tutorialGate();",
-    "return Boolean(gate.selector && element?.closest?.(gate.selector));",
+    "function tutorialOpenings(gate) {",
+    "return Boolean(openings && element?.closest?.(openings));",
   ]) {
     if (!app.includes(expected)) problems.push("錠の判定が、光らせる先と別の選択子を持っている");
   }
