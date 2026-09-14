@@ -55,7 +55,9 @@ const displayContracts = [
   ["防壁バーをHPバー上へ配置", styles, "top: -3px"],
   ["装備摩耗ログの残耐久", app, '"の装備が耐久 " + values.before + "→" + values.after'],
   ["装備耐久切れの不発表示", app, '" · 耐久切れ、以後は不発"'],
-  ["装備常時効果の耐久説明", app, "能力値補正は装着中の常時効果なので耐久を消費しません"],
+  // 作者要望 2026-09-13 — ルールは段落から**記号つきの段**（ruleGrid）へ移した。
+  // 形が変わったので、見る文字列もその段の綴りへ合わせる。
+  ["装備常時効果の耐久説明", app, 'title: "能力値補正", value: "耐久を使わない"'],
   ["技能バッジの表示語", app, 'const kindLabels = { active: "アクティブ", reactive: "リアクティブ", passive: "パッシブ", equipment: "装備" };'],
   ["アクティブ欄の見出し", app, 'active: "アクティブ"'],
   ["リアクティブ欄の見出し", app, 'reactive: "リアクティブ"'],
@@ -78,7 +80,7 @@ const displayContracts = [
   ["入切の摘みを装着行と盤で共有する", app, "function skillToggleSwitch(characterId, skillId, kind, disabled)"],
   ["盤の頭で取得済みを入切する", app, "? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)"],
   ["取得・段上げ・予約を一行へ並べる", styles, ".skill-sheet .node-action { display: flex;"],
-  ["予約の規則は畳んだヘルプに置く", app, "<b>取得予約は一人につき一つです。</b>"],
+  ["予約の規則は畳んだヘルプに置く", app, 'title: "取得予約",\n        value: "一人につき一つ"'],
   ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
   ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
   // 反応（issue #237）。**操作と結果を結ぶ層は、申告・見張り・時間の三つで立っている。**
@@ -119,6 +121,32 @@ const displayContracts = [
   ["先見機の操作の下段CSS", styles, ".forecaster-actions {"],
   ["先見機の操作が指の的を下回らない", styles, "  min-height: 44px;"],
   ["先見機の操作が何をするか一行で言う", app, "forecaster-action-copy"],
+  // 作者要望 2026-09-13 — **文章で説明する画面はダサい。**規則・内訳・状態・因果は
+  // 記号・数・目盛り・流れで出す。この共通語彙が一つでも消えると、画面は静かに
+  // 段落へ戻る（構文検査も単体試験も通ったまま）。
+  ["線画の記号", app, "function glyph(name, className"],
+  ["数のタイル", app, "function statTiles(items"],
+  ["規則の段", app, "function ruleGrid(items"],
+  ["順の帯", app, "function flowStrip(steps"],
+  ["段の目盛り", app, "function segmentMeter(value, max"],
+  ["内訳の棒", app, "function ledgerRows(rows)"],
+  ["残る／消えるの二列", app, "function splitColumns(keep, lose"],
+  ["決着の印", app, "function verdictSigil(kind)"],
+  ["戦闘の凡例", app, "function battleLegend()"],
+  ["遠征の形の帯", app, "function expeditionShapeRail()"],
+  ["content の強調を太字にする", app, "function emphasize(value)"],
+  ["法則への手の札", app, "function counterChips(lines)"],
+  ["区画の覚え書き", app, "function learningNotes(lines)"],
+  ["数のタイルのCSS", styles, ".stat-tile {"],
+  ["規則の段のCSS", styles, ".rule-cell {"],
+  ["順の帯のCSS", styles, ".flow-strip {"],
+  ["段の目盛りのCSS", styles, ".meter-pips i {"],
+  ["内訳の棒のCSS", styles, ".ledger-bar i {"],
+  ["残る／消えるの二列のCSS", styles, ".split-col.lose b"],
+  ["決着の印のCSS", styles, ".verdict-sigil {"],
+  ["戦闘の凡例のCSS", styles, ".legend-bar .seg.recoverable"],
+  ["遠征の形の帯のCSS", styles, ".act-node.kind-boss"],
+  ["法則への手の札のCSS", styles, ".counter-chips li"],
   ["active の CSS クラス", styles, ".kind-active"],
   ["reactive の CSS クラス", styles, ".kind-reactive"],
   ["passive の CSS クラス", styles, ".kind-passive"],
@@ -233,6 +261,16 @@ for (const [label, sourceText, forbidden] of [
   // 戻ると、この窓で一番大事な操作が一番小さい釦になる。
   ["先見機の操作を見出し行へ畳んだ旧構造", app, "<small>試映</small>"],
   ["先見機の操作を見出し行へ置く旧構造", app, "formationToggle + forecasterActions"],
+  // 作者要望 2026-09-13 — 段落で説明していた旧い形へ戻っていないか。
+  // **戻り方は一つずつ違う**ので、消した文そのものを名指しで見る。
+  ["敗北画面の説明文", app, "この組み合わせでは届かなかった"],
+  ["精算の持ち物説明文", app, "持ち帰るのは活動資金と設計図だけです"],
+  ["戦闘表示の説明文", app, "箱の下の帯は緑＝残HP"],
+  ["遠征の形の説明文", app, "esc(REGION.summary)"],
+  ["設計図の残せる数を綴った旧い文", app, "勝利2件・安全撤退2件・敗北1件"],
+  ["鍛錬の効きを綴った旧い文", app, "一段で基礎値の6%"],
+  ["補給の用途の箇条書き", app, "<ul class=\\\"supply-uses\\\">"],
+
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている");
 }
