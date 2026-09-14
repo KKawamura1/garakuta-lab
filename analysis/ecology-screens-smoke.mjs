@@ -60,6 +60,9 @@ const displayContracts = [
   ["演出の見本の入口", fxTestHtml, "./fx-test.js"],
   ["着弾の印を被弾ごとに一つだけ出す", app, "markOnce(id, unit, hitStyle);"],
   ["斬撃の印のCSS", styles, ".impact-mark.weapon {"],
+  // 作者指摘 2026-09-14（四度目）— 斬撃は**引かれて走る**。貼りついた×に戻さない。
+  ["斬撃を上から下へ引くCSS", styles, "@keyframes slash-draw"],
+  ["撃破の拍では攻撃の絵を出し直さない", app, 'if (event.type === "actor_defeated") {'],
   ["銃撃の印のCSS", styles, ".impact-mark.technique {"],
   ["銃口の閃光のCSS", styles, ".muzzle-flash {"],
   ["銃撃の反動のCSS", styles, ".unit.is-striking.strike-technique"],

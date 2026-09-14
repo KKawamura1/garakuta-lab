@@ -6786,7 +6786,12 @@ function syncBattleView(options = {}) {
         for (const id of event.targetActorIds || []) {
           const unit = unitOf(id);
           if (!unit) continue;
-          if (event.type === "damage_taken" || event.type === "damage_absorbed" || event.type === "actor_defeated") {
+          // 作者指摘 2026-09-14 — **撃破の拍で攻撃の絵をもう一度出さない。**
+          // 撃破は着弾とは別の拍なので、そこで斬線や弾着を出し直すと、一度の攻撃が
+          // 二度当たったように見える。ここで出すのは「倒れた」だけにする。
+          if (event.type === "actor_defeated") {
+            restartOnce(id, unit, "is-downed");
+          } else if (event.type === "damage_taken" || event.type === "damage_absorbed") {
             // 重い一撃ほど大きく揺らす。段は付け直す前に決める（restart が消すため）。
             const level = levels.get(id) ?? 1;
             if (level >= 2) unit.classList.add("hit-" + level);
@@ -6795,7 +6800,6 @@ function syncBattleView(options = {}) {
             if (hitStyle) unit.classList.add("hit-" + hitStyle);
             markOnce(id, unit, hitStyle);
             restartOnce(id, unit, "is-hit");
-            if (event.type === "actor_defeated") restartOnce(id, unit, "is-downed");
           } else if (event.type === "healing_applied") restartOnce(id, unit, "is-healed");
           else if (event.type === "barrier_gained" || event.type === "block_gained") restartOnce(id, unit, "is-shielded");
           else if (event.type === "damage_blocked" || event.type === "damage_skipped") restartOnce(id, unit, "is-blocked");

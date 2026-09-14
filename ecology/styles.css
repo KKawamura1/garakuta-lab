@@ -2568,22 +2568,42 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   opacity: 0;
   pointer-events: none;
 }
-/* 斬撃。太い一の太刀と、細い二の太刀が交差する。 */
-.impact-mark.weapon {
-  background:
-    linear-gradient(64deg,
-      rgba(255, 255, 255, 0) 45.5%, rgba(255, 255, 255, .98) 48.5%,
-      rgba(255, 238, 200, .95) 51.5%, rgba(255, 226, 163, 0) 54.5%),
-    linear-gradient(-58deg,
-      rgba(255, 255, 255, 0) 47.4%, rgba(255, 244, 214, .7) 50%, rgba(255, 226, 163, 0) 52.6%);
-  filter: drop-shadow(0 0 5px rgba(255, 210, 132, .9));
-  animation: impact-slash .38s cubic-bezier(.15, .85, .3, 1) both;
+/* 斬撃。**二本の太刀が上から下へ走る。**作者指摘 2026-09-14 — 貼りついた×は
+ * 「斬った」にならない。一の太刀・二の太刀の順に、刃の向きへ引かれ、同じ向きへ消える。
+ * 引き方は `.strike-line`（飛ぶ線）と同じ clip-path の作りで、向きは各々の回転が持つ。 */
+.impact-mark.weapon { opacity: 1; }
+.impact-mark.weapon::before,
+.impact-mark.weapon::after {
+  position: absolute;
+  top: 50%;
+  left: -9%;
+  width: 118%;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 999px;
+  content: "";
+  background: linear-gradient(90deg,
+    rgba(255, 226, 163, 0) 0%, rgba(255, 255, 255, .99) 38%,
+    rgba(255, 240, 205, .95) 74%, rgba(255, 226, 163, 0) 100%);
+  filter: drop-shadow(0 0 6px rgba(255, 205, 122, .95));
 }
-@keyframes impact-slash {
-  0% { opacity: 0; transform: scale(.5) rotate(-14deg); }
-  16% { opacity: 1; transform: scale(1.08) rotate(0); }
-  58% { opacity: 1; transform: scale(1) rotate(0); }
-  100% { opacity: 0; transform: scale(1.14) rotate(4deg); }
+/* 一の太刀は右下へ、二の太刀は左下へ。**どちらも上の端から引かれ、下の端で消える。** */
+.impact-mark.weapon::before {
+  transform: rotate(62deg);
+  animation: slash-draw .3s cubic-bezier(.12, .85, .3, 1) both;
+}
+.impact-mark.weapon::after {
+  height: 3px;
+  margin-top: -1.5px;
+  transform: rotate(118deg);
+  animation: slash-draw .3s cubic-bezier(.12, .85, .3, 1) .085s both;
+}
+@keyframes slash-draw {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  10% { opacity: 1; }
+  32% { clip-path: inset(0 0 0 0); }
+  60% { opacity: 1; clip-path: inset(0 0 0 0); }
+  100% { opacity: 0; clip-path: inset(0 0 0 100%); }
 }
 /* 銃撃。芯が白く飛び、四方と斜めへ棘が伸びる。 */
 .impact-mark.technique {
@@ -3075,6 +3095,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
    * 撃つ側の銃口の閃光だけを消す（線と火花で、誰がどう当てたかは読める）。 */
   .unit.is-hit.hit-technique .fx-shot { opacity: .85; }
   .impact-mark { animation: none; opacity: .9; }
+  /* 二本の太刀は**引かれずに、引かれ終わった形**で出す（動きだけを止める）。 */
+  .impact-mark.weapon::before,
+  .impact-mark.weapon::after { animation: none; opacity: .9; clip-path: none; }
   .muzzle-flash { animation: none; opacity: .9; }
   /* 帯は**出したまま**にする（動きだけ止める）。決着の帯は元から止まったままなので、
    * `.hold` も同じに扱えばよい。 */

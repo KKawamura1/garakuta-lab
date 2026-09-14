@@ -20,7 +20,7 @@ import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const STYLES = [
-  { id: "weapon", label: "斬撃（腕力）", sample: "踏み込み斬り・通常攻撃", mark: "交差する二本の太刀（×）" },
+  { id: "weapon", label: "斬撃（腕力）", sample: "踏み込み斬り・通常攻撃", mark: "二本の太刀が上から下へ走る" },
   { id: "technique", label: "銃撃（技術）", sample: "狙い撃ち・溜め突き", mark: "芯から棘が伸びる星" },
 ];
 
