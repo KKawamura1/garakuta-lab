@@ -1394,6 +1394,214 @@ function restoreHelpDetails() {
 }
 
 
+// ---------------------------------------------------------------- 図で言う（作者要望 2026-09-13）
+//
+// **文章で説明する画面はダサい。**規則・内訳・状態・因果は、段落ではなく
+// 記号・数・目盛り・流れで出す。文のまま残すのは会話（story）と、
+// 世界の側が言う一行（world-voice / settle-closing / 名簿・図鑑の本文）だけである。
+//
+// ここは画面共通の語彙で、画面ごとに似た形を作り直さない。
+//   glyph()        線画の記号。色は currentColor で継ぐので、置いた場所の色になる。
+//   statTiles()    数の並び。**数が主、名が従。**
+//   ruleGrid()     規則の一段。記号＋一語＋十数文字。段落にしない。
+//   flowStrip()    順のあること（払う→変える→戻る）を矢印で繋ぐ。
+//   segmentMeter() 段のあるもの（鍛錬12段・補給3個・到達12戦）を目盛りで出す。
+//   ledgerRows()   内訳を長さで比べる。合計との比が、読まずに分かる。
+//   splitColumns() 残るもの／消えるものを二列で並べる。
+//
+// **記号は線画に統一する。**絵文字は端末ごとに別の絵が出て、色も継がない。
+const GLYPHS = Object.freeze({
+  funds: "<circle cx='12' cy='12' r='8.2'/><path d='M12 6.8 14.7 12 12 17.2 9.3 12Z'/>",
+  supply: "<path d='M12 3.2 20 7.4v9.2L12 20.8 4 16.6V7.4Z'/><path d='M4 7.4 12 11.6l8-4.2M12 11.6v9.2'/>",
+  blueprint: "<path d='M6 3h8l4 4v14H6Z'/><path d='M14 3v4h4'/><path d='M9 12h6M9 16h4'/>",
+  distance: "<path d='M6 3.5v17'/><path d='M6 5h10l-2.2 3.2L16 11.4H6Z'/>",
+  multiply: "<path d='M7 7 17 17M17 7 7 17'/>",
+  strike: "<path d='M4 20 9.5 14.5'/><path d='M9 14 18.5 4.5 21 7 11.5 16.5Z'/><path d='M3 3.5 8 8'/>",
+  might: "<path d='M4 20 12 12'/><path d='m13 4 7 7-3.2 3.2L9.8 7.2Z'/>",
+  focus: "<circle cx='12' cy='12' r='7'/><circle cx='12' cy='12' r='2.2'/><path d='M12 1.8v3.4M12 18.8v3.4M1.8 12h3.4M18.8 12h3.4'/>",
+  guard: "<path d='M12 3 5 5.8v6.4c0 4 2.9 6.6 7 8.8 4.1-2.2 7-4.8 7-8.8V5.8Z'/>",
+  vitality: "<path d='M3 12.5h3.8L9 7.5l3 9.5 2.2-5 1.4 2.5H21'/>",
+  retry: "<path d='M20.2 12a8.2 8.2 0 1 1-2.6-6'/><path d='M20.5 3.6v5.2h-5.2'/>",
+  reroll: "<rect x='4' y='4' width='16' height='16' rx='3.2'/><circle cx='9' cy='9' r='1.15'/><circle cx='12' cy='12' r='1.15'/><circle cx='15' cy='15' r='1.15'/>",
+  camp: "<rect x='3.4' y='6.6' width='17.2' height='13' rx='2.4'/>"
+    + "<path d='M9 6.6V5.2a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 5.2v1.4'/>"
+    + "<path d='M12 10.4v5.4M9.3 13.1h5.4'/>",
+  slots: "<rect x='3.2' y='6.4' width='17.6' height='11.2' rx='2.4'/><path d='M9.1 6.4v11.2M14.9 6.4v11.2'/>",
+  spark: "<path d='M12 2.4 13.9 9.3 20.8 11.2 13.9 13.1 12 20 10.1 13.1 3.2 11.2 10.1 9.3Z'/>",
+  lock: "<rect x='4.8' y='10' width='14.4' height='10.2' rx='2.2'/><path d='M8.2 10V7.2a3.8 3.8 0 0 1 7.6 0V10'/>",
+  check: "<path d='m4.8 12.4 4.6 4.6L19.2 7.2'/>",
+  cross: "<path d='M6 6 18 18M18 6 6 18'/>",
+  person: "<circle cx='12' cy='8' r='3.6'/><path d='M4.8 20.4c1.3-4.1 3.9-6.2 7.2-6.2s5.9 2.1 7.2 6.2'/>",
+  enemy: "<path d='M12 2.8 21.2 12 12 21.2 2.8 12Z'/><circle cx='12' cy='12' r='2.6'/>",
+  gear: "<circle cx='12' cy='12' r='3.2'/><path d='M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4'/>",
+  skill: "<circle cx='12' cy='4.8' r='2.2'/><circle cx='5.4' cy='17.4' r='2.2'/><circle cx='18.6' cy='17.4' r='2.2'/><path d='M10.9 6.8 6.5 15.4M13.1 6.8l4.4 8.6M7.6 17.4h8.8'/>",
+  round: "<circle cx='12' cy='12' r='8.2'/><path d='M12 6.8V12l3.6 2.2'/>",
+  eye: "<path d='M2.4 12S6.2 6.2 12 6.2 21.6 12 21.6 12 17.8 17.8 12 17.8 2.4 12 2.4 12Z'/><circle cx='12' cy='12' r='2.6'/>",
+  home: "<path d='M3.6 11.2 12 3.6l8.4 7.6'/><path d='M6 9.8v10.4h12V9.8'/>",
+  book: "<path d='M4.4 5.4A2.4 2.4 0 0 1 6.8 3H19.2v14.6H6.8a2.4 2.4 0 0 0-2.4 2.4Z'/><path d='M19.2 17.6V21H6.8'/>",
+  flag: "<path d='M6 3.4v17.2'/><path d='M6 4.8h11l-2.4 3.4L17 11.6H6Z'/>",
+  down: "<path d='M12 4.2v14.4'/><path d='m6.4 13 5.6 5.6 5.6-5.6'/>",
+  up: "<path d='M12 19.8V5.4'/><path d='m6.4 11 5.6-5.6 5.6 5.6'/>",
+});
+
+function glyph(name, className = "") {
+  const body = GLYPHS[name];
+  if (!body) return "";
+  return "<svg class=\"glyph" + (className ? " " + className : "") + "\" viewBox=\"0 0 24 24\""
+    + " fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\""
+    + " stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\">" + body + "</svg>";
+}
+
+// 数の並び。**タイルは3〜4枚まで。**それ以上並べると、どれも読まれない。
+// tone は色の役目（gold=得るもの / bad=失ったもの / good=残るもの / quiet=前提）。
+function statTiles(items, className = "", columns = null) {
+  const style = Number.isFinite(columns) ? " style=\"--tiles:" + columns + "\"" : "";
+  const cells = items.filter(Boolean).map((item) => "<span class=\"stat-tile"
+    + (item.tone ? " tone-" + esc(item.tone) : "")
+    + (item.wide ? " wide" : "") + "\""
+    + (item.watch ? " data-fx-watch=\"" + esc(item.watch) + "\"" : "") + ">"
+    + (item.glyph ? glyph(item.glyph, "tile-glyph") : "")
+    + "<b>" + esc(item.value) + (item.unit ? "<i>" + esc(item.unit) + "</i>" : "") + "</b>"
+    + "<small>" + esc(item.label) + "</small></span>").join("");
+  return "<div class=\"stat-tiles" + (className ? " " + className : "") + "\"" + style + ">" + cells + "</div>";
+}
+
+// 規則の一段。**一段につき、記号ひとつ・見出し一語・本文一行。**
+// 二行以上書きたくなったら、それは規則が二つある（段を分ける）。
+function ruleGrid(items, className = "") {
+  const cells = items.filter(Boolean).map((item) => "<div class=\"rule-cell"
+    + (item.tone ? " tone-" + esc(item.tone) : "") + "\">"
+    + "<span class=\"rule-mark\">" + (item.glyph ? glyph(item.glyph) : esc(item.mark ?? "")) + "</span>"
+    + "<span class=\"rule-copy\"><b>" + esc(item.title) + "</b>"
+    + (item.value ? "<em>" + esc(item.value) + "</em>" : "")
+    + (item.line ? "<small>" + esc(item.line) + "</small>" : "") + "</span></div>").join("");
+  return "<div class=\"rule-grid" + (className ? " " + className : "") + "\">" + cells + "</div>";
+}
+
+// 順のあること。**矢印は「この次に何が起きるか」だけに使う。**
+function flowStrip(steps, className = "") {
+  const cells = steps.filter(Boolean).map((step) => "<span class=\"flow-step"
+    + (step.tone ? " tone-" + esc(step.tone) : "") + "\">"
+    + (step.glyph ? glyph(step.glyph, "flow-glyph") : "")
+    + "<b>" + esc(step.label) + "</b>"
+    + (step.sub ? "<small>" + esc(step.sub) + "</small>" : "") + "</span>")
+    .join("<span class=\"flow-arrow\" aria-hidden=\"true\"></span>");
+  return "<div class=\"flow-strip" + (className ? " " + className : "") + "\">" + cells + "</div>";
+}
+
+// 段のあるもの。**12段までは目盛りで、それ以上は帯で出す。**
+// 目盛りが細くなりすぎると、何段目かが読めなくなる（読めない目盛りは飾りである）。
+const METER_MAX_SEGMENTS = 12;
+
+function segmentMeter(value, max, options = {}) {
+  const total = Math.max(0, Math.round(max));
+  const filled = Math.max(0, Math.min(total, Math.round(value)));
+  const tone = options.tone ? " tone-" + esc(options.tone) : "";
+  const label = options.label
+    ? "<span class=\"meter-label\">" + esc(options.label) + "</span>"
+    : "";
+  if (total > METER_MAX_SEGMENTS || total <= 0) {
+    const percent = total ? Math.round((filled / total) * 100) : 0;
+    return "<div class=\"meter bar" + tone + "\">" + label
+      + "<span class=\"meter-track\"><i style=\"width:" + percent + "%\"></i></span></div>";
+  }
+  const pips = Array.from({ length: total }, (_, index) => "<i class=\""
+    + (index < filled ? "on" : "off")
+    + (options.nextIndex === index ? " next" : "") + "\"></i>").join("");
+  return "<div class=\"meter" + tone + "\">" + label
+    + "<span class=\"meter-pips\">" + pips + "</span></div>";
+}
+
+// 内訳。**長さで比べられるようにする。**数字の列だけでは、どれが効いたか読めない。
+function ledgerRows(rows) {
+  const values = rows.map((row) => Math.abs(Number(row.value) || 0));
+  const top = Math.max(1, ...values);
+  return "<div class=\"ledger\">" + rows.map((row) => {
+    const amount = Number(row.value) || 0;
+    const percent = Math.round((Math.abs(amount) / top) * 100);
+    return "<div class=\"ledger-row" + (amount ? "" : " empty") + "\">"
+      + "<span class=\"ledger-label\">" + (row.glyph ? glyph(row.glyph) : "")
+      + esc(row.label) + "</span>"
+      + "<span class=\"ledger-bar\"><i style=\"width:" + percent + "%\"></i></span>"
+      + "<b>" + esc(row.display ?? amount) + "</b></div>";
+  }).join("") + "</div>";
+}
+
+// 残るもの／消えるもの。**同じ画面に両方を出す。**片方だけ書くと、
+// 「書いていないほう」が起きたときに理由が読めない。
+// content の中の **強調** を太字にする。**esc のあとに置き換える**
+// （先に置き換えると、本文の < > がそのまま生きてしまう）。
+// これが無かったあいだ、Stage の学びは画面に「**敵は……**」と星印のまま出ていた。
+function emphasize(value) {
+  return esc(value).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+}
+
+// 法則への手。**箇条書きの点ではなく、印のついた手札として並べる。**
+function counterChips(lines) {
+  return "<ul class=\"counter-chips\">" + lines.map((line) =>
+    "<li>" + glyph("check") + "<span>" + esc(line) + "</span></li>").join("") + "</ul>";
+}
+
+// その Stage で分かること。**読み物ではなく、持って入る覚え書きにする。**
+function learningNotes(lines) {
+  return "<ul class=\"learning-notes\">" + lines.map((line) =>
+    "<li>" + glyph("skill") + "<span>" + emphasize(line) + "</span></li>").join("") + "</ul>";
+}
+
+// 遠征の形。**「3幕12戦。4・8・12戦目にボスが立つ」と書く代わりに、12戦を並べる。**
+// 幕の切れ目・精鋭・ボスの位置は、印の形そのものが言う。
+function expeditionShapeRail() {
+  const steps = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
+    const step = offset + 1;
+    const encounter = composeEncounter(step, state.run.difficulty, encounterOptions());
+    return { step, kind: encounter.kind, act: encounter.act ?? Math.ceil(step / 4) };
+  });
+  const acts = [...new Set(steps.map((entry) => entry.act))];
+  const kindLabels = { normal: "通常", elite: "精鋭", boss: "ボス" };
+  return "<div class=\"act-rail\" role=\"list\" aria-label=\"" + ENCOUNTERS_PER_RUN + "戦の形\">"
+    + acts.map((act) => "<span class=\"act-group\" role=\"listitem\"><b>第" + act + "幕</b>"
+      + "<span class=\"act-nodes\">" + steps.filter((entry) => entry.act === act)
+        .map((entry) => "<i class=\"act-node kind-" + entry.kind + "\" title=\"第" + entry.step
+          + "戦・" + esc(kindLabels[entry.kind] ?? entry.kind) + "\"></i>").join("")
+      + "</span></span>").join("")
+    + "</div>"
+    + "<div class=\"act-legend\">"
+    + Object.entries(kindLabels).map(([kind, label]) =>
+      "<span><i class=\"act-node kind-" + kind + "\"></i>" + esc(label) + "</span>").join("")
+    + "</div>";
+}
+
+// 決着の印。**記号を一字大きく置くのではなく、図として置く。**
+// 勝ち・退き・敗けで形そのものを変える（色だけの違いは、色が読めない画面で消える）。
+const VERDICT_SIGILS = Object.freeze({
+  win: "<circle cx='32' cy='32' r='23.5' class='sigil-ring'/>"
+    + "<path d='M32 8.5 36.8 27.2 55.5 32 36.8 36.8 32 55.5 27.2 36.8 8.5 32 27.2 27.2Z' class='sigil-core'/>",
+  retreat: "<circle cx='32' cy='32' r='23.5' class='sigil-ring'/>"
+    + "<path d='M32 12.5 51.5 32 32 51.5 12.5 32Z' class='sigil-core'/>"
+    + "<path d='M38.5 25.5 26 32l12.5 6.5' class='sigil-slash'/>",
+  loss: "<circle cx='32' cy='32' r='23.5' class='sigil-ring'/>"
+    + "<path d='M32 12.5 51.5 32 32 51.5 12.5 32Z' class='sigil-core'/>"
+    + "<path d='M19.5 19.5 44.5 44.5' class='sigil-slash'/>",
+});
+
+function verdictSigil(kind) {
+  const safe = Object.hasOwn(VERDICT_SIGILS, kind) ? kind : "loss";
+  return "<svg class=\"verdict-sigil " + safe + "\" viewBox=\"0 0 64 64\" fill=\"none\""
+    + " stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\""
+    + " aria-hidden=\"true\" focusable=\"false\">" + VERDICT_SIGILS[safe] + "</svg>";
+}
+
+function splitColumns(keep, lose, options = {}) {
+  const column = (items, kind, heading) => "<div class=\"split-col " + kind + "\">"
+    + "<b>" + glyph(kind === "keep" ? "check" : "cross") + esc(heading) + "</b>"
+    + "<ul>" + items.map((item) => "<li>" + esc(item) + "</li>").join("") + "</ul></div>";
+  return "<div class=\"split-columns\">"
+    + column(keep, "keep", options.keepLabel ?? "持ち帰る")
+    + column(lose, "lose", options.loseLabel ?? "ここで消える")
+    + "</div>";
+}
+
+
 // issue #159 — タブの数字は、そのタブを開かずに「まだやることがあるか」を出す。
 // **選んでいる一人の残点では、他の四人が余らせていることが読めない。**
 function totalSkillPoints() {
@@ -1862,7 +2070,10 @@ function renderSaveMenu() {
     "<section class=\"card save-menu-card\">"
     // 見出しは、押してきた一行と同じ言葉にする（「ロードゲーム」という別名を作らない）。
     + sectionHeading("SAVE / LOAD", fromCamp ? "セーブ / ロード" : "セーブデータを選ぶ")
-    + "<p class=\"operation-note\">自動保存は最新の安全な状態です。手動保存は3枠あり、New Gameの後も残ります。</p>"
+    + ruleGrid([
+      { glyph: "retry", title: "オートセーブ", value: "最新の安全な状態", line: "遠征の節目ごとに上書きされます。" },
+      { glyph: "book", title: "手動保存", value: MANUAL_SAVE_SLOTS + " 枠", line: "New Game のあとも残ります。" },
+    ], "two")
     + "<article class=\"save-slot auto\"><div><b>オートセーブ</b><small>" + esc(auto ? saveSummary(auto) : "まだありません") + "</small></div><div class=\"save-slot-actions\">" + autoActions + "</div></article>"
     + "<div class=\"save-slot-list\">" + manual + "</div>" + notice + "</section>",
     { back: true, backAction: fromCamp ? "back-camp" : "back-title", backLabel: fromCamp ? "キャンプへ" : "タイトルへ" });
@@ -1910,12 +2121,13 @@ function renderExpeditionStart() {
     .map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
       + "</b><small>" + esc(pack.summary) + "</small><span>"
       + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
+  // 作者要望 2026-09-13 — 法則への手は**点の箇条書きではなく、印のついた手札**にする。
   const bosses = manifest.actBossLawIds.map((lawId, index) => {
     const law = BOSS_LAWS[lawId];
     return "<article class=\"boss-card\"><div class=\"boss-top\"><span class=\"enemy-mark\">◆</span><div><b>第"
       + (index + 1) + "幕 · " + esc(enemyInfo(manifest.actBossIds[index]).label) + "</b><small>"
-      + esc(law.displayName) + "</small></div></div><p>" + esc(law.previewText) + "</p>"
-      + "<ul class=\"boss-counters\">" + law.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></article>";
+      + esc(law.displayName) + "</small></div><span class=\"boss-at\">第" + ((index + 1) * 4) + "戦</span></div>"
+      + "<p>" + esc(law.previewText) + "</p>" + counterChips([...law.counters]) + "</article>";
   }).join("");
   const note = state.migrationNote
     ? "<section class=\"card quiet\"><p class=\"muted\">" + esc(state.migrationNote) + "</p></section>"
@@ -1937,19 +2149,22 @@ function renderExpeditionStart() {
   const campaignSection = "<section class=\"card\">" + sectionHeading(
       "CAMPAIGN STAGE", "行き先を選ぶ",
       "<span class=\"stage\">解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) + "</span>")
-    + "<p class=\"operation-note\">区画は前の区画をクリアした順に解禁され、飛ばせません。</p>"
+    + segmentMeter(campaignStages.length, MAX_CAMPAIGN_STAGE_SEQUENCE + 1, { label: "解禁" })
+    + ruleGrid([{ glyph: "lock", title: "順に解禁", value: "飛ばせない", line: "前の区画をクリアすると、次の一つが開く。" }])
     + "<div class=\"difficulty-grid\">" + campaignStages.map(campaignStageCard).join("") + "</div>"
     + (CAMPAIGN_STAGES[state.selectedCampaignStageSequence]?.learningGoals?.length
-      ? "<ul class=\"boss-counters\">" + CAMPAIGN_STAGES[state.selectedCampaignStageSequence].learningGoals
-          .map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul>"
+      ? "<h3 class=\"training-heading\">この区画で分かること</h3>"
+        + learningNotes([...CAMPAIGN_STAGES[state.selectedCampaignStageSequence].learningGoals])
       : "");
+  // 作者要望 2026-09-13 — 遠征の形は**文ではなく並び**で出す（REGION.summary の
+  // 「3幕12戦。4・8・12戦目にボスが立つ」は、この帯そのものである）。
   const expeditionBody = "<section class=\"card\">" + sectionHeading(
-      "EXPEDITION", "今回の遠征", "<span class=\"stage\">活動資金 " + formatFunds(funds()) + "</span>")
-    + "<p class=\"operation-note\">" + esc(REGION.summary) + "</p>"
+      "EXPEDITION", "今回の遠征", "<span class=\"stage\">" + glyph("funds") + formatFunds(funds()) + "</span>")
+    + expeditionShapeRail()
     + "<h3 class=\"training-heading\">有効な技能パック</h3>"
     + "<div class=\"pack-list\">" + packs + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("ACT BOSSES", "先に確認できる法則")
-    + "<p class=\"operation-note\">出発前に3幕のボス法則を確認できます。</p>"
+    + "<section class=\"card\">" + sectionHeading("ACT BOSSES", "先に確認できる法則",
+      "<span class=\"stage\">" + glyph("eye") + "出発前</span>")
     + "<div class=\"boss-grid\">" + bosses + "</div></section>"
     + campaignSection
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
@@ -1962,16 +2177,38 @@ function renderExpeditionStart() {
 
 
 // ---------------------------------------------------------------- ギルド投資（R6 §9.3）
-function purchaseRow(id, displayName, detail, cost, disabledReason) {
+//
+// 作者要望 2026-09-13 — **投資の行から説明文を抜く。**行が答えるのは四つだけである：
+// 何を買うか（記号と名）／いま何段目か（目盛り）／次の一段で何が変わるか（一語）／
+// いくらか（数）。段が見えていれば「あと何回買えるか」を文で書く必要はない。
+const UPGRADE_GLYPHS = Object.freeze({
+  starting_supplies: "supply",
+  starting_skill_points: "skill",
+  blueprint_capacity: "blueprint",
+  equipment_slot: "slots",
+  camp_care: "camp",
+  appraisal: "eye",
+});
+
+function purchaseRow(id, displayName, detail, cost, disabledReason, options = {}) {
   const affordable = cost !== null && funds() >= cost;
   const label = cost === null ? "購入済み" : formatFunds(cost);
-  return "<div class=\"purchase-row\" data-fx=\"upgrade:" + esc(id) + "\"><span class=\"purchase-copy\"><b>"
-    + esc(displayName)
-    + "</b><small>" + esc(detail) + "</small></span><span class=\"purchase-cost\">" + esc(label) + "</span>"
+  const meter = Number.isFinite(options.level) && Number.isFinite(options.maxLevel) && options.maxLevel > 0
+    ? segmentMeter(options.level, options.maxLevel, {
+      nextIndex: cost === null ? null : options.level,
+      tone: cost === null ? "good" : null,
+    })
+    : "";
+  return "<div class=\"purchase-row" + (cost === null ? " done" : "")
+    + (affordable || cost === null ? "" : " short") + "\" data-fx=\"upgrade:" + esc(id) + "\">"
+    + "<span class=\"purchase-mark\">" + glyph(options.glyph ?? "funds") + "</span>"
+    + "<span class=\"purchase-copy\"><b>" + esc(displayName) + "</b>"
+    + "<small>" + esc(detail) + "</small>" + meter + "</span>"
+    + "<span class=\"purchase-buy\"><span class=\"purchase-cost\">" + esc(label) + "</span>"
     + (cost === null
-      ? "<span class=\"purchase-done\">✓</span>"
+      ? "<span class=\"purchase-done\">" + glyph("check") + "</span>"
       : button("買う", "purchase", !affordable || Boolean(disabledReason), "tiny-button primary-mini",
-        "data-upgrade=\"" + esc(id) + "\"")) + "</div>";
+        "data-upgrade=\"" + esc(id) + "\"")) + "</span></div>";
 }
 
 // R23 — 鍛錬の一段でその能力がいくつになるか。**progression の式をここで綴り直さない**
@@ -1986,32 +2223,55 @@ function renderGuild() {
   const upgrades = META_UPGRADES.map((upgrade) => {
     const level = upgradeLevel(state.profile, upgrade.id);
     const cost = upgradeCost(state.profile, upgrade.id);
+    // **段は目盛りが言う。**行の文は「次の一段で何が変わるか」だけにする。
     const detail = cost === null
-      ? "Lv" + level + " · 購入済み"
-      : "Lv" + level + " → Lv" + (level + 1) + " · " + upgrade.describeLevel(level + 1);
-    return purchaseRow(upgrade.id, upgrade.displayName, detail, cost);
+      ? upgrade.describeLevel(level)
+      : upgrade.describeLevel(level + 1);
+    return purchaseRow(upgrade.id, upgrade.displayName, detail, cost, null, {
+      glyph: UPGRADE_GLYPHS[upgrade.category] ?? "funds",
+      level,
+      maxLevel: upgrade.maxLevel,
+    });
   }).join("");
+  // 作者要望 2026-09-13 — 鍛錬の行は**数と目盛りだけで読めるようにする。**
+  // 「次の一段で N になる」は矢印一本（現在 → 次）で済み、「上限まで鍛えた」は
+  // 満ちた目盛りそのものが言う。文で言い直すのは、丸めで整数が動かない枠だけ。
   const trainingRows = Object.entries(stats.detail).map(([axis, detail]) => {
     const axisLabel = { might: "腕力", focus: "技術", guard: "受け", vitality: "体力" }[axis];
-    // R23 — 一段 +6% なので、ほとんどの枠は**次の一段で必ず整数が動く**。
-    // 動かない枠（ツグミの腕力のように base が小さいもの）だけを名指しする。
     const capped = detail.cost === null;
-    const nextText = capped
-      ? "上限まで鍛えた"
-      : detail.nextVisibleLevel === detail.level + 1
-        ? "次の一段で " + trainedStatPreview(detail) + " になる"
-        : detail.nextVisibleLevel === null
-          ? "上限まで鍛えても表示は変わらない"
-          : "次に整数が増えるのは Lv" + detail.nextVisibleLevel;
-    return "<div class=\"purchase-row\" data-fx=\"train:" + esc(characterId) + ":" + esc(axis)
-      + "\"><span class=\"purchase-copy\"><b>" + esc(axisLabel)
-      + " Lv" + detail.level + "/" + detail.maxLevel + "</b><small>基礎 " + detail.base + " → 現在 " + detail.value
-      + "（+" + (detail.bonusBps / 100).toFixed(0) + "%） · " + esc(nextText) + "</small></span>"
-      + "<span class=\"purchase-cost\">" + (capped ? "上限" : formatFunds(detail.cost)) + "</span>"
+    const preview = capped ? null : trainedStatPreview(detail);
+    const stalled = !capped && detail.nextVisibleLevel !== detail.level + 1;
+    // R23 — 一段 +8% なので、ほとんどの枠は次の一段で整数が動く。
+    // 動かない枠（base が小さいもの）だけを名指しする。
+    const stallNote = !stalled
+      ? ""
+      : "<small class=\"train-stall\">" + esc(detail.nextVisibleLevel === null
+        ? "上限まで鍛えても表示は変わらない"
+        : "次に整数が増えるのは Lv" + detail.nextVisibleLevel) + "</small>";
+    return "<div class=\"purchase-row train-row" + (capped ? " done" : "")
+      + "\" data-fx=\"train:" + esc(characterId) + ":" + esc(axis) + "\">"
+      + "<span class=\"purchase-mark\">" + glyph(axis === "might" ? "might"
+        : axis === "focus" ? "focus"
+          : axis === "guard" ? "guard" : "vitality") + "</span>"
+      + "<span class=\"purchase-copy\"><b>" + esc(axisLabel)
+      + "<span class=\"train-values\"><i>基礎 " + detail.base + "</i>"
+      + "<em>" + detail.value + "</em>"
+      + (preview !== null && preview > detail.value
+        ? "<span class=\"train-next\">→ " + preview + "</span>"
+        : "")
+      + "</span></b>"
+      + segmentMeter(detail.level, detail.maxLevel, {
+        label: "Lv" + detail.level + "/" + detail.maxLevel,
+        nextIndex: capped ? null : detail.level,
+        tone: capped ? "good" : null,
+      })
+      + stallNote + "</span>"
+      + "<span class=\"purchase-buy\"><span class=\"purchase-cost\">"
+      + (capped ? "上限" : formatFunds(detail.cost)) + "</span>"
       + (capped
-        ? "<span class=\"purchase-done\">✓</span>"
+        ? "<span class=\"purchase-done\">" + glyph("check") + "</span>"
         : button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
-          "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"")) + "</div>";
+          "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"")) + "</span></div>";
   }).join("");
   const metOptions = metCharacterOptions();
   const memberTabsHtml = "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">"
@@ -2019,21 +2279,40 @@ function renderGuild() {
       + (option.id === characterId ? "active" : "") + "\" data-action=\"select-guild-character\" data-character=\""
       + option.id + "\"><span class=\"avatar small\">" + esc(option.icon) + "</span><span>"
       + characterName(option.id) + "<small>" + esc(option.role) + "</small></span></button>").join("") + "</div>";
+  // **鍛錬の数は、式ではなく定数から引く。**画面へ写した数（旧「一段6%・上限72%」）は、
+  // R23 で段の効きを変えた日に置き去りになった。ここでは TRAINING_STEP_BPS と
+  // 段数そのものから出す。
+  const stepPercent = (TRAINING_STEP_BPS / 100).toFixed(0);
+  const trainMaxLevel = Object.values(stats.detail)[0]?.maxLevel ?? 12;
+  const capPercent = ((TRAINING_STEP_BPS * trainMaxLevel) / 100).toFixed(0);
+  const spent = Object.values(stats.detail).reduce((total, detail) => total + detail.level, 0);
+  const spentMax = Object.values(stats.detail).length * trainMaxLevel;
   return "<section class=\"card\">" + sectionHeading("ACTIVITY FUNDS", "資金を使う",
-      "<span class=\"stage\" data-fx-watch=\"funds\">" + formatFunds(funds()) + "</span>")
-    + "<p class=\"operation-note\">購入は取り消せません。購入後の値と価格を確認してから選んでください。</p>"
+      "<span class=\"stage\" data-fx-watch=\"funds\">" + glyph("funds") + formatFunds(funds()) + "</span>")
+    + ruleGrid([{ glyph: "lock", title: "購入は取り消せません", line: "買ったあとの値と価格を、先に確かめる。", tone: "bad" }],
+      "warn-grid")
     + "<div class=\"purchase-list\">" + upgrades + "</div>"
     + helpDetails("guild-rules", "投資のルール",
-      "<p class=\"muted\">活動資金は遠征終了時に精算されます。実入りは Stage が進むほど大きくなります（第一部の最後は最初の9倍）。</p>"
-      + "<p class=\"muted\">投資先は二種類あります。<b>常設の強化</b>（開始補給・初期SP・設計図の持込枠・目利き・装備枠・野営の手当て）は買い切りで、<b>鍛錬</b>は仲間と能力ごとに12段まで積めます。鍛錬は一段で基礎値の6%、上限まで積むと72%増えます。</p>"
-      + "<p class=\"muted\">第一部を通して入る資金では、鍛錬を全部積むことはできません。<b>どこに積むかを毎回選びます。</b></p>")
+      ruleGrid([
+        { glyph: "funds", title: "精算", value: "遠征の終わりに一度", line: "実入りは Stage が進むほど大きい（第一部の最後は最初の9倍）。" },
+        { glyph: "gear", title: "常設の強化", value: "買い切り", line: "開始補給・初期SP・持込枠・目利き・装備枠・野営の手当て。" },
+        { glyph: "might", title: "鍛錬", value: trainMaxLevel + "段 · 一段 +" + stepPercent + "%", line: "上限まで積むと基礎値 +" + capPercent + "%。仲間と能力ごとに別勘定。" },
+        { glyph: "lock", title: "全部は積めない", value: "毎回選ぶ", line: "第一部を通して入る資金では、鍛錬は埋まらない。", tone: "bad" },
+      ]))
     + "</section>"
     + "<section class=\"card\">" + sectionHeading("CHARACTER TRAINING", "仲間を鍛える",
       "<span class=\"stage\">" + metOptions.length + "人</span>")
     + memberTabsHtml
+    + statTiles([
+      { value: characterName(characterId), label: "鍛える相手", glyph: "person", tone: "quiet" },
+      { value: spent + " / " + spentMax, label: "積んだ段", glyph: "might", tone: "gold" },
+    ], "train-summary", 2)
     + "<div class=\"purchase-list\">" + trainingRows + "</div>"
     + helpDetails("training-rules", "鍛錬のルール",
-      "<p class=\"muted\">1段で基礎値が少し上がります。行動権・技能の装着数・発火回数は変わりません。</p>")
+      ruleGrid([
+        { glyph: "up", title: "上がるもの", value: "基礎値だけ", line: "一段で +" + stepPercent + "%。丸めた表示が動かない段もある。", tone: "good" },
+        { glyph: "lock", title: "上がらないもの", value: "行動権・装着数・発火回数", line: "鍛錬では増えません。", tone: "bad" },
+      ]))
     + "</section>";
 }
 
@@ -2079,8 +2358,15 @@ function dossierCard(characterId, met) {
   // **まだ開いていない節は、数だけ見せて中身を出さない。**
   // 「この先がある」と分かることと、先を読めてしまうことは別である。
   const sealed = DOSSIER_SECTIONS_TOTAL - open.length;
+  // 作者要望 2026-09-13 — **どこまで開いたかは目盛りで出す。**残りの一行は、
+  // 数の言い直しではなく世界の側の言い方なので、目盛りの下にそのまま残す。
   const sealedNote = sealed > 0
-    ? "<p class=\"dossier-sealed\">まだ書かれていない節が " + sealed
+    ? "<div class=\"dossier-progress\">" + glyph("lock")
+      + segmentMeter(open.length, DOSSIER_SECTIONS_TOTAL, {
+        label: "書けた節 " + open.length + " / " + DOSSIER_SECTIONS_TOTAL,
+      })
+      + "</div>"
+      + "<p class=\"dossier-sealed\">まだ書かれていない節が " + sealed
       + " つある。この人と、もう少し灰へ入ること。</p>"
     : "";
   const info = characterInfo(characterId);
@@ -2098,8 +2384,13 @@ function renderDossiers() {
   const cards = CHARACTER_OPTIONS.map((option) => dossierCard(option.id, met)).filter(Boolean).join("");
   return "<section class=\"card\">" + sectionHeading("ROSTER FILE", "隊の名簿",
       "<span class=\"stage\">" + met.size + " 人</span>")
-    + "<p class=\"muted\">詰所へ出す申請の控えです。<b>灰へ何度も一緒に入るほど、書ける欄が増えます。</b>"
-    + "戦闘の役には影響しません。</p>"
+    + ruleGrid([{
+      glyph: "book",
+      title: "詰所へ出す申請の控え",
+      value: "灰へ入るほど増える",
+      line: "何度も一緒に入るほど、書ける欄が増えます。戦闘の役には影響しません。",
+      tone: "quiet",
+    }])
     + (cards || "<p class=\"muted\">まだ誰の欄も書けていません。</p>")
     + "</section>";
 }
@@ -2145,7 +2436,7 @@ function homesteadSceneList() {
   const seen = seenHomesteadScenes(seenHomesteadIds(state.profile.storyFlags));
   if (!seen.length) return "";
   return "<section class=\"card\">" + sectionHeading("EVENINGS / " + seen.length, "根城での場面")
-    + "<p class=\"muted\">一度見た場面は、ここから読み返せます。</p>"
+    + ruleGrid([{ glyph: "book", title: "読み返せます", value: "一度見た場面", line: "既読の印は消えません。", tone: "quiet" }])
     + "<div class=\"scene-list\">" + seen.map((entry) => "<button type=\"button\" class=\"scene-row\""
       + " data-action=\"replay-homestead\" data-scene=\"" + esc(entry.id) + "\"><b>"
       + esc(entry.beat.title) + "</b><small>" + esc(entry.beat.place) + "</small></button>").join("")
@@ -2157,8 +2448,13 @@ function homesteadBody() {
   const pending = pendingHomesteadScene();
   return "<section class=\"card\">" + sectionHeading("HOMESTEAD / " + open, "根城",
       "<span class=\"stage\">" + metCharacterIds().size + " 人</span>")
-    + "<p class=\"muted\">灰の縁から外れた廃屋を直して使っています。<b>拾ってきたもので少しずつ増えます。</b>"
-    + "戦闘には影響しません。</p>"
+    + ruleGrid([{
+      glyph: "home",
+      title: "灰の縁から外れた廃屋",
+      value: "拾ってきたもので増える",
+      line: "戦闘には影響しません。",
+      tone: "quiet",
+    }])
     + fixtureCards()
     + (pending
       ? "<div class=\"flow-actions\">" + button("今夜の場面を見る", "enter-homestead-scene", false, "button primary")
@@ -2204,14 +2500,19 @@ function bestiaryCard(entry) {
   const deep = entry.defeated >= CODEX_DEEP_THRESHOLD;
   const codex = deep ? (ENEMY_CODEX[entry.id] ?? []) : [];
   const sealed = !deep && (ENEMY_CODEX[entry.id] ?? []).length > 0;
+  // 作者要望 2026-09-13 — 見た数・倒した数は札で、書き足しまでの残りは目盛りで出す。
   return "<article class=\"codex-card\"><div class=\"codex-head\"><b>" + esc(info.label) + "</b>"
-    + "<small>見た " + entry.seen + " · 倒した " + entry.defeated + "</small></div>"
+    + "<span class=\"codex-counts\"><span>" + glyph("eye") + "見た " + entry.seen + "</span>"
+    + "<span>" + glyph("strike") + "倒した " + entry.defeated + "</span></span></div>"
     + "<p class=\"codex-targeting\">" + esc(info.targeting) + "</p>"
     + (entry.defeated > 0 && info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
     + codex.map((line) => "<p class=\"codex-line\">" + esc(line) + "</p>").join("")
     + (sealed
-      ? "<p class=\"dossier-sealed\">あと " + (CODEX_DEEP_THRESHOLD - entry.defeated)
-        + " 体倒すと、書き足せることがある。</p>"
+      ? "<div class=\"codex-seal\">" + glyph("lock")
+        + segmentMeter(entry.defeated, CODEX_DEEP_THRESHOLD, {
+          label: "あと " + (CODEX_DEEP_THRESHOLD - entry.defeated) + " 体倒すと書き足せる",
+        })
+        + "</div>"
       : "")
     + "</article>";
 }
@@ -2221,8 +2522,13 @@ function renderBestiary() {
   const deep = entries.filter((entry) => entry.defeated >= CODEX_DEEP_THRESHOLD).length;
   return "<section class=\"card\">" + sectionHeading("FIELD CODEX / " + entries.length, "会った灰殻の記録",
       "<span class=\"stage\">書き足せた " + deep + "</span>")
-    + "<p class=\"muted\">詰所へ出す控えの写しです。<b>遠征を捨てても消えません</b>"
-    + "（会ったことは、負けても取り消されないので）。灰殻が何なのかは、ここにも書いてありません。</p>"
+    + ruleGrid([{
+      glyph: "eye",
+      title: "詰所へ出す控えの写し",
+      value: "遠征を捨てても消えない",
+      line: "会ったことは、負けても取り消されません。灰殻が何なのかは、ここにも書いてありません。",
+      tone: "quiet",
+    }])
     + (entries.length
       ? "<div class=\"codex-grid\">" + entries.map(bestiaryCard).join("") + "</div>"
       : "<p class=\"muted\">まだ一体も記録がありません。灰へ入ると増えます。</p>")
@@ -2302,10 +2608,20 @@ function renderBlueprints() {
 
   return "<section class=\"card\">" + sectionHeading("BLUEPRINT ARCHIVE", "残した品の設計図",
       "<span class=\"stage\">持込 " + carried.length + " / " + capacity + "</span>")
-    + "<p class=\"muted\">遠征で見つけた装備は、遠征が終わるときに設計図として残ります"
-    + "（勝利2件・安全撤退2件・敗北1件）。<b>設計図そのものに所持上限はありません。</b>"
-    + "遠征開始時に持ち込めるのは持込枠のぶんだけで、持ち込んだ品は"
-    + "その遠征で選ばれた装備の系統の外でも、そのまま動きます。</p>"
+    // **残せる数は定数から引く。**ここへ書き写した件数は、PR #255 で上限を
+    // 変えた日に置き去りになり、実際の上限（勝利1・撤退0・敗北0）と食い違っていた。
+    + ruleGrid([
+      { glyph: "blueprint", title: "所持上限", value: "なし", line: "設計図そのものは何件でも残ります。", tone: "good" },
+      { glyph: "supply", title: "持込枠", value: capacity + " 件", line: "遠征開始時に持ち込める数。ギルドで伸ばせます。" },
+      {
+        glyph: "check",
+        title: "残せる数",
+        value: "勝利 " + blueprintSaveLimitFor("won") + " · 撤退 " + blueprintSaveLimitFor("retreat")
+          + " · 敗北 " + blueprintSaveLimitFor("lost"),
+        line: "遠征の終わり方で決まります。",
+      },
+      { glyph: "gear", title: "持込品", value: "系統の外でも動く", line: "その遠征で選ばれた技能パックに関わらず、そのまま動きます。" },
+    ])
     + "<div class=\"flow-actions\">" + rarityFilters + "</div>"
     + (entries.length
       ? "<div class=\"reward-grid\">" + cards + "</div>"
@@ -3049,7 +3365,8 @@ function rosterSwapSection() {
   if (rosterLocked()) {
     return "<section class=\"card quiet\">" + sectionHeading("ROSTER", "同行者",
         "<span class=\"stage\">" + partyLabel() + "</span>")
-      + "<p class=\"muted\">この区画の同行者は物語が決めます。一度クリアすると自由に選べます。</p></section>";
+      + ruleGrid([{ glyph: "lock", title: "同行者", value: "物語が決める", line: "一度クリアすると、自由に選べるようになります。" }])
+      + "</section>";
   }
   return "<section class=\"card\">" + sectionHeading("ROSTER", "仲間を入れ替える",
       "<span class=\"stage\">" + partyLabel() + "</span>")
@@ -3083,10 +3400,14 @@ function statusGlossaryHelp() {
     + "<small>" + esc(entry.summary)
     + "（最大" + entry.maxStacks + "段・" + esc(entry.durationText) + "）</small></div>").join("");
   return helpDetails("status-rules", "状態（バフ・デバフ）の意味",
-    "<p class=\"muted\">技能の説明にある「守勢を1つ」などは、ここの状態を1段つけるという意味です。</p>"
+    ruleGrid([{ glyph: "up", title: "「守勢を1つ」", value: "＝ 1段つける", line: "技能の説明の数え方は、ここの段のことです。", tone: "quiet" }])
     + "<div class=\"glossary\">" + rows + "</div>"
-    + "<p class=\"muted\">防壁（総量を吸う）・受け構え（一撃を回数で無効にする）・受け（一撃ごとの固定軽減）は"
-    + "状態ではなく、それぞれ別の守りです。</p>");
+    + "<h3 class=\"legend-heading\">状態ではない守り</h3>"
+    + ruleGrid([
+      { glyph: "guard", title: "防壁", value: "総量を吸う" },
+      { glyph: "guard", title: "受け構え", value: "一撃を回数で無効にする" },
+      { glyph: "guard", title: "受け", value: "一撃ごとの固定軽減" },
+    ]));
 }
 
 // その行動に固有条件・発動条件があるかを表示する（issue #176）。
@@ -4063,20 +4384,40 @@ function ultimateRowState(characterId, skillId, kind) {
 
 // 必殺技の説明。**畳んだ中に置く**ので、普段は一行も画面を占めない。
 function ultimateHelp() {
-  return helpDetails("ultimate-rules", "必殺技のルール",
-    "<p class=\"muted\"><b>装着した技能を長押しすると、その一戦の必殺技になります。</b>"
-    + "もう一度長押しすると外れます。構えている行は金色に光り、✹ が付きます。"
-    + "指定も構えも無料で、いつでも変えられます（払うのは、戦って本当に放ったときだけ）。</p>"
-    + "<p class=\"muted\">必殺技は新しい技能ではありません。掛かる変換は"
-    + "<b>単体が全体になる</b>（自分だけを守る技能は味方全員へ）・<b>量が"
-    + ULTIMATE_AMOUNT_MULTIPLIER + "倍</b>・<b>溜めが消える</b>・<b>防壁が戦闘のあいだ残る</b>・"
-    + "<b>反応点を払わない</b>（リアクティブ）です。AP・回数・耐久・行動権は変わりません。</p>"
-    + "<p class=\"muted\"><b>放てるのは一人につき一遠征（12戦）に一度きり</b>です。補充されません。"
-    + "構えても放たなければ減らず、負けてやり直した一戦でも減りません。</p>"
-    + "<p class=\"muted\"><b>隊の誰かがHP" + ULTIMATE_READY_HP_PERCENT
-    + "%未満になってからでないと出ません。</b>元の技能と同じ条件で、その技能が最初に出る"
-    + "場面に出ます。戦闘に1回きりで、放った直後は自分へ「隙」が1段付きます。"
-    + "出るかどうかも、そのあとどうなるかも、上の戦闘予測にそのまま出ています。</p>");
+  return helpDetails("ultimate-rules", "必殺技のルール", ruleGrid([
+    {
+      glyph: "spark",
+      title: "構える",
+      value: "装着行を長押し",
+      line: "もう一度の長押しで外れる。構えた行は金色に光り ✹ が付く。指定も解除も無料。",
+    },
+    {
+      glyph: "up",
+      title: "掛かる変換",
+      value: "単体→全体 · 量 ×" + ULTIMATE_AMOUNT_MULTIPLIER + " · 溜めなし · 防壁が残る · 反応点なし",
+      line: "AP・回数・耐久・行動権は変わりません。",
+      tone: "good",
+    },
+    {
+      glyph: "lock",
+      title: "放てる数",
+      value: "一人 1回 / 遠征",
+      line: "補充されません。構えただけでは減らず、負けてやり直した一戦でも減りません。",
+      tone: "bad",
+    },
+    {
+      glyph: "vitality",
+      title: "出る条件",
+      value: "隊の誰かが HP " + ULTIMATE_READY_HP_PERCENT + "%未満",
+      line: "元の技能と同じ条件で、その技能が最初に出る場面に出ます。",
+    },
+    {
+      glyph: "round",
+      title: "放った後",
+      value: "自分に「隙」1段",
+      line: "戦闘に1回きり。出るかどうかも、その後も、戦闘予測にそのまま出ます。",
+    },
+  ]));
 }
 
 function renderSkills() {
@@ -4102,22 +4443,53 @@ function renderSkills() {
     + skillBuildSummary(characterId) + renderSkillTree(characterId)
     + "</details>"
     + symbolLegendHelp()
-    + helpDetails("skill-rules", "技能のルール",
-      "<p class=\"muted\">取得した技能は遠征中に忘れません。使った技能点は戻らず、<b>取得した技能はその場で装着されて回り始めます</b>（枠の上限はありません）。</p>"
-      // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
-      // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
-      + "<p class=\"muted\"><b>アクティブは順番に回ります。</b>いま出した技能の次から判定を始め、"
-      + "条件つきの技能が未達ならスキップして後ろを試します。<b>装着を増やすほど、一本あたりの出番は減ります。</b></p>"
-      + "<p class=\"muted\">リアクティブも上から順に判定します。条件が別々なので複数が同じ拍に鳴りますが、"
-      + "反応点が尽きた時点で下の技能は出ません。</p>"
-      + "<p class=\"muted\"><b>不要な技能はオフにできます。</b>オフの技能は戦闘にも予測にも現れませんが、取得状態・前提・段は失いません。starter の前提として無償で付く節は、最初からオフで並んでいます。</p>"
-      // 作者指摘 2026-09-13 — 予約の規則（自動取得の順と、入る向き）はここに一度だけ置く。
-      // 節ごとの盤で毎回繰り返すと、盤が高くなって地図が見えなくなる。
-      + "<p class=\"muted\"><b>取得予約は一人につき一つです。</b>技能点が入るたびに、前提 → 必要な段 → 目的の技能 → 目的の段の順で、払えるところまで自動で取ります。"
-      + "途中の前提はオフ、目的の技能はオンで入ります。予約先は上の帯に出ていて、別の節を予約すると切り替わります。</p>"
-      + (ultimatesUnlocked(state.run)
-        ? "<p class=\"muted\"><b>装着した技能を長押しすると、その一戦の必殺技になります。</b>詳しくは下の「必殺技のルール」を開いてください。</p>"
-        : ""))
+    // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
+    // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
+    // 作者指摘 2026-09-13 — 予約の規則（自動取得の順と、入る向き）はここに一度だけ置く。
+    // 節ごとの盤で毎回繰り返すと、盤が高くなって地図が見えなくなる。
+    + helpDetails("skill-rules", "技能のルール", ruleGrid([
+      {
+        glyph: "skill",
+        title: "取得",
+        value: "枠の上限はありません",
+        line: "取った技能はその場で装着されて回り始めます。",
+      },
+      {
+        glyph: "lock",
+        title: "取り消せない",
+        value: "取得した技能は遠征中に忘れません",
+        line: "使った技能点も戻りません。",
+        tone: "bad",
+      },
+      {
+        glyph: "round",
+        title: "アクティブ",
+        value: "順番に回る",
+        line: "出した技能の次から判定し、条件が未達ならスキップ。装着を増やすほど一本の出番は減ります。",
+      },
+      {
+        glyph: "retry",
+        title: "リアクティブ",
+        value: "上から順に判定",
+        line: "条件が別々なので複数が同じ拍に鳴りますが、反応点が尽きた時点で下は出ません。",
+      },
+      {
+        glyph: "cross",
+        title: "オフ",
+        value: "取得状態・前提・段は失わない",
+        line: "戦闘にも予測にも現れません。starter の前提として無償で付く節は最初からオフです。",
+        tone: "quiet",
+      },
+      {
+        glyph: "flag",
+        title: "取得予約",
+        value: "一人につき一つ",
+        line: "技能点が入るたび、前提 → 必要な段 → 目的の技能 → 目的の段の順で自動で取ります。途中の前提はオフ、目的はオンで入ります。",
+      },
+      ultimatesUnlocked(state.run)
+        ? { glyph: "spark", title: "必殺技", value: "装着行を長押し", line: "詳しくは下の「必殺技のルール」を開いてください。" }
+        : null,
+    ]))
     + (ultimatesUnlocked(state.run) ? ultimateHelp() : "")
     + statusGlossaryHelp()
     + "</section>";
@@ -4187,10 +4559,12 @@ function renderEquipment() {
     + memberContext(characterId, "equipment")
     + slots
     + inventory
-    + helpDetails("equipment-rules", "装備のルール",
-      "<p class=\"muted\">装備は何度でも付け外しできます。生成装備の発火効果は耐久を1消費し、複数効果・多段・範囲効果は2消費します。耐久0では以後の発火効果が不発になります。</p>"
-      + "<p class=\"muted\">能力値補正は装着中の常時効果なので耐久を消費しません。修理効果は自己相殺を避け、HPか防壁の有限コストを使います。</p>"
-      + "<p class=\"muted\">耐久は戦闘後に最大へ戻り、遠征終了時は装備を手放します。所持上限は" + INVENTORY_LIMIT + "品です。</p>")
+    + helpDetails("equipment-rules", "装備のルール", ruleGrid([
+      { glyph: "gear", title: "付け外し", value: "何度でも", line: "所持上限は " + INVENTORY_LIMIT + " 品。遠征が終わると装備は手放します。" },
+      { glyph: "spark", title: "発火効果", value: "耐久 −1（複数効果・多段・範囲は −2）", line: "耐久0では、以後の発火効果が不発になります。", tone: "bad" },
+      { glyph: "up", title: "能力値補正", value: "耐久を使わない", line: "装着しているあいだ効く常時効果です。", tone: "good" },
+      { glyph: "retry", title: "耐久", value: "戦闘後に最大へ戻る", line: "修理効果は自己相殺を避け、HPか防壁の有限コストを使います。" },
+    ]))
     + "</section>";
 }
 
@@ -4271,18 +4645,28 @@ function supplyTotal() {
   return runSuppliesMax(state.run);
 }
 
+// issue #236 改 / 作者要望 2026-09-13 — 用途は**箇条書きの文ではなく記号つきの名札**にする。
+// 三つが同じ一つを取り合っていることは、並びと目盛りで出る（文で言い直さない）。
+const SUPPLY_USE_MARKS = Object.freeze({
+  retry: { glyph: "retry", title: "再挑戦" },
+  reroll: { glyph: "reroll", title: "引き直し" },
+  camp: { glyph: "camp", title: "野営治療" },
+});
+
 function suppliesBar(context) {
   const supplies = state.run.supplies;
   const total = supplyTotal();
-  const pips = Array.from({ length: total }, (_, index) =>
-    "<span class=\"supply-pip " + (index < supplies ? "on" : "") + "\"></span>").join("");
-  const uses = Object.entries(SUPPLY_USES)
-    .map(([id, text]) => "<li><b>" + esc({ retry: "再挑戦", reroll: "引き直し", camp: "野営治療" }[id])
-      + "</b> " + esc(text) + "</li>").join("");
+  const uses = Object.entries(SUPPLY_USES).map(([id, text]) => ({
+    glyph: SUPPLY_USE_MARKS[id]?.glyph ?? "supply",
+    title: SUPPLY_USE_MARKS[id]?.title ?? id,
+    line: text,
+    tone: supplies ? null : "quiet",
+  }));
   return "<div class=\"supplies-bar\"><div class=\"supplies-head\">"
-    + "<b data-fx-watch=\"supplies\">補給 " + supplies + " / " + total
-    + "</b><span>" + esc(context ?? "3つの用途で取り合う") + "</span></div>"
-    + "<div class=\"supply-pips\">" + pips + "</div><ul class=\"supply-uses\">" + uses + "</ul></div>";
+    + "<b data-fx-watch=\"supplies\">" + glyph("supply") + "補給 " + supplies + " / " + total
+    + "</b><span>" + esc(context ?? "三つの用途で取り合う") + "</span></div>"
+    + segmentMeter(supplies, total, { tone: supplies ? null : "bad" })
+    + ruleGrid(uses, "supply-uses-grid") + "</div>";
 }
 
 function renderSupplies() {
@@ -4296,11 +4680,11 @@ function renderSupplies() {
     + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= supplyTotal(), "tiny-button")
     + "</div></section>"
     + treatment
-    + helpDetails("supply-rules", "補給のルール",
-      "<p class=\"muted\">補給はこの遠征の開始時に " + supplyTotal()
-      + " 個で固定され、報酬では増えません。再挑戦と引き直しに使った分は、野営治療には使えません。"
-      + "装備を分解して出た屑は、使った分を " + SCRAP_PER_SUPPLY
-      + " で1個だけ戻せます（総数は超えません）。総数はギルドの「開始補給」で伸びます。</p>");
+    + helpDetails("supply-rules", "補給のルール", ruleGrid([
+      { glyph: "supply", title: "総数", value: supplyTotal() + " 個で固定", line: "報酬では増えません。総数はギルドの「開始補給」で伸びます。" },
+      { glyph: "multiply", title: "取り合い", value: "再挑戦・引き直し・野営", line: "先に使った分は、残りの用途へ回りません。", tone: "bad" },
+      { glyph: "reroll", title: "屑から戻す", value: "屑 " + SCRAP_PER_SUPPLY + " → 補給 1", line: "戻せるのは使った分だけで、総数は超えません。", tone: "good" },
+    ]));
 }
 
 
@@ -4317,29 +4701,40 @@ function lastBattleNoteHtml(override = undefined) {
     "技能点 +" + note.skillPoints,
   ];
   if (note.equipmentWear > 0) facts.push("装備摩耗 " + note.equipmentWear);
-  const extra = [];
-  if (note.fullHealed) extra.push("幕が変わったので全員が全回復しました。");
-  else extra.push("このHPを次の戦闘へ持ち越します。");
+  // 作者要望 2026-09-13 — 後始末は**段で出す。**文を継ぎ足すと、
+  // 「全回復した／誰が倒れた／誰が放った」が一つの塊になって読み飛ばされる。
+  const after = [note.fullHealed
+    ? { glyph: "vitality", title: "全回復", value: "幕が変わった", line: "全員のHPが戻りました。", tone: "good" }
+    : { glyph: "vitality", title: "持ち越し", value: "このHPのまま次へ", line: "敵を残して待っても戻りません。" }];
   if (note.downed.length) {
-    extra.push("戦闘不能：" + note.downed.map((id) => characterName(id)).join(" · ")
-      + "（補給の蘇生で戻せます）。");
+    after.push({
+      glyph: "cross",
+      title: "戦闘不能",
+      value: note.downed.map((id) => characterName(id)).join(" · "),
+      line: "補給の蘇生で戻せます。",
+      tone: "bad",
+    });
   }
-  // issue #238 — 必殺の印は「放ったから」減る。**結果画面と同じ文**で出す
-  // （同じ出来事を画面ごとに別の言い方で書かない）。
+  // issue #238 — 必殺の印は「放ったから」減る。**結果画面と同じ言い方**で出す
+  // （同じ出来事を画面ごとに別の形で書かない）。
   if (note.ultimateFiredBy.length) {
     const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
-    extra.push("✹ " + note.ultimateFiredBy.map((id) => characterName(id)).join(" · ")
-      + " が必殺技を放ちました。この遠征ではもう放てません。"
-      + (stillHave.length
-        ? "まだ残しているのは " + stillHave.map((id) => characterName(id)).join(" · ") + " です。"
-        : "隊の全員が放ち終えました。"));
+    after.push({
+      glyph: "spark",
+      title: "必殺技を放った",
+      value: note.ultimateFiredBy.map((id) => characterName(id)).join(" · "),
+      line: "この遠征ではもう放てません。"
+        + (stillHave.length
+          ? "まだ残しているのは " + stillHave.map((id) => characterName(id)).join(" · ") + " です。"
+          : "隊の全員が放ち終えました。"),
+    });
   }
   return "<section class=\"card last-battle-note\" role=\"status\">"
     + "<p class=\"eyebrow\">LAST BATTLE</p>"
     + "<h3>第" + note.encounter + "戦・" + kindLabel + " — 突破した</h3>"
     + "<p class=\"last-battle-facts\">" + facts.map((text) =>
       "<span>" + esc(text) + "</span>").join("") + "</p>"
-    + "<p class=\"muted\">" + esc(extra.join(" ")) + "</p></section>";
+    + ruleGrid(after) + "</section>";
 }
 
 // issue #235 — 旧「戦闘」タブ。**準備タブ（スキル・装備・補給）と役が違う。**
@@ -4391,11 +4786,14 @@ function renderMap() {
     : "";
   const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵 "
     + encounter.enemies.length + "体</summary>" + expeditionEnemyBoard(encounter) + "</details>";
-  const ruleBody = (isCampaignRun()
-    ? "<p class=\"muted\">通常・精鋭戦の後はHPを次の戦闘へ持ち越します。4戦目・8戦目のボス後だけ全員が全回復します。敵を倒さずに待ってもHPは戻りません。</p>"
-    : "<p class=\"muted\">この遠征では戦闘終了後にHPと装備耐久が最大へ戻ります。</p>")
-    + "<p class=\"muted\">上の盤面の「⇅ 隊列」を押すと、どのタブからでも立ち位置を組み替えられます。前列は武器攻撃を通しやすく、後列は技術による攻撃や支援に向きます。前列の人数で狙われ方も変わります。</p>"
-    + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
+  const ruleBody = ruleGrid([
+    isCampaignRun()
+      ? { glyph: "vitality", title: "HP", value: "次の戦闘へ持ち越す", line: "全回復するのは4戦目・8戦目のボス後だけ。敵を残して待っても戻りません。", tone: "bad" }
+      : { glyph: "vitality", title: "HP・装備耐久", value: "戦闘後に最大へ戻る", line: "この遠征では持ち越しません。", tone: "good" },
+    { glyph: "person", title: "隊列", value: "⇅ 隊列 でいつでも", line: "どのタブからでも組み替えられます。" },
+    { glyph: "might", title: "前列", value: "武器攻撃が通る", line: "前列の人数で、狙われ方も変わります。" },
+    { glyph: "focus", title: "後列", value: "技術の攻撃と支援向き", line: "武器攻撃は後列から出すと大きく落ちます。" },
+  ]) + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
   // R11 §5 改 / issue #235 — 巻き戻し直後の手引きは、隊列を触る話なので盤面の近くに要る。
   // だが固定領域へ入れると常時4行を奪うので、**この一度きりの場面だけ本文の頭に置く。**
   // 作者指摘 2026-09-12 — 一段落の手引きでは「どこを押すのか」が伝わらない。段ごとに
@@ -4413,7 +4811,7 @@ function renderMap() {
     + (canRetreat ? button("安全に撤退する", "abandon-run", false, "button quiet") : "")
     + "</div>"
     + (canRetreat
-      ? "<p class=\"muted\">撤退すると、ここまで確定した活動資金だけを持ち帰って遠征を終えます。</p>"
+      ? ruleGrid([{ glyph: "funds", title: "撤退", value: "確定分だけ持ち帰る", line: "遠征はそこで終わります。技能点・装備・補給は残りません。" }])
       : "")
     + "</section>";
   return rewindTutorialNote
@@ -4462,6 +4860,12 @@ function treatmentResultBlock() {
 // 仲間一覧を作らない。**候補・対象外・選択中の治療名・取り消しは、すべて盤面と
 // その一行（partyCellRole / partyBoardNote）が持つので、このタブには何も足さない。
 
+const TREATMENT_GLYPHS = Object.freeze({
+  concentrated: "vitality",
+  full_party: "camp",
+  revive: "person",
+});
+
 function campTreatmentBlock() {
   const tutorial = supplyTutorialVisible();
   const selectedTreatment = state.treatmentSelection ? CAMP_TREATMENTS[state.treatmentSelection] : null;
@@ -4475,16 +4879,23 @@ function campTreatmentBlock() {
       : state.treatmentSelection === treatment.id
         ? "選び直す"
         : "対象を選ぶ";
-    return "<div class=\"purchase-row" + (state.treatmentSelection === treatment.id ? " treatment-selected" : "") + "\"><span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
+    // 治療の行も投資の行と同じ三列（記号・中身・払うもの）で組む。
+    return "<div class=\"purchase-row" + (state.treatmentSelection === treatment.id ? " treatment-selected" : "")
+      + "\"><span class=\"purchase-mark\">" + glyph(TREATMENT_GLYPHS[treatment.id] ?? "camp") + "</span>"
+      + "<span class=\"purchase-copy\"><b>" + esc(treatment.displayName)
       + "</b><small>" + esc(treatment.summary) + "</small></span>"
+      + "<span class=\"purchase-buy\">"
       + button(actionLabel, "treat", disabled, "tiny-button primary-mini", "data-treatment=\"" + esc(treatment.id) + "\"")
-      + "</div>";
+      + "</span></div>";
   }).join("");
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営治療",
       "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
     + treatmentResultBlock() + rows
-    + helpDetails("treatment-rules", "治療の対象",
-      "<p class=\"muted\">集中治療と蘇生は治療を選んだあと、対象をプレイヤーが明示的に選びます。集中治療は負傷した生存者、蘇生は戦闘不能者だけが候補です。全体手当は生存者全員へ適用します。</p>")
+    + helpDetails("treatment-rules", "治療の対象", ruleGrid([
+      { glyph: "vitality", title: "集中治療", value: "負傷した生存者", line: "治療を選んだあと、対象を選びます。" },
+      { glyph: "person", title: "蘇生", value: "戦闘不能者だけ", line: "治療を選んだあと、対象を選びます。" },
+      { glyph: "camp", title: "全体手当", value: "生存者全員", line: "対象は選びません。" },
+    ]))
     + "</section>";
 }
 
@@ -5518,11 +5929,7 @@ function renderBattle() {
     + button("次へ ▶", "replay-result", false, "button primary",
       "data-role=\"replay-next\"" + (atEnding ? "" : " hidden"))
     + "</div></section>"
-    + helpDetails("battle-display", "表示の説明",
-      "<p class=\"muted\">踏み込んだ箱が動いた側、揺れた箱が受けた側です。踏み込みは狙った相手の列へ向かい、攻撃側から被弾側へ光の線が一度だけ走ります。狙われている箱には金色の四隅が付きます。浮かぶ数字はダメージ・回復・防壁、箱の下の帯は緑＝残HP、濃い緑＝この攻撃で回復した分、赤＝回復可能残分、黒＝回復不能分、上端の灰色＝防壁を示します。</p>"
-      + "<p class=\"muted\">一撃の重さは最大HPに対する割合で三段です。15%以上で揺れと数字が一段大きくなり、30%以上（と撃破）ではさらに大きくなって盤面ごと揺れます。端末の「視差効果を減らす」を入れている場合は動きだけが止まり、帯・照準・数字はそのまま出ます。</p>"
-      + "<p class=\"muted\">枠色はHPでは変えません。生存中の残りHPが56%以上なら主色は緑、26〜55%なら黄、25%以下なら赤です。残HPは主色、今回の攻撃で回復済みは主色の薄め、回復可能は主色のかなり暗め、回復不能は黒で表示します。</p>"
-      + "<p class=\"muted\">細かい出来事や診断情報は、戦闘履歴の技術ログで確認できます。</p>")
+    + helpDetails("battle-display", "表示の説明", battleLegend())
     // issue #176 — 盤面に出ている状態の意味を、その場で引けるようにする。
     + statusGlossaryHelp()
     + "<details class=\"card battle-history debug-log\"" + (state.replayLogOpen ? " open" : "")
@@ -6175,6 +6582,65 @@ function diagnosticEventText(event, actorLabels) {
     + (targets ? " → " + targets : "") + rule + skill;
 }
 
+// 作者要望 2026-09-13 — **色と形の説明は、色と形で出す。**
+//
+// ここは四段落の文章だった（帯の色、主色の境目、一撃の重さ、動きの意味を全部書いていた）。
+// 盤面の見た目を言葉へ翻訳して読ませるのは、翻訳を二度させることである。
+// 同じ帯・同じ四隅・同じ大きさの点をそのまま並べ、名前だけを添える。
+function legendSwatch(inner, className = "") {
+  return "<span class=\"legend-swatch" + (className ? " " + className : "") + "\" aria-hidden=\"true\">"
+    + inner + "</span>";
+}
+
+function legendItems(items) {
+  return "<div class=\"legend-grid\">" + items.map((item) =>
+    "<div class=\"legend-item\">" + item.swatch
+    + "<span class=\"legend-copy\"><b>" + esc(item.title) + "</b>"
+    + (item.line ? "<small>" + esc(item.line) + "</small>" : "") + "</span></div>").join("") + "</div>";
+}
+
+function battleLegend() {
+  // 帯そのもの。**盤面の .unit-bar と同じ層構成で、同じ色を使う。**
+  const hpBar = "<span class=\"legend-bar\">"
+    + "<i class=\"seg main\" style=\"width:46%\"></i>"
+    + "<i class=\"seg recovered\" style=\"width:14%\"></i>"
+    + "<i class=\"seg recoverable\" style=\"width:22%\"></i>"
+    + "<i class=\"seg unrecoverable\" style=\"width:18%\"></i>"
+    + "<i class=\"seg barrier\"></i></span>";
+  const band = legendItems([
+    { swatch: legendSwatch("<i class=\"chip main\"></i>"), title: "残HP", line: "主色のままの帯" },
+    { swatch: legendSwatch("<i class=\"chip recovered\"></i>"), title: "回復した分", line: "この攻撃で戻った分" },
+    { swatch: legendSwatch("<i class=\"chip recoverable\"></i>"), title: "回復可能", line: "まだ戻せる残り" },
+    { swatch: legendSwatch("<i class=\"chip unrecoverable\"></i>"), title: "回復不能", line: "戻せない分" },
+    { swatch: legendSwatch("<i class=\"chip barrier\"></i>"), title: "防壁", line: "帯の上端の灰色" },
+  ]);
+  const tone = legendItems([
+    { swatch: legendSwatch("<i class=\"chip tone-green\"></i>"), title: "緑", line: "残HP 56%以上" },
+    { swatch: legendSwatch("<i class=\"chip tone-yellow\"></i>"), title: "黄", line: "残HP 26〜55%" },
+    { swatch: legendSwatch("<i class=\"chip tone-red\"></i>"), title: "赤", line: "残HP 25%以下" },
+  ]);
+  const weight = legendItems([
+    { swatch: legendSwatch("<i class=\"hit hit-1\"></i>"), title: "並", line: "最大HPの 15%未満" },
+    { swatch: legendSwatch("<i class=\"hit hit-2\"></i>"), title: "重い", line: "15%以上・箱が揺れる" },
+    { swatch: legendSwatch("<i class=\"hit hit-3\"></i>"), title: "致命", line: "30%以上と撃破・盤面が揺れる" },
+  ]);
+  const motion = legendItems([
+    { swatch: legendSwatch("<i class=\"box lunge\"></i>"), title: "踏み込んだ箱", line: "出した側。狙う相手の列へ寄る" },
+    { swatch: legendSwatch("<i class=\"box shake\"></i>"), title: "揺れた箱", line: "受けた側" },
+    { swatch: legendSwatch("<i class=\"line\"></i>"), title: "光の線", line: "攻撃側から被弾側へ一度だけ走る" },
+    { swatch: legendSwatch("<i class=\"aim\"></i>"), title: "金の四隅", line: "いま狙われている箱" },
+    { swatch: legendSwatch("<span class=\"legend-number\">12</span>"), title: "浮かぶ数字", line: "ダメージ・回復・防壁" },
+  ]);
+  return "<h3 class=\"legend-heading\">箱の下の帯</h3>" + hpBar + band
+    + "<h3 class=\"legend-heading\">主色（枠の色は変わらない）</h3>" + tone
+    + "<h3 class=\"legend-heading\">一撃の重さ</h3>" + weight
+    + "<h3 class=\"legend-heading\">動きと印</h3>" + motion
+    + ruleGrid([
+      { glyph: "eye", title: "視差効果を減らす", value: "動きだけ止まる", line: "帯・照準・数字はそのまま出ます。", tone: "quiet" },
+      { glyph: "book", title: "細かい出来事", value: "技術ログ", line: "戦闘履歴の中で確認できます。", tone: "quiet" },
+    ]);
+}
+
 function renderBattleError() {
   const failure = state.battleError || {};
   const diagnostics = failure.diagnostics || {};
@@ -6184,18 +6650,26 @@ function renderBattleError() {
   const encounter = currentEncounter();
   return shell( "<section class=\"card verdict loss\">"
     + sectionHeading("BATTLE ERROR", "戦闘を停止しました", "<span class=\"stage\">" + esc(encounter.name) + "</span>")
-    + "<div class=\"verdict-mark\">!</div><p><b>安全弁が働きました。</b> この構成の戦闘イベントが上限を超えたため、途中結果を破棄しました。原因を確認できるよう、直前のイベントを残しています。</p>"
+    + "<div class=\"verdict-mark\">!</div>"
+    + ruleGrid([
+      { glyph: "lock", title: "安全弁", value: "途中結果を破棄", line: "この構成の戦闘イベントが上限を超えました。", tone: "bad" },
+      { glyph: "book", title: "直前のイベント", value: "残してあります", line: "下の一覧で、何が繰り返されたかを追えます。", tone: "quiet" },
+    ])
     + "<p class=\"error battle-error-message\">" + esc(failure.message || "battle runtime error") + "</p>"
     + "<div class=\"metrics\"><span><b>" + (diagnostics.eventSequence ?? "—") + "</b><small>イベント番号</small></span><span><b>"
     + esc(actorLabels[diagnostics.currentActorId] ?? diagnostics.currentActorId ?? "—") + "</b><small>実行中</small></span><span><b>"
     + esc(diagnostics.chainId ?? "—") + "</b><small>チェーン</small></span><span><b>" + recent.length + "</b><small>直前ログ</small></span></div></section>"
     + "<section class=\"card\">" + sectionHeading("DIAGNOSTICS", "直前のイベント")
-    + "<p class=\"muted\">技能や反応の組み合わせで、同じイベントが繰り返されていないか確認できます。</p><ol class=\"events diagnostic-events\">"
+    + "<ol class=\"events diagnostic-events\">"
     + recent.map((event) => "<li class=\"event\"><span class=\"event-round\">R" + (event.round ?? "-") + "</span><span>"
       + esc(diagnosticEventText(event, actorLabels)) + "</span></li>").join("") + "</ol>"
     + (stack.length ? "<details><summary>発火中の反応</summary><pre>" + esc(JSON.stringify(stack, null, 2)) + "</pre></details>" : "")
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
-    + "<section class=\"card quiet\"><p class=\"muted\">通常のプレイでこの画面が出る場合は、直前に装着した0コスト行動や、準備・行動権を互いに増やす反応をオフにして再試行してください。</p>"
+    + "<section class=\"card quiet\">"
+    + ruleGrid([
+      { glyph: "cross", title: "まず切る", value: "0コストの行動", line: "直前に装着したものからオフにして、もう一度試します。" },
+      { glyph: "cross", title: "次に切る", value: "準備・行動権を互いに増やす反応", line: "二つが互いを呼ぶと、際限なく回ります。" },
+    ])
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
     + button("キャンプへ戻る", "back-battle-preview", false, "button") + "</div></section>");
 }
@@ -6340,12 +6814,15 @@ function renderResult() {
   // issue #168 — 表示する量も progression の表から引く（画面に書いた数と、
   // 実際に配った数がずれないようにする）。
   const skillGain = !prologueUnresolved && won
-    ? "<p class=\"operation-note\">全員に技能点 +" + skillPointsForClear(currentEncounter().kind) + "</p>"
+    ? "<p class=\"gain-chip\">" + glyph("skill") + "全員に技能点 +"
+      + skillPointsForClear(currentEncounter().kind) + "</p>"
     : "";
   const carryText = prologueUnresolved
-    ? "<p class=\"muted\"><b>この一戦は遠征に数えません。</b>活動資金と持ち越しHPは動きません。</p>"
-    : "<p class=\"muted\">持ち帰る活動資金 <b>" + formatFunds(state.run.fundLedger.provisionalTotal)
-      + "</b> · 到達 " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + "</p>";
+    ? ruleGrid([{ glyph: "lock", title: "この一戦は遠征に数えません", value: "据え置き", line: "活動資金と持ち越しHPは動きません。", tone: "quiet" }])
+    : statTiles([
+      { value: formatFunds(state.run.fundLedger.provisionalTotal), label: "持ち帰る活動資金", tone: "gold", glyph: "funds", wide: true },
+      { value: state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN, label: "到達", glyph: "distance" },
+    ], "", 2);
   const rewardLayout = won && !prologueUnresolved
     && rewardDueForCurrentEncounter() && state.rewardOffer.length > 0;
   const status = "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
@@ -6361,12 +6838,15 @@ function renderResult() {
   const firedBy = state.lastCarrySnapshot?.ultimateFiredBy ?? [];
   const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
   const sealText = firedBy.length
-    ? "<p class=\"muted\">✹ <b>" + esc(firedBy.map((id) => characterName(id)).join(" · "))
-      + "</b> が必殺技を放ちました。この遠征ではもう放てません。"
-      + (stillHave.length
-        ? "まだ残しているのは <b>" + esc(stillHave.map((id) => characterName(id)).join(" · ")) + "</b> です。"
-        : "隊の全員が放ち終えました。")
-      + "</p>"
+    ? ruleGrid([{
+      glyph: "spark",
+      title: "必殺技を放った",
+      value: firedBy.map((id) => characterName(id)).join(" · "),
+      line: "この遠征ではもう放てません。"
+        + (stillHave.length
+          ? "まだ残しているのは " + stillHave.map((id) => characterName(id)).join(" · ") + " です。"
+          : "隊の全員が放ち終えました。"),
+    }])
     : "";
   const stateCard = "<section class=\"card\">" + sectionHeading("AFTER BATTLE", "戦闘後の状態")
     + carryText + sealText + "<div class=\"result-actors\">" + resultActors(result) + "</div>"
@@ -6626,7 +7106,7 @@ function rewardSectionHtml() {
     + sectionHeading("REWARD", "どちらを持ち帰る？",
       "<span class=\"stage\">補給 " + state.run.supplies + " / " + supplyTotal() + "</span>")
     + (state.run.encounterIndex >= ENCOUNTERS_PER_RUN
-      ? "<p class=\"muted\">遠征はこの一戦で終わります。選んだ品は精算で残す設計図の候補になります。</p>"
+      ? ruleGrid([{ glyph: "flag", title: "最後の一戦", value: "次は精算", line: "選んだ品は精算で残す設計図の候補になります。" }])
       : "")
     + "<div class=\"reward-choices\" data-fx=\"rewards\" data-count=\"" + count + "\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
@@ -6643,29 +7123,51 @@ function rewardSectionHtml() {
 }
 
 // R6 §12.2 — 敗北処理。**即座に破棄しない。**
+// 作者要望 2026-09-13 — **敗北画面から説明文を外す。**
+//
+// 「届かなかった。補給1で編成・位置・技能・装備を変えて……」という一段落は、
+// 画面が既に持っている三つのこと（どこで止まったか／何を払うか／何が残るか）を
+// 文へ畳み直していた。ここではそれを、止まった位置の目盛り・払って変える流れ・
+// 確定した数のタイルで出す。**残す文は、世界の側が言う一行だけ。**
 function renderDefeat() {
   const canRetry = state.run.supplies >= 1;
   const encounter = currentEncounter();
+  const ledger = state.run.fundLedger;
+  const reached = ledger.highestClearedEncounter;
+  const plate = "<section class=\"card verdict loss verdict-plate\">"
+    + verdictSigil("loss") + "<h2>足を止めた</h2>"
+    + "<p class=\"verdict-context\">" + esc(encounter.name) + " · 第" + (state.run.encounterIndex + 1) + "戦</p>"
+    + "<div class=\"verdict-rail\">"
+    + segmentMeter(reached, ENCOUNTERS_PER_RUN, {
+      label: "到達 " + reached + " / " + ENCOUNTERS_PER_RUN,
+      nextIndex: reached,
+      tone: "bad",
+    })
+    + "</div>"
+    + "<p class=\"world-voice\">" + esc(defeatVoice()) + "</p></section>";
+  // **払うもの → 変えられるもの → 戻る先。**再挑戦の中身は、この三つで尽きている。
+  const retryFlow = flowStrip([
+    { glyph: "supply", label: "補給 −1", sub: "払う", tone: "bad" },
+    { glyph: "person", label: "編成・技能・装備", sub: "組み替える" },
+    { glyph: "retry", label: "同じ一戦", sub: "やり直す", tone: "gold" },
+  ]);
   const actionCard = "<section class=\"card primary-action defeat-primary-action\" data-primary-action=\"defeat-next\">"
     + sectionHeading("NEXT", "次の手", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
     + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
     + (canRetry
-      ? button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
-      : "<p class=\"muted\">補給が0なので、この遠征はここで終わります。</p>")
+      ? retryFlow + button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
+      : ruleGrid([{ glyph: "lock", title: "補給 0", value: "再挑戦できない", line: "この遠征はここで終わります。", tone: "bad" }]))
     + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary")
     + "</section>";
-  return shell( "<section class=\"card verdict loss\">"
-    + "<div class=\"verdict-mark\">×</div><h2>足を止めた</h2>"
-    + "<p class=\"verdict-context\">" + esc(encounter.name) + " · 補給 " + state.run.supplies + "</p>"
-    + "<p><b>この組み合わせでは届かなかった。</b> 補給1で編成・位置・技能・装備を変えて、同じ戦闘へ再挑戦できます。</p>"
-    + "<p class=\"world-voice\">" + esc(defeatVoice()) + "</p></section>"
-    + actionCard
+  return shell(plate + actionCard
     + "<section class=\"card\">" + sectionHeading("CARRY HOME", "ここまでで確定した活動資金")
-    + "<p class=\"muted\">撃破した戦闘と到達距離は、負けても持ち帰ります。</p>"
-    + "<p class=\"fund-line\"><b>" + formatFunds(state.run.fundLedger.provisionalTotal) + "</b>"
-    + "<small>撃破 " + state.run.fundLedger.clearedEncounterBase + " · 到達 "
-    + state.run.fundLedger.highestClearedEncounter + " 戦 · 倍率 ×"
-    + (state.run.fundLedger.difficultyMultiplierBps / 10000).toFixed(1) + "</small></p></section>");
+    + statTiles([
+      { value: formatFunds(ledger.provisionalTotal), label: "負けても持ち帰る", tone: "gold", glyph: "funds", wide: true },
+      { value: ledger.clearedEncounterBase, label: "撃破", glyph: "strike" },
+      { value: reached, unit: "戦", label: "到達", glyph: "distance" },
+      { value: "×" + (ledger.difficultyMultiplierBps / 10000).toFixed(1), label: "倍率", glyph: "multiply" },
+    ], "", 3)
+    + "</section>");
 }
 
 // R8 §3.6 / §10.3 — 遠征終了時に残った設計図。**何が残り、何が残らなかったかを
@@ -6681,21 +7183,38 @@ function blueprintSettlementSection(settlement) {
   // 敗北0）。残せないときは「残せなかった」ではなく**なぜ残らないのか**を言う
   // （見つけた品が消えた理由が画面から読めないと、拾った意味が分からなくなる）。
   const limit = settlement.blueprintSaveLimit;
+  const capacity = blueprintCarryCapacity(state.profile);
   return "<section class=\"card\">" + sectionHeading("BLUEPRINT", "設計図として残した品",
       "<span class=\"stage\">" + saved.length + " / " + limit + "</span>")
+    + statTiles([
+      { value: found, unit: "品", label: "見つけた", glyph: "gear" },
+      { value: saved.length, unit: "件", label: "残した", glyph: "blueprint", tone: saved.length ? "gold" : "quiet" },
+      { value: capacity, unit: "件", label: "次の持込枠", glyph: "supply", tone: "quiet" },
+    ], "", 3)
     + (saved.length
       ? "<div class=\"settle-list\">" + cards + "</div>"
       : limit > 0
-        ? "<p class=\"muted\">今回は残せる品がありませんでした。</p>"
-        : "<p class=\"muted\">設計図を持ち帰れるのは<b>12戦を抜けて生還したとき</b>だけです。"
-          + "この遠征で見つけた装備 " + found + " 品は、ここで手放します。</p>")
+        ? ruleGrid([{ glyph: "cross", title: "残せる品なし", value: "今回は無し", line: "設計図になる装備を見つけていません。", tone: "quiet" }])
+        : ruleGrid([{
+          glyph: "lock",
+          title: "持ち帰れない",
+          value: "見つけた " + found + " 品を手放す",
+          line: "設計図を持ち帰れるのは12戦を抜けて生還したときだけです。",
+          tone: "bad",
+        }]))
     + (saved.length && found > saved.length
       ? "<p class=\"muted\">この遠征で見つけた装備 " + found + " 品のうち、"
         + (settlement.blueprintChosen ? "選んだ " : "等級の高い ")
         + saved.length + " 品だけを残しました。</p>"
       : "")
-    + "<p class=\"muted\">設計図はギルドの設計図画面から、次の遠征へ持ち込めます"
-    + "（持込枠 " + blueprintCarryCapacity(state.profile) + "）。</p></section>";
+    + (saved.length
+      ? flowStrip([
+        { glyph: "gear", label: "拾う", sub: "遠征のなか" },
+        { glyph: "blueprint", label: "残す", sub: "精算で選ぶ", tone: "gold" },
+        { glyph: "supply", label: "持ち込む", sub: "枠 " + capacity },
+      ])
+      : "")
+    + "</section>";
 }
 
 // issue #212 — Stage 終了会話も通常の一行送りへ通す。
@@ -6753,21 +7272,41 @@ function renderBlueprintPick() {
   const primary = "<section class=\"card primary-action\" data-primary-action=\"blueprint-keep\">"
     + sectionHeading("BLUEPRINT", "残す設計図を選ぶ",
       "<span class=\"stage\">" + chosen.size + " / " + limit + "</span>")
-    + "<p class=\"muted\">" + esc(outcomeLabel) + "ので、設計図は最大 " + limit
-    + " 件残せます。見つけたのは " + candidates.length
-    + " 品です。<b>選ばなかった品は残りません。</b></p>"
+    + statTiles([
+      { value: candidates.length, unit: "品", label: "見つけた", glyph: "gear" },
+      { value: chosen.size + " / " + limit, label: "選んだ / 残せる", glyph: "blueprint", tone: "gold" },
+    ], "", 2)
+    + segmentMeter(chosen.size, limit, { label: "残す", tone: "good" })
+    + ruleGrid([{
+      glyph: "lock",
+      title: outcomeLabel,
+      value: "設計図は最大 " + limit + " 件",
+      line: "選ばなかった品は残りません。",
+      tone: "bad",
+    }])
     + button(chosen.size ? "この " + chosen.size + " 件を残して精算する" : "何も残さず精算する",
       "confirm-blueprint-keep", false, "button primary")
     + "</section>";
   return shell(primary
-    + "<section class=\"card\">" + sectionHeading("CANDIDATES", "この遠征で見つけた装備")
-    + "<p class=\"muted\">押すと選択が入れ替わります。持込品は既に設計図があるので候補に出ません。</p>"
+    + "<section class=\"card\">" + sectionHeading("CANDIDATES", "この遠征で見つけた装備",
+      "<span class=\"stage\">" + candidates.length + " 品</span>")
+    + ruleGrid([
+      { glyph: "check", title: "押すと入れ替わる", value: "選択", line: "上限ぶんまで選べます。", tone: "quiet" },
+      { glyph: "blueprint", title: "持込品", value: "候補に出ない", line: "既に設計図があるためです。", tone: "quiet" },
+    ], "two")
     + "<div class=\"keep-list\">" + cards + "</div>"
-    + "<p class=\"muted\">残した設計図は、次の遠征へ持ち込む候補になります（持込枠 "
-    + blueprintCarryCapacity(state.profile) + "）。</p></section>");
+    + flowStrip([
+      { glyph: "blueprint", label: "残す", sub: "この画面", tone: "gold" },
+      { glyph: "supply", label: "持ち込む", sub: "枠 " + blueprintCarryCapacity(state.profile) },
+    ])
+    + "</section>");
 }
 
 // R6 §9.2 — 精算は**一度だけ**。ここが唯一の入口。
+//
+// 作者要望 2026-09-13 — **締めの画面から説明文を外す。**内訳は棒の長さで比べ、
+// 「何が残り、何が消えるか」は二列で並べる。文のまま残すのは締めの一行だけ
+// （あれは説明ではなく、拾い屋の側の言い方である）。
 function renderSettlement() {
   const settlement = state.lastSettlement;
   if (!settlement) return renderExpeditionStart();
@@ -6776,44 +7315,72 @@ function renderSettlement() {
   // R8 §10.3 — 安全撤退は敗北ではない。完走・初clearボーナスは付かないが、
   // 確定済み活動資金はそのまま持ち帰る（撃破ゼロ没収はしない）。
   const retreated = settlement.outcome === "retreat";
-  const rows = [
-    ["撃破した戦闘", b.clearedEncounterBase],
-    ["到達距離（" + state.run.fundLedger.highestClearedEncounter + "戦 × 25）", b.distance],
-    ["12戦完走", b.outcomeBonus],
-    ["この区画の初回クリア", b.firstClearBonus],
-  ].map(([label, value]) => "<div class=\"settle-row\"><span>" + esc(label) + "</span><b>" + value + "</b></div>").join("");
+  const reached = state.run.fundLedger.highestClearedEncounter;
   const title = won ? "遠征を終えた" : retreated ? "安全に撤退した" : "遠征は途中で終わった";
+  const plate = "<section class=\"card verdict verdict-plate " + (won ? "win" : "loss") + "\">"
+    + verdictSigil(won ? "win" : retreated ? "retreat" : "loss")
+    + "<h2>" + esc(title) + "</h2>"
+    + "<p class=\"verdict-context\">"
+    + esc(CAMPAIGN_STAGES[state.run.campaignStageSequence]?.displayName ?? "遠征")
+    + " · " + reached + " / " + ENCOUNTERS_PER_RUN + " 戦</p>"
+    + "<div class=\"verdict-rail\">"
+    + segmentMeter(reached, ENCOUNTERS_PER_RUN, {
+      label: "到達 " + reached + " / " + ENCOUNTERS_PER_RUN,
+      nextIndex: won ? null : reached,
+      tone: won ? "good" : "bad",
+    })
+    + "</div>"
+    + statTiles([
+      { value: "+" + formatFunds(settlement.earned), label: "持ち帰った活動資金", tone: "gold", glyph: "funds", wide: true },
+      { value: formatFunds(settlement.balanceBefore), label: "残高（前）", tone: "quiet" },
+      { value: formatFunds(settlement.balanceAfter), label: "残高（後）", tone: "gold" },
+    ], "", 2)
+    + "<p class=\"settle-closing\">" + esc(settlementClosingLine(settlement)) + "</p></section>";
   const nextAction = "<section class=\"card primary-action settlement-primary-action\" data-primary-action=\"settlement-next\">"
     + sectionHeading("NEXT", "次の行き先")
     + button("根城へ帰る", "go-homestead", false, "button primary")
     + button("ギルドへ戻る", "back-guild", false, "button")
     + button("記録を送る", "complete", false, "button")
     + "</section>";
-  return shell(
-    "<section class=\"card verdict " + (won ? "win" : "loss") + "\"><div class=\"verdict-mark\">"
-    + (won ? "✦" : retreated ? "◇" : "◆") + "</div><h2>" + esc(title) + "</h2>"
-    + "<p class=\"verdict-context\">" + esc(CAMPAIGN_STAGES[state.run.campaignStageSequence]?.displayName ?? "遠征")
-    + " · " + state.run.fundLedger.highestClearedEncounter + " / " + ENCOUNTERS_PER_RUN + " 戦</p>"
-    + "<p>活動資金 " + formatFunds(settlement.earned) + " を持ち帰った。残高 "
-    + formatFunds(settlement.balanceBefore) + " → <b>" + formatFunds(settlement.balanceAfter) + "</b></p>"
-    + "<p class=\"settle-closing\">" + esc(settlementClosingLine(settlement)) + "</p></section>"
-    + nextAction
-    + "<section class=\"card\">" + sectionHeading("SETTLEMENT", "内訳")
-    + "<div class=\"settle-list\">" + rows + "</div>"
+  // **内訳は長さで比べる。**どの項目が今回の実入りを作ったかは、数字の列では読めない。
+  const breakdown = ledgerRows([
+    { label: "撃破した戦闘", value: b.clearedEncounterBase, glyph: "strike" },
+    { label: "到達距離（" + reached + "戦 × 25）", value: b.distance, glyph: "distance" },
+    { label: "12戦完走", value: b.outcomeBonus, glyph: "flag" },
+    { label: "この区画の初回クリア", value: b.firstClearBonus, glyph: "spark" },
+  ]);
+  const limit = settlement.blueprintSaveLimit;
+  const totals = "<div class=\"settle-total\">"
     + "<div class=\"settle-row total\"><span>報酬倍率</span><b>×"
     + (b.difficultyMultiplierBps / 10000).toFixed(1) + "</b></div>"
-    + "<div class=\"settle-row total\"><span>合計</span><b>" + formatFunds(settlement.earned) + "</b></div>"
-    + "<p class=\"muted\">持ち帰るのは活動資金と設計図だけです。技能点・解禁・装備・補給はここで消えます。"
-    + (settlement.blueprintSaveLimit > 0
-      ? esc(won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、設計図は最大"
-        + settlement.blueprintSaveLimit + "件残せました。"
-      : esc(retreated ? "安全撤退" : "敗北") + "なので、設計図は残りません。")
-    + "</p></section>"
+    + "<div class=\"settle-row total grand\"><span>合計</span><b>"
+    + formatFunds(settlement.earned) + "</b></div></div>";
+  return shell(plate + nextAction
+    + "<section class=\"card\">" + sectionHeading("SETTLEMENT", "内訳")
+    + breakdown + totals
+    + splitColumns(["活動資金", "設計図"], ["技能点", "解禁", "装備", "補給"])
+    + ruleGrid([limit > 0
+      ? {
+        glyph: "blueprint",
+        title: "設計図",
+        value: "最大 " + limit + " 件",
+        line: (won ? "勝利" : retreated ? "安全撤退" : "敗北") + "なので、ここまで残せました。",
+        tone: "good",
+      }
+      : {
+        glyph: "blueprint",
+        title: "設計図",
+        value: "残らない",
+        line: (retreated ? "安全撤退" : "敗北") + "では持ち帰れません。",
+        tone: "bad",
+      }])
+    + "</section>"
     + blueprintSettlementSection(settlement)
     + (settlement.unlockedCampaignStage !== null && settlement.unlockedCampaignStage !== undefined
-      ? "<section class=\"card\"><p class=\"eyebrow\">CAMPAIGN STAGE</p><h3>"
+      ? "<section class=\"card unlock-card\">" + glyph("flag", "unlock-glyph")
+        + "<div><small>区画が開いた</small><b>"
         + esc(CAMPAIGN_STAGES[settlement.unlockedCampaignStage]?.displayName ?? ("区画 " + settlement.unlockedCampaignStage))
-        + " が開いた</h3></section>"
+        + "</b></div></section>"
       : "")
     );
 }
@@ -6821,15 +7388,36 @@ function renderSettlement() {
 function renderComplete() {
   const feedback = state.feedback || {};
   const option = (value, label, selected) => "<option value=\"" + value + "\" " + (selected ? "selected" : "") + ">" + label + "</option>";
-  const trail = state.run.roster.map(characterName).join("、");
-  const carried = state.run.inventory.map((id) => gear(id)?.label ?? id).join("、");
+  const roster = state.run.roster;
+  const carriedGear = state.run.inventory.map((id) => gear(id)?.label ?? id);
   const reached = state.run.fundLedger.highestClearedEncounter;
   const settlement = state.lastSettlement;
-  return shell( "<section class=\"card verdict win\"><div class=\"verdict-mark\">✦</div><h2>遠征を終えた</h2><p class=\"verdict-context\">"
-    + reached + " / " + ENCOUNTERS_PER_RUN + " 戦を見届けた</p><p>今回の仲間: "
-    + esc(trail) + "<br>手元の装備: " + esc(carried || "なし")
-    + (settlement ? "<br>持ち帰った活動資金: " + formatFunds(settlement.earned) : "")
-    + "</p><div class=\"build-trail\"><span><i>1</i>遠征を仕立てた</span><span><i>2</i>技能パックの範囲で技能を組んだ</span><span><i>3</i>補給をどこへ使うか決めた</span><span><i>4</i>持ち帰った資金でギルドを育てた</span></div></section>"
+  // 作者要望 2026-09-13 — 締めの一枚も**名前は名札、道のりは帯**で出す。
+  const nameChips = (items, empty) => "<div class=\"name-chips\">"
+    + (items.length ? items.map((text) => "<span>" + esc(text) + "</span>").join("")
+      : "<span class=\"empty\">" + esc(empty) + "</span>") + "</div>";
+  return shell("<section class=\"card verdict win verdict-plate\">"
+    + verdictSigil("win") + "<h2>遠征を終えた</h2>"
+    + "<p class=\"verdict-context\">" + reached + " / " + ENCOUNTERS_PER_RUN + " 戦を見届けた</p>"
+    + "<div class=\"verdict-rail\">"
+    + segmentMeter(reached, ENCOUNTERS_PER_RUN, { label: "到達 " + reached + " / " + ENCOUNTERS_PER_RUN, tone: "good" })
+    + "</div>"
+    + statTiles([
+      settlement
+        ? { value: formatFunds(settlement.earned), label: "持ち帰った活動資金", tone: "gold", glyph: "funds", wide: true }
+        : null,
+      { value: roster.length, unit: "人", label: "今回の仲間", glyph: "person" },
+      { value: carriedGear.length, unit: "品", label: "手元の装備", glyph: "gear" },
+    ], "", 2)
+    + nameChips(roster.map(characterName), "なし")
+    + nameChips(carriedGear, "装備なし")
+    + flowStrip([
+      { glyph: "flag", label: "仕立てた", sub: "遠征" },
+      { glyph: "skill", label: "組んだ", sub: "技能パックの範囲で" },
+      { glyph: "supply", label: "決めた", sub: "補給の使い道" },
+      { glyph: "funds", label: "育てた", sub: "ギルド", tone: "gold" },
+    ], "complete-trail")
+    + "</section>"
     + "<section class=\"card feedback\"><p class=\"eyebrow\">HUMAN CHECK</p><h2>今回のUIについて</h2><label>もう一度遊びたい度<select id=\"feedback-replay\">"
     + option("", "選択してください", !feedback.replay) + option("1", "1 — もう遊ばない", feedback.replay === "1")
     + option("2", "2", feedback.replay === "2") + option("3", "3", feedback.replay === "3")
