@@ -38,9 +38,10 @@ for (const expected of [
 ]) {
   assert.ok(map.includes(expected), `the shared encounter map exposes ${expected}`);
 }
-assert.ok(map.includes("composeEncounter(step, state.run.difficulty, encounterOptions()).kind"),
+assert.ok(map.includes("const item = encounterForInspection(step)")
+    && app.includes("return composeEncounter(index, state.run.difficulty, encounterOptions());"),
   "map kind comes from the same encounter composer as the current encounter");
-assert.ok(map.includes('step < index ? "done" : step === index ? "current" : "unreached"'),
+assert.ok(map.includes('step < currentIndex ? "done" : step === currentIndex ? "current" : "unreached"'),
   "map status follows the run encounter index");
 assert.ok(!styles.includes(".map-node.kind-elite { border-color:"),
   "elite kind does not own a competing full node border");
