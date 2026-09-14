@@ -57,6 +57,8 @@ import {
   PACK_BY_ID,
   PORTRAIT_IMAGE_URLS,
   PROLOGUE,
+  // 作者要望 2026-09-14 — 一戦目の後に教える技能点の使い方（取得と予約）。
+  SKILL_LESSON,
   ULTIMATE_LESSON,
   REGION,
   castOnStage,
@@ -198,6 +200,8 @@ const STORY_TYPE_MS = 26;          // 一文字あたりの送り速度
 const STORY_AUTO_HOLD_MS = 1500;   // AUTO で読み終えてから次の行までの待ち
 const STORY_LOG_LIMIT = 60;        // 履歴に残す行数
 const SUPPLY_TUTORIAL_FLAG = "supply_tutorial_seen";
+// 作者要望 2026-09-14 — 技能の取得・予約を教え終えた印。補給と同じで一度きり。
+const SKILL_LESSON_FLAG = "skill_lesson_seen";
 // issue #240 — 必殺技の一戦を見終えた印。**一度見たら再訪では出さない。**
 const ULTIMATE_LESSON_FLAG = "ultimate_lesson_seen";
 const app = document.querySelector("#app");
@@ -484,10 +488,14 @@ function freshUiState() {
     treatTargets: [],
     treatmentSelection: null,
     treatmentResult: null,
-    // #209 — the mandatory supply walkthrough belongs only to the New Game
-    // Stage 0 introduction. Revisited/ordinary expeditions start with zero
-    // supplies and must keep their normal, optional camp flow.
-    supplyTutorialRunId: null,
+    // #209 — the mandatory walkthroughs belong only to the New Game Stage 0
+    // introduction. Revisited/ordinary expeditions start with zero supplies and
+    // must keep their normal, optional camp flow.
+    //
+    // 作者要望 2026-09-14 — 印は**導入の遠征そのもの**を指す。技能の取得・予約
+    // （一戦目の後）と補給（二戦目の後）が同じ印を読むので、`supply` の名前を
+    // 外した（古い保存は hydrateState が読み替える）。
+    tutorialRunId: null,
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
@@ -580,6 +588,11 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
     next.phase = "camp";
     next.tab = "map";
   }
+  // 作者要望 2026-09-14 — 導入の遠征の印は `supplyTutorialRunId` から
+  // `tutorialRunId` へ名を変えた（補給だけでなく技能の手取りも読む）。
+  // **古い保存の遠征を、印の無い普通の遠征へ落とさない。**
+  if (!next.tutorialRunId && saved.supplyTutorialRunId) next.tutorialRunId = saved.supplyTutorialRunId;
+  delete next.supplyTutorialRunId;
   next.profile = normalizeProfile(saved.profile);
 
   // 保存時点のRunを復元する。形式が違うデータは readStoredSnapshot で
@@ -1080,29 +1093,55 @@ function hasStoryFlag(flag) {
   return (state.profile.storyFlags ?? []).includes(flag);
 }
 
-// 初回の本編戦闘（encounter 1）に勝った後にだけ補給の使い方を案内する。
+// 導入 Stage の第 n 戦に勝ったあとか。**手取りチュートリアルの置き場所は
+// 「どの一戦の直後か」だけで決まる**ので、判定は一つにして戦数で呼び分ける。
+//
 // R11 §5 改 — 巻き戻したあとの勝利がそのまま encounter 1 の勝利になるので、
 // `!state.prologueActive` は advanceAfterBattle が既に prologueActive を
 // 落としたあとにしか呼ばれない（結果・報酬画面の表示中はまだ真のまま）。
-function firstOrdinaryBattleWon() {
+function ordinaryBattleWon(encounterIndex) {
   return isCampaignRun()
     && state.run.campaignStageSequence === 0
     && !state.prologueActive
     && Array.isArray(state.run.results)
-    && state.run.results.some((entry) => entry.encounter === 1 && entry.result === "win");
+    && state.run.results.some((entry) => entry.encounter === encounterIndex && entry.result === "win");
+}
+
+// 導入の遠征（New Game で始めた Stage 0）か。**再訪・通常遠征は手取りを持たない。**
+function tutorialRun() {
+  return state.tutorialRunId === state.run.runId;
+}
+
+// 作者要望 2026-09-14 — 教える順は「一戦目前: 隊列 → 一戦目後: 技能の取得・予約
+// → 二戦目後: 補給」。**同じ画面に二つ出さない**ので、戦数で場所を分ける。
+const SKILL_LESSON_ENCOUNTER_INDEX = SKILL_LESSON.encounterIndex ?? 1;
+const SUPPLY_TUTORIAL_ENCOUNTER_INDEX = SKILL_LESSON_ENCOUNTER_INDEX + 1;
+
+function shouldShowSkillLessonAfterBattle() {
+  return ordinaryBattleWon(SKILL_LESSON_ENCOUNTER_INDEX)
+    && state.run.encounterIndex === SKILL_LESSON_ENCOUNTER_INDEX
+    && state.lastResult?.result === "win"
+    && !hasStoryFlag(SKILL_LESSON_FLAG);
+}
+
+function skillLessonVisible() {
+  return tutorialRun()
+    && ordinaryBattleWon(SKILL_LESSON_ENCOUNTER_INDEX)
+    && state.run.encounterIndex === SKILL_LESSON_ENCOUNTER_INDEX + 1
+    && !hasStoryFlag(SKILL_LESSON_FLAG);
 }
 
 function shouldShowSupplyTutorialAfterBattle() {
-  return firstOrdinaryBattleWon()
-    && state.run.encounterIndex === 1
+  return ordinaryBattleWon(SUPPLY_TUTORIAL_ENCOUNTER_INDEX)
+    && state.run.encounterIndex === SUPPLY_TUTORIAL_ENCOUNTER_INDEX
     && state.lastResult?.result === "win"
     && !hasStoryFlag(SUPPLY_TUTORIAL_FLAG);
 }
 
 function supplyTutorialVisible() {
-  return state.supplyTutorialRunId === state.run.runId
-    && firstOrdinaryBattleWon()
-    && state.run.encounterIndex >= 2
+  return tutorialRun()
+    && ordinaryBattleWon(SUPPLY_TUTORIAL_ENCOUNTER_INDEX)
+    && state.run.encounterIndex >= SUPPLY_TUTORIAL_ENCOUNTER_INDEX + 1
     && !hasStoryFlag(SUPPLY_TUTORIAL_FLAG);
 }
 
@@ -1618,11 +1657,22 @@ function equipmentFillLabel() {
   return worn + "/" + Math.max(worn, Math.min(owned, slots));
 }
 
+// 閉じ込めている間に他のタブを押したときの一行。**閉じ込め先ごとに一つだけ。**
+const TUTORIAL_TAB_LOCK_NOTICE = Object.freeze({
+  supplies: "補給チュートリアルを完了するまで、補給タブから移動できません。",
+  skills: "技能チュートリアルを完了するまで、スキルタブから移動できません。",
+  map: "隊列チュートリアルを完了するまで、遠征タブから移動できません。",
+});
+
 // チュートリアルが一枚のタブへ閉じ込めている間は、そのタブ id を返す。
 // **閉じ込め方は二つあるが、閉じ込める書き方は一つにする**（補給と隊列で別々に書かない）。
 function campTutorialTab() {
   if (supplyTutorialVisible()) return "supplies";
   if (formationTutorialLocked()) return "map";
+  // 作者要望 2026-09-14 — 技能の取得・予約は技能タブの地図と操作盤で打つ四手。
+  // 押す先が全部この一枚の中にあるので、**錠と閉じ込めが同じ範囲**になる
+  // （"done" では両方外れる。次の一押しは盤面の「実戦」なので、錠が残ると打てない）。
+  if (skillLessonLocked()) return "skills";
   // issue #240 — 必殺技は装着行を長押しして構えるので、その二手のあいだは技能タブに
   // 留める（三手目の「遠征タブを押す」は、留めたままでは打てない）。
   if (ultimateLessonTabLocked()) return "skills";
@@ -1841,6 +1891,8 @@ function render() {
   restoreSkillTreeScroll();
   layoutSkillTreeConnectors();
   focusSelectedSkillNode();
+  // 作者要望 2026-09-14 — 光る先が画面の外なら、こちらから寄せる（段が変わった回だけ）。
+  focusTutorialSpot();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
   if (state.phase === "rewind") mountRewindView();
@@ -1994,6 +2046,11 @@ function publishCampTopHeight() {
   }
   const height = Math.round(campTop.getBoundingClientRect().height);
   if (height > 0) root.style.setProperty("--camp-top-h", height + "px");
+  // 作者要望 2026-09-14 — 手取りの札も固定帯の下へ貼りつく。**その下へ貼りたいもの
+  // （技能点の要約帯）があるので、札の高さも同じように渡す。**札が無い回は 0。
+  const note = app.querySelector(".camp-view > .tutorial-note-card.pinned");
+  const noteHeight = note ? Math.round(note.getBoundingClientRect().height) + 6 : 0;
+  root.style.setProperty("--tutorial-note-h", noteHeight + "px");
 }
 
 function captureSkillTreeScroll() {
@@ -3313,19 +3370,25 @@ function renderCamp() {
   // 何を触っても、誰がどこにいて、HPがいくつ減るかが視界から出ない。**
   // issue #235 — 撤退とセーブは遠征タブが持つ。**固定される上端の外に、常設の
   // ボタンを一つも置かない**（実測で64px、iPhoneの第一画面の1割だった）。
+  // issue #240 — 手取りの手引きは**どのタブでも同じ場所**に出す（構える行は技能タブ、
+  // 挑む釦は盤面にあるので、片方のタブへ書くと段の途中で札が消える）。
+  //
+  // 作者要望 2026-09-14（デザイン面の改善）— 札は本文の頭のまま、**貼りつく**ようにした。
+  // 技能チュートリアルの押し先（ツリーの節・操作盤の釦）は本文をかなり下まで送った
+  // 先にあり、静かな札はそこへ着いた時点で画面の外にある。貼りつく札なら、送った
+  // ぶんだけ帯の下へ回るので、**送らない回（隊列・補給）では高さを一つも食わない。**
+  // 固定帯（.camp-top）そのものへ入れないのはこのためである。
+  const tutorialNote = formationTutorialNote() + skillLessonNote()
+    + supplyTutorialNote() + ultimateLessonNote();
   return shell(
     "<div class=\"camp-top\">" + partyBar(activeTab) + campNav() + "</div>"
-    // issue #240 — 必殺技の手引きは**どのタブでも同じ場所**に出す（構える行は技能タブ、
-    // 挑む釦は遠征タブにあるので、片方のタブへ書くと段の途中で札が消える）。
-    // PR #255 — 直前の一戦の一行も同じ理由でここに出す。戻った先のタブは
-    // 場面によって変わる（補給チュートリアル中は補給タブに錠が掛かる）ので、
-    // 遠征タブだけに書くと「さっき何が起きたか」が読めない回ができる。
-    // 補給チュートリアルも、必殺技と同じく**タブの中へ埋めずに上端へ置く**。
-    // 段が変わっても札の位置と見た目が変わらないので、光る一手との対応を追える。
+    // PR #255 — 直前の一戦の一行は本文の頭に出す。戻った先のタブは場面によって
+    // 変わる（補給チュートリアル中は補給タブに錠が掛かる）ので、遠征タブだけに
+    // 書くと「さっき何が起きたか」が読めない回ができる。
     // issue #237 — タブの中身は `.camp-view` にまとめる。**立ち上がりを掛けるのはここだけ**で、
     // 上端の盤面（.camp-top）は動かさない（貼りついた盤が毎回跳ねると押し先が動く）。
     + "<div class=\"camp-view\">"
-    + supplyTutorialNote() + ultimateLessonNote() + lastBattleNoteHtml() + view
+    + tutorialNote + lastBattleNoteHtml() + view
     + "</div>",
     { hideHeaderAction: true });
 }
@@ -4019,7 +4082,10 @@ function renderSkillDetail(node, characterId, nodeState) {
     ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
     : "";
   const actionRow = actions.filter(Boolean).join("");
-  return "<div class=\"skill-detail\"><p>" + scope + esc(skillEffectText(characterId, node.skillId))
+  // 作者要望 2026-09-14 — 技能の説明文にも content の `**強調**` が入っている
+  // （「HP50%以下の味方**全員**へ」など8件）。Stage の学びと同じ `emphasize()` を
+  // 通すので、星印が本文に混ざって出ることはもう無い。
+  return "<div class=\"skill-detail\"><p>" + scope + emphasize(skillEffectText(characterId, node.skillId))
     + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + "</span>" : "") + "</p>"
     + shortfall
     + (actionRow ? "<div class=\"node-action\">" + actionRow + "</div>" : "")
@@ -4794,11 +4860,6 @@ function renderMap() {
     { glyph: "might", title: "前列", value: "武器攻撃が通る", line: "前列の人数で、狙われ方も変わります。" },
     { glyph: "focus", title: "後列", value: "技術の攻撃と支援向き", line: "武器攻撃は後列から出すと大きく落ちます。" },
   ]) + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
-  // R11 §5 改 / issue #235 — 巻き戻し直後の手引きは、隊列を触る話なので盤面の近くに要る。
-  // だが固定領域へ入れると常時4行を奪うので、**この一度きりの場面だけ本文の頭に置く。**
-  // 作者指摘 2026-09-12 — 一段落の手引きでは「どこを押すのか」が伝わらない。段ごとに
-  // 次の一押しだけを言い、その場所を光らせる（`formationTutorialNote`）。
-  const rewindTutorialNote = formationTutorialNote();
   // R6 §9.2 / §12.2 / issue #235 — 遠征単位の操作はこの一枚が持つ。
   // R11 §5 改 — 止めるのは**離脱だけ**である。まだ隊列を直しきる前に撤退されると
   // 「一手直せば勝てる」導入が成立しない。セーブは離脱ではないので、物語の最中でも残す
@@ -4814,8 +4875,9 @@ function renderMap() {
       ? ruleGrid([{ glyph: "funds", title: "撤退", value: "確定分だけ持ち帰る", line: "遠征はそこで終わります。技能点・装備・補給は残りません。" }])
       : "")
     + "</section>";
-  return rewindTutorialNote
-    + "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
+  // 作者要望 2026-09-14 — 巻き戻し直後の手引きは、他の三つと同じ貼りつく帯の中で出す
+  // （`renderCamp` の `tutorialNote`）。ここで二枚目を出さない。
+  return "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
       "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
     + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の進行\">" + progress + "</div>"
     + "<p class=\"act-line\">第" + encounter.act + "幕 · " + kindLabel + "戦 · 危険度 " + encounter.spentThreat
@@ -5160,9 +5222,44 @@ function partyBoardNote(mode) {
   return "";
 }
 
+// ============================================================ 手取りチュートリアルの札（共通）
+//
+// **札は一種類しか無い。**隊列・技能・補給・必殺技の四つは、どれも
+// 「いま押す一箇所を光らせる → それ以外を錠で閉じる → 押したら次の段へ進む」
+// という同じ形なので、**見た目と組み立ても一箇所から出す。**
+//
+// 作者要望 2026-09-14（デザイン面の改善）— 以前は四つが別々に <section> を
+// 組んでいて、進捗（手順 n/N）が出るのは補給だけ、段の一覧は縦に積むだけだった。
+// 札が育つと固定帯の下の本文が押し出されるので、**段の一覧は横一列の小さな印**に
+// する。次に何が来るかは読めて、高さは一行で済む。
+//
+//   marks … [段id, 短い名前] の並び。**名前は「何を押すか」だけ**にする
+//           （押し方は見出しと本文が言っている）。
+//   step  … いまの段。marks に無い段（"done" など）は「全部済み」と読む。
+function tutorialNoteCard({ kind, eyebrow, title, body, marks, step, extra = "" }) {
+  const order = marks.map(([id]) => id);
+  const index = order.indexOf(step);
+  const complete = index < 0;
+  const current = complete ? marks.length : index;
+  const list = marks.map(([id, label], position) => {
+    const mark = complete || current > position ? "done" : id === step ? "current" : "todo";
+    return "<li class=\"" + mark + "\"><span>" + (position + 1) + "</span><i>" + label + "</i></li>";
+  }).join("");
+  // **貼りつくのは錠が掛かっているあいだだけ。**錠が外れた段（"done"）まで帯の下に
+  // 居座ると、そこから先の自由な探索（技能・装備・予測）で画面を食うだけになる。
+  const pinned = tutorialGate()?.locked ? " pinned" : "";
+  return "<section class=\"card tutorial-note-card " + kind + "-tutorial" + pinned + "\" role=\"status\">"
+    + "<p class=\"tutorial-head\"><span class=\"eyebrow\">" + esc(eyebrow) + "</span>"
+    + "<span class=\"tutorial-progress\">手順 <b>" + Math.min(current + 1, marks.length)
+    + "/" + marks.length + "</b></span></p>"
+    + "<h3>" + title + "</h3>"
+    + "<p class=\"tutorial-note\">" + body + "</p>"
+    + "<ol class=\"tutorial-steps\">" + list + "</ol>" + extra + "</section>";
+}
+
 // ============================================================ 補給チュートリアル（共通の手取り型）
 //
-// **文章だけで操作を探させない。**補給の導入も、隊列・必殺技と同じく
+// **文章だけで操作を探させない。**補給の導入も、隊列・技能・必殺技と同じく
 // 「いま押す一箇所を光らせる → それ以外を錠で閉じる → 押したら次の段へ進む」
 // という形にする。
 //
@@ -5171,6 +5268,10 @@ function partyBoardNote(mode) {
 //
 // 集中治療の対象は複数あり得るので、target では有効なセルをすべて光らせる。
 // どれを選んでも同じ一手が完了するため、特定の人物へ画面を固定しない。
+//
+// 作者要望 2026-09-14 — 出る場所を**二戦目の後**へ送った。一戦目の後は技能の
+// 取得・予約を教える（下の `skillLessonStep`）。判定は
+// `SUPPLY_TUTORIAL_ENCOUNTER_INDEX` 一箇所だけを読む。
 function supplyTutorialStep() {
   if (!supplyTutorialVisible()) return null;
   return state.treatmentSelection === "concentrated" ? "target" : "treatment";
@@ -5190,24 +5291,147 @@ function supplyTutorialSpotSelector(step) {
 function supplyTutorialNote() {
   const step = supplyTutorialStep();
   if (!step) return "";
-  const current = step === "treatment" ? 0 : 1;
-  const body = step === "treatment"
-    ? "勝てました。でも、傷は残っています。光っている「集中治療」を押してください。"
-    : "補給はまだ消費していません。光っている傷ついた仲間のセルを押してください。";
-  const marks = [
-    ["集中治療を押す", 0],
-    ["回復する仲間を押す", 1],
-  ];
-  const list = marks.map(([label, index]) => {
-    const mark = current > index ? "done" : current === index ? "current" : "todo";
-    return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + esc(label) + "</li>";
-  }).join("");
-  return "<section class=\"card tutorial-note-card supply-tutorial\" role=\"status\">"
-    + "<p class=\"eyebrow\">補給チュートリアル</p>"
-    + "<h3>次の戦いに備えましょう</h3>"
-    + "<p class=\"tutorial-note\">" + body + "</p>"
-    + "<p class=\"tutorial-progress\"><b>手順 " + (current + 1) + "/2</b></p>"
-    + "<ol class=\"tutorial-steps\">" + list + "</ol></section>";
+  return tutorialNoteCard({
+    kind: "supply",
+    eyebrow: "補給チュートリアル",
+    title: "次の戦いに備えましょう",
+    body: step === "treatment"
+      ? "<b>傷は次の一戦へ持ち越します。</b>光っている「集中治療」を押してください。"
+      : "補給はまだ消費していません。光っている傷ついた仲間のセルを押してください。",
+    marks: [["treatment", "集中治療"], ["target", "回復する仲間"]],
+    step,
+  });
+}
+
+// ============================================================ 技能チュートリアル（作者要望 2026-09-14）
+//
+// **一戦目の勝利で入った技能点を、その場で使わせる。**
+//
+// 作者要望 —「一戦目後: スキル取得・予約のチュートリアル」。技能点は一戦ごとに
+// 全員へ1点入るのに、入った点の使い道（技能ツリー）を画面から教える場所が無く、
+// 「技能のルール」の畳んだ段を自分で開くしかなかった。
+//
+// 教えるのは**二手の違い**である。
+//
+//   取得 … いまの1点で届く節を、いま取る（`SKILL_LESSON.unlockSkillId`）
+//   予約 … いまは前提の段が足りない節を、先に指す（`SKILL_LESSON.reserveSkillId`）
+//
+// 錠は四手のあいだだけ掛かる。**節を選ぶ二手も段に数える**——押す場所が地図の
+// 中にあるので、「どれを押すのか」が段の側に無いと、結局ツリーを探し回る。
+//
+//   open    … 取得する節を押す（操作盤がその節で開く）
+//   unlock  … 操作盤の「解禁」を押す
+//   aim     … 予約する節を押す
+//   reserve … 操作盤の「Lv1まで予約」を押す
+//   done    … 錠は外れ、次の一押し（この敵に挑む）だけが光る
+//
+// **教える二手は content が決める**（`SKILL_LESSON.tutorial`）。技能 id をここへ
+// 書き写さないので、content を変えれば錠と光も一緒に動く。
+const SKILL_LESSON_GOAL = SKILL_LESSON.tutorial ?? null;
+
+function skillLessonNode(skillId) {
+  return SKILL_TREE_NODES.find((node) => node.skillId === skillId) ?? null;
+}
+
+function skillLessonStep() {
+  if (state.phase !== "camp" || !SKILL_LESSON_GOAL || !skillLessonVisible()) return null;
+  const { characterId, unlockSkillId, reserveSkillId } = SKILL_LESSON_GOAL;
+  if (!state.run.roster.includes(characterId)) return null;
+  // 節が今回の manifest から外れていたら、教材そのものが無いので黙って出さない。
+  if (!inManifest(unlockSkillId) || !inManifest(reserveSkillId)) return null;
+  if (!isUnlocked(characterId, unlockSkillId)) {
+    return state.selectedSkillNode === unlockSkillId ? "unlock" : "open";
+  }
+  if (skillReservationFor(state.run, characterId) !== reserveSkillId) {
+    return state.selectedSkillNode === reserveSkillId ? "reserve" : "aim";
+  }
+  return "done";
+}
+
+// 錠が掛かるのは四手だけ。"done" は光らせるだけで、何も塞がない。
+function skillLessonLocked() {
+  const step = skillLessonStep();
+  return step !== null && step !== "done";
+}
+
+// 光らせる先。**選択子はこの表にしかない。**地図の節・操作盤の釦と綴りを分けない。
+function skillLessonSpotSelector(step) {
+  const goal = SKILL_LESSON_GOAL;
+  if (!goal) return null;
+  const node = (skillId) => ".skill-tree-forest [data-action=\"select-skill-node\"][data-skill=\""
+    + skillId + "\"]";
+  return {
+    open: node(goal.unlockSkillId),
+    unlock: ".skill-sheet [data-action=\"unlock-skill\"][data-character=\"" + goal.characterId
+      + "\"][data-skill=\"" + goal.unlockSkillId + "\"]:not([disabled])",
+    aim: node(goal.reserveSkillId),
+    // **予約は「Lv1まで」の一つだけを光らせる。**同じ節には上限までの予約も並ぶが、
+    // 教えるのは「届かない先を指す」ことであって、上限まで積むことではない。
+    reserve: ".skill-sheet [data-action=\"reserve-skill\"][data-skill=\"" + goal.reserveSkillId
+      + "\"][data-target-level=\"" + MIN_SKILL_LEVEL + "\"]",
+    done: "[data-action=\"begin-stage\"]",
+  }[step] ?? null;
+}
+
+// 手引きの札。**段ごとに、次の一押しだけを言う。**（隊列・補給と同じ作り）
+// 技能名・前提・点の数は節と content から引くので、ここで書き写さない。
+function skillLessonNote() {
+  const step = skillLessonStep();
+  const goal = SKILL_LESSON_GOAL;
+  if (!step || !goal) return "";
+  const name = characterName(goal.characterId);
+  const unlockLabel = nameFor(goal.unlockSkillId);
+  const reserveLabel = nameFor(goal.reserveSkillId);
+  const unlockNode = skillLessonNode(goal.unlockSkillId);
+  const reserveNode = skillLessonNode(goal.reserveSkillId);
+  const cost = unlockNode?.cost ?? 1;
+  // 予約先が待っている前提は**節のデータから**出す（「傷へ盾を Lv3」を手で書かない）。
+  const gate = (reserveNode?.requires ?? [])
+    .map((required) => nameFor(required.skillId) + " Lv" + required.minLv)
+    .join("・");
+  const copy = {
+    open: {
+      title: "入った技能点を使う",
+      body: "<b>" + esc(SKILL_LESSON.pointHint) + "</b>"
+        + esc(name) + "の地図から、いま" + cost + "点で取れる「" + esc(unlockLabel)
+        + "」の節を押してください。",
+    },
+    unlock: {
+      title: esc(unlockLabel) + "を取得する",
+      body: "<b>" + esc(SKILL_LESSON.unlockHint) + "</b>"
+        + "光っている「解禁」を押してください。",
+    },
+    aim: {
+      title: "いまは届かない先を指す",
+      body: "<b>" + esc(SKILL_LESSON.reachHint) + "</b>"
+        + "「" + esc(reserveLabel) + "」は"
+        + (gate ? esc(gate) + "が要ります。" : "前提がまだ足りません。")
+        + "光っているその節を押してください。",
+    },
+    reserve: {
+      title: esc(reserveLabel) + "を予約する",
+      body: "<b>" + esc(SKILL_LESSON.reserveHint) + "</b>"
+        + "光っている「Lv" + MIN_SKILL_LEVEL + "まで予約」を押してください。",
+    },
+    done: {
+      title: "あとは、戦うたびに進む",
+      body: "<b>" + esc(SKILL_LESSON.doneHint) + "</b>"
+        + "次の一戦へ進んでください。",
+    },
+  }[step];
+  return tutorialNoteCard({
+    kind: "skill",
+    eyebrow: "技能チュートリアル",
+    title: copy.title,
+    body: copy.body,
+    marks: [
+      ["open", esc(unlockLabel)],
+      ["unlock", "解禁"],
+      ["aim", esc(reserveLabel)],
+      ["reserve", "予約"],
+    ],
+    step,
+  });
 }
 
 // ============================================================ 隊列チュートリアル（R11 §5 改）
@@ -5263,8 +5487,8 @@ function formationTutorialSpotSelector(step) {
 }
 
 // いま掛かっている手取りの錠。**同時に二つは掛からない**——隊列チュートリアルは
-// Stage 0 の巻き戻し直後、補給チュートリアルは本編第1戦の勝利直後、必殺技の一戦は
-// Stage 1 の第1戦だけで、場面が重ならない。
+// Stage 0 の巻き戻し直後、技能チュートリアルは本編第1戦の勝利直後、補給チュートリアルは
+// 第2戦の勝利直後、必殺技の一戦は Stage 1 の第1戦だけで、場面が重ならない。
 // 画面・押せる経路・通しの検査は、この一つの形（段・錠・光らせる先）だけを読む。
 function tutorialGate() {
   const formation = formationTutorialStep();
@@ -5274,6 +5498,15 @@ function tutorialGate() {
       step: formation,
       locked: formationTutorialLocked(),
       selector: formationTutorialSpotSelector(formation),
+    };
+  }
+  const skill = skillLessonStep();
+  if (skill) {
+    return {
+      id: "skill",
+      step: skill,
+      locked: skillLessonLocked(),
+      selector: skillLessonSpotSelector(skill),
     };
   }
   const supply = supplyTutorialStep();
@@ -5310,6 +5543,52 @@ function applyTutorialGate() {
     element.classList.add("tutorial-blocked");
     element.setAttribute("aria-disabled", "true");
     if ("disabled" in element) element.disabled = true;
+  }
+}
+
+// 作者要望 2026-09-14（デザイン面の改善）— **光る先を、こちらから探しに行かせない。**
+//
+// 技能チュートリアルの押し先は、貼りつく帯の下をかなり送った先（技能ツリーの節、
+// その下の操作盤）にある。錠が掛かっているので押せる場所は一つしか無いのに、
+// 初めて開いた人は「光っているものが画面に無い」状態から探すことになる。
+// **段が変わった回だけ**、光る先が窓の外なら寄せる（`focusSelectedSkillNode` と
+// 同じ作法で、既に見えているときは動かさない——指の下で画面が滑るのを避ける）。
+let focusedTutorialSpot = null;
+
+function focusTutorialSpot() {
+  const gate = tutorialGate();
+  const key = gate ? gate.id + ":" + gate.step : null;
+  if (!key) {
+    focusedTutorialSpot = null;
+    return;
+  }
+  if (key === focusedTutorialSpot) return;
+  focusedTutorialSpot = key;
+  const spot = gate.selector ? app.querySelector(gate.selector) : null;
+  if (!spot) return;
+  const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
+  // 横の帯（技能ツリー）は帯ごと、縦はページごと寄せる。見える範囲の上端は
+  // **貼りついた帯の下**——そこより上へ寄せると、札の裏に光る先が隠れる。
+  const band = spot.closest(".skill-tree-scroll");
+  const rect = spot.getBoundingClientRect();
+  const margin = 12;
+  if (band) {
+    const bandRect = band.getBoundingClientRect();
+    if (rect.left < bandRect.left + margin || rect.right > bandRect.right - margin) {
+      band.scrollTo({
+        left: band.scrollLeft + (rect.left + rect.width / 2) - (bandRect.left + bandRect.width / 2),
+        behavior,
+      });
+    }
+  }
+  // 見える範囲は**貼りついたものの下から、貼りついた操作盤の上まで**である。
+  const note = app.querySelector(".camp-view > .tutorial-note-card.pinned");
+  const campBottom = app.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
+  const top = Math.max(campBottom, note ? campBottom + note.getBoundingClientRect().height + 6 : 0) + margin;
+  const sheet = app.querySelector(".skill-sheet");
+  const bottom = (sheet?.getBoundingClientRect().top ?? window.innerHeight) - margin;
+  if (rect.top < top || rect.bottom > bottom) {
+    window.scrollBy({ top: rect.top - (top + Math.max(0, (bottom - top - rect.height) / 3)), behavior });
   }
 }
 
@@ -5352,21 +5631,18 @@ function formationTutorialNote() {
         + esc(PROLOGUE.retryHint),
     },
   }[step];
-  const marks = [
-    ["open", "「⇅ 隊列」を押す"],
-    ["pick", esc(name) + "を押す"],
-    ["place", rowWord + "の空き枠を押す"],
-  ];
-  const order = ["open", "pick", "place", "done"];
-  const list = marks.map(([id, label], index) => {
-    const mark = order.indexOf(step) > index ? "done" : id === step ? "current" : "todo";
-    return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + label + "</li>";
-  }).join("");
-  return "<section class=\"card tutorial-note-card formation-tutorial\" role=\"status\">"
-    + "<p class=\"eyebrow\">隊列チュートリアル</p>"
-    + "<h3>" + esc(copy.title) + "</h3>"
-    + "<p class=\"tutorial-note\">" + copy.body + "</p>"
-    + "<ol class=\"tutorial-steps\">" + list + "</ol></section>";
+  return tutorialNoteCard({
+    kind: "formation",
+    eyebrow: "隊列チュートリアル",
+    title: esc(copy.title),
+    body: copy.body,
+    marks: [
+      ["open", "⇅ 隊列"],
+      ["pick", esc(name)],
+      ["place", rowWord + "の空き枠"],
+    ],
+    step,
+  });
 }
 
 // ============================================================ 必殺技の一戦（issue #240）
@@ -5486,21 +5762,19 @@ function ultimateLessonNote() {
         + "%未満になってから</b>で、放てるのは一人一遠征に一度きりです。",
     },
   }[step];
-  const marks = [
-    ["pick", esc(name) + "を押す"],
-    ["arm", "行を長押しする"],
-    ["open", "「遠征」タブを押す"],
-  ];
-  const order = ["pick", "arm", "open", "done"];
-  const list = marks.map(([id, label], index) => {
-    const mark = order.indexOf(step) > index ? "done" : id === step ? "current" : "todo";
-    return "<li class=\"" + mark + "\"><span>" + (index + 1) + "</span>" + label + "</li>";
-  }).join("");
-  return "<section class=\"card tutorial-note-card ultimate-tutorial\" role=\"status\">"
-    + "<p class=\"eyebrow\">必殺技チュートリアル</p>"
-    + "<h3>" + copy.title + "</h3>"
-    + "<p class=\"tutorial-note\">" + copy.body + "</p>"
-    + "<ol class=\"tutorial-steps\">" + list + "</ol>" + bandLine + "</section>";
+  return tutorialNoteCard({
+    kind: "ultimate",
+    eyebrow: "必殺技チュートリアル",
+    title: copy.title,
+    body: copy.body,
+    marks: [
+      ["pick", esc(name)],
+      ["arm", "長押しで構える"],
+      ["open", "「遠征」タブ"],
+    ],
+    step,
+    extra: bandLine,
+  });
 }
 
 // camp の上端に貼りつく盤面。**予測が出せない場面でも盤面は出す**——隊列と現在HPは
@@ -7763,6 +8037,8 @@ function advanceAfterBattle() {
     state.prologueStage = null;
   }
   const completedEncounter = state.run.encounterIndex;
+  // 作者要望 2026-09-14 — 一戦目の後は技能、二戦目の後は補給。**同じ拍に二つは来ない。**
+  const showSkillLesson = shouldShowSkillLessonAfterBattle();
   const showSupplyTutorial = shouldShowSupplyTutorialAfterBattle();
   captureLastBattleNote(completedEncounter);
   state.run.encounterIndex += 1;
@@ -7773,7 +8049,17 @@ function advanceAfterBattle() {
   state.replayIndex = 0;
   state.replayPlaying = false;
   state.phase = "camp";
-  state.tab = showSupplyTutorial ? "supplies" : "map";
+  state.tab = showSkillLesson ? "skills" : showSupplyTutorial ? "supplies" : "map";
+  if (showSkillLesson && SKILL_LESSON_GOAL) {
+    // **払う相手はこちらで開いておく。**「誰に払うか」は盤面のセルで選べるが、
+    // それを一段目にすると、地図へ着く前に段が一つ増える。教えたいのは
+    // 取得と予約の違いなので、人物は開いた状態から始める（`memberContext` が
+    // 誰の地図を見ているかを出している）。
+    state.selectedCharacter = SKILL_LESSON_GOAL.characterId;
+    state.selectedSkillNode = null;
+    state.skillTreeKind = skillLessonNode(SKILL_LESSON_GOAL.unlockSkillId)?.kind ?? "active";
+    state.skillTreeBranch = null;
+  }
   state.selectedEnemyId = null;
   state.treatmentSelection = null;
   state.treatmentResult = null;
@@ -7781,6 +8067,9 @@ function advanceAfterBattle() {
   state.error = null;
   state.run.act = actOfIndex(state.run.encounterIndex);
   record("stage_advanced", { encounter: state.run.encounterIndex, act: state.run.act });
+  if (showSkillLesson) {
+    record("skill_lesson_presented", { encounter: completedEncounter });
+  }
   if (showSupplyTutorial) {
     record("supply_tutorial_presented", { encounter: completedEncounter });
   }
@@ -7857,8 +8146,8 @@ function handleAction(event) {
       runId: run.runId,
       startedAt: run.startedAt,
       // #209 — remember which New Game run owns the mandatory first-use
-      // walkthrough. A normal/revisit run must not inherit that gate.
-      supplyTutorialRunId: run.runId,
+      // walkthroughs. A normal/revisit run must not inherit those gates.
+      tutorialRunId: run.runId,
       // issue #159 — 隊列操作は**誰も選んでいない状態**から始める。先頭を選んだ状態で
       // 開くと、盤面のどこかが最初から光っていて「もう一手目を打った」と読める。
       formationSelection: null,
@@ -8187,9 +8476,12 @@ function handleAction(event) {
 
   if (action === "tab") {
     const nextTab = element.dataset.tab || state.tab;
-    if (supplyTutorialVisible() && nextTab !== "supplies") {
-      state.tab = "supplies";
-      state.error = "補給チュートリアルを完了するまで、補給タブから移動できません。";
+    // 錠が一枚のタブへ閉じ込めている間は、そこから出さない。**閉じ込め先も文面も
+    // `campTutorialTab()` 一箇所から出す**（補給と技能で別々に書くと片方だけずれる）。
+    const lockedTab = campTutorialTab();
+    if (lockedTab && nextTab !== lockedTab) {
+      state.tab = lockedTab;
+      state.error = TUTORIAL_TAB_LOCK_NOTICE[lockedTab] ?? "いまはこのタブから移動できません。";
       saveState();
       render();
       return;
@@ -8580,6 +8872,19 @@ function handleAction(event) {
       saveState();
       render();
       return;
+    }
+    // 作者要望 2026-09-14 — 技能チュートリアルは**次の一戦へ出る拍で終わる。**
+    // 予約した瞬間に閉じると、「予約は一人に一つ・取り消せる」を言う段が消える
+    // （錠はもう外れているので、この段のあいだも技能は自由に触れる）。
+    if (!previewOnly && skillLessonStep() === "done") {
+      const flags = new Set(Array.isArray(state.profile.storyFlags) ? state.profile.storyFlags : []);
+      flags.add(SKILL_LESSON_FLAG);
+      state.profile = { ...state.profile, storyFlags: [...flags] };
+      record("skill_lesson_completed", {
+        characterId: SKILL_LESSON_GOAL?.characterId ?? null,
+        unlockSkillId: SKILL_LESSON_GOAL?.unlockSkillId ?? null,
+        reserveSkillId: SKILL_LESSON_GOAL?.reserveSkillId ?? null,
+      });
     }
     // R9 §2.1 — 出発に必要な人数は Stage で変わる（Stage 0 は2人）。
     if (state.run.roster.length !== runPartySize()) {

@@ -747,9 +747,111 @@ try {
   note("直前の一戦の一行にラウンド数と技能点が出る",
     /ラウンド/.test(battleNote) && /技能点/.test(battleNote));
   if (won) {
+    // ---- 作者要望 2026-09-14 — **一戦目の後は技能の取得・予約。** ----------------
+    //
+    // 教える順は「一戦目前: 隊列 → 一戦目後: 技能 → 二戦目後: 補給」。ここは
+    // その二つ目で、**入った1点をその場で使わせる**四手を踏む。押す場所は
+    // 技能ツリーの節と、地図の下端に貼りつく操作盤の中にある。
+    {
+      const skillTab = page.locator('nav.tabs [data-tab="skills"]');
+      const mapTabDuringSkill = page.locator('nav.tabs [data-tab="map"]');
+      note("最初の敵を倒した直後に技能タブが開く",
+        await skillTab.evaluate((tab) => tab.classList.contains("active"))
+          && await page.locator(".skill-tutorial").count() === 1);
+      note("技能チュートリアルは四手で、いまは一手目",
+        /技能チュートリアル/.test(await bodyText())
+          && /手順 1\/4/.test(await page.locator(".skill-tutorial").innerText()));
+      note("技能チュートリアル中は他のタブを押せない",
+        await mapTabDuringSkill.isDisabled()
+          && await page.locator('nav.tabs [data-tab="supplies"]').isDisabled());
+      note("技能チュートリアル中は戦闘へ進めない",
+        await page.locator('[data-action="begin-stage"]').isDisabled());
+      // 札は**固定帯の真下に貼りつく。**地図の奥まで送っても、段と理由が視界に残る。
+      note("手引きの札は送っても画面に残る",
+        await page.locator(".camp-view > .tutorial-note-card").evaluate((card) =>
+          getComputedStyle(card).position === "sticky"));
+      const skillSpot = () => page.locator("#app .tutorial-spot");
+      note("手順1は取得する節だけが光る",
+        await skillSpot().count() === 1
+          && await skillSpot().first().getAttribute("data-action") === "select-skill-node"
+          && await skillSpot().first().getAttribute("data-skill") === "field_dressing");
+      // 光っていない節を押しても何も起きない（押せる形と経路の両方で塞いでいる）。
+      await page.locator('.skill-tree-forest [data-action="select-skill-node"][data-skill="ward_ally"]')
+        .click({ force: true }).catch(() => {});
+      await page.waitForTimeout(150);
+      note("光っていない節を押しても段は進まない",
+        /手順 1\/4/.test(await page.locator(".skill-tutorial").innerText()));
+      await skillSpot().first().click();
+      await page.waitForTimeout(250);
+      note("手順2は操作盤の「解禁」だけが光る",
+        /手順 2\/4/.test(await page.locator(".skill-tutorial").innerText())
+          && await skillSpot().count() === 1
+          && await skillSpot().first().getAttribute("data-action") === "unlock-skill");
+      const pointsBefore = Number((await page.locator(".skill-build-summary .summary-points b").innerText()).trim());
+      await skillSpot().first().click();
+      await page.waitForTimeout(250);
+      const pointsAfter = Number((await page.locator(".skill-build-summary .summary-points b").innerText()).trim());
+      note("解禁で技能点が1点減る", pointsBefore === 1 && pointsAfter === 0,
+        `${pointsBefore} → ${pointsAfter}`);
+      note("取得した技能がその場で装着される",
+        await page.locator('.installed-row[data-skill="field_dressing"]').count() > 0
+          || /まとめて手当て/.test(await page.locator(".skill-build-card").innerText()));
+      note("手順3は予約する節だけが光る",
+        /手順 3\/4/.test(await page.locator(".skill-tutorial").innerText())
+          && await skillSpot().count() === 1
+          && await skillSpot().first().getAttribute("data-skill") === "sustaining_ward");
+      // **前提の段が足りない節である**ことを、札そのものが言っている。
+      note("なぜいま取れないのかを札が言う",
+        /傷へ盾を Lv3/.test(await page.locator(".skill-tutorial").innerText()));
+      await skillSpot().first().click();
+      await page.waitForTimeout(250);
+      note("手順4は「Lv1まで予約」だけが光る",
+        /手順 4\/4/.test(await page.locator(".skill-tutorial").innerText())
+          && await skillSpot().count() === 1
+          && await skillSpot().first().getAttribute("data-action") === "reserve-skill"
+          && await skillSpot().first().getAttribute("data-target-level") === "1");
+      await skillSpot().first().click();
+      await page.waitForTimeout(250);
+      note("予約すると要約帯に予約先が出る",
+        await page.locator(".skill-build-summary .summary-reservation").count() === 1
+          && /長く守る/.test(await page.locator(".skill-build-summary .summary-reservation").innerText()));
+      note("予約を終えると錠が外れる",
+        await page.locator("#app .tutorial-blocked").count() === 0
+          && await mapTabDuringSkill.isEnabled());
+      note("錠が外れたら次の一押し（この敵に挑む）が光る",
+        await skillSpot().count() === 1
+          && await skillSpot().first().getAttribute("data-action") === "begin-stage");
+      // 説明文の強調は**星印ではなく太字**で出す（作者要望 2026-09-14）。
+      note("説明文の強調が星印のまま出ていない",
+        !/\*\*/.test(await page.locator(".skill-sheet").innerText())
+          && await page.locator(".skill-sheet .skill-detail b").count() > 0);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(300);
+      note("取得と予約が保存される",
+        await page.locator(".skill-build-summary .summary-reservation").count() === 1);
+    }
+
+    // ---- 二戦目。**勝つと補給チュートリアルが出る。** --------------------------
+    await page.locator('nav.tabs [data-tab="map"]').click();
+    await page.waitForTimeout(150);
+    note("技能チュートリアルは一度きり（次の一戦へ出ると消える）",
+      await page.locator(".skill-tutorial").count() === 1);
+    await click("この敵との実戦へ進む");
+    await waitForTutorialSelector(".battle-field");
+    const secondFast = page.locator('.speed-button[data-speed="fast"]');
+    if (await secondFast.count()) await secondFast.click();
+    await finishReplay();
+    await page.waitForTimeout(400);
+    if (await page.locator(".vn-stage").count() > 0) {
+      await click("スキップ");
+      await advanceStory();
+    }
+    await page.waitForTimeout(300);
+    note("第2戦のあとに技能チュートリアルは出ない",
+      await page.locator(".skill-tutorial").count() === 0);
     const supplyTutorialText = await bodyText();
     {
-      note("最初の敵を倒した直後に補給タブが開く",
+      note("二戦目を倒した直後に補給タブが開く",
         await page.locator('nav.tabs [data-tab="supplies"].active').count() === 1
           && await page.locator(".supply-tutorial").count() === 1);
       const mapTab = page.locator('nav.tabs [data-tab="map"]');

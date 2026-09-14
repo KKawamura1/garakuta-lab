@@ -1801,7 +1801,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
    --camp-top-h へ入れる。z-index も固定帯（3）より下にする。 */
 .skill-build-summary {
   position: sticky;
-  top: calc(var(--camp-top-h, 215px) + 6px);
+  /* 作者要望 2026-09-14 — 手取りの札が出ている回は、その下へ貼る（app.js が
+     `--tutorial-note-h` に札の高さを入れる。札が無い回は 0）。 */
+  top: calc(var(--camp-top-h, 215px) + var(--tutorial-note-h, 0px) + 6px);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -4047,51 +4049,100 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   background: transparent;
   color: var(--muted);
 }
-.tutorial-note-card { border-color: rgba(212, 175, 100, .45); }
+/* 手取りチュートリアル。**札の見た目は隊列・技能・補給・必殺技で一つ**にする
+   （組み立ても app.js の `tutorialNoteCard` 一箇所から出す）。光る先と同じ段の
+   説明だけを置き、操作の探し方を画面ごとに変えない。
 
-/* 手取りチュートリアル。**札の見た目も隊列・補給・必殺技で揃える。**
-   光る先と同じ段の説明だけを置き、操作の探し方を画面ごとに変えない。 */
-.formation-tutorial,
-.supply-tutorial,
-.ultimate-tutorial { border-color: var(--gold); background: var(--gold-dark); }
-.formation-tutorial h3,
-.supply-tutorial h3,
-.ultimate-tutorial h3 { margin: 4px 0 6px; font-size: 14px; }
-.formation-tutorial .tutorial-note,
-.supply-tutorial .tutorial-note,
-.ultimate-tutorial .tutorial-note { margin: 0; line-height: 1.65; }
-.tutorial-progress { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
+   作者要望 2026-09-14（デザイン面の改善）— 札は錠の最中だけ固定帯の下へ貼りつく。
+   貼りついている間は**帯の高さを食う**ので、以前より一回り小さく組む
+   （見出し 13px、段は縦の一覧ではなく横一列）。 */
+.tutorial-note-card {
+  margin: 0 0 12px;
+  padding: 11px 13px 12px;
+  border-color: var(--gold);
+  border-radius: 13px;
+  background: var(--gold-dark);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .35);
+}
+/* **送った先でも読める。**錠が掛かっているあいだだけ、固定帯の真下へ貼りつく。
+   技能ツリーの奥まで送っても「いまの段」と「なぜ押すのか」が視界から出ない。
+   錠が外れた段（"done"）では普通の一枚へ戻す——そこから先は自由な探索なので、
+   札が帯の下に居座ると画面を食うだけになる。 */
+.tutorial-note-card.pinned {
+  position: sticky;
+  top: calc(var(--camp-top-h, 215px) + 6px);
+  z-index: 2;
+}
+/* 見出しの行。**札の名前と、いま何手目かを同じ行に置く。**
+   以前は進捗を出すのが補給だけで、他の三つは何手あるのかが読めなかった。 */
+.tutorial-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 2px;
+}
+.tutorial-head .eyebrow { margin: 0; }
+.tutorial-progress {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+.tutorial-progress b { color: var(--gold); font-variant-numeric: tabular-nums; }
+.tutorial-note-card h3 { margin: 0 0 5px; color: var(--ink); font-size: 13px; }
+.tutorial-note-card .tutorial-note { margin: 0; font-size: 12px; line-height: 1.6; }
+/* 段の一覧。**横一列の小さな印**にする。縦に積むと、段が四つある技能チュートリアルで
+   札が本文より高くなる。折り返すので、名前が長い回も欠けない。 */
 .tutorial-steps {
-  display: grid;
-  gap: 4px;
-  margin: 9px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
 }
 .tutorial-steps li {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 10px;
+  line-height: 1.4;
 }
 .tutorial-steps li > span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   border: 1px solid var(--line);
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 9px;
   font-variant-numeric: tabular-nums;
 }
+.tutorial-steps li > i { font-style: normal; }
 .tutorial-steps li.current { color: var(--ink); font-weight: 600; }
 .tutorial-steps li.current > span { border-color: var(--gold); background: var(--gold); color: #1b1a16; }
-.tutorial-steps li.done { color: var(--good); text-decoration: line-through; }
-.tutorial-steps li.done > span { border-color: var(--good); color: var(--good); }
+.tutorial-steps li.done { color: var(--good); }
+.tutorial-steps li.done > i { text-decoration: line-through; }
+/* 済んだ段は数字を伏せて印だけにする。**残っている段の数字だけが読み値になる。** */
+.tutorial-steps li.done > span {
+  position: relative;
+  border-color: var(--good);
+  color: transparent;
+}
+.tutorial-steps li.done > span::before {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--good);
+  font-size: 10px;
+}
 
 /* issue #240 — 必殺技チュートリアル。**札の作りは他の手取りチュートリアルと同じ**にする
    （手取りの札が二通りの見た目を持つと、同じ種類の場面だと読めなくなる）。
@@ -4109,6 +4160,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 10px;
 }
 .tutorial-forecast b { color: var(--gold); font-size: 12px; }
+/* 必殺技だけは、段の一覧の下にもう一行（予測の帯）が付く。 */
+.ultimate-tutorial .tutorial-steps { margin-bottom: 2px; }
 
 /* 光る先。**釦でもセルでも同じ光**にする（押す場所は一種類だと読めるように）。 */
 .tutorial-spot {
