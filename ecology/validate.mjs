@@ -745,6 +745,27 @@ export function validateContentBundle(bundle) {
         }
       }
     }
+    const perLevel = skill.statBonusPerLevel;
+    if (perLevel !== undefined) {
+      if (!isPlainObject(perLevel)) {
+        bag.add(`${path}.statBonusPerLevel`, "not_an_object", "expected a stat bonus growth record");
+      } else {
+        for (const [stat, value] of Object.entries(perLevel)) {
+          requireOneOf(
+            bag, `${path}.statBonusPerLevel.${stat}`, stat,
+            PASSIVE_STAT_BONUSES, "unknown_passive_stat",
+          );
+          requireCount(bag, `${path}.statBonusPerLevel.${stat}`, value, { min: 1, max: 1_000 });
+          if (!Object.hasOwn(bonus ?? {}, stat)) {
+            bag.add(
+              `${path}.statBonusPerLevel.${stat}`,
+              "missing_base_stat_bonus",
+              "a per-level stat bonus needs the same stat in statBonus",
+            );
+          }
+        }
+      }
+    }
     if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
     if (skill.statBonus === undefined && skill.rule === undefined) {
       bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
@@ -939,6 +960,7 @@ export function validateBattleInput(input, bundle) {
           bundle,
           ally.passiveSkillIds,
           ally.equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })),
+          ally.skillLevels,
         )
         : allyBaseMaxHp;
       validateTrainingRecord(bag, `${path}.training`, ally.training);

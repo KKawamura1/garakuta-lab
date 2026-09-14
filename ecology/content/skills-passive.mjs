@@ -9,19 +9,61 @@
 //
 // engine・schema・共通registryは変更しない。
 
-import { LEGACY_COMBAT_SCALE } from "./base.mjs";
+import { LEGACY_COMBAT_SCALE, NOT_COST_DAMAGE } from "./base.mjs";
 
 const self = { scope: "self", take: 1 };
 const selfIsEventSource = {
   type: "target_exists",
   query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
 };
+const selfIsEventTarget = {
+  type: "target_exists",
+  query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
+};
+const selfIsNotEventSource = {
+  type: "target_exists",
+  op: "eq",
+  value: 0,
+  query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
+};
 const selfNotFocused = {
   type: "has_status", subject: "self", statusId: "focused", op: "eq", value: 0,
 };
+const attackEvent = { type: "event_tag", tag: "attack", value: true };
+const hasReservedRp = {
+  type: "resource", subject: "self", resource: "reaction_points", op: "gte", value: 1,
+};
+const eventEnemyWithStatus = (statusId) => ({
+  type: "target_exists",
+  query: {
+    scope: "enemies",
+    filters: [
+      { type: "alive" },
+      { type: "is_event_primary_target" },
+      { type: "has_status", statusId, op: "gte", value: 1 },
+    ],
+    take: 1,
+  },
+});
+const woundedEventAlly = {
+  type: "target_exists",
+  query: {
+    scope: "allies",
+    filters: [
+      { type: "alive" }, { type: "is_event_primary_target" },
+      { type: "hp_percent", op: "lte", value: 50 },
+    ],
+    take: 1,
+  },
+};
+const freePercent = (percent) => ({
+  type: "event_value_scaled", key: "amount", numerator: percent, denominator: 100,
+});
+const chainOnce = { owner: "actor-instance + rule", scope: "chain", count: 1 };
 
-// R6 §6.8 の表。maxHp だけは連続量なので Phase A の 10 倍尺度へ合わせる
-// （表の +5 は移行前の尺度で書かれている）。
+// R6 §6.8 のLv1を保ったまま、R24から4能力ともLv10まで伸ばす。
+// maxHp はPhase Aの10倍尺度なので、旧+5は現在+50。Lv2以降の増分は小さく、
+// 完成ビルドの主役ではなく、余った技能点を確実性へ替える逃げ道である。
 const VITALITY_BONUS = 5 * LEGACY_COMBAT_SCALE;
 
 export const PASSIVE_SKILLS = {
@@ -29,24 +71,28 @@ export const PASSIVE_SKILLS = {
     id: "foundation_vitality",
     displayName: "地力",
     statBonus: { max_hp: VITALITY_BONUS },
+    statBonusPerLevel: { max_hp: LEGACY_COMBAT_SCALE },
     tags: ["foundation", "playable"],
   },
   foundation_might: {
     id: "foundation_might",
     displayName: "膂力",
     statBonus: { might: 2 },
+    statBonusPerLevel: { might: 1 },
     tags: ["foundation", "playable"],
   },
   foundation_focus: {
     id: "foundation_focus",
     displayName: "技術",
     statBonus: { focus: 2 },
+    statBonusPerLevel: { focus: 1 },
     tags: ["foundation", "playable"],
   },
   foundation_guard: {
     id: "foundation_guard",
     displayName: "受け",
     statBonus: { guard: 1 },
+    statBonusPerLevel: { guard: 1 },
     tags: ["foundation", "playable"],
   },
   // **開始時に一度だけ。**毎 round ではない。
@@ -327,6 +373,235 @@ Object.assign(PASSIVE_SKILLS, {
         type: "target_exists",
         query: { scope: "self", filters: [{ type: "is_event_primary_target" }], take: 1 },
       }, selfNotFocused],
+      costs: [],
+      effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+      priority: 100,
+    },
+  },
+});
+
+// ---------------------------------------------------------------- R24 — 各packの条件付き常設
+//
+// 一律に能力を上げるのではなく、「状態を付けた」「前へ出た」「RPを残した」など、
+// 既存の弱い行動を選んだ結果だけを太くする。割合は小さく、手数と資源は増やさない。
+// pending amount を読む規則は一つの行動chainで1回、状態変換はround 1回で止める。
+Object.assign(PASSIVE_SKILLS, {
+  // pack_edge — RPを使い切らない構成と、手負いでしか出ない攻撃を別々に支える。
+  reserve_edge: {
+    id: "reserve_edge",
+    displayName: "残心",
+    tags: ["passive", "playable", "attack", "reserve"],
+    rule: {
+      id: "reserve_edge_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      predicates: [selfIsEventSource, attackEvent, hasReservedRp],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(5) }],
+      limit: chainOnce,
+      priority: 55,
+    },
+  },
+  bloodied_edge: {
+    id: "bloodied_edge",
+    displayName: "窮地の力",
+    tags: ["passive", "playable", "attack", "risk"],
+    rule: {
+      id: "bloodied_edge_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      predicates: [
+        selfIsEventSource,
+        attackEvent,
+        { type: "hp_percent", subject: "self", op: "lte", value: 50 },
+      ],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(8) }],
+      limit: chainOnce,
+      priority: 56,
+    },
+  },
+
+  // pack_wall — 前列と守勢を選んだときだけ、同じ守りを少し厚くする。
+  frontline_stance: {
+    id: "frontline_stance",
+    displayName: "前衛の型",
+    tags: ["passive", "playable", "guard", "formation"],
+    rule: {
+      id: "frontline_stance_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      predicates: [
+        selfIsEventTarget,
+        { type: "position", subject: "self", row: "front", op: "eq" },
+      ],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "decrease", amount: freePercent(5) }],
+      limit: chainOnce,
+      priority: 55,
+    },
+  },
+  warded_barrier: {
+    id: "warded_barrier",
+    displayName: "守勢の壁",
+    tags: ["passive", "playable", "guard", "status"],
+    rule: {
+      id: "warded_barrier_rule",
+      listenTo: "barrier_proposed",
+      timing: "interrupt",
+      predicates: [
+        selfIsEventTarget,
+        { type: "has_status", subject: "self", statusId: "warded", op: "gte", value: 1 },
+      ],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(8) }],
+      limit: chainOnce,
+      priority: 55,
+    },
+  },
+
+  // pack_care — RPを残した治療と、瀕死者へ向けた防壁だけを強める。
+  reserve_care: {
+    id: "reserve_care",
+    displayName: "備えた手",
+    tags: ["passive", "playable", "care", "reserve"],
+    rule: {
+      id: "reserve_care_rule",
+      listenTo: "healing_proposed",
+      timing: "interrupt",
+      predicates: [selfIsEventSource, hasReservedRp],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(8) }],
+      limit: chainOnce,
+      priority: 55,
+    },
+  },
+  wounded_guard: {
+    id: "wounded_guard",
+    displayName: "傷を測る",
+    tags: ["passive", "playable", "care", "guard"],
+    rule: {
+      id: "wounded_guard_rule",
+      listenTo: "barrier_proposed",
+      timing: "interrupt",
+      predicates: [selfIsEventSource, woundedEventAlly],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(10) }],
+      limit: chainOnce,
+      priority: 56,
+    },
+  },
+
+  // pack_tempo — 余ったRPを次roundへ持ち越す一度きりの備えと、溜め技専用の倍率。
+  reserve_rhythm: {
+    id: "reserve_rhythm",
+    displayName: "一拍残す",
+    tags: ["passive", "playable", "tempo", "reserve"],
+    rule: {
+      id: "reserve_rhythm_rule",
+      listenTo: "resource_unused",
+      timing: "after",
+      predicates: [
+        selfIsEventTarget,
+        { type: "event_tag", tag: "reaction_points", value: true },
+        { type: "event_value", key: "amount", op: "gte", value: 1 },
+        selfNotFocused,
+      ],
+      costs: [],
+      effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+      priority: 100,
+    },
+  },
+  prepared_power: {
+    id: "prepared_power",
+    displayName: "溜めの勘所",
+    tags: ["passive", "playable", "tempo", "preparation", "attack"],
+    rule: {
+      id: "prepared_power_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      predicates: [selfIsEventSource, attackEvent, { type: "event_tag", tag: "heavy", value: true }],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(10) }],
+      limit: chainOnce,
+      priority: 55,
+    },
+  },
+
+  // pack_barrage — 刻印相手と三段目以降を、多段側の利得へ変える。
+  marked_assault: {
+    id: "marked_assault",
+    displayName: "刻印攻め",
+    tags: ["passive", "playable", "attack", "mark"],
+    rule: {
+      id: "marked_assault_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      predicates: [selfIsEventSource, attackEvent, eventEnemyWithStatus("exposed")],
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(8) }],
+      limit: chainOnce,
+      priority: 56,
+    },
+  },
+  three_count: {
+    id: "three_count",
+    displayName: "三つ数える",
+    tags: ["passive", "playable", "attack", "onhit"],
+    rule: {
+      id: "three_count_rule",
+      listenTo: "damage_taken",
+      timing: "after",
+      predicates: [
+        selfIsEventSource,
+        eventEnemyWithStatus("exposed"),
+        { type: "event_value", key: "hitIndex", op: "eq", value: 2 },
+        selfNotFocused,
+        NOT_COST_DAMAGE,
+      ],
+      costs: [],
+      effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+      priority: 100,
+    },
+  },
+
+  // pack_relay — 他人から受け取った集中と、誰かが刻んだ裂傷を別の役割へ渡す。
+  borrowed_focus: {
+    id: "borrowed_focus",
+    displayName: "借りた勢い",
+    tags: ["passive", "playable", "relay", "guard"],
+    rule: {
+      id: "borrowed_focus_rule",
+      listenTo: "status_added",
+      timing: "after",
+      predicates: [
+        { type: "event_value", key: "statusId", op: "eq", value: "focused" },
+        selfIsEventTarget,
+        selfIsNotEventSource,
+        { type: "has_status", subject: "self", statusId: "warded", op: "lt", value: 2 },
+      ],
+      costs: [],
+      effects: [{ type: "add_status", target: self, statusId: "warded", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+      priority: 100,
+    },
+  },
+  bleed_memory: {
+    id: "bleed_memory",
+    displayName: "傷を覚える",
+    tags: ["passive", "playable", "relay", "attack", "status"],
+    rule: {
+      id: "bleed_memory_rule",
+      listenTo: "status_added",
+      timing: "after",
+      predicates: [
+        { type: "event_value", key: "statusId", op: "eq", value: "bleeding" },
+        eventEnemyWithStatus("bleeding"),
+        selfNotFocused,
+      ],
       costs: [],
       effects: [{ type: "add_status", target: self, statusId: "focused", stacks: 1 }],
       limit: { owner: "actor-instance + rule", scope: "round", count: 1 },

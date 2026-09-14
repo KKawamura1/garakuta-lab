@@ -65,8 +65,11 @@ export const SKILL_PACKS = Object.freeze([
     // `cover_ally` は Stage 2 の `shield_handoff` へ続く最初の庇護であり、
     // `brace_after_hit`（pack_care の full）から無理なく到達できる。
     activeSkillIds: Object.freeze(["heavy_swing", "long_swing", "hunt_the_slow", "rapid_cuts", "pierce_thrust", "guard_crush", "rear_hunt", "finishing_thrust", "crack_mark", "reckless_swing", "double_back", "spread_cut", "opening_stab", "bloodied_charge", "hamstring", "execute_low", "rend"]),
-    reactiveSkillIds: Object.freeze(["counter_blow", "scavenge_ap", "whetted_by_pain", "cover_ally", "opportunist", "vengeful_step", "finish_the_wounded"]),
-    passiveSkillIds: Object.freeze(["first_blood", "edge_honed"]),
+    reactiveSkillIds: Object.freeze([
+      "counter_blow", "scavenge_ap", "whetted_by_pain", "cover_ally", "opportunist",
+      "vengeful_step", "finish_the_wounded", "exploit_stagger", "deepen_bleed",
+    ]),
+    passiveSkillIds: Object.freeze(["first_blood", "edge_honed", "reserve_edge", "bloodied_edge"]),
     // 問い:「同じ一撃でも、誰へ、どんな受けの相手へ当てるかで結果が変わる」。
     coreActiveSkillIds: Object.freeze(["heavy_swing", "pierce_thrust", "finishing_thrust", "rear_hunt", "hamstring"]),
     // `opportunist` とその子 `whetted_by_pain` は Stage 2 からの full へ回し、
@@ -87,8 +90,12 @@ export const SKILL_PACKS = Object.freeze([
     //   状態を払う: cleansing_step（自分）/ watchful_care（仲間・反応）
     //   痛みを分ける: shared_pain（被弾前に4割を自分へ移す）
     activeSkillIds: Object.freeze(["steady_cut", "aimed_shot", "idle_shuffle", "shield_the_wounded", "field_dressing", "steady_breath", "ward_ally", "precise_cut", "sustaining_ward", "cleansing_step"]),
-    reactiveSkillIds: Object.freeze(["overflow_care", "triage_relay", "brace_after_hit", "emergency_treatment", "triage", "shared_pain", "watchful_care", "steady_under_fire", "second_wind"]),
-    passiveSkillIds: Object.freeze(["steady_hands", "patient_hands"]),
+    reactiveSkillIds: Object.freeze([
+      "overflow_care", "triage_relay", "brace_after_hit", "emergency_treatment", "triage",
+      "shared_pain", "watchful_care", "steady_under_fire", "second_wind",
+      "critical_care", "aftercare",
+    ]),
+    passiveSkillIds: Object.freeze(["steady_hands", "patient_hands", "reserve_care", "wounded_guard"]),
     // 問い:「同じ一撃でも、武器か技かで、置ける場所が変わる」。
     //
     // issue #176 — **core は「Stage 0 の盤面で実際に鳴る節」だけにする。**
@@ -127,8 +134,11 @@ export const SKILL_PACKS = Object.freeze([
     //   面の守り: shield_wall / spread_the_guard / 体で張る: bulwark_of_will
     //   飛んでくる数字を削る: absorb_shock / 狙われた本人を厚くする: guard_the_marked
     activeSkillIds: Object.freeze(["reposition", "row_sweep", "column_thrust", "brace_for_impact", "drag_forward", "shield_wall", "rally_line", "bulwark_of_will", "spread_the_guard", "bracing_thrust"]),
-    reactiveSkillIds: Object.freeze(["guard_step", "block_focus", "barrier_stitch", "shield_handoff", "absorb_shock", "guard_the_marked", "last_stand", "counterweight"]),
-    passiveSkillIds: Object.freeze(["opening_guard", "wall_reader"]),
+    reactiveSkillIds: Object.freeze([
+      "guard_step", "block_focus", "barrier_stitch", "shield_handoff", "absorb_shock",
+      "guard_the_marked", "last_stand", "counterweight", "moving_guard", "barrier_rebuke",
+    ]),
+    passiveSkillIds: Object.freeze(["opening_guard", "wall_reader", "frontline_stance", "warded_barrier"]),
     // 問い:「隊列を動かして、何を得るか」（R9 §3 の Stage 2）。
     coreActiveSkillIds: Object.freeze(["reposition", "brace_for_impact", "column_thrust", "spread_the_guard"]),
     coreReactiveSkillIds: Object.freeze(["guard_step", "block_focus", "shield_handoff", "absorb_shock"]),
@@ -146,8 +156,11 @@ export const SKILL_PACKS = Object.freeze([
     //   宣言に割り込む: counter_order（鈍らせる）/ stall_the_blow（消す・戦闘1回）
     //   味方側: hasten_ally（遅い者へ）/ call_the_slow（後列へ反応権）/ set_the_pace
     activeSkillIds: Object.freeze(["relay_order", "mark_target", "steady_aim", "hasten_ally", "call_the_slow", "feint", "set_the_pace"]),
-    reactiveSkillIds: Object.freeze(["urging", "patient_step", "read_the_charge", "break_the_charge", "counter_order", "stall_the_blow"]),
-    passiveSkillIds: Object.freeze(["held_breath", "first_order"]),
+    reactiveSkillIds: Object.freeze([
+      "urging", "patient_step", "read_the_charge", "break_the_charge", "counter_order",
+      "stall_the_blow", "charge_guard", "stagger_focus",
+    ]),
+    passiveSkillIds: Object.freeze(["held_breath", "first_order", "reserve_rhythm", "prepared_power"]),
     // 問い:「誰がいつ動くと得か」（R9 §3 の Stage 2）。
     coreActiveSkillIds: Object.freeze(["relay_order", "steady_aim", "mark_target", "hasten_ally"]),
     coreReactiveSkillIds: Object.freeze(["urging", "patient_step", "read_the_charge", "break_the_charge"]),
@@ -169,8 +182,10 @@ export const SKILL_PACKS = Object.freeze([
       "barrage_strike", "mark_strike", "mark_break", "sweeping_barrage", "piercing_barrage",
       "flurry_finish", "mark_spread", "shatter_point",
     ]),
-    reactiveSkillIds: Object.freeze(["guarded_opening", "seize_the_opening", "echo_of_the_mark"]),
-    passiveSkillIds: Object.freeze(["mark_reader"]),
+    reactiveSkillIds: Object.freeze([
+      "guarded_opening", "seize_the_opening", "echo_of_the_mark", "deepen_mark", "third_cut",
+    ]),
+    passiveSkillIds: Object.freeze(["mark_reader", "marked_assault", "three_count"]),
     tags: Object.freeze(["attack", "onhit", "mark"]),
   }),
   // R9 §5 — **5人が揃った後の最初の横断pack の試作（probe）。**
@@ -198,8 +213,9 @@ export const SKILL_PACKS = Object.freeze([
       "spill_forward", "blocked_into_step", "mercy_into_guard",
       "stride_into_reach", "readied_relay", "wake_of_the_fallen",
       "stagger_relay", "warded_into_edge", "bleed_into_wake",
+      "return_the_mark", "carry_the_ward",
     ]),
-    passiveSkillIds: Object.freeze(["wake_reader", "relay_reader"]),
+    passiveSkillIds: Object.freeze(["wake_reader", "relay_reader", "borrowed_focus", "bleed_memory"]),
     tags: Object.freeze(["relay", "handoff", "crosscut"]),
   }),
 ]);

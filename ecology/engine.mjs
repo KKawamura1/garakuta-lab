@@ -141,7 +141,7 @@ function buildState(input, content, options) {
       reactiveSkillIds: [...ally.reactiveSkillIds],
       passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
       equipment: allyEquipment,
-    }, ally.passiveSkillIds, allyEquipment));
+    }, ally.passiveSkillIds, allyEquipment, ally.skillLevels));
   }
 
   for (const enemy of input.enemies) {

@@ -6,7 +6,8 @@
 // 装着順とオン／オフが際限なく複雑になる。代わりに一つの技能を段階的に強くする。
 //
 // **上限は手で書かない。**レベルが上げるのは連続量（damage / heal / barrier と
-// その増減・pending damage の軽減）だけなので、「その技能が連続量を持っているか」で決まる。手で書くと、
+// その増減・pending damage の軽減）および基礎能力の statBonusPerLevel なので、
+// 「その技能が伸びる量を持っているか」で決まる。手で書くと、
 // 効果を書き換えたときに「レベルは上がるのに何も強くならない技能」が黙って残る
 // （点数を払わせておいて何も返さないので、罠になる）。
 //
@@ -25,16 +26,30 @@ export const LEVELED_EFFECTS = new Set([
   "deal_damage", "heal", "gain_barrier", "modify_pending_amount", "split_pending_damage",
 ]);
 
-function hasLeveledAmount(node) {
-  if (Array.isArray(node)) return node.some(hasLeveledAmount);
+function hasLeveledEffect(node) {
+  if (Array.isArray(node)) return node.some(hasLeveledEffect);
   if (!node || typeof node !== "object") return false;
   if (typeof node.type === "string" && LEVELED_EFFECTS.has(node.type) && node.amount) return true;
-  return Object.values(node).some(hasLeveledAmount);
+  return Object.values(node).some(hasLeveledEffect);
+}
+
+function statBonusEntries(definition) {
+  return Object.entries(definition?.statBonusPerLevel ?? {}).map(([stat, value]) => ({
+    type: "stat_bonus",
+    stat,
+    amount: {
+      type: "constant",
+      value,
+      baseValue: definition?.statBonus?.[stat] ?? value,
+      perSkillLevel: true,
+    },
+  }));
 }
 
 // 技能ひとつぶんの上限。連続量を持たない技能は Lv1 止まり。
 export function skillLevelCap(definition) {
-  return hasLeveledAmount(definition) ? MAX_SKILL_LEVEL : MIN_SKILL_LEVEL;
+  return hasLeveledEffect(definition) || statBonusEntries(definition).length > 0
+    ? MAX_SKILL_LEVEL : MIN_SKILL_LEVEL;
 }
 
 // R19 — レベルを1段上げる値段。**深さと違って、いつでも同じ1点。**
@@ -98,6 +113,10 @@ function leveledEffects(node, found = []) {
   return found;
 }
 
+function leveledEntries(definition) {
+  return [...leveledEffects(definition), ...statBonusEntries(definition)];
+}
+
 // 変動量を、丸めない有理数（n / d）と単位で返す。
 // **丸めるのはレベルを掛けたあと一度だけ**（R6 §4.4 と同じ約束）。
 function amountRational(amount) {
@@ -113,7 +132,13 @@ function amountRational(amount) {
     case "actor_stat_scaled":
       return { n: 100 * numerator, d: denominator, unit: "percent" };
     case "constant":
-      return { n: (amount.value ?? 0) * numerator, d: denominator, unit: "plain" };
+      return {
+        n: (amount.value ?? 0) * numerator,
+        baseN: (amount.baseValue ?? amount.value ?? 0) * numerator,
+        d: denominator,
+        unit: "plain",
+        perSkillLevel: amount.perSkillLevel === true,
+      };
     case "status_stacks_scaled":
       return { n: numerator, d: denominator, unit: "plain" };
     default:
@@ -132,21 +157,28 @@ export function leveledEffectOf(definition) {
 // レベルを掛けたあとの実数。**掛けて丸めるのは一度だけ**（R6 §4.4）。
 // `stat` にはその人物の能力値を入れる（`stat_scaled` 以外では使わない）。
 export function leveledValueAt(definition, level, stat = null) {
-  const effect = leveledEffectOf(definition);
+  const entries = leveledEntries(definition);
+  const effect = entries.length === 1 ? entries[0] : null;
   const variable = leveledAmountOf(definition);
   if (!effect || !variable) return null;
   const amount = effect.amount;
   const scaled = amount?.type === "stat_scaled";
   if (scaled && (stat === null || stat === undefined)) return null;
-  const numerator = variable.n * levelFactor(level) * (scaled ? stat : 1);
-  const denominator = variable.d * BPS * (scaled ? 100 : 1);
+  const safeLevel = Math.max(MIN_SKILL_LEVEL, level);
+  const levelNumerator = variable.perSkillLevel ? 1 : levelFactor(level);
+  const levelDenominator = variable.perSkillLevel ? 1 : BPS;
+  const leveledNumerator = variable.perSkillLevel
+    ? variable.baseN + variable.n * (safeLevel - MIN_SKILL_LEVEL)
+    : variable.n * levelNumerator;
+  const numerator = leveledNumerator * (scaled ? stat : 1);
+  const denominator = variable.d * levelDenominator * (scaled ? 100 : 1);
   const one = roundHalfUpDiv(numerator, denominator);
   return { one, hits: variable.hits, total: one * variable.hits, unit: scaled ? "plain" : variable.unit };
 }
 
 // その技能の変動量。**無い（レベルを持たない）技能では null。**
 export function leveledAmountOf(definition) {
-  const effects = definition ? leveledEffects(definition) : [];
+  const effects = leveledEntries(definition);
   if (effects.length !== 1) return null;
   const rational = amountRational(effects[0].amount);
   if (!rational) return null;
@@ -160,7 +192,10 @@ function levelFactor(level) {
 // 差し込む文字。単位は定義の amount 型が決めるので、**本文は % を書かない。**
 function slotText(name, variable, level) {
   if (name === "hits") return String(variable.hits);
-  const one = roundHalfUpDiv(variable.n * levelFactor(level), variable.d * BPS);
+  const safeLevel = Math.max(MIN_SKILL_LEVEL, level);
+  const one = variable.perSkillLevel
+    ? roundHalfUpDiv(variable.baseN + variable.n * (safeLevel - MIN_SKILL_LEVEL), variable.d)
+    : roundHalfUpDiv(variable.n * levelFactor(level), variable.d * BPS);
   // 合計は「1段ぶんを丸めてから段数を掛ける」。読み手が掛け算しても合う。
   const value = name === "total" ? one * variable.hits : one;
   return variable.unit === "percent" ? value + "%" : String(value);
@@ -195,7 +230,7 @@ export function skillTextIssues(text, definition) {
   const issues = [];
   const source = String(text ?? "");
   const slots = [...new Set([...source.matchAll(SLOT_PATTERN)].map((match) => match[1]))];
-  const effects = definition ? leveledEffects(definition) : [];
+  const effects = leveledEntries(definition);
   const variable = leveledAmountOf(definition);
 
   if (effects.length > 1) {

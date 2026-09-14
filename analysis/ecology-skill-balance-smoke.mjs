@@ -9,9 +9,11 @@ import { BATTLE_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "../ecology/schema.m
 import {
   CAMPAIGN_STAGES,
   PLAYABLE_CONTENT,
+  SKILL_PACKS,
   SKILL_TREE_NODES,
   skillIdsForPacks,
 } from "../ecology/content/index.mjs";
+import { staticStatBonuses } from "../ecology/static-bonuses.mjs";
 
 let checks = 0;
 const check = (condition, message) => {
@@ -151,6 +153,51 @@ check(
   "深い狙いを澄ますは、早い息を整えると違って反応権も整える",
 );
 
+// 各packには、行動権を増やさず既存の一手を読む無料反応と、条件付き常設を置く。
+// 本数の総量ではなく、「各packで二つずつ選べる」ことを検査する。
+const freeReactivePairs = {
+  pack_edge: ["exploit_stagger", "deepen_bleed"],
+  pack_care: ["critical_care", "aftercare"],
+  pack_wall: ["moving_guard", "barrier_rebuke"],
+  pack_tempo: ["charge_guard", "stagger_focus"],
+  pack_barrage: ["deepen_mark", "third_cut"],
+  pack_relay: ["return_the_mark", "carry_the_ward"],
+};
+for (const pack of SKILL_PACKS) {
+  const expected = freeReactivePairs[pack.id];
+  assert.deepEqual(
+    expected.filter((id) => pack.reactiveSkillIds.includes(id)),
+    expected,
+    `${pack.id} は無料反応を二つ持つ`,
+  );
+  checks += 1;
+  for (const id of expected) {
+    assert.deepEqual(PLAYABLE_CONTENT.reactiveSkills[id].rule.costs, [], `${id} はAP/RPを使わない`);
+    checks += 1;
+  }
+  check(pack.passiveSkillIds.length >= 3, `${pack.id} は条件付き常設を複数持つ`);
+}
+
+// 基礎能力は余った点の逃げ道としてLv10まで伸びるが、行動権は増やさない。
+const foundationIds = [
+  "foundation_vitality", "foundation_might", "foundation_focus", "foundation_guard",
+];
+for (const id of foundationIds) equal(nodeBySkill[id].maxLv, 10, `${id} はLv10まで取れる`);
+assert.deepEqual(
+  staticStatBonuses(PLAYABLE_CONTENT, foundationIds),
+  { max_hp: 50, might: 2, focus: 2, guard: 1 },
+  "基礎能力4種のLv1は既存値を保つ",
+);
+checks += 1;
+assert.deepEqual(
+  staticStatBonuses(PLAYABLE_CONTENT, foundationIds, [], Object.fromEntries(
+    foundationIds.map((id) => [id, 10]),
+  )),
+  { max_hp: 140, might: 11, focus: 11, guard: 10 },
+  "基礎能力4種を10点ずつ取っても、増えるのはHPと三能力だけ",
+);
+checks += 1;
+
 // ---- production content を通す小戦闘 ---------------------------------------
 
 const training = Object.freeze({ might: 0, focus: 0, guard: 0, vitality: 0 });
@@ -164,6 +211,7 @@ function ally(instanceId, tactics, options = {}) {
     tactics: tactics.map((activeSkillId) => ({ activeSkillId, useWhen: [] })),
     reactiveSkillIds: options.reactives ?? [],
     passiveSkillIds: options.passives ?? [],
+    ...(options.skillLevels ? { skillLevels: options.skillLevels } : {}),
     equipment: [],
     stats: options.stats ?? baseStats,
     training,
@@ -228,6 +276,100 @@ const bleedTick = bleed.events.find((event) => (
   event.type === "damage_proposed" && event.ruleId === "bleeding_2_rule"
 ));
 equal(bleedTick?.values.amount, 100, "裂傷2段は受け999の敵にも最大HP10%を刻む");
+
+// 刃packは「状態を付ける弱い一手」を、次の一撃とround末の実ダメージへつなぐ。
+const edged = run(
+  "free_edge_status_combo",
+  [ally("a", ["hamstring", "rend"], {
+    characterId: "guardian",
+    reactives: ["exploit_stagger", "deepen_bleed"],
+  })],
+  [enemy("e", "still_husk", { stats: { maxHp: 1_000, might: 0, focus: 0, guard: 999 } })],
+);
+check(modifiers(edged, "exploit_stagger_rule").length >= 1,
+  "足を払ったあとの攻撃は、無料の崩れを穿つで伸びる");
+check(edged.events.some((event) => event.type === "status_added"
+  && event.ruleId === "deepen_bleed_rule" && event.values.statusId === "bleeding"),
+"抉るが付けた裂傷は、傷を深めるで1段増える");
+equal(edged.events.find((event) => event.type === "damage_proposed"
+  && event.ruleId === "bleeding_3_rule")?.values.amount, 150,
+"無料反応で3段になった裂傷は最大HP15%を刻む");
+
+// 手当てpackは瀕死者への治療だけを厚くし、同じ一手のあとへ守勢を残す。
+const cared = run(
+  "free_care_combo",
+  [
+    ally("wounded", ["steady_cut"], {
+      position: "front_left", stats: { maxHp: 24, might: 1, focus: 1, guard: 0 },
+    }),
+    ally("healer", ["steady_cut"], {
+      characterId: "mender", position: "rear_left",
+      reactives: ["triage", "critical_care", "aftercare"],
+    }),
+  ],
+  [enemy("e", "husk", { stats: { maxHp: 5_000, might: 10, focus: 1, guard: 0 } })],
+);
+check(modifiers(cared, "critical_care_rule").length >= 1,
+  "半分以下の味方への応急手当を、急所を診るが無料で厚くする");
+check(cared.events.some((event) => event.type === "status_added"
+  && event.ruleId === "aftercare_rule" && event.targetActorIds.includes("wounded")
+  && event.values.statusId === "warded"),
+"実際に治した味方へ、手当てのあとが守勢を残す");
+
+// 溜めpackは準備開始の無防備を守り、完成した重い一撃だけを太くする。
+const charged = run(
+  "free_charge_combo",
+  [ally("a", ["heavy_swing"], {
+    characterId: "guardian",
+    reactives: ["charge_guard"], passives: ["prepared_power"],
+  })],
+  [enemy("e", "still_husk", { stats: { maxHp: 5_000, might: 0, focus: 0, guard: 0 } })],
+);
+check(charged.events.some((event) => event.type === "status_added"
+  && event.ruleId === "charge_guard_rule" && event.values.statusId === "warded"),
+"溜め始めた拍に無料の守勢が付く");
+check(modifiers(charged, "prepared_power_rule").length >= 1,
+  "準備を終えたheavy攻撃だけを、溜めの勘所が強める");
+
+// 連撃packは刻印を2段へし、刻印相手への三連撃を倍率・裂傷・次の集中へ分岐させる。
+const barraged = run(
+  "free_barrage_combo",
+  [ally("a", ["mark_strike", "barrage_strike"], {
+    characterId: "guardian",
+    reactives: ["deepen_mark", "third_cut"],
+    passives: ["marked_assault", "three_count"],
+  })],
+  [enemy("e", "still_husk", { stats: { maxHp: 5_000, might: 0, focus: 0, guard: 0 } })],
+);
+check(barraged.events.some((event) => event.type === "status_added"
+  && event.ruleId === "deepen_mark_rule" && event.values.statusId === "exposed"),
+"最初の刻印を重ね刻みが2段へする");
+equal(modifiers(barraged, "marked_assault_rule").length, 1,
+  "刻印攻めは後続の三連撃の最初のhitを強める");
+check(barraged.events.some((event) => event.type === "status_added"
+  && event.ruleId === "third_cut_rule" && event.values.statusId === "bleeding"),
+"三撃目は裂傷の入口になる");
+check(barraged.events.some((event) => event.type === "status_added"
+  && event.ruleId === "three_count_rule" && event.values.statusId === "focused"),
+"刻印相手への三撃目は次の一手の集中も残す");
+
+// 受け渡しpackは自分に来た不利と、仲間へ渡した守りを同じ一手から敵味方へ返す。
+const relayed = run(
+  "free_relay_combo",
+  [
+    ally("giver", ["take_the_wound"], {
+      position: "front_left", reactives: ["return_the_mark", "carry_the_ward"],
+    }),
+    ally("receiver", ["steady_cut"], { position: "front_right" }),
+  ],
+  [enemy("e", "still_husk", { stats: { maxHp: 5_000, might: 0, focus: 0, guard: 0 } })],
+);
+check(relayed.events.some((event) => event.type === "status_added"
+  && event.ruleId === "return_the_mark_rule" && event.values.statusId === "staggered"),
+"傷を引き受けて自分に付いた隙を、隙を返すが敵の怯みへ変える");
+check(relayed.events.some((event) => event.type === "block_gained"
+  && event.ruleId === "carry_the_ward_rule" && event.targetActorIds.includes("receiver")),
+"渡した守勢に守りを継ぐがblockを重ねる");
 
 // 急かすは、準備役がいるときだけRPを一手へ変え、そのラウンド中に大技を完成させる。
 const urged = run(
@@ -297,6 +439,31 @@ check(moved.events.some((event) => event.type === "status_added"
 "位置替えで前へ出た本人に守勢が付く");
 check(moved.events.some((event) => event.type === "barrier_gained" && event.ruleId === "guard_step_rule"),
   "同じ移動を踏み固めが読み、RPなしで防壁へ変える");
+
+const movingGuard = run(
+  "moving_guard_combo",
+  [
+    ally("mover", ["reposition"], {
+      characterId: "guardian", position: "rear_left", reactives: ["moving_guard"],
+    }),
+    ally("anchor", ["steady_cut"], { position: "front_left" }),
+  ],
+  [enemy("e", "husk", { stats: { maxHp: 5_000, might: 100, focus: 1, guard: 0 } })],
+);
+check(modifiers(movingGuard, "moving_guard_rule").length >= 1,
+  "前へ動いたroundの被弾を、動いた足場がRPなしで軽くする");
+
+const rebuked = run(
+  "barrier_rebuke_combo",
+  [ally("a", ["bulwark"], {
+    reactives: ["barrier_rebuke"],
+    stats: { maxHp: 1_000, might: 1, focus: 10, guard: 0 },
+  })],
+  [enemy("e", "husk", { stats: { maxHp: 5_000, might: 100, focus: 1, guard: 0 } })],
+);
+check(rebuked.events.some((event) => event.type === "status_added"
+  && event.ruleId === "barrier_rebuke_rule" && event.values.statusId === "staggered"),
+"防壁が砕けた拍を、砕け際が攻撃者の怯みへ返す");
 
 const dragged = run(
   "drag_into_mark",

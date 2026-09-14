@@ -145,6 +145,19 @@ const reactiveMeta = {
   stagger_relay: ["怯みを回す", "敵に「怯み」が付いた瞬間、RP1で最前の敵へも「怯み」を1つ。", "状態"],
   warded_into_edge: ["守勢を刃へ", "自分が「守勢」を受け取ったあと、RP1で「集中」を1つ。守られた者が刃になる。", "状態"],
   bleed_into_wake: ["裂傷の余波", "敵に「裂傷」が入った瞬間、RP1でその敵へ「隙」も1つ。細い傷を束ねる。", "状態"],
+  // R24 — 条件は狭いが、反応権を消費しない小さな接続。
+  exploit_stagger: ["崩れを穿つ", "「怯み」のある敵への攻撃の最初のhitを{amount}強める。RPは消費しない。", "状態"],
+  deepen_bleed: ["傷を深める", "自分が敵へ「裂傷」を付けたとき、RPなしでさらに1段。ラウンド1回。", "状態"],
+  moving_guard: ["動いた足場", "移動したラウンド中、攻撃ごとの最初のhitを{amount}追加で軽くする。RPは消費しない。", "移動"],
+  barrier_rebuke: ["砕け際", "自分の防壁が壊れたとき、RPなしで攻撃者へ「怯み」を1つ。ラウンド1回。", "防御"],
+  critical_care: ["急所を診る", "HP半分以下の味方への治療を{amount}強める。RPは消費しない。", "回復"],
+  aftercare: ["手当てのあと", "自分が味方を回復したあと、RPなしでその味方へ「守勢」を1つ。ラウンド1回。", "回復"],
+  charge_guard: ["溜めの構え", "自分が準備を始めたとき、RPなしで「守勢」を1つ。ラウンド1回。", "準備"],
+  stagger_focus: ["崩れを読む", "自分が敵へ「怯み」を付けたとき、RPなしで「集中」を1つ。ラウンド1回。", "状態"],
+  deepen_mark: ["重ね刻み", "自分が敵へ「隙」を付けたとき、RPなしでさらに1段。ラウンド1回。", "状態"],
+  third_cut: ["三撃目の傷", "多段攻撃の3hit目が通ったとき、RPなしでその敵へ「裂傷」を1つ。ラウンド1回。", "状態"],
+  return_the_mark: ["隙を返す", "自分に「隙」が付いたとき、RPなしで最前の敵へ「怯み」を1つ。ラウンド1回。", "状態"],
+  carry_the_ward: ["守りを継ぐ", "味方が「守勢」を得たとき、RPなしでその味方へ受け構えを1つ。ラウンド1回。", "状態"],
 };
 
 const equipmentMeta = {
@@ -181,10 +194,10 @@ export const EQUIPMENT_META = equipmentMeta;
 // R6 §6.8 — 常設 fallback passive の表示文。**基礎訓練は系統に属さない。**
 // どの人物も、いつでも、前提なしで取れる（詰み防止だから）。
 const passiveMeta = {
-  foundation_vitality: ["地力", "最大HPが50増える。", "基礎"],
-  foundation_might: ["膂力", "腕力が2増える。武器技能の量が上がる。", "基礎"],
-  foundation_focus: ["技術", "技術が2増える。技術・治療・防壁の量が上がる。", "基礎"],
-  foundation_guard: ["受け", "受けが1増える。一撃ごとの被害を減らす。", "基礎"],
+  foundation_vitality: ["地力", "最大HPが{amount}増える。Lv10まで小さく伸ばせる。", "基礎"],
+  foundation_might: ["膂力", "腕力が{amount}増える。武器技能の量が上がり、Lv10まで伸ばせる。", "基礎"],
+  foundation_focus: ["技術", "技術が{amount}増える。技術・治療・防壁の量が上がり、Lv10まで伸ばせる。", "基礎"],
+  foundation_guard: ["受け", "受けが{amount}増える。一撃ごとの被害を減らし、Lv10まで伸ばせる。", "基礎"],
   foundation_ap: ["出足", "戦闘開始時に一度だけ行動権+1。毎ラウンドではない。", "基礎"],
   foundation_rp: ["備え", "戦闘開始時に一度だけ反応権+1。毎ラウンドではない。", "基礎"],
   opening_guard: ["初手の構え", "戦闘開始時、受け構えを1つ得る。最初の一撃を受け止めるための守り。", "守り"],
@@ -201,6 +214,18 @@ const passiveMeta = {
   first_order: ["初手の号令", "戦闘開始時に一度だけ、前列で最も速い味方（自分以外）へ行動権+1。毎ラウンドではない。", "指揮"],
   mark_reader: ["刻印を読む", "自分が敵へ「隙」を付けたあと、「集中」を1つ得る。ラウンド1回。", "攻撃"],
   relay_reader: ["渡りを読む", "自分が防壁を受け取ったあと、「集中」を1つ得る。ラウンド1回。", "支援"],
+  reserve_edge: ["残心", "反応権を1以上残している間、自分の攻撃を{amount}強める。反応を使うか残すかの選択。", "攻撃"],
+  bloodied_edge: ["窮地の力", "HP半分以下の間、自分の攻撃を{amount}強める。手負いの攻撃群を支える。", "攻撃"],
+  frontline_stance: ["前衛の型", "前列にいる間、攻撃ごとの最初のhitを{amount}軽くする。", "守り"],
+  warded_barrier: ["守勢の壁", "「守勢」のある自分が受け取る防壁を{amount}強める。", "守り"],
+  reserve_care: ["備えた手", "反応権を1以上残している間、自分の治療を{amount}強める。", "支援"],
+  wounded_guard: ["傷を測る", "HP半分以下の味方へ自分が張る防壁を{amount}強める。", "支援"],
+  reserve_rhythm: ["一拍残す", "ラウンド終了時に反応権が1以上余ったとき、一戦に一度だけ「集中」を得る。", "指揮"],
+  prepared_power: ["溜めの勘所", "準備を経て放つ攻撃を{amount}強める。安定攻撃には効かない。", "指揮"],
+  marked_assault: ["刻印攻め", "「隙」のある敵への自分の攻撃の最初のhitを{amount}強める。", "攻撃"],
+  three_count: ["三つ数える", "「隙」のある敵へ多段攻撃の3hit目を通したあと、「集中」を得る。ラウンド1回。", "攻撃"],
+  borrowed_focus: ["借りた勢い", "他の味方から「集中」を受け取ったとき、自分へ「守勢」を1つ。ラウンド1回。", "支援"],
+  bleed_memory: ["傷を覚える", "誰かが敵へ「裂傷」を付けたとき、自分は「集中」を得る。ラウンド1回。", "支援"],
 };
 export const PASSIVE_META = passiveMeta;
 
@@ -381,6 +406,30 @@ const BRANCH_OF = {
   warded_into_edge: "守り",
   bleed_into_wake: "攻撃",
   relay_reader: "支援",
+  exploit_stagger: "攻撃",
+  deepen_bleed: "攻撃",
+  moving_guard: "守り",
+  barrier_rebuke: "守り",
+  critical_care: "支援",
+  aftercare: "支援",
+  charge_guard: "指揮",
+  stagger_focus: "指揮",
+  deepen_mark: "攻撃",
+  third_cut: "攻撃",
+  return_the_mark: "指揮",
+  carry_the_ward: "守り",
+  reserve_edge: "攻撃",
+  bloodied_edge: "攻撃",
+  frontline_stance: "守り",
+  warded_barrier: "守り",
+  reserve_care: "支援",
+  wounded_guard: "支援",
+  reserve_rhythm: "指揮",
+  prepared_power: "指揮",
+  marked_assault: "攻撃",
+  three_count: "攻撃",
+  borrowed_focus: "支援",
+  bleed_memory: "支援",
 };
 
 const ACTIVE_FOREST = [
@@ -499,6 +548,14 @@ const REACTIVE_FOREST = [
     node("guarded_opening",  // 受け止めの隙
       node("seize_the_opening"),  // 機を逃さず
       node("echo_of_the_mark"))),  // 刻印の残響
+  // R24 — RP0反応はpackごとに短い二段の入口を持つ。既存の深いRP消費枝へ
+  // 混ぜず、「小さな条件反応を広く取る」選択を1〜2点で始められるようにする。
+  node("critical_care", node("aftercare")),  // 構えと手当て
+  node("exploit_stagger", node("deepen_bleed")),  // 刃と撃破
+  node("moving_guard", node("barrier_rebuke")),  // 防壁と隊列
+  node("charge_guard", node("stagger_focus")),  // 行動権と準備
+  node("deepen_mark", node("third_cut")),  // 連撃と刻印
+  node("return_the_mark", node("carry_the_ward")),  // 余波と受け渡し
 ];
 
 const PASSIVE_FOREST = [
@@ -507,17 +564,29 @@ const PASSIVE_FOREST = [
     node("first_blood",  // first_blood
       node("edge_honed"),  // edge_honed
       node("wake_reader")),  // wake_reader
-    node("mark_reader")),  // mark_reader
+    node("reserve_edge",  // reserve_edge
+      node("bloodied_edge")),  // bloodied_edge
+    node("mark_reader",  // mark_reader
+      node("marked_assault",  // marked_assault
+        node("three_count")))),  // three_count
   node("foundation_focus",  // foundation_focus
     node("steady_hands",  // steady_hands
       node("patient_hands"),  // patient_hands
-      node("relay_reader"))),  // relay_reader
+      node("reserve_care",  // reserve_care
+        node("wounded_guard"))),  // wounded_guard
+    node("relay_reader",  // relay_reader
+      node("borrowed_focus",  // borrowed_focus
+        node("bleed_memory")))),  // bleed_memory
   node("foundation_guard",  // foundation_guard
     node("opening_guard",  // opening_guard
-      node("wall_reader"))),  // wall_reader
+      node("wall_reader",  // wall_reader
+        node("frontline_stance",  // frontline_stance
+          node("warded_barrier"))))),  // warded_barrier
   node("foundation_ap",  // foundation_ap
     node("held_breath",  // held_breath
-      node("first_order"))),  // first_order
+      node("first_order"),  // first_order
+      node("reserve_rhythm",  // reserve_rhythm
+        node("prepared_power")))),  // prepared_power
   node("foundation_rp"),  // foundation_rp
 ];
 

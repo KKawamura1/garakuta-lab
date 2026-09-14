@@ -138,6 +138,9 @@ for (const [section, metaById] of Object.entries(META_BY_SECTION)) {
     if (section === "passiveSkills") {
       const labels = { max_hp: "最大HP", might: "腕力", focus: "技術", guard: "受け" };
       for (const [stat, expected] of Object.entries(definition.statBonus ?? {})) {
+        // Lvで伸びる statBonus も `{amount}` から表示する。後段の「Lv10」を
+        // bonus値と誤認せず、上の skillTextIssues に単一出典の検査を任せる。
+        if (text.includes("{amount}")) continue;
         const label = labels[stat];
         if (!label) continue;
         checkedBySection.add(section);

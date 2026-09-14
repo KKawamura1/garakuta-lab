@@ -689,7 +689,7 @@ function allyInput(characterId, position, loadout, options = {}) {
   const hp = options.hp?.[characterId];
   const baseMaxHp = ally.stats?.maxHp ?? PLAYABLE_CONTENT.characters[characterId].maxHp;
   const ceiling = maxHpWithStaticBonuses(baseMaxHp, content, passiveSkillIds,
-    equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })));
+    equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })), skillLevels ?? {});
   if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(ceiling, hp));
   return ally;
 }

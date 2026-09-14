@@ -54,6 +54,19 @@ export const REACTIVE_SKILL_NAMES = {
   stagger_relay: "怯みを回す",
   warded_into_edge: "守勢を刃へ",
   bleed_into_wake: "裂傷の余波",
+  // R24 — 各packへ2本ずつ置く、反応権を使わない条件付き反応。
+  exploit_stagger: "崩れを穿つ",
+  deepen_bleed: "傷を深める",
+  moving_guard: "動いた足場",
+  barrier_rebuke: "砕け際",
+  critical_care: "急所を診る",
+  aftercare: "手当てのあと",
+  charge_guard: "溜めの構え",
+  stagger_focus: "崩れを読む",
+  deepen_mark: "重ね刻み",
+  third_cut: "三撃目の傷",
+  return_the_mark: "隙を返す",
+  carry_the_ward: "守りを継ぐ",
 };
 
 const reactiveSkills = renamed("reactiveSkills", REACTIVE_SKILL_NAMES);
@@ -948,6 +961,209 @@ reactiveSkills.bleed_into_wake = reaction("bleed_into_wake", REACTIVE_SKILL_NAME
   effects: [{ type: "add_status", target: HIT_ENEMY_BELOW_EXPOSED_CAP, statusId: "exposed", stacks: 1 }],
   limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
 }, ["reaction", "relay", "mark"]);
+
+// ---------------------------------------------------------------- R24 — 反応権0の条件付き反応
+//
+// RPを払う既存反応は、広い条件・即時攻撃・行動権移譲など大きな結果を担当する。
+// ここで足す12本は、既存の行動や状態が起きたときだけ小さく上乗せするためRP0。
+// 無料でも無限にはせず、pending amount は一chainで1回、状態変換はround 1回で止める。
+const ATTACK_EVENT = { type: "event_tag", tag: "attack", value: true };
+const CHAIN_ONCE = { owner: "actor-instance + rule", scope: "chain", count: 1 };
+const freePercent = (percent) => ({
+  type: "event_value_scaled", key: "amount", numerator: percent, denominator: 100,
+});
+const HIT_STAGGERED_ENEMY = {
+  type: "target_exists",
+  query: {
+    scope: "enemies",
+    filters: [
+      { type: "alive" }, { type: "is_event_primary_target" },
+      { type: "has_status", statusId: "staggered", op: "gte", value: 1 },
+    ],
+    take: 1,
+  },
+};
+const HIT_ENEMY_BELOW_BLEED_CAP = {
+  scope: "enemies",
+  filters: [
+    { type: "alive" }, { type: "is_event_primary_target" },
+    { type: "has_status", statusId: "bleeding", op: "lt", value: 3 },
+  ],
+  take: 1,
+};
+const HIT_ALLY_BELOW_HALF = {
+  type: "target_exists",
+  query: {
+    scope: "allies",
+    filters: [
+      { type: "alive" }, { type: "is_event_primary_target" },
+      { type: "hp_percent", op: "lte", value: 50 },
+    ],
+    take: 1,
+  },
+};
+const EVENT_SOURCE_ENEMY_BELOW_STAGGER_CAP = {
+  scope: "enemies",
+  filters: [
+    { type: "alive" }, { type: "is_event_source" },
+    { type: "has_status", statusId: "staggered", op: "lt", value: 2 },
+  ],
+  take: 1,
+};
+
+// pack_edge — 状態異常を「付けて終わり」にせず、倍率と追加段へつなぐ。
+reactiveSkills.exploit_stagger = reaction("exploit_stagger", REACTIVE_SKILL_NAMES.exploit_stagger, {
+  listenTo: "damage_proposed",
+  timing: "interrupt",
+  priority: 58,
+  predicates: [SELF_IS_EVENT_SOURCE, ATTACK_EVENT, HIT_STAGGERED_ENEMY],
+  costs: [],
+  effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(10) }],
+  limit: CHAIN_ONCE,
+}, ["reaction", "attack", "debuff", "free"]);
+
+reactiveSkills.deepen_bleed = reaction("deepen_bleed", REACTIVE_SKILL_NAMES.deepen_bleed, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 104,
+  predicates: [
+    statusIs("bleeding"), SELF_IS_EVENT_SOURCE,
+    { type: "target_exists", query: HIT_ENEMY_BELOW_BLEED_CAP },
+  ],
+  costs: [],
+  effects: [{ type: "add_status", target: HIT_ENEMY_BELOW_BLEED_CAP, statusId: "bleeding", stacks: 1 }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "attack", "debuff", "free"]);
+
+// pack_wall — 移動したroundの最初のhitを固定値で受け、壁が砕けた拍を怯みへ返す。
+reactiveSkills.moving_guard = reaction("moving_guard", REACTIVE_SKILL_NAMES.moving_guard, {
+  listenTo: "damage_proposed",
+  timing: "interrupt",
+  priority: 58,
+  predicates: [
+    SELF_IS_EVENT_TARGET,
+    { type: "history_count", subject: "self", metric: "times_moved", window: "round", op: "gte", value: 1 },
+  ],
+  costs: [],
+  effects: [{
+    type: "modify_pending_amount", operation: "decrease",
+    amount: { type: "constant", value: 5 },
+  }],
+  limit: CHAIN_ONCE,
+}, ["reaction", "guard", "move", "free"]);
+
+reactiveSkills.barrier_rebuke = reaction("barrier_rebuke", REACTIVE_SKILL_NAMES.barrier_rebuke, {
+  listenTo: "barrier_broken",
+  timing: "after",
+  priority: 104,
+  predicates: [
+    SELF_IS_EVENT_TARGET,
+    { type: "target_exists", query: EVENT_SOURCE_ENEMY_BELOW_STAGGER_CAP },
+  ],
+  costs: [],
+  effects: [{
+    type: "add_status", target: EVENT_SOURCE_ENEMY_BELOW_STAGGER_CAP,
+    statusId: "staggered", stacks: 1,
+  }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "guard", "debuff", "free"]);
+
+// pack_care — 瀕死者への治療だけを厚くし、実際に治した相手へ次の守勢を残す。
+reactiveSkills.critical_care = reaction("critical_care", REACTIVE_SKILL_NAMES.critical_care, {
+  listenTo: "healing_proposed",
+  timing: "interrupt",
+  priority: 58,
+  predicates: [SELF_IS_EVENT_SOURCE, HIT_ALLY_BELOW_HALF],
+  costs: [],
+  effects: [{ type: "modify_pending_amount", operation: "increase", amount: freePercent(15) }],
+  limit: CHAIN_ONCE,
+}, ["reaction", "care", "free"]);
+
+reactiveSkills.aftercare = reaction("aftercare", REACTIVE_SKILL_NAMES.aftercare, {
+  listenTo: "healing_applied",
+  timing: "after",
+  priority: 104,
+  predicates: [SELF_IS_EVENT_SOURCE, { type: "target_exists", query: HIT_ALLY_BELOW_WARD_CAP }],
+  costs: [],
+  effects: [{ type: "add_status", target: HIT_ALLY_BELOW_WARD_CAP, statusId: "warded", stacks: 1 }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "care", "guard", "free"]);
+
+// pack_tempo — 準備の隙を守勢で埋め、怯みを付けた一手を次の集中へつなぐ。
+reactiveSkills.charge_guard = reaction("charge_guard", REACTIVE_SKILL_NAMES.charge_guard, {
+  listenTo: "preparation_started",
+  timing: "after",
+  priority: 104,
+  predicates: [
+    SELF_IS_EVENT_SOURCE,
+    { type: "has_status", subject: "self", statusId: "warded", op: "lt", value: 2 },
+  ],
+  costs: [],
+  effects: [{ type: "add_status", target: SELF_TARGET, statusId: "warded", stacks: 1 }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "tempo", "preparation", "guard", "free"]);
+
+reactiveSkills.stagger_focus = reaction("stagger_focus", REACTIVE_SKILL_NAMES.stagger_focus, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 104,
+  predicates: [statusIs("staggered"), SELF_IS_EVENT_SOURCE, EVENT_TARGET_IS_ENEMY, SELF_NOT_FOCUSED],
+  costs: [],
+  effects: [{ type: "add_status", target: SELF_TARGET, statusId: "focused", stacks: 1 }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "tempo", "debuff", "free"]);
+
+// pack_barrage — 最初の刻印を二段へし、多段の三hit目を裂傷の入口にする。
+reactiveSkills.deepen_mark = reaction("deepen_mark", REACTIVE_SKILL_NAMES.deepen_mark, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 104,
+  predicates: [
+    statusIs("exposed"), SELF_IS_EVENT_SOURCE,
+    { type: "target_exists", query: HIT_ENEMY_BELOW_EXPOSED_CAP },
+  ],
+  costs: [],
+  effects: [{ type: "add_status", target: HIT_ENEMY_BELOW_EXPOSED_CAP, statusId: "exposed", stacks: 1 }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "attack", "mark", "free"]);
+
+reactiveSkills.third_cut = reaction("third_cut", REACTIVE_SKILL_NAMES.third_cut, {
+  listenTo: "damage_taken",
+  timing: "after",
+  priority: 104,
+  predicates: [
+    SELF_IS_EVENT_SOURCE,
+    { type: "event_value", key: "hitIndex", op: "eq", value: 2 },
+    { type: "target_exists", query: HIT_ENEMY_BELOW_BLEED_CAP },
+  ],
+  costs: [],
+  effects: [{ type: "add_status", target: HIT_ENEMY_BELOW_BLEED_CAP, statusId: "bleeding", stacks: 1 }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "attack", "onhit", "debuff", "free"]);
+
+// pack_relay — 自分へ来た隙を敵へ返し、誰かが渡した守勢へ別種の防御を重ねる。
+reactiveSkills.return_the_mark = reaction("return_the_mark", REACTIVE_SKILL_NAMES.return_the_mark, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 104,
+  predicates: [
+    statusIs("exposed"), SELF_IS_EVENT_TARGET,
+    { type: "target_exists", query: FRONTMOST_BELOW_STAGGER_CAP },
+  ],
+  costs: [],
+  effects: [{ type: "add_status", target: FRONTMOST_BELOW_STAGGER_CAP, statusId: "staggered", stacks: 1 }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "relay", "debuff", "free"]);
+
+reactiveSkills.carry_the_ward = reaction("carry_the_ward", REACTIVE_SKILL_NAMES.carry_the_ward, {
+  listenTo: "status_added",
+  timing: "after",
+  priority: 104,
+  predicates: [statusIs("warded"), { type: "target_exists", query: HIT_ALLY_TARGET }],
+  costs: [],
+  effects: [{ type: "gain_block", target: HIT_ALLY_TARGET, amount: { type: "constant", value: 1 } }],
+  limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+}, ["reaction", "relay", "guard", "free"]);
 
 // A cost-induced damage_taken must never be mistaken for an enemy hit. Apply
 // the guard after fixture definitions and production overrides have all been
