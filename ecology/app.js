@@ -187,6 +187,12 @@ import {
   REPLAY_EVENT_TYPES,
   STRIKE_IMPACT_EVENT_TYPES,
 } from "./replay-beats.mjs";
+import {
+  attackStyleOfEvent,
+  beatAttackStyle,
+  buildAttackStyleIndex,
+} from "./attack-style.mjs";
+import { spawnImpactMark, spawnStrikeLine } from "./battle-fx.mjs";
 import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
@@ -6214,10 +6220,12 @@ function unitHtml(actor) {
       + "</span><b class=\"unit-name\">" + esc(shortName(actor.displayName)) + "</b></div>";
   return "<div class=\"unit hp-tone-green\" role=\"group\" aria-label=\"" + esc(shortName(actor.displayName))
     + "\" data-unit=\"" + esc(actor.instanceId) + "\" data-max-hp=\"" + esc(String(actor.maxHp ?? 0)) + "\" data-hp-alert=\"normal\" data-hp-tone=\"green\">"
-    // 手応えの層。閃き・衝撃輪・斬線・照準は**この一枚の中だけ**で動くので、
+    // 手応えの層。閃き・衝撃輪・斬線・弾着・照準は**この一枚の中だけ**で動くので、
     // 箱の大きさも並びも変わらない（盤面が動くと踏み込みと揺れが読めなくなる）。
+    // `fx-shot` は一枚で二役——撃つ側では銃口の閃光、受ける側では弾着の火花になる。
     + "<span class=\"unit-fx\" aria-hidden=\"true\">"
-    + "<i class=\"fx-flash\"></i><i class=\"fx-ring\"></i><i class=\"fx-slash\"></i><i class=\"fx-reticle\"></i>"
+    + "<i class=\"fx-flash\"></i><i class=\"fx-ring\"></i><i class=\"fx-slash\"></i>"
+    + "<i class=\"fx-shot\"></i><i class=\"fx-reticle\"></i>"
     + "</span>"
     + face
     + top + "<div class=\"unit-info-layer\"><div class=\"unit-cast\"></div><div class=\"unit-bar\" role=\"img\" aria-label=\"HPと防壁\"><span class=\"unit-fill\"></span><span class=\"unit-recovered\" aria-hidden=\"true\"></span><span class=\"unit-recoverable\" aria-hidden=\"true\"></span><span class=\"unit-unrecoverable\" aria-hidden=\"true\"></span><span class=\"unit-barrier-fill\" aria-hidden=\"true\"></span></div>"
@@ -6396,6 +6404,10 @@ function restartAnimation(element, className) {
   element.classList.add(className);
 }
 
+// 攻撃の型（腕力＝斬撃／技術＝銃撃）。表は content から一度だけ組む。
+// 読み方は ecology/attack-style.mjs にあり、engine も拍も触らない。
+const ATTACK_STYLE_INDEX = buildAttackStyleIndex(PLAYABLE_CONTENT);
+
 // 一撃の重さ。**最大HPに対する割合**で三段に分ける。同じ50でも、HP110の人と
 // HP300の人では起きたことの大きさが違う。割合だけで決まるので、同じイベント列
 // からは同じ重さが出る（時計も乱数も混ぜない）。
@@ -6495,27 +6507,8 @@ function strikeTargetIds(beat, actingId) {
   return ids;
 }
 
-function spawnStrikeLine(field, fromUnit, toUnit) {
-  const host = field.querySelector(".battle-floats");
-  if (!host || !fromUnit || !toUnit || fromUnit === toUnit) return;
-  const fieldRect = field.getBoundingClientRect();
-  const from = fromUnit.getBoundingClientRect();
-  const to = toUnit.getBoundingClientRect();
-  const x = from.left - fieldRect.left + from.width / 2;
-  const y = from.top - fieldRect.top + from.height / 2;
-  const dx = (to.left - fieldRect.left + to.width / 2) - x;
-  const dy = (to.top - fieldRect.top + to.height / 2) - y;
-  const length = Math.hypot(dx, dy);
-  if (!(length > 1)) return;
-  const node = document.createElement("i");
-  node.className = "strike-line";
-  node.style.left = x + "px";
-  node.style.top = y + "px";
-  node.style.width = length + "px";
-  node.style.transform = "rotate(" + (Math.atan2(dy, dx) * 180 / Math.PI) + "deg)";
-  host.appendChild(node);
-  setTimeout(() => node.remove(), 420);
-}
+// 線と印そのものは ecology/battle-fx.mjs にある。**盤面の演出だけを切り出してある**ので、
+// ecology/fx-test.html（演出の見本）が、ゲームを一戦進めずに同じ絵を同じ経路で出せる。
 
 // 盤面の揺れ。**重さの三段をそのまま揺れの三段にする。**三つを外してから付け直すので、
 // 同じ強さが続けて来ても毎回頭から揺れる。
@@ -6722,9 +6715,13 @@ function syncBattleView(options = {}) {
   }
 
   // 拍をまたいだ一時演出を持ち越さず、HP警告枠を常に読める状態に戻す。
+  // `is-striking` もここで落とす。型の class（strike-*）だけを毎拍外して踏み込みの
+  // class を残すと、**次の拍で型が外れた瞬間に斬線の規則が復活して**、撃った人が
+  // 一拍遅れて斬る絵が出る。付け直すのは下の restartAnimation だけにする。
   field.querySelectorAll(".unit").forEach((unit) => unit.classList.remove(
     "is-acting",
     "is-aimed",
+    "is-striking",
     "is-hit",
     "is-healed",
     "is-shielded",
@@ -6732,6 +6729,10 @@ function syncBattleView(options = {}) {
     "is-downed",
     "hit-2",
     "hit-3",
+    "strike-weapon",
+    "strike-technique",
+    "hit-weapon",
+    "hit-technique",
   ));
 
   if (beat) {
@@ -6745,13 +6746,20 @@ function syncBattleView(options = {}) {
       // 前後（味方は上・敵は下）は side の CSS が持つ。
       actingUnit.style.setProperty("--lunge-x", lungeShiftPx(actors, actingId, beat) + "px");
     }
+    // 作者要望 2026-09-14 — **腕力は斬撃、技術は銃撃。**型は拍の着弾イベントから読む
+    // （新しい event も拍も増やさない）。型を持たないダメージ（裂傷・装備の破片）は
+    // どちらでもないので、これまでどおりの汎用の被弾のまま出す。
+    const strikeStyle = beatAttackStyle(ATTACK_STYLE_INDEX, beat);
     if (actingUnit && beatHasStrikeImpact(beat) && !options.silent) {
+      if (strikeStyle) actingUnit.classList.add("strike-" + strikeStyle);
       restartAnimation(actingUnit, "is-striking");
       // **線は拍の中で終わる。**数字は履歴として少し残すが、線が次の拍まで残ると
       // 「いま誰が誰を殴ったか」を指さなくなる。多段・全体攻撃では人数ぶん出るので、
       // 消すのはこの拍の頭で一度だけにする。
       field.querySelectorAll(".strike-line").forEach((line) => line.remove());
-      for (const id of strikeTargetIds(beat, actingId)) spawnStrikeLine(field, actingUnit, unitOf(id));
+      for (const id of strikeTargetIds(beat, actingId)) {
+        spawnStrikeLine(field, actingUnit, unitOf(id), strikeStyle);
+      }
     }
     if (beat.kind === "declare" || beat.kind === "impact") {
       for (const event of beat.events) {
@@ -6766,17 +6774,32 @@ function syncBattleView(options = {}) {
         animated.add(key);
         restartAnimation(unit, className);
       };
+      // 多段攻撃でも印は一つ。同じ場所へ重ねて描いても、形が濃くなるだけで読めない。
+      const marked = new Set();
+      const markOnce = (id, unit, style) => {
+        if (!style || marked.has(id)) return;
+        marked.add(id);
+        spawnImpactMark(field, unit, style);
+      };
       let offset = 0;
       for (const event of beat.events) {
         for (const id of event.targetActorIds || []) {
           const unit = unitOf(id);
           if (!unit) continue;
-          if (event.type === "damage_taken" || event.type === "damage_absorbed" || event.type === "actor_defeated") {
+          // 作者指摘 2026-09-14 — **撃破の拍で攻撃の絵をもう一度出さない。**
+          // 撃破は着弾とは別の拍なので、そこで斬線や弾着を出し直すと、一度の攻撃が
+          // 二度当たったように見える。ここで出すのは「倒れた」だけにする。
+          if (event.type === "actor_defeated") {
+            restartOnce(id, unit, "is-downed");
+          } else if (event.type === "damage_taken" || event.type === "damage_absorbed") {
             // 重い一撃ほど大きく揺らす。段は付け直す前に決める（restart が消すため）。
             const level = levels.get(id) ?? 1;
             if (level >= 2) unit.classList.add("hit-" + level);
+            // 受けた側の絵も型で分ける。斬撃は刃の線が走り、銃撃は弾着の火花が出る。
+            const hitStyle = attackStyleOfEvent(ATTACK_STYLE_INDEX, event);
+            if (hitStyle) unit.classList.add("hit-" + hitStyle);
+            markOnce(id, unit, hitStyle);
             restartOnce(id, unit, "is-hit");
-            if (event.type === "actor_defeated") restartOnce(id, unit, "is-downed");
           } else if (event.type === "healing_applied") restartOnce(id, unit, "is-healed");
           else if (event.type === "barrier_gained" || event.type === "block_gained") restartOnce(id, unit, "is-shielded");
           else if (event.type === "damage_blocked" || event.type === "damage_skipped") restartOnce(id, unit, "is-blocked");

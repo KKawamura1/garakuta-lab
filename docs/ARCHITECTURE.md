@@ -704,6 +704,9 @@ styles.css の「反応」節の末尾で一括して止める。
 イベント列だけから向き・重さ・種類を決め、CSS のクラスと CSS 変数へ落とす。時計も乱数も
 使わないので、同じ seed・同じ入力からは同じ演出が同じ順で出る。
 
+  - **撃破の拍は攻撃の絵を繰り返さない** … `actor_defeated` は着弾とは別の拍なので、
+    そこでは `is-downed` だけを出す。`is-hit` も型の class も印も付けない（付けると、
+    一度の攻撃が二度当たったように見える。作者指摘 2026-09-14）。
   - **重さの三段** … `hitLevel(amount, maxHp)` が最大HPに対する割合で 1／2／3 を返す
     （15% 以上で 2、30% 以上で 3、撃破はその拍の 3）。段は `unit` の揺れ（`hit-2` /
     `hit-3`）・浮く数字の大きさ（`.float.damage.heavy` / `.crush`）・盤面の揺れ
@@ -712,6 +715,25 @@ styles.css の「反応」節の末尾で一括して止める。
     index 差）を ±9px の `--lunge-x` にする。前後（味方は上・敵は下）は side の CSS が持つ。
   - **踏み込んだ先の線** … `spawnStrikeLine()` が攻撃側と被弾側の矩形中心を結ぶ
     `.strike-line` を一本置く。長さと角度は二つの箱の位置だけから出る。
+  - **攻撃の型（腕力＝斬撃／技術＝銃撃）** … `ecology/attack-style.mjs` が、着弾イベントの
+    `tags`（`weapon` / `technique`）を正本に、無ければ出どころの定義（`skillId` →
+    `ruleId` → `sourceDefinitionId`）の `deal_damage` が伸びる能力値で補って型を決める。
+    表（`buildAttackStyleIndex`）は content から一度だけ組む。`syncBattleView` は
+    撃つ側へ `strike-weapon` / `strike-technique`、受ける側へ `hit-weapon` /
+    `hit-technique`、線へ `weapon` / `technique` を付けるだけで、絵は styles.css が持つ。
+    腕力は踏み込み＋斬線、技術は反動＋銃口の閃光＋走る弾道になる。
+    型を持たないダメージ（裂傷・装備の破片）には class が付かず、既定の絵のまま出る。
+  - **線の飛び方は型で変えない** … 攻撃側から被弾側へ線が一本飛ぶ動きは、どちらの型でも
+    同じ `strike-line` の keyframe である。銃撃だけ光を一粒ずつ走らせる弾道も試したが、
+    同じ距離が遅く見えて速さが消えた（作者指摘 2026-09-14）。銃撃の線は**太さと色だけ**
+    細く白くし、型の差は着弾の印と銃口の閃光（`.muzzle-flash`）が持つ。
+  - **着弾の印** … `spawnImpactMark()` が `.battle-floats`（盤面の層）へ、被弾した箱より
+    ひと回り大きい `.impact-mark` を一つ置く（多段でも拍あたり一つ）。**型の差を箱の中
+    （`.unit-fx`）だけで描くと、100×72 の枠と丸角に切られて実機では読めない。**
+    分けているのは光り方ではなく形で、斬撃は**上から下へ引かれる二本の太刀**（`::before`
+    が一の太刀、`::after` が二の太刀。`slash-draw` が `.strike-line` と同じ clip-path の
+    作りで引き、同じ向きへ消す）、銃撃は芯から棘が伸びる星になる。銃口の閃光（`.muzzle-flash`）も線とは別の札にする——線は `clip-path`
+    で削られながら走るので、同じ札に乗せると閃光まで切り落とされる。
   - **浮く数字** … `.battle-floats`（盤面の層）へ座標で刺す。`unit` の中に置くと、味方の箱
     （立ち絵のため `overflow: hidden`）で消え、敵では一つ上の箱の中に出て持ち主が読めない。
   - **幕の帯** … `battleBannerFor(beat)` が拍の種類だけから言葉を決める（opening／round／
@@ -721,8 +743,13 @@ styles.css の「反応」節の末尾で一括して止める。
     （再生がその拍で終わるため）。出ているあいだは `.battle-field.verdict-hold` が拍の行の
     見た目だけを譲らせる。
 
-`prefers-reduced-motion` では動きだけを止める。帯・カットイン・照準・数字は**出したまま**
-なので、止めても何が起きたかは読める。
+`prefers-reduced-motion` では動きだけを止める。帯・カットイン・照準・数字・着弾の印は
+**出したまま**なので、止めても何が起きたかは読める。
+
+線と印そのものは `ecology/battle-fx.mjs` にある。**engine も state も入らない**
+（入力は「どの箱から」「どの箱へ」「どちらの型で」の三つだけ）ので、`ecology/fx-test.html`
+（演出の見本）が一戦も進めずに、本番と同じ関数・同じ CSS で同じ絵を出せる。端末側の
+切り分け場でもあり、`prefers-reduced-motion` の入切と build の印をその画面の先頭に出す。
 
 ## 再生の終点と、次の場面への渡し
 

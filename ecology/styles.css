@@ -2331,6 +2331,21 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   background: linear-gradient(104deg,
     rgba(255, 255, 255, 0) 43%, rgba(255, 246, 224, .95) 50%, rgba(255, 255, 255, 0) 57%);
 }
+/* 弾着と銃口の閃光（作者要望 2026-09-14「技術は銃撃のイメージ」）。
+ * **一枚で二役**——撃つ側では銃口の閃光として箱の前縁へ、受ける側では弾着の火花として
+ * 箱の中央へ出る。位置を変えるのは下の `.is-striking` / `.is-hit` の節である。 */
+.fx-shot {
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  color: var(--gold);
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, .95), rgba(255, 236, 198, 0) 72%),
+    linear-gradient(currentColor 0 0) 50% 50% / 100% 2px no-repeat,
+    linear-gradient(currentColor 0 0) 50% 50% / 2px 100% no-repeat;
+}
 /* 狙われている箱の四隅。枠の色だけだと、隣の「行動中」の金と見分けが付きにくい。 */
 .fx-reticle {
   inset: 2px;
@@ -2357,6 +2372,16 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   0% { opacity: 0; transform: translateX(-48%) skewX(-9deg); }
   22% { opacity: 1; }
   100% { opacity: 0; transform: translateX(48%) skewX(-9deg); }
+}
+@keyframes fx-muzzle {
+  0% { opacity: 0; transform: scale(.35) rotate(-12deg); }
+  16% { opacity: 1; transform: scale(1.15) rotate(6deg); }
+  100% { opacity: 0; transform: scale(.9) rotate(14deg); }
+}
+@keyframes fx-shot {
+  0% { opacity: 0; transform: scale(2.1) rotate(-20deg); }
+  20% { opacity: 1; transform: scale(.8) rotate(0); }
+  100% { opacity: 0; transform: scale(1.4) rotate(6deg); }
 }
 @keyframes fx-reticle {
   0% { opacity: 0; transform: scale(1.5); }
@@ -2391,6 +2416,49 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
     rgba(255, 226, 163, 0) 44%, rgba(255, 232, 183, .72) 50%, rgba(255, 226, 163, 0) 56%);
   animation: fx-slash .3s cubic-bezier(.2, .8, .3, 1) .06s;
 }
+
+/* -------------------------------------------------- 腕力＝斬撃 ／ 技術＝銃撃
+ *
+ * 作者要望 2026-09-14。**分け方は盤面の規則そのものである。**腕力の攻撃は前へ出て
+ * 当てるので後列から出すと 40% へ落ち、技術の攻撃はその場から届く（R11 §5）。
+ * だから腕力は「踏み込んで斬る」、技術は「動かずに撃つ」で描く。型の判定は
+ * ecology/attack-style.mjs にあり、ここは付いた class を絵にするだけである。
+ *
+ * 型が読めない一撃（裂傷・装備の破片）には class が付かないので、上の既定——
+ * 踏み込みと斬線——がそのまま出る。 */
+
+/* 銃撃は踏み込まない。**反動だけが後ろへ抜ける。** */
+@keyframes unit-recoil-up {
+  0% { transform: translate3d(0, 0, 0) scale(1.035); }
+  14% { transform: translate3d(calc(var(--lunge-x, 0px) * -.12), 5px, 0) scale(1.055, .965); }
+  46% { transform: translate3d(0, 1px, 0) scale(1.015, 1.015); }
+  100% { transform: translate3d(0, 0, 0) scale(1.035); }
+}
+@keyframes unit-recoil-down {
+  0% { transform: translate3d(0, 0, 0) scale(1.035); }
+  14% { transform: translate3d(calc(var(--lunge-x, 0px) * -.12), -5px, 0) scale(1.055, .965); }
+  46% { transform: translate3d(0, -1px, 0) scale(1.015, 1.015); }
+  100% { transform: translate3d(0, 0, 0) scale(1.035); }
+}
+.battle-side[data-side="ally"] .unit.is-striking.strike-technique {
+  animation: unit-recoil-up .32s cubic-bezier(.16, .9, .3, 1);
+}
+.battle-side[data-side="enemy"] .unit.is-striking.strike-technique {
+  animation: unit-recoil-down .32s cubic-bezier(.16, .9, .3, 1);
+}
+/* 撃つ側に刃は出さない。代わりに、敵へ向いた縁で銃口が光る。 */
+.unit.is-striking.strike-technique .fx-slash { animation: none; }
+.unit.is-striking.strike-technique .fx-shot {
+  width: 30px;
+  height: 18px;
+  margin: -9px 0 0 -15px;
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, .95), rgba(255, 226, 163, .35) 62%, rgba(255, 226, 163, 0) 100%),
+    linear-gradient(currentColor 0 0) 50% 50% / 100% 2px no-repeat;
+  animation: fx-muzzle .2s ease-out;
+}
+.battle-side[data-side="ally"] .unit.is-striking.strike-technique .fx-shot { top: 16%; }
+.battle-side[data-side="enemy"] .unit.is-striking.strike-technique .fx-shot { top: 84%; }
 @keyframes unit-hit {
   0%, 100% { transform: translate3d(0, 0, 0) rotate(0); }
   18% { transform: translate3d(calc(var(--hit) * -1), 0, 0) rotate(calc(var(--hit-tilt) * -1)); }
@@ -2410,6 +2478,10 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .unit.is-hit .fx-slash { animation: fx-slash .28s cubic-bezier(.2, .8, .3, 1); }
 .unit.is-hit .fx-ring { color: var(--bad); animation: fx-ring .4s cubic-bezier(.15, .85, .3, 1); }
+/* 受けた側も型で分ける。斬撃は刃が箱を横切り、銃撃は一点で弾ける。 */
+.unit.is-hit.hit-technique .fx-slash { animation: none; }
+.unit.is-hit.hit-technique .fx-shot { color: #ffd0c8; animation: fx-shot .3s cubic-bezier(.2, .85, .3, 1); }
+.unit.is-hit.hit-technique .fx-ring { animation-duration: .3s; }
 /* 重い一撃ほど大きく、長く揺れる。段は最大HPに対する割合で画面側が決める。 */
 .unit.hit-2 { --hit: 7px; --hit-tilt: 1deg; animation-duration: .36s; }
 .unit.hit-3 { --hit: 11px; --hit-tilt: 2.4deg; animation-duration: .46s; }
@@ -2484,6 +2556,103 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   20% { opacity: 1; clip-path: inset(0 0 0 0); }
   62% { opacity: .9; clip-path: inset(0 0 0 0); }
   100% { opacity: 0; clip-path: inset(0 0 0 72%); }
+}
+/* ---------------------------------------------------------------- 着弾の印
+ *
+ * 作者試遊 2026-09-14 — 型の違いを箱の中だけで描くと、100×72 の枠と丸角に切られて
+ * 実機では読めない。**印は箱よりひと回り大きく、盤面の層へ置く。**
+ * 違うのは光り方ではなく**形**である——斬撃は×、銃撃は一点で弾ける星。 */
+.impact-mark {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+/* 斬撃。**二本の太刀が上から下へ走る。**作者指摘 2026-09-14 — 貼りついた×は
+ * 「斬った」にならない。一の太刀・二の太刀の順に、刃の向きへ引かれ、同じ向きへ消える。
+ * 引き方は `.strike-line`（飛ぶ線）と同じ clip-path の作りで、向きは各々の回転が持つ。 */
+.impact-mark.weapon { opacity: 1; }
+.impact-mark.weapon::before,
+.impact-mark.weapon::after {
+  position: absolute;
+  top: 50%;
+  left: -9%;
+  width: 118%;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 999px;
+  content: "";
+  background: linear-gradient(90deg,
+    rgba(255, 226, 163, 0) 0%, rgba(255, 255, 255, .99) 38%,
+    rgba(255, 240, 205, .95) 74%, rgba(255, 226, 163, 0) 100%);
+  filter: drop-shadow(0 0 6px rgba(255, 205, 122, .95));
+}
+/* 一の太刀は右下へ、二の太刀は左下へ。**どちらも上の端から引かれ、下の端で消える。** */
+.impact-mark.weapon::before {
+  transform: rotate(62deg);
+  animation: slash-draw .3s cubic-bezier(.12, .85, .3, 1) both;
+}
+.impact-mark.weapon::after {
+  height: 3px;
+  margin-top: -1.5px;
+  transform: rotate(118deg);
+  animation: slash-draw .3s cubic-bezier(.12, .85, .3, 1) .085s both;
+}
+@keyframes slash-draw {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  10% { opacity: 1; }
+  32% { clip-path: inset(0 0 0 0); }
+  60% { opacity: 1; clip-path: inset(0 0 0 0); }
+  100% { opacity: 0; clip-path: inset(0 0 0 100%); }
+}
+/* 銃撃。芯が白く飛び、四方と斜めへ棘が伸びる。 */
+.impact-mark.technique {
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, .95) 0 11%, rgba(255, 236, 196, 0) 56%),
+    linear-gradient(rgba(255, 252, 242, 1) 0 0) 50% 50% / 100% 3px no-repeat,
+    linear-gradient(rgba(255, 252, 242, 1) 0 0) 50% 50% / 3px 100% no-repeat,
+    linear-gradient(45deg, rgba(255, 246, 224, 0) 48.8%, rgba(255, 246, 224, .85) 50%, rgba(255, 246, 224, 0) 51.2%),
+    linear-gradient(-45deg, rgba(255, 246, 224, 0) 48.8%, rgba(255, 246, 224, .85) 50%, rgba(255, 246, 224, 0) 51.2%);
+  filter: drop-shadow(0 0 7px rgba(255, 226, 163, 1));
+  animation: impact-shot .34s cubic-bezier(.12, .9, .3, 1) both;
+}
+@keyframes impact-shot {
+  0% { opacity: 0; transform: scale(1.45) rotate(-10deg); }
+  12% { opacity: 1; transform: scale(.72) rotate(0); }
+  62% { opacity: 1; transform: scale(.86) rotate(0); }
+  100% { opacity: 0; transform: scale(1.3) rotate(6deg); }
+}
+
+/* **線の飛び方は型で変えない。**作者指摘 2026-09-14 —「相手に線が飛ぶ従来の攻撃
+ * モーションはかなりかっこいい」。光を一粒ずつ走らせる弾道も試したが、同じ距離が遅く
+ * 見えて、その速さが消える。銃撃は**同じ速さのまま細く白く**するだけにして、型の差は
+ * 着弾の印（×と星）と銃口の閃光が持つ。 */
+.strike-line.technique {
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(90deg,
+    rgba(255, 226, 163, 0) 0%, rgba(255, 253, 246, 1) 52%, rgba(255, 226, 163, 0) 100%);
+  box-shadow: 0 0 9px 0 rgba(255, 240, 205, .9);
+}
+/* 銃口の閃光。**線とは別の札**にする（線は clip-path で削られていくので、
+ * 同じ札に乗せると閃光まで一緒に切り落とされる）。位置と角度は線と同じ計算から出る。 */
+.muzzle-flash {
+  position: absolute;
+  width: 36px;
+  height: 20px;
+  margin: -10px 0 0 -18px;
+  border-radius: 50%;
+  opacity: 0;
+  transform-origin: 50% 50%;
+  background: radial-gradient(closest-side,
+    rgba(255, 255, 255, .95), rgba(255, 226, 163, .5) 52%, rgba(255, 226, 163, 0) 100%);
+  animation: muzzle-bloom .18s ease-out both;
+  pointer-events: none;
+}
+@keyframes muzzle-bloom {
+  0% { opacity: 0; scale: .4 .6; }
+  20% { opacity: 1; scale: 1.15 1; }
+  100% { opacity: 0; scale: .9 .8; }
 }
 .float {
   position: absolute;
@@ -2922,6 +3091,14 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   .unit.is-aimed .fx-reticle { opacity: .75; }
   .float { animation: none; opacity: 1; transform: translate(calc(-50% + var(--float-shift, 0px)), calc(-50% - 16px)); }
   .strike-line { animation: none; opacity: .85; }
+  /* 動きを止めても**どちらの型で当たったかは残す。**銃撃は弾着の火花を出したままにし、
+   * 撃つ側の銃口の閃光だけを消す（線と火花で、誰がどう当てたかは読める）。 */
+  .unit.is-hit.hit-technique .fx-shot { opacity: .85; }
+  .impact-mark { animation: none; opacity: .9; }
+  /* 二本の太刀は**引かれずに、引かれ終わった形**で出す（動きだけを止める）。 */
+  .impact-mark.weapon::before,
+  .impact-mark.weapon::after { animation: none; opacity: .9; clip-path: none; }
+  .muzzle-flash { animation: none; opacity: .9; }
   /* 帯は**出したまま**にする（動きだけ止める）。決着の帯は元から止まったままなので、
    * `.hold` も同じに扱えばよい。 */
   .battle-banner.run b,
