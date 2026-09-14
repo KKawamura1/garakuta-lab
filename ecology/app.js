@@ -4677,6 +4677,12 @@ function encounterArchive({ currentIndex = null } = {}) {
     elite: { label: "精鋭", marker: "◆" },
     boss: { label: "ボス", marker: "★" },
   };
+  const statusLabels = {
+    done: "クリア済み",
+    current: "現在地",
+    unreached: "未到達",
+    available: "閲覧可",
+  };
   const rail = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
     const step = offset + 1;
     const item = encounterForInspection(step);
@@ -4685,8 +4691,8 @@ function encounterArchive({ currentIndex = null } = {}) {
       ? (step < currentIndex ? "done" : step === currentIndex ? "current" : "unreached")
       : "available";
     const selected = step === selectedIndex;
-    const label = "第" + step + "戦・" + meta.label
-      + (status === "current" ? "・現在地" : "") + (selected ? "・投影中" : "");
+    const label = "第" + step + "戦・" + meta.label + "・" + statusLabels[status]
+      + (selected ? "・投影中" : "");
     return "<button type=\"button\" class=\"map-node " + status + " kind-" + item.kind
       + (selected ? " inspected" : "") + "\" data-action=\"inspect-encounter\" data-encounter=\"" + step
       + "\" data-map-index=\"" + step + "\" data-map-kind=\"" + item.kind
@@ -4710,7 +4716,7 @@ function encounterArchive({ currentIndex = null } = {}) {
     + "<div class=\"encounter-projection-head\"><span class=\"projection-index\">"
     + String(selectedIndex).padStart(2, "0") + "</span><span><b>" + esc(encounter.name)
     + "</b><small>第" + encounter.act + "幕 · " + kind.label + " · 危険度 " + encounter.spentThreat
-    + "/" + encounter.budget + " · 最大" + encounter.maxRounds + "R</small></span></div>"
+    + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "R</small></span></div>"
     + "<p class=\"lead-small\">" + esc(encounter.description) + "</p>"
     + law
     + "<details class=\"progressive-details enemy-details\" open><summary>敵 "
