@@ -479,7 +479,9 @@ function freshUiState() {
     // ギルドは**遠征の編成とは別の選択**を持つ。roster の5人へ丸めると、
     // 同行していない仲間の鍛錬が永久に買えなくなる。
     guildCharacter: null,
-    // 遠征マップで選んでいる敵。敵の詳細は画面内だけの状態なので保存しない。
+    // 全戦投影で選んでいる戦闘と敵。ギルドとキャンプで同じ盤を使い、
+    // 技能タブへ往復しても閲覧位置を保つ。保存データには入れない。
+    inspectedEncounterIndex: null,
     selectedEnemyId: null,
     formationSelection: null,
     selectedSkillNode: null,
@@ -691,6 +693,7 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
     ? next.skillTreeScroll
     : {};
   next.selectedSkillNode = next.selectedSkillNode || null;
+  next.inspectedEncounterIndex = null;
   next.selectedEnemyId = null;
   next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
   next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
@@ -732,7 +735,8 @@ function persistableState() {
   // 盤面が組み替えの途中で開くと、人物を選ぶつもりの一押しが移動になる（#159 の
   // 「誰も選んでいない状態で開く」と同じ理由）。
   delete persisted.formationMode;
-  // 遠征マップの敵詳細の選択は、その場かぎりの表示状態として扱う。
+  // 全戦投影の閲覧位置と敵詳細の選択は、その場かぎりの表示状態として扱う。
+  delete persisted.inspectedEncounterIndex;
   delete persisted.selectedEnemyId;
   // issue #200 — 巻き戻しの演出は保存の再開先にしない。**状態はもう巻き戻し済み**なので、
   // 途中でリロードしたら巻き戻し後の会話から続ける（演出だけを二度見せない）。
@@ -2136,8 +2140,8 @@ function renderSaveMenu() {
 // ============================================================ 遠征を仕立てる
 // ============================================================ 遠征を仕立てる（R6 §15.1）
 //
-// **遠征開始前に全部を表示する。**有効パック、敵family、3体のボスと法則、開始補給。
-// 先の幕の個体編成だけは伏せる（挑む一戦は戦闘タブと戦闘予測が全部見せる）。
+// **遠征開始前に全部を表示する。**有効パック、全12戦の敵配置・能力・技能・狙い、開始補給。
+// 先の幕も伏せない。技能を取る前に、先で必要になる組み方まで自力で読めるようにする。
 //
 // R12 — ただし「全部」は**この遠征に出るもの**であって、まだ物語が公開していない
 // ものではない。未解禁の pack と、次に加わる人物の名前は出さない（作者判断）。
@@ -2174,14 +2178,6 @@ function renderExpeditionStart() {
     .map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
       + "</b><small>" + esc(pack.summary) + "</small><span>"
       + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
-  // 作者要望 2026-09-13 — 法則への手は**点の箇条書きではなく、印のついた手札**にする。
-  const bosses = manifest.actBossLawIds.map((lawId, index) => {
-    const law = BOSS_LAWS[lawId];
-    return "<article class=\"boss-card\"><div class=\"boss-top\"><span class=\"enemy-mark\">◆</span><div><b>第"
-      + (index + 1) + "幕 · " + esc(enemyInfo(manifest.actBossIds[index]).label) + "</b><small>"
-      + esc(law.displayName) + "</small></div><span class=\"boss-at\">第" + ((index + 1) * 4) + "戦</span></div>"
-      + "<p>" + esc(law.previewText) + "</p>" + counterChips([...law.counters]) + "</article>";
-  }).join("");
   const note = state.migrationNote
     ? "<section class=\"card quiet\"><p class=\"muted\">" + esc(state.migrationNote) + "</p></section>"
     : "";
@@ -2216,9 +2212,7 @@ function renderExpeditionStart() {
     + expeditionShapeRail()
     + "<h3 class=\"training-heading\">有効な技能パック</h3>"
     + "<div class=\"pack-list\">" + packs + "</div></section>"
-    + "<section class=\"card\">" + sectionHeading("ACT BOSSES", "先に確認できる法則",
-      "<span class=\"stage\">" + glyph("eye") + "出発前</span>")
-    + "<div class=\"boss-grid\">" + bosses + "</div></section>"
+    + encounterArchive({ currentIndex: null })
     + campaignSection
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
   const body = { guild: renderGuild, blueprints: renderBlueprints, homestead: homesteadBody, codex: renderBestiary }[state.guildTab]?.()
@@ -4603,20 +4597,52 @@ function renderEquipment() {
 }
 
 
+function enemySkillRows(enemyActorId) {
+  const actor = PLAYABLE_CONTENT.enemyActors[enemyActorId] ?? {};
+  const skillEntries = [
+    ...(actor.tactics ?? []).map((entry) => ({
+      id: typeof entry === "string" ? entry : entry.activeSkillId,
+      kind: "A",
+      kindLabel: "行動",
+    })),
+    ...(actor.reactiveSkillIds ?? []).map((id) => ({ id, kind: "R", kindLabel: "反応" })),
+    ...(actor.passiveSkillIds ?? []).map((id) => ({ id, kind: "P", kindLabel: "常時" })),
+  ].filter((entry) => entry.id);
+  return "<div class=\"enemy-skill-list\" aria-label=\"使用技能\">"
+    + skillEntries.map((entry) => {
+      const info = componentInfo(entry.id);
+      return "<div class=\"enemy-skill-row\"><span class=\"enemy-skill-kind\" title=\""
+        + esc(entry.kindLabel) + "\">" + entry.kind + "</span><span><b>"
+        + esc(info?.label ?? entry.id) + "</b><small>" + esc(info?.effect ?? "") + "</small></span></div>";
+    }).join("")
+    + "</div>";
+}
+
 function renderEnemy(enemy, { withLore = true } = {}) {
   const info = enemyInfo(enemy.enemyActorId);
+  const actor = PLAYABLE_CONTENT.enemyActors[enemy.enemyActorId] ?? {};
   const mutations = (enemy.mutations ?? []).map((id) => ENEMY_MUTATIONS[id]?.displayName ?? id);
   const badges = (enemy.boss ? ["ボス"] : []).concat(enemy.reinforcement ? ["増援"] : []).concat(mutations);
+  const stats = [
+    ["HP", enemy.stats.maxHp],
+    ["腕力", enemy.stats.might],
+    ["技術", enemy.stats.focus],
+    ["受け", enemy.stats.guard],
+    ["AP", actor.baseActionPoints ?? 1],
+    ["RP", actor.baseReactionPoints ?? 0],
+  ];
   return "<article class=\"enemy-card" + (enemy.boss ? " boss" : "") + "\"><div class=\"enemy-top\"><span class=\"enemy-mark\">◆</span><div><b>"
-    + esc(info.label) + "</b><small>" + esc(positionText(enemy.position)) + " · HP " + enemy.stats.maxHp
-    + " · 受け " + enemy.stats.guard + "</small></div></div>"
+    + esc(info.label) + "</b><small>" + esc(positionText(enemy.position)) + "</small></div></div>"
     + (badges.length ? "<div class=\"enemy-badges\">" + badges.map((text) =>
       "<span class=\"badge\">" + esc(text) + "</span>").join("") + "</div>" : "")
-    + "<p>" + esc(info.targeting) + "</p>"
+    + "<div class=\"enemy-stat-grid\" aria-label=\"能力値\">" + stats.map(([label, value]) =>
+      "<span><small>" + label + "</small><b>" + value + "</b></span>").join("") + "</div>"
+    + "<div class=\"enemy-targeting\"><span class=\"enemy-detail-mark\">◎</span><p>"
+    + esc(info.targeting) + "</p></div>"
+    + enemySkillRows(enemy.enemyActorId)
     + (mutations.length ? "<p class=\"muted small\">" + esc((enemy.mutations ?? [])
       .map((id) => ENEMY_MUTATIONS[id]?.previewText ?? "").join(" ")) + "</p>" : "")
-    // R12 §4.B — 狙いの下に、拾い屋の言い分を一行。**規則ではない**ので見た目で分ける。
-    // issue #236 — 同じ種類が並ぶ回は**一度だけ**出す。同じ一行を2枚3枚と重ねない。
+    // R12 §4.B — 規則ではない噂は、完全情報の能力・技能・狙いから一段離す。
     + (withLore && info.lore ? "<p class=\"enemy-lore\">" + esc(info.lore) + "</p>" : "")
     + "</article>";
 }
@@ -4625,6 +4651,71 @@ function selectedEncounterEnemy(encounter) {
   if (!encounter?.enemies?.length) return null;
   return encounter.enemies.find((enemy) => enemy.instanceId === state.selectedEnemyId)
     ?? encounter.enemies[0];
+}
+
+function inspectedEncounterIndex() {
+  const fallback = state.phase === "camp" ? state.run.encounterIndex : 1;
+  const value = Number.isInteger(state.inspectedEncounterIndex) ? state.inspectedEncounterIndex : fallback;
+  return Math.max(1, Math.min(ENCOUNTERS_PER_RUN, value));
+}
+
+function encounterForInspection(index) {
+  if (state.phase === "camp" && index === state.run.encounterIndex
+      && (state.prologueActive || ultimateLessonActive())) return currentEncounter();
+  return composeEncounter(index, state.run.difficulty, encounterOptions());
+}
+
+function inspectedEncounter() {
+  return encounterForInspection(inspectedEncounterIndex());
+}
+
+function encounterArchive({ currentIndex = null } = {}) {
+  const selectedIndex = inspectedEncounterIndex();
+  const encounter = encounterForInspection(selectedIndex);
+  const kindMeta = {
+    normal: { label: "通常", marker: "" },
+    elite: { label: "精鋭", marker: "◆" },
+    boss: { label: "ボス", marker: "★" },
+  };
+  const rail = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
+    const step = offset + 1;
+    const item = encounterForInspection(step);
+    const meta = kindMeta[item.kind] ?? kindMeta.normal;
+    const status = Number.isInteger(currentIndex)
+      ? (step < currentIndex ? "done" : step === currentIndex ? "current" : "unreached")
+      : "available";
+    const selected = step === selectedIndex;
+    const label = "第" + step + "戦・" + meta.label
+      + (status === "current" ? "・現在地" : "") + (selected ? "・投影中" : "");
+    return "<button type=\"button\" class=\"map-node " + status + " kind-" + item.kind
+      + (selected ? " inspected" : "") + "\" data-action=\"inspect-encounter\" data-encounter=\"" + step
+      + "\" data-map-index=\"" + step + "\" data-map-kind=\"" + item.kind
+      + "\" data-map-status=\"" + status + "\" aria-label=\"" + esc(label)
+      + "\" aria-current=\"" + (status === "current" ? "step" : "false")
+      + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\"><span class=\"map-node-number\">"
+      + step + "</span>" + (meta.marker ? "<span class=\"map-kind-badge\" aria-hidden=\"true\">"
+        + meta.marker + "</span>" : "") + "</button>";
+  }).join("");
+  const kind = kindMeta[encounter.kind] ?? kindMeta.normal;
+  const law = encounter.bossLaw
+    ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
+      + esc(encounter.bossLaw.previewText) + "</p>" + counterChips([...encounter.bossLaw.counters]) + "</div>"
+    : "";
+  return "<section class=\"card encounter-archive\" data-inspected-encounter=\"" + selectedIndex + "\">"
+    + sectionHeading("FUTURE ARCHIVE", "全戦投影",
+      "<span class=\"stage\">" + glyph("eye") + selectedIndex + " / " + ENCOUNTERS_PER_RUN + "</span>")
+    + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の敵を選ぶ\">"
+    + rail + "</div>"
+    + "<div class=\"encounter-projection\" role=\"region\" aria-live=\"polite\">"
+    + "<div class=\"encounter-projection-head\"><span class=\"projection-index\">"
+    + String(selectedIndex).padStart(2, "0") + "</span><span><b>" + esc(encounter.name)
+    + "</b><small>第" + encounter.act + "幕 · " + kind.label + " · 危険度 " + encounter.spentThreat
+    + "/" + encounter.budget + " · 最大" + encounter.maxRounds + "R</small></span></div>"
+    + "<p class=\"lead-small\">" + esc(encounter.description) + "</p>"
+    + law
+    + "<details class=\"progressive-details enemy-details\" open><summary>敵 "
+    + encounter.enemies.length + "体 · 配置</summary>" + expeditionEnemyBoard(encounter) + "</details>"
+    + "</div></section>";
 }
 
 // 遠征の敵セルは、戦闘盤面と同じ位置を押せる小さな入口にする。
@@ -4775,51 +4866,6 @@ function lastBattleNoteHtml(override = undefined) {
 // ここは「次の一戦へ進む」と、遠征そのものをどうするか（隊列の顔ぶれ・撤退・セーブ）を
 // 決める場所で、他の三枚のように何度も往復するタブではない。
 function renderMap() {
-  const index = state.run.encounterIndex;
-  const encounter = currentEncounter();
-  const kindMeta = {
-    normal: { label: "通常", marker: "" },
-    elite: { label: "精鋭", marker: "◆" },
-    boss: { label: "ボス", marker: "★" },
-  };
-  const statusLabels = {
-    done: "クリア済み",
-    current: "現在地",
-    unreached: "未到達",
-  };
-  const progress = Array.from({ length: ENCOUNTERS_PER_RUN }, (_, offset) => {
-    const step = offset + 1;
-    const kind = composeEncounter(step, state.run.difficulty, encounterOptions()).kind;
-    const status = step < index ? "done" : step === index ? "current" : "unreached";
-    const meta = kindMeta[kind];
-    const label = "第" + step + "戦・" + meta.label + "・" + statusLabels[status];
-    return "<span class=\"map-node " + status + " kind-" + kind
-      + "\" data-map-index=\"" + step + "\" data-map-kind=\"" + kind
-      + "\" data-map-status=\"" + status + "\" role=\"listitem\" aria-label=\""
-      + esc(label) + "\" aria-current=\"" + (status === "current" ? "step" : "false")
-      + "\" title=\"" + esc(label) + "\"><span class=\"map-node-number\""
-      // issue #237 — 現在地の番号だけを見張る。一戦終えて戻ると数が進み、そこが光る。
-      + (status === "current" ? " data-fx-watch=\"map-current\"" : "") + ">" + step + "</span>"
-      + (meta.marker ? "<span class=\"map-kind-badge\" aria-hidden=\"true\">" + meta.marker + "</span>" : "")
-      + "</span>";
-  }).join("");
-  // issue #236 — 凡例は本文から畳んだヘルプへ移した。**節の一つ一つが aria-label と title で
-  // 「第3戦・精鋭・未到達」と名乗っている**ので、読み上げにも一覧にも欠けは出ない。
-  const mapLegend = "<div class=\"map-legend\" aria-label=\"戦闘マップの凡例\">"
-    + "<span><i class=\"map-legend-mark state-done\" aria-hidden=\"true\">✓</i>クリア済み</span>"
-    + "<span><i class=\"map-legend-mark state-current\" aria-hidden=\"true\"></i>現在地</span>"
-    + "<span><i class=\"map-legend-mark state-unreached\" aria-hidden=\"true\"></i>未到達</span>"
-    + "<span><i class=\"map-legend-symbol kind-elite\" aria-hidden=\"true\">◆</i>精鋭</span>"
-    + "<span><i class=\"map-legend-symbol kind-boss\" aria-hidden=\"true\">★</i>ボス</span>"
-    + "</div>";
-  const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[encounter.kind];
-  const law = encounter.bossLaw
-    ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
-      + esc(encounter.bossLaw.previewText) + "</p><ul class=\"boss-counters\">"
-      + encounter.bossLaw.counters.map((line) => "<li>" + esc(line) + "</li>").join("") + "</ul></div>"
-    : "";
-  const enemyBlock = "<details class=\"progressive-details enemy-details\" open><summary>敵 "
-    + encounter.enemies.length + "体</summary>" + expeditionEnemyBoard(encounter) + "</details>";
   const ruleBody = ruleGrid([
     isCampaignRun()
       ? { glyph: "vitality", title: "HP", value: "次の戦闘へ持ち越す", line: "全回復するのは4戦目・8戦目のボス後だけ。敵を残して待っても戻りません。", tone: "bad" }
@@ -4827,11 +4873,13 @@ function renderMap() {
     { glyph: "person", title: "隊列", value: "⇅ 隊列 でいつでも", line: "どのタブからでも組み替えられます。" },
     { glyph: "might", title: "前列", value: "武器攻撃が通る", line: "前列の人数で、狙われ方も変わります。" },
     { glyph: "focus", title: "後列", value: "技術の攻撃と支援向き", line: "武器攻撃は後列から出すと大きく落ちます。" },
-  ]) + "<div class=\"map-legend-help\">" + mapLegend + "</div>";
-  // R6 §9.2 / §12.2 / issue #235 — 遠征単位の操作はこの一枚が持つ。
-  // R11 §5 改 — 止めるのは**離脱だけ**である。まだ隊列を直しきる前に撤退されると
-  // 「一手直せば勝てる」導入が成立しない。セーブは離脱ではないので、物語の最中でも残す
-  // （補給チュートリアルの最中は、そもそもこのタブへ来られない）。
+  ]) + "<div class=\"map-legend-help\"><div class=\"map-legend\" aria-label=\"戦闘マップの凡例\">"
+    + "<span><i class=\"map-legend-mark state-done\" aria-hidden=\"true\">✓</i>クリア済み</span>"
+    + "<span><i class=\"map-legend-mark state-current\" aria-hidden=\"true\"></i>現在地</span>"
+    + "<span><i class=\"map-legend-mark state-unreached\" aria-hidden=\"true\"></i>未到達</span>"
+    + "<span><i class=\"map-legend-symbol kind-elite\" aria-hidden=\"true\">◆</i>精鋭</span>"
+    + "<span><i class=\"map-legend-symbol kind-boss\" aria-hidden=\"true\">★</i>ボス</span>"
+    + "</div></div>";
   const canRetreat = !state.prologueActive && !supplyTutorialVisible();
   const expeditionTools = "<section class=\"card expedition-tools\">"
     + sectionHeading("EXPEDITION", "遠征をいったん離れる")
@@ -4843,18 +4891,7 @@ function renderMap() {
       ? ruleGrid([{ glyph: "funds", title: "撤退", value: "確定分だけ持ち帰る", line: "遠征はそこで終わります。技能点・装備・補給は残りません。" }])
       : "")
     + "</section>";
-  // 作者要望 2026-09-14 — 巻き戻し直後の手引きは、他の三つと同じ貼りつく帯の中で出す
-  // （`renderCamp` の `tutorialNote`）。ここで二枚目を出さない。
-  return "<section class=\"card\">" + sectionHeading("EXPEDITION", "次の敵",
-      "<span class=\"stage\">" + index + " / " + ENCOUNTERS_PER_RUN + "</span>")
-    + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の進行\">" + progress + "</div>"
-    + "<p class=\"act-line\">第" + encounter.act + "幕 · " + kindLabel + "戦 · 危険度 " + encounter.spentThreat
-    + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "ラウンド</p><p class=\"lead-small\">"
-    + esc(encounter.description) + "</p>"
-    + law + enemyBlock
-    // issue #159 — 「現在の隊列」の一覧はここにあった。**上端の共通盤面が
-    // 立ち位置と現在HPを同じ形で出している**ので、敵の下で二度描かない。
-    + "</section>"
+  return encounterArchive({ currentIndex: state.run.encounterIndex })
     + expeditionTools
     + helpDetails("expedition-rules", "遠征のルール", ruleBody);
 }
@@ -8150,6 +8187,7 @@ function advanceAfterBattle() {
     state.skillTreeBranch = null;
     state.skillLessonHandedOff = false;
   }
+  state.inspectedEncounterIndex = null;
   state.selectedEnemyId = null;
   state.treatmentSelection = null;
   state.treatmentResult = null;
@@ -8352,6 +8390,8 @@ function handleAction(event) {
       runSeed: state.run.runSeed,
       runId: state.run.runId,
     });
+    state.inspectedEncounterIndex = 1;
+    state.selectedEnemyId = null;
     saveState();
     render();
     return;
@@ -8600,8 +8640,17 @@ function handleAction(event) {
     return;
   }
 
+  if (action === "inspect-encounter") {
+    const index = Number(element.dataset.encounter);
+    if (!Number.isInteger(index) || index < 1 || index > ENCOUNTERS_PER_RUN) return;
+    state.inspectedEncounterIndex = index;
+    state.selectedEnemyId = null;
+    render();
+    return;
+  }
+
   if (action === "select-expedition-enemy") {
-    const encounter = currentEncounter();
+    const encounter = inspectedEncounter();
     const enemyId = element.dataset.enemy;
     if (!encounter?.enemies?.some((enemy) => enemy.instanceId === enemyId)) return;
     state.selectedEnemyId = enemyId;
