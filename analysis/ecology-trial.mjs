@@ -213,6 +213,10 @@ try {
   const guildText = await bodyText();
   note("ギルド（遠征の準備）に着く", /今回の遠征/.test(guildText));
   note("有効な技能パックが出ている", /有効な技能パック/.test(guildText));
+  note("ギルドの戻る操作はタブ内容内にある",
+    await page.locator(".screen-actions").count() === 0
+      && await page.locator(".guild-tools").count() === 0
+      && await page.locator(".guild-actions [data-action=\"back-title\"]").count() === 1);
   note("未解禁の pack を出していない", !/この遠征では出ない/.test(guildText));
   note("3体のボスと法則が先に見えている", /盾将の法則/.test(guildText) && /核の法則/.test(guildText));
   note("行き先の選択が出ている", /行き先を選ぶ/.test(guildText));

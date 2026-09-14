@@ -309,7 +309,7 @@ for (const [label, sourceText, forbidden] of [
 // issue #205 — internal diagnostics must not occupy normal screen chrome.
 // shell() wraps title, camp, battle, result and settlement, so checking this
 // shared renderer covers every normal screen without duplicating assertions.
-const shellStart = app.indexOf("function shell(body, options = {})");
+const shellStart = app.indexOf("function shell(body)");
 const titleShellStartForDiagnostics = app.indexOf("function titleShell(title, subtitle, body)", shellStart);
 const shellSource = shellStart >= 0 && titleShellStartForDiagnostics > shellStart
   ? [app.slice(shellStart, titleShellStartForDiagnostics)]
@@ -332,7 +332,7 @@ if (!shellSource[0].includes("build-stamp") || !shellSource[0].includes(" hidden
 // The normal shell has no title parameters and never renders a header. The title
 // screen uses a separate titleShell, so the exception is structural rather than
 // a caller convention repeated across every normal screen.
-const normalShellStart = app.indexOf("function shell(body, options = {})");
+const normalShellStart = app.indexOf("function shell(body)");
 const titleShellStart = app.indexOf("function titleShell(title, subtitle, body)");
 const diagnosticStampStart = app.indexOf("\nfunction diagnosticStamp", titleShellStart);
 if (normalShellStart < 0 || titleShellStart < 0 || diagnosticStampStart < 0) {
@@ -343,6 +343,20 @@ const normalShellSource = app.slice(normalShellStart, titleShellStart);
 const titleShellSource = app.slice(titleShellStart, diagnosticStampStart);
 if (normalShellSource.includes("<header")) {
   problems.push("通常画面用 shell() がヘッダーを生成している");
+}
+if (normalShellSource.includes("screen-actions")
+  || normalShellSource.includes("headerAction")
+  || normalShellSource.includes("menu-button")) {
+  problems.push("通常画面用 shell() に上部の共通操作が残っている");
+}
+for (const [label, forbidden] of [
+  ["ギルド画面の上部操作", "guild-tools"],
+  ["ギルド画面の上部操作", "camp-tools"],
+]) {
+  if (app.includes(forbidden)) problems.push(label + "が残っている");
+}
+if (!app.includes("save-menu-footer") || !app.includes("guild-actions")) {
+  problems.push("戻る操作が画面内のカード／タブ内容へ移されていない");
 }
 if (!titleShellSource.includes("<header") || !titleShellSource.includes("title-header")) {
   problems.push("タイトル画面用 titleShell() がタイトルヘッダーを生成していない");
