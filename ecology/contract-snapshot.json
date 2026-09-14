@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.18",
+ "contentVersion": "ecology-playable-full-0.19",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.18",
+  "contentVersion": "ecology-playable-full-0.19",
   "characters": {
    "warden": {
     "id": "warden",
@@ -7157,6 +7157,924 @@
      "relay",
      "mark"
     ]
+   },
+   "exploit_stagger": {
+    "id": "exploit_stagger",
+    "displayName": "崩れを穿つ",
+    "rule": {
+     "id": "exploit_stagger_rule",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
+     "priority": 58,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "attack",
+       "value": true
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "staggered",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 10,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "attack",
+     "debuff",
+     "free"
+    ]
+   },
+   "deepen_bleed": {
+    "id": "deepen_bleed",
+    "displayName": "傷を深める",
+    "rule": {
+     "id": "deepen_bleed_rule",
+     "listenTo": "status_added",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "event_value",
+       "key": "statusId",
+       "op": "eq",
+       "value": "bleeding"
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "bleeding",
+          "op": "lt",
+          "value": 3
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "bleeding",
+          "op": "lt",
+          "value": 3
+         }
+        ],
+        "take": 1
+       },
+       "statusId": "bleeding",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "attack",
+     "debuff",
+     "free"
+    ]
+   },
+   "moving_guard": {
+    "id": "moving_guard",
+    "displayName": "動いた足場",
+    "rule": {
+     "id": "moving_guard_rule",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
+     "priority": 58,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "history_count",
+       "subject": "self",
+       "metric": "times_moved",
+       "window": "round",
+       "op": "gte",
+       "value": 1
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "decrease",
+       "amount": {
+        "type": "constant",
+        "value": 5
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "guard",
+     "move",
+     "free"
+    ]
+   },
+   "barrier_rebuke": {
+    "id": "barrier_rebuke",
+    "displayName": "砕け際",
+    "rule": {
+     "id": "barrier_rebuke_rule",
+     "listenTo": "barrier_broken",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_source"
+         },
+         {
+          "type": "has_status",
+          "statusId": "staggered",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_source"
+         },
+         {
+          "type": "has_status",
+          "statusId": "staggered",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "take": 1
+       },
+       "statusId": "staggered",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "guard",
+     "debuff",
+     "free"
+    ]
+   },
+   "critical_care": {
+    "id": "critical_care",
+    "displayName": "急所を診る",
+    "rule": {
+     "id": "critical_care_rule",
+     "listenTo": "healing_proposed",
+     "timing": "interrupt",
+     "priority": 58,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lte",
+          "value": 50
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 15,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care",
+     "free"
+    ]
+   },
+   "aftercare": {
+    "id": "aftercare",
+    "displayName": "手当てのあと",
+    "rule": {
+     "id": "aftercare_rule",
+     "listenTo": "healing_applied",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "warded",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "warded",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "take": 1
+       },
+       "statusId": "warded",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care",
+     "guard",
+     "free"
+    ]
+   },
+   "charge_guard": {
+    "id": "charge_guard",
+    "displayName": "溜めの構え",
+    "rule": {
+     "id": "charge_guard_rule",
+     "listenTo": "preparation_started",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "warded",
+       "op": "lt",
+       "value": 2
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "warded",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "tempo",
+     "preparation",
+     "guard",
+     "free"
+    ]
+   },
+   "stagger_focus": {
+    "id": "stagger_focus",
+    "displayName": "崩れを読む",
+    "rule": {
+     "id": "stagger_focus_rule",
+     "listenTo": "status_added",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "event_value",
+       "key": "statusId",
+       "op": "eq",
+       "value": "staggered"
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "has_status",
+          "statusId": "focused",
+          "op": "eq",
+          "value": 0
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "focused",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "tempo",
+     "debuff",
+     "free"
+    ]
+   },
+   "deepen_mark": {
+    "id": "deepen_mark",
+    "displayName": "重ね刻み",
+    "rule": {
+     "id": "deepen_mark_rule",
+     "listenTo": "status_added",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "event_value",
+       "key": "statusId",
+       "op": "eq",
+       "value": "exposed"
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "take": 1
+       },
+       "statusId": "exposed",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "attack",
+     "mark",
+     "free"
+    ]
+   },
+   "third_cut": {
+    "id": "third_cut",
+    "displayName": "三撃目の傷",
+    "rule": {
+     "id": "third_cut_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_value",
+       "key": "hitIndex",
+       "op": "eq",
+       "value": 2
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "bleeding",
+          "op": "lt",
+          "value": 3
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "bleeding",
+          "op": "lt",
+          "value": 3
+         }
+        ],
+        "take": 1
+       },
+       "statusId": "bleeding",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "attack",
+     "onhit",
+     "debuff",
+     "free"
+    ]
+   },
+   "return_the_mark": {
+    "id": "return_the_mark",
+    "displayName": "隙を返す",
+    "rule": {
+     "id": "return_the_mark_rule",
+     "listenTo": "status_added",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "event_value",
+       "key": "statusId",
+       "op": "eq",
+       "value": "exposed"
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "staggered",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "sort": [
+         "position_asc"
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "has_status",
+          "statusId": "staggered",
+          "op": "lt",
+          "value": 2
+         }
+        ],
+        "sort": [
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "statusId": "staggered",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "relay",
+     "debuff",
+     "free"
+    ]
+   },
+   "carry_the_ward": {
+    "id": "carry_the_ward",
+    "displayName": "守りを継ぐ",
+    "rule": {
+     "id": "carry_the_ward_rule",
+     "listenTo": "status_added",
+     "timing": "after",
+     "priority": 104,
+     "predicates": [
+      {
+       "type": "event_value",
+       "key": "statusId",
+       "op": "eq",
+       "value": "warded"
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "gain_block",
+       "target": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "constant",
+        "value": 1
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "relay",
+     "guard",
+     "free"
+    ]
    }
   },
   "passiveSkills": {
@@ -7165,6 +8083,9 @@
     "displayName": "地力",
     "statBonus": {
      "max_hp": 50
+    },
+    "statBonusPerLevel": {
+     "max_hp": 10
     },
     "tags": [
      "foundation",
@@ -7177,6 +8098,9 @@
     "statBonus": {
      "might": 2
     },
+    "statBonusPerLevel": {
+     "might": 1
+    },
     "tags": [
      "foundation",
      "playable"
@@ -7188,6 +8112,9 @@
     "statBonus": {
      "focus": 2
     },
+    "statBonusPerLevel": {
+     "focus": 1
+    },
     "tags": [
      "foundation",
      "playable"
@@ -7197,6 +8124,9 @@
     "id": "foundation_guard",
     "displayName": "受け",
     "statBonus": {
+     "guard": 1
+    },
+    "statBonusPerLevel": {
      "guard": 1
     },
     "tags": [
@@ -7816,6 +8746,785 @@
         "filters": [
          {
           "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "focused",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     },
+     "priority": 100
+    }
+   },
+   "reserve_edge": {
+    "id": "reserve_edge",
+    "displayName": "残心",
+    "tags": [
+     "passive",
+     "playable",
+     "attack",
+     "reserve"
+    ],
+    "rule": {
+     "id": "reserve_edge_rule",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "attack",
+       "value": true
+      },
+      {
+       "type": "resource",
+       "subject": "self",
+       "resource": "reaction_points",
+       "op": "gte",
+       "value": 1
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 5,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 55
+    }
+   },
+   "bloodied_edge": {
+    "id": "bloodied_edge",
+    "displayName": "窮地の力",
+    "tags": [
+     "passive",
+     "playable",
+     "attack",
+     "risk"
+    ],
+    "rule": {
+     "id": "bloodied_edge_rule",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "attack",
+       "value": true
+      },
+      {
+       "type": "hp_percent",
+       "subject": "self",
+       "op": "lte",
+       "value": 50
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 8,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 56
+    }
+   },
+   "frontline_stance": {
+    "id": "frontline_stance",
+    "displayName": "前衛の型",
+    "tags": [
+     "passive",
+     "playable",
+     "guard",
+     "formation"
+    ],
+    "rule": {
+     "id": "frontline_stance_rule",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "position",
+       "subject": "self",
+       "row": "front",
+       "op": "eq"
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "decrease",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 5,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 55
+    }
+   },
+   "warded_barrier": {
+    "id": "warded_barrier",
+    "displayName": "守勢の壁",
+    "tags": [
+     "passive",
+     "playable",
+     "guard",
+     "status"
+    ],
+    "rule": {
+     "id": "warded_barrier_rule",
+     "listenTo": "barrier_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "warded",
+       "op": "gte",
+       "value": 1
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 8,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 55
+    }
+   },
+   "reserve_care": {
+    "id": "reserve_care",
+    "displayName": "備えた手",
+    "tags": [
+     "passive",
+     "playable",
+     "care",
+     "reserve"
+    ],
+    "rule": {
+     "id": "reserve_care_rule",
+     "listenTo": "healing_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "resource",
+       "subject": "self",
+       "resource": "reaction_points",
+       "op": "gte",
+       "value": 1
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 8,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 55
+    }
+   },
+   "wounded_guard": {
+    "id": "wounded_guard",
+    "displayName": "傷を測る",
+    "tags": [
+     "passive",
+     "playable",
+     "care",
+     "guard"
+    ],
+    "rule": {
+     "id": "wounded_guard_rule",
+     "listenTo": "barrier_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "hp_percent",
+          "op": "lte",
+          "value": 50
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 10,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 56
+    }
+   },
+   "reserve_rhythm": {
+    "id": "reserve_rhythm",
+    "displayName": "一拍残す",
+    "tags": [
+     "passive",
+     "playable",
+     "tempo",
+     "reserve"
+    ],
+    "rule": {
+     "id": "reserve_rhythm_rule",
+     "listenTo": "resource_unused",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "reaction_points",
+       "value": true
+      },
+      {
+       "type": "event_value",
+       "key": "amount",
+       "op": "gte",
+       "value": 1
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "focused",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "battle",
+      "count": 1
+     },
+     "priority": 100
+    }
+   },
+   "prepared_power": {
+    "id": "prepared_power",
+    "displayName": "溜めの勘所",
+    "tags": [
+     "passive",
+     "playable",
+     "tempo",
+     "preparation",
+     "attack"
+    ],
+    "rule": {
+     "id": "prepared_power_rule",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "attack",
+       "value": true
+      },
+      {
+       "type": "event_tag",
+       "tag": "heavy",
+       "value": true
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 10,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 55
+    }
+   },
+   "marked_assault": {
+    "id": "marked_assault",
+    "displayName": "刻印攻め",
+    "tags": [
+     "passive",
+     "playable",
+     "attack",
+     "mark"
+    ],
+    "rule": {
+     "id": "marked_assault_rule",
+     "listenTo": "damage_proposed",
+     "timing": "interrupt",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "attack",
+       "value": true
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "modify_pending_amount",
+       "operation": "increase",
+       "amount": {
+        "type": "event_value_scaled",
+        "key": "amount",
+        "numerator": 8,
+        "denominator": 100
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     },
+     "priority": 56
+    }
+   },
+   "three_count": {
+    "id": "three_count",
+    "displayName": "三つ数える",
+    "tags": [
+     "passive",
+     "playable",
+     "attack",
+     "onhit"
+    ],
+    "rule": {
+     "id": "three_count_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "exposed",
+          "op": "gte",
+          "value": 1
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_value",
+       "key": "hitIndex",
+       "op": "eq",
+       "value": 2
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "focused",
+       "op": "eq",
+       "value": 0
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "focused",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     },
+     "priority": 100
+    }
+   },
+   "borrowed_focus": {
+    "id": "borrowed_focus",
+    "displayName": "借りた勢い",
+    "tags": [
+     "passive",
+     "playable",
+     "relay",
+     "guard"
+    ],
+    "rule": {
+     "id": "borrowed_focus_rule",
+     "listenTo": "status_added",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "event_value",
+       "key": "statusId",
+       "op": "eq",
+       "value": "focused"
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "op": "eq",
+       "value": 0,
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "has_status",
+       "subject": "self",
+       "statusId": "warded",
+       "op": "lt",
+       "value": 2
+      }
+     ],
+     "costs": [],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "self",
+        "take": 1
+       },
+       "statusId": "warded",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     },
+     "priority": 100
+    }
+   },
+   "bleed_memory": {
+    "id": "bleed_memory",
+    "displayName": "傷を覚える",
+    "tags": [
+     "passive",
+     "playable",
+     "relay",
+     "attack",
+     "status"
+    ],
+    "rule": {
+     "id": "bleed_memory_rule",
+     "listenTo": "status_added",
+     "timing": "after",
+     "predicates": [
+      {
+       "type": "event_value",
+       "key": "statusId",
+       "op": "eq",
+       "value": "bleeding"
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         },
+         {
+          "type": "has_status",
+          "statusId": "bleeding",
+          "op": "gte",
+          "value": 1
          }
         ],
         "take": 1
@@ -12466,6 +14175,18 @@
   "stagger_relay": "怯みを回す",
   "warded_into_edge": "守勢を刃へ",
   "bleed_into_wake": "裂傷の余波",
+  "exploit_stagger": "崩れを穿つ",
+  "deepen_bleed": "傷を深める",
+  "moving_guard": "動いた足場",
+  "barrier_rebuke": "砕け際",
+  "critical_care": "急所を診る",
+  "aftercare": "手当てのあと",
+  "charge_guard": "溜めの構え",
+  "stagger_focus": "崩れを読む",
+  "deepen_mark": "重ね刻み",
+  "third_cut": "三撃目の傷",
+  "return_the_mark": "隙を返す",
+  "carry_the_ward": "守りを継ぐ",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -13422,6 +15143,102 @@
     "label": "裂傷の余波",
     "effect": "敵に「裂傷」が入った瞬間、RP1でその敵へ「隙」も1つ。細い傷を束ねる。",
     "grammar": "状態"
+   },
+   "exploit_stagger": {
+    "id": "exploit_stagger",
+    "kind": "reactive",
+    "definitionId": "exploit_stagger",
+    "label": "崩れを穿つ",
+    "effect": "「怯み」のある敵への攻撃の最初のhitを{amount}強める。RPは消費しない。",
+    "grammar": "状態"
+   },
+   "deepen_bleed": {
+    "id": "deepen_bleed",
+    "kind": "reactive",
+    "definitionId": "deepen_bleed",
+    "label": "傷を深める",
+    "effect": "自分が敵へ「裂傷」を付けたとき、RPなしでさらに1段。ラウンド1回。",
+    "grammar": "状態"
+   },
+   "moving_guard": {
+    "id": "moving_guard",
+    "kind": "reactive",
+    "definitionId": "moving_guard",
+    "label": "動いた足場",
+    "effect": "移動したラウンド中、攻撃ごとの最初のhitを{amount}追加で軽くする。RPは消費しない。",
+    "grammar": "移動"
+   },
+   "barrier_rebuke": {
+    "id": "barrier_rebuke",
+    "kind": "reactive",
+    "definitionId": "barrier_rebuke",
+    "label": "砕け際",
+    "effect": "自分の防壁が壊れたとき、RPなしで攻撃者へ「怯み」を1つ。ラウンド1回。",
+    "grammar": "防御"
+   },
+   "critical_care": {
+    "id": "critical_care",
+    "kind": "reactive",
+    "definitionId": "critical_care",
+    "label": "急所を診る",
+    "effect": "HP半分以下の味方への治療を{amount}強める。RPは消費しない。",
+    "grammar": "回復"
+   },
+   "aftercare": {
+    "id": "aftercare",
+    "kind": "reactive",
+    "definitionId": "aftercare",
+    "label": "手当てのあと",
+    "effect": "自分が味方を回復したあと、RPなしでその味方へ「守勢」を1つ。ラウンド1回。",
+    "grammar": "回復"
+   },
+   "charge_guard": {
+    "id": "charge_guard",
+    "kind": "reactive",
+    "definitionId": "charge_guard",
+    "label": "溜めの構え",
+    "effect": "自分が準備を始めたとき、RPなしで「守勢」を1つ。ラウンド1回。",
+    "grammar": "準備"
+   },
+   "stagger_focus": {
+    "id": "stagger_focus",
+    "kind": "reactive",
+    "definitionId": "stagger_focus",
+    "label": "崩れを読む",
+    "effect": "自分が敵へ「怯み」を付けたとき、RPなしで「集中」を1つ。ラウンド1回。",
+    "grammar": "状態"
+   },
+   "deepen_mark": {
+    "id": "deepen_mark",
+    "kind": "reactive",
+    "definitionId": "deepen_mark",
+    "label": "重ね刻み",
+    "effect": "自分が敵へ「隙」を付けたとき、RPなしでさらに1段。ラウンド1回。",
+    "grammar": "状態"
+   },
+   "third_cut": {
+    "id": "third_cut",
+    "kind": "reactive",
+    "definitionId": "third_cut",
+    "label": "三撃目の傷",
+    "effect": "多段攻撃の3hit目が通ったとき、RPなしでその敵へ「裂傷」を1つ。ラウンド1回。",
+    "grammar": "状態"
+   },
+   "return_the_mark": {
+    "id": "return_the_mark",
+    "kind": "reactive",
+    "definitionId": "return_the_mark",
+    "label": "隙を返す",
+    "effect": "自分に「隙」が付いたとき、RPなしで最前の敵へ「怯み」を1つ。ラウンド1回。",
+    "grammar": "状態"
+   },
+   "carry_the_ward": {
+    "id": "carry_the_ward",
+    "kind": "reactive",
+    "definitionId": "carry_the_ward",
+    "label": "守りを継ぐ",
+    "effect": "味方が「守勢」を得たとき、RPなしでその味方へ受け構えを1つ。ラウンド1回。",
+    "grammar": "状態"
    }
   },
   "passive": {
@@ -13430,7 +15247,7 @@
     "kind": "passive",
     "definitionId": "foundation_vitality",
     "label": "地力",
-    "effect": "最大HPが50増える。",
+    "effect": "最大HPが{amount}増える。Lv10まで小さく伸ばせる。",
     "grammar": "基礎"
    },
    "foundation_might": {
@@ -13438,7 +15255,7 @@
     "kind": "passive",
     "definitionId": "foundation_might",
     "label": "膂力",
-    "effect": "腕力が2増える。武器技能の量が上がる。",
+    "effect": "腕力が{amount}増える。武器技能の量が上がり、Lv10まで伸ばせる。",
     "grammar": "基礎"
    },
    "foundation_focus": {
@@ -13446,7 +15263,7 @@
     "kind": "passive",
     "definitionId": "foundation_focus",
     "label": "技術",
-    "effect": "技術が2増える。技術・治療・防壁の量が上がる。",
+    "effect": "技術が{amount}増える。技術・治療・防壁の量が上がり、Lv10まで伸ばせる。",
     "grammar": "基礎"
    },
    "foundation_guard": {
@@ -13454,7 +15271,7 @@
     "kind": "passive",
     "definitionId": "foundation_guard",
     "label": "受け",
-    "effect": "受けが1増える。一撃ごとの被害を減らす。",
+    "effect": "受けが{amount}増える。一撃ごとの被害を減らし、Lv10まで伸ばせる。",
     "grammar": "基礎"
    },
    "foundation_ap": {
@@ -13559,6 +15376,102 @@
     "definitionId": "relay_reader",
     "label": "渡りを読む",
     "effect": "自分が防壁を受け取ったあと、「集中」を1つ得る。ラウンド1回。",
+    "grammar": "支援"
+   },
+   "reserve_edge": {
+    "id": "reserve_edge",
+    "kind": "passive",
+    "definitionId": "reserve_edge",
+    "label": "残心",
+    "effect": "反応権を1以上残している間、自分の攻撃を{amount}強める。反応を使うか残すかの選択。",
+    "grammar": "攻撃"
+   },
+   "bloodied_edge": {
+    "id": "bloodied_edge",
+    "kind": "passive",
+    "definitionId": "bloodied_edge",
+    "label": "窮地の力",
+    "effect": "HP半分以下の間、自分の攻撃を{amount}強める。手負いの攻撃群を支える。",
+    "grammar": "攻撃"
+   },
+   "frontline_stance": {
+    "id": "frontline_stance",
+    "kind": "passive",
+    "definitionId": "frontline_stance",
+    "label": "前衛の型",
+    "effect": "前列にいる間、攻撃ごとの最初のhitを{amount}軽くする。",
+    "grammar": "守り"
+   },
+   "warded_barrier": {
+    "id": "warded_barrier",
+    "kind": "passive",
+    "definitionId": "warded_barrier",
+    "label": "守勢の壁",
+    "effect": "「守勢」のある自分が受け取る防壁を{amount}強める。",
+    "grammar": "守り"
+   },
+   "reserve_care": {
+    "id": "reserve_care",
+    "kind": "passive",
+    "definitionId": "reserve_care",
+    "label": "備えた手",
+    "effect": "反応権を1以上残している間、自分の治療を{amount}強める。",
+    "grammar": "支援"
+   },
+   "wounded_guard": {
+    "id": "wounded_guard",
+    "kind": "passive",
+    "definitionId": "wounded_guard",
+    "label": "傷を測る",
+    "effect": "HP半分以下の味方へ自分が張る防壁を{amount}強める。",
+    "grammar": "支援"
+   },
+   "reserve_rhythm": {
+    "id": "reserve_rhythm",
+    "kind": "passive",
+    "definitionId": "reserve_rhythm",
+    "label": "一拍残す",
+    "effect": "ラウンド終了時に反応権が1以上余ったとき、一戦に一度だけ「集中」を得る。",
+    "grammar": "指揮"
+   },
+   "prepared_power": {
+    "id": "prepared_power",
+    "kind": "passive",
+    "definitionId": "prepared_power",
+    "label": "溜めの勘所",
+    "effect": "準備を経て放つ攻撃を{amount}強める。安定攻撃には効かない。",
+    "grammar": "指揮"
+   },
+   "marked_assault": {
+    "id": "marked_assault",
+    "kind": "passive",
+    "definitionId": "marked_assault",
+    "label": "刻印攻め",
+    "effect": "「隙」のある敵への自分の攻撃の最初のhitを{amount}強める。",
+    "grammar": "攻撃"
+   },
+   "three_count": {
+    "id": "three_count",
+    "kind": "passive",
+    "definitionId": "three_count",
+    "label": "三つ数える",
+    "effect": "「隙」のある敵へ多段攻撃の3hit目を通したあと、「集中」を得る。ラウンド1回。",
+    "grammar": "攻撃"
+   },
+   "borrowed_focus": {
+    "id": "borrowed_focus",
+    "kind": "passive",
+    "definitionId": "borrowed_focus",
+    "label": "借りた勢い",
+    "effect": "他の味方から「集中」を受け取ったとき、自分へ「守勢」を1つ。ラウンド1回。",
+    "grammar": "支援"
+   },
+   "bleed_memory": {
+    "id": "bleed_memory",
+    "kind": "passive",
+    "definitionId": "bleed_memory",
+    "label": "傷を覚える",
+    "effect": "誰かが敵へ「裂傷」を付けたとき、自分は「集中」を得る。ラウンド1回。",
     "grammar": "支援"
    }
   }
@@ -14590,12 +16503,108 @@
    "effect": "敵に「裂傷」が入った瞬間、RP1でその敵へ「隙」も1つ。細い傷を束ねる。",
    "grammar": "状態"
   },
+  "exploit_stagger": {
+   "id": "exploit_stagger",
+   "kind": "reactive",
+   "definitionId": "exploit_stagger",
+   "label": "崩れを穿つ",
+   "effect": "「怯み」のある敵への攻撃の最初のhitを{amount}強める。RPは消費しない。",
+   "grammar": "状態"
+  },
+  "deepen_bleed": {
+   "id": "deepen_bleed",
+   "kind": "reactive",
+   "definitionId": "deepen_bleed",
+   "label": "傷を深める",
+   "effect": "自分が敵へ「裂傷」を付けたとき、RPなしでさらに1段。ラウンド1回。",
+   "grammar": "状態"
+  },
+  "moving_guard": {
+   "id": "moving_guard",
+   "kind": "reactive",
+   "definitionId": "moving_guard",
+   "label": "動いた足場",
+   "effect": "移動したラウンド中、攻撃ごとの最初のhitを{amount}追加で軽くする。RPは消費しない。",
+   "grammar": "移動"
+  },
+  "barrier_rebuke": {
+   "id": "barrier_rebuke",
+   "kind": "reactive",
+   "definitionId": "barrier_rebuke",
+   "label": "砕け際",
+   "effect": "自分の防壁が壊れたとき、RPなしで攻撃者へ「怯み」を1つ。ラウンド1回。",
+   "grammar": "防御"
+  },
+  "critical_care": {
+   "id": "critical_care",
+   "kind": "reactive",
+   "definitionId": "critical_care",
+   "label": "急所を診る",
+   "effect": "HP半分以下の味方への治療を{amount}強める。RPは消費しない。",
+   "grammar": "回復"
+  },
+  "aftercare": {
+   "id": "aftercare",
+   "kind": "reactive",
+   "definitionId": "aftercare",
+   "label": "手当てのあと",
+   "effect": "自分が味方を回復したあと、RPなしでその味方へ「守勢」を1つ。ラウンド1回。",
+   "grammar": "回復"
+  },
+  "charge_guard": {
+   "id": "charge_guard",
+   "kind": "reactive",
+   "definitionId": "charge_guard",
+   "label": "溜めの構え",
+   "effect": "自分が準備を始めたとき、RPなしで「守勢」を1つ。ラウンド1回。",
+   "grammar": "準備"
+  },
+  "stagger_focus": {
+   "id": "stagger_focus",
+   "kind": "reactive",
+   "definitionId": "stagger_focus",
+   "label": "崩れを読む",
+   "effect": "自分が敵へ「怯み」を付けたとき、RPなしで「集中」を1つ。ラウンド1回。",
+   "grammar": "状態"
+  },
+  "deepen_mark": {
+   "id": "deepen_mark",
+   "kind": "reactive",
+   "definitionId": "deepen_mark",
+   "label": "重ね刻み",
+   "effect": "自分が敵へ「隙」を付けたとき、RPなしでさらに1段。ラウンド1回。",
+   "grammar": "状態"
+  },
+  "third_cut": {
+   "id": "third_cut",
+   "kind": "reactive",
+   "definitionId": "third_cut",
+   "label": "三撃目の傷",
+   "effect": "多段攻撃の3hit目が通ったとき、RPなしでその敵へ「裂傷」を1つ。ラウンド1回。",
+   "grammar": "状態"
+  },
+  "return_the_mark": {
+   "id": "return_the_mark",
+   "kind": "reactive",
+   "definitionId": "return_the_mark",
+   "label": "隙を返す",
+   "effect": "自分に「隙」が付いたとき、RPなしで最前の敵へ「怯み」を1つ。ラウンド1回。",
+   "grammar": "状態"
+  },
+  "carry_the_ward": {
+   "id": "carry_the_ward",
+   "kind": "reactive",
+   "definitionId": "carry_the_ward",
+   "label": "守りを継ぐ",
+   "effect": "味方が「守勢」を得たとき、RPなしでその味方へ受け構えを1つ。ラウンド1回。",
+   "grammar": "状態"
+  },
   "foundation_vitality": {
    "id": "foundation_vitality",
    "kind": "passive",
    "definitionId": "foundation_vitality",
    "label": "地力",
-   "effect": "最大HPが50増える。",
+   "effect": "最大HPが{amount}増える。Lv10まで小さく伸ばせる。",
    "grammar": "基礎"
   },
   "foundation_might": {
@@ -14603,7 +16612,7 @@
    "kind": "passive",
    "definitionId": "foundation_might",
    "label": "膂力",
-   "effect": "腕力が2増える。武器技能の量が上がる。",
+   "effect": "腕力が{amount}増える。武器技能の量が上がり、Lv10まで伸ばせる。",
    "grammar": "基礎"
   },
   "foundation_focus": {
@@ -14611,7 +16620,7 @@
    "kind": "passive",
    "definitionId": "foundation_focus",
    "label": "技術",
-   "effect": "技術が2増える。技術・治療・防壁の量が上がる。",
+   "effect": "技術が{amount}増える。技術・治療・防壁の量が上がり、Lv10まで伸ばせる。",
    "grammar": "基礎"
   },
   "foundation_guard": {
@@ -14619,7 +16628,7 @@
    "kind": "passive",
    "definitionId": "foundation_guard",
    "label": "受け",
-   "effect": "受けが1増える。一撃ごとの被害を減らす。",
+   "effect": "受けが{amount}増える。一撃ごとの被害を減らし、Lv10まで伸ばせる。",
    "grammar": "基礎"
   },
   "foundation_ap": {
@@ -14724,6 +16733,102 @@
    "definitionId": "relay_reader",
    "label": "渡りを読む",
    "effect": "自分が防壁を受け取ったあと、「集中」を1つ得る。ラウンド1回。",
+   "grammar": "支援"
+  },
+  "reserve_edge": {
+   "id": "reserve_edge",
+   "kind": "passive",
+   "definitionId": "reserve_edge",
+   "label": "残心",
+   "effect": "反応権を1以上残している間、自分の攻撃を{amount}強める。反応を使うか残すかの選択。",
+   "grammar": "攻撃"
+  },
+  "bloodied_edge": {
+   "id": "bloodied_edge",
+   "kind": "passive",
+   "definitionId": "bloodied_edge",
+   "label": "窮地の力",
+   "effect": "HP半分以下の間、自分の攻撃を{amount}強める。手負いの攻撃群を支える。",
+   "grammar": "攻撃"
+  },
+  "frontline_stance": {
+   "id": "frontline_stance",
+   "kind": "passive",
+   "definitionId": "frontline_stance",
+   "label": "前衛の型",
+   "effect": "前列にいる間、攻撃ごとの最初のhitを{amount}軽くする。",
+   "grammar": "守り"
+  },
+  "warded_barrier": {
+   "id": "warded_barrier",
+   "kind": "passive",
+   "definitionId": "warded_barrier",
+   "label": "守勢の壁",
+   "effect": "「守勢」のある自分が受け取る防壁を{amount}強める。",
+   "grammar": "守り"
+  },
+  "reserve_care": {
+   "id": "reserve_care",
+   "kind": "passive",
+   "definitionId": "reserve_care",
+   "label": "備えた手",
+   "effect": "反応権を1以上残している間、自分の治療を{amount}強める。",
+   "grammar": "支援"
+  },
+  "wounded_guard": {
+   "id": "wounded_guard",
+   "kind": "passive",
+   "definitionId": "wounded_guard",
+   "label": "傷を測る",
+   "effect": "HP半分以下の味方へ自分が張る防壁を{amount}強める。",
+   "grammar": "支援"
+  },
+  "reserve_rhythm": {
+   "id": "reserve_rhythm",
+   "kind": "passive",
+   "definitionId": "reserve_rhythm",
+   "label": "一拍残す",
+   "effect": "ラウンド終了時に反応権が1以上余ったとき、一戦に一度だけ「集中」を得る。",
+   "grammar": "指揮"
+  },
+  "prepared_power": {
+   "id": "prepared_power",
+   "kind": "passive",
+   "definitionId": "prepared_power",
+   "label": "溜めの勘所",
+   "effect": "準備を経て放つ攻撃を{amount}強める。安定攻撃には効かない。",
+   "grammar": "指揮"
+  },
+  "marked_assault": {
+   "id": "marked_assault",
+   "kind": "passive",
+   "definitionId": "marked_assault",
+   "label": "刻印攻め",
+   "effect": "「隙」のある敵への自分の攻撃の最初のhitを{amount}強める。",
+   "grammar": "攻撃"
+  },
+  "three_count": {
+   "id": "three_count",
+   "kind": "passive",
+   "definitionId": "three_count",
+   "label": "三つ数える",
+   "effect": "「隙」のある敵へ多段攻撃の3hit目を通したあと、「集中」を得る。ラウンド1回。",
+   "grammar": "攻撃"
+  },
+  "borrowed_focus": {
+   "id": "borrowed_focus",
+   "kind": "passive",
+   "definitionId": "borrowed_focus",
+   "label": "借りた勢い",
+   "effect": "他の味方から「集中」を受け取ったとき、自分へ「守勢」を1つ。ラウンド1回。",
+   "grammar": "支援"
+  },
+  "bleed_memory": {
+   "id": "bleed_memory",
+   "kind": "passive",
+   "definitionId": "bleed_memory",
+   "label": "傷を覚える",
+   "effect": "誰かが敵へ「裂傷」を付けたとき、自分は「集中」を得る。ラウンド1回。",
    "grammar": "支援"
   },
   "worn_greaves": {
@@ -15045,6 +17150,18 @@
   "stagger_relay",
   "warded_into_edge",
   "bleed_into_wake",
+  "exploit_stagger",
+  "deepen_bleed",
+  "moving_guard",
+  "barrier_rebuke",
+  "critical_care",
+  "aftercare",
+  "charge_guard",
+  "stagger_focus",
+  "deepen_mark",
+  "third_cut",
+  "return_the_mark",
+  "carry_the_ward",
   "foundation_vitality",
   "foundation_might",
   "foundation_focus",
@@ -15062,6 +17179,18 @@
   "first_order",
   "mark_reader",
   "relay_reader",
+  "reserve_edge",
+  "bloodied_edge",
+  "frontline_stance",
+  "warded_barrier",
+  "reserve_care",
+  "wounded_guard",
+  "reserve_rhythm",
+  "prepared_power",
+  "marked_assault",
+  "three_count",
+  "borrowed_focus",
+  "bleed_memory",
   "worn_greaves",
   "splinter_edge",
   "field_kit",
@@ -16579,13 +18708,163 @@
    ]
   },
   {
+   "id": "node_critical_care",
+   "skillId": "critical_care",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 1,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": []
+  },
+  {
+   "id": "node_aftercare",
+   "skillId": "aftercare",
+   "kind": "reactive",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "critical_care",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_exploit_stagger",
+   "skillId": "exploit_stagger",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 1,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": []
+  },
+  {
+   "id": "node_deepen_bleed",
+   "skillId": "deepen_bleed",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "exploit_stagger",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_moving_guard",
+   "skillId": "moving_guard",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 1,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": []
+  },
+  {
+   "id": "node_barrier_rebuke",
+   "skillId": "barrier_rebuke",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "moving_guard",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_charge_guard",
+   "skillId": "charge_guard",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 1,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": []
+  },
+  {
+   "id": "node_stagger_focus",
+   "skillId": "stagger_focus",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "charge_guard",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_deepen_mark",
+   "skillId": "deepen_mark",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 1,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": []
+  },
+  {
+   "id": "node_third_cut",
+   "skillId": "third_cut",
+   "kind": "reactive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "deepen_mark",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_return_the_mark",
+   "skillId": "return_the_mark",
+   "kind": "reactive",
+   "branch": "指揮",
+   "x": 1,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": []
+  },
+  {
+   "id": "node_carry_the_ward",
+   "skillId": "carry_the_ward",
+   "kind": "reactive",
+   "branch": "守り",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "return_the_mark",
+     "minLv": 1
+    }
+   ]
+  },
+  {
    "id": "node_foundation_vitality",
    "skillId": "foundation_vitality",
    "kind": "passive",
    "branch": "基礎",
    "x": 1,
    "cost": 1,
-   "maxLv": 1,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -16595,7 +18874,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
-   "maxLv": 1,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -16644,6 +18923,36 @@
    ]
   },
   {
+   "id": "node_reserve_edge",
+   "skillId": "reserve_edge",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "foundation_might",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_bloodied_edge",
+   "skillId": "bloodied_edge",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "reserve_edge",
+     "minLv": 1
+    }
+   ]
+  },
+  {
    "id": "node_mark_reader",
    "skillId": "mark_reader",
    "kind": "passive",
@@ -16659,13 +18968,43 @@
    ]
   },
   {
+   "id": "node_marked_assault",
+   "skillId": "marked_assault",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 3,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "mark_reader",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_three_count",
+   "skillId": "three_count",
+   "kind": "passive",
+   "branch": "攻撃",
+   "x": 4,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "marked_assault",
+     "minLv": 1
+    }
+   ]
+  },
+  {
    "id": "node_foundation_focus",
    "skillId": "foundation_focus",
    "kind": "passive",
    "branch": "基礎",
    "x": 1,
    "cost": 1,
-   "maxLv": 1,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -16699,8 +19038,53 @@
    ]
   },
   {
+   "id": "node_reserve_care",
+   "skillId": "reserve_care",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 3,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "steady_hands",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_wounded_guard",
+   "skillId": "wounded_guard",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 4,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "reserve_care",
+     "minLv": 1
+    }
+   ]
+  },
+  {
    "id": "node_relay_reader",
    "skillId": "relay_reader",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 2,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "foundation_focus",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_borrowed_focus",
+   "skillId": "borrowed_focus",
    "kind": "passive",
    "branch": "支援",
    "x": 3,
@@ -16708,7 +19092,22 @@
    "maxLv": 1,
    "requires": [
     {
-     "skillId": "steady_hands",
+     "skillId": "relay_reader",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_bleed_memory",
+   "skillId": "bleed_memory",
+   "kind": "passive",
+   "branch": "支援",
+   "x": 4,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "borrowed_focus",
      "minLv": 1
     }
    ]
@@ -16720,7 +19119,7 @@
    "branch": "基礎",
    "x": 1,
    "cost": 1,
-   "maxLv": 1,
+   "maxLv": 10,
    "requires": []
   },
   {
@@ -16749,6 +19148,36 @@
    "requires": [
     {
      "skillId": "opening_guard",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_frontline_stance",
+   "skillId": "frontline_stance",
+   "kind": "passive",
+   "branch": "守り",
+   "x": 4,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "wall_reader",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_warded_barrier",
+   "skillId": "warded_barrier",
+   "kind": "passive",
+   "branch": "守り",
+   "x": 5,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "frontline_stance",
      "minLv": 1
     }
    ]
@@ -16789,6 +19218,36 @@
    "requires": [
     {
      "skillId": "held_breath",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_reserve_rhythm",
+   "skillId": "reserve_rhythm",
+   "kind": "passive",
+   "branch": "指揮",
+   "x": 3,
+   "cost": 1,
+   "maxLv": 1,
+   "requires": [
+    {
+     "skillId": "held_breath",
+     "minLv": 1
+    }
+   ]
+  },
+  {
+   "id": "node_prepared_power",
+   "skillId": "prepared_power",
+   "kind": "passive",
+   "branch": "指揮",
+   "x": 4,
+   "cost": 1,
+   "maxLv": 10,
+   "requires": [
+    {
+     "skillId": "reserve_rhythm",
      "minLv": 1
     }
    ]
@@ -16914,10 +19373,22 @@
   "stagger_relay": 1,
   "warded_into_edge": 1,
   "bleed_into_wake": 1,
-  "foundation_vitality": 1,
-  "foundation_might": 1,
-  "foundation_focus": 1,
-  "foundation_guard": 1,
+  "exploit_stagger": 10,
+  "deepen_bleed": 1,
+  "moving_guard": 10,
+  "barrier_rebuke": 1,
+  "critical_care": 10,
+  "aftercare": 1,
+  "charge_guard": 1,
+  "stagger_focus": 1,
+  "deepen_mark": 1,
+  "third_cut": 1,
+  "return_the_mark": 1,
+  "carry_the_ward": 1,
+  "foundation_vitality": 10,
+  "foundation_might": 10,
+  "foundation_focus": 10,
+  "foundation_guard": 10,
   "foundation_ap": 1,
   "foundation_rp": 1,
   "first_blood": 1,
@@ -16930,7 +19401,19 @@
   "patient_hands": 1,
   "first_order": 1,
   "mark_reader": 1,
-  "relay_reader": 1
+  "relay_reader": 1,
+  "reserve_edge": 10,
+  "bloodied_edge": 10,
+  "frontline_stance": 10,
+  "warded_barrier": 10,
+  "reserve_care": 10,
+  "wounded_guard": 10,
+  "reserve_rhythm": 1,
+  "prepared_power": 10,
+  "marked_assault": 10,
+  "three_count": 1,
+  "borrowed_focus": 1,
+  "bleed_memory": 1
  },
  "enemyInfo": {
   "husk": {
@@ -17383,11 +19866,15 @@
     "cover_ally",
     "opportunist",
     "vengeful_step",
-    "finish_the_wounded"
+    "finish_the_wounded",
+    "exploit_stagger",
+    "deepen_bleed"
    ],
    "passiveSkillIds": [
     "first_blood",
-    "edge_honed"
+    "edge_honed",
+    "reserve_edge",
+    "bloodied_edge"
    ],
    "coreActiveSkillIds": [
     "heavy_swing",
@@ -17435,11 +19922,15 @@
     "shared_pain",
     "watchful_care",
     "steady_under_fire",
-    "second_wind"
+    "second_wind",
+    "critical_care",
+    "aftercare"
    ],
    "passiveSkillIds": [
     "steady_hands",
-    "patient_hands"
+    "patient_hands",
+    "reserve_care",
+    "wounded_guard"
    ],
    "coreActiveSkillIds": [
     "steady_cut",
@@ -17487,11 +19978,15 @@
     "absorb_shock",
     "guard_the_marked",
     "last_stand",
-    "counterweight"
+    "counterweight",
+    "moving_guard",
+    "barrier_rebuke"
    ],
    "passiveSkillIds": [
     "opening_guard",
-    "wall_reader"
+    "wall_reader",
+    "frontline_stance",
+    "warded_barrier"
    ],
    "coreActiveSkillIds": [
     "reposition",
@@ -17533,11 +20028,15 @@
     "read_the_charge",
     "break_the_charge",
     "counter_order",
-    "stall_the_blow"
+    "stall_the_blow",
+    "charge_guard",
+    "stagger_focus"
    ],
    "passiveSkillIds": [
     "held_breath",
-    "first_order"
+    "first_order",
+    "reserve_rhythm",
+    "prepared_power"
    ],
    "coreActiveSkillIds": [
     "relay_order",
@@ -17577,10 +20076,14 @@
    "reactiveSkillIds": [
     "guarded_opening",
     "seize_the_opening",
-    "echo_of_the_mark"
+    "echo_of_the_mark",
+    "deepen_mark",
+    "third_cut"
    ],
    "passiveSkillIds": [
-    "mark_reader"
+    "mark_reader",
+    "marked_assault",
+    "three_count"
    ],
    "tags": [
     "attack",
@@ -17608,11 +20111,15 @@
     "wake_of_the_fallen",
     "stagger_relay",
     "warded_into_edge",
-    "bleed_into_wake"
+    "bleed_into_wake",
+    "return_the_mark",
+    "carry_the_ward"
    ],
    "passiveSkillIds": [
     "wake_reader",
-    "relay_reader"
+    "relay_reader",
+    "borrowed_focus",
+    "bleed_memory"
    ],
    "tags": [
     "relay",
@@ -26962,7 +29469,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -27338,7 +29845,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -27683,7 +30190,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -27913,7 +30420,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -28216,7 +30723,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -28491,7 +30998,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -28697,7 +31204,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -28929,7 +31436,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -29162,7 +31669,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -29368,7 +31875,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -29577,7 +32084,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -29821,7 +32328,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -30081,7 +32588,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -30282,7 +32789,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -30514,7 +33021,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -30767,7 +33274,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -31009,7 +33516,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -31278,7 +33785,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -31518,7 +34025,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -31746,7 +34253,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -31956,7 +34463,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -32141,7 +34648,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -32345,7 +34852,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -32576,7 +35083,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -32804,7 +35311,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -33042,7 +35549,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -33375,7 +35882,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -33834,7 +36341,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -34219,7 +36726,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -34628,7 +37135,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -35068,7 +37575,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -35376,7 +37883,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -35600,7 +38107,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -35815,7 +38322,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -36047,7 +38554,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -36274,7 +38781,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-26",
+      "contentContractVersion": "ecology-content-contract-27",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

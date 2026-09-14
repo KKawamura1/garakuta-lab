@@ -133,6 +133,7 @@ import {
   rewardOffer,
   runSkillPoints,
   runSkillLevel,
+  runSkillLevelsFor,
   levelUpRunSkill,
   settleRun,
   slotLimits,
@@ -1051,7 +1052,13 @@ function maxHp(characterId) {
     equipmentId,
     broken: equipmentDurability(equipmentId) === 0,
   }));
-  return maxHpWithStaticBonuses(base, runContentBundle(state.run), passiveSkillIds, equipment);
+  return maxHpWithStaticBonuses(
+    base,
+    runContentBundle(state.run),
+    passiveSkillIds,
+    equipment,
+    runSkillLevelsFor(state.run, characterId),
+  );
 }
 
 function limitsFor(characterId) {

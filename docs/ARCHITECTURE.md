@@ -91,7 +91,7 @@
 `_headers` が `/ecology/art/*` を一日キャッシュする。
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
-取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡り、engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）にだけ係数を掛けます。**engine は技能 ID で分岐しません**：表に載っていない技能では掛け算そのものが起きず、Lv1 は係数 1.0 ちょうどなので旧入力と1バイトも変わりません。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
+取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡ります。engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）に係数を掛け、`static-bonuses.mjs` は基礎能力パッシブを `statBonus + statBonusPerLevel × (技能Lv - 1)` として戦闘開始時の能力へ加えます。**どちらも技能 ID で分岐しません**。Lv1 は旧来の `statBonus` と同じ値で、技能Lvが無い旧入力もLv1として読まれます。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
 `simulateExpeditionBattle` が予測と本番の入力構成と `equipmentBreaks: false` を共有するため、
 技能レベル・HP・装備耐久を含む同じ入力から同じ結果とイベント列を返します。
 **呼び出し側も一本です**：`app.js` の `expeditionBattleOptions()` が盤面の外の入力
@@ -108,7 +108,7 @@
 `content/skill-levels.mjs` の `LEVELED_EFFECTS` と `effects.mjs` の `afterSkillLevel` が
 掛かる effect 型が一致しているかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
 技能の数は**変動量と固定量に分けてあります**。変動量（レベルで伸びる damage / heal /
-barrier / 増減の amount）は各技能にちょうど一つで、説明文はその数を持たず `{amount}` /
+barrier / 増減の amount、および基礎能力の `statBonus`）は各技能にちょうど一つで、説明文はその数を持たず `{amount}` /
 `{total}` / `{hits}` と書いて定義を指します。表示の直前に
 `skillTextAtLevel(text, definition, level)` が実際の値（レベルを掛け、単位は amount 型が
 決める）を埋めます。固定量——発動条件の閾値、後列減衰、段数、AP / RP——は文字のままです。
@@ -122,7 +122,10 @@ content を直接読んで検査します。深い腕力攻撃を基礎攻撃の
 溜め技の1行動平均、AP移譲の `channel` / `not_self` を固定します。さらに同じ content を
 小戦闘へ通し、隙・怯み・守勢が多段の全hitへ割合で掛かること、裂傷が最大HPを読むこと、
 複数行動の途中で「余りを溜める」が次の一手を集中させること、位置替えと踏み固めが連鎖すること、
-身代わりが自己標的へRPを空費しないことまでevent列で確かめます。
+身代わりが自己標的へRPを空費しないことまでevent列で確かめます。issue #271 ではさらに、
+各packが2本ずつRP0反応を持つこと、裂傷3段、瀕死治療→守勢、溜め→守勢＋重撃、
+刻印2段→三連撃→裂傷／集中、隙の引受→怯み／受け構えをproduction戦闘で固定し、
+基礎能力Lv10が最大HP+140／腕力・技術+11／受け+10に留まることも同じ検査へ加えました。
 
 割合状態は新しいengine語彙ではありません。`content/statuses.mjs` が段数と `hitIndex` の
 排他的な組ごとに有限の `damage_proposed` ruleを展開し、既存の
