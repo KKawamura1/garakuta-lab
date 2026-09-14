@@ -34,10 +34,19 @@ const displayContracts = [
   ["盤面の揺れのCSS", styles, ".battle-field.shake-3"],
   ["踏み込む向きを列差から出す", app, "function lungeShiftPx(actors, actingId, beat)"],
   ["踏み込む向きを CSS へ渡す", styles, "var(--lunge-x, 0px)"],
-  ["踏み込んだ先を線で結ぶ", app, "function spawnStrikeLine(field, fromUnit, toUnit)"],
+  ["踏み込んだ先を線で結ぶ", app, "function spawnStrikeLine(field, fromUnit, toUnit, style)"],
   ["踏み込んだ先の線のCSS", styles, ".strike-line {"],
   ["手応えの層のDOM", app, 'class=\\"unit-fx\\"'],
   ["手応えの層のCSS", styles, ".unit-fx {"],
+  // 作者要望 2026-09-14 — **腕力は斬撃、技術は銃撃。**型は attack-style.mjs が
+  // イベント列から読み、画面は class を付けるだけ。片方でも欠ければ絵が分かれない。
+  ["攻撃の型を拍から読む", app, "const strikeStyle = beatAttackStyle(ATTACK_STYLE_INDEX, beat);"],
+  ["攻撃の型を撃つ側へ渡す", app, 'actingUnit.classList.add("strike-" + strikeStyle)'],
+  ["攻撃の型を受ける側へ渡す", app, 'unit.classList.add("hit-" + hitStyle)'],
+  ["銃撃の弾着のDOM", app, 'class=\\"fx-shot\\"'],
+  ["銃撃の反動のCSS", styles, ".unit.is-striking.strike-technique"],
+  ["銃撃の弾着のCSS", styles, ".unit.is-hit.hit-technique .fx-shot"],
+  ["銃撃の弾道のCSS", styles, ".strike-line.technique"],
   ["幕の帯の言葉", app, "function battleBannerFor(beat)"],
   ["幕の帯のCSS", styles, ".battle-banner {"],
   // 作者試遊 2026-09-13 — **再生は決着の帯で止まり、次の場面へは［次へ］だけが渡す。**
