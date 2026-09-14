@@ -3429,32 +3429,6 @@ function statAxesHtml(characterId, { live = false } = {}) {
   return "<span><small>HP</small><b>" + hp + trainedMark(stats, "vitality") + "</b></span>" + axes.join("");
 }
 
-// issue #235 — 編成タブを廃止したので、隊列の候補一覧はここにしかない。
-// **選べない回は一覧そのものを出さない**（#159、作者指摘 2026-09-08）ので、
-// rosterLocked のときは呼ばれない。
-function rosterSwapSection() {
-  // issue #159 — 固定の回は候補一覧そのものを出さず、理由だけを一行で書く。
-  if (rosterLocked()) {
-    return "<section class=\"card quiet\">" + sectionHeading("ROSTER", "同行者",
-        "<span class=\"stage\">" + partyLabel() + "</span>")
-      + ruleGrid([{ glyph: "lock", title: "同行者", value: "物語が決める", line: "一度クリアすると、自由に選べるようになります。" }])
-      + "</section>";
-  }
-  return "<section class=\"card\">" + sectionHeading("ROSTER", "仲間を入れ替える",
-      "<span class=\"stage\">" + partyLabel() + "</span>")
-    + "<div class=\"character-grid\">" + metCharacterOptions().map((option) => {
-      const inParty = state.run.roster.includes(option.id);
-      const stats = statsFor(option.id);
-      return "<article class=\"character-card " + (inParty ? "in-party" : "") + "\">"
-        + "<button type=\"button\" class=\"character-main\" data-action=\"toggle-roster\" data-character=\""
-        + esc(option.id) + "\"><span class=\"avatar\">" + esc(option.icon) + "</span>"
-        + "<span class=\"character-copy\"><b>" + esc(characterName(option.id)) + "</b><small>"
-        + esc(option.role) + " · " + esc(option.summary) + "</small></span><span class=\"check\">"
-        + (inParty ? "外す" : "入れる") + "</span></button>"
-        + "<div class=\"character-stats\">" + statAxesHtml(option.id) + "</div></article>";
-    }).join("") + "</div></section>";
-}
-
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
 // **見出しは名前だけ。**「順番」「いつでも効く」は、行の番号と目盛りが出している。
 const SLOT_TITLES = {
@@ -4896,7 +4870,6 @@ function renderMap() {
     // issue #159 — 「現在の隊列」の一覧はここにあった。**上端の共通盤面が
     // 立ち位置と現在HPを同じ形で出している**ので、敵の下で二度描かない。
     + "</section>"
-    + rosterSwapSection()
     + expeditionTools
     + helpDetails("expedition-rules", "遠征のルール", ruleBody);
 }

@@ -282,7 +282,7 @@ try {
   note("キャンプに着く", /スキル|遠征/.test(campText));
   // issue #159 — 固定同行者の区画では人数を N/M で出さない（分母は「まだ入れられる」
   // と読めるが、その回は誰も足せない）。
-  note("2人で始まる", /2人/.test(campText) && !/2 \/ 2人/.test(campText));
+  note("2人で始まる", await page.locator(".camp-top .party-cell:not(.empty)").count() === 2);
   // R14 §1 — 巻き戻したあとは、camp の上端に戦闘予測が常設される。
   // **予測が指すのは「灰の門」**である（12戦の第1戦ではない。同じ盤面をもう一度戦う）。
   note("巻き戻したあとは予測が出る", await page.locator(".camp-top .forecast-bar").count() === 1);
@@ -396,14 +396,10 @@ try {
   note("ツグミが自分ではなくゴウを手当てすると示す",
     /応急手当は自分には効かず、被弾したゴウを後ろから手当てできる/.test(placedText));
 
-  // issue #235 — 編成タブは廃止した。固定同行者の理由は遠征タブが一行で持つ。
-  const companionText = await bodyText();
-  note("この Stage の同行者は固定だと書いてある",
-    /同行者/.test(companionText) && /物語が決める/.test(companionText));
-  // issue #159 — 選べないものを「選べるように見えるカード」で出さない。
+  // issue #235 / 作者要望 2026-09-14 — 同行者を選べる場面がないため、欄ごと表示しない。
   note("固定の回は同行者の候補カードを出さない",
     await page.locator(".character-card").count() === 0
-      && !/今回の同行者/.test(await bodyText()));
+      && !/今回の同行者|同行者/.test(await bodyText()));
 
   // タブを変えても消えない（組み替えながら見るための帯である）。
   await page.locator('nav.tabs [data-tab="equipment"]').click();
@@ -430,7 +426,7 @@ try {
   note("手動セーブ枠へ保存できる", /手動セーブ枠 1 に保存しました/.test(await bodyText()));
   await page.locator('[data-action="load-slot"][data-slot="1"]').click();
   await page.waitForTimeout(200);
-  note("手動セーブからCampへ戻れる", /同行者|仲間/.test(await bodyText()) && /2人/.test(await bodyText()));
+  note("手動セーブからCampへ戻れる", await page.locator(".camp-top .forecast-bar").count() === 1);
 
   // R9 §3.1 / R11 §8.5 — Stage 0 の入口は pack_care「構えと手当て」。
   // **武器と技を一本ずつ**持つ二本が、この Stage の問いそのものである。

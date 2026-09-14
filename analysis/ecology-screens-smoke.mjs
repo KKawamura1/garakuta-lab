@@ -622,11 +622,13 @@ for (const field of [
   // 二つ目の仲間選択がキャンプへ戻っていないこと。**guild 画面の仲間タブは対象外**
   // （あちらには共通盤面が無い）ので、camp のレンダラーだけを見る。
   const campRenderers = [
-    ["rosterSwapSection", "function rosterSwapSection() {", "\nconst SLOT_KEYS"],
     ["renderSkills", "function renderSkills() {", "\nfunction equipmentSlotHtml"],
     ["renderEquipment", "function renderEquipment() {", "\nfunction renderEnemy"],
     ["campTreatmentBlock", "function campTreatmentBlock() {", "\n// R8 §11 — exact preview"],
   ];
+  if (app.includes("rosterSwapSection") || app.includes('data-action=\\\"toggle-roster\\"')) {
+    problems.push("遠征タブに選択不能な同行者欄が残っている");
+  }
   for (const [name, from, to] of campRenderers) {
     const begin = app.indexOf(from);
     const finish = app.indexOf(to, begin);
