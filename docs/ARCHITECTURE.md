@@ -343,6 +343,14 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 `app.js` の通常画面は、主見出し、現在の選択対象、次の操作の順で構成する。意思決定が済んだ画面では、次の操作を
 先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。隊列・技能・装備のような選択画面では
 選択対象→確定操作の順を維持し、敵情報・技能ツリー・装備一覧は段階表示と折り畳みで長さを制御する。
+
+ギルドとキャンプの敵情報は `encounterArchive()` を共有します。12個の節はいずれも
+`composeEncounter(index, difficulty, encounterOptions())` を読み、選択中の一戦だけを
+`expeditionEnemyBoard()` で3×2盤へ展開します。敵詳細は同じ composed enemy の確定 stat と
+`PLAYABLE_CONTENT.enemyActors` の AP / RP・tactics・reactive / passive skill ID を合わせ、
+技能名と効果は `componentInfo()`、狙い方は tactics から導出済みの `enemyInfo()` を読みます。
+画面用に敵能力・技能・狙いを複製しません。`inspectedEncounterIndex` と `selectedEnemyId` は
+ギルド／キャンプ間とタブ往復中だけ保つ UI state で、RunState と保存データには入りません。
 技能ツリーは**地図と操作盤を分ける**。節（`.tree-cell`）は位置と状態だけを持ち、押した節の説明・
 前提・派生・取得・段上げ・取得予約は画面下端へ貼る操作盤（`renderSkillSheet` / `.skill-sheet`）が
 出す。節の中で開かないので、押しても地図は組み変わらず、釦は列幅ではなく画面幅を使える。
