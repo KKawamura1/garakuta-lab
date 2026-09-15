@@ -120,7 +120,11 @@ const displayContracts = [
   ["数の変化は読み値の側で見つける", app, "function pulseChangedReadouts()"],
   ["遠征が替わったら数の記憶を捨てる", app, "function resetFxMemoryIfRunChanged()"],
   ["予測は窓の文字でなく数そのもので見張る", app, "function forecastSignature()"],
-  ["反応を載せるのは描画の最後だけ", app, "applyRenderFeedback({ phaseChanged, tabChanged });"],
+  ["反応を載せるのは描画の最後だけ", app, "applyRenderFeedback({ phaseChanged, tabChanged, guildTabChanged });"],
+  // 作者指摘 2026-09-15 —「アニメーションが全然ない」。ギルドもキャンプと同じ作りで、
+  // 貼りついた上端は動かさず、札の中身だけが立ち上がる。片方でも欠ければ画面は静かに戻る。
+  ["ギルドの札を移った反応", app, 'app.querySelector(".guild-view")?.classList.add("fx-view-enter")'],
+  ["ギルドの札が一枚ずつ着地する", styles, "@keyframes guild-card-enter"],
   ["反応の時間はCSSの一箇所が持つ", styles, "  --fx-accent: "],
   ["押した指への返事", styles, ".button:active:not(:disabled)"],
   ["画面と段の立ち上がり", styles, "@keyframes fx-view-enter"],
@@ -163,9 +167,7 @@ const displayContracts = [
   ["残る／消えるの二列", app, "function splitColumns(keep, lose"],
   ["決着の印", app, "function verdictSigil(kind)"],
   ["戦闘の凡例", app, "function battleLegend()"],
-  ["遠征の形の帯", app, "function expeditionShapeRail()"],
   ["content の強調を太字にする", app, "function emphasize(value)"],
-  ["区画の覚え書き", app, "function learningNotes(lines)"],
   ["数のタイルのCSS", styles, ".stat-tile {"],
   ["規則の段のCSS", styles, ".rule-cell {"],
   ["順の帯のCSS", styles, ".flow-strip {"],
@@ -174,7 +176,6 @@ const displayContracts = [
   ["残る／消えるの二列のCSS", styles, ".split-col.lose b"],
   ["決着の印のCSS", styles, ".verdict-sigil {"],
   ["戦闘の凡例のCSS", styles, ".legend-bar .seg.recoverable"],
-  ["遠征の形の帯のCSS", styles, ".act-node.kind-boss"],
   ["active の CSS クラス", styles, ".kind-active"],
   ["reactive の CSS クラス", styles, ".kind-reactive"],
   ["passive の CSS クラス", styles, ".kind-passive"],
@@ -441,8 +442,17 @@ for (const [label, forbidden] of [
 // 人数・同行者を保つ。旧「5人・自由編成」の表示とproduction経路を戻さない。
 for (const [label, expected] of [
   ["最新の解禁Stageを初期選択", "const campaignStage = campaignStages[campaignStages.length - 1];"],
-  ["再訪カードのStage人数", 'stage.partySize + "人・"'],
-  ["再訪カードのStage同行者", 'stage.castCharacterIds.map(characterName).join("＋")'],
+  // 作者指摘 2026-09-15 — 同行者の名前は**選んだ一枚ぶんだけ**（`stageCastStrip`）へ移した。
+  // 札は人数だけを出す。どちらも Stage 定義から引くことは変わらない（旧「5人・自由編成」へ戻さない）。
+  ["行き先の札のStage人数", 'stage.partySize + "人</span>"'],
+  ["連れていく隊の行", "stage.castCharacterIds.map((id) =>"],
+  // R12 §4.E-1 — 判定は profile だけを見る（`metCharacterIds` は run.roster を足すので、
+  // 選んだ区画の roster 経由で、これから加入する人物の id が漏れる）。そして
+  // `availableCharacterIds` は**次の区画の加入者を既に含む**ので、区画の踏破も併せて見る。
+  ["未加入の同行者を伏せる", "const known = new Set(availableCharacterIds(state.profile));"],
+  ["まだ越えていない区画の加入者を伏せる",
+    "const joiner = isCampaignStageCleared(state.profile, sequence) ? null : stage.joiningCharacterId;"],
+  ["伏せた同行者に名前も能力も出さない", 'if (!known.has(id) || id === joiner) {'],
 ]) {
   if (!app.includes(expected)) problems.push(label + "が見つからない");
 }
