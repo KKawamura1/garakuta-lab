@@ -230,8 +230,9 @@ try {
     await page.locator(".enemy-selection-detail .enemy-stat-grid > span").count() === 6
       && await page.locator(".enemy-selection-detail .enemy-skill-row").count() > 0
       && (await page.locator(".enemy-selection-detail .enemy-targeting").innerText()).trim().length > 0);
-  note("最終ボスの法則も全戦投影の中に出る",
-    /核の法則/.test(await page.locator(".encounter-projection").innerText()));
+  // 作者要望 2026-09-15 — 投影は盤面と4指標だけ。ボス法則の解説文は出さない。
+  note("ボス法則の解説文を投影へ戻していない",
+    !/の法則/.test(await page.locator(".encounter-projection").innerText()));
   await guildEncounterNodes.nth(0).click();
   note("行き先の選択が出ている", /行き先を選ぶ/.test(guildText));
   note("難易度rankの選択が残っていない", !/どの難易度で出るか/.test(guildText));
@@ -667,7 +668,10 @@ try {
       // R6 §11.2 / R14 §1 — 敵の重さと、次の一戦の結果は戦闘前に見えている。
       // **中身を見ずに ok と言わない。**
       const mapText = await bodyText();
-      note("戦闘前に threat と幕が出ている", /危険度 \d+ \/ \d+/.test(mapText) && /第1幕/.test(mapText));
+      // 作者要望 2026-09-15 — 幕・種別・危険度・最大ラウンドの銘と区画の説明文は落とした。
+      // 種別は節の記号が、進み具合は「01/12」が言う。
+      note("投影から幕・危険度の銘が消えている",
+        !/危険度 \d+ \/ \d+/.test(mapText) && !/第1幕/.test(mapText));
       // R14 §3 — 偵察は消えた。買って先を覗く枠はもう無い。
       note("偵察の枠が残っていない", !/偵察/.test(mapText));
       // R14 §1 — 戦闘予測は camp の上端に常設される（タブを変えても消えない）。
@@ -692,6 +696,19 @@ try {
           && await onScreen(".camp-top .forecaster-action.engage"));
       note("キャンプでも全12戦を選んで見られる",
         await page.locator('.encounter-archive [data-action="inspect-encounter"]').count() === 12);
+      // 作者要望 2026-09-15 — 上端の窓と全戦盤は同じ先見機。窓の作り（下地・角の括弧・
+      // 走査線・見出しの一行）を共有しているかを、実際の描画から読む。
+      note("全戦盤も上端と同じ先見機の窓で描かれる", await page.evaluate(() => {
+        const top = document.querySelector(".camp-top .forecaster-window");
+        const board = document.querySelector(".encounter-archive.forecaster-window");
+        if (!top || !board) return false;
+        const same = (node, pseudo) => getComputedStyle(node, pseudo);
+        return board.querySelector(".forecast-head .forecaster-lens") !== null
+          && board.querySelector(".forecaster-scan") !== null
+          && same(board).backgroundImage === same(top).backgroundImage
+          && same(board, "::before").borderTopWidth === same(top, "::before").borderTopWidth
+          && same(board).borderRadius === same(top).borderRadius;
+      }));
       await page.locator('.encounter-archive [data-action="inspect-encounter"][data-encounter="12"]').click();
       note("キャンプで未到達の最終戦まで投影できる",
         await page.locator(".encounter-archive").getAttribute("data-inspected-encounter") === "12"
@@ -702,6 +719,8 @@ try {
         (await page.locator(".encounter-projection.forecast").evaluate((node) =>
           getComputedStyle(node).animationName)).includes("future-projection"));
       await page.locator('.encounter-archive [data-action="inspect-encounter"][data-encounter="1"]').click();
+      note("敵盤面に側の名札を出さない",
+        await page.locator(".enemy-details .battle-side-label").count() === 0);
       note("敵情報はトグル無しで常に表示する",
         await page.locator(".enemy-details").count() === 1
           && await page.locator("details.enemy-details, .enemy-details > summary").count() === 0);

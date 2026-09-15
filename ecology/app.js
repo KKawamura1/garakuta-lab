@@ -1567,12 +1567,6 @@ function emphasize(value) {
   return esc(value).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
 }
 
-// 法則への手。**箇条書きの点ではなく、印のついた手札として並べる。**
-function counterChips(lines) {
-  return "<ul class=\"counter-chips\">" + lines.map((line) =>
-    "<li>" + glyph("check") + "<span>" + esc(line) + "</span></li>").join("") + "</ul>";
-}
-
 // その Stage で分かること。**読み物ではなく、持って入る覚え書きにする。**
 function learningNotes(lines) {
   return "<ul class=\"learning-notes\">" + lines.map((line) =>
@@ -4609,7 +4603,9 @@ function enemySkillRows(enemyActorId) {
       const info = componentInfo(entry.id);
       return "<div class=\"enemy-skill-row\"><span class=\"enemy-skill-kind\" title=\""
         + esc(entry.kindLabel) + "\">" + entry.kind + "</span><span><b>"
-        + esc(info?.label ?? entry.id) + "</b><small>" + esc(info?.effect ?? "") + "</small></span></div>";
+        // 敵側の技能（enemy_heavy / front_strike など）は COMPONENTS に居ないので、
+        // componentInfo だけを見ると内部 ID が画面へ出る。名前は componentLabel から引く。
+        + esc(componentLabel(entry.id)) + "</b><small>" + esc(info?.effect ?? "") + "</small></span></div>";
     }).join("")
     + "</div>";
 }
@@ -4703,17 +4699,24 @@ function encounterReport(index, encounter) {
     + "</div>";
 }
 
-function encounterConsole(mode, index) {
+// 作者要望 2026-09-15 — 上端の窓と同じ先見機が映しているのだから、**窓の作りを
+// 二つに分けない。**見出しは `.forecast-head`（丸い先見機の眼＋戦闘名／右に読み値）を
+// そのまま使い、読み値だけが「勝敗・ラウンド」ではなく「02/12」になる。
+// 「FUTURE SCOPE / LINK ACTIVE」の二段の銘は落とす——窓そのものが先見機の像で、
+// 何を見ているかは戦闘名が言う。
+function encounterConsole(mode, index, encounter) {
   const forecast = mode === "forecast";
-  return "<div class=\"encounter-console " + mode + "\" aria-label=\""
-    + (forecast ? "未来の戦闘を観測中" : "踏破済み戦闘の記録") + "\">"
-    + "<span class=\"encounter-console-mark\">" + glyph(forecast ? "eye" : "check") + "</span>"
-    + "<span class=\"encounter-console-copy\"><small>"
-    + (forecast ? "FUTURE SCOPE" : "BATTLE RECORD") + "</small><b>"
-    + (forecast ? "LINK ACTIVE" : "踏破済み") + "</b></span>"
+  const target = "第" + index + "戦" + (encounter?.name ? " · " + encounter.name : "");
+  return "<div class=\"forecast-head encounter-console " + mode + "\">"
+    + "<span class=\"forecaster-identity\">"
+    + (forecast
+      ? "<span class=\"forecaster-lens\" aria-hidden=\"true\"><i></i></span>"
+      : "<span class=\"encounter-console-mark\" aria-hidden=\"true\">" + glyph("check") + "</span>")
+    + "<span class=\"forecast-title\">" + esc(target) + "</span></span>"
+    + "<span class=\"forecast-readout\">"
     + (forecast ? "<span class=\"encounter-console-signal\" aria-hidden=\"true\"><i></i><i></i><i></i></span>" : "")
     + "<strong>" + String(index).padStart(2, "0") + "<small>/"
-    + ENCOUNTERS_PER_RUN + "</small></strong></div>";
+    + ENCOUNTERS_PER_RUN + "</small></strong></span></div>";
 }
 
 function encounterArchive({ currentIndex = null } = {}) {
@@ -4751,24 +4754,21 @@ function encounterArchive({ currentIndex = null } = {}) {
       + step + "</span>" + (meta.marker ? "<span class=\"map-kind-badge\" aria-hidden=\"true\">"
         + meta.marker + "</span>" : "") + "</button>";
   }).join("");
-  const kind = kindMeta[encounter.kind] ?? kindMeta.normal;
-  const law = encounter.bossLaw
-    ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
-      + esc(encounter.bossLaw.previewText) + "</p>" + counterChips([...encounter.bossLaw.counters]) + "</div>"
-    : "";
-  return "<section class=\"card encounter-archive mode-" + mode
-    + "\" data-inspected-encounter=\"" + selectedIndex + "\" data-inspection-mode=\"" + mode + "\">"
-    + encounterConsole(mode, selectedIndex)
+  // 作者要望 2026-09-15 — 投影の中から**文章を全部落とす。**
+  // 幕・種別・危険度・最大ラウンドの銘（種別は節の◆★が、進み具合は「NN/12」が既に言う）、
+  // 区画の一言、ボス法則の解説——どれも読ませる文で、見れば分かる情報の言い直しか、
+  // 盤面を見に来た手を止めるだけだった。残すのは4指標と敵の盤面。
+  const boardLabel = (mode === "forecast" ? "先見機による第" : "踏破済みの第")
+    + selectedIndex + "戦 · " + encounter.name + (mode === "forecast" ? " の投影" : " の記録");
+  return "<section class=\"card encounter-archive forecaster-window mode-" + mode
+    + "\" data-inspected-encounter=\"" + selectedIndex + "\" data-inspection-mode=\"" + mode
+    + "\" aria-label=\"" + esc(boardLabel) + "\">"
+    + (mode === "forecast" ? "<span class=\"forecaster-scan\" aria-hidden=\"true\"></span>" : "")
+    + encounterConsole(mode, selectedIndex, encounter)
     + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の敵を選ぶ\">"
     + rail + "</div>"
     + "<div class=\"encounter-projection " + mode + "\" role=\"region\" aria-live=\"polite\">"
-    + "<div class=\"encounter-projection-head\"><span class=\"projection-index\">"
-    + String(selectedIndex).padStart(2, "0") + "</span><span><b>" + esc(encounter.name)
-    + "</b><small>第" + encounter.act + "幕 · " + kind.label + " · 危険度 " + encounter.spentThreat
-    + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "R</small></span></div>"
     + encounterReport(selectedIndex, encounter)
-    + "<p class=\"lead-small\">" + esc(encounter.description) + "</p>"
-    + law
     + "<div class=\"enemy-details\">" + expeditionEnemyBoard(encounter) + "</div>"
     + "</div></section>";
 }
@@ -6261,6 +6261,9 @@ function positionRowsHtml(
     return "<div class=\"battle-row\"><span class=\"battle-row-label\">"
       + (row === "front" ? "前列" : "後列") + "</span><div class=\"battle-units\">" + cells + "</div></div>";
   }).join("");
+  // 戦闘 replay は味方と敵が同じ画面に並ぶので側の名札が要る。遠征の敵盤面
+  // （cellType === "enemy"）は敵しか出ないので、赤い「敵」は言い直しにしかならない。
+  if (cellType === "enemy") return rows;
   return "<span class=\"battle-side-label\">" + (side === "enemy" ? "敵" : "味方") + "</span>" + rows;
 }
 

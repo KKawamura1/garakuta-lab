@@ -165,7 +165,6 @@ const displayContracts = [
   ["戦闘の凡例", app, "function battleLegend()"],
   ["遠征の形の帯", app, "function expeditionShapeRail()"],
   ["content の強調を太字にする", app, "function emphasize(value)"],
-  ["法則への手の札", app, "function counterChips(lines)"],
   ["区画の覚え書き", app, "function learningNotes(lines)"],
   ["数のタイルのCSS", styles, ".stat-tile {"],
   ["規則の段のCSS", styles, ".rule-cell {"],
@@ -176,7 +175,6 @@ const displayContracts = [
   ["決着の印のCSS", styles, ".verdict-sigil {"],
   ["戦闘の凡例のCSS", styles, ".legend-bar .seg.recoverable"],
   ["遠征の形の帯のCSS", styles, ".act-node.kind-boss"],
-  ["法則への手の札のCSS", styles, ".counter-chips li"],
   ["active の CSS クラス", styles, ".kind-active"],
   ["reactive の CSS クラス", styles, ".kind-reactive"],
   ["passive の CSS クラス", styles, ".kind-passive"],
@@ -250,6 +248,10 @@ for (const [label, expected] of [
   ["戦闘ごとの4指標", "encounter-report"],
   ["戦闘結果の既知／未知", "data-report-known"],
   ["ゲーム内端末の表示", "encounter-console"],
+  // 作者要望 2026-09-15 — 上下の窓は同じ先見機。見出しの組みを共有しなくなったら、
+  // また「別の機械」に戻る。
+  ["全戦盤も先見機の窓として描く", "encounter-archive forecaster-window"],
+  ["全戦盤の見出しが上端の窓と同じ組み", 'forecast-head encounter-console'],
   ["敵の能力6軸", "enemy-stat-grid"],
   ["敵の使用技能", "enemy-skill-row"],
   ["敵の狙い方", "enemy-targeting"],
@@ -264,6 +266,16 @@ if (mapRenderer.includes('sectionHeading("FUTURE ARCHIVE", "全戦投影"')) {
 }
 if (mapRenderer.includes("progressive-details enemy-details")) {
   problems.push("常に見る敵盤面が折り畳みに戻っている");
+}
+// 作者要望 2026-09-15 — 投影は盤面と4指標だけにする。幕・種別・危険度・最大ラウンドの
+// 銘、区画の一言、ボス法則の解説は、どれも読ませる文だったので戻さない。
+for (const [label, forbidden] of [
+  ["幕と危険度の銘", "危険度 "],
+  ["最大ラウンドの銘", "最大\" + encounter.maxRounds"],
+  ["区画の説明文", "encounter.description"],
+  ["ボス法則の解説", "boss-law"],
+]) {
+  if (mapRenderer.includes(forbidden)) problems.push(label + "が投影へ戻っている");
 }
 for (const expected of [".encounter-console.forecast", ".encounter-projection.forecast", ".encounter-projection.record"]) {
   if (!styles.includes(expected)) problems.push("過去／未来の見た目を分けるCSSが無い: " + expected);
