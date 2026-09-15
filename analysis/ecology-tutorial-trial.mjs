@@ -314,6 +314,39 @@ try {
   note("巻き戻し直後は隊列チュートリアルが出る",
     await page.locator(".formation-tutorial").count() === 1
       && /隊列チュートリアル/.test(await bodyText()));
+  // 作者指摘 2026-09-15 — **貼りついた札の手前へ、何も来ない。**
+  // 全戦盤は上端と同じ窓になり、見出しが z-index を持った。窓の中で重なりを閉じないと、
+  // 札の下をくぐるはずの見出しが札の手前へ出る（札と同じ z-index 2 で、DOM 上は後）。
+  // 送り具合で重なり方が変わるので、**実際に重なった位置だけ**を見て、その点の
+  // 一番手前が札かを確かめる。
+  let overlapSeen = false;
+  let overlapOk = true;
+  for (const offset of [80, 120, 160, 200]) {
+    await page.evaluate((top) => window.scrollTo({ top, behavior: "auto" }), offset);
+    await page.waitForTimeout(150);
+    const seen = await page.evaluate(() => {
+      const card = document.querySelector(".camp-view > .tutorial-note-card.pinned");
+      const head = document.querySelector(".encounter-archive .encounter-console");
+      if (!card || !head) return null;
+      const cardBox = card.getBoundingClientRect();
+      const headBox = head.getBoundingClientRect();
+      if (headBox.bottom < cardBox.top || headBox.top > cardBox.bottom) return null;
+      return [0.2, 0.5, 0.8].every((ratio) => {
+        const element = document.elementFromPoint(
+          headBox.left + headBox.width * ratio,
+          Math.min(headBox.top + headBox.height / 2, cardBox.bottom - 2),
+        );
+        return Boolean(element) && (element === card || card.contains(element));
+      });
+    });
+    if (seen === null) continue;
+    overlapSeen = true;
+    if (!seen) overlapOk = false;
+  }
+  note("貼りついた手引きの札の手前へ全戦盤の見出しが出ない", overlapSeen && overlapOk,
+    overlapSeen ? "" : "重なる送り位置が見つからなかった");
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "auto" }));
+  await page.waitForTimeout(200);
   note("手順1は「⇅ 隊列」だけが光る",
     await spot().count() === 1
       && await spot().first().getAttribute("data-action") === "toggle-formation-mode");

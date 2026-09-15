@@ -346,13 +346,22 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 `composeEncounter(index, difficulty, encounterOptions())` を読み、選択中の一戦だけを
 `expeditionEnemyBoard()` で3×2盤へ展開します。敵詳細は同じ composed enemy の確定 stat と
 `PLAYABLE_CONTENT.enemyActors` の AP / RP・tactics・reactive / passive skill ID を合わせ、
-技能名と効果は `componentInfo()`、狙い方は tactics から導出済みの `enemyInfo()` を読みます。
+技能名は `componentLabel()`（敵側の `enemy_heavy` / `front_strike` は `COMPONENTS` に居ないため、
+`componentInfo()` だけでは内部 ID が出る）、効果は `componentInfo()`、狙い方は tactics から
+導出済みの `enemyInfo()` を読みます。
 画面用に敵能力・技能・狙いを複製しません。`inspectedEncounterIndex` と `selectedEnemyId` は
 ギルド／キャンプ間とタブ往復中だけ保つ UI state で、RunState と保存データには入りません。
 
+12戦盤そのものは上端の盤面と同じ `.forecaster-window`（下地・角の括弧・走査線・`.forecast-head`）
+を着ます。**同じ先見機の像なので、窓の作りを二つ持たない**——見出しは `encounterConsole()` が
+`.forecast-head` の並びで出し、左に照準レンズ（record は踏破の印）と「第N戦 · 名前」、
+右に「NN/12」を置きます。投影の面（`.encounter-projection`）は枠も下地も持たず、
+4指標（`encounterReport()`）と敵盤面だけを載せます。戦闘の銘（幕・種別・危険度・最大ラウンド）、
+区画の説明文、ボス法則の解説文は持ちません。
+
 キャンプでは、選んだ index が `run.encounterIndex` より前なら `record`、現在地以降なら
-`forecast` として描き分けます。走査線・青緑の端末枠・信号アニメーションは forecast だけに付き、
-record は通常のカードです。各戦の技能点と戦闘後HPは進行規則から、踏破済みのラウンド数と
+`forecast` として描き分けます。走査線・信号アニメーション・青緑の読み値は forecast だけに付き、
+record は走査を止めた緑の窓です。各戦の技能点と戦闘後HPは進行規則から、踏破済みのラウンド数と
 味方HP損失は保存済みの `run.results` から `encounterReport()` が読みます。未知の実績だけを
 「？」にするため、画面専用の戦歴 state は持ちません。敵盤面は常時表示し、閉じない
 `enemy-details` に置きます。
@@ -399,7 +408,7 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 | `verdictSigil(kind)` | 決着の印（勝ち・退き・敗け） | 敗北・精算・完走 |
 | `battleLegend()` | 盤面と同じ帯・色・点の凡例 | 戦闘画面の「表示の説明」 |
 | `expeditionShapeRail()` | 12戦の並び（幕・精鋭・ボスの位置） | 遠征の準備 |
-| `counterChips()` / `learningNotes()` | 法則への手／区画の覚え書き | 遠征の準備 |
+| `learningNotes()` | 区画の覚え書き | 遠征の準備 |
 | `emphasize(value)` | content の `**強調**` を太字にする | 区画の学び |
 
 規則:
