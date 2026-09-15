@@ -865,7 +865,9 @@ try {
         await page.locator("#app .tutorial-blocked").count() === 0
           && await mapTabDuringSkill.isEnabled()
           && /ゴウ/.test(await page.locator(".member-context").innerText()));
-      // チュートリアル中は節選択を閉じているので、錠が外れてから戦歴を開く。
+      // チュートリアル中は節選択を閉じているので、錠が外れてから遠征タブで戦歴を開く。
+      await mapTabDuringSkill.click();
+      await page.waitForTimeout(150);
       await completedEncounter.click();
       await page.waitForTimeout(200);
       const battleReport = page.locator(".encounter-projection.record .encounter-report.recorded");
@@ -876,6 +878,7 @@ try {
         battleReportText.replace(/\s+/g, " ").slice(0, 80));
       await page.locator(
         '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
+      await skillTab.click();
       await page.waitForTimeout(150);
       note("最後は光らせず、自分で選ばせる",
         await skillSpot().count() === 0
