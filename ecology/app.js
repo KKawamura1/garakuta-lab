@@ -1715,6 +1715,7 @@ let pendingFx = new Map();
 const readoutValues = new Map();
 let fxRunId = null;
 let lastRenderedTab = null;
+let lastRenderedGuildTab = null;
 let lastForecastSignature = null;
 
 function fx(key, kind) {
@@ -1818,7 +1819,7 @@ function forecastSignature() {
 // （タイトルの背景は position: fixed で、祖先を transform すると 1 拍ずれる）。
 const FX_SELF_ENTERING_PHASES = new Set(["intro", "story", "rewind"]);
 
-function applyRenderFeedback({ phaseChanged, tabChanged }) {
+function applyRenderFeedback({ phaseChanged, tabChanged, guildTabChanged }) {
   const signature = forecastSignature();
   if (signature !== null && lastForecastSignature !== null && signature !== lastForecastSignature) {
     app.querySelector(".forecaster-window")?.classList.add("fx-recalc");
@@ -1827,6 +1828,12 @@ function applyRenderFeedback({ phaseChanged, tabChanged }) {
   if (state.phase === "camp") {
     if (phaseChanged) app.querySelector(".camp-top")?.classList.add("fx-board-enter");
     if (phaseChanged || tabChanged) app.querySelector(".camp-view")?.classList.add("fx-view-enter");
+  } else if (state.phase === "expeditionStart") {
+    // 作者指摘 2026-09-15 —「アニメーションが全然ない」。ギルドはキャンプと同じ作りで、
+    // **貼りついた上端は動かさず、札の中身だけが立ち上がる**（`.guild-view` の段は
+    // styles.css が一枚ずつ遅らせる）。札を押しただけの回にも返事が出る。
+    if (phaseChanged) app.querySelector(".guild-top")?.classList.add("fx-board-enter");
+    if (phaseChanged || guildTabChanged) app.querySelector(".guild-view")?.classList.add("fx-view-enter");
   } else if (phaseChanged && !FX_SELF_ENTERING_PHASES.has(state.phase)) {
     app.querySelector(".shell")?.classList.add("fx-view-enter");
   }
@@ -1858,8 +1865,10 @@ function render() {
   };
   const phaseChanged = state.phase !== lastRenderedPhase;
   const tabChanged = state.phase === "camp" && state.tab !== lastRenderedTab;
+  const guildTabChanged = state.phase === "expeditionStart" && state.guildTab !== lastRenderedGuildTab;
   lastRenderedPhase = state.phase;
   lastRenderedTab = state.phase === "camp" ? state.tab : null;
+  lastRenderedGuildTab = state.phase === "expeditionStart" ? state.guildTab : null;
   resetFxMemoryIfRunChanged();
   app.innerHTML = (views[state.phase] ?? renderIntro)();
   app.querySelectorAll("[data-action]").forEach((element) => {
@@ -1884,7 +1893,7 @@ function render() {
   if (state.phase === "rewind") mountRewindView();
   // issue #237 — 反応は**測り終えて貼り終えたあと**に載せる。先に載せると、
   // publishCampTopHeight() が立ち上がり途中の高さを測ってしまう。
-  applyRenderFeedback({ phaseChanged, tabChanged });
+  applyRenderFeedback({ phaseChanged, tabChanged, guildTabChanged });
   if (phaseChanged) window.scrollTo(0, 0);
 }
 
@@ -2144,73 +2153,158 @@ function campaignStageCard(sequence) {
   const newPack = PACK_BY_ID[stage.newPackId];
   // R9 §2.1 / §8 — Stage は「難易度」ではなく「人数と問いが違う場面」。
   // **誰が加わるのかと、この Stage で問われることを先に見せる。**
+  //
+  // 作者指摘 2026-09-15 —「同じことが何度も書いてある」。旧版の札は同行者を名前で
+  // 並べていたので、第2章の6枚は**同じ一行を6回**繰り返していた（全員が揃ったあとは
+  // castCharacterIds が動かない）。名前は選んだ一枚ぶんだけ、下の「今回の遠征」が出す。
+  // 札が持つのは、**札どうしで違う三つの数**だけにする——人数・初登場・語彙の数。
   const cleared = isCampaignStageCleared(state.profile, sequence);
-  // R12 — **まだクリアしていない Stage の加入者は、名前を出さない。**
-  // 誰が来るかは join の会話が渡すものなので、選択カードで先に割らない。
-  const joining = stage.joiningCharacterId
-    ? (cleared ? characterName(stage.joiningCharacterId) + " が加わる" : "新しい仲間が加わる")
-    : "最初の二人";
   return "<button type=\"button\" class=\"difficulty-card " + (selected ? "selected" : "")
-    + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-campaign-stage\" data-sequence=\"" + sequence
-    + "\"><b>" + esc(stage.displayName) + "</b><small>" + esc(stage.question) + "</small>"
+    + (cleared ? " cleared" : "")
+    + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\" data-action=\"select-campaign-stage\""
+    + " data-sequence=\"" + sequence + "\" data-fx=\"stage:" + sequence + "\">"
+    + "<b>" + esc(stage.displayName)
+    + (cleared ? "<i class=\"stage-clear-mark\" title=\"踏破済み\">" + glyph("check") + "</i>" : "")
+    + "</b><small>" + esc(stage.question) + "</small>"
     + "<span class=\"difficulty-meta\">"
-    + (cleared
-      ? stage.partySize + "人・" + esc(stage.castCharacterIds.map(characterName).join("＋")) + "で再訪"
-      : stage.partySize + "人 · " + esc(joining))
-    + " · 今回初登場 " + esc(newPack?.displayName ?? stage.newPackId)
-    + " · 有効パック " + stage.activePackCount + "</span></button>";
+    + "<span>" + glyph("person") + stage.partySize + "人</span>"
+    // 新しい pack を足さない区画（Stage 6 は既出の6つで組む）では、この粒ごと出さない。
+    // **空の記号を置かない**——中身の無い印は、何かを言い落としたように見える。
+    + (newPack || stage.newPackId
+      ? "<span>" + glyph("spark") + esc(newPack?.displayName ?? stage.newPackId) + "</span>"
+      : "")
+    + "<span>" + glyph("gear") + stage.activePackCount + "</span>"
+    + "</span></button>";
 }
 
-function renderExpeditionStart() {
+// 選んだ区画へ誰と入るか。**名前は画面に一度だけ出す。**
+// R12 §4.E-1 — まだ越えていない区画の同行者は名前を出さない（加入は会話が渡すもの）。
+function stageCastStrip(sequence) {
+  const stage = CAMPAIGN_STAGES[sequence];
+  if (!stage) return "";
+  const chips = isCampaignStageCleared(state.profile, sequence)
+    ? stage.castCharacterIds.map((id) => "<span class=\"cast-chip\" style=\"--accent:"
+      + esc(portraitAccent(id)) + "\"><i>" + esc(characterInfo(id)?.icon ?? "") + "</i>"
+      + esc(characterName(id)) + "</span>").join("")
+    : "<span class=\"cast-chip unknown\">" + glyph("person") + stage.partySize + "人で入る</span>"
+      + (stage.joiningCharacterId
+        ? "<span class=\"cast-chip unknown\">" + glyph("spark") + "新しい仲間が加わる</span>"
+        : "");
+  return "<div class=\"plan-stage\"><b>" + esc(stage.displayName) + "</b></div>"
+    + "<div class=\"cast-strip\">" + chips + "</div>";
+}
+
+// ---------------------------------------------------------------- ギルドの札（作者指摘 2026-09-15）
+//
+// **札の数は、どれも「その中にいくつあるか」で揃える。**旧版は遠征＝戦数、投資＝活動資金、
+// 設計図＝件数と持込枠、根城＝人数、図鑑＝体数で、単位も意味もばらばらだった。しかも
+// 活動資金と持込枠は、開いた先の見出しが同じ数をもう一度出していた。
+//
+// **活動資金は札ではなく帯そのものが持つ。**どの札を開いていても同じ場所で読め、
+// 買った瞬間に減るのが貼りついた上端で見える（`data-fx-watch="funds"`）。
+const GUILD_TAB_IDS = Object.freeze(["expedition", "guild", "blueprints", "homestead", "codex"]);
+
+function guildTabItems() {
+  const archive = state.profile.blueprints ?? {};
+  const remaining = META_UPGRADES
+    .filter((upgrade) => upgradeCost(state.profile, upgrade.id) !== null).length;
+  return [
+    ["expedition", "遠征", ENCOUNTERS_PER_RUN + "戦"],
+    ["guild", "投資", "残り" + remaining],
+    ["blueprints", "設計図", (archive.entries?.length ?? 0) + "件"],
+    ["homestead", "根城", metCharacterIds().size + "人"],
+    ["codex", "図鑑", bestiaryEntries().length + "体"],
+  ];
+}
+
+// 貼りつく上端。**キャンプの `.camp-top` と同じ作り**で、活動資金と札を一つの塊にする。
+function guildTop() {
+  const tabs = "<nav class=\"tabs\" style=\"--tab-count:" + GUILD_TAB_IDS.length + "\""
+    + " aria-label=\"ギルド画面\">"
+    + guildTabItems().map(([id, label, meta]) => "<button type=\"button\" class=\"tab "
+      + (state.guildTab === id ? "active" : "")
+      + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
+      + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\" data-fx=\"guild-tab:" + id + "\">"
+      + "<b>" + esc(label) + "</b>"
+      + "<small data-fx-watch=\"guild-tab-meta:" + id + "\">" + esc(meta) + "</small></button>").join("")
+    + "</nav>";
+  return "<div class=\"guild-top\">"
+    + "<div class=\"guild-funds\">" + glyph("funds", "guild-funds-mark")
+    + "<b data-fx-watch=\"funds\">" + formatFunds(funds()) + "</b>"
+    + "<small>活動資金</small></div>"
+    + tabs + "</div>";
+}
+
+// ギルドの仲間選び。**投資（鍛える相手）と名簿（読む相手）は同じ一人を指す。**
+// 同じ人を選ぶ帯を二つ置くと、どちらが「いま見ている人」なのかが画面から読めなくなる
+// （issue #236 でキャンプ側が通った道と同じ）。
+function guildMemberStrip(characterId, label) {
+  return "<div class=\"member-tabs\" aria-label=\"" + esc(label) + "\">"
+    + metCharacterOptions().map((option) => "<button type=\"button\" class=\"member-tab "
+      + (option.id === characterId ? "active" : "")
+      + "\" aria-pressed=\"" + (option.id === characterId ? "true" : "false")
+      + "\" data-action=\"select-guild-character\" data-character=\"" + option.id + "\""
+      + " data-fx=\"guild-member:" + option.id + "\""
+      + " style=\"--accent:" + esc(portraitAccent(option.id)) + "\">"
+      // **帯は名前だけ。**役どころは名簿の見出し（役 · 年 · 出）が、その人の色は
+      // 縁の一本が出している。図像の札まで並べると、5人目（ゲンゾウ）が iPhone 幅で
+      // はみ出す——はみ出た一人は、無いのと同じである。
+      + characterName(option.id) + "</button>").join("")
+    + "</div>";
+}
+
+// 遠征タブ。**順番は「どこへ行くか → 何を連れて何と戦うか → 出る」。**
+// 旧版は「今回の遠征」が先で、行き先の選択が全12戦の投影の下にあった。選ぶ前の説明を
+// 先に読ませる並びだったので、行き先を変えるたびに画面を上下させることになっていた。
+function renderExpeditionPlan() {
   const manifest = state.run.manifest;
+  const sequence = state.selectedCampaignStageSequence;
+  const stage = CAMPAIGN_STAGES[sequence];
   const campaignStages = availableCampaignStages(state.profile);
   const packs = SKILL_PACKS.filter((pack) => manifest.enabledPackIds.includes(pack.id))
     .map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
       + "</b><small>" + esc(pack.summary) + "</small><span>"
       + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
+  const goals = stage?.learningGoals?.length ? [...stage.learningGoals] : [];
+  // 作者要望 2026-09-15 — 読み物は畳む。**押す前に読ませるものは、札そのものが出す三つだけ。**
+  // 記号の意味と「この区画で分かること」は、開きたい人が開く一枚へまとめる。
+  const destination = "<section class=\"card\">" + sectionHeading("", "行き先を選ぶ")
+    + segmentMeter(campaignStages.length, MAX_CAMPAIGN_STAGE_SEQUENCE + 1,
+      { label: "解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) })
+    + "<div class=\"difficulty-grid\">" + campaignStages.map(campaignStageCard).join("") + "</div>"
+    + helpDetails("stage-brief", "札の読み方と、この区画で分かること",
+      ruleGrid([
+        { glyph: "person", title: "人数", value: "区画が決める", line: "同行者は Stage の定義そのもの。選んで増やせません。" },
+        { glyph: "spark", title: "今回初登場", value: "技能パック", line: "その区画で初めて引けるようになる語彙。" },
+        { glyph: "gear", title: "有効パック", value: "引ける語彙の数", line: "過去の区画のパックも積み上がります。" },
+        { glyph: "lock", title: "順に解禁", value: "飛ばせない", line: "前の区画をクリアすると、次の一つが開く。", tone: "bad" },
+      ])
+      + (goals.length ? learningNotes(goals) : ""))
+    + "</section>";
+  // 作者要望 2026-09-13 — 遠征の形は**文ではなく並び**で出す（REGION.summary の
+  // 「3幕12戦。4・8・12戦目にボスが立つ」は、この帯そのものである）。
+  const plan = "<section class=\"card\">" + sectionHeading("", "今回の遠征")
+    + stageCastStrip(sequence)
+    + expeditionShapeRail()
+    + "<h3 class=\"training-heading\">有効な技能パック</h3>"
+    + "<div class=\"pack-list\">" + packs + "</div></section>";
+  return destination + plan + encounterArchive({ currentIndex: null })
+    + "<section class=\"card launch-card\">"
+    + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
+}
+
+function renderExpeditionStart() {
   const note = state.migrationNote
     ? "<section class=\"card quiet\"><p class=\"muted\">" + esc(state.migrationNote) + "</p></section>"
     : "";
-  const tabs = "<nav class=\"tabs\" aria-label=\"ギルド画面\">"
-    + [
-      ["expedition", "遠征", ENCOUNTERS_PER_RUN + "戦"],
-      ["guild", "ギルド投資", formatFunds(funds())],
-      ["blueprints", "設計図", (state.profile.blueprints?.entries?.length ?? 0)
-        + "件 · 持込 " + (state.profile.blueprints?.carrySelection?.length ?? 0)
-        + "/" + blueprintCarryCapacity(state.profile)],
-      ["homestead", "根城", metCharacterIds().size + "人"],
-      ["codex", "図鑑", bestiaryEntries().length + "体"],
-    ]
-      .map(([id, label, meta]) => "<button type=\"button\" class=\"tab " + (state.guildTab === id ? "active" : "")
-        + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
-        + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\"><b>" + label + "</b><small>" + esc(meta) + "</small></button>").join("")
-    + "</nav>";
-  const campaignSection = "<section class=\"card\">" + sectionHeading(
-      "CAMPAIGN STAGE", "行き先を選ぶ",
-      "<span class=\"stage\">解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) + "</span>")
-    + segmentMeter(campaignStages.length, MAX_CAMPAIGN_STAGE_SEQUENCE + 1, { label: "解禁" })
-    + ruleGrid([{ glyph: "lock", title: "順に解禁", value: "飛ばせない", line: "前の区画をクリアすると、次の一つが開く。" }])
-    + "<div class=\"difficulty-grid\">" + campaignStages.map(campaignStageCard).join("") + "</div>"
-    + (CAMPAIGN_STAGES[state.selectedCampaignStageSequence]?.learningGoals?.length
-      ? "<h3 class=\"training-heading\">この区画で分かること</h3>"
-        + learningNotes([...CAMPAIGN_STAGES[state.selectedCampaignStageSequence].learningGoals])
-      : "");
-  // 作者要望 2026-09-13 — 遠征の形は**文ではなく並び**で出す（REGION.summary の
-  // 「3幕12戦。4・8・12戦目にボスが立つ」は、この帯そのものである）。
-  const expeditionBody = "<section class=\"card\">" + sectionHeading(
-      "EXPEDITION", "今回の遠征", "<span class=\"stage\">" + glyph("funds") + formatFunds(funds()) + "</span>")
-    + expeditionShapeRail()
-    + "<h3 class=\"training-heading\">有効な技能パック</h3>"
-    + "<div class=\"pack-list\">" + packs + "</div></section>"
-    + encounterArchive({ currentIndex: null })
-    + campaignSection
-    + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
   const body = { guild: renderGuild, blueprints: renderBlueprints, homestead: homesteadBody, codex: renderBestiary }[state.guildTab]?.()
-    ?? expeditionBody;
+    ?? renderExpeditionPlan();
   const guildActions = "<section class=\"card quiet guild-actions\">"
     + button("タイトルへ", "back-title", false, "button quiet")
     + "</section>";
-  return shell(tabs + note + body + guildActions);
+  // issue #237 — 札の中身は `.guild-view` にまとめる。**立ち上がりを掛けるのはここだけ**で、
+  // 貼りついた上端（.guild-top）は動かさない（帯が毎回跳ねると押し先が動く）。
+  return shell(guildTop() + "<div class=\"guild-view\">" + note + body + guildActions + "</div>");
 }
 
 // ---------------------------------------------------------------- ギルド投資（R6 §9.3）
@@ -2310,12 +2404,6 @@ function renderGuild() {
         : button("鍛える", "train", funds() < parseFunds(detail.cost), "tiny-button primary-mini",
           "data-character=\"" + characterId + "\" data-axis=\"" + axis + "\"")) + "</span></div>";
   }).join("");
-  const metOptions = metCharacterOptions();
-  const memberTabsHtml = "<div class=\"member-tabs\" aria-label=\"仲間を選ぶ\">"
-    + metOptions.map((option) => "<button type=\"button\" class=\"member-tab "
-      + (option.id === characterId ? "active" : "") + "\" data-action=\"select-guild-character\" data-character=\""
-      + option.id + "\"><span class=\"avatar small\">" + esc(option.icon) + "</span><span>"
-      + characterName(option.id) + "<small>" + esc(option.role) + "</small></span></button>").join("") + "</div>";
   // **鍛錬の数は、式ではなく定数から引く。**画面へ写した数（旧「一段6%・上限72%」）は、
   // R23 で段の効きを変えた日に置き去りになった。ここでは TRAINING_STEP_BPS と
   // 段数そのものから出す。
@@ -2324,10 +2412,11 @@ function renderGuild() {
   const capPercent = ((TRAINING_STEP_BPS * trainMaxLevel) / 100).toFixed(0);
   const spent = Object.values(stats.detail).reduce((total, detail) => total + detail.level, 0);
   const spentMax = Object.values(stats.detail).length * trainMaxLevel;
-  return "<section class=\"card\">" + sectionHeading("ACTIVITY FUNDS", "資金を使う",
-      "<span class=\"stage\" data-fx-watch=\"funds\">" + glyph("funds") + formatFunds(funds()) + "</span>")
-    + ruleGrid([{ glyph: "lock", title: "購入は取り消せません", line: "買ったあとの値と価格を、先に確かめる。", tone: "bad" }],
-      "warn-grid")
+  // 作者指摘 2026-09-15 — 活動資金は貼りついた上端（`guildTop`）が持つ。ここで出すと、
+  // 同じ数が一画面に二度並ぶ。取り消せないことは**赤い一行**で足りる（旧版は段落つきの
+  // 赤い札を、この画面へ入るたび毎回開いていた）。
+  return "<section class=\"card\">" + sectionHeading("", "資金を使う")
+    + "<p class=\"guild-caution\">" + glyph("lock") + "購入は取り消せません</p>"
     + "<div class=\"purchase-list\">" + upgrades + "</div>"
     + helpDetails("guild-rules", "投資のルール",
       ruleGrid([
@@ -2337,13 +2426,12 @@ function renderGuild() {
         { glyph: "lock", title: "全部は積めない", value: "毎回選ぶ", line: "第一部を通して入る資金では、鍛錬は埋まらない。", tone: "bad" },
       ]))
     + "</section>"
-    + "<section class=\"card\">" + sectionHeading("CHARACTER TRAINING", "仲間を鍛える",
-      "<span class=\"stage\">" + metOptions.length + "人</span>")
-    + memberTabsHtml
-    + statTiles([
-      { value: characterName(characterId), label: "鍛える相手", glyph: "person", tone: "quiet" },
-      { value: spent + " / " + spentMax, label: "積んだ段", glyph: "might", tone: "gold" },
-    ], "train-summary", 2)
+    // **選んでいる相手は帯そのものが言う。**旧版は帯のすぐ下に「鍛える相手 ゴウ」という
+    // 札を置いていたが、光っている帯の一つ隣で同じ名を言い直しているだけだった。
+    // 残したのは帯が言えない数——隊全体でいま何段積んであるか——だけである。
+    + "<section class=\"card\">" + sectionHeading("", "仲間を鍛える",
+      "<span class=\"stage\">積んだ段 " + spent + " / " + spentMax + "</span>")
+    + guildMemberStrip(characterId, "鍛える仲間を選ぶ")
     + "<div class=\"purchase-list\">" + trainingRows + "</div>"
     + helpDetails("training-rules", "鍛錬のルール",
       ruleGrid([
@@ -2416,19 +2504,23 @@ function dossierCard(characterId, met) {
     + "<div class=\"dossier-body\">" + sections + bondRows + sealedNote + "</div></article>";
 }
 
+// 作者指摘 2026-09-15 —「テキストが多すぎる」。旧版はここで**会った全員の欄を同時に
+// 開いていた**ので、根城のタブは実測 7,900px（iPhone の画面 12 枚ぶん）になり、
+// 誰の話を読んでいるのかも分からなくなっていた。**一度に読むのは一人。**
+// 選ぶ相手は投資タブの鍛錬と同じ一人で、帯も同じものを使う（選択を二つ持たない）。
 function renderDossiers() {
   const met = metCharacterIds();
-  const cards = CHARACTER_OPTIONS.map((option) => dossierCard(option.id, met)).filter(Boolean).join("");
-  return "<section class=\"card\">" + sectionHeading("ROSTER FILE", "隊の名簿",
-      "<span class=\"stage\">" + met.size + " 人</span>")
-    + ruleGrid([{
-      glyph: "book",
-      title: "詰所へ出す申請の控え",
-      value: "灰へ入るほど増える",
-      line: "何度も一緒に入るほど、書ける欄が増えます。戦闘の役には影響しません。",
-      tone: "quiet",
-    }])
-    + (cards || "<p class=\"muted\">まだ誰の欄も書けていません。</p>")
+  const options = metCharacterOptions();
+  if (!options.length) {
+    return "<section class=\"card\">" + sectionHeading("", "隊の名簿")
+      + "<p class=\"muted\">まだ誰の欄も書けていません。</p></section>";
+  }
+  const characterId = guildCharacter();
+  return "<section class=\"card\">" + sectionHeading("", "隊の名簿")
+    + "<p class=\"tab-note\">" + glyph("book")
+    + "詰所へ出す申請の控え。何度も一緒に灰へ入るほど、書ける欄が増えます。</p>"
+    + guildMemberStrip(characterId, "名簿を読む仲間を選ぶ")
+    + (dossierCard(characterId, met) || "<p class=\"muted\">まだこの人の欄は書けていません。</p>")
     + "</section>";
 }
 
@@ -2472,8 +2564,10 @@ function fixtureCards() {
 function homesteadSceneList() {
   const seen = seenHomesteadScenes(seenHomesteadIds(state.profile.storyFlags));
   if (!seen.length) return "";
-  return "<section class=\"card\">" + sectionHeading("EVENINGS / " + seen.length, "根城での場面")
-    + ruleGrid([{ glyph: "book", title: "読み返せます", value: "一度見た場面", line: "既読の印は消えません。", tone: "quiet" }])
+  // **一度見た場面は読み返せる。**それは並んでいる釦そのものが言うので、
+  // 「読み返せます」という一段を上に置き直さない。
+  return "<section class=\"card\">" + sectionHeading("", "根城での場面",
+      "<span class=\"stage\">" + seen.length + " 夜</span>")
     + "<div class=\"scene-list\">" + seen.map((entry) => "<button type=\"button\" class=\"scene-row\""
       + " data-action=\"replay-homestead\" data-scene=\"" + esc(entry.id) + "\"><b>"
       + esc(entry.beat.title) + "</b><small>" + esc(entry.beat.place) + "</small></button>").join("")
@@ -2483,15 +2577,11 @@ function homesteadSceneList() {
 function homesteadBody() {
   const open = revealedFixtures(homesteadContext()).length;
   const pending = pendingHomesteadScene();
-  return "<section class=\"card\">" + sectionHeading("HOMESTEAD / " + open, "根城",
-      "<span class=\"stage\">" + metCharacterIds().size + " 人</span>")
-    + ruleGrid([{
-      glyph: "home",
-      title: "灰の縁から外れた廃屋",
-      value: "拾ってきたもので増える",
-      line: "戦闘には影響しません。",
-      tone: "quiet",
-    }])
+  // 人数は札が出している。ここが持てる数は**家にいくつあるか**のほうである。
+  return "<section class=\"card\">" + sectionHeading("", "根城",
+      "<span class=\"stage\">" + open + " 箇所</span>")
+    + "<p class=\"tab-note\">" + glyph("home")
+    + "灰の縁から外れた廃屋。拾ってきたもので増える。戦闘には影響しません。</p>"
     + fixtureCards()
     + (pending
       ? "<div class=\"flow-actions\">" + button("今夜の場面を見る", "enter-homestead-scene", false, "button primary")
@@ -2556,15 +2646,10 @@ function bestiaryCard(entry) {
 function renderBestiary() {
   const entries = bestiaryEntries();
   const deep = entries.filter((entry) => entry.defeated >= CODEX_DEEP_THRESHOLD).length;
-  return "<section class=\"card\">" + sectionHeading("FIELD CODEX / " + entries.length, "会った灰殻の記録",
+  return "<section class=\"card\">" + sectionHeading("", "会った灰殻の記録",
       "<span class=\"stage\">書き足せた " + deep + "</span>")
-    + ruleGrid([{
-      glyph: "eye",
-      title: "詰所へ出す控えの写し",
-      value: "遠征を捨てても消えない",
-      line: "会ったことは、負けても取り消されません。灰殻が何なのかは、ここにも書いてありません。",
-      tone: "quiet",
-    }])
+    + "<p class=\"tab-note\">" + glyph("eye")
+    + "詰所へ出す控えの写し。会ったことは、負けても取り消されません。</p>"
     + (entries.length
       ? "<div class=\"codex-grid\">" + entries.map(bestiaryCard).join("") + "</div>"
       : "<p class=\"muted\">まだ一体も記録がありません。灰へ入ると増えます。</p>")
@@ -2608,12 +2693,15 @@ function renderBlueprints() {
     favorite: filter.favorite || undefined,
   });
 
+  // 絞り込みは**横一列の粒**にする。旧版は 8 個の釦が 2 列 5 段へ折り返して、
+  // 設計図を 1 件も持っていない回でも画面の半分を占めていた。
   const rarityFilters = [["", "すべて"], ...[...RARITIES].reverse().map((rarity) => [rarity, RARITY_LABEL[rarity] ?? rarity])]
     .map(([value, label]) => "<button type=\"button\" class=\"tiny-button "
       + ((filter.rarity ?? "") === value ? "primary-mini" : "") + "\" data-action=\"blueprint-filter\" data-rarity=\""
-      + value + "\">" + esc(label) + "</button>").join("")
+      + value + "\" data-fx=\"blueprint-filter:" + esc(value || "all") + "\">" + esc(label) + "</button>").join("")
     + "<button type=\"button\" class=\"tiny-button " + (filter.favorite ? "primary-mini" : "")
-    + "\" data-action=\"blueprint-filter\" data-favorite=\"toggle\">★ お気に入りだけ</button>";
+    + "\" data-action=\"blueprint-filter\" data-favorite=\"toggle\""
+    + " data-fx=\"blueprint-filter:favorite\">★ お気に入り</button>";
 
   const cards = entries.map((entry) => {
     const verdict = blueprintCompatibility(entry);
@@ -2642,11 +2730,13 @@ function renderBlueprints() {
       + "</article>";
   }).join("");
 
-  return "<section class=\"card\">" + sectionHeading("BLUEPRINT ARCHIVE", "残した品の設計図",
+  // 持っている件数は札が出している。ここが持つのは**今回どれを持ち込むか**である。
+  // 規則は畳む——設計図が 1 件も無い回に、4 段の規則だけが並ぶ画面になっていた。
+  return "<section class=\"card\">" + sectionHeading("", "残した品の設計図",
       "<span class=\"stage\">持込 " + carried.length + " / " + capacity + "</span>")
     // **残せる数は定数から引く。**ここへ書き写した件数は、PR #255 で上限を
     // 変えた日に置き去りになり、実際の上限（勝利1・撤退0・敗北0）と食い違っていた。
-    + ruleGrid([
+    + helpDetails("blueprint-rules", "設計図のルール", ruleGrid([
       { glyph: "blueprint", title: "所持上限", value: "なし", line: "設計図そのものは何件でも残ります。", tone: "good" },
       { glyph: "supply", title: "持込枠", value: capacity + " 件", line: "遠征開始時に持ち込める数。ギルドで伸ばせます。" },
       {
@@ -2657,8 +2747,8 @@ function renderBlueprints() {
         line: "遠征の終わり方で決まります。",
       },
       { glyph: "gear", title: "持込品", value: "系統の外でも動く", line: "その遠征で選ばれた技能パックに関わらず、そのまま動きます。" },
-    ])
-    + "<div class=\"flow-actions\">" + rarityFilters + "</div>"
+    ]))
+    + ((archive.entries ?? []).length ? "<div class=\"filter-chips\">" + rarityFilters + "</div>" : "")
     + (entries.length
       ? "<div class=\"reward-grid\">" + cards + "</div>"
       : "<p class=\"muted\">まだ設計図がありません。遠征で装備を拾い、遠征を終えると残ります。</p>")
@@ -8364,6 +8454,7 @@ function handleAction(event) {
     });
     state.inspectedEncounterIndex = 1;
     state.selectedEnemyId = null;
+    fx("stage:" + sequence, "select");
     saveState();
     render();
     return;
@@ -8412,9 +8503,8 @@ function handleAction(event) {
   }
 
   if (action === "guild-tab") {
-    state.guildTab = ["guild", "blueprints", "homestead", "codex"].includes(element.dataset.tab)
-      ? element.dataset.tab
-      : "expedition";
+    state.guildTab = GUILD_TAB_IDS.includes(element.dataset.tab) ? element.dataset.tab : "expedition";
+    fx("guild-tab:" + state.guildTab, "pick");
     saveState();
     render();
     return;
@@ -8424,6 +8514,7 @@ function handleAction(event) {
     const id = element.dataset.character;
     if (!metCharacterOptions().some((option) => option.id === id)) return;
     state.guildCharacter = id;
+    fx("guild-member:" + id, "select");
     saveState();
     render();
     return;
@@ -9245,6 +9336,7 @@ function handleAction(event) {
     if (element.dataset.favorite === "toggle") filter.favorite = !filter.favorite;
     else filter.rarity = element.dataset.rarity || null;
     state.blueprintFilter = filter;
+    if (element.dataset.fx) fx(element.dataset.fx, "mode");
     render();
     return;
   }

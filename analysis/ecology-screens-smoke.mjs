@@ -120,7 +120,11 @@ const displayContracts = [
   ["数の変化は読み値の側で見つける", app, "function pulseChangedReadouts()"],
   ["遠征が替わったら数の記憶を捨てる", app, "function resetFxMemoryIfRunChanged()"],
   ["予測は窓の文字でなく数そのもので見張る", app, "function forecastSignature()"],
-  ["反応を載せるのは描画の最後だけ", app, "applyRenderFeedback({ phaseChanged, tabChanged });"],
+  ["反応を載せるのは描画の最後だけ", app, "applyRenderFeedback({ phaseChanged, tabChanged, guildTabChanged });"],
+  // 作者指摘 2026-09-15 —「アニメーションが全然ない」。ギルドもキャンプと同じ作りで、
+  // 貼りついた上端は動かさず、札の中身だけが立ち上がる。片方でも欠ければ画面は静かに戻る。
+  ["ギルドの札を移った反応", app, 'app.querySelector(".guild-view")?.classList.add("fx-view-enter")'],
+  ["ギルドの札が一枚ずつ着地する", styles, "@keyframes guild-card-enter"],
   ["反応の時間はCSSの一箇所が持つ", styles, "  --fx-accent: "],
   ["押した指への返事", styles, ".button:active:not(:disabled)"],
   ["画面と段の立ち上がり", styles, "@keyframes fx-view-enter"],
@@ -441,8 +445,11 @@ for (const [label, forbidden] of [
 // 人数・同行者を保つ。旧「5人・自由編成」の表示とproduction経路を戻さない。
 for (const [label, expected] of [
   ["最新の解禁Stageを初期選択", "const campaignStage = campaignStages[campaignStages.length - 1];"],
-  ["再訪カードのStage人数", 'stage.partySize + "人・"'],
-  ["再訪カードのStage同行者", 'stage.castCharacterIds.map(characterName).join("＋")'],
+  // 作者指摘 2026-09-15 — 同行者の名前は**選んだ一枚ぶんだけ**（`stageCastStrip`）へ移した。
+  // 札は人数だけを出す。どちらも Stage 定義から引くことは変わらない（旧「5人・自由編成」へ戻さない）。
+  ["行き先の札のStage人数", 'stage.partySize + "人</span>"'],
+  ["選んだ区画の同行者", "stage.castCharacterIds.map((id) =>"],
+  ["同行者を出すのは踏破済みの区画だけ", "isCampaignStageCleared(state.profile, sequence)\n    ? stage.castCharacterIds"],
 ]) {
   if (!app.includes(expected)) problems.push(label + "が見つからない");
 }

@@ -926,8 +926,10 @@ button.party-cell { cursor: pointer; }
   top: 0;
   z-index: 2;
   display: grid;
-  /* issue #235 — 編成タブを廃止して4枚。 */
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* issue #235 — キャンプは編成タブを廃止して4枚。ギルドは5枚あるので、枚数は
+     `--tab-count` で渡す。**折り返させない**——作者指摘 2026-09-15 の「タブが
+     整理されていない」は、5枚目（図鑑）だけが二段目にぶら下がっていた形のことである。 */
+  grid-template-columns: repeat(var(--tab-count, 4), minmax(0, 1fr));
   gap: 4px;
   margin: 0 -2px 12px;
   padding: 4px;
@@ -1076,19 +1078,31 @@ button.party-cell { cursor: pointer; }
   overflow-x: auto;
   padding-bottom: 2px;
 }
+/* ギルドの仲間の帯。**5人が横へ流れずに一段へ収まる**ようにする（iPhone 幅では、
+   はみ出た一人は無いのと同じである）。伸びはするが縮まないので、6人目が来たら
+   そのときだけ横へ流れる。 */
 .member-tab {
   display: inline-flex;
-  flex: 0 0 auto;
+  flex: 1 0 auto;
+  justify-content: center;
   align-items: center;
   gap: 5px;
-  padding: 6px 8px;
+  padding: 6px 7px;
   border: 1px solid var(--line);
+  /* その人の色は縁の一本が出す。図像の札まで並べると 5 人目が iPhone 幅ではみ出す。 */
+  border-left: 2px solid var(--accent, var(--line));
   border-radius: 8px;
   background: #172124;
   color: var(--muted);
   font-size: 11px;
+  white-space: nowrap;
 }
-.member-tab.active { border-color: var(--gold); color: var(--gold); }
+.member-tab.active {
+  border-color: var(--gold);
+  border-left: 2px solid var(--accent, var(--gold));
+  color: var(--gold);
+  background: var(--gold-dark);
+}
 .member-summary, .member-head {
   display: flex;
   align-items: center;
@@ -1770,9 +1784,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   font-size: 10px;
   line-height: 1.4;
 }
-.member-tab span:last-child { display: grid; gap: 2px; }
-.member-tab small { color: var(--muted); font-size: 9px; }
-.member-tab.active small { color: var(--blue); }
+/* 旧・帯の中の役どころ（.member-tab small）は 2026-09-15 に外した。名簿の見出しが
+   「役 · 年 · 出」で既に出しており、並べると 5 人目が iPhone 幅ではみ出す。 */
 .tree-legend { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; }
 .tree-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .tree-legend .kind { font-size: 8px; }
@@ -3236,10 +3249,123 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   color: var(--ink);
   text-align: left;
 }
-.difficulty-card b { font-size: 12px; }
+.difficulty-card b {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
 .difficulty-card small { color: var(--muted); font-size: 10px; line-height: 1.4; }
-.difficulty-meta { color: var(--blue); font-size: 10px; }
+/* 踏破済みの印。**色ではなく形で出す**（色だけの違いは、色が読めない画面で消える）。 */
+.stage-clear-mark { display: inline-flex; color: var(--good); }
+.stage-clear-mark .glyph { width: 12px; height: 12px; }
+/* 作者指摘 2026-09-15 — 札が持つのは**札どうしで違う三つの数**だけ。同行者の名前を
+   並べていた旧版は、全員が揃ったあとの区画で同じ一行を何枚も繰り返していた。 */
+.difficulty-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 2px;
+  color: var(--blue);
+  font-size: 10px;
+}
+.difficulty-meta > span { display: inline-flex; align-items: center; gap: 3px; }
+.difficulty-meta .glyph { width: 11px; height: 11px; opacity: .8; }
 .difficulty-card.selected { border-color: var(--gold); background: var(--gold-dark); }
+.difficulty-card.selected .difficulty-meta { color: var(--gold); }
+
+/* ---- ギルドの貼りつく上端（作者指摘 2026-09-15）。
+   キャンプの `.camp-top` と同じ作りで、活動資金と札を一つの塊にする。
+   **活動資金は画面に一度だけ。**開いた先の見出しで言い直さない。 */
+.guild-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -2px 10px;
+  /* 下の余白は padding で取る（.camp-top と同じ理由——margin では下をくぐる本文に効かない）。 */
+  padding: 4px 2px 10px;
+  background: rgba(14, 20, 22, .95);
+  backdrop-filter: blur(10px);
+}
+.guild-top .tabs {
+  position: static;
+  margin: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+.guild-funds {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 6px 5px;
+  color: var(--gold);
+}
+.guild-funds .guild-funds-mark {
+  width: 13px;
+  height: 13px;
+  align-self: center;
+  opacity: .85;
+}
+.guild-funds b { font-size: 15px; letter-spacing: .02em; }
+.guild-funds small { color: var(--muted); font-size: 9.5px; }
+
+/* 節の一行注記。**規則の段を置くほどではないもの**（ここは何の画面か、戦闘には効かない）。 */
+.tab-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 12px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.tab-note .glyph { width: 13px; height: 13px; flex: 0 0 auto; margin-top: 1px; opacity: .8; }
+/* 取り消せない買い物。**赤い一行は画面に一つだけ。**増やすと、どれも読まれない。 */
+.guild-caution {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 2px;
+  color: var(--bad);
+  font-size: 11px;
+  font-weight: 700;
+}
+.guild-caution .glyph { width: 13px; height: 13px; }
+
+/* 選んだ区画へ誰と入るか。**名前は画面に一度だけ出す。** */
+.plan-stage { margin: 10px 0 8px; }
+.plan-stage b { color: var(--gold); font-size: 13px; }
+.cast-strip { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+.cast-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent, var(--line));
+  border-radius: 7px;
+  background: #172124;
+  color: var(--ink);
+  font-size: 11px;
+}
+.cast-chip i { font-style: normal; color: var(--accent, var(--blue)); }
+.cast-chip.unknown { color: var(--muted); border-left-color: var(--line); }
+.cast-chip .glyph { width: 12px; height: 12px; opacity: .8; }
+
+/* 絞り込みの粒。**折り返さず横へ流す**（旧版は 8 個の釦が 2 列 5 段になっていた）。 */
+.filter-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 10px 0;
+  padding-bottom: 3px;
+}
+.filter-chips .tiny-button { flex: 0 0 auto; margin: 0; }
+
+/* 出撃の一枚。**押す場所は、読むものの外へ出す。** */
+.launch-card { text-align: center; }
+.launch-card .button { margin-top: 0; }
 
 .purchase-list { display: grid; gap: 6px; margin-top: 10px; }
 /* 作者要望 2026-09-13 — 投資の行は「記号・中身・値段」の三列。**段は目盛りが言う。** */
@@ -3314,13 +3440,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .train-next { color: var(--gold); font-size: 11px; }
 .train-stall { color: var(--orange) !important; font-size: 9.5px !important; }
-.train-summary { margin-top: 0; margin-bottom: 10px; }
-/* 取り消せない買い物の一段。**赤い段は一つだけ。**増やすと、どれも読まれない。 */
-.warn-grid { margin-top: 10px; }
-.warn-grid .rule-cell {
-  border-color: rgba(231,137,128,.4);
-  background: rgba(113,57,54,.18);
-}
+/* 旧 .train-summary（「鍛える相手 ゴウ」の札）と .warn-grid（赤い規則の段）は、
+   作者指摘 2026-09-15 で撤去した。相手は仲間の帯が、取り消せないことは
+   `.guild-caution` の一行が言う。 */
 /* issue #159 — 治療専用の対象一覧（.treatment-target-picker）はここにあった。
    対象は上端の共通盤面から選ぶ。 */
 .supply-treatment-result {
@@ -5470,6 +5592,9 @@ button.party-cell,
 .gear-main,
 .equip-slot-button,
 .skill-node-button,
+.member-tab,
+.difficulty-card,
+.scene-row,
 .sheet-close {
   transition:
     transform var(--fx-tap) var(--fx-ease),
@@ -5488,6 +5613,9 @@ button.party-cell:active:not(:disabled),
 .gear-main:active:not(:disabled),
 .equip-slot-button:active:not(:disabled),
 .skill-node-button:active:not(:disabled),
+.member-tab:active:not(:disabled),
+.difficulty-card:active:not(:disabled),
+.scene-row:active:not(:disabled),
 .sheet-close:active:not(:disabled) {
   transform: scale(.972);
   filter: brightness(1.12);
@@ -5503,6 +5631,21 @@ button.party-cell:active:not(:disabled),
   to { opacity: 1; transform: none; }
 }
 .fx-view-enter { animation: fx-view-enter var(--fx-step) var(--fx-ease); }
+/* 作者指摘 2026-09-15 —「アニメーションが全然ない」。ギルドは札を押すたびに中身が
+   まるごと入れ替わる画面なので、**箱ごと一度動かすのではなく、節が一枚ずつ着地する。**
+   立ち上がりの合計は 0.26s + 0.17s で、待ちは一つも増えない（押した先は最初から居る）。 */
+.guild-view.fx-view-enter { animation: none; }
+@keyframes guild-card-enter {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: none; }
+}
+.guild-view.fx-view-enter > .card,
+.guild-view.fx-view-enter > .help-details {
+  animation: guild-card-enter var(--fx-step) var(--fx-ease) backwards;
+}
+.guild-view.fx-view-enter > :nth-child(2) { animation-delay: 55ms; }
+.guild-view.fx-view-enter > :nth-child(3) { animation-delay: 110ms; }
+.guild-view.fx-view-enter > :nth-child(n+4) { animation-delay: 165ms; }
 /* キャンプへ入った回だけ、先見機の窓が灯るように降りてくる。 */
 @keyframes fx-board-enter {
   from { opacity: 0; transform: translateY(-5px); }
@@ -5788,6 +5931,8 @@ button.party-cell:active:not(:disabled),
 
 @media (prefers-reduced-motion: reduce) {
   /* **動きは消すが、状態は消さない。**色・記号・数・ラベルは元から動いていない。 */
+  .guild-view.fx-view-enter > .card,
+  .guild-view.fx-view-enter > .help-details,
   .fx-view-enter,
   .fx-board-enter,
   .fx-select,
