@@ -93,7 +93,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // R24 — 6packへRP0の条件付き反応を2本ずつ、条件付き常設を2本ずつ追加した。
 // 基礎能力4種の statBonus は技能Lvを読み、Lv10まで積める意味へ変わった。
 // 公開IDの追加と既存欄の意味変更なので版を上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-27";
+// R25 — Stage 1以降の敵を部隊化する7体（庇護・治療・弱体・多段と最終主心）と
+// 最終boss lawを追加した。既存のengine/schema語彙だけだが、公開IDが増えるため上げる。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-28";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

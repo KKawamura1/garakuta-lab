@@ -31,7 +31,8 @@
 // 第一部は10 Stage ある。Stage が進むと**別の家系**が出る。同じ敵を数だけ増やして
 // 難度を作らない（AGENTS.md「敵は特定技能を要求せず、…性能軸を変える」）。
 //
-//   husk  灰殻 … Stage 0〜4。前で殴る・後ろから撃つ・守る・溜める。文法の教材
+//   husk  灰殻 … Stage 0〜4。前で殴る・後ろから撃つ・守る・溜める・庇う・治す。
+//                    Stage 1 からは単体ではなく、役割の組合せが文法の教材になる
 //   dust  灰塵 … Stage 4〜。**対象数**。行・列・全体へ同時に来る。数で手数を削る
 //   weave 灰織 … Stage 6〜。**位置と状態**。引きずり出す・怯ませる・裂く・隙を配る
 //   forge 灰炉 … Stage 8〜。**受け無視と持久**。厚い受けと、受けを無視する一撃
@@ -72,9 +73,9 @@ export const SHIPPED_DIFFICULTY = 1.2;
 // 家系ごとの固定値である。戦闘前の敵カードには、この値を掛けた後の数がそのまま出る。
 export const FAMILY_POWER = Object.freeze({
   husk: Object.freeze({ hpBps: 10_000, offenseBps: 9_200, guardBps: 10_000 }),
-  dust: Object.freeze({ hpBps: 10_800, offenseBps: 10_200, guardBps: 10_000 }),
-  weave: Object.freeze({ hpBps: 9_100, offenseBps: 8_600, guardBps: 10_500 }),
-  forge: Object.freeze({ hpBps: 9_600, offenseBps: 9_200, guardBps: 11_000 }),
+  dust: Object.freeze({ hpBps: 12_100, offenseBps: 11_400, guardBps: 10_000 }),
+  weave: Object.freeze({ hpBps: 10_000, offenseBps: 9_500, guardBps: 10_500 }),
+  forge: Object.freeze({ hpBps: 10_600, offenseBps: 10_200, guardBps: 11_000 }),
 });
 
 // ---------------------------------------------------------------- 家系
@@ -83,8 +84,8 @@ export const ENEMY_FAMILIES = Object.freeze([
   Object.freeze({
     id: "husk",
     displayName: "灰殻",
-    summary: "前で殴り、後ろから撃ち、守り、溜める。灰の浅いところで最初に会う。",
-    pressure: Object.freeze(["前列と後列の選び方", "受けの厚み", "溜めの見切り"]),
+    summary: "前で庇い、後ろで治し、刻印から多段を通す。灰の浅いところで戦い方を覚えている。",
+    pressure: Object.freeze(["前列と後列の選び方", "庇護と治療の分業", "刻印から多段への連携"]),
   }),
   Object.freeze({
     id: "dust",
@@ -134,6 +135,16 @@ const UNITS = [
   { id: "gray_runner", family: "husk", chassis: "husk", name: "灰殻の走り手",
     hp: 9, might: 28, focus: 24, guard: 0, ap: 2, rp: 0, threat: 2,
     tactics: ["front_strike"] },
+  // 刻み手 … 三段を一つの行動で出す。受けの低い相手へは走り手より重いが、
+  // 受けの高い相手には三度引かれる。Stage 1 から多段対策を盤面へ出す。
+  { id: "gray_razor", family: "husk", chassis: "husk_warden", name: "灰殻の刻み手",
+    hp: 15, might: 44, focus: 28, guard: 1, ap: 1, rp: 0, threat: 4,
+    tactics: ["barrage_strike", "front_strike"] },
+  // 傷印 … 先に全員へ隙を配る。自分の一撃は軽いが、同じ round に続く味方の
+  // 多段まで全hitが太くなる。個体ではなく行動順を含む編成で強さを作る役。
+  { id: "gray_brand", family: "husk", chassis: "husk_marker", name: "灰殻の傷印",
+    hp: 16, might: 32, focus: 48, guard: 2, ap: 1, rp: 0, threat: 5,
+    tactics: ["mark_spread", "front_strike"] },
   // 後撃ち … 後列を抜く。前を固めただけでは通らない
   { id: "gray_marksman", family: "husk", chassis: "husk", name: "灰殻の後撃ち",
     hp: 11, might: 28, focus: 42, guard: 0, ap: 1, rp: 0, threat: 2,
@@ -150,6 +161,16 @@ const UNITS = [
   { id: "gray_shelter", family: "husk", chassis: "husk_warden", name: "灰殻の籠り手",
     hp: 21, might: 30, focus: 44, guard: 8, ap: 1, rp: 0, threat: 3,
     tactics: ["enemy_guard", "front_strike"] },
+  // 抱え手 … 自分を狙わなかった攻撃を一巡に二度まで引き取る。
+  // 自身の受けは厚いが火力は低い。先に倒すか、後列へ直接届く一撃で越える。
+  { id: "gray_aegis", family: "husk", chassis: "husk_bulwark", name: "灰殻の抱え手",
+    hp: 28, might: 34, focus: 40, guard: 16, ap: 1, rp: 2, threat: 6,
+    tactics: ["enemy_guard", "front_strike"], reactives: ["cover_ally"] },
+  // 縫い手 … 後列で、自分の側が受けた実HP damage を一巡に二度まで手当てする。
+  // 自分へ薄い防壁を張るだけなので、後衛狩りで先に落とす価値が明確にある。
+  { id: "gray_mender", family: "husk", chassis: "husk_warden", name: "灰殻の縫い手",
+    hp: 16, might: 22, focus: 58, guard: 2, ap: 1, rp: 2, threat: 4,
+    tactics: ["enemy_guard"], reactives: ["mend"] },
   // 砕き手 … 溜めてから重く来る。溜めている間は受けが薄い
   { id: "gray_breaker", family: "husk", chassis: "husk_warden", name: "灰殻の砕き手",
     hp: 20, might: 54, focus: 32, guard: 4, ap: 1, rp: 0, threat: 5,
@@ -254,10 +275,27 @@ const UNITS = [
   { id: "forge_bellows", family: "forge", chassis: "husk_bulwark", name: "灰炉の鞴",
     hp: 28, might: 32, focus: 54, guard: 10, ap: 1, rp: 0, threat: 7,
     tactics: ["shield_wall", "front_strike"] },
+  // 継ぎ手 … 灰殻の縫い手の終盤形。前列へ防壁を配り、抜けたdamageを三度まで戻す。
+  // 後列へ置くことで、前列を正面から殴るだけの構成へ明確な時間圧力を掛ける。
+  { id: "forge_mender", family: "forge", chassis: "husk_bulwark", name: "灰炉の継ぎ手",
+    hp: 34, might: 24, focus: 70, guard: 8, ap: 1, rp: 3, threat: 9,
+    tactics: ["shield_wall"], reactives: ["mend"] },
+  // 抱壁 … 一巡に二度、後列への攻撃を高い受けで引き取る。自分を守るだけの金床と
+  // 違い、継ぎ手や主心を狙う行動そのものへ割り込む。
+  { id: "forge_aegis", family: "forge", chassis: "husk_bulwark", name: "灰炉の抱壁",
+    hp: 52, might: 42, focus: 48, guard: 24, ap: 1, rp: 2, threat: 11,
+    tactics: ["enemy_guard", "front_strike"], reactives: ["cover_ally"] },
   // 本体 … 第一部の終着。溜めた一撃と、受けを無視する一撃を両方持つ
   { id: "ash_furnace", family: "forge", chassis: "husk_bulwark", name: "灰炉の本体",
     hp: 62, might: 56, focus: 56, guard: 16, ap: 1, rp: 0, threat: 16,
     tactics: ["enemy_heavy", "guard_crush", "front_strike"] },
+  // 主心 … 第一部の最終戦だけに出る完成形。一巡に二度動き、隙を配った直後の多段、
+  // 溜め、裂傷、受け無視を順に切り替え、殴られれば一度だけ返す。
+  // 特定技能を鍵にはせず、面回復・単発・後列到達・必殺の切りどころを同時に問う。
+  { id: "ash_furnace_heart", family: "forge", chassis: "husk_bulwark", name: "灰炉の主心",
+    hp: 100, might: 72, focus: 72, guard: 22, ap: 2, rp: 2, threat: 24,
+    tactics: ["mark_spread", "barrage_strike", "enemy_heavy", "rend", "guard_crush", "front_strike"],
+    reactives: ["counter_blow"] },
 ];
 
 export const ENEMY_UNITS = Object.freeze(UNITS.map((unit) => Object.freeze({

@@ -210,6 +210,19 @@ export const BOSS_LAWS = Object.freeze({
       "必殺を残しておき、溜めが完成する round に合わせて落とす",
     ]),
   }),
+  law_furnace_heart: Object.freeze({
+    id: "law_furnace_heart", displayName: "主心の法則", threatCost: 18,
+    patch: Object.freeze({
+      might: { bps: 16_000 }, focus: { bps: 16_000 },
+      guard: { flat: 12 }, maxHp: { bps: 29_200 },
+    }),
+    previewText: "一巡に二度動き、隙から多段、溜め、裂傷、受け無視へ移る。後ろでは治療と庇護が回る。",
+    counters: Object.freeze([
+      "後列の継ぎ手を直接狙い、治療と防壁の供給を先に止める",
+      "抱壁の庇護を単発大威力で割るか、三撃目以降を後列へ通す",
+      "五人の必殺を温存し、隙から多段へ移る前に主心と随伴をまとめて削る",
+    ]),
+  }),
 });
 
 // ---------------------------------------------------------------- 12戦
@@ -369,45 +382,44 @@ const STAGE_0 = stageEncounters([
 const STAGE_1 = stageEncounters([
   { name: "焼けた段", maxRounds: 8,
     description: "走者と群れ。数は多いが、一体ずつは軽い。",
-    enemies: ["gray_scrapper@FL", "gray_scrapper@FR", "gray_swarm@RL"],
-    reinforcements: ["gray_swarm@RR"] },
+    enemies: ["gray_scrapper@FL", "gray_scrapper@FR", "gray_swarm@RL"] },
   { name: "走る影", maxRounds: 8,
-    description: "走り手が二体。一巡に二度動くので、受けの薄い前衛から削られる。",
-    enemies: ["gray_runner@FL", "gray_runner@FR", "gray_scrapper@RL"],
-    reinforcements: ["gray_runner@RR"] },
+    description: "二度動く走り手と、三段を刻む刻み手。HPの厚さと受けの厚さで、止められる相手が違う。",
+    enemies: ["gray_runner@FL", "gray_razor@FR", "gray_runner@RL"] },
   { name: "二つの射線", maxRounds: 9,
-    description: "後撃ちが二体。守衛が前を塞いでいるあいだに、後列が減る。",
-    enemies: ["gray_marksman@RL", "gray_marksman@RR", "gray_guard@FL", "gray_scrapper@FR"],
-    reinforcements: ["gray_scrapper@FC"] },
+    description: "抱え手が攻撃を引き取り、後撃ちが後列を削り、縫い手が傷を戻す。先に崩す役を選ぶ。",
+    enemies: ["gray_aegis@FL", "gray_marksman@RL", "gray_mender@RR"] },
   { name: "砕きの頭", maxRounds: 12, bossLawId: "law_breaker_swing",
-    description: "第1幕のボス。砕き手が溜めて振る。走り手と後撃ちが足元を固める。",
-    enemies: ["gray_breaker@FC*", "gray_runner@FL", "gray_runner@FR", "gray_marksman@RL"],
-    reinforcements: ["gray_swarm@RR"] },
+    description: "第1幕のボス。抱え手が砕き手を庇い、縫い手が傷を戻す。必殺をどこへ通すかを選ぶ。",
+    enemies: ["gray_breaker@FC*", "gray_aegis@FL", "gray_mender@RR"] },
   { name: "籠る殻", maxRounds: 10,
-    description: "籠り手が二体、砕き手が一体。先に防壁を張るので、剥がすまでが持ち時間になる。",
-    enemies: ["gray_shelter@FL", "gray_breaker@FR", "gray_shelter@FC", "gray_guard@RL", "gray_marksman@RR"] },
+    description: "抱え手が砕き手を庇い、縫い手が新しい傷を閉じる。後衛へ届く技なら庇護ごと越えられる。",
+    enemies: ["gray_aegis@FL", "gray_breaker@FR", "gray_mender@RR"] },
   { name: "前と後ろ", maxRounds: 10,
-    description: "砕き手が二体で溜める。籠り手と守衛が前を厚くし、走り手が隙間を走る。",
-    enemies: ["gray_breaker@FC", "gray_breaker@FL", "gray_shelter@FR", "gray_guard@RL", "gray_runner@RR"] },
+    description: "傷印が全員へ隙を配り、刻み手が三段を通す。盾兵を残すほど連携が続く。",
+    enemies: ["gray_bulwark@FL", "gray_brand@RL", "gray_razor@FR"] },
   { name: "押し込みの路", maxRounds: 11,
-    description: "盾兵と守衛が前を塞ぎ、砕き手が溜める。押し切るか、受け切るか。",
-    enemies: ["gray_bulwark@FL", "gray_breaker@FC", "gray_guard@FR", "gray_guard@RL", "gray_runner@RR"] },
+    description: "盾兵と抱え手が前を塞ぎ、縫い手が後ろから二度まで戻す。単純な集中攻撃では減りにくい。",
+    enemies: ["gray_bulwark@FL", "gray_aegis@FR", "gray_mender@RR"] },
   { name: "籠りの奥", maxRounds: 13, bossLawId: "law_bulwark_wall",
-    description: "第2幕のボス。盾兵が張り直し、籠り手が二体で時間を稼ぐ。",
-    enemies: ["gray_bulwark@FC*", "gray_shelter@FL", "gray_shelter@FR", "gray_marksman@RL", "gray_runner@RR"] },
+    description: "第2幕のボス。抱え手が盾兵を庇い、縫い手が傷を戻す。守りを作る二体をどちらから崩すか。",
+    enemies: ["gray_bulwark@FC*", "gray_aegis@FL", "gray_mender@RR"] },
   { name: "灰の坂", maxRounds: 12,
-    description: "盾兵二体と砕き手二体。厚さと重さが同時に来る。",
-    enemies: ["gray_bulwark@FL", "gray_bulwark@FR", "gray_breaker@FC", "gray_breaker@RL", "gray_guard@RR"] },
+    description: "核心の前で傷印が隙を配り、刻み手が三段を重ねる。面の状態を放置すると一巡が重い。",
+    enemies: ["ash_core@FC", "gray_brand@RL", "gray_razor@FR"] },
   { name: "重なる殻", maxRounds: 13,
-    description: "盾兵が三枚並ぶ。手数では剥がれない。",
-    enemies: ["gray_bulwark@FL", "gray_bulwark@FC", "gray_bulwark@FR", "gray_breaker@RL", "gray_guard@RR"] },
+    description: "核心を抱え手が庇い、縫い手が戻す。後ろへ届く技と、庇護を割る一撃の両方が要る。",
+    enemies: ["ash_core@FC", "gray_aegis@FL", "gray_mender@RR"] },
   { name: "門の手前", maxRounds: 13,
-    description: "盾兵三体に砕き手が二体。溜めが同時に完成する round がある。",
-    enemies: ["gray_bulwark@FL", "gray_bulwark@FC", "gray_bulwark@FR", "gray_breaker@RL", "gray_breaker@RR"] },
+    description: "核心と盾兵を、後ろの縫い手がつなぐ。長引けば溜めと治療の両方が繰り返される。",
+    enemies: ["ash_core@FC", "gray_bulwark@FL", "gray_mender@RR"] },
   { name: "抜ける刃", maxRounds: 15, bossLawId: "law_core_charge",
-    description: "最終戦。核心の溜めと、盾兵・籠り手の厚み。どこか一枚を抜く。",
-    enemies: ["ash_core@FC*", "gray_bulwark@FL", "gray_bulwark@FR", "gray_shelter@RL", "gray_runner@RR"] },
-]);
+    description: "最終戦。抱え手が核心を庇い、縫い手が戻す。三人の必殺を一体ずつではなく編成へ通す。",
+    enemies: ["ash_core@FC*", "gray_aegis@FL", "gray_mender@RR"] },
+]).map((encounter) => Object.freeze({
+  ...encounter,
+  ...(encounter.index === 1 ? {} : { enemyStatScale: { maxHpBps: 11_500, offenseBps: 11_000 } }),
+}));
 
 // ================================================================ Stage 2 — 動く隊列
 //
@@ -415,45 +427,45 @@ const STAGE_1 = stageEncounters([
 // 庇う・位置替えが初めて割に合う盤面。4人。
 const STAGE_2 = stageEncounters([
   { name: "影の路地", maxRounds: 8,
-    description: "潜み手が後列から入る。走者が前を塞いでいるあいだに、後ろが減る。",
-    enemies: ["gray_stalker@RL", "gray_scrapper@FL", "gray_scrapper@FR"],
-    reinforcements: ["gray_swarm@FC"] },
+    description: "潜み手が後列を狙い、刻み手が前を削る。縫い手を残すと、どちらの傷も戻される。",
+    enemies: ["gray_stalker@RL", "gray_razor@FL", "gray_mender@RR", "gray_scrapper@FR"] },
   { name: "追われる", maxRounds: 9,
-    description: "追い手は準備中の者から潰しに来る。準備の要る技能を出す順が問われる。",
-    enemies: ["gray_harrower@RL", "gray_scrapper@FL", "gray_runner@FR", "gray_swarm@RR"] },
+    description: "追い手は準備中から潰し、走り手は二度動き、刻み手は多段を出す。縫い手が後ろで支える。",
+    enemies: ["gray_harrower@RL", "gray_runner@FL", "gray_razor@FR", "gray_mender@RR"] },
   { name: "崩れた盾列", maxRounds: 9,
-    description: "守衛が前を厚くし、潜み手が後列を抜く。前だけ守っても足りない。",
-    enemies: ["gray_guard@FL", "gray_guard@FR", "gray_stalker@RL", "gray_marksman@RR"],
-    reinforcements: ["gray_scrapper@FC"] },
+    description: "抱え手が縫い手と潜み手を庇い、傷印が全員へ隙を配る。後列を守る側にも隊列がある。",
+    enemies: ["gray_aegis@FL", "gray_brand@RL", "gray_stalker@FR", "gray_mender@RR"] },
   { name: "追い手の頭", maxRounds: 12, bossLawId: "law_harrower_chase",
-    description: "第1幕のボス。追い手が準備を潰し、守衛が前を塞ぐ。",
-    enemies: ["gray_harrower@FC*", "gray_guard@FL", "gray_stalker@RL", "gray_marksman@RR"],
-    reinforcements: ["gray_runner@FR"] },
+    description: "第1幕のボス。抱え手が追い手を庇い、傷印が隙を配り、縫い手が傷を戻す。",
+    enemies: ["gray_harrower@FC*", "gray_aegis@FL", "gray_brand@RL", "gray_mender@RR"] },
   { name: "割れた列", maxRounds: 10,
-    description: "守衛が前を厚くし、追い手が後列を狙う。受け手を選ぶ round が要る。",
-    enemies: ["gray_guard@FL", "gray_harrower@RL", "gray_guard@FC", "gray_shelter@FR", "gray_stalker@RR"] },
+    description: "抱え手が前で引き取り、追い手と刻み手が別の硬さを狙う。縫い手が二度まで戻す。",
+    enemies: ["gray_aegis@FL", "gray_harrower@RL", "gray_razor@FR", "gray_mender@RR"] },
   { name: "挟み", maxRounds: 10,
-    description: "追い手が二体、後ろから。守衛と砕き手が前を塞ぐ。",
-    enemies: ["gray_harrower@RL", "gray_harrower@RR", "gray_guard@FL", "gray_breaker@FC", "gray_stalker@FR"] },
+    description: "追い手が二方向から準備を潰し、抱え手が攻撃を引き取り、傷印が隙を配る。",
+    enemies: ["gray_harrower@RL", "gray_harrower@RR", "gray_aegis@FL", "gray_brand@FR"] },
   { name: "挟撃の坑", maxRounds: 11,
-    description: "砕き手が二体、追い手が二体、守衛が一体。庇う相手を毎 round 選び直す。",
-    enemies: ["gray_breaker@FL", "gray_harrower@RL", "gray_harrower@RR", "gray_guard@FC", "gray_breaker@FR"] },
+    description: "盾兵と抱え手の二枚を、傷印と縫い手が支える。守りを崩す順そのものが攻略になる。",
+    enemies: ["gray_bulwark@FC", "gray_aegis@FL", "gray_brand@RL", "gray_mender@RR"] },
   { name: "盾将の門", maxRounds: 13, bossLawId: "law_bulwark_wall",
-    description: "第2幕のボス。盾兵が張り直し、砕き手と追い手が両側から入る。",
-    enemies: ["gray_bulwark@FC*", "gray_breaker@FL", "gray_stalker@RL", "gray_harrower@RR"] },
+    description: "第2幕のボス。抱え手が盾兵を庇い、追い手が準備を潰し、縫い手が傷を戻す。",
+    enemies: ["gray_bulwark@FC*", "gray_aegis@FL", "gray_harrower@RL", "gray_mender@RR"] },
   { name: "深い路地", maxRounds: 12,
-    description: "盾兵が一体、追い手が二体。砕き手と守衛が前を埋める。後列に置いた人物ほど狙われる。",
-    enemies: ["gray_bulwark@FL", "gray_harrower@RL", "gray_harrower@RR", "gray_breaker@FC", "gray_guard@FR"] },
+    description: "盾兵と抱え手の後ろで、追い手と傷印が別の標的を作る。前後どちらも安全ではない。",
+    enemies: ["gray_bulwark@FC", "gray_aegis@FL", "gray_harrower@RL", "gray_brand@RR"] },
   { name: "盾と追い手", maxRounds: 13,
-    description: "盾兵が二体、追い手が二体、潜み手が一体。時間が味方しない。",
-    enemies: ["gray_bulwark@FL", "gray_bulwark@FR", "gray_harrower@RL", "gray_harrower@RR", "gray_stalker@FC"] },
+    description: "核心を抱え手が庇い、刻み手が受け構えを剥がし、縫い手が傷を戻す。",
+    enemies: ["ash_core@FC", "gray_aegis@FL", "gray_razor@RL", "gray_mender@RR"] },
   { name: "核の気配", maxRounds: 13,
-    description: "盾兵が二体、砕き手が一体、追い手が二体。最終戦の予行になる。",
-    enemies: ["gray_bulwark@FL", "gray_bulwark@FR", "gray_breaker@FC", "gray_harrower@RL", "gray_harrower@RR"] },
+    description: "核心と盾兵の前を抱え手が引き取り、縫い手が後ろで戻す。最終戦の守りが先に揃う。",
+    enemies: ["ash_core@FC", "gray_bulwark@FR", "gray_aegis@FL", "gray_mender@RR"] },
   { name: "動く隊列", maxRounds: 15, bossLawId: "law_core_charge",
-    description: "最終戦。核心の溜めが完成する前に、前列を入れ替えながら削り切る。",
-    enemies: ["ash_core@FC*", "gray_bulwark@FL", "gray_breaker@FR", "gray_harrower@RL"] },
-]);
+    description: "最終戦。抱え手が核心を庇い、追い手が準備を潰し、縫い手が戻す。位置替えで射線を作る。",
+    enemies: ["ash_core@FC*", "gray_aegis@FL", "gray_harrower@RL", "gray_mender@RR"] },
+]).map((encounter) => Object.freeze({
+  ...encounter,
+  enemyStatScale: { maxHpBps: 12_000, offenseBps: 11_500 },
+}));
 
 // ================================================================ Stage 3 — 間合いと順番
 //
@@ -462,7 +474,7 @@ const STAGE_2 = stageEncounters([
 // Stage 1 の `cover_ally` で前半の基準編成が安全になったぶん、第7・8戦は
 // HP と攻撃を一段上げる。第6戦までの縦切りの関門は変えず、Stage 3 の後半で
 // 「順番を作ったぶんだけ敵も長く保つ／重く返す」ことを測る。
-const STAGE_3_LATE_ENEMY_SCALE = Object.freeze({ maxHpBps: 16_000, offenseBps: 10_500 });
+const STAGE_3_LATE_ENEMY_SCALE = Object.freeze({ maxHpBps: 16_000, offenseBps: 11_200 });
 const STAGE_3 = stageEncounters([
   { name: "灰の圧力", maxRounds: 9,
     description: "狩人が準備を潰す。走者が二体、その足元を固める。",
@@ -483,27 +495,28 @@ const STAGE_3 = stageEncounters([
     description: "狩人がこちらの溜めを潰し、潜み手が後ろを狙う。盾兵と守衛が二体で前を塞ぐ。",
     enemies: ["gray_bulwark@FL", "gray_guard@FC", "gray_guard@FR", "gray_hunter@RL", "gray_stalker@RR"] },
   { name: "反響の坑道", maxRounds: 11,
-    description: "反響体が二体、盾兵と守衛が一体ずつ。殴る回数そのものが代償になる。",
-    enemies: ["gray_bulwark@FL", "gray_guard@FC", "gray_marksman@FR", "gray_echo@RL", "gray_echo@RR"] },
+    description: "抱え手が反響体を庇い、傷印が隙を配る。刻み手の多段と縫い手の治療が同じ一巡に回る。",
+    enemies: ["gray_aegis@FL", "gray_echo@FC", "gray_razor@FR", "gray_brand@RL", "gray_mender@RR"] },
   { name: "盾将の門", maxRounds: 13, bossLawId: "law_bulwark_wall",
-    description: "第2幕のボス。盾兵が張り直し、反響体と狩人が round を伸ばす。",
-    enemies: ["gray_bulwark@FC*", "gray_guard@FL", "gray_echo@FR", "gray_hunter@RL"] },
+    description: "第2幕のボス。抱え手が盾兵を庇い、反響体が返し、狩人が準備を潰し、縫い手が戻す。",
+    enemies: ["gray_bulwark@FC*", "gray_aegis@FL", "gray_echo@FR", "gray_hunter@RL", "gray_mender@RR"] },
   { name: "盾の回廊", maxRounds: 12,
-    description: "盾兵が二体、砕き手が一体、狩人と追い手が一体ずつ。抜けないなら、行と列で薙ぐ。",
-    enemies: ["gray_bulwark@FL", "gray_bulwark@FR", "gray_breaker@FC", "gray_hunter@RL", "gray_harrower@RR"] },
+    description: "核心を抱え手が庇い、傷印から刻み手が多段を通す。縫い手を残すと前列が戻り続ける。",
+    enemies: ["ash_core@FC", "gray_aegis@FL", "gray_razor@FR", "gray_brand@RL", "gray_mender@RR"] },
   { name: "灰の重列", maxRounds: 13,
-    description: "盾兵が三体、砕き手と反響体が一体ずつ。単発で一枚ずつ落とすか、列ごと貫くか。",
-    enemies: ["gray_bulwark@FL", "gray_bulwark@FC", "gray_bulwark@FR", "gray_breaker@RL", "gray_echo@RR"] },
+    description: "核心と盾兵を抱え手が庇い、傷印と縫い手が攻守を回す。後列へ届く一手を温存する。",
+    enemies: ["ash_core@FC", "gray_bulwark@FR", "gray_aegis@FL", "gray_brand@RL", "gray_mender@RR"] },
   { name: "核の前庭", maxRounds: 13,
-    description: "核心が盾兵を二体連れて立つ。狩人と反響体が後ろに付く。ボスの予行になる。",
-    enemies: ["ash_core@FC", "gray_bulwark@FL", "gray_bulwark@FR", "gray_hunter@RL", "gray_echo@RR"] },
+    description: "核心と盾兵を抱え手が庇い、反響体と傷印が攻撃の回数を罰する。",
+    enemies: ["ash_core@FC", "gray_bulwark@FR", "gray_aegis@FL", "gray_echo@RL", "gray_brand@RR"] },
   { name: "灰の核心", maxRounds: 15, bossLawId: "law_core_charge",
-    description: "最終戦。核心の溜めを止め、反響体を残さずに厚い前列を抜く。",
-    enemies: ["ash_core@FC*", "gray_bulwark@FL", "gray_echo@RL", "gray_hunter@RR"] },
+    description: "最終戦。抱え手と盾兵が核心を守り、傷印と縫い手が攻守をつなぐ。五人の役割を全部使う。",
+    enemies: ["ash_core@FC*", "gray_aegis@FL", "gray_bulwark@FR", "gray_brand@RL", "gray_mender@RR"] },
 ]).map((encounter) => Object.freeze({
   ...encounter,
   ...(encounter.index === 7 || encounter.index === 8
-    ? { enemyStatScale: STAGE_3_LATE_ENEMY_SCALE } : {}),
+    ? { enemyStatScale: STAGE_3_LATE_ENEMY_SCALE }
+    : encounter.index >= 9 ? { enemyStatScale: { maxHpBps: 14_000, offenseBps: 11_500 } } : {}),
 }));
 
 // ================================================================ Stage 4 — 灰塵の底
@@ -633,7 +646,10 @@ const STAGE_6 = stageEncounters([
   { name: "織りの回廊", maxRounds: 15, bossLawId: "law_weave_mirror",
     description: "最終戦。写しが引き出しては返す。隠れ場所を作らない並べ方で解く。",
     enemies: ["weave_mirror@FC*", "weave_thorn@FL", "weave_hand@FR", "weave_eye@RL"] },
-]);
+]).map((encounter) => Object.freeze({
+  ...encounter,
+  enemyStatScale: { maxHpBps: 10_500, offenseBps: 10_000 },
+}));
 
 // ================================================================ Stage 7 — ほどける隊列
 //
@@ -676,7 +692,10 @@ const STAGE_7 = stageEncounters([
   { name: "ほどける隊列", maxRounds: 16, bossLawId: "law_core_charge",
     description: "最終戦。核心が溜めるあいだ、灰織が隊列と状態を崩し続ける。",
     enemies: ["ash_core@FC*", "weave_thorn@FL", "weave_hand@FR", "weave_reach@RL", "weave_eye@RR"] },
-]);
+]).map((encounter) => Object.freeze({
+  ...encounter,
+  enemyStatScale: { maxHpBps: 10_500, offenseBps: 10_000 },
+}));
 
 // ================================================================ Stage 8 — 灰炉の門
 //
@@ -719,7 +738,10 @@ const STAGE_8 = stageEncounters([
   { name: "灰炉の門", maxRounds: 16, bossLawId: "law_forge_furnace",
     description: "最終戦。本体は溜めた一撃と受け無視の一撃を交互に出す。守り方を二つ持つ。",
     enemies: ["ash_furnace@FC*", "forge_anvil@FL", "forge_hammer@FR", "forge_bellows@RL"] },
-]);
+]).map((encounter) => Object.freeze({
+  ...encounter,
+  enemyStatScale: { maxHpBps: 10_800, offenseBps: 10_000 },
+}));
 
 // ================================================================ Stage 9 — 炉の底
 //
@@ -759,10 +781,20 @@ const STAGE_9 = stageEncounters([
   { name: "核と炉", maxRounds: 15,
     description: "核心の溜めに、金床の厚みと槌の受け無視と写しの引き出しが重なる。",
     enemies: ["ash_core@FC", "forge_anvil@FL", "forge_hammer@FR", "weave_mirror@RL", "forge_bellows@RR"] },
-  { name: "炉の底の本体", maxRounds: 18, bossLawId: "law_forge_furnace",
-    description: "第一部の最終戦。本体・金床・槌・写し・潮。覚えた解き方を全部持ち替える。",
-    enemies: ["ash_furnace@FC*", "forge_anvil@FL", "forge_hammer@FR", "weave_mirror@RL", "dust_tide@RR"] },
-]);
+  { name: "炉の底の本体", maxRounds: 18, bossLawId: "law_furnace_heart",
+    description: "第一部の最終戦。主心が二度動き、抱壁が庇い、継ぎ手が戻す。多段・裂傷・受け無視を五人の必殺で越える。",
+    enemies: ["ash_furnace_heart@FC*", "forge_aegis@FL", "weave_hand@FR", "dust_maw@RL", "forge_mender@RR"] },
+]).map((encounter) => Object.freeze({
+  ...encounter,
+  ...(encounter.index === 12
+    ? {
+      // 上限鍛錬・技能Lv10・装備なしの五人でも、全員の必殺を同じ戦いへ
+      // 持ち込んで初めて抜ける厚み。4人ぶんではいずれも全滅する境界を
+      // analysis/ecology-enemy-tactics-smoke.mjs が固定 seed で見張る。
+      enemyStatScale: { maxHpBps: 20_800, offenseBps: 11_500 },
+    }
+    : {}),
+}));
 
 // ---------------------------------------------------------------- Stage ごとの12戦
 //

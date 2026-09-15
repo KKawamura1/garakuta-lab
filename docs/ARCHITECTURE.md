@@ -9,6 +9,7 @@
 | `analysis/ecology-chain-safety-audit.mjs` | Issue #175 の資源報酬定義・event trace・再発火・過剰回復・limit を監査する安全ゲート。 |
 | `analysis/ecology-chain-safety-blind-spots.mjs` | 安全ゲートが拒否すべき schema-valid な不正例と、許可条件を満たす既存の陽性例を実際の content から検査する smoke。 |
 | `analysis/ecology-stage3-builds.mjs` | Stage 3（5人・4pack）の三構成（issue #176）を data として持ち、取得計画の予算・核の成立時点・代替入口・代表装備・同じ seed での event 列の違いを、実際に engine へ通して検査する smoke。 |
+| `analysis/ecology-enemy-tactics-smoke.mjs` | Stage 1 の敵による庇護・治療・全体弱体・三段攻撃を event 列で検査し、Stage 9 最終戦を上限鍛錬の固定隊で「五人必殺なら勝利、0人または任意の4人なら敗北」に固定する smoke。 |
 | `core/build.mjs` | build metadataのtracked loader。sidecarが無いローカルでは `unbuilt` を使う |
 | `core/build.generated.mjs` | Cloudflare Pages buildが `CF_PAGES_COMMIT_SHA` から作る無視対象sidecar |
 | `functions/api/runs.js` | プレイ記録の受け取りと検証（Cloudflare Pages Functions） |
@@ -37,8 +38,8 @@
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
 | `content/encounters.mjs` | 敵本文の正本（噂・図鑑）と、**狙いの説明文の導出**（`ENEMY_TARGETING` は `enemies.mjs` の tactics から組み立てる。人が書かないので挙動とずれない）。**敵配置ではない** |
-| `content/expedition.mjs` | **遠征の敵配置の正本。**Stage ごとの3幕12戦（`STAGE_ENCOUNTERS`、10 Stage）、threat budget、boss law、難易度 rank。Stage 3 の第7・8戦のような幕内の明示的な `enemyStatScale` もここで宣言する。`EXPEDITION_ENCOUNTERS` は Stage 0 の12戦（Stage を渡さない呼び出しの既定）。`progression.composeEncounter(index, rank, { partySize, stageSequence })` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
-| `content/enemies.mjs` | **敵 unit の正本。**家系（`ENEMY_FAMILIES`）ごとの個体表と `FAMILY_POWER`（家系共通の出力）、`ENEMY_THREAT_COST`。家系共通でない幕内の敵倍率は `content/expedition.mjs` の明示的な指定で行う |
+| `content/expedition.mjs` | **遠征の敵配置の正本。**Stage ごとの3幕12戦（`STAGE_ENCOUNTERS`、10 Stage）、threat budget、boss law、難易度 rank。Stage 1以降の役割編成と、Stage 3後半・Stage 6〜9の明示的な `enemyStatScale` もここで宣言する。`EXPEDITION_ENCOUNTERS` は Stage 0 の12戦（Stage を渡さない呼び出しの既定）。`progression.composeEncounter(index, rank, { partySize, stageSequence })` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
+| `content/enemies.mjs` | **敵 unit の正本。**家系（`ENEMY_FAMILIES`）ごとの個体表と `FAMILY_POWER`（家系共通の出力）、`ENEMY_THREAT_COST`。庇護役・治療役も味方と同じ `cover_ally` / `mend` を `reactives` に持つだけで、敵専用の分岐は無い。家系共通でない幕内の敵倍率は `content/expedition.mjs` の明示的な指定で行う |
 | `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
 | `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |

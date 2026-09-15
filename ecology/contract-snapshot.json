@@ -13263,6 +13263,59 @@
     "focus": 26,
     "guard": 0
    },
+   "gray_razor": {
+    "id": "gray_razor",
+    "displayName": "灰殻の刻み手",
+    "maxHp": 180,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "barrage_strike",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "objective",
+     "playable"
+    ],
+    "might": 49,
+    "focus": 31,
+    "guard": 1
+   },
+   "gray_brand": {
+    "id": "gray_brand",
+    "displayName": "灰殻の傷印",
+    "maxHp": 192,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "mark_spread",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "playable"
+    ],
+    "might": 35,
+    "focus": 53,
+    "guard": 2
+   },
    "gray_marksman": {
     "id": "gray_marksman",
     "displayName": "灰殻の後撃ち",
@@ -13364,6 +13417,60 @@
     "might": 33,
     "focus": 49,
     "guard": 10
+   },
+   "gray_aegis": {
+    "id": "gray_aegis",
+    "displayName": "灰殻の抱え手",
+    "maxHp": 336,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 2,
+    "tactics": [
+     {
+      "activeSkillId": "enemy_guard",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [
+     "cover_ally"
+    ],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "durable",
+     "playable"
+    ],
+    "might": 38,
+    "focus": 44,
+    "guard": 19
+   },
+   "gray_mender": {
+    "id": "gray_mender",
+    "displayName": "灰殻の縫い手",
+    "maxHp": 192,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 2,
+    "tactics": [
+     {
+      "activeSkillId": "enemy_guard",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [
+     "mend"
+    ],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "objective",
+     "playable"
+    ],
+    "might": 24,
+    "focus": 64,
+    "guard": 2
    },
    "gray_breaker": {
     "id": "gray_breaker",
@@ -13530,7 +13637,7 @@
    "dust_mote": {
     "id": "dust_mote",
     "displayName": "灰塵の粒",
-    "maxHp": 117,
+    "maxHp": 131,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13545,14 +13652,14 @@
      "fixture",
      "playable"
     ],
-    "might": 51,
-    "focus": 44,
+    "might": 57,
+    "focus": 49,
     "guard": 0
    },
    "dust_lash": {
     "id": "dust_lash",
     "displayName": "灰塵の薙ぎ手",
-    "maxHp": 233,
+    "maxHp": 261,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13572,14 +13679,14 @@
      "objective",
      "playable"
     ],
-    "might": 56,
-    "focus": 49,
+    "might": 63,
+    "focus": 55,
     "guard": 5
    },
    "dust_spire": {
     "id": "dust_spire",
     "displayName": "灰塵の突き手",
-    "maxHp": 259,
+    "maxHp": 290,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13599,14 +13706,14 @@
      "objective",
      "playable"
     ],
-    "might": 54,
-    "focus": 54,
+    "might": 60,
+    "focus": 60,
     "guard": 7
    },
    "dust_maw": {
     "id": "dust_maw",
     "displayName": "灰塵の顎",
-    "maxHp": 285,
+    "maxHp": 319,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13626,14 +13733,14 @@
      "objective",
      "playable"
     ],
-    "might": 49,
-    "focus": 47,
+    "might": 55,
+    "focus": 52,
     "guard": 5
    },
    "dust_veil": {
     "id": "dust_veil",
     "displayName": "灰塵の帳",
-    "maxHp": 311,
+    "maxHp": 348,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13653,14 +13760,14 @@
      "durable",
      "playable"
     ],
-    "might": 37,
-    "focus": 56,
+    "might": 41,
+    "focus": 63,
     "guard": 10
    },
    "dust_choir": {
     "id": "dust_choir",
     "displayName": "灰塵の唱和",
-    "maxHp": 272,
+    "maxHp": 305,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13679,14 +13786,14 @@
      "fixture",
      "playable"
     ],
-    "might": 39,
-    "focus": 59,
+    "might": 44,
+    "focus": 66,
     "guard": 5
    },
    "dust_tide": {
     "id": "dust_tide",
     "displayName": "灰塵の潮",
-    "maxHp": 596,
+    "maxHp": 668,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13710,14 +13817,14 @@
      "durable",
      "playable"
     ],
-    "might": 61,
-    "focus": 61,
+    "might": 68,
+    "focus": 68,
     "guard": 12
    },
    "weave_hand": {
     "id": "weave_hand",
     "displayName": "灰織の手繰り",
-    "maxHp": 240,
+    "maxHp": 264,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13737,14 +13844,14 @@
      "objective",
      "playable"
     ],
-    "might": 45,
-    "focus": 43,
+    "might": 50,
+    "focus": 48,
     "guard": 8
    },
    "weave_knot": {
     "id": "weave_knot",
     "displayName": "灰織の結び手",
-    "maxHp": 262,
+    "maxHp": 288,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13764,14 +13871,14 @@
      "objective",
      "playable"
     ],
-    "might": 47,
-    "focus": 45,
+    "might": 52,
+    "focus": 50,
     "guard": 10
    },
    "weave_thorn": {
     "id": "weave_thorn",
     "displayName": "灰織の棘",
-    "maxHp": 284,
+    "maxHp": 312,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13791,14 +13898,14 @@
      "objective",
      "playable"
     ],
-    "might": 50,
-    "focus": 43,
+    "might": 55,
+    "focus": 48,
     "guard": 8
    },
    "weave_eye": {
     "id": "weave_eye",
     "displayName": "灰織の見張り",
-    "maxHp": 218,
+    "maxHp": 240,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13821,14 +13928,14 @@
      "fixture",
      "playable"
     ],
-    "might": 39,
-    "focus": 52,
+    "might": 43,
+    "focus": 57,
     "guard": 5
    },
    "weave_reach": {
     "id": "weave_reach",
     "displayName": "灰織の遠手",
-    "maxHp": 240,
+    "maxHp": 264,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13847,14 +13954,14 @@
      "fixture",
      "playable"
     ],
-    "might": 35,
-    "focus": 54,
+    "might": 39,
+    "focus": 59,
     "guard": 5
    },
    "weave_mirror": {
     "id": "weave_mirror",
     "displayName": "灰織の写し",
-    "maxHp": 546,
+    "maxHp": 600,
     "baseActionPoints": 1,
     "baseReactionPoints": 2,
     "tactics": [
@@ -13874,14 +13981,14 @@
     "tags": [
      "playable"
     ],
-    "might": 52,
-    "focus": 54,
+    "might": 57,
+    "focus": 59,
     "guard": 15
    },
    "forge_awl": {
     "id": "forge_awl",
     "displayName": "灰炉の錐",
-    "maxHp": 300,
+    "maxHp": 331,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13901,14 +14008,14 @@
      "objective",
      "playable"
     ],
-    "might": 55,
-    "focus": 49,
+    "might": 61,
+    "focus": 54,
     "guard": 11
    },
    "forge_hammer": {
     "id": "forge_hammer",
     "displayName": "灰炉の槌",
-    "maxHp": 346,
+    "maxHp": 382,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13928,14 +14035,14 @@
      "objective",
      "playable"
     ],
-    "might": 62,
-    "focus": 46,
+    "might": 69,
+    "focus": 51,
     "guard": 13
    },
    "forge_anvil": {
     "id": "forge_anvil",
     "displayName": "灰炉の金床",
-    "maxHp": 507,
+    "maxHp": 560,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13955,14 +14062,14 @@
      "durable",
      "playable"
     ],
-    "might": 46,
-    "focus": 51,
+    "might": 51,
+    "focus": 56,
     "guard": 26
    },
    "forge_ember": {
     "id": "forge_ember",
     "displayName": "灰炉の熾",
-    "maxHp": 276,
+    "maxHp": 305,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -13986,14 +14093,14 @@
      "gate_e",
      "playable"
     ],
-    "might": 57,
-    "focus": 51,
+    "might": 64,
+    "focus": 56,
     "guard": 8
    },
    "forge_bellows": {
     "id": "forge_bellows",
     "displayName": "灰炉の鞴",
-    "maxHp": 323,
+    "maxHp": 356,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -14013,14 +14120,68 @@
      "durable",
      "playable"
     ],
-    "might": 35,
-    "focus": 60,
+    "might": 39,
+    "focus": 66,
     "guard": 13
+   },
+   "forge_mender": {
+    "id": "forge_mender",
+    "displayName": "灰炉の継ぎ手",
+    "maxHp": 432,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 3,
+    "tactics": [
+     {
+      "activeSkillId": "shield_wall",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [
+     "mend"
+    ],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "durable",
+     "playable"
+    ],
+    "might": 29,
+    "focus": 86,
+    "guard": 11
+   },
+   "forge_aegis": {
+    "id": "forge_aegis",
+    "displayName": "灰炉の抱壁",
+    "maxHp": 661,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 2,
+    "tactics": [
+     {
+      "activeSkillId": "enemy_guard",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [
+     "cover_ally"
+    ],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "durable",
+     "playable"
+    ],
+    "might": 51,
+    "focus": 59,
+    "guard": 32
    },
    "ash_furnace": {
     "id": "ash_furnace",
     "displayName": "灰炉の本体",
-    "maxHp": 714,
+    "maxHp": 789,
     "baseActionPoints": 1,
     "baseReactionPoints": 0,
     "tactics": [
@@ -14044,9 +14205,54 @@
      "durable",
      "playable"
     ],
-    "might": 62,
-    "focus": 62,
+    "might": 69,
+    "focus": 69,
     "guard": 21
+   },
+   "ash_furnace_heart": {
+    "id": "ash_furnace_heart",
+    "displayName": "灰炉の主心",
+    "maxHp": 1272,
+    "baseActionPoints": 2,
+    "baseReactionPoints": 2,
+    "tactics": [
+     {
+      "activeSkillId": "mark_spread",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "barrage_strike",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "enemy_heavy",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "rend",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "guard_crush",
+      "useWhen": []
+     },
+     {
+      "activeSkillId": "front_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [
+     "counter_blow"
+    ],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "durable",
+     "playable"
+    ],
+    "might": 88,
+    "focus": 88,
+    "guard": 29
    }
   },
   "coreActions": {
@@ -14227,10 +14433,14 @@
   "gray_scrapper": "灰殻の走者",
   "gray_swarm": "灰殻の群れ",
   "gray_runner": "灰殻の走り手",
+  "gray_razor": "灰殻の刻み手",
+  "gray_brand": "灰殻の傷印",
   "gray_marksman": "灰殻の後撃ち",
   "gray_stalker": "灰殻の潜み手",
   "gray_guard": "灰殻の守衛",
   "gray_shelter": "灰殻の籠り手",
+  "gray_aegis": "灰殻の抱え手",
+  "gray_mender": "灰殻の縫い手",
   "gray_breaker": "灰殻の砕き手",
   "gray_hunter": "灰殻の狩人",
   "gray_harrower": "灰殻の追い手",
@@ -14255,7 +14465,10 @@
   "forge_anvil": "灰炉の金床",
   "forge_ember": "灰炉の熾",
   "forge_bellows": "灰炉の鞴",
-  "ash_furnace": "灰炉の本体"
+  "forge_mender": "灰炉の継ぎ手",
+  "forge_aegis": "灰炉の抱壁",
+  "ash_furnace": "灰炉の本体",
+  "ash_furnace_heart": "灰炉の主心"
  },
  "characterOptions": [
   {
@@ -19476,6 +19689,18 @@
    "targeting": "前列で最もHPの低い者を狙う。一巡に二度動く。",
    "lore": "足音がしない。振り向いたときには、もう二度殴られている。"
   },
+  "gray_razor": {
+   "id": "gray_razor",
+   "label": "灰殻の刻み手",
+   "targeting": "多段で刻み、受け構えを剥がす。通らなければ前列で最もHPの低い者を狙う。",
+   "lore": "刃は見えない。三本の傷が同じ高さに残るので、刻み手と呼ばれている。"
+  },
+  "gray_brand": {
+   "id": "gray_brand",
+   "label": "灰殻の傷印",
+   "targeting": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ前列で最もHPの低い者を狙う。",
+   "lore": "こいつが腕を上げたあとだけ、ほかの灰殻の傷が深くなる。"
+  },
   "gray_marksman": {
    "id": "gray_marksman",
    "label": "灰殻の後撃ち",
@@ -19499,6 +19724,18 @@
    "label": "灰殻の籠り手",
    "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
    "lore": "先に殻を張る。剥がすまでのあいだが、こちらの持ち時間になる。"
+  },
+  "gray_aegis": {
+   "id": "gray_aegis",
+   "label": "灰殻の抱え手",
+   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
+   "lore": "後ろを狙ったはずの刃が、いつもこいつの殻へ刺さっている。"
+  },
+  "gray_mender": {
+   "id": "gray_mender",
+   "label": "灰殻の縫い手",
+   "targeting": "自分へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
+   "lore": "傷ついた灰殻へ手を伸ばす。触れたところから、割れ目が閉じていく。"
   },
   "gray_breaker": {
    "id": "gray_breaker",
@@ -19644,11 +19881,29 @@
    "targeting": "自分の側の前列全体へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
    "lore": "自分は殴らない。殴らない個体を後回しにした隊の記録が、いちばん短い。"
   },
+  "forge_mender": {
+   "id": "forge_mender",
+   "label": "灰炉の継ぎ手",
+   "targeting": "自分の側の前列全体へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
+   "lore": "前の個体を継ぎ、割れたところを戻す。後ろにいるほど、前が減らない。"
+  },
+  "forge_aegis": {
+   "id": "forge_aegis",
+   "label": "灰炉の抱壁",
+   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
+   "lore": "狙ったものとの間へ必ず入る。遠回りをしても、先回りされている。"
+  },
   "ash_furnace": {
    "id": "ash_furnace",
    "label": "灰炉の本体",
    "targeting": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。",
    "lore": "熱くない。熱くないのに、近づいた者から順に立てなくなる。"
+  },
+  "ash_furnace_heart": {
+   "id": "ash_furnace_heart",
+   "label": "灰炉の主心",
+   "targeting": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ多段で刻み、受け構えを剥がす。通らなければ重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ裂傷を刻む（裂傷はラウンド終わりに、受けを無視して削る）。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。一巡に二度動く。殴られると、反応点1で殴り返す。",
+   "lore": "一度に二つの音がする。台帳には、どちらが先かを書いた欄が無い。"
   }
  },
  "enemyTargeting": {
@@ -19662,10 +19917,14 @@
   "gray_scrapper": "前列で最もHPの低い者を狙う。",
   "gray_swarm": "前列で最もHPの低い者を狙う。",
   "gray_runner": "前列で最もHPの低い者を狙う。一巡に二度動く。",
+  "gray_razor": "多段で刻み、受け構えを剥がす。通らなければ前列で最もHPの低い者を狙う。",
+  "gray_brand": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ前列で最もHPの低い者を狙う。",
   "gray_marksman": "後列で最もHPの低い者を狙う。",
   "gray_stalker": "後列で最もHPの低い者を狙う。通らなければ前列で最もHPの低い者を狙う。",
   "gray_guard": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
   "gray_shelter": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
+  "gray_aegis": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
+  "gray_mender": "自分へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
   "gray_breaker": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ前列で最もHPの低い者を狙う。",
   "gray_hunter": "準備中の者がいれば、そこを先に狙う。通らなければ前列で最もHPの低い者を狙う。",
   "gray_harrower": "準備中の者がいれば、そこを先に狙う。通らなければ後列で最もHPの低い者を狙う。それも通らなければ前列で最もHPの低い者を狙う。",
@@ -19690,7 +19949,10 @@
   "forge_anvil": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
   "forge_ember": "HP30%以下の者がいれば、そこへ最も重く入る。通らなければHP半分以下の者を狙う。それも通らなければ前列で最もHPの低い者を狙う。",
   "forge_bellows": "自分の側の前列全体へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-  "ash_furnace": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。"
+  "forge_mender": "自分の側の前列全体へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
+  "forge_aegis": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
+  "ash_furnace": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。",
+  "ash_furnace_heart": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ多段で刻み、受け構えを剥がす。通らなければ重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ裂傷を刻む（裂傷はラウンド終わりに、受けを無視して削る）。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。一巡に二度動く。殴られると、反応点1で殴り返す。"
  },
  "initialUnlocked": {
   "warden": [
@@ -20496,6 +20758,31 @@
     "防壁と回復を両方持ち、二種類の damage を別々に受ける",
     "必殺を残しておき、溜めが完成する round に合わせて落とす"
    ]
+  },
+  "law_furnace_heart": {
+   "id": "law_furnace_heart",
+   "displayName": "主心の法則",
+   "threatCost": 18,
+   "patch": {
+    "might": {
+     "bps": 16000
+    },
+    "focus": {
+     "bps": 16000
+    },
+    "guard": {
+     "flat": 12
+    },
+    "maxHp": {
+     "bps": 29200
+    }
+   },
+   "previewText": "一巡に二度動き、隙から多段、溜め、裂傷、受け無視へ移る。後ろでは治療と庇護が回る。",
+   "counters": [
+    "後列の継ぎ手を直接狙い、治療と防壁の供給を先に止める",
+    "抱壁の庇護を単発大威力で割るか、三撃目以降を後列へ通す",
+    "五人の必殺を温存し、隙から多段へ移る前に主心と随伴をまとめて削る"
+   ]
   }
  },
  "enemyMutations": {
@@ -20551,10 +20838,14 @@
   "gray_scrapper": 1,
   "gray_swarm": 1,
   "gray_runner": 2,
+  "gray_razor": 4,
+  "gray_brand": 5,
   "gray_marksman": 2,
   "gray_stalker": 3,
   "gray_guard": 3,
   "gray_shelter": 3,
+  "gray_aegis": 6,
+  "gray_mender": 4,
   "gray_breaker": 5,
   "gray_hunter": 5,
   "gray_harrower": 5,
@@ -20579,7 +20870,10 @@
   "forge_anvil": 9,
   "forge_ember": 7,
   "forge_bellows": 7,
-  "ash_furnace": 16
+  "forge_mender": 9,
+  "forge_aegis": 11,
+  "ash_furnace": 16,
+  "ash_furnace_heart": 24
  },
  "expeditionEncounters": [
   {
@@ -29469,7 +29763,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -29845,7 +30139,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -30190,7 +30484,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -30420,7 +30714,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -30723,7 +31017,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -30998,7 +31292,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -31204,7 +31498,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -31436,7 +31730,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -31669,7 +31963,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -31875,7 +32169,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -32084,7 +32378,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -32328,7 +32622,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -32588,7 +32882,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -32789,7 +33083,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -33021,7 +33315,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -33274,7 +33568,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -33516,7 +33810,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -33785,7 +34079,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -34025,7 +34319,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -34253,7 +34547,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -34463,7 +34757,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -34648,7 +34942,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -34852,7 +35146,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -35083,7 +35377,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -35311,7 +35605,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -35549,7 +35843,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -35882,7 +36176,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -36341,7 +36635,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -36726,7 +37020,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -37135,7 +37429,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -37575,7 +37869,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -37883,7 +38177,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -38107,7 +38401,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -38322,7 +38616,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -38554,7 +38848,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -38781,7 +39075,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-27",
+      "contentContractVersion": "ecology-content-contract-28",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",
