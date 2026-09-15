@@ -223,7 +223,9 @@ try {
   await guildEncounterNodes.nth(11).click();
   note("ギルドで最終戦の盤面まで投影できる",
     await page.locator('.encounter-archive').getAttribute("data-inspected-encounter") === "12"
-      && await page.locator(".encounter-projection .enemy-board-cell").count() > 0);
+      && await page.locator('.encounter-archive').getAttribute("data-inspection-mode") === "forecast"
+      && await page.locator(".encounter-console.forecast").count() === 1
+      && await page.locator(".encounter-projection.forecast .enemy-board-cell").count() > 0);
   note("敵の能力・使用技能・狙い方が同じ詳細に揃う",
     await page.locator(".enemy-selection-detail .enemy-stat-grid > span").count() === 6
       && await page.locator(".enemy-selection-detail .enemy-skill-row").count() > 0
@@ -693,22 +695,27 @@ try {
       await page.locator('.encounter-archive [data-action="inspect-encounter"][data-encounter="12"]').click();
       note("キャンプで未到達の最終戦まで投影できる",
         await page.locator(".encounter-archive").getAttribute("data-inspected-encounter") === "12"
-          && await page.locator(".encounter-projection .enemy-board-cell").count() > 0);
+          && await page.locator(".encounter-archive").getAttribute("data-inspection-mode") === "forecast"
+          && await page.locator(".encounter-console.forecast").count() === 1
+          && await page.locator(".encounter-projection.forecast .enemy-board-cell").count() > 0);
+      note("未到達戦だけが先見機の走査像になる",
+        (await page.locator(".encounter-projection.forecast").evaluate((node) =>
+          getComputedStyle(node).animationName)).includes("future-projection"));
       await page.locator('.encounter-archive [data-action="inspect-encounter"][data-encounter="1"]').click();
-      note("敵情報を折りたためる",
-        await page.locator("details.enemy-details").count() === 1
-          && await page.locator("details.enemy-details > summary").count() === 1);
-      const enemyCells = page.locator("details.enemy-details .enemy-board-cell");
-      const enemyBoardSlots = page.locator("details.enemy-details .enemy-board .battle-units > *");
+      note("敵情報はトグル無しで常に表示する",
+        await page.locator(".enemy-details").count() === 1
+          && await page.locator(".enemy-details, .enemy-details > summary").count() === 0);
+      const enemyCells = page.locator(".enemy-details .enemy-board-cell");
+      const enemyBoardSlots = page.locator(".enemy-details .enemy-board .battle-units > *");
       note("敵も戦闘と同じ3列×2行の盤面で示される",
         await enemyCells.count() > 0
-          && await page.locator("details.enemy-details .enemy-board .battle-row").count() === 2
+          && await page.locator(".enemy-details .enemy-board .battle-row").count() === 2
           && await enemyBoardSlots.count() === 6);
       note("敵盤面が iPhone 幅に横スクロールせず収まる",
-        await onScreen("details.enemy-details .enemy-board")
-          && await page.locator("details.enemy-details .enemy-board").evaluate((board) =>
+        await onScreen(".enemy-details .enemy-board")
+          && await page.locator(".enemy-details .enemy-board").evaluate((board) =>
             board.scrollWidth <= board.clientWidth + 1));
-      const selectedEnemyCell = page.locator("details.enemy-details .enemy-board-cell.selected");
+      const selectedEnemyCell = page.locator(".enemy-details .enemy-board-cell.selected");
       note("敵詳細に能力6枠・使用技能・狙い方が出る",
         await page.locator(".enemy-selection-detail .enemy-stat-grid > span").count() === 6
           && await page.locator(".enemy-selection-detail .enemy-skill-row").count() > 0
@@ -723,7 +730,7 @@ try {
         cells.findIndex((cell) => cell.dataset.enemy !== currentId), selectedEnemyId);
       if (otherEnemyIndex >= 0) {
         await enemyCells.nth(otherEnemyIndex).click();
-        const nextSelectedEnemy = page.locator("details.enemy-details .enemy-board-cell.selected");
+        const nextSelectedEnemy = page.locator(".enemy-details .enemy-board-cell.selected");
         note("敵セルをタップすると詳細の対象が切り替わる",
           await nextSelectedEnemy.count() === 1
             && await nextSelectedEnemy.getAttribute("data-enemy") !== selectedEnemyId
@@ -1017,28 +1024,42 @@ try {
     const noteForecastParity = async (where, text) => {
       if (stage !== 1 || !forecastAtStage1) return;
       const forecastRounds = forecastAtStage1.verdict.match(/([0-9]+)ラウンド/)?.[1] ?? "";
-      const actualRounds = text.match(/([0-9]+)ラウンド/)?.[1] ?? "";
+      const actualRounds = text.match(/([0-9]+)(?:ラウンド|R)/)?.[1] ?? "";
       const expectedVerdict = forecastAtStage1.result === "win" ? "突破した" : "足を止めた";
       note(`予測と${where}の勝敗・ラウンドが一致する`,
         verdict === expectedVerdict && forecastRounds === actualRounds,
         forecastAtStage1.verdict + " → " + verdict + " · " + (actualRounds || "?") + "ラウンド");
     };
     if (cameBackToCamp) {
-      const noteText = await page.locator(".last-battle-note").innerText();
+      const completedNode = page.locator(
+        '.encounter-archive [data-action="inspect-encounter"][data-encounter="' + stage + '"]');
+      await completedNode.click();
+      const report = page.locator(".encounter-projection.record .encounter-report.recorded");
+      const reportText = await report.innerText();
       if (!campReturnSeen) {
         campReturnSeen = true;
-        // 作者指摘 2026-09-12 — ボス戦以外の後は、決めることが無い画面を挟まず
-        // キャンプへ戻る。**直前の一戦の要約はキャンプの一枚が預かる。**
+        // 通常戦・精鋭戦の後は結果画面を挟まず、踏破した節の4指標へ実績を残す。
         note(`第${stage}戦の勝利はキャンプへ直接戻る`,
-          /突破した/.test(noteText) && /ラウンド/.test(noteText) && /技能点/.test(noteText),
-          noteText.replace(/\s+/g, " ").slice(0, 90));
+          await report.count() === 1 && /技能点/.test(reportText)
+            && /ラウンド/.test(reportText) && /味方損失/.test(reportText),
+          reportText.replace(/\s+/g, " ").slice(0, 90));
+        note("踏破済み戦は先見機ではなく通常の戦歴になる",
+          await page.locator(".encounter-archive").getAttribute("data-inspection-mode") === "record"
+            && await page.locator(".encounter-console.record").count() === 1
+            && await page.locator(".encounter-projection.record").evaluate((node) =>
+              getComputedStyle(node).animationName === "none"
+                && getComputedStyle(node, "::after").content === "none"));
         note("装備の候補を出さない戦闘では報酬画面を挟まない",
           await page.locator(".reward-choices").count() === 0);
         note("キャンプへ戻った先で次の一戦を選べる",
           await page.getByRole("button", { name: "この敵との実戦へ進む" }).count() === 1);
       }
-      await noteForecastParity("キャンプの一行", noteText);
-      await noteUltimateSeal("キャンプの一行");
+      await noteForecastParity("踏破記録", reportText);
+      await noteUltimateSeal("踏破記録");
+      if (stage < 12) {
+        await page.locator(
+          '.encounter-archive [data-action="inspect-encounter"][data-encounter="' + (stage + 1) + '"]').click();
+      }
       continue;
     }
     await noteForecastParity("結果画面", await bodyText());
@@ -1055,10 +1076,9 @@ try {
         `${turnRows}人・${turnCells.length}拍`);
       note("結果画面でもログは折りたたみ", await page.locator("details.debug-log").count() > 0);
       note("結果からアニメーションへ戻れる", await page.getByRole("button", { name: "戦闘をもう一度見る" }).count() > 0);
-      // PR #255 — 装備を選ぶ画面には「戦闘後の状態」を置かなくなったので、
-      // 詳細の先頭は直前の一戦の一枚（キャンプと同じもの）になる。
-      const detailAnchor = await page.locator(".last-battle-note").count() > 0
-        ? ".last-battle-note"
+      // 装備を選ぶ画面では、候補の次に全戦盤と同じ4指標だけを置く。
+      const detailAnchor = await page.locator(".result-encounter-report").count() > 0
+        ? ".result-encounter-report"
         : ".result-actors";
       note("結果画面の主操作が詳細より前で見える",
         await page.locator(".result-primary-action .button, .result-primary-action .reward-choice").count() >= 1
