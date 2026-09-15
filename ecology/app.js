@@ -510,9 +510,6 @@ function freshUiState() {
     hp: {},
     equipmentDurability: {},
     rewardOffer: [],
-    // PR #255 — ボス戦以外の勝利は結果画面を挟まずキャンプへ戻るので、
-    // 「直前の一戦で何が起きたか」をキャンプの一枚だけが預かる。
-    lastBattleNote: null,
     // PR #255 — 最終戦で装備を受け取った戦闘。**候補を作り直さない**ための印。
     rewardTakenAtEncounter: null,
     // issue #151 — 精算で残す設計図の選択（descriptor の配列）。
@@ -675,9 +672,8 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.equipmentDurability = {};
   next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
   next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
-  next.lastBattleNote = next.lastBattleNote && typeof next.lastBattleNote === "object"
-    ? next.lastBattleNote
-    : null;
+  // 旧版の全タブ共通カードは戦歴へ統合したため、読み込み時に捨てる。
+  delete next.lastBattleNote;
   next.rewardTakenAtEncounter = Number.isInteger(next.rewardTakenAtEncounter)
     ? next.rewardTakenAtEncounter
     : null;
@@ -4872,55 +4868,6 @@ function renderSupplies() {
 }
 
 
-// PR #255 — 直前の一戦の一行。**結果画面の代わりではない。**決めることが
-// 何も無い画面を一枚挟む代わりに、次の一戦を決める画面の中へ「さっき何が起きたか」
-// だけを置く。次の戦闘を始めた時点で消える（`simulateAndEnterBattle`）。
-function lastBattleNoteHtml(override = undefined) {
-  const note = override === undefined ? state.lastBattleNote : override;
-  if (!note || !Number.isInteger(note.encounter)) return "";
-  const kindLabel = { normal: "通常", elite: "精鋭", boss: "ボス" }[note.kind] ?? "通常";
-  const facts = [
-    note.roundsUsed + "ラウンド",
-    "味方HP損失 " + note.allyHpLost,
-    "技能点 +" + note.skillPoints,
-  ];
-  if (note.equipmentWear > 0) facts.push("装備摩耗 " + note.equipmentWear);
-  // 作者要望 2026-09-13 — 後始末は**段で出す。**文を継ぎ足すと、
-  // 「全回復した／誰が倒れた／誰が放った」が一つの塊になって読み飛ばされる。
-  const after = [note.fullHealed
-    ? { glyph: "vitality", title: "全回復", value: "幕が変わった", line: "全員のHPが戻りました。", tone: "good" }
-    : { glyph: "vitality", title: "持ち越し", value: "このHPのまま次へ", line: "敵を残して待っても戻りません。" }];
-  if (note.downed.length) {
-    after.push({
-      glyph: "cross",
-      title: "戦闘不能",
-      value: note.downed.map((id) => characterName(id)).join(" · "),
-      line: "補給の蘇生で戻せます。",
-      tone: "bad",
-    });
-  }
-  // issue #238 — 必殺の印は「放ったから」減る。**結果画面と同じ言い方**で出す
-  // （同じ出来事を画面ごとに別の形で書かない）。
-  if (note.ultimateFiredBy.length) {
-    const stillHave = state.run.roster.filter((id) => ultimateUsesLeft(state.run, id) > 0);
-    after.push({
-      glyph: "spark",
-      title: "必殺技を放った",
-      value: note.ultimateFiredBy.map((id) => characterName(id)).join(" · "),
-      line: "この遠征ではもう放てません。"
-        + (stillHave.length
-          ? "まだ残しているのは " + stillHave.map((id) => characterName(id)).join(" · ") + " です。"
-          : "隊の全員が放ち終えました。"),
-    });
-  }
-  return "<section class=\"card last-battle-note\" role=\"status\">"
-    + "<p class=\"eyebrow\">LAST BATTLE</p>"
-    + "<h3>第" + note.encounter + "戦・" + kindLabel + " — 突破した</h3>"
-    + "<p class=\"last-battle-facts\">" + facts.map((text) =>
-      "<span>" + esc(text) + "</span>").join("") + "</p>"
-    + ruleGrid(after) + "</section>";
-}
-
 // issue #235 — 旧「戦闘」タブ。**準備タブ（スキル・装備・補給）と役が違う。**
 // ここは「次の一戦へ進む」と、遠征そのものをどうするか（隊列の顔ぶれ・撤退・セーブ）を
 // 決める場所で、他の三枚のように何度も往復するタブではない。
@@ -7960,10 +7907,8 @@ function rewindPrologue() {
 //   2. ボス戦を突破した（装備の候補から一つ選ぶ）
 //   3. 12戦目を突破した（精算へ進む）
 //
-// それ以外の勝利は、決めることが何も無い画面を一枚挟むだけだった。通常戦・
-// 精鋭戦の後はそのままキャンプへ戻し、「直前の一戦で何が起きたか」は遠征タブの
-// 一行（`lastBattleNote`）が預かる。予測はキャンプに揃っているので、よほど
-// 悪くなければそのまま次へ進める。
+// それ以外の勝利はそのままキャンプへ戻し、踏破した節の4指標が
+// `run.results` から実績を読みます。
 function resultScreenDue() {
   if (state.simulationMode) return true;
   if (state.prologueActive) return true;
@@ -8024,13 +7969,9 @@ function simulateAndEnterBattle({ previewOnly = false } = {}) {
   // issue #240 — いま挑むのが必殺技の教材の一戦か。**戦う前に数えておく**
   // （勝つと encounterIndex が進むので、後から判定すると答えが変わる）。
   const lessonBattle = ultimateLessonActive();
-  // PR #255 — 直前の一戦の一行と、最終戦の受け取り印は、次の一戦を始めた
-  // 時点で役目を終える。
+  // 最終戦の受け取り印は、次の一戦を始めた時点で役目を終える。
   state.simulationMode = previewOnly;
-  if (!previewOnly) {
-    state.lastBattleNote = null;
-    state.rewardTakenAtEncounter = null;
-  }
+  if (!previewOnly) state.rewardTakenAtEncounter = null;
   try {
     const composed = currentEncounter();
     const simulation = simulateExpeditionBattle(
@@ -8180,37 +8121,6 @@ function simulateAndEnterBattle({ previewOnly = false } = {}) {
   render();
 }
 
-// PR #255 — ボス戦以外の勝利は結果画面を通らないので、「何が起きたか」は
-// ここで一度だけ写して遠征タブへ渡す。**戦闘の記録そのものではない**
-// （それは run.results と戦闘履歴が持つ）。次の一戦を始めた時点で消える。
-//
-// 作者試遊 2026-09-12 —「報酬画面の『戦闘後の状態』も複雑すぎて要らないかも。
-// 戦闘後キャンプの『LAST BATTLE』と同じモーダルでいいです。」なので、組み立ては
-// 純関数に分け、**装備を選ぶ画面とキャンプが同じ一枚を読む**ようにした。
-function buildBattleNote(completedEncounter) {
-  const result = state.lastResult;
-  if (!result || result.result !== "win") return null;
-  const encounter = currentEncounter();
-  const metrics = result.metrics || {};
-  return {
-    encounter: completedEncounter,
-    name: encounter?.name ?? "",
-    kind: encounter?.kind ?? "normal",
-    roundsUsed: result.roundsUsed ?? 0,
-    allyHpLost: metrics.allyHpLost ?? 0,
-    enemyHpLost: metrics.enemyHpLost ?? 0,
-    equipmentWear: metrics.equipmentWear ?? 0,
-    skillPoints: skillPointsForClear(encounter?.kind),
-    ultimateFiredBy: [...(state.lastCarrySnapshot?.ultimateFiredBy ?? [])],
-    downed: state.run.roster.filter((id) => currentHp(id) <= 0),
-    fullHealed: isCampaignRun() && (completedEncounter === 4 || completedEncounter === 8),
-  };
-}
-
-function captureLastBattleNote(completedEncounter) {
-  state.lastBattleNote = buildBattleNote(completedEncounter);
-}
-
 function advanceAfterBattle() {
   // R11 §5 改 — 巻き戻したあとの勝利（本編1戦目）は、報酬を受け取ってここへ来た
   // 時点で本当に序盤の演出を終える。prologueClear では落とさなかった
@@ -8224,7 +8134,6 @@ function advanceAfterBattle() {
   // 作者要望 2026-09-14 — 一戦目の後は技能、二戦目の後は補給。**同じ拍に二つは来ない。**
   const showSkillLesson = shouldShowSkillLessonAfterBattle();
   const showSupplyTutorial = shouldShowSupplyTutorialAfterBattle();
-  captureLastBattleNote(completedEncounter);
   state.run.encounterIndex += 1;
   state.rewardOffer = [];
   state.lastResult = null;
