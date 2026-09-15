@@ -1024,7 +1024,7 @@ try {
     const noteForecastParity = async (where, text) => {
       if (stage !== 1 || !forecastAtStage1) return;
       const forecastRounds = forecastAtStage1.verdict.match(/([0-9]+)ラウンド/)?.[1] ?? "";
-      const actualRounds = text.match(/([0-9]+)\\s*(?:ラウンド|R)/)?.[1] ?? "";
+      const actualRounds = text.match(/([0-9]+)\s*(?:ラウンド|R)/)?.[1] ?? "";
       const expectedVerdict = forecastAtStage1.result === "win" ? "突破した" : "足を止めた";
       note(`予測と${where}の勝敗・ラウンドが一致する`,
         verdict === expectedVerdict && forecastRounds === actualRounds,
