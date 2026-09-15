@@ -704,7 +704,7 @@ try {
       await page.locator('.encounter-archive [data-action="inspect-encounter"][data-encounter="1"]').click();
       note("敵情報はトグル無しで常に表示する",
         await page.locator(".enemy-details").count() === 1
-          && await page.locator(".enemy-details, .enemy-details > summary").count() === 0);
+          && await page.locator("details.enemy-details, .enemy-details > summary").count() === 0);
       const enemyCells = page.locator(".enemy-details .enemy-board-cell");
       const enemyBoardSlots = page.locator(".enemy-details .enemy-board .battle-units > *");
       note("敵も戦闘と同じ3列×2行の盤面で示される",
@@ -1024,7 +1024,7 @@ try {
     const noteForecastParity = async (where, text) => {
       if (stage !== 1 || !forecastAtStage1) return;
       const forecastRounds = forecastAtStage1.verdict.match(/([0-9]+)ラウンド/)?.[1] ?? "";
-      const actualRounds = text.match(/([0-9]+)(?:ラウンド|R)/)?.[1] ?? "";
+      const actualRounds = text.match(/([0-9]+)\\s*(?:ラウンド|R)/)?.[1] ?? "";
       const expectedVerdict = forecastAtStage1.result === "win" ? "突破した" : "足を止めた";
       note(`予測と${where}の勝敗・ラウンドが一致する`,
         verdict === expectedVerdict && forecastRounds === actualRounds,
