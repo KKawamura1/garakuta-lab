@@ -3377,7 +3377,7 @@ function renderCamp() {
     // issue #237 — タブの中身は `.camp-view` にまとめる。**立ち上がりを掛けるのはここだけ**で、
     // 上端の盤面（.camp-top）は動かさない（貼りついた盤が毎回跳ねると押し先が動く）。
     + "<div class=\"camp-view\">"
-    + tutorialNote + lastBattleNoteHtml() + view
+    + tutorialNote + view
     + "</div>");
 }
 
@@ -4669,9 +4669,62 @@ function inspectedEncounter() {
   return encounterForInspection(inspectedEncounterIndex());
 }
 
+function clearedEncounterResult(index) {
+  const results = Array.isArray(state.run.results) ? state.run.results : [];
+  return [...results].reverse().find((entry) =>
+    entry?.encounter === index && entry.result === "win") ?? null;
+}
+
+function encounterAftermath(index) {
+  if (index === ENCOUNTERS_PER_RUN) return "精算";
+  if (isCampaignRun() && (index === 4 || index === 8)) return "全快";
+  return "持越";
+}
+
+function encounterReport(index, encounter) {
+  const result = clearedEncounterResult(index);
+  const known = Boolean(result);
+  const rounds = known && Number.isFinite(result.roundsUsed) ? result.roundsUsed : "？";
+  const allyLoss = known && Number.isFinite(result.metrics?.allyHpLost)
+    ? result.metrics.allyHpLost
+    : "？";
+  const skillPoints = skillPointsForClear(encounter?.kind);
+  const aftermath = encounterAftermath(index);
+  const facts = [
+    { glyph: "skill", value: "+" + skillPoints, label: "技能点" },
+    { glyph: "vitality", value: aftermath, label: "HP" },
+    { glyph: "round", value: rounds, label: "ラウンド" },
+    { glyph: "cross", value: allyLoss, label: "味方損失" },
+  ];
+  const accessible = "技能点 +" + skillPoints + "・戦闘後HP " + aftermath + "・"
+    + rounds + "ラウンド・味方損失 " + allyLoss;
+  return "<div class=\"encounter-report " + (known ? "recorded" : "unknown")
+    + "\" data-report-known=\"" + (known ? "true" : "false")
+    + "\" aria-label=\"" + esc(accessible) + "\">"
+    + facts.map((fact) => "<span class=\"encounter-report-cell\">"
+      + glyph(fact.glyph) + "<span><b>" + esc(fact.value) + "</b><small>"
+      + esc(fact.label) + "</small></span></span>").join("")
+    + "</div>";
+}
+
+function encounterConsole(mode, index) {
+  const forecast = mode === "forecast";
+  return "<div class=\"encounter-console " + mode + "\" aria-label=\""
+    + (forecast ? "未来の戦闘を観測中" : "踏破済み戦闘の記録") + "\">"
+    + "<span class=\"encounter-console-mark\">" + glyph(forecast ? "eye" : "check") + "</span>"
+    + "<span class=\"encounter-console-copy\"><small>"
+    + (forecast ? "FUTURE SCOPE" : "BATTLE RECORD") + "</small><b>"
+    + (forecast ? "LINK ACTIVE" : "踏破済み") + "</b></span>"
+    + (forecast ? "<span class=\"encounter-console-signal\" aria-hidden=\"true\"><i></i><i></i><i></i></span>" : "")
+    + "<strong>" + String(index).padStart(2, "0") + "<small>/"
+    + ENCOUNTERS_PER_RUN + "</small></strong></div>";
+}
+
 function encounterArchive({ currentIndex = null } = {}) {
   const selectedIndex = inspectedEncounterIndex();
   const encounter = encounterForInspection(selectedIndex);
+  const recorded = Number.isInteger(currentIndex) && selectedIndex < currentIndex;
+  const mode = recorded ? "record" : "forecast";
   const kindMeta = {
     normal: { label: "通常", marker: "" },
     elite: { label: "精鋭", marker: "◆" },
@@ -4692,7 +4745,7 @@ function encounterArchive({ currentIndex = null } = {}) {
       : "available";
     const selected = step === selectedIndex;
     const label = "第" + step + "戦・" + meta.label + "・" + statusLabels[status]
-      + (selected ? "・投影中" : "");
+      + (selected ? "・表示中" : "");
     return "<button type=\"button\" class=\"map-node " + status + " kind-" + item.kind
       + (selected ? " inspected" : "") + "\" data-action=\"inspect-encounter\" data-encounter=\"" + step
       + "\" data-map-index=\"" + step + "\" data-map-kind=\"" + item.kind
@@ -4707,20 +4760,20 @@ function encounterArchive({ currentIndex = null } = {}) {
     ? "<div class=\"boss-law\"><b>" + esc(encounter.bossLaw.displayName) + "</b><p>"
       + esc(encounter.bossLaw.previewText) + "</p>" + counterChips([...encounter.bossLaw.counters]) + "</div>"
     : "";
-  return "<section class=\"card encounter-archive\" data-inspected-encounter=\"" + selectedIndex + "\">"
-    + sectionHeading("FUTURE ARCHIVE", "全戦投影",
-      "<span class=\"stage\">" + glyph("eye") + selectedIndex + " / " + ENCOUNTERS_PER_RUN + "</span>")
+  return "<section class=\"card encounter-archive mode-" + mode
+    + "\" data-inspected-encounter=\"" + selectedIndex + "\" data-inspection-mode=\"" + mode + "\">"
+    + encounterConsole(mode, selectedIndex)
     + "<div class=\"map-progress\" role=\"list\" aria-label=\"全" + ENCOUNTERS_PER_RUN + "戦の敵を選ぶ\">"
     + rail + "</div>"
-    + "<div class=\"encounter-projection\" role=\"region\" aria-live=\"polite\">"
+    + "<div class=\"encounter-projection " + mode + "\" role=\"region\" aria-live=\"polite\">"
     + "<div class=\"encounter-projection-head\"><span class=\"projection-index\">"
     + String(selectedIndex).padStart(2, "0") + "</span><span><b>" + esc(encounter.name)
     + "</b><small>第" + encounter.act + "幕 · " + kind.label + " · 危険度 " + encounter.spentThreat
     + " / " + encounter.budget + " · 最大" + encounter.maxRounds + "R</small></span></div>"
+    + encounterReport(selectedIndex, encounter)
     + "<p class=\"lead-small\">" + esc(encounter.description) + "</p>"
     + law
-    + "<details class=\"progressive-details enemy-details\" open><summary>敵 "
-    + encounter.enemies.length + "体 · 配置</summary>" + expeditionEnemyBoard(encounter) + "</details>"
+    + "<div class=\"enemy-details\">" + expeditionEnemyBoard(encounter) + "</div>"
     + "</div></section>";
 }
 
@@ -7282,7 +7335,8 @@ function renderResult() {
   // （先に撤退すると、選ばせておいて取り上げる形になる）。
   if (rewardLayout) {
     return shell(
-      nextBlock + lastBattleNoteHtml(buildBattleNote(state.run.encounterIndex))
+      nextBlock + "<section class=\"card result-encounter-report\">"
+      + encounterReport(state.run.encounterIndex, currentEncounter()) + "</section>"
       + rotationStrip(result) + replay + history);
   }
   return shell( status + nextBlock + stateCard + rotationStrip(result) + replay + history);
