@@ -169,7 +169,6 @@ const displayContracts = [
   ["戦闘の凡例", app, "function battleLegend()"],
   ["遠征の形の帯", app, "function expeditionShapeRail()"],
   ["content の強調を太字にする", app, "function emphasize(value)"],
-  ["区画の覚え書き", app, "function learningNotes(lines)"],
   ["数のタイルのCSS", styles, ".stat-tile {"],
   ["規則の段のCSS", styles, ".rule-cell {"],
   ["順の帯のCSS", styles, ".flow-strip {"],

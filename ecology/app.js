@@ -1567,11 +1567,9 @@ function emphasize(value) {
   return esc(value).replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
 }
 
-// その Stage で分かること。**読み物ではなく、持って入る覚え書きにする。**
-function learningNotes(lines) {
-  return "<ul class=\"learning-notes\">" + lines.map((line) =>
-    "<li>" + glyph("skill") + "<span>" + emphasize(line) + "</span></li>").join("") + "</ul>";
-}
+// 旧 learningNotes（区画の学びの覚え書き）は 2026-09-15 に撤去した。作者指摘
+// 「札の読み方と、この区画で分かること、まるまる要らない」——押す前に読ませるものでは
+// なかった。content 側の `learningGoals` は区画の定義として残してある。
 
 // 遠征の形。**「3幕12戦。4・8・12戦目にボスが立つ」と書く代わりに、12戦を並べる。**
 // 幕の切れ目・精鋭・ボスの位置は、印の形そのものが言う。
@@ -1888,6 +1886,7 @@ function render() {
   focusSelectedSkillNode();
   // 作者要望 2026-09-14 — 光る先が画面の外なら、こちらから寄せる（段が変わった回だけ）。
   focusTutorialSpot();
+  focusLaunchCard();
   if (state.phase === "battle") mountBattleView();
   if (state.phase === "story") mountStoryView();
   if (state.phase === "rewind") mountRewindView();
@@ -2196,37 +2195,60 @@ function stageCastStrip(sequence) {
 
 // ---------------------------------------------------------------- ギルドの札（作者指摘 2026-09-15）
 //
-// **札の数は、どれも「その中にいくつあるか」で揃える。**旧版は遠征＝戦数、投資＝活動資金、
-// 設計図＝件数と持込枠、根城＝人数、図鑑＝体数で、単位も意味もばらばらだった。しかも
-// 活動資金と持込枠は、開いた先の見出しが同じ数をもう一度出していた。
+// **札の並びは、遠征と遠征のあいだに人がたどる順そのものにする。**作者が数えた一番よくある
+// 一回はこうである——①遠征が終わり、②根城の会話の続きを読み、（③図鑑を少し眺め）、
+// ④資金を使い、⑤設計図を仕込み、⑥最新の区画へ出る。
 //
-// **活動資金は札ではなく帯そのものが持つ。**どの札を開いていても同じ場所で読め、
-// 買った瞬間に減るのが貼りついた上端で見える（`data-fx-watch="funds"`）。
-const GUILD_TAB_IDS = Object.freeze(["expedition", "guild", "blueprints", "homestead", "codex"]);
+// 旧版の並び（遠征・投資・設計図・根城・図鑑）はこの順の逆回りで、開く札が遠征だったので
+// **最初と最後に同じ札を押す**ことになっていた。並びを順のとおりにすると、左から右へ一度
+// なぞるだけで一回が終わる（同じ札を二度押す場面が無くなる）。
+//
+// **読み物と仕度も分ける。**根城と図鑑は「見る人は毎回見る、見ない人は一度も見ない」札で、
+// 投資・設計図・遠征は毎回必ず通る札である。境目に縦線を一本入れて、左が読み物・右が
+// 仕度だと形で分かるようにする。
+//
+// **札の数は、どれも「その中にいくつあるか」で揃える。**活動資金だけは札ではなく帯そのものが
+// 持つ（どの札を開いていても同じ場所で読め、買った瞬間に減るのが見える）。
+const GUILD_TABS = Object.freeze([
+  { id: "homestead", label: "根城" },
+  { id: "codex", label: "図鑑" },
+  // ここから右が「毎回必ず通る仕度」。
+  { id: "guild", label: "投資", groupStart: true },
+  { id: "blueprints", label: "設計図" },
+  { id: "expedition", label: "遠征" },
+]);
+const GUILD_TAB_IDS = Object.freeze(GUILD_TABS.map((tab) => tab.id));
 
-function guildTabItems() {
+// **帰ってきた人は読み物の端から、初めての人は出発から。**一度でも区画を越えていれば、
+// 根城には前回の続きがある（`back-guild` はそこへ開く）。まだ一度も越えていない回は
+// 根城も図鑑も空なので、出発の札で開く。
+function defaultGuildTab(profile = state.profile) {
+  return highestClearedStage(profile) >= 0 ? "homestead" : "expedition";
+}
+
+function guildTabMeta(id) {
   const archive = state.profile.blueprints ?? {};
-  const remaining = META_UPGRADES
-    .filter((upgrade) => upgradeCost(state.profile, upgrade.id) !== null).length;
-  return [
-    ["expedition", "遠征", ENCOUNTERS_PER_RUN + "戦"],
-    ["guild", "投資", "残り" + remaining],
-    ["blueprints", "設計図", (archive.entries?.length ?? 0) + "件"],
-    ["homestead", "根城", metCharacterIds().size + "人"],
-    ["codex", "図鑑", bestiaryEntries().length + "体"],
-  ];
+  return {
+    homestead: () => metCharacterIds().size + "人",
+    codex: () => bestiaryEntries().length + "体",
+    guild: () => "残り" + META_UPGRADES
+      .filter((upgrade) => upgradeCost(state.profile, upgrade.id) !== null).length,
+    blueprints: () => (archive.entries?.length ?? 0) + "件",
+    expedition: () => ENCOUNTERS_PER_RUN + "戦",
+  }[id]?.() ?? "";
 }
 
 // 貼りつく上端。**キャンプの `.camp-top` と同じ作り**で、活動資金と札を一つの塊にする。
 function guildTop() {
-  const tabs = "<nav class=\"tabs\" style=\"--tab-count:" + GUILD_TAB_IDS.length + "\""
+  const tabs = "<nav class=\"tabs\" style=\"--tab-count:" + GUILD_TABS.length + "\""
     + " aria-label=\"ギルド画面\">"
-    + guildTabItems().map(([id, label, meta]) => "<button type=\"button\" class=\"tab "
-      + (state.guildTab === id ? "active" : "")
-      + "\" aria-current=\"" + (state.guildTab === id ? "step" : "false")
-      + "\" data-action=\"guild-tab\" data-tab=\"" + id + "\" data-fx=\"guild-tab:" + id + "\">"
-      + "<b>" + esc(label) + "</b>"
-      + "<small data-fx-watch=\"guild-tab-meta:" + id + "\">" + esc(meta) + "</small></button>").join("")
+    + GUILD_TABS.map((tab) => "<button type=\"button\" class=\"tab "
+      + (state.guildTab === tab.id ? "active" : "") + (tab.groupStart ? " group-start" : "")
+      + "\" aria-current=\"" + (state.guildTab === tab.id ? "step" : "false")
+      + "\" data-action=\"guild-tab\" data-tab=\"" + tab.id + "\" data-fx=\"guild-tab:" + tab.id + "\">"
+      + "<b>" + esc(tab.label) + "</b>"
+      + "<small data-fx-watch=\"guild-tab-meta:" + tab.id + "\">"
+      + esc(guildTabMeta(tab.id)) + "</small></button>").join("")
     + "</nav>";
   return "<div class=\"guild-top\">"
     + "<div class=\"guild-funds\">" + glyph("funds", "guild-funds-mark")
@@ -2253,44 +2275,61 @@ function guildMemberStrip(characterId, label) {
     + "</div>";
 }
 
-// 遠征タブ。**順番は「どこへ行くか → 何を連れて何と戦うか → 出る」。**
-// 旧版は「今回の遠征」が先で、行き先の選択が全12戦の投影の下にあった。選ぶ前の説明を
-// 先に読ませる並びだったので、行き先を変えるたびに画面を上下させることになっていた。
+// 行き先を選び直した回だけ、出発の一枚をこちらから寄せる。**釦は選び直しの上にある**ので、
+// 下で札を押した手は、そのままでは新しい行き先も釦も見られない（手取りの
+// `focusTutorialSpot` と同じ考え方で、光る先が画面の外ならこちらから寄せる）。
+let pendingLaunchFocus = false;
+
+function focusLaunchCard() {
+  if (!pendingLaunchFocus) return;
+  pendingLaunchFocus = false;
+  const card = app.querySelector(".launch-card");
+  if (!card || card.getBoundingClientRect().top >= 0) return;
+  const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
+  // 出発の一枚は札の頭なので、頁ごと上端へ戻せば貼りついた帯の下に収まる。
+  window.scrollTo({ top: 0, behavior });
+}
+
+// 遠征タブ。**この札の用は一つしかない——出ることである。**だから釦を先頭に置く。
+//
+// 作者指摘 2026-09-15（二度目）—「遠征に進むボタンがめっちゃ下にある」。旧版はこの札に
+// 行き先の一覧・今回の遠征・全12戦の投影を積んでから、その下に釦を置いていた。
+//
+// 落としたものが三つある。
+//   - **全12戦の投影**。ここで敵を検める用はほとんど無い（同じ盤はキャンプの遠征タブに
+//     あり、出たあとで何度でも見られる）。
+//   - **「今回の遠征」**。行き先の名前も同行者も、この札の頭が既に出している。
+//   - **「札の読み方と、この区画で分かること」**。押す前に読ませるものではない。
+//
+// 行き先は既定で最新の解禁区画になっている。作者の見立てでは、新しい区画が開いた回は
+// 99% それを選び、開かなかった回は 90% 前と同じ（＝同じく最新）を選ぶ。**既定のまま出る
+// のが普通の一回**なので、選び直しは釦の下へ置き、選べる先が一つしか無い回は出さない。
 function renderExpeditionPlan() {
   const manifest = state.run.manifest;
   const sequence = state.selectedCampaignStageSequence;
-  const stage = CAMPAIGN_STAGES[sequence];
   const campaignStages = availableCampaignStages(state.profile);
-  const packs = SKILL_PACKS.filter((pack) => manifest.enabledPackIds.includes(pack.id))
-    .map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
-      + "</b><small>" + esc(pack.summary) + "</small><span>"
-      + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
-  const goals = stage?.learningGoals?.length ? [...stage.learningGoals] : [];
-  // 作者要望 2026-09-15 — 読み物は畳む。**押す前に読ませるものは、札そのものが出す三つだけ。**
-  // 記号の意味と「この区画で分かること」は、開きたい人が開く一枚へまとめる。
-  const destination = "<section class=\"card\">" + sectionHeading("", "行き先を選ぶ")
-    + segmentMeter(campaignStages.length, MAX_CAMPAIGN_STAGE_SEQUENCE + 1,
-      { label: "解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) })
-    + "<div class=\"difficulty-grid\">" + campaignStages.map(campaignStageCard).join("") + "</div>"
-    + helpDetails("stage-brief", "札の読み方と、この区画で分かること",
-      ruleGrid([
-        { glyph: "person", title: "人数", value: "区画が決める", line: "同行者は Stage の定義そのもの。選んで増やせません。" },
-        { glyph: "spark", title: "今回初登場", value: "技能パック", line: "その区画で初めて引けるようになる語彙。" },
-        { glyph: "gear", title: "有効パック", value: "引ける語彙の数", line: "過去の区画のパックも積み上がります。" },
-        { glyph: "lock", title: "順に解禁", value: "飛ばせない", line: "前の区画をクリアすると、次の一つが開く。", tone: "bad" },
-      ])
-      + (goals.length ? learningNotes(goals) : ""))
-    + "</section>";
+  const packs = SKILL_PACKS.filter((pack) => manifest.enabledPackIds.includes(pack.id));
+  const packRows = packs.map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
+    + "</b><small>" + esc(pack.summary) + "</small><span>"
+    + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
   // 作者要望 2026-09-13 — 遠征の形は**文ではなく並び**で出す（REGION.summary の
   // 「3幕12戦。4・8・12戦目にボスが立つ」は、この帯そのものである）。
-  const plan = "<section class=\"card\">" + sectionHeading("", "今回の遠征")
+  const launch = "<section class=\"card launch-card\">" + sectionHeading("", "遠征へ出る")
     + stageCastStrip(sequence)
     + expeditionShapeRail()
-    + "<h3 class=\"training-heading\">有効な技能パック</h3>"
-    + "<div class=\"pack-list\">" + packs + "</div></section>";
-  return destination + plan + encounterArchive({ currentIndex: null })
-    + "<section class=\"card launch-card\">"
-    + button("この条件で遠征へ出る", "begin-expedition", false, "button primary") + "</section>";
+    + button("この条件で遠征へ出る", "begin-expedition", false, "button primary")
+    + helpDetails("run-packs", "この遠征で引ける技能パック " + packs.length,
+      "<div class=\"pack-list\">" + packRows + "</div>")
+    + "</section>";
+  // 選べる先が一つしか無い回（第一部の入口）には、選び直しの節を出さない。
+  const destination = campaignStages.length > 1
+    ? "<section class=\"card\">" + sectionHeading("", "行き先を変える")
+      + segmentMeter(campaignStages.length, MAX_CAMPAIGN_STAGE_SEQUENCE + 1,
+        { label: "解禁 " + campaignStages.length + " / " + (MAX_CAMPAIGN_STAGE_SEQUENCE + 1) })
+      + "<div class=\"difficulty-grid\">" + campaignStages.map(campaignStageCard).join("") + "</div>"
+      + "</section>"
+    : "";
+  return launch + destination;
 }
 
 function renderExpeditionStart() {
@@ -8435,6 +8474,9 @@ function handleAction(event) {
     state.phase = "expeditionStart";
     state.selectedCampaignStageSequence = campaignStage;
     state.guildCharacter = guildCharacterId;
+    // **開く札は、ジャーニーの先頭。**旧版はここで遠征（＝出口）の札を開いていたので、
+    // 根城から順に見て回ると、最初と最後で同じ札を押すことになっていた。
+    state.guildTab = defaultGuildTab(profile);
     saveState();
     render();
     return;
@@ -8455,6 +8497,7 @@ function handleAction(event) {
     state.inspectedEncounterIndex = 1;
     state.selectedEnemyId = null;
     fx("stage:" + sequence, "select");
+    pendingLaunchFocus = true;
     saveState();
     render();
     return;

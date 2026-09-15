@@ -211,30 +211,33 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForTimeout(300);
   const guildText = await bodyText();
-  note("ギルド（遠征の準備）に着く", /今回の遠征/.test(guildText));
-  note("有効な技能パックが出ている", /有効な技能パック/.test(guildText));
+  note("ギルド（遠征の準備）に着く", /遠征へ出る/.test(guildText));
   note("ギルドの戻る操作はタブ内容内にある",
     await page.locator(".screen-actions").count() === 0
       && await page.locator(".guild-tools").count() === 0
       && await page.locator(".guild-actions [data-action=\"back-title\"]").count() === 1);
   note("未解禁の pack を出していない", !/この遠征では出ない/.test(guildText));
-  const guildEncounterNodes = page.locator('.encounter-archive [data-action="inspect-encounter"]');
-  note("ギルドで全12戦を選んで見られる", await guildEncounterNodes.count() === 12);
-  await guildEncounterNodes.nth(11).click();
-  note("ギルドで最終戦の盤面まで投影できる",
-    await page.locator('.encounter-archive').getAttribute("data-inspected-encounter") === "12"
-      && await page.locator('.encounter-archive').getAttribute("data-inspection-mode") === "forecast"
-      && await page.locator(".encounter-console.forecast").count() === 1
-      && await page.locator(".encounter-projection.forecast .enemy-board-cell").count() > 0);
-  note("敵の能力・使用技能・狙い方が同じ詳細に揃う",
-    await page.locator(".enemy-selection-detail .enemy-stat-grid > span").count() === 6
-      && await page.locator(".enemy-selection-detail .enemy-skill-row").count() > 0
-      && (await page.locator(".enemy-selection-detail .enemy-targeting").innerText()).trim().length > 0);
-  // 作者要望 2026-09-15 — 投影は盤面と4指標だけ。ボス法則の解説文は出さない。
-  note("ボス法則の解説文を投影へ戻していない",
-    !/の法則/.test(await page.locator(".encounter-projection").innerText()));
-  await guildEncounterNodes.nth(0).click();
-  note("行き先の選択が出ている", /行き先を選ぶ/.test(guildText));
+  // 作者指摘 2026-09-15（二度目）— 札の並びは、遠征と遠征のあいだに人がたどる順そのもの。
+  // 根城 → 図鑑 →（縦線）→ 投資 → 設計図 → 遠征。左が読み物、右が毎回通る仕度である。
+  note("札は導線の順に並ぶ",
+    JSON.stringify(await page.locator("nav.tabs .tab").evaluateAll((tabs) =>
+      tabs.map((tab) => tab.dataset.tab)))
+      === JSON.stringify(["homestead", "codex", "guild", "blueprints", "expedition"]));
+  note("読み物と仕度が縦線で分かれる",
+    await page.locator('nav.tabs .tab.group-start[data-tab="guild"]').count() === 1);
+  // 「遠征に進むボタンがめっちゃ下にある」— 出発の釦は札の頭に置く。
+  note("出発の釦がスクロールなしで押せる",
+    await page.locator('[data-action="begin-expedition"]').evaluate((element) =>
+      element.getBoundingClientRect().bottom) < SAFARI_VISIBLE_HEIGHT);
+  // ギルドで敵を検める用はほとんど無い（同じ盤はキャンプの遠征タブにあり、出たあとで
+  // 何度でも見られる）。投影そのものの検査は、下のキャンプの節が全部踏んでいる。
+  note("ギルドに全12戦の投影を積んでいない", await page.locator(".encounter-archive").count() === 0);
+  note("引ける技能パックは畳んである",
+    await page.locator('[data-help="run-packs"]').count() === 1
+      && await page.locator('[data-help="run-packs"]').evaluate((element) => !element.open));
+  note("押す前に読ませる区画の解説を出さない",
+    !/札の読み方|この区画で分かること/.test(guildText));
+  note("行き先の選び直しが出ている", /行き先を変える/.test(guildText));
   note("難易度rankの選択が残っていない", !/どの難易度で出るか/.test(guildText));
 
   // R6 §9.3 — ギルド投資。**買い物の画面が実在して、値段と残高が出るか。**
@@ -257,7 +260,7 @@ try {
   await click("つづきから");
   await page.waitForTimeout(300);
   note("Continueで遠征準備へ復帰する",
-    await page.locator(".title-screen").count() === 0 && /今回の遠征/.test(await bodyText()));
+    await page.locator(".title-screen").count() === 0 && /遠征へ出る/.test(await bodyText()));
 
   // 修正前に作られた、phase=intro だけのオートセーブも救済する。
   await page.evaluate(() => {
@@ -273,7 +276,7 @@ try {
   await click("つづきから");
   await page.waitForTimeout(300);
   note("既存のオートセーブからも遠征準備へ復帰する",
-    await page.locator(".title-screen").count() === 0 && /今回の遠征/.test(await bodyText()));
+    await page.locator(".title-screen").count() === 0 && /遠征へ出る/.test(await bodyText()));
 
   // R12 — **この台本が見るのは12戦の長い流れであって、序盤のチュートリアルではない。**
   // 序盤の会話・勝てない一戦・巻き戻しは analysis/ecology-tutorial-trial.mjs の担当なので、
@@ -1348,6 +1351,10 @@ try {
   note("根城の一枚に着く", /直しかけの家/.test(await bodyText()));
   await click("ギルドへ");
   await page.waitForTimeout(250);
+  // **開く札はジャーニーの先頭（根城）。**旧版は出口の遠征を開いていたので、見て回ると
+  // 最初と最後に同じ札を押すことになっていた。
+  note("ギルドは根城の札で開く",
+    await page.locator('nav.tabs .tab.active').getAttribute("data-tab") === "homestead");
   await page.locator('[data-action="guild-tab"][data-tab="codex"]').click();
   await page.waitForTimeout(250);
   const codexText = await bodyText();

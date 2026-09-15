@@ -948,6 +948,15 @@ button.party-cell { cursor: pointer; }
   font-weight: 700;
 }
 .tab.active { background: var(--panel-3); color: var(--gold); }
+/* 作者指摘 2026-09-15（二度目）— 読み物の札（根城・図鑑）と、毎回必ず通る仕度の札
+   （投資・設計図・遠征）を、縦線一本で分ける。**並びは人がたどる順のままにする**ので、
+   分けるのに順を入れ替えない。 */
+.tabs .tab.group-start {
+  border-left: 1px solid var(--line);
+  border-radius: 0 8px 8px 0;
+  margin-left: 3px;
+  padding-left: 7px;
+}
 .section-head {
   display: flex;
   align-items: flex-start;
@@ -3197,33 +3206,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 
 /* 区画で分かること。**読み物ではなく、持って入る覚え書き。** */
-.learning-notes {
-  display: grid;
-  gap: 5px;
-  margin: 9px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.learning-notes li {
-  display: grid;
-  grid-template-columns: 15px 1fr;
-  gap: 8px;
-  align-items: start;
-  padding: 7px 9px;
-  border-left: 2px solid var(--line);
-  border-radius: 0 8px 8px 0;
-  background: rgba(24,33,36,.6);
-  color: var(--muted);
-  font-size: 10.5px;
-  line-height: 1.6;
-}
-.learning-notes .glyph {
-  width: 15px;
-  height: 15px;
-  margin-top: 1px;
-  color: var(--violet);
-}
-.learning-notes b { color: var(--ink); }
+/* 旧 .learning-notes（区画の学びの覚え書き）は 2026-09-15 に撤去した。 */
 
 .boss-grid { display: grid; gap: 8px; margin-top: 12px; }
 .boss-card {
@@ -3363,9 +3346,21 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .filter-chips .tiny-button { flex: 0 0 auto; margin: 0; }
 
-/* 出撃の一枚。**押す場所は、読むものの外へ出す。** */
-.launch-card { text-align: center; }
-.launch-card .button { margin-top: 0; }
+/* 出撃の一枚。**この札の用は出ることだけなので、釦は札の頭に置く。**
+   作者指摘 2026-09-15（二度目）「遠征に進むボタンがめっちゃ下にある」。 */
+.launch-card .act-rail { margin-bottom: 4px; }
+.launch-card .button { margin-top: 12px; }
+.launch-card .help-details {
+  margin: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+.launch-card .help-details summary { padding: 10px 0 0; }
+/* 行き先は既定のまま出るのが普通の一回なので、選び直しの札は少し引いた色で置く。 */
+.plan-stage b { display: block; }
 
 .purchase-list { display: grid; gap: 6px; margin-top: 10px; }
 /* 作者要望 2026-09-13 — 投資の行は「記号・中身・値段」の三列。**段は目盛りが言う。** */
