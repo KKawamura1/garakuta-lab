@@ -190,7 +190,7 @@ const progressiveContracts = [
   ["結果画面の主操作", app, "primary-action result-primary-action"],
   ["敗北画面の主操作", app, "primary-action defeat-primary-action"],
   ["精算画面の主操作", app, "primary-action settlement-primary-action"],
-  ["敵情報の折り畳み", app, "progressive-details enemy-details"],
+  ["敵情報の常時表示", app, '<div class=\\"enemy-details\\">'],
   ["敵の3列×2行盤面", app, "function expeditionEnemyBoard(encounter)"],
   ["敵セルの選択操作", app, "select-expedition-enemy"],
   ["選択した敵の詳細", app, "enemy-selection-detail"],
@@ -245,7 +245,11 @@ for (const [label, expected] of [
   ["マップの凡例", "map-legend"],
   ["マップの未到達状態", "unreached"],
   ["全戦を選ぶ操作", 'data-action=\\"inspect-encounter\\"'],
-  ["全戦投影の閲覧位置", "data-inspected-encounter"],
+  ["全戦盤の閲覧位置", "data-inspected-encounter"],
+  ["過去／未来の表示モード", "data-inspection-mode"],
+  ["戦闘ごとの4指標", "encounter-report"],
+  ["戦闘結果の既知／未知", "data-report-known"],
+  ["ゲーム内端末の表示", "encounter-console"],
   ["敵の能力6軸", "enemy-stat-grid"],
   ["敵の使用技能", "enemy-skill-row"],
   ["敵の狙い方", "enemy-targeting"],
@@ -254,6 +258,15 @@ for (const [label, expected] of [
 }
 if (mapRenderer.includes("enemy-grid")) {
   problems.push("遠征マップが旧い敵カードの2列表示を直接使っている");
+}
+if (mapRenderer.includes('sectionHeading("FUTURE ARCHIVE", "全戦投影"')) {
+  problems.push("全戦投影が通常の見出し文字へ戻っている");
+}
+if (mapRenderer.includes("progressive-details enemy-details")) {
+  problems.push("常に見る敵盤面が折り畳みに戻っている");
+}
+for (const expected of [".encounter-console.forecast", ".encounter-projection.forecast", ".encounter-projection.record"]) {
+  if (!styles.includes(expected)) problems.push("過去／未来の見た目を分けるCSSが無い: " + expected);
 }
 for (const forbidden of [
   ".map-node.kind-elite { border-color:",
