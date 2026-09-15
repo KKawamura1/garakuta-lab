@@ -736,17 +736,14 @@ try {
   const resultAfterWinText = await bodyText();
   note("巻き戻しての勝利がそのまま本編第1戦になる",
     !/この一戦は遠征に数えません/.test(resultAfterWinText));
-  await page.locator(
-    '.encounter-archive [data-action="inspect-encounter"][data-encounter="1"]').click();
-  const battleReport = page.locator(".encounter-projection.record .encounter-report.recorded");
-  const battleReportText = await battleReport.innerText();
-  const won = await battleReport.getAttribute("data-report-known") === "true";
-  note("第1戦を突破する", won, battleReportText.replace(/\s+/g, " ").slice(0, 80));
+  const completedEncounter = page.locator(
+    '.encounter-archive [data-action="inspect-encounter"][data-encounter="1"]');
+  const completedEncounterLabel = await completedEncounter.getAttribute("aria-label") ?? "";
+  const won = /クリア済み/.test(completedEncounterLabel);
+  note("第1戦を突破する", won, completedEncounterLabel);
   note("通常戦の勝利は結果画面を挟まずキャンプへ戻る",
     won && await page.locator(".reward-choices").count() === 0
       && await page.locator("nav.tabs").count() === 1);
-  note("踏破した節にラウンド数と技能点が出る",
-    /ラウンド/.test(battleReportText) && /技能点/.test(battleReportText));
   if (won) {
     // ---- 作者要望 2026-09-14 — **一戦目の後は技能の取得・予約。** ----------------
     //
@@ -868,6 +865,18 @@ try {
         await page.locator("#app .tutorial-blocked").count() === 0
           && await mapTabDuringSkill.isEnabled()
           && /ゴウ/.test(await page.locator(".member-context").innerText()));
+      // チュートリアル中は節選択を閉じているので、錠が外れてから戦歴を開く。
+      await completedEncounter.click();
+      await page.waitForTimeout(200);
+      const battleReport = page.locator(".encounter-projection.record .encounter-report.recorded");
+      const battleReportText = await battleReport.innerText();
+      note("踏破した節にラウンド数と技能点が出る",
+        await battleReport.getAttribute("data-report-known") === "true"
+          && /ラウンド/.test(battleReportText) && /技能点/.test(battleReportText),
+        battleReportText.replace(/\s+/g, " ").slice(0, 80));
+      await page.locator(
+        '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
+      await page.waitForTimeout(150);
       note("最後は光らせず、自分で選ばせる",
         await skillSpot().count() === 0
           && /自分で決める|あなたが決める/.test(await skillCard.innerText()));
