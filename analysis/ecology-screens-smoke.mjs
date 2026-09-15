@@ -167,7 +167,6 @@ const displayContracts = [
   ["残る／消えるの二列", app, "function splitColumns(keep, lose"],
   ["決着の印", app, "function verdictSigil(kind)"],
   ["戦闘の凡例", app, "function battleLegend()"],
-  ["遠征の形の帯", app, "function expeditionShapeRail()"],
   ["content の強調を太字にする", app, "function emphasize(value)"],
   ["数のタイルのCSS", styles, ".stat-tile {"],
   ["規則の段のCSS", styles, ".rule-cell {"],
@@ -177,7 +176,6 @@ const displayContracts = [
   ["残る／消えるの二列のCSS", styles, ".split-col.lose b"],
   ["決着の印のCSS", styles, ".verdict-sigil {"],
   ["戦闘の凡例のCSS", styles, ".legend-bar .seg.recoverable"],
-  ["遠征の形の帯のCSS", styles, ".act-node.kind-boss"],
   ["active の CSS クラス", styles, ".kind-active"],
   ["reactive の CSS クラス", styles, ".kind-reactive"],
   ["passive の CSS クラス", styles, ".kind-passive"],
@@ -447,8 +445,14 @@ for (const [label, expected] of [
   // 作者指摘 2026-09-15 — 同行者の名前は**選んだ一枚ぶんだけ**（`stageCastStrip`）へ移した。
   // 札は人数だけを出す。どちらも Stage 定義から引くことは変わらない（旧「5人・自由編成」へ戻さない）。
   ["行き先の札のStage人数", 'stage.partySize + "人</span>"'],
-  ["選んだ区画の同行者", "stage.castCharacterIds.map((id) =>"],
-  ["同行者を出すのは踏破済みの区画だけ", "isCampaignStageCleared(state.profile, sequence)\n    ? stage.castCharacterIds"],
+  ["連れていく隊の行", "stage.castCharacterIds.map((id) =>"],
+  // R12 §4.E-1 — 判定は profile だけを見る（`metCharacterIds` は run.roster を足すので、
+  // 選んだ区画の roster 経由で、これから加入する人物の id が漏れる）。そして
+  // `availableCharacterIds` は**次の区画の加入者を既に含む**ので、区画の踏破も併せて見る。
+  ["未加入の同行者を伏せる", "const known = new Set(availableCharacterIds(state.profile));"],
+  ["まだ越えていない区画の加入者を伏せる",
+    "const joiner = isCampaignStageCleared(state.profile, sequence) ? null : stage.joiningCharacterId;"],
+  ["伏せた同行者に名前も能力も出さない", 'if (!known.has(id) || id === joiner) {'],
 ]) {
   if (!app.includes(expected)) problems.push(label + "が見つからない");
 }

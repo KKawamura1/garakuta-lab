@@ -3137,66 +3137,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .pack-row.off { opacity: .55; }
 
 /* 遠征の形。**12戦を並べれば、幕もボスの位置も説明せずに読める。** */
-.act-rail {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  margin-top: 12px;
-}
-.act-group {
-  display: grid;
-  flex: 1;
-  gap: 5px;
-  justify-items: center;
-}
-.act-group b {
-  color: var(--muted);
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: .06em;
-}
-.act-nodes {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 6px 4px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: rgba(24,33,36,.55);
-}
-.act-node {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--panel-3);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
-}
-.act-node.kind-elite {
-  border-radius: 1px;
-  background: var(--blue);
-  transform: rotate(45deg) scale(.88);
-}
-.act-node.kind-boss {
-  border-radius: 1px;
-  background: var(--gold);
-  box-shadow: 0 0 7px rgba(229,184,105,.5);
-  transform: rotate(45deg);
-}
-.act-legend {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 9.5px;
-}
-.act-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.act-legend .act-node { flex: none; }
+/* 旧 .act-*（3幕12戦の並び）は 2026-09-15 に撤去した。どの区画でも同じ並びだった。 */
 
 .boss-at {
   margin-left: auto;
@@ -3316,25 +3257,26 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .guild-caution .glyph { width: 13px; height: 13px; }
 
-/* 選んだ区画へ誰と入るか。**名前は画面に一度だけ出す。** */
-.plan-stage { margin: 10px 0 8px; }
-.plan-stage b { color: var(--gold); font-size: 13px; }
-.cast-strip { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
-.cast-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+/* 連れていく隊。**能力値は issue #236 の共通形をそのまま使う**ので、ここが持つのは
+   行の枠と、投資へ飛ぶ釦の置き場だけである（旧 .cast-chip は隊の行が引き取った）。 */
+.plan-stage { margin: 2px 0 12px; }
+.plan-stage b { display: block; color: var(--gold); font-size: 15px; }
+.roster-rows { display: grid; gap: 6px; }
+.roster-row {
+  padding: 9px 10px;
   border: 1px solid var(--line);
   border-left: 2px solid var(--accent, var(--line));
-  border-radius: 7px;
-  background: #172124;
-  color: var(--ink);
-  font-size: 11px;
+  border-radius: 9px;
+  background: var(--panel-2);
 }
-.cast-chip i { font-style: normal; color: var(--accent, var(--blue)); }
-.cast-chip.unknown { color: var(--muted); border-left-color: var(--line); }
-.cast-chip .glyph { width: 12px; height: 12px; opacity: .8; }
+.roster-row-head { display: flex; align-items: center; gap: 8px; }
+.roster-row-name { display: grid; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.roster-row-name b { font-size: 12px; }
+.roster-row-name small { color: var(--muted); font-size: 9.5px; }
+.roster-row-head .tiny-button { flex: 0 0 auto; margin: 0; }
+.roster-row .character-stats { margin-top: 7px; padding-top: 7px; }
+.roster-row.unknown { border-left-color: var(--line); opacity: .65; }
+.roster-row.unknown .avatar { background: var(--line); color: var(--muted); }
 
 /* 絞り込みの粒。**折り返さず横へ流す**（旧版は 8 個の釦が 2 列 5 段になっていた）。 */
 .filter-chips {
@@ -3348,7 +3290,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 
 /* 出撃の一枚。**この札の用は出ることだけなので、釦は札の頭に置く。**
    作者指摘 2026-09-15（二度目）「遠征に進むボタンがめっちゃ下にある」。 */
-.launch-card .act-rail { margin-bottom: 4px; }
 .launch-card .button { margin-top: 12px; }
 .launch-card .help-details {
   margin: 12px 0 0;
@@ -3359,8 +3300,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   background: transparent;
 }
 .launch-card .help-details summary { padding: 10px 0 0; }
-/* 行き先は既定のまま出るのが普通の一回なので、選び直しの札は少し引いた色で置く。 */
-.plan-stage b { display: block; }
 
 .purchase-list { display: grid; gap: 6px; margin-top: 10px; }
 /* 作者要望 2026-09-13 — 投資の行は「記号・中身・値段」の三列。**段は目盛りが言う。** */

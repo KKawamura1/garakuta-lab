@@ -1225,7 +1225,8 @@ try {
   await page.locator('[data-action="guild-tab"][data-tab="blueprints"]').click();
   await page.waitForTimeout(200);
   const archiveText = await bodyText();
-  note("Blueprint archive の画面がある", /残した品の設計図/.test(archiveText));
+  note("Blueprint archive の画面がある",
+    /設計図のルール/.test(archiveText) && await page.locator(".blueprint-card").count() > 0);
   const carry = page.getByRole("button", { name: "この遠征へ持ち込む" });
   note("持ち込むボタンがある", await carry.count() > 0, archiveText.slice(0, 0));
   let carriedName = null;
@@ -1234,7 +1235,11 @@ try {
     await carry.first().click();
     await page.waitForTimeout(200);
     note("持込に切り替わる", /持込を外す/.test(await bodyText()));
-    note("持込枠の数が出ている", /持込 1 \/ \d/.test(await bodyText()));
+    // 作者指摘 2026-09-15（三度目）— 持込の数は見出しではなく**札の meta** が出す
+    // （見出し「残した品の設計図」は札の言い直しなので落とした）。
+    note("持込枠の数が札に出ている",
+      /^持込 1\/\d$/.test((await page.locator('[data-fx-watch="guild-tab-meta:blueprints"]')
+        .innerText()).trim()));
   }
 
   // 次の遠征を始めると、持ち込んだ品が最初から手元にある。
@@ -1318,7 +1323,7 @@ try {
   await page.locator('[data-action="guild-tab"][data-tab="codex"]').click();
   await page.waitForTimeout(200);
   const codexText = await bodyText();
-  note("図鑑の画面がある", /会った灰殻の記録/.test(codexText));
+  note("図鑑の画面がある", /詰所へ出す控えの写し/.test(codexText));
   note("会った敵が載っている", /灰殻/.test(codexText) && /見た \d/.test(codexText));
   note("まだ倒していない敵の噂は出ない", !/幕の奥に一つだけある/.test(codexText));
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();

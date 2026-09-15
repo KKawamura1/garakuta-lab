@@ -407,9 +407,8 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 | `splitColumns(keep, lose)` | 残るもの／消えるもの | 精算 |
 | `verdictSigil(kind)` | 決着の印（勝ち・退き・敗け） | 敗北・精算・完走 |
 | `battleLegend()` | 盤面と同じ帯・色・点の凡例 | 戦闘画面の「表示の説明」 |
-| `expeditionShapeRail()` | 12戦の並び（幕・精鋭・ボスの位置） | 遠征の準備 |
 | `emphasize(value)` | content の `**強調**` を太字にする | 区画の学び |
-| `stageCastStrip(sequence)` | 選んだ区画の同行者（名前は画面に一度だけ） | 遠征の準備 |
+| `expeditionPartyCard(sequence)` | 連れていく隊（共通4軸＋投資への飛び先） | 遠征の準備 |
 | `guildMemberStrip(id, label)` | ギルドで「いま見ている一人」を選ぶ帯 | 鍛錬・名簿 |
 | `.tab-note` | 節の一行注記（規則の段を置くほどではないもの） | 根城・名簿・図鑑 |
 
