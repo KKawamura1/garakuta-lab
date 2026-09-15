@@ -6394,6 +6394,11 @@ button.party-cell:active:not(:disabled),
    踏破済みの回だけ、走査を止めて読み値を緑へ寄せ、「これは記録だ」と言う。 */
 .encounter-archive {
   position: relative;
+  /* 作者指摘 2026-09-15 — 窓の中の重なり（見出し z-index 2・走査線 1）は、**窓の中で
+     閉じる。**閉じないと、貼りついたチュートリアルの札（`.tutorial-note-card.pinned`、
+     同じ z-index 2 で DOM 上は前）の手前へ見出しが出る。上端の窓は `.camp-top`
+     （z-index 3 の sticky）が既に文脈を作っているので、こちらだけが漏れていた。 */
+  isolation: isolate;
   overflow: hidden;
   padding: 8px 10px 10px;
   border-radius: 12px;
