@@ -190,7 +190,7 @@ const progressiveContracts = [
   ["結果画面の主操作", app, "primary-action result-primary-action"],
   ["敗北画面の主操作", app, "primary-action defeat-primary-action"],
   ["精算画面の主操作", app, "primary-action settlement-primary-action"],
-  ["敵情報の折り畳み", app, "progressive-details enemy-details"],
+  ["敵情報の常時表示", app, '<div class=\\"enemy-details\\">'],
   ["敵の3列×2行盤面", app, "function expeditionEnemyBoard(encounter)"],
   ["敵セルの選択操作", app, "select-expedition-enemy"],
   ["選択した敵の詳細", app, "enemy-selection-detail"],
@@ -225,13 +225,16 @@ for (const [label, sourceText, forbidden] of [
 ]) {
   if (sourceText.includes(forbidden)) problems.push(label + "が残っている（新しい画面へ選択が漏れる）");
 }
+const archiveRendererStart = app.indexOf("function enemySkillRows(");
+const archiveRendererEnd = app.indexOf("\n// 遠征の敵セル", archiveRendererStart);
 const mapRendererStart = app.indexOf("function renderMap()");
 const mapRendererEnd = app.indexOf("\nfunction treatmentTargetIds", mapRendererStart);
-if (mapRendererStart < 0 || mapRendererEnd < 0) {
-  console.error("ecology-screens smoke: renderMap() の範囲を見つけられなかった。");
+if (archiveRendererStart < 0 || archiveRendererEnd < 0 || mapRendererStart < 0 || mapRendererEnd < 0) {
+  console.error("ecology-screens smoke: encounterArchive() / renderMap() の範囲を見つけられなかった。");
   process.exit(1);
 }
-const mapRenderer = app.slice(mapRendererStart, mapRendererEnd);
+const mapRenderer = app.slice(archiveRendererStart, archiveRendererEnd)
+  + app.slice(mapRendererStart, mapRendererEnd);
 for (const [label, expected] of [
   ["マップのノード番号", "data-map-index"],
   ["マップの戦闘種別", "data-map-kind"],
@@ -241,11 +244,29 @@ for (const [label, expected] of [
   ["マップの精鋭・ボス記号", "map-kind-badge"],
   ["マップの凡例", "map-legend"],
   ["マップの未到達状態", "unreached"],
+  ["全戦を選ぶ操作", 'data-action=\\"inspect-encounter\\"'],
+  ["全戦盤の閲覧位置", "data-inspected-encounter"],
+  ["過去／未来の表示モード", "data-inspection-mode"],
+  ["戦闘ごとの4指標", "encounter-report"],
+  ["戦闘結果の既知／未知", "data-report-known"],
+  ["ゲーム内端末の表示", "encounter-console"],
+  ["敵の能力6軸", "enemy-stat-grid"],
+  ["敵の使用技能", "enemy-skill-row"],
+  ["敵の狙い方", "enemy-targeting"],
 ]) {
   if (!mapRenderer.includes(expected)) problems.push(label + "が無い");
 }
 if (mapRenderer.includes("enemy-grid")) {
   problems.push("遠征マップが旧い敵カードの2列表示を直接使っている");
+}
+if (mapRenderer.includes('sectionHeading("FUTURE ARCHIVE", "全戦投影"')) {
+  problems.push("全戦投影が通常の見出し文字へ戻っている");
+}
+if (mapRenderer.includes("progressive-details enemy-details")) {
+  problems.push("常に見る敵盤面が折り畳みに戻っている");
+}
+for (const expected of [".encounter-console.forecast", ".encounter-projection.forecast", ".encounter-projection.record"]) {
+  if (!styles.includes(expected)) problems.push("過去／未来の見た目を分けるCSSが無い: " + expected);
 }
 for (const forbidden of [
   ".map-node.kind-elite { border-color:",
@@ -637,7 +658,7 @@ for (const field of [
   // （あちらには共通盤面が無い）ので、camp のレンダラーだけを見る。
   const campRenderers = [
     ["renderSkills", "function renderSkills() {", "\nfunction equipmentSlotHtml"],
-    ["renderEquipment", "function renderEquipment() {", "\nfunction renderEnemy"],
+    ["renderEquipment", "function renderEquipment() {", "\nfunction enemySkillRows"],
     ["campTreatmentBlock", "function campTreatmentBlock() {", "\n// R8 §11 — exact preview"],
   ];
   if (app.includes("rosterSwapSection") || app.includes('data-action=\\\"toggle-roster\\"')) {

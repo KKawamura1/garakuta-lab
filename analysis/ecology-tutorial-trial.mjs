@@ -736,16 +736,14 @@ try {
   const resultAfterWinText = await bodyText();
   note("巻き戻しての勝利がそのまま本編第1戦になる",
     !/この一戦は遠征に数えません/.test(resultAfterWinText));
-  const battleNote = await page.locator(".last-battle-note").count()
-    ? await page.locator(".last-battle-note").innerText()
-    : "";
-  const won = /突破した/.test(battleNote);
-  note("第1戦を突破する", won, battleNote.replace(/\s+/g, " ").slice(0, 80));
+  const completedEncounter = page.locator(
+    '.encounter-archive [data-action="inspect-encounter"][data-encounter="1"]');
+  const completedEncounterLabel = await completedEncounter.getAttribute("aria-label") ?? "";
+  const won = /クリア済み/.test(completedEncounterLabel);
+  note("第1戦を突破する", won, completedEncounterLabel);
   note("通常戦の勝利は結果画面を挟まずキャンプへ戻る",
     won && await page.locator(".reward-choices").count() === 0
       && await page.locator("nav.tabs").count() === 1);
-  note("直前の一戦の一行にラウンド数と技能点が出る",
-    /ラウンド/.test(battleNote) && /技能点/.test(battleNote));
   if (won) {
     // ---- 作者要望 2026-09-14 — **一戦目の後は技能の取得・予約。** ----------------
     //
@@ -867,6 +865,21 @@ try {
         await page.locator("#app .tutorial-blocked").count() === 0
           && await mapTabDuringSkill.isEnabled()
           && /ゴウ/.test(await page.locator(".member-context").innerText()));
+      // チュートリアル中は節選択を閉じているので、錠が外れてから遠征タブで戦歴を開く。
+      await mapTabDuringSkill.click();
+      await page.waitForTimeout(150);
+      await completedEncounter.click();
+      await page.waitForTimeout(200);
+      const battleReport = page.locator(".encounter-projection.record .encounter-report.recorded");
+      const battleReportText = await battleReport.innerText();
+      note("踏破した節にラウンド数と技能点が出る",
+        await battleReport.getAttribute("data-report-known") === "true"
+          && /ラウンド/.test(battleReportText) && /技能点/.test(battleReportText),
+        battleReportText.replace(/\s+/g, " ").slice(0, 80));
+      await page.locator(
+        '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
+      await skillTab.click();
+      await page.waitForTimeout(150);
       note("最後は光らせず、自分で選ばせる",
         await skillSpot().count() === 0
           && /自分で決める|あなたが決める/.test(await skillCard.innerText()));
@@ -1414,8 +1427,10 @@ try {
       // PR #255 — 第1戦は通常戦なので、結果画面も装備の候補も挟まずキャンプへ戻る。
       await finishReplay();
       await page.waitForTimeout(400);
+      const clearedNodes = page.locator('.encounter-archive .map-node.done');
+      await clearedNodes.last().click();
       note("必殺を構えた第1戦に勝てる",
-        /突破した/.test(await page.locator(".last-battle-note").innerText()));
+        await page.locator(".encounter-projection.record .encounter-report.recorded").count() === 1);
       note("必殺の一戦の後も装備の候補は出ない",
         await page.locator(".reward-choices").count() === 0);
       note("必殺技の一戦は一度きり（次の一戦では札が出ない）",

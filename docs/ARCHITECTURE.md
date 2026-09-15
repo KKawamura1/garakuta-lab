@@ -148,12 +148,10 @@ Blueprint として残る）、補給・scrap・治療 charge・現在 HP、enco
 候補を出し、候補は装備 `REWARD_EQUIPMENT_SLOTS`（2）件で、**補給は候補に入りません**。
 `app.js` の `resultScreenDue()` はこの判定と「敗北」「最終戦」「プロローグ」を見て、
 結果画面を出すかどうかを決めます。出さない勝利は `advanceAfterBattle()` が直接キャンプへ
-戻し、`captureLastBattleNote()` が直前の一戦の要約（ラウンド数・味方HP損失・技能点・
-装備摩耗・必殺の印・戦闘不能・幕ボス後の全回復）を `lastBattleNote` へ一度だけ写します。
-この一枚は `renderCamp()` がどのタブでも同じ位置に出し、次の戦闘を始めると消えます。
-組み立ては純関数 `buildBattleNote()` に分けてあるので、**装備を選ぶ画面も同じ一枚を
-読みます**（結果画面だけが持っていた「戦闘後の状態」——勝敗の大札・4つの指標・人物ごとの
-HP・装備耐久の一覧——は、装備を選ぶ画面には出しません。作者試遊 2026-09-12）。
+戻します。直前戦だけを全タブへ重ねるカードは置かず、遠征タブの12戦盤で踏破した節を選ぶと、
+`run.results` からラウンド数と味方HP損失を読んだ4指標が出ます。未踏破の節も同じ位置へ
+技能点・戦闘後HPと未知の「？」を出すので、未来と実績を同じ物差しで比べられます。
+装備を選ぶ結果画面にも人物・装備一覧は戻さず、候補の下に同じ4指標だけを置きます。
 `metrics.allyHpLost` / `enemyHpLost` は engine が `startingHp - hp` で数えます。
 `maxHp - hp` だと前の戦闘から持ち越した傷を毎回数え直すので、無傷で抜けた一戦でも
 損失が出ていました。
@@ -342,7 +340,22 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 
 `app.js` の通常画面は、主見出し、現在の選択対象、次の操作の順で構成する。意思決定が済んだ画面では、次の操作を
 先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。隊列・技能・装備のような選択画面では
-選択対象→確定操作の順を維持し、敵情報・技能ツリー・装備一覧は段階表示と折り畳みで長さを制御する。
+選択対象→確定操作の順を維持し、敵情報は選択中の一体に絞り、技能ツリー・装備一覧は折り畳みで長さを制御する。
+
+ギルドとキャンプの敵情報は `encounterArchive()` を共有します。12個の節はいずれも
+`composeEncounter(index, difficulty, encounterOptions())` を読み、選択中の一戦だけを
+`expeditionEnemyBoard()` で3×2盤へ展開します。敵詳細は同じ composed enemy の確定 stat と
+`PLAYABLE_CONTENT.enemyActors` の AP / RP・tactics・reactive / passive skill ID を合わせ、
+技能名と効果は `componentInfo()`、狙い方は tactics から導出済みの `enemyInfo()` を読みます。
+画面用に敵能力・技能・狙いを複製しません。`inspectedEncounterIndex` と `selectedEnemyId` は
+ギルド／キャンプ間とタブ往復中だけ保つ UI state で、RunState と保存データには入りません。
+
+キャンプでは、選んだ index が `run.encounterIndex` より前なら `record`、現在地以降なら
+`forecast` として描き分けます。走査線・青緑の端末枠・信号アニメーションは forecast だけに付き、
+record は通常のカードです。各戦の技能点と戦闘後HPは進行規則から、踏破済みのラウンド数と
+味方HP損失は保存済みの `run.results` から `encounterReport()` が読みます。未知の実績だけを
+「？」にするため、画面専用の戦歴 state は持ちません。敵盤面は常時表示し、閉じない
+`enemy-details` に置きます。
 技能ツリーは**地図と操作盤を分ける**。節（`.tree-cell`）は位置と状態だけを持ち、押した節の説明・
 前提・派生・取得・段上げ・取得予約は画面下端へ貼る操作盤（`renderSkillSheet` / `.skill-sheet`）が
 出す。節の中で開かないので、押しても地図は組み変わらず、釦は列幅ではなく画面幅を使える。
