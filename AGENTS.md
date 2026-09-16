@@ -72,6 +72,8 @@ node analysis/ecology-trial.mjs
 
 ローカルのブラウザが使えない ChatGPT Work では、画面変更の自動試験を「実行済み」とは扱わず、PR の Cloudflare Pages ブランチプレビューを Cloud Browser で開いて対象画面を手動確認する。確認できた場合は PR に実際の preview URL と確認結果を残す。
 
+**実装ごとに、毎回 `main` への Pull Request を作る**（作者要望 2026-09-16）。branch を push しただけで終えない。PR には変更理由・変更範囲・検査結果・未確認事項を書き、ブランチプレビューで確認した画面はその URL を残す。追加の指摘を直したときは、同じ PR へ commit を重ねて本文も現在形に直す。
+
 通常 CI 成功後に公開先 E2E を行う。Cloudflare Pages の Build command は `npm run build`、
 出力ディレクトリは `.` とする。Pages の build 時に `CF_PAGES_COMMIT_SHA` から
 無視対象の `core/build.generated.mjs` を生成し、これは決して commit しない。
