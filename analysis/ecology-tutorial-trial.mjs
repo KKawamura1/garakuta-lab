@@ -702,7 +702,7 @@ try {
   await page.waitForTimeout(200);
   note("技能タブで対象人物を盤面から切り替えられる",
     Boolean(otherSkillName)
-      && (await page.locator(".member-context h3").innerText()).includes(otherSkillName)
+      && (await page.locator(".member-context .character-panel-name").innerText()).includes(otherSkillName)
       && (await page.locator('.camp-top .party-cell.selected').getAttribute("aria-label") ?? "")
         .startsWith(otherSkillName));
   note("技能タブで押しても隊列は動かない",
@@ -713,7 +713,7 @@ try {
   await page.waitForTimeout(200);
   note("装備タブに二つ目の仲間タブが無い", await page.locator(".member-tabs").count() === 0);
   note("装備タブは前のタブで選んだ人物を引き継ぐ",
-    (await page.locator(".member-context h3").innerText()).includes(otherSkillName));
+    (await page.locator(".member-context .character-panel-name").innerText()).includes(otherSkillName));
   const equipmentOtherCell = page.locator('.camp-top [data-action="select-character"]:not(.selected)').first();
   const equipmentOtherName = (await equipmentOtherCell.getAttribute("aria-label") ?? "").split(" · ")[0];
   const equipmentFormationBefore = await page.locator('.camp-top .party-cell').allTextContents();
@@ -721,7 +721,7 @@ try {
   await page.waitForTimeout(200);
   note("装備タブで装備対象を盤面から切り替えられる",
     Boolean(equipmentOtherName)
-      && (await page.locator(".member-context h3").innerText()).includes(equipmentOtherName));
+      && (await page.locator(".member-context .character-panel-name").innerText()).includes(equipmentOtherName));
   note("装備タブで押しても隊列は動かない",
     JSON.stringify(await page.locator('.camp-top .party-cell').allTextContents())
       === JSON.stringify(equipmentFormationBefore));
@@ -1477,8 +1477,9 @@ try {
       note("放った仲間だけが使用済みの印になる",
         await page.locator(".camp-top .party-ultimate.spent").count() === 1
           && await page.locator(".camp-top .party-ultimate.ready").count() === 2);
+      // 作者要望 2026-09-16 — 見出しの「技能点 · 隊全体」も落とし、技能点は人物の札が出す。
       note("隊全体の合計はもう出さない",
-        await page.locator(".skill-points-badge .seal-pips").count() === 0);
+        await page.locator(".skill-points-badge").count() === 0);
     }
 
     // ---- R12 §4.E-1 — 編成画面が「後で加入する仲間」を出していないこと。

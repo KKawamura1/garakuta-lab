@@ -177,7 +177,7 @@ import {
   isUltimateId,
 } from "./ultimates.mjs";
 import { MIN_SKILL_LEVEL, POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
-import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
+import { maxHpWithStaticBonuses, staticStatBonuses } from "./static-bonuses.mjs";
 import {
   buildBeats,
   beatDurationMs,
@@ -1617,7 +1617,8 @@ function totalSkillPoints() {
 function equipmentFillLabel() {
   const worn = state.run.roster.reduce((total, id) =>
     total + (state.run.loadout.equipment?.[id] || []).length, 0);
-  const slots = state.run.roster.length * 2;
+  // 枠の総数も買った数から出す（装備枠の永続強化を買った回に分母が動かないのを直した）。
+  const slots = state.run.roster.reduce((total, id) => total + (limitsFor(id)?.equipment ?? 2), 0);
   const owned = state.run.inventory.length;
   return worn + "/" + Math.max(worn, Math.min(owned, slots));
 }
@@ -2183,25 +2184,24 @@ function expeditionPartyCard(sequence) {
   //      区画の roster 経由で、これから加入する人物の id が漏れる）
   const known = new Set(availableCharacterIds(state.profile));
   const joiner = isCampaignStageCleared(state.profile, sequence) ? null : stage.joiningCharacterId;
+  // 作者要望 2026-09-16 — 行は**人物の札**（characterPanel）へ寄せた。旧版は [拳] の図像と
+  // 「強打」の役どころで人を指していたが、顔を出せる画面で図像と役どころを読ませる理由はない。
+  // まだ顔を見せられない相手（この区画で加わる仲間）だけが、同じ形の伏せ札になる。
   const rows = stage.castCharacterIds.map((id) => {
     if (!known.has(id) || id === joiner) {
-      return "<div class=\"roster-row unknown\"><div class=\"roster-row-head\">"
-        + "<span class=\"avatar small\">?</span>"
-        + "<span class=\"roster-row-name\"><b>新しい仲間</b><small>この区画で加わる</small></span>"
-        + "</div></div>";
+      return "<article class=\"character-panel unknown\"><div class=\"character-panel-info\">"
+        + "<div class=\"character-panel-head\"><b class=\"character-panel-name\">新しい仲間</b></div>"
+        + "<p class=\"character-panel-note\">この区画で加わる</p></div></article>";
     }
-    const option = characterInfo(id);
-    return "<div class=\"roster-row\" style=\"--accent:" + esc(portraitAccent(id)) + "\">"
-      + "<div class=\"roster-row-head\"><span class=\"avatar small\">" + esc(option?.icon ?? "・") + "</span>"
-      + "<span class=\"roster-row-name\"><b>" + esc(characterName(id)) + "</b>"
-      + "<small>" + esc(option?.role ?? "") + "</small></span>"
-      + button("鍛える", "go-train", false, "tiny-button", "data-character=\"" + esc(id) + "\"")
-      + "</div>"
-      + "<div class=\"character-stats\">" + statAxesHtml(id) + "</div></div>";
+    // 遠征前なので HP は満タン（live でない）。札から投資の札へ直接飛べる。
+    return characterPanel(id, {
+      live: false,
+      action: button("鍛える", "go-train", false, "tiny-button", "data-character=\"" + esc(id) + "\""),
+    });
   }).join("");
   return "<section class=\"card\">" + sectionHeading("", "連れていく隊",
       "<span class=\"stage\">" + stage.partySize + "人</span>")
-    + "<div class=\"roster-rows\">" + rows + "</div></section>";
+    + "<div class=\"character-panels\">" + rows + "</div></section>";
 }
 
 // ---------------------------------------------------------------- ギルドの札（作者指摘 2026-09-15）
@@ -3538,14 +3538,104 @@ const STAT_AXES = Object.freeze([
   ["受け", "guard"],
 ]);
 
-function statAxesHtml(characterId, { live = false } = {}) {
+// hp … HP をこの並びへ入れるか。**人物の札（characterPanel）は HP をバーで出す**ので、
+// そこでは false にする（同じ数を、同じ札の中で二度出さない）。
+function statAxesHtml(characterId, { live = false, hp = true } = {}) {
   const stats = statsFor(characterId);
-  const hp = live
-    ? currentHp(characterId) + "<small>/" + stats.stats.maxHp + "</small>"
-    : String(stats.stats.maxHp);
   const axes = STAT_AXES.map(([label, axis]) =>
     "<span><small>" + esc(label) + "</small><b>" + stats.stats[axis] + trainedMark(stats, axis) + "</b></span>");
-  return "<span><small>HP</small><b>" + hp + trainedMark(stats, "vitality") + "</b></span>" + axes.join("");
+  if (!hp) return axes.join("");
+  const hpText = live
+    ? currentHp(characterId) + "<small>/" + stats.stats.maxHp + "</small>"
+    : String(stats.stats.maxHp);
+  return "<span><small>HP</small><b>" + hpText + trainedMark(stats, "vitality") + "</b></span>" + axes.join("");
+}
+
+// ============================================================ 人物の札（作者要望 2026-09-16）
+//
+// **人物は、どの画面でも同じ形で出る。**
+//
+// 作者要望 2026-09-16 —「キャラクターの表示が統一されていない。戦闘画面と戦闘予測画面は
+// いいが、ギルドの遠征前ステータス表示、スキル・装備選択時のステータス表示がイケてない。
+// 統一して、スキルや装備はそこに加えて必要な情報も明示してほしい。見た目も、いまの[拳]や
+// 『強打』ではなく、立ち絵を使ってキャラクターがわかるような見た目に。顔を見れば分かるので、
+// キャラクター表示にフレーバーテキストは要らない」。
+//
+// 戦闘盤（`unitHtml`）と予測セル（`partyCellPerson`）が先に持っていた形——**顔を背に敷き、
+// 読み値は下端の濃い帯へ集める**（DESIGN §5.2）——を、そのままギルドの「連れていく隊」と
+// 技能・装備タブの帯へ広げる。札がどの画面でも必ず持つのは五つだけ。
+//
+//   顔（立ち絵の目元） / 名前 / 1ラウンドに払える点（AP・RP）/ HP / 能力3軸
+//
+// 画面ごとに違うのは `extras`（**その画面でしか要らない読み値**）と `action`（その札から
+// 飛べる一手）だけである。**職種アイコン（[拳]）・役どころ（「強打」）・紹介文は、どの画面
+// でも出さない**——顔がそれを言っており、文字はその言い直しにしかならない。
+function characterResPips(characterId) {
+  const definition = PLAYABLE_CONTENT.characters[characterId] ?? {};
+  const ap = definition.baseActionPoints ?? 0;
+  const rp = definition.baseReactionPoints ?? 0;
+  if (!ap && !rp) return "";
+  return "<span class=\"party-res\" role=\"img\" aria-label=\"1ラウンドに払える 行動点" + ap
+    + " · 反応点" + rp + "\">" + pips(ap, "ap") + pips(rp, "rp") + "</span>";
+}
+
+// HP は予測セルと同じバーで出す。**遠征の中（live）は現在値、ギルド（live でない）は
+// 満タン**——まだ出ていない遠征に、前の遠征の傷を持ち越して見せない。
+function characterPanelHp(characterId, live) {
+  const ceiling = Math.max(1, maxHp(characterId));
+  const now = live ? Math.max(0, Math.min(ceiling, currentHp(characterId))) : ceiling;
+  const percent = Math.max(0, Math.min(100, Math.round((now / ceiling) * 1000) / 10));
+  const label = live ? "HP " + now + " / " + ceiling : "HP " + ceiling + "（満タンで出る）";
+  const values = live
+    ? "<b>" + now + "</b><small>/" + ceiling + "</small>"
+    : "<small>HP</small><b>" + ceiling + "</b>";
+  // 読み値の見張り key は予測セル（`hp:<id>`）と分ける。同じ key を二つの要素へ付けると、
+  // 先に舐めたほうの値で記憶が上書きされて、後ろの札が二度と反応しない。
+  return "<span class=\"forecast-hp-bar character-panel-hp\" role=\"img\" aria-label=\"" + esc(label) + "\">"
+    + "<span class=\"forecast-hp-end\" style=\"width:" + percent + "%\"></span>"
+    + "<span class=\"forecast-hp-values\" data-fx-watch=\"panel-hp:" + esc(characterId) + "\">"
+    + values + "</span></span>";
+}
+
+// その画面でしか要らない読み値は、この形の粒で並べる（小さな名・大きな数）。
+// watch … issue #237 の見張り key。**動いたときに光ってほしい数だけ**が持つ。
+function panelReadout(label, value, extra = "", watch = "") {
+  return "<span class=\"panel-readout\"><small>" + esc(label) + "</small><b"
+    + (watch ? " data-fx-watch=\"" + esc(watch) + "\"" : "") + ">" + value + "</b>"
+    + (extra ? "<small class=\"panel-readout-extra\">" + esc(extra) + "</small>" : "") + "</span>";
+}
+
+// layout … 顔の枠の形。**札の幅で決まる。**
+//   band … 顔を札の背に敷く（幅が高さの2倍までの札。ギルドの2列、盤面のセルと同じ形）
+//   side … 顔を左の縦長の枠に立てる（画面いっぱいの一枚。背に敷くと顔の帯が 6:1 になり、
+//          髪も輪郭も切れて誰なのかが読めない。DESIGN 5.2.1）
+function characterPanel(characterId, {
+  live = true, layout = "band", marks = "", extras = "", action = "", className = "",
+} = {}) {
+  const faceScope = "panel-character-face"
+    + (layout === "side" ? " side-character-face" : "");
+  return "<article class=\"character-panel layout-" + esc(layout) + " " + className + "\" style=\"--accent:"
+    + esc(portraitAccent(characterId)) + "\" data-character=\"" + esc(characterId) + "\">"
+    + characterFaceWatermark(characterId, faceScope)
+    + "<div class=\"character-panel-info\">"
+    + "<div class=\"character-panel-head\"><b class=\"character-panel-name\">"
+    + esc(characterName(characterId)) + "</b>" + marks + characterResPips(characterId) + "</div>"
+    + characterPanelHp(characterId, live)
+    + "<div class=\"character-stats\">" + statAxesHtml(characterId, { live, hp: false }) + "</div>"
+    + (extras ? "<div class=\"character-panel-extras\">" + extras + "</div>" : "")
+    + "</div>"
+    + (action ? "<div class=\"character-panel-action\">" + action + "</div>" : "")
+    + "</article>";
+}
+
+// 名前の隣に置く小さな顔。**行の高さしか無い場所でも、人物は顔で指す。**
+// 札（characterPanel）が入らない一行（技能ツリーの貼りつく帯）はこちらを使う。
+function characterFaceChip(characterId) {
+  const portrait = portraitSvg(characterId, "neutral", { crop: "face" });
+  if (!portrait) return "";
+  return "<span class=\"character-face-chip\" data-character=\"" + esc(characterId)
+    + "\" style=\"--accent:" + esc(portraitAccent(characterId)) + "\" aria-hidden=\"true\">"
+    + portrait + "</span>";
 }
 
 const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
@@ -3916,30 +4006,61 @@ function skillSlotRows(characterId, kind) {
 // hpMark）はここにあった。**上端の共通盤面がその三つを兼ねる**ので消した。
 // 盤面のセルがどこにあるかが立ち位置で、セルのHPバーがそのままHPの印である。
 
+// 技能タブの札が足す読み値。**その画面で払うもの（技能点）と、払った先（装着本数）。**
+//
+// 旧版はここへ「装備の名前」を並べていた（装備タブの帯には逆に技能の名前）。隣のタブの
+// 中身を写しても、いま触っている手の役には立たない——装着した技能はすぐ下の行が、
+// 装備は装備タブの枠が、名前も順番も出している。
+function skillPanelExtras(characterId) {
+  const points = skillPointsFor(characterId);
+  const party = totalSkillPoints();
+  const counts = [
+    ["アクティブ", "tactics"],
+    ["リアクティブ", "reactives"],
+    ["パッシブ", "passives"],
+  ].map(([label, key]) => {
+    const list = state.run.loadout[key]?.[characterId] || [];
+    const off = list.filter((skillId) => skillDisabled(characterId, skillId)).length;
+    // **オフの本数は、本数そのものと同じくらい読みたい数である**（装着したのに
+    // 戦闘へ出ない行が何本あるか）。0 のときは何も足さない。
+    return panelReadout(label, list.length - off, off ? "オフ" + off : "");
+  }).join("");
+  return panelReadout("技能点", points, party !== points ? "隊 " + party : "", "skill-points") + counts;
+}
+
+// 装備タブの札が足す読み値。**枠の埋まり・耐久の残り・装着で乗っている常時補正。**
+// 常時補正はここにしか出ない数である（能力3軸は鍛錬まで込みの地の値で、装備は含まない）。
+function equipmentPanelExtras(characterId) {
+  const worn = state.run.loadout.equipment?.[characterId] || [];
+  const slots = limitsFor(characterId)?.equipment ?? 2;
+  const durability = worn.reduce((total, id) => total + equipmentDurability(id), 0);
+  const durabilityMax = worn.reduce((total, id) => total + (gear(id)?.maxDurability ?? 1), 0);
+  // 壊れた装備は常時補正も止まる（engine 契約と同じ判定を通す）。
+  const bonus = staticStatBonuses(runContentBundle(state.run), [],
+    worn.map((id) => ({ equipmentId: id, broken: equipmentDurability(id) === 0 })));
+  const bonusText = [
+    ["HP", bonus.max_hp],
+    ["腕力", bonus.might],
+    ["技術", bonus.focus],
+    ["受け", bonus.guard],
+  ].filter(([, value]) => value)
+    .map(([label, value]) => label + (value > 0 ? "＋" : "−") + Math.abs(value)).join(" · ");
+  return panelReadout("装備", worn.length, "/" + slots)
+    + (worn.length ? panelReadout("耐久", durability, "/" + durabilityMax) : "")
+    + (bonusText
+      ? "<span class=\"panel-readout wide\"><small>常時補正</small><b>" + esc(bonusText) + "</b></span>"
+      : "");
+}
+
+// issue #235 / #236 の帯を、人物の札（characterPanel）で置き換えた（作者要望 2026-09-16）。
+// **人物を選ぶのは上端の盤面、その人物の中身を読むのはこの札**、という役の分かれ方は変えない。
 function memberContext(characterId, emphasis = "skills") {
-  const option = characterInfo(characterId);
-  const active = (state.run.loadout.tactics?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
-  const reactive = (state.run.loadout.reactives?.[characterId] || []).map((id) =>
-    (COMPONENTS[id]?.label ?? nameFor(id)) + (skillDisabled(characterId, id) ? "（オフ）" : ""));
-  const worn = (state.run.loadout.equipment?.[characterId] || []).map((id) => nameFor(id));
-  // **絵で出せるもの（立ち位置・HP）は絵にし、名前だけを文字で残す。**issue #177。
-  const primary = emphasis === "skills"
-    ? (worn.length ? worn.join(" · ") : "")
-    : (active.length ? active.join(" → ") : "");
-  const secondary = emphasis === "skills" ? "" : (reactive.length ? reactive.join(" · ") : "");
-  // issue #235 — 編成タブが持っていた4軸の能力値は、ここが引き取った。
-  // **人物を選ぶのは上端の盤面、その人物の中身を読むのはこの帯**、と役が一本になる。
-  return "<section class=\"member-context\"><div class=\"member-context-head\"><span class=\"avatar\">"
-    + esc(option?.icon ?? "・") + "</span><div><h3>" + esc(characterName(characterId))
-    + "</h3><small>" + esc(option?.role ?? "") + " · " + esc(option?.summary ?? "") + "</small></div>"
-    + "</div>"
-    + "<div class=\"member-context-stats\">" + statAxesHtml(characterId, { live: true }) + "</div>"
-    + (primary || secondary
-      ? "<div class=\"member-context-loadout\">"
-        + (primary ? "<span>" + esc(primary) + "</span>" : "")
-        + (secondary ? "<span>" + esc(secondary) + "</span>" : "") + "</div>"
-      : "") + "</section>";
+  return characterPanel(characterId, {
+    className: "member-context",
+    layout: "side",
+    marks: ultimateCellMark(characterId),
+    extras: emphasis === "skills" ? skillPanelExtras(characterId) : equipmentPanelExtras(characterId),
+  });
 }
 
 
@@ -3963,8 +4084,9 @@ function skillBuildSummary(characterId) {
       + "・" + esc(reservationTarget) + "\"><small>取得予約</small><b>"
       + esc(reservationLabel) + "</b><small>" + esc(reservationTarget) + "</small></span>"
     : "";
+  // 作者要望 2026-09-16 — 誰の帯かは**顔で指す**（[拳] の図像はどの画面からも外した）。
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
-    + "<span class=\"avatar small\">" + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
+    + characterFaceChip(characterId)
     + "<b class=\"summary-name\">" + esc(characterName(characterId)) + "</b>"
     + reservation
     + "<span class=\"summary-points\" role=\"img\" aria-label=\"" + esc(characterName(characterId))
@@ -4596,13 +4718,13 @@ function renderSkills() {
   // 作者指摘 2026-09-13 — **隊全体の合計（必殺を残す仲間 N人）は出さない。**
   // 誰の一回かに答えないので、指す先が無い。残りは盤面のセルが一人ずつ出す
   // （`ultimateCellMark`）。
-  const pointsBadge = "<span class=\"skill-points-badge\"><small>技能点 · 隊全体</small>"
-    + "<b data-fx-watch=\"skill-points\">" + totalSkillPoints() + "</b></span>";
+  // 作者要望 2026-09-16 — 見出しの右にあった「技能点 · 隊全体」も落とした。**技能点は
+  // 人物の札が本人ぶんと隊の合計を並べて出す**ので、見出しのは三つ目の言い直しだった。
   const depths = state.run.manifest.packDepths ?? {};
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
     .join(" · ");
-  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能", pointsBadge)
+  return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能")
     + "<p class=\"context-line\">" + esc(packs) + "</p>"
     + memberContext(characterId, "skills")
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
@@ -4711,8 +4833,14 @@ function renderEquipment() {
       + "</article>";
   }).join("");
   // issue #236 — 主語はすぐ上の memberContext が出している。見出しで名前を繰り返さない。
+  // 作者要望 2026-09-16 — **枠の数は買った数そのものから出す。**2枠を直接書いていたので、
+  // ギルドで「装備枠」（既定2・上限3）を買っても3つ目の枠が画面に出なかった。
+  // 人物の札が「装備 n/枠」を数で言う以上、枠の側がその数と食い違ってはいけない。
+  const slotCount = Math.max(1, limitsFor(characterId)?.equipment ?? 2);
   const slots = "<section class=\"selected-loadout\"><h3>装備枠</h3>"
-    + "<div class=\"equipment-slots\">" + equipmentSlotHtml(characterId, 0) + equipmentSlotHtml(characterId, 1) + "</div></section>";
+    + "<div class=\"equipment-slots\">"
+    + Array.from({ length: slotCount }, (unused, slot) => equipmentSlotHtml(characterId, slot)).join("")
+    + "</div></section>";
   const inventory = "<details class=\"progressive-details equipment-inventory\" open>"
     + "<summary><span data-fx-watch=\"inventory\">手元 "
     + state.run.inventory.length + " / " + INVENTORY_LIMIT + "</span></summary>"
@@ -7245,8 +7373,9 @@ function resultActors(result, { simulation = false } = {}) {
       ? (actor.alive ? "投影 HP " + actor.hp + "/" + actor.maxHp : "投影 戦闘不能")
       : (actor.alive ? "戦闘内 HP " + actor.hp + "/" + actor.maxHp : "戦闘内 戦闘不能")
         + " → 次戦 HP " + nextHp + "/" + actor.maxHp;
-    return "<div class=\"result-actor\"><span class=\"avatar small\">" + esc(characterInfo(actor.definitionId)?.icon ?? "・")
-      + "</span><div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
+    // 作者要望 2026-09-16 — 人物は顔で指す（[拳] の図像はどの画面からも外した）。
+    return "<div class=\"result-actor\">" + characterFaceChip(actor.definitionId)
+      + "<div><b>" + esc(String(actor.displayName).split(" — ")[0]) + "</b><small>"
       + outcome + " · 防壁 " + actor.barrier + "</small></div></div>";
   }).join("");
 }
@@ -7301,8 +7430,8 @@ function rotationStrip(result) {
           + esc(ultimate ? "✹" : (node ? (branchIcons[node.branch] ?? "·") : "·")) + "</i>";
       }).join("") + "</span>");
     }
-    return "<div class=\"turn-row\"><span class=\"avatar small\">"
-      + esc(characterInfo(characterId)?.icon ?? "・") + "</span>"
+    return "<div class=\"turn-row\" role=\"group\" aria-label=\"" + esc(characterName(characterId))
+      + "が出した順番\">" + characterFaceChip(characterId)
       + "<span class=\"turn-cells\">" + cells.join("") + "</span></div>";
   }).join("");
   return "<section class=\"card\">" + sectionHeading("ORDER", "出した順番")

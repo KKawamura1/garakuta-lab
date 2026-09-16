@@ -666,6 +666,40 @@ for (const field of [
       problems.push(`予測セルの ${expected} が画面かCSSから消えている`);
     }
   }
+
+  // ---- 人物の札（作者要望 2026-09-16）。**人物はどの画面でも同じ形で出る。**
+  //
+  // 顔で人を指すのをやめて職種アイコンと役どころへ戻ると、構文検査も単体試験も通る
+  // （画面から顔が消えるだけ）。だから**組み立ての一本化そのもの**をここで見る。
+  for (const [label, expected] of [
+    ["人物の札の組み立て", "function characterPanel(characterId, {"],
+    ["札が顔を敷いている", "characterFaceWatermark(characterId, faceScope)"],
+    ["札の顔の枠が幅で決まる", '(layout === "side" ? " side-character-face" : "")'],
+    ["札がHPをバーで出す", "function characterPanelHp(characterId, live)"],
+    ["札が1ラウンドに払える点を出す", "function characterResPips(characterId)"],
+    ["ギルドの連れていく隊が札を使う", "return characterPanel(id, {"],
+    ["技能・装備の帯が札を使う", 'className: "member-context",'],
+    ["技能の札が足す読み値", "function skillPanelExtras(characterId)"],
+    ["装備の札が足す読み値", "function equipmentPanelExtras(characterId)"],
+    ["装備の常時補正を engine と同じ関数で合算する", "staticStatBonuses(runContentBundle(state.run), []"],
+    ["一行しか無い場所の小さな顔", "function characterFaceChip(characterId)"],
+    ["札のCSS", ".character-panel {"],
+    ["札の顔のCSS", ".panel-character-face {"],
+    ["小さな顔のCSS", ".character-face-chip {"],
+  ]) {
+    const haystack = expected.startsWith(".") ? styles : app;
+    if (!haystack.includes(expected)) problems.push(label + "が見つからない");
+  }
+  // 「顔を見れば分かるので、キャラクター表示にフレーバーテキストは要りません」。
+  // 人物を指す図像（.avatar）と紹介文（summary）は、どの人物表示からも出さない。
+  for (const [label, forbidden] of [
+    ["職種アイコンの札", 'class=\\"avatar\\"'],
+    ["職種アイコンの小札", 'class=\\"avatar small\\">" + esc(characterInfo('],
+    ["人物の紹介文", 'esc(option?.summary ?? "")'],
+    ["旧・隊の行", 'class=\\"roster-row\\"'],
+  ]) {
+    if (app.includes(forbidden)) problems.push(`人物表示に${label}が戻っている`);
+  }
   // 補給タブは、治療を選んでいないあいだセルを押せない（誰を選ぶ場面でもない）。
   // issue #235 — この判定は boardMode へ移した（役はタブではなく盤面の状態で決まる）。
   const modeStart = app.indexOf("function boardMode(tab) {");

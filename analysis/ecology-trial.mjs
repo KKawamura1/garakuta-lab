@@ -257,9 +257,17 @@ try {
   await page.locator('[data-action="guild-tab"][data-tab="expedition"]').click();
   await page.waitForTimeout(150);
   // 「味方一覧、味方のステータス一覧がほしい。これを見て、不足を感じたら投資タブに飛びたい」
-  note("連れていく隊が共通4軸の能力値つきで出る",
-    await page.locator(".roster-rows .roster-row").count() === 2
-      && await page.locator(".roster-row .character-stats > span").count() === 8);
+  // 作者要望 2026-09-16 — 行は**人物の札**（顔・名前・HP・能力3軸）へ統一した。
+  // HP はバーが出すので、能力の並びは3軸（腕力・技術・受け）になる。
+  note("連れていく隊が人物の札で出る",
+    await page.locator(".character-panels .character-panel").count() === 2
+      && await page.locator(".character-panel .character-stats > span").count() === 6
+      && await page.locator(".character-panel .character-face-watermark").count() === 2
+      && await page.locator(".character-panel .character-panel-hp").count() === 2);
+  // 「[拳]や『強打』ではなく、立ち絵を使ってキャラクターがわかるような見た目に」。
+  note("札が職種アイコンも役どころも出さない",
+    await page.locator(".character-panels .avatar").count() === 0
+      && !/強打|医術|庇護|遊撃|参謀/.test(await page.locator(".character-panels").innerText()));
   note("引ける技能パックは畳んである",
     await page.locator('[data-help="run-packs"]').count() === 1
       && await page.locator('[data-help="run-packs"]').evaluate((element) => !element.open));
@@ -271,8 +279,8 @@ try {
   // R6 §9.3 — ギルド投資。**買い物の画面が実在して、値段と残高が出るか。**
   // 隊の行の「鍛える」が、そのままその札への導線である（間に「もう一度その人を選ぶ」
   // 手を挟まない）。ここではその導線そのものを使って移る。
-  const trainTarget = (await page.locator(".roster-row .roster-row-name b").first().innerText()).trim();
-  await page.locator('.roster-row [data-action="go-train"]').first().click();
+  const trainTarget = (await page.locator(".character-panel .character-panel-name").first().innerText()).trim();
+  await page.locator('.character-panel [data-action="go-train"]').first().click();
   await page.waitForTimeout(200);
   note("隊の行から投資の札へ飛べる",
     await page.locator("nav.tabs .tab.active").getAttribute("data-tab") === "guild");
@@ -618,7 +626,7 @@ try {
     // 作者指摘 2026-09-13 — 残りは**人物ごと**に盤面のセルへ出す（隊の合計はやめた）。
     note("誰が必殺を残しているかが盤面に出る",
       await page.locator(".camp-top .party-ultimate.ready").count() > 0
-        && await page.locator(".skill-points-badge .seal-pips").count() === 0);
+        && await page.locator(".skill-points-badge").count() === 0);
     await longPress(ultimateRow);
     note("長押しだけでこの一戦の必殺になる",
       await page.locator(".installed-row.ultimate.armed").count() === 1);

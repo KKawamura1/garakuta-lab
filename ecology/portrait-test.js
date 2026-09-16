@@ -8,9 +8,18 @@ const CHARACTERS = [
   { id: "tactician", role: "参謀" },
 ];
 
+// 2026-09-16 — 顔を使う枠が二つ増えた（人物の札）。**枠が増えたらここも増やす**
+// （ここに無い枠は、実機で一枚ずつ開かないと確かめられない）。
 const ROWS = [
   { id: "forecast", label: "予測セル相当", scope: "party-character-face", className: "portrait-calibration-forecast" },
   { id: "battle", label: "戦闘カード相当", scope: "unit-character-face", className: "portrait-calibration-battle" },
+  { id: "panel", label: "人物の札相当（ギルドの2列）", scope: "panel-character-face", className: "portrait-calibration-panel" },
+  {
+    id: "side",
+    label: "人物の札相当（画面いっぱいの一枚・縦長の枠）",
+    scope: "panel-character-face side-character-face",
+    className: "portrait-calibration-side",
+  },
 ];
 
 function esc(value) {
@@ -41,6 +50,19 @@ function calibrationCell(character, row) {
     + "</article>";
 }
 
+// 行の高さしか無い場所で人物を指す粒（`characterFaceChip`）。札と同じ補正を共有する。
+function chipRow() {
+  return "<section class=\"portrait-calibration-row portrait-calibration-chips\""
+    + " aria-labelledby=\"portrait-calibration-chip\">"
+    + "<div class=\"portrait-calibration-row-head\"><h3 id=\"portrait-calibration-chip\">"
+    + "小さな顔（技能ツリーの帯・結果・順番の帯）</h3><small>共通の顔補正を使用</small></div>"
+    + "<div class=\"portrait-calibration-chip-strip\">"
+    + CHARACTERS.map((character) => "<span class=\"character-face-chip\" data-character=\""
+      + esc(character.id) + "\" aria-hidden=\"true\">"
+      + portraitSvg(character.id, "neutral", { crop: "face" }) + "</span>").join("")
+    + "</div></section>";
+}
+
 document.querySelector("#portrait-calibration-root").innerHTML = ROWS.map((row) =>
   "<section class=\"portrait-calibration-row " + row.className + "\" aria-labelledby=\"portrait-calibration-"
     + row.id + "\"><div class=\"portrait-calibration-row-head\"><h3 id=\"portrait-calibration-"
@@ -48,4 +70,4 @@ document.querySelector("#portrait-calibration-root").innerHTML = ROWS.map((row) 
     + "<div class=\"portrait-calibration-grid\">"
     + CHARACTERS.map((character) => calibrationCell(character, row)).join("")
     + "</div></section>"
-).join("");
+).join("") + chipRow();

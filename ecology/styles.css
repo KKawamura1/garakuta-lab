@@ -780,18 +780,24 @@ button.party-cell { cursor: pointer; }
 }
 .party-character-face { opacity: .75; }
 .unit-character-face { opacity: .62; }
-/* 顔の大きさと目元の高さは元画像の余白差を吸収する。予測と戦闘は同じ補正値を使う。 */
-.character-face-watermark[data-character="warden"] { --face-scale: 1.4; }
-.character-face-watermark[data-character="lancer"] {
+/* 顔の大きさと目元の高さは元画像の余白差を吸収する。予測・戦闘・人物の札・小さな顔は
+   同じ補正値を使う（作者要望 2026-09-16 で札と粒が増えたので、選択子を並べて共有する）。 */
+.character-face-watermark[data-character="warden"],
+.character-face-chip[data-character="warden"] { --face-scale: 1.4; }
+.character-face-watermark[data-character="lancer"],
+.character-face-chip[data-character="lancer"] {
   --face-scale: 1.1;
   --face-y: -8%;
 }
-.character-face-watermark[data-character="tactician"] { --face-scale: 1.1; }
-.character-face-watermark[data-character="mender"] {
+.character-face-watermark[data-character="tactician"],
+.character-face-chip[data-character="tactician"] { --face-scale: 1.1; }
+.character-face-watermark[data-character="mender"],
+.character-face-chip[data-character="mender"] {
   --face-scale: 1;
   --face-y: -22%;
 }
-.character-face-watermark[data-character="guardian"] {
+.character-face-watermark[data-character="guardian"],
+.character-face-chip[data-character="guardian"] {
   --face-scale: .9;
   --face-y: -30%;
 }
@@ -837,7 +843,6 @@ button.party-cell { cursor: pointer; }
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.forecast-member-head .avatar.small { flex: none; width: 16px; height: 16px; font-size: 9px; }
 /* **数値はバーの中に置く。**別の行にすると、同じHPの話で2行を使うことになる。 */
 .forecast-hp-bar {
   position: relative;
@@ -995,18 +1000,8 @@ button.party-cell { cursor: pointer; }
 .member-detail-stats span { display: grid; gap: 1px; text-align: center; }
 .member-detail-stats small { color: var(--muted); font-size: 9px; }
 .member-detail-stats b { font-size: 12px; font-variant-numeric: tabular-nums; }
-.avatar {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--blue);
-  color: #162120;
-  font-weight: 850;
-}
-.avatar.small { width: 28px; height: 28px; border-radius: 8px; font-size: 12px; }
+/* 職種アイコンの札（.avatar / .avatar.small）は 2026-09-16 に全画面から外した。
+   人物を指す手掛かりは顔（.character-face-watermark / .character-face-chip）だけである。 */
 .character-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1036,9 +1031,10 @@ button.party-cell { cursor: pointer; }
 .character-copy b { font-size: 13px; }
 .character-copy small { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.35; }
 .check { flex: 0 0 auto; color: var(--gold); font-size: 11px; font-weight: 750; }
-/* issue #236 — 能力値は4軸そろえて、軸名を小さく・数を大きく出す。
-   仲間カードと memberContext が**同じ形**を使う（statAxesHtml）。 */
-.character-stats, .member-context-stats {
+/* issue #236 — 能力値は軸をそろえて、軸名を小さく・数を大きく出す。
+   仲間カードと人物の札（.character-panel）が**同じ形**を使う（statAxesHtml）。
+   札は HP をバーで出すので、そこだけ HP 抜きの3軸になる。 */
+.character-stats {
   display: flex;
   justify-content: space-between;
   gap: 3px;
@@ -1048,7 +1044,7 @@ button.party-cell { cursor: pointer; }
   color: var(--blue);
   font-size: 10px;
 }
-.character-stats > span, .member-context-stats > span {
+.character-stats > span {
   display: flex;
   flex: 1 1 0;
   min-width: 0;
@@ -1056,19 +1052,18 @@ button.party-cell { cursor: pointer; }
   align-items: center;
   gap: 1px;
 }
-.character-stats small, .member-context-stats small {
+.character-stats small {
   color: var(--muted);
   font-size: 9px;
   letter-spacing: .02em;
 }
-.character-stats b, .member-context-stats b {
+.character-stats b {
   color: var(--ink);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.character-stats b small, .member-context-stats b small { color: var(--muted); font-size: 9px; }
-.member-context-stats .trained { color: var(--gold); font-style: normal; }
+.character-stats b small { color: var(--muted); font-size: 9px; }
 .tiny-button, .icon-button {
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -1760,38 +1755,125 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tab { display: grid; gap: 2px; line-height: 1.1; }
 .tab small { color: #82938b; font-size: 9px; font-weight: 600; }
 .tab.active small { color: var(--blue); }
-.skill-points-badge {
-  display: flex;
-  min-width: 65px;
-  flex-direction: column;
-  align-items: center;
-  padding: 5px 8px;
-  border: 1px solid var(--gold);
-  border-radius: 9px;
-  background: var(--gold-dark);
-  color: var(--gold);
-}
-.skill-points-badge small { font-size: 9px; }
-.skill-points-badge b { font-size: 20px; line-height: 1; }
-.member-context {
-  margin: 13px 0 15px;
-  padding: 11px;
-  border: 1px solid #647152;
-  border-radius: 11px;
-  background: linear-gradient(135deg, rgba(61, 67, 43, .55), rgba(22, 33, 36, .8));
-}
-.member-context-head { display: flex; align-items: center; gap: 9px; }
-.member-context-head h3 { margin: 2px 0; font-size: 15px; }
-.member-context-head small { display: block; color: var(--muted); font-size: 10px; line-height: 1.35; }
-.member-context-loadout {
+/* 技能の見出しにあった「技能点 · 隊全体」の札（.skill-points-badge）は 2026-09-16 に
+   落とした。技能点はタブの札・人物の札・ツリーの貼りつく帯が出す。 */
+/* ============================================================ 人物の札（作者要望 2026-09-16）
+
+   **人物は、どの画面でも同じ形で出る。**戦闘盤（.unit）と予測セル（.party-cell）が
+   先に持っていた形——顔を背に敷き、読み値を下端の濃い帯へ集める（DESIGN §5.2）——を、
+   ギルドの「連れていく隊」と技能・装備タブの帯へも広げた。職種アイコン（[拳]）と
+   役どころ（「強打」）と紹介文は、どの画面でも出さない。 */
+.character-panels {
   display: grid;
-  gap: 5px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(224, 195, 116, .25);
-  color: var(--blue);
-  font-size: 10px;
-  line-height: 1.4;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.character-panel {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 158px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent, var(--line));
+  border-radius: 11px;
+  background: var(--panel-2);
+}
+.character-panel > .character-panel-info { position: relative; z-index: 1; }
+/* 顔は札の主語なので、盤面のセル（.75）より濃く出す。 */
+.panel-character-face { opacity: .88; }
+/* 読み値は下端の帯の中だけに置く。帯は下へ向かって濃くなり、上は顔が透ける。 */
+.character-panel-info {
+  display: grid;
+  gap: 4px;
+  padding: 16px 8px 7px;
+  background: linear-gradient(180deg, rgba(13, 19, 21, 0) 0%, rgba(13, 19, 21, .72) 34%, rgba(13, 19, 21, .97) 100%);
+}
+.character-panel-head { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.character-panel-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(6, 11, 12, .95);
+}
+/* 払える点と必殺の印は名前の反対側へ寄せる（予測セルと同じ並び）。 */
+.character-panel-head .party-res { margin-left: auto; }
+.character-panel-head .party-ultimate { margin-left: auto; }
+.character-panel-head .party-ultimate + .party-res { margin-left: 0; }
+.character-panel-hp { height: 13px; }
+.character-panel .character-stats { margin-top: 2px; padding-top: 6px; }
+/* その画面でしか要らない読み値。**枠の外へはみ出さず、折り返して縦に伸びる。** */
+.character-panel-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 9px;
+  margin-top: 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(58, 77, 79, .65);
+}
+.panel-readout { display: flex; align-items: baseline; gap: 3px; min-width: 0; }
+.panel-readout.wide { flex: 1 1 100%; }
+.panel-readout small { color: var(--muted); font-size: 9px; letter-spacing: .02em; }
+.panel-readout b { color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
+.panel-readout .panel-readout-extra { color: var(--muted); font-size: 9px; }
+.panel-readout.wide b { font-size: 10px; font-weight: 700; }
+.character-panel-action { position: absolute; z-index: 2; top: 6px; right: 6px; }
+.character-panel-action .tiny-button { margin: 0; backdrop-filter: blur(2px); }
+/* まだ顔を見せられない相手（この区画で加わる仲間）も、同じ形の札で置く。 */
+.character-panel.unknown { border-left-color: var(--line); opacity: .6; }
+.character-panel-note { margin: 0; color: var(--muted); font-size: 9.5px; }
+/* 画面いっぱいの一枚（技能・装備タブ）は、**顔を背に敷かず左の一列に立てる。**
+   幅340pxの札で顔を背に敷くと、顔の見える帯が 6:1 の細長い窓になり、髪も輪郭も切れて
+   「誰か」が読めなくなる（2026-09-16、実寸390pxで確認）。顔の枠を縦長にすれば、
+   盤面のセルと同じ寄り方の顔が、札の高さを増やさずに出る。 */
+.character-panel.layout-side { min-height: 152px; }
+.side-character-face {
+  right: auto;
+  width: 116px;
+  border-right: 1px solid var(--line);
+  opacity: 1;
+  /* 縦長の枠は顔の帯（240x150）を丸ごと収めるので、**セル用の寄せも持ち上げも掛けない。**
+     掛けると頭の上が切れて、髪の形で人を見分けられなくなる。 */
+  --face-scale: 1;
+  --face-y: 0%;
+}
+.character-panel.layout-side .character-panel-info {
+  flex: 1 1 auto;
+  align-content: center;
+  margin-left: 116px;
+  padding: 9px 10px 10px;
+  background: none;
+}
+.member-context { margin: 13px 0 15px; }
+/* 伏せ札は読み値を持たないので、顔の札の高さまで引き伸ばさない。 */
+.character-panel.unknown { min-height: 86px; align-self: start; }
+/* 名前の隣に置く小さな顔（貼りつく帯・結果画面の行）。 */
+.character-face-chip {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border: 1px solid var(--accent, var(--line));
+  border-radius: 9px;
+  background: #101a1c;
+}
+/* 粒は正方形で、顔の帯（240x150）の真ん中を縦いっぱいに切る。**持ち上げは掛けない**
+   （30px では数%のずれが目元を切る）。寄せだけは人物別の値を使う。 */
+.character-face-chip[data-character] { --face-y: 0%; }
+.character-face-chip .portrait-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: translate3d(var(--face-x, 0%), var(--face-y, 0%), 0) scale(var(--face-scale, 1));
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
 }
 /* 旧・帯の中の役どころ（.member-tab small）は 2026-09-15 に外した。名簿の見出しが
    「役 · 年 · 出」で既に出しており、並べると 5 人目が iPhone 幅ではみ出す。 */
@@ -2044,7 +2126,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 
 @media (max-width: 380px) {
   .flow-actions { grid-template-columns: 1fr; }
-  .skill-points-badge { min-width: 55px; }
 }
 
 /* ---------------------------------------------------------------- 戦闘の絵
@@ -3261,22 +3342,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
    行の枠と、投資へ飛ぶ釦の置き場だけである（旧 .cast-chip は隊の行が引き取った）。 */
 .plan-stage { margin: 2px 0 12px; }
 .plan-stage b { display: block; color: var(--gold); font-size: 15px; }
-.roster-rows { display: grid; gap: 6px; }
-.roster-row {
-  padding: 9px 10px;
-  border: 1px solid var(--line);
-  border-left: 2px solid var(--accent, var(--line));
-  border-radius: 9px;
-  background: var(--panel-2);
-}
-.roster-row-head { display: flex; align-items: center; gap: 8px; }
-.roster-row-name { display: grid; gap: 1px; min-width: 0; flex: 1 1 auto; }
-.roster-row-name b { font-size: 12px; }
-.roster-row-name small { color: var(--muted); font-size: 9.5px; }
-.roster-row-head .tiny-button { flex: 0 0 auto; margin: 0; }
-.roster-row .character-stats { margin-top: 7px; padding-top: 7px; }
-.roster-row.unknown { border-left-color: var(--line); opacity: .65; }
-.roster-row.unknown .avatar { background: var(--line); color: var(--muted); }
+/* 旧・隊の行（.roster-row）は 2026-09-16 に人物の札（.character-panel）へ移した。
+   図像と役どころで人を指すのをやめ、顔で指すようにしたので、行そのものが要らなくなった。 */
 
 /* 絞り込みの粒。**折り返さず横へ流す**（旧版は 8 個の釦が 2 列 5 段になっていた）。 */
 .filter-chips {
@@ -4676,6 +4743,10 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   background: #101719;
 }
 .portrait-calibration-battle .portrait-calibration-frame { min-height: 92px; }
+/* 2026-09-16 — 人物の札の二つの枠。ギルドの2列は背に敷く枠、画面いっぱいの一枚は縦長の枠。 */
+.portrait-calibration-panel .portrait-calibration-frame { min-height: 104px; }
+.portrait-calibration-side .portrait-calibration-frame { width: 116px; min-height: 152px; }
+.portrait-calibration-chip-strip { display: flex; flex-wrap: wrap; gap: 8px; }
 .portrait-calibration-eye-line {
   position: absolute;
   top: 46%;
@@ -4997,8 +5068,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .symbol-legend dt { display: grid; place-items: center; }
 .symbol-legend dd { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.35; }
 /* issue #159 — 立ち位置と HP の小さな印（.formation-mark / .hp-mark）はここにあった。
-   上端の共通盤面がその二つを兼ねるので消した。 */
-.member-context-head { display: flex; align-items: center; gap: 9px; }
+   上端の共通盤面がその二つを兼ねるので消した。帯の見出し（.member-context-head）も
+   2026-09-16 に人物の札の頭（.character-panel-head）へ移した。 */
 /* 順番の帯（issue #177）。装着順が結果にどう出たかを、ラウンド順に並べる。 */
 .turn-strip { display: grid; gap: 6px; }
 .turn-row { display: flex; align-items: center; gap: 8px; }

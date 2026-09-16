@@ -409,7 +409,10 @@ shell を共有するタイトル・キャンプ・戦闘・結果・精算の�
 | `verdictSigil(kind)` | 決着の印（勝ち・退き・敗け） | 敗北・精算・完走 |
 | `battleLegend()` | 盤面と同じ帯・色・点の凡例 | 戦闘画面の「表示の説明」 |
 | `emphasize(value)` | content の `**強調**` を太字にする | 区画の学び |
-| `expeditionPartyCard(sequence)` | 連れていく隊（共通4軸＋投資への飛び先） | 遠征の準備 |
+| `characterPanel(id, opts)` | **人物の札**（顔・名前・AP/RP・HP・能力3軸＋画面ごとの読み値） | 連れていく隊・技能・装備 |
+| `characterFaceChip(id)` | 一行しか無い場所で人物を指す小さな顔 | 技能ツリーの帯・結果・順番の帯 |
+| `statAxesHtml(id, opts)` | 能力の並び（軸名は小、数は大。鍛えた軸に ＋） | 人物の札・仲間カード |
+| `expeditionPartyCard(sequence)` | 連れていく隊（人物の札＋投資への飛び先） | 遠征の準備 |
 | `guildMemberStrip(id, label)` | ギルドで「いま見ている一人」を選ぶ帯 | 鍛錬・名簿 |
 | `.tab-note` | 節の一行注記（規則の段を置くほどではないもの） | 根城・名簿・図鑑 |
 
@@ -588,6 +591,16 @@ iPhone 幅（390×844）の画面の3割を常時占めていた。
 ブラウザでの実挙動（隊列交換・技能／装備の対象切替・集中治療と蘇生の対象選択）は
 `analysis/ecology-tutorial-trial.mjs`、盤面が iPhone 幅で横スクロールしないことは
 `analysis/ecology-trial.mjs` が踏む。
+
+ギルドの「連れていく隊」と、技能・装備タブの人物帯は、同じ顔を `characterPanel()` から出す
+（2026-09-16）。札は `characterFaceWatermark(id, "panel-character-face")` ＋ 名前 ＋ AP/RP ＋
+HPバー（予測セルと同じ `.forecast-hp-bar`）＋ 能力3軸で、画面ごとに違うのは `extras`
+（技能＝技能点と装着本数、装備＝枠・耐久・常時補正）と `action`（鍛えるへの飛び先）だけである。
+**職種アイコンと役どころと紹介文はどの画面からも出さない。**画面いっぱいの札（`.member-context`）
+だけは顔を背に敷かず左の縦長の枠に立てる——幅340pxで背に敷くと顔の帯が 6:1 になり、髪も輪郭も
+切れて人物が読めないため。行の高さしか無い場所（技能ツリーの貼りつく帯・結果画面・順番の帯）は
+`characterFaceChip()` の小さな顔で指す。人物別の余白補正は `.character-face-watermark` と
+`.character-face-chip` が同じ値を共有する。
 
 戦闘中の `unitHtml()` も同じ `portraitSvg(..., { crop: "face" })` を味方枠の背景へ差し込み、
 `character-face-watermark` を z-index 0 に置く。味方の名前・職種アイコンは描画せず、
