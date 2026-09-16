@@ -1760,12 +1760,12 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* ============================================================ 人物の札（作者要望 2026-09-16）
 
    **人物は、どの画面でも同じ形で出る。**戦闘盤（.unit）と予測セル（.party-cell）が
-   先に持っていた形——顔を背に敷き、読み値を下端の濃い帯へ集める（DESIGN §5.2）——を、
-   ギルドの「連れていく隊」と技能・装備タブの帯へも広げた。職種アイコン（[拳]）と
-   役どころ（「強打」）と紹介文は、どの画面でも出さない。 */
+   先に持っていた考え——顔が主語で、読み値はその隣（DESIGN §5.2）——を、ギルドの
+   「連れていく隊」と技能・装備タブの帯へも広げた。職種アイコン（[拳]）と役どころ
+   （「強打」）と紹介文は、どの画面でも出さない。 */
+/* 札は一列に積む。**顔を左に立てた横長の札**は、2列に割ると顔も読み値も潰れる。 */
 .character-panels {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 .character-panel {
@@ -1774,7 +1774,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 158px;
+  min-height: 138px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-left: 2px solid var(--accent, var(--line));
@@ -1782,14 +1782,34 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   background: var(--panel-2);
 }
 .character-panel > .character-panel-info { position: relative; z-index: 1; }
-/* 顔は札の主語なので、盤面のセル（.75）より濃く出す。 */
-.panel-character-face { opacity: .88; }
-/* 読み値は下端の帯の中だけに置く。帯は下へ向かって濃くなり、上は顔が透ける。 */
+/* **顔の枠は、顔の帯（240x150）を縦に丸ごと収める形にしてある。**だから盤面のセル用の
+   寄せ（--face-scale）と持ち上げ（--face-y）は、札では掛けない——掛けると頭の上が切れて、
+   髪の形で人を見分けられなくなる（作者指摘 2026-09-16、実機のヒバナとツグミ）。
+   **属性で受けること。**人物別補正は `[data-character]` を持つので、クラス一つの選択子では
+   詳細度で負け、札にもセル用の持ち上げが掛かったままになる。 */
+.panel-character-face {
+  right: auto;
+  /* 縦長の枠は横が深く切られる（顔の帯は幅の1.6倍ある）ので、広がった髪まで入るよう
+     少し広く取る。126px で帯の横半分が見え、ヒバナの左右の髪も枠の中に残る。 */
+  width: 126px;
+  border-right: 1px solid var(--line);
+  opacity: 1;
+}
+.panel-character-face[data-character] {
+  --face-scale: 1;
+  --face-y: 0%;
+}
+/* ヒバナだけは原本の顔が大きく、髪も左右へ広がっている。縦長の枠でも髪の上が枠へ触るので、
+   少しだけ下げて、ゴーグルごと枠の中へ入れる（下は顎までで、切れる場所は残らない）。 */
+.panel-character-face[data-character="guardian"] { --face-y: 5%; }
+/* 読み値は顔の右。**顔へ文字を重ねない**（DESIGN 5.2）。 */
 .character-panel-info {
   display: grid;
+  flex: 1 1 auto;
+  align-content: center;
   gap: 4px;
-  padding: 16px 8px 7px;
-  background: linear-gradient(180deg, rgba(13, 19, 21, 0) 0%, rgba(13, 19, 21, .72) 34%, rgba(13, 19, 21, .97) 100%);
+  margin-left: 126px;
+  padding: 9px 10px 10px;
 }
 .character-panel-head { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .character-panel-name {
@@ -1822,34 +1842,14 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .panel-readout b { color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
 .panel-readout .panel-readout-extra { color: var(--muted); font-size: 9px; }
 .panel-readout.wide b { font-size: 10px; font-weight: 700; }
-.character-panel-action { position: absolute; z-index: 2; top: 6px; right: 6px; }
-.character-panel-action .tiny-button { margin: 0; backdrop-filter: blur(2px); }
+.character-panel-action { flex: 0 0 auto; }
+.character-panel-action .tiny-button { margin: 0; }
 /* まだ顔を見せられない相手（この区画で加わる仲間）も、同じ形の札で置く。 */
-.character-panel.unknown { border-left-color: var(--line); opacity: .6; }
+.character-panel.unknown { min-height: 62px; border-left-color: var(--line); opacity: .6; }
+.character-panel.unknown .character-panel-info { margin-left: 0; }
 .character-panel-note { margin: 0; color: var(--muted); font-size: 9.5px; }
-/* 画面いっぱいの一枚（技能・装備タブ）は、**顔を背に敷かず左の一列に立てる。**
-   幅340pxの札で顔を背に敷くと、顔の見える帯が 6:1 の細長い窓になり、髪も輪郭も切れて
-   「誰か」が読めなくなる（2026-09-16、実寸390pxで確認）。顔の枠を縦長にすれば、
-   盤面のセルと同じ寄り方の顔が、札の高さを増やさずに出る。 */
-.character-panel.layout-side { min-height: 152px; }
-.side-character-face {
-  right: auto;
-  width: 116px;
-  border-right: 1px solid var(--line);
-  opacity: 1;
-  /* 縦長の枠は顔の帯（240x150）を丸ごと収めるので、**セル用の寄せも持ち上げも掛けない。**
-     掛けると頭の上が切れて、髪の形で人を見分けられなくなる。 */
-  --face-scale: 1;
-  --face-y: 0%;
-}
-.character-panel.layout-side .character-panel-info {
-  flex: 1 1 auto;
-  align-content: center;
-  margin-left: 116px;
-  padding: 9px 10px 10px;
-  background: none;
-}
-.member-context { margin: 13px 0 15px; }
+/* 技能・装備タブの一枚は読み値が一段多い（その画面でしか要らない粒）ので、少し高い。 */
+.member-context { margin: 13px 0 15px; min-height: 152px; }
 /* 伏せ札は読み値を持たないので、顔の札の高さまで引き伸ばさない。 */
 .character-panel.unknown { min-height: 86px; align-self: start; }
 /* 名前の隣に置く小さな顔（貼りつく帯・結果画面の行）。 */
@@ -4743,9 +4743,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   background: #101719;
 }
 .portrait-calibration-battle .portrait-calibration-frame { min-height: 92px; }
-/* 2026-09-16 — 人物の札の二つの枠。ギルドの2列は背に敷く枠、画面いっぱいの一枚は縦長の枠。 */
-.portrait-calibration-panel .portrait-calibration-frame { min-height: 104px; }
-.portrait-calibration-side .portrait-calibration-frame { width: 116px; min-height: 152px; }
+/* 2026-09-16 — 人物の札の縦長の枠（連れていく隊・技能・装備で共有する一つの形）。 */
+.portrait-calibration-side .portrait-calibration-frame { width: 126px; min-height: 152px; }
 .portrait-calibration-chip-strip { display: flex; flex-wrap: wrap; gap: 8px; }
 .portrait-calibration-eye-line {
   position: absolute;

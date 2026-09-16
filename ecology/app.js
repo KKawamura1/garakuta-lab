@@ -3561,8 +3561,8 @@ function statAxesHtml(characterId, { live = false, hp = true } = {}) {
 // 『強打』ではなく、立ち絵を使ってキャラクターがわかるような見た目に。顔を見れば分かるので、
 // キャラクター表示にフレーバーテキストは要らない」。
 //
-// 戦闘盤（`unitHtml`）と予測セル（`partyCellPerson`）が先に持っていた形——**顔を背に敷き、
-// 読み値は下端の濃い帯へ集める**（DESIGN §5.2）——を、そのままギルドの「連れていく隊」と
+// 戦闘盤（`unitHtml`）と予測セル（`partyCellPerson`）が先に持っていた考え——**顔が主語で、
+// 読み値はその隣に集める**（DESIGN §5.2）——を、そのままギルドの「連れていく隊」と
 // 技能・装備タブの帯へ広げる。札がどの画面でも必ず持つのは五つだけ。
 //
 //   顔（立ち絵の目元） / 名前 / 1ラウンドに払える点（AP・RP）/ HP / 能力3軸
@@ -3605,26 +3605,29 @@ function panelReadout(label, value, extra = "", watch = "") {
     + (extra ? "<small class=\"panel-readout-extra\">" + esc(extra) + "</small>" : "") + "</span>";
 }
 
-// layout … 顔の枠の形。**札の幅で決まる。**
-//   band … 顔を札の背に敷く（幅が高さの2倍までの札。ギルドの2列、盤面のセルと同じ形）
-//   side … 顔を左の縦長の枠に立てる（画面いっぱいの一枚。背に敷くと顔の帯が 6:1 になり、
-//          髪も輪郭も切れて誰なのかが読めない。DESIGN 5.2.1）
+// **顔は左の縦長の枠に立てる。どの画面でも同じ形である。**
+//
+// 作者指摘 2026-09-16（実機）—「ヒバナとツグミ、切れてませんか？」。札の背に顔を敷くと、
+// 下端の読み値の帯（名前・HP・能力3軸で約95px）が顔の下半分を覆う。残る窓へ頭を収めるには
+// 札を 260px 近くまで高くするしかなく、そうしないと**目元が名前の行と重なる**（DESIGN 5.2 が
+// 禁じている「名前を顔へ重ねる」そのものになる）。縦長の枠なら顔の帯（240x150）が丸ごと
+// 入るので、5人とも髪の上から顎まで切れない。
 function characterPanel(characterId, {
-  live = true, layout = "band", marks = "", extras = "", action = "", className = "",
+  live = true, marks = "", extras = "", action = "", className = "",
 } = {}) {
-  const faceScope = "panel-character-face"
-    + (layout === "side" ? " side-character-face" : "");
-  return "<article class=\"character-panel layout-" + esc(layout) + " " + className + "\" style=\"--accent:"
+  return "<article class=\"character-panel " + className + "\" style=\"--accent:"
     + esc(portraitAccent(characterId)) + "\" data-character=\"" + esc(characterId) + "\">"
-    + characterFaceWatermark(characterId, faceScope)
+    + characterFaceWatermark(characterId, "panel-character-face")
     + "<div class=\"character-panel-info\">"
+    // 札から飛べる一手（「鍛える」）は名前の行の端に置く。**浮かせない**——顔の上へ重ねると
+    // 顔を隠し、払える点の丸と同じ場所を奪い合う。
     + "<div class=\"character-panel-head\"><b class=\"character-panel-name\">"
-    + esc(characterName(characterId)) + "</b>" + marks + characterResPips(characterId) + "</div>"
+    + esc(characterName(characterId)) + "</b>" + marks + characterResPips(characterId)
+    + (action ? "<span class=\"character-panel-action\">" + action + "</span>" : "") + "</div>"
     + characterPanelHp(characterId, live)
     + "<div class=\"character-stats\">" + statAxesHtml(characterId, { live, hp: false }) + "</div>"
     + (extras ? "<div class=\"character-panel-extras\">" + extras + "</div>" : "")
     + "</div>"
-    + (action ? "<div class=\"character-panel-action\">" + action + "</div>" : "")
     + "</article>";
 }
 
@@ -4057,7 +4060,6 @@ function equipmentPanelExtras(characterId) {
 function memberContext(characterId, emphasis = "skills") {
   return characterPanel(characterId, {
     className: "member-context",
-    layout: "side",
     marks: ultimateCellMark(characterId),
     extras: emphasis === "skills" ? skillPanelExtras(characterId) : equipmentPanelExtras(characterId),
   });

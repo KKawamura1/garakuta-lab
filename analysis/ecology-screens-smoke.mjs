@@ -673,8 +673,8 @@ for (const field of [
   // （画面から顔が消えるだけ）。だから**組み立ての一本化そのもの**をここで見る。
   for (const [label, expected] of [
     ["人物の札の組み立て", "function characterPanel(characterId, {"],
-    ["札が顔を敷いている", "characterFaceWatermark(characterId, faceScope)"],
-    ["札の顔の枠が幅で決まる", '(layout === "side" ? " side-character-face" : "")'],
+    ["札が顔を立てている", 'characterFaceWatermark(characterId, "panel-character-face")'],
+    ["顔の枠が縦長で、読み値は顔の右にある", ".panel-character-face {\n  right: auto;"],
     ["札がHPをバーで出す", "function characterPanelHp(characterId, live)"],
     ["札が1ラウンドに払える点を出す", "function characterResPips(characterId)"],
     ["ギルドの連れていく隊が札を使う", "return characterPanel(id, {"],

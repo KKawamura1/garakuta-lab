@@ -13,11 +13,10 @@ const CHARACTERS = [
 const ROWS = [
   { id: "forecast", label: "予測セル相当", scope: "party-character-face", className: "portrait-calibration-forecast" },
   { id: "battle", label: "戦闘カード相当", scope: "unit-character-face", className: "portrait-calibration-battle" },
-  { id: "panel", label: "人物の札相当（ギルドの2列）", scope: "panel-character-face", className: "portrait-calibration-panel" },
   {
-    id: "side",
-    label: "人物の札相当（画面いっぱいの一枚・縦長の枠）",
-    scope: "panel-character-face side-character-face",
+    id: "panel",
+    label: "人物の札相当（縦長の枠・連れていく隊／技能／装備）",
+    scope: "panel-character-face",
     className: "portrait-calibration-side",
   },
 ];
