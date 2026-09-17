@@ -4931,10 +4931,45 @@ function inspectedEncounterIndex() {
   return Math.max(1, Math.min(ENCOUNTERS_PER_RUN, value));
 }
 
+// 手書きの一戦（灰の門・必殺技の一戦）は composeEncounter から出てこない。
+// **どれを戦ったかは戦績が覚えている**ので、盤を組み直すときも同じ表を読む
+// （`SCRIPTED_ENCOUNTER_BUILDERS` の鍵は `run.results` に残る `script`）。
+const SCRIPTED_ENCOUNTER_BUILDERS = Object.freeze({
+  prologue: prologueEncounter,
+  ultimate_lesson: ultimateLessonEncounter,
+});
+
+// いま挑む一戦が手書きの盤面なら、その印。**戦績へ残すのはこの一語だけ**で、
+// 盤面そのものは印から組み直す（save を敵の表で太らせない）。
+function currentEncounterScript() {
+  if (state.prologueActive) return "prologue";
+  if (ultimateLessonActive()) return "ultimate_lesson";
+  return null;
+}
+
+// 作者指摘 2026-09-17 — **踏破した一戦の記録に、戦っていない敵が出ていた。**
+// 灰の門（第1戦の席に座る手書きの盤面）で勝つと、その勝利は第1戦の勝利として
+// 残るのに、遠征タブはその index を composeEncounter で組み直していた。
+// ラウンド数も味方損失も灰の門のものなのに、盤面だけ「灰の入口」の走者二体に
+// なっていて、**同じ札の中で数と敵が食い違っていた。**
+// 記録に残した印を読んで、戦った盤面そのものを出す。
 function encounterForInspection(index) {
   if (state.phase === "camp" && index === state.run.encounterIndex
       && (state.prologueActive || ultimateLessonActive())) return currentEncounter();
+  const script = SCRIPTED_ENCOUNTER_BUILDERS[scriptOfClearedEncounter(index)];
+  if (script) return script();
   return composeEncounter(index, state.run.difficulty, encounterOptions());
+}
+
+// 印は勝った時点で残す。**印を持たない古い save** のために、一つだけ読み替える——
+// 導入の遠征（New Game で始めた Stage 0）の第1戦は、必ず巻き戻したあとの「灰の門」
+// である（New Game は profile ごと作り直すので、灰の門を飛ばす経路が無い）。
+function scriptOfClearedEncounter(index) {
+  const entry = clearedEncounterResult(index);
+  if (!entry) return null;
+  if (entry.script) return entry.script;
+  if (index === 1 && tutorialRun() && state.run.campaignStageSequence === 0) return "prologue";
+  return null;
 }
 
 function inspectedEncounter() {
@@ -5105,6 +5140,25 @@ function supplyTotal() {
   return runSuppliesMax(state.run);
 }
 
+// 作者要望 2026-09-17 — **一戦目では補給を一つも減らさない。**
+//
+// 補給チュートリアル（二戦目の後）は「集中治療へ1個使う」ところまで進めないと
+// 錠が外れない。ところが一戦目は、負けるたびに再挑戦が補給を1個取っていたので、
+// **そこで3個とも使い切ると、手引きが進まないまま詰む**（タブも撤退も閉じている）。
+//
+// 直し方は「教える前の資源を触らせない」である。一戦目のあいだは
+//
+//   再挑戦 … 補給を取らずに何度でもやり直せる（灰の門の巻き戻しと同じ扱い）
+//   野営治療・引き直し … 押せない（補給が何なのかは、まだ教えていない）
+//
+// ——として、補給が初めて動くのを補給チュートリアルの一手にする。
+function firstBattleOfRun() {
+  return isCampaignRun() && state.run.encounterIndex === 1;
+}
+
+// 一戦目の補給の錠を、画面と handler が同じ一文で説明する。
+const FIRST_BATTLE_SUPPLY_NOTE = "一戦目では補給を使いません。再挑戦は何度でも無料です。";
+
 // issue #236 改 / 作者要望 2026-09-13 — 用途は**箇条書きの文ではなく記号つきの名札**にする。
 // 三つが同じ一つを取り合っていることは、並びと目盛りで出る（文で言い直さない）。
 const SUPPLY_USE_MARKS = Object.freeze({
@@ -5131,11 +5185,12 @@ function suppliesBar(context) {
 
 function renderSupplies() {
   const scrap = state.run.scrap ?? 0;
+  const sealed = firstBattleOfRun();
   const treatment = isCampaignRun()
     ? campTreatmentBlock()
     : "<section class=\"card quiet\"><p class=\"muted\">この遠征では戦闘ごとにHPが全回復するため、野営治療は使いません。</p></section>";
   return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給")
-    + suppliesBar()
+    + suppliesBar(sealed ? FIRST_BATTLE_SUPPLY_NOTE : null)
     + "<div class=\"scrap-line\"><span>屑 <b>" + scrap + "</b> / " + SCRAP_PER_SUPPLY + " → 補給1</span>"
     + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= supplyTotal(), "tiny-button")
     + "</div></section>"
@@ -5220,12 +5275,15 @@ const TREATMENT_GLYPHS = Object.freeze({
 
 function campTreatmentBlock() {
   const tutorial = supplyTutorialVisible();
+  // 作者要望 2026-09-17 — 一戦目は補給を触らせない（`firstBattleOfRun`）。
+  const sealed = firstBattleOfRun();
   const selectedTreatment = state.treatmentSelection ? CAMP_TREATMENTS[state.treatmentSelection] : null;
   const rows = Object.values(CAMP_TREATMENTS).map((treatment) => {
     const applicable = treatmentTargetIds(treatment).length > 0;
     const blockedByTutorial = tutorial && treatment.id !== "concentrated";
     const blockedBySelection = state.treatmentSelection && state.treatmentSelection !== treatment.id;
-    const disabled = blockedByTutorial || blockedBySelection || state.run.supplies < 1 || !applicable;
+    const disabled = sealed || blockedByTutorial || blockedBySelection
+      || state.run.supplies < 1 || !applicable;
     const actionLabel = treatment.targetCount === "all"
       ? "補給1"
       : state.treatmentSelection === treatment.id
@@ -5242,6 +5300,7 @@ function campTreatmentBlock() {
   }).join("");
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営治療",
       "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
+    + (sealed ? "<p class=\"muted\">" + esc(FIRST_BATTLE_SUPPLY_NOTE) + "</p>" : "")
     + treatmentResultBlock() + rows
     + helpDetails("treatment-rules", "治療の対象", ruleGrid([
       { glyph: "vitality", title: "集中治療", value: "負傷した生存者", line: "治療を選んだあと、対象を選びます。" },
@@ -7799,7 +7858,8 @@ function rewardSectionHtml() {
       : "")
     + "<div class=\"reward-choices\" data-fx=\"rewards\" data-count=\"" + count + "\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
-    + button("補給1で候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button quiet")
+    + button("補給1で候補を引き直す", "reroll-reward",
+      firstBattleOfRun() || state.run.supplies < 1 || rerolls >= 1, "button quiet")
     + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "1戦闘に一度だけ。再挑戦の余地が減ります。")
     + (appraisalLevel(state.profile) > 0
       ? " 目利き Lv" + appraisalLevel(state.profile) + "：等級を " + (appraisalLevel(state.profile) + 1)
@@ -7819,7 +7879,9 @@ function rewardSectionHtml() {
 // 文へ畳み直していた。ここではそれを、止まった位置の目盛り・払って変える流れ・
 // 確定した数のタイルで出す。**残す文は、世界の側が言う一行だけ。**
 function renderDefeat() {
-  const canRetry = state.run.supplies >= 1;
+  // 作者要望 2026-09-17 — 一戦目の再挑戦は補給を取らない（`firstBattleOfRun`）。
+  const freeRetry = firstBattleOfRun();
+  const canRetry = freeRetry || state.run.supplies >= 1;
   const encounter = currentEncounter();
   const ledger = state.run.fundLedger;
   const reached = ledger.highestClearedEncounter;
@@ -7836,15 +7898,20 @@ function renderDefeat() {
     + "<p class=\"world-voice\">" + esc(defeatVoice()) + "</p></section>";
   // **払うもの → 変えられるもの → 戻る先。**再挑戦の中身は、この三つで尽きている。
   const retryFlow = flowStrip([
-    { glyph: "supply", label: "補給 −1", sub: "払う", tone: "bad" },
+    freeRetry
+      ? { glyph: "supply", label: "補給 ±0", sub: "払わない", tone: "good" }
+      : { glyph: "supply", label: "補給 −1", sub: "払う", tone: "bad" },
     { glyph: "person", label: "編成・技能・装備", sub: "組み替える" },
     { glyph: "retry", label: "同じ一戦", sub: "やり直す", tone: "gold" },
   ]);
   const actionCard = "<section class=\"card primary-action defeat-primary-action\" data-primary-action=\"defeat-next\">"
     + sectionHeading("NEXT", "次の手", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
+    + suppliesBar(freeRetry
+      ? FIRST_BATTLE_SUPPLY_NOTE
+      : canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
     + (canRetry
-      ? retryFlow + button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
+      ? retryFlow + button(freeRetry ? "編成を変えて再挑戦" : "補給1で編成を変えて再挑戦",
+        "retry-encounter", false, "button primary")
       : ruleGrid([{ glyph: "lock", title: "補給 0", value: "再挑戦できない", line: "この遠征はここで終わります。", tone: "bad" }]))
     + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary")
     + "</section>";
@@ -8253,6 +8320,8 @@ function simulateAndEnterBattle({ previewOnly = false } = {}) {
   // issue #240 — いま挑むのが必殺技の教材の一戦か。**戦う前に数えておく**
   // （勝つと encounterIndex が進むので、後から判定すると答えが変わる）。
   const lessonBattle = ultimateLessonActive();
+  // 作者指摘 2026-09-17 — どの盤面で戦うかの印も、**同じ理由でここで数えておく。**
+  const encounterScript = currentEncounterScript();
   // 最終戦の受け取り印は、次の一戦を始めた時点で役目を終える。
   state.simulationMode = previewOnly;
   if (!previewOnly) state.rewardTakenAtEncounter = null;
@@ -8286,11 +8355,15 @@ function simulateAndEnterBattle({ previewOnly = false } = {}) {
     state.replaySnapshots = replay.snapshots;
     state.replayIndex = 0;
     state.replayPlaying = true;
+    // 作者指摘 2026-09-17 — **どの盤面で戦ったかも残す。**灰の門も必殺技の一戦も
+    // 12戦の席に座る手書きの盤面なので、index から組み直すと別の敵が出る。
+    // 印が無い回（通常の一戦）は欄ごと置かない（古い save と同じ形のままにする）。
     if (!previewOnly) state.run.results = [...state.run.results, {
       encounter: state.run.encounterIndex,
       result: result.result,
       roundsUsed: result.roundsUsed,
       metrics: result.metrics,
+      ...(encounterScript ? { script: encounterScript } : {}),
     }];
     // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
     // retry しても同じ encounter の撃破 base は一度だけ。
@@ -9453,7 +9526,9 @@ function handleAction(event) {
   // R6 §12.1 — 報酬の引き直しは補給1。**1戦闘につき一度だけ**（R6 §10）。
   if (action === "reroll-reward") {
     const used = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
-    if (used >= 1) {
+    if (firstBattleOfRun()) {
+      state.error = FIRST_BATTLE_SUPPLY_NOTE;
+    } else if (used >= 1) {
       state.error = "この戦闘ではもう引き直せません。";
     } else {
       const spent = spendSupply(state.run, "reroll");
@@ -9619,7 +9694,11 @@ function handleAction(event) {
   }
 
   if (action === "retry-encounter") {
-    const spent = spendSupply(state.run, "retry");
+    // 作者要望 2026-09-17 — 一戦目だけは補給を取らずにやり直す。**補給の出番は
+    // 補給チュートリアルが最初**で、そこまでは3個が減らない（`firstBattleOfRun`）。
+    const spent = firstBattleOfRun()
+      ? { ok: true, run: state.run }
+      : spendSupply(state.run, "retry");
     if (!spent.ok) {
       state.error = spent.reason;
     } else {

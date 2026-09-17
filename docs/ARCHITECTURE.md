@@ -189,7 +189,7 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 
 錠の掛かる範囲は二つに分かれます。`skillLessonLocked()` は `done` 以外、`skillLessonTabLocked()` は `tab` と `done` 以外（一手目がタブを押すことなので、そこで閉じ込めると打てません）。`aim` の段だけは `skillLessonAllowSelector()` が操作盤の「✕」を返し、`tutorialOpenings(gate)` が「光る先＋光らせないが通す先」を一つの選択子にまとめます——`applyTutorialGate()` の錠も `tutorialAllows()` の経路も同じ文字列を読むので、画面と handler が別々の綴りを持つことはありません。受け渡しが済んだ印は画面状態の `skillLessonHandedOff` で、以後は誰を選び直しても段が戻りません（画面の状態から導くと、教えた相手を選び直した拍に錠が復活します）。予約は既存の `progression.reserveRunSkill` をそのまま通るので、チュートリアル専用の取得経路は作りません。完了印 `skill_lesson_seen` は **次の一戦へ出るとき**（`begin-stage`）に押します。
 
-四つの手引きの札は `tutorialNoteCard()` が一枚だけ組み、`renderCamp()` が `.camp-view` の頭へ出します。錠が掛かっている段では札に `pinned` が付き、固定帯（`--camp-top-h`）の真下へ貼りつきます。`publishCampTopHeight()` が札の高さを `--tutorial-note-h` へ入れるので、技能点の要約帯（`.skill-build-summary`）はその下へ貼ります。`focusTutorialSpot()` は段が変わった回だけ、光らせる先が窓の外なら技能ツリーの帯とページを寄せます（`focusSelectedSkillNode()` と同じ作法で、見えているときは動かしません）。
+四つの手引きの札は `tutorialNoteCard()` が一枚だけ組み、`renderCamp()` が `.camp-view` の頭へ出します。錠が掛かっている段では札に `pinned` が付き、固定帯（`--camp-top-h`）の真下へ貼りつきます。`publishCampTopHeight()` が札の高さを `--tutorial-note-h` へ入れるので、技能点の要約帯（`.skill-build-summary`）はその下へ貼ります。`focusTutorialSpot()` は段が変わった回だけ、光らせる先が窓の外なら技能ツリーの帯とページを寄せます（`focusSelectedSkillNode()` と同じ作法で、見えているときは動かしません）。貼りついた札の重なりの段は `z-index: 4` で、キャンプの固定帯（`.camp-top`、3）・技能の操作盤（`.skill-sheet`、2）・技能点の要約帯（`.skill-build-summary`、2）より手前に出ます。**札が隠れると、いま押す場所を言う唯一の文が読めなくなる**ためです（札は固定帯の下へ `--camp-top-h` のぶんだけずらして貼るので、固定帯とは重なりません）。
 
 Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
@@ -366,6 +366,16 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 味方HP損失は保存済みの `run.results` から `encounterReport()` が読みます。未知の実績だけを
 「？」にするため、画面専用の戦歴 state は持ちません。敵盤面は常時表示し、閉じない
 `enemy-details` に置きます。
+
+踏破済みの節の敵盤面は、**そのとき実際に戦った盤面**です。灰の門（`prologueEncounter`）と
+必殺技の一戦（`ultimateLessonEncounter`）は 12戦の席に座る手書きの盤面で、
+`composeEncounter` からは出てこないので、戦った時点で `run.results` の項へ
+`script`（`"prologue"` / `"ultimate_lesson"`）を残し、`encounterForInspection()` が
+`SCRIPTED_ENCOUNTER_BUILDERS` からその盤面を組み直します。**save に残すのは印の一語**で、
+敵の表そのものは置きません。印の無い項は従来どおり `composeEncounter` で組みますが、
+印を持たない古い save のために `scriptOfClearedEncounter()` が一つだけ読み替えます——
+導入の遠征（New Game の Stage 0）の第1戦は必ず灰の門です（New Game は profile ごと
+作り直すので、灰の門を飛ばす経路がありません）。
 技能ツリーは**地図と操作盤を分ける**。節（`.tree-cell`）は位置と状態だけを持ち、押した節の説明・
 前提・派生・取得・段上げ・取得予約は画面下端へ貼る操作盤（`renderSkillSheet` / `.skill-sheet`）が
 出す。節の中で開かないので、押しても地図は組み変わらず、釦は列幅ではなく画面幅を使える。
