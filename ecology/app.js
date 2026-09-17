@@ -4109,10 +4109,13 @@ function skillBuildSummary(characterId) {
       + "・" + esc(reservationTarget) + "\"><small>取得予約</small><b>"
       + esc(reservationLabel) + "</b><small>" + esc(reservationTarget) + "</small></span>"
     : "";
-  // 作者要望 2026-09-16 — 誰の帯かは**顔で指す**（[拳] の図像はどの画面からも外した）。
+  // 作者指摘 2026-09-17（二度目）—「ちょっと狭いなあ。固定窓が多すぎるからですかね？」
+  //
+  // この帯は固定帯（`.camp-top`、実測 284px）の下へ**もう一枚貼りついて**いて、
+  // iPhone の実質 660px のうち 46px を常に取っていた。しかも中身の三つのうち二つ
+  // ——顔と名前——は、上端の盤面（金の枠が主語を指す）と人物の札が既に言っている。
+  // **貼るのをやめ、残る二つ（技能点と予約先）をツリーの操作の行へ入れる。**
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
-    + characterFaceChip(characterId)
-    + "<b class=\"summary-name\">" + esc(characterName(characterId)) + "</b>"
     + reservation
     + "<span class=\"summary-points\" role=\"img\" aria-label=\"" + esc(characterName(characterId))
     + "の技能点 " + points + " · 隊全体 " + party + "\"><small>技能点</small><b>" + points + "</b>"
@@ -4457,7 +4460,7 @@ function renderSkillTree(characterId) {
   // 強調を解除する ✕ は、操作盤の頭（`.sheet-close`）へ移した。地図の上に置くと、
   // 「いま何を選んでいるか」を言う札が地図と盤の二箇所に出る。
   return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
-    + treeViewSwitch(view, readyCounts.get(kind) ?? 0)
+    + treeViewSwitch(view, readyCounts.get(kind) ?? 0, characterId)
     + branchFilter(group)
     + "<div class=\"skill-tree-view\" data-view=\"" + view + "\">" + body + "</div>"
     + renderSkillSheet(selectedRow, characterId);
@@ -4465,7 +4468,7 @@ function renderSkillTree(characterId) {
 
 // **見方の切り替えと、絞り込みは同じ一行に置く。**どちらも「いま何を見せるか」で、
 // 節そのものを触らない（触るのは下端の操作盤だけ、という 8.5.1 の分け方は変えない）。
-function treeViewSwitch(view, ready) {
+function treeViewSwitch(view, ready, characterId) {
   const tab = (id, label, title) => "<button type=\"button\" class=\"view-tab" + (view === id ? " on" : "")
     + "\" aria-pressed=\"" + (view === id ? "true" : "false") + "\" data-action=\"select-skill-view\""
     + " data-view=\"" + id + "\" title=\"" + esc(title) + "\">" + esc(label) + "</button>";
@@ -4478,11 +4481,12 @@ function treeViewSwitch(view, ready) {
       + " title=\"いまの技能点で解禁できる節と、段を上げられる節だけを出す\">"
       + "いま取れる<b>" + ready + "</b></button>"
     : "";
+  // **貼りつく帯を増やさない。**技能点と予約先はここへ同居させる（作者指摘 2026-09-17）。
   return "<div class=\"tree-controls\">"
     + "<div class=\"view-switch\" role=\"group\" aria-label=\"技能ツリーの見方\">"
     + tab("list", "一覧", "縦一列に全部並べる")
     + tab("map", "地図", "前提と派生を線で辿る")
-    + "</div>" + readyChip + "</div>";
+    + "</div>" + readyChip + skillBuildSummary(characterId) + "</div>";
 }
 
 // **地図。**R19（issue #137）からの森そのもの。列は固定幅で、深いツリーほど横に長い。
@@ -4687,9 +4691,10 @@ function focusSelectedSkillNode() {
   // 節を寄せてしまい、寄せ終わったあとに帯が上へ貼りついて、地図の見える帯が
   // その高さぶん無駄に狭くなる。
   const sheet = app.querySelector(".skill-sheet");
-  const summary = app.querySelector(".skill-build-summary");
+  // 貼りついているのは固定帯と、選んでいる回だけ出る操作盤の二つだけである
+  // （技能点の帯は 2026-09-17 に貼るのをやめ、ツリーの操作の行へ入れた）。
   const campBottom = app.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
-  const top = campBottom + (summary ? summary.getBoundingClientRect().height + 6 : 0) + margin;
+  const top = campBottom + margin;
   const bottom = (sheet?.getBoundingClientRect().top ?? window.innerHeight) - margin;
   if (cellRect.top < top || cellRect.bottom > bottom) {
     // 見える帯の上寄り（1/3）へ置く。真上に貼りつけると、その節から下へ伸びる
@@ -4889,7 +4894,7 @@ function renderSkills() {
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">"
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
-    + skillBuildSummary(characterId) + renderSkillTree(characterId)
+    + renderSkillTree(characterId)
     + "</details>"
     + symbolLegendHelp()
     // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。

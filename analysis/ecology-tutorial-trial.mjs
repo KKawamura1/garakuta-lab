@@ -521,6 +521,37 @@ try {
     }).length,
   }));
   note("一覧は横へはみ出さない", listShape.overflow <= 1, `はみ出し ${listShape.overflow}px`);
+
+  // 作者指摘 2026-09-17（二度目）—「ちょっと狭いなあ。固定窓が多すぎるからですかね？」
+  // **技能タブで貼りつくのは、上端の固定帯と（選んだ回だけの）操作盤の二つだけ。**
+  // 技能点の帯を三枚目として貼ると、iPhone の実質 660px から常に 46px を取る。
+  const stickyBands = await page.evaluate(() => [...document.querySelectorAll(".camp-view *")]
+    .filter((element) => {
+      const style = getComputedStyle(element);
+      if (style.position !== "sticky") return false;
+      const box = element.getBoundingClientRect();
+      return box.height > 0 && box.width > window.innerWidth / 2;
+    })
+    .map((element) => (typeof element.className === "string" ? element.className.split(" ")[0] : element.tagName)));
+  note("技能タブに貼りつく帯を増やさない", !stickyBands.includes("skill-build-summary"),
+    stickyBands.join(" / ") || "なし");
+  // **読める帯で、一覧が何行出せるか。**上端の固定帯の下から、実機 Safari の下端までを数える。
+  // 数えるのは帯の容量なので、一覧の頭が固定帯の真下に来るまで送ってから測る。
+  const roomy = await page.evaluate((budget) => {
+    const bandTop = () => document.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
+    const rows = [...document.querySelectorAll(".tree-cell.list-row")];
+    if (rows.length) {
+      window.scrollBy({ top: rows[0].getBoundingClientRect().top - bandTop() - 4, behavior: "auto" });
+    }
+    const top = bandTop();
+    const fits = rows.filter((row) => {
+      const box = row.getBoundingClientRect();
+      return box.top >= top - 1 && box.bottom <= budget + 1;
+    }).length;
+    return { top: Math.round(top), fits, rows: rows.length };
+  }, SAFARI_VISIBLE_HEIGHT);
+  note("一覧が読める帯に5行以上出る", roomy.fits >= 5 || roomy.fits === roomy.rows,
+    `固定帯 ${roomy.top}px の下に ${roomy.fits} / ${roomy.rows} 行`);
   note("一覧の行は全部が画面の幅に収まる", listShape.rows > 0 && listShape.inWindow === listShape.rows,
     `${listShape.inWindow} / ${listShape.rows} 行`);
   // **同じ森である。**一覧と地図で出る節の数は一致する（見え方だけが違う）。
