@@ -446,22 +446,21 @@ try {
   note("装備は自由に付け外しできると書いてある",
     /付け外し/.test(equipmentRuleText) && /何度でも/.test(equipmentRuleText));
 
-  // ---- 作者要望 2026-09-17 — **一戦目では補給を一つも使わない。** --------------
+  // ---- 作者要望 2026-09-17 — **補給チュートリアルより前は、補給が動かない。** ----
   //
-  // 補給チュートリアル（二戦目の後）は「集中治療へ1個使う」まで進まないと錠が
-  // 外れない。一戦目の再挑戦が補給を取っていたころは、そこで3個とも使い切ると
-  // 手引きが進まないまま詰んだ（タブも撤退も閉じている）。
-  await page.locator('nav.tabs [data-tab="supplies"]').click();
-  await page.waitForTimeout(200);
-  const firstBattleSupplyText = await bodyText();
-  note("一戦目の補給タブが、まだ使わないことを言う",
-    /一戦目では補給を使いません/.test(firstBattleSupplyText));
-  note("一戦目は野営治療を押せない",
-    await page.locator('[data-action="treat"]').count() > 0
-      && await page.locator('[data-action="treat"]')
-        .evaluateAll((buttons) => buttons.every((button) => button.disabled)));
-  note("一戦目の補給は3個のまま",
-    /補給 3 \/ 3/.test(await page.locator(".supplies-head b").innerText()));
+  // 補給チュートリアル（二戦目の後）は「集中治療へ1個使う」まで進まないと錠が外れず、
+  // そのあいだ他タブも撤退も閉じている。**そこへ補給0で着くと詰む。**着き方は
+  // 一戦目の再挑戦だけではなく、二戦目の前の全体手当・二戦目の再挑戦もあった。
+  // 用途を一つずつ塞ぐのをやめ、手引きより前は補給タブごと閉じている。
+  note("手引きより前は補給タブが押せない",
+    await page.locator('nav.tabs [data-tab="supplies"]').isDisabled());
+  await page.locator('nav.tabs [data-tab="supplies"]').click({ force: true }).catch(() => {});
+  await page.waitForTimeout(150);
+  note("押しても補給の画面へ入れない",
+    await page.locator(".supplies-head").count() === 0
+      && await page.locator('[data-action="treat"]').count() === 0);
+  note("補給の残りはタブの札で読める",
+    /3\/3/.test(await page.locator('nav.tabs [data-tab="supplies"]').innerText()));
 
   // R10 / issue #235 — Campではオートセーブとは別に手動枠へ保存できる。
   // セーブは遠征タブが持つ（**離脱ではないので、物語の最中でも触れる**）。
@@ -784,12 +783,15 @@ try {
   const firstDefeatText = await bodyText();
   note("一戦目で負けても再挑戦の手が残る", /編成を変えて再挑戦/.test(firstDefeatText));
   note("一戦目の再挑戦に補給の値段が付かない", !/補給1で編成を変えて再挑戦/.test(firstDefeatText));
+  note("敗北画面が、止まった一戦の名前と番号を揃えて出す",
+    /灰の門 · 第1戦/.test(firstDefeatText),
+    firstDefeatText.match(/.{0,6}· 第\d+戦/)?.[0] ?? "");
+  note("払わないことを敗北画面が言う",
+    /補給を使うのは補給チュートリアルからです/.test(firstDefeatText));
   await click(/編成を変えて再挑戦/);
   await page.waitForTimeout(350);
-  await page.locator('nav.tabs [data-tab="supplies"]').click();
-  await page.waitForTimeout(200);
   note("一戦目の再挑戦で補給が減らない",
-    /補給 3 \/ 3/.test(await page.locator(".supplies-head b").innerText()));
+    /3\/3/.test(await page.locator('nav.tabs [data-tab="supplies"]').innerText()));
 
   // ---- R11 §8.6 — 巻き戻したあとの再戦。**同じ盤面をもう一度戦う。**
   //
@@ -1057,6 +1059,15 @@ try {
       note("終わったあとは他のタブへも移れる",
         await page.locator('nav.tabs [data-tab="equipment"].active').count() === 1
           && await page.locator(".skill-tutorial").count() === 1);
+      // 作者試遊 2026-09-17 — **ここが詰みの入口だった。**一戦目の傷が残っているので、
+      // 二戦目へ入る前に全体手当を3回押せて、補給0のまま補給チュートリアルへ着いた。
+      note("技能チュートリアルのあとも、補給タブはまだ閉じている",
+        await page.locator('nav.tabs [data-tab="supplies"]').isDisabled());
+      await page.locator('nav.tabs [data-tab="supplies"]').click({ force: true }).catch(() => {});
+      await page.waitForTimeout(150);
+      note("二戦目の前に野営治療へ入れない",
+        await page.locator('[data-action="treat"]').count() === 0
+          && await page.locator('nav.tabs [data-tab="supplies"].active').count() === 0);
     }
 
     // ---- 二戦目。**勝つと補給チュートリアルが出る。** --------------------------
@@ -1064,6 +1075,33 @@ try {
     await page.waitForTimeout(150);
     note("技能チュートリアルは一度きり（次の一戦へ出ると消える）",
       await page.locator(".skill-tutorial").count() === 1);
+    // 二戦目の再挑戦も、手引きより前なので補給を取らない（3回負けてから勝つと
+    // 補給0で手引きへ着く、という三つ目の道を塞いである）。敗北画面だけを置いて見る。
+    await page.evaluate(() => {
+      const key = "exp18-r10-auto-v02";
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      if (!saved?.run) return;
+      saved.phase = "defeat";
+      saved.lastResult = {
+        result: "loss", roundsUsed: 8, reason: "party_wiped",
+        metrics: { allyHpLost: 300, enemyHpLost: 200, reactionsFired: 2, equipmentWear: 0 },
+        actors: [], equipment: [], events: [],
+      };
+      localStorage.setItem(key, JSON.stringify(saved));
+    });
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    const secondDefeatText = await bodyText();
+    note("二戦目の再挑戦にも補給の値段が付かない",
+      /編成を変えて再挑戦/.test(secondDefeatText) && !/補給1で編成を変えて再挑戦/.test(secondDefeatText));
+    note("二戦目の敗北画面も名前と番号が揃う", /狩りの路地 · 第2戦/.test(secondDefeatText),
+      secondDefeatText.match(/.{0,8}· 第\d+戦/)?.[0] ?? "");
+    await click(/編成を変えて再挑戦/);
+    await page.waitForTimeout(350);
+    note("二戦目の再挑戦でも補給が減らない",
+      /3\/3/.test(await page.locator('nav.tabs [data-tab="supplies"]').innerText()));
+    await page.locator('nav.tabs [data-tab="map"]').click();
+    await page.waitForTimeout(150);
     await click("この敵との実戦へ進む");
     await waitForTutorialSelector(".battle-field");
     const secondFast = page.locator('.speed-button[data-speed="fast"]');

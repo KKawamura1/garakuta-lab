@@ -1647,7 +1647,11 @@ function campTutorialTab() {
 
 function campNav() {
   const tutorialLocked = campTutorialTab();
-  const activeTab = tutorialLocked ?? state.tab;
+  const activeTab = campActiveTab();
+  // 作者要望 2026-09-17 — **手引きより前は、補給タブごと錠を掛ける。**使い道を
+  // 一つずつ塞ぐより、まだ配っていない道具の部屋を閉じておくほうが素直である
+  // （手引きの一手目が、その錠を開ける「補給タブを押す」になる）。
+  const sealedTab = suppliesSealed() ? "supplies" : null;
   // issue #235 — 編成タブは廃止した。隊列は上端の共通盤面が常に持ち、人物の中身は
   // スキル・装備タブの memberContext が出す。**説明を読むだけのタブを一枚残さない。**
   // 戦闘は「遠征」に改め、次の一戦・撤退・セーブという**遠征単位の操作**を集める。
@@ -1659,7 +1663,7 @@ function campNav() {
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
     const active = activeTab === id;
-    const locked = Boolean(tutorialLocked) && id !== tutorialLocked;
+    const locked = (Boolean(tutorialLocked) && id !== tutorialLocked) || id === sealedTab;
     // issue #237 — 札の中の数（技能点・装着・補給・進み）は、**このタブを開いていなくても
     // 変わる**。読み値に印を付けておけば、どのタブから触っても数のほうが光る。
     return "<button type=\"button\" class=\"tab " + (active ? "active" : "")
@@ -3487,8 +3491,18 @@ function storyBeatsForStart(sequence) {
   return { beats: [storyBeat(stage.id, "join") ?? storyBeat(stage.id, "opening")], after: "camp" };
 }
 
+// いま出すタブ。**錠（手引き・補給）はここ一箇所で解く**ので、画面と handler が
+// 別々の答えを持たない。
+function campActiveTab() {
+  const locked = campTutorialTab();
+  if (locked) return locked;
+  // 保存から戻った回に `state.tab` が錠の掛かったタブを指していても、そこは開かない。
+  if (state.tab === "supplies" && suppliesSealed()) return "map";
+  return state.tab;
+}
+
 function renderCamp() {
-  const activeTab = campTutorialTab() ?? state.tab;
+  const activeTab = campActiveTab();
   const view = {
     skills: renderSkills,
     equipment: renderEquipment,
@@ -5140,24 +5154,41 @@ function supplyTotal() {
   return runSuppliesMax(state.run);
 }
 
-// 作者要望 2026-09-17 — **一戦目では補給を一つも減らさない。**
+// 作者要望 2026-09-17 — **補給チュートリアルより前に、補給は一つも減らない。**
 //
-// 補給チュートリアル（二戦目の後）は「集中治療へ1個使う」ところまで進めないと
-// 錠が外れない。ところが一戦目は、負けるたびに再挑戦が補給を1個取っていたので、
-// **そこで3個とも使い切ると、手引きが進まないまま詰む**（タブも撤退も閉じている）。
+// 補給チュートリアル（二戦目の後）は「集中治療へ1個使う」ところまで進めないと錠が
+// 外れず、そのあいだ他タブも撤退も閉じている。**そこへ補給0で着くと詰む。**
+// 着き方は一つではなかった。
 //
-// 直し方は「教える前の資源を触らせない」である。一戦目のあいだは
+//   一戦目 … 負けるたびに再挑戦が1個取る（3回負ければ0）
+//   二戦目の前 … 一戦目の傷が残っているので、野営治療（全体手当）を3回押せる
+//   二戦目 … 再挑戦を3回払ってから勝つと、やはり0で手引きへ着く
 //
+// 一つずつ塞ぐと、また別の道が残る。**教える前の資源は、そもそも動かさない。**
+// 補給が初めて動くのは補給チュートリアルの一手（集中治療）で、そこまでは
+//
+//   補給タブ … 押せない（錠。**何があるかは手引きが教える**）
+//   野営治療・報酬の引き直し … 押せない
 //   再挑戦 … 補給を取らずに何度でもやり直せる（灰の門の巻き戻しと同じ扱い）
-//   野営治療・引き直し … 押せない（補給が何なのかは、まだ教えていない）
 //
-// ——として、補給が初めて動くのを補給チュートリアルの一手にする。
-function firstBattleOfRun() {
-  return isCampaignRun() && state.run.encounterIndex === 1;
+// 手引きそのものの一手（`supplyTutorialVisible()` の間）は錠から外す——外さないと、
+// 教えるための一手が押せない。手引きを終えた印（`SUPPLY_TUTORIAL_FLAG`）が付けば、
+// 以降は通常どおり三用途の取り合いへ戻る。
+//
+// **錠が掛かるのは、手引きがこれから出る遠征だけ。**条件は手引きの出現
+// （`supplyTutorialVisible()` → `ordinaryBattleWon()`）と同じものを読む——導入の遠征
+// （`tutorialRun()`）の Stage 0 である。Stage を選び直した遠征は `runId` を持ち回すので
+// `tutorialRun()` が真のまま Stage 1 以降を走ることがあり、**そこでは手引きが出ない**
+// （＝錠を掛けると永久に開かない）。再訪・通常遠征は最初から通常どおり。
+function suppliesSealed() {
+  if (!isCampaignRun() || !tutorialRun()) return false;
+  if ((state.run.campaignStageSequence ?? 0) !== 0) return false;
+  if (hasStoryFlag(SUPPLY_TUTORIAL_FLAG)) return false;
+  return !supplyTutorialVisible();
 }
 
-// 一戦目の補給の錠を、画面と handler が同じ一文で説明する。
-const FIRST_BATTLE_SUPPLY_NOTE = "一戦目では補給を使いません。再挑戦は何度でも無料です。";
+// 補給の錠を、画面と handler が同じ一文で説明する。
+const SEALED_SUPPLY_NOTE = "補給を使うのは補給チュートリアルからです。それまで再挑戦は何度でも無料で、補給は減りません。";
 
 // issue #236 改 / 作者要望 2026-09-13 — 用途は**箇条書きの文ではなく記号つきの名札**にする。
 // 三つが同じ一つを取り合っていることは、並びと目盛りで出る（文で言い直さない）。
@@ -5183,14 +5214,16 @@ function suppliesBar(context) {
     + ruleGrid(uses, "supply-uses-grid") + "</div>";
 }
 
+// 錠が掛かっているあいだ、この画面は開かない（`campActiveTab()` が返さないので、
+// タブを押しても補給の部屋へは入れない）。**錠の説明はここへ置かない**——補給が
+// 何なのかを最初に言うのは、手引きの一手目である。
 function renderSupplies() {
   const scrap = state.run.scrap ?? 0;
-  const sealed = firstBattleOfRun();
   const treatment = isCampaignRun()
     ? campTreatmentBlock()
     : "<section class=\"card quiet\"><p class=\"muted\">この遠征では戦闘ごとにHPが全回復するため、野営治療は使いません。</p></section>";
   return "<section class=\"card\">" + sectionHeading("SUPPLIES", "補給")
-    + suppliesBar(sealed ? FIRST_BATTLE_SUPPLY_NOTE : null)
+    + suppliesBar()
     + "<div class=\"scrap-line\"><span>屑 <b>" + scrap + "</b> / " + SCRAP_PER_SUPPLY + " → 補給1</span>"
     + button("補給へ替える", "convert-scrap", scrap < SCRAP_PER_SUPPLY || state.run.supplies >= supplyTotal(), "tiny-button")
     + "</div></section>"
@@ -5275,15 +5308,12 @@ const TREATMENT_GLYPHS = Object.freeze({
 
 function campTreatmentBlock() {
   const tutorial = supplyTutorialVisible();
-  // 作者要望 2026-09-17 — 一戦目は補給を触らせない（`firstBattleOfRun`）。
-  const sealed = firstBattleOfRun();
   const selectedTreatment = state.treatmentSelection ? CAMP_TREATMENTS[state.treatmentSelection] : null;
   const rows = Object.values(CAMP_TREATMENTS).map((treatment) => {
     const applicable = treatmentTargetIds(treatment).length > 0;
     const blockedByTutorial = tutorial && treatment.id !== "concentrated";
     const blockedBySelection = state.treatmentSelection && state.treatmentSelection !== treatment.id;
-    const disabled = sealed || blockedByTutorial || blockedBySelection
-      || state.run.supplies < 1 || !applicable;
+    const disabled = blockedByTutorial || blockedBySelection || state.run.supplies < 1 || !applicable;
     const actionLabel = treatment.targetCount === "all"
       ? "補給1"
       : state.treatmentSelection === treatment.id
@@ -5300,7 +5330,6 @@ function campTreatmentBlock() {
   }).join("");
   return "<section class=\"card\">" + sectionHeading("CAMP TREATMENT", "野営治療",
       "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + (sealed ? "<p class=\"muted\">" + esc(FIRST_BATTLE_SUPPLY_NOTE) + "</p>" : "")
     + treatmentResultBlock() + rows
     + helpDetails("treatment-rules", "治療の対象", ruleGrid([
       { glyph: "vitality", title: "集中治療", value: "負傷した生存者", line: "治療を選んだあと、対象を選びます。" },
@@ -7859,7 +7888,7 @@ function rewardSectionHtml() {
     + "<div class=\"reward-choices\" data-fx=\"rewards\" data-count=\"" + count + "\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
     + button("補給1で候補を引き直す", "reroll-reward",
-      firstBattleOfRun() || state.run.supplies < 1 || rerolls >= 1, "button quiet")
+      suppliesSealed() || state.run.supplies < 1 || rerolls >= 1, "button quiet")
     + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "1戦闘に一度だけ。再挑戦の余地が減ります。")
     + (appraisalLevel(state.profile) > 0
       ? " 目利き Lv" + appraisalLevel(state.profile) + "：等級を " + (appraisalLevel(state.profile) + 1)
@@ -7879,15 +7908,17 @@ function rewardSectionHtml() {
 // 文へ畳み直していた。ここではそれを、止まった位置の目盛り・払って変える流れ・
 // 確定した数のタイルで出す。**残す文は、世界の側が言う一行だけ。**
 function renderDefeat() {
-  // 作者要望 2026-09-17 — 一戦目の再挑戦は補給を取らない（`firstBattleOfRun`）。
-  const freeRetry = firstBattleOfRun();
+  // 作者要望 2026-09-17 — 手引きより前の再挑戦は補給を取らない（`suppliesSealed`）。
+  const freeRetry = suppliesSealed();
   const canRetry = freeRetry || state.run.supplies >= 1;
   const encounter = currentEncounter();
   const ledger = state.run.fundLedger;
   const reached = ledger.highestClearedEncounter;
   const plate = "<section class=\"card verdict loss verdict-plate\">"
     + verdictSigil("loss") + "<h2>足を止めた</h2>"
-    + "<p class=\"verdict-context\">" + esc(encounter.name) + " · 第" + (state.run.encounterIndex + 1) + "戦</p>"
+    // 作者指摘 2026-09-17 — **番号は、いま止まった一戦のもの。**`+ 1` が付いていたので、
+    // 隣に出る戦闘名（`currentEncounter()` ＝ その index の一戦）と一つずれていた。
+    + "<p class=\"verdict-context\">" + esc(encounter.name) + " · 第" + state.run.encounterIndex + "戦</p>"
     + "<div class=\"verdict-rail\">"
     + segmentMeter(reached, ENCOUNTERS_PER_RUN, {
       label: "到達 " + reached + " / " + ENCOUNTERS_PER_RUN,
@@ -7907,7 +7938,7 @@ function renderDefeat() {
   const actionCard = "<section class=\"card primary-action defeat-primary-action\" data-primary-action=\"defeat-next\">"
     + sectionHeading("NEXT", "次の手", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
     + suppliesBar(freeRetry
-      ? FIRST_BATTLE_SUPPLY_NOTE
+      ? SEALED_SUPPLY_NOTE
       : canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
     + (canRetry
       ? retryFlow + button(freeRetry ? "編成を変えて再挑戦" : "補給1で編成を変えて再挑戦",
@@ -8960,6 +8991,14 @@ function handleAction(event) {
       render();
       return;
     }
+    // 作者要望 2026-09-17 — 手引きより前の補給タブは開かない（釦も disabled だが、
+    // **錠は画面と経路の両方で掛ける**）。
+    if (nextTab === "supplies" && suppliesSealed()) {
+      state.error = SEALED_SUPPLY_NOTE;
+      saveState();
+      render();
+      return;
+    }
     state.phase = "camp";
     state.tab = nextTab;
     fx("tab:" + nextTab, "pick");
@@ -9526,8 +9565,8 @@ function handleAction(event) {
   // R6 §12.1 — 報酬の引き直しは補給1。**1戦闘につき一度だけ**（R6 §10）。
   if (action === "reroll-reward") {
     const used = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
-    if (firstBattleOfRun()) {
-      state.error = FIRST_BATTLE_SUPPLY_NOTE;
+    if (suppliesSealed()) {
+      state.error = SEALED_SUPPLY_NOTE;
     } else if (used >= 1) {
       state.error = "この戦闘ではもう引き直せません。";
     } else {
@@ -9694,9 +9733,9 @@ function handleAction(event) {
   }
 
   if (action === "retry-encounter") {
-    // 作者要望 2026-09-17 — 一戦目だけは補給を取らずにやり直す。**補給の出番は
-    // 補給チュートリアルが最初**で、そこまでは3個が減らない（`firstBattleOfRun`）。
-    const spent = firstBattleOfRun()
+    // 作者要望 2026-09-17 — 手引きより前は補給を取らずにやり直す。**補給の出番は
+    // 補給チュートリアルの一手が最初**で、そこまでは3個が減らない（`suppliesSealed`）。
+    const spent = suppliesSealed()
       ? { ok: true, run: state.run }
       : spendSupply(state.run, "retry");
     if (!spent.ok) {
@@ -9776,7 +9815,11 @@ function handleAction(event) {
     const treatmentId = element.dataset.treatment;
     const treatment = CAMP_TREATMENTS[treatmentId];
     const tutorialVisible = supplyTutorialVisible();
-    if (!treatment) {
+    if (suppliesSealed()) {
+      // 作者要望 2026-09-17 — 手引きより前は補給が動かない。**錠は画面（タブ）と
+      // 経路（ここ）の両方に掛ける**ので、画面の形が変わっても抜け道が残らない。
+      state.error = SEALED_SUPPLY_NOTE;
+    } else if (!treatment) {
       state.error = "その治療はありません。";
     } else if (tutorialVisible && treatmentId !== "concentrated") {
       state.error = "チュートリアル中は集中治療を完了してください。";
