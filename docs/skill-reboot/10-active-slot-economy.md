@@ -366,6 +366,72 @@ Lv10（腕270%）にすると、条件付き14本のうちLv1でそれを超え�
 4. **回数型の切り札段を足すか。**足すなら必殺技と同じ作り（状態＋条件）で、
    engine を触らずに書ける。ただし §11 の後で判断する。
 
+## 14. 対象決定は、条件では回収できない（作者の問い 2026-09-17）
+
+> UO の面白さを考えると、いま対象決定がまるまる抜けている。「倒せる敵がいたら必ず
+> それを狙う」常時スキルとか、「回復スキル持ちを優先して攻撃する」常時スキルとか、
+> あってもいいかも。でもこれは条件付けの方で回収すべき？
+
+**回収できない。別の軸として要る。**
+
+- **条件は「出すか出さないか」、対象は「誰に当てるか」で、独立している。**
+  「倒せる敵を狙う」を条件で書くと「倒せる敵が居ないときは、その技能を出さない」に
+  なってしまう。対象の書き換えなら「居れば狙う、居なければいつもどおり」になる。
+  前者は手を止め、後者は狙いだけを変える。**別の物である。**
+- 条件で代用しようとすると、同じ技能の**対象違いを別 ID で増やす**ことになる。
+  AGENTS.md の「完全上位互換を作らない」「固有 ID の相方を作らない」と正面から衝突する。
+- そして対象は**横断的**である。1本の「狙い」を取ると、装着している攻撃技能すべての
+  狙いが変わる。条件つきを1本増やすより、盤面の読み方が変わる。
+
+### パッシブに置くのが正しい
+
+- パッシブは**行動枠を奪わない**ので、取るほど得になる（§1 の希釈の外にある）。
+- 「能力・計算規則を変える」という分類の定義（README）にそのまま乗る。
+- ツリーに**条件つきとは別の枝**（狙い）ができる。アクティブを増やさずに選択が増える。
+
+### engine を触らずに書けることを確かめた
+
+`redirect_pending_target` が既にあり、身代わり（`cover_ally`）が
+`target_selected` の interrupt で使っている。**同じ語彙を、反応点を払わない
+パッシブとして自分の一手へ向ければよい。**実際に走らせて、狙いが変わることと
+`target_changed` が出ることを確認した（content の validate も通る）。
+
+```js
+rule: {
+  listenTo: "target_selected", timing: "interrupt", priority: 20, costs: [],
+  predicates: [
+    // **自分が出した一手であること。**「自分以外の event source が居ない」で書く
+    // （scope: "self" + is_event_source では成立しなかった。実測）。
+    { type: "target_exists", op: "eq", value: 0,
+      query: { scope: "event_source", filters: [{ type: "not_self" }], take: "all" } },
+    { type: "target_exists", op: "gte", value: 1,
+      query: { scope: "enemies", filters: [{ type: "alive" },
+        { type: "hp_percent", op: "lte", value: 50 }], take: "all" } },
+  ],
+  effects: [{ type: "redirect_pending_target", target: {
+    scope: "enemies", filters: [{ type: "alive" },
+      { type: "hp_percent", op: "lte", value: 50 }], sort: ["hp_asc"], take: 1 } }],
+  limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+}
+```
+
+**「倒せる敵」は静的には書けない**（与える量を先に知る必要がある）ので、
+閾値（HP◯%以下）で代表する。名前もそう呼ぶ——「止めを優先する」「手負いを狙う」。
+「回復役を先に」は、敵の tags か、治療技能を持つことを見る filter が要る（未確認）。
+
+### 先に決めておくことが二つある
+
+1. **reach を越えてしまう。**実測では、武器（melee）の斬撃が後列の手負いへ向いた。
+   狙いの書き換えが「前列が生きているあいだ前列しか殴れない」という engine の契約を
+   すり抜けている。**狙いの候補を reach で絞る**か、書き換え後にもう一度 reach を
+   見るか、どちらかを決める必要がある（ここは engine を触る）。
+2. **誰の一手に効くのか。**自分の一手だけに効かせる述語は上のとおり書けるが、
+   書き忘れると味方や敵の一手にも反応する形になる。**規約として述語を必須にする**か、
+   「自分の一手」を rule 側の語彙（listenTo の絞り）にするかを決めておく。
+
+実装は次の PR で行う。**どの狙いを、どの pack の、どの深さに置くか**は content の
+設計なので、上の二点と合わせて作者の判断を待つ。
+
 ## 参照
 
 - Unicorn Overlord 作戦・AP/PP: <https://www.rpgsite.net/news/15481-unicorn-overlord-highlights-tactics-priority-battle-stages-along-with-several-new-non-human-allies>,
