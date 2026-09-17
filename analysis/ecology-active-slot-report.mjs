@@ -175,3 +175,39 @@ for (const { node, bps, budget } of deepest) {
   );
 }
 console.log("");
+
+// ================================================================ 条件という器
+//
+// **条件付きの技能は、輪番の割り算に入らない**（上の⑥）。つまり「複数取る価値」を
+// 乱数も資源も足さずに作れる器は、すでにある。問題は器ではなく中身なので、
+// 「条件を満たす手間に対して、いくら上乗せされているか」を数える。
+const perTurnBps = (skillId) => {
+  const skill = activeSkills[skillId];
+  if (!skill) return 0;
+  const effects = [...(skill.effects ?? []), ...(skill.preparation?.completionEffects ?? [])];
+  const total = effects
+    .filter((effect) => effect.type === "deal_damage")
+    .reduce((sum, effect) => sum + (effect.amount?.coefficientBps ?? 0) * (effect.hitCount ?? 1), 0);
+  // 溜める技は一手あたりで見る（溜めにも一手使うので、出番の話と単位を合わせる）。
+  return Math.round(total / (1 + (activeSkills[skillId].preparation?.steps ?? 0)));
+};
+
+const damaging = activeNodes
+  .map((node) => ({
+    name: activeSkills[node.skillId]?.displayName ?? node.skillId,
+    conditional: (activeSkills[node.skillId]?.intrinsicPredicates ?? []).length > 0,
+    bps: perTurnBps(node.skillId),
+  }))
+  .filter((entry) => entry.bps > 0);
+const median = (list) => [...list].sort((a, b) => a.bps - b.bps)[Math.floor(list.length / 2)].bps;
+const unconditional = damaging.filter((entry) => !entry.conditional);
+const conditional = damaging.filter((entry) => entry.conditional);
+const entryTop = atLevel(entryBps, MAX_SKILL_LEVEL);
+
+console.log("== 条件を満たす手間に、いくら払われているか ==");
+console.log(`  攻撃節 ${damaging.length}（無条件 ${unconditional.length}・条件付き ${conditional.length}）`);
+console.log(`  一手あたり係数の中央値 — 無条件 腕${median(unconditional) / 100}%`
+  + ` ／ 条件付き 腕${median(conditional) / 100}%`);
+console.log(`  条件付きのうち、Lv1で入口Lv${MAX_SKILL_LEVEL}（腕${entryTop / 100}%）を超えるのは`
+  + ` ${conditional.filter((entry) => entry.bps > entryTop).length} / ${conditional.length} 本`);
+console.log("");
