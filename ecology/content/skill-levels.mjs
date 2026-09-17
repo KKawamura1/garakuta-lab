@@ -46,16 +46,78 @@ function statBonusEntries(definition) {
   }));
 }
 
+// ============================================================ 出番の多さの逆（issue #286）
+//
+// **いつでも出せるものは、伸ばすのが高い。場面を選ぶものは、安く伸びる。**
+//
+// アクティブは1ラウンドに1本しか出ない。装着した無条件の技能は輪番で出番を分け合う
+// （DESIGN 8.7.5）が、条件つきは条件が成立しない拍で読み飛ばされるだけなので出番を
+// 奪わない（analysis/ecology-active-slot-report.mjs の実測）。この非対称のうえに
+// 「どの技能も1段1点」を置くと、技能点は必ず**毎ラウンド出る無条件の1本**へ集まる。
+// 出番が多いぶん、同じ1点の取り分が大きいからである。実測では、入口技能を Lv10 に
+// すると2本目の装着で火力が72%へ落ちた——取得は不可逆なので、これは罠だった。
+//
+// **上限ではなく、値段で釣り合わせる。**上限を下げると天井そのものが下がり、
+// 最終戦のように「全部を出し切って初めて越えられる」ように積んだ盤面が、
+// 技能の話とは無関係に壊れる（実測: 無条件を Lv5 上限にすると第12戦を越えられない）。
+// 天井は動かさず、**無条件のアクティブだけ Lv6 以降を2点にする。**
+//
+//   - Lv5 までは今までどおり1点。主武器を決めて厚くする楽しさはそのまま。
+//   - Lv6 以降は1段2点。遠征でもらえるのは13〜15点なので、**1本へ全部注ぐのは
+//     「他を諦める」という宣言になる**（できない、ではない）。
+//   - 条件つき・反応・常設は Lv10 まで1点のまま。場面を選ぶものが安く伸びる。
+//
+// 条件つきの判定は、技能欄の「無条件／条件つき」の表示と同じ根拠を使う
+// （画面が「条件つき」と書いているものが安く伸びる、と一目で対応する）。
+// プレイヤーが付けた `useWhen` は数えない——run ごとに変わるものが値段を動かすと、
+// 予約した目標の見積もりが画面の操作で揺れる。
+export const UNCONDITIONAL_FLAT_LEVELS = 5;
+
+// アクティブかどうかは `apCost` の有無で決まる（reactive / passive は持たない）。
+// reactive は trigger と RP、passive は常時なので、この「出番の分け合い」の外にある。
+function isActiveDefinition(definition) {
+  return Number.isInteger(definition?.apCost);
+}
+
+// **定義だけで決まる条件つき。**app.js の技能欄の判定と同じ形にしてある
+// （あちらはこれに加えてプレイヤーの `useWhen` も「条件つき」と表示する）。
+export function hasIntrinsicCondition(definition) {
+  if ((definition?.intrinsicPredicates ?? []).length > 0) return true;
+  return (definition?.targetQuery?.filters ?? []).some((filter) => filter.type !== "alive");
+}
+
+// 値段が上がる技能か。**無条件のアクティブだけ。**
+export function levelPriceRises(definition) {
+  return isActiveDefinition(definition) && !hasIntrinsicCondition(definition);
+}
+
 // 技能ひとつぶんの上限。連続量を持たない技能は Lv1 止まり。
 export function skillLevelCap(definition) {
   return hasLeveledEffect(definition) || statBonusEntries(definition).length > 0
     ? MAX_SKILL_LEVEL : MIN_SKILL_LEVEL;
 }
 
-// R19 — レベルを1段上げる値段。**深さと違って、いつでも同じ1点。**
+// R19 — レベルを1段上げる値段。**深さと違って、据え置きの1点。**
 // 深く伸ばす（新しい役割を得る）か、いま持っている技能を厚くするかを、
-// 同じ通貨の同じ値段で選ばせる。
+// 同じ通貨の同じ値段で選ばせる。issue #286 で、無条件のアクティブだけ
+// Lv6 以降が2点になった（出番を分け合わない技能は据え置きのまま）。
 export const SKILL_LEVEL_COST = 1;
+export const SKILL_LEVEL_COST_STEEP = 2;
+
+// `nextLevel` は「これから到達するレベル」。Lv1→Lv2 なら 2 を渡す。
+export function skillLevelCost(definition, nextLevel) {
+  return levelPriceRises(definition) && nextLevel > UNCONDITIONAL_FLAT_LEVELS
+    ? SKILL_LEVEL_COST_STEEP : SKILL_LEVEL_COST;
+}
+
+// `from` から `to` まで上げるのに要る技能点の合計。
+export function skillLevelCostBetween(definition, from, to) {
+  let total = 0;
+  for (let level = Math.max(from, MIN_SKILL_LEVEL) + 1; level <= to; level += 1) {
+    total += skillLevelCost(definition, level);
+  }
+  return total;
+}
 
 export function skillLevelCaps(content) {
   const caps = {};

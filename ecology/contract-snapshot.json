@@ -2140,7 +2140,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 18500
+       "coefficientBps": 21500
       },
       "tags": [
        "attack",
@@ -2254,7 +2254,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 24000
+       "coefficientBps": 25000
       },
       "reach": "melee",
       "tags": [
@@ -2310,7 +2310,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 19500
+       "coefficientBps": 24000
       },
       "reach": "melee",
       "tags": [
@@ -2363,7 +2363,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "might",
-       "coefficientBps": 20000
+       "coefficientBps": 24000
       },
       "reach": "melee",
       "tags": [
@@ -3331,7 +3331,7 @@
        "type": "stat_scaled",
        "subject": "self",
        "scalingStat": "focus",
-       "coefficientBps": 11500
+       "coefficientBps": 14500
       },
       "reach": "ranged",
       "tags": [

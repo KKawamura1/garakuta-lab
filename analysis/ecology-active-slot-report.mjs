@@ -19,7 +19,8 @@
 import { simulateBattle } from "../ecology/engine.mjs";
 import { PLAYABLE_CONTENT } from "../ecology/playable-content.mjs";
 import { BATTLE_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS, MAX_SKILL_LEVEL } from "../ecology/schema.mjs";
-import { SKILL_TREE_NODES } from "../ecology/content/index.mjs";
+import { SKILL_TREE_NODES, skillLevelCostBetweenFor } from "../ecology/content/index.mjs";
+import { UNCONDITIONAL_FLAT_LEVELS } from "../ecology/content/skill-levels.mjs";
 import { BPS } from "../ecology/values.mjs";
 
 // ================================================================ 測り方
@@ -141,11 +142,15 @@ const entryBps = totalCoefficientBps("steady_cut");
 console.log("");
 console.log("== 2本目がLv1で1本目に釣り合うための係数 ==");
 console.log(`  1本目は入口の踏み込み斬り（腕${entryBps / 100}%）とする。`);
+console.log(`  無条件は Lv${UNCONDITIONAL_FLAT_LEVELS} までが1点、そこから先は1段2点`
+  + `（Lv${MAX_SKILL_LEVEL} まで通すと ${skillLevelCostBetweenFor("steady_cut", 1, MAX_SKILL_LEVEL)}点、`
+  + `条件つきなら ${skillLevelCostBetweenFor("finishing_thrust", 1, MAX_SKILL_LEVEL)}点）。`);
 for (const level of [1, 3, 5, 8, MAX_SKILL_LEVEL]) {
   const threshold = atLevel(entryBps, level);
   const beats = activeNodes.filter((node) => totalCoefficientBps(node.skillId) > threshold);
   console.log(
-    `  1本目Lv${String(level).padStart(2)} = 腕${String(threshold / 100).padStart(3)}%`,
+    `  1本目Lv${String(level).padStart(2)}（${String(skillLevelCostBetweenFor("steady_cut", 1, level)).padStart(2)}点）`
+    + ` = 腕${String(threshold / 100).padStart(3)}%`,
     `→ Lv1で超える節は ${String(beats.length).padStart(2)} / ${activeNodes.length} 本`,
     beats.length && beats.length <= 6
       ? "（" + beats.map((node) => activeSkills[node.skillId].displayName).join("・") + "）"
@@ -160,8 +165,20 @@ const deepest = [...activeNodes]
   .filter((entry) => entry.bps > 0)
   .sort((a, b) => b.bps - a.bps)
   .slice(0, 6);
+// 同じ点を入口へ注いだら何 Lv まで届くか。**値段は段ごとに違う**（issue #286）。
+function levelReachedWith(skillId, points) {
+  let level = 1;
+  let left = points;
+  while (level < MAX_SKILL_LEVEL) {
+    const price = skillLevelCostBetweenFor(skillId, level, level + 1);
+    if (left < price) break;
+    left -= price;
+    level += 1;
+  }
+  return level;
+}
 for (const { node, bps, budget } of deepest) {
-  const rivalLevel = Math.min(MAX_SKILL_LEVEL, 1 + budget);
+  const rivalLevel = levelReachedWith("steady_cut", budget);
   // **溜める技は一手あたりで見る。**溜めに1手使うので、放つ一撃の係数をそのまま
   // 並べると、行動枠の話（何本装着するか）と単位が合わない。
   const turns = 1 + (activeSkills[node.skillId].preparation?.steps ?? 0);
@@ -208,6 +225,13 @@ console.log("== 条件を満たす手間に、いくら払われているか =="
 console.log(`  攻撃節 ${damaging.length}（無条件 ${unconditional.length}・条件付き ${conditional.length}）`);
 console.log(`  一手あたり係数の中央値 — 無条件 腕${median(unconditional) / 100}%`
   + ` ／ 条件付き 腕${median(conditional) / 100}%`);
-console.log(`  条件付きのうち、Lv1で入口Lv${MAX_SKILL_LEVEL}（腕${entryTop / 100}%）を超えるのは`
+// **比べる相手は「据え置き価格で届く上限」**（issue #286）。Lv6 以降は1段2点なので、
+// そこから先は「他を全部諦める」宣言になる。
+const entryFlatTop = atLevel(entryBps, UNCONDITIONAL_FLAT_LEVELS);
+console.log(`  条件付きのうち、Lv1で入口Lv${UNCONDITIONAL_FLAT_LEVELS}（腕${entryFlatTop / 100}%・`
+  + `${skillLevelCostBetweenFor("steady_cut", 1, UNCONDITIONAL_FLAT_LEVELS)}点）を超えるのは`
+  + ` ${conditional.filter((entry) => entry.bps > entryFlatTop).length} / ${conditional.length} 本`);
+console.log(`  （参考）入口Lv${MAX_SKILL_LEVEL}（腕${entryTop / 100}%・`
+  + `${skillLevelCostBetweenFor("steady_cut", 1, MAX_SKILL_LEVEL)}点）を超えるのは`
   + ` ${conditional.filter((entry) => entry.bps > entryTop).length} / ${conditional.length} 本`);
 console.log("");

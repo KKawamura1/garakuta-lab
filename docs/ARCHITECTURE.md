@@ -42,7 +42,7 @@
 | `content/enemies.mjs` | **敵 unit の正本。**家系（`ENEMY_FAMILIES`）ごとの個体表と `FAMILY_POWER`（家系共通の出力）、`ENEMY_THREAT_COST`。庇護役・治療役も味方と同じ `cover_ally` / `mend` を `reactives` に持つだけで、敵専用の分岐は無い。家系共通でない幕内の敵倍率は `content/expedition.mjs` の明示的な指定で行う |
 | `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
-| `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |
+| `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段（`skillLevelCost`。無条件のアクティブだけ Lv6 以降が2点）、「無条件／条件つき」の判定 `hasIntrinsicCondition`（画面の表示と値段が同じ根拠を読む） |
 | `content/packs.mjs` | 技能の pack 所属と Stage ごとの core / full の入口。Stage 1 の `pack_edge` core は `cover_ally`（身代わり）までを含み、Stage 2 の `pack_wall` core は `shield_handoff`（受けの受け渡し）へ続く |
 | `content/roster.mjs` | 人物の加入時初期技能。ナギは Stage 1 で `cover_ally` を初期リアクティブに持つ |
 | `equipment-gen.mjs` | 装備を手続きで組み立てる決定的 generator と検査 |

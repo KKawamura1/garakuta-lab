@@ -13,7 +13,12 @@ import { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE } from "./world-lore.mj
 import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES } from "./skills-active.mjs";
 import { REACTIVE_SKILLS, REACTIVE_SKILL_NAMES } from "./skills-reactive.mjs";
 import { PASSIVE_SKILLS } from "./skills-passive.mjs";
-import { skillLevelCaps } from "./skill-levels.mjs";
+import {
+  levelPriceRises,
+  skillLevelCost,
+  skillLevelCostBetween,
+  skillLevelCaps,
+} from "./skill-levels.mjs";
 import { FIXED_EQUIPMENT, EQUIPMENT_NAMES } from "./equipment-fixed.mjs";
 import { STATUSES, STATUS_NAMES } from "./statuses.mjs";
 import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
@@ -204,8 +209,31 @@ export const PLAYABLE_CONTENT = Object.freeze({
 // R19（issue #137）— 技能レベルの上限。**PLAYABLE_CONTENT が組み上がってから引く**
 // ので、定義を書き換えれば上限もついてくる（手書きの表がずれることがない）。
 export const SKILL_LEVEL_CAPS = skillLevelCaps(PLAYABLE_CONTENT);
+
+// issue #286 — 1段上げる値段。**無条件のアクティブだけ Lv6 以降が2点。**
+// ID から引ける形にしておく（progression も画面も定義を持ち歩かない）。
+function skillDefinitionOf(skillId) {
+  for (const section of ["activeSkills", "reactiveSkills", "passiveSkills"]) {
+    const definition = PLAYABLE_CONTENT[section]?.[skillId];
+    if (definition) return definition;
+  }
+  return null;
+}
+export function skillLevelCostFor(skillId, nextLevel) {
+  return skillLevelCost(skillDefinitionOf(skillId), nextLevel);
+}
+export function skillLevelCostBetweenFor(skillId, from, to) {
+  return skillLevelCostBetween(skillDefinitionOf(skillId), from, to);
+}
+export function skillLevelPriceRises(skillId) {
+  return levelPriceRises(skillDefinitionOf(skillId));
+}
+
 export {
   SKILL_LEVEL_COST,
+  SKILL_LEVEL_COST_STEEP,
+  UNCONDITIONAL_FLAT_LEVELS,
+  hasIntrinsicCondition,
   skillLevelCap,
   // issue #148 — 変動量は定義側にあり、説明文は {amount} でそこを指す。
   leveledAmountOf,

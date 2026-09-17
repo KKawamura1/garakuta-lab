@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import {
   LIMITS,
   MANIFEST_VERSION,
+  MAX_SKILL_LEVEL,
   PROFILE_SCHEMA_VERSION,
   RUN_SCHEMA_VERSION,
   TRAINABLE_STATS,
@@ -29,6 +30,8 @@ import {
   packOfSkill,
   skillIdsForPacks,
   skillLevelCap,
+  skillLevelCostFor,
+  UNCONDITIONAL_FLAT_LEVELS,
   // issue #168 — 前提（技能IDと必要Lv）の判定。
   prerequisitesMet,
   remainingPrerequisiteLevels,
@@ -555,20 +558,40 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   const refused = levelUpRunSkill(base, "warden", "steady_cut", 1);
   equal(refused.ok, false, "上限が Lv1 の技能は上げられない");
 
+  // issue #286 — **値段が出番に対応する。**無条件のアクティブは Lv6 以降が2点で、
+  // 上限そのもの（Lv10）は動かない。
+  const steadyCutCap = skillLevelCap(PLAYABLE_CONTENT.activeSkills.steady_cut);
+  equal(steadyCutCap, MAX_SKILL_LEVEL, "上限は無条件でも Lv10 のまま");
+  equal(skillLevelCostFor("steady_cut", 5), 1, "踏み込み斬りは Lv5 までなら1点");
+  equal(skillLevelCostFor("steady_cut", 6), 2, "踏み込み斬りは Lv6 から2点");
+  equal(skillLevelCostFor("finishing_thrust", 6), 1, "条件つきの止めの一突きは据え置き1点");
   const before = runSkillPoints(base, "warden");
-  const up = levelUpRunSkill(base, "warden", "steady_cut", 10);
+  const up = levelUpRunSkill(base, "warden", "steady_cut", steadyCutCap);
   equal(up.ok, true, "取得済みの技能を1段上げられる");
   equal(up.level, 2, "1段だけ上がる");
   equal(runSkillPoints(up.run, "warden"), before - 1, "1段につき技能点を1点払う");
   check(runSkillPoints(base, "warden") === before, "元の run を書き換えない");
 
-  const capped = { ...base, runSkillLevels: { warden: { steady_cut: 10 } } };
-  equal(levelUpRunSkill(capped, "warden", "steady_cut", 10).ok, false, "最大レベルからは上げられない");
+  const capped = { ...base, runSkillLevels: { warden: { steady_cut: steadyCutCap } } };
+  equal(levelUpRunSkill(capped, "warden", "steady_cut", steadyCutCap).ok, false,
+    "最大レベルからは上げられない");
+  // **2点の段は、1点しか無ければ上げられない。**
+  const oneLeft = {
+    ...base,
+    runSkillLevels: { warden: { steady_cut: UNCONDITIONAL_FLAT_LEVELS } },
+    runSkillPoints: { ...base.runSkillPoints, warden: 1 },
+  };
+  equal(levelUpRunSkill(oneLeft, "warden", "steady_cut", steadyCutCap).ok, false,
+    "Lv6 は1点では上げられない");
+  const twoLeft = { ...oneLeft, runSkillPoints: { ...base.runSkillPoints, warden: 2 } };
+  const steep = levelUpRunSkill(twoLeft, "warden", "steady_cut", steadyCutCap);
+  equal(steep.ok, true, "2点あれば Lv6 へ上げられる");
+  equal(runSkillPoints(steep.run, "warden"), 0, "Lv6 は技能点を2点払う");
   const broke = { ...base, runSkillPoints: { ...base.runSkillPoints, warden: 0 } };
-  equal(levelUpRunSkill(broke, "warden", "steady_cut", 10).ok, false, "技能点が無ければ上げられない");
+  equal(levelUpRunSkill(broke, "warden", "steady_cut", steadyCutCap).ok, false, "技能点が無ければ上げられない");
 
   // **予測と本番は同じ経路**なので、レベルは exact preview にもそのまま乗る。
-  const lifted = { ...base, runSkillLevels: { warden: { steady_cut: 7 } } };
+  const lifted = { ...base, runSkillLevels: { warden: { steady_cut: steadyCutCap } } };
   const plain = simulateNextBattle(base, profile, 1);
   const strong = simulateNextBattle(lifted, profile, 1);
   const production = simulateExpeditionBattle(lifted, profile, 1, {
@@ -580,7 +603,7 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   assert.deepEqual(production.result.events, strong.result.events, "予測と本番のイベント列が一致する");
   checks += 2;
   const wardenInput = strong.battleInput.allies.find((ally) => ally.characterId === "warden");
-  assert.deepEqual(wardenInput.skillLevels, { steady_cut: 7 }, "レベルが戦闘入力へ届く");
+  assert.deepEqual(wardenInput.skillLevels, { steady_cut: steadyCutCap }, "レベルが戦闘入力へ届く");
   check(
     !plain.battleInput.allies.find((ally) => ally.characterId === "warden").skillLevels,
     "Lv1 だけの編成は skillLevels の欄そのものを持たない",
@@ -1048,18 +1071,25 @@ equal(ENCOUNTER_BASE_FUNDS.boss, 840, "ボスの base");
   equal(runSkillLevel(lv1Fulfilled.run, "warden", "heavy_swing"), 1, "Lv1予約で解禁まで進む");
   equal(skillReservationFor(lv1Fulfilled.run, "warden"), null, "Lv1到達後に予約を完了する");
 
-  const reserved = reserveRunSkill(lv1Fulfilled.run, "warden", "heavy_swing", 10);
+  // **上限は定義から引く。**ここで 10 を直書きすると、上限規則を変えた瞬間に
+  // 「予約の仕組み」の検査が「上限の値」の検査にすり替わる。
+  // 目標は「据え置き価格で届く上限」にする。ここは予約の仕組みの検査なので、
+  // 2点の段まで積んで技能点の額で落ちると、何を見ているのか分からなくなる。
+  const heavySwingTarget = UNCONDITIONAL_FLAT_LEVELS;
+  const reserved = reserveRunSkill(lv1Fulfilled.run, "warden", "heavy_swing", heavySwingTarget);
   equal(reserved.ok, true, "取得済み技能を最大Lvまで予約できる");
   equal(skillReservationFor(reserved.run, "warden"), "heavy_swing", "予約先を保存する");
-  equal(skillReservationLevelFor(reserved.run, "warden"), 10, "最大Lvの目標を保存する");
+  equal(skillReservationLevelFor(reserved.run, "warden"), heavySwingTarget, "目標Lvを保存する");
   const fulfilled = fulfillSkillReservations(reserved.run);
   check(fulfilled.actions.some((action) =>
     action.type === "level" && action.skillId === "heavy_swing" && action.target === true,
   ), "目的技能のレベルを自動取得する");
-  equal(runSkillLevel(fulfilled.run, "warden", "heavy_swing"), 10, "目的技能をSL10まで取得する");
+  equal(runSkillLevel(fulfilled.run, "warden", "heavy_swing"), heavySwingTarget,
+    "目的技能を目標Lvまで取得する");
   equal(skillReservationFor(fulfilled.run, "warden"), null, "目的技能の取得後に予約を完了する");
   check(runSkillPoints(fulfilled.run, "warden") < 11, "自動取得で技能点を使う");
-  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut", 10);
+  const switched = reserveRunSkill(fulfilled.run, "warden", "steady_cut",
+    skillLevelCap(PLAYABLE_CONTENT.activeSkills.steady_cut));
   equal(switched.ok, true, "別の技能へ予約を切り替えられる");
   const cancelled = cancelRunSkillReservation(switched.run, "warden", "steady_cut");
   equal(cancelled.ok, true, "取得予約を取り消せる");
