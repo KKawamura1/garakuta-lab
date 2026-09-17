@@ -1647,7 +1647,11 @@ function campTutorialTab() {
 
 function campNav() {
   const tutorialLocked = campTutorialTab();
-  const activeTab = tutorialLocked ?? state.tab;
+  const activeTab = campActiveTab();
+  // 作者要望 2026-09-17 — **手引きより前は、補給タブごと錠を掛ける。**使い道を
+  // 一つずつ塞ぐより、まだ配っていない道具の部屋を閉じておくほうが素直である
+  // （手引きの一手目が、その錠を開ける「補給タブを押す」になる）。
+  const sealedTab = suppliesSealed() ? "supplies" : null;
   // issue #235 — 編成タブは廃止した。隊列は上端の共通盤面が常に持ち、人物の中身は
   // スキル・装備タブの memberContext が出す。**説明を読むだけのタブを一枚残さない。**
   // 戦闘は「遠征」に改め、次の一戦・撤退・セーブという**遠征単位の操作**を集める。
@@ -1659,7 +1663,7 @@ function campNav() {
   ];
   return "<nav class=\"tabs\" aria-label=\"キャンプ画面\">" + tabs.map(([id, label, meta]) => {
     const active = activeTab === id;
-    const locked = Boolean(tutorialLocked) && id !== tutorialLocked;
+    const locked = (Boolean(tutorialLocked) && id !== tutorialLocked) || id === sealedTab;
     // issue #237 — 札の中の数（技能点・装着・補給・進み）は、**このタブを開いていなくても
     // 変わる**。読み値に印を付けておけば、どのタブから触っても数のほうが光る。
     return "<button type=\"button\" class=\"tab " + (active ? "active" : "")
@@ -3487,8 +3491,18 @@ function storyBeatsForStart(sequence) {
   return { beats: [storyBeat(stage.id, "join") ?? storyBeat(stage.id, "opening")], after: "camp" };
 }
 
+// いま出すタブ。**錠（手引き・補給）はここ一箇所で解く**ので、画面と handler が
+// 別々の答えを持たない。
+function campActiveTab() {
+  const locked = campTutorialTab();
+  if (locked) return locked;
+  // 保存から戻った回に `state.tab` が錠の掛かったタブを指していても、そこは開かない。
+  if (state.tab === "supplies" && suppliesSealed()) return "map";
+  return state.tab;
+}
+
 function renderCamp() {
-  const activeTab = campTutorialTab() ?? state.tab;
+  const activeTab = campActiveTab();
   const view = {
     skills: renderSkills,
     equipment: renderEquipment,
@@ -4931,10 +4945,45 @@ function inspectedEncounterIndex() {
   return Math.max(1, Math.min(ENCOUNTERS_PER_RUN, value));
 }
 
+// 手書きの一戦（灰の門・必殺技の一戦）は composeEncounter から出てこない。
+// **どれを戦ったかは戦績が覚えている**ので、盤を組み直すときも同じ表を読む
+// （`SCRIPTED_ENCOUNTER_BUILDERS` の鍵は `run.results` に残る `script`）。
+const SCRIPTED_ENCOUNTER_BUILDERS = Object.freeze({
+  prologue: prologueEncounter,
+  ultimate_lesson: ultimateLessonEncounter,
+});
+
+// いま挑む一戦が手書きの盤面なら、その印。**戦績へ残すのはこの一語だけ**で、
+// 盤面そのものは印から組み直す（save を敵の表で太らせない）。
+function currentEncounterScript() {
+  if (state.prologueActive) return "prologue";
+  if (ultimateLessonActive()) return "ultimate_lesson";
+  return null;
+}
+
+// 作者指摘 2026-09-17 — **踏破した一戦の記録に、戦っていない敵が出ていた。**
+// 灰の門（第1戦の席に座る手書きの盤面）で勝つと、その勝利は第1戦の勝利として
+// 残るのに、遠征タブはその index を composeEncounter で組み直していた。
+// ラウンド数も味方損失も灰の門のものなのに、盤面だけ「灰の入口」の走者二体に
+// なっていて、**同じ札の中で数と敵が食い違っていた。**
+// 記録に残した印を読んで、戦った盤面そのものを出す。
 function encounterForInspection(index) {
   if (state.phase === "camp" && index === state.run.encounterIndex
       && (state.prologueActive || ultimateLessonActive())) return currentEncounter();
+  const script = SCRIPTED_ENCOUNTER_BUILDERS[scriptOfClearedEncounter(index)];
+  if (script) return script();
   return composeEncounter(index, state.run.difficulty, encounterOptions());
+}
+
+// 印は勝った時点で残す。**印を持たない古い save** のために、一つだけ読み替える——
+// 導入の遠征（New Game で始めた Stage 0）の第1戦は、必ず巻き戻したあとの「灰の門」
+// である（New Game は profile ごと作り直すので、灰の門を飛ばす経路が無い）。
+function scriptOfClearedEncounter(index) {
+  const entry = clearedEncounterResult(index);
+  if (!entry) return null;
+  if (entry.script) return entry.script;
+  if (index === 1 && tutorialRun() && state.run.campaignStageSequence === 0) return "prologue";
+  return null;
 }
 
 function inspectedEncounter() {
@@ -5105,6 +5154,42 @@ function supplyTotal() {
   return runSuppliesMax(state.run);
 }
 
+// 作者要望 2026-09-17 — **補給チュートリアルより前に、補給は一つも減らない。**
+//
+// 補給チュートリアル（二戦目の後）は「集中治療へ1個使う」ところまで進めないと錠が
+// 外れず、そのあいだ他タブも撤退も閉じている。**そこへ補給0で着くと詰む。**
+// 着き方は一つではなかった。
+//
+//   一戦目 … 負けるたびに再挑戦が1個取る（3回負ければ0）
+//   二戦目の前 … 一戦目の傷が残っているので、野営治療（全体手当）を3回押せる
+//   二戦目 … 再挑戦を3回払ってから勝つと、やはり0で手引きへ着く
+//
+// 一つずつ塞ぐと、また別の道が残る。**教える前の資源は、そもそも動かさない。**
+// 補給が初めて動くのは補給チュートリアルの一手（集中治療）で、そこまでは
+//
+//   補給タブ … 押せない（錠。**何があるかは手引きが教える**）
+//   野営治療・報酬の引き直し … 押せない
+//   再挑戦 … 補給を取らずに何度でもやり直せる（灰の門の巻き戻しと同じ扱い）
+//
+// 手引きそのものの一手（`supplyTutorialVisible()` の間）は錠から外す——外さないと、
+// 教えるための一手が押せない。手引きを終えた印（`SUPPLY_TUTORIAL_FLAG`）が付けば、
+// 以降は通常どおり三用途の取り合いへ戻る。
+//
+// **錠が掛かるのは、手引きがこれから出る遠征だけ。**条件は手引きの出現
+// （`supplyTutorialVisible()` → `ordinaryBattleWon()`）と同じものを読む——導入の遠征
+// （`tutorialRun()`）の Stage 0 である。Stage を選び直した遠征は `runId` を持ち回すので
+// `tutorialRun()` が真のまま Stage 1 以降を走ることがあり、**そこでは手引きが出ない**
+// （＝錠を掛けると永久に開かない）。再訪・通常遠征は最初から通常どおり。
+function suppliesSealed() {
+  if (!isCampaignRun() || !tutorialRun()) return false;
+  if ((state.run.campaignStageSequence ?? 0) !== 0) return false;
+  if (hasStoryFlag(SUPPLY_TUTORIAL_FLAG)) return false;
+  return !supplyTutorialVisible();
+}
+
+// 補給の錠を、画面と handler が同じ一文で説明する。
+const SEALED_SUPPLY_NOTE = "補給を使うのは補給チュートリアルからです。それまで再挑戦は何度でも無料で、補給は減りません。";
+
 // issue #236 改 / 作者要望 2026-09-13 — 用途は**箇条書きの文ではなく記号つきの名札**にする。
 // 三つが同じ一つを取り合っていることは、並びと目盛りで出る（文で言い直さない）。
 const SUPPLY_USE_MARKS = Object.freeze({
@@ -5129,6 +5214,9 @@ function suppliesBar(context) {
     + ruleGrid(uses, "supply-uses-grid") + "</div>";
 }
 
+// 錠が掛かっているあいだ、この画面は開かない（`campActiveTab()` が返さないので、
+// タブを押しても補給の部屋へは入れない）。**錠の説明はここへ置かない**——補給が
+// 何なのかを最初に言うのは、手引きの一手目である。
 function renderSupplies() {
   const scrap = state.run.scrap ?? 0;
   const treatment = isCampaignRun()
@@ -7799,7 +7887,8 @@ function rewardSectionHtml() {
       : "")
     + "<div class=\"reward-choices\" data-fx=\"rewards\" data-count=\"" + count + "\">" + cards + "</div>"
     + "<div class=\"reward-reroll\">"
-    + button("補給1で候補を引き直す", "reroll-reward", state.run.supplies < 1 || rerolls >= 1, "button quiet")
+    + button("補給1で候補を引き直す", "reroll-reward",
+      suppliesSealed() || state.run.supplies < 1 || rerolls >= 1, "button quiet")
     + "<small>" + (rerolls >= 1 ? "この戦闘ではもう引き直せません。" : "1戦闘に一度だけ。再挑戦の余地が減ります。")
     + (appraisalLevel(state.profile) > 0
       ? " 目利き Lv" + appraisalLevel(state.profile) + "：等級を " + (appraisalLevel(state.profile) + 1)
@@ -7819,13 +7908,17 @@ function rewardSectionHtml() {
 // 文へ畳み直していた。ここではそれを、止まった位置の目盛り・払って変える流れ・
 // 確定した数のタイルで出す。**残す文は、世界の側が言う一行だけ。**
 function renderDefeat() {
-  const canRetry = state.run.supplies >= 1;
+  // 作者要望 2026-09-17 — 手引きより前の再挑戦は補給を取らない（`suppliesSealed`）。
+  const freeRetry = suppliesSealed();
+  const canRetry = freeRetry || state.run.supplies >= 1;
   const encounter = currentEncounter();
   const ledger = state.run.fundLedger;
   const reached = ledger.highestClearedEncounter;
   const plate = "<section class=\"card verdict loss verdict-plate\">"
     + verdictSigil("loss") + "<h2>足を止めた</h2>"
-    + "<p class=\"verdict-context\">" + esc(encounter.name) + " · 第" + (state.run.encounterIndex + 1) + "戦</p>"
+    // 作者指摘 2026-09-17 — **番号は、いま止まった一戦のもの。**`+ 1` が付いていたので、
+    // 隣に出る戦闘名（`currentEncounter()` ＝ その index の一戦）と一つずれていた。
+    + "<p class=\"verdict-context\">" + esc(encounter.name) + " · 第" + state.run.encounterIndex + "戦</p>"
     + "<div class=\"verdict-rail\">"
     + segmentMeter(reached, ENCOUNTERS_PER_RUN, {
       label: "到達 " + reached + " / " + ENCOUNTERS_PER_RUN,
@@ -7836,15 +7929,20 @@ function renderDefeat() {
     + "<p class=\"world-voice\">" + esc(defeatVoice()) + "</p></section>";
   // **払うもの → 変えられるもの → 戻る先。**再挑戦の中身は、この三つで尽きている。
   const retryFlow = flowStrip([
-    { glyph: "supply", label: "補給 −1", sub: "払う", tone: "bad" },
+    freeRetry
+      ? { glyph: "supply", label: "補給 ±0", sub: "払わない", tone: "good" }
+      : { glyph: "supply", label: "補給 −1", sub: "払う", tone: "bad" },
     { glyph: "person", label: "編成・技能・装備", sub: "組み替える" },
     { glyph: "retry", label: "同じ一戦", sub: "やり直す", tone: "gold" },
   ]);
   const actionCard = "<section class=\"card primary-action defeat-primary-action\" data-primary-action=\"defeat-next\">"
     + sectionHeading("NEXT", "次の手", "<span class=\"stage\">補給 " + state.run.supplies + "</span>")
-    + suppliesBar(canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
+    + suppliesBar(freeRetry
+      ? SEALED_SUPPLY_NOTE
+      : canRetry ? "再挑戦に1つ使う" : "補給が尽きた")
     + (canRetry
-      ? retryFlow + button("補給1で編成を変えて再挑戦", "retry-encounter", false, "button primary")
+      ? retryFlow + button(freeRetry ? "編成を変えて再挑戦" : "補給1で編成を変えて再挑戦",
+        "retry-encounter", false, "button primary")
       : ruleGrid([{ glyph: "lock", title: "補給 0", value: "再挑戦できない", line: "この遠征はここで終わります。", tone: "bad" }]))
     + button("遠征を終えて精算する", "settle-run", false, canRetry ? "button" : "button primary")
     + "</section>";
@@ -8253,6 +8351,8 @@ function simulateAndEnterBattle({ previewOnly = false } = {}) {
   // issue #240 — いま挑むのが必殺技の教材の一戦か。**戦う前に数えておく**
   // （勝つと encounterIndex が進むので、後から判定すると答えが変わる）。
   const lessonBattle = ultimateLessonActive();
+  // 作者指摘 2026-09-17 — どの盤面で戦うかの印も、**同じ理由でここで数えておく。**
+  const encounterScript = currentEncounterScript();
   // 最終戦の受け取り印は、次の一戦を始めた時点で役目を終える。
   state.simulationMode = previewOnly;
   if (!previewOnly) state.rewardTakenAtEncounter = null;
@@ -8286,11 +8386,15 @@ function simulateAndEnterBattle({ previewOnly = false } = {}) {
     state.replaySnapshots = replay.snapshots;
     state.replayIndex = 0;
     state.replayPlaying = true;
+    // 作者指摘 2026-09-17 — **どの盤面で戦ったかも残す。**灰の門も必殺技の一戦も
+    // 12戦の席に座る手書きの盤面なので、index から組み直すと別の敵が出る。
+    // 印が無い回（通常の一戦）は欄ごと置かない（古い save と同じ形のままにする）。
     if (!previewOnly) state.run.results = [...state.run.results, {
       encounter: state.run.encounterIndex,
       result: result.result,
       roundsUsed: result.roundsUsed,
       metrics: result.metrics,
+      ...(encounterScript ? { script: encounterScript } : {}),
     }];
     // R6 §9.2 — 活動資金は戦闘ごとに profile へ足さない。**run へ仮計上する。**
     // retry しても同じ encounter の撃破 base は一度だけ。
@@ -8887,6 +8991,14 @@ function handleAction(event) {
       render();
       return;
     }
+    // 作者要望 2026-09-17 — 手引きより前の補給タブは開かない（釦も disabled だが、
+    // **錠は画面と経路の両方で掛ける**）。
+    if (nextTab === "supplies" && suppliesSealed()) {
+      state.error = SEALED_SUPPLY_NOTE;
+      saveState();
+      render();
+      return;
+    }
     state.phase = "camp";
     state.tab = nextTab;
     fx("tab:" + nextTab, "pick");
@@ -9453,7 +9565,9 @@ function handleAction(event) {
   // R6 §12.1 — 報酬の引き直しは補給1。**1戦闘につき一度だけ**（R6 §10）。
   if (action === "reroll-reward") {
     const used = state.run.rerollsUsed?.[state.run.encounterIndex] ?? 0;
-    if (used >= 1) {
+    if (suppliesSealed()) {
+      state.error = SEALED_SUPPLY_NOTE;
+    } else if (used >= 1) {
       state.error = "この戦闘ではもう引き直せません。";
     } else {
       const spent = spendSupply(state.run, "reroll");
@@ -9619,7 +9733,11 @@ function handleAction(event) {
   }
 
   if (action === "retry-encounter") {
-    const spent = spendSupply(state.run, "retry");
+    // 作者要望 2026-09-17 — 手引きより前は補給を取らずにやり直す。**補給の出番は
+    // 補給チュートリアルの一手が最初**で、そこまでは3個が減らない（`suppliesSealed`）。
+    const spent = suppliesSealed()
+      ? { ok: true, run: state.run }
+      : spendSupply(state.run, "retry");
     if (!spent.ok) {
       state.error = spent.reason;
     } else {
@@ -9697,7 +9815,11 @@ function handleAction(event) {
     const treatmentId = element.dataset.treatment;
     const treatment = CAMP_TREATMENTS[treatmentId];
     const tutorialVisible = supplyTutorialVisible();
-    if (!treatment) {
+    if (suppliesSealed()) {
+      // 作者要望 2026-09-17 — 手引きより前は補給が動かない。**錠は画面（タブ）と
+      // 経路（ここ）の両方に掛ける**ので、画面の形が変わっても抜け道が残らない。
+      state.error = SEALED_SUPPLY_NOTE;
+    } else if (!treatment) {
       state.error = "その治療はありません。";
     } else if (tutorialVisible && treatmentId !== "concentrated") {
       state.error = "チュートリアル中は集中治療を完了してください。";

@@ -360,6 +360,9 @@ try {
 
   // issue #235 — タブは4枚（スキル・装備・補給・遠征）。編成タブは廃止し、隊列は
   // どのタブからでも上端の盤面の「⇅ 隊列」で組み替える。
+  // 作者要望 2026-09-17 — 補給の錠は**手引きが出る遠征（導入の Stage 0）だけ**に掛かる。
+  // Stage を選び直した遠征は `runId` を持ち回すので、導入の印を持ったまま Stage 1 を走る
+  // ——そこで錠が掛かると、手引きが出ないまま補給が永久に開かない。ここはその踏み場でもある。
   for (const [tab, needle] of [["skills", "技能点"], ["equipment", "装備"], ["supplies", "補給"], ["map", "この敵との実戦へ進む"]]) {
     await page.locator(`nav.tabs [data-tab="${tab}"]`).click();
     note(`タブ ${tab}`, tab === "map"
@@ -1203,14 +1206,17 @@ try {
       await click("この先どうするか");
       const defeatText = await bodyText();
       note(`第${stage}戦で敗北（敗北処理の画面）`, /ここまでで確定した活動資金/.test(defeatText));
-      const retry = page.getByRole("button", { name: "補給1で編成を変えて再挑戦" });
+      // 作者要望 2026-09-17 — 補給チュートリアルより前の再挑戦は補給を取らないので、釦の名前から
+      // 「補給1で」が落ちる。**押せるかどうかで見る**（値段は下の note が見る）。
+      const retry = page.getByRole("button", { name: /編成を変えて再挑戦/ });
       if (await retry.count() && !(await retry.first().isDisabled())) {
+        const paid = /補給1で/.test(await retry.first().innerText());
         await retry.first().click();
-        if (!retried) { note("補給1で同じ戦闘へ再挑戦できる", true); retried = true; }
+        if (!retried && paid) { note("補給1で同じ戦闘へ再挑戦できる", true); retried = true; }
         stage -= 1;
         continue;
       }
-      const outOfSupplies = await page.getByRole("button", { name: "補給1で編成を変えて再挑戦" }).count() === 0;
+      const outOfSupplies = await page.getByRole("button", { name: /編成を変えて再挑戦/ }).count() === 0;
       note("補給0で再挑戦の手が消える", outOfSupplies);
       await click("遠征を終えて精算する");
       break;

@@ -446,6 +446,22 @@ try {
   note("装備は自由に付け外しできると書いてある",
     /付け外し/.test(equipmentRuleText) && /何度でも/.test(equipmentRuleText));
 
+  // ---- 作者要望 2026-09-17 — **補給チュートリアルより前は、補給が動かない。** ----
+  //
+  // 補給チュートリアル（二戦目の後）は「集中治療へ1個使う」まで進まないと錠が外れず、
+  // そのあいだ他タブも撤退も閉じている。**そこへ補給0で着くと詰む。**着き方は
+  // 一戦目の再挑戦だけではなく、二戦目の前の全体手当・二戦目の再挑戦もあった。
+  // 用途を一つずつ塞ぐのをやめ、手引きより前は補給タブごと閉じている。
+  note("手引きより前は補給タブが押せない",
+    await page.locator('nav.tabs [data-tab="supplies"]').isDisabled());
+  await page.locator('nav.tabs [data-tab="supplies"]').click({ force: true }).catch(() => {});
+  await page.waitForTimeout(150);
+  note("押しても補給の画面へ入れない",
+    await page.locator(".supplies-head").count() === 0
+      && await page.locator('[data-action="treat"]').count() === 0);
+  note("補給の残りはタブの札で読める",
+    /3\/3/.test(await page.locator('nav.tabs [data-tab="supplies"]').innerText()));
+
   // R10 / issue #235 — Campではオートセーブとは別に手動枠へ保存できる。
   // セーブは遠征タブが持つ（**離脱ではないので、物語の最中でも触れる**）。
   await page.locator('nav.tabs [data-tab="map"]').click();
@@ -614,6 +630,24 @@ try {
   note("取得済みの節に段が文字で出る", levels.length > 0
     && levels.every((entry) => /^Lv\d+$/.test(entry.now.trim()) && /^\/\d+$/.test(entry.cap.trim())),
     `${levels.length} 件 · ${levels[0]?.now ?? ""}${levels[0]?.cap ?? ""}`);
+  // 作者指摘 2026-09-17 — **添え字（/10）が列の右端で切れていた。**列幅は
+  // iPhone で 176px しかないので、計器の行が一列に収まらない回がある。
+  // 収まらない回は下の段へ落として、**どの数も欠けさせない。**
+  const meterOverflow = await page.locator(".skill-tree-forest .node-meters").evaluateAll((rows) =>
+    rows.filter((row) => row.scrollWidth - row.clientWidth > 0).length);
+  note("節の計器（丸・効果量・段）が切れない", meterOverflow === 0, `はみ出し ${meterOverflow} 行`);
+  // 段は10まで上がる。**一番長い綴り（Lv10/10）でも切れない。**
+  const widestLevel = await page.locator(".skill-tree-forest .level-tag").evaluateAll((tags) => {
+    const before = tags.map((tag) => tag.innerHTML);
+    for (const tag of tags) tag.innerHTML = "Lv10<small>/10</small>";
+    const clipped = tags.filter((tag) => {
+      const row = tag.closest(".node-meters");
+      return row.scrollWidth - row.clientWidth > 0;
+    }).length;
+    tags.forEach((tag, index) => { tag.innerHTML = before[index]; });
+    return clipped;
+  });
+  note("一番長い段（Lv10/10）でも切れない", widestLevel === 0, `切れ ${widestLevel} 件`);
   const flatNodes = await page.locator(".skill-tree-forest .skill-node").evaluateAll((nodes) =>
     nodes.filter((node) => !node.querySelector(".level-tag")).length);
   note("未取得・レベル無しの節には段が出ない", flatNodes > 0, `段なし ${flatNodes} 節`);
@@ -727,6 +761,37 @@ try {
       === JSON.stringify(equipmentFormationBefore));
   await page.locator('nav.tabs [data-tab="skills"]').click();
   await page.waitForTimeout(150);
+
+  // ---- 作者要望 2026-09-17 — **一戦目の再挑戦は補給を取らない。** --------------
+  //
+  // 負ける配置を作り直すと隊列チュートリアルの錠が戻ってしまうので、敗北画面だけを
+  // 保存へ置いて入る（見たいのは再挑戦の値段であって、負け方ではない）。
+  await page.evaluate(() => {
+    const key = "exp18-r10-auto-v02";
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (!saved?.run) return;
+    saved.phase = "defeat";
+    saved.lastResult = {
+      result: "loss", roundsUsed: 5, reason: "party_wiped",
+      metrics: { allyHpLost: 410, enemyHpLost: 120, reactionsFired: 1, equipmentWear: 0 },
+      actors: [], equipment: [], events: [],
+    };
+    localStorage.setItem(key, JSON.stringify(saved));
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(300);
+  const firstDefeatText = await bodyText();
+  note("一戦目で負けても再挑戦の手が残る", /編成を変えて再挑戦/.test(firstDefeatText));
+  note("一戦目の再挑戦に補給の値段が付かない", !/補給1で編成を変えて再挑戦/.test(firstDefeatText));
+  note("敗北画面が、止まった一戦の名前と番号を揃えて出す",
+    /灰の門 · 第1戦/.test(firstDefeatText),
+    firstDefeatText.match(/.{0,6}· 第\d+戦/)?.[0] ?? "");
+  note("払わないことを敗北画面が言う",
+    /補給を使うのは補給チュートリアルからです/.test(firstDefeatText));
+  await click(/編成を変えて再挑戦/);
+  await page.waitForTimeout(350);
+  note("一戦目の再挑戦で補給が減らない",
+    /3\/3/.test(await page.locator('nav.tabs [data-tab="supplies"]').innerText()));
 
   // ---- R11 §8.6 — 巻き戻したあとの再戦。**同じ盤面をもう一度戦う。**
   //
@@ -845,6 +910,44 @@ try {
         /手順 4\/7/.test(await skillCard.innerText())
           && await skillSpot().count() === 1
           && await skillSpot().first().getAttribute("data-action") === "unlock-skill");
+      // 作者指摘 2026-09-17 — **手引きの札の手前へ、技能の操作盤が出ていた。**
+      // 札は固定帯の下へ、盤は画面の下端へ貼るので、**画面が低い回にだけ**重なる
+      // （作者の iPhone は上下のバーで 660px ほどしか残さない）。その高さにして、
+      // 重なった点の一番手前が札かを見る。
+      await page.setViewportSize({ width: 390, height: SAFARI_VISIBLE_HEIGHT });
+      await page.waitForTimeout(250);
+      const sheetOverlap = await page.evaluate(async () => {
+        const card = document.querySelector(".camp-view > .tutorial-note-card.pinned");
+        const sheet = document.querySelector(".skill-sheet");
+        if (!card || !sheet) return { seen: false, reason: "札か盤が無い" };
+        const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        let seen = false;
+        let ok = true;
+        let detail = "";
+        for (let top = 0; top <= max; top += 80) {
+          window.scrollTo({ top: Math.min(top, max), behavior: "auto" });
+          await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+          const c = card.getBoundingClientRect();
+          const s = sheet.getBoundingClientRect();
+          const overlap = Math.min(c.bottom, s.bottom) - Math.max(c.top, s.top);
+          if (overlap <= 1) continue;
+          seen = true;
+          detail = `送り ${Math.round(window.scrollY)}px で ${Math.round(overlap)}px 重なる`;
+          const y = (Math.max(c.top, s.top) + Math.min(c.bottom, s.bottom)) / 2;
+          const front = [0.25, 0.5, 0.75].every((ratio) => {
+            const element = document.elementFromPoint(c.left + c.width * ratio, y);
+            return Boolean(element) && (element === card || card.contains(element));
+          });
+          if (!front) ok = false;
+        }
+        window.scrollTo({ top: 0, behavior: "auto" });
+        return { seen, ok, detail };
+      });
+      note("貼りついた手引きの札の手前へ技能の操作盤が出ない",
+        sheetOverlap.seen && sheetOverlap.ok,
+        sheetOverlap.seen ? sheetOverlap.detail : (sheetOverlap.reason ?? "重なる送り位置が見つからなかった"));
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.waitForTimeout(250);
       const pointsBefore = Number((await page.locator(".skill-build-summary .summary-points b").innerText()).trim());
       await skillSpot().first().click();
       await page.waitForTimeout(250);
@@ -909,6 +1012,18 @@ try {
         await battleReport.getAttribute("data-report-known") === "true"
           && /ラウンド/.test(battleReportText) && /技能点/.test(battleReportText),
         battleReportText.replace(/\s+/g, " ").slice(0, 80));
+      // 作者指摘 2026-09-17 — **記録には、戦った盤面そのものが出る。**巻き戻して
+      // 勝った「灰の門」は第1戦の勝利になるのに、盤面だけ index から組み直していて、
+      // ラウンド数と味方損失は灰の門のものなのに敵は「灰の入口」の走者二体だった。
+      const recordTitle = await page.locator(".encounter-archive .forecast-title").innerText();
+      const recordCells = await page.locator(".encounter-archive .enemy-board-cell").count();
+      note("第1戦の記録が、戦った「灰の門」になる", /灰の門/.test(recordTitle), recordTitle);
+      note("第1戦の記録に、戦った敵がそのまま並ぶ", recordCells === 4, `${recordCells} 体`);
+      await page.locator(
+        '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
+      await page.waitForTimeout(200);
+      note("まだ戦っていない第2戦は先見機の投影のまま",
+        /狩りの路地/.test(await page.locator(".encounter-archive .forecast-title").innerText()));
       await page.locator(
         '.encounter-archive [data-action="inspect-encounter"][data-encounter="2"]').click();
       await skillTab.click();
@@ -944,6 +1059,15 @@ try {
       note("終わったあとは他のタブへも移れる",
         await page.locator('nav.tabs [data-tab="equipment"].active').count() === 1
           && await page.locator(".skill-tutorial").count() === 1);
+      // 作者試遊 2026-09-17 — **ここが詰みの入口だった。**一戦目の傷が残っているので、
+      // 二戦目へ入る前に全体手当を3回押せて、補給0のまま補給チュートリアルへ着いた。
+      note("技能チュートリアルのあとも、補給タブはまだ閉じている",
+        await page.locator('nav.tabs [data-tab="supplies"]').isDisabled());
+      await page.locator('nav.tabs [data-tab="supplies"]').click({ force: true }).catch(() => {});
+      await page.waitForTimeout(150);
+      note("二戦目の前に野営治療へ入れない",
+        await page.locator('[data-action="treat"]').count() === 0
+          && await page.locator('nav.tabs [data-tab="supplies"].active').count() === 0);
     }
 
     // ---- 二戦目。**勝つと補給チュートリアルが出る。** --------------------------
@@ -951,6 +1075,33 @@ try {
     await page.waitForTimeout(150);
     note("技能チュートリアルは一度きり（次の一戦へ出ると消える）",
       await page.locator(".skill-tutorial").count() === 1);
+    // 二戦目の再挑戦も、手引きより前なので補給を取らない（3回負けてから勝つと
+    // 補給0で手引きへ着く、という三つ目の道を塞いである）。敗北画面だけを置いて見る。
+    await page.evaluate(() => {
+      const key = "exp18-r10-auto-v02";
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      if (!saved?.run) return;
+      saved.phase = "defeat";
+      saved.lastResult = {
+        result: "loss", roundsUsed: 8, reason: "party_wiped",
+        metrics: { allyHpLost: 300, enemyHpLost: 200, reactionsFired: 2, equipmentWear: 0 },
+        actors: [], equipment: [], events: [],
+      };
+      localStorage.setItem(key, JSON.stringify(saved));
+    });
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(300);
+    const secondDefeatText = await bodyText();
+    note("二戦目の再挑戦にも補給の値段が付かない",
+      /編成を変えて再挑戦/.test(secondDefeatText) && !/補給1で編成を変えて再挑戦/.test(secondDefeatText));
+    note("二戦目の敗北画面も名前と番号が揃う", /狩りの路地 · 第2戦/.test(secondDefeatText),
+      secondDefeatText.match(/.{0,8}· 第\d+戦/)?.[0] ?? "");
+    await click(/編成を変えて再挑戦/);
+    await page.waitForTimeout(350);
+    note("二戦目の再挑戦でも補給が減らない",
+      /3\/3/.test(await page.locator('nav.tabs [data-tab="supplies"]').innerText()));
+    await page.locator('nav.tabs [data-tab="map"]').click();
+    await page.waitForTimeout(150);
     await click("この敵との実戦へ進む");
     await waitForTutorialSelector(".battle-field");
     const secondFast = page.locator('.speed-button[data-speed="fast"]');

@@ -2013,8 +2013,9 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 /* 作者指摘 2026-09-13 — **操作盤は画面の下端へ貼る。**選んだ節の説明と釦は、地図の
    中（列幅 176px）ではなくここに出る。貼りついているので、地図を横へどれだけ動かしても
    操作はいつも同じ場所にあり、節を押しても地図は組み変わらない。
-   z-index は技能ツリー要約帯（2）より上、キャンプの固定帯（3）より下に置く
-   （盤は要約帯の上を通ってよいが、盤面の固定帯を隠してはいけない）。 */
+   z-index は技能ツリー要約帯（2）より上、キャンプの固定帯（3）と手引きの札（4）より
+   下に置く（盤は要約帯の上を通ってよいが、盤面の固定帯と、いまの一手を言う札を
+   隠してはいけない）。 */
 .skill-sheet {
   position: sticky;
   bottom: 0;
@@ -4322,10 +4323,15 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
    技能ツリーの奥まで送っても「いまの段」と「なぜ押すのか」が視界から出ない。
    錠が外れた段（"done"）では普通の一枚へ戻す——そこから先は自由な探索なので、
    札が帯の下に居座ると画面を食うだけになる。 */
+/* 作者指摘 2026-09-17 — **貼りついた札の手前へ、技能の操作盤が出ていた。**
+   札（z-index 2・DOM では前）と操作盤（`.skill-sheet`、同じ 2・DOM では後）が
+   同じ段に居たので、盤が伸びた回に札の本文を覆っていた。札は「いま何をするか」を
+   言う唯一の場所なので、**盤より手前**に置く。固定帯（`.camp-top`、3）とは
+   `--camp-top-h` のぶんだけ下へずらして貼るので、重なることはない。 */
 .tutorial-note-card.pinned {
   position: sticky;
   top: calc(var(--camp-top-h, 215px) + 6px);
-  z-index: 2;
+  z-index: 4;
 }
 /* 見出しの行。**札の名前と、いま何手目かを同じ行に置く。**
    以前は進捗を出すのが補給だけで、他の三つは何手あるのかが読めなかった。 */
@@ -4951,8 +4957,8 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .yield-chip {
   display: inline-flex;
   align-items: baseline;
-  gap: 3px;
-  padding: 1px 5px;
+  gap: 2px;
+  padding: 1px 4px;
   border: 1px solid currentColor;
   border-radius: 3px;
   font-size: 10px;
@@ -5027,8 +5033,22 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .node-icon.branch-order { border-color: var(--branch-order); color: var(--branch-order); }
 .node-icon.branch-base { border-color: var(--branch-base); color: var(--branch-base); }
 .skill-node.equipped .node-icon { border-color: var(--gold); background: var(--gold); color: #1b201e; }
-/* 節の上の計器。名前の下に一列だけ。 */
-.node-copy .node-meters { display: flex; flex-wrap: nowrap; align-items: center; gap: 5px; white-space: nowrap; }
+/* 節の上の計器。名前の下に並べる。
+   作者指摘 2026-09-17 — **段の添え字（/10）が列の右端で切れていた。**列幅は
+   iPhone で 176px しかなく、一列固定（nowrap）のままだと「● 腕 146% Lv2/10」が
+   入り切らず、`.node-copy small` の `overflow: hidden` が末尾を食っていた。
+   **数を削るのではなく、入らない回だけ折り返す。**計器は一つずつが読めればよく、
+   一行に収まっているかどうかは読み手にとって意味を持たない。 */
+.node-copy .node-meters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /* 横の間は詰める。**ふだんは一列のまま**で、入らない回だけ下の段へ落ちる。 */
+  gap: 3px 4px;
+  overflow: visible;
+  white-space: nowrap;
+}
+.node-copy .node-meters > * { flex: 0 0 auto; }
 /* 装着行。**出番は目盛り、代償は点。** */
 .installed-copy .row-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 3px; }
 .installed-copy .node-when { white-space: normal; }
