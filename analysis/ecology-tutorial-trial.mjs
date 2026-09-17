@@ -506,6 +506,28 @@ try {
 
   // R19（issue #137）— ツリーは種別で切り替える。**行動の枝に RP の技能は混ざらない。**
   note("アクティブ／リアクティブ／パッシブを切り替えられる", await page.locator('[data-action="select-skill-kind"]').count() === 3);
+
+  // 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。
+  // **既定は一覧**（縦一列・横スクロール無し）で、地図は一押しで戻る。
+  note("技能ツリーは一覧で開く",
+    await page.locator('.skill-tree-view[data-view="list"]').count() === 1
+      && await page.locator(".skill-tree-forest").count() === 0);
+  const listShape = await page.locator(".skill-tree-list").evaluate((list) => ({
+    rows: list.querySelectorAll(".tree-cell.list-row").length,
+    overflow: list.scrollWidth - list.clientWidth,
+    inWindow: [...list.querySelectorAll(".tree-cell.list-row")].filter((row) => {
+      const box = row.getBoundingClientRect();
+      return box.left >= -1 && box.right <= window.innerWidth + 1;
+    }).length,
+  }));
+  note("一覧は横へはみ出さない", listShape.overflow <= 1, `はみ出し ${listShape.overflow}px`);
+  note("一覧の行は全部が画面の幅に収まる", listShape.rows > 0 && listShape.inWindow === listShape.rows,
+    `${listShape.inWindow} / ${listShape.rows} 行`);
+  // **同じ森である。**一覧と地図で出る節の数は一致する（見え方だけが違う）。
+  await page.locator('[data-action="select-skill-view"][data-view="map"]').click();
+  await page.waitForTimeout(200);
+  const mapCells = await page.locator(".skill-tree-forest .tree-cell").count();
+  note("一覧と地図は同じ節を出す", mapCells === listShape.rows, `地図 ${mapCells} / 一覧 ${listShape.rows}`);
   note("派生の線が引かれている", await page.locator(".skill-tree-forest .tree-lines path").count() > 0);
   await page.locator('[data-action="select-skill-kind"][data-kind="reactive"]').click();
   await page.waitForTimeout(150);
@@ -709,6 +731,38 @@ try {
   await page.waitForTimeout(150);
   note("同じ印をもう一度押すと戻る", await page.locator(".tree-cell.faded").count() === beforeFilter);
 
+  // 作者指摘 2026-09-17 —「取得しやすさ」。**いま技能点で動かせる節だけに絞れる。**
+  // 絞りは一覧では隠し、地図では沈める（線の行き先を消さない）。
+  await page.locator('[data-action="select-skill-view"][data-view="list"]').click();
+  await page.waitForTimeout(200);
+  const readyChip = page.locator(".ready-chip");
+  const readyCount = await readyChip.count()
+    ? Number((await readyChip.innerText()).replace(/[^0-9]/g, ""))
+    : 0;
+  if (readyCount > 0) {
+    const allRows = await page.locator(".tree-cell.list-row").count();
+    await readyChip.click();
+    await page.waitForTimeout(200);
+    const shown = await page.locator(".tree-cell.list-row").count();
+    const shownReady = await page.locator(".tree-cell.list-row.ready").count();
+    note("「いま取れる」で取れる節だけが残る",
+      shown === readyCount && shownReady === shown && shown < allRows,
+      `${allRows} 節 → ${shown} 節（数え ${readyCount}）`);
+    await readyChip.click();
+    await page.waitForTimeout(200);
+    note("もう一度押すと全部へ戻る", await page.locator(".tree-cell.list-row").count() === allRows);
+  } else {
+    // 技能点が無い回は、押した先が空になる絞り込みそのものを出さない。
+    note("取れる節が無い回は絞り込みを出さない", await readyChip.count() === 0);
+  }
+  // **どの種別に使い道があるかは、タブそのものが言う。**いま見ている種別の数は、
+  // 絞り込みの数と同じでなければならない（別々に数えていたら、どちらかが嘘になる）。
+  const activeTabReady = await page.locator(".tree-tab.active .tab-ready").count()
+    ? Number(await page.locator(".tree-tab.active .tab-ready").innerText())
+    : 0;
+  note("選んでいる種別のタブが、いま取れる数を出す", activeTabReady === readyCount,
+    `タブ ${activeTabReady} / 絞り込み ${readyCount}`);
+
   // R12 — **manifest に無い節は出さない。**Campaign の pack は累積するので、
   // manifest 外＝まだ物語が配っていない語彙になった（灰色で名前だけ見せない）。
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
@@ -899,7 +953,7 @@ try {
           && await skillSpot().first().getAttribute("data-action") === "select-skill-node"
           && await skillSpot().first().getAttribute("data-skill") === "field_dressing");
       // 光っていない節を押しても何も起きない。
-      await page.locator('.skill-tree-forest [data-action="select-skill-node"][data-skill="ward_ally"]')
+      await page.locator('.skill-tree-view [data-action="select-skill-node"][data-skill="ward_ally"]')
         .click({ force: true }).catch(() => {});
       await page.waitForTimeout(150);
       note("光っていない節を押しても段は進まない",
@@ -1034,7 +1088,7 @@ try {
       note("ゴウにも技能点が残っている",
         /1/.test(await page.locator(".skill-build-summary .summary-points b").innerText()));
       // 説明文の強調は**星印ではなく太字**で出す（作者要望 2026-09-14）。
-      await page.locator('.skill-tree-forest [data-action="select-skill-node"][data-skill="field_dressing"]').click();
+      await page.locator('.skill-tree-view [data-action="select-skill-node"][data-skill="field_dressing"]').click();
       await page.waitForTimeout(200);
       note("説明文の強調が星印のまま出ていない",
         !/\*\*/.test(await page.locator(".skill-sheet").innerText())

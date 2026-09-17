@@ -380,6 +380,15 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 前提・派生・取得・段上げ・取得予約は画面下端へ貼る操作盤（`renderSkillSheet` / `.skill-sheet`）が
 出す。節の中で開かないので、押しても地図は組み変わらず、釦は列幅ではなく画面幅を使える。
 `focusSelectedSkillNode()` は、選び直した節が帯の窓の外に居るときだけ地図を寄せる。
+**見方は一覧（既定）と地図の二つ**で、どちらも同じ森（`skillTreeLayout()`）を同じ順（深さ優先）で
+読む。`renderSkillList()` は縦一列・横スクロール無しで、深さを `--indent` の段差で出す。
+`renderSkillMap()` は R19 の森そのもの（固定幅の列と実座標の線）。切り替えは
+`state.skillTreeView`（`select-skill-view`）が持ち、節の選択・操作盤・`data-fx` の宛先は共有するので、
+一覧で見つけた節を地図で辿り直しても、選んだ節と操作の場所は変わらない。手引きの選択子は
+見方に依らず `.skill-tree-view [data-action="select-skill-node"]` で綴る。
+「いま技能点で動かせる節」（解禁できる／段を上げられる＝`skillNodeActionableNow()`）は、
+種別タブの数（`.tab-ready`）と絞り込み（`state.skillTreeReadyOnly` / `toggle-skill-ready`）の
+両方が読む。**絞り込みは一覧では隠し、地図では沈める**（地図で隠すと線の行き先が消える）。
 盤は「その節を取るかどうかを決める材料」だけを持つ（効果の一文・足りない前提・一行に並ぶ
 取得／段上げ／予約）。入切は `skillToggleSwitch()` の摘みを装着行と共有し、前提と派生の一覧は
 地図が、予約の規則は畳んだヘルプが、いまの予約先は要約帯が出す。

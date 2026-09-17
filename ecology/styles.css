@@ -2010,6 +2010,58 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-node.prerequisite .node-status { color: #82938b; }
 .skill-node.equipped .node-status { color: var(--gold); font-weight: 800; }
 .skill-node.equipped.disabled .node-status { color: var(--muted); }
+/* 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。
+   見方の切り替え（一覧／地図）と「いま取れる」の絞り込みは、同じ一行に置く。
+   どちらも**何を見せるか**の操作で、節そのものは触らない。 */
+.tree-controls { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; }
+.view-switch { display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: #172124; }
+.view-tab { min-height: 28px; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; }
+.view-tab.on { background: var(--gold-dark); color: var(--gold); font-weight: 800; }
+/* 「いま取れる」。**取れるものがある回だけ出る**ので、数はいつも 1 以上である。 */
+.ready-chip {
+  display: flex;
+  flex: 0 1 auto;
+  min-height: 28px;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid #8a7d50;
+  border-radius: 999px;
+  background: rgba(138, 125, 80, .12);
+  color: #c9b66e;
+  font-size: 10px;
+}
+.ready-chip b { font-size: 11px; font-weight: 800; }
+.ready-chip.on { border-color: var(--gold); background: var(--gold-dark); color: var(--gold); }
+/* 種別タブの右肩に「いま取れる数」。三つの森を押して回らなくても、点の使い道が
+   どちらに在るかが分かる。 */
+.tree-tab { position: relative; }
+.tab-ready {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1b201e;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  text-align: center;
+}
+/* 一覧。**縦だけで読む。**横スクロールは持たず、深さはインデントで見せる。 */
+.skill-tree-list { display: grid; gap: 5px; padding: 4px 0 8px; }
+.tree-cell.list-row { margin-left: calc(var(--indent, 0) * 11px); }
+/* 深さの段差が「どこから伸びた節か」を言う。線は地図の役目なので引かない。 */
+.tree-cell.list-row > .skill-node { border-left-width: 1px; }
+.list-row .skill-node-button { min-height: 46px; align-items: center; padding: 7px 9px; }
+.list-row .node-copy b { font-size: 12px; }
+.list-row .node-copy small { font-size: 10px; }
+/* いま取れる節は、一覧の中で先に目に入る（金の縁）。 */
+.tree-cell.list-row.ready > .skill-node { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+.tree-empty { margin: 10px 2px; font-size: 11px; line-height: 1.5; }
+
 /* 作者指摘 2026-09-13 — **操作盤は画面の下端へ貼る。**選んだ節の説明と釦は、地図の
    中（列幅 176px）ではなくここに出る。貼りついているので、地図を横へどれだけ動かしても
    操作はいつも同じ場所にあり、節を押しても地図は組み変わらない。

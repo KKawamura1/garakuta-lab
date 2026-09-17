@@ -574,6 +574,26 @@ try {
     await page.waitForTimeout(200);
     const node = page.locator(".skill-node.available").first();
     note("技能点があれば取得できる節が出る", await node.count() > 0);
+
+    // 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。**点が入った回に、
+    // 使い道を探し歩かせない。**「いま取れる」で、取れる節だけが残る。
+    const readyChip = page.locator(".ready-chip");
+    note("技能点があると「いま取れる」が出る", await readyChip.count() === 1);
+    if (await readyChip.count()) {
+      const listed = await page.locator(".tree-cell.list-row").count();
+      const declared = Number((await readyChip.innerText()).replace(/[^0-9]/g, ""));
+      await readyChip.click();
+      await page.waitForTimeout(200);
+      const narrowed = await page.locator(".tree-cell.list-row").count();
+      note("「いま取れる」で取れる節だけが残る",
+        declared > 0 && narrowed === declared
+          && narrowed === await page.locator(".tree-cell.list-row.ready").count()
+          && narrowed < listed,
+        `${listed} 節 → ${narrowed} 節`);
+      await readyChip.click();
+      await page.waitForTimeout(200);
+      note("もう一度押すと全部へ戻る", await page.locator(".tree-cell.list-row").count() === listed);
+    }
     if (await node.count()) {
       const unlockingName = (await node.locator(".node-copy b").innerText()).trim();
       await node.click();

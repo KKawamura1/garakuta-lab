@@ -111,6 +111,18 @@ const displayContracts = [
   ["盤の頭で取得済みを入切する", app, "? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)"],
   ["取得・段上げ・予約を一行へ並べる", styles, ".skill-sheet .node-action { display: flex;"],
   ["予約の規則は畳んだヘルプに置く", app, 'title: "取得予約",\n        value: "一人につき一つ"'],
+  // 作者指摘 2026-09-17 — **地図は辿るため、一覧は見渡すため。**同じ森を二つの見方で出し、
+  // 既定は一覧（縦一列・横スクロール無し）にする。
+  ["技能ツリーの見方が二つある", app, 'const SKILL_TREE_VIEWS = ["list", "map"];'],
+  ["既定の見方は一覧", app, 'return SKILL_TREE_VIEWS.includes(state.skillTreeView) ? state.skillTreeView : "list";'],
+  ["一覧の組み立て", app, "function renderSkillList(group, characterId)"],
+  ["地図の組み立て", app, "function renderSkillMap(group, characterId, selectedRow)"],
+  ["見方の切り替え操作", app, '"select-skill-view"'],
+  ["一覧の深さはインデントで出す", styles, ".tree-cell.list-row { margin-left: calc(var(--indent, 0) * 11px); }"],
+  // いま技能点で動かせる節は、タブの数と絞り込みが同じ一箇所を読む。
+  ["いま動かせる節の判定", app, "function skillNodeActionableNow(node, characterId, nodeState = skillNodeState(node, characterId))"],
+  ["いま取れるの絞り込み操作", app, '"toggle-skill-ready"'],
+  ["種別タブのいま取れる数", app, '<em class=\\"tab-ready\\"'],
   ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
   ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
   // 反応（issue #237）。**操作と結果を結ぶ層は、申告・見張り・時間の三つで立っている。**
