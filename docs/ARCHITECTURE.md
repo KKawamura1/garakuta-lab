@@ -189,7 +189,7 @@ newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、�
 
 錠の掛かる範囲は二つに分かれます。`skillLessonLocked()` は `done` 以外、`skillLessonTabLocked()` は `tab` と `done` 以外（一手目がタブを押すことなので、そこで閉じ込めると打てません）。`aim` の段だけは `skillLessonAllowSelector()` が操作盤の「✕」を返し、`tutorialOpenings(gate)` が「光る先＋光らせないが通す先」を一つの選択子にまとめます——`applyTutorialGate()` の錠も `tutorialAllows()` の経路も同じ文字列を読むので、画面と handler が別々の綴りを持つことはありません。受け渡しが済んだ印は画面状態の `skillLessonHandedOff` で、以後は誰を選び直しても段が戻りません（画面の状態から導くと、教えた相手を選び直した拍に錠が復活します）。予約は既存の `progression.reserveRunSkill` をそのまま通るので、チュートリアル専用の取得経路は作りません。完了印 `skill_lesson_seen` は **次の一戦へ出るとき**（`begin-stage`）に押します。
 
-四つの手引きの札は `tutorialNoteCard()` が一枚だけ組み、`renderCamp()` が `.camp-view` の頭へ出します。錠が掛かっている段では札に `pinned` が付き、固定帯（`--camp-top-h`）の真下へ貼りつきます。`publishCampTopHeight()` が札の高さを `--tutorial-note-h` へ入れるので、技能点の要約帯（`.skill-build-summary`）はその下へ貼ります。`focusTutorialSpot()` は段が変わった回だけ、光らせる先が窓の外なら技能ツリーの帯とページを寄せます（`focusSelectedSkillNode()` と同じ作法で、見えているときは動かしません）。貼りついた札の重なりの段は `z-index: 4` で、キャンプの固定帯（`.camp-top`、3）・技能の操作盤（`.skill-sheet`、2）・技能点の要約帯（`.skill-build-summary`、2）より手前に出ます。**札が隠れると、いま押す場所を言う唯一の文が読めなくなる**ためです（札は固定帯の下へ `--camp-top-h` のぶんだけずらして貼るので、固定帯とは重なりません）。
+四つの手引きの札は `tutorialNoteCard()` が一枚だけ組み、`renderCamp()` が `.camp-view` の頭へ出します。錠が掛かっている段では札に `pinned` が付き、固定帯（`--camp-top-h`）の真下へ貼りつきます。`publishCampTopHeight()` が札の高さを `--tutorial-note-h` へ入れます（技能点の帯は 2026-09-17 に貼るのをやめ、ツリーの操作の行へ移したので、その下に貼るものはいまのところ手引きの札だけです）。`focusTutorialSpot()` は段が変わった回だけ、光らせる先が窓の外なら技能ツリーの帯とページを寄せます（`focusSelectedSkillNode()` と同じ作法で、見えているときは動かしません）。貼りついた札の重なりの段は `z-index: 4` で、キャンプの固定帯（`.camp-top`、3）・技能の操作盤（`.skill-sheet`、2）より手前に出ます。**札が隠れると、いま押す場所を言う唯一の文が読めなくなる**ためです（札は固定帯の下へ `--camp-top-h` のぶんだけずらして貼るので、固定帯とは重なりません）。
 
 Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は、既読状態や `clearedStageSequences` で表示を分岐させない。同じ Stage の再訪でも app.js は同じ断片を `enterStory()` へ渡す。Stage 0 の序盤の敗北・巻き戻しと補給案内だけは、専用チュートリアルとして初回の導線を維持する。
 
@@ -380,9 +380,19 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 前提・派生・取得・段上げ・取得予約は画面下端へ貼る操作盤（`renderSkillSheet` / `.skill-sheet`）が
 出す。節の中で開かないので、押しても地図は組み変わらず、釦は列幅ではなく画面幅を使える。
 `focusSelectedSkillNode()` は、選び直した節が帯の窓の外に居るときだけ地図を寄せる。
+**見方は一覧（既定）と地図の二つ**で、どちらも同じ森（`skillTreeLayout()`）を同じ順（深さ優先）で
+読む。`renderSkillList()` は縦一列・横スクロール無しで、深さを `--indent` の段差で出す。
+`renderSkillMap()` は R19 の森そのもの（固定幅の列と実座標の線）。切り替えは
+`state.skillTreeView`（`select-skill-view`）が持ち、節の選択・操作盤・`data-fx` の宛先は共有するので、
+一覧で見つけた節を地図で辿り直しても、選んだ節と操作の場所は変わらない。手引きの選択子は
+見方に依らず `.skill-tree-view [data-action="select-skill-node"]` で綴る。
+「いま技能点で動かせる節」（解禁できる／段を上げられる＝`skillNodeActionableNow()`）は、
+種別タブの数（`.tab-ready`）と絞り込み（`state.skillTreeReadyOnly` / `toggle-skill-ready`）の
+両方が読む。**絞り込みは一覧では隠し、地図では沈める**（地図で隠すと線の行き先が消える）。
 盤は「その節を取るかどうかを決める材料」だけを持つ（効果の一文・足りない前提・一行に並ぶ
 取得／段上げ／予約）。入切は `skillToggleSwitch()` の摘みを装着行と共有し、前提と派生の一覧は
-地図が、予約の規則は畳んだヘルプが、いまの予約先は要約帯が出す。
+地図が、予約の規則は畳んだヘルプが、いまの予約先と残りの技能点はツリーの操作の行
+（`.tree-controls`、貼りつかない）が出す。
 装飾的な英語副見出し、
 常に表示する一般説明、同じタブへ戻るNEXT/QUICK LINKSは画面の主操作から外し、必要なルールを
 `details.help-details` のタップ式ヘルプへ置く。`helpOpen` が開閉状態を保持するため、同じ画面の

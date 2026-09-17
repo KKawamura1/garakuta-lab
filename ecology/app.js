@@ -489,6 +489,11 @@ function freshUiState() {
     skillTreeKind: "active",
     // issue #177 — テーマの絞り込み（null は全部）。
     skillTreeBranch: null,
+    // 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。地図は**読む**
+    // ための見方なので、既定は縦に全部並ぶ**一覧**にする（`selectedSkillView`）。
+    skillTreeView: "list",
+    // 「いま技能点で動かせる節」だけに絞る（`skillNodeActionableNow`）。
+    skillTreeReadyOnly: false,
     selectedEquipment: null,
     // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
@@ -693,6 +698,10 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.selectedEnemyId = null;
   next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
   next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
+  // **綴りはここでは literal で見る。**`loadState()` は module の評価中に走るので、
+  // 下のほうで宣言している const（`SKILL_TREE_VIEWS`）はまだ初期化されていない。
+  next.skillTreeView = ["list", "map"].includes(next.skillTreeView) ? next.skillTreeView : "list";
+  next.skillTreeReadyOnly = next.skillTreeReadyOnly === true;
   // 旧いオートセーブには story.lineIndex / log が無い。**足りない欄を補って読む。**
   next.story = {
     queue: Array.isArray(saved.story?.queue) ? saved.story.queue.filter(Boolean) : [],
@@ -4100,10 +4109,13 @@ function skillBuildSummary(characterId) {
       + "・" + esc(reservationTarget) + "\"><small>取得予約</small><b>"
       + esc(reservationLabel) + "</b><small>" + esc(reservationTarget) + "</small></span>"
     : "";
-  // 作者要望 2026-09-16 — 誰の帯かは**顔で指す**（[拳] の図像はどの画面からも外した）。
+  // 作者指摘 2026-09-17（二度目）—「ちょっと狭いなあ。固定窓が多すぎるからですかね？」
+  //
+  // この帯は固定帯（`.camp-top`、実測 284px）の下へ**もう一枚貼りついて**いて、
+  // iPhone の実質 660px のうち 46px を常に取っていた。しかも中身の三つのうち二つ
+  // ——顔と名前——は、上端の盤面（金の枠が主語を指す）と人物の札が既に言っている。
+  // **貼るのをやめ、残る二つ（技能点と予約先）をツリーの操作の行へ入れる。**
   return "<aside class=\"skill-build-summary\" aria-live=\"polite\">"
-    + characterFaceChip(characterId)
-    + "<b class=\"summary-name\">" + esc(characterName(characterId)) + "</b>"
     + reservation
     + "<span class=\"summary-points\" role=\"img\" aria-label=\"" + esc(characterName(characterId))
     + "の技能点 " + points + " · 隊全体 " + party + "\"><small>技能点</small><b>" + points + "</b>"
@@ -4117,6 +4129,18 @@ function skillNodeIcon(node) {
 // R19（issue #137）— ツリーは種別で三つに分かれる。**AP を払うアクティブと RP を払うリアクティブが
 // 同じ枝に混ざっていると、どちらの資源を伸ばす話なのかが読めない。**
 const SKILL_TREE_KINDS = SKILL_TREE_GROUPS.map((group) => group.kind);
+
+// 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。
+//
+// 地図（`.skill-tree-forest`）は**前提と派生を読む**ための見方で、そこは変えない。
+// ただし列は固定幅なので、Stage 5 のアクティブは 2070px × 2012px の森になり、
+// iPhone の窓（340px）からは**58節のうち4節しか見えない**。「何があるか」と
+// 「いま何が取れるか」を知るのに、その森を端から端まで押して回ることになっていた。
+//
+// そこで**同じ森を、縦一列の一覧としても出す**。一覧は横スクロールを持たず、
+// 深さはインデントで見せる。既定はこちら——「読む」より先に来るのは
+// 「見渡す」だからである。地図は一押しで戻る。
+const SKILL_TREE_VIEWS = ["list", "map"];
 
 // R12 — manifest に無い技能ノードは**出さない**。
 //
@@ -4140,6 +4164,10 @@ function selectedSkillKind() {
   return SKILL_TREE_KINDS.includes(requested) ? requested : "active";
 }
 
+function selectedSkillView() {
+  return SKILL_TREE_VIEWS.includes(state.skillTreeView) ? state.skillTreeView : "list";
+}
+
 // 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
 function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
@@ -4161,6 +4189,17 @@ function skillNodeState(node, characterId) {
     unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass,
     reservationTarget, reservationTargetLevel, reserved, canReserve,
   };
+}
+
+// **いま技能点で動かせる節。**解禁できる節と、1点で段を上げられる取得済みの節の
+// 二つ（払う通貨も値段も同じなので、同じ問いの答えである）。種別タブの数と、
+// 一覧の「いま取れる」の絞り込みが、どちらもここを読む。
+function skillNodeActionableNow(node, characterId, nodeState = skillNodeState(node, characterId)) {
+  if (!nodeState.unlocked) return nodeState.canUnlock;
+  const cap = skillLevelCapOf(node.skillId);
+  if (cap <= MIN_SKILL_LEVEL) return false;
+  return skillLevelOf(characterId, node.skillId) < cap
+    && skillPointsFor(characterId) >= SKILL_LEVEL_COST;
 }
 
 // issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
@@ -4392,10 +4431,66 @@ let skillTreeConnectorGroup = null;
 
 function renderSkillTree(characterId) {
   const kind = selectedSkillKind();
+  const view = selectedSkillView();
   const groups = skillTreeLayout();
   const group = groups.find((entry) => entry.kind === kind) ?? groups[0];
-  skillTreeConnectorGroup = group;
+  // 線は地図にしか無い。一覧を出している回は、描き終わったあとに測る森も無い。
+  skillTreeConnectorGroup = view === "map" ? group : null;
   const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
+  // **どの種別に、いま取れる節が何本あるか。**タブそのものが答えるので、
+  // 三つの森を順に押して回らなくても、点の使い道がある側が分かる。
+  const readyCounts = new Map(groups.map((entry) => [
+    entry.kind,
+    entry.rows.filter((row) => skillNodeActionableNow(row.node, characterId)).length,
+  ]));
+  const tabs = groups.map((entry) => {
+    const ready = readyCounts.get(entry.kind) ?? 0;
+    return "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
+      + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false")
+      + "\" aria-label=\"" + esc(entry.label) + " " + entry.nodeCount + "節"
+      + (ready ? "・いま取れる " + ready + "件" : "")
+      + "\" data-action=\"select-skill-kind\" data-kind=\"" + entry.kind + "\"><b>"
+      + esc(entry.label) + "</b><small>" + entry.nodeCount + "</small>"
+      + (ready ? "<em class=\"tab-ready\" aria-hidden=\"true\">" + ready + "</em>" : "")
+      + "</button>";
+  }).join("");
+  const body = view === "map"
+    ? renderSkillMap(group, characterId, selectedRow)
+    : renderSkillList(group, characterId);
+  // 強調を解除する ✕ は、操作盤の頭（`.sheet-close`）へ移した。地図の上に置くと、
+  // 「いま何を選んでいるか」を言う札が地図と盤の二箇所に出る。
+  return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
+    + treeViewSwitch(view, readyCounts.get(kind) ?? 0, characterId)
+    + branchFilter(group)
+    + "<div class=\"skill-tree-view\" data-view=\"" + view + "\">" + body + "</div>"
+    + renderSkillSheet(selectedRow, characterId);
+}
+
+// **見方の切り替えと、絞り込みは同じ一行に置く。**どちらも「いま何を見せるか」で、
+// 節そのものを触らない（触るのは下端の操作盤だけ、という 8.5.1 の分け方は変えない）。
+function treeViewSwitch(view, ready, characterId) {
+  const tab = (id, label, title) => "<button type=\"button\" class=\"view-tab" + (view === id ? " on" : "")
+    + "\" aria-pressed=\"" + (view === id ? "true" : "false") + "\" data-action=\"select-skill-view\""
+    + " data-view=\"" + id + "\" title=\"" + esc(title) + "\">" + esc(label) + "</button>";
+  const on = state.skillTreeReadyOnly;
+  // **「いま取れる」は、取れるものがある回だけ出す。**0件の絞り込みを押せるように
+  // しておくと、押した先に空の画面が出るだけになる（既に絞っている回は、戻す先として残す）。
+  const readyChip = ready || on
+    ? "<button type=\"button\" class=\"ready-chip" + (on ? " on" : "") + "\" aria-pressed=\""
+      + (on ? "true" : "false") + "\" data-action=\"toggle-skill-ready\""
+      + " title=\"いまの技能点で解禁できる節と、段を上げられる節だけを出す\">"
+      + "いま取れる<b>" + ready + "</b></button>"
+    : "";
+  // **貼りつく帯を増やさない。**技能点と予約先はここへ同居させる（作者指摘 2026-09-17）。
+  return "<div class=\"tree-controls\">"
+    + "<div class=\"view-switch\" role=\"group\" aria-label=\"技能ツリーの見方\">"
+    + tab("list", "一覧", "縦一列に全部並べる")
+    + tab("map", "地図", "前提と派生を線で辿る")
+    + "</div>" + readyChip + skillBuildSummary(characterId) + "</div>";
+}
+
+// **地図。**R19（issue #137）からの森そのもの。列は固定幅で、深いツリーほど横に長い。
+function renderSkillMap(group, characterId, selectedRow) {
   const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
   // 取得済みの根本は選択経路の強調から外し、未取得の前提だけを水色にする。
   const pendingOnPath = new Set([...onPath].filter((key) => {
@@ -4404,12 +4499,13 @@ function renderSkillTree(characterId) {
   }));
   const ownedOnPath = new Set([...onPath].filter((key) => !pendingOnPath.has(key)));
   const derived = new Set(selectedRow ? selectedRow.descendants : []);
-  const tabs = groups.map((entry) => "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
-    + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false") + "\" data-action=\"select-skill-kind\" data-kind=\""
-    + entry.kind + "\"><b>" + esc(entry.label) + "</b><small>" + entry.nodeCount + "</small></button>").join("");
   const branch = state.skillTreeBranch;
+  const readyOnly = state.skillTreeReadyOnly;
   const rows = group.rows.map((row) => {
-    const dimmed = branch && row.node.branch !== branch;
+    // **絞り込みは地図では「沈める」。**隠すと線の行き先が消えて、森の形が読めなくなる
+    // （一覧では逆に、読めない行が場所を食うだけなので隠す）。
+    const dimmed = (branch && row.node.branch !== branch)
+      || (readyOnly && !skillNodeActionableNow(row.node, characterId));
     const tone = !selectedRow
       ? (dimmed ? " faded" : "")
       : row.key === selectedRow.key ? ""
@@ -4418,14 +4514,62 @@ function renderSkillTree(characterId) {
     return renderSkillRow(row, characterId, dimmed && !selectedRow ? " faded" : tone);
   }).join("");
   const columns = "repeat(" + Math.max(group.depth, 1) + ", var(--tree-col-width))";
-  // 強調を解除する ✕ は、操作盤の頭（`.sheet-close`）へ移した。地図の上に置くと、
-  // 「いま何を選んでいるか」を言う札が地図と盤の二箇所に出る。
-  return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
-    + branchFilter(group)
-    + "<div class=\"skill-tree-scroll\" data-branch=\"" + kind + "\"><div class=\"skill-tree-forest\" data-branch=\""
-    + kind + "\" style=\"grid-template-columns:" + columns + "\">"
-    + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>"
-    + renderSkillSheet(selectedRow, characterId);
+  return "<div class=\"skill-tree-scroll\" data-branch=\"" + group.kind
+    + "\"><div class=\"skill-tree-forest\" data-branch=\"" + group.kind
+    + "\" style=\"grid-template-columns:" + columns + "\">"
+    + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>";
+}
+
+// **一覧。**同じ森を、上から読める順（深さ優先＝地図を左上から辿る順）で縦に並べる。
+// 横スクロールは持たない。深さはインデントで見せ、どこから伸びた節かは
+// 選んだときに地図と同じ強調で追える（選ぶ先は同じ `select-skill-node`）。
+//
+// **絞り込みは「隠す」。**地図では他テーマを沈める（線の形を保つため）が、一覧で
+// 沈めると、その行のぶんだけ縦の場所を食ったまま読めない行が残る。
+function renderSkillList(group, characterId) {
+  const branch = state.skillTreeBranch;
+  const readyOnly = state.skillTreeReadyOnly;
+  const shown = group.rows.filter((row) => {
+    if (branch && row.node.branch !== branch) return false;
+    if (readyOnly && !skillNodeActionableNow(row.node, characterId)) return false;
+    return true;
+  });
+  if (!shown.length) {
+    return "<p class=\"tree-empty muted\">"
+      + (readyOnly
+        ? "いまの技能点（" + skillPointsFor(characterId) + "）で取れる節はありません。"
+          + "「いま取れる」をもう一度押すと全部出ます。"
+        : "この絞り込みに合う節はありません。")
+      + "</p>";
+  }
+  return "<div class=\"skill-tree-list\" data-branch=\"" + group.kind + "\">"
+    + shown.map((row) => renderSkillListRow(row, characterId)).join("") + "</div>";
+}
+
+// 一覧の一行。**節の中身は地図の節とまったく同じ**（印・量・段・条件・状態）。
+// 違うのは幅と、深さの出し方（列ではなくインデント）だけである。
+function renderSkillListRow(row, characterId) {
+  const node = row.node;
+  const info = COMPONENTS[node.skillId];
+  const nodeState = skillNodeState(node, characterId);
+  const selected = state.selectedSkillNode === node.skillId;
+  const ready = skillNodeActionableNow(node, characterId, nodeState);
+  // 深さは 6段まで段差にする（それより深い節を律儀に下げると、名前の幅が尽きる）。
+  const indent = Math.min(row.x - 1, 5);
+  return "<div class=\"tree-cell list-row" + (selected ? " selected" : "") + (ready ? " ready" : "")
+    + "\" data-node=\"" + esc(row.key) + "\" data-fx=\"skill:" + esc(node.skillId) + "\""
+    + " style=\"--indent:" + indent + "\">"
+    + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "")
+    + (selected ? " selected" : "") + "\">"
+    + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
+    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
+    + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
+    + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
+    + "<span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
+    + "<small class=\"node-meters\" title=\"" + esc(costLabel(node)) + "\">"
+    + costPips(node) + yieldBar(characterId, node.skillId)
+    + levelMeter(node, characterId) + "</small>" + conditionLine(node) + "</span>"
+    + nodeStateMark(node, nodeState, characterId) + "</button></article></div>";
 }
 
 // **テーマは色と印で選ぶ。**#165 の方針は「分類（アクティブ／リアクティブ／パッシブ）は
@@ -4526,17 +4670,20 @@ function focusSelectedSkillNode() {
   if (skillId === focusedSkillNode) return;
   focusedSkillNode = skillId;
   const cell = [...app.querySelectorAll(".tree-cell")].find((element) => element.dataset.node === skillId);
-  const band = cell?.closest(".skill-tree-scroll");
-  if (!cell || !band) return;
+  if (!cell) return;
+  // 横の帯は地図にしか無い（一覧は縦だけで、横へ寄せる先が無い）。
+  const band = cell.closest(".skill-tree-scroll");
   const margin = 12;
   // 動きを減らす設定では、寄せる動きも一足で終わらせる（CSS 側の方針と揃える）。
   const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
   const cellRect = cell.getBoundingClientRect();
-  const bandRect = band.getBoundingClientRect();
-  if (cellRect.left < bandRect.left + margin || cellRect.right > bandRect.right - margin) {
-    // 窓の中央へ寄せる。端に貼りつけると、隣の節（＝前提や派生の続き）が見えない。
-    const delta = (cellRect.left + cellRect.width / 2) - (bandRect.left + bandRect.width / 2);
-    band.scrollTo({ left: band.scrollLeft + delta, behavior });
+  if (band) {
+    const bandRect = band.getBoundingClientRect();
+    if (cellRect.left < bandRect.left + margin || cellRect.right > bandRect.right - margin) {
+      // 窓の中央へ寄せる。端に貼りつけると、隣の節（＝前提や派生の続き）が見えない。
+      const delta = (cellRect.left + cellRect.width / 2) - (bandRect.left + bandRect.width / 2);
+      band.scrollTo({ left: band.scrollLeft + delta, behavior });
+    }
   }
   // 縦に見えている範囲は、**貼りつく帯の下から操作盤の上まで**である。
   // 起点は帯の「いまの位置」ではなく**貼りついたときの位置**（キャンプの固定帯の下に
@@ -4544,9 +4691,10 @@ function focusSelectedSkillNode() {
   // 節を寄せてしまい、寄せ終わったあとに帯が上へ貼りついて、地図の見える帯が
   // その高さぶん無駄に狭くなる。
   const sheet = app.querySelector(".skill-sheet");
-  const summary = app.querySelector(".skill-build-summary");
+  // 貼りついているのは固定帯と、選んでいる回だけ出る操作盤の二つだけである
+  // （技能点の帯は 2026-09-17 に貼るのをやめ、ツリーの操作の行へ入れた）。
   const campBottom = app.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
-  const top = campBottom + (summary ? summary.getBoundingClientRect().height + 6 : 0) + margin;
+  const top = campBottom + margin;
   const bottom = (sheet?.getBoundingClientRect().top ?? window.innerHeight) - margin;
   if (cellRect.top < top || cellRect.bottom > bottom) {
     // 見える帯の上寄り（1/3）へ置く。真上に貼りつけると、その節から下へ伸びる
@@ -4746,7 +4894,7 @@ function renderSkills() {
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
     + "<section class=\"card\">"
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
-    + skillBuildSummary(characterId) + renderSkillTree(characterId)
+    + renderSkillTree(characterId)
     + "</details>"
     + symbolLegendHelp()
     // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
@@ -5791,7 +5939,9 @@ function skillLessonTabLocked() {
 function skillLessonSpotSelector(step) {
   const goal = SKILL_LESSON_GOAL;
   if (!goal) return null;
-  const node = (skillId) => ".skill-tree-forest [data-action=\"select-skill-node\"][data-skill=\""
+  // **綴りは見方に依らない。**一覧でも地図でも、節を選ぶ釦は同じ `select-skill-node`
+  // で、どちらも `.skill-tree-view` の中に居る（作者指摘 2026-09-17）。
+  const node = (skillId) => ".skill-tree-view [data-action=\"select-skill-node\"][data-skill=\""
     + skillId + "\"]";
   const cell = (characterId) => ".camp-top [data-action=\"select-character\"][data-character=\""
     + characterId + "\"]";
@@ -5852,7 +6002,7 @@ function skillLessonNote() {
     },
     open: {
       title: "取る技能を選ぶ",
-      body: "地図の節が" + esc(name) + "の技能です。"
+      body: "並んでいる節が" + esc(name) + "の技能です。"
         + "いま" + cost + "点で取れる「" + esc(unlockLabel) + "」が光っています。押してください。",
     },
     unlock: {
@@ -9120,6 +9270,28 @@ function handleAction(event) {
     const kind = element.dataset.kind;
     if (!["active", "reactive", "passive"].includes(kind)) return;
     state.skillTreeKind = kind;
+    saveState();
+    render();
+    return;
+  }
+
+  // 作者指摘 2026-09-17 — 技能ツリーの見方（一覧／地図）。**選んでいる節は持ち越す。**
+  // 一覧で見つけた節を地図で辿り直す、その逆、のどちらも一押しで済む。
+  if (action === "select-skill-view") {
+    const view = element.dataset.view;
+    if (!SKILL_TREE_VIEWS.includes(view)) return;
+    state.skillTreeView = view;
+    // 寄せ直しは「選び直した回」にしか走らないので、見方を変えた回も一度だけ許す
+    // （一覧で選んだ節が、地図では窓の外に居る）。
+    focusedSkillNode = null;
+    saveState();
+    render();
+    return;
+  }
+
+  // 「いま取れる」の絞り込み。**もう一度押すと全部へ戻る**（テーマの印と同じ作法）。
+  if (action === "toggle-skill-ready") {
+    state.skillTreeReadyOnly = !state.skillTreeReadyOnly;
     saveState();
     render();
     return;

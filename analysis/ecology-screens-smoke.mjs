@@ -111,6 +111,20 @@ const displayContracts = [
   ["盤の頭で取得済みを入切する", app, "? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)"],
   ["取得・段上げ・予約を一行へ並べる", styles, ".skill-sheet .node-action { display: flex;"],
   ["予約の規則は畳んだヘルプに置く", app, 'title: "取得予約",\n        value: "一人につき一つ"'],
+  // 作者指摘 2026-09-17 — **地図は辿るため、一覧は見渡すため。**同じ森を二つの見方で出し、
+  // 既定は一覧（縦一列・横スクロール無し）にする。
+  ["技能ツリーの見方が二つある", app, 'const SKILL_TREE_VIEWS = ["list", "map"];'],
+  ["既定の見方は一覧", app, 'return SKILL_TREE_VIEWS.includes(state.skillTreeView) ? state.skillTreeView : "list";'],
+  ["一覧の組み立て", app, "function renderSkillList(group, characterId)"],
+  ["地図の組み立て", app, "function renderSkillMap(group, characterId, selectedRow)"],
+  ["見方の切り替え操作", app, '"select-skill-view"'],
+  ["一覧の深さはインデントで出す", styles, ".tree-cell.list-row { margin-left: calc(var(--indent, 0) * 11px); }"],
+  // いま技能点で動かせる節は、タブの数と絞り込みが同じ一箇所を読む。
+  ["いま動かせる節の判定", app, "function skillNodeActionableNow(node, characterId, nodeState = skillNodeState(node, characterId))"],
+  ["いま取れるの絞り込み操作", app, '"toggle-skill-ready"'],
+  ["種別タブのいま取れる数", app, '<em class=\\"tab-ready\\"'],
+  // 作者指摘 2026-09-17（二度目）— 技能点と予約先は、貼りつく帯ではなく操作の行が出す。
+  ["技能点と予約先はツリーの操作の行が出す", app, '+ readyChip + skillBuildSummary(characterId) + "</div>";'],
   ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
   ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
   // 反応（issue #237）。**操作と結果を結ぶ層は、申告・見張り・時間の三つで立っている。**
@@ -754,10 +768,15 @@ for (const field of [
   ]) {
     if (!app.includes(expected)) problems.push(label + "経路が見つからない");
   }
-  // issue #236 — 技能ツリーの要約帯は、画面の上端ではなく**キャンプの固定帯の下**へ貼る。
-  // `top: 8px` に戻すと、固定帯の上に乗って盤面を隠す。
+  // issue #236 — キャンプの固定帯の下へ貼るものは、`top: 8px`（＝画面の上端）ではなく
+  // 実測した固定帯の高さを見る。戻すと、固定帯の上に乗って盤面を隠す。
+  // 作者指摘 2026-09-17（二度目）— そこへ貼るのは**手引きの札だけ**になった
+  // （技能点の帯は貼るのをやめ、ツリーの操作の行へ入れた。DESIGN 8.5.4）。
   if (!styles.includes("top: calc(var(--camp-top-h, 215px) + 6px);")) {
-    problems.push("技能要約帯が固定帯の高さを見て貼りついていない");
+    problems.push("固定帯の下へ貼るものが、固定帯の高さを見ていない");
+  }
+  if (styles.includes(".skill-build-summary {\n  position: sticky;")) {
+    problems.push("技能点の帯が三枚目の貼りつく帯へ戻っている");
   }
   if (!app.includes("function publishCampTopHeight()") || !app.includes("--camp-top-h")) {
     problems.push("固定帯の高さを CSS へ渡す経路が無い");

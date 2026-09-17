@@ -1880,34 +1880,20 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .tree-legend { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: 10px; }
 .tree-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .tree-legend .kind { font-size: 8px; }
-/* issue #236 — 帯は**キャンプの固定帯の真下**に貼る。`top: 8px` は画面の上端に
-   貼りつく指定で、固定帯（.camp-top、200px超）の上に乗って盤面を隠していた
-   （作者試遊 2026-09-11）。高さは回によって変わるので、app.js が実測して
-   --camp-top-h へ入れる。z-index も固定帯（3）より下にする。 */
+/* 作者指摘 2026-09-17（二度目）— **貼りつく帯を一枚減らす。**
+   この帯は固定帯（.camp-top、実測 284px）の下へもう一枚貼りついて、iPhone の実質
+   660px から 46px を常に取っていた（issue #236 のころは、画面の上端に貼って盤面を
+   隠していたのを直した帯である）。顔と名前は上端の盤面（金の枠）と人物の札が既に
+   言っているので落とし、残る技能点と予約先はツリーの操作の行（.tree-controls）へ
+   同居させる。**貼るのをやめたので、`--camp-top-h` を見る必要も無い。** */
 .skill-build-summary {
-  position: sticky;
-  /* 作者要望 2026-09-14 — 手取りの札が出ている回は、その下へ貼る（app.js が
-     `--tutorial-note-h` に札の高さを入れる。札が無い回は 0）。 */
-  top: calc(var(--camp-top-h, 215px) + var(--tutorial-note-h, 0px) + 6px);
-  z-index: 2;
   display: flex;
-  align-items: center;
+  flex: 0 1 auto;
+  align-items: baseline;
   gap: 8px;
-  margin: 13px 0 15px;
-  padding: 7px 10px;
-  border: 1px solid #647152;
-  border-radius: 10px;
-  background: rgba(23, 33, 36, .97);
-  box-shadow: 0 5px 14px rgba(0, 0, 0, .2);
-}
-.skill-build-summary .summary-name {
-  flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  color: var(--ink);
-  font-size: 12px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  margin: 0;
+  padding: 0;
 }
 .summary-points { display: flex; flex: none; align-items: baseline; gap: 5px; }
 .summary-points small { color: var(--muted); font-size: 9px; }
@@ -1917,17 +1903,24 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
    組んだ森を、実座標の格子に置く。**列（x）は前提からの深さそのもの、行（y）は
    組み方から出た順。前提と派生は、列の間に引いた実線で結ぶ（インデントの目分量に
    頼らない）。列は固定幅にして、深いツリーほど横スクロールで場所を取る。 */
-.tree-tabs { display: flex; gap: 6px; margin: 12px 0 8px; }
+/* 作者指摘 2026-09-17（二度目）—「ちょっと狭いなあ。固定窓が多すぎるからですかね？」
+   種別の札は**一行**にする（名前と数を縦に積むと、それだけで 57px 取っていた）。 */
+.tree-tabs { display: flex; gap: 6px; margin: 10px 0 6px; }
 .tree-tab {
+  display: flex;
   flex: 1;
-  padding: 7px 6px;
+  min-height: 32px;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #172124;
   color: var(--muted);
   text-align: center;
 }
-.tree-tab b { display: block; font-size: 12px; }
+.tree-tab b { font-size: 12px; }
 .tree-tab small { font-size: 9px; }
 .tree-tab.active { border-color: var(--gold); background: var(--gold-dark); color: var(--ink); }
 .tree-tab.active b { color: var(--gold); }
@@ -2010,6 +2003,58 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-node.prerequisite .node-status { color: #82938b; }
 .skill-node.equipped .node-status { color: var(--gold); font-weight: 800; }
 .skill-node.equipped.disabled .node-status { color: var(--muted); }
+/* 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。
+   見方の切り替え（一覧／地図）と「いま取れる」の絞り込みは、同じ一行に置く。
+   どちらも**何を見せるか**の操作で、節そのものは触らない。 */
+.tree-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 6px; }
+.view-switch { display: flex; flex: none; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: #172124; }
+.view-tab { min-height: 28px; padding: 4px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 11px; }
+.view-tab.on { background: var(--gold-dark); color: var(--gold); font-weight: 800; }
+/* 「いま取れる」。**取れるものがある回だけ出る**ので、数はいつも 1 以上である。 */
+.ready-chip {
+  display: flex;
+  flex: 0 1 auto;
+  min-height: 28px;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid #8a7d50;
+  border-radius: 999px;
+  background: rgba(138, 125, 80, .12);
+  color: #c9b66e;
+  font-size: 10px;
+}
+.ready-chip b { font-size: 11px; font-weight: 800; }
+.ready-chip.on { border-color: var(--gold); background: var(--gold-dark); color: var(--gold); }
+/* 種別タブの右肩に「いま取れる数」。三つの森を押して回らなくても、点の使い道が
+   どちらに在るかが分かる。 */
+.tree-tab { position: relative; }
+.tab-ready {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #1b201e;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  text-align: center;
+}
+/* 一覧。**縦だけで読む。**横スクロールは持たず、深さはインデントで見せる。 */
+.skill-tree-list { display: grid; gap: 4px; padding: 2px 0 8px; }
+.tree-cell.list-row { margin-left: calc(var(--indent, 0) * 11px); }
+/* 深さの段差が「どこから伸びた節か」を言う。線は地図の役目なので引かない。 */
+.tree-cell.list-row > .skill-node { border-left-width: 1px; }
+.list-row .skill-node-button { min-height: 44px; align-items: center; gap: 8px; padding: 6px 9px; }
+.list-row .node-copy b { font-size: 12px; }
+.list-row .node-copy small { font-size: 10px; }
+/* いま取れる節は、一覧の中で先に目に入る（金の縁）。 */
+.tree-cell.list-row.ready > .skill-node { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+.tree-empty { margin: 10px 2px; font-size: 11px; line-height: 1.5; }
+
 /* 作者指摘 2026-09-13 — **操作盤は画面の下端へ貼る。**選んだ節の説明と釦は、地図の
    中（列幅 176px）ではなくここに出る。貼りついているので、地図を横へどれだけ動かしても
    操作はいつも同じ場所にあり、節を押しても地図は組み変わらない。
@@ -5007,7 +5052,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .node-cost-chain { display: inline-flex; align-items: center; gap: 3px; align-self: start; }
 .cost-plus { color: var(--muted); font-size: 10px; line-height: 1; }
 /* テーマ。色と印だけで絞り込む。 */
-.branch-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.branch-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px; }
 .branch-chip {
   display: inline-flex;
   align-items: center;
