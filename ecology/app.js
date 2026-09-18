@@ -81,7 +81,9 @@ import {
   STATUS_GLOSSARY,
   SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
+  UNCONDITIONAL_FLAT_LEVELS,
   hasIntrinsicCondition,
+  skillLevelCostBetweenFor,
   skillLevelCostFor,
   skillLevelPriceRises,
   // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
@@ -4364,12 +4366,22 @@ function renderSkillDetail(node, characterId, nodeState) {
   }
   actions.push(levelUpAction(node, characterId, nodeState));
   // 現在のSPで目標まで完了できるなら「取得」、足りなければ「予約」。
+  //
+  // 作者指摘 2026-09-18 — **Lv1 と Lv10 しか目的地に選べなかった。**無条件の
+  // アクティブは Lv6 から1段2点になったので（issue #286）、「Lv5 で止める」が
+  // 実際の判断になる。値段の変わり目を三つ目の目的地として出し、**そこまでの
+  // 段の合計を釦に書く**（4点で止めるか、14点まで通すか、を並べて見せる）。
   const reservationButton = (targetLevel) => {
     const here = nodeState.reserved && nodeState.reservationTargetLevel === targetLevel;
     const verb = canFulfillSkillReservation(state.run, characterId, node.skillId, targetLevel)
       ? "取得"
       : "予約";
-    return button("Lv" + targetLevel + "まで" + verb + (here ? " ◎" : ""),
+    // 解禁済みの節では、ここから目標までの段の合計が正確に出せる。未取得の節は
+    // 解禁と前提の点が別に要るので、値段を書かない（嘘の合計を出さない）。
+    const price = nodeState.unlocked && targetLevel > level
+      ? "（" + skillLevelCostBetweenFor(node.skillId, level, targetLevel) + "点）"
+      : "";
+    return button("Lv" + targetLevel + "まで" + verb + price + (here ? " ◎" : ""),
       "reserve-skill", here, "tiny-button reservation-button",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId
         + "\" data-target-level=\"" + targetLevel + "\"");
@@ -4377,6 +4389,12 @@ function renderSkillDetail(node, characterId, nodeState) {
   // **いま押せる「解禁」と同じことを言う「Lv1まで取得」は出さない。**
   // 押せないとき（点が足りない・前提がまだ）だけ、Lv1 を予約として置く。
   if (!nodeState.unlocked && !nodeState.canUnlock) actions.push(reservationButton(MIN_SKILL_LEVEL));
+  // 値段の変わり目。**そこで止めるのが妥当な目的地**なので、間の Lv を全部並べる
+  // 代わりにこれ一つを出す（釦が増えるほど、選ぶ手が重くなる）。
+  if (skillLevelPriceRises(node.skillId)
+    && cap > UNCONDITIONAL_FLAT_LEVELS && level < UNCONDITIONAL_FLAT_LEVELS) {
+    actions.push(reservationButton(UNCONDITIONAL_FLAT_LEVELS));
+  }
   if (cap > MIN_SKILL_LEVEL && level < cap) actions.push(reservationButton(cap));
   if (nodeState.reserved) {
     actions.push(button("予約取消", "cancel-skill-reservation", false, "tiny-button reservation-button",
