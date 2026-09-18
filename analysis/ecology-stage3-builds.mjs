@@ -112,7 +112,9 @@ const BUILDS = Object.freeze([
     //（`ecology/content/expedition.mjs` の頭）。狩人・反響体（本物の返し）・潜み手が
     // 並ぶ Stage 固有の12戦になったので、到達は第9戦から第6戦へ下がった。
     // **関門（第6戦）には届いている**ので、構成としては生きている。
-    through: Object.freeze({ reaches: 6, ends: "wipe" }),
+    // R20 — 主軸を固定し、条件技だけを割り込ませるようにした結果、第7戦は全滅の前に
+    // 時間切れへ変わった。第6戦まで届く関門と「火力は足りない」という読みは同じ。
+    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
     question: "硬い相手を抜くか、相手の出力そのものを細くするか",
     engine: Object.freeze({
       source: "当たった一撃（damage_taken を出す側）",
@@ -266,18 +268,21 @@ const BUILDS = Object.freeze([
       // 回復量を固定し隊全体で上限を共有した後も、守り構成の看護を一人へ寄せないため、
       // ゲンゾウにも baseline の手当てを持たせる。
       // **前提 Lv の道**は最初の二手（傷へ盾を Lv3 → 長く守る）に残してある。
+      // R20 — **無条件を輪番で混ぜない。**ヒバナは盾の列を主軸に決め、以前ここで
+      // 交互に出していた構え突きの点を、実際に鳴る盾の列と受け身へ移した。ツグミは
+      // 条件防壁の後を狙い撃ちで埋め、ゲンゾウは守勢付与が終わった拍だけ狙い撃ちへ戻る。
       Object.freeze({ before: 2, characterId: "guardian", skillId: "brace_for_impact" }),
       Object.freeze({ before: 3, characterId: "guardian", skillId: "bulwark_of_will" }),
       Object.freeze({ before: 4, characterId: "guardian", skillId: "shield_wall" }),
-      Object.freeze({ before: 5, characterId: "guardian", skillId: "bracing_thrust" }),
       Object.freeze({ before: 5, characterId: "guardian", level: "shield_wall" }),
-      Object.freeze({ before: 6, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 5, characterId: "guardian", level: "shield_wall" }),
+      Object.freeze({ before: 6, characterId: "guardian", level: "shield_wall" }),
       Object.freeze({ before: 7, characterId: "guardian", level: "shield_wall" }),
-      Object.freeze({ before: 8, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 8, characterId: "guardian", level: "shield_wall" }),
       Object.freeze({ before: 9, characterId: "guardian", level: "shield_wall" }),
-      Object.freeze({ before: 9, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 9, characterId: "guardian", level: "shield_wall" }),
       Object.freeze({ before: 10, characterId: "guardian", level: "shield_wall" }),
-      Object.freeze({ before: 11, characterId: "guardian", level: "bracing_thrust" }),
+      Object.freeze({ before: 11, characterId: "guardian", level: "brace_after_hit" }),
       Object.freeze({ before: 12, characterId: "guardian", level: "shield_wall" }),
       // `shield_handoff` はナギの初期技能ではなくなったため、Stage 2 解禁後に明示的に取得する。
       Object.freeze({ before: 2, characterId: "lancer", skillId: "shield_handoff" }),
@@ -296,15 +301,15 @@ const BUILDS = Object.freeze([
       Object.freeze({ before: 2, characterId: "mender", level: "shield_the_wounded" }),
       Object.freeze({ before: 3, characterId: "mender", level: "shield_the_wounded" }),
       Object.freeze({ before: 4, characterId: "mender", skillId: "sustaining_ward" }),
-      Object.freeze({ before: 5, characterId: "mender", skillId: "field_dressing" }),
+      Object.freeze({ before: 5, characterId: "mender", level: "aimed_shot" }),
       Object.freeze({ before: 5, characterId: "mender", level: "sustaining_ward" }),
-      Object.freeze({ before: 6, characterId: "mender", level: "field_dressing" }),
-      Object.freeze({ before: 7, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 6, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 7, characterId: "mender", level: "sustaining_ward" }),
       Object.freeze({ before: 8, characterId: "mender", level: "sustaining_ward" }),
-      Object.freeze({ before: 9, characterId: "mender", level: "field_dressing" }),
+      Object.freeze({ before: 9, characterId: "mender", level: "aimed_shot" }),
       Object.freeze({ before: 9, characterId: "mender", level: "aimed_shot" }),
       Object.freeze({ before: 10, characterId: "mender", level: "sustaining_ward" }),
-      Object.freeze({ before: 11, characterId: "mender", level: "aimed_shot" }),
+      Object.freeze({ before: 11, characterId: "mender", level: "sustaining_ward" }),
       Object.freeze({ before: 12, characterId: "mender", level: "triage" }),
       Object.freeze({ before: 2, characterId: "tactician", skillId: "foundation_guard" }),
       Object.freeze({ before: 3, characterId: "tactician", skillId: "opening_guard" }),
@@ -335,10 +340,10 @@ const BUILDS = Object.freeze([
     ]),
     tactics: Object.freeze({
       warden: ["bracing_thrust", "steady_cut"],
-      mender: ["sustaining_ward", "field_dressing", "shield_the_wounded", "aimed_shot"],
+      mender: ["sustaining_ward", "aimed_shot"],
       lancer: ["heavy_swing"],
-      guardian: ["shield_wall", "bracing_thrust", "brace_for_impact"],
-      tactician: ["ward_ally", "aimed_shot", "spread_the_guard", "relay_order"],
+      guardian: ["shield_wall", "brace_for_impact"],
+      tactician: ["ward_ally", "aimed_shot"],
     }),
     reactives: Object.freeze({
       warden: ["mend"],
@@ -352,8 +357,9 @@ const BUILDS = Object.freeze([
     id: "tempo",
     displayName: "順番を作る",
     // R26 — 溜め突きとAP移譲の突出を落とした結果、第7戦の時間切れになった。
-    // それでも第6戦の関門までは勝ち切り、準備を急かして完成させる固有の事件列は残る。
-    through: Object.freeze({ reaches: 6, ends: "round_limit" }),
+    // R20 — 主軸と条件割り込みに分けたことで第7戦も越え、第8戦で全滅する。準備を
+    // 急かして完成させる固有の事件列と、第6戦の関門を越える条件はどちらも残る。
+    through: Object.freeze({ reaches: 7, ends: "wipe" }),
     question: "遅い一撃に、どうやって手番を通すか",
     engine: Object.freeze({
       source: "行動権と準備（resource_gained / preparation_*）",
@@ -801,33 +807,36 @@ function silentPurchases(build, rows) {
   // その手を「買ったのに鳴らない」と数えると、未到達区間を死に技と誤認する。
   const lastEncounter = rows.at(-1)?.index;
   // **通り道は目的地ではない。**前提として通っただけの節は、その先の節が鳴って
-  // いれば「使われた」と数える。そうしないと、前提を鳴らすためだけに装着を増やす
-  // ことになり、順送りの `chooseTactic` では主砲の出番がそのぶん減る——
-  // **検査が、弱い構成を作る方向へ圧力をかけてしまう。**
+  // いれば「使われた」と数える。R20 以降は無条件の先頭だけが主軸なので、前提 Lv を
+  // 満たすために上げた別の無条件技能まで装着すると、今度は主軸か予備を曖昧にする。
+  // **前提が要求する Lv まで**は通り道として免除し、それを越えて伸ばしたら目的地と
+  // みなして実際に鳴ることを求める。
   // **人物ごとに数える。**同じ節でも、別の人物にとっては通り道でしかない。
   const key = (characterId, skillId) => `${characterId}/${skillId}`;
   const reachedPlan = build.plan.filter((step) => (
     lastEncounter === undefined || step.before <= lastEncounter
   ));
-  const purchased = new Set(reachedPlan.filter((step) => step.skillId)
-    .map((step) => key(step.characterId, step.skillId)));
-  const leveled = new Set(reachedPlan.filter((step) => step.level)
-    .map((step) => key(step.characterId, step.level)));
-  const steppingStones = new Set();
+  const steppingStoneLevels = new Map();
+  const levelSteps = new Map();
+  for (const step of reachedPlan) {
+    if (!step.level) continue;
+    const at = key(step.characterId, step.level);
+    levelSteps.set(at, (levelSteps.get(at) ?? 0) + 1);
+  }
   for (const step of reachedPlan) {
     if (!step.skillId) continue;
     for (const required of nodeBySkill[step.skillId]?.requires ?? []) {
-      if (purchased.has(key(step.characterId, required.skillId))) {
-        steppingStones.add(key(step.characterId, required.skillId));
-      }
+      const at = key(step.characterId, required.skillId);
+      steppingStoneLevels.set(at, Math.max(steppingStoneLevels.get(at) ?? 0, required.minLv));
     }
   }
   for (const step of build.plan) {
     if (lastEncounter !== undefined && step.before > lastEncounter) continue;
     const skillId = step.skillId ?? step.level;
-    // レベルを上げた節は「使うつもり」なので、通り道の免除を受けない。
-    if (step.skillId && steppingStones.has(key(step.characterId, skillId))
-      && !leveled.has(key(step.characterId, skillId))) continue;
+    const at = key(step.characterId, skillId);
+    const pathLevel = steppingStoneLevels.get(at) ?? 0;
+    const raisedTo = MIN_SKILL_LEVEL + (levelSteps.get(at) ?? 0);
+    if (pathLevel >= raisedTo) continue;
     const definition = PLAYABLE_CONTENT.activeSkills?.[skillId]
       ?? PLAYABLE_CONTENT.reactiveSkills?.[skillId]
       ?? PLAYABLE_CONTENT.passiveSkills?.[skillId];

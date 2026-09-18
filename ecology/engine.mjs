@@ -40,6 +40,7 @@ import {
 import { validateBattleInput as validateInput, validateContentBundle } from "./validate.mjs";
 import { EcologyValidationError, formatValidationErrors } from "./errors.mjs";
 import { withStaticStatBonuses } from "./static-bonuses.mjs";
+import { tacticHasCondition } from "./tactics.mjs";
 
 export { validateContentBundle };
 
@@ -137,6 +138,7 @@ function buildState(input, content, options) {
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
+      tacticMode: ally.tacticMode ?? "round_robin",
       tactics: ally.tactics.map((tactic) => ({ ...tactic })),
       reactiveSkillIds: [...ally.reactiveSkillIds],
       passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
@@ -165,6 +167,7 @@ function buildState(input, content, options) {
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: enemy.position,
+      tacticMode: "round_robin",
       tactics: definition.tactics.map((tactic) => ({ ...tactic })),
       reactiveSkillIds: [...definition.reactiveSkillIds],
       passiveSkillIds: [...(definition.passiveSkillIds ?? [])],
@@ -841,7 +844,7 @@ function activateActor(state, actor) {
   // chooseTactic is also used by the phase preflight. Advance only after the
   // real activation has accepted a tactic, so that preflight cannot consume
   // the next slot before the action is performed.
-  if (choice && choice.tacticIndex !== undefined) {
+  if (choice?.roundRobin === true && choice.tacticIndex !== undefined) {
     advanceTacticCursor(state, actor, choice.tacticIndex);
   }
   if (!choice) {
@@ -948,9 +951,8 @@ function coreActionChoice(state, actor, key) {
   return { skill, targets, costs, tactic: { activeSkillId: skill.id, useWhen: [] } };
 }
 
-// §11.4-1..4 — tactics are read round-robin from the actor's cursor.
-// A tactic whose predicates, useWhen, targets or cost do not hold is skipped;
-// the next tactic in the circle gets a chance.
+// §11.4-1..4 — `round_robin` inputs are read from the actor's cursor. R20's
+// `main_action` mode shares the same usability check below but does not advance it.
 function tacticCursorFor(state, actor) {
   const tactics = actor.tactics ?? [];
   if (tactics.length === 0) return 0;
@@ -964,34 +966,64 @@ function advanceTacticCursor(state, actor, selectedIndex) {
   state.tacticCursorByActor.set(actor.instanceId, (selectedIndex + 1) % tactics.length);
 }
 
-function chooseTactic(state, actor) {
+function tacticChoice(state, actor, tacticIndex) {
   const rt = makeRuntime(state);
+  const tactics = actor.tactics ?? [];
+  const tactic = tactics[tacticIndex];
+  const skill = state.content.activeSkills[tactic.activeSkillId];
+  // §5.5 — one pending preparation per actor.
+  if (actor.preparation && skill.preparation) return null;
+  const ctx = {
+    owner: actor,
+    event: null,
+    pending: null,
+    pendingAction: null,
+    candidate: null,
+    sourceDefinitionId: actor.definitionId,
+    ruleId: undefined,
+    skillId: skill.id,
+    equipmentInstanceId: undefined,
+  };
+  if (!evaluatePredicates(state, ctx, skill.intrinsicPredicates)) return null;
+  if (!evaluatePredicates(state, ctx, tactic.useWhen)) return null;
+  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
+  if (targets.length === 0) return null;
+  const costs = [{ type: "spend_action_points", amount: skill.apCost }];
+  if (!canPayCosts(rt, ctx, costs)) return null;
+  return { tactic, skill, targets, costs, tacticIndex };
+}
+
+function chooseMainActionTactic(state, actor) {
+  const tactics = actor.tactics ?? [];
+  // 条件行動は装着順が優先順位。主軸が上に置かれていても、条件が成立した拍だけ
+  // 条件行動が先に出る。これで「主軸を末尾へ置く」というUI上の宿題を作らない。
+  for (let tacticIndex = 0; tacticIndex < tactics.length; tacticIndex += 1) {
+    const tactic = tactics[tacticIndex];
+    const skill = state.content.activeSkills[tactic.activeSkillId];
+    if (!tacticHasCondition(skill, tactic)) continue;
+    const choice = tacticChoice(state, actor, tacticIndex);
+    if (choice) return choice;
+  }
+  // 無条件の先頭が主軸。届かない・払えない拍だけ、次の無条件技能を予備として試す。
+  // 複数をオンにしても輪番で主軸の出番を奪わない。
+  for (let tacticIndex = 0; tacticIndex < tactics.length; tacticIndex += 1) {
+    const tactic = tactics[tacticIndex];
+    const skill = state.content.activeSkills[tactic.activeSkillId];
+    if (tacticHasCondition(skill, tactic)) continue;
+    const choice = tacticChoice(state, actor, tacticIndex);
+    if (choice) return choice;
+  }
+  return null;
+}
+
+function chooseTactic(state, actor) {
+  if (actor.tacticMode === "main_action") return chooseMainActionTactic(state, actor);
   const tactics = actor.tactics ?? [];
   const start = tacticCursorFor(state, actor);
   for (let offset = 0; offset < tactics.length; offset += 1) {
     const tacticIndex = (start + offset) % tactics.length;
-    const tactic = tactics[tacticIndex];
-    const skill = state.content.activeSkills[tactic.activeSkillId];
-    // §5.5 — one pending preparation per actor.
-    if (actor.preparation && skill.preparation) continue;
-    const ctx = {
-      owner: actor,
-      event: null,
-      pending: null,
-      pendingAction: null,
-      candidate: null,
-      sourceDefinitionId: actor.definitionId,
-      ruleId: undefined,
-      skillId: skill.id,
-      equipmentInstanceId: undefined,
-    };
-    if (!evaluatePredicates(state, ctx, skill.intrinsicPredicates)) continue;
-    if (!evaluatePredicates(state, ctx, tactic.useWhen)) continue;
-    const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
-    if (targets.length === 0) continue;
-    const costs = [{ type: "spend_action_points", amount: skill.apCost }];
-    if (!canPayCosts(rt, ctx, costs)) continue;
-    return { tactic, skill, targets, costs, tacticIndex };
+    const choice = tacticChoice(state, actor, tacticIndex);
+    if (choice) return { ...choice, roundRobin: true };
   }
   return null;
 }

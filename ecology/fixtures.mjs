@@ -23,6 +23,7 @@ function ally(instanceId, characterId, position, options = {}) {
       durability,
     })),
   };
+  if (options.tacticMode !== undefined) entry.tacticMode = options.tacticMode;
   if (options.hp !== undefined) entry.hp = options.hp;
   return entry;
 }

@@ -223,12 +223,15 @@ for (let i = 1; i < lateral.length; i += 1) {
   );
 }
 // **一段あたりの上がり幅**も見る。刻みが粗いと、投資の効果が「足りない」から
-// 「余る」へ一足飛びになる。目安は一段 5〜30%（実測の soft data）。
+// 「余る」へ一足飛びになる。目安は一段 5〜35%（実測の soft data）。
+// R20 で基準編成も主軸制になり、無条件の防壁と攻撃を交互には使わなくなった結果、
+// Stage 6 → 7 の実測は 29% から 32% へ動いた。敵の数値をこの変更へ混ぜず、単調性と
+// 投資後の縮みが残ることを確認したうえで、soft data の上端だけを広げた。
 for (let i = 1; i < lateral.length; i += 1) {
   const growth = Math.round((lateral[i].index * 100) / lateral[i - 1].index) - 100;
   assert.ok(
-    growth >= 5 && growth <= 30,
-    `${lateral[i].stage.id} の難度指数の伸びが ${growth}%（目安 5〜30%）`,
+    growth >= 5 && growth <= 35,
+    `${lateral[i].stage.id} の難度指数の伸びが ${growth}%（目安 5〜35%）`,
   );
 }
 

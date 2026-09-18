@@ -724,6 +724,61 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   checks += 1;
 }
 
+{
+  // R20 — player loadouts do not divide turns between unconditional actions.
+  // The first usable unconditional action is the main action; a conditional
+  // action preempts it only on a beat where its condition actually holds.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.enemyActors.still_husk.maxHp = 40;
+  const battle = structuredClone(INERT_BATTLE);
+  battle.maxRounds = 4;
+  battle.objective = { type: "survive_rounds", rounds: 4 };
+  battle.allies[0].tacticMode = "main_action";
+  battle.allies[0].tactics = [
+    { activeSkillId: "bulwark", useWhen: [] },
+    {
+      activeSkillId: "strike",
+      useWhen: [{ type: "round_number", op: "eq", value: 3 }],
+    },
+    { activeSkillId: "strike", useWhen: [] },
+  ];
+  const result = simulateBattle(battle, bundle);
+  const skills = of(result, "action_declared")
+    .filter((event) => event.sourceActorId === "a_warden")
+    .map((event) => event.skillId);
+  assert.deepEqual(
+    skills,
+    ["bulwark", "bulwark", "strike", "bulwark"],
+    "a conditional action preempts the main action without rotating to the reserve",
+  );
+  checks += 1;
+}
+
+{
+  // A reserve is not dead data: it is tried when the main action cannot pay.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.costly_strike = {
+    ...structuredClone(bundle.activeSkills.strike),
+    id: "costly_strike",
+    displayName: "Costly strike (fixture)",
+    apCost: 2,
+  };
+  const battle = structuredClone(INERT_BATTLE);
+  battle.maxRounds = 2;
+  battle.objective = { type: "survive_rounds", rounds: 2 };
+  battle.allies[0].tacticMode = "main_action";
+  battle.allies[0].tactics = [
+    { activeSkillId: "costly_strike", useWhen: [] },
+    { activeSkillId: "strike", useWhen: [] },
+  ];
+  const result = simulateBattle(battle, bundle);
+  const skills = of(result, "action_declared")
+    .filter((event) => event.sourceActorId === "a_warden")
+    .map((event) => event.skillId);
+  assert.deepEqual(skills, ["strike", "strike"], "the reserve covers a main action that cannot pay");
+  checks += 1;
+}
+
 // ---- §11.6 round boundary ordering (PREFLIGHT §4) -----------------------------
 
 {

@@ -16,6 +16,7 @@ import {
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
+import { tacticHasCondition } from "./tactics.mjs";
 // R8 §11 — exact preview は RunState の manifest / 難易度から encounter を
 // 組む progression.mjs の composeEncounter をそのまま使う。**preview 用に
 // 別の敵編成ロジックを持たない**（別経路で組むと、いつかどちらかだけ変わる）。
@@ -367,7 +368,14 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
   if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
-  next[listKey][characterId] = [skillId, ...list];
+  // R20 — 新しい無条件行動を取っただけで、いまの主軸を黙って差し替えない。
+  // 無条件は末尾の予備へ、条件行動は優先列の先頭へ入れる。どちらもオンで装着され、
+  // 主軸にしたい無条件行動は従来どおり並べ替えで先頭へ出せる。
+  const activeDefinition = kind === "active" ? PLAYABLE_CONTENT.activeSkills[skillId] : null;
+  const appendAsReserve = kind === "active" && !tacticHasCondition(activeDefinition, {
+    useWhen: tacticUseWhenFor(skillId),
+  });
+  next[listKey][characterId] = appendAsReserve ? [...list, skillId] : [skillId, ...list];
   return { ok: true, loadout: next };
 }
 
@@ -394,9 +402,9 @@ export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
     if (!listKey) continue;
     const list = next[listKey][characterId] ?? [];
     if (list.includes(skillId)) continue;
-    // **末尾へ足し、既定はオフ。**先頭へ足すと既存の巡回順が動き、オンで足すと
-    // これまで出ていなかった技能が急に回り始める。どちらも「表し方を変えるだけ」
-    // という約束を破る。
+    // **末尾へ足し、既定はオフ。**先頭へ足すと既存の優先順位が動き、オンで足すと
+    // これまで出ていなかった技能が条件割り込みや主軸の候補になる。どちらも
+    // 「表し方を変えるだけ」という約束を破る。
     next[listKey][characterId] = [...list, skillId];
     disabled.add(skillId);
     added = true;
@@ -659,6 +667,9 @@ function allyInput(characterId, position, loadout, options = {}) {
     instanceId: "a_" + characterId,
     characterId,
     position,
+    // R20 — 味方の行動は「条件行動 → 主軸 → 通常攻撃」。敵と fixture は
+    // BattleInput にこの欄を持たず、従来のラウンドロビンを保つ。
+    tacticMode: "main_action",
     tactics: usableTactics(withUltimate(enabled(tactics), "active"), content),
     reactiveSkillIds: withUltimate(enabled(reactives), "reactive")
       .filter((id) => content.reactiveSkills[id]),

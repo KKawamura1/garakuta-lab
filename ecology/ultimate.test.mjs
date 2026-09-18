@@ -16,6 +16,7 @@ import assert from "node:assert/strict";
 import { PLAYABLE_CONTENT } from "./content/index.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { validateBattleInput } from "./validate.mjs";
+import { BATTLE_SCHEMA_VERSION } from "./schema.mjs";
 import {
   ULTIMATE_AMOUNT_MULTIPLIER,
   ULTIMATE_MIN_STAGE_SEQUENCE,
@@ -577,7 +578,7 @@ function armedRun(designations, options = {}) {
   const bundle = withUltimates(PLAYABLE_CONTENT, ["steady_cut"]);
   const maxHp = PLAYABLE_CONTENT.characters.warden.maxHp;
   const battleWith = (hp) => ({
-    schemaVersion: "ecology-battle-4",
+    schemaVersion: BATTLE_SCHEMA_VERSION,
     battleId: "ultimate_once_" + hp,
     maxRounds: 12,
     objective: { type: "eliminate_all_enemies" },

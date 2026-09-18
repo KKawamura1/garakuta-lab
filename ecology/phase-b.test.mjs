@@ -45,6 +45,7 @@ import {
 import {
   CHARACTER_OPTIONS,
   SKILL_TREE_NODES,
+  equipSkill,
   freshLoadout,
   // issue #168 — 加入時の無償閉包と、そこへ無償で付く Lv。
   initialSkillLevels,
@@ -142,6 +143,26 @@ equal(ENCOUNTERS_PER_RUN, 12, "ENCOUNTERS_PER_RUN も12");
 for (const index of [4, 8, 12]) {
   equal(expeditionEncounter(index).kind, "boss", index + "戦目はボス");
   check(Boolean(expeditionEncounter(index).bossLawId), index + "戦目のボスに公開法則がある");
+}
+
+// R20 — 新しく取った無条件行動は現在の主軸を奪わず予備へ入り、条件行動だけが
+// 優先列の先頭へ入る。どちらを主軸にするかは、取得ではなく並べ替えで決める。
+{
+  const loadout = freshLoadout(["warden"]);
+  loadout.tactics.warden = ["steady_cut"];
+  const reserve = equipSkill(loadout, "warden", "pierce_thrust", "active");
+  equal(reserve.ok, true, "無条件行動を追加できる");
+  assert.deepEqual(reserve.loadout.tactics.warden, ["steady_cut", "pierce_thrust"],
+    "新しい無条件行動は主軸の後ろへ入る");
+  checks += 1;
+  const conditional = equipSkill(reserve.loadout, "warden", "finishing_thrust", "active");
+  equal(conditional.ok, true, "条件行動を追加できる");
+  assert.deepEqual(
+    conditional.loadout.tactics.warden,
+    ["finishing_thrust", "steady_cut", "pierce_thrust"],
+    "新しい条件行動は優先列の先頭へ入る",
+  );
+  checks += 1;
 }
 for (const index of [1, 2, 3, 5, 6, 7, 9, 10, 11]) {
   check(["normal", "elite"].includes(expeditionEncounter(index).kind), index + "戦目は通常か精鋭");

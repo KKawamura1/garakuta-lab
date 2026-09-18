@@ -178,6 +178,7 @@ import {
 } from "./ultimates.mjs";
 import { MIN_SKILL_LEVEL, POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { maxHpWithStaticBonuses, staticStatBonuses } from "./static-bonuses.mjs";
+import { tacticHasCondition } from "./tactics.mjs";
 import {
   buildBeats,
   beatDurationMs,
@@ -3691,29 +3692,24 @@ function statusGlossaryHelp() {
     ]));
 }
 
-// その行動に固有条件・発動条件があるかを表示する（issue #176）。
-// 技能の順番は、現在位置からのラウンドロビン走査に使う。
-function activeFiringLabel(skillId) {
+// R20 — engine と同じ分類。条件行動は成立した拍だけ主軸へ割り込み、無条件の
+// 先頭が主軸になる。画面だけ別の基準で「条件」と書かない。
+function activeTacticIsConditional(skillId) {
   const skill = PLAYABLE_CONTENT.activeSkills?.[skillId];
-  if (!skill) return null;
-  if ((skill.intrinsicPredicates ?? []).length) return "条件つき";
-  if (tacticUseWhenFor(skillId).length) return "条件つき";
-  const filters = skill.targetQuery?.filters ?? [];
-  if (filters.some((filter) => filter.type !== "alive")) return "条件つき";
-  return "無条件";
+  return tacticHasCondition(skill, { useWhen: tacticUseWhenFor(skillId) });
 }
 
 // ============================================================ 記号の語彙（issue #177）
 //
 // **通常のゲームシステムは、文章ではなく形と色で見せる。**文字を読ませてよいのは
-// 物語と技能の説明文だけで、「いくつ払うか」「何回に一度出るか」「誰の手で伸びるか」は
+// 物語と技能の説明文だけで、「いくつ払うか」「どの役割か」「誰の手で伸びるか」は
 // 一目で分かる形にする（作者方針、2026-09-09）。
 //
 // 語彙は四つしかない。
 //
 //   ● ピップ  … 数えるもの（AP・RP・HPの代償・レベル）
 //   ▬ バー    … 量。**同じ画面の中で長さを比べられる**（誰の手で何が出るか）
-//   ◔ 割      … 順番。装着した本数のうち、この一本がどれだけ出番を持つか
+//   短い札    … 行動の役割（条件・主軸・予備）
 //   色        … テーマ（攻撃・守り・支援・指揮・基礎）と、能力値（腕力・技術・受け）
 //
 // 意味の対応表は畳んだヘルプに一度だけ置く（`symbolLegendHelp`）。**節の上には出さない。**
@@ -3957,8 +3953,11 @@ function skillSlotRows(characterId, kind) {
   const budget = kind === "active" ? (definition.baseActionPoints ?? 0)
     : kind === "reactive" ? (definition.baseReactionPoints ?? 0) : 0;
   const live = list.filter((skillId) => !skillDisabled(characterId, skillId));
-  // 順送りなので、有効な本数のうち一本ぶんが出番になる（issue #187 / #230）。
-  const turns = live.length;
+  // R20 — 無条件の先頭だけが主軸。残りは主軸が届かない／払えない拍の予備で、
+  // 主軸の出番を輪番で奪わない。条件行動は別の優先列として先に判定する。
+  const mainSkillId = kind === "active"
+    ? live.find((skillId) => !activeTacticIsConditional(skillId)) ?? null
+    : null;
   let spent = 0;
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
@@ -3968,13 +3967,12 @@ function skillSlotRows(characterId, kind) {
       ? "<span class=\"reorder\">" + button("↑", "move-skill", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-skill", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
-    // **出番。**順送りの何本目か、を目盛りで出す。文字で「1/3」と書かない。
-    const liveIndex = disabled ? -1 : live.indexOf(skillId);
-    const share = kind === "active" && turns > 1 && liveIndex >= 0
-      ? "<span class=\"turn-share\" role=\"img\" aria-label=\"装着 " + turns + "本のうちの1本（およそ"
-        + turns + "ラウンドに1回）\" title=\"装着 " + turns + "本のうちの1本（およそ" + turns + "ラウンドに1回）\">"
-        + Array.from({ length: turns }, (unused, slot) =>
-          "<i class=\"" + (slot === liveIndex ? "on" : "") + "\"></i>").join("") + "</span>"
+    const role = kind !== "active" || disabled ? null
+      : activeTacticIsConditional(skillId) ? { cls: "conditional", label: "条件" }
+        : skillId === mainSkillId ? { cls: "main", label: "主軸" }
+          : { cls: "reserve", label: "予備" };
+    const roleTag = role
+      ? "<span class=\"action-role " + role.cls + "\">" + role.label + "</span>"
       : "";
     // **反応点の収支。**上の行から順に払うので、点が尽きた行は同じラウンドで出せない。
     let overflow = "";
@@ -3986,7 +3984,7 @@ function skillSlotRows(characterId, kind) {
     }
     const marks = node
       ? "<span class=\"row-marks\">" + costPips(node) + yieldBar(characterId, skillId)
-        + levelMeter(node, characterId) + "</span>" + conditionLine(node)
+        + levelMeter(node, characterId) + roleTag + "</span>" + conditionLine(node)
       : "";
     // issue #238 — 必殺技はこの行の**長押し**だけで決まる。専用の枠を画面へ足さない。
     const ultimate = ultimateRowState(characterId, skillId, kind);
@@ -4003,7 +4001,7 @@ function skillSlotRows(characterId, kind) {
         ? "<span class=\"bullet passive\">↳</span>"
         : "<span class=\"order\">" + (index + 1) + "</span>")
       + "<span class=\"installed-copy\"><b>" + esc(info?.label ?? nameFor(skillId)) + "</b>"
-      + marks + share + ultimate.traits + "</span>"
+      + marks + ultimate.traits + "</span>"
       + ultimate.seal
       + moveButtons
       // **入切は「札」ではなく「摘み」にする。**丸は払うものだけに譲ったので、
@@ -4721,8 +4719,8 @@ function symbolLegendHelp() {
       "取得までに必要な他技能の残りLv数と、この技能の取得コスト")
     + row("<span class=\"node-mark owned\">✓</span>", "取得済み・未装着")
     + row("<span class=\"node-mark equipped\">✓</span>", "装着中")
-    + row("<span class=\"turn-share\"><i></i><i class=\"on\"></i><i></i></span>",
-      "出番。装着した本数のうちの一本。順送りなので、増やすほど一本あたりの出番は減る")
+    + row("<span class=\"action-role conditional\">条件</span> <span class=\"action-role main\">主軸</span>",
+      "条件は成立時に上から優先。主軸は条件が出ない拍に使い、下の無条件は予備になる")
     + row("<span class=\"turn-cells\"><span class=\"turn-round\">"
       + "<i class=\"turn-cell branch-strike\">✦</i></span><span class=\"turn-round\">"
       + "<i class=\"turn-cell idle\"></i></span></span>",
@@ -4897,8 +4895,7 @@ function renderSkills() {
     + renderSkillTree(characterId)
     + "</details>"
     + symbolLegendHelp()
-    // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
-    // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
+    // R20 — 条件行動は装着順で優先し、無条件の先頭を主軸にする。
     // 作者指摘 2026-09-13 — 予約の規則（自動取得の順と、入る向き）はここに一度だけ置く。
     // 節ごとの盤で毎回繰り返すと、盤が高くなって地図が見えなくなる。
     + helpDetails("skill-rules", "技能のルール", ruleGrid([
@@ -4918,8 +4915,8 @@ function renderSkills() {
       {
         glyph: "round",
         title: "アクティブ",
-        value: "順番に回る",
-        line: "出した技能の次から判定し、条件が未達ならスキップ。装着を増やすほど一本の出番は減ります。",
+        value: "条件 → 主軸",
+        line: "条件が成立した技能を上から優先し、何も出なければ最初の無条件技能を使います。下の無条件技能は予備です。",
       },
       {
         glyph: "retry",
@@ -7622,10 +7619,9 @@ function resultActors(result, { simulation = false } = {}) {
 
 // ============================================================ 順番の帯（issue #177）
 //
-// **「装着順が結果にどう効いたか」を、文ではなく帯で見せる。**
-// アクティブは装着順を順送りに回るので（#188 / #187）、装着を増やすほど一本
-// あたりの出番が減る。それが実際にどう出たのかは、ラウンドごとに何が鳴ったかを
-// 並べれば一目で分かる。色はテーマ、印はテーマの記号、押さえれば技能名が出る。
+// **「条件と主軸が実際にどう出たか」を、文ではなく帯で見せる。**
+// 条件行動が割り込んだ拍と、主軸へ落ちた拍をラウンドごとに並べれば一目で分かる。
+// 色はテーマ、印はテーマの記号、押さえれば技能名が出る。
 function rotationStrip(result) {
   const events = result?.events ?? [];
   const nodeBySkillId = new Map(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
@@ -9436,7 +9432,8 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.run = result.run;
-      // issue #236 — 取得と装着を分けない。**点を払った技能はその場で回り始める。**
+      // issue #236 / R20 — 取得と装着を分けない。条件行動は優先列の先頭へ、
+      // 無条件行動は現在の主軸を替えない予備の末尾へ入る。
       // 「取得済みだが未装着」は、オフと同じことを二通りに表しているだけだった。
       const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind, limitsFor);
       if (equipped.ok) state.run.loadout = equipped.loadout;

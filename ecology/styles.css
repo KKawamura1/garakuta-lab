@@ -5094,12 +5094,23 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   white-space: nowrap;
 }
 .node-copy .node-meters > * { flex: 0 0 auto; }
-/* 装着行。**出番は目盛り、代償は点。** */
+/* 装着行。代償は点、行動の役割は短い語で示す。 */
 .installed-copy .row-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 3px; }
 .installed-copy .node-when { white-space: normal; }
-.turn-share { display: inline-flex; gap: 2px; margin-top: 3px; }
-.turn-share i { width: 9px; height: 3px; border-radius: 2px; background: rgba(224, 195, 116, .25); }
-.turn-share i.on { background: var(--gold); }
+.action-role {
+  display: inline-flex;
+  align-items: center;
+  min-height: 15px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1;
+}
+.action-role.conditional { border-color: rgba(100, 174, 190, .65); color: var(--blue); }
+.action-role.main { border-color: rgba(229, 184, 105, .75); color: var(--gold); }
+.action-role.reserve { opacity: .7; }
 .slot-heading .slot-budget { display: inline-flex; align-items: center; margin-left: auto; }
 .slot-heading .slot-over { margin-left: 5px; color: var(--bad); font-size: 11px; }
 .installed-row.over { box-shadow: inset 2px 0 0 var(--bad); }
