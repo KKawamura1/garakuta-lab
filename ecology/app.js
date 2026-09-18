@@ -81,6 +81,11 @@ import {
   STATUS_GLOSSARY,
   SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
+  UNCONDITIONAL_FLAT_LEVELS,
+  hasIntrinsicCondition,
+  skillLevelCostBetweenFor,
+  skillLevelCostFor,
+  skillLevelPriceRises,
   // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
   skillLevelValueSteps,
   skillTextAtLevel,
@@ -3696,10 +3701,10 @@ function statusGlossaryHelp() {
 function activeFiringLabel(skillId) {
   const skill = PLAYABLE_CONTENT.activeSkills?.[skillId];
   if (!skill) return null;
-  if ((skill.intrinsicPredicates ?? []).length) return "条件つき";
+  // **定義側の判定は content と同じ関数を読む**（issue #286）。ここで Lv の値段が
+  // 決まるので、画面の「条件つき」と値段の「条件つき」がずれてはいけない。
+  if (hasIntrinsicCondition(skill)) return "条件つき";
   if (tacticUseWhenFor(skillId).length) return "条件つき";
-  const filters = skill.targetQuery?.filters ?? [];
-  if (filters.some((filter) => filter.type !== "alive")) return "条件つき";
   return "無条件";
 }
 
@@ -4018,11 +4023,30 @@ function skillSlotRows(characterId, kind) {
       + (kind === "active" ? "1ラウンドに払える行動点" : "1ラウンドに払える反応点") + " " + budget + "\">"
       + pips(budget, kind === "active" ? "ap" : "rp") + "</span>"
     : "";
-  const total = kind === "reactive" && spent > budget
+  let total = kind === "reactive" && spent > budget
     ? "<span class=\"slot-over\" role=\"img\" aria-label=\"装着した反応の合計が反応点を超えている\""
       + " title=\"装着した反応の合計（" + spent + "）が1ラウンドの反応点（" + budget
       + "）を超えている。下の行は出ないことがある\">▲</span>"
     : "";
+  // issue #286 — **無条件を2本以上オンにすると、出番をそのまま半分ずつに割る。**
+  // 目盛り（turn-share）は「何本のうちの1本か」を出すが、**それが損かどうか**は
+  // 出していなかった。条件つきは成立しない拍で読み飛ばされるので出番を奪わないが、
+  // 無条件どうしは必ず奪い合う。取得は不可逆なので、ここは黙っていてはいけない。
+  if (kind === "active") {
+    const alwaysOn = live.filter((skillId) => {
+      const definition = skillDefinitionOf(skillId);
+      return definition
+        && !hasIntrinsicCondition(definition)
+        && tacticUseWhenFor(skillId).length === 0;
+    });
+    if (alwaysOn.length > 1) {
+      total += "<span class=\"slot-over\" role=\"img\" aria-label=\"無条件の技能が"
+        + alwaysOn.length + "本オンになっている\" title=\"無条件の技能が" + alwaysOn.length
+        + "本オンです。条件を持たない技能どうしは必ず順番に出るので、"
+        + "一本あたりの出番がそのまま " + alwaysOn.length + "分の1になります"
+        + "（条件つきは成立しない拍で読み飛ばされるので、出番を奪いません）\">▲</span>";
+    }
+  }
   return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span>"
     + meter + total + "</div>"
     + (rows || "<p class=\"empty-slot\">—</p>") + "</div>";
@@ -4198,8 +4222,8 @@ function skillNodeActionableNow(node, characterId, nodeState = skillNodeState(no
   if (!nodeState.unlocked) return nodeState.canUnlock;
   const cap = skillLevelCapOf(node.skillId);
   if (cap <= MIN_SKILL_LEVEL) return false;
-  return skillLevelOf(characterId, node.skillId) < cap
-    && skillPointsFor(characterId) >= SKILL_LEVEL_COST;
+  const level = skillLevelOf(characterId, node.skillId);
+  return level < cap && skillPointsFor(characterId) >= skillLevelCostFor(node.skillId, level + 1);
 }
 
 // issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
@@ -4245,7 +4269,10 @@ function levelUpAction(node, characterId, nodeState) {
   if (cap <= 1 || !nodeState.unlocked) return "";
   const level = skillLevelOf(characterId, node.skillId);
   if (level >= cap) return "";
-  const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
+  // issue #286 — **出番を分け合う技能は、途中から値段が上がる。**無条件の
+  // アクティブは毎ラウンド出るので、Lv6 以降が1段2点になる（条件つきは据え置き）。
+  const price = skillLevelCostFor(node.skillId, level + 1);
+  const affordable = skillPointsFor(characterId) >= price;
   // **1点で、上の説明のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。
   const steps = skillLevelValueSteps(
     COMPONENTS[node.skillId]?.effect ?? "", skillDefinitionOf(node.skillId), level,
@@ -4255,7 +4282,7 @@ function levelUpAction(node, characterId, nodeState) {
     ? "<span class=\"level-step\">" + steps.map((step) =>
       esc(step.from) + " → <b>" + esc(step.to) + "</b>").join(" · ") + "</span>"
     : "<span class=\"level-step\">+12%</span>";
-  return button("Lv " + (level + 1) + "（" + SKILL_LEVEL_COST + "点）",
+  return button("Lv " + (level + 1) + "（" + price + "点）",
     "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
     "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"") + change;
 }
@@ -4339,12 +4366,22 @@ function renderSkillDetail(node, characterId, nodeState) {
   }
   actions.push(levelUpAction(node, characterId, nodeState));
   // 現在のSPで目標まで完了できるなら「取得」、足りなければ「予約」。
+  //
+  // 作者指摘 2026-09-18 — **Lv1 と Lv10 しか目的地に選べなかった。**無条件の
+  // アクティブは Lv6 から1段2点になったので（issue #286）、「Lv5 で止める」が
+  // 実際の判断になる。値段の変わり目を三つ目の目的地として出し、**そこまでの
+  // 段の合計を釦に書く**（4点で止めるか、14点まで通すか、を並べて見せる）。
   const reservationButton = (targetLevel) => {
     const here = nodeState.reserved && nodeState.reservationTargetLevel === targetLevel;
     const verb = canFulfillSkillReservation(state.run, characterId, node.skillId, targetLevel)
       ? "取得"
       : "予約";
-    return button("Lv" + targetLevel + "まで" + verb + (here ? " ◎" : ""),
+    // 解禁済みの節では、ここから目標までの段の合計が正確に出せる。未取得の節は
+    // 解禁と前提の点が別に要るので、値段を書かない（嘘の合計を出さない）。
+    const price = nodeState.unlocked && targetLevel > level
+      ? "（" + skillLevelCostBetweenFor(node.skillId, level, targetLevel) + "点）"
+      : "";
+    return button("Lv" + targetLevel + "まで" + verb + price + (here ? " ◎" : ""),
       "reserve-skill", here, "tiny-button reservation-button",
       "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId
         + "\" data-target-level=\"" + targetLevel + "\"");
@@ -4352,6 +4389,12 @@ function renderSkillDetail(node, characterId, nodeState) {
   // **いま押せる「解禁」と同じことを言う「Lv1まで取得」は出さない。**
   // 押せないとき（点が足りない・前提がまだ）だけ、Lv1 を予約として置く。
   if (!nodeState.unlocked && !nodeState.canUnlock) actions.push(reservationButton(MIN_SKILL_LEVEL));
+  // 値段の変わり目。**そこで止めるのが妥当な目的地**なので、間の Lv を全部並べる
+  // 代わりにこれ一つを出す（釦が増えるほど、選ぶ手が重くなる）。
+  if (skillLevelPriceRises(node.skillId)
+    && cap > UNCONDITIONAL_FLAT_LEVELS && level < UNCONDITIONAL_FLAT_LEVELS) {
+    actions.push(reservationButton(UNCONDITIONAL_FLAT_LEVELS));
+  }
   if (cap > MIN_SKILL_LEVEL && level < cap) actions.push(reservationButton(cap));
   if (nodeState.reserved) {
     actions.push(button("予約取消", "cancel-skill-reservation", false, "tiny-button reservation-button",
@@ -4920,6 +4963,20 @@ function renderSkills() {
         title: "アクティブ",
         value: "順番に回る",
         line: "出した技能の次から判定し、条件が未達ならスキップ。装着を増やすほど一本の出番は減ります。",
+      },
+      // issue #286 — **出番と値段を対応させた**ことを、規則の側にも一度だけ書く。
+      // 装着行には「無条件／条件つき」が出ているので、どちらの値段かはそこで分かる。
+      {
+        glyph: "skill",
+        title: "無条件を伸ばす",
+        value: "Lv6 から1段2点",
+        line: "毎ラウンド出るぶん、厚くするのが高くつきます。Lv5 までは1点です。",
+      },
+      {
+        glyph: "skill",
+        title: "条件つきを伸ばす",
+        value: "Lv10 まで1段1点",
+        line: "出番を分け合わないので、安く伸びます。条件が合った拍は無条件より強く出ます。",
       },
       {
         glyph: "retry",
@@ -9259,7 +9316,10 @@ function handleAction(event) {
     else {
       state.run = result.run;
       fx("skill:" + skillId, "level");
-      record("skill_leveled", { characterId, skillId, level: result.level, cost: SKILL_LEVEL_COST });
+      record("skill_leveled", {
+        characterId, skillId, level: result.level,
+        cost: skillLevelCostFor(skillId, result.level),
+      });
     }
     saveState();
     render();

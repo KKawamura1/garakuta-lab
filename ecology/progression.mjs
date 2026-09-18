@@ -58,6 +58,7 @@ import {
   REGION,
   SKILL_LEVEL_CAPS,
   SKILL_LEVEL_COST,
+  skillLevelCostFor,
   SKILL_PACKS,
   SKILL_TREE_NODES,
   BASELINE_ACTIVE_SKILL_IDS,
@@ -1051,7 +1052,9 @@ function nextSkillReservationStep(run, characterId, targetSkillId, targetLevel) 
           type: "level",
           skillId: required.skillId,
           target: false,
-          cost: SKILL_LEVEL_COST,
+          cost: skillLevelCostFor(
+            required.skillId, runSkillLevel(run, characterId, required.skillId) + 1,
+          ),
         };
       }
     }
@@ -1068,7 +1071,7 @@ function nextSkillReservationStep(run, characterId, targetSkillId, targetLevel) 
         type: "level",
         skillId: node.skillId,
         target: true,
-        cost: SKILL_LEVEL_COST,
+        cost: skillLevelCostFor(node.skillId, runSkillLevel(run, characterId, node.skillId) + 1),
       };
     }
     return null;
@@ -1200,7 +1203,9 @@ export function levelUpRunSkill(run, characterId, skillId, cap) {
     return { ok: false, reason: "この技能はレベルを持ちません（連続する量を持たないため）。" };
   }
   if (current >= ceiling) return { ok: false, reason: "すでに最大レベルです。" };
-  if (runSkillPoints(run, characterId) < SKILL_LEVEL_COST) {
+  // issue #286 — 無条件のアクティブは Lv6 以降が2点。出番を分け合わない技能は据え置き。
+  const price = skillLevelCostFor(skillId, current + 1);
+  if (runSkillPoints(run, characterId) < price) {
     return { ok: false, reason: "技能点が足りません。" };
   }
   const next = {
@@ -1208,7 +1213,7 @@ export function levelUpRunSkill(run, characterId, skillId, cap) {
     runSkillPoints: { ...run.runSkillPoints },
     runSkillLevels: { ...run.runSkillLevels, [characterId]: { ...(run.runSkillLevels?.[characterId] ?? {}) } },
   };
-  next.runSkillPoints[characterId] = runSkillPoints(run, characterId) - SKILL_LEVEL_COST;
+  next.runSkillPoints[characterId] = runSkillPoints(run, characterId) - price;
   next.runSkillLevels[characterId][skillId] = current + 1;
   return { ok: true, run: next, level: current + 1 };
 }

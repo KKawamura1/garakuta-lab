@@ -5,11 +5,18 @@
 
 import assert from "node:assert/strict";
 import { simulateBattle, validateBattleInput } from "../ecology/engine.mjs";
-import { BATTLE_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "../ecology/schema.mjs";
+import {
+  BATTLE_SCHEMA_VERSION, MAX_SKILL_LEVEL, MIN_SKILL_LEVEL, SKILL_LEVEL_STEP_BPS,
+} from "../ecology/schema.mjs";
+import {
+  SKILL_LEVEL_COST, SKILL_LEVEL_COST_STEEP, UNCONDITIONAL_FLAT_LEVELS, skillLevelCost,
+} from "../ecology/content/skill-levels.mjs";
+import { BPS } from "../ecology/values.mjs";
 import {
   CAMPAIGN_STAGES,
   PLAYABLE_CONTENT,
   SKILL_PACKS,
+  SKILL_LEVEL_CAPS,
   SKILL_TREE_NODES,
   skillIdsForPacks,
 } from "../ecology/content/index.mjs";

@@ -671,7 +671,7 @@ activeSkills.overreach = {
   effects: [{
     type: "deal_damage",
     target: { scope: "enemies", filters: [{ type: "alive" }], sort: ["hp_asc"], take: 1 },
-    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 18_500 },
+    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 21_500 },
     tags: ["attack", "weapon"],
   }],
   tags: ["attack", "playable"],
@@ -820,16 +820,16 @@ activeSkills.reckless_swing = strikeWith(
 );
 
 // 同じ相手を続けて狙っていたら伸びる。**集中砲火の対価。**
-activeSkills.double_back = strikeWith("double_back", "二の太刀", 24_000);
+activeSkills.double_back = strikeWith("double_back", "二の太刀", 25_000);
 activeSkills.double_back.intrinsicPredicates = [streakIs("gte", 2)];
 
 // 続けて同じ相手を狙っていないときだけ伸びる。**二の太刀の裏。**
 // どちらか片方しか成立しないので、二本挿しは択の放棄になる。
-activeSkills.spread_cut = strikeWith("spread_cut", "散らし斬り", 19_500);
+activeSkills.spread_cut = strikeWith("spread_cut", "散らし斬り", 24_000);
 activeSkills.spread_cut.intrinsicPredicates = [streakIs("lte", 1)];
 
 // 1ラウンド目だけ。**先手を取れる編成にだけ意味がある。**
-activeSkills.opening_stab = strikeWith("opening_stab", "先の一刺し", 20_000);
+activeSkills.opening_stab = strikeWith("opening_stab", "先の一刺し", 24_000);
 activeSkills.opening_stab.intrinsicPredicates = [{ type: "round_number", op: "eq", value: 1 }];
 
 // 自分が半分以下のときだけ。「無理を通す」（HP60%以上）の鏡。
@@ -998,7 +998,7 @@ activeSkills.precise_cut = {
   effects: [{
     type: "deal_damage",
     target: EVENT_TARGET,
-    amount: focusAmount(11_500),
+    amount: focusAmount(14_500),
     reach: "ranged",
     tags: ["attack", "technique"],
   }],

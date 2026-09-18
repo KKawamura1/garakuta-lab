@@ -20,6 +20,7 @@ import {
   CORE_BATTLE,
   COST_CONTEST_BATTLE,
   COVER_BATTLE,
+  REAR_COVER_BATTLE,
   DEFINITION_BATTLE,
   EXTERNAL_ADVANCE_BATTLE,
   FIELD_KIT_BATTLE,
@@ -529,6 +530,17 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const declared = of(result, "action_declared").find((event) => event.sourceActorId === "e_husk");
   check(changes[0].sequence > declared.sequence, "the redirect happens inside the action");
   check(changes[1].sequence < started.sequence, "and before the action starts");
+}
+
+{
+  // 作者報告 2026-09-18 — **後列からは庇えない。**割り込みの差し替えが元の一手の
+  // 届き方を見ていないと、melee の一撃が後列の庇い手へ飛ぶ（R6 §5.4 が割り込みで抜ける）。
+  const result = run(REAR_COVER_BATTLE);
+  equal(of(result, "target_changed").length, 0, "後列の庇い手は melee の一撃を引き受けない");
+  const hits = of(result, "damage_taken").filter((event) => event.sourceActorId === "e_husk");
+  check(hits.length > 0, "敵の一撃そのものは通っている（測れていないのではない）");
+  check(hits.every((event) => event.targetActorIds[0] === "a_warden"),
+    "melee の一撃は前列に留まる");
 }
 
 {

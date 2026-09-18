@@ -156,6 +156,27 @@ const activeSkills = {
     ],
     tags: ["attack"],
   },
+  // 作者報告 2026-09-18 — **melee の witness。**上の `strike` は unrestricted なので、
+  // 「前列が生きているあいだ前列しか狙えない」（R6 §5.4）が割り込みの差し替えでも
+  // 守られるか、を fixture で示せなかった。同じ一撃を melee で置く。
+  melee_strike: {
+    id: "melee_strike",
+    displayName: "Melee Strike (fixture)",
+    apCost: 1,
+    actionMode: "offense",
+    intrinsicPredicates: [],
+    targetQuery: WEAKEST_ENEMY,
+    effects: [
+      {
+        type: "deal_damage",
+        target: { scope: "event_targets", filters: [ALIVE], take: 1 },
+        amount: constant(4),
+        reach: "melee",
+        tags: ["attack"],
+      },
+    ],
+    tags: ["attack"],
+  },
   // §15.1 — heal, and the excess that comes with it.
   mend: {
     id: "mend",
@@ -912,6 +933,19 @@ const enemyActors = {
     intrinsicRules: [],
     tags: ["fixture", "durable"],
   },
+  // 作者報告 2026-09-18 — melee で殴る個体。**割り込みの差し替えが reach を
+  // 守るか**を見るための witness（`husk_bulwark` の strike は unrestricted）。
+  husk_melee: {
+    id: "husk_melee",
+    displayName: "Husk Melee (fixture)",
+    maxHp: 40,
+    baseActionPoints: 1,
+    baseReactionPoints: 0,
+    tactics: [{ activeSkillId: "melee_strike", useWhen: [] }],
+    reactiveSkillIds: [],
+    intrinsicRules: [],
+    tags: ["fixture", "durable"],
+  },
   // Carries the echo reaction, so damage_taken can bounce between two sides.
   husk_echo: {
     id: "husk_echo",
@@ -995,6 +1029,7 @@ function deepFreeze(value) {
 // stays in step with the bundle, so a fixture cannot quietly lose its reason.
 export const FIXTURE_COVERAGE = deepFreeze({
   strike: "§15.1 single target damage; §12.1 damage pipeline",
+  melee_strike: "R6 §5.4 melee reach; 割り込みの対象差し替えが reach を守ること",
   mend: "§15.1 healing and excess_healing; §12.2",
   bulwark: "§15.1 round barrier; §12.3",
   relay_order: "§15.1 giving an ally action points; §11.3 requeue",

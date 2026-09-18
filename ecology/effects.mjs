@@ -1011,11 +1011,28 @@ function splitPendingDamage(rt, ctx, effect) {
   }
 }
 
+// **差し替え先へ、元の一手が届くか。**（作者報告 2026-09-18）
+//
+// melee は「相手の側に生きている前列が一人でもいるあいだ、前列しか狙えない」
+// （R6 §5.4）。割り込みで対象を差し替えるとき、この判定をやり直さないと、
+// 後列に居る者が melee の一撃を引き受けられてしまう——腕力の斬撃が後列へ届く、
+// という形で盤面に出る。**届かない相手へは差し替えない**（元の対象のまま進む）。
+//
+// 見るのは差し替え先の側であって、差し替える側ではない。reach は「その側の
+// 前列が壁になっているか」の話なので、誰が割り込んだかとは関係しない。
+function reachableForRedirect(rt, reach, replacement) {
+  if (reach !== "melee") return true;
+  if (POSITION_ROW[replacement.position] === "front") return true;
+  return !actorsOnSide(rt.state, replacement.side)
+    .some((actor) => actor.alive && POSITION_ROW[actor.position] === "front");
+}
+
 function redirectPendingTarget(rt, ctx, effect) {
   const frame = ctx.pending;
   if (!frame) return;
   const replacement = selectTargets(rt, ctx, effect.target)[0];
   if (!replacement) return;
+  if (!reachableForRedirect(rt, frame.reach ?? "unrestricted", replacement)) return;
   const from = frame.targetActorIds[0] ?? null;
   if (from === replacement.instanceId) return;
   frame.targetActorIds = [replacement.instanceId];

@@ -1006,6 +1006,11 @@ function performAction(state, actor, choice) {
     skillId: skill.id,
     sourceActorId: actor.instanceId,
     targetActorIds: targets.map((target) => target.instanceId),
+    // **届き方は frame が持つ**（作者報告 2026-09-18）。割り込みで対象を差し替える
+    // 規則（身代わりなど）が、元の一手の reach を知らないまま後列を掴めてしまうと、
+    // 「melee は前列が生きているあいだ前列しか狙えない」という R6 §5.4 の契約が
+    // 割り込み経由で抜ける。差し替え側が読めるよう、選んだ時点の届き方をここへ置く。
+    reach: actionReach(skill),
   };
   state.currentPendingAction = frame;
   const baseCtx = () => ({
