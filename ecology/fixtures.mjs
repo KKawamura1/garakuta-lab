@@ -67,6 +67,20 @@ export const COVER_BATTLE = battle("fixture_cover", {
   enemies: [enemy("e_husk", "husk_bulwark", "front_left")],
 });
 
+// 作者報告 2026-09-18 — **後列からは庇えない。**割り込みで対象を差し替える規則が
+// 元の一手の届き方を見ていないと、melee の一撃が後列の庇い手へ飛ぶ（R6 §5.4 の
+// 「前列が生きているあいだ前列しか狙えない」が割り込み経由で抜ける）。
+// 敵の一手は **melee**（fixture の `strike` は unrestricted なので使えない）。
+export const REAR_COVER_BATTLE = battle("fixture_rear_cover", {
+  maxRounds: 2,
+  objective: ELIMINATE,
+  allies: [
+    ally("a_warden", "warden", "front_left", { tactics: ["bulwark"] }),
+    ally("a_lancer", "lancer", "rear_left", { tactics: ["bulwark"], reactives: ["cover_ally"] }),
+  ],
+  enemies: [enemy("e_husk", "husk_melee", "front_left")],
+});
+
 // §16 C an earlier reaction spending the reaction point the later one needed.
 export const COST_CONTEST_BATTLE = battle("fixture_cost_contest", {
   maxRounds: 2,
@@ -546,6 +560,7 @@ export const MINING_POOL = {
 export const ALL_FIXTURE_BATTLES = [
   CORE_BATTLE,
   COVER_BATTLE,
+  REAR_COVER_BATTLE,
   COST_CONTEST_BATTLE,
   PREPARATION_BATTLE,
   EXTERNAL_ADVANCE_BATTLE,

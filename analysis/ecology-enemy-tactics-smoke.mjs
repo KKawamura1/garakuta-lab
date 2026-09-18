@@ -91,97 +91,17 @@ assert.deepEqual(
   "敵の連撃が三段の damage として解決されていない",
 );
 
-// ---------------------------------------------------------------- Stage 9: 五人の必殺を全部切る最終戦
+// ---------------------------------------------------------------- 最終戦の境界は落とした
+//
+// **難度は最後に調整するもので、システムは最初に調整するもの**（作者判断 2026-09-18）。
+// ここには「上限鍛錬・技能Lv10・装備なしの固定隊で、五人全員の必殺を切れば勝ち、
+// 誰か一人でも温存すれば負ける」という境界の検査があった。境界そのものは面白いが、
+// **技能の規則を一つ動かすたびに、技能とは無関係な理由で鳴る。**実際、無条件の技能の
+// レベル上限を下げる案は、この検査が落ちることを理由に取り下げかけた（issue #286）。
+//
+// 敵の火力と必殺の本数は、システムが固まってから合わせる。それまでこの境界は置かない。
+// 上の Stage 1 の検査（庇護・治療・弱体・多段が event に出るか）は**振る舞いの検査**
+// なので残す。
 
-const FINAL_ROSTER = Object.freeze(["warden", "mender", "lancer", "guardian", "tactician"]);
-const FINAL_TACTICS = Object.freeze({
-  warden: "guard_crush",
-  mender: "aimed_shot",
-  lancer: "heavy_swing",
-  // 守りの必殺にも席を作る。全体へ残る防壁が、長期戦を越える五本目になる。
-  guardian: "bulwark",
-  tactician: "aimed_shot",
-});
-const FINAL_REACTIVES = Object.freeze({
-  warden: Object.freeze(["mend", "emergency_treatment"]),
-  mender: Object.freeze(["triage", "emergency_treatment"]),
-  lancer: Object.freeze(["cover_ally", "triage", "brace_after_hit"]),
-  guardian: Object.freeze(["brace_after_hit", "emergency_treatment"]),
-  tactician: Object.freeze(["mend", "brace_after_hit", "block_focus"]),
-});
-
-function finalRun(armedIds) {
-  const profile = newProfile();
-  for (const characterId of FINAL_ROSTER) {
-    profile.characters[characterId].trainingLevels = {
-      might: 12, focus: 12, guard: 12, vitality: 12,
-    };
-  }
-
-  const unlockedSkills = {};
-  const skillLevels = {};
-  for (const characterId of FINAL_ROSTER) {
-    unlockedSkills[characterId] = [
-      ...new Set([FINAL_TACTICS[characterId], ...FINAL_REACTIVES[characterId]]),
-    ];
-    skillLevels[characterId] = Object.fromEntries(
-      unlockedSkills[characterId].map((skillId) => [skillId, 10]),
-    );
-  }
-
-  const run = newRun(profile, {
-    runSeed: "final-boss-five-ultimates",
-    campaignStageSequence: 9,
-    unlockedSkills,
-    skillLevels,
-  });
-  run.loadout = freshLoadout(run.roster);
-  for (const characterId of FINAL_ROSTER) {
-    run.loadout.tactics[characterId] = [FINAL_TACTICS[characterId]];
-    run.loadout.reactives[characterId] = [...FINAL_REACTIVES[characterId]];
-    run.loadout.ultimates[characterId] = FINAL_TACTICS[characterId];
-  }
-  run.loadout.ultimateArmed = Object.fromEntries(armedIds.map((id) => [id, true]));
-
-  // 第11戦までを越えて来た隊の固定入口。69%なら必殺条件を満たしつつ、
-  // 失っているのは隊全体のHPの約5%だけなので、負傷そのものを勝因にはしない。
-  run.currentHp.mender = Math.floor(run.currentHp.mender * 69 / 100);
-  return { profile, run };
-}
-
-function fightFinal(armedIds) {
-  const { profile, run } = finalRun(armedIds);
-  const battle = simulateExpeditionBattle(run, profile, 12);
-  return {
-    result: battle.result,
-    fired: ultimateFirings(battle.result).map((id) => id.replace(/^a_/, "")),
-  };
-}
-
-const finalEncounter = composeEncounter(12, 0, { partySize: 5, stageSequence: 9 });
-assert.deepEqual(
-  finalEncounter.enemies.map((enemy) => enemy.enemyActorId),
-  ["ash_furnace_heart", "forge_aegis", "weave_hand", "dust_maw", "forge_mender"],
-  "最終戦の本体・庇護・状態異常・高火力・治療の五役が崩れている",
-);
-
-const allFive = fightFinal(FINAL_ROSTER);
-assert.equal(allFive.result.result, "win", "五人全員の必殺を切った上限鍛錬隊が最終戦を越えられない");
-assert.deepEqual(
-  [...allFive.fired].sort(), [...FINAL_ROSTER].sort(),
-  "最終戦で構えた五人全員の必殺が発動していない",
-);
-
-const none = fightFinal([]);
-assert.equal(none.result.result, "loss", "必殺を温存した上限鍛錬隊が最終戦を越えてしまう");
-for (const missing of FINAL_ROSTER) {
-  const armed = FINAL_ROSTER.filter((characterId) => characterId !== missing);
-  const four = fightFinal(armed);
-  assert.equal(four.fired.length, 4, `${missing} 以外の四人の必殺が全部発動していない`);
-  assert.equal(four.result.result, "loss", `${missing} の必殺を温存しても最終戦を越えてしまう`);
-}
-
-const finalSurvivors = allFive.result.actors.filter((actor) => actor.side === "ally" && actor.alive).length;
 console.log("enemy tactics smoke: ok");
 console.log(`support events: cover + mend / exposed ${exposedTargets.size} allies / barrage ${barrageHits.length} hits`);
-console.log(`final boss: 5 ultimates -> win in ${allFive.result.roundsUsed} rounds (${finalSurvivors}/5 alive); 0 or any 4 -> loss`);

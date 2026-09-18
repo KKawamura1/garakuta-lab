@@ -129,6 +129,50 @@
     ],
     "actionMode": "offense"
    },
+   "melee_strike": {
+    "id": "melee_strike",
+    "displayName": "Melee Strike (fixture)",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "constant",
+       "value": 4
+      },
+      "reach": "melee",
+      "tags": [
+       "attack"
+      ]
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
    "bulwark": {
     "id": "bulwark",
     "displayName": "防壁形成",
@@ -13157,6 +13201,28 @@
     "focus": 48,
     "guard": 0
    },
+   "husk_melee": {
+    "id": "husk_melee",
+    "displayName": "Husk Melee (fixture)",
+    "maxHp": 480,
+    "baseActionPoints": 1,
+    "baseReactionPoints": 0,
+    "tactics": [
+     {
+      "activeSkillId": "melee_strike",
+      "useWhen": []
+     }
+    ],
+    "reactiveSkillIds": [],
+    "intrinsicRules": [],
+    "tags": [
+     "fixture",
+     "durable"
+    ],
+    "might": 48,
+    "focus": 48,
+    "guard": 0
+   },
    "husk_echo": {
     "id": "husk_echo",
     "displayName": "灰殻の反響体",
@@ -14273,6 +14339,7 @@
   "guardian": "ヒバナ — 走る人",
   "tactician": "ゲンゾウ — 書いてきた人",
   "strike": "斬撃",
+  "melee_strike": "Melee Strike (fixture)",
   "bulwark": "防壁形成",
   "relay_order": "号令",
   "heavy_swing": "溜め突き",
@@ -14428,6 +14495,7 @@
   "still_husk": "動かない灰殻",
   "husk_hunter": "灰殻の狩人",
   "husk_bulwark": "灰殻の盾兵",
+  "husk_melee": "Husk Melee (fixture)",
   "husk_echo": "灰殻の反響体",
   "husk_marker": "灰殻の標定手",
   "gray_scrapper": "灰殻の走者",
@@ -19478,6 +19546,7 @@
  ],
  "skillLevelCaps": {
   "strike": 10,
+  "melee_strike": 10,
   "bulwark": 10,
   "relay_order": 1,
   "heavy_swing": 10,
@@ -19658,6 +19727,12 @@
    "label": "灰殻の盾兵",
    "targeting": "前列を優先して狙う。",
    "lore": "殴った音が、金属でも石でもない。"
+  },
+  "husk_melee": {
+   "id": "husk_melee",
+   "label": "Husk Melee (fixture)",
+   "targeting": "前列を優先して狙う。",
+   "lore": null
   },
   "husk_echo": {
    "id": "husk_echo",
@@ -19912,6 +19987,7 @@
   "still_husk": "前列を優先して狙う。",
   "husk_hunter": "前列を優先して狙う。",
   "husk_bulwark": "前列を優先して狙う。",
+  "husk_melee": "前列を優先して狙う。",
   "husk_echo": "前列を優先して狙う。",
   "husk_marker": "前列を優先して狙う。",
   "gray_scrapper": "前列で最もHPの低い者を狙う。",
