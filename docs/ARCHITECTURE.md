@@ -92,7 +92,7 @@
 `_headers` が `/ecology/art/*` を一日キャッシュする。
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
-取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡ります。engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）に係数を掛け、`static-bonuses.mjs` は基礎能力パッシブを `statBonus + statBonusPerLevel × (技能Lv - 1)` として戦闘開始時の能力へ加えます。**どちらも技能 ID で分岐しません**。Lv1 は旧来の `statBonus` と同じ値で、技能Lvが無い旧入力もLv1として読まれます。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
+取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡ります。engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）に係数を掛け、`static-bonuses.mjs` は基礎能力パッシブを `statBonus + statBonusPerLevel × (技能Lv - 1)` として戦闘開始時の能力へ加えます。**どちらも技能 ID で分岐しません**。Lv1 は旧来の `statBonus` と同じ値で、技能Lvが無い旧入力もLv1として読まれます。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。`allyInput` はオフの技能を BattleInput から除外し、本編の味方へ `tacticMode: "main_action"` を付けます。engine は `tactics.mjs` と同じ分類で条件行動を優先し、最初に使える無条件行動を主軸、その後ろを予備として読みます。欄の無い BattleInput と敵は従来の `round_robin` のままです。
 `simulateExpeditionBattle` が予測と本番の入力構成と `equipmentBreaks: false` を共有するため、
 技能レベル・HP・装備耐久を含む同じ入力から同じ結果とイベント列を返します。
 **呼び出し側も一本です**：`app.js` の `expeditionBattleOptions()` が盤面の外の入力
@@ -215,7 +215,7 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   リプレイの表示が同じ名前になる。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
-- 同じ actor の reactive skill は loadout の上から順に候補を処理し、active skill は配列順に最初の使用可能なものを選びます。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。
+- 同じ actor の reactive skill は loadout の上から順に候補を処理します。本編の味方 active は条件行動を配列順に試した後、最初に使える無条件の主軸へ落ちます。`tacticMode` の無い入力と敵 active は従来の round-robin です。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。
 
       runSeed:manifest:stageId
       runSeed:encounter:encounterIndex
@@ -517,12 +517,12 @@ phase を battle から result へ寄せるため、会話を見ないまま結�
 不変条件は一つ。**`runUnlockedSkills[c]` に入っている技能は、必ず種別ごとの装着欄にも
 並んでいる。**出すか出さないかは `loadout.disabled` だけが決める。
 
-- `unlock-skill` は `unlockRunSkill` のあと `equipSkill` を通す（**オンで**装着され、
-  その場で回り始める）。
+- `unlock-skill` は `unlockRunSkill` のあと `equipSkill` を通す（**オンで**装着される）。
+  条件行動は先頭、無条件行動は現在の主軸を替えない末尾へ入る。
 - `joinRun` と保存の読み込みは `installUnlockedSkills()`（`playable-battles.mjs`）を通す。
   こちらは**オフで**末尾へ足す。starter の無償閉包で取得済みになる親の節や、
   旧い保存が持っている未装着の技能が対象で、**オンで足すと今まで出ていなかった技能が
-  急に回り始める**（＝過去の遠征の結果が変わる）ため。
+  条件割り込みや主軸の候補になる**（＝過去の遠征の結果が変わる）ため。
 
 この置き換えが戦闘へ影響しないことの根拠は `allyInput()` にある。tactics・reactives・
 passives のいずれも `enabled()` で `disabled` を除いてから battle input を組むので、

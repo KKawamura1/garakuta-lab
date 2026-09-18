@@ -20,7 +20,12 @@ export const CONTENT_SCHEMA_VERSION = "ecology-content-4";
 // level is 1, resolves byte-for-byte as ecology-battle-3 did. A reader that does
 // not know the field would silently drop the levels — which changes damage — so
 // the version says out loud that the shape grew.
-export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
+// R20 — ally input gained `tacticMode`. `main_action` evaluates conditional
+// actions by priority, then uses the first usable unconditional action as the
+// main action. Inputs without the field keep the old round-robin byte-for-byte.
+// A reader that ignored the field would silently choose different actions, so
+// the battle contract version moves even though the field is optional.
+export const BATTLE_SCHEMA_VERSION = "ecology-battle-5";
 // Issue #192 — result event streams now distinguish barrier absorption and a
 // damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
@@ -443,6 +448,8 @@ export const BATTLE_REASONS = freeze([
   "round_limit",
   "stalemate",
 ]);
+
+export const TACTIC_MODES = freeze(["round_robin", "main_action"]);
 
 // §5.3, §5.5, §5.7 — structural limits that content may not exceed.
 export const LIMITS = freeze({

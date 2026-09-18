@@ -51,6 +51,7 @@ import {
   TARGET_FILTER_TYPES,
   TARGET_SCOPES,
   TARGET_SORT_TYPES,
+  TACTIC_MODES,
   USE_WHEN_PREDICATE_TYPES,
   USE_WHEN_SUBJECTS,
   VALUE_TYPES,
@@ -968,6 +969,9 @@ export function validateBattleInput(input, bundle) {
         requireCount(bag, `${path}.hp`, ally.hp, { min: 0, max: allyMaxHp });
       }
       rejectUnknownKeys(bag, path, ally, ALLY_INPUT_KEYS);
+      if (ally.tacticMode !== undefined) {
+        requireOneOf(bag, `${path}.tacticMode`, ally.tacticMode, TACTIC_MODES, "unknown_tactic_mode");
+      }
       validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
       validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, ally.reactiveSkillIds, bundle);
       validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
@@ -1095,7 +1099,7 @@ function validateMutationRecord(bag, path, mutations) {
 const ALLY_INPUT_KEYS = Object.freeze([
   "instanceId", "characterId", "position", "hp", "tactics",
   "reactiveSkillIds", "passiveSkillIds", "equipment", "stats", "training",
-  "skillLevels",
+  "skillLevels", "tacticMode",
 ]);
 const ENEMY_INPUT_KEYS = Object.freeze([
   "instanceId", "enemyActorId", "position", "hp", "stats", "mutations",

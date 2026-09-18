@@ -20,6 +20,7 @@ smokes=(
   analysis/ecology-map-smoke.mjs
   analysis/ecology-equipment-gen-smoke.mjs
   analysis/ecology-readout-smoke.mjs
+  analysis/ecology-main-action-smoke.mjs
   analysis/ecology-skill-balance-smoke.mjs
   analysis/ecology-skill-catalog-smoke.mjs
   analysis/ecology-canonical-numbers-smoke.mjs

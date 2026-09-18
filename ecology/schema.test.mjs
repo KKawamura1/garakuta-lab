@@ -669,4 +669,12 @@ expectRejected(
   "an old battle schema version",
 );
 
+expectRejected(
+  input((battle) => {
+    battle.allies[0].tacticMode = "shuffle";
+  }),
+  "unknown_tactic_mode",
+  "an unknown tactic selection mode",
+);
+
 console.log(`schema.test.mjs: ${checks} checks passed`);

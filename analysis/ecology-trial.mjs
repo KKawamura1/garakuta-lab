@@ -603,7 +603,7 @@ try {
       if (await unlock.count()) {
         await unlock.click();
         await page.waitForTimeout(250);
-        // **「装着する」という二手目は無い。**取った瞬間に装着行へ並び、オンで回り始める。
+        // **「装着する」という二手目は無い。**取った瞬間に装着行へ並び、オンになる。
         note("取得と装着が一つの手である",
           await page.locator('[data-action="equip-skill"]').count() === 0);
         note("取得した技能がその場で装着行に並ぶ",
@@ -1157,7 +1157,7 @@ try {
     if (!turnStripSeen) {
       turnStripSeen = true;
       // issue #177 — **装着順が結果にどう出たか**を、文ではなく帯で見せる。
-      // アクティブは順送りに回るので、ラウンドごとに何が鳴ったかを並べれば読める。
+      // 条件行動と主軸が、ラウンドごとにどう鳴ったかを並べれば読める。
       const turnRows = await page.locator(".turn-strip .turn-row").count();
       const turnCells = await page.locator(".turn-strip .turn-cell").evaluateAll((nodes) =>
         nodes.map((node) => node.getAttribute("title") ?? ""));
