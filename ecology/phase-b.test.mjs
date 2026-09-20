@@ -45,6 +45,7 @@ import {
 import {
   CHARACTER_OPTIONS,
   SKILL_TREE_NODES,
+  equipSkill,
   freshLoadout,
   // issue #168 — 加入時の無償閉包と、そこへ無償で付く Lv。
   initialSkillLevels,
@@ -507,18 +508,19 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   const reactive = Object.keys(PLAYABLE_CONTENT.reactiveSkills).slice(0, 6);
   const passive = Object.keys(PLAYABLE_CONTENT.passiveSkills).slice(0, 3);
   loadout.tactics.warden = active;
+  loadout.actives.warden = active[0];
   loadout.reactives.warden = reactive;
   loadout.passives.warden = passive;
   const battle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, loadout, "s", FORMATION, {});
   const warden = battle.allies.find((ally) => ally.characterId === "warden");
-  equal(warden.tactics.length, active.length, "上限なしのアクティブ技能が戦闘へ届く");
+  equal(warden.activeSkillId, loadout.actives.warden, "選択中のアクティブ技能だけが戦闘へ届く");
   equal(warden.reactiveSkillIds.length, reactive.length, "上限なしのリアクティブ技能が戦闘へ届く");
   equal(warden.passiveSkillIds.length, passive.length, "上限なしのパッシブ技能が戦闘へ届く");
   assert.deepEqual(validateBattleInput(battle, PLAYABLE_CONTENT), []);
   checks += 1;
 
-  const reversedActive = reorderSkill(loadout, "warden", "active", 0, 1);
-  equal(reversedActive.tactics.warden[0], active[1], "行動の上から順を入れ替えられる");
+  const selectedActive = equipSkill(loadout, "warden", active[1], "active");
+  equal(selectedActive.loadout.actives.warden, active[1], "アクティブ技能は一つを選び直せる");
   const reversedReactive = reorderSkill(loadout, "warden", "reactive", 0, 1);
   equal(reversedReactive.reactives.warden[0], reactive[1], "反応の上から順を入れ替えられる");
 
@@ -527,8 +529,8 @@ equal(SKILL_PACKS.length, 6, "技能を6パックへ分けた");
   equal(off.enabled, false, "オフ状態が返る");
   equal(off.loadout.disabled.warden[0], active[0], "オフ状態を保存する");
   const offBattle = makeExpeditionBattle(composeEncounter(1, 0), ROSTER, off.loadout, "s", FORMATION, {});
-  equal(offBattle.allies.find((ally) => ally.characterId === "warden").tactics.length, active.length - 1,
-    "オフにした行動の効果だけ戦闘から外れる");
+  equal(offBattle.allies.find((ally) => ally.characterId === "warden").activeSkillId, undefined,
+    "選択中の行動をオフにすると通常攻撃へ戻る");
   const on = toggleSkill(off.loadout, "warden", active[0]);
   equal(on.enabled, true, "同じトグルで再びオンにできる");
   check(!on.loadout.disabled, "オンに戻すと不要なオフ欄を残さない");

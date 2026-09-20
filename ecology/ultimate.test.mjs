@@ -271,11 +271,8 @@ function armedRun(designations, options = {}) {
   );
   checks += 1;
   const warden = battleInput.allies.find((ally) => ally.characterId === "warden");
-  assert.deepEqual(
-    warden.tactics.map((tactic) => tactic.activeSkillId), ["ult_steady_cut", "steady_cut"],
-    "必殺は元の技能の一つ前に入る（同じ条件で、同じ場面に出る）",
-  );
-  checks += 1;
+  equal(warden.activeSkillId, "steady_cut", "選択中アクティブは一つのまま保つ");
+  equal(warden.activeOverrideSkillId, "ult_steady_cut", "必殺は発動可能な時だけ一戦の上書き候補になる");
 
   const fired = ultimateFirings(result);
   assert.deepEqual(fired, ["a_warden"], "構えた本人だけが放つ");
@@ -577,7 +574,7 @@ function armedRun(designations, options = {}) {
   const bundle = withUltimates(PLAYABLE_CONTENT, ["steady_cut"]);
   const maxHp = PLAYABLE_CONTENT.characters.warden.maxHp;
   const battleWith = (hp) => ({
-    schemaVersion: "ecology-battle-4",
+    schemaVersion: "ecology-battle-5",
     battleId: "ultimate_once_" + hp,
     maxRounds: 12,
     objective: { type: "eliminate_all_enemies" },

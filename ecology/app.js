@@ -388,8 +388,11 @@ function joinRun(run, characterId) {
     runSkillLevels: { ...run.runSkillLevels },
     loadout: {
       ...run.loadout,
+      actives: { ...run.loadout?.actives },
       tactics: { ...run.loadout?.tactics },
       reactives: { ...run.loadout?.reactives },
+      targets: { ...run.loadout?.targets },
+      reactiveReserves: { ...run.loadout?.reactiveReserves },
       passives: { ...run.loadout?.passives },
       equipment: { ...run.loadout?.equipment },
       ...(run.loadout?.disabled && typeof run.loadout.disabled === "object"
@@ -419,7 +422,16 @@ function joinRun(run, characterId) {
     next.runSkillLevels[characterId] = levels;
   }
   next.loadout.tactics[characterId] = keep(run.loadout?.tactics?.[characterId] ?? fresh.tactics[characterId]);
+  const selectedActive = run.loadout?.actives?.[characterId] ?? next.loadout.tactics[characterId][0] ?? null;
+  next.loadout.actives[characterId] = next.loadout.tactics[characterId].includes(selectedActive)
+    ? selectedActive
+    : (next.loadout.tactics[characterId][0] ?? null);
   next.loadout.reactives[characterId] = keep(run.loadout?.reactives?.[characterId] ?? fresh.reactives[characterId]);
+  next.loadout.targets[characterId] = keep(run.loadout?.targets?.[characterId] ?? []);
+  next.loadout.reactiveReserves[characterId] = Object.fromEntries(
+    Object.entries(run.loadout?.reactiveReserves?.[characterId] ?? {})
+      .filter(([skillId]) => next.loadout.reactives[characterId].includes(skillId)),
+  );
   next.loadout.passives[characterId] = keep(run.loadout?.passives?.[characterId]);
   next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
   const savedDisabled = run.loadout?.disabled?.[characterId];
@@ -9329,7 +9341,13 @@ function handleAction(event) {
         const nextLoadout = freshLoadout(state.run.roster);
         for (const characterId of state.run.roster) {
           nextLoadout.tactics[characterId] = [...(state.run.loadout.tactics?.[characterId] || nextLoadout.tactics[characterId])];
+          nextLoadout.actives[characterId] = state.run.loadout.actives?.[characterId]
+            ?? nextLoadout.tactics[characterId][0] ?? null;
           nextLoadout.reactives[characterId] = [...(state.run.loadout.reactives?.[characterId] || nextLoadout.reactives[characterId])];
+          nextLoadout.targets[characterId] = [...(state.run.loadout.targets?.[characterId] || [])];
+          nextLoadout.reactiveReserves[characterId] = {
+            ...(state.run.loadout.reactiveReserves?.[characterId] || {}),
+          };
           nextLoadout.passives[characterId] = [...(state.run.loadout.passives?.[characterId] || [])];
           nextLoadout.equipment[characterId] = [...(state.run.loadout.equipment?.[characterId] || [])];
           const disabled = state.run.loadout.disabled?.[characterId];

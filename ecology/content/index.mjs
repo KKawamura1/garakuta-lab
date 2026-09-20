@@ -95,7 +95,7 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 公開IDの追加と既存欄の意味変更なので版を上げる。
 // R25 — Stage 1以降の敵を部隊化する7体（庇護・治療・弱体・多段と最終主心）と
 // 最終boss lawを追加した。既存のengine/schema語彙だけだが、公開IDが増えるため上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-28";
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-29";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -157,6 +157,7 @@ export const RETIRED_IDS = Object.freeze({
 export const NAMED_SECTIONS = Object.freeze([
   "characters",
   "activeSkills",
+  "targetSkills",
   "reactiveSkills",
   "equipment",
   "statuses",
@@ -188,6 +189,10 @@ export const PLAYABLE_CONTENT = Object.freeze({
   contentVersion: "ecology-playable-full-0.19",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
+  // The staged weapon-tree implementation starts with the contract and UI.
+  // Concrete target skills are added weapon by weapon; fixture-only selectors
+  // must never leak into playable content.
+  targetSkills: Object.freeze({}),
   reactiveSkills: REACTIVE_SKILLS,
   passiveSkills: PASSIVE_SKILLS,
   equipment: FIXED_EQUIPMENT,
@@ -231,6 +236,7 @@ export const DISPLAY_NAMES = Object.freeze(
 export const SECTION_NAMES = Object.freeze({
   characters: CHARACTER_NAMES,
   activeSkills: ACTIVE_SKILL_NAMES,
+  targetSkills: Object.freeze({}),
   reactiveSkills: REACTIVE_SKILL_NAMES,
   equipment: EQUIPMENT_NAMES,
   statuses: STATUS_NAMES,

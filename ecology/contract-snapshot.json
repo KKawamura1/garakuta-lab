@@ -1,7 +1,10 @@
+Warning: truncated output (original token count: 213681)
+Total output lines: 39233
+
 {
  "contentVersion": "ecology-playable-full-0.19",
  "content": {
-  "schemaVersion": "ecology-content-4",
+  "schemaVersion": "ecology-content-5",
   "contentVersion": "ecology-playable-full-0.19",
   "characters": {
    "warden": {
@@ -4091,6 +4094,7 @@
     ]
    }
   },
+  "targetSkills": {},
   "reactiveSkills": {
    "counter_blow": {
     "id": "counter_blow",
@@ -19318,1902 +19322,7 @@
    "x": 4,
    "cost": 1,
    "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "borrowed_focus",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_foundation_guard",
-   "skillId": "foundation_guard",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "maxLv": 10,
-   "requires": []
-  },
-  {
-   "id": "node_opening_guard",
-   "skillId": "opening_guard",
-   "kind": "passive",
-   "branch": "守り",
-   "x": 2,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "foundation_guard",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_wall_reader",
-   "skillId": "wall_reader",
-   "kind": "passive",
-   "branch": "守り",
-   "x": 3,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "opening_guard",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_frontline_stance",
-   "skillId": "frontline_stance",
-   "kind": "passive",
-   "branch": "守り",
-   "x": 4,
-   "cost": 1,
-   "maxLv": 10,
-   "requires": [
-    {
-     "skillId": "wall_reader",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_warded_barrier",
-   "skillId": "warded_barrier",
-   "kind": "passive",
-   "branch": "守り",
-   "x": 5,
-   "cost": 1,
-   "maxLv": 10,
-   "requires": [
-    {
-     "skillId": "frontline_stance",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_foundation_ap",
-   "skillId": "foundation_ap",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": []
-  },
-  {
-   "id": "node_held_breath",
-   "skillId": "held_breath",
-   "kind": "passive",
-   "branch": "指揮",
-   "x": 2,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "foundation_ap",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_first_order",
-   "skillId": "first_order",
-   "kind": "passive",
-   "branch": "指揮",
-   "x": 3,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "held_breath",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_reserve_rhythm",
-   "skillId": "reserve_rhythm",
-   "kind": "passive",
-   "branch": "指揮",
-   "x": 3,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": [
-    {
-     "skillId": "held_breath",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_prepared_power",
-   "skillId": "prepared_power",
-   "kind": "passive",
-   "branch": "指揮",
-   "x": 4,
-   "cost": 1,
-   "maxLv": 10,
-   "requires": [
-    {
-     "skillId": "reserve_rhythm",
-     "minLv": 1
-    }
-   ]
-  },
-  {
-   "id": "node_foundation_rp",
-   "skillId": "foundation_rp",
-   "kind": "passive",
-   "branch": "基礎",
-   "x": 1,
-   "cost": 1,
-   "maxLv": 1,
-   "requires": []
-  }
- ],
- "skillLevelCaps": {
-  "strike": 10,
-  "bulwark": 10,
-  "relay_order": 1,
-  "heavy_swing": 10,
-  "reposition": 1,
-  "long_swing": 10,
-  "hunt_the_slow": 10,
-  "idle_shuffle": 1,
-  "mark_target": 1,
-  "steady_aim": 1,
-  "front_strike": 10,
-  "rear_strike": 10,
-  "enemy_heavy": 10,
-  "enemy_guard": 10,
-  "basic_strike_melee": 10,
-  "fallback_strike_melee": 10,
-  "basic_strike_ranged": 10,
-  "fallback_strike_ranged": 10,
-  "rapid_cuts": 10,
-  "pierce_thrust": 10,
-  "steady_cut": 10,
-  "aimed_shot": 10,
-  "row_sweep": 10,
-  "column_thrust": 10,
-  "guard_crush": 10,
-  "rear_hunt": 10,
-  "finishing_thrust": 10,
-  "crack_mark": 10,
-  "brace_for_impact": 1,
-  "barrage_strike": 10,
-  "mark_strike": 10,
-  "mark_break": 10,
-  "sweeping_barrage": 10,
-  "piercing_barrage": 10,
-  "shield_the_wounded": 10,
-  "hand_off": 1,
-  "overreach": 10,
-  "reckless_swing": 10,
-  "double_back": 10,
-  "spread_cut": 10,
-  "opening_stab": 10,
-  "bloodied_charge": 10,
-  "hamstring": 10,
-  "execute_low": 10,
-  "rend": 10,
-  "drag_forward": 1,
-  "shield_wall": 10,
-  "rally_line": 1,
-  "bulwark_of_will": 10,
-  "spread_the_guard": 1,
-  "bracing_thrust": 10,
-  "field_dressing": 10,
-  "steady_breath": 1,
-  "ward_ally": 1,
-  "precise_cut": 10,
-  "sustaining_ward": 10,
-  "cleansing_step": 1,
-  "hasten_ally": 1,
-  "call_the_slow": 1,
-  "feint": 1,
-  "set_the_pace": 1,
-  "flurry_finish": 10,
-  "mark_spread": 1,
-  "shatter_point": 10,
-  "take_the_wound": 1,
-  "pass_the_edge": 1,
-  "counter_blow": 10,
-  "cover_ally": 1,
-  "overflow_care": 10,
-  "scavenge_ap": 1,
-  "guard_step": 10,
-  "urging": 1,
-  "brace_after_hit": 10,
-  "triage_relay": 10,
-  "block_focus": 1,
-  "barrier_stitch": 1,
-  "emergency_treatment": 10,
-  "mend": 10,
-  "triage": 10,
-  "guarded_opening": 1,
-  "seize_the_opening": 1,
-  "whetted_by_pain": 1,
-  "shield_handoff": 10,
-  "patient_step": 1,
-  "spill_forward": 10,
-  "blocked_into_step": 1,
-  "mercy_into_guard": 1,
-  "stride_into_reach": 1,
-  "readied_relay": 1,
-  "wake_of_the_fallen": 10,
-  "opportunist": 10,
-  "vengeful_step": 10,
-  "finish_the_wounded": 10,
-  "absorb_shock": 10,
-  "guard_the_marked": 1,
-  "last_stand": 10,
-  "counterweight": 10,
-  "shared_pain": 10,
-  "watchful_care": 1,
-  "steady_under_fire": 1,
-  "second_wind": 1,
-  "read_the_charge": 1,
-  "break_the_charge": 1,
-  "counter_order": 1,
-  "stall_the_blow": 1,
-  "echo_of_the_mark": 10,
-  "stagger_relay": 1,
-  "warded_into_edge": 1,
-  "bleed_into_wake": 1,
-  "exploit_stagger": 10,
-  "deepen_bleed": 1,
-  "moving_guard": 10,
-  "barrier_rebuke": 1,
-  "critical_care": 10,
-  "aftercare": 1,
-  "charge_guard": 1,
-  "stagger_focus": 1,
-  "deepen_mark": 1,
-  "third_cut": 1,
-  "return_the_mark": 1,
-  "carry_the_ward": 1,
-  "foundation_vitality": 10,
-  "foundation_might": 10,
-  "foundation_focus": 10,
-  "foundation_guard": 10,
-  "foundation_ap": 1,
-  "foundation_rp": 1,
-  "first_blood": 1,
-  "held_breath": 1,
-  "steady_hands": 1,
-  "wake_reader": 1,
-  "opening_guard": 1,
-  "edge_honed": 1,
-  "wall_reader": 1,
-  "patient_hands": 1,
-  "first_order": 1,
-  "mark_reader": 1,
-  "relay_reader": 1,
-  "reserve_edge": 10,
-  "bloodied_edge": 10,
-  "frontline_stance": 10,
-  "warded_barrier": 10,
-  "reserve_care": 10,
-  "wounded_guard": 10,
-  "reserve_rhythm": 1,
-  "prepared_power": 10,
-  "marked_assault": 10,
-  "three_count": 1,
-  "borrowed_focus": 1,
-  "bleed_memory": 1
- },
- "enemyInfo": {
-  "husk": {
-   "id": "husk",
-   "label": "灰殻兵",
-   "targeting": "前列を優先して狙う。",
-   "lore": "台帳ではこれを「兵」と数えない。「一体」と書く。"
-  },
-  "husk_warden": {
-   "id": "husk_warden",
-   "label": "灰殻の見張り",
-   "targeting": "前列を優先して狙う。",
-   "lore": "門の内側に立っていることが多い。誰の門なのかは、誰も知らない。"
-  },
-  "still_husk": {
-   "id": "still_husk",
-   "label": "動かない灰殻",
-   "targeting": "前列を優先して狙う。",
-   "lore": "動かないものには手を出すな、と教わる。理由は教わらない。"
-  },
-  "husk_hunter": {
-   "id": "husk_hunter",
-   "label": "灰殻の狩人",
-   "targeting": "前列を優先して狙う。",
-   "lore": "こちらが何かを構えたときだけ、まっすぐ来る。"
-  },
-  "husk_bulwark": {
-   "id": "husk_bulwark",
-   "label": "灰殻の盾兵",
-   "targeting": "前列を優先して狙う。",
-   "lore": "殴った音が、金属でも石でもない。"
-  },
-  "husk_echo": {
-   "id": "husk_echo",
-   "label": "灰殻の反響体",
-   "targeting": "前列を優先して狙う。",
-   "lore": "殴ると、殴った側が同じところを痛める。新人はここで一度辞める。"
-  },
-  "husk_marker": {
-   "id": "husk_marker",
-   "label": "灰殻の標定手",
-   "targeting": "前列を優先して狙う。",
-   "lore": "見られた、と思ったら、もう囲まれている。"
-  },
-  "gray_scrapper": {
-   "id": "gray_scrapper",
-   "label": "灰殻の走者",
-   "targeting": "前列で最もHPの低い者を狙う。",
-   "lore": "灰の浅いところに一番多い。数だけはいくらでもいる。"
-  },
-  "gray_swarm": {
-   "id": "gray_swarm",
-   "label": "灰殻の群れ",
-   "targeting": "前列で最もHPの低い者を狙う。",
-   "lore": "一体ずつは軽い。軽いものが同時に来ると、重い一撃より効く。"
-  },
-  "gray_runner": {
-   "id": "gray_runner",
-   "label": "灰殻の走り手",
-   "targeting": "前列で最もHPの低い者を狙う。一巡に二度動く。",
-   "lore": "足音がしない。振り向いたときには、もう二度殴られている。"
-  },
-  "gray_razor": {
-   "id": "gray_razor",
-   "label": "灰殻の刻み手",
-   "targeting": "多段で刻み、受け構えを剥がす。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "刃は見えない。三本の傷が同じ高さに残るので、刻み手と呼ばれている。"
-  },
-  "gray_brand": {
-   "id": "gray_brand",
-   "label": "灰殻の傷印",
-   "targeting": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "こいつが腕を上げたあとだけ、ほかの灰殻の傷が深くなる。"
-  },
-  "gray_marksman": {
-   "id": "gray_marksman",
-   "label": "灰殻の後撃ち",
-   "targeting": "後列で最もHPの低い者を狙う。",
-   "lore": "後ろに置いた者から減る。だから新人には前を任せる、と言う先達がいる。"
-  },
-  "gray_stalker": {
-   "id": "gray_stalker",
-   "label": "灰殻の潜み手",
-   "targeting": "後列で最もHPの低い者を狙う。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "隊列の後ろを覚えている、という言い方をする者がいる。"
-  },
-  "gray_guard": {
-   "id": "gray_guard",
-   "label": "灰殻の守衛",
-   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "最初の一手をいつも守りに使う。急いでいる相手ほど嫌がる。"
-  },
-  "gray_shelter": {
-   "id": "gray_shelter",
-   "label": "灰殻の籠り手",
-   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "先に殻を張る。剥がすまでのあいだが、こちらの持ち時間になる。"
-  },
-  "gray_aegis": {
-   "id": "gray_aegis",
-   "label": "灰殻の抱え手",
-   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
-   "lore": "後ろを狙ったはずの刃が、いつもこいつの殻へ刺さっている。"
-  },
-  "gray_mender": {
-   "id": "gray_mender",
-   "label": "灰殻の縫い手",
-   "targeting": "自分へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
-   "lore": "傷ついた灰殻へ手を伸ばす。触れたところから、割れ目が閉じていく。"
-  },
-  "gray_breaker": {
-   "id": "gray_breaker",
-   "label": "灰殻の砕き手",
-   "targeting": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "溜めているあいだは静かで、そのぶん派手に来る。"
-  },
-  "gray_hunter": {
-   "id": "gray_hunter",
-   "label": "灰殻の狩人",
-   "targeting": "準備中の者がいれば、そこを先に狙う。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "こちらの溜めを嫌う。準備している者から順に潰しに来る。"
-  },
-  "gray_harrower": {
-   "id": "gray_harrower",
-   "label": "灰殻の追い手",
-   "targeting": "準備中の者がいれば、そこを先に狙う。通らなければ後列で最もHPの低い者を狙う。それも通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "追う。逃げた先で待っていることがある、というのは噂のほう。"
-  },
-  "gray_echo": {
-   "id": "gray_echo",
-   "label": "灰殻の反響体",
-   "targeting": "前列で最もHPの低い者を狙う。殴られると、反応点1で殴り返す。",
-   "lore": "反響体と呼ぶのは協会の呼び方で、拾い屋は「返す奴」と言う。"
-  },
-  "gray_bulwark": {
-   "id": "gray_bulwark",
-   "label": "灰殻の盾兵",
-   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "壊しても張り直す。持久の勝負になると、たいてい先に人が折れる。"
-  },
-  "ash_core": {
-   "id": "ash_core",
-   "label": "灰の核心",
-   "targeting": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "幕の奥に一つだけある。持ち帰った者はいるが、何だったかは書かれていない。"
-  },
-  "dust_mote": {
-   "id": "dust_mote",
-   "label": "灰塵の粒",
-   "targeting": "前列で最もHPの低い者を狙う。",
-   "lore": "灰そのものが立ち上がったように見える。見えるだけで、灰ではない。"
-  },
-  "dust_lash": {
-   "id": "dust_lash",
-   "label": "灰塵の薙ぎ手",
-   "targeting": "前列に2人以上いるとき、その行をまとめて薙ぐ。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "横に払う。前へ二人並べた隊が、二人とも同じ高さで倒れていた。"
-  },
-  "dust_spire": {
-   "id": "dust_spire",
-   "label": "灰塵の突き手",
-   "targeting": "同じ列の前後をまとめて貫く。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "前の者を抜けて、後ろの者まで届く。抜けた跡がまっすぐ残る。"
-  },
-  "dust_maw": {
-   "id": "dust_maw",
-   "label": "灰塵の顎",
-   "targeting": "多段で刻み、受け構えを剥がす。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "数を刻む。構えていた者ほど先に構えを失う。"
-  },
-  "dust_veil": {
-   "id": "dust_veil",
-   "label": "灰塵の帳",
-   "targeting": "自分の側の前列へ受け構えを配る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "こちら側ではなく、自分の側を守る。守られた側は減らない。"
-  },
-  "dust_choir": {
-   "id": "dust_choir",
-   "label": "灰塵の唱和",
-   "targeting": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "音はしない。音はしないのに、全員が同時に身構える。"
-  },
-  "dust_tide": {
-   "id": "dust_tide",
-   "label": "灰塵の潮",
-   "targeting": "前列に2人以上いるとき、その行をまとめて薙ぐ。通らなければ同じ列の前後をまとめて貫く。それも通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "寄せると引く。引いたときに、こちらの列が一つ足りなくなっている。"
-  },
-  "weave_hand": {
-   "id": "weave_hand",
-   "label": "灰織の手繰り",
-   "targeting": "後列で最もHPの低い者を、最前へ引きずり出す。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "後ろに置いた者が、いつのまにか前にいる。置いた本人が一番驚く。"
-  },
-  "weave_knot": {
-   "id": "weave_knot",
-   "label": "灰織の結び手",
-   "targeting": "怯みを付け、こちらの出す damage を軽くする。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "殴られた覚えがないのに、腕が上がらなくなる、と言う者がいる。"
-  },
-  "weave_thorn": {
-   "id": "weave_thorn",
-   "label": "灰織の棘",
-   "targeting": "裂傷を刻む（裂傷はラウンド終わりに、受けを無視して削る）。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "傷が浅いのに血が止まらない。詰所の薬でも止まらない。"
-  },
-  "weave_eye": {
-   "id": "weave_eye",
-   "label": "灰織の見張り",
-   "targeting": "まだ隙のない者へ隙を刻む。通らなければ隙のない者を殴り、その場で隙を付ける。それも通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "見られてから殴られるまでが短い。見られていることには、たいてい気づかない。"
-  },
-  "weave_reach": {
-   "id": "weave_reach",
-   "label": "灰織の遠手",
-   "targeting": "後列の者へ直接届く。通らなければ後列で最もHPの低い者を狙う。",
-   "lore": "前を固めても、後ろが減る。前を固めた意味を訊かれると、誰も答えない。"
-  },
-  "weave_mirror": {
-   "id": "weave_mirror",
-   "label": "灰織の写し",
-   "targeting": "後列で最もHPの低い者を、最前へ引きずり出す。通らなければ前列で最もHPの低い者を狙う。殴られると、反応点1で殴り返す。",
-   "lore": "こちらの隊列と同じ形を作る、と言う者がいる。作ったあとに崩す、とも。"
-  },
-  "forge_awl": {
-   "id": "forge_awl",
-   "label": "灰炉の錐",
-   "targeting": "受けを6割無視して突く。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "受けの厚い者が、受けの厚さのぶんだけ油断して倒れる。"
-  },
-  "forge_hammer": {
-   "id": "forge_hammer",
-   "label": "灰炉の槌",
-   "targeting": "受けも受け構えも完全に無視して叩く。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "盾ごと持っていく。盾を持っていた腕も一緒に持っていく。"
-  },
-  "forge_anvil": {
-   "id": "forge_anvil",
-   "label": "灰炉の金床",
-   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "殴っても殴っても減らない。減らないので、こちらの補給が先に尽きる。"
-  },
-  "forge_ember": {
-   "id": "forge_ember",
-   "label": "灰炉の熾",
-   "targeting": "HP30%以下の者がいれば、そこへ最も重く入る。通らなければHP半分以下の者を狙う。それも通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "手負いを見つける。見つけたほうへは、二度と手加減しない。"
-  },
-  "forge_bellows": {
-   "id": "forge_bellows",
-   "label": "灰炉の鞴",
-   "targeting": "自分の側の前列全体へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "自分は殴らない。殴らない個体を後回しにした隊の記録が、いちばん短い。"
-  },
-  "forge_mender": {
-   "id": "forge_mender",
-   "label": "灰炉の継ぎ手",
-   "targeting": "自分の側の前列全体へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
-   "lore": "前の個体を継ぎ、割れたところを戻す。後ろにいるほど、前が減らない。"
-  },
-  "forge_aegis": {
-   "id": "forge_aegis",
-   "label": "灰炉の抱壁",
-   "targeting": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
-   "lore": "狙ったものとの間へ必ず入る。遠回りをしても、先回りされている。"
-  },
-  "ash_furnace": {
-   "id": "ash_furnace",
-   "label": "灰炉の本体",
-   "targeting": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。",
-   "lore": "熱くない。熱くないのに、近づいた者から順に立てなくなる。"
-  },
-  "ash_furnace_heart": {
-   "id": "ash_furnace_heart",
-   "label": "灰炉の主心",
-   "targeting": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ多段で刻み、受け構えを剥がす。通らなければ重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ裂傷を刻む（裂傷はラウンド終わりに、受けを無視して削る）。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。一巡に二度動く。殴られると、反応点1で殴り返す。",
-   "lore": "一度に二つの音がする。台帳には、どちらが先かを書いた欄が無い。"
-  }
- },
- "enemyTargeting": {
-  "husk": "前列を優先して狙う。",
-  "husk_warden": "前列を優先して狙う。",
-  "still_husk": "前列を優先して狙う。",
-  "husk_hunter": "前列を優先して狙う。",
-  "husk_bulwark": "前列を優先して狙う。",
-  "husk_echo": "前列を優先して狙う。",
-  "husk_marker": "前列を優先して狙う。",
-  "gray_scrapper": "前列で最もHPの低い者を狙う。",
-  "gray_swarm": "前列で最もHPの低い者を狙う。",
-  "gray_runner": "前列で最もHPの低い者を狙う。一巡に二度動く。",
-  "gray_razor": "多段で刻み、受け構えを剥がす。通らなければ前列で最もHPの低い者を狙う。",
-  "gray_brand": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ前列で最もHPの低い者を狙う。",
-  "gray_marksman": "後列で最もHPの低い者を狙う。",
-  "gray_stalker": "後列で最もHPの低い者を狙う。通らなければ前列で最もHPの低い者を狙う。",
-  "gray_guard": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-  "gray_shelter": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-  "gray_aegis": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
-  "gray_mender": "自分へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
-  "gray_breaker": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ前列で最もHPの低い者を狙う。",
-  "gray_hunter": "準備中の者がいれば、そこを先に狙う。通らなければ前列で最もHPの低い者を狙う。",
-  "gray_harrower": "準備中の者がいれば、そこを先に狙う。通らなければ後列で最もHPの低い者を狙う。それも通らなければ前列で最もHPの低い者を狙う。",
-  "gray_echo": "前列で最もHPの低い者を狙う。殴られると、反応点1で殴り返す。",
-  "gray_bulwark": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-  "ash_core": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ前列で最もHPの低い者を狙う。",
-  "dust_mote": "前列で最もHPの低い者を狙う。",
-  "dust_lash": "前列に2人以上いるとき、その行をまとめて薙ぐ。通らなければ前列で最もHPの低い者を狙う。",
-  "dust_spire": "同じ列の前後をまとめて貫く。通らなければ前列で最もHPの低い者を狙う。",
-  "dust_maw": "多段で刻み、受け構えを剥がす。通らなければ前列で最もHPの低い者を狙う。",
-  "dust_veil": "自分の側の前列へ受け構えを配る。通らなければ前列で最もHPの低い者を狙う。",
-  "dust_choir": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ前列で最もHPの低い者を狙う。",
-  "dust_tide": "前列に2人以上いるとき、その行をまとめて薙ぐ。通らなければ同じ列の前後をまとめて貫く。それも通らなければ前列で最もHPの低い者を狙う。",
-  "weave_hand": "後列で最もHPの低い者を、最前へ引きずり出す。通らなければ前列で最もHPの低い者を狙う。",
-  "weave_knot": "怯みを付け、こちらの出す damage を軽くする。通らなければ前列で最もHPの低い者を狙う。",
-  "weave_thorn": "裂傷を刻む（裂傷はラウンド終わりに、受けを無視して削る）。通らなければ前列で最もHPの低い者を狙う。",
-  "weave_eye": "まだ隙のない者へ隙を刻む。通らなければ隙のない者を殴り、その場で隙を付ける。それも通らなければ前列で最もHPの低い者を狙う。",
-  "weave_reach": "後列の者へ直接届く。通らなければ後列で最もHPの低い者を狙う。",
-  "weave_mirror": "後列で最もHPの低い者を、最前へ引きずり出す。通らなければ前列で最もHPの低い者を狙う。殴られると、反応点1で殴り返す。",
-  "forge_awl": "受けを6割無視して突く。通らなければ前列で最もHPの低い者を狙う。",
-  "forge_hammer": "受けも受け構えも完全に無視して叩く。通らなければ前列で最もHPの低い者を狙う。",
-  "forge_anvil": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-  "forge_ember": "HP30%以下の者がいれば、そこへ最も重く入る。通らなければHP半分以下の者を狙う。それも通らなければ前列で最もHPの低い者を狙う。",
-  "forge_bellows": "自分の側の前列全体へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。",
-  "forge_mender": "自分の側の前列全体へ防壁を張る。味方が傷つくと、反応点1でその傷を手当てする。",
-  "forge_aegis": "自分へ防壁を張る。通らなければ前列で最もHPの低い者を狙う。自分以外の味方が狙われると、反応点1で身代わりになる。",
-  "ash_furnace": "重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。",
-  "ash_furnace_heart": "隙を持たない者全員へ、隙を一つずつ配る。通らなければ多段で刻み、受け構えを剥がす。通らなければ重い一撃を溜め、完成した瞬間に最もHPの低い者へ放つ。通らなければ裂傷を刻む（裂傷はラウンド終わりに、受けを無視して削る）。通らなければ受けも受け構えも完全に無視して叩く。それも通らなければ前列で最もHPの低い者を狙う。一巡に二度動く。殴られると、反応点1で殴り返す。"
- },
- "initialUnlocked": {
-  "warden": [
-   "strike",
-   "steady_cut",
-   "bulwark",
-   "mend"
-  ],
-  "mender": [
-   "strike",
-   "aimed_shot",
-   "shield_the_wounded",
-   "bulwark",
-   "mend",
-   "emergency_treatment",
-   "triage"
-  ],
-  "lancer": [
-   "strike",
-   "steady_cut",
-   "pierce_thrust",
-   "rear_hunt",
-   "heavy_swing",
-   "bulwark",
-   "mend",
-   "triage",
-   "brace_after_hit",
-   "cover_ally"
-  ],
-  "guardian": [
-   "strike",
-   "steady_cut",
-   "pierce_thrust",
-   "column_thrust",
-   "bulwark",
-   "spread_the_guard",
-   "reposition",
-   "mend",
-   "counter_blow",
-   "scavenge_ap",
-   "brace_after_hit"
-  ],
-  "tactician": [
-   "strike",
-   "bulwark",
-   "spread_the_guard",
-   "reposition",
-   "rally_line",
-   "relay_order",
-   "mark_target",
-   "mend",
-   "counter_blow",
-   "scavenge_ap",
-   "patient_step",
-   "brace_after_hit",
-   "absorb_shock",
-   "block_focus"
-  ]
- },
- "freshLoadout": {
-  "tactics": {
-   "warden": [
-    "steady_cut"
-   ],
-   "mender": [
-    "aimed_shot",
-    "shield_the_wounded"
-   ],
-   "lancer": [
-    "heavy_swing",
-    "rear_hunt"
-   ],
-   "guardian": [
-    "reposition",
-    "column_thrust"
-   ],
-   "tactician": [
-    "relay_order",
-    "mark_target"
-   ]
-  },
-  "reactives": {
-   "warden": [
-    "mend"
-   ],
-   "mender": [
-    "triage",
-    "emergency_treatment"
-   ],
-   "lancer": [
-    "cover_ally",
-    "triage"
-   ],
-   "guardian": [
-    "scavenge_ap",
-    "brace_after_hit"
-   ],
-   "tactician": [
-    "patient_step",
-    "block_focus"
-   ]
-  },
-  "passives": {
-   "warden": [],
-   "mender": [],
-   "lancer": [],
-   "guardian": [],
-   "tactician": []
-  },
-  "equipment": {
-   "warden": [],
-   "mender": [],
-   "lancer": [],
-   "guardian": [],
-   "tactician": []
-  },
-  "ultimates": {},
-  "ultimateArmed": {}
- },
- "region": {
-  "id": "ash_frontier",
-  "displayName": "灰の辺境",
-  "summary": "3幕12戦。4・8・12戦目にボスが立つ。",
-  "enemyFamilyIds": [
-   "husk",
-   "dust",
-   "weave",
-   "forge"
-  ],
-  "enemyFamilyText": "灰殻（husk）— 走者・後撃ち・守衛・狩人・反響体・盾兵・核",
-  "regionLawIds": [],
-  "rewardTableId": "equipment_1",
-  "actBossIds": [
-   "gray_bulwark",
-   "gray_echo",
-   "ash_core"
-  ],
-  "actBossLawIds": [
-   "law_bulwark_wall",
-   "law_echo_return",
-   "law_core_charge"
-  ]
- },
- "skillPacks": [
-  {
-   "id": "pack_edge",
-   "displayName": "刃と撃破",
-   "summary": "単発・多段・貫通で、受けの厚い相手をどう抜くかを問う。",
-   "combatRole": "primary_offense",
-   "activeSkillIds": [
-    "heavy_swing",
-    "long_swing",
-    "hunt_the_slow",
-    "rapid_cuts",
-    "pierce_thrust",
-    "guard_crush",
-    "rear_hunt",
-    "finishing_thrust",
-    "crack_mark",
-    "reckless_swing",
-    "double_back",
-    "spread_cut",
-    "opening_stab",
-    "bloodied_charge",
-    "hamstring",
-    "execute_low",
-    "rend"
-   ],
-   "reactiveSkillIds": [
-    "counter_blow",
-    "scavenge_ap",
-    "whetted_by_pain",
-    "cover_ally",
-    "opportunist",
-    "vengeful_step",
-    "finish_the_wounded",
-    "exploit_stagger",
-    "deepen_bleed"
-   ],
-   "passiveSkillIds": [
-    "first_blood",
-    "edge_honed",
-    "reserve_edge",
-    "bloodied_edge"
-   ],
-   "coreActiveSkillIds": [
-    "heavy_swing",
-    "pierce_thrust",
-    "finishing_thrust",
-    "rear_hunt",
-    "hamstring"
-   ],
-   "coreReactiveSkillIds": [
-    "counter_blow",
-    "scavenge_ap",
-    "cover_ally"
-   ],
-   "corePassiveSkillIds": [
-    "first_blood"
-   ],
-   "tags": [
-    "attack",
-    "execute"
-   ]
-  },
-  {
-   "id": "pack_care",
-   "displayName": "構えと手当て",
-   "summary": "条件のない一撃を武器と技で一本ずつ持ち、傷の連鎖を止める。",
-   "combatRole": "offensive_hybrid",
-   "activeSkillIds": [
-    "steady_cut",
-    "aimed_shot",
-    "idle_shuffle",
-    "shield_the_wounded",
-    "field_dressing",
-    "steady_breath",
-    "ward_ally",
-    "precise_cut",
-    "sustaining_ward",
-    "cleansing_step"
-   ],
-   "reactiveSkillIds": [
-    "overflow_care",
-    "triage_relay",
-    "brace_after_hit",
-    "emergency_treatment",
-    "triage",
-    "shared_pain",
-    "watchful_care",
-    "steady_under_fire",
-    "second_wind",
-    "critical_care",
-    "aftercare"
-   ],
-   "passiveSkillIds": [
-    "steady_hands",
-    "patient_hands",
-    "reserve_care",
-    "wounded_guard"
-   ],
-   "coreActiveSkillIds": [
-    "steady_cut",
-    "aimed_shot",
-    "shield_the_wounded",
-    "field_dressing",
-    "sustaining_ward",
-    "ward_ally"
-   ],
-   "coreReactiveSkillIds": [
-    "emergency_treatment",
-    "steady_under_fire",
-    "triage"
-   ],
-   "corePassiveSkillIds": [
-    "steady_hands"
-   ],
-   "tags": [
-    "heal",
-    "overflow"
-   ]
-  },
-  {
-   "id": "pack_wall",
-   "displayName": "防壁と隊列",
-   "summary": "誰が前に立つかと、行・列のどちらを薙ぐかを問う。",
-   "combatRole": "offensive_hybrid",
-   "activeSkillIds": [
-    "reposition",
-    "row_sweep",
-    "column_thrust",
-    "brace_for_impact",
-    "drag_forward",
-    "shield_wall",
-    "rally_line",
-    "bulwark_of_will",
-    "spread_the_guard",
-    "bracing_thrust"
-   ],
-   "reactiveSkillIds": [
-    "guard_step",
-    "block_focus",
-    "barrier_stitch",
-    "shield_handoff",
-    "absorb_shock",
-    "guard_the_marked",
-    "last_stand",
-    "counterweight",
-    "moving_guard",
-    "barrier_rebuke"
-   ],
-   "passiveSkillIds": [
-    "opening_guard",
-    "wall_reader",
-    "frontline_stance",
-    "warded_barrier"
-   ],
-   "coreActiveSkillIds": [
-    "reposition",
-    "brace_for_impact",
-    "column_thrust",
-    "spread_the_guard"
-   ],
-   "coreReactiveSkillIds": [
-    "guard_step",
-    "block_focus",
-    "shield_handoff",
-    "absorb_shock"
-   ],
-   "corePassiveSkillIds": [
-    "opening_guard"
-   ],
-   "tags": [
-    "barrier",
-    "formation"
-   ]
-  },
-  {
-   "id": "pack_tempo",
-   "displayName": "行動権と準備",
-   "summary": "順番そのものを作り替える。遅い構成に手番を通す。",
-   "combatRole": "offensive_hybrid",
-   "activeSkillIds": [
-    "relay_order",
-    "mark_target",
-    "steady_aim",
-    "hasten_ally",
-    "call_the_slow",
-    "feint",
-    "set_the_pace"
-   ],
-   "reactiveSkillIds": [
-    "urging",
-    "patient_step",
-    "read_the_charge",
-    "break_the_charge",
-    "counter_order",
-    "stall_the_blow",
-    "charge_guard",
-    "stagger_focus"
-   ],
-   "passiveSkillIds": [
-    "held_breath",
-    "first_order",
-    "reserve_rhythm",
-    "prepared_power"
-   ],
-   "coreActiveSkillIds": [
-    "relay_order",
-    "steady_aim",
-    "mark_target",
-    "hasten_ally"
-   ],
-   "coreReactiveSkillIds": [
-    "urging",
-    "patient_step",
-    "read_the_charge",
-    "break_the_charge"
-   ],
-   "corePassiveSkillIds": [
-    "held_breath"
-   ],
-   "tags": [
-    "tempo",
-    "preparation"
-   ]
-  },
-  {
-   "id": "pack_barrage",
-   "displayName": "連撃と刻印",
-   "summary": "多段と刻印で、受けよりblockに強い攻め筋を問う。",
-   "combatRole": "primary_offense",
-   "activeSkillIds": [
-    "barrage_strike",
-    "mark_strike",
-    "mark_break",
-    "sweeping_barrage",
-    "piercing_barrage",
-    "flurry_finish",
-    "mark_spread",
-    "shatter_point"
-   ],
-   "reactiveSkillIds": [
-    "guarded_opening",
-    "seize_the_opening",
-    "echo_of_the_mark",
-    "deepen_mark",
-    "third_cut"
-   ],
-   "passiveSkillIds": [
-    "mark_reader",
-    "marked_assault",
-    "three_count"
-   ],
-   "tags": [
-    "attack",
-    "onhit",
-    "mark"
-   ]
-  },
-  {
-   "id": "pack_relay",
-   "displayName": "余波と受け渡し",
-   "summary": "起きた出来事を、別の役割の資源へ渡す。誰の出来事でも読める。",
-   "combatRole": "support",
-   "activeSkillIds": [
-    "hand_off",
-    "overreach",
-    "take_the_wound",
-    "pass_the_edge"
-   ],
-   "reactiveSkillIds": [
-    "spill_forward",
-    "blocked_into_step",
-    "mercy_into_guard",
-    "stride_into_reach",
-    "readied_relay",
-    "wake_of_the_fallen",
-    "stagger_relay",
-    "warded_into_edge",
-    "bleed_into_wake",
-    "return_the_mark",
-    "carry_the_ward"
-   ],
-   "passiveSkillIds": [
-    "wake_reader",
-    "relay_reader",
-    "borrowed_focus",
-    "bleed_memory"
-   ],
-   "tags": [
-    "relay",
-    "handoff",
-    "crosscut"
-   ]
-  }
- ],
- "difficulties": [
-  {
-   "rank": 0,
-   "threatBudgetDelta": 0,
-   "startingSupplies": 0,
-   "eliteMutationCount": 0,
-   "bossMutationCount": 0,
-   "normalMaxRoundsDelta": 0,
-   "encounterModifiers": [],
-   "summary": "基準。設計したままの編成で戦う。"
-  },
-  {
-   "rank": 1,
-   "threatBudgetDelta": 1,
-   "startingSupplies": 0,
-   "eliteMutationCount": 0,
-   "bossMutationCount": 0,
-   "normalMaxRoundsDelta": 0,
-   "encounterModifiers": [
-    "threat_budget_plus_1"
-   ],
-   "summary": "全戦闘の threat budget +1。増援か変異が一つ増える。"
-  },
-  {
-   "rank": 2,
-   "threatBudgetDelta": 1,
-   "startingSupplies": 0,
-   "eliteMutationCount": 1,
-   "bossMutationCount": 0,
-   "normalMaxRoundsDelta": 0,
-   "encounterModifiers": [
-    "threat_budget_plus_1",
-    "elite_mutation_plus_1"
-   ],
-   "summary": "上に加えて、精鋭へ変異 +1。"
-  },
-  {
-   "rank": 3,
-   "threatBudgetDelta": 1,
-   "startingSupplies": 0,
-   "eliteMutationCount": 1,
-   "bossMutationCount": 0,
-   "normalMaxRoundsDelta": -1,
-   "encounterModifiers": [
-    "threat_budget_plus_1",
-    "elite_mutation_plus_1",
-    "normal_rounds_minus_1"
-   ],
-   "summary": "上に加えて、通常戦の round 上限 -1。"
-  },
-  {
-   "rank": 4,
-   "threatBudgetDelta": 1,
-   "startingSupplies": 0,
-   "eliteMutationCount": 1,
-   "bossMutationCount": 1,
-   "normalMaxRoundsDelta": -1,
-   "encounterModifiers": [
-    "threat_budget_plus_1",
-    "elite_mutation_plus_1",
-    "normal_rounds_minus_1",
-    "boss_mutation_plus_1"
-   ],
-   "summary": "上に加えて、各ボスへ変異 +1。"
-  },
-  {
-   "rank": 5,
-   "threatBudgetDelta": 1,
-   "startingSupplies": 0,
-   "eliteMutationCount": 1,
-   "bossMutationCount": 1,
-   "normalMaxRoundsDelta": -1,
-   "encounterModifiers": [
-    "threat_budget_plus_1",
-    "elite_mutation_plus_1",
-    "normal_rounds_minus_1",
-    "boss_mutation_plus_1"
-   ],
-   "summary": "上に加えて、開始補給の基準値は0のまま。"
-  }
- ],
- "bossLaws": {
-  "law_bulwark_wall": {
-   "id": "law_bulwark_wall",
-   "displayName": "盾将の法則",
-   "threatCost": 5,
-   "patch": {
-    "guard": {
-     "flat": 8
-    },
-    "maxHp": {
-     "bps": 14000
-    }
-   },
-   "previewText": "防壁を張り直しながら前列を叩く。受けが厚く、一撃ごとに削られる。",
-   "counters": [
-    "貫き突きで受けを6割無視する",
-    "単発の大打撃で、受けの引き算を一度で済ませる",
-    "防壁と身代わりで前列を保たせ、round をかけて削る"
-   ]
-  },
-  "law_echo_return": {
-   "id": "law_echo_return",
-   "displayName": "反響の法則",
-   "threatCost": 6,
-   "patch": {
-    "might": {
-     "bps": 13000
-    },
-    "maxHp": {
-     "bps": 15000
-    }
-   },
-   "previewText": "殴られると反応点1で殴り返す。手数で削るほど、こちらも減る。",
-   "counters": [
-    "多段をやめ、単発の大打撃で殴る回数を減らす",
-    "余剰治療と応急手当で、返ってくる分を先に埋める",
-    "防壁を厚くして、返ってくる一撃そのものを吸う"
-   ]
-  },
-  "law_core_charge": {
-   "id": "law_core_charge",
-   "displayName": "核の法則",
-   "threatCost": 8,
-   "patch": {
-    "focus": {
-     "bps": 13000
-    },
-    "guard": {
-     "flat": 6
-    },
-    "maxHp": {
-     "bps": 14000
-    }
-   },
-   "previewText": "重い一撃を溜め、完成したら前列へ放つ。準備中は殴られやすい。",
-   "counters": [
-    "準備狩りで、溜めている間に叩く",
-    "身代わりで受け手を選び、放たれた一撃を分散させる",
-    "位置替えで前列を入れ替え、傷んだ人物を後ろへ下げる"
-   ]
-  },
-  "law_breaker_swing": {
-   "id": "law_breaker_swing",
-   "displayName": "砕きの法則",
-   "threatCost": 4,
-   "patch": {
-    "might": {
-     "bps": 14000
-    },
-    "maxHp": {
-     "bps": 13000
-    }
-   },
-   "previewText": "溜めては重く振る。溜めている間は受けが薄い。",
-   "counters": [
-    "準備狩りで、振り下ろす前に止める",
-    "受け構えを配って、単発の一撃を一度だけ消す",
-    "傷んだ前衛を位置替えで下げ、当たる相手を選ぶ"
-   ]
-  },
-  "law_harrower_chase": {
-   "id": "law_harrower_chase",
-   "displayName": "追い手の法則",
-   "threatCost": 5,
-   "patch": {
-    "focus": {
-     "bps": 14000
-    },
-    "maxHp": {
-     "bps": 13000
-    }
-   },
-   "previewText": "準備中の者を先に潰し、いなければ後列を追う。後ろが安全でなくなる。",
-   "counters": [
-    "準備の要らない技能で押し、狙われる理由を作らない",
-    "身代わりで後衛への一撃を前で受ける",
-    "受けの厚い人物を後列へ置いて、追わせても割に合わなくする"
-   ]
-  },
-  "law_choir_mark": {
-   "id": "law_choir_mark",
-   "displayName": "唱和の法則",
-   "threatCost": 6,
-   "patch": {
-    "focus": {
-     "bps": 14000
-    },
-    "maxHp": {
-     "bps": 14000
-    }
-   },
-   "previewText": "隙を面で配る。次に来る一撃が、全員ぶん重くなる。",
-   "counters": [
-    "払いのけるで、自分に付いた隙を落とす",
-    "配り手を先に落として、隙の供給を止める",
-    "防壁と守勢を重ね、重くなった一撃ごと吸う"
-   ]
-  },
-  "law_veil_guard": {
-   "id": "law_veil_guard",
-   "displayName": "帳の法則",
-   "threatCost": 6,
-   "patch": {
-    "focus": {
-     "bps": 13000
-    },
-    "guard": {
-     "flat": 6
-    },
-    "maxHp": {
-     "bps": 15000
-    }
-   },
-   "previewText": "自分の側へ受け構えを配り続ける。削り切る手数が要る。",
-   "counters": [
-    "多段で受け構えを剥がしてから、本命を通す",
-    "受け崩しで受け構えごと無視する",
-    "配り手を先に落として、構えの供給を止める"
-   ]
-  },
-  "law_dust_tide": {
-   "id": "law_dust_tide",
-   "displayName": "潮の法則",
-   "threatCost": 9,
-   "patch": {
-    "might": {
-     "bps": 13000
-    },
-    "focus": {
-     "bps": 13000
-    },
-    "maxHp": {
-     "bps": 15000
-    }
-   },
-   "previewText": "行を薙ぎ、列を貫く。前へ二人並べても、後ろへ下げても同時に届く。",
-   "counters": [
-    "前列を一人にして、行の薙ぎが割に合わない形にする",
-    "同じ列に二人を重ねず、貫きの的を減らす",
-    "面の回復と防壁で、まとめて受けた分をまとめて戻す"
-   ]
-  },
-  "law_knot_stagger": {
-   "id": "law_knot_stagger",
-   "displayName": "結びの法則",
-   "threatCost": 6,
-   "patch": {
-    "might": {
-     "bps": 13000
-    },
-    "guard": {
-     "flat": 6
-    },
-    "maxHp": {
-     "bps": 14000
-    }
-   },
-   "previewText": "怯みを重ねて、こちらの出す damage を段ごとに軽くする。",
-   "counters": [
-    "手数ではなく一撃の大きさで押し、軽減の回数を減らす",
-    "怯みの付いていない人物へ行動権を渡す",
-    "受け無視の技能で、軽減の掛からない damage を作る"
-   ]
-  },
-  "law_thorn_bleed": {
-   "id": "law_thorn_bleed",
-   "displayName": "棘の法則",
-   "threatCost": 6,
-   "patch": {
-    "might": {
-     "bps": 14000
-    },
-    "maxHp": {
-     "bps": 14000
-    }
-   },
-   "previewText": "裂傷を刻む。裂傷はラウンド終わりに、受けを無視して削る。",
-   "counters": [
-    "硬さではなく回復で戻す。受けでは裂傷が減らない",
-    "短い round で決め、刻まれる回数そのものを減らす",
-    "傷の深い人物を後ろへ下げ、重ねて刻ませない"
-   ]
-  },
-  "law_weave_mirror": {
-   "id": "law_weave_mirror",
-   "displayName": "写しの法則",
-   "threatCost": 10,
-   "patch": {
-    "focus": {
-     "bps": 13000
-    },
-    "guard": {
-     "flat": 6
-    },
-    "maxHp": {
-     "bps": 15000
-    }
-   },
-   "previewText": "後列で最もHPの低い者を最前へ引き出し、殴られれば返す。隠れ場所が消える。",
-   "counters": [
-    "後列で一番柔らかい人物を作らない。HPを揃えて引き出す的を消す",
-    "引き出されたその round に位置替えで戻す",
-    "多段をやめ、返ってくる回数を減らす"
-   ]
-  },
-  "law_anvil_hold": {
-   "id": "law_anvil_hold",
-   "displayName": "金床の法則",
-   "threatCost": 8,
-   "patch": {
-    "guard": {
-     "flat": 10
-    },
-    "maxHp": {
-     "bps": 16000
-    }
-   },
-   "previewText": "受けが最も厚く、防壁を張り直す。持久の勝負になる。",
-   "counters": [
-    "受け崩しで、受けも受け構えも無視する",
-    "貫き突きで受けを6割無視し、一撃を大きくする",
-    "補給と回復を先に整えて、長い round に耐える形を作る"
-   ]
-  },
-  "law_hammer_break": {
-   "id": "law_hammer_break",
-   "displayName": "槌の法則",
-   "threatCost": 7,
-   "patch": {
-    "might": {
-     "bps": 14000
-    },
-    "maxHp": {
-     "bps": 14000
-    }
-   },
-   "previewText": "受けも受け構えも無視して叩く。守りでは damage が減らない。",
-   "counters": [
-    "防壁（barrier）で受け止める。受け無視は barrier までは無視しない",
-    "回復で戻す。減らせないぶん、戻す側で釣り合わせる",
-    "短い round で落とし、振られる回数を減らす"
-   ]
-  },
-  "law_forge_furnace": {
-   "id": "law_forge_furnace",
-   "displayName": "炉の法則",
-   "threatCost": 12,
-   "patch": {
-    "might": {
-     "bps": 13000
-    },
-    "focus": {
-     "bps": 13000
-    },
-    "guard": {
-     "flat": 8
-    },
-    "maxHp": {
-     "bps": 16000
-    }
-   },
-   "previewText": "溜めた一撃と、受けを無視する一撃を交互に出す。硬さでも回復でも、片方だけでは足りない。",
-   "counters": [
-    "準備狩りで溜めを止め、受け無視のほうへ守りを集める",
-    "防壁と回復を両方持ち、二種類の damage を別々に受ける",
-    "必殺を残しておき、溜めが完成する round に合わせて落とす"
-   ]
-  },
-  "law_furnace_heart": {
-   "id": "law_furnace_heart",
-   "displayName": "主心の法則",
-   "threatCost": 18,
-   "patch": {
-    "might": {
-     "bps": 16000
-    },
-    "focus": {
-     "bps": 16000
-    },
-    "guard": {
-     "flat": 12
-    },
-    "maxHp": {
-     "bps": 29200
-    }
-   },
-   "previewText": "一巡に二度動き、隙から多段、溜め、裂傷、受け無視へ移る。後ろでは治療と庇護が回る。",
-   "counters": [
-    "後列の継ぎ手を直接狙い、治療と防壁の供給を先に止める",
-    "抱壁の庇護を単発大威力で割るか、三撃目以降を後列へ通す",
-    "五人の必殺を温存し、隙から多段へ移る前に主心と随伴をまとめて削る"
-   ]
-  }
- },
- "enemyMutations": {
-  "swift": {
-   "id": "swift",
-   "displayName": "逸り",
-   "threatCost": 1,
-   "patch": {
-    "might": {
-     "flat": 6
-    }
-   },
-   "previewText": "腕力+6。一撃が重くなる。"
-  },
-  "hardened": {
-   "id": "hardened",
-   "displayName": "硬化",
-   "threatCost": 2,
-   "patch": {
-    "guard": {
-     "flat": 6
-    }
-   },
-   "previewText": "受け+6。多段が通りにくくなる。単発と貫きで抜く。"
-  },
-  "heavy_hand": {
-   "id": "heavy_hand",
-   "displayName": "重手",
-   "threatCost": 2,
-   "patch": {
-    "might": {
-     "bps": 13000
-    },
-    "focus": {
-     "bps": 13000
-    }
-   },
-   "previewText": "腕力・技術が3割増える。受け切るより先に落とす。"
-  },
-  "resilient": {
-   "id": "resilient",
-   "displayName": "厚み",
-   "threatCost": 3,
-   "patch": {
-    "maxHp": {
-     "bps": 13000
-    }
-   },
-   "previewText": "最大HPが3割増える。削り切る手数が要る。"
-  }
- },
- "enemyThreatCost": {
-  "gray_scrapper": 1,
-  "gray_swarm": 1,
-  "gray_runner": 2,
-  "gray_razor": 4,
-  "gray_brand": 5,
-  "gray_marksman": 2,
-  "gray_stalker": 3,
-  "gray_guard": 3,
-  "gray_shelter": 3,
-  "gray_aegis": 6,
-  "gray_mender": 4,
-  "gray_breaker": 5,
-  "gray_hunter": 5,
-  "gray_harrower": 5,
-  "gray_echo": 5,
-  "gray_bulwark": 7,
-  "ash_core": 12,
-  "dust_mote": 1,
-  "dust_lash": 5,
-  "dust_spire": 5,
-  "dust_maw": 5,
-  "dust_veil": 5,
-  "dust_choir": 6,
-  "dust_tide": 12,
-  "weave_hand": 6,
-  "weave_knot": 6,
-  "weave_thorn": 6,
-  "weave_eye": 6,
-  "weave_reach": 6,
-  "weave_mirror": 13,
-  "forge_awl": 6,
-  "forge_hammer": 7,
-  "forge_anvil": 9,
-  "forge_ember": 7,
-  "forge_bellows": 7,
-  "forge_mender": 9,
-  "forge_aegis": 11,
-  "ash_furnace": 16,
-  "ash_furnace_heart": 24
- },
- "expeditionEncounters": [
-  {
-   "index": 1,
-   "act": 1,
-   "kind": "normal",
-   "name": "灰の入口",
-   "description": "正面から来る走者が二体。前列が受け、攻撃役が一体ずつ落とす。",
-   "bossLawId": null,
-   "maxRounds": 8,
-   "threatBudget": 2,
-   "enemies": [
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "front_right"
-    }
-   ],
-   "reinforcements": [
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "rear_left"
-    }
-   ]
-  },
-  {
-   "index": 2,
-   "act": 1,
-   "kind": "normal",
-   "name": "狩りの路地",
-   "description": "後列を狙う後撃ちが混じる。前だけ固めても通らない。",
-   "bossLawId": null,
-   "maxRounds": 8,
-   "threatBudget": 4,
-   "enemies": [
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_marksman",
-     "position": "rear_left"
-    }
-   ],
-   "reinforcements": [
-    {
-     "enemyActorId": "gray_marksman",
-     "position": "rear_right"
-    }
-   ]
-  },
-  {
-   "index": 3,
-   "act": 1,
-   "kind": "elite",
-   "name": "崩れた盾列",
-   "description": "受けの厚い守衛が二体。多段では削り切れない。",
-   "bossLawId": null,
-   "maxRounds": 9,
-   "threatBudget": 7,
-   "enemies": [
-    {
-     "enemyActorId": "gray_guard",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_guard",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "rear_left"
-    }
-   ],
-   "reinforcements": [
-    {
-     "enemyActorId": "gray_marksman",
-     "position": "rear_right"
-    }
-   ]
-  },
-  {
-   "index": 4,
-   "act": 1,
-   "kind": "boss",
-   "name": "盾将の門",
-   "description": "第1幕のボス。盾兵と、その足元を固める走者と後撃ち。",
-   "bossLawId": "law_bulwark_wall",
-   "maxRounds": 12,
-   "threatBudget": 15,
-   "enemies": [
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_center",
-     "boss": true
-    },
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_marksman",
-     "position": "rear_left"
-    }
-   ],
-   "reinforcements": [
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "front_right"
-    }
-   ]
-  },
-  {
-   "index": 5,
-   "act": 2,
-   "kind": "normal",
-   "name": "灰の圧力",
-   "description": "盾兵、狩人、反響体、後撃ち。どの役割を厚くするかが問われる。",
-   "bossLawId": null,
-   "maxRounds": 10,
-   "threatBudget": 19,
-   "enemies": [
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_hunter",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_echo",
-     "position": "rear_left"
-    },
-    {
-     "enemyActorId": "gray_marksman",
-     "position": "rear_right"
-    }
-   ],
-   "reinforcements": [
-    {
-     "enemyActorId": "gray_scrapper",
-     "position": "front_center"
-    }
-   ]
-  },
-  {
-   "index": 6,
-   "act": 2,
-   "kind": "normal",
-   "name": "二つの狙い",
-   "description": "前列を削る守衛と、準備中を狙う狩人。後ろで反響体と盾兵が控える。",
-   "bossLawId": null,
-   "maxRounds": 10,
-   "threatBudget": 23,
-   "enemies": [
-    {
-     "enemyActorId": "gray_guard",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_guard",
-     "position": "front_center"
-    },
-    {
-     "enemyActorId": "gray_echo",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_hunter",
-     "position": "rear_left"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "rear_right"
-    }
-   ],
-   "reinforcements": []
-  },
-  {
-   "index": 7,
-   "act": 2,
-   "kind": "elite",
-   "name": "反響の坑道",
-   "description": "殴ると殴り返す反響体が二体。手数を出すほど自分が減る。",
-   "bossLawId": null,
-   "maxRounds": 11,
-   "threatBudget": 24,
-   "enemies": [
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_echo",
-     "position": "front_center"
-    },
-    {
-     "enemyActorId": "gray_echo",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_hunter",
-     "position": "rear_left"
-    },
-    {
-     "enemyActorId": "gray_marksman",
-     "position": "rear_right"
-    }
-   ],
-   "reinforcements": []
-  },
-  {
-   "index": 8,
-   "act": 2,
-   "kind": "boss",
-   "name": "反響体の巣",
-   "description": "第2幕のボス。返してくる反響体を、守衛と盾兵ごと崩す。",
-   "bossLawId": "law_echo_return",
-   "maxRounds": 13,
-   "threatBudget": 29,
-   "enemies": [
-    {
-     "enemyActorId": "gray_echo",
-     "position": "front_center",
-     "boss": true
-    },
-    {
-     "enemyActorId": "gray_guard",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_guard",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_hunter",
-     "position": "rear_left"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "rear_right"
-    }
-   ],
-   "reinforcements": []
-  },
-  {
-   "index": 9,
-   "act": 3,
-   "kind": "normal",
-   "name": "盾の回廊",
-   "description": "厚い盾兵が三体、狩人が二体。抜けないなら、行と列で薙ぐ。",
-   "bossLawId": null,
-   "maxRounds": 12,
-   "threatBudget": 31,
-   "enemies": [
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_hunter",
-     "position": "front_center"
-    },
-    {
-     "enemyActorId": "gray_hunter",
-     "position": "rear_left"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "rear_right"
-    }
-   ],
-   "reinforcements": []
-  },
-  {
-   "index": 10,
-   "act": 3,
-   "kind": "normal",
-   "name": "灰の重列",
-   "description": "盾兵が四体並ぶ。単発で一枚ずつ落とすか、列ごと貫くか。",
-   "bossLawId": null,
-   "maxRounds": 13,
-   "threatBudget": 33,
-   "enemies": [
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_center"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_right"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "rear_left"
-    },
-    {
-     "enemyActorId": "gray_hunter",
-     "position": "rear_right"
-    }
-   ],
-   "reinforcements": []
-  },
-  {
-   "index": 11,
-   "act": 3,
-   "kind": "elite",
-   "name": "核の前庭",
-   "description": "核心が盾兵を三体連れて出てくる。ボスの予行になる。",
-   "bossLawId": null,
-   "maxRounds": 13,
-   "threatBudget": 38,
-   "enemies": [
-    {
-     "enemyActorId": "ash_core",
-     "position": "front_center"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_left"
-    },
-    {
-     "enemyActorId": "gray_bulwark",
-     "position": "front_right"
+   "require…13681 tokens truncated…n": "front_right"
     },
     {
      "enemyActorId": "gray_bulwark",
@@ -29763,7 +27872,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -30139,7 +28248,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -30484,7 +28593,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -30714,7 +28823,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -31017,7 +29126,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -31292,7 +29401,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -31498,7 +29607,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -31730,7 +29839,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -31963,7 +30072,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -32169,7 +30278,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -32378,7 +30487,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -32622,7 +30731,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -32882,7 +30991,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -33083,7 +31192,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -33315,7 +31424,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -33568,7 +31677,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -33810,7 +31919,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -34079,7 +32188,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -34319,7 +32428,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -34547,7 +32656,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -34757,7 +32866,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -34942,7 +33051,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -35146,7 +33255,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -35377,7 +33486,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -35605,7 +33714,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -35843,7 +33952,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -36176,7 +34285,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -36635,7 +34744,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -37020,7 +35129,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -37429,7 +35538,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -37869,7 +35978,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -38177,7 +36286,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -38401,7 +36510,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -38616,7 +36725,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -38848,7 +36957,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -39075,7 +37184,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

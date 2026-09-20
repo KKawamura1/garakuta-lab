@@ -137,8 +137,20 @@ function buildState(input, content, options) {
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
-      tactics: ally.tactics.map((tactic) => ({ ...tactic })),
+      // ecology-battle-5 allies select exactly one active. `tactics` is kept as
+      // a legacy input for fixtures and imported battle records while the
+      // staged migration is in progress.
+      tactics: ally.activeSkillId
+        ? [
+          ...(ally.activeOverrideSkillId
+            ? [{ activeSkillId: ally.activeOverrideSkillId, useWhen: [] }]
+            : []),
+          { activeSkillId: ally.activeSkillId, useWhen: [] },
+        ]
+        : ally.tactics.map((tactic) => ({ ...tactic })),
+      targetSkillIds: [...(ally.targetSkillIds ?? [])],
       reactiveSkillIds: [...ally.reactiveSkillIds],
+      reactiveReserveBySkill: { ...(ally.reactiveReserveBySkill ?? {}) },
       passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
       equipment: allyEquipment,
     }, ally.passiveSkillIds, allyEquipment, ally.skillLevels));
@@ -166,7 +178,9 @@ function buildState(input, content, options) {
       baseReactionPoints: definition.baseReactionPoints,
       position: enemy.position,
       tactics: definition.tactics.map((tactic) => ({ ...tactic })),
+      targetSkillIds: [],
       reactiveSkillIds: [...definition.reactiveSkillIds],
+      reactiveReserveBySkill: {},
       passiveSkillIds: [...(definition.passiveSkillIds ?? [])],
       equipment: [],
     }, definition.passiveSkillIds, []));
@@ -334,6 +348,7 @@ function ruleEntriesFor(state, actor) {
       sourceDefinitionId: skillId,
       ruleSource: "reactive_skill",
       skillOrder,
+      reactionPointReserve: actor.reactiveReserveBySkill?.[skillId] ?? 0,
     });
   }
   // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
@@ -492,17 +507,20 @@ function dispatchRules(state, event, timing, pendingFrame) {
       ownerId: entry.owner ? entry.owner.instanceId : "~region",
     });
   }
+  const reacted = new Set();
   for (const candidate of orderRuleCandidates(candidates)) {
-    fireRule(state, event, candidate, pendingFrame);
+    if (candidate.ruleSource === "reactive_skill" && reacted.has(candidate.ownerId)) continue;
+    const fired = fireRule(state, event, candidate, pendingFrame);
+    if (fired && candidate.ruleSource === "reactive_skill") reacted.add(candidate.ownerId);
   }
 }
 
 function fireRule(state, event, entry, pendingFrame) {
   // §5.7 — everything is re-checked immediately before firing, because an
   // earlier reaction in this same window may have removed the reason to fire.
-  if (!ruleSourceIntact(state, entry)) return;
-  if (!ruleAvailable(state, entry)) return;
-  if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return;
+  if (!ruleSourceIntact(state, entry)) return false;
+  if (!ruleAvailable(state, entry)) return false;
+  if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return false;
 
   const rt = makeRuntime(state);
   const ctx = {
@@ -516,8 +534,14 @@ function fireRule(state, event, entry, pendingFrame) {
     skillId: undefined,
     equipmentInstanceId: entry.equipmentInstanceId,
   };
-  if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return;
-  if (!canPayCosts(rt, ctx, entry.rule.costs)) return;
+  if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return false;
+  if (!canPayCosts(rt, ctx, entry.rule.costs)) return false;
+  if (entry.ruleSource === "reactive_skill") {
+    const rpCost = entry.rule.costs
+      .filter((cost) => cost.type === "spend_reaction_points")
+      .reduce((sum, cost) => sum + cost.amount, 0);
+    if ((entry.owner?.reactionPoints ?? 0) - rpCost < entry.reactionPointReserve) return false;
+  }
 
   const key = firingKey(entry);
   state.chain.ruleFirings.set(key, firedCount(state.chain.ruleFirings, key) + 1);
@@ -541,6 +565,7 @@ function fireRule(state, event, entry, pendingFrame) {
     state.parentEventId = previousParent;
     state.ruleStack.pop();
   }
+  return true;
 }
 
 // -------------------------------------------------------------- battle (§11)
@@ -941,7 +966,7 @@ function coreActionChoice(state, actor, key) {
     skillId: skill.id,
     equipmentInstanceId: undefined,
   };
-  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
+  const targets = resolveActionTargets(state, ctx, actor, skill);
   if (targets.length === 0) return null;
   const costs = [{ type: "spend_action_points", amount: skill.apCost }];
   if (!canPayCosts(rt, ctx, costs)) return null;
@@ -987,13 +1012,39 @@ function chooseTactic(state, actor) {
     };
     if (!evaluatePredicates(state, ctx, skill.intrinsicPredicates)) continue;
     if (!evaluatePredicates(state, ctx, tactic.useWhen)) continue;
-    const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
+    const targets = resolveActionTargets(state, ctx, actor, skill);
     if (targets.length === 0) continue;
     const costs = [{ type: "spend_action_points", amount: skill.apCost }];
     if (!canPayCosts(rt, ctx, costs)) continue;
     return { tactic, skill, targets, costs, tacticIndex };
   }
   return null;
+}
+
+// Target skills only choose among targets the active skill could legally hit.
+// They do not widen its side, filters, reach, or area. Area actions keep their
+// complete target set; ordered target skills matter only when the action asks
+// for one target. The first selector with a legal candidate wins.
+function resolveActionTargets(state, ctx, actor, skill) {
+  const reach = actionReach(skill);
+  const fallback = resolveTargets(state, ctx, skill.targetQuery, { reach });
+  if (skill.targetQuery.take !== 1 || (actor.targetSkillIds ?? []).length === 0) return fallback;
+
+  const legal = resolveTargets(
+    state,
+    ctx,
+    { ...skill.targetQuery, take: "all" },
+    { reach },
+  );
+  const legalIds = new Set(legal.map((candidate) => candidate.instanceId));
+  for (const targetSkillId of actor.targetSkillIds) {
+    const targetSkill = state.content.targetSkills?.[targetSkillId];
+    if (!targetSkill) continue;
+    const selected = resolveTargets(state, ctx, targetSkill.targetQuery, { reach })
+      .find((candidate) => legalIds.has(candidate.instanceId));
+    if (selected) return [selected];
+  }
+  return fallback;
 }
 
 function performAction(state, actor, choice) {

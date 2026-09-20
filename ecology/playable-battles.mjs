@@ -285,38 +285,53 @@ export function initialSkillLevels(characterId) {
 // validator にだけ、壊れた入力を早期に止めるための安全上限を置く。
 // 装備だけは従来どおり2枠。
 export const SLOT_LIMITS = Object.freeze({
-  active: Number.MAX_SAFE_INTEGER,
+  active: 1,
   reactive: Number.MAX_SAFE_INTEGER,
+  target: Number.MAX_SAFE_INTEGER,
   passive: Number.MAX_SAFE_INTEGER,
   equipment: 2,
 });
-const LOADOUT_KEYS = Object.freeze({ active: "tactics", reactive: "reactives", passive: "passives" });
+const LOADOUT_KEYS = Object.freeze({
+  active: "tactics", reactive: "reactives", target: "targets", passive: "passives",
+});
 
 export function freshLoadout(rosterIds) {
   const tactics = {};
   const reactives = {};
+  const targets = {};
   const passives = {};
+  const actives = {};
+  const reactiveReserves = {};
   const equipment = {};
   for (const characterId of rosterIds) {
     const option = characterById[characterId];
     if (!option) continue;
     tactics[characterId] = [...option.starterTactics];
+    actives[characterId] = option.starterTactics[0] ?? null;
     reactives[characterId] = [...option.starterReactives];
+    targets[characterId] = [];
+    reactiveReserves[characterId] = {};
     // **常設は空から始める。**基礎訓練は詰み防止であって、既定の答えではない
     // （最初から入れておくと「他に欲しいものが無かった」の信号が消える）。
     passives[characterId] = [];
     equipment[characterId] = [];
   }
   // issue #238 — 必殺技は**誰も指定していない状態**で始まる。既定の答えを置かない。
-  return { tactics, reactives, passives, equipment, ultimates: {}, ultimateArmed: {} };
+  return {
+    actives, tactics, reactives, targets, reactiveReserves, passives, equipment,
+    ultimates: {}, ultimateArmed: {},
+  };
 }
 
-function normalizeLoadout(loadout, rosterIds, limitsFor) {
+export function normalizeLoadout(loadout, rosterIds, limitsFor) {
   const next = clone(loadout ?? freshLoadout(rosterIds));
   // 旧 save には passives が無い。**足りない鍵はここで生やす**
   // （呼び出し側それぞれで面倒を見ると、いつか一箇所が忘れる）。
   next.tactics = next.tactics ?? {};
+  next.actives = next.actives ?? {};
   next.reactives = next.reactives ?? {};
+  next.targets = next.targets ?? {};
+  next.reactiveReserves = next.reactiveReserves ?? {};
   next.passives = next.passives ?? {};
   next.equipment = next.equipment ?? {};
   // issue #238 — 必殺技の指定と構え。**古い save には無い欄**なので、ここで生やす。
@@ -326,7 +341,18 @@ function normalizeLoadout(loadout, rosterIds, limitsFor) {
     const limits = limitsOf(limitsFor, characterId);
     // 技能は上限なし。旧 save の重複だけはここで正規化する。
     next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])];
+    const selected = next.actives[characterId];
+    next.actives[characterId] = next.tactics[characterId].includes(selected)
+      ? selected
+      : (next.tactics[characterId][0] ?? null);
     next.reactives[characterId] = [...new Set(next.reactives?.[characterId] ?? [])];
+    next.targets[characterId] = [...new Set(next.targets?.[characterId] ?? [])];
+    const reserves = next.reactiveReserves?.[characterId];
+    next.reactiveReserves[characterId] = Object.fromEntries(
+      Object.entries(reserves && typeof reserves === "object" ? reserves : {})
+        .filter(([skillId, amount]) => next.reactives[characterId].includes(skillId)
+          && Number.isSafeInteger(amount) && amount >= 0),
+    );
     next.passives[characterId] = [...new Set(next.passives?.[characterId] ?? [])];
     next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, limits.equipment);
   }
@@ -338,6 +364,7 @@ function normalizeLoadout(loadout, rosterIds, limitsFor) {
       const installed = new Set([
         ...(next.tactics[characterId] ?? []),
         ...(next.reactives[characterId] ?? []),
+        ...(next.targets[characterId] ?? []),
         ...(next.passives[characterId] ?? []),
       ]);
       const disabled = [...new Set(Array.isArray(next.disabled[characterId]) ? next.disabled[characterId] : [])]
@@ -366,6 +393,11 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   const listKey = LOADOUT_KEYS[kind];
   if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
+  if (kind === "active") {
+    if (!list.includes(skillId)) next.tactics[characterId] = [...list, skillId];
+    next.actives[characterId] = skillId;
+    return { ok: true, loadout: next };
+  }
   if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
   next[listKey][characterId] = [skillId, ...list];
   return { ok: true, loadout: next };
@@ -380,12 +412,16 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
 // 除いてから battle input を組むので、ここで未装着だったものをオフで装着し直しても
 // 戦闘の入力は1ビットも変わらない。既存の遠征・保存の結果が動かない。
 export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
+  const normalized = normalizeLoadout(loadout, [characterId]);
   const next = {
-    ...loadout,
-    tactics: { ...loadout.tactics },
-    reactives: { ...loadout.reactives },
-    passives: { ...loadout.passives },
-    disabled: { ...(loadout.disabled ?? {}) },
+    ...normalized,
+    tactics: { ...normalized.tactics },
+    actives: { ...normalized.actives },
+    reactives: { ...normalized.reactives },
+    targets: { ...normalized.targets },
+    reactiveReserves: { ...normalized.reactiveReserves },
+    passives: { ...normalized.passives },
+    disabled: { ...(normalized.disabled ?? {}) },
   };
   const disabled = new Set(next.disabled[characterId] ?? []);
   let added = false;
@@ -398,7 +434,9 @@ export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
     // これまで出ていなかった技能が急に回り始める。どちらも「表し方を変えるだけ」
     // という約束を破る。
     next[listKey][characterId] = [...list, skillId];
-    disabled.add(skillId);
+    // Passive skills are always on. Other legacy skill kinds retain the old
+    // safe default until their weapon trees are migrated to the new UI.
+    if (componentInfo(skillId)?.kind !== "passive") disabled.add(skillId);
     added = true;
   }
   if (!added) return loadout;
@@ -412,6 +450,7 @@ function installedSkillIds(loadout, characterId) {
   return [
     ...(loadout?.tactics?.[characterId] ?? []),
     ...(loadout?.reactives?.[characterId] ?? []),
+    ...(loadout?.targets?.[characterId] ?? []),
     ...(loadout?.passives?.[characterId] ?? []),
   ];
 }
@@ -422,6 +461,9 @@ export function toggleSkill(loadout, characterId, skillId, limitsFor) {
   const next = normalizeLoadout(loadout, [characterId], limitsFor);
   if (!installedSkillIds(next, characterId).includes(skillId)) {
     return { ok: false, reason: "その技能は装着されていません。" };
+  }
+  if (componentInfo(skillId)?.kind === "passive") {
+    return { ok: false, reason: "パッシブ技能は取得すると常に効果を発揮します。" };
   }
   const disabled = new Set(next.disabled?.[characterId] ?? []);
   const enabled = disabled.has(skillId);
@@ -434,6 +476,32 @@ export function toggleSkill(loadout, characterId, skillId, limitsFor) {
     if (!Object.keys(next.disabled).length) delete next.disabled;
   }
   return { ok: true, loadout: next, enabled };
+}
+
+export function selectActiveSkill(loadout, characterId, skillId, limitsFor) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
+  if (!(next.tactics[characterId] ?? []).includes(skillId)) {
+    return { ok: false, reason: "そのアクティブ技能は取得していません。" };
+  }
+  next.actives[characterId] = skillId;
+  return { ok: true, loadout: next };
+}
+
+export function setReactiveReserve(loadout, characterId, skillId, amount, limitsFor) {
+  const next = normalizeLoadout(loadout, [characterId], limitsFor);
+  if (!(next.reactives[characterId] ?? []).includes(skillId)) {
+    return { ok: false, reason: "そのリアクティブ技能は取得していません。" };
+  }
+  if (!Number.isSafeInteger(amount) || amount < 0 || amount > 99) {
+    return { ok: false, reason: "温存するRPは0〜99で指定してください。" };
+  }
+  next.reactiveReserves = { ...next.reactiveReserves };
+  next.reactiveReserves[characterId] = {
+    ...(next.reactiveReserves[characterId] ?? {}),
+    [skillId]: amount,
+  };
+  if (amount === 0) delete next.reactiveReserves[characterId][skillId];
+  return { ok: true, loadout: next };
 }
 
 // ---------------------------------------------------------------- 必殺技（issue #238）
@@ -583,7 +651,7 @@ export function enemyInfo(enemyActorId) {
 export function reorderSkill(loadout, characterId, kind, index, direction, limitsFor) {
   const next = normalizeLoadout(loadout, [characterId], limitsFor);
   const listKey = LOADOUT_KEYS[kind];
-  if (!listKey || !["active", "reactive"].includes(kind)) return next;
+  if (!listKey || !["reactive", "target"].includes(kind)) return next;
   const skills = next[listKey][characterId] ?? [];
   const otherIndex = index + direction;
   if (!Number.isInteger(index) || !Number.isInteger(direction)
@@ -632,6 +700,7 @@ function allyInput(characterId, position, loadout, options = {}) {
   const content = options.content ?? PLAYABLE_CONTENT;
   const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
   const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
+  const targets = loadout.targets?.[characterId] ?? [];
   const disabled = new Set(loadout.disabled?.[characterId] ?? []);
   const enabled = (ids) => ids.filter((id) => !disabled.has(id));
   // issue #238 — 構えた必殺技は、**元の技能の一つ前**に入る。同じ条件で判定されるので、
@@ -647,7 +716,7 @@ function allyInput(characterId, position, loadout, options = {}) {
     if (kind === "reactive" && !content.reactiveSkills[ultimateId]) return ids;
     return [...ids.slice(0, at), ultimateId, ...ids.slice(at)];
   };
-  const passiveSkillIds = enabled(loadout.passives?.[characterId] ?? [])
+  const passiveSkillIds = (loadout.passives?.[characterId] ?? [])
     .filter((id) => content.passiveSkills[id]);
   const equipment = equipmentInput(
     characterId,
@@ -655,16 +724,38 @@ function allyInput(characterId, position, loadout, options = {}) {
     options.equipmentDurability ?? {},
     content,
   );
+  const activeSkillId = enabled([loadout.actives?.[characterId] ?? tactics[0]].filter(Boolean))[0] ?? null;
+  const activeOverrideSkillId = activeSkillId && ultimateBaseId === activeSkillId
+    && content.activeSkills[ultimateId]
+    ? ultimateId
+    : null;
   const ally = {
     instanceId: "a_" + characterId,
     characterId,
     position,
-    tactics: usableTactics(withUltimate(enabled(tactics), "active"), content),
+    targetSkillIds: enabled(targets).filter((id) => content.targetSkills?.[id]),
     reactiveSkillIds: withUltimate(enabled(reactives), "reactive")
       .filter((id) => content.reactiveSkills[id]),
+    reactiveReserveBySkill: Object.fromEntries(
+      Object.entries(loadout.reactiveReserves?.[characterId] ?? {})
+        .filter(([skillId]) => enabled(reactives).includes(skillId)),
+    ),
     passiveSkillIds,
     equipment,
   };
+  if (options.legacyActiveRotation === true) {
+    // Temporary audit bridge: old balance witnesses describe several active
+    // skills rotating. Keep those witnesses runnable until their individual
+    // skill plans are rewritten; the playable UI never sets this option.
+    ally.tactics = usableTactics(withUltimate(enabled(tactics), "active"), content);
+  } else {
+    // A deliberately empty active slot still reaches the engine's core action.
+    // Keep using the legacy empty list for that compatibility case; null is not
+    // a skill id and must never enter the versioned input contract.
+    if (activeSkillId) ally.activeSkillId = activeSkillId;
+    else ally.tactics = [];
+    if (activeOverrideSkillId) ally.activeOverrideSkillId = activeOverrideSkillId;
+  }
   // R19（issue #137）— 技能レベル。**取得＝Lv1** なので、Lv1 しか無い編成では
   // 欄そのものを渡さない（渡しても結果は同じだが、入力に無駄な欄を増やさない）。
   const skillLevels = options.skillLevelsFor?.(characterId) ?? null;
@@ -702,10 +793,11 @@ function allyInput(characterId, position, loadout, options = {}) {
 export function makeExpeditionBattle(composed, rosterIds, loadout, seed, formation = {}, options = {}) {
   const selected = rosterIds.filter((characterId) => characterById[characterId]).slice(0, PARTY_SIZE);
   const placed = normalizeFormation(formation, selected);
+  const normalizedLoadout = normalizeLoadout(loadout, selected);
   const allies = selected.map((characterId) => allyInput(
     characterId,
     placed[characterId] ?? characterById[characterId].defaultPosition,
-    loadout,
+    normalizedLoadout,
     options,
   ));
   return {
@@ -846,6 +938,7 @@ export function simulateExpeditionBattle(run, profile, encounterIndex, options =
       statsFor: (characterId) => characterStats(profile, characterId),
       skillLevelsFor: (characterId) => runSkillLevelsFor(run, characterId),
       ultimateFor: (characterId) => ultimates.get(characterId) ?? null,
+      legacyActiveRotation: options.legacyActiveRotation === true,
       content,
     },
   );

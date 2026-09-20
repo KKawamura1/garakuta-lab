@@ -975,6 +975,16 @@ export const FIXTURE_CONTENT = deepFreeze({
   contentVersion: "fixture-1",
   characters,
   activeSkills,
+  // Target skills are ordered selectors, not actions. The first selector that
+  // can name a legal target for the chosen active skill wins.
+  targetSkills: {
+    toughest_target: {
+      id: "toughest_target",
+      displayName: "Toughest Target (fixture)",
+      targetQuery: { scope: "enemies", filters: [ALIVE], sort: ["hp_desc"], take: 1 },
+      tags: ["target"],
+    },
+  },
   reactiveSkills,
   // PHASE A: fixture は passive を使わないが、節そのものは必ず在る
   // （空の節と、節が無いことは別。validator は後者を拒否する）。

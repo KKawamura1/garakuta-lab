@@ -610,8 +610,10 @@ function applyPlan(build) {
 // 戦闘経路は作らない（作ると、検査が通っても画面が動かない形が生まれる）。
 function loadoutFor(build, snapshot) {
   const pick = (characterId, ids) => ids.filter((id) => snapshot.owned[characterId].has(id));
+  const tactics = Object.fromEntries(ROSTER.map((id) => [id, pick(id, build.tactics[id] ?? [])]));
   return {
-    tactics: Object.fromEntries(ROSTER.map((id) => [id, pick(id, build.tactics[id] ?? [])])),
+    tactics,
+    actives: Object.fromEntries(ROSTER.map((id) => [id, tactics[id][0] ?? null])),
     reactives: Object.fromEntries(ROSTER.map((id) => [id, pick(id, build.reactives[id] ?? [])])),
     passives: Object.fromEntries(ROSTER.map((id) => [id, [...snapshot.owned[id]]
       .filter((skillId) => nodeBySkill[skillId]?.kind === "passive")])),
@@ -650,7 +652,10 @@ function playThrough(build, snapshots, carried = null) {
       loadout,
       runSkillLevels: structuredClone(snapshot.levels),
     };
-    const { result } = simulateNextBattle(run, profile, index);
+    // This witness predates single-active weapon loadouts and intentionally
+    // measures its recorded rotating builds until the per-skill migration is
+    // complete. It must not silently judge a different loadout.
+    const { result } = simulateNextBattle(run, profile, index, { legacyActiveRotation: true });
     const kinds = new Map();
     const skills = new Map();
     for (const event of result.events) {

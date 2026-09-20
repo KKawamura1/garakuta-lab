@@ -126,7 +126,7 @@ function encounterWeights(stage, profile = newProfile()) {
       }),
       loadout: freshLoadout(roster),
     };
-    const { result } = simulateNextBattle(run, profile, index);
+    const { result } = simulateNextBattle(run, profile, index, { legacyActiveRotation: true });
     let taken = 0;
     for (const event of result.events) {
       if (event.type !== "damage_taken") continue;
@@ -162,7 +162,7 @@ function playThrough(stage) {
   };
   let reached = 0;
   for (let index = 1; index <= ENCOUNTERS_PER_RUN; index += 1) {
-    const { result } = simulateNextBattle(run, profile, index);
+    const { result } = simulateNextBattle(run, profile, index, { legacyActiveRotation: true });
     const committed = commitBattleResult(profile, run, index, result);
     run = committed.run;
     if (result.result !== "win") break;

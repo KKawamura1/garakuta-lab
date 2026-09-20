@@ -215,7 +215,14 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   リプレイの表示が同じ名前になる。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
-- 同じ actor の reactive skill は loadout の上から順に候補を処理し、active skill は配列順に最初の使用可能なものを選びます。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。
+- 味方 actor の active skill は `BattleInput.activeSkillId` の一つだけです。legacy fixture / 敵定義の
+  `tactics` は段階移行中の互換入口として残しますが、playable loadout は巡回カーソルを使いません。
+- 同じ actor の reactive skill は loadout の上から順に再評価し、条件・コスト・RP温存量を満たして
+  **最初に発動した一つ**でその trigger window を閉じます。actor をまたぐ順序と、signature / passive /
+  equipment / status は従来どおり priority・initiative・position・ID の tie-break を使います。
+- `targetSkillIds` は順序付きです。engine は active の合法候補集合を先に作り、各 target skill の
+  `targetQuery` がその集合から一体を選べたときだけ採用します。したがって target skill は active の
+  scope・filter・reach・take を拡張できません。
 
       runSeed:manifest:stageId
       runSeed:encounter:encounterIndex
@@ -507,27 +514,26 @@ phase を battle から result へ寄せるため、会話を見ないまま結�
 中にあるので、止めないと一押しで巻き戻しと「叩いて進む」が続けて起き、巻き戻し後の
 一行目が読み飛ばされる）。どちらも `analysis/ecology-screens-smoke.mjs` が見張る。
 
-### 技能の取得と装着（issue #236）
+### 技能の取得と戦闘ロードアウト（武器技能移行）
 
-**「取得済みだが未装着」という状態は無い。**技能枠は `SLOT_LIMITS` の
-`active` / `reactive` / `passive` とも `Number.MAX_SAFE_INTEGER`（上限があるのは装備の2枠だけ）で、
-取得したものを装着できない場面が存在しない。この状態は「オフ」と同じことを二通りに
-表しているだけだった。
+RunState の loadout は、取得済み一覧と戦闘時の選択を次の欄へ分けます。
 
-不変条件は一つ。**`runUnlockedSkills[c]` に入っている技能は、必ず種別ごとの装着欄にも
-並んでいる。**出すか出さないかは `loadout.disabled` だけが決める。
+| 欄 | 意味 |
+|---|---|
+| `tactics[c]` | 移行中の取得済み active 一覧 |
+| `actives[c]` | 戦闘へ出す active 一つ |
+| `reactives[c]` | 上から調べる reactive 一覧 |
+| `reactiveReserves[c][skillId]` | その reactive 発動後に残すRP |
+| `targets[c]` | 上から調べる target 一覧 |
+| `passives[c]` | 取得済み全件。すべて有効 |
 
-- `unlock-skill` は `unlockRunSkill` のあと `equipSkill` を通す（**オンで**装着され、
-  その場で回り始める）。
-- `joinRun` と保存の読み込みは `installUnlockedSkills()`（`playable-battles.mjs`）を通す。
-  こちらは**オフで**末尾へ足す。starter の無償閉包で取得済みになる親の節や、
-  旧い保存が持っている未装着の技能が対象で、**オンで足すと今まで出ていなかった技能が
-  急に回り始める**（＝過去の遠征の結果が変わる）ため。
+`normalizeLoadout()` が旧保存の `tactics[c][0]` から `actives[c]` を決定的に補い、欠けている
+`targets` / `reactiveReserves` を空で補います。未知技能や不正な温存値は BattleInput へ入れません。
+パッシブは `disabled` の対象にせず、`allyInput()` が全件を BattleInput へ渡します。
 
-この置き換えが戦闘へ影響しないことの根拠は `allyInput()` にある。tactics・reactives・
-passives のいずれも `enabled()` で `disabled` を除いてから battle input を組むので、
-**engine から見て「オフ」と「未装着」は同一**である。必殺技も同じで、`withUltimate` は
-`enabled()` 後の列へ差し込み、`ultimateCandidates` は disabled を候補から外す。
+`allyInput()` は `activeSkillId`、`activeOverrideSkillId`、`targetSkillIds`、`reactiveSkillIds`、
+`reactiveReserveBySkill`、`passiveSkillIds` を一箇所で組みます。必殺アクティブは元技能との
+二本装着ではなく、発動条件を満たした時だけ選択中アクティブを上書きする候補として渡します。
 
 `analysis/ecology-screens-smoke.mjs` が片側検査で「装着する釦・`equip-skill` handler・
 `.skill-node.unlocked` が戻っていないこと」と「三つの経路が残っていること」を見る。

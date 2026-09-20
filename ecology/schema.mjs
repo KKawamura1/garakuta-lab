@@ -9,7 +9,7 @@
 
 const freeze = (value) => Object.freeze(value);
 
-export const CONTENT_SCHEMA_VERSION = "ecology-content-4";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-5";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -20,7 +20,11 @@ export const CONTENT_SCHEMA_VERSION = "ecology-content-4";
 // level is 1, resolves byte-for-byte as ecology-battle-3 did. A reader that does
 // not know the field would silently drop the levels — which changes damage — so
 // the version says out loud that the shape grew.
-export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
+// Weapon skill loadouts use one active skill, an ordered target-skill list,
+// and an optional per-reactive RP reserve. Legacy `tactics` remain accepted for
+// enemy/content fixtures during the staged migration, but playable allies emit
+// the new fields.
+export const BATTLE_SCHEMA_VERSION = "ecology-battle-5";
 // Issue #192 — result event streams now distinguish barrier absorption and a
 // damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
@@ -457,6 +461,7 @@ export const LIMITS = freeze({
   maxTactics: Number.MAX_SAFE_INTEGER,
   maxUseWhen: 2,
   maxReactiveSkills: Number.MAX_SAFE_INTEGER,
+  maxTargetSkills: Number.MAX_SAFE_INTEGER,
   maxPassiveSkills: Number.MAX_SAFE_INTEGER,
   maxEquipment: 2,
   minPreparationSteps: 1,

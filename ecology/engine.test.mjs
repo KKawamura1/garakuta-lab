@@ -558,6 +558,59 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   );
 }
 
+{
+  // The first eligible reactive consumes this owner's trigger window even if
+  // it costs nothing and a lower row could also fire.
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.reactiveSkills.counter_blow.rule.costs = [];
+  content.reactiveSkills.brace_after_hit.rule.costs = [];
+  const result = simulateBattle(COST_CONTEST_BATTLE, content);
+  check(
+    of(result, "damage_proposed").some((event) => event.ruleId === "counter_blow_rule"),
+    "the first eligible reactive fires",
+  );
+  equal(
+    of(result, "barrier_gained").filter((event) => event.ruleId === "brace_after_hit_rule").length,
+    0,
+    "a lower reactive cannot share the same owner and trigger window",
+  );
+}
+
+{
+  // RP reserve is a loadout preference. If the first row would cross it,
+  // selection continues to the next eligible reactive.
+  const battle = structuredClone(COST_CONTEST_BATTLE);
+  battle.allies[0].reactiveReserveBySkill = { counter_blow: 1 };
+  const result = run(battle);
+  equal(
+    of(result, "damage_proposed").filter((event) => event.ruleId === "counter_blow_rule").length,
+    0,
+    "RP reserve can hold the first reactive",
+  );
+  check(
+    of(result, "barrier_gained").some((event) => event.ruleId === "brace_after_hit_rule"),
+    "the next eligible reactive gets the window",
+  );
+}
+
+{
+  // A target skill reorders the active skill's legal candidates without
+  // widening its side, reach, filters, or target count.
+  const battle = structuredClone(CORE_BATTLE);
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [battle.allies[0]];
+  battle.allies[0].targetSkillIds = ["toughest_target"];
+  battle.enemies = [
+    { instanceId: "e_weak", enemyActorId: "still_husk", position: "front_left", hp: 5 },
+    { instanceId: "e_tough", enemyActorId: "still_husk", position: "front_right", hp: 10 },
+  ];
+  const result = run(battle);
+  const strike = of(result, "damage_taken")
+    .find((event) => event.sourceActorId === "a_warden" && event.skillId === "strike");
+  equal(strike?.targetActorIds[0], "e_tough", "the first valid target skill chooses the target");
+}
+
 // ---- §12.4 preparation --------------------------------------------------------
 
 {

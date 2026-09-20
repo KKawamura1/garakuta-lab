@@ -616,7 +616,10 @@ export function validateContentBundle(bundle) {
 
   // PHASE A: passiveSkills を足した。**古い bundle にも空で存在させる**ので、
   // ここは必須節のままでよい（content/index.mjs が必ず入れる）。
-  const sections = ["characters", "activeSkills", "reactiveSkills", "passiveSkills", "equipment", "statuses", "enemyActors"];
+  const sections = [
+    "characters", "activeSkills", "targetSkills", "reactiveSkills",
+    "passiveSkills", "equipment", "statuses", "enemyActors",
+  ];
   for (const section of sections) {
     if (!isPlainObject(bundle[section])) {
       bag.add(`contentBundle.${section}`, "not_an_object", "expected a record of definitions");
@@ -690,6 +693,13 @@ export function validateContentBundle(bundle) {
         insidePreparation: true,
       });
     }
+  }
+
+  for (const [id, skill] of Object.entries(bundle.targetSkills)) {
+    const path = `targetSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx, { take: 1 });
   }
 
   // R6 §6.4 — PHASE A. actionMode は任意（省略時は offense＝追撃なし＝v1 の挙動）。
@@ -891,6 +901,39 @@ function validateReactiveSkillIds(bag, path, ids, bundle) {
   });
 }
 
+function validateTargetSkillIds(bag, path, ids, bundle) {
+  if (ids === undefined) return;
+  if (!requireArray(bag, path, ids, { max: LIMITS.maxTargetSkills })) return;
+  const seen = new Set();
+  ids.forEach((id, index) => {
+    const idPath = `${path}[${index}]`;
+    if (!isValidId(id)) {
+      bag.add(idPath, "bad_id", "not a valid id");
+      return;
+    }
+    if (!Object.hasOwn(bundle.targetSkills, id)) {
+      bag.add(idPath, "dangling_reference", `no such target skill: ${id}`);
+    }
+    if (seen.has(id)) bag.add(idPath, "duplicate_reference", `target skill listed twice: ${id}`);
+    seen.add(id);
+  });
+}
+
+function validateReactiveReserve(bag, path, reserve, reactiveSkillIds) {
+  if (reserve === undefined) return;
+  if (!isPlainObject(reserve)) {
+    bag.add(path, "not_an_object", "expected a reactive skill id to RP reserve record");
+    return;
+  }
+  const installed = new Set(reactiveSkillIds ?? []);
+  for (const [skillId, amount] of Object.entries(reserve)) {
+    if (!installed.has(skillId)) {
+      bag.add(`${path}.${skillId}`, "dangling_reference", `reactive skill is not equipped: ${skillId}`);
+    }
+    requireCount(bag, `${path}.${skillId}`, amount, { min: 0, max: 99 });
+  }
+}
+
 // -------------------------------------------------------------- battle input
 
 export function validateBattleInput(input, bundle) {
@@ -968,8 +1011,34 @@ export function validateBattleInput(input, bundle) {
         requireCount(bag, `${path}.hp`, ally.hp, { min: 0, max: allyMaxHp });
       }
       rejectUnknownKeys(bag, path, ally, ALLY_INPUT_KEYS);
-      validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
+      const hasActiveSkill = ally.activeSkillId !== undefined;
+      const hasLegacyTactics = ally.tactics !== undefined;
+      if (hasActiveSkill && hasLegacyTactics) {
+        bag.add(path, "ambiguous_active_loadout", "use activeSkillId or legacy tactics, not both");
+      } else if (hasActiveSkill) {
+        if (!isValidId(ally.activeSkillId)) {
+          bag.add(`${path}.activeSkillId`, "bad_id", "not a valid id");
+        } else if (!Object.hasOwn(bundle.activeSkills, ally.activeSkillId)) {
+          bag.add(`${path}.activeSkillId`, "dangling_reference", `no such active skill: ${ally.activeSkillId}`);
+        }
+        if (ally.activeOverrideSkillId !== undefined) {
+          if (!isValidId(ally.activeOverrideSkillId)) {
+            bag.add(`${path}.activeOverrideSkillId`, "bad_id", "not a valid id");
+          } else if (!Object.hasOwn(bundle.activeSkills, ally.activeOverrideSkillId)) {
+            bag.add(
+              `${path}.activeOverrideSkillId`, "dangling_reference",
+              `no such active skill: ${ally.activeOverrideSkillId}`,
+            );
+          }
+        }
+      } else {
+        validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
+      }
+      validateTargetSkillIds(bag, `${path}.targetSkillIds`, ally.targetSkillIds, bundle);
       validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, ally.reactiveSkillIds, bundle);
+      validateReactiveReserve(
+        bag, `${path}.reactiveReserveBySkill`, ally.reactiveReserveBySkill, ally.reactiveSkillIds,
+      );
       validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
       validateSkillLevels(bag, `${path}.skillLevels`, ally.skillLevels, bundle);
       validateEquipmentInputs(bag, `${path}.equipment`, ally.equipment, bundle, claimInstance);
@@ -1093,8 +1162,9 @@ function validateMutationRecord(bag, path, mutations) {
 // battle input used to resolve as "no training at all" and look like a balance
 // problem. Only the two input objects Phase B grew are checked here.
 const ALLY_INPUT_KEYS = Object.freeze([
-  "instanceId", "characterId", "position", "hp", "tactics",
-  "reactiveSkillIds", "passiveSkillIds", "equipment", "stats", "training",
+  "instanceId", "characterId", "position", "hp", "activeSkillId", "activeOverrideSkillId", "tactics",
+  "targetSkillIds", "reactiveSkillIds", "reactiveReserveBySkill",
+  "passiveSkillIds", "equipment", "stats", "training",
   "skillLevels",
 ]);
 const ENEMY_INPUT_KEYS = Object.freeze([
