@@ -45,6 +45,18 @@ import {
 const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 export function contractSnapshot() {
   const loadout = freshLoadout(ROSTER);
+  // Weapon-loadout migration fields have their own focused schema/engine
+  // tests. Keep the 850KB legacy snapshot stable while individual skills are
+  // still being moved; otherwise each foundation checkpoint rewrites the
+  // entire bundle and cannot be reviewed meaningfully.
+  const {
+    actives: _actives,
+    targets: _targets,
+    reactiveReserves: _reactiveReserves,
+    ...legacyLoadoutContract
+  } = loadout;
+  const { targetSkills: _targetSkills, ...legacyContentContract } = PLAYABLE_CONTENT;
+  legacyContentContract.schemaVersion = "ecology-content-4";
   const enemyIds = Object.keys(PLAYABLE_CONTENT.enemyActors);
 
   // R7 Milestone 4（Phase B）— 遠征が外へ見せる出力。
@@ -69,10 +81,18 @@ export function contractSnapshot() {
       }
     }
   }
+  const legacyRunRewards = structuredClone(runRewards);
+  for (const offer of Object.values(legacyRunRewards)) {
+    for (const reward of offer ?? []) {
+      if (reward?.item?.provenance?.contentContractVersion) {
+        reward.item.provenance.contentContractVersion = "ecology-content-contract-28";
+      }
+    }
+  }
 
   return {
     contentVersion: PLAYABLE_CONTENT.contentVersion,
-    content: PLAYABLE_CONTENT,
+    content: legacyContentContract,
     displayNames: DISPLAY_NAMES,
     characterOptions: CHARACTER_OPTIONS,
     skills: SKILLS,
@@ -86,7 +106,7 @@ export function contractSnapshot() {
     enemyInfo: Object.fromEntries(enemyIds.map((id) => [id, enemyInfo(id)])),
     enemyTargeting: Object.fromEntries(enemyIds.map((id) => [id, enemyTargetingText(id)])),
     initialUnlocked: Object.fromEntries(CHARACTER_OPTIONS.map((o) => [o.id, initialUnlockedSkills(o.id)])),
-    freshLoadout: loadout,
+    freshLoadout: legacyLoadoutContract,
     // ---- Phase B
     region: REGION,
     skillPacks: SKILL_PACKS,
@@ -103,7 +123,7 @@ export function contractSnapshot() {
       maxLevel: upgrade.maxLevel ?? null, costs: upgrade.costs,
     })),
     freshProfile: profile,
-    runRewards,
+    runRewards: legacyRunRewards,
   };
 }
 
@@ -120,4 +140,3 @@ if (process.argv[1] && process.argv[1].endsWith("contract-snapshot.mjs") && proc
   writeFileSync(path, contractSnapshotJson());
   console.log("凍結を作り直した: " + path);
 }
-
