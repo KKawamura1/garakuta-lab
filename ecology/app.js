@@ -24,7 +24,8 @@ import {
   initialUnlockedSkills,
   removeEquipment,
   reorderSkill,
-  toggleSkill,
+  selectActiveSkill,
+  setReactiveReserve,
   PARTY_SIZE,
   ensurePartySize,
   normalizeFormation,
@@ -395,9 +396,6 @@ function joinRun(run, characterId) {
       reactiveReserves: { ...run.loadout?.reactiveReserves },
       passives: { ...run.loadout?.passives },
       equipment: { ...run.loadout?.equipment },
-      ...(run.loadout?.disabled && typeof run.loadout.disabled === "object"
-        ? { disabled: { ...run.loadout.disabled } }
-        : {}),
     },
   };
   // **初期化するのは初回だけ。**離脱と再加入で点を戻さないので、
@@ -434,26 +432,13 @@ function joinRun(run, characterId) {
   );
   next.loadout.passives[characterId] = keep(run.loadout?.passives?.[characterId]);
   next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
-  const savedDisabled = run.loadout?.disabled?.[characterId];
-  if (Array.isArray(savedDisabled)) {
-    const installed = new Set([
-      ...next.loadout.tactics[characterId],
-      ...next.loadout.reactives[characterId],
-      ...next.loadout.passives[characterId],
-    ]);
-    const disabled = [...new Set(savedDisabled)].filter((skillId) => installed.has(skillId));
-    if (disabled.length) next.loadout.disabled[characterId] = disabled;
-    else {
-      delete next.loadout.disabled[characterId];
-      if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
-    }
-  }
-  // issue #236 — **取得済みは必ず装着欄に並ぶ。**starter の前提（無償閉包で取得済みに
-  // なる親の節）は、これまで解禁表にだけあって装着欄に無かった。その状態はオフと
-  // 同じことを二通りに表しているだけなので、ここでオフのまま装着欄へ入れる。
-  // 戦闘の入力は変わらない（allyInput が disabled を除いてから組む）。
+  // R25 — 取得済みは必ず各ロールへ入り、個別のオン／オフは持たない。
   next.loadout = installUnlockedSkills(
     next.loadout, characterId, next.runUnlockedSkills[characterId]);
+  if (next.loadout.disabled) {
+    delete next.loadout.disabled[characterId];
+    if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
+  }
   // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
   // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
   return next;
@@ -650,12 +635,13 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   };
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
-  // issue #236 — 「取得済みだが未装着」を持つ古い保存も、読み込んだ時点で
-  // オフの装着済みへ揃える。**その保存の戦闘結果は変わらない。**
+  // R25 — 旧保存の「未装着／オフ」を4ロール式へ移す。取得済み技能はロールへ
+  // 揃えたうえで、リアクティブ・ターゲット・パッシブをすべて判定へ参加させる。
   for (const characterId of next.run.roster) {
     next.run.loadout = installUnlockedSkills(
       next.run.loadout, characterId, next.run.runUnlockedSkills?.[characterId]);
   }
+  delete next.run.loadout.disabled;
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
     ? savedRun.generatedEquipment
     : {};
@@ -1072,8 +1058,7 @@ function statsFor(characterId) {
 
 function maxHp(characterId) {
   const base = statsFor(characterId)?.stats.maxHp ?? PLAYABLE_CONTENT.characters[characterId]?.maxHp ?? 1;
-  const passiveSkillIds = (state.run?.loadout?.passives?.[characterId] ?? [])
-    .filter((id) => !skillDisabled(characterId, id));
+  const passiveSkillIds = state.run?.loadout?.passives?.[characterId] ?? [];
   const equipment = (state.run?.loadout?.equipment?.[characterId] ?? []).map((equipmentId) => ({
     equipmentId,
     broken: equipmentDurability(equipmentId) === 0,
@@ -1360,10 +1345,6 @@ function actOfIndex(index) {
 function installedSkill(characterId, skillId, kind) {
   const key = SLOT_KEYS[kind];
   return (state.run.loadout[key]?.[characterId] || []).includes(skillId);
-}
-
-function skillDisabled(characterId, skillId) {
-  return (state.run.loadout.disabled?.[characterId] || []).includes(skillId);
 }
 
 function selectedCharacter() {
@@ -1945,8 +1926,8 @@ function bindLongPress() {
       if (event.isPrimary === false) return;
       if (event.button !== undefined && event.button !== 0) return;
 
-      // 行の中には、指定した必殺をこの一戦へ持ち込む ✹ や、技能のオン／オフ、
-      // 並べ替えの釦がある。そこを押したときまで親行が pointer capture すると、
+      // 行の中には、指定した必殺をこの一戦へ持ち込む ✹ や、アクティブの選択、
+      // 優先順・RP温存の釦がある。そこを押したときまで親行が pointer capture すると、
       // pointerup/click の宛先が親へ寄って、子の通常クリックを長押し経路が奪う。
       // 長押しは行の本文だけに掛け、行内の操作部品はその部品へ渡す。
       const target = event.target instanceof Element ? event.target : null;
@@ -3676,12 +3657,20 @@ function characterFaceChip(characterId) {
     + portrait + "</span>";
 }
 
-const SLOT_KEYS = { active: "tactics", reactive: "reactives", passive: "passives" };
-// **見出しは名前だけ。**「順番」「いつでも効く」は、行の番号と目盛りが出している。
+const SLOT_KEYS = {
+  active: "tactics", reactive: "reactives", target: "targets", passive: "passives",
+};
 const SLOT_TITLES = {
   active: "アクティブ",
   reactive: "リアクティブ",
+  target: "ターゲット",
   passive: "パッシブ",
+};
+const SLOT_RULES = {
+  active: "1つだけセット",
+  reactive: "上から順に、最初に出せる1つ",
+  target: "上から順に、最初に使える狙い方",
+  passive: "取得したものはすべて有効",
 };
 
 // issue #176 — 状態（バフ・デバフ）の説明。**本文は content/statuses.mjs にしかない。**
@@ -3917,15 +3906,14 @@ function prerequisiteLevelsFor(node, characterId) {
 //
 // issue #236 — 持っている節の印は**一つだけ**になった。「取得済みだが未装着」を
 // 廃止したので、□✓（取得済み・未装着）と ■✓（装着中）を分ける必要が無い。
-// 残る違いはオン／オフだけで、それは同じ印の濃さで出す。
 function nodeStateMark(node, nodeState, characterId) {
   const reservation = nodeState.reserved
     ? "<span class=\"node-reservation-mark\" role=\"img\" aria-label=\"取得予約中\" title=\"取得予約中\">◎</span>"
     : "";
   let mark;
   if (nodeState.unlocked) {
-    const label = nodeState.disabled ? "取得済み・オフ" : "取得済み";
-    mark = "<span class=\"node-mark equipped" + (nodeState.disabled ? " off" : "") + "\" role=\"img\""
+    const label = "取得済み";
+    mark = "<span class=\"node-mark equipped\" role=\"img\""
       + " aria-label=\"" + label + "\" title=\"" + label + "\">✓</span>";
   } else {
     const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
@@ -3948,16 +3936,35 @@ function nodeStateMark(node, nodeState, characterId) {
   return "<span class=\"node-state-marks\">" + reservation + mark + "</span>";
 }
 
-// 入切の摘み。**装着行と技能ツリーの操作盤は同じ形を共有する。**同じ操作に二つの
-// 見た目を持たせない（作者指摘 2026-09-13 — 盤の「オンにする／オフにする」の釦と
-// 「取得状態は変わりません」の一行は、この摘みが形で言っていることの重複だった）。
-function skillToggleSwitch(characterId, skillId, kind, disabled) {
-  return "<button type=\"button\" class=\"skill-switch" + (disabled ? " off" : " on")
-    + "\" data-action=\"toggle-skill\" data-character=\"" + characterId + "\" data-skill=\""
-    + skillId + "\" data-kind=\"" + kind + "\" role=\"switch\" aria-checked=\""
-    + (disabled ? "false" : "true") + "\" aria-label=\"" + (disabled ? "オンにする" : "オフにする")
-    + "\" title=\"" + (disabled ? "いまオフ · 押すとオンになる" : "いま有効 · 押すとオフになる")
-    + "\"><i></i></button>";
+function activeSkillControl(characterId, skillId, selected) {
+  return "<button type=\"button\" class=\"active-skill-choice" + (selected ? " selected" : "")
+    + "\" data-action=\"select-active-skill\" data-character=\"" + characterId
+    + "\" data-skill=\"" + skillId + "\" aria-pressed=\"" + (selected ? "true" : "false")
+    + "\" aria-label=\"" + (selected ? "アクティブにセット中" : "アクティブにセット")
+    + "\" title=\"" + (selected ? "このアクティブを使う" : "このアクティブへ変更する")
+    + "\"><i></i><span>" + (selected ? "SET" : "選ぶ") + "</span></button>";
+}
+
+function reactiveReserveControl(characterId, skillId, reserve, budget) {
+  return "<span class=\"reserve-control\" role=\"group\" aria-label=\"この反応のあとに温存するRP\">"
+    + button("−", "change-reactive-reserve", reserve <= 0, "icon-button",
+      "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-delta=\"-1\"")
+    + "<span class=\"reserve-value\" title=\"この技能を出したあとも残すRP\"><small>残すRP</small><b>"
+    + reserve + "</b></span>"
+    + button("＋", "change-reactive-reserve", reserve >= budget, "icon-button",
+      "data-character=\"" + characterId + "\" data-skill=\"" + skillId + "\" data-delta=\"1\"")
+    + "</span>";
+}
+
+function acquiredSkillState(characterId, skillId, kind) {
+  if (kind === "active") {
+    return activeSkillControl(characterId, skillId,
+      state.run.loadout.actives?.[characterId] === skillId);
+  }
+  if (kind === "passive") {
+    return "<span class=\"role-state passive\" title=\"取得したパッシブはすべて働く\">常時</span>";
+  }
+  return "<span class=\"role-state\" title=\"優先順の判定に参加する\">有効</span>";
 }
 
 function skillSlotRows(characterId, kind) {
@@ -3968,41 +3975,24 @@ function skillSlotRows(characterId, kind) {
   // **一人が1ラウンドに払える点。**装着した技能の合計と並べて見せる。
   const budget = kind === "active" ? (definition.baseActionPoints ?? 0)
     : kind === "reactive" ? (definition.baseReactionPoints ?? 0) : 0;
-  const live = list.filter((skillId) => !skillDisabled(characterId, skillId));
-  // 順送りなので、有効な本数のうち一本ぶんが出番になる（issue #187 / #230）。
-  const turns = live.length;
-  let spent = 0;
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
     const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
-    const disabled = skillDisabled(characterId, skillId);
-    const moveButtons = kind === "active" || kind === "reactive"
+    const selected = kind === "active" && state.run.loadout.actives?.[characterId] === skillId;
+    const moveButtons = kind === "reactive" || kind === "target"
       ? "<span class=\"reorder\">" + button("↑", "move-skill", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-skill", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
-    // **出番。**順送りの何本目か、を目盛りで出す。文字で「1/3」と書かない。
-    const liveIndex = disabled ? -1 : live.indexOf(skillId);
-    const share = kind === "active" && turns > 1 && liveIndex >= 0
-      ? "<span class=\"turn-share\" role=\"img\" aria-label=\"装着 " + turns + "本のうちの1本（およそ"
-        + turns + "ラウンドに1回）\" title=\"装着 " + turns + "本のうちの1本（およそ" + turns + "ラウンドに1回）\">"
-        + Array.from({ length: turns }, (unused, slot) =>
-          "<i class=\"" + (slot === liveIndex ? "on" : "") + "\"></i>").join("") + "</span>"
-      : "";
-    // **反応点の収支。**上の行から順に払うので、点が尽きた行は同じラウンドで出せない。
-    let overflow = "";
-    if (kind === "reactive" && node && !disabled) {
-      const costs = skillDefinitionOf(skillId)?.rule?.costs ?? [];
-      const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
-      spent += rp;
-      if (spent > budget) overflow = " over";
-    }
     const marks = node
       ? "<span class=\"row-marks\">" + costPips(node) + yieldBar(characterId, skillId)
         + levelMeter(node, characterId) + "</span>" + conditionLine(node)
       : "";
     // issue #238 — 必殺技はこの行の**長押し**だけで決まる。専用の枠を画面へ足さない。
     const ultimate = ultimateRowState(characterId, skillId, kind);
-    return "<div class=\"installed-row" + (disabled ? " disabled" : "") + overflow
+    const reserve = kind === "reactive"
+      ? (state.run.loadout.reactiveReserves?.[characterId]?.[skillId] ?? 0)
+      : 0;
+    return "<div class=\"installed-row role-" + kind + (selected ? " selected" : "")
       + (ultimate.designated ? " ultimate" : "") + (ultimate.armed ? " armed" : "")
       + (ultimate.fires ? " firing" : "") + (ultimate.spent ? " spent" : "")
       + (ultimate.pressable
@@ -4013,31 +4003,31 @@ function skillSlotRows(characterId, kind) {
       + "\" data-fx=\"skill:" + esc(skillId) + "\">"
       + (kind === "passive"
         ? "<span class=\"bullet passive\">↳</span>"
-        : "<span class=\"order\">" + (index + 1) + "</span>")
+        : kind === "active"
+          ? "<span class=\"active-mark\" aria-hidden=\"true\">" + (selected ? "●" : "○") + "</span>"
+          : "<span class=\"order\">" + (index + 1) + "</span>")
       + "<span class=\"installed-copy\"><b>" + esc(info?.label ?? nameFor(skillId)) + "</b>"
-      + marks + share + ultimate.traits + "</span>"
+      + marks + ultimate.traits + "</span>"
       + ultimate.seal
+      + (kind === "reactive" ? reactiveReserveControl(characterId, skillId, reserve, budget) : "")
       + moveButtons
-      // **入切は「札」ではなく「摘み」にする。**丸は払うものだけに譲ったので、
-      // 操作は動く摘みの形（スイッチ）で出す。
-      + skillToggleSwitch(characterId, skillId, kind, disabled)
+      + acquiredSkillState(characterId, skillId, kind)
       + "</div>";
   }).join("");
-  // 見出しは、払える点（●）と、装着で払う合計（○が足りない）を並べるだけにする。
   const meter = budget > 0
     ? "<span class=\"slot-budget " + (kind === "active" ? "ap" : "rp") + "\" role=\"img\" aria-label=\""
-      + (kind === "active" ? "行動点" : "反応点") + " " + budget + " · 装着 " + list.length + "件\" title=\""
+      + (kind === "active" ? "行動点" : "反応点") + " " + budget + "\" title=\""
       + (kind === "active" ? "1ラウンドに払える行動点" : "1ラウンドに払える反応点") + " " + budget + "\">"
       + pips(budget, kind === "active" ? "ap" : "rp") + "</span>"
     : "";
-  const total = kind === "reactive" && spent > budget
-    ? "<span class=\"slot-over\" role=\"img\" aria-label=\"装着した反応の合計が反応点を超えている\""
-      + " title=\"装着した反応の合計（" + spent + "）が1ラウンドの反応点（" + budget
-      + "）を超えている。下の行は出ないことがある\">▲</span>"
-    : "";
-  return "<div class=\"slot-group\"><div class=\"slot-heading\"><span>" + title + "</span>"
-    + meter + total + "</div>"
-    + (rows || "<p class=\"empty-slot\">—</p>") + "</div>";
+  const empty = kind === "target"
+    ? "まだ狙い方を持っていません。アクティブ本来の対象を選びます。"
+    : kind === "passive"
+      ? "取得するとここへ加わり、すべて有効になります。"
+      : "まだ取得していません。";
+  return "<div class=\"slot-group role-" + kind + "\"><div class=\"slot-heading\"><span><b>"
+    + title + "</b><small>" + SLOT_RULES[kind] + "</small></span>" + meter + "</div>"
+    + (rows || "<p class=\"empty-slot\">" + empty + "</p>") + "</div>";
 }
 
 // issue #159 — 仲間タブ（memberTabs）と、立ち位置・HPの小さな印（formationMark /
@@ -4053,15 +4043,13 @@ function skillPanelExtras(characterId) {
   const points = skillPointsFor(characterId);
   const party = totalSkillPoints();
   const counts = [
-    ["アクティブ", "tactics"],
+    ["アクティブ", "actives"],
     ["リアクティブ", "reactives"],
+    ["ターゲット", "targets"],
     ["パッシブ", "passives"],
   ].map(([label, key]) => {
-    const list = state.run.loadout[key]?.[characterId] || [];
-    const off = list.filter((skillId) => skillDisabled(characterId, skillId)).length;
-    // **オフの本数は、本数そのものと同じくらい読みたい数である**（装着したのに
-    // 戦闘へ出ない行が何本あるか）。0 のときは何も足さない。
-    return panelReadout(label, list.length - off, off ? "オフ" + off : "");
+    const value = state.run.loadout[key]?.[characterId];
+    return panelReadout(label, Array.isArray(value) ? value.length : (value ? 1 : 0));
   }).join("");
   return panelReadout("技能点", points, party !== points ? "隊 " + party : "", "skill-points") + counts;
 }
@@ -4184,7 +4172,6 @@ function selectedSkillView() {
 function skillNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
   const equipped = installedSkill(characterId, node.skillId, node.kind);
-  const disabled = equipped && skillDisabled(characterId, node.skillId);
   // issue #168 — 前提は Lv まで見る。解禁 API と同じ関数を通る。
   const unmet = unmetPrerequisites(node, (skillId) => skillLevelOf(characterId, skillId));
   const prereqsMet = unmet.length === 0;
@@ -4193,12 +4180,11 @@ function skillNodeState(node, characterId) {
   const reservationTargetLevel = skillReservationLevelFor(state.run, characterId);
   const reserved = reservationTarget === node.skillId;
   const canReserve = !unlocked || skillLevelOf(characterId, node.skillId) < skillLevelCapOf(node.skillId);
-  // issue #236 — 取得済み技能はオン／オフだけを残す。
   const stateClass = unlocked
-    ? "equipped" + (disabled ? " disabled" : "")
+    ? "equipped"
     : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
   return {
-    unlocked, equipped, disabled, prereqsMet, unmet, canUnlock, stateClass,
+    unlocked, equipped, prereqsMet, unmet, canUnlock, stateClass,
     reservationTarget, reservationTargetLevel, reserved, canReserve,
   };
 }
@@ -4239,6 +4225,7 @@ function prerequisiteShortfallText(characterId, unmet = []) {
 function skillDefinitionOf(skillId) {
   return PLAYABLE_CONTENT.activeSkills[skillId]
     ?? PLAYABLE_CONTENT.reactiveSkills[skillId]
+    ?? PLAYABLE_CONTENT.targetSkills?.[skillId]
     ?? PLAYABLE_CONTENT.passiveSkills[skillId]
     ?? null;
 }
@@ -4274,8 +4261,8 @@ function levelUpAction(node, characterId, nodeState) {
 
 
 // 予約された技能を自動取得したときの loadout 反映。
-// 前提は installUnlockedSkills の既定（末尾へ追加・オフ）に任せ、
-// 目標だけは通常の取得と同じく equipSkill でオンにする。
+// 前提は installUnlockedSkills の既定（各ロールの末尾へ追加）に任せ、
+// 目標のアクティブだけは通常の取得と同じく、その場で選択する。
 function applyAutomaticSkillActions(actions = []) {
   if (!actions.length) return;
   let loadout = state.run.loadout;
@@ -4285,12 +4272,7 @@ function applyAutomaticSkillActions(actions = []) {
       if (!node) continue;
       if (action.target) {
         const equipped = equipSkill(loadout, action.characterId, action.skillId, node.kind, limitsFor);
-        if (equipped.ok) {
-          loadout = equipped.loadout;
-        } else if ((loadout.disabled?.[action.characterId] ?? []).includes(action.skillId)) {
-          const enabled = toggleSkill(loadout, action.characterId, action.skillId, limitsFor);
-          if (enabled.ok) loadout = enabled.loadout;
-        }
+        if (equipped.ok) loadout = equipped.loadout;
       } else {
         loadout = installUnlockedSkills(loadout, action.characterId, [action.skillId]);
       }
@@ -4326,8 +4308,7 @@ function applyAutomaticSkillActions(actions = []) {
 // 高いぶんだけ地図の見える帯を食う。そこで盤に残すのは「その節を取るかどうかを決める材料」
 // だけにした。
 //
-// ・入切は盤の頭の摘み（装着行と同じ形）にした。「オンにする／オフにする」の釦と
-//   「取得状態は変わりません……」の一行は、摘みが形で言っていることの重複である。
+// ・取得済みはロールの状態だけを置く。アクティブだけはここからも選び直せる。
 // ・前提・派生の札は消した。**どこから来てどこへ行くかは、真上の地図が線で見せている。**
 // ・取得・段上げ・予約・予約取消は一行へまとめた。同じことを言う組（押せる「解禁」と
 //   「Lv1まで取得」）は片方だけ出す。
@@ -4426,10 +4407,8 @@ function renderSkillSheet(selectedRow, characterId) {
     + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
     + "<span class=\"sheet-title\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
     + "<small>" + esc(node.branch) + " · 深さ " + selectedRow.x + "</small></span>"
-    // 取得済みなら、ここは状態の印ではなく**摘み**にする（装着行と同じ形）。
-    // 印は「取得済み」としか言わないが、摘みは同じ場所で入切まで済ませる。
     + (nodeState.equipped
-      ? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)
+      ? acquiredSkillState(characterId, node.skillId, node.kind)
       : nodeStateMark(node, nodeState, characterId))
     + "<button type=\"button\" class=\"sheet-close\" data-action=\"select-skill-node\" data-skill=\"\""
     + " aria-label=\"閉じる\" title=\"閉じる\">✕</button></div>"
@@ -4723,7 +4702,7 @@ function symbolLegendHelp() {
   return helpDetails("skill-symbols", "記号の意味",
     "<dl class=\"symbol-legend\">"
     + row(pips(1, "ap"), "行動点。丸の数だけ1ラウンドに払う")
-    + row(pips(1, "rp"), "反応点。装着した反応は上から順に払い、尽きたら下は出ない")
+    + row(pips(1, "rp"), "反応点。きっかけごとに、上から最初に出せる反応が払う")
     + row("<span class=\"pips hp\"><i></i></span>", "代償にHPを払う")
     + row("<span class=\"yield-chip stat-might\"><i>腕</i>130%</span>",
       "技能の効果量。印は掛ける能力値（腕＝腕力・技＝技術・受＝受け・HP＝最大HP）")
@@ -4731,10 +4710,9 @@ function symbolLegendHelp() {
     + row("<span class=\"node-mark cost acquisition-cost\">1</span>", "この技能の取得コスト")
     + row("<span class=\"node-cost-chain\"><span class=\"node-mark prerequisite-levels\">1</span><span class=\"cost-plus\">+</span><span class=\"node-mark acquisition-cost\">1</span></span>",
       "取得までに必要な他技能の残りLv数と、この技能の取得コスト")
-    + row("<span class=\"node-mark owned\">✓</span>", "取得済み・未装着")
-    + row("<span class=\"node-mark equipped\">✓</span>", "装着中")
-    + row("<span class=\"turn-share\"><i></i><i class=\"on\"></i><i></i></span>",
-      "出番。装着した本数のうちの一本。順送りなので、増やすほど一本あたりの出番は減る")
+    + row("<span class=\"node-mark equipped\">✓</span>", "取得済み。役割に応じて選択肢・優先順・常時効果へ入る")
+    + row("<span class=\"active-mark\">●</span>", "いまセットしているアクティブ")
+    + row("<span class=\"order\">1</span>", "リアクティブ／ターゲットの判定順")
     + row("<span class=\"turn-cells\"><span class=\"turn-round\">"
       + "<i class=\"turn-cell branch-strike\">✦</i></span><span class=\"turn-round\">"
       + "<i class=\"turn-cell idle\"></i></span></span>",
@@ -4903,7 +4881,9 @@ function renderSkills() {
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能")
     + "<p class=\"context-line\">" + esc(packs) + "</p>"
     + memberContext(characterId, "skills")
-    + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive") + skillSlotRows(characterId, "passive") + "</section>"
+    + "<div class=\"role-loadout\">"
+    + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive")
+    + skillSlotRows(characterId, "target") + skillSlotRows(characterId, "passive") + "</div></section>"
     + "<section class=\"card\">"
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + renderSkillTree(characterId)
@@ -4918,7 +4898,7 @@ function renderSkills() {
         glyph: "skill",
         title: "取得",
         value: "枠の上限はありません",
-        line: "取った技能はその場で装着されて回り始めます。",
+        line: "取った技能は役割に応じて、選択肢・優先順・常時効果へ加わります。",
       },
       {
         glyph: "lock",
@@ -4930,27 +4910,32 @@ function renderSkills() {
       {
         glyph: "round",
         title: "アクティブ",
-        value: "順番に回る",
-        line: "出した技能の次から判定し、条件が未達ならスキップ。装着を増やすほど一本の出番は減ります。",
+        value: "1つだけセット",
+        line: "毎ターン、その1つを使います。別のアクティブを選ぶと入れ替わります。",
       },
       {
         glyph: "retry",
         title: "リアクティブ",
-        value: "上から順に判定",
-        line: "条件が別々なので複数が同じ拍に鳴りますが、反応点が尽きた時点で下は出ません。",
+        value: "上から最初の1つ",
+        line: "きっかけごとに上から判定し、条件とRPを満たす最初の1つだけが出ます。各行で残したいRPも決められます。",
       },
       {
-        glyph: "cross",
-        title: "オフ",
-        value: "取得状態・前提・段は失わない",
-        line: "戦闘にも予測にも現れません。starter の前提として無償で付く節は最初からオフです。",
-        tone: "quiet",
+        glyph: "scope",
+        title: "ターゲット",
+        value: "上から最初の狙い方",
+        line: "アクティブが攻撃できる相手の中だけで狙い方を試し、使えるものが無ければ元の狙い方へ戻ります。",
+      },
+      {
+        glyph: "spark",
+        title: "パッシブ",
+        value: "すべて有効",
+        line: "取得したものは選択や並べ替えなしで、すべて効果を発揮します。",
       },
       {
         glyph: "flag",
         title: "取得予約",
         value: "一人につき一つ",
-        line: "技能点が入るたび、前提 → 必要な段 → 目的の技能 → 目的の段の順で自動で取ります。途中の前提はオフ、目的はオンで入ります。",
+        line: "技能点が入るたび、前提 → 必要な段 → 目的の技能 → 目的の段の順で自動で取ります。取得したものは各ロールへ加わります。",
       },
       ultimatesUnlocked(state.run)
         ? { glyph: "spark", title: "必殺技", value: "装着行を長押し", line: "詳しくは下の「必殺技のルール」を開いてください。" }
@@ -7606,8 +7591,8 @@ function renderBattleError() {
     + "<details><summary>エンジン診断データ</summary><pre>" + esc(JSON.stringify(diagnostics, null, 2)) + "</pre></details></section>"
     + "<section class=\"card quiet\">"
     + ruleGrid([
-      { glyph: "cross", title: "まず切る", value: "0コストの行動", line: "直前に装着したものからオフにして、もう一度試します。" },
-      { glyph: "cross", title: "次に切る", value: "準備・行動権を互いに増やす反応", line: "二つが互いを呼ぶと、際限なく回ります。" },
+      { glyph: "retry", title: "まず順を変える", value: "反応の優先順", line: "互いを呼ぶ反応を離し、RP温存も設定してもう一度試します。" },
+      { glyph: "cross", title: "次に見直す", value: "準備・行動権を互いに増やす反応", line: "二つが互いを呼ぶと、際限なく回ります。" },
     ])
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
     + button("キャンプへ戻る", "back-battle-preview", false, "button") + "</div></section>");
@@ -7634,10 +7619,9 @@ function resultActors(result, { simulation = false } = {}) {
 
 // ============================================================ 順番の帯（issue #177）
 //
-// **「装着順が結果にどう効いたか」を、文ではなく帯で見せる。**
-// アクティブは装着順を順送りに回るので（#188 / #187）、装着を増やすほど一本
-// あたりの出番が減る。それが実際にどう出たのかは、ラウンドごとに何が鳴ったかを
-// 並べれば一目で分かる。色はテーマ、印はテーマの記号、押さえれば技能名が出る。
+// **選んだアクティブが各ラウンドでどう出たか**を、文ではなく帯で見せる。
+// リアクティブを含む実際の発火は別の履歴に残し、この帯は行動した／しなかった拍を
+// 一目で比べる。色はテーマ、印はテーマの記号、押さえれば技能名が出る。
 function rotationStrip(result) {
   const events = result?.events ?? [];
   const nodeBySkillId = new Map(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
@@ -9350,17 +9334,6 @@ function handleAction(event) {
           };
           nextLoadout.passives[characterId] = [...(state.run.loadout.passives?.[characterId] || [])];
           nextLoadout.equipment[characterId] = [...(state.run.loadout.equipment?.[characterId] || [])];
-          const disabled = state.run.loadout.disabled?.[characterId];
-          if (Array.isArray(disabled) && disabled.length) {
-            const installed = new Set([
-              ...nextLoadout.tactics[characterId],
-              ...nextLoadout.reactives[characterId],
-              ...nextLoadout.passives[characterId],
-            ]);
-            nextLoadout.disabled ??= {};
-            nextLoadout.disabled[characterId] = [...new Set(disabled)].filter((skillId) => installed.has(skillId));
-            if (!nextLoadout.disabled[characterId].length) delete nextLoadout.disabled[characterId];
-          }
         }
         state.run.loadout = nextLoadout;
         state.run.formation = normalizeFormation(state.run.formation, state.run.roster);
@@ -9445,7 +9418,7 @@ function handleAction(event) {
   }
 
   // R6 §5.3 — 取得は遠征内。遠征が終われば消える。
-  // R18 — 取得の払い戻し経路は無く、装着後は順番とオン／オフだけを変えられる。
+  // R25 — 取得の払い戻しは無い。アクティブの選択と、反応・対象の優先順だけを変える。
   if (action === "unlock-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
@@ -9454,8 +9427,7 @@ function handleAction(event) {
     if (!result.ok) state.error = result.reason;
     else {
       state.run = result.run;
-      // issue #236 — 取得と装着を分けない。**点を払った技能はその場で回り始める。**
-      // 「取得済みだが未装着」は、オフと同じことを二通りに表しているだけだった。
+      // R25 — 取得と各ロールへの登録を分けない。
       const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind, limitsFor);
       if (equipped.ok) state.run.loadout = equipped.loadout;
       fx("skill:" + skillId, "gain");
@@ -9466,16 +9438,32 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "toggle-skill") {
+  if (action === "select-active-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
-    const kind = element.dataset.kind;
-    const result = toggleSkill(state.run.loadout, characterId, skillId, limitsFor);
+    const result = selectActiveSkill(state.run.loadout, characterId, skillId, limitsFor);
     if (!result.ok) state.error = result.reason;
     else {
       state.run.loadout = result.loadout;
-      fx("skill:" + skillId, result.enabled ? "on" : "off");
-      record("skill_toggled", { characterId, skillId, kind, enabled: result.enabled });
+      fx("skill:" + skillId, "on");
+      record("active_skill_selected", { characterId, skillId });
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "change-reactive-reserve") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const current = state.run.loadout.reactiveReserves?.[characterId]?.[skillId] ?? 0;
+    const amount = current + Number(element.dataset.delta);
+    const result = setReactiveReserve(state.run.loadout, characterId, skillId, amount, limitsFor);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.run.loadout = result.loadout;
+      fx("skill:" + skillId, amount > current ? "move-up" : "move-down");
+      record("reactive_reserve_changed", { characterId, skillId, amount });
     }
     saveState();
     render();

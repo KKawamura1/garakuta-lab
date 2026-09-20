@@ -654,18 +654,13 @@ try {
     note("帯の端で切れている節を押すと窓の中へ寄る", centred, clippedNode);
   }
 
-  // 取得済みの節は、盤の頭の摘み（装着行と同じ形）で入切する。
+  // 取得済みの節は、盤の頭でも装着行と同じロール状態を出す。
   const equippedNode = page.locator(".tree-cell:has(.skill-node.equipped) .skill-node-button").first();
   if (await equippedNode.count()) {
     await equippedNode.click();
     await page.waitForTimeout(200);
-    const before = await page.locator(".skill-sheet .skill-switch").getAttribute("aria-checked");
-    await page.locator(".skill-sheet .skill-switch").click();
-    await page.waitForTimeout(250);
-    const after = await page.locator(".skill-sheet .skill-switch").getAttribute("aria-checked");
-    note("取得済みの節を盤の摘みで入切できる", Boolean(before) && before !== after, `${before} → ${after}`);
-    await page.locator(".skill-sheet .skill-switch").click();
-    await page.waitForTimeout(250);
+    note("取得済みの節を盤でもロール状態として読める",
+      await page.locator(".skill-sheet .active-skill-choice, .skill-sheet .role-state").count() === 1);
   }
   // ✕ で盤を閉じる。**閉じると地図が画面いっぱいに戻る**（ここから下の検査も、
   // 何も選んでいない状態から始まる）。
@@ -799,15 +794,21 @@ try {
   const outOfManifest = await page.locator(".skill-node.out-of-manifest").count();
   note("未解禁の技能を名前でも出さない", outOfManifest === 0, `manifest 外 ${outOfManifest} 節`);
 
-  // R18 — 取得は取り消せず、装着後は順番とオン／オフを調整できる。
+  // R25 — 取得は取り消せず、4ロールごとに選択・優先順・常時効果を調整する。
   note("技能を外すボタンが無い", await page.locator('[data-action="remove-skill"]').count() === 0);
   note("解禁のやり直しが無い", await page.locator('[data-action="reset-run-skills"]').count() === 0);
   note("取得を忘れられないと書いてある", /取得した技能は遠征中に忘れません/.test(skillText));
   note("技能数の上限が無いと書いてある", /枠の上限はありません/.test(skillText));
-  note("装着済み技能をオン／オフできる", await page.locator('[data-action="toggle-skill"]').count() > 0);
-  note("行動と反応の順番を変えられる",
-    await page.locator('[data-action="move-skill"][data-kind="active"]').count() > 0
-      && await page.locator('[data-action="move-skill"][data-kind="reactive"]').count() > 0);
+  note("技能ごとのオン／オフを置かない", await page.locator('[data-action="toggle-skill"]').count() === 0);
+  note("アクティブは一つだけセットされている",
+    await page.locator('.slot-group.role-active .active-skill-choice.selected').count() === 1
+      && await page.locator('[data-action="move-skill"][data-kind="active"]').count() === 0);
+  note("リアクティブは優先順とRP温存を持つ",
+    await page.locator('[data-action="move-skill"][data-kind="reactive"]').count() > 0
+      && await page.locator('[data-action="change-reactive-reserve"]').count() > 0);
+  note("ターゲットとパッシブの欄がある",
+    await page.locator('.slot-group.role-target').count() === 1
+      && await page.locator('.slot-group.role-passive').count() === 1);
 
   // ---- issue #159 — **仲間を選ぶ経路は上端の盤面ただ一つ。**技能タブ・装備タブは
   // 自前の仲間タブを持たず、盤面のセルで対象を切り替える。押しても隊列は動かない。

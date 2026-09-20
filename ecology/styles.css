@@ -1120,16 +1120,31 @@ button.party-cell { cursor: pointer; }
 }
 .member-summary b, .member-summary small, .member-head b, .member-head small { display: block; }
 .member-summary small, .member-head small { color: var(--muted); font-size: 10px; }
-.slot-group { margin-top: 12px; }
+.role-loadout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.slot-group {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(58,77,79,.7);
+  border-radius: 9px;
+  background: rgba(14,20,22,.28);
+}
 .slot-heading {
   display: flex;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: 8px;
-  margin-bottom: 4px;
+  min-height: 32px;
+  margin-bottom: 3px;
   color: var(--muted);
   font-size: 11px;
 }
-.slot-heading small { color: var(--gold); }
+.slot-heading > span { min-width: 0; flex: 1; }
+.slot-heading b { display: block; color: var(--ink); font-size: 12px; }
+.slot-heading small { display: block; margin-top: 2px; color: var(--muted); line-height: 1.3; }
 .installed-row {
   display: flex;
   align-items: center;
@@ -1138,6 +1153,10 @@ button.party-cell { cursor: pointer; }
   padding: 5px 0;
   border-top: 1px solid rgba(58,77,79,.55);
 }
+.installed-row.selected { background: linear-gradient(90deg, rgba(229,184,105,.12), transparent); }
+.installed-row.role-reactive, .installed-row.role-target { flex-wrap: wrap; }
+.installed-row.role-reactive .installed-copy,
+.installed-row.role-target .installed-copy { flex-basis: calc(100% - 30px); }
 .installed-row.disabled { opacity: .55; }
 .order, .bullet {
   display: grid;
@@ -1151,12 +1170,67 @@ button.party-cell { cursor: pointer; }
   font-size: 11px;
 }
 .bullet { background: var(--violet); }
+.active-mark {
+  display: grid;
+  flex: 0 0 20px;
+  place-items: center;
+  color: var(--gold);
+  font-size: 14px;
+}
 .installed-copy { min-width: 0; flex: 1; }
 .installed-copy b, .installed-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .installed-copy b { font-size: 12px; }
 .installed-copy small { color: var(--muted); font-size: 10px; }
 .reorder { display: flex; gap: 3px; }
 .icon-button { width: 26px; padding: 4px 2px; }
+.active-skill-choice {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 52px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  color: var(--muted);
+  font-size: 9px;
+}
+.active-skill-choice i {
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+.active-skill-choice.selected { border-color: var(--gold); color: var(--gold); }
+.active-skill-choice.selected i { background: var(--gold); box-shadow: 0 0 7px rgba(229,184,105,.65); }
+.role-state {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid rgba(145,203,213,.45);
+  border-radius: 999px;
+  color: var(--blue);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.role-state.passive { border-color: rgba(197,155,220,.5); color: var(--violet); }
+.reserve-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 27px;
+}
+.reserve-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 47px;
+  color: var(--violet);
+  white-space: nowrap;
+}
+.reserve-value small { color: var(--muted); font-size: 8px; }
+.reserve-value b { font-size: 11px; }
+.empty-slot { margin: 5px 0 1px; color: var(--muted); font-size: 10px; line-height: 1.45; }
 .skill-toggle { margin: 0; }
 .skill-state {
   flex: none;
@@ -1179,6 +1253,9 @@ button.party-cell { cursor: pointer; }
   border-left: 2px solid var(--gold);
   border-radius: 0 8px 8px 0;
   background: rgba(229, 184, 105, .07);
+}
+@media (max-width: 680px) {
+  .role-loadout { grid-template-columns: minmax(0, 1fr); }
 }
 /* R12 — 名簿（ギルドカード）。読み物なので、行間を戦闘画面より広く取る。 */
 .dossier-card {

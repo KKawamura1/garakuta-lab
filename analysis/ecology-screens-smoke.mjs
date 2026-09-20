@@ -105,10 +105,14 @@ const displayContracts = [
   ["操作盤を地図の後ろに置く", app, "+ renderSkillSheet(selectedRow, characterId);"],
   ["操作盤を画面の下端へ貼る", styles, ".skill-sheet {\n  position: sticky;\n  bottom: 0;"],
   ["操作盤の閉じる釦", app, 'class=\\"sheet-close\\"'],
-  // 作者指摘 2026-09-13 — 盤は短いほど地図と一緒に読める。入切は摘みひとつ、
-  // 取得・段上げ・予約は一行、前提と派生は地図に任せる。
-  ["入切の摘みを装着行と盤で共有する", app, "function skillToggleSwitch(characterId, skillId, kind, disabled)"],
-  ["盤の頭で取得済みを入切する", app, "? skillToggleSwitch(characterId, node.skillId, node.kind, nodeState.disabled)"],
+  // R25 — 盤は短いほど地図と一緒に読める。取得済みは同じロール表示を行と盤で共有し、
+  // アクティブだけはどちらからでも一つを選べる。
+  ["取得済みのロール表示を装着行と盤で共有する", app, "function acquiredSkillState(characterId, skillId, kind)"],
+  ["盤の頭も取得済みのロール表示を使う", app, "? acquiredSkillState(characterId, node.skillId, node.kind)"],
+  ["アクティブを一つ選ぶ操作", app, 'data-action=\\"select-active-skill\\"'],
+  ["リアクティブのRP温存操作", app, '"change-reactive-reserve"'],
+  ["ターゲットのロードアウト欄", app, 'skillSlotRows(characterId, "target")'],
+  ["4ロールの配置", styles, ".role-loadout {"],
   ["取得・段上げ・予約を一行へ並べる", styles, ".skill-sheet .node-action { display: flex;"],
   ["予約の規則は畳んだヘルプに置く", app, 'title: "取得予約",\n        value: "一人につき一つ"'],
   // 作者指摘 2026-09-17 — **地図は辿るため、一覧は見渡すため。**同じ森を二つの見方で出し、

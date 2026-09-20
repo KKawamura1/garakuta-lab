@@ -393,6 +393,17 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   const listKey = LOADOUT_KEYS[kind];
   if (!listKey) return { ok: false, reason: "その枠はありません。" };
   const list = next[listKey][characterId] ?? [];
+  // R25 — 4ロール式では取得済み技能を個別にオフにしない。旧 loadout に残る
+  // disabled は、技能を選び直した時点で取り除く。
+  const disabled = new Set(next.disabled?.[characterId] ?? []);
+  disabled.delete(skillId);
+  if (next.disabled) {
+    if (disabled.size) next.disabled[characterId] = [...disabled];
+    else {
+      delete next.disabled[characterId];
+      if (!Object.keys(next.disabled).length) delete next.disabled;
+    }
+  }
   if (kind === "active") {
     if (!list.includes(skillId)) next.tactics[characterId] = [...list, skillId];
     next.actives[characterId] = skillId;
@@ -403,14 +414,9 @@ export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
   return { ok: true, loadout: next };
 }
 
-// issue #236 — **「取得済みだが未装着」という状態を無くす。**技能枠は無制限
-// （SLOT_LIMITS の active / reactive / passive）なので、取得したものを装着できない
-// 場面は無く、この状態は「オフ」と同じことを二通りに表しているだけだった
-// （作者指摘 2026-09-11「いま特に意味のない状態があって、いらない」）。
-//
-// **engine から見れば オフ と 未装着 は同一である。**allyInput が disabled を
-// 除いてから battle input を組むので、ここで未装着だったものをオフで装着し直しても
-// 戦闘の入力は1ビットも変わらない。既存の遠征・保存の結果が動かない。
+// R25 — 取得済み技能を4ロールの欄へ揃える。active は選択肢、reactive / target は
+// 優先列、passive は常時効果になるため、「取得済みだが未登録」は持たない。
+// 旧API向けの disabled が残っていても、新しく揃えた技能は有効に戻す。
 export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
   const normalized = normalizeLoadout(loadout, [characterId]);
   const next = {
@@ -430,13 +436,10 @@ export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
     if (!listKey) continue;
     const list = next[listKey][characterId] ?? [];
     if (list.includes(skillId)) continue;
-    // **末尾へ足し、既定はオフ。**先頭へ足すと既存の巡回順が動き、オンで足すと
-    // これまで出ていなかった技能が急に回り始める。どちらも「表し方を変えるだけ」
-    // という約束を破る。
+    // **末尾へ足す。**リアクティブとターゲットは上から判定するため、既存の優先順を
+    // 動かさない。パッシブを含め、4ロール式では取得した技能を個別にオフにしない。
     next[listKey][characterId] = [...list, skillId];
-    // Passive skills are always on. Other legacy skill kinds retain the old
-    // safe default until their weapon trees are migrated to the new UI.
-    if (componentInfo(skillId)?.kind !== "passive") disabled.add(skillId);
+    disabled.delete(skillId);
     added = true;
   }
   if (!added) return loadout;
@@ -484,6 +487,15 @@ export function selectActiveSkill(loadout, characterId, skillId, limitsFor) {
     return { ok: false, reason: "そのアクティブ技能は取得していません。" };
   }
   next.actives[characterId] = skillId;
+  const disabled = new Set(next.disabled?.[characterId] ?? []);
+  disabled.delete(skillId);
+  if (next.disabled) {
+    if (disabled.size) next.disabled[characterId] = [...disabled];
+    else {
+      delete next.disabled[characterId];
+      if (!Object.keys(next.disabled).length) delete next.disabled;
+    }
+  }
   return { ok: true, loadout: next };
 }
 

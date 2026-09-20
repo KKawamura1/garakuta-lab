@@ -405,7 +405,7 @@ try {
         const [first, second] = [...row.children].map((child) => child.getBoundingClientRect().width);
         return Math.abs(first - second) <= 1;
       }));
-  // 人物を選ぶ・隊列を組み替える・技能を切る。**どれも盤面か行が返事をする。**
+  // 人物を選ぶ・隊列を組み替える・RP温存を変える。**どれも盤面か行が返事をする。**
   await page.locator(".camp-top button.party-cell").nth(1).click();
   note("人物を選ぶと盤面の枠が締まる", await page.locator(".party-cell.fx-select").count() > 0);
   await page.locator('[data-action="toggle-formation-mode"]').click();
@@ -419,15 +419,15 @@ try {
       String(await page.locator(".party-cell.fx-swap").count()));
   }
   await page.locator('[data-action="toggle-formation-mode"]').click();
-  // 隊列操作の途中で選択中の人物が移動元へ切り替わる。そこから「最初の技能」を
-  // 拾うと、技能の再調整で予測の要約（勝敗・ラウンド・味方HP）を変えない技能を
-  // 選んでしまい、実装が正しくてもこの検査だけが空振りする。Stage 1 の初期編成で
-  // 予測へ確実に効く防壁技能を、人物と技能IDで明示して切り替える。
+  // Stage 1 の初期編成で予測へ確実に効く防壁反応に、最大のRP温存を指定する。
+  // 発動後に最大RPを残せないため、この反応は出なくなり、旧オン／オフに頼らず
+  // loadout と予測の再計算を同時に踏める。
   await page.locator('.camp-top [data-action="select-character"][data-character="mender"]').click();
-  const forecastToggle = page.locator(
-    '.installed-row [data-action="toggle-skill"][data-character="mender"][data-skill="shield_the_wounded"]',
+  const forecastReserveUp = page.locator(
+    '.installed-row[data-fx="skill:shield_the_wounded"] '
+      + '[data-action="change-reactive-reserve"][data-character="mender"][data-delta="1"]',
   );
-  if (await forecastToggle.count()) {
+  if (await forecastReserveUp.count()) {
     // 前の値の影（.fx-ghost）は動きが終わると自分で消えるので、**在ったこと**を
     // 押す前に仕掛けた見張りで数える（読みに行く頃には消えている回がある）。
     await page.evaluate(() => {
@@ -440,10 +440,10 @@ try {
         }
       }).observe(document.querySelector("#app"), { subtree: true, childList: true });
     });
-    await forecastToggle.click();
-    note("技能を切ると行が返事をする",
-      await page.locator(".installed-row.fx-off, .installed-row.fx-on").count() > 0);
-    // 技能を切れば予測が変わる。**申告していない数のほうが勝手に光る**（data-fx-watch）。
+    while (await forecastReserveUp.isEnabled()) await forecastReserveUp.click();
+    note("RP温存を変えると行が返事をする",
+      await page.locator('.installed-row[data-fx="skill:shield_the_wounded"].fx-move-up').count() > 0);
+    // RP温存で発火可否が変われば予測も変わる。**申告していない数のほうが勝手に光る**。
     note("予測の数が動くと窓が読み直す", await page.locator(".forecaster-window.fx-recalc").count() === 1);
     note("誰の予測が動いたかが盤面の数に出る",
       await page.locator(".forecaster-window [data-fx-watch].fx-up, .forecaster-window [data-fx-watch].fx-down").count() > 0);
@@ -473,7 +473,11 @@ try {
     note("窓の外の読み値はブラウン管にしない",
       await page.locator('nav.tabs [data-fx-watch]').first()
         .evaluate((meta) => getComputedStyle(meta).animationName !== "fx-crt-value"));
-    await forecastToggle.click();
+    const forecastReserveDown = page.locator(
+      '.installed-row[data-fx="skill:shield_the_wounded"] '
+        + '[data-action="change-reactive-reserve"][data-character="mender"][data-delta="-1"]',
+    );
+    while (await forecastReserveDown.isEnabled()) await forecastReserveDown.click();
   }
   // 動きを切っている人には、動きだけを出さない（色・記号・数・ラベルは残る）。
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -484,9 +488,9 @@ try {
   // 先見機の読み直しは、**止めた姿が残ってはいけない。**前の値の影と走査線は、
   // 動きを止める回は置くこと自体をやめる（薄いまま重なった影が居座らないように）。
   await page.locator('nav.tabs [data-tab="skills"]').click();
-  const reducedToggle = page.locator('.installed-row [data-action="toggle-skill"]').first();
-  if (await reducedToggle.count()) {
-    await reducedToggle.click();
+  const reducedReserve = page.locator('.installed-row [data-action="change-reactive-reserve"][data-delta="1"]').first();
+  if (await reducedReserve.count() && await reducedReserve.isEnabled()) {
+    await reducedReserve.click();
     note("reduced-motion では窓をブレさせない",
       await page.locator(".forecaster-window .forecast-head")
         .evaluate((head) => getComputedStyle(head).animationName === "none"));
@@ -497,7 +501,8 @@ try {
         return (!ghost || getComputedStyle(ghost).display === "none")
           && (bar.display === "none" || bar.content === "none");
       }));
-    await reducedToggle.click();
+    const reducedRestore = page.locator('.installed-row [data-action="change-reactive-reserve"][data-delta="-1"]').first();
+    if (await reducedRestore.isEnabled()) await reducedRestore.click();
   }
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.locator('nav.tabs [data-tab="map"]').click();

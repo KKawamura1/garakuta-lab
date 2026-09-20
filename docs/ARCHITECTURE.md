@@ -92,7 +92,7 @@
 `_headers` が `/ecology/art/*` を一日キャッシュする。
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
-取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡ります。engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）に係数を掛け、`static-bonuses.mjs` は基礎能力パッシブを `statBonus + statBonusPerLevel × (技能Lv - 1)` として戦闘開始時の能力へ加えます。**どちらも技能 ID で分岐しません**。Lv1 は旧来の `statBonus` と同じ値で、技能Lvが無い旧入力もLv1として読まれます。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
+取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡ります。engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）に係数を掛け、`static-bonuses.mjs` は基礎能力パッシブを `statBonus + statBonusPerLevel × (技能Lv - 1)` として戦闘開始時の能力へ加えます。**どちらも技能 ID で分岐しません**。Lv1 は旧来の `statBonus` と同じ値で、技能Lvが無い旧入力もLv1として読まれます。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。戦闘時の選択は `playable-battles.mjs` の loadout に保存し、active 一つ、ordered reactive、ordered target、全 passive を `allyInput()` が preview と本番に共通で渡します。旧 save の `disabled` は app の復元時に4ロール式へ移行し、取得済み技能を個別停止するUIは持ちません。
 `simulateExpeditionBattle` が予測と本番の入力構成と `equipmentBreaks: false` を共有するため、
 技能レベル・HP・装備耐久を含む同じ入力から同じ結果とイベント列を返します。
 **呼び出し側も一本です**：`app.js` の `expeditionBattleOptions()` が盤面の外の入力
@@ -103,7 +103,7 @@
 `previewOnly` の境界より内側では `RunState.results`、ledger、技能点、取得予約、図鑑、
 `commitBattleResult`、戦闘ログを更新しません。試映の結果は `simulationMode` により必ず専用結果へ
 入り、通常の報酬生成・進行経路を通らずキャンプへ戻ります。
-取得予約は `progression.mjs` の `reserveRunSkill` / `cancelRunSkillReservation` が一人一目標を管理し、`fulfillSkillReservations` が同じ決定順で前提・必要Lv・目標技能を、手持ちSPの範囲だけ自動取得します。画面は自動取得の action 列を受け取り、前提をオフ、目標をオンで loadout へ反映します。`RunState.skillReservations` は保存・再開の対象です。
+取得予約は `progression.mjs` の `reserveRunSkill` / `cancelRunSkillReservation` が一人一目標を管理し、`fulfillSkillReservations` が同じ決定順で前提・必要Lv・目標技能を、手持ちSPの範囲だけ自動取得します。画面は自動取得の action 列を受け取り、取得した技能を役割ごとの loadout へ反映します。目標が active の場合だけ、その技能を選択中 active にします。`RunState.skillReservations` は保存・再開の対象です。
 `analysis/ecology-screens-smoke.mjs` がその2箇所と、予測 cache の鍵
 （`forecastKey`、`runSkillLevels` と `runUnlockedSkills` を含む）を見張ります。
 `content/skill-levels.mjs` の `LEVELED_EFFECTS` と `effects.mjs` の `afterSkillLevel` が
@@ -529,14 +529,15 @@ RunState の loadout は、取得済み一覧と戦闘時の選択を次の欄�
 
 `normalizeLoadout()` が旧保存の `tactics[c][0]` から `actives[c]` を決定的に補い、欠けている
 `targets` / `reactiveReserves` を空で補います。未知技能や不正な温存値は BattleInput へ入れません。
-パッシブは `disabled` の対象にせず、`allyInput()` が全件を BattleInput へ渡します。
+app は保存復元時に旧 `disabled` を除去します。以後は active の選択、reactive / target の順番、
+reactive のRP温存だけを編集し、passive は `allyInput()` が全件を BattleInput へ渡します。
 
 `allyInput()` は `activeSkillId`、`activeOverrideSkillId`、`targetSkillIds`、`reactiveSkillIds`、
 `reactiveReserveBySkill`、`passiveSkillIds` を一箇所で組みます。必殺アクティブは元技能との
 二本装着ではなく、発動条件を満たした時だけ選択中アクティブを上書きする候補として渡します。
 
 `analysis/ecology-screens-smoke.mjs` が片側検査で「装着する釦・`equip-skill` handler・
-`.skill-node.unlocked` が戻っていないこと」と「三つの経路が残っていること」を見る。
+`.skill-node.unlocked` が戻っていないこと」と、4ロール欄・active 選択・RP温存の経路を見ます。
 `analysis/ecology-trial.mjs` は保存へ技能点を入れてから実際に一つ取得し、
 装着行に並ぶところまで踏む（技能点は0で始まるので、点を入れないとこの経路は踏めない）。
 
