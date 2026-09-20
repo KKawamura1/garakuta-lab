@@ -134,7 +134,7 @@ const FORMATION = {
 // を追加したので、profile / run / manifest の版をそれぞれ1つ上げた。
 equal(PROFILE_SCHEMA_VERSION, "ecology-profile-2", "profile の版");
 equal(RUN_SCHEMA_VERSION, "ecology-run-5", "run の版");
-equal(MANIFEST_VERSION, "ecology-manifest-2", "manifest の版");
+equal(MANIFEST_VERSION, "ecology-manifest-3", "manifest の版");
 
 // ---- 3幕12戦（R6 §5.1）------------------------------------------------------
 

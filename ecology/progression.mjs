@@ -704,6 +704,9 @@ export function makeManifest(seed, profile) {
     seed: String(seed),
     regionId: REGION.id,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
+    // R25 — 武器ツリーはpack分類ではなく、遠征開始時に固定する独立manifest。
+    // 実装済み武器を段階的にここへ載せ、途中で増減させない。
+    enabledWeaponIds: ["warhammer"],
     enabledPackIds: enabled,
     // Free / Endless は Stage の学習順を持たないので、pack は常に full で出る
     // （R9 §3.1 の core / full はチュートリアル Stage の仕組み）。
@@ -723,6 +726,13 @@ export function makeManifest(seed, profile) {
 // **画面もツリーも run もここを通る**ので、深さの解釈が一箇所に閉じる。
 export function manifestSkillIds(manifest) {
   return skillIdsForPacks(manifest?.enabledPackIds ?? [], manifest?.packDepths ?? {});
+}
+
+export function manifestWeaponIds(manifest) {
+  // manifest-2以前の保存は武器欄を持たない。R25移行時点で唯一実装済みの戦槌へ
+  // 決定的に補い、既存遠征を再開しても新ツリーだけ空にならないようにする。
+  const ids = Array.isArray(manifest?.enabledWeaponIds) ? manifest.enabledWeaponIds : ["warhammer"];
+  return [...new Set(ids)];
 }
 
 // ============================================================ RunState（R6 §4.2）
@@ -1138,9 +1148,17 @@ export function canFulfillSkillReservation(run, characterId, skillId, targetLeve
 // 遠征内の解禁。**manifest が有効にした技能しか解禁できない。**
 export function unlockRunSkill(run, characterId, node) {
   if (!node) return { ok: false, reason: "その技能が見つかりません。" };
-  const available = manifestSkillIds(run.manifest).all;
-  if (!available.includes(node.skillId)) {
-    return { ok: false, reason: "この遠征の技能パックには入っていません。" };
+  const weaponNode = typeof node.weaponId === "string";
+  const available = weaponNode
+    ? manifestWeaponIds(run.manifest).includes(node.weaponId)
+    : manifestSkillIds(run.manifest).all.includes(node.skillId);
+  if (!available) {
+    return {
+      ok: false,
+      reason: weaponNode
+        ? "この遠征では、その武器を利用できません。"
+        : "この遠征の技能パックには入っていません。",
+    };
   }
   const unlocked = run.runUnlockedSkills?.[characterId] ?? [];
   if (unlocked.includes(node.skillId)) return { ok: false, reason: "すでに解禁されています。" };

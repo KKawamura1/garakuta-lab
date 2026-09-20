@@ -24,6 +24,14 @@ import {
   WARHAMMER_TARGET_SKILLS,
   WARHAMMER_TREE,
 } from "./weapon-warhammer.mjs";
+import {
+  IMPLEMENTED_WEAPON_IDS,
+  WEAPONS,
+  WEAPON_SKILL_NODE_BY_ID,
+  WEAPON_SKILL_TREE_NODES,
+  weaponSkillNode,
+  weaponSkillNodes,
+} from "./weapon-trees.mjs";
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
@@ -105,7 +113,9 @@ import {
 // R25 engine vocabulary: migrated weapon actions can opt into explicit
 // melee/long/ranged/support positioning, and actions can move to an empty row
 // then return at action end. Existing skill definitions retain legacy behavior.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-31";
+// R25 weapon acquisition: manifests now freeze enabledWeaponIds independently
+// from packs, and the first level-free 19-node tree is available to every actor.
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-32";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -196,7 +206,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.20",
+  contentVersion: "ecology-playable-full-0.21",
   characters: CHARACTERS,
   activeSkills: Object.freeze({ ...ACTIVE_SKILLS, ...WARHAMMER_ACTIVE_SKILLS }),
   // The staged weapon-tree implementation starts with the contract and UI.
@@ -231,6 +241,15 @@ export {
   skillTextAtLevel,
   skillTextIssues,
 } from "./skill-levels.mjs";
+
+export {
+  IMPLEMENTED_WEAPON_IDS,
+  WEAPONS,
+  WEAPON_SKILL_NODE_BY_ID,
+  WEAPON_SKILL_TREE_NODES,
+  weaponSkillNode,
+  weaponSkillNodes,
+};
 
 export const DISPLAY_NAMES = Object.freeze(
   Object.fromEntries(

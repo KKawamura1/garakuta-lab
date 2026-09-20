@@ -6943,3 +6943,89 @@ button.party-cell:active:not(:disabled),
   .encounter-console-signal i,
   .encounter-projection.forecast { animation: none; }
 }
+
+/* R25 武器別ツリー。四分類を別タブへ分断せず、一武器の19節を同じ縦線で読む。 */
+.skill-source-switch,
+.weapon-tree-tabs { display: flex; gap: 6px; margin: 8px 0; }
+.weapon-tab {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  padding: 7px 10px;
+}
+.weapon-tab.active { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.weapon-tab small { color: var(--muted); }
+.weapon-tree-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 10px;
+  margin: 10px 0 6px;
+}
+.weapon-tree-head > div { display: grid; gap: 2px; }
+.weapon-tree-head small { color: var(--muted); }
+.weapon-skill-tree { display: grid; gap: 6px; }
+.weapon-skill-node {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(24, 33, 36, .92);
+  overflow: hidden;
+}
+.weapon-skill-node.ready { border-color: var(--gold); }
+.weapon-skill-node.unlocked { border-color: rgba(155, 214, 158, .65); }
+.weapon-skill-node.selected { box-shadow: inset 0 0 0 1px var(--gold); }
+.weapon-node-main {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 9px;
+  text-align: left;
+}
+.weapon-position {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font: 700 11px/1 ui-monospace, monospace;
+  color: var(--muted);
+}
+.weapon-node-copy { min-width: 0; display: grid; gap: 3px; }
+.weapon-node-copy > span { display: flex; flex-wrap: wrap; gap: 5px; }
+.weapon-node-copy small { color: var(--muted); line-height: 1.35; }
+.weapon-kind,
+.weapon-replace {
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-style: normal;
+  background: rgba(145, 203, 213, .1);
+  color: var(--muted);
+}
+.weapon-replace { color: var(--gold); }
+.weapon-node-state { color: var(--gold); font-weight: 800; white-space: nowrap; }
+.weapon-node-detail { border-top: 1px solid var(--line); padding: 8px 10px 10px 55px; }
+.weapon-node-detail .skill-flavor {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+.weapon-node-detail .node-action { margin-top: 7px; }
+.weapon-node-lock { color: var(--muted); font-size: 12px; }
+@media (max-width: 430px) {
+  .weapon-tree-head { align-items: start; flex-direction: column; }
+  .weapon-node-main { grid-template-columns: 32px minmax(0, 1fr) auto; padding: 8px 7px; }
+  .weapon-node-detail { padding-left: 48px; }
+}

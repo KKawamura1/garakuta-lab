@@ -91,6 +91,9 @@ import {
   BRANCH_BUILDS,
   SCOPE_LABELS,
   SKILL_TREE_GROUPS,
+  WEAPONS,
+  WEAPON_SKILL_TREE_NODES,
+  weaponSkillNodes,
   TRIGGER_LABELS,
   buildSkillTreeLayout,
   // issue #168 — 前提（技能IDと必要Lv）の判定。解禁 API と同じ関数を読む。
@@ -120,6 +123,7 @@ import {
   canFulfillSkillReservation,
   fulfillSkillReservations,
   manifestSkillIds,
+  manifestWeaponIds,
   normalizeRunSkillReservations,
   reserveRunSkill,
   skillReservationFor,
@@ -482,6 +486,9 @@ function freshUiState() {
     selectedEnemyId: null,
     formationSelection: null,
     selectedSkillNode: null,
+    // R25 — 通常は武器別ツリーを開く。旧技能の手取り中だけ互換ツリーへ切り替える。
+    skillTreeSource: "weapon",
+    selectedWeaponId: "warhammer",
     // R19（issue #137）— ツリーは種別（アクティブ / リアクティブ / パッシブ）で切り替える。
     skillTreeKind: "active",
     // issue #177 — テーマの絞り込み（null は全部）。
@@ -695,6 +702,11 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.inspectedEncounterIndex = null;
   next.selectedEnemyId = null;
   next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
+  next.skillTreeSource = ["weapon", "legacy"].includes(next.skillTreeSource)
+    ? next.skillTreeSource : "weapon";
+  const availableWeaponIds = manifestWeaponIds(next.run?.manifest);
+  next.selectedWeaponId = availableWeaponIds.includes(next.selectedWeaponId)
+    ? next.selectedWeaponId : (availableWeaponIds[0] ?? "warhammer");
   next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
   // **綴りはここでは literal で見る。**`loadState()` は module の評価中に走るので、
   // 下のほうで宣言している const（`SKILL_TREE_VIEWS`）はまだ初期化されていない。
@@ -4463,6 +4475,96 @@ function renderSkillTree(characterId) {
     + renderSkillSheet(selectedRow, characterId);
 }
 
+// R25 — 武器別ツリー。旧ツリーのLv・pack・予約を流用せず、19節を武器の中で混在表示する。
+// 四分類は取得場所ではなく、取得後の解決方式を示す札としてだけ使う。
+const WEAPON_KIND_LABELS = Object.freeze({
+  active: "アクティブ", reactive: "リアクティブ", target: "ターゲット", passive: "パッシブ",
+});
+
+function weaponNodeState(node, characterId) {
+  const unlocked = isUnlocked(characterId, node.skillId);
+  const unmet = (node.requires ?? []).filter((required) => !isUnlocked(characterId, required.skillId));
+  return {
+    unlocked,
+    unmet,
+    prereqsMet: unmet.length === 0,
+    canUnlock: !unlocked && unmet.length === 0 && skillPointsFor(characterId) >= node.cost,
+  };
+}
+
+function weaponNodeAction(node, characterId, nodeState) {
+  if (nodeState.unlocked) {
+    if (node.kind === "active") {
+      return activeSkillControl(characterId, node.skillId,
+        state.run.loadout.actives?.[characterId] === node.skillId);
+    }
+    return acquiredSkillState(characterId, node.skillId, node.kind);
+  }
+  if (!nodeState.prereqsMet) {
+    const names = nodeState.unmet.map((required) => nameFor(required.skillId)).join("・");
+    return "<span class=\"weapon-node-lock\">前提: " + esc(names) + "</span>";
+  }
+  return button("解禁 · " + node.cost + "SP", "unlock-weapon-skill", !nodeState.canUnlock,
+    "tiny-button primary-mini", "data-character=\"" + characterId + "\" data-skill=\""
+      + node.skillId + "\"");
+}
+
+function renderWeaponSkillTree(characterId) {
+  const available = manifestWeaponIds(state.run.manifest).filter((id) => WEAPONS[id]);
+  const weaponId = available.includes(state.selectedWeaponId)
+    ? state.selectedWeaponId : available[0];
+  if (!weaponId) return "<p class=\"tree-empty muted\">この遠征で使える武器はありません。</p>";
+  const weapon = WEAPONS[weaponId];
+  const nodes = weaponSkillNodes(weaponId);
+  const tabs = available.map((id) => {
+    const selected = id === weaponId;
+    const count = weaponSkillNodes(id).length;
+    return "<button type=\"button\" class=\"weapon-tab" + (selected ? " active" : "")
+      + "\" aria-pressed=\"" + (selected ? "true" : "false")
+      + "\" data-action=\"select-weapon-tree\" data-weapon=\"" + esc(id) + "\"><b>"
+      + esc(WEAPONS[id].displayName) + "</b><small>" + count + "節</small></button>";
+  }).join("");
+  const rows = nodes.map((node) => {
+    const definition = skillDefinitionOf(node.skillId);
+    const nodeState = weaponNodeState(node, characterId);
+    const selected = state.selectedSkillNode === node.skillId;
+    const replacement = definition?.replacesActiveSkillId || definition?.replacesPassiveSkillIds?.length
+      ? "<span class=\"weapon-replace\">上位形態</span>" : "";
+    return "<article class=\"weapon-skill-node role-" + node.kind
+      + (nodeState.unlocked ? " unlocked" : nodeState.canUnlock ? " ready" : " locked")
+      + (selected ? " selected" : "") + "\" data-fx=\"skill:" + esc(node.skillId) + "\">"
+      + "<button type=\"button\" class=\"weapon-node-main\" data-action=\"select-weapon-skill-node\""
+      + " data-skill=\"" + esc(node.skillId) + "\" aria-expanded=\"" + (selected ? "true" : "false") + "\">"
+      + "<span class=\"weapon-position\">" + esc(node.position) + "</span>"
+      + "<span class=\"weapon-node-copy\"><span><i class=\"weapon-kind\">"
+      + WEAPON_KIND_LABELS[node.kind] + "</i>" + replacement + "</span><b>"
+      + esc(definition?.displayName ?? node.skillId) + "</b><small>"
+      + esc(definition?.displayEffect ?? "") + "</small></span>"
+      + "<span class=\"weapon-node-state\">" + (nodeState.unlocked ? "✓" : node.cost + "SP") + "</span>"
+      + "</button>"
+      + (selected
+        ? "<div class=\"weapon-node-detail\"><p class=\"skill-flavor\">"
+          + esc(definition?.flavorText ?? "") + "</p><div class=\"node-action\">"
+          + weaponNodeAction(node, characterId, nodeState) + "</div></div>"
+        : "")
+      + "</article>";
+  }).join("");
+  return "<div class=\"weapon-tree-tabs\" role=\"tablist\">" + tabs + "</div>"
+    + "<div class=\"weapon-tree-head\"><div><b>" + esc(weapon.displayName) + "</b><small>"
+    + esc(weapon.summary) + "</small></div>" + skillBuildSummary(characterId) + "</div>"
+    + "<div class=\"weapon-skill-tree\">" + rows + "</div>";
+}
+
+function renderSkillTreeSource(characterId) {
+  const source = state.skillTreeSource === "legacy" ? "legacy" : "weapon";
+  const switcher = "<div class=\"skill-source-switch\" role=\"group\" aria-label=\"技能ツリーの種類\">"
+    + "<button type=\"button\" class=\"view-tab" + (source === "weapon" ? " on" : "")
+      + "\" data-action=\"select-skill-source\" data-source=\"weapon\">武器別</button>"
+    + "<button type=\"button\" class=\"view-tab" + (source === "legacy" ? " on" : "")
+      + "\" data-action=\"select-skill-source\" data-source=\"legacy\">移行前</button></div>";
+  return switcher + (source === "weapon" ? renderWeaponSkillTree(characterId) : renderSkillTree(characterId));
+}
+
 // **見方の切り替えと、絞り込みは同じ一行に置く。**どちらも「いま何を見せるか」で、
 // 節そのものを触らない（触るのは下端の操作盤だけ、という 8.5.1 の分け方は変えない）。
 function treeViewSwitch(view, ready, characterId) {
@@ -4892,7 +4994,7 @@ function renderSkills() {
     + skillSlotRows(characterId, "target") + skillSlotRows(characterId, "passive") + "</div></section>"
     + "<section class=\"card\">"
     + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
-    + renderSkillTree(characterId)
+    + renderSkillTreeSource(characterId)
     + "</details>"
     + symbolLegendHelp()
     // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
@@ -8692,6 +8794,7 @@ function advanceAfterBattle() {
     state.selectedCharacter = state.run.roster.find((id) => id !== SKILL_LESSON_GOAL.characterId)
       ?? state.selectedCharacter;
     state.selectedSkillNode = null;
+    state.skillTreeSource = "legacy";
     state.skillTreeKind = skillLessonNode(SKILL_LESSON_GOAL.unlockSkillId)?.kind ?? "active";
     state.skillTreeBranch = null;
     state.skillLessonHandedOff = false;
@@ -9205,6 +9308,35 @@ function handleAction(event) {
     return;
   }
 
+  if (action === "select-skill-source") {
+    const source = element.dataset.source;
+    if (!["weapon", "legacy"].includes(source)) return;
+    state.skillTreeSource = source;
+    state.selectedSkillNode = null;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-weapon-tree") {
+    const weaponId = element.dataset.weapon;
+    if (!manifestWeaponIds(state.run.manifest).includes(weaponId) || !WEAPONS[weaponId]) return;
+    state.selectedWeaponId = weaponId;
+    state.selectedSkillNode = null;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-weapon-skill-node") {
+    const skillId = element.dataset.skill || null;
+    if (!WEAPON_SKILL_TREE_NODES.some((node) => node.skillId === skillId)) return;
+    state.selectedSkillNode = state.selectedSkillNode === skillId ? null : skillId;
+    saveState();
+    render();
+    return;
+  }
+
   if (action === "reserve-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
@@ -9438,6 +9570,25 @@ function handleAction(event) {
       if (equipped.ok) state.run.loadout = equipped.loadout;
       fx("skill:" + skillId, "gain");
       record("skill_unlocked", { characterId, skillId, cost: node.cost });
+    }
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "unlock-weapon-skill") {
+    const characterId = element.dataset.character;
+    const skillId = element.dataset.skill;
+    const node = WEAPON_SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+    const result = unlockRunSkill(state.run, characterId, node);
+    if (!result.ok) state.error = result.reason;
+    else {
+      state.run = result.run;
+      state.run.loadout = installUnlockedSkills(state.run.loadout, characterId, [skillId]);
+      fx("skill:" + skillId, "gain");
+      record("weapon_skill_unlocked", {
+        characterId, skillId, weaponId: node.weaponId, position: node.position, cost: node.cost,
+      });
     }
     saveState();
     render();

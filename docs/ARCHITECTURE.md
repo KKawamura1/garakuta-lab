@@ -573,6 +573,18 @@ reactive のRP温存だけを編集し、passive は `allyInput()` が全件を 
 `analysis/ecology-trial.mjs` は保存へ技能点を入れてから実際に一つ取得し、
 装着行に並ぶところまで踏む（技能点は0で始まるので、点を入れないとこの経路は踏めない）。
 
+武器別の取得registryは`content/weapon-trees.mjs`です。各nodeは`weaponId / position / kind /
+skillId / cost / requires`を持ち、前提は取得済みLv1だけを要求します。`unlockRunSkill()`は旧pack nodeと
+武器nodeを同じSP台帳で処理しますが、可用性は前者が`manifestSkillIds`、後者が
+`manifest.enabledWeaponIds`を読みます。manifest-2以前の保存は、実装済みの戦槌へ決定的に移行します。
+manifest versionは3、content contractは32です。
+
+武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /
+displayEffect / flavorText`から4ロール用metadataを組み、取得後は`installUnlockedSkills()`が既存の
+loadoutへ登録します。`replacesActiveSkillId`が選択中なら選択も上位へ移し、
+`replacesPassiveSkillIds`は下位を常時欄から外します。取得履歴は`runUnlockedSkills`へ残るため、
+前提判定と表示上の置換を混同しません。
+
 ### キャンプのタブ（issue #235）
 
 キャンプのタブは スキル・装備・補給・遠征 の4枚で、`campNav()` が出す。準備の3枚は何度も

@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.20",
+ "contentVersion": "ecology-playable-full-0.21",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.20",
+  "contentVersion": "ecology-playable-full-0.21",
   "characters": {
    "warden": {
     "id": "warden",
@@ -31277,12 +31277,15 @@
  },
  "manifests": {
   "frontier-1801": {
-   "manifestVersion": "ecology-manifest-2",
+   "manifestVersion": "ecology-manifest-3",
    "seed": "frontier-1801",
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
     "bulwark"
+   ],
+   "enabledWeaponIds": [
+    "warhammer"
    ],
    "enabledPackIds": [
     "pack_edge",
@@ -31320,12 +31323,15 @@
    "rewardTableId": "equipment_1"
   },
   "frontier-1801-abc12345": {
-   "manifestVersion": "ecology-manifest-2",
+   "manifestVersion": "ecology-manifest-3",
    "seed": "frontier-1801-abc12345",
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
     "bulwark"
+   ],
+   "enabledWeaponIds": [
+    "warhammer"
    ],
    "enabledPackIds": [
     "pack_wall",
@@ -31363,12 +31369,15 @@
    "rewardTableId": "equipment_1"
   },
   "frontier-1801-zzz": {
-   "manifestVersion": "ecology-manifest-2",
+   "manifestVersion": "ecology-manifest-3",
    "seed": "frontier-1801-zzz",
    "regionId": "ash_frontier",
    "baselineSkillIds": [
     "strike",
     "bulwark"
+   ],
+   "enabledWeaponIds": [
+    "warhammer"
    ],
    "enabledPackIds": [
     "pack_wall",

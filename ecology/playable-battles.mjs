@@ -196,6 +196,31 @@ export function generatedComponentIds() {
 export function componentInfo(componentId) {
   const known = COMPONENTS[componentId] ?? generatedComponents[componentId] ?? null;
   if (known) return known;
+  // R25 — 武器技能は旧META表を二重管理せず、content自身の表示文を読む。
+  // COMPONENTSは旧契約の凍結対象なので、段階移行中はここで補う。
+  const weaponSections = [
+    ["active", PLAYABLE_CONTENT.activeSkills],
+    ["reactive", PLAYABLE_CONTENT.reactiveSkills],
+    ["target", PLAYABLE_CONTENT.targetSkills],
+    ["passive", PLAYABLE_CONTENT.passiveSkills],
+  ];
+  for (const [kind, section] of weaponSections) {
+    const definition = section?.[componentId];
+    if (!definition?.weaponId) continue;
+    return {
+      id: componentId,
+      kind,
+      definitionId: componentId,
+      label: definition.displayName,
+      effect: definition.displayEffect ?? "",
+      flavorText: definition.flavorText ?? "",
+      grammar: kind === "active" ? "アクティブ"
+        : kind === "reactive" ? "リアクティブ"
+          : kind === "target" ? "ターゲット" : "パッシブ",
+      weaponId: definition.weaponId,
+      treePosition: definition.treePosition,
+    };
+  }
   // issue #238 — 必殺技は固定 content に居ない（取得済み技能から毎回作る）。
   // **表を持たず、元の技能の表から導く。**指定を変えても表の掃除が要らない。
   const baseId = isUltimateId(componentId) ? baseSkillIdOf(componentId) : null;
@@ -432,9 +457,26 @@ export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
   const disabled = new Set(next.disabled[characterId] ?? []);
   let added = false;
   for (const skillId of unlockedSkillIds ?? []) {
-    const listKey = LOADOUT_KEYS[componentInfo(skillId)?.kind];
+    const component = componentInfo(skillId);
+    const listKey = LOADOUT_KEYS[component?.kind];
     if (!listKey) continue;
-    const list = next[listKey][characterId] ?? [];
+    const definition = PLAYABLE_CONTENT[
+      component.kind === "active" ? "activeSkills"
+        : component.kind === "reactive" ? "reactiveSkills"
+          : component.kind === "target" ? "targetSkills" : "passiveSkills"
+    ]?.[skillId];
+    const replacedIds = component.kind === "active"
+      ? [definition?.replacesActiveSkillId].filter(Boolean)
+      : component.kind === "passive" ? (definition?.replacesPassiveSkillIds ?? []) : [];
+    let list = next[listKey][characterId] ?? [];
+    if (replacedIds.length) {
+      list = list.filter((id) => !replacedIds.includes(id));
+      next[listKey][characterId] = list;
+      for (const replacedId of replacedIds) disabled.delete(replacedId);
+      if (component.kind === "active" && replacedIds.includes(next.actives[characterId])) {
+        next.actives[characterId] = skillId;
+      }
+    }
     if (list.includes(skillId)) continue;
     // **末尾へ足す。**リアクティブとターゲットは上から判定するため、既存の優先順を
     // 動かさない。パッシブを含め、4ロール式では取得した技能を個別にオフにしない。

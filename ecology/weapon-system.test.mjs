@@ -1,7 +1,23 @@
 import assert from "node:assert/strict";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { BATTLE_SCHEMA_VERSION } from "./schema.mjs";
-import { PLAYABLE_CONTENT, WARHAMMER_TREE } from "./content/index.mjs";
+import {
+  PLAYABLE_CONTENT,
+  WARHAMMER_TREE,
+  WEAPON_SKILL_TREE_NODES,
+} from "./content/index.mjs";
+import {
+  manifestWeaponIds,
+  newProfile,
+  newRun,
+  unlockRunSkill,
+} from "./progression.mjs";
+import {
+  componentInfo,
+  freshLoadout,
+  installUnlockedSkills,
+  selectActiveSkill,
+} from "./playable-battles.mjs";
 
 let checks = 0;
 const equal = (actual, expected, message) => {
@@ -209,6 +225,55 @@ function battle({
   const user = result.actors.find((actor) => actor.instanceId === "a_user");
   equal(user.statuses.find((status) => status.statusId === "warhammer_fragment")?.stacks, 2,
     "trophy fragment gains one stack for each removed positive status type");
+}
+
+{
+  equal(WEAPON_SKILL_TREE_NODES.length, 19, "acquisition registry exposes all warhammer nodes");
+  ok(WEAPON_SKILL_TREE_NODES.every((node) => node.cost === 1),
+    "weapon entry and each following node use the level-free 1 SP cost");
+  ok(WEAPON_SKILL_TREE_NODES.every((node) => (
+    node.requires.every((required) => required.minLv === 1)
+  )), "weapon prerequisites require acquisition only, never legacy skill levels");
+
+  let run = newRun(newProfile(), { campaignStageSequence: 0, runSeed: "weapon-tree-test" });
+  run = {
+    ...run,
+    runSkillPoints: { ...run.runSkillPoints, warden: 4 },
+  };
+  equal(manifestWeaponIds(run.manifest)[0], "warhammer", "campaign manifest exposes warhammer at start");
+  equal(manifestWeaponIds({})[0], "warhammer", "manifest-2 saves migrate to the implemented weapon");
+  const root = WEAPON_SKILL_TREE_NODES.find((node) => node.position === "R");
+  const a1 = WEAPON_SKILL_TREE_NODES.find((node) => node.position === "A1");
+  const tooEarly = unlockRunSkill(run, "warden", a1);
+  equal(tooEarly.ok, false, "a weapon branch cannot skip its root prerequisite");
+  const rootResult = unlockRunSkill(run, "warden", root);
+  equal(rootResult.ok, true, "weapon root can be bought through the shared unlock boundary");
+  equal(rootResult.run.runSkillPoints.warden, 3, "weapon unlock spends exactly one run SP");
+  const a1Result = unlockRunSkill(rootResult.run, "warden", a1);
+  equal(a1Result.ok, true, "the next weapon node opens after its direct prerequisite");
+  const unavailable = unlockRunSkill({
+    ...run, manifest: { ...run.manifest, enabledWeaponIds: [] },
+  }, "warden", root);
+  equal(unavailable.ok, false, "a weapon omitted by the manifest cannot be bought");
+
+  const target = componentInfo("warhammer_point_at_armor");
+  equal(target.kind, "target", "weapon target metadata comes from playable content");
+  equal(target.effect, "防壁か受け構えを持つ敵を優先。",
+    "weapon component metadata uses the player-facing effect text");
+
+  let loadout = installUnlockedSkills(freshLoadout(["warden"]), "warden", ["warhammer_blow"]);
+  loadout = selectActiveSkill(loadout, "warden", "warhammer_blow").loadout;
+  loadout = installUnlockedSkills(loadout, "warden", ["warhammer_heavy_blow"]);
+  equal(loadout.actives.warden, "warhammer_heavy_blow",
+    "an acquired active upgrade replaces the selected parent in place");
+  equal(loadout.tactics.warden.includes("warhammer_blow"), false,
+    "the replaced parent active no longer remains as a second main-action choice");
+  loadout = installUnlockedSkills(loadout, "warden", ["warhammer_wide_swing"]);
+  loadout = installUnlockedSkills(loadout, "warden", ["warhammer_sweep"]);
+  equal(loadout.passives.warden.includes("warhammer_wide_swing"), false,
+    "a passive upgrade hides its replaced lower form from the always-on list");
+  equal(loadout.passives.warden.includes("warhammer_sweep"), true,
+    "the upgraded passive remains always on");
 }
 
 console.log(`weapon-system.test.mjs: ${checks} checks passed`);
