@@ -99,6 +99,23 @@ expectRejected(
 
 expectRejected(
   content((bundle) => {
+    bundle.activeSkills.strike.effects[0].rangeClass = "teleporting";
+  }),
+  "unknown_range_class",
+  "unknown weapon range class",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.activeSkills.strike.effects[0].rangeClass = "melee";
+    bundle.activeSkills.strike.effects[0].reach = "melee";
+  }),
+  "ambiguous_range",
+  "new range class mixed with legacy reach",
+);
+
+expectRejected(
+  content((bundle) => {
     bundle.activeSkills.strike.intrinsicPredicates = [{ type: "vibes_are_good" }];
   }),
   "unknown_predicate",

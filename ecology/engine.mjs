@@ -35,6 +35,8 @@ import {
   applyEffects,
   canPayCosts,
   payCosts,
+  reachOfEffect,
+  resolveScheduledReturns,
   startPreparationOn,
 } from "./effects.mjs";
 import { validateBattleInput as validateInput, validateContentBundle } from "./validate.mjs";
@@ -933,14 +935,16 @@ function preparationContext(state, actor) {
 
 // R6 §6.4 — 攻撃テンポの保証。**支援だけを連打して戦闘が止まらないようにする。**
 // どの技能を使うかは content の coreActions 宣言が決める（engine は個別 ID で
-// 分岐しない）。playable の届き方は core skill の effect.reach で決まる。
+// 分岐しない）。移行済み技能は rangeClass、旧技能は effect.reach で届き方を決める。
 function actionReach(skill) {
   const effects = [
     ...(skill.effects ?? []),
     ...(skill.preparation?.completionEffects ?? []),
   ];
-  const explicit = effects.find((effect) => effect.reach !== undefined);
-  if (explicit) return explicit.reach;
+  const explicit = effects.find(
+    (effect) => effect.rangeClass !== undefined || effect.reach !== undefined,
+  );
+  if (explicit) return reachOfEffect(explicit);
   // Enemy-targeting skills without an explicit ranged effect are ordinary
   // melee actions. Ally/self support skills are not restricted by front rows.
   return skill.targetQuery?.scope === "enemies" ? "melee" : "unrestricted";
@@ -1148,6 +1152,7 @@ function performAction(state, actor, choice) {
           sourceDefinitionId: actor.definitionId,
         });
       }
+      resolveScheduledReturns(rt, effectCtx, frame);
     } finally {
       state.parentEventId = previousParent;
     }

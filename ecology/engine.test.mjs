@@ -611,6 +611,131 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(strike?.targetActorIds[0], "e_tough", "the first valid target skill chooses the target");
 }
 
+{
+  // R25 range classes own both target legality and the final position multiplier.
+  // Legacy reach remains untouched while the weapon catalog is migrated.
+  const content = structuredClone(FIXTURE_CONTENT);
+  const rangedTarget = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    sort: ["position_desc"],
+    take: 1,
+  };
+  const addSkill = (id, rangeClass, targetQuery = rangedTarget) => {
+    content.activeSkills[id] = {
+      id,
+      displayName: id,
+      apCost: 1,
+      actionMode: "offense",
+      intrinsicPredicates: [],
+      targetQuery,
+      effects: [{
+        type: "deal_damage",
+        target: { scope: "event_targets", take: "all" },
+        amount: { type: "constant", value: 100 },
+        rangeClass,
+        tags: ["attack"],
+      }],
+      tags: ["attack"],
+    };
+  };
+  addSkill("range_melee_test", "melee");
+  addSkill("range_ranged_test", "ranged");
+  content.activeSkills.temporary_advance_test = {
+    id: "temporary_advance_test",
+    displayName: "temporary_advance_test",
+    apCost: 1,
+    actionMode: "offense",
+    intrinsicPredicates: [],
+    targetQuery: {
+      scope: "enemies",
+      filters: [{ type: "alive" }],
+      sort: ["position_asc"],
+      take: 1,
+    },
+    effects: [{
+      type: "move_to_open_row",
+      target: { scope: "self", take: 1 },
+      row: "front",
+      returnAfterAction: true,
+    }, {
+      type: "deal_damage",
+      target: { scope: "event_targets", take: "all" },
+      amount: { type: "constant", value: 10 },
+      rangeClass: "melee",
+      tags: ["attack"],
+    }],
+    tags: ["attack", "movement"],
+  };
+
+  const proposed = (skillId, allyPosition, enemies) => {
+    const battle = structuredClone(CORE_BATTLE);
+    battle.battleId = `range_${skillId}_${allyPosition}`;
+    battle.maxRounds = 1;
+    battle.objective = { type: "survive_rounds", rounds: 1 };
+    battle.allies = [{
+      instanceId: "a_range",
+      characterId: "warden",
+      position: allyPosition,
+      tactics: [{ activeSkillId: skillId, useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }];
+    battle.enemies = enemies;
+    return simulateBattle(battle, content).events.find(
+      (event) => event.type === "damage_proposed" && event.skillId === skillId,
+    );
+  };
+  const frontEnemy = [{ instanceId: "e_front", enemyActorId: "still_husk", position: "front_left" }];
+  equal(proposed("range_melee_test", "front_left", frontEnemy)?.values.amount, 125,
+    "front-row melee deals 125%");
+  equal(proposed("range_melee_test", "rear_left", frontEnemy)?.values.amount, 40,
+    "rear-row melee deals 40%");
+
+  const coveredEnemies = [
+    { instanceId: "e_front", enemyActorId: "still_husk", position: "front_left" },
+    { instanceId: "e_rear", enemyActorId: "still_husk", position: "rear_left" },
+  ];
+  const covered = proposed("range_ranged_test", "rear_left", coveredEnemies);
+  equal(covered?.targetActorIds[0], "e_rear", "ranged attacks may choose a rear target through a front row");
+  equal(covered?.values.amount, 75, "a living front row grants rear targets 75% cover");
+  const uncovered = proposed("range_ranged_test", "rear_left", [coveredEnemies[1]]);
+  equal(uncovered?.values.amount, 100, "rear targets lose cover after the front row is gone");
+
+  const advanceBattle = structuredClone(CORE_BATTLE);
+  advanceBattle.battleId = "temporary_advance_each_round";
+  advanceBattle.maxRounds = 2;
+  advanceBattle.objective = { type: "survive_rounds", rounds: 2 };
+  advanceBattle.allies = [{
+    instanceId: "a_range",
+    characterId: "warden",
+    position: "rear_center",
+    tactics: [{ activeSkillId: "temporary_advance_test", useWhen: [] }],
+    reactiveSkillIds: [],
+    equipment: [],
+  }];
+  advanceBattle.enemies = [{
+    instanceId: "e_front",
+    enemyActorId: "still_husk",
+    position: "front_center",
+    stats: { maxHp: 1_000, might: 0, focus: 0, guard: 0 },
+  }];
+  const advance = simulateBattle(advanceBattle, content);
+  const moves = of(advance, "actor_moved").filter((event) => event.targetActorIds[0] === "a_range");
+  equal(moves.length, 4, "temporary movement advances and returns again on the second round");
+  assert.deepEqual(moves.map((event) => event.tags[0]), ["move", "return", "move", "return"]);
+  equal(moves[0].values.to, "front_center", "the nearest open column is deterministic");
+  equal(moves[1].values.to, "rear_center", "the actor returns to its exact origin after the action");
+  const advanceHits = of(advance, "damage_proposed").filter(
+    (event) => event.skillId === "temporary_advance_test",
+  );
+  assert.deepEqual(advanceHits.map((event) => event.values.amount), [13, 13],
+    "both attacks receive the front-row melee bonus before returning to safety");
+  equal(advance.actors.find((actor) => actor.instanceId === "a_range")?.position, "rear_center",
+    "the battle snapshot keeps the safe rear position");
+  checks += 2;
+}
+
 // ---- §12.4 preparation --------------------------------------------------------
 
 {

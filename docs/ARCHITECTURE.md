@@ -243,6 +243,21 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   より前に作られたものだけを削除します。これにより、replay では期限切れが最後の攻撃ではなく
   次ラウンド開始の拍に乗り、end phase 中に作られた効果は次ラウンドを通過できます。
 
+### R25の射程と一時移動
+
+新武器カタログの`deal_damage.rangeClass`は`melee / long / ranged / support`の四値です。
+`effects.mjs`の`reachOfEffect()`が対象合法性へ写し、`afterPositionModifier()`が同じ値から
+最終量を計算します。`melee`は攻撃者が前列なら125%、後列なら40%。`long / ranged`は攻撃者の
+行に依存せず、対象が後列かつ対象側に生存前列がいれば75%です。`support`は補正しません。
+`reach`と`rangeClass`の併記はvalidator errorです。未移行contentは`rangeClass`を持たず、従来の
+`reach`と腕力後列減衰を通るため、武器単位で移行できます。
+
+`move_to_open_row`は同じ側の空きマスだけを、現在列からの距離、固定マス順の順で選びます。
+`returnAfterAction: true`ならpending actionへ出発点を積み、技能効果とそこから生じた反応をすべて
+解決した後、出発点が空いていて本人が移動先に残っている場合だけ帰還します。往路・復路とも
+通常の`actor_moved`を発行し、初期配置は発行しません。これにより一時前進はその行動の近接補正を
+得ながら敵フェーズ前に戻れ、毎AP起動で再評価されます。
+
 ## 5. イベント列
 
 UI・replay・検査は、engine が出した同じイベント列を読みます。

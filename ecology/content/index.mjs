@@ -95,7 +95,10 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 公開IDの追加と既存欄の意味変更なので版を上げる。
 // R25 — Stage 1以降の敵を部隊化する7体（庇護・治療・弱体・多段と最終主心）と
 // 最終boss lawを追加した。既存のengine/schema語彙だけだが、公開IDが増えるため上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-29";
+// R25 engine vocabulary: migrated weapon actions can opt into explicit
+// melee/long/ranged/support positioning, and actions can move to an empty row
+// then return at action end. Existing skill definitions retain legacy behavior.
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-30";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。

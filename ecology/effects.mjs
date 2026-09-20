@@ -9,7 +9,13 @@
 // emit(spec, pendingFrame) records the event and, when a pending frame is given,
 // runs the interrupt window for it before returning.
 
-import { POSITION_COLUMN, POSITION_ROW, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
+import {
+  COLUMNS,
+  POSITIONS,
+  POSITION_COLUMN,
+  POSITION_ROW,
+  SKILL_LEVEL_STEP_BPS,
+} from "./schema.mjs";
 import {
   actorsOnSide,
   bumpHistory,
@@ -143,6 +149,7 @@ export function applyEffect(rt, ctx, effect) {
     case "add_status": return addStatus(rt, ctx, effect);
     case "remove_status": return removeStatus(rt, ctx, effect);
     case "swap_positions": return swapPositions(rt, ctx, effect);
+    case "move_to_open_row": return moveToOpenRow(rt, ctx, effect);
     case "start_preparation": return startPreparation(rt, ctx, effect);
     case "advance_preparation": return advancePreparation(rt, ctx, effect);
     case "interrupt_preparation": return interruptPreparation(rt, ctx, effect);
@@ -223,7 +230,7 @@ function dealDamage(rt, ctx, effect) {
 // R6 §5.4 — targetPattern は「最初に選ばれた相手」から広げる。
 // row は同じ行、column は同じ列の前後。空き枠は actor ではないので数に入らない。
 function expandPattern(rt, ctx, effect) {
-  const primary = selectTargets(rt, ctx, effect.target, { reach: effect.reach });
+  const primary = selectTargets(rt, ctx, effect.target, { reach: reachOfEffect(effect) });
   const pattern = effect.targetPattern ?? "single";
   if (pattern === "single" || primary.length === 0) return primary;
   const anchor = primary[0];
@@ -262,6 +269,21 @@ function afterGuard(rawAmount, target, guardPierceBps) {
 // 対象の届き方（reach: melee が前列しか狙えないこと）とは別の軸である。
 // あちらは「誰を狙えるか」、こちらは「どこから出したか」。
 export const REAR_WEAPON_BPS = 4_000;
+export const FRONT_MELEE_BPS = 12_500;
+export const RANGED_COVER_BPS = 7_500;
+
+// `rangeClass` is the R25 contract. Legacy content continues to use `reach`
+// and the might/focus falloff until each weapon is migrated, so the staged
+// rollout cannot silently retune every published encounter at once.
+export function reachOfEffect(effect) {
+  switch (effect.rangeClass) {
+    case "melee": return "melee";
+    case "long":
+    case "ranged": return "ranged";
+    case "support": return "unrestricted";
+    default: return effect.reach;
+  }
+}
 
 // R19（issue #137）— 技能レベル。**同じ効果の上位互換を別技能で増やさず、
 // 一つの技能を段階的に強くする。**
@@ -290,10 +312,28 @@ function afterRearFalloff(rawAmount, ctx, effect) {
   return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
 }
 
+function afterPositionModifier(rawAmount, rt, ctx, effect, target) {
+  if (effect.rangeClass === undefined) return afterRearFalloff(rawAmount, ctx, effect);
+  const owner = ctx.owner;
+  if (!owner) return rawAmount;
+  if (effect.rangeClass === "melee") {
+    const bps = POSITION_ROW[owner.position] === "front" ? FRONT_MELEE_BPS : REAR_WEAPON_BPS;
+    return roundHalfUpDiv(rawAmount * bps, BPS);
+  }
+  if ((effect.rangeClass === "long" || effect.rangeClass === "ranged")
+      && POSITION_ROW[target.position] === "rear") {
+    const covered = actorsOnSide(rt.state, target.side).some(
+      (actor) => actor.alive && POSITION_ROW[actor.position] === "front",
+    );
+    if (covered) return roundHalfUpDiv(rawAmount * RANGED_COVER_BPS, BPS);
+  }
+  return rawAmount;
+}
+
 function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOverride) {
   const proposed = proposedOverride === undefined
-    ? afterRearFalloff(
-      afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), ctx, effect,
+    ? afterPositionModifier(
+      afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), rt, ctx, effect, target,
     )
     : Math.max(0, proposedOverride);
   const tags = effect.tags ?? [];
@@ -746,6 +786,81 @@ function swapPositions(rt, ctx, effect) {
       values: { from, to, rowChanged: from.startsWith("front") !== to.startsWith("front") },
     });
   }
+}
+
+function emitActorMoved(rt, ctx, actor, from, to, tags) {
+  bumpHistory(actor, "times_moved", 1);
+  rt.emit({
+    type: "actor_moved",
+    ...sourceFields(ctx),
+    targetActorIds: [actor.instanceId],
+    tags,
+    values: { from, to, rowChanged: POSITION_ROW[from] !== POSITION_ROW[to] },
+  });
+}
+
+function nearestOpenPosition(rt, actor, row) {
+  const occupied = new Set(
+    actorsOnSide(rt.state, actor.side)
+      .filter((candidate) => candidate.alive && candidate.instanceId !== actor.instanceId)
+      .map((candidate) => candidate.position),
+  );
+  const fromColumn = COLUMNS.indexOf(POSITION_COLUMN[actor.position]);
+  return POSITIONS
+    .filter((position) => POSITION_ROW[position] === row && !occupied.has(position))
+    .sort((left, right) => {
+      const leftDistance = Math.abs(COLUMNS.indexOf(POSITION_COLUMN[left]) - fromColumn);
+      const rightDistance = Math.abs(COLUMNS.indexOf(POSITION_COLUMN[right]) - fromColumn);
+      return leftDistance - rightDistance || POSITIONS.indexOf(left) - POSITIONS.indexOf(right);
+    })[0] ?? null;
+}
+
+// R25 — movement to an empty slot is different from swapping two occupants.
+// A temporary advance remains in the destination for the whole action, then
+// returns only if both the destination and origin still describe the same move.
+// Both legs emit actor_moved; initial formation never comes through this path.
+function moveToOpenRow(rt, ctx, effect) {
+  const actor = selectTargets(rt, ctx, effect.target)[0];
+  if (!actor || !actor.alive || POSITION_ROW[actor.position] === effect.row) return;
+  const origin = actor.position;
+  const destination = nearestOpenPosition(rt, actor, effect.row);
+  if (!destination) return;
+  actor.position = destination;
+  emitActorMoved(rt, ctx, actor, origin, destination, ["move"]);
+  if (!effect.returnAfterAction || !ctx.pendingAction) return;
+  ctx.pendingAction.scheduledReturns ??= [];
+  ctx.pendingAction.scheduledReturns.push({
+    actorId: actor.instanceId,
+    origin,
+    destination,
+    sourceDefinitionId: ctx.sourceDefinitionId,
+    ruleId: ctx.ruleId,
+    skillId: ctx.skillId,
+    equipmentInstanceId: ctx.equipmentInstanceId,
+  });
+}
+
+export function resolveScheduledReturns(rt, ctx, frame) {
+  for (const scheduled of [...(frame.scheduledReturns ?? [])].reverse()) {
+    const actor = getActor(rt.state, scheduled.actorId);
+    if (!actor || !actor.alive || actor.position !== scheduled.destination) continue;
+    const originOccupied = actorsOnSide(rt.state, actor.side).some(
+      (candidate) => candidate.alive
+        && candidate.instanceId !== actor.instanceId
+        && candidate.position === scheduled.origin,
+    );
+    if (originOccupied) continue;
+    const from = actor.position;
+    actor.position = scheduled.origin;
+    emitActorMoved(rt, {
+      ...ctx,
+      sourceDefinitionId: scheduled.sourceDefinitionId,
+      ruleId: scheduled.ruleId,
+      skillId: scheduled.skillId,
+      equipmentInstanceId: scheduled.equipmentInstanceId,
+    }, actor, from, scheduled.origin, ["return"]);
+  }
+  frame.scheduledReturns = [];
 }
 
 // §12.4 — preparation.

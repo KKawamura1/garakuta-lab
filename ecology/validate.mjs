@@ -14,6 +14,7 @@ import {
   ACTOR_STATS,
   PASSIVE_STAT_BONUSES,
   REACHES,
+  RANGE_CLASSES,
   SCALING_STATS,
   TARGET_PATTERNS,
   BARRIER_DURATIONS,
@@ -443,6 +444,18 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.reach !== undefined) {
         requireOneOf(bag, `${path}.reach`, effect.reach, REACHES, "unknown_reach");
       }
+      if (effect.rangeClass !== undefined) {
+        requireOneOf(
+          bag,
+          `${path}.rangeClass`,
+          effect.rangeClass,
+          RANGE_CLASSES,
+          "unknown_range_class",
+        );
+      }
+      if (effect.reach !== undefined && effect.rangeClass !== undefined) {
+        bag.add(path, "ambiguous_range", "use rangeClass or legacy reach, not both");
+      }
       // **範囲攻撃は take: 1 から広げる。** take: "all" と組み合わせると、
       // どの一体を基点に広げたのかが決まらない。
       if (effect.targetPattern && effect.targetPattern !== "single" && effect.target?.take !== 1) {
@@ -485,6 +498,20 @@ function validateEffect(bag, path, effect, ctx) {
     case "swap_positions":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
       validateTargetQuery(bag, `${path}.otherTarget`, effect.otherTarget, ctx, { take: 1 });
+      break;
+    case "move_to_open_row":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
+      requireOneOf(bag, `${path}.row`, effect.row, ROWS, "unknown_row");
+      if (effect.returnAfterAction !== undefined && typeof effect.returnAfterAction !== "boolean") {
+        bag.add(`${path}.returnAfterAction`, "bad_boolean", "returnAfterAction must be a boolean");
+      }
+      if (effect.returnAfterAction === true && ctx.timing !== "action") {
+        bag.add(
+          `${path}.returnAfterAction`,
+          "action_return_outside_action",
+          "returnAfterAction is only valid on an active action effect",
+        );
+      }
       break;
     case "start_preparation":
       if (ctx.insidePreparation) {

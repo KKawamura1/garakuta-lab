@@ -9,7 +9,9 @@
 
 const freeze = (value) => Object.freeze(value);
 
-export const CONTENT_SCHEMA_VERSION = "ecology-content-5";
+// R25 adds explicit weapon range classes and empty-slot movement with an
+// optional action-end return. Older readers would ignore both combat rules.
+export const CONTENT_SCHEMA_VERSION = "ecology-content-6";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -305,6 +307,7 @@ export const EFFECT_TYPES = freeze([
   "add_status",
   "remove_status",
   "swap_positions",
+  "move_to_open_row",
   "start_preparation",
   "advance_preparation",
   "interrupt_preparation",
@@ -335,6 +338,10 @@ export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
 //   channel … 追撃を行わない明示的例外。溜めること自体が代償のもの
 export const ACTION_MODES = freeze(["offense", "utility", "channel"]);
 export const REACHES = freeze(["melee", "ranged", "unrestricted"]);
+// R25 — New weapon skills state their positional contract directly. `reach`
+// remains the compatibility vocabulary for the staged migration; a migrated
+// damage effect uses exactly one `rangeClass` instead.
+export const RANGE_CLASSES = freeze(["melee", "long", "ranged", "support"]);
 
 // §11.4 — usable only from interrupt-timing rules.
 export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
