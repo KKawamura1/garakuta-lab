@@ -3726,6 +3726,9 @@ const STAT_MARKS = { might: "腕", focus: "技", guard: "受", max_hp: "HP" };
 function triggerLabelOf(listenTo) {
   return TRIGGER_LABELS[listenTo] ?? listenTo ?? "";
 }
+function primaryRuleOf(definition) {
+  return definition?.rule ?? definition?.rules?.[0] ?? null;
+}
 const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け", max_hp: "最大HP" };
 // **丸は「払うもの」だけに使う。**行動点・反応点・代償のHPの三つ以外へ丸を出さない
 // （同じ形が別の意味を持つと、見分けが付かなくなる。作者指摘 2026-09-09）。
@@ -3745,7 +3748,7 @@ function costPips(node) {
     return pips(ap, "ap") || "<span class=\"pips free\" aria-hidden=\"true\"><i></i></span>";
   }
   if (node.kind === "reactive") {
-    const costs = definition.rule?.costs ?? [];
+    const costs = primaryRuleOf(definition)?.costs ?? [];
     const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
     const hp = costs.find((cost) => cost.type === "lose_hp")?.amount ?? 0;
     return pips(rp, "rp") + (hp ? "<span class=\"pips hp\" aria-hidden=\"true\"><i></i></span>" : "");
@@ -3817,7 +3820,7 @@ function predicateText(predicate) {
 function conditionText(node) {
   const definition = skillDefinitionOf(node.skillId);
   if (!definition) return "";
-  if (node.kind === "reactive") return triggerLabelOf(definition.rule?.listenTo);
+  if (node.kind === "reactive") return triggerLabelOf(primaryRuleOf(definition)?.listenTo);
   if (node.kind === "passive") return "";
   const parts = (definition.intrinsicPredicates ?? []).map(predicateText).filter(Boolean);
   if (!parts.length) {
@@ -3840,7 +3843,7 @@ function costLabel(node) {
   if (!definition) return "";
   if (node.kind === "active") return "行動点" + (definition.apCost ?? 0);
   if (node.kind === "reactive") {
-    const costs = definition.rule?.costs ?? [];
+    const costs = primaryRuleOf(definition)?.costs ?? [];
     const rp = costs.find((cost) => cost.type === "spend_reaction_points")?.amount ?? 0;
     const hp = costs.find((cost) => cost.type === "lose_hp")?.amount ?? 0;
     return "反応点" + rp + (hp ? "・HP" + hp : "");
@@ -4231,8 +4234,9 @@ function skillDefinitionOf(skillId) {
 }
 
 function skillEffectText(characterId, skillId) {
-  const text = COMPONENTS[skillId]?.effect ?? "";
-  return skillTextAtLevel(text, skillDefinitionOf(skillId), skillLevelOf(characterId, skillId));
+  const definition = skillDefinitionOf(skillId);
+  const text = definition?.displayEffect ?? COMPONENTS[skillId]?.effect ?? "";
+  return skillTextAtLevel(text, definition, skillLevelOf(characterId, skillId));
 }
 
 // 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
@@ -4357,8 +4361,10 @@ function renderSkillDetail(node, characterId, nodeState) {
   // 作者要望 2026-09-14 — 技能の説明文にも content の `**強調**` が入っている
   // （「HP50%以下の味方**全員**へ」など8件）。Stage の学びと同じ `emphasize()` を
   // 通すので、星印が本文に混ざって出ることはもう無い。
+  const flavor = skillDefinitionOf(node.skillId)?.flavorText;
   return "<div class=\"skill-detail\"><p>" + scope + emphasize(skillEffectText(characterId, node.skillId))
     + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + "</span>" : "") + "</p>"
+    + (flavor ? "<p class=\"skill-flavor\">" + esc(flavor) + "</p>" : "")
     + shortfall
     + (actionRow ? "<div class=\"node-action\">" + actionRow + "</div>" : "")
     + "</div>";

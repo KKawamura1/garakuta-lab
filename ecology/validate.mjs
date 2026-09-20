@@ -175,6 +175,15 @@ function validateValue(bag, path, value, ctx) {
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
       break;
+    case "stat_times_context_scaled":
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireOneOf(bag, `${path}.scalingStat`, value.scalingStat, SCALING_STATS, "unknown_scaling_stat");
+      if (typeof value.key !== "string" || value.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "stat_times_context_scaled needs a context key");
+      }
+      requireCount(bag, `${path}.flatCoefficientBps`, value.flatCoefficientBps ?? 0, { max: 100_000 });
+      requireCount(bag, `${path}.coefficientBps`, value.coefficientBps, { max: 100_000 });
+      break;
     default:
       break;
   }
@@ -251,6 +260,11 @@ function validateTargetFilter(bag, path, filter, ctx) {
       if (filter.op !== undefined) requireOneOf(bag, `${path}.op`, filter.op, COMPARISON_OPS, "unknown_operator");
       if (filter.value !== undefined) requireCount(bag, `${path}.value`, filter.value, { min: 0 });
       break;
+    case "has_defense":
+      break;
+    case "has_defense_or_status":
+      requireStatusReference(bag, `${path}.statusId`, filter.statusId, ctx);
+      break;
     case "is_preparing":
       if (typeof filter.value !== "boolean") {
         bag.add(`${path}.value`, "bad_boolean", "is_preparing.value must be a boolean");
@@ -259,6 +273,8 @@ function validateTargetFilter(bag, path, filter, ctx) {
     case "not_previous_target":
     case "not_self":
     case "is_event_primary_target":
+    case "not_event_primary_target":
+    case "same_row_as_event_primary_target":
     case "is_event_source":
       break;
     default:
@@ -495,6 +511,14 @@ function validateEffect(bag, path, effect, ctx) {
         requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
       }
       break;
+    case "remove_statuses":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      requireOneOf(bag, `${path}.polarity`, effect.polarity, STATUS_POLARITIES, "unknown_polarity");
+      break;
+    case "remove_barrier":
+    case "remove_block":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      break;
     case "swap_positions":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
       validateTargetQuery(bag, `${path}.otherTarget`, effect.otherTarget, ctx, { take: 1 });
@@ -614,6 +638,14 @@ function validateRule(bag, path, rule, ctx) {
   }
   requireOneOf(bag, `${path}.limit.scope`, rule.limit.scope, LIMIT_SCOPES, "unknown_limit_scope");
   requireCount(bag, `${path}.limit.count`, rule.limit.count, { min: 1 });
+  if (rule.allowRepeatInChain !== undefined && typeof rule.allowRepeatInChain !== "boolean") {
+    bag.add(`${path}.allowRepeatInChain`, "bad_boolean", "allowRepeatInChain must be a boolean");
+  }
+  if (rule.allowRepeatInChain === true
+    && (rule.limit.scope !== "chain" || rule.limit.count <= 1)) {
+    bag.add(`${path}.allowRepeatInChain`, "unbounded_chain_repeat",
+      "allowRepeatInChain needs a chain limit greater than 1");
+  }
 }
 
 function validateRules(bag, path, rules, ctx) {
@@ -762,7 +794,15 @@ export function validateContentBundle(bundle) {
     const path = `reactiveSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireTags(bag, `${path}.tags`, skill.tags);
-    validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule === hasRules) {
+      bag.add(path, "bad_skill_rules", "give exactly one of rule or rules");
+    } else if (hasRule) {
+      validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    } else if (requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
   }
 
   // R6 §6.8 — PHASE A. passive は「定数で押し上げる」か「常時ある rule」の
@@ -771,6 +811,19 @@ export function validateContentBundle(bundle) {
     const path = `passiveSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireTags(bag, `${path}.tags`, skill.tags);
+    if (skill.replacesPassiveSkillIds !== undefined
+      && requireArray(bag, `${path}.replacesPassiveSkillIds`, skill.replacesPassiveSkillIds)) {
+      for (const [index, replacedId] of skill.replacesPassiveSkillIds.entries()) {
+        if (!Object.hasOwn(bundle.passiveSkills, replacedId)) {
+          bag.add(`${path}.replacesPassiveSkillIds[${index}]`, "dangling_reference",
+            `no such passive skill: ${replacedId}`);
+        }
+        if (replacedId === id) {
+          bag.add(`${path}.replacesPassiveSkillIds[${index}]`, "self_replacement",
+            "a passive cannot replace itself");
+        }
+      }
+    }
     const bonus = skill.statBonus;
     if (bonus !== undefined) {
       if (!isPlainObject(bonus)) {
@@ -803,9 +856,17 @@ export function validateContentBundle(bundle) {
         }
       }
     }
-    if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
-    if (skill.statBonus === undefined && skill.rule === undefined) {
-      bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule && hasRules) {
+      bag.add(path, "bad_skill_rules", "give at most one of rule or rules");
+    }
+    if (hasRule) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    if (hasRules && requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+    if (skill.statBonus === undefined && !hasRule && !hasRules) {
+      bag.add(path, "inert_passive", "a passive needs a statBonus, rule, or rules");
     }
   }
 
@@ -833,6 +894,18 @@ export function validateContentBundle(bundle) {
     requireOneOf(bag, `${path}.polarity`, status.polarity, STATUS_POLARITIES, "unknown_polarity");
     requireCount(bag, `${path}.maxStacks`, status.maxStacks, { min: 1 });
     requireOneOf(bag, `${path}.duration`, status.duration, DURATIONS, "unknown_duration");
+    if (status.durationRounds !== undefined) {
+      requireCount(bag, `${path}.durationRounds`, status.durationRounds, { min: 1, max: 99 });
+      if (status.duration !== "round") {
+        bag.add(`${path}.durationRounds`, "duration_rounds_without_round", "durationRounds needs duration: round");
+      }
+    }
+    if (status.guardBonusPerStack !== undefined
+      && (!Number.isSafeInteger(status.guardBonusPerStack)
+        || status.guardBonusPerStack < -1_000 || status.guardBonusPerStack > 1_000)) {
+      bag.add(`${path}.guardBonusPerStack`, "bad_guard_bonus",
+        "guardBonusPerStack must be an integer from -1000 to 1000");
+    }
     requireTags(bag, `${path}.tags`, status.tags);
     validateRules(bag, `${path}.rules`, status.rules, baseCtx);
   }

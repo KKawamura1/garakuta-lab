@@ -33,6 +33,9 @@ export const STATUS_NAMES = {
   staggered: "怯み",
   warded: "守勢",
   bleeding: "裂傷",
+  armor_broken: "砕けた鎧",
+  warhammer_fragment: "戦利の破片",
+  breached: "砕け目",
   ultimate_spent: "必殺",
 };
 
@@ -134,17 +137,18 @@ statuses.focused = {
   tags: ["playable", "buff"],
 };
 
-// 怯み — 持ち主が出す各hitを、1段につき20%軽くする。
+// 怯み — 持ち主が出す各hitを、1段につき15%軽くする。R25の武器横断
+// コンボで3段まで積めるため、旧20%×2より上限は少し強く、1段は暴れにくい。
 // **「殴られる前に殴る」以外の止め方**を、攻め手側の語彙で作るためにある。
 statuses.staggered = {
   id: "staggered",
   displayName: STATUS_NAMES.staggered,
   polarity: "negative",
-  maxStacks: 2,
+  maxStacks: 3,
   duration: "round",
   rules: pendingPercentRules({
-    statusId: "staggered", maxStacks: 2, subjectPredicate: SELF_IS_EVENT_SOURCE,
-    operation: "decrease", percentPerStack: 20,
+    statusId: "staggered", maxStacks: 3, subjectPredicate: SELF_IS_EVENT_SOURCE,
+    operation: "decrease", percentPerStack: 15,
   }),
   tags: ["playable", "debuff"],
 };
@@ -198,6 +202,52 @@ statuses.bleeding = {
   tags: ["playable", "debuff"],
 };
 
+// R25 戦槌の共有語彙。どれも技能IDを読まず、状態を付けた別武器でも同じように働く。
+statuses.armor_broken = {
+  id: "armor_broken",
+  displayName: STATUS_NAMES.armor_broken,
+  polarity: "negative",
+  maxStacks: 1,
+  duration: "round",
+  durationRounds: 2,
+  guardBonusPerStack: -10,
+  rules: [],
+  tags: ["playable", "debuff", "guard"],
+};
+
+statuses.warhammer_fragment = {
+  id: "warhammer_fragment",
+  displayName: STATUS_NAMES.warhammer_fragment,
+  polarity: "positive",
+  maxStacks: 5,
+  duration: "battle",
+  guardBonusPerStack: 6,
+  rules: [],
+  tags: ["playable", "buff", "guard"],
+};
+
+statuses.breached = {
+  id: "breached",
+  displayName: STATUS_NAMES.breached,
+  polarity: "negative",
+  maxStacks: 1,
+  duration: "round",
+  rules: [{
+    id: "breached_damage_rule",
+    listenTo: "damage_proposed",
+    timing: "interrupt",
+    priority: 24,
+    predicates: [SELF_IS_EVENT_TARGET],
+    costs: [],
+    effects: [
+      { type: "modify_pending_amount", operation: "increase", amount: pendingPercent(50) },
+      { type: "remove_status", target: SELF_TARGET, statusId: "breached", stacks: "all" },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["playable", "debuff", "attack"],
+};
+
 // 必殺（issue #238）— **放った印。**規則を一つも持たない、記録だけの状態である。
 // 必殺技は「この状態が付いていないこと」を発動条件にし、放つと自分へ付ける。
 // これで「1戦闘に1回」が engine・schema の語彙を増やさずに書ける。
@@ -227,9 +277,12 @@ export const STATUSES = statuses;
 const STATUS_SUMMARIES = {
   exposed: "受けるダメージが1段につき20%増える。多段の各hitへ効き、付けるのも払うのも技能でできる。",
   focused: "次に出す damage / heal / barrier が一度だけ50%増え、使うと消える。大きな一手ほど利得も大きい。",
-  staggered: "その相手が**出す**ダメージが1段につき20%減る。多段の各hitへ効き、倒さずに攻撃を細くする。",
+  staggered: "その相手が**出す**ダメージが1段につき15%減る（最大3段）。多段の各hitへ効き、倒さずに攻撃を細くする。",
   warded: "その味方が**受ける**ダメージが1段につき20%減る。多段の各hitへ効く、防壁（総量）でも受け構え（回数）でもない三つ目の守り。",
   bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",
+  armor_broken: "防御が10下がる。付与から2ラウンド後の開始時に消える。",
+  warhammer_fragment: "1個につき防御が6上がる。最大5個で、戦闘中は保持する。",
+  breached: "次に受ける攻撃ダメージが50%増え、その攻撃後に消える。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 

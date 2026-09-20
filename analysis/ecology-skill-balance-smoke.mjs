@@ -259,12 +259,17 @@ equal(exposedBarrage.length, 3, "隙は連撃3hitの全てへ効く");
 check(exposedBarrage.every((event) => event.values.after * 5 === event.values.before * 6),
   "隙1段は各hitを20%増やす");
 
-for (const [statusId, setupSkill] of [["warded", "ward_ally"], ["staggered", "feint"]]) {
+for (const [statusId, setupSkill, percent] of [
+  ["warded", "ward_ally", 20],
+  ["staggered", "feint", 15],
+]) {
   const result = run(statusId + "_multihit", [ally("a", [setupSkill])], [enemy("e")]);
   const changed = modifiers(result, statusId);
   equal(changed.length, 3, `${statusId} は敵の連撃3hit全てへ効く`);
-  check(changed.every((event) => event.values.after * 5 === event.values.before * 4),
-    `${statusId} 1段は各hitを20%減らす`);
+  check(changed.every((event) => (
+    event.values.after === event.values.before
+      - Math.floor(event.values.before * percent / 100)
+  )), `${statusId} 1段は各hitを${percent}%減らす`);
 }
 
 const bleed = run(

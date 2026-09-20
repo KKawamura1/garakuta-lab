@@ -258,6 +258,23 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
 通常の`actor_moved`を発行し、初期配置は発行しません。これにより一時前進はその行動の近接補正を
 得ながら敵フェーズ前に戻れ、毎AP起動で再評価されます。
 
+### R25の武器横断ルール
+
+`content/weapon-warhammer.mjs`を最初の19節縦スライスとし、定義は`weaponId`と`treePosition`を
+表示・取得用に持ちます。戦闘条件は武器IDを読まず、hit番号、攻撃tag、防壁・受け構え、状態の極性、
+eventの主対象と同じ列、という共有事実だけを読みます。activeだけが`rangeClass: melee`と基礎係数を
+所有します。これにより非アクティブ技能を別武器へ組み合わせてもengineの固有分岐は増えません。
+
+一技能が複数の独立した反応点を持つ場合は`rule`または`rules`を受け付けます。通常は同じruleを
+一chain一回に制限し、各hitや複数の状態除去を本当に読む規則だけが`allowRepeatInChain: true`と
+有限のchain上限を宣言します。event単位の発火記録も併用するため、同じ出来事への自己再発火はできません。
+上位passiveの`replacesPassiveSkillIds`は取得済みの下位版だけを実行時に抑止します。
+
+追加した汎用語彙は、極性指定の`remove_statuses`、防壁／受け構えを除く`remove_barrier` /
+`remove_block`、`has_defense`・`has_defense_or_status`・同列／主対象外のtarget filter、状態由来の
+防御補正、除去種類数を係数へ変える`stat_times_context_scaled`です。schemaは
+`ecology-content-7`、content contractは31です。
+
 ## 5. イベント列
 
 UI・replay・検査は、engine が出した同じイベント列を読みます。

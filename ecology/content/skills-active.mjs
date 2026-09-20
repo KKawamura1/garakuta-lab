@@ -1038,11 +1038,11 @@ activeSkills.call_the_slow.intrinsicPredicates = [hasEligibleTarget(ALLY_REAR_AL
 activeSkills.feint = support("feint", "誘い", [{
   type: "add_status", target: {
     ...ENEMY_FRONT_FIRST,
-    filters: [...ENEMY_FRONT_FIRST.filters, { type: "has_status", statusId: "staggered", op: "lt", value: 2 }],
+    filters: [...ENEMY_FRONT_FIRST.filters, { type: "has_status", statusId: "staggered", op: "lt", value: 3 }],
   }, statusId: "staggered", stacks: 1, reach: "unrestricted",
 }], { tags: ["tempo", "debuff"], targetQuery: {
   ...ENEMY_FRONT_FIRST,
-  filters: [...ENEMY_FRONT_FIRST.filters, { type: "has_status", statusId: "staggered", op: "lt", value: 2 }],
+  filters: [...ENEMY_FRONT_FIRST.filters, { type: "has_status", statusId: "staggered", op: "lt", value: 3 }],
 } });
 activeSkills.feint.intrinsicPredicates = [hasEligibleTarget(activeSkills.feint.targetQuery)];
 

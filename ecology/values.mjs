@@ -54,6 +54,14 @@ export function evaluateValue(state, ctx, valueDef) {
       base = actor ? statusStacks(actor, valueDef.statusId) : 0;
       break;
     }
+    case "stat_times_context_scaled": {
+      const actor = resolveSubject(state, ctx, valueDef.subject);
+      const stat = actor ? actorStat(actor, valueDef.scalingStat) : 0;
+      const count = Number.isSafeInteger(ctx.memory?.[valueDef.key]) ? ctx.memory[valueDef.key] : 0;
+      const coefficientBps = (valueDef.flatCoefficientBps ?? 0) + count * valueDef.coefficientBps;
+      base = roundHalfUpDiv(stat * coefficientBps, BPS);
+      break;
+    }
     default:
       throw new Error(`unimplemented value type: ${valueDef.type}`);
   }
@@ -61,4 +69,3 @@ export function evaluateValue(state, ctx, valueDef) {
   const scaled = Math.floor((base * numerator) / denominator);
   return scaled > 0 ? scaled : 0;
 }
-

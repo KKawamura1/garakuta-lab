@@ -1,0 +1,214 @@
+import assert from "node:assert/strict";
+import { simulateBattle, validateContentBundle } from "./engine.mjs";
+import { BATTLE_SCHEMA_VERSION } from "./schema.mjs";
+import { PLAYABLE_CONTENT, WARHAMMER_TREE } from "./content/index.mjs";
+
+let checks = 0;
+const equal = (actual, expected, message) => {
+  assert.equal(actual, expected, message);
+  checks += 1;
+};
+const ok = (value, message) => {
+  assert.ok(value, message);
+  checks += 1;
+};
+
+const sections = {
+  active: "activeSkills",
+  reactive: "reactiveSkills",
+  target: "targetSkills",
+  passive: "passiveSkills",
+};
+equal(WARHAMMER_TREE.length, 19, "warhammer has the complete 19-node shape");
+assert.deepEqual(
+  Object.fromEntries(Object.keys(sections).map((kind) => [
+    kind, WARHAMMER_TREE.filter((node) => node.kind === kind).length,
+  ])),
+  { active: 7, reactive: 2, target: 1, passive: 9 },
+);
+checks += 1;
+for (const node of WARHAMMER_TREE) {
+  const definition = PLAYABLE_CONTENT[sections[node.kind]][node.skillId];
+  ok(definition, `${node.position} points to a real ${node.kind} skill`);
+  ok(definition.displayEffect?.length > 0, `${node.position} has player-facing effect text`);
+  ok(definition.flavorText?.length > 0, `${node.position} has flavor text`);
+  if (node.position.endsWith("3") && node.position.length === 3) {
+    ok(definition.flavorText.includes("\n"), `${node.position} terminal flavor uses two lines`);
+  }
+}
+
+const content = structuredClone(PLAYABLE_CONTENT);
+content.activeSkills.borrowed_four_hit = {
+  id: "borrowed_four_hit",
+  displayName: "借りた四連撃",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "event_targets", take: "all" },
+    amount: { type: "constant", value: 10 },
+    hitCount: 4,
+    rangeClass: "melee",
+    tags: ["attack", "borrowed_weapon"],
+  }],
+  tags: ["attack", "playable"],
+};
+content.enemyActors.weapon_test_dummy = {
+  id: "weapon_test_dummy",
+  displayName: "試し台",
+  maxHp: 10_000,
+  baseActionPoints: 0,
+  baseReactionPoints: 0,
+  tactics: [],
+  reactiveSkillIds: [],
+  intrinsicRules: [],
+  tags: ["test"],
+  might: 0,
+  focus: 0,
+  guard: 0,
+};
+content.enemyActors.weapon_test_armored = {
+  ...content.enemyActors.weapon_test_dummy,
+  id: "weapon_test_armored",
+  displayName: "装甲試し台",
+  intrinsicRules: [{
+    id: "weapon_test_armored_opening_rule",
+    listenTo: "round_started",
+    timing: "after",
+    priority: 1,
+    predicates: [],
+    costs: [],
+    effects: [{
+      type: "gain_barrier",
+      target: { scope: "self", take: 1 },
+      amount: { type: "constant", value: 200 },
+      duration: "battle",
+    }],
+    limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+  }],
+};
+content.enemyActors.weapon_test_blessed = {
+  ...content.enemyActors.weapon_test_dummy,
+  id: "weapon_test_blessed",
+  displayName: "強化試し台",
+  intrinsicRules: [{
+    id: "weapon_test_blessed_opening_rule",
+    listenTo: "round_started",
+    timing: "after",
+    priority: 1,
+    predicates: [],
+    costs: [],
+    effects: [
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "focused", stacks: 1 },
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "warded", stacks: 1 },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+  }],
+};
+assert.deepEqual(validateContentBundle(content), []);
+checks += 1;
+
+function battle({
+  characterId = "warden",
+  activeSkillId = "warhammer_blow",
+  reactiveSkillIds = [],
+  targetSkillIds = [],
+  passiveSkillIds = [],
+  enemies = [{ instanceId: "e_dummy", enemyActorId: "weapon_test_dummy", position: "front_left" }],
+}) {
+  return {
+    schemaVersion: BATTLE_SCHEMA_VERSION,
+    battleId: "weapon_system_test",
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [{
+      instanceId: "a_user",
+      characterId,
+      position: "front_center",
+      activeSkillId,
+      reactiveSkillIds,
+      targetSkillIds,
+      passiveSkillIds,
+      reactiveReserveBySkill: {},
+      equipment: [],
+    }],
+    enemies,
+  };
+}
+
+{
+  const result = simulateBattle(battle({
+    passiveSkillIds: ["warhammer_heavy_head", "warhammer_iron_mass"],
+  }), content);
+  const proposed = result.events.find(
+    (event) => event.type === "damage_proposed" && event.skillId === "warhammer_blow",
+  );
+  equal(proposed.values.amount, 63, "front melee applies 125% before passive modifiers");
+  const changes = result.events.filter(
+    (event) => event.type === "pending_amount_modified" && event.values.proposalEventId === proposed.id,
+  );
+  assert.deepEqual(changes.map((event) => event.values.after), [72, 84]);
+  checks += 1;
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "tactician",
+    activeSkillId: "borrowed_four_hit",
+    reactiveSkillIds: ["warhammer_ringing_iron"],
+    passiveSkillIds: ["warhammer_deep_impact"],
+  }), content);
+  equal(result.events.filter((event) => (
+    event.type === "resource_spent" && event.values.resource === "reaction_points"
+  )).length, 2, "ringing iron spends RP on the first and fourth hit of another weapon");
+  const dummy = result.actors.find((actor) => actor.instanceId === "e_dummy");
+  equal(dummy.statuses.find((status) => status.statusId === "staggered")?.stacks, 3,
+    "deep impact strengthens the first stagger and the fourth hit reaches stack three");
+}
+
+{
+  const result = simulateBattle(battle({
+    activeSkillId: "warhammer_siege_blow",
+    targetSkillIds: ["warhammer_point_at_armor"],
+    passiveSkillIds: ["warhammer_broken_armor"],
+    enemies: [
+      { instanceId: "e_plain", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_armored", enemyActorId: "weapon_test_armored", position: "front_right" },
+    ],
+  }), content);
+  const selected = result.events.find(
+    (event) => event.type === "target_selected" && event.skillId === "warhammer_siege_blow",
+  );
+  equal(selected.targetActorIds[0], "e_armored", "armor targeting reorders only legal active targets");
+  ok(result.events.some((event) => (
+    event.type === "barrier_broken" && event.targetActorIds[0] === "e_armored"
+      && event.tags.includes("effect")
+  )), "siege blow removes the barrier left after damage");
+  const armored = result.actors.find((actor) => actor.instanceId === "e_armored");
+  equal(armored.statuses.find((status) => status.statusId === "armor_broken")?.stacks, 1,
+    "breaking a defense applies the generic two-round guard penalty");
+}
+
+{
+  const result = simulateBattle(battle({
+    activeSkillId: "warhammer_kingslayer",
+    passiveSkillIds: ["warhammer_trophy_fragment"],
+    enemies: [{ instanceId: "e_blessed", enemyActorId: "weapon_test_blessed", position: "front_left" }],
+  }), content);
+  const proposed = result.events.find(
+    (event) => event.type === "damage_proposed" && event.skillId === "warhammer_kingslayer",
+  );
+  equal(proposed.values.amount, 156,
+    "kingslayer converts two removed positive status types into +120% might before melee position scaling");
+  equal(result.events.filter((event) => (
+    event.type === "status_removed" && event.targetActorIds[0] === "e_blessed"
+      && event.tags.includes("positive")
+  )).length, 2, "kingslayer removes both positive status types");
+  const user = result.actors.find((actor) => actor.instanceId === "a_user");
+  equal(user.statuses.find((status) => status.statusId === "warhammer_fragment")?.stacks, 2,
+    "trophy fragment gains one stack for each removed positive status type");
+}
+
+console.log(`weapon-system.test.mjs: ${checks} checks passed`);

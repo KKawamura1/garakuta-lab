@@ -148,6 +148,9 @@ export function applyEffect(rt, ctx, effect) {
     case "gain_resource": return gainResource(rt, ctx, effect);
     case "add_status": return addStatus(rt, ctx, effect);
     case "remove_status": return removeStatus(rt, ctx, effect);
+    case "remove_statuses": return removeStatuses(rt, ctx, effect);
+    case "remove_barrier": return removeBarrier(rt, ctx, effect);
+    case "remove_block": return removeBlock(rt, ctx, effect);
     case "swap_positions": return swapPositions(rt, ctx, effect);
     case "move_to_open_row": return moveToOpenRow(rt, ctx, effect);
     case "start_preparation": return startPreparation(rt, ctx, effect);
@@ -246,9 +249,15 @@ function expandPattern(rt, ctx, effect) {
 
 // R6 §4.4 — direct damage の軽減。**最低10%は通す。**
 // guard は hit ごとに引くので、同じ総係数なら多段は guard に弱く、単発大威力は強い。
-function afterGuard(rawAmount, target, guardPierceBps) {
+function effectiveGuardOf(content, target) {
+  return Math.max(0, (target.guard ?? 0) + target.statuses.reduce((sum, status) => (
+    sum + (content.statuses[status.statusId]?.guardBonusPerStack ?? 0) * status.stacks
+  ), 0));
+}
+
+function afterGuard(rawAmount, target, guardPierceBps, content) {
   const effectiveGuard = roundHalfUpDiv(
-    (target.guard ?? 0) * (BPS - (guardPierceBps ?? 0)),
+    effectiveGuardOf(content, target) * (BPS - (guardPierceBps ?? 0)),
     BPS,
   );
   const floor = roundHalfUpDiv(rawAmount * 1_000, BPS);
@@ -387,7 +396,7 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
   }
 
   // guard — hit ごとの固定軽減。heal と barrier には掛からない。
-  const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps);
+  const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps, rt.state.content);
 
   // barrier — 位置は v1 から動かしていないので、barrier だけを使う定義は挙動不変。
   const absorbed = absorbBarrier(rt, ctx, finalTarget, guarded, []);
@@ -725,13 +734,20 @@ function addStatus(rt, ctx, effect) {
     const before = existing ? existing.stacks : 0;
     const after = Math.min(definition.maxStacks, before + stacks);
     if (after === before) continue;
-    if (existing) existing.stacks = after;
-    else {
+    if (existing) {
+      existing.stacks = after;
+      if (definition.durationRounds !== undefined) {
+        existing.expiresAtRound = rt.state.round + definition.durationRounds;
+      }
+    } else {
       target.statuses.push({
         statusId: effect.statusId,
         stacks: after,
         duration: definition.duration,
         addedSequence: rt.state.sequence,
+        expiresAtRound: definition.durationRounds === undefined
+          ? undefined
+          : rt.state.round + definition.durationRounds,
       });
     }
     rt.emit({
@@ -739,7 +755,13 @@ function addStatus(rt, ctx, effect) {
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
       tags: [definition.polarity, definition.duration],
-      values: { statusId: effect.statusId, added: after - before, stacks: after, duration: definition.duration },
+      values: {
+        statusId: effect.statusId,
+        added: after - before,
+        stacks: after,
+        duration: definition.duration,
+        durationRounds: definition.durationRounds,
+      },
     });
   }
 }
@@ -758,8 +780,50 @@ function removeStatus(rt, ctx, effect) {
       type: "status_removed",
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
-      tags: ["effect"],
+      tags: ["effect", rt.state.content.statuses[effect.statusId].polarity],
       values: { statusId: effect.statusId, removed, remaining: before - removed, cause: "effect" },
+    });
+  }
+}
+
+function removeStatuses(rt, ctx, effect) {
+  ctx.memory ??= {};
+  ctx.memory.removedStatusTypes ??= 0;
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    const removing = target.statuses.filter(
+      (status) => rt.state.content.statuses[status.statusId]?.polarity === effect.polarity,
+    );
+    ctx.memory.removedStatusTypes += removing.length;
+    for (const status of removing) {
+      target.statuses = target.statuses.filter((entry) => entry !== status);
+      rt.emit({
+        type: "status_removed",
+        ...sourceFields(ctx),
+        targetActorIds: [target.instanceId],
+        tags: ["effect", effect.polarity],
+        values: { statusId: status.statusId, removed: status.stacks, remaining: 0, cause: "effect" },
+      });
+    }
+  }
+}
+
+function removeBarrier(rt, ctx, effect) {
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    absorbBarrier(rt, ctx, target, totalBarrier(target), ["effect"]);
+  }
+}
+
+function removeBlock(rt, ctx, effect) {
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    const before = target.block ?? 0;
+    if (before <= 0) continue;
+    target.block = 0;
+    rt.emit({
+      type: "block_spent",
+      ...sourceFields(ctx),
+      targetActorIds: [target.instanceId],
+      tags: ["effect"],
+      values: { amount: before, before, after: 0 },
     });
   }
 }

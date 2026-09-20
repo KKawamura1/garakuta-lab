@@ -54,6 +54,11 @@ function passesFilter(state, ctx, filter, actor) {
       return compareOp(filter.op, actor.hp * 100, actor.maxHp * filter.value);
     case "has_status":
       return compareOp(filter.op ?? "gte", statusStacks(actor, filter.statusId), filter.value ?? 1);
+    case "has_defense":
+      return totalBarrier(actor) > 0 || (actor.block ?? 0) > 0;
+    case "has_defense_or_status":
+      return totalBarrier(actor) > 0 || (actor.block ?? 0) > 0
+        || statusStacks(actor, filter.statusId) > 0;
     case "is_preparing":
       return (actor.preparation !== null) === filter.value;
     case "not_previous_target":
@@ -66,6 +71,12 @@ function passesFilter(state, ctx, filter, actor) {
       return !ctx.owner || actor.instanceId !== ctx.owner.instanceId;
     case "is_event_primary_target":
       return Boolean(ctx.event) && ctx.event.targetActorIds[0] === actor.instanceId;
+    case "not_event_primary_target":
+      return Boolean(ctx.event) && ctx.event.targetActorIds[0] !== actor.instanceId;
+    case "same_row_as_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      return Boolean(primary) && POSITION_ROW[primary.position] === POSITION_ROW[actor.position];
+    }
     case "is_event_source":
       // DEVIATION (PREFLIGHT §1).
       return Boolean(ctx.event) && ctx.event.sourceActorId === actor.instanceId;
@@ -122,4 +133,3 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
   });
   return query.take === 1 ? sorted.slice(0, 1) : sorted;
 }
-

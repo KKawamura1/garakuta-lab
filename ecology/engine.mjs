@@ -344,27 +344,35 @@ function ruleEntriesFor(state, actor) {
     entries.push({ rule, owner: actor, sourceDefinitionId: actor.definitionId, ruleSource: "signature" });
   }
   for (const [skillOrder, skillId] of actor.reactiveSkillIds.entries()) {
-    entries.push({
-      rule: state.content.reactiveSkills[skillId].rule,
-      owner: actor,
-      sourceDefinitionId: skillId,
-      ruleSource: "reactive_skill",
-      skillOrder,
-      reactionPointReserve: actor.reactiveReserveBySkill?.[skillId] ?? 0,
-    });
+    const definition = state.content.reactiveSkills[skillId];
+    for (const rule of definition.rules ?? [definition.rule]) {
+      entries.push({
+        rule,
+        owner: actor,
+        sourceDefinitionId: skillId,
+        ruleSource: "reactive_skill",
+        skillOrder,
+        reactionPointReserve: actor.reactiveReserveBySkill?.[skillId] ?? 0,
+      });
+    }
   }
   // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
   // **反応権を払わない**ので、costs は content 側で空にしてある
   // （validator は rule として同じ検査を通す）。
+  const replacedPassives = new Set((actor.passiveSkillIds ?? []).flatMap(
+    (skillId) => state.content.passiveSkills?.[skillId]?.replacesPassiveSkillIds ?? [],
+  ));
   for (const skillId of actor.passiveSkillIds ?? []) {
-    const rule = state.content.passiveSkills?.[skillId]?.rule;
-    if (!rule) continue;
-    entries.push({
-      rule,
-      owner: actor,
-      sourceDefinitionId: skillId,
-      ruleSource: "passive_skill",
-    });
+    if (replacedPassives.has(skillId)) continue;
+    const definition = state.content.passiveSkills?.[skillId];
+    for (const rule of definition?.rules ?? (definition?.rule ? [definition.rule] : [])) {
+      entries.push({
+        rule,
+        owner: actor,
+        sourceDefinitionId: skillId,
+        ruleSource: "passive_skill",
+      });
+    }
   }
   for (const item of actor.equipment) {
     // §5.6 — a broken or depleted item stops supplying rules for the rest of
@@ -418,9 +426,11 @@ function firedCount(map, key) {
   return map.get(key) ?? 0;
 }
 
-function ruleAvailable(state, entry) {
+function ruleAvailable(state, entry, event) {
   const key = firingKey(entry);
-  if (firedCount(state.chain.ruleFirings, key) >= 1) return false;
+  const eventKey = `${event.id}|${key}`;
+  if (firedCount(state.chain.ruleEventFirings, eventKey) >= 1) return false;
+  if (!entry.rule.allowRepeatInChain && firedCount(state.chain.ruleFirings, key) >= 1) return false;
   const limit = entry.rule.limit;
   if (limit.scope === "round" && firedCount(state.roundFirings, key) >= limit.count) return false;
   if (limit.scope === "battle" && firedCount(state.battleFirings, key) >= limit.count) return false;
@@ -501,7 +511,7 @@ function dispatchRules(state, event, timing, pendingFrame) {
     if (entry.rule.listenTo !== event.type) continue;
     if (entry.rule.timing !== timing) continue;
     if (!ruleSourceIntact(state, entry)) continue;
-    if (!ruleAvailable(state, entry)) continue;
+    if (!ruleAvailable(state, entry, event)) continue;
     candidates.push({
       ...entry,
       initiativeRank: entry.owner ? entry.owner.initiativeRank : Number.MAX_SAFE_INTEGER,
@@ -521,7 +531,7 @@ function fireRule(state, event, entry, pendingFrame) {
   // §5.7 — everything is re-checked immediately before firing, because an
   // earlier reaction in this same window may have removed the reason to fire.
   if (!ruleSourceIntact(state, entry)) return false;
-  if (!ruleAvailable(state, entry)) return false;
+  if (!ruleAvailable(state, entry, event)) return false;
   if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return false;
 
   const rt = makeRuntime(state);
@@ -546,6 +556,11 @@ function fireRule(state, event, entry, pendingFrame) {
   }
 
   const key = firingKey(entry);
+  const eventKey = `${event.id}|${key}`;
+  state.chain.ruleEventFirings.set(
+    eventKey,
+    firedCount(state.chain.ruleEventFirings, eventKey) + 1,
+  );
   state.chain.ruleFirings.set(key, firedCount(state.chain.ruleFirings, key) + 1);
   state.roundFirings.set(key, firedCount(state.roundFirings, key) + 1);
   state.battleFirings.set(key, firedCount(state.battleFirings, key) + 1);
@@ -693,7 +708,11 @@ function expireRoundDurations(state) {
 
   for (const actor of orderedActors(state)) {
     const expiring = actor.statuses.filter(
-      (status) => status.duration === "round" && status.addedSequence < state.roundEndStartSequence,
+      (status) => status.duration === "round" && (
+        status.expiresAtRound !== undefined
+          ? status.expiresAtRound <= state.round
+          : status.addedSequence < state.roundEndStartSequence
+      ),
     );
     for (const status of expiring) {
       actor.statuses = actor.statuses.filter((entry) => entry !== status);

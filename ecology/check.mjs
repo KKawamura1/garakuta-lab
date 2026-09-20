@@ -21,6 +21,7 @@ const SUITES = [
   "phase-c.test.mjs",
   "story.test.mjs",
   "ultimate.test.mjs",
+  "weapon-system.test.mjs",
 ];
 
 let failed = 0;

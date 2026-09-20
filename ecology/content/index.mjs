@@ -17,6 +17,13 @@ import { skillLevelCaps } from "./skill-levels.mjs";
 import { FIXED_EQUIPMENT, EQUIPMENT_NAMES } from "./equipment-fixed.mjs";
 import { STATUSES, STATUS_NAMES } from "./statuses.mjs";
 import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
+import {
+  WARHAMMER_ACTIVE_SKILLS,
+  WARHAMMER_PASSIVE_SKILLS,
+  WARHAMMER_REACTIVE_SKILLS,
+  WARHAMMER_TARGET_SKILLS,
+  WARHAMMER_TREE,
+} from "./weapon-warhammer.mjs";
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
@@ -98,7 +105,7 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // R25 engine vocabulary: migrated weapon actions can opt into explicit
 // melee/long/ranged/support positioning, and actions can move to an empty row
 // then return at action end. Existing skill definitions retain legacy behavior.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-30";
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-31";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -189,15 +196,15 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.19",
+  contentVersion: "ecology-playable-full-0.20",
   characters: CHARACTERS,
-  activeSkills: ACTIVE_SKILLS,
+  activeSkills: Object.freeze({ ...ACTIVE_SKILLS, ...WARHAMMER_ACTIVE_SKILLS }),
   // The staged weapon-tree implementation starts with the contract and UI.
   // Concrete target skills are added weapon by weapon; fixture-only selectors
   // must never leak into playable content.
-  targetSkills: Object.freeze({}),
-  reactiveSkills: REACTIVE_SKILLS,
-  passiveSkills: PASSIVE_SKILLS,
+  targetSkills: WARHAMMER_TARGET_SKILLS,
+  reactiveSkills: Object.freeze({ ...REACTIVE_SKILLS, ...WARHAMMER_REACTIVE_SKILLS }),
+  passiveSkills: Object.freeze({ ...PASSIVE_SKILLS, ...WARHAMMER_PASSIVE_SKILLS }),
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
   enemyActors: ENEMY_ACTORS,
@@ -239,8 +246,14 @@ export const DISPLAY_NAMES = Object.freeze(
 export const SECTION_NAMES = Object.freeze({
   characters: CHARACTER_NAMES,
   activeSkills: ACTIVE_SKILL_NAMES,
-  targetSkills: Object.freeze({}),
-  reactiveSkills: REACTIVE_SKILL_NAMES,
+  targetSkills: Object.freeze(Object.fromEntries(
+    Object.entries(WARHAMMER_TARGET_SKILLS).map(([id, definition]) => [id, definition.displayName]),
+  )),
+  reactiveSkills: Object.freeze({
+    ...REACTIVE_SKILL_NAMES,
+    ...Object.fromEntries(Object.entries(WARHAMMER_REACTIVE_SKILLS)
+      .map(([id, definition]) => [id, definition.displayName])),
+  }),
   equipment: EQUIPMENT_NAMES,
   statuses: STATUS_NAMES,
   enemyActors: ENEMY_NAMES,
@@ -248,6 +261,7 @@ export const SECTION_NAMES = Object.freeze({
 
 // 設定本文の正本。表示・開示ロジックから直接参照できるよう公開する。
 export { CHARACTER_LORE, CHARACTER_NAMES, characterLoreFor };
+export { WARHAMMER_TREE };
 export { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE };
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";

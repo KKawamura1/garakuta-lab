@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.19",
+ "contentVersion": "ecology-playable-full-0.20",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.19",
+  "contentVersion": "ecology-playable-full-0.20",
   "characters": {
    "warden": {
     "id": "warden",
@@ -3572,7 +3572,7 @@
          "type": "has_status",
          "statusId": "staggered",
          "op": "lt",
-         "value": 2
+         "value": 3
         }
        ],
        "sort": [
@@ -3592,7 +3592,7 @@
        "type": "has_status",
        "statusId": "staggered",
        "op": "lt",
-       "value": 2
+       "value": 3
       }
      ],
      "sort": [
@@ -3613,7 +3613,7 @@
          "type": "has_status",
          "statusId": "staggered",
          "op": "lt",
-         "value": 2
+         "value": 3
         }
        ],
        "sort": [
@@ -4088,6 +4088,409 @@
     "tags": [
      "handoff",
      "buff"
+    ]
+   },
+   "warhammer_blow": {
+    "id": "warhammer_blow",
+    "displayName": "槌打ち",
+    "displayEffect": "敵1体に腕力100%のダメージ。",
+    "flavorText": "振り下ろせば、それで十分だ。",
+    "weaponId": "warhammer",
+    "treePosition": "R",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "warhammer"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_heavy_blow": {
+    "id": "warhammer_heavy_blow",
+    "displayName": "大槌打ち",
+    "displayEffect": "敵1体に腕力150%のダメージ。",
+    "flavorText": "重さをためらわず振り抜き、敵の芯まで叩き潰す。",
+    "weaponId": "warhammer",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "warhammer_blow",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 15000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "warhammer"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_heaven_blow": {
+    "id": "warhammer_heaven_blow",
+    "displayName": "震天打ち",
+    "displayEffect": "敵1体に腕力220%のダメージ。",
+    "flavorText": "天を震わせる一撃は、地の底まで逃がさない。\n立っているものすべてに、終わりの重さを教えてやる。",
+    "weaponId": "warhammer",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "warhammer_heavy_blow",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 22000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "warhammer"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_earth_splitter": {
+    "id": "warhammer_earth_splitter",
+    "displayName": "地割り",
+    "displayEffect": "敵1列に腕力140%のダメージ。",
+    "flavorText": "振り下ろした先から、大地そのものが敵へ牙を剥く。\n一列まとめて、立つ場所ごと叩き割れ。",
+    "weaponId": "warhammer",
+    "treePosition": "AB3",
+    "replacesActiveSkillId": "warhammer_heavy_blow",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 14000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "warhammer"
+      ],
+      "targetPattern": "row"
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_siege_blow": {
+    "id": "warhammer_siege_blow",
+    "displayName": "破城打ち",
+    "displayEffect": "敵1体に腕力130%のダメージを与え、防壁と受け構えをすべて除去。",
+    "flavorText": "城壁も構えも、正面から砕けば同じだ。",
+    "weaponId": "warhammer",
+    "treePosition": "B3",
+    "replacesActiveSkillId": "warhammer_blow",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 13000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "warhammer"
+      ]
+     },
+     {
+      "type": "remove_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      }
+     },
+     {
+      "type": "remove_block",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      }
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_dismantler": {
+    "id": "warhammer_dismantler",
+    "displayName": "解体槌",
+    "displayEffect": "敵1体に腕力170%のダメージを与え、防壁・受け構え・強化をすべて除去。",
+    "flavorText": "鎧も構えも、積み上げた守りも関係ない。\n守れるという思い込みから、順番に解体する。",
+    "weaponId": "warhammer",
+    "treePosition": "BA3",
+    "replacesActiveSkillId": "warhammer_siege_blow",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 17000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "warhammer"
+      ]
+     },
+     {
+      "type": "remove_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      }
+     },
+     {
+      "type": "remove_block",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      }
+     },
+     {
+      "type": "remove_statuses",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "polarity": "positive"
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_kingslayer": {
+    "id": "warhammer_kingslayer",
+    "displayName": "王殺し",
+    "displayEffect": "敵1体の強化をすべて除去し、腕力130%＋1種類につき腕力60%のダメージ。",
+    "flavorText": "奪った守りを鉄へ鍛え、すべてを最後の一打へ。\n王冠ごと沈めてこそ、戦槌の勝ちだ。",
+    "weaponId": "warhammer",
+    "treePosition": "BB3",
+    "replacesActiveSkillId": "warhammer_siege_blow",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "remove_statuses",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "polarity": "positive"
+     },
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_times_context_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "key": "removedStatusTypes",
+       "flatCoefficientBps": 13000,
+       "coefficientBps": 6000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "warhammer"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "warhammer",
+     "playable"
     ]
    }
   },
@@ -6751,7 +7154,7 @@
        "subject": "event_source",
        "statusId": "staggered",
        "op": "lt",
-       "value": 2
+       "value": 3
       }
      ],
      "costs": [
@@ -6953,7 +7356,7 @@
           "type": "has_status",
           "statusId": "staggered",
           "op": "lt",
-          "value": 2
+          "value": 3
          }
         ],
         "sort": [
@@ -6982,7 +7385,7 @@
           "type": "has_status",
           "statusId": "staggered",
           "op": "lt",
-          "value": 2
+          "value": 3
          }
         ],
         "sort": [
@@ -7410,7 +7813,7 @@
           "type": "has_status",
           "statusId": "staggered",
           "op": "lt",
-          "value": 2
+          "value": 3
          }
         ],
         "take": 1
@@ -7434,7 +7837,7 @@
           "type": "has_status",
           "statusId": "staggered",
           "op": "lt",
-          "value": 2
+          "value": 3
          }
         ],
         "take": 1
@@ -7961,7 +8364,7 @@
           "type": "has_status",
           "statusId": "staggered",
           "op": "lt",
-          "value": 2
+          "value": 3
          }
         ],
         "sort": [
@@ -7985,7 +8388,7 @@
           "type": "has_status",
           "statusId": "staggered",
           "op": "lt",
-          "value": 2
+          "value": 3
          }
         ],
         "sort": [
@@ -8074,6 +8477,184 @@
      "relay",
      "guard",
      "free"
+    ]
+   },
+   "warhammer_ringing_iron": {
+    "id": "warhammer_ringing_iron",
+    "displayName": "響く鉄",
+    "weaponId": "warhammer",
+    "treePosition": "A2",
+    "displayEffect": "攻撃の1・4hit目に、RP1で怯み1。1行動2回まで。",
+    "flavorText": "鉄の音が、膝を折る。",
+    "rules": [
+     {
+      "id": "warhammer_ringing_iron_hit_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 60,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "staggered",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warhammer_ringing_iron_hit_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 60,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "staggered",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "debuff",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_breaking_sound": {
+    "id": "warhammer_breaking_sound",
+    "displayName": "砕け音",
+    "weaponId": "warhammer",
+    "treePosition": "BA2",
+    "displayEffect": "敵の防壁を破壊した時、RP1で次の味方攻撃のダメージ+50%。",
+    "flavorText": "鎧の砕ける音が合図となり、次の一撃を割れ目へ導く。",
+    "rule": {
+     "id": "warhammer_breaking_sound_rule",
+     "listenTo": "barrier_broken",
+     "timing": "after",
+     "priority": 55,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_source"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "event_targets",
+        "take": "all"
+       },
+       "statusId": "breached",
+       "stacks": 1
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "round",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "debuff",
+     "warhammer",
+     "playable"
     ]
    }
   },
@@ -9557,6 +10138,923 @@
      },
      "priority": 100
     }
+   },
+   "warhammer_heavy_head": {
+    "id": "warhammer_heavy_head",
+    "displayName": "重い頭",
+    "displayEffect": "1hit攻撃の合計ダメージ+15%。",
+    "flavorText": "一撃の重みは、数では測れない。",
+    "weaponId": "warhammer",
+    "treePosition": "A1",
+    "rules": [
+     {
+      "id": "warhammer_heavy_head_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "allowRepeatInChain": true,
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_iron_mass": {
+    "id": "warhammer_iron_mass",
+    "displayName": "鉄塊",
+    "displayEffect": "1hit攻撃の合計ダメージがさらに+20%。",
+    "flavorText": "振るうのではない。落とすのだ。",
+    "weaponId": "warhammer",
+    "treePosition": "AA1",
+    "rules": [
+     {
+      "id": "warhammer_iron_mass_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "allowRepeatInChain": true,
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_deep_impact": {
+    "id": "warhammer_deep_impact",
+    "displayName": "深い衝撃",
+    "weaponId": "warhammer",
+    "treePosition": "AA2",
+    "displayEffect": "各行動で最初に与える怯み+1。",
+    "flavorText": "表面で止まった音は、肉と骨の奥で二度目の衝撃になる。",
+    "rules": [
+     {
+      "id": "warhammer_deep_impact_rule",
+      "listenTo": "status_added",
+      "timing": "after",
+      "priority": 70,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_value",
+        "key": "statusId",
+        "op": "eq",
+        "value": "staggered"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "staggered",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "debuff",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_wide_swing": {
+    "id": "warhammer_wide_swing",
+    "displayName": "振り幅",
+    "weaponId": "warhammer",
+    "treePosition": "AB1",
+    "displayEffect": "1hit単体攻撃が、同じ列の別の敵1体にも35%のダメージ。",
+    "flavorText": "大振りは、隣まで巻き込む。",
+    "rules": [
+     {
+      "id": "warhammer_wide_swing_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 90,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "not_event_primary_target"
+          },
+          {
+           "type": "same_row_as_event_primary_target"
+          }
+         ],
+         "sort": [
+          "position_asc"
+         ],
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 35,
+         "denominator": 100
+        },
+        "tags": [
+         "splash"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "area",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_sweep": {
+    "id": "warhammer_sweep",
+    "displayName": "横薙ぎ",
+    "weaponId": "warhammer",
+    "treePosition": "AB2",
+    "displayEffect": "「振り幅」の追加対象+1、追加ダメージを60%に強化。",
+    "flavorText": "槌の軌道をさらに広げ、逃げた隣までまとめて薙ぎ払う。",
+    "replacesPassiveSkillIds": [
+     "warhammer_wide_swing"
+    ],
+    "rules": [
+     {
+      "id": "warhammer_sweep_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 90,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "not_event_primary_target"
+          },
+          {
+           "type": "same_row_as_event_primary_target"
+          }
+         ],
+         "sort": [
+          "position_asc"
+         ],
+         "take": "all"
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 60,
+         "denominator": 100
+        },
+        "tags": [
+         "splash"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "area",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_break_point": {
+    "id": "warhammer_break_point",
+    "displayName": "崩れ目",
+    "displayEffect": "防壁・受け構え・怯み中の敵へのダメージ+30%。",
+    "flavorText": "崩れた一瞬を逃さない。",
+    "weaponId": "warhammer",
+    "treePosition": "B2",
+    "rules": [
+     {
+      "id": "warhammer_break_point_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "has_defense_or_status",
+           "statusId": "staggered"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_broken_armor": {
+    "id": "warhammer_broken_armor",
+    "displayName": "砕けた鎧",
+    "weaponId": "warhammer",
+    "treePosition": "BA1",
+    "displayEffect": "自分が防壁か受け構えを除去した敵は、2ラウンド防御-10。",
+    "flavorText": "砕けた鎧は、もう守りにならない。",
+    "rules": [
+     {
+      "id": "warhammer_broken_armor_barrier_broken_rule",
+      "listenTo": "barrier_broken",
+      "timing": "after",
+      "priority": 80,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "effect",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "armor_broken",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "warhammer_broken_armor_block_spent_rule",
+      "listenTo": "block_spent",
+      "timing": "after",
+      "priority": 80,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "effect",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "armor_broken",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "debuff",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_trophy_fragment": {
+    "id": "warhammer_trophy_fragment",
+    "displayName": "戦利の破片",
+    "weaponId": "warhammer",
+    "treePosition": "BB1",
+    "displayEffect": "敵の強化を除去するたび破片1。破片1につき防御+6、最大5個。",
+    "flavorText": "敵の守りは、こちらの鎧になる。",
+    "rules": [
+     {
+      "id": "warhammer_trophy_fragment_rule",
+      "listenTo": "status_removed",
+      "timing": "after",
+      "priority": 85,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "positive",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "allowRepeatInChain": true,
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "warhammer_fragment",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "guard",
+     "warhammer",
+     "playable"
+    ]
+   },
+   "warhammer_reverse_forging": {
+    "id": "warhammer_reverse_forging",
+    "displayName": "逆鍛造",
+    "weaponId": "warhammer",
+    "treePosition": "BB2",
+    "displayEffect": "攻撃ダメージが破片1につき+15%。攻撃後、破片を全消費。",
+    "flavorText": "拾い集めた敵の守りを、次に振り下ろす鉄へ鍛え直す。",
+    "rules": [
+     {
+      "id": "warhammer_reverse_forging_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warhammer_fragment",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "allowRepeatInChain": true,
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "warhammer_reverse_forging_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warhammer_fragment",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "allowRepeatInChain": true,
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "warhammer_reverse_forging_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warhammer_fragment",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "allowRepeatInChain": true,
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 45,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "warhammer_reverse_forging_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warhammer_fragment",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "allowRepeatInChain": true,
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 60,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "warhammer_reverse_forging_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warhammer_fragment",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "allowRepeatInChain": true,
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 75,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "warhammer_reverse_forging_spend_rule",
+      "listenTo": "action_resolved",
+      "timing": "after",
+      "priority": 95,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "warhammer_fragment",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "warhammer_fragment",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "warhammer",
+     "playable"
+    ]
    }
   },
   "equipment": {
@@ -11653,7 +13151,7 @@
     "id": "staggered",
     "displayName": "怯み",
     "polarity": "negative",
-    "maxStacks": 2,
+    "maxStacks": 3,
     "duration": "round",
     "rules": [
      {
@@ -11696,7 +13194,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 20,
+         "numerator": 15,
          "denominator": 100
         }
        }
@@ -11747,7 +13245,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 20,
+         "numerator": 15,
          "denominator": 100
         }
        }
@@ -11798,7 +13296,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 20,
+         "numerator": 15,
          "denominator": 100
         }
        }
@@ -11849,7 +13347,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 20,
+         "numerator": 15,
          "denominator": 100
         }
        }
@@ -11900,7 +13398,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 20,
+         "numerator": 15,
          "denominator": 100
         }
        }
@@ -11951,7 +13449,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 20,
+         "numerator": 15,
          "denominator": 100
         }
        }
@@ -12002,7 +13500,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 40,
+         "numerator": 30,
          "denominator": 100
         }
        }
@@ -12053,7 +13551,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 40,
+         "numerator": 30,
          "denominator": 100
         }
        }
@@ -12104,7 +13602,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 40,
+         "numerator": 30,
          "denominator": 100
         }
        }
@@ -12155,7 +13653,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 40,
+         "numerator": 30,
          "denominator": 100
         }
        }
@@ -12206,7 +13704,7 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 40,
+         "numerator": 30,
          "denominator": 100
         }
        }
@@ -12257,7 +13755,313 @@
         "amount": {
          "type": "event_value_scaled",
          "key": "amount",
-         "numerator": 40,
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_3_0_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 45,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_3_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 45,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_3_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 45,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_3_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 45,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_3_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 45,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "staggered_3_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 45,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "staggered",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 45,
          "denominator": 100
         }
        }
@@ -13033,6 +14837,96 @@
     "tags": [
      "playable",
      "debuff"
+    ]
+   },
+   "armor_broken": {
+    "id": "armor_broken",
+    "displayName": "砕けた鎧",
+    "polarity": "negative",
+    "maxStacks": 1,
+    "duration": "round",
+    "durationRounds": 2,
+    "guardBonusPerStack": -10,
+    "rules": [],
+    "tags": [
+     "playable",
+     "debuff",
+     "guard"
+    ]
+   },
+   "warhammer_fragment": {
+    "id": "warhammer_fragment",
+    "displayName": "戦利の破片",
+    "polarity": "positive",
+    "maxStacks": 5,
+    "duration": "battle",
+    "guardBonusPerStack": 6,
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "guard"
+    ]
+   },
+   "breached": {
+    "id": "breached",
+    "displayName": "砕け目",
+    "polarity": "negative",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [
+     {
+      "id": "breached_damage_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 24,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 50,
+         "denominator": 100
+        }
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "breached",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "debuff",
+     "attack"
     ]
    },
    "ultimate_spent": {
@@ -14338,6 +16232,14 @@
   "shatter_point": "積み撃ち",
   "take_the_wound": "傷を引き受ける",
   "pass_the_edge": "刃を渡す",
+  "warhammer_blow": "槌打ち",
+  "warhammer_heavy_blow": "大槌打ち",
+  "warhammer_heaven_blow": "震天打ち",
+  "warhammer_earth_splitter": "地割り",
+  "warhammer_siege_blow": "破城打ち",
+  "warhammer_dismantler": "解体槌",
+  "warhammer_kingslayer": "王殺し",
+  "warhammer_point_at_armor": "鎧を指す",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -14393,6 +16295,8 @@
   "third_cut": "三撃目の傷",
   "return_the_mark": "隙を返す",
   "carry_the_ward": "守りを継ぐ",
+  "warhammer_ringing_iron": "響く鉄",
+  "warhammer_breaking_sound": "砕け音",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -14422,6 +16326,9 @@
   "staggered": "怯み",
   "warded": "守勢",
   "bleeding": "裂傷",
+  "armor_broken": "砕けた鎧",
+  "warhammer_fragment": "戦利の破片",
+  "breached": "砕け目",
   "ultimate_spent": "必殺",
   "husk": "灰殻兵",
   "husk_warden": "灰殻の見張り",
@@ -14824,7 +16731,7 @@
     "kind": "active",
     "definitionId": "hamstring",
     "label": "足を払う",
-    "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージは1段につき20%減る。",
+    "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージは1段につき15%減る（最大3段）。",
     "grammar": "攻撃"
    },
    "execute_low": {
@@ -16185,7 +18092,7 @@
    "kind": "active",
    "definitionId": "hamstring",
    "label": "足を払う",
-   "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージは1段につき20%減る。",
+   "effect": "腕力{amount}と引き換えに「怯み」を1つ付ける。怯んだ相手が出すダメージは1段につき15%減る（最大3段）。",
    "grammar": "攻撃"
   },
   "execute_low": {
@@ -19543,6 +21450,13 @@
   "shatter_point": 10,
   "take_the_wound": 1,
   "pass_the_edge": 1,
+  "warhammer_blow": 10,
+  "warhammer_heavy_blow": 10,
+  "warhammer_heaven_blow": 10,
+  "warhammer_earth_splitter": 10,
+  "warhammer_siege_blow": 10,
+  "warhammer_dismantler": 10,
+  "warhammer_kingslayer": 10,
   "counter_blow": 10,
   "cover_ally": 1,
   "overflow_care": 10,
@@ -19598,6 +21512,8 @@
   "third_cut": 1,
   "return_the_mark": 1,
   "carry_the_ward": 1,
+  "warhammer_ringing_iron": 1,
+  "warhammer_breaking_sound": 1,
   "foundation_vitality": 10,
   "foundation_might": 10,
   "foundation_focus": 10,
@@ -19626,7 +21542,16 @@
   "marked_assault": 10,
   "three_count": 1,
   "borrowed_focus": 1,
-  "bleed_memory": 1
+  "bleed_memory": 1,
+  "warhammer_heavy_head": 10,
+  "warhammer_iron_mass": 10,
+  "warhammer_deep_impact": 1,
+  "warhammer_wide_swing": 10,
+  "warhammer_sweep": 10,
+  "warhammer_break_point": 10,
+  "warhammer_broken_armor": 1,
+  "warhammer_trophy_fragment": 1,
+  "warhammer_reverse_forging": 10
  },
  "enemyInfo": {
   "husk": {

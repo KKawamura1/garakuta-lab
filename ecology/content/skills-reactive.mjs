@@ -662,7 +662,7 @@ const FRONTMOST_BELOW_STAGGER_CAP = {
   scope: "enemies",
   filters: [
     { type: "alive" },
-    { type: "has_status", statusId: "staggered", op: "lt", value: 2 },
+    { type: "has_status", statusId: "staggered", op: "lt", value: 3 },
   ],
   sort: ["position_asc"],
   take: 1,
@@ -879,7 +879,7 @@ reactiveSkills.counter_order = reaction("counter_order", REACTIVE_SKILL_NAMES.co
   timing: "interrupt",
   priority: 30,
   predicates: [EVENT_SOURCE_IS_ENEMY, {
-    type: "has_status", subject: "event_source", statusId: "staggered", op: "lt", value: 2,
+    type: "has_status", subject: "event_source", statusId: "staggered", op: "lt", value: 3,
   }],
   costs: spendRp(),
   effects: [{
@@ -1006,7 +1006,7 @@ const EVENT_SOURCE_ENEMY_BELOW_STAGGER_CAP = {
   scope: "enemies",
   filters: [
     { type: "alive" }, { type: "is_event_source" },
-    { type: "has_status", statusId: "staggered", op: "lt", value: 2 },
+    { type: "has_status", statusId: "staggered", op: "lt", value: 3 },
   ],
   take: 1,
 };
