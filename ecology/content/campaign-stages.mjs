@@ -418,8 +418,8 @@ export function campaignManifestForStage(sequence, seed) {
     campaignStageId: stage.id,
     campaignStageSequence: stage.sequence,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
-    // R25 — 武器はpackとは別に固定する。現時点の実装済み縦スライスは戦槌のみ。
-    enabledWeaponIds: ["warhammer"],
+    // R25 — 武器はpackとは別に固定する。双刃はヒバナ加入と同じStage 2から加える。
+    enabledWeaponIds: stage.sequence >= 2 ? ["warhammer", "dual_blades"] : ["warhammer"],
     enabledPackIds: [...stage.enabledPackIds],
     // R9 §3.1 — 新 pack はその Stage では core（入口）だけを出し、
     // 次の Stage から full になる。**前に覚えた技能は消えない。**

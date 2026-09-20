@@ -128,6 +128,7 @@ checks += 1;
 
 function battle({
   characterId = "warden",
+  position = "front_center",
   activeSkillId = "warhammer_blow",
   reactiveSkillIds = [],
   targetSkillIds = [],
@@ -142,7 +143,7 @@ function battle({
     allies: [{
       instanceId: "a_user",
       characterId,
-      position: "front_center",
+      position,
       activeSkillId,
       reactiveSkillIds,
       targetSkillIds,
@@ -228,10 +229,11 @@ function battle({
 }
 
 {
-  equal(WEAPON_SKILL_TREE_NODES.length, 19, "acquisition registry exposes all warhammer nodes");
-  ok(WEAPON_SKILL_TREE_NODES.every((node) => node.cost === 1),
+  const warhammerNodes = WEAPON_SKILL_TREE_NODES.filter((node) => node.weaponId === "warhammer");
+  equal(warhammerNodes.length, 19, "acquisition registry exposes all warhammer nodes");
+  ok(warhammerNodes.every((node) => node.cost === 1),
     "weapon entry and each following node use the level-free 1 SP cost");
-  ok(WEAPON_SKILL_TREE_NODES.every((node) => (
+  ok(warhammerNodes.every((node) => (
     node.requires.every((required) => required.minLv === 1)
   )), "weapon prerequisites require acquisition only, never legacy skill levels");
 
@@ -274,6 +276,61 @@ function battle({
     "a passive upgrade hides its replaced lower form from the always-on list");
   equal(loadout.passives.warden.includes("warhammer_sweep"), true,
     "the upgraded passive remains always on");
+}
+
+{
+  const dualNodes = WEAPON_SKILL_TREE_NODES.filter((node) => node.weaponId === "dual_blades");
+  equal(dualNodes.length, 7, "dual blades exposes the complete A to AA movement slice");
+  equal(dualNodes[0].position, "R", "dual blades acquisition starts at its own root");
+
+  const stranded = simulateBattle(battle({
+    position: "rear_center",
+    activeSkillId: "dual_blades_two_cut",
+    passiveSkillIds: ["dual_blades_dash_in"],
+  }), content);
+  const strandedMoves = stranded.events.filter((event) => event.type === "actor_moved");
+  equal(strandedMoves.length, 1, "dash-in advances once and deliberately remains in front");
+  equal(stranded.actors.find((actor) => actor.instanceId === "a_user").position, "front_center",
+    "dash-in alone pays for melee power by staying exposed in front");
+  const strandedHits = stranded.events.filter((event) => (
+    event.type === "damage_proposed" && event.skillId === "dual_blades_two_cut"
+  ));
+  equal(strandedHits.length, 2, "the root action deals two hits after moving");
+  ok(strandedHits.every((event) => event.values.amount === 35),
+    "dash-in receives the front-row 125% melee modifier on every hit");
+
+  const returningInput = battle({
+    position: "rear_center",
+    activeSkillId: "dual_blades_three_cut",
+    passiveSkillIds: ["dual_blades_retreat"],
+  });
+  returningInput.maxRounds = 2;
+  returningInput.objective = { type: "survive_rounds", rounds: 2 };
+  const returning = simulateBattle(returningInput, content);
+  const returningMoves = returning.events.filter((event) => event.type === "actor_moved");
+  equal(returningMoves.length, 4, "retreat repeats advance and return in both rounds");
+  assert.deepEqual(returningMoves.map((event) => event.tags[0]), ["move", "return", "move", "return"]);
+  checks += 1;
+  equal(returning.actors.find((actor) => actor.instanceId === "a_user").position, "rear_center",
+    "retreat ends each action in the original safe rear slot");
+
+  const sharpened = simulateBattle(battle({
+    characterId: "tactician",
+    activeSkillId: "borrowed_four_hit",
+    passiveSkillIds: ["dual_blades_split_sharpening"],
+  }), content);
+  equal(sharpened.events.filter((event) => (
+    event.type === "pending_amount_modified"
+      && event.ruleId === "dual_blades_split_sharpening_rule"
+  )).length, 4, "split sharpening boosts every hit of another multi-hit weapon");
+
+  const extra = simulateBattle(battle({
+    activeSkillId: "dual_blades_three_cut",
+    passiveSkillIds: ["dual_blades_more_hands"],
+  }), content);
+  equal(extra.events.filter((event) => (
+    event.type === "damage_proposed" && event.tags.includes("extra_hit")
+  )).length, 1, "more hands adds exactly one generic extra hit after a three-hit action");
 }
 
 console.log(`weapon-system.test.mjs: ${checks} checks passed`);

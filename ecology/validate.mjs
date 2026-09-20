@@ -529,11 +529,12 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.returnAfterAction !== undefined && typeof effect.returnAfterAction !== "boolean") {
         bag.add(`${path}.returnAfterAction`, "bad_boolean", "returnAfterAction must be a boolean");
       }
-      if (effect.returnAfterAction === true && ctx.timing !== "action") {
+      if (effect.returnAfterAction === true
+          && ctx.timing !== "action" && ctx.listenTo !== "action_declared") {
         bag.add(
           `${path}.returnAfterAction`,
           "action_return_outside_action",
-          "returnAfterAction is only valid on an active action effect",
+          "returnAfterAction is only valid during an active action",
         );
       }
       break;

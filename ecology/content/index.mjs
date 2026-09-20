@@ -25,6 +25,13 @@ import {
   WARHAMMER_TREE,
 } from "./weapon-warhammer.mjs";
 import {
+  DUAL_BLADES_ACTIVE_SKILLS,
+  DUAL_BLADES_PASSIVE_SKILLS,
+  DUAL_BLADES_REACTIVE_SKILLS,
+  DUAL_BLADES_TARGET_SKILLS,
+  DUAL_BLADES_TREE,
+} from "./weapon-dual-blades.mjs";
+import {
   IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
   WEAPON_SKILL_NODE_BY_ID,
@@ -114,8 +121,9 @@ import {
 // melee/long/ranged/support positioning, and actions can move to an empty row
 // then return at action end. Existing skill definitions retain legacy behavior.
 // R25 weapon acquisition: manifests now freeze enabledWeaponIds independently
-// from packs, and the first level-free 19-node tree is available to every actor.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-32";
+// from packs. The dual-blades A→AA slice also establishes pre-action movement
+// that keys off the shared resolved reach class, never a particular active ID.
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-33";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -206,15 +214,21 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.21",
+  contentVersion: "ecology-playable-full-0.22",
   characters: CHARACTERS,
-  activeSkills: Object.freeze({ ...ACTIVE_SKILLS, ...WARHAMMER_ACTIVE_SKILLS }),
+  activeSkills: Object.freeze({
+    ...ACTIVE_SKILLS, ...WARHAMMER_ACTIVE_SKILLS, ...DUAL_BLADES_ACTIVE_SKILLS,
+  }),
   // The staged weapon-tree implementation starts with the contract and UI.
   // Concrete target skills are added weapon by weapon; fixture-only selectors
   // must never leak into playable content.
-  targetSkills: WARHAMMER_TARGET_SKILLS,
-  reactiveSkills: Object.freeze({ ...REACTIVE_SKILLS, ...WARHAMMER_REACTIVE_SKILLS }),
-  passiveSkills: Object.freeze({ ...PASSIVE_SKILLS, ...WARHAMMER_PASSIVE_SKILLS }),
+  targetSkills: Object.freeze({ ...WARHAMMER_TARGET_SKILLS, ...DUAL_BLADES_TARGET_SKILLS }),
+  reactiveSkills: Object.freeze({
+    ...REACTIVE_SKILLS, ...WARHAMMER_REACTIVE_SKILLS, ...DUAL_BLADES_REACTIVE_SKILLS,
+  }),
+  passiveSkills: Object.freeze({
+    ...PASSIVE_SKILLS, ...WARHAMMER_PASSIVE_SKILLS, ...DUAL_BLADES_PASSIVE_SKILLS,
+  }),
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
   enemyActors: ENEMY_ACTORS,
@@ -249,6 +263,7 @@ export {
   WEAPON_SKILL_TREE_NODES,
   weaponSkillNode,
   weaponSkillNodes,
+  DUAL_BLADES_TREE,
 };
 
 export const DISPLAY_NAMES = Object.freeze(

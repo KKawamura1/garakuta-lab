@@ -1095,6 +1095,7 @@ function performAction(state, actor, choice) {
   });
 
   try {
+    const declaredReach = actionReach(skill);
     const declared = emit(
       state,
       {
@@ -1103,7 +1104,9 @@ function performAction(state, actor, choice) {
         targetActorIds: [],
         sourceDefinitionId: actor.definitionId,
         skillId: skill.id,
-        tags: skill.tags,
+        // R25 — pre-action passives (dash-in, ranged setup, support hooks) read
+        // the resolved reach class rather than a weapon or active-skill ID.
+        tags: [...new Set([...(skill.tags ?? []), declaredReach])],
         values: { apCost: skill.apCost, targetCount: frame.targetActorIds.length },
       },
       frame,
@@ -1186,6 +1189,11 @@ function performAction(state, actor, choice) {
       values: { targetCount: frame.targetActorIds.length },
     });
   } finally {
+    // A pre-action temporary move may be scheduled by action_declared. Even if
+    // a later interrupt cancels the action or removes its target, the actor
+    // must not remain in the dangerous row merely because normal effects did
+    // not run. Normal resolution already clears this list, so this is idempotent.
+    if (frame.scheduledReturns?.length) resolveScheduledReturns(rt, baseCtx(), frame);
     state.currentPendingAction = null;
   }
   return undefined;

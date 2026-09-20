@@ -706,7 +706,7 @@ export function makeManifest(seed, profile) {
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
     // R25 — 武器ツリーはpack分類ではなく、遠征開始時に固定する独立manifest。
     // 実装済み武器を段階的にここへ載せ、途中で増減させない。
-    enabledWeaponIds: ["warhammer"],
+    enabledWeaponIds: ["warhammer", "dual_blades"],
     enabledPackIds: enabled,
     // Free / Endless は Stage の学習順を持たないので、pack は常に full で出る
     // （R9 §3.1 の core / full はチュートリアル Stage の仕組み）。

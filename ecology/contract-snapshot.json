@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.21",
+ "contentVersion": "ecology-playable-full-0.22",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.21",
+  "contentVersion": "ecology-playable-full-0.22",
   "characters": {
    "warden": {
     "id": "warden",
@@ -4490,6 +4490,161 @@
      "attack",
      "weapon",
      "warhammer",
+     "playable"
+    ]
+   },
+   "dual_blades_two_cut": {
+    "id": "dual_blades_two_cut",
+    "displayName": "二連斬り",
+    "displayEffect": "敵1体に腕力55%のダメージを2hit。",
+    "flavorText": "二本あるなら、二度斬る。",
+    "weaponId": "dual_blades",
+    "treePosition": "R",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 5500
+      },
+      "hitCount": 2,
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "dual_blades"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "dual_blades",
+     "playable"
+    ]
+   },
+   "dual_blades_three_cut": {
+    "id": "dual_blades_three_cut",
+    "displayName": "三連斬り",
+    "displayEffect": "敵1体に腕力50%のダメージを3hit。",
+    "flavorText": "二本の刃へもう一拍を重ね、逃げる隙ごと刻み取る。",
+    "weaponId": "dual_blades",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "dual_blades_two_cut",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 5000
+      },
+      "hitCount": 3,
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "dual_blades"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "dual_blades",
+     "playable"
+    ]
+   },
+   "dual_blades_six_petals": {
+    "id": "dual_blades_six_petals",
+    "displayName": "六花",
+    "displayEffect": "敵1体に腕力40%のダメージを6hit。",
+    "flavorText": "六つの斬光が重なり、血煙の中に一輪の花を結ぶ。\n咲いたと気づく頃には、刃はもう鞘へ戻っている。",
+    "weaponId": "dual_blades",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "dual_blades_three_cut",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4000
+      },
+      "hitCount": 6,
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "dual_blades"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "dual_blades",
      "playable"
     ]
    }
@@ -11055,6 +11210,405 @@
      "warhammer",
      "playable"
     ]
+   },
+   "dual_blades_split_sharpening": {
+    "id": "dual_blades_split_sharpening",
+    "displayName": "研ぎ分け",
+    "weaponId": "dual_blades",
+    "treePosition": "A1",
+    "displayEffect": "2〜6hit攻撃の合計ダメージ+10%。",
+    "flavorText": "刃ごとに、違う角度で研ぐ。",
+    "rules": [
+     {
+      "id": "dual_blades_split_sharpening_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "gte",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "allowRepeatInChain": true,
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 10,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 6
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "dual_blades",
+     "playable"
+    ]
+   },
+   "dual_blades_dash_in": {
+    "id": "dual_blades_dash_in",
+    "displayName": "駆け込み",
+    "displayEffect": "後列から近接攻撃する時、空き前列へ移動してから攻撃する。攻撃後も前列に残る。",
+    "flavorText": "届かない距離は、走って消す。",
+    "weaponId": "dual_blades",
+    "treePosition": "A2",
+    "rules": [
+     {
+      "id": "dual_blades_dash_in_rule",
+      "listenTo": "action_declared",
+      "timing": "interrupt",
+      "priority": 20,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "melee",
+        "value": true
+       },
+       {
+        "type": "position",
+        "subject": "self",
+        "row": "rear",
+        "op": "eq"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "move_to_open_row",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "row": "front",
+        "returnAfterAction": false
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "movement",
+     "dual_blades",
+     "playable"
+    ]
+   },
+   "dual_blades_more_hands": {
+    "id": "dual_blades_more_hands",
+    "displayName": "手数",
+    "weaponId": "dual_blades",
+    "treePosition": "AA1",
+    "displayEffect": "3〜5hit攻撃に35%追撃を追加。最大6hit。",
+    "flavorText": "空いた一瞬にも、刃を差し込む。",
+    "rules": [
+     {
+      "id": "dual_blades_more_hands_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 92,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 35,
+         "denominator": 100
+        },
+        "tags": [
+         "attack",
+         "extra_hit"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "dual_blades_more_hands_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 92,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 4
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 35,
+         "denominator": 100
+        },
+        "tags": [
+         "attack",
+         "extra_hit"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "dual_blades_more_hands_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 92,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 5
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 35,
+         "denominator": 100
+        },
+        "tags": [
+         "attack",
+         "extra_hit"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "dual_blades",
+     "playable"
+    ]
+   },
+   "dual_blades_retreat": {
+    "id": "dual_blades_retreat",
+    "displayName": "引き足",
+    "displayEffect": "「駆け込み」で前進した攻撃後、元の後列が空いていれば戻る。",
+    "flavorText": "斬るために危地へ踏み込み、刃の余韻が消える前に生きる場所へ戻る。",
+    "weaponId": "dual_blades",
+    "treePosition": "AA2",
+    "replacesPassiveSkillIds": [
+     "dual_blades_dash_in"
+    ],
+    "rules": [
+     {
+      "id": "dual_blades_retreat_rule",
+      "listenTo": "action_declared",
+      "timing": "interrupt",
+      "priority": 20,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "melee",
+        "value": true
+       },
+       {
+        "type": "position",
+        "subject": "self",
+        "row": "rear",
+        "op": "eq"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "move_to_open_row",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "row": "front",
+        "returnAfterAction": true
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "movement",
+     "dual_blades",
+     "playable"
+    ]
    }
   },
   "equipment": {
@@ -16239,6 +16793,9 @@
   "warhammer_siege_blow": "破城打ち",
   "warhammer_dismantler": "解体槌",
   "warhammer_kingslayer": "王殺し",
+  "dual_blades_two_cut": "二連斬り",
+  "dual_blades_three_cut": "三連斬り",
+  "dual_blades_six_petals": "六花",
   "warhammer_point_at_armor": "鎧を指す",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
@@ -21457,6 +22014,9 @@
   "warhammer_siege_blow": 10,
   "warhammer_dismantler": 10,
   "warhammer_kingslayer": 10,
+  "dual_blades_two_cut": 10,
+  "dual_blades_three_cut": 10,
+  "dual_blades_six_petals": 10,
   "counter_blow": 10,
   "cover_ally": 1,
   "overflow_care": 10,
@@ -21551,7 +22111,11 @@
   "warhammer_break_point": 10,
   "warhammer_broken_armor": 1,
   "warhammer_trophy_fragment": 1,
-  "warhammer_reverse_forging": 10
+  "warhammer_reverse_forging": 10,
+  "dual_blades_split_sharpening": 10,
+  "dual_blades_dash_in": 1,
+  "dual_blades_more_hands": 10,
+  "dual_blades_retreat": 1
  },
  "enemyInfo": {
   "husk": {
@@ -31285,7 +31849,8 @@
     "bulwark"
    ],
    "enabledWeaponIds": [
-    "warhammer"
+    "warhammer",
+    "dual_blades"
    ],
    "enabledPackIds": [
     "pack_edge",
@@ -31331,7 +31896,8 @@
     "bulwark"
    ],
    "enabledWeaponIds": [
-    "warhammer"
+    "warhammer",
+    "dual_blades"
    ],
    "enabledPackIds": [
     "pack_wall",
@@ -31377,7 +31943,8 @@
     "bulwark"
    ],
    "enabledWeaponIds": [
-    "warhammer"
+    "warhammer",
+    "dual_blades"
    ],
    "enabledPackIds": [
     "pack_wall",

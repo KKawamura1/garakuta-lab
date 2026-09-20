@@ -258,9 +258,15 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
 通常の`actor_moved`を発行し、初期配置は発行しません。これにより一時前進はその行動の近接補正を
 得ながら敵フェーズ前に戻れ、毎AP起動で再評価されます。
 
+前進passiveは`action_declared`のinterruptで動きます。engineは宣言eventへ`actionReach()`で解決した
+`melee / ranged / long / support` tagを加え、passiveはactive IDでなくこの共有tagを読みます。
+`after`ではaction chain終了まで発火が遅れるため、攻撃前移動には使いません。帰還予定を積んだ後で
+対象消滅や割り込み中止が起きても、`performAction()`の`finally`が帰還を試みます。
+
 ### R25の武器横断ルール
 
-`content/weapon-warhammer.mjs`を最初の19節縦スライスとし、定義は`weaponId`と`treePosition`を
+`content/weapon-warhammer.mjs`を最初の19節縦スライス、`content/weapon-dual-blades.mjs`を
+移動境界を使うA→AAの7節縦スライスとし、定義は`weaponId`と`treePosition`を
 表示・取得用に持ちます。戦闘条件は武器IDを読まず、hit番号、攻撃tag、防壁・受け構え、状態の極性、
 eventの主対象と同じ列、という共有事実だけを読みます。activeだけが`rangeClass: melee`と基礎係数を
 所有します。これにより非アクティブ技能を別武器へ組み合わせてもengineの固有分岐は増えません。
@@ -273,7 +279,7 @@ eventの主対象と同じ列、という共有事実だけを読みます。act
 追加した汎用語彙は、極性指定の`remove_statuses`、防壁／受け構えを除く`remove_barrier` /
 `remove_block`、`has_defense`・`has_defense_or_status`・同列／主対象外のtarget filter、状態由来の
 防御補正、除去種類数を係数へ変える`stat_times_context_scaled`です。schemaは
-`ecology-content-7`、content contractは31です。
+`ecology-content-7`、content contractは33です。
 
 ## 5. イベント列
 
@@ -577,7 +583,8 @@ reactive のRP温存だけを編集し、passive は `allyInput()` が全件を 
 skillId / cost / requires`を持ち、前提は取得済みLv1だけを要求します。`unlockRunSkill()`は旧pack nodeと
 武器nodeを同じSP台帳で処理しますが、可用性は前者が`manifestSkillIds`、後者が
 `manifest.enabledWeaponIds`を読みます。manifest-2以前の保存は、実装済みの戦槌へ決定的に移行します。
-manifest versionは3、content contractは32です。
+新規Free runは戦槌と双刃、Campaignは戦槌から始まりヒバナ加入のStage 2で双刃を加えます。
+manifest versionは3、content contractは33です。
 
 武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /
 displayEffect / flavorText`から4ロール用metadataを組み、取得後は`installUnlockedSkills()`が既存の
