@@ -25,6 +25,7 @@ import {
   DURATIONS,
   EFFECT_TYPES,
   EVENT_TYPES,
+  HIT_DISTRIBUTIONS,
   INTERRUPTIBLE_EVENT_TYPES,
   INTERRUPT_ONLY_EFFECT_TYPES,
   LIMITS,
@@ -451,6 +452,39 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.hitCount !== undefined) {
         requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: 8 });
       }
+      if (effect.hitCount !== undefined && effect.hitCountFromStatus !== undefined) {
+        bag.add(path, "ambiguous_hit_count", "use hitCount or hitCountFromStatus, not both");
+      }
+      if (effect.hitCountFromStatus !== undefined) {
+        if (!isPlainObject(effect.hitCountFromStatus)) {
+          bag.add(`${path}.hitCountFromStatus`, "not_an_object", "expected a hitCountFromStatus object");
+        } else {
+          requireStatusReference(
+            bag,
+            `${path}.hitCountFromStatus.statusId`,
+            effect.hitCountFromStatus.statusId,
+            ctx,
+          );
+          requireCount(bag, `${path}.hitCountFromStatus.max`, effect.hitCountFromStatus.max, { min: 1, max: 8 });
+          if (effect.hitCountFromStatus.fallback !== undefined) {
+            requireCount(
+              bag,
+              `${path}.hitCountFromStatus.fallback`,
+              effect.hitCountFromStatus.fallback,
+              { min: 1, max: 8 },
+            );
+          }
+        }
+      }
+      if (effect.hitDistribution !== undefined) {
+        requireOneOf(
+          bag,
+          `${path}.hitDistribution`,
+          effect.hitDistribution,
+          HIT_DISTRIBUTIONS,
+          "unknown_hit_distribution",
+        );
+      }
       if (effect.guardPierceBps !== undefined) {
         requireCount(bag, `${path}.guardPierceBps`, effect.guardPierceBps, { min: 0, max: 10_000 });
       }
@@ -736,6 +770,9 @@ export function validateContentBundle(bundle) {
     const path = `activeSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireCount(bag, `${path}.apCost`, skill.apCost, { min: 0 });
+    if (skill.usesPerBattle !== undefined) {
+      requireCount(bag, `${path}.usesPerBattle`, skill.usesPerBattle, { min: 1, max: 99 });
+    }
     requireTags(bag, `${path}.tags`, skill.tags);
     validatePredicates(bag, `${path}.intrinsicPredicates`, skill.intrinsicPredicates, baseCtx);
     validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);

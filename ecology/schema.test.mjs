@@ -627,7 +627,9 @@ expectRejected(
 );
 
 // The non-listenable records refuse a listener rather than sitting dead.
-for (const eventType of ["resource_refreshed", "pending_amount_modified", "damage_absorbed", "damage_skipped"]) {
+// damage_skipped is deliberately listenable now: a content rule may explicitly
+// carry a lost packet elsewhere, while the engine default still loses it.
+for (const eventType of ["resource_refreshed", "pending_amount_modified", "damage_absorbed"]) {
   expectRejected(
     content((bundle) => {
       bundle.reactiveSkills.counter_blow.rule.listenTo = eventType;

@@ -46,6 +46,38 @@ import {
   LAUNCHER_TREE,
 } from "./weapon-launcher.mjs";
 import {
+  MEDICAL_KIT_ACTIVE_SKILLS,
+  MEDICAL_KIT_PASSIVE_SKILLS,
+  MEDICAL_KIT_REACTIVE_SKILLS,
+  MEDICAL_KIT_TARGET_SKILLS,
+  MEDICAL_KIT_TREE,
+  TOWER_SHIELD_ACTIVE_SKILLS,
+  TOWER_SHIELD_PASSIVE_SKILLS,
+  TOWER_SHIELD_REACTIVE_SKILLS,
+  TOWER_SHIELD_TARGET_SKILLS,
+  TOWER_SHIELD_TREE,
+  LONG_SPEAR_ACTIVE_SKILLS,
+  LONG_SPEAR_PASSIVE_SKILLS,
+  LONG_SPEAR_REACTIVE_SKILLS,
+  LONG_SPEAR_TARGET_SKILLS,
+  LONG_SPEAR_TREE,
+  GRAPPLING_HOOK_ACTIVE_SKILLS,
+  GRAPPLING_HOOK_PASSIVE_SKILLS,
+  GRAPPLING_HOOK_REACTIVE_SKILLS,
+  GRAPPLING_HOOK_TARGET_SKILLS,
+  GRAPPLING_HOOK_TREE,
+  BANNER_ACTIVE_SKILLS,
+  BANNER_PASSIVE_SKILLS,
+  BANNER_REACTIVE_SKILLS,
+  BANNER_TARGET_SKILLS,
+  BANNER_TREE,
+  HEAVY_CROSSBOW_ACTIVE_SKILLS,
+  HEAVY_CROSSBOW_PASSIVE_SKILLS,
+  HEAVY_CROSSBOW_REACTIVE_SKILLS,
+  HEAVY_CROSSBOW_TARGET_SKILLS,
+  HEAVY_CROSSBOW_TREE,
+} from "./weapon-root-slices.mjs";
+import {
   IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
   WEAPON_IDS_BY_CHARACTER,
@@ -139,8 +171,14 @@ import {
 // R25 weapon acquisition: manifests now freeze enabledWeaponIds independently
 // from packs. The dual-blades A→AA slice also establishes pre-action movement
 // that keys off the shared resolved reach class, never a particular active ID.
-// Stage 0 の攻撃系入口として格闘具・射出器のR節を接続した。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-34";
+// Stage 0 の攻撃系入口として格闘具・射出器のR節を接続し、
+// Stage 1〜3の6武器もR節まで同じregistryへ接続した。
+// R25 dual-blades completion: AB/B/BA/BB branches, reserve-blade status,
+// round-robin hit distribution, and explicit skipped-hit packet amounts.
+// R25 weapon roots: the remaining six weapons now have a content-backed R
+// entry; medical treatment is finite per battle and taunt is a generic target
+// selection status.
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-36";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -231,7 +269,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.23",
+  contentVersion: "ecology-playable-full-0.25",
   characters: CHARACTERS,
   activeSkills: Object.freeze({
     ...ACTIVE_SKILLS,
@@ -239,6 +277,12 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...DUAL_BLADES_ACTIVE_SKILLS,
     ...GAUNTLETS_ACTIVE_SKILLS,
     ...LAUNCHER_ACTIVE_SKILLS,
+    ...MEDICAL_KIT_ACTIVE_SKILLS,
+    ...TOWER_SHIELD_ACTIVE_SKILLS,
+    ...LONG_SPEAR_ACTIVE_SKILLS,
+    ...GRAPPLING_HOOK_ACTIVE_SKILLS,
+    ...BANNER_ACTIVE_SKILLS,
+    ...HEAVY_CROSSBOW_ACTIVE_SKILLS,
   }),
   // The staged weapon-tree implementation starts with the contract and UI.
   // Concrete target skills are added weapon by weapon; fixture-only selectors
@@ -248,6 +292,12 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...DUAL_BLADES_TARGET_SKILLS,
     ...GAUNTLETS_TARGET_SKILLS,
     ...LAUNCHER_TARGET_SKILLS,
+    ...MEDICAL_KIT_TARGET_SKILLS,
+    ...TOWER_SHIELD_TARGET_SKILLS,
+    ...LONG_SPEAR_TARGET_SKILLS,
+    ...GRAPPLING_HOOK_TARGET_SKILLS,
+    ...BANNER_TARGET_SKILLS,
+    ...HEAVY_CROSSBOW_TARGET_SKILLS,
   }),
   reactiveSkills: Object.freeze({
     ...REACTIVE_SKILLS,
@@ -255,6 +305,12 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...DUAL_BLADES_REACTIVE_SKILLS,
     ...GAUNTLETS_REACTIVE_SKILLS,
     ...LAUNCHER_REACTIVE_SKILLS,
+    ...MEDICAL_KIT_REACTIVE_SKILLS,
+    ...TOWER_SHIELD_REACTIVE_SKILLS,
+    ...LONG_SPEAR_REACTIVE_SKILLS,
+    ...GRAPPLING_HOOK_REACTIVE_SKILLS,
+    ...BANNER_REACTIVE_SKILLS,
+    ...HEAVY_CROSSBOW_REACTIVE_SKILLS,
   }),
   passiveSkills: Object.freeze({
     ...PASSIVE_SKILLS,
@@ -262,6 +318,12 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...DUAL_BLADES_PASSIVE_SKILLS,
     ...GAUNTLETS_PASSIVE_SKILLS,
     ...LAUNCHER_PASSIVE_SKILLS,
+    ...MEDICAL_KIT_PASSIVE_SKILLS,
+    ...TOWER_SHIELD_PASSIVE_SKILLS,
+    ...LONG_SPEAR_PASSIVE_SKILLS,
+    ...GRAPPLING_HOOK_PASSIVE_SKILLS,
+    ...BANNER_PASSIVE_SKILLS,
+    ...HEAVY_CROSSBOW_PASSIVE_SKILLS,
   }),
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
@@ -302,6 +364,12 @@ export {
   DUAL_BLADES_TREE,
   GAUNTLETS_TREE,
   LAUNCHER_TREE,
+  MEDICAL_KIT_TREE,
+  TOWER_SHIELD_TREE,
+  LONG_SPEAR_TREE,
+  GRAPPLING_HOOK_TREE,
+  BANNER_TREE,
+  HEAVY_CROSSBOW_TREE,
 };
 
 export const DISPLAY_NAMES = Object.freeze(

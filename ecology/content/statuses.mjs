@@ -36,6 +36,8 @@ export const STATUS_NAMES = {
   armor_broken: "砕けた鎧",
   warhammer_fragment: "戦利の破片",
   breached: "砕け目",
+  taunted: "誘引",
+  dual_blades_reserved_blade: "予約刃",
   ultimate_spent: "必殺",
 };
 
@@ -248,6 +250,48 @@ statuses.breached = {
   tags: ["playable", "debuff", "attack"],
 };
 
+// R25 大盾R — **誘引は対象選択を一段だけ書き換える状態**。敵の単体攻撃が
+// この持ち主を優先し、対象に選ばれた時点で1段消費する。範囲攻撃や味方の
+// 支援対象選択は横取りしない。
+const EVENT_SOURCE_IS_ENEMY = {
+  type: "target_exists",
+  query: { scope: "enemies", filters: [{ type: "is_event_source" }, { type: "alive" }], take: 1 },
+};
+statuses.taunted = {
+  id: "taunted",
+  displayName: STATUS_NAMES.taunted,
+  polarity: "positive",
+  maxStacks: 6,
+  duration: "round",
+  rules: [{
+    id: "taunted_consume_rule",
+    listenTo: "target_selected",
+    timing: "after",
+    priority: 90,
+    predicates: [
+      SELF_IS_EVENT_TARGET,
+      EVENT_SOURCE_IS_ENEMY,
+      { type: "event_tag", tag: "attack", value: true },
+    ],
+    costs: [],
+    effects: [{ type: "remove_status", target: SELF_TARGET, statusId: "taunted", stacks: 1 }],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["playable", "buff", "guard", "taunt"],
+};
+
+// 双刃BB1 — 非攻撃の主行動で積み、差し刃／千客万来で使う記録状態。
+// 戦闘中に残るが、上限と払い先が固定されているので待機だけでは増えない。
+statuses.dual_blades_reserved_blade = {
+  id: "dual_blades_reserved_blade",
+  displayName: STATUS_NAMES.dual_blades_reserved_blade,
+  polarity: "positive",
+  maxStacks: 6,
+  duration: "battle",
+  rules: [],
+  tags: ["playable", "buff", "dual_blades"],
+};
+
 // 必殺（issue #238）— **放った印。**規則を一つも持たない、記録だけの状態である。
 // 必殺技は「この状態が付いていないこと」を発動条件にし、放つと自分へ付ける。
 // これで「1戦闘に1回」が engine・schema の語彙を増やさずに書ける。
@@ -283,6 +327,8 @@ const STATUS_SUMMARIES = {
   armor_broken: "防御が10下がる。付与から2ラウンド後の開始時に消える。",
   warhammer_fragment: "1個につき防御が6上がる。最大5個で、戦闘中は保持する。",
   breached: "次に受ける攻撃ダメージが50%増え、その攻撃後に消える。",
+  taunted: "敵の単体攻撃がこの味方を優先する。対象に選ばれると1段消費する。範囲攻撃と味方の選択には効かない。",
+  dual_blades_reserved_blade: "非攻撃の主行動で1段たまり、双刃の追加攻撃か必殺枝で消費する。最大6段。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 

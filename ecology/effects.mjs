@@ -207,21 +207,44 @@ function gainBlock(rt, ctx, effect) {
 //      damage_taken / damage_blocked を完了する
 //   4. その instance の after reaction を処理してから次の対象へ進む
 //   5. 途中で倒れた対象への残り hit は**失われる。別対象へ自動 retarget しない**
+function hitCountOfEffect(rt, ctx, effect) {
+  if (!effect.hitCountFromStatus) return effect.hitCount ?? 1;
+  const { statusId, max, fallback = 1 } = effect.hitCountFromStatus;
+  const stacks = ctx.owner ? statusStacks(ctx.owner, statusId) : 0;
+  return Math.min(max, Math.max(fallback, stacks));
+}
+
 function dealDamage(rt, ctx, effect) {
-  const hitCount = effect.hitCount ?? 1;
+  const hitCount = hitCountOfEffect(rt, ctx, effect);
   // 1. 一度だけ確定する。hit の途中で対象が変わらないのが multi-hit の前提。
   const targetIds = expandPattern(rt, ctx, effect).map((actor) => actor.instanceId);
   for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
-    for (const instanceId of targetIds) {
+    const instances = effect.hitDistribution === "round_robin" && targetIds.length > 0
+      ? [targetIds[hitIndex % targetIds.length]]
+      : targetIds;
+    for (const instanceId of instances) {
       const target = getActor(rt.state, instanceId);
       // 5. 倒れていたらこの hit は失われる。別の相手へ回さない。
       if (!target || !target.alive) {
+        // Keep the packet amount on the observable skip event so content can
+        // opt into an explicit overflow rule (dual-blades AB2). The default
+        // engine path still loses the hit; no automatic retargeting is added.
+        const skippedAmount = target
+          ? afterPositionModifier(
+            afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), rt, ctx, effect, target,
+          )
+          : undefined;
         rt.emit({
           type: "damage_skipped",
           ...sourceFields(ctx),
           targetActorIds: [instanceId],
           tags: effect.tags ?? [],
-          values: { hitIndex, hitCount, reason: target ? "target_defeated" : "target_unavailable" },
+          values: {
+            amount: skippedAmount,
+            hitIndex,
+            hitCount,
+            reason: target ? "target_defeated" : "target_unavailable",
+          },
         });
         continue;
       }

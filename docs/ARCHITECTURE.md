@@ -263,8 +263,9 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
 
 ### R25の武器横断ルール
 
-`content/weapon-warhammer.mjs`を最初の19節縦スライス、`content/weapon-dual-blades.mjs`を
-移動境界を使うA→AAの7節縦スライスとし、定義は`weaponId`と`treePosition`を
+`content/weapon-warhammer.mjs`と`content/weapon-dual-blades.mjs`を19節縦スライス、
+`content/weapon-root-slices.mjs`を残り6武器の入口スライスとし、定義は
+`weaponId`と`treePosition`を
 表示・取得用に持ちます。戦闘条件は武器IDを読まず、hit番号、攻撃tag、防壁・受け構え、状態の極性、
 eventの主対象と同じ列、という共有事実だけを読みます。activeだけが`rangeClass: melee`と基礎係数を
 所有します。これにより非アクティブ技能を別武器へ組み合わせてもengineの固有分岐は増えません。
@@ -276,8 +277,9 @@ eventの主対象と同じ列、という共有事実だけを読みます。act
 
 追加した汎用語彙は、極性指定の`remove_statuses`、防壁／受け構えを除く`remove_barrier` /
 `remove_block`、`has_defense`・`has_defense_or_status`・同列／主対象外のtarget filter、状態由来の
-防御補正、除去種類数を係数へ変える`stat_times_context_scaled`です。schemaは
-`ecology-content-7`、content contractは34です。
+防御補正、除去種類数を係数へ変える`stat_times_context_scaled`、多段hit数を状態段数から有限に
+決める`hitCountFromStatus`、固定順へ分配する`hitDistribution: round_robin`、戦闘ごとの有限使用を
+示す`usesPerBattle`、単体対象を優先する状態tagです。schemaは`ecology-content-7`、content contractは36です。
 
 ## 5. イベント列
 
@@ -570,10 +572,10 @@ SP台帳で受けますが、画面が使うのは武器nodeだけです。可�
 manifest-2以前の保存は実装済みの戦槌へ決定的に移行します。
 `WEAPONS`には設計済みの10武器を載せ、Campaignは加入済み人物の署名武器・副武器を累積して開示します。
 したがってStage 0はゴウ／ツグミの4武器、Stage 1でナギの2武器、Stage 2でヒバナの2武器、
-Stage 3でゲンゾウの2武器が加わります。未実装武器はmanifestへ先に載っても、
-`IMPLEMENTED_WEAPON_IDS`に含まれるまで画面へ表示しません。新規Free runは現在実装済みの戦槌・双刃・格闘具・射出器を出します。
-格闘具と射出器はStage 0のR節だけを接続した入口スライスで、残りの節は後続実装です。
-manifest versionは3、content contractは34です。
+Stage 3でゲンゾウの2武器が加わります。10武器すべてがmanifestとR節まで接続済みで、
+`IMPLEMENTED_WEAPON_IDS`も10件です。深い枝は戦槌・双刃が19節、残り8武器はR節の入口スライスです。
+新規Free runは10武器をmanifestへ載せ、Stage manifestは加入人物の2武器ずつを累積します。
+manifest versionは3、content contractは36、content versionは0.25です。
 
 武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /
 displayEffect / flavorText`から4ロール用metadataを組み、取得後は`installUnlockedSkills()`が既存の

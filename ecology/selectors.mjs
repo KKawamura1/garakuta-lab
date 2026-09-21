@@ -119,6 +119,18 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
   for (const filter of query.filters ?? []) {
     pool = pool.filter((actor) => passesFilter(state, ctx, filter, actor));
   }
+  // R25 大盾R — a round-scoped taunt only redirects enemy single-target
+  // choices. Keep the legal pool and reach restriction intact first, so a
+  // taunted actor behind an unreachable front line is not selected through it.
+  if (ctx.owner?.side === "enemy" && query.scope === "allies" && query.take === 1) {
+    const tauntStatusIds = new Set(Object.entries(state.content.statuses ?? {})
+      .filter(([, definition]) => (definition.tags ?? []).includes("taunt"))
+      .map(([statusId]) => statusId));
+    const taunted = pool.filter((actor) => actor.statuses.some((status) => (
+      status.stacks > 0 && tauntStatusIds.has(status.statusId)
+    )));
+    if (taunted.length > 0) pool = taunted;
+  }
   const sorts = [...(query.sort ?? []).map((entry) => entry.type ?? entry), ...IMPLICIT_SORTS];
   const sorted = [...pool].sort((a, b) => {
     for (const sortType of sorts) {

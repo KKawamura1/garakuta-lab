@@ -162,11 +162,13 @@ export const RESERVED_EVENT_TYPES = freeze([
 // listens to it could never fire, so the validator rejects it (PREFLIGHT §11).
 // A rule that listened to pending_amount_modified would react inside somebody
 // else's interrupt window, so it stays a record only, like the refresh.
+// damage_skipped is listenable: content may explicitly spend a rule budget to
+// carry a lost multi-hit packet elsewhere; the default engine path still does
+// not retarget it automatically.
 export const NON_LISTENABLE_EVENT_TYPES = freeze([
   "resource_refreshed",
   "pending_amount_modified",
   "damage_absorbed",
-  "damage_skipped",
   "recovery_window_closed",
 ]);
 
@@ -338,6 +340,9 @@ export const EFFECT_TYPES = freeze([
 // implementation in a later phase; listing them here now would let content
 // reference a pattern the engine silently treats as single.
 export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
+// R25 dual-blades branches use a finite round-robin distribution for
+// multi-hit actions whose target set is fixed at action start.
+export const HIT_DISTRIBUTIONS = freeze(["round_robin"]);
 
 // R6 §6.4 — PHASE A. active 技能の静的な種別。攻撃テンポの保証がこれで決まる。
 //   offense … 使えると判定されたら、生存敵へ direct damage を必ず作る

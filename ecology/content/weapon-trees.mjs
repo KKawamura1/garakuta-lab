@@ -5,6 +5,14 @@ import { WARHAMMER_TREE } from "./weapon-warhammer.mjs";
 import { DUAL_BLADES_TREE } from "./weapon-dual-blades.mjs";
 import { GAUNTLETS_TREE } from "./weapon-gauntlets.mjs";
 import { LAUNCHER_TREE } from "./weapon-launcher.mjs";
+import {
+  MEDICAL_KIT_TREE,
+  TOWER_SHIELD_TREE,
+  LONG_SPEAR_TREE,
+  GRAPPLING_HOOK_TREE,
+  BANNER_TREE,
+  HEAVY_CROSSBOW_TREE,
+} from "./weapon-root-slices.mjs";
 
 // R25設計PR #287 §8・§12 — 五人は署名武器と副武器を一つずつ導入する。
 // CampaignのStageは加入済み人物を累積して持つため、manifestの武器も同じ順で累積する。
@@ -115,10 +123,17 @@ const ALL_TREES = [
   ...DUAL_BLADES_TREE,
   ...GAUNTLETS_TREE,
   ...LAUNCHER_TREE,
+  ...MEDICAL_KIT_TREE,
+  ...TOWER_SHIELD_TREE,
+  ...LONG_SPEAR_TREE,
+  ...GRAPPLING_HOOK_TREE,
+  ...BANNER_TREE,
+  ...HEAVY_CROSSBOW_TREE,
 ];
 
 // 「catalogに載っている」ことと「今UIへ出せる」ことを混同しない。
-// 残り6武器をmanifestへ先に載せても、空の技能ツリーを表示しないための境界。
+// R25 root slice で10武器すべてが最低1節を持つ。未実装の深い枝は、各武器の
+// manifest行に「準備中」として残し、空の技能ツリーは作らない。
 export const IMPLEMENTED_WEAPON_IDS = Object.freeze(
   [...new Set(ALL_TREES.map((node) => node.weaponId))],
 );

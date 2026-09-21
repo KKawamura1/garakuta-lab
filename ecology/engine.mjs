@@ -236,6 +236,9 @@ function addActor(state, fields) {
     block: 0,
     barriers: [],
     statuses: [],
+    // R25 — a small finite-use boundary for support roots whose direct effect
+    // would otherwise be an unlimited between-round heal.
+    skillUses: {},
     preparation: null,
     activationsThisRound: 0,
     inQueue: false,
@@ -968,6 +971,17 @@ function actionReach(skill) {
   // melee actions. Ally/self support skills are not restricted by front rows.
   return skill.targetQuery?.scope === "enemies" ? "melee" : "unrestricted";
 }
+
+function skillUsesAvailable(actor, skill) {
+  return skill.usesPerBattle === undefined
+    || (actor.skillUses?.[skill.id] ?? 0) < skill.usesPerBattle;
+}
+
+function spendSkillUse(actor, skill) {
+  if (skill.usesPerBattle === undefined) return;
+  actor.skillUses[skill.id] = (actor.skillUses[skill.id] ?? 0) + 1;
+}
+
 function coreActionChoice(state, actor, key) {
   // Core actions are content-selected, never position- or character-selected.
   // The selected skill's effect.reach is the sole targeting contract. Keep the
@@ -977,6 +991,7 @@ function coreActionChoice(state, actor, key) {
   const skillId = byReach.melee ?? Object.values(byReach)[0];
   const skill = skillId ? state.content.activeSkills[skillId] : null;
   if (!skill) return null;
+  if (!skillUsesAvailable(actor, skill)) return null;
   const rt = makeRuntime(state);
   const ctx = {
     owner: actor,
@@ -1020,6 +1035,7 @@ function chooseTactic(state, actor) {
     const tacticIndex = (start + offset) % tactics.length;
     const tactic = tactics[tacticIndex];
     const skill = state.content.activeSkills[tactic.activeSkillId];
+    if (!skillUsesAvailable(actor, skill)) continue;
     // §5.5 — one pending preparation per actor.
     if (actor.preparation && skill.preparation) continue;
     const ctx = {
@@ -1137,6 +1153,7 @@ function performAction(state, actor, choice) {
     if (!canPayCosts(rt, baseCtx(), costs)) return cancelAction(state, actor, skill, frame, "cost");
 
     payCosts(rt, baseCtx(), costs);
+    spendSkillUse(actor, skill);
     emit(state, {
       type: "action_cost_paid",
       sourceActorId: actor.instanceId,
@@ -1380,6 +1397,7 @@ function buildResult(state, content) {
     ),
     barriers: actor.barriers.map((packet) => ({ amount: packet.amount, duration: packet.duration })),
     statuses: actor.statuses.map((status) => ({ statusId: status.statusId, stacks: status.stacks })),
+    skillUses: { ...actor.skillUses },
     preparation: actor.preparation
       ? { skillId: actor.preparation.skillId, stepsRemaining: actor.preparation.stepsRemaining }
       : null,
