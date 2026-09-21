@@ -34,6 +34,7 @@ import {
   PORTRAIT_FACE_VIEWBOX,
   PORTRAIT_IDS,
   PROLOGUE,
+  SKILL_LESSON,
   REGION,
   REGION_LORE,
   SECTION_NAMES,
@@ -57,6 +58,8 @@ import {
   HOMESTEAD_SCENES,
   STORY_BEATS,
   ULTIMATE_LESSON,
+  WEAPONS,
+  WEAPON_SKILL_TREE_NODES,
   homesteadFlag,
   homesteadScene,
   nextHomesteadScene,
@@ -103,6 +106,18 @@ profile.campaignProgress[REGION.id] = {
   clearedStageSequences: [0, 1, 2, 3],
 };
 const statsFor = (characterId) => characterStats(profile, characterId);
+
+// ---- 技能チュートリアルは武器別ツリーの入口を教える --------------------------
+
+{
+  const goal = SKILL_LESSON.tutorial;
+  const node = WEAPON_SKILL_TREE_NODES.find((entry) => entry.skillId === goal.unlockSkillId);
+  equal(goal.characterId, "warden", "技能チュートリアルは入口を払う人物をcontentで指定する");
+  equal(goal.weaponId, "gauntlets", "技能チュートリアルは武器タブをcontentで指定する");
+  check(WEAPONS[goal.weaponId], "技能チュートリアルの武器がregistryにある");
+  equal(node?.weaponId, goal.weaponId, "技能チュートリアルの入口節が指定武器に属する");
+  check(!Object.hasOwn(goal, "reserveSkillId"), "技能チュートリアルは取得予約を持たない");
+}
 
 // ---- 序盤の敗北と巻き戻し（R9 §2.1）----------------------------------------
 

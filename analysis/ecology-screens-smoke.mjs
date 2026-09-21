@@ -92,10 +92,11 @@ const displayContracts = [
   ["アクティブ欄の見出し", app, 'active: "アクティブ"'],
   ["リアクティブ欄の見出し", app, 'reactive: "リアクティブ"'],
   ["パッシブ欄の見出し", app, 'passive: "パッシブ"'],
-  ["技能取得予約の操作", app, '"reserve-skill"'],
-  ["技能点で取得と予約を切り替える判定", app, "canFulfillSkillReservation"],
-  ["技能取得予約の取消", app, '"cancel-skill-reservation"'],
-  ["予約技能の自動取得", app, "applyAutomaticSkillActions"],
+  // R25 — 旧packツリーは画面から退役し、武器別ツリーの入口だけを出す。
+  ["武器別ツリーの描画", app, "function renderWeaponSkillTree(characterId)"],
+  ["技能ツリーを武器別へ一本化", app, "return renderWeaponSkillTree(characterId);"],
+  ["武器技能の解禁操作", app, '"unlock-weapon-skill"'],
+  ["武器別ツリーのタブ", app, 'class=\\"weapon-tree-tabs\\"'],
   ["アクティブツリーのラベル", skillTreeLayout, 'label: "アクティブ"'],
   ["リアクティブツリーのラベル", skillTreeLayout, 'label: "リアクティブ"'],
   ["パッシブツリーのラベル", skillTreeLayout, 'label: "パッシブ"'],
@@ -113,8 +114,6 @@ const displayContracts = [
   ["リアクティブのRP温存操作", app, '"change-reactive-reserve"'],
   ["ターゲットのロードアウト欄", app, 'skillSlotRows(characterId, "target")'],
   ["4ロールの配置", styles, ".role-loadout {"],
-  ["取得・段上げ・予約を一行へ並べる", styles, ".skill-sheet .node-action { display: flex;"],
-  ["予約の規則は畳んだヘルプに置く", app, 'title: "取得予約",\n        value: "一人につき一つ"'],
   // 作者指摘 2026-09-17 — **地図は辿るため、一覧は見渡すため。**同じ森を二つの見方で出し、
   // 既定は一覧（縦一列・横スクロール無し）にする。
   ["技能ツリーの見方が二つある", app, 'const SKILL_TREE_VIEWS = ["list", "map"];'],
@@ -127,8 +126,8 @@ const displayContracts = [
   ["いま動かせる節の判定", app, "function skillNodeActionableNow(node, characterId, nodeState = skillNodeState(node, characterId))"],
   ["いま取れるの絞り込み操作", app, '"toggle-skill-ready"'],
   ["種別タブのいま取れる数", app, '<em class=\\"tab-ready\\"'],
-  // 作者指摘 2026-09-17（二度目）— 技能点と予約先は、貼りつく帯ではなく操作の行が出す。
-  ["技能点と予約先はツリーの操作の行が出す", app, '+ readyChip + skillBuildSummary(characterId) + "</div>";'],
+  // 技能点だけを武器ツリーの操作行へ出す。
+  ["技能点を武器ツリーの操作行へ出す", app, '+ skillBuildSummary(characterId) + "</div>";'],
   ["選んだ節へ地図を寄せる", app, "function focusSelectedSkillNode()"],
   ["描画のたびに選んだ節を追う", app, "  focusSelectedSkillNode();"],
   // 反応（issue #237）。**操作と結果を結ぶ層は、申告・見張り・時間の三つで立っている。**
