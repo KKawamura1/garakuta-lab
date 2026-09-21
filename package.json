@@ -2,5 +2,8 @@
   "private": true,
   "scripts": {
     "build": "node analysis/stamp.mjs"
+  },
+  "devDependencies": {
+    "terser": "5.44.0"
   }
 }

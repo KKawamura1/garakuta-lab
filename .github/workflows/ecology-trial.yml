@@ -57,6 +57,9 @@ jobs:
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
 
+      - name: Build the browser runtime
+        run: npm run build
+
       - name: Boot the checked-out game in Chromium
         shell: bash
         run: |
