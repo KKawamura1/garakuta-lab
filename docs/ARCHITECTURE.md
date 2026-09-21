@@ -63,7 +63,7 @@
 | 層 | 永続期間 | 主な内容 |
 |---|---|---|
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
-| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給と**その遠征の補給総数**、**必殺印**、隊、formation、run 技能点・武器技能の取得・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果（旧packの取得予約・技能レベル欄は互換読み取りのみ） |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給と**その遠征の補給総数**、**必殺印**、隊、formation、run 技能点・武器技能の取得・装着順・一時停止状態・人物ごとの取得予約・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果（旧packの技能レベル欄は互換読み取りのみ） |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、攻撃単位の回復窓、開始 HP snapshot、preview / commit 状態 |
 
 ### タイトル画面とContinue
@@ -92,7 +92,13 @@
 `_headers` が `/ecology/art/*` を一日キャッシュする。
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
-武器別ツリーの節はすべて1SP・レベルなしで、前提は「親を取得済みか」だけを見ます。旧pack保存を読むための `runSkillLevels` / `skillReservations` とレベル計算は互換境界として内部に残りますが、新しい画面の取得導線・武器技能の BattleInput には持ち込みません。戦闘時の選択は `playable-battles.mjs` の loadout に保存し、active 一つ、ordered reactive、ordered target、全 passive を `allyInput()` が preview と本番に共通で渡します。旧 save の `disabled` は app の復元時に4ロール式へ移行し、取得済み技能を個別停止するUIは持ちません。
+武器別ツリーの節はすべて1SP・レベルなしで、前提は「親を取得済みか」だけを見ます。取得予約は
+`reserveRunSkill` が人物ごとに一つの目標節を保存し、`fulfillSkillReservations` が技能点を得た時点で
+前提から目標まで自動解禁します。別の節を予約した場合は既存の予約を置き換えます。旧pack保存を読むための
+`runSkillLevels` は互換境界として内部に残りますが、新しい武器技能画面では技能レベルを持ち込みません。
+戦闘時の選択は `playable-battles.mjs` の loadout に保存し、active 一つ、ordered reactive、ordered target、
+全 passive を `allyInput()` が preview と本番に共通で渡します。旧 save の `disabled` は app の復元時に4ロール式へ
+移行し、取得済み技能を個別停止するUIは持ちません。
 `simulateExpeditionBattle` が予測と本番の入力構成と `equipmentBreaks: false` を共有するため、
 HP・装備耐久を含む同じ入力から同じ結果とイベント列を返します（旧 replay の技能レベル欄は読み取り互換のみ）。
 **呼び出し側も一本です**：`app.js` の `expeditionBattleOptions()` が盤面の外の入力
@@ -103,7 +109,9 @@ HP・装備耐久を含む同じ入力から同じ結果とイベント列を返
 `previewOnly` の境界より内側では `RunState.results`、ledger、技能点、図鑑、
 `commitBattleResult`、戦闘ログを更新しません。試映の結果は `simulationMode` により必ず専用結果へ
 入り、通常の報酬生成・進行経路を通らずキャンプへ戻ります。
-取得予約は新しい画面・新しい武器技能には存在しません。旧保存に残った欄を読む互換関数は、移行済みの画面から呼びません。
+取得予約は旧packと新しい武器技能で共通の `skillReservations` に保存します。新しい武器画面は
+`skillReservationFor` / `reserveRunSkill` / `cancelRunSkillReservation` を通じて一人物一目標の予約、
+予約取消、技能点獲得後の自動解禁を操作します。旧保存の予約欄も正規化して読みます。
 `analysis/ecology-screens-smoke.mjs` は武器別ツリーの入口、解禁操作、予測 cache の鍵を見張ります。
 旧 replay の `skillLevels` を受ける engine と `content/skill-levels.mjs` は、旧データ検証が終わるまで互換層として隔離します。
 技能の数は**変動量と固定量に分けてあります**。変動量（レベルで伸びる damage / heal /
@@ -423,8 +431,9 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 作り直すので、灰の門を飛ばす経路がありません）。
 技能ツリーは武器別の縦一覧へ一本化する。武器タブ（`.weapon-tree-tabs`）で武器を選び、節の行
 （`.weapon-skill-tree`）を開いて効果と解禁操作を読む。各節は `select-weapon-skill-node` で選び、
-`unlock-weapon-skill` が1SPを払い、取得後は役割ごとの loadout へ登録する。旧packの地図・段上げ・
-取得予約・移行前切替は画面へ出さない。
+`unlock-weapon-skill` が1SPを払い、取得後は役割ごとの loadout へ登録する。前提または技能点が足りない節は
+`reserve-weapon-skill` で一人物一つまで予約でき、技能点獲得後に前提から自動解禁する。旧packの地図・段上げ・
+移行前切替は画面へ出さない。
 装飾的な英語副見出し、
 常に表示する一般説明、同じタブへ戻るNEXT/QUICK LINKSは画面の主操作から外し、必要なルールを
 `details.help-details` のタップ式ヘルプへ置く。`helpOpen` が開閉状態を保持するため、同じ画面の

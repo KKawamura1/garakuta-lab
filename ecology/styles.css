@@ -7024,6 +7024,8 @@ button.party-cell:active:not(:disabled),
 }
 .weapon-skill-node.ready { border-color: var(--gold); }
 .weapon-skill-node.unlocked { border-color: rgba(155, 214, 158, .65); }
+.weapon-skill-node.reserved { border-color: var(--blue); }
+.weapon-skill-node.reserved .weapon-node-state { color: var(--blue); }
 .weapon-skill-node.selected { box-shadow: inset 0 0 0 1px var(--gold); }
 .weapon-node-main {
   width: 100%;

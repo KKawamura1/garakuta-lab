@@ -61,6 +61,7 @@ import {
   SKILL_LEVEL_COST,
   SKILL_PACKS,
   SKILL_TREE_NODES,
+  WEAPON_SKILL_TREE_NODES,
   BASELINE_ACTIVE_SKILL_IDS,
   campaignManifestForStage,
   campaignStageDef,
@@ -925,8 +926,14 @@ export function grantRunSkillPointsForClear(run, index) {
 // 目標以外の自動取得技能をオフにするか、目標をオンにするかは画面側の
 // loadout 更新が担い、ここは RunState の取得・レベル・SPだけを扱う。
 
+// 旧packとR25武器ツリーは、同じRunStateの技能点を使う。
+// 予約も同じく「人物ごとに次の目標を一つだけ持ち、SP獲得時に前提から順に進める」
+// 共通経路へ通す。ただし武器nodeはレベルを持たないので、目標レベルは常に1である。
 const SKILL_RESERVATION_NODES = Object.freeze(
-  Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node])),
+  Object.fromEntries([
+    ...SKILL_TREE_NODES,
+    ...WEAPON_SKILL_TREE_NODES,
+  ].map((node) => [node.skillId, node])),
 );
 
 function skillReservationRecordFor(run, characterId) {
@@ -956,12 +963,15 @@ export function skillReservationLevelFor(run, characterId) {
   return skillReservationRecordFor(run, characterId)?.targetLevel ?? null;
 }
 
-function reservationAvailableSkillIds(run) {
-  return new Set(run?.manifest ? manifestSkillIds(run.manifest).all : []);
+function reservationNodeAvailable(run, node) {
+  if (!node) return false;
+  if (typeof node.weaponId === "string") {
+    return manifestWeaponIds(run?.manifest).includes(node.weaponId);
+  }
+  return manifestSkillIds(run?.manifest).all.includes(node.skillId);
 }
 
 function reservationMissingPrerequisites(run, skillId) {
-  const available = reservationAvailableSkillIds(run);
   const missing = new Set();
   const visiting = new Set();
   const walk = (currentId) => {
@@ -969,7 +979,8 @@ function reservationMissingPrerequisites(run, skillId) {
     visiting.add(currentId);
     const node = SKILL_RESERVATION_NODES[currentId];
     for (const required of node?.requires ?? []) {
-      if (!available.has(required.skillId)) {
+      const prerequisite = SKILL_RESERVATION_NODES[required.skillId];
+      if (!reservationNodeAvailable(run, prerequisite)) {
         missing.add(required.skillId);
       } else {
         walk(required.skillId);
@@ -981,7 +992,6 @@ function reservationMissingPrerequisites(run, skillId) {
 }
 
 export function normalizeRunSkillReservations(run) {
-  const available = reservationAvailableSkillIds(run);
   const roster = new Set(run?.roster ?? []);
   const normalized = {};
   for (const characterId of roster) {
@@ -990,7 +1000,7 @@ export function normalizeRunSkillReservations(run) {
     const { skillId, targetLevel } = reservation;
     const node = SKILL_RESERVATION_NODES[skillId];
     const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
-    if (!node || !available.has(skillId)) continue;
+    if (!node || !reservationNodeAvailable(run, node)) continue;
     if (!Number.isInteger(targetLevel) || targetLevel < MIN_SKILL_LEVEL || targetLevel > cap) continue;
     if (targetLevel <= runSkillLevel(run, characterId, skillId)) continue;
     if (reservationMissingPrerequisites(run, skillId).length) continue;
@@ -1005,8 +1015,13 @@ export function reserveRunSkill(run, characterId, skillId, targetLevel = null) {
   if (!Array.isArray(run?.roster) || !run.roster.includes(characterId)) {
     return { ok: false, reason: "その仲間はこの遠征に参加していません。" };
   }
-  if (!reservationAvailableSkillIds(run).has(skillId)) {
-    return { ok: false, reason: "この遠征の技能パックには入っていません。" };
+  if (!reservationNodeAvailable(run, node)) {
+    return {
+      ok: false,
+      reason: typeof node.weaponId === "string"
+        ? "この遠征では、その武器を利用できません。"
+        : "この遠征の技能パックには入っていません。",
+    };
   }
   const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
   const requestedLevel = targetLevel === null || targetLevel === undefined ? cap : targetLevel;

@@ -18,9 +18,14 @@ import {
   WEAPON_SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import {
+  canFulfillSkillReservation,
+  fulfillSkillReservations,
   manifestWeaponIds,
   newProfile,
   newRun,
+  reserveRunSkill,
+  skillReservationFor,
+  skillReservationLevelFor,
   unlockRunSkill,
 } from "./progression.mjs";
 import {
@@ -476,6 +481,42 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     ...run, manifest: { ...run.manifest, enabledWeaponIds: [] },
   }, "warden", root);
   equal(unavailable.ok, false, "a weapon omitted by the manifest cannot be bought");
+
+  const reservedTarget = warhammerNodes.find((node) => node.position === "AA2");
+  let reservationRun = newRun(newProfile(), { runSeed: "weapon-reservation", roster: ["warden"] });
+  reservationRun = {
+    ...reservationRun,
+    runSkillPoints: { warden: 0 },
+    runUnlockedSkills: { warden: [] },
+    skillReservations: {},
+  };
+  const reservation = reserveRunSkill(
+    reservationRun, "warden", reservedTarget.skillId, 1,
+  );
+  equal(reservation.ok, true, "a weapon node can be reserved before its prerequisites are bought");
+  equal(skillReservationFor(reservation.run, "warden"), reservedTarget.skillId,
+    "weapon reservation stores the target node");
+  equal(skillReservationLevelFor(reservation.run, "warden"), 1,
+    "weapon reservation uses a single level-free target");
+  equal(canFulfillSkillReservation(reservation.run, "warden", reservedTarget.skillId, 1), false,
+    "weapon reservation waits while the path exceeds the current SP");
+  const fundedReservation = {
+    ...reservation.run,
+    runSkillPoints: { warden: 6 },
+  };
+  equal(canFulfillSkillReservation(fundedReservation, "warden", reservedTarget.skillId, 1), true,
+    "weapon reservation becomes fulfillable when the full path is funded");
+  const fulfilledReservation = fulfillSkillReservations(fundedReservation);
+  equal(skillReservationFor(fulfilledReservation.run, "warden"), null,
+    "weapon reservation clears after reaching its target");
+  equal(fulfilledReservation.run.runSkillPoints.warden, 0,
+    "weapon reservation spends one SP per prerequisite and target node");
+  ok(["warhammer_blow", "warhammer_heavy_head", "warhammer_ringing_iron",
+    "warhammer_heavy_blow", "warhammer_iron_mass", "warhammer_deep_impact"].every((skillId) => (
+    fulfilledReservation.run.runUnlockedSkills.warden.includes(skillId)
+  )), "weapon reservation acquires the complete prerequisite path");
+  equal(fulfilledReservation.actions.filter((action) => action.type === "unlock").length, 6,
+    "weapon reservation exposes each automatic unlock step");
 
   const target = componentInfo("warhammer_point_at_armor");
   equal(target.kind, "target", "weapon target metadata comes from playable content");
