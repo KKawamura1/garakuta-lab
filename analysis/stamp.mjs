@@ -2,11 +2,10 @@
 // Cloudflare Pages provides CF_PAGES_COMMIT_SHA during its build. GitHub Actions
 // and a local checkout have their own fallbacks for the same deterministic identity.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { minify } from "terser";
 import { CONTENT_CONTRACT_VERSION } from "../ecology/content/index.mjs";
 
 function nonEmpty(value) {
@@ -36,19 +35,3 @@ const output = [
 
 writeFileSync(outputPath, output);
 console.log("core/build.generated.mjs:", build, "fingerprint:", CONTENT_CONTRACT_VERSION);
-
-// Pages serves the repository as static files. Keep the readable source in
-// ecology/app.js for review and smoke tests, but publish a compact module so
-// mobile browsers and constrained preview proxies receive the complete boot
-// script in one response.
-const sourcePath = new URL("../ecology/app.js", import.meta.url);
-const runtimePath = new URL("../ecology/app.runtime.js", import.meta.url);
-const runtime = await minify(readFileSync(sourcePath, "utf8"), {
-  module: true,
-  compress: true,
-  mangle: true,
-  format: { comments: false },
-});
-if (!runtime.code) throw new Error("ecology/app.runtime.js の生成に失敗しました");
-writeFileSync(runtimePath, runtime.code + "\n");
-console.log("ecology/app.runtime.js:", Buffer.byteLength(runtime.code), "bytes");
