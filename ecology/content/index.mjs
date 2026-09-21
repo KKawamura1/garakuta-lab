@@ -32,6 +32,20 @@ import {
   DUAL_BLADES_TREE,
 } from "./weapon-dual-blades.mjs";
 import {
+  GAUNTLETS_ACTIVE_SKILLS,
+  GAUNTLETS_PASSIVE_SKILLS,
+  GAUNTLETS_REACTIVE_SKILLS,
+  GAUNTLETS_TARGET_SKILLS,
+  GAUNTLETS_TREE,
+} from "./weapon-gauntlets.mjs";
+import {
+  LAUNCHER_ACTIVE_SKILLS,
+  LAUNCHER_PASSIVE_SKILLS,
+  LAUNCHER_REACTIVE_SKILLS,
+  LAUNCHER_TARGET_SKILLS,
+  LAUNCHER_TREE,
+} from "./weapon-launcher.mjs";
+import {
   IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
   WEAPON_IDS_BY_CHARACTER,
@@ -125,7 +139,8 @@ import {
 // R25 weapon acquisition: manifests now freeze enabledWeaponIds independently
 // from packs. The dual-blades A→AA slice also establishes pre-action movement
 // that keys off the shared resolved reach class, never a particular active ID.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-33";
+// Stage 0 の攻撃系入口として格闘具・射出器のR節を接続した。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-34";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -216,20 +231,37 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.22",
+  contentVersion: "ecology-playable-full-0.23",
   characters: CHARACTERS,
   activeSkills: Object.freeze({
-    ...ACTIVE_SKILLS, ...WARHAMMER_ACTIVE_SKILLS, ...DUAL_BLADES_ACTIVE_SKILLS,
+    ...ACTIVE_SKILLS,
+    ...WARHAMMER_ACTIVE_SKILLS,
+    ...DUAL_BLADES_ACTIVE_SKILLS,
+    ...GAUNTLETS_ACTIVE_SKILLS,
+    ...LAUNCHER_ACTIVE_SKILLS,
   }),
   // The staged weapon-tree implementation starts with the contract and UI.
   // Concrete target skills are added weapon by weapon; fixture-only selectors
   // must never leak into playable content.
-  targetSkills: Object.freeze({ ...WARHAMMER_TARGET_SKILLS, ...DUAL_BLADES_TARGET_SKILLS }),
+  targetSkills: Object.freeze({
+    ...WARHAMMER_TARGET_SKILLS,
+    ...DUAL_BLADES_TARGET_SKILLS,
+    ...GAUNTLETS_TARGET_SKILLS,
+    ...LAUNCHER_TARGET_SKILLS,
+  }),
   reactiveSkills: Object.freeze({
-    ...REACTIVE_SKILLS, ...WARHAMMER_REACTIVE_SKILLS, ...DUAL_BLADES_REACTIVE_SKILLS,
+    ...REACTIVE_SKILLS,
+    ...WARHAMMER_REACTIVE_SKILLS,
+    ...DUAL_BLADES_REACTIVE_SKILLS,
+    ...GAUNTLETS_REACTIVE_SKILLS,
+    ...LAUNCHER_REACTIVE_SKILLS,
   }),
   passiveSkills: Object.freeze({
-    ...PASSIVE_SKILLS, ...WARHAMMER_PASSIVE_SKILLS, ...DUAL_BLADES_PASSIVE_SKILLS,
+    ...PASSIVE_SKILLS,
+    ...WARHAMMER_PASSIVE_SKILLS,
+    ...DUAL_BLADES_PASSIVE_SKILLS,
+    ...GAUNTLETS_PASSIVE_SKILLS,
+    ...LAUNCHER_PASSIVE_SKILLS,
   }),
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
@@ -268,6 +300,8 @@ export {
   weaponSkillNodes,
   weaponIdsForCharacterIds,
   DUAL_BLADES_TREE,
+  GAUNTLETS_TREE,
+  LAUNCHER_TREE,
 };
 
 export const DISPLAY_NAMES = Object.freeze(

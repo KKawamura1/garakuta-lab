@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.22",
+ "contentVersion": "ecology-playable-full-0.23",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.22",
+  "contentVersion": "ecology-playable-full-0.23",
   "characters": {
    "warden": {
     "id": "warden",
@@ -4645,6 +4645,106 @@
      "attack",
      "weapon",
      "dual_blades",
+     "playable"
+    ]
+   },
+   "gauntlets_punch": {
+    "id": "gauntlets_punch",
+    "displayName": "正拳",
+    "displayEffect": "敵1体に腕力90%のダメージ。",
+    "flavorText": "余計な道具はいらない。",
+    "weaponId": "gauntlets",
+    "treePosition": "R",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 9000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "gauntlets"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "gauntlets",
+     "playable"
+    ]
+   },
+   "launcher_shot": {
+    "id": "launcher_shot",
+    "displayName": "射出",
+    "displayEffect": "敵1体に技術100%のダメージ。",
+    "flavorText": "必要な一本だけ、正しく通す。",
+    "weaponId": "launcher",
+    "treePosition": "R",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 10000
+      },
+      "rangeClass": "ranged",
+      "tags": [
+       "attack",
+       "weapon",
+       "launcher"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "launcher",
      "playable"
     ]
    }
@@ -16796,6 +16896,8 @@
   "dual_blades_two_cut": "二連斬り",
   "dual_blades_three_cut": "三連斬り",
   "dual_blades_six_petals": "六花",
+  "gauntlets_punch": "正拳",
+  "launcher_shot": "射出",
   "warhammer_point_at_armor": "鎧を指す",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
@@ -22017,6 +22119,8 @@
   "dual_blades_two_cut": 10,
   "dual_blades_three_cut": 10,
   "dual_blades_six_petals": 10,
+  "gauntlets_punch": 10,
+  "launcher_shot": 10,
   "counter_blow": 10,
   "cover_ally": 1,
   "overflow_care": 10,
@@ -31850,7 +31954,9 @@
    ],
    "enabledWeaponIds": [
     "warhammer",
-    "dual_blades"
+    "dual_blades",
+    "gauntlets",
+    "launcher"
    ],
    "enabledPackIds": [
     "pack_edge",
@@ -31897,7 +32003,9 @@
    ],
    "enabledWeaponIds": [
     "warhammer",
-    "dual_blades"
+    "dual_blades",
+    "gauntlets",
+    "launcher"
    ],
    "enabledPackIds": [
     "pack_wall",
@@ -31944,7 +32052,9 @@
    ],
    "enabledWeaponIds": [
     "warhammer",
-    "dual_blades"
+    "dual_blades",
+    "gauntlets",
+    "launcher"
    ],
    "enabledPackIds": [
     "pack_wall",

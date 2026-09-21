@@ -279,7 +279,7 @@ eventの主対象と同じ列、という共有事実だけを読みます。act
 追加した汎用語彙は、極性指定の`remove_statuses`、防壁／受け構えを除く`remove_barrier` /
 `remove_block`、`has_defense`・`has_defense_or_status`・同列／主対象外のtarget filter、状態由来の
 防御補正、除去種類数を係数へ変える`stat_times_context_scaled`です。schemaは
-`ecology-content-7`、content contractは33です。
+`ecology-content-7`、content contractは34です。
 
 ## 5. イベント列
 
@@ -586,8 +586,9 @@ skillId / cost / requires`を持ち、前提は取得済みLv1だけを要求し
 `WEAPONS`には設計済みの10武器を載せ、Campaignは加入済み人物の署名武器・副武器を累積して開示します。
 したがってStage 0はゴウ／ツグミの4武器、Stage 1でナギの2武器、Stage 2でヒバナの2武器、
 Stage 3でゲンゾウの2武器が加わります。未実装武器はmanifestへ先に載っても、
-`IMPLEMENTED_WEAPON_IDS`に含まれるまで画面へ表示しません。新規Free runは現在実装済みの戦槌と双刃を出します。
-manifest versionは3、content contractは33です。
+`IMPLEMENTED_WEAPON_IDS`に含まれるまで画面へ表示しません。新規Free runは現在実装済みの戦槌・双刃・格闘具・射出器を出します。
+格闘具と射出器はStage 0のR節だけを接続した入口スライスで、残りの節は後続実装です。
+manifest versionは3、content contractは34です。
 
 武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /
 displayEffect / flavorText`から4ロール用metadataを組み、取得後は`installUnlockedSkills()`が既存の

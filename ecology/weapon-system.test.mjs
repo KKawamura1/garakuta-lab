@@ -3,6 +3,8 @@ import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { BATTLE_SCHEMA_VERSION } from "./schema.mjs";
 import {
   IMPLEMENTED_WEAPON_IDS,
+  GAUNTLETS_TREE,
+  LAUNCHER_TREE,
   PLAYABLE_CONTENT,
   WARHAMMER_TREE,
   WEAPONS,
@@ -65,9 +67,18 @@ assert.deepEqual(WEAPON_IDS_BY_CHARACTER, {
 }, "each character has the signature weapon and secondary weapon from the design catalog");
 checks += 1;
 equal(Object.keys(WEAPONS).length, 10, "weapon registry contains all ten scenario weapons");
-equal(IMPLEMENTED_WEAPON_IDS.length, 2, "only content-backed weapon trees are exposed to the UI for now");
-ok(IMPLEMENTED_WEAPON_IDS.includes("warhammer") && IMPLEMENTED_WEAPON_IDS.includes("dual_blades"),
-  "the two implemented weapon trees remain UI-visible");
+equal(IMPLEMENTED_WEAPON_IDS.length, 4, "four content-backed weapon trees are exposed to the UI");
+ok(["warhammer", "dual_blades", "gauntlets", "launcher"].every((id) => (
+  IMPLEMENTED_WEAPON_IDS.includes(id)
+)), "the four implemented weapon trees remain UI-visible");
+for (const [weaponId, tree, skillId] of [
+  ["gauntlets", GAUNTLETS_TREE, "gauntlets_punch"],
+  ["launcher", LAUNCHER_TREE, "launcher_shot"],
+]) {
+  equal(tree.length, 1, `${weaponId} has its Stage 0 root slice`);
+  equal(tree[0].skillId, skillId, `${weaponId} root points to its active skill`);
+  ok(PLAYABLE_CONTENT.activeSkills[skillId], `${weaponId} root is in playable active content`);
+}
 
 const content = structuredClone(PLAYABLE_CONTENT);
 content.activeSkills.borrowed_four_hit = {

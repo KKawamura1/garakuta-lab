@@ -3,6 +3,8 @@
 
 import { WARHAMMER_TREE } from "./weapon-warhammer.mjs";
 import { DUAL_BLADES_TREE } from "./weapon-dual-blades.mjs";
+import { GAUNTLETS_TREE } from "./weapon-gauntlets.mjs";
+import { LAUNCHER_TREE } from "./weapon-launcher.mjs";
 
 // R25設計PR #287 §8・§12 — 五人は署名武器と副武器を一つずつ導入する。
 // CampaignのStageは加入済み人物を累積して持つため、manifestの武器も同じ順で累積する。
@@ -108,10 +110,15 @@ export const WEAPON_IDS_BY_CHARACTER = Object.freeze(Object.fromEntries(
 const branchOf = (position) => position === "R" ? "入口" : position.replace(/[123]$/, "");
 const depthOf = (position) => position === "R" ? 1 : position.length + 1;
 
-const ALL_TREES = [...WARHAMMER_TREE, ...DUAL_BLADES_TREE];
+const ALL_TREES = [
+  ...WARHAMMER_TREE,
+  ...DUAL_BLADES_TREE,
+  ...GAUNTLETS_TREE,
+  ...LAUNCHER_TREE,
+];
 
 // 「catalogに載っている」ことと「今UIへ出せる」ことを混同しない。
-// 残り8武器をmanifestへ先に載せても、空の技能ツリーを表示しないための境界。
+// 残り6武器をmanifestへ先に載せても、空の技能ツリーを表示しないための境界。
 export const IMPLEMENTED_WEAPON_IDS = Object.freeze(
   [...new Set(ALL_TREES.map((node) => node.weaponId))],
 );
