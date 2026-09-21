@@ -286,11 +286,13 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
       allyInput("a_wounded", "warden", "warhammer_blow", "front_left", { hp: 50 }),
     ],
   }), content);
-  ok(result.events.some((event) => event.type === "healing_applied"
-    && event.skillId === "medical_kit_treatment" && event.targetActorIds[0] === "a_wounded"),
-  "medical treatment heals the lowest-HP-percent ally");
+  const barrier = result.events.find((event) => event.type === "barrier_gained"
+    && event.skillId === "medical_kit_treatment" && event.targetActorIds[0] === "a_wounded");
+  ok(barrier, "medical kit shields the lowest-HP-percent ally");
+  equal(barrier.values.duration, "round", "medical kit barrier lasts for the current round");
+  ok(barrier.values.amount > 0, "medical kit barrier scales from the user's focus");
   equal(result.actors.find((actor) => actor.instanceId === "a_mender")
-    .skillUses.medical_kit_treatment, 1, "finite root use is recorded on the actor");
+    .skillUses.medical_kit_treatment, undefined, "medical kit has no battle-use counter");
 }
 
 {

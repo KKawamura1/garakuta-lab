@@ -51,9 +51,6 @@ function auditActiveSkills(bundle) {
   const violations = [];
   for (const [id, skill] of Object.entries(bundle.activeSkills ?? {})) {
     if (healEffectsOf(skill).length === 0) continue;
-    // R25 weapon roots may carry a finite battle-use budget. This is a
-    // bounded medical action, not the old unlimited AP-only heal path.
-    if (Number.isInteger(skill.usesPerBattle) && skill.usesPerBattle > 0) continue;
     // active skill は v1 schema 上 apCost 以外の有限コストを持てない
     // （ecology/validate.mjs 656-682 を参照。costs 配列は reactive rule のみ）。
     violations.push({
