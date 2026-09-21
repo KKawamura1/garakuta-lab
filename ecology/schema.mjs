@@ -263,6 +263,7 @@ export const TARGET_FILTER_TYPES = freeze([
   "has_defense",
   "has_defense_or_status",
   "is_preparing",
+  "previous_target",
   "not_previous_target",
   "is_event_primary_target",
   "not_event_primary_target",

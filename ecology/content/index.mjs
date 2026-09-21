@@ -171,14 +171,15 @@ import {
 // R25 weapon acquisition: manifests now freeze enabledWeaponIds independently
 // from packs. The dual-blades A→AA slice also establishes pre-action movement
 // that keys off the shared resolved reach class, never a particular active ID.
-// Stage 0 の攻撃系入口として格闘具・射出器のR節を接続し、
-// Stage 1〜3の6武器もR節まで同じregistryへ接続した。
+// Stage 0 の攻撃系として格闘具・射出器をR〜BBの19節へ接続し、
+// Stage 1〜3の6武器はR節まで同じregistryへ接続した。
 // R25 dual-blades completion: AB/B/BA/BB branches, reserve-blade status,
 // round-robin hit distribution, and explicit skipped-hit packet amounts.
 // R25 weapon roots: the remaining six weapons now have a content-backed R
 // entry; medical treatment is finite per battle and taunt is a generic target
-// selection status.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-36";
+// selection status. Stage 0's gauntlets and launcher now expose their full
+// nineteen-node trees.
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-37";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -269,7 +270,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.25",
+  contentVersion: "ecology-playable-full-0.26",
   characters: CHARACTERS,
   activeSkills: Object.freeze({
     ...ACTIVE_SKILLS,
@@ -285,8 +286,9 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...HEAVY_CROSSBOW_ACTIVE_SKILLS,
   }),
   // The staged weapon-tree implementation starts with the contract and UI.
-  // Concrete target skills are added weapon by weapon; fixture-only selectors
-  // must never leak into playable content.
+  // Stage 0 attack roots are now complete; the remaining target skills are
+  // still added weapon by weapon. Fixture-only selectors must never leak into
+  // playable content.
   targetSkills: Object.freeze({
     ...WARHAMMER_TARGET_SKILLS,
     ...DUAL_BLADES_TARGET_SKILLS,

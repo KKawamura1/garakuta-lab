@@ -38,6 +38,11 @@ export const STATUS_NAMES = {
   breached: "砕け目",
   taunted: "誘引",
   dual_blades_reserved_blade: "予約刃",
+  gauntlets_momentum: "踏み込み",
+  gauntlets_form: "見取りの型",
+  launcher_observed: "観測済み",
+  launcher_order_mark: "射順表",
+  launcher_signal: "合図弾",
   ultimate_spent: "必殺",
 };
 
@@ -292,6 +297,70 @@ statuses.dual_blades_reserved_blade = {
   tags: ["playable", "buff", "dual_blades"],
 };
 
+// Stage 0の格闘具／射出器が共有する記録状態。いずれも技能IDではなく、
+// 移動・攻撃・対象選択で観測できる事実を次の行動へ渡す。
+statuses.gauntlets_momentum = {
+  id: "gauntlets_momentum",
+  displayName: STATUS_NAMES.gauntlets_momentum,
+  polarity: "positive",
+  maxStacks: 2,
+  duration: "turn",
+  rules: [],
+  tags: ["playable", "buff", "gauntlets"],
+};
+
+statuses.gauntlets_form = {
+  id: "gauntlets_form",
+  displayName: STATUS_NAMES.gauntlets_form,
+  polarity: "positive",
+  maxStacks: 3,
+  duration: "battle",
+  rules: [],
+  tags: ["playable", "buff", "gauntlets"],
+};
+
+statuses.launcher_observed = {
+  id: "launcher_observed",
+  displayName: STATUS_NAMES.launcher_observed,
+  polarity: "negative",
+  maxStacks: 3,
+  duration: "round",
+  rules: [],
+  tags: ["playable", "debuff", "launcher"],
+};
+
+statuses.launcher_order_mark = {
+  id: "launcher_order_mark",
+  displayName: STATUS_NAMES.launcher_order_mark,
+  polarity: "positive",
+  maxStacks: 3,
+  duration: "round",
+  rules: [],
+  tags: ["playable", "buff", "launcher"],
+};
+
+statuses.launcher_signal = {
+  id: "launcher_signal",
+  displayName: STATUS_NAMES.launcher_signal,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "turn",
+  rules: [{
+    id: "launcher_signal_rule",
+    listenTo: "damage_proposed",
+    timing: "interrupt",
+    priority: 39,
+    predicates: [SELF_IS_EVENT_SOURCE],
+    costs: [],
+    effects: [
+      { type: "modify_pending_amount", operation: "increase", amount: pendingPercent(30) },
+      { type: "remove_status", target: SELF_TARGET, statusId: "launcher_signal", stacks: "all" },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["playable", "buff", "launcher"],
+};
+
 // 必殺（issue #238）— **放った印。**規則を一つも持たない、記録だけの状態である。
 // 必殺技は「この状態が付いていないこと」を発動条件にし、放つと自分へ付ける。
 // これで「1戦闘に1回」が engine・schema の語彙を増やさずに書ける。
@@ -329,6 +398,11 @@ const STATUS_SUMMARIES = {
   breached: "次に受ける攻撃ダメージが50%増え、その攻撃後に消える。",
   taunted: "敵の単体攻撃がこの味方を優先する。対象に選ばれると1段消費する。範囲攻撃と味方の選択には効かない。",
   dual_blades_reserved_blade: "非攻撃の主行動で1段たまり、双刃の追加攻撃か必殺枝で消費する。最大6段。",
+  gauntlets_momentum: "移動を伴う格闘で段がたまり、格闘攻撃を強化する。最大2段で手番の終わりに消える。",
+  gauntlets_form: "味方の行動を見取った記録。1段につき格闘攻撃のダメージを8%増やし、最大3段。",
+  launcher_observed: "射出器が観測した敵。射出器の対象優先と合図弾の条件になる。ラウンドで消える。",
+  launcher_order_mark: "射順表を評価した記録。射出器の攻撃を強化する。最大3段でラウンドに消える。",
+  launcher_signal: "観測対象への味方の攻撃を確認した合図。次に出す攻撃を30%増やし、使うと消える。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 

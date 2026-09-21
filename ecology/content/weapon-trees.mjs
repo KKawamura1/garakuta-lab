@@ -132,8 +132,9 @@ const ALL_TREES = [
 ];
 
 // 「catalogに載っている」ことと「今UIへ出せる」ことを混同しない。
-// R25 root slice で10武器すべてが最低1節を持つ。未実装の深い枝は、各武器の
-// manifest行に「準備中」として残し、空の技能ツリーは作らない。
+// R25では戦槌・双刃に続いてStage 0の格闘具・射出器も19節まで実装し、
+// Stage 1〜3の6武器はR節の入口を持つ。未実装の深い枝は各武器のmanifest行に
+// 「準備中」として残し、空の技能ツリーは作らない。
 export const IMPLEMENTED_WEAPON_IDS = Object.freeze(
   [...new Set(ALL_TREES.map((node) => node.weaponId))],
 );

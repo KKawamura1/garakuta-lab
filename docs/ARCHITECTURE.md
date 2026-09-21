@@ -271,7 +271,8 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
 
 ### R25の武器横断ルール
 
-`content/weapon-warhammer.mjs`と`content/weapon-dual-blades.mjs`を19節縦スライス、
+`content/weapon-warhammer.mjs`、`content/weapon-dual-blades.mjs`、
+`content/weapon-gauntlets.mjs`、`content/weapon-launcher.mjs`を19節縦スライス、
 `content/weapon-root-slices.mjs`を残り6武器の入口スライスとし、定義は
 `weaponId`と`treePosition`を
 表示・取得用に持ちます。戦闘条件は武器IDを読まず、hit番号、攻撃tag、防壁・受け構え、状態の極性、
@@ -582,9 +583,12 @@ manifest-2以前の保存は実装済みの戦槌へ決定的に移行します�
 `WEAPONS`には設計済みの10武器を載せ、Campaignは加入済み人物の署名武器・副武器を累積して開示します。
 したがってStage 0はゴウ／ツグミの4武器、Stage 1でナギの2武器、Stage 2でヒバナの2武器、
 Stage 3でゲンゾウの2武器が加わります。10武器すべてがmanifestとR節まで接続済みで、
-`IMPLEMENTED_WEAPON_IDS`も10件です。深い枝は戦槌・双刃が19節、残り8武器はR節の入口スライスです。
+`IMPLEMENTED_WEAPON_IDS`も10件です。深い枝は戦槌・双刃・格闘具・射出器が19節、残り6武器は
+R節の入口スライスです。格闘具は`gauntlets_momentum`／`gauntlets_form`、射出器は
+`launcher_observed`／`launcher_order_mark`を状態境界に使い、対象継続は共有target filter
+`previous_target`で表します。
 新規Free runは10武器をmanifestへ載せ、Stage manifestは加入人物の2武器ずつを累積します。
-manifest versionは3、content contractは36、content versionは0.25です。
+manifest versionは3、content contractは37、content versionは0.26です。
 
 武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /
 displayEffect / flavorText`から4ロール用metadataを組み、取得後は`installUnlockedSkills()`が既存の

@@ -83,19 +83,40 @@ ok(["warhammer", "dual_blades", "gauntlets", "launcher", "medical_kit", "tower_s
   "long_spear", "grappling_hook", "banner", "heavy_crossbow"].every((id) => (
   IMPLEMENTED_WEAPON_IDS.includes(id)
 )), "all ten weapon roots remain UI-visible");
-for (const [weaponId, tree, skillId] of [
-  ["gauntlets", GAUNTLETS_TREE, "gauntlets_punch"],
-  ["launcher", LAUNCHER_TREE, "launcher_shot"],
-  ["medical_kit", MEDICAL_KIT_TREE, "medical_kit_treatment"],
-  ["tower_shield", TOWER_SHIELD_TREE, "tower_shield_draw_guard"],
-  ["long_spear", LONG_SPEAR_TREE, "long_spear_pierce"],
-  ["grappling_hook", GRAPPLING_HOOK_TREE, "grappling_hook_pull"],
-  ["banner", BANNER_TREE, "banner_command"],
-  ["heavy_crossbow", HEAVY_CROSSBOW_TREE, "heavy_crossbow_loaded_shot"],
+for (const [weaponId, tree, skillId, expectedLength] of [
+  ["gauntlets", GAUNTLETS_TREE, "gauntlets_punch", 19],
+  ["launcher", LAUNCHER_TREE, "launcher_shot", 19],
+  ["medical_kit", MEDICAL_KIT_TREE, "medical_kit_treatment", 1],
+  ["tower_shield", TOWER_SHIELD_TREE, "tower_shield_draw_guard", 1],
+  ["long_spear", LONG_SPEAR_TREE, "long_spear_pierce", 1],
+  ["grappling_hook", GRAPPLING_HOOK_TREE, "grappling_hook_pull", 1],
+  ["banner", BANNER_TREE, "banner_command", 1],
+  ["heavy_crossbow", HEAVY_CROSSBOW_TREE, "heavy_crossbow_loaded_shot", 1],
 ]) {
-  equal(tree.length, 1, `${weaponId} has its root slice`);
+  equal(tree.length, expectedLength, `${weaponId} exposes its expected tree slice`);
   equal(tree[0].skillId, skillId, `${weaponId} root points to its active skill`);
   ok(PLAYABLE_CONTENT.activeSkills[skillId], `${weaponId} root is in playable active content`);
+}
+
+for (const [weaponId, tree, expectedCounts] of [
+  ["gauntlets", GAUNTLETS_TREE, { active: 7, reactive: 3, target: 1, passive: 8 }],
+  ["launcher", LAUNCHER_TREE, { active: 7, reactive: 2, target: 2, passive: 8 }],
+]) {
+  equal(tree.length, 19, `${weaponId} has the complete 19-node shape`);
+  assert.deepEqual(
+    Object.fromEntries(Object.keys(sections).map((kind) => [
+      kind, tree.filter((node) => node.kind === kind).length,
+    ])),
+    expectedCounts,
+    `${weaponId} keeps its active/reactive/target/passive contract`,
+  );
+  checks += 1;
+  for (const node of tree) {
+    const definition = PLAYABLE_CONTENT[sections[node.kind]][node.skillId];
+    ok(definition, `${node.position} points to a real ${weaponId} ${node.kind} skill`);
+    ok(definition.displayEffect?.length > 0, `${weaponId} ${node.position} has effect text`);
+    ok(definition.flavorText?.length > 0, `${weaponId} ${node.position} has flavor text`);
+  }
 }
 
 const content = structuredClone(PLAYABLE_CONTENT);
@@ -212,6 +233,27 @@ content.activeSkills.weapon_test_utility = {
     duration: "round",
   }],
   tags: ["utility", "playable"],
+};
+content.activeSkills.weapon_test_first_shot = {
+  id: "weapon_test_first_shot",
+  displayName: "直前対象試験射",
+  displayEffect: "最も後ろの敵へ1ダメージ（戦闘1回）。",
+  flavorText: "次の対象選択に直前対象を残すための試験射。",
+  weaponId: "weapon_test",
+  treePosition: "R",
+  usesPerBattle: 1,
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["position_desc"], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "event_targets", take: "all" },
+    amount: { type: "constant", value: 1 },
+    rangeClass: "melee",
+    tags: ["attack", "weapon", "melee"],
+  }],
+  tags: ["attack", "weapon", "melee", "playable"],
 };
 content.characters.weapon_test_reserver = {
   ...content.characters.warden,
@@ -450,6 +492,92 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const user = result.actors.find((actor) => actor.instanceId === "a_user");
   equal(user.statuses.find((status) => status.statusId === "warhammer_fragment")?.stacks, 2,
     "trophy fragment gains one stack for each removed positive status type");
+}
+
+{
+  const gauntletsCombo = simulateBattle(battle({
+    activeSkillId: "gauntlets_double_punch",
+    passiveSkillIds: ["gauntlets_combo_fists"],
+  }), content);
+  equal(gauntletsCombo.events.filter((event) => (
+    event.type === "damage_proposed" && event.sourceActorId === "a_user"
+  )).length, 3, "gauntlets adds one follow-up hit after a two-hit action");
+  ok(gauntletsCombo.events.some((event) => (
+    event.type === "damage_proposed" && event.tags.includes("extra_hit")
+  )), "gauntlets follow-up hit is explicitly marked as an extra hit");
+}
+
+{
+  const gauntletsFootwork = simulateBattle(battle({
+    position: "rear_center",
+    activeSkillId: "gauntlets_punch",
+    passiveSkillIds: ["gauntlets_footwork"],
+  }), content);
+  ok(gauntletsFootwork.events.some((event) => event.type === "actor_moved"
+    && event.tags[0] === "move"),
+  "gauntlets footwork advances a rear-row melee action before damage");
+  equal(gauntletsFootwork.actors.find((actor) => actor.instanceId === "a_user").position,
+    "front_center", "gauntlets footwork keeps the attacker in the front row");
+  ok(gauntletsFootwork.events.some((event) => (
+    event.type === "pending_amount_modified"
+      && event.ruleId === "gauntlets_footwork_momentum_damage_1_rule"
+  )), "gauntlets footwork converts the movement into momentum damage");
+}
+
+{
+  const gauntletsGuard = simulateBattle(battle({
+    activeSkillId: "gauntlets_punch",
+    reactiveSkillIds: ["gauntlets_strike_guard"],
+  }), content);
+  ok(gauntletsGuard.events.some((event) => (
+    event.type === "barrier_gained" && event.ruleId === "gauntlets_strike_guard_rule"
+      && event.values.amount === 20
+  )), "gauntlets reactive guard grants its post-attack barrier");
+}
+
+{
+  const launcherMulti = simulateBattle(battle({
+    characterId: "mender",
+    activeSkillId: "launcher_shot",
+    passiveSkillIds: ["launcher_multi_barrel", "launcher_separate_caliber"],
+  }), content);
+  equal(launcherMulti.events.filter((event) => (
+    event.type === "damage_proposed" && event.sourceActorId === "a_user"
+  )).length, 2, "launcher multi-barrel adds one hit to a one-hit shot");
+  ok(launcherMulti.events.some((event) => (
+    event.type === "damage_proposed" && event.tags.includes("extra_hit")
+  )), "launcher extra barrel is marked as an extra hit");
+}
+
+{
+  const launcherObservation = simulateBattle(battle({
+    characterId: "mender",
+    activeSkillId: "launcher_shot",
+    passiveSkillIds: ["launcher_observation_hole"],
+  }), content);
+  equal(launcherObservation.actors.find((actor) => actor.instanceId === "e_dummy")
+    .statuses.find((status) => status.statusId === "launcher_observed")?.stacks, 1,
+  "launcher observation records the selected enemy for the round");
+}
+
+{
+  const continuity = simulateBattle(battle({
+    maxRounds: 2,
+    objective: { type: "survive_rounds", rounds: 2 },
+    allies: [allyInput("a_user", "warden", "gauntlets_punch", "front_center", {
+      activeOverrideSkillId: "weapon_test_first_shot",
+      targetSkillIds: ["gauntlets_watch_target"],
+    })],
+    enemies: [
+      { instanceId: "e_near", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_previous", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  const secondAction = continuity.events.filter((event) => (
+    event.type === "target_selected" && event.sourceActorId === "a_user"
+  ))[1];
+  equal(secondAction.targetActorIds[0], "e_previous",
+    "previous-target filter carries the owner's last target into the next action chain");
 }
 
 {

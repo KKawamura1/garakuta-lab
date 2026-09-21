@@ -61,6 +61,12 @@ function passesFilter(state, ctx, filter, actor) {
         || statusStacks(actor, filter.statusId) > 0;
     case "is_preparing":
       return (actor.preparation !== null) === filter.value;
+    case "previous_target":
+      // Target continuity crosses action chains, so read the owner's
+      // deterministic battle history. `lastResolvedTargets` remains chain-local
+      // for overflow rules and must not be used for a target skill here.
+      return Boolean(ctx.owner?.history?.battle)
+        && ctx.owner.history.battle.lastTarget === actor.instanceId;
     case "not_previous_target":
       // "previous" is the target set of the most recent effect resolution in
       // this chain, which is what makes an overflow rule hand its leftover to
