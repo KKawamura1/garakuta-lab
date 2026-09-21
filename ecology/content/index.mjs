@@ -34,10 +34,12 @@ import {
 import {
   IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
+  WEAPON_IDS_BY_CHARACTER,
   WEAPON_SKILL_NODE_BY_ID,
   WEAPON_SKILL_TREE_NODES,
   weaponSkillNode,
   weaponSkillNodes,
+  weaponIdsForCharacterIds,
 } from "./weapon-trees.mjs";
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
@@ -259,10 +261,12 @@ export {
 export {
   IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
+  WEAPON_IDS_BY_CHARACTER,
   WEAPON_SKILL_NODE_BY_ID,
   WEAPON_SKILL_TREE_NODES,
   weaponSkillNode,
   weaponSkillNodes,
+  weaponIdsForCharacterIds,
   DUAL_BLADES_TREE,
 };
 

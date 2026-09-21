@@ -20,6 +20,7 @@ import { AFFIX_FAMILIES } from "./affixes.mjs";
 import { BASELINE_ACTIVE_SKILL_IDS, PACK_BY_ID, SKILL_PACKS } from "./packs.mjs";
 import { REGION, actBossesForStage, enemyIdsForStage } from "./expedition.mjs";
 import { enemyFamilyOf } from "./enemies.mjs";
+import { WEAPONS, WEAPON_IDS_BY_CHARACTER, weaponIdsForCharacterIds } from "./weapon-trees.mjs";
 
 // ---------------------------------------------------------------- ラダーの型（R8 §4.2 / R9 §3）
 //
@@ -86,6 +87,9 @@ const stage = (definition) => Object.freeze({
   ...definition,
   id: "stage_" + definition.sequence,
   castCharacterIds: Object.freeze([...definition.castCharacterIds]),
+  // R25設計PR #287 §8・§12 — 武器は加入済み人物の署名武器・副武器を累積して開示する。
+  // 人物のcastを正本にし、Stage番号から別に武器を推測しない。
+  enabledWeaponIds: Object.freeze(weaponIdsForCharacterIds(definition.castCharacterIds)),
   returningPackIds: Object.freeze([...definition.returningPackIds]),
   enabledPackIds: Object.freeze([...definition.enabledPackIds]),
   packDepths: Object.freeze({ ...definition.packDepths }),
@@ -418,8 +422,8 @@ export function campaignManifestForStage(sequence, seed) {
     campaignStageId: stage.id,
     campaignStageSequence: stage.sequence,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
-    // R25 — 武器はpackとは別に固定する。双刃はヒバナ加入と同じStage 2から加える。
-    enabledWeaponIds: stage.sequence >= 2 ? ["warhammer", "dual_blades"] : ["warhammer"],
+    // R25 — 武器はpackとは別に固定する。加入済み人物の武器を全戦で開示する。
+    enabledWeaponIds: [...stage.enabledWeaponIds],
     enabledPackIds: [...stage.enabledPackIds],
     // R9 §3.1 — 新 pack はその Stage では core（入口）だけを出し、
     // 次の Stage から full になる。**前に覚えた技能は消えない。**
@@ -448,11 +452,41 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
   const problems = [];
   const introducedBy = new Map(); // packId -> 最初に newPackId として現れた sequence
   const introducedFamilyBy = new Map(); // familyId -> 最初に出てきた sequence
+  const introducedWeaponBy = new Map(); // weaponId -> 最初にmanifestへ出た sequence
   let lastPrimaryOffenseSequence = null;
 
   const sorted = [...stages].sort((a, b) => a.sequence - b.sequence);
   for (const stage of sorted) {
     const path = `${stage.id} (sequence ${stage.sequence})`;
+    const previous = sorted.find((entry) => entry.sequence === stage.sequence - 1);
+
+    // R25設計PR #287 §8・§12 — manifestの武器はcastと完全一致させる。
+    // `sequence >= 2` のような暫定条件へ戻ると、人物加入と武器入口がずれる。
+    const actualWeaponIds = Array.isArray(stage.enabledWeaponIds) ? stage.enabledWeaponIds : [];
+    const expectedWeaponIds = weaponIdsForCharacterIds(stage.castCharacterIds);
+    const sameIds = (actual, expected) => actual.length === expected.length
+      && actual.every((id, index) => id === expected[index]);
+    if (!sameIds(actualWeaponIds, expectedWeaponIds)) {
+      problems.push(`${path}: enabledWeaponIds が加入済み人物の署名武器・副武器と一致しない`);
+    }
+    if (new Set(actualWeaponIds).size !== actualWeaponIds.length) {
+      problems.push(`${path}: enabledWeaponIds に重複がある`);
+    }
+    for (const weaponId of actualWeaponIds) {
+      if (!WEAPONS[weaponId]) {
+        problems.push(`${path}: 未登録の武器 "${weaponId}" がenabledWeaponIdsにある`);
+        continue;
+      }
+      if (!introducedWeaponBy.has(weaponId)) introducedWeaponBy.set(weaponId, stage.sequence);
+    }
+    const previousWeaponIds = previous?.enabledWeaponIds ?? [];
+    const addedWeaponIds = actualWeaponIds.filter((id) => !previousWeaponIds.includes(id));
+    const expectedAddedWeaponIds = stage.sequence === 0
+      ? expectedWeaponIds
+      : (stage.joiningCharacterId ? (WEAPON_IDS_BY_CHARACTER[stage.joiningCharacterId] ?? []) : []);
+    if (!sameIds(addedWeaponIds, expectedAddedWeaponIds)) {
+      problems.push(`${path}: 今Stageで追加される武器が加入人物の2武器と一致しない`);
+    }
 
     // 新 pack は、あるなら一度だけ初登場し、必ず有効。**Stage 7・9 のように
     // 新 pack を持たない Stage がある**ので、宣言そのものは任意にした。
@@ -632,6 +666,14 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
         problems.push(`${path}: 直前の primary_offense 新規導入（sequence ${lastPrimaryOffenseSequence}）から3Stageを超えている`);
       }
       lastPrimaryOffenseSequence = stage.sequence;
+    }
+  }
+
+  // catalogへ登録した武器は、未実装でもシナリオの解禁計画から漏らさない。
+  // content moduleが追加されるまでは、app側がIMPLEMENTED_WEAPON_IDSで表示を抑える。
+  for (const weaponId of Object.keys(WEAPONS)) {
+    if (!introducedWeaponBy.has(weaponId)) {
+      problems.push(`武器 "${weaponId}" がCampaign manifestへ一度も導入されていない`);
     }
   }
 

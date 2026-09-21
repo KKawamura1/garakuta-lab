@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { BATTLE_SCHEMA_VERSION } from "./schema.mjs";
 import {
+  IMPLEMENTED_WEAPON_IDS,
   PLAYABLE_CONTENT,
   WARHAMMER_TREE,
+  WEAPONS,
+  WEAPON_IDS_BY_CHARACTER,
   WEAPON_SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import {
@@ -52,6 +55,19 @@ for (const node of WARHAMMER_TREE) {
     ok(definition.flavorText.includes("\n"), `${node.position} terminal flavor uses two lines`);
   }
 }
+
+assert.deepEqual(WEAPON_IDS_BY_CHARACTER, {
+  warden: ["warhammer", "gauntlets"],
+  mender: ["launcher", "medical_kit"],
+  lancer: ["tower_shield", "long_spear"],
+  guardian: ["grappling_hook", "dual_blades"],
+  tactician: ["banner", "heavy_crossbow"],
+}, "each character has the signature weapon and secondary weapon from the design catalog");
+checks += 1;
+equal(Object.keys(WEAPONS).length, 10, "weapon registry contains all ten scenario weapons");
+equal(IMPLEMENTED_WEAPON_IDS.length, 2, "only content-backed weapon trees are exposed to the UI for now");
+ok(IMPLEMENTED_WEAPON_IDS.includes("warhammer") && IMPLEMENTED_WEAPON_IDS.includes("dual_blades"),
+  "the two implemented weapon trees remain UI-visible");
 
 const content = structuredClone(PLAYABLE_CONTENT);
 content.activeSkills.borrowed_four_hit = {

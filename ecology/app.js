@@ -91,6 +91,7 @@ import {
   BRANCH_BUILDS,
   SCOPE_LABELS,
   SKILL_TREE_GROUPS,
+  IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
   WEAPON_SKILL_TREE_NODES,
   weaponSkillNodes,
@@ -704,7 +705,8 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
   next.skillTreeSource = ["weapon", "legacy"].includes(next.skillTreeSource)
     ? next.skillTreeSource : "weapon";
-  const availableWeaponIds = manifestWeaponIds(next.run?.manifest);
+  const availableWeaponIds = manifestWeaponIds(next.run?.manifest)
+    .filter((id) => IMPLEMENTED_WEAPON_IDS.includes(id));
   next.selectedWeaponId = availableWeaponIds.includes(next.selectedWeaponId)
     ? next.selectedWeaponId : (availableWeaponIds[0] ?? "warhammer");
   next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
@@ -4510,7 +4512,8 @@ function weaponNodeAction(node, characterId, nodeState) {
 }
 
 function renderWeaponSkillTree(characterId) {
-  const available = manifestWeaponIds(state.run.manifest).filter((id) => WEAPONS[id]);
+  const available = manifestWeaponIds(state.run.manifest)
+    .filter((id) => IMPLEMENTED_WEAPON_IDS.includes(id) && WEAPONS[id]);
   const weaponId = available.includes(state.selectedWeaponId)
     ? state.selectedWeaponId : available[0];
   if (!weaponId) return "<p class=\"tree-empty muted\">この遠征で使える武器はありません。</p>";
@@ -9320,7 +9323,8 @@ function handleAction(event) {
 
   if (action === "select-weapon-tree") {
     const weaponId = element.dataset.weapon;
-    if (!manifestWeaponIds(state.run.manifest).includes(weaponId) || !WEAPONS[weaponId]) return;
+    if (!manifestWeaponIds(state.run.manifest).includes(weaponId)
+      || !IMPLEMENTED_WEAPON_IDS.includes(weaponId) || !WEAPONS[weaponId]) return;
     state.selectedWeaponId = weaponId;
     state.selectedSkillNode = null;
     saveState();

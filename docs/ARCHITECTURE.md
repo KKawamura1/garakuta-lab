@@ -583,7 +583,10 @@ reactive のRP温存だけを編集し、passive は `allyInput()` が全件を 
 skillId / cost / requires`を持ち、前提は取得済みLv1だけを要求します。`unlockRunSkill()`は旧pack nodeと
 武器nodeを同じSP台帳で処理しますが、可用性は前者が`manifestSkillIds`、後者が
 `manifest.enabledWeaponIds`を読みます。manifest-2以前の保存は、実装済みの戦槌へ決定的に移行します。
-新規Free runは戦槌と双刃、Campaignは戦槌から始まりヒバナ加入のStage 2で双刃を加えます。
+`WEAPONS`には設計済みの10武器を載せ、Campaignは加入済み人物の署名武器・副武器を累積して開示します。
+したがってStage 0はゴウ／ツグミの4武器、Stage 1でナギの2武器、Stage 2でヒバナの2武器、
+Stage 3でゲンゾウの2武器が加わります。未実装武器はmanifestへ先に載っても、
+`IMPLEMENTED_WEAPON_IDS`に含まれるまで画面へ表示しません。新規Free runは現在実装済みの戦槌と双刃を出します。
 manifest versionは3、content contractは33です。
 
 武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /

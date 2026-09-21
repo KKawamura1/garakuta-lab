@@ -49,6 +49,7 @@ import {
   ENCOUNTERS_PER_RUN,
   ENEMY_MUTATIONS,
   ENEMY_THREAT_COST,
+  IMPLEMENTED_WEAPON_IDS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
   MAX_DIFFICULTY_RANK,
   MAX_MUTATIONS_PER_UNIT,
@@ -705,8 +706,8 @@ export function makeManifest(seed, profile) {
     regionId: REGION.id,
     baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
     // R25 — 武器ツリーはpack分類ではなく、遠征開始時に固定する独立manifest。
-    // 実装済み武器を段階的にここへ載せ、途中で増減させない。
-    enabledWeaponIds: ["warhammer", "dual_blades"],
+    // Free / Endless はシナリオ順を持たないため、現在実装済みの武器をすべて開始時に出す。
+    enabledWeaponIds: [...IMPLEMENTED_WEAPON_IDS],
     enabledPackIds: enabled,
     // Free / Endless は Stage の学習順を持たないので、pack は常に full で出る
     // （R9 §3.1 の core / full はチュートリアル Stage の仕組み）。

@@ -21,6 +21,7 @@ import {
   PLAYABLE_CONTENT,
   PROLOGUE,
   REGION,
+  WEAPONS,
   expeditionEncounter,
   skillIdsForPacks,
 } from "./content/index.mjs";
@@ -154,6 +155,22 @@ function campaignCompleteProfile() {
   );
   checks += 4;
 
+  // R25設計PR #287 §8・§12 — キャラ加入と2武器のmanifest解禁を一致させる。
+  const expectedWeaponsByStage = [
+    ["warhammer", "gauntlets", "launcher", "medical_kit"],
+    ["warhammer", "gauntlets", "launcher", "medical_kit", "tower_shield", "long_spear"],
+    ["warhammer", "gauntlets", "launcher", "medical_kit", "tower_shield", "long_spear", "grappling_hook", "dual_blades"],
+    ["warhammer", "gauntlets", "launcher", "medical_kit", "tower_shield", "long_spear", "grappling_hook", "dual_blades", "banner", "heavy_crossbow"],
+  ];
+  for (const [sequence, expected] of expectedWeaponsByStage.entries()) {
+    assert.deepEqual(campaignStageDef(sequence).enabledWeaponIds, expected,
+      `Stage ${sequence} の武器解禁順は加入済みキャラの2武器と一致`);
+    assert.deepEqual(campaignManifestForStage(sequence, "weapon-ladder").enabledWeaponIds, expected,
+      `Stage ${sequence} のmanifestが武器解禁順を引き継ぐ`);
+    checks += 2;
+  }
+  equal(Object.keys(WEAPONS).length, 10, "武器registryは全10武器を持つ");
+
   // Stage 1 では、ナギが加入した時点で味方を守る入口も使える。
   // `cover_ally` が Stage 2 の pack まで遅れると、庇護役の加入と主力の解禁がずれる。
   const stage0SkillIds = new Set(skillIdsForPacks(
@@ -199,6 +216,7 @@ function campaignCompleteProfile() {
   const a = campaignManifestForStage(2, "seed-alpha");
   const b = campaignManifestForStage(2, "seed-beta");
   assert.deepEqual(a.enabledPackIds, b.enabledPackIds, "campaign manifest は seed で pack 構成が変わらない");
+  assert.deepEqual(a.enabledWeaponIds, b.enabledWeaponIds, "campaign manifest は seed で武器構成が変わらない");
   check(a.seed !== b.seed, "ただし seed 自体は記録される（敵順・報酬用）");
 }
 
