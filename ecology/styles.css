@@ -3496,6 +3496,52 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 }
 .launch-card .help-details summary { padding: 10px 0 0; }
 
+/* R25 — pack と武器の解禁を別の欄で読む。未実装武器も「今回の解禁計画」として
+   見せるが、技能ツリー側では準備中のまま扱い、空の操作先を作らない。 */
+.weapon-manifest {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.weapon-manifest-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.weapon-manifest-head b { font-size: 12px; }
+.weapon-manifest-head small { color: var(--muted); font-size: 10px; }
+.weapon-manifest-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+.weapon-manifest-row.on { border-color: var(--gold); }
+.weapon-manifest-row.planned { opacity: .72; }
+.weapon-manifest-copy { display: grid; gap: 2px; min-width: 0; }
+.weapon-manifest-copy b { font-size: 12px; }
+.weapon-manifest-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.weapon-manifest-state {
+  color: var(--gold);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.weapon-manifest-row.planned .weapon-manifest-state { color: var(--muted); }
+
 .purchase-list { display: grid; gap: 6px; margin-top: 10px; }
 /* 作者要望 2026-09-13 — 投資の行は「記号・中身・値段」の三列。**段は目盛りが言う。** */
 .purchase-row {

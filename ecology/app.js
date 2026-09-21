@@ -2326,6 +2326,24 @@ function focusLaunchCard() {
   window.scrollTo({ top: 0, behavior });
 }
 
+// R25 — manifest は「今回の遠征で解禁される武器」の正本。
+// まだ content module が無い武器も、ここでは解禁計画として表示する。
+// ただし技能ツリーや BattleInput へは IMPLEMENTED_WEAPON_IDS を通った武器だけを渡す。
+function weaponManifestRows(manifest) {
+  return manifestWeaponIds(manifest).map((weaponId) => {
+    const weapon = WEAPONS[weaponId];
+    if (!weapon) return "";
+    const implemented = IMPLEMENTED_WEAPON_IDS.includes(weaponId);
+    const role = weapon.role === "signature" ? "署名武器" : "副武器";
+    const owner = characterName(weapon.introducedByCharacterId);
+    return "<div class=\"weapon-manifest-row " + (implemented ? "on" : "planned") + "\">"
+      + "<span class=\"weapon-manifest-copy\"><b>" + esc(weapon.displayName) + "</b>"
+      + "<small>" + esc(owner + "の" + role + " · " + weapon.summary) + "</small></span>"
+      + "<span class=\"weapon-manifest-state\">" + (implemented ? "実装済み" : "準備中") + "</span>"
+      + "</div>";
+  }).join("");
+}
+
 // 遠征タブ。**釦は札の頭、その下は「出る前に確かめるもの」だけ。**
 //
 // 作者指摘 2026-09-15（二度目）—「遠征に進むボタンがめっちゃ下にある」。旧版はこの札に
@@ -2348,11 +2366,15 @@ function renderExpeditionPlan() {
   const packRows = packs.map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
     + "</b><small>" + esc(pack.summary) + "</small><span>"
     + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
+  const weaponRows = weaponManifestRows(manifest);
   // **見出しを置かない。**この札は「遠征」なので、「遠征へ出る」と書くのは札の言い直しである
   // （作者指摘 2026-09-15、三度目「タブと情報被ってるので」）。行き先の名が見出しを兼ねる。
   const launch = "<section class=\"card launch-card\">"
     + "<div class=\"plan-stage\"><b>" + esc(stage?.displayName ?? "") + "</b></div>"
     + button("この条件で遠征へ出る", "begin-expedition", false, "button primary")
+    + "<div class=\"weapon-manifest\" aria-label=\"この遠征で解禁される武器\">"
+    + "<div class=\"weapon-manifest-head\"><b>今回の武器</b><small>解禁順は加入する仲間と同じ</small></div>"
+    + weaponRows + "</div>"
     + helpDetails("run-packs", "この遠征で引ける技能パック " + packs.length,
       "<div class=\"pack-list\">" + packRows + "</div>")
     + "</section>";
@@ -4989,8 +5011,17 @@ function renderSkills() {
   const packs = state.run.manifest.enabledPackIds
     .map((id) => (PACK_BY_ID[id]?.displayName ?? id) + (depths[id] === "core" ? "（入口）" : ""))
     .join(" · ");
+  const enabledWeapons = manifestWeaponIds(state.run.manifest);
+  const visibleWeapons = enabledWeapons
+    .filter((id) => IMPLEMENTED_WEAPON_IDS.includes(id) && WEAPONS[id])
+    .map((id) => WEAPONS[id].displayName);
+  const plannedWeaponCount = enabledWeapons.filter((id) => !IMPLEMENTED_WEAPON_IDS.includes(id)).length;
+  const weaponContext = visibleWeapons.length
+    ? "武器 " + visibleWeapons.join(" · ")
+      + (plannedWeaponCount ? " · 準備中 " + plannedWeaponCount + "種" : "")
+    : "武器 準備中 " + plannedWeaponCount + "種";
   return "<section class=\"card skill-build-card\">" + sectionHeading("SKILLS", "技能")
-    + "<p class=\"context-line\">" + esc(packs) + "</p>"
+    + "<p class=\"context-line\">" + esc([packs, weaponContext].filter(Boolean).join(" · ")) + "</p>"
     + memberContext(characterId, "skills")
     + "<div class=\"role-loadout\">"
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive")
