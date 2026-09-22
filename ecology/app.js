@@ -4070,9 +4070,11 @@ function weaponEffectBadges(node, characterId, limit = 3) {
     seen.add(label);
     badges.push("<i class=\"effect-chip" + (tone ? " " + tone : "") + "\">" + esc(label) + "</i>");
   };
-  const scaled = skillEffectAmount(characterId, node.skillId);
-  if (scaled) push(STAT_MARKS[scaled.stat] + scaled.one + (scaled.hits > 1 ? "×" + scaled.hits : ""),
-    "scaled stat-" + scaled.stat);
+  const scaled = text.match(/(腕力|技術|受け|最大HP)([+−-]?\d+%)/);
+  if (scaled) {
+    const stat = { 腕力: "might", 技術: "focus", 受け: "guard", 最大HP: "max_hp" }[scaled[1]];
+    push(STAT_MARKS[stat] + scaled[2], "scaled stat-" + stat);
+  }
   const scope = Object.keys(EFFECT_BADGE_WORDS).find((word) => text.includes(word));
   if (scope) push(EFFECT_BADGE_WORDS[scope], "scope");
   const hit = text.match(/\d+(?:〜\d+)?hit/i)?.[0];
