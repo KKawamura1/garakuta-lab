@@ -54,6 +54,21 @@ export const STATUS_NAMES = {
   long_spear_delayed: "足止め",
   long_spear_gate: "関所",
   long_spear_order_mark_status: "順番標",
+  medical_kit_stimulant: "活性剤",
+  medical_kit_surplus: "余剰包帯",
+  medical_kit_regeneration: "再生薬",
+  medical_kit_reserve_blood: "予備血",
+  grappling_hook_rush: "走れの合図",
+  grappling_hook_mark: "鉤縄の印",
+  grappling_hook_anchor: "二点固定",
+  banner_commanded: "号旗の鼓舞",
+  banner_debt: "借り札",
+  banner_time_sand: "砂時計",
+  banner_line_step: "揃い足",
+  heavy_crossbow_target_mark: "着弾印",
+  heavy_crossbow_ammo: "次弾装填",
+  heavy_crossbow_steady: "装填維持",
+  heavy_crossbow_detonation: "時限矢",
   ultimate_spent: "必殺",
 };
 
@@ -466,6 +481,171 @@ statuses.long_spear_delayed = {
   tags: ["playable", "debuff", "long_spear"],
 };
 
+// R27 — the remaining weapon trees use small, shared event markers. The
+// markers deliberately describe a battlefield fact (a supported ally, a move,
+// an ammunition reserve), so another content definition can consume them too.
+const eventDamageRules = ({ statusId, maxStacks, percentPerStack, subjectPredicate, tags }) => (
+  pendingPercentRules({
+    statusId,
+    maxStacks,
+    subjectPredicate,
+    operation: "increase",
+    percentPerStack,
+  }).map((rule) => ({
+    ...rule,
+    predicates: [...rule.predicates, { type: "event_tag", tag: "attack", value: true }],
+    priority: 37,
+    tags,
+  }))
+);
+
+statuses.medical_kit_stimulant = {
+  id: "medical_kit_stimulant",
+  displayName: STATUS_NAMES.medical_kit_stimulant,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "round",
+  rules: eventDamageRules({
+    statusId: "medical_kit_stimulant", maxStacks: 1, percentPerStack: 20,
+    subjectPredicate: SELF_IS_EVENT_SOURCE, tags: ["playable", "buff", "medical_kit"],
+  }),
+  tags: ["playable", "buff", "medical_kit"],
+};
+
+statuses.medical_kit_surplus = {
+  id: "medical_kit_surplus",
+  displayName: STATUS_NAMES.medical_kit_surplus,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "round",
+  rules: [],
+  tags: ["playable", "buff", "medical_kit"],
+};
+
+statuses.medical_kit_regeneration = {
+  id: "medical_kit_regeneration",
+  displayName: STATUS_NAMES.medical_kit_regeneration,
+  polarity: "positive",
+  maxStacks: 3,
+  duration: "battle",
+  rules: Array.from({ length: 3 }, (_, index) => {
+    const stacks = index + 1;
+    return {
+      id: `medical_kit_regeneration_${stacks}_rule`,
+      listenTo: "round_started",
+      timing: "after",
+      priority: 52,
+      predicates: [statusStacksAre("medical_kit_regeneration", stacks)],
+      costs: [],
+      effects: [
+        {
+          type: "gain_barrier",
+          target: SELF_TARGET,
+          amount: { type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps: 4_000 },
+          duration: "round",
+          tags: ["support", "medical_kit", "regeneration"],
+        },
+        { type: "remove_status", target: SELF_TARGET, statusId: "medical_kit_regeneration", stacks: 1 },
+      ],
+      limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+    };
+  }),
+  tags: ["playable", "buff", "medical_kit"],
+};
+
+statuses.medical_kit_reserve_blood = {
+  id: "medical_kit_reserve_blood",
+  displayName: STATUS_NAMES.medical_kit_reserve_blood,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "battle",
+  rules: [{
+    id: "medical_kit_reserve_blood_rule",
+    listenTo: "damage_taken",
+    timing: "after",
+    priority: 53,
+    predicates: [SELF_IS_EVENT_TARGET, { type: "event_tag", tag: "cost", value: false }, statusStacksAre("medical_kit_reserve_blood", 1)],
+    costs: [],
+    effects: [
+      {
+        type: "gain_barrier",
+        target: SELF_TARGET,
+        amount: { type: "stat_scaled", subject: "self", scalingStat: "focus", coefficientBps: 5_000 },
+        duration: "round",
+        tags: ["support", "medical_kit", "reserve"],
+      },
+      { type: "remove_status", target: SELF_TARGET, statusId: "medical_kit_reserve_blood", stacks: "all" },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["playable", "buff", "medical_kit"],
+};
+
+statuses.grappling_hook_rush = {
+  id: "grappling_hook_rush",
+  displayName: STATUS_NAMES.grappling_hook_rush,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "turn",
+  rules: eventDamageRules({
+    statusId: "grappling_hook_rush", maxStacks: 1, percentPerStack: 25,
+    subjectPredicate: SELF_IS_EVENT_SOURCE, tags: ["playable", "buff", "grappling_hook"],
+  }),
+  tags: ["playable", "buff", "grappling_hook"],
+};
+
+const neutralMarker = (id, polarity, maxStacks, duration, tags) => ({
+  id,
+  displayName: STATUS_NAMES[id],
+  polarity,
+  maxStacks,
+  duration,
+  rules: [],
+  tags,
+});
+
+statuses.grappling_hook_mark = neutralMarker(
+  "grappling_hook_mark", "neutral", 1, "round", ["playable", "mark", "grappling_hook"],
+);
+statuses.grappling_hook_anchor = neutralMarker(
+  "grappling_hook_anchor", "neutral", 2, "round", ["playable", "mark", "grappling_hook"],
+);
+
+statuses.banner_commanded = {
+  id: "banner_commanded",
+  displayName: STATUS_NAMES.banner_commanded,
+  polarity: "positive",
+  maxStacks: 2,
+  duration: "turn",
+  rules: eventDamageRules({
+    statusId: "banner_commanded", maxStacks: 2, percentPerStack: 15,
+    subjectPredicate: SELF_IS_EVENT_SOURCE, tags: ["playable", "buff", "banner"],
+  }),
+  tags: ["playable", "buff", "banner"],
+};
+statuses.banner_debt = neutralMarker(
+  "banner_debt", "negative", 3, "battle", ["playable", "debt", "banner"],
+);
+statuses.banner_time_sand = neutralMarker(
+  "banner_time_sand", "positive", 5, "battle", ["playable", "resource", "banner"],
+);
+statuses.banner_line_step = neutralMarker(
+  "banner_line_step", "positive", 1, "turn", ["playable", "buff", "banner"],
+);
+
+statuses.heavy_crossbow_target_mark = neutralMarker(
+  "heavy_crossbow_target_mark", "negative", 1, "battle", ["playable", "mark", "heavy_crossbow"],
+);
+statuses.heavy_crossbow_ammo = neutralMarker(
+  "heavy_crossbow_ammo", "positive", 3, "battle", ["playable", "resource", "heavy_crossbow"],
+);
+statuses.heavy_crossbow_steady = neutralMarker(
+  "heavy_crossbow_steady", "positive", 1, "turn", ["playable", "buff", "heavy_crossbow"],
+);
+statuses.heavy_crossbow_detonation = neutralMarker(
+  "heavy_crossbow_detonation", "negative", 3, "round", ["playable", "mark", "heavy_crossbow"],
+);
+
 // 必殺（issue #238）— **放った印。**規則を一つも持たない、記録だけの状態である。
 // 必殺技は「この状態が付いていないこと」を発動条件にし、放つと自分へ付ける。
 // これで「1戦闘に1回」が engine・schema の語彙を増やさずに書ける。
@@ -518,6 +698,21 @@ const STATUS_SUMMARIES = {
   long_spear_delayed: "長槍で足を止められ、次の起動でAPを1失う。",
   long_spear_gate: "関所の列へ付いた移動不能の記録。",
   long_spear_order_mark_status: "長槍がずらした次の行動順の記録。",
+  medical_kit_stimulant: "医療具の防壁を受けた味方が、そのラウンドに出す攻撃を20%強める。",
+  medical_kit_surplus: "余った処置を一度ぶんの予備として記録する。次の被弾時に防壁へ変わる。",
+  medical_kit_regeneration: "次の3回のラウンド開始時に、技術40%の防壁を作る。",
+  medical_kit_reserve_blood: "次に被弾した時、技術50%の防壁を作って記録を消費する。",
+  grappling_hook_rush: "移動を受けた味方の次の攻撃ダメージが25%増える。",
+  grappling_hook_mark: "鉤縄が移動の起点へ残すラウンド印。",
+  grappling_hook_anchor: "鉤縄が二点固定へ記録した移動印。",
+  banner_commanded: "号旗のAP支援を受けた味方の次の攻撃を1段15%強める。",
+  banner_debt: "前借りしたAPの返済待ち。次の戦闘ラウンドで減る。",
+  banner_time_sand: "号旗が支援で蓄えた時間砂。最大5段。",
+  banner_line_step: "号旗の揃い足で一時的に前列へ出る記録。",
+  heavy_crossbow_target_mark: "重弩が予約した敵の位置へ残る着弾印。",
+  heavy_crossbow_ammo: "通常の準備射を解決した回数。次の準備射を8%ずつ強める。",
+  heavy_crossbow_steady: "準備中の被弾で準備を失わない記録。",
+  heavy_crossbow_detonation: "同じ列へ置いた時限印。移動で踏まれると起爆する。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 

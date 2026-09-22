@@ -11,8 +11,9 @@ const freeze = (value) => Object.freeze(value);
 
 // R25 adds explicit weapon range classes and empty-slot movement with an
 // optional action-end return. R26 adds shared column/unacted target filters
-// and resource-reduction effects used by the Stage 1 weapon trees.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-8";
+// and resource-reduction effects used by the Stage 1 weapon trees. R27 adds
+// the generic finite-rescue effect and its result event for the medical tree.
+export const CONTENT_SCHEMA_VERSION = "ecology-content-9";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -127,6 +128,7 @@ export const EVENT_TYPES = freeze([
   "barrier_gained",
   "barrier_expired",
   "actor_defeated",
+  "actor_revived",
   // §6.5 resources, position, status, equipment
   "resource_refreshed",
   "resource_spent",
@@ -154,7 +156,6 @@ export const EVENT_TYPES = freeze([
 export const RESERVED_EVENT_TYPES = freeze([
   "wave_started",
   "defeat_prevented",
-  "actor_revived",
   "action_repeated",
   "frontline_opened",
 ]);
@@ -325,6 +326,7 @@ export const EFFECT_TYPES = freeze([
   "start_preparation",
   "advance_preparation",
   "interrupt_preparation",
+  "revive",
   "wear_equipment",
   // DEVIATION (PREFLIGHT §16): the partner of wear_equipment. §15.3 asks for an
   // item that repairs itself and §10.2 has no way to raise durability.

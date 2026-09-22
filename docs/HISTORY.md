@@ -2893,3 +2893,14 @@ Stage 1で加入するナギの大盾・長槍を、入口R節から`R → BB`�
 共有境界を追加した。状態IDは技能IDと衝突しないよう`tower_shield_sanctuary_status`と
 `long_spear_order_mark_status`へ分離し、旧saveのIDを再利用しない。ステージ2・3の鉤縄・双刃・号旗・重弩は
 R節の入口を維持する。専用試験は468チェック、content contractは38、content versionは0.27へ更新した。
+
+## 2026-09-22 — R27 残り4武器を19節へ拡張
+
+入口だけだった医療具・鉤縄・号旗・重弩を、それぞれ`R → BB`の19節へ拡張した。医療具は直接回復を主軸にせず、
+防壁を張るアクティブと、被弾から再生・蘇生へつなぐリアクティブにした。鉤縄は移動・印・交換・救助、号旗は
+AP支援・借り・負債・時間砂、重弩は準備・弾薬・対象印・列攻撃を共有eventへ接続した。
+
+汎用`revive`効果と`actor_revived` eventを追加し、防壁・資源の付与eventへ効果tagを引き継いだ。schemaは
+`ecology-content-9`／`ecology-result-4`、content contractは39、content versionは0.28へ更新した。
+旧pack・技能レベル・旧root-slices呼び出しは互換境界として残し、10武器すべてをmanifest、取得予約、
+自動解禁、戦闘runtimeへ接続した。専用武器試験は711チェック、chain safetyは105チェックで固定した。

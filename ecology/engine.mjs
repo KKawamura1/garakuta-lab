@@ -1146,9 +1146,15 @@ function performAction(state, actor, choice) {
     if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
 
     // §11.4-8 — cancel, target and cost are all re-checked after the interrupts.
+    // Most actions require a living target. A generic revive effect is the one
+    // deliberate exception: its target query may select a defeated actor so a
+    // finite rescue action can resolve against the same frame. This is driven
+    // by effect vocabulary, never by a weapon or skill id.
+    const canTargetDefeated = (skill.effects ?? []).some((effect) => effect.type === "revive")
+      || (skill.preparation?.completionEffects ?? []).some((effect) => effect.type === "revive");
     const finalTargets = frame.targetActorIds
       .map((instanceId) => getActor(state, instanceId))
-      .filter((target) => target !== null && target.alive);
+      .filter((target) => target !== null && (target.alive || canTargetDefeated));
     if (finalTargets.length === 0) return cancelAction(state, actor, skill, frame, "no_target");
     if (!canPayCosts(rt, baseCtx(), costs)) return cancelAction(state, actor, skill, frame, "cost");
 

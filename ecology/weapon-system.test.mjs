@@ -86,10 +86,10 @@ ok(["warhammer", "dual_blades", "gauntlets", "launcher", "medical_kit", "tower_s
 for (const [weaponId, tree, skillId, expectedLength] of [
   ["gauntlets", GAUNTLETS_TREE, "gauntlets_punch", 19],
   ["launcher", LAUNCHER_TREE, "launcher_shot", 19],
-  ["medical_kit", MEDICAL_KIT_TREE, "medical_kit_treatment", 1],
-  ["grappling_hook", GRAPPLING_HOOK_TREE, "grappling_hook_pull", 1],
-  ["banner", BANNER_TREE, "banner_command", 1],
-  ["heavy_crossbow", HEAVY_CROSSBOW_TREE, "heavy_crossbow_loaded_shot", 1],
+  ["medical_kit", MEDICAL_KIT_TREE, "medical_kit_treatment", 19],
+  ["grappling_hook", GRAPPLING_HOOK_TREE, "grappling_hook_pull", 19],
+  ["banner", BANNER_TREE, "banner_command", 19],
+  ["heavy_crossbow", HEAVY_CROSSBOW_TREE, "heavy_crossbow_loaded_shot", 19],
 ]) {
   equal(tree.length, expectedLength, `${weaponId} exposes its expected tree slice`);
   equal(tree[0].skillId, skillId, `${weaponId} root points to its active skill`);
@@ -101,6 +101,10 @@ for (const [weaponId, tree, expectedCounts] of [
   ["launcher", LAUNCHER_TREE, { active: 7, reactive: 2, target: 2, passive: 8 }],
   ["tower_shield", TOWER_SHIELD_TREE, { active: 7, reactive: 3, target: 0, passive: 9 }],
   ["long_spear", LONG_SPEAR_TREE, { active: 7, reactive: 2, target: 1, passive: 9 }],
+  ["medical_kit", MEDICAL_KIT_TREE, { active: 7, reactive: 3, target: 0, passive: 9 }],
+  ["grappling_hook", GRAPPLING_HOOK_TREE, { active: 7, reactive: 2, target: 1, passive: 9 }],
+  ["banner", BANNER_TREE, { active: 7, reactive: 5, target: 1, passive: 6 }],
+  ["heavy_crossbow", HEAVY_CROSSBOW_TREE, { active: 7, reactive: 2, target: 1, passive: 9 }],
 ]) {
   equal(tree.length, 19, `${weaponId} has the complete 19-node shape`);
   assert.deepEqual(
@@ -537,6 +541,93 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   ok(result.events.some((event) => event.type === "damage_taken"
     && event.skillId === "heavy_crossbow_loaded_shot"),
   "heavy crossbow root resolves its loaded shot");
+}
+
+{
+  const result = simulateBattle(battle({
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [
+      allyInput("a_mender", "mender", "medical_kit_major_treatment", "rear_left", {
+        passiveSkillIds: ["medical_kit_clean_tools"],
+      }),
+      allyInput("a_wounded", "warden", "warhammer_blow", "front_left", { hp: 50 }),
+    ],
+  }), content);
+  ok(result.events.some((event) => event.type === "barrier_gained"
+    && event.skillId === "medical_kit_major_treatment"
+    && event.tags.includes("medical_kit")
+    && event.values.amount > 0),
+  "medical kit deep treatment keeps support tags through the barrier event");
+}
+
+{
+  const result = simulateBattle(battle({
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [
+      allyInput("a_mender", "mender", "warhammer_blow", "rear_left", {
+        reactiveSkillIds: ["medical_kit_emergency_revive"],
+      }),
+      allyInput("a_wounded", "warden", "warhammer_blow", "front_left", { hp: 1 }),
+    ],
+    enemies: [{ instanceId: "e_heavy", enemyActorId: "weapon_test_heavy", position: "front_left" }],
+  }), content);
+  ok(result.events.some((event) => event.type === "actor_revived"
+    && event.ruleId === "medical_kit_emergency_revive_rule"
+    && event.targetActorIds[0] === "a_wounded"),
+  "medical kit emergency reaction revives a defeated ally inside the defeat event");
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "guardian",
+    activeSkillId: "grappling_hook_net_field",
+    passiveSkillIds: ["grappling_hook_movement_marks"],
+    position: "rear_left",
+    enemies: [{ instanceId: "e_hook", enemyActorId: "weapon_test_dummy", position: "rear_right" }],
+  }), content);
+  ok(result.events.some((event) => event.type === "actor_moved"
+    && event.skillId === "grappling_hook_net_field" && event.tags.includes("move")),
+  "grappling hook deep action emits the shared movement event");
+  equal(result.actors.find((actor) => actor.instanceId === "e_hook")
+    .statuses.find((status) => status.statusId === "grappling_hook_mark")?.stacks, 1,
+  "grappling hook movement mark is stored on the moved actor");
+}
+
+{
+  const result = simulateBattle(battle({
+    allies: [
+      allyInput("a_banner", "tactician", "banner_total_assault", "rear_left"),
+      allyInput("a_recipient", "warden", "warhammer_blow", "front_left"),
+    ],
+  }), content);
+  ok(result.events.some((event) => event.type === "resource_gained"
+    && event.skillId === "banner_total_assault"
+    && event.values.resource === "action_points"
+    && event.values.amount === 1),
+  "banner deep command keeps AP support visible as a tagged resource event");
+  ok(result.events.some((event) => event.type === "status_added"
+    && event.targetActorIds[0] === "a_recipient"
+    && event.values.statusId === "banner_commanded"),
+  "banner command records the recipient's next-action buff");
+}
+
+{
+  const result = simulateBattle(battle({
+    maxRounds: 2,
+    objective: { type: "survive_rounds", rounds: 2 },
+    characterId: "tactician",
+    activeSkillId: "heavy_crossbow_burst_bolt",
+    position: "rear_left",
+    enemies: [
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  equal(result.events.filter((event) => event.type === "damage_taken"
+    && event.skillId === "heavy_crossbow_burst_bolt").length, 2,
+  "heavy crossbow burst preparation resolves across the anchored enemy row");
 }
 
 {

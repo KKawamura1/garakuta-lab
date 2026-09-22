@@ -65,22 +65,28 @@ import {
   MEDICAL_KIT_REACTIVE_SKILLS,
   MEDICAL_KIT_TARGET_SKILLS,
   MEDICAL_KIT_TREE,
+} from "./weapon-medical-kit.mjs";
+import {
   GRAPPLING_HOOK_ACTIVE_SKILLS,
   GRAPPLING_HOOK_PASSIVE_SKILLS,
   GRAPPLING_HOOK_REACTIVE_SKILLS,
   GRAPPLING_HOOK_TARGET_SKILLS,
   GRAPPLING_HOOK_TREE,
+} from "./weapon-grappling-hook.mjs";
+import {
   BANNER_ACTIVE_SKILLS,
   BANNER_PASSIVE_SKILLS,
   BANNER_REACTIVE_SKILLS,
   BANNER_TARGET_SKILLS,
   BANNER_TREE,
+} from "./weapon-banner.mjs";
+import {
   HEAVY_CROSSBOW_ACTIVE_SKILLS,
   HEAVY_CROSSBOW_PASSIVE_SKILLS,
   HEAVY_CROSSBOW_REACTIVE_SKILLS,
   HEAVY_CROSSBOW_TARGET_SKILLS,
   HEAVY_CROSSBOW_TREE,
-} from "./weapon-root-slices.mjs";
+} from "./weapon-heavy-crossbow.mjs";
 import {
   IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
@@ -175,16 +181,14 @@ import {
 // R25 weapon acquisition: manifests now freeze enabledWeaponIds independently
 // from packs. The dual-blades A→AA slice also establishes pre-action movement
 // that keys off the shared resolved reach class, never a particular active ID.
-// Stage 0 の攻撃系として格闘具・射出器をR〜BBの19節へ接続し、
-// Stage 1 の大盾・長槍も同じ19節registryへ接続した。残る4武器（Stage 0の医療具、
-// Stage 2の鉤縄、Stage 3の号旗・重弩）はR節の入口を同じ経路へ接続している。
+// Stage 0 の攻撃系として格闘具・射出器・医療具をR〜BBの19節へ接続し、
+// Stage 1 の大盾・長槍、Stage 2 の鉤縄、Stage 3 の号旗・重弩も同じ
+// registryへ接続した。
 // R25 dual-blades completion: AB/B/BA/BB branches, reserve-blade status,
 // round-robin hit distribution, and explicit skipped-hit packet amounts.
-// R25/R26 weapon roots: the remaining four weapons now have a content-backed R
-// entry; medical treatment is finite per battle and taunt is a generic target
-// selection status. Stage 0's gauntlets and launcher, followed by Stage 1's
-// tower shield and long spear, expose their full nineteen-node trees.
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-38";
+// R27 weapon completion: the remaining four weapons expose their full trees.
+// 医療具の主行動は防壁中心、蘇生は有限RPの反応へ置く。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-39";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -275,7 +279,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.27",
+  contentVersion: "ecology-playable-full-0.28",
   characters: CHARACTERS,
   activeSkills: Object.freeze({
     ...ACTIVE_SKILLS,
@@ -290,10 +294,8 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...BANNER_ACTIVE_SKILLS,
     ...HEAVY_CROSSBOW_ACTIVE_SKILLS,
   }),
-  // The staged weapon-tree implementation starts with the contract and UI.
-  // Stage 1 now has complete tower-shield and long-spear trees; Stage 2/3
-  // roots remain intentionally small until their shared event vocabulary is
-  // implemented. Fixture-only selectors must never leak into playable content.
+  // All ten weapon trees are now content-backed. Fixture-only selectors must
+  // never leak into playable content.
   targetSkills: Object.freeze({
     ...WARHAMMER_TARGET_SKILLS,
     ...DUAL_BLADES_TARGET_SKILLS,

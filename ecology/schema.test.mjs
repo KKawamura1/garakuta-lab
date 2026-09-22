@@ -73,12 +73,11 @@ expectRejected(
   "unknown event type",
 );
 
-expectRejected(
+expectValid(
   content((bundle) => {
     bundle.reactiveSkills.counter_blow.rule.listenTo = "actor_revived";
   }),
-  "reserved_event_type",
-  "reserved event type",
+  "implemented revive event type",
 );
 
 expectRejected(

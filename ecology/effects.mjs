@@ -157,6 +157,7 @@ export function applyEffect(rt, ctx, effect) {
     case "start_preparation": return startPreparation(rt, ctx, effect);
     case "advance_preparation": return advancePreparation(rt, ctx, effect);
     case "interrupt_preparation": return interruptPreparation(rt, ctx, effect);
+    case "revive": return revive(rt, ctx, effect);
     case "wear_equipment": return wearEquipmentEffect(rt, ctx, effect);
     case "repair_equipment": return repairEquipmentEffect(rt, ctx, effect);
     case "modify_pending_amount": return modifyPendingAmount(rt, ctx, effect);
@@ -591,6 +592,33 @@ function defeatActor(rt, ctx, target, parentEventId) {
   }
 }
 
+// A finite rescue effect is intentionally generic: content chooses when it is
+// paid for and how much HP returns. A defeated actor remains in the actor
+// registry, so the effect can target it through event_targets or an
+// `alive: false` query without introducing a weapon-specific branch here.
+function revive(rt, ctx, effect) {
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    if (target.alive) continue;
+    const requested = evaluateValue(rt.state, ctx, effect.amount);
+    const amount = Math.min(target.maxHp, Math.max(1, requested));
+    const hpBefore = target.hp;
+    target.hp = amount;
+    target.alive = true;
+    target.inQueue = false;
+    target.recoveredDamage = 0;
+    target.preparation = null;
+    target.actionPoints = target.baseActionPoints;
+    target.reactionPoints = target.baseReactionPoints;
+    rt.emit({
+      type: "actor_revived",
+      ...sourceFields(ctx),
+      targetActorIds: [target.instanceId],
+      tags: effect.tags ?? ["revive"],
+      values: { requested, amount, hpBefore, hpAfter: target.hp },
+    });
+  }
+}
+
 // §12.2 — healing.
 function applyHealing(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
@@ -699,7 +727,7 @@ function gainBarrier(rt, ctx, effect) {
         type: "barrier_proposed",
         ...sourceFields(ctx),
         targetActorIds: [target.instanceId],
-        tags: [effect.duration],
+        tags: [effect.duration, ...(effect.tags ?? [])],
         values: { amount: proposed, duration: effect.duration },
       },
       frame,
@@ -720,7 +748,7 @@ function gainBarrier(rt, ctx, effect) {
       ...sourceFields(ctx),
       parentEventId: event.id,
       targetActorIds: [finalTarget.instanceId],
-      tags: [effect.duration],
+      tags: [effect.duration, ...(effect.tags ?? [])],
       values: {
         amount,
         proposed,
@@ -743,7 +771,7 @@ function gainResource(rt, ctx, effect) {
       type: "resource_gained",
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
-      tags: [effect.resource],
+      tags: [effect.resource, ...(effect.tags ?? [])],
       values: { resource: effect.resource, amount, before, after: target[key] },
     });
     // §11.3 — engine.mjs makes a gained action point available on the next

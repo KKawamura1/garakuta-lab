@@ -7,12 +7,10 @@ import { GAUNTLETS_TREE } from "./weapon-gauntlets.mjs";
 import { LAUNCHER_TREE } from "./weapon-launcher.mjs";
 import { TOWER_SHIELD_TREE } from "./weapon-tower-shield.mjs";
 import { LONG_SPEAR_TREE } from "./weapon-long-spear.mjs";
-import {
-  MEDICAL_KIT_TREE,
-  GRAPPLING_HOOK_TREE,
-  BANNER_TREE,
-  HEAVY_CROSSBOW_TREE,
-} from "./weapon-root-slices.mjs";
+import { MEDICAL_KIT_TREE } from "./weapon-medical-kit.mjs";
+import { GRAPPLING_HOOK_TREE } from "./weapon-grappling-hook.mjs";
+import { BANNER_TREE } from "./weapon-banner.mjs";
+import { HEAVY_CROSSBOW_TREE } from "./weapon-heavy-crossbow.mjs";
 
 // R25設計PR #287 §8・§12 — 五人は署名武器と副武器を一つずつ導入する。
 // CampaignのStageは加入済み人物を累積して持つため、manifestの武器も同じ順で累積する。
@@ -49,7 +47,7 @@ const WEAPON_CATALOG = Object.freeze([
     introducedByCharacterId: "mender",
     signatureCharacterId: null,
     role: "secondary",
-    summary: "傷を直接戻し、時間と命を支払って生存を延ばす。",
+    summary: "傷を直接戻さず防壁へ変え、反応と蘇生で生存を延ばす。",
   },
   {
     id: "tower_shield",
@@ -132,9 +130,8 @@ const ALL_TREES = [
 ];
 
 // 「catalogに載っている」ことと「今UIへ出せる」ことを混同しない。
-// R25では戦槌・双刃に続いてStage 0の格闘具・射出器も19節まで実装し、
-// Stage 1〜3の6武器はR節の入口を持つ。未実装の深い枝は各武器のmanifest行に
-// 「準備中」として残し、空の技能ツリーは作らない。
+// R27で10武器すべてを19節まで実装した。manifestの解禁順は武器の
+// availabilityだけを制御し、ツリー定義そのものはここで欠落させない。
 export const IMPLEMENTED_WEAPON_IDS = Object.freeze(
   [...new Set(ALL_TREES.map((node) => node.weaponId))],
 );

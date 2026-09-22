@@ -528,6 +528,7 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.duration`, effect.duration, BARRIER_DURATIONS, "unknown_duration");
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     // R6 §6.7 — PHASE A. block は charge（回数）なので離散量。
     case "gain_block":
@@ -539,6 +540,7 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.resource`, effect.resource, RESOURCE_NAMES, "unknown_resource");
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     case "add_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -600,6 +602,11 @@ function validateEffect(bag, path, effect, ctx) {
       break;
     case "interrupt_preparation":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      break;
+    case "revive":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     case "wear_equipment":
     case "repair_equipment":

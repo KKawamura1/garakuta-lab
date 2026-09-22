@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.27",
+ "contentVersion": "ecology-playable-full-0.28",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.27",
+  "contentVersion": "ecology-playable-full-0.28",
   "characters": {
    "warden": {
     "id": "warden",
@@ -5753,6 +5753,486 @@
      "playable"
     ]
    },
+   "medical_kit_major_treatment": {
+    "id": "medical_kit_major_treatment",
+    "displayName": "大治療",
+    "displayEffect": "HP割合が最も低い味方1人に技術160%の防壁。",
+    "flavorText": "包帯の数ではなく、受け止める厚みを選ぶ。",
+    "weaponId": "medical_kit",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "medical_kit_treatment",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lt",
+       "value": 100
+      }
+     ],
+     "sort": [
+      "hp_percent_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 16000
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "weapon",
+       "medical_kit"
+      ]
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_full_procedure": {
+    "id": "medical_kit_full_procedure",
+    "displayName": "全快処置",
+    "displayEffect": "HP割合が最も低い味方1人に技術250%の防壁。負の状態をすべて除く。",
+    "flavorText": "戻せないものを戻す代わりに、これから来るものを全部受ける。",
+    "weaponId": "medical_kit",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "medical_kit_major_treatment",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lt",
+       "value": 100
+      }
+     ],
+     "sort": [
+      "hp_percent_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 25000
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "weapon",
+       "medical_kit"
+      ]
+     },
+     {
+      "type": "remove_statuses",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "polarity": "negative"
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_field_treatment": {
+    "id": "medical_kit_field_treatment",
+    "displayName": "野戦治療",
+    "displayEffect": "生存している味方全員に技術100%の防壁。",
+    "flavorText": "一人を完璧にするより、全員を次の一拍まで残す。",
+    "weaponId": "medical_kit",
+    "treePosition": "AB3",
+    "replacesActiveSkillId": "medical_kit_major_treatment",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "hp_percent_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_percent_asc"
+     ],
+     "take": "all"
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 10000
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "weapon",
+       "medical_kit"
+      ]
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_transfusion": {
+    "id": "medical_kit_transfusion",
+    "displayName": "輸血",
+    "displayEffect": "他の味方1人に技術220%の防壁を作り、自分のHPを最大値の20%失う。",
+    "flavorText": "命を分けるなら、こちらの分も同じ針へ通す。",
+    "weaponId": "medical_kit",
+    "treePosition": "B3",
+    "replacesActiveSkillId": "medical_kit_treatment",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_desc"
+       ],
+       "take": 1
+      }
+     },
+     {
+      "type": "hp_percent",
+      "subject": "self",
+      "op": "gt",
+      "value": 20
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "actor_stat_scaled",
+       "subject": "self",
+       "stat": "max_hp",
+       "numerator": 20,
+       "denominator": 100
+      },
+      "guardPierceBps": 10000,
+      "tags": [
+       "cost",
+       "medical_kit"
+      ]
+     },
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 22000
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "weapon",
+       "medical_kit",
+       "transfusion"
+      ]
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_regenerative_procedure": {
+    "id": "medical_kit_regenerative_procedure",
+    "displayName": "再生処置",
+    "displayEffect": "味方1人に技術180%の防壁と再生薬3。",
+    "flavorText": "いまの壁が消えても、次のラウンドの入口へ薬を置く。",
+    "weaponId": "medical_kit",
+    "treePosition": "BA3",
+    "replacesActiveSkillId": "medical_kit_transfusion",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lt",
+       "value": 100
+      }
+     ],
+     "sort": [
+      "hp_percent_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 18000
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "weapon",
+       "medical_kit"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "medical_kit_regeneration",
+      "stacks": 3
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_time_surgery": {
+    "id": "medical_kit_time_surgery",
+    "displayName": "時間外手術",
+    "displayEffect": "戦闘中1回、倒れた味方を最大HP50%で蘇生。倒れた味方がいなければ不発。",
+    "flavorText": "倒れる時間を消せないなら、倒れる前の一拍を長くする。",
+    "weaponId": "medical_kit",
+    "treePosition": "BB3",
+    "replacesActiveSkillId": "medical_kit_transfusion",
+    "usesPerBattle": 1,
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive",
+         "value": false
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      }
+     },
+     {
+      "type": "hp_percent",
+      "subject": "self",
+      "op": "gt",
+      "value": 25
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive",
+       "value": false
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "actor_stat_scaled",
+       "subject": "self",
+       "stat": "max_hp",
+       "numerator": 25,
+       "denominator": 100
+      },
+      "guardPierceBps": 10000,
+      "tags": [
+       "cost",
+       "medical_kit",
+       "time_surgery"
+      ]
+     },
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 25000
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "weapon",
+       "medical_kit"
+      ]
+     },
+     {
+      "type": "revive",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "actor_stat_scaled",
+       "subject": "event_primary_target",
+       "stat": "max_hp",
+       "numerator": 50,
+       "denominator": 100
+      },
+      "tags": [
+       "support",
+       "medical_kit",
+       "surgery"
+      ]
+     },
+     {
+      "type": "remove_statuses",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "polarity": "negative"
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "medical_kit",
+     "playable"
+    ]
+   },
    "tower_shield_draw_guard": {
     "id": "tower_shield_draw_guard",
     "displayName": "守りを引く",
@@ -6660,7 +7140,8 @@
       "tags": [
        "attack",
        "weapon",
-       "grappling_hook"
+       "grappling_hook",
+       "long"
       ]
      },
      {
@@ -6676,13 +7157,450 @@
      "attack",
      "weapon",
      "grappling_hook",
+     "long",
+     "playable"
+    ]
+   },
+   "grappling_hook_strong_pull": {
+    "id": "grappling_hook_strong_pull",
+    "displayName": "強引き",
+    "displayEffect": "敵1体に技術130%のダメージを与え、前列の空きへ引く。",
+    "flavorText": "縄が軋む音の方が、敵の足音より早い。",
+    "weaponId": "grappling_hook",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "grappling_hook_pull",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 13000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "grappling_hook",
+       "long"
+      ]
+     },
+     {
+      "type": "move_to_open_row",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "row": "front"
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "grappling_hook",
+     "long",
+     "playable"
+    ]
+   },
+   "grappling_hook_capture": {
+    "id": "grappling_hook_capture",
+    "displayName": "捕縛",
+    "displayEffect": "敵1体に技術190%のダメージを与え、敵後列の空きへ移す。",
+    "flavorText": "引き寄せるだけでは足りない。逃げる先まで縄で決める。",
+    "weaponId": "grappling_hook",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "grappling_hook_strong_pull",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 19000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "grappling_hook",
+       "long"
+      ]
+     },
+     {
+      "type": "move_to_open_row",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "row": "rear"
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "grappling_hook",
+     "long",
+     "playable"
+    ]
+   },
+   "grappling_hook_throw_lasso": {
+    "id": "grappling_hook_throw_lasso",
+    "displayName": "投げ縄",
+    "displayEffect": "敵1体に技術100%のダメージを与え、前列へ投げて隙1。",
+    "flavorText": "足元を取れば、相手の一歩は味方の一手へ変わる。",
+    "weaponId": "grappling_hook",
+    "treePosition": "B3",
+    "replacesActiveSkillId": "grappling_hook_pull",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 10000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "grappling_hook",
+       "long"
+      ]
+     },
+     {
+      "type": "move_to_open_row",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "row": "front"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "grappling_hook",
+     "long",
+     "playable"
+    ]
+   },
+   "grappling_hook_rescue": {
+    "id": "grappling_hook_rescue",
+    "displayName": "救出",
+    "displayEffect": "HP35%以下の前列味方を後列の空きへ移し、防壁50を作る。対象がなければ最も傷ついた味方へ防壁50。",
+    "flavorText": "引く先は敵だけではない。戻れる場所も縄で作る。",
+    "weaponId": "grappling_hook",
+    "treePosition": "AB3",
+    "replacesActiveSkillId": "grappling_hook_pull",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lte",
+         "value": 35
+        }
+       ],
+       "sort": [
+        "hp_percent_asc"
+       ],
+       "take": 1
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "front"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lte",
+       "value": 35
+      }
+     ],
+     "sort": [
+      "hp_percent_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "move_to_open_row",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "row": "front"
+     },
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "constant",
+       "value": 50
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "grappling_hook",
+       "rescue"
+      ]
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_net_field": {
+    "id": "grappling_hook_net_field",
+    "displayName": "網場",
+    "displayEffect": "敵1体に技術120%のダメージを与え、縄印を置いて前列へ落とす。",
+    "flavorText": "地面に残った印が、次の引き先を決める。",
+    "weaponId": "grappling_hook",
+    "treePosition": "BA3",
+    "replacesActiveSkillId": "grappling_hook_throw_lasso",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 12000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "grappling_hook",
+       "long"
+      ]
+     },
+     {
+      "type": "move_to_open_row",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "row": "front"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "statusId": "grappling_hook_mark",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "grappling_hook",
+     "long",
+     "playable"
+    ]
+   },
+   "grappling_hook_total_swap": {
+    "id": "grappling_hook_total_swap",
+    "displayName": "総入れ替え",
+    "displayEffect": "自分と別の味方の前後を交換し、移動した味方に防壁20を作る。戦闘1回。",
+    "flavorText": "隊列を一人ずつ直すのではなく、二人の帰る場所を同時に交換する。",
+    "weaponId": "grappling_hook",
+    "treePosition": "BB3",
+    "replacesActiveSkillId": "grappling_hook_throw_lasso",
+    "usesPerBattle": 1,
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_desc"
+       ],
+       "take": 1
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "swap_positions",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "otherTarget": {
+       "scope": "event_targets",
+       "take": 1
+      }
+     },
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "constant",
+       "value": 20
+      },
+      "duration": "round",
+      "tags": [
+       "support",
+       "grappling_hook",
+       "swap"
+      ]
+     }
+    ],
+    "tags": [
+     "support",
+     "weapon",
+     "grappling_hook",
      "playable"
     ]
    },
    "banner_command": {
     "id": "banner_command",
     "displayName": "号令",
-    "displayEffect": "自分以外の味方で、位置順が最後の1人にAP1。対象がいなければ通常行動へ戻る。",
+    "displayEffect": "自分以外の味方で位置順が最後の1人にAP1。",
     "flavorText": "老兵の一声が、もう一歩を生む。",
     "weaponId": "banner",
     "treePosition": "R",
@@ -6734,7 +7652,531 @@
       "amount": {
        "type": "constant",
        "value": 1
+      },
+      "tags": [
+       "support",
+       "banner"
+      ]
+     }
+    ],
+    "tags": [
+     "support",
+     "tempo",
+     "weapon",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_advance": {
+    "id": "banner_advance",
+    "displayName": "進め",
+    "displayEffect": "味方1人にAP1と、次の攻撃+10%。支援の声が通れば合計+25%。",
+    "flavorText": "旗を上げる。今いる場所から、次の一歩だけ前へ。",
+    "weaponId": "banner",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "banner_command",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_desc"
+       ],
+       "take": 1
       }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_resource",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "resource": "action_points",
+      "amount": {
+       "type": "constant",
+       "value": 1
+      },
+      "tags": [
+       "support",
+       "banner"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_commanded",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "support",
+     "tempo",
+     "weapon",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_total_assault": {
+    "id": "banner_total_assault",
+    "displayName": "総進撃",
+    "displayEffect": "自分以外の味方全員にAP1と、次の2行動を強める号旗の鼓舞2。",
+    "flavorText": "一人の足を押す声を、隊全体の進撃へ広げる。",
+    "weaponId": "banner",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "banner_advance",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": "all"
+    },
+    "effects": [
+     {
+      "type": "gain_resource",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "resource": "action_points",
+      "amount": {
+       "type": "constant",
+       "value": 1
+      },
+      "tags": [
+       "support",
+       "banner",
+       "grand"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_commanded",
+      "stacks": 2
+     }
+    ],
+    "tags": [
+     "support",
+     "tempo",
+     "weapon",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_line_advance": {
+    "id": "banner_line_advance",
+    "displayName": "列進",
+    "displayEffect": "後列の味方全員へAP1と次の攻撃+15%。前列へ揃い足を置く。",
+    "flavorText": "列を一つ前へ揃えれば、支援の声が届く距離も揃う。",
+    "weaponId": "banner",
+    "treePosition": "AB3",
+    "replacesActiveSkillId": "banner_advance",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        },
+        {
+         "type": "row_is",
+         "row": "rear"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      },
+      {
+       "type": "row_is",
+       "row": "rear"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": "all"
+    },
+    "effects": [
+     {
+      "type": "gain_resource",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "resource": "action_points",
+      "amount": {
+       "type": "constant",
+       "value": 1
+      },
+      "tags": [
+       "support",
+       "banner",
+       "line"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_commanded",
+      "stacks": 1
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_line_step",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "support",
+     "tempo",
+     "weapon",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_hurry": {
+    "id": "banner_hurry",
+    "displayName": "急かす",
+    "displayEffect": "味方1人の準備を1段進め、AP1と次の攻撃+10%。",
+    "flavorText": "待つ時間を、待てという命令で終わらせる。",
+    "weaponId": "banner",
+    "treePosition": "B3",
+    "replacesActiveSkillId": "banner_command",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_desc"
+       ],
+       "take": 1
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "advance_preparation",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "amount": {
+       "type": "constant",
+       "value": 1
+      }
+     },
+     {
+      "type": "gain_resource",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "resource": "action_points",
+      "amount": {
+       "type": "constant",
+       "value": 1
+      },
+      "tags": [
+       "support",
+       "banner",
+       "hurry"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_commanded",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "support",
+     "tempo",
+     "weapon",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_borrowed_command": {
+    "id": "banner_borrowed_command",
+    "displayName": "前借り命令",
+    "displayEffect": "味方1人にAP3と号旗の鼓舞2を渡し、借り札3を残す。",
+    "flavorText": "今の三歩を借りるなら、返す場所まで旗に書く。",
+    "weaponId": "banner",
+    "treePosition": "BA3",
+    "replacesActiveSkillId": "banner_hurry",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "sort": [
+        "position_desc"
+       ],
+       "take": 1
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_resource",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "resource": "action_points",
+      "amount": {
+       "type": "constant",
+       "value": 3
+      },
+      "tags": [
+       "support",
+       "banner",
+       "borrow"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_commanded",
+      "stacks": 2
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_debt",
+      "stacks": 3
+     }
+    ],
+    "tags": [
+     "support",
+     "tempo",
+     "weapon",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_last_command": {
+    "id": "banner_last_command",
+    "displayName": "最後の号令",
+    "displayEffect": "戦闘1回。自分以外の味方全員にAP1と号旗の鼓舞2。",
+    "flavorText": "最後の一拍だけは、全員のために同じ方向へ倒す。",
+    "weaponId": "banner",
+    "treePosition": "BB3",
+    "replacesActiveSkillId": "banner_borrowed_command",
+    "usesPerBattle": 1,
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "hp_percent_asc"
+       ],
+       "take": 1
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "allies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "not_self"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": "all"
+    },
+    "effects": [
+     {
+      "type": "gain_resource",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "resource": "action_points",
+      "amount": {
+       "type": "constant",
+       "value": 1
+      },
+      "tags": [
+       "support",
+       "banner",
+       "last"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "banner_commanded",
+      "stacks": 2
      }
     ],
     "tags": [
@@ -6796,6 +8238,7 @@
         "attack",
         "weapon",
         "heavy_crossbow",
+        "ranged",
         "prepared"
        ]
       }
@@ -6805,6 +8248,436 @@
      "attack",
      "weapon",
      "heavy_crossbow",
+     "ranged",
+     "prepared",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_heavy_loaded_shot": {
+    "id": "heavy_crossbow_heavy_loaded_shot",
+    "displayName": "重装填射",
+    "displayEffect": "準備1の後、最も近い敵1体に腕力280%のダメージ。",
+    "flavorText": "弦を引く音を、着弾の前奏にする。",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "heavy_crossbow_loaded_shot",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [],
+    "preparation": {
+     "steps": 1,
+     "completionEffects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 28000
+       },
+       "rangeClass": "ranged",
+       "tags": [
+        "attack",
+        "weapon",
+        "heavy_crossbow",
+        "ranged",
+        "prepared"
+       ]
+      }
+     ]
+    },
+    "tags": [
+     "attack",
+     "weapon",
+     "heavy_crossbow",
+     "ranged",
+     "prepared",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_siege_breaker": {
+    "id": "heavy_crossbow_siege_breaker",
+    "displayName": "城砕き",
+    "displayEffect": "準備1の後、最も近い敵1体に腕力400%のダメージ。防御を16無視する。",
+    "flavorText": "城門の厚みごと、一発の理由にする。",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "heavy_crossbow_heavy_loaded_shot",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [],
+    "preparation": {
+     "steps": 1,
+     "completionEffects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 40000
+       },
+       "rangeClass": "ranged",
+       "guardPierceBps": 1600,
+       "tags": [
+        "attack",
+        "weapon",
+        "heavy_crossbow",
+        "ranged",
+        "prepared"
+       ]
+      }
+     ]
+    },
+    "tags": [
+     "attack",
+     "weapon",
+     "heavy_crossbow",
+     "ranged",
+     "prepared",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_burst_bolt": {
+    "id": "heavy_crossbow_burst_bolt",
+    "displayName": "破裂矢",
+    "displayEffect": "準備1の後、対象と同じ列の敵全員に腕力220%。",
+    "flavorText": "一つの着弾を、列の圧力へ割る。",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "AB3",
+    "replacesActiveSkillId": "heavy_crossbow_heavy_loaded_shot",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [],
+    "preparation": {
+     "steps": 1,
+     "completionEffects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 22000
+       },
+       "rangeClass": "ranged",
+       "targetPattern": "row",
+       "tags": [
+        "attack",
+        "weapon",
+        "heavy_crossbow",
+        "ranged",
+        "prepared"
+       ]
+      }
+     ]
+    },
+    "tags": [
+     "attack",
+     "weapon",
+     "heavy_crossbow",
+     "ranged",
+     "prepared",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_reserved_shot": {
+    "id": "heavy_crossbow_reserved_shot",
+    "displayName": "予約射",
+    "displayEffect": "最大HPの敵を予約し、準備1の後に腕力320%のダメージ。",
+    "flavorText": "大物を先に決めれば、準備の時間も照準になる。",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "B3",
+    "replacesActiveSkillId": "heavy_crossbow_loaded_shot",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_desc",
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [],
+    "preparation": {
+     "steps": 1,
+     "completionEffects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "hp_desc",
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 32000
+       },
+       "rangeClass": "ranged",
+       "tags": [
+        "attack",
+        "weapon",
+        "heavy_crossbow",
+        "ranged",
+        "prepared"
+       ]
+      }
+     ]
+    },
+    "tags": [
+     "attack",
+     "weapon",
+     "heavy_crossbow",
+     "ranged",
+     "prepared",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_timed_bolt": {
+    "id": "heavy_crossbow_timed_bolt",
+    "displayName": "時限矢",
+    "displayEffect": "準備1の後、最大HPの敵に腕力300%のダメージと時限印3。",
+    "flavorText": "矢を放つ前から、踏んだ後の時間まで決めておく。",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "BA3",
+    "replacesActiveSkillId": "heavy_crossbow_reserved_shot",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_desc",
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [],
+    "preparation": {
+     "steps": 1,
+     "completionEffects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "hp_desc",
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 30000
+       },
+       "rangeClass": "ranged",
+       "tags": [
+        "attack",
+        "weapon",
+        "heavy_crossbow",
+        "ranged",
+        "prepared"
+       ]
+      },
+      {
+       "type": "add_status",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "hp_desc",
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "statusId": "heavy_crossbow_detonation",
+       "stacks": 3
+      }
+     ]
+    },
+    "tags": [
+     "attack",
+     "weapon",
+     "heavy_crossbow",
+     "ranged",
+     "prepared",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_three_time_shot": {
+    "id": "heavy_crossbow_three_time_shot",
+    "displayName": "三時射",
+    "displayEffect": "準備1の後、同じ敵へ腕力260%の矢を3hit。次弾を2段使い切る。",
+    "flavorText": "三つの未来を一つの標的へ重ねる。",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "BB3",
+    "replacesActiveSkillId": "heavy_crossbow_reserved_shot",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_desc",
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [],
+    "preparation": {
+     "steps": 1,
+     "completionEffects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "hp_desc",
+         "position_asc"
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 26000
+       },
+       "rangeClass": "ranged",
+       "hitCount": 3,
+       "tags": [
+        "attack",
+        "weapon",
+        "heavy_crossbow",
+        "ranged",
+        "prepared"
+       ]
+      }
+     ]
+    },
+    "tags": [
+     "attack",
+     "weapon",
+     "heavy_crossbow",
+     "ranged",
      "prepared",
      "playable"
     ]
@@ -11546,6 +13419,226 @@
      "playable"
     ]
    },
+   "medical_kit_emergency_revive": {
+    "id": "medical_kit_emergency_revive",
+    "displayName": "緊急蘇生",
+    "weaponId": "medical_kit",
+    "treePosition": "B2",
+    "displayEffect": "味方が倒れた時、RP2で技術80%のHPで蘇生する。",
+    "flavorText": "倒れる音を、戦線から消える合図にはしない。",
+    "rules": [
+     {
+      "id": "medical_kit_emergency_revive_rule",
+      "listenTo": "actor_defeated",
+      "timing": "after",
+      "priority": 91,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "revive",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "amount": {
+         "type": "actor_stat_scaled",
+         "subject": "event_primary_target",
+         "stat": "max_hp",
+         "numerator": 80,
+         "denominator": 100
+        },
+        "tags": [
+         "support",
+         "medical_kit",
+         "emergency"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_regenerative_drug": {
+    "id": "medical_kit_regenerative_drug",
+    "displayName": "再生薬",
+    "weaponId": "medical_kit",
+    "treePosition": "BA2",
+    "displayEffect": "味方へ医療具の防壁を作った時、RP1で再生薬3を付ける。",
+    "flavorText": "壁が壊れた後にも、もう一度だけ入口を作っておく。",
+    "rules": [
+     {
+      "id": "medical_kit_regenerative_drug_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 75,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "medical_kit_regeneration",
+        "stacks": 3
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_life_collateral": {
+    "id": "medical_kit_life_collateral",
+    "displayName": "生命担保",
+    "weaponId": "medical_kit",
+    "treePosition": "BB2",
+    "displayEffect": "予備血がある時、RP1で倒れた味方を技術50%のHPで蘇生し、予備血を使い切る。",
+    "flavorText": "残していた分を、最後の一人へ全部渡す。",
+    "rules": [
+     {
+      "id": "medical_kit_life_collateral_rule",
+      "listenTo": "actor_defeated",
+      "timing": "after",
+      "priority": 92,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_reserve_blood",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "revive",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "amount": {
+         "type": "actor_stat_scaled",
+         "subject": "event_primary_target",
+         "stat": "max_hp",
+         "numerator": 50,
+         "denominator": 100
+        },
+        "tags": [
+         "support",
+         "medical_kit",
+         "reserve"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "medical_kit_reserve_blood",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
    "tower_shield_interpose": {
     "id": "tower_shield_interpose",
     "displayName": "盾を差す",
@@ -12111,6 +14204,727 @@
      "reaction",
      "tempo",
      "long_spear",
+     "playable"
+    ]
+   },
+   "grappling_hook_mark_step": {
+    "id": "grappling_hook_mark_step",
+    "displayName": "印を踏む",
+    "weaponId": "grappling_hook",
+    "treePosition": "BA2",
+    "displayEffect": "縄印を持つ対象が移動した時、RP1で敵に隙2、味方に集中1を付けて印を消費する。",
+    "flavorText": "印を踏んだ瞬間を、次の一手の合図にする。",
+    "rules": [
+     {
+      "id": "grappling_hook_mark_step_enemy_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 90,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "event_source",
+        "statusId": "grappling_hook_mark",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "exposed",
+        "stacks": 2
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "grappling_hook_mark",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "grappling_hook_mark_step_ally_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 89,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "event_source",
+        "statusId": "grappling_hook_mark",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "focused",
+        "stacks": 1
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "grappling_hook_mark",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "utility",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_rope_return": {
+    "id": "grappling_hook_rope_return",
+    "displayName": "縄返し",
+    "weaponId": "grappling_hook",
+    "treePosition": "BB2",
+    "displayEffect": "敵が移動した時、RP2でその敵を後列の空きへ戻し、対象を再評価する。",
+    "flavorText": "引かれた結果さえ、もう一度こちらの縄へ返す。",
+    "rules": [
+     {
+      "id": "grappling_hook_rope_return_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 88,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "move_to_open_row",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "row": "rear"
+       },
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "grappling_hook_anchor",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "utility",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "banner_breathe_together": {
+    "id": "banner_breathe_together",
+    "displayName": "息を合わせる",
+    "weaponId": "banner",
+    "treePosition": "A2",
+    "displayEffect": "非攻撃のAP支援後、RP1で対象へ号旗の鼓舞を追加する。",
+    "flavorText": "一人の声を、受け取った人の呼吸へ合わせる。",
+    "rules": [
+     {
+      "id": "banner_breathe_together_rule",
+      "listenTo": "resource_gained",
+      "timing": "after",
+      "priority": 90,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "resource",
+        "op": "eq",
+        "value": "action_points"
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "banner_commanded",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_two_beats": {
+    "id": "banner_two_beats",
+    "displayName": "二拍先",
+    "weaponId": "banner",
+    "treePosition": "AA2",
+    "displayEffect": "非攻撃のAP支援時、RP1で対象へ号旗の鼓舞を2段付ける。",
+    "flavorText": "一拍先ではなく、二拍先の足場まで先に置く。",
+    "rules": [
+     {
+      "id": "banner_two_beats_rule",
+      "listenTo": "resource_gained",
+      "timing": "after",
+      "priority": 89,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "resource",
+        "op": "eq",
+        "value": "action_points"
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "banner_commanded",
+        "stacks": 2
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_push_forward": {
+    "id": "banner_push_forward",
+    "displayName": "背を押す",
+    "weaponId": "banner",
+    "treePosition": "B2",
+    "displayEffect": "味方の行動開始時、RP1で準備を1段進め、次の攻撃+20%。",
+    "flavorText": "行動を始めた背中へ、旗の端をもう一度当てる。",
+    "rules": [
+     {
+      "id": "banner_push_forward_rule",
+      "listenTo": "actor_activated",
+      "timing": "after",
+      "priority": 88,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          },
+          {
+           "type": "not_self"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "advance_preparation",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 1
+        }
+       },
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "banner_commanded",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_debt_grace": {
+    "id": "banner_debt_grace",
+    "displayName": "返済猶予",
+    "weaponId": "banner",
+    "treePosition": "BA2",
+    "displayEffect": "ラウンド開始時、RP2で自分の借り札を1段免除する。",
+    "flavorText": "返す日を一拍だけ、旗の影へ移す。",
+    "rules": [
+     {
+      "id": "banner_debt_grace_rule",
+      "listenTo": "round_started",
+      "timing": "after",
+      "priority": 87,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_debt",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "banner_debt",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_buy_second": {
+    "id": "banner_buy_second",
+    "displayName": "一秒を買う",
+    "weaponId": "banner",
+    "treePosition": "BB2",
+    "displayEffect": "時間砂5段の時、RP2で砂をすべて使い、自分にAP1を返す。",
+    "flavorText": "配った時間を、一秒だけ自分の手へ戻す。",
+    "rules": [
+     {
+      "id": "banner_buy_second_rule",
+      "listenTo": "round_ended",
+      "timing": "after",
+      "priority": 86,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_time_sand",
+        "op": "gte",
+        "value": 5
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "banner_time_sand",
+        "stacks": "all"
+       },
+       {
+        "type": "gain_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "action_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        },
+        "tags": [
+         "support",
+         "banner",
+         "time"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "battle",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_trigger_detonation": {
+    "id": "heavy_crossbow_trigger_detonation",
+    "displayName": "起爆",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "BA2",
+    "displayEffect": "着弾印のある対象が移動した時、RP1で技術120%の起爆hitを与え、印を消す。",
+    "flavorText": "踏んだ瞬間に、予約していた一発を返す。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_detonation_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 91,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "event_source",
+         "filters": [
+          {
+           "type": "has_status",
+           "statusId": "heavy_crossbow_target_mark",
+           "op": "gte",
+           "value": 1
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 12000
+        },
+        "rangeClass": "long",
+        "tags": [
+         "attack",
+         "weapon",
+         "heavy_crossbow",
+         "detonation"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "heavy_crossbow_target_mark",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "attack",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_future_shot": {
+    "id": "heavy_crossbow_future_shot",
+    "displayName": "未来撃ち",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "BB2",
+    "displayEffect": "準備射の解決時、RP2と次弾1段で次のラウンドへAP1を持ち越す。",
+    "flavorText": "今の着弾の中へ、次の一発の影を重ねる。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_future_shot_rule",
+      "listenTo": "action_resolved",
+      "timing": "after",
+      "priority": 90,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "action_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        },
+        "tags": [
+         "support",
+         "heavy_crossbow",
+         "future"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "heavy_crossbow_ammo",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "attack",
+     "heavy_crossbow",
      "playable"
     ]
    }
@@ -17430,6 +20244,678 @@
      "playable"
     ]
    },
+   "medical_kit_clean_tools": {
+    "id": "medical_kit_clean_tools",
+    "displayName": "清潔な器具",
+    "weaponId": "medical_kit",
+    "treePosition": "A1",
+    "displayEffect": "医療具が作る防壁の合計量+15%。",
+    "flavorText": "器具の清潔さは、そのまま受け止める厚みになる。",
+    "rules": [
+     {
+      "id": "medical_kit_clean_tools_rule",
+      "listenTo": "barrier_proposed",
+      "timing": "interrupt",
+      "priority": 41,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_wash": {
+    "id": "medical_kit_wash",
+    "displayName": "洗浄",
+    "weaponId": "medical_kit",
+    "treePosition": "A2",
+    "displayEffect": "医療具の防壁を受けた味方から、負の状態を1種類除く。",
+    "flavorText": "傷口の周りに残ったものを、壁の内側へ持ち込まない。",
+    "rules": [
+     {
+      "id": "medical_kit_wash_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 82,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "remove_statuses",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "polarity": "negative"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_stimulant_protocol": {
+    "id": "medical_kit_stimulant_protocol",
+    "displayName": "強心剤",
+    "weaponId": "medical_kit",
+    "treePosition": "AA1",
+    "displayEffect": "防壁を受けた味方に、攻撃+20%の活性剤を付ける。",
+    "flavorText": "守られた一拍を、そのまま打ち返す力へ変える。",
+    "rules": [
+     {
+      "id": "medical_kit_stimulant_protocol_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 81,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "medical_kit_stimulant",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_surplus_bandage": {
+    "id": "medical_kit_surplus_bandage",
+    "displayName": "余剰包帯",
+    "weaponId": "medical_kit",
+    "treePosition": "AA2",
+    "displayEffect": "防壁を受けた味方に、次の被弾を包む予備包帯を残す。",
+    "flavorText": "余ったものは捨てず、次の穴が開く場所へ折っておく。",
+    "rules": [
+     {
+      "id": "medical_kit_surplus_bandage_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 80,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "medical_kit_surplus",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_wide_spray": {
+    "id": "medical_kit_wide_spray",
+    "displayName": "広域散布",
+    "weaponId": "medical_kit",
+    "treePosition": "AB1",
+    "displayEffect": "単体の医療具支援が、次に傷の深い別の味方にも届く。",
+    "flavorText": "一人へ吹いた霧が、隣の呼吸まで拾う。",
+    "rules": [
+     {
+      "id": "medical_kit_wide_spray_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 78,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "not_self"
+          },
+          {
+           "type": "hp_percent",
+           "op": "lt",
+           "value": 100
+          }
+         ],
+         "sort": [
+          "hp_percent_asc"
+         ],
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 5000
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "medical_kit",
+         "wide_spray"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_equal_dose": {
+    "id": "medical_kit_equal_dose",
+    "displayName": "同量投与",
+    "weaponId": "medical_kit",
+    "treePosition": "AB2",
+    "displayEffect": "複数対象へ作る医療具の防壁に、対象数による減衰を置かない。",
+    "flavorText": "全員へ配るなら、全員へ同じ厚みで配る。",
+    "rules": [
+     {
+      "id": "medical_kit_equal_dose_rule",
+      "listenTo": "barrier_proposed",
+      "timing": "interrupt",
+      "priority": 40,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 10,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_danger_zone": {
+    "id": "medical_kit_danger_zone",
+    "displayName": "危険域",
+    "weaponId": "medical_kit",
+    "treePosition": "B1",
+    "displayEffect": "HP25%以下の味方へ作る防壁量+100%。",
+    "flavorText": "危険域では、包帯より先に厚い壁を置く。",
+    "rules": [
+     {
+      "id": "medical_kit_danger_zone_rule",
+      "listenTo": "barrier_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       },
+       {
+        "type": "hp_percent",
+        "subject": "event_primary_target",
+        "op": "lte",
+        "value": 25
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 100,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_active_agent": {
+    "id": "medical_kit_active_agent",
+    "displayName": "活性剤",
+    "weaponId": "medical_kit",
+    "treePosition": "BA1",
+    "displayEffect": "医療具の防壁を受けた味方へ、攻撃を強める活性剤を渡す。",
+    "flavorText": "包帯の下で脈が戻ったなら、次の手は早くなる。",
+    "rules": [
+     {
+      "id": "medical_kit_active_agent_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 77,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "medical_kit_stimulant",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
+   "medical_kit_reserve_blood_protocol": {
+    "id": "medical_kit_reserve_blood_protocol",
+    "displayName": "予備血",
+    "weaponId": "medical_kit",
+    "treePosition": "BB1",
+    "displayEffect": "医療具の支援を受けた味方に予備血を残し、次の被弾で防壁へ変える。",
+    "flavorText": "使う時まで、血は静かに待たせる。",
+    "rules": [
+     {
+      "id": "medical_kit_reserve_blood_skill_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 76,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "medical_kit",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "medical_kit_reserve_blood",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "medical_kit_reserve_blood_spend_rule",
+      "listenTo": "damage_taken",
+      "timing": "after",
+      "priority": 54,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "cost",
+        "value": false
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_surplus",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 5000
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "medical_kit",
+         "reserve"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "medical_kit_surplus",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "medical_kit",
+     "playable"
+    ]
+   },
    "tower_shield_thick_plate": {
     "id": "tower_shield_thick_plate",
     "displayName": "厚板",
@@ -19207,6 +22693,1815 @@
      "passive",
      "tempo",
      "long_spear",
+     "playable"
+    ]
+   },
+   "grappling_hook_iron_hook": {
+    "id": "grappling_hook_iron_hook",
+    "displayName": "鉄鉤",
+    "weaponId": "grappling_hook",
+    "treePosition": "A1",
+    "displayEffect": "鉤縄の強制移動攻撃ダメージ+15%。",
+    "flavorText": "鉄の鉤は、引く前から傷を深くする。",
+    "rules": [
+     {
+      "id": "grappling_hook_iron_hook_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_long_rope": {
+    "id": "grappling_hook_long_rope",
+    "displayName": "長縄",
+    "weaponId": "grappling_hook",
+    "treePosition": "A2",
+    "displayEffect": "鉤縄を使うたび、長縄の固定印を自分へ残す。",
+    "flavorText": "遠くへ届く縄は、引き終わった後も手元に残る。",
+    "rules": [
+     {
+      "id": "grappling_hook_long_rope_rule",
+      "listenTo": "action_started",
+      "timing": "after",
+      "priority": 70,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "grappling_hook",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "grappling_hook_anchor",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "utility",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_winch": {
+    "id": "grappling_hook_winch",
+    "displayName": "巻き上げ",
+    "weaponId": "grappling_hook",
+    "treePosition": "AA1",
+    "displayEffect": "鉤縄の強制移動攻撃ダメージがさらに+20%。",
+    "flavorText": "巻き上げる手に、もう一段の力を込める。",
+    "rules": [
+     {
+      "id": "grappling_hook_winch_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_wall_strike": {
+    "id": "grappling_hook_wall_strike",
+    "displayName": "壁打ち",
+    "weaponId": "grappling_hook",
+    "treePosition": "AA2",
+    "displayEffect": "縄印のある敵への鉤縄攻撃ダメージ+50%。",
+    "flavorText": "逃げ場が印で塞がれていれば、壁そのものへ叩きつける。",
+    "rules": [
+     {
+      "id": "grappling_hook_wall_strike_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "has_status",
+           "statusId": "grappling_hook_mark",
+           "op": "gte",
+           "value": 1
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 50,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_raise": {
+    "id": "grappling_hook_raise",
+    "displayName": "引き上げ",
+    "weaponId": "grappling_hook",
+    "treePosition": "AB2",
+    "displayEffect": "鉤縄で味方を移動させると、その味方に防壁30。",
+    "flavorText": "引き上げた身体に、もう一度立てる厚みを添える。",
+    "rules": [
+     {
+      "id": "grappling_hook_raise_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 74,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 30
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "grappling_hook",
+         "raise"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_break_step": {
+    "id": "grappling_hook_break_step",
+    "displayName": "崩し足",
+    "weaponId": "grappling_hook",
+    "treePosition": "B1",
+    "displayEffect": "敵を1マス相当以上動かすと、敵に隙1。",
+    "flavorText": "足の下から道を抜けば、次の攻撃は深く入る。",
+    "rules": [
+     {
+      "id": "grappling_hook_break_step_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 73,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "exposed",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_run_signal": {
+    "id": "grappling_hook_run_signal",
+    "displayName": "走れの合図",
+    "weaponId": "grappling_hook",
+    "treePosition": "B2",
+    "displayEffect": "味方が移動すると、その味方の次の攻撃ダメージ+25%。",
+    "flavorText": "動いたなら、次の一歩まで止まらない。",
+    "rules": [
+     {
+      "id": "grappling_hook_run_signal_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 72,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "grappling_hook_rush",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_movement_marks": {
+    "id": "grappling_hook_movement_marks",
+    "displayName": "動いた印",
+    "weaponId": "grappling_hook",
+    "treePosition": "BA1",
+    "displayEffect": "強制移動した対象に、ラウンド中の縄印を残す。",
+    "flavorText": "足跡を残せば、次に引く場所が読める。",
+    "rules": [
+     {
+      "id": "grappling_hook_movement_marks_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 71,
+      "predicates": [
+       {
+        "type": "event_tag",
+        "tag": "move",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "grappling_hook_mark",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "utility",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "grappling_hook_two_point_anchor": {
+    "id": "grappling_hook_two_point_anchor",
+    "displayName": "二点固定",
+    "weaponId": "grappling_hook",
+    "treePosition": "BB1",
+    "displayEffect": "各ラウンド最初の移動記録2つに、味方なら防壁15、敵なら隙1を付ける。",
+    "flavorText": "始点と終点を二つだけ固定し、動いた結果を残す。",
+    "rules": [
+     {
+      "id": "grappling_hook_two_point_anchor_ally_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 70,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "amount": {
+         "type": "constant",
+         "value": 15
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "grappling_hook",
+         "anchor"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 2
+      }
+     },
+     {
+      "id": "grappling_hook_two_point_anchor_enemy_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 69,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_source",
+         "take": 1
+        },
+        "statusId": "exposed",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 2
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "grappling_hook",
+     "playable"
+    ]
+   },
+   "banner_clear_voice": {
+    "id": "banner_clear_voice",
+    "displayName": "声を通す",
+    "weaponId": "banner",
+    "treePosition": "A1",
+    "displayEffect": "号旗のAP支援を受けた味方の次の攻撃+15%。",
+    "flavorText": "声が通れば、支援はただの数字で終わらない。",
+    "rules": [
+     {
+      "id": "banner_clear_voice_rule",
+      "listenTo": "resource_gained",
+      "timing": "after",
+      "priority": 78,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "resource",
+        "op": "eq",
+        "value": "action_points"
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "banner_commanded",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_great_command": {
+    "id": "banner_great_command",
+    "displayName": "大号令",
+    "weaponId": "banner",
+    "treePosition": "AA1",
+    "displayEffect": "AP支援を受けた味方への号旗の鼓舞をさらに1段付ける。",
+    "flavorText": "一度届いた声を、もう一度だけ太くする。",
+    "rules": [
+     {
+      "id": "banner_great_command_rule",
+      "listenTo": "resource_gained",
+      "timing": "after",
+      "priority": 77,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "resource",
+        "op": "eq",
+        "value": "action_points"
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "banner_commanded",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_line_delivery": {
+    "id": "banner_line_delivery",
+    "displayName": "列へ届ける",
+    "weaponId": "banner",
+    "treePosition": "AB1",
+    "displayEffect": "味方1人への号旗の肯定的な支援を、その味方へもう一度届ける。",
+    "flavorText": "列の端へ届いた声を、同じ列の足元へ返す。",
+    "rules": [
+     {
+      "id": "banner_line_delivery_rule",
+      "listenTo": "status_added",
+      "timing": "after",
+      "priority": 76,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "positive",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "statusId",
+        "op": "eq",
+        "value": "banner_commanded"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "banner_commanded",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_synced_steps": {
+    "id": "banner_synced_steps",
+    "displayName": "揃い足",
+    "weaponId": "banner",
+    "treePosition": "AB2",
+    "displayEffect": "後列味方を支援した時、次の主行動まで前列へ揃い足を記録する。",
+    "flavorText": "足を揃えれば、同じ声を同じ距離で聞ける。",
+    "rules": [
+     {
+      "id": "banner_synced_steps_rule",
+      "listenTo": "target_selected",
+      "timing": "after",
+      "priority": 75,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "banner_line_step",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_debt_token": {
+    "id": "banner_debt_token",
+    "displayName": "借り札",
+    "weaponId": "banner",
+    "treePosition": "BA1",
+    "displayEffect": "自分以外の味方へ与えたAP1ごとに、その味方へ借り札を1段残す。",
+    "flavorText": "借りた一拍は、忘れないよう札にして持たせる。",
+    "rules": [
+     {
+      "id": "banner_debt_token_rule",
+      "listenTo": "resource_gained",
+      "timing": "after",
+      "priority": 74,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "resource",
+        "op": "eq",
+        "value": "action_points"
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "banner_debt",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "banner_hourglass": {
+    "id": "banner_hourglass",
+    "displayName": "砂時計",
+    "weaponId": "banner",
+    "treePosition": "BB1",
+    "displayEffect": "味方へAP/RPを与えるたび、時間砂を1段蓄える（最大5）。",
+    "flavorText": "配った一拍を、最後に買い戻すための砂へ変える。",
+    "rules": [
+     {
+      "id": "banner_hourglass_rule",
+      "listenTo": "resource_gained",
+      "timing": "after",
+      "priority": 73,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "support",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "banner_time_sand",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "battle",
+       "count": 5
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "banner",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_strong_string": {
+    "id": "heavy_crossbow_strong_string",
+    "displayName": "強弦",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "A1",
+    "displayEffect": "準備射の合計ダメージ+20%。",
+    "flavorText": "引き絞る時間を、弦の強さへ変える。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_strong_string_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_armor_piercing": {
+    "id": "heavy_crossbow_armor_piercing",
+    "displayName": "徹甲矢",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "A2",
+    "displayEffect": "準備射の防御を合計8無視する（現行語彙では貫通打相当）。",
+    "flavorText": "鎧の表面ではなく、芯を予約する。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_armor_piercing_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 8,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_thick_bolt": {
+    "id": "heavy_crossbow_thick_bolt",
+    "displayName": "極太矢",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "AA1",
+    "displayEffect": "準備射の基本hitダメージ+25%。",
+    "flavorText": "太い矢は、待った時間を裏切らない。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_thick_bolt_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 25,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_siege_piercer": {
+    "id": "heavy_crossbow_siege_piercer",
+    "displayName": "城抜き",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "AA2",
+    "displayEffect": "準備射の貫通打相当をさらに+8%。",
+    "flavorText": "壁の枚数を数える前に、抜ける芯を作る。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_siege_piercer_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 8,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_explosive_canister": {
+    "id": "heavy_crossbow_explosive_canister",
+    "displayName": "炸裂筒",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "AB1",
+    "displayEffect": "準備射が同じ列の他の敵へ腕力35%の追加hitを作る。",
+    "flavorText": "一つの着弾を、列全体の揺れへ広げる。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_explosive_canister_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 84,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "extra_hit",
+        "value": false
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "same_row_as_event_primary_target"
+          },
+          {
+           "type": "not_event_primary_target"
+          }
+         ],
+         "sort": [
+          "position_asc"
+         ],
+         "take": "all"
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 35,
+         "denominator": 100
+        },
+        "rangeClass": "ranged",
+        "tags": [
+         "attack",
+         "weapon",
+         "heavy_crossbow",
+         "ranged",
+         "extra_hit"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_blast_pressure": {
+    "id": "heavy_crossbow_blast_pressure",
+    "displayName": "爆圧",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "AB2",
+    "displayEffect": "準備射が同じ列の敵全員へ怯み2を付ける。",
+    "flavorText": "炸裂の圧は、ダメージの外側へも残る。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_blast_pressure_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 83,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "extra_hit",
+        "value": false
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "same_row_as_event_primary_target"
+          },
+          {
+           "type": "not_event_primary_target"
+          }
+         ],
+         "sort": [
+          "position_asc"
+         ],
+         "take": "all"
+        },
+        "statusId": "staggered",
+        "stacks": 2
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "debuff",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_loading_hold": {
+    "id": "heavy_crossbow_loading_hold",
+    "displayName": "装填維持",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "B2",
+    "displayEffect": "準備中に受けたダメージで準備を失わず、予約対象が動いても追い続ける。",
+    "flavorText": "揺さぶられても、弦を戻さない。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_loading_hold_rule",
+      "listenTo": "action_started",
+      "timing": "after",
+      "priority": 72,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "heavy_crossbow_steady",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "utility",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_impact_mark": {
+    "id": "heavy_crossbow_impact_mark",
+    "displayName": "着弾印",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "BA1",
+    "displayEffect": "準備射の対象へ着弾印を残す。対象が移動しても印は残る。",
+    "flavorText": "狙った場所を、敵が動いた後にも覚えている。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_impact_mark_rule",
+      "listenTo": "target_selected",
+      "timing": "after",
+      "priority": 71,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "statusId": "heavy_crossbow_target_mark",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "utility",
+     "heavy_crossbow",
+     "playable"
+    ]
+   },
+   "heavy_crossbow_next_ammo": {
+    "id": "heavy_crossbow_next_ammo",
+    "displayName": "次弾装填",
+    "weaponId": "heavy_crossbow",
+    "treePosition": "BB1",
+    "displayEffect": "通常の準備射を解決するたび次弾を1段装填。次の準備射を1段8%ずつ強める（最大3）。",
+    "flavorText": "撃ち終わった後に、次の一発の重さを先に作る。",
+    "rules": [
+     {
+      "id": "heavy_crossbow_next_ammo_load_rule",
+      "listenTo": "action_resolved",
+      "timing": "after",
+      "priority": 70,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "heavy_crossbow_ammo",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "battle",
+       "count": 3
+      }
+     },
+     {
+      "id": "heavy_crossbow_next_ammo_boost_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 41,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "heavy_crossbow_ammo",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 8,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "heavy_crossbow_next_ammo_boost_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 41,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "heavy_crossbow_ammo",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 16,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "heavy_crossbow_next_ammo_boost_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 41,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "prepared",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "heavy_crossbow_ammo",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 24,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "heavy_crossbow",
      "playable"
     ]
    }
@@ -23535,6 +28830,1891 @@
      "long_spear"
     ]
    },
+   "medical_kit_stimulant": {
+    "id": "medical_kit_stimulant",
+    "displayName": "活性剤",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [
+     {
+      "id": "medical_kit_stimulant_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_stimulant",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "medical_kit"
+      ]
+     },
+     {
+      "id": "medical_kit_stimulant_1_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_stimulant",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "medical_kit"
+      ]
+     },
+     {
+      "id": "medical_kit_stimulant_1_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_stimulant",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "medical_kit"
+      ]
+     },
+     {
+      "id": "medical_kit_stimulant_1_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_stimulant",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "medical_kit"
+      ]
+     },
+     {
+      "id": "medical_kit_stimulant_1_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_stimulant",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "medical_kit"
+      ]
+     },
+     {
+      "id": "medical_kit_stimulant_1_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_stimulant",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "medical_kit"
+      ]
+     }
+    ],
+    "tags": [
+     "playable",
+     "buff",
+     "medical_kit"
+    ]
+   },
+   "medical_kit_surplus": {
+    "id": "medical_kit_surplus",
+    "displayName": "余剰包帯",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "medical_kit"
+    ]
+   },
+   "medical_kit_regeneration": {
+    "id": "medical_kit_regeneration",
+    "displayName": "再生薬",
+    "polarity": "positive",
+    "maxStacks": 3,
+    "duration": "battle",
+    "rules": [
+     {
+      "id": "medical_kit_regeneration_1_rule",
+      "listenTo": "round_started",
+      "timing": "after",
+      "priority": 52,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_regeneration",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 4000
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "medical_kit",
+         "regeneration"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "medical_kit_regeneration",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     },
+     {
+      "id": "medical_kit_regeneration_2_rule",
+      "listenTo": "round_started",
+      "timing": "after",
+      "priority": 52,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_regeneration",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 4000
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "medical_kit",
+         "regeneration"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "medical_kit_regeneration",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     },
+     {
+      "id": "medical_kit_regeneration_3_rule",
+      "listenTo": "round_started",
+      "timing": "after",
+      "priority": 52,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_regeneration",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 4000
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "medical_kit",
+         "regeneration"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "medical_kit_regeneration",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "buff",
+     "medical_kit"
+    ]
+   },
+   "medical_kit_reserve_blood": {
+    "id": "medical_kit_reserve_blood",
+    "displayName": "予備血",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "battle",
+    "rules": [
+     {
+      "id": "medical_kit_reserve_blood_rule",
+      "listenTo": "damage_taken",
+      "timing": "after",
+      "priority": 53,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "cost",
+        "value": false
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "medical_kit_reserve_blood",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "focus",
+         "coefficientBps": 5000
+        },
+        "duration": "round",
+        "tags": [
+         "support",
+         "medical_kit",
+         "reserve"
+        ]
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "medical_kit_reserve_blood",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "buff",
+     "medical_kit"
+    ]
+   },
+   "grappling_hook_rush": {
+    "id": "grappling_hook_rush",
+    "displayName": "走れの合図",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "turn",
+    "rules": [
+     {
+      "id": "grappling_hook_rush_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "grappling_hook_rush",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 25,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "grappling_hook"
+      ]
+     },
+     {
+      "id": "grappling_hook_rush_1_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "grappling_hook_rush",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 25,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "grappling_hook"
+      ]
+     },
+     {
+      "id": "grappling_hook_rush_1_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "grappling_hook_rush",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 25,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "grappling_hook"
+      ]
+     },
+     {
+      "id": "grappling_hook_rush_1_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "grappling_hook_rush",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 25,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "grappling_hook"
+      ]
+     },
+     {
+      "id": "grappling_hook_rush_1_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "grappling_hook_rush",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 25,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "grappling_hook"
+      ]
+     },
+     {
+      "id": "grappling_hook_rush_1_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "grappling_hook_rush",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 25,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "grappling_hook"
+      ]
+     }
+    ],
+    "tags": [
+     "playable",
+     "buff",
+     "grappling_hook"
+    ]
+   },
+   "grappling_hook_mark": {
+    "id": "grappling_hook_mark",
+    "displayName": "鉤縄の印",
+    "polarity": "neutral",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark",
+     "grappling_hook"
+    ]
+   },
+   "grappling_hook_anchor": {
+    "id": "grappling_hook_anchor",
+    "displayName": "二点固定",
+    "polarity": "neutral",
+    "maxStacks": 2,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark",
+     "grappling_hook"
+    ]
+   },
+   "banner_commanded": {
+    "id": "banner_commanded",
+    "displayName": "号旗の鼓舞",
+    "polarity": "positive",
+    "maxStacks": 2,
+    "duration": "turn",
+    "rules": [
+     {
+      "id": "banner_commanded_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_1_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_1_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_1_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_1_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_1_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_2_0_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_2_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_2_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_2_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_2_4_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 4
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     },
+     {
+      "id": "banner_commanded_2_5_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "banner_commanded",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 5
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      },
+      "tags": [
+       "playable",
+       "buff",
+       "banner"
+      ]
+     }
+    ],
+    "tags": [
+     "playable",
+     "buff",
+     "banner"
+    ]
+   },
+   "banner_debt": {
+    "id": "banner_debt",
+    "displayName": "借り札",
+    "polarity": "negative",
+    "maxStacks": 3,
+    "duration": "battle",
+    "rules": [],
+    "tags": [
+     "playable",
+     "debt",
+     "banner"
+    ]
+   },
+   "banner_time_sand": {
+    "id": "banner_time_sand",
+    "displayName": "砂時計",
+    "polarity": "positive",
+    "maxStacks": 5,
+    "duration": "battle",
+    "rules": [],
+    "tags": [
+     "playable",
+     "resource",
+     "banner"
+    ]
+   },
+   "banner_line_step": {
+    "id": "banner_line_step",
+    "displayName": "揃い足",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "turn",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "banner"
+    ]
+   },
+   "heavy_crossbow_target_mark": {
+    "id": "heavy_crossbow_target_mark",
+    "displayName": "着弾印",
+    "polarity": "negative",
+    "maxStacks": 1,
+    "duration": "battle",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark",
+     "heavy_crossbow"
+    ]
+   },
+   "heavy_crossbow_ammo": {
+    "id": "heavy_crossbow_ammo",
+    "displayName": "次弾装填",
+    "polarity": "positive",
+    "maxStacks": 3,
+    "duration": "battle",
+    "rules": [],
+    "tags": [
+     "playable",
+     "resource",
+     "heavy_crossbow"
+    ]
+   },
+   "heavy_crossbow_steady": {
+    "id": "heavy_crossbow_steady",
+    "displayName": "装填維持",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "turn",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "heavy_crossbow"
+    ]
+   },
+   "heavy_crossbow_detonation": {
+    "id": "heavy_crossbow_detonation",
+    "displayName": "時限矢",
+    "polarity": "negative",
+    "maxStacks": 3,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "mark",
+     "heavy_crossbow"
+    ]
+   },
    "ultimate_spent": {
     "id": "ultimate_spent",
     "displayName": "必殺",
@@ -24867,6 +32047,12 @@
   "launcher_volley_aim": "一斉照準",
   "launcher_three_point": "三点予約射",
   "medical_kit_treatment": "応急防壁",
+  "medical_kit_major_treatment": "大治療",
+  "medical_kit_full_procedure": "全快処置",
+  "medical_kit_field_treatment": "野戦治療",
+  "medical_kit_transfusion": "輸血",
+  "medical_kit_regenerative_procedure": "再生処置",
+  "medical_kit_time_surgery": "時間外手術",
   "tower_shield_draw_guard": "守りを引く",
   "tower_shield_hold_fast": "堅守",
   "tower_shield_gate": "城門",
@@ -24882,14 +32068,35 @@
   "long_spear_checkpoint": "関所",
   "long_spear_time_thrust": "時穿ち",
   "grappling_hook_pull": "引き打ち",
+  "grappling_hook_strong_pull": "強引き",
+  "grappling_hook_capture": "捕縛",
+  "grappling_hook_throw_lasso": "投げ縄",
+  "grappling_hook_rescue": "救出",
+  "grappling_hook_net_field": "網場",
+  "grappling_hook_total_swap": "総入れ替え",
   "banner_command": "号令",
+  "banner_advance": "進め",
+  "banner_total_assault": "総進撃",
+  "banner_line_advance": "列進",
+  "banner_hurry": "急かす",
+  "banner_borrowed_command": "前借り命令",
+  "banner_last_command": "最後の号令",
   "heavy_crossbow_loaded_shot": "装填射",
+  "heavy_crossbow_heavy_loaded_shot": "重装填射",
+  "heavy_crossbow_siege_breaker": "城砕き",
+  "heavy_crossbow_burst_bolt": "破裂矢",
+  "heavy_crossbow_reserved_shot": "予約射",
+  "heavy_crossbow_timed_bolt": "時限矢",
+  "heavy_crossbow_three_time_shot": "三時射",
   "warhammer_point_at_armor": "鎧を指す",
   "dual_blades_blood_scent": "血を追う",
   "gauntlets_watch_target": "目を離さない",
   "launcher_pull_healer": "医療役を抜く",
   "launcher_skip_preparation": "準備を抜く",
   "long_spear_ready_target": "構えを刺す",
+  "grappling_hook_rescue_line": "救助索",
+  "banner_next_target": "次は誰だ",
+  "heavy_crossbow_large_game": "大物を狙う",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -24954,11 +32161,23 @@
   "gauntlets_borrowed_stance": "借り構え",
   "launcher_piercing_needle": "穿孔針",
   "launcher_signal_round": "合図弾",
+  "medical_kit_emergency_revive": "緊急蘇生",
+  "medical_kit_regenerative_drug": "再生薬",
+  "medical_kit_life_collateral": "生命担保",
   "tower_shield_interpose": "盾を差す",
   "tower_shield_relief_voice": "安堵の声",
   "tower_shield_turn_back": "裏返す",
   "long_spear_cross_thrust": "横槍",
   "long_spear_interrupt": "割り込み槍",
+  "grappling_hook_mark_step": "印を踏む",
+  "grappling_hook_rope_return": "縄返し",
+  "banner_breathe_together": "息を合わせる",
+  "banner_two_beats": "二拍先",
+  "banner_push_forward": "背を押す",
+  "banner_debt_grace": "返済猶予",
+  "banner_buy_second": "一秒を買う",
+  "heavy_crossbow_trigger_detonation": "起爆",
+  "heavy_crossbow_future_shot": "未来撃ち",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -25008,6 +32227,21 @@
   "long_spear_gate": "関所",
   "long_spear_order_mark_status": "順番標",
   "long_spear_delayed": "足止め",
+  "medical_kit_stimulant": "活性剤",
+  "medical_kit_surplus": "余剰包帯",
+  "medical_kit_regeneration": "再生薬",
+  "medical_kit_reserve_blood": "予備血",
+  "grappling_hook_rush": "走れの合図",
+  "grappling_hook_mark": "鉤縄の印",
+  "grappling_hook_anchor": "二点固定",
+  "banner_commanded": "号旗の鼓舞",
+  "banner_debt": "借り札",
+  "banner_time_sand": "砂時計",
+  "banner_line_step": "揃い足",
+  "heavy_crossbow_target_mark": "着弾印",
+  "heavy_crossbow_ammo": "次弾装填",
+  "heavy_crossbow_steady": "装填維持",
+  "heavy_crossbow_detonation": "時限矢",
   "ultimate_spent": "必殺",
   "husk": "灰殻兵",
   "husk_warden": "灰殻の見張り",
@@ -30158,6 +37392,12 @@
   "launcher_volley_aim": 10,
   "launcher_three_point": 10,
   "medical_kit_treatment": 10,
+  "medical_kit_major_treatment": 10,
+  "medical_kit_full_procedure": 10,
+  "medical_kit_field_treatment": 10,
+  "medical_kit_transfusion": 10,
+  "medical_kit_regenerative_procedure": 10,
+  "medical_kit_time_surgery": 10,
   "tower_shield_draw_guard": 10,
   "tower_shield_hold_fast": 10,
   "tower_shield_gate": 10,
@@ -30173,8 +37413,26 @@
   "long_spear_checkpoint": 10,
   "long_spear_time_thrust": 10,
   "grappling_hook_pull": 10,
+  "grappling_hook_strong_pull": 10,
+  "grappling_hook_capture": 10,
+  "grappling_hook_throw_lasso": 10,
+  "grappling_hook_rescue": 10,
+  "grappling_hook_net_field": 10,
+  "grappling_hook_total_swap": 10,
   "banner_command": 1,
+  "banner_advance": 1,
+  "banner_total_assault": 1,
+  "banner_line_advance": 1,
+  "banner_hurry": 1,
+  "banner_borrowed_command": 1,
+  "banner_last_command": 1,
   "heavy_crossbow_loaded_shot": 10,
+  "heavy_crossbow_heavy_loaded_shot": 10,
+  "heavy_crossbow_siege_breaker": 10,
+  "heavy_crossbow_burst_bolt": 10,
+  "heavy_crossbow_reserved_shot": 10,
+  "heavy_crossbow_timed_bolt": 10,
+  "heavy_crossbow_three_time_shot": 10,
   "counter_blow": 10,
   "cover_ally": 1,
   "overflow_care": 10,
@@ -30239,11 +37497,23 @@
   "gauntlets_borrowed_stance": 1,
   "launcher_piercing_needle": 10,
   "launcher_signal_round": 1,
+  "medical_kit_emergency_revive": 1,
+  "medical_kit_regenerative_drug": 1,
+  "medical_kit_life_collateral": 1,
   "tower_shield_interpose": 1,
   "tower_shield_relief_voice": 10,
   "tower_shield_turn_back": 10,
   "long_spear_cross_thrust": 10,
   "long_spear_interrupt": 1,
+  "grappling_hook_mark_step": 1,
+  "grappling_hook_rope_return": 1,
+  "banner_breathe_together": 1,
+  "banner_two_beats": 1,
+  "banner_push_forward": 1,
+  "banner_debt_grace": 1,
+  "banner_buy_second": 1,
+  "heavy_crossbow_trigger_detonation": 10,
+  "heavy_crossbow_future_shot": 1,
   "foundation_vitality": 10,
   "foundation_might": 10,
   "foundation_focus": 10,
@@ -30307,6 +37577,15 @@
   "launcher_observation_hole": 1,
   "launcher_order_table": 10,
   "launcher_order_check": 10,
+  "medical_kit_clean_tools": 10,
+  "medical_kit_wash": 1,
+  "medical_kit_stimulant_protocol": 1,
+  "medical_kit_surplus_bandage": 1,
+  "medical_kit_wide_spray": 10,
+  "medical_kit_equal_dose": 10,
+  "medical_kit_danger_zone": 10,
+  "medical_kit_active_agent": 1,
+  "medical_kit_reserve_blood_protocol": 10,
   "tower_shield_thick_plate": 10,
   "tower_shield_visible": 1,
   "tower_shield_shock_absorption": 10,
@@ -30324,7 +37603,31 @@
   "long_spear_pin": 1,
   "long_spear_first_mover": 10,
   "long_spear_foot_stop": 1,
-  "long_spear_order_mark": 1
+  "long_spear_order_mark": 1,
+  "grappling_hook_iron_hook": 10,
+  "grappling_hook_long_rope": 1,
+  "grappling_hook_winch": 10,
+  "grappling_hook_wall_strike": 10,
+  "grappling_hook_raise": 10,
+  "grappling_hook_break_step": 1,
+  "grappling_hook_run_signal": 1,
+  "grappling_hook_movement_marks": 1,
+  "grappling_hook_two_point_anchor": 10,
+  "banner_clear_voice": 1,
+  "banner_great_command": 1,
+  "banner_line_delivery": 1,
+  "banner_synced_steps": 1,
+  "banner_debt_token": 1,
+  "banner_hourglass": 1,
+  "heavy_crossbow_strong_string": 10,
+  "heavy_crossbow_armor_piercing": 10,
+  "heavy_crossbow_thick_bolt": 10,
+  "heavy_crossbow_siege_piercer": 10,
+  "heavy_crossbow_explosive_canister": 10,
+  "heavy_crossbow_blast_pressure": 1,
+  "heavy_crossbow_loading_hold": 1,
+  "heavy_crossbow_impact_mark": 1,
+  "heavy_crossbow_next_ammo": 10
  },
  "enemyInfo": {
   "husk": {

@@ -227,7 +227,11 @@ export function auditResourceDefinitions(activeSkills, rules) {
         violations.push(`${record.path}: resource creation must pay at least 1 AP`);
       }
       const constantAmount = effect.amount?.type === "constant" ? effect.amount.value : null;
-      if (Number.isFinite(constantAmount)
+      // An explicit event-target gain is resolved from an active skill's
+      // legal target frame and may be a deliberate multi-AP support transfer.
+      // Broad allies/self queries remain subject to the one-AP creation guard;
+      // otherwise a malformed active can overgrant every ally.
+      if ((flow === "creation" || effect.target?.scope === "allies") && Number.isFinite(constantAmount)
         && constantAmount > record.definition.apCost) {
         violations.push(`${record.path}: self-created resource amount exceeds its AP cost`);
       }

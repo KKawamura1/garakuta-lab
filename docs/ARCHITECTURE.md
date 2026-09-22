@@ -273,8 +273,10 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
 
 `content/weapon-warhammer.mjs`、`content/weapon-dual-blades.mjs`、
 `content/weapon-gauntlets.mjs`、`content/weapon-launcher.mjs`、
-`content/weapon-tower-shield.mjs`、`content/weapon-long-spear.mjs`を19節縦スライス、
-`content/weapon-root-slices.mjs`を残り4武器の入口スライスとし、定義は
+`content/weapon-tower-shield.mjs`、`content/weapon-long-spear.mjs`、
+`content/weapon-medical-kit.mjs`、`content/weapon-grappling-hook.mjs`、
+`content/weapon-banner.mjs`、`content/weapon-heavy-crossbow.mjs`を19節縦スライスとし、
+`content/weapon-root-slices.mjs`は旧呼び出し元のための互換barrelとして残す。定義は
 `weaponId`と`treePosition`を
 表示・取得用に持ちます。戦闘条件は武器IDを読まず、hit番号、攻撃tag、防壁・受け構え、状態の極性、
 eventの主対象と同じ列、という共有事実だけを読みます。activeだけが`rangeClass: melee`と基礎係数を
@@ -291,7 +293,7 @@ eventの主対象と同じ列、という共有事実だけを読みます。act
 決める`hitCountFromStatus`、固定順へ分配する`hitDistribution: round_robin`、戦闘ごとの有限使用を
 示す`usesPerBattle`、単体対象を優先する状態tag、列／未行動target filter、対象の
 redirectを引き継ぐevent tag、対象のAP/RPを減らす`reduce_resource`です。schemaは
-`ecology-content-8`、content contractは38です。
+`ecology-content-9`、result schemaは`ecology-result-4`、content contractは39、content versionは0.28です。
 
 ## 5. イベント列
 
@@ -585,15 +587,16 @@ SP台帳で受けますが、画面が使うのは武器nodeだけです。可�
 manifest-2以前の保存は実装済みの戦槌へ決定的に移行します。
 `WEAPONS`には設計済みの10武器を載せ、Campaignは加入済み人物の署名武器・副武器を累積して開示します。
 したがってStage 0はゴウ／ツグミの4武器、Stage 1でナギの2武器、Stage 2でヒバナの2武器、
-Stage 3でゲンゾウの2武器が加わります。10武器すべてがmanifestとR節まで接続済みで、
-`IMPLEMENTED_WEAPON_IDS`も10件です。深い枝は戦槌・双刃・格闘具・射出器・大盾・長槍が19節、残り4武器は
-R節の入口スライスです。大盾は`taunted`／`tower_shield_guard_stance`／`tower_shield_mirror`、
+Stage 3でゲンゾウの2武器が加わります。10武器すべてがmanifestとR〜BBの19節へ接続済みで、
+`IMPLEMENTED_WEAPON_IDS`も10件です。大盾は`taunted`／`tower_shield_guard_stance`／`tower_shield_mirror`、
 長槍は`long_spear_delayed`／`long_spear_pinned`／`long_spear_order_mark_status`を状態境界に使う。
 格闘具は`gauntlets_momentum`／`gauntlets_form`、射出器は
 `launcher_observed`／`launcher_order_mark`を状態境界に使い、対象継続は共有target filter
-`previous_target`で表します。
+`previous_target`で表します。医療具は直接回復ではなく防壁を張り、反応の蘇生・再生へ接続する。
+鉤縄は`actor_moved`と`grappling_hook_mark`、号旗はAP支援・`banner_debt`・`banner_time_sand`、
+重弩は準備・`heavy_crossbow_ammo`・対象印と列攻撃を状態境界に使う。
 新規Free runは10武器をmanifestへ載せ、Stage manifestは加入人物の2武器ずつを累積します。
-manifest versionは3、content contractは38、content versionは0.27です。
+manifest versionは3、content contractは39、content versionは0.28です。
 
 武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /
 displayEffect / flavorText`から4ロール用metadataを組み、取得後は`installUnlockedSkills()`が既存の
