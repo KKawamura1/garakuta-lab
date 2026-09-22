@@ -5,10 +5,10 @@ import { WARHAMMER_TREE } from "./weapon-warhammer.mjs";
 import { DUAL_BLADES_TREE } from "./weapon-dual-blades.mjs";
 import { GAUNTLETS_TREE } from "./weapon-gauntlets.mjs";
 import { LAUNCHER_TREE } from "./weapon-launcher.mjs";
+import { TOWER_SHIELD_TREE } from "./weapon-tower-shield.mjs";
+import { LONG_SPEAR_TREE } from "./weapon-long-spear.mjs";
 import {
   MEDICAL_KIT_TREE,
-  TOWER_SHIELD_TREE,
-  LONG_SPEAR_TREE,
   GRAPPLING_HOOK_TREE,
   BANNER_TREE,
   HEAVY_CROSSBOW_TREE,

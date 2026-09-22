@@ -15,12 +15,15 @@
 // 「敵を一体残して追加roundを経過させても...次戦へ持ち越すHPは改善しない」
 // に反する。
 //
-// 許可する形は2つだけ:
+// 許可する形は3つだけ:
 //   1. reactive rule で `damage_taken` を listenTo し、その chain 内でだけ
 //      発火する（`limit: {scope: "chain", count: 1}` 等）。同じ被弾を
 //      二重に治療できない。R8 §9.1 の「応急処置」。
 //   2. RunState 側の有限資源（supplies）を消費する camp 治療。これは
 //      battle engine の外（progression.mjs）で完結するので、この検査の対象外。
+//   3. `damage_proposed` を0へして同じ攻撃を無効化する、有限RP付きの
+//      受け返し。これは過去の被弾を回復する経路ではなく、現在のpending hit
+//      と同じchainで交換するため、turn-back系の大盾リアクティブを許可する。
 //
 // `mend`（baseline）と `triage`（pack_care）は、上の (1) の安全な reactive
 // として扱われる。過去に active heal だった時期の説明をここへ残さず、現在の
@@ -67,15 +70,27 @@ function auditReactiveSkills(bundle) {
   const violations = [];
   for (const [id, skill] of Object.entries(bundle.reactiveSkills ?? {})) {
     if (healEffectsOf(skill).length === 0) continue;
-    const rule = skill.rule ?? {};
-    const chainScoped = rule.limit?.scope === "chain" && (rule.limit?.count ?? Infinity) <= 1;
-    const safeListenTo = SAFE_LISTEN_TO.has(rule.listenTo);
-    if (!safeListenTo || !chainScoped) {
+    const rules = skill.rules ?? (skill.rule ? [skill.rule] : []);
+    const unsafeRule = rules.find((rule) => {
+      const chainScoped = rule.limit?.scope === "chain" && (rule.limit?.count ?? Infinity) <= 1;
+      const safeListenTo = SAFE_LISTEN_TO.has(rule.listenTo);
+      const nullifiesPendingHit = rule.listenTo === "damage_proposed"
+        && rule.effects?.some((effect) => (
+          effect.type === "modify_pending_amount"
+          && effect.operation === "set"
+          && effect.amount?.type === "constant"
+          && effect.amount.value === 0
+        ));
+      return !chainScoped || (!safeListenTo && !nullifiesPendingHit);
+    });
+    if (unsafeRule) {
+      const safeListenTo = SAFE_LISTEN_TO.has(unsafeRule.listenTo);
       violations.push({
         id,
         kind: "reactive",
         reason: !safeListenTo
-          ? `listenTo "${rule.listenTo}" が damage_taken / excess_healing のいずれでもない`
+          && unsafeRule.listenTo !== "damage_proposed"
+          ? `listenTo "${unsafeRule.listenTo}" が damage_taken / excess_healing のいずれでもない`
           : "chain 単位の limit（count 1以下）を持たない。同じ被弾を複数回治療できる可能性がある",
       });
     }

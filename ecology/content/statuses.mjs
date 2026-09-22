@@ -23,7 +23,8 @@
 // 「この戦闘でもう放った」ことだけを覚える。積み上がらない（maxStacks 1）ので
 // anti-stall の対象にならない。
 //
-// engine・schema・共通registryは変更しない。
+// R26では、大盾・長槍の共有eventを表現するため、schemaとeffectsへ最小限の
+// 汎用語彙（列／未行動target filter、資源減少effect）を追加している。
 
 import { renamed, scaleFlatAmounts } from "./base.mjs";
 
@@ -43,6 +44,16 @@ export const STATUS_NAMES = {
   launcher_observed: "観測済み",
   launcher_order_mark: "射順表",
   launcher_signal: "合図弾",
+  tower_shield_guard_stance: "守勢",
+  tower_shield_redirected: "引受け",
+  tower_shield_line_status: "盾の列",
+  tower_shield_mirror: "鏡",
+  tower_shield_castle: "鏡城",
+  tower_shield_sanctuary_status: "聖域",
+  long_spear_pinned: "縫い留め",
+  long_spear_delayed: "足止め",
+  long_spear_gate: "関所",
+  long_spear_order_mark_status: "順番標",
   ultimate_spent: "必殺",
 };
 
@@ -361,6 +372,100 @@ statuses.launcher_signal = {
   tags: ["playable", "buff", "launcher"],
 };
 
+// R26 大盾／長槍の記録状態。防壁・誘引・直線・行動順を、武器IDではなく
+// shared event へ残す。大盾の軽減規則は各 passive が所有し、BB3で得る鏡が
+// passive未装着時に勝手に軽減を始めないよう、ここでは規則を持たせない。
+const towerShieldMarker = (id, polarity, maxStacks, duration, tags = ["playable", "buff", "tower_shield"]) => ({
+  id,
+  displayName: STATUS_NAMES[id],
+  polarity,
+  maxStacks,
+  duration,
+  rules: [],
+  tags,
+});
+
+statuses.tower_shield_guard_stance = towerShieldMarker(
+  "tower_shield_guard_stance", "positive", 3, "round", ["playable", "buff", "guard", "tower_shield"],
+);
+statuses.tower_shield_redirected = towerShieldMarker(
+  "tower_shield_redirected", "positive", 1, "turn", ["playable", "buff", "guard", "tower_shield"],
+);
+statuses.tower_shield_line_status = towerShieldMarker(
+  "tower_shield_line_status", "positive", 1, "round", ["playable", "buff", "guard", "tower_shield"],
+);
+statuses.tower_shield_mirror = towerShieldMarker(
+  "tower_shield_mirror", "positive", 3, "battle", ["playable", "buff", "guard", "tower_shield"],
+);
+statuses.tower_shield_castle = towerShieldMarker(
+  "tower_shield_castle", "positive", 1, "round", ["playable", "buff", "guard", "tower_shield"],
+);
+
+statuses.tower_shield_sanctuary_status = {
+  id: "tower_shield_sanctuary_status",
+  displayName: STATUS_NAMES.tower_shield_sanctuary_status,
+  polarity: "positive",
+  maxStacks: 1,
+  duration: "round",
+  rules: [{
+    id: "tower_shield_sanctuary_rule",
+    listenTo: "target_selected",
+    timing: "interrupt",
+    priority: 86,
+    predicates: [
+      {
+        type: "target_exists",
+        query: {
+          scope: "allies",
+          filters: [{ type: "alive" }, { type: "is_event_primary_target" }, { type: "not_self" }],
+          take: 1,
+        },
+      },
+      {
+        type: "target_exists",
+        query: { scope: "enemies", filters: [{ type: "alive" }, { type: "is_event_source" }], take: 1 },
+      },
+      { type: "event_tag", tag: "attack", value: true },
+      { type: "event_value", key: "targetCount", op: "eq", value: 1 },
+    ],
+    costs: [],
+    effects: [{ type: "redirect_pending_target", target: { scope: "self", take: 1 } }],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["playable", "buff", "guard", "tower_shield"],
+};
+
+statuses.long_spear_pinned = towerShieldMarker(
+  "long_spear_pinned", "negative", 1, "round", ["playable", "debuff", "long_spear"],
+);
+statuses.long_spear_gate = towerShieldMarker(
+  "long_spear_gate", "negative", 1, "round", ["playable", "debuff", "long_spear"],
+);
+statuses.long_spear_order_mark_status = towerShieldMarker(
+  "long_spear_order_mark_status", "negative", 1, "round", ["playable", "debuff", "long_spear"],
+);
+statuses.long_spear_delayed = {
+  id: "long_spear_delayed",
+  displayName: STATUS_NAMES.long_spear_delayed,
+  polarity: "negative",
+  maxStacks: 1,
+  duration: "round",
+  rules: [{
+    id: "long_spear_delayed_rule",
+    listenTo: "actor_activated",
+    timing: "after",
+    priority: 48,
+    predicates: [SELF_IS_EVENT_SOURCE],
+    costs: [],
+    effects: [
+      { type: "reduce_resource", target: SELF_TARGET, resource: "action_points", amount: { type: "constant", value: 1 } },
+      { type: "remove_status", target: SELF_TARGET, statusId: "long_spear_delayed", stacks: "all" },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["playable", "debuff", "long_spear"],
+};
+
 // 必殺（issue #238）— **放った印。**規則を一つも持たない、記録だけの状態である。
 // 必殺技は「この状態が付いていないこと」を発動条件にし、放つと自分へ付ける。
 // これで「1戦闘に1回」が engine・schema の語彙を増やさずに書ける。
@@ -403,6 +508,16 @@ const STATUS_SUMMARIES = {
   launcher_observed: "射出器が観測した敵。射出器の対象優先と合図弾の条件になる。ラウンドで消える。",
   launcher_order_mark: "射順表を評価した記録。射出器の攻撃を強化する。最大3段でラウンドに消える。",
   launcher_signal: "観測対象への味方の攻撃を確認した合図。次に出す攻撃を30%増やし、使うと消える。",
+  tower_shield_guard_stance: "誘引を消費した受け構え。1段につき被ダメージを10%減らし、最大3段でラウンドに消える。",
+  tower_shield_redirected: "誘引や割り込みで引き受けた攻撃。大盾の衝撃吸収がこの攻撃を軽くする。",
+  tower_shield_line_status: "大盾の防壁を受けた味方。ラウンド中の被ダメージを15%減らす。",
+  tower_shield_mirror: "誘引を受け流した鏡。大盾の反転膜と裏返すが消費する。",
+  tower_shield_castle: "鏡城の構え。保持中は反転膜の通常軽減を止める。",
+  tower_shield_sanctuary_status: "次のラウンド開始まで、敵の単体攻撃を大盾へ寄せる。",
+  long_spear_pinned: "長槍の最後のhitで残った縫い留め。移動不能の記録。",
+  long_spear_delayed: "長槍で足を止められ、次の起動でAPを1失う。",
+  long_spear_gate: "関所の列へ付いた移動不能の記録。",
+  long_spear_order_mark_status: "長槍がずらした次の行動順の記録。",
   ultimate_spent: "必殺技を放った印。戦闘のあいだ残り、同じ戦闘では二度と放てない。それ自体は何もしない。",
 };
 

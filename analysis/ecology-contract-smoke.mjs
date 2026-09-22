@@ -138,6 +138,7 @@ const CONTINUOUS_EFFECTS = new Set([
 ]);
 const DISCRETE_EFFECTS = new Set([
   "gain_resource",        // AP / RP
+  "reduce_resource",      // AP / RP control reduction
   "repair_equipment",     // 耐久
   "advance_preparation",  // 準備の段数
   "wear_equipment",       // 耐久

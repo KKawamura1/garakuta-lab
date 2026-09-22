@@ -146,6 +146,7 @@ export function applyEffect(rt, ctx, effect) {
     case "gain_barrier": return gainBarrier(rt, ctx, effect);
     case "gain_block": return gainBlock(rt, ctx, effect);
     case "gain_resource": return gainResource(rt, ctx, effect);
+    case "reduce_resource": return reduceResource(rt, ctx, effect);
     case "add_status": return addStatus(rt, ctx, effect);
     case "remove_status": return removeStatus(rt, ctx, effect);
     case "remove_statuses": return removeStatuses(rt, ctx, effect);
@@ -368,7 +369,10 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), rt, ctx, effect, target,
     )
     : Math.max(0, proposedOverride);
-  const tags = effect.tags ?? [];
+  const tags = [
+    ...(effect.tags ?? []),
+    ...(ctx.pendingAction?.redirected ? ["redirect"] : []),
+  ];
   const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
   const event = rt.emit(
     {
@@ -745,6 +749,30 @@ function gainResource(rt, ctx, effect) {
     // §11.3 — engine.mjs makes a gained action point available on the next
     // eligible side phase; effects only report the gain.
     if (effect.resource === "action_points") rt.onResourceGained(target);
+  }
+}
+
+// R26 — a control effect may remove a finite amount of AP/RP from a target.
+// This is deliberately an effect, not a cost: long-spear's foot-stop changes
+// the next enemy activation and therefore cannot be paid by the spear holder.
+// The result is still the ordinary resource_spent event so replay and audits
+// do not need a second resource vocabulary.
+function reduceResource(rt, ctx, effect) {
+  for (const target of selectTargets(rt, ctx, effect.target)) {
+    if (!target.alive) continue;
+    const requested = evaluateValue(rt.state, ctx, effect.amount);
+    const key = effect.resource === "action_points" ? "actionPoints" : "reactionPoints";
+    const before = target[key];
+    const amount = Math.min(before, requested);
+    if (amount <= 0) continue;
+    target[key] = before - amount;
+    rt.emit({
+      type: "resource_spent",
+      ...sourceFields(ctx),
+      targetActorIds: [target.instanceId],
+      tags: [effect.resource, "effect"],
+      values: { resource: effect.resource, amount, before, after: target[key] },
+    });
   }
 }
 
@@ -1216,17 +1244,19 @@ function splitPendingDamage(rt, ctx, effect) {
 function redirectPendingTarget(rt, ctx, effect) {
   const frame = ctx.pending;
   if (!frame) return;
+  const targetCount = frame.targetActorIds.length;
   const replacement = selectTargets(rt, ctx, effect.target)[0];
   if (!replacement) return;
   const from = frame.targetActorIds[0] ?? null;
   if (from === replacement.instanceId) return;
   frame.targetActorIds = [replacement.instanceId];
+  frame.redirected = true;
   rt.emit({
     type: "target_changed",
     ...sourceFields(ctx),
     targetActorIds: [replacement.instanceId],
     tags: ["redirect"],
-    values: { from, to: replacement.instanceId },
+    values: { from, to: replacement.instanceId, targetCount },
   });
 }
 

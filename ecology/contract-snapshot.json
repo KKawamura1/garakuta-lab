@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.26",
+ "contentVersion": "ecology-playable-full-0.27",
  "content": {
   "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.26",
+  "contentVersion": "ecology-playable-full-0.27",
   "characters": {
    "warden": {
     "id": "warden",
@@ -5798,10 +5798,343 @@
      "playable"
     ]
    },
+   "tower_shield_hold_fast": {
+    "id": "tower_shield_hold_fast",
+    "displayName": "堅守",
+    "displayEffect": "自分に防壁60と誘引3。",
+    "flavorText": "ここから先へは通さない。この盾が、皆の城壁になる。",
+    "weaponId": "tower_shield",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "tower_shield_draw_guard",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "constant",
+       "value": 60
+      },
+      "duration": "round"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "taunted",
+      "stacks": 3
+     }
+    ],
+    "tags": [
+     "guard",
+     "support",
+     "weapon",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_gate": {
+    "id": "tower_shield_gate",
+    "displayName": "城門",
+    "displayEffect": "自分に防壁100と誘引5。",
+    "flavorText": "この身体を門とし、この盾を閉ざされた城壁とする。\n私が立つ限り、誰一人ここから先へは通さない。",
+    "weaponId": "tower_shield",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "tower_shield_hold_fast",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "constant",
+       "value": 100
+      },
+      "duration": "round"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "taunted",
+      "stacks": 5
+     }
+    ],
+    "tags": [
+     "guard",
+     "support",
+     "weapon",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_bash": {
+    "id": "tower_shield_bash",
+    "displayName": "盾撃",
+    "displayEffect": "最も近い敵に腕力100%のダメージ後、自分に防壁25と誘引1。",
+    "flavorText": "受けるだけが守りじゃない。押し返して道を空ける。",
+    "weaponId": "tower_shield",
+    "treePosition": "B3",
+    "replacesActiveSkillId": "tower_shield_draw_guard",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "rangeClass": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "tower_shield",
+       "melee"
+      ]
+     },
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "constant",
+       "value": 25
+      },
+      "duration": "round"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "taunted",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "guard",
+     "attack",
+     "weapon",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_line_guard": {
+    "id": "tower_shield_line_guard",
+    "displayName": "防護線",
+    "displayEffect": "味方全員に防壁35。自分にはさらに誘引3。",
+    "flavorText": "盾を連ねたその線が、仲間のための前線になる。\n一歩も退かず、全員の帰る場所を守り抜く。",
+    "weaponId": "tower_shield",
+    "treePosition": "AB3",
+    "replacesActiveSkillId": "tower_shield_hold_fast",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": "all"
+      },
+      "amount": {
+       "type": "constant",
+       "value": 35
+      },
+      "duration": "round"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "taunted",
+      "stacks": 3
+     }
+    ],
+    "tags": [
+     "guard",
+     "support",
+     "weapon",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_sanctuary": {
+    "id": "tower_shield_sanctuary",
+    "displayName": "聖域",
+    "displayEffect": "味方全員に防壁40。次のラウンド開始まで、敵の単体攻撃を自分へ引き受ける。",
+    "flavorText": "この盾の内側だけは、痛みも恐怖も踏み込ませない。\nここにいる限り、誰一人傷つけさせない。",
+    "weaponId": "tower_shield",
+    "treePosition": "BA3",
+    "replacesActiveSkillId": "tower_shield_bash",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": "all"
+      },
+      "amount": {
+       "type": "constant",
+       "value": 40
+      },
+      "duration": "round"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "tower_shield_sanctuary_status",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "guard",
+     "support",
+     "weapon",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_mirror_castle": {
+    "id": "tower_shield_mirror_castle",
+    "displayName": "鏡城",
+    "displayEffect": "自分の防壁を0にし、誘引3と鏡3を得る。鏡が尽きるまで通常の軽減を無効にする。",
+    "flavorText": "受けた痛みを鏡へ沈め、命として仲間へ返していく。\n守るだけの城ではない。すべてを生へ反転する城だ。",
+    "weaponId": "tower_shield",
+    "treePosition": "BB3",
+    "replacesActiveSkillId": "tower_shield_bash",
+    "apCost": 1,
+    "actionMode": "channel",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "remove_barrier",
+      "target": {
+       "scope": "self",
+       "take": 1
+      }
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "taunted",
+      "stacks": 3
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "tower_shield_mirror",
+      "stacks": 3
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "statusId": "tower_shield_castle",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "guard",
+     "support",
+     "weapon",
+     "tower_shield",
+     "playable"
+    ]
+   },
    "long_spear_pierce": {
     "id": "long_spear_pierce",
     "displayName": "貫き突き",
-    "displayEffect": "直線上で最も遠い敵1体に腕力110%のダメージ。",
+    "displayEffect": "直線上で最も遠い敵に腕力110%のダメージ。",
     "flavorText": "遠いほど、穂先は真っ直ぐ届く。",
     "weaponId": "long_spear",
     "treePosition": "R",
@@ -5837,7 +6170,8 @@
       "tags": [
        "attack",
        "weapon",
-       "long_spear"
+       "long_spear",
+       "long"
       ]
      }
     ],
@@ -5845,6 +6179,445 @@
      "attack",
      "weapon",
      "long_spear",
+     "long",
+     "playable"
+    ]
+   },
+   "long_spear_deep_thrust": {
+    "id": "long_spear_deep_thrust",
+    "displayName": "深突き",
+    "displayEffect": "直線上で最も遠い敵に腕力165%のダメージ。",
+    "flavorText": "一歩ぶん深く踏み込み、逃げ場の奥まで穂先を通す。",
+    "weaponId": "long_spear",
+    "treePosition": "A3",
+    "replacesActiveSkillId": "long_spear_pierce",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 16500
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "long_spear",
+     "long",
+     "playable"
+    ]
+   },
+   "long_spear_sky_pierce": {
+    "id": "long_spear_sky_pierce",
+    "displayName": "天穿ち",
+    "displayEffect": "直線上の最遠の敵に腕力230%、手前の敵に腕力115%。",
+    "flavorText": "天へ伸びる一筋の穂先が、列の果てまで敵を貫く。\nこの間合いに並んだ以上、逃げ場などない。",
+    "weaponId": "long_spear",
+    "treePosition": "AA3",
+    "replacesActiveSkillId": "long_spear_deep_thrust",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 23000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long"
+      ]
+     },
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "same_column_as_event_primary_target"
+        },
+        {
+         "type": "not_event_primary_target"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 11500
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long",
+       "pierce"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "long_spear",
+     "long",
+     "playable"
+    ]
+   },
+   "long_spear_impale": {
+    "id": "long_spear_impale",
+    "displayName": "串刺し",
+    "displayEffect": "直線上の敵全員に腕力130%のダメージ。",
+    "flavorText": "並んだ敵も、重ねた守りも、一息にひとつの線へ縫う。\n穂先が止まるのは、最後の一人を抜いた後だ。",
+    "weaponId": "long_spear",
+    "treePosition": "AB3",
+    "replacesActiveSkillId": "long_spear_deep_thrust",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 13000
+      },
+      "rangeClass": "long",
+      "targetPattern": "column",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "long_spear",
+     "long",
+     "playable"
+    ]
+   },
+   "long_spear_first_thrust": {
+    "id": "long_spear_first_thrust",
+    "displayName": "先制突き",
+    "displayEffect": "敵1体に腕力100%のダメージ。未行動なら180%。",
+    "flavorText": "動く兆しを先に射抜けば、相手の一手は始まらない。",
+    "weaponId": "long_spear",
+    "treePosition": "B3",
+    "replacesActiveSkillId": "long_spear_pierce",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "is_event_primary_target"
+        },
+        {
+         "type": "not_acted_this_round"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 18000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long",
+       "preemptive"
+      ]
+     },
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "is_event_primary_target"
+        },
+        {
+         "type": "not_acted_this_round",
+         "value": false
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long",
+       "preemptive"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "long_spear",
+     "long",
+     "playable"
+    ]
+   },
+   "long_spear_checkpoint": {
+    "id": "long_spear_checkpoint",
+    "displayName": "関所",
+    "displayEffect": "敵1列に腕力120%。命中した敵を次の移動不能にする。",
+    "flavorText": "この槍を立てた場所から先は、誰の道でもない。\n越えようとした足は、その一歩ごと地へ縫い止める。",
+    "weaponId": "long_spear",
+    "treePosition": "BA3",
+    "replacesActiveSkillId": "long_spear_first_thrust",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 12000
+      },
+      "targetPattern": "row",
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long",
+       "checkpoint"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "same_row_as_event_primary_target"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": "all"
+      },
+      "statusId": "long_spear_gate",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "long_spear",
+     "long",
+     "playable"
+    ]
+   },
+   "long_spear_time_thrust": {
+    "id": "long_spear_time_thrust",
+    "displayName": "時穿ち",
+    "displayEffect": "敵1体に腕力160%のダメージ。対象と自分の次の行動順を交換する。戦闘3回。",
+    "flavorText": "狙うのは身体ではない。敵が動き出す、その瞬間だ。\n未来へ差し込んだ穂先で、戦場の順番を書き換える。",
+    "weaponId": "long_spear",
+    "treePosition": "BB3",
+    "replacesActiveSkillId": "long_spear_first_thrust",
+    "usesPerBattle": 3,
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 16000
+      },
+      "rangeClass": "long",
+      "tags": [
+       "attack",
+       "weapon",
+       "long_spear",
+       "long",
+       "time_pierce"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "take": "all"
+      },
+      "statusId": "long_spear_order_mark_status",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "weapon",
+     "long_spear",
+     "long",
      "playable"
     ]
    },
@@ -10770,6 +11543,574 @@
      "reaction",
      "attack",
      "launcher",
+     "playable"
+    ]
+   },
+   "tower_shield_interpose": {
+    "id": "tower_shield_interpose",
+    "displayName": "盾を差す",
+    "weaponId": "tower_shield",
+    "treePosition": "B2",
+    "displayEffect": "味方が単体攻撃に狙われた時、RP1で位置を交換して攻撃を引き受ける。",
+    "flavorText": "間に合うなら、迷う理由はない。",
+    "rules": [
+     {
+      "id": "tower_shield_interpose_rule",
+      "listenTo": "target_selected",
+      "timing": "interrupt",
+      "priority": 52,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "not_self"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "targetCount",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "swap_positions",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "otherTarget": {
+         "scope": "self",
+         "take": 1
+        }
+       },
+       {
+        "type": "redirect_pending_target",
+        "target": {
+         "scope": "self",
+         "take": 1
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_relief_voice": {
+    "id": "tower_shield_relief_voice",
+    "displayName": "安堵の声",
+    "weaponId": "tower_shield",
+    "treePosition": "BA2",
+    "displayEffect": "防壁がダメージを止めた時、RP1でHP割合最低の味方を止めた量だけ回復。",
+    "flavorText": "盾の向こうから届く一言が、傷ついた仲間の足をもう一度立たせる。",
+    "rules": [
+     {
+      "id": "tower_shield_relief_voice_rule",
+      "listenTo": "damage_taken",
+      "timing": "after",
+      "priority": 54,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "cost",
+        "value": false
+       },
+       {
+        "type": "event_value",
+        "key": "barrierAbsorbed",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "heal",
+        "target": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "alive"
+          }
+         ],
+         "sort": [
+          "hp_percent_asc"
+         ],
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "barrierAbsorbed",
+         "numerator": 100,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "support",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_turn_back": {
+    "id": "tower_shield_turn_back",
+    "displayName": "裏返す",
+    "weaponId": "tower_shield",
+    "treePosition": "BB2",
+    "displayEffect": "自分がダメージを受ける時、RP2と鏡1で無効化し、同量を回復する。",
+    "flavorText": "鏡に沈めた痛みを裏返し、傷になる前の力を命へ戻していく。",
+    "rules": [
+     {
+      "id": "tower_shield_turn_back_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 25,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_mirror",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "set",
+        "amount": {
+         "type": "constant",
+         "value": 0
+        }
+       },
+       {
+        "type": "heal",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 100,
+         "denominator": 100
+        }
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "tower_shield_mirror",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "tower_shield_turn_back_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 25,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_mirror",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "set",
+        "amount": {
+         "type": "constant",
+         "value": 0
+        }
+       },
+       {
+        "type": "heal",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 100,
+         "denominator": 100
+        }
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "tower_shield_mirror",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "tower_shield_turn_back_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 25,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_mirror",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "set",
+        "amount": {
+         "type": "constant",
+         "value": 0
+        }
+       },
+       {
+        "type": "heal",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 100,
+         "denominator": 100
+        }
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "tower_shield_mirror",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "long_spear_cross_thrust": {
+    "id": "long_spear_cross_thrust",
+    "displayName": "横槍",
+    "weaponId": "long_spear",
+    "treePosition": "BA2",
+    "displayEffect": "敵が移動した時、RP1で移動後の敵へ腕力80%の追撃。",
+    "flavorText": "敵が動いた先へ先回りし、次の一歩が始まる場所に穂先を置く。",
+    "rules": [
+     {
+      "id": "long_spear_cross_thrust_rule",
+      "listenTo": "actor_moved",
+      "timing": "after",
+      "priority": 56,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "move",
+        "value": true
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 1
+       }
+      ],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "event_targets",
+         "take": 1
+        },
+        "amount": {
+         "type": "stat_scaled",
+         "subject": "self",
+         "scalingStat": "might",
+         "coefficientBps": 8000
+        },
+        "rangeClass": "long",
+        "tags": [
+         "attack",
+         "weapon",
+         "long_spear",
+         "long",
+         "reaction"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "attack",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_interrupt": {
+    "id": "long_spear_interrupt",
+    "displayName": "割り込み槍",
+    "weaponId": "long_spear",
+    "treePosition": "BB2",
+    "displayEffect": "敵が行動を宣言した時、RP2で自分の次のAP行動を前倒しする。",
+    "flavorText": "敵が手を出す、そのわずかな前へ穂先を差し込み、戦場の拍を奪う。",
+    "rules": [
+     {
+      "id": "long_spear_interrupt_rule",
+      "listenTo": "action_declared",
+      "timing": "after",
+      "priority": 53,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [
+       {
+        "type": "spend_reaction_points",
+        "amount": 2
+       }
+      ],
+      "effects": [
+       {
+        "type": "gain_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "action_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "reaction",
+     "tempo",
+     "long_spear",
      "playable"
     ]
    }
@@ -16088,6 +17429,1786 @@
      "launcher",
      "playable"
     ]
+   },
+   "tower_shield_thick_plate": {
+    "id": "tower_shield_thick_plate",
+    "displayName": "厚板",
+    "weaponId": "tower_shield",
+    "treePosition": "A1",
+    "displayEffect": "主軸が付与する防壁+15。",
+    "flavorText": "厚みは、裏切らない。",
+    "rules": [
+     {
+      "id": "tower_shield_thick_plate_rule",
+      "listenTo": "barrier_proposed",
+      "timing": "interrupt",
+      "priority": 41,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "constant",
+         "value": 15
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_visible": {
+    "id": "tower_shield_visible",
+    "displayName": "目立つ盾",
+    "weaponId": "tower_shield",
+    "treePosition": "A2",
+    "displayEffect": "主軸が付与する誘引+1。",
+    "flavorText": "隠すより、見せた方が守れる。",
+    "rules": [
+     {
+      "id": "tower_shield_visible_rule",
+      "listenTo": "status_added",
+      "timing": "after",
+      "priority": 82,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_value",
+        "key": "statusId",
+        "op": "eq",
+        "value": "taunted"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "taunted",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_shock_absorption": {
+    "id": "tower_shield_shock_absorption",
+    "displayName": "衝撃吸収",
+    "weaponId": "tower_shield",
+    "treePosition": "AA1",
+    "displayEffect": "誘引で引き受けた攻撃のダメージ-20%。",
+    "flavorText": "受ける角度で、重さは変わる。",
+    "rules": [
+     {
+      "id": "tower_shield_shock_absorption_target_rule",
+      "listenTo": "target_changed",
+      "timing": "after",
+      "priority": 81,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "redirect",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "targetCount",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "tower_shield_redirected",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "tower_shield_shock_absorption_damage_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 38,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "redirect",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "tower_shield_shock_absorption_taunt_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 38,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "taunted",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "tower_shield_shock_absorption_clear_rule",
+      "listenTo": "action_resolved",
+      "timing": "after",
+      "priority": 91,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "tower_shield_redirected",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_wall_frame": {
+    "id": "tower_shield_wall_frame",
+    "displayName": "城壁骨格",
+    "weaponId": "tower_shield",
+    "treePosition": "AA2",
+    "statBonus": {
+     "max_hp": 32
+    },
+    "displayEffect": "防壁か誘引を与える主軸を選択中、最大HP+15%。",
+    "flavorText": "受け止め続ける覚悟が骨を柱へ変え、身体そのものを城壁にする。",
+    "tags": [
+     "passive",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_side_plate": {
+    "id": "tower_shield_side_plate",
+    "displayName": "横板",
+    "weaponId": "tower_shield",
+    "treePosition": "AB1",
+    "displayEffect": "単体へ防壁を与える主軸が、防壁の最も少ない別の味方にも届く。",
+    "flavorText": "盾は横へ広げられる。",
+    "rules": [
+     {
+      "id": "tower_shield_side_plate_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 87,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "not_event_primary_target"
+          }
+         ],
+         "sort": [
+          "barrier_asc"
+         ],
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 100,
+         "denominator": 100
+        },
+        "duration": "round"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_line": {
+    "id": "tower_shield_line",
+    "displayName": "盾の列",
+    "weaponId": "tower_shield",
+    "treePosition": "AB2",
+    "displayEffect": "主軸から防壁を得た味方は、1ラウンド被ダメージ-15%。",
+    "flavorText": "一枚ずつ重ねた盾が、仲間全員を覆う切れ目のない線になる。",
+    "rules": [
+     {
+      "id": "tower_shield_line_mark_rule",
+      "listenTo": "barrier_gained",
+      "timing": "after",
+      "priority": 86,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "tower_shield_line_status",
+        "stacks": 1
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "tower_shield_line_damage_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 44,
+      "predicates": [
+       {
+        "type": "has_status",
+        "subject": "event_primary_target",
+        "statusId": "tower_shield_line_status",
+        "op": "gte",
+        "value": 1
+       },
+       {
+        "type": "has_status",
+        "subject": "event_primary_target",
+        "statusId": "tower_shield_line_status",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_take_role": {
+    "id": "tower_shield_take_role",
+    "displayName": "引き受け役",
+    "weaponId": "tower_shield",
+    "treePosition": "B1",
+    "displayEffect": "誘引を消費するたび守勢1。1につき被ダメージ-10%、最大3。",
+    "flavorText": "受けるほど、足は地に沈む。",
+    "rules": [
+     {
+      "id": "tower_shield_take_role_mark_rule",
+      "listenTo": "status_removed",
+      "timing": "after",
+      "priority": 83,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "effect",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "statusId",
+        "op": "eq",
+        "value": "taunted"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "tower_shield_guard_stance",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "tower_shield_take_role_damage_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_guard_stance",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 10,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "tower_shield_take_role_damage_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_guard_stance",
+        "op": "eq",
+        "value": 2
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "tower_shield_take_role_damage_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 43,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_guard_stance",
+        "op": "eq",
+        "value": 3
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 30,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_spread_guard": {
+    "id": "tower_shield_spread_guard",
+    "displayName": "守り分け",
+    "weaponId": "tower_shield",
+    "treePosition": "BA1",
+    "displayEffect": "自分の防壁が止めたダメージの50%を、防壁の最も少ない味方へ与える。",
+    "flavorText": "受け止めた力を、隣へ回す。",
+    "rules": [
+     {
+      "id": "tower_shield_spread_guard_rule",
+      "listenTo": "damage_taken",
+      "timing": "after",
+      "priority": 88,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "cost",
+        "value": false
+       },
+       {
+        "type": "event_value",
+        "key": "barrierAbsorbed",
+        "op": "gte",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "gain_barrier",
+        "target": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "not_event_primary_target"
+          }
+         ],
+         "sort": [
+          "barrier_asc"
+         ],
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "barrierAbsorbed",
+         "numerator": 50,
+         "denominator": 100
+        },
+        "duration": "round"
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "support",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "tower_shield_mirror_film": {
+    "id": "tower_shield_mirror_film",
+    "displayName": "反転膜",
+    "weaponId": "tower_shield",
+    "treePosition": "BB1",
+    "displayEffect": "誘引を消費するたび鏡1。鏡1につき被ダメージ-8%、最大3。「鏡城」中は無効。",
+    "flavorText": "受けた圧を、鏡の裏へ逃がす。",
+    "rules": [
+     {
+      "id": "tower_shield_mirror_film_mark_rule",
+      "listenTo": "status_removed",
+      "timing": "after",
+      "priority": 84,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "effect",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "statusId",
+        "op": "eq",
+        "value": "taunted"
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "tower_shield_mirror",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     },
+     {
+      "id": "tower_shield_mirror_film_damage_1_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_mirror",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_castle",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 8,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "tower_shield_mirror_film_damage_2_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_mirror",
+        "op": "eq",
+        "value": 2
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_castle",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 16,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     },
+     {
+      "id": "tower_shield_mirror_film_damage_3_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 37,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_mirror",
+        "op": "eq",
+        "value": 3
+       },
+       {
+        "type": "has_status",
+        "subject": "self",
+        "statusId": "tower_shield_castle",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "decrease",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 24,
+         "denominator": 100
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "guard",
+     "tower_shield",
+     "playable"
+    ]
+   },
+   "long_spear_long_shaft": {
+    "id": "long_spear_long_shaft",
+    "displayName": "長柄",
+    "weaponId": "long_spear",
+    "treePosition": "A1",
+    "displayEffect": "距離2以上の敵への攻撃ダメージ+15%。",
+    "flavorText": "間合いの外から、こちらだけが届く。",
+    "rules": [
+     {
+      "id": "long_spear_long_shaft_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 15,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_armor_pierce": {
+    "id": "long_spear_armor_pierce",
+    "displayName": "鎧抜き",
+    "weaponId": "long_spear",
+    "treePosition": "A2",
+    "displayEffect": "距離2以上の敵への攻撃は、防御を合計8無視する。",
+    "flavorText": "長い助走が、鎧の継ぎ目を抜く。",
+    "rules": [
+     {
+      "id": "long_spear_armor_pierce_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 8,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_butt_end": {
+    "id": "long_spear_butt_end",
+    "displayName": "石突き",
+    "weaponId": "long_spear",
+    "treePosition": "AA1",
+    "displayEffect": "距離2以上の敵への攻撃ダメージがさらに+20%。",
+    "flavorText": "柄の端まで、力を余さない。",
+    "rules": [
+     {
+      "id": "long_spear_butt_end_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 20,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_penetration": {
+    "id": "long_spear_penetration",
+    "displayName": "貫通",
+    "weaponId": "long_spear",
+    "treePosition": "AA2",
+    "displayEffect": "単体攻撃が、主対象との同じ列上にいる手前の敵にも40%のダメージ。",
+    "flavorText": "最初の一人を抜いた穂先は勢いを失わず、その奥の敵まで貫く。",
+    "rules": [
+     {
+      "id": "long_spear_penetration_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 89,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "extra_hit",
+        "value": false
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "same_column_as_event_primary_target"
+          },
+          {
+           "type": "not_event_primary_target"
+          }
+         ],
+         "sort": [
+          "position_asc"
+         ],
+         "take": 1
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        },
+        "rangeClass": "long",
+        "tags": [
+         "attack",
+         "weapon",
+         "long_spear",
+         "long",
+         "extra_hit",
+         "pierce"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_double_thrust": {
+    "id": "long_spear_double_thrust",
+    "displayName": "二段突き",
+    "weaponId": "long_spear",
+    "treePosition": "AB1",
+    "displayEffect": "1hit長射程攻撃に、同じ敵への50%追撃を追加。",
+    "flavorText": "引いた穂先は、もう一度伸びる。",
+    "rules": [
+     {
+      "id": "long_spear_double_thrust_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 88,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "extra_hit",
+        "value": false
+       },
+       {
+        "type": "event_value",
+        "key": "hitCount",
+        "op": "eq",
+        "value": 1
+       },
+       {
+        "type": "event_value",
+        "key": "hitIndex",
+        "op": "eq",
+        "value": 0
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "deal_damage",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 50,
+         "denominator": 100
+        },
+        "rangeClass": "long",
+        "tags": [
+         "attack",
+         "weapon",
+         "long_spear",
+         "long",
+         "extra_hit"
+        ]
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_pin": {
+    "id": "long_spear_pin",
+    "displayName": "縫い留め",
+    "weaponId": "long_spear",
+    "treePosition": "AB2",
+    "displayEffect": "長槍攻撃の最後のhitで、対象へ移動不能1。1行動1回。",
+    "flavorText": "連ねた突きの最後に穂先を残し、逃げる足を地面へ縫い止める。",
+    "rules": [
+     {
+      "id": "long_spear_pin_rule",
+      "listenTo": "action_resolved",
+      "timing": "after",
+      "priority": 83,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "long_spear_pinned",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "control",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_first_mover": {
+    "id": "long_spear_first_mover",
+    "displayName": "先の先",
+    "weaponId": "long_spear",
+    "treePosition": "B2",
+    "displayEffect": "未行動の敵へのダメージ+40%。",
+    "flavorText": "相手の一手目より、こちらの穂先が早い。",
+    "rules": [
+     {
+      "id": "long_spear_first_mover_rule",
+      "listenTo": "damage_proposed",
+      "timing": "interrupt",
+      "priority": 42,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "not_acted_this_round"
+          }
+         ],
+         "sort": [
+          "position_asc"
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "modify_pending_amount",
+        "operation": "increase",
+        "amount": {
+         "type": "event_value_scaled",
+         "key": "amount",
+         "numerator": 40,
+         "denominator": 100
+        }
+       }
+      ],
+      "allowRepeatInChain": true,
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 8
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "attack",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_foot_stop": {
+    "id": "long_spear_foot_stop",
+    "displayName": "足を止める",
+    "weaponId": "long_spear",
+    "treePosition": "BA1",
+    "displayEffect": "未行動か準備中の敵へ命中すると、次行動のAP-1。ラウンド1回。",
+    "flavorText": "足元を払えば、次の手は遅れる。",
+    "rules": [
+     {
+      "id": "long_spear_foot_stop_unacted_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 78,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "not_acted_this_round"
+          }
+         ],
+         "sort": [
+          "position_asc"
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        },
+        "statusId": "long_spear_delayed",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     },
+     {
+      "id": "long_spear_foot_stop_preparing_rule",
+      "listenTo": "damage_proposed",
+      "timing": "after",
+      "priority": 78,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "is_preparing",
+           "value": true
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          }
+         ],
+         "take": 1
+        },
+        "statusId": "long_spear_delayed",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "control",
+     "long_spear",
+     "playable"
+    ]
+   },
+   "long_spear_order_mark": {
+    "id": "long_spear_order_mark",
+    "displayName": "順番標",
+    "weaponId": "long_spear",
+    "treePosition": "BB1",
+    "displayEffect": "攻撃した敵の次の行動順を1つ後ろへ送る。ラウンド1回。",
+    "flavorText": "穂先一つで、戦場の順をずらす。",
+    "rules": [
+     {
+      "id": "long_spear_order_mark_rule",
+      "listenTo": "action_resolved",
+      "timing": "after",
+      "priority": 84,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_tag",
+        "tag": "long",
+        "value": true
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "add_status",
+        "target": {
+         "scope": "event_targets",
+         "take": "all"
+        },
+        "statusId": "long_spear_order_mark_status",
+        "stacks": 1
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "round",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "passive",
+     "tempo",
+     "long_spear",
+     "playable"
+    ]
    }
   },
   "equipment": {
@@ -20160,6 +23281,260 @@
      "launcher"
     ]
    },
+   "tower_shield_guard_stance": {
+    "id": "tower_shield_guard_stance",
+    "displayName": "守勢",
+    "polarity": "positive",
+    "maxStacks": 3,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "guard",
+     "tower_shield"
+    ]
+   },
+   "tower_shield_redirected": {
+    "id": "tower_shield_redirected",
+    "displayName": "引受け",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "turn",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "guard",
+     "tower_shield"
+    ]
+   },
+   "tower_shield_line_status": {
+    "id": "tower_shield_line_status",
+    "displayName": "盾の列",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "guard",
+     "tower_shield"
+    ]
+   },
+   "tower_shield_mirror": {
+    "id": "tower_shield_mirror",
+    "displayName": "鏡",
+    "polarity": "positive",
+    "maxStacks": 3,
+    "duration": "battle",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "guard",
+     "tower_shield"
+    ]
+   },
+   "tower_shield_castle": {
+    "id": "tower_shield_castle",
+    "displayName": "鏡城",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "buff",
+     "guard",
+     "tower_shield"
+    ]
+   },
+   "tower_shield_sanctuary_status": {
+    "id": "tower_shield_sanctuary_status",
+    "displayName": "聖域",
+    "polarity": "positive",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [
+     {
+      "id": "tower_shield_sanctuary_rule",
+      "listenTo": "target_selected",
+      "timing": "interrupt",
+      "priority": 86,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "allies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_primary_target"
+          },
+          {
+           "type": "not_self"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "enemies",
+         "filters": [
+          {
+           "type": "alive"
+          },
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       },
+       {
+        "type": "event_tag",
+        "tag": "attack",
+        "value": true
+       },
+       {
+        "type": "event_value",
+        "key": "targetCount",
+        "op": "eq",
+        "value": 1
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "redirect_pending_target",
+        "target": {
+         "scope": "self",
+         "take": 1
+        }
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "buff",
+     "guard",
+     "tower_shield"
+    ]
+   },
+   "long_spear_pinned": {
+    "id": "long_spear_pinned",
+    "displayName": "縫い留め",
+    "polarity": "negative",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "debuff",
+     "long_spear"
+    ]
+   },
+   "long_spear_gate": {
+    "id": "long_spear_gate",
+    "displayName": "関所",
+    "polarity": "negative",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "debuff",
+     "long_spear"
+    ]
+   },
+   "long_spear_order_mark_status": {
+    "id": "long_spear_order_mark_status",
+    "displayName": "順番標",
+    "polarity": "negative",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [],
+    "tags": [
+     "playable",
+     "debuff",
+     "long_spear"
+    ]
+   },
+   "long_spear_delayed": {
+    "id": "long_spear_delayed",
+    "displayName": "足止め",
+    "polarity": "negative",
+    "maxStacks": 1,
+    "duration": "round",
+    "rules": [
+     {
+      "id": "long_spear_delayed_rule",
+      "listenTo": "actor_activated",
+      "timing": "after",
+      "priority": 48,
+      "predicates": [
+       {
+        "type": "target_exists",
+        "query": {
+         "scope": "self",
+         "filters": [
+          {
+           "type": "is_event_source"
+          }
+         ],
+         "take": 1
+        }
+       }
+      ],
+      "costs": [],
+      "effects": [
+       {
+        "type": "reduce_resource",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "resource": "action_points",
+        "amount": {
+         "type": "constant",
+         "value": 1
+        }
+       },
+       {
+        "type": "remove_status",
+        "target": {
+         "scope": "self",
+         "take": 1
+        },
+        "statusId": "long_spear_delayed",
+        "stacks": "all"
+       }
+      ],
+      "limit": {
+       "owner": "actor-instance + rule",
+       "scope": "chain",
+       "count": 1
+      }
+     }
+    ],
+    "tags": [
+     "playable",
+     "debuff",
+     "long_spear"
+    ]
+   },
    "ultimate_spent": {
     "id": "ultimate_spent",
     "displayName": "必殺",
@@ -21493,7 +24868,19 @@
   "launcher_three_point": "三点予約射",
   "medical_kit_treatment": "応急防壁",
   "tower_shield_draw_guard": "守りを引く",
+  "tower_shield_hold_fast": "堅守",
+  "tower_shield_gate": "城門",
+  "tower_shield_bash": "盾撃",
+  "tower_shield_line_guard": "防護線",
+  "tower_shield_sanctuary": "聖域",
+  "tower_shield_mirror_castle": "鏡城",
   "long_spear_pierce": "貫き突き",
+  "long_spear_deep_thrust": "深突き",
+  "long_spear_sky_pierce": "天穿ち",
+  "long_spear_impale": "串刺し",
+  "long_spear_first_thrust": "先制突き",
+  "long_spear_checkpoint": "関所",
+  "long_spear_time_thrust": "時穿ち",
   "grappling_hook_pull": "引き打ち",
   "banner_command": "号令",
   "heavy_crossbow_loaded_shot": "装填射",
@@ -21502,6 +24889,7 @@
   "gauntlets_watch_target": "目を離さない",
   "launcher_pull_healer": "医療役を抜く",
   "launcher_skip_preparation": "準備を抜く",
+  "long_spear_ready_target": "構えを刺す",
   "counter_blow": "反撃",
   "cover_ally": "身代わり",
   "overflow_care": "余剰治療",
@@ -21566,6 +24954,11 @@
   "gauntlets_borrowed_stance": "借り構え",
   "launcher_piercing_needle": "穿孔針",
   "launcher_signal_round": "合図弾",
+  "tower_shield_interpose": "盾を差す",
+  "tower_shield_relief_voice": "安堵の声",
+  "tower_shield_turn_back": "裏返す",
+  "long_spear_cross_thrust": "横槍",
+  "long_spear_interrupt": "割り込み槍",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -21605,6 +24998,16 @@
   "launcher_observed": "観測済み",
   "launcher_order_mark": "射順表",
   "launcher_signal": "合図弾",
+  "tower_shield_guard_stance": "守勢",
+  "tower_shield_redirected": "引受け",
+  "tower_shield_line_status": "盾の列",
+  "tower_shield_mirror": "鏡",
+  "tower_shield_castle": "鏡城",
+  "tower_shield_sanctuary_status": "聖域",
+  "long_spear_pinned": "縫い留め",
+  "long_spear_gate": "関所",
+  "long_spear_order_mark_status": "順番標",
+  "long_spear_delayed": "足止め",
   "ultimate_spent": "必殺",
   "husk": "灰殻兵",
   "husk_warden": "灰殻の見張り",
@@ -26756,7 +30159,19 @@
   "launcher_three_point": 10,
   "medical_kit_treatment": 10,
   "tower_shield_draw_guard": 10,
+  "tower_shield_hold_fast": 10,
+  "tower_shield_gate": 10,
+  "tower_shield_bash": 10,
+  "tower_shield_line_guard": 10,
+  "tower_shield_sanctuary": 10,
+  "tower_shield_mirror_castle": 1,
   "long_spear_pierce": 10,
+  "long_spear_deep_thrust": 10,
+  "long_spear_sky_pierce": 10,
+  "long_spear_impale": 10,
+  "long_spear_first_thrust": 10,
+  "long_spear_checkpoint": 10,
+  "long_spear_time_thrust": 10,
   "grappling_hook_pull": 10,
   "banner_command": 1,
   "heavy_crossbow_loaded_shot": 10,
@@ -26824,6 +30239,11 @@
   "gauntlets_borrowed_stance": 1,
   "launcher_piercing_needle": 10,
   "launcher_signal_round": 1,
+  "tower_shield_interpose": 1,
+  "tower_shield_relief_voice": 10,
+  "tower_shield_turn_back": 10,
+  "long_spear_cross_thrust": 10,
+  "long_spear_interrupt": 1,
   "foundation_vitality": 10,
   "foundation_might": 10,
   "foundation_focus": 10,
@@ -26886,7 +30306,25 @@
   "launcher_separate_caliber": 10,
   "launcher_observation_hole": 1,
   "launcher_order_table": 10,
-  "launcher_order_check": 10
+  "launcher_order_check": 10,
+  "tower_shield_thick_plate": 10,
+  "tower_shield_visible": 1,
+  "tower_shield_shock_absorption": 10,
+  "tower_shield_wall_frame": 1,
+  "tower_shield_side_plate": 10,
+  "tower_shield_line": 10,
+  "tower_shield_take_role": 10,
+  "tower_shield_spread_guard": 10,
+  "tower_shield_mirror_film": 10,
+  "long_spear_long_shaft": 10,
+  "long_spear_armor_pierce": 10,
+  "long_spear_butt_end": 10,
+  "long_spear_penetration": 10,
+  "long_spear_double_thrust": 10,
+  "long_spear_pin": 1,
+  "long_spear_first_mover": 10,
+  "long_spear_foot_stop": 1,
+  "long_spear_order_mark": 1
  },
  "enemyInfo": {
   "husk": {

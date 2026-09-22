@@ -1,4 +1,4 @@
-// R25 — 残り6武器の入口スライス。
+// R26 — 残り4武器の入口スライス。
 //
 // 解禁順を manifest と UI へ先に通し、各武器のR節を同じ BattleInput 経路へ
 // 接続する。19節の深い枝は、各 root の実戦語彙を検証した後に追加する。
@@ -49,50 +49,6 @@ const MEDICAL_TREATMENT = Object.freeze({
     tags: ["support", "weapon", "medical_kit"],
   }],
   tags: ["support", "weapon", "medical_kit", "playable"],
-});
-
-const TOWER_SHIELD_DRAW_GUARD = Object.freeze({
-  id: "tower_shield_draw_guard",
-  displayName: "守りを引く",
-  displayEffect: "自分に防壁30と誘引2。誘引は敵の単体攻撃を優先して引き受ける。",
-  flavorText: "狙うなら、私を。",
-  weaponId: "tower_shield",
-  treePosition: "R",
-  apCost: 1,
-  actionMode: "channel",
-  intrinsicPredicates: [],
-  targetQuery: SELF,
-  effects: [
-    {
-      type: "gain_barrier",
-      target: SELF,
-      amount: { type: "constant", value: 30 },
-      duration: "round",
-    },
-    { type: "add_status", target: SELF, statusId: "taunted", stacks: 2 },
-  ],
-  tags: ["guard", "support", "weapon", "tower_shield", "playable"],
-});
-
-const LONG_SPEAR_PIERCE = Object.freeze({
-  id: "long_spear_pierce",
-  displayName: "貫き突き",
-  displayEffect: "直線上で最も遠い敵1体に腕力110%のダメージ。",
-  flavorText: "遠いほど、穂先は真っ直ぐ届く。",
-  weaponId: "long_spear",
-  treePosition: "R",
-  apCost: 1,
-  actionMode: "offense",
-  intrinsicPredicates: [],
-  targetQuery: FARTHEST_ENEMY,
-  effects: [{
-    type: "deal_damage",
-    target: EVENT_TARGETS,
-    amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 11_000 },
-    rangeClass: "long",
-    tags: ["attack", "weapon", "long_spear"],
-  }],
-  tags: ["attack", "weapon", "long_spear", "playable"],
 });
 
 const GRAPPLING_HOOK_PULL = Object.freeze({
@@ -171,12 +127,6 @@ const HEAVY_CROSSBOW_LOADED_SHOT = Object.freeze({
 export const MEDICAL_KIT_ACTIVE_SKILLS = Object.freeze({
   [MEDICAL_TREATMENT.id]: MEDICAL_TREATMENT,
 });
-export const TOWER_SHIELD_ACTIVE_SKILLS = Object.freeze({
-  [TOWER_SHIELD_DRAW_GUARD.id]: TOWER_SHIELD_DRAW_GUARD,
-});
-export const LONG_SPEAR_ACTIVE_SKILLS = Object.freeze({
-  [LONG_SPEAR_PIERCE.id]: LONG_SPEAR_PIERCE,
-});
 export const GRAPPLING_HOOK_ACTIVE_SKILLS = Object.freeze({
   [GRAPPLING_HOOK_PULL.id]: GRAPPLING_HOOK_PULL,
 });
@@ -190,12 +140,6 @@ export const HEAVY_CROSSBOW_ACTIVE_SKILLS = Object.freeze({
 export const MEDICAL_KIT_PASSIVE_SKILLS = Object.freeze({});
 export const MEDICAL_KIT_REACTIVE_SKILLS = Object.freeze({});
 export const MEDICAL_KIT_TARGET_SKILLS = Object.freeze({});
-export const TOWER_SHIELD_PASSIVE_SKILLS = Object.freeze({});
-export const TOWER_SHIELD_REACTIVE_SKILLS = Object.freeze({});
-export const TOWER_SHIELD_TARGET_SKILLS = Object.freeze({});
-export const LONG_SPEAR_PASSIVE_SKILLS = Object.freeze({});
-export const LONG_SPEAR_REACTIVE_SKILLS = Object.freeze({});
-export const LONG_SPEAR_TARGET_SKILLS = Object.freeze({});
 export const GRAPPLING_HOOK_PASSIVE_SKILLS = Object.freeze({});
 export const GRAPPLING_HOOK_REACTIVE_SKILLS = Object.freeze({});
 export const GRAPPLING_HOOK_TARGET_SKILLS = Object.freeze({});
@@ -215,8 +159,6 @@ const root = (weaponId, skillId) => Object.freeze({
 });
 
 export const MEDICAL_KIT_TREE = Object.freeze([root("medical_kit", MEDICAL_TREATMENT.id)]);
-export const TOWER_SHIELD_TREE = Object.freeze([root("tower_shield", TOWER_SHIELD_DRAW_GUARD.id)]);
-export const LONG_SPEAR_TREE = Object.freeze([root("long_spear", LONG_SPEAR_PIERCE.id)]);
 export const GRAPPLING_HOOK_TREE = Object.freeze([root("grappling_hook", GRAPPLING_HOOK_PULL.id)]);
 export const BANNER_TREE = Object.freeze([root("banner", BANNER_COMMAND.id)]);
 export const HEAVY_CROSSBOW_TREE = Object.freeze([root("heavy_crossbow", HEAVY_CROSSBOW_LOADED_SHOT.id)]);

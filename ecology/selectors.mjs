@@ -3,7 +3,7 @@
 // §9 — target queries. Every query ends with position_asc then instance_id_asc,
 // so `take: 1` can never depend on array order coming out of a Map or a filter.
 
-import { IMPLICIT_SORTS, POSITION_ROW, compareOp } from "./schema.mjs";
+import { IMPLICIT_SORTS, POSITION_COLUMN, POSITION_ROW, compareOp } from "./schema.mjs";
 import {
   actorsOnSide,
   compareActorsDefault,
@@ -83,6 +83,12 @@ function passesFilter(state, ctx, filter, actor) {
       const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
       return Boolean(primary) && POSITION_ROW[primary.position] === POSITION_ROW[actor.position];
     }
+    case "same_column_as_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      return Boolean(primary) && POSITION_COLUMN[primary.position] === POSITION_COLUMN[actor.position];
+    }
+    case "not_acted_this_round":
+      return (actor.activationsThisRound === 0) === (filter.value ?? true);
     case "is_event_source":
       // DEVIATION (PREFLIGHT §1).
       return Boolean(ctx.event) && ctx.event.sourceActorId === actor.instanceId;
@@ -128,7 +134,7 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
   // R25 大盾R — a round-scoped taunt only redirects enemy single-target
   // choices. Keep the legal pool and reach restriction intact first, so a
   // taunted actor behind an unreachable front line is not selected through it.
-  if (ctx.owner?.side === "enemy" && query.scope === "allies" && query.take === 1) {
+  if (ctx.owner?.side === "enemy" && query.scope === "enemies" && query.take === 1) {
     const tauntStatusIds = new Set(Object.entries(state.content.statuses ?? {})
       .filter(([, definition]) => (definition.tags ?? []).includes("taunt"))
       .map(([statusId]) => statusId));

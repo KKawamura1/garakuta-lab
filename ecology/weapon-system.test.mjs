@@ -87,8 +87,6 @@ for (const [weaponId, tree, skillId, expectedLength] of [
   ["gauntlets", GAUNTLETS_TREE, "gauntlets_punch", 19],
   ["launcher", LAUNCHER_TREE, "launcher_shot", 19],
   ["medical_kit", MEDICAL_KIT_TREE, "medical_kit_treatment", 1],
-  ["tower_shield", TOWER_SHIELD_TREE, "tower_shield_draw_guard", 1],
-  ["long_spear", LONG_SPEAR_TREE, "long_spear_pierce", 1],
   ["grappling_hook", GRAPPLING_HOOK_TREE, "grappling_hook_pull", 1],
   ["banner", BANNER_TREE, "banner_command", 1],
   ["heavy_crossbow", HEAVY_CROSSBOW_TREE, "heavy_crossbow_loaded_shot", 1],
@@ -101,6 +99,8 @@ for (const [weaponId, tree, skillId, expectedLength] of [
 for (const [weaponId, tree, expectedCounts] of [
   ["gauntlets", GAUNTLETS_TREE, { active: 7, reactive: 3, target: 1, passive: 8 }],
   ["launcher", LAUNCHER_TREE, { active: 7, reactive: 2, target: 2, passive: 8 }],
+  ["tower_shield", TOWER_SHIELD_TREE, { active: 7, reactive: 3, target: 0, passive: 9 }],
+  ["long_spear", LONG_SPEAR_TREE, { active: 7, reactive: 2, target: 1, passive: 9 }],
 ]) {
   equal(tree.length, 19, `${weaponId} has the complete 19-node shape`);
   assert.deepEqual(
@@ -150,6 +150,14 @@ content.enemyActors.weapon_test_dummy = {
   might: 0,
   focus: 0,
   guard: 0,
+};
+content.enemyActors.weapon_test_heavy = {
+  ...content.enemyActors.weapon_test_dummy,
+  id: "weapon_test_heavy",
+  displayName: "重い試験台",
+  baseActionPoints: 1,
+  might: 200,
+  tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
 };
 content.enemyActors.weapon_test_armored = {
   ...content.enemyActors.weapon_test_dummy,
@@ -373,6 +381,116 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(result.events.find((event) => event.type === "target_selected"
     && event.skillId === "long_spear_pierce")?.targetActorIds[0], "e_rear",
   "long spear root chooses the farthest legal enemy");
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "lancer",
+    activeSkillId: "tower_shield_draw_guard",
+    passiveSkillIds: ["tower_shield_thick_plate", "tower_shield_visible"],
+  }), content);
+  equal(result.events.find((event) => event.type === "barrier_gained"
+    && event.skillId === "tower_shield_draw_guard")?.values.amount, 45,
+  "tower shield thick plate adds 15 to the root barrier");
+  ok(result.events.some((event) => event.type === "status_added"
+    && event.ruleId === "tower_shield_visible_rule"
+    && event.values.statusId === "taunted" && event.values.stacks === 3),
+  "tower shield visible shield adds one taunt to every guard action");
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "lancer",
+    allies: [
+      allyInput("a_shield", "lancer", "warhammer_blow", "front_center", {
+        reactiveSkillIds: ["tower_shield_interpose"],
+        passiveSkillIds: ["tower_shield_shock_absorption"],
+      }),
+      allyInput("a_wounded", "warden", "warhammer_blow", "front_left", { hp: 100 }),
+    ],
+    enemies: [{ instanceId: "e_attacker", enemyActorId: "gray_scrapper", position: "front_right" }],
+  }), content);
+  equal(result.events.find((event) => event.type === "target_changed"
+    && event.ruleId === "tower_shield_interpose_rule")?.targetActorIds[0], "a_shield",
+  "tower shield interpose redirects an ally attack to the shield");
+  ok(result.events.some((event) => event.type === "pending_amount_modified"
+    && event.ruleId === "tower_shield_shock_absorption_damage_rule"),
+  "tower shield shock absorption reduces redirected damage before the hit resolves");
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "lancer",
+    activeSkillId: "tower_shield_sanctuary",
+    allies: [
+      allyInput("a_shield", "lancer", "tower_shield_sanctuary", "front_center"),
+      allyInput("a_wounded", "warden", "warhammer_blow", "front_left", { hp: 100 }),
+    ],
+    enemies: [{ instanceId: "e_attacker", enemyActorId: "gray_scrapper", position: "front_right" }],
+  }), content);
+  equal(result.events.find((event) => event.type === "target_changed"
+    && event.ruleId === "tower_shield_sanctuary_rule")?.targetActorIds[0], "a_shield",
+  "tower shield sanctuary redirects a single enemy attack");
+  ok(result.events.some((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "e_attacker" && event.tags.includes("redirect")),
+  "redirected damage keeps a shared redirect tag for downstream passives");
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "lancer",
+    activeSkillId: "tower_shield_draw_guard",
+    reactiveSkillIds: ["tower_shield_relief_voice"],
+    passiveSkillIds: ["tower_shield_spread_guard"],
+    allies: [
+      allyInput("a_shield", "lancer", "tower_shield_draw_guard", "front_center", {
+        reactiveSkillIds: ["tower_shield_relief_voice"],
+        passiveSkillIds: ["tower_shield_spread_guard"],
+      }),
+      allyInput("a_wounded", "warden", "warhammer_blow", "front_left", { hp: 100 }),
+    ],
+    enemies: [{ instanceId: "e_heavy", enemyActorId: "weapon_test_heavy", position: "front_right" }],
+  }), content);
+  ok(result.events.some((event) => event.type === "healing_applied"
+    && event.ruleId === "tower_shield_relief_voice_rule"
+    && event.values.actual === 30),
+  "tower shield relief voice converts absorbed damage into recovery");
+  ok(result.events.some((event) => event.type === "barrier_gained"
+    && event.ruleId === "tower_shield_spread_guard_rule"
+    && event.targetActorIds[0] === "a_wounded" && event.values.amount === 15),
+  "tower shield spread guard shares half the absorbed packet");
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "lancer",
+    activeSkillId: "long_spear_pierce",
+    passiveSkillIds: ["long_spear_double_thrust", "long_spear_penetration"],
+    enemies: [
+      { instanceId: "e_front", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_rear", enemyActorId: "weapon_test_dummy", position: "rear_left" },
+    ],
+  }), content);
+  equal(result.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user").length, 3,
+  "long spear double thrust and penetration add two explicit follow-up hits");
+  ok(result.events.some((event) => event.type === "damage_proposed"
+    && event.tags.includes("extra_hit") && event.targetActorIds[0] === "e_front"),
+  "long spear penetration uses the shared same-column filter");
+}
+
+{
+  const result = simulateBattle(battle({
+    characterId: "lancer",
+    activeSkillId: "long_spear_pierce",
+    passiveSkillIds: ["long_spear_foot_stop"],
+    enemies: [{ instanceId: "e_delayed", enemyActorId: "weapon_test_heavy", position: "front_left" }],
+  }), content);
+  ok(result.events.some((event) => event.type === "resource_spent"
+    && event.ruleId === "long_spear_delayed_rule"
+    && event.targetActorIds[0] === "e_delayed"
+    && event.values.resource === "action_points"),
+  "long spear foot stop reduces the next enemy activation AP");
 }
 
 {

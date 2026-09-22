@@ -10,8 +10,9 @@
 const freeze = (value) => Object.freeze(value);
 
 // R25 adds explicit weapon range classes and empty-slot movement with an
-// optional action-end return. Older readers would ignore both combat rules.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-7";
+// optional action-end return. R26 adds shared column/unacted target filters
+// and resource-reduction effects used by the Stage 1 weapon trees.
+export const CONTENT_SCHEMA_VERSION = "ecology-content-8";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -268,6 +269,8 @@ export const TARGET_FILTER_TYPES = freeze([
   "is_event_primary_target",
   "not_event_primary_target",
   "same_row_as_event_primary_target",
+  "same_column_as_event_primary_target",
+  "not_acted_this_round",
   // DEVIATION (PREFLIGHT §1): symmetric partner of is_event_primary_target.
   // Without it, "the actor who caused this event is me" is unwritable in v1 and
   // the §15.4 empowering status double-applies when two actors hold it.
@@ -311,6 +314,7 @@ export const EFFECT_TYPES = freeze([
   "heal",
   "gain_barrier",
   "gain_resource",
+  "reduce_resource",
   "add_status",
   "remove_status",
   "remove_statuses",

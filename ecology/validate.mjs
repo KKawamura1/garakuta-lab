@@ -271,11 +271,17 @@ function validateTargetFilter(bag, path, filter, ctx) {
         bag.add(`${path}.value`, "bad_boolean", "is_preparing.value must be a boolean");
       }
       break;
+    case "not_acted_this_round":
+      if (filter.value !== undefined && typeof filter.value !== "boolean") {
+        bag.add(`${path}.value`, "bad_boolean", "not_acted_this_round.value must be a boolean");
+      }
+      break;
     case "not_previous_target":
     case "not_self":
     case "is_event_primary_target":
     case "not_event_primary_target":
     case "same_row_as_event_primary_target":
+    case "same_column_as_event_primary_target":
     case "is_event_source":
       break;
     default:
@@ -529,6 +535,7 @@ function validateEffect(bag, path, effect, ctx) {
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
     case "gain_resource":
+    case "reduce_resource":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.resource`, effect.resource, RESOURCE_NAMES, "unknown_resource");

@@ -2881,3 +2881,15 @@ Stage 0で入口だけだった格闘具と射出器を、戦槌・双刃と同�
 `previous_target`を追加した。chain内だけで使うoverflow用の対象集合とは分離している。専用試験は
 344チェックまで増やし、content contractを37、content versionを0.26へ更新した。残るStage 1〜3の
 6武器は、引き続きR節の入口を実装済みとして保つ。
+
+## 2026-09-22 — R26 Stage 1の大盾・長槍を19節へ拡張
+
+Stage 1で加入するナギの大盾・長槍を、入口R節から`R → BB`の19節へ拡張した。大盾は防壁・誘引・
+位置交換・redirectをつなぎ、長槍は最遠対象・同列・未行動・準備中・移動・次起動APをつないだ。
+大盾の「守り分け」「安堵の声」は、吸収量が観測できる`damage_taken.values.barrierAbsorbed`を読み、
+長槍の「足を止める」は次の`actor_activated`で`reduce_resource`を使う。
+
+そのためschemaを`ecology-content-8`へ上げ、列／未行動target filter、資源減少effect、redirect tagの
+共有境界を追加した。状態IDは技能IDと衝突しないよう`tower_shield_sanctuary_status`と
+`long_spear_order_mark_status`へ分離し、旧saveのIDを再利用しない。ステージ2・3の鉤縄・双刃・号旗・重弩は
+R節の入口を維持する。専用試験は468チェック、content contractは38、content versionは0.27へ更新した。
