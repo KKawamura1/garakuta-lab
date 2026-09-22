@@ -32,6 +32,11 @@ const required = [
   ["武器技能の操作盤", app, "weapon-skill-sheet"],
   ["武器技能の見方切替", app, '"select-weapon-skill-view"'],
   ["武器技能の前提線", app, "function layoutWeaponSkillTreeConnectors()"],
+  ["武器一覧の前提線", app, "function weaponListGuide(layout)"],
+  ["前提込みの残り技能点", app, "function remainingWeaponSkillCost(node, characterId)"],
+  ["武器技能の効果バッジ", app, "function weaponEffectBadges(node, characterId, limit = 3)"],
+  ["人物ごとの閲覧位置", app, "weaponSkillMemory"],
+  ["選択節への縦寄せ", app, "window.scrollBy({ top: selectedRect.top - want, behavior })"],
   ["武器タブの横送り", styles, ".weapon-tree-tabs {"],
   ["武器地図の横送り", styles, ".weapon-tree-scroll {"],
   ["武器操作盤の固定", styles, ".weapon-skill-sheet {"],
@@ -62,6 +67,9 @@ for (const [label, source, forbidden] of [
 }
 if (/(^|[^A-Z_])SKILL_TREE_NODES([^A-Z_]|$)/.test(app)) {
   problems.push("旧ツリー記号が画面ソースに残っている");
+}
+if (app.includes("class=\"weapon-position\"")) {
+  problems.push("内部の武器節位置名が画面に出ている");
 }
 
 // reduced-motion でも重要な視認性（光・戦闘の状態）は消さない。
