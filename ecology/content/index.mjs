@@ -176,8 +176,8 @@ import {
 // from packs. The dual-blades A→AA slice also establishes pre-action movement
 // that keys off the shared resolved reach class, never a particular active ID.
 // Stage 0 の攻撃系として格闘具・射出器をR〜BBの19節へ接続し、
-// Stage 1 の大盾・長槍も同じ19節registryへ接続した。Stage 2〜3の4武器は
-// R節の入口を同じ経路へ接続している。
+// Stage 1 の大盾・長槍も同じ19節registryへ接続した。残る4武器（Stage 0の医療具、
+// Stage 2の鉤縄、Stage 3の号旗・重弩）はR節の入口を同じ経路へ接続している。
 // R25 dual-blades completion: AB/B/BA/BB branches, reserve-blade status,
 // round-robin hit distribution, and explicit skipped-hit packet amounts.
 // R25/R26 weapon roots: the remaining four weapons now have a content-backed R
