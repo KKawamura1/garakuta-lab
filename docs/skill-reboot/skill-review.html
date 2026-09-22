@@ -39,7 +39,7 @@ a{color:var(--blue)}
 .card{margin-top:12px;padding:15px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,rgba(32,45,48,.97),rgba(21,29,31,.97));box-shadow:0 12px 30px rgba(0,0,0,.16)}
 .header{padding:5px 2px 8px}
 .header-links{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px;font-size:12px}
-.toolbar{position:sticky;top:0;z-index:4;padding:11px;background:rgba(24,33,36,.95);backdrop-filter:blur(12px)}
+.toolbar{padding:11px;background:rgba(24,33,36,.95)}
 .progress-head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:12px}
 .progress-head strong{color:var(--gold);font-size:18px}
 .progress-track{height:7px;margin:7px 0 11px;border-radius:99px;background:#0b1011;overflow:hidden}
@@ -58,6 +58,16 @@ select{min-height:42px;padding:8px}
 .nav-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
 .nav-row .button{width:84px}
 .position-count{color:var(--muted);font-size:12px;text-align:center}
+.path-block{margin:13px 0}
+.path-block h3{margin-bottom:7px}
+.skill-path{display:flex;align-items:stretch;gap:5px;overflow-x:auto;padding:2px 1px 7px;scrollbar-width:thin}
+.path-node{display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-start;min-width:92px;padding:7px 8px;border:1px solid var(--line);border-radius:9px;background:var(--panel-2);text-align:left}
+.path-node.active{border-color:var(--gold);background:rgba(229,184,105,.16);color:var(--gold)}
+.path-position{font-size:10px;font-weight:800;letter-spacing:.04em}
+.path-name{max-width:150px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.path-arrow{display:flex;flex:0 0 auto;align-items:center;color:var(--muted);font-size:16px}
+.bottom-nav{display:flex;justify-content:space-between;gap:8px;margin-top:13px;padding-top:12px;border-top:1px solid rgba(237,243,237,.1)}
+.bottom-nav .button{flex:1}
 .skill-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
 .kicker-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px}
 .badge{display:inline-flex;align-items:center;min-height:24px;padding:3px 8px;border-radius:99px;background:rgba(145,203,213,.12);color:var(--blue);font-size:11px;font-weight:800}
@@ -151,7 +161,7 @@ summary{cursor:pointer;color:var(--muted);font-size:12px;font-weight:700}
 
   <section class="card summary-card">
     <h2>この画面の使い方</h2>
-    <p class="summary-note">各節を見て、まず「採用／要修正／保留／見送り」のどれかを押し、必要ならコメントを入力します。「コメント雛形を入れる」は、得るもの・面白さ・強み・弱み・実装懸念を埋めるための下書きを入れます。</p>
+    <p class="summary-note">各節を見て、まず「採用／要修正／保留／見送り」のどれかを押し、必要ならコメントを入力します。到達パスの節名をタップすると、その技能に至る前提節へ直接移動できます。コメントは自動保存されるので、パスを行ったり来たりしながら確認できます。</p>
     <div class="summary-actions">
       <button class="button small" id="copyCurrentBottom" type="button">今の節をコピー</button>
       <button class="button small" id="focusComment" type="button">コメント欄へ</button>
@@ -179,6 +189,15 @@ const STATUS = {
   reject:{label:"見送り"}
 };
 const COMMENT_TEMPLATE = "得るもの：\n面白さ：\n強み：\n弱み：\n実装懸念：";
+const TREE_PATHS = {
+  R:["R"],
+  A1:["R","A1"], A2:["R","A1","A2"], A3:["R","A1","A2","A3"],
+  AA1:["R","A1","A2","A3","AA1"], AA2:["R","A1","A2","A3","AA1","AA2"], AA3:["R","A1","A2","A3","AA1","AA2","AA3"],
+  AB1:["R","A1","A2","A3","AB1"], AB2:["R","A1","A2","A3","AB1","AB2"], AB3:["R","A1","A2","A3","AB1","AB2","AB3"],
+  B1:["R","B1"], B2:["R","B1","B2"], B3:["R","B1","B2","B3"],
+  BA1:["R","B1","B2","B3","BA1"], BA2:["R","B1","B2","B3","BA1","BA2"], BA3:["R","B1","B2","B3","BA1","BA2","BA3"],
+  BB1:["R","B1","B2","B3","BB1"], BB2:["R","B1","B2","B3","BB1","BB2"], BB3:["R","B1","B2","B3","BB1","BB2","BB3"]
+};
 const refs = {
   weapon:document.getElementById("weaponFilter"),
   route:document.getElementById("routeFilter"),
@@ -225,6 +244,15 @@ function isReviewed(skill){
   return r.status!=="pending" || Boolean(String(r.comment||"").trim());
 }
 function routeOf(skill){ return ROUTES[skill.routeId] || ROUTES.root; }
+function skillPathFor(skill){
+  const positions=TREE_PATHS[skill.position] || [skill.position];
+  return positions.map(position=>SKILLS.find(candidate=>candidate.weaponNumber===skill.weaponNumber && candidate.position===position)).filter(Boolean);
+}
+function showPathNode(id){
+  state.filters.route="all";
+  state.filters.status="all";
+  setCurrent(id);
+}
 function filteredSkills(options){
   const ignoreStatus=options && options.ignoreStatus;
   return SKILLS.filter(skill=>{
@@ -342,6 +370,7 @@ function renderSkill(){
       '<span class="skill-index"></span>'+
     '</div>'+
     '<p class="meta-line"></p>'+
+    '<div class="path-block"><h3>到達パス</h3><nav class="skill-path" aria-label="この技能に至る取得パス"></nav></div>'+
     '<div class="route-context"><strong></strong><span></span></div>'+
     '<div class="content-block"><h3>表示用効果文</h3><p class="effect"></p></div>'+
     '<div class="content-block"><h3>フレーバー</h3><p class="flavor"></p></div>'+
@@ -349,12 +378,36 @@ function renderSkill(){
     '<div class="status-block"><h3>判定</h3><div class="status-buttons"></div></div>'+
     '<div class="comment-wrap"><h3>コメント</h3><textarea class="comment" aria-label="この節へのコメント" placeholder="得るもの／面白さ／強み／弱み／実装懸念を自由に書いてください。"></textarea>'+
       '<div class="comment-actions"><button class="button small quiet template" type="button">コメント雛形を入れる</button><button class="button small" type="button" id="copyCurrent">この節をコピー</button></div>'+
+      '<div class="bottom-nav"><button class="button small previous-bottom" type="button">← 前の節</button><button class="button small next-bottom" type="button">次の節 →</button></div>'+
       '<p class="hint">入力は自動保存されます。レビュー結果をコピーすると、あとでこのチャットへ貼れます。</p></div>';
   body.querySelector(".badge.route").textContent=skill.routeLabel;
   body.querySelector(".badge.kind").textContent=skill.kind;
   body.querySelector("h2").textContent=skill.name;
   body.querySelector(".skill-index").textContent=skill.position;
   body.querySelector(".meta-line").innerHTML="<strong>"+skill.weapon+"</strong> · "+skill.role+" · 代表アクション: "+skill.signature+" · "+skill.range;
+  const pathNav=body.querySelector(".skill-path");
+  skillPathFor(skill).forEach((pathSkill,pathIndex)=>{
+    if(pathIndex>0){
+      const arrow=document.createElement("span");
+      arrow.className="path-arrow";
+      arrow.setAttribute("aria-hidden","true");
+      arrow.textContent="›";
+      pathNav.appendChild(arrow);
+    }
+    const pathButton=document.createElement("button");
+    pathButton.type="button";
+    pathButton.className="path-node"+(pathSkill.id===skill.id?" active":"");
+    if(pathSkill.id===skill.id) pathButton.setAttribute("aria-current","step");
+    const position=document.createElement("span");
+    position.className="path-position";
+    position.textContent=pathSkill.position;
+    const name=document.createElement("span");
+    name.className="path-name";
+    name.textContent=pathSkill.name;
+    pathButton.append(position,name);
+    pathButton.addEventListener("click",()=>showPathNode(pathSkill.id));
+    pathNav.appendChild(pathButton);
+  });
   body.querySelector(".route-context strong").textContent=route.label;
   body.querySelector(".route-context span").textContent=route.description;
   body.querySelector(".effect").textContent=skill.effect;
@@ -383,6 +436,8 @@ function renderSkill(){
     }
   });
   body.querySelector("#copyCurrent").addEventListener("click",()=>copyCurrent(skill));
+  body.querySelector(".previous-bottom").addEventListener("click",()=>move(-1));
+  body.querySelector(".next-bottom").addEventListener("click",()=>move(1));
   refs.comment=comment;
   refs.skillBody.replaceChildren(body);
   document.getElementById("prevSkill").disabled=list.length<2;
