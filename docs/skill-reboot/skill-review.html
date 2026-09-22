@@ -405,7 +405,7 @@ function markdownFor(skill,includeContract){
     "- フレーバー: "+skill.flavor
   ];
   if(includeContract) lines.push("- 実装契約: "+skill.contract);
-  lines.push("- コメント: "+(String(review.comment||"").trim() || "（なし）");
+  lines.push("- コメント: "+(String(review.comment||"").trim() || "（なし）"));
   return lines.join("\n");
 }
 function copyCurrent(skill){
