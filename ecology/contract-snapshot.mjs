@@ -17,13 +17,14 @@ import {
   PLAYABLE_CONTENT,
   DISPLAY_NAMES,
   REGION,
-  SKILL_LEVEL_CAPS,
-  SKILL_PACKS,
+  EQUIPMENT_PACKS,
+  WEAPON_SKILL_PACKS,
+  WEAPON_SKILL_TREE_NODES,
+  campaignManifestForStage,
 } from "./content/index.mjs";
 import {
   META_UPGRADES,
   composeEncounter,
-  makeManifest,
   newProfile,
   newRun,
   rewardOffer as expeditionRewardOffer,
@@ -34,7 +35,6 @@ import {
   COMPONENT_ORDER,
   EQUIPMENT,
   SKILLS,
-  SKILL_TREE_NODES,
   enemyInfo,
   enemyTargetingText,
   freshLoadout,
@@ -45,18 +45,6 @@ import {
 const ROSTER = ["warden", "mender", "lancer", "guardian", "tactician"];
 export function contractSnapshot() {
   const loadout = freshLoadout(ROSTER);
-  // Weapon-loadout migration fields have their own focused schema/engine
-  // tests. Keep the 850KB legacy snapshot stable while individual skills are
-  // still being moved; otherwise each foundation checkpoint rewrites the
-  // entire bundle and cannot be reviewed meaningfully.
-  const {
-    actives: _actives,
-    targets: _targets,
-    reactiveReserves: _reactiveReserves,
-    ...legacyLoadoutContract
-  } = loadout;
-  const { targetSkills: _targetSkills, ...legacyContentContract } = PLAYABLE_CONTENT;
-  legacyContentContract.schemaVersion = "ecology-content-4";
   const enemyIds = Object.keys(PLAYABLE_CONTENT.enemyActors);
 
   // R7 Milestone 4（Phase B）— 遠征が外へ見せる出力。
@@ -70,46 +58,37 @@ export function contractSnapshot() {
   }
   const manifests = Object.fromEntries(
     ["frontier-1801", "frontier-1801-abc12345", "frontier-1801-zzz"]
-      .map((seed) => [seed, makeManifest(seed, profile)]),
+      .map((seed) => [seed, campaignManifestForStage(0, seed)]),
   );
   const runRewards = {};
   for (const seed of Object.keys(manifests)) {
-    const run = newRun(profile, { runSeed: seed, runId: seed, roster: ROSTER, difficulty: 0 });
+    const run = newRun(profile, {
+      runSeed: seed, runId: seed, roster: ROSTER, difficulty: 0, campaignStageSequence: 0,
+    });
     for (const index of [1, 5, 11]) {
       for (const reroll of [0, 1]) {
         runRewards[seed + "/" + index + "/" + reroll] = expeditionRewardOffer(run, profile, index, reroll);
       }
     }
   }
-  const legacyRunRewards = structuredClone(runRewards);
-  for (const offer of Object.values(legacyRunRewards)) {
-    for (const reward of offer ?? []) {
-      if (reward?.item?.provenance?.contentContractVersion) {
-        reward.item.provenance.contentContractVersion = "ecology-content-contract-28";
-      }
-    }
-  }
-
   return {
     contentVersion: PLAYABLE_CONTENT.contentVersion,
-    content: legacyContentContract,
+    content: PLAYABLE_CONTENT,
     displayNames: DISPLAY_NAMES,
     characterOptions: CHARACTER_OPTIONS,
     skills: SKILLS,
     equipment: EQUIPMENT,
     components: COMPONENTS,
     componentOrder: COMPONENT_ORDER,
-    skillTreeNodes: SKILL_TREE_NODES,
-    // R19（issue #137）— 技能レベルの上限。**上位互換を別技能として増やさない**
-    // 代わりに、どの技能が何段まで伸びるのかを公開する。
-    skillLevelCaps: SKILL_LEVEL_CAPS,
+    weaponSkillTreeNodes: WEAPON_SKILL_TREE_NODES,
     enemyInfo: Object.fromEntries(enemyIds.map((id) => [id, enemyInfo(id)])),
     enemyTargeting: Object.fromEntries(enemyIds.map((id) => [id, enemyTargetingText(id)])),
     initialUnlocked: Object.fromEntries(CHARACTER_OPTIONS.map((o) => [o.id, initialUnlockedSkills(o.id)])),
-    freshLoadout: legacyLoadoutContract,
+    freshLoadout: loadout,
     // ---- Phase B
     region: REGION,
-    skillPacks: SKILL_PACKS,
+    equipmentPacks: EQUIPMENT_PACKS,
+    skillPacks: WEAPON_SKILL_PACKS,
     difficulties: DIFFICULTIES,
     bossLaws: BOSS_LAWS,
     enemyMutations: ENEMY_MUTATIONS,
@@ -123,7 +102,7 @@ export function contractSnapshot() {
       maxLevel: upgrade.maxLevel ?? null, costs: upgrade.costs,
     })),
     freshProfile: profile,
-    runRewards: legacyRunRewards,
+    runRewards,
   };
 }
 

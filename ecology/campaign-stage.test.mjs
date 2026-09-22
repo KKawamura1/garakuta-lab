@@ -23,7 +23,6 @@ import {
   REGION,
   WEAPONS,
   expeditionEncounter,
-  skillIdsForPacks,
 } from "./content/index.mjs";
 import {
   CAMPAIGN_STAGES,
@@ -46,11 +45,11 @@ import {
   isCampaignStageUnlocked,
   newProfile,
   newRun,
+  manifestSkillIds,
   normalizeProfile,
   purchaseTraining,
   purchaseUpgrade,
   settleRun,
-  slotUpgradeId,
 } from "./progression.mjs";
 import { freshLoadout, previewNextBattle, prologueEncounter, simulateNextBattle } from "./playable-battles.mjs";
 
@@ -84,7 +83,6 @@ function campaignCompleteProfile() {
   assert.deepEqual(availableCharacterIds(profile), ["warden", "mender"], "最初は登場済みの2人だけ");
   checks += 1;
   check(!purchaseTraining(profile, "lancer", "might").ok, "未登場の人物は鍛錬できない");
-  check(!purchaseUpgrade(profile, slotUpgradeId("active", "lancer")).ok, "未登場の人物は枠を買えない");
 
   profile.campaignProgress[REGION.id] = {
     highestClearedStageSequence: 2,
@@ -145,11 +143,11 @@ function campaignCompleteProfile() {
 
   // R11 §5 — ラダーを組み替えた。**導入は「構えと手当て」で、刃は次の Stage。**
   // 問題（紙の火力をどこに置くか）を出してから、その解決（庇う手）を渡す順にしてある。
-  assert.deepEqual(campaignStageDef(0).enabledPackIds, ["pack_care"], "Stage 0 = C");
-  assert.deepEqual(campaignStageDef(1).enabledPackIds, ["pack_care", "pack_edge"], "Stage 1 = C + E");
-  assert.deepEqual(campaignStageDef(2).enabledPackIds, ["pack_care", "pack_edge", "pack_wall"], "Stage 2 = C + E + W");
+  assert.deepEqual(campaignStageDef(0).enabledEquipmentPackIds, ["pack_care"], "Stage 0 = C");
+  assert.deepEqual(campaignStageDef(1).enabledEquipmentPackIds, ["pack_care", "pack_edge"], "Stage 1 = C + E");
+  assert.deepEqual(campaignStageDef(2).enabledEquipmentPackIds, ["pack_care", "pack_edge", "pack_wall"], "Stage 2 = C + E + W");
   assert.deepEqual(
-    campaignStageDef(3).enabledPackIds,
+    campaignStageDef(3).enabledEquipmentPackIds,
     ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
     "Stage 3 = C + E + W + T",
   );
@@ -171,20 +169,19 @@ function campaignCompleteProfile() {
   }
   equal(Object.keys(WEAPONS).length, 10, "武器registryは全10武器を持つ");
 
-  // Stage 1 では、ナギが加入した時点で味方を守る入口も使える。
-  // `cover_ally` が Stage 2 の pack まで遅れると、庇護役の加入と主力の解禁がずれる。
-  const stage0SkillIds = new Set(skillIdsForPacks(
-    campaignStageDef(0).enabledPackIds, campaignStageDef(0).packDepths,
-  ).all);
-  const stage1SkillIds = new Set(skillIdsForPacks(
-    campaignStageDef(1).enabledPackIds, campaignStageDef(1).packDepths,
-  ).all);
-  check(!stage0SkillIds.has("cover_ally"), "Stage 0 では身代わりをまだ出さない");
-  check(stage1SkillIds.has("cover_ally"), "Stage 1 で身代わりが解禁される");
-  const lancer = CHARACTER_DEFINITIONS.find((entry) => entry.id === "lancer");
-  check(lancer?.starterReactives.includes("cover_ally"), "ナギの初期リアクティブに身代わりがある");
-  for (const skillId of [...(lancer?.starterTactics ?? []), ...(lancer?.starterReactives ?? [])]) {
-    check(stage1SkillIds.has(skillId), `ナギの初期技能 ${skillId} は加入時のStage 1で解禁済み`);
+  // 初期技能は各キャラの代表2武器から R + A1 の4本だけ。敵専用技能は混ぜない。
+  for (const character of CHARACTER_DEFINITIONS) {
+    equal(character.starterTactics.length, 2, `${character.id} の初期Rは2本`);
+    equal(character.starterReactives.length, 0, `${character.id} の初期リアクティブは空`);
+    equal(character.starterPassives.length, 2, `${character.id} の初期A1は2本`);
+    equal(new Set([
+      ...character.starterTactics,
+      ...character.starterPassives,
+    ]).size, 4, `${character.id} の初期技能は4本`);
+    const fullSkillIds = new Set(manifestSkillIds(campaignManifestForStage(3, "starter-check")).all);
+    for (const skillId of [...character.starterTactics, ...character.starterPassives]) {
+      check(fullSkillIds.has(skillId), `${character.id} の初期技能 ${skillId} は武器manifestに含まれる`);
+    }
   }
 
   // R9 §2.1 — 2人から始めて Stage ごとに1人ずつ増え、Stage 3 で5人。以降は5人のまま。
@@ -205,17 +202,17 @@ function campaignCompleteProfile() {
   // R23 — 第2章は全部 full（取り上げも、入口だけの出し方もしない）。
   for (const stage of CAMPAIGN_STAGES) {
     if (stage.ladderMode === "tutorial") {
-      equal(stage.packDepths[stage.newPackId], "core", stage.id + " の新 pack は core");
+      equal(stage.equipmentPackDepths[stage.newEquipmentPackId], "core", stage.id + " の新装備packは core");
     }
-    for (const packId of stage.returningPackIds) {
-      equal(stage.packDepths[packId], "full", stage.id + " の過去 pack " + packId + " は full");
+    for (const packId of stage.returningEquipmentPackIds) {
+      equal(stage.equipmentPackDepths[packId], "full", stage.id + " の過去装備pack " + packId + " は full");
     }
   }
 
   // 同Stage・異seedでpack構成が一致する。seed は敵順・報酬用にしか使わない。
   const a = campaignManifestForStage(2, "seed-alpha");
   const b = campaignManifestForStage(2, "seed-beta");
-  assert.deepEqual(a.enabledPackIds, b.enabledPackIds, "campaign manifest は seed で pack 構成が変わらない");
+  assert.deepEqual(a.enabledEquipmentPackIds, b.enabledEquipmentPackIds, "campaign manifest は seed で装備pack構成が変わらない");
   assert.deepEqual(a.enabledWeaponIds, b.enabledWeaponIds, "campaign manifest は seed で武器構成が変わらない");
   check(a.seed !== b.seed, "ただし seed 自体は記録される（敵順・報酬用）");
 }
@@ -231,7 +228,7 @@ function campaignCompleteProfile() {
 
   const run = newRun(profile, { runSeed: "s", runId: "camp-r0", roster: ROSTER, campaignStageSequence: 0 });
   equal(run.campaignStageSequence, 0, "run が campaign stage を記録する");
-  assert.deepEqual(run.manifest.enabledPackIds, ["pack_care"], "Stage 0 の run manifest");
+  assert.deepEqual(run.manifest.enabledEquipmentPackIds, ["pack_care"], "Stage 0 の run manifest");
   checks += 1;
   // R9 §2.1 — Stage 0 は2人。5人渡しても切り詰める。
   equal(run.roster.length, 2, "Stage 0 の遠征は2人で始まる");

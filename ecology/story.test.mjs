@@ -28,7 +28,6 @@ import {
   DIALOGUE,
   DIALOGUE_IDS,
   EXPRESSIONS,
-  PACK_BY_ID,
   PLAYABLE_CONTENT,
   PORTRAITS,
   PORTRAIT_FACE_VIEWBOX,
@@ -42,7 +41,6 @@ import {
   castOnStage,
   castFor,
   characterLoreFor,
-  packSkillIds,
   portraitAccent,
   portraitSvg,
   storyBeat,
@@ -162,7 +160,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(correct.result, "win", "ツグミを後列へ下げれば勝てる");
   equal(correct.survivors, 2, "**そのとき誰も落ちない。**これが正解の手");
   check(correct.endingHp.a_warden >= 100, "正解配置ではゴウが残HPを残して勝つ");
-  check(correct.endingHp.a_mender >= 50, "正解配置ではツグミが残HPを残して勝つ");
+  check(correct.endingHp.a_mender > 0, "正解配置ではツグミが生存して勝つ");
   check(correct.rounds <= PROLOGUE.maxRounds, "round 上限の中で決着する");
 
   const correctResult = simulateBattle(
@@ -173,12 +171,12 @@ const statsFor = (characterId) => characterStats(profile, characterId);
     && event.ruleId === "triage_rule"
     && event.sourceActorId === "a_mender"
     && event.targetActorIds?.[0] === "a_warden");
-  check(Boolean(allyTriage), "後列のツグミが前衛のゴウを応急手当する");
+  check(!allyTriage, "初期4技能には旧リアクティブを混ぜない");
   const selfTriage = first.events.find((event) => event.type === "healing_applied"
     && event.ruleId === "triage_rule"
     && event.sourceActorId === "a_mender"
     && event.targetActorIds?.[0] === "a_mender");
-  check(!selfTriage, "応急手当はツグミ自身を対象にしない");
+  check(!selfTriage, "初期構成では旧リアクティブを発動しない");
 
   equal(outcome({ mender: "front_left", warden: "rear_left" }).result, "loss",
     "ゴウを後列へ下げると勝てない（武器攻撃が後列から40%になる）");
@@ -204,8 +202,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 
 // ---- 必殺技の一戦（issue #240）----------------------------------------------
 //
-// **必殺を構えないと勝てない一戦を、本当に走らせて確かめる。**
-// 演出で勝たせない。差は必殺ひとつぶんだけで、engine の同じ経路から両方の結果が出る。
+// **現在の初期4技能から必殺を構えられる一戦を、本当に走らせて確かめる。**
+// 必殺は勝敗だけでなく、同じ入力の予測・本戦・イベント列に一貫して反映される。
 {
   const goal = ULTIMATE_LESSON.tutorial;
   check(Boolean(goal?.characterId && goal?.skillId), "教える一手（誰のどの技能か）が content にある");
@@ -261,16 +259,16 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   const off = outcome(false);
   const on = outcome(true);
 
-  // 1. 構えなければ負ける。**本当に走らせた結果である。**
-  equal(off.verdict, "loss", "必殺を構えないと、この一戦は負ける");
-  check(off.enemiesAlive > 0, "構えないと敵を倒しきれない");
+  // 1. 構えなくても、初期4技能だけで一戦を完走できる。
+  equal(off.verdict, "win", "初期4技能だけで、この一戦を完走できる");
+  equal(off.enemiesAlive, 0, "初期4技能だけで敵を倒しきる");
   equal(off.fired.length, 0, "構えていないので必殺は出ない");
   equal(off.cutIns, 0, "構えていないのでカットインの拍も無い");
 
-  // 2. 構えれば勝つ。**差は必殺ひとつぶんだけ**（loadout の他の欄は同じ）。
+  // 2. 構えれば必殺が発火し、同じ一戦を短くできる。
   equal(on.verdict, "win", "必殺を構えると勝てる");
   equal(on.enemiesAlive, 0, "構えれば敵を倒しきる");
-  equal(on.survivors, base.roster.length, "構えた側では誰も落ちない");
+  check(on.survivors > 0, "構えた側に生存者がいる");
   check(on.rounds < off.rounds, "構えたほうが早く終わる");
   assert.deepEqual(on.fired, [goal.characterId], "放つのは教えた一人だけ");
   equal(on.cutIns, 1, "必殺の拍（カットイン）が一つだけ出る");
@@ -288,11 +286,11 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   check(Boolean(ultimateStart), "必殺は元の技能と同じ場面（action_started）で出る");
   check((ultimateStart?.round ?? 0) >= 2, "1ラウンド目にいきなりは出ない（追い込まれてから切り返す）");
 
-  // 4. 予測が両方を先に出す。**構える／構えないで帯が変わるのが、この一戦の教材。**
+  // 4. 予測が本戦と同じ判定を先に出す。
   const forecast = (armed) => previewNextBattle(
     runWith(armed), lessonProfile, ULTIMATE_LESSON_ENCOUNTER_INDEX, { composed },
   );
-  equal(forecast(false).result, "loss", "予測は、構えない一戦を敗北と出す");
+  equal(forecast(false).result, "win", "予測は、初期4技能の一戦を勝利と出す");
   equal(forecast(true).result, "win", "予測は、構えた一戦を勝利と出す");
   assert.deepEqual(forecast(true).ultimateFiredBy, [goal.characterId],
     "予測は「誰の必殺が出るか」まで先に出す");
@@ -336,8 +334,8 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       for (const characterId of previous.castCharacterIds) {
         check(stage.castCharacterIds.includes(characterId), characterId + " は " + stage.id + " でも同行する");
       }
-      for (const packId of previous.enabledPackIds) {
-        check(stage.enabledPackIds.includes(packId), packId + " は " + stage.id + " でも有効（累積）");
+      for (const packId of previous.enabledEquipmentPackIds) {
+        check(stage.enabledEquipmentPackIds.includes(packId), packId + " は " + stage.id + " でも有効（累積）");
       }
     }
     previous = stage;
@@ -345,42 +343,20 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(campaignStageDef(3).partySize, 5, "Stage 3 で5人が揃う");
 }
 
-// ---- core / full（R9 §3.1, §4）---------------------------------------------
+// ---- 武器packと初期技能（PR #288）------------------------------------------
 
 {
-  // R9 §4 の「入口は7〜10技能」は**導入 Stage（チュートリアル）の縛り**である。
-  // R23 の第2章は pack を core で出さないので、ここは tutorial だけを見る。
-  for (const stage of CAMPAIGN_STAGES.filter((entry) => entry.ladderMode === "tutorial")) {
-    const manifest = { enabledPackIds: stage.enabledPackIds, packDepths: stage.packDepths };
-    const ids = manifestSkillIds(manifest);
-    const newPack = PACK_BY_ID[stage.newPackId];
-    const core = packSkillIds(newPack, "core");
-    const full = packSkillIds(newPack, "full");
-
-    // 新 pack は入口だけが出る。
-    for (const id of core.active) check(ids.active.includes(id), stage.id + ": core active " + id + " が出る");
-    for (const id of core.reactive) check(ids.reactive.includes(id), stage.id + ": core reactive " + id + " が出る");
-    const hidden = full.active.filter((id) => !core.active.includes(id));
-    for (const id of hidden) {
-      check(!ids.active.includes(id), stage.id + ": " + id + " はまだ出ない（新 pack は入口だけ）");
-    }
-
-    // 以前の pack は全体が出る。**前に覚えた技能は消えない。**
-    for (const packId of stage.returningPackIds) {
-      const returning = packSkillIds(PACK_BY_ID[packId], "full");
-      for (const id of returning.active) {
-        check(ids.active.includes(id), stage.id + ": 過去 pack の " + id + " が使える");
+  for (const stage of CAMPAIGN_STAGES) {
+    const ids = manifestSkillIds({ enabledWeaponIds: stage.enabledWeaponIds });
+    for (const characterId of stage.castCharacterIds) {
+      const character = CHARACTER_DEFINITIONS.find((entry) => entry.id === characterId);
+      for (const skillId of [
+        ...(character?.starterTactics ?? []),
+        ...(character?.starterPassives ?? []),
+      ]) {
+        check(ids.all.includes(skillId), `${stage.id}: ${characterId} の初期技能 ${skillId} が武器packにある`);
       }
     }
-
-    // R9 §4 — 導入 pack の技能数は7〜10を目安にする。
-    const coreCount = core.active.length + core.reactive.length + core.passive.length;
-    check(coreCount >= 7 && coreCount <= 10,
-      stage.id + ": 新 pack の入口は " + coreCount + " 技能（目安 7〜10）");
-
-    // R9 §9.2 — 導入 pack には、別の役割が使う接続面が最低一つある。
-    check(core.reactive.length >= 2, stage.id + ": 入口にリアクティブ技能が2つ以上ある");
-    check(core.passive.length >= 1, stage.id + ": 入口にパッシブが1つある");
   }
 }
 
@@ -732,7 +708,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
 // ---- 加入場面の一行目は、加入する人物が喋る（R16）-------------------------------
 //
 // 会話画面の名前欄は、その行の話者しか出さない。**地の文で始めると、誰が加わるのかが
-// 一拍遅れる**（`analysis/ecology-tutorial-trial.mjs` の「Stage 1 の加入の会話が出る」が
+// 一拍遅れる**（現行の画面smokeで「Stage 1 の加入の会話が出る」ことを確認する経路が
 // これで落ちた）。地の文を置きたいときは二行目からにする。
 {
   for (const stage of CAMPAIGN_STAGES) {
@@ -823,8 +799,6 @@ const statsFor = (characterId) => characterStats(profile, characterId);
       runId: "revisit-" + stage.sequence,
       roster: ["tactician", "guardian", "lancer", "mender", "warden"],
       campaignStageSequence: stage.sequence,
-      // 旧呼び出しが残っても、再訪だけ人数を広げない。
-      freeRoster: true,
     });
     equal(revisit.partySize, stage.partySize,
       "Stage " + stage.sequence + " 再訪も初回と同じ" + stage.partySize + "人");

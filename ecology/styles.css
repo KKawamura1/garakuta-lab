@@ -2182,12 +2182,10 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
    176px の幅に収めるために小さいままだった）。 */
 .skill-sheet .skill-detail { padding: 9px 10px 11px; border-top: 0; background: transparent; }
 .skill-sheet .skill-detail p { font-size: 11px; line-height: 1.5; }
-/* 取得・段上げ・予約・予約取消は**一行**。入り切らないときだけ折り返す。
+/* 取得・予約・予約取消は**一行**。入り切らないときだけ折り返す。
    釦は指で押す大きさ（36px）を保ち、横は内容ぶんだけ取る。 */
 .skill-sheet .node-action { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .skill-sheet .node-action .tiny-button { flex: 1 1 auto; min-height: 36px; padding: 7px 9px; font-size: 11px; }
-/* 1点で変わる数（130% → 146%）は釦の隣。行が埋まっていれば次の行へ落ちる。 */
-.skill-sheet .node-action .level-step { flex: 0 1 auto; }
 .skill-sheet .node-locked { margin: 6px 0 0; }
 .skill-detail {
   padding: 8px 9px 10px 44px;
@@ -5122,10 +5120,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .pips.rp { color: var(--violet); }
 .pips.hp { color: var(--bad); }
 .pips.free i { background: transparent; border: 1px solid var(--muted); }
-/* 段は素直に文字で。**ほとんどの節が Lv1 なので、目盛りは読めない。** */
-.level-tag { color: var(--violet); font-size: 9px; font-weight: 800; }
-.level-tag small { font-size: 8px; font-weight: 400; opacity: .7; }
-.level-tag.maxed { color: var(--gold); }
 /* 量は能力値の色の小チップ。印（腕・技・受・HP）と数を並べ、桁で比べさせる。 */
 .yield-chip {
   display: inline-flex;
@@ -5176,9 +5170,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .node-mark.cost { border: 1px solid #6d7c77; border-radius: 4px; color: #8fa09a; }
 .node-mark.cost.ready { border: 1px solid var(--gold); color: var(--gold); }
 .node-mark.cost.gated { opacity: .6; }
-.node-mark.prerequisite-levels { border: 1px dashed #6d7c77; border-radius: 4px; color: #8fa09a; }
-.node-cost-chain { display: inline-flex; align-items: center; gap: 3px; align-self: start; }
-.cost-plus { color: var(--muted); font-size: 10px; line-height: 1; }
 /* テーマ。色と印だけで絞り込む。 */
 .branch-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px; }
 .branch-chip {
@@ -5206,12 +5197,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .node-icon.branch-order { border-color: var(--branch-order); color: var(--branch-order); }
 .node-icon.branch-base { border-color: var(--branch-base); color: var(--branch-base); }
 .skill-node.equipped .node-icon { border-color: var(--gold); background: var(--gold); color: #1b201e; }
-/* 節の上の計器。名前の下に並べる。
-   作者指摘 2026-09-17 — **段の添え字（/10）が列の右端で切れていた。**列幅は
-   iPhone で 176px しかなく、一列固定（nowrap）のままだと「● 腕 146% Lv2/10」が
-   入り切らず、`.node-copy small` の `overflow: hidden` が末尾を食っていた。
-   **数を削るのではなく、入らない回だけ折り返す。**計器は一つずつが読めればよく、
-   一行に収まっているかどうかは読み手にとって意味を持たない。 */
+/* 節の上の計器。名前の下に並べる。 */
 .node-copy .node-meters {
   display: flex;
   flex-wrap: wrap;
@@ -5222,7 +5208,7 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
   white-space: nowrap;
 }
 .node-copy .node-meters > * { flex: 0 0 auto; }
-/* 装着行。**出番は目盛り、代償は点。** */
+/* 装着行。判定順と代償を同じ行へまとめる。 */
 .installed-copy .row-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 3px; }
 .installed-copy .node-when { white-space: normal; }
 .turn-share { display: inline-flex; gap: 2px; margin-top: 3px; }
@@ -5244,7 +5230,6 @@ footer { margin-top: 18px; color: #697873; text-align: center; font-size: 9px; }
 .skill-switch i { display: block; width: 11px; height: 11px; border-radius: 50%; background: var(--muted); }
 .skill-switch.on { border-color: var(--gold); background: rgba(229, 184, 105, .18); }
 .skill-switch.on i { margin-left: 13px; background: var(--gold); }
-.level-tag { display: inline-flex; align-items: center; gap: 1px; line-height: 1; white-space: nowrap; }
 /* 詳細。文章を許すのは技能の説明文だけ。 */
 .skill-detail .scope-mark {
   margin-right: 5px;

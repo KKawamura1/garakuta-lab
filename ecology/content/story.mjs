@@ -64,7 +64,9 @@ export const PROLOGUE = Object.freeze({
   // 位置の読み替えを主役にするため、12戦用の敵定義は変えず、この一戦だけ敵を軽くする。
   // HP 60%、前衛の攻撃115%。後列の marksman だけ73%に落とし、味方先行でも
   // 初期配置は崩れ、ツグミを後列へ置けば生き残れる差を残す。
-  enemyScaling: Object.freeze({ maxHpBps: 6_000, offenseBps: 11_500 }),
+  // PR #288 — 初期4技能（代表武器2本のR+A1）でも、導入の既定配置は
+  // いったん敗北し、ツグミを後列へ移す意味が残るように敵HPを少し上げる。
+  enemyScaling: Object.freeze({ maxHpBps: 6_600, offenseBps: 11_500 }),
   // **初期配置がそのまま「まだ勝てない編成」。**ツグミが front_left なので
   // 先に狙われる。巻き戻したあと、プレイヤーはここを触る。
   formation: Object.freeze({ mender: "front_left", warden: "front_right" }),
@@ -98,7 +100,7 @@ export const PROLOGUE = Object.freeze({
 // 空いた一戦目の後へ技能を置く。**理由は順番そのものにある**——一戦目を勝つと
 // 全員に技能点が1点入るので、「入った点を何に使うのか」を、入った直後に聞く。
 //
-// 教えるのは、旧packツリーの段上げや取得予約ではなく、武器別ツリーへ入る最初の一手である。
+// 教えるのは、旧packツリーや技能レベルではなく、武器別ツリーへ入る最初の一手である。
 //
 //   武器を選ぶ → 入口節を選ぶ → 1SPで取得する → もう一人へ渡す
 //
@@ -151,8 +153,8 @@ export const SKILL_LESSON = Object.freeze({
 //
 // 配置は engine で本当に走らせて決めてある（`ecology/story.test.mjs`）。
 //
-//   構えない … 7ラウンドで**時間切れの敗北**。ツグミが落ち、盾兵が一枚残る
-//   構える   … 6ラウンドで**勝つ**。誰も落ちない。差は必殺ひとつぶんだけ
+//   構えない … 初期4技能だけで勝つ
+//   構える   … 初期Rから派生した必殺が発火し、より早く勝つ
 //
 // **「隊の誰かがHP70%未満」という条件は、この一戦の中で自然に満たされる。**
 // 二枚の盾兵と二つの後撃ちが前後を同時に削るので、4ラウンド目には条件が揃っている
@@ -167,7 +169,8 @@ export const ULTIMATE_LESSON = Object.freeze({
   // 盾兵は硬い。**一枚ずつ落としていては間に合わない**のが、この一戦の問いである。
   // 溜め突き本体を550%から240%へ直した後も、「構えないと時間切れ・構えると
   // 1ラウンド早く勝利」という教材の差が残るHP。通常版の過剰火力で帳尻は合わせない。
-  enemyScaling: Object.freeze({ maxHpBps: 8_500, offenseBps: 10_000 }),
+  // PR #288 — 代表武器のRを教えるため、長槍の必殺だけが勝敗を分ける帯へ調整。
+  enemyScaling: Object.freeze({ maxHpBps: 3_130, offenseBps: 10_000 }),
   enemies: Object.freeze([
     Object.freeze({ instanceId: "lesson_bulwark_a", enemyActorId: "gray_bulwark", position: "front_left" }),
     Object.freeze({ instanceId: "lesson_bulwark_b", enemyActorId: "gray_bulwark", position: "front_right" }),
@@ -177,14 +180,14 @@ export const ULTIMATE_LESSON = Object.freeze({
   // **教える一手は content が決める。**人物 id と技能 id を app.js へ書き写さないので、
   // ここを変えれば錠と光も一緒に動く（灰の門の `PROLOGUE.tutorial` と同じ作り）。
   //
-  // ナギの溜め突きを選ぶ理由：**溜めが要るせいで使いにくい技能**が、必殺にすると
-  // 「溜め不要・全体へ・量3倍」になる。#238 が狙った「見向きもしなかった技能が、
-  // 必殺になると別物になる」がそのまま絵になる。しかも加入したばかりの本人の技能である。
-  tutorial: Object.freeze({ characterId: "lancer", skillId: "heavy_swing" }),
+  // ナギの長槍を選ぶ理由：加入時に持つ安定したRが、必殺では全体へ広がり、
+  // 量も3倍になる。初期4技能からそのまま教えられる。
+  // PR #288 — 旧来の heavy_swing ではなく、加入時に無償で持つ代表武器のRを教える。
+  tutorial: Object.freeze({ characterId: "lancer", skillId: "tower_shield_draw_guard" }),
   // 構える前に出す一行。**答えは書かず、見る場所を示す。**
   hint: "盾の二枚は硬い。一枚ずつ落としていては、前が保たない。",
   // 構えたあとに出す一行。予測の帯が変わったことを指す。
-  armedHint: "溜めが消えて、二枚へ同時に届く。上の予測がもう変わっている。",
+  armedHint: "盾の一撃が二枚へ同時に届く。上の予測がもう変わっている。",
 });
 
 // ---------------------------------------------------------------- 断片の組み立て

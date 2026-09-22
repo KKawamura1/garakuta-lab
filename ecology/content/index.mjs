@@ -6,17 +6,20 @@
 // R7 の content contract：ここが公開する意味（ID、event、effect、target、単位）は
 // 一度出したら変えない。変えるときは schema version を上げ、migration を書く。
 
-import { FIXTURE_CONTENT } from "../fixture-content.mjs";
+import { CONTENT_SCHEMA_VERSION } from "../schema.mjs";
 import { CHARACTERS } from "./characters.mjs";
 import { CHARACTER_LORE, CHARACTER_NAMES, characterLoreFor } from "./character-lore.mjs";
 import { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE } from "./world-lore.mjs";
-import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES } from "./skills-active.mjs";
-import { REACTIVE_SKILLS, REACTIVE_SKILL_NAMES } from "./skills-reactive.mjs";
-import { PASSIVE_SKILLS } from "./skills-passive.mjs";
-import { skillLevelCaps } from "./skill-levels.mjs";
 import { FIXED_EQUIPMENT, EQUIPMENT_NAMES } from "./equipment-fixed.mjs";
 import { STATUSES, STATUS_NAMES } from "./statuses.mjs";
 import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
+import {
+  ENEMY_ACTIVE_SKILLS,
+  ENEMY_ACTIVE_SKILL_IDS,
+  ENEMY_REACTIVE_SKILLS,
+  ENEMY_REACTIVE_SKILL_IDS,
+  ENEMY_PASSIVE_SKILLS,
+} from "./enemy-skills.mjs";
 import {
   WARHAMMER_ACTIVE_SKILLS,
   WARHAMMER_PASSIVE_SKILLS,
@@ -119,7 +122,7 @@ import {
 // R9（初期4Stageのチュートリアル化）— 導入 pack の接続面と常設
 // （whetted_by_pain / shield_handoff / patient_step / shield_the_wounded /
 // first_blood / held_breath / steady_hands）を追加し、pack へ core / full の
-// 二段を足した。manifest に packDepths / partySize / castCharacterIds が増え、
+// 二段を足した。manifest に equipmentPackDepths / partySize / castCharacterIds が増え、
 // composeEncounter が partySize を読むようになった。**語彙が増えたので上げる。**
 // R15 — triage が自分以外の味方だけを対象にする `not_self` フィルタを追加し、
 // Stage 0 のツグミに「前衛をつなぐ人」という別の仕事を明示した。
@@ -127,20 +130,12 @@ import {
 // 技能を54本（active 29・reactive 19・passive 6）足した。**engine と schema の語彙は
 // 1つも増やしていない**（既存の event・effect・predicate・target だけで書けている）。
 // R17 — `focus` の表示語彙を「技術」へ統一した。内部 ID と状態 `focused` の表示「集中」は変えない。
-// R19（issue #137）— 技能レベルを足し、ツリーの節を組み替えた。**技能も pack も
-// 1本たりとも増減していない**（節数は `SKILL_TREE_NODES.length`、内訳と予算は
-// `analysis/ecology-canonical-numbers-smoke.mjs` / `analysis/ecology-skill-catalog-smoke.mjs` の
-// 出力を参照）が、(1) 既存の技能が Lv1〜Lv10 を持ち、
-// `skillLevelCaps` を公開した。battle input が `skillLevels` を受ける。
-// (2) 節が `tier`（0/1/2）ではなく `x`（前提からの深さ、1〜10）を持ち、`requires` が
-// 「tier ごとの箱」から「一本の道」へ並び替わった。**既存欄の意味が変わったので上げる。**
+// R19（issue #137）の旧技能レベル・共通 pack ツリーは PR #288 で廃止した。
+// 現行のプレイヤー技能は武器ツリーだけを正本にし、前提は取得済みIDの有無だけを見る。
 // R20 — 速度能力値と速度依存の対象選択を削除し、隊列を使う対象選択へ置き換えた。
 // R21 — EquipmentDef に装着中だけ加算する statBonus を追加し、すべての新規生成品が
 // item rarity と同格の無条件基礎効果を持つようにした。
-// issue #148 — 技能の表示文が、**そのまま出せる文字列ではなくなった。**レベルで伸びる
-// 量（変動量）は本文に書かず `{amount}` / `{total}` / `{hits}` で定義を指し、表示の直前に
-// `skillTextAtLevel` が埋める。数字を二箇所に書かないので「係数を変えたのに説明文が旧値の
-// まま」が起こらない。**既存欄（*_META の説明文）の読み方が変わったので上げる。**
+// issue #148 のレベル埋め込み表示も廃止し、技能説明は定義済みの固定値をそのまま表示する。
 // Issue #175 — resource cycles, refiring, self-cost damage, overflow lineage,
 // and finite rule limits are now part of the checked content contract.
 // Issue #210 — generated equipment rules now carry a mandatory durability cost;
@@ -151,8 +146,8 @@ import {
 // ここの ID 表は増えない。
 // R22 — 直接回復を被弾量比例から技術40%の固定量へ変更し、同じ攻撃／反応 chain の
 // 隊全体で受けたHPダメージを回復総量の上限にした。
-// R23 — shared_pain を回復から damage_proposed の分散へ変更した。軽減量は技能レベルで
-// 伸びるが、所有者へ移す4割は固定とし、転送分にも通常の防御・被弾イベントを通す。
+// R23 — shared_pain を回復から damage_proposed の分散へ変更した。軽減量は固定とし、
+// 所有者へ移す4割も通常の防御・被弾イベントを通す。
 // PR #255 / #151 — 装備の語彙が増え（与ダメージを読む trigger、ダメージ増加、
 // 全体への隙、裂傷を読む条件と払い先、ダメージを太らせる keystone）、回復の
 // 基準値が上がった。報酬候補から補給が外れ、候補を出す戦闘がボス戦だけになった。
@@ -171,8 +166,6 @@ import {
 // issue #189 / #190 / #128 — 固定値だった状態を割合へ変え、移動・身代わり・
 // AP受け渡しの発動条件と結果も変えた。同じ入力の戦闘結果が変わるため版を上げる。
 // R24 — 6packへRP0の条件付き反応を2本ずつ、条件付き常設を2本ずつ追加した。
-// 基礎能力4種の statBonus は技能Lvを読み、Lv10まで積める意味へ変わった。
-// 公開IDの追加と既存欄の意味変更なので版を上げる。
 // R25 — Stage 1以降の敵を部隊化する7体（庇護・治療・弱体・多段と最終主心）と
 // 最終boss lawを追加した。既存のengine/schema語彙だけだが、公開IDが増えるため上げる。
 // R25 engine vocabulary: migrated weapon actions can opt into explicit
@@ -188,7 +181,7 @@ import {
 // round-robin hit distribution, and explicit skipped-hit packet amounts.
 // R27 weapon completion: the remaining four weapons expose their full trees.
 // 医療具の主行動は防壁中心、蘇生は有限RPの反応へ置く。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-39";
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-40";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -252,22 +245,27 @@ export const NAMED_SECTIONS = Object.freeze([
   "activeSkills",
   "targetSkills",
   "reactiveSkills",
+  "passiveSkills",
+  "enemyActiveSkills",
+  "enemyReactiveSkills",
+  "enemyPassiveSkills",
   "equipment",
   "statuses",
   "enemyActors",
 ]);
 
 export const PLAYABLE_CONTENT = Object.freeze({
-  ...FIXTURE_CONTENT,
-  // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦を
-  // 反映した build 印。旧7区画とは保存済み記録を混ぜない。
+  schemaVersion: CONTENT_SCHEMA_VERSION,
+  // PR #288 — player は武器技能、enemy は enemy-skills、pack は equipment / skill
+  // の二つの registry を使う。旧セーブと旧共通技能ツリーはこの build では読まない。
+  // Content Wave 1 のスキル追加・バランス調整と、Phase B の3幕12戦も含む。
   // R16 で技能54本・状態3つを足した。R20 で速度能力値を削除し、R21 で装備の
   // 無条件 statBonus を追加した。R22 で直接回復量の意味を変更し、R23 で
   // shared_pain の回復を damage 分散へ変更した。
   //
   // issue #176（#165 段階2）で 0.15 へ上げた。R22 の意味変更で 0.16 へ上げ、
   // R23 の shared_pain の意味変更で 0.17、状態・移動・技能収支の見直しで 0.18、
-  // R24 の無料反応・条件付き常設と基礎能力Lvで 0.19 へ上げる。
+  // R24 の無料反応・条件付き常設で 0.19 へ上げる。
   // **公開済み ID の意味が変わったから**である
   // （AGENTS.md「version の不一致を黙って無視しない」）。技能も装備も ID は一つも
   // 増減していないが、次の二つで同じ入力から違う結果が出る。
@@ -275,14 +273,15 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //   1. 「最も傷ついた味方」を選ぶ query が、残りHPの小ささ（hp_asc）から
   //      傷の割合（hp_percent_asc）へ変わった。庇護・防壁・守勢・回復の宛先が動く。
   //   2. 敵の攻撃の狙い先が「行の先頭」から「届く範囲で最も HP の低い味方」へ変わった
-  //      （content/skills-active.mjs の front_strike / rear_strike / enemy_heavy）。
+  //      （content/enemy-skills.mjs の front_strike / rear_strike / enemy_heavy）。
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.28",
+  contentVersion: "ecology-playable-full-0.30",
   characters: CHARACTERS,
+  // Player skills are weapon-owned only. Enemy skills are registered separately
+  // below and never leak into the player catalog.
   activeSkills: Object.freeze({
-    ...ACTIVE_SKILLS,
     ...WARHAMMER_ACTIVE_SKILLS,
     ...DUAL_BLADES_ACTIVE_SKILLS,
     ...GAUNTLETS_ACTIVE_SKILLS,
@@ -309,7 +308,6 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...HEAVY_CROSSBOW_TARGET_SKILLS,
   }),
   reactiveSkills: Object.freeze({
-    ...REACTIVE_SKILLS,
     ...WARHAMMER_REACTIVE_SKILLS,
     ...DUAL_BLADES_REACTIVE_SKILLS,
     ...GAUNTLETS_REACTIVE_SKILLS,
@@ -322,7 +320,6 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...HEAVY_CROSSBOW_REACTIVE_SKILLS,
   }),
   passiveSkills: Object.freeze({
-    ...PASSIVE_SKILLS,
     ...WARHAMMER_PASSIVE_SKILLS,
     ...DUAL_BLADES_PASSIVE_SKILLS,
     ...GAUNTLETS_PASSIVE_SKILLS,
@@ -334,32 +331,21 @@ export const PLAYABLE_CONTENT = Object.freeze({
     ...BANNER_PASSIVE_SKILLS,
     ...HEAVY_CROSSBOW_PASSIVE_SKILLS,
   }),
+  enemyActiveSkills: ENEMY_ACTIVE_SKILLS,
+  enemyReactiveSkills: ENEMY_REACTIVE_SKILLS,
+  enemyPassiveSkills: ENEMY_PASSIVE_SKILLS,
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
   enemyActors: ENEMY_ACTORS,
   // R6 §6.4 — 攻撃テンポの保証に使う行動を、content が名指しする。
   // **engine は個別 ID で分岐せず、この宣言を読むだけ。**
   coreActions: Object.freeze({
-    basicStrike: Object.freeze({ melee: "basic_strike_melee", ranged: "basic_strike_ranged" }),
-    fallbackStrike: Object.freeze({ melee: "fallback_strike_melee", ranged: "fallback_strike_ranged" }),
+    basicStrike: Object.freeze({ melee: "warhammer_blow", ranged: "launcher_shot" }),
+    fallbackStrike: Object.freeze({ melee: "warhammer_blow", ranged: "launcher_shot" }),
+    enemyBasicStrike: Object.freeze({ melee: "front_strike", ranged: "rear_strike" }),
+    enemyFallbackStrike: Object.freeze({ melee: "front_strike", ranged: "rear_strike" }),
   }),
 });
-
-// R19（issue #137）— 技能レベルの上限。**PLAYABLE_CONTENT が組み上がってから引く**
-// ので、定義を書き換えれば上限もついてくる（手書きの表がずれることがない）。
-export const SKILL_LEVEL_CAPS = skillLevelCaps(PLAYABLE_CONTENT);
-export {
-  SKILL_LEVEL_COST,
-  skillLevelCap,
-  // issue #148 — 変動量は定義側にあり、説明文は {amount} でそこを指す。
-  leveledAmountOf,
-  // issue #177 — 「誰の何で伸びるのか」と、その技能の効果量。
-  leveledEffectOf,
-  leveledValueAt,
-  skillLevelValueSteps,
-  skillTextAtLevel,
-  skillTextIssues,
-} from "./skill-levels.mjs";
 
 export {
   IMPLEMENTED_WEAPON_IDS,
@@ -394,15 +380,27 @@ export const DISPLAY_NAMES = Object.freeze(
 // 種類別の表示名表。分離の前後で名前が落ちていないことを contract.test が見る。
 export const SECTION_NAMES = Object.freeze({
   characters: CHARACTER_NAMES,
-  activeSkills: ACTIVE_SKILL_NAMES,
-  targetSkills: Object.freeze(Object.fromEntries(
-    Object.entries(WARHAMMER_TARGET_SKILLS).map(([id, definition]) => [id, definition.displayName]),
+  activeSkills: Object.freeze(Object.fromEntries(
+    Object.entries(PLAYABLE_CONTENT.activeSkills).map(([id, definition]) => [id, definition.displayName]),
   )),
-  reactiveSkills: Object.freeze({
-    ...REACTIVE_SKILL_NAMES,
-    ...Object.fromEntries(Object.entries(WARHAMMER_REACTIVE_SKILLS)
-      .map(([id, definition]) => [id, definition.displayName])),
-  }),
+  targetSkills: Object.freeze(Object.fromEntries(
+    Object.entries(PLAYABLE_CONTENT.targetSkills).map(([id, definition]) => [id, definition.displayName]),
+  )),
+  reactiveSkills: Object.freeze(Object.fromEntries(
+    Object.entries(PLAYABLE_CONTENT.reactiveSkills).map(([id, definition]) => [id, definition.displayName]),
+  )),
+  passiveSkills: Object.freeze(Object.fromEntries(
+    Object.entries(PLAYABLE_CONTENT.passiveSkills).map(([id, definition]) => [id, definition.displayName]),
+  )),
+  enemyActiveSkills: Object.freeze(Object.fromEntries(
+    Object.entries(PLAYABLE_CONTENT.enemyActiveSkills).map(([id, definition]) => [id, definition.displayName]),
+  )),
+  enemyReactiveSkills: Object.freeze(Object.fromEntries(
+    Object.entries(PLAYABLE_CONTENT.enemyReactiveSkills).map(([id, definition]) => [id, definition.displayName]),
+  )),
+  enemyPassiveSkills: Object.freeze(Object.fromEntries(
+    Object.entries(PLAYABLE_CONTENT.enemyPassiveSkills).map(([id, definition]) => [id, definition.displayName]),
+  )),
   equipment: EQUIPMENT_NAMES,
   statuses: STATUS_NAMES,
   enemyActors: ENEMY_NAMES,
@@ -414,30 +412,6 @@ export { WARHAMMER_TREE };
 export { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE };
 
 export { CHARACTER_DEFINITIONS } from "./roster.mjs";
-export {
-  ACTIVE_META,
-  REACTIVE_META,
-  PASSIVE_META,
-  EQUIPMENT_META,
-  SKILL_TREE_NODES,
-  // issue #168 — 前提は `{ skillId, minLv }`。判定と ID 取り出しは一箇所を通る。
-  prerequisitesMet,
-  remainingPrerequisiteLevels,
-  requiredSkillIds,
-  unmetPrerequisites,
-} from "./skill-tree.mjs";
-// R19（issue #137）— 節の座標。`requires` から組んだ森なので、ここを読めば
-// 「どの節がどの節から生えるのか」が線として引ける。
-export {
-  BRANCH_BUILDS,
-  BRANCH_ORDER,
-  SCOPE_LABELS,
-  SKILL_TREE_GROUPS,
-  SKILL_TREE_LAYOUT,
-  TRIGGER_LABELS,
-  buildSkillTreeLayout,
-  validateSkillTreeLayout,
-} from "./skill-tree-layout.mjs";
 export { ENEMY_CODEX, ENEMY_LORE, ENEMY_TARGETING } from "./encounters.mjs";
 // issue #176 — 状態（バフ・デバフ）の意味。**定義の隣に一度だけ書いたものを画面が読む。**
 export { STATUS_GLOSSARY } from "./statuses.mjs";
@@ -456,18 +430,25 @@ export {
 export { EQUIPMENT_GROUPS, STARTER_EQUIPMENT_IDS } from "./equipment-fixed.mjs";
 // R7 Milestone 4（Phase B）— 遠征、技能パック、難易度。
 export {
-  BASELINE_ACTIVE_SKILL_IDS,
-  BASELINE_PASSIVE_SKILL_IDS,
-  BASELINE_REACTIVE_SKILL_IDS,
-  PACKS_PER_MANIFEST,
+  EQUIPMENT_PACKS,
+  EQUIPMENT_PACK_BY_ID,
   PACK_BY_ID,
   PACK_COMBAT_ROLES,
   PACK_DEPTHS,
-  SKILL_PACKS,
-  packOfSkill,
-  packSkillIds,
-  skillIdsForPacks,
 } from "./packs.mjs";
+export {
+  WEAPON_SKILL_PACKS,
+  WEAPON_SKILL_PACK_BY_ID,
+  skillPackIdsForWeaponIds,
+  weaponIdsForSkillPackIds,
+} from "./skill-packs.mjs";
+export {
+  ENEMY_ACTIVE_SKILL_IDS,
+  ENEMY_REACTIVE_SKILL_IDS,
+  ENEMY_ACTIVE_SKILLS,
+  ENEMY_REACTIVE_SKILLS,
+  ENEMY_PASSIVE_SKILLS,
+} from "./enemy-skills.mjs";
 // R8 Implementation Phase 1 — Campaign Stage 0〜3 の固定 manifest。
 export {
   CAMPAIGN_STAGES,

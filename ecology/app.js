@@ -12,15 +12,11 @@ import {
   COMPONENTS,
   EQUIPMENT,
   RUN_SEED,
-  SKILLS,
-  SKILL_TREE_NODES,
   characterInfo,
   enemyInfo,
   enemyTargetingText,
   equipEquipment,
-  equipSkill,
   freshLoadout,
-  initialSkillLevels,
   initialUnlockedSkills,
   removeEquipment,
   reorderSkill,
@@ -77,29 +73,14 @@ import {
   revealedFixtures,
   seenHomesteadIds,
   seenHomesteadScenes,
-  SKILL_PACKS,
+  EQUIPMENT_PACKS,
+  WEAPON_SKILL_PACK_BY_ID,
   // issue #176 — 状態（バフ・デバフ）の説明。定義の隣にある一行をそのまま出す。
   STATUS_GLOSSARY,
-  SKILL_LEVEL_CAPS,
-  SKILL_LEVEL_COST,
-  // issue #148 — 説明文の数字を、いまのレベルの値で読ませる。
-  skillLevelValueSteps,
-  skillTextAtLevel,
-  // issue #177 — 「誰の何で伸びるのか」と、その技能の効果量。
-  leveledEffectOf,
-  // R19（issue #137）— 技能ツリーの座標と表示語彙。
-  BRANCH_BUILDS,
-  SCOPE_LABELS,
-  SKILL_TREE_GROUPS,
   IMPLEMENTED_WEAPON_IDS,
   WEAPONS,
   WEAPON_SKILL_TREE_NODES,
   weaponSkillNodes,
-  TRIGGER_LABELS,
-  buildSkillTreeLayout,
-  // issue #168 — 前提（技能IDと必要Lv）の判定。解禁 API と同じ関数を読む。
-  remainingPrerequisiteLevels,
-  unmetPrerequisites,
 } from "./content/index.mjs";
 import {
   ENCOUNTERS_PER_RUN,
@@ -128,7 +109,6 @@ import {
   normalizeRunSkillReservations,
   reserveRunSkill,
   skillReservationFor,
-  skillReservationLevelFor,
   newProfile,
   newRun,
   normalizeProfile,
@@ -140,9 +120,6 @@ import {
   STARTING_RUN_SKILL_POINTS,
   rewardOffer,
   runSkillPoints,
-  runSkillLevel,
-  runSkillLevelsFor,
-  levelUpRunSkill,
   settleRun,
   slotLimits,
   spendSupply,
@@ -182,7 +159,7 @@ import {
   baseSkillIdOf,
   isUltimateId,
 } from "./ultimates.mjs";
-import { MIN_SKILL_LEVEL, POSITIONS, RUN_SCHEMA_VERSION } from "./schema.mjs";
+import { MANIFEST_VERSION, POSITIONS, PROFILE_SCHEMA_VERSION, RUN_SCHEMA_VERSION } from "./schema.mjs";
 import { maxHpWithStaticBonuses, staticStatBonuses } from "./static-bonuses.mjs";
 import {
   buildBeats,
@@ -203,9 +180,9 @@ import { deviceIdForRun, sendPayload, uuid } from "./sync.mjs";
 import { BUILD, FINGERPRINT } from "../core/build.mjs";
 
 const GAME_VERSION = "EXP-18 R10 Campaign 0.9";
-const SAVE_FORMAT_VERSION = 1;
-const SAVE_KEY = "exp18-r10-auto-v02";
-const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v02-";
+const SAVE_FORMAT_VERSION = 3;
+const SAVE_KEY = "exp18-r10-auto-v04";
+const MANUAL_SAVE_PREFIX = "exp18-r10-manual-v04-";
 const MANUAL_SAVE_SLOTS = 3;
 // R9 §7 の会話画面（立ち絵つきの一行送り）。**使う場所は下の「物語」の節。**
 const STORY_TYPE_MS = 26;          // 一文字あたりの送り速度
@@ -349,12 +326,10 @@ function startRun(profile, options = {}) {
   // issue #211 — Campaign Stage は初回・再訪とも、その Stage の同行者と人数を使う。
   // 5人編成の本編は Stage 3（および将来の後続Stage）に残し、導入Stageの問いを
   // 再訪時にも同じ盤面規模で読み直せるようにする。
-  const sequence = options.campaignStageSequence ?? null;
-  const stage = sequence === null ? null : CAMPAIGN_STAGES[sequence] ?? null;
-  const size = stage?.partySize ?? PARTY_SIZE;
-  const requested = stage
-    ? [...stage.castCharacterIds]
-    : (options.roster ?? ["warden", "mender", "lancer", "guardian"]);
+  const sequence = options.campaignStageSequence ?? 0;
+  const stage = CAMPAIGN_STAGES[sequence] ?? CAMPAIGN_STAGES[0];
+  const size = stage.partySize;
+  const requested = [...stage.castCharacterIds];
   const roster = ensurePartySize(requested, size);
   const runSeed = options.runSeed ?? (RUN_SEED + "-" + uuid().slice(0, 8));
   const run = newRun(profile, {
@@ -362,10 +337,7 @@ function startRun(profile, options = {}) {
     runId: options.runId ?? uuid(),
     roster,
     difficulty: options.difficulty ?? 0,
-    // R8 Implementation Phase 1 — 渡されれば Campaign Stage の固定 manifest、
-    // 渡さなければ従来どおり Free / Endless の random manifest になる
-    // （newRun 側の分岐。content/campaign-stages.mjs）。
-    campaignStageSequence: options.campaignStageSequence ?? null,
+    campaignStageSequence: sequence,
     formation: defaultFormation(roster),
     startedAt: new Date().toISOString(),
   });
@@ -390,8 +362,6 @@ function joinRun(run, characterId) {
     ...run,
     runSkillPoints: { ...run.runSkillPoints },
     runUnlockedSkills: { ...run.runUnlockedSkills },
-    // R19（issue #137）— レベルは取得と同じで、離脱・再加入では戻らない。
-    runSkillLevels: { ...run.runSkillLevels },
     loadout: {
       ...run.loadout,
       actives: { ...run.loadout?.actives },
@@ -412,18 +382,6 @@ function joinRun(run, characterId) {
     ...keep(run.runUnlockedSkills?.[characterId]),
     ...keep(initialUnlockedSkills(characterId)),
   ])];
-  // issue #168 — 無償閉包が親の Lv を要求するなら、**その Lv も無償で付く。**
-  // 取得済みにしておきながら前提 Lv 不足で子が取れない形を作らない。
-  // 既に上げてある Lv は下げない（離脱・再加入で巻き戻さない）。
-  const freeLevels = Object.entries(initialSkillLevels(characterId))
-    .filter(([skillId]) => available.has(skillId));
-  if (freeLevels.length) {
-    const levels = { ...(run.runSkillLevels?.[characterId] ?? {}) };
-    for (const [skillId, level] of freeLevels) {
-      levels[skillId] = Math.max(levels[skillId] ?? 0, level);
-    }
-    next.runSkillLevels[characterId] = levels;
-  }
   next.loadout.tactics[characterId] = keep(run.loadout?.tactics?.[characterId] ?? fresh.tactics[characterId]);
   const selectedActive = run.loadout?.actives?.[characterId] ?? next.loadout.tactics[characterId][0] ?? null;
   next.loadout.actives[characterId] = next.loadout.tactics[characterId].includes(selectedActive)
@@ -435,17 +393,14 @@ function joinRun(run, characterId) {
     Object.entries(run.loadout?.reactiveReserves?.[characterId] ?? {})
       .filter(([skillId]) => next.loadout.reactives[characterId].includes(skillId)),
   );
-  next.loadout.passives[characterId] = keep(run.loadout?.passives?.[characterId]);
+  next.loadout.passives[characterId] = keep(
+    run.loadout?.passives?.[characterId] ?? fresh.passives[characterId],
+  );
   next.loadout.equipment[characterId] = run.loadout?.equipment?.[characterId] ?? [];
   // R25 — 取得済みは必ず各ロールへ入り、個別のオン／オフは持たない。
   next.loadout = installUnlockedSkills(
     next.loadout, characterId, next.runUnlockedSkills[characterId]);
-  if (next.loadout.disabled) {
-    delete next.loadout.disabled[characterId];
-    if (!Object.keys(next.loadout.disabled).length) delete next.loadout.disabled;
-  }
-  // 行動が一つも残らなくても、戦闘 engine が技能なし時の通常攻撃へ戻す。
-  // ここで strike を補充すると「0個にする」編成が再加入時だけ戻ってしまう。
+  // 武器技能は各キャラの初期4節を常に保持する。
   return next;
 }
 
@@ -487,20 +442,9 @@ function freshUiState() {
     selectedEnemyId: null,
     formationSelection: null,
     selectedSkillNode: null,
-    // R25 — 通常は武器別ツリーを開く。旧技能の手取り中だけ互換ツリーへ切り替える。
-    skillTreeSource: "weapon",
     selectedWeaponId: "warhammer",
-    // R19（issue #137）— ツリーは種別（アクティブ / リアクティブ / パッシブ）で切り替える。
-    skillTreeKind: "active",
-    // issue #177 — テーマの絞り込み（null は全部）。
-    skillTreeBranch: null,
-    // 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。地図は**読む**
-    // ための見方なので、既定は縦に全部並ぶ**一覧**にする（`selectedSkillView`）。
-    skillTreeView: "list",
-    // 「いま技能点で動かせる節」だけに絞る（`skillNodeActionableNow`）。
-    skillTreeReadyOnly: false,
     selectedEquipment: null,
-    // R12 — Free / Endless（旧・難易度rank選択）を削除した。遠征は Campaign Stage
+    // R12 — 旧Free / Endless（難易度rank選択）を削除した。遠征は Campaign Stage
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
     selectedCampaignStageSequence: 0,
     treatTargets: [],
@@ -536,12 +480,10 @@ function freshUiState() {
     replayLogOpen: false,
     // 先見機の試映中だけ真。本番と同じ replay を表示するが、Run / Profile は確定しない。
     simulationMode: false,
-    skillTreeScroll: {},
     runEvents: [],
     runEventsDropped: 0,
     battleError: null,
     feedback: null,
-    migrationNote: null,
     error: null,
     runId: null,
     startedAt: null,
@@ -563,7 +505,8 @@ function initialState() {
   return { ...freshUiState(), profile, run: startRun(profile, { campaignStageSequence: 0 }), phase: "intro" };
 }
 
-// R10 — 旧セーブとの互換は切る。新しい保存キーと形式だけを読む。
+// PR #288 — 旧セーブは移行しない。現行の保存形式・Profile・Run・manifestが揃った
+// スナップショットだけを読む。
 function readStoredSnapshot(key) {
   try {
     const raw = localStorage.getItem(key);
@@ -571,8 +514,11 @@ function readStoredSnapshot(key) {
     const saved = JSON.parse(raw);
     if (!saved || typeof saved !== "object") return null;
     if (saved.saveFormatVersion !== SAVE_FORMAT_VERSION) return null;
-    if (!saved.profile || !saved.run
+    if (!saved.profile || saved.profile.schemaVersion !== PROFILE_SCHEMA_VERSION
+      || !saved.run
       || saved.run.schemaVersion !== RUN_SCHEMA_VERSION
+      || saved.run.manifest?.manifestVersion !== MANIFEST_VERSION
+      || !Number.isInteger(saved.run.campaignStageSequence)
       || !Array.isArray(saved.run.roster)) return null;
     return saved;
   } catch {
@@ -585,7 +531,6 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   const fresh = initialState();
   const next = { ...fresh, ...saved };
   // タイトル画面自体をオートセーブの再開先にしない。
-  // マーカーの無い旧い保存は、タイトルへ戻る直前の既定導線へ戻す。
   if (resumeFromTitle && next.phase === "intro") {
     const resumablePhases = [
       "expeditionStart", "story", "camp", "battle", "battleError",
@@ -597,59 +542,27 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   }
   // ページを開いた直後はタイトルを表示する。Continueで復元した後は再保存時に消える。
   next.resumePhase = null;
-  // issue #138 — 「報酬を見る」の中間画面を廃止した。結果画面が報酬選択を兼ねるので、
-  // 旧いオートセーブがちょうどその画面で保存されていても結果画面へ戻す。
-  if (next.phase === "reward") next.phase = "result";
-  // issue #138 — 戦闘前確認の画面（battlePreview）も廃止した。旧いオートセーブが
-  // ちょうどその画面で保存されていてもキャンプへ戻す。
-  if (next.phase === "battlePreview") {
-    next.phase = "camp";
-    next.tab = "map";
-  }
-  // 作者要望 2026-09-14 — 導入の遠征の印は `supplyTutorialRunId` から
-  // `tutorialRunId` へ名を変えた（補給だけでなく技能の手取りも読む）。
-  // **古い保存の遠征を、印の無い普通の遠征へ落とさない。**
-  if (!next.tutorialRunId && saved.supplyTutorialRunId) next.tutorialRunId = saved.supplyTutorialRunId;
-  delete next.supplyTutorialRunId;
   next.profile = normalizeProfile(saved.profile);
 
-  // 保存時点のRunを復元する。形式が違うデータは readStoredSnapshot で
-  // 入口から弾いているため、Free Runを勝手に作って続行しない。
+  // 保存時点のRunを復元する。現行Campaign以外のRunは入口で弾いている。
   const savedRun = saved.run;
   next.run = savedRun;
-  const savedCampaignStage = savedRun.campaignStageSequence === null
-    || savedRun.campaignStageSequence === undefined
-    ? null
-    : CAMPAIGN_STAGES[savedRun.campaignStageSequence] ?? null;
-  if (savedCampaignStage) {
-    // issue #211 — 同じsave schemaで作られた旧「自由再訪」も、復元時に
-    // Stage定義の同行者・人数へ揃え、表示・敵規模との食い違いを残さない。
-    next.run.partySize = savedCampaignStage.partySize;
-    next.run.rosterLocked = true;
-    next.run.roster = [...savedCampaignStage.castCharacterIds];
-  } else {
-    next.run.partySize = Number.isFinite(savedRun.partySize)
-      ? Math.max(1, Math.min(PARTY_SIZE, Math.floor(savedRun.partySize)))
-      : PARTY_SIZE;
-    next.run.rosterLocked = savedRun.rosterLocked === true;
-    next.run.roster = ensurePartySize(
-      savedRun.roster.filter((id) => characterInfo(id)),
-      next.run.partySize,
-    );
-  }
+  const savedCampaignStage = CAMPAIGN_STAGES[savedRun.campaignStageSequence] ?? null;
+  if (!savedCampaignStage) return initialState();
+  next.run.partySize = savedCampaignStage.partySize;
+  next.run.rosterLocked = true;
+  next.run.roster = [...savedCampaignStage.castCharacterIds];
   next.run = {
     ...next.run,
     skillReservations: normalizeRunSkillReservations(next.run),
   };
   next.run.formation = normalizeFormation(savedRun.formation, next.run.roster);
   next.run.loadout = savedRun.loadout || freshLoadout(next.run.roster);
-  // R25 — 旧保存の「未装着／オフ」を4ロール式へ移す。取得済み技能はロールへ
-  // 揃えたうえで、リアクティブ・ターゲット・パッシブをすべて判定へ参加させる。
+  // 取得済み技能を現行4ロールの欄へ揃える。
   for (const characterId of next.run.roster) {
     next.run.loadout = installUnlockedSkills(
       next.run.loadout, characterId, next.run.runUnlockedSkills?.[characterId]);
   }
-  delete next.run.loadout.disabled;
   next.run.generatedEquipment = savedRun.generatedEquipment && typeof savedRun.generatedEquipment === "object"
     ? savedRun.generatedEquipment
     : {};
@@ -660,19 +573,15 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.run.inventory = Array.isArray(savedRun.inventory)
     ? savedRun.inventory.filter((id) => componentInfo(id)).slice(0, INVENTORY_LIMIT)
     : [];
-  // PR #255 — 遠征ごとの補給総数。**古い保存には欄が無い**ので、持っている数と
-  // 固定値から読み直す（`runSuppliesMax`）。読み直した総数より多くは持てない。
+  // 遠征ごとの補給総数を現行ルールから再計算し、所持数を上限内へ丸める。
   next.run.suppliesMax = runSuppliesMax(savedRun);
   next.run.supplies = Math.max(0, Math.min(next.run.suppliesMax, Math.floor(savedRun.supplies ?? 0)));
-  // issue #238 — 欄の無い保存は「まだ誰も放っていない」として読む。
   next.run.ultimatesUsed = Array.isArray(savedRun.ultimatesUsed)
     ? savedRun.ultimatesUsed.filter((id) => typeof id === "string")
     : [];
   next.run.results = Array.isArray(savedRun.results) ? savedRun.results : [];
 
-  next.migrationNote = null;
-  // issue #159 — 保存に欄が無い（この欄より古い）保存も、**誰も選んでいない状態**で開く。
-  // 選択中の人物を引き継ぐと、盤面のどこかが最初から光った状態でキャンプへ戻る。
+  // 選択中の人物は一時UI状態なので、再開時は未選択に戻す。
   const savedFormationSelection = saved.formationSelection;
   next.formationSelection = next.run.roster.includes(savedFormationSelection) ? savedFormationSelection : null;
   next.formationMode = false;
@@ -683,7 +592,7 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.equipmentDurability = {};
   next.runEvents = Array.isArray(next.runEvents) ? next.runEvents : [];
   next.rewardOffer = Array.isArray(next.rewardOffer) ? next.rewardOffer : [];
-  // 旧版の全タブ共通カードは戦歴へ統合したため、読み込み時に捨てる。
+  // 全タブ共通カードは戦歴へ統合したため、現行stateにも保持しない。
   delete next.lastBattleNote;
   next.rewardTakenAtEncounter = Number.isInteger(next.rewardTakenAtEncounter)
     ? next.rewardTakenAtEncounter
@@ -692,29 +601,18 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
   next.pendingSettlement = next.pendingSettlement && typeof next.pendingSettlement === "object"
     ? next.pendingSettlement
     : null;
-  // issue #151 — 選択の途中で中断した保存は、精算の前（結果画面）から読み直す。
+  // 選択の途中で中断した保存は、精算の前（結果画面）から読み直す。
   if (next.phase === "blueprintPick" && !next.pendingSettlement) next.phase = "camp";
   next.replayEvents = Array.isArray(next.replayEvents) ? next.replayEvents : [];
   next.replaySnapshots = Array.isArray(next.replaySnapshots) ? next.replaySnapshots : [];
-  next.skillTreeScroll = next.skillTreeScroll && typeof next.skillTreeScroll === "object" && !Array.isArray(next.skillTreeScroll)
-    ? next.skillTreeScroll
-    : {};
   next.selectedSkillNode = next.selectedSkillNode || null;
   next.inspectedEncounterIndex = null;
   next.selectedEnemyId = null;
-  next.skillTreeKind = ["active", "reactive", "passive"].includes(next.skillTreeKind) ? next.skillTreeKind : "active";
-  next.skillTreeSource = ["weapon", "legacy"].includes(next.skillTreeSource)
-    ? next.skillTreeSource : "weapon";
   const availableWeaponIds = manifestWeaponIds(next.run?.manifest)
     .filter((id) => IMPLEMENTED_WEAPON_IDS.includes(id));
   next.selectedWeaponId = availableWeaponIds.includes(next.selectedWeaponId)
     ? next.selectedWeaponId : (availableWeaponIds[0] ?? "warhammer");
-  next.skillTreeBranch = typeof next.skillTreeBranch === "string" && next.skillTreeBranch ? next.skillTreeBranch : null;
-  // **綴りはここでは literal で見る。**`loadState()` は module の評価中に走るので、
-  // 下のほうで宣言している const（`SKILL_TREE_VIEWS`）はまだ初期化されていない。
-  next.skillTreeView = ["list", "map"].includes(next.skillTreeView) ? next.skillTreeView : "list";
-  next.skillTreeReadyOnly = next.skillTreeReadyOnly === true;
-  // 旧いオートセーブには story.lineIndex / log が無い。**足りない欄を補って読む。**
+  // storyの進行は画面状態なので、欠けた一時欄は初期値で補う。
   next.story = {
     queue: Array.isArray(saved.story?.queue) ? saved.story.queue.filter(Boolean) : [],
     after: saved.story?.after ?? "camp",
@@ -784,7 +682,7 @@ function storageSnapshot() {
 // 140aa36（R10 の New Game / セーブ枠）が saveState を storageSnapshot +
 // writeSnapshot へ書き直したとき、この関数だけが消えて呼び出しが2箇所残った。
 // 保存枠が尽きるまで踏まれない経路なので `node --check` も単体テストも通り、
-// 公開先の通し（analysis/ecology-trial.mjs）が長い遠征のときだけ
+// 公開先の通しは長い遠征のときだけ
 // ReferenceError で落ちていた。**消えたら気づけるよう、
 // analysis/ecology-screens-smoke.mjs が未定義の呼び先を見るようにしてある。**
 function isRecoverableStorageError(error) {
@@ -1082,7 +980,6 @@ function maxHp(characterId) {
     runContentBundle(state.run),
     passiveSkillIds,
     equipment,
-    runSkillLevelsFor(state.run, characterId),
   );
 }
 
@@ -1094,11 +991,9 @@ function funds() {
   return parseFunds(state.profile.activityFunds);
 }
 
-// R8 Implementation Phase 1 — Campaign Stage の run は `campaignStageSequence` を持つ。
-// R12 で Free / Endless を削除したので、本編の run はこれを必ず持つ。**古い保存を
-// 読んだときだけ null が来る**ので、判定そのものは残す。
+// 現行の遠征はすべて Campaign Stage である。
 function isCampaignRun() {
-  return state.run.campaignStageSequence !== null && state.run.campaignStageSequence !== undefined;
+  return true;
 }
 
 function hasStoryFlag(flag) {
@@ -1158,11 +1053,8 @@ function supplyTutorialVisible() {
 }
 
 function currentHp(characterId) {
-  if (isCampaignRun()) {
-    const hp = state.run.currentHp?.[characterId];
-    return Math.max(0, Math.min(maxHp(characterId), Number.isFinite(hp) ? hp : maxHp(characterId)));
-  }
-  return Math.max(0, Math.min(maxHp(characterId), state.hp[characterId] ?? maxHp(characterId)));
+  const hp = state.run.currentHp?.[characterId];
+  return Math.max(0, Math.min(maxHp(characterId), Number.isFinite(hp) ? hp : maxHp(characterId)));
 }
 
 function equipmentOwner(equipmentId) {
@@ -1286,8 +1178,7 @@ function skillPointsFor(characterId) {
   return runSkillPoints(state.run, characterId);
 }
 
-// 装備耐久は R8 Phase 1 の対象外（持ち越しはまだ実装していない）ので、
-// Campaign / Free のどちらでも毎戦リセットする。
+// 装備耐久は遠征の戦闘ごとにリセットする。
 function resetEquipmentDurability() {
   state.equipmentDurability = {};
   for (const id of state.run.inventory) {
@@ -1295,9 +1186,7 @@ function resetEquipmentDurability() {
   }
 }
 
-// Free / Endless 用。HPも装備耐久も毎戦満タンへ戻す（従来どおり）。
-// Campaign Stage の run では呼ばない — HPは `run.currentHp` が持ち越す
-// （commitBattleResult, resetEquipmentDurabilityのみ使う）。
+// 旧入口から呼ばれても、現行CampaignのRun状態を壊さないための保険。
 function resetBattleResources() {
   for (const option of CHARACTER_OPTIONS) state.hp[option.id] = maxHp(option.id);
   resetEquipmentDurability();
@@ -1305,22 +1194,6 @@ function resetBattleResources() {
 
 function isUnlocked(characterId, skillId) {
   return (state.run.runUnlockedSkills?.[characterId] || []).includes(skillId);
-}
-
-// R19（issue #137）— 技能レベル。**取得＝Lv1。**未取得は 0 を返す。
-function skillLevelOf(characterId, skillId) {
-  return runSkillLevel(state.run, characterId, skillId);
-}
-
-// その技能が持てる最大レベル。連続する量を持たない技能は Lv1 止まりで、
-// **画面はそれを「レベルなし」と書く**（強くならないものへ点を払わせない）。
-function skillLevelCapOf(skillId) {
-  return SKILL_LEVEL_CAPS[skillId] ?? 1;
-}
-
-// この遠征の manifest が有効にした技能かどうか。**外れた技能はツリーで触れない。**
-function inManifest(skillId) {
-  return manifestSkillIds(state.run.manifest).all.includes(skillId);
 }
 
 // R9 §3.2 — 敵の数と threat budget は、その遠征の人数で決まる。
@@ -1883,9 +1756,6 @@ function render() {
   applyTutorialGate();
   publishCampTopHeight();
   restoreHelpDetails();
-  restoreSkillTreeScroll();
-  layoutSkillTreeConnectors();
-  focusSelectedSkillNode();
   // 作者要望 2026-09-14 — 光る先が画面の外なら、こちらから寄せる（段が変わった回だけ）。
   focusTutorialSpot();
   focusLaunchCard();
@@ -2006,7 +1876,7 @@ function bindBrowserGestureGuards() {
   let lastTouchTarget = null;
   const targetFor = (target) => {
     if (!(target instanceof Element)) return app;
-    return target.closest("[data-action], button, select, textarea, input, .skill-tree-scroll") ?? app;
+    return target.closest("[data-action], button, select, textarea, input") ?? app;
   };
   const preventGesture = (event) => event.preventDefault();
 
@@ -2047,25 +1917,6 @@ function publishCampTopHeight() {
   const note = app.querySelector(".camp-view > .tutorial-note-card.pinned");
   const noteHeight = note ? Math.round(note.getBoundingClientRect().height) + 6 : 0;
   root.style.setProperty("--tutorial-note-h", noteHeight + "px");
-}
-
-function captureSkillTreeScroll() {
-  if (state.phase !== "camp" || state.tab !== "skills") return;
-  const scroll = { ...(state.skillTreeScroll || {}) };
-  app.querySelectorAll(".skill-tree-scroll[data-branch]").forEach((element) => {
-    const value = Number(element.scrollLeft);
-    if (Number.isFinite(value)) scroll[element.dataset.branch] = value;
-  });
-  state.skillTreeScroll = scroll;
-}
-
-function restoreSkillTreeScroll() {
-  if (state.phase !== "camp" || state.tab !== "skills") return;
-  const scroll = state.skillTreeScroll || {};
-  app.querySelectorAll(".skill-tree-scroll[data-branch]").forEach((element) => {
-    const value = Number(scroll[element.dataset.branch]);
-    if (Number.isFinite(value)) element.scrollLeft = value;
-  });
 }
 
 function renderIntro() {
@@ -2151,7 +2002,7 @@ function renderSaveMenu() {
 function campaignStageCard(sequence) {
   const stage = CAMPAIGN_STAGES[sequence];
   const selected = state.selectedCampaignStageSequence === sequence;
-  const newPack = PACK_BY_ID[stage.newPackId];
+  const newPack = PACK_BY_ID[stage.newEquipmentPackId];
   // R9 §2.1 / §8 — Stage は「難易度」ではなく「人数と問いが違う場面」。
   // **誰が加わるのかと、この Stage で問われることを先に見せる。**
   //
@@ -2171,8 +2022,8 @@ function campaignStageCard(sequence) {
     + "<span>" + glyph("person") + stage.partySize + "人</span>"
     // 新しい pack を足さない区画（Stage 6 は既出の6つで組む）では、この粒ごと出さない。
     // **空の記号を置かない**——中身の無い印は、何かを言い落としたように見える。
-    + (newPack || stage.newPackId
-      ? "<span>" + glyph("spark") + esc(newPack?.displayName ?? stage.newPackId) + "</span>"
+    + (newPack || stage.newEquipmentPackId
+      ? "<span>" + glyph("spark") + esc(newPack?.displayName ?? stage.newEquipmentPackId) + "</span>"
       : "")
     + "<span>" + glyph("gear") + stage.activePackCount + "</span>"
     + "</span></button>";
@@ -2362,10 +2213,18 @@ function renderExpeditionPlan() {
   const sequence = state.selectedCampaignStageSequence;
   const stage = CAMPAIGN_STAGES[sequence];
   const campaignStages = availableCampaignStages(state.profile);
-  const packs = SKILL_PACKS.filter((pack) => manifest.enabledPackIds.includes(pack.id));
+  const packs = EQUIPMENT_PACKS.filter((pack) => (
+    manifest.enabledEquipmentPackIds.includes(pack.id)
+  ));
   const packRows = packs.map((pack) => "<div class=\"pack-row on\"><b>" + esc(pack.displayName)
     + "</b><small>" + esc(pack.summary) + "</small><span>"
-    + ((manifest.packDepths ?? {})[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
+    + (manifest.equipmentPackDepths[pack.id] === "core" ? "入口" : "有効") + "</span></div>").join("");
+  const skillPackRows = (manifest.enabledSkillPackIds ?? [])
+    .map((packId) => WEAPON_SKILL_PACK_BY_ID[packId])
+    .filter(Boolean)
+    .map((pack) => "<div class=\"pack-row skill-pack on\"><b>" + esc(pack.displayName)
+      + "</b><small>" + esc(pack.summary) + "</small><span>技能</span></div>")
+    .join("");
   const weaponRows = weaponManifestRows(manifest);
   // **見出しを置かない。**この札は「遠征」なので、「遠征へ出る」と書くのは札の言い直しである
   // （作者指摘 2026-09-15、三度目「タブと情報被ってるので」）。行き先の名が見出しを兼ねる。
@@ -2375,8 +2234,8 @@ function renderExpeditionPlan() {
     + "<div class=\"weapon-manifest\" aria-label=\"この遠征で解禁される武器\">"
     + "<div class=\"weapon-manifest-head\"><b>今回の武器</b><small>解禁順は加入する仲間と同じ</small></div>"
     + weaponRows + "</div>"
-    + helpDetails("run-packs", "この遠征で引ける技能パック " + packs.length,
-      "<div class=\"pack-list\">" + packRows + "</div>")
+    + helpDetails("run-packs", "この遠征で使えるパック " + (packs.length + (manifest.enabledSkillPackIds?.length ?? 0)),
+      "<div class=\"pack-list\">" + packRows + skillPackRows + "</div>")
     + "</section>";
   // 選べる先が一つしか無い回（第一部の入口）には、選び直しの節を出さない。
   const destination = campaignStages.length > 1
@@ -2391,9 +2250,6 @@ function renderExpeditionPlan() {
 }
 
 function renderExpeditionStart() {
-  const note = state.migrationNote
-    ? "<section class=\"card quiet\"><p class=\"muted\">" + esc(state.migrationNote) + "</p></section>"
-    : "";
   const body = { guild: renderGuild, blueprints: renderBlueprints, homestead: homesteadBody, codex: renderBestiary }[state.guildTab]?.()
     ?? renderExpeditionPlan();
   const guildActions = "<section class=\"card quiet guild-actions\">"
@@ -2401,7 +2257,7 @@ function renderExpeditionStart() {
     + "</section>";
   // issue #237 — 札の中身は `.guild-view` にまとめる。**立ち上がりを掛けるのはここだけ**で、
   // 貼りついた上端（.guild-top）は動かさない（帯が毎回跳ねると押し先が動く）。
-  return shell(guildTop() + "<div class=\"guild-view\">" + note + body + guildActions + "</div>");
+  return shell(guildTop() + "<div class=\"guild-view\">" + body + guildActions + "</div>");
 }
 
 // ---------------------------------------------------------------- ギルド投資（R6 §9.3）
@@ -3728,18 +3584,6 @@ function statusGlossaryHelp() {
     ]));
 }
 
-// その行動に固有条件・発動条件があるかを表示する（issue #176）。
-// 技能の順番は、現在位置からのラウンドロビン走査に使う。
-function activeFiringLabel(skillId) {
-  const skill = PLAYABLE_CONTENT.activeSkills?.[skillId];
-  if (!skill) return null;
-  if ((skill.intrinsicPredicates ?? []).length) return "条件つき";
-  if (tacticUseWhenFor(skillId).length) return "条件つき";
-  const filters = skill.targetQuery?.filters ?? [];
-  if (filters.some((filter) => filter.type !== "alive")) return "条件つき";
-  return "無条件";
-}
-
 // ============================================================ 記号の語彙（issue #177）
 //
 // **通常のゲームシステムは、文章ではなく形と色で見せる。**文字を読ませてよいのは
@@ -3748,9 +3592,9 @@ function activeFiringLabel(skillId) {
 //
 // 語彙は四つしかない。
 //
-//   ● ピップ  … 数えるもの（AP・RP・HPの代償・レベル）
+//   ● ピップ  … 数えるもの（AP・RP・HPの代償）
 //   ▬ バー    … 量。**同じ画面の中で長さを比べられる**（誰の手で何が出るか）
-//   ◔ 割      … 順番。装着した本数のうち、この一本がどれだけ出番を持つか
+//   ◔ 割      … 使う能力値の比率
 //   色        … テーマ（攻撃・守り・支援・指揮・基礎）と、能力値（腕力・技術・受け）
 //
 // 意味の対応表は畳んだヘルプに一度だけ置く（`symbolLegendHelp`）。**節の上には出さない。**
@@ -3760,7 +3604,16 @@ const STAT_MARKS = { might: "腕", focus: "技", guard: "受", max_hp: "HP" };
 
 // 反応の起点の言葉は content 側の正本（TRIGGER_LABELS）を引く。二重に書かない。
 function triggerLabelOf(listenTo) {
-  return TRIGGER_LABELS[listenTo] ?? listenTo ?? "";
+  const labels = {
+    action_declared: "行動が宣言されたとき",
+    action_resolved: "行動が解決したとき",
+    actor_defeated: "誰かが倒れたとき",
+    damage_taken: "被弾したとき",
+    damage_blocked: "受け構えで防いだとき",
+    healing_applied: "治療が入ったとき",
+    preparation_completed: "準備が終わったとき",
+  };
+  return labels[listenTo] ?? listenTo ?? "";
 }
 function primaryRuleOf(definition) {
   return definition?.rule ?? definition?.rules?.[0] ?? null;
@@ -3887,94 +3740,6 @@ function costLabel(node) {
   return "常時";
 }
 
-// レベル。**素直に文字で書く。**ほとんどの節が Lv1 なので、目盛りにすると
-// 「1個だけ塗った10個の四角」が並んで、かえって読めなかった（作者指摘）。
-// 上限は添え字にして、いまの段を主にする。
-function levelMeter(node, characterId) {
-  const cap = skillLevelCapOf(node.skillId);
-  if (cap <= 1) return "";
-  const level = skillLevelOf(characterId, node.skillId);
-  if (!level) return "";
-  return "<span class=\"level-tag" + (level >= cap ? " maxed" : "") + "\" title=\"レベル "
-    + level + " / " + cap + "\">Lv" + level + "<small>/" + cap + "</small></span>";
-}
-
-// **技能が持つ効果量。**能力値を掛ける前の係数を出す。
-// ゴウ（腕力50・技術6）で見ても「技術が低いから技術技能が弱い」という答えを
-// 画面から先に決めず、技能そのものの強さと、人物の能力値を別々に読めるようにする。
-function skillEffectAmount(characterId, skillId) {
-  const definition = skillDefinitionOf(skillId);
-  const effect = leveledEffectOf(definition);
-  const amount = effect?.amount;
-  if (!amount || amount.type !== "stat_scaled") return null;
-  const stat = amount.scalingStat;
-  if (!STAT_LABELS[stat] || !STAT_MARKS[stat]) return null;
-  const level = Math.max(MIN_SKILL_LEVEL, skillLevelOf(characterId, skillId));
-  const one = skillTextAtLevel("{amount}", definition, level);
-  if (!one) return null;
-  const kind = effect.type === "heal" ? "heal" : effect.type === "gain_barrier" ? "barrier" : "damage";
-  return { stat, kind, one, hits: effect.hitCount ?? 1 };
-}
-
-// **量は数で出す。**能力値との掛け算後の実数ではなく、技能の係数を表示する。
-// 印（腕・技・受・HP）と単位付きの効果量を並べ、人物ごとの能力値による差は
-// プレイヤーが自分で判断できるようにする。
-function yieldBar(characterId, skillId) {
-  const effect = skillEffectAmount(characterId, skillId);
-  if (!effect) return "";
-  const label = STAT_LABELS[effect.stat] + "で伸びる · 効果 "
-    + effect.one + (effect.hits > 1 ? "（" + effect.one + "×" + effect.hits + "）" : "");
-  return "<span class=\"yield-chip stat-" + effect.stat + " yield-" + effect.kind + "\" role=\"img\""
-    + " aria-label=\"" + esc(label) + "\" title=\"" + esc(label) + "\">"
-    + "<i>" + STAT_MARKS[effect.stat] + "</i>" + esc(effect.one)
-    + (effect.hits > 1 ? "<small>×" + effect.hits + "</small>" : "") + "</span>";
-}
-
-// この技能を取得できるようになるまでに、**いまの人物が追加で取るべき他技能の
-// Lv 数**。取得済みの前提は差し引くので、すでに解禁できる技能は 0 になる。
-function prerequisiteLevelsFor(node, characterId) {
-  return remainingPrerequisiteLevels(
-    node,
-    SKILL_TREE_NODES,
-    (skillId) => skillLevelOf(characterId, skillId),
-  );
-}
-
-// 取得の状態。**文字を出さない。**まだ持っていない節は、前提の残りLv数と取得コストを
-// 形の違う四角で分ける。
-//
-// issue #236 — 持っている節の印は**一つだけ**になった。「取得済みだが未装着」を
-// 廃止したので、□✓（取得済み・未装着）と ■✓（装着中）を分ける必要が無い。
-function nodeStateMark(node, nodeState, characterId) {
-  const reservation = nodeState.reserved
-    ? "<span class=\"node-reservation-mark\" role=\"img\" aria-label=\"取得予約中\" title=\"取得予約中\">◎</span>"
-    : "";
-  let mark;
-  if (nodeState.unlocked) {
-    const label = "取得済み";
-    mark = "<span class=\"node-mark equipped\" role=\"img\""
-      + " aria-label=\"" + label + "\" title=\"" + label + "\">✓</span>";
-  } else {
-    const affordable = nodeState.prereqsMet && skillPointsFor(characterId) >= node.cost;
-    const title = nodeState.prereqsMet
-      ? (affordable ? "解禁できる（技能点" + node.cost + "）" : "技能点が足りない（必要" + node.cost + "）")
-      : "前提がまだ（技能点" + node.cost + "）";
-    const prerequisiteLevels = prerequisiteLevelsFor(node, characterId);
-    const chainLabel = node.requires?.length
-      ? "取得までに必要な他技能の残りLv" + prerequisiteLevels + " + 取得コスト" + node.cost + "点"
-      : "取得コスト" + node.cost + "点";
-    const acquisition = "<span class=\"node-mark cost acquisition-cost" + (affordable ? " ready" : "")
-      + (nodeState.prereqsMet ? "" : " gated") + "\" aria-hidden=\"true\">" + node.cost + "</span>";
-    const prerequisite = node.requires?.length
-      ? "<span class=\"node-mark prerequisite-levels\" aria-hidden=\"true\">" + prerequisiteLevels + "</span>"
-        + "<span class=\"cost-plus\" aria-hidden=\"true\">+</span>"
-      : "";
-    mark = "<span class=\"node-cost-chain\" role=\"img\" aria-label=\"" + esc(title + "。" + chainLabel) + "\""
-      + " title=\"" + esc(chainLabel) + "\">" + prerequisite + acquisition + "</span>";
-  }
-  return "<span class=\"node-state-marks\">" + reservation + mark + "</span>";
-}
-
 function activeSkillControl(characterId, skillId, selected) {
   return "<button type=\"button\" class=\"active-skill-choice" + (selected ? " selected" : "")
     + "\" data-action=\"select-active-skill\" data-character=\"" + characterId
@@ -4016,14 +3781,14 @@ function skillSlotRows(characterId, kind) {
     : kind === "reactive" ? (definition.baseReactionPoints ?? 0) : 0;
   const rows = list.map((skillId, index) => {
     const info = COMPONENTS[skillId];
-    const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+    const node = WEAPON_SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
     const selected = kind === "active" && state.run.loadout.actives?.[characterId] === skillId;
     const moveButtons = kind === "reactive" || kind === "target"
       ? "<span class=\"reorder\">" + button("↑", "move-skill", index === 0, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"-1\"")
         + button("↓", "move-skill", index === list.length - 1, "icon-button", "data-character=\"" + characterId + "\" data-kind=\"" + kind + "\" data-index=\"" + index + "\" data-direction=\"1\"") + "</span>"
       : "";
     const marks = node
-      ? "<span class=\"row-marks\">" + costPips(node) + yieldBar(characterId, skillId)
+      ? "<span class=\"row-marks\">" + costPips(node)
         + "</span>" + conditionLine(node)
       : "";
     // issue #238 — 必殺技はこの行の**長押し**だけで決まる。専用の枠を画面へ足さない。
@@ -4139,15 +3904,11 @@ function skillBuildSummary(characterId) {
   const party = totalSkillPoints();
   const reservationSkillId = skillReservationFor(state.run, characterId);
   const reservationNode = reservationSkillId
-    ? (WEAPON_SKILL_TREE_NODES.find((node) => node.skillId === reservationSkillId)
-      ?? SKILL_TREE_NODES.find((node) => node.skillId === reservationSkillId))
+    ? WEAPON_SKILL_TREE_NODES.find((node) => node.skillId === reservationSkillId)
     : null;
   const reservationDefinition = reservationSkillId ? skillDefinitionOf(reservationSkillId) : null;
-  const reservationLevel = skillReservationLevelFor(state.run, characterId);
   const reservationText = reservationNode && reservationDefinition
-    ? (reservationNode.weaponId
-      ? reservationDefinition.displayName + "まで"
-      : reservationDefinition.displayName + " Lv" + reservationLevel + "まで")
+    ? reservationDefinition.displayName + "まで"
     : null;
   // 作者指摘 2026-09-17（二度目）—「ちょっと狭いなあ。固定窓が多すぎるからですかね？」
   //
@@ -4166,106 +3927,6 @@ function skillBuildSummary(characterId) {
       : "")
     + "</aside>";
 }
-function skillNodeIcon(node) {
-  return branchIcons[node.branch] ?? "·";
-}
-
-// R19（issue #137）— ツリーは種別で三つに分かれる。**AP を払うアクティブと RP を払うリアクティブが
-// 同じ枝に混ざっていると、どちらの資源を伸ばす話なのかが読めない。**
-const SKILL_TREE_KINDS = SKILL_TREE_GROUPS.map((group) => group.kind);
-
-// 作者指摘 2026-09-17 —「スキルの一覧性、取得しやすさに難がある」。
-//
-// 地図（`.skill-tree-forest`）は**前提と派生を読む**ための見方で、そこは変えない。
-// ただし列は固定幅なので、Stage 5 のアクティブは 2070px × 2012px の森になり、
-// iPhone の窓（340px）からは**58節のうち4節しか見えない**。「何があるか」と
-// 「いま何が取れるか」を知るのに、その森を端から端まで押して回ることになっていた。
-//
-// そこで**同じ森を、縦一列の一覧としても出す**。一覧は横スクロールを持たず、
-// 深さはインデントで見せる。既定はこちら——「読む」より先に来るのは
-// 「見渡す」だからである。地図は一押しで戻る。
-const SKILL_TREE_VIEWS = ["list", "map"];
-
-// R12 — manifest に無い技能ノードは**出さない**。
-//
-// R6 §5.2 は「灰色にして残す。消すと今回は出ないことが分からなくなる」と言っていた。
-// それは Free / Endless の random manifest（毎回どれかの系統が欠ける）の話である。
-// Campaign の pack は累積するので、**manifest に無い＝まだ物語が配っていない語彙**に
-// なった。灰色で名前だけ見せると、未解禁 pack と次 Stage の技能が先に割れる。
-// Free mode を削除した R12 では、灰色に残す理由そのものが無い（作者判断）。
-function visibleSkillNodes() {
-  return SKILL_TREE_NODES.filter((node) => inManifest(node.skillId));
-}
-
-// **森は毎回組み直す。**pack が変われば出る節が変わり、座標も変わる。
-// 座標を保存して使い回すと、外れた pack のぶんだけ穴が空いた森になる。
-function skillTreeLayout() {
-  return buildSkillTreeLayout(visibleSkillNodes());
-}
-
-function selectedSkillKind() {
-  const requested = state.skillTreeKind;
-  return SKILL_TREE_KINDS.includes(requested) ? requested : "active";
-}
-
-function selectedSkillView() {
-  return SKILL_TREE_VIEWS.includes(state.skillTreeView) ? state.skillTreeView : "list";
-}
-
-// 節の状態。**取得・装着・解禁可否は四箇所で使うので一箇所で出す。**
-function skillNodeState(node, characterId) {
-  const unlocked = isUnlocked(characterId, node.skillId);
-  const equipped = installedSkill(characterId, node.skillId, node.kind);
-  // issue #168 — 前提は Lv まで見る。解禁 API と同じ関数を通る。
-  const unmet = unmetPrerequisites(node, (skillId) => skillLevelOf(characterId, skillId));
-  const prereqsMet = unmet.length === 0;
-  const canUnlock = !unlocked && prereqsMet && skillPointsFor(characterId) >= node.cost;
-  const reservationTarget = skillReservationFor(state.run, characterId);
-  const reservationTargetLevel = skillReservationLevelFor(state.run, characterId);
-  const reserved = reservationTarget === node.skillId;
-  const canReserve = !unlocked || skillLevelOf(characterId, node.skillId) < skillLevelCapOf(node.skillId);
-  const stateClass = unlocked
-    ? "equipped"
-    : canUnlock ? "available" : !prereqsMet ? "prerequisite" : "locked";
-  return {
-    unlocked, equipped, prereqsMet, unmet, canUnlock, stateClass,
-    reservationTarget, reservationTargetLevel, reserved, canReserve,
-  };
-}
-
-// **いま技能点で動かせる節。**解禁できる節と、1点で段を上げられる取得済みの節の
-// 二つ（払う通貨も値段も同じなので、同じ問いの答えである）。種別タブの数と、
-// 一覧の「いま取れる」の絞り込みが、どちらもここを読む。
-function skillNodeActionableNow(node, characterId, nodeState = skillNodeState(node, characterId)) {
-  if (!nodeState.unlocked) return nodeState.canUnlock;
-  const cap = skillLevelCapOf(node.skillId);
-  if (cap <= MIN_SKILL_LEVEL) return false;
-  return skillLevelOf(characterId, node.skillId) < cap
-    && skillPointsFor(characterId) >= SKILL_LEVEL_COST;
-}
-
-// issue #168 — 前提が足りない理由は「まだ解禁していない」と「Lv が足りない」の
-// 二つある。**どちらなのかを書く。**「先に前提を解禁してください」とだけ出すと、
-// 解禁済みの前提を見て手が止まる。
-function prerequisiteShortfallText(characterId, unmet = []) {
-  const parts = (unmet ?? []).map((required) => {
-    const label = COMPONENTS[required.skillId]?.label ?? required.skillId;
-    const level = skillLevelOf(characterId, required.skillId);
-    return level > 0 && required.minLv > level
-      ? label + "を Lv" + required.minLv + "まで上げてください（いま Lv" + level + "）。"
-      : label + "を先に解禁してください。";
-  });
-  return parts.length ? parts.join("") : "先に前提を解禁してください。";
-}
-
-
-// issue #148 — **説明文の数字そのものを、いまのレベルの値にする。**
-//
-// レベルが上げるのは威力・治療量・防壁という連続量だけで、AP / RP や段数は
-// 変わらない。1段（+12%）では**次の一戦の予測が動かないことのほうが多い**ので、
-// 倍率を別行に添えるだけでは「Lv だけ上がって何も強くなっていない」と読めてしまう。
-// 「腕力130%の一撃」が Lv2 で「腕力146%の一撃」と書かれていれば、その一行で済む
-// （作者指摘）。掛かる数と掛からない数の見分けは content/skill-levels.mjs にある。
 function skillDefinitionOf(skillId) {
   return PLAYABLE_CONTENT.activeSkills[skillId]
     ?? PLAYABLE_CONTENT.reactiveSkills[skillId]
@@ -4273,37 +3934,6 @@ function skillDefinitionOf(skillId) {
     ?? PLAYABLE_CONTENT.passiveSkills[skillId]
     ?? null;
 }
-
-function skillEffectText(characterId, skillId) {
-  const definition = skillDefinitionOf(skillId);
-  const text = definition?.displayEffect ?? COMPONENTS[skillId]?.effect ?? "";
-  return skillTextAtLevel(text, definition, skillLevelOf(characterId, skillId));
-}
-
-// 取得済みの技能を1段上げる操作。**解禁と同じ通貨・同じ値段**なので、
-// 「深く伸ばす」と「いま持っているものを厚くする」を同じ天秤で選べる。
-function levelUpAction(node, characterId, nodeState) {
-  const cap = skillLevelCapOf(node.skillId);
-  // **段を持たない節・まだ取っていない節には、何も書かない。**目盛りが無いことが
-  // そのまま「段を持たない」で、値段は右端の丸に出ている（issue #177）。
-  if (cap <= 1 || !nodeState.unlocked) return "";
-  const level = skillLevelOf(characterId, node.skillId);
-  if (level >= cap) return "";
-  const affordable = skillPointsFor(characterId) >= SKILL_LEVEL_COST;
-  // **1点で、上の説明のどの数字がいくつになるか。**倍率ではなく、変わる数そのものを出す。
-  const steps = skillLevelValueSteps(
-    COMPONENTS[node.skillId]?.effect ?? "", skillDefinitionOf(node.skillId), level,
-  );
-  // **1点で変わるのは数だけ。**その数そのものを出す（規則の説明は畳んだヘルプにある）。
-  const change = steps.length
-    ? "<span class=\"level-step\">" + steps.map((step) =>
-      esc(step.from) + " → <b>" + esc(step.to) + "</b>").join(" · ") + "</span>"
-    : "<span class=\"level-step\">+12%</span>";
-  return button("Lv " + (level + 1) + "（" + SKILL_LEVEL_COST + "点）",
-    "level-up-skill", !affordable, "tiny-button" + (affordable ? " primary-mini" : ""),
-    "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"") + change;
-}
-
 
 // 予約された技能を自動取得したときの loadout 反映。
 // 前提は installUnlockedSkills の既定（各ロールの末尾へ追加）に任せ、
@@ -4313,15 +3943,9 @@ function applyAutomaticSkillActions(actions = []) {
   let loadout = state.run.loadout;
   for (const action of actions) {
     if (action.type === "unlock") {
-      const node = WEAPON_SKILL_TREE_NODES.find((entry) => entry.skillId === action.skillId)
-        ?? SKILL_TREE_NODES.find((entry) => entry.skillId === action.skillId);
+      const node = WEAPON_SKILL_TREE_NODES.find((entry) => entry.skillId === action.skillId);
       if (!node) continue;
-      if (action.target && !node.weaponId) {
-        const equipped = equipSkill(loadout, action.characterId, action.skillId, node.kind, limitsFor);
-        if (equipped.ok) loadout = equipped.loadout;
-      } else {
-        loadout = installUnlockedSkills(loadout, action.characterId, [action.skillId]);
-      }
+      loadout = installUnlockedSkills(loadout, action.characterId, [action.skillId]);
       // issue #237 — 予約が勝手に取った技能も、自分で押したときと同じ反応にする。
       // **誰かが黙って取った**ように見えるのが一番分からない。
       fx("skill:" + action.skillId, "gain");
@@ -4332,19 +3956,7 @@ function applyAutomaticSkillActions(actions = []) {
         ...(node.weaponId ? { weaponId: node.weaponId, position: node.position } : {}),
         automatic: true,
         reservationTarget: action.targetSkillId,
-        reservationTargetLevel: action.targetLevel,
         reservationTargetStep: action.target === true,
-      });
-    } else if (action.type === "level") {
-      fx("skill:" + action.skillId, "level");
-      record("skill_leveled", {
-        characterId: action.characterId,
-        skillId: action.skillId,
-        level: action.level,
-        cost: action.cost,
-        automatic: true,
-        reservationTarget: action.targetSkillId,
-        reservationTargetLevel: action.targetLevel,
       });
     }
   }
@@ -4357,155 +3969,10 @@ function applyAutomaticSkillActions(actions = []) {
 //
 // ・取得済みはロールの状態だけを置く。アクティブだけはここからも選び直せる。
 // ・前提・派生の札は消した。**どこから来てどこへ行くかは、真上の地図が線で見せている。**
-// ・取得・段上げ・予約・予約取消は一行へまとめた。同じことを言う組（押せる「解禁」と
-//   「Lv1まで取得」）は片方だけ出す。
+// ・取得・予約・予約取消は一行へまとめた。同じことを言う組は片方だけ出す。
 // ・予約の説明文は畳んだ「技能のルール」へ移した。いまの予約先は上の要約帯が出している。
-function renderSkillDetail(node, characterId, nodeState) {
-  const cap = skillLevelCapOf(node.skillId);
-  const level = skillLevelOf(characterId, node.skillId);
-  const actions = [];
-  let shortfall = "";
-  if (!nodeState.unlocked) {
-    if (nodeState.canUnlock) {
-      actions.push(button("解禁（" + node.cost + "点・戻せません）", "unlock-skill", false,
-        "tiny-button primary-mini",
-        "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\""));
-    } else if (nodeState.prereqsMet) {
-      actions.push(button("解禁（" + node.cost + "点）", "unlock-skill", true, "tiny-button",
-        "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\""));
-    } else {
-      shortfall = "<p class=\"node-locked\">" + prerequisiteShortfallText(characterId, nodeState.unmet) + "</p>";
-    }
-  }
-  actions.push(levelUpAction(node, characterId, nodeState));
-  // 現在のSPで目標まで完了できるなら「取得」、足りなければ「予約」。
-  const reservationButton = (targetLevel) => {
-    const here = nodeState.reserved && nodeState.reservationTargetLevel === targetLevel;
-    const verb = canFulfillSkillReservation(state.run, characterId, node.skillId, targetLevel)
-      ? "取得"
-      : "予約";
-    return button("Lv" + targetLevel + "まで" + verb + (here ? " ◎" : ""),
-      "reserve-skill", here, "tiny-button reservation-button",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId
-        + "\" data-target-level=\"" + targetLevel + "\"");
-  };
-  // **いま押せる「解禁」と同じことを言う「Lv1まで取得」は出さない。**
-  // 押せないとき（点が足りない・前提がまだ）だけ、Lv1 を予約として置く。
-  if (!nodeState.unlocked && !nodeState.canUnlock) actions.push(reservationButton(MIN_SKILL_LEVEL));
-  if (cap > MIN_SKILL_LEVEL && level < cap) actions.push(reservationButton(cap));
-  if (nodeState.reserved) {
-    actions.push(button("予約取消", "cancel-skill-reservation", false, "tiny-button reservation-button",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\""));
-  }
-  const scope = node.kind === "active"
-    ? "<i class=\"scope-mark\" title=\"対象\">" + esc(SCOPE_LABELS[skillDefinitionOf(node.skillId)?.targetQuery?.scope] ?? "") + "</i>"
-    : "";
-  const actionRow = actions.filter(Boolean).join("");
-  // 作者要望 2026-09-14 — 技能の説明文にも content の `**強調**` が入っている
-  // （「HP50%以下の味方**全員**へ」など8件）。Stage の学びと同じ `emphasize()` を
-  // 通すので、星印が本文に混ざって出ることはもう無い。
-  const flavor = skillDefinitionOf(node.skillId)?.flavorText;
-  return "<div class=\"skill-detail\"><p>" + scope + emphasize(skillEffectText(characterId, node.skillId))
-    + (level > 1 ? "<span class=\"level-now-tag\">Lv " + level + "</span>" : "") + "</p>"
-    + (flavor ? "<p class=\"skill-flavor\">" + esc(flavor) + "</p>" : "")
-    + shortfall
-    + (actionRow ? "<div class=\"node-action\">" + actionRow + "</div>" : "")
-    + "</div>";
-}
-
-
-// 作者指摘 2026-09-13 — **節は地図の印であって、操作盤ではない。**説明と取得の釦を
-// 節の中で開いていたころ、(1) 釦が列幅（iPhone では 176px）の中に入るので、押す前に
-// まず横スクロールが要り、(2) 開いた節だけ背が伸びて同じ行の節と線がその場で動いて
-// いた。節が持つのは「どこに何があるか」だけにして、押した節の中身は地図の外の
-// 操作盤（`renderSkillSheet`）へ出す。**押しても地図は動かない。**
-function renderSkillRow(row, characterId, tone) {
-  const node = row.node;
-  const info = COMPONENTS[node.skillId];
-  const nodeState = skillNodeState(node, characterId);
-  const selected = state.selectedSkillNode === node.skillId;
-  // issue #237 — 反応の宛先は技能そのもの（`skill:<id>`）。地図の節と、装着した行と、
-  // **同じ技能を指すものは全部同じ key を持つ**ので、取得した一手が両方で光る。
-  return "<div class=\"tree-cell" + tone + (selected ? " selected" : "") + "\" data-node=\"" + esc(row.key)
-    + "\" data-fx=\"skill:" + esc(node.skillId) + "\""
-    + " style=\"grid-column:" + row.x + ";grid-row:" + (row.y + 1) + "\">"
-    + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "") + (selected ? " selected" : "") + "\">"
-    + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
-    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
-    + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
-    + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
-    + "<span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
-    + "<small class=\"node-meters\" title=\"" + esc(costLabel(node)) + "\">"
-    + costPips(node) + yieldBar(characterId, node.skillId)
-    + levelMeter(node, characterId) + "</small>" + conditionLine(node) + "</span>"
-    + nodeStateMark(node, nodeState, characterId) + "</button></article></div>";
-}
-
-
-// **地図の下端に貼りつく操作盤。**選んだ節の説明・前提・派生・取得の釦をここだけで出す。
-// 貼りついているので、地図をどれだけ横へ動かしても、操作はいつも画面の同じ場所にある。
-function renderSkillSheet(selectedRow, characterId) {
-  if (!selectedRow) return "";
-  const node = selectedRow.node;
-  const nodeState = skillNodeState(node, characterId);
-  const info = COMPONENTS[node.skillId];
-  return "<aside class=\"skill-sheet " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "")
-    + "\" aria-live=\"polite\">"
-    + "<div class=\"skill-sheet-head\">"
-    + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
-    + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
-    + "<span class=\"sheet-title\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
-    + "<small>" + esc(node.branch) + " · 深さ " + selectedRow.x + "</small></span>"
-    + (nodeState.equipped
-      ? acquiredSkillState(characterId, node.skillId, node.kind)
-      : nodeStateMark(node, nodeState, characterId))
-    + "<button type=\"button\" class=\"sheet-close\" data-action=\"select-skill-node\" data-skill=\"\""
-    + " aria-label=\"閉じる\" title=\"閉じる\">✕</button></div>"
-    + renderSkillDetail(node, characterId, nodeState) + "</aside>";
-}
-
-
 // render() 直後に layoutSkillTreeConnectors() が読む。**線は節の実位置を測ってから
 // 引くので、直前に描いた森がどれだったかをここで覚えておく。**
-let skillTreeConnectorGroup = null;
-
-function renderSkillTree(characterId) {
-  const kind = selectedSkillKind();
-  const view = selectedSkillView();
-  const groups = skillTreeLayout();
-  const group = groups.find((entry) => entry.kind === kind) ?? groups[0];
-  // 線は地図にしか無い。一覧を出している回は、描き終わったあとに測る森も無い。
-  skillTreeConnectorGroup = view === "map" ? group : null;
-  const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
-  // **どの種別に、いま取れる節が何本あるか。**タブそのものが答えるので、
-  // 三つの森を順に押して回らなくても、点の使い道がある側が分かる。
-  const readyCounts = new Map(groups.map((entry) => [
-    entry.kind,
-    entry.rows.filter((row) => skillNodeActionableNow(row.node, characterId)).length,
-  ]));
-  const tabs = groups.map((entry) => {
-    const ready = readyCounts.get(entry.kind) ?? 0;
-    return "<button type=\"button\" class=\"tree-tab" + (entry.kind === kind ? " active" : "")
-      + "\" aria-pressed=\"" + (entry.kind === kind ? "true" : "false")
-      + "\" aria-label=\"" + esc(entry.label) + " " + entry.nodeCount + "節"
-      + (ready ? "・いま取れる " + ready + "件" : "")
-      + "\" data-action=\"select-skill-kind\" data-kind=\"" + entry.kind + "\"><b>"
-      + esc(entry.label) + "</b><small>" + entry.nodeCount + "</small>"
-      + (ready ? "<em class=\"tab-ready\" aria-hidden=\"true\">" + ready + "</em>" : "")
-      + "</button>";
-  }).join("");
-  const body = view === "map"
-    ? renderSkillMap(group, characterId, selectedRow)
-    : renderSkillList(group, characterId);
-  // 強調を解除する ✕ は、操作盤の頭（`.sheet-close`）へ移した。地図の上に置くと、
-  // 「いま何を選んでいるか」を言う札が地図と盤の二箇所に出る。
-  return "<div class=\"tree-tabs\" role=\"tablist\">" + tabs + "</div>"
-    + treeViewSwitch(view, readyCounts.get(kind) ?? 0, characterId)
-    + branchFilter(group)
-    + "<div class=\"skill-tree-view\" data-view=\"" + view + "\">" + body + "</div>"
-    + renderSkillSheet(selectedRow, characterId);
-}
-
 // R25 — 武器別ツリー。旧ツリーのLv・packは流用せず、節を武器の中で混在表示する。
 // 取得予約は共通のRunState経路を使い、四分類は取得場所ではなく、取得後の解決方式を示す札としてだけ使う。
 const WEAPON_KIND_LABELS = Object.freeze({
@@ -4516,7 +3983,6 @@ function weaponNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
   const unmet = (node.requires ?? []).filter((required) => !isUnlocked(characterId, required.skillId));
   const reservationTarget = skillReservationFor(state.run, characterId);
-  const reservationTargetLevel = skillReservationLevelFor(state.run, characterId);
   const reserved = reservationTarget === node.skillId;
   return {
     unlocked,
@@ -4524,7 +3990,6 @@ function weaponNodeState(node, characterId) {
     prereqsMet: unmet.length === 0,
     canUnlock: !unlocked && unmet.length === 0 && skillPointsFor(characterId) >= node.cost,
     reservationTarget,
-    reservationTargetLevel,
     reserved,
   };
 }
@@ -4610,247 +4075,8 @@ function renderWeaponSkillTree(characterId) {
 }
 
 function renderSkillTreeSource(characterId) {
-  // 旧packツリーは互換データを読むためだけに残し、画面からは完全に退役させる。
-  // 新規・旧保存のどちらでも、取得の入口は武器別ツリーに一本化する。
+  // 取得の入口は武器別ツリーに一本化する。
   return renderWeaponSkillTree(characterId);
-}
-
-// **見方の切り替えと、絞り込みは同じ一行に置く。**どちらも「いま何を見せるか」で、
-// 節そのものを触らない（触るのは下端の操作盤だけ、という 8.5.1 の分け方は変えない）。
-function treeViewSwitch(view, ready, characterId) {
-  const tab = (id, label, title) => "<button type=\"button\" class=\"view-tab" + (view === id ? " on" : "")
-    + "\" aria-pressed=\"" + (view === id ? "true" : "false") + "\" data-action=\"select-skill-view\""
-    + " data-view=\"" + id + "\" title=\"" + esc(title) + "\">" + esc(label) + "</button>";
-  const on = state.skillTreeReadyOnly;
-  // **「いま取れる」は、取れるものがある回だけ出す。**0件の絞り込みを押せるように
-  // しておくと、押した先に空の画面が出るだけになる（既に絞っている回は、戻す先として残す）。
-  const readyChip = ready || on
-    ? "<button type=\"button\" class=\"ready-chip" + (on ? " on" : "") + "\" aria-pressed=\""
-      + (on ? "true" : "false") + "\" data-action=\"toggle-skill-ready\""
-      + " title=\"いまの技能点で解禁できる節と、段を上げられる節だけを出す\">"
-      + "いま取れる<b>" + ready + "</b></button>"
-    : "";
-  // **貼りつく帯を増やさない。**技能点と予約先はここへ同居させる（作者指摘 2026-09-17）。
-  return "<div class=\"tree-controls\">"
-    + "<div class=\"view-switch\" role=\"group\" aria-label=\"技能ツリーの見方\">"
-    + tab("list", "一覧", "縦一列に全部並べる")
-    + tab("map", "地図", "前提と派生を線で辿る")
-    + "</div>" + readyChip + skillBuildSummary(characterId) + "</div>";
-}
-
-// **地図。**R19（issue #137）からの森そのもの。列は固定幅で、深いツリーほど横に長い。
-function renderSkillMap(group, characterId, selectedRow) {
-  const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
-  // 取得済みの根本は選択経路の強調から外し、未取得の前提だけを水色にする。
-  const pendingOnPath = new Set([...onPath].filter((key) => {
-    const row = group.byKey.get(key);
-    return row && !isUnlocked(characterId, row.skillId);
-  }));
-  const ownedOnPath = new Set([...onPath].filter((key) => !pendingOnPath.has(key)));
-  const derived = new Set(selectedRow ? selectedRow.descendants : []);
-  const branch = state.skillTreeBranch;
-  const readyOnly = state.skillTreeReadyOnly;
-  const rows = group.rows.map((row) => {
-    // **絞り込みは地図では「沈める」。**隠すと線の行き先が消えて、森の形が読めなくなる
-    // （一覧では逆に、読めない行が場所を食うだけなので隠す）。
-    const dimmed = (branch && row.node.branch !== branch)
-      || (readyOnly && !skillNodeActionableNow(row.node, characterId));
-    const tone = !selectedRow
-      ? (dimmed ? " faded" : "")
-      : row.key === selectedRow.key ? ""
-        : pendingOnPath.has(row.key) ? " on-path"
-          : ownedOnPath.has(row.key) ? "" : derived.has(row.key) ? " derived" : " faded";
-    return renderSkillRow(row, characterId, dimmed && !selectedRow ? " faded" : tone);
-  }).join("");
-  const columns = "repeat(" + Math.max(group.depth, 1) + ", var(--tree-col-width))";
-  return "<div class=\"skill-tree-scroll\" data-branch=\"" + group.kind
-    + "\"><div class=\"skill-tree-forest\" data-branch=\"" + group.kind
-    + "\" style=\"grid-template-columns:" + columns + "\">"
-    + "<svg class=\"tree-lines\" aria-hidden=\"true\"></svg>" + rows + "</div></div>";
-}
-
-// **一覧。**同じ森を、上から読める順（深さ優先＝地図を左上から辿る順）で縦に並べる。
-// 横スクロールは持たない。深さはインデントで見せ、どこから伸びた節かは
-// 選んだときに地図と同じ強調で追える（選ぶ先は同じ `select-skill-node`）。
-//
-// **絞り込みは「隠す」。**地図では他テーマを沈める（線の形を保つため）が、一覧で
-// 沈めると、その行のぶんだけ縦の場所を食ったまま読めない行が残る。
-function renderSkillList(group, characterId) {
-  const branch = state.skillTreeBranch;
-  const readyOnly = state.skillTreeReadyOnly;
-  const shown = group.rows.filter((row) => {
-    if (branch && row.node.branch !== branch) return false;
-    if (readyOnly && !skillNodeActionableNow(row.node, characterId)) return false;
-    return true;
-  });
-  if (!shown.length) {
-    return "<p class=\"tree-empty muted\">"
-      + (readyOnly
-        ? "いまの技能点（" + skillPointsFor(characterId) + "）で取れる節はありません。"
-          + "「いま取れる」をもう一度押すと全部出ます。"
-        : "この絞り込みに合う節はありません。")
-      + "</p>";
-  }
-  return "<div class=\"skill-tree-list\" data-branch=\"" + group.kind + "\">"
-    + shown.map((row) => renderSkillListRow(row, characterId)).join("") + "</div>";
-}
-
-// 一覧の一行。**節の中身は地図の節とまったく同じ**（印・量・段・条件・状態）。
-// 違うのは幅と、深さの出し方（列ではなくインデント）だけである。
-function renderSkillListRow(row, characterId) {
-  const node = row.node;
-  const info = COMPONENTS[node.skillId];
-  const nodeState = skillNodeState(node, characterId);
-  const selected = state.selectedSkillNode === node.skillId;
-  const ready = skillNodeActionableNow(node, characterId, nodeState);
-  // 深さは 6段まで段差にする（それより深い節を律儀に下げると、名前の幅が尽きる）。
-  const indent = Math.min(row.x - 1, 5);
-  return "<div class=\"tree-cell list-row" + (selected ? " selected" : "") + (ready ? " ready" : "")
-    + "\" data-node=\"" + esc(row.key) + "\" data-fx=\"skill:" + esc(node.skillId) + "\""
-    + " style=\"--indent:" + indent + "\">"
-    + "<article class=\"skill-node " + nodeState.stateClass + (nodeState.reserved ? " reserved" : "")
-    + (selected ? " selected" : "") + "\">"
-    + "<button type=\"button\" class=\"skill-node-button\" aria-pressed=\"" + (selected ? "true" : "false")
-    + "\" data-action=\"select-skill-node\" data-skill=\"" + esc(node.skillId) + "\">"
-    + "<span class=\"node-icon branch-" + (BRANCH_KEYS[node.branch] ?? "base") + "\" title=\""
-    + esc(node.branch) + "\">" + esc(skillNodeIcon(node)) + "</span>"
-    + "<span class=\"node-copy\"><b>" + esc(info?.label ?? node.skillId) + "</b>"
-    + "<small class=\"node-meters\" title=\"" + esc(costLabel(node)) + "\">"
-    + costPips(node) + yieldBar(characterId, node.skillId)
-    + levelMeter(node, characterId) + "</small>" + conditionLine(node) + "</span>"
-    + nodeStateMark(node, nodeState, characterId) + "</button></article></div>";
-}
-
-// **テーマは色と印で選ぶ。**#165 の方針は「分類（アクティブ／リアクティブ／パッシブ）は
-// 表示と自動実行の方法で、習得ツリーはテーマ別に混在させる」なので、テーマは
-// 絞り込みとして要る。押すとそのテーマ以外が沈む。もう一度押すと戻る。
-function branchFilter(group) {
-  const counts = new Map();
-  for (const row of group.rows) counts.set(row.node.branch, (counts.get(row.node.branch) ?? 0) + 1);
-  const chips = [...counts.entries()].map(([branch, count]) => {
-    const on = state.skillTreeBranch === branch;
-    return "<button type=\"button\" class=\"branch-chip branch-" + (BRANCH_KEYS[branch] ?? "base")
-      + (on ? " on" : "") + "\" aria-pressed=\"" + (on ? "true" : "false")
-      + "\" data-action=\"select-skill-branch\" data-branch=\"" + esc(branch) + "\""
-      + " aria-label=\"" + esc(branch) + " " + count + "件\" title=\"" + esc(branch) + "（" + count + "件）"
-      + (BRANCH_BUILDS[branch] ? " — " + esc(BRANCH_BUILDS[branch]) : "") + "\">"
-      + esc(branchIcons[branch] ?? "·") + "<small>" + count + "</small></button>";
-  }).join("");
-  return "<div class=\"branch-filter\" role=\"group\" aria-label=\"テーマで絞る\">" + chips + "</div>";
-}
-
-
-// **線は前提→派生を実座標で結ぶ。**インデントの目分量ではなく、節の実際の位置
-// （offsetLeft/offsetTop、スクロール量に左右されない）を測ってから、列の間に
-// 直角線を引く。render() が innerHTML を差し替えた直後に呼ぶ。
-function layoutSkillTreeConnectors() {
-  const group = skillTreeConnectorGroup;
-  if (!group) return;
-  const forest = app.querySelector(".skill-tree-forest[data-branch=\"" + group.kind + "\"]");
-  const svg = forest?.querySelector(".tree-lines");
-  if (!forest || !svg) return;
-  const nodeEls = new Map();
-  forest.querySelectorAll("[data-node]").forEach((element) => nodeEls.set(element.dataset.node, element));
-  const selectedRow = state.selectedSkillNode ? group.byKey.get(state.selectedSkillNode) : null;
-  const onPath = new Set(selectedRow ? selectedRow.ancestors : []);
-  const characterId = selectedCharacter();
-  const pendingOnPath = new Set([...onPath].filter((key) => {
-    const row = group.byKey.get(key);
-    return row && !isUnlocked(characterId, row.skillId);
-  }));
-  const selectedIsPending = selectedRow && !isUnlocked(characterId, selectedRow.skillId);
-  const derived = new Set(selectedRow ? [selectedRow.key, ...selectedRow.descendants] : []);
-  const edgeTone = (childKey) => {
-    if (!selectedRow) return "";
-    if ((childKey === selectedRow.key && selectedIsPending) || pendingOnPath.has(childKey)) return " on-path";
-    if (derived.has(childKey)) return " derived";
-    return " faded";
-  };
-  // **高さの基準は丸印（.node-icon）の中心。**カード全体の中心にすると、
-  // バッジが1行で収まる節と2行に折り返す節とで高さが違い、同じ行（＝最初の子として
-  // まっすぐ継いだ節）どうしでも線がわずかに曲がって見える（作者からの指摘）。
-  // 丸印はどの節でもボタン左上の同じ位置に固定なので、そこを測れば行が同じ節は
-  // 必ず同じ高さになる。
-  const forestRect = forest.getBoundingClientRect();
-  const anchorOf = (element) => {
-    const icon = element.querySelector(".node-icon");
-    const cellRect = element.getBoundingClientRect();
-    const iconRect = icon ? icon.getBoundingClientRect() : cellRect;
-    return {
-      left: cellRect.left - forestRect.left,
-      right: cellRect.right - forestRect.left,
-      centerY: iconRect.top - forestRect.top + iconRect.height / 2,
-    };
-  };
-  const paths = [];
-  for (const row of group.rows) {
-    if (!row.children.length) continue;
-    const parentElement = nodeEls.get(row.key);
-    if (!parentElement) continue;
-    const parentAnchor = anchorOf(parentElement);
-    for (const childKey of row.children) {
-      const childElement = nodeEls.get(childKey);
-      if (!childElement) continue;
-      const childAnchor = anchorOf(childElement);
-      const busX = parentAnchor.right + (childAnchor.left - parentAnchor.right) / 2;
-      const d = "M " + parentAnchor.right + " " + parentAnchor.centerY + " H " + busX
-        + " V " + childAnchor.centerY + " H " + childAnchor.left;
-      paths.push("<path class=\"tree-line" + edgeTone(childKey) + "\" d=\"" + d + "\"></path>");
-    }
-  }
-  svg.innerHTML = paths.join("");
-}
-
-
-// 作者指摘 2026-09-13 — **選んだ節を、こちらが探しに行かない。**
-//
-// 操作盤の「前提」「派生」の札は押せるが、押しても地図は前に居た場所のままだった。
-// 深いツリーの帯は 2000px を超える（iPhone の窓は 340px）ので、辿った先の節は
-// たいてい窓の外に居る。**窓の外に居るときだけ**、帯を横へ、ページを縦へ寄せる。
-// 既に見えている節を押したときは動かさない（指の下で地図が滑るのを避ける）。
-let focusedSkillNode = null;
-
-function focusSelectedSkillNode() {
-  const skillId = state.phase === "camp" && state.tab === "skills" ? state.selectedSkillNode : null;
-  if (!skillId) {
-    focusedSkillNode = null;
-    return;
-  }
-  if (skillId === focusedSkillNode) return;
-  focusedSkillNode = skillId;
-  const cell = [...app.querySelectorAll(".tree-cell")].find((element) => element.dataset.node === skillId);
-  if (!cell) return;
-  // 横の帯は地図にしか無い（一覧は縦だけで、横へ寄せる先が無い）。
-  const band = cell.closest(".skill-tree-scroll");
-  const margin = 12;
-  // 動きを減らす設定では、寄せる動きも一足で終わらせる（CSS 側の方針と揃える）。
-  const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
-  const cellRect = cell.getBoundingClientRect();
-  if (band) {
-    const bandRect = band.getBoundingClientRect();
-    if (cellRect.left < bandRect.left + margin || cellRect.right > bandRect.right - margin) {
-      // 窓の中央へ寄せる。端に貼りつけると、隣の節（＝前提や派生の続き）が見えない。
-      const delta = (cellRect.left + cellRect.width / 2) - (bandRect.left + bandRect.width / 2);
-      band.scrollTo({ left: band.scrollLeft + delta, behavior });
-    }
-  }
-  // 縦に見えている範囲は、**貼りつく帯の下から操作盤の上まで**である。
-  // 起点は帯の「いまの位置」ではなく**貼りついたときの位置**（キャンプの固定帯の下に
-  // 技能点の要約帯が付く）にする。いまの位置で測ると、まだ流れの中に居る帯の真下へ
-  // 節を寄せてしまい、寄せ終わったあとに帯が上へ貼りついて、地図の見える帯が
-  // その高さぶん無駄に狭くなる。
-  const sheet = app.querySelector(".skill-sheet");
-  // 貼りついているのは固定帯と、選んでいる回だけ出る操作盤の二つだけである
-  // （技能点の帯は 2026-09-17 に貼るのをやめ、ツリーの操作の行へ入れた）。
-  const campBottom = app.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
-  const top = campBottom + margin;
-  const bottom = (sheet?.getBoundingClientRect().top ?? window.innerHeight) - margin;
-  if (cellRect.top < top || cellRect.bottom > bottom) {
-    // 見える帯の上寄り（1/3）へ置く。真上に貼りつけると、その節から下へ伸びる
-    // 派生先が一つも見えない。
-    const want = top + Math.max(0, (bottom - top - cellRect.height) / 3);
-    window.scrollBy({ top: cellRect.top - want, behavior });
-  }
 }
 
 // **記号の意味は、畳んだ中に一度だけ置く。**節や装着行の上には出さない
@@ -4864,10 +4090,8 @@ function symbolLegendHelp() {
     + row("<span class=\"pips hp\"><i></i></span>", "代償にHPを払う")
     + row("<span class=\"yield-chip stat-might\"><i>腕</i>130%</span>",
       "技能の効果量。印は掛ける能力値（腕＝腕力・技＝技術・受＝受け・HP＝最大HP）")
-    + row("<span class=\"level-tag\">Lv1<small>/10</small></span>", "いまの段と上限")
     + row("<span class=\"node-mark cost acquisition-cost\">1</span>", "この技能の取得コスト")
-    + row("<span class=\"node-cost-chain\"><span class=\"node-mark prerequisite-levels\">1</span><span class=\"cost-plus\">+</span><span class=\"node-mark acquisition-cost\">1</span></span>",
-      "取得までに必要な他技能の残りLv数と、この技能の取得コスト")
+    + row("<span class=\"node-mark prerequisite\">→</span>", "前提技能を取得すると開く")
     + row("<span class=\"node-mark equipped\">✓</span>", "取得済み。役割に応じて選択肢・優先順・常時効果へ入る")
     + row("<span class=\"active-mark\">●</span>", "いまセットしているアクティブ")
     + row("<span class=\"order\">1</span>", "リアクティブ／ターゲットの判定順")
@@ -5052,9 +4276,8 @@ function renderSkills() {
     + renderSkillTreeSource(characterId)
     + "</details>"
     + symbolLegendHelp()
-    // issue #187 — アクティブはカーソルから登録順に走査し、選んだ技能の次へ進む。
-    // issue #177 — この規則そのものは装着行の「出番」の目盛りで見せている。
-    // 取得予約は節ごとの操作行に置く。旧packの段上げや地図はここへ戻さない。
+    // アクティブは選択中の1本、リアクティブ／ターゲットは上から順に判定する。
+    // 取得予約は節ごとの操作行に置く。pack単位の技能選択はここへ戻さない。
     + helpDetails("skill-rules", "技能のルール", ruleGrid([
       {
         glyph: "skill",
@@ -5671,14 +4894,14 @@ function forecastVisible() {
 //
 // simulateExpeditionBattle が BattleInput と simulateBattle のオプションを一本化
 // しても、**呼び出し側が違う options を渡せば予測と本番はまたずれる。**
-// 実際、技能レベルが本番へ渡らず「予測どおりに強くならない」不具合はここで起きた
-// （issue #148 / PR #156）。だから preview も本番もこの関数の戻り値をそのまま使い、
+// 実際、戦闘入力の組み立てが予測と本番で分かれると「予測どおりに強くならない」不具合が起きる。
+// だから preview も本番もこの関数の戻り値をそのまま使い、
 // 本番が足してよいのは結果を変えない simulationOptions だけにする。
 function expeditionBattleOptions(composed) {
   return {
     composed,
     // R8 §1.5 — Campaign Stage は run.currentHp（持ち越しHP）。
-    // Free / Endless は従来どおり state.hp（毎戦満タン）。
+    // HPはCampaignのRunStateから読む。
     hp: isCampaignRun() ? state.run.currentHp : state.hp,
     equipmentDurability: state.equipmentDurability,
     limitsFor,
@@ -5705,9 +4928,6 @@ function forecastKey(composed) {
     // issue #238 — 放ち終えた仲間は必殺を持ち込めない。**回数表も鍵に入れる**
     // （入れないと、放った直後に「まだ出る」と言う古い予測が残る）。
     state.run.ultimatesUsed,
-    state.run.runSkillLevels,
-    // 技能レベル表は runUnlockedSkills を辿って組まれる（runSkillLevelsFor）。
-    // **レベルだけを鍵にすると、取得表の側が動いた回に古い予測が残る。**
     state.run.runUnlockedSkills,
     state.equipmentDurability,
     state.hp,
@@ -6024,8 +5244,8 @@ function supplyTutorialNote() {
 // 全員へ1点入るのに、入った点の使い道（技能ツリー）を画面から教える場所が無く、
 // 「技能のルール」の畳んだ段を自分で開くしかなかった。
 //
-// 教えるのは、武器を選び、入口節を取得する流れである。旧packツリーの
-// レベル上げはこの手取りから外し、武器別ツリーの取得予約は必要な節を選んだあとに使える。
+// 教えるのは、武器を選び、入口節を取得する流れである。武器別ツリーの取得予約は
+// 必要な節を選んだあとに使える。
 //
 // 錠は最後の一手まで掛かる。**タブと人物と節を選ぶ手も段に数える**——押す場所が
 // タブの奥・盤面・地図の中に散っているので、「どれを押すのか」が段の側に無いと、
@@ -6299,11 +5519,9 @@ function applyTutorialGate() {
 
 // 作者要望 2026-09-14（デザイン面の改善）— **光る先を、こちらから探しに行かせない。**
 //
-// 技能チュートリアルの押し先は、貼りつく帯の下をかなり送った先（技能ツリーの節、
-// その下の操作盤）にある。錠が掛かっているので押せる場所は一つしか無いのに、
+// チュートリアルの押し先は、貼りつく帯の下をかなり送った先にある。錠が掛かっているので押せる場所は一つしか無いのに、
 // 初めて開いた人は「光っているものが画面に無い」状態から探すことになる。
-// **段が変わった回だけ**、光る先が窓の外なら寄せる（`focusSelectedSkillNode` と
-// 同じ作法で、既に見えているときは動かさない——指の下で画面が滑るのを避ける）。
+// **段が変わった回だけ**、光る先が窓の外なら寄せる。
 let focusedTutorialSpot = null;
 
 function focusTutorialSpot() {
@@ -6320,26 +5538,13 @@ function focusTutorialSpot() {
   // 貼りつく帯の中（タブ・盤面のセル）は、どこまで送っても見えている。寄せない。
   if (spot.closest(".camp-top")) return;
   const behavior = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth";
-  // 横の帯（技能ツリー）は帯ごと、縦はページごと寄せる。見える範囲の上端は
-  // **貼りついた帯の下**——そこより上へ寄せると、札の裏に光る先が隠れる。
-  const band = spot.closest(".skill-tree-scroll");
   const rect = spot.getBoundingClientRect();
   const margin = 12;
-  if (band) {
-    const bandRect = band.getBoundingClientRect();
-    if (rect.left < bandRect.left + margin || rect.right > bandRect.right - margin) {
-      band.scrollTo({
-        left: band.scrollLeft + (rect.left + rect.width / 2) - (bandRect.left + bandRect.width / 2),
-        behavior,
-      });
-    }
-  }
-  // 見える範囲は**貼りついたものの下から、貼りついた操作盤の上まで**である。
+  // 見える範囲は**貼りついたものの下から画面下端まで**である。
   const note = app.querySelector(".camp-view > .tutorial-note-card.pinned");
   const campBottom = app.querySelector(".camp-top")?.getBoundingClientRect().bottom ?? 0;
   const top = Math.max(campBottom, note ? campBottom + note.getBoundingClientRect().height + 6 : 0) + margin;
-  const sheet = app.querySelector(".skill-sheet");
-  const bottom = (sheet?.getBoundingClientRect().top ?? window.innerHeight) - margin;
+  const bottom = window.innerHeight - margin;
   if (rect.top < top || rect.bottom > bottom) {
     window.scrollBy({ top: rect.top - (top + Math.max(0, (bottom - top - rect.height) / 3)), behavior });
   }
@@ -6807,7 +6012,14 @@ function eventSkillName(event) {
 function eventCauseName(event) {
   const id = event?.ruleId ? event.sourceDefinitionId : null;
   if (!id) return null;
-  const known = SKILLS.reactive?.[id] || SKILLS.active?.[id] || componentInfo(id) || EQUIPMENT[id];
+  const known = PLAYABLE_CONTENT.reactiveSkills?.[id]
+    || PLAYABLE_CONTENT.activeSkills?.[id]
+    || PLAYABLE_CONTENT.passiveSkills?.[id]
+    || PLAYABLE_CONTENT.enemyReactiveSkills?.[id]
+    || PLAYABLE_CONTENT.enemyActiveSkills?.[id]
+    || PLAYABLE_CONTENT.enemyPassiveSkills?.[id]
+    || componentInfo(id)
+    || EQUIPMENT[id];
   return known ? shortName(nameFor(id)) : null;
 }
 
@@ -7726,12 +6938,12 @@ function renderBattleError() {
       { glyph: "cross", title: "次に見直す", value: "準備・行動権を互いに増やす反応", line: "二つが互いを呼ぶと、際限なく回ります。" },
     ])
     + "<div class=\"flow-actions\">" + button("スキルを見直す", "retry-build", false, "button primary")
-    + button("キャンプへ戻る", "back-battle-preview", false, "button") + "</div></section>");
+    + button("キャンプへ戻る", "back-to-camp", false, "button") + "</div></section>");
 }
 
 function resultActors(result, { simulation = false } = {}) {
   // R8 §1.5 — Campaign Stage は「次戦」も持ち越しHP（run.currentHp、
-  // commitBattleResultが既に確定済み）。Free / Endless は従来どおり毎戦満タン。
+  // commitBattleResultが既に確定済み）。
   return (result?.actors || []).filter((actor) => actor.side === "ally").map((actor) => {
     const characterId = String(actor.instanceId ?? "").replace(/^a_/, "");
     const nextHp = isCampaignRun()
@@ -7755,7 +6967,7 @@ function resultActors(result, { simulation = false } = {}) {
 // 一目で比べる。色はテーマ、印はテーマの記号、押さえれば技能名が出る。
 function rotationStrip(result) {
   const events = result?.events ?? [];
-  const nodeBySkillId = new Map(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
+  const nodeBySkillId = new Map(WEAPON_SKILL_TREE_NODES.map((node) => [node.skillId, node]));
   const byCharacter = new Map();
   let lastRound = 0;
   for (const event of events) {
@@ -8818,7 +8030,6 @@ function advanceAfterBattle() {
       ?? state.selectedCharacter;
     state.selectedSkillNode = null;
     state.selectedWeaponId = SKILL_LESSON_GOAL.weaponId ?? state.selectedWeaponId;
-    state.skillTreeBranch = null;
     state.skillLessonHandedOff = false;
   }
   state.inspectedEncounterIndex = null;
@@ -8892,7 +8103,6 @@ function handleAction(event) {
   // 経路（ここ）の両方**で掛ける。光っていない場所は押しても何も起きない
   // （DESIGN.md §6.4.3 の離脱経路と同じ二重の塞ぎ方）。長押しの行も同じここを通る。
   if (!tutorialAllows(element)) return;
-  captureSkillTreeScroll();
   state.error = null;
 
   if (action === "new-game") {
@@ -8919,7 +8129,8 @@ function handleAction(event) {
       seed: state.run.runSeed,
       version: GAME_VERSION,
       difficulty: state.run.difficulty,
-      packs: [...state.run.manifest.enabledPackIds],
+      packs: [...state.run.manifest.enabledEquipmentPackIds],
+      skillPacks: [...(state.run.manifest.enabledSkillPackIds ?? [])],
       supplies: state.run.supplies,
       roster: [...state.run.roster],
     });
@@ -9150,7 +8361,6 @@ function handleAction(event) {
     state.runId = state.run.runId;
     state.phase = "camp";
     state.tab = "map";
-    state.migrationNote = null;
     state.prologueActive = false;
     ensureSelectedCharacter();
     state.formationSelection = null;
@@ -9159,7 +8369,8 @@ function handleAction(event) {
       seed: state.run.runSeed,
       version: GAME_VERSION,
       difficulty: state.run.difficulty,
-      packs: [...state.run.manifest.enabledPackIds],
+      packs: [...state.run.manifest.enabledEquipmentPackIds],
+      skillPacks: [...(state.run.manifest.enabledSkillPackIds ?? [])],
       supplies: state.run.supplies,
       roster: [...state.run.roster],
     });
@@ -9318,18 +8529,6 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "select-skill-node") {
-    const skillId = element.dataset.skill || null;
-    state.selectedSkillNode = state.selectedSkillNode === skillId ? null : skillId;
-    // R19（issue #137）— 前提・派生先の札を押したとき、選んだ節が画面に出るよう
-    // **そのツリーへ切り替える。**
-    const target = skillId ? SKILL_TREE_NODES.find((entry) => entry.skillId === skillId) : null;
-    if (target && state.selectedSkillNode) state.skillTreeKind = target.kind;
-    saveState();
-    render();
-    return;
-  }
-
   if (action === "select-weapon-tree") {
     const weaponId = element.dataset.weapon;
     if (!manifestWeaponIds(state.run.manifest).includes(weaponId)
@@ -9354,9 +8553,7 @@ function handleAction(event) {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
     const previous = skillReservationFor(state.run, characterId);
-    const previousLevel = skillReservationLevelFor(state.run, characterId);
-    // 武器技能はレベルを持たないため、目標は「この節まで」の1段だけ。
-    const result = reserveRunSkill(state.run, characterId, skillId, 1);
+    const result = reserveRunSkill(state.run, characterId, skillId);
     if (!result.ok) {
       state.error = result.reason;
     } else {
@@ -9367,7 +8564,6 @@ function handleAction(event) {
         skillId,
         weaponId: WEAPON_SKILL_TREE_NODES.find((node) => node.skillId === skillId)?.weaponId ?? null,
         replacedSkillId: previous && previous !== skillId ? previous : null,
-        replacedTargetLevel: previousLevel,
       });
       const automatic = fulfillSkillReservations(state.run);
       state.run = automatic.run;
@@ -9381,38 +8577,7 @@ function handleAction(event) {
     return;
   }
 
-  if (action === "reserve-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const requestedLevel = Number(element.dataset.targetLevel);
-    const targetLevel = Number.isInteger(requestedLevel) ? requestedLevel : null;
-    const previous = skillReservationFor(state.run, characterId);
-    const previousLevel = skillReservationLevelFor(state.run, characterId);
-    const result = reserveRunSkill(state.run, characterId, skillId, targetLevel);
-    if (!result.ok) {
-      state.error = result.reason;
-    } else {
-      state.run = result.run;
-      fx("skill:" + skillId, "select");
-      record("skill_reserved", {
-        characterId,
-        skillId,
-        targetLevel: skillReservationLevelFor(state.run, characterId),
-        replacedSkillId: previous && previous !== skillId ? previous : null,
-        replacedTargetLevel: previousLevel,
-      });
-      const automatic = fulfillSkillReservations(state.run);
-      state.run = automatic.run;
-      applyAutomaticSkillActions(automatic.actions);
-      for (const completed of automatic.completed) {
-        record("skill_reservation_completed", completed);
-      }
-    }
-    saveState();
-    render();
-    return;
-  }
-  if (action === "cancel-skill-reservation" || action === "cancel-weapon-skill-reservation") {
+  if (action === "cancel-weapon-skill-reservation") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
     const result = cancelRunSkillReservation(state.run, characterId, skillId);
@@ -9424,67 +8589,9 @@ function handleAction(event) {
       record("skill_reservation_cancelled", {
         characterId,
         skillId,
-        ...(action === "cancel-weapon-skill-reservation"
-          ? { weaponId: WEAPON_SKILL_TREE_NODES.find((node) => node.skillId === skillId)?.weaponId ?? null }
-          : {}),
+        weaponId: WEAPON_SKILL_TREE_NODES.find((node) => node.skillId === skillId)?.weaponId ?? null,
       });
     }
-    saveState();
-    render();
-    return;
-  }
-
-  // R19（issue #137）— 取得済み技能を1段上げる。解禁と同じで払い戻しは無い。
-  if (action === "level-up-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const result = levelUpRunSkill(state.run, characterId, skillId, skillLevelCapOf(skillId));
-    if (!result.ok) state.error = result.reason;
-    else {
-      state.run = result.run;
-      fx("skill:" + skillId, "level");
-      record("skill_leveled", { characterId, skillId, level: result.level, cost: SKILL_LEVEL_COST });
-    }
-    saveState();
-    render();
-    return;
-  }
-
-  if (action === "select-skill-kind") {
-    const kind = element.dataset.kind;
-    if (!["active", "reactive", "passive"].includes(kind)) return;
-    state.skillTreeKind = kind;
-    saveState();
-    render();
-    return;
-  }
-
-  // 作者指摘 2026-09-17 — 技能ツリーの見方（一覧／地図）。**選んでいる節は持ち越す。**
-  // 一覧で見つけた節を地図で辿り直す、その逆、のどちらも一押しで済む。
-  if (action === "select-skill-view") {
-    const view = element.dataset.view;
-    if (!SKILL_TREE_VIEWS.includes(view)) return;
-    state.skillTreeView = view;
-    // 寄せ直しは「選び直した回」にしか走らないので、見方を変えた回も一度だけ許す
-    // （一覧で選んだ節が、地図では窓の外に居る）。
-    focusedSkillNode = null;
-    saveState();
-    render();
-    return;
-  }
-
-  // 「いま取れる」の絞り込み。**もう一度押すと全部へ戻る**（テーマの印と同じ作法）。
-  if (action === "toggle-skill-ready") {
-    state.skillTreeReadyOnly = !state.skillTreeReadyOnly;
-    saveState();
-    render();
-    return;
-  }
-
-  // issue #177 — テーマの絞り込み。**同じ印をもう一度押すと全部へ戻る。**
-  if (action === "select-skill-branch") {
-    const branch = element.dataset.branch || "";
-    state.skillTreeBranch = state.skillTreeBranch === branch ? null : branch;
     saveState();
     render();
     return;
@@ -9607,25 +8714,6 @@ function handleAction(event) {
 
   // R6 §5.3 — 取得は遠征内。遠征が終われば消える。
   // R25 — 取得の払い戻しは無い。アクティブの選択と、反応・対象の優先順だけを変える。
-  if (action === "unlock-skill") {
-    const characterId = element.dataset.character;
-    const skillId = element.dataset.skill;
-    const node = SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
-    const result = unlockRunSkill(state.run, characterId, node);
-    if (!result.ok) state.error = result.reason;
-    else {
-      state.run = result.run;
-      // R25 — 取得と各ロールへの登録を分けない。
-      const equipped = equipSkill(state.run.loadout, characterId, skillId, node.kind, limitsFor);
-      if (equipped.ok) state.run.loadout = equipped.loadout;
-      fx("skill:" + skillId, "gain");
-      record("skill_unlocked", { characterId, skillId, cost: node.cost });
-    }
-    saveState();
-    render();
-    return;
-  }
-
   if (action === "unlock-weapon-skill") {
     const characterId = element.dataset.character;
     const skillId = element.dataset.skill;
@@ -9939,8 +9027,7 @@ function handleAction(event) {
     return;
   }
 
-  // issue #138 — 戦闘前確認の画面（battlePreview）を廃止したので、キャンプへ戻す。
-  if (action === "back-battle-preview") {
+  if (action === "back-to-camp") {
     state.phase = "camp";
     state.tab = "map";
     state.battleError = null;

@@ -154,7 +154,8 @@ export const WEAPON_SKILL_TREE_NODES = Object.freeze(ALL_TREES.map((node) => Obj
   cost: 1,
   branch: branchOf(node.position),
   x: depthOf(node.position),
-  requires: Object.freeze(node.requires.map((skillId) => Object.freeze({ skillId, minLv: 1 }))),
+  // 武器ツリーの前提は取得済みIDだけを見る。旧技能Lvは保持しない。
+  requires: Object.freeze(node.requires.map((skillId) => Object.freeze({ skillId }))),
 })));
 
 export const WEAPON_SKILL_NODE_BY_ID = Object.freeze(Object.fromEntries(

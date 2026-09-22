@@ -9,18 +9,17 @@
 // Stage 4 以降は、Stage 0〜3 の作者評価（Gate 2）を経てから設計する
 // （R8 §5 の表は「実装開始用の具体案」であり、本ファイルの対象外）。
 //
-// Free / Endless の random manifest（`makeManifest`, progression.mjs）は
-// このファイルと独立に存在し続ける。campaign 専用の固定 manifest だけを
-// ここで作る（R8 §1.2「seedはcampaignのpack選択には使わない」）。
+// Campaign 専用の固定 manifest をここで作る（R8 §1.2「seedはcampaignのpack選択には使わない」）。
 //
 // engine・schema は変更しない。
 
 import { MANIFEST_VERSION } from "../schema.mjs";
 import { AFFIX_FAMILIES } from "./affixes.mjs";
-import { BASELINE_ACTIVE_SKILL_IDS, PACK_BY_ID, SKILL_PACKS } from "./packs.mjs";
+import { EQUIPMENT_PACK_BY_ID } from "./packs.mjs";
 import { REGION, actBossesForStage, enemyIdsForStage } from "./expedition.mjs";
 import { enemyFamilyOf } from "./enemies.mjs";
 import { WEAPONS, WEAPON_IDS_BY_CHARACTER, weaponIdsForCharacterIds } from "./weapon-trees.mjs";
+import { skillPackIdsForWeaponIds } from "./skill-packs.mjs";
 
 // ---------------------------------------------------------------- ラダーの型（R8 §4.2 / R9 §3）
 //
@@ -45,7 +44,7 @@ export function activePackCountForSequence(sequence, mode = "tutorial") {
   //
   // R8 §4.2 の回転は「一度に扱う語彙を増やしすぎない」ための仕組みだが、
   // 技能点は一遠征15点で固定なので、pack が増えても**同時に取れる技能の数は
-  // 増えない**（analysis/ecology-skill-catalog-smoke.mjs）。増えるのは選択肢の
+  // 増えない**（analysis/ecology-weapon-loadout-smoke.mjs）。増えるのは選択肢の
   // ほうだけである。そこから覚えた pack を取り上げると、「前の Stage で組んだ形が
   // 今回は作れない」という理由だけの難度になり、作者が嫌う方向に寄る。
   // だから **Stage 4・5 で残り2 pack を足し切り、以降は6 pack のまま**にして、
@@ -72,7 +71,7 @@ export function activePackCountForSequence(sequence, mode = "tutorial") {
 // 加入する人物は pack の所有者ではない（`joiningCharacterId` は「その pack の
 // 分かりやすい入口を持つ人」であって、その pack を独占しない）。
 //
-// `packDepths` は R9 §3.1 の「累積させる」を実装する。新 pack はその Stage では
+// `equipmentPackDepths` は R9 §3.1 の「累積させる」を実装する。新 pack はその Stage では
 // core（入口）だけ、次の Stage から full。**前に覚えた技能は消えない。**
 //
 // issue #172 — `id` は旧来 `stage_0_edge` のように pack 由来の語尾（edge / wall /
@@ -90,9 +89,9 @@ const stage = (definition) => Object.freeze({
   // R25設計PR #287 §8・§12 — 武器は加入済み人物の署名武器・副武器を累積して開示する。
   // 人物のcastを正本にし、Stage番号から別に武器を推測しない。
   enabledWeaponIds: Object.freeze(weaponIdsForCharacterIds(definition.castCharacterIds)),
-  returningPackIds: Object.freeze([...definition.returningPackIds]),
-  enabledPackIds: Object.freeze([...definition.enabledPackIds]),
-  packDepths: Object.freeze({ ...definition.packDepths }),
+  returningEquipmentPackIds: Object.freeze([...definition.returningEquipmentPackIds]),
+  enabledEquipmentPackIds: Object.freeze([...definition.enabledEquipmentPackIds]),
+  equipmentPackDepths: Object.freeze({ ...definition.equipmentPackDepths }),
   pressureTags: Object.freeze([...definition.pressureTags]),
   learningGoals: Object.freeze([...definition.learningGoals]),
   // **敵・幕ボス・法則は宣言しない。その Stage の12戦から導出する**（R23）。
@@ -105,12 +104,12 @@ const stage = (definition) => Object.freeze({
   actBossLawIds: Object.freeze(actBossesForStage(definition.sequence).map((entry) => entry.bossLawId)),
   stageLawIds: Object.freeze([]),
   newEnemyFamilyId: definition.newEnemyFamilyId ?? null,
-  newPackId: definition.newPackId ?? null,
+  newEquipmentPackId: definition.newEquipmentPackId ?? null,
   joiningCharacterId: definition.joiningCharacterId ?? null,
   activityFundMultiplierBps: definition.activityFundMultiplierBps,
 });
 
-const ALL_PACK_IDS = Object.freeze([
+const ALL_EQUIPMENT_PACK_IDS = Object.freeze([
   "pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage", "pack_relay",
 ]);
 const FULL_CAST = Object.freeze(["warden", "mender", "lancer", "guardian", "tactician"]);
@@ -131,10 +130,10 @@ export const CAMPAIGN_STAGES = Object.freeze([
     partySize: 2,
     castCharacterIds: ["warden", "mender"],
     joiningCharacterId: null,
-    newPackId: "pack_care",
-    returningPackIds: [],
-    enabledPackIds: ["pack_care"],
-    packDepths: { pack_care: "core" },
+    newEquipmentPackId: "pack_care",
+    returningEquipmentPackIds: [],
+    enabledEquipmentPackIds: ["pack_care"],
+    equipmentPackDepths: { pack_care: "core" },
     activePackCount: 1,
     pressureTags: ["guard", "block", "small_group"],
     learningGoals: [
@@ -154,10 +153,10 @@ export const CAMPAIGN_STAGES = Object.freeze([
     partySize: 3,
     castCharacterIds: ["warden", "mender", "lancer"],
     joiningCharacterId: "lancer",
-    newPackId: "pack_edge",
-    returningPackIds: ["pack_care"],
-    enabledPackIds: ["pack_care", "pack_edge"],
-    packDepths: { pack_care: "full", pack_edge: "core" },
+    newEquipmentPackId: "pack_edge",
+    returningEquipmentPackIds: ["pack_care"],
+    enabledEquipmentPackIds: ["pack_care", "pack_edge"],
+    equipmentPackDepths: { pack_care: "full", pack_edge: "core" },
     activePackCount: 2,
     pressureTags: ["position", "burst", "row_column"],
     learningGoals: [
@@ -176,10 +175,10 @@ export const CAMPAIGN_STAGES = Object.freeze([
     partySize: 4,
     castCharacterIds: ["warden", "mender", "lancer", "guardian"],
     joiningCharacterId: "guardian",
-    newPackId: "pack_wall",
-    returningPackIds: ["pack_care", "pack_edge"],
-    enabledPackIds: ["pack_care", "pack_edge", "pack_wall"],
-    packDepths: { pack_care: "full", pack_edge: "full", pack_wall: "core" },
+    newEquipmentPackId: "pack_wall",
+    returningEquipmentPackIds: ["pack_care", "pack_edge"],
+    enabledEquipmentPackIds: ["pack_care", "pack_edge", "pack_wall"],
+    equipmentPackDepths: { pack_care: "full", pack_edge: "full", pack_wall: "core" },
     activePackCount: 3,
     pressureTags: ["cover", "position", "row_column"],
     learningGoals: [
@@ -199,10 +198,10 @@ export const CAMPAIGN_STAGES = Object.freeze([
     partySize: 5,
     castCharacterIds: [...FULL_CAST],
     joiningCharacterId: "tactician",
-    newPackId: "pack_tempo",
-    returningPackIds: ["pack_care", "pack_edge", "pack_wall"],
-    enabledPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
-    packDepths: {
+    newEquipmentPackId: "pack_tempo",
+    returningEquipmentPackIds: ["pack_care", "pack_edge", "pack_wall"],
+    enabledEquipmentPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
+    equipmentPackDepths: {
       pack_care: "full", pack_edge: "full", pack_wall: "full", pack_tempo: "core",
     },
     activePackCount: 4,
@@ -228,11 +227,11 @@ export const CAMPAIGN_STAGES = Object.freeze([
     newAxis: "連撃と刻印（pack_barrage）／灰塵（行・列・全体）",
     partySize: 5,
     castCharacterIds: [...FULL_CAST],
-    newPackId: "pack_barrage",
+    newEquipmentPackId: "pack_barrage",
     newEnemyFamilyId: "dust",
-    returningPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
-    enabledPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage"],
-    packDepths: {
+    returningEquipmentPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo"],
+    enabledEquipmentPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage"],
+    equipmentPackDepths: {
       pack_care: "full", pack_edge: "full", pack_wall: "full",
       pack_tempo: "full", pack_barrage: "full",
     },
@@ -253,10 +252,10 @@ export const CAMPAIGN_STAGES = Object.freeze([
     newAxis: "余波と受け渡し（pack_relay）／灰塵が主役になる",
     partySize: 5,
     castCharacterIds: [...FULL_CAST],
-    newPackId: "pack_relay",
-    returningPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage"],
-    enabledPackIds: [...ALL_PACK_IDS],
-    packDepths: allFull(ALL_PACK_IDS),
+    newEquipmentPackId: "pack_relay",
+    returningEquipmentPackIds: ["pack_care", "pack_edge", "pack_wall", "pack_tempo", "pack_barrage"],
+    enabledEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    equipmentPackDepths: allFull(ALL_EQUIPMENT_PACK_IDS),
     activePackCount: 6,
     pressureTags: ["row_column", "attrition", "handoff"],
     learningGoals: [
@@ -275,9 +274,9 @@ export const CAMPAIGN_STAGES = Object.freeze([
     partySize: 5,
     castCharacterIds: [...FULL_CAST],
     newEnemyFamilyId: "weave",
-    returningPackIds: [...ALL_PACK_IDS],
-    enabledPackIds: [...ALL_PACK_IDS],
-    packDepths: allFull(ALL_PACK_IDS),
+    returningEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    enabledEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    equipmentPackDepths: allFull(ALL_EQUIPMENT_PACK_IDS),
     activePackCount: 6,
     pressureTags: ["position", "status", "reach"],
     learningGoals: [
@@ -295,9 +294,9 @@ export const CAMPAIGN_STAGES = Object.freeze([
     newAxis: "組み合わせ（灰織＋灰塵）。新しい語彙も新しい家系も入らない",
     partySize: 5,
     castCharacterIds: [...FULL_CAST],
-    returningPackIds: [...ALL_PACK_IDS],
-    enabledPackIds: [...ALL_PACK_IDS],
-    packDepths: allFull(ALL_PACK_IDS),
+    returningEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    enabledEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    equipmentPackDepths: allFull(ALL_EQUIPMENT_PACK_IDS),
     activePackCount: 6,
     pressureTags: ["position", "status", "row_column"],
     learningGoals: [
@@ -316,9 +315,9 @@ export const CAMPAIGN_STAGES = Object.freeze([
     partySize: 5,
     castCharacterIds: [...FULL_CAST],
     newEnemyFamilyId: "forge",
-    returningPackIds: [...ALL_PACK_IDS],
-    enabledPackIds: [...ALL_PACK_IDS],
-    packDepths: allFull(ALL_PACK_IDS),
+    returningEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    enabledEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    equipmentPackDepths: allFull(ALL_EQUIPMENT_PACK_IDS),
     activePackCount: 6,
     pressureTags: ["guard_ignore", "attrition", "burst"],
     learningGoals: [
@@ -336,9 +335,9 @@ export const CAMPAIGN_STAGES = Object.freeze([
     newAxis: "総復習（四家系が全部出る）。新しい語彙も新しい家系も入らない",
     partySize: 5,
     castCharacterIds: [...FULL_CAST],
-    returningPackIds: [...ALL_PACK_IDS],
-    enabledPackIds: [...ALL_PACK_IDS],
-    packDepths: allFull(ALL_PACK_IDS),
+    returningEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    enabledEquipmentPackIds: [...ALL_EQUIPMENT_PACK_IDS],
+    equipmentPackDepths: allFull(ALL_EQUIPMENT_PACK_IDS),
     activePackCount: 6,
     pressureTags: ["guard_ignore", "row_column", "position", "attrition"],
     learningGoals: [
@@ -421,20 +420,19 @@ export function campaignManifestForStage(sequence, seed) {
     regionId: REGION.id,
     campaignStageId: stage.id,
     campaignStageSequence: stage.sequence,
-    baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
+    baselineSkillIds: [],
     // R25 — 武器はpackとは別に固定する。加入済み人物の武器を全戦で開示する。
     enabledWeaponIds: [...stage.enabledWeaponIds],
-    enabledPackIds: [...stage.enabledPackIds],
-    // R9 §3.1 — 新 pack はその Stage では core（入口）だけを出し、
-    // 次の Stage から full になる。**前に覚えた技能は消えない。**
-    packDepths: { ...stage.packDepths },
+    enabledSkillPackIds: skillPackIdsForWeaponIds(stage.enabledWeaponIds),
+    enabledEquipmentPackIds: [...stage.enabledEquipmentPackIds],
+    equipmentPackDepths: { ...stage.equipmentPackDepths },
     ladderMode: stage.ladderMode,
     partySize: stage.partySize,
     castCharacterIds: [...stage.castCharacterIds],
     // R8 §13.2 — Phase C。Stage の pack が、その Stage で拾える装備の
     // affix family を決める。**Stage 番号では決めない**（pack が意味の単位）。
     enabledAffixFamilyIds: AFFIX_FAMILIES
-      .filter((family) => family.packId === null || stage.enabledPackIds.includes(family.packId))
+      .filter((family) => family.packId === null || stage.enabledEquipmentPackIds.includes(family.packId))
       .map((family) => family.id),
     enemyFamilyIds: [...stage.enemyFamilyIds],
     actBossIds: [...stage.actBossIds],
@@ -450,7 +448,7 @@ export function campaignManifestForStage(sequence, seed) {
 // **fun の証明ではない**——構造が壊れていないことだけを見る。
 export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
   const problems = [];
-  const introducedBy = new Map(); // packId -> 最初に newPackId として現れた sequence
+  const introducedBy = new Map(); // packId -> 最初に newEquipmentPackId として現れた sequence
   const introducedFamilyBy = new Map(); // familyId -> 最初に出てきた sequence
   const introducedWeaponBy = new Map(); // weaponId -> 最初にmanifestへ出た sequence
   let lastPrimaryOffenseSequence = null;
@@ -492,14 +490,14 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
     // 新 pack を持たない Stage がある**ので、宣言そのものは任意にした。
     // ただし「何も新しくない Stage」は作らない——`newAxis` が空の Stage は落とす。
     if (!stage.newAxis) problems.push(`${path}: その Stage で新しくなるもの（newAxis）が宣言されていない`);
-    if (stage.newPackId) {
-      if (!stage.enabledPackIds.includes(stage.newPackId)) {
-        problems.push(`${path}: newPackId "${stage.newPackId}" が enabledPackIds に無い`);
+    if (stage.newEquipmentPackId) {
+      if (!stage.enabledEquipmentPackIds.includes(stage.newEquipmentPackId)) {
+        problems.push(`${path}: newEquipmentPackId "${stage.newEquipmentPackId}" が enabledEquipmentPackIds に無い`);
       }
-      if (introducedBy.has(stage.newPackId)) {
-        problems.push(`${path}: newPackId "${stage.newPackId}" は sequence ${introducedBy.get(stage.newPackId)} で既出`);
+      if (introducedBy.has(stage.newEquipmentPackId)) {
+        problems.push(`${path}: newEquipmentPackId "${stage.newEquipmentPackId}" は sequence ${introducedBy.get(stage.newEquipmentPackId)} で既出`);
       } else {
-        introducedBy.set(stage.newPackId, stage.sequence);
+        introducedBy.set(stage.newEquipmentPackId, stage.sequence);
       }
     }
     // 新しい家系も、初登場は一度きり。**その Stage の12戦に本当に出ていること**を見る
@@ -529,12 +527,12 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
       problems.push(`${path}: 幕ボスの公開法則が3つそろっていない`);
     }
 
-    // enabledPackIds は newPackId と returningPackIds から成る。
-    const expectedEnabled = new Set([...(stage.newPackId ? [stage.newPackId] : []), ...stage.returningPackIds]);
-    const actualEnabled = new Set(stage.enabledPackIds);
+    // enabledEquipmentPackIds は newEquipmentPackId と returningEquipmentPackIds から成る。
+    const expectedEnabled = new Set([...(stage.newEquipmentPackId ? [stage.newEquipmentPackId] : []), ...stage.returningEquipmentPackIds]);
+    const actualEnabled = new Set(stage.enabledEquipmentPackIds);
     if (expectedEnabled.size !== actualEnabled.size
       || [...expectedEnabled].some((id) => !actualEnabled.has(id))) {
-      problems.push(`${path}: enabledPackIds が newPackId + returningPackIds と一致しない`);
+      problems.push(`${path}: enabledEquipmentPackIds が newEquipmentPackId + returningEquipmentPackIds と一致しない`);
     }
 
     // 有効pack数が、その Stage が名乗るラダーの式と一致する。
@@ -542,9 +540,9 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
       problems.push(`${path}: ladderMode "${stage.ladderMode}" が未知`);
     }
     const expectedCount = activePackCountForSequence(stage.sequence, stage.ladderMode);
-    if (stage.activePackCount !== expectedCount || stage.enabledPackIds.length !== expectedCount) {
+    if (stage.activePackCount !== expectedCount || stage.enabledEquipmentPackIds.length !== expectedCount) {
       problems.push(`${path}: activePackCount が ${expectedCount} でない`
-        + `（宣言 ${stage.activePackCount}、enabledPackIds.length ${stage.enabledPackIds.length}）`);
+        + `（宣言 ${stage.activePackCount}、enabledEquipmentPackIds.length ${stage.enabledEquipmentPackIds.length}）`);
     }
 
     // R9 §2.1 — チュートリアルは2人から始めて Stage ごとに1人増え、Stage 3で5人。
@@ -562,11 +560,11 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
           problems.push(`${path}: 加入する人物 "${stage.joiningCharacterId}" が cast に居ない`);
         }
       }
-      // 累積: 前 Stage の enabledPackIds を全部持っている（入れ替えない）。
+      // 累積: 前 Stage の enabledEquipmentPackIds を全部持っている（入れ替えない）。
       const previous = sorted.find((entry) => entry.sequence === stage.sequence - 1);
       if (previous) {
-        for (const packId of previous.enabledPackIds) {
-          if (!stage.enabledPackIds.includes(packId)) {
+        for (const packId of previous.enabledEquipmentPackIds) {
+          if (!stage.enabledEquipmentPackIds.includes(packId)) {
             problems.push(`${path}: チュートリアル中に pack "${packId}" が引き上げられている（R9 §3.1 は累積）`);
           }
         }
@@ -577,11 +575,11 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
         }
       }
       // 新 pack は core で入り、以前の pack は full になっている。
-      if (stage.packDepths[stage.newPackId] !== "core") {
-        problems.push(`${path}: 新 pack "${stage.newPackId}" が core で入っていない`);
+      if (stage.equipmentPackDepths[stage.newEquipmentPackId] !== "core") {
+        problems.push(`${path}: 新 pack "${stage.newEquipmentPackId}" が core で入っていない`);
       }
-      for (const packId of stage.returningPackIds) {
-        if (stage.packDepths[packId] !== "full") {
+      for (const packId of stage.returningEquipmentPackIds) {
+        if (stage.equipmentPackDepths[packId] !== "full") {
           problems.push(`${path}: 過去 pack "${packId}" が full になっていない（R9 §3.1）`);
         }
       }
@@ -592,11 +590,12 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
       // 判定側がそれを許していなかった。R11 §5 で Stage 0 は「条件のない一撃を
       // 武器と技で一本ずつ」に絞った導入になり、primary_offense はナギと一緒に
       // Stage 1 で来る。baseline の斬撃・防壁・応急は manifest に関わらず必ず
-      // 引けるので（packs.mjs の BASELINE_*）、行動不能な人物は作られない。
-      const hasPrimary = stage.enabledPackIds
-        .some((packId) => PACK_BY_ID[packId]?.combatRole === "primary_offense");
-      const hasHybrid = stage.enabledPackIds
-        .some((packId) => PACK_BY_ID[packId]?.combatRole === "offensive_hybrid");
+      // 武器スキルは manifest の enabledWeaponIds から常に出るので、
+      // 装備 pack の有無で行動不能にはならない。
+      const hasPrimary = stage.enabledEquipmentPackIds
+        .some((packId) => EQUIPMENT_PACK_BY_ID[packId]?.combatRole === "primary_offense");
+      const hasHybrid = stage.enabledEquipmentPackIds
+        .some((packId) => EQUIPMENT_PACK_BY_ID[packId]?.combatRole === "offensive_hybrid");
       if (!hasPrimary && !(stage.sequence === 0 && hasHybrid)) {
         problems.push(`${path}: primary_offense pack が残っていない`);
       }
@@ -608,41 +607,41 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
       if (stage.joiningCharacterId) problems.push(`${path}: 第2章で新しく加入する人物は居ない`);
       const previous = sorted.find((entry) => entry.sequence === stage.sequence - 1);
       if (previous) {
-        for (const packId of previous.enabledPackIds) {
-          if (stage.enabledPackIds.includes(packId)) continue;
+        for (const packId of previous.enabledEquipmentPackIds) {
+          if (stage.enabledEquipmentPackIds.includes(packId)) continue;
           problems.push(`${path}: pack "${packId}" が引き上げられている（第2章は語彙を取り上げない）`);
         }
       }
-      for (const [packId, depth] of Object.entries(stage.packDepths)) {
+      for (const [packId, depth] of Object.entries(stage.equipmentPackDepths)) {
         if (depth !== "full") problems.push(`${path}: 第2章の pack "${packId}" は full で出る（core は導入 Stage だけ）`);
       }
       // 新 pack も新しい家系も無い Stage は、**組み合わせが新しいことを明示する**。
-      if (!stage.newPackId && !stage.newEnemyFamilyId && !/組み合わせ|総復習/.test(stage.newAxis)) {
+      if (!stage.newEquipmentPackId && !stage.newEnemyFamilyId && !/組み合わせ|総復習/.test(stage.newAxis)) {
         problems.push(`${path}: 新 pack も新しい家系も無いのに、何が新しいのかが書かれていない`);
       }
     }
 
-    // future packが早いStageへ漏れない: returningPackIds は「それより前の
-    // sequence で newPackId として既出」のものだけ。
-    for (const packId of stage.returningPackIds) {
+    // future packが早いStageへ漏れない: returningEquipmentPackIds は「それより前の
+    // sequence で newEquipmentPackId として既出」のものだけ。
+    for (const packId of stage.returningEquipmentPackIds) {
       const introducedAt = introducedBy.get(packId);
       if (introducedAt === undefined || introducedAt >= stage.sequence) {
-        problems.push(`${path}: returningPackIds に含む "${packId}" は、まだこの Stage より前で初登場していない`);
+        problems.push(`${path}: returningEquipmentPackIds に含む "${packId}" は、まだこの Stage より前で初登場していない`);
       }
     }
 
-    // 参照する pack が SKILL_PACKS に実在し、role を宣言している。
-    for (const packId of stage.enabledPackIds) {
-      const pack = PACK_BY_ID[packId];
+    // 参照する装備 pack が registry に実在し、role を宣言している。
+    for (const packId of stage.enabledEquipmentPackIds) {
+      const pack = EQUIPMENT_PACK_BY_ID[packId];
       if (!pack) {
-        problems.push(`${path}: pack "${packId}" が SKILL_PACKS に存在しない`);
+        problems.push(`${path}: 装備 pack "${packId}" が registry に存在しない`);
         continue;
       }
       if (!pack.combatRole) problems.push(`${path}: pack "${packId}" が combatRole を宣言していない`);
     }
 
     // 全manifestにprimary offenseまたは許可されたoffensive hybridがある。
-    const roles = stage.enabledPackIds.map((id) => PACK_BY_ID[id]?.combatRole).filter(Boolean);
+    const roles = stage.enabledEquipmentPackIds.map((id) => EQUIPMENT_PACK_BY_ID[id]?.combatRole).filter(Boolean);
     const hasPrimary = roles.includes("primary_offense");
     const hasHybrid = roles.includes("offensive_hybrid");
     if (!hasPrimary && !hasHybrid) {
@@ -653,7 +652,7 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
     // ここでは「stage 自体に攻撃役が居るか」だけを見る（R8 §6.5）。
 
     // 有効パック4以上では、primary offenseまたはoffensive hybridを二つ以上含める。
-    if (stage.enabledPackIds.length >= 4) {
+    if (stage.enabledEquipmentPackIds.length >= 4) {
       const offenseRoleCount = roles.filter((role) => role === "primary_offense" || role === "offensive_hybrid").length;
       if (offenseRoleCount < 2) {
         problems.push(`${path}: 有効パック4以上なのに攻撃roleを持つpackが2つ未満`);
@@ -661,7 +660,7 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
     }
 
     // primary offenseを少なくとも3Stageに一つ新規導入する。
-    if (stage.newPackId && PACK_BY_ID[stage.newPackId]?.combatRole === "primary_offense") {
+    if (stage.newEquipmentPackId && EQUIPMENT_PACK_BY_ID[stage.newEquipmentPackId]?.combatRole === "primary_offense") {
       if (lastPrimaryOffenseSequence !== null && stage.sequence - lastPrimaryOffenseSequence > 3) {
         problems.push(`${path}: 直前の primary_offense 新規導入（sequence ${lastPrimaryOffenseSequence}）から3Stageを超えている`);
       }
@@ -681,9 +680,9 @@ export function auditCampaignManifestLadder(stages = CAMPAIGN_STAGES) {
   for (const stage of sorted) {
     const a = campaignManifestForStage(stage.sequence, "seed-a");
     const b = campaignManifestForStage(stage.sequence, "seed-b");
-    if (JSON.stringify(a.enabledPackIds) !== JSON.stringify(b.enabledPackIds)
-      || JSON.stringify(a.packDepths) !== JSON.stringify(b.packDepths)) {
-      problems.push(`${stage.id}: seed を変えると enabledPackIds が変わった（campaign は pack 選択に seed を使わない契約）`);
+    if (JSON.stringify(a.enabledEquipmentPackIds) !== JSON.stringify(b.enabledEquipmentPackIds)
+      || JSON.stringify(a.equipmentPackDepths) !== JSON.stringify(b.equipmentPackDepths)) {
+      problems.push(`${stage.id}: seed を変えると enabledEquipmentPackIds が変わった（campaign は pack 選択に seed を使わない契約）`);
     }
   }
 

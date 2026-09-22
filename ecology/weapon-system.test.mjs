@@ -25,7 +25,6 @@ import {
   newRun,
   reserveRunSkill,
   skillReservationFor,
-  skillReservationLevelFor,
   unlockRunSkill,
 } from "./progression.mjs";
 import {
@@ -795,7 +794,8 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   ok(warhammerNodes.every((node) => node.cost === 1),
     "weapon entry and each following node use the level-free 1 SP cost");
   ok(warhammerNodes.every((node) => (
-    node.requires.every((required) => required.minLv === 1)
+    node.requires.every((required) => Object.keys(required).length === 1
+      && typeof required.skillId === "string")
   )), "weapon prerequisites require acquisition only, never legacy skill levels");
 
   let run = newRun(newProfile(), { campaignStageSequence: 0, runSeed: "weapon-tree-test" });
@@ -804,7 +804,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     runSkillPoints: { ...run.runSkillPoints, warden: 4 },
   };
   equal(manifestWeaponIds(run.manifest)[0], "warhammer", "campaign manifest exposes warhammer at start");
-  equal(manifestWeaponIds({})[0], "warhammer", "manifest-2 saves migrate to the implemented weapon");
+  equal(manifestWeaponIds({}).length, 0, "旧manifestは武器へ自動移行しない");
   const root = WEAPON_SKILL_TREE_NODES.find((node) => node.position === "R");
   const a1 = WEAPON_SKILL_TREE_NODES.find((node) => node.position === "A1");
   const tooEarly = unlockRunSkill(run, "warden", a1);
@@ -828,20 +828,18 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     skillReservations: {},
   };
   const reservation = reserveRunSkill(
-    reservationRun, "warden", reservedTarget.skillId, 1,
+    reservationRun, "warden", reservedTarget.skillId,
   );
   equal(reservation.ok, true, "a weapon node can be reserved before its prerequisites are bought");
   equal(skillReservationFor(reservation.run, "warden"), reservedTarget.skillId,
     "weapon reservation stores the target node");
-  equal(skillReservationLevelFor(reservation.run, "warden"), 1,
-    "weapon reservation uses a single level-free target");
-  equal(canFulfillSkillReservation(reservation.run, "warden", reservedTarget.skillId, 1), false,
+  equal(canFulfillSkillReservation(reservation.run, "warden", reservedTarget.skillId), false,
     "weapon reservation waits while the path exceeds the current SP");
   const fundedReservation = {
     ...reservation.run,
     runSkillPoints: { warden: 6 },
   };
-  equal(canFulfillSkillReservation(fundedReservation, "warden", reservedTarget.skillId, 1), true,
+  equal(canFulfillSkillReservation(fundedReservation, "warden", reservedTarget.skillId), true,
     "weapon reservation becomes fulfillable when the full path is funded");
   const fulfilledReservation = fulfillSkillReservations(fundedReservation);
   equal(skillReservationFor(fulfilledReservation.run, "warden"), null,

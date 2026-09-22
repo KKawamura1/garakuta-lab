@@ -14,7 +14,6 @@ import {
   POSITIONS,
   POSITION_COLUMN,
   POSITION_ROW,
-  SKILL_LEVEL_STEP_BPS,
 } from "./schema.mjs";
 import {
   actorsOnSide,
@@ -233,7 +232,7 @@ function dealDamage(rt, ctx, effect) {
         // engine path still loses the hit; no automatic retargeting is added.
         const skippedAmount = target
           ? afterPositionModifier(
-            afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), rt, ctx, effect, target,
+            evaluateValue(rt.state, ctx, effect.amount), rt, ctx, effect, target,
           )
           : undefined;
         rt.emit({
@@ -319,26 +318,6 @@ export function reachOfEffect(effect) {
   }
 }
 
-// R19（issue #137）— 技能レベル。**同じ効果の上位互換を別技能で増やさず、
-// 一つの技能を段階的に強くする。**
-//
-// 掛かるのは連続量（damage / heal / barrier とその増減・分散の軽減量）だけで、AP・RP・段数・
-// 回数・耐久といった離散量には掛からない（schema.mjs の SKILL_LEVEL_STEP_BPS を見よ）。
-// **engine は技能 ID で分岐しない。**掛かるかどうかは「その actor がその技能に
-// レベルを持っているか」だけで決まり、持っていなければ掛け算そのものが起きない。
-//
-// 装備の rule は対象外である。装備は持ち主の技能レベルで強くならない
-// （R6 §4.4「装備の flat roll は parameter 非依存」と同じ理由）。
-function afterSkillLevel(rawAmount, ctx) {
-  const owner = ctx.owner;
-  if (!owner || !owner.skillLevels) return rawAmount;
-  if (ctx.equipmentInstanceId) return rawAmount;
-  const skillId = ctx.skillId ?? ctx.sourceDefinitionId;
-  const level = owner.skillLevels[skillId];
-  if (!Number.isInteger(level) || level <= 1) return rawAmount;
-  return roundHalfUpDiv(rawAmount * (BPS + (level - 1) * SKILL_LEVEL_STEP_BPS), BPS);
-}
-
 function afterRearFalloff(rawAmount, ctx, effect) {
   if (effect.amount?.scalingStat !== "might") return rawAmount;
   const owner = ctx.owner;
@@ -367,7 +346,7 @@ function afterPositionModifier(rawAmount, rt, ctx, effect, target) {
 function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOverride) {
   const proposed = proposedOverride === undefined
     ? afterPositionModifier(
-      afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), rt, ctx, effect, target,
+      evaluateValue(rt.state, ctx, effect.amount), rt, ctx, effect, target,
     )
     : Math.max(0, proposedOverride);
   const tags = [
@@ -624,7 +603,7 @@ function applyHealing(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     // §12.2-6 — a 0 HP actor is not a healing target in v1; revival is not implemented.
     if (!target.alive) continue;
-    const proposed = afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx);
+    const proposed = evaluateValue(rt.state, ctx, effect.amount);
     const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
     const event = rt.emit(
       {
@@ -720,7 +699,7 @@ function applyHealing(rt, ctx, effect) {
 function gainBarrier(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
-    const proposed = afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx);
+    const proposed = evaluateValue(rt.state, ctx, effect.amount);
     const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
     const event = rt.emit(
       {
@@ -1179,7 +1158,7 @@ function wearEquipmentEffect(rt, ctx, effect) {
 function modifyPendingAmount(rt, ctx, effect) {
   const frame = ctx.pending;
   if (!frame || frame.kind !== "amount") return;
-  const amount = afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx);
+  const amount = evaluateValue(rt.state, ctx, effect.amount);
   const before = frame.amount;
   if (effect.operation === "set") frame.amount = amount;
   else if (effect.operation === "decrease") frame.amount = Math.max(0, before - amount);
@@ -1204,8 +1183,7 @@ function modifyPendingAmount(rt, ctx, effect) {
 
 // A damage split is one atomic interrupt: reduce the current pending packet,
 // then send a fixed share of the packet currently pending to the chosen transfer target.
-// `amount` is the leveled mitigation amount; `share` deliberately bypasses
-// afterSkillLevel so the owner's burden remains 40% at every level.
+// `amount` is the mitigation amount; `share` is the fixed transferred portion.
 function evaluatePendingAmount(rt, ctx, valueDef, pendingAmount) {
   // event_value_scaled is normally based on the proposal event's immutable
   // values. For this effect, the meaningful "received damage" is the amount
@@ -1228,7 +1206,7 @@ function splitPendingDamage(rt, ctx, effect) {
 
   const mitigation = Math.min(
     before,
-    afterSkillLevel(evaluatePendingAmount(rt, ctx, effect.amount, before), ctx),
+    evaluatePendingAmount(rt, ctx, effect.amount, before),
   );
   const transfer = Math.min(before, evaluatePendingAmount(rt, ctx, effect.share, before));
 
@@ -1262,7 +1240,7 @@ function splitPendingDamage(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, transferEffect.target)) {
     if (!target.alive) continue;
     // The amount was already evaluated from the current proposal frame. Passing
-    // it through explicitly avoids applying the owner's skill level a second time,
+    // it through explicitly avoids applying the amount a second time,
     // while still letting this normal damage instance use guard/barrier and the
     // usual damage_proposed -> damage_taken event path.
     dealOneInstance(rt, ctx, transferEffect, target, 0, 1, transfer);

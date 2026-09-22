@@ -111,7 +111,7 @@ function buildState(input, content, options) {
     const definition = content.characters[ally.characterId];
     // R6 §9.5 — PHASE B. Permanent training arrives already rounded, per
     // instance. **The engine does not know what training is**: it reads a stat
-    // override and keeps the levels only as a record for the causal log.
+    // override and keeps the training inputs only for the causal log.
     const allyStats = statsOf(definition, ally.stats);
     const allyEquipment = ally.equipment.map((item) => ({
       instanceId: item.instanceId,
@@ -132,10 +132,6 @@ function buildState(input, content, options) {
       guard: allyStats.guard,
       baseStats: baseStatsOf(definition),
       training: ally.training ? { ...ally.training } : null,
-      // R19（issue #137）— 技能レベル。**engine は「どの技能か」で分岐しない**：
-      // この表に載っている技能の連続量へ、段数ぶんの係数を掛けるだけである
-      // （effects.mjs の afterSkillLevel）。載っていなければ掛け算も起きない。
-      skillLevels: ally.skillLevels ? { ...ally.skillLevels } : null,
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
@@ -155,7 +151,7 @@ function buildState(input, content, options) {
       reactiveReserveBySkill: { ...(ally.reactiveReserveBySkill ?? {}) },
       passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
       equipment: allyEquipment,
-    }, ally.passiveSkillIds, allyEquipment, ally.skillLevels));
+    }, ally.passiveSkillIds, allyEquipment));
   }
 
   for (const enemy of input.enemies) {
@@ -342,12 +338,18 @@ function ruleEntriesFor(state, actor) {
   const definition = actor.side === "ally"
     ? state.content.characters[actor.definitionId]
     : state.content.enemyActors[actor.definitionId];
+  const reactiveSkills = actor.side === "enemy"
+    ? (state.content.enemyReactiveSkills ?? state.content.reactiveSkills)
+    : state.content.reactiveSkills;
+  const passiveSkills = actor.side === "enemy"
+    ? (state.content.enemyPassiveSkills ?? {})
+    : state.content.passiveSkills;
   const intrinsic = actor.side === "ally" ? definition.signatureRules : definition.intrinsicRules;
   for (const rule of intrinsic) {
     entries.push({ rule, owner: actor, sourceDefinitionId: actor.definitionId, ruleSource: "signature" });
   }
   for (const [skillOrder, skillId] of actor.reactiveSkillIds.entries()) {
-    const definition = state.content.reactiveSkills[skillId];
+    const definition = reactiveSkills[skillId];
     for (const rule of definition.rules ?? [definition.rule]) {
       entries.push({
         rule,
@@ -363,11 +365,11 @@ function ruleEntriesFor(state, actor) {
   // **反応権を払わない**ので、costs は content 側で空にしてある
   // （validator は rule として同じ検査を通す）。
   const replacedPassives = new Set((actor.passiveSkillIds ?? []).flatMap(
-    (skillId) => state.content.passiveSkills?.[skillId]?.replacesPassiveSkillIds ?? [],
+    (skillId) => passiveSkills?.[skillId]?.replacesPassiveSkillIds ?? [],
   ));
   for (const skillId of actor.passiveSkillIds ?? []) {
     if (replacedPassives.has(skillId)) continue;
-    const definition = state.content.passiveSkills?.[skillId];
+    const definition = passiveSkills?.[skillId];
     for (const rule of definition?.rules ?? (definition?.rule ? [definition.rule] : [])) {
       entries.push({
         rule,
@@ -982,14 +984,28 @@ function spendSkillUse(actor, skill) {
   actor.skillUses[skill.id] = (actor.skillUses[skill.id] ?? 0) + 1;
 }
 
+// Player and enemy AI have separate skill vocabularies. Keeping the lookup at
+// the engine boundary prevents an enemy tactic from accidentally resolving
+// against a player-only weapon skill with the same future-facing role.
+function activeSkillsFor(state, actor) {
+  return actor.side === "enemy"
+    ? (state.content.enemyActiveSkills ?? state.content.activeSkills)
+    : state.content.activeSkills;
+}
+
 function coreActionChoice(state, actor, key) {
   // Core actions are content-selected, never position- or character-selected.
   // The selected skill's effect.reach is the sole targeting contract. Keep the
   // `melee` entry as the playable default; the first declared entry is a small
   // compatibility fallback for bundles that expose a single core variant.
-  const byReach = state.content.coreActions?.[key] ?? {};
+  const enemyKey = actor.side === "enemy"
+    ? "enemy" + key[0].toUpperCase() + key.slice(1)
+    : key;
+  const byReach = state.content.coreActions?.[enemyKey]
+    ?? state.content.coreActions?.[key]
+    ?? {};
   const skillId = byReach.melee ?? Object.values(byReach)[0];
-  const skill = skillId ? state.content.activeSkills[skillId] : null;
+  const skill = skillId ? activeSkillsFor(state, actor)[skillId] : null;
   if (!skill) return null;
   if (!skillUsesAvailable(actor, skill)) return null;
   const rt = makeRuntime(state);
@@ -1029,12 +1045,14 @@ function advanceTacticCursor(state, actor, selectedIndex) {
 
 function chooseTactic(state, actor) {
   const rt = makeRuntime(state);
+  const activeSkills = activeSkillsFor(state, actor);
   const tactics = actor.tactics ?? [];
   const start = tacticCursorFor(state, actor);
   for (let offset = 0; offset < tactics.length; offset += 1) {
     const tacticIndex = (start + offset) % tactics.length;
     const tactic = tactics[tacticIndex];
-    const skill = state.content.activeSkills[tactic.activeSkillId];
+    const skill = activeSkills[tactic.activeSkillId];
+    if (!skill) continue;
     if (!skillUsesAvailable(actor, skill)) continue;
     // §5.5 — one pending preparation per actor.
     if (actor.preparation && skill.preparation) continue;

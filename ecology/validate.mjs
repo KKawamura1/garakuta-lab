@@ -30,8 +30,6 @@ import {
   INTERRUPT_ONLY_EFFECT_TYPES,
   LIMITS,
   LIMIT_SCOPES,
-  MAX_SKILL_LEVEL,
-  MIN_SKILL_LEVEL,
   NON_LISTENABLE_EVENT_TYPES,
   OBJECTIVE_TYPES,
   OVERRIDABLE_STATS,
@@ -728,6 +726,9 @@ export function validateContentBundle(bundle) {
     "characters", "activeSkills", "targetSkills", "reactiveSkills",
     "passiveSkills", "equipment", "statuses", "enemyActors",
   ];
+  if (bundle.enemyActiveSkills !== undefined) sections.push("enemyActiveSkills");
+  if (bundle.enemyReactiveSkills !== undefined) sections.push("enemyReactiveSkills");
+  if (bundle.enemyPassiveSkills !== undefined) sections.push("enemyPassiveSkills");
   for (const section of sections) {
     if (!isPlainObject(bundle[section])) {
       bag.add(`contentBundle.${section}`, "not_an_object", "expected a record of definitions");
@@ -806,6 +807,37 @@ export function validateContentBundle(bundle) {
     }
   }
 
+  // Enemy AI has its own action vocabulary. Validate it with the same rule
+  // grammar, but keep the section separate so player loadouts cannot acquire
+  // enemy-only actions by spelling their IDs.
+  for (const [id, skill] of Object.entries(bundle.enemyActiveSkills ?? {})) {
+    const path = `enemyActiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireCount(bag, `${path}.apCost`, skill.apCost, { min: 0 });
+    if (skill.usesPerBattle !== undefined) {
+      requireCount(bag, `${path}.usesPerBattle`, skill.usesPerBattle, { min: 1, max: 99 });
+    }
+    requireTags(bag, `${path}.tags`, skill.tags);
+    validatePredicates(bag, `${path}.intrinsicPredicates`, skill.intrinsicPredicates, baseCtx);
+    validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);
+    validateEffects(bag, `${path}.effects`, skill.effects, { ...baseCtx, timing: "action", listenTo: null });
+    if (skill.preparation !== undefined) {
+      requireCount(bag, `${path}.preparation.steps`, skill.preparation.steps, {
+        min: LIMITS.minPreparationSteps,
+        max: LIMITS.maxPreparationSteps,
+      });
+      validateEffects(bag, `${path}.preparation.completionEffects`, skill.preparation.completionEffects, {
+        ...baseCtx,
+        timing: "action",
+        listenTo: null,
+        insidePreparation: true,
+      });
+    }
+    if (skill.actionMode !== undefined) {
+      requireOneOf(bag, `${path}.actionMode`, skill.actionMode, ACTION_MODES, "unknown_action_mode");
+    }
+  }
+
   for (const [id, skill] of Object.entries(bundle.targetSkills)) {
     const path = `targetSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
@@ -834,7 +866,8 @@ export function validateContentBundle(bundle) {
         }
         for (const [reach, skillId] of Object.entries(byReach)) {
           requireOneOf(bag, `contentBundle.coreActions.${key}.${reach}`, reach, REACHES, "unknown_reach");
-          if (!Object.hasOwn(bundle.activeSkills, skillId)) {
+          const skillSection = key.startsWith("enemy") ? bundle.enemyActiveSkills : bundle.activeSkills;
+          if (!Object.hasOwn(skillSection ?? {}, skillId)) {
             bag.add(`contentBundle.coreActions.${key}.${reach}`, "dangling_reference", `no such active skill: ${skillId}`);
           }
         }
@@ -854,6 +887,42 @@ export function validateContentBundle(bundle) {
       validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
     } else if (requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
       skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+  }
+
+  for (const [id, skill] of Object.entries(bundle.enemyReactiveSkills ?? {})) {
+    const path = `enemyReactiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule === hasRules) {
+      bag.add(path, "bad_skill_rules", "give exactly one of rule or rules");
+    } else if (hasRule) {
+      validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    } else if (requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+  }
+
+  // Enemy passive skills are intentionally an independent namespace. The
+  // current enemy roster has none, but validating the section prevents a
+  // future enemy passive from silently resolving through player content.
+  for (const [id, skill] of Object.entries(bundle.enemyPassiveSkills ?? {})) {
+    const path = `enemyPassiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule && hasRules) {
+      bag.add(path, "bad_skill_rules", "give at most one of rule or rules");
+    }
+    if (hasRule) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    if (hasRules && requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+    if (skill.statBonus === undefined && !hasRule && !hasRules) {
+      bag.add(path, "inert_passive", "a passive needs a statBonus, rule, or rules");
     }
   }
 
@@ -970,8 +1039,21 @@ export function validateContentBundle(bundle) {
     requireCount(bag, `${path}.baseActionPoints`, enemy.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, enemy.baseReactionPoints, { min: 0 });
     requireTags(bag, `${path}.tags`, enemy.tags);
-    validateTactics(bag, `${path}.tactics`, enemy.tactics, bundle, baseCtx);
-    validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, enemy.reactiveSkillIds, bundle);
+    validateTactics(
+      bag,
+      `${path}.tactics`,
+      enemy.tactics,
+      bundle,
+      baseCtx,
+      bundle.enemyActiveSkills ?? bundle.activeSkills,
+    );
+    validateReactiveSkillIds(
+      bag,
+      `${path}.reactiveSkillIds`,
+      enemy.reactiveSkillIds,
+      bundle,
+      bundle.enemyReactiveSkills ?? bundle.reactiveSkills,
+    );
     validateRules(bag, `${path}.intrinsicRules`, enemy.intrinsicRules, baseCtx);
   }
 
@@ -996,7 +1078,7 @@ const HISTORY_WINDOW_NAMES = ["chain", "round", "battle"];
 
 // §5.3 — tactics are the player's priority list: at most two, each with at most
 // two useWhen conditions, and useWhen may only read the actor's own state.
-function validateTactics(bag, path, tactics, bundle, ctx) {
+function validateTactics(bag, path, tactics, bundle, ctx, activeSection = bundle.activeSkills) {
   if (!requireArray(bag, path, tactics, { max: LIMITS.maxTactics })) return;
   tactics.forEach((tactic, index) => {
     const tacticPath = `${path}[${index}]`;
@@ -1006,7 +1088,7 @@ function validateTactics(bag, path, tactics, bundle, ctx) {
     }
     if (!isValidId(tactic.activeSkillId)) {
       bag.add(`${tacticPath}.activeSkillId`, "bad_id", "not a valid id");
-    } else if (!Object.hasOwn(bundle.activeSkills, tactic.activeSkillId)) {
+    } else if (!Object.hasOwn(activeSection, tactic.activeSkillId)) {
       bag.add(`${tacticPath}.activeSkillId`, "dangling_reference", `no such active skill: ${tactic.activeSkillId}`);
     }
     validatePredicates(bag, `${tacticPath}.useWhen`, tactic.useWhen, {
@@ -1036,7 +1118,7 @@ function validatePassiveSkillIds(bag, path, ids, bundle) {
   });
 }
 
-function validateReactiveSkillIds(bag, path, ids, bundle) {
+function validateReactiveSkillIds(bag, path, ids, bundle, reactiveSection = bundle.reactiveSkills) {
   if (!requireArray(bag, path, ids, { max: LIMITS.maxReactiveSkills })) return;
   const seen = new Set();
   ids.forEach((id, index) => {
@@ -1045,7 +1127,7 @@ function validateReactiveSkillIds(bag, path, ids, bundle) {
       bag.add(idPath, "bad_id", "not a valid id");
       return;
     }
-    if (!Object.hasOwn(bundle.reactiveSkills, id)) {
+    if (!Object.hasOwn(reactiveSection, id)) {
       bag.add(idPath, "dangling_reference", `no such reactive skill: ${id}`);
     }
     if (seen.has(id)) bag.add(idPath, "duplicate_reference", `reactive skill listed twice: ${id}`);
@@ -1090,6 +1172,7 @@ function validateReactiveReserve(bag, path, reserve, reactiveSkillIds) {
 
 export function validateBattleInput(input, bundle) {
   const bag = new ErrorBag();
+  const weaponLoadoutBundle = Object.hasOwn(bundle ?? {}, "enemyActiveSkills");
   if (!isPlainObject(input)) {
     bag.add("battleInput", "not_an_object", "expected a battle input object");
     return bag.list;
@@ -1155,7 +1238,6 @@ export function validateBattleInput(input, bundle) {
           bundle,
           ally.passiveSkillIds,
           ally.equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })),
-          ally.skillLevels,
         )
         : allyBaseMaxHp;
       validateTrainingRecord(bag, `${path}.training`, ally.training);
@@ -1165,6 +1247,9 @@ export function validateBattleInput(input, bundle) {
       rejectUnknownKeys(bag, path, ally, ALLY_INPUT_KEYS);
       const hasActiveSkill = ally.activeSkillId !== undefined;
       const hasLegacyTactics = ally.tactics !== undefined;
+      if (weaponLoadoutBundle && hasLegacyTactics) {
+        bag.add(`${path}.tactics`, "removed_key", "player tactics rotation was removed; use activeSkillId");
+      }
       if (hasActiveSkill && hasLegacyTactics) {
         bag.add(path, "ambiguous_active_loadout", "use activeSkillId or legacy tactics, not both");
       } else if (hasActiveSkill) {
@@ -1192,7 +1277,6 @@ export function validateBattleInput(input, bundle) {
         bag, `${path}.reactiveReserveBySkill`, ally.reactiveReserveBySkill, ally.reactiveSkillIds,
       );
       validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
-      validateSkillLevels(bag, `${path}.skillLevels`, ally.skillLevels, bundle);
       validateEquipmentInputs(bag, `${path}.equipment`, ally.equipment, bundle, claimInstance);
     });
   }
@@ -1278,27 +1362,6 @@ function validateTrainingRecord(bag, path, training) {
   }
 }
 
-// R19（issue #137）— 技能レベル。**未知の技能 ID を黙って無視しない**
-// （綴り違いが「レベル1のまま」に見えると、威力が上がらない理由が画面から消える）。
-// 範囲外のレベルも同じで、丸めずに error にする。
-function validateSkillLevels(bag, path, skillLevels, bundle) {
-  if (skillLevels === undefined) return;
-  if (!isPlainObject(skillLevels)) {
-    bag.add(path, "not_an_object", "expected a skill level map");
-    return;
-  }
-  for (const [skillId, level] of Object.entries(skillLevels)) {
-    const known = bundle.activeSkills?.[skillId]
-      ?? bundle.reactiveSkills?.[skillId]
-      ?? bundle.passiveSkills?.[skillId];
-    if (!known) {
-      bag.add(`${path}.${skillId}`, "dangling_reference", `no such skill: ${skillId}`);
-      continue;
-    }
-    requireCount(bag, `${path}.${skillId}`, level, { min: MIN_SKILL_LEVEL, max: MAX_SKILL_LEVEL });
-  }
-}
-
 // R6 §11.2 / §13.2 — the visible mutation ids a difficulty rank added to this
 // unit. Also a record: the numbers they produced are already in `stats`, and the
 // preview text comes from the mutation definition, not from the save.
@@ -1317,7 +1380,6 @@ const ALLY_INPUT_KEYS = Object.freeze([
   "instanceId", "characterId", "position", "hp", "activeSkillId", "activeOverrideSkillId", "tactics",
   "targetSkillIds", "reactiveSkillIds", "reactiveReserveBySkill",
   "passiveSkillIds", "equipment", "stats", "training",
-  "skillLevels",
 ]);
 const ENEMY_INPUT_KEYS = Object.freeze([
   "instanceId", "enemyActorId", "position", "hp", "stats", "mutations",

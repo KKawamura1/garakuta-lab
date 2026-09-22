@@ -1,18 +1,14 @@
-import { BATTLE_SCHEMA_VERSION, MIN_SKILL_LEVEL, POSITIONS, POSITION_ROW } from "./schema.mjs";
+import { BATTLE_SCHEMA_VERSION, POSITIONS, POSITION_ROW } from "./schema.mjs";
 import { simulateBattle } from "./engine.mjs";
 import {
-  ACTIVE_META,
   CHARACTER_DEFINITIONS,
   DISPLAY_NAMES,
-  ENEMY_LORE,
   ENEMY_TARGETING,
-  EQUIPMENT_META,
+  ENEMY_LORE,
   PLAYABLE_CONTENT,
-  PASSIVE_META,
-  REACTIVE_META,
   PROLOGUE,
   ULTIMATE_LESSON,
-  SKILL_TREE_NODES,
+  WEAPON_SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import { RARITY_LABEL } from "./content/affixes.mjs";
 import { maxHpWithStaticBonuses } from "./static-bonuses.mjs";
@@ -24,7 +20,6 @@ import {
   characterStats,
   composeEncounter,
   runContentBundle,
-  runSkillLevelsFor,
 } from "./progression.mjs";
 import {
   ULTIMATE_NAME_PREFIX,
@@ -74,7 +69,7 @@ export function normalizeFormation(formation, rosterIds) {
     next[id] = slot;
     used.add(slot);
   }
-  // 3. 行の偏りを直す。**ここが無いと、旧 save から前4後1 が生まれる。**
+  // 3. 行の偏りを直す。
   const rowMembers = (row) => members.filter((id) => next[id] && POSITION_ROW[next[id]] === row);
   const freeIn = (row) => POSITIONS.filter((p) => POSITION_ROW[p] === row && !used.has(p));
   for (let guard = 0; guard <= PARTY_SIZE; guard += 1) {
@@ -92,10 +87,8 @@ export function normalizeFormation(formation, rosterIds) {
   return next;
 }
 
-// 旧 save は4人。**足りない人数を決定的に足す**（並び順の先頭から、まだ居ない人）。
-//
 // R9 §2.1 — チュートリアル Stage は2〜5人なので、埋める人数は呼び出し側が渡す。
-// 渡さなければ従来どおり5人（Free / Endless と旧 save の移行）。
+// 足りない人数は人物定義の順から決定的に補う。
 export function ensurePartySize(rosterIds, size = PARTY_SIZE) {
   const target = Math.max(1, Math.min(PARTY_SIZE, Math.floor(size)));
   const roster = (rosterIds ?? []).filter((id) => characterById[id]).slice(0, target);
@@ -134,12 +127,37 @@ function metadata(source, kind) {
   );
 }
 
+const weaponMetadata = (section, kind) => Object.fromEntries(
+  Object.entries(section).map(([id, definition]) => [id, {
+    id,
+    kind,
+    definitionId: id,
+    label: definition.displayName,
+    effect: definition.displayEffect ?? "",
+    grammar: kind === "active" ? "アクティブ"
+      : kind === "reactive" ? "リアクティブ"
+        : kind === "target" ? "ターゲット" : "パッシブ",
+    weaponId: definition.weaponId,
+    treePosition: definition.treePosition,
+  }]),
+);
+
 export const SKILLS = Object.freeze({
-  active: Object.freeze(metadata(ACTIVE_META, "active")),
-  reactive: Object.freeze(metadata(REACTIVE_META, "reactive")),
-  passive: Object.freeze(metadata(PASSIVE_META, "passive")),
+  active: Object.freeze(weaponMetadata(PLAYABLE_CONTENT.activeSkills, "active")),
+  reactive: Object.freeze(weaponMetadata(PLAYABLE_CONTENT.reactiveSkills, "reactive")),
+  passive: Object.freeze(weaponMetadata(PLAYABLE_CONTENT.passiveSkills, "passive")),
 });
-export const EQUIPMENT = Object.freeze(metadata(EQUIPMENT_META, "equipment"));
+export const EQUIPMENT = Object.freeze(Object.fromEntries(
+  Object.entries(PLAYABLE_CONTENT.equipment).map(([id, definition]) => [id, {
+    id,
+    kind: "equipment",
+    definitionId: id,
+    label: definition.displayName,
+    effect: definition.displayEffect ?? "",
+    grammar: "装備",
+    maxDurability: definition.maxDurability,
+  }]),
+));
 export const COMPONENTS = Object.freeze({
   ...SKILLS.active,
   ...SKILLS.reactive,
@@ -149,7 +167,7 @@ export const COMPONENTS = Object.freeze({
 export const COMPONENT_ORDER = Object.freeze(Object.keys(COMPONENTS));
 
 
-const nodeBySkill = Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node]));
+const nodeBySkill = Object.fromEntries(WEAPON_SKILL_TREE_NODES.map((node) => [node.skillId, node]));
 
 export function characterInfo(characterId) {
   return characterById[characterId] ?? null;
@@ -248,29 +266,25 @@ export function skillNode(skillId) {
   return nodeBySkill[skillId] ?? null;
 }
 
-// R19（issue #137）— ツリーが一本道になったので、**持っている技能の前提も持っている**
-// ことを保つ。starter が x=5 の節なら、そこまでの道も一緒に開いている。
+// 武器別ツリーの初期入口とA1は、各キャラの代表武器2本から無償で持たせる。
+// A1はRを前提にするため、ここでは前提閉包も一緒に扱う。
 //
 // 開けないと、画面には「取得済みの節が、前提待ちの節の右にぶら下がっている」形が出る。
 // 線を辿れるようにしたのに、線の途中が欠けているのは嘘である。**前提の閉包を取る。**
 //
-// issue #168（#165 段階1）— 前提が Lv を要求するようになったので、閉包は
-// **「どの節を開くか」だけでなく「その節を Lv いくつまで無償で伸ばすか」**を返す。
-// 親 Lv3 を要求する starter を無償で配りながら親を Lv1 のままにすると、
-// 加入直後から「取得済みなのに前提 Lv 不足で子が取れない」形が生まれる。
 function prerequisiteClosure(skillIds) {
-  const need = new Map();
+  const need = new Set();
   const open = [];
-  const demand = (skillId, level) => {
-    if (level <= (need.get(skillId) ?? 0)) return;
-    need.set(skillId, level);
+  const demand = (skillId) => {
+    if (need.has(skillId)) return;
+    need.add(skillId);
     open.push(skillId);
   };
-  for (const skillId of skillIds) demand(skillId, MIN_SKILL_LEVEL);
+  for (const skillId of skillIds) demand(skillId);
   while (open.length) {
     const skillId = open.pop();
     for (const required of nodeBySkill[skillId]?.requires ?? []) {
-      demand(required.skillId, required.minLv);
+      demand(required.skillId);
     }
   }
   return need;
@@ -280,29 +294,16 @@ function starterSkillIds(characterId) {
   const character = characterById[characterId];
   if (!character) return [];
   return [...new Set([
-    "strike",
-    "mend",
-    "bulwark",
     ...character.starterTactics,
     ...character.starterReactives,
+    ...(character.starterPassives ?? []),
   ])];
 }
 
 export function initialUnlockedSkills(characterId) {
   const need = prerequisiteClosure(starterSkillIds(characterId));
-  // 並びは SKILL_TREE_NODES の宣言順（＝ツリーを上から下へ読む順）に揃える。
-  return SKILL_TREE_NODES.filter((node) => need.has(node.skillId)).map((node) => node.skillId);
-}
-
-// 無償閉包が Lv1 より上を要求する節だけを返す。**現行の全節は親 Lv1 しか
-// 要求しないので、いまは常に空である。**空でなくなったら、加入時にその Lv も
-// 無償で付く（app.js の joinRun がここを読む）。
-export function initialSkillLevels(characterId) {
-  const levels = {};
-  for (const [skillId, level] of prerequisiteClosure(starterSkillIds(characterId))) {
-    if (level > MIN_SKILL_LEVEL) levels[skillId] = level;
-  }
-  return levels;
+  // 並びは武器ツリーの宣言順（＝ツリーを上から下へ読む順）に揃える。
+  return WEAPON_SKILL_TREE_NODES.filter((node) => need.has(node.skillId)).map((node) => node.skillId);
 }
 
 // R18 — 取得済み技能は、行動・反応・常設を問わずすべて装着できる。
@@ -336,9 +337,7 @@ export function freshLoadout(rosterIds) {
     reactives[characterId] = [...option.starterReactives];
     targets[characterId] = [];
     reactiveReserves[characterId] = {};
-    // **常設は空から始める。**基礎訓練は詰み防止であって、既定の答えではない
-    // （最初から入れておくと「他に欲しいものが無かった」の信号が消える）。
-    passives[characterId] = [];
+    passives[characterId] = [...(option.starterPassives ?? [])];
     equipment[characterId] = [];
   }
   // issue #238 — 必殺技は**誰も指定していない状態**で始まる。既定の答えを置かない。
@@ -350,8 +349,7 @@ export function freshLoadout(rosterIds) {
 
 export function normalizeLoadout(loadout, rosterIds, limitsFor) {
   const next = clone(loadout ?? freshLoadout(rosterIds));
-  // 旧 save には passives が無い。**足りない鍵はここで生やす**
-  // （呼び出し側それぞれで面倒を見ると、いつか一箇所が忘れる）。
+  // 欠けた現行欄はここで初期化する。
   next.tactics = next.tactics ?? {};
   next.actives = next.actives ?? {};
   next.reactives = next.reactives ?? {};
@@ -359,12 +357,12 @@ export function normalizeLoadout(loadout, rosterIds, limitsFor) {
   next.reactiveReserves = next.reactiveReserves ?? {};
   next.passives = next.passives ?? {};
   next.equipment = next.equipment ?? {};
-  // issue #238 — 必殺技の指定と構え。**古い save には無い欄**なので、ここで生やす。
+  // 必殺技の指定と構え。
   next.ultimates = next.ultimates ?? {};
   next.ultimateArmed = next.ultimateArmed ?? {};
   for (const characterId of rosterIds) {
     const limits = limitsOf(limitsFor, characterId);
-    // 技能は上限なし。旧 save の重複だけはここで正規化する。
+    // 技能は上限なし。重複だけここで正規化する。
     next.tactics[characterId] = [...new Set(next.tactics?.[characterId] ?? [])];
     const selected = next.actives[characterId];
     next.actives[characterId] = next.tactics[characterId].includes(selected)
@@ -381,24 +379,6 @@ export function normalizeLoadout(loadout, rosterIds, limitsFor) {
     next.passives[characterId] = [...new Set(next.passives?.[characterId] ?? [])];
     next.equipment[characterId] = [...new Set(next.equipment?.[characterId] ?? [])].slice(0, limits.equipment);
   }
-  // disabled は後方互換のため optional。無い save は全技能を有効として扱う。
-  // 既に装着されている技能だけをオフにできるよう、対象 character 分だけ掃除する。
-  if (next.disabled && typeof next.disabled === "object") {
-    next.disabled = { ...next.disabled };
-    for (const characterId of rosterIds) {
-      const installed = new Set([
-        ...(next.tactics[characterId] ?? []),
-        ...(next.reactives[characterId] ?? []),
-        ...(next.targets[characterId] ?? []),
-        ...(next.passives[characterId] ?? []),
-      ]);
-      const disabled = [...new Set(Array.isArray(next.disabled[characterId]) ? next.disabled[characterId] : [])]
-        .filter((skillId) => installed.has(skillId));
-      if (disabled.length) next.disabled[characterId] = disabled;
-      else delete next.disabled[characterId];
-    }
-    if (!Object.keys(next.disabled).length) delete next.disabled;
-  }
   return next;
 }
 
@@ -409,39 +389,8 @@ function limitsOf(limitsFor, characterId) {
   return SLOT_LIMITS;
 }
 
-export function equipSkill(loadout, characterId, skillId, kind, limitsFor) {
-  const component = componentInfo(skillId);
-  if (!component || component.kind !== kind || !characterById[characterId]) {
-    return { ok: false, reason: "技能か仲間が見つかりません。" };
-  }
-  const next = normalizeLoadout(loadout, [characterId], limitsFor);
-  const listKey = LOADOUT_KEYS[kind];
-  if (!listKey) return { ok: false, reason: "その枠はありません。" };
-  const list = next[listKey][characterId] ?? [];
-  // R25 — 4ロール式では取得済み技能を個別にオフにしない。旧 loadout に残る
-  // disabled は、技能を選び直した時点で取り除く。
-  const disabled = new Set(next.disabled?.[characterId] ?? []);
-  disabled.delete(skillId);
-  if (next.disabled) {
-    if (disabled.size) next.disabled[characterId] = [...disabled];
-    else {
-      delete next.disabled[characterId];
-      if (!Object.keys(next.disabled).length) delete next.disabled;
-    }
-  }
-  if (kind === "active") {
-    if (!list.includes(skillId)) next.tactics[characterId] = [...list, skillId];
-    next.actives[characterId] = skillId;
-    return { ok: true, loadout: next };
-  }
-  if (list.includes(skillId)) return { ok: false, reason: "その技能はすでに装着されています。" };
-  next[listKey][characterId] = [skillId, ...list];
-  return { ok: true, loadout: next };
-}
-
 // R25 — 取得済み技能を4ロールの欄へ揃える。active は選択肢、reactive / target は
 // 優先列、passive は常時効果になるため、「取得済みだが未登録」は持たない。
-// 旧API向けの disabled が残っていても、新しく揃えた技能は有効に戻す。
 export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
   const normalized = normalizeLoadout(loadout, [characterId]);
   const next = {
@@ -452,9 +401,7 @@ export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
     targets: { ...normalized.targets },
     reactiveReserves: { ...normalized.reactiveReserves },
     passives: { ...normalized.passives },
-    disabled: { ...(normalized.disabled ?? {}) },
   };
-  const disabled = new Set(next.disabled[characterId] ?? []);
   let added = false;
   for (const skillId of unlockedSkillIds ?? []) {
     const component = componentInfo(skillId);
@@ -472,55 +419,18 @@ export function installUnlockedSkills(loadout, characterId, unlockedSkillIds) {
     if (replacedIds.length) {
       list = list.filter((id) => !replacedIds.includes(id));
       next[listKey][characterId] = list;
-      for (const replacedId of replacedIds) disabled.delete(replacedId);
       if (component.kind === "active" && replacedIds.includes(next.actives[characterId])) {
         next.actives[characterId] = skillId;
       }
     }
     if (list.includes(skillId)) continue;
     // **末尾へ足す。**リアクティブとターゲットは上から判定するため、既存の優先順を
-    // 動かさない。パッシブを含め、4ロール式では取得した技能を個別にオフにしない。
+    // 動かさない。パッシブを含め、取得した技能はすべて有効にする。
     next[listKey][characterId] = [...list, skillId];
-    disabled.delete(skillId);
     added = true;
   }
   if (!added) return loadout;
-  if (disabled.size) next.disabled[characterId] = [...disabled];
-  else delete next.disabled[characterId];
-  if (!Object.keys(next.disabled).length) delete next.disabled;
   return next;
-}
-
-function installedSkillIds(loadout, characterId) {
-  return [
-    ...(loadout?.tactics?.[characterId] ?? []),
-    ...(loadout?.reactives?.[characterId] ?? []),
-    ...(loadout?.targets?.[characterId] ?? []),
-    ...(loadout?.passives?.[characterId] ?? []),
-  ];
-}
-
-// R18 — 取得状態は変えず、装着済み技能の効果だけを一時停止する。
-// disabled を別欄に置くことで、オフにしても技能点や前提の解禁状態は失わない。
-export function toggleSkill(loadout, characterId, skillId, limitsFor) {
-  const next = normalizeLoadout(loadout, [characterId], limitsFor);
-  if (!installedSkillIds(next, characterId).includes(skillId)) {
-    return { ok: false, reason: "その技能は装着されていません。" };
-  }
-  if (componentInfo(skillId)?.kind === "passive") {
-    return { ok: false, reason: "パッシブ技能は取得すると常に効果を発揮します。" };
-  }
-  const disabled = new Set(next.disabled?.[characterId] ?? []);
-  const enabled = disabled.has(skillId);
-  if (enabled) disabled.delete(skillId);
-  else disabled.add(skillId);
-  next.disabled = { ...(next.disabled ?? {}) };
-  if (disabled.size) next.disabled[characterId] = [...disabled];
-  else {
-    delete next.disabled[characterId];
-    if (!Object.keys(next.disabled).length) delete next.disabled;
-  }
-  return { ok: true, loadout: next, enabled };
 }
 
 export function selectActiveSkill(loadout, characterId, skillId, limitsFor) {
@@ -529,15 +439,6 @@ export function selectActiveSkill(loadout, characterId, skillId, limitsFor) {
     return { ok: false, reason: "そのアクティブ技能は取得していません。" };
   }
   next.actives[characterId] = skillId;
-  const disabled = new Set(next.disabled?.[characterId] ?? []);
-  disabled.delete(skillId);
-  if (next.disabled) {
-    if (disabled.size) next.disabled[characterId] = [...disabled];
-    else {
-      delete next.disabled[characterId];
-      if (!Object.keys(next.disabled).length) delete next.disabled;
-    }
-  }
   return { ok: true, loadout: next };
 }
 
@@ -565,11 +466,9 @@ export function setReactiveReserve(loadout, characterId, skillId, amount, limits
 
 // その人物が必殺技に指定できる技能。装着していて、有効で、変換して意味が変わるもの。
 export function ultimateCandidates(loadout, characterId, content = PLAYABLE_CONTENT) {
-  const disabled = new Set(loadout?.disabled?.[characterId] ?? []);
   const rows = [];
   for (const [kind, key] of [["active", "tactics"], ["reactive", "reactives"]]) {
     for (const skillId of loadout?.[key]?.[characterId] ?? []) {
-      if (disabled.has(skillId)) continue;
       const ascended = ascendSkill(content, skillId);
       if (!ascended) continue;
       rows.push({ skillId, kind, traits: ascended.traits, traitLabels: ultimateTraitLabels(ascended.traits) });
@@ -675,13 +574,6 @@ export function removeEquipment(loadout, characterId, equipmentId, limitsFor) {
   return next;
 }
 
-export function installComponent(loadout, componentId, characterId, limitsFor) {
-  const component = componentInfo(componentId);
-  if (!component) return { ok: false, reason: "部材が見つかりません。" };
-  if (component.kind === "equipment") return equipEquipment(loadout, characterId, componentId, 0, limitsFor);
-  return equipSkill(loadout, characterId, componentId, component.kind, limitsFor);
-}
-
 export function enemyTargetingText(enemyActorId) {
   return ENEMY_TARGETING[enemyActorId] ?? "前列を優先して狙う。";
 }
@@ -712,11 +604,6 @@ export function reorderSkill(loadout, characterId, kind, index, direction, limit
       || index < 0 || index >= skills.length || otherIndex < 0 || otherIndex >= skills.length) return next;
   [skills[index], skills[otherIndex]] = [skills[otherIndex], skills[index]];
   return next;
-}
-
-// 旧 caller との互換入口。active の並び替えも同じ実装へ集約する。
-export function reorderTactic(loadout, characterId, index, direction, limitsFor) {
-  return reorderSkill(loadout, characterId, "active", index, direction, limitsFor);
 }
 
 const TACTIC_USE_WHEN = Object.freeze({
@@ -755,8 +642,7 @@ function allyInput(characterId, position, loadout, options = {}) {
   const tactics = loadout.tactics?.[characterId] ?? option.starterTactics;
   const reactives = loadout.reactives?.[characterId] ?? option.starterReactives;
   const targets = loadout.targets?.[characterId] ?? [];
-  const disabled = new Set(loadout.disabled?.[characterId] ?? []);
-  const enabled = (ids) => ids.filter((id) => !disabled.has(id));
+  const enabled = (ids) => ids;
   // issue #238 — 構えた必殺技は、**元の技能の一つ前**に入る。同じ条件で判定されるので、
   // 「その技能が最初に出る場面」がそのまま必殺の出る場面になる。放つと状態「必殺」が
   // 付き、以後その戦闘では条件を満たさないので、二本目からは元の技能が回る。
@@ -797,33 +683,12 @@ function allyInput(characterId, position, loadout, options = {}) {
     passiveSkillIds,
     equipment,
   };
-  if (options.legacyActiveRotation === true) {
-    // Temporary audit bridge: old balance witnesses describe several active
-    // skills rotating. Keep those witnesses runnable until their individual
-    // skill plans are rewritten; the playable UI never sets this option.
-    ally.tactics = usableTactics(withUltimate(enabled(tactics), "active"), content);
-  } else {
-    // A deliberately empty active slot still reaches the engine's core action.
-    // Keep using the legacy empty list for that compatibility case; null is not
-    // a skill id and must never enter the versioned input contract.
-    if (activeSkillId) ally.activeSkillId = activeSkillId;
-    else ally.tactics = [];
-    if (activeOverrideSkillId) ally.activeOverrideSkillId = activeOverrideSkillId;
-  }
-  // R19（issue #137）— 技能レベル。**取得＝Lv1** なので、Lv1 しか無い編成では
-  // 欄そのものを渡さない（渡しても結果は同じだが、入力に無駄な欄を増やさない）。
-  const skillLevels = options.skillLevelsFor?.(characterId) ?? null;
-  if (skillLevels) {
-    const leveled = Object.fromEntries(
-      Object.entries(skillLevels).filter(([, level]) => Number.isInteger(level) && level > 1),
-    );
-    // 必殺技は別 ID の定義になるが、**同じ技能の段**で伸びる。
-    // 元の技能へ払った点が、必殺にしたとたん消えるようにはしない。
-    if (ultimateId && ultimateBaseId && leveled[ultimateBaseId]) {
-      leveled[ultimateId] = leveled[ultimateBaseId];
-    }
-    if (Object.keys(leveled).length) ally.skillLevels = leveled;
-  }
+  // BattleInput carries one selected player action. Enemy tactics are the only
+  // priority-list path, so a player loadout never needs legacy rotations or
+  // weapon skill levels.
+  if (activeSkillId) ally.activeSkillId = activeSkillId;
+  else ally.tactics = [];
+  if (activeOverrideSkillId) ally.activeOverrideSkillId = activeOverrideSkillId;
   // R6 §9.5 — PHASE B. 鍛錬後の stat と、その level。**engine は鍛錬を知らない**
   // ので、丸め済みの値と記録の両方をここで渡す。
   const trained = options.statsFor?.(characterId) ?? null;
@@ -834,7 +699,7 @@ function allyInput(characterId, position, loadout, options = {}) {
   const hp = options.hp?.[characterId];
   const baseMaxHp = ally.stats?.maxHp ?? PLAYABLE_CONTENT.characters[characterId].maxHp;
   const ceiling = maxHpWithStaticBonuses(baseMaxHp, content, passiveSkillIds,
-    equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })), skillLevels ?? {});
+    equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })));
   if (Number.isFinite(hp)) ally.hp = Math.max(0, Math.min(ceiling, hp));
   return ally;
 }
@@ -990,9 +855,7 @@ export function simulateExpeditionBattle(run, profile, encounterIndex, options =
       equipmentDurability: options.equipmentDurability,
       limitsFor: options.limitsFor,
       statsFor: (characterId) => characterStats(profile, characterId),
-      skillLevelsFor: (characterId) => runSkillLevelsFor(run, characterId),
       ultimateFor: (characterId) => ultimates.get(characterId) ?? null,
-      legacyActiveRotation: options.legacyActiveRotation === true,
       content,
     },
   );
@@ -1052,4 +915,7 @@ export function previewNextBattle(run, profile, encounterIndex, options = {}) {
 }
 
 // 分離前の公開名を保つ。content/ 側が正で、ここは通り道。
-export { ENEMY_TARGETING as enemyTargeting, SKILL_TREE_NODES, CHARACTER_DEFINITIONS };
+export {
+  ENEMY_TARGETING as enemyTargeting,
+  CHARACTER_DEFINITIONS,
+};

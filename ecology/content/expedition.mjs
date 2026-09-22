@@ -788,7 +788,7 @@ const STAGE_9 = stageEncounters([
   ...encounter,
   ...(encounter.index === 12
     ? {
-      // 上限鍛錬・技能Lv10・装備なしの五人でも、全員の必殺を同じ戦いへ
+      // 上限鍛錬・初期武器技能・装備なしの五人でも、全員の必殺を同じ戦いへ
       // 持ち込んで初めて抜ける厚み。4人ぶんではいずれも全滅する境界を
       // analysis/ecology-enemy-tactics-smoke.mjs が固定 seed で見張る。
       enemyStatScale: { maxHpBps: 20_800, offenseBps: 11_500 },

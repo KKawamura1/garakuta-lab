@@ -16,7 +16,6 @@ const SUITES = [
   "extensibility.test.mjs",
   "mine.test.mjs",
   "contract.test.mjs",
-  "phase-b.test.mjs",
   "campaign-stage.test.mjs",
   "phase-c.test.mjs",
   "story.test.mjs",
