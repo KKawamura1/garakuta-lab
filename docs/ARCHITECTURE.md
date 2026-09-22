@@ -411,8 +411,12 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 敵の表そのものは置きません。印の無い項は従来どおり `composeEncounter` で組みますが、
 導入の遠征（New Game の Stage 0）の第1戦は必ず灰の門です（New Game は profile ごと
 作り直すので、灰の門を飛ばす経路がありません）。
-技能ツリーは武器別の縦一覧へ一本化する。武器タブ（`.weapon-tree-tabs`）で武器を選び、節の行
-（`.weapon-skill-tree`）を開いて効果と解禁操作を読む。各節は `select-weapon-skill-node` で選び、
+技能ツリーは武器別の地図／一覧へ一本化する。横送りの武器タブ（`.weapon-tree-tabs`）で武器を選び、
+`.weapon-skill-map` は位置名から固定した7列の座標と `requires` の線で派生を示す。
+`.weapon-skill-list` は同じ節を一画面へ多く置き、効果を一行へ畳む。各節は
+`select-weapon-skill-node` で選ぶが、詳細と操作は節を伸ばさず、地図／一覧の外にある
+`.weapon-skill-sheet` だけを差し替える。
+`select-weapon-skill-view` は見方だけを変え、取得状態には触れない。
 `unlock-weapon-skill` が1SPを払い、取得後は役割ごとの loadout へ登録する。前提または技能点が足りない節は
 `reserve-weapon-skill` で一人物一つまで予約でき、技能点獲得後に前提から自動解禁する。武器技能画面に
 旧共通ツリー・技能レベル・旧pack切替は出さない。

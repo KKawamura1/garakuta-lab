@@ -443,6 +443,9 @@ function freshUiState() {
     formationSelection: null,
     selectedSkillNode: null,
     selectedWeaponId: "warhammer",
+    // 武器技能は派生を読む地図を既定にする。一覧へ切り替えても、武器と人物を
+    // 往復するあいだは見方を保つ。
+    weaponSkillView: "map",
     selectedEquipment: null,
     // R12 — 旧Free / Endless（難易度rank選択）を削除した。遠征は Campaign Stage
     // だけになったので、仕立て方の選択も難易度の選択も持たない（作者判断）。
@@ -612,6 +615,8 @@ function hydrateState(saved, { resumeFromTitle = false } = {}) {
     .filter((id) => IMPLEMENTED_WEAPON_IDS.includes(id));
   next.selectedWeaponId = availableWeaponIds.includes(next.selectedWeaponId)
     ? next.selectedWeaponId : (availableWeaponIds[0] ?? "warhammer");
+  next.weaponSkillView = ["list", "map"].includes(next.weaponSkillView)
+    ? next.weaponSkillView : "map";
   // storyの進行は画面状態なので、欠けた一時欄は初期値で補う。
   next.story = {
     queue: Array.isArray(saved.story?.queue) ? saved.story.queue.filter(Boolean) : [],
@@ -1756,6 +1761,8 @@ function render() {
   applyTutorialGate();
   publishCampTopHeight();
   restoreHelpDetails();
+  layoutWeaponSkillTreeConnectors();
+  focusWeaponSkillTree();
   // 作者要望 2026-09-14 — 光る先が画面の外なら、こちらから寄せる（段が変わった回だけ）。
   focusTutorialSpot();
   focusLaunchCard();
@@ -3978,6 +3985,7 @@ function applyAutomaticSkillActions(actions = []) {
 const WEAPON_KIND_LABELS = Object.freeze({
   active: "アクティブ", reactive: "リアクティブ", target: "ターゲット", passive: "パッシブ",
 });
+const WEAPON_SKILL_VIEWS = Object.freeze(["list", "map"]);
 
 function weaponNodeState(node, characterId) {
   const unlocked = isUnlocked(characterId, node.skillId);
@@ -4025,6 +4033,95 @@ function weaponNodeAction(node, characterId, nodeState) {
     + "<div class=\"reservation-buttons\">" + reservationButton + cancelButton + "</div>";
 }
 
+function selectedWeaponSkillView() {
+  return WEAPON_SKILL_VIEWS.includes(state.weaponSkillView) ? state.weaponSkillView : "map";
+}
+
+// 19節の位置名は、一本道を二度分岐させる同じ文法を持つ。
+// R → A/B → AA/AB/BA/BB を横方向の深さ、枝を縦方向の lane に変換する。
+// 内容側の配列順に依存させず、どの武器も同じ場所で読めるようにする。
+function weaponTreeCoordinates(node, fallbackIndex = 0) {
+  if (node.position === "R") return { column: 1, row: 4 };
+  const trunk = /^(A|B)([1-3])$/.exec(node.position);
+  if (trunk) {
+    return { column: Number(trunk[2]) + 1, row: trunk[1] === "A" ? 2 : 6 };
+  }
+  const branch = /^(AA|AB|BA|BB)([1-3])$/.exec(node.position);
+  if (branch) {
+    const lane = { AA: 1, AB: 3, BA: 5, BB: 7 }[branch[1]];
+    return { column: Number(branch[2]) + 4, row: lane };
+  }
+  return { column: Math.min(fallbackIndex + 1, 7), row: 4 };
+}
+
+function weaponNodeStateMark(node, nodeState) {
+  if (nodeState.unlocked) return "<span class=\"weapon-node-state owned\" aria-label=\"取得済み\">✓</span>";
+  if (nodeState.reserved) return "<span class=\"weapon-node-state reserved\">予約</span>";
+  if (nodeState.canUnlock) return "<span class=\"weapon-node-state ready\" aria-label=\"1技能点で解禁\">1</span>";
+  return "<span class=\"weapon-node-state locked\" aria-label=\"未解禁\">·</span>";
+}
+
+function renderWeaponSkillNode(node, characterId, mode, index) {
+  const definition = skillDefinitionOf(node.skillId);
+  const nodeState = weaponNodeState(node, characterId);
+  const selected = state.selectedSkillNode === node.skillId;
+  const replacement = definition?.replacesActiveSkillId || definition?.replacesPassiveSkillIds?.length
+    ? "<i class=\"weapon-replace\">上位</i>" : "";
+  const coordinates = weaponTreeCoordinates(node, index);
+  const indent = Math.min(Math.max(node.position.replace(/[0-9]/g, "").length - 1, 0), 2);
+  const placement = mode === "map"
+    ? " style=\"grid-column:" + coordinates.column + ";grid-row:" + coordinates.row + "\""
+    : " style=\"--weapon-indent:" + indent + "\"";
+  return "<div class=\"weapon-tree-cell " + mode + (selected ? " selected" : "")
+    + "\" data-skill=\"" + esc(node.skillId) + "\"" + placement + ">"
+    + "<article class=\"weapon-skill-node role-" + node.kind
+    + (nodeState.unlocked ? " unlocked" : nodeState.canUnlock ? " ready" : " locked")
+    + (nodeState.reserved ? " reserved" : "")
+    + (selected ? " selected" : "") + "\" data-fx=\"skill:" + esc(node.skillId) + "\">"
+    + "<button type=\"button\" class=\"weapon-node-main\" data-action=\"select-weapon-skill-node\""
+    + " data-skill=\"" + esc(node.skillId) + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\">"
+    + "<span class=\"weapon-position\">" + esc(node.position) + "</span>"
+    + "<span class=\"weapon-node-copy\"><span class=\"weapon-node-labels\"><i class=\"weapon-kind\">"
+    + WEAPON_KIND_LABELS[node.kind] + "</i>" + replacement + "</span><b>"
+    + esc(definition?.displayName ?? node.skillId) + "</b><small>"
+    + esc(definition?.displayEffect ?? "") + "</small></span>"
+    + weaponNodeStateMark(node, nodeState)
+    + "</button></article></div>";
+}
+
+function renderWeaponSkillSheet(node, characterId) {
+  if (!node) return "";
+  const definition = skillDefinitionOf(node.skillId);
+  const nodeState = weaponNodeState(node, characterId);
+  const unmet = nodeState.unmet.length
+    ? "<p class=\"weapon-detail-prerequisite\"><small>前提</small> "
+      + esc(nodeState.unmet.map((required) => nameFor(required.skillId)).join("・")) + "</p>"
+    : "";
+  return "<aside class=\"weapon-skill-sheet"
+    + (nodeState.unlocked ? " unlocked" : nodeState.canUnlock ? " ready" : " locked")
+    + (nodeState.reserved ? " reserved" : "") + "\" aria-live=\"polite\">"
+    + "<header class=\"weapon-sheet-head\"><span class=\"weapon-position\">" + esc(node.position) + "</span>"
+    + "<span class=\"weapon-sheet-title\"><b>" + esc(definition?.displayName ?? node.skillId) + "</b>"
+    + "<small>" + esc(WEAPON_KIND_LABELS[node.kind]) + "</small></span>"
+    + weaponNodeStateMark(node, nodeState)
+    + "<button type=\"button\" class=\"weapon-sheet-close\" data-action=\"select-weapon-skill-node\""
+    + " data-skill=\"" + esc(node.skillId) + "\" aria-label=\"閉じる\" title=\"閉じる\">×</button></header>"
+    + "<div class=\"weapon-sheet-body\"><p class=\"weapon-detail-effect\">"
+    + esc(definition?.displayEffect ?? "") + "</p>"
+    + (definition?.flavorText ? "<p class=\"skill-flavor\">" + esc(definition.flavorText) + "</p>" : "")
+    + unmet + "<div class=\"node-action\">" + weaponNodeAction(node, characterId, nodeState) + "</div></div>"
+    + "</aside>";
+}
+
+function renderWeaponTreeViewSwitch(view, characterId) {
+  const tab = (id, label) => "<button type=\"button\" class=\"view-tab"
+    + (view === id ? " on" : "") + "\" aria-pressed=\"" + (view === id ? "true" : "false")
+    + "\" data-action=\"select-weapon-skill-view\" data-view=\"" + id + "\">" + label + "</button>";
+  return "<div class=\"weapon-tree-controls\"><div class=\"view-switch\" role=\"group\""
+    + " aria-label=\"武器技能ツリーの見方\">" + tab("map", "地図") + tab("list", "一覧")
+    + "</div>" + skillBuildSummary(characterId) + "</div>";
+}
+
 function renderWeaponSkillTree(characterId) {
   const available = manifestWeaponIds(state.run.manifest)
     .filter((id) => IMPLEMENTED_WEAPON_IDS.includes(id) && WEAPONS[id]);
@@ -4033,50 +4130,95 @@ function renderWeaponSkillTree(characterId) {
   if (!weaponId) return "<p class=\"tree-empty muted\">この遠征で使える武器はありません。</p>";
   const weapon = WEAPONS[weaponId];
   const nodes = weaponSkillNodes(weaponId);
+  const view = selectedWeaponSkillView();
   const tabs = available.map((id) => {
     const selected = id === weaponId;
-    const count = weaponSkillNodes(id).length;
     return "<button type=\"button\" class=\"weapon-tab" + (selected ? " active" : "")
       + "\" aria-pressed=\"" + (selected ? "true" : "false")
       + "\" data-action=\"select-weapon-tree\" data-weapon=\"" + esc(id) + "\"><b>"
-      + esc(WEAPONS[id].displayName) + "</b><small>" + count + "節</small></button>";
+      + esc(WEAPONS[id].displayName) + "</b></button>";
   }).join("");
-  const rows = nodes.map((node) => {
-    const definition = skillDefinitionOf(node.skillId);
-    const nodeState = weaponNodeState(node, characterId);
-    const selected = state.selectedSkillNode === node.skillId;
-    const replacement = definition?.replacesActiveSkillId || definition?.replacesPassiveSkillIds?.length
-      ? "<span class=\"weapon-replace\">上位形態</span>" : "";
-    return "<article class=\"weapon-skill-node role-" + node.kind
-      + (nodeState.unlocked ? " unlocked" : nodeState.canUnlock ? " ready" : " locked")
-      + (nodeState.reserved ? " reserved" : "")
-      + (selected ? " selected" : "") + "\" data-fx=\"skill:" + esc(node.skillId) + "\">"
-      + "<button type=\"button\" class=\"weapon-node-main\" data-action=\"select-weapon-skill-node\""
-      + " data-skill=\"" + esc(node.skillId) + "\" aria-expanded=\"" + (selected ? "true" : "false") + "\">"
-      + "<span class=\"weapon-position\">" + esc(node.position) + "</span>"
-      + "<span class=\"weapon-node-copy\"><span><i class=\"weapon-kind\">"
-      + WEAPON_KIND_LABELS[node.kind] + "</i>" + replacement + "</span><b>"
-      + esc(definition?.displayName ?? node.skillId) + "</b><small>"
-      + esc(definition?.displayEffect ?? "") + "</small></span>"
-      + "<span class=\"weapon-node-state\">"
-      + (nodeState.unlocked ? "✓" : nodeState.reserved ? "予約中" : node.cost + "SP") + "</span>"
-      + "</button>"
-      + (selected
-        ? "<div class=\"weapon-node-detail\"><p class=\"skill-flavor\">"
-          + esc(definition?.flavorText ?? "") + "</p><div class=\"node-action\">"
-          + weaponNodeAction(node, characterId, nodeState) + "</div></div>"
-        : "")
-      + "</article>";
-  }).join("");
-  return "<div class=\"weapon-tree-tabs\" role=\"tablist\">" + tabs + "</div>"
-    + "<div class=\"weapon-tree-head\"><div><b>" + esc(weapon.displayName) + "</b><small>"
-    + esc(weapon.summary) + "</small></div>" + skillBuildSummary(characterId) + "</div>"
-    + "<div class=\"weapon-skill-tree\">" + rows + "</div>";
+  const rows = nodes.map((node, index) => renderWeaponSkillNode(node, characterId, view, index)).join("");
+  const selectedNode = nodes.find((node) => node.skillId === state.selectedSkillNode) ?? null;
+  const body = view === "map"
+    ? "<div class=\"weapon-tree-scroll\"><div class=\"weapon-skill-map\" data-weapon=\""
+      + esc(weaponId) + "\"><svg class=\"weapon-tree-lines\" aria-hidden=\"true\"></svg>"
+      + rows + "</div></div>"
+    : "<div class=\"weapon-skill-list\">" + rows + "</div>";
+  return "<div class=\"weapon-tree-tabs\" role=\"tablist\" aria-label=\"武器\">" + tabs + "</div>"
+    + "<div class=\"weapon-tree-title\"><b>" + esc(weapon.displayName) + "</b><small>"
+    + esc(weapon.summary) + "</small></div>"
+    + renderWeaponTreeViewSwitch(view, characterId)
+    + body + renderWeaponSkillSheet(selectedNode, characterId);
 }
 
 function renderSkillTreeSource(characterId) {
   // 取得の入口は武器別ツリーに一本化する。
   return renderWeaponSkillTree(characterId);
+}
+
+// 地図の線は、カードの実寸を測って前提→派生を結ぶ。カードを選んでも地図側の
+// 高さ・座標は変えず、詳細は地図の外にある操作盤だけを差し替える。
+function layoutWeaponSkillTreeConnectors() {
+  const map = app.querySelector(".weapon-skill-map[data-weapon]");
+  const svg = map?.querySelector(".weapon-tree-lines");
+  if (!map || !svg) return;
+  const nodes = weaponSkillNodes(map.dataset.weapon);
+  const nodeById = new Map(nodes.map((node) => [node.skillId, node]));
+  const elements = new Map();
+  map.querySelectorAll(".weapon-tree-cell[data-skill]")
+    .forEach((element) => elements.set(element.dataset.skill, element));
+  const mapRect = map.getBoundingClientRect();
+  const anchor = (element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      left: rect.left - mapRect.left,
+      right: rect.right - mapRect.left,
+      centerY: rect.top - mapRect.top + rect.height / 2,
+    };
+  };
+  const selectedPath = new Set();
+  const collectParents = (skillId) => {
+    const node = nodeById.get(skillId);
+    for (const required of node?.requires ?? []) {
+      if (selectedPath.has(required.skillId)) continue;
+      selectedPath.add(required.skillId);
+      collectParents(required.skillId);
+    }
+  };
+  if (state.selectedSkillNode) collectParents(state.selectedSkillNode);
+  const paths = [];
+  for (const child of nodes) {
+    const childElement = elements.get(child.skillId);
+    if (!childElement) continue;
+    const childAnchor = anchor(childElement);
+    for (const required of child.requires ?? []) {
+      const parentElement = elements.get(required.skillId);
+      if (!parentElement) continue;
+      const parentAnchor = anchor(parentElement);
+      const busX = parentAnchor.right + (childAnchor.left - parentAnchor.right) / 2;
+      const selected = child.skillId === state.selectedSkillNode || selectedPath.has(child.skillId);
+      const owned = isUnlocked(selectedCharacter(), child.skillId);
+      paths.push("<path class=\"weapon-tree-line" + (selected ? " selected" : owned ? " owned" : "")
+        + "\" d=\"M " + parentAnchor.right + " " + parentAnchor.centerY + " H " + busX
+        + " V " + childAnchor.centerY + " H " + childAnchor.left + "\"></path>");
+    }
+  }
+  svg.setAttribute("viewBox", "0 0 " + map.scrollWidth + " " + map.scrollHeight);
+  svg.innerHTML = paths.join("");
+}
+
+function focusWeaponSkillTree() {
+  const tabs = app.querySelector(".weapon-tree-tabs");
+  const activeTab = tabs?.querySelector(".weapon-tab.active");
+  if (tabs && activeTab) {
+    tabs.scrollLeft = Math.max(0, activeTab.offsetLeft - (tabs.clientWidth - activeTab.offsetWidth) / 2);
+  }
+  const band = app.querySelector(".weapon-tree-scroll");
+  const selected = band?.querySelector(".weapon-tree-cell.selected");
+  if (band && selected) {
+    band.scrollLeft = Math.max(0, selected.offsetLeft - (band.clientWidth - selected.offsetWidth) / 2);
+  }
 }
 
 // **記号の意味は、畳んだ中に一度だけ置く。**節や装着行の上には出さない
@@ -8535,6 +8677,15 @@ function handleAction(event) {
       || !IMPLEMENTED_WEAPON_IDS.includes(weaponId) || !WEAPONS[weaponId]) return;
     state.selectedWeaponId = weaponId;
     state.selectedSkillNode = null;
+    saveState();
+    render();
+    return;
+  }
+
+  if (action === "select-weapon-skill-view") {
+    const view = element.dataset.view;
+    if (!WEAPON_SKILL_VIEWS.includes(view)) return;
+    state.weaponSkillView = view;
     saveState();
     render();
     return;
