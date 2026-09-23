@@ -7208,7 +7208,7 @@ button.party-cell:active:not(:disabled),
   overscroll-behavior-x: contain;
 }
 .weapon-skill-map {
-  --weapon-tree-col-width: 126px;
+  --weapon-tree-col-width: 134px;
   position: relative;
   isolation: isolate;
   width: max-content;
@@ -7216,7 +7216,7 @@ button.party-cell:active:not(:disabled),
   display: grid;
   grid-template-columns: repeat(7, var(--weapon-tree-col-width));
   grid-template-rows: repeat(7, 48px);
-  gap: 7px 22px;
+  gap: 7px 16px;
   padding: 4px 5px;
 }
 .weapon-tree-cell.map { z-index: 1; min-width: 0; }
@@ -7225,8 +7225,8 @@ button.party-cell:active:not(:disabled),
   padding: 3px;
 }
 .weapon-tree-cell.map .weapon-kind-icon { width: 17px; height: 17px; font-size: 9px; }
-.weapon-tree-cell.map .weapon-node-name { gap: 3px; padding-right: 43px; }
-.weapon-tree-cell.map .weapon-node-name b { font-size: 12px; line-height: 1.12; }
+.weapon-tree-cell.map .weapon-node-name { gap: 3px; padding-right: 38px; }
+.weapon-tree-cell.map .weapon-node-name b { font-size: 11.5px; line-height: 1.12; }
 .weapon-tree-cell.map .weapon-node-signals { gap: 3px; }
 .weapon-tree-cell.map .weapon-node-inputs { max-width: 45%; }
 .weapon-tree-cell.map .weapon-effect-badges { gap: 2px; }
@@ -7298,5 +7298,5 @@ button.party-cell:active:not(:disabled),
 .weapon-detail-effect { width: 100%; margin: 0; color: var(--ink); font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
 @media (max-width: 430px) {
   .weapon-tree-title small { font-size: 8px; }
-  .weapon-skill-map { --weapon-tree-col-width: 120px; column-gap: 20px; }
+  .weapon-skill-map { --weapon-tree-col-width: 134px; column-gap: 12px; }
 }
