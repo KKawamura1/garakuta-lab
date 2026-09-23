@@ -31,6 +31,7 @@ export const STATUS_NAMES = {
   warded: "守勢",
   bleeding: "裂傷",
   armor_broken: "砕けた鎧",
+  fortified: "堅牢",
   warhammer_fragment: "戦利の破片",
   breached: "砕け目",
   taunted: "誘引",
@@ -218,7 +219,7 @@ statuses.bleeding = {
       target: SELF_TARGET,
       amount: {
         type: "status_stacks_scaled", subject: "self", statusId: "bleeding",
-        numerator: 5, denominator: 100,
+        numerator: 5, denominator: 1,
       },
       guardPierceBps: 10_000,
       tags: ["bleed"],
@@ -233,12 +234,24 @@ statuses.armor_broken = {
   id: "armor_broken",
   displayName: STATUS_NAMES.armor_broken,
   polarity: "negative",
-  maxStacks: 1,
-  duration: "round",
-  durationRounds: 2,
-  guardBonusPerStack: -10,
+  maxStacks: "unbounded",
+  duration: "battle",
+  decayAtRoundEnd: true,
+  guardBonusPerStack: -1,
   rules: [],
   tags: ["playable", "debuff", "guard"],
+};
+
+statuses.fortified = {
+  id: "fortified",
+  displayName: STATUS_NAMES.fortified,
+  polarity: "positive",
+  maxStacks: "unbounded",
+  duration: "battle",
+  decayAtRoundEnd: true,
+  guardBonusPerStack: 2,
+  rules: [],
+  tags: ["playable", "buff", "guard"],
 };
 
 statuses.warhammer_fragment = {

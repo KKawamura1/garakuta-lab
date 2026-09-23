@@ -159,6 +159,13 @@ function validateValue(bag, path, value, ctx) {
         bag.add(`${path}.key`, "bad_key", "event_value_scaled needs a values key");
       }
       break;
+    case "event_value_times_status_scaled":
+      if (typeof value.key !== "string" || value.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "event_value_times_status_scaled needs a values key");
+      }
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
+      break;
     case "actor_stat_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireOneOf(bag, `${path}.stat`, value.stat, ACTOR_STATS, "unknown_actor_stat");

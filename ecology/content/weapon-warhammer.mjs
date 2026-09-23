@@ -56,22 +56,22 @@ function active(id, displayName, coefficientBps, displayEffect, flavorText, opti
 const ACTIVE = {
   warhammer_blow: active("warhammer_blow", "槌打ち", 10_000,
     "敵1体に腕力100%のダメージ。", "振り下ろせば、それで十分だ。", { treePosition: "R" }),
-  warhammer_heavy_blow: active("warhammer_heavy_blow", "大槌打ち", 15_000,
-    "敵1体に腕力150%のダメージ。", "重さをためらわず振り抜き、敵の芯まで叩き潰す。",
+  warhammer_heavy_blow: active("warhammer_heavy_blow", "大槌打ち", 17_000,
+    "敵1体に腕力170%のダメージ。", "重さをためらわず振り抜き、敵の芯まで叩き潰す。",
     { treePosition: "A3", replacesActiveSkillId: "warhammer_blow" }),
   warhammer_heaven_blow: active("warhammer_heaven_blow", "震天打ち", 22_000,
     "敵1体に腕力220%のダメージ。",
     "天を震わせる一撃は、地の底まで逃がさない。\n立っているものすべてに、終わりの重さを教えてやる。",
     { treePosition: "AA3", replacesActiveSkillId: "warhammer_heavy_blow" }),
-  warhammer_earth_splitter: active("warhammer_earth_splitter", "地割り", 14_000,
-    "敵1列に腕力140%のダメージ。",
+  warhammer_earth_splitter: active("warhammer_earth_splitter", "地割り", 16_000,
+    "敵1列に腕力160%のダメージ。",
     "振り下ろした先から、大地そのものが敵へ牙を剥く。\n一列まとめて、立つ場所ごと叩き割れ。",
     { treePosition: "AB3", replacesActiveSkillId: "warhammer_heavy_blow", pattern: "row" }),
   warhammer_siege_blow: active("warhammer_siege_blow", "破城打ち", 13_000,
     "敵1体に腕力130%のダメージを与え、防壁と受け構えをすべて除去。",
     "城壁も構えも、正面から砕けば同じだ。", {
       treePosition: "B3", replacesActiveSkillId: "warhammer_blow",
-      afterEffects: [
+      beforeEffects: [
         { type: "remove_barrier", target: EVENT_TARGETS },
         { type: "remove_block", target: EVENT_TARGETS },
       ],
@@ -80,25 +80,21 @@ const ACTIVE = {
     "敵1体に腕力170%のダメージを与え、防壁・受け構え・強化をすべて除去。",
     "鎧も構えも、積み上げた守りも関係ない。\n守れるという思い込みから、順番に解体する。", {
       treePosition: "BA3", replacesActiveSkillId: "warhammer_siege_blow",
-      afterEffects: [
+      beforeEffects: [
         { type: "remove_barrier", target: EVENT_TARGETS },
         { type: "remove_block", target: EVENT_TARGETS },
         { type: "remove_statuses", target: EVENT_TARGETS, polarity: "positive" },
       ],
     }),
-  warhammer_kingslayer: active("warhammer_kingslayer", "王殺し", 0,
-    "敵1体の強化をすべて除去し、腕力130%＋1種類につき腕力60%のダメージ。",
+  warhammer_kingslayer: active("warhammer_kingslayer", "王殺し", 18_000,
+    "敵1体の防壁と強化をすべて除去してから、腕力180%のダメージ。",
     "奪った守りを鉄へ鍛え、すべてを最後の一打へ。\n王冠ごと沈めてこそ、戦槌の勝ちだ。", {
       treePosition: "BB3", replacesActiveSkillId: "warhammer_siege_blow",
-      beforeEffects: [{ type: "remove_statuses", target: EVENT_TARGETS, polarity: "positive" }],
-      amount: {
-        type: "stat_times_context_scaled",
-        subject: "self",
-        scalingStat: "might",
-        key: "removedStatusTypes",
-        flatCoefficientBps: 13_000,
-        coefficientBps: 6_000,
-      },
+      beforeEffects: [
+        { type: "remove_barrier", target: EVENT_TARGETS },
+        { type: "remove_block", target: EVENT_TARGETS },
+        { type: "remove_statuses", target: EVENT_TARGETS, polarity: "positive" },
+      ],
     }),
 };
 
@@ -122,9 +118,9 @@ function damageBoostPassive(id, displayName, percent, predicates, displayEffect,
 
 const PASSIVE = {
   warhammer_heavy_head: damageBoostPassive("warhammer_heavy_head", "重い頭", 15,
-    [hitCountIs(1)], "1hit攻撃の合計ダメージ+15%。", "一撃の重みは、数では測れない。", "A1"),
+    [hitIndexIs(0)], "攻撃の第1hitのダメージ+15%。", "一撃の重みは、数では測れない。", "A1"),
   warhammer_iron_mass: damageBoostPassive("warhammer_iron_mass", "鉄塊", 20,
-    [hitCountIs(1)], "1hit攻撃の合計ダメージがさらに+20%。", "振るうのではない。落とすのだ。", "AA1"),
+    [hitIndexIs(0)], "攻撃の第1hitのダメージ+20%。", "振るうのではない。落とすのだ。", "AA1"),
   warhammer_deep_impact: Object.freeze({
     id: "warhammer_deep_impact", displayName: "深い衝撃", weaponId: "warhammer", treePosition: "AA2",
     displayEffect: "各行動で最初に与える怯み+1。",
@@ -202,50 +198,53 @@ const PASSIVE = {
     rules: ["barrier_broken", "block_spent"].map((listenTo) => ({
       id: "warhammer_broken_armor_" + listenTo + "_rule", listenTo, timing: "after", priority: 80,
       predicates: [SELF_IS_SOURCE, { type: "event_tag", tag: "effect", value: true }], costs: [],
-      effects: [{ type: "add_status", target: EVENT_TARGETS, statusId: "armor_broken", stacks: 1 }],
+      effects: [{ type: "add_status", target: EVENT_TARGETS, statusId: "armor_broken", stacks: 2 }],
       limit: CHAIN_ONCE,
     })),
     tags: ["passive", "debuff", "warhammer", "playable"],
   }),
   warhammer_trophy_fragment: Object.freeze({
     id: "warhammer_trophy_fragment", displayName: "戦利の破片", weaponId: "warhammer", treePosition: "BB1",
-    displayEffect: "敵の強化を除去するたび破片1。破片1につき防御+6、最大5個。",
+    displayEffect: "敵の強化を1段解除するたび、自分へ堅牢2。",
     flavorText: "敵の守りは、こちらの鎧になる。",
     rules: [{
       id: "warhammer_trophy_fragment_rule", listenTo: "status_removed", timing: "after", priority: 85,
       predicates: [SELF_IS_SOURCE, { type: "event_tag", tag: "positive", value: true }], costs: [],
       allowRepeatInChain: true,
-      effects: [{ type: "add_status", target: SELF, statusId: "warhammer_fragment", stacks: 1 }],
+      effects: [{ type: "add_status", target: SELF, statusId: "fortified", stacks: 2 }],
       limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
     }],
     tags: ["passive", "guard", "warhammer", "playable"],
   }),
   warhammer_reverse_forging: Object.freeze({
     id: "warhammer_reverse_forging", displayName: "逆鍛造", weaponId: "warhammer", treePosition: "BB2",
-    displayEffect: "攻撃ダメージが破片1につき+15%。攻撃後、破片を全消費。",
+    displayEffect: "攻撃開始時の堅牢1段につきダメージ+15%。攻撃後、堅牢を全消費。",
     flavorText: "拾い集めた敵の守りを、次に振り下ろす鉄へ鍛え直す。",
     rules: [
-      ...Array.from({ length: 5 }, (_, index) => {
-        const stacks = index + 1;
-        return {
-          id: "warhammer_reverse_forging_" + stacks + "_rule",
-          listenTo: "damage_proposed", timing: "interrupt", priority: 43,
-          predicates: [SELF_IS_SOURCE, ATTACK_EVENT, exactStatus("warhammer_fragment", stacks)], costs: [],
-          allowRepeatInChain: true,
-          effects: [{
-            type: "modify_pending_amount", operation: "increase", amount: percentOfEvent(15 * stacks),
-          }],
-          limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
-        };
-      }),
+      {
+        id: "warhammer_reverse_forging_damage_rule",
+        listenTo: "damage_proposed", timing: "interrupt", priority: 43,
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT, {
+          type: "has_status", subject: "self", statusId: "fortified", op: "gte", value: 1,
+        }],
+        costs: [], allowRepeatInChain: true,
+        effects: [{
+          type: "modify_pending_amount", operation: "increase",
+          amount: {
+            type: "event_value_times_status_scaled", key: "amount",
+            subject: "self", statusId: "fortified", numerator: 15, denominator: 100,
+          },
+        }],
+        limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
+      },
       {
         id: "warhammer_reverse_forging_spend_rule",
         listenTo: "action_resolved", timing: "after", priority: 95,
         predicates: [SELF_IS_SOURCE, {
-          type: "has_status", subject: "self", statusId: "warhammer_fragment", op: "gte", value: 1,
+          type: "has_status", subject: "self", statusId: "fortified", op: "gte", value: 1,
         }],
         costs: [],
-        effects: [{ type: "remove_status", target: SELF, statusId: "warhammer_fragment", stacks: "all" }],
+        effects: [{ type: "remove_status", target: SELF, statusId: "fortified", stacks: "all" }],
         limit: CHAIN_ONCE,
       },
     ],

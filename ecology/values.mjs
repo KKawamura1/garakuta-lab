@@ -35,6 +35,13 @@ export function evaluateValue(state, ctx, valueDef) {
       base = typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
       break;
     }
+    case "event_value_times_status_scaled": {
+      const raw = ctx.event ? ctx.event.values[valueDef.key] : undefined;
+      const actor = resolveSubject(state, ctx, valueDef.subject);
+      const stacks = actor ? statusStacks(actor, valueDef.statusId) : 0;
+      base = typeof raw === "number" && Number.isFinite(raw) ? raw * stacks : 0;
+      break;
+    }
     case "actor_stat_scaled": {
       const actor = resolveSubject(state, ctx, valueDef.subject);
       base = actor ? actorStat(actor, valueDef.stat) : 0;

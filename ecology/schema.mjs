@@ -391,6 +391,7 @@ export const PENDING_AMOUNT_OPERATIONS = freeze(["increase", "decrease", "set"])
 export const VALUE_TYPES = freeze([
   "constant",
   "event_value_scaled",
+  "event_value_times_status_scaled",
   "actor_stat_scaled",
   "status_stacks_scaled",
   "stat_times_context_scaled",

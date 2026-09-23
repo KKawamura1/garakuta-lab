@@ -703,8 +703,11 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
       && event.tags.includes("effect")
   )), "siege blow removes the barrier left after damage");
   const armored = result.actors.find((actor) => actor.instanceId === "e_armored");
+  equal(result.events.find((event) => (
+    event.type === "status_added" && event.values.statusId === "armor_broken"
+  ))?.values.added, 2, "breaking a defense applies two unbounded armor-broken stacks");
   equal(armored.statuses.find((status) => status.statusId === "armor_broken")?.stacks, 1,
-    "breaking a defense applies the generic two-round guard penalty");
+    "armor-broken stacks halve at round end");
 }
 
 {
@@ -716,15 +719,19 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const proposed = result.events.find(
     (event) => event.type === "damage_proposed" && event.skillId === "warhammer_kingslayer",
   );
-  equal(proposed.values.amount, 156,
-    "kingslayer converts two removed positive status types into +120% might before melee position scaling");
+  equal(proposed.values.amount, 113,
+    "kingslayer removes defenses before its fixed 180% might hit");
   equal(result.events.filter((event) => (
     event.type === "status_removed" && event.targetActorIds[0] === "e_blessed"
       && event.tags.includes("positive")
   )).length, 2, "kingslayer removes both positive status types");
   const user = result.actors.find((actor) => actor.instanceId === "a_user");
-  equal(user.statuses.find((status) => status.statusId === "warhammer_fragment")?.stacks, 2,
-    "trophy fragment gains one stack for each removed positive status type");
+  equal(result.events.filter((event) => (
+    event.type === "status_added" && event.values.statusId === "fortified"
+  )).reduce((sum, event) => sum + event.values.added, 0), 4,
+  "trophy fragment gains fortified two for each removed positive status stack");
+  equal(user.statuses.find((status) => status.statusId === "fortified")?.stacks, 2,
+    "fortified stacks halve at round end");
 }
 
 {
