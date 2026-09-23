@@ -7052,8 +7052,8 @@ button.party-cell:active:not(:disabled),
   content: "";
   position: absolute;
   left: 4px;
-  top: 0;
-  bottom: 0;
+  top: -1px;
+  bottom: -1px;
   border-left: 1px solid currentColor;
 }
 .weapon-list-guide .elbow.last::before { bottom: 50%; }
@@ -7107,32 +7107,30 @@ button.party-cell:active:not(:disabled),
   text-align: left;
 }
 .weapon-node-copy { display: grid; width: 100%; min-width: 0; gap: 1px; }
-.weapon-node-type-line { display: flex; min-width: 0; align-items: center; gap: 3px; padding-right: 54px; overflow: hidden; }
-.weapon-kind-badge {
-  display: inline-flex;
+.weapon-kind-icon {
+  display: inline-grid;
   flex: none;
-  align-items: center;
-  padding: 1px 4px;
+  width: 19px;
+  height: 19px;
+  place-items: center;
   border: 1px solid currentColor;
-  border-radius: 99px;
+  border-radius: 50%;
   background: rgba(10, 16, 18, .38);
   color: var(--muted);
-  font-size: 8px;
-  font-style: normal;
-  font-weight: 750;
-  line-height: 1.1;
-  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
 }
-.role-active .weapon-kind-badge { color: var(--gold); }
-.role-reactive .weapon-kind-badge { color: var(--violet); }
-.role-target .weapon-kind-badge { color: var(--blue); }
-.role-passive .weapon-kind-badge { color: var(--good); }
-.weapon-node-name { min-width: 0; display: flex; align-items: center; gap: 4px; }
+.role-active .weapon-kind-icon { color: var(--gold); }
+.role-reactive .weapon-kind-icon { color: var(--violet); }
+.role-target .weapon-kind-icon { color: var(--blue); }
+.role-passive .weapon-kind-icon { color: var(--good); }
+.weapon-node-name { min-width: 0; display: flex; align-items: center; gap: 4px; padding-right: 56px; }
 .weapon-node-name b {
   min-width: 0;
   overflow: hidden;
-  font-size: 10px;
-  line-height: 1.15;
+  font-size: 13px;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -7147,7 +7145,7 @@ button.party-cell:active:not(:disabled),
   border: 1px solid rgba(145, 203, 213, .42);
   border-radius: 4px;
   color: var(--blue);
-  font-size: 8px;
+  font-size: 9px;
   font-style: normal;
   font-weight: 800;
   line-height: 1.25;
@@ -7226,15 +7224,15 @@ button.party-cell:active:not(:disabled),
   min-height: 48px;
   padding: 3px;
 }
-.weapon-tree-cell.map .weapon-node-type-line { padding-right: 45px; }
-.weapon-tree-cell.map .weapon-kind-badge { padding: 0 3px; font-size: 6px; }
-.weapon-tree-cell.map .weapon-node-name b { font-size: 9px; }
+.weapon-tree-cell.map .weapon-kind-icon { width: 17px; height: 17px; font-size: 9px; }
+.weapon-tree-cell.map .weapon-node-name { gap: 3px; padding-right: 43px; }
+.weapon-tree-cell.map .weapon-node-name b { font-size: 11px; }
 .weapon-tree-cell.map .weapon-node-signals { gap: 3px; }
 .weapon-tree-cell.map .weapon-node-inputs { max-width: 45%; }
 .weapon-tree-cell.map .weapon-effect-badges { gap: 2px; }
-.weapon-tree-cell.map .effect-chip { padding: 0 2px; font-size: 6px; }
+.weapon-tree-cell.map .effect-chip { padding: 0 2px; font-size: 8px; }
 .weapon-tree-cell.map .weapon-node-action { top: 2px; right: 2px; }
-.weapon-tree-cell.map .weapon-node-quick-button { min-height: 16px !important; padding: 1px 3px !important; font-size: 6px !important; }
+.weapon-tree-cell.map .weapon-node-quick-button { min-height: 16px !important; padding: 1px 3px !important; font-size: 7px !important; }
 .weapon-tree-cell.map .weapon-node-state { min-width: 16px; min-height: 16px; padding: 0 3px; font-size: 7px; }
 .weapon-tree-lines {
   position: absolute;
@@ -7270,15 +7268,16 @@ button.party-cell:active:not(:disabled),
   top: 0;
   z-index: 1;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto 26px;
+  grid-template-columns: 22px minmax(0, 1fr) auto 26px;
   align-items: center;
   gap: 6px;
   padding: 5px 7px;
   border-bottom: 1px solid rgba(224, 195, 116, .2);
   background: rgba(20, 29, 31, .98);
 }
+.weapon-sheet-head .weapon-kind-icon { width: 21px; height: 21px; font-size: 11px; }
 .weapon-sheet-title { display: grid; min-width: 0; }
-.weapon-sheet-title b { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.weapon-sheet-title b { overflow: hidden; font-size: 16px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .weapon-sheet-action { display: inline-flex; align-items: center; }
 .weapon-sheet-action .weapon-node-quick-button { min-height: 26px !important; padding: 3px 7px !important; font-size: 8px !important; }
 .weapon-sheet-close {
@@ -7293,40 +7292,10 @@ button.party-cell:active:not(:disabled),
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 5px;
-  padding: 5px 7px 7px;
+  gap: 0;
+  padding: 8px 10px 10px;
 }
-.weapon-sheet-body .weapon-node-inputs { max-width: 42%; }
-.weapon-detail-prerequisite {
-  grid-column: 1;
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 8px;
-}
-.weapon-detail-prerequisite i { flex: none; color: var(--blue); font-size: 12px; font-style: normal; }
-.weapon-detail-prerequisite b {
-  min-width: 0;
-  overflow: hidden;
-  padding: 1px 4px;
-  border: 1px solid rgba(145, 203, 213, .25);
-  border-radius: 4px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.weapon-sheet-body .node-action { display: flex; align-items: center; margin: 0; }
-.weapon-sheet-body .node-action .tiny-button {
-  flex: none;
-  min-height: 26px;
-  margin: 0;
-  padding: 4px 9px;
-  font-size: 9px;
-  white-space: nowrap;
-}
-.weapon-detail-effect { width: 100%; margin: 0; color: var(--ink); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.weapon-detail-effect { width: 100%; margin: 0; color: var(--ink); font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
 @media (max-width: 430px) {
   .weapon-tree-title small { font-size: 8px; }
   .weapon-skill-map { --weapon-tree-col-width: 120px; column-gap: 20px; }

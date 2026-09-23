@@ -3635,21 +3635,50 @@ function statusGlossaryHelp() {
 const BRANCH_KEYS = { "攻撃": "strike", "守り": "guard", "支援": "care", "指揮": "order", "基礎": "base" };
 const STAT_MARKS = { might: "腕", focus: "技", guard: "受", max_hp: "HP" };
 
-// 反応の起点の言葉は content 側の正本（TRIGGER_LABELS）を引く。二重に書かない。
+// 反応の起点は内部 event ID から画面用の言葉へ変換する。内部 ID は表示に出さない。
 function triggerLabelOf(listenTo) {
   const labels = {
-    action_declared: "行動が宣言されたとき",
-    action_resolved: "行動が解決したとき",
+    action_declared: "行動を宣言したとき",
+    target_selected: "対象を選んだとき",
+    target_changed: "対象が変わったとき",
+    action_cost_paid: "行動のコストを払ったとき",
+    action_started: "行動を始めたとき",
+    action_resolved: "行動を終えたとき",
+    action_skipped: "行動が不発になったとき",
+    action_canceled: "行動が中断されたとき",
+    preparation_started: "溜め始めたとき",
+    preparation_advanced: "溜めが進んだとき",
+    preparation_completed: "溜めが終わったとき",
+    preparation_interrupted: "溜めが中断されたとき",
+    actor_activated: "手番が始まったとき",
     actor_defeated: "誰かが倒れたとき",
-    damage_taken: "被弾したとき",
+    actor_moved: "位置が変わったとき",
+    damage_proposed: "攻撃が発生したとき",
+    damage_taken: "ダメージを受けたとき",
+    damage_skipped: "攻撃が届かなかったとき",
     damage_blocked: "受け構えで防いだとき",
-    healing_applied: "治療が入ったとき",
-    preparation_completed: "準備が終わったとき",
+    healing_proposed: "回復量が決まったとき",
+    healing_applied: "回復が入ったとき",
+    barrier_proposed: "防壁量が決まったとき",
+    barrier_gained: "防壁を得たとき",
+    barrier_broken: "防壁が壊れたとき",
+    block_spent: "受け構えを使ったとき",
+    resource_gained: "資源を得たとき",
+    round_started: "ラウンドが始まったとき",
+    round_ended: "ラウンドが終わったとき",
+    battle_started: "戦闘が始まったとき",
+    battle_ended: "戦闘が終わったとき",
+    status_added: "状態がついたとき",
+    status_removed: "状態が消えたとき",
   };
-  return labels[listenTo] ?? listenTo ?? "";
+  // 未登録の event ID をそのまま見せない。新しい語彙が加わっても内部名は漏らさない。
+  return labels[listenTo] ?? (listenTo ? "条件を満たしたとき" : "");
 }
 function primaryRuleOf(definition) {
   return definition?.rule ?? definition?.rules?.[0] ?? null;
+}
+function statusDisplayNameOf(statusId) {
+  return STATUS_GLOSSARY.find((entry) => entry.id === statusId)?.displayName ?? "状態";
 }
 const STAT_LABELS = { might: "腕力", focus: "技術", guard: "受け", max_hp: "最大HP" };
 // **丸は「払うもの」だけに使う。**行動点・反応点・代償のHPの三つ以外へ丸を出さない
@@ -3680,10 +3709,8 @@ function costPips(node) {
 
 // ---------------------------------------------------------------- 発動条件（issue #177）
 //
-// **丸は消費だけに譲る。**「条件つきかどうか」を白抜きの丸で出していたが、
-// 同じ丸が行動点・反応点・代償HP・条件・取得状態を別々の意味で表していて、
-// 見分けが付かなかった（作者指摘、2026-09-09）。条件は**技能名の下に短い薄字**で書く。
-// ありなしだけでは解像度が低い——「いつ出るのか」はこの一行の値打ちがある。
+// 条件とコストはカード左側にまとめ、効果量のバッジとは仕切りで分ける。
+// 未知の条件値は内部 ID を見せず、意味が分かる言葉へ変換する。
 const ROW_WORDS = { front: "前列", rear: "後列" };
 const SCOPE_WORDS = { enemies: "敵", allies: "味方", self: "自分" };
 const COUNT_WORDS = { enemies: "体", allies: "人" };
@@ -3696,8 +3723,7 @@ function filterWords(filters = []) {
     else if (filter.type === "hp_percent") {
       words.push("HP" + filter.value + "%" + (filter.op === "lte" ? "以下の" : "以上の"));
     } else if (filter.type === "has_status") {
-      const name = STATUS_GLOSSARY.find((entry) => entry.id === filter.statusId)?.displayName
-        ?? filter.statusId;
+      const name = statusDisplayNameOf(filter.statusId);
       const none = filter.op === "eq" && (filter.value ?? 0) === 0;
       words.push(none ? name + "のついていない" : name + "のついた");
     } else if (filter.type === "is_preparing") words.push(filter.value === false ? "溜めていない" : "溜めている");
@@ -3723,8 +3749,7 @@ function predicateText(predicate) {
     case "round_number":
       return predicate.op === "eq" ? predicate.value + "ラウンド目だけ" : predicate.value + "ラウンド目まで";
     case "has_status": {
-      const name = STATUS_GLOSSARY.find((entry) => entry.id === predicate.statusId)?.displayName
-        ?? predicate.statusId;
+      const name = statusDisplayNameOf(predicate.statusId);
       return (predicate.value ?? 0) === 0 ? name + "がついていないとき" : name + "がついているとき";
     }
     case "position": return "自分が" + (ROW_WORDS[predicate.row] ?? "") + "のとき";
@@ -4141,15 +4166,39 @@ function weaponEffectBadges(node, characterId, limit = 3) {
 function weaponConditionBadge(node) {
   const text = conditionText(node);
   if (!text) return "";
+  const listenTo = node.kind === "reactive"
+    ? primaryRuleOf(skillDefinitionOf(node.skillId))?.listenTo
+    : null;
   const short = {
     "行動が宣言されたとき": "宣言時",
+    "行動を宣言したとき": "宣言時",
     "行動が解決したとき": "解決時",
+    "行動を終えたとき": "行動後",
     "誰かが倒れたとき": "撃破時",
     "被弾したとき": "被弾時",
+    "ダメージを受けたとき": "被弾時",
+    "攻撃が発生したとき": "攻撃時",
+    "攻撃が届かなかったとき": "不発時",
+    "対象を選んだとき": "対象選択時",
+    "対象が変わったとき": "対象変更時",
+    "行動を始めたとき": "開始時",
+    "手番が始まったとき": "手番時",
+    "位置が変わったとき": "移動時",
+    "防壁を得たとき": "防壁獲得時",
+    "防壁量が決まったとき": "防壁発生時",
+    "防壁が壊れたとき": "防壁破壊時",
+    "受け構えを使ったとき": "受け構え時",
+    "資源を得たとき": "資源獲得時",
+    "状態がついたとき": "状態付与時",
+    "状態が消えたとき": "状態解除時",
+    "ラウンドが始まったとき": "開始時",
+    "ラウンドが終わったとき": "終了時",
+    "回復量が決まったとき": "回復時",
+    "回復が入ったとき": "回復時",
     "受け構えで防いだとき": "防御時",
     "治療が入ったとき": "治療時",
     "準備が終わったとき": "準備完了",
-  }[text] ?? text.replace(/のとき$/, "時");
+  }[text] ?? (listenTo ? "発動時" : text.replace(/のとき$/, "時"));
   return "<i class=\"effect-chip condition\" title=\"" + esc(text) + "\" aria-label=\"条件: "
     + esc(text) + "\">" + esc(short) + "</i>";
 }
@@ -4251,8 +4300,11 @@ function weaponTreeCoordinates(node, fallbackIndex = 0) {
   return { column: Math.min(fallbackIndex + 1, 7), row: 4 };
 }
 
-function weaponKindBadge(kind) {
-  return "<i class=\"weapon-kind-badge kind-" + kind + "\">[" + WEAPON_KIND_LABELS[kind] + "]</i>";
+function weaponKindIcon(kind) {
+  const glyph = { active: "A", reactive: "R", target: "T", passive: "P" }[kind] ?? "•";
+  const label = WEAPON_KIND_LABELS[kind] ?? "技能";
+  return "<span class=\"weapon-kind-icon kind-" + esc(kind) + "\" role=\"img\" aria-label=\""
+    + esc(label) + "\" title=\"" + esc(label) + "\">" + glyph + "</span>";
 }
 
 function renderWeaponSkillNode(node, characterId, mode, index, listLayout = null) {
@@ -4274,9 +4326,9 @@ function renderWeaponSkillNode(node, characterId, mode, index, listLayout = null
     + (selected ? " selected" : "") + "\" data-fx=\"skill:" + esc(node.skillId) + "\">"
     + "<button type=\"button\" class=\"weapon-node-main\" data-action=\"select-weapon-skill-node\""
     + " data-skill=\"" + esc(node.skillId) + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\">"
-    + "<span class=\"weapon-node-copy\"><span class=\"weapon-node-type-line\">"
-    + weaponKindBadge(node.kind) + replacement + "</span><span class=\"weapon-node-name\"><b>"
-    + esc(definition?.displayName ?? node.skillId) + "</b></span>"
+    + "<span class=\"weapon-node-copy\"><span class=\"weapon-node-name\">"
+    + weaponKindIcon(node.kind) + "<b>" + esc(definition?.displayName ?? "技能")
+    + "</b>" + replacement + "</span>"
     + weaponNodeSignals(node, characterId) + "</span></button>"
     + "<span class=\"weapon-node-action\">" + weaponNodeAction(node, characterId, nodeState)
     + "</span></article></div>";
@@ -4286,25 +4338,16 @@ function renderWeaponSkillSheet(node, characterId) {
   if (!node) return "";
   const definition = skillDefinitionOf(node.skillId);
   const nodeState = weaponNodeState(node, characterId);
-  const unmet = nodeState.unmet.length
-    ? "<span class=\"weapon-detail-prerequisite\" role=\"img\" aria-label=\"未取得の前提: "
-      + esc(nodeState.unmet.map((required) => nameFor(required.skillId)).join("、")) + "\"><i>↰</i>"
-      + nodeState.unmet.map((required) => "<b>" + esc(nameFor(required.skillId)) + "</b>").join("") + "</span>"
-    : "";
   return "<aside class=\"weapon-skill-sheet role-" + node.kind
     + (nodeState.unlocked ? " unlocked" : nodeState.canUnlock ? " ready" : " locked")
     + (nodeState.reserved ? " reserved" : "") + "\" aria-live=\"polite\">"
-    + "<header class=\"weapon-sheet-head\">" + weaponKindBadge(node.kind)
-    + "<span class=\"weapon-sheet-title\"><b>" + esc(definition?.displayName ?? node.skillId) + "</b></span>"
+    + "<header class=\"weapon-sheet-head\">" + weaponKindIcon(node.kind)
+    + "<span class=\"weapon-sheet-title\"><b>" + esc(definition?.displayName ?? "技能") + "</b></span>"
     + "<span class=\"weapon-sheet-action\">" + weaponNodeAction(node, characterId, nodeState) + "</span>"
     + "<button type=\"button\" class=\"weapon-sheet-close\" data-action=\"select-weapon-skill-node\""
     + " data-skill=\"" + esc(node.skillId) + "\" aria-label=\"閉じる\" title=\"閉じる\">×</button></header>"
-    + "<div class=\"weapon-sheet-body\">" + weaponNodeSignals(node, characterId, 4) + unmet
-    + "<p class=\"weapon-detail-effect\">" + esc(definition?.displayEffect ?? "") + "</p>"
-    + (node.kind === "active" && nodeState.unlocked
-      ? "<div class=\"node-action\">" + activeSkillControl(characterId, node.skillId,
-        state.run.loadout.actives?.[characterId] === node.skillId) + "</div>"
-      : "") + "</div>"
+    + "<div class=\"weapon-sheet-body\"><p class=\"weapon-detail-effect\">"
+    + esc(definition?.displayEffect ?? "") + "</p></div>"
     + "</aside>";
 }
 
@@ -4404,6 +4447,43 @@ function layoutWeaponSkillTreeConnectors() {
   }
   svg.setAttribute("viewBox", "0 0 " + map.scrollWidth + " " + map.scrollHeight);
   svg.innerHTML = paths.join("");
+}
+
+// 節を選ぶたびにキャンプ画面全体を作り直すと、横に送った地図が一瞬左端へ戻る。
+// 地図と一覧の DOM は保ち、選択枠・詳細盤・接続線だけを更新する。
+function refreshWeaponSkillSelection() {
+  const surface = app.querySelector(".weapon-tree-scroll")
+    ?? app.querySelector(".weapon-skill-list");
+  if (!surface) return false;
+  const nodes = weaponSkillNodes(state.selectedWeaponId);
+  const selectedNode = nodes.find((node) => node.skillId === state.selectedSkillNode) ?? null;
+  for (const cell of app.querySelectorAll(".weapon-tree-cell[data-skill]")) {
+    const selected = Boolean(selectedNode && cell.dataset.skill === selectedNode.skillId);
+    cell.classList.toggle("selected", selected);
+    cell.querySelector(".weapon-skill-node")?.classList.toggle("selected", selected);
+    cell.querySelector(".weapon-node-main")?.setAttribute("aria-pressed", String(selected));
+  }
+  const previousSheet = app.querySelector(".weapon-skill-sheet");
+  if (selectedNode) {
+    const template = document.createElement("template");
+    template.innerHTML = renderWeaponSkillSheet(selectedNode, selectedCharacter()).trim();
+    const nextSheet = template.content.firstElementChild;
+    if (!nextSheet) return false;
+    if (previousSheet) previousSheet.replaceWith(nextSheet);
+    else surface.insertAdjacentElement("afterend", nextSheet);
+    nextSheet.querySelectorAll("[data-action]").forEach((element) => {
+      element.addEventListener("click", handleAction);
+    });
+  } else {
+    previousSheet?.remove();
+  }
+  layoutWeaponSkillTreeConnectors();
+  applyTutorialGate();
+  focusWeaponSkillTree();
+  focusTutorialSpot();
+  applyPendingFx();
+  pulseChangedReadouts();
+  return true;
 }
 
 let focusedWeaponSkillNode = null;
@@ -4645,9 +4725,7 @@ function renderSkills() {
     + skillSlotRows(characterId, "active") + skillSlotRows(characterId, "reactive")
     + skillSlotRows(characterId, "target") + skillSlotRows(characterId, "passive") + "</div></section>"
     + "<section class=\"card\">"
-    + "<details class=\"progressive-details skill-tree-details\" open><summary>技能ツリー</summary>"
     + renderSkillTreeSource(characterId)
-    + "</details>"
     + symbolLegendHelp()
     // アクティブは選択中の1本、リアクティブ／ターゲットは上から順に判定する。
     // 取得予約は節ごとの操作行に置く。pack単位の技能選択はここへ戻さない。
@@ -5690,14 +5768,14 @@ function skillLessonSpotSelector(step) {
     + characterId + "\"]";
   const weaponTab = ".weapon-tree-tabs [data-action=\"select-weapon-tree\"][data-weapon=\""
     + goal.weaponId + "\"]";
-  const node = ".weapon-skill-tree [data-action=\"select-weapon-skill-node\"][data-skill=\""
+  const node = ".weapon-tree-cell[data-skill=\""
     + goal.unlockSkillId + "\"]";
   return {
     tab: "nav.tabs [data-tab=\"skills\"]",
     pick: cell(goal.characterId),
     open: weaponTab,
-    aim: node,
-    unlock: ".weapon-node-detail [data-action=\"unlock-weapon-skill\"][data-character=\"" + goal.characterId
+    aim: node + " [data-action=\"select-weapon-skill-node\"]",
+    unlock: ".weapon-skill-sheet [data-action=\"unlock-weapon-skill\"][data-character=\"" + goal.characterId
       + "\"][data-skill=\"" + goal.unlockSkillId + "\"]:not([disabled])",
     handoff: cell(skillLessonHandoffId()),
     done: null,
@@ -8928,9 +9006,13 @@ function handleAction(event) {
   if (action === "select-weapon-skill-node") {
     const skillId = element.dataset.skill || null;
     if (!WEAPON_SKILL_TREE_NODES.some((node) => node.skillId === skillId)) return;
+    const lessonStepBefore = skillLessonStep();
     state.selectedSkillNode = state.selectedSkillNode === skillId ? null : skillId;
+    const lessonStepAfter = skillLessonStep();
     rememberWeaponSkillLocation();
     saveState();
+    if (state.phase === "camp" && state.tab === "skills"
+      && lessonStepBefore === lessonStepAfter && refreshWeaponSkillSelection()) return;
     render();
     return;
   }

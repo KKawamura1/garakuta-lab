@@ -413,13 +413,14 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 作り直すので、灰の門を飛ばす経路がありません）。
 技能ツリーは武器別の地図／一覧へ一本化する。横送りの武器タブ（`.weapon-tree-tabs`）で武器を選び、
 `.weapon-skill-map` は内部位置名から固定した7列の座標と `requires` の線で派生を示す。内部位置名そのものは
-表示せず、`[アクティブ]` などの役割札を出す。節の条件・AP/RP/HPコストは左、仕切りを挟んで対象・倍率・hitなど
-効果バッジを右へ置き、右上は取得可能なら解禁、不足時は前提込みの必要点を添えた予約ボタンにする。
+表示せず、丸の中の A / R / T / P で役割を示す。節の条件・AP/RP/HPコストは左、仕切りを挟んで対象・倍率・hitなど
+効果バッジを右へ置き、未知の event / status ID は画面用の語へ置き換える。取得可能ならカード右上は解禁、不足時は
+前提込みの必要点を添えた予約ボタンにする。
 `.weapon-skill-list` は同じ `requires` を深さ優先へ並べ、`.weapon-list-guide` の縦線と肘で接続を保つ。各節は
 `select-weapon-skill-node` で選ぶが、詳細と操作は節を伸ばさず、地図／一覧の外にある
-`.weapon-skill-sheet` だけを差し替える。操作盤は同じ効果バッジと効果全文を常時表示する。
-地図を再描画するときは既存の `.weapon-tree-scroll` の `scrollLeft` を新しい地図へ復元してから
-`focusWeaponSkillTree()` を呼ぶ。選択節が表示窓外なら、同関数が横帯とページを寄せる。
+`.weapon-skill-sheet` だけを差し替える。操作盤の見出しに役割記号と取得操作を置き、区切り線の下は効果全文だけを出す。
+節選択は `refreshWeaponSkillSelection()` でカードの選択状態・接続線・操作盤だけを更新し、地図 DOM と
+`.weapon-tree-scroll` の横位置を保つ。選択節が表示窓外なら、`focusWeaponSkillTree()` が横帯とページを寄せる。
 `select-weapon-skill-view` は見方だけを変え、取得状態には触れない。
 `unlock-weapon-skill` が1SPを払い、取得後は役割ごとの loadout へ登録する。前提または技能点が足りない節は
 `reserve-weapon-skill` で一人物一つまで予約でき、技能点獲得後に前提から自動解禁する。武器技能画面に

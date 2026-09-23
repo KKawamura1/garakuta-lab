@@ -41,7 +41,10 @@ const required = [
   ["追加hit倍率の効果札", app, "追撃×"],
   ["防御無視の効果札", app, "貫通"],
   ["武器技能の左右バッジ仕切り", app, "weapon-signal-divider"],
-  ["役割の文字バッジ", app, "function weaponKindBadge(kind)"],
+  ["役割の丸い記号", app, "function weaponKindIcon(kind)"],
+  ["地図を保った技能選択", app, "function refreshWeaponSkillSelection()"],
+  ["event IDの表示語", app, "条件を満たしたとき"],
+  ["役割記号の表示", styles, ".weapon-kind-icon {"],
   ["節の解禁／予約ボタン", app, "weapon-node-action"],
   ["選択節の効果全文", app, "weapon-detail-effect"],
   ["効果全文の直接表示", styles, ".weapon-detail-effect { width: 100%;"],
@@ -83,6 +86,18 @@ if (app.includes("class=\"weapon-position\"")) {
 }
 if (app.includes("class=\"weapon-rule-detail\"")) {
   problems.push("効果全文が情報アイコンの中へ隠れている");
+}
+if (app.includes("<summary>技能ツリー</summary>")) {
+  problems.push("常時表示の技能ツリーが折りたたみ式になっている");
+}
+const sheetStart = app.indexOf("function renderWeaponSkillSheet(node, characterId) {");
+const sheetEnd = app.indexOf("function renderWeaponTreeViewSwitch(view, characterId) {", sheetStart);
+const sheetSource = app.slice(sheetStart, sheetEnd);
+if (sheetSource.includes("weaponNodeSignals") || sheetSource.includes("weapon-detail-prerequisite")) {
+  problems.push("操作盤に効果バッジまたは前提を重ねている");
+}
+if (!sheetSource.includes("weapon-sheet-body") || !sheetSource.includes("weapon-detail-effect")) {
+  problems.push("操作盤の区切り線より下に効果全文が出ていない");
 }
 const renderStart = app.indexOf("function render() {");
 const horizontalRestore = app.indexOf("nextBand.scrollLeft = preservedWeaponMapScroll.left;", renderStart);
