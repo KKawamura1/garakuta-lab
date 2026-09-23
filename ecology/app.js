@@ -4105,10 +4105,35 @@ function weaponEffectBadges(node, characterId, limit = 3) {
       .replace(/^[+−-]/, "");
     push((decreased ? "↓" : "↑") + compact, decreased ? "down" : "up");
   }
-  const resource = text.match(/(?:AP|RP)\d+/)?.[0];
+  if (!amount) {
+    const damageChange = text.match(/(固定ダメージ|追加ダメージ|攻撃ダメージ|合計ダメージ|被ダメージ|ダメージ|攻撃)(?:[^。！？;]{0,20}?)([+−-]\d+%?)/);
+    if (damageChange) {
+      const label = damageChange[1] === "固定ダメージ" ? "固"
+        : damageChange[1] === "追加ダメージ" ? "追"
+          : damageChange[1] === "被ダメージ" ? "被" : "攻";
+      const decreased = /[-−]/.test(damageChange[2]);
+      push(label + (decreased ? "↓" : "↑") + damageChange[2].replace(/^[+−-]/, ""),
+        decreased ? "down" : "up");
+    }
+  }
+  const extraHit = text.match(/(\d+%)の追加hit/i)?.[1];
+  if (extraHit) push("追撃×" + extraHit, "up");
+  const extraDamage = text.match(/追加ダメージを(\d+%)/)?.[1];
+  if (extraDamage) push("追×" + extraDamage, "up");
+  const armorPierce = text.match(/防御を(?:合計)?(\d+)無視/)?.[1];
+  if (armorPierce) push("貫通" + armorPierce, "up");
+  const extraTargets = text.match(/追加対象([+−-]?\d+)/)?.[1];
+  if (extraTargets) push("対象" + extraTargets, "scope");
+  const resource = text.match(/(?:AP|RP)[+−-]?\d+/)?.[0];
   if (resource) push(resource, resource.startsWith("RP") ? "rp" : "ap");
-  const status = text.match(/(?:怯み|誘引|鏡|準備|再生薬|守勢|集中|防壁)\d+/)?.[0];
+  const status = text.match(/(?:怯み|裂傷|誘引|鏡|準備|再生薬|守勢|集中|防壁|移動不能|隙|時間砂|号旗の鼓舞)[+−-]?\d+/)?.[0];
   if (status) push(status.replace("防壁", "壁"), "status");
+  const forcedMove = text.match(/(\d+)マス相当以上/)?.[1];
+  if (forcedMove) push("移動≥" + forcedMove, "scope");
+  const orderShift = text.match(/次の行動順を(\d+)つ後ろ/)?.[1];
+  if (orderShift) push("順↓" + orderShift, "down");
+  const sharedPercent = text.match(/(\d+%)を[^。！？;]{0,16}(?:味方|与える)/)?.[1];
+  if (sharedPercent) push("分配" + sharedPercent, "up");
   return "<span class=\"weapon-effect-badges\" role=\"img\" aria-label=\""
     + esc(text) + "\">" + badges.join("") + "</span>";
 }
