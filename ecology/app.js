@@ -1730,6 +1730,13 @@ function applyRenderFeedback({ phaseChanged, tabChanged, guildTabChanged }) {
 
 function render() {
   captureHelpDetails();
+  const previousWeaponMap = app.querySelector(".weapon-skill-map[data-weapon]");
+  const previousWeaponBand = previousWeaponMap?.closest(".weapon-tree-scroll");
+  const preservedWeaponMapScroll = state.phase === "camp" && state.tab === "skills"
+    && selectedWeaponSkillView() === "map"
+    && previousWeaponMap?.dataset.weapon === state.selectedWeaponId && previousWeaponBand
+    ? { weaponId: previousWeaponMap.dataset.weapon, left: previousWeaponBand.scrollLeft }
+    : null;
   stopReplayTimer();
   stopStoryTimers();
   stopRewindTimers();
@@ -1758,6 +1765,16 @@ function render() {
   lastRenderedGuildTab = state.phase === "expeditionStart" ? state.guildTab : null;
   resetFxMemoryIfRunChanged();
   app.innerHTML = (views[state.phase] ?? renderIntro)();
+  // Every interaction rebuilds the camp DOM. Restore the map's horizontal viewport before
+  // focusWeaponSkillTree() measures the selected card; otherwise the new map flashes at x=0
+  // and only then scrolls back to a nearby branch.
+  if (preservedWeaponMapScroll) {
+    const nextMap = app.querySelector(".weapon-skill-map[data-weapon]");
+    const nextBand = nextMap?.closest(".weapon-tree-scroll");
+    if (nextMap?.dataset.weapon === preservedWeaponMapScroll.weaponId && nextBand) {
+      nextBand.scrollLeft = preservedWeaponMapScroll.left;
+    }
+  }
   app.querySelectorAll("[data-action]").forEach((element) => {
     element.addEventListener("click", handleAction);
   });
@@ -3994,9 +4011,6 @@ function applyAutomaticSkillActions(actions = []) {
 const WEAPON_KIND_LABELS = Object.freeze({
   active: "アクティブ", reactive: "リアクティブ", target: "ターゲット", passive: "パッシブ",
 });
-const WEAPON_KIND_MARKS = Object.freeze({
-  active: "◆", reactive: "↯", target: "◎", passive: "✦",
-});
 const WEAPON_SKILL_VIEWS = Object.freeze(["list", "map"]);
 
 function rememberWeaponSkillLocation(characterId = selectedCharacter()) {
@@ -4073,7 +4087,7 @@ function weaponEffectBadges(node, characterId, limit = 3) {
   const scaled = text.match(/(腕力|技術|受け|最大HP)([+−-]?\d+%)/);
   if (scaled) {
     const stat = { 腕力: "might", 技術: "focus", 受け: "guard", 最大HP: "max_hp" }[scaled[1]];
-    push(STAT_MARKS[stat] + scaled[2], "scaled stat-" + stat);
+    push(STAT_MARKS[stat] + "×" + scaled[2], "scaled stat-" + stat);
   }
   const scope = Object.keys(EFFECT_BADGE_WORDS).find((word) => text.includes(word));
   if (scope) push(EFFECT_BADGE_WORDS[scope], "scope");
@@ -4081,13 +4095,15 @@ function weaponEffectBadges(node, characterId, limit = 3) {
   if (hit) push("×" + hit.replace(/hit/i, ""), "hit");
   const amount = text.match(/(?:攻撃|防御|被ダメージ|防壁|回復|HP)(?:量|の合計量)?[+−-]?\d+%?/);
   if (amount) {
+    const decreased = /[-−]\d/.test(amount[0]);
     const compact = amount[0]
       .replace("被ダメージ", "被")
       .replace("防御", "守")
       .replace("攻撃", "攻")
       .replace("防壁", "壁")
-      .replace("回復", "癒");
-    push(compact, /[-−]/.test(compact) ? "down" : "up");
+      .replace("回復", "癒")
+      .replace(/^[+−-]/, "");
+    push((decreased ? "↓" : "↑") + compact, decreased ? "down" : "up");
   }
   const resource = text.match(/(?:AP|RP)\d+/)?.[0];
   if (resource) push(resource, resource.startsWith("RP") ? "rp" : "ap");
@@ -4095,6 +4111,49 @@ function weaponEffectBadges(node, characterId, limit = 3) {
   if (status) push(status.replace("防壁", "壁"), "status");
   return "<span class=\"weapon-effect-badges\" role=\"img\" aria-label=\""
     + esc(text) + "\">" + badges.join("") + "</span>";
+}
+
+function weaponConditionBadge(node) {
+  const text = conditionText(node);
+  if (!text) return "";
+  const short = {
+    "行動が宣言されたとき": "宣言時",
+    "行動が解決したとき": "解決時",
+    "誰かが倒れたとき": "撃破時",
+    "被弾したとき": "被弾時",
+    "受け構えで防いだとき": "防御時",
+    "治療が入ったとき": "治療時",
+    "準備が終わったとき": "準備完了",
+  }[text] ?? text.replace(/のとき$/, "時");
+  return "<i class=\"effect-chip condition\" title=\"" + esc(text) + "\" aria-label=\"条件: "
+    + esc(text) + "\">" + esc(short) + "</i>";
+}
+
+function weaponCostBadges(node) {
+  const definition = skillDefinitionOf(node.skillId);
+  if (!definition) return "";
+  const badges = [];
+  if (node.kind === "active") {
+    badges.push(["AP" + definition.apCost, "ap"]);
+  }
+  if (node.kind === "reactive") {
+    for (const cost of primaryRuleOf(definition)?.costs ?? []) {
+      if (cost.type === "spend_reaction_points") badges.push(["RP" + cost.amount, "rp"]);
+      if (cost.type === "lose_hp") badges.push(["HP" + cost.amount, "hp"]);
+    }
+  }
+  return badges.map(([label, tone]) => "<i class=\"effect-chip cost " + tone
+    + "\" aria-label=\"コスト " + esc(label) + "\">" + esc(label) + "</i>").join("");
+}
+
+function weaponNodeSignals(node, characterId, limit = 3) {
+  const condition = weaponConditionBadge(node);
+  const costs = weaponCostBadges(node);
+  const left = condition + costs;
+  const effects = weaponEffectBadges(node, characterId, limit);
+  return "<span class=\"weapon-node-signals\"><span class=\"weapon-node-inputs\""
+    + (left ? " aria-label=\"条件・コスト\"" : "") + ">" + left + "</span>"
+    + "<i class=\"weapon-signal-divider\" aria-hidden=\"true\"></i>" + effects + "</span>";
 }
 
 function weaponListLayout(nodes) {
@@ -4128,25 +4187,22 @@ function weaponListGuide(layout) {
 
 function weaponNodeAction(node, characterId, nodeState) {
   const remaining = remainingWeaponSkillCost(node, characterId);
-  const reservationButton = nodeState.reserved
-    ? button("予約取消", "cancel-weapon-skill-reservation", false, "tiny-button reservation-button compact",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"")
-    : button("予約 ◆" + remaining, "reserve-weapon-skill", false, "tiny-button reservation-button compact",
-      "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"");
+  const attributes = "data-character=\"" + characterId + "\" data-skill=\"" + node.skillId + "\"";
   if (nodeState.unlocked) {
-    if (node.kind === "active") {
-      return activeSkillControl(characterId, node.skillId,
-        state.run.loadout.actives?.[characterId] === node.skillId);
-    }
-    return acquiredSkillState(characterId, node.skillId, node.kind);
+    return "<span class=\"weapon-node-state owned\" aria-label=\"取得済み\" title=\"取得済み\">✓</span>";
   }
-  if (!nodeState.prereqsMet) return reservationButton;
+  if (nodeState.reserved) {
+    return button("取消", "cancel-weapon-skill-reservation", false,
+      "tiny-button reservation-button weapon-node-quick-button", attributes + " aria-label=\"予約取消\"");
+  }
   if (nodeState.canUnlock) {
     return button("解禁 ◆" + node.cost, "unlock-weapon-skill", false,
-      "tiny-button primary-mini", "data-character=\"" + characterId + "\" data-skill=\""
-        + node.skillId + "\"");
+      "tiny-button primary-mini weapon-node-quick-button", attributes
+        + " aria-label=\"解禁・必要技能点" + node.cost + "\" title=\"解禁 · " + node.cost + "技能点\"");
   }
-  return reservationButton;
+  return button("予約 ◆" + remaining, "reserve-weapon-skill", false,
+    "tiny-button reservation-button weapon-node-quick-button", attributes
+      + " aria-label=\"取得予約・前提込み" + remaining + "技能点\" title=\"前提込み あと" + remaining + "技能点\"");
 }
 
 function selectedWeaponSkillView() {
@@ -4170,13 +4226,8 @@ function weaponTreeCoordinates(node, fallbackIndex = 0) {
   return { column: Math.min(fallbackIndex + 1, 7), row: 4 };
 }
 
-function weaponNodeStateMark(node, nodeState, characterId) {
-  if (nodeState.unlocked) return "<span class=\"weapon-node-state owned\" aria-label=\"取得済み\">✓</span>";
-  const remaining = remainingWeaponSkillCost(node, characterId);
-  const label = "取得まであと" + remaining + "技能点（前提込み）";
-  return "<span class=\"weapon-node-state cost" + (nodeState.reserved ? " reserved" : "")
-    + (nodeState.canUnlock ? " ready" : " locked") + "\" role=\"img\" aria-label=\"" + esc(label)
-    + "\" title=\"" + esc(label) + "\"><i>◆</i>" + remaining + "</span>";
+function weaponKindBadge(kind) {
+  return "<i class=\"weapon-kind-badge kind-" + kind + "\">[" + WEAPON_KIND_LABELS[kind] + "]</i>";
 }
 
 function renderWeaponSkillNode(node, characterId, mode, index, listLayout = null) {
@@ -4198,14 +4249,12 @@ function renderWeaponSkillNode(node, characterId, mode, index, listLayout = null
     + (selected ? " selected" : "") + "\" data-fx=\"skill:" + esc(node.skillId) + "\">"
     + "<button type=\"button\" class=\"weapon-node-main\" data-action=\"select-weapon-skill-node\""
     + " data-skill=\"" + esc(node.skillId) + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\">"
-    + "<span class=\"weapon-role-mark\" role=\"img\" aria-label=\"" + WEAPON_KIND_LABELS[node.kind]
-    + "\" title=\"" + WEAPON_KIND_LABELS[node.kind] + "\">" + WEAPON_KIND_MARKS[node.kind] + "</span>"
-    + "<span class=\"weapon-node-copy\"><span class=\"weapon-node-name\"><b>"
-    + esc(definition?.displayName ?? node.skillId) + "</b>" + replacement + "</span>"
-    + "<span class=\"weapon-node-signals\">" + costPips(node)
-    + weaponEffectBadges(node, characterId) + "</span></span>"
-    + weaponNodeStateMark(node, nodeState, characterId)
-    + "</button></article></div>";
+    + "<span class=\"weapon-node-copy\"><span class=\"weapon-node-type-line\">"
+    + weaponKindBadge(node.kind) + replacement + "</span><span class=\"weapon-node-name\"><b>"
+    + esc(definition?.displayName ?? node.skillId) + "</b></span>"
+    + weaponNodeSignals(node, characterId) + "</span></button>"
+    + "<span class=\"weapon-node-action\">" + weaponNodeAction(node, characterId, nodeState)
+    + "</span></article></div>";
 }
 
 function renderWeaponSkillSheet(node, characterId) {
@@ -4220,18 +4269,17 @@ function renderWeaponSkillSheet(node, characterId) {
   return "<aside class=\"weapon-skill-sheet role-" + node.kind
     + (nodeState.unlocked ? " unlocked" : nodeState.canUnlock ? " ready" : " locked")
     + (nodeState.reserved ? " reserved" : "") + "\" aria-live=\"polite\">"
-    + "<header class=\"weapon-sheet-head\"><span class=\"weapon-role-mark\" role=\"img\" aria-label=\""
-    + WEAPON_KIND_LABELS[node.kind] + "\" title=\"" + WEAPON_KIND_LABELS[node.kind] + "\">"
-    + WEAPON_KIND_MARKS[node.kind] + "</span>"
+    + "<header class=\"weapon-sheet-head\">" + weaponKindBadge(node.kind)
     + "<span class=\"weapon-sheet-title\"><b>" + esc(definition?.displayName ?? node.skillId) + "</b></span>"
-    + weaponNodeStateMark(node, nodeState, characterId)
+    + "<span class=\"weapon-sheet-action\">" + weaponNodeAction(node, characterId, nodeState) + "</span>"
     + "<button type=\"button\" class=\"weapon-sheet-close\" data-action=\"select-weapon-skill-node\""
     + " data-skill=\"" + esc(node.skillId) + "\" aria-label=\"閉じる\" title=\"閉じる\">×</button></header>"
-    + "<div class=\"weapon-sheet-body\"><span class=\"weapon-sheet-signals\">" + costPips(node)
-    + weaponEffectBadges(node, characterId, 4) + "</span>" + unmet
-    + "<div class=\"node-action\">" + weaponNodeAction(node, characterId, nodeState) + "</div>"
-    + "<details class=\"weapon-rule-detail\"><summary aria-label=\"効果説明\" title=\"効果説明\">i</summary>"
-    + "<p class=\"weapon-detail-effect\">" + esc(definition?.displayEffect ?? "") + "</p></details></div>"
+    + "<div class=\"weapon-sheet-body\">" + weaponNodeSignals(node, characterId, 4) + unmet
+    + "<p class=\"weapon-detail-effect\">" + esc(definition?.displayEffect ?? "") + "</p>"
+    + (node.kind === "active" && nodeState.unlocked
+      ? "<div class=\"node-action\">" + activeSkillControl(characterId, node.skillId,
+        state.run.loadout.actives?.[characterId] === node.skillId) + "</div>"
+      : "") + "</div>"
     + "</aside>";
 }
 

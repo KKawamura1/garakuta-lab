@@ -35,6 +35,13 @@ const required = [
   ["武器一覧の前提線", app, "function weaponListGuide(layout)"],
   ["前提込みの残り技能点", app, "function remainingWeaponSkillCost(node, characterId)"],
   ["武器技能の効果バッジ", app, "function weaponEffectBadges(node, characterId, limit = 3)"],
+  ["武器技能の条件バッジ", app, "function weaponConditionBadge(node)"],
+  ["武器技能のコストバッジ", app, "function weaponCostBadges(node)"],
+  ["武器技能の左右バッジ仕切り", app, "weapon-signal-divider"],
+  ["役割の文字バッジ", app, "function weaponKindBadge(kind)"],
+  ["節の解禁／予約ボタン", app, "weapon-node-action"],
+  ["選択節の効果全文", app, "weapon-detail-effect"],
+  ["効果全文の直接表示", styles, ".weapon-detail-effect { width: 100%;"],
   ["人物ごとの閲覧位置", app, "weaponSkillMemory"],
   ["選択節への縦寄せ", app, "window.scrollBy({ top: selectedRect.top - want, behavior })"],
   ["武器タブの横送り", styles, ".weapon-tree-tabs {"],
@@ -70,6 +77,17 @@ if (/(^|[^A-Z_])SKILL_TREE_NODES([^A-Z_]|$)/.test(app)) {
 }
 if (app.includes("class=\"weapon-position\"")) {
   problems.push("内部の武器節位置名が画面に出ている");
+}
+if (app.includes("class=\"weapon-rule-detail\"")) {
+  problems.push("効果全文が情報アイコンの中へ隠れている");
+}
+const renderStart = app.indexOf("function render() {");
+const horizontalRestore = app.indexOf("nextBand.scrollLeft = preservedWeaponMapScroll.left;", renderStart);
+const connectorLayout = app.indexOf("layoutWeaponSkillTreeConnectors();", renderStart);
+const selectedNodeFocus = app.indexOf("focusWeaponSkillTree();", renderStart);
+if (!(renderStart >= 0 && horizontalRestore > renderStart
+  && horizontalRestore < connectorLayout && connectorLayout < selectedNodeFocus)) {
+  problems.push("選択節へ寄せる前に地図の横位置を復元していない");
 }
 
 // reduced-motion でも重要な視認性（光・戦闘の状態）は消さない。
