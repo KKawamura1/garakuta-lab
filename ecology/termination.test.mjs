@@ -20,6 +20,7 @@ import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import {
   ENEMY_ACTIVE_SKILLS,
   ENEMY_REACTIVE_SKILLS,
+  CHARACTER_DEFINITIONS,
   EQUIPMENT_PACKS,
   PLAYABLE_CONTENT,
   WEAPON_SKILL_PACKS,
@@ -182,8 +183,9 @@ for (const { battle, ruleId, eventType } of SAFETY_CASES) {
     maxEventsPerBattle: DEFAULT_OPTIONS.maxEventsPerBattle,
   });
   check(
-    battle.allies.every((ally) => ally.reactiveSkillIds.length === 0),
-    "initial weapon loadout does not carry legacy reactive fixtures",
+    JSON.stringify(battle.allies.flatMap((ally) => ally.reactiveSkillIds).sort())
+      === JSON.stringify(CHARACTER_DEFINITIONS.flatMap((character) => character.starterReactives).sort()),
+    "initial loadout contains only the catalog-defined R+A1 reactive skills",
   );
   check(
     result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle,

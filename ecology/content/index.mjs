@@ -100,6 +100,70 @@ import {
   weaponSkillNodes,
   weaponIdsForCharacterIds,
 } from "./weapon-trees.mjs";
+import { WEAPON_SKILL_SPECIFICATIONS } from "./weapon-specifications.mjs";
+
+const PLAYER_SKILL_DEFINITIONS = Object.freeze({
+  ...WARHAMMER_ACTIVE_SKILLS, ...WARHAMMER_TARGET_SKILLS,
+  ...WARHAMMER_REACTIVE_SKILLS, ...WARHAMMER_PASSIVE_SKILLS,
+  ...DUAL_BLADES_ACTIVE_SKILLS, ...DUAL_BLADES_TARGET_SKILLS,
+  ...DUAL_BLADES_REACTIVE_SKILLS, ...DUAL_BLADES_PASSIVE_SKILLS,
+  ...GAUNTLETS_ACTIVE_SKILLS, ...GAUNTLETS_TARGET_SKILLS,
+  ...GAUNTLETS_REACTIVE_SKILLS, ...GAUNTLETS_PASSIVE_SKILLS,
+  ...LAUNCHER_ACTIVE_SKILLS, ...LAUNCHER_TARGET_SKILLS,
+  ...LAUNCHER_REACTIVE_SKILLS, ...LAUNCHER_PASSIVE_SKILLS,
+  ...MEDICAL_KIT_ACTIVE_SKILLS, ...MEDICAL_KIT_TARGET_SKILLS,
+  ...MEDICAL_KIT_REACTIVE_SKILLS, ...MEDICAL_KIT_PASSIVE_SKILLS,
+  ...TOWER_SHIELD_ACTIVE_SKILLS, ...TOWER_SHIELD_TARGET_SKILLS,
+  ...TOWER_SHIELD_REACTIVE_SKILLS, ...TOWER_SHIELD_PASSIVE_SKILLS,
+  ...LONG_SPEAR_ACTIVE_SKILLS, ...LONG_SPEAR_TARGET_SKILLS,
+  ...LONG_SPEAR_REACTIVE_SKILLS, ...LONG_SPEAR_PASSIVE_SKILLS,
+  ...GRAPPLING_HOOK_ACTIVE_SKILLS, ...GRAPPLING_HOOK_TARGET_SKILLS,
+  ...GRAPPLING_HOOK_REACTIVE_SKILLS, ...GRAPPLING_HOOK_PASSIVE_SKILLS,
+  ...BANNER_ACTIVE_SKILLS, ...BANNER_TARGET_SKILLS,
+  ...BANNER_REACTIVE_SKILLS, ...BANNER_PASSIVE_SKILLS,
+  ...HEAVY_CROSSBOW_ACTIVE_SKILLS, ...HEAVY_CROSSBOW_TARGET_SKILLS,
+  ...HEAVY_CROSSBOW_REACTIVE_SKILLS, ...HEAVY_CROSSBOW_PASSIVE_SKILLS,
+});
+
+function playerSkillsOfKind(kind) {
+  const passiveSkillIds = new Set(WEAPON_SKILL_TREE_NODES
+    .filter((node) => node.kind === "passive")
+    .map((node) => node.skillId));
+  return Object.freeze(Object.fromEntries(WEAPON_SKILL_TREE_NODES
+    .filter((node) => node.kind === kind)
+    .map((node) => {
+      const implementation = PLAYER_SKILL_DEFINITIONS[node.skillId];
+      if (!implementation) throw new Error(`Missing skill implementation: ${node.skillId}`);
+      const classificationTags = new Set(["active", "target", "reactive", "reaction", "passive"]);
+      const tags = (implementation.tags ?? []).filter((tag) => !classificationTags.has(tag));
+      const kindTags = kind === "reactive" ? ["reactive", "reaction"] : [kind];
+      const skill = {
+        ...implementation,
+        weaponId: node.weaponId,
+        treePosition: node.position,
+        kind,
+        displayName: node.displayName,
+        displayEffect: node.displayEffect,
+        flavorText: node.flavorText,
+        implementationContract: node.implementationContract,
+        catalogPosition: node.position,
+        tags: [...new Set([...tags, ...kindTags, "weapon", "playable"])],
+      };
+      if (kind !== "passive") delete skill.replacesPassiveSkillIds;
+      else if (skill.replacesPassiveSkillIds) {
+        skill.replacesPassiveSkillIds = skill.replacesPassiveSkillIds.filter((id) => passiveSkillIds.has(id));
+        if (skill.replacesPassiveSkillIds.length === 0) delete skill.replacesPassiveSkillIds;
+      }
+      return [node.skillId, Object.freeze(skill)];
+    })));
+}
+
+const PLAYER_SKILLS_BY_KIND = Object.freeze({
+  activeSkills: playerSkillsOfKind("active"),
+  targetSkills: playerSkillsOfKind("target"),
+  reactiveSkills: playerSkillsOfKind("reactive"),
+  passiveSkills: playerSkillsOfKind("passive"),
+});
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
@@ -281,56 +345,12 @@ export const PLAYABLE_CONTENT = Object.freeze({
   characters: CHARACTERS,
   // Player skills are weapon-owned only. Enemy skills are registered separately
   // below and never leak into the player catalog.
-  activeSkills: Object.freeze({
-    ...WARHAMMER_ACTIVE_SKILLS,
-    ...DUAL_BLADES_ACTIVE_SKILLS,
-    ...GAUNTLETS_ACTIVE_SKILLS,
-    ...LAUNCHER_ACTIVE_SKILLS,
-    ...MEDICAL_KIT_ACTIVE_SKILLS,
-    ...TOWER_SHIELD_ACTIVE_SKILLS,
-    ...LONG_SPEAR_ACTIVE_SKILLS,
-    ...GRAPPLING_HOOK_ACTIVE_SKILLS,
-    ...BANNER_ACTIVE_SKILLS,
-    ...HEAVY_CROSSBOW_ACTIVE_SKILLS,
-  }),
+  activeSkills: PLAYER_SKILLS_BY_KIND.activeSkills,
   // All ten weapon trees are now content-backed. Fixture-only selectors must
   // never leak into playable content.
-  targetSkills: Object.freeze({
-    ...WARHAMMER_TARGET_SKILLS,
-    ...DUAL_BLADES_TARGET_SKILLS,
-    ...GAUNTLETS_TARGET_SKILLS,
-    ...LAUNCHER_TARGET_SKILLS,
-    ...MEDICAL_KIT_TARGET_SKILLS,
-    ...TOWER_SHIELD_TARGET_SKILLS,
-    ...LONG_SPEAR_TARGET_SKILLS,
-    ...GRAPPLING_HOOK_TARGET_SKILLS,
-    ...BANNER_TARGET_SKILLS,
-    ...HEAVY_CROSSBOW_TARGET_SKILLS,
-  }),
-  reactiveSkills: Object.freeze({
-    ...WARHAMMER_REACTIVE_SKILLS,
-    ...DUAL_BLADES_REACTIVE_SKILLS,
-    ...GAUNTLETS_REACTIVE_SKILLS,
-    ...LAUNCHER_REACTIVE_SKILLS,
-    ...MEDICAL_KIT_REACTIVE_SKILLS,
-    ...TOWER_SHIELD_REACTIVE_SKILLS,
-    ...LONG_SPEAR_REACTIVE_SKILLS,
-    ...GRAPPLING_HOOK_REACTIVE_SKILLS,
-    ...BANNER_REACTIVE_SKILLS,
-    ...HEAVY_CROSSBOW_REACTIVE_SKILLS,
-  }),
-  passiveSkills: Object.freeze({
-    ...WARHAMMER_PASSIVE_SKILLS,
-    ...DUAL_BLADES_PASSIVE_SKILLS,
-    ...GAUNTLETS_PASSIVE_SKILLS,
-    ...LAUNCHER_PASSIVE_SKILLS,
-    ...MEDICAL_KIT_PASSIVE_SKILLS,
-    ...TOWER_SHIELD_PASSIVE_SKILLS,
-    ...LONG_SPEAR_PASSIVE_SKILLS,
-    ...GRAPPLING_HOOK_PASSIVE_SKILLS,
-    ...BANNER_PASSIVE_SKILLS,
-    ...HEAVY_CROSSBOW_PASSIVE_SKILLS,
-  }),
+  targetSkills: PLAYER_SKILLS_BY_KIND.targetSkills,
+  reactiveSkills: PLAYER_SKILLS_BY_KIND.reactiveSkills,
+  passiveSkills: PLAYER_SKILLS_BY_KIND.passiveSkills,
   enemyActiveSkills: ENEMY_ACTIVE_SKILLS,
   enemyReactiveSkills: ENEMY_REACTIVE_SKILLS,
   enemyPassiveSkills: ENEMY_PASSIVE_SKILLS,
@@ -353,6 +373,7 @@ export {
   WEAPON_IDS_BY_CHARACTER,
   WEAPON_SKILL_NODE_BY_ID,
   WEAPON_SKILL_TREE_NODES,
+  WEAPON_SKILL_SPECIFICATIONS,
   weaponSkillNode,
   weaponSkillNodes,
   weaponIdsForCharacterIds,

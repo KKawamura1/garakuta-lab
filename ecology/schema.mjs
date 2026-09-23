@@ -13,7 +13,7 @@ const freeze = (value) => Object.freeze(value);
 // optional action-end return. R26 adds shared column/unacted target filters
 // and resource-reduction effects used by the Stage 1 weapon trees. R27 adds
 // the generic finite-rescue effect and its result event for the medical tree.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-9";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-10";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -28,7 +28,7 @@ export const BATTLE_SCHEMA_VERSION = "ecology-battle-5";
 // damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
 // produced no HP loss, so the result version moves with the vocabulary.
-export const RESULT_SCHEMA_VERSION = "ecology-result-3";
+export const RESULT_SCHEMA_VERSION = "ecology-result-4";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -202,6 +202,7 @@ export const PREDICATE_TYPES = freeze([
   "event_value",
   "history_count",
   "target_exists",
+  "hit_target_comparison",
   "round_number",
 ]);
 
@@ -276,6 +277,7 @@ export const TARGET_FILTER_TYPES = freeze([
   "is_event_source",
   // A rule owner can target an event ally without selecting itself.
   "not_self",
+  "has_open_position_in_row",
 ]);
 export const TARGET_SORT_TYPES = freeze([
   "hp_asc",
@@ -288,6 +290,8 @@ export const TARGET_SORT_TYPES = freeze([
   // 浮動小数は経路に入らない。
   "hp_percent_asc",
   "hp_percent_desc",
+  "status_stacks_desc",
+  "distance_to_self_asc",
   "barrier_asc",
   "barrier_desc",
   "position_asc",
@@ -321,6 +325,7 @@ export const EFFECT_TYPES = freeze([
   "remove_block",
   "swap_positions",
   "move_to_open_row",
+  "modify_attack_plan",
   "start_preparation",
   "advance_preparation",
   "interrupt_preparation",
@@ -366,11 +371,13 @@ export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
   "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
+  "modify_attack_plan",
 ]);
 // Which pending frame each interrupt-only effect needs.
 export const PENDING_ACTION_EFFECT_TYPES = freeze([
   "redirect_pending_target",
   "cancel_pending_action",
+  "modify_attack_plan",
 ]);
 export const PENDING_AMOUNT_EFFECT_TYPES = freeze([
   "modify_pending_amount",

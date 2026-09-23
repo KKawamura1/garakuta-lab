@@ -3,7 +3,7 @@
 // §9 — target queries. Every query ends with position_asc then instance_id_asc,
 // so `take: 1` can never depend on array order coming out of a Map or a filter.
 
-import { IMPLICIT_SORTS, POSITION_COLUMN, POSITION_ROW, compareOp } from "./schema.mjs";
+import { COLUMNS, IMPLICIT_SORTS, POSITION_COLUMN, POSITION_ROW, compareOp } from "./schema.mjs";
 import {
   actorsOnSide,
   compareActorsDefault,
@@ -75,6 +75,12 @@ function passesFilter(state, ctx, filter, actor) {
     case "not_self":
       // Ownerless region rules have no self, so the filter is a no-op there.
       return !ctx.owner || actor.instanceId !== ctx.owner.instanceId;
+    case "has_open_position_in_row": {
+      const occupied = new Set(actorsOnSide(state, actor.side)
+        .filter((candidate) => candidate.alive && candidate.instanceId !== actor.instanceId)
+        .map((candidate) => candidate.position));
+      return COLUMNS.some((column) => !occupied.has(`${filter.row}_${column}`));
+    }
     case "is_event_primary_target":
       return Boolean(ctx.event) && ctx.event.targetActorIds[0] === actor.instanceId;
     case "not_event_primary_target":
@@ -102,7 +108,8 @@ function hpPercentBps(actor) {
   return Math.floor(actor.hp * BPS / ceiling);
 }
 
-function sortValue(actor, sortType) {
+function sortValue(actor, sort, ctx) {
+  const sortType = typeof sort === "string" ? sort : sort.type;
   switch (sortType) {
     case "hp_asc": return actor.hp;
     case "hp_desc": return -actor.hp;
@@ -114,6 +121,14 @@ function sortValue(actor, sortType) {
     case "barrier_desc": return -totalBarrier(actor);
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
+    case "status_stacks_desc": return -statusStacks(actor, sort.statusId);
+    case "distance_to_self_asc": {
+      if (!ctx.owner) return 0;
+      const rowDistance = POSITION_ROW[actor.position] === POSITION_ROW[ctx.owner.position] ? 0 : 1;
+      const columnDistance = Math.abs(COLUMNS.indexOf(POSITION_COLUMN[actor.position])
+        - COLUMNS.indexOf(POSITION_COLUMN[ctx.owner.position]));
+      return rowDistance + columnDistance;
+    }
     default: return 0;
   }
 }
@@ -143,14 +158,15 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
     )));
     if (taunted.length > 0) pool = taunted;
   }
-  const sorts = [...(query.sort ?? []).map((entry) => entry.type ?? entry), ...IMPLICIT_SORTS];
+  const sorts = [...(query.sort ?? []), ...IMPLICIT_SORTS];
   const sorted = [...pool].sort((a, b) => {
-    for (const sortType of sorts) {
+    for (const sort of sorts) {
+      const sortType = typeof sort === "string" ? sort : sort.type;
       if (sortType === "instance_id_asc") {
         if (a.instanceId !== b.instanceId) return a.instanceId < b.instanceId ? -1 : 1;
         continue;
       }
-      const difference = sortValue(a, sortType) - sortValue(b, sortType);
+      const difference = sortValue(a, sort, ctx) - sortValue(b, sort, ctx);
       if (difference !== 0) return difference;
     }
     return compareActorsDefault(a, b);

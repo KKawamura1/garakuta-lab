@@ -45,7 +45,18 @@ export function evaluateValue(state, ctx, valueDef) {
     case "stat_scaled": {
       const actor = resolveSubject(state, ctx, valueDef.subject);
       const stat = actor ? actorStat(actor, valueDef.scalingStat) : 0;
-      const coefficientBps = valueDef.coefficientBps ?? 0;
+      const condition = valueDef.statusConditional;
+      const memoryCount = condition?.memoryKey
+        ? ctx.pendingAction?.memory?.[condition.memoryKey]
+        : undefined;
+      const hasSnapshot = Number.isSafeInteger(memoryCount);
+      const statusCount = hasSnapshot
+        ? memoryCount
+        : (actor ? statusStacks(actor, condition?.statusId) : 0);
+      const conditionMet = condition && actor && statusCount >= condition.minStacks;
+      const coefficientBps = conditionMet
+        ? condition.coefficientBps
+        : (valueDef.coefficientBps ?? 0);
       base = (valueDef.flat ?? 0) + roundHalfUpDiv(stat * coefficientBps, BPS);
       break;
     }

@@ -163,6 +163,7 @@ export function applyEffect(rt, ctx, effect) {
     case "split_pending_damage": return splitPendingDamage(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
+    case "modify_attack_plan": return modifyAttackPlan(rt, ctx, effect);
     default:
       // §4.1 — an unimplemented effect throws instead of silently doing nothing.
       throw new Error(`unimplemented effect type: ${effect.type}`);
@@ -210,21 +211,35 @@ function gainBlock(rt, ctx, effect) {
 //   5. 途中で倒れた対象への残り hit は**失われる。別対象へ自動 retarget しない**
 function hitCountOfEffect(rt, ctx, effect) {
   if (!effect.hitCountFromStatus) return effect.hitCount ?? 1;
-  const { statusId, max, fallback = 1 } = effect.hitCountFromStatus;
-  const stacks = ctx.owner ? statusStacks(ctx.owner, statusId) : 0;
+  const { statusId, max, fallback = 1, base, memoryKey } = effect.hitCountFromStatus;
+  const snapshot = memoryKey ? ctx.pendingAction?.memory?.[memoryKey] : undefined;
+  const stacks = Number.isSafeInteger(snapshot)
+    ? snapshot
+    : (ctx.owner ? statusStacks(ctx.owner, statusId) : 0);
+  if (base !== undefined) return base + Math.min(max, stacks);
   return Math.min(max, Math.max(fallback, stacks));
 }
 
 function dealDamage(rt, ctx, effect) {
-  const hitCount = hitCountOfEffect(rt, ctx, effect);
+  const baseHitCount = hitCountOfEffect(rt, ctx, effect);
+  const attackPlan = ctx.pendingAction?.attackPlan;
+  const isAttack = (effect.tags ?? []).includes("attack");
+  const extraHitCount = isAttack ? (attackPlan?.hitCountBonus ?? 0) : 0;
+  const requestedHitCount = baseHitCount + extraHitCount;
+  const hitCount = Math.min(attackPlan?.maxHitCount ?? Number.MAX_SAFE_INTEGER, requestedHitCount);
   // 1. 一度だけ確定する。hit の途中で対象が変わらないのが multi-hit の前提。
-  const targetIds = expandPattern(rt, ctx, effect).map((actor) => actor.instanceId);
+  const targetIds = (attackPlan?.targetActorIds
+    ? attackPlan.targetActorIds.map((instanceId) => getActor(rt.state, instanceId)).filter(Boolean)
+    : expandPattern(rt, ctx, effect)).map((actor) => actor.instanceId);
   for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
-    const instances = effect.hitDistribution === "round_robin" && targetIds.length > 0
+    const distribution = attackPlan?.hitDistribution ?? effect.hitDistribution;
+    const instances = distribution === "round_robin" && targetIds.length > 0
       ? [targetIds[hitIndex % targetIds.length]]
       : targetIds;
     for (const instanceId of instances) {
       const target = getActor(rt.state, instanceId);
+      const previousTargetActorId = ctx.pendingAction?.previousAttackTargetActorId ?? null;
+      if (ctx.pendingAction) ctx.pendingAction.previousAttackTargetActorId = instanceId;
       // 5. 倒れていたらこの hit は失われる。別の相手へ回さない。
       if (!target || !target.alive) {
         // Keep the packet amount on the observable skip event so content can
@@ -249,7 +264,17 @@ function dealDamage(rt, ctx, effect) {
         });
         continue;
       }
-      dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount);
+      const extraHit = hitIndex >= baseHitCount && attackPlan?.extraHitBps;
+      const rawAmount = extraHit
+        ? roundHalfUpDiv(evaluateValue(rt.state, ctx, effect.amount) * attackPlan.extraHitBps, BPS)
+        : undefined;
+      const hitEvent = dealOneInstance(
+        rt, ctx, effect, target, hitIndex, hitCount, rawAmount, previousTargetActorId,
+        false, Boolean(extraHit),
+      );
+      if (hitEvent && effect.onHitEffects?.length) {
+        applyEffects(rt, { ...ctx, event: hitEvent }, effect.onHitEffects);
+      }
     }
   }
 }
@@ -343,14 +368,18 @@ function afterPositionModifier(rawAmount, rt, ctx, effect, target) {
   return rawAmount;
 }
 
-function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOverride) {
-  const proposed = proposedOverride === undefined
-    ? afterPositionModifier(
-      evaluateValue(rt.state, ctx, effect.amount), rt, ctx, effect, target,
-    )
-    : Math.max(0, proposedOverride);
+function dealOneInstance(
+  rt, ctx, effect, target, hitIndex, hitCount, rawAmountOverride, previousTargetActorId = null,
+  amountIsFinal = false, isExtraHit = false,
+) {
+  const rawAmount = rawAmountOverride === undefined
+    ? evaluateValue(rt.state, ctx, effect.amount)
+    : rawAmountOverride;
+  const proposed = amountIsFinal ? Math.max(0, rawAmount)
+    : afterPositionModifier(rawAmount, rt, ctx, effect, target);
   const tags = [
     ...(effect.tags ?? []),
+    ...(isExtraHit ? ["extra_hit"] : []),
     ...(ctx.pendingAction?.redirected ? ["redirect"] : []),
   ];
   const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
@@ -360,7 +389,7 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
       tags,
-      values: { amount: proposed, hitIndex, hitCount },
+      values: { amount: proposed, hitIndex, hitCount, previousTargetActorId },
     },
     frame,
   );
@@ -374,7 +403,7 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       tags,
       values: { amount: frame.amount, hitIndex, hitCount, reason: finalTarget ? "target_defeated" : "target_unavailable" },
     });
-    return;
+    return event;
   }
   const amount = frame.amount;
 
@@ -399,7 +428,7 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       tags: [],
       values: { amount: 1, before, after: finalTarget.block },
     });
-    return;
+    return event;
   }
 
   // guard — hit ごとの固定軽減。heal と barrier には掛からない。
@@ -426,6 +455,7 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
         barrierRemaining: totalBarrier(finalTarget),
         hitIndex,
         hitCount,
+        previousTargetActorId,
       },
     });
   }
@@ -468,6 +498,7 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
         barrierAbsorbed: absorbed,
         hitIndex,
         hitCount,
+        previousTargetActorId,
         recoveredDamage: finalTarget.recoveredDamage,
         unrecoverableDamage: Math.max(0, finalTarget.maxHp - finalTarget.hp - window.remaining),
       },
@@ -489,6 +520,7 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       values: { amount: excess, proposed: amount, afterGuard: guarded, barrierAbsorbed: absorbed, hpBefore },
     });
   }
+  return event;
 }
 
 // §12.3 — packets are consumed earliest-expiry first, then oldest first.
@@ -790,7 +822,9 @@ function addStatus(rt, ctx, effect) {
     const stacks = effect.stacks ?? 1;
     const existing = target.statuses.find((entry) => entry.statusId === effect.statusId);
     const before = existing ? existing.stacks : 0;
-    const after = Math.min(definition.maxStacks, before + stacks);
+    const after = definition.maxStacks === "unbounded"
+      ? before + stacks
+      : Math.min(definition.maxStacks, before + stacks);
     if (after === before) continue;
     if (existing) {
       existing.stacks = after;
@@ -827,9 +861,14 @@ function addStatus(rt, ctx, effect) {
 function removeStatus(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     const existing = target.statuses.find((entry) => entry.statusId === effect.statusId);
-    if (!existing) continue;
-    const before = existing.stacks;
-    const removed = effect.stacks === "all" ? before : Math.min(before, effect.stacks ?? 1);
+    const before = existing?.stacks ?? 0;
+    const requested = effect.stacks === "all" ? before : Math.min(before, effect.stacks ?? 1);
+    const removed = Math.min(requested, effect.maxStacks ?? Number.MAX_SAFE_INTEGER);
+    if (effect.storeAs && ctx.pendingAction) {
+      ctx.pendingAction.memory ??= {};
+      ctx.pendingAction.memory[effect.storeAs] = removed;
+    }
+    if (!existing || removed === 0) continue;
     existing.stacks = before - removed;
     if (existing.stacks === 0) {
       target.statuses = target.statuses.filter((entry) => entry !== existing);
@@ -949,12 +988,26 @@ function moveToOpenRow(rt, ctx, effect) {
   if (!destination) return;
   actor.position = destination;
   emitActorMoved(rt, ctx, actor, origin, destination, ["move"]);
+  if (effect.cancelIfOutOfReach && ctx.pendingAction?.skill) {
+    const { skill, reach } = ctx.pendingAction;
+    const legal = resolveTargets(rt.state, ctx, { ...skill.targetQuery, take: "all" }, { reach });
+    if (!ctx.pendingAction.targetActorIds.some((instanceId) => (
+      legal.some((target) => target.instanceId === instanceId)
+    ))) {
+      ctx.pendingAction.canceled = true;
+      ctx.pendingAction.cancelReason = {
+        ruleId: ctx.ruleId ?? null,
+        ownerId: ctx.owner ? ctx.owner.instanceId : null,
+      };
+    }
+  }
   if (!effect.returnAfterAction || !ctx.pendingAction) return;
   ctx.pendingAction.scheduledReturns ??= [];
   ctx.pendingAction.scheduledReturns.push({
     actorId: actor.instanceId,
     origin,
     destination,
+    returnRow: effect.returnRow,
     sourceDefinitionId: ctx.sourceDefinitionId,
     ruleId: ctx.ruleId,
     skillId: ctx.skillId,
@@ -966,21 +1019,24 @@ export function resolveScheduledReturns(rt, ctx, frame) {
   for (const scheduled of [...(frame.scheduledReturns ?? [])].reverse()) {
     const actor = getActor(rt.state, scheduled.actorId);
     if (!actor || !actor.alive || actor.position !== scheduled.destination) continue;
-    const originOccupied = actorsOnSide(rt.state, actor.side).some(
-      (candidate) => candidate.alive
-        && candidate.instanceId !== actor.instanceId
-        && candidate.position === scheduled.origin,
-    );
-    if (originOccupied) continue;
+    const originOccupied = actorsOnSide(rt.state, actor.side).some((candidate) => (
+      candidate.alive && candidate.instanceId !== actor.instanceId && candidate.position === scheduled.origin
+    ));
+    const returnPosition = scheduled.returnRow
+      ? (POSITION_ROW[scheduled.origin] === scheduled.returnRow && !originOccupied
+        ? scheduled.origin
+        : nearestOpenPosition(rt, actor, scheduled.returnRow))
+      : (!originOccupied ? scheduled.origin : null);
+    if (!returnPosition) continue;
     const from = actor.position;
-    actor.position = scheduled.origin;
+    actor.position = returnPosition;
     emitActorMoved(rt, {
       ...ctx,
       sourceDefinitionId: scheduled.sourceDefinitionId,
       ruleId: scheduled.ruleId,
       skillId: scheduled.skillId,
       equipmentInstanceId: scheduled.equipmentInstanceId,
-    }, actor, from, scheduled.origin, ["return"]);
+    }, actor, from, returnPosition, ["return"]);
   }
   frame.scheduledReturns = [];
 }
@@ -1155,6 +1211,39 @@ function wearEquipmentEffect(rt, ctx, effect) {
 
 // §11.4 — interrupt-only effects. validate.mjs guarantees the pending frame that
 // each one needs actually exists for the event it listens to.
+function modifyAttackPlan(rt, ctx, effect) {
+  const frame = ctx.pendingAction;
+  const skill = frame?.skill;
+  if (!frame || frame.kind !== "action" || !skill) return;
+  const attack = (skill.effects ?? []).find((entry) => entry.type === "deal_damage"
+    && (entry.tags ?? []).includes("attack"));
+  if (!attack) return;
+  const baseHitCount = hitCountOfEffect(rt, { ...ctx, owner: frame.owner ?? ctx.owner }, attack);
+  if (effect.minHitCount !== undefined && baseHitCount < effect.minHitCount) return;
+
+  const plan = frame.attackPlan ??= {};
+  if (effect.hitCountBonus !== undefined) {
+    plan.hitCountBonus = (plan.hitCountBonus ?? 0) + effect.hitCountBonus;
+  }
+  if (effect.extraHitBps !== undefined) plan.extraHitBps = effect.extraHitBps;
+  if (effect.maxHitCount !== undefined) plan.maxHitCount = effect.maxHitCount;
+
+  if (effect.snapshotLegalTargets) {
+    const query = { ...skill.targetQuery, take: "all" };
+    const legal = resolveTargets(rt.state, ctx, query, { reach: frame.reach });
+    const firstId = frame.targetActorIds[0];
+    const legalIds = new Set(legal.map((actor) => actor.instanceId));
+    if (!firstId || !legalIds.has(firstId)) return;
+    const ids = [firstId, ...legal
+      .map((actor) => actor.instanceId)
+      .filter((id) => id !== firstId)];
+    if (ids.length < (effect.minTargetCount ?? 2)) return;
+    plan.targetActorIds = ids;
+    plan.hitDistribution = effect.hitDistribution ?? "round_robin";
+    frame.targetActorIds = ids;
+  }
+}
+
 function modifyPendingAmount(rt, ctx, effect) {
   const frame = ctx.pending;
   if (!frame || frame.kind !== "amount") return;
@@ -1243,7 +1332,7 @@ function splitPendingDamage(rt, ctx, effect) {
     // it through explicitly avoids applying the amount a second time,
     // while still letting this normal damage instance use guard/barrier and the
     // usual damage_proposed -> damage_taken event path.
-    dealOneInstance(rt, ctx, transferEffect, target, 0, 1, transfer);
+    dealOneInstance(rt, ctx, transferEffect, target, 0, 1, transfer, null, true);
   }
 }
 

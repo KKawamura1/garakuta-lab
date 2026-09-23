@@ -15,9 +15,9 @@ import { WEAPON_IDS_BY_CHARACTER, weaponSkillNodes } from "./weapon-trees.mjs";
 // 無料で持たせる。技能の種類（active / reactive / passive）は武器ツリーの定義から
 // 導出し、別の pack や旧 baseline 技能を初期ロードアウトへ混ぜない。
 // 以後の解禁も同じ武器ツリーを正本にするため、初期値と解禁可能なIDがずれない。
-const starterWeaponSkills = (characterId, kind) => (WEAPON_IDS_BY_CHARACTER[characterId] ?? [])
+const starterWeaponSkills = (characterId, position, kind) => (WEAPON_IDS_BY_CHARACTER[characterId] ?? [])
   .flatMap((weaponId) => weaponSkillNodes(weaponId))
-  .filter((node) => (node.position === "R" || node.position === "A1") && node.kind === kind)
+  .filter((node) => node.position === position && node.kind === kind)
   .map((node) => node.skillId);
 
 export const CHARACTER_DEFINITIONS = [
@@ -28,9 +28,9 @@ export const CHARACTER_DEFINITIONS = [
     defaultPosition: "front_left",
     summary: CHARACTER_LORE.warden.summary,
     // ゴウの初期技能は、代表武器2本の R / A1 から自動で決まる。
-    starterTactics: starterWeaponSkills("warden", "active"),
+    starterTactics: starterWeaponSkills("warden", "R", "active"),
     starterReactives: [],
-    starterPassives: starterWeaponSkills("warden", "passive"),
+    starterPassives: starterWeaponSkills("warden", "A1", "passive"),
   },
   {
     id: "mender",
@@ -38,9 +38,9 @@ export const CHARACTER_DEFINITIONS = [
     icon: "手",
     defaultPosition: "rear_right",
     summary: CHARACTER_LORE.mender.summary,
-    starterTactics: starterWeaponSkills("mender", "active"),
-    starterReactives: [],
-    starterPassives: starterWeaponSkills("mender", "passive"),
+    starterTactics: starterWeaponSkills("mender", "R", "active"),
+    starterReactives: starterWeaponSkills("mender", "A1", "reactive"),
+    starterPassives: starterWeaponSkills("mender", "A1", "passive"),
   },
   {
     id: "lancer",
@@ -48,9 +48,9 @@ export const CHARACTER_DEFINITIONS = [
     icon: "盾",
     defaultPosition: "front_center",
     summary: CHARACTER_LORE.lancer.summary,
-    starterTactics: starterWeaponSkills("lancer", "active"),
+    starterTactics: starterWeaponSkills("lancer", "R", "active"),
     starterReactives: [],
-    starterPassives: starterWeaponSkills("lancer", "passive"),
+    starterPassives: starterWeaponSkills("lancer", "A1", "passive"),
   },
   {
     id: "guardian",
@@ -58,9 +58,9 @@ export const CHARACTER_DEFINITIONS = [
     icon: "風",
     defaultPosition: "rear_center",
     summary: CHARACTER_LORE.guardian.summary,
-    starterTactics: starterWeaponSkills("guardian", "active"),
+    starterTactics: starterWeaponSkills("guardian", "R", "active"),
     starterReactives: [],
-    starterPassives: starterWeaponSkills("guardian", "passive"),
+    starterPassives: starterWeaponSkills("guardian", "A1", "passive"),
   },
   {
     id: "tactician",
@@ -68,8 +68,8 @@ export const CHARACTER_DEFINITIONS = [
     icon: "筆",
     defaultPosition: "rear_left",
     summary: CHARACTER_LORE.tactician.summary,
-    starterTactics: starterWeaponSkills("tactician", "active"),
+    starterTactics: starterWeaponSkills("tactician", "R", "active"),
     starterReactives: [],
-    starterPassives: starterWeaponSkills("tactician", "passive"),
+    starterPassives: starterWeaponSkills("tactician", "A1", "passive"),
   },
 ];

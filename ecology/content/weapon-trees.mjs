@@ -11,6 +11,7 @@ import { MEDICAL_KIT_TREE } from "./weapon-medical-kit.mjs";
 import { GRAPPLING_HOOK_TREE } from "./weapon-grappling-hook.mjs";
 import { BANNER_TREE } from "./weapon-banner.mjs";
 import { HEAVY_CROSSBOW_TREE } from "./weapon-heavy-crossbow.mjs";
+import { WEAPON_SKILL_SPEC_BY_POSITION } from "./weapon-specifications.mjs";
 
 // R25設計PR #287 §8・§12 — 五人は署名武器と副武器を一つずつ導入する。
 // CampaignのStageは加入済み人物を累積して持つため、manifestの武器も同じ順で累積する。
@@ -149,14 +150,24 @@ export function weaponIdsForCharacterIds(characterIds = []) {
   return result;
 }
 
-export const WEAPON_SKILL_TREE_NODES = Object.freeze(ALL_TREES.map((node) => Object.freeze({
-  ...node,
-  cost: 1,
-  branch: branchOf(node.position),
-  x: depthOf(node.position),
-  // 武器ツリーの前提は取得済みIDだけを見る。旧技能Lvは保持しない。
-  requires: Object.freeze(node.requires.map((skillId) => Object.freeze({ skillId }))),
-})));
+export const WEAPON_SKILL_TREE_NODES = Object.freeze(ALL_TREES.map((node) => {
+  const specification = WEAPON_SKILL_SPEC_BY_POSITION[`${node.weaponId}:${node.position}`];
+  if (!specification) throw new Error(`Missing PR #287 specification: ${node.weaponId}:${node.position}`);
+  return Object.freeze({
+    ...node,
+    kind: specification.kind,
+    displayName: specification.displayName,
+    displayEffect: specification.displayEffect,
+    flavorText: specification.flavorText,
+    implementationContract: specification.implementationContract,
+    catalogPosition: node.position,
+    cost: 1,
+    branch: branchOf(node.position),
+    x: depthOf(node.position),
+    // 武器ツリーの前提は取得済みIDだけを見る。旧技能Lvは保持しない。
+    requires: Object.freeze(node.requires.map((skillId) => Object.freeze({ skillId }))),
+  });
+}));
 
 export const WEAPON_SKILL_NODE_BY_ID = Object.freeze(Object.fromEntries(
   WEAPON_SKILL_TREE_NODES.map((node) => [node.skillId, node]),

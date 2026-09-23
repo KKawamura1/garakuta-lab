@@ -169,6 +169,21 @@ function validateValue(bag, path, value, ctx) {
       requireOneOf(bag, `${path}.scalingStat`, value.scalingStat, SCALING_STATS, "unknown_scaling_stat");
       if (value.flat !== undefined) requireCount(bag, `${path}.flat`, value.flat, { max: 100_000 });
       requireCount(bag, `${path}.coefficientBps`, value.coefficientBps, { max: 100_000 });
+      if (value.statusConditional !== undefined) {
+        if (!isPlainObject(value.statusConditional)) {
+          bag.add(`${path}.statusConditional`, "not_an_object", "expected a status conditional coefficient");
+        } else {
+          requireStatusReference(bag, `${path}.statusConditional.statusId`, value.statusConditional.statusId, ctx);
+          requireCount(bag, `${path}.statusConditional.minStacks`, value.statusConditional.minStacks, { min: 1 });
+          requireCount(bag, `${path}.statusConditional.coefficientBps`, value.statusConditional.coefficientBps,
+            { max: 100_000 });
+          if (value.statusConditional.memoryKey !== undefined
+              && (typeof value.statusConditional.memoryKey !== "string"
+                || value.statusConditional.memoryKey.length === 0)) {
+            bag.add(`${path}.statusConditional.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
+          }
+        }
+      }
       break;
     case "status_stacks_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
@@ -226,7 +241,15 @@ function validateTargetQuery(bag, path, query, ctx, { take } = {}) {
   }
   if (query.sort !== undefined && requireArray(bag, `${path}.sort`, query.sort)) {
     query.sort.forEach((sort, index) => {
-      requireOneOf(bag, `${path}.sort[${index}]`, sort, TARGET_SORT_TYPES, "unknown_target_sort");
+      const sortPath = `${path}.sort[${index}]`;
+      const type = isPlainObject(sort) ? sort.type : sort;
+      if (!requireOneOf(bag, isPlainObject(sort) ? `${sortPath}.type` : sortPath,
+        type, TARGET_SORT_TYPES, "unknown_target_sort")) return;
+      if (isPlainObject(sort) && type === "status_stacks_desc") {
+        requireStatusReference(bag, `${sortPath}.statusId`, sort.statusId, ctx);
+      } else if (isPlainObject(sort) && type !== "distance_to_self_asc") {
+        bag.add(sortPath, "unexpected_sort_options", `${type} does not take sort options`);
+      }
     });
   }
   if (!requireOneOf(bag, `${path}.take`, query.take, TAKE_VALUES, "unknown_take")) return;
@@ -248,6 +271,9 @@ function validateTargetFilter(bag, path, filter, ctx) {
       }
       break;
     case "row_is":
+      requireOneOf(bag, `${path}.row`, filter.row, ROWS, "unknown_row");
+      break;
+    case "has_open_position_in_row":
       requireOneOf(bag, `${path}.row`, filter.row, ROWS, "unknown_row");
       break;
     case "hp_percent":
@@ -378,6 +404,9 @@ function validatePredicate(bag, path, predicate, ctx) {
       }
       if (predicate.value !== undefined) requireCount(bag, `${path}.value`, predicate.value, { min: 0 });
       break;
+    case "hit_target_comparison":
+      requireOneOf(bag, `${path}.relation`, predicate.relation, ["same", "different"], "unknown_relation");
+      break;
     case "round_number":
       requireOneOf(bag, `${path}.op`, predicate.op, COMPARISON_OPS, "unknown_operator");
       requireCount(bag, `${path}.value`, predicate.value, { min: 0 });
@@ -448,6 +477,9 @@ function validateEffect(bag, path, effect, ctx) {
 
   switch (effect.type) {
     case "deal_damage":
+      if (ctx.insideHitEffects) {
+        bag.add(path, "nested_hit_attack", "onHitEffects may not start another attack");
+      }
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
@@ -471,12 +503,16 @@ function validateEffect(bag, path, effect, ctx) {
           );
           requireCount(bag, `${path}.hitCountFromStatus.max`, effect.hitCountFromStatus.max, { min: 1, max: 8 });
           if (effect.hitCountFromStatus.fallback !== undefined) {
-            requireCount(
-              bag,
-              `${path}.hitCountFromStatus.fallback`,
-              effect.hitCountFromStatus.fallback,
-              { min: 1, max: 8 },
-            );
+            requireCount(bag, `${path}.hitCountFromStatus.fallback`, effect.hitCountFromStatus.fallback,
+              { min: 0, max: 8 });
+          }
+          if (effect.hitCountFromStatus.base !== undefined) {
+            requireCount(bag, `${path}.hitCountFromStatus.base`, effect.hitCountFromStatus.base, { min: 1, max: 8 });
+          }
+          if (effect.hitCountFromStatus.memoryKey !== undefined
+              && (typeof effect.hitCountFromStatus.memoryKey !== "string"
+                || effect.hitCountFromStatus.memoryKey.length === 0)) {
+            bag.add(`${path}.hitCountFromStatus.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
           }
         }
       }
@@ -516,6 +552,9 @@ function validateEffect(bag, path, effect, ctx) {
         bag.add(`${path}.targetPattern`, "pattern_needs_single_anchor",
           `${effect.targetPattern} spreads from one anchor, so target.take must be 1`);
       }
+      if (effect.onHitEffects !== undefined) {
+        validateEffects(bag, `${path}.onHitEffects`, effect.onHitEffects, { ...ctx, insideHitEffects: true });
+      }
       break;
     case "heal":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -551,6 +590,16 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.stacks !== undefined && effect.stacks !== "all") {
         requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
       }
+      if (effect.maxStacks !== undefined) requireCount(bag, `${path}.maxStacks`, effect.maxStacks, { min: 1 });
+      if (effect.storeAs !== undefined) {
+        if (typeof effect.storeAs !== "string" || effect.storeAs.length === 0) {
+          bag.add(`${path}.storeAs`, "bad_key", "storeAs must be a non-empty string");
+        }
+        if (ctx.timing !== "action" || effect.target?.scope !== "self" || effect.target?.take !== 1) {
+          bag.add(`${path}.storeAs`, "status_snapshot_outside_action",
+            "storeAs is only valid for a single self target during an active action");
+        }
+      }
       break;
     case "remove_statuses":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -577,6 +626,47 @@ function validateEffect(bag, path, effect, ctx) {
           "action_return_outside_action",
           "returnAfterAction is only valid during an active action",
         );
+      }
+      if (effect.returnRow !== undefined) {
+        requireOneOf(bag, `${path}.returnRow`, effect.returnRow, ROWS, "unknown_row");
+        if (effect.returnAfterAction !== true) {
+          bag.add(`${path}.returnRow`, "return_row_without_return", "returnRow requires returnAfterAction");
+        }
+      }
+      if (effect.cancelIfOutOfReach !== undefined && typeof effect.cancelIfOutOfReach !== "boolean") {
+        bag.add(`${path}.cancelIfOutOfReach`, "bad_boolean", "cancelIfOutOfReach must be a boolean");
+      }
+      break;
+    case "modify_attack_plan":
+      if (ctx.timing !== "interrupt" || ctx.listenTo !== "action_declared") {
+        bag.add(path, "attack_plan_window", "modify_attack_plan requires an action_declared interrupt");
+      }
+      if (effect.hitCountBonus !== undefined) {
+        requireCount(bag, `${path}.hitCountBonus`, effect.hitCountBonus, { min: 1, max: 8 });
+      }
+      if (effect.extraHitBps !== undefined) {
+        requireCount(bag, `${path}.extraHitBps`, effect.extraHitBps, { min: 1, max: 10_000 });
+        if (effect.hitCountBonus === undefined) {
+          bag.add(`${path}.extraHitBps`, "missing_hit_count_bonus", "extraHitBps needs hitCountBonus");
+        }
+      }
+      if (effect.minHitCount !== undefined) {
+        requireCount(bag, `${path}.minHitCount`, effect.minHitCount, { min: 1, max: 8 });
+      }
+      if (effect.minTargetCount !== undefined) {
+        requireCount(bag, `${path}.minTargetCount`, effect.minTargetCount, { min: 1, max: 5 });
+      }
+      if (effect.maxHitCount !== undefined) {
+        requireCount(bag, `${path}.maxHitCount`, effect.maxHitCount, { min: 1, max: 9 });
+      }
+      if (effect.snapshotLegalTargets !== undefined && typeof effect.snapshotLegalTargets !== "boolean") {
+        bag.add(`${path}.snapshotLegalTargets`, "bad_boolean", "snapshotLegalTargets must be a boolean");
+      }
+      if (effect.hitDistribution !== undefined) {
+        requireOneOf(bag, `${path}.hitDistribution`, effect.hitDistribution, HIT_DISTRIBUTIONS, "unknown_hit_distribution");
+      }
+      if (effect.hitCountBonus === undefined && effect.snapshotLegalTargets !== true) {
+        bag.add(path, "empty_attack_plan_modifier", "give a hit or target plan change");
       }
       break;
     case "start_preparation":
@@ -879,6 +969,19 @@ export function validateContentBundle(bundle) {
     const path = `reactiveSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireTags(bag, `${path}.tags`, skill.tags);
+    if (skill.replacesReactiveSkillIds !== undefined
+      && requireArray(bag, `${path}.replacesReactiveSkillIds`, skill.replacesReactiveSkillIds)) {
+      for (const [index, replacedId] of skill.replacesReactiveSkillIds.entries()) {
+        if (!Object.hasOwn(bundle.reactiveSkills, replacedId)) {
+          bag.add(`${path}.replacesReactiveSkillIds[${index}]`, "dangling_reference",
+            `no such reactive skill: ${replacedId}`);
+        }
+        if (replacedId === id) {
+          bag.add(`${path}.replacesReactiveSkillIds[${index}]`, "self_replacement",
+            "a reactive skill cannot replace itself");
+        }
+      }
+    }
     const hasRule = skill.rule !== undefined;
     const hasRules = skill.rules !== undefined;
     if (hasRule === hasRules) {
@@ -1013,8 +1116,17 @@ export function validateContentBundle(bundle) {
     const path = `statuses.${id}`;
     requireDisplayName(bag, `${path}.displayName`, status.displayName);
     requireOneOf(bag, `${path}.polarity`, status.polarity, STATUS_POLARITIES, "unknown_polarity");
-    requireCount(bag, `${path}.maxStacks`, status.maxStacks, { min: 1 });
+    if (status.maxStacks !== "unbounded") {
+      requireCount(bag, `${path}.maxStacks`, status.maxStacks, { min: 1 });
+    }
     requireOneOf(bag, `${path}.duration`, status.duration, DURATIONS, "unknown_duration");
+    if (status.decayAtRoundEnd !== undefined && typeof status.decayAtRoundEnd !== "boolean") {
+      bag.add(`${path}.decayAtRoundEnd`, "bad_boolean", "decayAtRoundEnd must be a boolean");
+    }
+    if (status.decayAtRoundEnd && status.duration !== "battle") {
+      bag.add(`${path}.decayAtRoundEnd`, "decay_needs_battle_duration",
+        "round-end decay statuses use battle duration");
+    }
     if (status.durationRounds !== undefined) {
       requireCount(bag, `${path}.durationRounds`, status.durationRounds, { min: 1, max: 99 });
       if (status.duration !== "round") {

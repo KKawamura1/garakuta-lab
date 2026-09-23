@@ -348,7 +348,11 @@ function ruleEntriesFor(state, actor) {
   for (const rule of intrinsic) {
     entries.push({ rule, owner: actor, sourceDefinitionId: actor.definitionId, ruleSource: "signature" });
   }
+  const replacedReactives = new Set(actor.reactiveSkillIds.flatMap((skillId) => (
+    reactiveSkills?.[skillId]?.replacesReactiveSkillIds ?? []
+  )));
   for (const [skillOrder, skillId] of actor.reactiveSkillIds.entries()) {
+    if (replacedReactives.has(skillId)) continue;
     const definition = reactiveSkills[skillId];
     for (const rule of definition.rules ?? [definition.rule]) {
       entries.push({
@@ -1107,6 +1111,7 @@ function resolveActionTargets(state, ctx, actor, skill) {
 function performAction(state, actor, choice) {
   const { skill, targets, costs } = choice;
   const rt = makeRuntime(state);
+  const declaredReach = actionReach(skill);
   const frame = {
     kind: "action",
     canceled: false,
@@ -1114,6 +1119,9 @@ function performAction(state, actor, choice) {
     skillId: skill.id,
     sourceActorId: actor.instanceId,
     targetActorIds: targets.map((target) => target.instanceId),
+    skill,
+    owner: actor,
+    reach: declaredReach,
   };
   state.currentPendingAction = frame;
   const baseCtx = () => ({
@@ -1129,7 +1137,6 @@ function performAction(state, actor, choice) {
   });
 
   try {
-    const declaredReach = actionReach(skill);
     const declared = emit(
       state,
       {
@@ -1284,6 +1291,9 @@ function endRound(state) {
   });
   if (state.finished) return;
 
+  decayRoundEndStatuses(state);
+  if (state.finished) return;
+
   runChain(state, "resource_unused", () => {
     for (const actor of orderedActors(state)) {
       if (!actor.alive) continue;
@@ -1318,6 +1328,29 @@ function endRound(state) {
 
   state.roundsCompleted = state.round;
   checkOutcome(state);
+}
+
+function decayRoundEndStatuses(state) {
+  runChain(state, "status_decay", () => {
+    for (const actor of orderedActors(state)) {
+      for (const status of [...actor.statuses]) {
+        const definition = state.content.statuses[status.statusId];
+        if (!definition?.decayAtRoundEnd) continue;
+        const before = status.stacks;
+        const after = Math.floor(before / 2);
+        const removed = before - after;
+        if (removed <= 0) continue;
+        status.stacks = after;
+        if (after === 0) actor.statuses = actor.statuses.filter((entry) => entry !== status);
+        emit(state, {
+          type: "status_removed",
+          targetActorIds: [actor.instanceId],
+          tags: ["decay", definition.polarity],
+          values: { statusId: status.statusId, removed, remaining: after, cause: "round_end_half" },
+        });
+      }
+    }
+  });
 }
 
 // §11.6 offers an optional stalemate rule: end the battle when two consecutive

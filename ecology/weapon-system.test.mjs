@@ -15,6 +15,7 @@ import {
   WARHAMMER_TREE,
   WEAPONS,
   WEAPON_IDS_BY_CHARACTER,
+  WEAPON_SKILL_SPECIFICATIONS,
   WEAPON_SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import {
@@ -50,22 +51,43 @@ const sections = {
   target: "targetSkills",
   passive: "passiveSkills",
 };
-equal(WARHAMMER_TREE.length, 19, "warhammer has the complete 19-node shape");
+const expectedPositions = ["R", "A1", "A2", "A3", "AA1", "AA2", "AA3", "AB1", "AB2", "AB3",
+  "B1", "B2", "B3", "BA1", "BA2", "BA3", "BB1", "BB2", "BB3"];
+equal(WEAPON_SKILL_SPECIFICATIONS.length, 190, "PR #287 defines all 190 weapon skills");
+equal(WEAPON_SKILL_TREE_NODES.length, 190, "all 190 specified skills are present in the acquisition trees");
+const nodesByPosition = new Map(WEAPON_SKILL_TREE_NODES.map((node) => [`${node.weaponId}:${node.position}`, node]));
+const expectedCountByKind = Object.fromEntries(Object.keys(sections).map((kind) => [
+  kind,
+  WEAPON_SKILL_SPECIFICATIONS.filter((specification) => specification.kind === kind).length,
+]));
+for (const specification of WEAPON_SKILL_SPECIFICATIONS) {
+  const node = nodesByPosition.get(`${specification.weaponId}:${specification.position}`);
+  ok(node, `${specification.weaponId} ${specification.position} exists in the tree`);
+  equal(node.kind, specification.kind, `${specification.weaponId} ${specification.position} has catalog classification`);
+  equal(node.displayName, specification.displayName, `${specification.weaponId} ${specification.position} has catalog name`);
+  equal(node.implementationContract, specification.implementationContract,
+    `${specification.weaponId} ${specification.position} has catalog implementation contract`);
+  equal(node.displayEffect, specification.displayEffect, `${specification.weaponId} ${specification.position} has catalog effect text`);
+  equal(node.flavorText, specification.flavorText, `${specification.weaponId} ${specification.position} has catalog flavor text`);
+  const definition = PLAYABLE_CONTENT[sections[specification.kind]][node.skillId];
+  ok(definition, `${specification.weaponId} ${specification.position} is registered as ${specification.kind}`);
+  equal(definition.displayName, specification.displayName, `${node.skillId} uses the catalog name`);
+  equal(definition.displayEffect, specification.displayEffect, `${node.skillId} uses the catalog effect`);
+  equal(definition.flavorText, specification.flavorText, `${node.skillId} uses the catalog flavor`);
+  equal(definition.implementationContract, specification.implementationContract,
+    `${node.skillId} exposes its catalog implementation contract`);
+}
 assert.deepEqual(
-  Object.fromEntries(Object.keys(sections).map((kind) => [
-    kind, WARHAMMER_TREE.filter((node) => node.kind === kind).length,
-  ])),
-  { active: 7, reactive: 2, target: 1, passive: 9 },
+  Object.fromEntries(Object.keys(sections).map((kind) => [kind, Object.keys(PLAYABLE_CONTENT[sections[kind]]).length])),
+  expectedCountByKind,
+  "playable registries contain exactly the catalog skills in each category",
 );
 checks += 1;
-for (const node of WARHAMMER_TREE) {
-  const definition = PLAYABLE_CONTENT[sections[node.kind]][node.skillId];
-  ok(definition, `${node.position} points to a real ${node.kind} skill`);
-  ok(definition.displayEffect?.length > 0, `${node.position} has player-facing effect text`);
-  ok(definition.flavorText?.length > 0, `${node.position} has flavor text`);
-  if (node.position.endsWith("3") && node.position.length === 3) {
-    ok(definition.flavorText.includes("\n"), `${node.position} terminal flavor uses two lines`);
-  }
+for (const weaponId of IMPLEMENTED_WEAPON_IDS) {
+  const nodes = WEAPON_SKILL_TREE_NODES.filter((node) => node.weaponId === weaponId);
+  equal(nodes.length, 19, `${weaponId} has 19 catalog positions`);
+  assert.deepEqual(nodes.map((node) => node.position), expectedPositions, `${weaponId} keeps the catalog position order`);
+  checks += 1;
 }
 
 assert.deepEqual(WEAPON_IDS_BY_CHARACTER, {
@@ -95,30 +117,22 @@ for (const [weaponId, tree, skillId, expectedLength] of [
   ok(PLAYABLE_CONTENT.activeSkills[skillId], `${weaponId} root is in playable active content`);
 }
 
-for (const [weaponId, tree, expectedCounts] of [
-  ["gauntlets", GAUNTLETS_TREE, { active: 7, reactive: 3, target: 1, passive: 8 }],
-  ["launcher", LAUNCHER_TREE, { active: 7, reactive: 2, target: 2, passive: 8 }],
-  ["tower_shield", TOWER_SHIELD_TREE, { active: 7, reactive: 3, target: 0, passive: 9 }],
-  ["long_spear", LONG_SPEAR_TREE, { active: 7, reactive: 2, target: 1, passive: 9 }],
-  ["medical_kit", MEDICAL_KIT_TREE, { active: 7, reactive: 3, target: 0, passive: 9 }],
-  ["grappling_hook", GRAPPLING_HOOK_TREE, { active: 7, reactive: 2, target: 1, passive: 9 }],
-  ["banner", BANNER_TREE, { active: 7, reactive: 5, target: 1, passive: 6 }],
-  ["heavy_crossbow", HEAVY_CROSSBOW_TREE, { active: 7, reactive: 2, target: 1, passive: 9 }],
+for (const [weaponId, tree] of [
+  ["gauntlets", GAUNTLETS_TREE],
+  ["launcher", LAUNCHER_TREE],
+  ["tower_shield", TOWER_SHIELD_TREE],
+  ["long_spear", LONG_SPEAR_TREE],
+  ["medical_kit", MEDICAL_KIT_TREE],
+  ["grappling_hook", GRAPPLING_HOOK_TREE],
+  ["banner", BANNER_TREE],
+  ["heavy_crossbow", HEAVY_CROSSBOW_TREE],
 ]) {
   equal(tree.length, 19, `${weaponId} has the complete 19-node shape`);
-  assert.deepEqual(
-    Object.fromEntries(Object.keys(sections).map((kind) => [
-      kind, tree.filter((node) => node.kind === kind).length,
-    ])),
-    expectedCounts,
-    `${weaponId} keeps its active/reactive/target/passive contract`,
-  );
-  checks += 1;
-  for (const node of tree) {
+  for (const node of WEAPON_SKILL_TREE_NODES.filter((entry) => entry.weaponId === weaponId)) {
     const definition = PLAYABLE_CONTENT[sections[node.kind]][node.skillId];
     ok(definition, `${node.position} points to a real ${weaponId} ${node.kind} skill`);
-    ok(definition.displayEffect?.length > 0, `${weaponId} ${node.position} has effect text`);
-    ok(definition.flavorText?.length > 0, `${weaponId} ${node.position} has flavor text`);
+    equal(definition.displayEffect, node.displayEffect, `${weaponId} ${node.position} has catalog effect text`);
+    equal(definition.flavorText, node.flavorText, `${weaponId} ${node.position} has catalog flavor text`);
   }
 }
 
@@ -219,6 +233,15 @@ content.enemyActors.weapon_test_bleeding = {
     }],
     limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
   }],
+};
+content.enemyActors.weapon_test_bleeding_three = {
+  ...content.enemyActors.weapon_test_bleeding,
+  id: "weapon_test_bleeding_three",
+  intrinsicRules: content.enemyActors.weapon_test_bleeding.intrinsicRules.map((rule) => ({
+    ...rule,
+    id: "weapon_test_bleeding_three_opening_rule",
+    effects: rule.effects.map((effect) => ({ ...effect, stacks: 3 })),
+  })),
 };
 content.enemyActors.weapon_test_weak = {
   ...content.enemyActors.weapon_test_bleeding,
@@ -390,7 +413,8 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const result = simulateBattle(battle({
     characterId: "lancer",
     activeSkillId: "tower_shield_draw_guard",
-    passiveSkillIds: ["tower_shield_thick_plate", "tower_shield_visible"],
+    passiveSkillIds: ["tower_shield_thick_plate"],
+    reactiveSkillIds: ["tower_shield_visible"],
   }), content);
   equal(result.events.find((event) => event.type === "barrier_gained"
     && event.skillId === "tower_shield_draw_guard")?.values.amount, 45,
@@ -468,7 +492,8 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const result = simulateBattle(battle({
     characterId: "lancer",
     activeSkillId: "long_spear_pierce",
-    passiveSkillIds: ["long_spear_double_thrust", "long_spear_penetration"],
+    passiveSkillIds: ["long_spear_double_thrust"],
+    reactiveSkillIds: ["long_spear_penetration"],
     enemies: [
       { instanceId: "e_front", enemyActorId: "weapon_test_dummy", position: "front_left" },
       { instanceId: "e_rear", enemyActorId: "weapon_test_dummy", position: "rear_left" },
@@ -486,7 +511,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const result = simulateBattle(battle({
     characterId: "lancer",
     activeSkillId: "long_spear_pierce",
-    passiveSkillIds: ["long_spear_foot_stop"],
+    reactiveSkillIds: ["long_spear_foot_stop"],
     enemies: [{ instanceId: "e_delayed", enemyActorId: "weapon_test_heavy", position: "front_left" }],
   }), content);
   ok(result.events.some((event) => event.type === "resource_spent"
@@ -548,7 +573,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     objective: { type: "survive_rounds", rounds: 1 },
     allies: [
       allyInput("a_mender", "mender", "medical_kit_major_treatment", "rear_left", {
-        passiveSkillIds: ["medical_kit_clean_tools"],
+        reactiveSkillIds: ["medical_kit_clean_tools"],
       }),
       allyInput("a_wounded", "warden", "warhammer_blow", "front_left", { hp: 50 }),
     ],
@@ -582,7 +607,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const result = simulateBattle(battle({
     characterId: "guardian",
     activeSkillId: "grappling_hook_net_field",
-    passiveSkillIds: ["grappling_hook_movement_marks"],
+    reactiveSkillIds: ["grappling_hook_movement_marks"],
     position: "rear_left",
     enemies: [{ instanceId: "e_hook", enemyActorId: "weapon_test_dummy", position: "rear_right" }],
   }), content);
@@ -663,7 +688,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const result = simulateBattle(battle({
     activeSkillId: "warhammer_siege_blow",
     targetSkillIds: ["warhammer_point_at_armor"],
-    passiveSkillIds: ["warhammer_broken_armor"],
+    reactiveSkillIds: ["warhammer_broken_armor"],
     enemies: [
       { instanceId: "e_plain", enemyActorId: "weapon_test_dummy", position: "front_left" },
       { instanceId: "e_armored", enemyActorId: "weapon_test_armored", position: "front_right" },
@@ -719,7 +744,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const gauntletsFootwork = simulateBattle(battle({
     position: "rear_center",
     activeSkillId: "gauntlets_punch",
-    passiveSkillIds: ["gauntlets_footwork"],
+    reactiveSkillIds: ["gauntlets_footwork"],
   }), content);
   ok(gauntletsFootwork.events.some((event) => event.type === "actor_moved"
     && event.tags[0] === "move"),
@@ -735,7 +760,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
 {
   const gauntletsGuard = simulateBattle(battle({
     activeSkillId: "gauntlets_punch",
-    reactiveSkillIds: ["gauntlets_strike_guard"],
+    passiveSkillIds: ["gauntlets_strike_guard"],
   }), content);
   ok(gauntletsGuard.events.some((event) => (
     event.type === "barrier_gained" && event.ruleId === "gauntlets_strike_guard_rule"
@@ -747,7 +772,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const launcherMulti = simulateBattle(battle({
     characterId: "mender",
     activeSkillId: "launcher_shot",
-    passiveSkillIds: ["launcher_multi_barrel", "launcher_separate_caliber"],
+    reactiveSkillIds: ["launcher_multi_barrel", "launcher_separate_caliber"],
   }), content);
   equal(launcherMulti.events.filter((event) => (
     event.type === "damage_proposed" && event.sourceActorId === "a_user"
@@ -761,7 +786,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const launcherObservation = simulateBattle(battle({
     characterId: "mender",
     activeSkillId: "launcher_shot",
-    passiveSkillIds: ["launcher_observation_hole"],
+    reactiveSkillIds: ["launcher_observation_hole"],
   }), content);
   equal(launcherObservation.actors.find((actor) => actor.instanceId === "e_dummy")
     .statuses.find((status) => status.statusId === "launcher_observed")?.stacks, 1,
@@ -855,7 +880,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
 
   const target = componentInfo("warhammer_point_at_armor");
   equal(target.kind, "target", "weapon target metadata comes from playable content");
-  equal(target.effect, "防壁か受け構えを持つ敵を優先。",
+  equal(target.effect, WEAPON_SKILL_TREE_NODES.find((node) => node.skillId === "warhammer_point_at_armor").displayEffect,
     "weapon component metadata uses the player-facing effect text");
 
   let loadout = installUnlockedSkills(freshLoadout(["warden"]), "warden", ["warhammer_blow"]);
@@ -877,13 +902,6 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const dualNodes = WEAPON_SKILL_TREE_NODES.filter((node) => node.weaponId === "dual_blades");
   equal(dualNodes.length, 19, "dual blades exposes the complete 19-node tree");
   equal(dualNodes[0].position, "R", "dual blades acquisition starts at its own root");
-  assert.deepEqual(
-    Object.fromEntries(Object.keys(sections).map((kind) => [
-      kind, dualNodes.filter((node) => node.kind === kind).length,
-    ])),
-    { active: 7, reactive: 2, target: 1, passive: 9 },
-  );
-  checks += 1;
   for (const node of dualNodes) {
     const definition = PLAYABLE_CONTENT[sections[node.kind]][node.skillId];
     ok(definition, `${node.position} points to a real dual-blades ${node.kind} skill`);
@@ -894,7 +912,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const stranded = simulateBattle(battle({
     position: "rear_center",
     activeSkillId: "dual_blades_two_cut",
-    passiveSkillIds: ["dual_blades_dash_in"],
+    reactiveSkillIds: ["dual_blades_dash_in"],
   }), content);
   const strandedMoves = stranded.events.filter((event) => event.type === "actor_moved");
   equal(strandedMoves.length, 1, "dash-in advances once and deliberately remains in front");
@@ -910,7 +928,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   const returningInput = battle({
     position: "rear_center",
     activeSkillId: "dual_blades_three_cut",
-    passiveSkillIds: ["dual_blades_retreat"],
+    reactiveSkillIds: ["dual_blades_retreat"],
   });
   returningInput.maxRounds = 2;
   returningInput.objective = { type: "survive_rounds", rounds: 2 };
@@ -944,6 +962,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
 {
   const distributed = simulateBattle(battle({
     activeSkillId: "dual_blades_dancing_cut",
+    passiveSkillIds: ["dual_blades_edge_pass"],
     enemies: [
       { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
       { instanceId: "e_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
@@ -953,39 +972,73 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     distributed.events
       .filter((event) => event.type === "damage_proposed" && event.skillId === "dual_blades_dancing_cut")
       .map((event) => event.targetActorIds[0]),
-    ["e_left", "e_right", "e_left", "e_right"],
-    "dancing cut distributes four hits in fixed tile order",
+    ["e_left", "e_right", "e_left", "e_right", "e_left"],
+    "AB1 gives the primary target hit one and balances the remaining five hits",
   );
   checks += 1;
 
-  const wasted = simulateBattle(battle({
-    activeSkillId: "dual_blades_three_cut",
-    passiveSkillIds: ["dual_blades_no_waste"],
+  const noDistribution = simulateBattle(battle({
+    activeSkillId: "dual_blades_dancing_cut",
+    enemies: [
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  assert.deepEqual(
+    noDistribution.events
+      .filter((event) => event.type === "damage_proposed" && event.skillId === "dual_blades_dancing_cut")
+      .map((event) => event.targetActorIds[0]),
+    Array(5).fill("e_left"),
+    "AB3 keeps every hit on the primary target when AB1 is absent",
+  );
+  checks += 1;
+
+  const noRedistribution = simulateBattle(battle({
+    activeSkillId: "dual_blades_dancing_cut",
+    passiveSkillIds: ["dual_blades_edge_pass"],
     enemies: [
       { instanceId: "e_weak", enemyActorId: "weapon_test_weak", position: "front_left" },
       { instanceId: "e_next", enemyActorId: "weapon_test_dummy", position: "front_right" },
     ],
   }), content);
-  equal(wasted.events.filter((event) => event.tags.includes("overflow_hit")).length, 4,
-    "no waste carries both remaining hits through proposal and resolution");
-  equal(wasted.events.filter((event) => (
-    event.type === "damage_proposed" && event.tags.includes("overflow_hit")
-  )).every((event) => event.targetActorIds[0] === "e_next"), true,
-  "no waste sends each replacement hit to the next living enemy");
+  equal(noRedistribution.events.filter((event) => (
+    event.type === "damage_proposed" && event.skillId === "dual_blades_dancing_cut"
+      && event.targetActorIds[0] === "e_next"
+  )).length, 2, "AB1 snapshots targets and does not reassign hits after the primary dies");
+  equal(noRedistribution.events.filter((event) => (
+    event.type === "damage_skipped" && event.targetActorIds[0] === "e_weak"
+  )).length, 2, "remaining hits for the defeated snapshot target are lost");
+
+  const alternation = simulateBattle(battle({
+    activeSkillId: "dual_blades_dancing_cut",
+    passiveSkillIds: ["dual_blades_edge_pass", "dual_blades_no_waste"],
+    enemies: [
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  equal(alternation.events.filter((event) => (
+    event.type === "pending_amount_modified" && event.ruleId === "dual_blades_no_waste_rule"
+  )).length, 4, "AB2 boosts every hit that changes targets, but not the first hit");
 
   const wound = simulateBattle(battle({
     activeSkillId: "dual_blades_wound_mark",
     reactiveSkillIds: ["dual_blades_lacerating_edge"],
     enemies: [{ instanceId: "e_wound", enemyActorId: "weapon_test_dummy", position: "front_left" }],
   }), content);
-  equal(wound.actors.find((actor) => actor.instanceId === "e_wound")
-    .statuses.find((status) => status.statusId === "bleeding")?.stacks, 3,
-  "wound mark and the second-hit reaction cap the target at three bleeding");
+  equal(wound.events.filter((event) => (
+    event.type === "status_added" && event.ruleId === "dual_blades_lacerating_edge_rule"
+      && event.values.statusId === "bleeding"
+  ))[0]?.values.added, 4, "B1 adds four bleed stacks on the second hit");
+  equal(wound.events.filter((event) => (
+    event.type === "status_added" && event.targetActorIds[0] === "e_wound"
+      && event.values.statusId === "bleeding"
+  )).at(-1)?.values.stacks, 6, "B3 and B1 can build six bleed stacks before round-end decay");
 
   const hunted = simulateBattle(battle({
     activeSkillId: "dual_blades_two_cut",
     targetSkillIds: ["dual_blades_blood_scent"],
-    passiveSkillIds: ["dual_blades_wound_expansion"],
+    reactiveSkillIds: ["dual_blades_wound_expansion"],
     enemies: [
       { instanceId: "e_plain", enemyActorId: "weapon_test_dummy", position: "front_left" },
       { instanceId: "e_bleeding", enemyActorId: "weapon_test_bleeding", position: "front_right" },
@@ -995,28 +1048,135 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     (event) => event.type === "target_selected" && event.skillId === "dual_blades_two_cut",
   );
   equal(huntedSelection.targetActorIds[0], "e_bleeding", "blood scent follows the bleeding legal target");
-  equal(hunted.events.filter((event) => event.ruleId === "dual_blades_wound_expansion_rule").length, 1,
-    "wound expansion adds its fixed opening damage once per action");
+  equal(hunted.events.filter((event) => event.ruleId === "dual_blades_wound_expansion_rule").length, 2,
+    "wound expansion adds fixed damage on each hit against a bleeding target");
 
-  const spray = simulateBattle(battle({
+  const bloodPriority = simulateBattle(battle({
+    position: "rear_right",
     activeSkillId: "dual_blades_two_cut",
-    passiveSkillIds: ["dual_blades_blood_spray"],
+    targetSkillIds: ["dual_blades_blood_scent"],
     enemies: [
-      { instanceId: "e_weak", enemyActorId: "weapon_test_weak", position: "front_left" },
-      { instanceId: "e_next", enemyActorId: "weapon_test_dummy", position: "front_right" },
+      { instanceId: "e_far_bloody", enemyActorId: "weapon_test_bleeding_three", position: "front_left" },
+      { instanceId: "e_near_bloody", enemyActorId: "weapon_test_bleeding", position: "front_right" },
     ],
   }), content);
-  equal(spray.actors.find((actor) => actor.instanceId === "e_next")
-    .statuses.find((status) => status.statusId === "bleeding")?.stacks, 1,
-  "blood spray passes one wound stack to the surviving enemy in the row");
+  equal(bloodPriority.events.find((event) => (
+    event.type === "target_selected" && event.skillId === "dual_blades_two_cut"
+  ))?.targetActorIds[0], "e_far_bloody", "B2 ranks bleed stacks before distance");
+
+  const bloodDistance = simulateBattle(battle({
+    position: "rear_right",
+    activeSkillId: "dual_blades_two_cut",
+    targetSkillIds: ["dual_blades_blood_scent"],
+    enemies: [
+      { instanceId: "e_far_bloody", enemyActorId: "weapon_test_bleeding", position: "front_left" },
+      { instanceId: "e_near_bloody", enemyActorId: "weapon_test_bleeding", position: "front_right" },
+    ],
+  }), content);
+  equal(bloodDistance.events.find((event) => (
+    event.type === "target_selected" && event.skillId === "dual_blades_two_cut"
+  ))?.targetActorIds[0], "e_near_bloody", "B2 breaks equal bleed stacks by distance to the user");
+
+  const bloodFallback = simulateBattle(battle({
+    activeSkillId: "dual_blades_two_cut",
+    targetSkillIds: ["dual_blades_blood_scent"],
+    enemies: [
+      { instanceId: "e_plain_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_plain_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  equal(bloodFallback.events.find((event) => (
+    event.type === "target_selected" && event.skillId === "dual_blades_two_cut"
+  ))?.targetActorIds[0], "e_plain_left", "B2 falls back to the normal legal target when no enemy bleeds");
+
+  const spray = simulateBattle(battle({
+    allies: [
+      allyInput("a_user", "warden", "weapon_test_utility", "front_center", {
+        reactiveSkillIds: ["dual_blades_blood_spray"],
+      }),
+      allyInput("a_friend", "warden", "weapon_test_utility", "front_left", { hp: 1 }),
+    ],
+    enemies: [{ instanceId: "e_attacker", enemyActorId: "gray_scrapper", position: "front_right" }],
+  }), content);
+  equal(spray.events.filter((event) => (
+    event.ruleId === "dual_blades_blood_spray_rule" && event.type === "damage_proposed"
+  )).length, 1, "BA2 counters an enemy attack that damages another ally");
+  equal(spray.events.find((event) => event.type === "status_added"
+    && event.ruleId === "dual_blades_blood_spray_rule" && event.values.statusId === "bleeding")
+    ?.values.stacks, 2, "BA2 adds two bleed stacks to the surviving attacker");
 
   const reserved = simulateBattle(battle({
-    activeSkillId: "weapon_test_utility",
-    passiveSkillIds: ["dual_blades_blade_reservation"],
+    allies: [
+      allyInput("a_user", "warden", "weapon_test_utility", "rear_center", {
+        reactiveSkillIds: ["dual_blades_blade_reservation"],
+      }),
+      allyInput("a_helper", "warden", "weapon_test_utility", "front_left"),
+    ],
   }), content);
   equal(reserved.actors.find((actor) => actor.instanceId === "a_user")
     .statuses.find((status) => status.statusId === "dual_blades_reserved_blade")?.stacks, 1,
-  "blade reservation records a non-attack main action");
+  "BB1 records another ally's non-attack main action, not the owner's action");
+
+  const cappedContent = structuredClone(content);
+  cappedContent.characters.weapon_test_reserver.signatureRules = [];
+  const capped = simulateBattle(battle({
+    maxRounds: 2,
+    objective: { type: "survive_rounds", rounds: 2 },
+    allies: [
+      allyInput("a_user", "weapon_test_reserver", "weapon_test_utility", "rear_center", {
+        reactiveSkillIds: ["dual_blades_blade_reservation"],
+      }),
+      ...["left", "center", "right", "rear"].map((label, index) => allyInput(
+        `a_helper_${label}`, "warden", "weapon_test_utility", ["front_left", "front_center", "front_right", "rear_left"][index],
+      )),
+    ],
+  }), cappedContent);
+  equal(capped.actors.find((actor) => actor.instanceId === "a_user")
+    .statuses.find((status) => status.statusId === "dual_blades_reserved_blade")?.stacks, 6,
+  "BB1 can build the shared setup to six with no three-per-round limit");
+
+  const noAttackSetup = simulateBattle(battle({
+    allies: [
+      allyInput("a_user", "warden", "weapon_test_utility", "rear_center", {
+        reactiveSkillIds: ["dual_blades_blade_reservation"],
+      }),
+      allyInput("a_attacker", "warden", "warhammer_blow", "front_left"),
+    ],
+  }), content);
+  equal(noAttackSetup.actors.find((actor) => actor.instanceId === "a_user")
+    .statuses.find((status) => status.statusId === "dual_blades_reserved_blade"), undefined,
+  "BB1 does not record another ally's attack action");
+
+  const insert = simulateBattle(battle({
+    allies: [
+      allyInput("a_user", "weapon_test_reserver", "weapon_test_utility", "rear_center", {
+        reactiveSkillIds: ["dual_blades_insert_blade"],
+      }),
+      allyInput("a_friend", "warden", "dual_blades_three_cut", "front_left"),
+    ],
+    enemies: [{ instanceId: "e_target", enemyActorId: "weapon_test_dummy", position: "front_left" }],
+  }), content);
+  equal(insert.events.filter((event) => (
+    event.type === "damage_proposed" && event.ruleId === "dual_blades_insert_blade_rule"
+  )).length, 1, "BB2 triggers once during a multi-hit ally action and cannot retrigger itself");
+  equal(insert.actors.find((actor) => actor.instanceId === "a_user")
+    .statuses.find((status) => status.statusId === "dual_blades_reserved_blade")?.stacks, 2,
+  "BB2 spends one setup for its single extra hit");
+
+  const insertKilledTarget = simulateBattle(battle({
+    allies: [
+      allyInput("a_user", "weapon_test_reserver", "weapon_test_utility", "rear_center", {
+        reactiveSkillIds: ["dual_blades_insert_blade"],
+      }),
+      allyInput("a_friend", "warden", "dual_blades_three_cut", "front_left"),
+    ],
+    enemies: [{ instanceId: "e_target", enemyActorId: "weapon_test_weak", position: "front_left" }],
+  }), content);
+  equal(insertKilledTarget.events.filter((event) => event.ruleId === "dual_blades_insert_blade_rule").length, 0,
+    "BB2 does not spend RP or setup when the ally's hit defeats the target");
+  equal(insertKilledTarget.actors.find((actor) => actor.instanceId === "a_user")
+    .statuses.find((status) => status.statusId === "dual_blades_reserved_blade")?.stacks, 3,
+  "BB2 preserves setup when the target is no longer alive");
 
   const guests = simulateBattle(battle({
     characterId: "weapon_test_reserver",
@@ -1028,10 +1188,48 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   }), content);
   equal(guests.events.filter((event) => (
     event.type === "damage_proposed" && event.skillId === "dual_blades_many_guests"
-  )).length, 3, "many guests uses the held reserve-blade count as hit count");
+  )).length, 5, "BB3 uses two base hits plus the three setup stacks at 80 percent");
+  equal(guests.events.filter((event) => (
+    event.type === "status_added" && event.targetActorIds[0] === "e_left"
+      && event.values.statusId === "bleeding"
+  )).at(-1)?.values.stacks, 5, "BB3 applies one bleed stack after every hit on the primary target");
   equal(guests.actors.find((actor) => actor.instanceId === "a_user")
     .statuses.find((status) => status.statusId === "dual_blades_reserved_blade"), undefined,
-  "many guests consumes all reserve blades after resolving its hits");
+  "BB3 consumes the setup before resolving its hits");
+
+  const guestsFallback = simulateBattle(battle({
+    activeSkillId: "dual_blades_many_guests",
+    enemies: [{ instanceId: "e_target", enemyActorId: "weapon_test_dummy", position: "front_left" }],
+  }), content);
+  equal(guestsFallback.events.filter((event) => (
+    event.type === "damage_proposed" && event.skillId === "dual_blades_many_guests"
+  )).length, 2, "BB3 falls back to two 50-percent hits when setup is empty");
+
+  const fullSetupContent = structuredClone(content);
+  fullSetupContent.characters.weapon_test_reserver.signatureRules[0].effects[0].stacks = 8;
+  const guestsFull = simulateBattle(battle({
+    characterId: "weapon_test_reserver",
+    activeSkillId: "dual_blades_many_guests",
+    reactiveSkillIds: ["dual_blades_insert_blade"],
+    passiveSkillIds: ["dual_blades_more_hands", "dual_blades_edge_pass"],
+    enemies: [
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), fullSetupContent);
+  const fullHits = guestsFull.events.filter((event) => (
+    event.type === "damage_proposed" && event.skillId === "dual_blades_many_guests"
+  ));
+  equal(fullHits.length, 9, "BB3 caps setup consumption at six and AA1 adds its ninth hit");
+  assert.deepEqual(fullHits.map((event) => event.targetActorIds[0]),
+    ["e_left", "e_right", "e_left", "e_right", "e_left", "e_right", "e_left", "e_right", "e_left"],
+    "AB1 balances all BB3 hits, including AA1's extra hit");
+  checks += 1;
+  equal(guestsFull.events.filter((event) => event.ruleId === "dual_blades_insert_blade_rule").length, 0,
+    "BB3's spent setup cannot pay for BB2 during that same action");
+  equal(guestsFull.actors.find((actor) => actor.instanceId === "a_user")
+    .statuses.find((status) => status.statusId === "dual_blades_reserved_blade"), undefined,
+  "BB3 consumes no more than the shared status maximum");
 }
 
 console.log(`weapon-system.test.mjs: ${checks} checks passed`);

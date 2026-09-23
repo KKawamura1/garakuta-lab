@@ -22,6 +22,7 @@ import {
   PROLOGUE,
   REGION,
   WEAPONS,
+  WEAPON_SKILL_TREE_NODES,
   expeditionEncounter,
 } from "./content/index.mjs";
 import {
@@ -169,17 +170,31 @@ function campaignCompleteProfile() {
   }
   equal(Object.keys(WEAPONS).length, 10, "武器registryは全10武器を持つ");
 
-  // 初期技能は各キャラの代表2武器から R + A1 の4本だけ。敵専用技能は混ぜない。
+  // 初期技能は各キャラの代表2武器から R + A1 の4本だけ。A1の種別は287のcatalogに従う。
+  const starterNodes = new Map(WEAPON_SKILL_TREE_NODES.map((node) => [node.skillId, node]));
   for (const character of CHARACTER_DEFINITIONS) {
     equal(character.starterTactics.length, 2, `${character.id} の初期Rは2本`);
-    equal(character.starterReactives.length, 0, `${character.id} の初期リアクティブは空`);
-    equal(character.starterPassives.length, 2, `${character.id} の初期A1は2本`);
-    equal(new Set([
+    const starterIds = [
       ...character.starterTactics,
+      ...character.starterReactives,
       ...character.starterPassives,
-    ]).size, 4, `${character.id} の初期技能は4本`);
+    ];
+    equal(starterIds.length, 4, `${character.id} の初期R+A1は4本`);
+    equal(new Set(starterIds).size, 4, `${character.id} の初期技能に重複がない`);
+    for (const [skillIds, expectedKind, expectedPosition] of [
+      [character.starterTactics, "active", "R"],
+      [character.starterReactives, "reactive", "A1"],
+      [character.starterPassives, "passive", "A1"],
+    ]) {
+      for (const skillId of skillIds) {
+        const node = starterNodes.get(skillId);
+        check(Boolean(node), `${character.id} の初期技能 ${skillId} はcatalog treeにある`);
+        equal(node.kind, expectedKind, `${character.id} の初期技能 ${skillId} は正しい種別`);
+        equal(node.position, expectedPosition, `${character.id} の初期技能 ${skillId} はR/A1`);
+      }
+    }
     const fullSkillIds = new Set(manifestSkillIds(campaignManifestForStage(3, "starter-check")).all);
-    for (const skillId of [...character.starterTactics, ...character.starterPassives]) {
+    for (const skillId of starterIds) {
       check(fullSkillIds.has(skillId), `${character.id} の初期技能 ${skillId} は武器manifestに含まれる`);
     }
   }

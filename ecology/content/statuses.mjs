@@ -13,18 +13,14 @@
 //   怯み staggered … **持ち主が出す**ダメージが減る。守りを攻めの手で作る軸。
 //   守勢 warded   … **持ち主が受ける**各hitを割合で減らす。防壁（総量）でも
 //                   受け構え（回数）でもない三つ目の守り。
-//   裂傷 bleeding … ラウンド終わりに一度だけ、最大HPに応じたダメージ。
-//                   受けを無視するので、硬く高耐久な相手へ通る線になる。
-//
-// **どれも round で消える。**待って積み上げる形にはしていない（AGENTS.md の
-// anti-stall）。裂傷は「置いた round の終わりに一度」しか刻まない。
+//   裂傷 bleeding … ラウンド終わりに段数ぶん最大HPに応じた固定ダメージ。
+//                   受けを無視し、段数は終了時に切り捨て半減する。
 //
 // issue #238 — **記録だけの状態を一つ足した（必殺 ultimate_spent）。**規則を持たず、
 // 「この戦闘でもう放った」ことだけを覚える。積み上がらない（maxStacks 1）ので
 // anti-stall の対象にならない。
 //
-// R26では、大盾・長槍の共有eventを表現するため、schemaとeffectsへ最小限の
-// 汎用語彙（列／未行動target filter、資源減少effect）を追加している。
+// PR287では持続状態の段数をラウンド終了時に半減する。
 
 import { renamed, scaleFlatAmounts } from "./base.mjs";
 
@@ -38,7 +34,7 @@ export const STATUS_NAMES = {
   warhammer_fragment: "戦利の破片",
   breached: "砕け目",
   taunted: "誘引",
-  dual_blades_reserved_blade: "予約刃",
+  dual_blades_reserved_blade: "仕込み",
   gauntlets_momentum: "踏み込み",
   gauntlets_form: "見取りの型",
   launcher_observed: "観測済み",
@@ -202,36 +198,33 @@ statuses.warded = {
   tags: ["playable", "guard"],
 };
 
-// 裂傷 — ラウンド終わりに一度だけ、1段につき最大HPの5%。**受けを完全に無視する。**
-// round で消えるので、待つほど増える形にはならない（AGENTS.md の anti-stall）。
+// 裂傷 — ラウンド終わりに1段につき最大HPの5%。受けを無視し、段数はその後半減する。
 statuses.bleeding = {
   id: "bleeding",
   displayName: STATUS_NAMES.bleeding,
   polarity: "negative",
-  maxStacks: 3,
-  duration: "round",
-  rules: Array.from({ length: 3 }, (_, index) => {
-    const stacks = index + 1;
-    return {
-      id: stacks === 1 ? "bleeding_rule" : "bleeding_" + stacks + "_rule",
-      listenTo: "round_ended",
-      timing: "after",
-      priority: 60,
-      predicates: [statusStacksAre("bleeding", stacks)],
-      costs: [],
-      effects: [{
-        type: "deal_damage",
-        target: SELF_TARGET,
-        amount: {
-          type: "actor_stat_scaled", subject: "self", stat: "max_hp",
-          numerator: 5 * stacks, denominator: 100,
-        },
-        guardPierceBps: 10_000,
-        tags: ["bleed"],
-      }],
-      limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
-    };
-  }),
+  maxStacks: "unbounded",
+  duration: "battle",
+  decayAtRoundEnd: true,
+  rules: [{
+    id: "bleeding_rule",
+    listenTo: "round_ended",
+    timing: "after",
+    priority: 60,
+    predicates: [{ type: "has_status", subject: "self", statusId: "bleeding", op: "gte", value: 1 }],
+    costs: [],
+    effects: [{
+      type: "deal_damage",
+      target: SELF_TARGET,
+      amount: {
+        type: "status_stacks_scaled", subject: "self", statusId: "bleeding",
+        numerator: 5, denominator: 100,
+      },
+      guardPierceBps: 10_000,
+      tags: ["bleed"],
+    }],
+    limit: { owner: "actor-instance + rule", scope: "round", count: 1 },
+  }],
   tags: ["playable", "debuff"],
 };
 
@@ -311,8 +304,8 @@ statuses.taunted = {
   tags: ["playable", "buff", "guard", "taunt"],
 };
 
-// 双刃BB1 — 非攻撃の主行動で積み、差し刃／千客万来で使う記録状態。
-// 戦闘中に残るが、上限と払い先が固定されているので待機だけでは増えない。
+// 双刃BB1と重弩の共有記録状態。味方の非攻撃主行動を仕込みとして貯め、
+// どちらかの武器技能で消費する。
 statuses.dual_blades_reserved_blade = {
   id: "dual_blades_reserved_blade",
   displayName: STATUS_NAMES.dual_blades_reserved_blade,
@@ -320,7 +313,7 @@ statuses.dual_blades_reserved_blade = {
   maxStacks: 6,
   duration: "battle",
   rules: [],
-  tags: ["playable", "buff", "dual_blades"],
+  tags: ["playable", "buff", "weapon_setup"],
 };
 
 // Stage 0の格闘具／射出器が共有する記録状態。いずれも技能IDではなく、
@@ -677,12 +670,12 @@ const STATUS_SUMMARIES = {
   focused: "次に出す damage / heal / barrier が一度だけ50%増え、使うと消える。大きな一手ほど利得も大きい。",
   staggered: "その相手が**出す**ダメージが1段につき15%減る（最大3段）。多段の各hitへ効き、倒さずに攻撃を細くする。",
   warded: "その味方が**受ける**ダメージが1段につき20%減る。多段の各hitへ効く、防壁（総量）でも受け構え（回数）でもない三つ目の守り。",
-  bleeding: "ラウンド終わりに一度だけ、1段につき最大HPの5%を**受けを無視して**刻む。硬く高耐久な相手ほど効く。",
+  bleeding: "ラウンド終わりに1段につき最大HPの5%を**受けを無視して**刻み、段数を切り捨て半減する。",
   armor_broken: "防御が10下がる。付与から2ラウンド後の開始時に消える。",
   warhammer_fragment: "1個につき防御が6上がる。最大5個で、戦闘中は保持する。",
   breached: "次に受ける攻撃ダメージが50%増え、その攻撃後に消える。",
   taunted: "敵の単体攻撃がこの味方を優先する。対象に選ばれると1段消費する。範囲攻撃と味方の選択には効かない。",
-  dual_blades_reserved_blade: "非攻撃の主行動で1段たまり、双刃の追加攻撃か必殺枝で消費する。最大6段。",
+  dual_blades_reserved_blade: "自分以外の味方の非攻撃主行動で1段たまる。双刃と重弩の技能が共有し、武器技能で消費する。最大6段。",
   gauntlets_momentum: "移動を伴う格闘で段がたまり、格闘攻撃を強化する。最大2段で手番の終わりに消える。",
   gauntlets_form: "味方の行動を見取った記録。1段につき格闘攻撃のダメージを8%増やし、最大3段。",
   launcher_observed: "射出器が観測した敵。射出器の対象優先と合図弾の条件になる。ラウンドで消える。",

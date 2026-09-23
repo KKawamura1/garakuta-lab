@@ -47,6 +47,34 @@ const EVENT_TARGET_IS_ENEMY = Object.freeze({
   type: "target_exists",
   query: { scope: "enemies", filters: [{ type: "is_event_primary_target" }], take: 1 },
 });
+const EVENT_SOURCE_IS_OTHER_ALLY = Object.freeze({
+  type: "target_exists",
+  query: { scope: "allies", filters: [{ type: "is_event_source" }, { type: "not_self" }], take: 1 },
+});
+const SELF_IS_OTHER_ALLY_TARGET = Object.freeze({
+  type: "target_exists",
+  query: { scope: "allies", filters: [{ type: "is_event_primary_target" }, { type: "not_self" }], take: 1 },
+});
+const LIVING_EVENT_SOURCE_ENEMY = Object.freeze({
+  type: "target_exists",
+  query: {
+    scope: "enemies",
+    filters: [
+      { type: "alive" }, { type: "hp_percent", op: "gt", value: 0 }, { type: "is_event_source" },
+    ],
+    take: 1,
+  },
+});
+const LIVING_EVENT_TARGET_ENEMY = Object.freeze({
+  type: "target_exists",
+  query: {
+    scope: "enemies",
+    filters: [
+      { type: "alive" }, { type: "hp_percent", op: "gt", value: 0 }, { type: "is_event_primary_target" },
+    ],
+    take: 1,
+  },
+});
 const ATTACK_EVENT = Object.freeze({ type: "event_tag", tag: "attack", value: true });
 const MELEE_EVENT = Object.freeze({ type: "event_tag", tag: "melee", value: true });
 const NOT_EXTRA_HIT = Object.freeze({ type: "event_tag", tag: "extra_hit", value: false });
@@ -84,6 +112,7 @@ function active(id, displayName, coefficientBps, hitCount, displayEffect, flavor
     ...(options.hitCountFromStatus ? { hitCountFromStatus: options.hitCountFromStatus } : { hitCount }),
     ...(options.hitDistribution ? { hitDistribution: options.hitDistribution } : {}),
     ...(options.targetPattern ? { targetPattern: options.targetPattern } : {}),
+    ...(options.onHitEffects ? { onHitEffects: options.onHitEffects } : {}),
   };
   return Object.freeze({
     id,
@@ -122,14 +151,13 @@ const ACTIVE = {
     { treePosition: "AA3", replacesActiveSkillId: "dual_blades_three_cut" },
   ),
   dual_blades_dancing_cut: active(
-    "dual_blades_dancing_cut", "舞い斬り", 4_500, 4,
-    "近接範囲の敵へ腕力45%の斬撃を4hit。対象を固定順で分配する。",
+    "dual_blades_dancing_cut", "舞い斬り", 5_000, 5,
+    "敵1体に腕力50%のダメージを5hit。",
     "一人を選んで斬るのではない。刃の届く場所すべてを、舞台にする。\n四つの軌道が交差し、立つ場所そのものが逃げ道を失う。",
     {
       treePosition: "AB3",
       replacesActiveSkillId: "dual_blades_three_cut",
-      targetQuery: ENEMIES,
-      hitDistribution: "round_robin",
+      targetQuery: ENEMY,
     },
   ),
   dual_blades_wound_mark: active(
@@ -139,34 +167,42 @@ const ACTIVE = {
     {
       treePosition: "B3",
       replacesActiveSkillId: "dual_blades_two_cut",
-      afterEffects: [{ type: "add_status", target: EVENT_TARGETS, statusId: "bleeding", stacks: 2 }],
+      onHitEffects: [{ type: "add_status", target: ONE_EVENT_TARGET, statusId: "bleeding", stacks: 1 }],
     },
   ),
   dual_blades_blood_path: active(
-    "dual_blades_blood_path", "血路", 7_000, 1,
-    "選んだ敵と同じ列の敵へ腕力70%のダメージ。裂傷を深める。",
+    "dual_blades_blood_path", "血路", 14_000, 1,
+    "選んだ敵と同じ列の敵へ腕力140%のダメージ。裂傷を2段付ける。",
     "傷のついた場所を、道に変える。\nひとりの血が、同じ列にいる全員の足元まで続いていく。",
     {
       treePosition: "BA3",
       replacesActiveSkillId: "dual_blades_wound_mark",
       target: ONE_EVENT_TARGET,
       targetPattern: "row",
-      afterEffects: [{ type: "add_status", target: ROW_ENEMIES, statusId: "bleeding", stacks: 1 }],
+      afterEffects: [{ type: "add_status", target: ROW_ENEMIES, statusId: "bleeding", stacks: 2 }],
     },
   ),
   dual_blades_many_guests: active(
-    "dual_blades_many_guests", "千客万来", 5_000, 2,
+    "dual_blades_many_guests", "千客万来", 8_000, 2,
     "予約刃の数だけ近接範囲へ腕力50%の追撃。予約刃0なら傷刻みへ戻る。",
     "刃を招く。一本ずつ、空いた場所へ。\n誰かひとりを選ぶのではなく、来たものすべてへ返礼する。",
     {
       treePosition: "BB3",
       replacesActiveSkillId: "dual_blades_wound_mark",
-      targetQuery: ENEMIES,
-      hitCountFromStatus: { statusId: RESERVED_BLADE_STATUS, max: 6, fallback: 2 },
-      hitDistribution: "round_robin",
-      afterEffects: [{
-        type: "remove_status", target: SELF, statusId: RESERVED_BLADE_STATUS, stacks: "all",
+      targetQuery: ENEMY,
+      hitCountFromStatus: { statusId: RESERVED_BLADE_STATUS, max: 6, base: 2, memoryKey: "reserved_blades" },
+      beforeEffects: [{
+        type: "remove_status", target: SELF, statusId: RESERVED_BLADE_STATUS,
+        stacks: "all", maxStacks: 6, storeAs: "reserved_blades",
       }],
+      amount: {
+        type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 5_000,
+        statusConditional: {
+          statusId: RESERVED_BLADE_STATUS, memoryKey: "reserved_blades", minStacks: 1,
+          coefficientBps: 8_000,
+        },
+      },
+      onHitEffects: [{ type: "add_status", target: ONE_EVENT_TARGET, statusId: "bleeding", stacks: 1 }],
     },
   ),
 };
@@ -174,7 +210,7 @@ const ACTIVE = {
 function dashPassive(id, displayName, returnAfterAction, displayEffect, flavorText, treePosition) {
   return Object.freeze({
     id, displayName, displayEffect, flavorText, weaponId: "dual_blades", treePosition,
-    ...(returnAfterAction ? { replacesPassiveSkillIds: ["dual_blades_dash_in"] } : {}),
+    ...(returnAfterAction ? { replacesReactiveSkillIds: ["dual_blades_dash_in"] } : {}),
     rules: [{
       id: id + "_rule",
       listenTo: "action_declared",
@@ -190,10 +226,11 @@ function dashPassive(id, displayName, returnAfterAction, displayEffect, flavorTe
       costs: [],
       effects: [{
         type: "move_to_open_row", target: SELF, row: "front", returnAfterAction,
+        ...(returnAfterAction ? { returnRow: "rear" } : {}),
       }],
       limit: CHAIN_ONCE,
     }],
-    tags: ["passive", "movement", "dual_blades", "playable"],
+    tags: ["reactive", "movement", "dual_blades", "playable"],
   });
 }
 
@@ -211,7 +248,7 @@ const PASSIVE = {
       ],
       costs: [], allowRepeatInChain: true,
       effects: [{ type: "modify_pending_amount", operation: "increase", amount: percentOfEvent(10) }],
-      limit: { owner: "actor-instance + rule", scope: "chain", count: 6 },
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 9 },
     }],
     tags: ["passive", "attack", "dual_blades", "playable"],
   }),
@@ -222,23 +259,18 @@ const PASSIVE = {
   ),
   dual_blades_more_hands: Object.freeze({
     id: "dual_blades_more_hands", displayName: "手数", weaponId: "dual_blades", treePosition: "AA1",
-    displayEffect: "3〜5hit攻撃に35%追撃を追加。最大6hit。",
+    displayEffect: "自分の近接攻撃に基礎量35%の追加hitを1つ加える。",
     flavorText: "空いた一瞬にも、刃を差し込む。",
-    rules: [3, 4, 5].map((hitCount) => ({
-      id: "dual_blades_more_hands_" + hitCount + "_rule",
-      listenTo: "damage_proposed", timing: "after", priority: 92,
+    rules: [{
+      id: "dual_blades_more_hands_rule",
+      listenTo: "action_declared", timing: "interrupt", priority: 30,
       predicates: [
-        SELF_IS_SOURCE, ATTACK_EVENT,
-        { type: "event_value", key: "hitCount", op: "eq", value: hitCount },
-        { type: "event_value", key: "hitIndex", op: "eq", value: hitCount - 1 },
+        SELF_IS_SOURCE, ATTACK_EVENT, MELEE_EVENT,
       ],
       costs: [],
-      effects: [{
-        type: "deal_damage", target: EVENT_TARGETS, amount: percentOfEvent(35),
-        tags: ["attack", "extra_hit"],
-      }],
+      effects: [{ type: "modify_attack_plan", hitCountBonus: 1, extraHitBps: 3_500 }],
       limit: CHAIN_ONCE,
-    })),
+    }],
     tags: ["passive", "attack", "dual_blades", "playable"],
   }),
   dual_blades_retreat: dashPassive(
@@ -252,134 +284,124 @@ const PASSIVE = {
     flavorText: "一つの傷へ、刃を重ね続ける必要はない。",
     rules: [{
       id: "dual_blades_edge_pass_rule",
-      listenTo: "damage_proposed", timing: "interrupt", priority: 34,
+      listenTo: "action_declared", timing: "interrupt", priority: 34,
       predicates: [
-        SELF_IS_SOURCE, ATTACK_EVENT, NOT_EXTRA_HIT,
-        { type: "event_value", key: "hitCount", op: "gte", value: 2 },
-        {
-          type: "target_exists",
-          query: ALTERNATE_ENEMY,
-        },
+        SELF_IS_SOURCE, ATTACK_EVENT,
       ],
-      costs: [], allowRepeatInChain: true,
-      effects: [{ type: "redirect_pending_target", target: ALTERNATE_ENEMY }],
-      limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
+      costs: [],
+      effects: [{
+        type: "modify_attack_plan", minHitCount: 2, minTargetCount: 2,
+        snapshotLegalTargets: true, hitDistribution: "round_robin",
+      }],
+      limit: CHAIN_ONCE,
     }],
     tags: ["passive", "target", "dual_blades", "playable"],
   }),
   dual_blades_no_waste: Object.freeze({
     id: "dual_blades_no_waste", displayName: "無駄なし", weaponId: "dual_blades", treePosition: "AB2",
-    displayEffect: "多段攻撃で対象が倒れた時、残りhitを次の敵へ回す。追加hitは回さない。",
+    displayEffect: "直前hitと別の敵へ割り当てたhitのダメージ+30%。",
     flavorText: "刃の数ではなく、残った隙を数える。",
     rules: [{
       id: "dual_blades_no_waste_rule",
-      listenTo: "damage_skipped", timing: "after", priority: 91,
+      listenTo: "damage_proposed", timing: "interrupt", priority: 35,
       predicates: [
-        SELF_IS_SOURCE, ATTACK_EVENT, NOT_EXTRA_HIT,
-        { type: "event_value", key: "reason", op: "eq", value: "target_defeated" },
-        { type: "event_value", key: "hitCount", op: "gte", value: 2 },
-        { type: "target_exists", query: NEXT_LIVING_ENEMY },
+        SELF_IS_SOURCE, ATTACK_EVENT,
+        { type: "hit_target_comparison", relation: "different" },
       ],
       costs: [], allowRepeatInChain: true,
-      effects: [{
-        type: "deal_damage",
-        target: NEXT_LIVING_ENEMY,
-        amount: { type: "event_value_scaled", key: "amount" },
-        reach: "unrestricted",
-        tags: ["attack", "dual_blades", "overflow_hit"],
-      }],
-      limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: percentOfEvent(30) }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 9 },
     }],
     tags: ["passive", "attack", "dual_blades", "playable"],
   }),
   dual_blades_wound_expansion: Object.freeze({
     id: "dual_blades_wound_expansion", displayName: "傷口拡大", weaponId: "dual_blades", treePosition: "BA1",
-    displayEffect: "裂傷のある敵へ行動の最初のhitを当てる時、固定ダメージ+5。",
+    displayEffect: "裂傷の敵へ命中時、裂傷1段につき固定ダメージ5を追加。",
     flavorText: "開いた傷口は、刃の重さをそのまま受け入れる。",
     rules: [{
       id: "dual_blades_wound_expansion_rule",
       listenTo: "damage_proposed", timing: "interrupt", priority: 44,
       predicates: [
-        SELF_IS_SOURCE, ATTACK_EVENT, hitIndexIs(0), eventEnemyHasStatus("bleeding"),
+        SELF_IS_SOURCE, ATTACK_EVENT, eventEnemyHasStatus("bleeding"),
       ],
-      costs: [],
+      costs: [], allowRepeatInChain: true,
       effects: [{
-        type: "modify_pending_amount", operation: "increase", amount: { type: "constant", value: 5 },
+        type: "modify_pending_amount", operation: "increase",
+        amount: {
+          type: "status_stacks_scaled", subject: "event_primary_target", statusId: "bleeding", numerator: 5,
+        },
       }],
-      limit: CHAIN_ONCE,
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 9 },
     }],
     tags: ["passive", "attack", "bleeding", "dual_blades", "playable"],
   }),
   dual_blades_blood_spray: Object.freeze({
     id: "dual_blades_blood_spray", displayName: "血飛沫", weaponId: "dual_blades", treePosition: "BA2",
-    displayEffect: "裂傷の敵を倒すと、同じ列の生存敵へ裂傷を1段ずつ配る。",
+    displayEffect: "敵の攻撃で自分以外の味方がHPダメージを受けた時、RP1で生存攻撃者へ腕力45%の反撃と裂傷2。1チェイン1回。",
     flavorText: "倒れた傷は、終わりではなく次の印になる。",
     rules: [{
       id: "dual_blades_blood_spray_rule",
-      listenTo: "actor_defeated", timing: "after", priority: 82,
-      predicates: [SELF_IS_SOURCE, eventEnemyHasStatus("bleeding", false)],
-      costs: [],
-      effects: [{ type: "add_status", target: ROW_ENEMIES, statusId: "bleeding", stacks: 1 }],
+      listenTo: "damage_taken", timing: "after", priority: 82,
+      predicates: [
+        SELF_IS_OTHER_ALLY_TARGET, LIVING_EVENT_SOURCE_ENEMY, ATTACK_EVENT, NOT_COST_DAMAGE,
+      ],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [
+        {
+          type: "deal_damage", target: { scope: "event_source", take: 1 },
+          amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 4_500 },
+          reach: "unrestricted", tags: ["counter", "dual_blades"],
+        },
+        { type: "add_status", target: { scope: "event_source", take: 1 }, statusId: "bleeding", stacks: 2 },
+      ],
       limit: CHAIN_ONCE,
     }],
-    tags: ["passive", "bleeding", "dual_blades", "playable"],
+    tags: ["reaction", "bleeding", "dual_blades", "playable"],
   }),
   dual_blades_blade_reservation: Object.freeze({
     id: "dual_blades_blade_reservation", displayName: "刃の予約", weaponId: "dual_blades", treePosition: "BB1",
-    displayEffect: "味方の非攻撃主行動ごとに予約刃+1（最大6、1ラウンド3回）。予約刃1段につき攻撃+5%。",
+    displayEffect: "自分以外の味方の非攻撃主行動ごとに仕込み1。最大6。双刃と重弩で共有する。",
     flavorText: "攻めない一拍も、次の刃を空振りにはしない。",
     rules: [
       {
         id: "dual_blades_reserved_blade_gain_rule",
         listenTo: "action_resolved", timing: "after", priority: 88,
-        predicates: [EVENT_SOURCE_IS_ALLY, { type: "event_tag", tag: "attack", value: false }],
+        predicates: [EVENT_SOURCE_IS_OTHER_ALLY, { type: "event_tag", tag: "attack", value: false }],
         costs: [],
         effects: [{ type: "add_status", target: SELF, statusId: RESERVED_BLADE_STATUS, stacks: 1 }],
-        limit: { owner: "actor-instance + rule", scope: "round", count: 3 },
+        limit: CHAIN_ONCE,
       },
-      ...Array.from({ length: 6 }, (_, index) => {
-        const stacks = index + 1;
-        return {
-          id: `dual_blades_reserved_blade_${stacks}_rule`,
-          listenTo: "damage_proposed", timing: "interrupt", priority: 43,
-          predicates: [SELF_IS_SOURCE, ATTACK_EVENT, exactStatus(RESERVED_BLADE_STATUS, stacks)],
-          costs: [], allowRepeatInChain: true,
-          effects: [{
-            type: "modify_pending_amount", operation: "increase", amount: percentOfEvent(5 * stacks),
-          }],
-          limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
-        };
-      }),
     ],
-    tags: ["passive", "attack", "dual_blades", "playable"],
+    tags: ["reactive", "weapon_setup", "dual_blades", "playable"],
   }),
 };
 
 const REACTIVE = {
   dual_blades_lacerating_edge: Object.freeze({
     id: "dual_blades_lacerating_edge", displayName: "裂き傷", weaponId: "dual_blades", treePosition: "B1",
-    displayEffect: "同じ敵への2hit目でRP1。裂傷を1段付ける。1行動1回。",
+    displayEffect: "同じ敵への2hit目が命中した時、RP1で裂傷4。1行動1回。",
     flavorText: "二度目の刃は、傷の深さを変える。",
     rules: [{
       id: "dual_blades_lacerating_edge_rule",
-      listenTo: "damage_proposed", timing: "after", priority: 62,
-      predicates: [SELF_IS_SOURCE, ATTACK_EVENT, hitIndexIs(1)],
+      listenTo: "damage_taken", timing: "after", priority: 62,
+      predicates: [SELF_IS_SOURCE, ATTACK_EVENT, hitIndexIs(1),
+        { type: "hit_target_comparison", relation: "same" }],
       costs: [{ type: "spend_reaction_points", amount: 1 }],
-      effects: [{ type: "add_status", target: EVENT_TARGETS, statusId: "bleeding", stacks: 1 }],
+      effects: [{ type: "add_status", target: EVENT_TARGETS, statusId: "bleeding", stacks: 4 }],
       limit: CHAIN_ONCE,
     }],
     tags: ["reaction", "bleeding", "dual_blades", "playable"],
   }),
   dual_blades_insert_blade: Object.freeze({
     id: "dual_blades_insert_blade", displayName: "差し刃", weaponId: "dual_blades", treePosition: "BB2",
-    displayEffect: "味方の攻撃hit後、予約刃1とRP1で同じ敵へ腕力35%の追撃。",
+    displayEffect: "味方の攻撃hit後、仕込み1とRP1で生存敵へ腕力100%の追撃。",
     flavorText: "味方の刃が作った隙へ、もう一本を差し込む。",
     rules: [{
       id: "dual_blades_insert_blade_rule",
       listenTo: "damage_taken", timing: "after", priority: 64,
       predicates: [
-        EVENT_SOURCE_IS_ALLY, EVENT_TARGET_IS_ENEMY, ATTACK_EVENT, NOT_EXTRA_HIT,
-        NOT_COST_DAMAGE, exactStatus(RESERVED_BLADE_STATUS, 1),
+        EVENT_SOURCE_IS_ALLY, LIVING_EVENT_TARGET_ENEMY, ATTACK_EVENT,
+        NOT_COST_DAMAGE, { type: "has_status", subject: "self", statusId: RESERVED_BLADE_STATUS, op: "gte", value: 1 },
       ],
       costs: [{ type: "spend_reaction_points", amount: 1 }],
       effects: [
@@ -387,7 +409,7 @@ const REACTIVE = {
         {
           type: "deal_damage",
           target: ONE_EVENT_TARGET,
-          amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 3_500 },
+          amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 10_000 },
           rangeClass: "melee",
           tags: ["attack", "weapon", "dual_blades", "extra_hit"],
         },
@@ -403,7 +425,10 @@ const TARGET = {
     id: "dual_blades_blood_scent", displayName: "血を追う", weaponId: "dual_blades", treePosition: "B2",
     displayEffect: "裂傷を持つ、近接範囲内の敵を優先。なければ通常の合法対象。",
     flavorText: "血の匂いは、刃より先に道を選ぶ。",
-    targetQuery: BLEEDING_ENEMY,
+    targetQuery: Object.freeze({
+      ...BLEEDING_ENEMY,
+      sort: [{ type: "status_stacks_desc", statusId: "bleeding" }, "distance_to_self_asc"],
+    }),
     tags: ["target", "bleeding", "dual_blades", "playable"],
   }),
 };
@@ -416,10 +441,10 @@ export const DUAL_BLADES_TARGET_SKILLS = Object.freeze(TARGET);
 export const DUAL_BLADES_TREE = Object.freeze([
   ["R", "active", "dual_blades_two_cut", []],
   ["A1", "passive", "dual_blades_split_sharpening", ["dual_blades_two_cut"]],
-  ["A2", "passive", "dual_blades_dash_in", ["dual_blades_split_sharpening"]],
+  ["A2", "reactive", "dual_blades_dash_in", ["dual_blades_split_sharpening"]],
   ["A3", "active", "dual_blades_three_cut", ["dual_blades_dash_in"]],
   ["AA1", "passive", "dual_blades_more_hands", ["dual_blades_three_cut"]],
-  ["AA2", "passive", "dual_blades_retreat", ["dual_blades_more_hands"]],
+  ["AA2", "reactive", "dual_blades_retreat", ["dual_blades_more_hands"]],
   ["AA3", "active", "dual_blades_six_petals", ["dual_blades_retreat"]],
   ["AB1", "passive", "dual_blades_edge_pass", ["dual_blades_three_cut"]],
   ["AB2", "passive", "dual_blades_no_waste", ["dual_blades_edge_pass"]],
@@ -427,10 +452,10 @@ export const DUAL_BLADES_TREE = Object.freeze([
   ["B1", "reactive", "dual_blades_lacerating_edge", ["dual_blades_two_cut"]],
   ["B2", "target", "dual_blades_blood_scent", ["dual_blades_lacerating_edge"]],
   ["B3", "active", "dual_blades_wound_mark", ["dual_blades_blood_scent"]],
-  ["BA1", "passive", "dual_blades_wound_expansion", ["dual_blades_wound_mark"]],
-  ["BA2", "passive", "dual_blades_blood_spray", ["dual_blades_wound_expansion"]],
+  ["BA1", "reactive", "dual_blades_wound_expansion", ["dual_blades_wound_mark"]],
+  ["BA2", "reactive", "dual_blades_blood_spray", ["dual_blades_wound_expansion"]],
   ["BA3", "active", "dual_blades_blood_path", ["dual_blades_blood_spray"]],
-  ["BB1", "passive", "dual_blades_blade_reservation", ["dual_blades_wound_mark"]],
+  ["BB1", "reactive", "dual_blades_blade_reservation", ["dual_blades_wound_mark"]],
   ["BB2", "reactive", "dual_blades_insert_blade", ["dual_blades_blade_reservation"]],
   ["BB3", "active", "dual_blades_many_guests", ["dual_blades_insert_blade"]],
 ].map(([position, kind, skillId, requires]) => Object.freeze({

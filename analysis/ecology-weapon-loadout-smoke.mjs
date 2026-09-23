@@ -28,13 +28,23 @@ for (const character of CHARACTER_DEFINITIONS) {
   const reactives = loadout.reactives[character.id] ?? [];
   const passives = loadout.passives[character.id] ?? [];
   assert.equal(tactics.length, 2, character.id + " の初期Rは代表武器2つ");
-  assert.equal(reactives.length, 0, character.id + " の初期リアクティブは空");
-  assert.equal(passives.length, 2, character.id + " の初期A1は代表武器2つ");
-  assert.equal(new Set([...tactics, ...passives]).size, 4, character.id + " の初期技能は4つ");
-  for (const skillId of [...tactics, ...passives]) {
+  const starterIds = [...tactics, ...reactives, ...passives];
+  assert.equal(starterIds.length, 4, character.id + " の初期R+A1は4つ");
+  assert.equal(new Set(starterIds).size, 4, character.id + " の初期技能に重複がない");
+  for (const [skillIds, kind, position] of [
+    [tactics, "active", "R"],
+    [reactives, "reactive", "A1"],
+    [passives, "passive", "A1"],
+  ]) {
+    for (const skillId of skillIds) {
+      const node = WEAPON_SKILL_TREE_NODES.find((entry) => entry.skillId === skillId);
+      assert.ok(node, character.id + " の初期技能が武器ツリーにない: " + skillId);
+      assert.equal(node.kind, kind, character.id + " の初期技能種別がcatalogと違う: " + skillId);
+      assert.equal(node.position, position, character.id + " の初期技能位置がR/A1でない: " + skillId);
+    }
+  }
+  for (const skillId of starterIds) {
     assert.ok(playerSkillIds.has(skillId), character.id + " の初期技能がplayer registryにない: " + skillId);
-    assert.ok(WEAPON_SKILL_TREE_NODES.some((node) => node.skillId === skillId),
-      character.id + " の初期技能が武器ツリーにない: " + skillId);
     assert.ok(!Object.hasOwn(ENEMY_ACTIVE_SKILLS, skillId) && !Object.hasOwn(ENEMY_REACTIVE_SKILLS, skillId),
       character.id + " の初期技能がenemy registryへ混入: " + skillId);
   }
@@ -71,4 +81,3 @@ for (const pack of WEAPON_SKILL_PACKS) {
 
 assert.deepEqual(validateContentBundle(PLAYABLE_CONTENT), [], "現行content bundleがvalidatorを通る");
 console.log("ecology weapon-loadout smoke: ok");
-

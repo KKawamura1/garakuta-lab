@@ -84,6 +84,13 @@ export function evaluatePredicate(state, ctx, predicate) {
       return compareOp(predicate.op ?? "gte", found.length, predicate.value ?? 1);
     }
 
+    case "hit_target_comparison": {
+      const previous = ctx.event?.values?.previousTargetActorId;
+      const current = ctx.event?.targetActorIds?.[0];
+      if (typeof previous !== "string" || typeof current !== "string") return false;
+      return predicate.relation === "same" ? previous === current : previous !== current;
+    }
+
     case "round_number":
       return compareOp(predicate.op, state.round, predicate.value);
 
@@ -95,4 +102,3 @@ export function evaluatePredicate(state, ctx, predicate) {
 }
 
 export { getActor };
-
