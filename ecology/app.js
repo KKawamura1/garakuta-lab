@@ -4241,8 +4241,8 @@ function weaponListLayout(nodes) {
   const roots = nodes.filter((node) => !(node.requires ?? []).some((required) => byId.has(required.skillId)));
   const rows = [];
   const walk = (node, depth, guides, last) => {
-    rows.push({ node, depth, guides, last, index: nodes.indexOf(node) });
     const next = children.get(node.skillId) ?? [];
+    rows.push({ node, depth, guides, last, hasChildren: next.length > 0, index: nodes.indexOf(node) });
     next.forEach((child, index) => walk(child, depth + 1,
       depth === 0 ? [] : [...guides, !last], index === next.length - 1));
   };
@@ -4256,7 +4256,8 @@ function weaponListGuide(layout) {
   }
   const guides = layout.guides.map((open) => "<i class=\"rail" + (open ? " open" : "") + "\"></i>").join("");
   return "<span class=\"weapon-list-guide\" aria-hidden=\"true\">" + guides
-    + "<i class=\"elbow" + (layout.last ? " last" : "") + "\"></i></span>";
+    + "<i class=\"elbow" + (layout.last ? " last" : "")
+    + (layout.hasChildren ? " has-children" : "") + "\"></i></span>";
 }
 
 function weaponNodeAction(node, characterId, nodeState) {
@@ -4311,8 +4312,6 @@ function renderWeaponSkillNode(node, characterId, mode, index, listLayout = null
   const definition = skillDefinitionOf(node.skillId);
   const nodeState = weaponNodeState(node, characterId);
   const selected = state.selectedSkillNode === node.skillId;
-  const replacement = definition?.replacesActiveSkillId || definition?.replacesPassiveSkillIds?.length
-    ? "<i class=\"weapon-replace\" role=\"img\" aria-label=\"上位形態\" title=\"上位形態\">▲</i>" : "";
   const coordinates = weaponTreeCoordinates(node, index);
   const placement = mode === "map"
     ? " style=\"grid-column:" + coordinates.column + ";grid-row:" + coordinates.row + "\""
@@ -4328,7 +4327,7 @@ function renderWeaponSkillNode(node, characterId, mode, index, listLayout = null
     + " data-skill=\"" + esc(node.skillId) + "\" aria-pressed=\"" + (selected ? "true" : "false") + "\">"
     + "<span class=\"weapon-node-copy\"><span class=\"weapon-node-name\">"
     + weaponKindIcon(node.kind) + "<b>" + esc(definition?.displayName ?? "技能")
-    + "</b>" + replacement + "</span>"
+    + "</b></span>"
     + weaponNodeSignals(node, characterId) + "</span></button>"
     + "<span class=\"weapon-node-action\">" + weaponNodeAction(node, characterId, nodeState)
     + "</span></article></div>";

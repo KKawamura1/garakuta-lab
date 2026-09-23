@@ -42,6 +42,8 @@ const required = [
   ["防御無視の効果札", app, "貫通"],
   ["武器技能の左右バッジ仕切り", app, "weapon-signal-divider"],
   ["役割の丸い記号", app, "function weaponKindIcon(kind)"],
+  ["一覧で子を持つ節の線", app, "hasChildren: next.length > 0"],
+  ["長い節名の2行表示", styles, "-webkit-line-clamp: 2;"],
   ["地図を保った技能選択", app, "function refreshWeaponSkillSelection()"],
   ["event IDの表示語", app, "条件を満たしたとき"],
   ["役割記号の表示", styles, ".weapon-kind-icon {"],
@@ -90,6 +92,12 @@ if (app.includes("class=\"weapon-rule-detail\"")) {
 if (app.includes("<summary>技能ツリー</summary>")) {
   problems.push("常時表示の技能ツリーが折りたたみ式になっている");
 }
+const nodeStart = app.indexOf("function renderWeaponSkillNode(node, characterId, mode, index, listLayout = null) {");
+const nodeEnd = app.indexOf("function renderWeaponSkillSheet(node, characterId) {", nodeStart);
+const nodeSource = app.slice(nodeStart, nodeEnd);
+if (nodeSource.includes("weapon-replace") || nodeSource.includes("上位形態") || nodeSource.includes("▲")) {
+  problems.push("節カードに上位形態やアクティブ置換の重複記号が出ている");
+}
 const sheetStart = app.indexOf("function renderWeaponSkillSheet(node, characterId) {");
 const sheetEnd = app.indexOf("function renderWeaponTreeViewSwitch(view, characterId) {", sheetStart);
 const sheetSource = app.slice(sheetStart, sheetEnd);
@@ -106,6 +114,9 @@ const selectedNodeFocus = app.indexOf("focusWeaponSkillTree();", renderStart);
 if (!(renderStart >= 0 && horizontalRestore > renderStart
   && horizontalRestore < connectorLayout && connectorLayout < selectedNodeFocus)) {
   problems.push("選択節へ寄せる前に地図の横位置を復元していない");
+}
+if (!styles.includes("top: calc(-50% - 2px);")) {
+  problems.push("一覧の分岐線が前の節の中心まで伸びていない");
 }
 
 // reduced-motion でも重要な視認性（光・戦闘の状態）は消さない。

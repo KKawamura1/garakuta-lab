@@ -7052,11 +7052,11 @@ button.party-cell:active:not(:disabled),
   content: "";
   position: absolute;
   left: 4px;
-  top: -1px;
-  bottom: -1px;
+  top: calc(-50% - 2px);
+  bottom: calc(-50% - 2px);
   border-left: 1px solid currentColor;
 }
-.weapon-list-guide .elbow.last::before { bottom: 50%; }
+.weapon-list-guide .elbow.last:not(.has-children)::before { bottom: 50%; }
 .weapon-list-guide .elbow::after {
   content: "";
   position: absolute;
@@ -7125,14 +7125,20 @@ button.party-cell:active:not(:disabled),
 .role-reactive .weapon-kind-icon { color: var(--violet); }
 .role-target .weapon-kind-icon { color: var(--blue); }
 .role-passive .weapon-kind-icon { color: var(--good); }
-.weapon-node-name { min-width: 0; display: flex; align-items: center; gap: 4px; padding-right: 56px; }
+.weapon-node-name { min-width: 0; display: flex; align-items: flex-start; gap: 4px; padding-right: 56px; }
 .weapon-node-name b {
+  display: -webkit-box;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   font-size: 13px;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 .weapon-node-signals,
 .weapon-sheet-signals { width: 100%; min-width: 0; display: flex; align-items: center; gap: 4px; overflow: hidden; }
@@ -7163,12 +7169,6 @@ button.party-cell:active:not(:disabled),
 .effect-chip.rp { color: var(--violet); }
 .effect-chip.hp { color: var(--bad); }
 .effect-chip.cost { background: rgba(10, 16, 18, .4); }
-.weapon-replace {
-  flex: none;
-  color: var(--gold);
-  font-size: 7px;
-  font-style: normal;
-}
 .weapon-node-action { position: absolute; top: 3px; right: 3px; z-index: 2; display: flex; align-items: center; }
 .weapon-node-quick-button {
   min-height: 18px !important;
@@ -7226,7 +7226,7 @@ button.party-cell:active:not(:disabled),
 }
 .weapon-tree-cell.map .weapon-kind-icon { width: 17px; height: 17px; font-size: 9px; }
 .weapon-tree-cell.map .weapon-node-name { gap: 3px; padding-right: 43px; }
-.weapon-tree-cell.map .weapon-node-name b { font-size: 11px; }
+.weapon-tree-cell.map .weapon-node-name b { font-size: 12px; line-height: 1.12; }
 .weapon-tree-cell.map .weapon-node-signals { gap: 3px; }
 .weapon-tree-cell.map .weapon-node-inputs { max-width: 45%; }
 .weapon-tree-cell.map .weapon-effect-badges { gap: 2px; }
