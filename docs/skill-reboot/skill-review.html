@@ -259,10 +259,39 @@ function applySavedState(parsed){
     status:validStatuses.has(filters.status)?filters.status:"all"
   };
 }
+function swapMedicalReviews(parsed){
+  const reviews={...parsed.reviews};
+  const first=reviews["4-A1"],second=reviews["4-A2"];
+  if(second===undefined) delete reviews["4-A1"]; else reviews["4-A1"]=second;
+  if(first===undefined) delete reviews["4-A2"]; else reviews["4-A2"]=first;
+  const currentId=parsed.currentId==="4-A1"?"4-A2":parsed.currentId==="4-A2"?"4-A1":parsed.currentId;
+  return {...parsed,reviews,currentId,medicalSwapApplied:true};
+}
+function migratePriorCatalog(parsed){
+  return parsed.catalogSha && parsed.catalogSha!==CATALOG_SHA ? swapMedicalReviews(parsed) : parsed;
+}
 function loadState(){
   try{
     const current=parseSavedState(localStorage.getItem(STORAGE_KEY));
     if(current){
+      // Earlier builds copied the old IDs before the A1/A2 move. Repair only if
+      // both medical reviews still match an older snapshot, preserving later edits.
+      if(!current.medicalSwapApplied){
+        for(let i=0;i<localStorage.length;i++){
+          const key=localStorage.key(i);
+          if(!key || key===STORAGE_KEY || !key.startsWith("pr287-skill-review-")) continue;
+          const previous=parseSavedState(localStorage.getItem(key));
+          if(!previous || previous.catalogSha===CATALOG_SHA) continue;
+          const a=normalizedSavedReview(previous.reviews["4-A1"]);
+          const b=normalizedSavedReview(previous.reviews["4-A2"]);
+          if(JSON.stringify(normalizedSavedReview(current.reviews["4-A1"]))===JSON.stringify(a)
+            && JSON.stringify(normalizedSavedReview(current.reviews["4-A2"]))===JSON.stringify(b)){
+            applySavedState(swapMedicalReviews(current));
+            saveState();
+            return;
+          }
+        }
+      }
       applySavedState(current);
       return;
     }
@@ -273,8 +302,9 @@ function loadState(){
     for(let i=0;i<localStorage.length;i++){
       const key=localStorage.key(i);
       if(!key || key===STORAGE_KEY || !key.startsWith(prefix)) continue;
-      const parsed=parseSavedState(localStorage.getItem(key));
-      if(!parsed) continue;
+      const previous=parseSavedState(localStorage.getItem(key));
+      if(!previous) continue;
+      const parsed=migratePriorCatalog(previous);
       const reviews={};
       let reviewed=0,commented=0;
       for(const skill of SKILLS){
@@ -307,7 +337,7 @@ function saveState(){
   if(saveTimer!==null){clearTimeout(saveTimer);saveTimer=null;}
   try{
     localStorage.setItem(STORAGE_KEY,JSON.stringify({
-      version:1,catalogSha:CATALOG_SHA,currentId:state.currentId,filters:state.filters,reviews:state.reviews
+      version:1,catalogSha:CATALOG_SHA,medicalSwapApplied:true,currentId:state.currentId,filters:state.filters,reviews:state.reviews
     }));
   }catch(_error){}
 }
@@ -611,10 +641,8 @@ function restoreBackup(){
       if(!window.confirm("別版のカタログです。復元しますか？")) return;
     }
     if(!parsed.reviews || typeof parsed.reviews!=="object") throw new Error("invalid");
-    state.reviews=parsed.reviews;
+    applySavedState(migratePriorCatalog(parsed));
     rebuildReviewStats();
-    state.currentId=parsed.currentId || SKILLS[0].id;
-    state.filters={...state.filters,...(parsed.filters||{})};
     saveState(); render(); showToast("バックアップを復元しました");
   }catch(_error){window.alert("復元できるバックアップJSONではありません");}
 }
