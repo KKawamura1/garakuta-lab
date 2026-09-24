@@ -257,7 +257,7 @@ function afterGuard(rawAmount, target, guardPierceBps) {
 //   後列に置く … 殴られにくい。代わりに武器攻撃が 40% になる
 //
 // **どちらの側にも同じように掛かる。**味方だけ得をする規則にはしない。
-// 後列から撃つ敵（灰殻の後撃ち）は rear_strike が technique なので落ちない。
+// 後列から撃つ敵（灰殻の後撃ち）は専用skill registryの ranged action なので落ちない。
 //
 // 対象の届き方（reach: melee が前列しか狙えないこと）とは別の軸である。
 // あちらは「誰を狙えるか」、こちらは「どこから出したか」。

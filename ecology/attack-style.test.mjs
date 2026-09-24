@@ -56,8 +56,8 @@ assert.equal(attackStyleOfEffect({ type: "heal", amount: { scalingStat: "focus" 
 // content の実物。**基準の一撃と、技術へ寄せた技能の全部**をここで押さえる。
 assert.equal(index.get("strike"), "weapon", "踏み込み斬りは斬撃");
 assert.equal(index.get("basic_strike_melee"), "weapon", "通常攻撃は斬撃");
-assert.equal(index.get("front_strike"), "weapon", "敵の前列攻撃は斬撃");
-assert.equal(index.get("rear_strike"), "technique", "後列から撃つ敵の一撃は銃撃");
+assert.equal(index.get("foe_action_front_strike"), "weapon", "敵の前列攻撃は斬撃");
+assert.equal(index.get("foe_action_rear_strike"), "technique", "後列から撃つ敵の一撃は銃撃");
 for (const id of TECHNIQUE_SKILL_IDS) {
   assert.equal(index.get(id), "technique", id + " は技術の技能なので銃撃");
 }

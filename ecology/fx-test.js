@@ -137,7 +137,11 @@ document.getElementById("fx-controls").appendChild(controls);
 
 // ---------------------------------------------------------------- この端末の状態
 const index = buildAttackStyleIndex(PLAYABLE_CONTENT);
-const named = (id) => esc(PLAYABLE_CONTENT.activeSkills?.[id]?.displayName ?? id);
+const named = (id) => esc(
+  PLAYABLE_CONTENT.activeSkills?.[id]?.displayName
+    ?? PLAYABLE_CONTENT.enemyActiveSkills?.[id]?.displayName
+    ?? id,
+);
 const styleLabel = (id) => STYLES.find((entry) => entry.id === index.get(id))?.label ?? "型なし";
 const reduced = window.matchMedia(REDUCED_MOTION).matches;
 document.getElementById("fx-environment").innerHTML = [
@@ -148,6 +152,7 @@ document.getElementById("fx-environment").innerHTML = [
     : " — 演出は通常どおり動きます。") + "</p>",
   "<p class=\"muted\">build の印：<b>" + esc(BUILD) + "</b> ／ 内容契約：" + esc(FINGERPRINT) + "</p>",
   "<p class=\"muted\">型の実物（attack-style.mjs が content から引いた答え）："
-  + ["strike", "aimed_shot", "rear_strike", "bulwark"].map((id) => named(id) + " → " + styleLabel(id)).join("／ ")
+  + ["strike", "aimed_shot", "foe_action_rear_strike", "bulwark"]
+    .map((id) => named(id) + " → " + styleLabel(id)).join("／ ")
   + "</p>",
 ].join("");

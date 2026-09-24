@@ -106,7 +106,7 @@ for (const battle of GATE_E_BATTLES) {
 
 {
   const result = run(HUNTER_BATTLE);
-  const hunted = of(result, "target_selected").find((event) => event.skillId === "hunt_the_slow");
+  const hunted = of(result, "target_selected").find((event) => event.skillId === "foe_action_hunt_the_slow");
   check(hunted !== undefined, "the hunter used its first tactic");
   equal(hunted.targetActorIds[0], "a_lancer", "on the actor that was preparing");
   const started = of(result, "preparation_started")[0];
@@ -115,11 +115,10 @@ for (const battle of GATE_E_BATTLES) {
   // With nobody preparing, the query is empty, the tactic is unusable, and the
   // enemy falls through to its second tactic. Priority is tactic order alone.
   const fallback = of(result, "target_selected").find(
-    (event) => event.skillId === "strike" && event.sourceActorId === "e_hunter",
+    (event) => event.skillId === "foe_action_strike" && event.sourceActorId === "e_hunter",
   );
   check(fallback !== undefined, "it fell back to its plain attack");
   check(fallback.round > hunted.round, "in a later round");
 }
 
 console.log(`extensibility.test.mjs: ${checks} checks passed`);
-

@@ -23,6 +23,7 @@ import {
   SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import { freshLoadout, makeExpeditionBattle } from "./playable-battles.mjs";
+import { sourceReactiveIdFor } from "./content/enemy-skill-ids.mjs";
 import {
   ACTIVATION_CAP_BATTLE,
   AP_LOOP_BATTLE,
@@ -167,8 +168,13 @@ for (const { battle, ruleId, eventType } of SAFETY_CASES) {
   check(
     Object.values(PLAYABLE_CONTENT.enemyActors).every((enemy) =>
       !(enemy.tags ?? []).includes("termination")
-      && !(enemy.reactiveSkillIds ?? []).some((id) => terminationIds.has(id))),
+      && !(enemy.reactiveSkillIds ?? []).some((id) => terminationIds.has(sourceReactiveIdFor(id)))),
     "issue 130 termination reactives are absent from playable enemies",
+  );
+  check(
+    Object.keys(PLAYABLE_CONTENT.enemyReactiveSkills)
+      .every((id) => !terminationIds.has(sourceReactiveIdFor(id))),
+    "issue 130 termination reactives are absent from the enemy registry",
   );
 
   const battle = issue130StressBattle();
@@ -191,9 +197,10 @@ for (const { battle, ruleId, eventType } of SAFETY_CASES) {
 // The echo pair really does bounce: both sides answered a damage_taken.
 {
   const result = run(DAMAGE_ECHO_BATTLE);
-  const echoes = result.events.filter(
-    (event) => event.ruleId === "damage_echo_rule" && event.type === "damage_proposed",
-  );
+  const echoes = result.events.filter((event) => (
+    ["damage_echo_rule", "foe_reaction_rule_damage_echo_rule"].includes(event.ruleId)
+      && event.type === "damage_proposed"
+  ));
   check(echoes.length >= 2, "the echo went both ways at least once");
   const sources = new Set(echoes.map((event) => event.sourceActorId));
   equal(sources.size, 2, "both actors echoed");

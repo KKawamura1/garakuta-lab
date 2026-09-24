@@ -1,8 +1,8 @@
 {
- "contentVersion": "ecology-playable-full-0.19",
+ "contentVersion": "ecology-playable-full-0.20",
  "content": {
-  "schemaVersion": "ecology-content-4",
-  "contentVersion": "ecology-playable-full-0.19",
+  "schemaVersion": "ecology-content-5",
+  "contentVersion": "ecology-playable-full-0.20",
   "characters": {
    "warden": {
     "id": "warden",
@@ -626,187 +626,6 @@
      "buff"
     ],
     "actionMode": "channel"
-   },
-   "front_strike": {
-    "id": "front_strike",
-    "displayName": "前列打ち",
-    "apCost": 1,
-    "intrinsicPredicates": [],
-    "targetQuery": {
-     "scope": "enemies",
-     "filters": [
-      {
-       "type": "alive"
-      }
-     ],
-     "sort": [
-      "hp_asc"
-     ],
-     "take": 1
-    },
-    "effects": [
-     {
-      "type": "deal_damage",
-      "target": {
-       "scope": "event_targets",
-       "filters": [
-        {
-         "type": "alive"
-        }
-       ],
-       "take": 1
-      },
-      "amount": {
-       "type": "stat_scaled",
-       "subject": "self",
-       "scalingStat": "might",
-       "coefficientBps": 10000
-      },
-      "reach": "melee",
-      "tags": [
-       "attack"
-      ]
-     }
-    ],
-    "tags": [
-     "attack"
-    ],
-    "actionMode": "offense"
-   },
-   "rear_strike": {
-    "id": "rear_strike",
-    "displayName": "後列打ち",
-    "apCost": 1,
-    "intrinsicPredicates": [],
-    "targetQuery": {
-     "scope": "enemies",
-     "filters": [
-      {
-       "type": "alive"
-      },
-      {
-       "type": "row_is",
-       "row": "rear"
-      }
-     ],
-     "sort": [
-      "hp_asc"
-     ],
-     "take": 1
-    },
-    "effects": [
-     {
-      "type": "deal_damage",
-      "target": {
-       "scope": "event_targets",
-       "filters": [
-        {
-         "type": "alive"
-        }
-       ],
-       "take": 1
-      },
-      "amount": {
-       "type": "stat_scaled",
-       "subject": "self",
-       "scalingStat": "focus",
-       "coefficientBps": 10000
-      },
-      "reach": "ranged",
-      "tags": [
-       "attack"
-      ]
-     }
-    ],
-    "tags": [
-     "attack"
-    ],
-    "actionMode": "offense"
-   },
-   "enemy_heavy": {
-    "id": "enemy_heavy",
-    "displayName": "重い一撃",
-    "apCost": 1,
-    "intrinsicPredicates": [],
-    "targetQuery": {
-     "scope": "enemies",
-     "filters": [
-      {
-       "type": "alive"
-      }
-     ],
-     "sort": [
-      "hp_asc"
-     ],
-     "take": 1
-    },
-    "effects": [],
-    "preparation": {
-     "steps": 1,
-     "completionEffects": [
-      {
-       "type": "deal_damage",
-       "target": {
-        "scope": "enemies",
-        "filters": [
-         {
-          "type": "alive"
-         }
-        ],
-        "sort": [
-         "hp_asc"
-        ],
-        "take": 1
-       },
-       "amount": {
-        "type": "stat_scaled",
-        "subject": "self",
-        "scalingStat": "might",
-        "coefficientBps": 35000
-       },
-       "tags": [
-        "attack",
-        "heavy"
-       ],
-       "reach": "melee"
-      }
-     ]
-    },
-    "tags": [
-     "attack",
-     "slow"
-    ],
-    "actionMode": "channel"
-   },
-   "enemy_guard": {
-    "id": "enemy_guard",
-    "displayName": "盾を構える",
-    "apCost": 1,
-    "intrinsicPredicates": [],
-    "targetQuery": {
-     "scope": "self",
-     "take": 1
-    },
-    "effects": [
-     {
-      "type": "gain_barrier",
-      "target": {
-       "scope": "self",
-       "take": 1
-      },
-      "amount": {
-       "type": "stat_scaled",
-       "subject": "self",
-       "scalingStat": "focus",
-       "coefficientBps": 10000
-      },
-      "duration": "round"
-     }
-    ],
-    "tags": [
-     "guard"
-    ],
-    "actionMode": "utility"
    },
    "basic_strike_melee": {
     "id": "basic_strike_melee",
@@ -8077,6 +7896,1700 @@
     ]
    }
   },
+  "enemyActiveSkills": {
+   "foe_action_barrage_strike": {
+    "id": "foe_action_barrage_strike",
+    "displayName": "連撃",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 4500
+      },
+      "hitCount": 3,
+      "tags": [
+       "attack",
+       "weapon",
+       "onhit"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack",
+     "onhit"
+    ]
+   },
+   "foe_action_basic_strike_melee": {
+    "id": "foe_action_basic_strike_melee",
+    "displayName": "通常攻撃",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "reach": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "core"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "core"
+    ]
+   },
+   "foe_action_column_thrust": {
+    "id": "foe_action_column_thrust",
+    "displayName": "突き通し",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 11000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "targetPattern": "column",
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "foe_action_crack_mark": {
+    "id": "foe_action_crack_mark",
+    "displayName": "傷口を開く",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 9000
+      },
+      "tags": [
+       "attack",
+       "debuff",
+       "technique"
+      ],
+      "reach": "melee"
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "debuff"
+    ]
+   },
+   "foe_action_drag_forward": {
+    "id": "foe_action_drag_forward",
+    "displayName": "引きずり出す",
+    "apCost": 1,
+    "actionMode": "utility",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "rear"
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     },
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "rear"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "swap_positions",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "rear"
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": 1
+      },
+      "reach": "unrestricted",
+      "otherTarget": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      }
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "move",
+     "formation",
+     "debuff"
+    ]
+   },
+   "foe_action_enemy_guard": {
+    "id": "foe_action_enemy_guard",
+    "displayName": "盾を構える",
+    "apCost": 1,
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "self",
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 10000
+      },
+      "duration": "round"
+     }
+    ],
+    "tags": [
+     "guard"
+    ],
+    "actionMode": "utility"
+   },
+   "foe_action_enemy_heavy": {
+    "id": "foe_action_enemy_heavy",
+    "displayName": "重い一撃",
+    "apCost": 1,
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [],
+    "preparation": {
+     "steps": 1,
+     "completionEffects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "sort": [
+         "hp_asc"
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 35000
+       },
+       "tags": [
+        "attack",
+        "heavy"
+       ],
+       "reach": "melee"
+      }
+     ]
+    },
+    "tags": [
+     "attack",
+     "slow"
+    ],
+    "actionMode": "channel"
+   },
+   "foe_action_execute_low": {
+    "id": "foe_action_execute_low",
+    "displayName": "首を落とす",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lte",
+         "value": 30
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lte",
+       "value": 30
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 22500
+      },
+      "reach": "melee",
+      "tags": [
+       "attack",
+       "weapon"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "execute"
+    ]
+   },
+   "foe_action_fallback_strike_melee": {
+    "id": "foe_action_fallback_strike_melee",
+    "displayName": "追い打ち",
+    "apCost": 0,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 5000
+      },
+      "reach": "melee",
+      "tags": [
+       "attack",
+       "weapon",
+       "core"
+      ]
+     }
+    ],
+    "tags": [
+     "attack",
+     "core"
+    ]
+   },
+   "foe_action_finishing_thrust": {
+    "id": "foe_action_finishing_thrust",
+    "displayName": "止めの一突き",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "hp_percent",
+         "op": "lte",
+         "value": 50
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "hp_percent",
+       "op": "lte",
+       "value": 50
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 15000
+      },
+      "tags": [
+       "attack"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "foe_action_front_strike": {
+    "id": "foe_action_front_strike",
+    "displayName": "前列打ち",
+    "apCost": 1,
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "reach": "melee",
+      "tags": [
+       "attack"
+      ]
+     }
+    ],
+    "tags": [
+     "attack"
+    ],
+    "actionMode": "offense"
+   },
+   "foe_action_guard_crush": {
+    "id": "foe_action_guard_crush",
+    "displayName": "受け崩し",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 15000
+      },
+      "tags": [
+       "attack"
+      ],
+      "guardPierceBps": 10000,
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "foe_action_hamstring": {
+    "id": "foe_action_hamstring",
+    "displayName": "足を払う",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 10000
+      },
+      "reach": "melee",
+      "tags": [
+       "attack",
+       "weapon"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "staggered",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "attack",
+     "debuff"
+    ]
+   },
+   "foe_action_hunt_the_slow": {
+    "id": "foe_action_hunt_the_slow",
+    "displayName": "準備狩り",
+    "apCost": 1,
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "is_preparing",
+         "value": true
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "is_preparing",
+       "value": true
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 14500
+      },
+      "tags": [
+       "attack",
+       "hunt",
+       "technique"
+      ],
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ],
+    "actionMode": "offense"
+   },
+   "foe_action_mark_spread": {
+    "id": "foe_action_mark_spread",
+    "displayName": "刻印を散らす",
+    "apCost": 1,
+    "actionMode": "utility",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "eq",
+         "value": 0
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "take": "all"
+    },
+    "effects": [
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "eq",
+         "value": 0
+        }
+       ],
+       "take": "all"
+      },
+      "statusId": "exposed",
+      "stacks": 1,
+      "reach": "unrestricted"
+     }
+    ],
+    "tags": [
+     "mark",
+     "debuff"
+    ]
+   },
+   "foe_action_mark_target": {
+    "id": "foe_action_mark_target",
+    "displayName": "隙を刻む",
+    "apCost": 1,
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "has_status",
+         "statusId": "exposed",
+         "op": "eq",
+         "value": 0
+        }
+       ],
+       "sort": [
+        "hp_desc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "has_status",
+       "statusId": "exposed",
+       "op": "eq",
+       "value": 0
+      }
+     ],
+     "sort": [
+      "hp_desc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "exposed",
+      "stacks": 1
+     }
+    ],
+    "tags": [
+     "debuff"
+    ],
+    "actionMode": "utility"
+   },
+   "foe_action_pierce_thrust": {
+    "id": "foe_action_pierce_thrust",
+    "displayName": "貫き突き",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 12000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "guardPierceBps": 6000,
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "foe_action_rear_hunt": {
+    "id": "foe_action_rear_hunt",
+    "displayName": "後衛狩り",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "rear"
+        }
+       ],
+       "sort": [
+        "hp_asc"
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "rear"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 11000
+      },
+      "tags": [
+       "attack",
+       "technique"
+      ],
+      "reach": "ranged"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "foe_action_rear_strike": {
+    "id": "foe_action_rear_strike",
+    "displayName": "後列打ち",
+    "apCost": 1,
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "rear"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 10000
+      },
+      "reach": "ranged",
+      "tags": [
+       "attack"
+      ]
+     }
+    ],
+    "tags": [
+     "attack"
+    ],
+    "actionMode": "offense"
+   },
+   "foe_action_rend": {
+    "id": "foe_action_rend",
+    "displayName": "抉る",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 11500
+      },
+      "reach": "melee",
+      "tags": [
+       "attack",
+       "weapon"
+      ]
+     },
+     {
+      "type": "add_status",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "statusId": "bleeding",
+      "stacks": 2
+     }
+    ],
+    "tags": [
+     "attack",
+     "debuff"
+    ]
+   },
+   "foe_action_row_sweep": {
+    "id": "foe_action_row_sweep",
+    "displayName": "薙ぎ払い",
+    "apCost": 1,
+    "actionMode": "offense",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 2,
+      "query": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      },
+      {
+       "type": "row_is",
+       "row": "front"
+      }
+     ],
+     "sort": [
+      "position_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "enemies",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "sort": [
+        "position_asc"
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 8000
+      },
+      "tags": [
+       "attack",
+       "weapon"
+      ],
+      "targetPattern": "row",
+      "reach": "melee"
+     }
+    ],
+    "tags": [
+     "attack"
+    ]
+   },
+   "foe_action_shield_wall": {
+    "id": "foe_action_shield_wall",
+    "displayName": "盾の列",
+    "apCost": 1,
+    "actionMode": "utility",
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_barrier",
+      "target": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        }
+       ],
+       "take": "all"
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "focus",
+       "coefficientBps": 7000
+      },
+      "duration": "round"
+     }
+    ],
+    "tags": [
+     "guard",
+     "formation"
+    ]
+   },
+   "foe_action_spread_the_guard": {
+    "id": "foe_action_spread_the_guard",
+    "displayName": "構えを配る",
+    "apCost": 1,
+    "actionMode": "utility",
+    "intrinsicPredicates": [
+     {
+      "type": "target_exists",
+      "op": "gte",
+      "value": 1,
+      "query": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "take": "all"
+      }
+     }
+    ],
+    "targetQuery": {
+     "scope": "self",
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "gain_block",
+      "target": {
+       "scope": "allies",
+       "filters": [
+        {
+         "type": "alive"
+        },
+        {
+         "type": "row_is",
+         "row": "front"
+        },
+        {
+         "type": "not_self"
+        }
+       ],
+       "take": "all"
+      },
+      "amount": {
+       "type": "constant",
+       "value": 1
+      }
+     }
+    ],
+    "tags": [
+     "guard",
+     "formation"
+    ]
+   },
+   "foe_action_strike": {
+    "id": "foe_action_strike",
+    "displayName": "斬撃",
+    "apCost": 1,
+    "intrinsicPredicates": [],
+    "targetQuery": {
+     "scope": "enemies",
+     "filters": [
+      {
+       "type": "alive"
+      }
+     ],
+     "sort": [
+      "hp_asc"
+     ],
+     "take": 1
+    },
+    "effects": [
+     {
+      "type": "deal_damage",
+      "target": {
+       "scope": "event_targets",
+       "filters": [
+        {
+         "type": "alive"
+        }
+       ],
+       "take": 1
+      },
+      "amount": {
+       "type": "stat_scaled",
+       "subject": "self",
+       "scalingStat": "might",
+       "coefficientBps": 12000
+      },
+      "reach": "melee",
+      "tags": [
+       "attack"
+      ]
+     }
+    ],
+    "tags": [
+     "attack"
+    ],
+    "actionMode": "offense"
+   }
+  },
+  "enemyReactiveSkills": {
+   "foe_reaction_counter_blow": {
+    "id": "foe_reaction_counter_blow",
+    "displayName": "反撃",
+    "rule": {
+     "id": "foe_reaction_rule_counter_blow_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 100,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "self",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "is_event_source"
+         },
+         {
+          "type": "alive"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "deal_damage",
+       "target": {
+        "scope": "event_source",
+        "filters": [
+         {
+          "type": "alive"
+         }
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "might",
+        "coefficientBps": 5000
+       },
+       "tags": [
+        "counter"
+       ]
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "counter"
+    ]
+   },
+   "foe_reaction_cover_ally": {
+    "id": "foe_reaction_cover_ally",
+    "displayName": "身代わり",
+    "rule": {
+     "id": "foe_reaction_rule_cover_ally_rule",
+     "listenTo": "target_selected",
+     "timing": "interrupt",
+     "priority": 10,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "enemies",
+        "filters": [
+         {
+          "type": "is_event_source"
+         },
+         {
+          "type": "alive"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "not_self"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "redirect_pending_target",
+       "target": {
+        "scope": "self",
+        "take": 1
+       }
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "guard"
+    ]
+   },
+   "foe_reaction_mend": {
+    "id": "foe_reaction_mend",
+    "displayName": "手当て",
+    "rule": {
+     "id": "foe_reaction_rule_mend_rule",
+     "listenTo": "damage_taken",
+     "timing": "after",
+     "priority": 160,
+     "predicates": [
+      {
+       "type": "target_exists",
+       "query": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       }
+      },
+      {
+       "type": "event_tag",
+       "tag": "cost",
+       "value": false
+      }
+     ],
+     "costs": [
+      {
+       "type": "spend_reaction_points",
+       "amount": 1
+      }
+     ],
+     "effects": [
+      {
+       "type": "heal",
+       "target": {
+        "scope": "allies",
+        "filters": [
+         {
+          "type": "alive"
+         },
+         {
+          "type": "is_event_primary_target"
+         }
+        ],
+        "take": 1
+       },
+       "amount": {
+        "type": "stat_scaled",
+        "subject": "self",
+        "scalingStat": "focus",
+        "coefficientBps": 2500
+       },
+       "tags": [
+        "care"
+       ]
+      }
+     ],
+     "limit": {
+      "owner": "actor-instance + rule",
+      "scope": "chain",
+      "count": 1
+     }
+    },
+    "tags": [
+     "reaction",
+     "care"
+    ]
+   }
+  },
+  "enemyPassiveSkills": {},
   "passiveSkills": {
    "foundation_vitality": {
     "id": "foundation_vitality",
@@ -13057,7 +14570,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "strike",
+      "activeSkillId": "foe_action_strike",
       "useWhen": []
      }
     ],
@@ -13078,7 +14591,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "strike",
+      "activeSkillId": "foe_action_strike",
       "useWhen": []
      }
     ],
@@ -13117,11 +14630,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "hunt_the_slow",
+      "activeSkillId": "foe_action_hunt_the_slow",
       "useWhen": []
      },
      {
-      "activeSkillId": "strike",
+      "activeSkillId": "foe_action_strike",
       "useWhen": []
      }
     ],
@@ -13143,7 +14656,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "strike",
+      "activeSkillId": "foe_action_strike",
       "useWhen": []
      }
     ],
@@ -13165,7 +14678,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "strike",
+      "activeSkillId": "foe_action_strike",
       "useWhen": []
      }
     ],
@@ -13184,7 +14697,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "mark_target",
+      "activeSkillId": "foe_action_mark_target",
       "useWhen": []
      }
     ],
@@ -13205,7 +14718,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13227,7 +14740,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13249,7 +14762,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13271,11 +14784,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "barrage_strike",
+      "activeSkillId": "foe_action_barrage_strike",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13298,11 +14811,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "mark_spread",
+      "activeSkillId": "foe_action_mark_spread",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13324,7 +14837,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "rear_strike",
+      "activeSkillId": "foe_action_rear_strike",
       "useWhen": []
      }
     ],
@@ -13346,11 +14859,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "rear_strike",
+      "activeSkillId": "foe_action_rear_strike",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13372,11 +14885,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "enemy_guard",
+      "activeSkillId": "foe_action_enemy_guard",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13399,11 +14912,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "enemy_guard",
+      "activeSkillId": "foe_action_enemy_guard",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13426,16 +14939,16 @@
     "baseReactionPoints": 2,
     "tactics": [
      {
-      "activeSkillId": "enemy_guard",
+      "activeSkillId": "foe_action_enemy_guard",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
     "reactiveSkillIds": [
-     "cover_ally"
+     "foe_reaction_cover_ally"
     ],
     "intrinsicRules": [],
     "tags": [
@@ -13455,12 +14968,12 @@
     "baseReactionPoints": 2,
     "tactics": [
      {
-      "activeSkillId": "enemy_guard",
+      "activeSkillId": "foe_action_enemy_guard",
       "useWhen": []
      }
     ],
     "reactiveSkillIds": [
-     "mend"
+     "foe_reaction_mend"
     ],
     "intrinsicRules": [],
     "tags": [
@@ -13480,11 +14993,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "enemy_heavy",
+      "activeSkillId": "foe_action_enemy_heavy",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13507,11 +15020,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "hunt_the_slow",
+      "activeSkillId": "foe_action_hunt_the_slow",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13534,15 +15047,15 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "hunt_the_slow",
+      "activeSkillId": "foe_action_hunt_the_slow",
       "useWhen": []
      },
      {
-      "activeSkillId": "rear_strike",
+      "activeSkillId": "foe_action_rear_strike",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13565,12 +15078,12 @@
     "baseReactionPoints": 1,
     "tactics": [
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
     "reactiveSkillIds": [
-     "counter_blow"
+     "foe_reaction_counter_blow"
     ],
     "intrinsicRules": [],
     "tags": [
@@ -13588,11 +15101,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "enemy_guard",
+      "activeSkillId": "foe_action_enemy_guard",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13615,11 +15128,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "enemy_heavy",
+      "activeSkillId": "foe_action_enemy_heavy",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13642,7 +15155,7 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13664,11 +15177,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "row_sweep",
+      "activeSkillId": "foe_action_row_sweep",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13691,11 +15204,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "column_thrust",
+      "activeSkillId": "foe_action_column_thrust",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13718,11 +15231,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "barrage_strike",
+      "activeSkillId": "foe_action_barrage_strike",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13745,11 +15258,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "spread_the_guard",
+      "activeSkillId": "foe_action_spread_the_guard",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13772,11 +15285,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "mark_spread",
+      "activeSkillId": "foe_action_mark_spread",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13798,15 +15311,15 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "row_sweep",
+      "activeSkillId": "foe_action_row_sweep",
       "useWhen": []
      },
      {
-      "activeSkillId": "column_thrust",
+      "activeSkillId": "foe_action_column_thrust",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13829,11 +15342,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "drag_forward",
+      "activeSkillId": "foe_action_drag_forward",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13856,11 +15369,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "hamstring",
+      "activeSkillId": "foe_action_hamstring",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13883,11 +15396,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "rend",
+      "activeSkillId": "foe_action_rend",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13910,15 +15423,15 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "mark_target",
+      "activeSkillId": "foe_action_mark_target",
       "useWhen": []
      },
      {
-      "activeSkillId": "crack_mark",
+      "activeSkillId": "foe_action_crack_mark",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -13940,11 +15453,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "rear_hunt",
+      "activeSkillId": "foe_action_rear_hunt",
       "useWhen": []
      },
      {
-      "activeSkillId": "rear_strike",
+      "activeSkillId": "foe_action_rear_strike",
       "useWhen": []
      }
     ],
@@ -13966,16 +15479,16 @@
     "baseReactionPoints": 2,
     "tactics": [
      {
-      "activeSkillId": "drag_forward",
+      "activeSkillId": "foe_action_drag_forward",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
     "reactiveSkillIds": [
-     "counter_blow"
+     "foe_reaction_counter_blow"
     ],
     "intrinsicRules": [],
     "tags": [
@@ -13993,11 +15506,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "pierce_thrust",
+      "activeSkillId": "foe_action_pierce_thrust",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -14020,11 +15533,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "guard_crush",
+      "activeSkillId": "foe_action_guard_crush",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -14047,11 +15560,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "enemy_guard",
+      "activeSkillId": "foe_action_enemy_guard",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -14074,15 +15587,15 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "execute_low",
+      "activeSkillId": "foe_action_execute_low",
       "useWhen": []
      },
      {
-      "activeSkillId": "finishing_thrust",
+      "activeSkillId": "foe_action_finishing_thrust",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -14105,11 +15618,11 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "shield_wall",
+      "activeSkillId": "foe_action_shield_wall",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -14132,12 +15645,12 @@
     "baseReactionPoints": 3,
     "tactics": [
      {
-      "activeSkillId": "shield_wall",
+      "activeSkillId": "foe_action_shield_wall",
       "useWhen": []
      }
     ],
     "reactiveSkillIds": [
-     "mend"
+     "foe_reaction_mend"
     ],
     "intrinsicRules": [],
     "tags": [
@@ -14157,16 +15670,16 @@
     "baseReactionPoints": 2,
     "tactics": [
      {
-      "activeSkillId": "enemy_guard",
+      "activeSkillId": "foe_action_enemy_guard",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
     "reactiveSkillIds": [
-     "cover_ally"
+     "foe_reaction_cover_ally"
     ],
     "intrinsicRules": [],
     "tags": [
@@ -14186,15 +15699,15 @@
     "baseReactionPoints": 0,
     "tactics": [
      {
-      "activeSkillId": "enemy_heavy",
+      "activeSkillId": "foe_action_enemy_heavy",
       "useWhen": []
      },
      {
-      "activeSkillId": "guard_crush",
+      "activeSkillId": "foe_action_guard_crush",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
@@ -14217,32 +15730,32 @@
     "baseReactionPoints": 2,
     "tactics": [
      {
-      "activeSkillId": "mark_spread",
+      "activeSkillId": "foe_action_mark_spread",
       "useWhen": []
      },
      {
-      "activeSkillId": "barrage_strike",
+      "activeSkillId": "foe_action_barrage_strike",
       "useWhen": []
      },
      {
-      "activeSkillId": "enemy_heavy",
+      "activeSkillId": "foe_action_enemy_heavy",
       "useWhen": []
      },
      {
-      "activeSkillId": "rend",
+      "activeSkillId": "foe_action_rend",
       "useWhen": []
      },
      {
-      "activeSkillId": "guard_crush",
+      "activeSkillId": "foe_action_guard_crush",
       "useWhen": []
      },
      {
-      "activeSkillId": "front_strike",
+      "activeSkillId": "foe_action_front_strike",
       "useWhen": []
      }
     ],
     "reactiveSkillIds": [
-     "counter_blow"
+     "foe_reaction_counter_blow"
     ],
     "intrinsicRules": [],
     "tags": [
@@ -14264,6 +15777,14 @@
     "melee": "fallback_strike_melee",
     "ranged": "fallback_strike_ranged"
    }
+  },
+  "enemyCoreActions": {
+   "basicStrike": {
+    "melee": "foe_action_basic_strike_melee"
+   },
+   "fallbackStrike": {
+    "melee": "foe_action_fallback_strike_melee"
+   }
   }
  },
  "displayNames": {
@@ -14282,10 +15803,6 @@
   "idle_shuffle": "息を整える",
   "mark_target": "隙を刻む",
   "steady_aim": "狙いを澄ます",
-  "front_strike": "前列打ち",
-  "rear_strike": "後列打ち",
-  "enemy_heavy": "重い一撃",
-  "enemy_guard": "盾を構える",
   "basic_strike_melee": "通常攻撃",
   "fallback_strike_melee": "追い打ち",
   "basic_strike_ranged": "通常射撃",
@@ -14393,6 +15910,33 @@
   "third_cut": "三撃目の傷",
   "return_the_mark": "隙を返す",
   "carry_the_ward": "守りを継ぐ",
+  "foe_action_barrage_strike": "連撃",
+  "foe_action_basic_strike_melee": "通常攻撃",
+  "foe_action_column_thrust": "突き通し",
+  "foe_action_crack_mark": "傷口を開く",
+  "foe_action_drag_forward": "引きずり出す",
+  "foe_action_enemy_guard": "盾を構える",
+  "foe_action_enemy_heavy": "重い一撃",
+  "foe_action_execute_low": "首を落とす",
+  "foe_action_fallback_strike_melee": "追い打ち",
+  "foe_action_finishing_thrust": "止めの一突き",
+  "foe_action_front_strike": "前列打ち",
+  "foe_action_guard_crush": "受け崩し",
+  "foe_action_hamstring": "足を払う",
+  "foe_action_hunt_the_slow": "準備狩り",
+  "foe_action_mark_spread": "刻印を散らす",
+  "foe_action_mark_target": "隙を刻む",
+  "foe_action_pierce_thrust": "貫き突き",
+  "foe_action_rear_hunt": "後衛狩り",
+  "foe_action_rear_strike": "後列打ち",
+  "foe_action_rend": "抉る",
+  "foe_action_row_sweep": "薙ぎ払い",
+  "foe_action_shield_wall": "盾の列",
+  "foe_action_spread_the_guard": "構えを配る",
+  "foe_action_strike": "斬撃",
+  "foe_reaction_counter_blow": "反撃",
+  "foe_reaction_cover_ally": "身代わり",
+  "foe_reaction_mend": "手当て",
   "worn_greaves": "踏み込みの靴",
   "splinter_edge": "棘の刃",
   "field_kit": "野営道具",
@@ -19487,10 +21031,6 @@
   "idle_shuffle": 1,
   "mark_target": 1,
   "steady_aim": 1,
-  "front_strike": 10,
-  "rear_strike": 10,
-  "enemy_heavy": 10,
-  "enemy_guard": 10,
   "basic_strike_melee": 10,
   "fallback_strike_melee": 10,
   "basic_strike_ranged": 10,
@@ -29763,7 +31303,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 100,
       "rarity": "epic",
@@ -30139,7 +31679,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 103,
       "rarity": "epic",
@@ -30484,7 +32024,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 110,
       "rarity": "rare",
@@ -30714,7 +32254,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 113,
       "rarity": "common",
@@ -31017,7 +32557,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 500,
       "rarity": "rare",
@@ -31292,7 +32832,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 504,
       "rarity": "common",
@@ -31498,7 +33038,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 510,
       "rarity": "rare",
@@ -31730,7 +33270,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 513,
       "rarity": "common",
@@ -31963,7 +33503,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1100,
       "rarity": "common",
@@ -32169,7 +33709,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1103,
       "rarity": "common",
@@ -32378,7 +33918,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1110,
       "rarity": "common",
@@ -32622,7 +34162,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801",
       "dropIndex": 1113,
       "rarity": "epic",
@@ -32882,7 +34422,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 100,
       "rarity": "common",
@@ -33083,7 +34623,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 103,
       "rarity": "common",
@@ -33315,7 +34855,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 110,
       "rarity": "rare",
@@ -33568,7 +35108,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 113,
       "rarity": "rare",
@@ -33810,7 +35350,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 500,
       "rarity": "common",
@@ -34079,7 +35619,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 503,
       "rarity": "epic",
@@ -34319,7 +35859,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 510,
       "rarity": "common",
@@ -34547,7 +36087,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 513,
       "rarity": "common",
@@ -34757,7 +36297,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1100,
       "rarity": "common",
@@ -34942,7 +36482,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1103,
       "rarity": "common",
@@ -35146,7 +36686,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1110,
       "rarity": "common",
@@ -35377,7 +36917,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-abc12345",
       "dropIndex": 1113,
       "rarity": "rare",
@@ -35605,7 +37145,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 100,
       "rarity": "common",
@@ -35843,7 +37383,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 103,
       "rarity": "common",
@@ -36176,7 +37716,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 110,
       "rarity": "legendary",
@@ -36635,7 +38175,7 @@
      "rarity": "legendary",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 113,
       "rarity": "legendary",
@@ -37020,7 +38560,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 500,
       "rarity": "rare",
@@ -37429,7 +38969,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 505,
       "rarity": "epic",
@@ -37869,7 +39409,7 @@
      "rarity": "epic",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 510,
       "rarity": "epic",
@@ -38177,7 +39717,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 513,
       "rarity": "common",
@@ -38401,7 +39941,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1100,
       "rarity": "common",
@@ -38616,7 +40156,7 @@
      "rarity": "rare",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1103,
       "rarity": "rare",
@@ -38848,7 +40388,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1110,
       "rarity": "common",
@@ -39075,7 +40615,7 @@
      "rarity": "common",
      "provenance": {
       "generatorVersion": "ecology-equipment-gen-8",
-      "contentContractVersion": "ecology-content-contract-28",
+      "contentContractVersion": "ecology-content-contract-29",
       "seed": "frontier-1801-zzz",
       "dropIndex": 1113,
       "rarity": "common",

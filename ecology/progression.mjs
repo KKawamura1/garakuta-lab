@@ -1491,7 +1491,7 @@ export function composeEncounter(index, difficultyRank, options = {}) {
   //
   // 少人数で「前から殴ってくる敵しか出ない」ことは、いまは欠陥ではなく導入の形である。
   // 前列と後列の選択そのものは、敵の狙い先（届く範囲で最も HP の低い味方）が担う
-  //（content/skills-active.mjs の front_strike / rear_strike）。
+  //（enemyActiveSkills の前列打ち / 後列打ち）。
   if (partySize < fullParty) {
     while (units.length > partySize) {
       const removable = units.map((unit, slot) => ({ unit, slot })).filter((entry) => !entry.unit.boss);

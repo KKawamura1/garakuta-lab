@@ -41,7 +41,8 @@
 | `content/world-lore.mjs` | 地域・根城備品の設定本文と、敵本文への集約窓口 |
 | `content/encounters.mjs` | 敵本文の正本（噂・図鑑）と、**狙いの説明文の導出**（`ENEMY_TARGETING` は `enemies.mjs` の tactics から組み立てる。人が書かないので挙動とずれない）。**敵配置ではない** |
 | `content/expedition.mjs` | **遠征の敵配置の正本。**Stage ごとの3幕12戦（`STAGE_ENCOUNTERS`、10 Stage）、threat budget、boss law、難易度 rank。Stage 1以降の役割編成と、Stage 3後半・Stage 6〜9の明示的な `enemyStatScale` もここで宣言する。`EXPEDITION_ENCOUNTERS` は Stage 0 の12戦（Stage を渡さない呼び出しの既定）。`progression.composeEncounter(index, rank, { partySize, stageSequence })` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
-| `content/enemies.mjs` | **敵 unit の正本。**家系（`ENEMY_FAMILIES`）ごとの個体表と `FAMILY_POWER`（家系共通の出力）、`ENEMY_THREAT_COST`。庇護役・治療役も味方と同じ `cover_ally` / `mend` を `reactives` に持つだけで、敵専用の分岐は無い。家系共通でない幕内の敵倍率は `content/expedition.mjs` の明示的な指定で行う |
+| `content/enemies.mjs` | **敵 unit の正本。**家系（`ENEMY_FAMILIES`）ごとの個体表と `FAMILY_POWER`（家系共通の出力）、`ENEMY_THREAT_COST`。tactics / reactive の出典IDはここに置き、狙いの説明もここから導出する。家系共通でない幕内の敵倍率は `content/expedition.mjs` の明示的な指定で行う |
+| `content/enemy-skills.mjs` / `enemy-skill-ids.mjs` | 敵actorが実際に使う行動・反応・常設だけを `foe_*` IDへ写し、enemy registryとenemy core actionを組み立てる。共有中の効果定義は移行中だけ既存skill moduleから複製し、未使用のplayer技能は含めない。`validate.mjs` と `engine.mjs` はsideごとのregistryのみを読む |
 | `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
 | `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
 | `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |
@@ -349,8 +350,7 @@ engine / schema に新しい語彙を追加する必要がある変更は、こ�
 `composeEncounter(index, difficulty, encounterOptions())` を読み、選択中の一戦だけを
 `expeditionEnemyBoard()` で3×2盤へ展開します。敵詳細は同じ composed enemy の確定 stat と
 `PLAYABLE_CONTENT.enemyActors` の AP / RP・tactics・reactive / passive skill ID を合わせ、
-技能名は `componentLabel()`（敵側の `enemy_heavy` / `front_strike` は `COMPONENTS` に居ないため、
-`componentInfo()` だけでは内部 ID が出る）、効果は `componentInfo()`、狙い方は tactics から
+技能名は `componentLabel()`（enemy registryのdisplay nameも `DISPLAY_NAMES` に載る）、効果は `componentInfo()`、狙い方は tactics から
 導出済みの `enemyInfo()` を読みます。
 画面用に敵能力・技能・狙いを複製しません。`inspectedEncounterIndex` と `selectedEnemyId` は
 ギルド／キャンプ間とタブ往復中だけ保つ UI state で、RunState と保存データには入りません。

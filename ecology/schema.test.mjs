@@ -171,6 +171,22 @@ expectRejected(
 );
 
 expectRejected(
+  content((bundle) => {
+    bundle.enemyActors.husk.tactics[0].activeSkillId = "strike";
+  }),
+  "dangling_reference",
+  "enemy tactic cannot resolve a player-only active skill",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.enemyActors.husk.reactiveSkillIds = ["counter_blow"];
+  }),
+  "dangling_reference",
+  "enemy actor cannot resolve a player-only reactive skill",
+);
+
+expectRejected(
   input((battle) => {
     battle.allies[0].characterId = "no_such_character";
   }),

@@ -4,7 +4,7 @@
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
 // 種類別へ分離した。Wave 1 の追加と、その後の倍率・条件バランスもここで管理する。
 //
-// engine・schema・共通registryは変更しない。
+// 敵専用技能は enemy-skills.mjs に置き、player registry へ混ぜない。
 
 import { bpsForLegacyAmount, cloneActive, renamed, scaleDefinitionAmounts } from "./base.mjs";
 
@@ -19,10 +19,6 @@ export const ACTIVE_SKILL_NAMES = {
   idle_shuffle: "息を整える",
   mark_target: "隙を刻む",
   steady_aim: "狙いを澄ます",
-  front_strike: "前列打ち",
-  rear_strike: "後列打ち",
-  enemy_heavy: "重い一撃",
-  enemy_guard: "盾を構える",
   guard_crush: "受け崩し",
   rear_hunt: "後衛狩り",
   finishing_thrust: "止めの一突き",
@@ -62,47 +58,6 @@ activeSkills.idle_shuffle = cloneActive("steady_aim", "idle_shuffle", "息を整
 // 「最も傷ついた味方」＝傷の割合（hp_percent_asc）、攻撃の狙い先は
 // 「最も HP の低い相手」＝絶対量（hp_asc）で、二つを別の言葉として分ける
 //（docs/DESIGN.md 8.7.1）。倒し切るための狙いは残量そのもので決まる。
-const LOWEST_HP_TARGET = Object.freeze({
-  scope: "enemies",
-  filters: [{ type: "alive" }],
-  sort: ["hp_asc"],
-  take: 1,
-});
-const LOWEST_HP_REAR_TARGET = Object.freeze({
-  scope: "enemies",
-  filters: [{ type: "alive" }, { type: "row_is", row: "rear" }],
-  sort: ["hp_asc"],
-  take: 1,
-});
-activeSkills.front_strike = cloneActive("strike", "front_strike", ACTIVE_SKILL_NAMES.front_strike, {
-  targetQuery: { ...LOWEST_HP_TARGET },
-});
-activeSkills.rear_strike = cloneActive("strike", "rear_strike", ACTIVE_SKILL_NAMES.rear_strike, {
-  targetQuery: { ...LOWEST_HP_REAR_TARGET },
-});
-activeSkills.enemy_heavy = cloneActive("heavy_swing", "enemy_heavy", ACTIVE_SKILL_NAMES.enemy_heavy, {
-  targetQuery: { ...LOWEST_HP_TARGET },
-  preparation: {
-    steps: 1,
-    completionEffects: [{
-      type: "deal_damage",
-      // **溜め終わった一撃も、溜め始めた時点の枠ではなく、放つ瞬間に選び直す。**
-      // 途中で誰かを前へ出せば、その人が受ける。
-      target: { ...LOWEST_HP_TARGET },
-      amount: { type: "constant", value: 8 },
-      tags: ["attack", "heavy"],
-    }],
-  },
-});
-activeSkills.enemy_guard = cloneActive("bulwark", "enemy_guard", ACTIVE_SKILL_NAMES.enemy_guard, {
-  effects: [{
-    type: "gain_barrier",
-    target: { scope: "self", take: 1 },
-    amount: { type: "constant", value: 4 },
-    duration: "round",
-  }],
-});
-
 // Likewise, marking an already exposed target has no tactical value. Keep the
 // effect strong on a fresh target and let the normal attack handle repeats.
 activeSkills.mark_target.targetQuery = {
@@ -127,13 +82,6 @@ export const ACTIVE_SCALING = {
   heavy_swing: { stat: "might", bps: 24_000 },
   long_swing: { stat: "might", bps: 50_000 },
   hunt_the_slow: { stat: "might", bps: 14_500 },
-  // 敵の技能。basic strike は might 100%、重い一撃は might 140%
-  front_strike: { stat: "might", bps: 10_000 },
-  // R11 — 後列から撃つ敵の一撃は technique 扱い。**後列の武器減衰を受けない。**
-  // 敵の might と focus はどちらも同じ値なので、威力は動かない（enemies.mjs）。
-  rear_strike: { stat: "focus", bps: 10_000 },
-  enemy_heavy: { stat: "might", bps: bpsForLegacyAmount(14) },
-  enemy_guard: { stat: "focus", bps: bpsForLegacyAmount(4) },
 };
 
 for (const [id, scaling] of Object.entries(ACTIVE_SCALING)) {
@@ -383,7 +331,6 @@ function setDamageReach(skill, reach) {
 for (const [id, skill] of Object.entries(activeSkills)) {
   if (skill.targetQuery?.scope === "enemies") setDamageReach(skill, "melee");
 }
-setDamageReach(activeSkills.rear_strike, "ranged");
 setDamageReach(activeSkills.rear_hunt, "ranged");
 // R11 §5 — 技は後列からでも届く。**この一行が「狙い撃ち」を技たらしめている。**
 setDamageReach(activeSkills.aimed_shot, "ranged");
@@ -406,11 +353,7 @@ const ACTION_MODES = {
   heavy_swing: "channel",     // 溜めが代償
   long_swing: "channel",      // 溜めが代償
   hunt_the_slow: "offense",
-  front_strike: "offense",
-  rear_strike: "offense",
-  enemy_heavy: "channel",
   bulwark: "utility",
-  enemy_guard: "utility",
   // AP移譲だけで一手ぶんの価値を作る。ここに50%追撃まで付くと、移譲先を問わず
   // 常に通常攻撃より得になり、編成を読む余地が消える。
   relay_order: "channel",
@@ -1194,3 +1137,7 @@ for (const id of TECHNIQUE_SKILL_IDS) {
 }
 
 export const ACTIVE_SKILLS = activeSkills;
+export const CORE_ACTIONS = Object.freeze({
+  basicStrike: Object.freeze({ melee: "basic_strike_melee", ranged: "basic_strike_ranged" }),
+  fallbackStrike: Object.freeze({ melee: "fallback_strike_melee", ranged: "fallback_strike_ranged" }),
+});

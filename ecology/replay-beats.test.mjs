@@ -63,12 +63,12 @@ assert.equal(roundBoundary[1].from, 2, "the opening beat starts at round_started
 assert.equal(roundBoundary[1].to, 3, "the opening beat includes the expiry state change");
 
 const preparedAttack = buildBeats([
-  event("action_started", { skillId: "enemy_heavy", targetActorIds: ["a_warden"] }),
-  event("preparation_started", { skillId: "enemy_heavy", targetActorIds: ["e_husk"] }),
-  event("preparation_advanced", { skillId: "enemy_heavy", targetActorIds: ["e_husk"] }),
-  event("preparation_completed", { skillId: "enemy_heavy", targetActorIds: ["e_husk"] }),
-  event("damage_proposed", { skillId: "enemy_heavy", targetActorIds: ["a_warden"], values: { amount: 8 } }),
-  event("damage_taken", { skillId: "enemy_heavy", targetActorIds: ["a_warden"], values: { amount: 8 } }),
+  event("action_started", { skillId: "foe_action_enemy_heavy", targetActorIds: ["a_warden"] }),
+  event("preparation_started", { skillId: "foe_action_enemy_heavy", targetActorIds: ["e_husk"] }),
+  event("preparation_advanced", { skillId: "foe_action_enemy_heavy", targetActorIds: ["e_husk"] }),
+  event("preparation_completed", { skillId: "foe_action_enemy_heavy", targetActorIds: ["e_husk"] }),
+  event("damage_proposed", { skillId: "foe_action_enemy_heavy", targetActorIds: ["a_warden"], values: { amount: 8 } }),
+  event("damage_taken", { skillId: "foe_action_enemy_heavy", targetActorIds: ["a_warden"], values: { amount: 8 } }),
 ]);
 assert.deepEqual(
   preparedAttack.map((beat) => beat.kind),
