@@ -14,6 +14,9 @@ node ecology/check.mjs
 echo "catalog: weapon specifications"
 node analysis/sync-pr287-weapon-spec.mjs --check
 
+echo "catalog: weapon skill bindings"
+node analysis/check-weapon-skill-bindings.mjs
+
 smokes=(
   analysis/build-metadata-smoke.mjs
   analysis/ecology-anti-stall-audit.mjs

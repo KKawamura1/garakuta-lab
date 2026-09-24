@@ -1,7 +1,7 @@
 # dev移行台帳 — Stage 0
 
 更新日: 2026-09-24  
-状態: **進行中。** 基準調査とカタログ由来メタデータの同期を開始した。ゲーム本体の切替前に旧経路の依存と代替検査を追う。
+状態: **Stage 0完了。** 基準調査、190節のカタログ同期、ID・前提bindingの出典整理、初期20節の導出検査を完了した。ゲーム本体の切替と新runtimeの導入はまだ行っていない。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -44,7 +44,15 @@ mainのCIはNode 22で構文検査、`ecology/check.mjs`、`analysis/check-all.s
 
 IDと前提はカタログ11にないため、PR #288のweapon tree moduleをそのまま新しい正本として採用しない。PR #288の監査台帳で仕様・実装・動作まで照合済みなのは57/190節。追加で全190節のtree種別をカタログの種別と照らすと、25件が不一致で、すべて未チェックの133節にあった。監査済み57節に種別不一致はない。これは未監査データを新runtimeへ一括移植できないことを示す。
 
-ID・前提の対応は、PR #288の武器tree moduleにあるposition-to-skill bindingが現状の根拠で、mainの仕様からは再生成できない。初期取得も、各人物の代表武器2本×R/A1を各節の実際の種別から導出する契約であり、A1をactiveと決め打ちしてはならない。Stage 0完了前に、bindingと代表武器の出典を明示したデータ／規則を一つにし、190位置への全件対応・一意ID・有効な前提・初期20件を検査する。仕様文のコピーをweapon moduleへ増やさない。
+IDと前提の対応はmainの仕様から再生成できない。PR #288のtree moduleを監査台帳とともに証拠として保存し、その状態を新runtimeへそのまま昇格しない。初期取得は代表武器2本×R/A1から種別不問で導出する（医療具A1はリアクティブ）。Stage 0ではbindingと代表武器の出典を分けて記録し、190位置への全件対応・一意ID・前提関係・初期20件を検査した。仕様文のコピーを武器moduleへ増やさない。
+
+### ID・前提bindingと初期20節の検証
+
+- `ecology/content/weapon-skill-bindings.mjs` は、PR #288 head `1d3855cac3da825a0c470a411d316f86abd0633b` の10個の武器tree宣言から、190位置のskill ID・直接前提・旧treeの提案種別を写した移行専用データである。戦闘定義はコピーせず、runtimeからimportもしない。
+- 各行に監査状態と出典moduleを持たせた。PR #288監査台帳（https://github.com/KKawamura1/garakuta-lab/blob/1d3855cac3da825a0c470a411d316f86abd0633b/docs/skill-reboot/14-pr288-implementation-audit-2026-09-24.md）で完了している戦槌・格闘具・射出器の57節だけを `audited`、残る133節は `pending` とする。代表武器の根拠はPR #288の `weapon-trees.mjs` に固定した。ID・前提の対応が存在することは、技能の意味や挙動が監査済みであることを意味しない。
+- 旧treeの提案種別は正本の種別として使わない。カタログと異なる25位置（医療具4、大盾2、長槍5、鉤縄4、号旗4、重弩6）は一覧のまま保持し、pendingの差分として検査する。特に医療具A1はカタログのリアクティブを初期技能に含める。
+- 代表武器は人物ごとに2種を明示し、種別ではなくR/A1位置から20節を導出する。検査は190位置の完全対応、一意ID、19節の前提辺、57/133の監査状態、25種別差分、5人×2武器×R/A1を確認する。
+- `node analysis/check-weapon-skill-bindings.mjs` を `analysis/check-all.sh` へ加えた。Stage 0後の個別節監査は引き続き武器PRの範囲で行う。
 
 
 ### PR #288実装とカタログの未解決差分
@@ -61,12 +69,12 @@ ID・前提の対応は、PR #288の武器tree moduleにあるposition-to-skill 
 医療具A1の実装定義はPR #288の `MEDICAL_KIT_PASSIVE_SKILLS` にあり、防壁提案量を増やすパッシブ規則である。カタログのA1は被弾後のリアクティブ回復で、種別だけでなく効果も異なる。PR #288の `weapon-trees.mjs` は表の種別をカタログから上書きするため、結合後のtreeだけを見る検査では定義側の不一致を隠す可能性がある。
 
 この25件はPR #288の未監査範囲で見つかった初期差分であり、全技能の動作監査の代わりにはならない。未照合のID・前提は仮の移植元として扱い、確認済みbindingへ昇格しない。将来のbinding正本は、表示仕様（カタログ）と実装identity/prerequisiteの役割を分け、各行の監査状態と照合根拠を追える形にする。
-## Stage 0の残件と完了判定
+## Stage 0の完了判定
 
 - [x] mainの基準CI・PR #288・Issue #178の状態を記録
 - [x] カタログ由来の190節表示・契約メタデータ同期を追加
-- [ ] skill IDと前提関係を190位置へ一意に結ぶ正本と検証を追加
-- [ ] 5人の代表武器2本からR/A1を種別不問で導出する初期20節を検証
-- [x] このPRのchecksとdeployed trialを確認し、結果を記録
+- [x] 出典・監査状態付きのskill ID/前提bindingを190位置へ結び、種別差分と未監査状態を維持して検証
+- [x] 5人の代表武器2本からR/A1を種別不問で導出する初期20節を検証
+- [x] PR #290のchecksとdeployed trialを確認し、結果を記録
 
 準備段階では旧player runtimeを維持する。新規モジュールは旧skill ID・level map・旧tree・旧pack形状へ依存させない。初期20節のゲーム本体切替と旧経路削除は同じ後続PRで行う。

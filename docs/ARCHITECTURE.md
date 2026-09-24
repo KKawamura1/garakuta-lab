@@ -10,6 +10,7 @@
 | `analysis/ecology-chain-safety-blind-spots.mjs` | 安全ゲートが拒否すべき schema-valid な不正例と、許可条件を満たす既存の陽性例を実際の content から検査する smoke。 |
 | `analysis/ecology-stage3-builds.mjs` | Stage 3（5人・4pack）の三構成（issue #176）を data として持ち、取得計画の予算・核の成立時点・代替入口・代表装備・同じ seed での event 列の違いを、実際に engine へ通して検査する smoke。 |
 | `analysis/ecology-enemy-tactics-smoke.mjs` | Stage 1 の敵による庇護・治療・全体弱体・三段攻撃を event 列で検査し、Stage 9 最終戦を上限鍛錬の固定隊で「五人必殺なら勝利、0人または任意の4人なら敗北」に固定する smoke。 |
+| `analysis/check-weapon-skill-bindings.mjs` | dev移行専用の190位置binding、前提、一意ID、監査状態、既知の種別差分、初期20節を検査する。 |
 | `core/build.mjs` | build metadataのtracked loader。sidecarが無いローカルでは `unbuilt` を使う |
 | `core/build.generated.mjs` | Cloudflare Pages buildが `CF_PAGES_COMMIT_SHA` から作る無視対象sidecar |
 | `functions/api/runs.js` | プレイ記録の受け取りと検証（Cloudflare Pages Functions） |
@@ -33,6 +34,7 @@
 | `ultimates.mjs` | 必殺技（issue #238）。取得済み技能を必殺へ変える純関数の変換規則と、遠征 bundle への混ぜ方。**engine も schema も必殺を知らない** |
 | `replay-beats.mjs` | イベント列をリプレイ表示へ変換。必殺の拍（issue #242 のカットイン）も、新しい event を足さずに ID の形だけで組む |
 | `content/` | 人物、技能、装備、敵、pack、Campaign、affix、物語、名簿、根城、立ち絵 |
+| `content/weapon-skill-bindings.mjs` | PR #288由来の位置→ID/前提と監査状態を保持するdev移行専用データ。現行runtimeはimportしない。 |
 | `art/` | **配信用の画。**タイトルの5人（`title-cast.webp`）と会話の立ち絵（`portraits/*.webp`）。原本は `docs/art/`、作り直しは `analysis/art-web-assets.py` |
 | `content/dialogue.mjs` | 会話画面の本文・配役・立ち位置（本編・序盤・根城）。会話定義の編集先 |
 | `content/character-lore.mjs` | キャラクター設定の正本（名前・人物像・来歴・関係）。人物本文の編集先 |
