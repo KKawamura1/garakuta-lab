@@ -6,9 +6,8 @@
 |---|---|
 | `ecology/` | **本編。**UI、content、engine、進行、replay、local save |
 | `analysis/` | 検査。`check-all.sh` と `ecology-*.mjs`（smoke・公開先 E2E）、`stamp.mjs`（build 印） |
-| `analysis/ecology-chain-safety-audit.mjs` | Issue #175 の資源報酬定義・event trace・再発火・過剰回復・limit を監査する安全ゲート。 |
-| `analysis/ecology-chain-safety-blind-spots.mjs` | 安全ゲートが拒否すべき schema-valid な不正例と、許可条件を満たす既存の陽性例を実際の content から検査する smoke。 |
-| `analysis/ecology-stage3-builds.mjs` | Stage 3（5人・4pack）の三構成（issue #176）を data として持ち、取得計画の予算・核の成立時点・代替入口・代表装備・同じ seed での event 列の違いを、実際に engine へ通して検査する smoke。 |
+| `analysis/ecology-enemy-tactics-smoke.mjs` | 敵専用技能registryから、庇護・治療・弱体・多段の実戦参照を検査する smoke。 |
+| `analysis/ecology-weapon-loadout-smoke.mjs` | 初期4技能、武器技能pack、敵技能pack、未参照技能の不在を検査する smoke。 |
 | `analysis/ecology-enemy-tactics-smoke.mjs` | Stage 1 の敵による庇護・治療・全体弱体・三段攻撃を event 列で検査し、Stage 9 最終戦を上限鍛錬の固定隊で「五人必殺なら勝利、0人または任意の4人なら敗北」に固定する smoke。 |
 | `core/build.mjs` | build metadataのtracked loader。sidecarが無いローカルでは `unbuilt` を使う |
 | `core/build.generated.mjs` | Cloudflare Pages buildが `CF_PAGES_COMMIT_SHA` から作る無視対象sidecar |
@@ -40,11 +39,10 @@
 | `content/encounters.mjs` | 敵本文の正本（噂・図鑑）と、**狙いの説明文の導出**（`ENEMY_TARGETING` は `enemies.mjs` の tactics から組み立てる。人が書かないので挙動とずれない）。**敵配置ではない** |
 | `content/expedition.mjs` | **遠征の敵配置の正本。**Stage ごとの3幕12戦（`STAGE_ENCOUNTERS`、10 Stage）、threat budget、boss law、難易度 rank。Stage 1以降の役割編成と、Stage 3後半・Stage 6〜9の明示的な `enemyStatScale` もここで宣言する。`EXPEDITION_ENCOUNTERS` は Stage 0 の12戦（Stage を渡さない呼び出しの既定）。`progression.composeEncounter(index, rank, { partySize, stageSequence })` → `playable-battles.makeExpeditionBattle` の経路を全プレイ経路が読む |
 | `content/enemies.mjs` | **敵 unit の正本。**家系（`ENEMY_FAMILIES`）ごとの個体表と `FAMILY_POWER`（家系共通の出力）、`ENEMY_THREAT_COST`。庇護役・治療役も味方と同じ `cover_ally` / `mend` を `reactives` に持つだけで、敵専用の分岐は無い。家系共通でない幕内の敵倍率は `content/expedition.mjs` の明示的な指定で行う |
-| `content/skill-tree.mjs` | 技能ツリーの節（`requires` は `{ skillId, minLv }`、`maxLv` は skill-levels から導出）と表示文、前提判定 `prerequisitesMet` |
-| `content/skill-tree-layout.mjs` | 技能ツリーの座標（`requires` から森を組み、x=深さ・y=行を与える）と、その検査 |
-| `content/skill-levels.mjs` | 技能レベルの上限（連続する量を持つ技能だけが Lv10 まで伸びる）と 1段の値段 |
-| `content/packs.mjs` | 技能の pack 所属と Stage ごとの core / full の入口。Stage 1 の `pack_edge` core は `cover_ally`（身代わり）までを含み、Stage 2 の `pack_wall` core は `shield_handoff`（受けの受け渡し）へ続く |
-| `content/roster.mjs` | 人物の加入時初期技能。ナギは Stage 1 で `cover_ally` を初期リアクティブに持つ |
+| `content/weapon-trees.mjs` | プレイヤー向け武器技能の正本。各節は `weaponId / position / kind / skillId / cost / requires` を持ち、前提は取得済みIDだけで判定する |
+| `content/enemy-skills.mjs` | 敵AI専用の active / reactive / passive registry。敵unitが参照する技能だけを保持する |
+| `content/packs.mjs` / `content/skill-packs.mjs` | 装備packと武器技能packを分離した正本。画面では一つの遠征pack案内へまとめるが、manifestでは別欄で保持する |
+| `content/roster.mjs` | 人物の加入時初期技能。各人物の代表武器2本の `R` と `A1` を一つずつ、計4節から導出する |
 | `equipment-gen.mjs` | 装備を手続きで組み立てる決定的 generator と検査 |
 | `static-bonuses.mjs` | passive と装備の常時能力を戦闘・検証・preview・UIで同じように合算 |
 | `blueprints.mjs` | Blueprint archive、持込枠、再製造 |
@@ -56,14 +54,14 @@
 `RunState.encounterIndex` との比較だけで `done` / `current` / `unreached` を決めます。
 精鋭・bossの種別はノード内の記号と凡例へ分離し、強い現在地枠を種別用の枠で上書きしません。
 `analysis/ecology-map-smoke.mjs` が12戦の配置とこの表示契約を、
-`analysis/ecology-trial.mjs` がiPhone幅での現在地移動を確認します。
+`analysis/ecology-map-smoke.mjs` と `analysis/ecology-screens-smoke.mjs` が、12戦の配置と画面契約を確認します。
 
 ## 3. 状態は三層
 
 | 層 | 永続期間 | 主な内容 |
 |---|---|---|
 | ProfileState | 全遠征をまたぐ | 人物、活動資金、購入済み投資、人物鍛錬、Blueprint archive、図鑑、最高 clear Stage、解禁 content、物語の既読印、schema version |
-| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給と**その遠征の補給総数**、**必殺印**、隊、formation、run 技能点・取得技能・取得予約（技能ID・目標Lv）・装着順・一時停止状態・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
+| RunState | 一遠征 | manifest、Campaign Stage、12戦進行、現在 HP、補給と**その遠征の補給総数**、**必殺印**、隊、formation、run 技能点・武器技能の取得・装着順・人物ごとの取得予約・**必殺技の指定と構え**、**その遠征で拾った装備の定義そのもの**、持込 Blueprint、仮計上資金、結果 |
 | BattleState | 一戦 | actor、AP / RP、barrier / block、準備、status、装備耐久、event queue、被弾 chain、攻撃単位の回復窓、開始 HP snapshot、preview / commit 状態 |
 
 ### タイトル画面とContinue
@@ -92,52 +90,35 @@
 `_headers` が `/ecology/art/*` を一日キャッシュする。
 
 技能の取得は `progression.mjs` の `unlockRunSkill` で一度だけ行い、払い戻し API は持ちません。
-取得は Lv1 で、`levelUpRunSkill` が 1点ごとに 1段上げます（`RunState.runSkillLevels`）。レベルは `runSkillLevelsFor` から BattleInput の `ally.skillLevels` へ渡ります。engine は `effects.mjs` の `afterSkillLevel` で連続量（damage / heal / barrier とその増減）に係数を掛け、`static-bonuses.mjs` は基礎能力パッシブを `statBonus + statBonusPerLevel × (技能Lv - 1)` として戦闘開始時の能力へ加えます。**どちらも技能 ID で分岐しません**。Lv1 は旧来の `statBonus` と同じ値で、技能Lvが無い旧入力もLv1として読まれます。離散量（AP/RP・段数・回数・耐久）と装備の rule には掛かりません。装着順と一時停止は `playable-battles.mjs` の loadout に保存し、`disabled` が無い旧 save は全技能を有効として扱います。allyInput がオフの技能を BattleInput から除外するため、preview と本番の両方へ同じ状態が届きます。
+武器別ツリーの節はすべて1SP・レベルなしで、前提は取得済みIDだけを見ます。取得予約は
+`reserveRunSkill` が人物ごとに一つの目標節を保存し、`fulfillSkillReservations` が技能点を得た時点で
+前提から目標まで自動解禁します。別の節を予約した場合は既存の予約を置き換えます。
+セーブは現行の `SAVE_FORMAT_VERSION` / `RUN_SCHEMA_VERSION` / `MANIFEST_VERSION` が一致するものだけを読み、
+旧セーブの技能・pack・loadoutを移行しません。
+戦闘時の選択は `playable-battles.mjs` の loadout に保存し、active 一つ、ordered reactive、ordered target、
+全 passive を `allyInput()` が preview と本番に共通で渡します。
 `simulateExpeditionBattle` が予測と本番の入力構成と `equipmentBreaks: false` を共有するため、
-技能レベル・HP・装備耐久を含む同じ入力から同じ結果とイベント列を返します。
+HP・装備耐久を含む同じ入力から同じ結果とイベント列を返します（旧 replay の技能レベル欄は読み取り互換のみ）。
 **呼び出し側も一本です**：`app.js` の `expeditionBattleOptions()` が盤面の外の入力
 （`composed` / `hp` / `equipmentDurability` / `limitsFor`）を組み、戦闘予測
 （`previewNextBattle`）と本番（`simulateExpeditionBattle`）がその戻り値をそのまま渡します。
 本番が足すのは結果を変えない `simulationOptions: { captureReplaySnapshots: true }` だけで、
 `app.js` の試映も同じ `simulateExpeditionBattle` と snapshot 収集を使います。ただし
-`previewOnly` の境界より内側では `RunState.results`、ledger、技能点、取得予約、図鑑、
+`previewOnly` の境界より内側では `RunState.results`、ledger、技能点、図鑑、
 `commitBattleResult`、戦闘ログを更新しません。試映の結果は `simulationMode` により必ず専用結果へ
 入り、通常の報酬生成・進行経路を通らずキャンプへ戻ります。
-取得予約は `progression.mjs` の `reserveRunSkill` / `cancelRunSkillReservation` が一人一目標を管理し、`fulfillSkillReservations` が同じ決定順で前提・必要Lv・目標技能を、手持ちSPの範囲だけ自動取得します。画面は自動取得の action 列を受け取り、前提をオフ、目標をオンで loadout へ反映します。`RunState.skillReservations` は保存・再開の対象です。
-`analysis/ecology-screens-smoke.mjs` がその2箇所と、予測 cache の鍵
-（`forecastKey`、`runSkillLevels` と `runUnlockedSkills` を含む）を見張ります。
-`content/skill-levels.mjs` の `LEVELED_EFFECTS` と `effects.mjs` の `afterSkillLevel` が
-掛かる effect 型が一致しているかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
-技能の数は**変動量と固定量に分けてあります**。変動量（レベルで伸びる damage / heal /
-barrier / 増減の amount、および基礎能力の `statBonus`）は各技能にちょうど一つで、説明文はその数を持たず `{amount}` /
-`{total}` / `{hits}` と書いて定義を指します。表示の直前に
-`skillTextAtLevel(text, definition, level)` が実際の値（レベルを掛け、単位は amount 型が
-決める）を埋めます。固定量——発動条件の閾値、後列減衰、段数、AP / RP——は文字のままです。
-数を二箇所に書かないので「係数を変えたのに説明文が旧値のまま」は起こりません。
-`skillTextIssues` が「変動量を数字で直接書いた」「`{amount}` を書き忘れた」「変動量を二つ
-持っている」を検出し、`analysis/ecology-readout-smoke.mjs` と `ecology/phase-b.test.mjs` が
-それを見張ります。
+取得予約は武器技能の `skillReservations` に保存します。武器画面は
+`skillReservationFor` / `reserveRunSkill` / `cancelRunSkillReservation` を通じて一人物一目標の予約、
+予約取消、技能点獲得後の自動解禁を操作します。
+`analysis/ecology-screens-smoke.mjs` は武器別ツリーの入口、解禁操作、予測 cache の鍵を見張ります。
+技能定義にレベル係数や技能レベル欄はありません。表示値は各武器定義の固定値をそのまま出し、
+`analysis/ecology-weapon-loadout-smoke.mjs` と `ecology/weapon-system.test.mjs` が初期構成・前提・
+取得経路を見張ります。
 
-取得コストと登場時期に対する強さは `analysis/ecology-skill-balance-smoke.mjs` が production
-content を直接読んで検査します。深い腕力攻撃を基礎攻撃の高Lvと比較し、技術攻撃の係数帯、
-溜め技の1行動平均、AP移譲の `channel` / `not_self` を固定します。さらに同じ content を
-小戦闘へ通し、隙・怯み・守勢が多段の全hitへ割合で掛かること、裂傷が最大HPを読むこと、
-複数行動の途中で「余りを溜める」が次の一手を集中させること、位置替えと踏み固めが連鎖すること、
-身代わりが自己標的へRPを空費しないことまでevent列で確かめます。issue #271 ではさらに、
-各packが2本ずつRP0反応を持つこと、裂傷3段、瀕死治療→守勢、溜め→守勢＋重撃、
-刻印2段→三連撃→裂傷／集中、隙の引受→怯み／受け構えをproduction戦闘で固定し、
-基礎能力Lv10が最大HP+140／腕力・技術+11／受け+10に留まることも同じ検査へ加えました。
-
-割合状態は新しいengine語彙ではありません。`content/statuses.mjs` が段数と `hitIndex` の
-排他的な組ごとに有限の `damage_proposed` ruleを展開し、既存の
-`event_value_scaled` とchain発火上限を使います。上限はproduction contentの最大6hitに合わせ、
-balance smokeが0〜5の全hitを覆うruleを要求します。
-
-技能画面の効果チップは、この同じ `skillTextAtLevel` から能力値を掛ける前の係数を読む。
-人物ごとの最終値は詳細欄へ重ねず、印（腕・技・受・HP）と係数を見たプレイヤーが判断する。
-未取得節の右端は、現在Lvから取得可能になるまでに必要な他技能の残りLv数を破線四角、
-取得コストを実線四角として `+` で結ぶ。前提Lvの閉包は `remainingPrerequisiteLevels` が
-一度だけ辿り、既に満たしている前提は差し引く。
+武器技能の強さは固定値・共有event・武器の到達位置で調整します。技能レベル係数、Lv上限、
+前提Lvの閉包は現行実装にありません。`analysis/ecology-enemy-tactics-smoke.mjs` は敵AIの
+庇護・治療・弱体・多段を実戦eventで確認し、`analysis/ecology-weapon-loadout-smoke.mjs` は
+プレイヤー初期構成と敵技能との集合分離を確認します。
 
 遠征終了で消えるもの: run 技能点と run 中に解禁した技能、装備の実物（選んだものだけ
 Blueprint として残る）、補給・scrap・治療 charge・現在 HP、encounter 順と報酬 offer。
@@ -180,14 +161,16 @@ phase `blueprintPick`（`renderBlueprintPick`）を挟み、`pendingSettlement` 
 
 newRun は新規遠征の技能点を startingSkillPoints(profile) で決め、基礎0へ永続強化「初期SPアップ」の段階ぶんを加える。固定の初期装備を inventory へ入れず、出発前に選んだ Blueprint の持込品だけは例外です。初期SPアップは新規遠征の開始時だけに適用し、途中加入者へ遡っては付けません。勝利時の技能点は progression.grantRunSkillPointsForClear の一箇所で決まります。量は SKILL_POINTS_PER_CLEAR（encounter の種別 → 点数。通常戦1／精鋭戦1／boss2）から引き、region:index を鍵に RunState.grantedSkillPointKeys へ記録するので、**同じ encounter からは一度しか配りません**（活動資金の撃破分と同じ鍵です）。12戦を全て勝った場合は15点、最後の戦いの直前までで13点です。app.js はこの関数を呼ぶだけで、量も冪等も持ちません。プロローグはこの経路から除外され、活動資金と技能点を増やしません。
 
-技能の前提は `{ skillId, minLv }` で、判定は `content/skill-tree.mjs` の `prerequisitesMet` / `unmetPrerequisites` 一箇所を、解禁 API（`progression.unlockRunSkill`）・画面（`app.js` の `skillNodeState`）・加入時の無償閉包（`playable-battles.initialUnlockedSkills` と `initialSkillLevels`）が共有します。無償閉包が Lv1 より上を要求するときは、その Lv も加入時に無償で付きます（取得済みなのに前提 Lv 不足で子が取れない形を作らないため）。前提が上限 Lv を超えていないか、その Stage で出る節を一遠征ぶんの技能点で取り切れるかは `analysis/ecology-skill-catalog-smoke.mjs` が見ます。
+技能の前提は `{ skillId }` で、判定は `content/weapon-trees.mjs` の武器節情報を、解禁 API
+（`progression.unlockRunSkill`）・画面・加入時の初期構成が共有します。初期構成は代表武器2本の
+`R` / `A1`、各人物4技能で固定し、前提の無償閉包だけを適用します。
 `newRun` は `startingSupplies(profile, rank)` で補給を決め、同じ値を `RunState.suppliesMax`（その遠征の総数・表記の分母）へも入れます。基礎は `STARTING_SUPPLIES_BASE`（3）で、永続強化「開始補給」の段ぶん（最大 +2、天井は `MAX_SUPPLIES` = 5）が加わります。導入用の特例は持ちません（Stage 0 だけ1個という例外があると「3/3」が最初の遠征で嘘になるため）。`gainSupply` と `convertScrap` は `runSuppliesMax(run)` を上限にするので、**遠征中に総数を超えて増えません**——屑から戻せるのは使った分だけです。欄の無い古い保存は `runSuppliesMax` が基礎値として読み直します。New Game が作る `runId` を `tutorialRunId` として画面状態に保持し、その導入遠征だけを必須チュートリアルの対象にします（旧 `supplyTutorialRunId` は `hydrateState` が読み替えます）。通常遠征・再訪・既存セーブはこの marker を持たないため、補給タブを任意に使えます。導入遠征の Stage 0 では、**補給チュートリアルを終えるまで補給が一つも減りません**（`suppliesSealed()`）。錠の条件は手引きの出現（`ordinaryBattleWon()`）と同じ Stage を読みます——Stage を選び直した遠征は `runId` を持ち回すので導入の marker を持ったまま Stage 1 以降を走ることがあり、そこで錠を掛けると手引きが出ないまま永久に開きません。補給タブは `campNav()` で `disabled`、`campActiveTab()` は保存が指していても補給の画面を返さず、`tab` と `treat` の handler も同じ判定で弾きます（画面と経路の両方に錠を掛けます）。報酬の引き直しも同じ判定で閉じ、再挑戦だけは `spendSupply` を通さず無料でやり直せます（敗北画面が `SEALED_SUPPLY_NOTE` で理由を出します）。手引きそのものの一手（`supplyTutorialVisible()`）と、完了印 `SUPPLY_TUTORIAL_FLAG` が付いたあとは錠が外れます。手取りの置き場所は `SKILL_LESSON_ENCOUNTER_INDEX`（第1戦の直後＝技能）と `SUPPLY_TUTORIAL_ENCOUNTER_INDEX`（その次の一戦の直後＝補給）の二つだけが決め、`ordinaryBattleWon(n)` が両方の判定を共有します。本編第2戦に勝つと補給チュートリアルに入り、`supplyTutorialStep()` が `tab` / `treatment` / `target` の段を保持します（一手目で補給タブを自分で押させ、その札が「補給とは何か」を説明します。`supplyTutorialTabLocked()` は `tab` の段だけ閉じ込めません）。`supplyTutorialSpotSelector()` が「集中治療」のボタンまたは負傷者の盤面セルを選び、隊列・技能・補給・必殺技は共通の `tutorialGate()` → `applyTutorialGate()` → `tutorialAllows()` を使います。これにより光る先・画面上の錠・handler の制限が同じ選択子から出ます。単体治療は `treatmentTargetIds()` が返す候補から `select-treatment-target` を受けるまで補給を消費せず、確定後だけ既存の `progression.mjs` の `campTreat` へ明示した target ID を渡します。対象を選ぶ画面は補給タブ専用の一覧ではなく、上端の共通盤面（`partyCellRole` の `supplies` mode）です。結果は `treatmentResult` と `role=status` で表示し、完了印は `ProfileState.storyFlags` に保存します。`supplyTutorialVisible()` 中は nav の他タブ、`begin-stage`、撤退経路を UI と handler の両方で閉じます。
 
-序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。巻き戻し直後の camp は隊列チュートリアル（DESIGN.md 6.4.4）に入り、`formationTutorialStep()` が `open` / `pick` / `place` / `done` の段を返します。教える一手は content 側の `PROLOGUE.tutorial`（`characterId` / `row`）が持ち、`formationTutorialSpotSelector()` が段ごとの選択子を一箇所で作ります。`render()` の後段の `applyTutorialGate()` が、その選択子に当たる要素へ `tutorial-spot`（光）を付け、`done` 以外の段では他の `[data-action]` を `tutorial-blocked` と `disabled` で塞ぎます。`handleAction` も同じ選択子で弾くので、押せる形と経路の両方が同じ判定を読みます。`campTutorialTab()` が補給チュートリアルと同じ形でタブを一枚へ閉じ込め、目標の行へ入った瞬間に錠が外れて `formationMode` も false へ戻ります（`place-character` の handler が段の前後を比べて畳みます）。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP60%・前衛の攻撃115%を適用し、後列の marksman は個別に73%へ落とします（`might` / `focus`）。通常戦の難易度や敵定義は変えません。
+序盤の巻き戻しでは、`app.js` が `PROLOGUE.formation` を `RunState.formation` に戻してから camp へ進めます。初期配置を `defaultFormation` に戻さないため、変更なしの再戦は敗北として予測されます。巻き戻し直後の camp は隊列チュートリアル（DESIGN.md 6.4.4）に入り、`formationTutorialStep()` が `open` / `pick` / `place` / `done` の段を返します。教える一手は content 側の `PROLOGUE.tutorial`（`characterId` / `row`）が持ち、`formationTutorialSpotSelector()` が段ごとの選択子を一箇所で作ります。`render()` の後段の `applyTutorialGate()` が、その選択子に当たる要素へ `tutorial-spot`（光）を付け、`done` 以外の段では他の `[data-action]` を `tutorial-blocked` と `disabled` で塞ぎます。`handleAction` も同じ選択子で弾くので、押せる形と経路の両方が同じ判定を読みます。`campTutorialTab()` が補給チュートリアルと同じ形でタブを一枚へ閉じ込め、目標の行へ入った瞬間に錠が外れて `formationMode` も false へ戻ります（`place-character` の handler が段の前後を比べて畳みます）。`prologueEncounter()` は12戦用の敵定義を流用しますが、`PROLOGUE.enemyScaling` のHP66%・前衛の攻撃75%を適用し、後列の marksman は個別に36.5%へ落とします（`might` / `focus`）。射出器Rの最寄り対象選択に合わせた導入戦専用の調整で、通常戦の難易度や敵定義は変えません。
 巻き戻し直後の情報分離を含む会話本文は `content/dialogue.mjs` が正本で、`story.mjs` は断片の順序と表示条件だけを持ちます。
-本編第1戦に勝つと技能チュートリアル（DESIGN.md 6.4.6）に入ります。キャンプが戻る先は通常どおり遠征タブで、`skillLessonStep()` が `tab` / `pick` / `open` / `unlock` / `aim` / `reserve` / `handoff` / `done` の段を返します。教える二つの節は content の `SKILL_LESSON.tutorial`（`characterId` / `unlockSkillId` / `reserveSkillId`）が持ち、受け渡す相手は同行者から引きます（`skillLessonHandoffId()`）。`skillLessonSpotSelector()` はタブ、上端の盤面セル（`select-character`）、技能ツリーの節（`select-skill-node`）、操作盤の `unlock-skill`、`reserve-skill`（`data-target-level` は `MIN_SKILL_LEVEL`）を一箇所で綴ります。`done` は選択子を持たない段で、**光らせる先を置きません**。
+本編第1戦に勝つと技能チュートリアル（DESIGN.md 6.4.6）に入ります。キャンプが戻る先は通常どおり遠征タブで、`skillLessonStep()` が `tab` / `pick` / `open` / `aim` / `unlock` / `handoff` / `done` の段を返します。教える武器と入口節は content の `SKILL_LESSON.tutorial`（`characterId` / `weaponId` / `unlockSkillId`）が持ち、受け渡す相手は同行者から引きます（`skillLessonHandoffId()`）。`skillLessonSpotSelector()` はタブ、上端の盤面セル（`select-character`）、武器タブ（`select-weapon-tree`）、入口節（`select-weapon-skill-node`）、武器節の `unlock-weapon-skill` を一箇所で綴ります。`done` は選択子を持たない段で、**光らせる先を置きません**。
 
-錠の掛かる範囲は二つに分かれます。`skillLessonLocked()` は `done` 以外、`skillLessonTabLocked()` は `tab` と `done` 以外（一手目がタブを押すことなので、そこで閉じ込めると打てません）。`aim` の段だけは `skillLessonAllowSelector()` が操作盤の「✕」を返し、`tutorialOpenings(gate)` が「光る先＋光らせないが通す先」を一つの選択子にまとめます——`applyTutorialGate()` の錠も `tutorialAllows()` の経路も同じ文字列を読むので、画面と handler が別々の綴りを持つことはありません。受け渡しが済んだ印は画面状態の `skillLessonHandedOff` で、以後は誰を選び直しても段が戻りません（画面の状態から導くと、教えた相手を選び直した拍に錠が復活します）。予約は既存の `progression.reserveRunSkill` をそのまま通るので、チュートリアル専用の取得経路は作りません。完了印 `skill_lesson_seen` は **次の一戦へ出るとき**（`begin-stage`）に押します。
+錠の掛かる範囲は二つに分かれます。`skillLessonLocked()` は `done` 以外、`skillLessonTabLocked()` は `tab` と `done` 以外（一手目がタブを押すことなので、そこで閉じ込めると打てません）。武器タブを開いたあと入口節を選び、`unlock-weapon-skill` を押すと解禁し、最後にもう一人へ渡します。受け渡しが済んだ印は画面状態の `skillLessonHandedOff` で、以後は誰を選び直しても段が戻りません（画面の状態から導くと、教えた相手を選び直した拍に錠が復活します）。完了印 `skill_lesson_seen` は **次の一戦へ出るとき**（`begin-stage`）に押します。
 
 四つの手引きの札は `tutorialNoteCard()` が一枚だけ組み、`renderCamp()` が `.camp-view` の頭へ出します。錠が掛かっている段では札に `pinned` が付き、固定帯（`--camp-top-h`）の真下へ貼りつきます。`publishCampTopHeight()` が札の高さを `--tutorial-note-h` へ入れます（技能点の帯は 2026-09-17 に貼るのをやめ、ツリーの操作の行へ移したので、その下に貼るものはいまのところ手引きの札だけです）。`focusTutorialSpot()` は段が変わった回だけ、光らせる先が窓の外なら技能ツリーの帯とページを寄せます（`focusSelectedSkillNode()` と同じ作法で、見えているときは動かしません）。貼りついた札の重なりの段は `z-index: 4` で、キャンプの固定帯（`.camp-top`、3）・技能の操作盤（`.skill-sheet`、2）より手前に出ます。**札が隠れると、いま押す場所を言う唯一の文が読めなくなる**ためです（札は固定帯の下へ `--camp-top-h` のぶんだけずらして貼るので、固定帯とは重なりません）。
 
@@ -215,7 +198,14 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   リプレイの表示が同じ名前になる。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
-- 同じ actor の reactive skill は loadout の上から順に候補を処理し、active skill は配列順に最初の使用可能なものを選びます。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。
+- 味方 actor の active skill は `BattleInput.activeSkillId` の一つだけです。legacy fixture / 敵定義の
+  `tactics` は段階移行中の互換入口として残しますが、playable loadout は巡回カーソルを使いません。
+- 同じ actor の reactive skill は loadout の上から順に再評価し、条件・コスト・RP温存量を満たして
+  **最初に発動した一つ**でその trigger window を閉じます。actor をまたぐ順序と、signature / passive /
+  equipment / status は従来どおり priority・initiative・position・ID の tie-break を使います。
+- `targetSkillIds` は順序付きです。engine は active の合法候補集合を先に作り、各 target skill の
+  `targetQuery` がその集合から一体を選べたときだけ採用します。したがって target skill は active の
+  scope・filter・reach・take を拡張できません。
 
       runSeed:manifest:stageId
       runSeed:encounter:encounterIndex
@@ -235,6 +225,52 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   開始位置を cutoff として記録し、次の `round_started` event を記録した直後に、その cutoff
   より前に作られたものだけを削除します。これにより、replay では期限切れが最後の攻撃ではなく
   次ラウンド開始の拍に乗り、end phase 中に作られた効果は次ラウンドを通過できます。
+
+### R25の射程と一時移動
+
+新武器カタログの`deal_damage.rangeClass`は`melee / long / ranged / support`の四値です。
+`effects.mjs`の`reachOfEffect()`が対象合法性へ写し、`afterPositionModifier()`が同じ値から
+最終量を計算します。`melee`は攻撃者が前列なら125%、後列なら40%。`long / ranged`は攻撃者の
+行に依存せず、対象が後列かつ対象側に生存前列がいれば75%です。`support`は補正しません。
+`reach`と`rangeClass`の併記はvalidator errorです。未移行contentは`rangeClass`を持たず、従来の
+`reach`と腕力後列減衰を通るため、武器単位で移行できます。
+
+`move_to_open_row`は同じ側の空きマスだけを、現在列からの距離、固定マス順の順で選びます。
+`returnAfterAction: true`ならpending actionへ出発点を積み、技能効果とそこから生じた反応をすべて
+解決した後、出発点が空いていて本人が移動先に残っている場合だけ帰還します。往路・復路とも
+通常の`actor_moved`を発行し、初期配置は発行しません。これにより一時前進はその行動の近接補正を
+得ながら敵フェーズ前に戻れ、毎AP起動で再評価されます。
+
+前進passiveは`action_declared`のinterruptで動きます。engineは宣言eventへ`actionReach()`で解決した
+`melee / ranged / long / support` tagを加え、passiveはactive IDでなくこの共有tagを読みます。
+`after`ではaction chain終了まで発火が遅れるため、攻撃前移動には使いません。帰還予定を積んだ後で
+対象消滅や割り込み中止が起きても、`performAction()`の`finally`が帰還を試みます。
+
+### R25の武器横断ルール
+
+`content/weapon-warhammer.mjs`、`content/weapon-dual-blades.mjs`、
+`content/weapon-gauntlets.mjs`、`content/weapon-launcher.mjs`、
+`content/weapon-tower-shield.mjs`、`content/weapon-long-spear.mjs`、
+`content/weapon-medical-kit.mjs`、`content/weapon-grappling-hook.mjs`、
+`content/weapon-banner.mjs`、`content/weapon-heavy-crossbow.mjs`を19節縦スライスとし、
+`content/weapon-root-slices.mjs`は旧呼び出し元のための互換barrelとして残す。定義は
+`weaponId`と`treePosition`を
+表示・取得用に持ちます。戦闘条件は武器IDを読まず、hit番号、攻撃tag、防壁・受け構え、状態の極性、
+eventの主対象と同じ列、という共有事実だけを読みます。activeだけが`rangeClass: melee`と基礎係数を
+所有します。これにより非アクティブ技能を別武器へ組み合わせてもengineの固有分岐は増えません。
+
+一技能が複数の独立した反応点を持つ場合は`rule`または`rules`を受け付けます。通常は同じruleを
+一chain一回に制限し、各hitや複数の状態除去を本当に読む規則だけが`allowRepeatInChain: true`と
+有限のchain上限を宣言します。event単位の発火記録も併用するため、同じ出来事への自己再発火はできません。
+上位passiveの`replacesPassiveSkillIds`は取得済みの下位版だけを実行時に抑止します。
+
+追加した汎用語彙は、極性指定の`remove_statuses`、防壁／受け構えを除く`remove_barrier` /
+`remove_block`、`has_defense`・`has_defense_or_status`・同列／主対象外のtarget filter、状態由来の
+防御補正、除去種類数を係数へ変える`stat_times_context_scaled`、多段hit数を状態段数から有限に
+決める`hitCountFromStatus`、固定順へ分配する`hitDistribution: round_robin`、戦闘ごとの有限使用を
+示す`usesPerBattle`、単体対象を優先する状態tag、列／未行動target filter、対象の
+redirectを引き継ぐevent tag、対象のAP/RPを減らす`reduce_resource`です。schemaは
+`ecology-content-9`、result schemaは`ecology-result-4`、content contractは39、content versionは0.28です。
 
 ## 5. イベント列
 
@@ -373,26 +409,25 @@ record は走査を止めた緑の窓です。各戦の技能点と戦闘後HP�
 `script`（`"prologue"` / `"ultimate_lesson"`）を残し、`encounterForInspection()` が
 `SCRIPTED_ENCOUNTER_BUILDERS` からその盤面を組み直します。**save に残すのは印の一語**で、
 敵の表そのものは置きません。印の無い項は従来どおり `composeEncounter` で組みますが、
-印を持たない古い save のために `scriptOfClearedEncounter()` が一つだけ読み替えます——
 導入の遠征（New Game の Stage 0）の第1戦は必ず灰の門です（New Game は profile ごと
 作り直すので、灰の門を飛ばす経路がありません）。
-技能ツリーは**地図と操作盤を分ける**。節（`.tree-cell`）は位置と状態だけを持ち、押した節の説明・
-前提・派生・取得・段上げ・取得予約は画面下端へ貼る操作盤（`renderSkillSheet` / `.skill-sheet`）が
-出す。節の中で開かないので、押しても地図は組み変わらず、釦は列幅ではなく画面幅を使える。
-`focusSelectedSkillNode()` は、選び直した節が帯の窓の外に居るときだけ地図を寄せる。
-**見方は一覧（既定）と地図の二つ**で、どちらも同じ森（`skillTreeLayout()`）を同じ順（深さ優先）で
-読む。`renderSkillList()` は縦一列・横スクロール無しで、深さを `--indent` の段差で出す。
-`renderSkillMap()` は R19 の森そのもの（固定幅の列と実座標の線）。切り替えは
-`state.skillTreeView`（`select-skill-view`）が持ち、節の選択・操作盤・`data-fx` の宛先は共有するので、
-一覧で見つけた節を地図で辿り直しても、選んだ節と操作の場所は変わらない。手引きの選択子は
-見方に依らず `.skill-tree-view [data-action="select-skill-node"]` で綴る。
-「いま技能点で動かせる節」（解禁できる／段を上げられる＝`skillNodeActionableNow()`）は、
-種別タブの数（`.tab-ready`）と絞り込み（`state.skillTreeReadyOnly` / `toggle-skill-ready`）の
-両方が読む。**絞り込みは一覧では隠し、地図では沈める**（地図で隠すと線の行き先が消える）。
-盤は「その節を取るかどうかを決める材料」だけを持つ（効果の一文・足りない前提・一行に並ぶ
-取得／段上げ／予約）。入切は `skillToggleSwitch()` の摘みを装着行と共有し、前提と派生の一覧は
-地図が、予約の規則は畳んだヘルプが、いまの予約先と残りの技能点はツリーの操作の行
-（`.tree-controls`、貼りつかない）が出す。
+技能ツリーは武器別の地図／一覧へ一本化する。横送りの武器タブ（`.weapon-tree-tabs`）で武器を選び、
+`.weapon-skill-map` は内部位置名から固定した7列の座標と `requires` の線で派生を示す。内部位置名そのものは
+表示せず、丸の中の A / R / T / P で役割を示す。節の条件・AP/RP/HPコストは左、仕切りを挟んで対象・倍率・hitなど
+効果バッジを右へ置き、未知の event / status ID は画面用の語へ置き換える。取得可能ならカード右上は解禁、不足時は
+前提込みの必要点を添えた予約ボタンにする。
+`.weapon-skill-list` は同じ `requires` を深さ優先へ並べ、`.weapon-list-guide` の縦線と肘を親・子の行の中心まで
+伸ばして接続を保つ。長い節名はカード内で最大2行に折り返す。上位形態やアクティブ置換は効果と取得経路で分かるため、
+節カードへ▲印を足さない。各節は
+`select-weapon-skill-node` で選ぶが、詳細と操作は節を伸ばさず、地図／一覧の外にある
+`.weapon-skill-sheet` だけを差し替える。操作盤の見出しに役割記号と取得操作を置き、区切り線の下は効果全文だけを出す。
+節選択は `refreshWeaponSkillSelection()` でカードの選択状態・接続線・操作盤だけを更新し、地図 DOM と
+`.weapon-tree-scroll` の横位置を保つ。選択節が表示窓外なら、`focusWeaponSkillTree()` が横帯とページを寄せる。
+`select-weapon-skill-view` は見方だけを変え、取得状態には触れない。
+`unlock-weapon-skill` が1SPを払い、取得後は役割ごとの loadout へ登録する。前提または技能点が足りない節は
+`reserve-weapon-skill` で一人物一つまで予約でき、技能点獲得後に前提から自動解禁する。武器技能画面に
+旧共通ツリー・技能レベル・旧pack切替は出さない。
+`weaponSkillMemory` は人物IDごとに最後の `weaponId`・`skillId`・viewを持ち、人物選択時に復元する。
 装飾的な英語副見出し、
 常に表示する一般説明、同じタブへ戻るNEXT/QUICK LINKSは画面の主操作から外し、必要なルールを
 `details.help-details` のタップ式ヘルプへ置く。`helpOpen` が開閉状態を保持するため、同じ画面の
@@ -507,32 +542,55 @@ phase を battle から result へ寄せるため、会話を見ないまま結�
 中にあるので、止めないと一押しで巻き戻しと「叩いて進む」が続けて起き、巻き戻し後の
 一行目が読み飛ばされる）。どちらも `analysis/ecology-screens-smoke.mjs` が見張る。
 
-### 技能の取得と装着（issue #236）
+### 技能の取得と戦闘ロードアウト（武器技能移行）
 
-**「取得済みだが未装着」という状態は無い。**技能枠は `SLOT_LIMITS` の
-`active` / `reactive` / `passive` とも `Number.MAX_SAFE_INTEGER`（上限があるのは装備の2枠だけ）で、
-取得したものを装着できない場面が存在しない。この状態は「オフ」と同じことを二通りに
-表しているだけだった。
+RunState の loadout は、取得済み一覧と戦闘時の選択を次の欄へ分けます。
 
-不変条件は一つ。**`runUnlockedSkills[c]` に入っている技能は、必ず種別ごとの装着欄にも
-並んでいる。**出すか出さないかは `loadout.disabled` だけが決める。
+| 欄 | 意味 |
+|---|---|
+| `tactics[c]` | 移行中の取得済み active 一覧 |
+| `actives[c]` | 戦闘へ出す active 一つ |
+| `reactives[c]` | 上から調べる reactive 一覧 |
+| `reactiveReserves[c][skillId]` | その reactive 発動後に残すRP |
+| `targets[c]` | 上から調べる target 一覧 |
+| `passives[c]` | 取得済み全件。すべて有効 |
 
-- `unlock-skill` は `unlockRunSkill` のあと `equipSkill` を通す（**オンで**装着され、
-  その場で回り始める）。
-- `joinRun` と保存の読み込みは `installUnlockedSkills()`（`playable-battles.mjs`）を通す。
-  こちらは**オフで**末尾へ足す。starter の無償閉包で取得済みになる親の節や、
-  旧い保存が持っている未装着の技能が対象で、**オンで足すと今まで出ていなかった技能が
-  急に回り始める**（＝過去の遠征の結果が変わる）ため。
+`normalizeLoadout()` が旧保存の `tactics[c][0]` から `actives[c]` を決定的に補い、欠けている
+`targets` / `reactiveReserves` を空で補います。未知技能や不正な温存値は BattleInput へ入れません。
+app は保存復元時に旧 `disabled` を除去します。以後は active の選択、reactive / target の順番、
+reactive のRP温存だけを編集し、passive は `allyInput()` が全件を BattleInput へ渡します。
 
-この置き換えが戦闘へ影響しないことの根拠は `allyInput()` にある。tactics・reactives・
-passives のいずれも `enabled()` で `disabled` を除いてから battle input を組むので、
-**engine から見て「オフ」と「未装着」は同一**である。必殺技も同じで、`withUltimate` は
-`enabled()` 後の列へ差し込み、`ultimateCandidates` は disabled を候補から外す。
+`allyInput()` は `activeSkillId`、`activeOverrideSkillId`、`targetSkillIds`、`reactiveSkillIds`、
+`reactiveReserveBySkill`、`passiveSkillIds` を一箇所で組みます。必殺アクティブは元技能との
+二本装着ではなく、発動条件を満たした時だけ選択中アクティブを上書きする候補として渡します。
 
 `analysis/ecology-screens-smoke.mjs` が片側検査で「装着する釦・`equip-skill` handler・
-`.skill-node.unlocked` が戻っていないこと」と「三つの経路が残っていること」を見る。
-`analysis/ecology-trial.mjs` は保存へ技能点を入れてから実際に一つ取得し、
-装着行に並ぶところまで踏む（技能点は0で始まるので、点を入れないとこの経路は踏めない）。
+`.skill-node.unlocked` が戻っていないこと」と、4ロール欄・active 選択・RP温存の経路を見ます。
+`analysis/ecology-weapon-loadout-smoke.mjs` は、初期4技能が各人物の代表武器2本の `R` / `A1` から
+導出され、取得後に4ロールへ反映されることを踏む。
+
+武器別の取得registryは`content/weapon-trees.mjs`です。各nodeは`weaponId / position / kind /
+skillId / cost / requires`を持ち、前提は取得済みIDだけを要求します。`unlockRunSkill()`は武器nodeを
+SP台帳で受けます。可用性は武器nodeが`manifest.enabledWeaponIds`を読み、現行manifestの
+`enabledSkillPackIds` と同じ武器集合を使います。
+`WEAPONS`には設計済みの10武器を載せ、Campaignは加入済み人物の署名武器・副武器を累積して開示します。
+したがってStage 0はゴウ／ツグミの4武器、Stage 1でナギの2武器、Stage 2でヒバナの2武器、
+Stage 3でゲンゾウの2武器が加わります。10武器すべてがmanifestとR〜BBの19節へ接続済みで、
+`IMPLEMENTED_WEAPON_IDS`も10件です。大盾は`taunted`／`tower_shield_guard_stance`／`tower_shield_mirror`、
+長槍は`long_spear_delayed`／`long_spear_pinned`／`long_spear_order_mark_status`を状態境界に使う。
+格闘具は`gauntlets_momentum`／`gauntlets_form`、射出器は
+`launcher_observed`／`launcher_order_mark`を状態境界に使い、対象継続は共有target filter
+`previous_target`で表します。医療具は直接回復ではなく防壁を張り、反応の蘇生・再生へ接続する。
+鉤縄は`actor_moved`と`grappling_hook_mark`、号旗はAP支援・`banner_debt`・`banner_time_sand`、
+重弩は準備・`heavy_crossbow_ammo`・対象印と列攻撃を状態境界に使う。
+新規runは10武器をskill packとしてmanifestへ載せ、Stage manifestは加入人物の2武器ずつを累積します。
+manifest versionは4、content contractは40、content versionは0.30です。
+
+武器技能は旧`*_META`を複製しません。`componentInfo()`が`PLAYABLE_CONTENT`の`displayName /
+displayEffect / flavorText`から4ロール用metadataを組み、取得後は`installUnlockedSkills()`が既存の
+loadoutへ登録します。`replacesActiveSkillId`が選択中なら選択も上位へ移し、
+`replacesPassiveSkillIds`は下位を常時欄から外します。取得履歴は`runUnlockedSkills`へ残るため、
+前提判定と表示上の置換を混同しません。
 
 ### キャンプのタブ（issue #235）
 
@@ -608,9 +666,9 @@ iPhone 幅（390×844）の画面の3割を常時占めていた。
 `analysis/ecology-screens-smoke.mjs` が画面と CSS の両方で存在を見る。同じ smoke が
 「キャンプのレンダラーに二つ目の仲間選択（`memberTabs` / `formation-board` / 治療専用の対象一覧）が
 戻っていないこと」と「隊列の選択が先頭の仲間で初期化されていないこと」も片側検査で塞ぐ。
-ブラウザでの実挙動（隊列交換・技能／装備の対象切替・集中治療と蘇生の対象選択）は
-`analysis/ecology-tutorial-trial.mjs`、盤面が iPhone 幅で横スクロールしないことは
-`analysis/ecology-trial.mjs` が踏む。
+ブラウザでの実挙動は、公開先のCloudflare Pages previewで確認する対象として残す。手元では
+`analysis/ecology-screens-smoke.mjs` と `analysis/ecology-weapon-loadout-smoke.mjs` が、
+隊列・武器技能・装備・治療の入口を静的に確認する。
 
 ギルドの「連れていく隊」と、技能・装備タブの人物帯は、同じ顔を `characterPanel()` から出す
 （2026-09-16）。札は `characterFaceWatermark(id, "panel-character-face")` ＋ 名前 ＋ AP/RP ＋

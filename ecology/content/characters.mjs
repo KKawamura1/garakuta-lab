@@ -11,7 +11,7 @@ import { renamed, scaleDefinitionAmounts } from "./base.mjs";
 import { CHARACTER_NAMES } from "./character-lore.mjs";
 // R11 — 本編5人を作り直した（経緯は docs/HISTORY.md §3.3）。
 // **仲間はこの5人だけである。**R12 で、本編に出ない同業者3人（トキ/ヨリ/アカリ）と
-// Free / Endless を削除した。来歴を持たない人物を編成画面に並べておくと、
+// 旧Free / Endlessを削除した。来歴を持たない人物を編成画面に並べておくと、
 // 「後で加入する仲間」として未公開の加入者と区別できず、物語の先が割れる（R12 §4.E-1、作者判断）。
 export { CHARACTER_NAMES };
 
@@ -71,7 +71,7 @@ characters.tactician = {
 // そして**ゴウは受けが1なので、細かい攻撃が全部素通りする。**HP と腕力を両取りしている
 // 代償はここにある（AGENTS.md「完全上位互換を作らない。作る場合は明確な代償を付ける」）。
 //
-// **未検証の数値である。**`analysis/ecology-trial.mjs` で通しの調整が要る。
+// **未検証の数値である。**公開先の手動通しで調整する。
 export const CHARACTER_STATS = {
   // ---- Campaign 本編の5人。加入順に並べてある ----
   // ゴウ … 落ちない前衛かつ最大火力。武器攻撃なので前に置いて初めて火力が出る

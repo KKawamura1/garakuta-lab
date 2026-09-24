@@ -1,0 +1,382 @@
+// R25 — 戦槌19節の縦スライス。
+// 非アクティブ節は戦槌IDを条件にせず、hit数・攻撃・防御破壊・状態除去という
+// 共有事実だけを読む。他武器へ借りても同じ規則で動く。
+
+const SELF = Object.freeze({ scope: "self", take: 1 });
+const EVENT_TARGETS = Object.freeze({ scope: "event_targets", take: "all" });
+const ONE_EVENT_TARGET = Object.freeze({ scope: "event_targets", take: 1 });
+const ENEMY = Object.freeze({
+  scope: "enemies", filters: [{ type: "alive" }], sort: ["distance_to_self_asc", "position_asc"], take: 1,
+});
+const SELF_IS_SOURCE = Object.freeze({
+  type: "target_exists",
+  query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
+});
+const ATTACK_EVENT = Object.freeze({ type: "event_tag", tag: "attack", value: true });
+const CHAIN_ONCE = Object.freeze({ owner: "actor-instance + rule", scope: "chain", count: 1 });
+const percentOfEvent = (percent) => ({
+  type: "event_value_scaled", key: "amount", numerator: percent, denominator: 100,
+});
+const exactStatus = (statusId, stacks) => ({
+  type: "has_status", subject: "self", statusId, op: "eq", value: stacks,
+});
+const hitCountIs = (count) => ({ type: "event_value", key: "hitCount", op: "eq", value: count });
+const hitIndexIs = (index) => ({ type: "event_value", key: "hitIndex", op: "eq", value: index });
+
+function active(id, displayName, coefficientBps, displayEffect, flavorText, options = {}) {
+  const damage = {
+    type: "deal_damage",
+    target: options.pattern ? ONE_EVENT_TARGET : EVENT_TARGETS,
+    amount: options.amount ?? {
+      type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps,
+    },
+    rangeClass: "melee",
+    tags: ["attack", "weapon", "warhammer"],
+  };
+  if (options.pattern) damage.targetPattern = options.pattern;
+  return Object.freeze({
+    id,
+    displayName,
+    displayEffect,
+    flavorText,
+    weaponId: "warhammer",
+    treePosition: options.treePosition,
+    ...(options.replacesActiveSkillId
+      ? { replacesActiveSkillId: options.replacesActiveSkillId }
+      : {}),
+    apCost: 1,
+    actionMode: "offense",
+    intrinsicPredicates: [],
+    targetQuery: ENEMY,
+    effects: [...(options.beforeEffects ?? []), damage, ...(options.afterEffects ?? [])],
+    tags: ["attack", "weapon", "warhammer", "playable"],
+  });
+}
+
+const ACTIVE = {
+  warhammer_blow: active("warhammer_blow", "槌打ち", 10_000,
+    "敵1体に腕力100%のダメージ。", "振り下ろせば、それで十分だ。", { treePosition: "R" }),
+  warhammer_heavy_blow: active("warhammer_heavy_blow", "大槌打ち", 17_000,
+    "敵1体に腕力170%のダメージ。", "重さをためらわず振り抜き、敵の芯まで叩き潰す。",
+    { treePosition: "A3", replacesActiveSkillId: "warhammer_blow" }),
+  warhammer_heaven_blow: active("warhammer_heaven_blow", "震天打ち", 22_000,
+    "敵1体に腕力220%のダメージ。",
+    "天を震わせる一撃は、地の底まで逃がさない。\n立っているものすべてに、終わりの重さを教えてやる。",
+    { treePosition: "AA3", replacesActiveSkillId: "warhammer_heavy_blow" }),
+  warhammer_earth_splitter: active("warhammer_earth_splitter", "地割り", 16_000,
+    "敵1列に腕力160%のダメージ。",
+    "振り下ろした先から、大地そのものが敵へ牙を剥く。\n一列まとめて、立つ場所ごと叩き割れ。",
+    { treePosition: "AB3", replacesActiveSkillId: "warhammer_heavy_blow", pattern: "row" }),
+  warhammer_siege_blow: active("warhammer_siege_blow", "破城打ち", 13_000,
+    "敵1体に腕力130%のダメージを与え、防壁と受け構えをすべて除去。",
+    "城壁も構えも、正面から砕けば同じだ。", {
+      treePosition: "B3", replacesActiveSkillId: "warhammer_blow",
+      beforeEffects: [
+        { type: "remove_barrier", target: EVENT_TARGETS },
+        { type: "remove_block", target: EVENT_TARGETS },
+      ],
+    }),
+  warhammer_dismantler: active("warhammer_dismantler", "解体槌", 17_000,
+    "敵1体に腕力170%のダメージを与え、防壁・受け構え・強化をすべて除去。",
+    "鎧も構えも、積み上げた守りも関係ない。\n守れるという思い込みから、順番に解体する。", {
+      treePosition: "BA3", replacesActiveSkillId: "warhammer_siege_blow",
+      beforeEffects: [
+        { type: "remove_barrier", target: EVENT_TARGETS },
+        { type: "remove_block", target: EVENT_TARGETS },
+        { type: "remove_statuses", target: EVENT_TARGETS, polarity: "positive" },
+      ],
+    }),
+  warhammer_kingslayer: active("warhammer_kingslayer", "王殺し", 18_000,
+    "敵1体の防壁と強化をすべて除去してから、腕力180%のダメージ。",
+    "奪った守りを鉄へ鍛え、すべてを最後の一打へ。\n王冠ごと沈めてこそ、戦槌の勝ちだ。", {
+      treePosition: "BB3", replacesActiveSkillId: "warhammer_siege_blow",
+      beforeEffects: [
+        { type: "remove_barrier", target: EVENT_TARGETS },
+        { type: "remove_block", target: EVENT_TARGETS },
+        { type: "remove_statuses", target: EVENT_TARGETS, polarity: "positive" },
+      ],
+    }),
+};
+
+function damageBoostPassive(id, displayName, percent, predicates, displayEffect, flavorText, treePosition) {
+  return Object.freeze({
+    id, displayName, displayEffect, flavorText, weaponId: "warhammer", treePosition,
+    rules: [{
+      id: id + "_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      priority: 42,
+      predicates: [SELF_IS_SOURCE, ATTACK_EVENT, ...predicates],
+      allowRepeatInChain: true,
+      costs: [],
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: percentOfEvent(percent) }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+    }],
+    tags: ["passive", "attack", "warhammer", "playable"],
+  });
+}
+
+const PASSIVE = {
+  warhammer_heavy_head: damageBoostPassive("warhammer_heavy_head", "重い頭", 15,
+    [hitIndexIs(0)], "攻撃の第1hitのダメージ+15%。", "一撃の重みは、数では測れない。", "A1"),
+  warhammer_iron_mass: damageBoostPassive("warhammer_iron_mass", "鉄塊", 20,
+    [hitIndexIs(0)], "攻撃の第1hitのダメージ+20%。", "振るうのではない。落とすのだ。", "AA1"),
+  warhammer_deep_impact: Object.freeze({
+    id: "warhammer_deep_impact", displayName: "深い衝撃", weaponId: "warhammer", treePosition: "AA2",
+    displayEffect: "自分が付与する怯みは、付与段数にさらに+1。",
+    flavorText: "表面で止まった音は、肉と骨の奥で二度目の衝撃になる。",
+    rules: [{
+      id: "warhammer_deep_impact_rule", listenTo: "status_added", timing: "after", priority: 70,
+      predicates: [
+        SELF_IS_SOURCE,
+        { type: "event_value", key: "statusId", op: "eq", value: "staggered" },
+        { type: "event_tag", tag: "stagger_bonus", value: false },
+      ],
+      allowRepeatInChain: true,
+      costs: [], effects: [{
+        type: "add_status", target: EVENT_TARGETS, statusId: "staggered", stacks: 1,
+        tags: ["stagger_bonus"],
+      }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+    }],
+    tags: ["passive", "debuff", "warhammer", "playable"],
+  }),
+  warhammer_wide_swing: Object.freeze({
+    id: "warhammer_wide_swing", displayName: "振り幅", weaponId: "warhammer", treePosition: "AB1",
+    displayEffect: "単体攻撃の左右に有効な敵がいれば、RP1で副対象へ攻撃能力値の35%を加える。",
+    flavorText: "大振りは、隣まで巻き込む。",
+    rules: [{
+      id: "warhammer_wide_swing_rule", listenTo: "attack_plan_opened", timing: "interrupt", priority: 90,
+      predicates: [
+        SELF_IS_SOURCE,
+        ATTACK_EVENT,
+        { type: "event_value", key: "baseTargetCount", op: "eq", value: 1 },
+        { type: "event_value", key: "targetPattern", op: "eq", value: "single" },
+        { type: "target_exists", targetReach: "pending_action", query: {
+          scope: "enemies",
+          filters: [{ type: "alive" }, { type: "horizontal_adjacent_to_event_primary_target" }],
+          take: "all",
+        } },
+      ],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [{
+        type: "modify_attack_plan",
+        addAdjacentDamageTargets: true,
+        extraTargetDamageBps: 3500,
+        extraTargetDamageFromAttackStat: true,
+      }],
+      limit: CHAIN_ONCE,
+    }],
+    tags: ["reaction", "area", "warhammer", "playable"],
+  }),
+  warhammer_sweep: Object.freeze({
+    id: "warhammer_sweep", displayName: "横薙ぎ", weaponId: "warhammer", treePosition: "AB2",
+    displayEffect: "異なる有効な敵2体以上を予定した攻撃全体のダメージ+15%。",
+    flavorText: "槌の軌道をさらに広げ、逃げた隣までまとめて薙ぎ払う。",
+    replacesPassiveSkillIds: ["warhammer_wide_swing"],
+    rules: [{
+      id: "warhammer_sweep_rule", listenTo: "damage_proposed", timing: "interrupt", priority: 42,
+      predicates: [SELF_IS_SOURCE, ATTACK_EVENT, {
+        type: "event_value", key: "plannedTargetCount", op: "gte", value: 2,
+      }],
+      costs: [], allowRepeatInChain: true,
+      effects: [{ type: "modify_pending_amount", operation: "increase", amount: percentOfEvent(15) }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+    }],
+    tags: ["passive", "area", "warhammer", "playable"],
+  }),
+  warhammer_break_point: Object.freeze({
+    id: "warhammer_break_point", displayName: "打ち返し", weaponId: "warhammer", treePosition: "B2",
+    displayEffect: "敵の攻撃で自分以外の味方がHPダメージを受けた時、RP1で攻撃者へ腕力70%の反撃と怯み1。",
+    flavorText: "仲間を打った敵へ、遅れて重い答えを返す。",
+    rules: [{
+      id: "warhammer_break_point_rule", listenTo: "damage_taken", timing: "after", priority: 45,
+      predicates: [
+        ATTACK_EVENT,
+        { type: "target_exists", query: { scope: "allies", filters: [
+          { type: "alive" }, { type: "not_self" }, { type: "is_event_primary_target" },
+        ], take: "all" } },
+        { type: "target_exists", query: { scope: "event_source", filters: [{ type: "alive" }], take: 1 } },
+      ],
+      costs: [{ type: "spend_reaction_points", amount: 1 }],
+      effects: [
+        { type: "deal_damage", target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+          amount: { type: "stat_scaled", subject: "self", scalingStat: "might", coefficientBps: 7000 },
+          tags: ["counter"] },
+        { type: "add_status", target: { scope: "event_source", filters: [{ type: "alive" }], take: 1 },
+          statusId: "staggered", stacks: 1 },
+      ],
+      limit: CHAIN_ONCE,
+    }],
+    tags: ["reaction", "attack", "debuff", "warhammer", "playable"],
+  }),
+  warhammer_broken_armor: Object.freeze({
+    id: "warhammer_broken_armor", displayName: "砕けた鎧", weaponId: "warhammer", treePosition: "BA1",
+    displayEffect: "攻撃で敵の防壁が0になるか、受け構えが減った時、共通窓で選ばれれば破甲2。",
+    flavorText: "砕けた鎧は、もう守りにならない。",
+    rules: [{
+      id: "warhammer_broken_armor_rule", listenTo: "defense_break", timing: "interrupt", priority: 80,
+      predicates: [SELF_IS_SOURCE, ATTACK_EVENT], costs: [],
+      allowRepeatInChain: true,
+      effects: [{ type: "add_status", target: EVENT_TARGETS, statusId: "armor_broken", stacks: 2 }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+    }],
+    tags: ["reaction", "debuff", "warhammer", "playable"],
+  }),
+  warhammer_trophy_fragment: Object.freeze({
+    id: "warhammer_trophy_fragment", displayName: "戦利の破片", weaponId: "warhammer", treePosition: "BB1",
+    displayEffect: "敵の強化を1段解除するたび、自分へ堅牢2。",
+    flavorText: "敵の守りは、こちらの鎧になる。",
+    rules: [
+      {
+        id: "warhammer_trophy_fragment_status_rule", listenTo: "status_removed", timing: "after", priority: 85,
+        predicates: [SELF_IS_SOURCE, { type: "event_tag", tag: "positive", value: true }], costs: [],
+        allowRepeatInChain: true,
+        effects: [{ type: "add_status", target: SELF, statusId: "fortified", stacksFromEvent: { key: "removed", multiplier: 2 } }],
+        limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+      },
+      {
+        id: "warhammer_trophy_fragment_block_rule", listenTo: "block_spent", timing: "after", priority: 85,
+        predicates: [SELF_IS_SOURCE, { type: "event_tag", tag: "positive", value: true }], costs: [],
+        allowRepeatInChain: true,
+        effects: [{ type: "add_status", target: SELF, statusId: "fortified", stacksFromEvent: { key: "amount", multiplier: 2 } }],
+        limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+      },
+    ],
+    tags: ["passive", "guard", "warhammer", "playable"],
+  }),
+  warhammer_reverse_forging: Object.freeze({
+    id: "warhammer_reverse_forging", displayName: "逆鍛造", weaponId: "warhammer", treePosition: "BB2",
+    displayEffect: "攻撃開始時の堅牢1段につきダメージ+15%。攻撃後、堅牢を全消費。",
+    flavorText: "拾い集めた敵の守りを、次に振り下ろす鉄へ鍛え直す。",
+    rules: [
+      {
+        id: "warhammer_reverse_forging_damage_rule",
+        listenTo: "damage_proposed", timing: "interrupt", priority: 43,
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT],
+        costs: [], allowRepeatInChain: true,
+        effects: [{
+          type: "modify_pending_amount", operation: "increase",
+          amount: {
+            type: "event_value_times_status_scaled", key: "amount",
+            subject: "self", statusId: "fortified", numerator: 15, denominator: 100,
+            memoryKey: "status:fortified",
+          },
+        }],
+        limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+      },
+      {
+        id: "warhammer_reverse_forging_snapshot_rule",
+        listenTo: "action_declared", timing: "interrupt", priority: 41,
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT], costs: [],
+        effects: [{ type: "modify_attack_plan", snapshotStatusIds: ["fortified"] }],
+        limit: CHAIN_ONCE,
+      },
+      {
+        id: "warhammer_reverse_forging_spend_rule",
+        listenTo: "action_resolved", timing: "after", priority: 95,
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT, {
+          type: "has_status", subject: "self", statusId: "fortified", op: "gte", value: 1,
+        }],
+        costs: [],
+        effects: [{ type: "remove_status", target: SELF, statusId: "fortified", stacks: "all" }],
+        limit: CHAIN_ONCE,
+      },
+    ],
+    tags: ["passive", "attack", "warhammer", "playable"],
+  }),
+};
+
+const REACTIVE = {
+  warhammer_ringing_iron: Object.freeze({
+    id: "warhammer_ringing_iron", displayName: "響く鉄", weaponId: "warhammer", treePosition: "A2",
+    displayEffect: "第1hitが命中した時RP1。以降のhitで怯み1、最大2回。",
+    flavorText: "鉄の音が、膝を折る。",
+    rules: [
+      {
+        id: "warhammer_ringing_iron_first_hit_rule",
+        listenTo: "damage_resolved", timing: "after", priority: 60,
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT, hitIndexIs(0), {
+          type: "event_tag", tag: "plan_extra_damage", value: false,
+        }],
+        costs: [{ type: "spend_reaction_points", amount: 1 }],
+        effects: [
+          { type: "add_status", target: EVENT_TARGETS, statusId: "staggered", stacks: 1 },
+          { type: "mark_attack_flag", key: "warhammer_ringing_iron" },
+        ],
+        limit: CHAIN_ONCE,
+      },
+      {
+        id: "warhammer_ringing_iron_followup_hit_rule",
+        listenTo: "damage_resolved", timing: "after", priority: 61,
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT,
+          { type: "event_value", key: "hitIndex", op: "gte", value: 1 },
+          { type: "event_tag", tag: "plan_extra_damage", value: false },
+          { type: "attack_flag", key: "warhammer_ringing_iron" },
+        ],
+        costs: [],
+        effects: [{ type: "add_status", target: EVENT_TARGETS, statusId: "staggered", stacks: 1 }],
+        limit: CHAIN_ONCE,
+      },
+    ],
+    tags: ["reaction", "debuff", "warhammer", "playable"],
+  }),
+  warhammer_breaking_sound: Object.freeze({
+    id: "warhammer_breaking_sound", displayName: "砕け音", weaponId: "warhammer", treePosition: "BA2",
+    displayEffect: "攻撃hitが受け構えで防がれ、なお受け構えが残れば、共通窓で選ばれた時すべて除去。",
+    flavorText: "防いだつもりの構えごと、次の一撃が崩し切る。",
+    rule: {
+      id: "warhammer_breaking_sound_rule", listenTo: "defense_break", timing: "interrupt", priority: 81,
+      predicates: [SELF_IS_SOURCE, ATTACK_EVENT,
+        { type: "event_value", key: "defenseKind", op: "eq", value: "block" },
+        { type: "event_value", key: "remaining", op: "gte", value: 1 },
+      ], costs: [],
+      effects: [{ type: "remove_block", target: EVENT_TARGETS }],
+      allowRepeatInChain: true,
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
+    },
+    tags: ["reaction", "debuff", "warhammer", "playable"],
+  }),
+};
+
+const TARGET = {
+  warhammer_point_at_armor: Object.freeze({
+    id: "warhammer_point_at_armor", displayName: "鎧を指す", weaponId: "warhammer", treePosition: "B1",
+    displayEffect: "防壁か受け構えを持つ敵を優先。",
+    flavorText: "まず、硬いものから壊す。",
+    targetQuery: {
+      scope: "enemies", filters: [{ type: "alive" }, { type: "has_defense" }],
+      sort: ["has_block_desc", "guard_desc", "distance_to_self_asc"], take: 1,
+    },
+    tags: ["target", "defense", "warhammer", "playable"],
+  }),
+};
+
+export const WARHAMMER_ACTIVE_SKILLS = Object.freeze(ACTIVE);
+export const WARHAMMER_REACTIVE_SKILLS = Object.freeze(REACTIVE);
+export const WARHAMMER_TARGET_SKILLS = Object.freeze(TARGET);
+export const WARHAMMER_PASSIVE_SKILLS = Object.freeze(PASSIVE);
+
+export const WARHAMMER_TREE = Object.freeze([
+  ["R", "active", "warhammer_blow", []],
+  ["A1", "passive", "warhammer_heavy_head", ["warhammer_blow"]],
+  ["A2", "reactive", "warhammer_ringing_iron", ["warhammer_heavy_head"]],
+  ["A3", "active", "warhammer_heavy_blow", ["warhammer_ringing_iron"]],
+  ["AA1", "passive", "warhammer_iron_mass", ["warhammer_heavy_blow"]],
+  ["AA2", "passive", "warhammer_deep_impact", ["warhammer_iron_mass"]],
+  ["AA3", "active", "warhammer_heaven_blow", ["warhammer_deep_impact"]],
+  ["AB1", "reactive", "warhammer_wide_swing", ["warhammer_heavy_blow"]],
+  ["AB2", "passive", "warhammer_sweep", ["warhammer_wide_swing"]],
+  ["AB3", "active", "warhammer_earth_splitter", ["warhammer_sweep"]],
+  ["B1", "target", "warhammer_point_at_armor", ["warhammer_blow"]],
+  ["B2", "reactive", "warhammer_break_point", ["warhammer_point_at_armor"]],
+  ["B3", "active", "warhammer_siege_blow", ["warhammer_break_point"]],
+  ["BA1", "reactive", "warhammer_broken_armor", ["warhammer_siege_blow"]],
+  ["BA2", "reactive", "warhammer_breaking_sound", ["warhammer_broken_armor"]],
+  ["BA3", "active", "warhammer_dismantler", ["warhammer_breaking_sound"]],
+  ["BB1", "passive", "warhammer_trophy_fragment", ["warhammer_siege_blow"]],
+  ["BB2", "passive", "warhammer_reverse_forging", ["warhammer_trophy_fragment"]],
+  ["BB3", "active", "warhammer_kingslayer", ["warhammer_reverse_forging"]],
+].map(([position, kind, skillId, requires]) => Object.freeze({
+  weaponId: "warhammer", position, kind, skillId, requires: Object.freeze(requires),
+})));

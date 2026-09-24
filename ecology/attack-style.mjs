@@ -43,7 +43,7 @@ export function attackStyleOfEffect(effect) {
 // 定義の中の deal_damage を、書かれている順に拾う。`effects` だけを辿ると
 // **溜め技の `preparation.completionEffects` が丸ごと抜ける**（溜め突き・大溜めは
 // 平常の effects が空で、着弾は完了効果の側にある）。入れ子の形に依存しないよう、
-// content/skills-active.mjs の retuneAsTechnique と同じく丸ごと歩く。
+// content/weapon-*.mjs の定義を読むため、入れ子の効果を丸ごと歩く。
 function collectDamageEffects(node, out = [], seen = new Set()) {
   if (!node || typeof node !== "object" || seen.has(node)) return out;
   seen.add(node);

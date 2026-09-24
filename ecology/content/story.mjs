@@ -62,9 +62,11 @@ export const PROLOGUE = Object.freeze({
   maxRounds: 5,
   rosterIds: Object.freeze(["warden", "mender"]),
   // 位置の読み替えを主役にするため、12戦用の敵定義は変えず、この一戦だけ敵を軽くする。
-  // HP 60%、前衛の攻撃115%。後列の marksman だけ73%に落とし、味方先行でも
-  // 初期配置は崩れ、ツグミを後列へ置けば生き残れる差を残す。
-  enemyScaling: Object.freeze({ maxHpBps: 6_000, offenseBps: 11_500 }),
+  // HP 66%。射出器Rは最寄りの敵を選ぶため、正解配置の後列から前衛へ手が届く一方、
+  // 敵の攻撃は前衛75%、後列marksman 36.5%に抑え、位置を変えた時に二人とも立てる差を残す。
+  // PR #288 — 初期4技能（代表武器2本のR+A1）でも、導入の既定配置は敗北し、
+  // ツグミを後列へ置けば4ラウンドで二人とも勝ち残るよう、射出器の最寄り対象順に合わせる。
+  enemyScaling: Object.freeze({ maxHpBps: 6_600, offenseBps: 7_500 }),
   // **初期配置がそのまま「まだ勝てない編成」。**ツグミが front_left なので
   // 先に狙われる。巻き戻したあと、プレイヤーはここを触る。
   formation: Object.freeze({ mender: "front_left", warden: "front_right" }),
@@ -72,8 +74,8 @@ export const PROLOGUE = Object.freeze({
     Object.freeze({
       instanceId: "prologue_marksman",
       enemyActorId: "gray_marksman",
-      position: "rear_left",
-      offenseBps: 7_300,
+      position: "rear_right",
+      offenseBps: 3_650,
     }),
     Object.freeze({ instanceId: "prologue_husk_a", enemyActorId: "husk", position: "front_center" }),
     Object.freeze({ instanceId: "prologue_husk_b", enemyActorId: "husk", position: "front_left" }),
@@ -98,51 +100,34 @@ export const PROLOGUE = Object.freeze({
 // 空いた一戦目の後へ技能を置く。**理由は順番そのものにある**——一戦目を勝つと
 // 全員に技能点が1点入るので、「入った点を何に使うのか」を、入った直後に聞く。
 //
-// 教えるのは二手で、**その二手の違いがこの画面の全部**である。
+// 教えるのは、旧packツリーや技能レベルではなく、武器別ツリーへ入る最初の一手である。
 //
-//   取得 … いまの点で届く節を、いま取る（`unlockSkillId`）
-//   予約 … いまの点では届かない節を、先に指しておく（`reserveSkillId`）
+//   武器を選ぶ → 入口節を選ぶ → 1SPで取得する → もう一人へ渡す
 //
-// 予約の相手は「前提の段がまだ足りない」節を選ぶ。**点が足りないだけの節を
-// 選ぶと、予約が「一回ぶんの貯金」にしか見えない。**傷へ盾を Lv3 を要求する
-// 「長く守る」なら、予約が前提の段上げから順に自動で払うことが、次の数戦の
-// あいだ画面の側から見える（`fulfillSkillReservations`）。
-//
-// **どちらの節も content が決める。**画面は光らせる先をここから引くので、
+// **どの武器・どの節を教えるかは content が決める。**画面は光らせる先をここから引くので、
 // 技能 id を app.js へ書き写さない（灰の門の `PROLOGUE.tutorial` と同じ作り）。
-// Stage 0 の manifest（pack_care の入口）に無い節をここへ書くと、
+// Stage 0 の manifest に無い武器や、実装前の節をここへ書くと、
 // `ecology/story.test.mjs` が落ちる。
 export const SKILL_LESSON = Object.freeze({
   // 一戦目の直後のキャンプ。**12戦の梯子の外に出ない。**
   encounterIndex: 1,
   tutorial: Object.freeze({
-    // ツグミ … 灰の門で後列へ下げた本人。**続きとして読める側へ点を払う。**
-    // ゴウの技能は腕力で読むものが Stage 0 に一本しか無く（AGENTS.md の
-    // 「完全上位互換を作らない」に沿って技術の技能は技術で伸びる）、
-    // 入口で払える先が実質無い。
-    characterId: "mender",
-    // いま1点で取れる節。傷へ盾を（starter）の子なので前提は満ちている。
-    unlockSkillId: "field_dressing",
-    // いまは取れない節。**前提の段（傷へ盾を Lv3）が足りない。**
-    reserveSkillId: "sustaining_ward",
+    // ゴウへ副武器の入口を渡す。戦槌は既に初期装備なので、格闘具で
+    // 「武器を取ると行動の選択肢が増える」ことを一度だけ見せる。
+    characterId: "warden",
+    weaponId: "gauntlets",
+    unlockSkillId: "gauntlets_punch",
   }),
   // 取得の前に出す一行。**答えではなく、点の出どころを言う。**
   pointHint: "一戦ごとに、隊の全員へ技能点が1点入る。",
   // 誰に払うかを選ぶ一行。**点は隊の財布ではなく、人ごとの持ち物である。**
   ownerHint: "技能点は人ごとに持つ。払う相手を先に選ぶ。",
+  // 武器別ツリーへ入る一行。旧pack名やレベルを出さず、いま触る対象だけを指す。
+  weaponHint: "Stage 0で解禁された武器は、武器別ツリーから入口を選べる。",
+  rootHint: "入口の節を取ると、その武器の行動が使えるようになる。",
   // 取得の一行。取り消せないことだけを言う（数字は節そのものが出している）。
-  unlockHint: "取った技能はその場で装着され、遠征のあいだ忘れない。使った点も戻らない。",
-  // 予約の前に出す一行。**なぜいま取れないのかを言う。**
-  reachHint: "この先は、前提の段が足りないので今日は取れない。",
-  // 予約の効きを、一息で言う一行（作者要望 2026-09-14）。**予約の値打ちは
-  // 「先の技能が取れる」ことではなく、「毎戦ここへ来なくてよくなる」ことである。**
-  // 想定している遊び方は、先に行き先だけ決めて数戦を飛ばし、負ける予測が出た回に
-  // 初めて手を入れる、という軽い往復である。
-  meritHint: "、この先は戦うたびに自動で進む——毎回ここへ来て振り直さなくていい。",
-  // 予約の一行。予約が何をするのかを言う。
-  reserveHint: "予約した先へは、点が入るたびに前提から順に自動で進む。",
-  // 受け渡しの一行。予約の縛りの緩さを言う。
-  doneHint: "予約は一人に一つ。いつでも取り消せるし、別の先へ替えられる。",
+  unlockHint: "取った節はその場で装着され、遠征のあいだ忘れない。使った点も戻らない。",
+  doneHint: "ここから先は自分で決める。武器を増やすか、別の役割を伸ばすかを選べる。",
   // 錠が外れたあとの一行。**最後は教えずに渡す。**
   freeHint: "ここから先は教えない。どの技能を取るかは、あなたが決める。",
 });
@@ -168,8 +153,8 @@ export const SKILL_LESSON = Object.freeze({
 //
 // 配置は engine で本当に走らせて決めてある（`ecology/story.test.mjs`）。
 //
-//   構えない … 7ラウンドで**時間切れの敗北**。ツグミが落ち、盾兵が一枚残る
-//   構える   … 6ラウンドで**勝つ**。誰も落ちない。差は必殺ひとつぶんだけ
+//   構えない … 初期4技能だけで勝つ
+//   構える   … 初期Rから派生した必殺が発火し、より早く勝つ
 //
 // **「隊の誰かがHP70%未満」という条件は、この一戦の中で自然に満たされる。**
 // 二枚の盾兵と二つの後撃ちが前後を同時に削るので、4ラウンド目には条件が揃っている
@@ -184,7 +169,8 @@ export const ULTIMATE_LESSON = Object.freeze({
   // 盾兵は硬い。**一枚ずつ落としていては間に合わない**のが、この一戦の問いである。
   // 溜め突き本体を550%から240%へ直した後も、「構えないと時間切れ・構えると
   // 1ラウンド早く勝利」という教材の差が残るHP。通常版の過剰火力で帳尻は合わせない。
-  enemyScaling: Object.freeze({ maxHpBps: 8_500, offenseBps: 10_000 }),
+  // PR #288 — 代表武器のRを教えるため、長槍の必殺だけが勝敗を分ける帯へ調整。
+  enemyScaling: Object.freeze({ maxHpBps: 3_130, offenseBps: 10_000 }),
   enemies: Object.freeze([
     Object.freeze({ instanceId: "lesson_bulwark_a", enemyActorId: "gray_bulwark", position: "front_left" }),
     Object.freeze({ instanceId: "lesson_bulwark_b", enemyActorId: "gray_bulwark", position: "front_right" }),
@@ -194,14 +180,14 @@ export const ULTIMATE_LESSON = Object.freeze({
   // **教える一手は content が決める。**人物 id と技能 id を app.js へ書き写さないので、
   // ここを変えれば錠と光も一緒に動く（灰の門の `PROLOGUE.tutorial` と同じ作り）。
   //
-  // ナギの溜め突きを選ぶ理由：**溜めが要るせいで使いにくい技能**が、必殺にすると
-  // 「溜め不要・全体へ・量3倍」になる。#238 が狙った「見向きもしなかった技能が、
-  // 必殺になると別物になる」がそのまま絵になる。しかも加入したばかりの本人の技能である。
-  tutorial: Object.freeze({ characterId: "lancer", skillId: "heavy_swing" }),
+  // ナギの長槍を選ぶ理由：加入時に持つ安定したRが、必殺では全体へ広がり、
+  // 量も3倍になる。初期4技能からそのまま教えられる。
+  // PR #288 — 旧来の heavy_swing ではなく、加入時に無償で持つ代表武器のRを教える。
+  tutorial: Object.freeze({ characterId: "lancer", skillId: "tower_shield_draw_guard" }),
   // 構える前に出す一行。**答えは書かず、見る場所を示す。**
   hint: "盾の二枚は硬い。一枚ずつ落としていては、前が保たない。",
   // 構えたあとに出す一行。予測の帯が変わったことを指す。
-  armedHint: "溜めが消えて、二枚へ同時に届く。上の予測がもう変わっている。",
+  armedHint: "盾の一撃が二枚へ同時に届く。上の予測がもう変わっている。",
 });
 
 // ---------------------------------------------------------------- 断片の組み立て

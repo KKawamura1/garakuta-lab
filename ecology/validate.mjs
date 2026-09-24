@@ -14,6 +14,7 @@ import {
   ACTOR_STATS,
   PASSIVE_STAT_BONUSES,
   REACHES,
+  RANGE_CLASSES,
   SCALING_STATS,
   TARGET_PATTERNS,
   BARRIER_DURATIONS,
@@ -24,12 +25,11 @@ import {
   DURATIONS,
   EFFECT_TYPES,
   EVENT_TYPES,
+  HIT_DISTRIBUTIONS,
   INTERRUPTIBLE_EVENT_TYPES,
   INTERRUPT_ONLY_EFFECT_TYPES,
   LIMITS,
   LIMIT_SCOPES,
-  MAX_SKILL_LEVEL,
-  MIN_SKILL_LEVEL,
   NON_LISTENABLE_EVENT_TYPES,
   OBJECTIVE_TYPES,
   OVERRIDABLE_STATS,
@@ -38,6 +38,7 @@ import {
   PENDING_ACTION_EVENT_TYPES,
   PENDING_AMOUNT_EFFECT_TYPES,
   PENDING_AMOUNT_EVENT_TYPES,
+  PENDING_GUARD_EVENT_TYPES,
   PENDING_AMOUNT_OPERATIONS,
   POSITIONS,
   PREDICATE_TYPES,
@@ -159,6 +160,33 @@ function validateValue(bag, path, value, ctx) {
         bag.add(`${path}.key`, "bad_key", "event_value_scaled needs a values key");
       }
       break;
+    case "pending_amount_scaled":
+      if (ctx.timing !== "interrupt" || !PENDING_AMOUNT_EVENT_TYPES.includes(ctx.listenTo)) {
+        bag.add(path, "no_pending_amount", "pending_amount_scaled needs an interrupt with a pending amount");
+      }
+      break;
+    case "pending_amount_times_status_scaled":
+      if (ctx.timing !== "interrupt" || !PENDING_AMOUNT_EVENT_TYPES.includes(ctx.listenTo)) {
+        bag.add(path, "no_pending_amount", "pending_amount_times_status_scaled needs an interrupt with a pending amount");
+      }
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
+      if (value.memoryKey !== undefined
+          && (typeof value.memoryKey !== "string" || value.memoryKey.length === 0)) {
+        bag.add(`${path}.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
+      }
+      break;
+    case "event_value_times_status_scaled":
+      if (typeof value.key !== "string" || value.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "event_value_times_status_scaled needs a values key");
+      }
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
+      if (value.memoryKey !== undefined
+          && (typeof value.memoryKey !== "string" || value.memoryKey.length === 0)) {
+        bag.add(`${path}.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
+      }
+      break;
     case "actor_stat_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireOneOf(bag, `${path}.stat`, value.stat, ACTOR_STATS, "unknown_actor_stat");
@@ -169,10 +197,70 @@ function validateValue(bag, path, value, ctx) {
       requireOneOf(bag, `${path}.scalingStat`, value.scalingStat, SCALING_STATS, "unknown_scaling_stat");
       if (value.flat !== undefined) requireCount(bag, `${path}.flat`, value.flat, { max: 100_000 });
       requireCount(bag, `${path}.coefficientBps`, value.coefficientBps, { max: 100_000 });
+      if (value.statusConditional !== undefined) {
+        if (!isPlainObject(value.statusConditional)) {
+          bag.add(`${path}.statusConditional`, "not_an_object", "expected a status conditional coefficient");
+        } else {
+          requireStatusReference(bag, `${path}.statusConditional.statusId`, value.statusConditional.statusId, ctx);
+          requireCount(bag, `${path}.statusConditional.minStacks`, value.statusConditional.minStacks, { min: 1 });
+          requireCount(bag, `${path}.statusConditional.coefficientBps`, value.statusConditional.coefficientBps,
+            { max: 100_000 });
+          if (value.statusConditional.memoryKey !== undefined
+              && (typeof value.statusConditional.memoryKey !== "string"
+                || value.statusConditional.memoryKey.length === 0)) {
+            bag.add(`${path}.statusConditional.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
+          }
+        }
+      }
+      if (value.targetConditionalCoefficient !== undefined) {
+        const conditional = value.targetConditionalCoefficient;
+        if (!isPlainObject(conditional)) {
+          bag.add(`${path}.targetConditionalCoefficient`, "not_an_object",
+            "expected a target conditional coefficient");
+        } else {
+          if (typeof conditional.memoryKey !== "string" || conditional.memoryKey.length === 0) {
+            bag.add(`${path}.targetConditionalCoefficient.memoryKey`, "bad_key",
+              "target conditional coefficient needs a memoryKey");
+          }
+          requireCount(bag, `${path}.targetConditionalCoefficient.bonusBps`, conditional.bonusBps,
+            { max: 100_000 });
+          requireOneOf(bag, `${path}.targetConditionalCoefficient.mode`, conditional.mode ?? "any",
+            ["any", "all"], "unknown_condition_mode");
+          if (requireArray(bag, `${path}.targetConditionalCoefficient.conditions`, conditional.conditions,
+            { min: 1 })) {
+            conditional.conditions.forEach((entry, index) => {
+              const conditionPath = `${path}.targetConditionalCoefficient.conditions[${index}]`;
+              if (!isPlainObject(entry)) {
+                bag.add(conditionPath, "not_an_object", "expected a target condition");
+                return;
+              }
+              if (!["is_preparing", "has_skill_effect", "has_negative_status", "has_status"]
+                .includes(entry.type)) {
+                bag.add(`${conditionPath}.type`, "unknown_target_condition", "unknown target condition");
+              } else if (entry.type === "has_skill_effect") {
+                requireOneOf(bag, `${conditionPath}.effectType`, entry.effectType, EFFECT_TYPES,
+                  "unknown_effect_type");
+              } else if (entry.type === "has_status") {
+                requireStatusReference(bag, `${conditionPath}.statusId`, entry.statusId, ctx);
+                if (entry.value !== undefined) requireCount(bag, `${conditionPath}.value`, entry.value, { min: 1 });
+              }
+            });
+          }
+        }
+      }
       break;
     case "status_stacks_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
+      break;
+    case "stat_times_context_scaled":
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireOneOf(bag, `${path}.scalingStat`, value.scalingStat, SCALING_STATS, "unknown_scaling_stat");
+      if (typeof value.key !== "string" || value.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "stat_times_context_scaled needs a context key");
+      }
+      requireCount(bag, `${path}.flatCoefficientBps`, value.flatCoefficientBps ?? 0, { max: 100_000 });
+      requireCount(bag, `${path}.coefficientBps`, value.coefficientBps, { max: 100_000 });
       break;
     default:
       break;
@@ -217,7 +305,21 @@ function validateTargetQuery(bag, path, query, ctx, { take } = {}) {
   }
   if (query.sort !== undefined && requireArray(bag, `${path}.sort`, query.sort)) {
     query.sort.forEach((sort, index) => {
-      requireOneOf(bag, `${path}.sort[${index}]`, sort, TARGET_SORT_TYPES, "unknown_target_sort");
+      const sortPath = `${path}.sort[${index}]`;
+      const type = isPlainObject(sort) ? sort.type : sort;
+      if (!requireOneOf(bag, isPlainObject(sort) ? `${sortPath}.type` : sortPath,
+        type, TARGET_SORT_TYPES, "unknown_target_sort")) return;
+      if (isPlainObject(sort) && type === "status_stacks_desc") {
+        requireStatusReference(bag, `${sortPath}.statusId`, sort.statusId, ctx);
+      } else if (isPlainObject(sort) && type === "skill_effect_priority_asc") {
+        if (requireArray(bag, `${sortPath}.effectTypes`, sort.effectTypes, { min: 1 })) {
+          sort.effectTypes.forEach((effectType, effectIndex) => requireOneOf(
+            bag, `${sortPath}.effectTypes[${effectIndex}]`, effectType, EFFECT_TYPES, "unknown_effect_type",
+          ));
+        }
+      } else if (isPlainObject(sort) && type !== "distance_to_self_asc") {
+        bag.add(sortPath, "unexpected_sort_options", `${type} does not take sort options`);
+      }
     });
   }
   if (!requireOneOf(bag, `${path}.take`, query.take, TAKE_VALUES, "unknown_take")) return;
@@ -241,6 +343,9 @@ function validateTargetFilter(bag, path, filter, ctx) {
     case "row_is":
       requireOneOf(bag, `${path}.row`, filter.row, ROWS, "unknown_row");
       break;
+    case "has_open_position_in_row":
+      requireOneOf(bag, `${path}.row`, filter.row, ROWS, "unknown_row");
+      break;
     case "hp_percent":
       requireOneOf(bag, `${path}.op`, filter.op, COMPARISON_OPS, "unknown_operator");
       requireCount(bag, `${path}.value`, filter.value, { min: 0, max: 100 });
@@ -250,14 +355,40 @@ function validateTargetFilter(bag, path, filter, ctx) {
       if (filter.op !== undefined) requireOneOf(bag, `${path}.op`, filter.op, COMPARISON_OPS, "unknown_operator");
       if (filter.value !== undefined) requireCount(bag, `${path}.value`, filter.value, { min: 0 });
       break;
+    case "has_any_skill_effect":
+      if (requireArray(bag, `${path}.effectTypes`, filter.effectTypes, { min: 1 })) {
+        filter.effectTypes.forEach((effectType, index) => requireOneOf(
+          bag, `${path}.effectTypes[${index}]`, effectType, EFFECT_TYPES, "unknown_effect_type",
+        ));
+      }
+      break;
+    case "has_negative_status":
+      break;
+    case "has_defense":
+    case "has_block":
+      break;
+    case "has_defense_or_status":
+      requireStatusReference(bag, `${path}.statusId`, filter.statusId, ctx);
+      break;
     case "is_preparing":
       if (typeof filter.value !== "boolean") {
         bag.add(`${path}.value`, "bad_boolean", "is_preparing.value must be a boolean");
       }
       break;
+    case "not_acted_this_round":
+      if (filter.value !== undefined && typeof filter.value !== "boolean") {
+        bag.add(`${path}.value`, "bad_boolean", "not_acted_this_round.value must be a boolean");
+      }
+      break;
     case "not_previous_target":
     case "not_self":
     case "is_event_primary_target":
+    case "is_event_target":
+    case "not_event_primary_target":
+    case "same_row_as_event_primary_target":
+    case "same_column_as_event_primary_target":
+    case "horizontal_adjacent_to_event_primary_target":
+    case "adjacent_to_event_primary_target":
     case "is_event_source":
       break;
     default:
@@ -342,6 +473,13 @@ function validatePredicate(bag, path, predicate, ctx) {
         bag.add(`${path}.value`, "not_a_number", "event_value.value must be finite");
       }
       break;
+    case "event_target_is_attack_primary":
+      break;
+    case "attack_flag":
+      if (typeof predicate.key !== "string" || predicate.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "attack_flag needs a key string");
+      }
+      break;
     case "history_count":
       validateSubject(bag, `${path}.subject`, predicate.subject, ctx);
       requireOneOf(bag, `${path}.metric`, predicate.metric, ctx.historyMetrics, "unknown_history_metric");
@@ -351,14 +489,23 @@ function validatePredicate(bag, path, predicate, ctx) {
       break;
     case "target_exists":
       validateTargetQuery(bag, `${path}.query`, predicate.query, ctx);
+      if (predicate.targetReach !== undefined) {
+        requireOneOf(bag, `${path}.targetReach`, predicate.targetReach,
+          ["unrestricted", "pending_action"], "unknown_target_reach");
+      }
       if (predicate.op !== undefined) {
         requireOneOf(bag, `${path}.op`, predicate.op, COMPARISON_OPS, "unknown_operator");
       }
       if (predicate.value !== undefined) requireCount(bag, `${path}.value`, predicate.value, { min: 0 });
       break;
+    case "hit_target_comparison":
+      requireOneOf(bag, `${path}.relation`, predicate.relation, ["same", "different"], "unknown_relation");
+      break;
     case "round_number":
       requireOneOf(bag, `${path}.op`, predicate.op, COMPARISON_OPS, "unknown_operator");
       requireCount(bag, `${path}.value`, predicate.value, { min: 0 });
+      break;
+    case "pending_base_target_has_negative_status":
       break;
     default:
       break;
@@ -418,6 +565,10 @@ function validateEffect(bag, path, effect, ctx) {
         bag.add(path, "no_pending_amount", `${effect.type} needs damage_proposed or healing_proposed`);
         return;
       }
+      if (effect.type === "modify_pending_guard" && !PENDING_GUARD_EVENT_TYPES.includes(ctx.listenTo)) {
+        bag.add(path, "no_pending_guard", "modify_pending_guard needs damage_proposed");
+        return;
+      }
     } else if (!PENDING_ACTION_EVENT_TYPES.includes(ctx.listenTo)) {
       bag.add(path, "no_pending_action", `${effect.type} needs action_declared or target_selected`);
       return;
@@ -426,6 +577,9 @@ function validateEffect(bag, path, effect, ctx) {
 
   switch (effect.type) {
     case "deal_damage":
+      if (ctx.insideHitEffects) {
+        bag.add(path, "nested_hit_attack", "onHitEffects may not start another attack");
+      }
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
@@ -433,6 +587,64 @@ function validateEffect(bag, path, effect, ctx) {
       // それは v1 の挙動そのもの。**既存定義は書き換えなくてよい。**
       if (effect.hitCount !== undefined) {
         requireCount(bag, `${path}.hitCount`, effect.hitCount, { min: 1, max: 8 });
+      }
+      if (effect.hitCount !== undefined && effect.hitCountFromStatus !== undefined) {
+        bag.add(path, "ambiguous_hit_count", "use hitCount or hitCountFromStatus, not both");
+      }
+      if (effect.independentAttack !== undefined && typeof effect.independentAttack !== "boolean") {
+        bag.add(`${path}.independentAttack`, "bad_boolean", "independentAttack must be a boolean");
+      }
+      if (effect.independentAttack === true && !(effect.tags ?? []).includes("attack")) {
+        bag.add(`${path}.independentAttack`, "independent_attack_without_attack_tag",
+          "independentAttack requires the attack tag");
+      }
+      if (effect.hitCountBonusBySkill !== undefined) {
+        if (!requireArray(bag, `${path}.hitCountBonusBySkill`, effect.hitCountBonusBySkill)) return;
+        effect.hitCountBonusBySkill.forEach((entry, index) => {
+          const entryPath = `${path}.hitCountBonusBySkill[${index}]`;
+          if (!isPlainObject(entry)) {
+            bag.add(entryPath, "not_an_object", "expected a skill hit bonus");
+            return;
+          }
+          if (!Object.hasOwn(ctx.bundle?.passiveSkills ?? {}, entry.skillId)) {
+            bag.add(`${entryPath}.skillId`, "dangling_reference", `no such passive skill: ${entry.skillId}`);
+          }
+          requireCount(bag, `${entryPath}.bonus`, entry.bonus, { min: 1, max: 8 });
+        });
+      }
+      if (effect.hitCountFromStatus !== undefined) {
+        if (!isPlainObject(effect.hitCountFromStatus)) {
+          bag.add(`${path}.hitCountFromStatus`, "not_an_object", "expected a hitCountFromStatus object");
+        } else {
+          requireStatusReference(
+            bag,
+            `${path}.hitCountFromStatus.statusId`,
+            effect.hitCountFromStatus.statusId,
+            ctx,
+          );
+          requireCount(bag, `${path}.hitCountFromStatus.max`, effect.hitCountFromStatus.max, { min: 1, max: 8 });
+          if (effect.hitCountFromStatus.fallback !== undefined) {
+            requireCount(bag, `${path}.hitCountFromStatus.fallback`, effect.hitCountFromStatus.fallback,
+              { min: 0, max: 8 });
+          }
+          if (effect.hitCountFromStatus.base !== undefined) {
+            requireCount(bag, `${path}.hitCountFromStatus.base`, effect.hitCountFromStatus.base, { min: 1, max: 8 });
+          }
+          if (effect.hitCountFromStatus.memoryKey !== undefined
+              && (typeof effect.hitCountFromStatus.memoryKey !== "string"
+                || effect.hitCountFromStatus.memoryKey.length === 0)) {
+            bag.add(`${path}.hitCountFromStatus.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
+          }
+        }
+      }
+      if (effect.hitDistribution !== undefined) {
+        requireOneOf(
+          bag,
+          `${path}.hitDistribution`,
+          effect.hitDistribution,
+          HIT_DISTRIBUTIONS,
+          "unknown_hit_distribution",
+        );
       }
       if (effect.guardPierceBps !== undefined) {
         requireCount(bag, `${path}.guardPierceBps`, effect.guardPierceBps, { min: 0, max: 10_000 });
@@ -443,11 +655,26 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.reach !== undefined) {
         requireOneOf(bag, `${path}.reach`, effect.reach, REACHES, "unknown_reach");
       }
+      if (effect.rangeClass !== undefined) {
+        requireOneOf(
+          bag,
+          `${path}.rangeClass`,
+          effect.rangeClass,
+          RANGE_CLASSES,
+          "unknown_range_class",
+        );
+      }
+      if (effect.reach !== undefined && effect.rangeClass !== undefined) {
+        bag.add(path, "ambiguous_range", "use rangeClass or legacy reach, not both");
+      }
       // **範囲攻撃は take: 1 から広げる。** take: "all" と組み合わせると、
       // どの一体を基点に広げたのかが決まらない。
       if (effect.targetPattern && effect.targetPattern !== "single" && effect.target?.take !== 1) {
         bag.add(`${path}.targetPattern`, "pattern_needs_single_anchor",
           `${effect.targetPattern} spreads from one anchor, so target.take must be 1`);
+      }
+      if (effect.onHitEffects !== undefined) {
+        validateEffects(bag, `${path}.onHitEffects`, effect.onHitEffects, { ...ctx, insideHitEffects: true });
       }
       break;
     case "heal":
@@ -459,21 +686,66 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.duration`, effect.duration, BARRIER_DURATIONS, "unknown_duration");
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     // R6 §6.7 — PHASE A. block は charge（回数）なので離散量。
     case "gain_block":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+      break;
+    case "mark_attack_flag":
+      if (!(ctx.listenTo === "damage_proposed" && ctx.timing === "interrupt")
+          && !(ctx.listenTo === "damage_taken" && ctx.timing === "after")
+          && !(ctx.listenTo === "damage_resolved" && ctx.timing === "after")) {
+        bag.add(path, "attack_flag_window",
+          "mark_attack_flag requires damage_proposed interrupt or a settled damage after timing");
+      }
+      if (typeof effect.key !== "string" || effect.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "mark_attack_flag needs a key string");
+      }
       break;
     case "gain_resource":
+    case "reduce_resource":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       requireOneOf(bag, `${path}.resource`, effect.resource, RESOURCE_NAMES, "unknown_resource");
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     case "add_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       requireStatusReference(bag, `${path}.statusId`, effect.statusId, ctx);
+      if (effect.onlyIfStatusLinkedToEventTarget !== undefined) {
+        requireStatusReference(bag, `${path}.onlyIfStatusLinkedToEventTarget`,
+          effect.onlyIfStatusLinkedToEventTarget, ctx);
+      }
+      if (effect.linkToEventTarget !== undefined && typeof effect.linkToEventTarget !== "boolean") {
+        bag.add(`${path}.linkToEventTarget`, "bad_boolean", "linkToEventTarget must be a boolean");
+      }
       if (effect.stacks !== undefined) requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
+      if (effect.stacksFromEvent !== undefined) {
+        if (effect.stacks !== undefined) {
+          bag.add(path, "duplicate_status_amount", "give stacks or stacksFromEvent, not both");
+        }
+        if (!isPlainObject(effect.stacksFromEvent)) {
+          bag.add(`${path}.stacksFromEvent`, "not_an_object", "expected an event stack multiplier");
+        } else {
+          if (typeof effect.stacksFromEvent.key !== "string" || effect.stacksFromEvent.key.length === 0) {
+            bag.add(`${path}.stacksFromEvent.key`, "bad_key", "stacksFromEvent needs a values key");
+          }
+          requireCount(bag, `${path}.stacksFromEvent.multiplier`, effect.stacksFromEvent.multiplier, { min: 1 });
+        }
+      }
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+      break;
+    case "copy_status_from_event":
+      if (ctx.timing !== "after" || ctx.listenTo !== "status_added") {
+        bag.add(path, "copy_status_window", "copy_status_from_event requires a status_added after rule");
+      }
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      if (effect.stacksFromEvent !== undefined && typeof effect.stacksFromEvent !== "boolean") {
+        bag.add(`${path}.stacksFromEvent`, "bad_boolean", "stacksFromEvent must be a boolean");
+      }
       break;
     case "remove_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -481,10 +753,145 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.stacks !== undefined && effect.stacks !== "all") {
         requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
       }
+      if (effect.maxStacks !== undefined) requireCount(bag, `${path}.maxStacks`, effect.maxStacks, { min: 1 });
+      if (effect.storeAs !== undefined) {
+        if (typeof effect.storeAs !== "string" || effect.storeAs.length === 0) {
+          bag.add(`${path}.storeAs`, "bad_key", "storeAs must be a non-empty string");
+        }
+        if (ctx.timing !== "action" || effect.target?.scope !== "self" || effect.target?.take !== 1) {
+          bag.add(`${path}.storeAs`, "status_snapshot_outside_action",
+            "storeAs is only valid for a single self target during an active action");
+        }
+      }
+      break;
+    case "remove_statuses":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      requireOneOf(bag, `${path}.polarity`, effect.polarity, STATUS_POLARITIES, "unknown_polarity");
+      break;
+    case "remove_barrier":
+    case "remove_block":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       break;
     case "swap_positions":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
       validateTargetQuery(bag, `${path}.otherTarget`, effect.otherTarget, ctx, { take: 1 });
+      break;
+    case "move_to_open_row":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx, { take: 1 });
+      requireOneOf(bag, `${path}.row`, effect.row, ROWS, "unknown_row");
+      if (effect.returnAfterAction !== undefined && typeof effect.returnAfterAction !== "boolean") {
+        bag.add(`${path}.returnAfterAction`, "bad_boolean", "returnAfterAction must be a boolean");
+      }
+      if (effect.returnAtRoundEnd !== undefined && typeof effect.returnAtRoundEnd !== "boolean") {
+        bag.add(`${path}.returnAtRoundEnd`, "bad_boolean", "returnAtRoundEnd must be a boolean");
+      }
+      if (effect.returnAfterAction === true && effect.returnAtRoundEnd === true) {
+        bag.add(path, "duplicate_return_timing", "use only one return timing");
+      }
+      if (effect.returnAtRoundEnd === true
+          && (ctx.timing !== "after" || !["damage_resolved", "action_resolved"].includes(ctx.listenTo))) {
+        bag.add(`${path}.returnAtRoundEnd`, "round_return_outside_hit",
+          "returnAtRoundEnd requires a settled damage or action after rule");
+      }
+      if (effect.returnAfterAction === true
+          && ctx.timing !== "action" && ctx.listenTo !== "action_declared") {
+        bag.add(
+          `${path}.returnAfterAction`,
+          "action_return_outside_action",
+          "returnAfterAction is only valid during an active action",
+        );
+      }
+      if (effect.returnRow !== undefined) {
+        requireOneOf(bag, `${path}.returnRow`, effect.returnRow, ROWS, "unknown_row");
+        if (effect.returnAfterAction !== true && effect.returnAtRoundEnd !== true) {
+          bag.add(`${path}.returnRow`, "return_row_without_return", "returnRow requires a scheduled return");
+        }
+      }
+      if (effect.cancelIfOutOfReach !== undefined && typeof effect.cancelIfOutOfReach !== "boolean") {
+        bag.add(`${path}.cancelIfOutOfReach`, "bad_boolean", "cancelIfOutOfReach must be a boolean");
+      }
+      break;
+    case "modify_attack_plan":
+      if (ctx.timing !== "interrupt"
+          || !["action_declared", "target_selected", "attack_plan_opened"].includes(ctx.listenTo)) {
+        bag.add(path, "attack_plan_window", "modify_attack_plan requires an attack plan interrupt");
+      }
+      if (effect.hitCountBonus !== undefined) {
+        requireCount(bag, `${path}.hitCountBonus`, effect.hitCountBonus, { min: 1, max: 8 });
+      }
+      if (effect.extraHitBps !== undefined) {
+        requireCount(bag, `${path}.extraHitBps`, effect.extraHitBps, { min: 1, max: 10_000 });
+        if (effect.hitCountBonus === undefined) {
+          bag.add(`${path}.extraHitBps`, "missing_hit_count_bonus", "extraHitBps needs hitCountBonus");
+        }
+      }
+      if (effect.minHitCount !== undefined) {
+        requireCount(bag, `${path}.minHitCount`, effect.minHitCount, { min: 1, max: 8 });
+      }
+      if (effect.minTargetCount !== undefined) {
+        requireCount(bag, `${path}.minTargetCount`, effect.minTargetCount, { min: 1, max: 5 });
+      }
+      if (effect.maxHitCount !== undefined) {
+        requireCount(bag, `${path}.maxHitCount`, effect.maxHitCount, { min: 1, max: 9 });
+      }
+      if (effect.snapshotLegalTargets !== undefined && typeof effect.snapshotLegalTargets !== "boolean") {
+        bag.add(`${path}.snapshotLegalTargets`, "bad_boolean", "snapshotLegalTargets must be a boolean");
+      }
+      if (effect.hitDistribution !== undefined) {
+        requireOneOf(bag, `${path}.hitDistribution`, effect.hitDistribution, HIT_DISTRIBUTIONS, "unknown_hit_distribution");
+      }
+      if (effect.snapshotStatusIds !== undefined) {
+        if (!requireArray(bag, `${path}.snapshotStatusIds`, effect.snapshotStatusIds)) return;
+        if (effect.snapshotStatusIds.length === 0) {
+          bag.add(`${path}.snapshotStatusIds`, "empty_status_snapshot", "snapshotStatusIds must not be empty");
+        }
+        effect.snapshotStatusIds.forEach((statusId, index) => {
+          requireStatusReference(bag, `${path}.snapshotStatusIds[${index}]`, statusId, ctx);
+        });
+      }
+      if (effect.snapshotPositiveStatusStacksKey !== undefined
+          && (typeof effect.snapshotPositiveStatusStacksKey !== "string"
+            || effect.snapshotPositiveStatusStacksKey.length === 0)) {
+        bag.add(`${path}.snapshotPositiveStatusStacksKey`, "bad_key",
+          "snapshotPositiveStatusStacksKey must be a non-empty string");
+      }
+      if (effect.linkStatusIds !== undefined) {
+        if (!requireArray(bag, `${path}.linkStatusIds`, effect.linkStatusIds)) return;
+        if (effect.linkStatusIds.length === 0) {
+          bag.add(`${path}.linkStatusIds`, "empty_status_link", "linkStatusIds must not be empty");
+        }
+        effect.linkStatusIds.forEach((statusId, index) => {
+          requireStatusReference(bag, `${path}.linkStatusIds[${index}]`, statusId, ctx);
+        });
+      }
+      if (effect.addAdjacentDamageTargets !== undefined
+          && typeof effect.addAdjacentDamageTargets !== "boolean") {
+        bag.add(`${path}.addAdjacentDamageTargets`, "bad_boolean", "addAdjacentDamageTargets must be a boolean");
+      }
+      if (effect.extraTargetDamageBps !== undefined) {
+        requireCount(bag, `${path}.extraTargetDamageBps`, effect.extraTargetDamageBps, { min: 1, max: 10_000 });
+      }
+      if (effect.extraTargetDamageFromAttackStat !== undefined
+          && typeof effect.extraTargetDamageFromAttackStat !== "boolean") {
+        bag.add(`${path}.extraTargetDamageFromAttackStat`, "bad_boolean",
+          "extraTargetDamageFromAttackStat must be a boolean");
+      }
+      if (effect.extraTargetDamageFromAttackStat === true && effect.addAdjacentDamageTargets !== true) {
+        bag.add(`${path}.extraTargetDamageFromAttackStat`, "stat_damage_without_extra_targets",
+          "attack-stat damage requires adjacent damage targets");
+      }
+      if (effect.addAdjacentDamageTargets === true !== (effect.extraTargetDamageBps !== undefined)) {
+        bag.add(path, "incomplete_extra_targets", "adjacent damage targets need extraTargetDamageBps");
+      }
+      if (effect.addAdjacentDamageTargets === true && ctx.listenTo !== "attack_plan_opened") {
+        bag.add(path, "extra_target_window", "adjacent damage targets require attack_plan_opened");
+      }
+      if (effect.hitCountBonus === undefined && effect.snapshotLegalTargets !== true
+          && effect.snapshotStatusIds === undefined && effect.linkStatusIds === undefined
+          && effect.snapshotPositiveStatusStacksKey === undefined
+          && effect.addAdjacentDamageTargets !== true) {
+        bag.add(path, "empty_attack_plan_modifier", "give a hit or target plan change");
+      }
       break;
     case "start_preparation":
       if (ctx.insidePreparation) {
@@ -508,6 +915,11 @@ function validateEffect(bag, path, effect, ctx) {
     case "interrupt_preparation":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       break;
+    case "revive":
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+      break;
     case "wear_equipment":
     case "repair_equipment":
       if (!ctx.fromEquipment) {
@@ -517,6 +929,9 @@ function validateEffect(bag, path, effect, ctx) {
       break;
     case "modify_pending_amount":
       requireOneOf(bag, `${path}.operation`, effect.operation, PENDING_AMOUNT_OPERATIONS, "unknown_operation");
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      break;
+    case "modify_pending_guard":
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
     case "split_pending_damage":
@@ -587,6 +1002,14 @@ function validateRule(bag, path, rule, ctx) {
   }
   requireOneOf(bag, `${path}.limit.scope`, rule.limit.scope, LIMIT_SCOPES, "unknown_limit_scope");
   requireCount(bag, `${path}.limit.count`, rule.limit.count, { min: 1 });
+  if (rule.allowRepeatInChain !== undefined && typeof rule.allowRepeatInChain !== "boolean") {
+    bag.add(`${path}.allowRepeatInChain`, "bad_boolean", "allowRepeatInChain must be a boolean");
+  }
+  if (rule.allowRepeatInChain === true
+    && (rule.limit.scope !== "chain" || rule.limit.count <= 1)) {
+    bag.add(`${path}.allowRepeatInChain`, "unbounded_chain_repeat",
+      "allowRepeatInChain needs a chain limit greater than 1");
+  }
 }
 
 function validateRules(bag, path, rules, ctx) {
@@ -616,7 +1039,13 @@ export function validateContentBundle(bundle) {
 
   // PHASE A: passiveSkills を足した。**古い bundle にも空で存在させる**ので、
   // ここは必須節のままでよい（content/index.mjs が必ず入れる）。
-  const sections = ["characters", "activeSkills", "reactiveSkills", "passiveSkills", "equipment", "statuses", "enemyActors"];
+  const sections = [
+    "characters", "activeSkills", "targetSkills", "reactiveSkills",
+    "passiveSkills", "equipment", "statuses", "enemyActors",
+  ];
+  if (bundle.enemyActiveSkills !== undefined) sections.push("enemyActiveSkills");
+  if (bundle.enemyReactiveSkills !== undefined) sections.push("enemyReactiveSkills");
+  if (bundle.enemyPassiveSkills !== undefined) sections.push("enemyPassiveSkills");
   for (const section of sections) {
     if (!isPlainObject(bundle[section])) {
       bag.add(`contentBundle.${section}`, "not_an_object", "expected a record of definitions");
@@ -673,10 +1102,62 @@ export function validateContentBundle(bundle) {
     const path = `activeSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireCount(bag, `${path}.apCost`, skill.apCost, { min: 0 });
+    if (skill.usesPerBattle !== undefined) {
+      requireCount(bag, `${path}.usesPerBattle`, skill.usesPerBattle, { min: 1, max: 99 });
+    }
     requireTags(bag, `${path}.tags`, skill.tags);
     validatePredicates(bag, `${path}.intrinsicPredicates`, skill.intrinsicPredicates, baseCtx);
     validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);
+    if (skill.preserveStatusIdsOnResolve !== undefined
+        && requireArray(bag, `${path}.preserveStatusIdsOnResolve`, skill.preserveStatusIdsOnResolve)) {
+      skill.preserveStatusIdsOnResolve.forEach((statusId, index) => requireStatusReference(
+        bag, `${path}.preserveStatusIdsOnResolve[${index}]`, statusId, baseCtx,
+      ));
+    }
     // An active skill is not a rule, so it never has a pending frame to touch.
+    validateEffects(bag, `${path}.effects`, skill.effects, { ...baseCtx, timing: "action", listenTo: null });
+    if (skill.attackPlanModifiers !== undefined) {
+      if (requireArray(bag, `${path}.attackPlanModifiers`, skill.attackPlanModifiers)) {
+        skill.attackPlanModifiers.forEach((effect, index) => {
+          if (effect?.type !== "modify_attack_plan") {
+            bag.add(`${path}.attackPlanModifiers[${index}]`, "attack_plan_modifier_type",
+              "attackPlanModifiers may contain only modify_attack_plan effects");
+          }
+        });
+        validateEffects(bag, `${path}.attackPlanModifiers`, skill.attackPlanModifiers, {
+          ...baseCtx,
+          timing: "interrupt",
+          listenTo: "attack_plan_opened",
+        });
+      }
+    }
+    if (skill.preparation !== undefined) {
+      requireCount(bag, `${path}.preparation.steps`, skill.preparation.steps, {
+        min: LIMITS.minPreparationSteps,
+        max: LIMITS.maxPreparationSteps,
+      });
+      validateEffects(bag, `${path}.preparation.completionEffects`, skill.preparation.completionEffects, {
+        ...baseCtx,
+        timing: "action",
+        listenTo: null,
+        insidePreparation: true,
+      });
+    }
+  }
+
+  // Enemy AI has its own action vocabulary. Validate it with the same rule
+  // grammar, but keep the section separate so player loadouts cannot acquire
+  // enemy-only actions by spelling their IDs.
+  for (const [id, skill] of Object.entries(bundle.enemyActiveSkills ?? {})) {
+    const path = `enemyActiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireCount(bag, `${path}.apCost`, skill.apCost, { min: 0 });
+    if (skill.usesPerBattle !== undefined) {
+      requireCount(bag, `${path}.usesPerBattle`, skill.usesPerBattle, { min: 1, max: 99 });
+    }
+    requireTags(bag, `${path}.tags`, skill.tags);
+    validatePredicates(bag, `${path}.intrinsicPredicates`, skill.intrinsicPredicates, baseCtx);
+    validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);
     validateEffects(bag, `${path}.effects`, skill.effects, { ...baseCtx, timing: "action", listenTo: null });
     if (skill.preparation !== undefined) {
       requireCount(bag, `${path}.preparation.steps`, skill.preparation.steps, {
@@ -690,6 +1171,16 @@ export function validateContentBundle(bundle) {
         insidePreparation: true,
       });
     }
+    if (skill.actionMode !== undefined) {
+      requireOneOf(bag, `${path}.actionMode`, skill.actionMode, ACTION_MODES, "unknown_action_mode");
+    }
+  }
+
+  for (const [id, skill] of Object.entries(bundle.targetSkills)) {
+    const path = `targetSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx, { take: 1 });
   }
 
   // R6 §6.4 — PHASE A. actionMode は任意（省略時は offense＝追撃なし＝v1 の挙動）。
@@ -713,7 +1204,8 @@ export function validateContentBundle(bundle) {
         }
         for (const [reach, skillId] of Object.entries(byReach)) {
           requireOneOf(bag, `contentBundle.coreActions.${key}.${reach}`, reach, REACHES, "unknown_reach");
-          if (!Object.hasOwn(bundle.activeSkills, skillId)) {
+          const skillSection = key.startsWith("enemy") ? bundle.enemyActiveSkills : bundle.activeSkills;
+          if (!Object.hasOwn(skillSection ?? {}, skillId)) {
             bag.add(`contentBundle.coreActions.${key}.${reach}`, "dangling_reference", `no such active skill: ${skillId}`);
           }
         }
@@ -725,7 +1217,64 @@ export function validateContentBundle(bundle) {
     const path = `reactiveSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireTags(bag, `${path}.tags`, skill.tags);
-    validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    if (skill.replacesReactiveSkillIds !== undefined
+      && requireArray(bag, `${path}.replacesReactiveSkillIds`, skill.replacesReactiveSkillIds)) {
+      for (const [index, replacedId] of skill.replacesReactiveSkillIds.entries()) {
+        if (!Object.hasOwn(bundle.reactiveSkills, replacedId)) {
+          bag.add(`${path}.replacesReactiveSkillIds[${index}]`, "dangling_reference",
+            `no such reactive skill: ${replacedId}`);
+        }
+        if (replacedId === id) {
+          bag.add(`${path}.replacesReactiveSkillIds[${index}]`, "self_replacement",
+            "a reactive skill cannot replace itself");
+        }
+      }
+    }
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule === hasRules) {
+      bag.add(path, "bad_skill_rules", "give exactly one of rule or rules");
+    } else if (hasRule) {
+      validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    } else if (requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+  }
+
+  for (const [id, skill] of Object.entries(bundle.enemyReactiveSkills ?? {})) {
+    const path = `enemyReactiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule === hasRules) {
+      bag.add(path, "bad_skill_rules", "give exactly one of rule or rules");
+    } else if (hasRule) {
+      validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    } else if (requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+  }
+
+  // Enemy passive skills are intentionally an independent namespace. The
+  // current enemy roster has none, but validating the section prevents a
+  // future enemy passive from silently resolving through player content.
+  for (const [id, skill] of Object.entries(bundle.enemyPassiveSkills ?? {})) {
+    const path = `enemyPassiveSkills.${id}`;
+    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+    requireTags(bag, `${path}.tags`, skill.tags);
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule && hasRules) {
+      bag.add(path, "bad_skill_rules", "give at most one of rule or rules");
+    }
+    if (hasRule) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    if (hasRules && requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+    if (skill.statBonus === undefined && !hasRule && !hasRules) {
+      bag.add(path, "inert_passive", "a passive needs a statBonus, rule, or rules");
+    }
   }
 
   // R6 §6.8 — PHASE A. passive は「定数で押し上げる」か「常時ある rule」の
@@ -734,6 +1283,19 @@ export function validateContentBundle(bundle) {
     const path = `passiveSkills.${id}`;
     requireDisplayName(bag, `${path}.displayName`, skill.displayName);
     requireTags(bag, `${path}.tags`, skill.tags);
+    if (skill.replacesPassiveSkillIds !== undefined
+      && requireArray(bag, `${path}.replacesPassiveSkillIds`, skill.replacesPassiveSkillIds)) {
+      for (const [index, replacedId] of skill.replacesPassiveSkillIds.entries()) {
+        if (!Object.hasOwn(bundle.passiveSkills, replacedId)) {
+          bag.add(`${path}.replacesPassiveSkillIds[${index}]`, "dangling_reference",
+            `no such passive skill: ${replacedId}`);
+        }
+        if (replacedId === id) {
+          bag.add(`${path}.replacesPassiveSkillIds[${index}]`, "self_replacement",
+            "a passive cannot replace itself");
+        }
+      }
+    }
     const bonus = skill.statBonus;
     if (bonus !== undefined) {
       if (!isPlainObject(bonus)) {
@@ -766,9 +1328,17 @@ export function validateContentBundle(bundle) {
         }
       }
     }
-    if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
-    if (skill.statBonus === undefined && skill.rule === undefined) {
-      bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
+    const hasRule = skill.rule !== undefined;
+    const hasRules = skill.rules !== undefined;
+    if (hasRule && hasRules) {
+      bag.add(path, "bad_skill_rules", "give at most one of rule or rules");
+    }
+    if (hasRule) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    if (hasRules && requireArray(bag, `${path}.rules`, skill.rules, { min: 1 })) {
+      skill.rules.forEach((rule, index) => validateRule(bag, `${path}.rules[${index}]`, rule, baseCtx));
+    }
+    if (skill.statBonus === undefined && !hasRule && !hasRules) {
+      bag.add(path, "inert_passive", "a passive needs a statBonus, rule, or rules");
     }
   }
 
@@ -794,8 +1364,39 @@ export function validateContentBundle(bundle) {
     const path = `statuses.${id}`;
     requireDisplayName(bag, `${path}.displayName`, status.displayName);
     requireOneOf(bag, `${path}.polarity`, status.polarity, STATUS_POLARITIES, "unknown_polarity");
-    requireCount(bag, `${path}.maxStacks`, status.maxStacks, { min: 1 });
+    if (status.maxStacks !== "unbounded") {
+      requireCount(bag, `${path}.maxStacks`, status.maxStacks, { min: 1 });
+    }
     requireOneOf(bag, `${path}.duration`, status.duration, DURATIONS, "unknown_duration");
+    if (status.decayAtRoundEnd !== undefined && typeof status.decayAtRoundEnd !== "boolean") {
+      bag.add(`${path}.decayAtRoundEnd`, "bad_boolean", "decayAtRoundEnd must be a boolean");
+    }
+    if (status.decayAtRoundEnd && status.duration !== "battle") {
+      bag.add(`${path}.decayAtRoundEnd`, "decay_needs_battle_duration",
+        "round-end decay statuses use battle duration");
+    }
+    if (status.clearWhenLinkedTargetDefeated !== undefined
+        && typeof status.clearWhenLinkedTargetDefeated !== "boolean") {
+      bag.add(`${path}.clearWhenLinkedTargetDefeated`, "bad_boolean",
+        "clearWhenLinkedTargetDefeated must be a boolean");
+    }
+    for (const property of ["uniquePerSide", "priorityForAllyAttackTargets", "consumeOnAllyActiveAttackBaseTarget"]) {
+      if (status[property] !== undefined && typeof status[property] !== "boolean") {
+        bag.add(`${path}.${property}`, "bad_boolean", `${property} must be a boolean`);
+      }
+    }
+    if (status.durationRounds !== undefined) {
+      requireCount(bag, `${path}.durationRounds`, status.durationRounds, { min: 1, max: 99 });
+      if (status.duration !== "round") {
+        bag.add(`${path}.durationRounds`, "duration_rounds_without_round", "durationRounds needs duration: round");
+      }
+    }
+    if (status.guardBonusPerStack !== undefined
+      && (!Number.isSafeInteger(status.guardBonusPerStack)
+        || status.guardBonusPerStack < -1_000 || status.guardBonusPerStack > 1_000)) {
+      bag.add(`${path}.guardBonusPerStack`, "bad_guard_bonus",
+        "guardBonusPerStack must be an integer from -1000 to 1000");
+    }
     requireTags(bag, `${path}.tags`, status.tags);
     validateRules(bag, `${path}.rules`, status.rules, baseCtx);
   }
@@ -808,8 +1409,21 @@ export function validateContentBundle(bundle) {
     requireCount(bag, `${path}.baseActionPoints`, enemy.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, enemy.baseReactionPoints, { min: 0 });
     requireTags(bag, `${path}.tags`, enemy.tags);
-    validateTactics(bag, `${path}.tactics`, enemy.tactics, bundle, baseCtx);
-    validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, enemy.reactiveSkillIds, bundle);
+    validateTactics(
+      bag,
+      `${path}.tactics`,
+      enemy.tactics,
+      bundle,
+      baseCtx,
+      bundle.enemyActiveSkills ?? bundle.activeSkills,
+    );
+    validateReactiveSkillIds(
+      bag,
+      `${path}.reactiveSkillIds`,
+      enemy.reactiveSkillIds,
+      bundle,
+      bundle.enemyReactiveSkills ?? bundle.reactiveSkills,
+    );
     validateRules(bag, `${path}.intrinsicRules`, enemy.intrinsicRules, baseCtx);
   }
 
@@ -834,7 +1448,7 @@ const HISTORY_WINDOW_NAMES = ["chain", "round", "battle"];
 
 // §5.3 — tactics are the player's priority list: at most two, each with at most
 // two useWhen conditions, and useWhen may only read the actor's own state.
-function validateTactics(bag, path, tactics, bundle, ctx) {
+function validateTactics(bag, path, tactics, bundle, ctx, activeSection = bundle.activeSkills) {
   if (!requireArray(bag, path, tactics, { max: LIMITS.maxTactics })) return;
   tactics.forEach((tactic, index) => {
     const tacticPath = `${path}[${index}]`;
@@ -844,7 +1458,7 @@ function validateTactics(bag, path, tactics, bundle, ctx) {
     }
     if (!isValidId(tactic.activeSkillId)) {
       bag.add(`${tacticPath}.activeSkillId`, "bad_id", "not a valid id");
-    } else if (!Object.hasOwn(bundle.activeSkills, tactic.activeSkillId)) {
+    } else if (!Object.hasOwn(activeSection, tactic.activeSkillId)) {
       bag.add(`${tacticPath}.activeSkillId`, "dangling_reference", `no such active skill: ${tactic.activeSkillId}`);
     }
     validatePredicates(bag, `${tacticPath}.useWhen`, tactic.useWhen, {
@@ -874,7 +1488,7 @@ function validatePassiveSkillIds(bag, path, ids, bundle) {
   });
 }
 
-function validateReactiveSkillIds(bag, path, ids, bundle) {
+function validateReactiveSkillIds(bag, path, ids, bundle, reactiveSection = bundle.reactiveSkills) {
   if (!requireArray(bag, path, ids, { max: LIMITS.maxReactiveSkills })) return;
   const seen = new Set();
   ids.forEach((id, index) => {
@@ -883,7 +1497,7 @@ function validateReactiveSkillIds(bag, path, ids, bundle) {
       bag.add(idPath, "bad_id", "not a valid id");
       return;
     }
-    if (!Object.hasOwn(bundle.reactiveSkills, id)) {
+    if (!Object.hasOwn(reactiveSection, id)) {
       bag.add(idPath, "dangling_reference", `no such reactive skill: ${id}`);
     }
     if (seen.has(id)) bag.add(idPath, "duplicate_reference", `reactive skill listed twice: ${id}`);
@@ -891,10 +1505,44 @@ function validateReactiveSkillIds(bag, path, ids, bundle) {
   });
 }
 
+function validateTargetSkillIds(bag, path, ids, bundle) {
+  if (ids === undefined) return;
+  if (!requireArray(bag, path, ids, { max: LIMITS.maxTargetSkills })) return;
+  const seen = new Set();
+  ids.forEach((id, index) => {
+    const idPath = `${path}[${index}]`;
+    if (!isValidId(id)) {
+      bag.add(idPath, "bad_id", "not a valid id");
+      return;
+    }
+    if (!Object.hasOwn(bundle.targetSkills, id)) {
+      bag.add(idPath, "dangling_reference", `no such target skill: ${id}`);
+    }
+    if (seen.has(id)) bag.add(idPath, "duplicate_reference", `target skill listed twice: ${id}`);
+    seen.add(id);
+  });
+}
+
+function validateReactiveReserve(bag, path, reserve, reactiveSkillIds) {
+  if (reserve === undefined) return;
+  if (!isPlainObject(reserve)) {
+    bag.add(path, "not_an_object", "expected a reactive skill id to RP reserve record");
+    return;
+  }
+  const installed = new Set(reactiveSkillIds ?? []);
+  for (const [skillId, amount] of Object.entries(reserve)) {
+    if (!installed.has(skillId)) {
+      bag.add(`${path}.${skillId}`, "dangling_reference", `reactive skill is not equipped: ${skillId}`);
+    }
+    requireCount(bag, `${path}.${skillId}`, amount, { min: 0, max: 99 });
+  }
+}
+
 // -------------------------------------------------------------- battle input
 
 export function validateBattleInput(input, bundle) {
   const bag = new ErrorBag();
+  const weaponLoadoutBundle = Object.hasOwn(bundle ?? {}, "enemyActiveSkills");
   if (!isPlainObject(input)) {
     bag.add("battleInput", "not_an_object", "expected a battle input object");
     return bag.list;
@@ -960,7 +1608,6 @@ export function validateBattleInput(input, bundle) {
           bundle,
           ally.passiveSkillIds,
           ally.equipment.map((entry) => ({ ...entry, broken: entry.durability === 0 })),
-          ally.skillLevels,
         )
         : allyBaseMaxHp;
       validateTrainingRecord(bag, `${path}.training`, ally.training);
@@ -968,10 +1615,38 @@ export function validateBattleInput(input, bundle) {
         requireCount(bag, `${path}.hp`, ally.hp, { min: 0, max: allyMaxHp });
       }
       rejectUnknownKeys(bag, path, ally, ALLY_INPUT_KEYS);
-      validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
+      const hasActiveSkill = ally.activeSkillId !== undefined;
+      const hasLegacyTactics = ally.tactics !== undefined;
+      if (weaponLoadoutBundle && hasLegacyTactics) {
+        bag.add(`${path}.tactics`, "removed_key", "player tactics rotation was removed; use activeSkillId");
+      }
+      if (hasActiveSkill && hasLegacyTactics) {
+        bag.add(path, "ambiguous_active_loadout", "use activeSkillId or legacy tactics, not both");
+      } else if (hasActiveSkill) {
+        if (!isValidId(ally.activeSkillId)) {
+          bag.add(`${path}.activeSkillId`, "bad_id", "not a valid id");
+        } else if (!Object.hasOwn(bundle.activeSkills, ally.activeSkillId)) {
+          bag.add(`${path}.activeSkillId`, "dangling_reference", `no such active skill: ${ally.activeSkillId}`);
+        }
+        if (ally.activeOverrideSkillId !== undefined) {
+          if (!isValidId(ally.activeOverrideSkillId)) {
+            bag.add(`${path}.activeOverrideSkillId`, "bad_id", "not a valid id");
+          } else if (!Object.hasOwn(bundle.activeSkills, ally.activeOverrideSkillId)) {
+            bag.add(
+              `${path}.activeOverrideSkillId`, "dangling_reference",
+              `no such active skill: ${ally.activeOverrideSkillId}`,
+            );
+          }
+        }
+      } else {
+        validateTactics(bag, `${path}.tactics`, ally.tactics, bundle, ctx);
+      }
+      validateTargetSkillIds(bag, `${path}.targetSkillIds`, ally.targetSkillIds, bundle);
       validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, ally.reactiveSkillIds, bundle);
+      validateReactiveReserve(
+        bag, `${path}.reactiveReserveBySkill`, ally.reactiveReserveBySkill, ally.reactiveSkillIds,
+      );
       validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, ally.passiveSkillIds, bundle);
-      validateSkillLevels(bag, `${path}.skillLevels`, ally.skillLevels, bundle);
       validateEquipmentInputs(bag, `${path}.equipment`, ally.equipment, bundle, claimInstance);
     });
   }
@@ -1057,27 +1732,6 @@ function validateTrainingRecord(bag, path, training) {
   }
 }
 
-// R19（issue #137）— 技能レベル。**未知の技能 ID を黙って無視しない**
-// （綴り違いが「レベル1のまま」に見えると、威力が上がらない理由が画面から消える）。
-// 範囲外のレベルも同じで、丸めずに error にする。
-function validateSkillLevels(bag, path, skillLevels, bundle) {
-  if (skillLevels === undefined) return;
-  if (!isPlainObject(skillLevels)) {
-    bag.add(path, "not_an_object", "expected a skill level map");
-    return;
-  }
-  for (const [skillId, level] of Object.entries(skillLevels)) {
-    const known = bundle.activeSkills?.[skillId]
-      ?? bundle.reactiveSkills?.[skillId]
-      ?? bundle.passiveSkills?.[skillId];
-    if (!known) {
-      bag.add(`${path}.${skillId}`, "dangling_reference", `no such skill: ${skillId}`);
-      continue;
-    }
-    requireCount(bag, `${path}.${skillId}`, level, { min: MIN_SKILL_LEVEL, max: MAX_SKILL_LEVEL });
-  }
-}
-
 // R6 §11.2 / §13.2 — the visible mutation ids a difficulty rank added to this
 // unit. Also a record: the numbers they produced are already in `stats`, and the
 // preview text comes from the mutation definition, not from the save.
@@ -1093,9 +1747,9 @@ function validateMutationRecord(bag, path, mutations) {
 // battle input used to resolve as "no training at all" and look like a balance
 // problem. Only the two input objects Phase B grew are checked here.
 const ALLY_INPUT_KEYS = Object.freeze([
-  "instanceId", "characterId", "position", "hp", "tactics",
-  "reactiveSkillIds", "passiveSkillIds", "equipment", "stats", "training",
-  "skillLevels",
+  "instanceId", "characterId", "position", "hp", "activeSkillId", "activeOverrideSkillId", "tactics",
+  "targetSkillIds", "reactiveSkillIds", "reactiveReserveBySkill",
+  "passiveSkillIds", "equipment", "stats", "training",
 ]);
 const ENEMY_INPUT_KEYS = Object.freeze([
   "instanceId", "enemyActorId", "position", "hp", "stats", "mutations",

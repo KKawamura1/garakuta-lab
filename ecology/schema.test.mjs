@@ -73,12 +73,11 @@ expectRejected(
   "unknown event type",
 );
 
-expectRejected(
+expectValid(
   content((bundle) => {
     bundle.reactiveSkills.counter_blow.rule.listenTo = "actor_revived";
   }),
-  "reserved_event_type",
-  "reserved event type",
+  "implemented revive event type",
 );
 
 expectRejected(
@@ -95,6 +94,23 @@ expectRejected(
   }),
   "unknown_effect",
   "unknown effect",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.activeSkills.strike.effects[0].rangeClass = "teleporting";
+  }),
+  "unknown_range_class",
+  "unknown weapon range class",
+);
+
+expectRejected(
+  content((bundle) => {
+    bundle.activeSkills.strike.effects[0].rangeClass = "melee";
+    bundle.activeSkills.strike.effects[0].reach = "melee";
+  }),
+  "ambiguous_range",
+  "new range class mixed with legacy reach",
 );
 
 expectRejected(
@@ -610,7 +626,9 @@ expectRejected(
 );
 
 // The non-listenable records refuse a listener rather than sitting dead.
-for (const eventType of ["resource_refreshed", "pending_amount_modified", "damage_absorbed", "damage_skipped"]) {
+// damage_skipped is deliberately listenable now: a content rule may explicitly
+// carry a lost packet elsewhere, while the engine default still loses it.
+for (const eventType of ["resource_refreshed", "pending_amount_modified", "damage_absorbed"]) {
   expectRejected(
     content((bundle) => {
       bundle.reactiveSkills.counter_blow.rule.listenTo = eventType;

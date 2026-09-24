@@ -18,9 +18,13 @@ import { EcologyRuntimeError, EcologyValidationError } from "./errors.mjs";
 import { simulateBattle } from "./engine.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
 import {
+  ENEMY_ACTIVE_SKILLS,
+  ENEMY_REACTIVE_SKILLS,
+  CHARACTER_DEFINITIONS,
+  EQUIPMENT_PACKS,
   PLAYABLE_CONTENT,
-  SKILL_PACKS,
-  SKILL_TREE_NODES,
+  WEAPON_SKILL_PACKS,
+  WEAPON_SKILL_TREE_NODES,
 } from "./content/index.mjs";
 import { freshLoadout, makeExpeditionBattle } from "./playable-battles.mjs";
 import {
@@ -73,8 +77,6 @@ const ISSUE_130_ENEMIES = Object.freeze([
 function issue130StressBattle() {
   const roster = ["warden", "mender", "lancer", "guardian", "tactician"];
   const loadout = freshLoadout(roster);
-  const reactiveIds = ["counter_blow", "guard_step", "urging", "scavenge_ap"];
-  for (const characterId of roster) loadout.reactives[characterId] = [...reactiveIds];
 
   const composed = {
     index: "issue130",
@@ -153,16 +155,21 @@ for (const { battle, ruleId, eventType } of SAFETY_CASES) {
     "issue 130 termination reactives are absent from playable content",
   );
   check(
-    SKILL_TREE_NODES.every((node) => !terminationIds.has(node.skillId)),
-    "issue 130 termination reactives are absent from the skill tree",
+    WEAPON_SKILL_TREE_NODES.every((node) => !terminationIds.has(node.skillId)),
+    "issue 130 termination reactives are absent from the weapon skill tree",
   );
   check(
-    SKILL_PACKS.every((pack) => [
-      ...(pack.activeSkillIds ?? []),
-      ...(pack.reactiveSkillIds ?? []),
-      ...(pack.passiveSkillIds ?? []),
-    ].every((id) => !terminationIds.has(id))),
-    "issue 130 termination reactives are absent from skill packs",
+    EQUIPMENT_PACKS.every((pack) => !Object.keys(pack).some((key) => key.endsWith("SkillIds"))),
+    "equipment packs do not own skill ids",
+  );
+  check(
+    WEAPON_SKILL_PACKS.every((pack) => pack.kind === "skill" && pack.weaponId),
+    "skill packs are weapon-owned and contain no legacy skill lists",
+  );
+  check(
+    [...Object.keys(ENEMY_ACTIVE_SKILLS), ...Object.keys(ENEMY_REACTIVE_SKILLS)]
+      .every((id) => !terminationIds.has(id)),
+    "issue 130 termination reactives are absent from enemy skill registry",
   );
   check(
     Object.values(PLAYABLE_CONTENT.enemyActors).every((enemy) =>
@@ -176,8 +183,9 @@ for (const { battle, ruleId, eventType } of SAFETY_CASES) {
     maxEventsPerBattle: DEFAULT_OPTIONS.maxEventsPerBattle,
   });
   check(
-    battle.allies.every((ally) => ally.reactiveSkillIds.length === 4),
-    "issue 130 legal stress input fills four playable reactive slots for every ally",
+    JSON.stringify(battle.allies.flatMap((ally) => ally.reactiveSkillIds).sort())
+      === JSON.stringify(CHARACTER_DEFINITIONS.flatMap((character) => character.starterReactives).sort()),
+    "initial loadout contains only the catalog-defined R+A1 reactive skills",
   );
   check(
     result.metrics.eventCount < DEFAULT_OPTIONS.maxEventsPerBattle,
@@ -303,7 +311,9 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 {
   let thrown = null;
   try {
-    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 10 });
+    // R25 adds one explicit settled-hit event per damage instance, so the
+    // diagnostic cap is one event higher while the overflow-cure rule runs.
+    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 11 });
   } catch (error) {
     thrown = error;
   }

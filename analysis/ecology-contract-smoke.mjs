@@ -133,11 +133,13 @@ const CONTINUOUS_EFFECTS = new Set([
   "deal_damage",          // damage 量
   "heal",                 // heal 量
   "gain_barrier",         // barrier 量
+  "revive",               // revival HP amount
   "modify_pending_amount", // damage / heal の増減
   "split_pending_damage",  // pending damage の軽減量（転送量は固定割合）
 ]);
 const DISCRETE_EFFECTS = new Set([
   "gain_resource",        // AP / RP
+  "reduce_resource",      // AP / RP control reduction
   "repair_equipment",     // 耐久
   "advance_preparation",  // 準備の段数
   "wear_equipment",       // 耐久

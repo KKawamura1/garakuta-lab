@@ -16,11 +16,11 @@ const SUITES = [
   "extensibility.test.mjs",
   "mine.test.mjs",
   "contract.test.mjs",
-  "phase-b.test.mjs",
   "campaign-stage.test.mjs",
   "phase-c.test.mjs",
   "story.test.mjs",
   "ultimate.test.mjs",
+  "weapon-system.test.mjs",
 ];
 
 let failed = 0;

@@ -3,7 +3,7 @@
 // §9 — target queries. Every query ends with position_asc then instance_id_asc,
 // so `take: 1` can never depend on array order coming out of a Map or a filter.
 
-import { IMPLICIT_SORTS, POSITION_ROW, compareOp } from "./schema.mjs";
+import { COLUMNS, IMPLICIT_SORTS, POSITION_COLUMN, POSITION_ROW, compareOp } from "./schema.mjs";
 import {
   actorsOnSide,
   compareActorsDefault,
@@ -36,6 +36,14 @@ function scopePool(state, ctx, scope) {
         .map((instanceId) => getActor(state, instanceId))
         .filter((actor) => actor !== null);
     }
+    case "action_base_targets": {
+      const actorIds = ctx.pendingAction?.baseTargetActorIds
+        ?? ctx.event?.values?.baseTargetActorIds
+        ?? [];
+      return actorIds
+        .map((instanceId) => getActor(state, instanceId))
+        .filter((actor) => actor !== null);
+    }
     default:
       throw new Error(`unimplemented target scope: ${scope}`);
   }
@@ -54,8 +62,26 @@ function passesFilter(state, ctx, filter, actor) {
       return compareOp(filter.op, actor.hp * 100, actor.maxHp * filter.value);
     case "has_status":
       return compareOp(filter.op ?? "gte", statusStacks(actor, filter.statusId), filter.value ?? 1);
+    case "has_negative_status":
+      return actor.statuses.some((status) => status.stacks > 0
+        && state.content.statuses[status.statusId]?.polarity === "negative");
+    case "has_any_skill_effect":
+      return (filter.effectTypes ?? []).some((effectType) => actorHasSkillEffect(state, actor, effectType));
+    case "has_defense":
+      return totalBarrier(actor) > 0 || (actor.block ?? 0) > 0;
+    case "has_block":
+      return (actor.block ?? 0) > 0;
+    case "has_defense_or_status":
+      return totalBarrier(actor) > 0 || (actor.block ?? 0) > 0
+        || statusStacks(actor, filter.statusId) > 0;
     case "is_preparing":
       return (actor.preparation !== null) === filter.value;
+    case "previous_target":
+      // Target continuity crosses action chains, so read the owner's
+      // deterministic battle history. `lastResolvedTargets` remains chain-local
+      // for overflow rules and must not be used for a target skill here.
+      return Boolean(ctx.owner?.history?.battle)
+        && ctx.owner.history.battle.lastTarget === actor.instanceId;
     case "not_previous_target":
       // "previous" is the target set of the most recent effect resolution in
       // this chain, which is what makes an overflow rule hand its leftover to
@@ -64,8 +90,45 @@ function passesFilter(state, ctx, filter, actor) {
     case "not_self":
       // Ownerless region rules have no self, so the filter is a no-op there.
       return !ctx.owner || actor.instanceId !== ctx.owner.instanceId;
+    case "has_open_position_in_row": {
+      const occupied = new Set(actorsOnSide(state, actor.side)
+        .filter((candidate) => candidate.alive && candidate.instanceId !== actor.instanceId)
+        .map((candidate) => candidate.position));
+      return COLUMNS.some((column) => !occupied.has(`${filter.row}_${column}`));
+    }
     case "is_event_primary_target":
       return Boolean(ctx.event) && ctx.event.targetActorIds[0] === actor.instanceId;
+    case "is_event_target":
+      return Boolean(ctx.event) && ctx.event.targetActorIds.includes(actor.instanceId);
+    case "not_event_primary_target":
+      return Boolean(ctx.event) && ctx.event.targetActorIds[0] !== actor.instanceId;
+    case "same_row_as_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      return Boolean(primary) && POSITION_ROW[primary.position] === POSITION_ROW[actor.position];
+    }
+    case "same_column_as_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      return Boolean(primary) && POSITION_COLUMN[primary.position] === POSITION_COLUMN[actor.position];
+    }
+    case "horizontal_adjacent_to_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      if (!primary || POSITION_ROW[primary.position] !== POSITION_ROW[actor.position]) return false;
+      const primaryColumn = COLUMNS.indexOf(POSITION_COLUMN[primary.position]);
+      const actorColumn = COLUMNS.indexOf(POSITION_COLUMN[actor.position]);
+      return Math.abs(primaryColumn - actorColumn) === 1;
+    }
+    case "adjacent_to_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      if (!primary) return false;
+      const rowDistance = POSITION_ROW[primary.position] === POSITION_ROW[actor.position] ? 0 : 1;
+      const columnDistance = Math.abs(
+        COLUMNS.indexOf(POSITION_COLUMN[primary.position])
+          - COLUMNS.indexOf(POSITION_COLUMN[actor.position]),
+      );
+      return rowDistance + columnDistance === 1;
+    }
+    case "not_acted_this_round":
+      return (actor.activationsThisRound === 0) === (filter.value ?? true);
     case "is_event_source":
       // DEVIATION (PREFLIGHT §1).
       return Boolean(ctx.event) && ctx.event.sourceActorId === actor.instanceId;
@@ -79,7 +142,8 @@ function hpPercentBps(actor) {
   return Math.floor(actor.hp * BPS / ceiling);
 }
 
-function sortValue(actor, sortType) {
+function sortValue(state, actor, sort, ctx) {
+  const sortType = typeof sort === "string" ? sort : sort.type;
   switch (sortType) {
     case "hp_asc": return actor.hp;
     case "hp_desc": return -actor.hp;
@@ -89,13 +153,32 @@ function sortValue(actor, sortType) {
     case "hp_percent_desc": return -hpPercentBps(actor);
     case "barrier_asc": return totalBarrier(actor);
     case "barrier_desc": return -totalBarrier(actor);
+    case "block_desc": return -(actor.block ?? 0);
+    case "has_block_desc": return (actor.block ?? 0) > 0 ? -1 : 0;
+    case "guard_desc": return -(actor.guard ?? 0);
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
+    case "status_stacks_desc": return -statusStacks(actor, sort.statusId);
+    case "preparation_steps_desc": return -(actor.preparation?.stepsRemaining ?? 0);
+    case "skill_effect_priority_asc": {
+      const index = (sort.effectTypes ?? []).findIndex((effectType) => (
+        actorHasSkillEffect(state, actor, effectType)
+      ));
+      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+    }
+    case "distance_to_self_asc": {
+      if (!ctx.owner) return 0;
+      const rowDistance = POSITION_ROW[actor.position] === POSITION_ROW[ctx.owner.position] ? 0 : 1;
+      const columnDistance = Math.abs(COLUMNS.indexOf(POSITION_COLUMN[actor.position])
+        - COLUMNS.indexOf(POSITION_COLUMN[ctx.owner.position]));
+      return rowDistance + columnDistance;
+    }
     default: return 0;
   }
 }
 
 export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {}) {
+  ctx = { ...ctx, state };
   let pool = scopePool(state, ctx, query.scope);
   // R6 §5.4 — melee は、生存する前列が一人でもいる間は前列だけを狙える。
   // 前列が全滅して初めて後列へ届く。**これが前3後2と前2後3の選択を意味あるものにする。**
@@ -108,14 +191,27 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
   for (const filter of query.filters ?? []) {
     pool = pool.filter((actor) => passesFilter(state, ctx, filter, actor));
   }
-  const sorts = [...(query.sort ?? []).map((entry) => entry.type ?? entry), ...IMPLICIT_SORTS];
+  // R25 大盾R — a round-scoped taunt only redirects enemy single-target
+  // choices. Keep the legal pool and reach restriction intact first, so a
+  // taunted actor behind an unreachable front line is not selected through it.
+  if (ctx.owner?.side === "enemy" && query.scope === "enemies" && query.take === 1) {
+    const tauntStatusIds = new Set(Object.entries(state.content.statuses ?? {})
+      .filter(([, definition]) => (definition.tags ?? []).includes("taunt"))
+      .map(([statusId]) => statusId));
+    const taunted = pool.filter((actor) => actor.statuses.some((status) => (
+      status.stacks > 0 && tauntStatusIds.has(status.statusId)
+    )));
+    if (taunted.length > 0) pool = taunted;
+  }
+  const sorts = [...(query.sort ?? []), ...IMPLICIT_SORTS];
   const sorted = [...pool].sort((a, b) => {
-    for (const sortType of sorts) {
+    for (const sort of sorts) {
+      const sortType = typeof sort === "string" ? sort : sort.type;
       if (sortType === "instance_id_asc") {
         if (a.instanceId !== b.instanceId) return a.instanceId < b.instanceId ? -1 : 1;
         continue;
       }
-      const difference = sortValue(a, sortType) - sortValue(b, sortType);
+      const difference = sortValue(state, a, sort, ctx) - sortValue(state, b, sort, ctx);
       if (difference !== 0) return difference;
     }
     return compareActorsDefault(a, b);
@@ -123,3 +219,44 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
   return query.take === 1 ? sorted.slice(0, 1) : sorted;
 }
 
+function effectTreeContains(effect, effectType) {
+  if (!effect || typeof effect !== "object") return false;
+  if (effect.type === effectType) return true;
+  return ["effects", "completionEffects", "onHitEffects"].some((key) => (
+    Array.isArray(effect[key]) && effect[key].some((child) => effectTreeContains(child, effectType))
+  ));
+}
+
+export function actorHasSkillEffect(state, actor, effectType) {
+  if (!state || !actor) return false;
+  const activeRegistry = actor.side === "enemy"
+    ? state.content.enemyActiveSkills ?? state.content.activeSkills
+    : state.content.activeSkills;
+  const reactiveRegistry = actor.side === "enemy"
+    ? state.content.enemyReactiveSkills ?? state.content.reactiveSkills
+    : state.content.reactiveSkills;
+  const passiveRegistry = actor.side === "enemy"
+    ? state.content.enemyPassiveSkills ?? state.content.passiveSkills
+    : state.content.passiveSkills;
+  const definitions = [
+    ...(actor.tactics ?? []).map((tactic) => activeRegistry[tactic.activeSkillId]),
+    ...(actor.reactiveSkillIds ?? []).map((skillId) => reactiveRegistry[skillId]),
+    ...(actor.passiveSkillIds ?? []).map((skillId) => passiveRegistry[skillId]),
+    ...(actor.intrinsicRules ?? []),
+  ];
+  return definitions.some((definition) => effectTreeContains(definition, effectType)
+    || (definition?.rule && effectTreeContains(definition.rule, effectType))
+    || (definition?.rules ?? []).some((rule) => effectTreeContains(rule, effectType)));
+}
+
+export function actorMeetsTargetCondition(state, actor, condition) {
+  switch (condition.type) {
+    case "is_preparing": return Boolean(actor.preparation);
+    case "has_skill_effect": return actorHasSkillEffect(state, actor, condition.effectType);
+    case "has_negative_status":
+      return actor.statuses.some((status) => status.stacks > 0
+        && state.content.statuses[status.statusId]?.polarity === "negative");
+    case "has_status": return statusStacks(actor, condition.statusId) >= (condition.value ?? 1);
+    default: return false;
+  }
+}

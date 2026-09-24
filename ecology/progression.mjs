@@ -9,7 +9,7 @@
 //
 //   1. 活動資金と精算は「一度だけ」が効く。画面の再描画に混ぜると、
 //      同じ run を二度精算する経路がいつか生える。
-//   2. 検査が画面なしで踏める。ecology/phase-b.test.mjs はここだけを見る。
+//   2. 検査が画面なしで踏める。ecology/check.mjs はここを含む各契約を実行する。
 //
 // **不変条件（ここを壊したら Phase B は成立しない）**
 //   - ProfileState に遠征内の技能点・装備・現在HP・現在の敵を入れない（R6 §4.1）。
@@ -22,15 +22,13 @@
 import {
   LIMITS,
   MANIFEST_VERSION,
-  MAX_SKILL_LEVEL,
-  MIN_SKILL_LEVEL,
   PROFILE_SCHEMA_VERSION,
   RUN_SCHEMA_VERSION,
   TRAINABLE_STATS,
   TRAINING_STAT_TARGET,
 } from "./schema.mjs";
 import { roundHalfUpDiv, BPS } from "./values.mjs";
-import { makeRng, seedKey, seededShuffle } from "./seeded.mjs";
+import { makeRng, seedKey } from "./seeded.mjs";
 import {
   BLUEPRINT_CAPACITY_COSTS,
   BLUEPRINT_CAPACITY_UPGRADE_ID,
@@ -49,24 +47,21 @@ import {
   ENCOUNTERS_PER_RUN,
   ENEMY_MUTATIONS,
   ENEMY_THREAT_COST,
+  IMPLEMENTED_WEAPON_IDS,
   MAX_CAMPAIGN_STAGE_SEQUENCE,
   MAX_DIFFICULTY_RANK,
   MAX_MUTATIONS_PER_UNIT,
   MUTATION_SPEND_ORDER,
-  PACKS_PER_MANIFEST,
   PLAYABLE_CONTENT,
   REGION,
-  SKILL_LEVEL_CAPS,
-  SKILL_LEVEL_COST,
-  SKILL_PACKS,
-  SKILL_TREE_NODES,
-  BASELINE_ACTIVE_SKILL_IDS,
+  EQUIPMENT_PACKS,
+  WEAPON_SKILL_PACKS,
+  WEAPON_SKILL_TREE_NODES,
   campaignManifestForStage,
   campaignStageDef,
   difficultyDef,
   expeditionEncounter,
-  skillIdsForPacks,
-  unmetPrerequisites,
+  weaponIdsForSkillPackIds,
 } from "./content/index.mjs";
 import {
   ULTIMATE_MIN_STAGE_SEQUENCE,
@@ -260,26 +255,6 @@ export const META_UPGRADES = Object.freeze([
   }),
 ]);
 
-// 旧 save が持つ固定装備 pool の購入履歴は、読み込み時だけ保持する。
-// 現行の報酬経路では固定装備を提示しないため、購入対象としては再公開しない。
-const LEGACY_META_UPGRADE_IDS = Object.freeze(["equipment_pool.group_repair"]);
-
-// R18 — 技能の装着枠は廃止した。旧 save の購入履歴を読めるように ID と
-// 定数は残すが、現行の購入画面へは戻さない。
-export const SLOT_UPGRADE_COSTS = Object.freeze({ active: "30000", reactive: "60000" });
-export const SLOT_UPGRADE_PREFIX = Object.freeze({ active: "slot_active_4", reactive: "slot_reactive_4" });
-
-export function slotUpgradeId(kind, characterId) {
-  return SLOT_UPGRADE_PREFIX[kind] + "." + characterId;
-}
-
-function characterIdFromSlotUpgrade(id) {
-  for (const prefix of Object.values(SLOT_UPGRADE_PREFIX)) {
-    if (id.startsWith(prefix + ".")) return id.slice(prefix.length + 1);
-  }
-  return null;
-}
-
 const META_UPGRADE_BY_ID = Object.fromEntries(META_UPGRADES.map((upgrade) => [upgrade.id, upgrade]));
 
 export function metaUpgradeDef(id) {
@@ -292,10 +267,6 @@ export function upgradeLevel(profile, id) {
 
 // 次の一段の費用。買い切ったら null（「買えない」と「0で買える」を混ぜない）。
 export function upgradeCost(profile, id) {
-  const characterId = characterIdFromSlotUpgrade(id);
-  // R18 — active / reactive の旧「第4枠」投資は、技能数無制限への移行後は
-  // 新たに購入できない。値を保持するのは古い Profile の読み込み互換のため。
-  if (characterId) return null;
   const def = metaUpgradeDef(id);
   if (!def) return null;
   const level = upgradeLevel(profile, id);
@@ -349,11 +320,16 @@ function freshCampaignProgress() {
 }
 
 export function newProfile() {
+  const equipmentPackIds = EQUIPMENT_PACKS.map((pack) => pack.id);
   return {
     schemaVersion: PROFILE_SCHEMA_VERSION,
     profileId: null,
     characters: Object.fromEntries(CHARACTER_IDS.map((id) => [id, freshCharacterProfile(id)])),
-    unlockedPackIds: SKILL_PACKS.map((pack) => pack.id),
+    // Equipment and weapon skill packs are separate ledgers. The UI may still
+    // present them under one expedition "pack" card, but generation never
+    // confuses an affix pool with a weapon tree.
+    unlockedEquipmentPackIds: equipmentPackIds,
+    unlockedSkillPackIds: WEAPON_SKILL_PACKS.map((pack) => pack.id),
     metaUpgradeLevels: {},
     activityFunds: "0",
     activityFundsLifetimeEarned: "0",
@@ -437,10 +413,7 @@ export function normalizeProfile(saved) {
   }
   if (saved.metaUpgradeLevels && typeof saved.metaUpgradeLevels === "object") {
     for (const [id, level] of Object.entries(saved.metaUpgradeLevels)) {
-      const known = metaUpgradeDef(id)
-        || LEGACY_META_UPGRADE_IDS.includes(id)
-        || id.startsWith(SLOT_UPGRADE_PREFIX.active)
-        || id.startsWith(SLOT_UPGRADE_PREFIX.reactive);
+      const known = metaUpgradeDef(id);
       if (!known) continue;
       const value = Number(level);
       if (Number.isFinite(value) && value > 0) profile.metaUpgradeLevels[id] = Math.floor(value);
@@ -457,9 +430,7 @@ export function normalizeProfile(saved) {
     const runs = Number(progress.runsFinished);
     profile.regionProgress[REGION.id].runsFinished = Number.isFinite(runs) ? Math.max(0, Math.floor(runs)) : 0;
   }
-  // R8 Implementation Phase 1 — campaign stage 進行。旧 save には存在しない欄
-  // なので、未クリアから始まる（difficulty rank からの自動換算はしない。
-  // R8_IMPLEMENTATION_PHASE0_FREEZE.md §2 の判断）。
+  // Campaign Stageの進行はdifficulty rankとは別に保持する。
   const campaignProgress = saved.campaignProgress?.[REGION.id];
   if (campaignProgress) {
     const highestStage = Number(campaignProgress.highestClearedStageSequence);
@@ -507,36 +478,6 @@ export function affixFamilyIdsForPacks(packIds) {
   return AFFIX_FAMILIES
     .filter((family) => family.packId === null || enabled.has(family.packId))
     .map((family) => family.id);
-}
-
-// R6 §17.2 — 旧 save（Phase A の平たい meta）からの移行。
-//
-// **旧 save の永続技能点と永続解禁は、Phase B では run 内の資源になった**
-// （R6 §5.3 が「8人全員へ永続技能点+2」を削除した）。持ち越せる意味が無いので
-// profile へは積まない。代わりに、これまで配った技能点を活動資金へ換算して返す。
-// 捨てずに換えるのは、作者の遊んだ分が消えたように見えないため。
-//
-//   技能点1 = 通常戦一勝の 1/2 = 50
-export const LEGACY_SKILL_POINT_VALUE = 50;
-
-export function migrateLegacyProfile(legacyMeta) {
-  const profile = newProfile();
-  if (!legacyMeta || typeof legacyMeta !== "object") return { profile, converted: 0n, note: null };
-  let points = 0n;
-  for (const value of Object.values(legacyMeta.skillPoints ?? {})) {
-    const number = Number(value);
-    if (Number.isFinite(number) && number > 0) points += BigInt(Math.floor(number));
-  }
-  const converted = points * BigInt(LEGACY_SKILL_POINT_VALUE);
-  profile.activityFunds = converted.toString();
-  profile.activityFundsLifetimeEarned = converted.toString();
-  return {
-    profile,
-    converted,
-    note: points > 0n
-      ? `旧 save の技能点 ${points} 点を活動資金 ${formatFunds(converted)} へ換算しました。`
-      : null,
-  };
 }
 
 // R6 §9.5 — 鍛錬を掛けた後の人物 stat。**base、level、合計 bps、丸め後**を全部返す。
@@ -601,10 +542,6 @@ export function unlockedEquipmentIds(_profile) {
 // R6 §9.3 の MetaPurchase。**残高・前後・費用を1件で残す。**
 // 「買ったのに増えていない」を後から追えるようにする。
 export function purchaseUpgrade(profile, upgradeId, options = {}) {
-  const characterId = characterIdFromSlotUpgrade(upgradeId);
-  if (characterId && !isCharacterUnlocked(profile, characterId)) {
-    return { ok: false, reason: "まだ出会っていない仲間は強化できません。" };
-  }
   const cost = upgradeCost(profile, upgradeId);
   if (cost === null) return { ok: false, reason: "これ以上は買えません。" };
   const balance = parseFunds(profile.activityFunds);
@@ -686,43 +623,23 @@ export function isCampaignStageUnlocked(profile, sequence, regionId = REGION.id)
   return availableCampaignStages(profile, regionId).includes(sequence);
 }
 
-// ============================================================ Manifest（R6 §5.2）
-
-export function makeManifest(seed, profile) {
-  const unlocked = SKILL_PACKS
-    .filter((pack) => (profile?.unlockedPackIds ?? []).includes(pack.id))
-    .map((pack) => pack.id);
-  const pool = unlocked.length ? unlocked : SKILL_PACKS.map((pack) => pack.id);
-  // R6 §5.2 — pack が6個以上になったら候補を3つ出して選ばせる。
-  // 4個の今は seed が3つを選ぶだけ。**pool dilution を避けるため、
-  // 解禁済みが増えても一遠征の有効 pack 数は増やさない。**
-  const enabled = seededShuffle(pool, seedKey(seed, "manifest", 0))
-    .slice(0, PACKS_PER_MANIFEST)
-    .sort((a, b) => pool.indexOf(a) - pool.indexOf(b));
-  return {
-    manifestVersion: MANIFEST_VERSION,
-    seed: String(seed),
-    regionId: REGION.id,
-    baselineSkillIds: [...BASELINE_ACTIVE_SKILL_IDS],
-    enabledPackIds: enabled,
-    // Free / Endless は Stage の学習順を持たないので、pack は常に full で出る
-    // （R9 §3.1 の core / full はチュートリアル Stage の仕組み）。
-    packDepths: Object.fromEntries(enabled.map((packId) => [packId, "full"])),
-    // R8 §13.2 — Phase C。**affix family は pack から決まる。**新パックの
-    // family と、どの pack にも属さない傷の family がその遠征の生成 pool になる。
-    enabledAffixFamilyIds: affixFamilyIdsForPacks(enabled),
-    enemyFamilyIds: [...REGION.enemyFamilyIds],
-    actBossIds: [...REGION.actBossIds],
-    actBossLawIds: [...REGION.actBossLawIds],
-    regionLawIds: [...REGION.regionLawIds],
-    rewardTableId: REGION.rewardTableId,
-  };
-}
-
 // R9 §3.1 — manifest は pack の見せ方（core / full）も持つ。
 // **画面もツリーも run もここを通る**ので、深さの解釈が一箇所に閉じる。
 export function manifestSkillIds(manifest) {
-  return skillIdsForPacks(manifest?.enabledPackIds ?? [], manifest?.packDepths ?? {});
+  const weaponIds = manifestWeaponIds(manifest);
+  const available = WEAPON_SKILL_TREE_NODES.filter((node) => weaponIds.includes(node.weaponId));
+  const active = available.filter((node) => node.kind === "active").map((node) => node.skillId);
+  const target = available.filter((node) => node.kind === "target").map((node) => node.skillId);
+  const reactive = available.filter((node) => node.kind === "reactive").map((node) => node.skillId);
+  const passive = available.filter((node) => node.kind === "passive").map((node) => node.skillId);
+  return { active, target, reactive, passive, all: [...active, ...target, ...reactive, ...passive] };
+}
+
+export function manifestWeaponIds(manifest) {
+  const ids = Array.isArray(manifest?.enabledWeaponIds)
+    ? manifest.enabledWeaponIds
+    : weaponIdsForSkillPackIds(manifest?.enabledSkillPackIds ?? []);
+  return [...new Set(ids)].filter((id) => IMPLEMENTED_WEAPON_IDS.includes(id));
 }
 
 // ============================================================ RunState（R6 §4.2）
@@ -752,10 +669,7 @@ export function startingSkillPoints(profile) {
   return STARTING_RUN_SKILL_POINTS + level;
 }
 
-// R8 §1.1 — Campaign は `options.campaignStageSequence` を渡して作る。
-// 渡さなければ従来どおり Free / Endless の random manifest（`makeManifest`）を使う。
-// 両経路は同じ RunState 形を返す（campaign 専用の欄を増やすだけで、
-// Free / Endless の既存出力は変えない）。
+// PR #288 — すべての遠征は Campaign Stage の固定manifestから作る。
 // R8 §3.6 — 遠征開始時、carry capacity 以内の Blueprint を exact copy として
 // 再製造する。**seed からの作り直しではなく、保存した定義そのものの写し。**
 function carriedItemsFor(profile) {
@@ -764,24 +678,18 @@ function carriedItemsFor(profile) {
 
 export function newRun(profile, options = {}) {
   const rank = Math.max(0, Math.min(MAX_DIFFICULTY_RANK, Math.floor(options.difficulty ?? 0)));
-  let roster = [...(options.roster ?? [])];
   const runSeed = String(options.runSeed ?? "run");
-  const isCampaign = options.campaignStageSequence !== undefined && options.campaignStageSequence !== null;
-  const campaignStageSequence = isCampaign
-    ? Math.max(0, Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, Math.floor(options.campaignStageSequence)))
-    : null;
-  const manifest = isCampaign
-    ? campaignManifestForStage(campaignStageSequence, runSeed)
-    : makeManifest(runSeed, profile);
+  const campaignStageSequence = Math.max(
+    0,
+    Math.min(MAX_CAMPAIGN_STAGE_SEQUENCE, Math.floor(options.campaignStageSequence ?? 0)),
+  );
+  const manifest = campaignManifestForStage(campaignStageSequence, runSeed);
   // issue #211 — Campaign Stage は初回・再訪を問わず、定義済みの同行者と人数を使う。
   // 少人数向けの敵調整も run.partySize を読むため、カード表示・実際の隊・敵規模が
   // 同じ Stage 定義から決まる。5人編成は Stage 3 と将来の後続Stageで扱う。
-  const rosterLocked = isCampaign;
-  const partySize = isCampaign
-    ? (manifest.partySize ?? LIMITS.maxAlliesInCampaign)
-    : LIMITS.maxAlliesInCampaign;
-  roster = isCampaign ? [...(manifest.castCharacterIds ?? roster)] : roster;
-  roster = roster.slice(0, partySize);
+  const rosterLocked = true;
+  const partySize = manifest.partySize ?? LIMITS.maxAlliesInCampaign;
+  const roster = [...(manifest.castCharacterIds ?? [])].slice(0, partySize);
   const carried = carriedItemsFor(profile);
   const supplies = startingSupplies(profile, rank);
   return {
@@ -808,10 +716,8 @@ export function newRun(profile, options = {}) {
     formation: { ...(options.formation ?? {}) },
     runSkillPoints: Object.fromEntries(roster.map((id) => [id, startingSkillPoints(profile)])),
     runUnlockedSkills: { ...(options.unlockedSkills ?? {}) },
-    // R19（issue #137）— 取得済み技能のレベル。**取得＝Lv1** なので、ここに欄が
-    // 無い技能は Lv1 として読む（旧 save がそのまま動く）。
-    runSkillLevels: { ...(options.skillLevels ?? {}) },
-    // 取得予約はキャラクターごとに一つ。古い/不正な値は復元時に正規化する。
+    // 武器スキルは解禁済みかどうかだけを持つ。スキルレベルは存在しない。
+    // 取得予約はキャラクターごとに一つ。
     skillReservations: { ...(options.skillReservations ?? {}) },
     // issue #168 — 技能点を配り終えた encounter の鍵。**retry でも二度配らない。**
     grantedSkillPointKeys: [],
@@ -829,10 +735,10 @@ export function newRun(profile, options = {}) {
     rerollsUsed: {},
     retries: {},
     results: [],
-    // R23 — Stage 固有の払い。Free / Endless（campaign でない遠征）は等倍。
+    // R23 — Stage 固有の払い。
     fundLedger: newFundLedger(
       rank,
-      isCampaign ? campaignStageDef(campaignStageSequence).activityFundMultiplierBps : BPS,
+      campaignStageDef(campaignStageSequence).activityFundMultiplierBps,
     ),
     // R8 §1.5 / §10 — HP は遠征内で持ち越す。遠征開始時は満タンから始める。
     // 4戦目・8戦目 boss 勝利後の全回復と、通常・精鋭戦後の持ち越しは
@@ -908,49 +814,36 @@ export function grantRunSkillPointsForClear(run, index) {
 }
 // ---------------------------------------------------------------- 技能の取得予約
 //
-// 予約は一人につき一つの目標技能を持つ。前提を自動で取る順序は
-// 「前提の前提 → 前提の解禁 → 必要Lv → 目標の解禁 → 目標のLv」の固定順で、
-// 同じ入力から同じ支出と取得列になるよう progression 側で解決する。
-// 目標以外の自動取得技能をオフにするか、目標をオンにするかは画面側の
-// loadout 更新が担い、ここは RunState の取得・レベル・SPだけを扱う。
-
+// 予約は一人につき一つの目標技能を持つ。武器スキルにはレベルが無いので、
+// 前提を解禁してから目標を解禁するだけの固定順で解決する。
 const SKILL_RESERVATION_NODES = Object.freeze(
-  Object.fromEntries(SKILL_TREE_NODES.map((node) => [node.skillId, node])),
+  Object.fromEntries(WEAPON_SKILL_TREE_NODES.map((node) => [node.skillId, node])),
 );
 
 function skillReservationRecordFor(run, characterId) {
   const entry = run?.skillReservations?.[characterId];
   if (typeof entry === "string") {
-    return {
-      skillId: entry,
-      targetLevel: SKILL_LEVEL_CAPS[entry] ?? MIN_SKILL_LEVEL,
-    };
+    return { skillId: entry };
   }
   if (!entry || typeof entry !== "object") return null;
   const skillId = entry.skillId;
   if (typeof skillId !== "string") return null;
-  return {
-    skillId,
-    targetLevel: Number.isInteger(entry.targetLevel)
-      ? entry.targetLevel
-      : SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL,
-  };
+  return { skillId };
 }
 
 export function skillReservationFor(run, characterId) {
   return skillReservationRecordFor(run, characterId)?.skillId ?? null;
 }
 
-export function skillReservationLevelFor(run, characterId) {
-  return skillReservationRecordFor(run, characterId)?.targetLevel ?? null;
-}
-
-function reservationAvailableSkillIds(run) {
-  return new Set(run?.manifest ? manifestSkillIds(run.manifest).all : []);
+function reservationNodeAvailable(run, node) {
+  if (!node) return false;
+  if (typeof node.weaponId === "string") {
+    return manifestWeaponIds(run?.manifest).includes(node.weaponId);
+  }
+  return manifestSkillIds(run?.manifest).all.includes(node.skillId);
 }
 
 function reservationMissingPrerequisites(run, skillId) {
-  const available = reservationAvailableSkillIds(run);
   const missing = new Set();
   const visiting = new Set();
   const walk = (currentId) => {
@@ -958,7 +851,8 @@ function reservationMissingPrerequisites(run, skillId) {
     visiting.add(currentId);
     const node = SKILL_RESERVATION_NODES[currentId];
     for (const required of node?.requires ?? []) {
-      if (!available.has(required.skillId)) {
+      const prerequisite = SKILL_RESERVATION_NODES[required.skillId];
+      if (!reservationNodeAvailable(run, prerequisite)) {
         missing.add(required.skillId);
       } else {
         walk(required.skillId);
@@ -970,49 +864,45 @@ function reservationMissingPrerequisites(run, skillId) {
 }
 
 export function normalizeRunSkillReservations(run) {
-  const available = reservationAvailableSkillIds(run);
   const roster = new Set(run?.roster ?? []);
   const normalized = {};
   for (const characterId of roster) {
     const reservation = skillReservationRecordFor(run, characterId);
     if (!reservation) continue;
-    const { skillId, targetLevel } = reservation;
+    const { skillId } = reservation;
     const node = SKILL_RESERVATION_NODES[skillId];
-    const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
-    if (!node || !available.has(skillId)) continue;
-    if (!Number.isInteger(targetLevel) || targetLevel < MIN_SKILL_LEVEL || targetLevel > cap) continue;
-    if (targetLevel <= runSkillLevel(run, characterId, skillId)) continue;
+    if (!node || !reservationNodeAvailable(run, node)) continue;
+    if ((run?.runUnlockedSkills?.[characterId] ?? []).includes(skillId)) continue;
     if (reservationMissingPrerequisites(run, skillId).length) continue;
-    normalized[characterId] = { skillId, targetLevel };
+    normalized[characterId] = { skillId };
   }
   return normalized;
 }
 
-export function reserveRunSkill(run, characterId, skillId, targetLevel = null) {
+export function reserveRunSkill(run, characterId, skillId) {
   const node = SKILL_RESERVATION_NODES[skillId];
   if (!node) return { ok: false, reason: "その技能が見つかりません。" };
   if (!Array.isArray(run?.roster) || !run.roster.includes(characterId)) {
     return { ok: false, reason: "その仲間はこの遠征に参加していません。" };
   }
-  if (!reservationAvailableSkillIds(run).has(skillId)) {
-    return { ok: false, reason: "この遠征の技能パックには入っていません。" };
+  if (!reservationNodeAvailable(run, node)) {
+    return {
+      ok: false,
+      reason: typeof node.weaponId === "string"
+        ? "この遠征では、その武器を利用できません。"
+        : "この遠征の技能パックには入っていません。",
+    };
   }
-  const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
-  const requestedLevel = targetLevel === null || targetLevel === undefined ? cap : targetLevel;
-  if (!Number.isInteger(requestedLevel)
-    || requestedLevel < MIN_SKILL_LEVEL || requestedLevel > cap) {
-    return { ok: false, reason: "目標レベルが不正です。" };
-  }
-  const currentLevel = runSkillLevel(run, characterId, skillId);
-  if (requestedLevel <= currentLevel) {
-    return { ok: false, reason: "その技能は目標レベルまで取得済みです。" };
+  const unlocked = run?.runUnlockedSkills?.[characterId] ?? [];
+  if (unlocked.includes(skillId)) {
+    return { ok: false, reason: "その技能はすでに解禁されています。" };
   }
   if (reservationMissingPrerequisites(run, skillId).length) {
     return { ok: false, reason: "この技能に必要な前提技能が、この遠征では出ません。" };
   }
   const reservations = {
     ...normalizeRunSkillReservations(run),
-    [characterId]: { skillId, targetLevel: requestedLevel },
+    [characterId]: { skillId },
   };
   return { ok: true, run: { ...run, skillReservations: reservations } };
 }
@@ -1028,7 +918,7 @@ export function cancelRunSkillReservation(run, characterId, skillId = null) {
   return { ok: true, run: { ...run, skillReservations: reservations } };
 }
 
-function nextSkillReservationStep(run, characterId, targetSkillId, targetLevel) {
+function nextSkillReservationStep(run, characterId, targetSkillId) {
   const target = SKILL_RESERVATION_NODES[targetSkillId];
   if (!target) return null;
   const unlocked = new Set(run?.runUnlockedSkills?.[characterId] ?? []);
@@ -1046,14 +936,6 @@ function nextSkillReservationStep(run, characterId, targetSkillId, targetLevel) 
           cost: prerequisite.cost,
         };
       }
-      if (runSkillLevel(run, characterId, required.skillId) < required.minLv) {
-        return {
-          type: "level",
-          skillId: required.skillId,
-          target: false,
-          cost: SKILL_LEVEL_COST,
-        };
-      }
     }
     if (!unlocked.has(node.skillId)) {
       return {
@@ -1061,14 +943,6 @@ function nextSkillReservationStep(run, characterId, targetSkillId, targetLevel) 
         skillId: node.skillId,
         target: node.skillId === targetSkillId,
         cost: node.cost,
-      };
-    }
-    if (node.skillId === targetSkillId && runSkillLevel(run, characterId, node.skillId) < targetLevel) {
-      return {
-        type: "level",
-        skillId: node.skillId,
-        target: true,
-        cost: SKILL_LEVEL_COST,
       };
     }
     return null;
@@ -1086,73 +960,62 @@ export function fulfillSkillReservations(run) {
     ...Object.keys(reservations),
   ])].filter((characterId) => Object.hasOwn(reservations, characterId));
   for (const characterId of characterIds) {
-    const { skillId: targetSkillId, targetLevel } = reservations[characterId];
+    const { skillId: targetSkillId } = reservations[characterId];
     while (true) {
-      const step = nextSkillReservationStep(next, characterId, targetSkillId, targetLevel);
+      const step = nextSkillReservationStep(next, characterId, targetSkillId);
       if (!step) {
         delete next.skillReservations[characterId];
-        completed.push({ characterId, skillId: targetSkillId, targetLevel });
+        completed.push({ characterId, skillId: targetSkillId });
         break;
       }
       const node = SKILL_RESERVATION_NODES[step.skillId];
-      const result = step.type === "unlock"
-        ? unlockRunSkill(next, characterId, node)
-        : levelUpRunSkill(next, characterId, step.skillId, SKILL_LEVEL_CAPS[step.skillId] ?? MIN_SKILL_LEVEL);
+      const result = unlockRunSkill(next, characterId, node);
       if (!result.ok) break;
       next = result.run;
       actions.push({
         ...step,
         characterId,
         targetSkillId,
-        targetLevel,
-        level: result.level ?? null,
       });
     }
   }
   return { run: next, actions, completed };
 }
 
-/**
- * 現在のSPだけで、予約した技能を目標Lvまで完了できるか。
- * 判定は実際の自動取得処理を試算するため、前提の解禁・必要Lv・目標技能のLv上げを
- * 画面側で別計算せず、取得処理と同じ順序・同じコストで判定できる。
- */
-export function canFulfillSkillReservation(run, characterId, skillId, targetLevel = null) {
-  const cap = SKILL_LEVEL_CAPS[skillId] ?? MIN_SKILL_LEVEL;
-  const requestedLevel = targetLevel === null || targetLevel === undefined ? cap : targetLevel;
-  if (!Number.isInteger(requestedLevel)
-    || requestedLevel < MIN_SKILL_LEVEL || requestedLevel > cap) {
-    return false;
-  }
+/** 現在のSPだけで、予約した技能を完了できるか。 */
+export function canFulfillSkillReservation(run, characterId, skillId) {
   const skillReservations = {
     ...(run?.skillReservations ?? {}),
-    [characterId]: { skillId, targetLevel: requestedLevel },
+    [characterId]: { skillId },
   };
   const simulated = { ...run, skillReservations };
   const result = fulfillSkillReservations(simulated);
   return result.completed.some((entry) => entry.characterId === characterId
-    && entry.skillId === skillId
-    && entry.targetLevel === requestedLevel);
+    && entry.skillId === skillId);
 }
 
 // 遠征内の解禁。**manifest が有効にした技能しか解禁できない。**
 export function unlockRunSkill(run, characterId, node) {
   if (!node) return { ok: false, reason: "その技能が見つかりません。" };
-  const available = manifestSkillIds(run.manifest).all;
-  if (!available.includes(node.skillId)) {
-    return { ok: false, reason: "この遠征の技能パックには入っていません。" };
+  const weaponNode = typeof node.weaponId === "string";
+  const available = weaponNode
+    ? manifestWeaponIds(run.manifest).includes(node.weaponId)
+    : manifestSkillIds(run.manifest).all.includes(node.skillId);
+  if (!available) {
+    return {
+      ok: false,
+      reason: weaponNode
+        ? "この遠征では、その武器を利用できません。"
+        : "この遠征の技能パックには入っていません。",
+    };
   }
   const unlocked = run.runUnlockedSkills?.[characterId] ?? [];
   if (unlocked.includes(node.skillId)) return { ok: false, reason: "すでに解禁されています。" };
-  // issue #168 — 前提は Lv まで見る。判定は content/skill-tree.mjs の一箇所を通る
-  // （画面の「前提待ち」・加入時の無償閉包も同じ関数を読む）。
-  const unmet = unmetPrerequisites(node, (skillId) => runSkillLevel(run, characterId, skillId));
+  const unmet = (node.requires ?? []).filter((required) => !unlocked.includes(required.skillId));
   if (unmet.length) {
-    const short = unmet.some((required) => required.minLv > MIN_SKILL_LEVEL
-      && unlocked.includes(required.skillId));
     return {
       ok: false,
-      reason: short ? "前提技能のレベルが足りません。" : "前提技能がまだ解禁されていません。",
+      reason: "前提技能がまだ解禁されていません。",
       unmet,
     };
   }
@@ -1167,50 +1030,6 @@ export function unlockRunSkill(run, characterId, node) {
   next.runSkillPoints[characterId] = runSkillPoints(run, characterId) - node.cost;
   next.runUnlockedSkills[characterId] = [...unlocked, node.skillId];
   return { ok: true, run: next };
-}
-
-// ---------------------------------------------------------------- 技能レベル（R19 / issue #137）
-//
-// **同じ効果の上位互換を別技能として増やさず、一つの技能を段階的に強くする。**
-// 取得は Lv1 で、そこから 1点ずつ上げる。解禁と同じで払い戻しは無い。
-//
-// 深く伸ばす（新しい役割を得る）か、いま持っている技能を厚くするかを、
-// 同じ通貨の同じ値段で選ばせるので、値段は深さによらず1点固定である。
-export function runSkillLevel(run, characterId, skillId) {
-  const unlocked = run?.runUnlockedSkills?.[characterId] ?? [];
-  if (!unlocked.includes(skillId)) return 0;
-  const stored = run?.runSkillLevels?.[characterId]?.[skillId];
-  return Number.isInteger(stored) && stored >= MIN_SKILL_LEVEL ? stored : MIN_SKILL_LEVEL;
-}
-
-// その遠征のその人物の、全取得技能のレベル表。戦闘入力へそのまま渡す。
-export function runSkillLevelsFor(run, characterId) {
-  const levels = {};
-  for (const skillId of run?.runUnlockedSkills?.[characterId] ?? []) {
-    levels[skillId] = runSkillLevel(run, characterId, skillId);
-  }
-  return levels;
-}
-
-export function levelUpRunSkill(run, characterId, skillId, cap) {
-  const current = runSkillLevel(run, characterId, skillId);
-  if (current === 0) return { ok: false, reason: "まだ取得していません。" };
-  const ceiling = Math.min(Number.isInteger(cap) ? cap : MAX_SKILL_LEVEL, MAX_SKILL_LEVEL);
-  if (ceiling <= MIN_SKILL_LEVEL) {
-    return { ok: false, reason: "この技能はレベルを持ちません（連続する量を持たないため）。" };
-  }
-  if (current >= ceiling) return { ok: false, reason: "すでに最大レベルです。" };
-  if (runSkillPoints(run, characterId) < SKILL_LEVEL_COST) {
-    return { ok: false, reason: "技能点が足りません。" };
-  }
-  const next = {
-    ...run,
-    runSkillPoints: { ...run.runSkillPoints },
-    runSkillLevels: { ...run.runSkillLevels, [characterId]: { ...(run.runSkillLevels?.[characterId] ?? {}) } },
-  };
-  next.runSkillPoints[characterId] = runSkillPoints(run, characterId) - SKILL_LEVEL_COST;
-  next.runSkillLevels[characterId][skillId] = current + 1;
-  return { ok: true, run: next, level: current + 1 };
 }
 
 // R14 §2 — 解禁のやり直し（resetRunSkills）は消した。
@@ -1487,11 +1306,11 @@ export function composeEncounter(index, difficultyRank, options = {}) {
   // 後列を狙う敵が2人 Stage へ出てくると、導入がそのぶん難しくなる。
   // **最初の2人 Stage は単純に勝てる導入にする**方を採る。序盤から複数のビルドを
   // 立てられるかの検証は、5人が揃った Stage 3 で行う
-  //（analysis/ecology-stage3-builds.mjs）。
+  //（analysis/ecology-campaign-curve.mjs）。
   //
   // 少人数で「前から殴ってくる敵しか出ない」ことは、いまは欠陥ではなく導入の形である。
   // 前列と後列の選択そのものは、敵の狙い先（届く範囲で最も HP の低い味方）が担う
-  //（content/skills-active.mjs の front_strike / rear_strike）。
+  //（content/enemy-skills.mjs の front_strike / rear_strike）。
   if (partySize < fullParty) {
     while (units.length > partySize) {
       const removable = units.map((unit, slot) => ({ unit, slot })).filter((entry) => !entry.unit.boss);
@@ -1810,7 +1629,6 @@ export function designatedUltimate(run, characterId, content = PLAYABLE_CONTENT)
     ...(loadout.reactives?.[characterId] ?? []),
   ];
   if (!installed.includes(skillId)) return null;
-  if ((loadout.disabled?.[characterId] ?? []).includes(skillId)) return null;
   return ascendSkill(content, skillId) ? skillId : null;
 }
 

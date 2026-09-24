@@ -9,23 +9,26 @@
 
 const freeze = (value) => Object.freeze(value);
 
-export const CONTENT_SCHEMA_VERSION = "ecology-content-4";
+// R25 adds explicit weapon range classes and empty-slot movement with an
+// optional action-end return. R26 adds shared column/unacted target filters
+// and resource-reduction effects used by the Stage 1 weapon trees. R27 adds
+// the generic finite-rescue effect and its result event for the medical tree.
+export const CONTENT_SCHEMA_VERSION = "ecology-content-12";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
 // but a reader that does not know the field would silently drop the training,
 // so the version says out loud that the shape grew.
-// R19（issue #137）— battle input gained an optional `skillLevels` map on allies
-// (skill id -> level). It is additive: an input without it, or one whose every
-// level is 1, resolves byte-for-byte as ecology-battle-3 did. A reader that does
-// not know the field would silently drop the levels — which changes damage — so
-// the version says out loud that the shape grew.
-export const BATTLE_SCHEMA_VERSION = "ecology-battle-4";
-// Issue #192 — result event streams now distinguish barrier absorption and a
-// damage instance that lost its target. These are additive records, but a
+// Weapon skill loadouts use one active skill, an ordered target-skill list,
+// and an optional per-reactive RP reserve. Legacy `tactics` remain accepted for
+// enemy/content fixtures during the staged migration, but playable allies emit
+// the new fields.
+export const BATTLE_SCHEMA_VERSION = "ecology-battle-5";
+// Result event streams distinguish damage resolution, barrier absorption, and
+// a damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
 // produced no HP loss, so the result version moves with the vocabulary.
-export const RESULT_SCHEMA_VERSION = "ecology-result-3";
+export const RESULT_SCHEMA_VERSION = "ecology-result-6";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -39,8 +42,11 @@ export const PROFILE_SCHEMA_VERSION = "ecology-profile-2";
 // 必殺技 this expedition) and its loadout gained `ultimates` / `ultimateArmed`. A save
 // without them would silently hand everybody a fresh ultimate, so the version says
 // out loud that the shape grew.
-export const RUN_SCHEMA_VERSION = "ecology-run-5";
-export const MANIFEST_VERSION = "ecology-manifest-2";
+// Weapon loadouts no longer carry the legacy skill-level map or player tactics
+// rotation, and manifests now split equipment packs from weapon skill packs.
+// Old RunState/manifest snapshots are intentionally not resumed.
+export const RUN_SCHEMA_VERSION = "ecology-run-7";
+export const MANIFEST_VERSION = "ecology-manifest-4";
 
 // R6 §5.4 — the six positions of the 2x3 field. The listed order is also the
 // deterministic tie-break order, so nothing else may sort positions.
@@ -90,6 +96,8 @@ export const EVENT_TYPES = freeze([
   // §6.2 action
   "action_declared",
   "target_selected",
+  "attack_plan_opened",
+  "defense_break",
   "target_changed",
   "action_cost_paid",
   "action_started",
@@ -111,6 +119,9 @@ export const EVENT_TYPES = freeze([
   "barrier_damaged",
   "barrier_broken",
   "damage_taken",
+  // One settled damage instance, including block/barrier-only hits. This is
+  // the stable after-hit hook for rules that care about the result, not only HP loss.
+  "damage_resolved",
   "recovery_window_closed",
   "excess_damage",
   "healing_proposed",
@@ -120,6 +131,7 @@ export const EVENT_TYPES = freeze([
   "barrier_gained",
   "barrier_expired",
   "actor_defeated",
+  "actor_revived",
   // §6.5 resources, position, status, equipment
   "resource_refreshed",
   "resource_spent",
@@ -128,6 +140,7 @@ export const EVENT_TYPES = freeze([
   "actor_moved",
   "status_added",
   "status_removed",
+  "status_linked",
   "equipment_worn",
   "equipment_broken",
   "equipment_repaired",
@@ -140,6 +153,7 @@ export const EVENT_TYPES = freeze([
   // Emitted when an interrupt rule changes a pending damage, healing or barrier
   // amount. It is a record, not a hook: nothing may listen to it (see below).
   "pending_amount_modified",
+  "pending_guard_modified",
 ]);
 
 // §6 — reserved for later mechanics packs. Referencing one is a validator error,
@@ -147,7 +161,6 @@ export const EVENT_TYPES = freeze([
 export const RESERVED_EVENT_TYPES = freeze([
   "wave_started",
   "defeat_prevented",
-  "actor_revived",
   "action_repeated",
   "frontline_opened",
 ]);
@@ -156,16 +169,22 @@ export const RESERVED_EVENT_TYPES = freeze([
 // listens to it could never fire, so the validator rejects it (PREFLIGHT §11).
 // A rule that listened to pending_amount_modified would react inside somebody
 // else's interrupt window, so it stays a record only, like the refresh.
+// damage_skipped is listenable: content may explicitly spend a rule budget to
+// carry a lost multi-hit packet elsewhere; the default engine path still does
+// not retarget it automatically.
 export const NON_LISTENABLE_EVENT_TYPES = freeze([
   "resource_refreshed",
   "pending_amount_modified",
+  "pending_guard_modified",
+  "status_linked",
   "damage_absorbed",
-  "damage_skipped",
   "recovery_window_closed",
 ]);
 
 // §11.5 — interrupt rules may only listen to events that carry a pending frame.
-export const PENDING_ACTION_EVENT_TYPES = freeze(["action_declared", "target_selected"]);
+export const PENDING_ACTION_EVENT_TYPES = freeze([
+  "action_declared", "target_selected", "attack_plan_opened", "defense_break",
+]);
 export const PENDING_AMOUNT_EVENT_TYPES = freeze([
   "damage_proposed",
   "healing_proposed",
@@ -174,6 +193,8 @@ export const PENDING_AMOUNT_EVENT_TYPES = freeze([
   // Without this event the barrier third of that fixture cannot exist.
   "barrier_proposed",
 ]);
+// Flat guard reduction only has meaning on an incoming damage proposal.
+export const PENDING_GUARD_EVENT_TYPES = freeze(["damage_proposed"]);
 export const INTERRUPTIBLE_EVENT_TYPES = freeze([
   ...PENDING_ACTION_EVENT_TYPES,
   ...PENDING_AMOUNT_EVENT_TYPES,
@@ -192,9 +213,13 @@ export const PREDICATE_TYPES = freeze([
   "is_preparing",
   "event_tag",
   "event_value",
+  "event_target_is_attack_primary",
   "history_count",
+  "attack_flag",
   "target_exists",
+  "hit_target_comparison",
   "round_number",
+  "pending_base_target_has_negative_status",
 ]);
 
 export const COMPARISON_OPS = freeze(["eq", "ne", "lt", "lte", "gt", "gte"]);
@@ -246,21 +271,36 @@ export const TARGET_SCOPES = freeze([
   "enemies",
   "event_source",
   "event_targets",
+  "action_base_targets",
 ]);
 export const TARGET_FILTER_TYPES = freeze([
   "alive",
   "row_is",
   "hp_percent",
   "has_status",
+  "has_defense",
+  "has_block",
+  "has_defense_or_status",
   "is_preparing",
+  "previous_target",
   "not_previous_target",
   "is_event_primary_target",
+  "not_event_primary_target",
+  "same_row_as_event_primary_target",
+  "same_column_as_event_primary_target",
+  "horizontal_adjacent_to_event_primary_target",
+  "is_event_target",
+  "not_acted_this_round",
   // DEVIATION (PREFLIGHT §1): symmetric partner of is_event_primary_target.
   // Without it, "the actor who caused this event is me" is unwritable in v1 and
   // the §15.4 empowering status double-applies when two actors hold it.
   "is_event_source",
   // A rule owner can target an event ally without selecting itself.
   "not_self",
+  "has_open_position_in_row",
+  "adjacent_to_event_primary_target",
+  "has_any_skill_effect",
+  "has_negative_status",
 ]);
 export const TARGET_SORT_TYPES = freeze([
   "hp_asc",
@@ -273,11 +313,18 @@ export const TARGET_SORT_TYPES = freeze([
   // 浮動小数は経路に入らない。
   "hp_percent_asc",
   "hp_percent_desc",
+  "status_stacks_desc",
+  "distance_to_self_asc",
   "barrier_asc",
   "barrier_desc",
+  "block_desc",
+  "has_block_desc",
+  "guard_desc",
   "position_asc",
   "position_desc",
   "instance_id_asc",
+  "preparation_steps_desc",
+  "skill_effect_priority_asc",
 ]);
 // §9 — appended to every sort so no tie survives into take: 1.
 export const IMPLICIT_SORTS = freeze(["position_asc", "instance_id_asc"]);
@@ -298,17 +345,26 @@ export const EFFECT_TYPES = freeze([
   "heal",
   "gain_barrier",
   "gain_resource",
+  "reduce_resource",
   "add_status",
+  "copy_status_from_event",
   "remove_status",
+  "remove_statuses",
+  "remove_barrier",
+  "remove_block",
   "swap_positions",
+  "move_to_open_row",
+  "modify_attack_plan",
   "start_preparation",
   "advance_preparation",
   "interrupt_preparation",
+  "revive",
   "wear_equipment",
   // DEVIATION (PREFLIGHT §16): the partner of wear_equipment. §15.3 asks for an
   // item that repairs itself and §10.2 has no way to raise durability.
   "repair_equipment",
   "modify_pending_amount",
+  "modify_pending_guard",
   // 受けるダメージの一部を pending frame から所有者へ移す割り込み。
   // 軽減量と移送量を同じ提案から別々に評価できる。
   "split_pending_damage",
@@ -316,6 +372,7 @@ export const EFFECT_TYPES = freeze([
   "cancel_pending_action",
   // R6 §6.7 — PHASE A. Block charges are a small integer, not a pool of points.
   "gain_block",
+  "mark_attack_flag",
 ]);
 
 // R6 §5.4 / §6.7 — PHASE A. How a damage effect spreads and how far it reaches.
@@ -324,6 +381,9 @@ export const EFFECT_TYPES = freeze([
 // implementation in a later phase; listing them here now would let content
 // reference a pattern the engine silently treats as single.
 export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
+// R25 dual-blades branches use a finite round-robin distribution for
+// multi-hit actions whose target set is fixed at action start.
+export const HIT_DISTRIBUTIONS = freeze(["round_robin"]);
 
 // R6 §6.4 — PHASE A. active 技能の静的な種別。攻撃テンポの保証がこれで決まる。
 //   offense … 使えると判定されたら、生存敵へ direct damage を必ず作る
@@ -331,21 +391,29 @@ export const TARGET_PATTERNS = freeze(["single", "row", "column"]);
 //   channel … 追撃を行わない明示的例外。溜めること自体が代償のもの
 export const ACTION_MODES = freeze(["offense", "utility", "channel"]);
 export const REACHES = freeze(["melee", "ranged", "unrestricted"]);
+// R25 — New weapon skills state their positional contract directly. `reach`
+// remains the compatibility vocabulary for the staged migration; a migrated
+// damage effect uses exactly one `rangeClass` instead.
+export const RANGE_CLASSES = freeze(["melee", "long", "ranged", "support"]);
 
 // §11.4 — usable only from interrupt-timing rules.
 export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "modify_pending_guard",
   "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
+  "modify_attack_plan",
 ]);
 // Which pending frame each interrupt-only effect needs.
 export const PENDING_ACTION_EFFECT_TYPES = freeze([
   "redirect_pending_target",
   "cancel_pending_action",
+  "modify_attack_plan",
 ]);
 export const PENDING_AMOUNT_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "modify_pending_guard",
   "split_pending_damage",
   "redirect_pending_target",
 ]);
@@ -356,8 +424,12 @@ export const PENDING_AMOUNT_OPERATIONS = freeze(["increase", "decrease", "set"])
 export const VALUE_TYPES = freeze([
   "constant",
   "event_value_scaled",
+  "pending_amount_scaled",
+  "pending_amount_times_status_scaled",
+  "event_value_times_status_scaled",
   "actor_stat_scaled",
   "status_stacks_scaled",
+  "stat_times_context_scaled",
   // R6 §4.4 — PHASE A. flat + roundHalfUp(stat * coefficientBps / 10_000).
   // Kept separate from actor_stat_scaled because that one floors and has no
   // flat term; changing it would move every existing fixture amount.
@@ -410,21 +482,6 @@ export const ENCOUNTER_KINDS = freeze(["normal", "elite", "boss"]);
 // gain_resource の rule で書けるので、語彙を増やさずに済む。
 export const PASSIVE_STAT_BONUSES = freeze(["max_hp", "might", "focus", "guard"]);
 
-// R19（issue #137）— 技能レベル。**同じ効果の上位互換を別技能として増やさず、
-// 一つの技能を段階的に強くする。**
-//
-// レベルが上げるのは**連続量だけ**である（damage / heal / barrier と、その増減）。
-// AP・RP・行動権・段数・回数・耐久は離散量なので触らない。「1段上げたら手数が
-// 増える」は、多くの面白い技能より強くなりやすい（R6 §6.8 の passive と同じ理由）。
-//
-// Lv1 は係数 1.0 ちょうどで、**掛け算そのものが起きない**。レベルを知らない
-// 入力・保存・replay は、これまでと1バイトも変わらない結果を出す。
-export const MIN_SKILL_LEVEL = 1;
-export const MAX_SKILL_LEVEL = 10;
-// 1段ごとに +12%。Lv10 で 2.08 倍になる。**上位互換を別技能で作るより緩やかにする**
-// （別技能なら装着枠を食うが、レベルは食わないので、同じ倍率だと強すぎる）。
-export const SKILL_LEVEL_STEP_BPS = 1_200;
-
 export const DURATIONS = freeze(["turn", "round", "battle"]);
 export const BARRIER_DURATIONS = freeze(["round", "battle"]);
 export const STATUS_POLARITIES = freeze(["positive", "negative", "neutral"]);
@@ -457,6 +514,7 @@ export const LIMITS = freeze({
   maxTactics: Number.MAX_SAFE_INTEGER,
   maxUseWhen: 2,
   maxReactiveSkills: Number.MAX_SAFE_INTEGER,
+  maxTargetSkills: Number.MAX_SAFE_INTEGER,
   maxPassiveSkills: Number.MAX_SAFE_INTEGER,
   maxEquipment: 2,
   minPreparationSteps: 1,

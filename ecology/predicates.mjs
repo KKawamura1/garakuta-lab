@@ -73,19 +73,46 @@ export function evaluatePredicate(state, ctx, predicate) {
       return compareOp(predicate.op, raw, predicate.value);
     }
 
+    case "event_target_is_attack_primary": {
+      const targetActorId = ctx.event?.targetActorIds?.[0];
+      const primaryTargetActorId = ctx.event?.values?.primaryTargetActorId;
+      return Boolean(targetActorId && primaryTargetActorId && targetActorId === primaryTargetActorId);
+    }
+
     case "history_count": {
       const actor = resolveSubject(state, ctx, predicate.subject);
       if (!actor) return false;
       return compareOp(predicate.op, historyValue(actor, predicate.metric, predicate.window), predicate.value);
     }
 
+    case "attack_flag": {
+      const attackIds = [ctx.event?.values?.attackId, ...(ctx.event?.values?.attackIds ?? [])]
+        .filter((attackId) => typeof attackId === "string");
+      if (attackIds.length === 0 || !state.chain || !ctx.owner) return false;
+      return attackIds.some((attackId) => state.chain.attackFlags
+        .get(`${attackId}:${ctx.owner.instanceId}`)?.has(predicate.key));
+    }
+
     case "target_exists": {
-      const found = resolveTargets(state, ctx, predicate.query);
+      const reach = predicate.targetReach === "pending_action"
+        ? (ctx.pendingAction?.reach ?? "unrestricted")
+        : "unrestricted";
+      const found = resolveTargets(state, ctx, predicate.query, { reach });
       return compareOp(predicate.op ?? "gte", found.length, predicate.value ?? 1);
+    }
+
+    case "hit_target_comparison": {
+      const previous = ctx.event?.values?.previousTargetActorId;
+      const current = ctx.event?.targetActorIds?.[0];
+      if (typeof previous !== "string" || typeof current !== "string") return false;
+      return predicate.relation === "same" ? previous === current : previous !== current;
     }
 
     case "round_number":
       return compareOp(predicate.op, state.round, predicate.value);
+
+    case "pending_base_target_has_negative_status":
+      return ctx.pendingAction?.baseTargetHasNegativeStatusAtSelection === true;
 
     default:
       // validate.mjs rejects unknown types long before this, so reaching here is
@@ -95,4 +122,3 @@ export function evaluatePredicate(state, ctx, predicate) {
 }
 
 export { getActor };
-

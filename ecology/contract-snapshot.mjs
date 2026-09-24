@@ -17,13 +17,14 @@ import {
   PLAYABLE_CONTENT,
   DISPLAY_NAMES,
   REGION,
-  SKILL_LEVEL_CAPS,
-  SKILL_PACKS,
+  EQUIPMENT_PACKS,
+  WEAPON_SKILL_PACKS,
+  WEAPON_SKILL_TREE_NODES,
+  campaignManifestForStage,
 } from "./content/index.mjs";
 import {
   META_UPGRADES,
   composeEncounter,
-  makeManifest,
   newProfile,
   newRun,
   rewardOffer as expeditionRewardOffer,
@@ -34,7 +35,6 @@ import {
   COMPONENT_ORDER,
   EQUIPMENT,
   SKILLS,
-  SKILL_TREE_NODES,
   enemyInfo,
   enemyTargetingText,
   freshLoadout,
@@ -58,18 +58,19 @@ export function contractSnapshot() {
   }
   const manifests = Object.fromEntries(
     ["frontier-1801", "frontier-1801-abc12345", "frontier-1801-zzz"]
-      .map((seed) => [seed, makeManifest(seed, profile)]),
+      .map((seed) => [seed, campaignManifestForStage(0, seed)]),
   );
   const runRewards = {};
   for (const seed of Object.keys(manifests)) {
-    const run = newRun(profile, { runSeed: seed, runId: seed, roster: ROSTER, difficulty: 0 });
+    const run = newRun(profile, {
+      runSeed: seed, runId: seed, roster: ROSTER, difficulty: 0, campaignStageSequence: 0,
+    });
     for (const index of [1, 5, 11]) {
       for (const reroll of [0, 1]) {
         runRewards[seed + "/" + index + "/" + reroll] = expeditionRewardOffer(run, profile, index, reroll);
       }
     }
   }
-
   return {
     contentVersion: PLAYABLE_CONTENT.contentVersion,
     content: PLAYABLE_CONTENT,
@@ -79,17 +80,15 @@ export function contractSnapshot() {
     equipment: EQUIPMENT,
     components: COMPONENTS,
     componentOrder: COMPONENT_ORDER,
-    skillTreeNodes: SKILL_TREE_NODES,
-    // R19（issue #137）— 技能レベルの上限。**上位互換を別技能として増やさない**
-    // 代わりに、どの技能が何段まで伸びるのかを公開する。
-    skillLevelCaps: SKILL_LEVEL_CAPS,
+    weaponSkillTreeNodes: WEAPON_SKILL_TREE_NODES,
     enemyInfo: Object.fromEntries(enemyIds.map((id) => [id, enemyInfo(id)])),
     enemyTargeting: Object.fromEntries(enemyIds.map((id) => [id, enemyTargetingText(id)])),
     initialUnlocked: Object.fromEntries(CHARACTER_OPTIONS.map((o) => [o.id, initialUnlockedSkills(o.id)])),
     freshLoadout: loadout,
     // ---- Phase B
     region: REGION,
-    skillPacks: SKILL_PACKS,
+    equipmentPacks: EQUIPMENT_PACKS,
+    skillPacks: WEAPON_SKILL_PACKS,
     difficulties: DIFFICULTIES,
     bossLaws: BOSS_LAWS,
     enemyMutations: ENEMY_MUTATIONS,
@@ -120,4 +119,3 @@ if (process.argv[1] && process.argv[1].endsWith("contract-snapshot.mjs") && proc
   writeFileSync(path, contractSnapshotJson());
   console.log("凍結を作り直した: " + path);
 }
-

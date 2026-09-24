@@ -179,13 +179,11 @@ for (const definition of Object.values(equipment)) scaleFlatAmounts(definition);
 
 export const FIXED_EQUIPMENT = equipment;
 
-// 旧 R6 の固定装備 pool の記録。現行の報酬はこの群を参照しない。
-// 群の切り方は旧 save / 検査で参照される「役割」欄（守り・手数・機動・攻撃・修理）と同じ。
+// 固定装備のcontent metadata。現行の通常報酬はこの群を参照しない。
+// 群の切り方は役割（守り・手数・機動・攻撃・修理）を表す。
 //
 // 固定装備は全部で18品しかなく、一遠征で報酬を選べる機会は11回ある。
-// これは過去の報酬 pool の構成を読み解くための互換情報である。
-// 現行の通常報酬は手続き生成品へ移った。ここは旧 save・検査・replay の
-// 参照を壊さないために残す。
+// 現行の通常報酬は手続き生成品へ移った。固定定義は表示名とfixtureが参照する。
 //
 // `hungry_plate` はどの群にも入れない。摩耗を誘発するだけの品で、
 // 報酬として出すと「拾わない」以外の答えが無い（Phase A から報酬 pool 外）。

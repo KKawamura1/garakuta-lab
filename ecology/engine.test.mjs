@@ -6,8 +6,7 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { RESULT_SCHEMA_VERSION, SKILL_LEVEL_STEP_BPS } from "./schema.mjs";
-import { BPS, roundHalfUpDiv } from "./values.mjs";
+import { RESULT_SCHEMA_VERSION } from "./schema.mjs";
 import { simulateBattle, validateContentBundle } from "./engine.mjs";
 import { resolveTargets } from "./selectors.mjs";
 import { FIXTURE_CONTENT } from "./fixture-content.mjs";
@@ -154,6 +153,12 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(taken.values.amount, 2, "the rest reached hp");
   equal(taken.values.barrierAbsorbed, 2);
   equal(taken.values.proposed, 4);
+  const resolved = of(result, "damage_resolved").find(
+    (event) => event.targetActorIds[0] === "a_warden",
+  );
+  equal(resolved.values.result, "hp_damage", "each settled hit has an outcome even when it reaches HP");
+  equal(resolved.values.hpDamage, 2);
+  equal(resolved.values.hpAfter, resolved.values.hpBefore - 2);
   equal(of(result, "excess_damage").length, 0, "no overkill when the target survives");
 }
 
@@ -173,9 +178,67 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(absorbedResult[0].values.amount, 4);
   equal(absorbedResult[0].values.finalDamage, 0);
   equal(absorbedResult[0].values.fullyAbsorbed, true);
+  const settled = of(result, "damage_resolved").filter((event) => event.round === 1);
+  equal(settled.length, 1, "a fully absorbed hit still has one settled outcome");
+  equal(settled[0].values.result, "barrier_absorbed");
+  equal(settled[0].values.hpDamage, 0);
   equal(of(result, "damage_proposed").filter((event) => event.round === 1).length, 1, "the proposal is still recorded");
   const secondRound = of(result, "barrier_damaged").filter((event) => event.round === 2);
   equal(secondRound.at(-1).values.duration, "battle", "the battle packet is spent last");
+}
+
+{
+  // A flat guard-ignore interrupt composes with the same hit's guard calculation
+  // and applies independently to every hit in the attack.
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.activeSkills.double_guard_test = structuredClone(content.activeSkills.strike);
+  content.activeSkills.double_guard_test.id = "double_guard_test";
+  content.activeSkills.double_guard_test.effects[0].hitCount = 2;
+  content.activeSkills.double_guard_test.effects[0].amount = { type: "constant", value: 10 };
+  content.passiveSkills.flat_guard_ignore_test = {
+    id: "flat_guard_ignore_test",
+    displayName: "Flat Guard Ignore (fixture)",
+    rules: [{
+      id: "flat_guard_ignore_test_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      priority: 1,
+      predicates: [{
+        type: "target_exists",
+        query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
+      }],
+      costs: [],
+      effects: [{ type: "modify_pending_guard", amount: { type: "constant", value: 6 } }],
+      allowRepeatInChain: true,
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
+    }],
+    tags: ["fixture", "attack"],
+  };
+  content.enemyActors.husk.maxHp = 100;
+  content.enemyActors.husk.guard = 8;
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "fixture_flat_guard_ignore";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [{
+    instanceId: "a_warden",
+    characterId: "warden",
+    position: "front_left",
+    activeSkillId: "double_guard_test",
+    passiveSkillIds: ["flat_guard_ignore_test"],
+    reactiveSkillIds: [],
+    equipment: [],
+  }];
+  battle.enemies = [{ instanceId: "e_husk", enemyActorId: "husk", position: "front_left" }];
+  const result = simulateBattle(battle, content);
+  const proposals = of(result, "damage_proposed").filter((event) => event.skillId === "double_guard_test");
+  equal(proposals.length, 2, "both hits open a damage proposal");
+  equal(of(result, "pending_guard_modified").filter((event) => event.ruleId === "flat_guard_ignore_test_rule").length, 2,
+    "flat guard-ignore is recorded per hit");
+  const resolved = of(result, "damage_resolved").filter((event) => event.skillId === "double_guard_test");
+  assert.deepEqual(resolved.map((event) => event.values.hpDamage), [8, 8]);
+  assert.deepEqual(resolved.map((event) => event.values.guardApplied), [2, 2]);
+  checks += 1;
 }
 
 {
@@ -442,7 +505,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     (event) => event.targetActorIds[0] === "a_target" && event.sourceActorId === "e_split",
   );
   equal(levelOneModified.values.before, 20, "分散は元の pending damage を読む");
-  equal(levelOneModified.values.after, 12, "Lv1 は元の4割を対象から軽減する");
+  equal(levelOneModified.values.after, 12, "固定割合で元の4割を対象から軽減する");
   equal(levelOneModified.values.splitMitigation, 8);
   equal(levelOneModified.values.transferredDamage, 8, "転送量は元の4割");
   equal(levelOneTransfer.values.amount, 8, "所有者へ4割の通常ダメージを送る");
@@ -480,7 +543,6 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(adjustedModified.values.transferredDamage, 7, "転送も現在の pending damage の4割");
 
   const levelTwo = structuredClone(battle);
-  levelTwo.allies[1].skillLevels = { test_split: 2 };
   const levelTwoResult = simulateBattle(levelTwo, content);
   const levelTwoModified = of(levelTwoResult, "pending_amount_modified").find(
     (event) => event.ruleId === "test_split_rule",
@@ -491,11 +553,11 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const levelTwoPrimary = of(levelTwoResult, "damage_taken").find(
     (event) => event.targetActorIds[0] === "a_target" && event.sourceActorId === "e_split",
   );
-  equal(levelTwoModified.values.splitMitigation, 9, "Lv2 では軽減量だけが増える");
-  equal(levelTwoModified.values.after, 11);
-  equal(levelTwoModified.values.transferredDamage, 8, "Lv2 でも転送量は4割のまま");
-  equal(levelTwoTransfer.values.amount, 8, "Lv2 の所有者ダメージは増えない");
-  equal(levelTwoPrimary.values.amount, 11, "Lv2 の対象ダメージはさらに1減る");
+  equal(levelTwoModified.values.splitMitigation, 8, "武器技能にレベル補正はない");
+  equal(levelTwoModified.values.after, 12);
+  equal(levelTwoModified.values.transferredDamage, 8, "転送量は4割のまま");
+  equal(levelTwoTransfer.values.amount, 8, "所有者への転送量は固定される");
+  equal(levelTwoPrimary.values.amount, 12, "対象への残量は固定される");
   checks += 1;
 }
 
@@ -556,6 +618,184 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     0,
     "the lower reactive skill waits after the first one spends RP",
   );
+}
+
+{
+  // The first eligible reactive consumes this owner's trigger window even if
+  // it costs nothing and a lower row could also fire.
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.reactiveSkills.counter_blow.rule.costs = [];
+  content.reactiveSkills.brace_after_hit.rule.costs = [];
+  const result = simulateBattle(COST_CONTEST_BATTLE, content);
+  check(
+    of(result, "damage_proposed").some((event) => event.ruleId === "counter_blow_rule"),
+    "the first eligible reactive fires",
+  );
+  equal(
+    of(result, "barrier_gained").filter((event) => event.ruleId === "brace_after_hit_rule").length,
+    0,
+    "a lower reactive cannot share the same owner and trigger window",
+  );
+}
+
+{
+  // RP reserve is a loadout preference. If the first row would cross it,
+  // selection continues to the next eligible reactive.
+  const battle = structuredClone(COST_CONTEST_BATTLE);
+  battle.allies[0].reactiveReserveBySkill = { counter_blow: 1 };
+  const result = run(battle);
+  equal(
+    of(result, "damage_proposed").filter((event) => event.ruleId === "counter_blow_rule").length,
+    0,
+    "RP reserve can hold the first reactive",
+  );
+  check(
+    of(result, "barrier_gained").some((event) => event.ruleId === "brace_after_hit_rule"),
+    "the next eligible reactive gets the window",
+  );
+}
+
+{
+  // A target skill reorders the active skill's legal candidates without
+  // widening its side, reach, filters, or target count.
+  const battle = structuredClone(CORE_BATTLE);
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [battle.allies[0]];
+  battle.allies[0].targetSkillIds = ["toughest_target"];
+  battle.enemies = [
+    { instanceId: "e_weak", enemyActorId: "still_husk", position: "front_left", hp: 5 },
+    { instanceId: "e_tough", enemyActorId: "still_husk", position: "front_right", hp: 10 },
+  ];
+  const result = run(battle);
+  const strike = of(result, "damage_taken")
+    .find((event) => event.sourceActorId === "a_warden" && event.skillId === "strike");
+  equal(strike?.targetActorIds[0], "e_tough", "the first valid target skill chooses the target");
+}
+
+{
+  // R25 range classes own both target legality and the final position multiplier.
+  // Legacy reach remains untouched while the weapon catalog is migrated.
+  const content = structuredClone(FIXTURE_CONTENT);
+  const rangedTarget = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    sort: ["position_desc"],
+    take: 1,
+  };
+  const addSkill = (id, rangeClass, targetQuery = rangedTarget) => {
+    content.activeSkills[id] = {
+      id,
+      displayName: id,
+      apCost: 1,
+      actionMode: "offense",
+      intrinsicPredicates: [],
+      targetQuery,
+      effects: [{
+        type: "deal_damage",
+        target: { scope: "event_targets", take: "all" },
+        amount: { type: "constant", value: 100 },
+        rangeClass,
+        tags: ["attack"],
+      }],
+      tags: ["attack"],
+    };
+  };
+  addSkill("range_melee_test", "melee");
+  addSkill("range_ranged_test", "ranged");
+  content.activeSkills.temporary_advance_test = {
+    id: "temporary_advance_test",
+    displayName: "temporary_advance_test",
+    apCost: 1,
+    actionMode: "offense",
+    intrinsicPredicates: [],
+    targetQuery: {
+      scope: "enemies",
+      filters: [{ type: "alive" }],
+      sort: ["position_asc"],
+      take: 1,
+    },
+    effects: [{
+      type: "move_to_open_row",
+      target: { scope: "self", take: 1 },
+      row: "front",
+      returnAfterAction: true,
+    }, {
+      type: "deal_damage",
+      target: { scope: "event_targets", take: "all" },
+      amount: { type: "constant", value: 10 },
+      rangeClass: "melee",
+      tags: ["attack"],
+    }],
+    tags: ["attack", "movement"],
+  };
+
+  const proposed = (skillId, allyPosition, enemies) => {
+    const battle = structuredClone(CORE_BATTLE);
+    battle.battleId = `range_${skillId}_${allyPosition}`;
+    battle.maxRounds = 1;
+    battle.objective = { type: "survive_rounds", rounds: 1 };
+    battle.allies = [{
+      instanceId: "a_range",
+      characterId: "warden",
+      position: allyPosition,
+      tactics: [{ activeSkillId: skillId, useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }];
+    battle.enemies = enemies;
+    return simulateBattle(battle, content).events.find(
+      (event) => event.type === "damage_proposed" && event.skillId === skillId,
+    );
+  };
+  const frontEnemy = [{ instanceId: "e_front", enemyActorId: "still_husk", position: "front_left" }];
+  equal(proposed("range_melee_test", "front_left", frontEnemy)?.values.amount, 125,
+    "front-row melee deals 125%");
+  equal(proposed("range_melee_test", "rear_left", frontEnemy)?.values.amount, 40,
+    "rear-row melee deals 40%");
+
+  const coveredEnemies = [
+    { instanceId: "e_front", enemyActorId: "still_husk", position: "front_left" },
+    { instanceId: "e_rear", enemyActorId: "still_husk", position: "rear_left" },
+  ];
+  const covered = proposed("range_ranged_test", "rear_left", coveredEnemies);
+  equal(covered?.targetActorIds[0], "e_rear", "ranged attacks may choose a rear target through a front row");
+  equal(covered?.values.amount, 75, "a living front row grants rear targets 75% cover");
+  const uncovered = proposed("range_ranged_test", "rear_left", [coveredEnemies[1]]);
+  equal(uncovered?.values.amount, 100, "rear targets lose cover after the front row is gone");
+
+  const advanceBattle = structuredClone(CORE_BATTLE);
+  advanceBattle.battleId = "temporary_advance_each_round";
+  advanceBattle.maxRounds = 2;
+  advanceBattle.objective = { type: "survive_rounds", rounds: 2 };
+  advanceBattle.allies = [{
+    instanceId: "a_range",
+    characterId: "warden",
+    position: "rear_center",
+    tactics: [{ activeSkillId: "temporary_advance_test", useWhen: [] }],
+    reactiveSkillIds: [],
+    equipment: [],
+  }];
+  advanceBattle.enemies = [{
+    instanceId: "e_front",
+    enemyActorId: "still_husk",
+    position: "front_center",
+    stats: { maxHp: 1_000, might: 0, focus: 0, guard: 0 },
+  }];
+  const advance = simulateBattle(advanceBattle, content);
+  const moves = of(advance, "actor_moved").filter((event) => event.targetActorIds[0] === "a_range");
+  equal(moves.length, 4, "temporary movement advances and returns again on the second round");
+  assert.deepEqual(moves.map((event) => event.tags[0]), ["move", "return", "move", "return"]);
+  equal(moves[0].values.to, "front_center", "the nearest open column is deterministic");
+  equal(moves[1].values.to, "rear_center", "the actor returns to its exact origin after the action");
+  const advanceHits = of(advance, "damage_proposed").filter(
+    (event) => event.skillId === "temporary_advance_test",
+  );
+  assert.deepEqual(advanceHits.map((event) => event.values.amount), [13, 13],
+    "both attacks receive the front-row melee bonus before returning to safety");
+  equal(advance.actors.find((actor) => actor.instanceId === "a_range")?.position, "rear_center",
+    "the battle snapshot keeps the safe rear position");
+  checks += 2;
 }
 
 // ---- §12.4 preparation --------------------------------------------------------
@@ -1030,55 +1270,6 @@ for (const battle of ALL_FIXTURE_BATTLES) {
     )[1].values.activation,
     2,
   );
-}
-
-// ---- R19（issue #137）技能レベル ------------------------------------------------
-//
-// **同じ効果の上位互換を別技能として増やさず、一つの技能を段階的に強くする。**
-// engine が見るのは ally.skillLevels の表だけで、技能 ID では分岐しない。
-{
-  const damageOf = (battle) => of(run(battle), "damage_proposed")
-    .filter((event) => event.sourceActorId === "a_warden")
-    .map((event) => event.values.amount);
-
-  const base = damageOf(CORE_BATTLE);
-  check(base.length > 0, "参照の一戦に a_warden の damage が出ている");
-
-  // Lv1 は掛け算そのものが起きない。**レベルを知らない入力と1バイトも変わらない。**
-  const atLevelOne = structuredClone(CORE_BATTLE);
-  const wardenSkills = atLevelOne.allies
-    .find((ally) => ally.instanceId === "a_warden").tactics
-    .map((tactic) => tactic.activeSkillId);
-  atLevelOne.allies.find((ally) => ally.instanceId === "a_warden").skillLevels =
-    Object.fromEntries(wardenSkills.map((skillId) => [skillId, 1]));
-  assert.deepEqual(damageOf(atLevelOne), base, "Lv1 は既定と同じ結果になる");
-  checks += 1;
-
-  // 段が上がるぶんだけ、連続量だけが上がる。
-  const lifted = structuredClone(CORE_BATTLE);
-  lifted.allies.find((ally) => ally.instanceId === "a_warden").skillLevels =
-    Object.fromEntries(wardenSkills.map((skillId) => [skillId, 5]));
-  const raised = damageOf(lifted);
-  check(
-    raised.length > 0 && raised[0] > base[0],
-    `Lv5 で damage が上がる（${base[0]} → ${raised[0]}）`,
-  );
-  // 係数は 1 + 0.12 × (level - 1)。round-half-up は values.mjs の一箇所だけで行う。
-  equal(raised[0], roundHalfUpDiv(base[0] * (BPS + 4 * SKILL_LEVEL_STEP_BPS), BPS));
-
-  // **掛かるのは、その actor が実際に出したその技能だけ。**使っていない技能へ
-  // 段を積んでも、出来事の列は1バイトも変わらない（engine が技能 ID で分岐して
-  // いないことの witness でもある）。
-  const unused = Object.keys(FIXTURE_CONTENT.activeSkills)
-    .find((skillId) => !wardenSkills.includes(skillId));
-  check(Boolean(unused), "warden が使っていない技能が fixture にある");
-  const elsewhere = structuredClone(CORE_BATTLE);
-  elsewhere.allies.find((ally) => ally.instanceId === "a_warden").skillLevels = { [unused]: 10 };
-  assert.deepEqual(
-    run(elsewhere).events, run(CORE_BATTLE).events,
-    "使っていない技能のレベルは出来事の列を変えない",
-  );
-  checks += 1;
 }
 
 // ---- §9 hp_percent_asc — 「最も傷ついた」は割合で決まる（issue #176）-------------

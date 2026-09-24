@@ -6,26 +6,20 @@
 //
 // engine・schema・共通registryは変更しない。
 import { CHARACTER_LORE } from "./character-lore.mjs";
+import { WEAPON_IDS_BY_CHARACTER, weaponSkillNodes } from "./weapon-trees.mjs";
 // R13 — 新5人（ゴウ／ツグミ／ナギ／ヒバナ／ゲンゾウ）へ差し替えた。**engine の id は
 // 据え置きなので、id の語義と中身は一致しない**（`lancer` が受け役、`guardian` が遊撃役）。
 // id は技能・pack・contract の対応を保つ鍵であって役割名ではない（characters.mjs 参照）。
 //
-// **初期技能は、その人物が加入する Stage で実際に引ける語彙だけで組む**
-// （baseline ＋ その Stage までの pack core）。
-//
-//   Stage 0  baseline ＋ pack_care core   … ゴウ・ツグミ
-//   Stage 1  ＋ pack_edge core            … ナギ
-//   Stage 2  ＋ pack_wall core            … ヒバナ
-//   Stage 3  ＋ pack_tempo core           … ゲンゾウ
-//
-// baseline の `strike` は **装着欄に入れなくても必ず出る**（skills-active.mjs の
-// coreStrike）ので、初期装着へ入れない。`bulwark` と `mend` は常に解禁済みで、
-// 必要なら取得済み技能と同じように装着できる。
-//
-// **技能は数値の傾きに合わせて選ぶ。**攻撃は might（武器）と focus（技）に分かれ
-// （skills-active.mjs の TECHNIQUE_SKILL_IDS）、防壁と一部の反応も focus を読む
-// （skills-reactive.mjs の REACTIVE_SCALING）。**読まない数値の技能を初期装着に
-// 置かない。**置くと、能力値に合わない技能を抱えた状態で遠征が始まる。
+// PR #288 — 初期技能は人物ごとの代表武器2本から、各武器の R と A1 を一つずつ
+// 無料で持たせる。技能の種類（active / reactive / passive）は武器ツリーの定義から
+// 導出し、別の pack や旧 baseline 技能を初期ロードアウトへ混ぜない。
+// 以後の解禁も同じ武器ツリーを正本にするため、初期値と解禁可能なIDがずれない。
+const starterWeaponSkills = (characterId, position, kind) => (WEAPON_IDS_BY_CHARACTER[characterId] ?? [])
+  .flatMap((weaponId) => weaponSkillNodes(weaponId))
+  .filter((node) => node.position === position && node.kind === kind)
+  .map((node) => node.skillId);
+
 export const CHARACTER_DEFINITIONS = [
   {
     id: "warden",
@@ -33,23 +27,10 @@ export const CHARACTER_DEFINITIONS = [
     icon: "拳",
     defaultPosition: "front_left",
     summary: CHARACTER_LORE.warden.summary,
-    // ゴウ … 腕力50・技術6。**技を持たない人。**
-    // Stage 0 に腕力で読む技能は steady_cut しか無く、他（bulwark・aimed_shot・
-    // shield_the_wounded）は全部 focus を読むので、**active は一本だけにしてある。**
-    // 技能欄を埋めるより空けておくほうが強い。腕力の攻撃は `strike` が欄外で出る。
-    starterTactics: ["steady_cut"],
-    // 受けが1なので細かい攻撃が全部通る。**誰の被弾にも鳴る一本だけ。**
-    // mend は技術の固定量を読むので、技術6でも役割が消えない。
-    //
-    // issue #176 — 以前は余剰治療と二本立てだったが、Stage 0 の基礎回復は一撃ごとの
-    // 固定量と回復窓で制御する。二本目を別の反応で埋めるのもやめた。**ゴウが反応点を
-    // 自分のために使い切ると、後列のツグミへ手が回らない。**序章で「後列のツグミが
-    // 前衛のゴウを応急手当する」という教え方が成立しなくなる
-    //（ecology/story.test.mjs が4通りの配置ごと結果を固定している）。
-    // active と同じで、**欄を埋めるより空けておくほうが強い。**被弾を守りへ変える
-    // 「揺れない手」も、応急処置も、買う側に残す
-    //（Stage 3 の「隊列で守る」構成の入口。analysis/ecology-stage3-builds.mjs）。
-    starterReactives: ["mend"],
+    // ゴウの初期技能は、代表武器2本の R / A1 から自動で決まる。
+    starterTactics: starterWeaponSkills("warden", "R", "active"),
+    starterReactives: [],
+    starterPassives: starterWeaponSkills("warden", "A1", "passive"),
   },
   {
     id: "mender",
@@ -57,12 +38,9 @@ export const CHARACTER_DEFINITIONS = [
     icon: "手",
     defaultPosition: "rear_right",
     summary: CHARACTER_LORE.mender.summary,
-    // ツグミ … 技術52。**隊の主火力かつ治療役。**aimed_shot は technique 攻撃なので
-    // 後列からでも威力が落ちず、shield_the_wounded の防壁も同じ数値で伸びる。
-    // HP110・受け2なので、前へ出すと本当に落ちる（序章がそれを教える）。
-    starterTactics: ["aimed_shot", "shield_the_wounded"],
-    // 応急手当は自分以外の味方だけを治し、応急処置は自分をつなぐ。後列から前衛を支えつつ倒れない。
-    starterReactives: ["triage", "emergency_treatment"],
+    starterTactics: starterWeaponSkills("mender", "R", "active"),
+    starterReactives: starterWeaponSkills("mender", "A1", "reactive"),
+    starterPassives: starterWeaponSkills("mender", "A1", "passive"),
   },
   {
     id: "lancer",
@@ -70,13 +48,9 @@ export const CHARACTER_DEFINITIONS = [
     icon: "盾",
     defaultPosition: "front_center",
     summary: CHARACTER_LORE.lancer.summary,
-    // ナギ … 受け24・技術30。**guard は hit ごとの固定軽減なので、受けは装備せずに効く。**
-    // だから active は攻めに使える。どちらも technique なので技術30で読む。
-    starterTactics: ["heavy_swing", "rear_hunt"],
-    // **まず味方を狙った一撃を身代わりで自分へ引き受ける。**受け役としての仕事が
-    // 加入直後から盤面に出る。受け止めた結果を一番弱い者へ渡す
-    // shield_handoff は、Stage 2 で防壁と隊列が加わってからの発展形に残す。
-    starterReactives: ["cover_ally", "triage"],
+    starterTactics: starterWeaponSkills("lancer", "R", "active"),
+    starterReactives: [],
+    starterPassives: starterWeaponSkills("lancer", "A1", "passive"),
   },
   {
     id: "guardian",
@@ -84,12 +58,9 @@ export const CHARACTER_DEFINITIONS = [
     icon: "風",
     defaultPosition: "rear_center",
     summary: CHARACTER_LORE.guardian.summary,
-    // ヒバナ … 行動権2。**一巡に二度動けるのはこの人だけで、意味は「往復できる」こと。**
-    // reposition で入り、column_thrust で列を薙ぎ、また戻る。一撃は隊で最弱なので、
-    // 位置替えそのものではなく、**寄せてから列で薙ぐ**ところに利得を置く。
-    starterTactics: ["reposition", "column_thrust"],
-    // HP120・受け3の紙なので、**踏み込んだ先で受けないための二本**にする。
-    starterReactives: ["scavenge_ap", "brace_after_hit"],
+    starterTactics: starterWeaponSkills("guardian", "R", "active"),
+    starterReactives: [],
+    starterPassives: starterWeaponSkills("guardian", "A1", "passive"),
   },
   {
     id: "tactician",
@@ -97,10 +68,8 @@ export const CHARACTER_DEFINITIONS = [
     icon: "筆",
     defaultPosition: "rear_left",
     summary: CHARACTER_LORE.tactician.summary,
-    // ゲンゾウ … 反応点4。**自分からは動かず、読んでから割り込む。**
-    // 反応点が二つ多いので、一巡に何度も割り込める。patient_step は準備の完了を読んで
-    // 行動権を拾い、block_focus は防いだ拍に集中を積む。どちらも「先に動かない」形。
-    starterTactics: ["relay_order", "mark_target"],
-    starterReactives: ["patient_step", "block_focus"],
+    starterTactics: starterWeaponSkills("tactician", "R", "active"),
+    starterReactives: [],
+    starterPassives: starterWeaponSkills("tactician", "A1", "passive"),
   },
 ];

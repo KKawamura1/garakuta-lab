@@ -14,28 +14,24 @@
 ## 2. 検査の中身
 
 `bash analysis/check-all.sh` は、`ecology/` の構文検査 → `node ecology/check.mjs`
-（`ecology/*.test.mjs`）→ smoke 12本を順に走らせます。
+（`ecology/*.test.mjs`）→ 現行smokeを順に走らせます。
 
 | smoke | 見るもの |
 |---|---|
 | `ecology-anti-stall-audit.mjs` | 回復・反応の停止性監査 |
-| `ecology-chain-safety-audit.mjs` | AP/RPの actor・resource・round 収支と一回限りの移送割当、再発火、自傷コスト、過剰回復consumer、制限宣言を静的定義・event trace・生成装備で監査 |
 | `ecology-contract-smoke.mjs` | content 契約と凍結 ID の照合 |
 | `ecology-equipment-gen-smoke.mjs` | 装備の手続き生成の決定性と完結性 |
 | `ecology-map-smoke.mjs` | 12戦のマップ配置と現在地・種別表示の契約 |
-| `ecology-readout-smoke.mjs` | 表示値と content の照合 |
-| `ecology-skill-catalog-smoke.mjs` | 技能の定義・パック・ツリーの節・説明文の四点照合と、前提の到達可能性 |
+| `ecology-enemy-tactics-smoke.mjs` | 敵actorと分離された敵技能registryの参照整合性 |
+| `ecology-campaign-curve.mjs` | Campaignの敵圧力曲線 |
+| `ecology-weapon-loadout-smoke.mjs` | 初期4技能、武器skill pack、敵技能との分離 |
 | `ecology-screens-smoke.mjs` | 画面と主要操作の接続 |
 | `ecology-test-hygiene-smoke.mjs` | 明らかな恒真 assert の検出 |
 | `ecology-upload-smoke.mjs` | D1 payload と受け側の整合 |
 
-画面の通し（Playwright / Chromium）は二本あります。`check-all.sh` には入っていないので、
-画面に触れたときは手で走らせます。
-
-    node analysis/ecology-tutorial-trial.mjs   # 本編の入口（会話・灰の門・巻き戻し・予測・装備・根城・図鑑）
-    node analysis/ecology-trial.mjs            # 12戦の長い流れと精算・投資
-
-公開先に対しては GitHub Actions の「Ecology trial (deployed)」から同じ台本を走らせます。
+公開先のPlaywright通しは、現行の静的smokeとは別の確認項目です。PR #288では旧台本と
+壊れたworkflowを削除し、公開先での1〜2遠征の確認を未実施として残します。URLを確定版と
+して案内する前に、現行バンドルを公開してから手動で確認します。
 
 ## 3. 作者へ URL を渡す前に
 

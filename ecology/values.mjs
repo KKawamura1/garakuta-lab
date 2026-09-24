@@ -35,6 +35,31 @@ export function evaluateValue(state, ctx, valueDef) {
       base = typeof raw === "number" && Number.isFinite(raw) ? raw : 0;
       break;
     }
+    case "pending_amount_scaled": {
+      const pending = ctx.pending?.amount;
+      base = typeof pending === "number" && Number.isFinite(pending) ? pending : 0;
+      break;
+    }
+    case "pending_amount_times_status_scaled": {
+      const pending = ctx.pending?.amount;
+      const actor = resolveSubject(state, ctx, valueDef.subject);
+      const snapshot = valueDef.memoryKey ? ctx.pendingAction?.memory?.[valueDef.memoryKey] : undefined;
+      const stacks = Number.isSafeInteger(snapshot)
+        ? snapshot
+        : (actor ? statusStacks(actor, valueDef.statusId) : 0);
+      base = typeof pending === "number" && Number.isFinite(pending) ? pending * stacks : 0;
+      break;
+    }
+    case "event_value_times_status_scaled": {
+      const raw = ctx.event ? ctx.event.values[valueDef.key] : undefined;
+      const actor = resolveSubject(state, ctx, valueDef.subject);
+      const snapshot = valueDef.memoryKey ? ctx.pendingAction?.memory?.[valueDef.memoryKey] : undefined;
+      const stacks = Number.isSafeInteger(snapshot)
+        ? snapshot
+        : (actor ? statusStacks(actor, valueDef.statusId) : 0);
+      base = typeof raw === "number" && Number.isFinite(raw) ? raw * stacks : 0;
+      break;
+    }
     case "actor_stat_scaled": {
       const actor = resolveSubject(state, ctx, valueDef.subject);
       base = actor ? actorStat(actor, valueDef.stat) : 0;
@@ -45,13 +70,37 @@ export function evaluateValue(state, ctx, valueDef) {
     case "stat_scaled": {
       const actor = resolveSubject(state, ctx, valueDef.subject);
       const stat = actor ? actorStat(actor, valueDef.scalingStat) : 0;
-      const coefficientBps = valueDef.coefficientBps ?? 0;
+      const condition = valueDef.statusConditional;
+      const memoryCount = condition?.memoryKey
+        ? ctx.pendingAction?.memory?.[condition.memoryKey]
+        : undefined;
+      const hasSnapshot = Number.isSafeInteger(memoryCount);
+      const statusCount = hasSnapshot
+        ? memoryCount
+        : (actor ? statusStacks(actor, condition?.statusId) : 0);
+      const conditionMet = condition && actor && statusCount >= condition.minStacks;
+      const targetCondition = valueDef.targetConditionalCoefficient;
+      const targetConditionMet = targetCondition
+        && ctx.pendingAction?.memory?.[targetCondition.memoryKey] === true;
+      const coefficientBps = (conditionMet
+        ? condition.coefficientBps
+        : (valueDef.coefficientBps ?? 0))
+        + (targetConditionMet ? targetCondition.bonusBps : 0);
       base = (valueDef.flat ?? 0) + roundHalfUpDiv(stat * coefficientBps, BPS);
       break;
     }
     case "status_stacks_scaled": {
       const actor = resolveSubject(state, ctx, valueDef.subject);
       base = actor ? statusStacks(actor, valueDef.statusId) : 0;
+      break;
+    }
+    case "stat_times_context_scaled": {
+      const actor = resolveSubject(state, ctx, valueDef.subject);
+      const stat = actor ? actorStat(actor, valueDef.scalingStat) : 0;
+      const memory = ctx.pendingAction?.memory ?? ctx.memory;
+      const count = Number.isSafeInteger(memory?.[valueDef.key]) ? memory[valueDef.key] : 0;
+      const coefficientBps = (valueDef.flatCoefficientBps ?? 0) + count * valueDef.coefficientBps;
+      base = roundHalfUpDiv(stat * coefficientBps, BPS);
       break;
     }
     default:
@@ -61,4 +110,3 @@ export function evaluateValue(state, ctx, valueDef) {
   const scaled = Math.floor((base * numerator) / denominator);
   return scaled > 0 ? scaled : 0;
 }
-

@@ -29,12 +29,15 @@ import {
 } from "./actors.mjs";
 import { beginChain, endChain, pushEvent, runtimeError } from "./event-queue.mjs";
 import { evaluatePredicates } from "./predicates.mjs";
-import { resolveTargets } from "./selectors.mjs";
+import { actorHasSkillEffect, actorMeetsTargetCondition, resolveTargets } from "./selectors.mjs";
 import {
   advancePreparationOn,
   applyEffects,
   canPayCosts,
   payCosts,
+  reachOfEffect,
+  resolveScheduledReturns,
+  resolveRoundReturns,
   startPreparationOn,
 } from "./effects.mjs";
 import { validateBattleInput as validateInput, validateContentBundle } from "./validate.mjs";
@@ -100,6 +103,7 @@ function buildState(input, content, options) {
     roundFirings: new Map(),
     battleFirings: new Map(),
     roundEndStartSequence: 0,
+    scheduledRoundReturns: [],
     finished: false,
     result: null,
     reason: null,
@@ -109,7 +113,7 @@ function buildState(input, content, options) {
     const definition = content.characters[ally.characterId];
     // R6 §9.5 — PHASE B. Permanent training arrives already rounded, per
     // instance. **The engine does not know what training is**: it reads a stat
-    // override and keeps the levels only as a record for the causal log.
+    // override and keeps the training inputs only for the causal log.
     const allyStats = statsOf(definition, ally.stats);
     const allyEquipment = ally.equipment.map((item) => ({
       instanceId: item.instanceId,
@@ -130,18 +134,26 @@ function buildState(input, content, options) {
       guard: allyStats.guard,
       baseStats: baseStatsOf(definition),
       training: ally.training ? { ...ally.training } : null,
-      // R19（issue #137）— 技能レベル。**engine は「どの技能か」で分岐しない**：
-      // この表に載っている技能の連続量へ、段数ぶんの係数を掛けるだけである
-      // （effects.mjs の afterSkillLevel）。載っていなければ掛け算も起きない。
-      skillLevels: ally.skillLevels ? { ...ally.skillLevels } : null,
       baseActionPoints: definition.baseActionPoints,
       baseReactionPoints: definition.baseReactionPoints,
       position: ally.position,
-      tactics: ally.tactics.map((tactic) => ({ ...tactic })),
+      // ecology-battle-5 allies select exactly one active. `tactics` is kept as
+      // a legacy input for fixtures and imported battle records while the
+      // staged migration is in progress.
+      tactics: ally.activeSkillId
+        ? [
+          ...(ally.activeOverrideSkillId
+            ? [{ activeSkillId: ally.activeOverrideSkillId, useWhen: [] }]
+            : []),
+          { activeSkillId: ally.activeSkillId, useWhen: [] },
+        ]
+        : ally.tactics.map((tactic) => ({ ...tactic })),
+      targetSkillIds: [...(ally.targetSkillIds ?? [])],
       reactiveSkillIds: [...ally.reactiveSkillIds],
+      reactiveReserveBySkill: { ...(ally.reactiveReserveBySkill ?? {}) },
       passiveSkillIds: [...(ally.passiveSkillIds ?? [])],
       equipment: allyEquipment,
-    }, ally.passiveSkillIds, allyEquipment, ally.skillLevels));
+    }, ally.passiveSkillIds, allyEquipment));
   }
 
   for (const enemy of input.enemies) {
@@ -166,7 +178,9 @@ function buildState(input, content, options) {
       baseReactionPoints: definition.baseReactionPoints,
       position: enemy.position,
       tactics: definition.tactics.map((tactic) => ({ ...tactic })),
+      targetSkillIds: [],
       reactiveSkillIds: [...definition.reactiveSkillIds],
+      reactiveReserveBySkill: {},
       passiveSkillIds: [...(definition.passiveSkillIds ?? [])],
       equipment: [],
     }, definition.passiveSkillIds, []));
@@ -220,6 +234,9 @@ function addActor(state, fields) {
     block: 0,
     barriers: [],
     statuses: [],
+    // R25 — a small finite-use boundary for support roots whose direct effect
+    // would otherwise be an unlimited between-round heal.
+    skillUses: {},
     preparation: null,
     activationsThisRound: 0,
     inQueue: false,
@@ -236,7 +253,8 @@ function addActor(state, fields) {
 function makeRuntime(state) {
   return {
     state,
-    emit: (spec, pendingFrame = null) => emit(state, spec, pendingFrame),
+    emit: (spec, pendingFrame = null, options) => emit(state, spec, pendingFrame, options),
+    dispatchAfter: (event) => dispatchRules(state, event, "after", null),
     onResourceGained: (actor) => requeueOnResourceGain(state, actor),
   };
 }
@@ -323,31 +341,50 @@ function ruleEntriesFor(state, actor) {
   const definition = actor.side === "ally"
     ? state.content.characters[actor.definitionId]
     : state.content.enemyActors[actor.definitionId];
+  const reactiveSkills = actor.side === "enemy"
+    ? (state.content.enemyReactiveSkills ?? state.content.reactiveSkills)
+    : state.content.reactiveSkills;
+  const passiveSkills = actor.side === "enemy"
+    ? (state.content.enemyPassiveSkills ?? {})
+    : state.content.passiveSkills;
   const intrinsic = actor.side === "ally" ? definition.signatureRules : definition.intrinsicRules;
   for (const rule of intrinsic) {
     entries.push({ rule, owner: actor, sourceDefinitionId: actor.definitionId, ruleSource: "signature" });
   }
+  const replacedReactives = new Set(actor.reactiveSkillIds.flatMap((skillId) => (
+    reactiveSkills?.[skillId]?.replacesReactiveSkillIds ?? []
+  )));
   for (const [skillOrder, skillId] of actor.reactiveSkillIds.entries()) {
-    entries.push({
-      rule: state.content.reactiveSkills[skillId].rule,
-      owner: actor,
-      sourceDefinitionId: skillId,
-      ruleSource: "reactive_skill",
-      skillOrder,
-    });
+    if (replacedReactives.has(skillId)) continue;
+    const definition = reactiveSkills[skillId];
+    for (const rule of definition.rules ?? [definition.rule]) {
+      entries.push({
+        rule,
+        owner: actor,
+        sourceDefinitionId: skillId,
+        ruleSource: "reactive_skill",
+        skillOrder,
+        reactionPointReserve: actor.reactiveReserveBySkill?.[skillId] ?? 0,
+      });
+    }
   }
   // R6 §6.8 — PHASE A. passive の rule は常時ある。reactive と違って
   // **反応権を払わない**ので、costs は content 側で空にしてある
   // （validator は rule として同じ検査を通す）。
+  const replacedPassives = new Set((actor.passiveSkillIds ?? []).flatMap(
+    (skillId) => passiveSkills?.[skillId]?.replacesPassiveSkillIds ?? [],
+  ));
   for (const skillId of actor.passiveSkillIds ?? []) {
-    const rule = state.content.passiveSkills?.[skillId]?.rule;
-    if (!rule) continue;
-    entries.push({
-      rule,
-      owner: actor,
-      sourceDefinitionId: skillId,
-      ruleSource: "passive_skill",
-    });
+    if (replacedPassives.has(skillId)) continue;
+    const definition = passiveSkills?.[skillId];
+    for (const rule of definition?.rules ?? (definition?.rule ? [definition.rule] : [])) {
+      entries.push({
+        rule,
+        owner: actor,
+        sourceDefinitionId: skillId,
+        ruleSource: "passive_skill",
+      });
+    }
   }
   for (const item of actor.equipment) {
     // §5.6 — a broken or depleted item stops supplying rules for the rest of
@@ -401,9 +438,11 @@ function firedCount(map, key) {
   return map.get(key) ?? 0;
 }
 
-function ruleAvailable(state, entry) {
+function ruleAvailable(state, entry, event) {
   const key = firingKey(entry);
-  if (firedCount(state.chain.ruleFirings, key) >= 1) return false;
+  const eventKey = `${event.id}|${key}`;
+  if (firedCount(state.chain.ruleEventFirings, eventKey) >= 1) return false;
+  if (!entry.rule.allowRepeatInChain && firedCount(state.chain.ruleFirings, key) >= 1) return false;
   const limit = entry.rule.limit;
   if (limit.scope === "round" && firedCount(state.roundFirings, key) >= limit.count) return false;
   if (limit.scope === "battle" && firedCount(state.battleFirings, key) >= limit.count) return false;
@@ -484,7 +523,7 @@ function dispatchRules(state, event, timing, pendingFrame) {
     if (entry.rule.listenTo !== event.type) continue;
     if (entry.rule.timing !== timing) continue;
     if (!ruleSourceIntact(state, entry)) continue;
-    if (!ruleAvailable(state, entry)) continue;
+    if (!ruleAvailable(state, entry, event)) continue;
     candidates.push({
       ...entry,
       initiativeRank: entry.owner ? entry.owner.initiativeRank : Number.MAX_SAFE_INTEGER,
@@ -492,17 +531,20 @@ function dispatchRules(state, event, timing, pendingFrame) {
       ownerId: entry.owner ? entry.owner.instanceId : "~region",
     });
   }
+  const reacted = new Set();
   for (const candidate of orderRuleCandidates(candidates)) {
-    fireRule(state, event, candidate, pendingFrame);
+    if (candidate.ruleSource === "reactive_skill" && reacted.has(candidate.ownerId)) continue;
+    const fired = fireRule(state, event, candidate, pendingFrame);
+    if (fired && candidate.ruleSource === "reactive_skill") reacted.add(candidate.ownerId);
   }
 }
 
 function fireRule(state, event, entry, pendingFrame) {
   // §5.7 — everything is re-checked immediately before firing, because an
   // earlier reaction in this same window may have removed the reason to fire.
-  if (!ruleSourceIntact(state, entry)) return;
-  if (!ruleAvailable(state, entry)) return;
-  if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return;
+  if (!ruleSourceIntact(state, entry)) return false;
+  if (!ruleAvailable(state, entry, event)) return false;
+  if (pendingFrame && pendingFrame.kind === "action" && pendingFrame.canceled) return false;
 
   const rt = makeRuntime(state);
   const ctx = {
@@ -516,10 +558,21 @@ function fireRule(state, event, entry, pendingFrame) {
     skillId: undefined,
     equipmentInstanceId: entry.equipmentInstanceId,
   };
-  if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return;
-  if (!canPayCosts(rt, ctx, entry.rule.costs)) return;
+  if (!evaluatePredicates(state, ctx, entry.rule.predicates)) return false;
+  if (!canPayCosts(rt, ctx, entry.rule.costs)) return false;
+  if (entry.ruleSource === "reactive_skill") {
+    const rpCost = entry.rule.costs
+      .filter((cost) => cost.type === "spend_reaction_points")
+      .reduce((sum, cost) => sum + cost.amount, 0);
+    if ((entry.owner?.reactionPoints ?? 0) - rpCost < entry.reactionPointReserve) return false;
+  }
 
   const key = firingKey(entry);
+  const eventKey = `${event.id}|${key}`;
+  state.chain.ruleEventFirings.set(
+    eventKey,
+    firedCount(state.chain.ruleEventFirings, eventKey) + 1,
+  );
   state.chain.ruleFirings.set(key, firedCount(state.chain.ruleFirings, key) + 1);
   state.roundFirings.set(key, firedCount(state.roundFirings, key) + 1);
   state.battleFirings.set(key, firedCount(state.battleFirings, key) + 1);
@@ -541,6 +594,7 @@ function fireRule(state, event, entry, pendingFrame) {
     state.parentEventId = previousParent;
     state.ruleStack.pop();
   }
+  return true;
 }
 
 // -------------------------------------------------------------- battle (§11)
@@ -666,7 +720,11 @@ function expireRoundDurations(state) {
 
   for (const actor of orderedActors(state)) {
     const expiring = actor.statuses.filter(
-      (status) => status.duration === "round" && status.addedSequence < state.roundEndStartSequence,
+      (status) => status.duration === "round" && (
+        status.expiresAtRound !== undefined
+          ? status.expiresAtRound <= state.round
+          : status.addedSequence < state.roundEndStartSequence
+      ),
     );
     for (const status of expiring) {
       actor.statuses = actor.statuses.filter((entry) => entry !== status);
@@ -908,27 +966,55 @@ function preparationContext(state, actor) {
 
 // R6 §6.4 — 攻撃テンポの保証。**支援だけを連打して戦闘が止まらないようにする。**
 // どの技能を使うかは content の coreActions 宣言が決める（engine は個別 ID で
-// 分岐しない）。playable の届き方は core skill の effect.reach で決まる。
+// 分岐しない）。移行済み技能は rangeClass、旧技能は effect.reach で届き方を決める。
 function actionReach(skill) {
   const effects = [
     ...(skill.effects ?? []),
     ...(skill.preparation?.completionEffects ?? []),
   ];
-  const explicit = effects.find((effect) => effect.reach !== undefined);
-  if (explicit) return explicit.reach;
+  const explicit = effects.find(
+    (effect) => effect.rangeClass !== undefined || effect.reach !== undefined,
+  );
+  if (explicit) return reachOfEffect(explicit);
   // Enemy-targeting skills without an explicit ranged effect are ordinary
   // melee actions. Ally/self support skills are not restricted by front rows.
   return skill.targetQuery?.scope === "enemies" ? "melee" : "unrestricted";
 }
+
+function skillUsesAvailable(actor, skill) {
+  return skill.usesPerBattle === undefined
+    || (actor.skillUses?.[skill.id] ?? 0) < skill.usesPerBattle;
+}
+
+function spendSkillUse(actor, skill) {
+  if (skill.usesPerBattle === undefined) return;
+  actor.skillUses[skill.id] = (actor.skillUses[skill.id] ?? 0) + 1;
+}
+
+// Player and enemy AI have separate skill vocabularies. Keeping the lookup at
+// the engine boundary prevents an enemy tactic from accidentally resolving
+// against a player-only weapon skill with the same future-facing role.
+function activeSkillsFor(state, actor) {
+  return actor.side === "enemy"
+    ? (state.content.enemyActiveSkills ?? state.content.activeSkills)
+    : state.content.activeSkills;
+}
+
 function coreActionChoice(state, actor, key) {
   // Core actions are content-selected, never position- or character-selected.
   // The selected skill's effect.reach is the sole targeting contract. Keep the
   // `melee` entry as the playable default; the first declared entry is a small
   // compatibility fallback for bundles that expose a single core variant.
-  const byReach = state.content.coreActions?.[key] ?? {};
+  const enemyKey = actor.side === "enemy"
+    ? "enemy" + key[0].toUpperCase() + key.slice(1)
+    : key;
+  const byReach = state.content.coreActions?.[enemyKey]
+    ?? state.content.coreActions?.[key]
+    ?? {};
   const skillId = byReach.melee ?? Object.values(byReach)[0];
-  const skill = skillId ? state.content.activeSkills[skillId] : null;
+  const skill = skillId ? activeSkillsFor(state, actor)[skillId] : null;
   if (!skill) return null;
+  if (!skillUsesAvailable(actor, skill)) return null;
   const rt = makeRuntime(state);
   const ctx = {
     owner: actor,
@@ -941,7 +1027,7 @@ function coreActionChoice(state, actor, key) {
     skillId: skill.id,
     equipmentInstanceId: undefined,
   };
-  const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
+  const targets = resolveActionTargets(state, ctx, actor, skill);
   if (targets.length === 0) return null;
   const costs = [{ type: "spend_action_points", amount: skill.apCost }];
   if (!canPayCosts(rt, ctx, costs)) return null;
@@ -966,12 +1052,15 @@ function advanceTacticCursor(state, actor, selectedIndex) {
 
 function chooseTactic(state, actor) {
   const rt = makeRuntime(state);
+  const activeSkills = activeSkillsFor(state, actor);
   const tactics = actor.tactics ?? [];
   const start = tacticCursorFor(state, actor);
   for (let offset = 0; offset < tactics.length; offset += 1) {
     const tacticIndex = (start + offset) % tactics.length;
     const tactic = tactics[tacticIndex];
-    const skill = state.content.activeSkills[tactic.activeSkillId];
+    const skill = activeSkills[tactic.activeSkillId];
+    if (!skill) continue;
+    if (!skillUsesAvailable(actor, skill)) continue;
     // §5.5 — one pending preparation per actor.
     if (actor.preparation && skill.preparation) continue;
     const ctx = {
@@ -987,7 +1076,7 @@ function chooseTactic(state, actor) {
     };
     if (!evaluatePredicates(state, ctx, skill.intrinsicPredicates)) continue;
     if (!evaluatePredicates(state, ctx, tactic.useWhen)) continue;
-    const targets = resolveTargets(state, ctx, skill.targetQuery, { reach: actionReach(skill) });
+    const targets = resolveActionTargets(state, ctx, actor, skill);
     if (targets.length === 0) continue;
     const costs = [{ type: "spend_action_points", amount: skill.apCost }];
     if (!canPayCosts(rt, ctx, costs)) continue;
@@ -996,9 +1085,57 @@ function chooseTactic(state, actor) {
   return null;
 }
 
+// Target skills only choose among targets the active skill could legally hit.
+// They do not widen its side, filters, reach, or area. Area actions keep their
+// complete target set; ordered target skills matter only when the action asks
+// for one target. The first selector with a legal candidate wins.
+function resolveActionTargets(state, ctx, actor, skill) {
+  const reach = actionReach(skill);
+  const fallback = resolveTargets(state, ctx, skill.targetQuery, { reach });
+  if (skill.targetQuery.take !== 1) return fallback;
+
+  const legal = resolveTargets(
+    state,
+    ctx,
+    { ...skill.targetQuery, take: "all" },
+    { reach },
+  );
+  const legalIds = new Set(legal.map((candidate) => candidate.instanceId));
+  const isAttack = (skill.effects ?? []).some((effect) => effect.type === "deal_damage"
+    && (effect.tags ?? []).includes("attack"));
+  if (actor.side === "ally" && isAttack) {
+    for (const [statusId, definition] of Object.entries(state.content.statuses ?? {})) {
+      if (!definition.priorityForAllyAttackTargets) continue;
+      const observed = resolveTargets(state, ctx, {
+        ...skill.targetQuery,
+        filters: [...(skill.targetQuery.filters ?? []), { type: "has_status", statusId, op: "gte", value: 1 }],
+        sort: ["distance_to_self_asc"],
+        take: "all",
+      }, { reach }).find((candidate) => legalIds.has(candidate.instanceId));
+      if (observed) return [observed];
+    }
+  }
+  if ((actor.targetSkillIds ?? []).length === 0) return fallback;
+  for (const targetSkillId of actor.targetSkillIds) {
+    const targetSkill = state.content.targetSkills?.[targetSkillId];
+    if (!targetSkill) continue;
+    const selected = resolveTargets(state, ctx, targetSkill.targetQuery, { reach })
+      .find((candidate) => legalIds.has(candidate.instanceId));
+    if (selected) return [selected];
+  }
+  return fallback;
+}
+
 function performAction(state, actor, choice) {
   const { skill, targets, costs } = choice;
   const rt = makeRuntime(state);
+  const declaredReach = actionReach(skill);
+  const baseTarget = targets[0] ?? null;
+  const baseTargetStatusSnapshots = Object.fromEntries(
+    Object.entries(state.content.statuses ?? {})
+      .filter(([, definition]) => definition.consumeOnAllyActiveAttackBaseTarget)
+      .map(([statusId]) => [statusId, baseTarget ? statusStacks(baseTarget, statusId) : 0]),
+  );
   const frame = {
     kind: "action",
     canceled: false,
@@ -1006,7 +1143,26 @@ function performAction(state, actor, choice) {
     skillId: skill.id,
     sourceActorId: actor.instanceId,
     targetActorIds: targets.map((target) => target.instanceId),
+    baseTargetActorIds: baseTarget ? [baseTarget.instanceId] : [],
+    baseTargetStatusSnapshots,
+    baseTargetHasNegativeStatusAtSelection: Boolean(baseTarget?.statuses.some((status) => (
+      status.stacks > 0 && state.content.statuses[status.statusId]?.polarity === "negative"
+    ))),
+    memory: {},
+    skill,
+    owner: actor,
+    reach: declaredReach,
   };
+  for (const effect of skill.effects ?? []) {
+    const condition = effect.amount?.targetConditionalCoefficient;
+    if (!condition) continue;
+    const results = (condition.conditions ?? []).map((entry) => (
+      baseTarget ? actorMeetsTargetCondition(state, baseTarget, entry) : false
+    ));
+    frame.memory[condition.memoryKey] = condition.mode === "all"
+      ? results.length > 0 && results.every(Boolean)
+      : results.some(Boolean);
+  }
   state.currentPendingAction = frame;
   const baseCtx = () => ({
     owner: actor,
@@ -1029,7 +1185,9 @@ function performAction(state, actor, choice) {
         targetActorIds: [],
         sourceDefinitionId: actor.definitionId,
         skillId: skill.id,
-        tags: skill.tags,
+        // R25 — pre-action passives (dash-in, ranged setup, support hooks) read
+        // the resolved reach class rather than a weapon or active-skill ID.
+        tags: [...new Set([...(skill.tags ?? []), declaredReach])],
         values: { apCost: skill.apCost, targetCount: frame.targetActorIds.length },
       },
       frame,
@@ -1052,14 +1210,43 @@ function performAction(state, actor, choice) {
     );
     if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
 
+    const attack = (skill.effects ?? []).find((effect) => effect.type === "deal_damage"
+      && (effect.tags ?? []).includes("attack"));
+    if (attack) {
+      const planOpened = emit(state, {
+        type: "attack_plan_opened",
+        sourceActorId: actor.instanceId,
+        targetActorIds: [...frame.targetActorIds],
+        sourceDefinitionId: actor.definitionId,
+        skillId: skill.id,
+        tags: [...new Set([...(skill.tags ?? []), "attack_plan_opened"])],
+        values: {
+          baseTargetCount: frame.targetActorIds.length,
+          targetPattern: attack.targetPattern ?? "single",
+          baseHitCount: attack.hitCount ?? 1,
+        },
+      }, frame);
+      if (skill.attackPlanModifiers?.length) {
+        applyEffects(rt, { ...baseCtx(), event: planOpened, pending: frame }, skill.attackPlanModifiers);
+      }
+      if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
+    }
+
     // §11.4-8 — cancel, target and cost are all re-checked after the interrupts.
+    // Most actions require a living target. A generic revive effect is the one
+    // deliberate exception: its target query may select a defeated actor so a
+    // finite rescue action can resolve against the same frame. This is driven
+    // by effect vocabulary, never by a weapon or skill id.
+    const canTargetDefeated = (skill.effects ?? []).some((effect) => effect.type === "revive")
+      || (skill.preparation?.completionEffects ?? []).some((effect) => effect.type === "revive");
     const finalTargets = frame.targetActorIds
       .map((instanceId) => getActor(state, instanceId))
-      .filter((target) => target !== null && target.alive);
+      .filter((target) => target !== null && (target.alive || canTargetDefeated));
     if (finalTargets.length === 0) return cancelAction(state, actor, skill, frame, "no_target");
     if (!canPayCosts(rt, baseCtx(), costs)) return cancelAction(state, actor, skill, frame, "cost");
 
     payCosts(rt, baseCtx(), costs);
+    spendSkillUse(actor, skill);
     emit(state, {
       type: "action_cost_paid",
       sourceActorId: actor.instanceId,
@@ -1077,8 +1264,14 @@ function performAction(state, actor, choice) {
       sourceDefinitionId: actor.definitionId,
       skillId: skill.id,
       tags: skill.tags,
-      values: { targetCount: frame.targetActorIds.length },
+      values: {
+        targetCount: frame.targetActorIds.length,
+        plannedTargetCount: frame.attackPlan?.extraTargetActorIds
+          ? new Set([...frame.targetActorIds, ...frame.attackPlan.extraTargetActorIds]).size
+          : frame.targetActorIds.length,
+      },
     });
+    frame.attackId = started.id;
 
     bumpHistory(actor, "active_actions", 1);
     recordTargeted(actor, frame.targetActorIds[0]);
@@ -1097,23 +1290,64 @@ function performAction(state, actor, choice) {
           sourceDefinitionId: actor.definitionId,
         });
       }
+      resolveScheduledReturns(rt, effectCtx, frame);
     } finally {
       state.parentEventId = previousParent;
     }
 
+    consumeActionBaseTargetStatuses(state, actor, frame);
     emit(state, {
       type: "action_resolved",
       sourceActorId: actor.instanceId,
-      targetActorIds: [...frame.targetActorIds],
+      targetActorIds: [...new Set([
+        ...frame.targetActorIds,
+        ...(frame.resolvedDamageTargetActorIds ?? []),
+      ])],
       sourceDefinitionId: actor.definitionId,
       skillId: skill.id,
       tags: skill.tags,
-      values: { targetCount: frame.targetActorIds.length },
+      values: {
+        targetCount: frame.targetActorIds.length,
+        baseTargetActorIds: [...frame.baseTargetActorIds],
+        ...(frame.attackId ? { attackId: frame.attackId } : {}),
+        ...(frame.resolvedAttackIds?.length ? { attackIds: [...new Set(frame.resolvedAttackIds)] } : {}),
+      },
     });
   } finally {
+    // A pre-action temporary move may be scheduled by action_declared. Even if
+    // a later interrupt cancels the action or removes its target, the actor
+    // must not remain in the dangerous row merely because normal effects did
+    // not run. Normal resolution already clears this list, so this is idempotent.
+    if (frame.scheduledReturns?.length) resolveScheduledReturns(rt, baseCtx(), frame);
     state.currentPendingAction = null;
   }
   return undefined;
+}
+
+function consumeActionBaseTargetStatuses(state, actor, frame) {
+  const hasActiveAttack = (frame.skill?.effects ?? []).some((effect) => effect.type === "deal_damage"
+    && (effect.tags ?? []).includes("attack"));
+  if (actor.side !== "ally" || !hasActiveAttack) return;
+  for (const [statusId, definition] of Object.entries(state.content.statuses ?? {})) {
+    if (!definition.consumeOnAllyActiveAttackBaseTarget
+        || (frame.skill.preserveStatusIdsOnResolve ?? []).includes(statusId)
+        || !(frame.baseTargetStatusSnapshots?.[statusId] > 0)) continue;
+    const target = getActor(state, frame.baseTargetActorIds?.[0]);
+    const existing = target?.statuses.find((status) => status.statusId === statusId);
+    if (!existing || existing.stacks <= 0) continue;
+    existing.stacks -= 1;
+    const remaining = existing.stacks;
+    if (remaining === 0) target.statuses = target.statuses.filter((status) => status !== existing);
+    emit(state, {
+      type: "status_removed",
+      sourceActorId: actor.instanceId,
+      targetActorIds: [target.instanceId],
+      sourceDefinitionId: actor.definitionId,
+      skillId: frame.skill.id,
+      tags: ["effect", definition.polarity],
+      values: { statusId, removed: 1, remaining, cause: "ally_active_attack_base_target" },
+    });
+  }
 }
 
 function cancelAction(state, actor, skill, frame, reason) {
@@ -1160,6 +1394,14 @@ function endRound(state) {
   });
   if (state.finished) return;
 
+  if (state.scheduledRoundReturns.length > 0) {
+    runChain(state, "round_return", () => resolveRoundReturns(makeRuntime(state)));
+    if (state.finished) return;
+  }
+
+  decayRoundEndStatuses(state);
+  if (state.finished) return;
+
   runChain(state, "resource_unused", () => {
     for (const actor of orderedActors(state)) {
       if (!actor.alive) continue;
@@ -1194,6 +1436,29 @@ function endRound(state) {
 
   state.roundsCompleted = state.round;
   checkOutcome(state);
+}
+
+function decayRoundEndStatuses(state) {
+  runChain(state, "status_decay", () => {
+    for (const actor of orderedActors(state)) {
+      for (const status of [...actor.statuses]) {
+        const definition = state.content.statuses[status.statusId];
+        if (!definition?.decayAtRoundEnd) continue;
+        const before = status.stacks;
+        const after = Math.floor(before / 2);
+        const removed = before - after;
+        if (removed <= 0) continue;
+        status.stacks = after;
+        if (after === 0) actor.statuses = actor.statuses.filter((entry) => entry !== status);
+        emit(state, {
+          type: "status_removed",
+          targetActorIds: [actor.instanceId],
+          tags: ["decay", definition.polarity],
+          values: { statusId: status.statusId, removed, remaining: after, cause: "round_end_half" },
+        });
+      }
+    }
+  });
 }
 
 // §11.6 offers an optional stalemate rule: end the battle when two consecutive
@@ -1297,6 +1562,7 @@ function buildResult(state, content) {
     ),
     barriers: actor.barriers.map((packet) => ({ amount: packet.amount, duration: packet.duration })),
     statuses: actor.statuses.map((status) => ({ statusId: status.statusId, stacks: status.stacks })),
+    skillUses: { ...actor.skillUses },
     preparation: actor.preparation
       ? { skillId: actor.preparation.skillId, stepsRemaining: actor.preparation.stepsRemaining }
       : null,
