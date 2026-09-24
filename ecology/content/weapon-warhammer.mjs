@@ -253,9 +253,7 @@ const PASSIVE = {
       {
         id: "warhammer_reverse_forging_damage_rule",
         listenTo: "damage_proposed", timing: "interrupt", priority: 43,
-        predicates: [SELF_IS_SOURCE, ATTACK_EVENT, {
-          type: "has_status", subject: "self", statusId: "fortified", op: "gte", value: 1,
-        }],
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT],
         costs: [], allowRepeatInChain: true,
         effects: [{
           type: "modify_pending_amount", operation: "increase",
@@ -265,7 +263,7 @@ const PASSIVE = {
             memoryKey: "status:fortified",
           },
         }],
-        limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
+        limit: { owner: "actor-instance + rule", scope: "chain", count: 128 },
       },
       {
         id: "warhammer_reverse_forging_snapshot_rule",
@@ -277,7 +275,7 @@ const PASSIVE = {
       {
         id: "warhammer_reverse_forging_spend_rule",
         listenTo: "action_resolved", timing: "after", priority: 95,
-        predicates: [SELF_IS_SOURCE, {
+        predicates: [SELF_IS_SOURCE, ATTACK_EVENT, {
           type: "has_status", subject: "self", statusId: "fortified", op: "gte", value: 1,
         }],
         costs: [],
@@ -297,7 +295,7 @@ const REACTIVE = {
     rules: [
       {
         id: "warhammer_ringing_iron_first_hit_rule",
-        listenTo: "damage_taken", timing: "after", priority: 60,
+        listenTo: "damage_resolved", timing: "after", priority: 60,
         predicates: [SELF_IS_SOURCE, ATTACK_EVENT, hitIndexIs(0), {
           type: "event_tag", tag: "plan_extra_damage", value: false,
         }],
@@ -310,7 +308,7 @@ const REACTIVE = {
       },
       {
         id: "warhammer_ringing_iron_followup_hit_rule",
-        listenTo: "damage_taken", timing: "after", priority: 61,
+        listenTo: "damage_resolved", timing: "after", priority: 61,
         predicates: [SELF_IS_SOURCE, ATTACK_EVENT,
           { type: "event_value", key: "hitIndex", op: "gte", value: 1 },
           { type: "event_tag", tag: "plan_extra_damage", value: false },
@@ -348,7 +346,7 @@ const TARGET = {
     flavorText: "まず、硬いものから壊す。",
     targetQuery: {
       scope: "enemies", filters: [{ type: "alive" }, { type: "has_defense" }],
-      sort: ["block_desc", "guard_desc", "distance_to_self_asc"], take: 1,
+      sort: ["has_block_desc", "guard_desc", "distance_to_self_asc"], take: 1,
     },
     tags: ["target", "defense", "warhammer", "playable"],
   }),

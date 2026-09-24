@@ -314,6 +314,7 @@ export const TARGET_SORT_TYPES = freeze([
   "barrier_asc",
   "barrier_desc",
   "block_desc",
+  "has_block_desc",
   "guard_desc",
   "position_asc",
   "position_desc",

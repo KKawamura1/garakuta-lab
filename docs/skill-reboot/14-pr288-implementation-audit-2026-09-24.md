@@ -16,6 +16,8 @@
 |---|---|---|---|
 | 初回 | PR #288 head d8f48aa のtreeから開始。全190件をカタログ順に照合する。 | 全190件 | 進行中 |
 | 1 | 戦槌の副対象追加を能力値基準へ修正。防御崩しの連鎖上限と、砕け音による同hit窓の再開を修正。 | 戦槌 AB1, AB2, BA1, BA2 と、後続で同じ共有窓を使う全節 | 再監査中 |
+| 2 | 戦槌のA2をhit解決イベントで判定。B1に受け構えの有無ソートを追加。BB2の攻撃限定スナップショット・消費を修正。 | 戦槌1–19 | 再監査完了 |
+| 3 | 格闘具の全19節を再照合し、追撃・防御吸収時の連携・拳順の対象連結を動作テストで確認。 | 格闘具20–38 | 再監査完了 |
 
 ## 個別技能一覧
 
@@ -23,49 +25,49 @@
 
 | # | 位置 | PR #287 名称 | PR #288 skill ID | 仕様照合 | 実装照合 | 動作検証 |
 |---:|---|---|---|---|---|---|
-| 1 | R | 槌打ち | warhammer_blow | ☐ | ☐ | ☐ |
-| 2 | A1 | 重い頭 | warhammer_heavy_head | ☐ | ☐ | ☐ |
-| 3 | A2 | 響く鉄 | warhammer_ringing_iron | ☐ | ☐ | ☐ |
-| 4 | A3 | 大槌打ち | warhammer_heavy_blow | ☐ | ☐ | ☐ |
-| 5 | AA1 | 鉄塊 | warhammer_iron_mass | ☐ | ☐ | ☐ |
-| 6 | AA2 | 深い衝撃 | warhammer_deep_impact | ☐ | ☐ | ☐ |
-| 7 | AA3 | 震天打ち | warhammer_heaven_blow | ☐ | ☐ | ☐ |
-| 8 | AB1 | 振り幅 | warhammer_wide_swing | ☐ | ☐ | ☐ |
-| 9 | AB2 | 横薙ぎ | warhammer_sweep | ☐ | ☐ | ☐ |
-| 10 | AB3 | 地割り | warhammer_earth_splitter | ☐ | ☐ | ☐ |
-| 11 | B1 | 鎧を指す | warhammer_point_at_armor | ☐ | ☐ | ☐ |
-| 12 | B2 | 打ち返し | warhammer_break_point | ☐ | ☐ | ☐ |
-| 13 | B3 | 破城打ち | warhammer_siege_blow | ☐ | ☐ | ☐ |
-| 14 | BA1 | 砕けた鎧 | warhammer_broken_armor | ☐ | ☐ | ☐ |
-| 15 | BA2 | 砕け音 | warhammer_breaking_sound | ☐ | ☐ | ☐ |
-| 16 | BA3 | 解体槌 | warhammer_dismantler | ☐ | ☐ | ☐ |
-| 17 | BB1 | 戦利の破片 | warhammer_trophy_fragment | ☐ | ☐ | ☐ |
-| 18 | BB2 | 逆鍛造 | warhammer_reverse_forging | ☐ | ☐ | ☐ |
-| 19 | BB3 | 王殺し | warhammer_kingslayer | ☐ | ☐ | ☐ |
+| 1 | R | 槌打ち | warhammer_blow | ☑ | ☑ | ☑ |
+| 2 | A1 | 重い頭 | warhammer_heavy_head | ☑ | ☑ | ☑ |
+| 3 | A2 | 響く鉄 | warhammer_ringing_iron | ☑ | ☑ | ☑ |
+| 4 | A3 | 大槌打ち | warhammer_heavy_blow | ☑ | ☑ | ☑ |
+| 5 | AA1 | 鉄塊 | warhammer_iron_mass | ☑ | ☑ | ☑ |
+| 6 | AA2 | 深い衝撃 | warhammer_deep_impact | ☑ | ☑ | ☑ |
+| 7 | AA3 | 震天打ち | warhammer_heaven_blow | ☑ | ☑ | ☑ |
+| 8 | AB1 | 振り幅 | warhammer_wide_swing | ☑ | ☑ | ☑ |
+| 9 | AB2 | 横薙ぎ | warhammer_sweep | ☑ | ☑ | ☑ |
+| 10 | AB3 | 地割り | warhammer_earth_splitter | ☑ | ☑ | ☑ |
+| 11 | B1 | 鎧を指す | warhammer_point_at_armor | ☑ | ☑ | ☑ |
+| 12 | B2 | 打ち返し | warhammer_break_point | ☑ | ☑ | ☑ |
+| 13 | B3 | 破城打ち | warhammer_siege_blow | ☑ | ☑ | ☑ |
+| 14 | BA1 | 砕けた鎧 | warhammer_broken_armor | ☑ | ☑ | ☑ |
+| 15 | BA2 | 砕け音 | warhammer_breaking_sound | ☑ | ☑ | ☑ |
+| 16 | BA3 | 解体槌 | warhammer_dismantler | ☑ | ☑ | ☑ |
+| 17 | BB1 | 戦利の破片 | warhammer_trophy_fragment | ☑ | ☑ | ☑ |
+| 18 | BB2 | 逆鍛造 | warhammer_reverse_forging | ☑ | ☑ | ☑ |
+| 19 | BB3 | 王殺し | warhammer_kingslayer | ☑ | ☑ | ☑ |
 
 ### 2. 格闘具（gauntlets）
 
 | # | 位置 | PR #287 名称 | PR #288 skill ID | 仕様照合 | 実装照合 | 動作検証 |
 |---:|---|---|---|---|---|---|
-| 20 | R | 正拳 | gauntlets_punch | ☐ | ☐ | ☐ |
-| 21 | A1 | 握り込み | gauntlets_grip | ☐ | ☐ | ☐ |
-| 22 | A2 | 追い拳 | gauntlets_chasing_fist | ☐ | ☐ | ☐ |
-| 23 | A3 | 二連拳 | gauntlets_double_punch | ☐ | ☐ | ☐ |
-| 24 | AA1 | 連打 | gauntlets_combo_fists | ☐ | ☐ | ☐ |
-| 25 | AA2 | 拳圧 | gauntlets_pressure | ☐ | ☐ | ☐ |
-| 26 | AA3 | 百裂 | gauntlets_hundred_fists | ☐ | ☐ | ☐ |
-| 27 | AB1 | 流し身 | gauntlets_knuckle_guard | ☐ | ☐ | ☐ |
-| 28 | AB2 | 打って守る | gauntlets_strike_guard | ☐ | ☐ | ☐ |
-| 29 | AB3 | 鉄身打ち | gauntlets_iron_body | ☐ | ☐ | ☐ |
-| 30 | B1 | 目を離さない | gauntlets_watch_target | ☐ | ☐ | ☐ |
-| 31 | B2 | 拳順 | gauntlets_streak | ☐ | ☐ | ☐ |
-| 32 | B3 | 畳み掛け | gauntlets_barrage | ☐ | ☐ | ☐ |
-| 33 | BA1 | 歩法 | gauntlets_footwork | ☐ | ☐ | ☐ |
-| 34 | BA2 | 空いた懐 | gauntlets_empty_pocket | ☐ | ☐ | ☐ |
-| 35 | BA3 | 飛び込み膝 | gauntlets_flying_knee | ☐ | ☐ | ☐ |
-| 36 | BB1 | 見取り | gauntlets_form_record | ☐ | ☐ | ☐ |
-| 37 | BB2 | 重ね構え | gauntlets_borrowed_stance | ☐ | ☐ | ☐ |
-| 38 | BB3 | 無手 | gauntlets_empty_hand | ☐ | ☐ | ☐ |
+| 20 | R | 正拳 | gauntlets_punch | ☑ | ☑ | ☑ |
+| 21 | A1 | 握り込み | gauntlets_grip | ☑ | ☑ | ☑ |
+| 22 | A2 | 追い拳 | gauntlets_chasing_fist | ☑ | ☑ | ☑ |
+| 23 | A3 | 二連拳 | gauntlets_double_punch | ☑ | ☑ | ☑ |
+| 24 | AA1 | 連打 | gauntlets_combo_fists | ☑ | ☑ | ☑ |
+| 25 | AA2 | 拳圧 | gauntlets_pressure | ☑ | ☑ | ☑ |
+| 26 | AA3 | 百裂 | gauntlets_hundred_fists | ☑ | ☑ | ☑ |
+| 27 | AB1 | 流し身 | gauntlets_knuckle_guard | ☑ | ☑ | ☑ |
+| 28 | AB2 | 打って守る | gauntlets_strike_guard | ☑ | ☑ | ☑ |
+| 29 | AB3 | 鉄身打ち | gauntlets_iron_body | ☑ | ☑ | ☑ |
+| 30 | B1 | 目を離さない | gauntlets_watch_target | ☑ | ☑ | ☑ |
+| 31 | B2 | 拳順 | gauntlets_streak | ☑ | ☑ | ☑ |
+| 32 | B3 | 畳み掛け | gauntlets_barrage | ☑ | ☑ | ☑ |
+| 33 | BA1 | 歩法 | gauntlets_footwork | ☑ | ☑ | ☑ |
+| 34 | BA2 | 空いた懐 | gauntlets_empty_pocket | ☑ | ☑ | ☑ |
+| 35 | BA3 | 飛び込み膝 | gauntlets_flying_knee | ☑ | ☑ | ☑ |
+| 36 | BB1 | 見取り | gauntlets_form_record | ☑ | ☑ | ☑ |
+| 37 | BB2 | 重ね構え | gauntlets_borrowed_stance | ☑ | ☑ | ☑ |
+| 38 | BB3 | 無手 | gauntlets_empty_hand | ☑ | ☑ | ☑ |
 
 ### 3. 射出器（launcher）
 

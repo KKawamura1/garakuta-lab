@@ -266,6 +266,53 @@ content.enemyActors.weapon_test_blocked = {
     limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
   }],
 };
+content.enemyActors.weapon_test_blocked_one_guard_30 = {
+  ...content.enemyActors.weapon_test_blocked,
+  id: "weapon_test_blocked_one_guard_30",
+  displayName: "高受け一枚構え試し台",
+  guard: 30,
+  intrinsicRules: content.enemyActors.weapon_test_blocked.intrinsicRules.map((rule) => ({
+    ...rule,
+    id: "weapon_test_blocked_one_guard_30_opening_rule",
+    effects: rule.effects.map((effect) => ({
+      ...effect,
+      amount: { ...effect.amount, value: 1 },
+    })),
+  })),
+};
+content.enemyActors.weapon_test_barrier_guard_200 = {
+  ...content.enemyActors.weapon_test_armored,
+  id: "weapon_test_barrier_guard_200",
+  displayName: "高受け防壁試し台",
+  guard: 200,
+  intrinsicRules: content.enemyActors.weapon_test_armored.intrinsicRules.map((rule) => ({
+    ...rule,
+    id: "weapon_test_barrier_guard_200_opening_rule",
+  })),
+};
+content.enemyActors.weapon_test_salvage_target = {
+  ...content.enemyActors.weapon_test_dummy,
+  id: "weapon_test_salvage_target",
+  displayName: "解体試験台",
+  guard: 20,
+  intrinsicRules: [{
+    id: "weapon_test_salvage_target_opening_rule",
+    listenTo: "round_started",
+    timing: "after",
+    priority: 1,
+    predicates: [],
+    costs: [],
+    effects: [
+      { type: "gain_barrier", target: { scope: "self", take: 1 }, amount: { type: "constant", value: 40 }, duration: "battle" },
+      { type: "gain_block", target: { scope: "self", take: 1 }, amount: { type: "constant", value: 3 } },
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "focused", stacks: 1 },
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "warded", stacks: 1 },
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "fortified", stacks: 1 },
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "armor_broken", stacks: 1 },
+    ],
+    limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+  }],
+};
 content.enemyActors.weapon_test_blessed = {
   ...content.enemyActors.weapon_test_dummy,
   id: "weapon_test_blessed",
@@ -392,6 +439,26 @@ content.characters.weapon_test_buff_giver = {
     limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
   }],
 };
+content.passiveSkills.weapon_test_consume_fortified_after_target = {
+  id: "weapon_test_consume_fortified_after_target",
+  displayName: "照準後の堅牢消費試験",
+  displayEffect: "対象決定後、攻撃者自身の堅牢をすべて解除する。",
+  flavorText: "攻撃開始時の記録と現在値を分ける試験。",
+  rules: [{
+    id: "weapon_test_consume_fortified_after_target_rule",
+    listenTo: "target_selected",
+    timing: "interrupt",
+    priority: 80,
+    predicates: [{
+      type: "target_exists",
+      query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
+    }],
+    costs: [],
+    effects: [{ type: "remove_status", target: { scope: "self", take: 1 }, statusId: "fortified", stacks: "all" }],
+    limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+  }],
+  tags: ["passive", "test"],
+};
 content.characters.weapon_test_block_giver = {
   ...content.characters.warden,
   id: "weapon_test_block_giver",
@@ -419,6 +486,19 @@ content.characters.weapon_test_gauntlet_stacks = {
       { type: "add_status", target: { scope: "self", take: 1 }, statusId: "dual_blades_reserved_blade", stacks: 5 },
       { type: "gain_block", target: { scope: "self", take: 1 }, amount: { type: "constant", value: 4 } },
     ],
+    limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+  }],
+};
+content.characters.weapon_test_gauntlet_combo_cap = {
+  ...content.characters.warden,
+  id: "weapon_test_gauntlet_combo_cap",
+  displayName: "連携上限試験員",
+  might: 200,
+  signatureRules: [{
+    id: "weapon_test_gauntlet_combo_cap_opening_rule",
+    listenTo: "round_started", timing: "after", priority: 1,
+    predicates: [], costs: [],
+    effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "gauntlets_combo", stacks: 300 }],
     limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
   }],
 };
@@ -801,14 +881,20 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     reactiveSkillIds: ["warhammer_wide_swing"],
     enemies: [
       { instanceId: "e_primary", enemyActorId: "weapon_test_dummy", position: "front_center" },
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
       { instanceId: "e_adjacent", enemyActorId: "weapon_test_dummy", position: "front_right" },
     ],
   }), content);
-  const extraHit = result.events.find((event) => event.type === "damage_proposed"
+  const extraHits = result.events.filter((event) => event.type === "damage_proposed"
     && event.tags.includes("plan_extra_damage"));
-  equal(extraHit?.targetActorIds[0], "e_adjacent", "wide swing adds the adjacent enemy to the plan");
-  equal(extraHit?.values.amount, 23,
-    "wide swing scales its 35% extra damage from might, not the active skill coefficient");
+  assert.deepEqual(extraHits.map((event) => event.targetActorIds[0]).sort(), ["e_adjacent", "e_left"],
+    "wide swing adds every valid horizontal neighbor to the fixed plan");
+  ok(extraHits.every((event) => event.values.amount === 23),
+    "wide swing scales each 35% extra hit from might, not the active skill coefficient");
+  equal(result.events.filter((event) => event.type === "resource_spent"
+    && event.values.resource === "reaction_points").length, 1,
+  "wide swing pays RP once for all added adjacent targets");
+  checks += 1;
 }
 
 {
@@ -858,6 +944,10 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(result.events.filter((event) => (
     event.type === "resource_spent" && event.values.resource === "reaction_points"
   )).length, 1, "ringing iron pays once on the first hit of another weapon");
+  equal(result.events.filter((event) => event.type === "status_added"
+    && ["warhammer_ringing_iron_first_hit_rule", "warhammer_ringing_iron_followup_hit_rule"].includes(event.ruleId)
+    && event.values.statusId === "staggered").length, 2,
+  "A2 applies at most two stagger instances across the whole borrowed attack");
   const dummy = result.actors.find((actor) => actor.instanceId === "e_dummy");
   equal(dummy.statuses.find((status) => status.statusId === "staggered")?.stacks, 3,
     "deep impact strengthens the first stagger and the fourth hit reaches stack three");
@@ -914,6 +1004,336 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
 }
 
 {
+  const nearest = simulateBattle(battle({
+    enemies: [
+      { instanceId: "e_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
+      { instanceId: "e_rear", enemyActorId: "weapon_test_dummy", position: "rear_center" },
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+    ],
+  }), content);
+  const proposal = nearest.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_blow");
+  equal(proposal?.targetActorIds[0], "e_left",
+    "R chooses the nearest legal enemy and resolves an equal-distance tie by fixed position");
+  equal(proposal?.values.amount, 63, "R deals the 100% might coefficient at front melee range");
+}
+
+{
+  const borrowed = simulateBattle(battle({
+    characterId: "tactician",
+    activeSkillId: "borrowed_four_hit",
+    passiveSkillIds: ["warhammer_heavy_head", "warhammer_iron_mass"],
+  }), content);
+  const firstHitBoosts = borrowed.events.filter((event) => event.type === "pending_amount_modified"
+    && ["warhammer_heavy_head_rule", "warhammer_iron_mass_rule"].includes(event.ruleId));
+  equal(firstHitBoosts.filter((event) => event.ruleId === "warhammer_heavy_head_rule").length, 1,
+    "A1 boosts only the first hit of a non-warhammer attack");
+  equal(firstHitBoosts.filter((event) => event.ruleId === "warhammer_iron_mass_rule").length, 1,
+    "AA1 boosts only the first hit of a non-warhammer attack");
+  ok(firstHitBoosts.every((event) => event.values.delta > 0),
+    "A1 and AA1 both increase the first hit when the owner uses another weapon");
+}
+
+{
+  const blockedFirstHit = simulateBattle(battle({
+    reactiveSkillIds: ["warhammer_ringing_iron"],
+    enemies: [{ instanceId: "e_block", enemyActorId: "weapon_test_blocked", position: "front_left" }],
+  }), content);
+  ok(blockedFirstHit.events.some((event) => event.type === "damage_resolved"
+    && event.values.result === "blocked" && event.targetActorIds[0] === "e_block"),
+  "A2 sees the first hit resolve even when block prevents HP damage");
+  equal(blockedFirstHit.events.filter((event) => event.type === "damage_taken"
+    && event.sourceActorId === "a_user").length, 0,
+  "A2 does not depend on an HP-damage-only event");
+  equal(blockedFirstHit.events.filter((event) => event.type === "resource_spent"
+    && event.values.resource === "reaction_points").length, 1,
+  "A2 spends RP once after a blocked first hit");
+  ok(blockedFirstHit.events.some((event) => event.type === "status_added"
+    && event.ruleId === "warhammer_ringing_iron_first_hit_rule"
+    && event.targetActorIds[0] === "e_block" && event.values.statusId === "staggered"),
+  "A2 applies its first stagger to the target of a blocked hit");
+}
+
+{
+  const base = simulateBattle(battle({}), content);
+  const heavy = simulateBattle(battle({ activeSkillId: "warhammer_heavy_blow" }), content);
+  const heaven = simulateBattle(battle({
+    activeSkillId: "warhammer_heaven_blow",
+    enemies: [
+      { instanceId: "e_far", enemyActorId: "weapon_test_dummy", position: "front_right" },
+      { instanceId: "e_near", enemyActorId: "weapon_test_dummy", position: "front_left" },
+    ],
+  }), content);
+  const baseAmount = base.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_blow").values.amount;
+  const heavyAmount = heavy.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_heavy_blow").values.amount;
+  const heavenAmount = heaven.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_heaven_blow").values.amount;
+  ok(Math.abs(heavyAmount * 100 - baseAmount * 170) <= baseAmount * 2,
+    "A3 replaces R with a 170% might attack");
+  ok(Math.abs(heavenAmount * 100 - baseAmount * 220) <= baseAmount * 2,
+    "AA3 replaces A3 with a 220% nearest-target attack");
+  equal(heaven.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_heaven_blow")?.targetActorIds[0], "e_near",
+  "AA3 chooses the nearest enemy from its fixed legal target set");
+
+  const targetedA3 = simulateBattle(battle({
+    activeSkillId: "warhammer_heavy_blow",
+    targetSkillIds: ["warhammer_point_at_armor"],
+    enemies: [
+      { instanceId: "e_plain", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_armored", enemyActorId: "weapon_test_armored", position: "front_right" },
+    ],
+  }), content);
+  equal(targetedA3.events.find((event) => event.type === "target_selected"
+    && event.skillId === "warhammer_heavy_blow")?.targetActorIds[0], "e_armored",
+  "A3 follows the target priority column when it replaces R");
+}
+
+{
+  const noNeighbor = simulateBattle(battle({
+    reactiveSkillIds: ["warhammer_wide_swing"],
+  }), content);
+  equal(noNeighbor.events.filter((event) => event.type === "resource_spent"
+    && event.values.resource === "reaction_points").length, 0,
+  "AB1 does not spend RP when no adjacent valid enemy can be added");
+  equal(noNeighbor.events.filter((event) => event.type === "damage_proposed"
+    && event.tags.includes("plan_extra_damage")).length, 0,
+  "AB1 leaves a single-target plan unchanged when its condition fails");
+}
+
+{
+  const swept = simulateBattle(battle({
+    reactiveSkillIds: ["warhammer_wide_swing"],
+    passiveSkillIds: ["warhammer_sweep"],
+    enemies: [
+      { instanceId: "e_primary", enemyActorId: "weapon_test_dummy", position: "front_center" },
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_adjacent", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  const sweepChanges = swept.events.filter((event) => event.type === "pending_amount_modified"
+    && event.ruleId === "warhammer_sweep_rule");
+  equal(sweepChanges.length, 3, "AB2 increases the primary and every AB1 extra-target hit");
+  ok(sweepChanges.every((event) => event.values.delta === Math.floor(event.values.before * 15 / 100)),
+    "AB2 applies 15% to each planned target before hit resolution");
+  ok(swept.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user").every((event) => event.values.plannedTargetCount === 3),
+  "AB2 counts distinct planned enemy IDs across both AB1 extra targets");
+
+  const manyHitsOneTarget = simulateBattle(battle({
+    characterId: "tactician",
+    activeSkillId: "borrowed_four_hit",
+    passiveSkillIds: ["warhammer_sweep"],
+  }), content);
+  equal(manyHitsOneTarget.events.filter((event) => event.type === "pending_amount_modified"
+    && event.ruleId === "warhammer_sweep_rule").length, 0,
+  "AB2 does not mistake repeated hits on one enemy for a multi-target plan");
+}
+
+{
+  const row = simulateBattle(battle({
+    activeSkillId: "warhammer_earth_splitter",
+    enemies: [
+      { instanceId: "e_left", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_right", enemyActorId: "weapon_test_dummy", position: "front_right" },
+      { instanceId: "e_rear", enemyActorId: "weapon_test_dummy", position: "rear_center" },
+    ],
+  }), content);
+  const proposals = row.events.filter((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_earth_splitter");
+  assert.deepEqual(proposals.map((event) => event.targetActorIds[0]).sort(), ["e_left", "e_right"]);
+  const rootAmount = simulateBattle(battle({}), content).events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_blow").values.amount;
+  ok(proposals.every((event) => Math.abs(event.values.amount * 100 - rootAmount * 160) <= rootAmount * 2),
+    "AB3 hits the anchored enemy row for 160% might and does not reach the rear row");
+  checks += 1;
+}
+
+{
+  const armorTarget = simulateBattle(battle({
+    position: "rear_left",
+    targetSkillIds: ["warhammer_point_at_armor"],
+    enemies: [
+      { instanceId: "e_many_blocks", enemyActorId: "weapon_test_blocked", position: "front_left" },
+      { instanceId: "e_one_block_high_guard", enemyActorId: "weapon_test_blocked_one_guard_30", position: "front_center" },
+      { instanceId: "e_barrier_high_guard", enemyActorId: "weapon_test_barrier_guard_200", position: "front_right" },
+    ],
+  }), content);
+  const selected = armorTarget.events.find((event) => event.type === "target_selected"
+    && event.skillId === "warhammer_blow");
+  equal(selected?.targetActorIds[0], "e_one_block_high_guard",
+    "B1 prioritizes block presence, then guard, before block count, distance, and barrier-only targets");
+
+  const fallback = simulateBattle(battle({
+    targetSkillIds: ["warhammer_point_at_armor"],
+    enemies: [
+      { instanceId: "e_near", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_far", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  equal(fallback.events.find((event) => event.type === "target_selected"
+    && event.skillId === "warhammer_blow")?.targetActorIds[0], "e_near",
+  "B1 returns no candidate without defense so the active falls through to its normal nearest target");
+}
+
+{
+  const counter = simulateBattle(battle({
+    allies: [
+      allyInput("a_counter", "warden", "weapon_test_utility", "rear_left", {
+        reactiveSkillIds: ["warhammer_break_point", "warhammer_ringing_iron"],
+        passiveSkillIds: ["warhammer_deep_impact"],
+      }),
+      allyInput("a_wounded", "warden", "weapon_test_utility", "front_left", { hp: 250 }),
+    ],
+    enemies: [{ instanceId: "e_row", enemyActorId: "weapon_test_row_attacker", position: "front_center" }],
+  }), content);
+  equal(counter.events.filter((event) => event.type === "damage_taken"
+    && event.sourceActorId === "e_row" && event.targetActorIds[0] === "a_wounded").length, 2,
+  "B2 waits for actual HP damage from the enemy's two-hit attack");
+  const counterHit = counter.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_counter" && event.tags.includes("counter"));
+  equal(counterHit.length, 1, "B2 retaliates once per chain against a different ally's attacker");
+  ok(counterHit.every((event) => !event.tags.includes("attack")),
+    "B2 retaliation is not treated as an attack action");
+  equal(counter.events.filter((event) => event.type === "resource_spent"
+    && event.values.resource === "reaction_points").length, 1,
+  "B2 pays once, and its counter does not recursively trigger A2");
+  ok(counter.events.some((event) => event.type === "status_added"
+    && event.ruleId === "warhammer_break_point_rule"
+    && event.targetActorIds[0] === "e_row" && event.values.statusId === "staggered"),
+  "B2 staggers the living attacker after the counter damage");
+  ok(counter.events.some((event) => event.type === "status_added"
+    && event.ruleId === "warhammer_deep_impact_rule"
+    && event.targetActorIds[0] === "e_row" && event.values.statusId === "staggered"),
+  "AA2 strengthens B2's cross-weapon stagger");
+}
+
+{
+  const siege = simulateBattle(battle({
+    activeSkillId: "warhammer_siege_blow",
+    passiveSkillIds: ["warhammer_trophy_fragment"],
+    enemies: [{ instanceId: "e_salvage", enemyActorId: "weapon_test_salvage_target", position: "front_left" }],
+  }), content);
+  const proposalIndex = siege.events.findIndex((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_siege_blow");
+  const defenseRemovalIndices = siege.events.map((event, index) => (
+    ["barrier_broken", "block_spent"].includes(event.type)
+      && event.targetActorIds[0] === "e_salvage" && event.tags.includes("effect") ? index : -1
+  )).filter((index) => index >= 0);
+  ok(defenseRemovalIndices.length >= 2 && defenseRemovalIndices.every((index) => index < proposalIndex),
+    "B3 removes barrier and block before its 130% hit");
+  const siegeAmount = siege.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_siege_blow").values.amount;
+  const rootAmount = simulateBattle(battle({}), content).events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_blow").values.amount;
+  ok(Math.abs(siegeAmount * 100 - rootAmount * 130) <= rootAmount * 2,
+    "B3 applies its 130% might coefficient");
+  equal(siege.events.filter((event) => event.type === "block_spent"
+    && event.targetActorIds[0] === "e_salvage" && event.tags.includes("effect")).at(-1)?.values.after, 0,
+  "B3 removes every block charge");
+  equal(siege.events.filter((event) => event.type === "status_added"
+    && event.ruleId === "warhammer_trophy_fragment_block_rule"
+    && event.targetActorIds[0] === "a_user").reduce((sum, event) => sum + event.values.added, 0), 6,
+  "BB1 gains fortified two for each of B3's three removed block charges, while barrier gives none");
+}
+
+{
+  for (const [skillId, coefficient] of [
+    ["warhammer_dismantler", 170],
+    ["warhammer_kingslayer", 180],
+  ]) {
+    const dismantled = simulateBattle(battle({
+      activeSkillId: skillId,
+      enemies: [{ instanceId: "e_salvage", enemyActorId: "weapon_test_salvage_target", position: "front_left" }],
+    }), content);
+    const proposal = dismantled.events.find((event) => event.type === "damage_proposed"
+      && event.skillId === skillId);
+    const baseline = simulateBattle(battle({}), content).events.find((event) => event.type === "damage_proposed"
+      && event.skillId === "warhammer_blow").values.amount;
+    ok(Math.abs(proposal.values.amount * 100 - baseline * coefficient) <= baseline * 2,
+      `${skillId} uses its catalog ${coefficient}% might coefficient`);
+    const target = dismantled.actors.find((actor) => actor.instanceId === "e_salvage");
+    equal(dismantled.events.filter((event) => event.type === "block_spent"
+      && event.targetActorIds[0] === "e_salvage" && event.tags.includes("effect")).at(-1)?.values.after, 0,
+    `${skillId} removes all block charges before damage`);
+    equal(target.barriers.length, 0, `${skillId} removes barrier before damage`);
+    equal(target.guard, 20, `${skillId} preserves the target's base guard`);
+    const negativeStatusRemovedBeforeHit = dismantled.events.some((event, index) => (
+      event.type === "status_removed" && event.targetActorIds[0] === "e_salvage"
+        && event.values.statusId === "armor_broken"
+        && index < dismantled.events.findIndex((entry) => entry.type === "damage_proposed"
+          && entry.skillId === skillId)
+    ));
+    ok(!negativeStatusRemovedBeforeHit,
+      `${skillId} preserves negative armor-broken through damage calculation`);
+    const hpDamage = dismantled.events.find((event) => event.type === "damage_taken"
+      && event.skillId === skillId && event.targetActorIds[0] === "e_salvage");
+    equal(hpDamage?.values.guardApplied, target.guard - 1,
+      `${skillId} keeps negative armor-broken effective while preserving base guard`);
+    ok(!target.statuses.some((status) => ["focused", "warded", "fortified"].includes(status.statusId)),
+      `${skillId} removes every positive buff`);
+    ok(dismantled.events.findIndex((event) => event.type === "damage_proposed"
+      && event.skillId === skillId) > dismantled.events.findLastIndex((event) => (
+      ["barrier_broken", "block_spent", "status_removed"].includes(event.type)
+        && event.targetActorIds[0] === "e_salvage" && event.tags.includes("effect")
+    )), `${skillId} resolves all removals before its hit`);
+  }
+}
+
+{
+  const reverseForging = simulateBattle(battle({
+    characterId: "weapon_test_buff_giver",
+    activeSkillId: "borrowed_four_hit",
+    passiveSkillIds: ["warhammer_reverse_forging"],
+  }), content);
+  const proposals = reverseForging.events.filter((event) => event.type === "damage_proposed"
+    && event.skillId === "borrowed_four_hit");
+  const boosts = reverseForging.events.filter((event) => event.type === "pending_amount_modified"
+    && event.ruleId === "warhammer_reverse_forging_damage_rule");
+  equal(boosts.length, 4, "BB2 applies its attack-start snapshot to every hit in the attack");
+  ok(boosts.every((event) => event.values.delta === Math.floor(
+    proposals.find((proposal) => proposal.id === event.values.proposalEventId).values.amount * 45 / 100,
+  )), "BB2 uses the same three-stack snapshot even as the attack resolves");
+  const lastHit = Math.max(...reverseForging.events.map((event, index) => (
+    event.type === "damage_resolved" && event.sourceActorId === "a_user" ? index : -1
+  )));
+  const spent = reverseForging.events.findIndex((event) => event.type === "status_removed"
+    && event.ruleId === "warhammer_reverse_forging_spend_rule"
+    && event.values.statusId === "fortified");
+  ok(spent > lastHit, "BB2 consumes all fortified after its attack has resolved");
+  equal(reverseForging.events[spent].values.removed, 3, "BB2 consumes every starting fortified stack");
+
+  const removedAfterSnapshot = simulateBattle(battle({
+    characterId: "weapon_test_buff_giver",
+    activeSkillId: "warhammer_blow",
+    passiveSkillIds: [
+      "warhammer_reverse_forging",
+      "weapon_test_consume_fortified_after_target",
+    ],
+  }), content);
+  const proposal = removedAfterSnapshot.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "warhammer_blow");
+  const snapshotBoost = removedAfterSnapshot.events.find((event) => event.type === "pending_amount_modified"
+    && event.ruleId === "warhammer_reverse_forging_damage_rule");
+  equal(removedAfterSnapshot.events.find((event) => event.type === "status_removed"
+    && event.ruleId === "weapon_test_consume_fortified_after_target_rule")?.values.removed, 3,
+  "test reaction removes fortified after the attack-start snapshot");
+  equal(snapshotBoost?.values.delta, Math.floor(proposal.values.amount * 45 / 100),
+    "BB2 still uses the saved attack-start fortified after a mid-plan removal");
+
+  const utility = simulateBattle(battle({
+    characterId: "weapon_test_buff_giver",
+    activeSkillId: "weapon_test_utility",
+    passiveSkillIds: ["warhammer_reverse_forging"],
+  }), content);
+  equal(utility.events.filter((event) => event.type === "status_removed"
+    && event.ruleId === "warhammer_reverse_forging_spend_rule").length, 0,
+  "BB2 does not consume fortified after a non-attack utility action");
+}
+
+{
   const gauntletsCombo = simulateBattle(battle({
     activeSkillId: "gauntlets_punch",
     reactiveSkillIds: ["gauntlets_chasing_fist"],
@@ -922,9 +1342,14 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(gauntletsCombo.events.filter((event) => (
     event.type === "damage_proposed" && event.sourceActorId === "a_user"
   )).length, 3, "AA1 adds one hit to A2's two-hit follow-up");
-  ok(gauntletsCombo.events.some((event) => (
-    event.type === "damage_proposed" && event.tags.includes("extra_hit")
-  )), "A2 follow-up hits are explicitly marked so they cannot retrigger A2");
+  const followUps = gauntletsCombo.events.filter((event) => event.type === "damage_proposed"
+    && event.tags.includes("extra_hit"));
+  equal(followUps.length, 2, "AA1 makes A2's follow-up two hits");
+  const primary = gauntletsCombo.events.find((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && !event.tags.includes("extra_hit"));
+  ok(followUps.every((event) => event.tags.includes("attack")
+    && Math.abs(event.values.amount * 90 - primary.values.amount * 50) <= primary.values.amount * 2),
+  "AA1 preserves the 50% coefficient and non-recursive extra-hit tag on both follow-ups");
 }
 
 {
@@ -959,6 +1384,22 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(earnedBarrier.length, 2, "AB2 grants barrier once after each resolved hit");
   equal(earnedBarrier.reduce((sum, event) => sum + event.values.amount, 0), 8,
     "AB2 grants barrier 4 per hit rather than a fixed post-action amount");
+
+  const blockedHits = simulateBattle(battle({
+    activeSkillId: "gauntlets_double_punch",
+    passiveSkillIds: ["gauntlets_strike_guard", "gauntlets_streak"],
+    enemies: [{ instanceId: "e_block", enemyActorId: "weapon_test_blocked", position: "front_left" }],
+  }), content);
+  equal(blockedHits.events.filter((event) => event.type === "damage_resolved"
+    && event.skillId === "gauntlets_double_punch" && event.values.result === "blocked").length, 2,
+  "B2 and AB2 receive both block-resolved hits, even with no HP damage");
+  equal(blockedHits.events.filter((event) => event.type === "status_added"
+    && event.ruleId === "gauntlets_streak_hit_rule"
+    && event.values.statusId === "gauntlets_combo").length, 2,
+  "B2 adds one combo per resolved hit through block");
+  equal(blockedHits.events.filter((event) => event.type === "barrier_gained"
+    && event.ruleId === "gauntlets_strike_guard_rule").length, 2,
+  "AB2 grants barrier after each block-resolved hit");
 }
 
 {
@@ -972,6 +1413,13 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(nearest.events.find((event) => event.type === "target_selected"
     && event.skillId === "gauntlets_punch").targetActorIds[0], "e_nearest",
   "R selects the nearest valid enemy before fixed position order");
+  const punchAmount = nearest.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "gauntlets_punch").values.amount;
+  const warhammerAmount = simulateBattle(battle({ activeSkillId: "warhammer_blow" }), content)
+    .events.find((event) => event.type === "damage_proposed"
+      && event.skillId === "warhammer_blow").values.amount;
+  ok(Math.abs(punchAmount * 100 - warhammerAmount * 90) <= warhammerAmount * 2,
+    "R applies its 90% might coefficient");
 }
 
 {
@@ -984,9 +1432,43 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(hits.length, 2, "A2 adds exactly one follow-up hit to a one-hit melee attack");
   equal(hits.filter((event) => event.tags.includes("extra_hit")).length, 1,
     "A2's follow-up is marked to prevent recursion");
+  const primaryAmount = hits.find((event) => !event.tags.includes("extra_hit")).values.amount;
+  const followUpAmount = hits.find((event) => event.tags.includes("extra_hit")).values.amount;
+  ok(Math.abs(followUpAmount * 90 - primaryAmount * 50) <= primaryAmount * 2,
+    "A2 deals 50% might on its follow-up hit");
   equal(followUp.events.filter((event) => event.type === "resource_spent"
     && event.values.resource === "reaction_points").length, 1,
   "A2 spends one RP once for the action");
+
+  const blockedFollowUp = simulateBattle(battle({
+    activeSkillId: "gauntlets_punch",
+    reactiveSkillIds: ["gauntlets_chasing_fist"],
+    enemies: [{ instanceId: "e_block", enemyActorId: "weapon_test_blocked", position: "front_left" }],
+  }), content);
+  ok(blockedFollowUp.events.some((event) => event.type === "damage_resolved"
+    && event.values.result === "blocked" && event.targetActorIds[0] === "e_block"),
+  "A2 recognizes a first hit resolved by block");
+  equal(blockedFollowUp.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user").length, 2,
+  "A2 still creates its one follow-up from a blocked first hit");
+  equal(blockedFollowUp.events.filter((event) => event.type === "resource_spent"
+    && event.values.resource === "reaction_points").length, 1,
+  "A2 pays once for its blocked-hit follow-up");
+
+  const expandedPlan = simulateBattle(battle({
+    activeSkillId: "warhammer_heavy_blow",
+    reactiveSkillIds: ["gauntlets_chasing_fist", "warhammer_wide_swing"],
+    enemies: [
+      { instanceId: "e_primary", enemyActorId: "weapon_test_dummy", position: "front_center" },
+      { instanceId: "e_adjacent", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  equal(expandedPlan.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && event.tags.includes("extra_hit")).length, 0,
+  "A2 does not add a follow-up when the original single-target attack has an expanded target plan");
+  equal(expandedPlan.events.filter((event) => event.type === "resource_spent"
+    && event.values.resource === "reaction_points").length, 1,
+  "only the wide-swing target expansion spends RP on the multi-target plan");
 }
 
 {
@@ -998,6 +1480,14 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     && event.ruleId === "gauntlets_grip_rule");
   equal(gripChanges.length, 1, "A1 affects every hit after hit 1, not the first hit");
   ok(gripChanges[0].values.delta > 0, "A1 adds 10% of the later hit's damage proposal");
+  const twoPunches = grip.events.filter((event) => event.type === "damage_proposed"
+    && event.skillId === "gauntlets_double_punch");
+  const rootPunch = simulateBattle(battle({ activeSkillId: "gauntlets_punch" }), content)
+    .events.find((event) => event.type === "damage_proposed"
+      && event.skillId === "gauntlets_punch").values.amount;
+  equal(twoPunches.length, 2, "A3 makes exactly two hits against the selected enemy");
+  ok(twoPunches.every((event) => Math.abs(event.values.amount * 90 - rootPunch * 65) <= rootPunch * 2),
+    "A3 applies the 65% might coefficient to each hit");
 }
 
 {
@@ -1041,6 +1531,14 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(fourFists.events.filter((event) => event.type === "resource_spent"
     && event.values.resource === "reaction_points").length, 1,
   "AA3's four-hit plan does not multiply A2's RP cost");
+  const fourPrimaryHits = fourFists.events.filter((event) => event.type === "damage_proposed"
+    && event.skillId === "gauntlets_hundred_fists" && !event.tags.includes("extra_hit"));
+  const rootPunch = simulateBattle(battle({ activeSkillId: "gauntlets_punch" }), content)
+    .events.find((event) => event.type === "damage_proposed"
+      && event.skillId === "gauntlets_punch").values.amount;
+  equal(fourPrimaryHits.length, 4, "AA3 keeps four primary hits separate from the A2 follow-up");
+  ok(fourPrimaryHits.every((event) => Math.abs(event.values.amount * 90 - rootPunch * 65) <= rootPunch * 2),
+    "AA3 applies the 65% might coefficient to all four primary hits");
 }
 
 {
@@ -1105,6 +1603,13 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     && event.skillId === "gauntlets_iron_body");
   equal(gained?.values.amount, dealt?.values.hpDamage,
     "AB3's barrier equals actual HP damage after the enemy's existing barrier");
+  const ironBodyAmount = ironBody.events.find((event) => event.type === "damage_proposed"
+    && event.skillId === "gauntlets_iron_body").values.amount;
+  const rootPunch = simulateBattle(battle({ activeSkillId: "gauntlets_punch" }), content)
+    .events.find((event) => event.type === "damage_proposed"
+      && event.skillId === "gauntlets_punch").values.amount;
+  ok(Math.abs(ironBodyAmount * 90 - rootPunch * 140) <= rootPunch * 2,
+    "AB3 applies its 140% might coefficient before converting actual HP damage to barrier");
 }
 
 {
@@ -1172,6 +1677,15 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   equal(defeatedTarget.actors.find((actor) => actor.instanceId === "a_user")
     .statuses.find((status) => status.statusId === "gauntlets_combo"), undefined,
   "B2 clears its target-linked stacks when that target is defeated mid-action");
+
+  const capped = simulateBattle(battle({
+    characterId: "weapon_test_gauntlet_combo_cap",
+    activeSkillId: "gauntlets_punch",
+    passiveSkillIds: ["gauntlets_streak"],
+  }), content);
+  equal(capped.actors.find((actor) => actor.instanceId === "a_user")
+    .statuses.find((status) => status.statusId === "gauntlets_combo")?.stacks, 300,
+  "B2 never exceeds the shared 300-stack combo cap");
 }
 
 {
@@ -1267,6 +1781,14 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
     "BB3 adds two linked combo stacks after hit, in addition to B2's one per hit");
   ok(!emptyHand.events.some((event) => event.type === "block_spent"
     && event.targetActorIds[0] === "a_user"), "BB3 counts block charges without consuming them");
+
+  const unlinked = simulateBattle(battle({
+    characterId: "weapon_test_gauntlet_stacks",
+    activeSkillId: "gauntlets_empty_hand",
+  }), content);
+  equal(unlinked.actors.find((actor) => actor.instanceId === "a_user")
+    .statuses.find((status) => status.statusId === "gauntlets_combo")?.stacks, 2,
+  "BB3 grants its extra combo only after hitting its linked enemy");
 }
 
 {

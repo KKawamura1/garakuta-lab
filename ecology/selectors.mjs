@@ -141,6 +141,7 @@ function sortValue(actor, sort, ctx) {
     case "barrier_asc": return totalBarrier(actor);
     case "barrier_desc": return -totalBarrier(actor);
     case "block_desc": return -(actor.block ?? 0);
+    case "has_block_desc": return (actor.block ?? 0) > 0 ? -1 : 0;
     case "guard_desc": return -(actor.guard ?? 0);
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
