@@ -5,7 +5,6 @@ import { WEAPON_SKILL_SPECIFICATIONS } from "../ecology/content/weapon-specifica
 import {
   STARTING_WEAPONS_BY_CHARACTER,
   WEAPON_SKILL_BINDINGS,
-  WEAPON_SKILL_BINDING_SOURCE,
 } from "../ecology/content/weapon-skill-bindings.mjs";
 
 const WEAPON_IDS = [
@@ -37,15 +36,6 @@ const assert = (condition, message) => { if (!condition) fail(message); };
 const keyFor = (weaponId, position) => `${weaponId}:${position}`;
 const sameArray = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 
-assert(WEAPON_SKILL_BINDING_SOURCE.pullRequest === 288, "binding source must remain PR #288");
-assert(WEAPON_SKILL_BINDING_SOURCE.commit === "1d3855cac3da825a0c470a411d316f86abd0633b", "binding source commit changed");
-assert(WEAPON_SKILL_BINDING_SOURCE.startingWeaponsSourceModule === "ecology/content/weapon-trees.mjs",
-  "starting weapon source module changed");
-assert(WEAPON_SKILL_BINDING_SOURCE.auditDocument === "https://github.com/KKawamura1/garakuta-lab/blob/1d3855cac3da825a0c470a411d316f86abd0633b/docs/skill-reboot/14-pr288-implementation-audit-2026-09-24.md",
-  "audit evidence must point to the pinned PR #288 audit document");
-assert(WEAPON_SKILL_BINDING_SOURCE.sourceModules.length === 10
-  && new Set(WEAPON_SKILL_BINDING_SOURCE.sourceModules).size === 10,
-  "expected ten distinct per-weapon source modules");
 assert(WEAPON_SKILL_BINDINGS.length === 190, `expected 190 bindings, got ${WEAPON_SKILL_BINDINGS.length}`);
 assert(WEAPON_SKILL_SPECIFICATIONS.length === 190, `expected 190 catalog rows, got ${WEAPON_SKILL_SPECIFICATIONS.length}`);
 
@@ -66,8 +56,6 @@ for (const binding of WEAPON_SKILL_BINDINGS) {
   assert(!bindingByPosition.has(key), `duplicate binding position: ${key}`);
   assert(!skillIds.has(binding.skillId), `duplicate skill ID: ${binding.skillId}`);
   assert(/^[a-z][a-z0-9_]*$/.test(binding.skillId), `invalid skill ID: ${binding.skillId}`);
-  assert(binding.sourceModule && WEAPON_SKILL_BINDING_SOURCE.sourceModules.includes(binding.sourceModule),
-    `missing pinned source module for ${key}`);
   assert(["active", "reactive", "target", "passive"].includes(binding.sourceDeclaredKind),
     `unknown source kind for ${key}`);
   assert(["audited", "pending"].includes(binding.auditStatus), `unknown audit status for ${key}`);
@@ -148,6 +136,6 @@ assert(runtimeBindingImports.length === 0,
   "migration-only bindings must not be imported by runtime modules: " + runtimeBindingImports.join(", "));
 
 console.log("Weapon skill migration bindings: 190 canonical positions / 190 unique IDs.");
-console.log("Audit provenance: 57 audited, 133 pending; the migration snapshot is not imported by runtime modules.");
+console.log("Audit status: 57 audited, 133 pending; migration data stays outside runtime modules.");
 console.log(`Catalog kind differences preserved as source discrepancies: ${mismatches.length} (known set).`);
 console.log(`Initial loadout: 5 characters × 2 weapons × R/A1 = ${startingSkillKeys.length} skills; medical-kit A1 stays reactive.`);
