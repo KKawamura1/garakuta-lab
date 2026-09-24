@@ -245,7 +245,7 @@ const PLAYER_SKILLS_BY_KIND = Object.freeze({
 // round-robin hit distribution, and explicit skipped-hit packet amounts.
 // R27 weapon completion: the remaining four weapons expose their full trees.
 // 医療具の主行動は防壁中心、蘇生は有限RPの反応へ置く。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-40";
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-41";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -341,7 +341,7 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
   // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.30",
+  contentVersion: "ecology-playable-full-0.31",
   characters: CHARACTERS,
   // Player skills are weapon-owned only. Enemy skills are registered separately
   // below and never leak into the player catalog.

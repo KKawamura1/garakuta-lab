@@ -183,7 +183,7 @@ const statsFor = (characterId) => characterStats(profile, characterId);
   equal(outcome({ warden: "rear_left", mender: "rear_right" }).result, "loss",
     "二人とも後列でも勝てない（前で受ける者がいないうえ、武器も落ちる）");
 
-  // **既定の配置では、ツグミが2ラウンド目に落ちる。**
+  // **既定の配置では、ツグミが2ラウンド目までに落ちる。**
   // ecology/app.js はこの拍で再生を打ち切って巻き戻しの会話へ渡すので、
   // 「誰が」「何ラウンド目に」倒れるかは演出の前提そのものである。
   const firstFall = first.events.find((event) => event.type === "actor_defeated"

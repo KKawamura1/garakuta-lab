@@ -18,6 +18,7 @@
 | 1 | 戦槌の副対象追加を能力値基準へ修正。防御崩しの連鎖上限と、砕け音による同hit窓の再開を修正。 | 戦槌 AB1, AB2, BA1, BA2 と、後続で同じ共有窓を使う全節 | 再監査中 |
 | 2 | 戦槌のA2をhit解決イベントで判定。B1に受け構えの有無ソートを追加。BB2の攻撃限定スナップショット・消費を修正。 | 戦槌1–19 | 再監査完了 |
 | 3 | 格闘具の全19節を再照合し、追撃・防御吸収時の連携・拳順の対象連結を動作テストで確認。 | 格闘具20–38 | 再監査完了 |
+| 4 | 射出器向けに技能効果／準備優先ターゲット選択、基準対象条件の選択時スナップショット、攻撃対象状態の消費・予約例外、陣営一意マーカー、露呈の共有ダメージ補正を追加。最寄り対象順に合わせprologue専用の敵配置・係数を調整。射出器19節をカタログ順に実装と照合。 | 戦槌1–19、格闘具20–38、射出器39–57 | 再監査完了 |
 
 ## 個別技能一覧
 
@@ -73,25 +74,25 @@
 
 | # | 位置 | PR #287 名称 | PR #288 skill ID | 仕様照合 | 実装照合 | 動作検証 |
 |---:|---|---|---|---|---|---|
-| 39 | R | 射出 | launcher_shot | ☐ | ☐ | ☐ |
-| 40 | A1 | 高圧筒 | launcher_high_pressure | ☐ | ☐ | ☐ |
-| 41 | A2 | 穿孔針 | launcher_piercing_needle | ☐ | ☐ | ☐ |
-| 42 | A3 | 大口径射出 | launcher_large_shot | ☐ | ☐ | ☐ |
-| 43 | AA1 | 圧縮薬 | launcher_compressed_charge | ☐ | ☐ | ☐ |
-| 44 | AA2 | 硬芯 | launcher_hard_core | ☐ | ☐ | ☐ |
-| 45 | AA3 | 穿城射 | launcher_siege_shot | ☐ | ☐ | ☐ |
-| 46 | AB1 | 連装筒 | launcher_multi_barrel | ☐ | ☐ | ☐ |
-| 47 | AB2 | 援護弾 | launcher_separate_caliber | ☐ | ☐ | ☐ |
-| 48 | AB3 | 二連射 | launcher_double_shot | ☐ | ☐ | ☐ |
-| 49 | B1 | 医療役を抜く | launcher_pull_healer | ☐ | ☐ | ☐ |
-| 50 | B2 | 準備を抜く | launcher_skip_preparation | ☐ | ☐ | ☐ |
-| 51 | B3 | 指定射 | launcher_designated_shot | ☐ | ☐ | ☐ |
-| 52 | BA1 | 観測孔 | launcher_observation_hole | ☐ | ☐ | ☐ |
-| 53 | BA2 | 測距 | launcher_signal_round | ☐ | ☐ | ☐ |
-| 54 | BA3 | 一斉照準 | launcher_volley_aim | ☐ | ☐ | ☐ |
-| 55 | BB1 | 弱点標 | launcher_order_table | ☐ | ☐ | ☐ |
-| 56 | BB2 | 合点射 | launcher_order_check | ☐ | ☐ | ☐ |
-| 57 | BB3 | 一点集中射 | launcher_three_point | ☐ | ☐ | ☐ |
+| 39 | R | 射出 | launcher_shot | ☑ | ☑ | ☑ |
+| 40 | A1 | 高圧筒 | launcher_high_pressure | ☑ | ☑ | ☑ |
+| 41 | A2 | 穿孔針 | launcher_piercing_needle | ☑ | ☑ | ☑ |
+| 42 | A3 | 大口径射出 | launcher_large_shot | ☑ | ☑ | ☑ |
+| 43 | AA1 | 圧縮薬 | launcher_compressed_charge | ☑ | ☑ | ☑ |
+| 44 | AA2 | 硬芯 | launcher_hard_core | ☑ | ☑ | ☑ |
+| 45 | AA3 | 穿城射 | launcher_siege_shot | ☑ | ☑ | ☑ |
+| 46 | AB1 | 連装筒 | launcher_multi_barrel | ☑ | ☑ | ☑ |
+| 47 | AB2 | 援護弾 | launcher_support_shell | ☑ | ☑ | ☑ |
+| 48 | AB3 | 二連射 | launcher_double_shot | ☑ | ☑ | ☑ |
+| 49 | B1 | 医療役を抜く | launcher_pull_healer | ☑ | ☑ | ☑ |
+| 50 | B2 | 準備を抜く | launcher_skip_preparation | ☑ | ☑ | ☑ |
+| 51 | B3 | 指定射 | launcher_designated_shot | ☑ | ☑ | ☑ |
+| 52 | BA1 | 観測孔 | launcher_observation_hole | ☑ | ☑ | ☑ |
+| 53 | BA2 | 測距 | launcher_rangefinder | ☑ | ☑ | ☑ |
+| 54 | BA3 | 一斉照準 | launcher_volley_aim | ☑ | ☑ | ☑ |
+| 55 | BB1 | 弱点標 | launcher_order_table | ☑ | ☑ | ☑ |
+| 56 | BB2 | 合点射 | launcher_order_check | ☑ | ☑ | ☑ |
+| 57 | BB3 | 一点集中射 | launcher_three_point | ☑ | ☑ | ☑ |
 
 ### 4. 医療具（medical_kit）
 

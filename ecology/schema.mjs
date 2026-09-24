@@ -13,7 +13,7 @@ const freeze = (value) => Object.freeze(value);
 // optional action-end return. R26 adds shared column/unacted target filters
 // and resource-reduction effects used by the Stage 1 weapon trees. R27 adds
 // the generic finite-rescue effect and its result event for the medical tree.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-11";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-12";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -28,7 +28,7 @@ export const BATTLE_SCHEMA_VERSION = "ecology-battle-5";
 // a damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
 // produced no HP loss, so the result version moves with the vocabulary.
-export const RESULT_SCHEMA_VERSION = "ecology-result-5";
+export const RESULT_SCHEMA_VERSION = "ecology-result-6";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -219,6 +219,7 @@ export const PREDICATE_TYPES = freeze([
   "target_exists",
   "hit_target_comparison",
   "round_number",
+  "pending_base_target_has_negative_status",
 ]);
 
 export const COMPARISON_OPS = freeze(["eq", "ne", "lt", "lte", "gt", "gte"]);
@@ -270,6 +271,7 @@ export const TARGET_SCOPES = freeze([
   "enemies",
   "event_source",
   "event_targets",
+  "action_base_targets",
 ]);
 export const TARGET_FILTER_TYPES = freeze([
   "alive",
@@ -297,6 +299,8 @@ export const TARGET_FILTER_TYPES = freeze([
   "not_self",
   "has_open_position_in_row",
   "adjacent_to_event_primary_target",
+  "has_any_skill_effect",
+  "has_negative_status",
 ]);
 export const TARGET_SORT_TYPES = freeze([
   "hp_asc",
@@ -319,6 +323,8 @@ export const TARGET_SORT_TYPES = freeze([
   "position_asc",
   "position_desc",
   "instance_id_asc",
+  "preparation_steps_desc",
+  "skill_effect_priority_asc",
 ]);
 // §9 — appended to every sort so no tie survives into take: 1.
 export const IMPLICIT_SORTS = freeze(["position_asc", "instance_id_asc"]);

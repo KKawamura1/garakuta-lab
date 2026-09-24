@@ -62,11 +62,11 @@ export const PROLOGUE = Object.freeze({
   maxRounds: 5,
   rosterIds: Object.freeze(["warden", "mender"]),
   // 位置の読み替えを主役にするため、12戦用の敵定義は変えず、この一戦だけ敵を軽くする。
-  // HP 60%、前衛の攻撃115%。後列の marksman だけ73%に落とし、味方先行でも
-  // 初期配置は崩れ、ツグミを後列へ置けば生き残れる差を残す。
-  // PR #288 — 初期4技能（代表武器2本のR+A1）でも、導入の既定配置は
-  // いったん敗北し、ツグミを後列へ移す意味が残るように敵HPを少し上げる。
-  enemyScaling: Object.freeze({ maxHpBps: 6_600, offenseBps: 11_500 }),
+  // HP 66%。射出器Rは最寄りの敵を選ぶため、正解配置の後列から前衛へ手が届く一方、
+  // 敵の攻撃は前衛75%、後列marksman 36.5%に抑え、位置を変えた時に二人とも立てる差を残す。
+  // PR #288 — 初期4技能（代表武器2本のR+A1）でも、導入の既定配置は敗北し、
+  // ツグミを後列へ置けば4ラウンドで二人とも勝ち残るよう、射出器の最寄り対象順に合わせる。
+  enemyScaling: Object.freeze({ maxHpBps: 6_600, offenseBps: 7_500 }),
   // **初期配置がそのまま「まだ勝てない編成」。**ツグミが front_left なので
   // 先に狙われる。巻き戻したあと、プレイヤーはここを触る。
   formation: Object.freeze({ mender: "front_left", warden: "front_right" }),
@@ -74,8 +74,8 @@ export const PROLOGUE = Object.freeze({
     Object.freeze({
       instanceId: "prologue_marksman",
       enemyActorId: "gray_marksman",
-      position: "rear_left",
-      offenseBps: 7_300,
+      position: "rear_right",
+      offenseBps: 3_650,
     }),
     Object.freeze({ instanceId: "prologue_husk_a", enemyActorId: "husk", position: "front_center" }),
     Object.freeze({ instanceId: "prologue_husk_b", enemyActorId: "husk", position: "front_left" }),

@@ -212,6 +212,42 @@ function validateValue(bag, path, value, ctx) {
           }
         }
       }
+      if (value.targetConditionalCoefficient !== undefined) {
+        const conditional = value.targetConditionalCoefficient;
+        if (!isPlainObject(conditional)) {
+          bag.add(`${path}.targetConditionalCoefficient`, "not_an_object",
+            "expected a target conditional coefficient");
+        } else {
+          if (typeof conditional.memoryKey !== "string" || conditional.memoryKey.length === 0) {
+            bag.add(`${path}.targetConditionalCoefficient.memoryKey`, "bad_key",
+              "target conditional coefficient needs a memoryKey");
+          }
+          requireCount(bag, `${path}.targetConditionalCoefficient.bonusBps`, conditional.bonusBps,
+            { max: 100_000 });
+          requireOneOf(bag, `${path}.targetConditionalCoefficient.mode`, conditional.mode ?? "any",
+            ["any", "all"], "unknown_condition_mode");
+          if (requireArray(bag, `${path}.targetConditionalCoefficient.conditions`, conditional.conditions,
+            { min: 1 })) {
+            conditional.conditions.forEach((entry, index) => {
+              const conditionPath = `${path}.targetConditionalCoefficient.conditions[${index}]`;
+              if (!isPlainObject(entry)) {
+                bag.add(conditionPath, "not_an_object", "expected a target condition");
+                return;
+              }
+              if (!["is_preparing", "has_skill_effect", "has_negative_status", "has_status"]
+                .includes(entry.type)) {
+                bag.add(`${conditionPath}.type`, "unknown_target_condition", "unknown target condition");
+              } else if (entry.type === "has_skill_effect") {
+                requireOneOf(bag, `${conditionPath}.effectType`, entry.effectType, EFFECT_TYPES,
+                  "unknown_effect_type");
+              } else if (entry.type === "has_status") {
+                requireStatusReference(bag, `${conditionPath}.statusId`, entry.statusId, ctx);
+                if (entry.value !== undefined) requireCount(bag, `${conditionPath}.value`, entry.value, { min: 1 });
+              }
+            });
+          }
+        }
+      }
       break;
     case "status_stacks_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
@@ -275,6 +311,12 @@ function validateTargetQuery(bag, path, query, ctx, { take } = {}) {
         type, TARGET_SORT_TYPES, "unknown_target_sort")) return;
       if (isPlainObject(sort) && type === "status_stacks_desc") {
         requireStatusReference(bag, `${sortPath}.statusId`, sort.statusId, ctx);
+      } else if (isPlainObject(sort) && type === "skill_effect_priority_asc") {
+        if (requireArray(bag, `${sortPath}.effectTypes`, sort.effectTypes, { min: 1 })) {
+          sort.effectTypes.forEach((effectType, effectIndex) => requireOneOf(
+            bag, `${sortPath}.effectTypes[${effectIndex}]`, effectType, EFFECT_TYPES, "unknown_effect_type",
+          ));
+        }
       } else if (isPlainObject(sort) && type !== "distance_to_self_asc") {
         bag.add(sortPath, "unexpected_sort_options", `${type} does not take sort options`);
       }
@@ -312,6 +354,15 @@ function validateTargetFilter(bag, path, filter, ctx) {
       requireStatusReference(bag, `${path}.statusId`, filter.statusId, ctx);
       if (filter.op !== undefined) requireOneOf(bag, `${path}.op`, filter.op, COMPARISON_OPS, "unknown_operator");
       if (filter.value !== undefined) requireCount(bag, `${path}.value`, filter.value, { min: 0 });
+      break;
+    case "has_any_skill_effect":
+      if (requireArray(bag, `${path}.effectTypes`, filter.effectTypes, { min: 1 })) {
+        filter.effectTypes.forEach((effectType, index) => requireOneOf(
+          bag, `${path}.effectTypes[${index}]`, effectType, EFFECT_TYPES, "unknown_effect_type",
+        ));
+      }
+      break;
+    case "has_negative_status":
       break;
     case "has_defense":
     case "has_block":
@@ -453,6 +504,8 @@ function validatePredicate(bag, path, predicate, ctx) {
     case "round_number":
       requireOneOf(bag, `${path}.op`, predicate.op, COMPARISON_OPS, "unknown_operator");
       requireCount(bag, `${path}.value`, predicate.value, { min: 0 });
+      break;
+    case "pending_base_target_has_negative_status":
       break;
     default:
       break;
@@ -1055,6 +1108,12 @@ export function validateContentBundle(bundle) {
     requireTags(bag, `${path}.tags`, skill.tags);
     validatePredicates(bag, `${path}.intrinsicPredicates`, skill.intrinsicPredicates, baseCtx);
     validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);
+    if (skill.preserveStatusIdsOnResolve !== undefined
+        && requireArray(bag, `${path}.preserveStatusIdsOnResolve`, skill.preserveStatusIdsOnResolve)) {
+      skill.preserveStatusIdsOnResolve.forEach((statusId, index) => requireStatusReference(
+        bag, `${path}.preserveStatusIdsOnResolve[${index}]`, statusId, baseCtx,
+      ));
+    }
     // An active skill is not a rule, so it never has a pending frame to touch.
     validateEffects(bag, `${path}.effects`, skill.effects, { ...baseCtx, timing: "action", listenTo: null });
     if (skill.attackPlanModifiers !== undefined) {
@@ -1320,6 +1379,11 @@ export function validateContentBundle(bundle) {
         && typeof status.clearWhenLinkedTargetDefeated !== "boolean") {
       bag.add(`${path}.clearWhenLinkedTargetDefeated`, "bad_boolean",
         "clearWhenLinkedTargetDefeated must be a boolean");
+    }
+    for (const property of ["uniquePerSide", "priorityForAllyAttackTargets", "consumeOnAllyActiveAttackBaseTarget"]) {
+      if (status[property] !== undefined && typeof status[property] !== "boolean") {
+        bag.add(`${path}.${property}`, "bad_boolean", `${property} must be a boolean`);
+      }
     }
     if (status.durationRounds !== undefined) {
       requireCount(bag, `${path}.durationRounds`, status.durationRounds, { min: 1, max: 99 });

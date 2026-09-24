@@ -79,9 +79,13 @@ export function evaluateValue(state, ctx, valueDef) {
         ? memoryCount
         : (actor ? statusStacks(actor, condition?.statusId) : 0);
       const conditionMet = condition && actor && statusCount >= condition.minStacks;
-      const coefficientBps = conditionMet
+      const targetCondition = valueDef.targetConditionalCoefficient;
+      const targetConditionMet = targetCondition
+        && ctx.pendingAction?.memory?.[targetCondition.memoryKey] === true;
+      const coefficientBps = (conditionMet
         ? condition.coefficientBps
-        : (valueDef.coefficientBps ?? 0);
+        : (valueDef.coefficientBps ?? 0))
+        + (targetConditionMet ? targetCondition.bonusBps : 0);
       base = (valueDef.flat ?? 0) + roundHalfUpDiv(stat * coefficientBps, BPS);
       break;
     }

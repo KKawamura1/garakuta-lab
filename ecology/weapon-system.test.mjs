@@ -168,6 +168,104 @@ content.enemyActors.weapon_test_dummy = {
   focus: 0,
   guard: 0,
 };
+content.activeSkills.weapon_test_ranged_multi = {
+  id: "weapon_test_ranged_multi",
+  displayName: "射出器の遠隔多段試験",
+  apCost: 1,
+  actionMode: "offense",
+  intrinsicPredicates: [],
+  targetQuery: { scope: "enemies", filters: [{ type: "alive" }], sort: ["distance_to_self_asc"], take: 1 },
+  effects: [{
+    type: "deal_damage",
+    target: { scope: "event_targets", take: "all" },
+    amount: { type: "constant", value: 100 },
+    hitCount: 2,
+    rangeClass: "ranged",
+    tags: ["attack", "weapon", "ranged", "test"],
+  }],
+  tags: ["attack", "weapon", "ranged", "playable", "test"],
+};
+content.enemyActors.weapon_test_healer = {
+  ...content.enemyActors.gray_mender,
+  id: "weapon_test_healer",
+  displayName: "回復役試験台",
+};
+content.enemyActors.weapon_test_barrier_giver = {
+  ...content.enemyActors.gray_guard,
+  id: "weapon_test_barrier_giver",
+  displayName: "防壁役試験台",
+};
+content.enemyActors.weapon_test_attacker = {
+  ...content.enemyActors.weapon_test_dummy,
+  id: "weapon_test_attacker",
+  displayName: "敵攻撃試験台",
+  baseActionPoints: 1,
+  might: 120,
+  tactics: [{ activeSkillId: "front_strike", useWhen: [] }],
+};
+for (const [id, steps] of [["weapon_test_prep_small", 1], ["weapon_test_prep_large", 3]]) {
+  content.enemyActors[id] = {
+    ...content.enemyActors.weapon_test_dummy,
+    id,
+    displayName: id,
+    intrinsicRules: [{
+      id: id + "_opening_preparation_rule",
+      listenTo: "round_started",
+      timing: "after",
+      priority: 1,
+      predicates: [],
+      costs: [],
+      effects: [{
+        type: "start_preparation",
+        target: { scope: "self", take: 1 },
+        steps,
+        completionEffects: [],
+      }],
+      limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+    }],
+  };
+}
+for (const [id, statusId, stacks] of [
+  ["weapon_test_negative_target", "staggered", 1],
+  ["weapon_test_observed_target", "launcher_observed", 3],
+  ["weapon_test_exposed_target", "launcher_exposed", 3],
+]) {
+  content.enemyActors[id] = {
+    ...content.enemyActors.weapon_test_dummy,
+    id,
+    displayName: id,
+    intrinsicRules: [{
+      id: id + "_opening_status_rule",
+      listenTo: "round_started",
+      timing: "after",
+      priority: 1,
+      predicates: [],
+      costs: [],
+      effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId, stacks }],
+      limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+    }],
+  };
+}
+content.characters.weapon_test_observation_spreader = {
+  ...content.characters.warden,
+  id: "weapon_test_observation_spreader",
+  displayName: "観測共有試験員",
+  signatureRules: [{
+    id: "weapon_test_observation_spreader_rule",
+    listenTo: "round_started",
+    timing: "after",
+    priority: 1,
+    predicates: [],
+    costs: [],
+    effects: [{
+      type: "add_status",
+      target: { scope: "enemies", filters: [{ type: "alive" }], take: "all" },
+      statusId: "launcher_observed",
+      stacks: 3,
+    }],
+    limit: { owner: "actor-instance + rule", scope: "battle", count: 1 },
+  }],
+};
 content.enemyActors.weapon_test_guard_20 = {
   ...content.enemyActors.weapon_test_dummy,
   id: "weapon_test_guard_20",
@@ -1792,28 +1890,337 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
 }
 
 {
-  const launcherMulti = simulateBattle(battle({
-    characterId: "mender",
-    activeSkillId: "launcher_shot",
-    reactiveSkillIds: ["launcher_multi_barrel", "launcher_separate_caliber"],
+  const nearest = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_shot",
+    enemies: [
+      { instanceId: "e_front", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_near", enemyActorId: "weapon_test_dummy", position: "rear_left" },
+    ],
   }), content);
-  equal(launcherMulti.events.filter((event) => (
-    event.type === "damage_proposed" && event.sourceActorId === "a_user"
-  )).length, 2, "launcher multi-barrel adds one hit to a one-hit shot");
-  ok(launcherMulti.events.some((event) => (
-    event.type === "damage_proposed" && event.tags.includes("extra_hit")
-  )), "launcher extra barrel is marked as an extra hit");
-}
+  equal(nearest.events.find((event) => event.type === "target_selected" && event.skillId === "launcher_shot")
+    ?.targetActorIds[0], "e_near", "launcher R chooses the closest legal enemy before fixed position order");
+  const rootShot = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_shot",
+  }), content);
+  const rootActor = rootShot.actors.find((actor) => actor.instanceId === "a_user");
+  equal(rootShot.events.find((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_shot")?.values.proposed,
+  Math.floor((rootActor.focus * 10_000 + 5_000) / 10_000), "R uses focus 100% without a rear-position falloff");
 
-{
-  const launcherObservation = simulateBattle(battle({
-    characterId: "mender",
-    activeSkillId: "launcher_shot",
-    reactiveSkillIds: ["launcher_observation_hole"],
+  const firstHit = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "weapon_test_ranged_multi",
+    passiveSkillIds: ["launcher_high_pressure"],
   }), content);
-  equal(launcherObservation.actors.find((actor) => actor.instanceId === "e_dummy")
-    .statuses.find((status) => status.statusId === "launcher_observed")?.stacks, 1,
-  "launcher observation records the selected enemy for the round");
+  const firstHitAmounts = firstHit.events.filter((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "weapon_test_ranged_multi")
+    .map((event) => event.values.proposed);
+  assert.deepEqual(firstHitAmounts, [115, 100], "A1 boosts the first ranged hit only, including multi-hit attacks");
+  checks += 1;
+  const pairedFirstHitBoosts = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "weapon_test_ranged_multi",
+    passiveSkillIds: ["launcher_high_pressure", "launcher_compressed_charge"],
+  }), content);
+  assert.deepEqual(pairedFirstHitBoosts.events.filter((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "weapon_test_ranged_multi")
+    .map((event) => event.values.proposed), [130, 100], "A1 and AA1 add independently on the first ranged hit");
+  checks += 1;
+
+  const flatPierce = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "weapon_test_ranged_multi",
+    passiveSkillIds: ["launcher_piercing_needle"],
+    enemies: [{ instanceId: "e_guard", enemyActorId: "weapon_test_guard_20", position: "front_left" }],
+  }), content);
+  ok(flatPierce.events.filter((event) => event.type === "damage_resolved" && event.sourceActorId === "a_user")
+    .every((event) => event.values.guardApplied === 12), "A2 ignores a flat 8 guard on every ranged hit without RP");
+  const largeShot = simulateBattle(battle({ characterId: "mender", activeSkillId: "launcher_large_shot" }), content);
+  const largeShotActor = largeShot.actors.find((actor) => actor.instanceId === "a_user");
+  equal(largeShot.events.find((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_large_shot")?.values.proposed,
+  Math.floor((largeShotActor.focus * 15_000 + 5_000) / 10_000),
+  "A3 replaces the root shot with a runtime 150% focus attack");
+  equal(PLAYABLE_CONTENT.activeSkills.launcher_large_shot.effects[0].amount.coefficientBps,
+    15_000, "A3 replaces R with focus 150%");
+
+  const compressed = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "weapon_test_ranged_multi",
+    passiveSkillIds: ["launcher_compressed_charge"],
+  }), content);
+  assert.deepEqual(compressed.events.filter((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "weapon_test_ranged_multi")
+    .map((event) => event.values.proposed), [115, 100], "AA1 boosts only the first ranged hit");
+  checks += 1;
+
+  const hardCore = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "weapon_test_ranged_multi",
+    passiveSkillIds: ["launcher_hard_core"],
+    enemies: [{ instanceId: "e_marked", enemyActorId: "weapon_test_negative_target", position: "front_left" }],
+  }), content);
+  assert.deepEqual(hardCore.events.filter((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "weapon_test_ranged_multi")
+    .map((event) => event.values.proposed), [120, 120], "AA2 snapshots any negative status on the action's base target");
+  checks += 1;
+  const siegeShot = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "launcher_siege_shot",
+    passiveSkillIds: ["launcher_piercing_needle", "launcher_hard_core"],
+    enemies: [{
+      instanceId: "e_guard", enemyActorId: "weapon_test_negative_target", position: "front_left",
+      stats: { guard: 20 },
+    }],
+  }), content);
+  const siegeActor = siegeShot.actors.find((actor) => actor.instanceId === "a_user");
+  const siegeBase = Math.floor((siegeActor.focus * 22_000 + 5_000) / 10_000);
+  equal(siegeShot.events.find((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_siege_shot")?.values.proposed,
+  siegeBase + Math.floor(siegeBase * 20 / 100),
+  "AA3 retains AA2's negative-status bonus on its base target");
+  equal(siegeShot.events.find((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_siege_shot")?.values.guardApplied,
+  12, "AA3 also retains A2's flat guard ignore");
+  equal(PLAYABLE_CONTENT.activeSkills.launcher_siege_shot.effects[0].amount.coefficientBps,
+    22_000, "AA3 uses focus 220% without embedding a flat guard bypass");
+
+  const multiBarrel = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "weapon_test_ranged_multi",
+    reactiveSkillIds: ["launcher_multi_barrel"],
+  }), content);
+  const multiBarrelPackets = multiBarrel.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && event.ruleId === "launcher_multi_barrel_rule");
+  equal(multiBarrelPackets.length, 1, "AB1 reacts once to the first hit of a cross-weapon ranged action");
+  equal(multiBarrelPackets[0]?.values.amount, 50, "AB1 uses half of the first hit's proposed base amount");
+  ok(multiBarrelPackets[0]?.tags.includes("extra_hit"), "AB1 marks its follow-up so it cannot retrigger itself");
+  equal(multiBarrel.events.filter((event) => event.type === "resource_spent"
+    && event.ruleId === "launcher_multi_barrel_rule" && event.values.resource === "reaction_points")
+    .length, 1, "AB1 spends RP1 exactly once for the action follow-up");
+
+  const supportShot = simulateBattle(battle({
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [
+      allyInput("a_mender", "mender", "launcher_shot", "rear_center", {
+        reactiveSkillIds: ["launcher_support_shell"],
+      }),
+      allyInput("a_guardian", "warden", "warhammer_blow", "front_center"),
+    ],
+    enemies: [{ instanceId: "e_attacker", enemyActorId: "weapon_test_attacker", position: "front_left" }],
+  }), content);
+  const supportPackets = supportShot.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_mender" && event.ruleId === "launcher_support_shell_rule");
+  equal(supportPackets.length, 1, "AB2 fires after an enemy attack damages a different ally");
+  ok(supportPackets[0]?.tags.includes("support") && supportPackets[0]?.tags.includes("extra_hit"),
+    "AB2 is a support follow-up and does not recurse");
+  const supportActor = supportShot.actors.find((actor) => actor.instanceId === "a_mender");
+  equal(supportPackets[0]?.values.amount, Math.floor((supportActor.focus * 6_000 + 5_000) / 10_000),
+    "AB2 uses the holder's focus 60% against the surviving attacker");
+  equal(supportShot.events.filter((event) => event.type === "resource_spent"
+    && event.ruleId === "launcher_support_shell_rule" && event.values.resource === "reaction_points")
+    .length, 1, "AB2 spends RP1 once in the enemy attack chain");
+
+  const doubleShot = simulateBattle(battle({ characterId: "mender", activeSkillId: "launcher_double_shot" }), content);
+  const doubleTargets = doubleShot.events.filter((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_double_shot")
+    .map((event) => event.targetActorIds[0]);
+  assert.deepEqual(doubleTargets, ["e_dummy", "e_dummy"], "AB3 resolves two 90% hits against the same enemy");
+  checks += 1;
+  const doubleAmounts = doubleShot.events.filter((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_double_shot")
+    .map((event) => event.values.proposed);
+  const doubleActor = doubleShot.actors.find((actor) => actor.instanceId === "a_user");
+  assert.deepEqual(doubleAmounts, Array(2).fill(Math.floor((doubleActor.focus * 9_000 + 5_000) / 10_000)),
+    "AB3 deals the focus 90% base amount on both hits");
+  checks += 1;
+  equal(PLAYABLE_CONTENT.activeSkills.launcher_double_shot.effects[0].amount.coefficientBps,
+    9_000, "AB3 uses focus 90% per hit");
+
+  const healerPriority = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_shot",
+    targetSkillIds: ["launcher_pull_healer"],
+    enemies: [
+      { instanceId: "e_barrier", enemyActorId: "weapon_test_barrier_giver", position: "rear_right" },
+      { instanceId: "e_healer", enemyActorId: "weapon_test_healer", position: "front_left" },
+    ],
+  }), content);
+  equal(healerPriority.events.find((event) => event.type === "target_selected" && event.skillId === "launcher_shot")
+    ?.targetActorIds[0], "e_healer", "B1 ranks an HP-healer ahead of a nearer barrier user");
+  const barrierFallback = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "launcher_shot", targetSkillIds: ["launcher_pull_healer"],
+    enemies: [{ instanceId: "e_barrier", enemyActorId: "weapon_test_barrier_giver", position: "front_left" }],
+  }), content);
+  equal(barrierFallback.events.find((event) => event.type === "target_selected" && event.skillId === "launcher_shot")
+    ?.targetActorIds[0], "e_barrier", "B1 selects a barrier giver when no healer is present");
+  const healerTie = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_shot",
+    targetSkillIds: ["launcher_pull_healer"],
+    enemies: [
+      { instanceId: "e_right", enemyActorId: "weapon_test_healer", position: "front_right" },
+      { instanceId: "e_left", enemyActorId: "weapon_test_healer", position: "front_left" },
+    ],
+  }), content);
+  equal(healerTie.events.find((event) => event.type === "target_selected" && event.skillId === "launcher_shot")
+    ?.targetActorIds[0], "e_left", "B1 breaks equal-distance priority ties by fixed position order");
+
+  const preparationPriority = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_shot",
+    targetSkillIds: ["launcher_skip_preparation"],
+    enemies: [
+      { instanceId: "e_prep_close", enemyActorId: "weapon_test_prep_small", position: "rear_right" },
+      { instanceId: "e_prep_deep", enemyActorId: "weapon_test_prep_large", position: "front_left" },
+    ],
+  }), content);
+  equal(preparationPriority.events.find((event) => event.type === "target_selected" && event.skillId === "launcher_shot")
+    ?.targetActorIds[0], "e_prep_deep", "B2 chooses the enemy with more remaining preparation before distance");
+  const selectorFallback = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "launcher_shot",
+    targetSkillIds: ["launcher_pull_healer", "launcher_skip_preparation"],
+    enemies: [{ instanceId: "e_prep_deep", enemyActorId: "weapon_test_prep_large", position: "front_left" }],
+  }), content);
+  equal(selectorFallback.events.find((event) => event.type === "target_selected" && event.skillId === "launcher_shot")
+    ?.targetActorIds[0], "e_prep_deep", "B1 yields to the next selector when no heal or barrier user exists");
+
+  const designated = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "launcher_designated_shot",
+    targetSkillIds: ["launcher_pull_healer", "launcher_skip_preparation"],
+    enemies: [{ instanceId: "e_healer", enemyActorId: "weapon_test_healer", position: "front_left" }],
+  }), content);
+  const designatedActor = designated.actors.find((actor) => actor.instanceId === "a_user");
+  equal(designated.events.find((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_designated_shot")?.values.amount,
+  Math.floor((designatedActor.focus * 23_000 + 5_000) / 10_000), "B3 locks its 230% healer bonus at target selection");
+  const ordinaryDesignated = simulateBattle(battle({ characterId: "mender", activeSkillId: "launcher_designated_shot" }), content);
+  const ordinaryActor = ordinaryDesignated.actors.find((actor) => actor.instanceId === "a_user");
+  equal(ordinaryDesignated.events.find((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_designated_shot")?.values.amount,
+  Math.floor((ordinaryActor.focus * 16_000 + 5_000) / 10_000), "B3 keeps its 160% base coefficient on ordinary targets");
+  const preparingDesignated = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "launcher_designated_shot",
+    enemies: [{ instanceId: "e_prep", enemyActorId: "weapon_test_prep_large", position: "front_left" }],
+  }), content);
+  const preparingActor = preparingDesignated.actors.find((actor) => actor.instanceId === "a_user");
+  equal(preparingDesignated.events.find((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_designated_shot")?.values.amount,
+  Math.floor((preparingActor.focus * 23_000 + 5_000) / 10_000), "B3 snapshots its 230% bonus for a preparing target");
+
+  const observationAndFollowup = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_shot",
+    reactiveSkillIds: ["launcher_observation_hole"], targetSkillIds: ["launcher_pull_healer"],
+    allies: [
+      allyInput("a_guardian", "warden", "warhammer_blow", "front_center"),
+      allyInput("a_user", "mender", "launcher_shot", "rear_center", {
+        reactiveSkillIds: ["launcher_observation_hole"], targetSkillIds: ["launcher_pull_healer"],
+      }),
+    ],
+    enemies: [
+      { instanceId: "e_healer", enemyActorId: "weapon_test_healer", position: "rear_right" },
+      { instanceId: "e_observed", enemyActorId: "weapon_test_observed_target", position: "front_left" },
+    ],
+  }), content);
+  equal(observationAndFollowup.events.find((event) => event.type === "target_selected"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_shot")?.targetActorIds[0],
+  "e_observed", "BA1 observation overrides B1 and B2 target skills for an ally attack");
+  ok(observationAndFollowup.events.some((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && event.ruleId === "launcher_observation_hole_followup_rule"
+    && event.tags.includes("extra_hit")), "BA1 grants its free follow-up after another ally hits the observed enemy");
+  const observationHolder = observationAndFollowup.actors.find((actor) => actor.instanceId === "a_user");
+  equal(observationAndFollowup.events.find((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_user" && event.ruleId === "launcher_observation_hole_followup_rule")?.values.amount,
+  Math.floor((observationHolder.focus * 3_000 + 5_000) / 10_000), "BA1 follow-up uses focus 30% for free");
+  equal(observationAndFollowup.events.filter((event) => event.type === "resource_spent"
+    && event.ruleId === "launcher_observation_hole_followup_rule" && event.values.resource === "reaction_points")
+    .length, 0, "BA1 follow-up costs no RP");
+  equal(observationAndFollowup.actors.find((actor) => actor.instanceId === "e_observed")
+    .statuses.find((status) => status.statusId === "launcher_observed")?.stacks, 4,
+  "BA1 consumes one pre-action observation stack before adding its reserved three");
+
+  const measured = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "weapon_test_ranged_multi", passiveSkillIds: ["launcher_rangefinder"],
+    enemies: [{ instanceId: "e_observed", enemyActorId: "weapon_test_observed_target", position: "front_left" }],
+  }), content);
+  assert.deepEqual(measured.events.filter((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "weapon_test_ranged_multi")
+    .map((event) => event.values.proposed), [120, 120], "BA2 adds 20% against an observation from any provider");
+  checks += 1;
+
+  const volley = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_volley_aim",
+    enemies: [
+      { instanceId: "e_anchor", enemyActorId: "weapon_test_observed_target", position: "front_center" },
+      { instanceId: "e_row", enemyActorId: "weapon_test_dummy", position: "front_left" },
+    ],
+  }), content);
+  equal(volley.events.filter((event) => event.type === "damage_resolved" && event.sourceActorId === "a_user"
+    && event.skillId === "launcher_volley_aim").length, 2, "BA3 attacks the selected enemy's whole row");
+  equal(volley.actors.find((actor) => actor.instanceId === "e_anchor")
+    .statuses.find((status) => status.statusId === "launcher_observed")?.stacks, 5,
+  "BA3 preserves the old observation, then adds two to its living base target");
+  ok(!volley.actors.find((actor) => actor.instanceId === "e_row")
+    .statuses.some((status) => status.statusId === "launcher_observed"), "BA3 marks only the base target, not row targets");
+
+  const exposedMark = simulateBattle(battle({
+    characterId: "mender", activeSkillId: "launcher_shot", reactiveSkillIds: ["launcher_order_table"],
+  }), content);
+  equal(exposedMark.events.find((event) => event.type === "status_added"
+    && event.values.statusId === "launcher_exposed")?.values.stacks, 2,
+  "BB1 spends RP after the action and adds two shared exposed stages to its living base target");
+  equal(exposedMark.actors.find((actor) => actor.instanceId === "e_dummy")
+    .statuses.find((status) => status.statusId === "launcher_exposed")?.stacks, 1,
+  "BB1 exposed loses half its stacks at round end");
+
+  const exposedFollowup = simulateBattle(battle({
+    maxRounds: 1,
+    objective: { type: "survive_rounds", rounds: 1 },
+    allies: [
+      allyInput("a_mender", "mender", "launcher_shot", "front_left", {
+        reactiveSkillIds: ["launcher_order_table", "launcher_order_check"],
+      }),
+      allyInput("a_guardian", "warden", "warhammer_blow", "front_center"),
+    ],
+    enemies: [{ instanceId: "e_exposed", enemyActorId: "weapon_test_dummy", position: "front_right" }],
+  }), content);
+  const exposedShots = exposedFollowup.events.filter((event) => event.type === "damage_proposed"
+    && event.sourceActorId === "a_mender" && event.tags.includes("extra_hit"));
+  equal(exposedShots.length, 1, "BB2 spends RP once when another ally hits the exposed target");
+  equal(exposedShots[0]?.values.amount, Math.floor((exposedFollowup.actors.find((actor) => actor.instanceId === "a_mender").focus
+    * 5_000 + 5_000) / 10_000), "BB2 follows with focus 50% and cannot recurse");
+
+  const concentrated = simulateBattle(battle({
+    characterId: "mender", position: "rear_center", activeSkillId: "launcher_three_point",
+    enemies: [
+      { instanceId: "e_primary", enemyActorId: "weapon_test_exposed_target", position: "front_left" },
+      { instanceId: "e_other", enemyActorId: "weapon_test_exposed_target", position: "front_right" },
+    ],
+  }), content);
+  const concentratedActor = concentrated.actors.find((actor) => actor.instanceId === "a_user");
+  equal(concentrated.events.find((event) => event.type === "damage_proposed" && event.sourceActorId === "a_user"
+    && event.skillId === "launcher_three_point")?.values.amount,
+  Math.floor((concentratedActor.focus * 20_000 + 5_000) / 10_000), "BB3 snapshots 200% when the base target starts exposed");
+  const concentratedDamage = concentrated.events.find((event) => event.type === "damage_resolved"
+    && event.sourceActorId === "a_user" && event.skillId === "launcher_three_point");
+  const concentratedBase = Math.floor((concentratedActor.focus * 20_000 + 5_000) / 10_000);
+  equal(concentratedDamage?.values.proposed,
+    concentratedBase + Math.floor((concentratedBase * 30 + 50) / 100),
+    "BB3 receives the target's exposed damage increase before consuming the status");
+  ok(!concentrated.actors.find((actor) => actor.instanceId === "e_primary")
+    .statuses.some((status) => status.statusId === "launcher_exposed"), "BB3 removes all exposed stacks from its own base target");
+  equal(concentrated.actors.find((actor) => actor.instanceId === "e_other")
+    .statuses.find((status) => status.statusId === "launcher_exposed")?.stacks, 1,
+  "BB3 leaves another enemy's exposed stacks untouched apart from round-end decay");
+  equal(PLAYABLE_CONTENT.activeSkills.launcher_three_point.effects[0].amount.coefficientBps,
+    12_000, "BB3 uses focus 120% when its base target is not exposed");
+
+  const uniqueObservation = simulateBattle(battle({
+    characterId: "weapon_test_observation_spreader", activeSkillId: "launcher_shot",
+    enemies: [
+      { instanceId: "e_one", enemyActorId: "weapon_test_dummy", position: "front_left" },
+      { instanceId: "e_two", enemyActorId: "weapon_test_dummy", position: "front_right" },
+    ],
+  }), content);
+  const observedActors = uniqueObservation.actors.filter((actor) => actor.side === "enemy"
+    && actor.statuses.some((status) => status.statusId === "launcher_observed"));
+  equal(observedActors.length, 1, "observed is unique across a side even when an effect targets several enemies");
+  equal(observedActors[0]?.statuses.find((status) => status.statusId === "launcher_observed")?.stacks, 2,
+    "observation is capped at six and one stack is consumed by the active attack");
+  equal(content.statuses.launcher_exposed.maxStacks, "unbounded", "exposed has no stack cap");
+  equal(content.statuses.launcher_exposed.duration, "battle", "exposed can persist across rounds");
+  equal(content.statuses.launcher_exposed.decayAtRoundEnd, true, "exposed halves at round end");
 }
 
 {

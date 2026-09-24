@@ -29,7 +29,7 @@ import {
 } from "./actors.mjs";
 import { beginChain, endChain, pushEvent, runtimeError } from "./event-queue.mjs";
 import { evaluatePredicates } from "./predicates.mjs";
-import { resolveTargets } from "./selectors.mjs";
+import { actorHasSkillEffect, actorMeetsTargetCondition, resolveTargets } from "./selectors.mjs";
 import {
   advancePreparationOn,
   applyEffects,
@@ -1092,7 +1092,7 @@ function chooseTactic(state, actor) {
 function resolveActionTargets(state, ctx, actor, skill) {
   const reach = actionReach(skill);
   const fallback = resolveTargets(state, ctx, skill.targetQuery, { reach });
-  if (skill.targetQuery.take !== 1 || (actor.targetSkillIds ?? []).length === 0) return fallback;
+  if (skill.targetQuery.take !== 1) return fallback;
 
   const legal = resolveTargets(
     state,
@@ -1101,6 +1101,21 @@ function resolveActionTargets(state, ctx, actor, skill) {
     { reach },
   );
   const legalIds = new Set(legal.map((candidate) => candidate.instanceId));
+  const isAttack = (skill.effects ?? []).some((effect) => effect.type === "deal_damage"
+    && (effect.tags ?? []).includes("attack"));
+  if (actor.side === "ally" && isAttack) {
+    for (const [statusId, definition] of Object.entries(state.content.statuses ?? {})) {
+      if (!definition.priorityForAllyAttackTargets) continue;
+      const observed = resolveTargets(state, ctx, {
+        ...skill.targetQuery,
+        filters: [...(skill.targetQuery.filters ?? []), { type: "has_status", statusId, op: "gte", value: 1 }],
+        sort: ["distance_to_self_asc"],
+        take: "all",
+      }, { reach }).find((candidate) => legalIds.has(candidate.instanceId));
+      if (observed) return [observed];
+    }
+  }
+  if ((actor.targetSkillIds ?? []).length === 0) return fallback;
   for (const targetSkillId of actor.targetSkillIds) {
     const targetSkill = state.content.targetSkills?.[targetSkillId];
     if (!targetSkill) continue;
@@ -1115,6 +1130,12 @@ function performAction(state, actor, choice) {
   const { skill, targets, costs } = choice;
   const rt = makeRuntime(state);
   const declaredReach = actionReach(skill);
+  const baseTarget = targets[0] ?? null;
+  const baseTargetStatusSnapshots = Object.fromEntries(
+    Object.entries(state.content.statuses ?? {})
+      .filter(([, definition]) => definition.consumeOnAllyActiveAttackBaseTarget)
+      .map(([statusId]) => [statusId, baseTarget ? statusStacks(baseTarget, statusId) : 0]),
+  );
   const frame = {
     kind: "action",
     canceled: false,
@@ -1122,10 +1143,26 @@ function performAction(state, actor, choice) {
     skillId: skill.id,
     sourceActorId: actor.instanceId,
     targetActorIds: targets.map((target) => target.instanceId),
+    baseTargetActorIds: baseTarget ? [baseTarget.instanceId] : [],
+    baseTargetStatusSnapshots,
+    baseTargetHasNegativeStatusAtSelection: Boolean(baseTarget?.statuses.some((status) => (
+      status.stacks > 0 && state.content.statuses[status.statusId]?.polarity === "negative"
+    ))),
+    memory: {},
     skill,
     owner: actor,
     reach: declaredReach,
   };
+  for (const effect of skill.effects ?? []) {
+    const condition = effect.amount?.targetConditionalCoefficient;
+    if (!condition) continue;
+    const results = (condition.conditions ?? []).map((entry) => (
+      baseTarget ? actorMeetsTargetCondition(state, baseTarget, entry) : false
+    ));
+    frame.memory[condition.memoryKey] = condition.mode === "all"
+      ? results.length > 0 && results.every(Boolean)
+      : results.some(Boolean);
+  }
   state.currentPendingAction = frame;
   const baseCtx = () => ({
     owner: actor,
@@ -1258,6 +1295,7 @@ function performAction(state, actor, choice) {
       state.parentEventId = previousParent;
     }
 
+    consumeActionBaseTargetStatuses(state, actor, frame);
     emit(state, {
       type: "action_resolved",
       sourceActorId: actor.instanceId,
@@ -1270,6 +1308,7 @@ function performAction(state, actor, choice) {
       tags: skill.tags,
       values: {
         targetCount: frame.targetActorIds.length,
+        baseTargetActorIds: [...frame.baseTargetActorIds],
         ...(frame.attackId ? { attackId: frame.attackId } : {}),
         ...(frame.resolvedAttackIds?.length ? { attackIds: [...new Set(frame.resolvedAttackIds)] } : {}),
       },
@@ -1283,6 +1322,32 @@ function performAction(state, actor, choice) {
     state.currentPendingAction = null;
   }
   return undefined;
+}
+
+function consumeActionBaseTargetStatuses(state, actor, frame) {
+  const hasActiveAttack = (frame.skill?.effects ?? []).some((effect) => effect.type === "deal_damage"
+    && (effect.tags ?? []).includes("attack"));
+  if (actor.side !== "ally" || !hasActiveAttack) return;
+  for (const [statusId, definition] of Object.entries(state.content.statuses ?? {})) {
+    if (!definition.consumeOnAllyActiveAttackBaseTarget
+        || (frame.skill.preserveStatusIdsOnResolve ?? []).includes(statusId)
+        || !(frame.baseTargetStatusSnapshots?.[statusId] > 0)) continue;
+    const target = getActor(state, frame.baseTargetActorIds?.[0]);
+    const existing = target?.statuses.find((status) => status.statusId === statusId);
+    if (!existing || existing.stacks <= 0) continue;
+    existing.stacks -= 1;
+    const remaining = existing.stacks;
+    if (remaining === 0) target.statuses = target.statuses.filter((status) => status !== existing);
+    emit(state, {
+      type: "status_removed",
+      sourceActorId: actor.instanceId,
+      targetActorIds: [target.instanceId],
+      sourceDefinitionId: actor.definitionId,
+      skillId: frame.skill.id,
+      tags: ["effect", definition.polarity],
+      values: { statusId, removed: 1, remaining, cause: "ally_active_attack_base_target" },
+    });
+  }
 }
 
 function cancelAction(state, actor, skill, frame, reason) {

@@ -111,6 +111,9 @@ export function evaluatePredicate(state, ctx, predicate) {
     case "round_number":
       return compareOp(predicate.op, state.round, predicate.value);
 
+    case "pending_base_target_has_negative_status":
+      return ctx.pendingAction?.baseTargetHasNegativeStatusAtSelection === true;
+
     default:
       // validate.mjs rejects unknown types long before this, so reaching here is
       // an engine bug rather than a content bug.

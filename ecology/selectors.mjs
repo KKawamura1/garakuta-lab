@@ -36,6 +36,14 @@ function scopePool(state, ctx, scope) {
         .map((instanceId) => getActor(state, instanceId))
         .filter((actor) => actor !== null);
     }
+    case "action_base_targets": {
+      const actorIds = ctx.pendingAction?.baseTargetActorIds
+        ?? ctx.event?.values?.baseTargetActorIds
+        ?? [];
+      return actorIds
+        .map((instanceId) => getActor(state, instanceId))
+        .filter((actor) => actor !== null);
+    }
     default:
       throw new Error(`unimplemented target scope: ${scope}`);
   }
@@ -54,6 +62,11 @@ function passesFilter(state, ctx, filter, actor) {
       return compareOp(filter.op, actor.hp * 100, actor.maxHp * filter.value);
     case "has_status":
       return compareOp(filter.op ?? "gte", statusStacks(actor, filter.statusId), filter.value ?? 1);
+    case "has_negative_status":
+      return actor.statuses.some((status) => status.stacks > 0
+        && state.content.statuses[status.statusId]?.polarity === "negative");
+    case "has_any_skill_effect":
+      return (filter.effectTypes ?? []).some((effectType) => actorHasSkillEffect(state, actor, effectType));
     case "has_defense":
       return totalBarrier(actor) > 0 || (actor.block ?? 0) > 0;
     case "has_block":
@@ -129,7 +142,7 @@ function hpPercentBps(actor) {
   return Math.floor(actor.hp * BPS / ceiling);
 }
 
-function sortValue(actor, sort, ctx) {
+function sortValue(state, actor, sort, ctx) {
   const sortType = typeof sort === "string" ? sort : sort.type;
   switch (sortType) {
     case "hp_asc": return actor.hp;
@@ -146,6 +159,13 @@ function sortValue(actor, sort, ctx) {
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
     case "status_stacks_desc": return -statusStacks(actor, sort.statusId);
+    case "preparation_steps_desc": return -(actor.preparation?.stepsRemaining ?? 0);
+    case "skill_effect_priority_asc": {
+      const index = (sort.effectTypes ?? []).findIndex((effectType) => (
+        actorHasSkillEffect(state, actor, effectType)
+      ));
+      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+    }
     case "distance_to_self_asc": {
       if (!ctx.owner) return 0;
       const rowDistance = POSITION_ROW[actor.position] === POSITION_ROW[ctx.owner.position] ? 0 : 1;
@@ -158,6 +178,7 @@ function sortValue(actor, sort, ctx) {
 }
 
 export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {}) {
+  ctx = { ...ctx, state };
   let pool = scopePool(state, ctx, query.scope);
   // R6 §5.4 — melee は、生存する前列が一人でもいる間は前列だけを狙える。
   // 前列が全滅して初めて後列へ届く。**これが前3後2と前2後3の選択を意味あるものにする。**
@@ -190,10 +211,52 @@ export function resolveTargets(state, ctx, query, { reach = "unrestricted" } = {
         if (a.instanceId !== b.instanceId) return a.instanceId < b.instanceId ? -1 : 1;
         continue;
       }
-      const difference = sortValue(a, sort, ctx) - sortValue(b, sort, ctx);
+      const difference = sortValue(state, a, sort, ctx) - sortValue(state, b, sort, ctx);
       if (difference !== 0) return difference;
     }
     return compareActorsDefault(a, b);
   });
   return query.take === 1 ? sorted.slice(0, 1) : sorted;
+}
+
+function effectTreeContains(effect, effectType) {
+  if (!effect || typeof effect !== "object") return false;
+  if (effect.type === effectType) return true;
+  return ["effects", "completionEffects", "onHitEffects"].some((key) => (
+    Array.isArray(effect[key]) && effect[key].some((child) => effectTreeContains(child, effectType))
+  ));
+}
+
+export function actorHasSkillEffect(state, actor, effectType) {
+  if (!state || !actor) return false;
+  const activeRegistry = actor.side === "enemy"
+    ? state.content.enemyActiveSkills ?? state.content.activeSkills
+    : state.content.activeSkills;
+  const reactiveRegistry = actor.side === "enemy"
+    ? state.content.enemyReactiveSkills ?? state.content.reactiveSkills
+    : state.content.reactiveSkills;
+  const passiveRegistry = actor.side === "enemy"
+    ? state.content.enemyPassiveSkills ?? state.content.passiveSkills
+    : state.content.passiveSkills;
+  const definitions = [
+    ...(actor.tactics ?? []).map((tactic) => activeRegistry[tactic.activeSkillId]),
+    ...(actor.reactiveSkillIds ?? []).map((skillId) => reactiveRegistry[skillId]),
+    ...(actor.passiveSkillIds ?? []).map((skillId) => passiveRegistry[skillId]),
+    ...(actor.intrinsicRules ?? []),
+  ];
+  return definitions.some((definition) => effectTreeContains(definition, effectType)
+    || (definition?.rule && effectTreeContains(definition.rule, effectType))
+    || (definition?.rules ?? []).some((rule) => effectTreeContains(rule, effectType)));
+}
+
+export function actorMeetsTargetCondition(state, actor, condition) {
+  switch (condition.type) {
+    case "is_preparing": return Boolean(actor.preparation);
+    case "has_skill_effect": return actorHasSkillEffect(state, actor, condition.effectType);
+    case "has_negative_status":
+      return actor.statuses.some((status) => status.stacks > 0
+        && state.content.statuses[status.statusId]?.polarity === "negative");
+    case "has_status": return statusStacks(actor, condition.statusId) >= (condition.value ?? 1);
+    default: return false;
+  }
 }

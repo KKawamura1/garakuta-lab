@@ -1014,6 +1014,26 @@ function addStatus(rt, ctx, effect) {
   const definition = rt.state.content.statuses[effect.statusId];
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
+    if (definition.uniquePerSide) {
+      for (const other of actorsOnSide(rt.state, target.side)) {
+        if (other.instanceId === target.instanceId) continue;
+        const previous = other.statuses.find((entry) => entry.statusId === effect.statusId);
+        if (!previous) continue;
+        other.statuses = other.statuses.filter((entry) => entry !== previous);
+        rt.emit({
+          type: "status_removed",
+          ...sourceFields(ctx),
+          targetActorIds: [other.instanceId],
+          tags: ["effect", definition.polarity],
+          values: {
+            statusId: effect.statusId,
+            removed: previous.stacks,
+            remaining: 0,
+            cause: "unique_per_side_retarget",
+          },
+        });
+      }
+    }
     if (effect.onlyIfStatusLinkedToEventTarget) {
       const linked = target.statuses.find((entry) => (
         entry.statusId === effect.onlyIfStatusLinkedToEventTarget
