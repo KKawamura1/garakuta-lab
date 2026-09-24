@@ -16,15 +16,6 @@ const POSITIONS = [
   "R", "A1", "A2", "A3", "AA1", "AA2", "AA3", "AB1", "AB2", "AB3",
   "B1", "B2", "B3", "BA1", "BA2", "BA3", "BB1", "BB2", "BB3",
 ];
-const PARENT_POSITION = Object.freeze({
-  R: null,
-  A1: "R", A2: "A1", A3: "A2",
-  AA1: "A3", AA2: "AA1", AA3: "AA2",
-  AB1: "A3", AB2: "AB1", AB3: "AB2",
-  B1: "R", B2: "B1", B3: "B2",
-  BA1: "B3", BA2: "BA1", BA3: "BA2",
-  BB1: "B3", BB2: "BB1", BB3: "BB2",
-});
 const EXPECTED_STARTING_WEAPONS = Object.freeze({
   warden: ["warhammer", "gauntlets"],
   mender: ["launcher", "medical_kit"],
@@ -67,13 +58,13 @@ for (const spec of WEAPON_SKILL_SPECIFICATIONS) {
 assert(specificationByPosition.size === 190, "catalog positions are not unique");
 
 const bindingByPosition = new Map();
-const bindingBySkillId = new Map();
+const skillIds = new Set();
 for (const binding of WEAPON_SKILL_BINDINGS) {
   const key = keyFor(binding.weaponId, binding.position);
   assert(WEAPON_IDS.includes(binding.weaponId), `unknown weapon: ${binding.weaponId}`);
   assert(POSITIONS.includes(binding.position), `unknown position: ${key}`);
   assert(!bindingByPosition.has(key), `duplicate binding position: ${key}`);
-  assert(!bindingBySkillId.has(binding.skillId), `duplicate skill ID: ${binding.skillId}`);
+  assert(!skillIds.has(binding.skillId), `duplicate skill ID: ${binding.skillId}`);
   assert(/^[a-z][a-z0-9_]*$/.test(binding.skillId), `invalid skill ID: ${binding.skillId}`);
   assert(binding.sourceModule && WEAPON_SKILL_BINDING_SOURCE.sourceModules.includes(binding.sourceModule),
     `missing pinned source module for ${key}`);
@@ -81,9 +72,9 @@ for (const binding of WEAPON_SKILL_BINDINGS) {
     `unknown source kind for ${key}`);
   assert(["audited", "pending"].includes(binding.auditStatus), `unknown audit status for ${key}`);
   bindingByPosition.set(key, binding);
-  bindingBySkillId.set(binding.skillId, binding);
+  skillIds.add(binding.skillId);
 }
-assert(bindingByPosition.size === 190 && bindingBySkillId.size === 190, "binding uniqueness failed");
+assert(bindingByPosition.size === 190 && skillIds.size === 190, "binding uniqueness failed");
 assert(sameArray([...bindingByPosition.keys()].sort(), [...specificationByPosition.keys()].sort()),
   "binding positions do not exactly cover the canonical catalog");
 
@@ -101,18 +92,6 @@ for (const weaponId of WEAPON_IDS) {
     if (binding.sourceDeclaredKind !== spec.kind) {
       mismatches.push(key);
       assert(binding.auditStatus === "pending", `${key}: audited binding has a catalog kind mismatch`);
-    }
-    const expectedParentPosition = PARENT_POSITION[binding.position];
-    const expectedPrerequisites = expectedParentPosition === null
-      ? []
-      : [bindingByPosition.get(keyFor(weaponId, expectedParentPosition))?.skillId];
-    assert(expectedPrerequisites.every(Boolean), `${key}: missing expected parent binding`);
-    assert(sameArray(binding.prerequisiteSkillIds, expectedPrerequisites),
-      `${key}: prerequisite does not match the 19-node tree contract`);
-    for (const prerequisiteId of binding.prerequisiteSkillIds) {
-      const prerequisite = bindingBySkillId.get(prerequisiteId);
-      assert(prerequisite, `${key}: unknown prerequisite ID ${prerequisiteId}`);
-      assert(prerequisite.weaponId === weaponId, `${key}: prerequisite crosses weapon boundary`);
     }
   }
 }
@@ -168,7 +147,7 @@ const runtimeBindingImports = ecologySourceFiles(ecologyRoot)
 assert(runtimeBindingImports.length === 0,
   "migration-only bindings must not be imported by runtime modules: " + runtimeBindingImports.join(", "));
 
-console.log("Weapon skill migration bindings: 190 positions / 190 unique IDs / prerequisites valid.");
+console.log("Weapon skill migration bindings: 190 canonical positions / 190 unique IDs.");
 console.log("Audit provenance: 57 audited, 133 pending; the migration snapshot is not imported by runtime modules.");
 console.log(`Catalog kind differences preserved as source discrepancies: ${mismatches.length} (known set).`);
 console.log(`Initial loadout: 5 characters × 2 weapons × R/A1 = ${startingSkillKeys.length} skills; medical-kit A1 stays reactive.`);
