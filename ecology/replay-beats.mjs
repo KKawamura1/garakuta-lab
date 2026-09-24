@@ -48,7 +48,10 @@ export const BOARD_SKIP = new Set([
   "excess_healing",
   "recovery_window_closed",
   "pending_amount_modified",
+  "pending_guard_modified",
+  "status_linked",
   "damage_proposed",
+  "damage_resolved",
   "healing_proposed",
   "barrier_proposed",
   // R6 §6.7 — block の提案と消費は盤面に出さない。**止まった事実（damage_blocked）

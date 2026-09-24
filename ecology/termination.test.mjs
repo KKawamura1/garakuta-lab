@@ -311,7 +311,9 @@ function expectRuntimeError(battle, options, expectedLimit, label) {
 {
   let thrown = null;
   try {
-    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 10 });
+    // R25 adds one explicit settled-hit event per damage instance, so the
+    // diagnostic cap is one event higher while the overflow-cure rule runs.
+    simulateBattle(CORE_BATTLE, FIXTURE_CONTENT, { maxEventsPerChain: 11 });
   } catch (error) {
     thrown = error;
   }

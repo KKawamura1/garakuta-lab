@@ -148,6 +148,7 @@ export function applyEffect(rt, ctx, effect) {
     case "gain_resource": return gainResource(rt, ctx, effect);
     case "reduce_resource": return reduceResource(rt, ctx, effect);
     case "add_status": return addStatus(rt, ctx, effect);
+    case "copy_status_from_event": return copyStatusFromEvent(rt, ctx, effect);
     case "remove_status": return removeStatus(rt, ctx, effect);
     case "remove_statuses": return removeStatuses(rt, ctx, effect);
     case "remove_barrier": return removeBarrier(rt, ctx, effect);
@@ -161,6 +162,7 @@ export function applyEffect(rt, ctx, effect) {
     case "wear_equipment": return wearEquipmentEffect(rt, ctx, effect);
     case "repair_equipment": return repairEquipmentEffect(rt, ctx, effect);
     case "modify_pending_amount": return modifyPendingAmount(rt, ctx, effect);
+    case "modify_pending_guard": return modifyPendingGuard(rt, ctx, effect);
     case "split_pending_damage": return splitPendingDamage(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
@@ -193,7 +195,7 @@ function gainBlock(rt, ctx, effect) {
       ...sourceFields(ctx),
       parentEventId: event.id,
       targetActorIds: [target.instanceId],
-      tags: effect.tags ?? [],
+      tags: ["positive", ...(effect.tags ?? [])],
       values: { amount: proposed, before, after: target.block },
     });
   }
@@ -222,8 +224,25 @@ function hitCountOfEffect(rt, ctx, effect) {
 }
 
 function dealDamage(rt, ctx, effect) {
-  const baseHitCount = hitCountOfEffect(rt, ctx, effect);
-  const attackPlan = ctx.pendingAction?.attackPlan;
+  if (effect.independentAttack && ctx.pendingAction?.kind === "action") {
+    // Follow-up packets keep the owner's loadout and attack-start memory but
+    // begin a clean plan, so the parent's sweep / bonus hits cannot leak in.
+    ctx = {
+      ...ctx,
+      pendingAction: {
+        ...ctx.pendingAction,
+        attackId: ctx.event?.id ?? ctx.pendingAction.attackId,
+        attackPlan: {},
+        previousAttackTargetActorId: null,
+        rootActionFrame: ctx.pendingAction.rootActionFrame ?? ctx.pendingAction,
+      },
+    };
+  }
+  const equippedHitBonus = (effect.hitCountBonusBySkill ?? []).reduce((sum, entry) => (
+    ctx.owner?.passiveSkillIds?.includes(entry.skillId) ? sum + entry.bonus : sum
+  ), 0);
+  const baseHitCount = hitCountOfEffect(rt, ctx, effect) + equippedHitBonus;
+  const attackPlan = effect.independentAttack ? undefined : ctx.pendingAction?.attackPlan;
   const isAttack = (effect.tags ?? []).includes("attack");
   const extraHitCount = isAttack ? (attackPlan?.hitCountBonus ?? 0) : 0;
   const requestedHitCount = baseHitCount + extraHitCount;
@@ -275,14 +294,23 @@ function dealDamage(rt, ctx, effect) {
         rt, ctx, effect, target, hitIndex, hitCount, rawAmount, previousTargetActorId,
         false, Boolean(extraHit), plannedTargetCount,
       );
-      if (hitEvent && effect.onHitEffects?.length) {
-        applyEffects(rt, { ...ctx, event: hitEvent }, effect.onHitEffects);
-      }
+      resolveDamageHit(rt, ctx, effect, hitEvent);
     }
   }
   if (extraTargetIds.length > 0 && attackPlan?.extraTargetDamageBps > 0) {
+    let extraTargetBaseAmount = evaluateValue(rt.state, ctx, effect.amount);
+    if (attackPlan.extraTargetDamageFromAttackStat) {
+      if (!attackPlan.extraTargetDamageStat) {
+        throw new Error("attack-stat extra target damage is missing the attack scaling stat");
+      }
+      extraTargetBaseAmount = evaluateValue(rt.state, ctx, {
+        type: "actor_stat_scaled",
+        subject: attackPlan.extraTargetDamageSubject,
+        stat: attackPlan.extraTargetDamageStat,
+      });
+    }
     const amount = roundHalfUpDiv(
-      evaluateValue(rt.state, ctx, effect.amount) * attackPlan.extraTargetDamageBps,
+      extraTargetBaseAmount * attackPlan.extraTargetDamageBps,
       BPS,
     );
     const derivedEffect = { ...effect, onHitEffects: undefined };
@@ -305,12 +333,37 @@ function dealDamage(rt, ctx, effect) {
         });
         continue;
       }
-      dealOneInstance(
+      const hitEvent = dealOneInstance(
         rt, ctx, derivedEffect, target, null, hitCount, amount, null,
         false, false, plannedTargetCount, true,
       );
+      resolveDamageHit(rt, ctx, effect, hitEvent);
     }
   }
+}
+
+function resolveDamageHit(rt, ctx, effect, hitEvent) {
+  if (!hitEvent) return;
+  const actionFrame = ctx.pendingAction?.rootActionFrame ?? ctx.pendingAction;
+  if (hitEvent.type === "damage_resolved" && actionFrame?.kind === "action") {
+    actionFrame.resolvedDamageTargetActorIds ??= [];
+    for (const actorId of hitEvent.targetActorIds) {
+      if (!actionFrame.resolvedDamageTargetActorIds.includes(actorId)) {
+        actionFrame.resolvedDamageTargetActorIds.push(actorId);
+      }
+    }
+    actionFrame.resolvedAttackIds ??= [];
+    const attackId = hitEvent.values?.attackId;
+    if (typeof attackId === "string" && !actionFrame.resolvedAttackIds.includes(attackId)) {
+      actionFrame.resolvedAttackIds.push(attackId);
+    }
+  }
+  if (effect.onHitEffects?.length) {
+    applyEffects(rt, { ...ctx, event: hitEvent }, effect.onHitEffects);
+  }
+  // Hit-result reactions resolve before the next hit in a multi-hit action.
+  // Their non-recursive after hooks still use the engine's normal rule ordering.
+  if (hitEvent.type === "damage_resolved") rt.dispatchAfter(hitEvent);
 }
 
 // R6 §5.4 — targetPattern は「最初に選ばれた相手」から広げる。
@@ -338,9 +391,10 @@ function effectiveGuardOf(content, target) {
   ), 0));
 }
 
-function afterGuard(rawAmount, target, guardPierceBps, content) {
+function afterGuard(rawAmount, target, guardPierceBps, flatGuardIgnore, content) {
+  const guardAfterFlatIgnore = Math.max(0, effectiveGuardOf(content, target) - (flatGuardIgnore ?? 0));
   const effectiveGuard = roundHalfUpDiv(
-    effectiveGuardOf(content, target) * (BPS - (guardPierceBps ?? 0)),
+    guardAfterFlatIgnore * (BPS - (guardPierceBps ?? 0)),
     BPS,
   );
   const floor = roundHalfUpDiv(rawAmount * 1_000, BPS);
@@ -411,13 +465,17 @@ function dealOneInstance(
     : rawAmountOverride;
   const proposed = amountIsFinal ? Math.max(0, rawAmount)
     : afterPositionModifier(rawAmount, rt, ctx, effect, target);
+  const primaryTargetActorId = ctx.pendingAction?.attackPlan?.targetActorIds?.[0]
+    ?? ctx.pendingAction?.targetActorIds?.[0]
+    ?? null;
   const tags = [
     ...(effect.tags ?? []),
+    ...(effect.rangeClass ? [effect.rangeClass] : []),
     ...(isExtraHit ? ["extra_hit"] : []),
     ...(planExtraDamage ? ["plan_extra_damage"] : []),
     ...(ctx.pendingAction?.redirected ? ["redirect"] : []),
   ];
-  const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
+  const frame = { kind: "amount", amount: proposed, guardIgnore: 0, targetActorIds: [target.instanceId] };
   const event = rt.emit(
     {
       type: "damage_proposed",
@@ -429,6 +487,7 @@ function dealOneInstance(
         hitIndex,
         hitCount,
         previousTargetActorId,
+        primaryTargetActorId,
         attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
         plannedTargetCount,
       },
@@ -445,7 +504,7 @@ function dealOneInstance(
       tags,
       values: { amount: frame.amount, hitIndex, hitCount, reason: finalTarget ? "target_defeated" : "target_unavailable" },
     });
-    return event;
+    return null;
   }
   const amount = frame.amount;
 
@@ -475,11 +534,34 @@ function dealOneInstance(
     });
     emitDefenseBreak(rt, ctx, finalTarget, "block", before, finalTarget.block,
       "hit", hitIndex, event.id);
-    return event;
+    return rt.emit({
+      type: "damage_resolved",
+      ...sourceFields(ctx),
+      parentEventId: event.id,
+      targetActorIds: [finalTarget.instanceId],
+      tags,
+      values: {
+        result: "blocked",
+        amount: 0,
+        hpDamage: 0,
+        proposed: amount,
+        afterGuard: 0,
+        guardApplied: 0,
+        barrierAbsorbed: 0,
+        hitIndex,
+        hitCount,
+        previousTargetActorId,
+        primaryTargetActorId,
+        attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+        plannedTargetCount,
+        blockBefore: before,
+        blockAfter: finalTarget.block,
+      },
+    }, null, { enqueueAfter: false });
   }
 
   // guard — hit ごとの固定軽減。heal と barrier には掛からない。
-  const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps, rt.state.content);
+  const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps, frame.guardIgnore, rt.state.content);
 
   // barrier — 位置は v1 から動かしていないので、barrier だけを使う定義は挙動不変。
   const barrierBefore = totalBarrier(finalTarget);
@@ -504,6 +586,7 @@ function dealOneInstance(
         hitIndex,
         hitCount,
         previousTargetActorId,
+        primaryTargetActorId,
       },
     });
   }
@@ -547,6 +630,7 @@ function dealOneInstance(
         hitIndex,
         hitCount,
         previousTargetActorId,
+        primaryTargetActorId,
         attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
         plannedTargetCount,
         recoveredDamage: finalTarget.recoveredDamage,
@@ -574,7 +658,30 @@ function dealOneInstance(
     emitDefenseBreak(rt, ctx, finalTarget, "barrier", barrierBefore, 0,
       "hit", hitIndex, event.id);
   }
-  return event;
+  return rt.emit({
+    type: "damage_resolved",
+    ...sourceFields(ctx),
+    parentEventId: event.id,
+    targetActorIds: [finalTarget.instanceId],
+    tags,
+    values: {
+      result: hpDamage > 0 ? "hp_damage" : absorbed > 0 ? "barrier_absorbed" : "reduced",
+      amount: hpDamage,
+      hpDamage,
+      proposed: amount,
+      afterGuard: guarded,
+      guardApplied: amount - guarded,
+      barrierAbsorbed: absorbed,
+      hitIndex,
+      hitCount,
+      previousTargetActorId,
+      primaryTargetActorId,
+      attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+      plannedTargetCount,
+      hpBefore,
+      hpAfter: finalTarget.hp,
+    },
+  }, null, { enqueueAfter: false });
 }
 
 // §12.3 — packets are consumed earliest-expiry first, then oldest first.
@@ -640,7 +747,7 @@ function defeatActor(rt, ctx, target, parentEventId) {
       },
     });
   }
-  rt.emit({
+  const defeated = rt.emit({
     type: "actor_defeated",
     ...sourceFields(ctx),
     parentEventId,
@@ -648,6 +755,27 @@ function defeatActor(rt, ctx, target, parentEventId) {
     tags: [target.side],
     values: { definitionId: target.definitionId, side: target.side },
   });
+  for (const holder of rt.state.actors.values()) {
+    for (const status of [...holder.statuses]) {
+      const definition = rt.state.content.statuses[status.statusId];
+      if (!definition?.clearWhenLinkedTargetDefeated
+          || status.linkedTargetActorId !== target.instanceId) continue;
+      holder.statuses = holder.statuses.filter((entry) => entry !== status);
+      rt.emit({
+        type: "status_removed",
+        ...sourceFields(ctx),
+        parentEventId: defeated.id,
+        targetActorIds: [holder.instanceId],
+        tags: ["actor_defeated", definition.polarity],
+        values: {
+          statusId: status.statusId,
+          removed: status.stacks,
+          remaining: 0,
+          cause: "linked_target_defeated",
+        },
+      });
+    }
+  }
   // §12.4 — a defeated actor loses its pending preparation, and the event says why.
   if (target.preparation) {
     const steps = target.preparation.stepsRemaining;
@@ -875,16 +1003,23 @@ function reduceResource(rt, ctx, effect) {
 
 function markAttackFlag(rt, ctx, effect) {
   const attackId = ctx.event?.values?.attackId;
-  if (typeof attackId !== "string" || !rt.state.chain) return;
-  const flags = rt.state.chain.attackFlags.get(attackId) ?? new Set();
+  if (typeof attackId !== "string" || !rt.state.chain || !ctx.owner) return;
+  const ownerKey = `${attackId}:${ctx.owner.instanceId}`;
+  const flags = rt.state.chain.attackFlags.get(ownerKey) ?? new Set();
   flags.add(effect.key);
-  rt.state.chain.attackFlags.set(attackId, flags);
+  rt.state.chain.attackFlags.set(ownerKey, flags);
 }
 
 function addStatus(rt, ctx, effect) {
   const definition = rt.state.content.statuses[effect.statusId];
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
+    if (effect.onlyIfStatusLinkedToEventTarget) {
+      const linked = target.statuses.find((entry) => (
+        entry.statusId === effect.onlyIfStatusLinkedToEventTarget
+      ));
+      if (!linked || linked.linkedTargetActorId !== ctx.event?.targetActorIds?.[0]) continue;
+    }
     const eventStackCount = effect.stacksFromEvent
       ? ctx.event?.values?.[effect.stacksFromEvent.key]
       : undefined;
@@ -892,14 +1027,29 @@ function addStatus(rt, ctx, effect) {
       ? (Number.isSafeInteger(eventStackCount) ? eventStackCount * effect.stacksFromEvent.multiplier : 0)
       : (effect.stacks ?? 1);
     if (!Number.isSafeInteger(stacks) || stacks <= 0) continue;
-    const existing = target.statuses.find((entry) => entry.statusId === effect.statusId);
+    let existing = target.statuses.find((entry) => entry.statusId === effect.statusId);
+    const linkedTargetActorId = effect.linkToEventTarget ? ctx.event?.targetActorIds?.[0] : undefined;
+    if (existing && linkedTargetActorId && existing.linkedTargetActorId
+        && existing.linkedTargetActorId !== linkedTargetActorId) {
+      const removed = existing.stacks;
+      target.statuses = target.statuses.filter((entry) => entry !== existing);
+      rt.emit({
+        type: "status_removed",
+        ...sourceFields(ctx),
+        targetActorIds: [target.instanceId],
+        tags: ["effect", definition.polarity],
+        values: { statusId: effect.statusId, removed, remaining: 0, cause: "target_changed" },
+      });
+      existing = undefined;
+    }
     const before = existing ? existing.stacks : 0;
-    const after = definition.maxStacks === "unbounded"
-      ? before + stacks
-      : Math.min(definition.maxStacks, before + stacks);
+      const after = definition.maxStacks === "unbounded"
+        ? before + stacks
+        : Math.min(definition.maxStacks, before + stacks);
     if (after === before) continue;
     if (existing) {
       existing.stacks = after;
+      if (linkedTargetActorId) existing.linkedTargetActorId = linkedTargetActorId;
       if (definition.durationRounds !== undefined) {
         existing.expiresAtRound = rt.state.round + definition.durationRounds;
       }
@@ -909,11 +1059,13 @@ function addStatus(rt, ctx, effect) {
         stacks: after,
         duration: definition.duration,
         addedSequence: rt.state.sequence,
+        ...(linkedTargetActorId ? { linkedTargetActorId } : {}),
         expiresAtRound: definition.durationRounds === undefined
           ? undefined
           : rt.state.round + definition.durationRounds,
       });
     }
+    const currentStatus = target.statuses.find((entry) => entry.statusId === effect.statusId);
     rt.emit({
       type: "status_added",
       ...sourceFields(ctx),
@@ -923,11 +1075,30 @@ function addStatus(rt, ctx, effect) {
         statusId: effect.statusId,
         added: after - before,
         stacks: after,
+        ...(currentStatus?.linkedTargetActorId
+          ? { linkedTargetActorId: currentStatus.linkedTargetActorId }
+          : {}),
         duration: definition.duration,
         durationRounds: definition.durationRounds,
       },
     });
   }
+}
+
+function copyStatusFromEvent(rt, ctx, effect) {
+  if (ctx.event?.type !== "status_added" || !ctx.event.tags.includes("positive")) return;
+  const statusId = ctx.event.values?.statusId;
+  const definition = rt.state.content.statuses[statusId];
+  if (!definition || definition.polarity !== "positive") return;
+  const stacks = effect.stacksFromEvent ? ctx.event.values?.added : 1;
+  if (!Number.isSafeInteger(stacks) || stacks <= 0) return;
+  applyEffect(rt, ctx, {
+    type: "add_status",
+    target: effect.target,
+    statusId,
+    stacks,
+    tags: ["copied", "copy_suppressed"],
+  });
 }
 
 function removeStatus(rt, ctx, effect) {
@@ -980,7 +1151,7 @@ function removeBarrier(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
     const before = totalBarrier(target);
     absorbBarrier(rt, ctx, target, before, ["effect"]);
-    if (before > 0 && totalBarrier(target) === 0) {
+    if (before > 0 && totalBarrier(target) === 0 && ctx.event?.type !== "defense_break") {
       emitDefenseBreak(rt, ctx, target, "barrier", before, 0, "pre_hit");
     }
   }
@@ -1001,7 +1172,9 @@ function removeBlock(rt, ctx, effect) {
         attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
       },
     });
-    emitDefenseBreak(rt, ctx, target, "block", before, 0, "pre_hit");
+    if (ctx.event?.type !== "defense_break") {
+      emitDefenseBreak(rt, ctx, target, "block", before, 0, "pre_hit");
+    }
   }
 }
 
@@ -1108,9 +1281,7 @@ function moveToOpenRow(rt, ctx, effect) {
       };
     }
   }
-  if (!effect.returnAfterAction || !ctx.pendingAction) return;
-  ctx.pendingAction.scheduledReturns ??= [];
-  ctx.pendingAction.scheduledReturns.push({
+  const scheduled = {
     actorId: actor.instanceId,
     origin,
     destination,
@@ -1119,11 +1290,26 @@ function moveToOpenRow(rt, ctx, effect) {
     ruleId: ctx.ruleId,
     skillId: ctx.skillId,
     equipmentInstanceId: ctx.equipmentInstanceId,
-  });
+  };
+  if (effect.returnAfterAction && ctx.pendingAction) {
+    ctx.pendingAction.scheduledReturns ??= [];
+    ctx.pendingAction.scheduledReturns.push(scheduled);
+  }
+  if (effect.returnAtRoundEnd) rt.state.scheduledRoundReturns.push(scheduled);
 }
 
 export function resolveScheduledReturns(rt, ctx, frame) {
-  for (const scheduled of [...(frame.scheduledReturns ?? [])].reverse()) {
+  resolveReturnEntries(rt, ctx, [...(frame.scheduledReturns ?? [])].reverse());
+  frame.scheduledReturns = [];
+}
+
+export function resolveRoundReturns(rt) {
+  const scheduled = rt.state.scheduledRoundReturns.splice(0).reverse();
+  resolveReturnEntries(rt, { event: null }, scheduled);
+}
+
+function resolveReturnEntries(rt, ctx, returns) {
+  for (const scheduled of returns) {
     const actor = getActor(rt.state, scheduled.actorId);
     if (!actor || !actor.alive || actor.position !== scheduled.destination) continue;
     const originOccupied = actorsOnSide(rt.state, actor.side).some((candidate) => (
@@ -1145,7 +1331,6 @@ export function resolveScheduledReturns(rt, ctx, frame) {
       equipmentInstanceId: scheduled.equipmentInstanceId,
     }, actor, from, returnPosition, ["return"]);
   }
-  frame.scheduledReturns = [];
 }
 
 // §12.4 — preparation.
@@ -1329,11 +1514,24 @@ function modifyAttackPlan(rt, ctx, effect) {
   if (effect.minHitCount !== undefined && baseHitCount < effect.minHitCount) return;
 
   const plan = frame.attackPlan ??= {};
+  for (const statusId of effect.linkStatusIds ?? []) {
+    linkStatusToTarget(rt, ctx, frame, statusId);
+  }
   if (effect.snapshotStatusIds?.length) {
     frame.memory ??= {};
     for (const statusId of effect.snapshotStatusIds) {
       frame.memory[`status:${statusId}`] = statusStacks(frame.owner ?? ctx.owner, statusId);
     }
+  }
+  if (effect.snapshotPositiveStatusStacksKey) {
+    frame.memory ??= {};
+    const owner = frame.owner ?? ctx.owner;
+    frame.memory[effect.snapshotPositiveStatusStacksKey] = owner.statuses.reduce(
+      (sum, status) => sum + (rt.state.content.statuses[status.statusId]?.polarity === "positive"
+        ? Math.min(6, status.stacks)
+        : 0),
+      Math.min(6, owner.block ?? 0),
+    );
   }
   if (effect.hitCountBonus !== undefined) {
     plan.hitCountBonus = (plan.hitCountBonus ?? 0) + effect.hitCountBonus;
@@ -1355,6 +1553,14 @@ function modifyAttackPlan(rt, ctx, effect) {
     if (recipients.length > 0) {
       plan.extraTargetActorIds = recipients.map((actor) => actor.instanceId);
       plan.extraTargetDamageBps = effect.extraTargetDamageBps;
+      if (effect.extraTargetDamageFromAttackStat) {
+        if (attack.amount?.type !== "stat_scaled") {
+          throw new Error("attack-stat extra target damage requires a stat-scaled attack amount");
+        }
+        plan.extraTargetDamageFromAttackStat = true;
+        plan.extraTargetDamageSubject = attack.amount.subject;
+        plan.extraTargetDamageStat = attack.amount.scalingStat;
+      }
     }
   }
 
@@ -1372,6 +1578,36 @@ function modifyAttackPlan(rt, ctx, effect) {
     plan.hitDistribution = effect.hitDistribution ?? "round_robin";
     frame.targetActorIds = ids;
   }
+}
+
+function linkStatusToTarget(rt, ctx, frame, statusId) {
+  const actor = frame.owner ?? ctx.owner;
+  const targetActorId = frame.targetActorIds?.[0];
+  if (!actor || !targetActorId) return;
+  const entry = actor.statuses.find((status) => status.statusId === statusId);
+  if (!entry) return;
+  const beforeTargetActorId = entry.linkedTargetActorId ?? null;
+  if (beforeTargetActorId === targetActorId) return;
+  if (beforeTargetActorId !== null) {
+    const definition = rt.state.content.statuses[statusId];
+    actor.statuses = actor.statuses.filter((status) => status !== entry);
+    rt.emit({
+      type: "status_removed",
+      ...sourceFields(ctx),
+      targetActorIds: [actor.instanceId],
+      tags: ["effect", definition.polarity],
+      values: { statusId, removed: entry.stacks, remaining: 0, cause: "target_changed" },
+    });
+    return;
+  }
+  entry.linkedTargetActorId = targetActorId;
+  rt.emit({
+    type: "status_linked",
+    ...sourceFields(ctx),
+    targetActorIds: [actor.instanceId],
+    tags: ["link"],
+    values: { statusId, beforeTargetActorId, afterTargetActorId: targetActorId, stacks: entry.stacks },
+  });
 }
 
 function modifyPendingAmount(rt, ctx, effect) {
@@ -1396,6 +1632,27 @@ function modifyPendingAmount(rt, ctx, effect) {
       after: frame.amount,
       delta: frame.amount - before,
       proposalEventId: ctx.event ? ctx.event.id : null,
+    },
+  });
+}
+
+function modifyPendingGuard(rt, ctx, effect) {
+  const frame = ctx.pending;
+  if (!frame || frame.kind !== "amount" || ctx.event?.type !== "damage_proposed") return;
+  const amount = evaluateValue(rt.state, ctx, effect.amount);
+  if (amount <= 0) return;
+  const before = frame.guardIgnore ?? 0;
+  frame.guardIgnore = before + amount;
+  rt.emit({
+    type: "pending_guard_modified",
+    ...sourceFields(ctx),
+    targetActorIds: [...frame.targetActorIds],
+    tags: ["ignore"],
+    values: {
+      before,
+      after: frame.guardIgnore,
+      delta: amount,
+      proposalEventId: ctx.event?.id ?? null,
     },
   });
 }

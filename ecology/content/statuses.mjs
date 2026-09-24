@@ -38,6 +38,7 @@ export const STATUS_NAMES = {
   dual_blades_reserved_blade: "仕込み",
   gauntlets_momentum: "踏み込み",
   gauntlets_form: "見取りの型",
+  gauntlets_combo: "連携",
   launcher_observed: "観測済み",
   launcher_order_mark: "射順表",
   launcher_signal: "合図弾",
@@ -349,6 +350,19 @@ statuses.gauntlets_form = {
   duration: "battle",
   rules: [],
   tags: ["playable", "buff", "gauntlets"],
+};
+
+// 格闘具 B2 — 同じ敵へ向けて積む攻撃記録。対象リンクは actor status entry に保持し、
+// attack_plan_opened で選んだ対象へ結び直す。倒した相手の段数は即座に失う。
+statuses.gauntlets_combo = {
+  id: "gauntlets_combo",
+  displayName: STATUS_NAMES.gauntlets_combo,
+  polarity: "positive",
+  maxStacks: 300,
+  duration: "battle",
+  clearWhenLinkedTargetDefeated: true,
+  rules: [],
+  tags: ["playable", "buff", "gauntlets", "linkable"],
 };
 
 statuses.launcher_observed = {
@@ -691,6 +705,7 @@ const STATUS_SUMMARIES = {
   dual_blades_reserved_blade: "自分以外の味方の非攻撃主行動で1段たまる。双刃と重弩の技能が共有し、武器技能で消費する。最大6段。",
   gauntlets_momentum: "移動を伴う格闘で段がたまり、格闘攻撃を強化する。最大2段で手番の終わりに消える。",
   gauntlets_form: "味方の行動を見取った記録。1段につき格闘攻撃のダメージを8%増やし、最大3段。",
+  gauntlets_combo: "B2装備中、同じ敵への命中で1段積む（最大300）。攻撃開始時の段数だけ与ダメージを強め、対象変更・撃破で消える。移動で得た段数は次の敵へ結びつく。",
   launcher_observed: "射出器が観測した敵。射出器の対象優先と合図弾の条件になる。ラウンドで消える。",
   launcher_order_mark: "射順表を評価した記録。射出器の攻撃を強化する。最大3段でラウンドに消える。",
   launcher_signal: "観測対象への味方の攻撃を確認した合図。次に出す攻撃を30%増やし、使うと消える。",

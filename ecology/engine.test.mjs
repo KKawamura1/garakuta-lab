@@ -153,6 +153,12 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(taken.values.amount, 2, "the rest reached hp");
   equal(taken.values.barrierAbsorbed, 2);
   equal(taken.values.proposed, 4);
+  const resolved = of(result, "damage_resolved").find(
+    (event) => event.targetActorIds[0] === "a_warden",
+  );
+  equal(resolved.values.result, "hp_damage", "each settled hit has an outcome even when it reaches HP");
+  equal(resolved.values.hpDamage, 2);
+  equal(resolved.values.hpAfter, resolved.values.hpBefore - 2);
   equal(of(result, "excess_damage").length, 0, "no overkill when the target survives");
 }
 
@@ -172,9 +178,67 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   equal(absorbedResult[0].values.amount, 4);
   equal(absorbedResult[0].values.finalDamage, 0);
   equal(absorbedResult[0].values.fullyAbsorbed, true);
+  const settled = of(result, "damage_resolved").filter((event) => event.round === 1);
+  equal(settled.length, 1, "a fully absorbed hit still has one settled outcome");
+  equal(settled[0].values.result, "barrier_absorbed");
+  equal(settled[0].values.hpDamage, 0);
   equal(of(result, "damage_proposed").filter((event) => event.round === 1).length, 1, "the proposal is still recorded");
   const secondRound = of(result, "barrier_damaged").filter((event) => event.round === 2);
   equal(secondRound.at(-1).values.duration, "battle", "the battle packet is spent last");
+}
+
+{
+  // A flat guard-ignore interrupt composes with the same hit's guard calculation
+  // and applies independently to every hit in the attack.
+  const content = structuredClone(FIXTURE_CONTENT);
+  content.activeSkills.double_guard_test = structuredClone(content.activeSkills.strike);
+  content.activeSkills.double_guard_test.id = "double_guard_test";
+  content.activeSkills.double_guard_test.effects[0].hitCount = 2;
+  content.activeSkills.double_guard_test.effects[0].amount = { type: "constant", value: 10 };
+  content.passiveSkills.flat_guard_ignore_test = {
+    id: "flat_guard_ignore_test",
+    displayName: "Flat Guard Ignore (fixture)",
+    rules: [{
+      id: "flat_guard_ignore_test_rule",
+      listenTo: "damage_proposed",
+      timing: "interrupt",
+      priority: 1,
+      predicates: [{
+        type: "target_exists",
+        query: { scope: "self", filters: [{ type: "is_event_source" }], take: 1 },
+      }],
+      costs: [],
+      effects: [{ type: "modify_pending_guard", amount: { type: "constant", value: 6 } }],
+      allowRepeatInChain: true,
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 8 },
+    }],
+    tags: ["fixture", "attack"],
+  };
+  content.enemyActors.husk.maxHp = 100;
+  content.enemyActors.husk.guard = 8;
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "fixture_flat_guard_ignore";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [{
+    instanceId: "a_warden",
+    characterId: "warden",
+    position: "front_left",
+    activeSkillId: "double_guard_test",
+    passiveSkillIds: ["flat_guard_ignore_test"],
+    reactiveSkillIds: [],
+    equipment: [],
+  }];
+  battle.enemies = [{ instanceId: "e_husk", enemyActorId: "husk", position: "front_left" }];
+  const result = simulateBattle(battle, content);
+  const proposals = of(result, "damage_proposed").filter((event) => event.skillId === "double_guard_test");
+  equal(proposals.length, 2, "both hits open a damage proposal");
+  equal(of(result, "pending_guard_modified").filter((event) => event.ruleId === "flat_guard_ignore_test_rule").length, 2,
+    "flat guard-ignore is recorded per hit");
+  const resolved = of(result, "damage_resolved").filter((event) => event.skillId === "double_guard_test");
+  assert.deepEqual(resolved.map((event) => event.values.hpDamage), [8, 8]);
+  assert.deepEqual(resolved.map((event) => event.values.guardApplied), [2, 2]);
+  checks += 1;
 }
 
 {

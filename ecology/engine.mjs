@@ -37,6 +37,7 @@ import {
   payCosts,
   reachOfEffect,
   resolveScheduledReturns,
+  resolveRoundReturns,
   startPreparationOn,
 } from "./effects.mjs";
 import { validateBattleInput as validateInput, validateContentBundle } from "./validate.mjs";
@@ -102,6 +103,7 @@ function buildState(input, content, options) {
     roundFirings: new Map(),
     battleFirings: new Map(),
     roundEndStartSequence: 0,
+    scheduledRoundReturns: [],
     finished: false,
     result: null,
     reason: null,
@@ -251,7 +253,8 @@ function addActor(state, fields) {
 function makeRuntime(state) {
   return {
     state,
-    emit: (spec, pendingFrame = null) => emit(state, spec, pendingFrame),
+    emit: (spec, pendingFrame = null, options) => emit(state, spec, pendingFrame, options),
+    dispatchAfter: (event) => dispatchRules(state, event, "after", null),
     onResourceGained: (actor) => requeueOnResourceGain(state, actor),
   };
 }
@@ -1173,7 +1176,7 @@ function performAction(state, actor, choice) {
     const attack = (skill.effects ?? []).find((effect) => effect.type === "deal_damage"
       && (effect.tags ?? []).includes("attack"));
     if (attack) {
-      emit(state, {
+      const planOpened = emit(state, {
         type: "attack_plan_opened",
         sourceActorId: actor.instanceId,
         targetActorIds: [...frame.targetActorIds],
@@ -1186,6 +1189,9 @@ function performAction(state, actor, choice) {
           baseHitCount: attack.hitCount ?? 1,
         },
       }, frame);
+      if (skill.attackPlanModifiers?.length) {
+        applyEffects(rt, { ...baseCtx(), event: planOpened, pending: frame }, skill.attackPlanModifiers);
+      }
       if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
     }
 
@@ -1255,11 +1261,18 @@ function performAction(state, actor, choice) {
     emit(state, {
       type: "action_resolved",
       sourceActorId: actor.instanceId,
-      targetActorIds: [...frame.targetActorIds],
+      targetActorIds: [...new Set([
+        ...frame.targetActorIds,
+        ...(frame.resolvedDamageTargetActorIds ?? []),
+      ])],
       sourceDefinitionId: actor.definitionId,
       skillId: skill.id,
       tags: skill.tags,
-      values: { targetCount: frame.targetActorIds.length },
+      values: {
+        targetCount: frame.targetActorIds.length,
+        ...(frame.attackId ? { attackId: frame.attackId } : {}),
+        ...(frame.resolvedAttackIds?.length ? { attackIds: [...new Set(frame.resolvedAttackIds)] } : {}),
+      },
     });
   } finally {
     // A pre-action temporary move may be scheduled by action_declared. Even if
@@ -1315,6 +1328,11 @@ function endRound(state) {
     emit(state, { type: "round_ended", tags: [], values: { round: state.round } });
   });
   if (state.finished) return;
+
+  if (state.scheduledRoundReturns.length > 0) {
+    runChain(state, "round_return", () => resolveRoundReturns(makeRuntime(state)));
+    if (state.finished) return;
+  }
 
   decayRoundEndStatuses(state);
   if (state.finished) return;

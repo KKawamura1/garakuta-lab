@@ -13,7 +13,7 @@ const freeze = (value) => Object.freeze(value);
 // optional action-end return. R26 adds shared column/unacted target filters
 // and resource-reduction effects used by the Stage 1 weapon trees. R27 adds
 // the generic finite-rescue effect and its result event for the medical tree.
-export const CONTENT_SCHEMA_VERSION = "ecology-content-10";
+export const CONTENT_SCHEMA_VERSION = "ecology-content-11";
 // PHASE B: battle input gained an optional `stats` override on both sides
 // (permanent training on allies, difficulty mutations on enemies). The addition
 // is additive — an input without it resolves exactly as ecology-battle-2 did —
@@ -24,11 +24,11 @@ export const CONTENT_SCHEMA_VERSION = "ecology-content-10";
 // enemy/content fixtures during the staged migration, but playable allies emit
 // the new fields.
 export const BATTLE_SCHEMA_VERSION = "ecology-battle-5";
-// Issue #192 — result event streams now distinguish barrier absorption and a
-// damage instance that lost its target. These are additive records, but a
+// Result event streams distinguish damage resolution, barrier absorption, and
+// a damage instance that lost its target. These are additive records, but a
 // reader that only understands the old result shape would hide why an attack
 // produced no HP loss, so the result version moves with the vocabulary.
-export const RESULT_SCHEMA_VERSION = "ecology-result-4";
+export const RESULT_SCHEMA_VERSION = "ecology-result-5";
 export const MINING_VERSION = "ecology-mining-1";
 
 // R6 §4.1-4.2 — PHASE B. The three state layers are persisted separately, so
@@ -119,6 +119,9 @@ export const EVENT_TYPES = freeze([
   "barrier_damaged",
   "barrier_broken",
   "damage_taken",
+  // One settled damage instance, including block/barrier-only hits. This is
+  // the stable after-hit hook for rules that care about the result, not only HP loss.
+  "damage_resolved",
   "recovery_window_closed",
   "excess_damage",
   "healing_proposed",
@@ -137,6 +140,7 @@ export const EVENT_TYPES = freeze([
   "actor_moved",
   "status_added",
   "status_removed",
+  "status_linked",
   "equipment_worn",
   "equipment_broken",
   "equipment_repaired",
@@ -149,6 +153,7 @@ export const EVENT_TYPES = freeze([
   // Emitted when an interrupt rule changes a pending damage, healing or barrier
   // amount. It is a record, not a hook: nothing may listen to it (see below).
   "pending_amount_modified",
+  "pending_guard_modified",
 ]);
 
 // §6 — reserved for later mechanics packs. Referencing one is a validator error,
@@ -170,6 +175,8 @@ export const RESERVED_EVENT_TYPES = freeze([
 export const NON_LISTENABLE_EVENT_TYPES = freeze([
   "resource_refreshed",
   "pending_amount_modified",
+  "pending_guard_modified",
+  "status_linked",
   "damage_absorbed",
   "recovery_window_closed",
 ]);
@@ -186,6 +193,8 @@ export const PENDING_AMOUNT_EVENT_TYPES = freeze([
   // Without this event the barrier third of that fixture cannot exist.
   "barrier_proposed",
 ]);
+// Flat guard reduction only has meaning on an incoming damage proposal.
+export const PENDING_GUARD_EVENT_TYPES = freeze(["damage_proposed"]);
 export const INTERRUPTIBLE_EVENT_TYPES = freeze([
   ...PENDING_ACTION_EVENT_TYPES,
   ...PENDING_AMOUNT_EVENT_TYPES,
@@ -204,6 +213,7 @@ export const PREDICATE_TYPES = freeze([
   "is_preparing",
   "event_tag",
   "event_value",
+  "event_target_is_attack_primary",
   "history_count",
   "attack_flag",
   "target_exists",
@@ -277,6 +287,7 @@ export const TARGET_FILTER_TYPES = freeze([
   "same_row_as_event_primary_target",
   "same_column_as_event_primary_target",
   "horizontal_adjacent_to_event_primary_target",
+  "is_event_target",
   "not_acted_this_round",
   // DEVIATION (PREFLIGHT §1): symmetric partner of is_event_primary_target.
   // Without it, "the actor who caused this event is me" is unwritable in v1 and
@@ -285,6 +296,7 @@ export const TARGET_FILTER_TYPES = freeze([
   // A rule owner can target an event ally without selecting itself.
   "not_self",
   "has_open_position_in_row",
+  "adjacent_to_event_primary_target",
 ]);
 export const TARGET_SORT_TYPES = freeze([
   "hp_asc",
@@ -328,6 +340,7 @@ export const EFFECT_TYPES = freeze([
   "gain_resource",
   "reduce_resource",
   "add_status",
+  "copy_status_from_event",
   "remove_status",
   "remove_statuses",
   "remove_barrier",
@@ -344,6 +357,7 @@ export const EFFECT_TYPES = freeze([
   // item that repairs itself and §10.2 has no way to raise durability.
   "repair_equipment",
   "modify_pending_amount",
+  "modify_pending_guard",
   // 受けるダメージの一部を pending frame から所有者へ移す割り込み。
   // 軽減量と移送量を同じ提案から別々に評価できる。
   "split_pending_damage",
@@ -378,6 +392,7 @@ export const RANGE_CLASSES = freeze(["melee", "long", "ranged", "support"]);
 // §11.4 — usable only from interrupt-timing rules.
 export const INTERRUPT_ONLY_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "modify_pending_guard",
   "split_pending_damage",
   "redirect_pending_target",
   "cancel_pending_action",
@@ -391,6 +406,7 @@ export const PENDING_ACTION_EFFECT_TYPES = freeze([
 ]);
 export const PENDING_AMOUNT_EFFECT_TYPES = freeze([
   "modify_pending_amount",
+  "modify_pending_guard",
   "split_pending_damage",
   "redirect_pending_target",
 ]);
@@ -401,6 +417,8 @@ export const PENDING_AMOUNT_OPERATIONS = freeze(["increase", "decrease", "set"])
 export const VALUE_TYPES = freeze([
   "constant",
   "event_value_scaled",
+  "pending_amount_scaled",
+  "pending_amount_times_status_scaled",
   "event_value_times_status_scaled",
   "actor_stat_scaled",
   "status_stacks_scaled",

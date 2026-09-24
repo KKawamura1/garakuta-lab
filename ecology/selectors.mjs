@@ -85,6 +85,8 @@ function passesFilter(state, ctx, filter, actor) {
     }
     case "is_event_primary_target":
       return Boolean(ctx.event) && ctx.event.targetActorIds[0] === actor.instanceId;
+    case "is_event_target":
+      return Boolean(ctx.event) && ctx.event.targetActorIds.includes(actor.instanceId);
     case "not_event_primary_target":
       return Boolean(ctx.event) && ctx.event.targetActorIds[0] !== actor.instanceId;
     case "same_row_as_event_primary_target": {
@@ -101,6 +103,16 @@ function passesFilter(state, ctx, filter, actor) {
       const primaryColumn = COLUMNS.indexOf(POSITION_COLUMN[primary.position]);
       const actorColumn = COLUMNS.indexOf(POSITION_COLUMN[actor.position]);
       return Math.abs(primaryColumn - actorColumn) === 1;
+    }
+    case "adjacent_to_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      if (!primary) return false;
+      const rowDistance = POSITION_ROW[primary.position] === POSITION_ROW[actor.position] ? 0 : 1;
+      const columnDistance = Math.abs(
+        COLUMNS.indexOf(POSITION_COLUMN[primary.position])
+          - COLUMNS.indexOf(POSITION_COLUMN[actor.position]),
+      );
+      return rowDistance + columnDistance === 1;
     }
     case "not_acted_this_round":
       return (actor.activationsThisRound === 0) === (filter.value ?? true);

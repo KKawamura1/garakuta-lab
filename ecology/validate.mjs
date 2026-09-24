@@ -38,6 +38,7 @@ import {
   PENDING_ACTION_EVENT_TYPES,
   PENDING_AMOUNT_EFFECT_TYPES,
   PENDING_AMOUNT_EVENT_TYPES,
+  PENDING_GUARD_EVENT_TYPES,
   PENDING_AMOUNT_OPERATIONS,
   POSITIONS,
   PREDICATE_TYPES,
@@ -157,6 +158,22 @@ function validateValue(bag, path, value, ctx) {
     case "event_value_scaled":
       if (typeof value.key !== "string" || value.key.length === 0) {
         bag.add(`${path}.key`, "bad_key", "event_value_scaled needs a values key");
+      }
+      break;
+    case "pending_amount_scaled":
+      if (ctx.timing !== "interrupt" || !PENDING_AMOUNT_EVENT_TYPES.includes(ctx.listenTo)) {
+        bag.add(path, "no_pending_amount", "pending_amount_scaled needs an interrupt with a pending amount");
+      }
+      break;
+    case "pending_amount_times_status_scaled":
+      if (ctx.timing !== "interrupt" || !PENDING_AMOUNT_EVENT_TYPES.includes(ctx.listenTo)) {
+        bag.add(path, "no_pending_amount", "pending_amount_times_status_scaled needs an interrupt with a pending amount");
+      }
+      validateSubject(bag, `${path}.subject`, value.subject, ctx);
+      requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
+      if (value.memoryKey !== undefined
+          && (typeof value.memoryKey !== "string" || value.memoryKey.length === 0)) {
+        bag.add(`${path}.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
       }
       break;
     case "event_value_times_status_scaled":
@@ -315,10 +332,12 @@ function validateTargetFilter(bag, path, filter, ctx) {
     case "not_previous_target":
     case "not_self":
     case "is_event_primary_target":
+    case "is_event_target":
     case "not_event_primary_target":
     case "same_row_as_event_primary_target":
     case "same_column_as_event_primary_target":
     case "horizontal_adjacent_to_event_primary_target":
+    case "adjacent_to_event_primary_target":
     case "is_event_source":
       break;
     default:
@@ -402,6 +421,8 @@ function validatePredicate(bag, path, predicate, ctx) {
       } else if (typeof predicate.value === "number" && !Number.isFinite(predicate.value)) {
         bag.add(`${path}.value`, "not_a_number", "event_value.value must be finite");
       }
+      break;
+    case "event_target_is_attack_primary":
       break;
     case "attack_flag":
       if (typeof predicate.key !== "string" || predicate.key.length === 0) {
@@ -491,6 +512,10 @@ function validateEffect(bag, path, effect, ctx) {
         bag.add(path, "no_pending_amount", `${effect.type} needs damage_proposed or healing_proposed`);
         return;
       }
+      if (effect.type === "modify_pending_guard" && !PENDING_GUARD_EVENT_TYPES.includes(ctx.listenTo)) {
+        bag.add(path, "no_pending_guard", "modify_pending_guard needs damage_proposed");
+        return;
+      }
     } else if (!PENDING_ACTION_EVENT_TYPES.includes(ctx.listenTo)) {
       bag.add(path, "no_pending_action", `${effect.type} needs action_declared or target_selected`);
       return;
@@ -512,6 +537,27 @@ function validateEffect(bag, path, effect, ctx) {
       }
       if (effect.hitCount !== undefined && effect.hitCountFromStatus !== undefined) {
         bag.add(path, "ambiguous_hit_count", "use hitCount or hitCountFromStatus, not both");
+      }
+      if (effect.independentAttack !== undefined && typeof effect.independentAttack !== "boolean") {
+        bag.add(`${path}.independentAttack`, "bad_boolean", "independentAttack must be a boolean");
+      }
+      if (effect.independentAttack === true && !(effect.tags ?? []).includes("attack")) {
+        bag.add(`${path}.independentAttack`, "independent_attack_without_attack_tag",
+          "independentAttack requires the attack tag");
+      }
+      if (effect.hitCountBonusBySkill !== undefined) {
+        if (!requireArray(bag, `${path}.hitCountBonusBySkill`, effect.hitCountBonusBySkill)) return;
+        effect.hitCountBonusBySkill.forEach((entry, index) => {
+          const entryPath = `${path}.hitCountBonusBySkill[${index}]`;
+          if (!isPlainObject(entry)) {
+            bag.add(entryPath, "not_an_object", "expected a skill hit bonus");
+            return;
+          }
+          if (!Object.hasOwn(ctx.bundle?.passiveSkills ?? {}, entry.skillId)) {
+            bag.add(`${entryPath}.skillId`, "dangling_reference", `no such passive skill: ${entry.skillId}`);
+          }
+          requireCount(bag, `${entryPath}.bonus`, entry.bonus, { min: 1, max: 8 });
+        });
       }
       if (effect.hitCountFromStatus !== undefined) {
         if (!isPlainObject(effect.hitCountFromStatus)) {
@@ -593,10 +639,14 @@ function validateEffect(bag, path, effect, ctx) {
     case "gain_block":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     case "mark_attack_flag":
-      if (ctx.listenTo !== "damage_taken" || ctx.timing !== "after") {
-        bag.add(path, "attack_flag_window", "mark_attack_flag requires damage_taken after timing");
+      if (!(ctx.listenTo === "damage_proposed" && ctx.timing === "interrupt")
+          && !(ctx.listenTo === "damage_taken" && ctx.timing === "after")
+          && !(ctx.listenTo === "damage_resolved" && ctx.timing === "after")) {
+        bag.add(path, "attack_flag_window",
+          "mark_attack_flag requires damage_proposed interrupt or a settled damage after timing");
       }
       if (typeof effect.key !== "string" || effect.key.length === 0) {
         bag.add(`${path}.key`, "bad_key", "mark_attack_flag needs a key string");
@@ -612,6 +662,13 @@ function validateEffect(bag, path, effect, ctx) {
     case "add_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       requireStatusReference(bag, `${path}.statusId`, effect.statusId, ctx);
+      if (effect.onlyIfStatusLinkedToEventTarget !== undefined) {
+        requireStatusReference(bag, `${path}.onlyIfStatusLinkedToEventTarget`,
+          effect.onlyIfStatusLinkedToEventTarget, ctx);
+      }
+      if (effect.linkToEventTarget !== undefined && typeof effect.linkToEventTarget !== "boolean") {
+        bag.add(`${path}.linkToEventTarget`, "bad_boolean", "linkToEventTarget must be a boolean");
+      }
       if (effect.stacks !== undefined) requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
       if (effect.stacksFromEvent !== undefined) {
         if (effect.stacks !== undefined) {
@@ -627,6 +684,15 @@ function validateEffect(bag, path, effect, ctx) {
         }
       }
       if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
+      break;
+    case "copy_status_from_event":
+      if (ctx.timing !== "after" || ctx.listenTo !== "status_added") {
+        bag.add(path, "copy_status_window", "copy_status_from_event requires a status_added after rule");
+      }
+      validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
+      if (effect.stacksFromEvent !== undefined && typeof effect.stacksFromEvent !== "boolean") {
+        bag.add(`${path}.stacksFromEvent`, "bad_boolean", "stacksFromEvent must be a boolean");
+      }
       break;
     case "remove_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -663,6 +729,17 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.returnAfterAction !== undefined && typeof effect.returnAfterAction !== "boolean") {
         bag.add(`${path}.returnAfterAction`, "bad_boolean", "returnAfterAction must be a boolean");
       }
+      if (effect.returnAtRoundEnd !== undefined && typeof effect.returnAtRoundEnd !== "boolean") {
+        bag.add(`${path}.returnAtRoundEnd`, "bad_boolean", "returnAtRoundEnd must be a boolean");
+      }
+      if (effect.returnAfterAction === true && effect.returnAtRoundEnd === true) {
+        bag.add(path, "duplicate_return_timing", "use only one return timing");
+      }
+      if (effect.returnAtRoundEnd === true
+          && (ctx.timing !== "after" || !["damage_resolved", "action_resolved"].includes(ctx.listenTo))) {
+        bag.add(`${path}.returnAtRoundEnd`, "round_return_outside_hit",
+          "returnAtRoundEnd requires a settled damage or action after rule");
+      }
       if (effect.returnAfterAction === true
           && ctx.timing !== "action" && ctx.listenTo !== "action_declared") {
         bag.add(
@@ -673,8 +750,8 @@ function validateEffect(bag, path, effect, ctx) {
       }
       if (effect.returnRow !== undefined) {
         requireOneOf(bag, `${path}.returnRow`, effect.returnRow, ROWS, "unknown_row");
-        if (effect.returnAfterAction !== true) {
-          bag.add(`${path}.returnRow`, "return_row_without_return", "returnRow requires returnAfterAction");
+        if (effect.returnAfterAction !== true && effect.returnAtRoundEnd !== true) {
+          bag.add(`${path}.returnRow`, "return_row_without_return", "returnRow requires a scheduled return");
         }
       }
       if (effect.cancelIfOutOfReach !== undefined && typeof effect.cancelIfOutOfReach !== "boolean") {
@@ -719,12 +796,36 @@ function validateEffect(bag, path, effect, ctx) {
           requireStatusReference(bag, `${path}.snapshotStatusIds[${index}]`, statusId, ctx);
         });
       }
+      if (effect.snapshotPositiveStatusStacksKey !== undefined
+          && (typeof effect.snapshotPositiveStatusStacksKey !== "string"
+            || effect.snapshotPositiveStatusStacksKey.length === 0)) {
+        bag.add(`${path}.snapshotPositiveStatusStacksKey`, "bad_key",
+          "snapshotPositiveStatusStacksKey must be a non-empty string");
+      }
+      if (effect.linkStatusIds !== undefined) {
+        if (!requireArray(bag, `${path}.linkStatusIds`, effect.linkStatusIds)) return;
+        if (effect.linkStatusIds.length === 0) {
+          bag.add(`${path}.linkStatusIds`, "empty_status_link", "linkStatusIds must not be empty");
+        }
+        effect.linkStatusIds.forEach((statusId, index) => {
+          requireStatusReference(bag, `${path}.linkStatusIds[${index}]`, statusId, ctx);
+        });
+      }
       if (effect.addAdjacentDamageTargets !== undefined
           && typeof effect.addAdjacentDamageTargets !== "boolean") {
         bag.add(`${path}.addAdjacentDamageTargets`, "bad_boolean", "addAdjacentDamageTargets must be a boolean");
       }
       if (effect.extraTargetDamageBps !== undefined) {
         requireCount(bag, `${path}.extraTargetDamageBps`, effect.extraTargetDamageBps, { min: 1, max: 10_000 });
+      }
+      if (effect.extraTargetDamageFromAttackStat !== undefined
+          && typeof effect.extraTargetDamageFromAttackStat !== "boolean") {
+        bag.add(`${path}.extraTargetDamageFromAttackStat`, "bad_boolean",
+          "extraTargetDamageFromAttackStat must be a boolean");
+      }
+      if (effect.extraTargetDamageFromAttackStat === true && effect.addAdjacentDamageTargets !== true) {
+        bag.add(`${path}.extraTargetDamageFromAttackStat`, "stat_damage_without_extra_targets",
+          "attack-stat damage requires adjacent damage targets");
       }
       if (effect.addAdjacentDamageTargets === true !== (effect.extraTargetDamageBps !== undefined)) {
         bag.add(path, "incomplete_extra_targets", "adjacent damage targets need extraTargetDamageBps");
@@ -733,7 +834,9 @@ function validateEffect(bag, path, effect, ctx) {
         bag.add(path, "extra_target_window", "adjacent damage targets require attack_plan_opened");
       }
       if (effect.hitCountBonus === undefined && effect.snapshotLegalTargets !== true
-          && effect.snapshotStatusIds === undefined && effect.addAdjacentDamageTargets !== true) {
+          && effect.snapshotStatusIds === undefined && effect.linkStatusIds === undefined
+          && effect.snapshotPositiveStatusStacksKey === undefined
+          && effect.addAdjacentDamageTargets !== true) {
         bag.add(path, "empty_attack_plan_modifier", "give a hit or target plan change");
       }
       break;
@@ -773,6 +876,9 @@ function validateEffect(bag, path, effect, ctx) {
       break;
     case "modify_pending_amount":
       requireOneOf(bag, `${path}.operation`, effect.operation, PENDING_AMOUNT_OPERATIONS, "unknown_operation");
+      validateValue(bag, `${path}.amount`, effect.amount, ctx);
+      break;
+    case "modify_pending_guard":
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
     case "split_pending_damage":
@@ -951,6 +1057,21 @@ export function validateContentBundle(bundle) {
     validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);
     // An active skill is not a rule, so it never has a pending frame to touch.
     validateEffects(bag, `${path}.effects`, skill.effects, { ...baseCtx, timing: "action", listenTo: null });
+    if (skill.attackPlanModifiers !== undefined) {
+      if (requireArray(bag, `${path}.attackPlanModifiers`, skill.attackPlanModifiers)) {
+        skill.attackPlanModifiers.forEach((effect, index) => {
+          if (effect?.type !== "modify_attack_plan") {
+            bag.add(`${path}.attackPlanModifiers[${index}]`, "attack_plan_modifier_type",
+              "attackPlanModifiers may contain only modify_attack_plan effects");
+          }
+        });
+        validateEffects(bag, `${path}.attackPlanModifiers`, skill.attackPlanModifiers, {
+          ...baseCtx,
+          timing: "interrupt",
+          listenTo: "attack_plan_opened",
+        });
+      }
+    }
     if (skill.preparation !== undefined) {
       requireCount(bag, `${path}.preparation.steps`, skill.preparation.steps, {
         min: LIMITS.minPreparationSteps,
@@ -1194,6 +1315,11 @@ export function validateContentBundle(bundle) {
     if (status.decayAtRoundEnd && status.duration !== "battle") {
       bag.add(`${path}.decayAtRoundEnd`, "decay_needs_battle_duration",
         "round-end decay statuses use battle duration");
+    }
+    if (status.clearWhenLinkedTargetDefeated !== undefined
+        && typeof status.clearWhenLinkedTargetDefeated !== "boolean") {
+      bag.add(`${path}.clearWhenLinkedTargetDefeated`, "bad_boolean",
+        "clearWhenLinkedTargetDefeated must be a boolean");
     }
     if (status.durationRounds !== undefined) {
       requireCount(bag, `${path}.durationRounds`, status.durationRounds, { min: 1, max: 99 });
