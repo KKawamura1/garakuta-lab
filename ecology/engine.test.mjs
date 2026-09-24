@@ -211,6 +211,71 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // An attack fixes both its base target set and pattern-expanded recipients
+  // before hit 0. A killed recipient loses later slots; those slots are not
+  // transferred, and surviving recipients retain the original plan counts.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  const targetQuery = {
+    scope: "enemies",
+    filters: [{ type: "alive" }],
+    sort: ["position_asc"],
+    take: 1,
+  };
+  bundle.activeSkills.double_sweep = structuredClone(bundle.activeSkills.strike);
+  bundle.activeSkills.double_sweep.id = "double_sweep";
+  bundle.activeSkills.double_sweep.displayName = "Double Sweep (fixture)";
+  bundle.activeSkills.double_sweep.targetQuery = structuredClone(targetQuery);
+  bundle.activeSkills.double_sweep.effects[0] = {
+    type: "deal_damage",
+    target: structuredClone(targetQuery),
+    targetPattern: "row",
+    hitCount: 2,
+    amount: { type: "constant", value: 4 },
+    tags: ["attack", "fixture"],
+  };
+  const battle = {
+    ...structuredClone(CORE_BATTLE),
+    battleId: "attack_plan_keeps_recipients_and_counts",
+    maxRounds: 1,
+    allies: [{
+      instanceId: "a_warden",
+      characterId: "warden",
+      position: "front_left",
+      tactics: [{ activeSkillId: "double_sweep", useWhen: [] }],
+      reactiveSkillIds: [],
+      equipment: [],
+    }],
+    enemies: [
+      { instanceId: "e_first", enemyActorId: "husk", position: "front_left", hp: 1 },
+      { instanceId: "e_second", enemyActorId: "husk", position: "front_right", hp: 10 },
+    ],
+  };
+  const result = simulateBattle(battle, bundle);
+  const proposals = of(result, "damage_proposed").filter((event) => (
+    event.sourceActorId === "a_warden" && event.skillId === "double_sweep"
+  ));
+  equal(proposals.length, 3, "the killed target loses hit 1 without moving that slot");
+  check(proposals.every((event) => (
+    event.values.baseHitCount === 2
+      && event.values.hitCount === 2
+      && event.values.baseTargetCount === 1
+      && event.values.plannedTargetCount === 2
+  )), "every proposed hit carries the fixed base and expanded plan counts");
+  assert.deepEqual(
+    proposals.filter((event) => event.targetActorIds[0] === "e_second")
+      .map((event) => event.values.hitIndex),
+    [0, 1],
+    "the surviving planned recipient keeps its two assigned hits",
+  );
+  const skipped = of(result, "damage_skipped").find((event) => (
+    event.skillId === "double_sweep" && event.targetActorIds[0] === "e_first"
+  ));
+  check(skipped, "the defeated recipient's unspent slot remains attached to it");
+  equal(skipped.values.hitIndex, 1);
+  equal(skipped.values.plannedTargetCount, 2);
+}
+
+{
   // §12.1 — excess is max(0, proposed - absorbed - hpBefore).
   const result = run(BROKEN_EQUIPMENT_BATTLE);
   const excess = first(result, "excess_damage");

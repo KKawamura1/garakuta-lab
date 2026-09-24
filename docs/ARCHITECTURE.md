@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 22709)
+Total output lines: 888
+
 # 技術契約とコードの地図
 
 ## 1. リポジトリの地図
@@ -28,7 +31,7 @@
 | `app.js` | UI（タイトル画面を含む）、local save、進行、送信 payload |
 | `engine.mjs` | 決定的な戦闘解決 |
 | `schema.mjs` / `validate.mjs` | イベント・状態の定義と不変条件 |
-| `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順 |
+| `effects.mjs` / `predicates.mjs` / `values.mjs` / `event-queue.mjs` | 効果・条件・値・イベント順。直接ダメージ効果は最初のhit前に基礎対象・拡張後の対象・hit枠を固定し、`damage_proposed` に基礎hit数・基礎対象数・予定対象数を残す |
 | `playable-battles.mjs` | 現行の戦闘入力、preview、loadout（技能の装着順・一時停止を含む） |
 | `progression.mjs` | Profile、Run、報酬、補給、Campaign 解禁、必殺印の勘定 |
 | `ultimates.mjs` | 必殺技（issue #238）。取得済み技能を必殺へ変える純関数の変換規則と、遠征 bundle への混ぜ方。**engine も schema も必殺を知らない** |
@@ -302,126 +305,7 @@ Campaign Stage の ID は `NAMED_SECTIONS` に含まれずこの照合の対象�
 `ecology/` は遠征終了時に、版、build 印、seed、Profile / Run の要約、event 列、
 アンケート、感情マーカーを `/api/runs` へ送ります。送信失敗時も端末側の保存結果を
 明示し、「保存済み」と「D1 保存済み」を混同しません。受け側は
-`functions/api/runs.js`、schema は `migrations/`。取り出し方は `docs/OPERATIONS.md`。
-
-## 8. 障害時に見る順
-
-- 画面が空白: ブラウザ console → 公開された module の MIME → build 印 → 直接 import。
-- 戦闘が止まる: 同じ seed のイベント列 → termination → anti-stall の結果。
-  反応・連鎖の安全性は `analysis/ecology-chain-safety-audit.mjs` が、到達可能な技能・
-AP/RP は actor × resource × round の収支と、spend 一回ごとの transfer 割当を追跡し、余剰回復は overflow 直下の consumer 多重化まで検査する。
-  固定／生成装備の定義と代表的な event trace を別に検査する。AP/RP の受け渡しと生成、
-  同じ owner/rule の chain 内再発火、自傷コスト由来の `damage_taken`、過剰回復の
-  元 amount／親子関係、rule の limit.owner・scope・count を個別に見る。chain/battle cap
-  到達は正常停止の証拠として数えず、既存の anti-stall（持越しHP・物資・装備）とも
-  別の検査結果として報告する。
-- D1 送信が失敗: payload の schema → HTTP status → `functions/api/runs.js` の許可 host → migration。
-- 作者のプレイ結果を推測で補わず、未確認として止める。
-
-
-
-### 8.1 資源報酬の許可例を追加するとき
-
-\`docs/DESIGN.md\` §4.1.1 が意味上の契約、\`analysis/ecology-chain-safety-audit.mjs\` が機械的な
-判定、\`analysis/ecology-chain-safety-blind-spots.mjs\` が追加例の実行可能な記録を担当する。
-許可例を増やすときは次の順で更新する。
-
-1. まず、既存の event / predicate / cost / effect / target / limit だけで、有限コスト型または
-   外部イベントの一回型として定義できることを確認する。
-2. \`allowedResourceCases\` に content 定義への path、発火条件、対象、支払い、上限、許可理由を
-   追加する。実装 ID の比較だけで通す条件は追加しない。
-3. 近い形で条件を一つ欠く不正例を \`skillCases\` または trace ケースに置く。例えば
-   \`scavenge_ap\`（敵条件＋round/1）を許可するなら、敵条件と一回性を欠く
-   \`free_defeat_ap\` は拒否され続けなければならない。
-4. 監査側を変更した場合は、まず不正例を拒否できず CI が落ちることを確認し、その後に最小の
-   判定を追加して、既存の許可例・新しい陽性例・近似不正例をすべて \`check-all.sh\` で確認する。
-5. PR 本文には、追加した条件と陽性／陰性の件数、CI の結果を残す。
-
-engine / schema に新しい語彙を追加する必要がある変更は、この追加手順の範囲外であり、
-別の仕様・互換性検討を先に行う。
-
-## 9. UI表示の責務
-
-`app.js` の通常画面は、主見出し、現在の選択対象、次の操作の順で構成する。意思決定が済んだ画面では、次の操作を
-先に押せるよう、主操作を詳細カード・履歴・内訳より前へ置く。隊列・技能・装備のような選択画面では
-選択対象→確定操作の順を維持し、敵情報は選択中の一体に絞り、技能ツリー・装備一覧は折り畳みで長さを制御する。
-
-ギルドとキャンプの敵情報は `encounterArchive()` を共有します。12個の節はいずれも
-`composeEncounter(index, difficulty, encounterOptions())` を読み、選択中の一戦だけを
-`expeditionEnemyBoard()` で3×2盤へ展開します。敵詳細は同じ composed enemy の確定 stat と
-`PLAYABLE_CONTENT.enemyActors` の AP / RP・tactics・reactive / passive skill ID を合わせ、
-技能名は `componentLabel()`（enemy registryのdisplay nameも `DISPLAY_NAMES` に載る）、効果は `componentInfo()`、狙い方は tactics から
-導出済みの `enemyInfo()` を読みます。
-画面用に敵能力・技能・狙いを複製しません。`inspectedEncounterIndex` と `selectedEnemyId` は
-ギルド／キャンプ間とタブ往復中だけ保つ UI state で、RunState と保存データには入りません。
-
-12戦盤そのものは上端の盤面と同じ `.forecaster-window`（下地・角の括弧・走査線・`.forecast-head`）
-を着ます。**同じ先見機の像なので、窓の作りを二つ持たない**——見出しは `encounterConsole()` が
-`.forecast-head` の並びで出し、左に照準レンズ（record は踏破の印）と「第N戦 · 名前」、
-右に「NN/12」を置きます。投影の面（`.encounter-projection`）は枠も下地も持たず、
-4指標（`encounterReport()`）と敵盤面だけを載せます。戦闘の銘（幕・種別・危険度・最大ラウンド）、
-区画の説明文、ボス法則の解説文は持ちません。
-
-キャンプでは、選んだ index が `run.encounterIndex` より前なら `record`、現在地以降なら
-`forecast` として描き分けます。走査線・信号アニメーション・青緑の読み値は forecast だけに付き、
-record は走査を止めた緑の窓です。各戦の技能点と戦闘後HPは進行規則から、踏破済みのラウンド数と
-味方HP損失は保存済みの `run.results` から `encounterReport()` が読みます。未知の実績だけを
-「？」にするため、画面専用の戦歴 state は持ちません。敵盤面は常時表示し、閉じない
-`enemy-details` に置きます。
-
-踏破済みの節の敵盤面は、**そのとき実際に戦った盤面**です。灰の門（`prologueEncounter`）と
-必殺技の一戦（`ultimateLessonEncounter`）は 12戦の席に座る手書きの盤面で、
-`composeEncounter` からは出てこないので、戦った時点で `run.results` の項へ
-`script`（`"prologue"` / `"ultimate_lesson"`）を残し、`encounterForInspection()` が
-`SCRIPTED_ENCOUNTER_BUILDERS` からその盤面を組み直します。**save に残すのは印の一語**で、
-敵の表そのものは置きません。印の無い項は従来どおり `composeEncounter` で組みますが、
-印を持たない古い save のために `scriptOfClearedEncounter()` が一つだけ読み替えます——
-導入の遠征（New Game の Stage 0）の第1戦は必ず灰の門です（New Game は profile ごと
-作り直すので、灰の門を飛ばす経路がありません）。
-技能ツリーは**地図と操作盤を分ける**。節（`.tree-cell`）は位置と状態だけを持ち、押した節の説明・
-前提・派生・取得・段上げ・取得予約は画面下端へ貼る操作盤（`renderSkillSheet` / `.skill-sheet`）が
-出す。節の中で開かないので、押しても地図は組み変わらず、釦は列幅ではなく画面幅を使える。
-`focusSelectedSkillNode()` は、選び直した節が帯の窓の外に居るときだけ地図を寄せる。
-**見方は一覧（既定）と地図の二つ**で、どちらも同じ森（`skillTreeLayout()`）を同じ順（深さ優先）で
-読む。`renderSkillList()` は縦一列・横スクロール無しで、深さを `--indent` の段差で出す。
-`renderSkillMap()` は R19 の森そのもの（固定幅の列と実座標の線）。切り替えは
-`state.skillTreeView`（`select-skill-view`）が持ち、節の選択・操作盤・`data-fx` の宛先は共有するので、
-一覧で見つけた節を地図で辿り直しても、選んだ節と操作の場所は変わらない。手引きの選択子は
-見方に依らず `.skill-tree-view [data-action="select-skill-node"]` で綴る。
-「いま技能点で動かせる節」（解禁できる／段を上げられる＝`skillNodeActionableNow()`）は、
-種別タブの数（`.tab-ready`）と絞り込み（`state.skillTreeReadyOnly` / `toggle-skill-ready`）の
-両方が読む。**絞り込みは一覧では隠し、地図では沈める**（地図で隠すと線の行き先が消える）。
-盤は「その節を取るかどうかを決める材料」だけを持つ（効果の一文・足りない前提・一行に並ぶ
-取得／段上げ／予約）。入切は `skillToggleSwitch()` の摘みを装着行と共有し、前提と派生の一覧は
-地図が、予約の規則は畳んだヘルプが、いまの予約先と残りの技能点はツリーの操作の行
-（`.tree-controls`、貼りつかない）が出す。
-装飾的な英語副見出し、
-常に表示する一般説明、同じタブへ戻るNEXT/QUICK LINKSは画面の主操作から外し、必要なルールを
-`details.help-details` のタップ式ヘルプへ置く。`helpOpen` が開閉状態を保持するため、同じ画面の
-再描画でも読んでいた詳細は閉じない。戦闘のプレイヤー向け履歴は「戦闘履歴」、全イベントと build・rule version・run・seed は
-その中の折り畳まれた「技術ログ」に分ける。通常画面の header / footer には内部版数を出さない。
-shell を共有するタイトル・キャンプ・戦闘・結果・精算の全画面と、戦闘予測の冗長文が戻らないことを
-`analysis/ecology-screens-smoke.mjs` が検査する。表示整理は予測・本番・報酬・精算の計算経路を変更しない。
-
-画面本体の文章は、ストーリーと技能・装備の説明文に絞る（issue #236）。状態・数量・対象・可否は
-記号・数・棒・色・配置で出し、**同じ数を同じ画面で二度出さない**。見出しとその直下の要約が
-同じことを言っている組（「技能ツリー」の見出しと summary、「ゴウの装備枠」と直上の人物帯、
-「補給 2 / 3」の見出し札とバーの頭）は札の側を落とす。金の主ボタンは位置と色でそれ自体が
-「次の操作」なので、`primary-action-label` のような札を重ねない。押せる形になっているカードの
-一覧へ「選んでください」と書き添えず、**二手続きの操作で次の一手が要るときだけ**一行を出す
-（装備を選んだあとの「装着する枠を選ぶ」、隊列の「移動先の枠へ」、治療の対象選び）。
-戦闘マップの凡例と配置の説明は畳んだヘルプへ置き、各節は `title` と読み上げラベルで
-自分の状態（「第3戦・精鋭・未到達」）を名乗る。同じ種類の敵が並ぶ回は、`enemy-lore` の一行を
-最初の1枚にだけ出す。
-
-### 図で言う共通語彙（作者要望 2026-09-13）
-
-**説明を段落で書く画面は作らない。**規則・内訳・状態・因果は、記号・数・目盛り・流れで出す。
-`app.js` はその語彙を一箇所だけ持ち、画面ごとに似た形を作り直さない。
-
-| 関数 | 出すもの | 主な使い先 |
-|---|---|---|
-| `glyph(name)` | 線画の記号（`currentColor` を継ぐ 24×24 SVG） | すべての段・タイル・札 |
+`functions/api/runs.js`、schema は `migrations/`。取り出し方は `docs/OPERATIONS.md…2709 tokens truncated…glyph(name)` | 線画の記号（`currentColor` を継ぐ 24×24 SVG） | すべての段・タイル・札 |
 | `statTiles(items, className, columns)` | 数の並び（数が主、名が従） | 敗北・精算・完走・結果・設計図 |
 | `ruleGrid(items)` | 規則の一段（記号＋見出し一語＋一行） | 各ヘルプ、警告、画面の前置き |
 | `flowStrip(steps)` | 順のあること（払う→変える→戻る） | 再挑戦、設計図の行き先、完走の道のり |

@@ -1,7 +1,7 @@
-# dev移行台帳 — Stage 0・Stage 1
+# dev移行台帳 — Stage 0〜Stage 2
 
 更新日: 2026-09-24  
-状態: **Stage 0完了。Stage 1の敵registry分離を完了。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。武器別player registry、未実装技能の取得制御、新runtimeへの全面移行は後続作業。
+状態: **Stage 0完了。Stage 1の敵registry分離を完了。Stage 2の直接ダメージ計画を開始。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。PR #293では直接ダメージ効果ごとの基礎対象・拡張対象・hit枠を最初のhit前に固定する。武器別player registry、未実装技能の取得制御、行動全体の計画、preview/replayの新runtime全面移行は後続作業。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -82,3 +82,9 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 - [x] PR #292で敵active/reactive/passive registryとenemy core actionを分離し、敵戦闘smoke・schema境界検査を通した
 
 準備段階では旧player runtimeを維持する。新規モジュールは旧skill ID・level map・旧tree・旧pack形状へ依存させない。PR #292の共有enemy actionは移行用の複製であり、武器別player実装の後に複製元importを撤去する。初期20節のゲーム本体切替と旧経路削除は同じ後続PRで行う。
+
+## Stage 2aの直接ダメージ計画
+
+- [x] PR #293で、各 `deal_damage` 効果が基礎対象、pattern展開後の予定対象、基礎hit数、hit枠を解決開始前に固定する
+- [x] `damage_proposed` と未実行枠の `damage_skipped` に基礎hit数・基礎対象数・予定対象数を記録する。途中撃破で残り枠を別対象へ移さない
+- [ ] 行動全体の攻撃計画、対象反応・攻撃前反応・効果量確定の共通順、preview/replayとの共用は後続PRで扱う

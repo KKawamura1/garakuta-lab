@@ -191,39 +191,66 @@ function gainBlock(rt, ctx, effect) {
 // **一 damage instance の順は block → guard → barrier → HP。**
 // R6 §6.7 が固定した順で、途中で変えると同じ構成が別の結果になる。
 //
-//   1. 対象列は action 開始時に一度だけ確定し、position 順に並べる
+//   1. 各 deal_damage 効果の最初の hit 前に基礎対象と pattern 拡張対象を一度だけ確定し、位置順に並べる
 //   2. hitIndex を外側、対象順を内側にする
 //   3. 一 instance ごとに damage_proposed → block → guard → barrier →
 //      damage_taken / damage_blocked を完了する
 //   4. その instance の after reaction を処理してから次の対象へ進む
 //   5. 途中で倒れた対象への残り hit は**失われる。別対象へ自動 retarget しない**
 function dealDamage(rt, ctx, effect) {
-  const hitCount = effect.hitCount ?? 1;
-  // 1. 一度だけ確定する。hit の途中で対象が変わらないのが multi-hit の前提。
-  const targetIds = expandPattern(rt, ctx, effect).map((actor) => actor.instanceId);
-  for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
-    for (const instanceId of targetIds) {
-      const target = getActor(rt.state, instanceId);
-      // 5. 倒れていたらこの hit は失われる。別の相手へ回さない。
-      if (!target || !target.alive) {
-        rt.emit({
-          type: "damage_skipped",
-          ...sourceFields(ctx),
-          targetActorIds: [instanceId],
-          tags: effect.tags ?? [],
-          values: { hitIndex, hitCount, reason: target ? "target_defeated" : "target_unavailable" },
-        });
-        continue;
-      }
-      dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount);
+  // This is a per-effect plan. Action-wide planning across target reactions,
+  // preparation completion and multiple damage effects is a later migration step.
+  const baseTargets = selectTargets(rt, ctx, effect.target, { reach: effect.reach });
+  const plannedTargets = expandPattern(rt, baseTargets, effect);
+  const plan = createDamagePlan(baseTargets, plannedTargets, effect.hitCount ?? 1);
+
+  // The slot list is fixed before the first hit. Defeated or redirected targets
+  // can cancel a slot, but never move it to another recipient.
+  for (const { targetActorId, hitIndex } of plan.hitSlots) {
+    const target = getActor(rt.state, targetActorId);
+    if (!target || !target.alive) {
+      rt.emit({
+        type: "damage_skipped",
+        ...sourceFields(ctx),
+        targetActorIds: [targetActorId],
+        tags: effect.tags ?? [],
+        values: {
+          hitIndex,
+          hitCount: plan.hitCount,
+          baseHitCount: plan.baseHitCount,
+          baseTargetCount: plan.baseTargetCount,
+          plannedTargetCount: plan.plannedTargetCount,
+          reason: target ? "target_defeated" : "target_unavailable",
+        },
+      });
+      continue;
     }
+    dealOneInstance(rt, ctx, effect, target, hitIndex, plan.hitCount, undefined, plan);
   }
+}
+
+function createDamagePlan(baseTargets, plannedTargets, hitCount) {
+  const baseTargetIds = Object.freeze(baseTargets.map((actor) => actor.instanceId));
+  const plannedRecipientIds = Object.freeze(
+    [...new Set(plannedTargets.map((actor) => actor.instanceId))],
+  );
+  const hitSlots = Object.freeze(Array.from({ length: hitCount }, (_, hitIndex) =>
+    plannedRecipientIds.map((targetActorId) => Object.freeze({ targetActorId, hitIndex })),
+  ).flat());
+  return Object.freeze({
+    baseTargetIds,
+    baseTargetCount: baseTargetIds.length,
+    baseHitCount: hitCount,
+    plannedRecipientIds,
+    plannedTargetCount: plannedRecipientIds.length,
+    hitCount,
+    hitSlots,
+  });
 }
 
 // R6 §5.4 — targetPattern は「最初に選ばれた相手」から広げる。
 // row は同じ行、column は同じ列の前後。空き枠は actor ではないので数に入らない。
-function expandPattern(rt, ctx, effect) {
-  const primary = selectTargets(rt, ctx, effect.target, { reach: effect.reach });
+function expandPattern(rt, primary, effect) {
   const pattern = effect.targetPattern ?? "single";
   if (pattern === "single" || primary.length === 0) return primary;
   const anchor = primary[0];
@@ -290,7 +317,7 @@ function afterRearFalloff(rawAmount, ctx, effect) {
   return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
 }
 
-function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOverride) {
+function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOverride, plan = null) {
   const proposed = proposedOverride === undefined
     ? afterRearFalloff(
       afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), ctx, effect,
@@ -304,7 +331,16 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
       tags,
-      values: { amount: proposed, hitIndex, hitCount },
+      values: {
+        amount: proposed,
+        hitIndex,
+        hitCount,
+        ...(plan ? {
+          baseHitCount: plan.baseHitCount,
+          baseTargetCount: plan.baseTargetCount,
+          plannedTargetCount: plan.plannedTargetCount,
+        } : {}),
+      },
     },
     frame,
   );
@@ -316,7 +352,17 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       parentEventId: event.id,
       targetActorIds: frame.targetActorIds,
       tags,
-      values: { amount: frame.amount, hitIndex, hitCount, reason: finalTarget ? "target_defeated" : "target_unavailable" },
+      values: {
+        amount: frame.amount,
+        hitIndex,
+        hitCount,
+        ...(plan ? {
+          baseHitCount: plan.baseHitCount,
+          baseTargetCount: plan.baseTargetCount,
+          plannedTargetCount: plan.plannedTargetCount,
+        } : {}),
+        reason: finalTarget ? "target_defeated" : "target_unavailable",
+      },
     });
     return;
   }
@@ -1001,13 +1047,16 @@ function splitPendingDamage(rt, ctx, effect) {
     reach: "unrestricted",
     tags: [...new Set([...(effect.tags ?? []), "shared_damage"])],
   };
-  for (const target of selectTargets(rt, ctx, transferEffect.target)) {
-    if (!target.alive) continue;
+  const transferTargets = selectTargets(rt, ctx, transferEffect.target).filter((target) => target.alive);
+  const transferPlan = createDamagePlan(transferTargets, transferTargets, 1);
+  for (const instanceId of transferPlan.plannedRecipientIds) {
+    const target = getActor(rt.state, instanceId);
+    if (!target || !target.alive) continue;
     // The amount was already evaluated from the current proposal frame. Passing
     // it through explicitly avoids applying the owner's skill level a second time,
     // while still letting this normal damage instance use guard/barrier and the
     // usual damage_proposed -> damage_taken event path.
-    dealOneInstance(rt, ctx, transferEffect, target, 0, 1, transfer);
+    dealOneInstance(rt, ctx, transferEffect, target, 0, transferPlan.hitCount, transfer, transferPlan);
   }
 }
 
