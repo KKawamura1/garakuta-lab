@@ -1,7 +1,7 @@
-# dev移行台帳 — Stage 0
+# dev移行台帳 — Stage 0・Stage 1
 
 更新日: 2026-09-24  
-状態: **Stage 0完了。** 基準調査、190節のカタログ同期、skill IDの出典整理、初期20節の導出検査を完了した。ゲーム本体の切替と新runtimeの導入はまだ行っていない。
+状態: **Stage 0完了。Stage 1の敵registry分離を完了。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。武器別player registry、未実装技能の取得制御、新runtimeへの全面移行は後続作業。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -27,7 +27,7 @@ mainのCIはNode 22で構文検査、`ecology/check.mjs`、`analysis/check-all.s
 | `ecology/content/skills-active.mjs`、`skills-reactive.mjs`、`skills-passive.mjs`。現行player registryは `content/index.mjs` で統合される | 武器別player skill moduleと、新しいplayer registry | 初期20節の実装・戦闘・予測・replayが新registryを通る切替PRで旧定義を撤去。IDごとの契約・挙動試験を移す |
 | `content/skill-tree.mjs`、`skill-tree-layout.mjs`、`skill-levels.mjs`。旧skill ID、level map、取得前提をUI・進行・保存が読む | 武器別treeと取得済みID集合。武器技能にlevelを持たせない | 新treeの190位置・前提・取得可能集合・初期20を機械検査してから、旧tree・layout・level参照を初期20の切替PRで同時に削除。新規モジュールから旧IDをimportしない |
 | `content/packs.mjs` のskill packと装備packの混在・共通解禁 | `skill-packs` と装備packの別registry・別manifest欄 | 遠征生成・抽選・画面のpack一覧・保存を別集合で検査し、技能が装備抽選へ／装備が技能取得へ漏れないことを確認して旧skill-pack経路を削除 |
-| `content/index.mjs`、`content/enemies.mjs`、`playable-content.mjs`の共有player/enemy skill参照 | 敵が実際に使う定義だけのenemy registryと、武器別player registry | 全敵actorのactive/reactive/passive参照がenemy registryに解決し、player技能が混入しないことを検査。敵戦闘を維持した上で旧共有registryを撤去 |
+| `content/index.mjs`、`content/enemies.mjs`、`playable-content.mjs`の共有player/enemy skill参照 | 敵の実使用技能だけを持つenemy registry（PR #292）と、武器別player registry | PR #292で全敵actorのactive/reactive/passive参照を敵側だけで解決し、player IDの誤参照をschemaで拒否。共有効果の複製元として旧player moduleへの一時importは残る。武器別player実装を通す切替時に複製元と旧runtime依存を撤去 |
 | `schema.mjs`、`validate.mjs`、`effects.mjs`、`predicates.mjs`、`engine.mjs`、`event-queue.mjs`、`replay-beats.mjs` | 解決順監査に沿った共通event/effect/predicateと、その表示・replay | event語彙を増やすPRごとにschema・validator・engine境界テスト・表示/replayをそろえる。未知語彙はvalidator error。previewと本番を同一engine経路にする |
 | `progression.mjs`、`playable-battles.mjs`、`app.js`のProfile/Run保存、取得・予約、装備、予測 | 新loadout、予約、装備/技能pack分離、明示的なcontent/save version | 新versionで取得から保存・再読込を試験し、異なるversionを拒否する。旧save移行は行わず、互換adapterを切替PRに残さない |
 | `app.js`、`index.html`、`styles.css`、画面smoke、tutorial/expedition trial | fixture先行の武器tree/loadout/予約/技能説明/戦闘予測UI | 画面ごとに390px前後のsmokeとbranch previewを確認。未実装節を取得可能に見せず、本番と予測に同じengine event列を使う |
@@ -77,4 +77,8 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 - [x] 5人の代表武器2本からR/A1を種別不問で導出する初期20節を検証
 - [x] PR #290のchecksとdeployed trialを確認し、結果を記録
 
-準備段階では旧player runtimeを維持する。新規モジュールは旧skill ID・level map・旧tree・旧pack形状へ依存させない。初期20節のゲーム本体切替と旧経路削除は同じ後続PRで行う。
+## Stage 1の敵registry分離
+
+- [x] PR #292で敵active/reactive/passive registryとenemy core actionを分離し、敵戦闘smoke・schema境界検査を通した
+
+準備段階では旧player runtimeを維持する。新規モジュールは旧skill ID・level map・旧tree・旧pack形状へ依存させない。PR #292の共有enemy actionは移行用の複製であり、武器別player実装の後に複製元importを撤去する。初期20節のゲーム本体切替と旧経路削除は同じ後続PRで行う。

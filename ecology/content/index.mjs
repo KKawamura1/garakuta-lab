@@ -10,13 +10,23 @@ import { FIXTURE_CONTENT } from "../fixture-content.mjs";
 import { CHARACTERS } from "./characters.mjs";
 import { CHARACTER_LORE, CHARACTER_NAMES, characterLoreFor } from "./character-lore.mjs";
 import { HOMESTEAD_FIXTURE_LORE, REGION_LORE, WORLD_LORE } from "./world-lore.mjs";
-import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES } from "./skills-active.mjs";
+import { ACTIVE_SKILLS, ACTIVE_SKILL_NAMES, CORE_ACTIONS } from "./skills-active.mjs";
 import { REACTIVE_SKILLS, REACTIVE_SKILL_NAMES } from "./skills-reactive.mjs";
 import { PASSIVE_SKILLS } from "./skills-passive.mjs";
 import { skillLevelCaps } from "./skill-levels.mjs";
 import { FIXED_EQUIPMENT, EQUIPMENT_NAMES } from "./equipment-fixed.mjs";
 import { STATUSES, STATUS_NAMES } from "./statuses.mjs";
-import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
+import { ENEMY_NAMES } from "./enemies.mjs";
+import {
+  ENEMY_ACTIVE_SKILLS,
+  ENEMY_ACTIVE_SKILL_NAMES,
+  ENEMY_ACTORS,
+  ENEMY_CORE_ACTIONS,
+  ENEMY_PASSIVE_SKILLS,
+  ENEMY_PASSIVE_SKILL_NAMES,
+  ENEMY_REACTIVE_SKILLS,
+  ENEMY_REACTIVE_SKILL_NAMES,
+} from "./enemy-skills.mjs";
 
 // **content contract の版。** ID・event・effect・target・単位の意味を変えたら上げる。
 // 係数や maxHp のような soft data の変更では上げない（build の印で分かれる）。
@@ -84,7 +94,7 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 //   足した ID … 敵19体（灰塵7・灰織6・灰炉6）、boss law 9件、
 //                ギルド投資2件（装備枠・野営の手当て）、Stage 6件（stage_4〜stage_9）
 //   変えた値 … 敵の三能力と threat cost、活動資金の入り、鍛錬の段と費用
-//   変えていない … effect / predicate / event の語彙、engine、schema
+//   変えていない … effect / predicate / event の語彙
 // 2026-09-13 — `cover_ally` を pack_edge の core へ移し、ナギ加入の Stage 1 で
 // 身代わりを解禁する。`shield_handoff` は pack_wall の Stage 2 に残る。
 // パック構成が変わるため、旧 manifest と混同しないよう contract version を上げる。
@@ -95,7 +105,9 @@ import { ENEMY_ACTORS, ENEMY_NAMES } from "./enemies.mjs";
 // 公開IDの追加と既存欄の意味変更なので版を上げる。
 // R25 — Stage 1以降の敵を部隊化する7体（庇護・治療・弱体・多段と最終主心）と
 // 最終boss lawを追加した。既存のengine/schema語彙だけだが、公開IDが増えるため上げる。
-export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-28";
+// PR #292 / R26 — enemy active/reactive/passiveを専用registryへ分離し、敵action・reactionと
+// actor参照へ `foe_*` namespaceを付けた。schema節とevent上のskill/rule IDが変わるため上げる。
+export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-29";
 
 // **公開したあとに引退させた ID。** 保存済みの run、D1 の行、Blueprint が
 // この ID を持っているので、黙って消すと過去の記録が読めなくなる。
@@ -106,6 +118,26 @@ export const CONTENT_CONTRACT_VERSION = "ecology-content-contract-28";
 //
 // analysis/ecology-contract-smoke.mjs が、凍結済み ID との差をここで照合する。
 export const RETIRED_IDS = Object.freeze({
+  front_strike: {
+    since: "ecology-content-contract-29",
+    reason: "敵専用行動を独立したenemyActiveSkillsへ移し、player技能IDとして使わないようにした",
+    replacedBy: "enemyActiveSkills.foe_action_front_strike",
+  },
+  rear_strike: {
+    since: "ecology-content-contract-29",
+    reason: "敵専用行動を独立したenemyActiveSkillsへ移し、player技能IDとして使わないようにした",
+    replacedBy: "enemyActiveSkills.foe_action_rear_strike",
+  },
+  enemy_heavy: {
+    since: "ecology-content-contract-29",
+    reason: "敵専用行動を独立したenemyActiveSkillsへ移し、player技能IDとして使わないようにした",
+    replacedBy: "enemyActiveSkills.foe_action_enemy_heavy",
+  },
+  enemy_guard: {
+    since: "ecology-content-contract-29",
+    reason: "敵専用行動を独立したenemyActiveSkillsへ移し、player技能IDとして使わないようにした",
+    replacedBy: "enemyActiveSkills.foe_action_enemy_guard",
+  },
   // R8 Implementation Phase 1（続き）— activeSkills.mend / activeSkills.triage を
   // 引退させた。**別内容への再利用ではない**——同じ意味・同じ表示名の技能を
   // reactiveSkills.mend / reactiveSkills.triage として作り替えたので、ID・
@@ -158,6 +190,9 @@ export const NAMED_SECTIONS = Object.freeze([
   "characters",
   "activeSkills",
   "reactiveSkills",
+  "enemyActiveSkills",
+  "enemyReactiveSkills",
+  "enemyPassiveSkills",
   "equipment",
   "statuses",
   "enemyActors",
@@ -173,32 +208,30 @@ export const PLAYABLE_CONTENT = Object.freeze({
   //
   // issue #176（#165 段階2）で 0.15 へ上げた。R22 の意味変更で 0.16 へ上げ、
   // R23 の shared_pain の意味変更で 0.17、状態・移動・技能収支の見直しで 0.18、
-  // R24 の無料反応・条件付き常設と基礎能力Lvで 0.19 へ上げる。
-  // **公開済み ID の意味が変わったから**である
-  // （AGENTS.md「version の不一致を黙って無視しない」）。技能も装備も ID は一つも
-  // 増減していないが、次の二つで同じ入力から違う結果が出る。
+  // R24 の無料反応・条件付き常設と基礎能力Lvで 0.19、敵技能registry分離で0.20へ上げる。
+  // 0.19は公開技能の対象選択を変えた。0.20は敵専用技能を分けてIDをnamespace化し、
+  // battle eventのskillId/ruleIdを変えるが、敵の戦闘結果は保つ。
   //
-  //   1. 「最も傷ついた味方」を選ぶ query が、残りHPの小ささ（hp_asc）から
+  // 0.19で変わったこと: 「最も傷ついた味方」を選ぶ query が、残りHPの小ささ（hp_asc）から
   //      傷の割合（hp_percent_asc）へ変わった。庇護・防壁・守勢・回復の宛先が動く。
-  //   2. 敵の攻撃の狙い先が「行の先頭」から「届く範囲で最も HP の低い味方」へ変わった
-  //      （content/skills-active.mjs の front_strike / rear_strike / enemy_heavy）。
-  //      以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
+  // 以前は前列左と後列左しか殴られず、主火力の既定位置が安全地帯だった。
   //
-  // 0.15 で保存した replay・Blueprint・遠征記録は、この build では同じ列を再生しない。
-  contentVersion: "ecology-playable-full-0.19",
+  // 0.19以前のreplay・Blueprint・遠征記録は、このbuildでは技能参照を読み替えない。
+  contentVersion: "ecology-playable-full-0.20",
   characters: CHARACTERS,
   activeSkills: ACTIVE_SKILLS,
   reactiveSkills: REACTIVE_SKILLS,
   passiveSkills: PASSIVE_SKILLS,
+  enemyActiveSkills: ENEMY_ACTIVE_SKILLS,
+  enemyReactiveSkills: ENEMY_REACTIVE_SKILLS,
+  enemyPassiveSkills: ENEMY_PASSIVE_SKILLS,
   equipment: FIXED_EQUIPMENT,
   statuses: STATUSES,
   enemyActors: ENEMY_ACTORS,
   // R6 §6.4 — 攻撃テンポの保証に使う行動を、content が名指しする。
   // **engine は個別 ID で分岐せず、この宣言を読むだけ。**
-  coreActions: Object.freeze({
-    basicStrike: Object.freeze({ melee: "basic_strike_melee", ranged: "basic_strike_ranged" }),
-    fallbackStrike: Object.freeze({ melee: "fallback_strike_melee", ranged: "fallback_strike_ranged" }),
-  }),
+  coreActions: CORE_ACTIONS,
+  enemyCoreActions: ENEMY_CORE_ACTIONS,
 });
 
 // R19（issue #137）— 技能レベルの上限。**PLAYABLE_CONTENT が組み上がってから引く**
@@ -232,6 +265,9 @@ export const SECTION_NAMES = Object.freeze({
   characters: CHARACTER_NAMES,
   activeSkills: ACTIVE_SKILL_NAMES,
   reactiveSkills: REACTIVE_SKILL_NAMES,
+  enemyActiveSkills: ENEMY_ACTIVE_SKILL_NAMES,
+  enemyReactiveSkills: ENEMY_REACTIVE_SKILL_NAMES,
+  enemyPassiveSkills: ENEMY_PASSIVE_SKILL_NAMES,
   equipment: EQUIPMENT_NAMES,
   statuses: STATUS_NAMES,
   enemyActors: ENEMY_NAMES,

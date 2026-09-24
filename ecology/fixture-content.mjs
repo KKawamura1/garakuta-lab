@@ -10,6 +10,11 @@
 // mutation would throw instead of quietly poisoning the next battle (§4.2).
 
 import { CONTENT_SCHEMA_VERSION } from "./schema.mjs";
+import {
+  enemyActionIdFor,
+  enemyPassiveIdFor,
+  enemyReactiveIdFor,
+} from "./content/enemy-skill-ids.mjs";
 
 // -- small builders, so the data below reads as data ------------------------
 
@@ -970,15 +975,62 @@ activeSkills.steady_aim = {
   tags: ["buff"],
 };
 
+const passiveSkills = {};
+const enemyActiveSkills = {};
+const enemyReactiveSkills = {};
+const enemyPassiveSkills = {};
+
+function enemyDefinition(registry, sourceRegistry, sourceId, idFor, rulePrefix) {
+  const id = idFor(sourceId);
+  if (registry[id]) return id;
+  const definition = structuredClone(sourceRegistry[sourceId]);
+  definition.id = id;
+  if (definition.rule?.id) definition.rule.id = `${rulePrefix}_${definition.rule.id}`;
+  registry[id] = definition;
+  return id;
+}
+
+for (const enemy of Object.values(enemyActors)) {
+  enemy.tactics = (enemy.tactics ?? []).map((tactic) => ({
+    ...tactic,
+    activeSkillId: enemyDefinition(
+      enemyActiveSkills,
+      activeSkills,
+      tactic.activeSkillId,
+      enemyActionIdFor,
+      "foe_action_rule",
+    ),
+  }));
+  enemy.reactiveSkillIds = (enemy.reactiveSkillIds ?? []).map((id) => enemyDefinition(
+    enemyReactiveSkills,
+    reactiveSkills,
+    id,
+    enemyReactiveIdFor,
+    "foe_reaction_rule",
+  ));
+  if (enemy.passiveSkillIds !== undefined) {
+    enemy.passiveSkillIds = enemy.passiveSkillIds.map((id) => enemyDefinition(
+      enemyPassiveSkills,
+      passiveSkills,
+      id,
+      enemyPassiveIdFor,
+      "foe_passive_rule",
+    ));
+  }
+}
+
 export const FIXTURE_CONTENT = deepFreeze({
   schemaVersion: CONTENT_SCHEMA_VERSION,
   contentVersion: "fixture-1",
   characters,
   activeSkills,
   reactiveSkills,
+  enemyActiveSkills,
+  enemyReactiveSkills,
+  enemyPassiveSkills,
   // PHASE A: fixture は passive を使わないが、節そのものは必ず在る
   // （空の節と、節が無いことは別。validator は後者を拒否する）。
-  passiveSkills: {},
+  passiveSkills,
   equipment,
   statuses,
   enemyActors,

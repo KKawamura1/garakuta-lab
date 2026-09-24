@@ -616,7 +616,11 @@ export function validateContentBundle(bundle) {
 
   // PHASE A: passiveSkills を足した。**古い bundle にも空で存在させる**ので、
   // ここは必須節のままでよい（content/index.mjs が必ず入れる）。
-  const sections = ["characters", "activeSkills", "reactiveSkills", "passiveSkills", "equipment", "statuses", "enemyActors"];
+  const sections = [
+    "characters", "activeSkills", "reactiveSkills", "passiveSkills",
+    "enemyActiveSkills", "enemyReactiveSkills", "enemyPassiveSkills",
+    "equipment", "statuses", "enemyActors",
+  ];
   for (const section of sections) {
     if (!isPlainObject(bundle[section])) {
       bag.add(`contentBundle.${section}`, "not_an_object", "expected a record of definitions");
@@ -669,106 +673,120 @@ export function validateContentBundle(bundle) {
     validateRules(bag, `${path}.signatureRules`, character.signatureRules, baseCtx);
   }
 
-  for (const [id, skill] of Object.entries(bundle.activeSkills)) {
-    const path = `activeSkills.${id}`;
-    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
-    requireCount(bag, `${path}.apCost`, skill.apCost, { min: 0 });
-    requireTags(bag, `${path}.tags`, skill.tags);
-    validatePredicates(bag, `${path}.intrinsicPredicates`, skill.intrinsicPredicates, baseCtx);
-    validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);
-    // An active skill is not a rule, so it never has a pending frame to touch.
-    validateEffects(bag, `${path}.effects`, skill.effects, { ...baseCtx, timing: "action", listenTo: null });
-    if (skill.preparation !== undefined) {
-      requireCount(bag, `${path}.preparation.steps`, skill.preparation.steps, {
-        min: LIMITS.minPreparationSteps,
-        max: LIMITS.maxPreparationSteps,
-      });
-      validateEffects(bag, `${path}.preparation.completionEffects`, skill.preparation.completionEffects, {
-        ...baseCtx,
-        timing: "action",
-        listenTo: null,
-        insidePreparation: true,
-      });
+  for (const section of ["activeSkills", "enemyActiveSkills"]) {
+    for (const [id, skill] of Object.entries(bundle[section])) {
+      const path = `${section}.${id}`;
+      requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+      requireCount(bag, `${path}.apCost`, skill.apCost, { min: 0 });
+      requireTags(bag, `${path}.tags`, skill.tags);
+      validatePredicates(bag, `${path}.intrinsicPredicates`, skill.intrinsicPredicates, baseCtx);
+      validateTargetQuery(bag, `${path}.targetQuery`, skill.targetQuery, baseCtx);
+      // An active skill is not a rule, so it never has a pending frame to touch.
+      validateEffects(bag, `${path}.effects`, skill.effects, { ...baseCtx, timing: "action", listenTo: null });
+      if (skill.preparation !== undefined) {
+        requireCount(bag, `${path}.preparation.steps`, skill.preparation.steps, {
+          min: LIMITS.minPreparationSteps,
+          max: LIMITS.maxPreparationSteps,
+        });
+        validateEffects(bag, `${path}.preparation.completionEffects`, skill.preparation.completionEffects, {
+          ...baseCtx,
+          timing: "action",
+          listenTo: null,
+          insidePreparation: true,
+        });
+      }
     }
   }
 
   // R6 §6.4 — PHASE A. actionMode は任意（省略時は offense＝追撃なし＝v1 の挙動）。
   // 遊べる版が全技能で宣言していることは analysis/ecology-contract-smoke.mjs が見る。
-  for (const [id, skill] of Object.entries(bundle.activeSkills)) {
-    if (skill.actionMode !== undefined) {
-      requireOneOf(bag, `activeSkills.${id}.actionMode`, skill.actionMode, ACTION_MODES, "unknown_action_mode");
+  for (const section of ["activeSkills", "enemyActiveSkills"]) {
+    for (const [id, skill] of Object.entries(bundle[section])) {
+      if (skill.actionMode !== undefined) {
+        requireOneOf(bag, `${section}.${id}.actionMode`, skill.actionMode, ACTION_MODES, "unknown_action_mode");
+      }
     }
   }
 
   // R6 §6.4 — 攻撃テンポの保証に使う技能は content が名指しする。
   // **engine は個別 ID で分岐しない**ので、宣言が壊れていればここで落とす。
-  if (bundle.coreActions !== undefined) {
-    if (!isPlainObject(bundle.coreActions)) {
-      bag.add("contentBundle.coreActions", "not_an_object", "expected a record of core action ids");
-    } else {
-      for (const [key, byReach] of Object.entries(bundle.coreActions)) {
+  for (const [section, registry] of [
+    ["coreActions", bundle.activeSkills],
+    ["enemyCoreActions", bundle.enemyActiveSkills],
+  ]) {
+    const actions = bundle[section];
+    if (actions !== undefined) {
+      if (!isPlainObject(actions)) {
+        bag.add(`contentBundle.${section}`, "not_an_object", "expected a record of core action ids");
+        continue;
+      }
+      for (const [key, byReach] of Object.entries(actions)) {
         if (!isPlainObject(byReach)) {
-          bag.add(`contentBundle.coreActions.${key}`, "not_an_object", "expected { melee, ranged }");
+          bag.add(`contentBundle.${section}.${key}`, "not_an_object", "expected { melee, ranged }");
           continue;
         }
         for (const [reach, skillId] of Object.entries(byReach)) {
-          requireOneOf(bag, `contentBundle.coreActions.${key}.${reach}`, reach, REACHES, "unknown_reach");
-          if (!Object.hasOwn(bundle.activeSkills, skillId)) {
-            bag.add(`contentBundle.coreActions.${key}.${reach}`, "dangling_reference", `no such active skill: ${skillId}`);
+          requireOneOf(bag, `contentBundle.${section}.${key}.${reach}`, reach, REACHES, "unknown_reach");
+          if (!Object.hasOwn(registry, skillId)) {
+            bag.add(`contentBundle.${section}.${key}.${reach}`, "dangling_reference", `no such active skill: ${skillId}`);
           }
         }
       }
     }
   }
 
-  for (const [id, skill] of Object.entries(bundle.reactiveSkills)) {
-    const path = `reactiveSkills.${id}`;
-    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
-    requireTags(bag, `${path}.tags`, skill.tags);
-    validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+  for (const section of ["reactiveSkills", "enemyReactiveSkills"]) {
+    for (const [id, skill] of Object.entries(bundle[section])) {
+      const path = `${section}.${id}`;
+      requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+      requireTags(bag, `${path}.tags`, skill.tags);
+      validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+    }
   }
 
   // R6 §6.8 — PHASE A. passive は「定数で押し上げる」か「常時ある rule」の
   // どちらか、あるいは両方。**どちらも無い passive は装着しても何も起きない**ので拒否する。
-  for (const [id, skill] of Object.entries(bundle.passiveSkills)) {
-    const path = `passiveSkills.${id}`;
-    requireDisplayName(bag, `${path}.displayName`, skill.displayName);
-    requireTags(bag, `${path}.tags`, skill.tags);
-    const bonus = skill.statBonus;
-    if (bonus !== undefined) {
-      if (!isPlainObject(bonus)) {
-        bag.add(`${path}.statBonus`, "not_an_object", "expected a stat bonus record");
-      } else {
-        for (const [stat, value] of Object.entries(bonus)) {
-          requireOneOf(bag, `${path}.statBonus.${stat}`, stat, PASSIVE_STAT_BONUSES, "unknown_passive_stat");
-          requireCount(bag, `${path}.statBonus.${stat}`, value, { min: 1, max: 1_000 });
-        }
-      }
-    }
-    const perLevel = skill.statBonusPerLevel;
-    if (perLevel !== undefined) {
-      if (!isPlainObject(perLevel)) {
-        bag.add(`${path}.statBonusPerLevel`, "not_an_object", "expected a stat bonus growth record");
-      } else {
-        for (const [stat, value] of Object.entries(perLevel)) {
-          requireOneOf(
-            bag, `${path}.statBonusPerLevel.${stat}`, stat,
-            PASSIVE_STAT_BONUSES, "unknown_passive_stat",
-          );
-          requireCount(bag, `${path}.statBonusPerLevel.${stat}`, value, { min: 1, max: 1_000 });
-          if (!Object.hasOwn(bonus ?? {}, stat)) {
-            bag.add(
-              `${path}.statBonusPerLevel.${stat}`,
-              "missing_base_stat_bonus",
-              "a per-level stat bonus needs the same stat in statBonus",
-            );
+  for (const section of ["passiveSkills", "enemyPassiveSkills"]) {
+    for (const [id, skill] of Object.entries(bundle[section])) {
+      const path = `${section}.${id}`;
+      requireDisplayName(bag, `${path}.displayName`, skill.displayName);
+      requireTags(bag, `${path}.tags`, skill.tags);
+      const bonus = skill.statBonus;
+      if (bonus !== undefined) {
+        if (!isPlainObject(bonus)) {
+          bag.add(`${path}.statBonus`, "not_an_object", "expected a stat bonus record");
+        } else {
+          for (const [stat, value] of Object.entries(bonus)) {
+            requireOneOf(bag, `${path}.statBonus.${stat}`, stat, PASSIVE_STAT_BONUSES, "unknown_passive_stat");
+            requireCount(bag, `${path}.statBonus.${stat}`, value, { min: 1, max: 1_000 });
           }
         }
       }
-    }
-    if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
-    if (skill.statBonus === undefined && skill.rule === undefined) {
-      bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
+      const perLevel = skill.statBonusPerLevel;
+      if (perLevel !== undefined) {
+        if (!isPlainObject(perLevel)) {
+          bag.add(`${path}.statBonusPerLevel`, "not_an_object", "expected a stat bonus growth record");
+        } else {
+          for (const [stat, value] of Object.entries(perLevel)) {
+            requireOneOf(
+              bag, `${path}.statBonusPerLevel.${stat}`, stat,
+              PASSIVE_STAT_BONUSES, "unknown_passive_stat",
+            );
+            requireCount(bag, `${path}.statBonusPerLevel.${stat}`, value, { min: 1, max: 1_000 });
+            if (!Object.hasOwn(bonus ?? {}, stat)) {
+              bag.add(
+                `${path}.statBonusPerLevel.${stat}`,
+                "missing_base_stat_bonus",
+                "a per-level stat bonus needs the same stat in statBonus",
+              );
+            }
+          }
+        }
+      }
+      if (skill.rule !== undefined) validateRule(bag, `${path}.rule`, skill.rule, baseCtx);
+      if (skill.statBonus === undefined && skill.rule === undefined) {
+        bag.add(path, "inert_passive", "a passive needs a statBonus, a rule, or both");
+      }
     }
   }
 
@@ -808,8 +826,9 @@ export function validateContentBundle(bundle) {
     requireCount(bag, `${path}.baseActionPoints`, enemy.baseActionPoints, { min: 0 });
     requireCount(bag, `${path}.baseReactionPoints`, enemy.baseReactionPoints, { min: 0 });
     requireTags(bag, `${path}.tags`, enemy.tags);
-    validateTactics(bag, `${path}.tactics`, enemy.tactics, bundle, baseCtx);
-    validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, enemy.reactiveSkillIds, bundle);
+    validateTactics(bag, `${path}.tactics`, enemy.tactics, bundle, baseCtx, "enemyActiveSkills");
+    validateReactiveSkillIds(bag, `${path}.reactiveSkillIds`, enemy.reactiveSkillIds, bundle, "enemyReactiveSkills");
+    validatePassiveSkillIds(bag, `${path}.passiveSkillIds`, enemy.passiveSkillIds, bundle, "enemyPassiveSkills");
     validateRules(bag, `${path}.intrinsicRules`, enemy.intrinsicRules, baseCtx);
   }
 
@@ -834,7 +853,7 @@ const HISTORY_WINDOW_NAMES = ["chain", "round", "battle"];
 
 // §5.3 — tactics are the player's priority list: at most two, each with at most
 // two useWhen conditions, and useWhen may only read the actor's own state.
-function validateTactics(bag, path, tactics, bundle, ctx) {
+function validateTactics(bag, path, tactics, bundle, ctx, section = "activeSkills") {
   if (!requireArray(bag, path, tactics, { max: LIMITS.maxTactics })) return;
   tactics.forEach((tactic, index) => {
     const tacticPath = `${path}[${index}]`;
@@ -844,7 +863,7 @@ function validateTactics(bag, path, tactics, bundle, ctx) {
     }
     if (!isValidId(tactic.activeSkillId)) {
       bag.add(`${tacticPath}.activeSkillId`, "bad_id", "not a valid id");
-    } else if (!Object.hasOwn(bundle.activeSkills, tactic.activeSkillId)) {
+    } else if (!Object.hasOwn(bundle[section], tactic.activeSkillId)) {
       bag.add(`${tacticPath}.activeSkillId`, "dangling_reference", `no such active skill: ${tactic.activeSkillId}`);
     }
     validatePredicates(bag, `${tacticPath}.useWhen`, tactic.useWhen, {
@@ -856,7 +875,7 @@ function validateTactics(bag, path, tactics, bundle, ctx) {
   });
 }
 
-function validatePassiveSkillIds(bag, path, ids, bundle) {
+function validatePassiveSkillIds(bag, path, ids, bundle, section = "passiveSkills") {
   if (ids === undefined) return;
   if (!requireArray(bag, path, ids, { max: LIMITS.maxPassiveSkills })) return;
   const seen = new Set();
@@ -866,7 +885,7 @@ function validatePassiveSkillIds(bag, path, ids, bundle) {
       bag.add(idPath, "bad_id", "not a valid id");
       return;
     }
-    if (!Object.hasOwn(bundle.passiveSkills, id)) {
+    if (!Object.hasOwn(bundle[section], id)) {
       bag.add(idPath, "dangling_reference", `no such passive skill: ${id}`);
     }
     if (seen.has(id)) bag.add(idPath, "duplicate_reference", `passive skill listed twice: ${id}`);
@@ -874,7 +893,7 @@ function validatePassiveSkillIds(bag, path, ids, bundle) {
   });
 }
 
-function validateReactiveSkillIds(bag, path, ids, bundle) {
+function validateReactiveSkillIds(bag, path, ids, bundle, section = "reactiveSkills") {
   if (!requireArray(bag, path, ids, { max: LIMITS.maxReactiveSkills })) return;
   const seen = new Set();
   ids.forEach((id, index) => {
@@ -883,7 +902,7 @@ function validateReactiveSkillIds(bag, path, ids, bundle) {
       bag.add(idPath, "bad_id", "not a valid id");
       return;
     }
-    if (!Object.hasOwn(bundle.reactiveSkills, id)) {
+    if (!Object.hasOwn(bundle[section], id)) {
       bag.add(idPath, "dangling_reference", `no such reactive skill: ${id}`);
     }
     if (seen.has(id)) bag.add(idPath, "duplicate_reference", `reactive skill listed twice: ${id}`);

@@ -4,7 +4,7 @@
 // R7 Milestone 0 で playable-content.mjs / playable-battles.mjs から
 // 種類別へ分離した。R23（第一部10 Stage 化）で、家系（family）ごとの表へ組み直した。
 //
-// engine・schema・共通registryは変更しない。
+// 出荷用の敵actorは enemy-skills.mjs が敵専用技能registryへ接続する。
 //
 // ---------------------------------------------------------------- なぜ表へ組み直したか
 //
@@ -42,6 +42,7 @@
 
 import { FIXTURE_CONTENT } from "../fixture-content.mjs";
 import { LEGACY_COMBAT_SCALE, NEUTRAL_STAT, cloneEnemy, renamed } from "./base.mjs";
+import { sourceReactiveIdFor } from "./enemy-skill-ids.mjs";
 
 // **出荷している難度。** 1.0 のままだと、無作為に枠を埋めた編成が
 // 半分以上の確率で7区画を完走し、設計された初期編成（耐久0.86倍）より強くなる。
@@ -380,7 +381,7 @@ const terminationReactiveIds = new Set(
 
 for (const definition of Object.values(enemyActors)) {
   definition.reactiveSkillIds = (definition.reactiveSkillIds ?? [])
-    .filter((id) => !terminationReactiveIds.has(id));
+    .filter((id) => !terminationReactiveIds.has(sourceReactiveIdFor(id)));
   definition.tags = (definition.tags ?? []).filter((tag) => tag !== "termination");
 }
 

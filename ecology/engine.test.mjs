@@ -358,15 +358,17 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 // not; the transferred packet still uses the ordinary damage pipeline.
 {
   const content = structuredClone(FIXTURE_CONTENT);
-  content.activeSkills.heavy_split = structuredClone(content.activeSkills.strike);
-  content.activeSkills.heavy_split.id = "heavy_split";
-  content.activeSkills.heavy_split.displayName = "Heavy Split (fixture)";
-  content.activeSkills.heavy_split.effects[0].amount = { type: "constant", value: 20 };
+  content.enemyActiveSkills.foe_action_heavy_split = structuredClone(
+    content.enemyActiveSkills.foe_action_strike,
+  );
+  content.enemyActiveSkills.foe_action_heavy_split.id = "foe_action_heavy_split";
+  content.enemyActiveSkills.foe_action_heavy_split.displayName = "Heavy Split (fixture)";
+  content.enemyActiveSkills.foe_action_heavy_split.effects[0].amount = { type: "constant", value: 20 };
   content.enemyActors.split_husk = structuredClone(content.enemyActors.husk);
   content.enemyActors.split_husk.id = "split_husk";
   content.enemyActors.split_husk.displayName = "Split Husk (fixture)";
   content.enemyActors.split_husk.maxHp = 100;
-  content.enemyActors.split_husk.tactics = [{ activeSkillId: "heavy_split", useWhen: [] }];
+  content.enemyActors.split_husk.tactics = [{ activeSkillId: "foe_action_heavy_split", useWhen: [] }];
 
   const otherAlly = {
     type: "target_exists",
@@ -965,6 +967,7 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   bundle.activeSkills.strike.intrinsicPredicates = [
     { type: "hp_percent", subject: "self", op: "lte", value: 50 },
   ];
+  bundle.enemyActors.husk_bulwark.tactics = [];
   const battle = structuredClone(ROUND_LIMIT_BATTLE);
   battle.allies[0].hp = 10; // exactly 50% of 20
   const atThreshold = simulateBattle(battle, bundle);
@@ -975,7 +978,8 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   battle.allies[0].hp = 11; // just above
   const above = simulateBattle(battle, bundle);
   check(
-    of(above, "action_declared").length === 0,
+    !of(above, "action_declared").some((event) =>
+      event.skillId === "strike" && event.sourceActorId === "a_warden"),
     "one point above the threshold does not",
   );
 }

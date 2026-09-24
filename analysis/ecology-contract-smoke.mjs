@@ -113,10 +113,40 @@ if (badPositions.length) problems.push("position が canonical ID でない: " +
 // 7. **攻撃テンポの宣言が全部あること。**（R6 §6.4）
 //    actionMode の無い active 技能は、追撃するのかしないのかが決まらない。
 //    schema では任意（旧 fixture のため）なので、遊べる版はここで縛る。
-for (const [id, skill] of Object.entries(PLAYABLE_CONTENT.activeSkills)) {
-  if (!["offense", "utility", "channel"].includes(skill.actionMode)) {
-    problems.push(`activeSkills.${id} が actionMode を宣言していない`
-      + "（offense / utility / channel のどれか。支援だけで戦闘が止まらないための宣言）");
+for (const section of ["activeSkills", "enemyActiveSkills"]) {
+  for (const [id, skill] of Object.entries(PLAYABLE_CONTENT[section])) {
+    if (!["offense", "utility", "channel"].includes(skill.actionMode)) {
+      problems.push(`${section}.${id} が actionMode を宣言していない`
+        + "（offense / utility / channel のどれか。支援だけで戦闘が止まらないための宣言）");
+    }
+  }
+}
+
+// Enemy-facing references must stay inside a used, namespaced registry. Keeping
+// this exact closure small prevents unimplemented/player skills from leaking
+// into enemies during the runtime migration.
+const enemySkillReferences = {
+  enemyActiveSkills: new Set([
+    ...Object.values(PLAYABLE_CONTENT.enemyActors).flatMap((enemy) =>
+      (enemy.tactics ?? []).map((tactic) => tactic.activeSkillId)),
+    ...Object.values(PLAYABLE_CONTENT.enemyCoreActions ?? {})
+      .flatMap((byReach) => Object.values(byReach)),
+  ]),
+  enemyReactiveSkills: new Set(Object.values(PLAYABLE_CONTENT.enemyActors)
+    .flatMap((enemy) => enemy.reactiveSkillIds ?? [])),
+  enemyPassiveSkills: new Set(Object.values(PLAYABLE_CONTENT.enemyActors)
+    .flatMap((enemy) => enemy.passiveSkillIds ?? [])),
+};
+for (const [section, references] of Object.entries(enemySkillReferences)) {
+  const definitions = Object.keys(PLAYABLE_CONTENT[section]);
+  const unused = definitions.filter((id) => !references.has(id));
+  if (unused.length) problems.push(`${section} に未参照の技能がある: ${unused.join(", ")}`);
+  for (const id of definitions) {
+    const playerSection = section === "enemyActiveSkills" ? "activeSkills"
+      : section === "enemyReactiveSkills" ? "reactiveSkills" : "passiveSkills";
+    if (Object.hasOwn(PLAYABLE_CONTENT[playerSection], id)) {
+      problems.push(`${section}.${id} がplayer registryとIDを共有している`);
+    }
   }
 }
 

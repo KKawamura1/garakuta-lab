@@ -35,7 +35,7 @@ assert.ok(
   supportBattle.result.events.some((event) => (
     event.type === "target_changed"
       && event.sourceActorId === enemyAegis
-      && event.sourceDefinitionId === "cover_ally"
+      && event.sourceDefinitionId === "foe_reaction_cover_ally"
       && event.values?.from !== event.values?.to
   )),
   "敵の庇護役が味方への攻撃を実際に引き受けていない",
@@ -63,7 +63,7 @@ const exposedTargets = new Set(comboBattle.result.events
   .filter((event) => (
     event.type === "status_added"
       && event.sourceActorId === brand
-      && event.skillId === "mark_spread"
+      && event.skillId === "foe_action_mark_spread"
       && event.values?.statusId === "exposed"
   ))
   .flatMap((event) => event.targetActorIds ?? []));
@@ -75,14 +75,14 @@ assert.deepEqual(
 const firstBarrage = comboBattle.result.events.find((event) => (
   event.type === "damage_taken"
     && event.sourceActorId === razor
-    && event.skillId === "barrage_strike"
+    && event.skillId === "foe_action_barrage_strike"
     && event.values?.hitIndex === 0
 ));
 assert.ok(firstBarrage, "敵の多段役が連撃を始めていない");
 const barrageHits = comboBattle.result.events.filter((event) => (
   event.type === "damage_taken"
     && event.sourceActorId === razor
-    && event.skillId === "barrage_strike"
+    && event.skillId === "foe_action_barrage_strike"
     && event.chainId === firstBarrage.chainId
 ));
 assert.deepEqual(
