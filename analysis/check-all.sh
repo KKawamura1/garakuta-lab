@@ -11,6 +11,9 @@ done < <(find ecology -type f \( -name "*.mjs" -o -name "*.js" \) -print0)
 echo "contract: ecology/check.mjs"
 node ecology/check.mjs
 
+echo "catalog: weapon specifications"
+node analysis/sync-pr287-weapon-spec.mjs --check
+
 smokes=(
   analysis/build-metadata-smoke.mjs
   analysis/ecology-anti-stall-audit.mjs
