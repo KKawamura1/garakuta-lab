@@ -30,7 +30,7 @@ export const STATUS_NAMES = {
   staggered: "怯み",
   warded: "守勢",
   bleeding: "裂傷",
-  armor_broken: "砕けた鎧",
+  armor_broken: "破甲",
   fortified: "堅牢",
   warhammer_fragment: "戦利の破片",
   breached: "砕け目",

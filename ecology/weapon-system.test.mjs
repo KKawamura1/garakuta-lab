@@ -678,7 +678,7 @@ const allyInput = (instanceId, characterId, activeSkillId, position, extra = {})
   }), content);
   equal(result.events.filter((event) => (
     event.type === "resource_spent" && event.values.resource === "reaction_points"
-  )).length, 2, "ringing iron spends RP on the first and fourth hit of another weapon");
+  )).length, 1, "ringing iron pays once on the first hit of another weapon");
   const dummy = result.actors.find((actor) => actor.instanceId === "e_dummy");
   equal(dummy.statuses.find((status) => status.statusId === "staggered")?.stacks, 3,
     "deep impact strengthens the first stagger and the fourth hit reaches stack three");

@@ -56,6 +56,8 @@ function passesFilter(state, ctx, filter, actor) {
       return compareOp(filter.op ?? "gte", statusStacks(actor, filter.statusId), filter.value ?? 1);
     case "has_defense":
       return totalBarrier(actor) > 0 || (actor.block ?? 0) > 0;
+    case "has_block":
+      return (actor.block ?? 0) > 0;
     case "has_defense_or_status":
       return totalBarrier(actor) > 0 || (actor.block ?? 0) > 0
         || statusStacks(actor, filter.statusId) > 0;
@@ -93,6 +95,13 @@ function passesFilter(state, ctx, filter, actor) {
       const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
       return Boolean(primary) && POSITION_COLUMN[primary.position] === POSITION_COLUMN[actor.position];
     }
+    case "horizontal_adjacent_to_event_primary_target": {
+      const primary = ctx.event ? getActor(state, ctx.event.targetActorIds[0]) : null;
+      if (!primary || POSITION_ROW[primary.position] !== POSITION_ROW[actor.position]) return false;
+      const primaryColumn = COLUMNS.indexOf(POSITION_COLUMN[primary.position]);
+      const actorColumn = COLUMNS.indexOf(POSITION_COLUMN[actor.position]);
+      return Math.abs(primaryColumn - actorColumn) === 1;
+    }
     case "not_acted_this_round":
       return (actor.activationsThisRound === 0) === (filter.value ?? true);
     case "is_event_source":
@@ -119,6 +128,8 @@ function sortValue(actor, sort, ctx) {
     case "hp_percent_desc": return -hpPercentBps(actor);
     case "barrier_asc": return totalBarrier(actor);
     case "barrier_desc": return -totalBarrier(actor);
+    case "block_desc": return -(actor.block ?? 0);
+    case "guard_desc": return -(actor.guard ?? 0);
     case "position_asc": return positionIndex(actor);
     case "position_desc": return -positionIndex(actor);
     case "status_stacks_desc": return -statusStacks(actor, sort.statusId);

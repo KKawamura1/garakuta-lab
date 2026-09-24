@@ -22,6 +22,7 @@ export function beginChain(state, rootType) {
     afterQueue: [],
     ruleFirings: new Map(),
     ruleEventFirings: new Map(),
+    attackFlags: new Map(),
     lastResolvedTargets: [],
     // Recovery is bounded per side so several heal sources cannot add up to
     // more than that side's HP damage in this action/reaction chain.

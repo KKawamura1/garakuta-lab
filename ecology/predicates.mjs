@@ -79,8 +79,17 @@ export function evaluatePredicate(state, ctx, predicate) {
       return compareOp(predicate.op, historyValue(actor, predicate.metric, predicate.window), predicate.value);
     }
 
+    case "attack_flag": {
+      const attackId = ctx.event?.values?.attackId;
+      if (typeof attackId !== "string" || !state.chain) return false;
+      return Boolean(state.chain.attackFlags.get(attackId)?.has(predicate.key));
+    }
+
     case "target_exists": {
-      const found = resolveTargets(state, ctx, predicate.query);
+      const reach = predicate.targetReach === "pending_action"
+        ? (ctx.pendingAction?.reach ?? "unrestricted")
+        : "unrestricted";
+      const found = resolveTargets(state, ctx, predicate.query, { reach });
       return compareOp(predicate.op ?? "gte", found.length, predicate.value ?? 1);
     }
 

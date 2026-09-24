@@ -165,6 +165,10 @@ function validateValue(bag, path, value, ctx) {
       }
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
       requireStatusReference(bag, `${path}.statusId`, value.statusId, ctx);
+      if (value.memoryKey !== undefined
+          && (typeof value.memoryKey !== "string" || value.memoryKey.length === 0)) {
+        bag.add(`${path}.memoryKey`, "bad_key", "memoryKey must be a non-empty string");
+      }
       break;
     case "actor_stat_scaled":
       validateSubject(bag, `${path}.subject`, value.subject, ctx);
@@ -293,6 +297,7 @@ function validateTargetFilter(bag, path, filter, ctx) {
       if (filter.value !== undefined) requireCount(bag, `${path}.value`, filter.value, { min: 0 });
       break;
     case "has_defense":
+    case "has_block":
       break;
     case "has_defense_or_status":
       requireStatusReference(bag, `${path}.statusId`, filter.statusId, ctx);
@@ -313,6 +318,7 @@ function validateTargetFilter(bag, path, filter, ctx) {
     case "not_event_primary_target":
     case "same_row_as_event_primary_target":
     case "same_column_as_event_primary_target":
+    case "horizontal_adjacent_to_event_primary_target":
     case "is_event_source":
       break;
     default:
@@ -397,6 +403,11 @@ function validatePredicate(bag, path, predicate, ctx) {
         bag.add(`${path}.value`, "not_a_number", "event_value.value must be finite");
       }
       break;
+    case "attack_flag":
+      if (typeof predicate.key !== "string" || predicate.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "attack_flag needs a key string");
+      }
+      break;
     case "history_count":
       validateSubject(bag, `${path}.subject`, predicate.subject, ctx);
       requireOneOf(bag, `${path}.metric`, predicate.metric, ctx.historyMetrics, "unknown_history_metric");
@@ -406,6 +417,10 @@ function validatePredicate(bag, path, predicate, ctx) {
       break;
     case "target_exists":
       validateTargetQuery(bag, `${path}.query`, predicate.query, ctx);
+      if (predicate.targetReach !== undefined) {
+        requireOneOf(bag, `${path}.targetReach`, predicate.targetReach,
+          ["unrestricted", "pending_action"], "unknown_target_reach");
+      }
       if (predicate.op !== undefined) {
         requireOneOf(bag, `${path}.op`, predicate.op, COMPARISON_OPS, "unknown_operator");
       }
@@ -579,6 +594,14 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       validateValue(bag, `${path}.amount`, effect.amount, ctx);
       break;
+    case "mark_attack_flag":
+      if (ctx.listenTo !== "damage_taken" || ctx.timing !== "after") {
+        bag.add(path, "attack_flag_window", "mark_attack_flag requires damage_taken after timing");
+      }
+      if (typeof effect.key !== "string" || effect.key.length === 0) {
+        bag.add(`${path}.key`, "bad_key", "mark_attack_flag needs a key string");
+      }
+      break;
     case "gain_resource":
     case "reduce_resource":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -590,6 +613,20 @@ function validateEffect(bag, path, effect, ctx) {
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
       requireStatusReference(bag, `${path}.statusId`, effect.statusId, ctx);
       if (effect.stacks !== undefined) requireCount(bag, `${path}.stacks`, effect.stacks, { min: 1 });
+      if (effect.stacksFromEvent !== undefined) {
+        if (effect.stacks !== undefined) {
+          bag.add(path, "duplicate_status_amount", "give stacks or stacksFromEvent, not both");
+        }
+        if (!isPlainObject(effect.stacksFromEvent)) {
+          bag.add(`${path}.stacksFromEvent`, "not_an_object", "expected an event stack multiplier");
+        } else {
+          if (typeof effect.stacksFromEvent.key !== "string" || effect.stacksFromEvent.key.length === 0) {
+            bag.add(`${path}.stacksFromEvent.key`, "bad_key", "stacksFromEvent needs a values key");
+          }
+          requireCount(bag, `${path}.stacksFromEvent.multiplier`, effect.stacksFromEvent.multiplier, { min: 1 });
+        }
+      }
+      if (effect.tags !== undefined) requireTags(bag, `${path}.tags`, effect.tags);
       break;
     case "remove_status":
       validateTargetQuery(bag, `${path}.target`, effect.target, ctx);
@@ -645,8 +682,9 @@ function validateEffect(bag, path, effect, ctx) {
       }
       break;
     case "modify_attack_plan":
-      if (ctx.timing !== "interrupt" || ctx.listenTo !== "action_declared") {
-        bag.add(path, "attack_plan_window", "modify_attack_plan requires an action_declared interrupt");
+      if (ctx.timing !== "interrupt"
+          || !["action_declared", "target_selected", "attack_plan_opened"].includes(ctx.listenTo)) {
+        bag.add(path, "attack_plan_window", "modify_attack_plan requires an attack plan interrupt");
       }
       if (effect.hitCountBonus !== undefined) {
         requireCount(bag, `${path}.hitCountBonus`, effect.hitCountBonus, { min: 1, max: 8 });
@@ -672,7 +710,30 @@ function validateEffect(bag, path, effect, ctx) {
       if (effect.hitDistribution !== undefined) {
         requireOneOf(bag, `${path}.hitDistribution`, effect.hitDistribution, HIT_DISTRIBUTIONS, "unknown_hit_distribution");
       }
-      if (effect.hitCountBonus === undefined && effect.snapshotLegalTargets !== true) {
+      if (effect.snapshotStatusIds !== undefined) {
+        if (!requireArray(bag, `${path}.snapshotStatusIds`, effect.snapshotStatusIds)) return;
+        if (effect.snapshotStatusIds.length === 0) {
+          bag.add(`${path}.snapshotStatusIds`, "empty_status_snapshot", "snapshotStatusIds must not be empty");
+        }
+        effect.snapshotStatusIds.forEach((statusId, index) => {
+          requireStatusReference(bag, `${path}.snapshotStatusIds[${index}]`, statusId, ctx);
+        });
+      }
+      if (effect.addAdjacentDamageTargets !== undefined
+          && typeof effect.addAdjacentDamageTargets !== "boolean") {
+        bag.add(`${path}.addAdjacentDamageTargets`, "bad_boolean", "addAdjacentDamageTargets must be a boolean");
+      }
+      if (effect.extraTargetDamageBps !== undefined) {
+        requireCount(bag, `${path}.extraTargetDamageBps`, effect.extraTargetDamageBps, { min: 1, max: 10_000 });
+      }
+      if (effect.addAdjacentDamageTargets === true !== (effect.extraTargetDamageBps !== undefined)) {
+        bag.add(path, "incomplete_extra_targets", "adjacent damage targets need extraTargetDamageBps");
+      }
+      if (effect.addAdjacentDamageTargets === true && ctx.listenTo !== "attack_plan_opened") {
+        bag.add(path, "extra_target_window", "adjacent damage targets require attack_plan_opened");
+      }
+      if (effect.hitCountBonus === undefined && effect.snapshotLegalTargets !== true
+          && effect.snapshotStatusIds === undefined && effect.addAdjacentDamageTargets !== true) {
         bag.add(path, "empty_attack_plan_modifier", "give a hit or target plan change");
       }
       break;

@@ -96,6 +96,8 @@ export const EVENT_TYPES = freeze([
   // §6.2 action
   "action_declared",
   "target_selected",
+  "attack_plan_opened",
+  "defense_break",
   "target_changed",
   "action_cost_paid",
   "action_started",
@@ -173,7 +175,9 @@ export const NON_LISTENABLE_EVENT_TYPES = freeze([
 ]);
 
 // §11.5 — interrupt rules may only listen to events that carry a pending frame.
-export const PENDING_ACTION_EVENT_TYPES = freeze(["action_declared", "target_selected"]);
+export const PENDING_ACTION_EVENT_TYPES = freeze([
+  "action_declared", "target_selected", "attack_plan_opened", "defense_break",
+]);
 export const PENDING_AMOUNT_EVENT_TYPES = freeze([
   "damage_proposed",
   "healing_proposed",
@@ -201,6 +205,7 @@ export const PREDICATE_TYPES = freeze([
   "event_tag",
   "event_value",
   "history_count",
+  "attack_flag",
   "target_exists",
   "hit_target_comparison",
   "round_number",
@@ -262,6 +267,7 @@ export const TARGET_FILTER_TYPES = freeze([
   "hp_percent",
   "has_status",
   "has_defense",
+  "has_block",
   "has_defense_or_status",
   "is_preparing",
   "previous_target",
@@ -270,6 +276,7 @@ export const TARGET_FILTER_TYPES = freeze([
   "not_event_primary_target",
   "same_row_as_event_primary_target",
   "same_column_as_event_primary_target",
+  "horizontal_adjacent_to_event_primary_target",
   "not_acted_this_round",
   // DEVIATION (PREFLIGHT §1): symmetric partner of is_event_primary_target.
   // Without it, "the actor who caused this event is me" is unwritable in v1 and
@@ -294,6 +301,8 @@ export const TARGET_SORT_TYPES = freeze([
   "distance_to_self_asc",
   "barrier_asc",
   "barrier_desc",
+  "block_desc",
+  "guard_desc",
   "position_asc",
   "position_desc",
   "instance_id_asc",
@@ -342,6 +351,7 @@ export const EFFECT_TYPES = freeze([
   "cancel_pending_action",
   // R6 §6.7 — PHASE A. Block charges are a small integer, not a pool of points.
   "gain_block",
+  "mark_attack_flag",
 ]);
 
 // R6 §5.4 / §6.7 — PHASE A. How a damage effect spreads and how far it reaches.

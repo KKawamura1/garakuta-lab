@@ -1170,6 +1170,25 @@ function performAction(state, actor, choice) {
     );
     if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
 
+    const attack = (skill.effects ?? []).find((effect) => effect.type === "deal_damage"
+      && (effect.tags ?? []).includes("attack"));
+    if (attack) {
+      emit(state, {
+        type: "attack_plan_opened",
+        sourceActorId: actor.instanceId,
+        targetActorIds: [...frame.targetActorIds],
+        sourceDefinitionId: actor.definitionId,
+        skillId: skill.id,
+        tags: [...new Set([...(skill.tags ?? []), "attack_plan_opened"])],
+        values: {
+          baseTargetCount: frame.targetActorIds.length,
+          targetPattern: attack.targetPattern ?? "single",
+          baseHitCount: attack.hitCount ?? 1,
+        },
+      }, frame);
+      if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
+    }
+
     // §11.4-8 — cancel, target and cost are all re-checked after the interrupts.
     // Most actions require a living target. A generic revive effect is the one
     // deliberate exception: its target query may select a defeated actor so a
@@ -1202,8 +1221,14 @@ function performAction(state, actor, choice) {
       sourceDefinitionId: actor.definitionId,
       skillId: skill.id,
       tags: skill.tags,
-      values: { targetCount: frame.targetActorIds.length },
+      values: {
+        targetCount: frame.targetActorIds.length,
+        plannedTargetCount: frame.attackPlan?.extraTargetActorIds
+          ? new Set([...frame.targetActorIds, ...frame.attackPlan.extraTargetActorIds]).size
+          : frame.targetActorIds.length,
+      },
     });
+    frame.attackId = started.id;
 
     bumpHistory(actor, "active_actions", 1);
     recordTargeted(actor, frame.targetActorIds[0]);

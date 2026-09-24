@@ -144,6 +144,7 @@ export function applyEffect(rt, ctx, effect) {
     case "heal": return applyHealing(rt, ctx, effect);
     case "gain_barrier": return gainBarrier(rt, ctx, effect);
     case "gain_block": return gainBlock(rt, ctx, effect);
+    case "mark_attack_flag": return markAttackFlag(rt, ctx, effect);
     case "gain_resource": return gainResource(rt, ctx, effect);
     case "reduce_resource": return reduceResource(rt, ctx, effect);
     case "add_status": return addStatus(rt, ctx, effect);
@@ -231,6 +232,8 @@ function dealDamage(rt, ctx, effect) {
   const targetIds = (attackPlan?.targetActorIds
     ? attackPlan.targetActorIds.map((instanceId) => getActor(rt.state, instanceId)).filter(Boolean)
     : expandPattern(rt, ctx, effect)).map((actor) => actor.instanceId);
+  const extraTargetIds = isAttack ? (attackPlan?.extraTargetActorIds ?? []) : [];
+  const plannedTargetCount = new Set([...targetIds, ...extraTargetIds]).size;
   for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
     const distribution = attackPlan?.hitDistribution ?? effect.hitDistribution;
     const instances = distribution === "round_robin" && targetIds.length > 0
@@ -270,11 +273,42 @@ function dealDamage(rt, ctx, effect) {
         : undefined;
       const hitEvent = dealOneInstance(
         rt, ctx, effect, target, hitIndex, hitCount, rawAmount, previousTargetActorId,
-        false, Boolean(extraHit),
+        false, Boolean(extraHit), plannedTargetCount,
       );
       if (hitEvent && effect.onHitEffects?.length) {
         applyEffects(rt, { ...ctx, event: hitEvent }, effect.onHitEffects);
       }
+    }
+  }
+  if (extraTargetIds.length > 0 && attackPlan?.extraTargetDamageBps > 0) {
+    const amount = roundHalfUpDiv(
+      evaluateValue(rt.state, ctx, effect.amount) * attackPlan.extraTargetDamageBps,
+      BPS,
+    );
+    const derivedEffect = { ...effect, onHitEffects: undefined };
+    for (const instanceId of extraTargetIds) {
+      const target = getActor(rt.state, instanceId);
+      if (!target || !target.alive) {
+        rt.emit({
+          type: "damage_skipped",
+          ...sourceFields(ctx),
+          targetActorIds: [instanceId],
+          tags: [...(effect.tags ?? []), "plan_extra_damage"],
+          values: {
+            amount,
+            hitIndex: null,
+            hitCount,
+            plannedTargetCount,
+            attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+            reason: target ? "target_defeated" : "target_unavailable",
+          },
+        });
+        continue;
+      }
+      dealOneInstance(
+        rt, ctx, derivedEffect, target, null, hitCount, amount, null,
+        false, false, plannedTargetCount, true,
+      );
     }
   }
 }
@@ -370,7 +404,7 @@ function afterPositionModifier(rawAmount, rt, ctx, effect, target) {
 
 function dealOneInstance(
   rt, ctx, effect, target, hitIndex, hitCount, rawAmountOverride, previousTargetActorId = null,
-  amountIsFinal = false, isExtraHit = false,
+  amountIsFinal = false, isExtraHit = false, plannedTargetCount = null, planExtraDamage = false,
 ) {
   const rawAmount = rawAmountOverride === undefined
     ? evaluateValue(rt.state, ctx, effect.amount)
@@ -380,6 +414,7 @@ function dealOneInstance(
   const tags = [
     ...(effect.tags ?? []),
     ...(isExtraHit ? ["extra_hit"] : []),
+    ...(planExtraDamage ? ["plan_extra_damage"] : []),
     ...(ctx.pendingAction?.redirected ? ["redirect"] : []),
   ];
   const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
@@ -389,7 +424,14 @@ function dealOneInstance(
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
       tags,
-      values: { amount: proposed, hitIndex, hitCount, previousTargetActorId },
+      values: {
+        amount: proposed,
+        hitIndex,
+        hitCount,
+        previousTargetActorId,
+        attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+        plannedTargetCount,
+      },
     },
     frame,
   );
@@ -425,9 +467,14 @@ function dealOneInstance(
       ...sourceFields(ctx),
       parentEventId: event.id,
       targetActorIds: [finalTarget.instanceId],
-      tags: [],
-      values: { amount: 1, before, after: finalTarget.block },
+      tags: [...tags, "positive"],
+      values: {
+        amount: 1, before, after: finalTarget.block,
+        attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+      },
     });
+    emitDefenseBreak(rt, ctx, finalTarget, "block", before, finalTarget.block,
+      "hit", hitIndex, event.id);
     return event;
   }
 
@@ -435,7 +482,8 @@ function dealOneInstance(
   const guarded = afterGuard(amount, finalTarget, effect.guardPierceBps, rt.state.content);
 
   // barrier — 位置は v1 から動かしていないので、barrier だけを使う定義は挙動不変。
-  const absorbed = absorbBarrier(rt, ctx, finalTarget, guarded, []);
+  const barrierBefore = totalBarrier(finalTarget);
+  const absorbed = absorbBarrier(rt, ctx, finalTarget, guarded, tags);
   const remaining = guarded - absorbed;
   const hpBefore = finalTarget.hp;
   const hpDamage = Math.min(hpBefore, remaining);
@@ -499,6 +547,8 @@ function dealOneInstance(
         hitIndex,
         hitCount,
         previousTargetActorId,
+        attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+        plannedTargetCount,
         recoveredDamage: finalTarget.recoveredDamage,
         unrecoverableDamage: Math.max(0, finalTarget.maxHp - finalTarget.hp - window.remaining),
       },
@@ -519,6 +569,10 @@ function dealOneInstance(
       tags,
       values: { amount: excess, proposed: amount, afterGuard: guarded, barrierAbsorbed: absorbed, hpBefore },
     });
+  }
+  if (barrierBefore > 0 && totalBarrier(finalTarget) === 0) {
+    emitDefenseBreak(rt, ctx, finalTarget, "barrier", barrierBefore, 0,
+      "hit", hitIndex, event.id);
   }
   return event;
 }
@@ -553,7 +607,11 @@ function absorbBarrier(rt, ctx, target, amount, tags) {
         ...sourceFields(ctx),
         targetActorIds: [target.instanceId],
         tags,
-        values: { duration: packet.duration, barrierTotal: totalBarrier(target) },
+        values: {
+          duration: packet.duration,
+          barrierTotal: totalBarrier(target),
+          attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+        },
       });
     }
   }
@@ -815,11 +873,25 @@ function reduceResource(rt, ctx, effect) {
   }
 }
 
+function markAttackFlag(rt, ctx, effect) {
+  const attackId = ctx.event?.values?.attackId;
+  if (typeof attackId !== "string" || !rt.state.chain) return;
+  const flags = rt.state.chain.attackFlags.get(attackId) ?? new Set();
+  flags.add(effect.key);
+  rt.state.chain.attackFlags.set(attackId, flags);
+}
+
 function addStatus(rt, ctx, effect) {
   const definition = rt.state.content.statuses[effect.statusId];
   for (const target of selectTargets(rt, ctx, effect.target)) {
     if (!target.alive) continue;
-    const stacks = effect.stacks ?? 1;
+    const eventStackCount = effect.stacksFromEvent
+      ? ctx.event?.values?.[effect.stacksFromEvent.key]
+      : undefined;
+    const stacks = effect.stacksFromEvent
+      ? (Number.isSafeInteger(eventStackCount) ? eventStackCount * effect.stacksFromEvent.multiplier : 0)
+      : (effect.stacks ?? 1);
+    if (!Number.isSafeInteger(stacks) || stacks <= 0) continue;
     const existing = target.statuses.find((entry) => entry.statusId === effect.statusId);
     const before = existing ? existing.stacks : 0;
     const after = definition.maxStacks === "unbounded"
@@ -846,7 +918,7 @@ function addStatus(rt, ctx, effect) {
       type: "status_added",
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
-      tags: [definition.polarity, definition.duration],
+      tags: [definition.polarity, definition.duration, ...(effect.tags ?? [])],
       values: {
         statusId: effect.statusId,
         added: after - before,
@@ -906,7 +978,11 @@ function removeStatuses(rt, ctx, effect) {
 
 function removeBarrier(rt, ctx, effect) {
   for (const target of selectTargets(rt, ctx, effect.target)) {
-    absorbBarrier(rt, ctx, target, totalBarrier(target), ["effect"]);
+    const before = totalBarrier(target);
+    absorbBarrier(rt, ctx, target, before, ["effect"]);
+    if (before > 0 && totalBarrier(target) === 0) {
+      emitDefenseBreak(rt, ctx, target, "barrier", before, 0, "pre_hit");
+    }
   }
 }
 
@@ -919,10 +995,41 @@ function removeBlock(rt, ctx, effect) {
       type: "block_spent",
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
-      tags: ["effect"],
-      values: { amount: before, before, after: 0 },
+      tags: ["effect", "positive"],
+      values: {
+        amount: before, before, after: 0,
+        attackId: ctx.pendingAction?.attackId ?? ctx.event?.values?.attackId,
+      },
     });
+    emitDefenseBreak(rt, ctx, target, "block", before, 0, "pre_hit");
   }
+}
+
+function emitDefenseBreak(
+  rt, ctx, target, defenseKind, before, remaining, phaseKey, hitIndex = null,
+  parentEventId = ctx.event?.id,
+) {
+  const frame = ctx.pendingAction;
+  if (frame?.kind !== "action" || !ctx.event?.tags?.includes("attack")) return;
+  frame.attackPlan ??= {};
+  frame.attackPlan.defenseBreakWindows ??= new Set();
+  const key = `${phaseKey}:${target.instanceId}:${hitIndex ?? ""}`;
+  if (frame.attackPlan.defenseBreakWindows.has(key)) return;
+  frame.attackPlan.defenseBreakWindows.add(key);
+  rt.emit({
+    type: "defense_break",
+    ...sourceFields(ctx),
+    parentEventId,
+    targetActorIds: [target.instanceId],
+    tags: [...ctx.event.tags, "defense_break"],
+    values: {
+      defenseKind,
+      before,
+      remaining,
+      hitIndex,
+      attackId: frame.attackId ?? ctx.event.values?.attackId,
+    },
+  }, frame);
 }
 
 // §12.5 — the swap is atomic: no event ever shows two actors on one position.
@@ -1222,11 +1329,34 @@ function modifyAttackPlan(rt, ctx, effect) {
   if (effect.minHitCount !== undefined && baseHitCount < effect.minHitCount) return;
 
   const plan = frame.attackPlan ??= {};
+  if (effect.snapshotStatusIds?.length) {
+    frame.memory ??= {};
+    for (const statusId of effect.snapshotStatusIds) {
+      frame.memory[`status:${statusId}`] = statusStacks(frame.owner ?? ctx.owner, statusId);
+    }
+  }
   if (effect.hitCountBonus !== undefined) {
     plan.hitCountBonus = (plan.hitCountBonus ?? 0) + effect.hitCountBonus;
   }
   if (effect.extraHitBps !== undefined) plan.extraHitBps = effect.extraHitBps;
   if (effect.maxHitCount !== undefined) plan.maxHitCount = effect.maxHitCount;
+
+  if (effect.addAdjacentDamageTargets) {
+    if ((attack.targetPattern ?? "single") !== "single") return;
+    const query = {
+      scope: "enemies",
+      filters: [{ type: "alive" }, { type: "horizontal_adjacent_to_event_primary_target" }],
+      sort: ["position_asc"],
+      take: "all",
+    };
+    const adjacent = resolveTargets(rt.state, ctx, query, { reach: frame.reach });
+    const excluded = new Set(frame.targetActorIds);
+    const recipients = adjacent.filter((actor) => !excluded.has(actor.instanceId));
+    if (recipients.length > 0) {
+      plan.extraTargetActorIds = recipients.map((actor) => actor.instanceId);
+      plan.extraTargetDamageBps = effect.extraTargetDamageBps;
+    }
+  }
 
   if (effect.snapshotLegalTargets) {
     const query = { ...skill.targetQuery, take: "all" };

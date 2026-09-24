@@ -38,7 +38,10 @@ export function evaluateValue(state, ctx, valueDef) {
     case "event_value_times_status_scaled": {
       const raw = ctx.event ? ctx.event.values[valueDef.key] : undefined;
       const actor = resolveSubject(state, ctx, valueDef.subject);
-      const stacks = actor ? statusStacks(actor, valueDef.statusId) : 0;
+      const snapshot = valueDef.memoryKey ? ctx.pendingAction?.memory?.[valueDef.memoryKey] : undefined;
+      const stacks = Number.isSafeInteger(snapshot)
+        ? snapshot
+        : (actor ? statusStacks(actor, valueDef.statusId) : 0);
       base = typeof raw === "number" && Number.isFinite(raw) ? raw * stacks : 0;
       break;
     }
