@@ -248,6 +248,16 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 防壁で吸い切った攻撃は `damage_proposed` → `barrier_damaged` / `barrier_broken` →
 `damage_absorbed`（`finalDamage: 0` を含む）、途中で対象を失った hit は `damage_skipped`、
 行動の取り消しは `action_canceled` として、HPが変わらない場合も理由を残します。
+`effects.mjs` の `applyEffects` は、効果列の最初の `deal_damage` の直前に ActionPlan を作ります。
+その列に残る直接ダメージ効果ごとに基礎対象、`targetPattern` 展開後の受け手、hit枠、基礎威力を
+まとめて固定し、予定受け手は行動全体で重複を除いて数えます。各 `damage_proposed` /
+`damage_skipped` は共通の `actionPlanId` と効果index、行動対象数、基礎hit数、基礎対象数、
+予定対象数を持ちます。行動本体の行動対象数には選択済みの対象を使い、ルール効果では引き金イベントの
+対象を流用せず、その効果列の最初の直接ダメージの基礎対象を使います。hit前に対象が消えた
+`damage_skipped` には、事前に決めた基礎威力も `plannedAmount` として記録します。
+途中撃破や後続効果の状態変更で、計画済みhitの対象・基礎威力を選び直しません。pending damageへの
+イベント反応は従来どおり各hitで計画後に処理します。試映も実戦と同じ `simulateBattle` を呼び、
+replayも同じイベント列を読みます。
 戦闘盤面の防壁バーは新しいイベントや状態を持たず、`app.js` が現在の `replaySnapshots` の actor から `barrier` と `maxHp` を読み、`min(100, barrier / maxHp * 100)` の表示幅へ変換します。数値マークとバーは同じsnapshotを読むため、付与・吸収・破壊・期限切れの表示がずれません。
 準備付き行動では `preparation_completed` の後続にあるダメージ系イベントを別の `impact` 拍へ分離します。盤面の踏み込みと、攻撃側から被弾側へ引く線は `beatHasStrikeImpact()` が判定する着弾拍だけに限定し、準備開始・完了や `sub` 反応で誤って攻撃モーションを出さないようにします。
 ターゲットクエリの `not_self` は、反応ルールの owner と候補 actor の instance ID を比較し、ownerless な region rule では no-op です。

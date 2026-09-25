@@ -128,8 +128,19 @@ function spendResource(rt, ctx, actor, resource, amount) {
 // ------------------------------------------------------------- effects (§10.2)
 
 export function applyEffects(rt, ctx, effects) {
-  for (const effect of effects) {
-    applyEffect(rt, ctx, effect);
+  let actionPlan = null;
+  for (const [effectIndex, effect] of effects.entries()) {
+    // The plan belongs to this whole effect sequence. Build it at the first
+    // direct-damage boundary, after any earlier setup effects, and before the
+    // first hit can change targets, values, or positions.
+    if (!actionPlan && effect.type === "deal_damage") {
+      actionPlan = createActionPlan(rt, ctx, effects, effectIndex);
+    }
+    applyEffect(
+      rt,
+      actionPlan ? { ...ctx, actionPlan, actionPlanEffectIndex: effectIndex } : ctx,
+      effect,
+    );
   }
 }
 
@@ -156,6 +167,90 @@ export function applyEffect(rt, ctx, effect) {
       // §4.1 — an unimplemented effect throws instead of silently doing nothing.
       throw new Error(`unimplemented effect type: ${effect.type}`);
   }
+}
+
+function createActionPlan(rt, ctx, effects, firstDamageIndex) {
+  const state = rt.state;
+  const chain = state.chain;
+  const previousResolvedTargets = chain ? chain.lastResolvedTargets : undefined;
+  const effectPlans = {};
+  const plannedRecipients = new Set();
+  let firstEffectBaseTargets = null;
+
+  try {
+    for (let effectIndex = firstDamageIndex; effectIndex < effects.length; effectIndex += 1) {
+      const effect = effects[effectIndex];
+      if (effect.type !== "deal_damage") continue;
+
+      const baseTargets = resolveTargets(state, ctx, effect.target, { reach: effect.reach });
+      const plannedTargets = expandPattern(state, baseTargets, effect);
+      const baseTargetIds = Object.freeze(baseTargets.map((actor) => actor.instanceId));
+      const plannedRecipientIds = Object.freeze(
+        [...new Set(plannedTargets.map((actor) => actor.instanceId))],
+      );
+      if (firstEffectBaseTargets === null) firstEffectBaseTargets = baseTargetIds;
+
+      // Target expressions such as not_previous_target see the already planned
+      // recipients from an earlier damage effect, as if the plan were resolved
+      // in effect order. This temporary value is restored before effects run.
+      if (chain) chain.lastResolvedTargets = [...plannedRecipientIds];
+
+      const baseHitCount = effect.hitCount ?? 1;
+      const hitSlots = Object.freeze(Array.from({ length: baseHitCount }, (_, hitIndex) => (
+        plannedRecipientIds.map((targetActorId) => Object.freeze({ targetActorId, hitIndex }))
+      )).flat());
+      const baseAmount = afterRearFalloff(
+        afterSkillLevel(evaluateValue(state, ctx, effect.amount), ctx),
+        ctx,
+        effect,
+      );
+
+      effectPlans[effectIndex] = Object.freeze({
+        effectIndex,
+        baseTargetIds,
+        plannedRecipientIds,
+        baseHitCount,
+        hitCount: baseHitCount,
+        hitSlots,
+        baseAmount,
+      });
+      for (const instanceId of plannedRecipientIds) plannedRecipients.add(instanceId);
+    }
+  } finally {
+    if (chain) chain.lastResolvedTargets = previousResolvedTargets;
+  }
+
+  // For skill-owned sequences, event targets are this action's selected targets.
+  // For rule effects, ctx.event is the triggering event, so use this sequence's
+  // first planned damage targets instead of copying the trigger's targets.
+  const eventTargetIds = ctx.ruleId === undefined && ctx.skillId
+    ? ctx.event?.targetActorIds ?? []
+    : [];
+  const baseTargetIds = Object.freeze(
+    [...(eventTargetIds.length > 0 ? eventTargetIds : firstEffectBaseTargets ?? [])],
+  );
+  const sourceKey = ctx.ruleId ?? ctx.skillId ?? ctx.sourceDefinitionId ?? "effect";
+  const ownerKey = ctx.owner ? ctx.owner.instanceId : "~region";
+  const eventKey = ctx.event?.id ?? `chain_${chain ? chain.id : 0}`;
+  return Object.freeze({
+    id: `plan:${eventKey}:${ownerKey}:${sourceKey}`,
+    baseTargetIds,
+    baseTargetCount: baseTargetIds.length,
+    plannedRecipientIds: Object.freeze([...plannedRecipients]),
+    plannedTargetCount: plannedRecipients.size,
+    effectPlans: Object.freeze(effectPlans),
+  });
+}
+
+function actionPlanEventValues(actionPlan, effectPlan) {
+  return {
+    actionPlanId: actionPlan.id,
+    effectIndex: effectPlan.effectIndex,
+    actionTargetCount: actionPlan.baseTargetCount,
+    baseHitCount: effectPlan.baseHitCount,
+    baseTargetCount: effectPlan.baseTargetIds.length,
+    plannedTargetCount: actionPlan.plannedTargetCount,
+  };
 }
 
 // R6 §6.7 — block charge を与える。**次の damage instance を丸ごと止める。**
@@ -198,43 +293,62 @@ function gainBlock(rt, ctx, effect) {
 //   4. その instance の after reaction を処理してから次の対象へ進む
 //   5. 途中で倒れた対象への残り hit は**失われる。別対象へ自動 retarget しない**
 function dealDamage(rt, ctx, effect) {
-  const hitCount = effect.hitCount ?? 1;
-  // 1. 一度だけ確定する。hit の途中で対象が変わらないのが multi-hit の前提。
-  const targetIds = expandPattern(rt, ctx, effect).map((actor) => actor.instanceId);
-  for (let hitIndex = 0; hitIndex < hitCount; hitIndex += 1) {
-    for (const instanceId of targetIds) {
-      const target = getActor(rt.state, instanceId);
-      // 5. 倒れていたらこの hit は失われる。別の相手へ回さない。
-      if (!target || !target.alive) {
-        rt.emit({
-          type: "damage_skipped",
-          ...sourceFields(ctx),
-          targetActorIds: [instanceId],
-          tags: effect.tags ?? [],
-          values: { hitIndex, hitCount, reason: target ? "target_defeated" : "target_unavailable" },
-        });
-        continue;
-      }
-      dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount);
+  const actionPlan = ctx.actionPlan ?? createActionPlan(rt, ctx, [effect], 0);
+  const effectIndex = ctx.actionPlanEffectIndex ?? 0;
+  const effectPlan = actionPlan.effectPlans[effectIndex];
+  if (!effectPlan) throw new Error(`damage effect ${effectIndex} is missing from its action plan`);
+
+  // Preserve the old selector side effect at the point this effect executes;
+  // rule effects between hits still observe the current effect's planned set.
+  if (rt.state.chain) {
+    rt.state.chain.lastResolvedTargets = [...effectPlan.plannedRecipientIds];
+  }
+  for (const { targetActorId, hitIndex } of effectPlan.hitSlots) {
+    const target = getActor(rt.state, targetActorId);
+    // A recipient that dies loses its remaining slots. The action plan never
+    // reallocates those slots to a target that survived.
+    if (!target || !target.alive) {
+      rt.emit({
+        type: "damage_skipped",
+        ...sourceFields(ctx),
+        targetActorIds: [targetActorId],
+        tags: effect.tags ?? [],
+        values: {
+          hitIndex,
+          hitCount: effectPlan.hitCount,
+          plannedAmount: effectPlan.baseAmount,
+          ...actionPlanEventValues(actionPlan, effectPlan),
+          reason: target ? "target_defeated" : "target_unavailable",
+        },
+      });
+      continue;
     }
+    dealOneInstance(
+      rt,
+      ctx,
+      effect,
+      target,
+      hitIndex,
+      effectPlan.hitCount,
+      undefined,
+      actionPlan,
+      effectPlan,
+    );
   }
 }
 
 // R6 §5.4 — targetPattern は「最初に選ばれた相手」から広げる。
 // row は同じ行、column は同じ列の前後。空き枠は actor ではないので数に入らない。
-function expandPattern(rt, ctx, effect) {
-  const primary = selectTargets(rt, ctx, effect.target, { reach: effect.reach });
+function expandPattern(state, primary, effect) {
   const pattern = effect.targetPattern ?? "single";
   if (pattern === "single" || primary.length === 0) return primary;
   const anchor = primary[0];
-  const pool = actorsOnSide(rt.state, anchor.side).filter((actor) => actor.alive);
+  const pool = actorsOnSide(state, anchor.side).filter((actor) => actor.alive);
   const spread = pattern === "row"
     ? pool.filter((actor) => POSITION_ROW[actor.position] === POSITION_ROW[anchor.position])
     : pool.filter((actor) => POSITION_COLUMN[actor.position] === POSITION_COLUMN[anchor.position]);
   const chosen = spread.length > 0 ? spread : primary;
-  const ordered = [...chosen].sort(compareActorsDefault);
-  rt.state.chain.lastResolvedTargets = ordered.map((actor) => actor.instanceId);
-  return ordered;
+  return [...chosen].sort(compareActorsDefault);
 }
 
 // R6 §4.4 — direct damage の軽減。**最低10%は通す。**
@@ -290,11 +404,23 @@ function afterRearFalloff(rawAmount, ctx, effect) {
   return roundHalfUpDiv(rawAmount * REAR_WEAPON_BPS, BPS);
 }
 
-function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOverride) {
+function dealOneInstance(
+  rt,
+  ctx,
+  effect,
+  target,
+  hitIndex,
+  hitCount,
+  proposedOverride,
+  actionPlan = null,
+  effectPlan = null,
+) {
   const proposed = proposedOverride === undefined
-    ? afterRearFalloff(
-      afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), ctx, effect,
-    )
+    ? effectPlan
+      ? effectPlan.baseAmount
+      : afterRearFalloff(
+        afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx), ctx, effect,
+      )
     : Math.max(0, proposedOverride);
   const tags = effect.tags ?? [];
   const frame = { kind: "amount", amount: proposed, targetActorIds: [target.instanceId] };
@@ -304,7 +430,12 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       ...sourceFields(ctx),
       targetActorIds: [target.instanceId],
       tags,
-      values: { amount: proposed, hitIndex, hitCount },
+      values: {
+        amount: proposed,
+        hitIndex,
+        hitCount,
+        ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan) : {}),
+      },
     },
     frame,
   );
@@ -316,7 +447,14 @@ function dealOneInstance(rt, ctx, effect, target, hitIndex, hitCount, proposedOv
       parentEventId: event.id,
       targetActorIds: frame.targetActorIds,
       tags,
-      values: { amount: frame.amount, hitIndex, hitCount, reason: finalTarget ? "target_defeated" : "target_unavailable" },
+      values: {
+        amount: frame.amount,
+        hitIndex,
+        hitCount,
+        ...(effectPlan ? { plannedAmount: effectPlan.baseAmount } : {}),
+        ...(effectPlan ? actionPlanEventValues(actionPlan, effectPlan) : {}),
+        reason: finalTarget ? "target_defeated" : "target_unavailable",
+      },
     });
     return;
   }

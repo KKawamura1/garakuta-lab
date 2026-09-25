@@ -1,7 +1,7 @@
 # dev移行台帳 — Stage 0・Stage 1・Stage 2
 
 更新日: 2026-09-25  
-状態: **Stage 0完了。Stage 1の敵registry分離を完了。Stage 2の共通解決順に着手。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。このPRでは同一人物のリアクティブ優先列をカタログ・解決順監査に合わせる。武器別player registry、ActionPlan全体の固定、未実装技能の取得制御、新runtimeへの全面移行は後続作業。
+状態: **Stage 0完了。Stage 1の敵registry分離を完了。Stage 2の共通解決順とActionPlan基礎を実装中。** PR #291で190節のカタログ同期・ID出典整理・初期20節の導出を追加した。PR #292で敵の実使用技能だけを独立したregistryへ移し、schema・engine・敵戦闘の境界を切り替えた。PR #294で同一人物のリアクティブ優先列を監査仕様へ合わせ、このActionPlan PRで同一効果列に含まれる複数の直接ダメージを一つの計画へ束ねる。対象反応、副対象拡張、追加hit/RP、武器別player registry、未実装技能の取得制御、新runtimeへの全面移行は後続作業。
 
 この台帳は、[PR #288の依存監査・実装順序](https://github.com/KKawamura1/garakuta-lab/blob/feat/weapon-skill-system/docs/skill-reboot/15-pr288-dependency-audit-and-sequencing.md)に沿って、dev上での確認事項・撤去条件・未確認点を記録する。技能仕様の正本はmainの [武器カタログ](11-weapon-catalog.md) と [解決順監査](12-resolution-order-audit.md)。PR #288は移植元・監査材料として使い、全体をdevへ取り込まない。
 
@@ -83,9 +83,12 @@ skill IDはmainの仕様から再生成できない。前提はカタログの�
 
 準備段階では旧player runtimeを維持する。新規モジュールは旧skill ID・level map・旧tree・旧pack形状へ依存させない。PR #292の共有enemy actionは移行用の複製であり、武器別player実装の後に複製元importを撤去する。初期20節のゲーム本体切替と旧経路削除は同じ後続PRで行う。
 
-## Stage 2の共通解決順
+## Stage 2の共通解決順とActionPlan
 
-- [x] 同一人物のリアクティブ優先列をevent / timingごとに適用する。条件またはRP支払いに失敗した候補は飛ばし、同じ窓で最初に発動した一つだけを選ぶ。他の人物の反応は独立して処理する。二候補がともに支払えるケース、先頭の述語が不成立のケース、先頭がRP不足で次候補へ進むケースをecology/engine.test.mjsのイベント列で固定する。
-- [ ] 一行動全体のActionPlanを固定する。基礎hit・形状・主対象・対象変更・副対象・hit割当・RP支払いを最初のdamage前に一つの計画へ集約する。PR #293の効果単位target/hit固定は、このActionPlan全体を確立した扱いにはしない。
+- [x] PR #294で同一人物のリアクティブ優先列をevent / timingごとに適用する。条件またはRP支払いに失敗した候補は飛ばし、同じ窓で最初に発動した一つだけを選ぶ。他の人物の反応は独立して処理する。複数候補・条件不成立・RP不足からのfallbackを `ecology/engine.test.mjs` のイベント列で固定した。
+- [x] ActionPlanの基礎境界を追加する。`applyEffects` の最初の `deal_damage` 前に、同じ効果列に残る直接ダメージ効果ごとの基礎対象、形状展開後の受け手、hit枠、基礎威力を固定する。効果列の受け手を重複排除し、`damage_proposed` / `damage_skipped` に共通の `actionPlanId`、効果index、基礎hit数・対象数・予定対象数を記録する。提案前に対象が倒れてhitを飛ばす場合も `plannedAmount` を残す。
+- [x] 一つ目の攻撃効果で最弱対象を倒しても後続効果が別対象へ移らないこと、最初のhit後に得た状態が後続効果の基礎威力へ遡及しないことを `ecology/engine.test.mjs` で確認する。試映は同じ `simulateBattle` を通り、replayは同じevent列を読む。
+- [ ] 対象前移動、対象変更・攻撃前・副対象拡張の反応窓、追加hitとRP支払いをActionPlanへ統合する。防御崩し・hit後反応・攻撃後処理の段階も一方向に接続し、追加hitや派生片が元計画を遡及変更しないことを検査する。
+- [x] PR #295のActionPlan基礎でPR #293の単独の効果単位計画を包含し、PR #293をsupersededとして閉じた。別系統の計画は並行して残さない。
 
-次は実際のmulti-effect攻撃を代表ケースにしてActionPlan境界を作り、その固定値が全hit・後続effect・preview/replayで共有されることを証明する。
+次は対象前移動と対象反応から、監査表の段階をActionPlanへ一つずつ接続する。効果量・反応窓・preview/replayの独立実装を先に増やさず、共通engineのevent traceで各段階を固定する。
