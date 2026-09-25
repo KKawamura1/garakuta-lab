@@ -218,7 +218,7 @@ Campaignの物語イベント（opening / join / 幕の断片 / stageEnd）は�
   リプレイの表示が同じ名前になる。
 - `Date` と `Math.random` は engine とゲーム内容の計算経路に入れません。
 - 乱数 key を用途別に分け、reward reroll が後続の敵や drop を変えないようにします。
-- 同じ actor の reactive skill は loadout の上から順に候補を処理し、active skill は配列順に最初の使用可能なものを選びます。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。
+- 同じ actor の reactive skill は loadout の上から候補を処理し、同じ event / timing の窓では条件と費用を満たす最初の一本だけを発動します。条件不成立または費用不足なら次を試します。active skill は配列順に最初の使用可能なものを選びます。actor をまたぐ reactive の順序は、従来どおり priority・initiative・position・ID の tie-break を使います。reactive 以外の rule source はこの優先列による一件制限を受けません。
 
       runSeed:manifest:stageId
       runSeed:encounter:encounterIndex
