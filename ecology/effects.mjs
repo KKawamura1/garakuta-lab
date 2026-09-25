@@ -220,7 +220,12 @@ function createActionPlan(rt, ctx, effects, firstDamageIndex) {
     if (chain) chain.lastResolvedTargets = previousResolvedTargets;
   }
 
-  const eventTargetIds = ctx.event?.targetActorIds ?? [];
+  // For skill-owned sequences, event targets are this action's selected targets.
+  // For rule effects, ctx.event is the triggering event, so use this sequence's
+  // first planned damage targets instead of copying the trigger's targets.
+  const eventTargetIds = ctx.ruleId === undefined && ctx.skillId
+    ? ctx.event?.targetActorIds ?? []
+    : [];
   const baseTargetIds = Object.freeze(
     [...(eventTargetIds.length > 0 ? eventTargetIds : firstEffectBaseTargets ?? [])],
   );
