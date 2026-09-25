@@ -1169,7 +1169,11 @@ function performAction(state, actor, choice) {
       },
       frame,
     );
+    // Finish target-selection after-reactions before checking the final target or
+    // paying AP. The attack-start interrupt is the next reaction window.
+    drainAfterQueue(state);
     if (frame.canceled) return cancelAction(state, actor, skill, frame, "rule");
+    if (!actor.alive) return cancelAction(state, actor, skill, frame, "rule");
 
     // §11.4-8 — cancel, target and cost are all re-checked after the interrupts.
     const finalTargets = frame.targetActorIds
