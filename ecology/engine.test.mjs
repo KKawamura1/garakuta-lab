@@ -1177,6 +1177,82 @@ for (const battle of ALL_FIXTURE_BATTLES) {
 }
 
 {
+  // Finish after-reactions caused by the action's effects before action_resolved;
+  // after-reactions to action_resolved itself then form the final action window.
+  const bundle = structuredClone(FIXTURE_CONTENT);
+  bundle.activeSkills.action_end_trace = {
+    ...structuredClone(bundle.activeSkills.strike),
+    id: "action_end_trace",
+    displayName: "Action End Trace (fixture)",
+    tags: [...bundle.activeSkills.strike.tags, "action_end_fixture"],
+    effects: [
+      ...structuredClone(bundle.activeSkills.strike.effects),
+      { type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 },
+    ],
+  };
+  bundle.characters.warden.signatureRules.push(
+    {
+      id: "warden_reacts_to_action_effect_status",
+      listenTo: "status_added",
+      timing: "after",
+      priority: 100,
+      predicates: [{ type: "event_value", key: "statusId", op: "eq", value: "exposed" }],
+      costs: [],
+      effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "focused", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+    {
+      id: "warden_reacts_to_action_resolved",
+      listenTo: "action_resolved",
+      timing: "after",
+      priority: 100,
+      predicates: [{ type: "event_tag", tag: "action_end_fixture", value: true }],
+      costs: [],
+      effects: [{ type: "add_status", target: { scope: "self", take: 1 }, statusId: "exposed", stacks: 1 }],
+      limit: { owner: "actor-instance + rule", scope: "chain", count: 1 },
+    },
+  );
+
+  const battle = structuredClone(CORE_BATTLE);
+  battle.battleId = "action_end_after_reaction_boundary";
+  battle.maxRounds = 1;
+  battle.objective = { type: "survive_rounds", rounds: 1 };
+  battle.allies = [structuredClone(CORE_BATTLE.allies[0])];
+  battle.allies[0].tactics = [{ activeSkillId: "action_end_trace", useWhen: [] }];
+  battle.allies[0].reactiveSkillIds = [];
+  battle.allies[0].equipment = [];
+  battle.enemies = [{ instanceId: "e_husk", enemyActorId: "husk", position: "front_center", hp: 10 }];
+
+  const result = simulateBattle(battle, bundle);
+  const started = of(result, "action_started").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "action_end_trace",
+  );
+  const effectStatus = of(result, "status_added").find(
+    (event) => event.sourceActorId === "a_warden"
+      && event.targetActorIds[0] === "a_warden"
+      && event.values.statusId === "exposed"
+      && event.parentEventId === started?.id,
+  );
+  const effectReactionStatus = of(result, "status_added").find(
+    (event) => event.ruleId === "warden_reacts_to_action_effect_status",
+  );
+  const actionResolved = of(result, "action_resolved").find(
+    (event) => event.sourceActorId === "a_warden" && event.skillId === "action_end_trace",
+  );
+  const actionEndStatus = of(result, "status_added").find(
+    (event) => event.ruleId === "warden_reacts_to_action_resolved",
+  );
+
+  check(started && effectStatus && effectReactionStatus && actionResolved && actionEndStatus,
+    "both effect and action-end after-reactions resolve");
+  check(started.sequence < effectStatus.sequence
+    && effectStatus.sequence < effectReactionStatus.sequence
+    && effectReactionStatus.sequence < actionResolved.sequence
+    && actionResolved.sequence < actionEndStatus.sequence,
+  "action-effect reactions settle before action_resolved and its own reactions settle last");
+}
+
+{
   // A reactive damage sequence gets its own target count, not the number of
   // actors selected by the event that triggered it.
   const bundle = structuredClone(FIXTURE_CONTENT);

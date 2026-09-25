@@ -264,6 +264,7 @@ UI・replay・検査は、engine が出した同じイベント列を読みま�
 interruptは各hitの提案中に処理し、そのhitのblock・guard・barrier・HP結果が完了した直後にafter反応を解決してから次の枠へ進みます。
 したがって `barrier_broken` や `damage_taken` の反応は次のhitより先に完了し、新しく得た状態は未処理hitだけへ効きます。
 after queueは一度に一つだけdrainし、反応効果の中で別のdamageが発生しても、現在の反応規則が終わる前にqueueを再帰drainしません。
+行動の効果列と準備開始が発生させたafter queueは `action_resolved` より前にdrainし、同イベントに対するafter queueは最後にdrainします。
 試映も実戦と同じ `simulateBattle` を呼び、
 replayも同じイベント列を読みます。
 副対象の追加damage片も同じActionPlanへ固定し、主効果列を解決した後に標準のdamage処理で適用します。
