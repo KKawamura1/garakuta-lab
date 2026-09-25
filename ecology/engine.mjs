@@ -941,12 +941,57 @@ function actionTargetCandidates(state, ctx, skill) {
   const targets = resolveTargets(state, ctx, skill.targetQuery, { reach });
   if (targets.length > 0) return targets;
   // A melee action can still become targetable after an action_declared
-  // interrupt moves the frontline. Keep it as a candidate only when the same
-  // query already finds a living target without the frontline restriction.
-  if (reach === "melee" && resolveTargets(state, ctx, skill.targetQuery).length > 0) {
+  // reaction moves the frontline. Do not declare an otherwise unusable action
+  // just because an out-of-reach target exists: that would fire declaration
+  // reactions even when nothing can change its reach.
+  if (
+    reach === "melee"
+    && hasPotentialPreTargetMovement(state, ctx, skill)
+    && resolveTargets(state, ctx, skill.targetQuery).length > 0
+  ) {
     return [];
   }
   return null;
+}
+
+function hasPotentialPreTargetMovement(state, ctx, skill) {
+  const event = {
+    type: "action_declared",
+    sourceActorId: ctx.owner.instanceId,
+    targetActorIds: [],
+    sourceDefinitionId: ctx.owner.definitionId,
+    skillId: skill.id,
+    tags: skill.tags ?? [],
+    values: { apCost: skill.apCost, targetCount: 0 },
+  };
+  const rt = makeRuntime(state);
+  return allRuleEntries(state).some((entry) => {
+    const rule = entry.rule;
+    if (
+      rule.listenTo !== "action_declared"
+      || !rule.effects.some((effect) => effect.type === "swap_positions")
+      || !ruleSourceIntact(state, entry)
+    ) return false;
+
+    const key = firingKey(entry);
+    const limit = rule.limit;
+    if (limit.scope === "round" && firedCount(state.roundFirings, key) >= limit.count) return false;
+    if (limit.scope === "battle" && firedCount(state.battleFirings, key) >= limit.count) return false;
+
+    const ruleCtx = {
+      owner: entry.owner,
+      event,
+      pending: null,
+      pendingAction: state.currentPendingAction,
+      candidate: null,
+      sourceDefinitionId: entry.sourceDefinitionId,
+      ruleId: rule.id,
+      skillId: undefined,
+      equipmentInstanceId: entry.equipmentInstanceId,
+    };
+    return evaluatePredicates(state, ruleCtx, rule.predicates)
+      && canPayCosts(rt, ruleCtx, rule.costs);
+  });
 }
 
 function coreActionChoice(state, actor, key) {
