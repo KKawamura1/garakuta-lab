@@ -171,7 +171,7 @@ export function applyEffect(rt, ctx, effect) {
     case "split_pending_damage": return splitPendingDamage(rt, ctx, effect);
     case "redirect_pending_target": return redirectPendingTarget(rt, ctx, effect);
     case "cancel_pending_action": return cancelPendingAction(rt, ctx, effect);
-    case "add_action_damage": return addActionDamage(rt, ctx, effect);
+    case "add_action_damage": return addActionDamage(rt, ctx);
     default:
       // §4.1 — an unimplemented effect throws instead of silently doing nothing.
       throw new Error(`unimplemented effect type: ${effect.type}`);
@@ -550,29 +550,30 @@ function actionDamageExpansionAmount(rt, ctx, effect) {
   );
 }
 
-// The dispatcher uses this before paying RP. A missing secondary target, an
-// already claimed expansion, or a zero-value fragment leaves the owner's
-// reactive priority open for the next candidate.
+// Resolve the fragment before RP is paid so an invalid candidate leaves the
+// owner's reactive priority open. Cache the full fragment on this per-rule
+// context; addActionDamage commits this snapshot after costs are paid.
 export function canAddActionDamage(rt, ctx, effect) {
-  if (!actionTargetExpansionFrame(rt, ctx)) return false;
-  return actionDamageExpansionTargets(rt, ctx, effect).length > 0
-    && actionDamageExpansionAmount(rt, ctx, effect) > 0;
-}
-
-function addActionDamage(rt, ctx, effect) {
   const window = actionTargetExpansionFrame(rt, ctx);
-  if (!window) return;
+  if (!window) return false;
   const targets = actionDamageExpansionTargets(rt, ctx, effect);
   const amount = actionDamageExpansionAmount(rt, ctx, effect);
-  if (targets.length === 0 || amount <= 0) return;
-  window.frame.actionDamageExpansion = {
+  if (targets.length === 0 || amount <= 0) return false;
+  ctx.preparedActionDamage = Object.freeze({
     ruleId: ctx.ruleId,
     sourceDefinitionId: ctx.sourceDefinitionId,
-    targetActorIds: targets.map((target) => target.instanceId),
+    targetActorIds: Object.freeze(targets.map((target) => target.instanceId)),
     amount,
-    tags: [...new Set([...(window.frame.tags ?? []), ...(effect.tags ?? [])])],
+    tags: Object.freeze([...new Set([...(window.frame.tags ?? []), ...(effect.tags ?? [])])]),
     guardPierceBps: effect.guardPierceBps ?? 0,
-  };
+  });
+  return true;
+}
+
+function addActionDamage(rt, ctx) {
+  const window = actionTargetExpansionFrame(rt, ctx);
+  if (!window || !ctx.preparedActionDamage || window.frame.actionDamageExpansion) return;
+  window.frame.actionDamageExpansion = ctx.preparedActionDamage;
 }
 
 function dealOneInstance(
