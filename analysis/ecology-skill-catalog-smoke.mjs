@@ -246,8 +246,8 @@ const scaledByEngine = new Set(dispatch.filter(([, , handler]) => scaling.has(ha
 const preparedActionDamageCheck = bodies.get("canAddActionDamage") ?? "";
 const preparedActionDamageAmount = bodies.get("actionDamageExpansionAmount") ?? "";
 if (
-  /\\bactionDamageExpansionAmount\\s*\\(\\s*rt\\s*,\\s*ctx\\s*,\\s*effect\\s*\\)/.test(preparedActionDamageCheck)
-  && /\\bafterSkillLevel\\s*\\(\\s*evaluateValue\\s*\\(\\s*rt\\.state\\s*,\\s*ctx\\s*,\\s*effect\\.amount\\s*\\)\\s*,\\s*ctx\\s*\\)/.test(preparedActionDamageAmount)
+  preparedActionDamageCheck.includes("actionDamageExpansionAmount(rt, ctx, effect)")
+  && preparedActionDamageAmount.includes("afterSkillLevel(evaluateValue(rt.state, ctx, effect.amount), ctx)")
 ) {
   scaledByEngine.add("add_action_damage");
 }
