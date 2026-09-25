@@ -568,13 +568,15 @@ for (const battle of ALL_FIXTURE_BATTLES) {
   const content = structuredClone(FIXTURE_CONTENT);
   content.reactiveSkills.counter_blow.rule.costs = [];
   content.reactiveSkills.brace_after_hit.rule.costs = [];
-  const result = simulateBattle(COST_CONTEST_BATTLE, content);
+  const battle = structuredClone(COST_CONTEST_BATTLE);
+  battle.allies[0].reactiveSkillIds.reverse();
+  const result = simulateBattle(battle, content);
   const counters = of(result, "damage_proposed").filter((event) =>
     event.ruleId === "counter_blow_rule");
   const braces = of(result, "barrier_gained").filter((event) =>
     event.ruleId === "brace_after_hit_rule");
-  check(counters.length > 0, "the first eligible reactive fires");
-  equal(braces.length, 0, "later same-actor reactives wait after one fires");
+  check(braces.length > 0, "the priority-list first reactive fires despite lower rule priority");
+  equal(counters.length, 0, "the later reactive waits even though it could also pay");
 }
 
 {
